@@ -137,6 +137,19 @@ const sampleTargets = ["的", "一", "强", "器", "随", "察", "群", "疑", "
     throw new Error(`Expected missed card to appear on the home review panel, got ${JSON.stringify(feedbackCheck)}`);
   }
 
+  await page.click("#riskList [data-idx]");
+  await page.waitForFunction(() => batch.length > 0 && activeMode === "focus");
+  const riskClickCheck = await page.evaluate(() => ({
+    activeMode,
+    batchSize: batch.length,
+    firstTarget: CARDS[batch[0]].target,
+    firstWord: CARDS[batch[0]].word,
+  }));
+  if (riskClickCheck.firstTarget !== feedbackCheck.firstMemory.target) {
+    throw new Error(`Expected clicking a risk chip to start focused practice, got ${JSON.stringify(riskClickCheck)}`);
+  }
+  await page.evaluate(() => renderHome());
+
   await page.click("#startReview");
   await page.waitForFunction(() => batch.length > 0 && activeMode === "review");
   const reviewModeCheck = await page.evaluate(() => ({
@@ -147,6 +160,84 @@ const sampleTargets = ["的", "一", "强", "器", "随", "察", "群", "疑", "
   }));
   if (reviewModeCheck.firstTarget !== feedbackCheck.firstMemory.target) {
     throw new Error(`Expected review mode to start with due card, got ${JSON.stringify(reviewModeCheck)}`);
+  }
+
+  const bookCheck = await page.evaluate(() => {
+    renderBook();
+    return {
+      visible: getComputedStyle(document.getElementById("studybook")).display !== "none",
+      rows: document.querySelectorAll("#bookList .bookRow").length,
+      practiceDueText: document.getElementById("practiceDue").textContent,
+      practiceRiskText: document.getElementById("practiceRisk").textContent,
+      firstRowText: document.querySelector("#bookList .bookRow")?.textContent || "",
+    };
+  });
+  if (!bookCheck.visible || bookCheck.rows < 1 || !bookCheck.firstRowText.includes(feedbackCheck.firstMemory.target)) {
+    throw new Error(`Expected study book to list risk cards, got ${JSON.stringify(bookCheck)}`);
+  }
+
+  await page.click("#bookList .bookRow");
+  await page.waitForFunction(() => batch.length > 0 && activeMode === "focus");
+  const bookClickCheck = await page.evaluate(() => ({
+    activeMode,
+    firstTarget: CARDS[batch[0]].target,
+    firstWord: CARDS[batch[0]].word,
+  }));
+  if (bookClickCheck.firstTarget !== feedbackCheck.firstMemory.target) {
+    throw new Error(`Expected clicking a study book row to focus that card, got ${JSON.stringify(bookClickCheck)}`);
+  }
+
+  const summaryCheck = await page.evaluate(() => {
+    const fastIdx = CARDS.findIndex((card) => card.target === "强");
+    const missIdx = CARDS.findIndex((card) => card.target === "器");
+    const now = Date.now();
+    status[missIdx] = "indeck";
+    memory[cardKey(missIdx)] = {
+      seen: 1,
+      streak: 0,
+      ease: 34,
+      fast: 0,
+      slow: 0,
+      hints: 0,
+      misses: 1,
+      due: now,
+      last: now,
+      target: CARDS[missIdx].target,
+      word: CARDS[missIdx].word,
+      level: CARDS[missIdx].level,
+      topic: CARDS[missIdx].topic,
+    };
+    save(DECK_KEY, status);
+    saveMemory();
+    roundStats = [
+      { idx: fastIdx, target: CARDS[fastIdx].target, word: CARDS[fastIdx].word, outcome: "fast", level: CARDS[fastIdx].level, topic: CARDS[fastIdx].topic, due: now + 14 * 86400000 },
+      { idx: missIdx, target: CARDS[missIdx].target, word: CARDS[missIdx].word, outcome: "miss", level: CARDS[missIdx].level, topic: CARDS[missIdx].topic, due: now },
+    ];
+    activeMode = "new";
+    roundSummary();
+    return {
+      visible: getComputedStyle(document.getElementById("summary")).display !== "none",
+      groups: Array.from(document.querySelectorAll(".resultGroup")).map((node) => node.textContent),
+      itemCount: document.querySelectorAll("#sumList .resultItem").length,
+      missItemText: document.querySelector("#sumList .resultItem.miss")?.textContent || "",
+      note: document.getElementById("sumNote").textContent,
+      reviewRiskVisible: getComputedStyle(document.getElementById("reviewRisk")).display !== "none",
+      stopText: document.getElementById("stop").textContent,
+    };
+  });
+  if (!summaryCheck.visible || summaryCheck.groups.length !== 4 || summaryCheck.itemCount !== 2 || !summaryCheck.missItemText.includes("今天再练") || !summaryCheck.reviewRiskVisible) {
+    throw new Error(`Expected result page 2.0 with grouped rows and review action, got ${JSON.stringify(summaryCheck)}`);
+  }
+
+  await page.click("#sumList .resultItem.miss");
+  await page.waitForFunction(() => batch.length > 0 && activeMode === "focus");
+  const summaryClickCheck = await page.evaluate(() => ({
+    activeMode,
+    firstTarget: CARDS[batch[0]].target,
+    firstWord: CARDS[batch[0]].word,
+  }));
+  if (summaryClickCheck.firstTarget !== "器") {
+    throw new Error(`Expected clicking a summary row to focus that card, got ${JSON.stringify(summaryClickCheck)}`);
   }
 
   const samples = [];
@@ -175,7 +266,7 @@ const sampleTargets = ["的", "一", "强", "器", "随", "察", "群", "疑", "
   }
 
   await page.screenshot({ path: screenshotPath, fullPage: true });
-  console.log(JSON.stringify({ homeOverview, futureDueCheck, overview, feedbackCheck, reviewModeCheck, samples }, null, 2));
+  console.log(JSON.stringify({ homeOverview, futureDueCheck, overview, feedbackCheck, riskClickCheck, reviewModeCheck, bookCheck, bookClickCheck, summaryCheck, summaryClickCheck, samples }, null, 2));
   await browser.close();
 })().catch((err) => {
   console.error(err);

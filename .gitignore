@@ -2,3 +2,6 @@
 *.log
 node_modules/
 .env
+.python-deps/
+__pycache__/
+generated/*.png

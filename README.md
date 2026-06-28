@@ -8,9 +8,13 @@
 - `hanzi-writer.min.js`：汉字笔顺渲染库。
 - `data/`：Hanzi Writer 的单字笔画数据。
 - `scripts/`：生成数据和验证页面的脚本。
-- `generated/`：当前生成出的 500 字结构化结果。
+- `generated/`：当前生成出的 3500 字结构化结果。
 - `sources/`：生成脚本依赖的原始字表、字频和词典数据。
 - `requirements.txt`：生成脚本需要的 Python 依赖。
+
+当前练习节奏：每组 15 个字。脚本会给每个字生成语境主题、成人练字难度分和五级标签（小学、初中、高中、大学、专业）。前端默认跳过小学级别，优先把同一主题里的高中、大学、专业级字排在同一组里。
+
+页面会在浏览器本地记录个人记忆状态：秒会、想起后写出、看提示写出、没写出来。后两类会更快进入复习，秒会的字会延后再出现。
 
 ## 本地预览
 
@@ -34,16 +38,16 @@ http://127.0.0.1:8000/
 python3 -m pip install -r requirements.txt
 ```
 
-重新生成 `index.html` 内置题库和 `generated/selected_500_chars.json`：
+重新生成 `index.html` 内置题库和 `generated/selected_3500_chars.json`：
 
 ```bash
-python3 scripts/build_500_chars.py
+python3 scripts/build_3500_chars.py
 ```
 
 运行浏览器验证：
 
 ```bash
-node scripts/verify_500_app.js
+node scripts/verify_3500_app.js
 ```
 
 ## Git 使用

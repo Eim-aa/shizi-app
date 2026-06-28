@@ -22,6 +22,59 @@ const sampleTargets = ["的", "一", "强", "器", "随", "察", "群", "疑", "
   });
   await page.reload({ waitUntil: "networkidle" });
 
+  const homeOverview = await page.evaluate(() => ({
+    homeVisible: getComputedStyle(document.getElementById("home")).display !== "none",
+    cardVisible: getComputedStyle(document.getElementById("card")).display !== "none",
+    dueStat: document.getElementById("dueStat").textContent,
+    riskStat: document.getElementById("riskStat").textContent,
+    seenStat: document.getElementById("seenStat").textContent,
+    startReviewDisabled: document.getElementById("startReview").disabled,
+    startNewDisabled: document.getElementById("startNew").disabled,
+  }));
+  if (!homeOverview.homeVisible || homeOverview.cardVisible || homeOverview.startNewDisabled) {
+    throw new Error(`Expected home entry panel before practice, got ${JSON.stringify(homeOverview)}`);
+  }
+
+  const futureDueCheck = await page.evaluate(() => {
+    const idx = CARDS.findIndex((card) => card.target === "强");
+    const key = cardKey(idx);
+    status[idx] = "indeck";
+    memory[key] = {
+      seen: 1,
+      streak: 0,
+      ease: 50,
+      fast: 0,
+      slow: 0,
+      hints: 1,
+      misses: 0,
+      due: Date.now() + 86400000,
+      last: Date.now(),
+      target: CARDS[idx].target,
+      word: CARDS[idx].word,
+    };
+    save(DECK_KEY, status);
+    saveMemory();
+    renderHome();
+    const result = {
+      reviewCount: reviewCount(),
+      dueStat: document.getElementById("dueStat").textContent,
+      riskStat: document.getElementById("riskStat").textContent,
+      riskText: document.getElementById("riskList").textContent,
+    };
+    delete status[idx];
+    delete memory[key];
+    save(DECK_KEY, status);
+    saveMemory();
+    renderHome();
+    return result;
+  });
+  if (futureDueCheck.reviewCount !== 0 || futureDueCheck.dueStat !== "0" || futureDueCheck.riskStat !== "1") {
+    throw new Error(`Expected future-due risk card to stay out of today's review, got ${JSON.stringify(futureDueCheck)}`);
+  }
+
+  await page.click("#startNew");
+  await page.waitForFunction(() => batch.length > 0 && getComputedStyle(document.getElementById("card")).display !== "none");
+
   const overview = await page.evaluate(() => ({
     seed: SEED.length,
     cards: CARDS.length,
@@ -62,12 +115,16 @@ const sampleTargets = ["的", "一", "强", "器", "随", "察", "群", "疑", "
   await page.click("#show");
   await page.click("#miss");
   const feedbackCheck = await page.evaluate(() => {
+    renderHome();
     const entries = Object.values(JSON.parse(localStorage.getItem("shizi.memory.v1") || "{}"));
     return {
       memoryEntries: entries.length,
       firstMemory: entries[0],
       statusValues: Object.values(JSON.parse(localStorage.getItem("shizi.deck.v3500.context1") || "{}")),
       reviewCount: typeof reviewCount === "function" ? reviewCount() : null,
+      dueStat: document.getElementById("dueStat").textContent,
+      riskText: document.getElementById("riskList").textContent,
+      startReviewDisabled: document.getElementById("startReview").disabled,
     };
   });
   if (feedbackCheck.memoryEntries !== 1 || feedbackCheck.firstMemory.lastOutcome !== "miss") {
@@ -75,6 +132,21 @@ const sampleTargets = ["的", "一", "强", "器", "随", "察", "群", "疑", "
   }
   if (!feedbackCheck.statusValues.includes("indeck")) {
     throw new Error(`Expected missed card to enter review deck, got ${JSON.stringify(feedbackCheck)}`);
+  }
+  if (feedbackCheck.startReviewDisabled || feedbackCheck.dueStat !== "1" || !feedbackCheck.riskText.includes(feedbackCheck.firstMemory.target)) {
+    throw new Error(`Expected missed card to appear on the home review panel, got ${JSON.stringify(feedbackCheck)}`);
+  }
+
+  await page.click("#startReview");
+  await page.waitForFunction(() => batch.length > 0 && activeMode === "review");
+  const reviewModeCheck = await page.evaluate(() => ({
+    activeMode,
+    batchSize: batch.length,
+    firstTarget: CARDS[batch[0]].target,
+    firstWord: CARDS[batch[0]].word,
+  }));
+  if (reviewModeCheck.firstTarget !== feedbackCheck.firstMemory.target) {
+    throw new Error(`Expected review mode to start with due card, got ${JSON.stringify(reviewModeCheck)}`);
   }
 
   const samples = [];
@@ -103,7 +175,7 @@ const sampleTargets = ["的", "一", "强", "器", "随", "察", "群", "疑", "
   }
 
   await page.screenshot({ path: screenshotPath, fullPage: true });
-  console.log(JSON.stringify({ overview, feedbackCheck, samples }, null, 2));
+  console.log(JSON.stringify({ homeOverview, futureDueCheck, overview, feedbackCheck, reviewModeCheck, samples }, null, 2));
   await browser.close();
 })().catch((err) => {
   console.error(err);

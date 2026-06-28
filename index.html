@@ -49,6 +49,14 @@
   .mark .fast{ background:transparent; border:1.5px solid var(--known); color:var(--known); }
   .mark .slow,.mark .hinted{ background:transparent; border:1.5px solid var(--accent); color:var(--accent); }
   .mark .miss{ background:transparent; border:1.5px solid var(--miss); color:var(--miss); }
+  .home{ background:var(--card); border:1px solid var(--line); border-radius:16px; padding:18px; margin-bottom:14px; }
+  .home h2{ font-size:18px; margin:0 0 12px; }
+  .stats{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:10px 0 12px; }
+  .stat{ border:1px solid var(--line); border-radius:10px; padding:10px 6px; text-align:center; }
+  .stat b{ display:block; font-size:22px; line-height:1.1; }
+  .stat span{ display:block; font-size:12px; color:var(--muted); margin-top:4px; }
+  .risk{ min-height:30px; color:var(--muted); font-size:13px; line-height:1.6; margin:8px 0 14px; }
+  .risk .chars{ font-size:24px; color:var(--ink); font-family:"Kaiti SC","STKaiti",serif; word-spacing:4px; }
   .summary{ display:none; background:var(--card); border:1px solid var(--line); border-radius:16px; padding:22px 18px; text-align:center; }
   .summary h2{ font-size:18px; margin:0 0 10px; }
   .summary .list{ font-size:30px; font-family:"Kaiti SC","STKaiti",serif; line-height:1.6; margin:10px 0 18px; word-spacing:6px; }
@@ -62,7 +70,18 @@
 <div class="wrap">
   <div class="top"><div class="brand">拾字</div><div class="pos" id="pos"></div></div>
 
-  <div class="card" id="card">
+  <div class="home" id="home">
+    <h2>今日练习</h2>
+    <div class="stats">
+      <div class="stat"><b id="dueStat">0</b><span>到期复习</span></div>
+      <div class="stat"><b id="riskStat">0</b><span>重点字</span></div>
+      <div class="stat"><b id="seenStat">0</b><span>已记录</span></div>
+    </div>
+    <div class="risk" id="riskList"></div>
+    <div class="row"><button class="primary" id="startReview">今日复习</button><button id="startNew">练新字</button></div>
+  </div>
+
+  <div class="card" id="card" style="display:none">
     <div id="prompt"></div>
     <div class="ask">在格子里写出虚线框中拼音对应的字 ✍️</div>
     <div class="hint" id="hint"></div>
@@ -118,29 +137,34 @@ function today(){ const d=new Date(); return d.getFullYear()+"-"+String(d.getMon
 let opens = load(OPEN_KEY, []); if(!opens.includes(today())){ opens.push(today()); save(OPEN_KEY,opens); }
 
 // ---- 出题池 ----
-const BATCH=15, TOPIC_KEY="shizi.topic.v1"; let sessionDone=new Set(); let batch=[], pos=0, missedThisRound=[], roundStats=[], hintsUsedThisCard=0, cardStartedAt=0;
+const BATCH=15, TOPIC_KEY="shizi.topic.v1"; let sessionDone=new Set(); let batch=[], pos=0, missedThisRound=[], roundStats=[], hintsUsedThisCard=0, cardStartedAt=0, activeMode="new";
 function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function allIndexes(){ return [...Array(CARDS.length).keys()]; }
 function cardKey(i){ const c=CARDS[i]; return (c.custom?"custom:"+i+":":"base:")+c.target; }
 function cardMemory(i){ const k=cardKey(i); return memory[k] || (memory[k]={seen:0, streak:0, ease:50, fast:0, slow:0, hints:0, misses:0, due:0, last:0}); }
 function hasMemory(i){ const m=memory[cardKey(i)]; return !!(m && m.seen); }
 function isDue(i){ const m=memory[cardKey(i)]; return !m || !m.seen || !m.due || m.due<=Date.now(); }
 function reviewDue(i){ const m=memory[cardKey(i)]; return !!(m && m.seen && (!m.due || m.due<=Date.now())); }
-function availablePool(){ return [...Array(CARDS.length).keys()].filter(i=>(status[i]!=="known" || hasMemory(i)) && !sessionDone.has(i) && practiceEligible(i) && isDue(i)); }
+function reviewReady(i){ return status[i]==="indeck" ? isDue(i) : reviewDue(i); }
+function baseAvailable(i,respectSession=true){ return (status[i]!=="known" || hasMemory(i)) && (!respectSession || !sessionDone.has(i)); }
+function reviewPool(respectSession=true){ return allIndexes().filter(i=>baseAvailable(i,respectSession) && reviewReady(i)); }
+function newPool(respectSession=true){ return allIndexes().filter(i=>baseAvailable(i,respectSession) && !hasMemory(i) && status[i]!=="indeck" && !CARDS[i].custom && cardLevel(i)!=="小学"); }
+function availablePool(){ return activeMode==="review" ? reviewPool(true) : newPool(true); }
 function deckCount(){ return Object.values(status).filter(s=>s==="indeck").length; }
-function knownCount(){ return [...Array(CARDS.length).keys()].filter(i=>{ const m=memory[cardKey(i)]; return m && m.streak>=2 && status[i]!=="indeck"; }).length; }
+function knownCount(){ return allIndexes().filter(i=>{ const m=memory[cardKey(i)]; return m && m.streak>=2 && status[i]!=="indeck"; }).length; }
 function clamp(n,min,max){ return Math.max(min, Math.min(max, n)); }
 function cardDifficulty(i){ return Number(CARDS[i].d)||50; }
 const LEVEL_RANK={"小学":0,"初中":1,"高中":2,"大学":3,"专业":4}, LEVEL_TARGET={"初中":48,"高中":62,"大学":76,"专业":90};
 function cardLevel(i){ return CARDS[i].level || "高中"; }
-function practiceEligible(i){ return status[i]==="indeck" || reviewDue(i) || CARDS[i].custom || cardLevel(i)!=="小学"; }
+function practiceEligible(i){ return reviewReady(i) || CARDS[i].custom || cardLevel(i)!=="小学"; }
 function cardTopic(i){ return CARDS[i].topic || (CARDS[i].custom?"自定义":"综合"); }
 function targetDifficulty(){ const base=68 + Math.sqrt(knownCount()/Math.max(1,CARDS.length))*18; return clamp(base - Math.min(deckCount(),40)*0.12, 60, 92); }
-function personalDifficulty(i){ const m=memory[cardKey(i)]||{}; return clamp(cardDifficulty(i)+(reviewDue(i)?18:0)+(m.misses||0)*8+(m.hints||0)*5+(m.slow||0)*2-(m.fast||0)*3, 1, 110); }
+function personalDifficulty(i){ const m=memory[cardKey(i)]||{}; return clamp(cardDifficulty(i)+(reviewReady(i)?18:0)+(m.misses||0)*8+(m.hints||0)*5+(m.slow||0)*2-(m.fast||0)*3, 1, 110); }
 function addNearest(out, candidates, target, limit, used){ candidates.filter(i=>!used.has(i)).sort((a,b)=>Math.abs(personalDifficulty(a)-target)-Math.abs(personalDifficulty(b)-target) || personalDifficulty(b)-personalDifficulty(a)).slice(0,limit).forEach(i=>{ used.add(i); out.push(i); }); }
 function addLevel(out, candidates, level, limit, used){ addNearest(out, candidates.filter(i=>cardLevel(i)===level), LEVEL_TARGET[level]||70, limit, used); }
 function chooseTopic(all,target){ const buckets={}; all.forEach(i=>{ const t=cardTopic(i); (buckets[t]||(buckets[t]=[])).push(i); });
   const last=load(TOPIC_KEY,""); let best=null;
-  Object.entries(buckets).forEach(([topic,items])=>{ const due=items.filter(i=>status[i]==="indeck" || reviewDue(i)).length; const avg=items.reduce((s,i)=>s+personalDifficulty(i),0)/items.length;
+  Object.entries(buckets).forEach(([topic,items])=>{ const due=items.filter(reviewReady).length; const avg=items.reduce((s,i)=>s+personalDifficulty(i),0)/items.length;
     const adult=items.filter(i=>(LEVEL_RANK[cardLevel(i)]||0)>=2).length;
     const broadPenalty=due?0:(topic==="综合"?34:topic==="语法"?22:topic==="数量"?12:0);
     const score=due*22 + Math.min(adult,BATCH)*6 + (adult>=BATCH?18:0) - Math.abs(avg-target)*0.55 - (topic===last?18:0) - broadPenalty;
@@ -148,7 +172,7 @@ function chooseTopic(all,target){ const buckets={}; all.forEach(i=>{ const t=car
   save(TOPIC_KEY,best?best.topic:""); return best?best.topic:"综合"; }
 function chooseBatch(all){ if(all.length<=BATCH) return all.slice(); const target=targetDifficulty(), topic=chooseTopic(all,target);
   const themed=all.filter(i=>cardTopic(i)===topic), out=[], used=new Set();
-  addNearest(out, themed.filter(i=>status[i]==="indeck" || reviewDue(i)), target, 4, used);
+  addNearest(out, themed.filter(reviewReady), target, 4, used);
   addLevel(out, themed, "初中", 1, used);
   addLevel(out, themed, "高中", 4, used);
   addLevel(out, themed, "大学", 7, used);
@@ -162,9 +186,10 @@ function delayFor(outcome, streak){ const table={
   hinted:[1,2,5,10],
   miss:[0,0,1,2],
 }; const idx=Math.max(0, Math.min((outcome==="fast"||outcome==="slow")?streak-1:streak,3)); return (table[outcome]||table.slow)[idx]*86400000; }
-function reviewCount(){ return [...Array(CARDS.length).keys()].filter(i=>reviewDue(i)).length; }
+function reviewCount(){ return reviewPool(false).length; }
 function memoryCount(){ return Object.values(memory).filter(m=>m && m.seen).length; }
-function highRiskCount(){ return [...Array(CARDS.length).keys()].filter(i=>{ const m=memory[cardKey(i)]; return m && (m.misses || m.hints>=2 || status[i]==="indeck"); }).length; }
+function highRiskIndexes(){ return allIndexes().filter(i=>{ const m=memory[cardKey(i)]; return m && (m.misses || m.hints>=2 || status[i]==="indeck"); }).sort((a,b)=>personalDifficulty(b)-personalDifficulty(a)); }
+function highRiskCount(){ return highRiskIndexes().length; }
 function recordOutcome(outcome){ const idx=batch[pos], c=CARDS[idx], m=cardMemory(idx), now=Date.now();
   const hard=outcome==="miss" || outcome==="hinted";
   m.seen=(m.seen||0)+1; m.last=now; m.lastOutcome=outcome; m.lastHints=hintsUsedThisCard;
@@ -178,6 +203,13 @@ function recordOutcome(outcome){ const idx=batch[pos], c=CARDS[idx], m=cardMemor
   if(hard) missedThisRound.push(c.target);
   next(outcome==="miss");
 }
+function riskPreview(){ const list=highRiskIndexes().slice(0,12).map(i=>CARDS[i].target); return list.length?`<span class="chars">${list.join(" ")}</span>`:"还没有重点字。先练一组，新数据会慢慢长出来。"; }
+function renderHome(){ $("home").style.display="block"; $("card").style.display="none"; $("summary").style.display="none";
+  $("dueStat").textContent=reviewCount(); $("riskStat").textContent=highRiskCount(); $("seenStat").textContent=memoryCount();
+  $("riskList").innerHTML=riskPreview(); $("pos").textContent=`新字 ${newPool(false).length}`;
+  $("startReview").disabled=reviewCount()===0; $("startReview").textContent=reviewCount()?`今日复习（${reviewCount()}）`:"今日复习";
+  $("startNew").disabled=newPool(false).length===0; }
+function startMode(mode){ activeMode=mode; sessionDone=new Set(); startRound(); }
 
 // ---- 自定义加字（抓住现实里提笔忘的那个字；卡片追加在 SEED 之后，索引稳定）----
 const CUSTOM_KEY="shizi.custom.v1", BASE_N=CARDS.length;
@@ -239,7 +271,7 @@ function updateTip(){ $("tip").textContent = groupIdx<groups.length ? `提示·�
 // ---- 流程 ----
 function promptHTML(c){ return c.chars.map((ch,i)=> i===c.ci ? `<span class="blank">${c.py}</span>` : `<span class="given">${ch}</span>`).join(""); }
 function render(){ cur=CARDS[batch[pos]];
-  $("card").style.display=""; $("summary").style.display="none";
+  $("home").style.display="none"; $("card").style.display=""; $("summary").style.display="none";
   hintsUsedThisCard=0; cardStartedAt=Date.now();
   $("pos").textContent=`第 ${pos+1} / ${batch.length} 个 · 复习 ${reviewCount()}`;
   $("prompt").innerHTML=promptHTML(cur); $("hint").textContent=cur.hint;
@@ -283,23 +315,24 @@ function allDone(){ $("card").style.display="none"; $("summary").style.display="
   $("sumTitle").textContent="今天的字过完了"; $("sumList").textContent="";
   $("sumNote").textContent=`已记录 ${memoryCount()} 个字。到期复习 ${reviewCount()} 个，高风险 ${highRiskCount()} 个。`; $("more").style.display="none"; }
 $("more").onclick=startRound;
-$("stop").onclick=()=>{ $("summary").style.display="none"; $("card").style.display="none";
-  document.querySelector(".wrap").insertAdjacentHTML("beforeend","<div class='summary' style='display:block'><h2>今天到这 👋</h2><div class='note' style='margin:0'>个人复习计划已存。下次会优先考你真正卡住的字。</div></div>"); };
+$("stop").onclick=renderHome;
 
 $("dataLink").onclick=()=>{ const box=$("dataBox"); if(box.style.display==="block"){ box.style.display="none"; return; }
   const last7=opens.filter(d=>{ const diff=(new Date(today())-new Date(d))/86400000; return diff>=0 && diff<7; });
   box.style.display="block"; box.innerHTML=`<b>实验用，别天天盯（盯 streak 会污染“光靠痒”这个变量）</b><br>`+
     `最近 7 天里，你主动打开过 <b>${last7.length}</b> 天 → 目标 ≥4 天<br>已记录：<b>${memoryCount()}</b> 个字 · 到期复习：<b>${reviewCount()}</b> 个 · 高风险：<b>${highRiskCount()}</b> 个<br>你自己加的字：<b>${customCount()}</b> 个<br>累计打开：${opens.length} 天`; };
 $("addLink").onclick=()=>{ const chars=addWord(window.prompt("刚才提笔忘了哪个字？\n输入这个字，或它所在的词（如「蘸料」）：")||"");
-  if(chars){ alert(`已加入卡组：${chars.join("")}\n下次优先考你这些。`); if($("summary").style.display==="block") roundSummary(); }
+  if(chars){ alert(`已加入卡组：${chars.join("")}\n下次优先考你这些。`); if($("summary").style.display==="block") roundSummary(); if($("home").style.display==="block") renderHome(); }
   else alert("没识别到汉字"); };
-$("resetLink").onclick=()=>{ if(confirm("清空卡组和记录，从头开始？")){ status={}; memory={}; opens=[today()]; save(DECK_KEY,status); save(MEMORY_KEY,memory); save(OPEN_KEY,opens); localStorage.removeItem(TOPIC_KEY); sessionDone=new Set(); startRound(); $("dataBox").style.display="none"; } };
+$("resetLink").onclick=()=>{ if(confirm("清空卡组和记录，从头开始？")){ status={}; memory={}; opens=[today()]; save(DECK_KEY,status); save(MEMORY_KEY,memory); save(OPEN_KEY,opens); localStorage.removeItem(TOPIC_KEY); sessionDone=new Set(); renderHome(); $("dataBox").style.display="none"; } };
 
 function applyModeUI(){ $("modeBtn").textContent=continuous?"✍️ 连续模式：开":"✍️ 连续模式：关";
   $("modehint").textContent=continuous?"点一下落笔 → 滑动就写（不用按住）→ 再点一下提笔。":"手指/笔按住滑动就写，松手即抬笔（真触屏推荐）。"; }
 $("modeBtn").onclick=()=>{ continuous=!continuous; drawing=false; setPen(false); applyModeUI(); };
 
-initBox(); applyModeUI(); startRound();
+$("startReview").onclick=()=>startMode("review");
+$("startNew").onclick=()=>startMode("new");
+initBox(); applyModeUI(); renderHome();
 </script>
 </body>
 </html>

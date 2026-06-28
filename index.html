@@ -174,7 +174,7 @@ function render(){ cur=CARDS[batch[pos]];
   hzEl.innerHTML=""; writer=null;
   if(window.HanziWriter){
     writer=HanziWriter.create(hzEl, cur.target, { width:S, height:S, padding:Math.round(S*0.06),
-      showCharacter:false, showOutline:false, strokeColor:hintStroke(), strokeAnimationSpeed:16, delayBetweenStrokes:20, charDataLoader:charLoader,
+      showCharacter:false, showOutline:false, strokeColor:hintStroke(), strokeAnimationSpeed:8, delayBetweenStrokes:40, charDataLoader:charLoader,
       onLoadCharDataSuccess:function(d){ totalStrokes=d.strokes.length; var g=GROUPS[cur.target]; groups=(g && g.reduce((a,b)=>a+b,0)===totalStrokes)?g.slice():[totalStrokes]; groupIdx=0; shownStrokes=0; $("tip").disabled=false; $("show").disabled=false; updateTip(); },
       onLoadCharDataError:function(){ $("show").disabled=false; } });
   } else { $("show").disabled=false; } }

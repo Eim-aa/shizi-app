@@ -87,7 +87,7 @@
     <div class="row center"><button class="primary" id="more">再来一组</button><button id="stop">今天到这</button></div>
   </div>
 
-  <div class="foot"><a id="dataLink">实验数据</a><a id="resetLink">重置卡组</a><div class="data" id="dataBox"></div></div>
+  <div class="foot"><a id="addLink">＋加字</a><a id="dataLink">实验数据</a><a id="resetLink">重置卡组</a><div class="data" id="dataBox"></div></div>
 </div>
 
 <script src="hanzi-writer.min.js"></script>
@@ -116,6 +116,19 @@ function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.fl
 function pool(){ const all=[...Array(CARDS.length).keys()].filter(i=>status[i]!=="known" && !sessionDone.has(i));
   return shuffle(all.filter(i=>status[i]==="indeck")).concat(shuffle(all.filter(i=>status[i]!=="indeck"))); }
 function deckCount(){ return Object.values(status).filter(s=>s==="indeck").length; }
+
+// ---- 自定义加字（抓住现实里提笔忘的那个字；卡片追加在 SEED 之后，索引稳定）----
+const CUSTOM_KEY="shizi.custom.v1", BASE_N=CARDS.length;
+let customWords = load(CUSTOM_KEY, []);
+const isCJK=c=>/[一-鿿]/.test(c);
+function pushWordCards(s){ const chars=Array.from(s).filter(isCJK); const start=CARDS.length;
+  chars.forEach((ch,ci)=>CARDS.push({ word:chars.join(""), chars, ci, target:ch, py:"", hint:"✍️ 你刚才卡壳的字", custom:true })); return [start, CARDS.length]; }
+function buildCustomCards(){ CARDS.length=BASE_N; customWords.forEach(pushWordCards); }
+buildCustomCards();
+function customCount(){ let n=0; for(let i=BASE_N;i<CARDS.length;i++) if(status[i]==="indeck") n++; return n; }
+function addWord(s){ s=(s||"").trim(); const chars=Array.from(s).filter(isCJK); if(!chars.length) return null;
+  customWords.push(s); save(CUSTOM_KEY,customWords); const r=pushWordCards(s);
+  for(let i=r[0];i<r[1];i++) setStatus(i,"indeck"); return chars; }
 
 // ---- 画布 / 笔顺 ----
 const DPR=window.devicePixelRatio||1, $=id=>document.getElementById(id);
@@ -210,7 +223,10 @@ $("stop").onclick=()=>{ $("summary").style.display="none"; $("card").style.displ
 $("dataLink").onclick=()=>{ const box=$("dataBox"); if(box.style.display==="block"){ box.style.display="none"; return; }
   const last7=opens.filter(d=>{ const diff=(new Date(today())-new Date(d))/86400000; return diff>=0 && diff<7; });
   box.style.display="block"; box.innerHTML=`<b>实验用，别天天盯（盯 streak 会污染“光靠痒”这个变量）</b><br>`+
-    `最近 7 天里，你主动打开过 <b>${last7.length}</b> 天 → 目标 ≥4 天<br>卡组（没写出来的字）：<b>${deckCount()}</b> 个<br>累计打开：${opens.length} 天`; };
+    `最近 7 天里，你主动打开过 <b>${last7.length}</b> 天 → 目标 ≥4 天<br>卡组（没写出来的字）：<b>${deckCount()}</b> 个（其中你自己加的 <b>${customCount()}</b> 个）<br>累计打开：${opens.length} 天`; };
+$("addLink").onclick=()=>{ const chars=addWord(window.prompt("刚才提笔忘了哪个字？\n输入这个字，或它所在的词（如「蘸料」）：")||"");
+  if(chars){ alert(`已加入卡组：${chars.join("")}\n下次优先考你这些。`); if($("summary").style.display==="block") roundSummary(); }
+  else alert("没识别到汉字"); };
 $("resetLink").onclick=()=>{ if(confirm("清空卡组和记录，从头开始？")){ status={}; opens=[today()]; save(DECK_KEY,status); save(OPEN_KEY,opens); sessionDone=new Set(); startRound(); $("dataBox").style.display="none"; } };
 
 function applyModeUI(){ $("modeBtn").textContent=continuous?"✍️ 连续模式：开":"✍️ 连续模式：关";

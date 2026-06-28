@@ -74,7 +74,8 @@
       <button id="tip" disabled>提示·下一个部件</button>
       <button class="primary" id="show" disabled>揭晓答案</button>
     </div>
-    <div class="reveal" id="reveal"><div class="ans" id="ans"></div></div>
+    <div class="reveal" id="reveal"><div class="ans" id="ans"></div>
+      <button class="ghost" id="peek">👁 看我刚写的</button></div>
     <div class="row mark" id="mark">
       <button class="known" id="known">✅ 会了</button>
       <button class="miss" id="miss">❌ 没写出来</button>
@@ -122,7 +123,7 @@ function cssVar(n,f){ return getComputedStyle(document.documentElement).getPrope
 function isDark(){ return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches; }
 function hintStroke(){ return isDark()? 'rgba(156,195,239,0.55)' : 'rgba(31,58,95,0.42)'; }
 const S = Math.min(window.innerWidth-44, 320);
-let gridCanvas, inkCanvas, inkCtx, hzEl, writer=null, shownStrokes=0, totalStrokes=0, groups=[], groupIdx=0;
+let gridCanvas, inkCanvas, inkCtx, hzEl, writer=null, shownStrokes=0, totalStrokes=0, groups=[], groupIdx=0, showingMine=false;
 let continuous = !(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
 let penDown=false, drawing=false, last=null, cur=null;
 
@@ -136,6 +137,7 @@ function strokeTo(p){ inkCtx.strokeStyle=cssVar('--accent',"#1f3a5f"); inkCtx.li
   inkCtx.lineCap="round"; inkCtx.lineJoin="round"; inkCtx.beginPath(); inkCtx.moveTo(last.x,last.y); inkCtx.lineTo(p.x,p.y); inkCtx.stroke(); last=p; }
 function dot(p){ inkCtx.fillStyle=cssVar('--accent',"#1f3a5f"); inkCtx.beginPath(); inkCtx.arc(p.x,p.y,Math.max(3,S*0.022),0,Math.PI*2); inkCtx.fill(); }
 function setPen(s){ penDown=s; $("pill").textContent=penDown?"✍️ 落笔中":"✋ 提笔"; $("pill").classList.toggle("down",penDown); }
+function setRevealView(mine){ showingMine=mine; if(inkCanvas) inkCanvas.style.opacity=mine?'1':'0'; if(hzEl) hzEl.style.opacity=mine?'0':'1'; const p=$("peek"); if(p) p.textContent=mine?'✍️ 看正确字':'👁 看我刚写的'; }
 
 function initBox(){ const box=document.createElement('div'); box.className='box'; box.style.width=S+'px'; box.style.height=S+'px';
   gridCanvas=document.createElement('canvas'); gridCanvas.className='gridc';
@@ -143,7 +145,7 @@ function initBox(){ const box=document.createElement('div'); box.className='box'
   inkCanvas=document.createElement('canvas'); inkCanvas.className='inkc';
   [gridCanvas,inkCanvas].forEach(c=>{ c.style.width=S+'px'; c.style.height=S+'px'; c.width=S*DPR; c.height=S*DPR; c.getContext('2d').scale(DPR,DPR); });
   box.appendChild(gridCanvas); box.appendChild(hzEl); box.appendChild(inkCanvas); $("boxwrap").appendChild(box);
-  inkCtx=inkCanvas.getContext('2d'); drawGridOn(gridCanvas.getContext('2d'));
+  inkCtx=inkCanvas.getContext('2d'); drawGridOn(gridCanvas.getContext('2d')); inkCanvas.style.transition='opacity .2s'; hzEl.style.transition='opacity .2s';
   inkCanvas.addEventListener('pointerdown',e=>{ e.preventDefault(); const p=P(e);
     if(continuous){ if(!penDown){ setPen(true); last=p; dot(p); } else { setPen(false); } return; }
     drawing=true; last=p; try{inkCanvas.setPointerCapture(e.pointerId);}catch(_){} });
@@ -167,7 +169,7 @@ function render(){ cur=CARDS[batch[pos]];
   $("prompt").innerHTML=promptHTML(cur); $("hint").textContent=cur.hint;
   $("reveal").style.display="none"; $("ans").innerHTML="";
   $("mark").style.display="none"; $("actions").style.display="";
-  clearInk(); setPen(false);
+  clearInk(); setPen(false); inkCanvas.style.opacity='1'; hzEl.style.opacity='1'; showingMine=false;
   shownStrokes=0; totalStrokes=0; groups=[]; groupIdx=0; $("tip").disabled=true; $("show").disabled=true; $("tip").textContent="提示·下一个部件";
   hzEl.innerHTML=""; writer=null;
   if(window.HanziWriter){
@@ -183,9 +185,12 @@ $("tip").onclick=async ()=>{ if(!writer||animating||groupIdx>=groups.length) ret
   const n=groups[groupIdx], start=shownStrokes; groupIdx++; shownStrokes+=n; updateTip();
   for(let i=0;i<n;i++){ try{ await writer.animateStroke(start+i,{}); }catch(e){} }
   animating=false; };
-$("show").onclick=()=>{ if(writer){ writer.showCharacter(); shownStrokes=totalStrokes; groupIdx=groups.length; updateTip(); }
+$("show").onclick=()=>{ if(writer){ try{ writer.updateColor('strokeColor', cssVar('--accent',"#1f3a5f")); writer.updateColor('radicalColor', cssVar('--accent',"#1f3a5f")); }catch(e){}
+    try{ writer.hideCharacter({duration:0}); }catch(e){} writer.animateCharacter(); shownStrokes=totalStrokes; groupIdx=groups.length; updateTip(); }
+  setRevealView(false);
   $("reveal").style.display="block"; $("ans").innerHTML=`<span class="big">${cur.target}</span><span class="small">${cur.word}</span>`;
   $("actions").style.display="none"; $("mark").style.display="flex"; };
+$("peek").onclick=()=>setRevealView(!showingMine);
 $("known").onclick=()=>{ setStatus(batch[pos],"known"); next(); };
 $("miss").onclick=()=>{ setStatus(batch[pos],"indeck"); missedThisRound.push(cur.target); next(); };
 function next(){ sessionDone.add(batch[pos]); pos++; if(pos<batch.length) render(); else roundSummary(); }

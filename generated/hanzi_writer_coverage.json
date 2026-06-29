@@ -1,0 +1,7465 @@
+{
+  "source": "通用规范汉字表 2013（sources/level-1.txt, level-2.txt, level-3.txt）",
+  "hanzi_writer_data": "https://data.jsdelivr.com/v1/package/npm/hanzi-writer-data@2.0.1/flat",
+  "total": 8105,
+  "available": 6866,
+  "missing": 1239,
+  "by_level": {
+    "一级": {
+      "total": 3500,
+      "available": 3500,
+      "missing": 0,
+      "missing_chars": []
+    },
+    "二级": {
+      "total": 3000,
+      "available": 2871,
+      "missing": 129,
+      "missing_chars": [
+        "匜",
+        "厾",
+        "玕",
+        "玙",
+        "抔",
+        "㧐",
+        "芼",
+        "旸",
+        "吽",
+        "牤",
+        "沚",
+        "沨",
+        "玭",
+        "玠",
+        "玥",
+        "玦",
+        "拤",
+        "拃",
+        "㧟",
+        "茓",
+        "杻",
+        "旻",
+        "䏝",
+        "𬉼",
+        "炘",
+        "㤘",
+        "垱",
+        "挦",
+        "柈",
+        "𠳐",
+        "眊",
+        "峣",
+        "竑",
+        "闿",
+        "羑",
+        "浕",
+        "牁",
+        "珰",
+        "珣",
+        "琤",
+        "栟",
+        "䥽",
+        "盉",
+        "俵",
+        "俶",
+        "浥",
+        "牂",
+        "骎",
+        "琇",
+        "捯",
+        "捽",
+        "堉",
+        "棁",
+        "晞",
+        "崚",
+        "秾",
+        "馃",
+        "惇",
+        "郿",
+        "琫",
+        "琯",
+        "揳",
+        "塆",
+        "靰",
+        "靸",
+        "雱",
+        "睄",
+        "嗞",
+        "嵖",
+        "嵎",
+        "铻",
+        "媭",
+        "鲀",
+        "颎",
+        "焜",
+        "湜",
+        "湲",
+        "愔",
+        "祾",
+        "翚",
+        "楯",
+        "跐",
+        "锜",
+        "鹐",
+        "瘆",
+        "滫",
+        "滃",
+        "滪",
+        "璈",
+        "叆",
+        "榖",
+        "靺",
+        "靿",
+        "僰",
+        "豨",
+        "䁖",
+        "嘡",
+        "粿",
+        "熥",
+        "鋆",
+        "颙",
+        "踒",
+        "𥻗",
+        "璟",
+        "璠",
+        "璘",
+        "縠",
+        "螠",
+        "䦃",
+        "镠",
+        "膙",
+        "獴",
+        "赟",
+        "璪",
+        "鞡",
+        "鞬",
+        "罽",
+        "鞨",
+        "鞧",
+        "藠",
+        "霨",
+        "蹽",
+        "蹾",
+        "齁",
+        "㸆",
+        "巉",
+        "瓘",
+        "镵",
+        "齉"
+      ]
+    },
+    "三级": {
+      "total": 1605,
+      "available": 495,
+      "missing": 1110,
+      "missing_chars": [
+        "𠙶",
+        "圢",
+        "伋",
+        "冮",
+        "汈",
+        "𬣙",
+        "讱",
+        "扞",
+        "圲",
+        "圫",
+        "芃",
+        "朳",
+        "朸",
+        "𨙸",
+        "屼",
+        "辿",
+        "伣",
+        "伈",
+        "癿",
+        "𬇕",
+        "汋",
+        "䜣",
+        "讻",
+        "𬣞",
+        "孖",
+        "𬘓",
+        "玒",
+        "玘",
+        "玚",
+        "刬",
+        "𫭟",
+        "坉",
+        "扽",
+        "𫭢",
+        "坋",
+        "扺",
+        "㧑",
+        "毐",
+        "芣",
+        "苉",
+        "芠",
+        "𫇭",
+        "杕",
+        "杙",
+        "杄",
+        "杧",
+        "尪",
+        "轪",
+        "𫐄",
+        "旴",
+        "旵",
+        "㕮",
+        "𫵷",
+        "岠",
+        "呇",
+        "觃",
+        "㑇",
+        "伭",
+        "佖",
+        "佁",
+        "飏",
+        "汫",
+        "𣲘",
+        "𣲗",
+        "沄",
+        "沘",
+        "𬇙",
+        "汭",
+        "㳇",
+        "忳",
+        "忺",
+        "𬣡",
+        "祃",
+        "诇",
+        "邲",
+        "诐",
+        "𫸩",
+        "岊",
+        "䢺",
+        "妧",
+        "妘",
+        "𨚕",
+        "纮",
+        "驲",
+        "𫘜",
+        "纻",
+        "𬘘",
+        "𫘝",
+        "纼",
+        "玤",
+        "玞",
+        "玱",
+        "邽",
+        "邿",
+        "坥",
+        "坰",
+        "坬",
+        "坽",
+        "弆",
+        "䢼",
+        "𦭜",
+        "茋",
+        "苾",
+        "枅",
+        "㭎",
+        "枍",
+        "矼",
+        "匼",
+        "𬨂",
+        "𬀩",
+        "𬀪",
+        "旿",
+        "昄",
+        "昒",
+        "昈",
+        "咉",
+        "咇",
+        "咍",
+        "岨",
+        "岞",
+        "峂",
+        "㟃",
+        "𬬩",
+        "钖",
+        "牥",
+        "垈",
+        "侁",
+        "侹",
+        "佸",
+        "佺",
+        "㑊",
+        "侂",
+        "侘",
+        "郈",
+        "舠",
+        "郃",
+        "攽",
+        "肸",
+        "狝",
+        "饳",
+        "炌",
+        "沺",
+        "泂",
+        "泜",
+        "泃",
+        "泇",
+        "峃",
+        "祋",
+        "祊",
+        "𫍣",
+        "𬣳",
+        "𬩽",
+        "鸤",
+        "弢",
+        "弨",
+        "陑",
+        "𬮿",
+        "陎",
+        "𬯀",
+        "乸",
+        "妭",
+        "姈",
+        "𫰛",
+        "𬳵",
+        "𬳶",
+        "䌹",
+        "𫠊",
+        "㛃",
+        "玶",
+        "珇",
+        "珅",
+        "𬍛",
+        "珋",
+        "玹",
+        "珌",
+        "玿",
+        "韨",
+        "垙",
+        "垍",
+        "耇",
+        "鿍",
+        "垎",
+        "垟",
+        "垞",
+        "挓",
+        "垵",
+        "垏",
+        "荖",
+        "荁",
+        "荙",
+        "茽",
+        "荄",
+        "𬜬",
+        "荓",
+        "𦰡",
+        "㭕",
+        "柷",
+        "枹",
+        "栐",
+        "柖",
+        "郚",
+        "剅",
+        "䴓",
+        "迺",
+        "厖",
+        "砆",
+        "砄",
+        "耏",
+        "䶮",
+        "昺",
+        "𪾢",
+        "昽",
+        "盷",
+        "咡",
+        "咺",
+        "昳",
+        "昣",
+        "昤",
+        "昡",
+        "昪",
+        "虷",
+        "虸",
+        "哃",
+        "峘",
+        "峛",
+        "𪨰",
+        "峗",
+        "峧",
+        "帡",
+        "钘",
+        "𫓧",
+        "𬬮",
+        "𬬱",
+        "𬬭",
+        "秬",
+        "俫",
+        "俙",
+        "俍",
+        "垕",
+        "衎",
+        "侴",
+        "䏡",
+        "𦙶",
+        "胈",
+        "胣",
+        "朏",
+        "訄",
+        "饻",
+        "庤",
+        "疢",
+        "炣",
+        "炟",
+        "㶲",
+        "洭",
+        "洘",
+        "洓",
+        "洿",
+        "㳚",
+        "泚",
+        "洸",
+        "洑",
+        "洢",
+        "洈",
+        "洺",
+        "㳘",
+        "洴",
+        "恔",
+        "宬",
+        "袆",
+        "祏",
+        "祐",
+        "娀",
+        "姞",
+        "姱",
+        "姤",
+        "姶",
+        "姽",
+        "枲",
+        "绖",
+        "骃",
+        "𬘡",
+        "𬳽",
+        "𬘩",
+        "𫄧",
+        "骉",
+        "珪",
+        "珛",
+        "珹",
+        "玼",
+        "珖",
+        "𪟝",
+        "珽",
+        "珦",
+        "珫",
+        "珒",
+        "𬍤",
+        "珢",
+        "珕",
+        "珝",
+        "𫭼",
+        "垾",
+        "垺",
+        "埆",
+        "垿",
+        "埌",
+        "茝",
+        "𬜯",
+        "鄀",
+        "莝",
+        "䓖",
+        "莙",
+        "栻",
+        "𬂩",
+        "梠",
+        "梴",
+        "栒",
+        "𫠆",
+        "砵",
+        "砠",
+        "砫",
+        "硁",
+        "翃",
+        "郪",
+        "𨐈",
+        "辀",
+        "𬌗",
+        "剕",
+        "哢",
+        "晅",
+        "晊",
+        "冔",
+        "晐",
+        "畖",
+        "蚄",
+        "蚆",
+        "𫑡",
+        "崁",
+        "峿",
+        "𪨶",
+        "崄",
+        "帨",
+        "崀",
+        "𬬸",
+        "𬬻",
+        "𬬹",
+        "𬬿",
+        "𬭁",
+        "甡",
+        "倴",
+        "倕",
+        "𫢸",
+        "倓",
+        "倧",
+        "衃",
+        "舥",
+        "朓",
+        "虓",
+        "鱽",
+        "峱",
+        "𫗧",
+        "勍",
+        "羖",
+        "羓",
+        "烠",
+        "烔",
+        "烶",
+        "烻",
+        "𬊈",
+        "涍",
+        "浡",
+        "浭",
+        "浬",
+        "涄",
+        "涢",
+        "涐",
+        "浰",
+        "浟",
+        "浛",
+        "浲",
+        "涘",
+        "悈",
+        "悢",
+        "𬒈",
+        "宧",
+        "窊",
+        "窎",
+        "扅",
+        "袪",
+        "袗",
+        "堲",
+        "疍",
+        "𨺙",
+        "砮",
+        "㛚",
+        "翀",
+        "翂",
+        "剟",
+        "𬳿",
+        "𫄨",
+        "绤",
+        "骍",
+        "𬘫",
+        "䂮",
+        "琎",
+        "珸",
+        "珵",
+        "琄",
+        "琈",
+        "琀",
+        "珺",
+        "堎",
+        "堐",
+        "埫",
+        "堌",
+        "晢",
+        "𫮃",
+        "掞",
+        "埪",
+        "壸",
+        "㙍",
+        "萚",
+        "䓫",
+        "勚",
+        "䓬",
+        "菂",
+        "菍",
+        "菼",
+        "萣",
+        "䓨",
+        "菉",
+        "䓛",
+        "梽",
+        "桯",
+        "梌",
+        "桹",
+        "敔",
+        "硔",
+        "鿎",
+        "硚",
+        "硊",
+        "硍",
+        "勔",
+        "䴕",
+        "龁",
+        "逴",
+        "翈",
+        "㫰",
+        "晙",
+        "畤",
+        "𬱖",
+        "蛃",
+        "蚲",
+        "𬟽",
+        "䎃",
+        "崟",
+        "崌",
+        "崡",
+        "铏",
+        "𫓯",
+        "𫟹",
+        "𫟼",
+        "铚",
+        "牻",
+        "笯",
+        "偰",
+        "偡",
+        "偭",
+        "偲",
+        "偁",
+        "㿠",
+        "鄅",
+        "偓",
+        "徛",
+        "衒",
+        "鸼",
+        "悆",
+        "鄃",
+        "瓻",
+        "䝙",
+        "脟",
+        "䏲",
+        "鱾",
+        "猄",
+        "𠅤",
+        "庱",
+        "庼",
+        "痓",
+        "䴔",
+        "竫",
+        "焆",
+        "烺",
+        "淏",
+        "𬇹",
+        "淟",
+        "淜",
+        "淴",
+        "涴",
+        "𬍡",
+        "㥄",
+        "惔",
+        "悰",
+        "寁",
+        "𬤇",
+        "𫍯",
+        "裈",
+        "祲",
+        "𬤊",
+        "𫍲",
+        "谞",
+        "弸",
+        "弶",
+        "𬯎",
+        "隃",
+        "婞",
+        "娵",
+        "婼",
+        "媖",
+        "婳",
+        "婍",
+        "婌",
+        "婫",
+        "婤",
+        "婘",
+        "婠",
+        "𬘬",
+        "𬘭",
+        "𬴂",
+        "𫘦",
+        "绹",
+        "𫟅",
+        "𬘯",
+        "𫘧",
+        "珷",
+        "琲",
+        "琡",
+        "琟",
+        "琔",
+        "琭",
+        "堾",
+        "堼",
+        "揕",
+        "㙘",
+        "堧",
+        "堨",
+        "塅",
+        "𪣻",
+        "𡎚",
+        "惎",
+        "萳",
+        "靬",
+        "葴",
+        "鄚",
+        "蓇",
+        "萩",
+        "葰",
+        "葎",
+        "鄑",
+        "葖",
+        "蒄",
+        "萹",
+        "棤",
+        "棽",
+        "棫",
+        "椓",
+        "椑",
+        "𬃊",
+        "鹀",
+        "棓",
+        "棬",
+        "棪",
+        "椀",
+        "𬷕",
+        "奡",
+        "詟",
+        "𫐐",
+        "棐",
+        "龂",
+        "𬹼",
+        "睎",
+        "晫",
+        "晪",
+        "晱",
+        "𧿹",
+        "畯",
+        "斝",
+        "喤",
+        "崶",
+        "嵁",
+        "𫶇",
+        "嵅",
+        "崿",
+        "嵚",
+        "翙",
+        "𫖮",
+        "圌",
+        "圐",
+        "鿏",
+        "𬭊",
+        "𨱇",
+        "𫓶",
+        "𬭎",
+        "犇",
+        "颋",
+        "稌",
+        "筥",
+        "傃",
+        "傉",
+        "翛",
+        "傒",
+        "𫖯",
+        "脿",
+        "腘",
+        "䐃",
+        "腒",
+        "𬱟",
+        "猰",
+        "𫛭",
+        "猯",
+        "㺄",
+        "馉",
+        "凓",
+        "鄗",
+        "𫷷",
+        "廋",
+        "廆",
+        "鄌",
+        "遆",
+        "旐",
+        "𬮱",
+        "焞",
+        "𬊤",
+        "𣸣",
+        "溚",
+        "溁",
+        "湝",
+        "渰",
+        "㴔",
+        "渟",
+        "溠",
+        "渼",
+        "溇",
+        "湑",
+        "溞",
+        "愐",
+        "愃",
+        "敩",
+        "棨",
+        "扊",
+        "祼",
+        "婻",
+        "媆",
+        "媞",
+        "㛹",
+        "媓",
+        "媂",
+        "媄",
+        "𬴃",
+        "𫘨",
+        "缐",
+        "骙",
+        "瑃",
+        "瑓",
+        "瑅",
+        "瑆",
+        "䴖",
+        "瑖",
+        "瑝",
+        "瑔",
+        "瑀",
+        "𤧛",
+        "瑳",
+        "瑂",
+        "嶅",
+        "瑑",
+        "髢",
+        "堽",
+        "赪",
+        "摛",
+        "塝",
+        "蒱",
+        "蒨",
+        "蓏",
+        "蔀",
+        "蓢",
+        "楪",
+        "榃",
+        "楒",
+        "楩",
+        "椸",
+        "歅",
+        "𬪩",
+        "碃",
+        "碏",
+        "𬒔",
+        "碈",
+        "䃅",
+        "硿",
+        "鄠",
+        "𬨎",
+        "𫐓",
+        "䣘",
+        "暕",
+        "𫫇",
+        "㬊",
+        "暅",
+        "跱",
+        "蜐",
+        "嵲",
+        "赗",
+        "𫓹",
+        "锳",
+        "锧",
+        "𬭚",
+        "𬭛",
+        "稑",
+        "䅟",
+        "𬕂",
+        "筶",
+        "筤",
+        "僇",
+        "谼",
+        "貆",
+        "腨",
+        "腯",
+        "鲉",
+        "鲊",
+        "鲌",
+        "䲟",
+        "𬶋",
+        "𬶍",
+        "鲏",
+        "雊",
+        "猺",
+        "飔",
+        "觟",
+        "𦝼",
+        "馌",
+        "裛",
+        "鄘",
+        "鄜",
+        "麀",
+        "阘",
+        "𫔶",
+        "煁",
+        "煃",
+        "煴",
+        "煋",
+        "煟",
+        "煓",
+        "溍",
+        "溹",
+        "滆",
+        "滉",
+        "溵",
+        "漷",
+        "滧",
+        "滘",
+        "滍",
+        "愭",
+        "慥",
+        "慆",
+        "塱",
+        "𫌀",
+        "禋",
+        "禔",
+        "禘",
+        "禒",
+        "𫖳",
+        "嫄",
+        "媱",
+        "勠",
+        "戣",
+        "𫘪",
+        "𫘬",
+        "缞",
+        "瑧",
+        "𫞩",
+        "瑨",
+        "瑢",
+        "斠",
+        "摏",
+        "墕",
+        "墈",
+        "墐",
+        "墘",
+        "摴",
+        "𡐓",
+        "𪤗",
+        "靽",
+        "鞁",
+        "蔈",
+        "蔊",
+        "榰",
+        "榑",
+        "槚",
+        "𣗋",
+        "𬸘",
+        "酺",
+        "碶",
+        "䃎",
+        "𬒗",
+        "碨",
+        "𥔲",
+        "𫚖",
+        "䴗",
+        "鹖",
+        "幖",
+        "嶍",
+        "𨱏",
+        "锽",
+        "𬭤",
+        "镃",
+        "馝",
+        "箖",
+        "僔",
+        "僎",
+        "㙦",
+        "𫚕",
+        "鲖",
+        "鲘",
+        "𬶐",
+        "𬶏",
+        "𩽾",
+        "夐",
+        "飗",
+        "𬸚",
+        "凘",
+        "廙",
+        "鲝",
+        "鄫",
+        "熇",
+        "漹",
+        "漖",
+        "潩",
+        "漴",
+        "㽏",
+        "漈",
+        "漋",
+        "漻",
+        "慬",
+        "㮾",
+        "𬤝",
+        "褕",
+        "隩",
+        "嫕",
+        "嫭",
+        "𬙂",
+        "㻬",
+        "麹",
+        "璆",
+        "漦",
+        "叇",
+        "墣",
+        "墦",
+        "墡",
+        "薁",
+        "蕰",
+        "蔃",
+        "鼒",
+        "槱",
+        "鹝",
+        "磏",
+        "殣",
+        "慭",
+        "暵",
+        "暲",
+        "暶",
+        "踦",
+        "䗖",
+        "蝘",
+        "蝲",
+        "噇",
+        "噂",
+        "噀",
+        "罶",
+        "嶲",
+        "嶓",
+        "㠇",
+        "嶟",
+        "嶒",
+        "镋",
+        "𬭩",
+        "皞",
+        "皛",
+        "䴘",
+        "鹟",
+        "𩾃",
+        "鲪",
+        "鲬",
+        "觭",
+        "鹢",
+        "熛",
+        "潖",
+        "潵",
+        "㵐",
+        "澂",
+        "澛",
+        "瑬",
+        "潾",
+        "潏",
+        "憭",
+        "憕",
+        "𬸣",
+        "戭",
+        "褯",
+        "禤",
+        "𫍽",
+        "嫽",
+        "遹",
+        "𬴊",
+        "璥",
+        "璲",
+        "璒",
+        "憙",
+        "黇",
+        "𬞟",
+        "蕗",
+        "薢",
+        "橞",
+        "橑",
+        "橦",
+        "磡",
+        "𥕢",
+        "磜",
+        "豮",
+        "𫟦",
+        "𬺈",
+        "𫠜",
+        "虤",
+        "暿",
+        "曌",
+        "曈",
+        "㬚",
+        "蹅",
+        "䗛",
+        "疁",
+        "㠓",
+        "幪",
+        "𪩘",
+        "嶦",
+        "𬭬",
+        "𨱑",
+        "𬭯",
+        "馞",
+        "穄",
+        "篯",
+        "衠",
+        "盦",
+        "螣",
+        "縢",
+        "鲹",
+        "𫗴",
+        "亸",
+        "𬸦",
+        "羱",
+        "糒",
+        "燋",
+        "熻",
+        "燊",
+        "燚",
+        "燏",
+        "濩",
+        "濋",
+        "澪",
+        "澽",
+        "澴",
+        "澭",
+        "澼",
+        "憺",
+        "翯",
+        "𫄷",
+        "璱",
+        "𤩽",
+        "璬",
+        "璮",
+        "髽",
+        "薿",
+        "薸",
+        "檞",
+        "醨",
+        "繄",
+        "磹",
+        "磻",
+        "瞫",
+        "蹐",
+        "㘎",
+        "𬭳",
+        "𬭶",
+        "𫔍",
+        "𬭸",
+        "𨱔",
+        "𬭼",
+        "𫔎",
+        "矰",
+        "穙",
+        "穜",
+        "穟",
+        "簕",
+        "簃",
+        "儦",
+        "魋",
+        "斶",
+        "𬸪",
+        "䲠",
+        "𬶟",
+        "鲾",
+        "𬶠",
+        "鲿",
+        "鳁",
+        "鳂",
+        "鳈",
+        "鳉",
+        "䗪",
+        "襕",
+        "襚",
+        "𬶨",
+        "螱",
+        "嬬",
+        "嬥",
+        "𦈡",
+        "𫄸",
+        "瓀",
+        "鬶",
+        "鞳",
+        "𬟁",
+        "藟",
+        "藦",
+        "鹲",
+        "黡",
+        "礌",
+        "𥖨",
+        "蹢",
+        "蹜",
+        "蟫",
+        "䗴",
+        "嚚",
+        "髃",
+        "镮",
+        "酂",
+        "馧",
+        "簠",
+        "簝",
+        "簰",
+        "鼫",
+        "臑",
+        "䲢",
+        "鳒",
+        "鹯",
+        "癗",
+        "𦒍",
+        "旞",
+        "翷",
+        "䎖",
+        "瀔",
+        "瀍",
+        "瀌",
+        "襜",
+        "䴙",
+        "𬙊",
+        "嚭",
+        "㰀",
+        "鬷",
+        "蠋",
+        "翾",
+        "儳",
+        "儴",
+        "𬶭",
+        "𩾌",
+        "鳚",
+        "鳛",
+        "麑",
+        "麖",
+        "嬿",
+        "欂",
+        "甗",
+        "𨟠",
+        "巇",
+        "酅",
+        "髎",
+        "犨",
+        "𬶮",
+        "𨭉",
+        "㸌",
+        "爔",
+        "瀱",
+        "瀼",
+        "孅",
+        "𬙋",
+        "耰",
+        "𤫉",
+        "瓖",
+        "鬘",
+        "𬺓",
+        "罍",
+        "鳠",
+        "鳡",
+        "爟",
+        "爚",
+        "灈",
+        "韂",
+        "糵",
+        "礵",
+        "皭",
+        "龢",
+        "鳤",
+        "籥",
+        "𫚭",
+        "醾",
+        "齇",
+        "觿"
+      ]
+    }
+  },
+  "missing_chars": [
+    {
+      "character": "匜",
+      "norm_level": "二级",
+      "standard_order": 3536
+    },
+    {
+      "character": "厾",
+      "norm_level": "二级",
+      "standard_order": 3637
+    },
+    {
+      "character": "玕",
+      "norm_level": "二级",
+      "standard_order": 3648
+    },
+    {
+      "character": "玙",
+      "norm_level": "二级",
+      "standard_order": 3649
+    },
+    {
+      "character": "抔",
+      "norm_level": "二级",
+      "standard_order": 3651
+    },
+    {
+      "character": "㧐",
+      "norm_level": "二级",
+      "standard_order": 3658
+    },
+    {
+      "character": "芼",
+      "norm_level": "二级",
+      "standard_order": 3668
+    },
+    {
+      "character": "旸",
+      "norm_level": "二级",
+      "standard_order": 3704
+    },
+    {
+      "character": "吽",
+      "norm_level": "二级",
+      "standard_order": 3709
+    },
+    {
+      "character": "牤",
+      "norm_level": "二级",
+      "standard_order": 3727
+    },
+    {
+      "character": "沚",
+      "norm_level": "二级",
+      "standard_order": 3772
+    },
+    {
+      "character": "沨",
+      "norm_level": "二级",
+      "standard_order": 3777
+    },
+    {
+      "character": "玭",
+      "norm_level": "二级",
+      "standard_order": 3828
+    },
+    {
+      "character": "玠",
+      "norm_level": "二级",
+      "standard_order": 3829
+    },
+    {
+      "character": "玥",
+      "norm_level": "二级",
+      "standard_order": 3831
+    },
+    {
+      "character": "玦",
+      "norm_level": "二级",
+      "standard_order": 3832
+    },
+    {
+      "character": "拤",
+      "norm_level": "二级",
+      "standard_order": 3838
+    },
+    {
+      "character": "拃",
+      "norm_level": "二级",
+      "standard_order": 3844
+    },
+    {
+      "character": "㧟",
+      "norm_level": "二级",
+      "standard_order": 3848
+    },
+    {
+      "character": "茓",
+      "norm_level": "二级",
+      "standard_order": 3869
+    },
+    {
+      "character": "杻",
+      "norm_level": "二级",
+      "standard_order": 3883
+    },
+    {
+      "character": "旻",
+      "norm_level": "二级",
+      "standard_order": 3905
+    },
+    {
+      "character": "䏝",
+      "norm_level": "二级",
+      "standard_order": 3978
+    },
+    {
+      "character": "𬉼",
+      "norm_level": "二级",
+      "standard_order": 4004
+    },
+    {
+      "character": "炘",
+      "norm_level": "二级",
+      "standard_order": 4006
+    },
+    {
+      "character": "㤘",
+      "norm_level": "二级",
+      "standard_order": 4031
+    },
+    {
+      "character": "垱",
+      "norm_level": "二级",
+      "standard_order": 4101
+    },
+    {
+      "character": "挦",
+      "norm_level": "二级",
+      "standard_order": 4106
+    },
+    {
+      "character": "柈",
+      "norm_level": "二级",
+      "standard_order": 4157
+    },
+    {
+      "character": "𠳐",
+      "norm_level": "二级",
+      "standard_order": 4190
+    },
+    {
+      "character": "眊",
+      "norm_level": "二级",
+      "standard_order": 4193
+    },
+    {
+      "character": "峣",
+      "norm_level": "二级",
+      "standard_order": 4231
+    },
+    {
+      "character": "竑",
+      "norm_level": "二级",
+      "standard_order": 4313
+    },
+    {
+      "character": "闿",
+      "norm_level": "二级",
+      "standard_order": 4318
+    },
+    {
+      "character": "羑",
+      "norm_level": "二级",
+      "standard_order": 4320
+    },
+    {
+      "character": "浕",
+      "norm_level": "二级",
+      "standard_order": 4347
+    },
+    {
+      "character": "牁",
+      "norm_level": "二级",
+      "standard_order": 4378
+    },
+    {
+      "character": "珰",
+      "norm_level": "二级",
+      "standard_order": 4404
+    },
+    {
+      "character": "珣",
+      "norm_level": "二级",
+      "standard_order": 4407
+    },
+    {
+      "character": "琤",
+      "norm_level": "二级",
+      "standard_order": 4409
+    },
+    {
+      "character": "栟",
+      "norm_level": "二级",
+      "standard_order": 4461
+    },
+    {
+      "character": "䥽",
+      "norm_level": "二级",
+      "standard_order": 4546
+    },
+    {
+      "character": "盉",
+      "norm_level": "二级",
+      "standard_order": 4555
+    },
+    {
+      "character": "俵",
+      "norm_level": "二级",
+      "standard_order": 4563
+    },
+    {
+      "character": "俶",
+      "norm_level": "二级",
+      "standard_order": 4566
+    },
+    {
+      "character": "浥",
+      "norm_level": "二级",
+      "standard_order": 4653
+    },
+    {
+      "character": "牂",
+      "norm_level": "二级",
+      "standard_order": 4684
+    },
+    {
+      "character": "骎",
+      "norm_level": "二级",
+      "standard_order": 4706
+    },
+    {
+      "character": "琇",
+      "norm_level": "二级",
+      "standard_order": 4714
+    },
+    {
+      "character": "捯",
+      "norm_level": "二级",
+      "standard_order": 4719
+    },
+    {
+      "character": "捽",
+      "norm_level": "二级",
+      "standard_order": 4734
+    },
+    {
+      "character": "堉",
+      "norm_level": "二级",
+      "standard_order": 4736
+    },
+    {
+      "character": "棁",
+      "norm_level": "二级",
+      "standard_order": 4777
+    },
+    {
+      "character": "晞",
+      "norm_level": "二级",
+      "standard_order": 4822
+    },
+    {
+      "character": "崚",
+      "norm_level": "二级",
+      "standard_order": 4856
+    },
+    {
+      "character": "秾",
+      "norm_level": "二级",
+      "standard_order": 4891
+    },
+    {
+      "character": "馃",
+      "norm_level": "二级",
+      "standard_order": 4932
+    },
+    {
+      "character": "惇",
+      "norm_level": "二级",
+      "standard_order": 4991
+    },
+    {
+      "character": "郿",
+      "norm_level": "二级",
+      "standard_order": 5011
+    },
+    {
+      "character": "琫",
+      "norm_level": "二级",
+      "standard_order": 5042
+    },
+    {
+      "character": "琯",
+      "norm_level": "二级",
+      "standard_order": 5053
+    },
+    {
+      "character": "揳",
+      "norm_level": "二级",
+      "standard_order": 5059
+    },
+    {
+      "character": "塆",
+      "norm_level": "二级",
+      "standard_order": 5074
+    },
+    {
+      "character": "靰",
+      "norm_level": "二级",
+      "standard_order": 5081
+    },
+    {
+      "character": "靸",
+      "norm_level": "二级",
+      "standard_order": 5082
+    },
+    {
+      "character": "雱",
+      "norm_level": "二级",
+      "standard_order": 5116
+    },
+    {
+      "character": "睄",
+      "norm_level": "二级",
+      "standard_order": 5123
+    },
+    {
+      "character": "嗞",
+      "norm_level": "二级",
+      "standard_order": 5159
+    },
+    {
+      "character": "嵖",
+      "norm_level": "二级",
+      "standard_order": 5164
+    },
+    {
+      "character": "嵎",
+      "norm_level": "二级",
+      "standard_order": 5168
+    },
+    {
+      "character": "铻",
+      "norm_level": "二级",
+      "standard_order": 5178
+    },
+    {
+      "character": "媭",
+      "norm_level": "二级",
+      "standard_order": 5218
+    },
+    {
+      "character": "鲀",
+      "norm_level": "二级",
+      "standard_order": 5236
+    },
+    {
+      "character": "颎",
+      "norm_level": "二级",
+      "standard_order": 5246
+    },
+    {
+      "character": "焜",
+      "norm_level": "二级",
+      "standard_order": 5273
+    },
+    {
+      "character": "湜",
+      "norm_level": "二级",
+      "standard_order": 5281
+    },
+    {
+      "character": "湲",
+      "norm_level": "二级",
+      "standard_order": 5288
+    },
+    {
+      "character": "愔",
+      "norm_level": "二级",
+      "standard_order": 5300
+    },
+    {
+      "character": "祾",
+      "norm_level": "二级",
+      "standard_order": 5308
+    },
+    {
+      "character": "翚",
+      "norm_level": "二级",
+      "standard_order": 5324
+    },
+    {
+      "character": "楯",
+      "norm_level": "二级",
+      "standard_order": 5400
+    },
+    {
+      "character": "跐",
+      "norm_level": "二级",
+      "standard_order": 5455
+    },
+    {
+      "character": "锜",
+      "norm_level": "二级",
+      "standard_order": 5484
+    },
+    {
+      "character": "鹐",
+      "norm_level": "二级",
+      "standard_order": 5533
+    },
+    {
+      "character": "瘆",
+      "norm_level": "二级",
+      "standard_order": 5546
+    },
+    {
+      "character": "滫",
+      "norm_level": "二级",
+      "standard_order": 5578
+    },
+    {
+      "character": "滃",
+      "norm_level": "二级",
+      "standard_order": 5581
+    },
+    {
+      "character": "滪",
+      "norm_level": "二级",
+      "standard_order": 5587
+    },
+    {
+      "character": "璈",
+      "norm_level": "二级",
+      "standard_order": 5621
+    },
+    {
+      "character": "叆",
+      "norm_level": "二级",
+      "standard_order": 5629
+    },
+    {
+      "character": "榖",
+      "norm_level": "二级",
+      "standard_order": 5641
+    },
+    {
+      "character": "靺",
+      "norm_level": "二级",
+      "standard_order": 5645
+    },
+    {
+      "character": "靿",
+      "norm_level": "二级",
+      "standard_order": 5648
+    },
+    {
+      "character": "僰",
+      "norm_level": "二级",
+      "standard_order": 5671
+    },
+    {
+      "character": "豨",
+      "norm_level": "二级",
+      "standard_order": 5682
+    },
+    {
+      "character": "䁖",
+      "norm_level": "二级",
+      "standard_order": 5693
+    },
+    {
+      "character": "嘡",
+      "norm_level": "二级",
+      "standard_order": 5716
+    },
+    {
+      "character": "粿",
+      "norm_level": "二级",
+      "standard_order": 5792
+    },
+    {
+      "character": "熥",
+      "norm_level": "二级",
+      "standard_order": 5799
+    },
+    {
+      "character": "鋆",
+      "norm_level": "二级",
+      "standard_order": 5865
+    },
+    {
+      "character": "颙",
+      "norm_level": "二级",
+      "standard_order": 5908
+    },
+    {
+      "character": "踒",
+      "norm_level": "二级",
+      "standard_order": 5914
+    },
+    {
+      "character": "𥻗",
+      "norm_level": "二级",
+      "standard_order": 5989
+    },
+    {
+      "character": "璟",
+      "norm_level": "二级",
+      "standard_order": 6030
+    },
+    {
+      "character": "璠",
+      "norm_level": "二级",
+      "standard_order": 6032
+    },
+    {
+      "character": "璘",
+      "norm_level": "二级",
+      "standard_order": 6033
+    },
+    {
+      "character": "縠",
+      "norm_level": "二级",
+      "standard_order": 6043
+    },
+    {
+      "character": "螠",
+      "norm_level": "二级",
+      "standard_order": 6102
+    },
+    {
+      "character": "䦃",
+      "norm_level": "二级",
+      "standard_order": 6111
+    },
+    {
+      "character": "镠",
+      "norm_level": "二级",
+      "standard_order": 6119
+    },
+    {
+      "character": "膙",
+      "norm_level": "二级",
+      "standard_order": 6138
+    },
+    {
+      "character": "獴",
+      "norm_level": "二级",
+      "standard_order": 6147
+    },
+    {
+      "character": "赟",
+      "norm_level": "二级",
+      "standard_order": 6153
+    },
+    {
+      "character": "璪",
+      "norm_level": "二级",
+      "standard_order": 6198
+    },
+    {
+      "character": "鞡",
+      "norm_level": "二级",
+      "standard_order": 6206
+    },
+    {
+      "character": "鞬",
+      "norm_level": "二级",
+      "standard_order": 6207
+    },
+    {
+      "character": "罽",
+      "norm_level": "二级",
+      "standard_order": 6238
+    },
+    {
+      "character": "鞨",
+      "norm_level": "二级",
+      "standard_order": 6316
+    },
+    {
+      "character": "鞧",
+      "norm_level": "二级",
+      "standard_order": 6318
+    },
+    {
+      "character": "藠",
+      "norm_level": "二级",
+      "standard_order": 6321
+    },
+    {
+      "character": "霨",
+      "norm_level": "二级",
+      "standard_order": 6380
+    },
+    {
+      "character": "蹽",
+      "norm_level": "二级",
+      "standard_order": 6385
+    },
+    {
+      "character": "蹾",
+      "norm_level": "二级",
+      "standard_order": 6388
+    },
+    {
+      "character": "齁",
+      "norm_level": "二级",
+      "standard_order": 6400
+    },
+    {
+      "character": "㸆",
+      "norm_level": "二级",
+      "standard_order": 6411
+    },
+    {
+      "character": "巉",
+      "norm_level": "二级",
+      "standard_order": 6431
+    },
+    {
+      "character": "瓘",
+      "norm_level": "二级",
+      "standard_order": 6448
+    },
+    {
+      "character": "镵",
+      "norm_level": "二级",
+      "standard_order": 6473
+    },
+    {
+      "character": "齉",
+      "norm_level": "二级",
+      "standard_order": 6500
+    },
+    {
+      "character": "𠙶",
+      "norm_level": "三级",
+      "standard_order": 6506
+    },
+    {
+      "character": "圢",
+      "norm_level": "三级",
+      "standard_order": 6510
+    },
+    {
+      "character": "伋",
+      "norm_level": "三级",
+      "standard_order": 6512
+    },
+    {
+      "character": "冮",
+      "norm_level": "三级",
+      "standard_order": 6514
+    },
+    {
+      "character": "汈",
+      "norm_level": "三级",
+      "standard_order": 6516
+    },
+    {
+      "character": "𬣙",
+      "norm_level": "三级",
+      "standard_order": 6520
+    },
+    {
+      "character": "讱",
+      "norm_level": "三级",
+      "standard_order": 6521
+    },
+    {
+      "character": "扞",
+      "norm_level": "三级",
+      "standard_order": 6522
+    },
+    {
+      "character": "圲",
+      "norm_level": "三级",
+      "standard_order": 6523
+    },
+    {
+      "character": "圫",
+      "norm_level": "三级",
+      "standard_order": 6524
+    },
+    {
+      "character": "芃",
+      "norm_level": "三级",
+      "standard_order": 6526
+    },
+    {
+      "character": "朳",
+      "norm_level": "三级",
+      "standard_order": 6527
+    },
+    {
+      "character": "朸",
+      "norm_level": "三级",
+      "standard_order": 6528
+    },
+    {
+      "character": "𨙸",
+      "norm_level": "三级",
+      "standard_order": 6529
+    },
+    {
+      "character": "屼",
+      "norm_level": "三级",
+      "standard_order": 6533
+    },
+    {
+      "character": "辿",
+      "norm_level": "三级",
+      "standard_order": 6535
+    },
+    {
+      "character": "伣",
+      "norm_level": "三级",
+      "standard_order": 6538
+    },
+    {
+      "character": "伈",
+      "norm_level": "三级",
+      "standard_order": 6539
+    },
+    {
+      "character": "癿",
+      "norm_level": "三级",
+      "standard_order": 6540
+    },
+    {
+      "character": "𬇕",
+      "norm_level": "三级",
+      "standard_order": 6547
+    },
+    {
+      "character": "汋",
+      "norm_level": "三级",
+      "standard_order": 6548
+    },
+    {
+      "character": "䜣",
+      "norm_level": "三级",
+      "standard_order": 6549
+    },
+    {
+      "character": "讻",
+      "norm_level": "三级",
+      "standard_order": 6550
+    },
+    {
+      "character": "𬣞",
+      "norm_level": "三级",
+      "standard_order": 6551
+    },
+    {
+      "character": "孖",
+      "norm_level": "三级",
+      "standard_order": 6552
+    },
+    {
+      "character": "𬘓",
+      "norm_level": "三级",
+      "standard_order": 6553
+    },
+    {
+      "character": "玒",
+      "norm_level": "三级",
+      "standard_order": 6555
+    },
+    {
+      "character": "玘",
+      "norm_level": "三级",
+      "standard_order": 6557
+    },
+    {
+      "character": "玚",
+      "norm_level": "三级",
+      "standard_order": 6558
+    },
+    {
+      "character": "刬",
+      "norm_level": "三级",
+      "standard_order": 6559
+    },
+    {
+      "character": "𫭟",
+      "norm_level": "三级",
+      "standard_order": 6560
+    },
+    {
+      "character": "坉",
+      "norm_level": "三级",
+      "standard_order": 6562
+    },
+    {
+      "character": "扽",
+      "norm_level": "三级",
+      "standard_order": 6563
+    },
+    {
+      "character": "𫭢",
+      "norm_level": "三级",
+      "standard_order": 6564
+    },
+    {
+      "character": "坋",
+      "norm_level": "三级",
+      "standard_order": 6565
+    },
+    {
+      "character": "扺",
+      "norm_level": "三级",
+      "standard_order": 6566
+    },
+    {
+      "character": "㧑",
+      "norm_level": "三级",
+      "standard_order": 6567
+    },
+    {
+      "character": "毐",
+      "norm_level": "三级",
+      "standard_order": 6568
+    },
+    {
+      "character": "芣",
+      "norm_level": "三级",
+      "standard_order": 6570
+    },
+    {
+      "character": "苉",
+      "norm_level": "三级",
+      "standard_order": 6572
+    },
+    {
+      "character": "芠",
+      "norm_level": "三级",
+      "standard_order": 6575
+    },
+    {
+      "character": "𫇭",
+      "norm_level": "三级",
+      "standard_order": 6576
+    },
+    {
+      "character": "杕",
+      "norm_level": "三级",
+      "standard_order": 6578
+    },
+    {
+      "character": "杙",
+      "norm_level": "三级",
+      "standard_order": 6579
+    },
+    {
+      "character": "杄",
+      "norm_level": "三级",
+      "standard_order": 6580
+    },
+    {
+      "character": "杧",
+      "norm_level": "三级",
+      "standard_order": 6581
+    },
+    {
+      "character": "尪",
+      "norm_level": "三级",
+      "standard_order": 6583
+    },
+    {
+      "character": "轪",
+      "norm_level": "三级",
+      "standard_order": 6585
+    },
+    {
+      "character": "𫐄",
+      "norm_level": "三级",
+      "standard_order": 6586
+    },
+    {
+      "character": "旴",
+      "norm_level": "三级",
+      "standard_order": 6589
+    },
+    {
+      "character": "旵",
+      "norm_level": "三级",
+      "standard_order": 6590
+    },
+    {
+      "character": "㕮",
+      "norm_level": "三级",
+      "standard_order": 6592
+    },
+    {
+      "character": "𫵷",
+      "norm_level": "三级",
+      "standard_order": 6594
+    },
+    {
+      "character": "岠",
+      "norm_level": "三级",
+      "standard_order": 6595
+    },
+    {
+      "character": "呇",
+      "norm_level": "三级",
+      "standard_order": 6597
+    },
+    {
+      "character": "觃",
+      "norm_level": "三级",
+      "standard_order": 6599
+    },
+    {
+      "character": "㑇",
+      "norm_level": "三级",
+      "standard_order": 6602
+    },
+    {
+      "character": "伭",
+      "norm_level": "三级",
+      "standard_order": 6603
+    },
+    {
+      "character": "佖",
+      "norm_level": "三级",
+      "standard_order": 6604
+    },
+    {
+      "character": "佁",
+      "norm_level": "三级",
+      "standard_order": 6606
+    },
+    {
+      "character": "飏",
+      "norm_level": "三级",
+      "standard_order": 6607
+    },
+    {
+      "character": "汫",
+      "norm_level": "三级",
+      "standard_order": 6611
+    },
+    {
+      "character": "𣲘",
+      "norm_level": "三级",
+      "standard_order": 6612
+    },
+    {
+      "character": "𣲗",
+      "norm_level": "三级",
+      "standard_order": 6613
+    },
+    {
+      "character": "沄",
+      "norm_level": "三级",
+      "standard_order": 6614
+    },
+    {
+      "character": "沘",
+      "norm_level": "三级",
+      "standard_order": 6615
+    },
+    {
+      "character": "𬇙",
+      "norm_level": "三级",
+      "standard_order": 6616
+    },
+    {
+      "character": "汭",
+      "norm_level": "三级",
+      "standard_order": 6617
+    },
+    {
+      "character": "㳇",
+      "norm_level": "三级",
+      "standard_order": 6618
+    },
+    {
+      "character": "忳",
+      "norm_level": "三级",
+      "standard_order": 6621
+    },
+    {
+      "character": "忺",
+      "norm_level": "三级",
+      "standard_order": 6622
+    },
+    {
+      "character": "𬣡",
+      "norm_level": "三级",
+      "standard_order": 6623
+    },
+    {
+      "character": "祃",
+      "norm_level": "三级",
+      "standard_order": 6624
+    },
+    {
+      "character": "诇",
+      "norm_level": "三级",
+      "standard_order": 6625
+    },
+    {
+      "character": "邲",
+      "norm_level": "三级",
+      "standard_order": 6626
+    },
+    {
+      "character": "诐",
+      "norm_level": "三级",
+      "standard_order": 6628
+    },
+    {
+      "character": "𫸩",
+      "norm_level": "三级",
+      "standard_order": 6630
+    },
+    {
+      "character": "岊",
+      "norm_level": "三级",
+      "standard_order": 6631
+    },
+    {
+      "character": "䢺",
+      "norm_level": "三级",
+      "standard_order": 6633
+    },
+    {
+      "character": "妧",
+      "norm_level": "三级",
+      "standard_order": 6635
+    },
+    {
+      "character": "妘",
+      "norm_level": "三级",
+      "standard_order": 6636
+    },
+    {
+      "character": "𨚕",
+      "norm_level": "三级",
+      "standard_order": 6637
+    },
+    {
+      "character": "纮",
+      "norm_level": "三级",
+      "standard_order": 6638
+    },
+    {
+      "character": "驲",
+      "norm_level": "三级",
+      "standard_order": 6639
+    },
+    {
+      "character": "𫘜",
+      "norm_level": "三级",
+      "standard_order": 6640
+    },
+    {
+      "character": "纻",
+      "norm_level": "三级",
+      "standard_order": 6641
+    },
+    {
+      "character": "𬘘",
+      "norm_level": "三级",
+      "standard_order": 6642
+    },
+    {
+      "character": "𫘝",
+      "norm_level": "三级",
+      "standard_order": 6643
+    },
+    {
+      "character": "纼",
+      "norm_level": "三级",
+      "standard_order": 6644
+    },
+    {
+      "character": "玤",
+      "norm_level": "三级",
+      "standard_order": 6645
+    },
+    {
+      "character": "玞",
+      "norm_level": "三级",
+      "standard_order": 6646
+    },
+    {
+      "character": "玱",
+      "norm_level": "三级",
+      "standard_order": 6647
+    },
+    {
+      "character": "邽",
+      "norm_level": "三级",
+      "standard_order": 6649
+    },
+    {
+      "character": "邿",
+      "norm_level": "三级",
+      "standard_order": 6650
+    },
+    {
+      "character": "坥",
+      "norm_level": "三级",
+      "standard_order": 6651
+    },
+    {
+      "character": "坰",
+      "norm_level": "三级",
+      "standard_order": 6652
+    },
+    {
+      "character": "坬",
+      "norm_level": "三级",
+      "standard_order": 6653
+    },
+    {
+      "character": "坽",
+      "norm_level": "三级",
+      "standard_order": 6654
+    },
+    {
+      "character": "弆",
+      "norm_level": "三级",
+      "standard_order": 6655
+    },
+    {
+      "character": "䢼",
+      "norm_level": "三级",
+      "standard_order": 6657
+    },
+    {
+      "character": "𦭜",
+      "norm_level": "三级",
+      "standard_order": 6658
+    },
+    {
+      "character": "茋",
+      "norm_level": "三级",
+      "standard_order": 6659
+    },
+    {
+      "character": "苾",
+      "norm_level": "三级",
+      "standard_order": 6661
+    },
+    {
+      "character": "枅",
+      "norm_level": "三级",
+      "standard_order": 6663
+    },
+    {
+      "character": "㭎",
+      "norm_level": "三级",
+      "standard_order": 6664
+    },
+    {
+      "character": "枍",
+      "norm_level": "三级",
+      "standard_order": 6666
+    },
+    {
+      "character": "矼",
+      "norm_level": "三级",
+      "standard_order": 6667
+    },
+    {
+      "character": "匼",
+      "norm_level": "三级",
+      "standard_order": 6669
+    },
+    {
+      "character": "𬨂",
+      "norm_level": "三级",
+      "standard_order": 6670
+    },
+    {
+      "character": "𬀩",
+      "norm_level": "三级",
+      "standard_order": 6671
+    },
+    {
+      "character": "𬀪",
+      "norm_level": "三级",
+      "standard_order": 6672
+    },
+    {
+      "character": "旿",
+      "norm_level": "三级",
+      "standard_order": 6673
+    },
+    {
+      "character": "昄",
+      "norm_level": "三级",
+      "standard_order": 6675
+    },
+    {
+      "character": "昒",
+      "norm_level": "三级",
+      "standard_order": 6676
+    },
+    {
+      "character": "昈",
+      "norm_level": "三级",
+      "standard_order": 6677
+    },
+    {
+      "character": "咉",
+      "norm_level": "三级",
+      "standard_order": 6678
+    },
+    {
+      "character": "咇",
+      "norm_level": "三级",
+      "standard_order": 6679
+    },
+    {
+      "character": "咍",
+      "norm_level": "三级",
+      "standard_order": 6680
+    },
+    {
+      "character": "岨",
+      "norm_level": "三级",
+      "standard_order": 6683
+    },
+    {
+      "character": "岞",
+      "norm_level": "三级",
+      "standard_order": 6684
+    },
+    {
+      "character": "峂",
+      "norm_level": "三级",
+      "standard_order": 6685
+    },
+    {
+      "character": "㟃",
+      "norm_level": "三级",
+      "standard_order": 6686
+    },
+    {
+      "character": "𬬩",
+      "norm_level": "三级",
+      "standard_order": 6688
+    },
+    {
+      "character": "钖",
+      "norm_level": "三级",
+      "standard_order": 6691
+    },
+    {
+      "character": "牥",
+      "norm_level": "三级",
+      "standard_order": 6692
+    },
+    {
+      "character": "垈",
+      "norm_level": "三级",
+      "standard_order": 6694
+    },
+    {
+      "character": "侁",
+      "norm_level": "三级",
+      "standard_order": 6695
+    },
+    {
+      "character": "侹",
+      "norm_level": "三级",
+      "standard_order": 6696
+    },
+    {
+      "character": "佸",
+      "norm_level": "三级",
+      "standard_order": 6697
+    },
+    {
+      "character": "佺",
+      "norm_level": "三级",
+      "standard_order": 6698
+    },
+    {
+      "character": "㑊",
+      "norm_level": "三级",
+      "standard_order": 6700
+    },
+    {
+      "character": "侂",
+      "norm_level": "三级",
+      "standard_order": 6701
+    },
+    {
+      "character": "侘",
+      "norm_level": "三级",
+      "standard_order": 6703
+    },
+    {
+      "character": "郈",
+      "norm_level": "三级",
+      "standard_order": 6704
+    },
+    {
+      "character": "舠",
+      "norm_level": "三级",
+      "standard_order": 6705
+    },
+    {
+      "character": "郃",
+      "norm_level": "三级",
+      "standard_order": 6707
+    },
+    {
+      "character": "攽",
+      "norm_level": "三级",
+      "standard_order": 6708
+    },
+    {
+      "character": "肸",
+      "norm_level": "三级",
+      "standard_order": 6710
+    },
+    {
+      "character": "狝",
+      "norm_level": "三级",
+      "standard_order": 6713
+    },
+    {
+      "character": "饳",
+      "norm_level": "三级",
+      "standard_order": 6714
+    },
+    {
+      "character": "炌",
+      "norm_level": "三级",
+      "standard_order": 6717
+    },
+    {
+      "character": "沺",
+      "norm_level": "三级",
+      "standard_order": 6720
+    },
+    {
+      "character": "泂",
+      "norm_level": "三级",
+      "standard_order": 6721
+    },
+    {
+      "character": "泜",
+      "norm_level": "三级",
+      "standard_order": 6722
+    },
+    {
+      "character": "泃",
+      "norm_level": "三级",
+      "standard_order": 6723
+    },
+    {
+      "character": "泇",
+      "norm_level": "三级",
+      "standard_order": 6724
+    },
+    {
+      "character": "峃",
+      "norm_level": "三级",
+      "standard_order": 6726
+    },
+    {
+      "character": "祋",
+      "norm_level": "三级",
+      "standard_order": 6728
+    },
+    {
+      "character": "祊",
+      "norm_level": "三级",
+      "standard_order": 6729
+    },
+    {
+      "character": "𫍣",
+      "norm_level": "三级",
+      "standard_order": 6730
+    },
+    {
+      "character": "𬣳",
+      "norm_level": "三级",
+      "standard_order": 6731
+    },
+    {
+      "character": "𬩽",
+      "norm_level": "三级",
+      "standard_order": 6732
+    },
+    {
+      "character": "鸤",
+      "norm_level": "三级",
+      "standard_order": 6733
+    },
+    {
+      "character": "弢",
+      "norm_level": "三级",
+      "standard_order": 6734
+    },
+    {
+      "character": "弨",
+      "norm_level": "三级",
+      "standard_order": 6735
+    },
+    {
+      "character": "陑",
+      "norm_level": "三级",
+      "standard_order": 6736
+    },
+    {
+      "character": "𬮿",
+      "norm_level": "三级",
+      "standard_order": 6737
+    },
+    {
+      "character": "陎",
+      "norm_level": "三级",
+      "standard_order": 6738
+    },
+    {
+      "character": "𬯀",
+      "norm_level": "三级",
+      "standard_order": 6739
+    },
+    {
+      "character": "乸",
+      "norm_level": "三级",
+      "standard_order": 6741
+    },
+    {
+      "character": "妭",
+      "norm_level": "三级",
+      "standard_order": 6742
+    },
+    {
+      "character": "姈",
+      "norm_level": "三级",
+      "standard_order": 6743
+    },
+    {
+      "character": "𫰛",
+      "norm_level": "三级",
+      "standard_order": 6744
+    },
+    {
+      "character": "𬳵",
+      "norm_level": "三级",
+      "standard_order": 6747
+    },
+    {
+      "character": "𬳶",
+      "norm_level": "三级",
+      "standard_order": 6749
+    },
+    {
+      "character": "䌹",
+      "norm_level": "三级",
+      "standard_order": 6750
+    },
+    {
+      "character": "𫠊",
+      "norm_level": "三级",
+      "standard_order": 6752
+    },
+    {
+      "character": "㛃",
+      "norm_level": "三级",
+      "standard_order": 6757
+    },
+    {
+      "character": "玶",
+      "norm_level": "三级",
+      "standard_order": 6758
+    },
+    {
+      "character": "珇",
+      "norm_level": "三级",
+      "standard_order": 6759
+    },
+    {
+      "character": "珅",
+      "norm_level": "三级",
+      "standard_order": 6760
+    },
+    {
+      "character": "𬍛",
+      "norm_level": "三级",
+      "standard_order": 6761
+    },
+    {
+      "character": "珋",
+      "norm_level": "三级",
+      "standard_order": 6762
+    },
+    {
+      "character": "玹",
+      "norm_level": "三级",
+      "standard_order": 6763
+    },
+    {
+      "character": "珌",
+      "norm_level": "三级",
+      "standard_order": 6764
+    },
+    {
+      "character": "玿",
+      "norm_level": "三级",
+      "standard_order": 6765
+    },
+    {
+      "character": "韨",
+      "norm_level": "三级",
+      "standard_order": 6766
+    },
+    {
+      "character": "垙",
+      "norm_level": "三级",
+      "standard_order": 6769
+    },
+    {
+      "character": "垍",
+      "norm_level": "三级",
+      "standard_order": 6772
+    },
+    {
+      "character": "耇",
+      "norm_level": "三级",
+      "standard_order": 6773
+    },
+    {
+      "character": "鿍",
+      "norm_level": "三级",
+      "standard_order": 6774
+    },
+    {
+      "character": "垎",
+      "norm_level": "三级",
+      "standard_order": 6775
+    },
+    {
+      "character": "垟",
+      "norm_level": "三级",
+      "standard_order": 6777
+    },
+    {
+      "character": "垞",
+      "norm_level": "三级",
+      "standard_order": 6778
+    },
+    {
+      "character": "挓",
+      "norm_level": "三级",
+      "standard_order": 6779
+    },
+    {
+      "character": "垵",
+      "norm_level": "三级",
+      "standard_order": 6780
+    },
+    {
+      "character": "垏",
+      "norm_level": "三级",
+      "standard_order": 6781
+    },
+    {
+      "character": "荖",
+      "norm_level": "三级",
+      "standard_order": 6783
+    },
+    {
+      "character": "荁",
+      "norm_level": "三级",
+      "standard_order": 6784
+    },
+    {
+      "character": "荙",
+      "norm_level": "三级",
+      "standard_order": 6785
+    },
+    {
+      "character": "茽",
+      "norm_level": "三级",
+      "standard_order": 6788
+    },
+    {
+      "character": "荄",
+      "norm_level": "三级",
+      "standard_order": 6789
+    },
+    {
+      "character": "𬜬",
+      "norm_level": "三级",
+      "standard_order": 6791
+    },
+    {
+      "character": "荓",
+      "norm_level": "三级",
+      "standard_order": 6792
+    },
+    {
+      "character": "𦰡",
+      "norm_level": "三级",
+      "standard_order": 6794
+    },
+    {
+      "character": "㭕",
+      "norm_level": "三级",
+      "standard_order": 6797
+    },
+    {
+      "character": "柷",
+      "norm_level": "三级",
+      "standard_order": 6798
+    },
+    {
+      "character": "枹",
+      "norm_level": "三级",
+      "standard_order": 6801
+    },
+    {
+      "character": "栐",
+      "norm_level": "三级",
+      "standard_order": 6802
+    },
+    {
+      "character": "柖",
+      "norm_level": "三级",
+      "standard_order": 6803
+    },
+    {
+      "character": "郚",
+      "norm_level": "三级",
+      "standard_order": 6804
+    },
+    {
+      "character": "剅",
+      "norm_level": "三级",
+      "standard_order": 6805
+    },
+    {
+      "character": "䴓",
+      "norm_level": "三级",
+      "standard_order": 6806
+    },
+    {
+      "character": "迺",
+      "norm_level": "三级",
+      "standard_order": 6807
+    },
+    {
+      "character": "厖",
+      "norm_level": "三级",
+      "standard_order": 6808
+    },
+    {
+      "character": "砆",
+      "norm_level": "三级",
+      "standard_order": 6809
+    },
+    {
+      "character": "砄",
+      "norm_level": "三级",
+      "standard_order": 6811
+    },
+    {
+      "character": "耏",
+      "norm_level": "三级",
+      "standard_order": 6812
+    },
+    {
+      "character": "䶮",
+      "norm_level": "三级",
+      "standard_order": 6814
+    },
+    {
+      "character": "昺",
+      "norm_level": "三级",
+      "standard_order": 6819
+    },
+    {
+      "character": "𪾢",
+      "norm_level": "三级",
+      "standard_order": 6820
+    },
+    {
+      "character": "昽",
+      "norm_level": "三级",
+      "standard_order": 6821
+    },
+    {
+      "character": "盷",
+      "norm_level": "三级",
+      "standard_order": 6822
+    },
+    {
+      "character": "咡",
+      "norm_level": "三级",
+      "standard_order": 6823
+    },
+    {
+      "character": "咺",
+      "norm_level": "三级",
+      "standard_order": 6824
+    },
+    {
+      "character": "昳",
+      "norm_level": "三级",
+      "standard_order": 6825
+    },
+    {
+      "character": "昣",
+      "norm_level": "三级",
+      "standard_order": 6826
+    },
+    {
+      "character": "昤",
+      "norm_level": "三级",
+      "standard_order": 6828
+    },
+    {
+      "character": "昡",
+      "norm_level": "三级",
+      "standard_order": 6830
+    },
+    {
+      "character": "昪",
+      "norm_level": "三级",
+      "standard_order": 6832
+    },
+    {
+      "character": "虷",
+      "norm_level": "三级",
+      "standard_order": 6833
+    },
+    {
+      "character": "虸",
+      "norm_level": "三级",
+      "standard_order": 6834
+    },
+    {
+      "character": "哃",
+      "norm_level": "三级",
+      "standard_order": 6835
+    },
+    {
+      "character": "峘",
+      "norm_level": "三级",
+      "standard_order": 6836
+    },
+    {
+      "character": "峛",
+      "norm_level": "三级",
+      "standard_order": 6838
+    },
+    {
+      "character": "𪨰",
+      "norm_level": "三级",
+      "standard_order": 6839
+    },
+    {
+      "character": "峗",
+      "norm_level": "三级",
+      "standard_order": 6840
+    },
+    {
+      "character": "峧",
+      "norm_level": "三级",
+      "standard_order": 6841
+    },
+    {
+      "character": "帡",
+      "norm_level": "三级",
+      "standard_order": 6842
+    },
+    {
+      "character": "钘",
+      "norm_level": "三级",
+      "standard_order": 6843
+    },
+    {
+      "character": "𫓧",
+      "norm_level": "三级",
+      "standard_order": 6844
+    },
+    {
+      "character": "𬬮",
+      "norm_level": "三级",
+      "standard_order": 6846
+    },
+    {
+      "character": "𬬱",
+      "norm_level": "三级",
+      "standard_order": 6847
+    },
+    {
+      "character": "𬬭",
+      "norm_level": "三级",
+      "standard_order": 6848
+    },
+    {
+      "character": "秬",
+      "norm_level": "三级",
+      "standard_order": 6853
+    },
+    {
+      "character": "俫",
+      "norm_level": "三级",
+      "standard_order": 6854
+    },
+    {
+      "character": "俙",
+      "norm_level": "三级",
+      "standard_order": 6857
+    },
+    {
+      "character": "俍",
+      "norm_level": "三级",
+      "standard_order": 6858
+    },
+    {
+      "character": "垕",
+      "norm_level": "三级",
+      "standard_order": 6859
+    },
+    {
+      "character": "衎",
+      "norm_level": "三级",
+      "standard_order": 6860
+    },
+    {
+      "character": "侴",
+      "norm_level": "三级",
+      "standard_order": 6863
+    },
+    {
+      "character": "䏡",
+      "norm_level": "三级",
+      "standard_order": 6865
+    },
+    {
+      "character": "𦙶",
+      "norm_level": "三级",
+      "standard_order": 6867
+    },
+    {
+      "character": "胈",
+      "norm_level": "三级",
+      "standard_order": 6868
+    },
+    {
+      "character": "胣",
+      "norm_level": "三级",
+      "standard_order": 6870
+    },
+    {
+      "character": "朏",
+      "norm_level": "三级",
+      "standard_order": 6871
+    },
+    {
+      "character": "訄",
+      "norm_level": "三级",
+      "standard_order": 6873
+    },
+    {
+      "character": "饻",
+      "norm_level": "三级",
+      "standard_order": 6874
+    },
+    {
+      "character": "庤",
+      "norm_level": "三级",
+      "standard_order": 6875
+    },
+    {
+      "character": "疢",
+      "norm_level": "三级",
+      "standard_order": 6876
+    },
+    {
+      "character": "炣",
+      "norm_level": "三级",
+      "standard_order": 6877
+    },
+    {
+      "character": "炟",
+      "norm_level": "三级",
+      "standard_order": 6878
+    },
+    {
+      "character": "㶲",
+      "norm_level": "三级",
+      "standard_order": 6879
+    },
+    {
+      "character": "洭",
+      "norm_level": "三级",
+      "standard_order": 6880
+    },
+    {
+      "character": "洘",
+      "norm_level": "三级",
+      "standard_order": 6881
+    },
+    {
+      "character": "洓",
+      "norm_level": "三级",
+      "standard_order": 6882
+    },
+    {
+      "character": "洿",
+      "norm_level": "三级",
+      "standard_order": 6883
+    },
+    {
+      "character": "㳚",
+      "norm_level": "三级",
+      "standard_order": 6884
+    },
+    {
+      "character": "泚",
+      "norm_level": "三级",
+      "standard_order": 6885
+    },
+    {
+      "character": "洸",
+      "norm_level": "三级",
+      "standard_order": 6888
+    },
+    {
+      "character": "洑",
+      "norm_level": "三级",
+      "standard_order": 6889
+    },
+    {
+      "character": "洢",
+      "norm_level": "三级",
+      "standard_order": 6890
+    },
+    {
+      "character": "洈",
+      "norm_level": "三级",
+      "standard_order": 6891
+    },
+    {
+      "character": "洺",
+      "norm_level": "三级",
+      "standard_order": 6893
+    },
+    {
+      "character": "㳘",
+      "norm_level": "三级",
+      "standard_order": 6896
+    },
+    {
+      "character": "洴",
+      "norm_level": "三级",
+      "standard_order": 6897
+    },
+    {
+      "character": "恔",
+      "norm_level": "三级",
+      "standard_order": 6899
+    },
+    {
+      "character": "宬",
+      "norm_level": "三级",
+      "standard_order": 6900
+    },
+    {
+      "character": "袆",
+      "norm_level": "三级",
+      "standard_order": 6903
+    },
+    {
+      "character": "祏",
+      "norm_level": "三级",
+      "standard_order": 6904
+    },
+    {
+      "character": "祐",
+      "norm_level": "三级",
+      "standard_order": 6905
+    },
+    {
+      "character": "娀",
+      "norm_level": "三级",
+      "standard_order": 6910
+    },
+    {
+      "character": "姞",
+      "norm_level": "三级",
+      "standard_order": 6911
+    },
+    {
+      "character": "姱",
+      "norm_level": "三级",
+      "standard_order": 6912
+    },
+    {
+      "character": "姤",
+      "norm_level": "三级",
+      "standard_order": 6913
+    },
+    {
+      "character": "姶",
+      "norm_level": "三级",
+      "standard_order": 6914
+    },
+    {
+      "character": "姽",
+      "norm_level": "三级",
+      "standard_order": 6915
+    },
+    {
+      "character": "枲",
+      "norm_level": "三级",
+      "standard_order": 6916
+    },
+    {
+      "character": "绖",
+      "norm_level": "三级",
+      "standard_order": 6917
+    },
+    {
+      "character": "骃",
+      "norm_level": "三级",
+      "standard_order": 6918
+    },
+    {
+      "character": "𬘡",
+      "norm_level": "三级",
+      "standard_order": 6919
+    },
+    {
+      "character": "𬳽",
+      "norm_level": "三级",
+      "standard_order": 6920
+    },
+    {
+      "character": "𬘩",
+      "norm_level": "三级",
+      "standard_order": 6921
+    },
+    {
+      "character": "𫄧",
+      "norm_level": "三级",
+      "standard_order": 6922
+    },
+    {
+      "character": "骉",
+      "norm_level": "三级",
+      "standard_order": 6924
+    },
+    {
+      "character": "珪",
+      "norm_level": "三级",
+      "standard_order": 6926
+    },
+    {
+      "character": "珛",
+      "norm_level": "三级",
+      "standard_order": 6927
+    },
+    {
+      "character": "珹",
+      "norm_level": "三级",
+      "standard_order": 6928
+    },
+    {
+      "character": "玼",
+      "norm_level": "三级",
+      "standard_order": 6930
+    },
+    {
+      "character": "珖",
+      "norm_level": "三级",
+      "standard_order": 6931
+    },
+    {
+      "character": "𪟝",
+      "norm_level": "三级",
+      "standard_order": 6932
+    },
+    {
+      "character": "珽",
+      "norm_level": "三级",
+      "standard_order": 6933
+    },
+    {
+      "character": "珦",
+      "norm_level": "三级",
+      "standard_order": 6934
+    },
+    {
+      "character": "珫",
+      "norm_level": "三级",
+      "standard_order": 6935
+    },
+    {
+      "character": "珒",
+      "norm_level": "三级",
+      "standard_order": 6936
+    },
+    {
+      "character": "𬍤",
+      "norm_level": "三级",
+      "standard_order": 6937
+    },
+    {
+      "character": "珢",
+      "norm_level": "三级",
+      "standard_order": 6938
+    },
+    {
+      "character": "珕",
+      "norm_level": "三级",
+      "standard_order": 6939
+    },
+    {
+      "character": "珝",
+      "norm_level": "三级",
+      "standard_order": 6940
+    },
+    {
+      "character": "𫭼",
+      "norm_level": "三级",
+      "standard_order": 6941
+    },
+    {
+      "character": "垾",
+      "norm_level": "三级",
+      "standard_order": 6943
+    },
+    {
+      "character": "垺",
+      "norm_level": "三级",
+      "standard_order": 6944
+    },
+    {
+      "character": "埆",
+      "norm_level": "三级",
+      "standard_order": 6945
+    },
+    {
+      "character": "垿",
+      "norm_level": "三级",
+      "standard_order": 6946
+    },
+    {
+      "character": "埌",
+      "norm_level": "三级",
+      "standard_order": 6947
+    },
+    {
+      "character": "茝",
+      "norm_level": "三级",
+      "standard_order": 6950
+    },
+    {
+      "character": "𬜯",
+      "norm_level": "三级",
+      "standard_order": 6951
+    },
+    {
+      "character": "鄀",
+      "norm_level": "三级",
+      "standard_order": 6952
+    },
+    {
+      "character": "莝",
+      "norm_level": "三级",
+      "standard_order": 6954
+    },
+    {
+      "character": "䓖",
+      "norm_level": "三级",
+      "standard_order": 6955
+    },
+    {
+      "character": "莙",
+      "norm_level": "三级",
+      "standard_order": 6956
+    },
+    {
+      "character": "栻",
+      "norm_level": "三级",
+      "standard_order": 6957
+    },
+    {
+      "character": "𬂩",
+      "norm_level": "三级",
+      "standard_order": 6959
+    },
+    {
+      "character": "梠",
+      "norm_level": "三级",
+      "standard_order": 6961
+    },
+    {
+      "character": "梴",
+      "norm_level": "三级",
+      "standard_order": 6963
+    },
+    {
+      "character": "栒",
+      "norm_level": "三级",
+      "standard_order": 6964
+    },
+    {
+      "character": "𫠆",
+      "norm_level": "三级",
+      "standard_order": 6967
+    },
+    {
+      "character": "砵",
+      "norm_level": "三级",
+      "standard_order": 6968
+    },
+    {
+      "character": "砠",
+      "norm_level": "三级",
+      "standard_order": 6969
+    },
+    {
+      "character": "砫",
+      "norm_level": "三级",
+      "standard_order": 6970
+    },
+    {
+      "character": "硁",
+      "norm_level": "三级",
+      "standard_order": 6972
+    },
+    {
+      "character": "翃",
+      "norm_level": "三级",
+      "standard_order": 6974
+    },
+    {
+      "character": "郪",
+      "norm_level": "三级",
+      "standard_order": 6975
+    },
+    {
+      "character": "𨐈",
+      "norm_level": "三级",
+      "standard_order": 6976
+    },
+    {
+      "character": "辀",
+      "norm_level": "三级",
+      "standard_order": 6977
+    },
+    {
+      "character": "𬌗",
+      "norm_level": "三级",
+      "standard_order": 6979
+    },
+    {
+      "character": "剕",
+      "norm_level": "三级",
+      "standard_order": 6980
+    },
+    {
+      "character": "哢",
+      "norm_level": "三级",
+      "standard_order": 6982
+    },
+    {
+      "character": "晅",
+      "norm_level": "三级",
+      "standard_order": 6983
+    },
+    {
+      "character": "晊",
+      "norm_level": "三级",
+      "standard_order": 6984
+    },
+    {
+      "character": "冔",
+      "norm_level": "三级",
+      "standard_order": 6988
+    },
+    {
+      "character": "晐",
+      "norm_level": "三级",
+      "standard_order": 6990
+    },
+    {
+      "character": "畖",
+      "norm_level": "三级",
+      "standard_order": 6992
+    },
+    {
+      "character": "蚄",
+      "norm_level": "三级",
+      "standard_order": 6993
+    },
+    {
+      "character": "蚆",
+      "norm_level": "三级",
+      "standard_order": 6994
+    },
+    {
+      "character": "𫑡",
+      "norm_level": "三级",
+      "standard_order": 6995
+    },
+    {
+      "character": "崁",
+      "norm_level": "三级",
+      "standard_order": 6997
+    },
+    {
+      "character": "峿",
+      "norm_level": "三级",
+      "standard_order": 6998
+    },
+    {
+      "character": "𪨶",
+      "norm_level": "三级",
+      "standard_order": 6999
+    },
+    {
+      "character": "崄",
+      "norm_level": "三级",
+      "standard_order": 7000
+    },
+    {
+      "character": "帨",
+      "norm_level": "三级",
+      "standard_order": 7001
+    },
+    {
+      "character": "崀",
+      "norm_level": "三级",
+      "standard_order": 7002
+    },
+    {
+      "character": "𬬸",
+      "norm_level": "三级",
+      "standard_order": 7004
+    },
+    {
+      "character": "𬬻",
+      "norm_level": "三级",
+      "standard_order": 7006
+    },
+    {
+      "character": "𬬹",
+      "norm_level": "三级",
+      "standard_order": 7007
+    },
+    {
+      "character": "𬬿",
+      "norm_level": "三级",
+      "standard_order": 7008
+    },
+    {
+      "character": "𬭁",
+      "norm_level": "三级",
+      "standard_order": 7009
+    },
+    {
+      "character": "甡",
+      "norm_level": "三级",
+      "standard_order": 7011
+    },
+    {
+      "character": "倴",
+      "norm_level": "三级",
+      "standard_order": 7014
+    },
+    {
+      "character": "倕",
+      "norm_level": "三级",
+      "standard_order": 7017
+    },
+    {
+      "character": "𫢸",
+      "norm_level": "三级",
+      "standard_order": 7019
+    },
+    {
+      "character": "倓",
+      "norm_level": "三级",
+      "standard_order": 7020
+    },
+    {
+      "character": "倧",
+      "norm_level": "三级",
+      "standard_order": 7021
+    },
+    {
+      "character": "衃",
+      "norm_level": "三级",
+      "standard_order": 7022
+    },
+    {
+      "character": "舥",
+      "norm_level": "三级",
+      "standard_order": 7026
+    },
+    {
+      "character": "朓",
+      "norm_level": "三级",
+      "standard_order": 7031
+    },
+    {
+      "character": "虓",
+      "norm_level": "三级",
+      "standard_order": 7033
+    },
+    {
+      "character": "鱽",
+      "norm_level": "三级",
+      "standard_order": 7034
+    },
+    {
+      "character": "峱",
+      "norm_level": "三级",
+      "standard_order": 7036
+    },
+    {
+      "character": "𫗧",
+      "norm_level": "三级",
+      "standard_order": 7039
+    },
+    {
+      "character": "勍",
+      "norm_level": "三级",
+      "standard_order": 7040
+    },
+    {
+      "character": "羖",
+      "norm_level": "三级",
+      "standard_order": 7045
+    },
+    {
+      "character": "羓",
+      "norm_level": "三级",
+      "standard_order": 7046
+    },
+    {
+      "character": "烠",
+      "norm_level": "三级",
+      "standard_order": 7049
+    },
+    {
+      "character": "烔",
+      "norm_level": "三级",
+      "standard_order": 7050
+    },
+    {
+      "character": "烶",
+      "norm_level": "三级",
+      "standard_order": 7051
+    },
+    {
+      "character": "烻",
+      "norm_level": "三级",
+      "standard_order": 7052
+    },
+    {
+      "character": "𬊈",
+      "norm_level": "三级",
+      "standard_order": 7053
+    },
+    {
+      "character": "涍",
+      "norm_level": "三级",
+      "standard_order": 7054
+    },
+    {
+      "character": "浡",
+      "norm_level": "三级",
+      "standard_order": 7055
+    },
+    {
+      "character": "浭",
+      "norm_level": "三级",
+      "standard_order": 7056
+    },
+    {
+      "character": "浬",
+      "norm_level": "三级",
+      "standard_order": 7057
+    },
+    {
+      "character": "涄",
+      "norm_level": "三级",
+      "standard_order": 7058
+    },
+    {
+      "character": "涢",
+      "norm_level": "三级",
+      "standard_order": 7059
+    },
+    {
+      "character": "涐",
+      "norm_level": "三级",
+      "standard_order": 7060
+    },
+    {
+      "character": "浰",
+      "norm_level": "三级",
+      "standard_order": 7061
+    },
+    {
+      "character": "浟",
+      "norm_level": "三级",
+      "standard_order": 7062
+    },
+    {
+      "character": "浛",
+      "norm_level": "三级",
+      "standard_order": 7063
+    },
+    {
+      "character": "浲",
+      "norm_level": "三级",
+      "standard_order": 7065
+    },
+    {
+      "character": "涘",
+      "norm_level": "三级",
+      "standard_order": 7066
+    },
+    {
+      "character": "悈",
+      "norm_level": "三级",
+      "standard_order": 7067
+    },
+    {
+      "character": "悢",
+      "norm_level": "三级",
+      "standard_order": 7069
+    },
+    {
+      "character": "𬒈",
+      "norm_level": "三级",
+      "standard_order": 7070
+    },
+    {
+      "character": "宧",
+      "norm_level": "三级",
+      "standard_order": 7071
+    },
+    {
+      "character": "窊",
+      "norm_level": "三级",
+      "standard_order": 7073
+    },
+    {
+      "character": "窎",
+      "norm_level": "三级",
+      "standard_order": 7074
+    },
+    {
+      "character": "扅",
+      "norm_level": "三级",
+      "standard_order": 7075
+    },
+    {
+      "character": "袪",
+      "norm_level": "三级",
+      "standard_order": 7077
+    },
+    {
+      "character": "袗",
+      "norm_level": "三级",
+      "standard_order": 7078
+    },
+    {
+      "character": "堲",
+      "norm_level": "三级",
+      "standard_order": 7082
+    },
+    {
+      "character": "疍",
+      "norm_level": "三级",
+      "standard_order": 7083
+    },
+    {
+      "character": "𨺙",
+      "norm_level": "三级",
+      "standard_order": 7084
+    },
+    {
+      "character": "砮",
+      "norm_level": "三级",
+      "standard_order": 7087
+    },
+    {
+      "character": "㛚",
+      "norm_level": "三级",
+      "standard_order": 7088
+    },
+    {
+      "character": "翀",
+      "norm_level": "三级",
+      "standard_order": 7090
+    },
+    {
+      "character": "翂",
+      "norm_level": "三级",
+      "standard_order": 7091
+    },
+    {
+      "character": "剟",
+      "norm_level": "三级",
+      "standard_order": 7092
+    },
+    {
+      "character": "𬳿",
+      "norm_level": "三级",
+      "standard_order": 7093
+    },
+    {
+      "character": "𫄨",
+      "norm_level": "三级",
+      "standard_order": 7094
+    },
+    {
+      "character": "绤",
+      "norm_level": "三级",
+      "standard_order": 7095
+    },
+    {
+      "character": "骍",
+      "norm_level": "三级",
+      "standard_order": 7096
+    },
+    {
+      "character": "𬘫",
+      "norm_level": "三级",
+      "standard_order": 7097
+    },
+    {
+      "character": "䂮",
+      "norm_level": "三级",
+      "standard_order": 7098
+    },
+    {
+      "character": "琎",
+      "norm_level": "三级",
+      "standard_order": 7099
+    },
+    {
+      "character": "珸",
+      "norm_level": "三级",
+      "standard_order": 7100
+    },
+    {
+      "character": "珵",
+      "norm_level": "三级",
+      "standard_order": 7101
+    },
+    {
+      "character": "琄",
+      "norm_level": "三级",
+      "standard_order": 7102
+    },
+    {
+      "character": "琈",
+      "norm_level": "三级",
+      "standard_order": 7103
+    },
+    {
+      "character": "琀",
+      "norm_level": "三级",
+      "standard_order": 7104
+    },
+    {
+      "character": "珺",
+      "norm_level": "三级",
+      "standard_order": 7105
+    },
+    {
+      "character": "堎",
+      "norm_level": "三级",
+      "standard_order": 7107
+    },
+    {
+      "character": "堐",
+      "norm_level": "三级",
+      "standard_order": 7108
+    },
+    {
+      "character": "埫",
+      "norm_level": "三级",
+      "standard_order": 7111
+    },
+    {
+      "character": "堌",
+      "norm_level": "三级",
+      "standard_order": 7112
+    },
+    {
+      "character": "晢",
+      "norm_level": "三级",
+      "standard_order": 7113
+    },
+    {
+      "character": "𫮃",
+      "norm_level": "三级",
+      "standard_order": 7114
+    },
+    {
+      "character": "掞",
+      "norm_level": "三级",
+      "standard_order": 7115
+    },
+    {
+      "character": "埪",
+      "norm_level": "三级",
+      "standard_order": 7116
+    },
+    {
+      "character": "壸",
+      "norm_level": "三级",
+      "standard_order": 7117
+    },
+    {
+      "character": "㙍",
+      "norm_level": "三级",
+      "standard_order": 7118
+    },
+    {
+      "character": "萚",
+      "norm_level": "三级",
+      "standard_order": 7121
+    },
+    {
+      "character": "䓫",
+      "norm_level": "三级",
+      "standard_order": 7124
+    },
+    {
+      "character": "勚",
+      "norm_level": "三级",
+      "standard_order": 7125
+    },
+    {
+      "character": "䓬",
+      "norm_level": "三级",
+      "standard_order": 7126
+    },
+    {
+      "character": "菂",
+      "norm_level": "三级",
+      "standard_order": 7128
+    },
+    {
+      "character": "菍",
+      "norm_level": "三级",
+      "standard_order": 7129
+    },
+    {
+      "character": "菼",
+      "norm_level": "三级",
+      "standard_order": 7130
+    },
+    {
+      "character": "萣",
+      "norm_level": "三级",
+      "standard_order": 7131
+    },
+    {
+      "character": "䓨",
+      "norm_level": "三级",
+      "standard_order": 7132
+    },
+    {
+      "character": "菉",
+      "norm_level": "三级",
+      "standard_order": 7133
+    },
+    {
+      "character": "䓛",
+      "norm_level": "三级",
+      "standard_order": 7134
+    },
+    {
+      "character": "梽",
+      "norm_level": "三级",
+      "standard_order": 7136
+    },
+    {
+      "character": "桯",
+      "norm_level": "三级",
+      "standard_order": 7139
+    },
+    {
+      "character": "梌",
+      "norm_level": "三级",
+      "standard_order": 7141
+    },
+    {
+      "character": "桹",
+      "norm_level": "三级",
+      "standard_order": 7142
+    },
+    {
+      "character": "敔",
+      "norm_level": "三级",
+      "standard_order": 7143
+    },
+    {
+      "character": "硔",
+      "norm_level": "三级",
+      "standard_order": 7145
+    },
+    {
+      "character": "鿎",
+      "norm_level": "三级",
+      "standard_order": 7146
+    },
+    {
+      "character": "硚",
+      "norm_level": "三级",
+      "standard_order": 7148
+    },
+    {
+      "character": "硊",
+      "norm_level": "三级",
+      "standard_order": 7149
+    },
+    {
+      "character": "硍",
+      "norm_level": "三级",
+      "standard_order": 7150
+    },
+    {
+      "character": "勔",
+      "norm_level": "三级",
+      "standard_order": 7151
+    },
+    {
+      "character": "䴕",
+      "norm_level": "三级",
+      "standard_order": 7152
+    },
+    {
+      "character": "龁",
+      "norm_level": "三级",
+      "standard_order": 7153
+    },
+    {
+      "character": "逴",
+      "norm_level": "三级",
+      "standard_order": 7154
+    },
+    {
+      "character": "翈",
+      "norm_level": "三级",
+      "standard_order": 7157
+    },
+    {
+      "character": "㫰",
+      "norm_level": "三级",
+      "standard_order": 7158
+    },
+    {
+      "character": "晙",
+      "norm_level": "三级",
+      "standard_order": 7159
+    },
+    {
+      "character": "畤",
+      "norm_level": "三级",
+      "standard_order": 7160
+    },
+    {
+      "character": "𬱖",
+      "norm_level": "三级",
+      "standard_order": 7161
+    },
+    {
+      "character": "蛃",
+      "norm_level": "三级",
+      "standard_order": 7164
+    },
+    {
+      "character": "蚲",
+      "norm_level": "三级",
+      "standard_order": 7165
+    },
+    {
+      "character": "𬟽",
+      "norm_level": "三级",
+      "standard_order": 7166
+    },
+    {
+      "character": "䎃",
+      "norm_level": "三级",
+      "standard_order": 7169
+    },
+    {
+      "character": "崟",
+      "norm_level": "三级",
+      "standard_order": 7171
+    },
+    {
+      "character": "崌",
+      "norm_level": "三级",
+      "standard_order": 7174
+    },
+    {
+      "character": "崡",
+      "norm_level": "三级",
+      "standard_order": 7175
+    },
+    {
+      "character": "铏",
+      "norm_level": "三级",
+      "standard_order": 7176
+    },
+    {
+      "character": "𫓯",
+      "norm_level": "三级",
+      "standard_order": 7177
+    },
+    {
+      "character": "𫟹",
+      "norm_level": "三级",
+      "standard_order": 7178
+    },
+    {
+      "character": "𫟼",
+      "norm_level": "三级",
+      "standard_order": 7180
+    },
+    {
+      "character": "铚",
+      "norm_level": "三级",
+      "standard_order": 7183
+    },
+    {
+      "character": "牻",
+      "norm_level": "三级",
+      "standard_order": 7187
+    },
+    {
+      "character": "笯",
+      "norm_level": "三级",
+      "standard_order": 7191
+    },
+    {
+      "character": "偰",
+      "norm_level": "三级",
+      "standard_order": 7192
+    },
+    {
+      "character": "偡",
+      "norm_level": "三级",
+      "standard_order": 7193
+    },
+    {
+      "character": "偭",
+      "norm_level": "三级",
+      "standard_order": 7195
+    },
+    {
+      "character": "偲",
+      "norm_level": "三级",
+      "standard_order": 7196
+    },
+    {
+      "character": "偁",
+      "norm_level": "三级",
+      "standard_order": 7197
+    },
+    {
+      "character": "㿠",
+      "norm_level": "三级",
+      "standard_order": 7198
+    },
+    {
+      "character": "鄅",
+      "norm_level": "三级",
+      "standard_order": 7199
+    },
+    {
+      "character": "偓",
+      "norm_level": "三级",
+      "standard_order": 7200
+    },
+    {
+      "character": "徛",
+      "norm_level": "三级",
+      "standard_order": 7201
+    },
+    {
+      "character": "衒",
+      "norm_level": "三级",
+      "standard_order": 7202
+    },
+    {
+      "character": "鸼",
+      "norm_level": "三级",
+      "standard_order": 7205
+    },
+    {
+      "character": "悆",
+      "norm_level": "三级",
+      "standard_order": 7206
+    },
+    {
+      "character": "鄃",
+      "norm_level": "三级",
+      "standard_order": 7207
+    },
+    {
+      "character": "瓻",
+      "norm_level": "三级",
+      "standard_order": 7208
+    },
+    {
+      "character": "䝙",
+      "norm_level": "三级",
+      "standard_order": 7209
+    },
+    {
+      "character": "脟",
+      "norm_level": "三级",
+      "standard_order": 7212
+    },
+    {
+      "character": "䏲",
+      "norm_level": "三级",
+      "standard_order": 7213
+    },
+    {
+      "character": "鱾",
+      "norm_level": "三级",
+      "standard_order": 7214
+    },
+    {
+      "character": "猄",
+      "norm_level": "三级",
+      "standard_order": 7217
+    },
+    {
+      "character": "𠅤",
+      "norm_level": "三级",
+      "standard_order": 7219
+    },
+    {
+      "character": "庱",
+      "norm_level": "三级",
+      "standard_order": 7220
+    },
+    {
+      "character": "庼",
+      "norm_level": "三级",
+      "standard_order": 7221
+    },
+    {
+      "character": "痓",
+      "norm_level": "三级",
+      "standard_order": 7223
+    },
+    {
+      "character": "䴔",
+      "norm_level": "三级",
+      "standard_order": 7224
+    },
+    {
+      "character": "竫",
+      "norm_level": "三级",
+      "standard_order": 7225
+    },
+    {
+      "character": "焆",
+      "norm_level": "三级",
+      "standard_order": 7230
+    },
+    {
+      "character": "烺",
+      "norm_level": "三级",
+      "standard_order": 7231
+    },
+    {
+      "character": "淏",
+      "norm_level": "三级",
+      "standard_order": 7233
+    },
+    {
+      "character": "𬇹",
+      "norm_level": "三级",
+      "standard_order": 7234
+    },
+    {
+      "character": "淟",
+      "norm_level": "三级",
+      "standard_order": 7235
+    },
+    {
+      "character": "淜",
+      "norm_level": "三级",
+      "standard_order": 7236
+    },
+    {
+      "character": "淴",
+      "norm_level": "三级",
+      "standard_order": 7237
+    },
+    {
+      "character": "涴",
+      "norm_level": "三级",
+      "standard_order": 7240
+    },
+    {
+      "character": "𬍡",
+      "norm_level": "三级",
+      "standard_order": 7241
+    },
+    {
+      "character": "㥄",
+      "norm_level": "三级",
+      "standard_order": 7242
+    },
+    {
+      "character": "惔",
+      "norm_level": "三级",
+      "standard_order": 7244
+    },
+    {
+      "character": "悰",
+      "norm_level": "三级",
+      "standard_order": 7245
+    },
+    {
+      "character": "寁",
+      "norm_level": "三级",
+      "standard_order": 7247
+    },
+    {
+      "character": "𬤇",
+      "norm_level": "三级",
+      "standard_order": 7249
+    },
+    {
+      "character": "𫍯",
+      "norm_level": "三级",
+      "standard_order": 7250
+    },
+    {
+      "character": "裈",
+      "norm_level": "三级",
+      "standard_order": 7252
+    },
+    {
+      "character": "祲",
+      "norm_level": "三级",
+      "standard_order": 7253
+    },
+    {
+      "character": "𬤊",
+      "norm_level": "三级",
+      "standard_order": 7254
+    },
+    {
+      "character": "𫍲",
+      "norm_level": "三级",
+      "standard_order": 7255
+    },
+    {
+      "character": "谞",
+      "norm_level": "三级",
+      "standard_order": 7256
+    },
+    {
+      "character": "弸",
+      "norm_level": "三级",
+      "standard_order": 7258
+    },
+    {
+      "character": "弶",
+      "norm_level": "三级",
+      "standard_order": 7259
+    },
+    {
+      "character": "𬯎",
+      "norm_level": "三级",
+      "standard_order": 7260
+    },
+    {
+      "character": "隃",
+      "norm_level": "三级",
+      "standard_order": 7261
+    },
+    {
+      "character": "婞",
+      "norm_level": "三级",
+      "standard_order": 7262
+    },
+    {
+      "character": "娵",
+      "norm_level": "三级",
+      "standard_order": 7263
+    },
+    {
+      "character": "婼",
+      "norm_level": "三级",
+      "standard_order": 7264
+    },
+    {
+      "character": "媖",
+      "norm_level": "三级",
+      "standard_order": 7265
+    },
+    {
+      "character": "婳",
+      "norm_level": "三级",
+      "standard_order": 7266
+    },
+    {
+      "character": "婍",
+      "norm_level": "三级",
+      "standard_order": 7267
+    },
+    {
+      "character": "婌",
+      "norm_level": "三级",
+      "standard_order": 7268
+    },
+    {
+      "character": "婫",
+      "norm_level": "三级",
+      "standard_order": 7269
+    },
+    {
+      "character": "婤",
+      "norm_level": "三级",
+      "standard_order": 7270
+    },
+    {
+      "character": "婘",
+      "norm_level": "三级",
+      "standard_order": 7271
+    },
+    {
+      "character": "婠",
+      "norm_level": "三级",
+      "standard_order": 7272
+    },
+    {
+      "character": "𬘬",
+      "norm_level": "三级",
+      "standard_order": 7273
+    },
+    {
+      "character": "𬘭",
+      "norm_level": "三级",
+      "standard_order": 7274
+    },
+    {
+      "character": "𬴂",
+      "norm_level": "三级",
+      "standard_order": 7275
+    },
+    {
+      "character": "𫘦",
+      "norm_level": "三级",
+      "standard_order": 7276
+    },
+    {
+      "character": "绹",
+      "norm_level": "三级",
+      "standard_order": 7277
+    },
+    {
+      "character": "𫟅",
+      "norm_level": "三级",
+      "standard_order": 7278
+    },
+    {
+      "character": "𬘯",
+      "norm_level": "三级",
+      "standard_order": 7279
+    },
+    {
+      "character": "𫘧",
+      "norm_level": "三级",
+      "standard_order": 7281
+    },
+    {
+      "character": "珷",
+      "norm_level": "三级",
+      "standard_order": 7283
+    },
+    {
+      "character": "琲",
+      "norm_level": "三级",
+      "standard_order": 7284
+    },
+    {
+      "character": "琡",
+      "norm_level": "三级",
+      "standard_order": 7285
+    },
+    {
+      "character": "琟",
+      "norm_level": "三级",
+      "standard_order": 7286
+    },
+    {
+      "character": "琔",
+      "norm_level": "三级",
+      "standard_order": 7287
+    },
+    {
+      "character": "琭",
+      "norm_level": "三级",
+      "standard_order": 7288
+    },
+    {
+      "character": "堾",
+      "norm_level": "三级",
+      "standard_order": 7289
+    },
+    {
+      "character": "堼",
+      "norm_level": "三级",
+      "standard_order": 7290
+    },
+    {
+      "character": "揕",
+      "norm_level": "三级",
+      "standard_order": 7291
+    },
+    {
+      "character": "㙘",
+      "norm_level": "三级",
+      "standard_order": 7292
+    },
+    {
+      "character": "堧",
+      "norm_level": "三级",
+      "standard_order": 7293
+    },
+    {
+      "character": "堨",
+      "norm_level": "三级",
+      "standard_order": 7295
+    },
+    {
+      "character": "塅",
+      "norm_level": "三级",
+      "standard_order": 7296
+    },
+    {
+      "character": "𪣻",
+      "norm_level": "三级",
+      "standard_order": 7299
+    },
+    {
+      "character": "𡎚",
+      "norm_level": "三级",
+      "standard_order": 7300
+    },
+    {
+      "character": "惎",
+      "norm_level": "三级",
+      "standard_order": 7302
+    },
+    {
+      "character": "萳",
+      "norm_level": "三级",
+      "standard_order": 7303
+    },
+    {
+      "character": "靬",
+      "norm_level": "三级",
+      "standard_order": 7305
+    },
+    {
+      "character": "葴",
+      "norm_level": "三级",
+      "standard_order": 7306
+    },
+    {
+      "character": "鄚",
+      "norm_level": "三级",
+      "standard_order": 7309
+    },
+    {
+      "character": "蓇",
+      "norm_level": "三级",
+      "standard_order": 7311
+    },
+    {
+      "character": "萩",
+      "norm_level": "三级",
+      "standard_order": 7312
+    },
+    {
+      "character": "葰",
+      "norm_level": "三级",
+      "standard_order": 7314
+    },
+    {
+      "character": "葎",
+      "norm_level": "三级",
+      "standard_order": 7315
+    },
+    {
+      "character": "鄑",
+      "norm_level": "三级",
+      "standard_order": 7316
+    },
+    {
+      "character": "葖",
+      "norm_level": "三级",
+      "standard_order": 7318
+    },
+    {
+      "character": "蒄",
+      "norm_level": "三级",
+      "standard_order": 7319
+    },
+    {
+      "character": "萹",
+      "norm_level": "三级",
+      "standard_order": 7320
+    },
+    {
+      "character": "棤",
+      "norm_level": "三级",
+      "standard_order": 7321
+    },
+    {
+      "character": "棽",
+      "norm_level": "三级",
+      "standard_order": 7322
+    },
+    {
+      "character": "棫",
+      "norm_level": "三级",
+      "standard_order": 7323
+    },
+    {
+      "character": "椓",
+      "norm_level": "三级",
+      "standard_order": 7324
+    },
+    {
+      "character": "椑",
+      "norm_level": "三级",
+      "standard_order": 7325
+    },
+    {
+      "character": "𬃊",
+      "norm_level": "三级",
+      "standard_order": 7326
+    },
+    {
+      "character": "鹀",
+      "norm_level": "三级",
+      "standard_order": 7327
+    },
+    {
+      "character": "棓",
+      "norm_level": "三级",
+      "standard_order": 7329
+    },
+    {
+      "character": "棬",
+      "norm_level": "三级",
+      "standard_order": 7330
+    },
+    {
+      "character": "棪",
+      "norm_level": "三级",
+      "standard_order": 7331
+    },
+    {
+      "character": "椀",
+      "norm_level": "三级",
+      "standard_order": 7332
+    },
+    {
+      "character": "𬷕",
+      "norm_level": "三级",
+      "standard_order": 7334
+    },
+    {
+      "character": "奡",
+      "norm_level": "三级",
+      "standard_order": 7338
+    },
+    {
+      "character": "詟",
+      "norm_level": "三级",
+      "standard_order": 7342
+    },
+    {
+      "character": "𫐐",
+      "norm_level": "三级",
+      "standard_order": 7343
+    },
+    {
+      "character": "棐",
+      "norm_level": "三级",
+      "standard_order": 7345
+    },
+    {
+      "character": "龂",
+      "norm_level": "三级",
+      "standard_order": 7346
+    },
+    {
+      "character": "𬹼",
+      "norm_level": "三级",
+      "standard_order": 7347
+    },
+    {
+      "character": "睎",
+      "norm_level": "三级",
+      "standard_order": 7350
+    },
+    {
+      "character": "晫",
+      "norm_level": "三级",
+      "standard_order": 7351
+    },
+    {
+      "character": "晪",
+      "norm_level": "三级",
+      "standard_order": 7352
+    },
+    {
+      "character": "晱",
+      "norm_level": "三级",
+      "standard_order": 7353
+    },
+    {
+      "character": "𧿹",
+      "norm_level": "三级",
+      "standard_order": 7354
+    },
+    {
+      "character": "畯",
+      "norm_level": "三级",
+      "standard_order": 7356
+    },
+    {
+      "character": "斝",
+      "norm_level": "三级",
+      "standard_order": 7357
+    },
+    {
+      "character": "喤",
+      "norm_level": "三级",
+      "standard_order": 7358
+    },
+    {
+      "character": "崶",
+      "norm_level": "三级",
+      "standard_order": 7359
+    },
+    {
+      "character": "嵁",
+      "norm_level": "三级",
+      "standard_order": 7360
+    },
+    {
+      "character": "𫶇",
+      "norm_level": "三级",
+      "standard_order": 7361
+    },
+    {
+      "character": "嵅",
+      "norm_level": "三级",
+      "standard_order": 7363
+    },
+    {
+      "character": "崿",
+      "norm_level": "三级",
+      "standard_order": 7364
+    },
+    {
+      "character": "嵚",
+      "norm_level": "三级",
+      "standard_order": 7365
+    },
+    {
+      "character": "翙",
+      "norm_level": "三级",
+      "standard_order": 7366
+    },
+    {
+      "character": "𫖮",
+      "norm_level": "三级",
+      "standard_order": 7367
+    },
+    {
+      "character": "圌",
+      "norm_level": "三级",
+      "standard_order": 7368
+    },
+    {
+      "character": "圐",
+      "norm_level": "三级",
+      "standard_order": 7369
+    },
+    {
+      "character": "鿏",
+      "norm_level": "三级",
+      "standard_order": 7373
+    },
+    {
+      "character": "𬭊",
+      "norm_level": "三级",
+      "standard_order": 7375
+    },
+    {
+      "character": "𨱇",
+      "norm_level": "三级",
+      "standard_order": 7377
+    },
+    {
+      "character": "𫓶",
+      "norm_level": "三级",
+      "standard_order": 7378
+    },
+    {
+      "character": "𬭎",
+      "norm_level": "三级",
+      "standard_order": 7382
+    },
+    {
+      "character": "犇",
+      "norm_level": "三级",
+      "standard_order": 7384
+    },
+    {
+      "character": "颋",
+      "norm_level": "三级",
+      "standard_order": 7385
+    },
+    {
+      "character": "稌",
+      "norm_level": "三级",
+      "standard_order": 7386
+    },
+    {
+      "character": "筥",
+      "norm_level": "三级",
+      "standard_order": 7390
+    },
+    {
+      "character": "傃",
+      "norm_level": "三级",
+      "standard_order": 7392
+    },
+    {
+      "character": "傉",
+      "norm_level": "三级",
+      "standard_order": 7393
+    },
+    {
+      "character": "翛",
+      "norm_level": "三级",
+      "standard_order": 7394
+    },
+    {
+      "character": "傒",
+      "norm_level": "三级",
+      "standard_order": 7395
+    },
+    {
+      "character": "𫖯",
+      "norm_level": "三级",
+      "standard_order": 7399
+    },
+    {
+      "character": "脿",
+      "norm_level": "三级",
+      "standard_order": 7400
+    },
+    {
+      "character": "腘",
+      "norm_level": "三级",
+      "standard_order": 7401
+    },
+    {
+      "character": "䐃",
+      "norm_level": "三级",
+      "standard_order": 7402
+    },
+    {
+      "character": "腒",
+      "norm_level": "三级",
+      "standard_order": 7404
+    },
+    {
+      "character": "𬱟",
+      "norm_level": "三级",
+      "standard_order": 7405
+    },
+    {
+      "character": "猰",
+      "norm_level": "三级",
+      "standard_order": 7407
+    },
+    {
+      "character": "𫛭",
+      "norm_level": "三级",
+      "standard_order": 7408
+    },
+    {
+      "character": "猯",
+      "norm_level": "三级",
+      "standard_order": 7409
+    },
+    {
+      "character": "㺄",
+      "norm_level": "三级",
+      "standard_order": 7410
+    },
+    {
+      "character": "馉",
+      "norm_level": "三级",
+      "standard_order": 7411
+    },
+    {
+      "character": "凓",
+      "norm_level": "三级",
+      "standard_order": 7412
+    },
+    {
+      "character": "鄗",
+      "norm_level": "三级",
+      "standard_order": 7413
+    },
+    {
+      "character": "𫷷",
+      "norm_level": "三级",
+      "standard_order": 7414
+    },
+    {
+      "character": "廋",
+      "norm_level": "三级",
+      "standard_order": 7415
+    },
+    {
+      "character": "廆",
+      "norm_level": "三级",
+      "standard_order": 7416
+    },
+    {
+      "character": "鄌",
+      "norm_level": "三级",
+      "standard_order": 7417
+    },
+    {
+      "character": "遆",
+      "norm_level": "三级",
+      "standard_order": 7419
+    },
+    {
+      "character": "旐",
+      "norm_level": "三级",
+      "standard_order": 7420
+    },
+    {
+      "character": "𬮱",
+      "norm_level": "三级",
+      "standard_order": 7421
+    },
+    {
+      "character": "焞",
+      "norm_level": "三级",
+      "standard_order": 7422
+    },
+    {
+      "character": "𬊤",
+      "norm_level": "三级",
+      "standard_order": 7423
+    },
+    {
+      "character": "𣸣",
+      "norm_level": "三级",
+      "standard_order": 7425
+    },
+    {
+      "character": "溚",
+      "norm_level": "三级",
+      "standard_order": 7426
+    },
+    {
+      "character": "溁",
+      "norm_level": "三级",
+      "standard_order": 7427
+    },
+    {
+      "character": "湝",
+      "norm_level": "三级",
+      "standard_order": 7428
+    },
+    {
+      "character": "渰",
+      "norm_level": "三级",
+      "standard_order": 7429
+    },
+    {
+      "character": "㴔",
+      "norm_level": "三级",
+      "standard_order": 7431
+    },
+    {
+      "character": "渟",
+      "norm_level": "三级",
+      "standard_order": 7432
+    },
+    {
+      "character": "溠",
+      "norm_level": "三级",
+      "standard_order": 7433
+    },
+    {
+      "character": "渼",
+      "norm_level": "三级",
+      "standard_order": 7434
+    },
+    {
+      "character": "溇",
+      "norm_level": "三级",
+      "standard_order": 7435
+    },
+    {
+      "character": "湑",
+      "norm_level": "三级",
+      "standard_order": 7437
+    },
+    {
+      "character": "溞",
+      "norm_level": "三级",
+      "standard_order": 7438
+    },
+    {
+      "character": "愐",
+      "norm_level": "三级",
+      "standard_order": 7439
+    },
+    {
+      "character": "愃",
+      "norm_level": "三级",
+      "standard_order": 7440
+    },
+    {
+      "character": "敩",
+      "norm_level": "三级",
+      "standard_order": 7441
+    },
+    {
+      "character": "棨",
+      "norm_level": "三级",
+      "standard_order": 7443
+    },
+    {
+      "character": "扊",
+      "norm_level": "三级",
+      "standard_order": 7444
+    },
+    {
+      "character": "祼",
+      "norm_level": "三级",
+      "standard_order": 7446
+    },
+    {
+      "character": "婻",
+      "norm_level": "三级",
+      "standard_order": 7447
+    },
+    {
+      "character": "媆",
+      "norm_level": "三级",
+      "standard_order": 7448
+    },
+    {
+      "character": "媞",
+      "norm_level": "三级",
+      "standard_order": 7449
+    },
+    {
+      "character": "㛹",
+      "norm_level": "三级",
+      "standard_order": 7450
+    },
+    {
+      "character": "媓",
+      "norm_level": "三级",
+      "standard_order": 7451
+    },
+    {
+      "character": "媂",
+      "norm_level": "三级",
+      "standard_order": 7452
+    },
+    {
+      "character": "媄",
+      "norm_level": "三级",
+      "standard_order": 7453
+    },
+    {
+      "character": "𬴃",
+      "norm_level": "三级",
+      "standard_order": 7456
+    },
+    {
+      "character": "𫘨",
+      "norm_level": "三级",
+      "standard_order": 7457
+    },
+    {
+      "character": "缐",
+      "norm_level": "三级",
+      "standard_order": 7459
+    },
+    {
+      "character": "骙",
+      "norm_level": "三级",
+      "standard_order": 7460
+    },
+    {
+      "character": "瑃",
+      "norm_level": "三级",
+      "standard_order": 7461
+    },
+    {
+      "character": "瑓",
+      "norm_level": "三级",
+      "standard_order": 7462
+    },
+    {
+      "character": "瑅",
+      "norm_level": "三级",
+      "standard_order": 7463
+    },
+    {
+      "character": "瑆",
+      "norm_level": "三级",
+      "standard_order": 7464
+    },
+    {
+      "character": "䴖",
+      "norm_level": "三级",
+      "standard_order": 7465
+    },
+    {
+      "character": "瑖",
+      "norm_level": "三级",
+      "standard_order": 7466
+    },
+    {
+      "character": "瑝",
+      "norm_level": "三级",
+      "standard_order": 7467
+    },
+    {
+      "character": "瑔",
+      "norm_level": "三级",
+      "standard_order": 7468
+    },
+    {
+      "character": "瑀",
+      "norm_level": "三级",
+      "standard_order": 7469
+    },
+    {
+      "character": "𤧛",
+      "norm_level": "三级",
+      "standard_order": 7470
+    },
+    {
+      "character": "瑳",
+      "norm_level": "三级",
+      "standard_order": 7471
+    },
+    {
+      "character": "瑂",
+      "norm_level": "三级",
+      "standard_order": 7472
+    },
+    {
+      "character": "嶅",
+      "norm_level": "三级",
+      "standard_order": 7473
+    },
+    {
+      "character": "瑑",
+      "norm_level": "三级",
+      "standard_order": 7474
+    },
+    {
+      "character": "髢",
+      "norm_level": "三级",
+      "standard_order": 7476
+    },
+    {
+      "character": "堽",
+      "norm_level": "三级",
+      "standard_order": 7478
+    },
+    {
+      "character": "赪",
+      "norm_level": "三级",
+      "standard_order": 7479
+    },
+    {
+      "character": "摛",
+      "norm_level": "三级",
+      "standard_order": 7480
+    },
+    {
+      "character": "塝",
+      "norm_level": "三级",
+      "standard_order": 7481
+    },
+    {
+      "character": "蒱",
+      "norm_level": "三级",
+      "standard_order": 7484
+    },
+    {
+      "character": "蒨",
+      "norm_level": "三级",
+      "standard_order": 7485
+    },
+    {
+      "character": "蓏",
+      "norm_level": "三级",
+      "standard_order": 7486
+    },
+    {
+      "character": "蔀",
+      "norm_level": "三级",
+      "standard_order": 7487
+    },
+    {
+      "character": "蓢",
+      "norm_level": "三级",
+      "standard_order": 7488
+    },
+    {
+      "character": "楪",
+      "norm_level": "三级",
+      "standard_order": 7493
+    },
+    {
+      "character": "榃",
+      "norm_level": "三级",
+      "standard_order": 7494
+    },
+    {
+      "character": "楒",
+      "norm_level": "三级",
+      "standard_order": 7496
+    },
+    {
+      "character": "楩",
+      "norm_level": "三级",
+      "standard_order": 7498
+    },
+    {
+      "character": "椸",
+      "norm_level": "三级",
+      "standard_order": 7500
+    },
+    {
+      "character": "歅",
+      "norm_level": "三级",
+      "standard_order": 7502
+    },
+    {
+      "character": "𬪩",
+      "norm_level": "三级",
+      "standard_order": 7503
+    },
+    {
+      "character": "碃",
+      "norm_level": "三级",
+      "standard_order": 7504
+    },
+    {
+      "character": "碏",
+      "norm_level": "三级",
+      "standard_order": 7505
+    },
+    {
+      "character": "𬒔",
+      "norm_level": "三级",
+      "standard_order": 7506
+    },
+    {
+      "character": "碈",
+      "norm_level": "三级",
+      "standard_order": 7507
+    },
+    {
+      "character": "䃅",
+      "norm_level": "三级",
+      "standard_order": 7508
+    },
+    {
+      "character": "硿",
+      "norm_level": "三级",
+      "standard_order": 7509
+    },
+    {
+      "character": "鄠",
+      "norm_level": "三级",
+      "standard_order": 7510
+    },
+    {
+      "character": "𬨎",
+      "norm_level": "三级",
+      "standard_order": 7512
+    },
+    {
+      "character": "𫐓",
+      "norm_level": "三级",
+      "standard_order": 7513
+    },
+    {
+      "character": "䣘",
+      "norm_level": "三级",
+      "standard_order": 7516
+    },
+    {
+      "character": "暕",
+      "norm_level": "三级",
+      "standard_order": 7517
+    },
+    {
+      "character": "𫫇",
+      "norm_level": "三级",
+      "standard_order": 7519
+    },
+    {
+      "character": "㬊",
+      "norm_level": "三级",
+      "standard_order": 7520
+    },
+    {
+      "character": "暅",
+      "norm_level": "三级",
+      "standard_order": 7521
+    },
+    {
+      "character": "跱",
+      "norm_level": "三级",
+      "standard_order": 7522
+    },
+    {
+      "character": "蜐",
+      "norm_level": "三级",
+      "standard_order": 7523
+    },
+    {
+      "character": "嵲",
+      "norm_level": "三级",
+      "standard_order": 7525
+    },
+    {
+      "character": "赗",
+      "norm_level": "三级",
+      "standard_order": 7526
+    },
+    {
+      "character": "𫓹",
+      "norm_level": "三级",
+      "standard_order": 7529
+    },
+    {
+      "character": "锳",
+      "norm_level": "三级",
+      "standard_order": 7531
+    },
+    {
+      "character": "锧",
+      "norm_level": "三级",
+      "standard_order": 7532
+    },
+    {
+      "character": "𬭚",
+      "norm_level": "三级",
+      "standard_order": 7534
+    },
+    {
+      "character": "𬭛",
+      "norm_level": "三级",
+      "standard_order": 7537
+    },
+    {
+      "character": "稑",
+      "norm_level": "三级",
+      "standard_order": 7538
+    },
+    {
+      "character": "䅟",
+      "norm_level": "三级",
+      "standard_order": 7540
+    },
+    {
+      "character": "𬕂",
+      "norm_level": "三级",
+      "standard_order": 7541
+    },
+    {
+      "character": "筶",
+      "norm_level": "三级",
+      "standard_order": 7544
+    },
+    {
+      "character": "筤",
+      "norm_level": "三级",
+      "standard_order": 7546
+    },
+    {
+      "character": "僇",
+      "norm_level": "三级",
+      "standard_order": 7549
+    },
+    {
+      "character": "谼",
+      "norm_level": "三级",
+      "standard_order": 7552
+    },
+    {
+      "character": "貆",
+      "norm_level": "三级",
+      "standard_order": 7553
+    },
+    {
+      "character": "腨",
+      "norm_level": "三级",
+      "standard_order": 7555
+    },
+    {
+      "character": "腯",
+      "norm_level": "三级",
+      "standard_order": 7556
+    },
+    {
+      "character": "鲉",
+      "norm_level": "三级",
+      "standard_order": 7557
+    },
+    {
+      "character": "鲊",
+      "norm_level": "三级",
+      "standard_order": 7558
+    },
+    {
+      "character": "鲌",
+      "norm_level": "三级",
+      "standard_order": 7559
+    },
+    {
+      "character": "䲟",
+      "norm_level": "三级",
+      "standard_order": 7560
+    },
+    {
+      "character": "𬶋",
+      "norm_level": "三级",
+      "standard_order": 7561
+    },
+    {
+      "character": "𬶍",
+      "norm_level": "三级",
+      "standard_order": 7562
+    },
+    {
+      "character": "鲏",
+      "norm_level": "三级",
+      "standard_order": 7563
+    },
+    {
+      "character": "雊",
+      "norm_level": "三级",
+      "standard_order": 7564
+    },
+    {
+      "character": "猺",
+      "norm_level": "三级",
+      "standard_order": 7565
+    },
+    {
+      "character": "飔",
+      "norm_level": "三级",
+      "standard_order": 7566
+    },
+    {
+      "character": "觟",
+      "norm_level": "三级",
+      "standard_order": 7567
+    },
+    {
+      "character": "𦝼",
+      "norm_level": "三级",
+      "standard_order": 7568
+    },
+    {
+      "character": "馌",
+      "norm_level": "三级",
+      "standard_order": 7569
+    },
+    {
+      "character": "裛",
+      "norm_level": "三级",
+      "standard_order": 7570
+    },
+    {
+      "character": "鄘",
+      "norm_level": "三级",
+      "standard_order": 7574
+    },
+    {
+      "character": "鄜",
+      "norm_level": "三级",
+      "standard_order": 7576
+    },
+    {
+      "character": "麀",
+      "norm_level": "三级",
+      "standard_order": 7577
+    },
+    {
+      "character": "阘",
+      "norm_level": "三级",
+      "standard_order": 7579
+    },
+    {
+      "character": "𫔶",
+      "norm_level": "三级",
+      "standard_order": 7580
+    },
+    {
+      "character": "煁",
+      "norm_level": "三级",
+      "standard_order": 7581
+    },
+    {
+      "character": "煃",
+      "norm_level": "三级",
+      "standard_order": 7582
+    },
+    {
+      "character": "煴",
+      "norm_level": "三级",
+      "standard_order": 7583
+    },
+    {
+      "character": "煋",
+      "norm_level": "三级",
+      "standard_order": 7584
+    },
+    {
+      "character": "煟",
+      "norm_level": "三级",
+      "standard_order": 7585
+    },
+    {
+      "character": "煓",
+      "norm_level": "三级",
+      "standard_order": 7586
+    },
+    {
+      "character": "溍",
+      "norm_level": "三级",
+      "standard_order": 7588
+    },
+    {
+      "character": "溹",
+      "norm_level": "三级",
+      "standard_order": 7589
+    },
+    {
+      "character": "滆",
+      "norm_level": "三级",
+      "standard_order": 7590
+    },
+    {
+      "character": "滉",
+      "norm_level": "三级",
+      "standard_order": 7591
+    },
+    {
+      "character": "溵",
+      "norm_level": "三级",
+      "standard_order": 7593
+    },
+    {
+      "character": "漷",
+      "norm_level": "三级",
+      "standard_order": 7594
+    },
+    {
+      "character": "滧",
+      "norm_level": "三级",
+      "standard_order": 7595
+    },
+    {
+      "character": "滘",
+      "norm_level": "三级",
+      "standard_order": 7596
+    },
+    {
+      "character": "滍",
+      "norm_level": "三级",
+      "standard_order": 7597
+    },
+    {
+      "character": "愭",
+      "norm_level": "三级",
+      "standard_order": 7598
+    },
+    {
+      "character": "慥",
+      "norm_level": "三级",
+      "standard_order": 7599
+    },
+    {
+      "character": "慆",
+      "norm_level": "三级",
+      "standard_order": 7600
+    },
+    {
+      "character": "塱",
+      "norm_level": "三级",
+      "standard_order": 7601
+    },
+    {
+      "character": "𫌀",
+      "norm_level": "三级",
+      "standard_order": 7602
+    },
+    {
+      "character": "禋",
+      "norm_level": "三级",
+      "standard_order": 7604
+    },
+    {
+      "character": "禔",
+      "norm_level": "三级",
+      "standard_order": 7605
+    },
+    {
+      "character": "禘",
+      "norm_level": "三级",
+      "standard_order": 7606
+    },
+    {
+      "character": "禒",
+      "norm_level": "三级",
+      "standard_order": 7607
+    },
+    {
+      "character": "𫖳",
+      "norm_level": "三级",
+      "standard_order": 7610
+    },
+    {
+      "character": "嫄",
+      "norm_level": "三级",
+      "standard_order": 7612
+    },
+    {
+      "character": "媱",
+      "norm_level": "三级",
+      "standard_order": 7613
+    },
+    {
+      "character": "勠",
+      "norm_level": "三级",
+      "standard_order": 7615
+    },
+    {
+      "character": "戣",
+      "norm_level": "三级",
+      "standard_order": 7616
+    },
+    {
+      "character": "𫘪",
+      "norm_level": "三级",
+      "standard_order": 7617
+    },
+    {
+      "character": "𫘬",
+      "norm_level": "三级",
+      "standard_order": 7618
+    },
+    {
+      "character": "缞",
+      "norm_level": "三级",
+      "standard_order": 7619
+    },
+    {
+      "character": "瑧",
+      "norm_level": "三级",
+      "standard_order": 7621
+    },
+    {
+      "character": "𫞩",
+      "norm_level": "三级",
+      "standard_order": 7622
+    },
+    {
+      "character": "瑨",
+      "norm_level": "三级",
+      "standard_order": 7623
+    },
+    {
+      "character": "瑢",
+      "norm_level": "三级",
+      "standard_order": 7626
+    },
+    {
+      "character": "斠",
+      "norm_level": "三级",
+      "standard_order": 7627
+    },
+    {
+      "character": "摏",
+      "norm_level": "三级",
+      "standard_order": 7628
+    },
+    {
+      "character": "墕",
+      "norm_level": "三级",
+      "standard_order": 7629
+    },
+    {
+      "character": "墈",
+      "norm_level": "三级",
+      "standard_order": 7630
+    },
+    {
+      "character": "墐",
+      "norm_level": "三级",
+      "standard_order": 7631
+    },
+    {
+      "character": "墘",
+      "norm_level": "三级",
+      "standard_order": 7632
+    },
+    {
+      "character": "摴",
+      "norm_level": "三级",
+      "standard_order": 7633
+    },
+    {
+      "character": "𡐓",
+      "norm_level": "三级",
+      "standard_order": 7635
+    },
+    {
+      "character": "𪤗",
+      "norm_level": "三级",
+      "standard_order": 7638
+    },
+    {
+      "character": "靽",
+      "norm_level": "三级",
+      "standard_order": 7639
+    },
+    {
+      "character": "鞁",
+      "norm_level": "三级",
+      "standard_order": 7640
+    },
+    {
+      "character": "蔈",
+      "norm_level": "三级",
+      "standard_order": 7642
+    },
+    {
+      "character": "蔊",
+      "norm_level": "三级",
+      "standard_order": 7645
+    },
+    {
+      "character": "榰",
+      "norm_level": "三级",
+      "standard_order": 7647
+    },
+    {
+      "character": "榑",
+      "norm_level": "三级",
+      "standard_order": 7648
+    },
+    {
+      "character": "槚",
+      "norm_level": "三级",
+      "standard_order": 7649
+    },
+    {
+      "character": "𣗋",
+      "norm_level": "三级",
+      "standard_order": 7650
+    },
+    {
+      "character": "𬸘",
+      "norm_level": "三级",
+      "standard_order": 7654
+    },
+    {
+      "character": "酺",
+      "norm_level": "三级",
+      "standard_order": 7655
+    },
+    {
+      "character": "碶",
+      "norm_level": "三级",
+      "standard_order": 7659
+    },
+    {
+      "character": "䃎",
+      "norm_level": "三级",
+      "standard_order": 7660
+    },
+    {
+      "character": "𬒗",
+      "norm_level": "三级",
+      "standard_order": 7661
+    },
+    {
+      "character": "碨",
+      "norm_level": "三级",
+      "standard_order": 7662
+    },
+    {
+      "character": "𥔲",
+      "norm_level": "三级",
+      "standard_order": 7663
+    },
+    {
+      "character": "𫚖",
+      "norm_level": "三级",
+      "standard_order": 7667
+    },
+    {
+      "character": "䴗",
+      "norm_level": "三级",
+      "standard_order": 7668
+    },
+    {
+      "character": "鹖",
+      "norm_level": "三级",
+      "standard_order": 7671
+    },
+    {
+      "character": "幖",
+      "norm_level": "三级",
+      "standard_order": 7675
+    },
+    {
+      "character": "嶍",
+      "norm_level": "三级",
+      "standard_order": 7676
+    },
+    {
+      "character": "𨱏",
+      "norm_level": "三级",
+      "standard_order": 7678
+    },
+    {
+      "character": "锽",
+      "norm_level": "三级",
+      "standard_order": 7681
+    },
+    {
+      "character": "𬭤",
+      "norm_level": "三级",
+      "standard_order": 7682
+    },
+    {
+      "character": "镃",
+      "norm_level": "三级",
+      "standard_order": 7685
+    },
+    {
+      "character": "馝",
+      "norm_level": "三级",
+      "standard_order": 7688
+    },
+    {
+      "character": "箖",
+      "norm_level": "三级",
+      "standard_order": 7691
+    },
+    {
+      "character": "僔",
+      "norm_level": "三级",
+      "standard_order": 7695
+    },
+    {
+      "character": "僎",
+      "norm_level": "三级",
+      "standard_order": 7696
+    },
+    {
+      "character": "㙦",
+      "norm_level": "三级",
+      "standard_order": 7698
+    },
+    {
+      "character": "𫚕",
+      "norm_level": "三级",
+      "standard_order": 7701
+    },
+    {
+      "character": "鲖",
+      "norm_level": "三级",
+      "standard_order": 7702
+    },
+    {
+      "character": "鲘",
+      "norm_level": "三级",
+      "standard_order": 7704
+    },
+    {
+      "character": "𬶐",
+      "norm_level": "三级",
+      "standard_order": 7706
+    },
+    {
+      "character": "𬶏",
+      "norm_level": "三级",
+      "standard_order": 7707
+    },
+    {
+      "character": "𩽾",
+      "norm_level": "三级",
+      "standard_order": 7708
+    },
+    {
+      "character": "夐",
+      "norm_level": "三级",
+      "standard_order": 7709
+    },
+    {
+      "character": "飗",
+      "norm_level": "三级",
+      "standard_order": 7711
+    },
+    {
+      "character": "𬸚",
+      "norm_level": "三级",
+      "standard_order": 7712
+    },
+    {
+      "character": "凘",
+      "norm_level": "三级",
+      "standard_order": 7713
+    },
+    {
+      "character": "廙",
+      "norm_level": "三级",
+      "standard_order": 7715
+    },
+    {
+      "character": "鲝",
+      "norm_level": "三级",
+      "standard_order": 7719
+    },
+    {
+      "character": "鄫",
+      "norm_level": "三级",
+      "standard_order": 7720
+    },
+    {
+      "character": "熇",
+      "norm_level": "三级",
+      "standard_order": 7721
+    },
+    {
+      "character": "漹",
+      "norm_level": "三级",
+      "standard_order": 7722
+    },
+    {
+      "character": "漖",
+      "norm_level": "三级",
+      "standard_order": 7723
+    },
+    {
+      "character": "潩",
+      "norm_level": "三级",
+      "standard_order": 7726
+    },
+    {
+      "character": "漴",
+      "norm_level": "三级",
+      "standard_order": 7728
+    },
+    {
+      "character": "㽏",
+      "norm_level": "三级",
+      "standard_order": 7729
+    },
+    {
+      "character": "漈",
+      "norm_level": "三级",
+      "standard_order": 7730
+    },
+    {
+      "character": "漋",
+      "norm_level": "三级",
+      "standard_order": 7731
+    },
+    {
+      "character": "漻",
+      "norm_level": "三级",
+      "standard_order": 7732
+    },
+    {
+      "character": "慬",
+      "norm_level": "三级",
+      "standard_order": 7733
+    },
+    {
+      "character": "㮾",
+      "norm_level": "三级",
+      "standard_order": 7736
+    },
+    {
+      "character": "𬤝",
+      "norm_level": "三级",
+      "standard_order": 7737
+    },
+    {
+      "character": "褕",
+      "norm_level": "三级",
+      "standard_order": 7738
+    },
+    {
+      "character": "隩",
+      "norm_level": "三级",
+      "standard_order": 7741
+    },
+    {
+      "character": "嫕",
+      "norm_level": "三级",
+      "standard_order": 7742
+    },
+    {
+      "character": "嫭",
+      "norm_level": "三级",
+      "standard_order": 7743
+    },
+    {
+      "character": "𬙂",
+      "norm_level": "三级",
+      "standard_order": 7746
+    },
+    {
+      "character": "㻬",
+      "norm_level": "三级",
+      "standard_order": 7747
+    },
+    {
+      "character": "麹",
+      "norm_level": "三级",
+      "standard_order": 7748
+    },
+    {
+      "character": "璆",
+      "norm_level": "三级",
+      "standard_order": 7749
+    },
+    {
+      "character": "漦",
+      "norm_level": "三级",
+      "standard_order": 7750
+    },
+    {
+      "character": "叇",
+      "norm_level": "三级",
+      "standard_order": 7751
+    },
+    {
+      "character": "墣",
+      "norm_level": "三级",
+      "standard_order": 7752
+    },
+    {
+      "character": "墦",
+      "norm_level": "三级",
+      "standard_order": 7753
+    },
+    {
+      "character": "墡",
+      "norm_level": "三级",
+      "standard_order": 7754
+    },
+    {
+      "character": "薁",
+      "norm_level": "三级",
+      "standard_order": 7756
+    },
+    {
+      "character": "蕰",
+      "norm_level": "三级",
+      "standard_order": 7757
+    },
+    {
+      "character": "蔃",
+      "norm_level": "三级",
+      "standard_order": 7758
+    },
+    {
+      "character": "鼒",
+      "norm_level": "三级",
+      "standard_order": 7759
+    },
+    {
+      "character": "槱",
+      "norm_level": "三级",
+      "standard_order": 7760
+    },
+    {
+      "character": "鹝",
+      "norm_level": "三级",
+      "standard_order": 7761
+    },
+    {
+      "character": "磏",
+      "norm_level": "三级",
+      "standard_order": 7762
+    },
+    {
+      "character": "殣",
+      "norm_level": "三级",
+      "standard_order": 7764
+    },
+    {
+      "character": "慭",
+      "norm_level": "三级",
+      "standard_order": 7765
+    },
+    {
+      "character": "暵",
+      "norm_level": "三级",
+      "standard_order": 7767
+    },
+    {
+      "character": "暲",
+      "norm_level": "三级",
+      "standard_order": 7768
+    },
+    {
+      "character": "暶",
+      "norm_level": "三级",
+      "standard_order": 7769
+    },
+    {
+      "character": "踦",
+      "norm_level": "三级",
+      "standard_order": 7770
+    },
+    {
+      "character": "䗖",
+      "norm_level": "三级",
+      "standard_order": 7772
+    },
+    {
+      "character": "蝘",
+      "norm_level": "三级",
+      "standard_order": 7773
+    },
+    {
+      "character": "蝲",
+      "norm_level": "三级",
+      "standard_order": 7774
+    },
+    {
+      "character": "噇",
+      "norm_level": "三级",
+      "standard_order": 7776
+    },
+    {
+      "character": "噂",
+      "norm_level": "三级",
+      "standard_order": 7777
+    },
+    {
+      "character": "噀",
+      "norm_level": "三级",
+      "standard_order": 7778
+    },
+    {
+      "character": "罶",
+      "norm_level": "三级",
+      "standard_order": 7779
+    },
+    {
+      "character": "嶲",
+      "norm_level": "三级",
+      "standard_order": 7780
+    },
+    {
+      "character": "嶓",
+      "norm_level": "三级",
+      "standard_order": 7781
+    },
+    {
+      "character": "㠇",
+      "norm_level": "三级",
+      "standard_order": 7782
+    },
+    {
+      "character": "嶟",
+      "norm_level": "三级",
+      "standard_order": 7783
+    },
+    {
+      "character": "嶒",
+      "norm_level": "三级",
+      "standard_order": 7784
+    },
+    {
+      "character": "镋",
+      "norm_level": "三级",
+      "standard_order": 7787
+    },
+    {
+      "character": "𬭩",
+      "norm_level": "三级",
+      "standard_order": 7789
+    },
+    {
+      "character": "皞",
+      "norm_level": "三级",
+      "standard_order": 7793
+    },
+    {
+      "character": "皛",
+      "norm_level": "三级",
+      "standard_order": 7794
+    },
+    {
+      "character": "䴘",
+      "norm_level": "三级",
+      "standard_order": 7795
+    },
+    {
+      "character": "鹟",
+      "norm_level": "三级",
+      "standard_order": 7798
+    },
+    {
+      "character": "𩾃",
+      "norm_level": "三级",
+      "standard_order": 7799
+    },
+    {
+      "character": "鲪",
+      "norm_level": "三级",
+      "standard_order": 7801
+    },
+    {
+      "character": "鲬",
+      "norm_level": "三级",
+      "standard_order": 7802
+    },
+    {
+      "character": "觭",
+      "norm_level": "三级",
+      "standard_order": 7804
+    },
+    {
+      "character": "鹢",
+      "norm_level": "三级",
+      "standard_order": 7810
+    },
+    {
+      "character": "熛",
+      "norm_level": "三级",
+      "standard_order": 7812
+    },
+    {
+      "character": "潖",
+      "norm_level": "三级",
+      "standard_order": 7813
+    },
+    {
+      "character": "潵",
+      "norm_level": "三级",
+      "standard_order": 7814
+    },
+    {
+      "character": "㵐",
+      "norm_level": "三级",
+      "standard_order": 7815
+    },
+    {
+      "character": "澂",
+      "norm_level": "三级",
+      "standard_order": 7816
+    },
+    {
+      "character": "澛",
+      "norm_level": "三级",
+      "standard_order": 7817
+    },
+    {
+      "character": "瑬",
+      "norm_level": "三级",
+      "standard_order": 7818
+    },
+    {
+      "character": "潾",
+      "norm_level": "三级",
+      "standard_order": 7820
+    },
+    {
+      "character": "潏",
+      "norm_level": "三级",
+      "standard_order": 7821
+    },
+    {
+      "character": "憭",
+      "norm_level": "三级",
+      "standard_order": 7822
+    },
+    {
+      "character": "憕",
+      "norm_level": "三级",
+      "standard_order": 7823
+    },
+    {
+      "character": "𬸣",
+      "norm_level": "三级",
+      "standard_order": 7824
+    },
+    {
+      "character": "戭",
+      "norm_level": "三级",
+      "standard_order": 7825
+    },
+    {
+      "character": "褯",
+      "norm_level": "三级",
+      "standard_order": 7826
+    },
+    {
+      "character": "禤",
+      "norm_level": "三级",
+      "standard_order": 7827
+    },
+    {
+      "character": "𫍽",
+      "norm_level": "三级",
+      "standard_order": 7828
+    },
+    {
+      "character": "嫽",
+      "norm_level": "三级",
+      "standard_order": 7829
+    },
+    {
+      "character": "遹",
+      "norm_level": "三级",
+      "standard_order": 7830
+    },
+    {
+      "character": "𬴊",
+      "norm_level": "三级",
+      "standard_order": 7831
+    },
+    {
+      "character": "璥",
+      "norm_level": "三级",
+      "standard_order": 7832
+    },
+    {
+      "character": "璲",
+      "norm_level": "三级",
+      "standard_order": 7833
+    },
+    {
+      "character": "璒",
+      "norm_level": "三级",
+      "standard_order": 7834
+    },
+    {
+      "character": "憙",
+      "norm_level": "三级",
+      "standard_order": 7835
+    },
+    {
+      "character": "黇",
+      "norm_level": "三级",
+      "standard_order": 7840
+    },
+    {
+      "character": "𬞟",
+      "norm_level": "三级",
+      "standard_order": 7841
+    },
+    {
+      "character": "蕗",
+      "norm_level": "三级",
+      "standard_order": 7842
+    },
+    {
+      "character": "薢",
+      "norm_level": "三级",
+      "standard_order": 7843
+    },
+    {
+      "character": "橞",
+      "norm_level": "三级",
+      "standard_order": 7845
+    },
+    {
+      "character": "橑",
+      "norm_level": "三级",
+      "standard_order": 7846
+    },
+    {
+      "character": "橦",
+      "norm_level": "三级",
+      "standard_order": 7847
+    },
+    {
+      "character": "磡",
+      "norm_level": "三级",
+      "standard_order": 7850
+    },
+    {
+      "character": "𥕢",
+      "norm_level": "三级",
+      "standard_order": 7851
+    },
+    {
+      "character": "磜",
+      "norm_level": "三级",
+      "standard_order": 7852
+    },
+    {
+      "character": "豮",
+      "norm_level": "三级",
+      "standard_order": 7853
+    },
+    {
+      "character": "𫟦",
+      "norm_level": "三级",
+      "standard_order": 7854
+    },
+    {
+      "character": "𬺈",
+      "norm_level": "三级",
+      "standard_order": 7855
+    },
+    {
+      "character": "𫠜",
+      "norm_level": "三级",
+      "standard_order": 7856
+    },
+    {
+      "character": "虤",
+      "norm_level": "三级",
+      "standard_order": 7858
+    },
+    {
+      "character": "暿",
+      "norm_level": "三级",
+      "standard_order": 7859
+    },
+    {
+      "character": "曌",
+      "norm_level": "三级",
+      "standard_order": 7860
+    },
+    {
+      "character": "曈",
+      "norm_level": "三级",
+      "standard_order": 7861
+    },
+    {
+      "character": "㬚",
+      "norm_level": "三级",
+      "standard_order": 7862
+    },
+    {
+      "character": "蹅",
+      "norm_level": "三级",
+      "standard_order": 7863
+    },
+    {
+      "character": "䗛",
+      "norm_level": "三级",
+      "standard_order": 7865
+    },
+    {
+      "character": "疁",
+      "norm_level": "三级",
+      "standard_order": 7867
+    },
+    {
+      "character": "㠓",
+      "norm_level": "三级",
+      "standard_order": 7868
+    },
+    {
+      "character": "幪",
+      "norm_level": "三级",
+      "standard_order": 7869
+    },
+    {
+      "character": "𪩘",
+      "norm_level": "三级",
+      "standard_order": 7870
+    },
+    {
+      "character": "嶦",
+      "norm_level": "三级",
+      "standard_order": 7871
+    },
+    {
+      "character": "𬭬",
+      "norm_level": "三级",
+      "standard_order": 7872
+    },
+    {
+      "character": "𨱑",
+      "norm_level": "三级",
+      "standard_order": 7873
+    },
+    {
+      "character": "𬭯",
+      "norm_level": "三级",
+      "standard_order": 7874
+    },
+    {
+      "character": "馞",
+      "norm_level": "三级",
+      "standard_order": 7875
+    },
+    {
+      "character": "穄",
+      "norm_level": "三级",
+      "standard_order": 7876
+    },
+    {
+      "character": "篯",
+      "norm_level": "三级",
+      "standard_order": 7878
+    },
+    {
+      "character": "衠",
+      "norm_level": "三级",
+      "standard_order": 7881
+    },
+    {
+      "character": "盦",
+      "norm_level": "三级",
+      "standard_order": 7882
+    },
+    {
+      "character": "螣",
+      "norm_level": "三级",
+      "standard_order": 7883
+    },
+    {
+      "character": "縢",
+      "norm_level": "三级",
+      "standard_order": 7884
+    },
+    {
+      "character": "鲹",
+      "norm_level": "三级",
+      "standard_order": 7889
+    },
+    {
+      "character": "𫗴",
+      "norm_level": "三级",
+      "standard_order": 7890
+    },
+    {
+      "character": "亸",
+      "norm_level": "三级",
+      "standard_order": 7891
+    },
+    {
+      "character": "𬸦",
+      "norm_level": "三级",
+      "standard_order": 7894
+    },
+    {
+      "character": "羱",
+      "norm_level": "三级",
+      "standard_order": 7895
+    },
+    {
+      "character": "糒",
+      "norm_level": "三级",
+      "standard_order": 7896
+    },
+    {
+      "character": "燋",
+      "norm_level": "三级",
+      "standard_order": 7897
+    },
+    {
+      "character": "熻",
+      "norm_level": "三级",
+      "standard_order": 7898
+    },
+    {
+      "character": "燊",
+      "norm_level": "三级",
+      "standard_order": 7899
+    },
+    {
+      "character": "燚",
+      "norm_level": "三级",
+      "standard_order": 7900
+    },
+    {
+      "character": "燏",
+      "norm_level": "三级",
+      "standard_order": 7901
+    },
+    {
+      "character": "濩",
+      "norm_level": "三级",
+      "standard_order": 7902
+    },
+    {
+      "character": "濋",
+      "norm_level": "三级",
+      "standard_order": 7903
+    },
+    {
+      "character": "澪",
+      "norm_level": "三级",
+      "standard_order": 7904
+    },
+    {
+      "character": "澽",
+      "norm_level": "三级",
+      "standard_order": 7905
+    },
+    {
+      "character": "澴",
+      "norm_level": "三级",
+      "standard_order": 7906
+    },
+    {
+      "character": "澭",
+      "norm_level": "三级",
+      "standard_order": 7907
+    },
+    {
+      "character": "澼",
+      "norm_level": "三级",
+      "standard_order": 7908
+    },
+    {
+      "character": "憺",
+      "norm_level": "三级",
+      "standard_order": 7910
+    },
+    {
+      "character": "翯",
+      "norm_level": "三级",
+      "standard_order": 7915
+    },
+    {
+      "character": "𫄷",
+      "norm_level": "三级",
+      "standard_order": 7916
+    },
+    {
+      "character": "璱",
+      "norm_level": "三级",
+      "standard_order": 7917
+    },
+    {
+      "character": "𤩽",
+      "norm_level": "三级",
+      "standard_order": 7918
+    },
+    {
+      "character": "璬",
+      "norm_level": "三级",
+      "standard_order": 7919
+    },
+    {
+      "character": "璮",
+      "norm_level": "三级",
+      "standard_order": 7920
+    },
+    {
+      "character": "髽",
+      "norm_level": "三级",
+      "standard_order": 7921
+    },
+    {
+      "character": "薿",
+      "norm_level": "三级",
+      "standard_order": 7923
+    },
+    {
+      "character": "薸",
+      "norm_level": "三级",
+      "standard_order": 7924
+    },
+    {
+      "character": "檞",
+      "norm_level": "三级",
+      "standard_order": 7927
+    },
+    {
+      "character": "醨",
+      "norm_level": "三级",
+      "standard_order": 7928
+    },
+    {
+      "character": "繄",
+      "norm_level": "三级",
+      "standard_order": 7929
+    },
+    {
+      "character": "磹",
+      "norm_level": "三级",
+      "standard_order": 7930
+    },
+    {
+      "character": "磻",
+      "norm_level": "三级",
+      "standard_order": 7931
+    },
+    {
+      "character": "瞫",
+      "norm_level": "三级",
+      "standard_order": 7932
+    },
+    {
+      "character": "蹐",
+      "norm_level": "三级",
+      "standard_order": 7934
+    },
+    {
+      "character": "㘎",
+      "norm_level": "三级",
+      "standard_order": 7936
+    },
+    {
+      "character": "𬭳",
+      "norm_level": "三级",
+      "standard_order": 7937
+    },
+    {
+      "character": "𬭶",
+      "norm_level": "三级",
+      "standard_order": 7939
+    },
+    {
+      "character": "𫔍",
+      "norm_level": "三级",
+      "standard_order": 7940
+    },
+    {
+      "character": "𬭸",
+      "norm_level": "三级",
+      "standard_order": 7943
+    },
+    {
+      "character": "𨱔",
+      "norm_level": "三级",
+      "standard_order": 7944
+    },
+    {
+      "character": "𬭼",
+      "norm_level": "三级",
+      "standard_order": 7945
+    },
+    {
+      "character": "𫔎",
+      "norm_level": "三级",
+      "standard_order": 7946
+    },
+    {
+      "character": "矰",
+      "norm_level": "三级",
+      "standard_order": 7947
+    },
+    {
+      "character": "穙",
+      "norm_level": "三级",
+      "standard_order": 7948
+    },
+    {
+      "character": "穜",
+      "norm_level": "三级",
+      "standard_order": 7949
+    },
+    {
+      "character": "穟",
+      "norm_level": "三级",
+      "standard_order": 7950
+    },
+    {
+      "character": "簕",
+      "norm_level": "三级",
+      "standard_order": 7951
+    },
+    {
+      "character": "簃",
+      "norm_level": "三级",
+      "standard_order": 7952
+    },
+    {
+      "character": "儦",
+      "norm_level": "三级",
+      "standard_order": 7954
+    },
+    {
+      "character": "魋",
+      "norm_level": "三级",
+      "standard_order": 7955
+    },
+    {
+      "character": "斶",
+      "norm_level": "三级",
+      "standard_order": 7956
+    },
+    {
+      "character": "𬸪",
+      "norm_level": "三级",
+      "standard_order": 7958
+    },
+    {
+      "character": "䲠",
+      "norm_level": "三级",
+      "standard_order": 7960
+    },
+    {
+      "character": "𬶟",
+      "norm_level": "三级",
+      "standard_order": 7961
+    },
+    {
+      "character": "鲾",
+      "norm_level": "三级",
+      "standard_order": 7962
+    },
+    {
+      "character": "𬶠",
+      "norm_level": "三级",
+      "standard_order": 7963
+    },
+    {
+      "character": "鲿",
+      "norm_level": "三级",
+      "standard_order": 7964
+    },
+    {
+      "character": "鳁",
+      "norm_level": "三级",
+      "standard_order": 7965
+    },
+    {
+      "character": "鳂",
+      "norm_level": "三级",
+      "standard_order": 7966
+    },
+    {
+      "character": "鳈",
+      "norm_level": "三级",
+      "standard_order": 7967
+    },
+    {
+      "character": "鳉",
+      "norm_level": "三级",
+      "standard_order": 7968
+    },
+    {
+      "character": "䗪",
+      "norm_level": "三级",
+      "standard_order": 7970
+    },
+    {
+      "character": "襕",
+      "norm_level": "三级",
+      "standard_order": 7972
+    },
+    {
+      "character": "襚",
+      "norm_level": "三级",
+      "standard_order": 7973
+    },
+    {
+      "character": "𬶨",
+      "norm_level": "三级",
+      "standard_order": 7974
+    },
+    {
+      "character": "螱",
+      "norm_level": "三级",
+      "standard_order": 7975
+    },
+    {
+      "character": "嬬",
+      "norm_level": "三级",
+      "standard_order": 7977
+    },
+    {
+      "character": "嬥",
+      "norm_level": "三级",
+      "standard_order": 7978
+    },
+    {
+      "character": "𦈡",
+      "norm_level": "三级",
+      "standard_order": 7979
+    },
+    {
+      "character": "𫄸",
+      "norm_level": "三级",
+      "standard_order": 7980
+    },
+    {
+      "character": "瓀",
+      "norm_level": "三级",
+      "standard_order": 7981
+    },
+    {
+      "character": "鬶",
+      "norm_level": "三级",
+      "standard_order": 7983
+    },
+    {
+      "character": "鞳",
+      "norm_level": "三级",
+      "standard_order": 7985
+    },
+    {
+      "character": "𬟁",
+      "norm_level": "三级",
+      "standard_order": 7987
+    },
+    {
+      "character": "藟",
+      "norm_level": "三级",
+      "standard_order": 7988
+    },
+    {
+      "character": "藦",
+      "norm_level": "三级",
+      "standard_order": 7989
+    },
+    {
+      "character": "鹲",
+      "norm_level": "三级",
+      "standard_order": 7991
+    },
+    {
+      "character": "黡",
+      "norm_level": "三级",
+      "standard_order": 7993
+    },
+    {
+      "character": "礌",
+      "norm_level": "三级",
+      "standard_order": 7995
+    },
+    {
+      "character": "𥖨",
+      "norm_level": "三级",
+      "standard_order": 7996
+    },
+    {
+      "character": "蹢",
+      "norm_level": "三级",
+      "standard_order": 7997
+    },
+    {
+      "character": "蹜",
+      "norm_level": "三级",
+      "standard_order": 7998
+    },
+    {
+      "character": "蟫",
+      "norm_level": "三级",
+      "standard_order": 7999
+    },
+    {
+      "character": "䗴",
+      "norm_level": "三级",
+      "standard_order": 8000
+    },
+    {
+      "character": "嚚",
+      "norm_level": "三级",
+      "standard_order": 8001
+    },
+    {
+      "character": "髃",
+      "norm_level": "三级",
+      "standard_order": 8002
+    },
+    {
+      "character": "镮",
+      "norm_level": "三级",
+      "standard_order": 8003
+    },
+    {
+      "character": "酂",
+      "norm_level": "三级",
+      "standard_order": 8005
+    },
+    {
+      "character": "馧",
+      "norm_level": "三级",
+      "standard_order": 8006
+    },
+    {
+      "character": "簠",
+      "norm_level": "三级",
+      "standard_order": 8007
+    },
+    {
+      "character": "簝",
+      "norm_level": "三级",
+      "standard_order": 8008
+    },
+    {
+      "character": "簰",
+      "norm_level": "三级",
+      "standard_order": 8009
+    },
+    {
+      "character": "鼫",
+      "norm_level": "三级",
+      "standard_order": 8010
+    },
+    {
+      "character": "臑",
+      "norm_level": "三级",
+      "standard_order": 8013
+    },
+    {
+      "character": "䲢",
+      "norm_level": "三级",
+      "standard_order": 8014
+    },
+    {
+      "character": "鳒",
+      "norm_level": "三级",
+      "standard_order": 8016
+    },
+    {
+      "character": "鹯",
+      "norm_level": "三级",
+      "standard_order": 8018
+    },
+    {
+      "character": "癗",
+      "norm_level": "三级",
+      "standard_order": 8019
+    },
+    {
+      "character": "𦒍",
+      "norm_level": "三级",
+      "standard_order": 8020
+    },
+    {
+      "character": "旞",
+      "norm_level": "三级",
+      "standard_order": 8021
+    },
+    {
+      "character": "翷",
+      "norm_level": "三级",
+      "standard_order": 8022
+    },
+    {
+      "character": "䎖",
+      "norm_level": "三级",
+      "standard_order": 8024
+    },
+    {
+      "character": "瀔",
+      "norm_level": "三级",
+      "standard_order": 8025
+    },
+    {
+      "character": "瀍",
+      "norm_level": "三级",
+      "standard_order": 8026
+    },
+    {
+      "character": "瀌",
+      "norm_level": "三级",
+      "standard_order": 8027
+    },
+    {
+      "character": "襜",
+      "norm_level": "三级",
+      "standard_order": 8028
+    },
+    {
+      "character": "䴙",
+      "norm_level": "三级",
+      "standard_order": 8029
+    },
+    {
+      "character": "𬙊",
+      "norm_level": "三级",
+      "standard_order": 8030
+    },
+    {
+      "character": "嚭",
+      "norm_level": "三级",
+      "standard_order": 8031
+    },
+    {
+      "character": "㰀",
+      "norm_level": "三级",
+      "standard_order": 8032
+    },
+    {
+      "character": "鬷",
+      "norm_level": "三级",
+      "standard_order": 8033
+    },
+    {
+      "character": "蠋",
+      "norm_level": "三级",
+      "standard_order": 8036
+    },
+    {
+      "character": "翾",
+      "norm_level": "三级",
+      "standard_order": 8037
+    },
+    {
+      "character": "儳",
+      "norm_level": "三级",
+      "standard_order": 8039
+    },
+    {
+      "character": "儴",
+      "norm_level": "三级",
+      "standard_order": 8040
+    },
+    {
+      "character": "𬶭",
+      "norm_level": "三级",
+      "standard_order": 8042
+    },
+    {
+      "character": "𩾌",
+      "norm_level": "三级",
+      "standard_order": 8043
+    },
+    {
+      "character": "鳚",
+      "norm_level": "三级",
+      "standard_order": 8044
+    },
+    {
+      "character": "鳛",
+      "norm_level": "三级",
+      "standard_order": 8045
+    },
+    {
+      "character": "麑",
+      "norm_level": "三级",
+      "standard_order": 8046
+    },
+    {
+      "character": "麖",
+      "norm_level": "三级",
+      "standard_order": 8047
+    },
+    {
+      "character": "嬿",
+      "norm_level": "三级",
+      "standard_order": 8050
+    },
+    {
+      "character": "欂",
+      "norm_level": "三级",
+      "standard_order": 8053
+    },
+    {
+      "character": "甗",
+      "norm_level": "三级",
+      "standard_order": 8056
+    },
+    {
+      "character": "𨟠",
+      "norm_level": "三级",
+      "standard_order": 8057
+    },
+    {
+      "character": "巇",
+      "norm_level": "三级",
+      "standard_order": 8058
+    },
+    {
+      "character": "酅",
+      "norm_level": "三级",
+      "standard_order": 8059
+    },
+    {
+      "character": "髎",
+      "norm_level": "三级",
+      "standard_order": 8060
+    },
+    {
+      "character": "犨",
+      "norm_level": "三级",
+      "standard_order": 8061
+    },
+    {
+      "character": "𬶮",
+      "norm_level": "三级",
+      "standard_order": 8062
+    },
+    {
+      "character": "𨭉",
+      "norm_level": "三级",
+      "standard_order": 8063
+    },
+    {
+      "character": "㸌",
+      "norm_level": "三级",
+      "standard_order": 8064
+    },
+    {
+      "character": "爔",
+      "norm_level": "三级",
+      "standard_order": 8065
+    },
+    {
+      "character": "瀱",
+      "norm_level": "三级",
+      "standard_order": 8066
+    },
+    {
+      "character": "瀼",
+      "norm_level": "三级",
+      "standard_order": 8068
+    },
+    {
+      "character": "孅",
+      "norm_level": "三级",
+      "standard_order": 8071
+    },
+    {
+      "character": "𬙋",
+      "norm_level": "三级",
+      "standard_order": 8073
+    },
+    {
+      "character": "耰",
+      "norm_level": "三级",
+      "standard_order": 8074
+    },
+    {
+      "character": "𤫉",
+      "norm_level": "三级",
+      "standard_order": 8075
+    },
+    {
+      "character": "瓖",
+      "norm_level": "三级",
+      "standard_order": 8076
+    },
+    {
+      "character": "鬘",
+      "norm_level": "三级",
+      "standard_order": 8077
+    },
+    {
+      "character": "𬺓",
+      "norm_level": "三级",
+      "standard_order": 8079
+    },
+    {
+      "character": "罍",
+      "norm_level": "三级",
+      "standard_order": 8080
+    },
+    {
+      "character": "鳠",
+      "norm_level": "三级",
+      "standard_order": 8082
+    },
+    {
+      "character": "鳡",
+      "norm_level": "三级",
+      "standard_order": 8083
+    },
+    {
+      "character": "爟",
+      "norm_level": "三级",
+      "standard_order": 8085
+    },
+    {
+      "character": "爚",
+      "norm_level": "三级",
+      "standard_order": 8086
+    },
+    {
+      "character": "灈",
+      "norm_level": "三级",
+      "standard_order": 8087
+    },
+    {
+      "character": "韂",
+      "norm_level": "三级",
+      "standard_order": 8088
+    },
+    {
+      "character": "糵",
+      "norm_level": "三级",
+      "standard_order": 8089
+    },
+    {
+      "character": "礵",
+      "norm_level": "三级",
+      "standard_order": 8091
+    },
+    {
+      "character": "皭",
+      "norm_level": "三级",
+      "standard_order": 8094
+    },
+    {
+      "character": "龢",
+      "norm_level": "三级",
+      "standard_order": 8095
+    },
+    {
+      "character": "鳤",
+      "norm_level": "三级",
+      "standard_order": 8096
+    },
+    {
+      "character": "籥",
+      "norm_level": "三级",
+      "standard_order": 8098
+    },
+    {
+      "character": "𫚭",
+      "norm_level": "三级",
+      "standard_order": 8100
+    },
+    {
+      "character": "醾",
+      "norm_level": "三级",
+      "standard_order": 8102
+    },
+    {
+      "character": "齇",
+      "norm_level": "三级",
+      "standard_order": 8103
+    },
+    {
+      "character": "觿",
+      "norm_level": "三级",
+      "standard_order": 8104
+    }
+  ]
+}

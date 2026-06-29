@@ -53,7 +53,7 @@
   .mark .fast{ background:transparent; border:1.5px solid var(--known); color:var(--known); }
   .mark .slow,.mark .hinted{ background:transparent; border:1.5px solid var(--accent); color:var(--accent); }
   .mark .miss{ background:transparent; border:1.5px solid var(--miss); color:var(--miss); }
-  .home,.book,.audit{ background:var(--card); border:1px solid var(--line); border-radius:8px; padding:18px; margin-bottom:14px; }
+  .home,.book,.profile,.audit{ background:var(--card); border:1px solid var(--line); border-radius:8px; padding:18px; margin-bottom:14px; }
   .home h2{ font-size:18px; margin:0 0 12px; }
   .pref{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:12px; font-size:12px; color:var(--muted); }
   .prefBtns{ display:flex; gap:6px; flex:1 1 260px; }
@@ -76,6 +76,24 @@
   .bookRow .meta{ min-width:0; flex:1; }
   .bookRow .meta b{ display:block; font-size:15px; }
   .bookRow .meta small{ display:block; color:var(--muted); line-height:1.45; margin-top:2px; }
+  .profile{ display:none; }
+  .profileHead{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
+  .profileHead h2{ font-size:18px; margin:0; }
+  .profileSummary{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:12px; }
+  .profileMetric{ background:var(--soft); border:1px solid var(--line); border-radius:8px; padding:9px 6px; text-align:center; }
+  .profileMetric b{ display:block; font-size:18px; }
+  .profileMetric span{ color:var(--muted); font-size:12px; }
+  .profileAdvice{ color:var(--muted); background:var(--soft); border:1px solid var(--line); border-radius:8px; padding:10px; font-size:13px; line-height:1.6; margin-bottom:12px; }
+  .profileSection{ margin-top:14px; }
+  .profileSection h3{ margin:0 0 8px; font-size:14px; }
+  .profileRows{ display:grid; gap:7px; }
+  .profileRow{ width:100%; display:grid; grid-template-columns:1fr auto; gap:8px; align-items:center; text-align:left; background:transparent; color:var(--ink); border:1px solid var(--line); border-radius:8px; padding:9px; }
+  .profileRow b{ font-size:14px; }
+  .profileRow small{ display:block; color:var(--muted); line-height:1.45; margin-top:2px; }
+  .profileRow em{ font-style:normal; color:var(--muted); font-size:12px; }
+  .profileBar{ grid-column:1 / -1; height:5px; border-radius:999px; overflow:hidden; background:var(--line); }
+  .profileBar i{ display:block; height:100%; background:var(--accent); border-radius:999px; }
+  .profileChars{ margin-top:4px; }
   .audit{ display:none; }
   .auditHead{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
   .auditHead h2{ font-size:18px; margin:0; }
@@ -122,7 +140,7 @@
   .foot{ margin-top:26px; text-align:center; font-size:12px; color:var(--muted); }
   .foot a{ color:var(--muted); cursor:pointer; text-decoration:underline; margin:0 8px; }
   .data{ display:none; margin-top:14px; background:var(--card); border:1px dashed var(--line); border-radius:8px; padding:14px; font-size:13px; color:var(--muted); line-height:1.7; text-align:left; }
-  @media (max-width:380px){ .resultItem{ grid-template-columns:34px 1fr; } .resultItem em{ grid-column:2; } .prefBtns,.auditPrefs{ flex-basis:100%; } .auditControls{ grid-template-columns:1fr; } }
+  @media (max-width:380px){ .resultItem{ grid-template-columns:34px 1fr; } .resultItem em{ grid-column:2; } .prefBtns,.auditPrefs{ flex-basis:100%; } .auditControls{ grid-template-columns:1fr; } .profileSummary{ grid-template-columns:repeat(2,1fr); } }
 </style>
 </head>
 <body>
@@ -143,7 +161,7 @@
     </div>
     <div class="risk" id="riskList"></div>
     <div class="row"><button class="primary" id="startReview">今日复习</button><button id="startNew">练新字</button></div>
-    <div class="row"><button id="openBook">重点字本</button></div>
+    <div class="row"><button id="openBook">重点字本</button><button id="openProfile">弱点画像</button></div>
   </div>
 
   <div class="card" id="card" style="display:none">
@@ -182,6 +200,15 @@
     <div class="bookList" id="bookList"></div>
   </div>
 
+  <div class="profile" id="profilePanel">
+    <div class="profileHead"><h2>弱点画像</h2><button class="ghost" id="closeProfile">返回</button></div>
+    <div class="profileSummary" id="profileSummary"></div>
+    <div class="profileAdvice" id="profileAdvice"></div>
+    <div class="profileSection"><h3>容易卡住的主题</h3><div class="profileRows" id="profileTopics"></div></div>
+    <div class="profileSection"><h3>难度层和结构</h3><div class="profileRows" id="profileLevels"></div></div>
+    <div class="profileSection"><h3>重点字</h3><div class="profileChars" id="profileChars"></div></div>
+  </div>
+
   <div class="audit" id="auditPanel">
     <div class="auditHead"><h2>题库质检</h2><button class="ghost" id="closeAudit">返回</button></div>
     <div class="auditControls">
@@ -200,7 +227,7 @@
     <div class="auditList" id="auditSample"></div>
   </div>
 
-  <div class="foot"><a id="addLink">＋加字</a><a id="bookLink">重点字本</a><a id="auditLink">题库质检</a><a id="dataLink">实验数据</a><a id="resetLink">重置卡组</a><div class="data" id="dataBox"></div></div>
+  <div class="foot"><a id="addLink">＋加字</a><a id="bookLink">重点字本</a><a id="profileLink">弱点画像</a><a id="auditLink">题库质检</a><a id="dataLink">实验数据</a><a id="resetLink">重置卡组</a><div class="data" id="dataBox"></div></div>
 </div>
 
 <script src="hanzi-writer.min.js"></script>
@@ -305,7 +332,7 @@ const OUTCOMES=[
 ];
 function dueText(ts){ if(!ts) return "未安排"; const diff=Math.ceil((ts-Date.now())/86400000);
   if(diff<=0) return "今天再练"; if(diff===1) return "明天复习"; return `${diff} 天后复习`; }
-function displayView(view){ $("home").style.display=view==="home"?"block":"none"; $("card").style.display=view==="card"?"":"none"; $("summary").style.display=view==="summary"?"block":"none"; $("studybook").style.display=view==="book"?"block":"none"; $("auditPanel").style.display=view==="audit"?"block":"none"; }
+function displayView(view){ $("home").style.display=view==="home"?"block":"none"; $("card").style.display=view==="card"?"":"none"; $("summary").style.display=view==="summary"?"block":"none"; $("studybook").style.display=view==="book"?"block":"none"; $("profilePanel").style.display=view==="profile"?"block":"none"; $("auditPanel").style.display=view==="audit"?"block":"none"; }
 function qualityCount(){ return Object.values(quality).filter(q=>q && (q.easy || q.rare || q.badWord || q.hide)).length; }
 function renderQuality(){ if(!cur) return; const q=qualityFor(batch[pos]); document.querySelectorAll("#qualityBox button[data-quality]").forEach(btn=>btn.classList.toggle("active", !!q[btn.dataset.quality]));
   const notes=[]; if(q.easy) notes.push("已降难"); if(q.rare) notes.push("少出"); if(q.badWord) notes.push("避开词"); if(q.hide) notes.push("已隐藏");
@@ -347,6 +374,40 @@ function renderBook(){ displayView("book"); const rows=highRiskIndexes();
   $("practiceDue").disabled=reviewCount()===0; $("practiceDue").textContent=reviewCount()?`练到期（${reviewCount()}）`:"练到期";
   $("practiceRisk").disabled=rows.length===0; $("practiceRisk").textContent=rows.length?`练重点字（${rows.length}）`:"练重点字";
   $("bookList").innerHTML=rows.length?rows.map(bookRow).join(""):`<div class="empty">这里还没有重点字。等你标记“看提示写出”或“没写出来”，它们会自动出现。</div>`; }
+function esc(s){ return String(s).replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch])); }
+function hardCount(i){ const m=memory[cardKey(i)]||{}; return (m.misses||0)+(m.hints||0); }
+function weaknessScore(i){ const m=memory[cardKey(i)]||{}; return clamp((m.misses||0)*28+(m.hints||0)*18+(m.slow||0)*8-(m.fast||0)*6+Math.max(0,60-(m.ease||50))*0.8+(reviewReady(i)?10:0),0,100); }
+function profileIndexes(){ return allIndexes().filter(i=>{ const m=memory[cardKey(i)]; return m && m.seen; }); }
+function structureLabel(i){ const c=CARDS[i], strokes=Number(c.strokes)||0, parts=Number(c.parts)||1;
+  if(parts>=5 || strokes>=17) return "复杂结构"; if(parts>=4 || strokes>=13) return "多部件"; if(parts>=3 || strokes>=9) return "中等结构"; return "简单结构"; }
+function profileGroups(indexes, labelFn){ const map={}; indexes.forEach(i=>{ const label=labelFn(i), g=map[label]||(map[label]={label,items:[],count:0,hard:0,score:0});
+  g.items.push(i); g.count++; g.hard+=hardCount(i); g.score+=weaknessScore(i); });
+  return Object.values(map).map(g=>({...g,avg:Math.round(g.score/Math.max(1,g.count))})).sort((a,b)=>b.avg-a.avg || b.hard-a.hard || b.count-a.count || String(a.label).localeCompare(String(b.label))); }
+function profileGroupRows(indexes, labelFn, kind, limit=5){ const groups=profileGroups(indexes,labelFn).slice(0,limit);
+  if(!groups.length) return `<div class="empty">还没有足够记录。先练一组，画像会自动长出来。</div>`;
+  const max=Math.max(1,...groups.map(g=>g.avg));
+  return groups.map(g=>`<button class="profileRow" data-profile-kind="${kind}" data-profile-value="${esc(g.label)}">
+    <span><b>${esc(g.label)}</b><small>${g.count} 字 · 卡住 ${g.hard} 次 · 平均弱点分 ${g.avg}</small></span><em>专项练</em>
+    <span class="profileBar"><i style="width:${Math.max(8,Math.round(g.avg/max*100))}%"></i></span>
+  </button>`).join(""); }
+function profileAdvice(indexes){ if(!indexes.length) return "先完成一组 15 字练习。系统会根据你选择的反馈，逐渐判断哪些主题、结构和难度层最容易让你提笔卡住。";
+  const topic=profileGroups(indexes,cardTopic)[0], level=profileGroups(indexes,cardLevel)[0], structure=profileGroups(indexes,structureLabel)[0], risk=highRiskCount();
+  const bits=[]; if(topic) bits.push(`${topic.label}主题`); if(level) bits.push(`${level.label}级字`); if(structure) bits.push(`${structure.label}`);
+  return `目前最值得补的是 ${bits.join("、")}。重点字 ${risk} 个；优先复习这些字，再用专项练习补同类结构，会比随机刷字更有效。`; }
+function profilePracticeIndexes(kind,value){ const indexes=profileIndexes(); let out=[];
+  if(kind==="topic") out=indexes.filter(i=>cardTopic(i)===value);
+  if(kind==="level") out=indexes.filter(i=>cardLevel(i)===value);
+  if(kind==="structure") out=indexes.filter(i=>structureLabel(i)===value);
+  if(kind==="risk") out=highRiskIndexes();
+  return out.sort((a,b)=>weaknessScore(b)-weaknessScore(a) || personalDifficulty(b)-personalDifficulty(a)).slice(0,BATCH); }
+function renderProfile(){ displayView("profile"); const indexes=profileIndexes(), hard=indexes.filter(i=>hardCount(i)>0).length, avgEase=average(indexes,i=>(memory[cardKey(i)]||{}).ease||50);
+  $("pos").textContent=`弱点画像 · ${indexes.length} 字`;
+  $("profileSummary").innerHTML=`<div class="profileMetric"><b>${indexes.length}</b><span>练过</span></div><div class="profileMetric"><b>${hard}</b><span>卡过</span></div><div class="profileMetric"><b>${avgEase}</b><span>平均掌握</span></div><div class="profileMetric"><b>${highRiskCount()}</b><span>重点字</span></div>`;
+  $("profileAdvice").textContent=profileAdvice(indexes);
+  $("profileTopics").innerHTML=profileGroupRows(indexes,cardTopic,"topic",5);
+  $("profileLevels").innerHTML=`<div class="auditSectionTitle"><b>难度层</b></div>${profileGroupRows(indexes,cardLevel,"level",4)}<div class="auditSectionTitle"><b>结构</b></div>${profileGroupRows(indexes,structureLabel,"structure",4)}`;
+  const weak=indexes.slice().sort((a,b)=>weaknessScore(b)-weaknessScore(a) || personalDifficulty(b)-personalDifficulty(a)).filter(i=>weaknessScore(i)>0 || hardCount(i)>0).slice(0,12);
+  $("profileChars").innerHTML=weak.length?`<div class="charChips">${weak.map(i=>`<button class="charChip" data-profile-char="${i}" title="${esc(CARDS[i].word)}">${CARDS[i].target}</button>`).join("")}</div>`:`<div class="empty">还没有明显弱点字。等出现“看提示写出”或“没写出来”，这里会优先显示。</div>`; }
 function withAuditPreference(pref, fn){ const oldPref=preference, oldTopic=load(TOPIC_KEY,""); preference=pref;
   try{ return fn(); } finally { preference=oldPref; save(TOPIC_KEY,oldTopic); } }
 function countBy(items, fn){ const map={}; items.forEach(i=>{ const k=fn(i); map[k]=(map[k]||0)+1; }); return map; }
@@ -493,6 +554,11 @@ $("bookList").onclick=e=>{ const b=e.target.closest("[data-idx]"); if(b) startFo
 $("openBook").onclick=renderBook;
 $("bookLink").onclick=renderBook;
 $("closeBook").onclick=renderHome;
+$("openProfile").onclick=renderProfile;
+$("profileLink").onclick=renderProfile;
+$("closeProfile").onclick=renderHome;
+$("profilePanel").onclick=e=>{ const char=e.target.closest("[data-profile-char]"); if(char){ startFocus([Number(char.dataset.profileChar)]); return; }
+  const row=e.target.closest("[data-profile-kind]"); if(row){ const list=profilePracticeIndexes(row.dataset.profileKind,row.dataset.profileValue); if(list.length) startFocus(list); } };
 $("auditLink").onclick=()=>renderAudit(preference);
 $("closeAudit").onclick=renderHome;
 $("resampleAudit").onclick=()=>renderAudit(auditPref);

@@ -41,6 +41,19 @@ const sampleTargets = ["的", "一", "强", "器", "随", "察", "群", "疑", "
     throw new Error(`Expected balanced preference by default, got ${JSON.stringify(homeOverview)}`);
   }
 
+  await page.click("#profileLink");
+  const profileEmptyCheck = await page.evaluate(() => ({
+    visible: getComputedStyle(document.getElementById("profilePanel")).display !== "none",
+    metrics: Array.from(document.querySelectorAll("#profileSummary .profileMetric")).map((node) => node.textContent),
+    advice: document.getElementById("profileAdvice").textContent,
+    topicsText: document.getElementById("profileTopics").textContent,
+    charsText: document.getElementById("profileChars").textContent,
+  }));
+  if (!profileEmptyCheck.visible || profileEmptyCheck.metrics.length !== 4 || !profileEmptyCheck.advice.includes("先完成一组") || !profileEmptyCheck.topicsText.includes("还没有足够记录")) {
+    throw new Error(`Expected empty profile panel before practice, got ${JSON.stringify(profileEmptyCheck)}`);
+  }
+  await page.click("#closeProfile");
+
   const prefBefore = await page.evaluate(() => ({ preference, target: targetDifficulty(), label: prefLabel() }));
   await page.click('#prefBox [data-pref="challenge"]');
   const prefCheck = await page.evaluate(() => ({
@@ -239,6 +252,46 @@ const sampleTargets = ["的", "一", "强", "器", "随", "察", "群", "疑", "
     throw new Error(`Expected missed card to appear on the home review panel, got ${JSON.stringify(feedbackCheck)}`);
   }
 
+  await page.click("#openProfile");
+  const profileCheck = await page.evaluate(() => ({
+    visible: getComputedStyle(document.getElementById("profilePanel")).display !== "none",
+    metrics: Array.from(document.querySelectorAll("#profileSummary .profileMetric")).map((node) => node.textContent),
+    advice: document.getElementById("profileAdvice").textContent,
+    topicRows: document.querySelectorAll("#profileTopics .profileRow").length,
+    levelRows: document.querySelectorAll("#profileLevels .profileRow").length,
+    charsText: document.getElementById("profileChars").textContent,
+    pos: document.getElementById("pos").textContent,
+  }));
+  if (!profileCheck.visible || profileCheck.metrics.length !== 4 || profileCheck.topicRows < 1 || profileCheck.levelRows < 2 || !profileCheck.charsText.includes(feedbackCheck.firstMemory.target) || !profileCheck.advice.includes("重点字")) {
+    throw new Error(`Expected profile panel to summarize the missed card, got ${JSON.stringify(profileCheck)}`);
+  }
+
+  await page.click("#profileChars [data-profile-char]");
+  await page.waitForFunction(() => batch.length > 0 && activeMode === "focus");
+  const profileCharClickCheck = await page.evaluate(() => ({
+    activeMode,
+    batchSize: batch.length,
+    firstTarget: CARDS[batch[0]].target,
+    firstWord: CARDS[batch[0]].word,
+  }));
+  if (profileCharClickCheck.firstTarget !== feedbackCheck.firstMemory.target) {
+    throw new Error(`Expected profile character chip to start focused practice, got ${JSON.stringify(profileCharClickCheck)}`);
+  }
+
+  await page.evaluate(() => renderProfile());
+  await page.click("#profileTopics .profileRow");
+  await page.waitForFunction(() => batch.length > 0 && activeMode === "focus");
+  const profileGroupClickCheck = await page.evaluate(() => ({
+    activeMode,
+    batchSize: batch.length,
+    firstTarget: CARDS[batch[0]].target,
+    firstTopic: CARDS[batch[0]].topic,
+  }));
+  if (profileGroupClickCheck.firstTarget !== feedbackCheck.firstMemory.target) {
+    throw new Error(`Expected profile topic row to start topic-focused practice, got ${JSON.stringify(profileGroupClickCheck)}`);
+  }
+  await page.evaluate(() => renderHome());
+
   await page.click("#riskList [data-idx]");
   await page.waitForFunction(() => batch.length > 0 && activeMode === "focus");
   const riskClickCheck = await page.evaluate(() => ({
@@ -368,7 +421,7 @@ const sampleTargets = ["的", "一", "强", "器", "随", "察", "群", "疑", "
   }
 
   await page.screenshot({ path: screenshotPath, fullPage: true });
-  console.log(JSON.stringify({ homeOverview, auditCheck, auditPrefCheck, auditQualityCheck, futureDueCheck, overview, feedbackCheck, riskClickCheck, reviewModeCheck, bookCheck, bookClickCheck, summaryCheck, summaryClickCheck, samples }, null, 2));
+  console.log(JSON.stringify({ homeOverview, profileEmptyCheck, auditCheck, auditPrefCheck, auditQualityCheck, futureDueCheck, overview, feedbackCheck, profileCheck, profileCharClickCheck, profileGroupClickCheck, riskClickCheck, reviewModeCheck, bookCheck, bookClickCheck, summaryCheck, summaryClickCheck, samples }, null, 2));
   await browser.close();
 })().catch((err) => {
   console.error(err);

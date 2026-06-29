@@ -243,6 +243,71 @@ const sampleTargets = ["的", "一", "强", "器", "随", "察", "群", "疑", "
     throw new Error(`Expected tuned review strategy to prioritize hard due cards with graduated delays, got ${JSON.stringify(strategyCheck)}`);
   }
 
+  const adaptiveCheck = await page.evaluate(() => {
+    status = {};
+    memory = {};
+    quality = {};
+    preference = "balanced";
+    activeMode = "new";
+    focusQueue = [];
+    sessionDone = new Set();
+    save(DECK_KEY, status);
+    saveMemory();
+    saveQuality();
+    save(PREF_KEY, preference);
+    localStorage.removeItem(TOPIC_KEY);
+    startRound();
+    const before = {
+      target: sessionTarget,
+      first: batch[0],
+      second: batch[1],
+      firstDifficulty: cardDifficulty(batch[0]),
+      secondDifficulty: cardDifficulty(batch[1]),
+      batchSize: batch.length,
+    };
+    recordOutcome("fast");
+    const afterFast = {
+      target: sessionTarget,
+      fastStreak: sessionFastStreak,
+      pos,
+      next: batch[1],
+      nextDifficulty: cardDifficulty(batch[1]),
+      nextPersonal: personalDifficulty(batch[1]),
+      uniqueSize: new Set(batch).size,
+      batchSize: batch.length,
+    };
+    sessionTarget = 80;
+    sessionFastStreak = 0;
+    sessionMissStreak = 0;
+    adjustSessionTarget("miss");
+    const afterMissOne = { target: sessionTarget, missStreak: sessionMissStreak };
+    adjustSessionTarget("miss");
+    const afterMissTwo = { target: sessionTarget, missStreak: sessionMissStreak };
+    sessionTarget = 76;
+    sessionFastStreak = 2;
+    sessionMissStreak = 0;
+    adjustSessionTarget("hinted");
+    const afterHinted = { target: sessionTarget, fastStreak: sessionFastStreak, missStreak: sessionMissStreak };
+    status = {};
+    memory = {};
+    quality = {};
+    preference = "balanced";
+    sessionTarget = 0;
+    sessionFastStreak = 0;
+    sessionMissStreak = 0;
+    sessionDone = new Set();
+    save(DECK_KEY, status);
+    saveMemory();
+    saveQuality();
+    save(PREF_KEY, preference);
+    localStorage.removeItem(TOPIC_KEY);
+    renderHome();
+    return { before, afterFast, afterMissOne, afterMissTwo, afterHinted };
+  });
+  if (adaptiveCheck.afterFast.target <= adaptiveCheck.before.target || adaptiveCheck.afterFast.fastStreak !== 1 || adaptiveCheck.afterFast.pos !== 1 || adaptiveCheck.afterFast.nextDifficulty <= adaptiveCheck.before.secondDifficulty || adaptiveCheck.afterFast.uniqueSize !== adaptiveCheck.afterFast.batchSize || adaptiveCheck.afterMissOne.target !== 80 || adaptiveCheck.afterMissTwo.target >= adaptiveCheck.afterMissOne.target || adaptiveCheck.afterHinted.target !== 74 || adaptiveCheck.afterHinted.fastStreak !== 0) {
+    throw new Error(`Expected adaptive session difficulty to raise after fast answers and only lower after repeated misses, got ${JSON.stringify(adaptiveCheck)}`);
+  }
+
   await page.click("#startNew");
   await page.waitForFunction(() => batch.length > 0 && getComputedStyle(document.getElementById("card")).display !== "none");
 
@@ -477,7 +542,7 @@ const sampleTargets = ["的", "一", "强", "器", "随", "察", "群", "疑", "
   }
 
   await page.screenshot({ path: screenshotPath, fullPage: true });
-  console.log(JSON.stringify({ homeOverview, profileEmptyCheck, auditCheck, auditPrefCheck, auditQualityCheck, futureDueCheck, strategyCheck, overview, feedbackCheck, profileCheck, profileCharClickCheck, profileGroupClickCheck, riskClickCheck, reviewModeCheck, bookCheck, bookClickCheck, summaryCheck, summaryClickCheck, samples }, null, 2));
+  console.log(JSON.stringify({ homeOverview, profileEmptyCheck, auditCheck, auditPrefCheck, auditQualityCheck, futureDueCheck, strategyCheck, adaptiveCheck, overview, feedbackCheck, profileCheck, profileCharClickCheck, profileGroupClickCheck, riskClickCheck, reviewModeCheck, bookCheck, bookClickCheck, summaryCheck, summaryClickCheck, samples }, null, 2));
   await browser.close();
 })().catch((err) => {
   console.error(err);

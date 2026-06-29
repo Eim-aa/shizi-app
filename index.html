@@ -259,7 +259,7 @@ function today(){ const d=new Date(); return d.getFullYear()+"-"+String(d.getMon
 let opens = load(OPEN_KEY, []); if(!opens.includes(today())){ opens.push(today()); save(OPEN_KEY,opens); }
 
 // ---- 出题池 ----
-const BATCH=15, TOPIC_KEY="shizi.topic.v1"; let sessionDone=new Set(); let batch=[], pos=0, missedThisRound=[], roundStats=[], focusQueue=[], hintsUsedThisCard=0, cardStartedAt=0, activeMode="new";
+const BATCH=15, TOPIC_KEY="shizi.topic.v1"; let sessionDone=new Set(); let batch=[], pos=0, missedThisRound=[], roundStats=[], focusQueue=[], hintsUsedThisCard=0, cardStartedAt=0, activeMode="new", sessionTarget=0, sessionFastStreak=0, sessionMissStreak=0;
 function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 function allIndexes(){ return [...Array(CARDS.length).keys()]; }
 function cardKey(i){ const c=CARDS[i]; return (c.custom?"custom:"+i+":":"base:")+c.target; }
@@ -292,6 +292,22 @@ function practiceEligible(i){ return qualityAvailable(i) && (reviewReady(i) || C
 function cardTopic(i){ return CARDS[i].topic || (CARDS[i].custom?"自定义":"综合"); }
 function targetDifficulty(){ const p=prefSettings(), base=68 + Math.sqrt(knownCount()/Math.max(1,CARDS.length))*18 + p.targetShift; return clamp(base - Math.min(deckCount(),40)*0.12, p.min, p.max); }
 function personalDifficulty(i){ const m=memory[cardKey(i)]||{}, q=qualityFor(i); return clamp(cardDifficulty(i)+(reviewReady(i)?18:0)+(m.misses||0)*8+(m.hints||0)*5+(m.slow||0)*2-(m.fast||0)*3-(q.easy||0)*16+(preference==="challenge"?(q.rare||0)*4:0), 1, 115); }
+function resetAdaptiveSession(){ sessionTarget=targetDifficulty(); sessionFastStreak=0; sessionMissStreak=0; }
+function adjustSessionTarget(outcome){ if(!sessionTarget) resetAdaptiveSession(); const p=prefSettings();
+  if(outcome==="fast"){ sessionFastStreak++; sessionMissStreak=0; sessionTarget+=5+Math.min(4,Math.max(0,sessionFastStreak-1)*2); }
+  else if(outcome==="slow"){ sessionFastStreak=0; sessionMissStreak=0; }
+  else if(outcome==="hinted"){ sessionFastStreak=0; sessionMissStreak=0; sessionTarget-=2; }
+  else if(outcome==="miss"){ sessionFastStreak=0; sessionMissStreak++; if(sessionMissStreak>=2) sessionTarget-=6; }
+  sessionTarget=clamp(Math.round(sessionTarget),p.min,p.max); return sessionTarget; }
+function adaptiveScore(i,outcome,anchorIdx){ let score=Math.abs(personalDifficulty(i)-sessionTarget)*10 - qualityWeight(i);
+  if(anchorIdx!=null && anchorIdx>=0){ const sameTopic=cardTopic(i)===cardTopic(anchorIdx), sameLevel=cardLevel(i)===cardLevel(anchorIdx), sameStructure=structureLabel(i)===structureLabel(anchorIdx);
+    if(outcome==="miss" || outcome==="hinted"){ if(sameTopic) score-=28; if(sameStructure) score-=18; if(sameLevel) score-=10; }
+    else if(outcome==="fast"){ if(sameTopic) score-=10; if(personalDifficulty(i)>personalDifficulty(anchorIdx)) score-=14; } }
+  return score; }
+function adaptNextCard(outcome,anchorIdx){ if(activeMode!=="new" || pos+1>=batch.length) return null; adjustSessionTarget(outcome);
+  const scheduled=new Set(batch), pool=newPool(true).filter(i=>!scheduled.has(i)); if(!pool.length) return null;
+  const next=pool.sort((a,b)=>adaptiveScore(a,outcome,anchorIdx)-adaptiveScore(b,outcome,anchorIdx) || personalDifficulty(b)-personalDifficulty(a))[0];
+  if(next!=null) batch[pos+1]=next; return next; }
 function overdueDays(i){ const m=memory[cardKey(i)]||{}; return m.due?Math.max(0,(Date.now()-m.due)/86400000):0; }
 function reviewPriority(i){ const m=memory[cardKey(i)]||{}, outcome=m.lastOutcome||"", outcomeWeight={miss:42,hinted:30,slow:12,fast:-8}[outcome]||0;
   return outcomeWeight + hardCount(i)*18 + Math.max(0,100-(m.ease||50))*0.7 + overdueDays(i)*9 + personalDifficulty(i)*0.25 - (m.streak||0)*6; }
@@ -360,6 +376,7 @@ function recordOutcome(outcome){ const idx=batch[pos], c=CARDS[idx], m=cardMemor
   m.due=now+delayFor(outcome,depth,m.ease||50); saveMemory();
   roundStats.push({idx, target:c.target, word:c.word, outcome, level:c.level, topic:c.topic, due:m.due});
   if(hard) missedThisRound.push(c.target);
+  adaptNextCard(outcome,idx);
   next(outcome==="miss");
 }
 function riskPreview(){ const list=highRiskIndexes().slice(0,12); return list.length?`<div class="charChips">${list.map(i=>`<button class="charChip" data-idx="${i}" title="${CARDS[i].word}">${CARDS[i].target}</button>`).join("")}</div>`:"还没有重点字。先练一组，新数据会慢慢长出来。"; }
@@ -533,7 +550,7 @@ $("miss").onclick=()=>recordOutcome("miss");
 function next(repeatSoon=false){ if(!repeatSoon) sessionDone.add(batch[pos]); pos++; if(pos<batch.length) render(); else roundSummary(); }
 function chooseFocusBatch(all){ return all.slice().sort((a,b)=>personalDifficulty(b)-personalDifficulty(a)).slice(0,BATCH); }
 function chooseReviewBatch(all){ return all.slice().sort((a,b)=>reviewPriority(b)-reviewPriority(a) || ((memory[cardKey(a)]||{}).due||0)-((memory[cardKey(b)]||{}).due||0) || personalDifficulty(b)-personalDifficulty(a)).slice(0,BATCH); }
-function startRound(){ const p=availablePool(); if(p.length===0){ allDone(); return; } batch=activeMode==="focus"?chooseFocusBatch(p):(activeMode==="review"?chooseReviewBatch(p):chooseBatch(p)); pos=0; missedThisRound=[]; roundStats=[]; render(); }
+function startRound(){ const p=availablePool(); if(p.length===0){ allDone(); return; } resetAdaptiveSession(); batch=activeMode==="focus"?chooseFocusBatch(p):(activeMode==="review"?chooseReviewBatch(p):chooseBatch(p)); pos=0; missedThisRound=[]; roundStats=[]; render(); }
 function resultItem(s){ return `<button class="resultItem ${s.outcome}" data-idx="${s.idx}"><b>${s.target}</b><span>${s.word} · ${s.level}</span><em>${dueText(s.due)}</em></button>`; }
 function resultGroup(outcome,label,desc){ const items=roundStats.filter(x=>x.outcome===outcome);
   return `<section class="resultGroup"><div class="resultHead"><b>${label} ${items.length}</b><span>${desc}</span></div><div class="resultItems">${items.length?items.map(resultItem).join(""):`<span class="empty">这一类没有字</span>`}</div></section>`; }

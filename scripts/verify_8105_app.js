@@ -22,6 +22,7 @@ const sampleTargets = ["的", "一", "强", "器", "随", "察", "群", "疑", "
     localStorage.removeItem("shizi.memory.v1");
     localStorage.removeItem("shizi.quality.v1");
     localStorage.removeItem("shizi.pref.v1");
+    localStorage.removeItem("shizi.tuning.v1");
   });
   await page.reload({ waitUntil: "networkidle" });
 
@@ -33,13 +34,73 @@ const sampleTargets = ["的", "一", "强", "器", "随", "察", "群", "疑", "
     seenStat: document.getElementById("seenStat").textContent,
     startReviewDisabled: document.getElementById("startReview").disabled,
     startNewDisabled: document.getElementById("startNew").disabled,
+    startNewText: document.getElementById("startNew").textContent,
     activePref: document.querySelector("#prefBox button.active")?.dataset.pref,
+    needsCalibration: typeof needsCalibration === "function" ? needsCalibration() : null,
   }));
   if (!homeOverview.homeVisible || homeOverview.cardVisible || homeOverview.startNewDisabled) {
     throw new Error(`Expected home entry panel before practice, got ${JSON.stringify(homeOverview)}`);
   }
-  if (homeOverview.activePref !== "balanced") {
+  if (homeOverview.activePref !== "balanced" || !homeOverview.needsCalibration || !homeOverview.startNewText.includes("校准")) {
     throw new Error(`Expected balanced preference by default, got ${JSON.stringify(homeOverview)}`);
+  }
+
+  const calibrationCheck = await page.evaluate(() => {
+    status = {};
+    memory = {};
+    quality = {};
+    preference = "balanced";
+    tuning = { calibrated: false, offset: 0, contextStrict: 0, rounds: [] };
+    save(DECK_KEY, status);
+    saveMemory();
+    saveQuality();
+    save(PREF_KEY, preference);
+    saveTuning();
+    localStorage.removeItem(TOPIC_KEY);
+    startMode("new");
+    const before = {
+      activeMode,
+      batchSize: batch.length,
+      topics: [...new Set(batch.map((idx) => CARDS[idx].topic))],
+      difficulties: batch.map((idx) => cardDifficulty(idx)),
+      hasElementary: batch.some((idx) => cardLevel(idx) === "小学"),
+      hasFallback: batch.some((idx) => contextSource(idx) === "fallback"),
+    };
+    roundStats = batch.map((idx, n) => ({
+      idx,
+      target: CARDS[idx].target,
+      word: CARDS[idx].word,
+      outcome: n < 12 ? "fast" : "slow",
+      level: CARDS[idx].level,
+      topic: CARDS[idx].topic,
+      due: Date.now() + 86400000,
+    }));
+    roundSummary();
+    const after = {
+      activeMode,
+      calibrated: tuning.calibrated,
+      preference,
+      offset: tuning.offset,
+      title: document.getElementById("sumTitle").textContent,
+      note: document.getElementById("sumNote").textContent,
+      tuneVisible: getComputedStyle(document.getElementById("roundTune")).display !== "none",
+    };
+    status = {};
+    memory = {};
+    quality = {};
+    preference = "balanced";
+    tuning = { calibrated: true, offset: 0, contextStrict: 0, rounds: [] };
+    save(DECK_KEY, status);
+    saveMemory();
+    saveQuality();
+    save(PREF_KEY, preference);
+    saveTuning();
+    localStorage.removeItem(TOPIC_KEY);
+    renderHome();
+    return { before, after };
+  });
+  if (calibrationCheck.before.activeMode !== "calibrate" || calibrationCheck.before.batchSize !== 15 || calibrationCheck.before.topics.length < 6 || calibrationCheck.before.hasElementary || calibrationCheck.before.hasFallback || !calibrationCheck.after.calibrated || calibrationCheck.after.activeMode !== "new" || calibrationCheck.after.preference !== "challenge" || calibrationCheck.after.offset < 8 || !calibrationCheck.after.title.includes("校准") || !calibrationCheck.after.tuneVisible) {
+    throw new Error(`Expected first new-user round to calibrate and persist a starting difficulty, got ${JSON.stringify(calibrationCheck)}`);
   }
 
   await page.click("#profileLink");
@@ -265,6 +326,7 @@ const sampleTargets = ["的", "一", "强", "器", "随", "察", "群", "疑", "
     status = {};
     memory = {};
     quality = {};
+    tuning = { calibrated: true, offset: 0, contextStrict: 0, rounds: [] };
     preference = "balanced";
     activeMode = "new";
     focusQueue = [];
@@ -272,6 +334,7 @@ const sampleTargets = ["的", "一", "强", "器", "随", "察", "群", "疑", "
     save(DECK_KEY, status);
     saveMemory();
     saveQuality();
+    saveTuning();
     save(PREF_KEY, preference);
     localStorage.removeItem(TOPIC_KEY);
     startRound();
@@ -310,6 +373,7 @@ const sampleTargets = ["的", "一", "强", "器", "随", "察", "群", "疑", "
     status = {};
     memory = {};
     quality = {};
+    tuning = { calibrated: true, offset: 0, contextStrict: 0, rounds: [] };
     preference = "balanced";
     sessionTarget = 0;
     sessionFastStreak = 0;
@@ -318,6 +382,7 @@ const sampleTargets = ["的", "一", "强", "器", "随", "察", "群", "疑", "
     save(DECK_KEY, status);
     saveMemory();
     saveQuality();
+    saveTuning();
     save(PREF_KEY, preference);
     localStorage.removeItem(TOPIC_KEY);
     renderHome();
@@ -511,6 +576,10 @@ const sampleTargets = ["的", "一", "强", "器", "随", "察", "群", "疑", "
     };
     save(DECK_KEY, status);
     saveMemory();
+    tuning = { calibrated: true, offset: 0, contextStrict: 0, rounds: [] };
+    saveTuning();
+    roundFeedbackGiven = false;
+    roundId = "verify-summary";
     roundStats = [
       { idx: fastIdx, target: CARDS[fastIdx].target, word: CARDS[fastIdx].word, outcome: "fast", level: CARDS[fastIdx].level, topic: CARDS[fastIdx].topic, due: now + 14 * 86400000 },
       { idx: missIdx, target: CARDS[missIdx].target, word: CARDS[missIdx].word, outcome: "miss", level: CARDS[missIdx].level, topic: CARDS[missIdx].topic, due: now },
@@ -523,12 +592,27 @@ const sampleTargets = ["的", "一", "强", "器", "随", "察", "群", "疑", "
       itemCount: document.querySelectorAll("#sumList .resultItem").length,
       missItemText: document.querySelector("#sumList .resultItem.miss")?.textContent || "",
       note: document.getElementById("sumNote").textContent,
+      tuneVisible: getComputedStyle(document.getElementById("roundTune")).display !== "none",
+      tuneButtons: Array.from(document.querySelectorAll("#roundTune [data-round-feedback]")).map((button) => button.textContent),
       reviewRiskVisible: getComputedStyle(document.getElementById("reviewRisk")).display !== "none",
       stopText: document.getElementById("stop").textContent,
     };
   });
-  if (!summaryCheck.visible || summaryCheck.groups.length !== 4 || summaryCheck.itemCount !== 2 || !summaryCheck.missItemText.includes("今天再练") || !summaryCheck.reviewRiskVisible) {
+  if (!summaryCheck.visible || summaryCheck.groups.length !== 4 || summaryCheck.itemCount !== 2 || !summaryCheck.missItemText.includes("今天再练") || !summaryCheck.reviewRiskVisible || !summaryCheck.tuneVisible || summaryCheck.tuneButtons.length !== 4) {
     throw new Error(`Expected result page 2.0 with grouped rows and review action, got ${JSON.stringify(summaryCheck)}`);
+  }
+
+  await page.click('#roundTune [data-round-feedback="easy"]');
+  const summaryTuneCheck = await page.evaluate(() => ({
+    offset: tuning.offset,
+    rounds: (tuning.rounds || []).length,
+    last: tuning.lastRoundFeedback,
+    stored: JSON.parse(localStorage.getItem("shizi.tuning.v1") || "{}"),
+    active: document.querySelector('#roundTune [data-round-feedback="easy"]').classList.contains("active"),
+    disabledCount: Array.from(document.querySelectorAll("#roundTune [data-round-feedback]")).filter((button) => button.disabled).length,
+  }));
+  if (summaryTuneCheck.offset <= 0 || summaryTuneCheck.rounds !== 1 || summaryTuneCheck.last !== "easy" || summaryTuneCheck.stored.offset !== summaryTuneCheck.offset || !summaryTuneCheck.active || summaryTuneCheck.disabledCount !== 4) {
+    throw new Error(`Expected round-level feedback to persist difficulty tuning, got ${JSON.stringify(summaryTuneCheck)}`);
   }
 
   await page.click("#sumList .resultItem.miss");
@@ -568,7 +652,7 @@ const sampleTargets = ["的", "一", "强", "器", "随", "察", "群", "疑", "
   }
 
   await page.screenshot({ path: screenshotPath, fullPage: true });
-  console.log(JSON.stringify({ homeOverview, profileEmptyCheck, auditCheck, poolNormCheck, auditPrefCheck, auditQualityCheck, futureDueCheck, strategyCheck, adaptiveCheck, overview, feedbackCheck, profileCheck, profileCharClickCheck, profileGroupClickCheck, riskClickCheck, reviewModeCheck, bookCheck, bookClickCheck, summaryCheck, summaryClickCheck, samples }, null, 2));
+  console.log(JSON.stringify({ homeOverview, calibrationCheck, profileEmptyCheck, auditCheck, poolNormCheck, auditPrefCheck, auditQualityCheck, futureDueCheck, strategyCheck, adaptiveCheck, overview, feedbackCheck, profileCheck, profileCharClickCheck, profileGroupClickCheck, riskClickCheck, reviewModeCheck, bookCheck, bookClickCheck, summaryCheck, summaryTuneCheck, summaryClickCheck, samples }, null, 2));
   await browser.close();
 })().catch((err) => {
   console.error(err);

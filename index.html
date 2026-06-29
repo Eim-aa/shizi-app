@@ -4,6 +4,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>拾字｜提笔忘字 · Day 0</title>
+<meta name="theme-color" content="#2563eb">
+<meta name="description" content="每天写几个你会写错的汉字，把手写能力练回来。">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="拾字">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-192.png">
 <style>
   :root{ --bg:#f6f8fb; --card:#ffffff; --ink:#1f2937; --muted:#667085;
     --line:#d8dee8; --soft:#eef4ff; --accent:#2563eb; --known:#087443; --miss:#b42318; --btn:#e8edf5; }
@@ -684,6 +693,9 @@ $("modeBtn").onclick=()=>{ continuous=!continuous; drawing=false; setPen(false);
 $("startReview").onclick=()=>startMode("review");
 $("startNew").onclick=()=>startMode("new");
 initBox(); applyModeUI(); renderHome();
+</script>
+<script>
+if('serviceWorker' in navigator){ window.addEventListener('load',function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); }); }
 </script>
 </body>
 </html>

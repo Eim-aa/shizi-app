@@ -5,29 +5,29 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>拾字｜提笔忘字 · Day 0</title>
 <style>
-  :root{ --bg:#f5f4ef; --card:#fffefa; --ink:#26303d; --muted:#7f7a70;
-    --line:#ded4ca; --soft:#f0ece3; --accent:#1f3a5f; --known:#3f7d57; --miss:#b5544a; --btn:#ece7dc; }
+  :root{ --bg:#f6f8fb; --card:#ffffff; --ink:#1f2937; --muted:#667085;
+    --line:#d8dee8; --soft:#eef4ff; --accent:#2563eb; --known:#087443; --miss:#b42318; --btn:#e8edf5; }
   @media (prefers-color-scheme: dark){
-    :root{ --bg:#1a1c1e; --card:#23262a; --ink:#e9e6dd; --muted:#9a958a;
-           --line:#5a5149; --soft:#2d3034; --accent:#9cc3ef; --known:#7fc79a; --miss:#e08a80; --btn:#33373c; } }
+    :root{ --bg:#111827; --card:#18202e; --ink:#f3f4f6; --muted:#a3adbd;
+           --line:#334155; --soft:#1f2a3a; --accent:#60a5fa; --known:#34d399; --miss:#f87171; --btn:#263244; } }
   *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-  html,body{ margin:0; background:var(--bg); color:var(--ink);
+  html,body{ margin:0; background:var(--bg); color:var(--ink); line-height:1.45;
     font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue",sans-serif; }
-  .wrap{ max-width:460px; margin:0 auto; padding:18px 16px 40px; }
-  .top{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:12px; }
-  .brand{ font-size:17px; font-weight:700; letter-spacing:1px; }
+  .wrap{ max-width:480px; margin:0 auto; padding:20px 16px 42px; }
+  .top{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:14px; }
+  .brand{ font-size:18px; font-weight:800; letter-spacing:0; }
   .pos{ font-size:13px; color:var(--muted); }
-  .card{ background:var(--card); border:1px solid var(--line); border-radius:8px; padding:20px 18px 22px; }
-  #prompt{ font-size:34px; font-weight:600; letter-spacing:2px; min-height:46px; display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+  .card{ background:var(--card); border:1px solid var(--line); border-radius:8px; padding:20px 18px 22px; box-shadow:0 12px 30px rgba(15,23,42,.06); }
+  #prompt{ font-size:34px; font-weight:600; letter-spacing:0; min-height:46px; display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
   #prompt .given{ font-family:"Kaiti SC","STKaiti","PingFang SC",serif; }
-  #prompt .blank{ font-size:21px; font-weight:600; color:var(--accent); border-bottom:2px dashed var(--accent); padding:2px 10px 3px; letter-spacing:1px; }
+  #prompt .blank{ font-size:21px; font-weight:600; color:var(--accent); border-bottom:2px dashed var(--accent); padding:2px 10px 3px; letter-spacing:0; }
   .ask{ font-size:13px; color:var(--muted); margin-top:6px; }
   .hint{ margin-top:8px; font-size:15px; color:var(--muted); line-height:1.5; min-height:22px; }
   .modebar{ display:flex; align-items:center; gap:10px; margin-top:14px; }
   .mode{ flex:0 0 auto; font-size:14px; padding:8px 12px; background:var(--btn); }
   .pill{ font-size:13px; color:var(--muted); }
   .pill.down{ color:var(--accent); font-weight:700; }
-  .modehint{ font-size:12px; color:var(--muted); margin-top:6px; line-height:1.4; }
+  .modehint{ display:none; }
   .quality{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:10px; color:var(--muted); font-size:12px; }
   .quality button{ flex:0 0 auto; padding:6px 8px; font-size:12px; background:transparent; border:1px solid var(--line); color:var(--muted); }
   .quality button.active{ border-color:var(--accent); color:var(--accent); background:var(--soft); font-weight:700; }
@@ -39,7 +39,7 @@
   .box .inkc{ touch-action:none; cursor:crosshair; }
   .row{ display:flex; gap:10px; margin-top:12px; }
   .row.center{ justify-content:center; }
-  button{ font:inherit; font-size:16px; border:none; border-radius:8px; padding:12px 16px;
+  button{ font:inherit; font-size:16px; border:1px solid transparent; border-radius:8px; padding:12px 16px;
     background:var(--btn); color:var(--ink); cursor:pointer; flex:1; transition:transform .05s; }
   button:active{ transform:scale(.97); }
   button:disabled{ opacity:.5; }
@@ -53,7 +53,7 @@
   .mark .fast{ background:transparent; border:1.5px solid var(--known); color:var(--known); }
   .mark .slow,.mark .hinted{ background:transparent; border:1.5px solid var(--accent); color:var(--accent); }
   .mark .miss{ background:transparent; border:1.5px solid var(--miss); color:var(--miss); }
-  .home,.book,.profile,.audit{ background:var(--card); border:1px solid var(--line); border-radius:8px; padding:18px; margin-bottom:14px; }
+  .home,.book,.profile,.audit{ background:var(--card); border:1px solid var(--line); border-radius:8px; padding:18px; margin-bottom:14px; box-shadow:0 12px 30px rgba(15,23,42,.06); }
   .home h2{ font-size:18px; margin:0 0 12px; }
   .pref{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:12px; font-size:12px; color:var(--muted); }
   .prefBtns{ display:flex; gap:6px; flex:1 1 260px; }
@@ -65,13 +65,13 @@
   .stat span{ display:block; font-size:12px; color:var(--muted); margin-top:4px; }
   .risk{ min-height:30px; color:var(--muted); font-size:13px; line-height:1.6; margin:8px 0 14px; }
   .charChips{ display:flex; gap:8px; flex-wrap:wrap; }
-  .charChip{ flex:0 0 auto; min-width:42px; padding:8px 10px; border:1px solid var(--line); background:var(--soft); font-size:24px; color:var(--ink); font-family:"Kaiti SC","STKaiti",serif; line-height:1; }
+  .charChip{ flex:0 0 auto; min-width:42px; padding:8px 10px; border:1px solid var(--line); border-radius:8px; background:var(--soft); font-size:24px; color:var(--ink); font-family:"Kaiti SC","STKaiti",serif; line-height:1; }
   .book{ display:none; }
   .bookHead{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
   .bookHead h2{ font-size:18px; margin:0; }
   .bookTools{ display:flex; gap:10px; margin-bottom:12px; }
   .bookList{ display:grid; gap:8px; }
-  .bookRow{ width:100%; display:flex; align-items:center; gap:12px; text-align:left; border:1px solid var(--line); background:transparent; padding:10px; }
+  .bookRow{ width:100%; display:flex; align-items:center; gap:12px; text-align:left; border:1px solid var(--line); border-radius:8px; background:transparent; padding:10px; }
   .bookRow .char{ flex:0 0 42px; font-size:31px; line-height:1; text-align:center; font-family:"Kaiti SC","STKaiti",serif; color:var(--accent); }
   .bookRow .meta{ min-width:0; flex:1; }
   .bookRow .meta b{ display:block; font-size:15px; }
@@ -129,7 +129,7 @@
   .resultHead{ display:flex; justify-content:space-between; gap:10px; color:var(--muted); font-size:13px; margin-bottom:8px; }
   .resultHead b{ color:var(--ink); font-size:14px; }
   .resultItems{ display:grid; gap:6px; }
-  .resultItem{ width:100%; display:grid; grid-template-columns:38px 1fr auto; align-items:center; gap:8px; text-align:left; border:1px solid transparent; background:var(--soft); padding:8px; font-size:13px; }
+  .resultItem{ width:100%; display:grid; grid-template-columns:38px 1fr auto; align-items:center; gap:8px; text-align:left; border:1px solid transparent; border-radius:8px; background:var(--soft); padding:8px; font-size:13px; }
   .resultItem b{ font-size:27px; line-height:1; font-family:"Kaiti SC","STKaiti",serif; color:var(--accent); }
   .resultItem span{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .resultItem em{ font-style:normal; color:var(--muted); white-space:nowrap; }
@@ -137,9 +137,10 @@
   .resultItem.hinted b,.resultItem.miss b{ color:var(--miss); }
   .summaryActions{ flex-wrap:wrap; }
   .wide{ flex-basis:100%; }
-  .foot{ margin-top:26px; text-align:center; font-size:12px; color:var(--muted); }
-  .foot a{ color:var(--muted); cursor:pointer; text-decoration:underline; margin:0 8px; }
-  .data{ display:none; margin-top:14px; background:var(--card); border:1px dashed var(--line); border-radius:8px; padding:14px; font-size:13px; color:var(--muted); line-height:1.7; text-align:left; }
+  .foot{ margin-top:24px; padding-top:12px; border-top:1px solid var(--line); display:flex; justify-content:center; flex-wrap:wrap; gap:4px 14px; text-align:center; font-size:12px; color:var(--muted); }
+  .foot a{ display:inline-block; white-space:nowrap; color:var(--muted); cursor:pointer; text-decoration:none; margin:0; padding:3px 0; }
+  .foot a:hover{ color:var(--accent); }
+  .data{ flex:1 0 100%; display:none; margin-top:14px; background:var(--card); border:1px dashed var(--line); border-radius:8px; padding:14px; font-size:13px; color:var(--muted); line-height:1.7; text-align:left; }
   @media (max-width:380px){ .resultItem{ grid-template-columns:34px 1fr; } .resultItem em{ grid-column:2; } .prefBtns,.auditPrefs{ flex-basis:100%; } .auditControls{ grid-template-columns:1fr; } .profileSummary{ grid-template-columns:repeat(2,1fr); } }
 </style>
 </head>
@@ -166,11 +167,11 @@
 
   <div class="card" id="card" style="display:none">
     <div id="prompt"></div>
-    <div class="ask">在格子里写出虚线框中拼音对应的字 ✍️</div>
+    <div class="ask">回忆目标字</div>
     <div class="hint" id="hint"></div>
     <div class="quality" id="qualityBox"><span>题目反馈</span><button data-quality="easy">太简单</button><button data-quality="rare">太生僻</button><button data-quality="badWord">词不自然</button><button data-quality="hide">不想练</button><span class="note" id="qualityNote"></span></div>
 
-    <div class="modebar"><button class="mode" id="modeBtn">✍️ 连续模式：开</button><span class="pill" id="pill">✋ 提笔</span></div>
+    <div class="modebar"><button class="mode" id="modeBtn">连续模式：开</button><span class="pill" id="pill">提笔</span></div>
     <div class="modehint" id="modehint"></div>
 
     <div id="boxwrap"></div>
@@ -180,7 +181,7 @@
       <button class="primary" id="show" disabled>揭晓答案</button>
     </div>
     <div class="reveal" id="reveal"><div class="ans" id="ans"></div>
-      <button class="ghost" id="peek">👁 看我刚写的</button></div>
+      <button class="ghost" id="peek">看我刚写的</button></div>
     <div class="row mark" id="mark">
       <button class="fast" id="fast">秒会</button>
       <button class="slow" id="slow">想起后写出</button>
@@ -441,7 +442,7 @@ const CUSTOM_KEY="shizi.custom.v1", BASE_N=CARDS.length;
 let customWords = load(CUSTOM_KEY, []);
 const isCJK=c=>/[一-鿿]/.test(c);
 function pushWordCards(s){ const chars=Array.from(s).filter(isCJK); const start=CARDS.length;
-  chars.forEach((ch,ci)=>CARDS.push({ word:chars.join(""), chars, ci, target:ch, py:"", hint:"✍️ 你刚才卡壳的字", custom:true, topic:"自定义", d:76, level:"大学", rank:999999, strokes:0, parts:1, common:0 })); return [start, CARDS.length]; }
+  chars.forEach((ch,ci)=>CARDS.push({ word:chars.join(""), chars, ci, target:ch, py:"", hint:"你刚才卡壳的字", custom:true, topic:"自定义", d:76, level:"大学", rank:999999, strokes:0, parts:1, common:0 })); return [start, CARDS.length]; }
 function buildCustomCards(){ CARDS.length=BASE_N; customWords.forEach(pushWordCards); }
 buildCustomCards();
 function customCount(){ return Math.max(0, CARDS.length-BASE_N); }
@@ -468,8 +469,8 @@ function P(e){ const r=inkCanvas.getBoundingClientRect(); return {x:(e.clientX-r
 function strokeTo(p){ inkCtx.strokeStyle=cssVar('--accent',"#1f3a5f"); inkCtx.lineWidth=Math.max(5,S*0.045);
   inkCtx.lineCap="round"; inkCtx.lineJoin="round"; inkCtx.beginPath(); inkCtx.moveTo(last.x,last.y); inkCtx.lineTo(p.x,p.y); inkCtx.stroke(); last=p; }
 function dot(p){ inkCtx.fillStyle=cssVar('--accent',"#1f3a5f"); inkCtx.beginPath(); inkCtx.arc(p.x,p.y,Math.max(3,S*0.022),0,Math.PI*2); inkCtx.fill(); }
-function setPen(s){ penDown=s; $("pill").textContent=penDown?"✍️ 落笔中":"✋ 提笔"; $("pill").classList.toggle("down",penDown); }
-function setRevealView(mine){ showingMine=mine; if(inkCanvas) inkCanvas.style.opacity=mine?'1':'0'; if(hzEl) hzEl.style.opacity=mine?'0':'1'; const p=$("peek"); if(p) p.textContent=mine?'✍️ 看正确字':'👁 看我刚写的'; }
+function setPen(s){ penDown=s; $("pill").textContent=penDown?"落笔中":"提笔"; $("pill").classList.toggle("down",penDown); }
+function setRevealView(mine){ showingMine=mine; if(inkCanvas) inkCanvas.style.opacity=mine?'1':'0'; if(hzEl) hzEl.style.opacity=mine?'0':'1'; const p=$("peek"); if(p) p.textContent=mine?'看正确字':'看我刚写的'; }
 
 function initBox(){ const box=document.createElement('div'); box.className='box'; box.style.width=S+'px'; box.style.height=S+'px';
   gridCanvas=document.createElement('canvas'); gridCanvas.className='gridc';
@@ -586,8 +587,8 @@ $("addLink").onclick=()=>{ const chars=addWord(window.prompt("刚才提笔忘了
   else alert("没识别到汉字"); };
 $("resetLink").onclick=()=>{ if(confirm("清空卡组和记录，从头开始？")){ status={}; memory={}; quality={}; preference="balanced"; opens=[today()]; save(DECK_KEY,status); save(MEMORY_KEY,memory); save(QUALITY_KEY,quality); save(PREF_KEY,preference); save(OPEN_KEY,opens); localStorage.removeItem(TOPIC_KEY); sessionDone=new Set(); renderHome(); $("dataBox").style.display="none"; } };
 
-function applyModeUI(){ $("modeBtn").textContent=continuous?"✍️ 连续模式：开":"✍️ 连续模式：关";
-  $("modehint").textContent=continuous?"点一下落笔 → 滑动就写（不用按住）→ 再点一下提笔。":"手指/笔按住滑动就写，松手即抬笔（真触屏推荐）。"; }
+function applyModeUI(){ $("modeBtn").textContent=continuous?"连续模式：开":"连续模式：关";
+  $("modehint").textContent=""; }
 $("modeBtn").onclick=()=>{ continuous=!continuous; drawing=false; setPen(false); applyModeUI(); };
 
 $("startReview").onclick=()=>startMode("review");

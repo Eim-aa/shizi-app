@@ -19,6 +19,8 @@ const sampleTargets = ["的", "一", "强", "器", "随", "察", "群", "疑", "
     localStorage.removeItem("shizi.deck.v3500.context1");
     localStorage.removeItem("shizi.topic.v1");
     localStorage.removeItem("shizi.memory.v1");
+    localStorage.removeItem("shizi.quality.v1");
+    localStorage.removeItem("shizi.pref.v1");
   });
   await page.reload({ waitUntil: "networkidle" });
 
@@ -30,10 +32,60 @@ const sampleTargets = ["的", "一", "强", "器", "随", "察", "群", "疑", "
     seenStat: document.getElementById("seenStat").textContent,
     startReviewDisabled: document.getElementById("startReview").disabled,
     startNewDisabled: document.getElementById("startNew").disabled,
+    activePref: document.querySelector("#prefBox button.active")?.dataset.pref,
   }));
   if (!homeOverview.homeVisible || homeOverview.cardVisible || homeOverview.startNewDisabled) {
     throw new Error(`Expected home entry panel before practice, got ${JSON.stringify(homeOverview)}`);
   }
+  if (homeOverview.activePref !== "balanced") {
+    throw new Error(`Expected balanced preference by default, got ${JSON.stringify(homeOverview)}`);
+  }
+
+  const prefBefore = await page.evaluate(() => ({ preference, target: targetDifficulty(), label: prefLabel() }));
+  await page.click('#prefBox [data-pref="challenge"]');
+  const prefCheck = await page.evaluate(() => ({
+    preference,
+    activePref: document.querySelector("#prefBox button.active")?.dataset.pref,
+    target: targetDifficulty(),
+    saved: JSON.parse(localStorage.getItem("shizi.pref.v1") || "null"),
+    pos: document.getElementById("pos").textContent,
+  }));
+  if (prefCheck.preference !== "challenge" || prefCheck.activePref !== "challenge" || prefCheck.saved !== "challenge" || prefCheck.target <= prefBefore.target) {
+    throw new Error(`Expected challenge preference to raise target difficulty, got ${JSON.stringify({ prefBefore, prefCheck })}`);
+  }
+  await page.click('#prefBox [data-pref="balanced"]');
+
+  await page.evaluate(() => {
+    const idx = CARDS.findIndex((card) => card.target === "强");
+    batch = [idx];
+    pos = 0;
+    sessionDone = new Set();
+    render();
+  });
+  await page.click('#qualityBox [data-quality="easy"]');
+  const qualityCheck = await page.evaluate(() => {
+    const idx = CARDS.findIndex((card) => card.target === "强");
+    const stored = quality[cardKey(idx)] || {};
+    return {
+      stored,
+      active: document.querySelector('#qualityBox [data-quality="easy"]').classList.contains("active"),
+      note: document.getElementById("qualityNote").textContent,
+      newPoolHasStrong: newPool(false).includes(idx),
+      qualityCount: qualityCount(),
+    };
+  });
+  if (!qualityCheck.stored.easy || !qualityCheck.active || !qualityCheck.note.includes("已降难") || qualityCheck.newPoolHasStrong || qualityCheck.qualityCount !== 1) {
+    throw new Error(`Expected quality feedback to store and suppress easy card, got ${JSON.stringify(qualityCheck)}`);
+  }
+  await page.evaluate(() => {
+    quality = {};
+    status = {};
+    preference = "balanced";
+    saveQuality();
+    save(DECK_KEY, status);
+    save(PREF_KEY, preference);
+    renderHome();
+  });
 
   const futureDueCheck = await page.evaluate(() => {
     const idx = CARDS.findIndex((card) => card.target === "强");

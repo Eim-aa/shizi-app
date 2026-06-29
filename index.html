@@ -291,6 +291,9 @@ function practiceEligible(i){ return qualityAvailable(i) && (reviewReady(i) || C
 function cardTopic(i){ return CARDS[i].topic || (CARDS[i].custom?"自定义":"综合"); }
 function targetDifficulty(){ const p=prefSettings(), base=68 + Math.sqrt(knownCount()/Math.max(1,CARDS.length))*18 + p.targetShift; return clamp(base - Math.min(deckCount(),40)*0.12, p.min, p.max); }
 function personalDifficulty(i){ const m=memory[cardKey(i)]||{}, q=qualityFor(i); return clamp(cardDifficulty(i)+(reviewReady(i)?18:0)+(m.misses||0)*8+(m.hints||0)*5+(m.slow||0)*2-(m.fast||0)*3-(q.easy||0)*16+(preference==="challenge"?(q.rare||0)*4:0), 1, 115); }
+function overdueDays(i){ const m=memory[cardKey(i)]||{}; return m.due?Math.max(0,(Date.now()-m.due)/86400000):0; }
+function reviewPriority(i){ const m=memory[cardKey(i)]||{}, outcome=m.lastOutcome||"", outcomeWeight={miss:42,hinted:30,slow:12,fast:-8}[outcome]||0;
+  return outcomeWeight + hardCount(i)*18 + Math.max(0,100-(m.ease||50))*0.7 + overdueDays(i)*9 + personalDifficulty(i)*0.25 - (m.streak||0)*6; }
 function candidateDistance(i,target){ return Math.abs(personalDifficulty(i)-target)*10 - qualityWeight(i); }
 function addNearest(out, candidates, target, limit, used){ candidates.filter(i=>!used.has(i)).sort((a,b)=>candidateDistance(a,target)-candidateDistance(b,target) || personalDifficulty(b)-personalDifficulty(a)).slice(0,limit).forEach(i=>{ used.add(i); out.push(i); }); }
 function addLevel(out, candidates, level, limit, used){ addNearest(out, candidates.filter(i=>cardLevel(i)===level), LEVEL_TARGET[level]||70, limit, used); }
@@ -313,12 +316,13 @@ function chooseBatch(all){ if(all.length<=BATCH) return all.slice(); const targe
   addNearest(out, themed, target, BATCH-out.length, used);
   addNearest(out, all, target, BATCH-out.length, used);
   return out.slice(0,BATCH).sort((a,b)=>(LEVEL_RANK[cardLevel(a)]||0)-(LEVEL_RANK[cardLevel(b)]||0) || cardDifficulty(a)-cardDifficulty(b)); }
-function delayFor(outcome, streak){ const table={
-  fast:[14,30,60,120],
-  slow:[3,7,14,30],
-  hinted:[1,2,5,10],
-  miss:[0,0,1,2],
-}; const idx=Math.max(0, Math.min((outcome==="fast"||outcome==="slow")?streak-1:streak,3)); return (table[outcome]||table.slow)[idx]*86400000; }
+function delayFor(outcome, depth, ease=50){ const table={
+  fast:[7,21,45,90,150],
+  slow:[1,3,7,16,35],
+  hinted:[0.25,1,3,7,14],
+  miss:[0,0.25,1,2,5],
+}; const arr=table[outcome]||table.slow, idx=Math.max(0, Math.min((outcome==="fast"||outcome==="slow")?depth-1:depth,arr.length-1));
+  const days=arr[idx]; if(!days) return 0; const scale=(outcome==="fast"||outcome==="slow")?clamp((ease+70)/120,.7,1.35):1; return Math.round(days*scale*86400000); }
 function reviewCount(){ return reviewPool(false).length; }
 function memoryCount(){ return Object.values(memory).filter(m=>m && m.seen).length; }
 function isHighRisk(i){ const m=memory[cardKey(i)]; return !!(qualityAvailable(i) && m && (status[i]==="indeck" || m.misses || m.hints>=2) && (m.streak||0)<2); }
@@ -330,8 +334,9 @@ const OUTCOMES=[
   ["hinted","看提示写出","进入重点"],
   ["miss","没写出来","今天再练"]
 ];
-function dueText(ts){ if(!ts) return "未安排"; const diff=Math.ceil((ts-Date.now())/86400000);
-  if(diff<=0) return "今天再练"; if(diff===1) return "明天复习"; return `${diff} 天后复习`; }
+function dueText(ts){ if(!ts) return "未安排"; const left=ts-Date.now(); if(left<=0) return "今天再练";
+  const hours=Math.ceil(left/3600000); if(hours<24) return `${hours} 小时后复习`; const diff=Math.ceil(left/86400000);
+  if(diff===1) return "明天复习"; return `${diff} 天后复习`; }
 function displayView(view){ $("home").style.display=view==="home"?"block":"none"; $("card").style.display=view==="card"?"":"none"; $("summary").style.display=view==="summary"?"block":"none"; $("studybook").style.display=view==="book"?"block":"none"; $("profilePanel").style.display=view==="profile"?"block":"none"; $("auditPanel").style.display=view==="audit"?"block":"none"; }
 function qualityCount(){ return Object.values(quality).filter(q=>q && (q.easy || q.rare || q.badWord || q.hide)).length; }
 function renderQuality(){ if(!cur) return; const q=qualityFor(batch[pos]); document.querySelectorAll("#qualityBox button[data-quality]").forEach(btn=>btn.classList.toggle("active", !!q[btn.dataset.quality]));
@@ -350,7 +355,8 @@ function recordOutcome(outcome){ const idx=batch[pos], c=CARDS[idx], m=cardMemor
   if(outcome==="slow"){ m.slow=(m.slow||0)+1; m.streak=(m.streak||0)+1; m.ease=clamp((m.ease||50)+4,0,100); setStatus(idx,"review"); }
   if(outcome==="hinted"){ m.hints=(m.hints||0)+1; m.streak=0; m.ease=clamp((m.ease||50)-8,0,100); setStatus(idx,"indeck"); }
   if(outcome==="miss"){ m.misses=(m.misses||0)+1; m.streak=0; m.ease=clamp((m.ease||50)-16,0,100); setStatus(idx,"indeck"); }
-  m.due=now+delayFor(outcome,m.streak||0); saveMemory();
+  const depth=outcome==="miss"?Math.max(0,(m.misses||1)-1):outcome==="hinted"?Math.max(0,(m.hints||1)-1):(m.streak||0);
+  m.due=now+delayFor(outcome,depth,m.ease||50); saveMemory();
   roundStats.push({idx, target:c.target, word:c.word, outcome, level:c.level, topic:c.topic, due:m.due});
   if(hard) missedThisRound.push(c.target);
   next(outcome==="miss");
@@ -525,7 +531,8 @@ $("hinted").onclick=()=>recordOutcome("hinted");
 $("miss").onclick=()=>recordOutcome("miss");
 function next(repeatSoon=false){ if(!repeatSoon) sessionDone.add(batch[pos]); pos++; if(pos<batch.length) render(); else roundSummary(); }
 function chooseFocusBatch(all){ return all.slice().sort((a,b)=>personalDifficulty(b)-personalDifficulty(a)).slice(0,BATCH); }
-function startRound(){ const p=availablePool(); if(p.length===0){ allDone(); return; } batch=activeMode==="focus"?chooseFocusBatch(p):chooseBatch(p); pos=0; missedThisRound=[]; roundStats=[]; render(); }
+function chooseReviewBatch(all){ return all.slice().sort((a,b)=>reviewPriority(b)-reviewPriority(a) || ((memory[cardKey(a)]||{}).due||0)-((memory[cardKey(b)]||{}).due||0) || personalDifficulty(b)-personalDifficulty(a)).slice(0,BATCH); }
+function startRound(){ const p=availablePool(); if(p.length===0){ allDone(); return; } batch=activeMode==="focus"?chooseFocusBatch(p):(activeMode==="review"?chooseReviewBatch(p):chooseBatch(p)); pos=0; missedThisRound=[]; roundStats=[]; render(); }
 function resultItem(s){ return `<button class="resultItem ${s.outcome}" data-idx="${s.idx}"><b>${s.target}</b><span>${s.word} · ${s.level}</span><em>${dueText(s.due)}</em></button>`; }
 function resultGroup(outcome,label,desc){ const items=roundStats.filter(x=>x.outcome===outcome);
   return `<section class="resultGroup"><div class="resultHead"><b>${label} ${items.length}</b><span>${desc}</span></div><div class="resultItems">${items.length?items.map(resultItem).join(""):`<span class="empty">这一类没有字</span>`}</div></section>`; }

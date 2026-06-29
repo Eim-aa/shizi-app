@@ -187,6 +187,62 @@ const sampleTargets = ["的", "一", "强", "器", "随", "察", "群", "疑", "
     throw new Error(`Expected future-due risk card to stay out of today's review, got ${JSON.stringify(futureDueCheck)}`);
   }
 
+  const strategyCheck = await page.evaluate(() => {
+    status = {};
+    memory = {};
+    const now = Date.now();
+    const cases = [
+      { target: "强", outcome: "fast", ease: 90, streak: 3, fast: 3, due: now - 7 * 86400000 },
+      { target: "器", outcome: "miss", ease: 20, streak: 0, misses: 2, due: now },
+      { target: "疑", outcome: "hinted", ease: 40, streak: 0, hints: 1, due: now - 86400000 },
+    ];
+    const indexes = cases.map((item) => {
+      const idx = CARDS.findIndex((card) => card.target === item.target);
+      status[idx] = "indeck";
+      memory[cardKey(idx)] = {
+        seen: 3,
+        streak: item.streak,
+        ease: item.ease,
+        fast: item.fast || 0,
+        slow: 0,
+        hints: item.hints || 0,
+        misses: item.misses || 0,
+        due: item.due,
+        last: now,
+        lastOutcome: item.outcome,
+        target: CARDS[idx].target,
+        word: CARDS[idx].word,
+        level: CARDS[idx].level,
+        topic: CARDS[idx].topic,
+      };
+      return idx;
+    });
+    save(DECK_KEY, status);
+    saveMemory();
+    const delays = {
+      missFirst: delayFor("miss", 0, 34),
+      missRepeat: delayFor("miss", 1, 34),
+      hintedFirst: delayFor("hinted", 0, 42),
+      slowFirst: delayFor("slow", 1, 54),
+      fastMature: delayFor("fast", 3, 82),
+    };
+    const ordered = chooseReviewBatch(indexes).map((idx) => CARDS[idx].target);
+    const labels = {
+      hinted: dueText(now + delays.hintedFirst),
+      slow: dueText(now + delays.slowFirst),
+    };
+    const priorities = Object.fromEntries(indexes.map((idx) => [CARDS[idx].target, Math.round(reviewPriority(idx))]));
+    status = {};
+    memory = {};
+    save(DECK_KEY, status);
+    saveMemory();
+    renderHome();
+    return { delays, ordered, labels, priorities, reviewCount: reviewCount() };
+  });
+  if (strategyCheck.delays.missFirst !== 0 || !(strategyCheck.delays.missRepeat > strategyCheck.delays.missFirst) || !(strategyCheck.delays.hintedFirst < strategyCheck.delays.slowFirst) || !(strategyCheck.delays.slowFirst < strategyCheck.delays.fastMature) || strategyCheck.ordered[0] !== "器" || strategyCheck.reviewCount !== 0) {
+    throw new Error(`Expected tuned review strategy to prioritize hard due cards with graduated delays, got ${JSON.stringify(strategyCheck)}`);
+  }
+
   await page.click("#startNew");
   await page.waitForFunction(() => batch.length > 0 && getComputedStyle(document.getElementById("card")).display !== "none");
 
@@ -421,7 +477,7 @@ const sampleTargets = ["的", "一", "强", "器", "随", "察", "群", "疑", "
   }
 
   await page.screenshot({ path: screenshotPath, fullPage: true });
-  console.log(JSON.stringify({ homeOverview, profileEmptyCheck, auditCheck, auditPrefCheck, auditQualityCheck, futureDueCheck, overview, feedbackCheck, profileCheck, profileCharClickCheck, profileGroupClickCheck, riskClickCheck, reviewModeCheck, bookCheck, bookClickCheck, summaryCheck, summaryClickCheck, samples }, null, 2));
+  console.log(JSON.stringify({ homeOverview, profileEmptyCheck, auditCheck, auditPrefCheck, auditQualityCheck, futureDueCheck, strategyCheck, overview, feedbackCheck, profileCheck, profileCharClickCheck, profileGroupClickCheck, riskClickCheck, reviewModeCheck, bookCheck, bookClickCheck, summaryCheck, summaryClickCheck, samples }, null, 2));
   await browser.close();
 })().catch((err) => {
   console.error(err);

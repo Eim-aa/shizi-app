@@ -87,6 +87,56 @@ const sampleTargets = ["的", "一", "强", "器", "随", "察", "群", "疑", "
     renderHome();
   });
 
+  await page.click("#auditLink");
+  const auditCheck = await page.evaluate(() => ({
+    visible: getComputedStyle(document.getElementById("auditPanel")).display !== "none",
+    activePref: document.querySelector("#auditPrefs button.active")?.dataset.pref,
+    metricTexts: Array.from(document.querySelectorAll("#auditSummary .auditMetric")).map((node) => node.textContent),
+    batchRows: document.querySelectorAll("#auditBatch .auditRow").length,
+    sampleRows: document.querySelectorAll("#auditSample .auditRow").length,
+    bandTexts: Array.from(document.querySelectorAll("#auditBands .auditBand")).map((node) => node.textContent),
+    batchNote: document.getElementById("auditBatchNote").textContent,
+  }));
+  if (!auditCheck.visible || auditCheck.activePref !== "balanced" || auditCheck.metricTexts.length !== 3 || auditCheck.batchRows !== 15 || auditCheck.sampleRows < 20 || auditCheck.bandTexts.length !== 2) {
+    throw new Error(`Expected audit panel with metrics, batch preview, and sample rows, got ${JSON.stringify(auditCheck)}`);
+  }
+
+  await page.click('#auditPrefs [data-pref="challenge"]');
+  const auditPrefCheck = await page.evaluate(() => ({
+    activePref: document.querySelector("#auditPrefs button.active")?.dataset.pref,
+    pos: document.getElementById("pos").textContent,
+    batchDifficulties: Array.from(document.querySelectorAll("#auditBatch .auditRow .main small")).map((node) => node.textContent),
+  }));
+  if (auditPrefCheck.activePref !== "challenge" || !auditPrefCheck.pos.includes("偏挑战") || auditPrefCheck.batchDifficulties.length !== 15) {
+    throw new Error(`Expected audit preference switch to redraw challenge sample, got ${JSON.stringify(auditPrefCheck)}`);
+  }
+
+  const auditFirstIdx = await page.evaluate(() => Number(document.querySelector("#auditBatch .auditRow").dataset.idx));
+  await page.click(`#auditBatch .auditRow[data-idx="${auditFirstIdx}"] [data-audit-quality="badWord"]`);
+  const auditQualityCheck = await page.evaluate((idx) => {
+    const stored = quality[cardKey(idx)] || {};
+    return {
+      stored,
+      blockedFromPool: !newPool(false).includes(idx),
+      qualityCount: qualityCount(),
+      stillVisible: !!document.querySelector(`#auditBatch .auditRow[data-idx="${idx}"]`),
+    };
+  }, auditFirstIdx);
+  if (!auditQualityCheck.stored.badWord || !auditQualityCheck.blockedFromPool || auditQualityCheck.qualityCount !== 1) {
+    throw new Error(`Expected audit quality action to mark and suppress row, got ${JSON.stringify(auditQualityCheck)}`);
+  }
+
+  await page.evaluate(() => {
+    quality = {};
+    status = {};
+    preference = "balanced";
+    auditPref = "balanced";
+    saveQuality();
+    save(DECK_KEY, status);
+    save(PREF_KEY, preference);
+    renderHome();
+  });
+
   const futureDueCheck = await page.evaluate(() => {
     const idx = CARDS.findIndex((card) => card.target === "强");
     const key = cardKey(idx);
@@ -318,7 +368,7 @@ const sampleTargets = ["的", "一", "强", "器", "随", "察", "群", "疑", "
   }
 
   await page.screenshot({ path: screenshotPath, fullPage: true });
-  console.log(JSON.stringify({ homeOverview, futureDueCheck, overview, feedbackCheck, riskClickCheck, reviewModeCheck, bookCheck, bookClickCheck, summaryCheck, summaryClickCheck, samples }, null, 2));
+  console.log(JSON.stringify({ homeOverview, auditCheck, auditPrefCheck, auditQualityCheck, futureDueCheck, overview, feedbackCheck, riskClickCheck, reviewModeCheck, bookCheck, bookClickCheck, summaryCheck, summaryClickCheck, samples }, null, 2));
   await browser.close();
 })().catch((err) => {
   console.error(err);

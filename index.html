@@ -53,7 +53,7 @@
   .mark .fast{ background:transparent; border:1.5px solid var(--known); color:var(--known); }
   .mark .slow,.mark .hinted{ background:transparent; border:1.5px solid var(--accent); color:var(--accent); }
   .mark .miss{ background:transparent; border:1.5px solid var(--miss); color:var(--miss); }
-  .home,.book{ background:var(--card); border:1px solid var(--line); border-radius:8px; padding:18px; margin-bottom:14px; }
+  .home,.book,.audit{ background:var(--card); border:1px solid var(--line); border-radius:8px; padding:18px; margin-bottom:14px; }
   .home h2{ font-size:18px; margin:0 0 12px; }
   .pref{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:12px; font-size:12px; color:var(--muted); }
   .prefBtns{ display:flex; gap:6px; flex:1 1 260px; }
@@ -76,6 +76,32 @@
   .bookRow .meta{ min-width:0; flex:1; }
   .bookRow .meta b{ display:block; font-size:15px; }
   .bookRow .meta small{ display:block; color:var(--muted); line-height:1.45; margin-top:2px; }
+  .audit{ display:none; }
+  .auditHead{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
+  .auditHead h2{ font-size:18px; margin:0; }
+  .auditControls{ display:grid; grid-template-columns:1fr auto; gap:10px; align-items:center; margin-bottom:12px; }
+  .auditPrefs{ display:flex; gap:6px; }
+  .auditPrefs button{ padding:7px 8px; font-size:12px; background:transparent; border:1px solid var(--line); color:var(--muted); }
+  .auditPrefs button.active{ background:var(--accent); border-color:var(--accent); color:#fff; font-weight:700; }
+  .auditSummary{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:10px 0 12px; }
+  .auditMetric{ background:var(--soft); border:1px solid var(--line); border-radius:8px; padding:9px 6px; text-align:center; }
+  .auditMetric b{ display:block; font-size:18px; }
+  .auditMetric span{ color:var(--muted); font-size:12px; }
+  .auditBands{ display:grid; gap:8px; margin-bottom:12px; }
+  .auditBand{ border:1px solid var(--line); border-radius:8px; padding:9px; }
+  .auditBand b{ display:block; font-size:13px; margin-bottom:6px; }
+  .auditTags{ display:flex; flex-wrap:wrap; gap:6px; color:var(--muted); font-size:12px; }
+  .auditTags span{ background:var(--soft); border-radius:8px; padding:5px 7px; }
+  .auditSectionTitle{ display:flex; justify-content:space-between; align-items:center; color:var(--muted); font-size:12px; margin:12px 0 8px; }
+  .auditList{ display:grid; gap:7px; }
+  .auditRow{ display:grid; grid-template-columns:34px 1fr; gap:8px; align-items:center; border:1px solid var(--line); border-radius:8px; padding:8px; }
+  .auditRow .char{ font-family:"Kaiti SC","STKaiti",serif; font-size:27px; line-height:1; color:var(--accent); text-align:center; }
+  .auditRow .main{ min-width:0; }
+  .auditRow .main b{ display:block; font-size:14px; }
+  .auditRow .main small{ color:var(--muted); line-height:1.45; }
+  .auditActions{ grid-column:1 / -1; display:flex; gap:6px; flex-wrap:wrap; }
+  .auditActions button{ flex:0 0 auto; padding:6px 8px; font-size:12px; background:transparent; border:1px solid var(--line); color:var(--muted); }
+  .auditActions button.active{ border-color:var(--accent); color:var(--accent); background:var(--soft); font-weight:700; }
   .empty{ color:var(--muted); font-size:13px; line-height:1.6; }
   .summary{ display:none; background:var(--card); border:1px solid var(--line); border-radius:8px; padding:20px 18px; }
   .summary h2{ font-size:18px; margin:0 0 10px; text-align:left; }
@@ -96,7 +122,7 @@
   .foot{ margin-top:26px; text-align:center; font-size:12px; color:var(--muted); }
   .foot a{ color:var(--muted); cursor:pointer; text-decoration:underline; margin:0 8px; }
   .data{ display:none; margin-top:14px; background:var(--card); border:1px dashed var(--line); border-radius:8px; padding:14px; font-size:13px; color:var(--muted); line-height:1.7; text-align:left; }
-  @media (max-width:380px){ .resultItem{ grid-template-columns:34px 1fr; } .resultItem em{ grid-column:2; } .prefBtns{ flex-basis:100%; } }
+  @media (max-width:380px){ .resultItem{ grid-template-columns:34px 1fr; } .resultItem em{ grid-column:2; } .prefBtns,.auditPrefs{ flex-basis:100%; } .auditControls{ grid-template-columns:1fr; } }
 </style>
 </head>
 <body>
@@ -156,7 +182,25 @@
     <div class="bookList" id="bookList"></div>
   </div>
 
-  <div class="foot"><a id="addLink">＋加字</a><a id="bookLink">重点字本</a><a id="dataLink">实验数据</a><a id="resetLink">重置卡组</a><div class="data" id="dataBox"></div></div>
+  <div class="audit" id="auditPanel">
+    <div class="auditHead"><h2>题库质检</h2><button class="ghost" id="closeAudit">返回</button></div>
+    <div class="auditControls">
+      <div class="auditPrefs" id="auditPrefs">
+        <button data-pref="balanced">高频易忘</button>
+        <button data-pref="practical">偏实用</button>
+        <button data-pref="challenge">偏挑战</button>
+      </div>
+      <button id="resampleAudit">重新抽样</button>
+    </div>
+    <div class="auditSummary" id="auditSummary"></div>
+    <div class="auditBands" id="auditBands"></div>
+    <div class="auditSectionTitle"><b>下一组预览</b><span id="auditBatchNote"></span></div>
+    <div class="auditList" id="auditBatch"></div>
+    <div class="auditSectionTitle"><b>100 字样本</b><span>展示前 30 个</span></div>
+    <div class="auditList" id="auditSample"></div>
+  </div>
+
+  <div class="foot"><a id="addLink">＋加字</a><a id="bookLink">重点字本</a><a id="auditLink">题库质检</a><a id="dataLink">实验数据</a><a id="resetLink">重置卡组</a><div class="data" id="dataBox"></div></div>
 </div>
 
 <script src="hanzi-writer.min.js"></script>
@@ -179,6 +223,7 @@ let status = load(DECK_KEY, {});
 let memory = load(MEMORY_KEY, {});
 let quality = load(QUALITY_KEY, {});
 let preference = load(PREF_KEY, "balanced");
+let auditPref = preference;
 function setStatus(i,s){ status[i]=s; save(DECK_KEY,status); }
 function saveMemory(){ save(MEMORY_KEY,memory); }
 function saveQuality(){ save(QUALITY_KEY,quality); }
@@ -260,7 +305,7 @@ const OUTCOMES=[
 ];
 function dueText(ts){ if(!ts) return "未安排"; const diff=Math.ceil((ts-Date.now())/86400000);
   if(diff<=0) return "今天再练"; if(diff===1) return "明天复习"; return `${diff} 天后复习`; }
-function displayView(view){ $("home").style.display=view==="home"?"block":"none"; $("card").style.display=view==="card"?"":"none"; $("summary").style.display=view==="summary"?"block":"none"; $("studybook").style.display=view==="book"?"block":"none"; }
+function displayView(view){ $("home").style.display=view==="home"?"block":"none"; $("card").style.display=view==="card"?"":"none"; $("summary").style.display=view==="summary"?"block":"none"; $("studybook").style.display=view==="book"?"block":"none"; $("auditPanel").style.display=view==="audit"?"block":"none"; }
 function qualityCount(){ return Object.values(quality).filter(q=>q && (q.easy || q.rare || q.badWord || q.hide)).length; }
 function renderQuality(){ if(!cur) return; const q=qualityFor(batch[pos]); document.querySelectorAll("#qualityBox button[data-quality]").forEach(btn=>btn.classList.toggle("active", !!q[btn.dataset.quality]));
   const notes=[]; if(q.easy) notes.push("已降难"); if(q.rare) notes.push("少出"); if(q.badWord) notes.push("避开词"); if(q.hide) notes.push("已隐藏");
@@ -302,6 +347,27 @@ function renderBook(){ displayView("book"); const rows=highRiskIndexes();
   $("practiceDue").disabled=reviewCount()===0; $("practiceDue").textContent=reviewCount()?`练到期（${reviewCount()}）`:"练到期";
   $("practiceRisk").disabled=rows.length===0; $("practiceRisk").textContent=rows.length?`练重点字（${rows.length}）`:"练重点字";
   $("bookList").innerHTML=rows.length?rows.map(bookRow).join(""):`<div class="empty">这里还没有重点字。等你标记“看提示写出”或“没写出来”，它们会自动出现。</div>`; }
+function withAuditPreference(pref, fn){ const oldPref=preference, oldTopic=load(TOPIC_KEY,""); preference=pref;
+  try{ return fn(); } finally { preference=oldPref; save(TOPIC_KEY,oldTopic); } }
+function countBy(items, fn){ const map={}; items.forEach(i=>{ const k=fn(i); map[k]=(map[k]||0)+1; }); return map; }
+function tagList(map, limit=8){ return Object.entries(map).sort((a,b)=>b[1]-a[1] || String(a[0]).localeCompare(String(b[0]))).slice(0,limit).map(([k,v])=>`<span>${k} ${v}</span>`).join(""); }
+function average(items, fn){ return items.length ? Math.round(items.reduce((s,i)=>s+fn(i),0)/items.length) : 0; }
+function qualityText(i){ const q=qualityFor(i), out=[]; if(q.easy) out.push("太简单"); if(q.rare) out.push("太生僻"); if(q.badWord) out.push("词不自然"); if(q.hide) out.push("不想练"); return out.join(" · "); }
+function auditRow(i){ const c=CARDS[i], q=qualityFor(i), qt=qualityText(i); return `<div class="auditRow" data-idx="${i}">
+  <div class="char">${c.target}</div><div class="main"><b>${c.word}</b><small>${c.py||"无拼音"} · ${cardTopic(i)} · ${cardLevel(i)} · 难度 ${cardDifficulty(i)} · 字频#${c.rank||"未收录"} · ${c.strokes||0}画/${c.parts||1}部件${qt?` · ${qt}`:""}</small></div>
+  <div class="auditActions"><button data-audit-practice="${i}">练这个</button><button data-audit-quality="easy" class="${q.easy?"active":""}">太简单</button><button data-audit-quality="rare" class="${q.rare?"active":""}">太生僻</button><button data-audit-quality="badWord" class="${q.badWord?"active":""}">词不自然</button><button data-audit-quality="hide" class="${q.hide?"active":""}">不想练</button></div>
+</div>`; }
+function auditData(pref=auditPref){ return withAuditPreference(pref,()=>{ const pool=newPool(false), sample=shuffle(pool).slice(0,100), batch=chooseBatch(pool);
+  return { pool, sample, batch, target:targetDifficulty(), avg:average(sample,cardDifficulty), topic:batch[0]?cardTopic(batch[0]):"无" }; }); }
+function renderAudit(pref=auditPref){ auditPref=pref; displayView("audit"); const data=auditData(pref), flagged=Object.values(quality).filter(q=>q && (q.easy||q.rare||q.badWord||q.hide)).length;
+  $("pos").textContent=`质检 · ${prefLabelFor(pref)}`;
+  document.querySelectorAll("#auditPrefs button[data-pref]").forEach(btn=>btn.classList.toggle("active",btn.dataset.pref===pref));
+  $("auditSummary").innerHTML=`<div class="auditMetric"><b>${data.pool.length}</b><span>可出新字</span></div><div class="auditMetric"><b>${data.target}</b><span>目标难度</span></div><div class="auditMetric"><b>${flagged}</b><span>质量反馈</span></div>`;
+  $("auditBands").innerHTML=`<div class="auditBand"><b>样本等级分布</b><div class="auditTags">${tagList(countBy(data.sample,cardLevel),6)}</div></div><div class="auditBand"><b>样本主题分布</b><div class="auditTags">${tagList(countBy(data.sample,cardTopic),10)}</div></div>`;
+  $("auditBatchNote").textContent=`${data.topic} · 均难度 ${average(data.batch,cardDifficulty)}`;
+  $("auditBatch").innerHTML=data.batch.length?data.batch.map(auditRow).join(""):`<div class="empty">当前偏好下没有可出的新字。</div>`;
+  $("auditSample").innerHTML=data.sample.length?data.sample.slice(0,30).map(auditRow).join(""):`<div class="empty">当前偏好下没有样本。</div>`; }
+function prefLabelFor(pref){ return ({balanced:"高频易忘", practical:"偏实用", challenge:"偏挑战"})[pref] || "高频易忘"; }
 
 // ---- 自定义加字（抓住现实里提笔忘的那个字；卡片追加在 SEED 之后，索引稳定）----
 const CUSTOM_KEY="shizi.custom.v1", BASE_N=CARDS.length;
@@ -427,6 +493,14 @@ $("bookList").onclick=e=>{ const b=e.target.closest("[data-idx]"); if(b) startFo
 $("openBook").onclick=renderBook;
 $("bookLink").onclick=renderBook;
 $("closeBook").onclick=renderHome;
+$("auditLink").onclick=()=>renderAudit(preference);
+$("closeAudit").onclick=renderHome;
+$("resampleAudit").onclick=()=>renderAudit(auditPref);
+$("auditPrefs").onclick=e=>{ const b=e.target.closest("[data-pref]"); if(b) renderAudit(b.dataset.pref); };
+function handleAuditListClick(e){ const practice=e.target.closest("[data-audit-practice]"); if(practice){ startFocus([Number(practice.dataset.auditPractice)]); return; }
+  const q=e.target.closest("[data-audit-quality]"), row=e.target.closest("[data-idx]"); if(q && row){ recordQuality(q.dataset.auditQuality, Number(row.dataset.idx)); renderAudit(auditPref); } }
+$("auditBatch").onclick=handleAuditListClick;
+$("auditSample").onclick=handleAuditListClick;
 $("practiceDue").onclick=()=>startMode("review");
 $("practiceRisk").onclick=()=>startFocus(highRiskIndexes());
 

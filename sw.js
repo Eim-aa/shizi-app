@@ -4,7 +4,7 @@
    - 同源静态资源（库、图标、data/*.json 笔画数据）：缓存优先（不可变，秒开 + 离线可用）
    - 跨源（CDN 兜底字）：不拦截，照常走网络
 */
-const VERSION = 'shizi-v1';
+const VERSION = 'shizi-v3-hifi';
 const SHELL = ['./', 'index.html', 'hanzi-writer.min.js', 'manifest.webmanifest',
   'icon-180.png', 'icon-192.png', 'icon-512.png'];
 
@@ -43,6 +43,9 @@ self.addEventListener('fetch', e => {
     caches.match(req).then(cached => cached || fetch(req).then(res => {
       if (res && res.ok) { const copy = res.clone(); caches.open(VERSION).then(c => c.put(req, copy)); }
       return res;
-    }).catch(() => cached))
+    }).catch(err => {
+      if (cached) return cached;
+      throw err;
+    }))
   );
 });

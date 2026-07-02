@@ -162,6 +162,7 @@ const sampleTargets = ["的", "一", "强", "器", "随", "察", "群", "疑", "
     renderHome();
   });
 
+  await page.click("#internalToggle");
   await page.click("#auditLink");
   const auditCheck = await page.evaluate(() => ({
     visible: getComputedStyle(document.getElementById("auditPanel")).display !== "none",

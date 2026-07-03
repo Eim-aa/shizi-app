@@ -4,7 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>拾字｜提笔忘字 · Day 0</title>
-<meta name="theme-color" content="#f4f2ec">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#f4f2ec">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#171814">
 <meta name="description" content="每天写几个你会写错的汉字，把手写能力练回来。">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="mobile-web-app-capable" content="yes">
@@ -17,11 +18,13 @@
   :root{ --sans:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue",sans-serif; --kai:"Kaiti SC","STKaiti","KaiTi",serif;
     --bg:#e6e3db; --paper:#f4f2ec; --card:#fffdf9; --ink:#211f1b; --muted:#6f6a61; --faint:#a59f93;
     --line:#e0dbd1; --grid:#e9e4d9; --soft:#efece4; --accent:#34568a; --accentSoft:#e7ecf4;
-    --known:#4f7a5b; --knownSoft:#e7eee8; --miss:#b15a43; --missSoft:#f4e7e2; --btn:#f7f5ef; }
+    --known:#4f7a5b; --knownSoft:#e7eee8; --miss:#b15a43; --missSoft:#f4e7e2; --btn:#f7f5ef;
+    --blankBg:rgba(255,253,249,.55); --boxLine:#d8d2c6; --adviceLine:#d6e0f0; }
   @media (prefers-color-scheme: dark){
     :root{ --bg:#171814; --paper:#202119; --card:#272820; --ink:#f4f1e9; --muted:#bcb5a8; --faint:#8e8778;
       --line:#3c3a31; --grid:#343229; --soft:#2e3027; --accent:#8fb4e8; --accentSoft:#223047;
-      --known:#8bc29b; --knownSoft:#203226; --miss:#df8d75; --missSoft:#3d2923; --btn:#303227; } }
+      --known:#8bc29b; --knownSoft:#203226; --miss:#df8d75; --missSoft:#3d2923; --btn:#303227;
+      --blankBg:rgba(34,48,71,.5); --boxLine:#3c3a31; --adviceLine:#31415c; } }
   *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   html,body{ min-height:100%; margin:0; background:radial-gradient(120% 90% at 50% 0%, var(--soft) 0%, var(--bg) 70%); color:var(--ink); line-height:1.45;
     font-family:var(--sans); -webkit-font-smoothing:antialiased; }
@@ -34,7 +37,7 @@
   @keyframes screenIn{ from{ opacity:0; transform:translateY(8px); } to{ opacity:1; transform:none; } }
   #prompt{ min-height:78px; display:flex; justify-content:center; align-items:center; gap:5px; flex-wrap:wrap; text-align:center; font:400 34px/1.15 var(--kai); color:var(--ink); padding:8px 6px 0; }
   #prompt .given{ font-family:var(--kai); }
-  #prompt .blank{ display:inline-flex; align-items:center; justify-content:center; min-width:50px; height:52px; border:2px solid var(--accent); border-radius:12px; color:var(--accent); font:600 15px/1 var(--sans); padding:0 9px; letter-spacing:.03em; background:rgba(255,253,249,.55); }
+  #prompt .blank{ display:inline-flex; align-items:center; justify-content:center; min-width:50px; height:52px; border:2px solid var(--accent); border-radius:12px; color:var(--accent); font:600 15px/1 var(--sans); padding:0 9px; letter-spacing:.03em; background:var(--blankBg); }
   .ask{ text-align:center; font-size:13px; color:var(--muted); margin-top:8px; }
   .hint{ margin:9px auto 0; max-width:330px; text-align:center; font-size:12.5px; color:var(--muted); line-height:1.6; min-height:20px; }
   .modebar{ display:flex; align-items:center; justify-content:center; gap:10px; margin-top:12px; }
@@ -47,7 +50,7 @@
   .quality button.active{ border-color:var(--accent); color:var(--accent); background:var(--accentSoft); font-weight:700; }
   .quality .note{ min-height:16px; flex-basis:100%; text-align:center; }
   #boxwrap{ display:flex; justify-content:center; margin:14px 0 8px; }
-  .box{ position:relative; border-radius:22px; overflow:hidden; background:var(--card); border:1px solid #d8d2c6; box-shadow:inset 0 2px 10px rgba(40,36,28,.04), 0 16px 34px -28px rgba(40,36,28,.45); }
+  .box{ position:relative; border-radius:22px; overflow:hidden; background:var(--card); border:1px solid var(--boxLine); box-shadow:inset 0 2px 10px rgba(40,36,28,.04), 0 16px 34px -28px rgba(40,36,28,.45); }
   .box .gridc, .box .hz, .box .inkc{ position:absolute; left:0; top:0; border-radius:22px; }
   .box .hz{ pointer-events:none; }
   .box .inkc{ touch-action:none; cursor:crosshair; }
@@ -111,7 +114,7 @@
   .profileMetric{ background:var(--card); border:1px solid var(--line); border-radius:14px; padding:10px 6px; text-align:center; }
   .profileMetric b{ display:block; font-size:18px; }
   .profileMetric span{ color:var(--muted); font-size:12px; }
-  .profileAdvice{ color:var(--muted); background:var(--accentSoft); border:1px solid #d6e0f0; border-radius:15px; padding:13px 14px; font-size:13px; line-height:1.65; margin-bottom:12px; }
+  .profileAdvice{ color:var(--muted); background:var(--accentSoft); border:1px solid var(--adviceLine); border-radius:15px; padding:13px 14px; font-size:13px; line-height:1.65; margin-bottom:12px; }
   .profileSection{ margin-top:14px; }
   .profileSection h3{ margin:0 0 8px; font-size:14px; }
   .profileRows{ display:grid; gap:7px; }
@@ -185,6 +188,18 @@
   .internalLinks{ display:none; flex:1 0 100%; justify-content:center; gap:4px 14px; flex-wrap:wrap; }
   .foot.internal-open .internalLinks{ display:flex; }
   .data{ flex:1 0 100%; display:none; margin-top:14px; background:var(--card); border:1px dashed var(--line); border-radius:14px; padding:14px; font-size:13px; color:var(--muted); line-height:1.7; text-align:left; }
+  .sheetMask{ display:none; position:fixed; inset:0; z-index:20; background:rgba(24,22,17,.45); backdrop-filter:blur(2px); align-items:flex-start; justify-content:center; padding:14vh 24px 24px; }
+  .sheetMask.open{ display:flex; }
+  .sheet{ width:min(100%,340px); background:var(--paper); border:1px solid var(--line); border-radius:20px; padding:18px 16px 16px; box-shadow:0 24px 60px -24px rgba(20,18,14,.55); animation:screenIn .22s ease; }
+  .sheet h3{ margin:0 0 6px; font-size:16px; }
+  .sheet .sheetHint{ margin:0 0 12px; font-size:12.5px; color:var(--muted); line-height:1.55; }
+  .sheet input{ width:100%; font:400 22px/1.2 var(--kai); color:var(--ink); background:var(--card); border:1.5px solid var(--line); border-radius:12px; padding:10px 12px; outline:none; }
+  .sheet input:focus{ border-color:var(--accent); }
+  .sheetPreview{ display:flex; flex-wrap:wrap; gap:6px; margin:10px 0 4px; min-height:34px; align-content:flex-start; font-size:12px; color:var(--muted); }
+  .addChip{ display:inline-flex; align-items:baseline; gap:6px; border:1px solid var(--line); background:var(--card); border-radius:999px; padding:5px 10px; }
+  .addChip b{ font-family:var(--kai); font-size:19px; color:var(--accent); font-weight:400; }
+  .toast{ position:fixed; left:50%; bottom:calc(34px + env(safe-area-inset-bottom)); transform:translateX(-50%); background:var(--ink); color:var(--paper); font-size:13px; padding:10px 16px; border-radius:999px; z-index:30; opacity:0; transition:opacity .25s; pointer-events:none; max-width:82vw; text-align:center; }
+  .toast.show{ opacity:.94; }
   @media (max-width:380px){ .wrap{ padding-left:14px; padding-right:14px; } .resultItem{ grid-template-columns:34px 1fr; } .resultItem em{ grid-column:2; } .summaryHero{ gap:12px; } .summaryRing{ width:122px; height:122px; } .summaryRingInner{ width:94px; height:94px; } .prefBtns,.auditPrefs{ flex-basis:100%; } .roundTuneBtns{ grid-template-columns:repeat(2,1fr); } .auditControls{ grid-template-columns:1fr; } .profileSummary{ grid-template-columns:repeat(2,1fr); } }
 </style>
 </head>
@@ -215,7 +230,7 @@
     <div class="hint" id="hint"></div>
     <div class="quality" id="qualityBox"><span>题目反馈</span><button data-quality="easy">太简单</button><button data-quality="rare">太生僻</button><button data-quality="badWord">词不自然</button><button data-quality="hide">不想练</button><span class="note" id="qualityNote"></span></div>
 
-    <div class="modebar"><button class="mode" id="modeBtn">连续模式：开</button><span class="pill" id="pill">提笔</span></div>
+    <div class="modebar"><button class="mode" id="gradeBtn">写法：自评</button><button class="mode" id="modeBtn">连续模式：开</button><span class="pill" id="pill">提笔</span></div>
     <div class="modehint" id="modehint"></div>
 
     <div id="boxwrap"></div>
@@ -273,8 +288,18 @@
     <div class="auditList" id="auditSample"></div>
   </div>
 
-  <div class="foot" id="foot"><a id="addLink">＋加字</a><a id="bookLink">重点字本</a><a id="profileLink">弱点画像</a><button class="internalToggle" id="internalToggle" type="button">内部</button><span class="internalLinks" id="internalLinks"><a id="auditLink">题库质检</a><a id="dataLink">实验数据</a><a id="resetLink">重置卡组</a></span><div class="data" id="dataBox"></div></div>
+  <div class="foot" id="foot"><a id="addLink">＋加字</a><a id="bookLink">重点字本</a><a id="profileLink">弱点画像</a><button class="internalToggle" id="internalToggle" type="button">内部</button><span class="internalLinks" id="internalLinks"><a id="auditLink">题库质检</a><a id="dataLink">实验数据</a><a id="exportLink">备份数据</a><a id="importLink">恢复备份</a><a id="resetLink">重置卡组</a></span><div class="data" id="dataBox"></div></div>
 </div>
+
+<div class="sheetMask" id="addSheet"><div class="sheet">
+  <h3>刚才提笔忘了哪个字？</h3>
+  <p class="sheetHint">输入那个字，或它所在的词（如「蘸料」）。字库里有的字会带上拼音和语境词。</p>
+  <input id="addInput" type="text" autocomplete="off" autocapitalize="off" maxlength="20" placeholder="蘸料">
+  <div class="sheetPreview" id="addPreview"></div>
+  <div class="row"><button class="ghost" id="addCancel">取消</button><button class="primary" id="addConfirm" disabled>加入卡组</button></div>
+</div></div>
+<div class="toast" id="toast"></div>
+<input type="file" id="importFile" accept=".json,application/json" style="display:none">
 
 <script src="hanzi-writer.min.js"></script>
 <script>
@@ -461,9 +486,12 @@ function renderQuality(){ if(!cur) return; const q=qualityFor(batch[pos]); docum
   const notes=[]; if(q.easy) notes.push("已降难"); if(q.rare) notes.push("少出"); if(q.badWord) notes.push("避开词"); if(q.hide) notes.push("已隐藏");
   $("qualityNote").textContent=notes.join(" · "); }
 function recordQuality(kind, idx=batch[pos]){ if(idx==null || idx<0) return; const c=CARDS[idx], k=cardKey(idx), q=quality[k] || {};
-  if(kind==="hide") q.hide=true; else q[kind]=(q[kind]||0)+1;
+  if(kind==="hide") q.hide=!q.hide; else q[kind]=(q[kind]||0)+1;
   q.last=Date.now(); q.target=c.target; q.word=c.word; q.topic=c.topic; q.level=c.level; quality[k]=q; saveQuality();
-  if(kind==="easy") setStatus(idx,"rest"); if(kind==="hide" || kind==="badWord") sessionDone.add(idx);
+  if(kind==="easy") setStatus(idx,"rest"); if(kind==="badWord") sessionDone.add(idx);
+  if(kind==="hide"){ if(q.hide) sessionDone.add(idx); else sessionDone.delete(idx); }
+  // 练习中点「不想练」：马上换下一张，别把人困在不想练的卡上
+  if(kind==="hide" && q.hide && cur && idx===batch[pos] && $("card").style.display!=="none"){ next(); return; }
   if(cur && idx===batch[pos]) renderQuality(); }
 function recordOutcome(outcome){ const idx=batch[pos], c=CARDS[idx], m=cardMemory(idx), now=Date.now();
   const hard=outcome==="miss" || outcome==="hinted";
@@ -475,7 +503,10 @@ function recordOutcome(outcome){ const idx=batch[pos], c=CARDS[idx], m=cardMemor
   if(outcome==="miss"){ m.misses=(m.misses||0)+1; m.streak=0; m.ease=clamp((m.ease||50)-16,0,100); setStatus(idx,"indeck"); }
   const depth=outcome==="miss"?Math.max(0,(m.misses||1)-1):outcome==="hinted"?Math.max(0,(m.hints||1)-1):(m.streak||0);
   m.due=now+delayFor(outcome,depth,m.ease||50); saveMemory();
-  roundStats.push({idx, target:c.target, word:c.word, outcome, level:c.level, topic:c.topic, due:m.due});
+  // 写法对照：自评臂 vs 逐笔判臂各自累计四档结果（回退自评的卡按当张实际写法计）
+  const arm=cardQuizUI?"quiz":"self", gs=tuning.gradeStats||(tuning.gradeStats={}), armRow=gs[arm]||(gs[arm]={fast:0,slow:0,hinted:0,miss:0});
+  armRow[outcome]=(armRow[outcome]||0)+1; saveTuning();
+  roundStats.push({idx, target:c.target, word:c.word, outcome, level:c.level, topic:c.topic, due:m.due, grade:arm});
   if(hard) missedThisRound.push(c.target);
   adaptNextCard(outcome,idx);
   next(outcome==="miss");
@@ -559,17 +590,31 @@ function renderAudit(pref=auditPref){ auditPref=pref; displayView("audit"); cons
 function prefLabelFor(pref){ return ({balanced:"高频易忘", practical:"偏实用", challenge:"偏挑战"})[pref] || "高频易忘"; }
 
 // ---- 自定义加字（抓住现实里提笔忘的那个字；卡片追加在 SEED 之后，索引稳定）----
-const CUSTOM_KEY="shizi.custom.v1", BASE_N=CARDS.length;
+const CUSTOM_KEY="shizi.custom.v1", ADDED_KEY="shizi.added.v1", BASE_N=CARDS.length;
 let customWords = load(CUSTOM_KEY, []);
 const isCJK=c=>/[一-鿿]/.test(c);
+const BASE_BY_CHAR={}; for(let i=0;i<BASE_N;i++){ const t=CARDS[i].target; if(BASE_BY_CHAR[t]==null) BASE_BY_CHAR[t]=i; }
 function pushWordCards(s){ const chars=Array.from(s).filter(isCJK); const start=CARDS.length;
   chars.forEach((ch,ci)=>CARDS.push({ word:chars.join(""), chars, ci, target:ch, py:"", hint:"你刚才卡壳的字", custom:true, topic:"自定义", d:76, level:"大学", rank:999999, strokes:0, parts:1, common:0, norm:"自定义", ctx:"custom" })); return [start, CARDS.length]; }
 function buildCustomCards(){ CARDS.length=BASE_N; customWords.forEach(pushWordCards); }
 buildCustomCards();
-function customCount(){ return Math.max(0, CARDS.length-BASE_N); }
-function addWord(s){ s=(s||"").trim(); const chars=Array.from(s).filter(isCJK); if(!chars.length) return null;
-  customWords.push(s); save(CUSTOM_KEY,customWords); const r=pushWordCards(s);
-  for(let i=r[0];i<r[1];i++) setStatus(i,"indeck"); return chars; }
+let addedChars = load(ADDED_KEY, null);
+if(!Array.isArray(addedChars)){ addedChars=[...new Set(customWords.flatMap(w=>Array.from(w).filter(isCJK)))]; save(ADDED_KEY,addedChars); }
+function customIndexOf(ch){ for(let i=BASE_N;i<CARDS.length;i++){ if(CARDS[i].target===ch) return i; } return -1; }
+function unblockQuality(i){ const k=cardKey(i); if(quality[k]){ delete quality[k]; saveQuality(); } }
+// 现实里提笔忘了 = 一次真实的「没写出来」：记进记忆模型，让它立刻进入今日复习和重点字本
+function recordRealWorldMiss(i){ const c=CARDS[i], m=cardMemory(i), now=Date.now();
+  m.seen=(m.seen||0)+1; m.last=now; m.lastOutcome="miss"; m.misses=(m.misses||0)+1; m.streak=0; m.ease=clamp((m.ease||50)-16,0,100);
+  m.topic=c.topic; m.level=c.level; m.word=c.word; m.target=c.target; m.due=now; setStatus(i,"indeck"); }
+function addWord(s){ s=(s||"").trim(); const chars=[...new Set(Array.from(s).filter(isCJK))]; if(!chars.length) return null;
+  const fresh=[];
+  chars.forEach(ch=>{ const base=BASE_BY_CHAR[ch], idx=base!=null?base:customIndexOf(ch);
+    if(idx!=null && idx>=0){ unblockQuality(idx); recordRealWorldMiss(idx); }
+    else fresh.push(ch); });
+  if(fresh.length){ const word=fresh.join(""); customWords.push(word); save(CUSTOM_KEY,customWords);
+    const r=pushWordCards(word); for(let i=r[0];i<r[1];i++) recordRealWorldMiss(i); }
+  chars.forEach(ch=>{ if(!addedChars.includes(ch)) addedChars.push(ch); }); save(ADDED_KEY,addedChars);
+  saveMemory(); return chars; }
 
 // ---- 画布 / 笔顺 ----
 const DPR=window.devicePixelRatio||1, $=id=>document.getElementById(id);
@@ -580,6 +625,9 @@ const S = Math.min(window.innerWidth-44, 320);
 let gridCanvas, inkCanvas, inkCtx, hzEl, writer=null, loadToken=0, shownStrokes=0, totalStrokes=0, groups=[], groupIdx=0, showingMine=false;
 let continuous = !(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
 let penDown=false, drawing=false, last=null, cur=null;
+// 写法实验分支：自评（默认，画布自由书写）vs 逐笔判（hanzi-writer quiz 按笔画判定）
+const GRADE_KEY="shizi.grade.v1"; let gradeMode=load(GRADE_KEY,"self")==="quiz"?"quiz":"self";
+let quizActive=false, quizMistakes=0, quizHinted=false, cardQuizUI=false;
 
 function drawGridOn(ctx){ ctx.clearRect(0,0,S,S); ctx.fillStyle=cssVar('--card',"#fffdf7"); ctx.fillRect(0,0,S,S);
   ctx.strokeStyle=cssVar('--line',"#e7cdc4"); ctx.lineWidth=1; ctx.strokeRect(1,1,S-2,S-2);
@@ -625,8 +673,29 @@ function warmUpcomingStrokeCache(){ if(!navigator.onLine) return; try{
 
 function updateTip(){ $("tip").textContent = groupIdx<groups.length ? `提示·下一个部件（${groupIdx}/${groups.length}）` : `部件已全部显示（${groups.length}）`; }
 
+// ---- 逐笔判（写法实验分支）----
+function applyGradeUI(){ $("gradeBtn").textContent=gradeMode==="quiz"?"写法：逐笔判":"写法：自评"; }
+function setCardGradeUI(quizzing){ cardQuizUI=quizzing;
+  $("tip").style.display=quizzing?"none":"";
+  $("modeBtn").style.display=quizzing?"none":""; $("pill").style.display=quizzing?"none":"";
+  $("clear").textContent=quizzing?"重写":"清除";
+  $("show").textContent=quizzing?"写不出来·看答案":"揭晓答案";
+  $("peek").style.display=quizzing?"none":"";
+  inkCanvas.style.display=quizzing?"none":"";
+  hzEl.style.pointerEvents=quizzing?"auto":"none"; hzEl.style.touchAction=quizzing?"none":""; }
+function startQuiz(){ if(!writer) return; quizActive=true; quizMistakes=0; quizHinted=false;
+  try{ writer.quiz({ leniency:1.18, showHintAfterMisses:3, acceptBackwardsStrokes:false,
+    onMistake:info=>{ quizMistakes++; if(info && (info.mistakesOnStroke||0)>=3) quizHinted=true; },
+    onComplete:info=>{ if(!quizActive) return; quizActive=false; finishQuiz(info?info.totalMistakes:quizMistakes); } });
+  }catch(e){ quizActive=false; setCardGradeUI(false); } }
+// 判定映射：0 错=秒会；1–4 错=想起后写出；≥5 错或触发过笔画提示=看提示写出。写不出来走「看答案」自评收尾。
+function finishQuiz(total){ const outcome=(quizHinted||total>=5)?"hinted":(total===0?"fast":"slow"), row=OUTCOMES.find(r=>r[0]===outcome), token=loadToken;
+  $("actions").style.display="none";
+  $("reveal").style.display="block"; $("ans").innerHTML=`<span class="big">${cur.target}</span><span class="small">${esc(cur.word)} · 逐笔判：${row[1]}</span>`;
+  setTimeout(()=>{ if(token===loadToken) recordOutcome(outcome); }, 900); }
+
 // ---- 流程 ----
-function promptHTML(c){ return c.chars.map((ch,i)=> i===c.ci ? `<span class="blank">${c.py}</span>` : `<span class="given">${ch}</span>`).join(""); }
+function promptHTML(c){ return c.chars.map((ch,i)=> i===c.ci ? `<span class="blank">${c.py||"？"}</span>` : `<span class="given">${ch}</span>`).join(""); }
 function render(){ cur=CARDS[batch[pos]]; const token=++loadToken;
   displayView("card");
   hintsUsedThisCard=0; cardStartedAt=Date.now();
@@ -637,23 +706,26 @@ function render(){ cur=CARDS[batch[pos]]; const token=++loadToken;
   $("mark").style.display="none"; $("actions").style.display="";
   clearInk(); setPen(false); inkCanvas.style.opacity='1'; hzEl.style.opacity='1'; showingMine=false;
   shownStrokes=0; totalStrokes=0; groups=[]; groupIdx=0; $("tip").disabled=true; $("show").disabled=true; $("tip").textContent="提示·下一个部件";
-  hzEl.innerHTML=""; writer=null;
-  function allowNoStrokeData(message){ if(token!==loadToken) return; loadToken++; $("show").disabled=false; $("tip").disabled=true; $("hint").textContent=cur.hint+" · "+message; }
+  hzEl.innerHTML=""; writer=null; quizActive=false; setCardGradeUI(gradeMode==="quiz");
+  function allowNoStrokeData(message){ if(token!==loadToken) return; loadToken++; $("show").disabled=false; $("tip").disabled=true; $("hint").textContent=cur.hint+" · "+message;
+    if(cardQuizUI) setCardGradeUI(false); /* 没有笔顺数据就判不了笔，这张卡回退自评 */ }
   if(window.HanziWriter){
     writer=HanziWriter.create(hzEl, cur.target, { width:S, height:S, padding:Math.round(S*0.06),
       showCharacter:false, showOutline:false, strokeColor:hintStroke(), strokeAnimationSpeed:5, delayBetweenStrokes:60, charDataLoader:charLoader,
-      onLoadCharDataSuccess:function(d){ if(token!==loadToken) return; loadToken++; totalStrokes=d.strokes.length; var g=GROUPS[cur.target]; groups=(g && g.reduce((a,b)=>a+b,0)===totalStrokes)?g.slice():[totalStrokes]; groupIdx=0; shownStrokes=0; $("tip").disabled=false; $("show").disabled=false; updateTip(); },
+      drawingColor:cssVar('--accent',"#1f3a5f"), drawingWidth:Math.max(6,S*0.04), highlightColor:cssVar('--known',"#4f7a5b"),
+      onLoadCharDataSuccess:function(d){ if(token!==loadToken) return; loadToken++; totalStrokes=d.strokes.length; var g=GROUPS[cur.target]; groups=(g && g.reduce((a,b)=>a+b,0)===totalStrokes)?g.slice():[totalStrokes]; groupIdx=0; shownStrokes=0; $("tip").disabled=false; $("show").disabled=false; updateTip(); if(cardQuizUI) startQuiz(); },
       onLoadCharDataError:function(){ allowNoStrokeData("笔顺未缓存，也可以先揭晓答案"); } });
     setTimeout(()=>{ if(token===loadToken && $("show").disabled) allowNoStrokeData("笔顺加载较慢，也可以先揭晓答案"); }, 2500);
-  } else { $("show").disabled=false; } }
+  } else { $("show").disabled=false; if(cardQuizUI) setCardGradeUI(false); } }
 
-$("clear").onclick=()=>{ clearInk(); setPen(false); };
+$("clear").onclick=()=>{ if(cardQuizUI){ if(quizActive) render(); return; } clearInk(); setPen(false); };
 let animating=false;
 $("tip").onclick=async ()=>{ if(!writer||animating||groupIdx>=groups.length) return; hintsUsedThisCard++; animating=true;
   const n=groups[groupIdx], start=shownStrokes; groupIdx++; shownStrokes+=n; updateTip();
   for(let i=0;i<n;i++){ try{ await writer.animateStroke(start+i,{}); }catch(e){} }
   animating=false; };
-$("show").onclick=()=>{ if(writer){ try{ writer.updateColor('strokeColor', cssVar('--accent',"#1f3a5f")); writer.updateColor('radicalColor', cssVar('--accent',"#1f3a5f")); }catch(e){}
+$("show").onclick=()=>{ if(quizActive){ quizActive=false; try{ writer.cancelQuiz(); }catch(e){} }
+  if(writer){ try{ writer.updateColor('strokeColor', cssVar('--accent',"#1f3a5f")); writer.updateColor('radicalColor', cssVar('--accent',"#1f3a5f")); }catch(e){}
     try{ writer.hideCharacter({duration:0}); writer.animateCharacter(); }catch(e){} shownStrokes=totalStrokes; groupIdx=groups.length; updateTip(); }
   setRevealView(false);
   $("reveal").style.display="block"; $("ans").innerHTML=`<span class="big">${cur.target}</span><span class="small">${cur.word}</span>`;
@@ -724,20 +796,61 @@ $("practiceRisk").onclick=()=>startFocus(highRiskIndexes());
 
 $("dataLink").onclick=()=>{ const box=$("dataBox"); if(box.style.display==="block"){ box.style.display="none"; return; }
   const last7=opens.filter(d=>{ const diff=(new Date(today())-new Date(d))/86400000; return diff>=0 && diff<7; });
+  const gs=tuning.gradeStats||{}, fmtArm=r=>{ const n=r?(r.fast||0)+(r.slow||0)+(r.hinted||0)+(r.miss||0):0; return n?`${n} 次（秒会 ${r.fast||0} · 想起 ${r.slow||0} · 提示 ${r.hinted||0} · 没写出 ${r.miss||0}）`:"0 次"; };
   box.style.display="block"; box.innerHTML=`<b>实验用，别天天盯（盯 streak 会污染“光靠痒”这个变量）</b><br>`+
-    `最近 7 天里，你主动打开过 <b>${last7.length}</b> 天 → 目标 ≥4 天<br>出题偏好：<b>${prefLabel()}</b> · 难度校准：<b>${tuningLabel()} ${tuningShiftText()}</b> · 语境严格度：<b>${Number(tuning.contextStrict)||0}</b><br>题目反馈：<b>${qualityCount()}</b> 条 · 整组反馈：<b>${(tuning.rounds||[]).length}</b> 条<br>已记录：<b>${memoryCount()}</b> 个字 · 到期复习：<b>${reviewCount()}</b> 个 · 重点字：<b>${highRiskCount()}</b> 个<br>你自己加的字：<b>${customCount()}</b> 个<br>累计打开：${opens.length} 天`; };
-$("addLink").onclick=()=>{ const chars=addWord(window.prompt("刚才提笔忘了哪个字？\n输入这个字，或它所在的词（如「蘸料」）：")||"");
-  if(chars){ alert(`已加入卡组：${chars.join("")}\n下次优先考你这些。`); if($("summary").style.display==="block") roundSummary(); if($("home").style.display==="block") renderHome(); if($("studybook").style.display==="block") renderBook(); }
-  else alert("没识别到汉字"); };
-$("resetLink").onclick=()=>{ if(confirm("清空卡组和记录，从头开始？")){ status={}; memory={}; quality={}; tuning={calibrated:false, offset:0, contextStrict:0, rounds:[]}; preference="balanced"; opens=[today()]; save(DECK_KEY,status); save(MEMORY_KEY,memory); save(QUALITY_KEY,quality); saveTuning(); save(PREF_KEY,preference); save(OPEN_KEY,opens); localStorage.removeItem(TOPIC_KEY); sessionDone=new Set(); renderHome(); $("dataBox").style.display="none"; } };
+    `最近 7 天里，你主动打开过 <b>${last7.length}</b> 天 → 目标 ≥4 天<br>出题偏好：<b>${prefLabel()}</b> · 难度校准：<b>${tuningLabel()} ${tuningShiftText()}</b> · 语境严格度：<b>${Number(tuning.contextStrict)||0}</b><br>题目反馈：<b>${qualityCount()}</b> 条 · 整组反馈：<b>${(tuning.rounds||[]).length}</b> 条<br>写法对照——自评 ${fmtArm(gs.self)}；逐笔判 ${fmtArm(gs.quiz)}<br>已记录：<b>${memoryCount()}</b> 个字 · 到期复习：<b>${reviewCount()}</b> 个 · 重点字：<b>${highRiskCount()}</b> 个<br>你自己加的字：<b>${addedChars.length}</b> 个<br>累计打开：${opens.length} 天`; };
+let toastTimer=0;
+function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove("show"),2200); }
+
+// ---- ＋加字面板（替代 window.prompt：输入即预览识别出的字，在库字直接带出拼音）----
+function renderAddPreview(){ const chars=[...new Set(Array.from($("addInput").value).filter(isCJK))];
+  $("addConfirm").disabled=!chars.length;
+  $("addPreview").innerHTML=chars.length?chars.map(ch=>{ const b=BASE_BY_CHAR[ch], idx=b!=null?b:customIndexOf(ch), m=idx>=0?memory[cardKey(idx)]:null;
+    return `<span class="addChip"><b>${ch}</b>${b!=null?CARDS[b].py:"生僻字·自定义卡"}${m&&m.seen?" · 已练过":""}</span>`; }).join(""):`<span>输入含汉字的词</span>`; }
+function openAddSheet(){ $("addInput").value=""; renderAddPreview(); $("addSheet").classList.add("open"); $("addInput").focus(); }
+function closeAddSheet(){ $("addSheet").classList.remove("open"); $("addInput").blur(); }
+function confirmAdd(){ const chars=addWord($("addInput").value); if(!chars) return;
+  closeAddSheet(); toast(`已加入：${chars.join("、")} · 已排进今日复习`);
+  if($("summary").style.display==="block") roundSummary(); if($("home").style.display==="block") renderHome(); if($("studybook").style.display==="block") renderBook(); }
+$("addLink").onclick=openAddSheet;
+$("addCancel").onclick=closeAddSheet;
+$("addConfirm").onclick=confirmAdd;
+$("addInput").oninput=renderAddPreview;
+$("addInput").onkeydown=e=>{ if(e.key==="Enter" && !e.isComposing && !$("addConfirm").disabled) confirmAdd(); };
+$("addSheet").onclick=e=>{ if(e.target===$("addSheet")) closeAddSheet(); };
+
+// ---- 数据备份 / 恢复（localStorage 是唯一存储，换手机或清缓存前先导出）----
+function backupPayload(){ const data={}; for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k && k.indexOf("shizi.")===0) data[k]=localStorage.getItem(k); }
+  return JSON.stringify({app:"shizi", version:1, date:new Date().toISOString(), data}, null, 1); }
+async function exportBackup(){ const payload=backupPayload(), name=`shizi-backup-${today()}.json`;
+  if(window.File && navigator.canShare){ try{ const file=new File([payload], name, {type:"application/json"});
+    if(navigator.canShare({files:[file]})){ await navigator.share({files:[file], title:"拾字备份"}); toast("备份已导出"); return; } }catch(e){ if(e && e.name==="AbortError") return; } }
+  const url=URL.createObjectURL(new Blob([payload],{type:"application/json"})), a=document.createElement("a");
+  a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),4000); toast("备份已下载"); }
+function importBackup(file){ file.text().then(t=>{ const obj=JSON.parse(t);
+    if(!obj || obj.app!=="shizi" || !obj.data || typeof obj.data!=="object") throw new Error("format");
+    const keys=Object.keys(obj.data).filter(k=>k.indexOf("shizi.")===0); if(!keys.length) throw new Error("empty");
+    if(!confirm(`用这份备份（${String(obj.date||"未知日期").slice(0,10)}）覆盖当前记录？`)) return;
+    for(let i=localStorage.length-1;i>=0;i--){ const k=localStorage.key(i); if(k && k.indexOf("shizi.")===0) localStorage.removeItem(k); }
+    keys.forEach(k=>localStorage.setItem(k, String(obj.data[k])));
+    location.reload();
+  }).catch(()=>alert("这个文件不是有效的拾字备份")); }
+$("exportLink").onclick=()=>{ exportBackup(); };
+$("importLink").onclick=()=>$("importFile").click();
+$("importFile").onchange=e=>{ const f=e.target.files && e.target.files[0]; e.target.value=""; if(f) importBackup(f); };
+$("resetLink").onclick=()=>{ if(confirm("清空卡组和记录，从头开始？")){ status={}; memory={}; quality={}; tuning={calibrated:false, offset:0, contextStrict:0, rounds:[]}; preference="balanced"; opens=[today()]; customWords=[]; addedChars=[]; save(DECK_KEY,status); save(MEMORY_KEY,memory); save(QUALITY_KEY,quality); saveTuning(); save(PREF_KEY,preference); save(OPEN_KEY,opens); save(CUSTOM_KEY,customWords); save(ADDED_KEY,addedChars); buildCustomCards(); localStorage.removeItem(TOPIC_KEY); sessionDone=new Set(); focusQueue=[]; renderHome(); $("dataBox").style.display="none"; } };
 
 function applyModeUI(){ $("modeBtn").textContent=continuous?"连续模式：开":"连续模式：关";
   $("modehint").textContent=""; }
 $("modeBtn").onclick=()=>{ continuous=!continuous; drawing=false; setPen(false); applyModeUI(); };
+$("gradeBtn").onclick=()=>{ gradeMode=gradeMode==="quiz"?"self":"quiz"; save(GRADE_KEY,gradeMode); applyGradeUI();
+  if($("card").style.display!=="none") render(); };
 
 $("startReview").onclick=()=>startMode("review");
 $("startNew").onclick=()=>startMode("new");
-initBox(); applyModeUI(); renderHome();
+initBox(); applyModeUI(); applyGradeUI(); renderHome();
+// 系统深浅色切换时重画田字格（画布颜色是绘制时取的，不会跟着 CSS 变量自动变）
+try{ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{ drawGridOn(gridCanvas.getContext('2d')); }); }catch(e){}
 </script>
 <script>
 if('serviceWorker' in navigator){ window.addEventListener('load',function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); }); }

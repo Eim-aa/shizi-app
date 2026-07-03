@@ -4,7 +4,7 @@
    - 同源静态资源（库、图标、data/*.json 笔画数据）：缓存优先（不可变，秒开 + 离线可用）
    - 跨源（CDN 兜底字）：不拦截，照常走网络
 */
-const VERSION = 'shizi-v3-hifi';
+const VERSION = 'shizi-v4';
 const SHELL = ['./', 'index.html', 'hanzi-writer.min.js', 'manifest.webmanifest',
   'icon-180.png', 'icon-192.png', 'icon-512.png'];
 
@@ -31,7 +31,8 @@ self.addEventListener('fetch', e => {
     // 网络优先：更新随时能落地；断网才用缓存
     e.respondWith(
       fetch(req).then(res => {
-        caches.open(VERSION).then(c => c.put(req, res.clone()));
+        // clone 必须在 body 被页面消费前同步调用；错误响应不能写进缓存，否则污染离线兜底
+        if (res && res.ok) { const copy = res.clone(); caches.open(VERSION).then(c => c.put(req, copy)); }
         return res;
       }).catch(() => caches.match(req).then(r => r || caches.match('index.html')))
     );

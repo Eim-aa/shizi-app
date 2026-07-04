@@ -646,7 +646,13 @@ def js_string(value):
 
 
 def patch_index(chosen, word_index):
+    """生成 deck-data.js（SEED/GROUPS 题库数据），并同步 index.html 里的 DECK_KEY。
+
+    题库数据独立成文件后，index.html 只含界面与逻辑（~90KB）；
+    数据更新时记得 bump sw.js 的 VERSION，旧缓存才会整体换新。
+    """
     index_path = ROOT / "index.html"
+    data_path = ROOT / "deck-data.js"
     html = index_path.read_text(encoding="utf-8")
 
     seed = []
@@ -684,39 +690,23 @@ def patch_index(chosen, word_index):
         })
     groups = {item["character"]: item["groups"] for item in chosen}
 
-    html = re.sub(
-        r"const SEED = \[[\s\S]*?\];\nconst CARDS=",
-        "const SEED = " + js_string(seed) + ";\nconst CARDS=",
-        html,
-        count=1,
+    data_path.write_text(
+        "// 拾字题库数据（由 scripts/build_8105_chars.py 生成，勿手改）\n"
+        "// SEED：候选字词卡（拼音/语境词/难度/主题/规范等级）\n"
+        "const SEED = " + js_string(seed) + ";\n"
+        f"// 每个字的部件分组（自动生成：{len(chosen)} 个通用规范汉字候选，按 Make Me a Hanzi matches 递归部件分组）\n"
+        "const GROUPS=" + js_string(groups) + ";\n",
+        encoding="utf-8",
     )
-    cards_block = (
-        "const CARDS=[];\n"
-        "SEED.forEach(w=>{ const chars=Array.from(w.ans), pys=w.py.split(/\\s+/);\n"
-        "  const meta={rank:w.rank||999999, strokes:w.strokes||0, parts:w.parts||1, topic:w.topic||\"综合\", d:w.d||50, level:w.level||\"高中\", common:w.common||0, norm:w.norm||\"一级\", std:w.std||0, ctx:w.ctx||\"dict\"};\n"
-        "  if(Number.isInteger(w.ci)){ const ci=w.ci; CARDS.push({ word:w.ans, chars, ci, target:w.target||chars[ci], py:w.py, hint:w.hint, ...meta }); return; }\n"
-        "  chars.forEach((ch,ci)=>CARDS.push({ word:w.ans, chars, ci, target:ch, py:pys[ci]||w.py, hint:w.hint, ...meta })); });"
-    )
-    html, cards_count = re.subn(
-        r"const CARDS=\[\];\nSEED\.forEach[\s\S]*?\}\);\n// 每个字的部件分组",
-        lambda _match: cards_block + "\n// 每个字的部件分组",
-        html,
-        count=1,
-    )
-    if cards_count != 1:
-        raise RuntimeError("Could not replace CARDS generation block")
-    html = re.sub(
-        r"// 每个字的部件分组[\s\S]*?const GROUPS=\{[\s\S]*?\};",
-        f"// 每个字的部件分组（自动生成：{len(chosen)} 个通用规范汉字候选，按 Make Me a Hanzi matches 递归部件分组）\nconst GROUPS=" + js_string(groups) + ";",
-        html,
-        count=1,
-    )
-    html = re.sub(
+
+    html, key_count = re.subn(
         r'const DECK_KEY="[^"]+"',
         f'const DECK_KEY="{DECK_KEY}"',
         html,
         count=1,
     )
+    if key_count != 1:
+        raise RuntimeError("Could not update DECK_KEY in index.html")
     index_path.write_text(html, encoding="utf-8")
 
 

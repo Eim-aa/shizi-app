@@ -234,7 +234,7 @@ const sampleTargets = ["的", "一", "强", "器", "随", "察", "群", "疑", "
     render();
   });
   const addQueueBefore = await page.evaluate(() => ({ length: batch.length, pos, first: CARDS[batch[0]].target }));
-  await page.click("#addLink");
+  await page.click("#addInPractice");
   await page.fill("#addInput", "蘸料");
   await page.click("#addConfirm");
   const addQueueCheck = await page.evaluate(() => ({

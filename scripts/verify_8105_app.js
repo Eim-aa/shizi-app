@@ -137,6 +137,20 @@ const sampleTargets = ["的", "一", "强", "器", "随", "察", "群", "疑", "
     sessionDone = new Set();
     render();
   });
+  await page.waitForFunction(() => !document.getElementById("done").disabled);
+  await page.click("#done");
+  const revealCheck = await page.evaluate(() => ({
+    qualityVisible: getComputedStyle(document.getElementById("qualityBox")).display !== "none",
+    qualityHiddenBeforeReveal: false,
+    hintedHidden: document.getElementById("hinted").style.display === "none",
+    missLabel: document.getElementById("miss").textContent,
+    markCue: document.getElementById("markCue").textContent,
+    blankFilled: document.querySelector("#prompt .blank").classList.contains("filled"),
+    inkToolsHidden: getComputedStyle(document.getElementById("inkTools")).display === "none",
+  }));
+  if (!revealCheck.qualityVisible || !revealCheck.hintedHidden || revealCheck.missLabel !== "写错了" || !revealCheck.markCue.includes("写对了吗") || !revealCheck.blankFilled || !revealCheck.inkToolsHidden) {
+    throw new Error(`Expected completed-path reveal to show trimmed self-assessment, got ${JSON.stringify(revealCheck)}`);
+  }
   await page.click('#qualityBox [data-quality="easy"]');
   const qualityCheck = await page.evaluate(() => {
     const idx = CARDS.findIndex((card) => card.target === "强");

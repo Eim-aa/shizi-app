@@ -38,6 +38,7 @@
   #prompt{ min-height:78px; display:flex; justify-content:center; align-items:center; gap:5px; flex-wrap:wrap; text-align:center; font:400 34px/1.15 var(--kai); color:var(--ink); padding:8px 6px 0; }
   #prompt .given{ font-family:var(--kai); }
   #prompt .blank{ display:inline-flex; align-items:center; justify-content:center; min-width:50px; height:52px; border:2px solid var(--accent); border-radius:12px; color:var(--accent); font:600 15px/1 var(--sans); padding:0 9px; letter-spacing:.03em; background:var(--blankBg); }
+  #prompt .blank.filled{ font:400 34px/1 var(--kai); letter-spacing:0; }
   .ask{ text-align:center; font-size:13px; color:var(--muted); margin-top:8px; }
   .hint{ margin:9px auto 0; max-width:330px; text-align:center; font-size:12.5px; color:var(--muted); line-height:1.6; min-height:20px; }
   .modebar{ display:flex; align-items:center; justify-content:center; gap:10px; margin-top:12px; }
@@ -63,14 +64,14 @@
   .primary{ background:var(--accent); color:#fff; box-shadow:0 10px 24px -12px rgba(52,86,138,.75); }
   .ghost{ flex:0 0 auto; background:transparent; color:var(--muted); border-color:var(--line); padding:8px 12px; font-size:13px; box-shadow:none; }
   #actions{ margin-top:10px; position:sticky; bottom:calc(10px + env(safe-area-inset-bottom)); z-index:3; padding-top:8px; background:linear-gradient(180deg, rgba(244,242,236,0), var(--paper) 38%); }
-  #clear{ display:block; margin:0 auto; }
+  #inkTools button{ flex:0 0 auto; }
   .reveal{ display:none; margin-top:12px; text-align:center; }
   .reveal .ans{ display:flex; align-items:baseline; justify-content:center; gap:12px; }
-  .reveal .big{ font-size:48px; font-weight:400; font-family:var(--kai); line-height:1; color:var(--ink); }
+  .reveal .big{ font-size:46px; font-weight:400; font-family:var(--kai); line-height:1; color:var(--ink); }
   .reveal .small{ font-size:15px; color:var(--muted); margin-left:0; }
-  .mark{ display:none; gap:8px; margin-top:14px; flex-direction:column; }
-  .mark button{ flex:1 1 auto; min-width:0; padding:14px 16px; font-size:15px; text-align:left; display:flex; align-items:center; justify-content:space-between; }
-  .mark button::before{ content:""; width:9px; height:9px; border-radius:50%; margin-right:10px; flex:none; background:currentColor; }
+  .mark{ display:none; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px; }
+  .mark button{ min-width:0; padding:13px 12px; font-size:14px; text-align:left; display:flex; align-items:center; justify-content:flex-start; }
+  .mark button::before{ content:""; width:9px; height:9px; border-radius:50%; margin-right:9px; flex:none; background:currentColor; }
   .mark .fast{ background:var(--knownSoft); border:1.5px solid var(--known); color:var(--known); }
   .mark .slow,.mark .hinted{ background:var(--accentSoft); border:1.5px solid var(--accent); color:var(--accent); }
   .mark .hinted{ background:transparent; }
@@ -221,32 +222,33 @@
     </div>
     <div class="risk" id="riskList"></div>
     <div class="row homeActions"><button class="primary" id="startReview">今日复习</button><button id="startNew">练新字</button></div>
-    <div class="row homeLinks"><button id="openBook">重点字本</button><button id="openProfile">弱点画像</button></div>
+    <div class="row homeLinks"><button id="openBook">重点字本</button><button id="openProfile">易错分析</button></div>
   </div>
 
   <div class="card" id="card" style="display:none">
     <div id="prompt"></div>
     <div class="ask">回忆目标字</div>
     <div class="hint" id="hint"></div>
-    <div class="quality" id="qualityBox"><span>题目反馈</span><button data-quality="easy">太简单</button><button data-quality="rare">太生僻</button><button data-quality="badWord">词不自然</button><button data-quality="hide">不想练</button><span class="note" id="qualityNote"></span></div>
 
-    <div class="modebar"><button class="mode" id="gradeBtn">写法：自评</button><button class="mode" id="modeBtn">连续模式：开</button><span class="pill" id="pill">提笔</span></div>
+    <div class="modebar" id="modebar"><button class="mode" id="modeBtn">连续模式：开</button><span class="pill" id="pill">提笔</span></div>
     <div class="modehint" id="modehint"></div>
 
     <div id="boxwrap"></div>
-    <div class="row"><button class="ghost" id="clear">清除</button></div>
+    <div class="row center" id="inkTools"><button class="ghost" id="clear">清除</button><button class="ghost" id="tip" disabled>提示</button></div>
     <div class="row" id="actions">
-      <button id="tip" disabled>提示·下一个部件</button>
-      <button class="primary" id="show" disabled>揭晓答案</button>
+      <button id="show" disabled>揭晓答案</button>
+      <button class="primary" id="done" disabled>已完成</button>
     </div>
     <div class="reveal" id="reveal"><div class="ans" id="ans"></div>
-      <button class="ghost" id="peek">看我刚写的</button></div>
+      <button class="ghost" id="peek">看我刚写的</button>
+      <div class="hint" id="markCue"></div></div>
     <div class="row mark" id="mark">
       <button class="fast" id="fast">秒会</button>
       <button class="slow" id="slow">想起后写出</button>
       <button class="hinted" id="hinted">看提示写出</button>
       <button class="miss" id="miss">没写出来</button>
     </div>
+    <div class="quality" id="qualityBox" style="display:none"><span>题目反馈</span><button data-quality="easy">太简单</button><button data-quality="rare">太生僻</button><button data-quality="badWord">词不自然</button><button data-quality="hide">不想练</button><span class="note" id="qualityNote"></span></div>
   </div>
 
   <div class="summary" id="summary">
@@ -262,7 +264,7 @@
   </div>
 
   <div class="profile" id="profilePanel">
-    <div class="profileHead"><h2>弱点画像</h2><button class="ghost" id="closeProfile">返回</button></div>
+    <div class="profileHead"><h2>易错分析</h2><button class="ghost" id="closeProfile">返回</button></div>
     <div class="profileSummary" id="profileSummary"></div>
     <div class="profileAdvice" id="profileAdvice"></div>
     <div class="profileSection"><h3>容易卡住的主题</h3><div class="profileRows" id="profileTopics"></div></div>
@@ -288,7 +290,7 @@
     <div class="auditList" id="auditSample"></div>
   </div>
 
-  <div class="foot" id="foot"><a id="addLink">＋加字</a><a id="bookLink">重点字本</a><a id="profileLink">弱点画像</a><button class="internalToggle" id="internalToggle" type="button">内部</button><span class="internalLinks" id="internalLinks"><a id="auditLink">题库质检</a><a id="dataLink">实验数据</a><a id="exportLink">备份数据</a><a id="importLink">恢复备份</a><a id="resetLink">重置卡组</a></span><div class="data" id="dataBox"></div></div>
+  <div class="foot" id="foot"><a id="addLink">＋加字</a><a id="bookLink">重点字本</a><a id="profileLink">易错分析</a><button class="internalToggle" id="internalToggle" type="button">内部</button><span class="internalLinks" id="internalLinks"><a id="auditLink">题库质检</a><a id="dataLink">实验数据</a><a id="exportLink">备份数据</a><a id="importLink">恢复备份</a><a id="resetLink">重置卡组</a></span><div class="data" id="dataBox"></div></div>
 </div>
 
 <div class="sheetMask" id="addSheet"><div class="sheet">
@@ -494,7 +496,7 @@ function recordQuality(kind, idx=batch[pos]){ if(idx==null || idx<0) return; con
   if(kind==="hide" && q.hide && cur && idx===batch[pos] && $("card").style.display!=="none"){ next(); return; }
   if(cur && idx===batch[pos]) renderQuality(); }
 function recordOutcome(outcome){ const idx=batch[pos], c=CARDS[idx], m=cardMemory(idx), now=Date.now();
-  const hard=outcome==="miss" || outcome==="hinted";
+  const hard=outcome==="miss" || outcome==="hinted", wasRisk=isHighRisk(idx);
   m.seen=(m.seen||0)+1; m.last=now; m.lastOutcome=outcome; m.lastHints=hintsUsedThisCard;
   m.topic=c.topic; m.level=c.level; m.word=c.word; m.target=c.target;
   if(outcome==="fast"){ m.fast=(m.fast||0)+1; m.streak=(m.streak||0)+1; m.ease=clamp((m.ease||50)+12,0,100); setStatus(idx,"rest"); }
@@ -503,11 +505,9 @@ function recordOutcome(outcome){ const idx=batch[pos], c=CARDS[idx], m=cardMemor
   if(outcome==="miss"){ m.misses=(m.misses||0)+1; m.streak=0; m.ease=clamp((m.ease||50)-16,0,100); setStatus(idx,"indeck"); }
   const depth=outcome==="miss"?Math.max(0,(m.misses||1)-1):outcome==="hinted"?Math.max(0,(m.hints||1)-1):(m.streak||0);
   m.due=now+delayFor(outcome,depth,m.ease||50); saveMemory();
-  // 写法对照：自评臂 vs 逐笔判臂各自累计四档结果（回退自评的卡按当张实际写法计）
-  const arm=cardQuizUI?"quiz":"self", gs=tuning.gradeStats||(tuning.gradeStats={}), armRow=gs[arm]||(gs[arm]={fast:0,slow:0,hinted:0,miss:0});
-  armRow[outcome]=(armRow[outcome]||0)+1; saveTuning();
-  roundStats.push({idx, target:c.target, word:c.word, outcome, level:c.level, topic:c.topic, due:m.due, grade:arm});
+  roundStats.push({idx, target:c.target, word:c.word, outcome, level:c.level, topic:c.topic, due:m.due});
   if(hard) missedThisRound.push(c.target);
+  if(!wasRisk && isHighRisk(idx)) toast(`「${c.target}」已进重点字本`);
   adaptNextCard(outcome,idx);
   next(outcome==="miss");
 }
@@ -543,10 +543,10 @@ function profileGroups(indexes, labelFn){ const map={}; indexes.forEach(i=>{ con
   g.items.push(i); g.count++; g.hard+=hardCount(i); g.score+=weaknessScore(i); });
   return Object.values(map).map(g=>({...g,avg:Math.round(g.score/Math.max(1,g.count))})).sort((a,b)=>b.avg-a.avg || b.hard-a.hard || b.count-a.count || String(a.label).localeCompare(String(b.label))); }
 function profileGroupRows(indexes, labelFn, kind, limit=5){ const groups=profileGroups(indexes,labelFn).slice(0,limit);
-  if(!groups.length) return `<div class="empty">还没有足够记录。先练一组，画像会自动长出来。</div>`;
+  if(!groups.length) return `<div class="empty">还没有足够记录。先练一组，这里会自动长出来。</div>`;
   const max=Math.max(1,...groups.map(g=>g.avg));
   return groups.map(g=>`<button class="profileRow" data-profile-kind="${kind}" data-profile-value="${esc(g.label)}">
-    <span><b>${esc(g.label)}</b><small>${g.count} 字 · 卡住 ${g.hard} 次 · 平均弱点分 ${g.avg}</small></span><em>专项练</em>
+    <span><b>${esc(g.label)}</b><small>${g.count} 字 · 卡住 ${g.hard} 次 · 平均易错分 ${g.avg}</small></span><em>专项练</em>
     <span class="profileBar"><i style="width:${Math.max(8,Math.round(g.avg/max*100))}%"></i></span>
   </button>`).join(""); }
 function profileAdvice(indexes){ if(!indexes.length) return "先完成一组 15 字练习。系统会根据你选择的反馈，逐渐判断哪些主题、结构和难度层最容易让你提笔卡住。";
@@ -560,13 +560,13 @@ function profilePracticeIndexes(kind,value){ const indexes=profileIndexes(); let
   if(kind==="risk") out=highRiskIndexes();
   return out.sort((a,b)=>weaknessScore(b)-weaknessScore(a) || personalDifficulty(b)-personalDifficulty(a)).slice(0,BATCH); }
 function renderProfile(){ displayView("profile"); const indexes=profileIndexes(), hard=indexes.filter(i=>hardCount(i)>0).length, avgEase=average(indexes,i=>(memory[cardKey(i)]||{}).ease||50);
-  $("pos").textContent=`弱点画像 · ${indexes.length} 字`;
+  $("pos").textContent=`易错分析 · ${indexes.length} 字`;
   $("profileSummary").innerHTML=`<div class="profileMetric"><b>${indexes.length}</b><span>练过</span></div><div class="profileMetric"><b>${hard}</b><span>卡过</span></div><div class="profileMetric"><b>${avgEase}</b><span>平均掌握</span></div><div class="profileMetric"><b>${highRiskCount()}</b><span>重点字</span></div>`;
   $("profileAdvice").textContent=profileAdvice(indexes);
   $("profileTopics").innerHTML=profileGroupRows(indexes,cardTopic,"topic",5);
   $("profileLevels").innerHTML=`<div class="auditSectionTitle"><b>难度层</b></div>${profileGroupRows(indexes,cardLevel,"level",4)}<div class="auditSectionTitle"><b>结构</b></div>${profileGroupRows(indexes,structureLabel,"structure",4)}`;
   const weak=indexes.slice().sort((a,b)=>weaknessScore(b)-weaknessScore(a) || personalDifficulty(b)-personalDifficulty(a)).filter(i=>weaknessScore(i)>0 || hardCount(i)>0).slice(0,12);
-  $("profileChars").innerHTML=weak.length?`<div class="charChips">${weak.map(i=>`<button class="charChip" data-profile-char="${i}" title="${esc(CARDS[i].word)}">${CARDS[i].target}</button>`).join("")}</div>`:`<div class="empty">还没有明显弱点字。等出现“看提示写出”或“没写出来”，这里会优先显示。</div>`; }
+  $("profileChars").innerHTML=weak.length?`<div class="charChips">${weak.map(i=>`<button class="charChip" data-profile-char="${i}" title="${esc(CARDS[i].word)}">${CARDS[i].target}</button>`).join("")}</div>`:`<div class="empty">还没有明显易错字。等出现“看提示写出”或“没写出来”，这里会优先显示。</div>`; }
 function withAuditPreference(pref, fn){ const oldPref=preference, oldTopic=load(TOPIC_KEY,""); preference=pref;
   try{ return fn(); } finally { preference=oldPref; save(TOPIC_KEY,oldTopic); } }
 function countBy(items, fn){ const map={}; items.forEach(i=>{ const k=fn(i); map[k]=(map[k]||0)+1; }); return map; }
@@ -621,13 +621,12 @@ const DPR=window.devicePixelRatio||1, $=id=>document.getElementById(id);
 function cssVar(n,f){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim()||f; }
 function isDark(){ return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches; }
 function hintStroke(){ return isDark()? 'rgba(156,195,239,0.55)' : 'rgba(31,58,95,0.42)'; }
-const S = Math.min(window.innerWidth-44, 320);
+// 加载瞬间视口可能还没就位（innerWidth=0），必须有下限兜底，否则写字区永久塌坏
+function idealBoxSize(){ const w=window.innerWidth||document.documentElement.clientWidth||375; return clamp(w-44,220,320); }
+let S = idealBoxSize();
 let gridCanvas, inkCanvas, inkCtx, hzEl, writer=null, loadToken=0, shownStrokes=0, totalStrokes=0, groups=[], groupIdx=0, showingMine=false;
 let continuous = !(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
 let penDown=false, drawing=false, last=null, cur=null;
-// 写法实验分支：自评（默认，画布自由书写）vs 逐笔判（hanzi-writer quiz 按笔画判定）
-const GRADE_KEY="shizi.grade.v1"; let gradeMode=load(GRADE_KEY,"self")==="quiz"?"quiz":"self";
-let quizActive=false, quizMistakes=0, quizHinted=false, cardQuizUI=false;
 
 function drawGridOn(ctx){ ctx.clearRect(0,0,S,S); ctx.fillStyle=cssVar('--card',"#fffdf7"); ctx.fillRect(0,0,S,S);
   ctx.strokeStyle=cssVar('--line',"#e7cdc4"); ctx.lineWidth=1; ctx.strokeRect(1,1,S-2,S-2);
@@ -671,67 +670,60 @@ function warmUpcomingStrokeCache(){ if(!navigator.onLine) return; try{
   warmStrokeCache(indexes.map(i=>CARDS[i].target));
 }catch(e){} }
 
-function updateTip(){ $("tip").textContent = groupIdx<groups.length ? `提示·下一个部件（${groupIdx}/${groups.length}）` : `部件已全部显示（${groups.length}）`; }
-
-// ---- 逐笔判（写法实验分支）----
-function applyGradeUI(){ $("gradeBtn").textContent=gradeMode==="quiz"?"写法：逐笔判":"写法：自评"; }
-function setCardGradeUI(quizzing){ cardQuizUI=quizzing;
-  $("tip").style.display=quizzing?"none":"";
-  $("modeBtn").style.display=quizzing?"none":""; $("pill").style.display=quizzing?"none":"";
-  $("clear").textContent=quizzing?"重写":"清除";
-  $("show").textContent=quizzing?"写不出来·看答案":"揭晓答案";
-  $("peek").style.display=quizzing?"none":"";
-  inkCanvas.style.display=quizzing?"none":"";
-  hzEl.style.pointerEvents=quizzing?"auto":"none"; hzEl.style.touchAction=quizzing?"none":""; }
-function startQuiz(){ if(!writer) return; quizActive=true; quizMistakes=0; quizHinted=false;
-  try{ writer.quiz({ leniency:1.18, showHintAfterMisses:3, acceptBackwardsStrokes:false,
-    onMistake:info=>{ quizMistakes++; if(info && (info.mistakesOnStroke||0)>=3) quizHinted=true; },
-    onComplete:info=>{ if(!quizActive) return; quizActive=false; finishQuiz(info?info.totalMistakes:quizMistakes); } });
-  }catch(e){ quizActive=false; setCardGradeUI(false); } }
-// 判定映射：0 错=秒会；1–4 错=想起后写出；≥5 错或触发过笔画提示=看提示写出。写不出来走「看答案」自评收尾。
-function finishQuiz(total){ const outcome=(quizHinted||total>=5)?"hinted":(total===0?"fast":"slow"), row=OUTCOMES.find(r=>r[0]===outcome), token=loadToken;
-  $("actions").style.display="none";
-  $("reveal").style.display="block"; $("ans").innerHTML=`<span class="big">${cur.target}</span><span class="small">${esc(cur.word)} · 逐笔判：${row[1]}</span>`;
-  setTimeout(()=>{ if(token===loadToken) recordOutcome(outcome); }, 900); }
+function updateTip(){ $("tip").textContent=`提示（${groupIdx}/${groups.length}）`; if(groupIdx>=groups.length) $("tip").disabled=true; }
 
 // ---- 流程 ----
 function promptHTML(c){ return c.chars.map((ch,i)=> i===c.ci ? `<span class="blank">${c.py||"？"}</span>` : `<span class="given">${ch}</span>`).join(""); }
-function render(){ cur=CARDS[batch[pos]]; const token=++loadToken;
+function render(){ fitBox(); cur=CARDS[batch[pos]]; const token=++loadToken;
   displayView("card");
   hintsUsedThisCard=0; cardStartedAt=Date.now();
   $("pos").textContent=activeMode==="calibrate"?`水平校准 · 第 ${pos+1} / ${batch.length} 个`:`第 ${pos+1} / ${batch.length} 个 · 复习 ${reviewCount()}`;
-  $("prompt").innerHTML=promptHTML(cur); $("hint").textContent=cur.hint;
-  renderQuality();
-  $("reveal").style.display="none"; $("ans").innerHTML="";
-  $("mark").style.display="none"; $("actions").style.display="";
+  // 练习时只留题面本身；等级/画数/字频这类元信息收进重点字本和题库质检
+  $("prompt").innerHTML=promptHTML(cur); $("hint").textContent=cur.custom?cur.hint:"";
+  $("reveal").style.display="none"; $("ans").innerHTML=""; $("markCue").textContent=""; $("peek").style.display="";
+  $("mark").style.display="none"; $("qualityBox").style.display="none"; $("actions").style.display=""; $("inkTools").style.display="";
+  $("hinted").style.display=""; $("miss").textContent="没写出来";
   clearInk(); setPen(false); inkCanvas.style.opacity='1'; hzEl.style.opacity='1'; showingMine=false;
-  shownStrokes=0; totalStrokes=0; groups=[]; groupIdx=0; $("tip").disabled=true; $("show").disabled=true; $("tip").textContent="提示·下一个部件";
-  hzEl.innerHTML=""; writer=null; quizActive=false; setCardGradeUI(gradeMode==="quiz");
-  function allowNoStrokeData(message){ if(token!==loadToken) return; loadToken++; $("show").disabled=false; $("tip").disabled=true; $("hint").textContent=cur.hint+" · "+message;
-    if(cardQuizUI) setCardGradeUI(false); /* 没有笔顺数据就判不了笔，这张卡回退自评 */ }
+  shownStrokes=0; totalStrokes=0; groups=[]; groupIdx=0; $("tip").disabled=true; $("show").disabled=true; $("done").disabled=true; $("tip").textContent="提示";
+  hzEl.innerHTML=""; writer=null; revealed=false;
+  function allowNoStrokeData(message){ if(token!==loadToken) return; loadToken++; $("show").disabled=false; $("done").disabled=false; $("tip").disabled=true; $("hint").textContent=(cur.custom?cur.hint+" · ":"")+message; }
   if(window.HanziWriter){
     writer=HanziWriter.create(hzEl, cur.target, { width:S, height:S, padding:Math.round(S*0.06),
       showCharacter:false, showOutline:false, strokeColor:hintStroke(), strokeAnimationSpeed:5, delayBetweenStrokes:60, charDataLoader:charLoader,
-      drawingColor:cssVar('--accent',"#1f3a5f"), drawingWidth:Math.max(6,S*0.04), highlightColor:cssVar('--known',"#4f7a5b"),
-      onLoadCharDataSuccess:function(d){ if(token!==loadToken) return; loadToken++; totalStrokes=d.strokes.length; var g=GROUPS[cur.target]; groups=(g && g.reduce((a,b)=>a+b,0)===totalStrokes)?g.slice():[totalStrokes]; groupIdx=0; shownStrokes=0; $("tip").disabled=false; $("show").disabled=false; updateTip(); if(cardQuizUI) startQuiz(); },
+      onLoadCharDataSuccess:function(d){ if(token!==loadToken) return; loadToken++; totalStrokes=d.strokes.length; var g=GROUPS[cur.target]; groups=(g && g.reduce((a,b)=>a+b,0)===totalStrokes)?g.slice():[totalStrokes]; groupIdx=0; shownStrokes=0; $("tip").disabled=false; $("show").disabled=false; $("done").disabled=false; updateTip(); },
       onLoadCharDataError:function(){ allowNoStrokeData("笔顺未缓存，也可以先揭晓答案"); } });
     setTimeout(()=>{ if(token===loadToken && $("show").disabled) allowNoStrokeData("笔顺加载较慢，也可以先揭晓答案"); }, 2500);
-  } else { $("show").disabled=false; if(cardQuizUI) setCardGradeUI(false); } }
+  } else { $("show").disabled=false; $("done").disabled=false; } }
 
-$("clear").onclick=()=>{ if(cardQuizUI){ if(quizActive) render(); return; } clearInk(); setPen(false); };
-let animating=false;
-$("tip").onclick=async ()=>{ if(!writer||animating||groupIdx>=groups.length) return; hintsUsedThisCard++; animating=true;
-  const n=groups[groupIdx], start=shownStrokes; groupIdx++; shownStrokes+=n; updateTip();
-  for(let i=0;i<n;i++){ try{ await writer.animateStroke(start+i,{}); }catch(e){} }
+$("clear").onclick=()=>{ clearInk(); setPen(false); };
+let animating=false, revealed=false;
+$("tip").onclick=async ()=>{ if(!writer||animating||revealed||groupIdx>=groups.length) return; hintsUsedThisCard++; animating=true;
+  const n=groups[groupIdx], start=shownStrokes, token=loadToken; groupIdx++; shownStrokes+=n; updateTip();
+  // 换卡（token 变）或揭晓后立刻停：残余的逐笔动画会取消揭晓动画、甚至把下一张卡的笔画提前画出来
+  for(let i=0;i<n;i++){ if(token!==loadToken||revealed) break; try{ await writer.animateStroke(start+i,{}); }catch(e){} }
   animating=false; };
-$("show").onclick=()=>{ if(quizActive){ quizActive=false; try{ writer.cancelQuiz(); }catch(e){} }
-  if(writer){ try{ writer.updateColor('strokeColor', cssVar('--accent',"#1f3a5f")); writer.updateColor('radicalColor', cssVar('--accent',"#1f3a5f")); }catch(e){}
-    try{ writer.hideCharacter({duration:0}); writer.animateCharacter(); }catch(e){} shownStrokes=totalStrokes; groupIdx=groups.length; updateTip(); }
-  setRevealView(false);
-  $("reveal").style.display="block"; $("ans").innerHTML=`<span class="big">${cur.target}</span><span class="small">${cur.word}</span>`;
-  $("actions").style.display="none"; $("mark").style.display="flex";
-  try{ $("mark").scrollIntoView({behavior:"smooth", block:"center"}); }catch(e){}
-  $("mark").classList.remove("cue"); void $("mark").offsetWidth; $("mark").classList.add("cue"); };
+// 两条结束路径：「已完成」= 写出来了，正确字直接显示，对照后自评；「揭晓答案」= 没写出来，笔顺动画教一遍
+function revealAnswer(done){
+  revealed=true;
+  const noData=!writer||!totalStrokes; // 离线未缓存/加载失败：田字格画不出答案
+  if(!noData){ try{ writer.updateColor('strokeColor', cssVar('--accent',"#1f3a5f")); writer.updateColor('radicalColor', cssVar('--accent',"#1f3a5f")); }catch(e){}
+    try{ writer.hideCharacter({duration:0}); if(done) writer.showCharacter({duration:400}); else writer.animateCharacter(); }catch(e){}
+    shownStrokes=totalStrokes; groupIdx=groups.length; updateTip(); }
+  const blank=$("prompt").querySelector(".blank"); if(blank){ blank.textContent=cur.target; blank.classList.add("filled"); }
+  // 没有笔顺数据时：答案用大字给在下方，保留用户自己的笔迹别藏
+  if(noData){ setRevealView(true); $("peek").style.display="none"; } else setRevealView(false);
+  $("reveal").style.display="block"; $("ans").innerHTML=(noData?`<span class="big">${cur.target}</span>`:"")+`<span class="small">${cur.word}${cur.py?` · ${cur.py}`:""}</span>`;
+  $("markCue").textContent=noData?(done?"对照上面的答案看看，写对了吗？":"看着答案回忆一下，这个字算哪种？"):(done?"对照笔顺看看，写对了吗？":"顺着笔顺回忆一下，这个字算哪种？");
+  // 已完成路径：没用过提示就不出现「看提示写出」；「没写出来」在这里意味着写错了
+  $("hinted").style.display=(done && !hintsUsedThisCard)?"none":"";
+  $("miss").textContent=done?"写错了":"没写出来";
+  renderQuality();
+  $("inkTools").style.display="none"; $("actions").style.display="none";
+  $("mark").style.display="grid"; $("qualityBox").style.display="";
+  try{ $("mark").scrollIntoView({behavior:"smooth", block:"nearest"}); }catch(e){}
+  $("mark").classList.remove("cue"); void $("mark").offsetWidth; $("mark").classList.add("cue"); }
+$("show").onclick=()=>revealAnswer(false);
+$("done").onclick=()=>revealAnswer(true);
 $("peek").onclick=()=>setRevealView(!showingMine);
 $("fast").onclick=()=>recordOutcome("fast");
 $("slow").onclick=()=>recordOutcome("slow");
@@ -796,9 +788,8 @@ $("practiceRisk").onclick=()=>startFocus(highRiskIndexes());
 
 $("dataLink").onclick=()=>{ const box=$("dataBox"); if(box.style.display==="block"){ box.style.display="none"; return; }
   const last7=opens.filter(d=>{ const diff=(new Date(today())-new Date(d))/86400000; return diff>=0 && diff<7; });
-  const gs=tuning.gradeStats||{}, fmtArm=r=>{ const n=r?(r.fast||0)+(r.slow||0)+(r.hinted||0)+(r.miss||0):0; return n?`${n} 次（秒会 ${r.fast||0} · 想起 ${r.slow||0} · 提示 ${r.hinted||0} · 没写出 ${r.miss||0}）`:"0 次"; };
   box.style.display="block"; box.innerHTML=`<b>实验用，别天天盯（盯 streak 会污染“光靠痒”这个变量）</b><br>`+
-    `最近 7 天里，你主动打开过 <b>${last7.length}</b> 天 → 目标 ≥4 天<br>出题偏好：<b>${prefLabel()}</b> · 难度校准：<b>${tuningLabel()} ${tuningShiftText()}</b> · 语境严格度：<b>${Number(tuning.contextStrict)||0}</b><br>题目反馈：<b>${qualityCount()}</b> 条 · 整组反馈：<b>${(tuning.rounds||[]).length}</b> 条<br>写法对照——自评 ${fmtArm(gs.self)}；逐笔判 ${fmtArm(gs.quiz)}<br>已记录：<b>${memoryCount()}</b> 个字 · 到期复习：<b>${reviewCount()}</b> 个 · 重点字：<b>${highRiskCount()}</b> 个<br>你自己加的字：<b>${addedChars.length}</b> 个<br>累计打开：${opens.length} 天`; };
+    `最近 7 天里，你主动打开过 <b>${last7.length}</b> 天 → 目标 ≥4 天<br>出题偏好：<b>${prefLabel()}</b> · 难度校准：<b>${tuningLabel()} ${tuningShiftText()}</b> · 语境严格度：<b>${Number(tuning.contextStrict)||0}</b><br>题目反馈：<b>${qualityCount()}</b> 条 · 整组反馈：<b>${(tuning.rounds||[]).length}</b> 条<br>已记录：<b>${memoryCount()}</b> 个字 · 到期复习：<b>${reviewCount()}</b> 个 · 重点字：<b>${highRiskCount()}</b> 个<br>你自己加的字：<b>${addedChars.length}</b> 个<br>累计打开：${opens.length} 天`; };
 let toastTimer=0;
 function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove("show"),2200); }
 
@@ -843,12 +834,16 @@ $("resetLink").onclick=()=>{ if(confirm("清空卡组和记录，从头开始？
 function applyModeUI(){ $("modeBtn").textContent=continuous?"连续模式：开":"连续模式：关";
   $("modehint").textContent=""; }
 $("modeBtn").onclick=()=>{ continuous=!continuous; drawing=false; setPen(false); applyModeUI(); };
-$("gradeBtn").onclick=()=>{ gradeMode=gradeMode==="quiz"?"self":"quiz"; save(GRADE_KEY,gradeMode); applyGradeUI();
-  if($("card").style.display!=="none") render(); };
 
 $("startReview").onclick=()=>startMode("review");
 $("startNew").onclick=()=>startMode("new");
-initBox(); applyModeUI(); applyGradeUI(); renderHome();
+// 连续模式是给桌面鼠标准备的（点一下落笔、再点一下提笔）；触屏直接手写，不需要这个开关
+if(window.matchMedia && window.matchMedia('(pointer: coarse)').matches) $("modebar").style.display="none";
+initBox(); applyModeUI(); renderHome();
+// 视口尺寸变化明显（旋转、分屏、加载时序）时重建写字区。正在写的卡不动（别丢笔迹）：
+// 非卡片视图立即重建；卡片视图里每张新卡 render() 前都会 fitBox()，下一张自动适配
+function fitBox(){ const n=idealBoxSize(); if(Math.abs(n-S)>=24){ S=n; $("boxwrap").innerHTML=""; initBox(); } }
+window.addEventListener('resize',()=>{ if($("card").style.display==="none") fitBox(); });
 // 系统深浅色切换时重画田字格（画布颜色是绘制时取的，不会跟着 CSS 变量自动变）
 try{ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{ drawGridOn(gridCanvas.getContext('2d')); }); }catch(e){}
 </script>

@@ -40,7 +40,8 @@
   #prompt .blank{ display:inline-flex; align-items:center; justify-content:center; min-width:50px; height:52px; border:2px solid var(--accent); border-radius:12px; color:var(--accent); font:600 15px/1 var(--sans); padding:0 9px; letter-spacing:.03em; background:var(--blankBg); }
   #prompt .blank.filled{ font:400 34px/1 var(--kai); letter-spacing:0; }
   .ask{ text-align:center; font-size:13px; color:var(--muted); margin-top:8px; }
-  .hint{ margin:9px auto 0; max-width:330px; text-align:center; font-size:12.5px; color:var(--muted); line-height:1.6; min-height:20px; }
+  .hint{ margin:9px auto 0; max-width:350px; text-align:center; font-size:12.5px; color:var(--muted); line-height:1.6; min-height:20px; }
+  .contextCue{ color:var(--ink); background:var(--card); border:1px solid var(--line); border-radius:14px; padding:9px 12px; }
   .modebar{ display:flex; align-items:center; justify-content:center; gap:10px; margin-top:12px; }
   .mode{ flex:0 0 auto; font-size:12px; padding:7px 11px; border-radius:999px; background:transparent; color:var(--muted); border-color:var(--line); }
   .pill{ font-size:12px; color:var(--faint); }
@@ -66,7 +67,10 @@
   .cardTop{ display:flex; justify-content:flex-start; padding:0 4px; margin:0 0 -6px; }
   .exitPractice{ flex:0 0 auto; padding:7px 10px; font-size:12px; border-radius:999px; }
   #actions{ margin-top:10px; position:sticky; bottom:calc(10px + env(safe-area-inset-bottom)); z-index:3; padding-top:8px; background:linear-gradient(180deg, rgba(244,242,236,0), var(--paper) 38%); }
-  #inkTools button{ flex:0 0 auto; }
+  #inkTools{ align-items:center; justify-content:center; }
+  #inkTools button{ flex:0 0 auto; min-height:44px; }
+  .hintPrimary{ min-width:176px; padding:13px 18px; font-size:15px; border-radius:16px; }
+  .revealAction{ background:transparent; color:var(--muted); border-color:var(--line); box-shadow:none; flex:.75; }
   .reveal{ display:none; margin-top:12px; text-align:center; }
   .reveal .ans{ display:flex; align-items:baseline; justify-content:center; gap:12px; }
   .reveal .big{ font-size:46px; font-weight:400; font-family:var(--kai); line-height:1; color:var(--ink); }
@@ -78,6 +82,13 @@
   .mark .slow,.mark .hinted{ background:var(--accentSoft); border:1.5px solid var(--accent); color:var(--accent); }
   .mark .hinted{ background:transparent; }
   .mark .miss{ background:var(--missSoft); border:1.5px solid var(--miss); color:var(--miss); }
+  .revealedCard #prompt{ min-height:58px; font-size:30px; }
+  .revealedCard .ask{ margin-top:4px; }
+  .revealedCard .contextCue{ padding:7px 10px; line-height:1.45; }
+  .revealedCard #boxwrap{ margin:8px 0 2px; }
+  .revealedCard .reveal{ margin-top:7px; }
+  .revealedCard .mark{ gap:7px; margin-top:8px; }
+  .revealedCard .mark button{ padding:10px 11px; font-size:13px; }
   @keyframes markCue{ 0%,100%{ box-shadow:0 0 0 0 rgba(52,86,138,0); } 35%{ box-shadow:0 0 0 4px var(--accentSoft); } }
   .mark.cue{ animation:markCue .85s ease 1; border-radius:14px; }
   .home,.book,.profile,.audit{ background:var(--paper); border:1px solid transparent; border-radius:22px; padding:16px 2px 18px; margin-bottom:14px; box-shadow:none; animation:screenIn .32s ease; }
@@ -100,6 +111,8 @@
   #startNew.primary::after{ content:"估难度"; margin-top:4px; font:500 11px var(--sans); opacity:.82; letter-spacing:.08em; }
   #startReview.primary::after{ content:"到期优先"; margin-top:4px; font:500 11px var(--sans); opacity:.82; letter-spacing:.08em; }
   .homeHint{ min-height:20px; margin:-4px 0 10px; text-align:center; color:var(--muted); font-size:12.5px; line-height:1.6; }
+  .guide{ display:grid; grid-template-columns:repeat(4,1fr); gap:7px; margin:0 0 12px; }
+  .guide span{ min-height:48px; border:1px solid var(--line); border-radius:14px; background:var(--card); color:var(--muted); font-size:11.5px; line-height:1.35; display:flex; align-items:center; justify-content:center; text-align:center; padding:7px 6px; }
   .homeLinks button{ background:var(--card); border-color:var(--line); color:var(--muted); box-shadow:none; }
   .book{ display:none; }
   .bookHead{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
@@ -182,12 +195,15 @@
   .roundTuneBtns{ display:grid; grid-template-columns:repeat(4,1fr); gap:6px; }
   .roundTuneBtns button{ padding:8px 6px; font-size:12px; background:var(--card); border:1px solid var(--line); color:var(--ink); border-radius:999px; box-shadow:none; }
   .roundTuneBtns button.active{ border-color:var(--accent); color:var(--accent); font-weight:700; }
+  .summaryPrimary{ margin:0 0 12px; }
+  .summaryPrimary button{ flex:1; }
   .summaryActions{ flex-wrap:wrap; }
   .wide{ flex-basis:100%; }
-  .foot{ margin-top:auto; padding-top:16px; border-top:1px solid var(--grid); display:flex; justify-content:center; flex-wrap:wrap; gap:4px 14px; text-align:center; font-size:12px; color:var(--muted); }
-  .foot a{ display:inline-block; white-space:nowrap; color:var(--muted); cursor:pointer; text-decoration:none; margin:0; padding:3px 0; }
+  .foot{ position:sticky; bottom:0; z-index:12; margin-top:auto; padding:10px 2px calc(10px + env(safe-area-inset-bottom)); border-top:1px solid var(--grid); background:linear-gradient(180deg, rgba(230,227,219,.72), var(--bg) 38%); backdrop-filter:blur(10px); display:flex; justify-content:center; flex-wrap:wrap; gap:4px 8px; text-align:center; font-size:12px; color:var(--muted); }
+  .foot a{ display:inline-flex; align-items:center; justify-content:center; min-width:42px; min-height:34px; white-space:nowrap; color:var(--muted); cursor:pointer; text-decoration:none; margin:0; padding:6px 7px; border-radius:999px; }
   .foot a:hover{ color:var(--accent); }
-  .internalToggle{ flex:0 0 auto; border:0; background:transparent; color:var(--faint); font:inherit; font-size:12px; padding:3px 0; box-shadow:none; }
+  .foot a.active,.internalToggle.active{ color:#fff; background:var(--accent); font-weight:700; }
+  .internalToggle{ flex:0 0 auto; min-width:42px; min-height:34px; border:0; background:transparent; color:var(--faint); font:inherit; font-size:12px; padding:6px 7px; box-shadow:none; }
   .internalToggle:active{ transform:none; }
   .internalLinks{ display:none; flex:1 0 100%; justify-content:center; gap:4px 14px; flex-wrap:wrap; }
   .foot.internal-open .internalLinks{ display:flex; }
@@ -205,7 +221,7 @@
   .addChip b{ font-family:var(--kai); font-size:19px; color:var(--accent); font-weight:400; }
   .toast{ position:fixed; left:50%; bottom:calc(34px + env(safe-area-inset-bottom)); transform:translateX(-50%); background:var(--ink); color:var(--paper); font-size:13px; padding:10px 16px; border-radius:999px; z-index:30; opacity:0; transition:opacity .25s; pointer-events:none; max-width:82vw; text-align:center; }
   .toast.show{ opacity:.94; }
-  @media (max-width:380px){ .wrap{ padding-left:14px; padding-right:14px; } .resultItem{ grid-template-columns:34px 1fr; } .resultItem em{ grid-column:2; } .summaryHero{ gap:12px; } .summaryRing{ width:122px; height:122px; } .summaryRingInner{ width:94px; height:94px; } .prefBtns,.auditPrefs{ flex-basis:100%; } .roundTuneBtns{ grid-template-columns:repeat(2,1fr); } .auditControls{ grid-template-columns:1fr; } .profileSummary{ grid-template-columns:repeat(2,1fr); } }
+  @media (max-width:380px){ .wrap{ padding-left:14px; padding-right:14px; } .guide{ grid-template-columns:repeat(2,1fr); } .resultItem{ grid-template-columns:34px 1fr; } .resultItem em{ grid-column:2; } .summaryHero{ gap:12px; } .summaryRing{ width:122px; height:122px; } .summaryRingInner{ width:94px; height:94px; } .prefBtns,.auditPrefs{ flex-basis:100%; } .roundTuneBtns{ grid-template-columns:repeat(2,1fr); } .auditControls{ grid-template-columns:1fr; } .profileSummary{ grid-template-columns:repeat(2,1fr); } }
 </style>
 </head>
 <body>
@@ -221,13 +237,14 @@
     </div></div>
     <div class="stats">
       <div class="stat"><b id="dueStat">0</b><span>到期复习</span></div>
-      <div class="stat"><b id="riskStat">0</b><span>重点字</span></div>
+      <div class="stat"><b id="riskStat">0</b><span>错题</span></div>
       <div class="stat"><b id="seenStat">0</b><span>已记录</span></div>
     </div>
     <div class="risk" id="riskList"></div>
     <div class="row homeActions"><button class="primary" id="startReview">今日复习</button><button id="startNew">练新字</button></div>
     <div class="homeHint" id="homeHint"></div>
-    <div class="row homeLinks"><button id="openBook">重点字本</button><button id="openProfile">易错分析</button></div>
+    <div class="guide" id="guideBox"><span>看词语和语境</span><span>在田字格写</span><span>用笔顺提示</span><span>自评后复习</span></div>
+    <div class="row homeLinks"><button id="openBook">错题本</button><button id="openProfile">易错分析</button></div>
   </div>
 
   <div class="card" id="card" style="display:none">
@@ -240,32 +257,32 @@
     <div class="modehint" id="modehint"></div>
 
     <div id="boxwrap"></div>
-    <div class="row center" id="inkTools"><button class="ghost" id="clear">清除</button><button class="ghost" id="tip" disabled>提示</button></div>
+    <div class="row center" id="inkTools"><button class="primary hintPrimary" id="tip" disabled>笔顺提示</button><button class="ghost" id="clear">清除</button></div>
     <div class="row" id="actions">
-      <button id="show" disabled>不会写，揭晓</button>
+      <button class="revealAction" id="show" disabled>揭晓答案</button>
       <button class="primary" id="done" disabled>写好了</button>
     </div>
     <div class="reveal" id="reveal"><div class="ans" id="ans"></div>
       <button class="ghost" id="peek">看我刚写的</button>
       <div class="hint" id="markCue"></div></div>
     <div class="row mark" id="mark">
-      <button class="fast" id="fast">秒会</button>
-      <button class="slow" id="slow">想起后写出</button>
+      <button class="fast" id="fast">会写</button>
       <button class="hinted" id="hinted">看提示写出</button>
-      <button class="miss" id="miss">没写出来</button>
+      <button class="miss" id="miss">不会写</button>
+      <button class="slow" id="slow">写错了</button>
     </div>
     <div class="quality" id="qualityBox" style="display:none"><span>题目反馈</span><button data-quality="easy">太简单</button><button data-quality="rare">太生僻</button><button data-quality="badWord">词不自然</button><button data-quality="hide">不想练</button><span class="note" id="qualityNote"></span></div>
   </div>
 
   <div class="summary" id="summary">
-    <h2 id="sumTitle"></h2><div class="summaryHero" id="summaryHero"></div><div class="list" id="sumList"></div><div class="note" id="sumNote"></div>
+    <h2 id="sumTitle"></h2><div class="summaryHero" id="summaryHero"></div><div class="row center summaryPrimary"><button class="primary" id="reviewRisk">马上复习错题</button></div><div class="list" id="sumList"></div><div class="note" id="sumNote"></div>
     <div class="roundTune" id="roundTune"></div>
-    <div class="row center summaryActions"><button class="primary" id="reviewRisk">马上复习重点字</button><button id="more">继续练新字</button><button class="wide" id="stop">返回今日练习</button></div>
+    <div class="row center summaryActions"><button id="more">继续练新字</button><button class="wide" id="stop">返回首页</button></div>
   </div>
 
   <div class="book" id="studybook">
-    <div class="bookHead"><h2>重点字本</h2><button class="ghost" id="closeBook">返回</button></div>
-    <div class="bookTools"><button id="practiceDue">练到期</button><button class="primary" id="practiceRisk">练重点字</button></div>
+    <div class="bookHead"><h2>错题本</h2><button class="ghost" id="closeBook">返回首页</button></div>
+    <div class="bookTools"><button id="practiceDue">练到期</button><button class="primary" id="practiceRisk">练错题</button></div>
     <div class="bookList" id="bookList"></div>
   </div>
 
@@ -275,7 +292,7 @@
     <div class="profileAdvice" id="profileAdvice"></div>
     <div class="profileSection"><h3>容易卡住的主题</h3><div class="profileRows" id="profileTopics"></div></div>
     <div class="profileSection"><h3>难度层和结构</h3><div class="profileRows" id="profileLevels"></div></div>
-    <div class="profileSection"><h3>重点字</h3><div class="profileChars" id="profileChars"></div></div>
+    <div class="profileSection"><h3>错题</h3><div class="profileChars" id="profileChars"></div></div>
   </div>
 
   <div class="audit" id="auditPanel">
@@ -296,7 +313,7 @@
     <div class="auditList" id="auditSample"></div>
   </div>
 
-  <div class="foot" id="foot"><a id="addLink">＋加字</a><a id="bookLink">重点字本</a><a id="profileLink">易错分析</a><button class="internalToggle" id="internalToggle" type="button">内部</button><span class="internalLinks" id="internalLinks"><a id="auditLink">题库质检</a><a id="dataLink">实验数据</a><a id="exportLink">备份数据</a><a id="importLink">恢复备份</a><a id="resetLink">重置卡组</a></span><div class="data" id="dataBox"></div></div>
+  <div class="foot" id="foot"><a id="homeLink">首页</a><a id="practiceLink">练习</a><a id="bookLink">错题</a><a id="profileLink">分析</a><a id="addLink">加字</a><button class="internalToggle" id="internalToggle" type="button">内部</button><span class="internalLinks" id="internalLinks"><a id="auditLink">题库质检</a><a id="dataLink">实验数据</a><a id="exportLink">备份数据</a><a id="importLink">恢复备份</a><a id="resetLink">重置卡组</a></span><div class="data" id="dataBox"></div></div>
 </div>
 
 <div class="sheetMask" id="addSheet"><div class="sheet">
@@ -394,10 +411,12 @@ function practiceEligible(i){ return qualityAvailable(i) && (reviewReady(i) || C
 function cardTopic(i){ return CARDS[i].topic || (CARDS[i].custom?"自定义":"综合"); }
 function targetDifficulty(){ const p=prefSettings(), base=68 + Math.sqrt(knownCount()/Math.max(1,CARDS.length))*18 + p.targetShift + (Number(tuning.offset)||0); return clamp(base - Math.min(deckCount(),40)*0.12, p.min, p.max); }
 function personalDifficulty(i){ const m=memory[cardKey(i)]||{}, q=qualityFor(i); return clamp(cardDifficulty(i)+(reviewReady(i)?18:0)+(m.misses||0)*8+(m.hints||0)*5+(m.slow||0)*2-(m.fast||0)*3-(q.easy||0)*16+(preference==="challenge"?(q.rare||0)*4:0), 1, 115); }
+function abilityLevel(i){ const d=personalDifficulty(i); if(d<58) return "简单"; if(d<82) return "中等"; return "难"; }
+function abilityMeta(i){ return `${abilityLevel(i)} · 难度 ${Math.round(personalDifficulty(i))}`; }
 function resetAdaptiveSession(){ sessionTarget=targetDifficulty(); sessionFastStreak=0; sessionMissStreak=0; }
 function adjustSessionTarget(outcome){ if(!sessionTarget) resetAdaptiveSession(); const p=prefSettings();
   if(outcome==="fast"){ sessionFastStreak++; sessionMissStreak=0; sessionTarget+=5+Math.min(4,Math.max(0,sessionFastStreak-1)*2); }
-  else if(outcome==="slow"){ sessionFastStreak=0; sessionMissStreak=0; }
+  else if(outcome==="slow"){ sessionFastStreak=0; sessionMissStreak=0; sessionTarget-=3; }
   else if(outcome==="hinted"){ sessionFastStreak=0; sessionMissStreak=0; sessionTarget-=2; }
   else if(outcome==="miss"){ sessionFastStreak=0; sessionMissStreak++; if(sessionMissStreak>=2) sessionTarget-=6; }
   sessionTarget=clamp(Math.round(sessionTarget),p.min,p.max); return sessionTarget; }
@@ -408,13 +427,13 @@ function adaptiveScore(i,outcome,anchorIdx){ let score=Math.abs(personalDifficul
   return score; }
 function adaptNextCard(outcome,anchorIdx){ if(activeMode!=="new" || pos+1>=batch.length) return null; adjustSessionTarget(outcome);
   const scheduled=new Set(batch), pool=newPool(true).filter(i=>!scheduled.has(i)); if(!pool.length) return null;
-  // 连续没写出来 → 别继续硬推，下一张挑个最容易上手的，让这一组以「写出来了」收尾
+  // 连续不会写 → 别继续硬推，下一张挑个最容易上手的，让这一组以「写出来了」收尾
   const next = sessionMissStreak>=2
     ? pool.sort((a,b)=>personalDifficulty(a)-personalDifficulty(b) || qualityWeight(b)-qualityWeight(a))[0]
     : pool.sort((a,b)=>adaptiveScore(a,outcome,anchorIdx)-adaptiveScore(b,outcome,anchorIdx) || personalDifficulty(b)-personalDifficulty(a))[0];
   if(next!=null) batch[pos+1]=next; return next; }
 function overdueDays(i){ const m=memory[cardKey(i)]||{}; return m.due?Math.max(0,(Date.now()-m.due)/86400000):0; }
-function reviewPriority(i){ const m=memory[cardKey(i)]||{}, outcome=m.lastOutcome||"", outcomeWeight={miss:42,hinted:30,slow:12,fast:-8}[outcome]||0;
+function reviewPriority(i){ const m=memory[cardKey(i)]||{}, outcome=m.lastOutcome||"", outcomeWeight={miss:42,hinted:30,slow:28,fast:-8}[outcome]||0;
   return outcomeWeight + hardCount(i)*18 + Math.max(0,100-(m.ease||50))*0.7 + overdueDays(i)*9 + personalDifficulty(i)*0.25 - (m.streak||0)*6; }
 function candidateDistance(i,target){ return Math.abs(personalDifficulty(i)-target)*10 - qualityWeight(i); }
 function addNearest(out, candidates, target, limit, used){ candidates.filter(i=>!used.has(i)).sort((a,b)=>candidateDistance(a,target)-candidateDistance(b,target) || personalDifficulty(b)-personalDifficulty(a)).slice(0,limit).forEach(i=>{ used.add(i); out.push(i); }); }
@@ -447,30 +466,30 @@ function chooseCalibrationBatch(all){ const targets=[48,56,62,66,70,74,78,82,86,
   return out.slice(0,BATCH).sort((a,b)=>cardDifficulty(a)-cardDifficulty(b)); }
 function delayFor(outcome, depth, ease=50){ const table={
   fast:[7,21,45,90,150],
-  slow:[1,3,7,16,35],
+  slow:[0.5,1,3,7,14],
   hinted:[0.25,1,3,7,14],
   miss:[0,0.25,1,2,5],
 }; const arr=table[outcome]||table.slow, idx=Math.max(0, Math.min((outcome==="fast"||outcome==="slow")?depth-1:depth,arr.length-1));
   const days=arr[idx]; if(!days) return 0; const scale=(outcome==="fast"||outcome==="slow")?clamp((ease+70)/120,.7,1.35):1; return Math.round(days*scale*86400000); }
 function reviewCount(){ return reviewPool(false).length; }
 function memoryCount(){ return Object.values(memory).filter(m=>m && m.seen).length; }
-function isHighRisk(i){ const m=memory[cardKey(i)]; return !!(qualityAvailable(i) && m && (status[i]==="indeck" || m.misses || m.hints>=2) && (m.streak||0)<2); }
+function isHighRisk(i){ const m=memory[cardKey(i)]; return !!(qualityAvailable(i) && m && (status[i]==="indeck" || m.misses || m.slow || m.hints>=2) && (m.streak||0)<2); }
 function highRiskIndexes(){ return allIndexes().filter(isHighRisk).sort((a,b)=>personalDifficulty(b)-personalDifficulty(a)); }
 function highRiskCount(){ return highRiskIndexes().length; }
 const OUTCOMES=[
-  ["fast","秒会","延后复习"],
-  ["slow","想起后写出","继续巩固"],
-  ["hinted","看提示写出","进入重点"],
-  ["miss","没写出来","今天再练"]
+  ["miss","不会写","今天再练"],
+  ["hinted","看提示写出","进错题"],
+  ["slow","写错了","稍后复习"],
+  ["fast","会写","延后复习"]
 ];
 const ROUND_FEEDBACK={easy:["太简单","下组加难"],ok:["刚刚好","保持节奏"],hard:["太难","下组降一点"],bad_context:["词不自然","收紧语境"]};
 function roundCounts(){ const out={fast:0,slow:0,hinted:0,miss:0}; roundStats.forEach(x=>{ out[x.outcome]=(out[x.outcome]||0)+1; }); return out; }
 function tuningLabel(){ const o=Number(tuning.offset)||0; if(o>=14) return "高挑战"; if(o>=6) return "偏挑战"; if(o<=-10) return "偏稳"; if(o<=-4) return "稍稳"; return "标准"; }
 function tuningShiftText(){ const o=Math.round(Number(tuning.offset)||0); return o>0?`+${o}`:`${o}`; }
-function roundMasteryScore(counts=roundCounts()){ const total=Math.max(1,roundStats.length); return ((counts.fast||0)*2+(counts.slow||0)-(counts.hinted||0)*1.2-(counts.miss||0)*2.2)/total; }
+function roundMasteryScore(counts=roundCounts()){ const total=Math.max(1,roundStats.length); return ((counts.fast||0)*2-(counts.slow||0)*1.1-(counts.hinted||0)*1.2-(counts.miss||0)*2.2)/total; }
 function maybeFinishCalibration(){ if(activeMode!=="calibrate" || tuning.calibrated) return "";
-  const counts=roundCounts(), hard=(counts.hinted||0)+(counts.miss||0), score=roundMasteryScore(counts); let why;
-  if((counts.fast||0)+(counts.slow||0)>=12 && hard<=2){ tuning.offset=10; preference="challenge"; why="这 15 字用来估难度。刚才这组你基本都写得出来，所以接下来会自动加难，多挑些你不太熟的字。"; }
+  const counts=roundCounts(), hard=(counts.hinted||0)+(counts.miss||0)+(counts.slow||0), score=roundMasteryScore(counts); let why;
+  if((counts.fast||0)>=12 && hard<=2){ tuning.offset=10; preference="challenge"; why="这 15 字用来估难度。刚才这组你基本都写得出来，所以接下来会自动加难，多挑些你不太熟的字。"; }
   else if(hard>=6 || (counts.miss||0)>=3){ tuning.offset=-6; preference="practical"; why="这 15 字用来估难度。刚才有几个卡住了，所以先把难度调稳一点，从你能写出来的字开始，再慢慢加。"; }
   else { tuning.offset=2; preference="balanced"; why="这 15 字用来估难度。刚才的难度大致合适，就先按这个节奏来，之后会根据你的反馈再微调。"; }
   tuning.calibrated=true; tuning.calibration={date:today(), counts, score:Math.round(score*100)/100, offset:tuning.offset, preference};
@@ -488,41 +507,49 @@ function recordRoundFeedback(kind){ if(roundFeedbackGiven || !ROUND_FEEDBACK[kin
   if(kind==="bad_context"){ tuning.contextStrict=(Number(tuning.contextStrict)||0)+1; tuning.easyStreak=0; tuning.hardStreak=0; }
   tuning.lastRoundId=roundId; tuning.lastRoundFeedback=kind; tuning.rounds=[...(tuning.rounds||[]),{id:roundId,date:today(),mode:activeMode,kind,counts,score:Math.round(score*100)/100,offset:Math.round(Number(tuning.offset)||0),contextStrict:Number(tuning.contextStrict)||0}].slice(-30);
   const consequence={easy:"好，下一组会更难一点。",hard:"好，下一组会降一点。",ok:"好，保持这个节奏。",bad_context:"好，之后会少出这类不自然的词。"}[kind] || "已记录。";
-  saveTuning(); save(PREF_KEY,preference); roundFeedbackGiven=true; renderRoundTune(consequence); }
+  saveTuning(); save(PREF_KEY,preference); roundFeedbackGiven=true; renderRoundTune(consequence); toast(consequence); }
 function dueText(ts){ if(!ts) return "未安排"; const left=ts-Date.now(); if(left<=0) return "今天再练";
   const hours=Math.ceil(left/3600000); if(hours<24) return `${hours} 小时后复习`; const diff=Math.ceil(left/86400000);
   if(diff===1) return "明天复习"; return `${diff} 天后复习`; }
 function scrollTopNow(){ try{ window.scrollTo({top:0,left:0,behavior:"auto"}); }catch(e){ window.scrollTo(0,0); } }
-function displayView(view){ $("home").style.display=view==="home"?"block":"none"; $("card").style.display=view==="card"?"":"none"; $("summary").style.display=view==="summary"?"block":"none"; $("studybook").style.display=view==="book"?"block":"none"; $("profilePanel").style.display=view==="profile"?"block":"none"; $("auditPanel").style.display=view==="audit"?"block":"none"; requestAnimationFrame(scrollTopNow); }
+function displayView(view){ $("home").style.display=view==="home"?"block":"none"; $("card").style.display=view==="card"?"":"none"; $("summary").style.display=view==="summary"?"block":"none"; $("studybook").style.display=view==="book"?"block":"none"; $("profilePanel").style.display=view==="profile"?"block":"none"; $("auditPanel").style.display=view==="audit"?"block":"none";
+  if(view!=="audit"){ $("foot").classList.remove("internal-open"); $("dataBox").style.display="none"; }
+  const active={home:"homeLink",card:"practiceLink",summary:"practiceLink",book:"bookLink",profile:"profileLink",audit:"internalToggle"}[view];
+  document.querySelectorAll(".foot a,.internalToggle").forEach(el=>el.classList.toggle("active",el.id===active));
+  requestAnimationFrame(scrollTopNow); }
 function qualityCount(){ return Object.values(quality).filter(q=>q && (q.easy || q.rare || q.badWord || q.hide)).length; }
 function renderQuality(){ if(!cur) return; const q=qualityFor(batch[pos]); document.querySelectorAll("#qualityBox button[data-quality]").forEach(btn=>btn.classList.toggle("active", !!q[btn.dataset.quality]));
   const notes=[]; if(q.easy) notes.push("已降难"); if(q.rare) notes.push("少出"); if(q.badWord) notes.push("避开词"); if(q.hide) notes.push("已隐藏");
-  $("qualityNote").textContent=notes.join(" · "); }
+  $("qualityNote").textContent=notes.length?`${notes.join(" · ")} · 再点可取消`:"这些反馈会影响后续出题；点错了可再点取消。"; }
 function recordQuality(kind, idx=batch[pos]){ if(idx==null || idx<0) return; const c=CARDS[idx], k=cardKey(idx), q=quality[k] || {};
-  if(kind==="hide") q.hide=!q.hide; else q[kind]=(q[kind]||0)+1;
+  if(kind==="hide") q.hide=!q.hide; else q[kind]=q[kind]?0:1;
   q.last=Date.now(); q.target=c.target; q.word=c.word; q.topic=c.topic; q.level=c.level; quality[k]=q; saveQuality();
-  if(kind==="easy") setStatus(idx,"rest"); if(kind==="badWord") sessionDone.add(idx);
+  if(kind==="easy" && q.easy) setStatus(idx,"rest"); if(kind==="badWord" && q.badWord) sessionDone.add(idx);
   if(kind==="hide"){ if(q.hide) sessionDone.add(idx); else sessionDone.delete(idx); }
-  // 练习中点「不想练」：马上换下一张，别把人困在不想练的卡上
-  if(kind==="hide" && q.hide && cur && idx===batch[pos] && $("card").style.display!=="none"){ next(); return; }
+  toast(q[kind]?`已记录题目反馈：${({easy:"太简单",rare:"太生僻",badWord:"词不自然",hide:"不想练"})[kind]}`:"已取消这条题目反馈");
   if(cur && idx===batch[pos]) renderQuality(); }
+function outcomeLabel(outcome){ return ({fast:"会写",hinted:"看提示写出",miss:"不会写",slow:"写错了"})[outcome] || "已记录"; }
+function outcomeMessage(outcome,c){ if(outcome==="fast") return `已记录：会写。后面会少复习「${c.target}」。`;
+  if(outcome==="hinted") return `已记录：看提示写出。「${c.target}」已进错题本。`;
+  if(outcome==="miss") return `已记录：不会写。「${c.target}」会尽快再出现。`;
+  return `已记录：写错了。「${c.target}」会进入复习。`; }
 function recordOutcome(outcome){ const idx=batch[pos], c=CARDS[idx], m=cardMemory(idx), now=Date.now();
-  const hard=outcome==="miss" || outcome==="hinted", wasRisk=isHighRisk(idx);
+  const hard=outcome==="miss" || outcome==="hinted" || outcome==="slow";
   m.seen=(m.seen||0)+1; m.last=now; m.lastOutcome=outcome; m.lastHints=hintsUsedThisCard;
   m.topic=c.topic; m.level=c.level; m.word=c.word; m.target=c.target;
   if(outcome==="fast"){ m.fast=(m.fast||0)+1; m.streak=(m.streak||0)+1; m.ease=clamp((m.ease||50)+12,0,100); setStatus(idx,"rest"); }
-  if(outcome==="slow"){ m.slow=(m.slow||0)+1; m.streak=(m.streak||0)+1; m.ease=clamp((m.ease||50)+4,0,100); setStatus(idx,"review"); }
+  if(outcome==="slow"){ m.slow=(m.slow||0)+1; m.streak=0; m.ease=clamp((m.ease||50)-6,0,100); setStatus(idx,"indeck"); }
   if(outcome==="hinted"){ m.hints=(m.hints||0)+1; m.streak=0; m.ease=clamp((m.ease||50)-8,0,100); setStatus(idx,"indeck"); }
   if(outcome==="miss"){ m.misses=(m.misses||0)+1; m.streak=0; m.ease=clamp((m.ease||50)-16,0,100); setStatus(idx,"indeck"); }
   const depth=outcome==="miss"?Math.max(0,(m.misses||1)-1):outcome==="hinted"?Math.max(0,(m.hints||1)-1):(m.streak||0);
   m.due=now+delayFor(outcome,depth,m.ease||50); saveMemory();
-  roundStats.push({idx, target:c.target, word:c.word, outcome, level:c.level, topic:c.topic, due:m.due});
+  roundStats.push({idx, target:c.target, word:c.word, outcome, level:abilityLevel(idx), topic:c.topic, due:m.due});
   if(hard) missedThisRound.push(c.target);
-  if(!wasRisk && isHighRisk(idx)) toast(`「${c.target}」已进重点字本`);
+  toast(outcomeMessage(outcome,c));
   adaptNextCard(outcome,idx);
   next(outcome==="miss");
 }
-function riskPreview(){ const list=highRiskIndexes().slice(0,12); return list.length?`<div class="charChips">${list.map(i=>`<button class="charChip" data-idx="${i}" title="${CARDS[i].word}">${CARDS[i].target}</button>`).join("")}</div>`:"还没有重点字。先练一组，新数据会慢慢长出来。"; }
+function riskPreview(){ const list=highRiskIndexes().slice(0,12); return list.length?`<div class="charChips">${list.map(i=>`<button class="charChip" data-idx="${i}" title="${CARDS[i].word}">${CARDS[i].target}</button>`).join("")}</div>`:"还没有错题。先练一组，新数据会慢慢长出来。"; }
 function prefLabel(){ return ({balanced:"高频易忘", practical:"偏实用", challenge:"偏挑战"})[preference] || "高频易忘"; }
 function needsCalibration(){ return !tuning.calibrated && memoryCount()===0; }
 function applyPrefUI(){ document.querySelectorAll("#prefBox button[data-pref]").forEach(btn=>btn.classList.toggle("active", btn.dataset.pref===preference)); }
@@ -532,22 +559,22 @@ function renderHome(){ displayView("home");
   $("riskList").innerHTML=riskPreview(); $("pos").textContent=`${prefLabel()} · ${tuningLabel()} · 新字 ${newPool(false).length}`;
   $("startReview").disabled=reviewCount()===0; $("startReview").textContent=reviewCount()?`今日复习（${reviewCount()}）`:"今日复习";
   $("startNew").disabled=newPool(false).length===0; $("startNew").textContent=needsCalibration()?"先练 15 字":"练新字";
-  $("homeHint").textContent=needsCalibration()?"先用 15 个字估一下难度，后面会更贴合你。":"每组 15 字，写完会自动安排复习。";
+  $("homeHint").textContent=needsCalibration()?"先点“先练 15 字”完成起始校准，系统会估算你的起始难度。":"每组 15 字，看词语写缺字；写完自评后会自动安排复习。";
   // 没有到期复习时（尤其新用户），把主按钮让给"先练 15 字/练新字"，别让蓝色大按钮指向空的复习
   const hasReview=reviewCount()>0; $("startReview").classList.toggle("primary",hasReview); $("startNew").classList.toggle("primary",!hasReview); warmUpcomingStrokeCache(); }
 function startMode(mode){ activeMode=(mode==="new" && needsCalibration())?"calibrate":mode; focusQueue=[]; sessionDone=new Set(); startRound(); }
 function startFocus(indexes){ focusQueue=[...new Set((indexes||highRiskIndexes()).filter(i=>i>=0 && i<CARDS.length))]; if(!focusQueue.length){ renderHome(); return; }
   activeMode="focus"; sessionDone=new Set(); startRound(); }
-function bookRow(i){ const c=CARDS[i], m=memory[cardKey(i)]||{}; const hard=(m.misses||0)+(m.hints||0);
-  return `<button class="bookRow" data-idx="${i}"><span class="char">${c.target}</span><span class="meta"><b>${c.word}</b><small>${cardTopic(i)} · ${cardLevel(i)} · 卡住 ${hard} 次 · ${dueText(m.due)}</small></span></button>`; }
+function bookRow(i){ const c=CARDS[i], m=memory[cardKey(i)]||{}; const hard=(m.misses||0)+(m.hints||0)+(m.slow||0);
+  return `<button class="bookRow" data-idx="${i}"><span class="char">${c.target}</span><span class="meta"><b>${c.word}</b><small>${cardTopic(i)} · ${abilityMeta(i)} · 卡住 ${hard} 次 · ${dueText(m.due)}</small></span></button>`; }
 function renderBook(){ displayView("book"); const rows=highRiskIndexes();
-  $("pos").textContent=`重点字 ${rows.length}`;
+  $("pos").textContent=`错题 ${rows.length}`;
   $("practiceDue").disabled=reviewCount()===0; $("practiceDue").textContent=reviewCount()?`练到期（${reviewCount()}）`:"练到期";
-  $("practiceRisk").disabled=rows.length===0; $("practiceRisk").textContent=rows.length?`练重点字（${rows.length}）`:"练重点字";
-  $("bookList").innerHTML=rows.length?rows.map(bookRow).join(""):`<div class="empty">这里还没有重点字。等你标记“看提示写出”或“没写出来”，它们会自动出现。</div>`; }
+  $("practiceRisk").disabled=rows.length===0; $("practiceRisk").textContent=rows.length?`练错题（${rows.length}）`:"练错题";
+  $("bookList").innerHTML=rows.length?rows.map(bookRow).join(""):`<div class="empty">这里还没有错题。等你标记“看提示写出”“不会写”或“写错了”，它们会自动出现。</div>`; }
 function esc(s){ return String(s).replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch])); }
-function hardCount(i){ const m=memory[cardKey(i)]||{}; return (m.misses||0)+(m.hints||0); }
-function weaknessScore(i){ const m=memory[cardKey(i)]||{}; return clamp((m.misses||0)*28+(m.hints||0)*18+(m.slow||0)*8-(m.fast||0)*6+Math.max(0,60-(m.ease||50))*0.8+(reviewReady(i)?10:0),0,100); }
+function hardCount(i){ const m=memory[cardKey(i)]||{}; return (m.misses||0)+(m.hints||0)+(m.slow||0); }
+function weaknessScore(i){ const m=memory[cardKey(i)]||{}; return clamp((m.misses||0)*28+(m.hints||0)*18+(m.slow||0)*18-(m.fast||0)*6+Math.max(0,60-(m.ease||50))*0.8+(reviewReady(i)?10:0),0,100); }
 function profileIndexes(){ return allIndexes().filter(i=>{ const m=memory[cardKey(i)]; return m && m.seen; }); }
 function structureLabel(i){ const c=CARDS[i], strokes=Number(c.strokes)||0, parts=Number(c.parts)||1;
   if(parts>=5 || strokes>=17) return "复杂结构"; if(parts>=4 || strokes>=13) return "多部件"; if(parts>=3 || strokes>=9) return "中等结构"; return "简单结构"; }
@@ -562,23 +589,23 @@ function profileGroupRows(indexes, labelFn, kind, limit=5){ const groups=profile
     <span class="profileBar"><i style="width:${Math.max(8,Math.round(g.avg/max*100))}%"></i></span>
   </button>`).join(""); }
 function profileAdvice(indexes){ if(!indexes.length) return "先完成一组 15 字练习。系统会根据你选择的反馈，逐渐判断哪些主题、结构和难度层最容易让你提笔卡住。";
-  const topic=profileGroups(indexes,cardTopic)[0], level=profileGroups(indexes,cardLevel)[0], structure=profileGroups(indexes,structureLabel)[0], risk=highRiskCount();
-  const bits=[]; if(topic) bits.push(`${topic.label}主题`); if(level) bits.push(`${level.label}级字`); if(structure) bits.push(`${structure.label}`);
-  return `目前最值得补的是 ${bits.join("、")}。重点字 ${risk} 个；优先复习这些字，再用专项练习补同类结构，会比随机刷字更有效。`; }
+  const topic=profileGroups(indexes,cardTopic)[0], level=profileGroups(indexes,abilityLevel)[0], structure=profileGroups(indexes,structureLabel)[0], risk=highRiskCount();
+  const bits=[]; if(topic) bits.push(`${topic.label}主题`); if(level) bits.push(`${level.label}难度`); if(structure) bits.push(`${structure.label}`);
+  return `目前最值得补的是 ${bits.join("、")}。错题 ${risk} 个；优先复习这些字，再用专项练习补同类结构，会比随机刷字更有效。`; }
 function profilePracticeIndexes(kind,value){ const indexes=profileIndexes(); let out=[];
   if(kind==="topic") out=indexes.filter(i=>cardTopic(i)===value);
-  if(kind==="level") out=indexes.filter(i=>cardLevel(i)===value);
+  if(kind==="level") out=indexes.filter(i=>abilityLevel(i)===value);
   if(kind==="structure") out=indexes.filter(i=>structureLabel(i)===value);
   if(kind==="risk") out=highRiskIndexes();
   return out.sort((a,b)=>weaknessScore(b)-weaknessScore(a) || personalDifficulty(b)-personalDifficulty(a)).slice(0,BATCH); }
 function renderProfile(){ displayView("profile"); const indexes=profileIndexes(), hard=indexes.filter(i=>hardCount(i)>0).length, avgEase=average(indexes,i=>(memory[cardKey(i)]||{}).ease||50);
   $("pos").textContent=`易错分析 · ${indexes.length} 字`;
-  $("profileSummary").innerHTML=`<div class="profileMetric"><b>${indexes.length}</b><span>练过</span></div><div class="profileMetric"><b>${hard}</b><span>卡过</span></div><div class="profileMetric"><b>${avgEase}</b><span>平均掌握</span></div><div class="profileMetric"><b>${highRiskCount()}</b><span>重点字</span></div>`;
+  $("profileSummary").innerHTML=`<div class="profileMetric"><b>${indexes.length}</b><span>练过</span></div><div class="profileMetric"><b>${hard}</b><span>卡过</span></div><div class="profileMetric"><b>${avgEase}</b><span>平均掌握</span></div><div class="profileMetric"><b>${highRiskCount()}</b><span>错题</span></div>`;
   $("profileAdvice").textContent=profileAdvice(indexes);
   $("profileTopics").innerHTML=profileGroupRows(indexes,cardTopic,"topic",5);
-  $("profileLevels").innerHTML=`<div class="auditSectionTitle"><b>难度层</b></div>${profileGroupRows(indexes,cardLevel,"level",4)}<div class="auditSectionTitle"><b>结构</b></div>${profileGroupRows(indexes,structureLabel,"structure",4)}`;
+  $("profileLevels").innerHTML=`<div class="auditSectionTitle"><b>能力难度</b></div>${profileGroupRows(indexes,abilityLevel,"level",3)}<div class="auditSectionTitle"><b>结构</b></div>${profileGroupRows(indexes,structureLabel,"structure",4)}`;
   const weak=indexes.slice().sort((a,b)=>weaknessScore(b)-weaknessScore(a) || personalDifficulty(b)-personalDifficulty(a)).filter(i=>weaknessScore(i)>0 || hardCount(i)>0).slice(0,12);
-  $("profileChars").innerHTML=weak.length?`<div class="charChips">${weak.map(i=>`<button class="charChip" data-profile-char="${i}" title="${esc(CARDS[i].word)}">${CARDS[i].target}</button>`).join("")}</div>`:`<div class="empty">还没有明显易错字。等出现“看提示写出”或“没写出来”，这里会优先显示。</div>`; }
+  $("profileChars").innerHTML=weak.length?`<div class="charChips">${weak.map(i=>`<button class="charChip" data-profile-char="${i}" title="${esc(CARDS[i].word)}">${CARDS[i].target}</button>`).join("")}</div>`:`<div class="empty">还没有明显易错字。等出现“看提示写出”“不会写”或“写错了”，这里会优先显示。</div>`; }
 function withAuditPreference(pref, fn){ const oldPref=preference, oldTopic=load(TOPIC_KEY,""); preference=pref;
   try{ return fn(); } finally { preference=oldPref; save(TOPIC_KEY,oldTopic); } }
 function countBy(items, fn){ const map={}; items.forEach(i=>{ const k=fn(i); map[k]=(map[k]||0)+1; }); return map; }
@@ -586,7 +613,7 @@ function tagList(map, limit=8){ return Object.entries(map).sort((a,b)=>b[1]-a[1]
 function average(items, fn){ return items.length ? Math.round(items.reduce((s,i)=>s+fn(i),0)/items.length) : 0; }
 function qualityText(i){ const q=qualityFor(i), out=[]; if(q.easy) out.push("太简单"); if(q.rare) out.push("太生僻"); if(q.badWord) out.push("词不自然"); if(q.hide) out.push("不想练"); return out.join(" · "); }
 function auditRow(i){ const c=CARDS[i], q=qualityFor(i), qt=qualityText(i); return `<div class="auditRow" data-idx="${i}">
-  <div class="char">${c.target}</div><div class="main"><b>${c.word}</b><small>${c.py||"无拼音"} · ${normLevel(i)} · ${contextLabel(i)} · ${cardTopic(i)} · ${cardLevel(i)} · 难度 ${cardDifficulty(i)} · 字频#${c.rank||"未收录"} · ${c.strokes||0}画/${c.parts||1}部件${qt?` · ${qt}`:""}</small></div>
+  <div class="char">${c.target}</div><div class="main"><b>${c.word}</b><small>${c.py||"无拼音"} · ${normLevel(i)} · ${contextLabel(i)} · ${cardTopic(i)} · ${abilityMeta(i)} · 字频#${c.rank||"未收录"} · ${c.strokes||0}画/${c.parts||1}部件${qt?` · ${qt}`:""}</small></div>
   <div class="auditActions"><button data-audit-practice="${i}">练这个</button><button data-audit-quality="easy" class="${q.easy?"active":""}">太简单</button><button data-audit-quality="rare" class="${q.rare?"active":""}">太生僻</button><button data-audit-quality="badWord" class="${q.badWord?"active":""}">词不自然</button><button data-audit-quality="hide" class="${q.hide?"active":""}">不想练</button></div>
 </div>`; }
 function auditData(pref=auditPref){ return withAuditPreference(pref,()=>{ const pool=newPool(false), sample=shuffle(pool).slice(0,100), batch=chooseBatch(pool);
@@ -595,7 +622,7 @@ function renderAudit(pref=auditPref){ auditPref=pref; displayView("audit"); cons
   $("pos").textContent=`质检 · ${prefLabelFor(pref)}`;
   document.querySelectorAll("#auditPrefs button[data-pref]").forEach(btn=>btn.classList.toggle("active",btn.dataset.pref===pref));
   $("auditSummary").innerHTML=`<div class="auditMetric"><b>${data.pool.length}</b><span>可出新字</span></div><div class="auditMetric"><b>${data.target}</b><span>目标难度</span></div><div class="auditMetric"><b>${flagged}</b><span>质量反馈</span></div>`;
-  $("auditBands").innerHTML=`<div class="auditBand"><b>样本规范等级分布</b><div class="auditTags">${tagList(countBy(data.sample,normLevel),6)}</div></div><div class="auditBand"><b>样本难度层分布</b><div class="auditTags">${tagList(countBy(data.sample,cardLevel),6)}</div></div><div class="auditBand"><b>样本主题分布</b><div class="auditTags">${tagList(countBy(data.sample,cardTopic),10)}</div></div>`;
+  $("auditBands").innerHTML=`<div class="auditBand"><b>样本规范等级分布</b><div class="auditTags">${tagList(countBy(data.sample,normLevel),6)}</div></div><div class="auditBand"><b>样本能力难度分布</b><div class="auditTags">${tagList(countBy(data.sample,abilityLevel),3)}</div></div><div class="auditBand"><b>样本主题分布</b><div class="auditTags">${tagList(countBy(data.sample,cardTopic),10)}</div></div>`;
   $("auditBatchNote").textContent=`${data.topic} · 均难度 ${average(data.batch,cardDifficulty)}`;
   $("auditBatch").innerHTML=data.batch.length?data.batch.map(auditRow).join(""):`<div class="empty">当前偏好下没有可出的新字。</div>`;
   $("auditSample").innerHTML=data.sample.length?data.sample.slice(0,30).map(auditRow).join(""):`<div class="empty">当前偏好下没有样本。</div>`; }
@@ -614,7 +641,7 @@ let addedChars = load(ADDED_KEY, null);
 if(!Array.isArray(addedChars)){ addedChars=[...new Set(customWords.flatMap(w=>Array.from(w).filter(isCJK)))]; save(ADDED_KEY,addedChars); }
 function customIndexOf(ch){ for(let i=BASE_N;i<CARDS.length;i++){ if(CARDS[i].target===ch) return i; } return -1; }
 function unblockQuality(i){ const k=cardKey(i); if(quality[k]){ delete quality[k]; saveQuality(); } }
-// 现实里提笔忘了 = 一次真实的「没写出来」：记进记忆模型，让它立刻进入今日复习和重点字本
+// 现实里提笔忘了 = 一次真实的「不会写」：记进记忆模型，让它立刻进入今日复习和错题本
 function recordRealWorldMiss(i){ const c=CARDS[i], m=cardMemory(i), now=Date.now();
   m.seen=(m.seen||0)+1; m.last=now; m.lastOutcome="miss"; m.misses=(m.misses||0)+1; m.streak=0; m.ease=clamp((m.ease||50)-16,0,100);
   m.topic=c.topic; m.level=c.level; m.word=c.word; m.target=c.target; m.due=now; setStatus(i,"indeck"); }
@@ -627,6 +654,10 @@ function addWord(s){ s=(s||"").trim(); const chars=[...new Set(Array.from(s).fil
     const r=pushWordCards(word); for(let i=r[0];i<r[1];i++) recordRealWorldMiss(i); }
   chars.forEach(ch=>{ if(!addedChars.includes(ch)) addedChars.push(ch); }); save(ADDED_KEY,addedChars);
   saveMemory(); return chars; }
+function indexesForChars(chars){ return (chars||[]).map(ch=>{ const base=BASE_BY_CHAR[ch]; return base!=null?base:customIndexOf(ch); }).filter(i=>i!=null && i>=0); }
+function insertIntoCurrentBatch(indexes){ if($("card").style.display==="none" || !Array.isArray(batch) || batch.length===0) return 0;
+  const existing=new Set(batch), fresh=[...new Set(indexes)].filter(i=>!existing.has(i));
+  if(!fresh.length) return 0; batch.splice(pos+1,0,...fresh); return fresh.length; }
 
 // ---- 画布 / 笔顺 ----
 const DPR=window.devicePixelRatio||1, $=id=>document.getElementById(id);
@@ -666,7 +697,7 @@ function initBox(){ const box=document.createElement('div'); box.className='box'
     if(continuous){ if(penDown){ strokeTo(p); } else { last=p; } e.preventDefault(); return; }
     if(drawing){ strokeTo(p); e.preventDefault(); } });
   ['pointerup','pointercancel','pointerleave'].forEach(ev=>inkCanvas.addEventListener(ev,()=>{ if(!continuous) drawing=false; })); }
-function clearInk(){ inkCtx.clearRect(0,0,S,S); }
+function clearInk(){ inkCtx.clearRect(0,0,S,S); if(inkCanvas && !revealed) inkCanvas.style.opacity='1'; }
 
 function charLoader(char, onComplete){
   const local='data/'+encodeURIComponent(char)+'.json';
@@ -686,15 +717,20 @@ function updateTip(){ $("tip").textContent=`笔顺提示（${groupIdx}/${groups.
 
 // ---- 流程 ----
 function promptHTML(c){ return c.chars.map((ch,i)=> i===c.ci ? `<span class="blank">${c.py||"？"}</span>` : `<span class="given">${ch}</span>`).join(""); }
+function contextCue(c){ if(c.custom) return `你添加的词：${c.word}。写出刚才卡住的那个字。`;
+  const py=c.py?`拼音 ${c.py}`:"这个空"; return `词语：${c.word}。请根据这个常见语境，写出 ${py} 对应的缺字。`; }
 function render(){ fitBox(); cur=CARDS[batch[pos]]; const token=++loadToken;
   displayView("card");
+  $("card").classList.remove("revealedCard");
   hintsUsedThisCard=0; cardStartedAt=Date.now();
   $("pos").textContent=activeMode==="calibrate"?`水平校准 · 第 ${pos+1} / ${batch.length} 个`:`第 ${pos+1} / ${batch.length} 个 · 复习 ${reviewCount()}`;
-  // 练习时只留题面本身；等级/画数/字频这类元信息收进重点字本和题库质检
-  $("prompt").innerHTML=promptHTML(cur); $("hint").textContent=cur.custom?cur.hint:(activeMode==="calibrate"?"15 字试练：先估一下难度，后面会更贴合你。":"");
+  // 练习时只留题面本身；等级/画数/字频这类元信息收进错题本和题库质检
+  $("prompt").innerHTML=promptHTML(cur); document.querySelector(".ask").textContent="根据词语和语境写出缺字";
+  $("hint").classList.add("contextCue"); $("hint").textContent=contextCue(cur)+(activeMode==="calibrate"?" 这组会用来估算你的起始难度。":"");
   $("reveal").style.display="none"; $("ans").innerHTML=""; $("markCue").textContent=""; $("peek").style.display="";
   $("mark").style.display="none"; $("qualityBox").style.display="none"; $("actions").style.display=""; $("inkTools").style.display="";
-  $("hinted").style.display=""; $("miss").textContent="没写出来";
+  $("fast").textContent="会写"; $("hinted").textContent="看提示写出"; $("miss").textContent="不会写"; $("slow").textContent="写错了";
+  $("hinted").style.display="";
   clearInk(); setPen(false); inkCanvas.style.opacity='1'; hzEl.style.opacity='1'; showingMine=false;
   shownStrokes=0; totalStrokes=0; groups=[]; groupIdx=0; $("tip").disabled=true; $("show").disabled=true; $("done").disabled=true; $("tip").textContent="笔顺提示";
   hzEl.innerHTML=""; writer=null; revealed=false;
@@ -710,25 +746,29 @@ function render(){ fitBox(); cur=CARDS[batch[pos]]; const token=++loadToken;
 $("clear").onclick=()=>{ clearInk(); setPen(false); };
 let animating=false, revealed=false;
 $("tip").onclick=async ()=>{ if(!writer||animating||revealed||groupIdx>=groups.length) return; hintsUsedThisCard++; animating=true;
-  const n=groups[groupIdx], start=shownStrokes, token=loadToken; groupIdx++; shownStrokes+=n; updateTip();
+  const n=groups[groupIdx], start=shownStrokes, token=loadToken, nextGroup=groupIdx+1;
+  if(inkCanvas) inkCanvas.style.opacity='0.22'; if(hzEl) hzEl.style.opacity='1';
+  $("hint").textContent=`正在显示第 ${nextGroup} 段笔顺；你的笔迹已淡化保留，避免提示和书写重叠。`;
+  groupIdx++; shownStrokes+=n; updateTip();
   // 换卡（token 变）或揭晓后立刻停：残余的逐笔动画会取消揭晓动画、甚至把下一张卡的笔画提前画出来
   for(let i=0;i<n;i++){ if(token!==loadToken||revealed) break; try{ await writer.animateStroke(start+i,{}); }catch(e){} }
-  animating=false; };
-// 两条结束路径：「写好了」= 写出来了，正确字直接显示，对照后自评；「不会写，揭晓」= 没写出来，笔顺动画教一遍
-function revealAnswer(done){
+  animating=false;
+  if(token===loadToken && !revealed && groupIdx>=groups.length){ toast("笔顺已完整展示，请按真实情况自评"); revealAnswer(false,true); }
+};
+// 两条结束路径：「写好了」= 写出来了，正确字直接显示，对照后自评；「揭晓答案」= 不会写，笔顺动画教一遍
+function revealAnswer(done, fromHints=false){
   revealed=true;
+  $("card").classList.add("revealedCard");
   const noData=!writer||!totalStrokes; // 离线未缓存/加载失败：田字格画不出答案
   if(!noData){ try{ writer.updateColor('strokeColor', cssVar('--accent',"#1f3a5f")); writer.updateColor('radicalColor', cssVar('--accent',"#1f3a5f")); }catch(e){}
-    try{ writer.hideCharacter({duration:0}); if(done) writer.showCharacter({duration:400}); else writer.animateCharacter(); }catch(e){}
+    try{ writer.hideCharacter({duration:0}); if(done||fromHints) writer.showCharacter({duration:300}); else writer.animateCharacter(); }catch(e){}
     shownStrokes=totalStrokes; groupIdx=groups.length; updateTip(); }
   const blank=$("prompt").querySelector(".blank"); if(blank){ blank.textContent=cur.target; blank.classList.add("filled"); }
   // 没有笔顺数据时：答案用大字给在下方，保留用户自己的笔迹别藏
   if(noData){ setRevealView(true); $("peek").style.display="none"; } else setRevealView(false);
   $("reveal").style.display="block"; $("ans").innerHTML=(noData?`<span class="big">${cur.target}</span>`:"")+`<span class="small">${cur.word}${cur.py?` · ${cur.py}`:""}</span>`;
-  $("markCue").textContent=noData?(done?"对照上面的答案看看，写对了吗？":"看着答案回忆一下，这个字算哪种？"):(done?"对照笔顺看看，写对了吗？":"顺着笔顺回忆一下，这个字算哪种？");
-  // 写好了路径：没用过提示就不出现「看提示写出」；「没写出来」在这里意味着写错了
-  $("hinted").style.display=(done && !hintsUsedThisCard)?"none":"";
-  $("miss").textContent=done?"写错了":"没写出来";
+  $("markCue").textContent=fromHints?"笔顺已经完整展示，选一个最接近的反馈；会写会延后复习，其他会进错题或近期复习。":(noData?(done?"对照上面的答案看看，写对了吗？会写会延后，写错/不会会进复习。":"看着答案回忆一下；会写会延后，其他会进错题或近期复习。"):(done?"对照笔顺看看，写对了吗？会写会延后，写错/不会会进复习。":"顺着笔顺回忆一下；会写会延后，其他会进错题或近期复习。"));
+  $("hinted").style.display="";
   renderQuality();
   $("inkTools").style.display="none"; $("actions").style.display="none";
   $("mark").style.display="grid"; $("qualityBox").style.display="";
@@ -748,28 +788,28 @@ function startRound(){ const p=availablePool(); if(p.length===0){ allDone(); ret
 function resultItem(s){ return `<button class="resultItem ${s.outcome}" data-idx="${s.idx}"><b>${s.target}</b><span>${s.word} · ${s.level}</span><em>${dueText(s.due)}</em></button>`; }
 function resultGroup(outcome,label,desc){ const items=roundStats.filter(x=>x.outcome===outcome);
   return `<section class="resultGroup"><div class="resultHead"><b>${label} ${items.length}</b><span>${desc}</span></div><div class="resultItems">${items.length?items.map(resultItem).join(""):`<span class="empty">这一类没有字</span>`}</div></section>`; }
-function moreLabel(remain){ if(activeMode==="review") return `继续今日复习（还剩 ${remain}）`; if(activeMode==="focus") return `继续重点字（还剩 ${remain}）`; return "继续练新字"; }
+function moreLabel(remain){ if(activeMode==="review") return `继续今日复习（还剩 ${remain}）`; if(activeMode==="focus") return `继续错题（还剩 ${remain}）`; return "继续练新字"; }
 function roundSummary(){ displayView("summary"); const wasCalibration=activeMode==="calibrate", calibrationNote=maybeFinishCalibration(), remain=availablePool().length;
   $("pos").textContent="本组结果";
-  const count=o=>roundStats.filter(x=>x.outcome===o).length, risky=roundStats.filter(x=>x.outcome==="hinted"||x.outcome==="miss").map(x=>x.target);
-  const stable=count("fast")+count("slow"), review=count("hinted")+count("miss"), total=Math.max(1,roundStats.length), stablePct=Math.round(stable/total*100);
-  const needsReviewFirst=count("miss")>=3 || review>=Math.ceil(total/2);
+  const count=o=>roundStats.filter(x=>x.outcome===o).length, risky=roundStats.filter(x=>x.outcome==="hinted"||x.outcome==="miss"||x.outcome==="slow").map(x=>x.target);
+  const stable=count("fast"), review=count("hinted")+count("miss")+count("slow"), total=Math.max(1,roundStats.length), stablePct=Math.round(stable/total*100);
+  const needsReviewFirst=(count("miss")+count("slow"))>=3 || review>=Math.ceil(total/2);
   const rough=needsReviewFirst && !wasCalibration;
-  $("sumTitle").textContent=wasCalibration?"15 字试练完成":(rough?"卡住几个很正常，它们正是你来练的字":(risky.length?`这一组有 ${risky.length} 个进入重点复习`:"这一组记录好了"));
-  $("summaryHero").innerHTML=`<div class="summaryRing" style="--stablePct:${stablePct}%"><div class="summaryRingInner"><b>${roundStats.length}</b><span>字练完</span></div></div><div class="summaryHeroText"><b>${review>0?`${review} 个进入重点复习`:`${stable} 个都稳了`}</b><span>${review>0?"这些字已进入重点复习，建议先把它们拿下。":"这一组都很稳，后面会自动加一点难度。"}</span></div>`;
+  $("sumTitle").textContent=wasCalibration?"15 字试练完成":(rough?"卡住几个很正常，它们正是你来练的字":(risky.length?`这一组有 ${risky.length} 个进入错题复习`:"这一组记录好了"));
+  $("summaryHero").innerHTML=`<div class="summaryRing" style="--stablePct:${stablePct}%"><div class="summaryRingInner"><b>${roundStats.length}</b><span>字练完</span></div></div><div class="summaryHeroText"><b>${review>0?`${review} 个进入错题复习`:`${stable} 个都稳了`}</b><span>${review>0?"这些字已进入错题复习，建议先把它们拿下。":"这一组都很稳，后面会自动加一点难度。"}</span></div>`;
   $("sumList").innerHTML=OUTCOMES.map(row=>resultGroup(row[0],row[1],row[2])).join("");
-  const gentle=needsReviewFirst?"先把刚才没写出来的字拿下，比继续冲新字更顶用。":"";
-  $("sumNote").textContent=`${gentle}秒会 ${count("fast")} · 想起后写出 ${count("slow")} · 看提示写出 ${count("hinted")} · 没写出来 ${count("miss")}。到期复习 ${reviewCount()} 个，重点字 ${highRiskCount()} 个。${calibrationNote?` ${calibrationNote}`:""}`;
+  const gentle=needsReviewFirst?"先把刚才不会写或写错的字拿下，比继续冲新字更顶用。":"";
+  $("sumNote").textContent=`${gentle}会写 ${count("fast")} · 看提示写出 ${count("hinted")} · 不会写 ${count("miss")} · 写错了 ${count("slow")}。到期复习 ${reviewCount()} 个，错题 ${highRiskCount()} 个。${calibrationNote?` ${calibrationNote}`:""}`;
   renderRoundTune(calibrationNote);
-  $("reviewRisk").style.display=highRiskCount()>0?"":"none"; $("reviewRisk").textContent=highRiskCount()?`马上复习重点字（${highRiskCount()}）`:"";
+  $("reviewRisk").parentElement.style.display=highRiskCount()>0?"flex":"none"; $("reviewRisk").style.display=highRiskCount()>0?"":"none"; $("reviewRisk").textContent=highRiskCount()?`马上复习错题（${highRiskCount()}）`:"";
   // 这一组卡得多时，别继续推新字；把焦点放回"拿下刚才卡住的字"
   $("more").style.display=(remain>0 && !needsReviewFirst)?"":"none"; $("more").textContent=remain>0?moreLabel(remain):""; }
 function allDone(){ displayView("summary");
   $("pos").textContent="今日练习";
   $("sumTitle").textContent="今天的字过完了"; $("sumList").textContent="";
   $("summaryHero").innerHTML=`<div class="summaryRing" style="--stablePct:100%"><div class="summaryRingInner"><b>${memoryCount()}</b><span>已记录</span></div></div><div class="summaryHeroText"><b>没有到期复习了</b><span>每天一点，手感会慢慢回来。</span></div>`;
-  $("sumNote").textContent=`已记录 ${memoryCount()} 个字。到期复习 ${reviewCount()} 个，重点字 ${highRiskCount()} 个。`; $("roundTune").style.display="none"; $("more").style.display="none";
-  $("reviewRisk").style.display=highRiskCount()>0?"":"none"; $("reviewRisk").textContent=highRiskCount()?`马上复习重点字（${highRiskCount()}）`:""; }
+  $("sumNote").textContent=`已记录 ${memoryCount()} 个字。到期复习 ${reviewCount()} 个，错题 ${highRiskCount()} 个。`; $("roundTune").style.display="none"; $("more").style.display="none";
+  $("reviewRisk").parentElement.style.display=highRiskCount()>0?"flex":"none"; $("reviewRisk").style.display=highRiskCount()>0?"":"none"; $("reviewRisk").textContent=highRiskCount()?`马上复习错题（${highRiskCount()}）`:""; }
 $("more").onclick=startRound;
 $("reviewRisk").onclick=()=>startFocus(highRiskIndexes());
 $("stop").onclick=renderHome;
@@ -786,6 +826,8 @@ $("riskList").onclick=e=>{ const b=e.target.closest("[data-idx]"); if(b) startFo
 $("sumList").onclick=e=>{ const b=e.target.closest("[data-idx]"); if(b) startFocus([Number(b.dataset.idx)]); };
 $("roundTune").onclick=e=>{ const b=e.target.closest("[data-round-feedback]"); if(b) recordRoundFeedback(b.dataset.roundFeedback); };
 $("bookList").onclick=e=>{ const b=e.target.closest("[data-idx]"); if(b) startFocus([Number(b.dataset.idx)]); };
+$("homeLink").onclick=renderHome;
+$("practiceLink").onclick=()=>{ if($("card").style.display!=="none") return; startMode(reviewCount()>0?"review":"new"); };
 $("openBook").onclick=renderBook;
 $("bookLink").onclick=renderBook;
 $("closeBook").onclick=renderHome;
@@ -809,7 +851,7 @@ $("practiceRisk").onclick=()=>startFocus(highRiskIndexes());
 $("dataLink").onclick=()=>{ const box=$("dataBox"); if(box.style.display==="block"){ box.style.display="none"; return; }
   const last7=opens.filter(d=>{ const diff=(new Date(today())-new Date(d))/86400000; return diff>=0 && diff<7; });
   box.style.display="block"; box.innerHTML=`<b>实验用，别天天盯（盯 streak 会污染“光靠痒”这个变量）</b><br>`+
-    `最近 7 天里，你主动打开过 <b>${last7.length}</b> 天 → 目标 ≥4 天<br>出题偏好：<b>${prefLabel()}</b> · 难度校准：<b>${tuningLabel()} ${tuningShiftText()}</b> · 语境严格度：<b>${Number(tuning.contextStrict)||0}</b><br>题目反馈：<b>${qualityCount()}</b> 条 · 整组反馈：<b>${(tuning.rounds||[]).length}</b> 条<br>已记录：<b>${memoryCount()}</b> 个字 · 到期复习：<b>${reviewCount()}</b> 个 · 重点字：<b>${highRiskCount()}</b> 个<br>你自己加的字：<b>${addedChars.length}</b> 个<br>累计打开：${opens.length} 天`; };
+    `最近 7 天里，你主动打开过 <b>${last7.length}</b> 天 → 目标 ≥4 天<br>出题偏好：<b>${prefLabel()}</b> · 难度校准：<b>${tuningLabel()} ${tuningShiftText()}</b> · 语境严格度：<b>${Number(tuning.contextStrict)||0}</b><br>题目反馈：<b>${qualityCount()}</b> 条 · 整组反馈：<b>${(tuning.rounds||[]).length}</b> 条<br>已记录：<b>${memoryCount()}</b> 个字 · 到期复习：<b>${reviewCount()}</b> 个 · 错题：<b>${highRiskCount()}</b> 个<br>你自己加的字：<b>${addedChars.length}</b> 个<br>累计打开：${opens.length} 天`; };
 let toastTimer=0;
 function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove("show"),2200); }
 
@@ -821,7 +863,10 @@ function renderAddPreview(){ const chars=[...new Set(Array.from($("addInput").va
 function openAddSheet(){ $("addInput").value=""; renderAddPreview(); $("addSheet").classList.add("open"); $("addInput").focus(); }
 function closeAddSheet(){ $("addSheet").classList.remove("open"); $("addInput").blur(); }
 function confirmAdd(){ const chars=addWord($("addInput").value); if(!chars) return;
-  closeAddSheet(); toast(`已加入：${chars.join("、")} · 已排进今日复习`);
+  const inserted=insertIntoCurrentBatch(indexesForChars(chars));
+  closeAddSheet();
+  if(inserted){ $("pos").textContent=activeMode==="calibrate"?`水平校准 · 第 ${pos+1} / ${batch.length} 个`:`第 ${pos+1} / ${batch.length} 个 · 复习 ${reviewCount()}`; toast(`已加入本次练习：${chars.join("、")}，下一题开始出现`); }
+  else toast(`已加入：${chars.join("、")} · 已排进今日复习`);
   if($("summary").style.display==="block") roundSummary(); if($("home").style.display==="block") renderHome(); if($("studybook").style.display==="block") renderBook(); }
 $("addLink").onclick=openAddSheet;
 $("addCancel").onclick=closeAddSheet;

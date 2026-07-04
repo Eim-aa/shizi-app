@@ -36,13 +36,15 @@ const sampleTargets = ["的", "一", "强", "器", "随", "察", "群", "疑", "
     startNewDisabled: document.getElementById("startNew").disabled,
     startNewText: document.getElementById("startNew").textContent,
     homeHint: document.getElementById("homeHint").textContent,
+    guideSteps: Array.from(document.querySelectorAll("#guideBox span")).map((node) => node.textContent),
+    tabs: Array.from(document.querySelectorAll("#foot > a")).map((node) => node.textContent),
     activePref: document.querySelector("#prefBox button.active")?.dataset.pref,
     needsCalibration: typeof needsCalibration === "function" ? needsCalibration() : null,
   }));
   if (!homeOverview.homeVisible || homeOverview.cardVisible || homeOverview.startNewDisabled) {
     throw new Error(`Expected home entry panel before practice, got ${JSON.stringify(homeOverview)}`);
   }
-  if (homeOverview.activePref !== "balanced" || !homeOverview.needsCalibration || !homeOverview.startNewText.includes("15 字") || !homeOverview.homeHint.includes("估一下难度")) {
+  if (homeOverview.activePref !== "balanced" || !homeOverview.needsCalibration || !homeOverview.startNewText.includes("15 字") || !homeOverview.homeHint.includes("估算") || homeOverview.guideSteps.length !== 4 || homeOverview.tabs.join(",") !== "首页,练习,错题,分析,加字") {
     throw new Error(`Expected balanced preference by default, got ${JSON.stringify(homeOverview)}`);
   }
 
@@ -67,12 +69,12 @@ const sampleTargets = ["的", "一", "强", "器", "随", "察", "群", "疑", "
       hasElementary: batch.some((idx) => cardLevel(idx) === "小学"),
       hasFallback: batch.some((idx) => contextSource(idx) === "fallback"),
     };
-    roundStats = batch.map((idx, n) => ({
+    roundStats = batch.map((idx) => ({
       idx,
       target: CARDS[idx].target,
       word: CARDS[idx].word,
-      outcome: n < 12 ? "fast" : "slow",
-      level: CARDS[idx].level,
+      outcome: "fast",
+      level: abilityLevel(idx),
       topic: CARDS[idx].topic,
       due: Date.now() + 86400000,
     }));
@@ -152,7 +154,7 @@ const sampleTargets = ["的", "一", "强", "器", "随", "察", "群", "疑", "
     blankFilled: document.querySelector("#prompt .blank").classList.contains("filled"),
     inkToolsHidden: getComputedStyle(document.getElementById("inkTools")).display === "none",
   }));
-  if (!revealCheck.qualityVisible || !revealCheck.hintedHidden || revealCheck.missLabel !== "写错了" || revealCheck.doneText !== "写好了" || !revealCheck.showText.includes("不会写") || !revealCheck.askText.includes("根据拼音") || !revealCheck.markCue.includes("写对了吗") || !revealCheck.blankFilled || !revealCheck.inkToolsHidden) {
+  if (!revealCheck.qualityVisible || revealCheck.hintedHidden || revealCheck.missLabel !== "不会写" || revealCheck.doneText !== "写好了" || !revealCheck.showText.includes("揭晓答案") || !revealCheck.askText.includes("词语和语境") || !revealCheck.markCue.includes("写对了吗") || !revealCheck.blankFilled || !revealCheck.inkToolsHidden) {
     throw new Error(`Expected completed-path reveal to show trimmed self-assessment, got ${JSON.stringify(revealCheck)}`);
   }
   await page.click('#qualityBox [data-quality="easy"]');
@@ -216,6 +218,42 @@ const sampleTargets = ["的", "一", "强", "器", "随", "察", "群", "疑", "
   if (!exitConfirmCheck.homeVisible || exitConfirmCheck.cardVisible || exitConfirmCheck.memoryCount !== 0) {
     throw new Error(`Expected confirming exit to return home without recording current card, got ${JSON.stringify(exitConfirmCheck)}`);
   }
+
+  await page.evaluate(() => {
+    status = {};
+    memory = {};
+    quality = {};
+    save(DECK_KEY, status);
+    saveMemory();
+    saveQuality();
+    const idx = CARDS.findIndex((card) => card.target === "强");
+    batch = [idx];
+    pos = 0;
+    activeMode = "new";
+    sessionDone = new Set();
+    render();
+  });
+  const addQueueBefore = await page.evaluate(() => ({ length: batch.length, pos, first: CARDS[batch[0]].target }));
+  await page.click("#addLink");
+  await page.fill("#addInput", "蘸料");
+  await page.click("#addConfirm");
+  const addQueueCheck = await page.evaluate(() => ({
+    length: batch.length,
+    inserted: batch.slice(pos + 1, pos + 3).map((idx) => CARDS[idx].target),
+    toast: document.getElementById("toast").textContent,
+  }));
+  if (addQueueCheck.length < addQueueBefore.length + 2 || addQueueCheck.inserted.join("") !== "蘸料" || !addQueueCheck.toast.includes("本次练习")) {
+    throw new Error(`Expected added word to enter the current practice queue, got ${JSON.stringify(addQueueCheck)}`);
+  }
+  await page.evaluate(() => {
+    status = {};
+    memory = {};
+    quality = {};
+    save(DECK_KEY, status);
+    saveMemory();
+    saveQuality();
+    renderHome();
+  });
 
   await page.click("#internalToggle");
   await page.click("#auditLink");
@@ -490,7 +528,7 @@ const sampleTargets = ["的", "一", "强", "器", "随", "察", "群", "疑", "
   if (Math.max(...overview.initialDifficulties) < 84) {
     throw new Error(`Expected opening batch to include professional-level cards, got ${overview.initialTargets.join(", ")}`);
   }
-  if (overview.feedbackButtons.join(",") !== "fast,slow,hinted,miss") {
+  if (overview.feedbackButtons.join(",") !== "fast,hinted,miss,slow") {
     throw new Error(`Expected four feedback buttons, got ${overview.feedbackButtons.join(",")}`);
   }
 
@@ -530,7 +568,7 @@ const sampleTargets = ["的", "一", "强", "器", "随", "察", "群", "疑", "
     charsText: document.getElementById("profileChars").textContent,
     pos: document.getElementById("pos").textContent,
   }));
-  if (!profileCheck.visible || profileCheck.metrics.length !== 4 || profileCheck.topicRows < 1 || profileCheck.levelRows < 2 || !profileCheck.charsText.includes(feedbackCheck.firstMemory.target) || !profileCheck.advice.includes("重点字")) {
+  if (!profileCheck.visible || profileCheck.metrics.length !== 4 || profileCheck.topicRows < 1 || profileCheck.levelRows < 2 || !profileCheck.charsText.includes(feedbackCheck.firstMemory.target) || !profileCheck.advice.includes("错题")) {
     throw new Error(`Expected profile panel to summarize the missed card, got ${JSON.stringify(profileCheck)}`);
   }
 
@@ -637,8 +675,8 @@ const sampleTargets = ["的", "一", "强", "器", "随", "察", "群", "疑", "
     roundFeedbackGiven = false;
     roundId = "verify-summary";
     roundStats = [
-      { idx: fastIdx, target: CARDS[fastIdx].target, word: CARDS[fastIdx].word, outcome: "fast", level: CARDS[fastIdx].level, topic: CARDS[fastIdx].topic, due: now + 14 * 86400000 },
-      { idx: missIdx, target: CARDS[missIdx].target, word: CARDS[missIdx].word, outcome: "miss", level: CARDS[missIdx].level, topic: CARDS[missIdx].topic, due: now },
+      { idx: fastIdx, target: CARDS[fastIdx].target, word: CARDS[fastIdx].word, outcome: "fast", level: abilityLevel(fastIdx), topic: CARDS[fastIdx].topic, due: now + 14 * 86400000 },
+      { idx: missIdx, target: CARDS[missIdx].target, word: CARDS[missIdx].word, outcome: "miss", level: abilityLevel(missIdx), topic: CARDS[missIdx].topic, due: now },
     ];
     activeMode = "new";
     roundSummary();
@@ -656,7 +694,7 @@ const sampleTargets = ["的", "一", "强", "器", "随", "察", "群", "疑", "
       stopText: document.getElementById("stop").textContent,
     };
   });
-  if (!summaryCheck.visible || summaryCheck.groups.length !== 4 || summaryCheck.itemCount !== 2 || !summaryCheck.missItemText.includes("今天再练") || !summaryCheck.heroText.includes("进入重点复习") || summaryCheck.heroText.includes("明天起") || !summaryCheck.reviewRiskVisible || summaryCheck.moreVisible || !summaryCheck.tuneVisible || summaryCheck.tuneButtons.length !== 4) {
+  if (!summaryCheck.visible || summaryCheck.groups.length !== 4 || summaryCheck.itemCount !== 2 || !summaryCheck.missItemText.includes("今天再练") || !summaryCheck.heroText.includes("进入错题复习") || summaryCheck.heroText.includes("明天起") || !summaryCheck.reviewRiskVisible || summaryCheck.moreVisible || !summaryCheck.tuneVisible || summaryCheck.tuneButtons.length !== 4 || summaryCheck.stopText !== "返回首页") {
     throw new Error(`Expected result page 2.0 with grouped rows and review action, got ${JSON.stringify(summaryCheck)}`);
   }
 

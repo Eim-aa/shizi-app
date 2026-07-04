@@ -35,13 +35,14 @@ const sampleTargets = ["的", "一", "强", "器", "随", "察", "群", "疑", "
     startReviewDisabled: document.getElementById("startReview").disabled,
     startNewDisabled: document.getElementById("startNew").disabled,
     startNewText: document.getElementById("startNew").textContent,
+    homeHint: document.getElementById("homeHint").textContent,
     activePref: document.querySelector("#prefBox button.active")?.dataset.pref,
     needsCalibration: typeof needsCalibration === "function" ? needsCalibration() : null,
   }));
   if (!homeOverview.homeVisible || homeOverview.cardVisible || homeOverview.startNewDisabled) {
     throw new Error(`Expected home entry panel before practice, got ${JSON.stringify(homeOverview)}`);
   }
-  if (homeOverview.activePref !== "balanced" || !homeOverview.needsCalibration || !homeOverview.startNewText.includes("校准")) {
+  if (homeOverview.activePref !== "balanced" || !homeOverview.needsCalibration || !homeOverview.startNewText.includes("15 字") || !homeOverview.homeHint.includes("估一下难度")) {
     throw new Error(`Expected balanced preference by default, got ${JSON.stringify(homeOverview)}`);
   }
 
@@ -99,7 +100,7 @@ const sampleTargets = ["的", "一", "强", "器", "随", "察", "群", "疑", "
     renderHome();
     return { before, after };
   });
-  if (calibrationCheck.before.activeMode !== "calibrate" || calibrationCheck.before.batchSize !== 15 || calibrationCheck.before.topics.length < 6 || calibrationCheck.before.hasElementary || calibrationCheck.before.hasFallback || !calibrationCheck.after.calibrated || calibrationCheck.after.activeMode !== "new" || calibrationCheck.after.preference !== "challenge" || calibrationCheck.after.offset < 8 || !calibrationCheck.after.title.includes("校准") || !calibrationCheck.after.tuneVisible) {
+  if (calibrationCheck.before.activeMode !== "calibrate" || calibrationCheck.before.batchSize !== 15 || calibrationCheck.before.topics.length < 6 || calibrationCheck.before.hasElementary || calibrationCheck.before.hasFallback || !calibrationCheck.after.calibrated || calibrationCheck.after.activeMode !== "new" || calibrationCheck.after.preference !== "challenge" || calibrationCheck.after.offset < 8 || !calibrationCheck.after.title.includes("试练") || !calibrationCheck.after.note.includes("估难度") || !calibrationCheck.after.tuneVisible) {
     throw new Error(`Expected first new-user round to calibrate and persist a starting difficulty, got ${JSON.stringify(calibrationCheck)}`);
   }
 
@@ -145,10 +146,13 @@ const sampleTargets = ["的", "一", "强", "器", "随", "察", "群", "疑", "
     hintedHidden: document.getElementById("hinted").style.display === "none",
     missLabel: document.getElementById("miss").textContent,
     markCue: document.getElementById("markCue").textContent,
+    doneText: document.getElementById("done").textContent,
+    showText: document.getElementById("show").textContent,
+    askText: document.querySelector(".ask").textContent,
     blankFilled: document.querySelector("#prompt .blank").classList.contains("filled"),
     inkToolsHidden: getComputedStyle(document.getElementById("inkTools")).display === "none",
   }));
-  if (!revealCheck.qualityVisible || !revealCheck.hintedHidden || revealCheck.missLabel !== "写错了" || !revealCheck.markCue.includes("写对了吗") || !revealCheck.blankFilled || !revealCheck.inkToolsHidden) {
+  if (!revealCheck.qualityVisible || !revealCheck.hintedHidden || revealCheck.missLabel !== "写错了" || revealCheck.doneText !== "写好了" || !revealCheck.showText.includes("不会写") || !revealCheck.askText.includes("根据拼音") || !revealCheck.markCue.includes("写对了吗") || !revealCheck.blankFilled || !revealCheck.inkToolsHidden) {
     throw new Error(`Expected completed-path reveal to show trimmed self-assessment, got ${JSON.stringify(revealCheck)}`);
   }
   await page.click('#qualityBox [data-quality="easy"]');
@@ -175,6 +179,43 @@ const sampleTargets = ["的", "一", "强", "器", "随", "察", "群", "疑", "
     save(PREF_KEY, preference);
     renderHome();
   });
+
+  await page.evaluate(() => {
+    const idx = CARDS.findIndex((card) => card.target === "强");
+    batch = [idx];
+    pos = 0;
+    activeMode = "new";
+    sessionDone = new Set();
+    render();
+  });
+  await page.waitForFunction(() => getComputedStyle(document.getElementById("card")).display !== "none");
+  await page.click("#exitPractice");
+  const exitCancelCheck = await page.evaluate(() => ({
+    open: document.getElementById("exitSheet").classList.contains("open"),
+    title: document.querySelector("#exitSheet h3").textContent,
+    hint: document.querySelector("#exitSheet .sheetHint").textContent,
+  }));
+  if (!exitCancelCheck.open || !exitCancelCheck.title.includes("退出") || !exitCancelCheck.hint.includes("当前这张不会记录")) {
+    throw new Error(`Expected exit confirmation sheet, got ${JSON.stringify(exitCancelCheck)}`);
+  }
+  await page.click("#exitCancel");
+  const exitKeepCheck = await page.evaluate(() => ({
+    sheetOpen: document.getElementById("exitSheet").classList.contains("open"),
+    cardVisible: getComputedStyle(document.getElementById("card")).display !== "none",
+  }));
+  if (exitKeepCheck.sheetOpen || !exitKeepCheck.cardVisible) {
+    throw new Error(`Expected canceling exit to keep practice card, got ${JSON.stringify(exitKeepCheck)}`);
+  }
+  await page.click("#exitPractice");
+  await page.click("#exitConfirm");
+  const exitConfirmCheck = await page.evaluate(() => ({
+    homeVisible: getComputedStyle(document.getElementById("home")).display !== "none",
+    cardVisible: getComputedStyle(document.getElementById("card")).display !== "none",
+    memoryCount: memoryCount(),
+  }));
+  if (!exitConfirmCheck.homeVisible || exitConfirmCheck.cardVisible || exitConfirmCheck.memoryCount !== 0) {
+    throw new Error(`Expected confirming exit to return home without recording current card, got ${JSON.stringify(exitConfirmCheck)}`);
+  }
 
   await page.click("#internalToggle");
   await page.click("#auditLink");
@@ -606,14 +647,16 @@ const sampleTargets = ["的", "一", "强", "器", "随", "察", "群", "疑", "
       groups: Array.from(document.querySelectorAll(".resultGroup")).map((node) => node.textContent),
       itemCount: document.querySelectorAll("#sumList .resultItem").length,
       missItemText: document.querySelector("#sumList .resultItem.miss")?.textContent || "",
+      heroText: document.getElementById("summaryHero").textContent,
       note: document.getElementById("sumNote").textContent,
       tuneVisible: getComputedStyle(document.getElementById("roundTune")).display !== "none",
       tuneButtons: Array.from(document.querySelectorAll("#roundTune [data-round-feedback]")).map((button) => button.textContent),
       reviewRiskVisible: getComputedStyle(document.getElementById("reviewRisk")).display !== "none",
+      moreVisible: getComputedStyle(document.getElementById("more")).display !== "none",
       stopText: document.getElementById("stop").textContent,
     };
   });
-  if (!summaryCheck.visible || summaryCheck.groups.length !== 4 || summaryCheck.itemCount !== 2 || !summaryCheck.missItemText.includes("今天再练") || !summaryCheck.reviewRiskVisible || !summaryCheck.tuneVisible || summaryCheck.tuneButtons.length !== 4) {
+  if (!summaryCheck.visible || summaryCheck.groups.length !== 4 || summaryCheck.itemCount !== 2 || !summaryCheck.missItemText.includes("今天再练") || !summaryCheck.heroText.includes("进入重点复习") || summaryCheck.heroText.includes("明天起") || !summaryCheck.reviewRiskVisible || summaryCheck.moreVisible || !summaryCheck.tuneVisible || summaryCheck.tuneButtons.length !== 4) {
     throw new Error(`Expected result page 2.0 with grouped rows and review action, got ${JSON.stringify(summaryCheck)}`);
   }
 

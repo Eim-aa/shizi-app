@@ -4,7 +4,7 @@
    - 同源静态资源（库、图标、data/*.json 笔画数据）：缓存优先（不可变，秒开 + 离线可用）
    - 跨源（CDN 兜底字）：不拦截，照常走网络
 */
-const VERSION = 'shizi-v5';
+const VERSION = 'shizi-v6';
 const SHELL = ['./', 'index.html', 'deck-data.js', 'hanzi-writer.min.js', 'manifest.webmanifest',
   'icon-180.png', 'icon-192.png', 'icon-512.png'];
 

@@ -88,6 +88,8 @@
   .revealedCard .mark button{ padding:10px 11px; font-size:13px; }
   @keyframes markCue{ 0%,100%{ box-shadow:0 0 0 0 rgba(52,86,138,0); } 35%{ box-shadow:0 0 0 4px var(--accentSoft); } }
   .mark.cue{ animation:markCue .85s ease 1; border-radius:14px; }
+  .mark button.suggest{ outline:2.5px solid currentColor; outline-offset:2px; }
+  .mark button.suggest::after{ content:"建议"; margin-left:auto; font-size:11px; opacity:.75; padding-left:6px; }
   .book,.profile,.audit,.me{ background:var(--paper); border:1px solid transparent; border-radius:22px; padding:16px 2px 18px; margin-bottom:14px; box-shadow:none; animation:screenIn .32s ease; }
   /* ---- 首页：极简 launcher（一个大圆按钮为唯一焦点，对齐设计稿） ---- */
   .home{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:12px 24px 24px; animation:screenIn .4s ease; }
@@ -739,14 +741,15 @@ function initBox(){ const box=document.createElement('div'); box.className='box'
   [gridCanvas,inkCanvas].forEach(c=>{ c.style.width=S+'px'; c.style.height=S+'px'; c.width=S*DPR; c.height=S*DPR; c.getContext('2d').scale(DPR,DPR); });
   box.appendChild(gridCanvas); box.appendChild(hzEl); box.appendChild(inkCanvas); $("boxwrap").appendChild(box);
   inkCtx=inkCanvas.getContext('2d'); drawGridOn(gridCanvas.getContext('2d')); inkCanvas.style.transition='opacity .2s'; hzEl.style.transition='opacity .2s';
+  inkStrokes=[]; curInkStroke=null; // 画布重建=墨迹清空，记录的笔画同步作废
   inkCanvas.addEventListener('pointerdown',e=>{ e.preventDefault(); const p=P(e);
-    if(continuous){ if(!penDown){ setPen(true); last=p; dot(p); } else { setPen(false); } return; }
-    drawing=true; last=p; try{inkCanvas.setPointerCapture(e.pointerId);}catch(_){} });
+    if(continuous){ if(!penDown){ setPen(true); last=p; dot(p); inkBegin(p); } else { setPen(false); inkEnd(); } return; }
+    drawing=true; last=p; inkBegin(p); try{inkCanvas.setPointerCapture(e.pointerId);}catch(_){} });
   inkCanvas.addEventListener('pointermove',e=>{ const p=P(e);
-    if(continuous){ if(penDown){ strokeTo(p); } else { last=p; } e.preventDefault(); return; }
-    if(drawing){ strokeTo(p); e.preventDefault(); } });
-  ['pointerup','pointercancel','pointerleave'].forEach(ev=>inkCanvas.addEventListener(ev,()=>{ if(!continuous) drawing=false; })); }
-function clearInk(){ inkCtx.clearRect(0,0,S,S); if(inkCanvas && !revealed) inkCanvas.style.opacity='1'; }
+    if(continuous){ if(penDown){ strokeTo(p); inkMove(p); } else { last=p; } e.preventDefault(); return; }
+    if(drawing){ strokeTo(p); inkMove(p); e.preventDefault(); } });
+  ['pointerup','pointercancel','pointerleave'].forEach(ev=>inkCanvas.addEventListener(ev,()=>{ if(!continuous){ drawing=false; inkEnd(); } })); }
+function clearInk(){ inkCtx.clearRect(0,0,S,S); inkStrokes=[]; curInkStroke=null; if(inkCanvas && !revealed) inkCanvas.style.opacity='1'; }
 
 function charLoader(char, onComplete){
   const local='data/'+encodeURIComponent(char)+'.json';
@@ -761,6 +764,73 @@ function warmUpcomingStrokeCache(){ if(!navigator.onLine) return; try{
   const indexes=reviewCount()?chooseReviewBatch(reviewPool(false)):(needsCalibration()?chooseCalibrationBatch(newPool(false)):withAuditPreference(preference,()=>chooseBatch(newPool(false))));
   warmStrokeCache(indexes.map(i=>CARDS[i].target));
 }catch(e){} }
+
+// ---- 写后自动比对：用户笔迹 vs medians（笔画中线），纯本地几何运算、毫秒级 ----
+// 只在揭晓时判定，绝不在书写过程中反馈（写一半就提示对错=泄题，回忆练习会变成试错）。
+// 判定是近似（连笔/草书会被误判），所以结果只作为「建议」预圈自评按钮，最终以用户点选为准。
+let inkStrokes=[], curInkStroke=null, curMedians=null, lastVerdict=null;
+function inkBegin(p){ curInkStroke=[{x:p.x,y:p.y}]; }
+function inkMove(p){ if(curInkStroke) curInkStroke.push({x:p.x,y:p.y}); }
+function inkEnd(){ if(!curInkStroke) return;
+  // 非连续模式下无位移的点按没有留下墨迹，不算一笔；连续模式落笔会画圆点，算
+  if(curInkStroke.length>=2 || continuous) inkStrokes.push(curInkStroke);
+  curInkStroke=null; }
+function pathLen(pts){ let l=0; for(let i=1;i<pts.length;i++) l+=Math.hypot(pts[i].x-pts[i-1].x,pts[i].y-pts[i-1].y); return l; }
+function resamplePts(pts,n){ const src=pts.map(p=>({x:p.x,y:p.y})), out=[{x:src[0].x,y:src[0].y}];
+  const I=pathLen(src)/(n-1); if(!(I>0)){ while(out.length<n) out.push({x:src[0].x,y:src[0].y}); return out; }
+  let D=0;
+  for(let i=1;i<src.length;i++){ const d=Math.hypot(src[i].x-src[i-1].x,src[i].y-src[i-1].y);
+    if(D+d>=I && d>0){ const t=(I-D)/d, q={x:src[i-1].x+t*(src[i].x-src[i-1].x), y:src[i-1].y+t*(src[i].y-src[i-1].y)};
+      out.push(q); src.splice(i,0,q); D=0; } else D+=d; }
+  while(out.length<n) out.push({x:src[src.length-1].x,y:src[src.length-1].y});
+  return out; }
+function bboxOf(strokes){ let x1=1e9,y1=1e9,x2=-1e9,y2=-1e9;
+  strokes.forEach(pts=>pts.forEach(p=>{ if(p.x<x1)x1=p.x; if(p.y<y1)y1=p.y; if(p.x>x2)x2=p.x; if(p.y>y2)y2=p.y; }));
+  return {w:Math.max(1,x2-x1), h:Math.max(1,y2-y1), cx:(x1+x2)/2, cy:(y1+y2)/2}; }
+// medians 数据坐标系：1024 单位、y 轴朝上、范围 [-124,900]（与 hanzi-writer Positioner 一致）
+function mediansToCanvas(medians){ const pad=Math.round(S*0.06), k=(S-2*pad)/1024;
+  return medians.map(m=>m.map(([x,y])=>({x:pad+x*k, y:pad+(900-y)*k}))); }
+// 整字对齐：字写小了/偏了不该判错，把用户字包围盒对到标准字上；只允许轻微拉伸，别把字形差异也抹掉
+function alignInk(strokes,tBox){ const u=bboxOf(strokes);
+  let sx=tBox.w/u.w, sy=tBox.h/u.h; const s0=Math.sqrt(sx*sy);
+  sx=clamp(clamp(sx,s0*0.8,s0*1.25),0.5,3); sy=clamp(clamp(sy,s0*0.8,s0*1.25),0.5,3);
+  return strokes.map(pts=>pts.map(p=>({x:tBox.cx+(p.x-u.cx)*sx, y:tBox.cy+(p.y-u.cy)*sy}))); }
+function strokePairCost(a,b){ const n=a.length; let f=0,r=0;
+  for(let i=0;i<n;i++){ f+=Math.hypot(a[i].x-b[i].x,a[i].y-b[i].y); r+=Math.hypot(a[n-1-i].x-b[i].x,a[n-1-i].y-b[i].y); }
+  f/=n; r/=n; const rev=r*1.25<f, d=rev?r:f, s=rev?a[n-1]:a[0], e=rev?a[0]:a[n-1];
+  const endD=Math.max(Math.hypot(s.x-b[0].x,s.y-b[0].y), Math.hypot(e.x-b[n-1].x,e.y-b[n-1].y));
+  return {d,endD}; }
+// 贪心配对（不要求笔顺一致，笔顺练习由「笔顺提示」负责）；逐对卡均距/端点/长度三个阈值
+function checkInk(userStrokes,medCanvas){ const N=24;
+  const t=medCanvas.map(m=>resamplePts(m,N)), tLen=medCanvas.map(pathLen);
+  const aligned=alignInk(userStrokes,bboxOf(medCanvas));
+  const u=aligned.map(s=>resamplePts(s,N)), uLen=aligned.map(pathLen);
+  const OK_D=S*0.115, OK_END=S*0.24, OK_LEN=0.55, SHORT=S*0.15;
+  const all=[];
+  for(let i=0;i<u.length;i++) for(let j=0;j<t.length;j++){ const c=strokePairCost(u[i],t[j]); all.push({i,j,d:c.d,endD:c.endD}); }
+  all.sort((a,b)=>(a.d+0.3*a.endD)-(b.d+0.3*b.endD));
+  const uUsed=new Array(u.length).fill(false), tUsed=new Array(t.length).fill(false), failed=[];
+  let okCount=0;
+  all.forEach(p=>{ if(uUsed[p.i]||tUsed[p.j]) return; uUsed[p.i]=true; tUsed[p.j]=true;
+    const lenOff=tLen[p.j]<SHORT?0:Math.abs(uLen[p.i]-tLen[p.j])/Math.max(tLen[p.j],S*0.12);
+    if(p.d<=OK_D && p.endD<=OK_END && lenOff<=OK_LEN) okCount++; else failed.push(p.i); });
+  const extra=[]; uUsed.forEach((used,i)=>{ if(!used) extra.push(i); });
+  const status=u.length!==t.length?"count":(failed.length?"bad":"ok");
+  return {status, u:u.length, t:t.length, failed, extra, okCount}; }
+function autoCheckInk(){ lastVerdict=null; inkEnd(); // 连续模式下可能还悬着没提笔的一画，先收
+  if(!curMedians || !curMedians.length || !inkStrokes.length) return null;
+  try{ lastVerdict=checkInk(inkStrokes, mediansToCanvas(curMedians)); }catch(e){ lastVerdict=null; }
+  return lastVerdict; }
+function paintInkStrokes(idxs,color){ if(!idxs || !idxs.length) return;
+  inkCtx.strokeStyle=color; inkCtx.fillStyle=color; inkCtx.lineWidth=Math.max(5,S*0.045); inkCtx.lineCap="round"; inkCtx.lineJoin="round";
+  idxs.forEach(i=>{ const pts=inkStrokes[i]; if(!pts||!pts.length) return;
+    if(pts.length<2){ inkCtx.beginPath(); inkCtx.arc(pts[0].x,pts[0].y,Math.max(3,S*0.022),0,Math.PI*2); inkCtx.fill(); return; }
+    inkCtx.beginPath(); inkCtx.moveTo(pts[0].x,pts[0].y); for(let k=1;k<pts.length;k++) inkCtx.lineTo(pts[k].x,pts[k].y); inkCtx.stroke(); }); }
+function verdictCue(v){ if(!v) return "";
+  if(v.status==="ok") return "自动比对：看起来写对了 ✓（机器判断，仅供参考）";
+  if(v.status==="bad") return `自动比对：有 ${v.failed.length} 笔和标准写法差别较大，点「看我刚写的」可看标红`;
+  const hint=v.okCount>=Math.min(v.u,v.t)*0.7?"可能是连笔或漏笔":"整体差别也比较大";
+  return `自动比对：你写了 ${v.u} 笔、标准是 ${v.t} 笔（${hint}），对照看看`; }
 
 function updateTip(){ $("tip").textContent=`笔顺提示（${groupIdx}/${groups.length}）`; if(groupIdx>=groups.length) $("tip").disabled=true; }
 
@@ -781,11 +851,12 @@ function render(){ fitBox(); cur=CARDS[batch[pos]]; const token=++loadToken;
   clearInk(); setPen(false); inkCanvas.style.opacity='1'; hzEl.style.opacity='1'; showingMine=false;
   shownStrokes=0; totalStrokes=0; groups=[]; groupIdx=0; $("tip").disabled=true; $("show").disabled=true; $("done").disabled=true; $("tip").textContent="笔顺提示";
   hzEl.innerHTML=""; writer=null; revealed=false;
+  curMedians=null; lastVerdict=null; ["fast","hinted","miss","slow"].forEach(id=>$(id).classList.remove("suggest"));
   function allowNoStrokeData(message){ if(token!==loadToken) return; loadToken++; $("show").disabled=false; $("done").disabled=false; $("tip").disabled=true; $("hint").textContent=(cur.custom?cur.hint+" · ":"")+message; }
   if(window.HanziWriter){
     writer=HanziWriter.create(hzEl, cur.target, { width:S, height:S, padding:Math.round(S*0.06),
       showCharacter:false, showOutline:false, strokeColor:hintStroke(), strokeAnimationSpeed:5, delayBetweenStrokes:60, charDataLoader:charLoader,
-      onLoadCharDataSuccess:function(d){ if(token!==loadToken) return; loadToken++; totalStrokes=d.strokes.length; var g=GROUPS[cur.target]; groups=(g && g.reduce((a,b)=>a+b,0)===totalStrokes)?g.slice():[totalStrokes]; groupIdx=0; shownStrokes=0; $("tip").disabled=false; $("show").disabled=false; $("done").disabled=false; updateTip(); },
+      onLoadCharDataSuccess:function(d){ if(token!==loadToken) return; loadToken++; totalStrokes=d.strokes.length; curMedians=(d.medians && d.medians.length===totalStrokes)?d.medians:null; var g=GROUPS[cur.target]; groups=(g && g.reduce((a,b)=>a+b,0)===totalStrokes)?g.slice():[totalStrokes]; groupIdx=0; shownStrokes=0; $("tip").disabled=false; $("show").disabled=false; $("done").disabled=false; updateTip(); },
       onLoadCharDataError:function(){ allowNoStrokeData("笔顺未缓存，也可以先看答案"); } });
     setTimeout(()=>{ if(token===loadToken && $("show").disabled) allowNoStrokeData("笔顺加载较慢，也可以先看答案"); }, 2500);
   } else { $("show").disabled=false; $("done").disabled=false; } }
@@ -807,6 +878,8 @@ function revealAnswer(done){
   revealed=true;
   $("card").classList.add("revealedCard");
   const noData=!writer||!totalStrokes; // 离线未缓存/加载失败：田字格画不出答案
+  // 「写好了」才比对：用户声称写出来了，机器帮忙核对；「揭晓答案」是不会写，没有可判的
+  const verdict=(done && !noData)?autoCheckInk():null;
   if(!noData){ try{ writer.updateColor('strokeColor', cssVar('--accent',"#1f3a5f")); writer.updateColor('radicalColor', cssVar('--accent',"#1f3a5f")); }catch(e){}
     try{ writer.hideCharacter({duration:0}); if(done) writer.showCharacter({duration:300}); else writer.animateCharacter(); }catch(e){}
     shownStrokes=totalStrokes; groupIdx=groups.length; updateTip(); }
@@ -814,7 +887,10 @@ function revealAnswer(done){
   // 没有笔顺数据时：答案用大字给在下方，保留用户自己的笔迹别藏
   if(noData){ setRevealView(true); $("peek").style.display="none"; } else setRevealView(false);
   $("reveal").style.display="block"; $("ans").innerHTML=(noData?`<span class="big">${cur.target}</span>`:"")+`<span class="small">${cur.word}${cur.py?` · ${cur.py}`:""}</span>`;
-  $("markCue").textContent=noData?(done?"对照上面的答案看看，写对了吗？":"看着答案回忆一下，这个字算哪种？"):(done?"对照笔顺看看，写对了吗？":"顺着笔顺回忆一下，这个字算哪种？");
+  $("markCue").textContent=verdictCue(verdict)||(noData?(done?"对照上面的答案看看，写对了吗？":"看着答案回忆一下，这个字算哪种？"):(done?"对照笔顺看看，写对了吗？":"顺着笔顺回忆一下，这个字算哪种？"));
+  if(verdict){ paintInkStrokes(verdict.status==="count"?verdict.extra:verdict.failed, cssVar('--miss',"#b3403a"));
+    if(verdict.status==="ok") $(hintsUsedThisCard>0?"hinted":"fast").classList.add("suggest");
+    else if(verdict.status==="bad") $("slow").classList.add("suggest"); }
   $("hinted").style.display="";
   renderQuality();
   $("inkTools").style.display="none"; $("actions").style.display="none";

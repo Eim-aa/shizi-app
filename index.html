@@ -88,29 +88,49 @@
   .revealedCard .mark button{ padding:10px 11px; font-size:13px; }
   @keyframes markCue{ 0%,100%{ box-shadow:0 0 0 0 rgba(52,86,138,0); } 35%{ box-shadow:0 0 0 4px var(--accentSoft); } }
   .mark.cue{ animation:markCue .85s ease 1; border-radius:14px; }
-  .home,.book,.profile,.audit{ background:var(--paper); border:1px solid transparent; border-radius:22px; padding:16px 2px 18px; margin-bottom:14px; box-shadow:none; animation:screenIn .32s ease; }
-  .home h2{ font-size:18px; margin:4px 4px 10px; text-align:center; }
-  .pref{ display:flex; align-items:center; justify-content:center; gap:8px; flex-wrap:wrap; margin-bottom:13px; font-size:12px; color:var(--faint); }
+  .book,.profile,.audit,.me{ background:var(--paper); border:1px solid transparent; border-radius:22px; padding:16px 2px 18px; margin-bottom:14px; box-shadow:none; animation:screenIn .32s ease; }
+  /* ---- 首页：极简 launcher（一个大圆按钮为唯一焦点，对齐设计稿） ---- */
+  .home{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:12px 24px 24px; animation:screenIn .4s ease; }
+  .homeGreeting{ font-size:14px; color:var(--muted); }
+  .homeStatus{ margin-top:8px; font-size:17px; font-weight:300; color:var(--ink); line-height:1.5; }
+  .homeStatus b{ font-weight:600; }
+  .homeStatus b.due{ color:var(--miss); }
+  .startRing{ flex:0 0 auto; margin:46px 0 0; width:188px; height:188px; min-width:188px; padding:0; border-radius:50%; border:1.5px solid var(--line); background:transparent; display:flex; align-items:center; justify-content:center; box-shadow:none; }
+  .startRing:disabled{ opacity:1; }
+  .startRingInner{ width:142px; height:142px; border-radius:50%; background:var(--accent); color:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center; box-shadow:0 16px 34px -8px rgba(52,86,138,.55); }
+  .startRingInner b{ font:600 23px var(--sans); }
+  .startRingInner em{ margin-top:3px; font:500 11px var(--sans); font-style:normal; opacity:.82; letter-spacing:.08em; }
+  .homeFootStat{ margin-top:40px; display:flex; align-items:center; justify-content:center; gap:16px; font-size:12px; color:var(--faint); }
+  .homeFootStat b{ color:var(--muted); font-weight:600; }
+  .homeFootStat i{ width:3px; height:3px; border-radius:50%; background:var(--line); font-style:normal; }
+  .pref{ display:flex; align-items:center; justify-content:center; gap:8px; flex-wrap:wrap; font-size:12px; color:var(--faint); }
   .prefBtns{ display:flex; gap:6px; flex:1 1 100%; justify-content:center; }
-  .prefBtns button{ flex:0 0 auto; padding:7px 9px; font-size:12px; border-radius:999px; background:transparent; border:1px solid var(--line); color:var(--muted); box-shadow:none; }
+  .prefBtns button{ flex:1 1 0; padding:9px 9px; font-size:12px; border-radius:999px; background:transparent; border:1px solid var(--line); color:var(--muted); box-shadow:none; }
   .prefBtns button.active{ background:var(--accent); border-color:var(--accent); color:#fff; font-weight:700; }
-  .stats{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:12px 0 12px; }
-  .stat{ border:1px solid var(--line); border-radius:14px; padding:11px 6px; text-align:center; background:var(--card); }
-  .stat b{ display:block; font-size:24px; line-height:1.1; }
-  .stat span{ display:block; font-size:11px; color:var(--muted); margin-top:4px; }
-  .risk{ min-height:34px; color:var(--muted); font-size:13px; line-height:1.65; margin:10px 0 14px; text-align:center; }
   .charChips{ display:flex; gap:8px; flex-wrap:wrap; justify-content:center; }
   .charChip{ flex:0 0 auto; min-width:42px; padding:8px 10px; border:1px solid var(--line); border-radius:10px; background:var(--card); font-size:24px; color:var(--accent); font-family:var(--kai); line-height:1; box-shadow:none; }
-  .homeActions{ min-height:178px; align-items:center; justify-content:center; flex-wrap:wrap; gap:12px; }
-  .homeActions button{ flex:0 0 auto; min-width:128px; }
-  .homeActions button:disabled:not(.primary){ display:none; }
-  .homeActions button.primary{ width:156px; height:156px; min-width:156px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; flex-direction:column; font-size:20px; }
-  #startNew.primary::after{ content:"估难度"; margin-top:4px; font:500 11px var(--sans); opacity:.82; letter-spacing:.08em; }
-  #startReview.primary::after{ content:"到期优先"; margin-top:4px; font:500 11px var(--sans); opacity:.82; letter-spacing:.08em; }
-  .homeHint{ min-height:20px; margin:-4px 0 10px; text-align:center; color:var(--muted); font-size:12.5px; line-height:1.6; }
-  .guide{ display:grid; grid-template-columns:repeat(4,1fr); gap:7px; margin:0 0 12px; }
-  .guide span{ min-height:48px; border:1px solid var(--line); border-radius:14px; background:var(--card); color:var(--muted); font-size:11.5px; line-height:1.35; display:flex; align-items:center; justify-content:center; text-align:center; padding:7px 6px; }
-  .homeLinks button{ background:var(--card); border-color:var(--line); color:var(--muted); box-shadow:none; }
+  /* ---- 我的：统计 + 易错分析入口 + 设置 + 内部工具 ---- */
+  .me{ display:none; }
+  .meHead{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; }
+  .meHead h2{ font-size:18px; margin:0; }
+  .meStats{ display:grid; grid-template-columns:repeat(3,1fr); gap:9px; }
+  .meStat{ background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px 0; text-align:center; }
+  .meStat b{ display:block; font-size:22px; line-height:1.1; }
+  .meStat b.good{ color:var(--known); }
+  .meStat b.warn{ color:var(--miss); }
+  .meStat span{ display:block; font-size:11px; color:var(--muted); margin-top:3px; }
+  .meCard{ width:100%; margin-top:16px; text-align:left; background:var(--accentSoft); border:1px solid var(--adviceLine); border-radius:15px; padding:15px 16px; box-shadow:none; }
+  .meCard .meCardTop{ display:flex; justify-content:space-between; align-items:center; }
+  .meCard .meCardTop b{ font-size:13px; color:var(--accent); }
+  .meCard .meCardTop span{ font-size:17px; color:var(--accent); }
+  .meCard small{ display:block; color:var(--muted); font-size:12px; line-height:1.7; margin-top:7px; }
+  .meLabel{ margin-top:18px; font-size:11px; color:var(--faint); letter-spacing:.06em; font-weight:600; padding:0 2px; }
+  .meList{ margin-top:9px; background:var(--card); border:1px solid var(--line); border-radius:14px; overflow:hidden; }
+  .meRow{ width:100%; display:flex; justify-content:space-between; align-items:center; gap:10px; padding:14px 16px; font-size:13.5px; color:var(--ink); background:transparent; border:0; border-bottom:1px solid var(--grid); border-radius:0; box-shadow:none; text-align:left; }
+  .meRow:last-child{ border-bottom:0; }
+  .meRow span{ color:var(--muted); font-size:12.5px; }
+  .mePref{ padding:13px 16px; border-bottom:1px solid var(--grid); }
+  .mePref .pref{ justify-content:flex-start; margin-bottom:9px; }
   .book{ display:none; }
   .bookHead{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
   .bookHead h2{ font-size:18px; margin:0; }
@@ -196,15 +216,16 @@
   .summaryPrimary button{ flex:1; }
   .summaryActions{ flex-wrap:wrap; }
   .wide{ flex-basis:100%; }
-  .foot{ position:sticky; bottom:0; z-index:12; margin-top:auto; padding:10px 2px calc(10px + env(safe-area-inset-bottom)); border-top:1px solid var(--grid); background:linear-gradient(180deg, rgba(230,227,219,.72), var(--bg) 38%); backdrop-filter:blur(10px); display:flex; justify-content:center; flex-wrap:wrap; gap:4px 8px; text-align:center; font-size:12px; color:var(--muted); }
-  .foot a{ display:inline-flex; align-items:center; justify-content:center; min-width:42px; min-height:34px; white-space:nowrap; color:var(--muted); cursor:pointer; text-decoration:none; margin:0; padding:6px 7px; border-radius:999px; }
-  .foot a:hover{ color:var(--accent); }
-  .foot a.active,.internalToggle.active{ color:#fff; background:var(--accent); font-weight:700; }
-  .internalToggle{ flex:0 0 auto; min-width:42px; min-height:34px; border:0; background:transparent; color:var(--faint); font:inherit; font-size:12px; padding:6px 7px; box-shadow:none; }
-  .internalToggle:active{ transform:none; }
-  .internalLinks{ display:none; flex:1 0 100%; justify-content:center; gap:4px 14px; flex-wrap:wrap; }
-  .foot.internal-open .internalLinks{ display:flex; }
-  .data{ flex:1 0 100%; display:none; margin-top:14px; background:var(--card); border:1px dashed var(--line); border-radius:14px; padding:14px; font-size:13px; color:var(--muted); line-height:1.7; text-align:left; }
+  /* ---- 底部导航：3 个带图标的 tab（对齐设计稿：练习 / 错题 / 我的） ---- */
+  .foot{ position:sticky; bottom:0; z-index:12; margin-top:auto; padding:9px 8px calc(12px + env(safe-area-inset-bottom)); border-top:1px solid var(--grid); background:var(--card); display:flex; justify-content:space-around; align-items:center; }
+  .foot .tab{ display:flex; flex-direction:column; align-items:center; gap:5px; font:600 10px var(--sans); color:var(--faint); cursor:pointer; text-decoration:none; padding:2px 14px; -webkit-tap-highlight-color:transparent; }
+  .foot .tab i{ width:20px; height:20px; border-radius:6px; border:1.5px solid currentColor; background:transparent; display:block; position:relative; }
+  .foot .tab.active{ color:var(--accent); }
+  .foot .tab.active i{ background:var(--accentSoft); }
+  .foot .tab i.iBook::before{ content:""; position:absolute; left:4px; right:4px; top:5px; height:1.5px; background:currentColor; box-shadow:0 4px 0 currentColor; border-radius:2px; }
+  .foot .tab i.iMe::before{ content:""; position:absolute; left:50%; top:4px; width:6px; height:6px; border-radius:50%; border:1.5px solid currentColor; transform:translateX(-50%); }
+  .foot .tab i.iMe::after{ content:""; position:absolute; left:4px; right:4px; bottom:3px; height:5px; border-radius:5px 5px 0 0; border:1.5px solid currentColor; border-bottom:0; }
+  .data{ display:none; margin-top:12px; background:var(--card); border:1px dashed var(--line); border-radius:14px; padding:14px; font-size:13px; color:var(--muted); line-height:1.7; text-align:left; }
   .sheetMask{ display:none; position:fixed; inset:0; z-index:20; background:rgba(24,22,17,.45); backdrop-filter:blur(2px); align-items:flex-start; justify-content:center; padding:14vh 24px 24px; }
   .sheetMask.open{ display:flex; }
   .sheet{ width:min(100%,340px); background:var(--paper); border:1px solid var(--line); border-radius:20px; padding:18px 16px 16px; box-shadow:0 24px 60px -24px rgba(20,18,14,.55); animation:screenIn .22s ease; }
@@ -216,7 +237,7 @@
   .sheetPreview{ display:flex; flex-wrap:wrap; gap:6px; margin:10px 0 4px; min-height:34px; align-content:flex-start; font-size:12px; color:var(--muted); }
   .addChip{ display:inline-flex; align-items:baseline; gap:6px; border:1px solid var(--line); background:var(--card); border-radius:999px; padding:5px 10px; }
   .addChip b{ font-family:var(--kai); font-size:19px; color:var(--accent); font-weight:400; }
-  .toast{ position:fixed; left:50%; bottom:calc(34px + env(safe-area-inset-bottom)); transform:translateX(-50%); background:var(--ink); color:var(--paper); font-size:13px; padding:10px 16px; border-radius:999px; z-index:30; opacity:0; transition:opacity .25s; pointer-events:none; max-width:82vw; text-align:center; }
+  .toast{ position:fixed; left:50%; bottom:calc(78px + env(safe-area-inset-bottom)); transform:translateX(-50%); background:var(--ink); color:var(--paper); font-size:13px; padding:10px 16px; border-radius:999px; z-index:30; opacity:0; transition:opacity .25s; pointer-events:none; max-width:82vw; text-align:center; box-shadow:0 8px 24px -8px rgba(20,18,14,.5); }
   .toast.show{ opacity:.94; }
   @media (max-width:380px){ .wrap{ padding-left:14px; padding-right:14px; } .guide{ grid-template-columns:repeat(2,1fr); } .resultItem{ grid-template-columns:34px 1fr; } .resultItem em{ grid-column:2; } .summaryHero{ gap:12px; } .summaryRing{ width:122px; height:122px; } .summaryRingInner{ width:94px; height:94px; } .prefBtns,.auditPrefs{ flex-basis:100%; } .roundTuneBtns{ grid-template-columns:repeat(2,1fr); } .auditControls{ grid-template-columns:1fr; } .profileSummary{ grid-template-columns:repeat(2,1fr); } }
 </style>
@@ -226,22 +247,38 @@
   <div class="top"><div class="brand">拾字</div><div class="pos" id="pos"></div></div>
 
   <div class="home" id="home">
-    <h2>今日练习</h2>
-    <div class="pref" id="prefBox"><span>出题偏好</span><div class="prefBtns">
-      <button data-pref="balanced">高频易忘</button>
-      <button data-pref="practical">偏实用</button>
-      <button data-pref="challenge">偏挑战</button>
-    </div></div>
-    <div class="stats">
-      <div class="stat"><b id="dueStat">0</b><span>到期复习</span></div>
-      <div class="stat"><b id="riskStat">0</b><span>错题</span></div>
-      <div class="stat"><b id="seenStat">0</b><span>已记录</span></div>
+    <div class="homeGreeting" id="homeGreeting"></div>
+    <div class="homeStatus" id="homeStatus"></div>
+    <button class="startRing" id="startBtn"><span class="startRingInner"><b id="startBig">开始</b><em id="startSub">15 字</em></span></button>
+    <div class="homeFootStat" id="homeFootStat"></div>
+  </div>
+
+  <div class="me" id="mePanel">
+    <div class="meHead"><h2>我的</h2></div>
+    <div class="meStats">
+      <button class="meStat" id="meSeen"><b id="seenStat">0</b><span>已记录</span></button>
+      <button class="meStat" id="meDue"><b class="due" id="dueStat">0</b><span>到期复习</span></button>
+      <button class="meStat" id="meRisk"><b class="warn" id="riskStat">0</b><span>错题</span></button>
     </div>
-    <div class="risk" id="riskList"></div>
-    <div class="row homeActions"><button class="primary" id="startReview">今日复习</button><button id="startNew">练新字</button></div>
-    <div class="homeHint" id="homeHint"></div>
-    <div class="guide" id="guideBox"><span>看词语和语境</span><span>在田字格写</span><span>用笔顺提示</span><span>自评后复习</span></div>
-    <div class="row homeLinks"><button id="openBook">错题本</button><button id="openProfile">易错分析</button></div>
+    <button class="meCard" id="openProfile"><div class="meCardTop"><b>易错分析</b><span>›</span></div><small id="meAdvice"></small></button>
+    <div class="meLabel">练习设置</div>
+    <div class="meList">
+      <div class="mePref"><div class="pref"><span>出题偏好</span></div><div class="prefBtns" id="prefBox">
+        <button data-pref="balanced">高频易忘</button>
+        <button data-pref="practical">偏实用</button>
+        <button data-pref="challenge">偏挑战</button>
+      </div></div>
+      <button class="meRow" id="addLink"><span>＋ 加字（抓现实里提笔忘的字）</span><span>›</span></button>
+    </div>
+    <div class="meLabel">内部工具</div>
+    <div class="meList">
+      <button class="meRow" id="auditLink">题库质检<span>›</span></button>
+      <button class="meRow" id="dataLink">实验数据<span>›</span></button>
+      <button class="meRow" id="exportLink">备份数据<span>›</span></button>
+      <button class="meRow" id="importLink">恢复备份<span>›</span></button>
+      <button class="meRow" id="resetLink">重置卡组<span>›</span></button>
+    </div>
+    <div class="data" id="dataBox"></div>
   </div>
 
   <div class="card" id="card" style="display:none">
@@ -310,7 +347,11 @@
     <div class="auditList" id="auditSample"></div>
   </div>
 
-  <div class="foot" id="foot"><a id="homeLink">首页</a><a id="practiceLink">练习</a><a id="bookLink">错题</a><a id="profileLink">分析</a><a id="addLink">加字</a><button class="internalToggle" id="internalToggle" type="button">内部</button><span class="internalLinks" id="internalLinks"><a id="auditLink">题库质检</a><a id="dataLink">实验数据</a><a id="exportLink">备份数据</a><a id="importLink">恢复备份</a><a id="resetLink">重置卡组</a></span><div class="data" id="dataBox"></div></div>
+  <div class="foot" id="foot">
+    <a class="tab" id="tabPractice"><i class="iHome"></i>练习</a>
+    <a class="tab" id="tabBook"><i class="iBook"></i>错题</a>
+    <a class="tab" id="tabMe"><i class="iMe"></i>我的</a>
+  </div>
 </div>
 
 <div class="sheetMask" id="addSheet"><div class="sheet">
@@ -508,12 +549,13 @@ function dueText(ts){ if(!ts) return "未安排"; const left=ts-Date.now(); if(l
   const hours=Math.ceil(left/3600000); if(hours<24) return `${hours} 小时后复习`; const diff=Math.ceil(left/86400000);
   if(diff===1) return "明天复习"; return `${diff} 天后复习`; }
 function scrollTopNow(){ try{ window.scrollTo({top:0,left:0,behavior:"auto"}); }catch(e){ window.scrollTo(0,0); } }
-function displayView(view){ $("home").style.display=view==="home"?"block":"none"; $("card").style.display=view==="card"?"":"none"; $("summary").style.display=view==="summary"?"block":"none"; $("studybook").style.display=view==="book"?"block":"none"; $("profilePanel").style.display=view==="profile"?"block":"none"; $("auditPanel").style.display=view==="audit"?"block":"none";
+function displayView(view){ $("home").style.display=view==="home"?"flex":"none"; $("card").style.display=view==="card"?"":"none"; $("summary").style.display=view==="summary"?"block":"none"; $("studybook").style.display=view==="book"?"block":"none"; $("profilePanel").style.display=view==="profile"?"block":"none"; $("auditPanel").style.display=view==="audit"?"block":"none"; $("mePanel").style.display=view==="me"?"block":"none";
   // 写字时收起底部 Tab：练习是全屏专注场景，三层按钮叠在底部容易被手掌误触；退出走「退出本组」
   $("foot").style.display=view==="card"?"none":"";
-  if(view!=="audit"){ $("foot").classList.remove("internal-open"); $("dataBox").style.display="none"; }
-  const active={home:"homeLink",card:"practiceLink",summary:"practiceLink",book:"bookLink",profile:"profileLink",audit:"internalToggle"}[view];
-  document.querySelectorAll(".foot a,.internalToggle").forEach(el=>el.classList.toggle("active",el.id===active));
+  if(view!=="me"){ $("dataBox").style.display="none"; }
+  // 三 tab 高亮：练习组(home/card/summary) / 错题(book) / 我的(me/profile/audit)
+  const active={home:"tabPractice",card:"tabPractice",summary:"tabPractice",book:"tabBook",profile:"tabMe",audit:"tabMe",me:"tabMe"}[view];
+  document.querySelectorAll(".foot .tab").forEach(el=>el.classList.toggle("active",el.id===active));
   requestAnimationFrame(scrollTopNow); }
 function qualityCount(){ return Object.values(quality).filter(q=>q && (q.easy || q.rare || q.badWord || q.hide)).length; }
 function renderQuality(){ if(!cur) return; const q=qualityFor(batch[pos]); document.querySelectorAll("#qualityBox button[data-quality]").forEach(btn=>btn.classList.toggle("active", !!q[btn.dataset.quality]));
@@ -542,19 +584,33 @@ function recordOutcome(outcome){ const idx=batch[pos], c=CARDS[idx], m=cardMemor
   adaptNextCard(outcome,idx);
   next(outcome==="miss");
 }
-function riskPreview(){ const list=highRiskIndexes().slice(0,12); return list.length?`<div class="charChips">${list.map(i=>`<button class="charChip" data-idx="${i}" title="${CARDS[i].word}">${CARDS[i].target}</button>`).join("")}</div>`:"还没有错题。先练一组，新数据会慢慢长出来。"; }
 function prefLabel(){ return ({balanced:"高频易忘", practical:"偏实用", challenge:"偏挑战"})[preference] || "高频易忘"; }
 function needsCalibration(){ return !tuning.calibrated && memoryCount()===0; }
 function applyPrefUI(){ document.querySelectorAll("#prefBox button[data-pref]").forEach(btn=>btn.classList.toggle("active", btn.dataset.pref===preference)); }
+function greeting(){ const h=new Date().getHours(); if(h<5) return "夜深了"; if(h<11) return "早上好"; if(h<14) return "中午好"; if(h<18) return "下午好"; return "晚上好"; }
+// 首页：极简 launcher。一个大圆按钮承载「今天该练什么」——有到期先复习，否则练新字（新用户先校准）
 function renderHome(){ displayView("home");
+  const due=reviewCount(), newN=newPool(false).length, isNew=needsCalibration();
+  $("homeGreeting").textContent=greeting();
+  $("homeStatus").innerHTML=isNew ? "先花几分钟，估一下你的起始难度"
+    : due ? `今天 <b class="due">${due}</b> 个到期，先复习一遍`
+    : newN ? `今天练 <b>${BATCH}</b> 个新字，慢慢把手感找回来`
+    : "今天的字都过完了，明天见";
+  $("startBig").textContent=due?"复习":"开始";
+  $("startSub").textContent=isNew?"先练 15 字":(due?`${due} 个到期`:`${BATCH} 字`);
+  $("startBtn").disabled=(newN===0 && due===0);
+  $("homeFootStat").innerHTML=`已记录 <b>${memoryCount()}</b><i></i>错题 <b>${highRiskCount()}</b>`;
+  $("pos").textContent="";
+  warmUpcomingStrokeCache(); }
+function meAdviceText(idxs){ if(!idxs.length) return "练几组后，这里会总结你最容易卡住的主题、难度和结构。";
+  const topic=profileGroups(idxs,cardTopic)[0], lvl=profileGroups(idxs,abilityLevel)[0], st=profileGroups(idxs,structureLabel)[0], bits=[];
+  if(topic) bits.push(topic.label+"主题"); if(lvl) bits.push(lvl.label+"字"); if(st) bits.push(st.label);
+  return `最常卡在：${bits.join("、")}。点开看详细分析。`; }
+function renderMe(){ displayView("me");
   applyPrefUI();
   $("dueStat").textContent=reviewCount(); $("riskStat").textContent=highRiskCount(); $("seenStat").textContent=memoryCount();
-  $("riskList").innerHTML=riskPreview(); $("pos").textContent=`${prefLabel()} · ${tuningLabel()} · 新字 ${newPool(false).length}`;
-  $("startReview").disabled=reviewCount()===0; $("startReview").textContent=reviewCount()?`今日复习（${reviewCount()}）`:"今日复习";
-  $("startNew").disabled=newPool(false).length===0; $("startNew").textContent=needsCalibration()?"先练 15 字":"练新字";
-  $("homeHint").textContent=needsCalibration()?"先点“先练 15 字”完成起始校准，系统会估算你的起始难度。":"每组 15 字，看词语写缺字；写完自评后会自动安排复习。";
-  // 没有到期复习时（尤其新用户），把主按钮让给"先练 15 字/练新字"，别让蓝色大按钮指向空的复习
-  const hasReview=reviewCount()>0; $("startReview").classList.toggle("primary",hasReview); $("startNew").classList.toggle("primary",!hasReview); warmUpcomingStrokeCache(); }
+  $("meAdvice").textContent=meAdviceText(profileIndexes());
+  $("pos").textContent=""; }
 function startMode(mode){ activeMode=(mode==="new" && needsCalibration())?"calibrate":mode; focusQueue=[]; sessionDone=new Set(); startRound(); }
 function startFocus(indexes){ focusQueue=[...new Set((indexes||highRiskIndexes()).filter(i=>i>=0 && i<CARDS.length))]; if(!focusQueue.length){ renderHome(); return; }
   activeMode="focus"; sessionDone=new Set(); startRound(); }
@@ -811,25 +867,26 @@ $("exitPractice").onclick=openExitSheet;
 $("exitCancel").onclick=closeExitSheet;
 $("exitConfirm").onclick=exitCurrentRound;
 $("exitSheet").onclick=e=>{ if(e.target===$("exitSheet")) closeExitSheet(); };
-$("prefBox").onclick=e=>{ const b=e.target.closest("[data-pref]"); if(!b) return; preference=b.dataset.pref; save(PREF_KEY,preference); renderHome(); };
+$("prefBox").onclick=e=>{ const b=e.target.closest("[data-pref]"); if(!b) return; preference=b.dataset.pref; save(PREF_KEY,preference); applyPrefUI(); };
 $("qualityBox").onclick=e=>{ const b=e.target.closest("[data-quality]"); if(!b) return; recordQuality(b.dataset.quality); };
-$("riskList").onclick=e=>{ const b=e.target.closest("[data-idx]"); if(b) startFocus([Number(b.dataset.idx)]); };
 $("sumList").onclick=e=>{ const b=e.target.closest("[data-idx]"); if(b) startFocus([Number(b.dataset.idx)]); };
 $("roundTune").onclick=e=>{ const b=e.target.closest("[data-round-feedback]"); if(b) recordRoundFeedback(b.dataset.roundFeedback); };
 $("bookList").onclick=e=>{ const b=e.target.closest("[data-idx]"); if(b) startFocus([Number(b.dataset.idx)]); };
-$("homeLink").onclick=renderHome;
-$("practiceLink").onclick=()=>{ if($("card").style.display!=="none") return; startMode(reviewCount()>0?"review":"new"); };
-$("openBook").onclick=renderBook;
-$("bookLink").onclick=renderBook;
+// ---- 底部三 tab + 首页大按钮 ----
+$("startBtn").onclick=()=>{ if($("startBtn").disabled) return; startMode(reviewCount()>0?"review":"new"); };
+$("tabPractice").onclick=renderHome;
+$("tabBook").onclick=renderBook;
+$("tabMe").onclick=renderMe;
+$("meDue").onclick=()=>{ if(reviewCount()>0) startMode("review"); };
+$("meRisk").onclick=()=>{ if(highRiskCount()>0) startFocus(highRiskIndexes()); };
+$("meSeen").onclick=renderProfile;
 $("closeBook").onclick=renderHome;
 $("openProfile").onclick=renderProfile;
-$("profileLink").onclick=renderProfile;
-$("closeProfile").onclick=renderHome;
+$("closeProfile").onclick=renderMe;
 $("profilePanel").onclick=e=>{ const char=e.target.closest("[data-profile-char]"); if(char){ startFocus([Number(char.dataset.profileChar)]); return; }
   const row=e.target.closest("[data-profile-kind]"); if(row){ const list=profilePracticeIndexes(row.dataset.profileKind,row.dataset.profileValue); if(list.length) startFocus(list); } };
-$("internalToggle").onclick=()=>{ $("foot").classList.toggle("internal-open"); $("dataBox").style.display="none"; };
 $("auditLink").onclick=()=>renderAudit(preference);
-$("closeAudit").onclick=renderHome;
+$("closeAudit").onclick=renderMe;
 $("resampleAudit").onclick=()=>renderAudit(auditPref);
 $("auditPrefs").onclick=e=>{ const b=e.target.closest("[data-pref]"); if(b) renderAudit(b.dataset.pref); };
 function handleAuditListClick(e){ const practice=e.target.closest("[data-audit-practice]"); if(practice){ startFocus([Number(practice.dataset.auditPractice)]); return; }
@@ -858,7 +915,7 @@ function confirmAdd(){ const chars=addWord($("addInput").value); if(!chars) retu
   closeAddSheet();
   if(inserted){ $("pos").textContent=activeMode==="calibrate"?`水平校准 · 第 ${pos+1} / ${batch.length} 个`:`第 ${pos+1} / ${batch.length} 个 · 复习 ${reviewCount()}`; toast(`已加入本次练习：${chars.join("、")}，下一题开始出现`); }
   else toast(`已加入：${chars.join("、")} · 已排进今日复习`);
-  if($("summary").style.display==="block") roundSummary(); if($("home").style.display==="block") renderHome(); if($("studybook").style.display==="block") renderBook(); }
+  if($("summary").style.display==="block") roundSummary(); if($("mePanel").style.display==="block") renderMe(); if($("studybook").style.display==="block") renderBook(); }
 $("addLink").onclick=openAddSheet;
 $("addInPractice").onclick=openAddSheet;
 $("addCancel").onclick=closeAddSheet;
@@ -892,8 +949,6 @@ function applyModeUI(){ $("modeBtn").textContent=continuous?"连续模式：开"
   $("modehint").textContent=""; }
 $("modeBtn").onclick=()=>{ continuous=!continuous; drawing=false; setPen(false); applyModeUI(); };
 
-$("startReview").onclick=()=>startMode("review");
-$("startNew").onclick=()=>startMode("new");
 // 连续模式是给桌面鼠标准备的（点一下落笔、再点一下提笔）；触屏直接手写，不需要这个开关
 if(window.matchMedia && window.matchMedia('(pointer: coarse)').matches) $("modebar").style.display="none";
 initBox(); applyModeUI(); renderHome();

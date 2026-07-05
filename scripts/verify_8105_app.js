@@ -26,26 +26,31 @@ const sampleTargets = ["的", "一", "强", "器", "随", "察", "群", "疑", "
   });
   await page.reload({ waitUntil: "networkidle" });
 
-  const homeOverview = await page.evaluate(() => ({
-    homeVisible: getComputedStyle(document.getElementById("home")).display !== "none",
-    cardVisible: getComputedStyle(document.getElementById("card")).display !== "none",
-    dueStat: document.getElementById("dueStat").textContent,
-    riskStat: document.getElementById("riskStat").textContent,
-    seenStat: document.getElementById("seenStat").textContent,
-    startReviewDisabled: document.getElementById("startReview").disabled,
-    startNewDisabled: document.getElementById("startNew").disabled,
-    startNewText: document.getElementById("startNew").textContent,
-    homeHint: document.getElementById("homeHint").textContent,
-    guideSteps: Array.from(document.querySelectorAll("#guideBox span")).map((node) => node.textContent),
-    tabs: Array.from(document.querySelectorAll("#foot > a")).map((node) => node.textContent),
-    activePref: document.querySelector("#prefBox button.active")?.dataset.pref,
-    needsCalibration: typeof needsCalibration === "function" ? needsCalibration() : null,
-  }));
-  if (!homeOverview.homeVisible || homeOverview.cardVisible || homeOverview.startNewDisabled) {
-    throw new Error(`Expected home entry panel before practice, got ${JSON.stringify(homeOverview)}`);
+  const homeOverview = await page.evaluate(() => {
+    renderMe();
+    const activePref = document.querySelector("#prefBox button.active")?.dataset.pref;
+    const dueStat = document.getElementById("dueStat").textContent;
+    const riskStat = document.getElementById("riskStat").textContent;
+    const seenStat = document.getElementById("seenStat").textContent;
+    renderHome();
+    return {
+      homeVisible: getComputedStyle(document.getElementById("home")).display !== "none",
+      cardVisible: getComputedStyle(document.getElementById("card")).display !== "none",
+      dueStat, riskStat, seenStat,
+      startDisabled: document.getElementById("startBtn").disabled,
+      startBig: document.getElementById("startBig").textContent,
+      startSub: document.getElementById("startSub").textContent,
+      homeStatus: document.getElementById("homeStatus").textContent,
+      tabs: Array.from(document.querySelectorAll("#foot .tab")).map((node) => node.textContent.replace(/\s/g, "")),
+      activePref,
+      needsCalibration: typeof needsCalibration === "function" ? needsCalibration() : null,
+    };
+  });
+  if (!homeOverview.homeVisible || homeOverview.cardVisible || homeOverview.startDisabled) {
+    throw new Error(`Expected home launcher before practice, got ${JSON.stringify(homeOverview)}`);
   }
-  if (homeOverview.activePref !== "balanced" || !homeOverview.needsCalibration || !homeOverview.startNewText.includes("15 字") || !homeOverview.homeHint.includes("估算") || homeOverview.guideSteps.length !== 4 || homeOverview.tabs.join(",") !== "首页,练习,错题,分析,加字") {
-    throw new Error(`Expected balanced preference by default, got ${JSON.stringify(homeOverview)}`);
+  if (homeOverview.activePref !== "balanced" || !homeOverview.needsCalibration || !homeOverview.startSub.includes("15 字") || !homeOverview.homeStatus.includes("估") || homeOverview.tabs.join(",") !== "练习,错题,我的") {
+    throw new Error(`Expected balanced preference and 3-tab nav by default, got ${JSON.stringify(homeOverview)}`);
   }
 
   const calibrationCheck = await page.evaluate(() => {
@@ -106,7 +111,7 @@ const sampleTargets = ["的", "一", "强", "器", "随", "察", "群", "疑", "
     throw new Error(`Expected first new-user round to calibrate and persist a starting difficulty, got ${JSON.stringify(calibrationCheck)}`);
   }
 
-  await page.click("#profileLink");
+  await page.evaluate(() => renderProfile());
   const profileEmptyCheck = await page.evaluate(() => ({
     visible: getComputedStyle(document.getElementById("profilePanel")).display !== "none",
     metrics: Array.from(document.querySelectorAll("#profileSummary .profileMetric")).map((node) => node.textContent),
@@ -117,7 +122,7 @@ const sampleTargets = ["的", "一", "强", "器", "随", "察", "群", "疑", "
   if (!profileEmptyCheck.visible || profileEmptyCheck.metrics.length !== 4 || !profileEmptyCheck.advice.includes("先完成一组") || !profileEmptyCheck.topicsText.includes("还没有足够记录")) {
     throw new Error(`Expected empty profile panel before practice, got ${JSON.stringify(profileEmptyCheck)}`);
   }
-  await page.click("#closeProfile");
+  await page.evaluate(() => renderMe());
 
   const prefBefore = await page.evaluate(() => ({ preference, target: targetDifficulty(), label: prefLabel() }));
   await page.click('#prefBox [data-pref="challenge"]');
@@ -255,7 +260,7 @@ const sampleTargets = ["的", "一", "强", "器", "随", "察", "群", "疑", "
     renderHome();
   });
 
-  await page.click("#internalToggle");
+  await page.evaluate(() => renderMe());
   await page.click("#auditLink");
   const auditCheck = await page.evaluate(() => ({
     visible: getComputedStyle(document.getElementById("auditPanel")).display !== "none",
@@ -342,12 +347,12 @@ const sampleTargets = ["的", "一", "强", "器", "随", "察", "群", "疑", "
     };
     save(DECK_KEY, status);
     saveMemory();
-    renderHome();
+    renderMe();
     const result = {
       reviewCount: reviewCount(),
       dueStat: document.getElementById("dueStat").textContent,
       riskStat: document.getElementById("riskStat").textContent,
-      riskText: document.getElementById("riskList").textContent,
+      riskChar: (highRiskIndexes()[0] != null ? CARDS[highRiskIndexes()[0]].target : ""),
     };
     delete status[idx];
     delete memory[key];
@@ -488,7 +493,7 @@ const sampleTargets = ["的", "一", "强", "器", "随", "察", "群", "疑", "
     throw new Error(`Expected adaptive session difficulty to raise after fast answers and only lower after repeated misses, got ${JSON.stringify(adaptiveCheck)}`);
   }
 
-  await page.click("#startNew");
+  await page.click("#startBtn");
   await page.waitForFunction(() => batch.length > 0 && getComputedStyle(document.getElementById("card")).display !== "none");
 
   const overview = await page.evaluate(() => ({
@@ -537,6 +542,7 @@ const sampleTargets = ["的", "一", "强", "器", "随", "察", "群", "疑", "
   await page.click("#miss");
   const feedbackCheck = await page.evaluate(() => {
     renderHome();
+    renderMe();
     const entries = Object.values(JSON.parse(localStorage.getItem("shizi.memory.v1") || "{}"));
     return {
       memoryEntries: entries.length,
@@ -544,8 +550,8 @@ const sampleTargets = ["的", "一", "强", "器", "随", "察", "群", "疑", "
       statusValues: Object.values(JSON.parse(localStorage.getItem("shizi.deck.v8105.context1") || "{}")),
       reviewCount: typeof reviewCount === "function" ? reviewCount() : null,
       dueStat: document.getElementById("dueStat").textContent,
-      riskText: document.getElementById("riskList").textContent,
-      startReviewDisabled: document.getElementById("startReview").disabled,
+      riskChar: (highRiskIndexes()[0] != null ? CARDS[highRiskIndexes()[0]].target : ""),
+      startDisabled: document.getElementById("startBtn").disabled,
     };
   });
   if (feedbackCheck.memoryEntries !== 1 || feedbackCheck.firstMemory.lastOutcome !== "miss") {
@@ -554,11 +560,11 @@ const sampleTargets = ["的", "一", "强", "器", "随", "察", "群", "疑", "
   if (!feedbackCheck.statusValues.includes("indeck")) {
     throw new Error(`Expected missed card to enter review deck, got ${JSON.stringify(feedbackCheck)}`);
   }
-  if (feedbackCheck.startReviewDisabled || feedbackCheck.dueStat !== "1" || !feedbackCheck.riskText.includes(feedbackCheck.firstMemory.target)) {
-    throw new Error(`Expected missed card to appear on the home review panel, got ${JSON.stringify(feedbackCheck)}`);
+  if (feedbackCheck.startDisabled || feedbackCheck.dueStat !== "1" || feedbackCheck.riskChar !== feedbackCheck.firstMemory.target) {
+    throw new Error(`Expected missed card to appear as review/risk, got ${JSON.stringify(feedbackCheck)}`);
   }
 
-  await page.click("#openProfile");
+  await page.evaluate(() => renderProfile());
   const profileCheck = await page.evaluate(() => ({
     visible: getComputedStyle(document.getElementById("profilePanel")).display !== "none",
     metrics: Array.from(document.querySelectorAll("#profileSummary .profileMetric")).map((node) => node.textContent),
@@ -596,9 +602,9 @@ const sampleTargets = ["的", "一", "强", "器", "随", "察", "群", "疑", "
   if (profileGroupClickCheck.firstTarget !== feedbackCheck.firstMemory.target) {
     throw new Error(`Expected profile topic row to start topic-focused practice, got ${JSON.stringify(profileGroupClickCheck)}`);
   }
-  await page.evaluate(() => renderHome());
+  await page.evaluate(() => renderMe());
 
-  await page.click("#riskList [data-idx]");
+  await page.click("#meRisk");
   await page.waitForFunction(() => batch.length > 0 && activeMode === "focus");
   const riskClickCheck = await page.evaluate(() => ({
     activeMode,
@@ -607,11 +613,11 @@ const sampleTargets = ["的", "一", "强", "器", "随", "察", "群", "疑", "
     firstWord: CARDS[batch[0]].word,
   }));
   if (riskClickCheck.firstTarget !== feedbackCheck.firstMemory.target) {
-    throw new Error(`Expected clicking a risk chip to start focused practice, got ${JSON.stringify(riskClickCheck)}`);
+    throw new Error(`Expected tapping the 我的 error stat to start focused practice, got ${JSON.stringify(riskClickCheck)}`);
   }
-  await page.evaluate(() => renderHome());
+  await page.evaluate(() => renderMe());
 
-  await page.click("#startReview");
+  await page.click("#meDue");
   await page.waitForFunction(() => batch.length > 0 && activeMode === "review");
   const reviewModeCheck = await page.evaluate(() => ({
     activeMode,

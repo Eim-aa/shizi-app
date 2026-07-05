@@ -90,6 +90,9 @@
   .mark.cue{ animation:markCue .85s ease 1; border-radius:14px; }
   .mark button.suggest{ outline:2.5px solid currentColor; outline-offset:2px; }
   .mark button.suggest::after{ content:"建议"; margin-left:auto; font-size:11px; opacity:.75; padding-left:6px; }
+  .verdict{ font-weight:800; font-size:20px; letter-spacing:.06em; margin:2px 0 6px; text-align:center; }
+  .verdict.good{ color:var(--known); }
+  .verdict.bad{ color:var(--miss); }
   .book,.profile,.audit,.me{ background:var(--paper); border:1px solid transparent; border-radius:22px; padding:16px 2px 18px; margin-bottom:14px; box-shadow:none; animation:screenIn .32s ease; }
   /* ---- 首页：极简 launcher（一个大圆按钮为唯一焦点，对齐设计稿） ---- */
   .home{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:12px 24px 24px; animation:screenIn .4s ease; }
@@ -298,7 +301,8 @@
       <button class="revealAction" id="show" disabled>揭晓答案</button>
       <button class="primary" id="done" disabled>写好了</button>
     </div>
-    <div class="reveal" id="reveal"><div class="ans" id="ans"></div>
+    <div class="reveal" id="reveal"><div class="verdict" id="verdictBadge" style="display:none"></div>
+      <div class="ans" id="ans"></div>
       <button class="ghost" id="peek">看我刚写的</button>
       <div class="hint" id="markCue"></div></div>
     <div class="row mark" id="mark">
@@ -742,13 +746,14 @@ function initBox(){ const box=document.createElement('div'); box.className='box'
   box.appendChild(gridCanvas); box.appendChild(hzEl); box.appendChild(inkCanvas); $("boxwrap").appendChild(box);
   inkCtx=inkCanvas.getContext('2d'); drawGridOn(gridCanvas.getContext('2d')); inkCanvas.style.transition='opacity .2s'; hzEl.style.transition='opacity .2s';
   inkStrokes=[]; curInkStroke=null; // 画布重建=墨迹清空，记录的笔画同步作废
-  inkCanvas.addEventListener('pointerdown',e=>{ e.preventDefault(); const p=P(e);
+  // isPrimary 过滤：手机上手掌/第二根手指的触点会把正在写的一笔打断或拆碎
+  inkCanvas.addEventListener('pointerdown',e=>{ if(e.isPrimary===false) return; e.preventDefault(); const p=P(e);
     if(continuous){ if(!penDown){ setPen(true); last=p; dot(p); inkBegin(p); } else { setPen(false); inkEnd(); } return; }
     drawing=true; last=p; inkBegin(p); try{inkCanvas.setPointerCapture(e.pointerId);}catch(_){} });
-  inkCanvas.addEventListener('pointermove',e=>{ const p=P(e);
+  inkCanvas.addEventListener('pointermove',e=>{ if(e.isPrimary===false) return; const p=P(e);
     if(continuous){ if(penDown){ strokeTo(p); inkMove(p); } else { last=p; } e.preventDefault(); return; }
     if(drawing){ strokeTo(p); inkMove(p); e.preventDefault(); } });
-  ['pointerup','pointercancel','pointerleave'].forEach(ev=>inkCanvas.addEventListener(ev,()=>{ if(!continuous){ drawing=false; inkEnd(); } })); }
+  ['pointerup','pointercancel','pointerleave'].forEach(ev=>inkCanvas.addEventListener(ev,e=>{ if(e.isPrimary===false) return; if(!continuous){ drawing=false; inkEnd(); } })); }
 function clearInk(){ inkCtx.clearRect(0,0,S,S); inkStrokes=[]; curInkStroke=null; if(inkCanvas && !revealed) inkCanvas.style.opacity='1'; }
 
 function charLoader(char, onComplete){
@@ -800,23 +805,43 @@ function strokePairCost(a,b){ const n=a.length; let f=0,r=0;
   f/=n; r/=n; const rev=r*1.25<f, d=rev?r:f, s=rev?a[n-1]:a[0], e=rev?a[0]:a[n-1];
   const endD=Math.max(Math.hypot(s.x-b[0].x,s.y-b[0].y), Math.hypot(e.x-b[n-1].x,e.y-b[n-1].y));
   return {d,endD}; }
-// 贪心配对（不要求笔顺一致，笔顺练习由「笔顺提示」负责）；逐对卡均距/端点/长度三个阈值
+// 判定分两路：笔画数相同→逐笔配对精判（含长度校验，能抓「未/末」这类形近）；
+// 笔画数不同→整体覆盖度判定。手机上手指书写连笔/断笔太常见，不能一句「笔画数不符」就弃判
 function checkInk(userStrokes,medCanvas){ const N=24;
   const t=medCanvas.map(m=>resamplePts(m,N)), tLen=medCanvas.map(pathLen);
   const aligned=alignInk(userStrokes,bboxOf(medCanvas));
   const u=aligned.map(s=>resamplePts(s,N)), uLen=aligned.map(pathLen);
+  return u.length===t.length?checkExact(u,uLen,t,tLen):checkHolistic(u,t); }
+function checkExact(u,uLen,t,tLen){
   const OK_D=S*0.115, OK_END=S*0.24, OK_LEN=0.55, SHORT=S*0.15;
   const all=[];
   for(let i=0;i<u.length;i++) for(let j=0;j<t.length;j++){ const c=strokePairCost(u[i],t[j]); all.push({i,j,d:c.d,endD:c.endD}); }
   all.sort((a,b)=>(a.d+0.3*a.endD)-(b.d+0.3*b.endD));
   const uUsed=new Array(u.length).fill(false), tUsed=new Array(t.length).fill(false), failed=[];
-  let okCount=0;
   all.forEach(p=>{ if(uUsed[p.i]||tUsed[p.j]) return; uUsed[p.i]=true; tUsed[p.j]=true;
     const lenOff=tLen[p.j]<SHORT?0:Math.abs(uLen[p.i]-tLen[p.j])/Math.max(tLen[p.j],S*0.12);
-    if(p.d<=OK_D && p.endD<=OK_END && lenOff<=OK_LEN) okCount++; else failed.push(p.i); });
-  const extra=[]; uUsed.forEach((used,i)=>{ if(!used) extra.push(i); });
-  const status=u.length!==t.length?"count":(failed.length?"bad":"ok");
-  return {status, u:u.length, t:t.length, failed, extra, okCount}; }
+    if(!(p.d<=OK_D && p.endD<=OK_END && lenOff<=OK_LEN)) failed.push(p.i); });
+  return {status:failed.length?"bad":"ok", mode:"exact", u:u.length, t:t.length, failed, missing:0}; }
+// 覆盖度双向检查：标准的每一笔有没有被墨迹描到（抓少笔/漏部件）；用户的每一笔有没有落在标准字形上（抓多笔/错位）。
+// 「描到」要求距离近且方向一致（|cos|≥0.5，允许倒笔）——只看距离的话，竖钩被几条横「路过」就会被误认为写过了
+function addDirs(pts){ const n=pts.length; return pts.map((p,i)=>{ const a=pts[Math.max(0,i-1)], b=pts[Math.min(n-1,i+1)];
+  const dx=b.x-a.x, dy=b.y-a.y, L=Math.hypot(dx,dy)||1; return {x:p.x,y:p.y,tx:dx/L,ty:dy/L}; }); }
+function nnStat(strokes,cloud,R){ return strokes.map(pts=>{ let sum=0,cov=0;
+  pts.forEach(p=>{ let best=1e9, covered=false;
+    for(let k=0;k<cloud.length;k++){ const q=cloud[k], dx=p.x-q.x, dy=p.y-q.y, d2=dx*dx+dy*dy;
+      if(d2<best) best=d2;
+      if(!covered && d2<=R*R && Math.abs(p.tx*q.tx+p.ty*q.ty)>=0.5) covered=true; }
+    sum+=Math.sqrt(best); if(covered) cov++; });
+  return {mean:sum/pts.length, cov:cov/pts.length}; }); }
+function checkHolistic(u,t){
+  const ud=u.map(addDirs), td=t.map(addDirs);
+  const uAll=[].concat(...ud), tAll=[].concat(...td), R=S*0.08;
+  const tStat=nnStat(td,uAll,R), uStat=nnStat(ud,tAll,R);
+  let missing=0; tStat.forEach(s=>{ if(s.cov<0.55 || s.mean>S*0.095) missing++; });
+  const failed=[]; uStat.forEach((s,i)=>{ if(s.cov<0.55 || s.mean>S*0.10) failed.push(i); });
+  const chamfer=(uStat.reduce((a,s)=>a+s.mean,0)/uStat.length + tStat.reduce((a,s)=>a+s.mean,0)/tStat.length)/2;
+  const ok=missing===0 && failed.length===0 && chamfer<=S*0.065;
+  return {status:ok?"ok":"bad", mode:"holistic", u:u.length, t:t.length, failed, missing}; }
 function autoCheckInk(){ lastVerdict=null; inkEnd(); // 连续模式下可能还悬着没提笔的一画，先收
   if(!curMedians || !curMedians.length || !inkStrokes.length) return null;
   try{ lastVerdict=checkInk(inkStrokes, mediansToCanvas(curMedians)); }catch(e){ lastVerdict=null; }
@@ -827,10 +852,18 @@ function paintInkStrokes(idxs,color){ if(!idxs || !idxs.length) return;
     if(pts.length<2){ inkCtx.beginPath(); inkCtx.arc(pts[0].x,pts[0].y,Math.max(3,S*0.022),0,Math.PI*2); inkCtx.fill(); return; }
     inkCtx.beginPath(); inkCtx.moveTo(pts[0].x,pts[0].y); for(let k=1;k<pts.length;k++) inkCtx.lineTo(pts[k].x,pts[k].y); inkCtx.stroke(); }); }
 function verdictCue(v){ if(!v) return "";
-  if(v.status==="ok") return "自动比对：看起来写对了 ✓（机器判断，仅供参考）";
-  if(v.status==="bad") return `自动比对：有 ${v.failed.length} 笔和标准写法差别较大，点「看我刚写的」可看标红`;
-  const hint=v.okCount>=Math.min(v.u,v.t)*0.7?"可能是连笔或漏笔":"整体差别也比较大";
-  return `自动比对：你写了 ${v.u} 笔、标准是 ${v.t} 笔（${hint}），对照看看`; }
+  if(v.status==="ok"){
+    if(v.mode==="holistic") return `自动比对：整体字形对上了（你 ${v.u} 笔、标准 ${v.t} 笔，连笔不影响判定）`;
+    return "自动比对：每一笔都对上了（机器判断，仅供参考）"; }
+  const parts=[];
+  if(v.missing) parts.push(`像是少写了 ${v.missing} 笔（你 ${v.u} 笔、标准 ${v.t} 笔）`);
+  if(v.failed.length) parts.push(`${v.failed.length} 笔没写到位（已标红，点「看正确字」对照）`);
+  if(!parts.length) parts.push("整体和标准字形差别较大，对照看看");
+  return "自动比对："+parts.join("；"); }
+function showVerdictBadge(v){ const b=$("verdictBadge"); if(!b) return;
+  if(!v){ b.style.display="none"; b.className="verdict"; b.textContent=""; return; }
+  b.className="verdict "+(v.status==="ok"?"good":"bad"); b.style.display="block";
+  b.textContent=v.status==="ok"?"✓ 写对了":"✗ 写得不太对"; }
 
 function updateTip(){ $("tip").textContent=`笔顺提示（${groupIdx}/${groups.length}）`; if(groupIdx>=groups.length) $("tip").disabled=true; }
 
@@ -851,7 +884,7 @@ function render(){ fitBox(); cur=CARDS[batch[pos]]; const token=++loadToken;
   clearInk(); setPen(false); inkCanvas.style.opacity='1'; hzEl.style.opacity='1'; showingMine=false;
   shownStrokes=0; totalStrokes=0; groups=[]; groupIdx=0; $("tip").disabled=true; $("show").disabled=true; $("done").disabled=true; $("tip").textContent="笔顺提示";
   hzEl.innerHTML=""; writer=null; revealed=false;
-  curMedians=null; lastVerdict=null; ["fast","hinted","miss","slow"].forEach(id=>$(id).classList.remove("suggest"));
+  curMedians=null; lastVerdict=null; showVerdictBadge(null); ["fast","hinted","miss","slow"].forEach(id=>$(id).classList.remove("suggest"));
   function allowNoStrokeData(message){ if(token!==loadToken) return; loadToken++; $("show").disabled=false; $("done").disabled=false; $("tip").disabled=true; $("hint").textContent=(cur.custom?cur.hint+" · ":"")+message; }
   if(window.HanziWriter){
     writer=HanziWriter.create(hzEl, cur.target, { width:S, height:S, padding:Math.round(S*0.06),
@@ -885,12 +918,14 @@ function revealAnswer(done){
     shownStrokes=totalStrokes; groupIdx=groups.length; updateTip(); }
   const blank=$("prompt").querySelector(".blank"); if(blank){ blank.textContent=cur.target; blank.classList.add("filled"); }
   // 没有笔顺数据时：答案用大字给在下方，保留用户自己的笔迹别藏
-  if(noData){ setRevealView(true); $("peek").style.display="none"; } else setRevealView(false);
+  // 判了「写错」默认先看自己的字（标红直接可见），正确答案就在题面和「看正确字」一步之内
+  if(noData){ setRevealView(true); $("peek").style.display="none"; } else setRevealView(!!(verdict && verdict.status==="bad"));
   $("reveal").style.display="block"; $("ans").innerHTML=(noData?`<span class="big">${cur.target}</span>`:"")+`<span class="small">${cur.word}${cur.py?` · ${cur.py}`:""}</span>`;
   $("markCue").textContent=verdictCue(verdict)||(noData?(done?"对照上面的答案看看，写对了吗？":"看着答案回忆一下，这个字算哪种？"):(done?"对照笔顺看看，写对了吗？":"顺着笔顺回忆一下，这个字算哪种？"));
-  if(verdict){ paintInkStrokes(verdict.status==="count"?verdict.extra:verdict.failed, cssVar('--miss',"#b3403a"));
+  showVerdictBadge(verdict);
+  if(verdict){ paintInkStrokes(verdict.failed, cssVar('--miss',"#b3403a"));
     if(verdict.status==="ok") $(hintsUsedThisCard>0?"hinted":"fast").classList.add("suggest");
-    else if(verdict.status==="bad") $("slow").classList.add("suggest"); }
+    else $("slow").classList.add("suggest"); }
   $("hinted").style.display="";
   renderQuality();
   $("inkTools").style.display="none"; $("actions").style.display="none";

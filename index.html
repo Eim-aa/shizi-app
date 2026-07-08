@@ -157,6 +157,12 @@
   .stampWrap small em{ font-style:normal; color:var(--accent); font-weight:700; }
   .seal{ width:70px; height:70px; display:flex; align-items:center; justify-content:center; transition:transform .12s ease; }
   .seal span{ writing-mode:vertical-rl; font:400 19px/1.1 var(--kai); letter-spacing:.08em; }
+  #stampRow.funcFirst{ gap:8px; }
+  #stampRow.funcFirst .seal{ width:76px; height:76px; }
+  #stampRow.funcFirst .seal span{ writing-mode:horizontal-tb; max-width:62px; text-align:center; font:800 15px/1.18 var(--sans); letter-spacing:0; }
+  #stampRow.funcFirst .seal span.multi{ font-size:13.5px; line-height:1.15; }
+  #stampRow.funcFirst .stampWrap small{ font-weight:700; color:var(--ink); }
+  #stampRow.funcFirst .stampWrap small::before{ content:"印章："; color:var(--faint); font-weight:400; }
   .seal.fast{ background:var(--accent); border-radius:22% 18% 24% 20%; color:var(--paperInk); transform:rotate(-2deg);
     box-shadow:inset 0 0 0 2px rgba(253,250,241,.4), inset 0 0 0 4.5px var(--accent), inset 0 0 14px rgba(120,20,6,.3), 0 8px 18px -8px var(--accent); }
   .seal.hinted{ background:var(--gold); border-radius:20% 24% 20% 24%; color:var(--paperInk); transform:rotate(2deg);
@@ -178,6 +184,8 @@
   .toastCard .tchar{ width:40px; height:40px; background:var(--shade); border:1px solid var(--line); border-radius:9px; display:flex; align-items:center; justify-content:center; font:400 24px/1 var(--kai); }
   .toastCard .ttxt{ font-size:13px; line-height:1.5; }
   .toastCard .ttxt span{ color:var(--faint); font-size:12px; }
+  .editStampBtn{ margin-left:auto; flex:none; border:1px solid var(--line); background:var(--shade); color:var(--muted); border-radius:999px; padding:8px 10px; font:700 12px/1 var(--sans); }
+  .editStampBtn:disabled{ display:none; }
   #nextWrap{ margin-top:auto; display:none; justify-content:center; padding-top:16px; }
   #nextBtn{ background:var(--ink); color:var(--card); border-radius:16px; padding:16px 48px; font:700 16px var(--sans); }
   .quality{ display:flex; align-items:center; justify-content:center; gap:14px; flex-wrap:wrap; margin-top:auto; padding-top:14px; font-size:11.5px; color:var(--faint); }
@@ -447,11 +455,12 @@
         <div class="stampWrap" id="wrapSlow"><button class="seal slow" id="slow"><span>差点</span></button><small>写错了</small></div>
         <div class="stampWrap" id="wrapMiss"><button class="seal miss" id="miss"><span>回炉</span></button><small>不会写</small></div>
       </div>
-      <div id="stampNote">前三章 → 字进字盒；回炉 → 放回口袋，明天再拾</div>
+      <div id="stampNote">前三枚章 → 字进字盒；回炉 → 放回口袋，明天再拾</div>
 
       <div class="toastCard" id="stampedToast">
         <div class="tchar" id="toastChar"></div>
         <div class="ttxt"><b id="toastTitle"></b><br><span id="toastSubEl"></span></div>
+        <button class="editStampBtn" id="editStamp" disabled>改一下</button>
       </div>
       <div id="nextWrap"><button id="nextBtn">下一个字 →</button></div>
 
@@ -746,7 +755,12 @@ function isHighRisk(i){ const m=memory[cardKey(i)]; return !!(qualityAvailable(i
 function highRiskIndexes(){ return allIndexes().filter(isHighRisk).sort((a,b)=>personalDifficulty(b)-personalDifficulty(a)); }
 function highRiskCount(){ return highRiskIndexes().length; }
 // 四枚印章 = 四档自评（对应记忆模型的四种结果）
-const GRADE_UI={ fast:{seal:"拾到", cls:"fast"}, hinted:{seal:"补拾", cls:"hinted"}, slow:{seal:"差点", cls:"slow"}, miss:{seal:"回炉", cls:"miss"} };
+const GRADE_UI={
+  fast:{seal:"拾到", func:"会写", funcHtml:"会写", cls:"fast", effect:"之后会隔久一点再出现"},
+  hinted:{seal:"补拾", func:"看提示写出", funcHtml:"看提示<br>写出", cls:"hinted", effect:"近期会回来复习"},
+  slow:{seal:"差点", func:"写错了", funcHtml:"写错了", cls:"slow", effect:"会优先回来复习"},
+  miss:{seal:"回炉", func:"不会写", funcHtml:"不会写", cls:"miss", effect:"先放回口袋，很快再拾"},
+};
 const OUTCOME_DOT={ fast:"var(--accent)", hinted:"var(--gold)", slow:"var(--blue)", miss:"transparent" };
 const MASCOT_LINES=[
   "这个格子里的字，你上次写它可能是十年前",
@@ -804,7 +818,7 @@ function recordQuality(kind, idx=batch[pos]){ if(idx==null || idx<0) return; con
   if(kind==="easy" && q.easy) setStatus(idx,"rest"); if(kind==="badWord" && q.badWord) sessionDone.add(idx);
   if(kind==="hide"){ if(q.hide) sessionDone.add(idx); else sessionDone.delete(idx); }
   if(cur && idx===batch[pos]) renderQuality(); }
-// 盖章 = 记录一次结果；推进交给盖章后的「下一个字」（或 1.4s 自动前进）
+// 盖章 = 记录一次结果；推进交给盖章后的「下一个字」（或给 3 秒改章窗口后自动前进）
 let pendingRepeat=false;
 function recordOutcome(outcome){ const idx=batch[pos], c=CARDS[idx], m=cardMemory(idx), now=Date.now();
   const hard=outcome==="miss" || outcome==="hinted" || outcome==="slow";
@@ -1140,12 +1154,37 @@ function onTeachStrokeEnd(){ if((teachStage==="intro"||teachStage==="writing") &
 function promptHTML(c){ return c.chars.map((ch,i)=> i===c.ci ? `<span class="blank">${c.py||"？"}</span>` : `<span class="given">${ch}</span>`).join(""); }
 function updatePosLabel(){ $("posLabel").textContent=activeMode==="calibrate"?`试练 ${pos+1}/${batch.length}`:`${pos+1} / ${batch.length}`; }
 function renderBeads(){ $("beads").innerHTML=batch.map((_,i)=>`<span class="bead ${i===pos?"cur":(i<pos?"done":"")}"></span>`).join(""); }
-let stamped=false, autoNextTimer=0, overlayOn=false, replaying=false;
+let stamped=false, autoNextTimer=0, editStampTimer=0, lastStampSnapshot=null, overlayOn=false, replaying=false;
+const STAMP_IDS={fast:"fast", hinted:"hinted", slow:"slow", miss:"miss"};
+function functionFirstStampLabels(){ return activeMode==="calibrate" && !tuning.calibrated; }
+function renderStampLabels(){
+  const funcFirst=functionFirstStampLabels();
+  $("stampRow").classList.toggle("funcFirst",funcFirst);
+  Object.entries(STAMP_IDS).forEach(([outcome,id])=>{
+    const ui=GRADE_UI[outcome], btn=$(id), wrap=$("wrap"+outcome[0].toUpperCase()+outcome.slice(1));
+    btn.innerHTML=`<span class="${funcFirst && ui.funcHtml.includes("<br>")?"multi":""}">${funcFirst?ui.funcHtml:ui.seal}</span>`;
+    btn.setAttribute("aria-label",funcFirst?`${ui.func}，印章 ${ui.seal}`:`${ui.seal}，${ui.func}`);
+    wrap.querySelector("small").textContent=funcFirst?ui.seal:ui.func;
+  });
+}
+function cloneObj(v){ return v==null?null:JSON.parse(JSON.stringify(v)); }
+function takeStampSnapshot(){ const idx=batch[pos], key=cardKey(idx);
+  return { idx, key, statusValue:status[idx], memoryValue:cloneObj(memory[key]), roundStatsLen:roundStats.length, missedLen:missedThisRound.length,
+    nextExists:pos+1<batch.length, nextIdx:batch[pos+1], sessionTarget, sessionFastStreak, sessionMissStreak, pendingRepeat }; }
+function restoreStampSnapshot(snap){ if(!snap) return;
+  if(snap.statusValue==null) delete status[snap.idx]; else status[snap.idx]=snap.statusValue; save(DECK_KEY,status);
+  if(snap.memoryValue==null) delete memory[snap.key]; else memory[snap.key]=snap.memoryValue; saveMemory();
+  roundStats=roundStats.slice(0,snap.roundStatsLen); missedThisRound=missedThisRound.slice(0,snap.missedLen);
+  if(snap.nextExists && pos+1<batch.length) batch[pos+1]=snap.nextIdx;
+  sessionTarget=snap.sessionTarget; sessionFastStreak=snap.sessionFastStreak; sessionMissStreak=snap.sessionMissStreak; pendingRepeat=snap.pendingRepeat; }
+function stampToastCopy(outcome,m){ const ui=GRADE_UI[outcome];
+  return { title:`「${cur.target}」已记为${ui.func}`, sub:`你盖了「${ui.seal}」 · ${ui.effect} · ${dueText(m.due)}` }; }
 function render(){ fitBox(); cur=CARDS[batch[pos]]; const token=++loadToken;
   displayView("card");
-  clearTimeout(autoNextTimer); stamped=false; pendingRepeat=false; overlayOn=false; replaying=false;
+  clearTimeout(autoNextTimer); clearTimeout(editStampTimer); stamped=false; pendingRepeat=false; lastStampSnapshot=null; overlayOn=false; replaying=false;
   hintsUsedThisCard=0; cardStartedAt=Date.now();
   $("practiceArea").style.display="flex"; $("reveal").style.display="none";
+  $("editStamp").disabled=true;
   renderBeads(); updatePosLabel();
   // 练习时只留题面本身（挖空词＋拼音就是「词语＋语境」，别再用文字复述——复述会把答案印出来）
   $("prompt").innerHTML=promptHTML(cur);
@@ -1193,8 +1232,9 @@ function revealAnswer(done){
   overlayOn=false; $("mineOverlay").style.display="none"; $("mineOverlay").textContent=cur.target; $("overlayToggle").textContent="叠起来对比";
   $("rightGlyph").textContent=cur.target; $("rightGlyph").style.opacity="1"; $("rightHz").innerHTML=""; replaying=false;
   $("stampOnMine").style.display="none";
+  renderStampLabels();
   $("stampRow").style.display="flex"; $("stampNote").style.display="";
-  $("stampedToast").style.display="none"; $("nextWrap").style.display="none";
+  $("stampedToast").style.display="none"; $("nextWrap").style.display="none"; $("editStamp").disabled=true;
   // 教学 T3：第一次揭晓教盖章规则（只这一次）
   const teachReveal=teachActive();
   $("teachBubbleGrade").style.display=teachReveal?"":"none";
@@ -1213,8 +1253,19 @@ $("replayBtn").onclick=()=>{ if(replaying || !window.HanziWriter) return; replay
   const w=HanziWriter.create($("rightHz"), cur.target, { width:RS, height:RS, padding:10, showCharacter:false, showOutline:false,
     strokeColor:cssVar('--accent',"#c2452c"), strokeAnimationSpeed:3.2, delayBetweenStrokes:90, charDataLoader:charLoader });
   try{ w.animateCharacter({ onComplete:()=>{ replaying=false; } }); }catch(e){ replaying=false; $("rightGlyph").style.opacity="1"; } };
-// 盖章：按下去 = 这个字的去向定了。前三章进字盒，「回炉」放回口袋
+function reopenStampChoices(){ if(!lastStampSnapshot) return;
+  clearTimeout(autoNextTimer); clearTimeout(editStampTimer); restoreStampSnapshot(lastStampSnapshot); lastStampSnapshot=null;
+  stamped=false; pendingRepeat=false; $("editStamp").disabled=true;
+  $("stampOnMine").style.display="none"; $("stampedToast").style.display="none"; $("nextWrap").style.display="none";
+  $("stampRow").style.display="flex"; $("stampNote").style.display="";
+  const teachReveal=teachActive();
+  $("teachBubbleGrade").style.display=teachReveal?"":"none";
+  $("askRow").style.display=teachReveal?"none":"flex";
+  $("qualityBox").style.display=teachReveal?"none":"flex";
+  renderBeads(); renderQuality(); }
+// 盖章：按下去 = 这个字的去向定了。前三枚章进字盒，「回炉」放回口袋
 function pickStamp(outcome){ if(stamped || !revealed) return; stamped=true;
+  lastStampSnapshot=takeStampSnapshot();
   recordOutcome(outcome);
   const ui=GRADE_UI[outcome], m=memory[cardKey(batch[pos])]||{};
   const st=$("stampOnMine"), face=st.querySelector(".face"), ring=st.querySelector(".ring");
@@ -1229,18 +1280,23 @@ function pickStamp(outcome){ if(stamped || !revealed) return; stamped=true;
   $("stampRow").style.display="none"; $("stampNote").style.display="none";
   $("askRow").style.display="none"; $("teachBubbleGrade").style.display="none"; $("qualityBox").style.display="none";
   $("toastChar").textContent=cur.target;
-  $("toastTitle").textContent=outcome==="miss"?`「${cur.target}」先放回口袋`:`「${cur.target}」放进字盒了`;
-  $("toastSubEl").textContent=`你盖了「${ui.seal}」 · ${dueText(m.due)}`;
+  const copy=stampToastCopy(outcome,m);
+  $("toastTitle").textContent=copy.title;
+  $("toastSubEl").textContent=copy.sub;
   $("stampedToast").style.display="flex";
+  $("editStamp").disabled=false;
+  clearTimeout(editStampTimer);
+  editStampTimer=setTimeout(()=>{ $("editStamp").disabled=true; lastStampSnapshot=null; },3000);
   $("nextBtn").textContent=pos+1>=batch.length?(activeMode==="calibrate"?"看看你的底 →":"看今日拾得 →"):"下一个字 →";
   $("nextWrap").style.display="flex";
   renderBeads();
-  autoNextTimer=setTimeout(goNext,1400); }
-function goNext(){ clearTimeout(autoNextTimer); if(!stamped) return; const r=pendingRepeat; pendingRepeat=false; next(r); }
+  autoNextTimer=setTimeout(goNext,3400); }
+function goNext(){ clearTimeout(autoNextTimer); clearTimeout(editStampTimer); $("editStamp").disabled=true; lastStampSnapshot=null; if(!stamped) return; const r=pendingRepeat; pendingRepeat=false; next(r); }
 $("fast").onclick=()=>pickStamp("fast");
 $("slow").onclick=()=>pickStamp("slow");
 $("hinted").onclick=()=>pickStamp("hinted");
 $("miss").onclick=()=>pickStamp("miss");
+$("editStamp").onclick=reopenStampChoices;
 $("nextBtn").onclick=goNext;
 function next(repeatSoon=false){ if(!repeatSoon) sessionDone.add(batch[pos]); pos++; if(pos<batch.length) render(); else roundSummary(); }
 function chooseFocusBatch(all){ return all.slice().sort((a,b)=>personalDifficulty(b)-personalDifficulty(a)).slice(0,BATCH); }

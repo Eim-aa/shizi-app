@@ -102,6 +102,45 @@ async function expectHidden(page, selector, label) {
     throw new Error(`Expected calibration difficulty to trend upward, got ${practice.difficulties.join(",")}`);
   }
 
+  await page.evaluate(() => revealAnswer(false));
+  await expectVisible(page, "#reveal", "calibration reveal");
+  const newbieStamp = await page.evaluate(() => ({
+    funcFirst: document.getElementById("stampRow").classList.contains("funcFirst"),
+    labels: Array.from(document.querySelectorAll("#stampRow .stampWrap")).map((node) => ({
+      seal: node.querySelector(".seal").innerText.replace(/\s+/g, ""),
+      sub: node.querySelector("small").textContent.replace(/\s+/g, ""),
+    })),
+    qualityVisible: getComputedStyle(document.getElementById("qualityBox")).display !== "none",
+    teachVisible: getComputedStyle(document.getElementById("teachBubbleGrade")).display !== "none",
+  }));
+  if (!newbieStamp.funcFirst || newbieStamp.labels.map((x) => `${x.seal}/${x.sub}`).join(",") !== "会写/拾到,看提示写出/补拾,写错了/差点,不会写/回炉" || newbieStamp.qualityVisible || !newbieStamp.teachVisible) {
+    throw new Error(`Expected first calibration reveal to make function labels primary, got ${JSON.stringify(newbieStamp)}`);
+  }
+  await page.click("#fast");
+  await page.waitForFunction(() => getComputedStyle(document.getElementById("stampedToast")).display !== "none");
+  const newbieToast = await page.evaluate(() => ({
+    memoryCount: Object.values(memory).length,
+    outcome: Object.values(memory)[0]?.lastOutcome,
+    toast: document.getElementById("stampedToast").textContent.replace(/\s+/g, ""),
+    editDisabled: document.getElementById("editStamp").disabled,
+    stampHidden: getComputedStyle(document.getElementById("stampRow")).display === "none",
+  }));
+  if (newbieToast.memoryCount !== 1 || newbieToast.outcome !== "fast" || !newbieToast.toast.includes("已记为会写") || !newbieToast.toast.includes("改一下") || newbieToast.editDisabled || !newbieToast.stampHidden) {
+    throw new Error(`Expected stamped toast to explain the system interpretation and expose edit, got ${JSON.stringify(newbieToast)}`);
+  }
+  await page.click("#editStamp");
+  const editCheck = await page.evaluate(() => ({
+    memoryCount: Object.values(memory).length,
+    statusCount: Object.keys(status).length,
+    roundStats: roundStats.length,
+    stamped,
+    stampVisible: getComputedStyle(document.getElementById("stampRow")).display !== "none",
+    editDisabled: document.getElementById("editStamp").disabled,
+  }));
+  if (editCheck.memoryCount !== 0 || editCheck.statusCount !== 0 || editCheck.roundStats !== 0 || editCheck.stamped || !editCheck.stampVisible || !editCheck.editDisabled) {
+    throw new Error(`Expected edit stamp to undo the memory write and reopen choices, got ${JSON.stringify(editCheck)}`);
+  }
+
   const adaptive = await page.evaluate(() => {
     status = {};
     memory = {};
@@ -186,11 +225,12 @@ async function expectHidden(page, selector, label) {
   const reveal = await page.evaluate(() => ({
     revealWord: document.getElementById("revealWord").textContent,
     empty: document.getElementById("mineEmpty").textContent,
-    stampLabels: Array.from(document.querySelectorAll("#stampRow .stampWrap")).map((node) => node.textContent.replace(/\s+/g, "")),
+    funcFirst: document.getElementById("stampRow").classList.contains("funcFirst"),
+    stampLabels: Array.from(document.querySelectorAll("#stampRow .stampWrap")).map((node) => `${node.querySelector(".seal").innerText.replace(/\s+/g, "")}/${node.querySelector("small").textContent.replace(/\s+/g, "")}`),
     note: document.getElementById("stampNote").textContent,
     qualityVisible: getComputedStyle(document.getElementById("qualityBox")).display !== "none",
   }));
-  if (!reveal.revealWord.includes(firstTarget) || reveal.empty !== "这次没写" || reveal.stampLabels.join(",") !== "拾到会写,补拾看提示写出,差点写错了,回炉不会写" || !reveal.note.includes("回炉") || !reveal.qualityVisible) {
+  if (!reveal.revealWord.includes(firstTarget) || reveal.empty !== "这次没写" || reveal.funcFirst || reveal.stampLabels.join(",") !== "拾到/会写,补拾/看提示写出,差点/写错了,回炉/不会写" || !reveal.note.includes("回炉") || !reveal.qualityVisible) {
     throw new Error(`Expected designer reveal and stamp self-assessment, got ${JSON.stringify(reveal)}`);
   }
 
@@ -207,7 +247,7 @@ async function expectHidden(page, selector, label) {
       nextText: document.getElementById("nextBtn").textContent,
     };
   });
-  if (stamped.entries !== 1 || stamped.outcome !== "miss" || stamped.target !== firstTarget || !stamped.statusValues.includes("indeck") || !stamped.toast.includes("放回口袋")) {
+  if (stamped.entries !== 1 || stamped.outcome !== "miss" || stamped.target !== firstTarget || !stamped.statusValues.includes("indeck") || !stamped.toast.includes("已记为不会写") || !stamped.toast.includes("放回口袋")) {
     throw new Error(`Expected miss stamp to update memory and review deck, got ${JSON.stringify(stamped)}`);
   }
   await page.click("#nextBtn");

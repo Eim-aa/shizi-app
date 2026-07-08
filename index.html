@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>拾字｜提笔忘字 · Day 0</title>
-<meta name="theme-color" media="(prefers-color-scheme: light)" content="#f4f2ec">
-<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#171814">
+<title>拾字｜提笔忘字，拾回便是</title>
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#f7f1e3">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1b1813">
 <meta name="description" content="每天写几个你会写错的汉字，把手写能力练回来。">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="mobile-web-app-capable" content="yes">
@@ -15,265 +15,529 @@
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" type="image/png" href="icon-192.png">
 <style>
-  :root{ --sans:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue",sans-serif; --kai:"Kaiti SC","STKaiti","KaiTi",serif;
-    --bg:#e6e3db; --paper:#f4f2ec; --card:#fffdf9; --ink:#211f1b; --muted:#6f6a61; --faint:#a59f93;
-    --line:#e0dbd1; --grid:#e9e4d9; --soft:#efece4; --accent:#34568a; --accentSoft:#e7ecf4;
-    --known:#4f7a5b; --knownSoft:#e7eee8; --miss:#b15a43; --missSoft:#f4e7e2; --btn:#f7f5ef;
-    --blankBg:rgba(255,253,249,.55); --boxLine:#d8d2c6; --adviceLine:#d6e0f0; }
+  /* ===== 纸墨拾趣：宣纸 × 朱砂印 ===== */
+  :root{ --sans:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue",sans-serif;
+    --kai:"Kaiti SC","STKaiti","KaiTi",serif; --song:"Songti SC","Noto Serif SC","STSong","SimSun",serif;
+    --bg:#efe7d3; --soft:#f7f1e3; --card:#fdfaf1; --tile:#fbf6ea; --shade:#f3ead7;
+    --ink:#2b2620; --muted:#7a715f; --faint:#ab9f87; --line:#e3d9c4; --dline:#d9cdb2;
+    --accent:#c2452c; --accentSoft:#fdf0ec; --gold:#b3892f; --blue:#3f5a7d; --grey:#8d8471; --green:#43603a;
+    --inkPen:#2b2620; --paperInk:#fdfaf1; }
   @media (prefers-color-scheme: dark){
-    :root{ --bg:#171814; --paper:#202119; --card:#272820; --ink:#f4f1e9; --muted:#bcb5a8; --faint:#8e8778;
-      --line:#3c3a31; --grid:#343229; --soft:#2e3027; --accent:#8fb4e8; --accentSoft:#223047;
-      --known:#8bc29b; --knownSoft:#203226; --miss:#df8d75; --missSoft:#3d2923; --btn:#303227;
-      --blankBg:rgba(34,48,71,.5); --boxLine:#3c3a31; --adviceLine:#31415c; } }
+    :root{ --bg:#1b1813; --soft:#221e17; --card:#282218; --tile:#2b2519; --shade:#241f15;
+      --ink:#f2ead9; --muted:#b3a893; --faint:#857b68; --line:#3a332a; --dline:#463e32;
+      --accent:#d4553a; --accentSoft:#38231d; --gold:#c89b45; --blue:#7d9cc0; --grey:#9a917e; --green:#8fb894;
+      --inkPen:#ecdfc6; --paperInk:#fdfaf1; } }
   *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-  html,body{ min-height:100%; margin:0; background:radial-gradient(120% 90% at 50% 0%, var(--soft) 0%, var(--bg) 70%); color:var(--ink); line-height:1.45;
-    font-family:var(--sans); -webkit-font-smoothing:antialiased; }
-  body{ padding:0; }
-  .wrap{ width:min(100%,430px); min-height:100svh; margin:0 auto; padding:calc(16px + env(safe-area-inset-top)) 20px calc(30px + env(safe-area-inset-bottom)); display:flex; flex-direction:column; }
-  .top{ display:flex; justify-content:space-between; align-items:center; margin:0 0 14px; padding:0 6px; flex:none; }
-  .brand{ font-size:20px; font-weight:800; letter-spacing:.04em; }
-  .pos{ font-size:12px; color:var(--faint); text-align:right; }
-  .card{ background:var(--paper); border:1px solid transparent; border-radius:22px; padding:0 2px 18px; box-shadow:none; animation:screenIn .32s ease; }
-  @keyframes screenIn{ from{ opacity:0; transform:translateY(8px); } to{ opacity:1; transform:none; } }
-  #prompt{ min-height:78px; display:flex; justify-content:center; align-items:center; gap:5px; flex-wrap:wrap; text-align:center; font:400 34px/1.15 var(--kai); color:var(--ink); padding:8px 6px 0; }
-  #prompt .given{ font-family:var(--kai); }
-  #prompt .blank{ display:inline-flex; align-items:center; justify-content:center; min-width:50px; height:52px; border:2px solid var(--accent); border-radius:12px; color:var(--accent); font:600 15px/1 var(--sans); padding:0 9px; letter-spacing:.03em; background:var(--blankBg); }
-  #prompt .blank.filled{ font:400 34px/1 var(--kai); letter-spacing:0; }
-  .ask{ text-align:center; font-size:13px; color:var(--muted); margin-top:8px; }
-  .hint{ margin:9px auto 0; max-width:350px; text-align:center; font-size:12.5px; color:var(--muted); line-height:1.6; min-height:20px; }
-  .modebar{ display:flex; align-items:center; justify-content:center; gap:10px; margin-top:12px; }
-  .mode{ flex:0 0 auto; font-size:12px; padding:7px 11px; border-radius:999px; background:transparent; color:var(--muted); border-color:var(--line); }
-  .pill{ font-size:12px; color:var(--faint); }
-  .pill.down{ color:var(--accent); font-weight:700; }
-  .modehint{ display:none; }
-  .quality{ display:flex; align-items:center; justify-content:center; gap:7px; flex-wrap:wrap; margin:10px auto 0; max-width:350px; color:var(--faint); font-size:11.5px; }
-  .quality button{ flex:0 0 auto; padding:6px 8px; font-size:11.5px; border-radius:999px; background:transparent; border:1px solid var(--line); color:var(--muted); }
-  .quality button.active{ border-color:var(--accent); color:var(--accent); background:var(--accentSoft); font-weight:700; }
-  .quality .note{ min-height:16px; flex-basis:100%; text-align:center; }
-  #boxwrap{ display:flex; justify-content:center; margin:14px 0 8px; }
-  .box{ position:relative; border-radius:22px; overflow:hidden; background:var(--card); border:1px solid var(--boxLine); box-shadow:inset 0 2px 10px rgba(40,36,28,.04), 0 16px 34px -28px rgba(40,36,28,.45); }
-  .box .gridc, .box .hz, .box .inkc{ position:absolute; left:0; top:0; border-radius:22px; }
-  .box .hz{ pointer-events:none; }
-  .box .inkc{ touch-action:none; cursor:crosshair; }
-  .row{ display:flex; gap:10px; margin-top:12px; }
-  .row.center{ justify-content:center; }
-  button{ font:600 15px var(--sans); border:1px solid transparent; border-radius:14px; padding:14px 16px;
-    background:var(--btn); color:var(--ink); cursor:pointer; flex:1; transition:transform .05s, border-color .15s, background .15s, color .15s; }
+  html,body{ min-height:100%; margin:0; color:var(--ink); line-height:1.45; font-family:var(--sans);
+    background:radial-gradient(130% 100% at 50% 0%, var(--soft) 0%, var(--bg) 78%); -webkit-font-smoothing:antialiased; }
+  .wrap{ width:min(100%,430px); min-height:100svh; margin:0 auto; display:flex; flex-direction:column;
+    padding:calc(10px + env(safe-area-inset-top)) 0 0; }
+  button{ font-family:var(--sans); border:0; background:none; color:inherit; cursor:pointer; padding:0; }
   button:active{ transform:scale(.97); }
   button:disabled{ opacity:.45; }
-  .primary{ background:var(--accent); color:#fff; box-shadow:0 10px 24px -12px rgba(52,86,138,.75); }
-  .ghost{ flex:0 0 auto; background:transparent; color:var(--muted); border-color:var(--line); padding:8px 12px; font-size:13px; box-shadow:none; }
-  .cardTop{ display:flex; justify-content:space-between; padding:0 4px; margin:0 0 -6px; }
-  .exitPractice{ flex:0 0 auto; padding:7px 10px; font-size:12px; border-radius:999px; }
-  #actions{ margin-top:10px; position:sticky; bottom:calc(10px + env(safe-area-inset-bottom)); z-index:3; padding-top:8px; background:linear-gradient(180deg, rgba(244,242,236,0), var(--paper) 38%); }
-  #inkTools{ align-items:center; justify-content:center; }
-  #inkTools button{ flex:0 0 auto; min-height:44px; }
-  .revealAction{ background:transparent; color:var(--muted); border-color:var(--line); box-shadow:none; flex:.75; }
-  .reveal{ display:none; margin-top:12px; text-align:center; }
-  .reveal .ans{ display:flex; align-items:baseline; justify-content:center; gap:12px; }
-  .reveal .big{ font-size:46px; font-weight:400; font-family:var(--kai); line-height:1; color:var(--ink); }
-  .reveal .small{ font-size:15px; color:var(--muted); margin-left:0; }
-  .mark{ display:none; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px; }
-  .mark button{ min-width:0; padding:13px 12px; font-size:14px; text-align:left; display:flex; align-items:center; justify-content:flex-start; }
-  .mark button::before{ content:""; width:9px; height:9px; border-radius:50%; margin-right:9px; flex:none; background:currentColor; }
-  .mark .fast{ background:var(--knownSoft); border:1.5px solid var(--known); color:var(--known); }
-  .mark .slow,.mark .hinted{ background:var(--accentSoft); border:1.5px solid var(--accent); color:var(--accent); }
-  .mark .hinted{ background:transparent; }
-  .mark .miss{ background:var(--missSoft); border:1.5px solid var(--miss); color:var(--miss); }
-  .revealedCard #prompt{ min-height:58px; font-size:30px; }
-  .revealedCard .ask{ margin-top:4px; }
-  .revealedCard #boxwrap{ margin:8px 0 2px; }
-  .revealedCard .reveal{ margin-top:7px; }
-  .revealedCard .mark{ gap:7px; margin-top:8px; }
-  .revealedCard .mark button{ padding:10px 11px; font-size:13px; }
-  @keyframes markCue{ 0%,100%{ box-shadow:0 0 0 0 rgba(52,86,138,0); } 35%{ box-shadow:0 0 0 4px var(--accentSoft); } }
-  .mark.cue{ animation:markCue .85s ease 1; border-radius:14px; }
-  .mark button.suggest{ outline:2.5px solid currentColor; outline-offset:2px; }
-  .mark button.suggest::after{ content:"建议"; margin-left:auto; font-size:11px; opacity:.75; padding-left:6px; }
-  .verdict{ font-weight:800; font-size:20px; letter-spacing:.06em; margin:2px 0 6px; text-align:center; }
-  .verdict.good{ color:var(--known); }
-  .verdict.bad{ color:var(--miss); }
-  .book,.profile,.audit,.me{ background:var(--paper); border:1px solid transparent; border-radius:22px; padding:16px 2px 18px; margin-bottom:14px; box-shadow:none; animation:screenIn .32s ease; }
-  /* ---- 首页：极简 launcher（一个大圆按钮为唯一焦点，对齐设计稿） ---- */
-  .home{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:12px 24px 24px; animation:screenIn .4s ease; }
-  .homeGreeting{ font-size:14px; color:var(--muted); }
-  .homeStatus{ margin-top:8px; font-size:17px; font-weight:300; color:var(--ink); line-height:1.5; }
-  .homeStatus b{ font-weight:600; }
-  .homeStatus b.due{ color:var(--miss); }
-  .startRing{ flex:0 0 auto; margin:46px 0 0; width:188px; height:188px; min-width:188px; padding:0; border-radius:50%; border:1.5px solid var(--line); background:transparent; display:flex; align-items:center; justify-content:center; box-shadow:none; }
-  .startRing:disabled{ opacity:1; }
-  .startRingInner{ width:142px; height:142px; border-radius:50%; background:var(--accent); color:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center; box-shadow:0 16px 34px -8px rgba(52,86,138,.55); }
-  .startRingInner b{ font:600 23px var(--sans); }
-  .startRingInner em{ margin-top:3px; font:500 11px var(--sans); font-style:normal; opacity:.82; letter-spacing:.08em; }
-  .homeFootStat{ margin-top:40px; display:flex; align-items:center; justify-content:center; gap:16px; font-size:12px; color:var(--faint); }
-  .homeFootStat b{ color:var(--muted); font-weight:600; }
-  .homeFootStat i{ width:3px; height:3px; border-radius:50%; background:var(--line); font-style:normal; }
-  .pref{ display:flex; align-items:center; justify-content:center; gap:8px; flex-wrap:wrap; font-size:12px; color:var(--faint); }
-  .prefBtns{ display:flex; gap:6px; flex:1 1 100%; justify-content:center; }
-  .prefBtns button{ flex:1 1 0; padding:9px 9px; font-size:12px; border-radius:999px; background:transparent; border:1px solid var(--line); color:var(--muted); box-shadow:none; }
-  .prefBtns button.active{ background:var(--accent); border-color:var(--accent); color:#fff; font-weight:700; }
-  .charChips{ display:flex; gap:8px; flex-wrap:wrap; justify-content:center; }
-  .charChip{ flex:0 0 auto; min-width:42px; padding:8px 10px; border:1px solid var(--line); border-radius:10px; background:var(--card); font-size:24px; color:var(--accent); font-family:var(--kai); line-height:1; box-shadow:none; }
-  /* ---- 我的：统计 + 易错分析入口 + 设置 + 内部工具 ---- */
-  .me{ display:none; }
-  .meHead{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; }
-  .meHead h2{ font-size:18px; margin:0; }
-  .meStats{ display:grid; grid-template-columns:repeat(3,1fr); gap:9px; }
-  .meStat{ background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px 0; text-align:center; }
-  .meStat b{ display:block; font-size:22px; line-height:1.1; }
-  .meStat b.good{ color:var(--known); }
-  .meStat b.warn{ color:var(--miss); }
-  .meStat span{ display:block; font-size:11px; color:var(--muted); margin-top:3px; }
-  .meCard{ width:100%; margin-top:16px; text-align:left; background:var(--accentSoft); border:1px solid var(--adviceLine); border-radius:15px; padding:15px 16px; box-shadow:none; }
+  .tlock{ opacity:.35 !important; pointer-events:none; }
+  @keyframes screenIn{ from{ opacity:0; transform:translateY(10px); } to{ opacity:1; transform:none; } }
+  @keyframes stampIn{ 0%{ transform:scale(2) rotate(16deg); opacity:0; } 55%{ transform:scale(.94) rotate(8deg); opacity:1; } 75%{ transform:scale(1.05) rotate(9.5deg); } 100%{ transform:scale(1) rotate(9deg); } }
+  @keyframes bigStampIn{ 0%{ transform:scale(2) rotate(-16deg); opacity:0; } 55%{ transform:scale(.94) rotate(-7deg); opacity:1; } 100%{ transform:scale(1) rotate(-8deg); } }
+  @keyframes ringOut{ 0%{ transform:scale(.5); opacity:.55; } 100%{ transform:scale(1.7); opacity:0; } }
+  @keyframes toastIn{ from{ transform:translateY(16px); opacity:0; } to{ transform:none; opacity:1; } }
+  @keyframes tileIn{ from{ transform:scale(.55) rotate(-8deg); opacity:0; } to{ opacity:1; } }
+  @keyframes breathe{ 0%,100%{ box-shadow:0 0 0 0 rgba(194,69,44,.28); } 50%{ box-shadow:0 0 0 5px rgba(194,69,44,.12); } }
+
+  /* ===== 首启（教学 T1） ===== */
+  .welcome{ display:none; flex:1; flex-direction:column; animation:screenIn .35s ease; padding:0 36px calc(40px + env(safe-area-inset-bottom)); text-align:center; }
+  .welcome .mid{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  .logoStamp{ width:84px; height:84px; background:var(--accent); border-radius:22% 18% 24% 20%; display:flex; align-items:center; justify-content:center;
+    color:var(--paperInk); font:400 50px/1 var(--kai); transform:rotate(-4deg);
+    box-shadow:inset 0 0 0 2.5px rgba(253,250,241,.4), inset 0 0 0 5px var(--accent), inset 0 0 18px rgba(120,20,6,.35), 0 16px 30px -12px rgba(194,69,44,.55); }
+  .welcome h1{ margin:34px 0 0; font:900 31px/1.55 var(--song); }
+  .welcome .lede{ margin-top:16px; font-size:15px; line-height:1.9; color:var(--muted); }
+  .welcome .go{ margin-top:52px; width:100%; background:var(--accent); color:var(--paperInk); border-radius:16px; padding:17px 10px;
+    font:700 16px var(--sans); box-shadow:0 14px 28px -12px rgba(194,69,44,.6); }
+  .welcome .goSub{ margin-top:12px; font-size:12px; color:var(--faint); }
+  .welcome .motto{ font:400 13px/1.8 var(--kai); color:var(--faint); letter-spacing:.24em; }
+
+  /* ===== 首页 ===== */
+  .home{ display:none; flex:1; flex-direction:column; padding:16px 24px 0; animation:screenIn .35s ease; }
+  .homeTop{ display:flex; justify-content:space-between; align-items:flex-start; }
+  .brandRow{ display:flex; align-items:center; gap:10px; }
+  .brandStamp{ width:40px; height:40px; background:var(--accent); border-radius:9px 7px 10px 8px; display:flex; align-items:center; justify-content:center;
+    color:var(--paperInk); font:400 24px/1 var(--kai); transform:rotate(-4deg);
+    box-shadow:inset 0 0 0 2px rgba(253,250,241,.35), inset 0 0 0 4px var(--accent), 0 6px 14px -6px rgba(194,69,44,.5); }
+  .brandName{ font:900 19px/1 var(--song); letter-spacing:.12em; }
+  .streakChip{ display:flex; align-items:center; gap:6px; background:var(--card); border:1px solid var(--line); border-radius:999px; padding:7px 12px; font-size:12px; font-weight:600; color:var(--muted); }
+  .streakChip i{ width:8px; height:8px; border-radius:50%; background:var(--accent); font-style:normal; }
+  .homeMain{ display:flex; justify-content:space-between; margin-top:36px; }
+  .homeGreeting{ font-size:13px; color:var(--muted); letter-spacing:.2em; }
+  .homeTitle{ margin:14px 0 0; font:900 38px/1.3 var(--song); letter-spacing:.02em; }
+  .homeSub{ margin-top:12px; font-size:14px; line-height:1.8; color:var(--muted); }
+  .motto{ writing-mode:vertical-rl; font:400 15px/1.9 var(--kai); color:var(--faint); border-left:1px solid var(--line); padding-left:14px; height:186px; letter-spacing:.28em; }
+  .homeStart{ display:flex; flex-direction:column; align-items:center; margin-top:32px; }
+  .stampBtn{ width:150px; height:150px; background:var(--accent); border-radius:24% 20% 26% 22%; color:var(--paperInk); font:400 80px/1 var(--kai);
+    transform:rotate(-3deg); display:flex; align-items:center; justify-content:center; padding-bottom:6px; transition:transform .12s ease;
+    box-shadow:inset 0 0 0 3px rgba(253,250,241,.4), inset 0 0 0 7px var(--accent), inset 0 0 26px rgba(120,20,6,.35), 0 22px 40px -16px rgba(194,69,44,.55); }
+  .stampBtn:active{ transform:rotate(-3deg) scale(.93); }
+  .stampBtn:disabled{ opacity:.55; }
+  .startCap{ margin-top:15px; font-size:13px; font-weight:600; }
+  .startCap span{ color:var(--faint); font-weight:400; }
+  .yester{ margin-top:auto; padding:22px 0 16px; }
+  .yesterHead{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:10px; font-size:12px; color:var(--faint); }
+  .yesterHead .lbl{ font-weight:600; letter-spacing:.14em; }
+  .yesterHead b{ color:var(--accent); }
+  .yesterRow{ display:flex; gap:8px; }
+  .yTile{ width:52px; height:52px; background:var(--card); border:1px solid var(--line); border-radius:10px; display:flex; align-items:center; justify-content:center; font:400 30px/1 var(--kai); }
+  .yTile.more{ background:var(--shade); border-style:dashed; border-color:var(--dline); font:400 12px var(--sans); color:var(--faint); }
+
+  /* ===== 练习卡 ===== */
+  .card{ display:none; flex:1; flex-direction:column; padding:14px 22px calc(20px + env(safe-area-inset-bottom)); animation:screenIn .3s ease; }
+  .chdr{ display:flex; align-items:center; gap:10px; }
+  .xbtn{ flex:none; width:34px; height:34px; border-radius:50%; border:1px solid var(--line); background:var(--card); color:var(--muted); font:400 15px/1 var(--sans); }
+  .beads{ flex:1; display:flex; align-items:center; justify-content:center; gap:5px; flex-wrap:wrap; }
+  .bead{ width:7px; height:7px; border-radius:50%; background:var(--dline); }
+  .bead.done{ background:var(--accent); }
+  .bead.cur{ width:13px; height:13px; background:var(--card); border:2px solid var(--accent); animation:breathe 1.8s ease-in-out infinite; }
+  .cardPos{ flex:none; font-size:11px; color:var(--faint); min-width:52px; text-align:right; }
+  .addPill{ flex:none; height:30px; border-radius:999px; border:1px solid var(--line); background:var(--card); color:var(--muted); font:600 12px/1 var(--sans); padding:0 11px; }
+  #prompt{ margin-top:20px; min-height:66px; display:flex; justify-content:center; align-items:center; gap:9px; flex-wrap:wrap; text-align:center; font:400 42px/1.1 var(--kai); }
+  #prompt .blank{ display:inline-flex; align-items:center; justify-content:center; min-width:60px; height:60px; border:2.5px dashed var(--accent); border-radius:14px;
+    color:var(--accent); font:700 18px/1 var(--sans); letter-spacing:.03em; padding:0 8px; background:var(--card); }
+  .hint{ margin:9px auto 0; max-width:350px; text-align:center; font-size:12.5px; color:var(--muted); line-height:1.6; min-height:19px; }
+  .tbubble{ margin:8px auto 0; position:relative; max-width:300px; background:#2b2620; color:#f5efe1; border-radius:14px; padding:12px 16px;
+    font-size:13.5px; line-height:1.7; text-align:center; animation:toastIn .35s ease both; }
+  .tbubble::after{ content:''; position:absolute; left:50%; bottom:-7px; width:14px; height:14px; background:#2b2620; transform:translateX(-50%) rotate(45deg); }
+  .tbubble b{ color:#f0c8a8; }
+  #boxwrap{ display:flex; justify-content:center; margin-top:12px; }
+  .box{ position:relative; border-radius:8px; overflow:hidden; box-shadow:0 0 0 2px rgba(194,69,44,.45), 0 18px 36px -26px rgba(60,48,30,.55); }
+  .box .gridc, .box .hz, .box .inkc{ position:absolute; left:0; top:0; }
+  .box .hz{ pointer-events:none; }
+  .box .inkc{ touch-action:none; cursor:crosshair; }
+  .mascotRow{ display:flex; align-items:center; justify-content:center; gap:9px; margin-top:12px; min-height:22px; }
+  .blob{ position:relative; width:22px; height:20px; background:var(--ink); border-radius:52% 48% 55% 45%; flex:none; }
+  .blob::before,.blob::after{ content:''; position:absolute; top:7px; width:4px; height:4px; border-radius:50%; background:var(--card); }
+  .blob::before{ left:5px; } .blob::after{ right:5px; }
+  .mascotRow span:last-child{ font-size:13px; color:var(--muted); }
+  .modebar{ display:flex; align-items:center; justify-content:center; gap:10px; margin-top:8px; }
+  .mode{ font-size:12px; padding:7px 11px; border-radius:999px; border:1px solid var(--line); color:var(--muted); background:transparent; }
+  .pill{ font-size:12px; color:var(--faint); }
+  .pill.down{ color:var(--accent); font-weight:700; }
+  #inkTools{ display:flex; gap:8px; margin-top:auto; padding-top:12px; }
+  .toolBtn{ background:var(--card); color:var(--ink); border:1px solid var(--line); border-radius:16px; padding:14px 10px; font:600 14px var(--sans); transition:opacity .3s; }
+  .toolBtn.side{ flex:none; padding:14px 14px; color:var(--muted); }
+  #inkTools .toolBtn:first-child{ flex:1; }
+  #actions{ display:flex; gap:8px; margin-top:8px; }
+  .ghostAct{ flex:.7; background:transparent; color:var(--muted); border:1px solid var(--dline); border-radius:16px; padding:15px 10px; font:600 15px var(--sans); transition:opacity .3s; }
+  .primaryAct{ flex:1; background:var(--accent); color:var(--paperInk); border-radius:16px; padding:15px 10px; font:700 16px var(--sans); box-shadow:0 14px 28px -12px rgba(194,69,44,.6); transition:opacity .3s; }
+
+  /* ===== 揭晓 · 对照 + 盖章 ===== */
+  #reveal{ display:none; flex:1; flex-direction:column; animation:screenIn .3s ease; }
+  .revealWord{ margin-top:14px; text-align:center; }
+  .revealWord .w{ font:400 34px/1 var(--kai); }
+  .revealWord .p{ font:600 14px/1 var(--sans); color:var(--muted); margin-left:10px; }
+  .cmpRow{ display:flex; justify-content:center; gap:12px; margin-top:14px; }
+  .cmpCol{ text-align:center; }
+  .cmpBox{ position:relative; width:150px; height:150px; background:var(--card); border-radius:6px; overflow:hidden; }
+  .cmpBox.mine{ box-shadow:0 0 0 2px rgba(43,38,32,.3); }
+  .cmpBox.std{ box-shadow:0 0 0 2px rgba(194,69,44,.5); }
+  .cmpBox .cx,.cmpBox .cy{ position:absolute; pointer-events:none; }
+  .cmpBox .cx{ left:0; top:50%; width:100%; border-top:1px dashed rgba(194,69,44,.22); }
+  .cmpBox .cy{ top:0; left:50%; height:100%; border-left:1px dashed rgba(194,69,44,.22); }
+  .cmpBox .glyph{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font:400 108px/1 var(--kai); color:var(--accent); }
+  #mineInk{ position:absolute; inset:0; background-repeat:no-repeat; background-size:150px 150px; }
+  #mineEmpty{ position:absolute; inset:0; display:none; align-items:center; justify-content:center; font-size:12px; color:var(--faint); }
+  #mineOverlay{ position:absolute; inset:0; display:none; align-items:center; justify-content:center; font:400 108px/1 var(--kai); color:var(--accent); opacity:.4; pointer-events:none; }
+  #rightHz{ position:absolute; inset:0; pointer-events:none; }
+  .cmpLbl{ margin-top:8px; font-size:12px; font-weight:600; color:var(--muted); }
+  .cmpLbl.red{ color:var(--accent); }
+  .cmpLinks{ display:flex; justify-content:center; gap:22px; margin-top:10px; }
+  .cmpLinks button{ font-size:12px; color:var(--faint); text-decoration:underline; text-underline-offset:3px; }
+  #askRow{ margin-top:18px; }
+  #stampRow{ display:flex; justify-content:center; gap:11px; margin-top:14px; }
+  .stampWrap{ display:flex; flex-direction:column; align-items:center; gap:7px; }
+  .stampWrap small{ font-size:11px; color:var(--muted); }
+  .stampWrap small em{ font-style:normal; color:var(--accent); font-weight:700; }
+  .seal{ width:70px; height:70px; display:flex; align-items:center; justify-content:center; transition:transform .12s ease; }
+  .seal span{ writing-mode:vertical-rl; font:400 19px/1.1 var(--kai); letter-spacing:.08em; }
+  .seal.fast{ background:var(--accent); border-radius:22% 18% 24% 20%; color:var(--paperInk); transform:rotate(-2deg);
+    box-shadow:inset 0 0 0 2px rgba(253,250,241,.4), inset 0 0 0 4.5px var(--accent), inset 0 0 14px rgba(120,20,6,.3), 0 8px 18px -8px var(--accent); }
+  .seal.hinted{ background:var(--gold); border-radius:20% 24% 20% 24%; color:var(--paperInk); transform:rotate(2deg);
+    box-shadow:inset 0 0 0 2px rgba(253,250,241,.4), inset 0 0 0 4.5px var(--gold), inset 0 0 14px rgba(100,70,10,.3), 0 8px 18px -8px var(--gold); }
+  .seal.slow{ background:var(--blue); border-radius:24% 20% 22% 20%; color:var(--paperInk); transform:rotate(-1.5deg);
+    box-shadow:inset 0 0 0 2px rgba(253,250,241,.4), inset 0 0 0 4.5px var(--blue), inset 0 0 14px rgba(15,35,60,.35), 0 8px 18px -8px var(--blue); }
+  .seal.miss{ background:var(--card); border:2px solid var(--grey); border-radius:20% 22% 20% 24%; color:var(--muted); transform:rotate(1.5deg);
+    box-shadow:inset 0 0 0 3px var(--card), inset 0 0 0 4.5px rgba(141,132,113,.5); }
+  .seal:active{ transform:scale(.88); }
+  .stampWrap.suggest .seal{ outline:2.5px solid var(--accent); outline-offset:3px; }
+  #stampNote{ text-align:center; margin-top:12px; font-size:12px; color:var(--faint); }
+  #stampOnMine{ position:absolute; right:6px; top:6px; width:56px; height:56px; display:none; pointer-events:none; }
+  #stampOnMine .ring{ position:absolute; inset:0; border:3px solid var(--accent); border-radius:22% 18% 24% 20%; animation:ringOut .55s ease-out .2s both; }
+  #stampOnMine .face{ position:absolute; inset:0; border-radius:22% 18% 24% 20%; display:flex; align-items:center; justify-content:center;
+    box-shadow:inset 0 0 0 2px rgba(253,250,241,.5), inset 0 0 12px rgba(60,30,10,.3); animation:stampIn .4s cubic-bezier(.2,1.5,.4,1) both; }
+  #stampOnMine .face span{ writing-mode:vertical-rl; font:400 17px/1.1 var(--kai); letter-spacing:.08em; }
+  .toastCard{ margin:20px auto 0; display:none; align-items:center; gap:12px; background:var(--card); border:1px solid var(--line); border-radius:14px; padding:10px 14px;
+    box-shadow:0 10px 24px -18px rgba(60,48,30,.5); animation:toastIn .35s ease both; }
+  .toastCard .tchar{ width:40px; height:40px; background:var(--shade); border:1px solid var(--line); border-radius:9px; display:flex; align-items:center; justify-content:center; font:400 24px/1 var(--kai); }
+  .toastCard .ttxt{ font-size:13px; line-height:1.5; }
+  .toastCard .ttxt span{ color:var(--faint); font-size:12px; }
+  #nextWrap{ margin-top:auto; display:none; justify-content:center; padding-top:16px; }
+  #nextBtn{ background:var(--ink); color:var(--card); border-radius:16px; padding:16px 48px; font:700 16px var(--sans); }
+  .quality{ display:flex; align-items:center; justify-content:center; gap:14px; flex-wrap:wrap; margin-top:auto; padding-top:14px; font-size:11.5px; color:var(--faint); }
+  .quality button{ font-size:11.5px; color:var(--faint); text-decoration:underline; text-underline-offset:3px; }
+  .quality button.active{ color:var(--accent); font-weight:700; }
+  .quality .note{ flex-basis:100%; text-align:center; min-height:14px; }
+
+  /* ===== 结果 ===== */
+  .summary{ display:none; flex:1; flex-direction:column; padding:18px 24px calc(24px + env(safe-area-inset-bottom)); animation:screenIn .35s ease; }
+  .sheetCard{ position:relative; background:var(--card); border-radius:8px; padding:22px 18px 84px;
+    box-shadow:0 0 0 2px rgba(194,69,44,.4), inset 0 0 0 6px var(--card), inset 0 0 0 7px rgba(194,69,44,.18), 0 18px 40px -26px rgba(60,48,30,.55); }
+  .sheetCard h2{ margin:0; font:900 28px/1.3 var(--song); }
+  .sumLead{ margin-top:8px; font-size:13px; color:var(--muted); line-height:1.7; }
+  .sumLead b.ok{ color:var(--green); } .sumLead b.warn{ color:var(--accent); }
+  .dateSeal{ position:absolute; right:18px; top:22px; writing-mode:vertical-rl; font:400 13px/1.8 var(--kai); color:var(--faint); letter-spacing:.24em; }
+  .sumGrid{ display:grid; grid-template-columns:repeat(5,1fr); gap:9px; margin-top:18px; }
+  .sumTile{ position:relative; aspect-ratio:1; background:var(--tile); border:1px solid var(--line); border-radius:9px; display:flex; align-items:center; justify-content:center;
+    font:400 32px/1 var(--kai); animation:tileIn .4s cubic-bezier(.2,1.3,.4,1) both; }
+  .sumTile .dot{ position:absolute; right:5px; top:5px; width:9px; height:9px; border-radius:3px; }
+  .sumTile.miss{ background:var(--accentSoft); border:1.5px solid var(--accent); color:var(--accent); }
+  .bigSeal{ position:absolute; right:-8px; bottom:-14px; width:86px; height:86px; background:var(--accent); border-radius:22% 18% 24% 20%;
+    display:flex; align-items:center; justify-content:center; animation:bigStampIn .45s cubic-bezier(.2,1.5,.4,1) .5s both;
+    box-shadow:inset 0 0 0 2.5px rgba(253,250,241,.5), inset 0 0 0 5px var(--accent), inset 0 0 18px rgba(120,20,6,.4), 0 14px 30px -14px var(--accent); }
+  .bigSeal span{ writing-mode:vertical-rl; font:400 22px/1.2 var(--kai); color:var(--paperInk); letter-spacing:.08em; }
+  .pocketCard{ margin-top:22px; display:flex; align-items:center; gap:12px; background:var(--card); border:1px solid var(--line); border-radius:16px; padding:13px 16px; }
+  .pChips{ display:flex; }
+  .pChip{ width:34px; height:34px; background:var(--accentSoft); border:1px solid var(--accent); border-radius:8px; display:flex; align-items:center; justify-content:center;
+    font:400 20px/1 var(--kai); color:var(--accent); }
+  .pChip + .pChip{ margin-left:-8px; }
+  .pocketCard .ptxt{ flex:1; font-size:13px; line-height:1.5; }
+  .pocketCard .ptxt span{ color:var(--faint); font-size:12px; }
+  .pocketBtn{ flex:none; background:var(--accent); color:var(--paperInk); border-radius:12px; padding:11px 14px; font:700 13px var(--sans); box-shadow:0 10px 20px -10px rgba(194,69,44,.6); }
+  .roundTune{ margin-top:14px; }
+  .roundTuneHead{ display:flex; justify-content:center; gap:8px; color:var(--faint); font-size:12px; margin-bottom:9px; }
+  .roundTuneHead b{ font-weight:600; color:var(--muted); }
+  .roundTuneBtns{ display:flex; justify-content:center; gap:7px; flex-wrap:wrap; }
+  .roundTuneBtns button{ padding:8px 12px; font-size:12px; font-weight:600; border-radius:999px; background:var(--card); border:1px solid var(--line); color:var(--muted); }
+  .roundTuneBtns button.active{ background:var(--shade); border-color:var(--gold); color:var(--ink); font-weight:700; }
+  .sumActions{ display:flex; gap:8px; margin-top:auto; padding-top:18px; }
+  .sumActions .ghostAct{ flex:1; }
+  .sumActions .darkAct{ flex:1; background:var(--ink); color:var(--card); border-radius:16px; padding:15px 10px; font:700 15px var(--sans); }
+  .calibCard{ display:none; }
+  .calibStats{ margin-top:14px; display:flex; gap:9px; }
+  .calibStats > div{ flex:1; background:var(--tile); border:1px solid var(--line); border-radius:12px; padding:13px 0; text-align:center; }
+  .calibStats b{ display:block; font:900 24px/1 var(--song); }
+  .calibStats b.ok{ color:var(--green); } .calibStats b.warn{ color:var(--accent); }
+  .calibStats span{ font-size:11px; color:var(--muted); }
+  .calibWhy{ margin-top:14px; background:var(--accentSoft); border:1px solid rgba(194,69,44,.3); border-radius:12px; padding:13px 14px; font-size:13px; line-height:1.8; color:var(--muted); }
+  .calibWhy b{ color:var(--accent); }
+  .calibFoot{ margin-top:14px; font-size:12px; color:var(--faint); line-height:1.8; }
+
+  /* ===== 字盒 ===== */
+  .book{ display:none; flex:1; flex-direction:column; padding:18px 24px 8px; animation:screenIn .32s ease; }
+  .bookHead{ display:flex; justify-content:space-between; align-items:baseline; }
+  .bookHead h1{ margin:0; font:900 28px/1 var(--song); letter-spacing:.04em; }
+  .bookHead .cnt{ font-size:12px; color:var(--faint); }
+  .bookHead .cnt b{ color:var(--accent); font-size:15px; }
+  .dueCard{ margin-top:16px; display:none; align-items:center; gap:12px; background:var(--card); border:1px solid var(--line); border-radius:16px; padding:13px 16px; box-shadow:0 12px 26px -20px rgba(60,48,30,.5); }
+  .dueCard .ptxt{ flex:1; font-size:13px; line-height:1.5; }
+  .dueCard .ptxt span{ color:var(--faint); font-size:12px; }
+  .filters{ display:flex; gap:7px; margin-top:16px; align-items:center; }
+  .fchip{ background:var(--card); color:var(--muted); border:1px solid var(--line); border-radius:999px; padding:8px 13px; font:600 12px var(--sans); }
+  .fchip.active{ background:var(--ink); color:var(--card); border-color:var(--ink); font-weight:700; }
+  .addTxt{ margin-left:auto; color:var(--accent); font:600 12px var(--sans); }
+  .boxGrid{ margin-top:14px; display:grid; grid-template-columns:repeat(5,1fr); gap:9px; }
+  .boxTile{ position:relative; aspect-ratio:1; background:var(--tile); border:1px solid var(--line); border-radius:9px; display:flex; align-items:center; justify-content:center; font:400 30px/1 var(--kai); color:var(--ink); }
+  .boxTile.risk{ background:var(--accentSoft); border:1.5px solid var(--accent); color:var(--accent); }
+  .boxTile .dot{ position:absolute; right:5px; top:5px; width:8px; height:8px; border-radius:3px; }
+  .boxTile.more{ background:var(--shade); border-style:dashed; border-color:var(--dline); font:400 12px var(--sans); color:var(--faint); }
+  .legend{ margin:12px 0 6px; text-align:center; font-size:11.5px; color:var(--faint); }
+  .legend i{ font-style:normal; }
+
+  /* ===== 我的 ===== */
+  .me{ display:none; flex:1; flex-direction:column; padding:18px 24px 8px; animation:screenIn .32s ease; }
+  .me h1{ margin:0; font:900 28px/1 var(--song); letter-spacing:.04em; }
+  .meStats{ display:grid; grid-template-columns:repeat(3,1fr); gap:9px; margin-top:16px; }
+  .meStat{ background:var(--card); border:1px solid var(--line); border-radius:14px; padding:15px 0; text-align:center; }
+  .meStat b{ display:block; font:900 25px/1 var(--song); }
+  .meStat b.red{ color:var(--accent); } .meStat b.grey{ color:var(--grey); }
+  .meStat span{ display:block; font-size:11px; color:var(--muted); margin-top:5px; }
+  .meCard{ width:100%; margin-top:14px; text-align:left; background:var(--accentSoft); border:1px solid rgba(194,69,44,.35); border-radius:15px; padding:15px 16px; }
   .meCard .meCardTop{ display:flex; justify-content:space-between; align-items:center; }
   .meCard .meCardTop b{ font-size:13px; color:var(--accent); }
   .meCard .meCardTop span{ font-size:17px; color:var(--accent); }
-  .meCard small{ display:block; color:var(--muted); font-size:12px; line-height:1.7; margin-top:7px; }
-  .meLabel{ margin-top:18px; font-size:11px; color:var(--faint); letter-spacing:.06em; font-weight:600; padding:0 2px; }
+  .meCard small{ display:block; color:var(--muted); font-size:12px; line-height:1.7; margin-top:6px; }
+  .meLabel{ margin-top:20px; font-size:11px; color:var(--faint); letter-spacing:.14em; font-weight:600; }
   .meList{ margin-top:9px; background:var(--card); border:1px solid var(--line); border-radius:14px; overflow:hidden; }
-  .meRow{ width:100%; display:flex; justify-content:space-between; align-items:center; gap:10px; padding:14px 16px; font-size:13.5px; color:var(--ink); background:transparent; border:0; border-bottom:1px solid var(--grid); border-radius:0; box-shadow:none; text-align:left; }
+  .meRow{ width:100%; display:flex; justify-content:space-between; align-items:center; gap:10px; padding:14px 16px; font-size:13.5px; color:var(--ink); border-bottom:1px solid var(--line); text-align:left; }
   .meRow:last-child{ border-bottom:0; }
-  .meRow span{ color:var(--muted); font-size:12.5px; }
-  .mePref{ padding:13px 16px; border-bottom:1px solid var(--grid); }
-  .mePref .pref{ justify-content:flex-start; margin-bottom:9px; }
-  .book{ display:none; }
-  .bookHead{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
-  .bookHead h2{ font-size:18px; margin:0; }
-  .bookTools{ display:flex; gap:10px; margin-bottom:12px; }
-  .bookList{ display:grid; gap:8px; }
-  .bookRow{ width:100%; display:flex; align-items:center; gap:12px; text-align:left; border:1px solid var(--line); border-radius:14px; background:var(--card); padding:11px; box-shadow:none; }
-  .bookRow .char{ flex:0 0 46px; height:46px; border-radius:10px; border:1px solid var(--grid); background:var(--paper); display:flex; align-items:center; justify-content:center; font-size:31px; line-height:1; text-align:center; font-family:var(--kai); color:var(--accent); }
-  .bookRow .meta{ min-width:0; flex:1; }
-  .bookRow .meta b{ display:block; font-size:15px; }
-  .bookRow .meta small{ display:block; color:var(--muted); line-height:1.45; margin-top:2px; }
-  .profile{ display:none; }
-  .profileHead{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
-  .profileHead h2{ font-size:18px; margin:0; }
+  .meRow span{ color:var(--faint); font-size:12.5px; }
+  .mePref{ padding:13px 16px; border-bottom:1px solid var(--line); }
+  .mePref .plbl{ font-size:12px; color:var(--faint); margin-bottom:9px; }
+  .prefBtns{ display:flex; gap:6px; }
+  .prefBtns button{ flex:1; padding:9px 0; font:600 12px var(--sans); border-radius:999px; background:transparent; border:1px solid var(--line); color:var(--muted); }
+  .prefBtns button.active{ background:var(--accent); border-color:var(--accent); color:var(--paperInk); font-weight:700; }
+  .data{ display:none; margin-top:12px; background:var(--card); border:1px dashed var(--line); border-radius:14px; padding:14px; font-size:13px; color:var(--muted); line-height:1.7; }
+
+  /* ===== 易错分析 / 质检（沿用旧结构，换纸墨皮） ===== */
+  .profile,.audit{ display:none; flex:1; flex-direction:column; padding:18px 24px 24px; animation:screenIn .32s ease; }
+  .profileHead,.auditHead{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
+  .profileHead h2,.auditHead h2{ margin:0; font:900 24px/1 var(--song); }
+  .ghost{ flex:0 0 auto; background:var(--card); color:var(--muted); border:1px solid var(--line); padding:8px 14px; font:600 12px var(--sans); border-radius:999px; }
   .profileSummary{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:12px; }
-  .profileMetric{ background:var(--card); border:1px solid var(--line); border-radius:14px; padding:10px 6px; text-align:center; }
-  .profileMetric b{ display:block; font-size:18px; }
-  .profileMetric span{ color:var(--muted); font-size:12px; }
-  .profileAdvice{ color:var(--muted); background:var(--accentSoft); border:1px solid var(--adviceLine); border-radius:15px; padding:13px 14px; font-size:13px; line-height:1.65; margin-bottom:12px; }
+  .profileMetric{ background:var(--card); border:1px solid var(--line); border-radius:12px; padding:11px 4px; text-align:center; }
+  .profileMetric b{ display:block; font:900 19px/1 var(--song); }
+  .profileMetric span{ color:var(--muted); font-size:11px; }
+  .profileAdvice{ color:var(--muted); background:var(--accentSoft); border:1px solid rgba(194,69,44,.3); border-radius:14px; padding:13px 14px; font-size:12.5px; line-height:1.7; margin-bottom:12px; }
   .profileSection{ margin-top:14px; }
-  .profileSection h3{ margin:0 0 8px; font-size:14px; }
+  .profileSection h3{ margin:0 0 8px; font-size:13px; color:var(--muted); }
   .profileRows{ display:grid; gap:7px; }
-  .profileRow{ width:100%; display:grid; grid-template-columns:1fr auto; gap:8px; align-items:center; text-align:left; background:var(--card); color:var(--ink); border:1px solid var(--line); border-radius:14px; padding:11px; }
+  .profileRow{ width:100%; display:grid; grid-template-columns:1fr auto; gap:6px; align-items:center; text-align:left; background:var(--card); color:var(--ink); border:1px solid var(--line); border-radius:13px; padding:11px 13px; }
   .profileRow b{ font-size:14px; }
-  .profileRow small{ display:block; color:var(--muted); line-height:1.45; margin-top:2px; }
-  .profileRow em{ font-style:normal; color:var(--muted); font-size:12px; }
-  .profileBar{ grid-column:1 / -1; height:5px; border-radius:999px; overflow:hidden; background:var(--line); }
+  .profileRow small{ display:block; color:var(--faint); line-height:1.45; margin-top:2px; font-size:11.5px; }
+  .profileRow em{ font-style:normal; color:var(--accent); font-size:12px; font-weight:700; }
+  .profileBar{ grid-column:1 / -1; height:6px; border-radius:999px; overflow:hidden; background:var(--bg); }
   .profileBar i{ display:block; height:100%; background:var(--accent); border-radius:999px; }
-  .profileChars{ margin-top:4px; }
-  .audit{ display:none; }
-  .auditHead{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
-  .auditHead h2{ font-size:18px; margin:0; }
+  .charChips{ display:flex; gap:8px; flex-wrap:wrap; }
+  .charChip{ min-width:46px; padding:9px 11px; border:1px solid var(--line); border-radius:10px; background:var(--card); font:400 26px/1 var(--kai); color:var(--ink); }
   .auditControls{ display:grid; grid-template-columns:1fr auto; gap:10px; align-items:center; margin-bottom:12px; }
   .auditPrefs{ display:flex; gap:6px; }
-  .auditPrefs button{ padding:7px 8px; font-size:12px; border-radius:999px; background:transparent; border:1px solid var(--line); color:var(--muted); }
-  .auditPrefs button.active{ background:var(--accent); border-color:var(--accent); color:#fff; font-weight:700; }
+  .auditPrefs button,.auditControls > button{ padding:7px 10px; font-size:12px; border-radius:999px; background:var(--card); border:1px solid var(--line); color:var(--muted); }
+  .auditPrefs button.active{ background:var(--accent); border-color:var(--accent); color:var(--paperInk); font-weight:700; }
   .auditSummary{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:10px 0 12px; }
-  .auditMetric{ background:var(--card); border:1px solid var(--line); border-radius:14px; padding:9px 6px; text-align:center; }
-  .auditMetric b{ display:block; font-size:18px; }
-  .auditMetric span{ color:var(--muted); font-size:12px; }
+  .auditMetric{ background:var(--card); border:1px solid var(--line); border-radius:12px; padding:9px 6px; text-align:center; }
+  .auditMetric b{ display:block; font-size:17px; }
+  .auditMetric span{ color:var(--muted); font-size:11.5px; }
   .auditBands{ display:grid; gap:8px; margin-bottom:12px; }
-  .auditBand{ border:1px solid var(--line); border-radius:14px; padding:10px; background:var(--card); }
-  .auditBand b{ display:block; font-size:13px; margin-bottom:6px; }
+  .auditBand{ border:1px solid var(--line); border-radius:13px; padding:10px; background:var(--card); }
+  .auditBand b{ display:block; font-size:12.5px; margin-bottom:6px; }
   .auditTags{ display:flex; flex-wrap:wrap; gap:6px; color:var(--muted); font-size:12px; }
-  .auditTags span{ background:var(--soft); border-radius:999px; padding:5px 8px; }
+  .auditTags span{ background:var(--shade); border-radius:999px; padding:5px 8px; }
   .auditSectionTitle{ display:flex; justify-content:space-between; align-items:center; color:var(--muted); font-size:12px; margin:12px 0 8px; }
   .auditList{ display:grid; gap:7px; }
-  .auditRow{ display:grid; grid-template-columns:40px 1fr; gap:8px; align-items:center; border:1px solid var(--line); border-radius:14px; padding:9px; background:var(--card); }
+  .auditRow{ display:grid; grid-template-columns:40px 1fr; gap:8px; align-items:center; border:1px solid var(--line); border-radius:13px; padding:9px; background:var(--card); }
   .auditRow .char{ font-family:var(--kai); font-size:27px; line-height:1; color:var(--accent); text-align:center; }
   .auditRow .main{ min-width:0; }
-  .auditRow .main b{ display:block; font-size:14px; }
-  .auditRow .main small{ color:var(--muted); line-height:1.45; }
+  .auditRow .main b{ display:block; font-size:13.5px; }
+  .auditRow .main small{ color:var(--faint); line-height:1.45; font-size:11.5px; }
   .auditActions{ grid-column:1 / -1; display:flex; gap:6px; flex-wrap:wrap; }
-  .auditActions button{ flex:0 0 auto; padding:6px 8px; font-size:12px; border-radius:999px; background:transparent; border:1px solid var(--line); color:var(--muted); }
-  .auditActions button.active{ border-color:var(--accent); color:var(--accent); background:var(--soft); font-weight:700; }
-  .empty{ color:var(--muted); font-size:13px; line-height:1.6; }
-  .summary{ display:none; background:var(--paper); border:1px solid transparent; border-radius:22px; padding:16px 2px 18px; animation:screenIn .32s ease; }
-  .summary h2{ font-size:20px; margin:4px 6px 12px; text-align:center; }
-  .summaryHero{ display:flex; align-items:center; justify-content:center; gap:20px; margin:12px 0 18px; min-height:142px; }
-  .summaryRing{ width:136px; height:136px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:conic-gradient(var(--known) 0 var(--stablePct), var(--miss) var(--stablePct) 100%); box-shadow:0 16px 36px -26px rgba(40,36,28,.55); }
-  .summaryRingInner{ width:104px; height:104px; border-radius:50%; background:var(--paper); display:flex; flex-direction:column; align-items:center; justify-content:center; }
-  .summaryRingInner b{ font-size:34px; line-height:1; }
-  .summaryRingInner span{ margin-top:5px; color:var(--muted); font-size:12px; }
-  .summaryHeroText{ max-width:170px; font-size:13px; line-height:1.65; color:var(--muted); }
-  .summaryHeroText b{ display:block; font-size:15px; color:var(--ink); margin-bottom:4px; }
-  .summary .list{ display:grid; gap:10px; margin:12px 0 16px; }
-  .summary .note{ font-size:13px; color:var(--muted); margin:0 2px 18px; line-height:1.6; text-align:center; }
-  .resultGroup{ border:1px solid var(--line); border-radius:14px; padding:10px; background:var(--card); }
-  .resultHead{ display:flex; justify-content:space-between; gap:10px; color:var(--muted); font-size:13px; margin-bottom:8px; }
-  .resultHead b{ color:var(--ink); font-size:14px; }
-  .resultItems{ display:grid; gap:6px; }
-  .resultItem{ width:100%; display:grid; grid-template-columns:38px 1fr auto; align-items:center; gap:8px; text-align:left; border:1px solid transparent; border-radius:12px; background:var(--soft); padding:8px; font-size:13px; box-shadow:none; }
-  .resultItem b{ font-size:27px; line-height:1; font-family:var(--kai); color:var(--accent); }
-  .resultItem span{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .resultItem em{ font-style:normal; color:var(--muted); white-space:nowrap; }
-  .resultItem.fast b{ color:var(--known); }
-  .resultItem.hinted b,.resultItem.miss b{ color:var(--miss); }
-  .roundTune{ border:1px solid var(--line); border-radius:14px; padding:10px; margin:0 0 14px; background:var(--soft); }
-  .roundTuneHead{ display:flex; justify-content:space-between; gap:10px; color:var(--muted); font-size:13px; margin-bottom:8px; }
-  .roundTuneBtns{ display:grid; grid-template-columns:repeat(4,1fr); gap:6px; }
-  .roundTuneBtns button{ padding:8px 6px; font-size:12px; background:var(--card); border:1px solid var(--line); color:var(--ink); border-radius:999px; box-shadow:none; }
-  .roundTuneBtns button.active{ border-color:var(--accent); color:var(--accent); font-weight:700; }
-  .summaryPrimary{ margin:0 0 12px; }
-  .summaryPrimary button{ flex:1; }
-  .summaryActions{ flex-wrap:wrap; }
-  .wide{ flex-basis:100%; }
-  /* ---- 底部导航：3 个带图标的 tab（对齐设计稿：练习 / 错题 / 我的） ---- */
-  .foot{ position:sticky; bottom:0; z-index:12; margin-top:auto; padding:9px 8px calc(12px + env(safe-area-inset-bottom)); border-top:1px solid var(--grid); background:var(--card); display:flex; justify-content:space-around; align-items:center; }
-  .foot .tab{ display:flex; flex-direction:column; align-items:center; gap:5px; font:600 10px var(--sans); color:var(--faint); cursor:pointer; text-decoration:none; padding:2px 14px; -webkit-tap-highlight-color:transparent; }
-  .foot .tab i{ width:20px; height:20px; border-radius:6px; border:1.5px solid currentColor; background:transparent; display:block; position:relative; }
-  .foot .tab.active{ color:var(--accent); }
-  .foot .tab.active i{ background:var(--accentSoft); }
-  .foot .tab i.iBook::before{ content:""; position:absolute; left:4px; right:4px; top:5px; height:1.5px; background:currentColor; box-shadow:0 4px 0 currentColor; border-radius:2px; }
-  .foot .tab i.iMe::before{ content:""; position:absolute; left:50%; top:4px; width:6px; height:6px; border-radius:50%; border:1.5px solid currentColor; transform:translateX(-50%); }
-  .foot .tab i.iMe::after{ content:""; position:absolute; left:4px; right:4px; bottom:3px; height:5px; border-radius:5px 5px 0 0; border:1.5px solid currentColor; border-bottom:0; }
-  .data{ display:none; margin-top:12px; background:var(--card); border:1px dashed var(--line); border-radius:14px; padding:14px; font-size:13px; color:var(--muted); line-height:1.7; text-align:left; }
-  .sheetMask{ display:none; position:fixed; inset:0; z-index:20; background:rgba(24,22,17,.45); backdrop-filter:blur(2px); align-items:flex-start; justify-content:center; padding:14vh 24px 24px; }
+  .auditActions button{ padding:6px 8px; font-size:11.5px; border-radius:999px; background:transparent; border:1px solid var(--line); color:var(--muted); }
+  .auditActions button.active{ border-color:var(--accent); color:var(--accent); background:var(--accentSoft); font-weight:700; }
+  .empty{ color:var(--faint); font-size:13px; line-height:1.6; grid-column:1/-1; }
+
+  /* ===== 底部 tab ===== */
+  .foot{ position:sticky; bottom:0; z-index:12; margin-top:auto; padding:10px 8px calc(14px + env(safe-area-inset-bottom)); border-top:1px solid var(--line); background:var(--card); display:flex; justify-content:space-around; align-items:center; }
+  .foot .tab{ display:flex; flex-direction:column; align-items:center; gap:4px; font:600 11px var(--sans); color:var(--faint); cursor:pointer; padding:2px 14px; }
+  .foot .tab .tg{ font:400 20px/1 var(--kai); }
+  .foot .tab.active{ color:var(--accent); font-weight:700; }
+
+  /* ===== 弹层 / 提示 ===== */
+  .sheetMask{ display:none; position:fixed; inset:0; z-index:20; background:rgba(30,24,16,.45); backdrop-filter:blur(2px); align-items:flex-start; justify-content:center; padding:14vh 24px 24px; }
   .sheetMask.open{ display:flex; }
-  .sheet{ width:min(100%,340px); background:var(--paper); border:1px solid var(--line); border-radius:20px; padding:18px 16px 16px; box-shadow:0 24px 60px -24px rgba(20,18,14,.55); animation:screenIn .22s ease; }
-  .sheet h3{ margin:0 0 6px; font-size:16px; }
+  .sheet{ width:min(100%,340px); background:var(--soft); border:1px solid var(--line); border-radius:20px; padding:18px 16px 16px; box-shadow:0 24px 60px -24px rgba(20,18,14,.55); animation:screenIn .22s ease; }
+  .sheet h3{ margin:0 0 6px; font:900 16px var(--song); }
   .sheet .sheetHint{ margin:0 0 12px; font-size:12.5px; color:var(--muted); line-height:1.55; }
-  .sheet .sheetHint:last-child{ margin-bottom:0; }
   .sheet input{ width:100%; font:400 22px/1.2 var(--kai); color:var(--ink); background:var(--card); border:1.5px solid var(--line); border-radius:12px; padding:10px 12px; outline:none; }
   .sheet input:focus{ border-color:var(--accent); }
+  .sheet .row{ display:flex; gap:8px; margin-top:12px; }
+  .sheet .ghostAct{ flex:.8; padding:13px 10px; }
+  .sheet .primaryAct{ padding:13px 10px; font-size:15px; }
   .sheetPreview{ display:flex; flex-wrap:wrap; gap:6px; margin:10px 0 4px; min-height:34px; align-content:flex-start; font-size:12px; color:var(--muted); }
   .addChip{ display:inline-flex; align-items:baseline; gap:6px; border:1px solid var(--line); background:var(--card); border-radius:999px; padding:5px 10px; }
   .addChip b{ font-family:var(--kai); font-size:19px; color:var(--accent); font-weight:400; }
-  .toast{ position:fixed; left:50%; bottom:calc(78px + env(safe-area-inset-bottom)); transform:translateX(-50%); background:var(--ink); color:var(--paper); font-size:13px; padding:10px 16px; border-radius:999px; z-index:30; opacity:0; transition:opacity .25s; pointer-events:none; max-width:82vw; text-align:center; box-shadow:0 8px 24px -8px rgba(20,18,14,.5); }
+  .toast{ position:fixed; left:50%; bottom:calc(84px + env(safe-area-inset-bottom)); transform:translateX(-50%); background:var(--ink); color:var(--card); font-size:13px; padding:10px 16px; border-radius:999px; z-index:30; opacity:0; transition:opacity .25s; pointer-events:none; max-width:82vw; text-align:center; box-shadow:0 8px 24px -8px rgba(20,18,14,.5); }
   .toast.show{ opacity:.94; }
-  @media (max-width:380px){ .wrap{ padding-left:14px; padding-right:14px; } .guide{ grid-template-columns:repeat(2,1fr); } .resultItem{ grid-template-columns:34px 1fr; } .resultItem em{ grid-column:2; } .summaryHero{ gap:12px; } .summaryRing{ width:122px; height:122px; } .summaryRingInner{ width:94px; height:94px; } .prefBtns,.auditPrefs{ flex-basis:100%; } .roundTuneBtns{ grid-template-columns:repeat(2,1fr); } .auditControls{ grid-template-columns:1fr; } .profileSummary{ grid-template-columns:repeat(2,1fr); } }
+  @media (max-width:380px){ .cmpBox{ width:138px; height:138px; } .seal{ width:64px; height:64px; } .stampBtn{ width:136px; height:136px; font-size:72px; } }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <div class="top"><div class="brand">拾字</div><div class="pos" id="pos"></div></div>
+  <div id="pos" style="display:none"></div>
 
-  <div class="home" id="home">
-    <div class="homeGreeting" id="homeGreeting"></div>
-    <div class="homeStatus" id="homeStatus"></div>
-    <button class="startRing" id="startBtn"><span class="startRingInner"><b id="startBig">开始</b><em id="startSub">15 字</em></span></button>
-    <div class="homeFootStat" id="homeFootStat"></div>
+  <!-- 首启（教学 T1，仅未校准的新用户） -->
+  <div class="welcome" id="welcome" data-screen-label="首启">
+    <div class="mid">
+      <div class="logoStamp">拾</div>
+      <h1>打字十年，<br>好多字提笔就忘。</h1>
+      <div class="lede">每天六分钟，在手机上用手指写字，<br>把忘掉的字一个一个拾回来。</div>
+      <div style="margin-top:52px; width:100%;">
+        <button class="go" id="welcomeStart">先拾 15 个字试试</button>
+        <div class="goSub">这 15 个字会顺便估一下你的难度 · 不用注册</div>
+      </div>
+    </div>
+    <div class="motto" style="writing-mode:horizontal-tb; height:auto; border:0; padding:0;">提笔忘字，拾回便是</div>
   </div>
 
-  <div class="me" id="mePanel">
-    <div class="meHead"><h2>我的</h2></div>
+  <!-- 首页 -->
+  <div class="home" id="home" data-screen-label="首页">
+    <div class="homeTop">
+      <div class="brandRow"><div class="brandStamp">拾</div><div class="brandName">拾字</div></div>
+      <div class="streakChip"><i></i><span id="streakChip">连续拾了 1 天</span></div>
+    </div>
+    <div class="homeMain">
+      <div>
+        <div class="homeGreeting" id="homeGreeting"></div>
+        <h1 class="homeTitle" id="homeTitle">今天拾<br>十五个字</h1>
+        <div class="homeSub">手写的手感，<br>一天捡回一点。</div>
+      </div>
+      <div class="motto">提笔忘字，拾回便是</div>
+    </div>
+    <div class="homeStart">
+      <button class="stampBtn" id="startBtn">拾</button>
+      <div class="startCap" id="startCap"></div>
+    </div>
+    <div class="yester" id="yesterBlock">
+      <div class="yesterHead"><span class="lbl" id="yesterLbl">昨日拾得</span><span id="boxStat"></span></div>
+      <div class="yesterRow" id="yesterRow"></div>
+    </div>
+  </div>
+
+  <!-- 练习 / 揭晓 -->
+  <div class="card" id="card" style="display:none" data-screen-label="练习">
+    <div class="chdr">
+      <button class="xbtn" id="exitPractice">✕</button>
+      <div class="beads" id="beads"></div>
+      <div class="cardPos" id="posLabel"></div>
+      <button class="addPill" id="addInPractice">＋加字</button>
+    </div>
+
+    <div id="practiceArea" style="display:flex; flex:1; flex-direction:column;">
+      <div id="prompt"></div>
+      <div class="hint" id="hint"></div>
+      <div class="tbubble" id="teachBubble" style="display:none"><b>格子里缺的字，直接用手指写</b><br>写得丑没关系，连笔断笔都行</div>
+      <div id="boxwrap"></div>
+      <div class="mascotRow"><span class="blob"></span><span id="mascotLine"></span></div>
+      <div class="modebar" id="modebar"><button class="mode" id="modeBtn">连续模式：开</button><span class="pill" id="pill">提笔</span></div>
+      <div id="inkTools">
+        <button class="toolBtn" id="tip" disabled>笔顺提示</button>
+        <button class="toolBtn side" id="clear">重写</button>
+      </div>
+      <div id="actions">
+        <button class="ghostAct" id="show" disabled>看答案</button>
+        <button class="primaryAct" id="done" disabled>写好了</button>
+      </div>
+    </div>
+
+    <div id="reveal" data-screen-label="揭晓">
+      <div class="revealWord"><span class="w" id="revealWord"></span><span class="p" id="revealPy"></span></div>
+      <div class="cmpRow">
+        <div class="cmpCol">
+          <div class="cmpBox mine">
+            <div class="cx"></div><div class="cy"></div>
+            <div id="mineInk"></div>
+            <div id="mineEmpty">这次没写</div>
+            <div id="mineOverlay"></div>
+            <div id="stampOnMine"><div class="ring"></div><div class="face"><span></span></div></div>
+          </div>
+          <div class="cmpLbl">你写的</div>
+        </div>
+        <div class="cmpCol">
+          <div class="cmpBox std">
+            <div class="cx"></div><div class="cy"></div>
+            <div class="glyph" id="rightGlyph"></div>
+            <div id="rightHz"></div>
+          </div>
+          <div class="cmpLbl red">标准字</div>
+        </div>
+      </div>
+      <div class="cmpLinks"><button id="overlayToggle">叠起来对比</button><button id="replayBtn">看笔顺</button></div>
+
+      <div class="tbubble" id="teachBubbleGrade" style="display:none; max-width:320px;"><b>对错你说了算，没有考试</b><br>照实盖章就行——盖「回炉」的字，<br>明天会自己回来找你，直到你拾到它</div>
+      <div class="mascotRow" id="askRow"><span class="blob"></span><span id="askLine" style="font-weight:600; color:var(--ink);"></span></div>
+
+      <div id="stampRow">
+        <div class="stampWrap" id="wrapFast"><button class="seal fast" id="fast"><span>拾到</span></button><small>会写</small></div>
+        <div class="stampWrap" id="wrapHinted"><button class="seal hinted" id="hinted"><span>补拾</span></button><small>看提示写出</small></div>
+        <div class="stampWrap" id="wrapSlow"><button class="seal slow" id="slow"><span>差点</span></button><small>写错了</small></div>
+        <div class="stampWrap" id="wrapMiss"><button class="seal miss" id="miss"><span>回炉</span></button><small>不会写</small></div>
+      </div>
+      <div id="stampNote">前三章 → 字进字盒；回炉 → 放回口袋，明天再拾</div>
+
+      <div class="toastCard" id="stampedToast">
+        <div class="tchar" id="toastChar"></div>
+        <div class="ttxt"><b id="toastTitle"></b><br><span id="toastSubEl"></span></div>
+      </div>
+      <div id="nextWrap"><button id="nextBtn">下一个字 →</button></div>
+
+      <div class="quality" id="qualityBox">
+        <button data-quality="easy">太简单</button><button data-quality="rare">太生僻</button><button data-quality="badWord">词不自然</button><button data-quality="hide">不想练</button>
+        <span class="note" id="qualityNote"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 结果 -->
+  <div class="summary" id="summary" style="display:none" data-screen-label="结果">
+    <!-- 校准结果（教学 T4） -->
+    <div class="calibCard" id="calibCard">
+      <div class="sheetCard" style="padding-bottom:28px;">
+        <h2>第一把拾完，<br>摸清你的底了</h2>
+        <div class="calibStats">
+          <div><b class="ok" id="calibKept">0</b><span>拾到手</span></div>
+          <div><b class="warn" id="calibMiss">0</b><span>放回口袋</span></div>
+        </div>
+        <div class="calibWhy">根据这 15 个字，你的起始难度定在 <b id="calibTier">标准</b>。<span id="calibWhyTxt"></span></div>
+        <div class="calibFoot"><span id="calibPocketLine"></span><br>每天一组，两周后你会明显感觉手感回来了。</div>
+      </div>
+      <div class="sumActions">
+        <button class="ghostAct" id="calibDone">明天见</button>
+        <button class="darkAct" id="calibAgain">再拾一组</button>
+      </div>
+    </div>
+
+    <!-- 普通结果：今日拾得字帖 -->
+    <div id="sumSheet" style="display:flex; flex:1; flex-direction:column;">
+      <div class="sheetCard">
+        <h2 id="sumH2">今日拾得</h2>
+        <div class="sumLead" id="sumLead"></div>
+        <div class="dateSeal" id="dateSeal"></div>
+        <div class="sumGrid" id="sumTiles"></div>
+        <div class="bigSeal"><span>拾字</span></div>
+      </div>
+      <div class="pocketCard" id="pocketCard" style="display:none;">
+        <div class="pChips" id="pocketChips"></div>
+        <div class="ptxt"><b id="pocketTitle"></b><br><span>趁手还热，再拾一遍最划算</span></div>
+        <button class="pocketBtn" id="pocketBtn">马上再拾</button>
+      </div>
+      <div class="roundTune" id="roundTune"></div>
+      <div class="sumActions">
+        <button class="ghostAct" id="stop">回首页</button>
+        <button class="darkAct" id="more">再拾一组</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 字盒 -->
+  <div class="book" id="studybook" style="display:none" data-screen-label="字盒">
+    <div class="bookHead"><h1>字盒</h1><div class="cnt" id="boxCount"></div></div>
+    <div class="dueCard" id="dueCard">
+      <div class="pChips" id="dueChips"></div>
+      <div class="ptxt"><b id="dueTitle"></b><br><span>今天拿出来晾一晾，别让它们又溜走</span></div>
+      <button class="pocketBtn" id="practiceDue">练一轮</button>
+    </div>
+    <div class="filters" id="boxFilters">
+      <button class="fchip active" data-filter="all">全部</button>
+      <button class="fchip" data-filter="risk">回炉中</button>
+      <button class="fchip" data-filter="stable">已稳</button>
+      <button class="addTxt" id="addLink2">＋加字</button>
+    </div>
+    <div class="boxGrid" id="boxGrid"></div>
+    <div class="legend">角标颜色 = 上次盖的章 · <i style="color:var(--accent);">■</i> 拾到 <i style="color:var(--gold);">■</i> 补拾 <i style="color:var(--blue);">■</i> 差点 <i style="color:var(--grey);">■</i> 回炉</div>
+  </div>
+
+  <!-- 我的 -->
+  <div class="me" id="mePanel" style="display:none" data-screen-label="我的">
+    <h1>我的</h1>
     <div class="meStats">
-      <button class="meStat" id="meSeen"><b id="seenStat">0</b><span>已记录</span></button>
-      <button class="meStat" id="meDue"><b class="due" id="dueStat">0</b><span>到期复习</span></button>
-      <button class="meStat" id="meRisk"><b class="warn" id="riskStat">0</b><span>错题</span></button>
+      <button class="meStat" id="meSeen"><b id="seenStat">0</b><span>已拾回</span></button>
+      <div class="meStat"><b class="red" id="streakStat">1</b><span>连续天数</span></div>
+      <button class="meStat" id="meRisk"><b class="grey" id="riskStat">0</b><span>回炉中</span></button>
     </div>
     <button class="meCard" id="openProfile"><div class="meCardTop"><b>易错分析</b><span>›</span></div><small id="meAdvice"></small></button>
     <div class="meLabel">练习设置</div>
     <div class="meList">
-      <div class="mePref"><div class="pref"><span>出题偏好</span></div><div class="prefBtns" id="prefBox">
+      <div class="mePref"><div class="plbl">出题偏好</div><div class="prefBtns" id="prefBox">
         <button data-pref="balanced">高频易忘</button>
         <button data-pref="practical">偏实用</button>
         <button data-pref="challenge">偏挑战</button>
       </div></div>
-      <button class="meRow" id="addLink"><span>＋ 加字（抓现实里提笔忘的字）</span><span>›</span></button>
+      <button class="meRow" id="addLink"><span style="color:var(--ink);">＋ 加字（抓现实里提笔忘的字）</span><span>›</span></button>
     </div>
     <div class="meLabel">内部工具</div>
     <div class="meList">
@@ -286,56 +550,18 @@
     <div class="data" id="dataBox"></div>
   </div>
 
-  <div class="card" id="card" style="display:none">
-    <div class="cardTop"><button class="ghost exitPractice" id="exitPractice">退出本组</button><button class="ghost exitPractice" id="addInPractice">＋加字</button></div>
-    <div id="prompt"></div>
-    <div class="ask">根据词语和语境，写出缺的字</div>
-    <div class="hint" id="hint"></div>
-
-    <div class="modebar" id="modebar"><button class="mode" id="modeBtn">连续模式：开</button><span class="pill" id="pill">提笔</span></div>
-    <div class="modehint" id="modehint"></div>
-
-    <div id="boxwrap"></div>
-    <div class="row center" id="inkTools"><button class="ghost" id="tip" disabled>笔顺提示</button><button class="ghost" id="clear">清除</button></div>
-    <div class="row" id="actions">
-      <button class="revealAction" id="show" disabled>揭晓答案</button>
-      <button class="primary" id="done" disabled>写好了</button>
-    </div>
-    <div class="reveal" id="reveal"><div class="verdict" id="verdictBadge" style="display:none"></div>
-      <div class="ans" id="ans"></div>
-      <button class="ghost" id="peek">看我刚写的</button>
-      <div class="hint" id="markCue"></div></div>
-    <div class="row mark" id="mark">
-      <button class="fast" id="fast">会写</button>
-      <button class="hinted" id="hinted">看提示写出</button>
-      <button class="miss" id="miss">不会写</button>
-      <button class="slow" id="slow">写错了</button>
-    </div>
-    <div class="quality" id="qualityBox" style="display:none"><span>题目反馈</span><button data-quality="easy">太简单</button><button data-quality="rare">太生僻</button><button data-quality="badWord">词不自然</button><button data-quality="hide">不想练</button><span class="note" id="qualityNote"></span></div>
-  </div>
-
-  <div class="summary" id="summary">
-    <h2 id="sumTitle"></h2><div class="summaryHero" id="summaryHero"></div><div class="row center summaryPrimary"><button class="primary" id="reviewRisk">马上复习错题</button></div><div class="list" id="sumList"></div><div class="note" id="sumNote"></div>
-    <div class="roundTune" id="roundTune"></div>
-    <div class="row center summaryActions"><button id="more">继续练新字</button><button class="wide" id="stop">返回首页</button></div>
-  </div>
-
-  <div class="book" id="studybook">
-    <div class="bookHead"><h2>错题本</h2><button class="ghost" id="closeBook">返回首页</button></div>
-    <div class="bookTools"><button id="practiceDue">练到期</button><button class="primary" id="practiceRisk">练错题</button></div>
-    <div class="bookList" id="bookList"></div>
-  </div>
-
-  <div class="profile" id="profilePanel">
+  <!-- 易错分析 -->
+  <div class="profile" id="profilePanel" style="display:none" data-screen-label="易错分析">
     <div class="profileHead"><h2>易错分析</h2><button class="ghost" id="closeProfile">返回</button></div>
     <div class="profileSummary" id="profileSummary"></div>
     <div class="profileAdvice" id="profileAdvice"></div>
     <div class="profileSection"><h3>容易卡住的主题</h3><div class="profileRows" id="profileTopics"></div></div>
     <div class="profileSection"><h3>难度层和结构</h3><div class="profileRows" id="profileLevels"></div></div>
-    <div class="profileSection"><h3>错题</h3><div class="profileChars" id="profileChars"></div></div>
+    <div class="profileSection"><h3>最容易溜走的字 · 点字即练</h3><div class="profileChars" id="profileChars"></div></div>
   </div>
 
-  <div class="audit" id="auditPanel">
+  <!-- 题库质检 -->
+  <div class="audit" id="auditPanel" style="display:none" data-screen-label="题库质检">
     <div class="auditHead"><h2>题库质检</h2><button class="ghost" id="closeAudit">返回</button></div>
     <div class="auditControls">
       <div class="auditPrefs" id="auditPrefs">
@@ -354,9 +580,9 @@
   </div>
 
   <div class="foot" id="foot">
-    <a class="tab" id="tabPractice"><i class="iHome"></i>练习</a>
-    <a class="tab" id="tabBook"><i class="iBook"></i>错题</a>
-    <a class="tab" id="tabMe"><i class="iMe"></i>我的</a>
+    <a class="tab" id="tabPractice"><span class="tg">拾</span>练习</a>
+    <a class="tab" id="tabBook"><span class="tg">盒</span>字盒</a>
+    <a class="tab" id="tabMe"><span class="tg">我</span>我的</a>
   </div>
 </div>
 
@@ -365,12 +591,12 @@
   <p class="sheetHint">输入那个字，或它所在的词（如「蘸料」）。字库里有的字会带上拼音和语境词。</p>
   <input id="addInput" type="text" autocomplete="off" autocapitalize="off" maxlength="20" placeholder="蘸料">
   <div class="sheetPreview" id="addPreview"></div>
-  <div class="row"><button class="ghost" id="addCancel">取消</button><button class="primary" id="addConfirm" disabled>加入卡组</button></div>
+  <div class="row"><button class="ghostAct" id="addCancel">取消</button><button class="primaryAct" id="addConfirm" disabled>加入卡组</button></div>
 </div></div>
 <div class="sheetMask" id="exitSheet"><div class="sheet">
   <h3>退出本组？</h3>
-  <p class="sheetHint">当前这张不会记录；已经自评过的字会保留在记录和复习安排里。</p>
-  <div class="row"><button class="ghost" id="exitCancel">继续练</button><button class="primary" id="exitConfirm">退出</button></div>
+  <p class="sheetHint">当前这张不会记录；已经盖过章的字会保留在记录和复习安排里。</p>
+  <div class="row"><button class="ghostAct" id="exitCancel">继续练</button><button class="primaryAct" id="exitConfirm">退出</button></div>
 </div></div>
 <div class="toast" id="toast"></div>
 <input type="file" id="importFile" accept=".json,application/json" style="display:none">
@@ -519,12 +745,16 @@ function memoryCount(){ return Object.values(memory).filter(m=>m && m.seen).leng
 function isHighRisk(i){ const m=memory[cardKey(i)]; return !!(qualityAvailable(i) && m && (status[i]==="indeck" || m.misses || m.slow || m.hints>=2) && (m.streak||0)<2); }
 function highRiskIndexes(){ return allIndexes().filter(isHighRisk).sort((a,b)=>personalDifficulty(b)-personalDifficulty(a)); }
 function highRiskCount(){ return highRiskIndexes().length; }
-const OUTCOMES=[
-  ["miss","不会写","今天再练"],
-  ["hinted","看提示写出","进错题"],
-  ["slow","写错了","稍后复习"],
-  ["fast","会写","延后复习"]
+// 四枚印章 = 四档自评（对应记忆模型的四种结果）
+const GRADE_UI={ fast:{seal:"拾到", cls:"fast"}, hinted:{seal:"补拾", cls:"hinted"}, slow:{seal:"差点", cls:"slow"}, miss:{seal:"回炉", cls:"miss"} };
+const OUTCOME_DOT={ fast:"var(--accent)", hinted:"var(--gold)", slow:"var(--blue)", miss:"transparent" };
+const MASCOT_LINES=[
+  "这个格子里的字，你上次写它可能是十年前",
+  "想不起来很正常，要不要看第一个部件？",
+  "凭手感写，连笔断笔都没关系",
+  "写不出来就看答案，描一遍也算拾回"
 ];
+const ROTS=[-1.5,1,2,-1,1.5,-2,1,-1.5,2,1,-1,1.5,-2,1,-1];
 const ROUND_FEEDBACK={easy:["太简单","下组加难"],ok:["刚刚好","保持节奏"],hard:["太难","下组降一点"],bad_context:["词不自然","收紧语境"]};
 function roundCounts(){ const out={fast:0,slow:0,hinted:0,miss:0}; roundStats.forEach(x=>{ out[x.outcome]=(out[x.outcome]||0)+1; }); return out; }
 function tuningLabel(){ const o=Number(tuning.offset)||0; if(o>=14) return "高挑战"; if(o>=6) return "偏挑战"; if(o<=-10) return "偏稳"; if(o<=-4) return "稍稳"; return "标准"; }
@@ -532,9 +762,9 @@ function tuningShiftText(){ const o=Math.round(Number(tuning.offset)||0); return
 function roundMasteryScore(counts=roundCounts()){ const total=Math.max(1,roundStats.length); return ((counts.fast||0)*2-(counts.slow||0)*1.1-(counts.hinted||0)*1.2-(counts.miss||0)*2.2)/total; }
 function maybeFinishCalibration(){ if(activeMode!=="calibrate" || tuning.calibrated) return "";
   const counts=roundCounts(), hard=(counts.hinted||0)+(counts.miss||0)+(counts.slow||0), score=roundMasteryScore(counts); let why;
-  if((counts.fast||0)>=12 && hard<=2){ tuning.offset=10; preference="challenge"; why="这 15 字用来估难度。刚才这组你基本都写得出来，所以接下来会自动加难，多挑些你不太熟的字。"; }
-  else if(hard>=6 || (counts.miss||0)>=3){ tuning.offset=-6; preference="practical"; why="这 15 字用来估难度。刚才有几个卡住了，所以先把难度调稳一点，从你能写出来的字开始，再慢慢加。"; }
-  else { tuning.offset=2; preference="balanced"; why="这 15 字用来估难度。刚才的难度大致合适，就先按这个节奏来，之后会根据你的反馈再微调。"; }
+  if((counts.fast||0)>=12 && hard<=2){ tuning.offset=10; preference="challenge"; why="刚才这组你基本都写得出来，所以接下来会自动加难，多挑些你不太熟的字。"; }
+  else if(hard>=6 || (counts.miss||0)>=3){ tuning.offset=-6; preference="practical"; why="刚才有几个卡住了，所以先把难度调稳一点，从你能写出来的字开始，再慢慢加。"; }
+  else { tuning.offset=2; preference="balanced"; why="刚才的难度大致合适，就先按这个节奏来，之后会根据你的手感再微调。"; }
   tuning.calibrated=true; tuning.calibration={date:today(), counts, score:Math.round(score*100)/100, offset:tuning.offset, preference};
   activeMode="new"; saveTuning(); save(PREF_KEY,preference);
   return why;
@@ -542,7 +772,7 @@ function maybeFinishCalibration(){ if(activeMode!=="calibrate" || tuning.calibra
 function showRoundTuning(){ return activeMode==="new" || activeMode==="calibrate"; }
 function renderRoundTune(message=""){ const box=$("roundTune"); if(!showRoundTuning()){ box.style.display="none"; box.innerHTML=""; return; }
   box.style.display="block"; const picked=roundFeedbackGiven?String(tuning.lastRoundFeedback||""):"";
-  box.innerHTML=`<div class="roundTuneHead"><b>本组难度</b><span>${message||`当前 ${tuningLabel()} ${tuningShiftText()}`}</span></div><div class="roundTuneBtns">${Object.entries(ROUND_FEEDBACK).map(([kind,row])=>`<button data-round-feedback="${kind}" class="${picked===kind?"active":""}" ${roundFeedbackGiven?"disabled":""}>${row[0]}</button>`).join("")}</div>`; }
+  box.innerHTML=`<div class="roundTuneHead"><b>这组感觉</b><span>${message||`当前 ${tuningLabel()} ${tuningShiftText()}`}</span></div><div class="roundTuneBtns">${Object.entries(ROUND_FEEDBACK).map(([kind,row])=>`<button data-round-feedback="${kind}" class="${picked===kind?"active":""}" ${roundFeedbackGiven?"disabled":""}>${row[0]}</button>`).join("")}</div>`; }
 function recordRoundFeedback(kind){ if(roundFeedbackGiven || !ROUND_FEEDBACK[kind]) return; const counts=roundCounts(), score=roundMasteryScore(counts);
   if(kind==="easy"){ tuning.easyStreak=(tuning.easyStreak||0)+1; tuning.hardStreak=0; tuning.offset=(Number(tuning.offset)||0)+(tuning.easyStreak>=2?10:7); if(tuning.offset>=12) preference="challenge"; }
   if(kind==="hard"){ tuning.hardStreak=(tuning.hardStreak||0)+1; tuning.easyStreak=0; tuning.offset=(Number(tuning.offset)||0)-(tuning.hardStreak>=2?10:7); if(tuning.offset<=-12) preference="practical"; else if(preference==="challenge") preference="balanced"; }
@@ -551,16 +781,17 @@ function recordRoundFeedback(kind){ if(roundFeedbackGiven || !ROUND_FEEDBACK[kin
   tuning.lastRoundId=roundId; tuning.lastRoundFeedback=kind; tuning.rounds=[...(tuning.rounds||[]),{id:roundId,date:today(),mode:activeMode,kind,counts,score:Math.round(score*100)/100,offset:Math.round(Number(tuning.offset)||0),contextStrict:Number(tuning.contextStrict)||0}].slice(-30);
   const consequence={easy:"好，下一组会更难一点。",hard:"好，下一组会降一点。",ok:"好，保持这个节奏。",bad_context:"好，之后会少出这类不自然的词。"}[kind] || "已记录。";
   saveTuning(); save(PREF_KEY,preference); roundFeedbackGiven=true; renderRoundTune(consequence); }
-function dueText(ts){ if(!ts) return "未安排"; const left=ts-Date.now(); if(left<=0) return "今天再练";
-  const hours=Math.ceil(left/3600000); if(hours<24) return `${hours} 小时后复习`; const diff=Math.ceil(left/86400000);
-  if(diff===1) return "明天复习"; return `${diff} 天后复习`; }
+function dueText(ts){ if(!ts) return "今天还会再见"; const left=ts-Date.now(); if(left<=0) return "今天再拾一次";
+  const hours=Math.ceil(left/3600000); if(hours<24) return `${hours} 小时后再见`; const diff=Math.ceil(left/86400000);
+  if(diff===1) return "明天再见"; return `${diff} 天后再见`; }
 function scrollTopNow(){ try{ window.scrollTo({top:0,left:0,behavior:"auto"}); }catch(e){ window.scrollTo(0,0); } }
-function displayView(view){ $("home").style.display=view==="home"?"flex":"none"; $("card").style.display=view==="card"?"":"none"; $("summary").style.display=view==="summary"?"block":"none"; $("studybook").style.display=view==="book"?"block":"none"; $("profilePanel").style.display=view==="profile"?"block":"none"; $("auditPanel").style.display=view==="audit"?"block":"none"; $("mePanel").style.display=view==="me"?"block":"none";
-  // 写字时收起底部 Tab：练习是全屏专注场景，三层按钮叠在底部容易被手掌误触；退出走「退出本组」
-  $("foot").style.display=view==="card"?"none":"";
+const VIEW_IDS={welcome:"welcome",home:"home",card:"card",summary:"summary",book:"studybook",profile:"profilePanel",audit:"auditPanel",me:"mePanel"};
+const FLEX_VIEWS=new Set(["welcome","home","card","summary","book","me","profile","audit"]);
+function displayView(view){ Object.entries(VIEW_IDS).forEach(([k,id])=>{ $(id).style.display = view===k ? "flex" : "none"; });
+  // 写字 / 首启 / 结果是全屏专注场景，收起底部 Tab
+  $("foot").style.display=(view==="card"||view==="welcome"||view==="summary")?"none":"";
   if(view!=="me"){ $("dataBox").style.display="none"; }
-  // 三 tab 高亮：练习组(home/card/summary) / 错题(book) / 我的(me/profile/audit)
-  const active={home:"tabPractice",card:"tabPractice",summary:"tabPractice",book:"tabBook",profile:"tabMe",audit:"tabMe",me:"tabMe"}[view];
+  const active={home:"tabPractice",card:"tabPractice",summary:"tabPractice",welcome:"tabPractice",book:"tabBook",profile:"tabMe",audit:"tabMe",me:"tabMe"}[view];
   document.querySelectorAll(".foot .tab").forEach(el=>el.classList.toggle("active",el.id===active));
   requestAnimationFrame(scrollTopNow); }
 function qualityCount(){ return Object.values(quality).filter(q=>q && (q.easy || q.rare || q.badWord || q.hide)).length; }
@@ -573,8 +804,10 @@ function recordQuality(kind, idx=batch[pos]){ if(idx==null || idx<0) return; con
   if(kind==="easy" && q.easy) setStatus(idx,"rest"); if(kind==="badWord" && q.badWord) sessionDone.add(idx);
   if(kind==="hide"){ if(q.hide) sessionDone.add(idx); else sessionDone.delete(idx); }
   if(cur && idx===batch[pos]) renderQuality(); }
+// 盖章 = 记录一次结果；推进交给盖章后的「下一个字」（或 1.4s 自动前进）
+let pendingRepeat=false;
 function recordOutcome(outcome){ const idx=batch[pos], c=CARDS[idx], m=cardMemory(idx), now=Date.now();
-  const hard=outcome==="miss" || outcome==="hinted" || outcome==="slow", wasRisk=isHighRisk(idx);
+  const hard=outcome==="miss" || outcome==="hinted" || outcome==="slow";
   m.seen=(m.seen||0)+1; m.last=now; m.lastOutcome=outcome; m.lastHints=hintsUsedThisCard;
   m.topic=c.topic; m.level=c.level; m.word=c.word; m.target=c.target;
   if(outcome==="fast"){ m.fast=(m.fast||0)+1; m.streak=(m.streak||0)+1; m.ease=clamp((m.ease||50)+12,0,100); setStatus(idx,"rest"); }
@@ -586,27 +819,41 @@ function recordOutcome(outcome){ const idx=batch[pos], c=CARDS[idx], m=cardMemor
   m.due=now+delayFor(outcome,depth,m.ease||50); saveMemory();
   roundStats.push({idx, target:c.target, word:c.word, outcome, level:abilityLevel(idx), topic:c.topic, due:m.due});
   if(hard) missedThisRound.push(c.target);
-  if(!wasRisk && isHighRisk(idx)) toast(`「${c.target}」已进错题本`);
   adaptNextCard(outcome,idx);
-  next(outcome==="miss");
+  pendingRepeat=(outcome==="miss");
 }
 function prefLabel(){ return ({balanced:"高频易忘", practical:"偏实用", challenge:"偏挑战"})[preference] || "高频易忘"; }
 function needsCalibration(){ return !tuning.calibrated && memoryCount()===0; }
 function applyPrefUI(){ document.querySelectorAll("#prefBox button[data-pref]").forEach(btn=>btn.classList.toggle("active", btn.dataset.pref===preference)); }
 function greeting(){ const h=new Date().getHours(); if(h<5) return "夜深了"; if(h<11) return "早上好"; if(h<14) return "中午好"; if(h<18) return "下午好"; return "晚上好"; }
-// 首页：极简 launcher。一个大圆按钮承载「今天该练什么」——有到期先复习，否则练新字（新用户先校准）
-function renderHome(){ displayView("home");
-  const due=reviewCount(), newN=newPool(false).length, isNew=needsCalibration();
-  $("homeGreeting").textContent=greeting();
-  $("homeStatus").innerHTML=isNew ? "先花几分钟，估一下你的起始难度"
-    : due ? `今天 <b class="due">${due}</b> 个到期，先复习一遍`
-    : newN ? `今天练 <b>${BATCH}</b> 个新字，慢慢把手感找回来`
-    : "今天的字都过完了，明天见";
-  $("startBig").textContent=due?"复习":"开始";
-  $("startSub").textContent=isNew?"先练 15 字":(due?`${due} 个到期`:`${BATCH} 字`);
+function numCn(n){ const d=["","一","二","三","四","五","六","七","八","九","十"]; if(n<=10) return d[n]; if(n<20) return "十"+d[n-10]; return d[Math.floor(n/10)]+"十"+(n%10?d[n%10]:""); }
+function dateCn(){ const now=new Date(); return numCn(now.getMonth()+1)+"月"+numCn(now.getDate())+"日"; }
+function streakDays(){ const set=new Set(opens), p=today().split("-").map(Number); let n=0, t=new Date(p[0],p[1]-1,p[2]).getTime();
+  for(;;t-=86400000){ const d=new Date(t), k=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); if(set.has(k)) n++; else break; }
+  return Math.max(1,n); }
+// 「昨日拾得」：最近一个练习日（今天之前）拾过的字
+function lastDayIndexes(){ const idxs=profileIndexes(); if(!idxs.length) return {label:"昨日拾得", list:[]};
+  const t0=new Date(); t0.setHours(0,0,0,0); const dayStart=t0.getTime();
+  const prev=idxs.filter(i=>{ const l=(memory[cardKey(i)]||{}).last||0; return l && l<dayStart; });
+  if(!prev.length) return {label:"昨日拾得", list:[]};
+  const latest=Math.max(...prev.map(i=>memory[cardKey(i)].last)); const d=new Date(latest); d.setHours(0,0,0,0); const s=d.getTime();
+  const list=prev.filter(i=>{ const l=memory[cardKey(i)].last; return l>=s && l<s+86400000; });
+  return {label:(dayStart-s<=86400000)?"昨日拾得":"上回拾得", list}; }
+// 首页：一枚大印章是唯一焦点。有到期先复习，否则练新字（新用户走首启校准）
+function renderHome(){ if(needsCalibration()){ displayView("welcome"); warmUpcomingStrokeCache(); return; }
+  displayView("home");
+  $("homeGreeting").textContent=`${greeting()} · ${dateCn()}`;
+  $("streakChip").textContent=`连续拾了 ${streakDays()} 天`;
+  const due=reviewCount(), newN=newPool(false).length;
+  $("homeTitle").innerHTML=due?"先拾回<br>到期的字":"今天拾<br>十五个字";
+  $("startCap").innerHTML=due?`开始今日一组 <span>· 先复习 ${due} 个到期</span>`:(newN?`开始今日一组 <span>· ${BATCH} 字 · 约 6 分钟</span>`:"今天的字都过完了，明天见");
   $("startBtn").disabled=(newN===0 && due===0);
-  $("homeFootStat").innerHTML=`已记录 <b>${memoryCount()}</b><i></i>错题 <b>${highRiskCount()}</b>`;
-  $("pos").textContent="";
+  const y=lastDayIndexes();
+  $("yesterLbl").textContent=y.label;
+  $("boxStat").innerHTML=`字盒已收 <b>${memoryCount()}</b> 字 · 待复习 <b>${due}</b>`;
+  $("yesterRow").innerHTML=y.list.length
+    ? y.list.slice(0,4).map((i,k)=>`<div class="yTile" style="transform:rotate(${ROTS[k%ROTS.length]}deg)">${CARDS[i].target}</div>`).join("")+(y.list.length>4?`<div class="yTile more">+${y.list.length-4}</div>`:"")
+    : `<div class="yTile more" style="width:auto; padding:0 14px;">今天拾的字会出现在这里</div>`;
   warmUpcomingStrokeCache(); }
 function meAdviceText(idxs){ if(!idxs.length) return "练几组后，这里会总结你最容易卡住的主题、难度和结构。";
   const topic=profileGroups(idxs,cardTopic)[0], lvl=profileGroups(idxs,abilityLevel)[0], st=profileGroups(idxs,structureLabel)[0], bits=[];
@@ -614,19 +861,34 @@ function meAdviceText(idxs){ if(!idxs.length) return "练几组后，这里会�
   return `最常卡在：${bits.join("、")}。点开看详细分析。`; }
 function renderMe(){ displayView("me");
   applyPrefUI();
-  $("dueStat").textContent=reviewCount(); $("riskStat").textContent=highRiskCount(); $("seenStat").textContent=memoryCount();
-  $("meAdvice").textContent=meAdviceText(profileIndexes());
-  $("pos").textContent=""; }
+  $("seenStat").textContent=memoryCount(); $("streakStat").textContent=streakDays(); $("riskStat").textContent=highRiskCount();
+  $("meAdvice").textContent=meAdviceText(profileIndexes()); }
 function startMode(mode){ activeMode=(mode==="new" && needsCalibration())?"calibrate":mode; focusQueue=[]; sessionDone=new Set(); startRound(); }
 function startFocus(indexes){ focusQueue=[...new Set((indexes||highRiskIndexes()).filter(i=>i>=0 && i<CARDS.length))]; if(!focusQueue.length){ renderHome(); return; }
   activeMode="focus"; sessionDone=new Set(); startRound(); }
-function bookRow(i){ const c=CARDS[i], m=memory[cardKey(i)]||{}; const hard=(m.misses||0)+(m.hints||0)+(m.slow||0);
-  return `<button class="bookRow" data-idx="${i}"><span class="char">${c.target}</span><span class="meta"><b>${c.word}</b><small>${cardTopic(i)} · ${abilityMeta(i)} · 卡住 ${hard} 次 · ${dueText(m.due)}</small></span></button>`; }
-function renderBook(){ displayView("book"); const rows=highRiskIndexes();
-  $("pos").textContent=`错题 ${rows.length}`;
-  $("practiceDue").disabled=reviewCount()===0; $("practiceDue").textContent=reviewCount()?`练到期（${reviewCount()}）`:"练到期";
-  $("practiceRisk").disabled=rows.length===0; $("practiceRisk").textContent=rows.length?`练错题（${rows.length}）`:"练错题";
-  $("bookList").innerHTML=rows.length?rows.map(bookRow).join(""):`<div class="empty">这里还没有错题。等你标记“看提示写出”“不会写”或“写错了”，它们会自动出现。</div>`; }
+// ---- 字盒：收藏是主角，复习从收藏里长出来 ----
+let boxFilter="all";
+function lastOutcomeDot(i){ return OUTCOME_DOT[(memory[cardKey(i)]||{}).lastOutcome]||"transparent"; }
+function boxTile(i,k){ const risk=isHighRisk(i);
+  return `<button class="boxTile ${risk?"risk":""}" data-idx="${i}" title="${esc(CARDS[i].word)}" style="transform:rotate(${ROTS[k%ROTS.length]}deg)">${CARDS[i].target}<span class="dot" style="background:${risk?"var(--grey)":lastOutcomeDot(i)}"></span></button>`; }
+function renderBook(){ displayView("book");
+  const seen=profileIndexes().sort((a,b)=>((memory[cardKey(b)]||{}).last||0)-((memory[cardKey(a)]||{}).last||0));
+  $("boxCount").innerHTML=`已收 <b>${seen.length}</b> 字`;
+  const due=reviewCount();
+  if(due>0){ $("dueCard").style.display="flex";
+    const chips=chooseReviewBatch(reviewPool(false)).slice(0,3);
+    $("dueChips").innerHTML=chips.map((i,k)=>`<span class="pChip" style="transform:rotate(${k%2?3:-4}deg)">${CARDS[i].target}</span>`).join("");
+    $("dueTitle").textContent=`${due} 个字今天到期`;
+  } else { $("dueCard").style.display="none"; }
+  const stable=i=>!isHighRisk(i) && ((memory[cardKey(i)]||{}).streak||0)>=2;
+  const counts={all:seen.length, risk:seen.filter(isHighRisk).length, stable:seen.filter(stable).length};
+  document.querySelectorAll("#boxFilters .fchip").forEach(b=>{ const f=b.dataset.filter; b.classList.toggle("active",f===boxFilter);
+    b.textContent=({all:"全部",risk:"回炉中",stable:"已稳"})[f]+" "+counts[f]; });
+  let list=seen; if(boxFilter==="risk") list=seen.filter(isHighRisk); if(boxFilter==="stable") list=seen.filter(stable);
+  const MAXT=59, shown=list.slice(0,MAXT);
+  $("boxGrid").innerHTML=list.length
+    ? shown.map(boxTile).join("")+(list.length>MAXT?`<div class="boxTile more">+${list.length-MAXT}</div>`:"")
+    : `<div class="empty">字盒还空着。拾一组字，盖过章的字都会收进来。</div>`; }
 function esc(s){ return String(s).replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch])); }
 function hardCount(i){ const m=memory[cardKey(i)]||{}; return (m.misses||0)+(m.hints||0)+(m.slow||0); }
 function weaknessScore(i){ const m=memory[cardKey(i)]||{}; return clamp((m.misses||0)*28+(m.hints||0)*18+(m.slow||0)*18-(m.fast||0)*6+Math.max(0,60-(m.ease||50))*0.8+(reviewReady(i)?10:0),0,100); }
@@ -643,10 +905,10 @@ function profileGroupRows(indexes, labelFn, kind, limit=5){ const groups=profile
     <span><b>${esc(g.label)}</b><small>${g.count} 字 · 卡住 ${g.hard} 次 · 平均易错分 ${g.avg}</small></span><em>专项练</em>
     <span class="profileBar"><i style="width:${Math.max(8,Math.round(g.avg/max*100))}%"></i></span>
   </button>`).join(""); }
-function profileAdvice(indexes){ if(!indexes.length) return "先完成一组 15 字练习。系统会根据你选择的反馈，逐渐判断哪些主题、结构和难度层最容易让你提笔卡住。";
+function profileAdvice(indexes){ if(!indexes.length) return "先完成一组 15 字练习。系统会根据你盖的章，逐渐判断哪些主题、结构和难度层最容易让你提笔卡住。";
   const topic=profileGroups(indexes,cardTopic)[0], level=profileGroups(indexes,abilityLevel)[0], structure=profileGroups(indexes,structureLabel)[0], risk=highRiskCount();
   const bits=[]; if(topic) bits.push(`${topic.label}主题`); if(level) bits.push(`${level.label}难度`); if(structure) bits.push(`${structure.label}`);
-  return `目前最值得补的是 ${bits.join("、")}。错题 ${risk} 个；优先复习这些字，再用专项练习补同类结构，会比随机刷字更有效。`; }
+  return `目前最值得补的是 ${bits.join("、")}。回炉中 ${risk} 个；先把它们拿下，再专项练同类，比随机刷字更划算。`; }
 function profilePracticeIndexes(kind,value){ const indexes=profileIndexes(); let out=[];
   if(kind==="topic") out=indexes.filter(i=>cardTopic(i)===value);
   if(kind==="level") out=indexes.filter(i=>abilityLevel(i)===value);
@@ -654,13 +916,12 @@ function profilePracticeIndexes(kind,value){ const indexes=profileIndexes(); let
   if(kind==="risk") out=highRiskIndexes();
   return out.sort((a,b)=>weaknessScore(b)-weaknessScore(a) || personalDifficulty(b)-personalDifficulty(a)).slice(0,BATCH); }
 function renderProfile(){ displayView("profile"); const indexes=profileIndexes(), hard=indexes.filter(i=>hardCount(i)>0).length, avgEase=average(indexes,i=>(memory[cardKey(i)]||{}).ease||50);
-  $("pos").textContent=`易错分析 · ${indexes.length} 字`;
-  $("profileSummary").innerHTML=`<div class="profileMetric"><b>${indexes.length}</b><span>练过</span></div><div class="profileMetric"><b>${hard}</b><span>卡过</span></div><div class="profileMetric"><b>${avgEase}</b><span>平均掌握</span></div><div class="profileMetric"><b>${highRiskCount()}</b><span>错题</span></div>`;
+  $("profileSummary").innerHTML=`<div class="profileMetric"><b>${indexes.length}</b><span>练过</span></div><div class="profileMetric"><b style="color:var(--accent)">${hard}</b><span>卡过</span></div><div class="profileMetric"><b>${avgEase}</b><span>平均掌握</span></div><div class="profileMetric"><b style="color:var(--grey)">${highRiskCount()}</b><span>回炉中</span></div>`;
   $("profileAdvice").textContent=profileAdvice(indexes);
   $("profileTopics").innerHTML=profileGroupRows(indexes,cardTopic,"topic",5);
   $("profileLevels").innerHTML=`<div class="auditSectionTitle"><b>能力难度</b></div>${profileGroupRows(indexes,abilityLevel,"level",3)}<div class="auditSectionTitle"><b>结构</b></div>${profileGroupRows(indexes,structureLabel,"structure",4)}`;
   const weak=indexes.slice().sort((a,b)=>weaknessScore(b)-weaknessScore(a) || personalDifficulty(b)-personalDifficulty(a)).filter(i=>weaknessScore(i)>0 || hardCount(i)>0).slice(0,12);
-  $("profileChars").innerHTML=weak.length?`<div class="charChips">${weak.map(i=>`<button class="charChip" data-profile-char="${i}" title="${esc(CARDS[i].word)}">${CARDS[i].target}</button>`).join("")}</div>`:`<div class="empty">还没有明显易错字。等出现“看提示写出”“不会写”或“写错了”，这里会优先显示。</div>`; }
+  $("profileChars").innerHTML=weak.length?`<div class="charChips">${weak.map(i=>`<button class="charChip" data-profile-char="${i}" title="${esc(CARDS[i].word)}" style="${isHighRisk(i)?"border-color:var(--accent); color:var(--accent); background:var(--accentSoft);":""}">${CARDS[i].target}</button>`).join("")}</div>`:`<div class="empty">还没有明显易错字。等出现「补拾」「差点」「回炉」，这里会优先显示。</div>`; }
 function withAuditPreference(pref, fn){ const oldPref=preference, oldTopic=load(TOPIC_KEY,""); preference=pref;
   try{ return fn(); } finally { preference=oldPref; save(TOPIC_KEY,oldTopic); } }
 function countBy(items, fn){ const map={}; items.forEach(i=>{ const k=fn(i); map[k]=(map[k]||0)+1; }); return map; }
@@ -674,7 +935,6 @@ function auditRow(i){ const c=CARDS[i], q=qualityFor(i), qt=qualityText(i); retu
 function auditData(pref=auditPref){ return withAuditPreference(pref,()=>{ const pool=newPool(false), sample=shuffle(pool).slice(0,100), batch=chooseBatch(pool);
   return { pool, sample, batch, target:targetDifficulty(), avg:average(sample,cardDifficulty), topic:batch[0]?cardTopic(batch[0]):"无" }; }); }
 function renderAudit(pref=auditPref){ auditPref=pref; displayView("audit"); const data=auditData(pref), flagged=Object.values(quality).filter(q=>q && (q.easy||q.rare||q.badWord||q.hide)).length;
-  $("pos").textContent=`质检 · ${prefLabelFor(pref)}`;
   document.querySelectorAll("#auditPrefs button[data-pref]").forEach(btn=>btn.classList.toggle("active",btn.dataset.pref===pref));
   $("auditSummary").innerHTML=`<div class="auditMetric"><b>${data.pool.length}</b><span>可出新字</span></div><div class="auditMetric"><b>${data.target}</b><span>目标难度</span></div><div class="auditMetric"><b>${flagged}</b><span>质量反馈</span></div>`;
   $("auditBands").innerHTML=`<div class="auditBand"><b>样本规范等级分布</b><div class="auditTags">${tagList(countBy(data.sample,normLevel),6)}</div></div><div class="auditBand"><b>样本能力难度分布</b><div class="auditTags">${tagList(countBy(data.sample,abilityLevel),3)}</div></div><div class="auditBand"><b>样本主题分布</b><div class="auditTags">${tagList(countBy(data.sample,cardTopic),10)}</div></div>`;
@@ -696,7 +956,7 @@ let addedChars = load(ADDED_KEY, null);
 if(!Array.isArray(addedChars)){ addedChars=[...new Set(customWords.flatMap(w=>Array.from(w).filter(isCJK)))]; save(ADDED_KEY,addedChars); }
 function customIndexOf(ch){ for(let i=BASE_N;i<CARDS.length;i++){ if(CARDS[i].target===ch) return i; } return -1; }
 function unblockQuality(i){ const k=cardKey(i); if(quality[k]){ delete quality[k]; saveQuality(); } }
-// 现实里提笔忘了 = 一次真实的「不会写」：记进记忆模型，让它立刻进入今日复习和错题本
+// 现实里提笔忘了 = 一次真实的「不会写」：记进记忆模型，让它立刻进入今日复习和回炉
 function recordRealWorldMiss(i){ const c=CARDS[i], m=cardMemory(i), now=Date.now();
   m.seen=(m.seen||0)+1; m.last=now; m.lastOutcome="miss"; m.misses=(m.misses||0)+1; m.streak=0; m.ease=clamp((m.ease||50)-16,0,100);
   m.topic=c.topic; m.level=c.level; m.word=c.word; m.target=c.target; m.due=now; setStatus(i,"indeck"); }
@@ -718,25 +978,26 @@ function insertIntoCurrentBatch(indexes){ if($("card").style.display==="none" ||
 const DPR=window.devicePixelRatio||1, $=id=>document.getElementById(id);
 function cssVar(n,f){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim()||f; }
 function isDark(){ return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches; }
-function hintStroke(){ return isDark()? 'rgba(156,195,239,0.55)' : 'rgba(31,58,95,0.42)'; }
+function hintStroke(){ return isDark()? 'rgba(226,138,110,0.75)' : '#d08b78'; }
 // 加载瞬间视口可能还没就位（innerWidth=0），必须有下限兜底，否则写字区永久塌坏
-function idealBoxSize(){ const w=window.innerWidth||document.documentElement.clientWidth||375; return clamp(w-44,220,320); }
+function idealBoxSize(){ const w=window.innerWidth||document.documentElement.clientWidth||375; return clamp(w-44,220,330); }
 let S = idealBoxSize();
-let gridCanvas, inkCanvas, inkCtx, hzEl, writer=null, loadToken=0, shownStrokes=0, totalStrokes=0, groups=[], groupIdx=0, showingMine=false;
+const RS=150; // 揭晓对照格尺寸（CSS .cmpBox 同步）
+let gridCanvas, inkCanvas, inkCtx, hzEl, writer=null, loadToken=0, shownStrokes=0, totalStrokes=0, groups=[], groupIdx=0;
 let continuous = !(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
 let penDown=false, drawing=false, last=null, cur=null;
 
-function drawGridOn(ctx){ ctx.clearRect(0,0,S,S); ctx.fillStyle=cssVar('--card',"#fffdf7"); ctx.fillRect(0,0,S,S);
-  ctx.strokeStyle=cssVar('--line',"#e7cdc4"); ctx.lineWidth=1; ctx.strokeRect(1,1,S-2,S-2);
-  ctx.save(); ctx.setLineDash([5,6]); ctx.beginPath();
+function drawGridOn(ctx){ ctx.clearRect(0,0,S,S); ctx.fillStyle=cssVar('--card',"#fdfaf1"); ctx.fillRect(0,0,S,S);
+  const red=cssVar('--accent',"#c2452c");
+  ctx.save(); ctx.globalAlpha=.55; ctx.strokeStyle=red; ctx.lineWidth=2; ctx.strokeRect(1,1,S-2,S-2); ctx.restore();
+  ctx.save(); ctx.globalAlpha=.28; ctx.strokeStyle=red; ctx.lineWidth=1; ctx.setLineDash([5,6]); ctx.beginPath();
   ctx.moveTo(S/2,4);ctx.lineTo(S/2,S-4); ctx.moveTo(4,S/2);ctx.lineTo(S-4,S/2);
   ctx.moveTo(4,4);ctx.lineTo(S-4,S-4); ctx.moveTo(S-4,4);ctx.lineTo(4,S-4); ctx.stroke(); ctx.restore(); }
 function P(e){ const r=inkCanvas.getBoundingClientRect(); return {x:(e.clientX-r.left)*(S/r.width), y:(e.clientY-r.top)*(S/r.height)}; }
-function strokeTo(p){ inkCtx.strokeStyle=cssVar('--accent',"#1f3a5f"); inkCtx.lineWidth=Math.max(5,S*0.045);
+function strokeTo(p){ inkCtx.strokeStyle=cssVar('--inkPen',"#2b2620"); inkCtx.lineWidth=Math.max(5,S*0.045);
   inkCtx.lineCap="round"; inkCtx.lineJoin="round"; inkCtx.beginPath(); inkCtx.moveTo(last.x,last.y); inkCtx.lineTo(p.x,p.y); inkCtx.stroke(); last=p; }
-function dot(p){ inkCtx.fillStyle=cssVar('--accent',"#1f3a5f"); inkCtx.beginPath(); inkCtx.arc(p.x,p.y,Math.max(3,S*0.022),0,Math.PI*2); inkCtx.fill(); }
+function dot(p){ inkCtx.fillStyle=cssVar('--inkPen',"#2b2620"); inkCtx.beginPath(); inkCtx.arc(p.x,p.y,Math.max(3,S*0.022),0,Math.PI*2); inkCtx.fill(); }
 function setPen(s){ penDown=s; $("pill").textContent=penDown?"落笔中":"提笔"; $("pill").classList.toggle("down",penDown); }
-function setRevealView(mine){ showingMine=mine; if(inkCanvas) inkCanvas.style.opacity=mine?'1':'0'; if(hzEl) hzEl.style.opacity=mine?'0':'1'; const p=$("peek"); if(p) p.textContent=mine?'看正确字':'看我刚写的'; }
 
 function initBox(){ const box=document.createElement('div'); box.className='box'; box.style.width=S+'px'; box.style.height=S+'px';
   gridCanvas=document.createElement('canvas'); gridCanvas.className='gridc';
@@ -772,14 +1033,14 @@ function warmUpcomingStrokeCache(){ if(!navigator.onLine) return; try{
 
 // ---- 写后自动比对：用户笔迹 vs medians（笔画中线），纯本地几何运算、毫秒级 ----
 // 只在揭晓时判定，绝不在书写过程中反馈（写一半就提示对错=泄题，回忆练习会变成试错）。
-// 判定是近似（连笔/草书会被误判），所以结果只作为「建议」预圈自评按钮，最终以用户点选为准。
+// 判定是近似（连笔/草书会被误判），所以结果只作为「建议」预圈印章，最终以用户盖章为准。
 let inkStrokes=[], curInkStroke=null, curMedians=null, lastVerdict=null;
-function inkBegin(p){ curInkStroke=[{x:p.x,y:p.y}]; }
+function inkBegin(p){ curInkStroke=[{x:p.x,y:p.y}]; onTeachStrokeStart(); }
 function inkMove(p){ if(curInkStroke) curInkStroke.push({x:p.x,y:p.y}); }
 function inkEnd(){ if(!curInkStroke) return;
   // 非连续模式下无位移的点按没有留下墨迹，不算一笔；连续模式落笔会画圆点，算
   if(curInkStroke.length>=2 || continuous) inkStrokes.push(curInkStroke);
-  curInkStroke=null; }
+  curInkStroke=null; onTeachStrokeEnd(); }
 function pathLen(pts){ let l=0; for(let i=1;i<pts.length;i++) l+=Math.hypot(pts[i].x-pts[i-1].x,pts[i].y-pts[i-1].y); return l; }
 function resamplePts(pts,n){ const src=pts.map(p=>({x:p.x,y:p.y})), out=[{x:src[0].x,y:src[0].y}];
   const I=pathLen(src)/(n-1); if(!(I>0)){ while(out.length<n) out.push({x:src[0].x,y:src[0].y}); return out; }
@@ -851,40 +1112,51 @@ function paintInkStrokes(idxs,color){ if(!idxs || !idxs.length) return;
   idxs.forEach(i=>{ const pts=inkStrokes[i]; if(!pts||!pts.length) return;
     if(pts.length<2){ inkCtx.beginPath(); inkCtx.arc(pts[0].x,pts[0].y,Math.max(3,S*0.022),0,Math.PI*2); inkCtx.fill(); return; }
     inkCtx.beginPath(); inkCtx.moveTo(pts[0].x,pts[0].y); for(let k=1;k<pts.length;k++) inkCtx.lineTo(pts[k].x,pts[k].y); inkCtx.stroke(); }); }
-function verdictCue(v){ if(!v) return "";
-  if(v.status==="ok"){
-    if(v.mode==="holistic") return `自动比对：整体字形对上了（你 ${v.u} 笔、标准 ${v.t} 笔，连笔不影响判定）`;
-    return "自动比对：每一笔都对上了（机器判断，仅供参考）"; }
-  const parts=[];
-  if(v.missing) parts.push(`像是少写了 ${v.missing} 笔（你 ${v.u} 笔、标准 ${v.t} 笔）`);
-  if(v.failed.length) parts.push(`${v.failed.length} 笔没写到位（已标红，点「看正确字」对照）`);
-  if(!parts.length) parts.push("整体和标准字形差别较大，对照看看");
-  return "自动比对："+parts.join("；"); }
-function showVerdictBadge(v){ const b=$("verdictBadge"); if(!b) return;
-  if(!v){ b.style.display="none"; b.className="verdict"; b.textContent=""; return; }
-  b.className="verdict "+(v.status==="ok"?"good":"bad"); b.style.display="block";
-  b.textContent=v.status==="ok"?"✓ 写对了":"✗ 写得不太对"; }
+function verdictShort(v){ if(!v) return "对照看看——这个字，你给它盖哪个章？";
+  if(v.status==="ok") return v.mode==="holistic"?"机器对了一遍：整体对上了（连笔不影响）——章你来盖":"机器对了一遍：笔笔都对上了——章你来盖";
+  if(v.missing) return `机器觉得像是少写了 ${v.missing} 笔——对照右边，以你为准`;
+  if(v.failed.length) return `机器觉得有 ${v.failed.length} 笔没到位（已标红）——以你为准`;
+  return "机器觉得和标准字差别较大——对照看看，以你为准"; }
 
-function updateTip(){ $("tip").textContent=`笔顺提示（${groupIdx}/${groups.length}）`; if(groupIdx>=groups.length) $("tip").disabled=true; }
+function updateTip(){ $("tip").textContent=`笔顺提示 ${groupIdx}/${groups.length}`; if(groupIdx>=groups.length) $("tip").disabled=true; }
+
+// ---- 教学（首启校准第一张卡的墨点引导；只出现一次）----
+let teachStage="done", teachTimer=0;
+function teachActive(){ return activeMode==="calibrate" && pos===0; }
+function updateTeachUI(){ const stage=(teachActive() && !revealed)?teachStage:"done";
+  $("teachBubble").style.display=stage==="intro"?"":"none";
+  const helpersLocked=stage==="intro"||stage==="writing", writeLocked=stage==="intro";
+  $("tip").classList.toggle("tlock",helpersLocked); $("show").classList.toggle("tlock",helpersLocked);
+  $("clear").classList.toggle("tlock",writeLocked); $("done").classList.toggle("tlock",writeLocked);
+  $("mascotLine").textContent=stage==="helpers"?"想不起来就点「笔顺提示」，或直接看答案——描一遍也算拾回"
+    :(stage!=="done"?"":(cur?MASCOT_LINES[pos%MASCOT_LINES.length]:"")); }
+function armTeachIdle(){ clearTimeout(teachTimer);
+  teachTimer=setTimeout(()=>{ if((teachStage==="intro"||teachStage==="writing") && teachActive() && !revealed){ teachStage="helpers"; updateTeachUI(); } },8000); }
+function onTeachStrokeStart(){ clearTimeout(teachTimer);
+  if(teachStage==="intro" && teachActive() && !revealed){ teachStage="writing"; updateTeachUI(); } }
+function onTeachStrokeEnd(){ if((teachStage==="intro"||teachStage==="writing") && teachActive() && !revealed) armTeachIdle(); }
 
 // ---- 流程 ----
 function promptHTML(c){ return c.chars.map((ch,i)=> i===c.ci ? `<span class="blank">${c.py||"？"}</span>` : `<span class="given">${ch}</span>`).join(""); }
+function updatePosLabel(){ $("posLabel").textContent=activeMode==="calibrate"?`试练 ${pos+1}/${batch.length}`:`${pos+1} / ${batch.length}`; }
+function renderBeads(){ $("beads").innerHTML=batch.map((_,i)=>`<span class="bead ${i===pos?"cur":(i<pos?"done":"")}"></span>`).join(""); }
+let stamped=false, autoNextTimer=0, overlayOn=false, replaying=false;
 function render(){ fitBox(); cur=CARDS[batch[pos]]; const token=++loadToken;
   displayView("card");
-  $("card").classList.remove("revealedCard");
+  clearTimeout(autoNextTimer); stamped=false; pendingRepeat=false; overlayOn=false; replaying=false;
   hintsUsedThisCard=0; cardStartedAt=Date.now();
-  $("pos").textContent=activeMode==="calibrate"?`水平校准 · 第 ${pos+1} / ${batch.length} 个`:`第 ${pos+1} / ${batch.length} 个 · 复习 ${reviewCount()}`;
+  $("practiceArea").style.display="flex"; $("reveal").style.display="none";
+  renderBeads(); updatePosLabel();
   // 练习时只留题面本身（挖空词＋拼音就是「词语＋语境」，别再用文字复述——复述会把答案印出来）
-  $("prompt").innerHTML=promptHTML(cur); document.querySelector(".ask").textContent="根据词语和语境，写出缺的字";
-  $("hint").textContent=cur.custom?cur.hint:(activeMode==="calibrate"?"这组会用来估算你的起始难度。":"");
-  $("reveal").style.display="none"; $("ans").innerHTML=""; $("markCue").textContent=""; $("peek").style.display="";
-  $("mark").style.display="none"; $("qualityBox").style.display="none"; $("actions").style.display=""; $("inkTools").style.display="";
-  $("fast").textContent="会写"; $("hinted").textContent="看提示写出"; $("miss").textContent="不会写"; $("slow").textContent="写错了";
-  $("hinted").style.display="";
-  clearInk(); setPen(false); inkCanvas.style.opacity='1'; hzEl.style.opacity='1'; showingMine=false;
+  $("prompt").innerHTML=promptHTML(cur);
+  $("hint").textContent=cur.custom?cur.hint:(activeMode==="calibrate"?"这组会用来估算你的起始难度":"");
+  clearInk(); setPen(false); inkCanvas.style.opacity='1'; hzEl.style.opacity='1';
   shownStrokes=0; totalStrokes=0; groups=[]; groupIdx=0; $("tip").disabled=true; $("show").disabled=true; $("done").disabled=true; $("tip").textContent="笔顺提示";
   hzEl.innerHTML=""; writer=null; revealed=false;
-  curMedians=null; lastVerdict=null; showVerdictBadge(null); ["fast","hinted","miss","slow"].forEach(id=>$(id).classList.remove("suggest"));
+  curMedians=null; lastVerdict=null;
+  // 教学：只在校准组的第一张卡上出现
+  teachStage=teachActive()?"intro":"done"; clearTimeout(teachTimer); if(teachActive()) armTeachIdle();
+  updateTeachUI();
   function allowNoStrokeData(message){ if(token!==loadToken) return; loadToken++; $("show").disabled=false; $("done").disabled=false; $("tip").disabled=true; $("hint").textContent=(cur.custom?cur.hint+" · ":"")+message; }
   if(window.HanziWriter){
     writer=HanziWriter.create(hzEl, cur.target, { width:S, height:S, padding:Math.round(S*0.06),
@@ -906,92 +1178,133 @@ $("tip").onclick=async ()=>{ if(!writer||animating||revealed||groupIdx>=groups.l
   animating=false;
   if(token===loadToken && !revealed && inkCanvas) inkCanvas.style.opacity='1';
 };
-// 两条结束路径：「写好了」= 写出来了，正确字直接显示，对照后自评；「揭晓答案」= 不会写，笔顺动画教一遍
+// 两条结束路径：「写好了」= 写出来了，对照后自己盖章；「看答案」= 不会写，同样进对照盖章
 function revealAnswer(done){
-  revealed=true;
-  $("card").classList.add("revealedCard");
-  const noData=!writer||!totalStrokes; // 离线未缓存/加载失败：田字格画不出答案
-  // 「写好了」才比对：用户声称写出来了，机器帮忙核对；「揭晓答案」是不会写，没有可判的
+  if(revealed) return; revealed=true; clearTimeout(teachTimer);
+  const noData=!writer||!totalStrokes; // 离线未缓存/加载失败：右格用系统楷体兜底
+  // 「写好了」才比对：用户声称写出来了，机器帮忙核对；「看答案」是不会写，没有可判的
   const verdict=(done && !noData)?autoCheckInk():null;
-  if(!noData){ try{ writer.updateColor('strokeColor', cssVar('--accent',"#1f3a5f")); writer.updateColor('radicalColor', cssVar('--accent',"#1f3a5f")); }catch(e){}
-    try{ writer.hideCharacter({duration:0}); if(done) writer.showCharacter({duration:300}); else writer.animateCharacter(); }catch(e){}
-    shownStrokes=totalStrokes; groupIdx=groups.length; updateTip(); }
-  const blank=$("prompt").querySelector(".blank"); if(blank){ blank.textContent=cur.target; blank.classList.add("filled"); }
-  // 没有笔顺数据时：答案用大字给在下方，保留用户自己的笔迹别藏
-  // 判了「写错」默认先看自己的字（标红直接可见），正确答案就在题面和「看正确字」一步之内
-  if(noData){ setRevealView(true); $("peek").style.display="none"; } else setRevealView(!!(verdict && verdict.status==="bad"));
-  $("reveal").style.display="block"; $("ans").innerHTML=(noData?`<span class="big">${cur.target}</span>`:"")+`<span class="small">${cur.word}${cur.py?` · ${cur.py}`:""}</span>`;
-  $("markCue").textContent=verdictCue(verdict)||(noData?(done?"对照上面的答案看看，写对了吗？":"看着答案回忆一下，这个字算哪种？"):(done?"对照笔顺看看，写对了吗？":"顺着笔顺回忆一下，这个字算哪种？"));
-  showVerdictBadge(verdict);
-  if(verdict){ paintInkStrokes(verdict.failed, cssVar('--miss',"#b3403a"));
-    if(verdict.status==="ok") $(hintsUsedThisCard>0?"hinted":"fast").classList.add("suggest");
-    else $("slow").classList.add("suggest"); }
-  $("hinted").style.display="";
+  if(verdict) paintInkStrokes(verdict.failed, cssVar('--accent',"#c2452c"));
+  let inkUrl=null; if(inkStrokes.length){ try{ inkUrl=inkCanvas.toDataURL(); }catch(e){} }
+  $("practiceArea").style.display="none"; $("reveal").style.display="flex";
+  $("revealWord").textContent=cur.word; $("revealPy").textContent=cur.py||"";
+  if(inkUrl){ $("mineInk").style.backgroundImage=`url(${inkUrl})`; $("mineInk").style.display=""; $("mineEmpty").style.display="none"; }
+  else { $("mineInk").style.backgroundImage="none"; $("mineEmpty").style.display="flex"; }
+  overlayOn=false; $("mineOverlay").style.display="none"; $("mineOverlay").textContent=cur.target; $("overlayToggle").textContent="叠起来对比";
+  $("rightGlyph").textContent=cur.target; $("rightGlyph").style.opacity="1"; $("rightHz").innerHTML=""; replaying=false;
+  $("stampOnMine").style.display="none";
+  $("stampRow").style.display="flex"; $("stampNote").style.display="";
+  $("stampedToast").style.display="none"; $("nextWrap").style.display="none";
+  // 教学 T3：第一次揭晓教盖章规则（只这一次）
+  const teachReveal=teachActive();
+  $("teachBubbleGrade").style.display=teachReveal?"":"none";
+  $("askRow").style.display=teachReveal?"none":"flex";
+  $("qualityBox").style.display=teachReveal?"none":"flex";
+  $("askLine").textContent=verdictShort(verdict);
+  ["wrapFast","wrapHinted","wrapSlow","wrapMiss"].forEach(id=>$(id).classList.remove("suggest"));
+  if(verdict){ const sug=verdict.status==="ok"?(hintsUsedThisCard>0?"wrapHinted":"wrapFast"):"wrapSlow"; $(sug).classList.add("suggest"); }
   renderQuality();
-  $("inkTools").style.display="none"; $("actions").style.display="none";
-  $("mark").style.display="grid"; $("qualityBox").style.display="";
-  try{ $("mark").scrollIntoView({behavior:"smooth", block:"nearest"}); }catch(e){}
-  $("mark").classList.remove("cue"); void $("mark").offsetWidth; $("mark").classList.add("cue"); }
+}
 $("show").onclick=()=>revealAnswer(false);
 $("done").onclick=()=>revealAnswer(true);
-$("peek").onclick=()=>setRevealView(!showingMine);
-$("fast").onclick=()=>recordOutcome("fast");
-$("slow").onclick=()=>recordOutcome("slow");
-$("hinted").onclick=()=>recordOutcome("hinted");
-$("miss").onclick=()=>recordOutcome("miss");
+$("overlayToggle").onclick=()=>{ overlayOn=!overlayOn; $("mineOverlay").style.display=overlayOn?"flex":"none"; $("overlayToggle").textContent=overlayOn?"分开看":"叠起来对比"; };
+$("replayBtn").onclick=()=>{ if(replaying || !window.HanziWriter) return; replaying=true;
+  $("rightGlyph").style.opacity="0"; $("rightHz").innerHTML="";
+  const w=HanziWriter.create($("rightHz"), cur.target, { width:RS, height:RS, padding:10, showCharacter:false, showOutline:false,
+    strokeColor:cssVar('--accent',"#c2452c"), strokeAnimationSpeed:3.2, delayBetweenStrokes:90, charDataLoader:charLoader });
+  try{ w.animateCharacter({ onComplete:()=>{ replaying=false; } }); }catch(e){ replaying=false; $("rightGlyph").style.opacity="1"; } };
+// 盖章：按下去 = 这个字的去向定了。前三章进字盒，「回炉」放回口袋
+function pickStamp(outcome){ if(stamped || !revealed) return; stamped=true;
+  recordOutcome(outcome);
+  const ui=GRADE_UI[outcome], m=memory[cardKey(batch[pos])]||{};
+  const st=$("stampOnMine"), face=st.querySelector(".face"), ring=st.querySelector(".ring");
+  const solid={fast:"var(--accent)",hinted:"var(--gold)",slow:"var(--blue)"}[outcome];
+  face.style.background=solid||"var(--card)"; face.style.border=solid?"0":"2px solid var(--grey)";
+  face.querySelector("span").textContent=ui.seal; face.querySelector("span").style.color=solid?"var(--paperInk)":"var(--muted)";
+  ring.style.borderColor=solid||"var(--grey)";
+  st.style.display="block";
+  // 重新触发动画
+  face.style.animation="none"; ring.style.animation="none"; void face.offsetWidth;
+  face.style.animation=""; ring.style.animation="";
+  $("stampRow").style.display="none"; $("stampNote").style.display="none";
+  $("askRow").style.display="none"; $("teachBubbleGrade").style.display="none"; $("qualityBox").style.display="none";
+  $("toastChar").textContent=cur.target;
+  $("toastTitle").textContent=outcome==="miss"?`「${cur.target}」先放回口袋`:`「${cur.target}」放进字盒了`;
+  $("toastSubEl").textContent=`你盖了「${ui.seal}」 · ${dueText(m.due)}`;
+  $("stampedToast").style.display="flex";
+  $("nextBtn").textContent=pos+1>=batch.length?(activeMode==="calibrate"?"看看你的底 →":"看今日拾得 →"):"下一个字 →";
+  $("nextWrap").style.display="flex";
+  renderBeads();
+  autoNextTimer=setTimeout(goNext,1400); }
+function goNext(){ clearTimeout(autoNextTimer); if(!stamped) return; const r=pendingRepeat; pendingRepeat=false; next(r); }
+$("fast").onclick=()=>pickStamp("fast");
+$("slow").onclick=()=>pickStamp("slow");
+$("hinted").onclick=()=>pickStamp("hinted");
+$("miss").onclick=()=>pickStamp("miss");
+$("nextBtn").onclick=goNext;
 function next(repeatSoon=false){ if(!repeatSoon) sessionDone.add(batch[pos]); pos++; if(pos<batch.length) render(); else roundSummary(); }
 function chooseFocusBatch(all){ return all.slice().sort((a,b)=>personalDifficulty(b)-personalDifficulty(a)).slice(0,BATCH); }
 function chooseReviewBatch(all){ return all.slice().sort((a,b)=>reviewPriority(b)-reviewPriority(a) || ((memory[cardKey(a)]||{}).due||0)-((memory[cardKey(b)]||{}).due||0) || personalDifficulty(b)-personalDifficulty(a)).slice(0,BATCH); }
 function startRound(){ const p=availablePool(); if(p.length===0){ allDone(); return; } resetAdaptiveSession(); batch=activeMode==="focus"?chooseFocusBatch(p):(activeMode==="review"?chooseReviewBatch(p):(activeMode==="calibrate"?chooseCalibrationBatch(p):chooseBatch(p))); warmStrokeCache(batch.map(i=>CARDS[i].target)); pos=0; missedThisRound=[]; roundStats=[]; roundFeedbackGiven=false; roundId=Date.now()+"-"+Math.random().toString(36).slice(2,7); render(); }
-function resultItem(s){ return `<button class="resultItem ${s.outcome}" data-idx="${s.idx}"><b>${s.target}</b><span>${s.word} · ${s.level}</span><em>${dueText(s.due)}</em></button>`; }
-function resultGroup(outcome,label,desc){ const items=roundStats.filter(x=>x.outcome===outcome);
-  return `<section class="resultGroup"><div class="resultHead"><b>${label} ${items.length}</b><span>${desc}</span></div><div class="resultItems">${items.length?items.map(resultItem).join(""):`<span class="empty">这一类没有字</span>`}</div></section>`; }
-function moreLabel(remain){ if(activeMode==="review") return `继续今日复习（还剩 ${remain}）`; if(activeMode==="focus") return `继续错题（还剩 ${remain}）`; return "继续练新字"; }
+function sumTile(s,i){ const isMiss=s.outcome==="miss";
+  return `<button class="sumTile ${isMiss?"miss":""}" data-idx="${s.idx}" style="transform:rotate(${ROTS[i%ROTS.length]}deg); animation-delay:${(i*0.05).toFixed(2)}s">${s.target}<span class="dot" style="background:${OUTCOME_DOT[s.outcome]}"></span></button>`; }
 function roundSummary(){ displayView("summary"); const wasCalibration=activeMode==="calibrate", calibrationNote=maybeFinishCalibration(), remain=availablePool().length;
-  $("pos").textContent="本组结果";
-  const count=o=>roundStats.filter(x=>x.outcome===o).length, risky=roundStats.filter(x=>x.outcome==="hinted"||x.outcome==="miss"||x.outcome==="slow").map(x=>x.target);
-  const stable=count("fast"), review=count("hinted")+count("miss")+count("slow"), total=Math.max(1,roundStats.length), stablePct=Math.round(stable/total*100);
-  const needsReviewFirst=(count("miss")+count("slow"))>=3 || review>=Math.ceil(total/2);
-  const rough=needsReviewFirst && !wasCalibration;
-  $("sumTitle").textContent=wasCalibration?"15 字试练完成":(rough?"卡住几个很正常，它们正是你来练的字":(risky.length?`这一组有 ${risky.length} 个进入错题复习`:"这一组记录好了"));
-  $("summaryHero").innerHTML=`<div class="summaryRing" style="--stablePct:${stablePct}%"><div class="summaryRingInner"><b>${roundStats.length}</b><span>字练完</span></div></div><div class="summaryHeroText"><b>${review>0?`${review} 个进入错题复习`:`${stable} 个都稳了`}</b><span>${review>0?"这些字已进入错题复习，建议先把它们拿下。":"这一组都很稳，后面会自动加一点难度。"}</span></div>`;
-  $("sumList").innerHTML=OUTCOMES.map(row=>resultGroup(row[0],row[1],row[2])).join("");
-  const gentle=needsReviewFirst?"先把刚才不会写或写错的字拿下，比继续冲新字更顶用。":"";
-  $("sumNote").textContent=`${gentle}会写 ${count("fast")} · 看提示写出 ${count("hinted")} · 不会写 ${count("miss")} · 写错了 ${count("slow")}。到期复习 ${reviewCount()} 个，错题 ${highRiskCount()} 个。${calibrationNote?` ${calibrationNote}`:""}`;
+  const counts=roundCounts(), hardN=(counts.hinted||0)+(counts.miss||0)+(counts.slow||0), keptN=roundStats.length-hardN;
+  $("calibCard").style.display=wasCalibration?"flex":"none"; $("calibCard").style.flexDirection="column"; $("calibCard").style.flex="1";
+  $("sumSheet").style.display=wasCalibration?"none":"flex";
+  if(wasCalibration){ // 教学 T4：替代普通结果页，只在校准组后出现一次
+    $("calibKept").textContent=keptN; $("calibMiss").textContent=hardN;
+    $("calibTier").textContent=tuningLabel();
+    $("calibWhyTxt").textContent=calibrationNote?` ${calibrationNote}`:" 之后每组会按你的手感自动微调。";
+    $("calibPocketLine").textContent=hardN>0?`口袋里的 ${hardN} 个字明天会回来找你。`:"这一把一个都没漏，下一组会稍微上点难度。";
+    return; }
+  const risky=[...new Set(roundStats.filter(x=>x.outcome!=="fast").map(x=>x.idx))];
+  $("sumH2").textContent="今日拾得";
+  $("sumLead").innerHTML=hardN>0?`拾回 <b class="ok">${keptN}</b> 字，<br><b class="warn">${hardN}</b> 个先放回口袋，明天再拾。`:`这一把 <b class="ok">${keptN}</b> 个字全拾到了。`;
+  $("dateSeal").textContent=dateCn();
+  $("sumTiles").innerHTML=roundStats.map(sumTile).join("");
+  if(risky.length){ $("pocketCard").style.display="flex";
+    $("pocketChips").innerHTML=risky.slice(0,3).map((i,k)=>`<span class="pChip" style="transform:rotate(${k%2?3:-4}deg)">${CARDS[i].target}</span>`).join("");
+    $("pocketTitle").textContent=`这 ${risky.length} 个先别走`;
+    $("pocketBtn").onclick=()=>startFocus(risky);
+  } else { $("pocketCard").style.display="none"; }
   renderRoundTune(calibrationNote);
-  $("reviewRisk").parentElement.style.display=highRiskCount()>0?"flex":"none"; $("reviewRisk").style.display=highRiskCount()>0?"":"none"; $("reviewRisk").textContent=highRiskCount()?`马上复习错题（${highRiskCount()}）`:"";
-  // 这一组卡得多时，别继续推新字；把焦点放回"拿下刚才卡住的字"
-  $("more").style.display=(remain>0 && !needsReviewFirst)?"":"none"; $("more").textContent=remain>0?moreLabel(remain):""; }
+  const needsReviewFirst=(counts.miss+counts.slow)>=3 || hardN>=Math.ceil(Math.max(1,roundStats.length)/2);
+  // 这一组卡得多时，别继续推新字；把焦点放回「拿下刚才卡住的字」
+  $("more").style.display=(remain>0 && !needsReviewFirst)?"":"none";
+  $("more").textContent=activeMode==="review"?`继续复习（还剩 ${remain}）`:activeMode==="focus"?`继续（还剩 ${remain}）`:"再拾一组"; }
 function allDone(){ displayView("summary");
-  $("pos").textContent="今日练习";
-  $("sumTitle").textContent="今天的字过完了"; $("sumList").textContent="";
-  $("summaryHero").innerHTML=`<div class="summaryRing" style="--stablePct:100%"><div class="summaryRingInner"><b>${memoryCount()}</b><span>已记录</span></div></div><div class="summaryHeroText"><b>没有到期复习了</b><span>每天一点，手感会慢慢回来。</span></div>`;
-  $("sumNote").textContent=`已记录 ${memoryCount()} 个字。到期复习 ${reviewCount()} 个，错题 ${highRiskCount()} 个。`; $("roundTune").style.display="none"; $("more").style.display="none";
-  $("reviewRisk").parentElement.style.display=highRiskCount()>0?"flex":"none"; $("reviewRisk").style.display=highRiskCount()>0?"":"none"; $("reviewRisk").textContent=highRiskCount()?`马上复习错题（${highRiskCount()}）`:""; }
+  $("calibCard").style.display="none"; $("sumSheet").style.display="flex";
+  $("sumH2").textContent="今天的字过完了";
+  $("sumLead").innerHTML=`字盒已收 <b class="ok">${memoryCount()}</b> 字 · 待复习 ${reviewCount()} · 回炉中 ${highRiskCount()}`;
+  $("dateSeal").textContent=dateCn();
+  $("sumTiles").innerHTML=""; $("pocketCard").style.display="none";
+  $("roundTune").style.display="none"; $("more").style.display="none"; }
 $("more").onclick=startRound;
-$("reviewRisk").onclick=()=>startFocus(highRiskIndexes());
 $("stop").onclick=renderHome;
+$("calibDone").onclick=renderHome;
+$("calibAgain").onclick=()=>startMode("new");
 function openExitSheet(){ $("exitSheet").classList.add("open"); }
 function closeExitSheet(){ $("exitSheet").classList.remove("open"); }
-function exitCurrentRound(){ closeExitSheet(); loadToken++; animating=false; revealed=true; drawing=false; setPen(false); renderHome(); toast("已退出本组，已记录的字会保留"); }
+function exitCurrentRound(){ closeExitSheet(); loadToken++; animating=false; revealed=true; drawing=false; setPen(false); clearTimeout(teachTimer); clearTimeout(autoNextTimer); renderHome(); toast("已退出本组，已盖章的字会保留"); }
 $("exitPractice").onclick=openExitSheet;
 $("exitCancel").onclick=closeExitSheet;
 $("exitConfirm").onclick=exitCurrentRound;
 $("exitSheet").onclick=e=>{ if(e.target===$("exitSheet")) closeExitSheet(); };
 $("prefBox").onclick=e=>{ const b=e.target.closest("[data-pref]"); if(!b) return; preference=b.dataset.pref; save(PREF_KEY,preference); applyPrefUI(); };
 $("qualityBox").onclick=e=>{ const b=e.target.closest("[data-quality]"); if(!b) return; recordQuality(b.dataset.quality); };
-$("sumList").onclick=e=>{ const b=e.target.closest("[data-idx]"); if(b) startFocus([Number(b.dataset.idx)]); };
+$("sumTiles").onclick=e=>{ const b=e.target.closest("[data-idx]"); if(b) startFocus([Number(b.dataset.idx)]); };
 $("roundTune").onclick=e=>{ const b=e.target.closest("[data-round-feedback]"); if(b) recordRoundFeedback(b.dataset.roundFeedback); };
-$("bookList").onclick=e=>{ const b=e.target.closest("[data-idx]"); if(b) startFocus([Number(b.dataset.idx)]); };
-// ---- 底部三 tab + 首页大按钮 ----
+$("boxGrid").onclick=e=>{ const b=e.target.closest("[data-idx]"); if(b) startFocus([Number(b.dataset.idx)]); };
+$("boxFilters").onclick=e=>{ const b=e.target.closest("[data-filter]"); if(b){ boxFilter=b.dataset.filter; renderBook(); } };
+// ---- 底部三 tab + 首页大印章 ----
 $("startBtn").onclick=()=>{ if($("startBtn").disabled) return; startMode(reviewCount()>0?"review":"new"); };
+$("welcomeStart").onclick=()=>startMode("new");
 $("tabPractice").onclick=renderHome;
 $("tabBook").onclick=renderBook;
 $("tabMe").onclick=renderMe;
-$("meDue").onclick=()=>{ if(reviewCount()>0) startMode("review"); };
 $("meRisk").onclick=()=>{ if(highRiskCount()>0) startFocus(highRiskIndexes()); };
 $("meSeen").onclick=renderProfile;
-$("closeBook").onclick=renderHome;
 $("openProfile").onclick=renderProfile;
 $("closeProfile").onclick=renderMe;
 $("profilePanel").onclick=e=>{ const char=e.target.closest("[data-profile-char]"); if(char){ startFocus([Number(char.dataset.profileChar)]); return; }
@@ -1005,12 +1318,11 @@ function handleAuditListClick(e){ const practice=e.target.closest("[data-audit-p
 $("auditBatch").onclick=handleAuditListClick;
 $("auditSample").onclick=handleAuditListClick;
 $("practiceDue").onclick=()=>startMode("review");
-$("practiceRisk").onclick=()=>startFocus(highRiskIndexes());
 
 $("dataLink").onclick=()=>{ const box=$("dataBox"); if(box.style.display==="block"){ box.style.display="none"; return; }
   const last7=opens.filter(d=>{ const diff=(new Date(today())-new Date(d))/86400000; return diff>=0 && diff<7; });
   box.style.display="block"; box.innerHTML=`<b>实验用，别天天盯（盯 streak 会污染“光靠痒”这个变量）</b><br>`+
-    `最近 7 天里，你主动打开过 <b>${last7.length}</b> 天 → 目标 ≥4 天<br>出题偏好：<b>${prefLabel()}</b> · 难度校准：<b>${tuningLabel()} ${tuningShiftText()}</b> · 语境严格度：<b>${Number(tuning.contextStrict)||0}</b><br>题目反馈：<b>${qualityCount()}</b> 条 · 整组反馈：<b>${(tuning.rounds||[]).length}</b> 条<br>已记录：<b>${memoryCount()}</b> 个字 · 到期复习：<b>${reviewCount()}</b> 个 · 错题：<b>${highRiskCount()}</b> 个<br>你自己加的字：<b>${addedChars.length}</b> 个<br>累计打开：${opens.length} 天`; };
+    `最近 7 天里，你主动打开过 <b>${last7.length}</b> 天 → 目标 ≥4 天<br>出题偏好：<b>${prefLabel()}</b> · 难度校准：<b>${tuningLabel()} ${tuningShiftText()}</b> · 语境严格度：<b>${Number(tuning.contextStrict)||0}</b><br>题目反馈：<b>${qualityCount()}</b> 条 · 整组反馈：<b>${(tuning.rounds||[]).length}</b> 条<br>已记录：<b>${memoryCount()}</b> 个字 · 到期复习：<b>${reviewCount()}</b> 个 · 回炉中：<b>${highRiskCount()}</b> 个<br>你自己加的字：<b>${addedChars.length}</b> 个<br>累计打开：${opens.length} 天`; };
 let toastTimer=0;
 function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove("show"),2200); }
 
@@ -1024,10 +1336,13 @@ function closeAddSheet(){ $("addSheet").classList.remove("open"); $("addInput").
 function confirmAdd(){ const chars=addWord($("addInput").value); if(!chars) return;
   const inserted=insertIntoCurrentBatch(indexesForChars(chars));
   closeAddSheet();
-  if(inserted){ $("pos").textContent=activeMode==="calibrate"?`水平校准 · 第 ${pos+1} / ${batch.length} 个`:`第 ${pos+1} / ${batch.length} 个 · 复习 ${reviewCount()}`; toast(`已加入本次练习：${chars.join("、")}，下一题开始出现`); }
+  if(inserted){ renderBeads(); updatePosLabel(); toast(`已加入本次练习：${chars.join("、")}，下一题开始出现`); }
   else toast(`已加入：${chars.join("、")} · 已排进今日复习`);
-  if($("summary").style.display==="block") roundSummary(); if($("mePanel").style.display==="block") renderMe(); if($("studybook").style.display==="block") renderBook(); }
+  if($("summary").style.display!=="none" && $("summary").style.display!=="") roundSummary();
+  if($("summary").style.display==="flex") roundSummary();
+  if($("mePanel").style.display==="flex") renderMe(); if($("studybook").style.display==="flex") renderBook(); }
 $("addLink").onclick=openAddSheet;
+$("addLink2").onclick=openAddSheet;
 $("addInPractice").onclick=openAddSheet;
 $("addCancel").onclick=closeAddSheet;
 $("addConfirm").onclick=confirmAdd;
@@ -1056,8 +1371,7 @@ $("importLink").onclick=()=>$("importFile").click();
 $("importFile").onchange=e=>{ const f=e.target.files && e.target.files[0]; e.target.value=""; if(f) importBackup(f); };
 $("resetLink").onclick=()=>{ if(confirm("清空卡组和记录，从头开始？")){ status={}; memory={}; quality={}; tuning={calibrated:false, offset:0, contextStrict:0, rounds:[]}; preference="balanced"; opens=[today()]; customWords=[]; addedChars=[]; save(DECK_KEY,status); save(MEMORY_KEY,memory); save(QUALITY_KEY,quality); saveTuning(); save(PREF_KEY,preference); save(OPEN_KEY,opens); save(CUSTOM_KEY,customWords); save(ADDED_KEY,addedChars); buildCustomCards(); localStorage.removeItem(TOPIC_KEY); sessionDone=new Set(); focusQueue=[]; renderHome(); $("dataBox").style.display="none"; } };
 
-function applyModeUI(){ $("modeBtn").textContent=continuous?"连续模式：开":"连续模式：关";
-  $("modehint").textContent=""; }
+function applyModeUI(){ $("modeBtn").textContent=continuous?"连续模式：开":"连续模式：关"; }
 $("modeBtn").onclick=()=>{ continuous=!continuous; drawing=false; setPen(false); applyModeUI(); };
 
 // 连续模式是给桌面鼠标准备的（点一下落笔、再点一下提笔）；触屏直接手写，不需要这个开关

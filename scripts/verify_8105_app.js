@@ -377,21 +377,35 @@ async function expectHidden(page, selector, label) {
     seen: document.getElementById("seenStat").textContent,
     risk: document.getElementById("riskStat").textContent,
     advice: document.getElementById("meAdvice").textContent,
+    diagnosisEntry: document.getElementById("openProfile").textContent.replace(/\s+/g, ""),
     prefButtons: Array.from(document.querySelectorAll("#prefBox button")).map((node) => node.textContent),
+    internalHidden: getComputedStyle(document.getElementById("internalTools")).display === "none",
+    toolsState: document.getElementById("toolsState").textContent,
     activeTab: document.querySelector(".foot .tab.active")?.id,
   }));
-  if (!me.visible || Number(me.seen) < 3 || Number(me.risk) < 2 || !me.advice || me.prefButtons.length !== 3 || me.activeTab !== "tabMe") {
+  if (!me.visible || Number(me.seen) < 3 || Number(me.risk) < 2 || !me.advice || !me.diagnosisEntry.includes("手感诊断") || me.prefButtons.length !== 3 || !me.internalHidden || me.toolsState !== "展开" || me.activeTab !== "tabMe") {
     throw new Error(`Expected My page to summarize memory model, got ${JSON.stringify(me)}`);
+  }
+  await page.click("#toolsToggle");
+  const toolsCheck = await page.evaluate(() => ({
+    visible: getComputedStyle(document.getElementById("internalTools")).display !== "none",
+    state: document.getElementById("toolsState").textContent,
+    rows: Array.from(document.querySelectorAll("#internalTools .meRow")).map((node) => node.textContent.replace(/\s+/g, "")),
+  }));
+  if (!toolsCheck.visible || toolsCheck.state !== "收起" || toolsCheck.rows.length !== 5 || !toolsCheck.rows[0].includes("题库质检开发/运营")) {
+    throw new Error(`Expected internal tools to be hidden behind Advanced tools, got ${JSON.stringify(toolsCheck)}`);
   }
   await page.click("#openProfile");
   const profile = await page.evaluate(() => ({
     visible: getComputedStyle(document.getElementById("profilePanel")).display !== "none",
+    footHidden: getComputedStyle(document.getElementById("foot")).display === "none",
     metrics: document.querySelectorAll("#profileSummary .profileMetric").length,
+    hero: document.querySelector("#profileSummary .profileHero")?.textContent.replace(/\s+/g, ""),
     topics: document.querySelectorAll("#profileTopics .profileRow").length,
     levels: document.querySelectorAll("#profileLevels .profileRow").length,
     chars: document.querySelectorAll("#profileChars [data-profile-char]").length,
   }));
-  if (!profile.visible || profile.metrics !== 4 || profile.topics < 1 || profile.levels < 1 || profile.chars < 1) {
+  if (!profile.visible || !profile.footHidden || profile.metrics !== 4 || !profile.hero.includes("今日手感") || !profile.hero.includes("练回炉字") || profile.topics < 1 || profile.levels < 1 || profile.chars < 1) {
     throw new Error(`Expected profile drilldown to be reachable from My page, got ${JSON.stringify(profile)}`);
   }
 
@@ -410,6 +424,16 @@ async function expectHidden(page, selector, label) {
       balancedFallback: balancedPool.filter((idx) => contextSource(idx) === "fallback").length,
       balancedTertiary: balancedPool.filter((idx) => normLevel(idx) === "三级").length,
       challengeTertiary: challengePool.filter((idx) => normLevel(idx) === "三级").length,
+      verdictCopy: {
+        none: verdictShort(null),
+        ok: verdictShort({ status: "ok", mode: "exact", failed: [], missing: 0 }),
+        missing: verdictShort({ status: "bad", mode: "holistic", failed: [], missing: 1 }),
+      },
+      verdictSuggestion: {
+        none: suggestedOutcomeForVerdict(null),
+        ok: suggestedOutcomeForVerdict({ status: "ok" }),
+        bad: suggestedOutcomeForVerdict({ status: "bad", failed: [0], missing: 0 }),
+      },
       abilityLabels: [...new Set([48, 62, 83].map((d) => {
         const idx = CARDS.findIndex((card) => card.d >= d);
         return idx >= 0 ? abilityLevel(idx) : "";
@@ -418,6 +442,9 @@ async function expectHidden(page, selector, label) {
   });
   if (algorithm.delays.missFirst !== 0 || !(algorithm.delays.missRepeat > algorithm.delays.missFirst) || !(algorithm.delays.hintedFirst < algorithm.delays.slowFirst) || !(algorithm.delays.slowFirst < algorithm.delays.fastMature) || algorithm.balancedFallback !== 0 || algorithm.balancedTertiary !== 0 || algorithm.challengeTertiary <= 0) {
     throw new Error(`Expected review scheduling and pool filters to remain intact, got ${JSON.stringify(algorithm)}`);
+  }
+  if (!algorithm.verdictCopy.ok.includes("系统建议") || algorithm.verdictCopy.ok.includes("机器") || !algorithm.verdictCopy.none.includes("不替你判") || algorithm.verdictSuggestion.ok !== "fast" || algorithm.verdictSuggestion.bad !== "slow") {
+    throw new Error(`Expected auto-check copy to behave as assistant suggestion, got ${JSON.stringify(algorithm.verdictCopy)}`);
   }
 
   await page.waitForTimeout(500);

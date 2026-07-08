@@ -281,20 +281,31 @@
   .prefBtns{ display:flex; gap:6px; }
   .prefBtns button{ flex:1; padding:9px 0; font:600 12px var(--sans); border-radius:999px; background:transparent; border:1px solid var(--line); color:var(--muted); }
   .prefBtns button.active{ background:var(--accent); border-color:var(--accent); color:var(--paperInk); font-weight:700; }
+  .advancedTools{ display:none; border-top:1px solid var(--line); }
+  .advancedTools.open{ display:block; }
+  .toolsHint{ display:block; color:var(--faint); font-size:12px; line-height:1.55; margin-top:6px; }
   .data{ display:none; margin-top:12px; background:var(--card); border:1px dashed var(--line); border-radius:14px; padding:14px; font-size:13px; color:var(--muted); line-height:1.7; }
 
-  /* ===== 易错分析 / 质检（沿用旧结构，换纸墨皮） ===== */
+  /* ===== 易错分析 / 质检 ===== */
   .profile,.audit{ display:none; flex:1; flex-direction:column; padding:18px 24px 24px; animation:screenIn .32s ease; }
   .profileHead,.auditHead{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
   .profileHead h2,.auditHead h2{ margin:0; font:900 24px/1 var(--song); }
   .ghost{ flex:0 0 auto; background:var(--card); color:var(--muted); border:1px solid var(--line); padding:8px 14px; font:600 12px var(--sans); border-radius:999px; }
-  .profileSummary{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:12px; }
+  .profileSummary{ display:block; margin-bottom:12px; }
+  .profileHero{ position:relative; background:var(--card); border:1px solid rgba(194,69,44,.35); border-radius:18px; padding:18px 16px; overflow:hidden; box-shadow:0 18px 38px -28px rgba(60,48,30,.55); }
+  .profileHero::after{ content:"诊"; position:absolute; right:-10px; bottom:-18px; width:92px; height:92px; border-radius:22% 18% 24% 20%; display:flex; align-items:center; justify-content:center; transform:rotate(-9deg); background:var(--accent); color:rgba(253,250,241,.9); font:400 48px/1 var(--kai); box-shadow:inset 0 0 0 3px rgba(253,250,241,.35), inset 0 0 0 7px var(--accent); opacity:.9; }
+  .profileHero .eyebrow{ color:var(--accent); font:700 12px/1 var(--sans); letter-spacing:.12em; }
+  .profileHero h3{ margin:8px 0 6px; font:900 24px/1.35 var(--song); max-width:260px; }
+  .profileHero p{ margin:0; color:var(--muted); font-size:13px; line-height:1.75; max-width:280px; }
+  .profileHero .heroAct{ margin-top:14px; background:var(--ink); color:var(--card); border-radius:14px; padding:12px 18px; font:700 13px/1 var(--sans); }
+  .profileHero .heroAct:disabled{ display:none; }
+  .profileMetrics{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:10px; }
   .profileMetric{ background:var(--card); border:1px solid var(--line); border-radius:12px; padding:11px 4px; text-align:center; }
   .profileMetric b{ display:block; font:900 19px/1 var(--song); }
   .profileMetric span{ color:var(--muted); font-size:11px; }
   .profileAdvice{ color:var(--muted); background:var(--accentSoft); border:1px solid rgba(194,69,44,.3); border-radius:14px; padding:13px 14px; font-size:12.5px; line-height:1.7; margin-bottom:12px; }
   .profileSection{ margin-top:14px; }
-  .profileSection h3{ margin:0 0 8px; font-size:13px; color:var(--muted); }
+  .profileSection h3{ margin:0 0 8px; font-size:13px; color:var(--muted); letter-spacing:.08em; }
   .profileRows{ display:grid; gap:7px; }
   .profileRow{ width:100%; display:grid; grid-template-columns:1fr auto; gap:6px; align-items:center; text-align:left; background:var(--card); color:var(--ink); border:1px solid var(--line); border-radius:13px; padding:11px 13px; }
   .profileRow b{ font-size:14px; }
@@ -538,7 +549,7 @@
       <div class="meStat"><b class="red" id="streakStat">1</b><span>连续天数</span></div>
       <button class="meStat" id="meRisk"><b class="grey" id="riskStat">0</b><span>回炉中</span></button>
     </div>
-    <button class="meCard" id="openProfile"><div class="meCardTop"><b>易错分析</b><span>›</span></div><small id="meAdvice"></small></button>
+    <button class="meCard" id="openProfile"><div class="meCardTop"><b>手感诊断</b><span>›</span></div><small id="meAdvice"></small></button>
     <div class="meLabel">练习设置</div>
     <div class="meList">
       <div class="mePref"><div class="plbl">出题偏好</div><div class="prefBtns" id="prefBox">
@@ -548,24 +559,27 @@
       </div></div>
       <button class="meRow" id="addLink"><span style="color:var(--ink);">＋ 加字（抓现实里提笔忘的字）</span><span>›</span></button>
     </div>
-    <div class="meLabel">内部工具</div>
+    <div class="meLabel">高级</div>
     <div class="meList">
-      <button class="meRow" id="auditLink">题库质检<span>›</span></button>
-      <button class="meRow" id="dataLink">实验数据<span>›</span></button>
-      <button class="meRow" id="exportLink">备份数据<span>›</span></button>
-      <button class="meRow" id="importLink">恢复备份<span>›</span></button>
-      <button class="meRow" id="resetLink">重置卡组<span>›</span></button>
+      <button class="meRow" id="toolsToggle"><span style="color:var(--ink);">高级工具</span><span id="toolsState">展开</span></button>
+      <div class="advancedTools" id="internalTools">
+        <button class="meRow" id="auditLink">题库质检<span>开发 / 运营</span></button>
+        <button class="meRow" id="dataLink">实验数据<span>本机记录</span></button>
+        <button class="meRow" id="exportLink">备份数据<span>JSON</span></button>
+        <button class="meRow" id="importLink">恢复备份<span>覆盖当前</span></button>
+        <button class="meRow" id="resetLink">重置卡组<span>慎用</span></button>
+      </div>
     </div>
     <div class="data" id="dataBox"></div>
   </div>
 
-  <!-- 易错分析 -->
-  <div class="profile" id="profilePanel" style="display:none" data-screen-label="易错分析">
-    <div class="profileHead"><h2>易错分析</h2><button class="ghost" id="closeProfile">返回</button></div>
+  <!-- 手感诊断 -->
+  <div class="profile" id="profilePanel" style="display:none" data-screen-label="手感诊断">
+    <div class="profileHead"><h2>手感诊断</h2><button class="ghost" id="closeProfile">返回</button></div>
     <div class="profileSummary" id="profileSummary"></div>
     <div class="profileAdvice" id="profileAdvice"></div>
-    <div class="profileSection"><h3>容易卡住的主题</h3><div class="profileRows" id="profileTopics"></div></div>
-    <div class="profileSection"><h3>难度层和结构</h3><div class="profileRows" id="profileLevels"></div></div>
+    <div class="profileSection"><h3>先补这类字</h3><div class="profileRows" id="profileTopics"></div></div>
+    <div class="profileSection"><h3>结构和难度</h3><div class="profileRows" id="profileLevels"></div></div>
     <div class="profileSection"><h3>最容易溜走的字 · 点字即练</h3><div class="profileChars" id="profileChars"></div></div>
   </div>
 
@@ -803,7 +817,7 @@ const VIEW_IDS={welcome:"welcome",home:"home",card:"card",summary:"summary",book
 const FLEX_VIEWS=new Set(["welcome","home","card","summary","book","me","profile","audit"]);
 function displayView(view){ Object.entries(VIEW_IDS).forEach(([k,id])=>{ $(id).style.display = view===k ? "flex" : "none"; });
   // 写字 / 首启 / 结果是全屏专注场景，收起底部 Tab
-  $("foot").style.display=(view==="card"||view==="welcome"||view==="summary")?"none":"";
+  $("foot").style.display=(view==="card"||view==="welcome"||view==="summary"||view==="profile"||view==="audit")?"none":"";
   if(view!=="me"){ $("dataBox").style.display="none"; }
   const active={home:"tabPractice",card:"tabPractice",summary:"tabPractice",welcome:"tabPractice",book:"tabBook",profile:"tabMe",audit:"tabMe",me:"tabMe"}[view];
   document.querySelectorAll(".foot .tab").forEach(el=>el.classList.toggle("active",el.id===active));
@@ -823,6 +837,8 @@ let pendingRepeat=false;
 function recordOutcome(outcome){ const idx=batch[pos], c=CARDS[idx], m=cardMemory(idx), now=Date.now();
   const hard=outcome==="miss" || outcome==="hinted" || outcome==="slow";
   m.seen=(m.seen||0)+1; m.last=now; m.lastOutcome=outcome; m.lastHints=hintsUsedThisCard;
+  const sys=suggestedOutcomeForVerdict(lastVerdict);
+  m.lastSystemSuggestion=sys||""; m.lastSystemStatus=lastVerdict?lastVerdict.status:"none"; m.lastSystemAgree=sys?sys===outcome:null;
   m.topic=c.topic; m.level=c.level; m.word=c.word; m.target=c.target;
   if(outcome==="fast"){ m.fast=(m.fast||0)+1; m.streak=(m.streak||0)+1; m.ease=clamp((m.ease||50)+12,0,100); setStatus(idx,"rest"); }
   if(outcome==="slow"){ m.slow=(m.slow||0)+1; m.streak=0; m.ease=clamp((m.ease||50)-6,0,100); setStatus(idx,"indeck"); }
@@ -877,6 +893,10 @@ function renderMe(){ displayView("me");
   applyPrefUI();
   $("seenStat").textContent=memoryCount(); $("streakStat").textContent=streakDays(); $("riskStat").textContent=highRiskCount();
   $("meAdvice").textContent=meAdviceText(profileIndexes()); }
+function toggleInternalTools(force){
+  const box=$("internalTools"), open=force==null?box.style.display!=="block":!!force;
+  box.style.display=open?"block":"none"; box.classList.toggle("open",open); $("toolsState").textContent=open?"收起":"展开";
+  if(!open) $("dataBox").style.display="none"; }
 function startMode(mode){ activeMode=(mode==="new" && needsCalibration())?"calibrate":mode; focusQueue=[]; sessionDone=new Set(); startRound(); }
 function startFocus(indexes){ focusQueue=[...new Set((indexes||highRiskIndexes()).filter(i=>i>=0 && i<CARDS.length))]; if(!focusQueue.length){ renderHome(); return; }
   activeMode="focus"; sessionDone=new Set(); startRound(); }
@@ -916,13 +936,18 @@ function profileGroupRows(indexes, labelFn, kind, limit=5){ const groups=profile
   if(!groups.length) return `<div class="empty">还没有足够记录。先练一组，这里会自动长出来。</div>`;
   const max=Math.max(1,...groups.map(g=>g.avg));
   return groups.map(g=>`<button class="profileRow" data-profile-kind="${kind}" data-profile-value="${esc(g.label)}">
-    <span><b>${esc(g.label)}</b><small>${g.count} 字 · 卡住 ${g.hard} 次 · 平均易错分 ${g.avg}</small></span><em>专项练</em>
+    <span><b>${esc(g.label)}</b><small>${g.count} 字 · 卡住 ${g.hard} 次 · 易忘度 ${g.avg}</small></span><em>专项练</em>
     <span class="profileBar"><i style="width:${Math.max(8,Math.round(g.avg/max*100))}%"></i></span>
   </button>`).join(""); }
 function profileAdvice(indexes){ if(!indexes.length) return "先完成一组 15 字练习。系统会根据你盖的章，逐渐判断哪些主题、结构和难度层最容易让你提笔卡住。";
   const topic=profileGroups(indexes,cardTopic)[0], level=profileGroups(indexes,abilityLevel)[0], structure=profileGroups(indexes,structureLabel)[0], risk=highRiskCount();
   const bits=[]; if(topic) bits.push(`${topic.label}主题`); if(level) bits.push(`${level.label}难度`); if(structure) bits.push(`${structure.label}`);
-  return `目前最值得补的是 ${bits.join("、")}。回炉中 ${risk} 个；先把它们拿下，再专项练同类，比随机刷字更划算。`; }
+  return risk>0?`建议顺序：先把 ${risk} 个回炉字拿下，再专项练 ${bits.join("、")}。这样比随机刷字更快找回手感。`:`目前最值得观察的是 ${bits.join("、")}。继续练几组，这里会把真正反复卡住的字挑出来。`; }
+function profileDiagnosis(indexes){ if(!indexes.length) return {title:"先拾一组字，诊断就会长出来", body:"写完 15 个字后，这里会告诉你最容易卡住的主题、结构和具体字。", action:"先拾一组", disabled:true};
+  const risk=highRiskCount(), topic=profileGroups(indexes,cardTopic)[0], level=profileGroups(indexes,abilityLevel)[0], structure=profileGroups(indexes,structureLabel)[0];
+  const bits=[]; if(topic) bits.push(`${topic.label}主题`); if(level) bits.push(`${level.label}字`); if(structure) bits.push(structure.label);
+  if(risk>0) return {title:`今天先拾回 ${risk} 个回炉字`, body:`最常卡在 ${bits.join("、")}。先拿下刚才漏掉的字，再练同类，手感会回来得更快。`, action:"练回炉字", disabled:false};
+  return {title:"目前没有明显回炉字", body:`已练过 ${indexes.length} 个字。继续拾几组后，我会把反复卡住的模式排到最前面。`, action:"继续观察", disabled:true}; }
 function profilePracticeIndexes(kind,value){ const indexes=profileIndexes(); let out=[];
   if(kind==="topic") out=indexes.filter(i=>cardTopic(i)===value);
   if(kind==="level") out=indexes.filter(i=>abilityLevel(i)===value);
@@ -930,7 +955,8 @@ function profilePracticeIndexes(kind,value){ const indexes=profileIndexes(); let
   if(kind==="risk") out=highRiskIndexes();
   return out.sort((a,b)=>weaknessScore(b)-weaknessScore(a) || personalDifficulty(b)-personalDifficulty(a)).slice(0,BATCH); }
 function renderProfile(){ displayView("profile"); const indexes=profileIndexes(), hard=indexes.filter(i=>hardCount(i)>0).length, avgEase=average(indexes,i=>(memory[cardKey(i)]||{}).ease||50);
-  $("profileSummary").innerHTML=`<div class="profileMetric"><b>${indexes.length}</b><span>练过</span></div><div class="profileMetric"><b style="color:var(--accent)">${hard}</b><span>卡过</span></div><div class="profileMetric"><b>${avgEase}</b><span>平均掌握</span></div><div class="profileMetric"><b style="color:var(--grey)">${highRiskCount()}</b><span>回炉中</span></div>`;
+  const diag=profileDiagnosis(indexes);
+  $("profileSummary").innerHTML=`<div class="profileHero"><div class="eyebrow">今日手感</div><h3>${esc(diag.title)}</h3><p>${esc(diag.body)}</p><button class="heroAct" data-profile-kind="risk" ${diag.disabled?"disabled":""}>${esc(diag.action)}</button></div><div class="profileMetrics"><div class="profileMetric"><b>${indexes.length}</b><span>练过</span></div><div class="profileMetric"><b style="color:var(--accent)">${hard}</b><span>卡过</span></div><div class="profileMetric"><b>${avgEase}</b><span>掌握感</span></div><div class="profileMetric"><b style="color:var(--grey)">${highRiskCount()}</b><span>回炉中</span></div></div>`;
   $("profileAdvice").textContent=profileAdvice(indexes);
   $("profileTopics").innerHTML=profileGroupRows(indexes,cardTopic,"topic",5);
   $("profileLevels").innerHTML=`<div class="auditSectionTitle"><b>能力难度</b></div>${profileGroupRows(indexes,abilityLevel,"level",3)}<div class="auditSectionTitle"><b>结构</b></div>${profileGroupRows(indexes,structureLabel,"structure",4)}`;
@@ -1126,11 +1152,13 @@ function paintInkStrokes(idxs,color){ if(!idxs || !idxs.length) return;
   idxs.forEach(i=>{ const pts=inkStrokes[i]; if(!pts||!pts.length) return;
     if(pts.length<2){ inkCtx.beginPath(); inkCtx.arc(pts[0].x,pts[0].y,Math.max(3,S*0.022),0,Math.PI*2); inkCtx.fill(); return; }
     inkCtx.beginPath(); inkCtx.moveTo(pts[0].x,pts[0].y); for(let k=1;k<pts.length;k++) inkCtx.lineTo(pts[k].x,pts[k].y); inkCtx.stroke(); }); }
-function verdictShort(v){ if(!v) return "对照看看——这个字，你给它盖哪个章？";
-  if(v.status==="ok") return v.mode==="holistic"?"机器对了一遍：整体对上了（连笔不影响）——章你来盖":"机器对了一遍：笔笔都对上了——章你来盖";
-  if(v.missing) return `机器觉得像是少写了 ${v.missing} 笔——对照右边，以你为准`;
-  if(v.failed.length) return `机器觉得有 ${v.failed.length} 笔没到位（已标红）——以你为准`;
-  return "机器觉得和标准字差别较大——对照看看，以你为准"; }
+function suggestedOutcomeForVerdict(v){ if(!v) return ""; return v.status==="ok"?(hintsUsedThisCard>0?"hinted":"fast"):"slow"; }
+function wrapIdForOutcome(outcome){ return "wrap"+outcome[0].toUpperCase()+outcome.slice(1); }
+function verdictShort(v){ if(!v) return "对照助手：我不替你判，看看右边标准字，再自己盖章。";
+  if(v.status==="ok") return v.mode==="holistic"?"系统建议：整体看起来对上了；连笔不影响。最终还是你盖章。":"系统建议：笔画大致对上了。最终还是你盖章。";
+  if(v.missing) return `系统建议：可能少写了 ${v.missing} 笔；先对照右边，以你的判断为准。`;
+  if(v.failed.length) return `系统建议：可能有 ${v.failed.length} 笔没到位，已标红；你可以自己决定盖哪个章。`;
+  return "系统建议：和标准字差别可能较大；它只是提醒，不是判分。"; }
 
 function updateTip(){ $("tip").textContent=`笔顺提示 ${groupIdx}/${groups.length}`; if(groupIdx>=groups.length) $("tip").disabled=true; }
 
@@ -1242,7 +1270,7 @@ function revealAnswer(done){
   $("qualityBox").style.display=teachReveal?"none":"flex";
   $("askLine").textContent=verdictShort(verdict);
   ["wrapFast","wrapHinted","wrapSlow","wrapMiss"].forEach(id=>$(id).classList.remove("suggest"));
-  if(verdict){ const sug=verdict.status==="ok"?(hintsUsedThisCard>0?"wrapHinted":"wrapFast"):"wrapSlow"; $(sug).classList.add("suggest"); }
+  const sug=suggestedOutcomeForVerdict(verdict); if(sug) $(wrapIdForOutcome(sug)).classList.add("suggest");
   renderQuality();
 }
 $("show").onclick=()=>revealAnswer(false);
@@ -1375,7 +1403,8 @@ $("auditBatch").onclick=handleAuditListClick;
 $("auditSample").onclick=handleAuditListClick;
 $("practiceDue").onclick=()=>startMode("review");
 
-$("dataLink").onclick=()=>{ const box=$("dataBox"); if(box.style.display==="block"){ box.style.display="none"; return; }
+$("toolsToggle").onclick=()=>toggleInternalTools();
+$("dataLink").onclick=()=>{ toggleInternalTools(true); const box=$("dataBox"); if(box.style.display==="block"){ box.style.display="none"; return; }
   const last7=opens.filter(d=>{ const diff=(new Date(today())-new Date(d))/86400000; return diff>=0 && diff<7; });
   box.style.display="block"; box.innerHTML=`<b>实验用，别天天盯（盯 streak 会污染“光靠痒”这个变量）</b><br>`+
     `最近 7 天里，你主动打开过 <b>${last7.length}</b> 天 → 目标 ≥4 天<br>出题偏好：<b>${prefLabel()}</b> · 难度校准：<b>${tuningLabel()} ${tuningShiftText()}</b> · 语境严格度：<b>${Number(tuning.contextStrict)||0}</b><br>题目反馈：<b>${qualityCount()}</b> 条 · 整组反馈：<b>${(tuning.rounds||[]).length}</b> 条<br>已记录：<b>${memoryCount()}</b> 个字 · 到期复习：<b>${reviewCount()}</b> 个 · 回炉中：<b>${highRiskCount()}</b> 个<br>你自己加的字：<b>${addedChars.length}</b> 个<br>累计打开：${opens.length} 天`; };

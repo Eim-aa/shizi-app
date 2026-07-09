@@ -116,10 +116,6 @@
   .blob::before,.blob::after{ content:''; position:absolute; top:7px; width:4px; height:4px; border-radius:50%; background:var(--card); }
   .blob::before{ left:5px; } .blob::after{ right:5px; }
   .mascotRow span:last-child{ font-size:13px; color:var(--muted); }
-  .modebar{ display:flex; align-items:center; justify-content:center; gap:10px; margin-top:8px; }
-  .mode{ font-size:12px; padding:7px 11px; border-radius:999px; border:1px solid var(--line); color:var(--muted); background:transparent; }
-  .pill{ font-size:12px; color:var(--faint); }
-  .pill.down{ color:var(--accent); font-weight:700; }
   #inkTools{ display:flex; gap:8px; margin-top:auto; padding-top:12px; }
   .toolBtn{ background:var(--card); color:var(--ink); border:1px solid var(--line); border-radius:16px; padding:14px 10px; font:600 14px var(--sans); transition:opacity .3s; }
   .toolBtn.side{ flex:none; padding:14px 14px; color:var(--muted); }
@@ -284,12 +280,10 @@
   .advancedTools{ display:none; border-top:1px solid var(--line); }
   .advancedTools.open{ display:block; }
   .toolsHint{ display:block; color:var(--faint); font-size:12px; line-height:1.55; margin-top:6px; }
-  .data{ display:none; margin-top:12px; background:var(--card); border:1px dashed var(--line); border-radius:14px; padding:14px; font-size:13px; color:var(--muted); line-height:1.7; }
-
-  /* ===== 易错分析 / 质检 ===== */
-  .profile,.audit{ display:none; flex:1; flex-direction:column; padding:18px 24px 24px; animation:screenIn .32s ease; }
-  .profileHead,.auditHead{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
-  .profileHead h2,.auditHead h2{ margin:0; font:900 24px/1 var(--song); }
+  /* ===== 手感诊断 ===== */
+  .profile{ display:none; flex:1; flex-direction:column; padding:18px 24px 24px; animation:screenIn .32s ease; }
+  .profileHead{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
+  .profileHead h2{ margin:0; font:900 24px/1 var(--song); }
   .ghost{ flex:0 0 auto; background:var(--card); color:var(--muted); border:1px solid var(--line); padding:8px 14px; font:600 12px var(--sans); border-radius:999px; }
   .profileSummary{ display:block; margin-bottom:12px; }
   .profileHero{ position:relative; background:var(--card); border:1px solid rgba(194,69,44,.35); border-radius:18px; padding:18px 16px; overflow:hidden; box-shadow:0 18px 38px -28px rgba(60,48,30,.55); }
@@ -315,29 +309,7 @@
   .profileBar i{ display:block; height:100%; background:var(--accent); border-radius:999px; }
   .charChips{ display:flex; gap:8px; flex-wrap:wrap; }
   .charChip{ min-width:46px; padding:9px 11px; border:1px solid var(--line); border-radius:10px; background:var(--card); font:400 26px/1 var(--kai); color:var(--ink); }
-  .auditControls{ display:grid; grid-template-columns:1fr auto; gap:10px; align-items:center; margin-bottom:12px; }
-  .auditPrefs{ display:flex; gap:6px; }
-  .auditPrefs button,.auditControls > button{ padding:7px 10px; font-size:12px; border-radius:999px; background:var(--card); border:1px solid var(--line); color:var(--muted); }
-  .auditPrefs button.active{ background:var(--accent); border-color:var(--accent); color:var(--paperInk); font-weight:700; }
-  .auditSummary{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:10px 0 12px; }
-  .auditMetric{ background:var(--card); border:1px solid var(--line); border-radius:12px; padding:9px 6px; text-align:center; }
-  .auditMetric b{ display:block; font-size:17px; }
-  .auditMetric span{ color:var(--muted); font-size:11.5px; }
-  .auditBands{ display:grid; gap:8px; margin-bottom:12px; }
-  .auditBand{ border:1px solid var(--line); border-radius:13px; padding:10px; background:var(--card); }
-  .auditBand b{ display:block; font-size:12.5px; margin-bottom:6px; }
-  .auditTags{ display:flex; flex-wrap:wrap; gap:6px; color:var(--muted); font-size:12px; }
-  .auditTags span{ background:var(--shade); border-radius:999px; padding:5px 8px; }
-  .auditSectionTitle{ display:flex; justify-content:space-between; align-items:center; color:var(--muted); font-size:12px; margin:12px 0 8px; }
-  .auditList{ display:grid; gap:7px; }
-  .auditRow{ display:grid; grid-template-columns:40px 1fr; gap:8px; align-items:center; border:1px solid var(--line); border-radius:13px; padding:9px; background:var(--card); }
-  .auditRow .char{ font-family:var(--kai); font-size:27px; line-height:1; color:var(--accent); text-align:center; }
-  .auditRow .main{ min-width:0; }
-  .auditRow .main b{ display:block; font-size:13.5px; }
-  .auditRow .main small{ color:var(--faint); line-height:1.45; font-size:11.5px; }
-  .auditActions{ grid-column:1 / -1; display:flex; gap:6px; flex-wrap:wrap; }
-  .auditActions button{ padding:6px 8px; font-size:11.5px; border-radius:999px; background:transparent; border:1px solid var(--line); color:var(--muted); }
-  .auditActions button.active{ border-color:var(--accent); color:var(--accent); background:var(--accentSoft); font-weight:700; }
+  .profileSubhead{ display:flex; justify-content:space-between; align-items:center; color:var(--muted); font-size:12px; margin:12px 0 8px; }
   .empty{ color:var(--faint); font-size:13px; line-height:1.6; grid-column:1/-1; }
 
   /* ===== 底部 tab ===== */
@@ -422,7 +394,6 @@
       <div class="tbubble" id="teachBubble" style="display:none"><b>格子里缺的字，直接用手指写</b><br>写得丑没关系，连笔断笔都行</div>
       <div id="boxwrap"></div>
       <div class="mascotRow"><span class="blob"></span><span id="mascotLine"></span></div>
-      <div class="modebar" id="modebar"><button class="mode" id="modeBtn">连续模式：开</button><span class="pill" id="pill">提笔</span></div>
       <div id="inkTools">
         <button class="toolBtn" id="tip" disabled>笔顺提示</button>
         <button class="toolBtn side" id="clear">重写</button>
@@ -559,18 +530,15 @@
       </div></div>
       <button class="meRow" id="addLink"><span style="color:var(--ink);">＋ 加字（抓现实里提笔忘的字）</span><span>›</span></button>
     </div>
-    <div class="meLabel">高级</div>
+    <div class="meLabel">数据管理</div>
     <div class="meList">
-      <button class="meRow" id="toolsToggle"><span style="color:var(--ink);">高级工具</span><span id="toolsState">展开</span></button>
+      <button class="meRow" id="toolsToggle"><span style="color:var(--ink);">备份与重置</span><span id="toolsState">展开</span></button>
       <div class="advancedTools" id="internalTools">
-        <button class="meRow" id="auditLink">题库质检<span>开发 / 运营</span></button>
-        <button class="meRow" id="dataLink">实验数据<span>本机记录</span></button>
-        <button class="meRow" id="exportLink">备份数据<span>JSON</span></button>
-        <button class="meRow" id="importLink">恢复备份<span>覆盖当前</span></button>
-        <button class="meRow" id="resetLink">重置卡组<span>慎用</span></button>
+        <button class="meRow" id="exportLink">导出备份<span>换手机前使用</span></button>
+        <button class="meRow" id="importLink">恢复备份<span>覆盖当前记录</span></button>
+        <button class="meRow" id="resetLink">清空记录<span>慎用</span></button>
       </div>
     </div>
-    <div class="data" id="dataBox"></div>
   </div>
 
   <!-- 手感诊断 -->
@@ -581,25 +549,6 @@
     <div class="profileSection"><h3>先补这类字</h3><div class="profileRows" id="profileTopics"></div></div>
     <div class="profileSection"><h3>结构和难度</h3><div class="profileRows" id="profileLevels"></div></div>
     <div class="profileSection"><h3>最容易溜走的字 · 点字即练</h3><div class="profileChars" id="profileChars"></div></div>
-  </div>
-
-  <!-- 题库质检 -->
-  <div class="audit" id="auditPanel" style="display:none" data-screen-label="题库质检">
-    <div class="auditHead"><h2>题库质检</h2><button class="ghost" id="closeAudit">返回</button></div>
-    <div class="auditControls">
-      <div class="auditPrefs" id="auditPrefs">
-        <button data-pref="balanced">高频易忘</button>
-        <button data-pref="practical">偏实用</button>
-        <button data-pref="challenge">偏挑战</button>
-      </div>
-      <button id="resampleAudit">重新抽样</button>
-    </div>
-    <div class="auditSummary" id="auditSummary"></div>
-    <div class="auditBands" id="auditBands"></div>
-    <div class="auditSectionTitle"><b>下一组预览</b><span id="auditBatchNote"></span></div>
-    <div class="auditList" id="auditBatch"></div>
-    <div class="auditSectionTitle"><b>100 字样本</b><span>展示前 30 个</span></div>
-    <div class="auditList" id="auditSample"></div>
   </div>
 
   <div class="foot" id="foot">
@@ -644,7 +593,6 @@ let memory = load(MEMORY_KEY, {});
 let quality = load(QUALITY_KEY, {});
 let preference = load(PREF_KEY, "balanced");
 let tuning = load(TUNING_KEY, {calibrated:false, offset:0, contextStrict:0, rounds:[]});
-let auditPref = preference;
 function setStatus(i,s){ status[i]=s; save(DECK_KEY,status); }
 function saveMemory(){ save(MEMORY_KEY,memory); }
 function saveQuality(){ save(QUALITY_KEY,quality); }
@@ -813,13 +761,12 @@ function dueText(ts){ if(!ts) return "今天还会再见"; const left=ts-Date.no
   const hours=Math.ceil(left/3600000); if(hours<24) return `${hours} 小时后再见`; const diff=Math.ceil(left/86400000);
   if(diff===1) return "明天再见"; return `${diff} 天后再见`; }
 function scrollTopNow(){ try{ window.scrollTo({top:0,left:0,behavior:"auto"}); }catch(e){ window.scrollTo(0,0); } }
-const VIEW_IDS={welcome:"welcome",home:"home",card:"card",summary:"summary",book:"studybook",profile:"profilePanel",audit:"auditPanel",me:"mePanel"};
-const FLEX_VIEWS=new Set(["welcome","home","card","summary","book","me","profile","audit"]);
+const VIEW_IDS={welcome:"welcome",home:"home",card:"card",summary:"summary",book:"studybook",profile:"profilePanel",me:"mePanel"};
+const FLEX_VIEWS=new Set(["welcome","home","card","summary","book","me","profile"]);
 function displayView(view){ Object.entries(VIEW_IDS).forEach(([k,id])=>{ $(id).style.display = view===k ? "flex" : "none"; });
   // 写字 / 首启 / 结果是全屏专注场景，收起底部 Tab
-  $("foot").style.display=(view==="card"||view==="welcome"||view==="summary"||view==="profile"||view==="audit")?"none":"";
-  if(view!=="me"){ $("dataBox").style.display="none"; }
-  const active={home:"tabPractice",card:"tabPractice",summary:"tabPractice",welcome:"tabPractice",book:"tabBook",profile:"tabMe",audit:"tabMe",me:"tabMe"}[view];
+  $("foot").style.display=(view==="card"||view==="welcome"||view==="summary"||view==="profile")?"none":"";
+  const active={home:"tabPractice",card:"tabPractice",summary:"tabPractice",welcome:"tabPractice",book:"tabBook",profile:"tabMe",me:"tabMe"}[view];
   document.querySelectorAll(".foot .tab").forEach(el=>el.classList.toggle("active",el.id===active));
   requestAnimationFrame(scrollTopNow); }
 function qualityCount(){ return Object.values(quality).filter(q=>q && (q.easy || q.rare || q.badWord || q.hide)).length; }
@@ -895,8 +842,7 @@ function renderMe(){ displayView("me");
   $("meAdvice").textContent=meAdviceText(profileIndexes()); }
 function toggleInternalTools(force){
   const box=$("internalTools"), open=force==null?box.style.display!=="block":!!force;
-  box.style.display=open?"block":"none"; box.classList.toggle("open",open); $("toolsState").textContent=open?"收起":"展开";
-  if(!open) $("dataBox").style.display="none"; }
+  box.style.display=open?"block":"none"; box.classList.toggle("open",open); $("toolsState").textContent=open?"收起":"展开"; }
 function startMode(mode){ activeMode=(mode==="new" && needsCalibration())?"calibrate":mode; focusQueue=[]; sessionDone=new Set(); startRound(); }
 function startFocus(indexes){ focusQueue=[...new Set((indexes||highRiskIndexes()).filter(i=>i>=0 && i<CARDS.length))]; if(!focusQueue.length){ renderHome(); return; }
   activeMode="focus"; sessionDone=new Set(); startRound(); }
@@ -959,28 +905,12 @@ function renderProfile(){ displayView("profile"); const indexes=profileIndexes()
   $("profileSummary").innerHTML=`<div class="profileHero"><div class="eyebrow">今日手感</div><h3>${esc(diag.title)}</h3><p>${esc(diag.body)}</p><button class="heroAct" data-profile-kind="risk" ${diag.disabled?"disabled":""}>${esc(diag.action)}</button></div><div class="profileMetrics"><div class="profileMetric"><b>${indexes.length}</b><span>练过</span></div><div class="profileMetric"><b style="color:var(--accent)">${hard}</b><span>卡过</span></div><div class="profileMetric"><b>${avgEase}</b><span>掌握感</span></div><div class="profileMetric"><b style="color:var(--grey)">${highRiskCount()}</b><span>回炉中</span></div></div>`;
   $("profileAdvice").textContent=profileAdvice(indexes);
   $("profileTopics").innerHTML=profileGroupRows(indexes,cardTopic,"topic",5);
-  $("profileLevels").innerHTML=`<div class="auditSectionTitle"><b>能力难度</b></div>${profileGroupRows(indexes,abilityLevel,"level",3)}<div class="auditSectionTitle"><b>结构</b></div>${profileGroupRows(indexes,structureLabel,"structure",4)}`;
+  $("profileLevels").innerHTML=`<div class="profileSubhead"><b>能力难度</b></div>${profileGroupRows(indexes,abilityLevel,"level",3)}<div class="profileSubhead"><b>结构</b></div>${profileGroupRows(indexes,structureLabel,"structure",4)}`;
   const weak=indexes.slice().sort((a,b)=>weaknessScore(b)-weaknessScore(a) || personalDifficulty(b)-personalDifficulty(a)).filter(i=>weaknessScore(i)>0 || hardCount(i)>0).slice(0,12);
   $("profileChars").innerHTML=weak.length?`<div class="charChips">${weak.map(i=>`<button class="charChip" data-profile-char="${i}" title="${esc(CARDS[i].word)}" style="${isHighRisk(i)?"border-color:var(--accent); color:var(--accent); background:var(--accentSoft);":""}">${CARDS[i].target}</button>`).join("")}</div>`:`<div class="empty">还没有明显易错字。等出现「补拾」「差点」「回炉」，这里会优先显示。</div>`; }
-function withAuditPreference(pref, fn){ const oldPref=preference, oldTopic=load(TOPIC_KEY,""); preference=pref;
+function withTemporaryPreference(pref, fn){ const oldPref=preference, oldTopic=load(TOPIC_KEY,""); preference=pref;
   try{ return fn(); } finally { preference=oldPref; save(TOPIC_KEY,oldTopic); } }
-function countBy(items, fn){ const map={}; items.forEach(i=>{ const k=fn(i); map[k]=(map[k]||0)+1; }); return map; }
-function tagList(map, limit=8){ return Object.entries(map).sort((a,b)=>b[1]-a[1] || String(a[0]).localeCompare(String(b[0]))).slice(0,limit).map(([k,v])=>`<span>${k} ${v}</span>`).join(""); }
 function average(items, fn){ return items.length ? Math.round(items.reduce((s,i)=>s+fn(i),0)/items.length) : 0; }
-function qualityText(i){ const q=qualityFor(i), out=[]; if(q.easy) out.push("太简单"); if(q.rare) out.push("太生僻"); if(q.badWord) out.push("词不自然"); if(q.hide) out.push("不想练"); return out.join(" · "); }
-function auditRow(i){ const c=CARDS[i], q=qualityFor(i), qt=qualityText(i); return `<div class="auditRow" data-idx="${i}">
-  <div class="char">${c.target}</div><div class="main"><b>${c.word}</b><small>${c.py||"无拼音"} · ${normLevel(i)} · ${contextLabel(i)} · ${cardTopic(i)} · ${abilityMeta(i)} · 字频#${c.rank||"未收录"} · ${c.strokes||0}画/${c.parts||1}部件${qt?` · ${qt}`:""}</small></div>
-  <div class="auditActions"><button data-audit-practice="${i}">练这个</button><button data-audit-quality="easy" class="${q.easy?"active":""}">太简单</button><button data-audit-quality="rare" class="${q.rare?"active":""}">太生僻</button><button data-audit-quality="badWord" class="${q.badWord?"active":""}">词不自然</button><button data-audit-quality="hide" class="${q.hide?"active":""}">不想练</button></div>
-</div>`; }
-function auditData(pref=auditPref){ return withAuditPreference(pref,()=>{ const pool=newPool(false), sample=shuffle(pool).slice(0,100), batch=chooseBatch(pool);
-  return { pool, sample, batch, target:targetDifficulty(), avg:average(sample,cardDifficulty), topic:batch[0]?cardTopic(batch[0]):"无" }; }); }
-function renderAudit(pref=auditPref){ auditPref=pref; displayView("audit"); const data=auditData(pref), flagged=Object.values(quality).filter(q=>q && (q.easy||q.rare||q.badWord||q.hide)).length;
-  document.querySelectorAll("#auditPrefs button[data-pref]").forEach(btn=>btn.classList.toggle("active",btn.dataset.pref===pref));
-  $("auditSummary").innerHTML=`<div class="auditMetric"><b>${data.pool.length}</b><span>可出新字</span></div><div class="auditMetric"><b>${data.target}</b><span>目标难度</span></div><div class="auditMetric"><b>${flagged}</b><span>质量反馈</span></div>`;
-  $("auditBands").innerHTML=`<div class="auditBand"><b>样本规范等级分布</b><div class="auditTags">${tagList(countBy(data.sample,normLevel),6)}</div></div><div class="auditBand"><b>样本能力难度分布</b><div class="auditTags">${tagList(countBy(data.sample,abilityLevel),3)}</div></div><div class="auditBand"><b>样本主题分布</b><div class="auditTags">${tagList(countBy(data.sample,cardTopic),10)}</div></div>`;
-  $("auditBatchNote").textContent=`${data.topic} · 均难度 ${average(data.batch,cardDifficulty)}`;
-  $("auditBatch").innerHTML=data.batch.length?data.batch.map(auditRow).join(""):`<div class="empty">当前偏好下没有可出的新字。</div>`;
-  $("auditSample").innerHTML=data.sample.length?data.sample.slice(0,30).map(auditRow).join(""):`<div class="empty">当前偏好下没有样本。</div>`; }
 function prefLabelFor(pref){ return ({balanced:"高频易忘", practical:"偏实用", challenge:"偏挑战"})[pref] || "高频易忘"; }
 
 // ---- 自定义加字（抓住现实里提笔忘的那个字；卡片追加在 SEED 之后，索引稳定）----
@@ -1024,8 +954,7 @@ function idealBoxSize(){ const w=window.innerWidth||document.documentElement.cli
 let S = idealBoxSize();
 const RS=150; // 揭晓对照格尺寸（CSS .cmpBox 同步）
 let gridCanvas, inkCanvas, inkCtx, hzEl, writer=null, loadToken=0, shownStrokes=0, totalStrokes=0, groups=[], groupIdx=0;
-let continuous = !(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
-let penDown=false, drawing=false, last=null, cur=null;
+let drawing=false, last=null, cur=null;
 
 function drawGridOn(ctx){ ctx.clearRect(0,0,S,S); ctx.fillStyle=cssVar('--card',"#fdfaf1"); ctx.fillRect(0,0,S,S);
   const red=cssVar('--accent',"#c2452c");
@@ -1036,9 +965,6 @@ function drawGridOn(ctx){ ctx.clearRect(0,0,S,S); ctx.fillStyle=cssVar('--card',
 function P(e){ const r=inkCanvas.getBoundingClientRect(); return {x:(e.clientX-r.left)*(S/r.width), y:(e.clientY-r.top)*(S/r.height)}; }
 function strokeTo(p){ inkCtx.strokeStyle=cssVar('--inkPen',"#2b2620"); inkCtx.lineWidth=Math.max(5,S*0.045);
   inkCtx.lineCap="round"; inkCtx.lineJoin="round"; inkCtx.beginPath(); inkCtx.moveTo(last.x,last.y); inkCtx.lineTo(p.x,p.y); inkCtx.stroke(); last=p; }
-function dot(p){ inkCtx.fillStyle=cssVar('--inkPen',"#2b2620"); inkCtx.beginPath(); inkCtx.arc(p.x,p.y,Math.max(3,S*0.022),0,Math.PI*2); inkCtx.fill(); }
-function setPen(s){ penDown=s; $("pill").textContent=penDown?"落笔中":"提笔"; $("pill").classList.toggle("down",penDown); }
-
 function initBox(){ const box=document.createElement('div'); box.className='box'; box.style.width=S+'px'; box.style.height=S+'px';
   gridCanvas=document.createElement('canvas'); gridCanvas.className='gridc';
   hzEl=document.createElement('div'); hzEl.className='hz'; hzEl.style.width=S+'px'; hzEl.style.height=S+'px';
@@ -1049,12 +975,10 @@ function initBox(){ const box=document.createElement('div'); box.className='box'
   inkStrokes=[]; curInkStroke=null; // 画布重建=墨迹清空，记录的笔画同步作废
   // isPrimary 过滤：手机上手掌/第二根手指的触点会把正在写的一笔打断或拆碎
   inkCanvas.addEventListener('pointerdown',e=>{ if(e.isPrimary===false) return; e.preventDefault(); const p=P(e);
-    if(continuous){ if(!penDown){ setPen(true); last=p; dot(p); inkBegin(p); } else { setPen(false); inkEnd(); } return; }
     drawing=true; last=p; inkBegin(p); try{inkCanvas.setPointerCapture(e.pointerId);}catch(_){} });
   inkCanvas.addEventListener('pointermove',e=>{ if(e.isPrimary===false) return; const p=P(e);
-    if(continuous){ if(penDown){ strokeTo(p); inkMove(p); } else { last=p; } e.preventDefault(); return; }
     if(drawing){ strokeTo(p); inkMove(p); e.preventDefault(); } });
-  ['pointerup','pointercancel','pointerleave'].forEach(ev=>inkCanvas.addEventListener(ev,e=>{ if(e.isPrimary===false) return; if(!continuous){ drawing=false; inkEnd(); } })); }
+  ['pointerup','pointercancel','pointerleave'].forEach(ev=>inkCanvas.addEventListener(ev,e=>{ if(e.isPrimary===false) return; drawing=false; inkEnd(); })); }
 function clearInk(){ inkCtx.clearRect(0,0,S,S); inkStrokes=[]; curInkStroke=null; if(inkCanvas && !revealed) inkCanvas.style.opacity='1'; }
 
 function charLoader(char, onComplete){
@@ -1067,7 +991,7 @@ function charLoader(char, onComplete){
 function warmStrokeCache(chars){ if(!navigator.onLine) return;
   [...new Set(chars||[])].forEach(ch=>fetch('data/'+encodeURIComponent(ch)+'.json').catch(()=>{})); }
 function warmUpcomingStrokeCache(){ if(!navigator.onLine) return; try{
-  const indexes=reviewCount()?chooseReviewBatch(reviewPool(false)):(needsCalibration()?chooseCalibrationBatch(newPool(false)):withAuditPreference(preference,()=>chooseBatch(newPool(false))));
+  const indexes=reviewCount()?chooseReviewBatch(reviewPool(false)):(needsCalibration()?chooseCalibrationBatch(newPool(false)):withTemporaryPreference(preference,()=>chooseBatch(newPool(false))));
   warmStrokeCache(indexes.map(i=>CARDS[i].target));
 }catch(e){} }
 
@@ -1078,8 +1002,8 @@ let inkStrokes=[], curInkStroke=null, curMedians=null, lastVerdict=null;
 function inkBegin(p){ curInkStroke=[{x:p.x,y:p.y}]; onTeachStrokeStart(); }
 function inkMove(p){ if(curInkStroke) curInkStroke.push({x:p.x,y:p.y}); }
 function inkEnd(){ if(!curInkStroke) return;
-  // 非连续模式下无位移的点按没有留下墨迹，不算一笔；连续模式落笔会画圆点，算
-  if(curInkStroke.length>=2 || continuous) inkStrokes.push(curInkStroke);
+  // 无位移的点按没有留下墨迹，不算一笔
+  if(curInkStroke.length>=2) inkStrokes.push(curInkStroke);
   curInkStroke=null; onTeachStrokeEnd(); }
 function pathLen(pts){ let l=0; for(let i=1;i<pts.length;i++) l+=Math.hypot(pts[i].x-pts[i-1].x,pts[i].y-pts[i-1].y); return l; }
 function resamplePts(pts,n){ const src=pts.map(p=>({x:p.x,y:p.y})), out=[{x:src[0].x,y:src[0].y}];
@@ -1143,7 +1067,7 @@ function checkHolistic(u,t){
   const chamfer=(uStat.reduce((a,s)=>a+s.mean,0)/uStat.length + tStat.reduce((a,s)=>a+s.mean,0)/tStat.length)/2;
   const ok=missing===0 && failed.length===0 && chamfer<=S*0.065;
   return {status:ok?"ok":"bad", mode:"holistic", u:u.length, t:t.length, failed, missing}; }
-function autoCheckInk(){ lastVerdict=null; inkEnd(); // 连续模式下可能还悬着没提笔的一画，先收
+function autoCheckInk(){ lastVerdict=null; inkEnd();
   if(!curMedians || !curMedians.length || !inkStrokes.length) return null;
   try{ lastVerdict=checkInk(inkStrokes, mediansToCanvas(curMedians)); }catch(e){ lastVerdict=null; }
   return lastVerdict; }
@@ -1217,7 +1141,7 @@ function render(){ fitBox(); cur=CARDS[batch[pos]]; const token=++loadToken;
   // 练习时只留题面本身（挖空词＋拼音就是「词语＋语境」，别再用文字复述——复述会把答案印出来）
   $("prompt").innerHTML=promptHTML(cur);
   $("hint").textContent=cur.custom?cur.hint:(activeMode==="calibrate"?"这组会用来估算你的起始难度":"");
-  clearInk(); setPen(false); inkCanvas.style.opacity='1'; hzEl.style.opacity='1';
+  clearInk(); drawing=false; inkCanvas.style.opacity='1'; hzEl.style.opacity='1';
   shownStrokes=0; totalStrokes=0; groups=[]; groupIdx=0; $("tip").disabled=true; $("show").disabled=true; $("done").disabled=true; $("tip").textContent="笔顺提示";
   hzEl.innerHTML=""; writer=null; revealed=false;
   curMedians=null; lastVerdict=null;
@@ -1233,7 +1157,7 @@ function render(){ fitBox(); cur=CARDS[batch[pos]]; const token=++loadToken;
     setTimeout(()=>{ if(token===loadToken && $("show").disabled) allowNoStrokeData("笔顺加载较慢，也可以先看答案"); }, 2500);
   } else { $("show").disabled=false; $("done").disabled=false; } }
 
-$("clear").onclick=()=>{ clearInk(); setPen(false); };
+$("clear").onclick=()=>{ clearInk(); drawing=false; };
 let animating=false, revealed=false;
 $("tip").onclick=async ()=>{ if(!writer||animating||revealed||groupIdx>=groups.length) return; hintsUsedThisCard++; animating=true;
   const n=groups[groupIdx], start=shownStrokes, token=loadToken;
@@ -1370,7 +1294,7 @@ $("calibDone").onclick=renderHome;
 $("calibAgain").onclick=()=>startMode("new");
 function openExitSheet(){ $("exitSheet").classList.add("open"); }
 function closeExitSheet(){ $("exitSheet").classList.remove("open"); }
-function exitCurrentRound(){ closeExitSheet(); loadToken++; animating=false; revealed=true; drawing=false; setPen(false); clearTimeout(teachTimer); clearTimeout(autoNextTimer); renderHome(); toast("已退出本组，已盖章的字会保留"); }
+function exitCurrentRound(){ closeExitSheet(); loadToken++; animating=false; revealed=true; drawing=false; clearTimeout(teachTimer); clearTimeout(autoNextTimer); renderHome(); toast("已退出本组，已盖章的字会保留"); }
 $("exitPractice").onclick=openExitSheet;
 $("exitCancel").onclick=closeExitSheet;
 $("exitConfirm").onclick=exitCurrentRound;
@@ -1393,21 +1317,9 @@ $("openProfile").onclick=renderProfile;
 $("closeProfile").onclick=renderMe;
 $("profilePanel").onclick=e=>{ const char=e.target.closest("[data-profile-char]"); if(char){ startFocus([Number(char.dataset.profileChar)]); return; }
   const row=e.target.closest("[data-profile-kind]"); if(row){ const list=profilePracticeIndexes(row.dataset.profileKind,row.dataset.profileValue); if(list.length) startFocus(list); } };
-$("auditLink").onclick=()=>renderAudit(preference);
-$("closeAudit").onclick=renderMe;
-$("resampleAudit").onclick=()=>renderAudit(auditPref);
-$("auditPrefs").onclick=e=>{ const b=e.target.closest("[data-pref]"); if(b) renderAudit(b.dataset.pref); };
-function handleAuditListClick(e){ const practice=e.target.closest("[data-audit-practice]"); if(practice){ startFocus([Number(practice.dataset.auditPractice)]); return; }
-  const q=e.target.closest("[data-audit-quality]"), row=e.target.closest("[data-idx]"); if(q && row){ recordQuality(q.dataset.auditQuality, Number(row.dataset.idx)); renderAudit(auditPref); } }
-$("auditBatch").onclick=handleAuditListClick;
-$("auditSample").onclick=handleAuditListClick;
 $("practiceDue").onclick=()=>startMode("review");
 
 $("toolsToggle").onclick=()=>toggleInternalTools();
-$("dataLink").onclick=()=>{ toggleInternalTools(true); const box=$("dataBox"); if(box.style.display==="block"){ box.style.display="none"; return; }
-  const last7=opens.filter(d=>{ const diff=(new Date(today())-new Date(d))/86400000; return diff>=0 && diff<7; });
-  box.style.display="block"; box.innerHTML=`<b>实验用，别天天盯（盯 streak 会污染“光靠痒”这个变量）</b><br>`+
-    `最近 7 天里，你主动打开过 <b>${last7.length}</b> 天 → 目标 ≥4 天<br>出题偏好：<b>${prefLabel()}</b> · 难度校准：<b>${tuningLabel()} ${tuningShiftText()}</b> · 语境严格度：<b>${Number(tuning.contextStrict)||0}</b><br>题目反馈：<b>${qualityCount()}</b> 条 · 整组反馈：<b>${(tuning.rounds||[]).length}</b> 条<br>已记录：<b>${memoryCount()}</b> 个字 · 到期复习：<b>${reviewCount()}</b> 个 · 回炉中：<b>${highRiskCount()}</b> 个<br>你自己加的字：<b>${addedChars.length}</b> 个<br>累计打开：${opens.length} 天`; };
 let toastTimer=0;
 function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove("show"),2200); }
 
@@ -1454,14 +1366,9 @@ function importBackup(file){ file.text().then(t=>{ const obj=JSON.parse(t);
 $("exportLink").onclick=()=>{ exportBackup(); };
 $("importLink").onclick=()=>$("importFile").click();
 $("importFile").onchange=e=>{ const f=e.target.files && e.target.files[0]; e.target.value=""; if(f) importBackup(f); };
-$("resetLink").onclick=()=>{ if(confirm("清空卡组和记录，从头开始？")){ status={}; memory={}; quality={}; tuning={calibrated:false, offset:0, contextStrict:0, rounds:[]}; preference="balanced"; opens=[today()]; customWords=[]; addedChars=[]; save(DECK_KEY,status); save(MEMORY_KEY,memory); save(QUALITY_KEY,quality); saveTuning(); save(PREF_KEY,preference); save(OPEN_KEY,opens); save(CUSTOM_KEY,customWords); save(ADDED_KEY,addedChars); buildCustomCards(); localStorage.removeItem(TOPIC_KEY); sessionDone=new Set(); focusQueue=[]; renderHome(); $("dataBox").style.display="none"; } };
+$("resetLink").onclick=()=>{ if(confirm("清空卡组和记录，从头开始？")){ status={}; memory={}; quality={}; tuning={calibrated:false, offset:0, contextStrict:0, rounds:[]}; preference="balanced"; opens=[today()]; customWords=[]; addedChars=[]; save(DECK_KEY,status); save(MEMORY_KEY,memory); save(QUALITY_KEY,quality); saveTuning(); save(PREF_KEY,preference); save(OPEN_KEY,opens); save(CUSTOM_KEY,customWords); save(ADDED_KEY,addedChars); buildCustomCards(); localStorage.removeItem(TOPIC_KEY); sessionDone=new Set(); focusQueue=[]; renderHome(); } };
 
-function applyModeUI(){ $("modeBtn").textContent=continuous?"连续模式：开":"连续模式：关"; }
-$("modeBtn").onclick=()=>{ continuous=!continuous; drawing=false; setPen(false); applyModeUI(); };
-
-// 连续模式是给桌面鼠标准备的（点一下落笔、再点一下提笔）；触屏直接手写，不需要这个开关
-if(window.matchMedia && window.matchMedia('(pointer: coarse)').matches) $("modebar").style.display="none";
-initBox(); applyModeUI(); renderHome();
+initBox(); renderHome();
 // 视口尺寸变化明显（旋转、分屏、加载时序）时重建写字区。正在写的卡不动（别丢笔迹）：
 // 非卡片视图立即重建；卡片视图里每张新卡 render() 前都会 fitBox()，下一张自动适配
 function fitBox(){ const n=idealBoxSize(); if(Math.abs(n-S)>=24){ S=n; $("boxwrap").innerHTML=""; initBox(); } }

@@ -91,12 +91,16 @@ async function expectHidden(page, selector, label) {
     tipText: document.getElementById("tip").textContent,
     showText: document.getElementById("show").textContent,
     doneText: document.getElementById("done").textContent,
+    hasModebar: !!document.getElementById("modebar"),
   }));
   if (practice.activeMode !== "calibrate" || practice.batchSize !== 15 || practice.beadCount !== 15 || practice.hasElementary || practice.hasFallback) {
     throw new Error(`Expected first run to be a 15-card adult calibration batch, got ${JSON.stringify(practice)}`);
   }
   if (!practice.hint.includes("起始难度") || !practice.posLabel.includes("1/15") || practice.tipText.indexOf("笔顺提示") < 0 || practice.showText !== "看答案" || practice.doneText !== "写好了") {
     throw new Error(`Expected new practice copy and controls, got ${JSON.stringify(practice)}`);
+  }
+  if (practice.hasModebar) {
+    throw new Error(`Expected App-facing practice page to remove desktop continuous mode, got ${JSON.stringify(practice)}`);
   }
   if (practice.difficulties[practice.difficulties.length - 1] < practice.difficulties[0]) {
     throw new Error(`Expected calibration difficulty to trend upward, got ${practice.difficulties.join(",")}`);
@@ -392,8 +396,8 @@ async function expectHidden(page, selector, label) {
     state: document.getElementById("toolsState").textContent,
     rows: Array.from(document.querySelectorAll("#internalTools .meRow")).map((node) => node.textContent.replace(/\s+/g, "")),
   }));
-  if (!toolsCheck.visible || toolsCheck.state !== "收起" || toolsCheck.rows.length !== 5 || !toolsCheck.rows[0].includes("题库质检开发/运营")) {
-    throw new Error(`Expected internal tools to be hidden behind Advanced tools, got ${JSON.stringify(toolsCheck)}`);
+  if (!toolsCheck.visible || toolsCheck.state !== "收起" || toolsCheck.rows.length !== 3 || !toolsCheck.rows[0].includes("导出备份") || toolsCheck.rows.some((row) => row.includes("题库质检") || row.includes("实验数据"))) {
+    throw new Error(`Expected data management to hide developer-only tools, got ${JSON.stringify(toolsCheck)}`);
   }
   await page.click("#openProfile");
   const profile = await page.evaluate(() => ({
@@ -417,8 +421,8 @@ async function expectHidden(page, selector, label) {
       slowFirst: delayFor("slow", 1, 54),
       fastMature: delayFor("fast", 3, 82),
     };
-    const balancedPool = withAuditPreference("balanced", () => newPool(false));
-    const challengePool = withAuditPreference("challenge", () => newPool(false));
+    const balancedPool = withTemporaryPreference("balanced", () => newPool(false));
+    const challengePool = withTemporaryPreference("challenge", () => newPool(false));
     return {
       delays,
       balancedFallback: balancedPool.filter((idx) => contextSource(idx) === "fallback").length,

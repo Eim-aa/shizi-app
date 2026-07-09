@@ -7,6 +7,12 @@ const appUrl = process.env.SHIZI_APP_URL || "http://127.0.0.1:8000/";
 const screenshotPath = path.join(projectRoot, "generated", "verify_8105_app.png");
 const expectedCount = 6854;
 
+function appUrlWith(params) {
+  const url = new URL(appUrl);
+  Object.entries(params).forEach(([key, value]) => url.searchParams.set(key, value));
+  return url.toString();
+}
+
 function chromeExecutable() {
   const candidates = [
     "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
@@ -385,9 +391,11 @@ async function expectHidden(page, selector, label) {
     prefButtons: Array.from(document.querySelectorAll("#prefBox button")).map((node) => node.textContent),
     internalHidden: getComputedStyle(document.getElementById("internalTools")).display === "none",
     toolsState: document.getElementById("toolsState").textContent,
+    devHidden: getComputedStyle(document.getElementById("devTools")).display === "none",
+    devTextVisible: document.body.innerText.includes("题库质检") || document.body.innerText.includes("实验数据"),
     activeTab: document.querySelector(".foot .tab.active")?.id,
   }));
-  if (!me.visible || Number(me.seen) < 3 || Number(me.risk) < 2 || !me.advice || !me.diagnosisEntry.includes("手感诊断") || me.prefButtons.length !== 3 || !me.internalHidden || me.toolsState !== "展开" || me.activeTab !== "tabMe") {
+  if (!me.visible || Number(me.seen) < 3 || Number(me.risk) < 2 || !me.advice || !me.diagnosisEntry.includes("手感诊断") || me.prefButtons.length !== 3 || !me.internalHidden || me.toolsState !== "展开" || !me.devHidden || me.devTextVisible || me.activeTab !== "tabMe") {
     throw new Error(`Expected My page to summarize memory model, got ${JSON.stringify(me)}`);
   }
   await page.click("#toolsToggle");
@@ -412,6 +420,36 @@ async function expectHidden(page, selector, label) {
   if (!profile.visible || !profile.footHidden || profile.metrics !== 4 || !profile.hero.includes("今日手感") || !profile.hero.includes("练回炉字") || profile.topics < 1 || profile.levels < 1 || profile.chars < 1) {
     throw new Error(`Expected profile drilldown to be reachable from My page, got ${JSON.stringify(profile)}`);
   }
+
+  await page.goto(appUrlWith({ dev: "1" }), { waitUntil: "networkidle" });
+  await page.evaluate(() => renderMe());
+  const devTools = await page.evaluate(() => ({
+    devVisible: getComputedStyle(document.getElementById("devTools")).display !== "none",
+    rows: Array.from(document.querySelectorAll("#devTools .meRow")).map((node) => node.textContent.replace(/\s+/g, "")),
+  }));
+  if (!devTools.devVisible || devTools.rows.length !== 2 || !devTools.rows[0].includes("题库质检") || !devTools.rows[1].includes("实验数据")) {
+    throw new Error(`Expected ?dev=1 to expose developer tools only, got ${JSON.stringify(devTools)}`);
+  }
+  await page.click("#dataLink");
+  const devData = await page.evaluate(() => ({
+    visible: getComputedStyle(document.getElementById("dataBox")).display !== "none",
+    text: document.getElementById("dataBox").textContent.replace(/\s+/g, ""),
+  }));
+  if (!devData.visible || !devData.text.includes("实验用") || !devData.text.includes("难度校准")) {
+    throw new Error(`Expected dev experiment data panel to work, got ${JSON.stringify(devData)}`);
+  }
+  await page.click("#auditLink");
+  const devAudit = await page.evaluate(() => ({
+    visible: getComputedStyle(document.getElementById("auditPanel")).display !== "none",
+    title: document.querySelector("#auditPanel h2")?.textContent,
+    metrics: document.querySelectorAll("#auditSummary .auditMetric").length,
+    batchRows: document.querySelectorAll("#auditBatch .auditRow").length,
+    sampleRows: document.querySelectorAll("#auditSample .auditRow").length,
+  }));
+  if (!devAudit.visible || devAudit.title !== "题库质检" || devAudit.metrics !== 3 || devAudit.batchRows < 1 || devAudit.sampleRows < 1) {
+    throw new Error(`Expected dev audit panel to render, got ${JSON.stringify(devAudit)}`);
+  }
+  await page.click("#closeAudit");
 
   const algorithm = await page.evaluate(() => {
     const delays = {
@@ -456,7 +494,7 @@ async function expectHidden(page, selector, label) {
   if (pageErrors.length) {
     throw new Error(`Browser reported errors: ${pageErrors.join(" | ")}`);
   }
-  console.log(JSON.stringify({ initial, practice, adaptive, home, reveal, stamped, add, book, review, summary, tuningCheck, focus, me, profile, algorithm, screenshotPath }, null, 2));
+  console.log(JSON.stringify({ initial, practice, adaptive, home, reveal, stamped, add, book, review, summary, tuningCheck, focus, me, profile, devTools, devData, devAudit, algorithm, screenshotPath }, null, 2));
   await browser.close();
 })().catch(async (err) => {
   console.error(err);

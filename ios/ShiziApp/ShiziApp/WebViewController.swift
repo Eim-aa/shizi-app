@@ -3,6 +3,8 @@ import UniformTypeIdentifiers
 import WebKit
 
 final class WebViewController: UIViewController {
+    private static let nativeSmokeConfirmMessage = "__shizi_native_smoke_confirm__"
+
     private let schemeHandler: LocalWebSchemeHandler
     private var webView: WKWebView!
     private var nativeSmokeDidRun = false
@@ -31,22 +33,23 @@ final class WebViewController: UIViewController {
         userContentController.add(self, name: "shiziNative")
         configuration.userContentController = userContentController
 
-        if #available(iOS 14.0, *) {
-            configuration.defaultWebpagePreferences.allowsContentJavaScript = true
-        }
+        configuration.defaultWebpagePreferences.allowsContentJavaScript = true
 
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.navigationDelegate = self
         webView.uiDelegate = self
         webView.allowsBackForwardNavigationGestures = false
         webView.isOpaque = false
-        webView.backgroundColor = UIColor(red: 0.937, green: 0.906, blue: 0.827, alpha: 1)
-        webView.scrollView.backgroundColor = webView.backgroundColor
+        let paper = UIColor { trait in
+            trait.userInterfaceStyle == .dark
+                ? UIColor(red: 0.106, green: 0.094, blue: 0.075, alpha: 1)
+                : UIColor(red: 0.937, green: 0.906, blue: 0.827, alpha: 1)
+        }
+        webView.backgroundColor = paper
+        webView.scrollView.backgroundColor = paper
         webView.scrollView.bounces = false
         webView.scrollView.alwaysBounceVertical = false
-        if #available(iOS 11.0, *) {
-            webView.scrollView.contentInsetAdjustmentBehavior = .never
-        }
+        webView.scrollView.contentInsetAdjustmentBehavior = .never
 
         self.webView = webView
         view = webView
@@ -161,7 +164,8 @@ final class WebViewController: UIViewController {
               backupRestoreSmokeKey: false,
               backupRestoreRejectsInvalid: false,
               nativeBridgeAvailable: false,
-              nativeImportAvailable: false
+              nativeImportAvailable: false,
+              nativeConfirmAvailable: false
             },
             navigationFlow: {
               practiceEntryVisible: false,
@@ -343,6 +347,7 @@ final class WebViewController: UIViewController {
               }
               result.dataFlow.nativeBridgeAvailable = !!(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.shiziNative);
               result.dataFlow.nativeImportAvailable = result.dataFlow.nativeBridgeAvailable && typeof requestBackupImport === 'function';
+              result.dataFlow.nativeConfirmAvailable = window.confirm('\(Self.nativeSmokeConfirmMessage)') === true;
             }
 
             if (typeof startMode === 'function' && typeof revealAnswer === 'function' && typeof pickStamp === 'function') {
@@ -546,6 +551,14 @@ final class WebViewController: UIViewController {
         alert.addAction(UIAlertAction(title: "知道了", style: .default))
         present(alert, animated: true)
     }
+
+    private func openExternally(_ url: URL) {
+        UIApplication.shared.open(url, options: [:]) { [weak self] opened in
+            if !opened {
+                self?.presentError(message: "无法打开这个链接。")
+            }
+        }
+    }
 }
 
 extension WebViewController: WKNavigationDelegate {
@@ -559,13 +572,13 @@ extension WebViewController: WKNavigationDelegate {
             return
         }
 
-        if url.scheme == ShiziWebResource.scheme || url.scheme == "https" || url.scheme == "http" {
+        if url.scheme == ShiziWebResource.scheme {
             decisionHandler(.allow)
             return
         }
 
-        if UIApplication.shared.canOpenURL(url) {
-            UIApplication.shared.open(url)
+        if navigationAction.targetFrame?.isMainFrame != false {
+            openExternally(url)
             decisionHandler(.cancel)
         } else {
             decisionHandler(.allow)
@@ -575,9 +588,58 @@ extension WebViewController: WKNavigationDelegate {
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         runNativeSmokeIfNeeded()
     }
+
+    func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+        nativeSmokeDidRun = false
+        loadApp()
+    }
 }
 
 extension WebViewController: WKUIDelegate {
+    func webView(
+        _ webView: WKWebView,
+        runJavaScriptAlertPanelWithMessage message: String,
+        initiatedByFrame frame: WKFrameInfo,
+        completionHandler: @escaping () -> Void
+    ) {
+        let alert = UIAlertController(title: "拾字", message: message, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "知道了", style: .default) { _ in completionHandler() })
+        present(alert, animated: true)
+    }
+
+    func webView(
+        _ webView: WKWebView,
+        runJavaScriptConfirmPanelWithMessage message: String,
+        initiatedByFrame frame: WKFrameInfo,
+        completionHandler: @escaping (Bool) -> Void
+    ) {
+        if Self.nativeSmokeEnabled, message == Self.nativeSmokeConfirmMessage {
+            completionHandler(true)
+            return
+        }
+
+        let alert = UIAlertController(title: "拾字", message: message, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "取消", style: .cancel) { _ in completionHandler(false) })
+        alert.addAction(UIAlertAction(title: "确定", style: .default) { _ in completionHandler(true) })
+        present(alert, animated: true)
+    }
+
+    func webView(
+        _ webView: WKWebView,
+        runJavaScriptTextInputPanelWithPrompt prompt: String,
+        defaultText: String?,
+        initiatedByFrame frame: WKFrameInfo,
+        completionHandler: @escaping (String?) -> Void
+    ) {
+        let alert = UIAlertController(title: "拾字", message: prompt, preferredStyle: .alert)
+        alert.addTextField { $0.text = defaultText }
+        alert.addAction(UIAlertAction(title: "取消", style: .cancel) { _ in completionHandler(nil) })
+        alert.addAction(UIAlertAction(title: "确定", style: .default) { [weak alert] _ in
+            completionHandler(alert?.textFields?.first?.text)
+        })
+        present(alert, animated: true)
+    }
+
     func webView(
         _ webView: WKWebView,
         createWebViewWith configuration: WKWebViewConfiguration,

@@ -98,6 +98,7 @@ checks = {
     and data_flow.get("backupRestoreRejectsInvalid") is True,
     "nativeBridge": data_flow.get("nativeBridgeAvailable") is True,
     "nativeImport": data_flow.get("nativeImportAvailable") is True,
+    "nativeConfirm": data_flow.get("nativeConfirmAvailable") is True,
     "navPractice": navigation.get("practiceEntryVisible") is True
     and navigation.get("practiceTabActive") is True,
     "navBook": navigation.get("bookVisible") is True

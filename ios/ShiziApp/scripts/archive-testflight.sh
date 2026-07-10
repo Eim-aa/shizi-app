@@ -12,6 +12,7 @@ EXPORT_OPTIONS_PLIST="${EXPORT_OPTIONS_PLIST:-${IOS_ROOT}/build/exportOptions.pl
 EXPORT_METHOD="${EXPORT_METHOD:-app-store-connect}"
 EXPORT_DESTINATION="${EXPORT_DESTINATION:-export}"
 SIGNING_XCCONFIG="${SIGNING_XCCONFIG:-}"
+BUILD_NUMBER="${BUILD_NUMBER:-}"
 
 read_xcconfig_value() {
   key="$1"
@@ -32,6 +33,19 @@ read_xcconfig_value() {
 
 DEVELOPMENT_TEAM="${DEVELOPMENT_TEAM:-$(read_xcconfig_value DEVELOPMENT_TEAM "$SIGNING_XCCONFIG")}"
 BUNDLE_ID="${BUNDLE_ID:-$(read_xcconfig_value PRODUCT_BUNDLE_IDENTIFIER "$SIGNING_XCCONFIG")}"
+
+case "$BUILD_NUMBER" in
+  ''|*[!0-9]*)
+    if [ -n "$BUILD_NUMBER" ]; then
+      echo "BUILD_NUMBER must be a positive integer." >&2
+      exit 64
+    fi
+    ;;
+esac
+if [ -n "$BUILD_NUMBER" ] && [ "$BUILD_NUMBER" -le 0 ]; then
+  echo "BUILD_NUMBER must be greater than zero." >&2
+  exit 64
+fi
 
 if [ -z "$DEVELOPMENT_TEAM" ]; then
   echo "Set DEVELOPMENT_TEAM to your Apple Developer Team ID." >&2
@@ -93,39 +107,26 @@ cat > "$EXPORT_OPTIONS_PLIST" <<PLIST
 PLIST
 
 echo "Archiving ${SCHEME} -> ${ARCHIVE_PATH}"
+set -- \
+  -project "$PROJECT" \
+  -scheme "$SCHEME" \
+  -configuration "$CONFIGURATION" \
+  -destination 'generic/platform=iOS' \
+  -archivePath "$ARCHIVE_PATH" \
+  DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM"
 if [ -n "${BUNDLE_ID:-}" ]; then
-  run_xcodebuild \
-    -project "$PROJECT" \
-    -scheme "$SCHEME" \
-    -configuration "$CONFIGURATION" \
-    -destination 'generic/platform=iOS' \
-    -archivePath "$ARCHIVE_PATH" \
-    DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM" \
-    PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
-    -allowProvisioningUpdates \
-    archive
-else
-  run_xcodebuild \
-    -project "$PROJECT" \
-    -scheme "$SCHEME" \
-    -configuration "$CONFIGURATION" \
-    -destination 'generic/platform=iOS' \
-    -archivePath "$ARCHIVE_PATH" \
-    DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM" \
-    -allowProvisioningUpdates \
-    archive
+  set -- "$@" PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID"
 fi
+if [ -n "$BUILD_NUMBER" ]; then
+  set -- "$@" CURRENT_PROJECT_VERSION="$BUILD_NUMBER"
+fi
+run_xcodebuild "$@" -allowProvisioningUpdates archive
 
-if [ -n "${BUNDLE_ID:-}" ]; then
-  REQUIRE_SIGNING=1 \
-  EXPECTED_TEAM="$DEVELOPMENT_TEAM" \
-  EXPECTED_BUNDLE_ID="$BUNDLE_ID" \
-  "${SCRIPT_DIR}/verify-archive.sh" "$ARCHIVE_PATH"
-else
-  REQUIRE_SIGNING=1 \
-  EXPECTED_TEAM="$DEVELOPMENT_TEAM" \
-  "${SCRIPT_DIR}/verify-archive.sh" "$ARCHIVE_PATH"
-fi
+REQUIRE_SIGNING=1 \
+EXPECTED_TEAM="$DEVELOPMENT_TEAM" \
+EXPECTED_BUNDLE_ID="${BUNDLE_ID:-}" \
+EXPECTED_BUILD_VERSION="$BUILD_NUMBER" \
+"${SCRIPT_DIR}/verify-archive.sh" "$ARCHIVE_PATH"
 
 if [ "$EXPORT_DESTINATION" = "upload" ]; then
   echo "Uploading archive to App Store Connect"

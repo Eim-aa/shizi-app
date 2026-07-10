@@ -9,10 +9,23 @@ CONFIGURATION="${CONFIGURATION:-Debug}"
 DEVICE="${DEVICE:-booted}"
 APP_ID="${APP_ID:-com.eimaa.shizi}"
 OUT_DIR="${OUT_DIR:-${IOS_ROOT}/build/smoke}"
+DERIVED_DATA_PATH="${DERIVED_DATA_PATH:-${OUT_DIR}/DerivedData}"
 DEV_MODE="${DEV_MODE:-0}"
+RESULT_TIMEOUT="${RESULT_TIMEOUT:-30}"
 MODE_NAME="normal"
 if [ "$DEV_MODE" = "1" ]; then
   MODE_NAME="dev"
+fi
+
+case "$RESULT_TIMEOUT" in
+  ''|*[!0-9]*)
+    echo "RESULT_TIMEOUT must be a positive integer." >&2
+    exit 64
+    ;;
+esac
+if [ "$RESULT_TIMEOUT" -le 0 ]; then
+  echo "RESULT_TIMEOUT must be greater than zero." >&2
+  exit 64
 fi
 
 launch_app() {
@@ -50,10 +63,11 @@ xcodebuild \
   -configuration "$CONFIGURATION" \
   -sdk iphonesimulator \
   -destination 'generic/platform=iOS Simulator' \
+  -derivedDataPath "$DERIVED_DATA_PATH" \
   CODE_SIGNING_ALLOWED=NO \
   build
 
-APP="$(find "${HOME}/Library/Developer/Xcode/DerivedData" -path "*/Build/Products/${CONFIGURATION}-iphonesimulator/Shizi.app" -type d | tail -1)"
+APP="${DERIVED_DATA_PATH}/Build/Products/${CONFIGURATION}-iphonesimulator/Shizi.app"
 test -d "$APP" || { echo "Simulator app not found" >&2; exit 66; }
 
 "${SCRIPT_DIR}/verify-bundle-assets.sh" "$APP"
@@ -70,7 +84,9 @@ SCREENSHOT="${OUT_DIR}/shizi-simulator-${MODE_NAME}.png"
 xcrun simctl io "$DEVICE" screenshot "$SCREENSHOT" >/dev/null
 echo "Screenshot: ${SCREENSHOT}"
 
-for _ in 1 2 3 4 5 6 7 8 9 10; do
+attempt=0
+while [ "$attempt" -lt "$RESULT_TIMEOUT" ]; do
+  attempt=$((attempt + 1))
   if [ -f "$NATIVE_SMOKE_JSON" ]; then
     break
   fi
@@ -78,7 +94,7 @@ for _ in 1 2 3 4 5 6 7 8 9 10; do
 done
 
 if [ ! -f "$NATIVE_SMOKE_JSON" ]; then
-  echo "Native WKWebView smoke result was not written" >&2
+  echo "Native WKWebView smoke result was not written after ${RESULT_TIMEOUT}s" >&2
   exit 65
 fi
 

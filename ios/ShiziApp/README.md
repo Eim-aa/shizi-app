@@ -85,19 +85,17 @@ RUN_SMOKE=1 RUN_DEV_SMOKE=1 ios/ShiziApp/scripts/verify-local.sh
 
 ## 真机运行
 
-1. 打开 `ios/ShiziApp/ShiziApp.xcodeproj`。
-2. 选中 target `Shizi`，在 Signing & Capabilities 里选择 Apple Developer Team。
-3. 如有需要，把 Bundle Identifier 从 `com.eimaa.shizi` 改成你团队下唯一的 ID。
-4. 选择一台已连接 iPhone，scheme 选 `Shizi`。
-5. 点击 Run。
-
-命令行或 CI 可以复制签名模板：
+1. 复制本地签名模板：
 
 ```bash
 cp ios/ShiziApp/Config/Signing.xcconfig.example ios/ShiziApp/Config/Signing.local.xcconfig
 ```
 
-然后填写 `DEVELOPMENT_TEAM`、`PRODUCT_BUNDLE_IDENTIFIER` 和版本号。`Signing.local.xcconfig` 会被 git 忽略。
+2. 在 `Signing.local.xcconfig` 填写 `DEVELOPMENT_TEAM`、团队下唯一的 `PRODUCT_BUNDLE_IDENTIFIER` 和版本号。
+3. 打开 `ios/ShiziApp/ShiziApp.xcodeproj`。工程通过 `Config/Shared.xcconfig` 自动读取本地签名文件，不需要在 Signing & Capabilities 里手动选择 Team。
+4. 选择一台已连接 iPhone，scheme 选 `Shizi`，点击 Run。
+
+`Signing.local.xcconfig` 会被 git 忽略。请把 Team、Bundle Identifier 和版本修改都保留在这个文件中，不要提交 Xcode GUI 写入 `project.pbxproj` 的本地签名变化。命令行和 CI 也使用同一份配置。
 
 真机安装前建议先跑一次签名和设备预检：
 
@@ -182,8 +180,8 @@ xcrun simctl launch booted com.eimaa.shizi -shizi-dev
 
 ## TestFlight
 
-1. 确认 Signing & Capabilities 已选择团队，Bundle Identifier 唯一。
-2. 把 `MARKETING_VERSION` 和 `CURRENT_PROJECT_VERSION` 更新为要上传的版本号。
+1. 确认 `Signing.local.xcconfig` 中的 Team 和 Bundle Identifier 正确。
+2. 更新 `MARKETING_VERSION`，并确保每次上传使用尚未提交过的 `CURRENT_PROJECT_VERSION`。
 3. Xcode 选择 Any iOS Device 或真机，scheme 选 `Shizi`。
 4. 菜单 Product -> Archive。
 5. Organizer 里选择 Distribute App -> App Store Connect -> Upload。
@@ -208,17 +206,19 @@ ios/ShiziApp/scripts/signing-preflight.sh
 确认预检结果后再 archive/export：
 
 ```bash
+BUILD_NUMBER=2 \
 SIGNING_XCCONFIG=ios/ShiziApp/Config/Signing.local.xcconfig \
 ios/ShiziApp/scripts/archive-testflight.sh
 ```
 
-脚本会 archive，检查离线资源、版本、arm64、iPhone-only、签名身份、Team、Bundle Identifier 和 embedded provisioning profile，再用 `app-store-connect` export method 导出 IPA。也可以用环境变量传 `DEVELOPMENT_TEAM` 和 `BUNDLE_ID`。导出的 IPA 可以通过 Xcode Organizer、Transporter，或团队现有 CI 上传到 App Store Connect。
+脚本会 archive，检查离线资源、版本、arm64、iPhone-only、签名身份、Team、Bundle Identifier、build 号和 embedded provisioning profile，再用 `app-store-connect` export method 导出 IPA。`BUILD_NUMBER` 会覆盖 `CURRENT_PROJECT_VERSION`，每次上传前必须递增。也可以用环境变量传 `DEVELOPMENT_TEAM` 和 `BUNDLE_ID`。导出的 IPA 可以通过 Xcode Organizer、Transporter，或团队现有 CI 上传到 App Store Connect。
 
 如果想让脚本直接调用 Xcode 上传到 App Store Connect：
 
 ```bash
 DEVELOPMENT_TEAM=ABCDE12345 \
 BUNDLE_ID=com.yourcompany.shizi \
+BUILD_NUMBER=2 \
 EXPORT_DESTINATION=upload \
 ios/ShiziApp/scripts/archive-testflight.sh
 ```
@@ -228,6 +228,7 @@ CI 环境可以用 App Store Connect API key，不依赖已登录的 Xcode Accou
 ```bash
 DEVELOPMENT_TEAM=ABCDE12345 \
 BUNDLE_ID=com.yourcompany.shizi \
+BUILD_NUMBER=2 \
 EXPORT_DESTINATION=upload \
 AUTHENTICATION_KEY_PATH=/secure/AuthKey_ABC123.p8 \
 AUTHENTICATION_KEY_ID=ABC123 \
@@ -239,4 +240,4 @@ ios/ShiziApp/scripts/archive-testflight.sh
 
 App 使用 `WKWebsiteDataStore.default()`，Web 侧仍使用现有 `localStorage`，所以记忆模型、复习调度、加字、备份/恢复都沿用原逻辑。iOS 中「导出备份」调用原生分享面板，「恢复备份」调用原生 Files 文档选择器；浏览器/PWA 保留下载与 file input fallback。正常 App 更新会保留数据；卸载 App、抹掉设备数据或手动清理 WebKit 网站数据会删除本地记录。换机和长期内测前仍建议在「我的 -> 备份与重置 -> 导出备份」导出 JSON。
 
-工程内包含 `PrivacyInfo.xcprivacy`，当前声明不追踪用户、不收集隐私数据、不使用需要声明的 required reason API。若后续加入埋点、账号、推送或第三方 SDK，需要同步更新这份隐私清单和 App Store Connect 的 App Privacy 表单。
+工程内包含 `PrivacyInfo.xcprivacy`，当前声明不追踪用户、不收集隐私数据、不使用需要声明的 required reason API；`ITSAppUsesNonExemptEncryption=false` 表示 App 没有使用非豁免加密。若后续加入埋点、账号、推送、第三方 SDK 或自研加密，需要同步更新这些声明和 App Store Connect 的 App Privacy/出口合规信息。

@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>拾字｜提笔忘字，拾回便是</title>
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f7f1e3">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1b1813">
@@ -21,14 +21,14 @@
     --bg:#efe7d3; --soft:#f7f1e3; --card:#fdfaf1; --tile:#fbf6ea; --shade:#f3ead7;
     --ink:#2b2620; --muted:#7a715f; --faint:#ab9f87; --line:#e3d9c4; --dline:#d9cdb2;
     --accent:#c2452c; --accentSoft:#fdf0ec; --gold:#b3892f; --blue:#3f5a7d; --grey:#8d8471; --green:#43603a;
-    --inkPen:#2b2620; --paperInk:#fdfaf1; }
+    --inkPen:#2b2620; --paperInk:#fdfaf1; --keyboard-inset:0px; }
   @media (prefers-color-scheme: dark){
     :root{ --bg:#1b1813; --soft:#221e17; --card:#282218; --tile:#2b2519; --shade:#241f15;
       --ink:#f2ead9; --muted:#b3a893; --faint:#857b68; --line:#3a332a; --dline:#463e32;
       --accent:#d4553a; --accentSoft:#38231d; --gold:#c89b45; --blue:#7d9cc0; --grey:#9a917e; --green:#8fb894;
       --inkPen:#ecdfc6; --paperInk:#fdfaf1; } }
   *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-  html,body{ min-height:100%; margin:0; color:var(--ink); line-height:1.45; font-family:var(--sans);
+  html,body{ min-height:100%; margin:0; color:var(--ink); line-height:1.45; font-family:var(--sans); overscroll-behavior:none;
     background:radial-gradient(130% 100% at 50% 0%, var(--soft) 0%, var(--bg) 78%); -webkit-font-smoothing:antialiased; }
   .wrap{ width:min(100%,430px); min-height:100svh; margin:0 auto; display:flex; flex-direction:column;
     padding:calc(10px + env(safe-area-inset-top)) 0 0; }
@@ -110,7 +110,7 @@
   .box{ position:relative; border-radius:8px; overflow:hidden; box-shadow:0 0 0 2px rgba(194,69,44,.45), 0 18px 36px -26px rgba(60,48,30,.55); }
   .box .gridc, .box .hz, .box .inkc{ position:absolute; left:0; top:0; }
   .box .hz{ pointer-events:none; }
-  .box .inkc{ touch-action:none; cursor:crosshair; }
+  .box .inkc{ touch-action:none; cursor:crosshair; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; }
   .mascotRow{ display:flex; align-items:center; justify-content:center; gap:9px; margin-top:12px; min-height:22px; }
   .blob{ position:relative; width:22px; height:20px; background:var(--ink); border-radius:52% 48% 55% 45%; flex:none; }
   .blob::before,.blob::after{ content:''; position:absolute; top:7px; width:4px; height:4px; border-radius:50%; background:var(--card); }
@@ -344,7 +344,7 @@
   .foot .tab.active{ color:var(--accent); font-weight:700; }
 
   /* ===== 弹层 / 提示 ===== */
-  .sheetMask{ display:none; position:fixed; inset:0; z-index:20; background:rgba(30,24,16,.45); backdrop-filter:blur(2px); align-items:flex-start; justify-content:center; padding:14vh 24px 24px; }
+  .sheetMask{ display:none; position:fixed; inset:0; z-index:20; background:rgba(30,24,16,.45); backdrop-filter:blur(2px); align-items:flex-start; justify-content:center; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:calc(14vh + env(safe-area-inset-top)) 24px calc(24px + env(safe-area-inset-bottom) + var(--keyboard-inset)); }
   .sheetMask.open{ display:flex; }
   .sheet{ width:min(100%,340px); background:var(--soft); border:1px solid var(--line); border-radius:20px; padding:18px 16px 16px; box-shadow:0 24px 60px -24px rgba(20,18,14,.55); animation:screenIn .22s ease; }
   .sheet h3{ margin:0 0 6px; font:900 16px var(--song); }
@@ -815,6 +815,9 @@ function dueText(ts){ if(!ts) return "今天还会再见"; const left=ts-Date.no
   const hours=Math.ceil(left/3600000); if(hours<24) return `${hours} 小时后再见`; const diff=Math.ceil(left/86400000);
   if(diff===1) return "明天再见"; return `${diff} 天后再见`; }
 function scrollTopNow(){ try{ window.scrollTo({top:0,left:0,behavior:"auto"}); }catch(e){ window.scrollTo(0,0); } }
+function updateKeyboardInset(){ const vv=window.visualViewport, inset=vv?Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop)):0;
+  document.documentElement.style.setProperty("--keyboard-inset", inset+"px"); }
+if(window.visualViewport){ window.visualViewport.addEventListener("resize", updateKeyboardInset); window.visualViewport.addEventListener("scroll", updateKeyboardInset); updateKeyboardInset(); }
 const VIEW_IDS={welcome:"welcome",home:"home",card:"card",summary:"summary",book:"studybook",profile:"profilePanel",audit:"auditPanel",me:"mePanel"};
 const FLEX_VIEWS=new Set(["welcome","home","card","summary","book","me","profile","audit"]);
 function displayView(view){ Object.entries(VIEW_IDS).forEach(([k,id])=>{ $(id).style.display = view===k ? "flex" : "none"; });
@@ -1049,9 +1052,11 @@ function initBox(){ const box=document.createElement('div'); box.className='box'
   // isPrimary 过滤：手机上手掌/第二根手指的触点会把正在写的一笔打断或拆碎
   inkCanvas.addEventListener('pointerdown',e=>{ if(e.isPrimary===false) return; e.preventDefault(); const p=P(e);
     drawing=true; last=p; inkBegin(p); try{inkCanvas.setPointerCapture(e.pointerId);}catch(_){} });
-  inkCanvas.addEventListener('pointermove',e=>{ if(e.isPrimary===false) return; const p=P(e);
-    if(drawing){ strokeTo(p); inkMove(p); e.preventDefault(); } });
-  ['pointerup','pointercancel','pointerleave'].forEach(ev=>inkCanvas.addEventListener(ev,e=>{ if(e.isPrimary===false) return; drawing=false; inkEnd(); })); }
+  inkCanvas.addEventListener('pointermove',e=>{ if(e.isPrimary===false || !drawing) return;
+    let samples=typeof e.getCoalescedEvents==='function'?e.getCoalescedEvents():[e]; if(!samples.length) samples=[e];
+    samples.forEach(sample=>{ const p=P(sample); strokeTo(p); inkMove(p); }); e.preventDefault(); });
+  ['pointerup','pointercancel','pointerleave'].forEach(ev=>inkCanvas.addEventListener(ev,e=>{ if(e.isPrimary===false) return; drawing=false; inkEnd(); }));
+  ['touchstart','touchmove','touchend','touchcancel'].forEach(ev=>inkCanvas.addEventListener(ev,e=>e.preventDefault(), {passive:false})); }
 function clearInk(){ inkCtx.clearRect(0,0,S,S); inkStrokes=[]; curInkStroke=null; if(inkCanvas && !revealed) inkCanvas.style.opacity='1'; }
 
 function charLoader(char, onComplete){
@@ -1413,8 +1418,9 @@ function renderAddPreview(){ const chars=[...new Set(Array.from($("addInput").va
   $("addConfirm").disabled=!chars.length;
   $("addPreview").innerHTML=chars.length?chars.map(ch=>{ const b=BASE_BY_CHAR[ch], idx=b!=null?b:customIndexOf(ch), m=idx>=0?memory[cardKey(idx)]:null;
     return `<span class="addChip"><b>${ch}</b>${b!=null?CARDS[b].py:"生僻字·自定义卡"}${m&&m.seen?" · 已练过":""}</span>`; }).join(""):`<span>输入含汉字的词</span>`; }
-function openAddSheet(){ $("addInput").value=""; renderAddPreview(); $("addSheet").classList.add("open"); $("addInput").focus(); }
-function closeAddSheet(){ $("addSheet").classList.remove("open"); $("addInput").blur(); }
+function openAddSheet(){ $("addInput").value=""; renderAddPreview(); $("addSheet").classList.add("open"); updateKeyboardInset(); $("addInput").focus();
+  requestAnimationFrame(()=>{ try{ $("addInput").scrollIntoView({block:"center", inline:"nearest"}); }catch(e){} }); }
+function closeAddSheet(){ $("addSheet").classList.remove("open"); $("addInput").blur(); updateKeyboardInset(); }
 function confirmAdd(){ const chars=addWord($("addInput").value); if(!chars) return;
   const inserted=insertIntoCurrentBatch(indexesForChars(chars));
   closeAddSheet();
@@ -1436,20 +1442,33 @@ $("addSheet").onclick=e=>{ if(e.target===$("addSheet")) closeAddSheet(); };
 function backupPayload(){ const data={}; for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k && k.indexOf("shizi.")===0) data[k]=localStorage.getItem(k); }
   return JSON.stringify({app:"shizi", version:1, date:new Date().toISOString(), data}, null, 1); }
 async function exportBackup(){ const payload=backupPayload(), name=`shizi-backup-${today()}.json`;
+  if(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.shiziNative){
+    window.webkit.messageHandlers.shiziNative.postMessage({type:"shareBackup", name, payload});
+    return;
+  }
   if(window.File && navigator.canShare){ try{ const file=new File([payload], name, {type:"application/json"});
     if(navigator.canShare({files:[file]})){ await navigator.share({files:[file], title:"拾字备份"}); toast("备份已导出"); return; } }catch(e){ if(e && e.name==="AbortError") return; } }
   const url=URL.createObjectURL(new Blob([payload],{type:"application/json"})), a=document.createElement("a");
   a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),4000); toast("备份已下载"); }
-function importBackup(file){ file.text().then(t=>{ const obj=JSON.parse(t);
-    if(!obj || obj.app!=="shizi" || !obj.data || typeof obj.data!=="object") throw new Error("format");
-    const keys=Object.keys(obj.data).filter(k=>k.indexOf("shizi.")===0); if(!keys.length) throw new Error("empty");
-    if(!confirm(`用这份备份（${String(obj.date||"未知日期").slice(0,10)}）覆盖当前记录？`)) return;
-    for(let i=localStorage.length-1;i>=0;i--){ const k=localStorage.key(i); if(k && k.indexOf("shizi.")===0) localStorage.removeItem(k); }
-    keys.forEach(k=>localStorage.setItem(k, String(obj.data[k])));
-    location.reload();
-  }).catch(()=>alert("这个文件不是有效的拾字备份")); }
+function restoreBackupPayload(payload, opts){ const options=opts||{}, obj=typeof payload==="string"?JSON.parse(payload):payload;
+  if(!obj || obj.app!=="shizi" || !obj.data || typeof obj.data!=="object") throw new Error("format");
+  const keys=Object.keys(obj.data).filter(k=>k.indexOf("shizi.")===0); if(!keys.length) throw new Error("empty");
+  if(!options.skipConfirm && !confirm(`用这份备份（${String(obj.date||"未知日期").slice(0,10)}）覆盖当前记录？`)) return {applied:false, keys};
+  for(let i=localStorage.length-1;i>=0;i--){ const k=localStorage.key(i); if(k && k.indexOf("shizi.")===0) localStorage.removeItem(k); }
+  keys.forEach(k=>localStorage.setItem(k, String(obj.data[k])));
+  if(options.reload!==false) location.reload();
+  return {applied:true, keys};
+}
+function importBackup(file){ file.text().then(t=>restoreBackupPayload(t)).catch(()=>alert("这个文件不是有效的拾字备份")); }
+function requestBackupImport(){
+  if(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.shiziNative){
+    window.webkit.messageHandlers.shiziNative.postMessage({type:"pickBackup"});
+    return;
+  }
+  $("importFile").click();
+}
 $("exportLink").onclick=()=>{ exportBackup(); };
-$("importLink").onclick=()=>$("importFile").click();
+$("importLink").onclick=requestBackupImport;
 $("importFile").onchange=e=>{ const f=e.target.files && e.target.files[0]; e.target.value=""; if(f) importBackup(f); };
 $("resetLink").onclick=()=>{ if(confirm("清空卡组和记录，从头开始？")){ status={}; memory={}; quality={}; tuning={calibrated:false, offset:0, contextStrict:0, rounds:[]}; preference="balanced"; opens=[today()]; customWords=[]; addedChars=[]; save(DECK_KEY,status); save(MEMORY_KEY,memory); save(QUALITY_KEY,quality); saveTuning(); save(PREF_KEY,preference); save(OPEN_KEY,opens); save(CUSTOM_KEY,customWords); save(ADDED_KEY,addedChars); buildCustomCards(); localStorage.removeItem(TOPIC_KEY); sessionDone=new Set(); focusQueue=[]; renderHome(); $("dataBox").style.display="none"; } };
 

@@ -11,6 +11,7 @@
 - `scripts/`：生成数据和验证页面的脚本。
 - `generated/`：当前生成出的 8105 字覆盖率报告和 6854 个可写候选字结构化结果。
 - `sources/`：生成脚本依赖的原始字表、字频和词典数据。
+- `ios/ShiziApp/`：iOS 原生 WKWebView 外壳工程，用于真机安装和 TestFlight 内测。
 - `CHANGELOG.md`：按版本记录产品逻辑和 UX 调整。
 - `requirements.txt`：生成脚本需要的 Python 依赖。
 
@@ -69,6 +70,18 @@ python3 -m http.server 8000
 ```text
 http://127.0.0.1:8000/
 ```
+
+开发调试时可以打开：
+
+```text
+http://127.0.0.1:8000/?dev=1
+```
+
+## iOS App / TestFlight
+
+第一阶段 iOS 工程在 `ios/ShiziApp/ShiziApp.xcodeproj`，用 WKWebView 加载现有静态前端，不改写业务逻辑。每次 Xcode Build 会把 `index.html`、题库、`hanzi-writer.min.js` 和整个 `data/` 笔画目录同步进 App 包；普通 scheme 不显示开发工具，`Shizi Dev` scheme 会等价打开 `?dev=1`。
+
+构建、真机运行、Safari Web Inspector 和 TestFlight 上传步骤见 `ios/ShiziApp/README.md`。
 
 ## 重新生成题库
 

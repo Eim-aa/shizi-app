@@ -6,3 +6,8 @@ node_modules/
 __pycache__/
 generated/*.png
 .claude/
+ios/**/xcuserdata/
+ios/**/*.xcuserstate
+ios/**/DerivedData/
+ios/**/build/
+ios/ShiziApp/Config/Signing.local.xcconfig

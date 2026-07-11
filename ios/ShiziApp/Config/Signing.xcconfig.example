@@ -1,0 +1,8 @@
+// Copy this file to Signing.local.xcconfig and fill in your Apple Developer values.
+// Signing.local.xcconfig is intentionally ignored by git.
+
+DEVELOPMENT_TEAM = ABCDE12345
+PRODUCT_BUNDLE_IDENTIFIER = com.yourcompany.shizi
+MARKETING_VERSION = 0.1.0
+CURRENT_PROJECT_VERSION = 1
+CODE_SIGN_STYLE = Automatic

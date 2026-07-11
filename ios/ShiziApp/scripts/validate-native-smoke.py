@@ -1,0 +1,141 @@
+#!/usr/bin/env python3
+
+import json
+import sys
+
+
+def fail(message: str, data: dict) -> None:
+    print(message, file=sys.stderr)
+    print(json.dumps(data, ensure_ascii=False, indent=2), file=sys.stderr)
+    raise SystemExit(65)
+
+
+if len(sys.argv) not in (3, 4, 5):
+    print(
+        "Usage: validate-native-smoke.py /path/to/result.json <0|1 dev mode> "
+        "[0|1 require persisted] [0|1 require software keyboard]",
+        file=sys.stderr,
+    )
+    raise SystemExit(64)
+
+if any(value not in ("0", "1") for value in sys.argv[2:]):
+    print("Dev mode, persisted, and keyboard flags must be 0 or 1.", file=sys.stderr)
+    raise SystemExit(64)
+
+path = sys.argv[1]
+dev_mode = sys.argv[2] == "1"
+require_persisted = len(sys.argv) == 4 and sys.argv[3] == "1"
+if len(sys.argv) == 5:
+    require_persisted = sys.argv[3] == "1"
+require_keyboard = len(sys.argv) == 5 and sys.argv[4] == "1"
+
+with open(path, "r", encoding="utf-8") as file:
+    data = json.load(file)
+
+expected_dev_display = "block" if dev_mode else "none"
+layout = data.get("layoutFlow") or {}
+handwriting = data.get("handwritingFlow") or {}
+data_flow = data.get("dataFlow") or {}
+navigation = data.get("navigationFlow") or {}
+practice = data.get("practiceFlow") or {}
+exit_flow = data.get("exitFlow") or {}
+checks = {
+    "seed": data.get("seed") == 6854,
+    "cards": int(data.get("cards") or 0) >= 6854
+    and int(data.get("cards") or 0) >= int(data.get("seed") or 0),
+    "groups": data.get("groups") == 6854,
+    "devQuery": data.get("devQuery") is dev_mode,
+    "devToolsDisplay": data.get("devToolsDisplay") == expected_dev_display,
+    "localStorageWritable": data.get("localStorageWritable") is True,
+    "localStoragePersisted": not require_persisted
+    or data.get("localStoragePersistedFromPreviousLaunch") is True,
+    "fetchOk": data.get("fetchOk") is True,
+    "strokeCount": int(data.get("strokeCount") or 0) > 0,
+    "safeAreaViewport": layout.get("viewportFitCover") is True,
+    "keyboardInset": layout.get("keyboardInsetVar") is True
+    and layout.get("visualViewportAvailable") is True,
+    "sheetKeyboardLayout": layout.get("sheetScrollable") is True
+    and layout.get("sheetBottomPadding") is True
+    and layout.get("addInputFocused") is True
+    and layout.get("keyboardInsetMatchesViewport") is True
+    and layout.get("inputVisibleAboveKeyboard") is True
+    and layout.get("addConfirmReachableAboveKeyboard") is True,
+    "softwareKeyboard": not require_keyboard
+    or (
+        layout.get("keyboardInsetActive") is True
+        and float(layout.get("keyboardInsetPixels") or 0) > 0
+    ),
+    "handwritingPointerEvents": handwriting.get("pointerEventsSupported") is True
+    and handwriting.get("touchActionNone") is True,
+    "handwritingPreventsScroll": handwriting.get("pointerDownPrevented") is True
+    and handwriting.get("pointerMovePrevented") is True
+    and handwriting.get("touchMovePrevented") is True
+    and handwriting.get("pageScrollStable") is True,
+    "handwritingRecordsInk": handwriting.get("strokeRecorded") is True
+    and int(handwriting.get("strokePointCount") or 0) >= 4
+    and handwriting.get("inkPixelsChanged") is True
+    and handwriting.get("clearWorked") is True,
+    "addSheet": data_flow.get("addSheetOpened") is True
+    and data_flow.get("addPreviewRendered") is True
+    and data_flow.get("addConfirmEnabled") is True
+    and data_flow.get("addSheetClosed") is True,
+    "addStored": data_flow.get("addedCharStored") is True
+    and data_flow.get("customWordStored") is True
+    and data_flow.get("customCardIndexed") is True
+    and data_flow.get("memoryHasAddedChar") is True,
+    "backupPayload": data_flow.get("backupParses") is True
+    and data_flow.get("backupHasAppMarker") is True
+    and data_flow.get("backupHasAdded") is True
+    and data_flow.get("backupHasCustom") is True
+    and data_flow.get("backupHasMemory") is True
+    and data_flow.get("backupHasSmokeKey") is True,
+    "backupRestore": data_flow.get("backupRestoreApplied") is True
+    and int(data_flow.get("backupRestoreKeyCount") or 0) > 0
+    and data_flow.get("backupRestoreAdded") is True
+    and data_flow.get("backupRestoreCustom") is True
+    and data_flow.get("backupRestoreMemory") is True
+    and data_flow.get("backupRestoreSmokeKey") is True
+    and data_flow.get("backupRestoreRejectsInvalid") is True,
+    "nativeBridge": data_flow.get("nativeBridgeAvailable") is True,
+    "nativeImport": data_flow.get("nativeImportAvailable") is True,
+    "nativeConfirm": data_flow.get("nativeConfirmAvailable") is True,
+    "navPractice": navigation.get("practiceEntryVisible") is True
+    and navigation.get("practiceTabActive") is True,
+    "navBook": navigation.get("bookVisible") is True
+    and navigation.get("bookTabActive") is True
+    and navigation.get("footVisibleOnBook") is True,
+    "navMe": navigation.get("meVisible") is True
+    and navigation.get("meTabActive") is True
+    and navigation.get("footVisibleOnMe") is True,
+    "navProfile": navigation.get("profileVisible") is True
+    and navigation.get("profileFootHidden") is True
+    and navigation.get("profileReturnedToMe") is True,
+    "navAudit": navigation.get("auditVisible") is dev_mode
+    and navigation.get("auditReturnedToMe") is dev_mode,
+    "practiceStarted": practice.get("started") is True,
+    "practiceBatch": int(practice.get("batchSize") or 0) >= 2,
+    "practiceCardVisible": practice.get("cardVisible") is True,
+    "practiceActionsEnabled": practice.get("showEnabled") is True
+    and practice.get("doneEnabled") is True,
+    "practiceReveal": practice.get("revealVisible") is True
+    and practice.get("stampVisible") is True,
+    "practiceStamp": practice.get("stampedToastVisible") is True
+    and practice.get("nextVisible") is True
+    and practice.get("outcome") == "fast",
+    "practiceNext": practice.get("nextAdvanced") is True
+    and practice.get("posLabelAfter") != practice.get("posLabelBefore"),
+    "exitSheet": exit_flow.get("sheetOpened") is True,
+    "exitHome": exit_flow.get("returnedHome") is True
+    and exit_flow.get("practiceHidden") is True
+    and exit_flow.get("footVisible") is True,
+    "exitUnrecordedCard": exit_flow.get("roundStatsUnchanged") is True
+    and int(exit_flow.get("positionBeforeExit") or -1) >= 1,
+    "noError": not data.get("error"),
+}
+
+failed = [key for key, passed in checks.items() if not passed]
+if failed:
+    fail("Native WKWebView smoke failed: " + ", ".join(failed), data)
+
+print("Native WKWebView smoke:")
+print(json.dumps(data, ensure_ascii=False, indent=2))

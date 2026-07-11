@@ -61,7 +61,7 @@ ios/ShiziApp/scripts/smoke-simulator.sh
 ```
 
 它会构建模拟器包、安装启动 App、截图、检查 bundle 资源，并确认 WKWebView 的 `localStorage` 已写入 `shizi.*` 键；随后会终止并重启 App，验证 smoke 写入的 `shizi.nativeSmoke.v1` 仍然存在。
-同时它会让 WKWebView 在 App 内执行一次原生 smoke 检查：验证基础 `SEED/GROUPS` 是 6854、当前 `CARDS` 不少于基础字库数量、普通模式隐藏开发工具、`localStorage` 可写，并实际 `fetch('data/美.json')`，确认本地笔画 JSON 返回 200 且包含笔画数据。它还会走一遍主要页面、手写事件、加字/备份/恢复和轻量练习流程：进入字盒、我的、手感诊断，开发模式下进入题库质检；确认 viewport safe-area、弹层滚动和键盘留白适配存在；在写字 canvas 合成一段 pointer 轨迹，确认产生笔画与像素、触摸事件被阻止滚动且清屏有效；通过加字面板加入一个自定义字，并确认记忆模型、加字记录和备份 JSON 都包含它；随后故意扰动相关 `localStorage` 键，再应用刚导出的备份，确认加字、记忆和自定义卡能恢复；开始一组、等待「看答案/写好了」可用、揭晓答案、盖「拾到」章、进入下一题，再打开退出确认并返回首页。
+同时它会让 WKWebView 在 App 内执行一次原生 smoke 检查：验证基础 `SEED/GROUPS` 是 6854、当前 `CARDS` 不少于基础字库数量、普通模式隐藏开发工具、`localStorage` 可写，并实际 `fetch('data/美.json')`，确认本地笔画 JSON 返回 200 且包含笔画数据。它还会走一遍主要页面、手写事件、加字/备份/恢复和练习流程：验证写字页固定在安全区内、动作按钮可达、viewport 可缩放、toast 可被读屏；合成 pointer 轨迹，确认落墨、防滚动、撤销一笔和 300ms 防误触；验证备份包含会话/活动元数据并可完整恢复；最后实际覆盖盖章立即换题、跨卡撤章与每日计数回滚、描红落笔门槛与 `traced` 标记、会话快照、退出后首页续练和恢复到原题位。
 
 开发入口也可以用同一个 smoke 脚本验证：
 
@@ -133,8 +133,9 @@ ios/ShiziApp/scripts/smoke-device.sh
 
 - 首页、写字页、字盒、我的、手感诊断都能打开。
 - 手指在田字格书写时页面不滚动，笔迹不断裂。
-- 提示、揭晓答案、自评、下一题流程正常。
-- 退出本组后返回首页，已自评记录保留，当前未自评卡不记录。
+- 提示、格内描红、对照、自评、立即换题和跨卡「改一下」流程正常。
+- 退出本组后返回首页，已自评记录保留，当前未自评卡不记录，并可继续同一组。
+- 完成第一组后「今日已拾」不回退，加练只累加今日字数。
 - 关闭再打开 App 后，`localStorage` 里的记忆模型、复习调度、加字记录仍在。
 - 飞行模式下首页和已打包笔画资源能加载。
 - 底部 Tab、弹窗、加字输入框和键盘不遮挡主要按钮。
@@ -238,6 +239,6 @@ ios/ShiziApp/scripts/archive-testflight.sh
 
 ## 数据保留说明
 
-App 使用 `WKWebsiteDataStore.default()`，Web 侧仍使用现有 `localStorage`，所以记忆模型、复习调度、加字、备份/恢复都沿用原逻辑。iOS 中「导出备份」调用原生分享面板，「恢复备份」调用原生 Files 文档选择器；浏览器/PWA 保留下载与 file input fallback。正常 App 更新会保留数据；卸载 App、抹掉设备数据或手动清理 WebKit 网站数据会删除本地记录。换机和长期内测前仍建议在「我的 -> 备份与重置 -> 导出备份」导出 JSON。
+App 使用 `WKWebsiteDataStore.default()`，Web 侧仍使用 `localStorage` 保存记忆模型、复习调度、练习日、每日完成态和当前组快照。iOS 中「导出备份」调用原生分享面板，只有分享完成才更新上次备份时间；「恢复备份」调用原生 Files 文档选择器。浏览器/PWA 保留下载与 file input fallback。正常 App 更新会保留数据；卸载 App、抹掉设备数据或手动清理 WebKit 网站数据会删除本地记录。换机和长期内测前仍建议在「我的 -> 备份与恢复 -> 导出备份」导出 JSON。
 
 工程内包含 `PrivacyInfo.xcprivacy`，当前声明不追踪用户、不收集隐私数据、不使用需要声明的 required reason API；`ITSAppUsesNonExemptEncryption=false` 表示 App 没有使用非豁免加密。若后续加入埋点、账号、推送、第三方 SDK 或自研加密，需要同步更新这些声明和 App Store Connect 的 App Privacy/出口合规信息。

@@ -51,7 +51,8 @@ checks = {
     or data.get("localStoragePersistedFromPreviousLaunch") is True,
     "fetchOk": data.get("fetchOk") is True,
     "strokeCount": int(data.get("strokeCount") or 0) > 0,
-    "safeAreaViewport": layout.get("viewportFitCover") is True,
+    "safeAreaViewport": layout.get("viewportFitCover") is True
+    and layout.get("viewportZoomAllowed") is True,
     "keyboardInset": layout.get("keyboardInsetVar") is True
     and layout.get("visualViewportAvailable") is True,
     "sheetKeyboardLayout": layout.get("sheetScrollable") is True
@@ -65,6 +66,9 @@ checks = {
         layout.get("keyboardInsetActive") is True
         and float(layout.get("keyboardInsetPixels") or 0) > 0
     ),
+    "practiceLayout": layout.get("practiceFixed") is True
+    and layout.get("practiceActionsInViewport") is True
+    and layout.get("toastAriaLive") is True,
     "handwritingPointerEvents": handwriting.get("pointerEventsSupported") is True
     and handwriting.get("touchActionNone") is True,
     "handwritingPreventsScroll": handwriting.get("pointerDownPrevented") is True
@@ -74,7 +78,9 @@ checks = {
     "handwritingRecordsInk": handwriting.get("strokeRecorded") is True
     and int(handwriting.get("strokePointCount") or 0) >= 4
     and handwriting.get("inkPixelsChanged") is True
-    and handwriting.get("clearWorked") is True,
+    and handwriting.get("undoStrokeWorked") is True
+    and handwriting.get("clearWorked") is True
+    and handwriting.get("actionCooldownActive") is True,
     "addSheet": data_flow.get("addSheetOpened") is True
     and data_flow.get("addPreviewRendered") is True
     and data_flow.get("addConfirmEnabled") is True
@@ -88,7 +94,8 @@ checks = {
     and data_flow.get("backupHasAdded") is True
     and data_flow.get("backupHasCustom") is True
     and data_flow.get("backupHasMemory") is True
-    and data_flow.get("backupHasSmokeKey") is True,
+    and data_flow.get("backupHasSmokeKey") is True
+    and data_flow.get("backupHasMeta") is True,
     "backupRestore": data_flow.get("backupRestoreApplied") is True
     and int(data_flow.get("backupRestoreKeyCount") or 0) > 0
     and data_flow.get("backupRestoreAdded") is True
@@ -119,17 +126,29 @@ checks = {
     and practice.get("doneEnabled") is True,
     "practiceReveal": practice.get("revealVisible") is True
     and practice.get("stampVisible") is True,
-    "practiceStamp": practice.get("stampedToastVisible") is True
-    and practice.get("nextVisible") is True
-    and practice.get("outcome") == "fast",
-    "practiceNext": practice.get("nextAdvanced") is True
-    and practice.get("posLabelAfter") != practice.get("posLabelBefore"),
+    "practiceStamp": practice.get("outcome") == "fast"
+    and practice.get("immediateAdvanced") is True
+    and practice.get("noNextButton") is True
+    and practice.get("functionalStampLabels") is True,
+    "practiceUndo": practice.get("undoBarFollowed") is True
+    and practice.get("undoRollback") is True
+    and practice.get("undoActivityRollback") is True
+    and practice.get("nextCardUntouched") is True,
+    "practiceTrace": practice.get("traceModeVisible") is True
+    and practice.get("traceRequiresInk") is True
+    and practice.get("traceReadyAfterInk") is True
+    and practice.get("traceRecorded") is True,
+    "practicePersistence": practice.get("activityRecorded") is True
+    and practice.get("sessionSnapshotStored") is True
+    and practice.get("resumeHomeState") is True
+    and practice.get("resumeRestored") is True,
+    "practiceNext": practice.get("posLabelAfter") != practice.get("posLabelBefore"),
     "exitSheet": exit_flow.get("sheetOpened") is True,
     "exitHome": exit_flow.get("returnedHome") is True
     and exit_flow.get("practiceHidden") is True
     and exit_flow.get("footVisible") is True,
     "exitUnrecordedCard": exit_flow.get("roundStatsUnchanged") is True
-    and int(exit_flow.get("positionBeforeExit") or -1) >= 1,
+    and int(exit_flow.get("positionBeforeExit") or -1) >= 2,
     "noError": not data.get("error"),
 }
 

@@ -118,6 +118,7 @@ final class WebViewController: UIViewController {
             strokeCount: 0,
             layoutFlow: {
               viewportFitCover: false,
+              viewportZoomAllowed: false,
               keyboardInsetVar: false,
               visualViewportAvailable: false,
               sheetScrollable: false,
@@ -127,7 +128,10 @@ final class WebViewController: UIViewController {
               keyboardInsetActive: false,
               keyboardInsetMatchesViewport: false,
               inputVisibleAboveKeyboard: false,
-              addConfirmReachableAboveKeyboard: false
+              addConfirmReachableAboveKeyboard: false,
+              practiceFixed: false,
+              practiceActionsInViewport: false,
+              toastAriaLive: false
             },
             handwritingFlow: {
               pointerEventsSupported: false,
@@ -139,7 +143,9 @@ final class WebViewController: UIViewController {
               strokePointCount: 0,
               inkPixelsChanged: false,
               pageScrollStable: false,
-              clearWorked: false
+              clearWorked: false,
+              undoStrokeWorked: false,
+              actionCooldownActive: false
             },
             dataFlow: {
               addSheetOpened: false,
@@ -156,6 +162,7 @@ final class WebViewController: UIViewController {
               backupHasCustom: false,
               backupHasMemory: false,
               backupHasSmokeKey: false,
+              backupHasMeta: false,
               backupRestoreApplied: false,
               backupRestoreKeyCount: 0,
               backupRestoreAdded: false,
@@ -190,9 +197,21 @@ final class WebViewController: UIViewController {
               doneEnabled: false,
               revealVisible: false,
               stampVisible: false,
-              stampedToastVisible: false,
-              nextVisible: false,
-              nextAdvanced: false,
+              noNextButton: false,
+              functionalStampLabels: false,
+              immediateAdvanced: false,
+              undoBarFollowed: false,
+              undoRollback: false,
+              undoActivityRollback: false,
+              nextCardUntouched: false,
+              traceModeVisible: false,
+              traceRequiresInk: false,
+              traceReadyAfterInk: false,
+              traceRecorded: false,
+              activityRecorded: false,
+              sessionSnapshotStored: false,
+              resumeHomeState: false,
+              resumeRestored: false,
               outcome: '',
               posLabelBefore: '',
               posLabelAfter: ''
@@ -225,6 +244,9 @@ final class WebViewController: UIViewController {
             const activeTab = (id) => document.getElementById(id).classList.contains('active');
             const viewportMeta = document.querySelector('meta[name="viewport"]');
             result.layoutFlow.viewportFitCover = !!viewportMeta && viewportMeta.content.includes('viewport-fit=cover');
+            const compactViewport = viewportMeta ? viewportMeta.content.replaceAll(' ', '') : '';
+            result.layoutFlow.viewportZoomAllowed = !!viewportMeta && !compactViewport.includes('user-scalable=no') && !compactViewport.includes('maximum-scale=1');
+            result.layoutFlow.toastAriaLive = document.getElementById('toast').getAttribute('aria-live') === 'polite';
             result.layoutFlow.keyboardInsetVar = /^\\d+px$/.test(getComputedStyle(document.documentElement).getPropertyValue('--keyboard-inset').trim());
             result.layoutFlow.visualViewportAvailable = !!window.visualViewport;
             if (typeof renderMe === 'function') renderMe();
@@ -325,6 +347,7 @@ final class WebViewController: UIViewController {
               result.dataFlow.backupHasCustom = BASE_BY_CHAR[smokeChar] != null || (Object.prototype.hasOwnProperty.call(backupData, CUSTOM_KEY) && String(backupData[CUSTOM_KEY]).includes(smokeChar));
               result.dataFlow.backupHasMemory = Object.prototype.hasOwnProperty.call(backupData, MEMORY_KEY) && String(backupData[MEMORY_KEY]).includes(smokeChar);
               result.dataFlow.backupHasSmokeKey = Object.prototype.hasOwnProperty.call(backupData, 'shizi.nativeSmoke.v1');
+              result.dataFlow.backupHasMeta = Object.prototype.hasOwnProperty.call(backupData, BACKUP_META_KEY);
               if (typeof restoreBackupPayload === 'function') {
                 localStorage.setItem(ADDED_KEY, JSON.stringify([]));
                 localStorage.setItem(CUSTOM_KEY, JSON.stringify([]));
@@ -351,53 +374,75 @@ final class WebViewController: UIViewController {
             }
 
             if (typeof startMode === 'function' && typeof revealAnswer === 'function' && typeof pickStamp === 'function') {
+              if (typeof clearSessionSnapshot === 'function') clearSessionSnapshot();
               startMode('new');
-              await waitFor(() => Array.isArray(batch) && batch.length > 0 && visible('card'));
+              await waitFor(() => Array.isArray(batch) && batch.length > 2 && visible('card'));
               await waitFor(() => !document.getElementById('show').disabled && !document.getElementById('done').disabled);
               result.practiceFlow.started = true;
               result.practiceFlow.batchSize = Array.isArray(batch) ? batch.length : 0;
               result.practiceFlow.cardVisible = visible('card');
               result.practiceFlow.showEnabled = !document.getElementById('show').disabled;
               result.practiceFlow.doneEnabled = !document.getElementById('done').disabled;
+              result.practiceFlow.noNextButton = !document.getElementById('nextBtn');
               result.practiceFlow.posLabelBefore = document.getElementById('posLabel').textContent;
 
+              await new Promise(resolve => setTimeout(resolve, 350));
+              const cardRect = document.getElementById('card').getBoundingClientRect();
+              const actionRect = document.getElementById('actions').getBoundingClientRect();
+              const practiceViewport = window.visualViewport;
+              const practiceTop = practiceViewport ? practiceViewport.offsetTop : 0;
+              const practiceBottom = practiceViewport ? practiceViewport.offsetTop + practiceViewport.height : window.innerHeight;
+              result.layoutFlow.practiceFixed = getComputedStyle(document.getElementById('card')).position === 'fixed';
+              result.layoutFlow.practiceActionsInViewport = cardRect.top >= practiceTop - 1 && cardRect.bottom <= practiceBottom + 1 && actionRect.bottom <= practiceBottom + 1;
+              result.layoutFlow.practiceMetrics = {
+                innerHeight: window.innerHeight,
+                viewportTop: practiceTop,
+                viewportBottom: practiceBottom,
+                cardTop: cardRect.top,
+                cardBottom: cardRect.bottom,
+                actionTop: actionRect.top,
+                actionBottom: actionRect.bottom,
+                boxBottom: document.getElementById('boxwrap').getBoundingClientRect().bottom
+              };
+
               result.handwritingFlow.pointerEventsSupported = typeof PointerEvent === 'function';
+              let dispatchStroke = null;
+              let pixelCount = () => 0;
               if (result.handwritingFlow.pointerEventsSupported && inkCanvas && inkCtx && typeof clearInk === 'function') {
                 clearInk();
-                const pixelCount = () => {
+                pixelCount = () => {
                   const pixels = inkCtx.getImageData(0, 0, inkCanvas.width, inkCanvas.height).data;
                   let count = 0;
                   for (let i = 3; i < pixels.length; i += 4) if (pixels[i] !== 0) count++;
                   return count;
                 };
-                const rect = inkCanvas.getBoundingClientRect();
-                const points = [
-                  { x: rect.left + rect.width * 0.25, y: rect.top + rect.height * 0.30 },
-                  { x: rect.left + rect.width * 0.40, y: rect.top + rect.height * 0.42 },
-                  { x: rect.left + rect.width * 0.56, y: rect.top + rect.height * 0.54 },
-                  { x: rect.left + rect.width * 0.72, y: rect.top + rect.height * 0.66 }
-                ];
-                const pointer = (type, point, buttons) => new PointerEvent(type, {
-                  bubbles: true,
-                  cancelable: true,
-                  pointerId: 4242,
-                  pointerType: 'touch',
-                  isPrimary: true,
-                  button: 0,
-                  buttons,
-                  clientX: point.x,
-                  clientY: point.y
-                });
+                let pointerID = 4242;
+                dispatchStroke = () => {
+                  const rect = inkCanvas.getBoundingClientRect();
+                  const points = [
+                    { x: rect.left + rect.width * 0.25, y: rect.top + rect.height * 0.30 },
+                    { x: rect.left + rect.width * 0.40, y: rect.top + rect.height * 0.42 },
+                    { x: rect.left + rect.width * 0.56, y: rect.top + rect.height * 0.54 },
+                    { x: rect.left + rect.width * 0.72, y: rect.top + rect.height * 0.66 }
+                  ];
+                  const id = pointerID++;
+                  const pointer = (type, point, buttons) => new PointerEvent(type, {
+                    bubbles: true, cancelable: true, pointerId: id, pointerType: 'touch', isPrimary: true,
+                    button: 0, buttons, clientX: point.x, clientY: point.y
+                  });
+                  const downPrevented = !inkCanvas.dispatchEvent(pointer('pointerdown', points[0], 1));
+                  let movesPrevented = true;
+                  for (let i = 1; i < points.length; i++) movesPrevented = !inkCanvas.dispatchEvent(pointer('pointermove', points[i], 1)) && movesPrevented;
+                  inkCanvas.dispatchEvent(pointer('pointerup', points[points.length - 1], 0));
+                  return { downPrevented, movesPrevented };
+                };
                 const scrollBefore = document.scrollingElement ? document.scrollingElement.scrollTop : window.scrollY;
                 const pixelsBefore = pixelCount();
                 result.handwritingFlow.touchActionNone = getComputedStyle(inkCanvas).touchAction === 'none';
-                result.handwritingFlow.pointerDownPrevented = !inkCanvas.dispatchEvent(pointer('pointerdown', points[0], 1));
-                let movesPrevented = true;
-                for (let i = 1; i < points.length; i++) {
-                  movesPrevented = !inkCanvas.dispatchEvent(pointer('pointermove', points[i], 1)) && movesPrevented;
-                }
-                inkCanvas.dispatchEvent(pointer('pointerup', points[points.length - 1], 0));
-                result.handwritingFlow.pointerMovePrevented = movesPrevented;
+                const dispatched = dispatchStroke();
+                result.handwritingFlow.pointerDownPrevented = dispatched.downPrevented;
+                result.handwritingFlow.pointerMovePrevented = dispatched.movesPrevented;
+                result.handwritingFlow.actionCooldownActive = document.getElementById('actions').classList.contains('tlock');
                 const touchProbe = new Event('touchmove', { bubbles: true, cancelable: true });
                 inkCanvas.dispatchEvent(touchProbe);
                 result.handwritingFlow.touchMovePrevented = touchProbe.defaultPrevented;
@@ -406,25 +451,62 @@ final class WebViewController: UIViewController {
                 result.handwritingFlow.inkPixelsChanged = pixelCount() > pixelsBefore;
                 const scrollAfter = document.scrollingElement ? document.scrollingElement.scrollTop : window.scrollY;
                 result.handwritingFlow.pageScrollStable = scrollAfter === scrollBefore;
+                undoInkStroke();
+                result.handwritingFlow.undoStrokeWorked = inkStrokes.length === 0 && pixelCount() === 0;
+                dispatchStroke();
+                await new Promise(resolve => setTimeout(resolve, 340));
                 clearInk();
                 result.handwritingFlow.clearWorked = inkStrokes.length === 0 && pixelCount() === 0;
+                dispatchStroke();
+                await new Promise(resolve => setTimeout(resolve, 340));
               }
 
-              revealAnswer(false);
+              const firstIndex = batch[pos];
+              const firstKey = cardKey(firstIndex);
+              const firstMemoryBefore = JSON.stringify(memory[firstKey] || null);
+              const firstStatusBefore = status[firstIndex];
+              const activityBefore = todayStampCount();
+              const firstNextIndex = batch[pos + 1];
+              const nextMemoryBefore = JSON.stringify(memory[cardKey(firstNextIndex)] || null);
+              revealAnswer(true);
               await waitFor(() => visible('reveal'));
               result.practiceFlow.revealVisible = true;
               result.practiceFlow.stampVisible = visible('stampRow');
+              result.practiceFlow.functionalStampLabels = document.getElementById('fast').textContent.includes('会写');
 
               pickStamp('fast');
-              await waitFor(() => visible('stampedToast') && visible('nextWrap'));
-              result.practiceFlow.stampedToastVisible = true;
-              result.practiceFlow.nextVisible = true;
-              result.practiceFlow.outcome = roundStats.length ? roundStats[roundStats.length - 1].outcome : '';
-
-              goNext();
               await waitFor(() => pos === 1 && visible('card'));
-              result.practiceFlow.nextAdvanced = true;
+              result.practiceFlow.immediateAdvanced = true;
+              result.practiceFlow.undoBarFollowed = visible('undoBar');
+              result.practiceFlow.outcome = roundStats.length ? roundStats[roundStats.length - 1].outcome : '';
               result.practiceFlow.posLabelAfter = document.getElementById('posLabel').textContent;
+              reopenStampChoices();
+              await waitFor(() => pos === 0 && visible('reveal'));
+              result.practiceFlow.undoRollback = roundStats.length === 0 && JSON.stringify(memory[firstKey] || null) === firstMemoryBefore && status[firstIndex] === firstStatusBefore;
+              result.practiceFlow.undoActivityRollback = todayStampCount() === activityBefore;
+              result.practiceFlow.nextCardUntouched = JSON.stringify(memory[cardKey(firstNextIndex)] || null) === nextMemoryBefore;
+
+              pickStamp('fast');
+              await waitFor(() => pos === 1 && visible('card'));
+              await waitFor(() => !document.getElementById('show').disabled);
+              commitUndoWindow();
+              showTracing();
+              await waitFor(() => visible('traceActions'));
+              result.practiceFlow.traceModeVisible = visible('traceActions') && !visible('actions');
+              result.practiceFlow.traceRequiresInk = document.getElementById('traceDone').disabled && !document.getElementById('traceMiss').disabled;
+              if (dispatchStroke) {
+                dispatchStroke();
+                await new Promise(resolve => setTimeout(resolve, 340));
+              }
+              result.practiceFlow.traceReadyAfterInk = tracedThisCard === true && !document.getElementById('traceDone').disabled;
+              finishTracing('hinted');
+              await waitFor(() => pos === 2 && visible('card'));
+              const tracedStat = roundStats[roundStats.length - 1] || {};
+              const tracedMemory = memory[cardKey(tracedStat.idx)] || {};
+              result.practiceFlow.traceRecorded = tracedStat.outcome === 'hinted' && tracedStat.traced === true && tracedMemory.traced === true;
+              result.practiceFlow.activityRecorded = todayStampCount() === activityBefore + 2 && activity.practiceDays.includes(today());
+              const storedSession = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null');
+              result.practiceFlow.sessionSnapshotStored = !!storedSession && storedSession.pos === 2 && storedSession.roundStats.length === 2;
 
               if (typeof openExitSheet === 'function' && typeof exitCurrentRound === 'function') {
                 result.exitFlow.roundStatsBeforeExit = roundStats.length;
@@ -439,6 +521,15 @@ final class WebViewController: UIViewController {
                 result.exitFlow.footVisible = visible('foot');
                 result.exitFlow.roundStatsAfterExit = roundStats.length;
                 result.exitFlow.roundStatsUnchanged = result.exitFlow.roundStatsAfterExit === result.exitFlow.roundStatsBeforeExit;
+                const resume = resumableSession();
+                result.practiceFlow.resumeHomeState = !!resume && document.getElementById('startBtn').textContent === '续' && document.getElementById('startCap').textContent.includes('继续');
+                restoreSession(resume);
+                await waitFor(() => visible('card') && pos === 2);
+                result.practiceFlow.resumeRestored = roundStats.length === 2 && document.getElementById('posLabel').textContent.includes('3');
+                openExitSheet();
+                await waitFor(() => document.getElementById('exitSheet').classList.contains('open'));
+                exitCurrentRound();
+                await waitFor(() => visible('home'));
               }
             }
           } catch (error) {
@@ -481,6 +572,10 @@ final class WebViewController: UIViewController {
         }
 
         let activity = UIActivityViewController(activityItems: [fileURL], applicationActivities: nil)
+        activity.completionWithItemsHandler = { [weak self] _, completed, _, _ in
+            guard completed else { return }
+            self?.webView.evaluateJavaScript("if (typeof markBackupExported === 'function') markBackupExported(); void 0;")
+        }
         if let popover = activity.popoverPresentationController {
             popover.sourceView = view
             popover.sourceRect = CGRect(x: view.bounds.midX, y: view.bounds.midY, width: 1, height: 1)

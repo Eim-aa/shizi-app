@@ -1471,7 +1471,7 @@ function showRevealState(verdict,inkUrl){
 function revealAnswer(done){
   if(revealed || Date.now()<actionCooldownUntil) return false; commitUndoWindow();
   const noData=!writer||!totalStrokes; // 离线未缓存/加载失败：右格用系统楷体兜底
-  const verdict=(done && !noData)?autoCheckInk():null;
+  const verdict=(done && !tracing && !noData)?autoCheckInk():null;
   if(verdict) paintInkStrokes(verdict.failed, cssVar('--accent',"#c2452c"));
   let inkUrl=null; if(inkStrokes.length){ try{ inkUrl=inkCanvas.toDataURL(); }catch(e){} }
   showRevealState(verdict,inkUrl); return true;
@@ -1653,13 +1653,14 @@ $("addInput").onkeydown=e=>{ if(e.key==="Enter" && !e.isComposing && !$("addConf
 $("addSheet").onclick=e=>{ if(e.target===$("addSheet")) closeAddSheet(); };
 
 // ---- 数据备份 / 恢复（localStorage 是唯一存储，换手机或清缓存前先导出）----
+const BACKUP_KEYS=[DECK_KEY,OPEN_KEY,MEMORY_KEY,QUALITY_KEY,PREF_KEY,TUNING_KEY,ACTIVITY_KEY,BACKUP_META_KEY,REMINDER_KEY,TOPIC_KEY,CUSTOM_KEY,ADDED_KEY];
 function backupAgeDays(){ const ts=Number(backupMeta.lastExportAt)||0; return ts?Math.max(0,Math.floor((Date.now()-ts)/86400000)):Number.POSITIVE_INFINITY; }
 function backupRelativeText(){ const days=backupAgeDays(); if(!Number.isFinite(days)) return "从未备份"; if(days===0) return "上次备份 · 今天"; if(days===1) return "上次备份 · 昨天"; return `上次备份 · ${days} 天前`; }
 function renderBackupUI(){ $("backupStatus").textContent=backupRelativeText(); const needs=memoryCount()>=100 && backupAgeDays()>=14;
   $("backupReminder").style.display=needs?"flex":"none"; $("backupReminderCopy").textContent=Number.isFinite(backupAgeDays())?`已有 ${memoryCount()} 个字，建议每两周导出一份。`:`已经练了 ${memoryCount()} 个字，建议现在导出第一份。`; }
 function markBackupExported(ts=Date.now()){ backupMeta={lastExportAt:Number(ts)||Date.now()}; save(BACKUP_META_KEY,backupMeta);
   if($("mePanel").style.display==="flex") renderBackupUI(); }
-function backupPayload(){ const data={}, exportedAt=Date.now(); for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k && k.indexOf("shizi.")===0) data[k]=localStorage.getItem(k); }
+function backupPayload(){ const data={}, exportedAt=Date.now(); BACKUP_KEYS.forEach(k=>{ const value=localStorage.getItem(k); if(value!==null) data[k]=value; });
   data[BACKUP_META_KEY]=JSON.stringify({lastExportAt:exportedAt});
   return JSON.stringify({app:"shizi", version:1, date:new Date(exportedAt).toISOString(), data}, null, 1); }
 async function exportBackup(){ const payload=backupPayload(), name=`shizi-backup-${today()}.json`;
@@ -1673,9 +1674,9 @@ async function exportBackup(){ const payload=backupPayload(), name=`shizi-backup
   a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),4000); markBackupExported(); toast("备份已下载"); }
 function restoreBackupPayload(payload, opts){ const options=opts||{}, obj=typeof payload==="string"?JSON.parse(payload):payload;
   if(!obj || obj.app!=="shizi" || !obj.data || typeof obj.data!=="object") throw new Error("format");
-  const keys=Object.keys(obj.data).filter(k=>k.indexOf("shizi.")===0); if(!keys.length) throw new Error("empty");
+  const keys=Object.keys(obj.data).filter(k=>BACKUP_KEYS.includes(k)); if(!keys.length) throw new Error("empty");
   if(!options.skipConfirm && !confirm(`用这份备份（${String(obj.date||"未知日期").slice(0,10)}）覆盖当前记录？`)) return {applied:false, keys};
-  for(let i=localStorage.length-1;i>=0;i--){ const k=localStorage.key(i); if(k && k.indexOf("shizi.")===0) localStorage.removeItem(k); }
+  BACKUP_KEYS.forEach(k=>localStorage.removeItem(k)); removeStored(SESSION_KEY);
   keys.forEach(k=>localStorage.setItem(k, String(obj.data[k])));
   if(options.reload!==false) location.reload();
   return {applied:true, keys};

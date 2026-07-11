@@ -32,7 +32,8 @@
     background:var(--bg); -webkit-font-smoothing:antialiased; }
   .wrap{ width:min(100%,430px); min-height:100svh; margin:0 auto; display:flex; flex-direction:column;
     padding:calc(10px + env(safe-area-inset-top)) 0 0; }
-  button{ font-family:var(--sans); border:0; background:none; color:inherit; cursor:pointer; padding:0; }
+  button{ font-family:var(--sans); border:0; background:none; color:inherit; cursor:pointer; padding:0; touch-action:manipulation; }
+  .tab{ touch-action:manipulation; }
   button:active{ transform:scale(.97); }
   button:disabled{ opacity:.45; }
   .tlock{ opacity:.35 !important; pointer-events:none; }
@@ -708,7 +709,7 @@ function dailyActivity(key=today()){ const row=activity.daily[key] && typeof act
   row.completedGroups=row.completedRoundIds.length; activity.daily[key]=row; return row; }
 function markPracticeStamp(){ const key=today(), row=dailyActivity(key); row.stamps++; row.lastStampAt=Date.now();
   if(!activity.practiceDays.includes(key)) activity.practiceDays.push(key); activity.practiceDays.sort(); saveActivity(); }
-function markRoundComplete(){ if(roundStats.length<BATCH) return false; const row=dailyActivity();
+function markRoundComplete(){ if(!batch.length || roundStats.length<batch.length) return false; const row=dailyActivity();
   if(!row.completedRoundIds.includes(roundId)){ row.completedRoundIds.push(roundId); row.completedGroups=row.completedRoundIds.length; row.firstCompletedAt=row.firstCompletedAt||Date.now(); saveActivity(); }
   return true; }
 function todayStampCount(){ return dailyActivity().stamps; }
@@ -918,7 +919,7 @@ let pendingRepeat=false;
 function recordOutcome(outcome){ const idx=batch[pos], c=CARDS[idx], m=cardMemory(idx), now=Date.now();
   const hard=outcome==="miss" || outcome==="hinted" || outcome==="slow";
   m.seen=(m.seen||0)+1; m.last=now; m.lastOutcome=outcome; m.lastHints=hintsUsedThisCard;
-  m.traced=!!tracedThisCard; m.lastTraced=m.traced;
+  m.traced=!!tracedThisCard;
   const sys=suggestedOutcomeForVerdict(lastVerdict);
   m.lastSystemSuggestion=sys||""; m.lastSystemStatus=lastVerdict?lastVerdict.status:"none"; m.lastSystemAgree=sys?sys===outcome:null;
   m.topic=c.topic; m.level=c.level; m.word=c.word; m.target=c.target;

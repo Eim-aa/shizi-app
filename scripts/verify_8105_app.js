@@ -82,6 +82,35 @@ async function expectHidden(page, selector, label) {
   }
   await expectHidden(page, "#foot", "bottom nav on welcome");
 
+  await page.evaluate(() => {
+    save(OPEN_KEY, [shiftDay(today(), -3), shiftDay(today(), -2), shiftDay(today(), -1), today()]);
+    localStorage.removeItem(ACTIVITY_KEY);
+  });
+  await page.reload({ waitUntil: "networkidle" });
+  const streakMigration = await page.evaluate(() => {
+    const inherited = activity.inheritedStreak;
+    const beforeStamp = streakDays();
+    markPracticeStamp();
+    const afterStamp = streakDays();
+    activity = normalizeActivity({
+      version: 1,
+      migrationDate: shiftDay(today(), -2),
+      inheritedStreak: 3,
+      practiceDays: [today()],
+      daily: {},
+    });
+    const afterBrokenBridge = streakDays();
+    return { inherited, beforeStamp, afterStamp, afterBrokenBridge };
+  });
+  if (streakMigration.inherited !== 3 || streakMigration.beforeStamp !== 3 || streakMigration.afterStamp !== 4 || streakMigration.afterBrokenBridge !== 1) {
+    throw new Error(`Expected legacy streak migration to bridge only adjacent practice days, got ${JSON.stringify(streakMigration)}`);
+  }
+  await page.evaluate(() => {
+    localStorage.removeItem(OPEN_KEY);
+    localStorage.removeItem(ACTIVITY_KEY);
+  });
+  await page.reload({ waitUntil: "networkidle" });
+
   await page.click("#welcomeStart");
   await page.waitForFunction(() => batch.length === 15 && getComputedStyle(document.getElementById("card")).display !== "none");
   await page.waitForFunction(() => !document.getElementById("show").disabled && !document.getElementById("done").disabled);
@@ -101,12 +130,14 @@ async function expectHidden(page, selector, label) {
     tipText: document.getElementById("tip").textContent,
     showText: document.getElementById("show").textContent,
     doneText: document.getElementById("done").textContent,
+    doneTouchAction: getComputedStyle(document.getElementById("done")).touchAction,
+    tabTouchAction: getComputedStyle(document.getElementById("tabPractice")).touchAction,
     hasModebar: !!document.getElementById("modebar"),
   }));
   if (practice.activeMode !== "calibrate" || practice.batchSize !== 15 || practice.beadCount !== 15 || practice.hasElementary || practice.hasFallback) {
     throw new Error(`Expected first run to be a 15-card adult calibration batch, got ${JSON.stringify(practice)}`);
   }
-  if (!practice.hint.includes("起始难度") || !practice.posLabel.includes("1/15") || practice.tipText.indexOf("笔顺提示") < 0 || practice.showText !== "看答案" || practice.doneText !== "写好了") {
+  if (!practice.hint.includes("起始难度") || !practice.posLabel.includes("1/15") || practice.tipText.indexOf("笔顺提示") < 0 || practice.showText !== "看答案" || practice.doneText !== "写好了" || practice.doneTouchAction !== "manipulation" || practice.tabTouchAction !== "manipulation") {
     throw new Error(`Expected new practice copy and controls, got ${JSON.stringify(practice)}`);
   }
   if (practice.hasModebar) {
@@ -234,6 +265,34 @@ async function expectHidden(page, selector, label) {
   if (!home.title.includes("今天拾十五个字") || !home.startCap.includes("15 字") || home.startDisabled || home.activeTab !== "tabPractice") {
     throw new Error(`Expected launcher home state, got ${JSON.stringify(home)}`);
   }
+
+  const shortRound = await page.evaluate(() => {
+    activity = newActivity();
+    activity.inheritedStreak = 0;
+    batch = allIndexes().slice(0, 5);
+    roundStats = batch.map((idx) => ({ idx, target: CARDS[idx].target, outcome: "fast" }));
+    roundId = "verify-short-round";
+    roundStats.forEach(() => markPracticeStamp());
+    const completed = markRoundComplete();
+    renderHome();
+    return {
+      completed,
+      groups: dailyActivity().completedGroups,
+      stamps: todayStampCount(),
+      title: document.getElementById("homeTitle").textContent.replace(/\s+/g, ""),
+    };
+  });
+  if (!shortRound.completed || shortRound.groups !== 1 || shortRound.stamps !== 5 || !shortRound.title.includes("今日已拾5个字")) {
+    throw new Error(`Expected a completed short group to establish today's completion state, got ${JSON.stringify(shortRound)}`);
+  }
+  await page.evaluate(() => {
+    activity = newActivity();
+    activity.inheritedStreak = 0;
+    saveActivity();
+    batch = [];
+    roundStats = [];
+    renderHome();
+  });
 
   await page.click("#startBtn");
   await page.waitForFunction(() => batch.length === 15 && getComputedStyle(document.getElementById("card")).display !== "none");
@@ -543,7 +602,7 @@ async function expectHidden(page, selector, label) {
   if (pageErrors.length) {
     throw new Error(`Browser reported errors: ${pageErrors.join(" | ")}`);
   }
-  console.log(JSON.stringify({ initial, practice, adaptive, home, traceBefore, traceReady, traced, reveal, stamped, add, book, review, summary, tuningCheck, focus, me, profile, devTools, devData, devAudit, algorithm, screenshotPath }, null, 2));
+  console.log(JSON.stringify({ initial, streakMigration, practice, adaptive, home, shortRound, traceBefore, traceReady, traced, reveal, stamped, add, book, review, summary, tuningCheck, focus, me, profile, devTools, devData, devAudit, algorithm, screenshotPath }, null, 2));
   await browser.close();
 })().catch(async (err) => {
   console.error(err);

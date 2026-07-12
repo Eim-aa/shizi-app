@@ -417,7 +417,7 @@
   <div class="home" id="home" data-screen-label="首页">
     <div class="homeTop">
       <div class="brandRow"><div class="brandStamp">拾</div><div class="brandName">拾字</div></div>
-      <div class="streakChip"><i></i><span id="streakChip">连续拾了 1 天</span></div>
+      <div class="streakChip"><i></i><span id="streakChip">今天开始拾字</span></div>
     </div>
     <div class="homeMain">
       <div>
@@ -729,8 +729,8 @@ function markRoundComplete(){ if(!batch.length || roundStats.length<batch.length
 function todayStampCount(){ return dailyActivity().stamps; }
 function todayCompleted(){ return dailyActivity().completedGroups>0; }
 // 累计练习日：历史继承 + 完成过至少一整组的日子。加练不重复计，只增不减。
-function totalPracticeDays(){ const completed=Object.keys(activity.daily).filter(k=>/^\d{4}-\d{2}-\d{2}$/.test(k) && Array.isArray((activity.daily[k]||{}).completedRoundIds) && activity.daily[k].completedRoundIds.length>0).length;
-  return activity.inheritedTotalDays+completed; }
+function completedDayCount(){ return Object.keys(activity.daily).filter(k=>/^\d{4}-\d{2}-\d{2}$/.test(k) && Array.isArray((activity.daily[k]||{}).completedRoundIds) && activity.daily[k].completedRoundIds.length>0).length; }
+function totalPracticeDays(){ return activity.inheritedTotalDays+completedDayCount(); }
 // 习惯练习时刻：最近 14 个练习日 lastStampAt 的中位时刻，钳制 07:00–22:00；样本不足 3 天默认 20:00
 function medianPracticeTime(){ const mins=activity.practiceDays.slice(-14).map(k=>Number((activity.daily[k]||{}).lastStampAt)||0).filter(t=>t>0)
     .map(t=>{ const d=new Date(t); return d.getHours()*60+d.getMinutes(); }).sort((a,b)=>a-b);
@@ -760,17 +760,22 @@ function shiziReminderStatus(result){ const p=result && result.permission;
   reminder.permission=["granted","denied"].includes(p)?p:"unknown";
   if(reminder.permission==="granted" && reminderPendingEnable) reminder.enabled=true;
   reminderPendingEnable=false; saveReminder(); syncReminder(); renderReminderUI(); }
-function reminderStatusText(){ if(reminder.permission==="denied") return "需要在系统设置里允许通知";
+function reminderStatusText(){
+  // 换机恢复：enabled=true 但本机从未请求过授权（unknown）——系统设置里根本没有本 App，正确动作是轻点重新请求
+  if(reminder.enabled && reminder.permission==="unknown") return "轻点完成开启";
+  if(reminder.permission==="denied") return "需要在系统设置里允许通知";
   if(!reminder.enabled) return "关";
-  if(reminder.permission!=="granted") return "需要在系统设置里允许通知";
   const t=medianPracticeTime(); return `每天 ${String(t.hour).padStart(2,"0")}:${String(t.minute).padStart(2,"0")}`; }
 function renderReminderUI(){ if(!$("reminderSection")) return; const supported=reminderBridgeAvailable();
   $("reminderSection").style.display=supported?"block":"none";
   if(!supported) return;
   $("reminderStatus").textContent=reminderStatusText(); $("reminderState").textContent=reminder.enabled?"关闭":"开启";
-  const invite=!reminder.enabled && !reminder.promptDismissed && reminder.permission!=="denied" && totalPracticeDays()>=1;
+  // 邀请卡门槛用「迁移后真实完成日」而非累计总数：老用户继承的历史天数不触发弹卡
+  const invite=!reminder.enabled && !reminder.promptDismissed && reminder.permission!=="denied" && completedDayCount()>=1;
   $("reminderInvite").style.display=invite?"flex":"none"; }
-function toggleReminder(){ if(reminder.enabled){ reminder.enabled=false; saveReminder(); syncReminder(); renderReminderUI(); toast("练习提醒已关闭"); return; }
+function toggleReminder(){
+  if(reminder.enabled && reminder.permission==="unknown"){ reminderPendingEnable=true; requestReminderPermission(); return; }
+  if(reminder.enabled){ reminder.enabled=false; saveReminder(); syncReminder(); renderReminderUI(); toast("练习提醒已关闭"); return; }
   if(reminder.permission==="granted"){ reminder.enabled=true; saveReminder(); syncReminder(); renderReminderUI(); toast("练习提醒已开启"); return; }
   if(reminder.permission==="denied"){ toast("请在 系统设置 → 通知 → 拾字 里允许通知"); return; }
   reminderPendingEnable=true; requestReminderPermission(); }

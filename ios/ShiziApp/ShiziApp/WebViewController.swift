@@ -9,6 +9,7 @@ final class WebViewController: UIViewController {
     private let schemeHandler: LocalWebSchemeHandler
     private var webView: WKWebView!
     private var nativeSmokeDidRun = false
+    private var reminderSyncGeneration = 0
 
     init() {
         guard let webRoot = Bundle.main.url(forResource: "Web", withExtension: nil) else {
@@ -375,7 +376,7 @@ final class WebViewController: UIViewController {
               result.dataFlow.nativeBridgeAvailable = !!(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.shiziNative);
               result.dataFlow.nativeImportAvailable = result.dataFlow.nativeBridgeAvailable && typeof requestBackupImport === 'function';
               result.dataFlow.nativeConfirmAvailable = window.confirm('\(Self.nativeSmokeConfirmMessage)') === true;
-              result.dataFlow.reminderStateAvailable = typeof reminder === 'object' && reminder.enabled === false && typeof totalPracticeDays === 'function' && Number.isInteger(totalPracticeDays());
+              result.dataFlow.reminderStateAvailable = typeof reminder === 'object' && typeof reminder.enabled === 'boolean' && typeof totalPracticeDays === 'function' && Number.isInteger(totalPracticeDays());
               result.dataFlow.reminderSettingsRowVisible = getComputedStyle(document.getElementById('reminderSection')).display !== 'none' && getComputedStyle(document.getElementById('reminderRow')).display !== 'none';
             }
 
@@ -803,38 +804,53 @@ extension WebViewController {
         let hour = (body["hour"] as? NSNumber)?.intValue ?? 20
         let minute = (body["minute"] as? NSNumber)?.intValue ?? 0
         let practicedToday = body["practicedToday"] as? Bool ?? false
+        // 世代号防并发交错：快速开关时旧一轮的 remove/schedule 全部作废，只让最新一轮落地
+        reminderSyncGeneration += 1
+        let generation = reminderSyncGeneration
         let center = UNUserNotificationCenter.current()
-        center.getPendingNotificationRequests { requests in
-            let ours = requests.map(\.identifier).filter { $0.hasPrefix(Self.reminderIdentifierPrefix) }
-            center.removePendingNotificationRequests(withIdentifiers: ours)
-            guard enabled else { return }
-            center.getNotificationSettings { settings in
-                // web 侧的 permission 可能来自换机恢复的备份，调度前以本机授权状态为准
-                guard settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional else { return }
-                Self.scheduleReminderWindow(hour: hour, minute: minute, practicedToday: practicedToday)
+        center.getPendingNotificationRequests { [weak self] requests in
+            DispatchQueue.main.async {
+                guard let self, generation == self.reminderSyncGeneration else { return }
+                let ours = requests.map(\.identifier).filter { $0.hasPrefix(Self.reminderIdentifierPrefix) }
+                center.removePendingNotificationRequests(withIdentifiers: ours)
+                guard enabled else { return }
+                center.getNotificationSettings { settings in
+                    DispatchQueue.main.async {
+                        guard generation == self.reminderSyncGeneration else { return }
+                        // web 侧的 permission 可能来自换机恢复的备份，调度前以本机授权状态为准
+                        guard settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional else { return }
+                        Self.scheduleReminderWindow(hour: hour, minute: minute, practicedToday: practicedToday)
+                    }
+                }
             }
         }
     }
 
-    // 只预约未来 7 天：用户 7 天不打开 App 就自然停发（第 7 条用告别文案），打开即重置窗口
+    // 窗口语义：每次同步总是预约接下来的 7 条（今天不可发就顺延到第 8 个自然日），
+    // 最后一条固定为告别文案 —— 用户 7 条内不打开 App 即自然停发，打开即重置窗口
     private static func scheduleReminderWindow(hour: Int, minute: Int, practicedToday: Bool) {
         let calendar = Calendar.current
         let now = Date()
         let center = UNUserNotificationCenter.current()
         let formatter = DateFormatter()
-        formatter.calendar = calendar
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.dateFormat = "yyyy-MM-dd"
-        for offset in 0..<reminderWindowDays {
+        var scheduled = 0
+        for offset in 0...reminderWindowDays {
+            if scheduled == reminderWindowDays { break }
             guard
                 let day = calendar.date(byAdding: .day, value: offset, to: now),
                 let fireDate = calendar.date(bySettingHour: hour, minute: minute, second: 0, of: day)
             else { continue }
             if offset == 0 && (practicedToday || fireDate <= now) { continue }
+            scheduled += 1
             let content = UNMutableNotificationContent()
             content.title = ReminderCopy.title
-            content.body = offset == reminderWindowDays - 1
+            content.sound = .default
+            content.body = scheduled == reminderWindowDays
                 ? ReminderCopy.farewell
-                : ReminderCopy.bodies[offset % ReminderCopy.bodies.count]
+                : ReminderCopy.bodies[(scheduled - 1) % ReminderCopy.bodies.count]
             let components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: fireDate)
             let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
             let identifier = reminderIdentifierPrefix + formatter.string(from: fireDate)

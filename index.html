@@ -746,6 +746,10 @@ function normalizeReminder(raw){ const r=raw && typeof raw==="object"?raw:{};
 let reminder=normalizeReminder(load(REMINDER_KEY,null)); save(REMINDER_KEY,reminder);
 let reminderPendingEnable=false;
 const reminderDebug={lastSync:null};
+// ---- 触觉反馈（iOS 壳内；只做盖章/撤章/里程碑三个触发点，浏览器/PWA no-op，仅记录供断言）----
+const hapticDebug={last:null};
+function hapticFeedback(kind){ hapticDebug.last=kind;
+  if(reminderBridgeAvailable()) window.webkit.messageHandlers.shiziNative.postMessage({type:"haptic", kind}); }
 function saveReminder(){ save(REMINDER_KEY,reminder); }
 function reminderBridgeAvailable(){ return !!(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.shiziNative); }
 // 唯一的调度入口。已练静默的门槛=盖第一章；累计 +1 的门槛=完成一组，两者刻意不同。
@@ -1495,14 +1499,14 @@ $("replayBtn").onclick=()=>{ if(replaying || !window.HanziWriter) return; replay
   try{ w.animateCharacter({ onComplete:()=>{ replaying=false; } }); }catch(e){ replaying=false; $("rightGlyph").style.opacity="1"; } };
 function reopenStampChoices(){ if(!lastStampSnapshot) return;
   const snap=lastStampSnapshot; clearTimeout(autoNextTimer); clearTimeout(editStampTimer); hideUndoBar(false); lastStampSnapshot=null;
-  restoreStampSnapshot(snap); stamped=false; pendingRepeat=false; render(); restoreRevealFromSnapshot(snap.revealState); renderBeads(); }
+  restoreStampSnapshot(snap); stamped=false; pendingRepeat=false; render(); restoreRevealFromSnapshot(snap.revealState); renderBeads(); hapticFeedback("undo"); }
 // 盖章：按下去 = 这个字的去向定了。前三枚章进字盒，「回炉」放回口袋
 function pickStamp(outcome){ if(stamped || !revealed) return; stamped=true;
   lastStampSnapshot=takeStampSnapshot();
   const firstCalibrationHold=activeMode==="calibrate" && pos===0 && !calibrationFirstHoldUsed;
   if(firstCalibrationHold) calibrationFirstHoldUsed=true;
   recordOutcome(outcome);
-  lastStampSnapshot.outcome=outcome; saveSessionSnapshot();
+  lastStampSnapshot.outcome=outcome; saveSessionSnapshot(); hapticFeedback("stamp");
   const ui=GRADE_UI[outcome], m=memory[cardKey(batch[pos])]||{};
   const st=$("stampOnMine"), face=st.querySelector(".face"), ring=st.querySelector(".ring");
   const solid={fast:"var(--accent)",hinted:"var(--gold)",slow:"var(--blue)"}[outcome];
@@ -1543,7 +1547,7 @@ function startRound(){ const p=availablePool(); if(p.length===0){ clearSessionSn
 function sumTile(s,i){ const isMiss=s.outcome==="miss";
   return `<button class="sumTile ${isMiss?"miss":""}" data-idx="${s.idx}" style="transform:rotate(${ROTS[i%ROTS.length]}deg); animation-delay:${(i*0.05).toFixed(2)}s">${s.target}<span class="dot" style="background:${OUTCOME_DOT[s.outcome]}"></span></button>`; }
 function roundSummary(){ clearSessionSnapshot(); markRoundComplete(); const milestone=celebrateMilestoneIfAny(); displayView("summary");
-  $("milestoneLine").style.display=milestone?"block":"none"; if(milestone) $("milestoneLine").textContent=MILESTONE_COPY[milestone];
+  $("milestoneLine").style.display=milestone?"block":"none"; if(milestone){ $("milestoneLine").textContent=MILESTONE_COPY[milestone]; hapticFeedback("milestone"); }
   const wasCalibration=activeMode==="calibrate", calibrationNote=maybeFinishCalibration(), remain=availablePool().length;
   const counts=roundCounts(), hardN=(counts.hinted||0)+(counts.miss||0)+(counts.slow||0), keptN=roundStats.length-hardN, dayTotal=todayStampCount(), completedGroups=dailyActivity().completedGroups;
   $("calibCard").style.display=wasCalibration?"flex":"none"; $("calibCard").style.flexDirection="column"; $("calibCard").style.flex="1";

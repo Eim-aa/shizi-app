@@ -367,8 +367,9 @@ async function expectHidden(page, selector, label) {
     todayStamps: todayStampCount(),
     undoVisible: getComputedStyle(document.getElementById("undoBar")).display !== "none",
     session: load(SESSION_KEY, null),
+    haptic: hapticDebug.last,
   }));
-  if (traced.outcome !== "hinted" || !traced.traced || !traced.memoryTraced || traced.todayStamps !== 1 || !traced.undoVisible || traced.session?.pos !== 1) {
+  if (traced.outcome !== "hinted" || !traced.traced || !traced.memoryTraced || traced.todayStamps !== 1 || !traced.undoVisible || traced.session?.pos !== 1 || traced.haptic !== "stamp") {
     throw new Error(`Expected traced marker, activity and session snapshot, got ${JSON.stringify(traced)}`);
   }
   await page.click("#undoLast");
@@ -380,8 +381,9 @@ async function expectHidden(page, selector, label) {
     note: document.getElementById("stampNote").textContent,
     qualityVisible: getComputedStyle(document.getElementById("qualityBox")).display !== "none",
     rollback: { memory: Object.keys(memory).length, stats: roundStats.length, todayStamps: todayStampCount(), nextUntouched: memory[nextKey] == null },
+    haptic: hapticDebug.last,
   }), nextKeyBefore);
-  if (!reveal.revealWord.includes(firstTarget) || !reveal.funcFirst || reveal.stampLabels.join(",") !== "会写/拾到,看提示写出/补拾,写错了/差点,不会写/回炉" || !reveal.note.includes("回炉") || !reveal.qualityVisible || reveal.rollback.memory !== 0 || reveal.rollback.stats !== 0 || reveal.rollback.todayStamps !== 0 || !reveal.rollback.nextUntouched) {
+  if (!reveal.revealWord.includes(firstTarget) || !reveal.funcFirst || reveal.stampLabels.join(",") !== "会写/拾到,看提示写出/补拾,写错了/差点,不会写/回炉" || !reveal.note.includes("回炉") || !reveal.qualityVisible || reveal.rollback.memory !== 0 || reveal.rollback.stats !== 0 || reveal.rollback.todayStamps !== 0 || !reveal.rollback.nextUntouched || reveal.haptic !== "undo") {
     throw new Error(`Expected designer reveal and stamp self-assessment, got ${JSON.stringify(reveal)}`);
   }
 

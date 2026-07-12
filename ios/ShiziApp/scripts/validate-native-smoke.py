@@ -145,6 +145,8 @@ checks = {
     and practice.get("resumeHomeState") is True
     and practice.get("resumeRestored") is True,
     "reminderSync": practice.get("reminderSyncAfterStamp") is True,
+    "haptics": practice.get("hapticStampRecorded") is True
+    and practice.get("hapticUndoRecorded") is True,
     "practiceNext": practice.get("posLabelAfter") != practice.get("posLabelBefore"),
     "exitSheet": exit_flow.get("sheetOpened") is True,
     "exitHome": exit_flow.get("returnedHome") is True

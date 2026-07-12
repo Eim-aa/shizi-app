@@ -10,6 +10,9 @@ final class WebViewController: UIViewController {
     private var webView: WKWebView!
     private var nativeSmokeDidRun = false
     private var reminderSyncGeneration = 0
+    private lazy var stampHaptic = UIImpactFeedbackGenerator(style: .medium)
+    private lazy var undoHaptic = UIImpactFeedbackGenerator(style: .light)
+    private lazy var milestoneHaptic = UINotificationFeedbackGenerator()
 
     init() {
         guard let webRoot = Bundle.main.url(forResource: "Web", withExtension: nil) else {
@@ -217,6 +220,8 @@ final class WebViewController: UIViewController {
               resumeHomeState: false,
               resumeRestored: false,
               reminderSyncAfterStamp: false,
+              hapticStampRecorded: false,
+              hapticUndoRecorded: false,
               outcome: '',
               posLabelBefore: '',
               posLabelAfter: ''
@@ -486,12 +491,14 @@ final class WebViewController: UIViewController {
               result.practiceFlow.immediateAdvanced = true;
               result.practiceFlow.undoBarFollowed = visible('undoBar');
               result.practiceFlow.reminderSyncAfterStamp = !!(reminderDebug.lastSync && reminderDebug.lastSync.type === 'syncReminder' && reminderDebug.lastSync.practicedToday === true);
+              result.practiceFlow.hapticStampRecorded = hapticDebug.last === 'stamp';
               result.practiceFlow.outcome = roundStats.length ? roundStats[roundStats.length - 1].outcome : '';
               result.practiceFlow.posLabelAfter = document.getElementById('posLabel').textContent;
               reopenStampChoices();
               await waitFor(() => pos === 0 && visible('reveal'));
               result.practiceFlow.undoRollback = roundStats.length === 0 && JSON.stringify(memory[firstKey] || null) === firstMemoryBefore && status[firstIndex] === firstStatusBefore;
               result.practiceFlow.undoActivityRollback = todayStampCount() === activityBefore;
+              result.practiceFlow.hapticUndoRecorded = hapticDebug.last === 'undo';
               result.practiceFlow.nextCardUntouched = JSON.stringify(memory[cardKey(firstNextIndex)] || null) === nextMemoryBefore;
 
               pickStamp('fast');
@@ -776,12 +783,33 @@ extension WebViewController: WKScriptMessageHandler {
         case "nativeSmokeResult":
             let payload = body["payload"] as? String ?? #"{"error":"Missing native smoke payload"}"#
             writeNativeSmokeResult(payload)
+        case "haptic":
+            playHaptic(kind: body["kind"] as? String ?? "")
         case "syncReminder":
             syncReminder(body: body)
         case "requestReminderPermission":
             requestReminderPermission()
         case "queryReminderStatus":
             sendReminderStatus()
+        default:
+            break
+        }
+    }
+}
+
+// MARK: - 触觉反馈：只响应 web 下发的三种 kind，未知值忽略；触发后 prepare() 备好下一次以压低连续盖章时延
+extension WebViewController {
+    private func playHaptic(kind: String) {
+        switch kind {
+        case "stamp":
+            stampHaptic.impactOccurred()
+            stampHaptic.prepare()
+        case "undo":
+            undoHaptic.impactOccurred()
+            undoHaptic.prepare()
+        case "milestone":
+            milestoneHaptic.notificationOccurred(.success)
+            milestoneHaptic.prepare()
         default:
             break
         }

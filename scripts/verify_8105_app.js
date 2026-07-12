@@ -85,29 +85,60 @@ async function expectHidden(page, selector, label) {
   await page.evaluate(() => {
     save(OPEN_KEY, [shiftDay(today(), -3), shiftDay(today(), -2), shiftDay(today(), -1), today()]);
     localStorage.removeItem(ACTIVITY_KEY);
+    localStorage.removeItem(REMINDER_KEY);
   });
   await page.reload({ waitUntil: "networkidle" });
+  // 累计口径迁移：迁移日前的 opens 全额继承；盖章不加天、完成一组 +1；同日第二组不重复计
   const streakMigration = await page.evaluate(() => {
-    const inherited = activity.inheritedStreak;
-    const beforeStamp = streakDays();
+    const inherited = activity.inheritedTotalDays;
+    const beforeComplete = totalPracticeDays();
     markPracticeStamp();
-    const afterStamp = streakDays();
-    activity = normalizeActivity({
-      version: 1,
-      migrationDate: shiftDay(today(), -2),
-      inheritedStreak: 3,
-      practiceDays: [today()],
-      daily: {},
-    });
-    const afterBrokenBridge = streakDays();
-    return { inherited, beforeStamp, afterStamp, afterBrokenBridge };
+    const stampedOnly = totalPracticeDays();
+    const runFakeRound = (id, from, to) => {
+      batch = allIndexes().slice(from, to);
+      roundStats = batch.map((idx) => ({ idx, target: CARDS[idx].target, outcome: "fast" }));
+      roundId = id;
+      roundStats.forEach(() => markPracticeStamp());
+      markRoundComplete();
+    };
+    runFakeRound("verify-migration-round-1", 0, 3);
+    const afterComplete = totalPracticeDays();
+    runFakeRound("verify-migration-round-2", 3, 6);
+    const afterSecondSameDay = totalPracticeDays();
+    return { inherited, beforeComplete, stampedOnly, afterComplete, afterSecondSameDay };
   });
-  if (streakMigration.inherited !== 3 || streakMigration.beforeStamp !== 3 || streakMigration.afterStamp !== 4 || streakMigration.afterBrokenBridge !== 1) {
-    throw new Error(`Expected legacy streak migration to bridge only adjacent practice days, got ${JSON.stringify(streakMigration)}`);
+  if (streakMigration.inherited !== 3 || streakMigration.beforeComplete !== 3 || streakMigration.stampedOnly !== 3
+    || streakMigration.afterComplete !== 4 || streakMigration.afterSecondSameDay !== 4) {
+    throw new Error(`Expected cumulative practice-day migration, got ${JSON.stringify(streakMigration)}`);
+  }
+  // medianPracticeTime 边界 + 浏览器（无桥）下提醒 UI 隐藏
+  const reminderChecks = await page.evaluate(() => {
+    activity = newActivity();
+    activity.daily = {}; activity.practiceDays = [];
+    const at = (h, m) => { const d = new Date(); d.setHours(h, m, 0, 0); return d.getTime(); };
+    for (let i = 0; i < 5; i++) {
+      const key = shiftDay(today(), -i);
+      activity.practiceDays.push(key);
+      activity.daily[key] = { stamps: 1, completedRoundIds: [], lastStampAt: at(9, 24) };
+    }
+    activity.practiceDays.sort(); saveActivity();
+    const median = medianPracticeTime();
+    const fewSamples = (() => { const days = activity.practiceDays; activity.practiceDays = days.slice(0, 2); const m = medianPracticeTime(); activity.practiceDays = days; return m.hour === 20 && m.minute === 0; })();
+    const clampLate = (() => { activity.practiceDays.forEach((k) => { activity.daily[k].lastStampAt = at(23, 30); }); const m = medianPracticeTime(); return m.hour === 22 && m.minute === 0; })();
+    if (typeof renderMe === "function") renderMe();
+    const reminderHiddenInBrowser = getComputedStyle(document.getElementById("reminderSection")).display === "none"
+      && getComputedStyle(document.getElementById("reminderInvite")).display === "none";
+    const syncPayload = (() => { syncReminder(); const p = reminderDebug.lastSync; return !!p && p.type === "syncReminder" && p.enabled === false && p.practicedToday === true; })();
+    return { medianHour: median.hour, medianMinute: median.minute, fewSamples, clampLate, reminderHiddenInBrowser, syncPayload };
+  });
+  if (reminderChecks.medianHour !== 9 || reminderChecks.medianMinute !== 24 || !reminderChecks.fewSamples || !reminderChecks.clampLate
+    || !reminderChecks.reminderHiddenInBrowser || !reminderChecks.syncPayload) {
+    throw new Error(`Expected median practice time + browser reminder fallback, got ${JSON.stringify(reminderChecks)}`);
   }
   await page.evaluate(() => {
     localStorage.removeItem(OPEN_KEY);
     localStorage.removeItem(ACTIVITY_KEY);
+    localStorage.removeItem(REMINDER_KEY);
   });
   await page.reload({ waitUntil: "networkidle" });
 
@@ -261,8 +292,9 @@ async function expectHidden(page, selector, label) {
     boxStat: document.getElementById("boxStat").textContent,
     startDisabled: document.getElementById("startBtn").disabled,
     activeTab: document.querySelector(".foot .tab.active")?.id,
+    chip: document.getElementById("streakChip").textContent,
   }));
-  if (!home.title.includes("今天拾十五个字") || !home.startCap.includes("15 字") || home.startDisabled || home.activeTab !== "tabPractice") {
+  if (!home.title.includes("今天拾十五个字") || !home.startCap.includes("15 字") || home.startDisabled || home.activeTab !== "tabPractice" || home.chip !== "今天开始拾字") {
     throw new Error(`Expected launcher home state, got ${JSON.stringify(home)}`);
   }
 
@@ -280,9 +312,10 @@ async function expectHidden(page, selector, label) {
       groups: dailyActivity().completedGroups,
       stamps: todayStampCount(),
       title: document.getElementById("homeTitle").textContent.replace(/\s+/g, ""),
+      chip: document.getElementById("streakChip").textContent,
     };
   });
-  if (!shortRound.completed || shortRound.groups !== 1 || shortRound.stamps !== 5 || !shortRound.title.includes("今日已拾5个字")) {
+  if (!shortRound.completed || shortRound.groups !== 1 || shortRound.stamps !== 5 || !shortRound.title.includes("今日已拾5个字") || !shortRound.chip.includes("拾字第 1 天")) {
     throw new Error(`Expected a completed short group to establish today's completion state, got ${JSON.stringify(shortRound)}`);
   }
   await page.evaluate(() => {
@@ -455,9 +488,14 @@ async function expectHidden(page, selector, label) {
     tuning = { calibrated: true, offset: 0, contextStrict: 0, rounds: [] };
     roundFeedbackGiven = false;
     roundId = "verify-summary";
+    batch = roundStats.map((s) => s.idx); // 对齐完成门槛：roundStats >= batch 才记完成
     saveTuning();
     roundSummary();
     return {
+      milestoneVisible: getComputedStyle(document.getElementById("milestoneLine")).display !== "none",
+      milestoneText: document.getElementById("milestoneLine").textContent,
+      totalDays: totalPracticeDays(),
+      milestonesShown: reminder.milestonesShown.slice(),
       visible: getComputedStyle(document.getElementById("summary")).display !== "none",
       sheetVisible: getComputedStyle(document.getElementById("sumSheet")).display !== "none",
       lead: document.getElementById("sumLead").textContent.replace(/\s+/g, ""),
@@ -471,6 +509,10 @@ async function expectHidden(page, selector, label) {
   });
   if (!summary.visible || !summary.sheetVisible || !summary.lead.includes("放回口袋") || summary.tiles.length !== 3 || !summary.pocketVisible || !summary.pocketTitle.includes("2") || summary.tuneButtons.length !== 4 || summary.stop !== "回首页") {
     throw new Error(`Expected result sheet with pocket review and round feedback, got ${JSON.stringify(summary)}`);
+  }
+  // 首个完成日 = 累计第 1 天里程碑：结算页出现「见字如晤」庆祝行，且只记录一次
+  if (!summary.milestoneVisible || !summary.milestoneText.includes("见字如晤") || summary.totalDays !== 1 || summary.milestonesShown.join(",") !== "1") {
+    throw new Error(`Expected day-1 milestone celebration on first completed day, got ${JSON.stringify(summary)}`);
   }
   await page.click('#roundTune [data-round-feedback="easy"]');
   const tuningCheck = await page.evaluate(() => ({

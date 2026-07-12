@@ -237,8 +237,12 @@ AUTHENTICATION_KEY_ISSUER_ID=00000000-0000-0000-0000-000000000000 \
 ios/ShiziApp/scripts/archive-testflight.sh
 ```
 
+## 练习提醒
+
+「我的 -> 练习提醒」可开启本地通知（默认关，仅 iOS 壳内生效）。开关、习惯时刻和当日已练状态全部由 Web 侧经 `shiziNative` 桥下发（`syncReminder` / `requestReminderPermission` / `queryReminderStatus`），原生侧是无状态执行器：收到同步先清空 `shizi.reminder.*` 待发项，再预约未来 7 天（当天已盖章或时刻已过则跳过今天，第 7 条为告别文案），调度前会以本机通知授权状态为准。授权结果经 `shiziReminderStatus` 回调回 Web。App 前台不弹提醒横幅。
+
 ## 数据保留说明
 
-App 使用 `WKWebsiteDataStore.default()`，Web 侧仍使用 `localStorage` 保存记忆模型、复习调度、练习日、每日完成态和当前组快照。iOS 中「导出备份」调用原生分享面板，只有分享完成才更新上次备份时间；「恢复备份」调用原生 Files 文档选择器。浏览器/PWA 保留下载与 file input fallback。正常 App 更新会保留数据；卸载 App、抹掉设备数据或手动清理 WebKit 网站数据会删除本地记录。换机和长期内测前仍建议在「我的 -> 备份与恢复 -> 导出备份」导出 JSON。
+App 使用 `WKWebsiteDataStore.default()`，Web 侧仍使用 `localStorage` 保存记忆模型、复习调度、练习日、每日完成态、当前组快照和练习提醒设置。iOS 中「导出备份」调用原生分享面板，只有分享完成才更新上次备份时间；「恢复备份」调用原生 Files 文档选择器。浏览器/PWA 保留下载与 file input fallback。正常 App 更新会保留数据；卸载 App、抹掉设备数据或手动清理 WebKit 网站数据会删除本地记录。换机和长期内测前仍建议在「我的 -> 备份与恢复 -> 导出备份」导出 JSON。
 
 工程内包含 `PrivacyInfo.xcprivacy`，当前声明不追踪用户、不收集隐私数据、不使用需要声明的 required reason API；`ITSAppUsesNonExemptEncryption=false` 表示 App 没有使用非豁免加密。若后续加入埋点、账号、推送、第三方 SDK 或自研加密，需要同步更新这些声明和 App Store Connect 的 App Privacy/出口合规信息。

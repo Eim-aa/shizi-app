@@ -106,6 +106,8 @@ checks = {
     "nativeBridge": data_flow.get("nativeBridgeAvailable") is True,
     "nativeImport": data_flow.get("nativeImportAvailable") is True,
     "nativeConfirm": data_flow.get("nativeConfirmAvailable") is True,
+    "reminderState": data_flow.get("reminderStateAvailable") is True
+    and data_flow.get("reminderSettingsRowVisible") is True,
     "navPractice": navigation.get("practiceEntryVisible") is True
     and navigation.get("practiceTabActive") is True,
     "navBook": navigation.get("bookVisible") is True
@@ -142,6 +144,7 @@ checks = {
     and practice.get("sessionSnapshotStored") is True
     and practice.get("resumeHomeState") is True
     and practice.get("resumeRestored") is True,
+    "reminderSync": practice.get("reminderSyncAfterStamp") is True,
     "practiceNext": practice.get("posLabelAfter") != practice.get("posLabelBefore"),
     "exitSheet": exit_flow.get("sheetOpened") is True,
     "exitHome": exit_flow.get("returnedHome") is True

@@ -1,5 +1,6 @@
 import UIKit
 import UniformTypeIdentifiers
+import UserNotifications
 import WebKit
 
 final class WebViewController: UIViewController {
@@ -8,6 +9,7 @@ final class WebViewController: UIViewController {
     private let schemeHandler: LocalWebSchemeHandler
     private var webView: WKWebView!
     private var nativeSmokeDidRun = false
+    private var reminderSyncGeneration = 0
 
     init() {
         guard let webRoot = Bundle.main.url(forResource: "Web", withExtension: nil) else {
@@ -172,7 +174,9 @@ final class WebViewController: UIViewController {
               backupRestoreRejectsInvalid: false,
               nativeBridgeAvailable: false,
               nativeImportAvailable: false,
-              nativeConfirmAvailable: false
+              nativeConfirmAvailable: false,
+              reminderStateAvailable: false,
+              reminderSettingsRowVisible: false
             },
             navigationFlow: {
               practiceEntryVisible: false,
@@ -212,6 +216,7 @@ final class WebViewController: UIViewController {
               sessionSnapshotStored: false,
               resumeHomeState: false,
               resumeRestored: false,
+              reminderSyncAfterStamp: false,
               outcome: '',
               posLabelBefore: '',
               posLabelAfter: ''
@@ -371,6 +376,8 @@ final class WebViewController: UIViewController {
               result.dataFlow.nativeBridgeAvailable = !!(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.shiziNative);
               result.dataFlow.nativeImportAvailable = result.dataFlow.nativeBridgeAvailable && typeof requestBackupImport === 'function';
               result.dataFlow.nativeConfirmAvailable = window.confirm('\(Self.nativeSmokeConfirmMessage)') === true;
+              result.dataFlow.reminderStateAvailable = typeof reminder === 'object' && typeof reminder.enabled === 'boolean' && typeof totalPracticeDays === 'function' && Number.isInteger(totalPracticeDays());
+              result.dataFlow.reminderSettingsRowVisible = getComputedStyle(document.getElementById('reminderSection')).display !== 'none' && getComputedStyle(document.getElementById('reminderRow')).display !== 'none';
             }
 
             if (typeof startMode === 'function' && typeof revealAnswer === 'function' && typeof pickStamp === 'function') {
@@ -478,6 +485,7 @@ final class WebViewController: UIViewController {
               await waitFor(() => pos === 1 && visible('card'));
               result.practiceFlow.immediateAdvanced = true;
               result.practiceFlow.undoBarFollowed = visible('undoBar');
+              result.practiceFlow.reminderSyncAfterStamp = !!(reminderDebug.lastSync && reminderDebug.lastSync.type === 'syncReminder' && reminderDebug.lastSync.practicedToday === true);
               result.practiceFlow.outcome = roundStats.length ? roundStats[roundStats.length - 1].outcome : '';
               result.practiceFlow.posLabelAfter = document.getElementById('posLabel').textContent;
               reopenStampChoices();
@@ -768,9 +776,117 @@ extension WebViewController: WKScriptMessageHandler {
         case "nativeSmokeResult":
             let payload = body["payload"] as? String ?? #"{"error":"Missing native smoke payload"}"#
             writeNativeSmokeResult(payload)
+        case "syncReminder":
+            syncReminder(body: body)
+        case "requestReminderPermission":
+            requestReminderPermission()
+        case "queryReminderStatus":
+            sendReminderStatus()
         default:
             break
         }
+    }
+}
+
+// MARK: - 练习提醒：native 是无状态执行器，开关/习惯时间/已练状态全部由 web 侧下发
+extension WebViewController {
+    private enum ReminderCopy {
+        static let title = "拾字"
+        static let bodies = ["今天的字还没拾。三五分钟，拾几个回来。", "到你平时练字的时候了。"]
+        static let farewell = "好些天没见了，先不打扰。想练的时候，拾字在这儿。"
+    }
+
+    private static let reminderIdentifierPrefix = "shizi.reminder."
+    private static let reminderWindowDays = 7
+
+    private func syncReminder(body: [String: Any]) {
+        let enabled = body["enabled"] as? Bool ?? false
+        let hour = (body["hour"] as? NSNumber)?.intValue ?? 20
+        let minute = (body["minute"] as? NSNumber)?.intValue ?? 0
+        let practicedToday = body["practicedToday"] as? Bool ?? false
+        // 世代号防并发交错：快速开关时旧一轮的 remove/schedule 全部作废，只让最新一轮落地
+        reminderSyncGeneration += 1
+        let generation = reminderSyncGeneration
+        let center = UNUserNotificationCenter.current()
+        center.getPendingNotificationRequests { [weak self] requests in
+            DispatchQueue.main.async {
+                guard let self, generation == self.reminderSyncGeneration else { return }
+                let ours = requests.map(\.identifier).filter { $0.hasPrefix(Self.reminderIdentifierPrefix) }
+                center.removePendingNotificationRequests(withIdentifiers: ours)
+                guard enabled else { return }
+                center.getNotificationSettings { settings in
+                    DispatchQueue.main.async {
+                        guard generation == self.reminderSyncGeneration else { return }
+                        // web 侧的 permission 可能来自换机恢复的备份，调度前以本机授权状态为准
+                        guard settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional else { return }
+                        Self.scheduleReminderWindow(hour: hour, minute: minute, practicedToday: practicedToday)
+                    }
+                }
+            }
+        }
+    }
+
+    // 窗口语义：每次同步总是预约接下来的 7 条（今天不可发就顺延到第 8 个自然日），
+    // 最后一条固定为告别文案 —— 用户 7 条内不打开 App 即自然停发，打开即重置窗口
+    private static func scheduleReminderWindow(hour: Int, minute: Int, practicedToday: Bool) {
+        let calendar = Calendar.current
+        let now = Date()
+        let center = UNUserNotificationCenter.current()
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd"
+        var scheduled = 0
+        for offset in 0...reminderWindowDays {
+            if scheduled == reminderWindowDays { break }
+            guard
+                let day = calendar.date(byAdding: .day, value: offset, to: now),
+                let fireDate = calendar.date(bySettingHour: hour, minute: minute, second: 0, of: day)
+            else { continue }
+            if offset == 0 && (practicedToday || fireDate <= now) { continue }
+            scheduled += 1
+            let content = UNMutableNotificationContent()
+            content.title = ReminderCopy.title
+            content.sound = .default
+            content.body = scheduled == reminderWindowDays
+                ? ReminderCopy.farewell
+                : ReminderCopy.bodies[(scheduled - 1) % ReminderCopy.bodies.count]
+            let components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: fireDate)
+            let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+            let identifier = reminderIdentifierPrefix + formatter.string(from: fireDate)
+            center.add(UNNotificationRequest(identifier: identifier, content: content, trigger: trigger))
+        }
+    }
+
+    private func requestReminderPermission() {
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { [weak self] granted, _ in
+            DispatchQueue.main.async {
+                self?.dispatchReminderStatus(granted ? "granted" : "denied")
+            }
+        }
+    }
+
+    private func sendReminderStatus() {
+        UNUserNotificationCenter.current().getNotificationSettings { [weak self] settings in
+            let status: String
+            switch settings.authorizationStatus {
+            case .authorized, .provisional, .ephemeral:
+                status = "granted"
+            case .denied:
+                status = "denied"
+            case .notDetermined:
+                status = "unknown"
+            @unknown default:
+                status = "unknown"
+            }
+            DispatchQueue.main.async {
+                self?.dispatchReminderStatus(status)
+            }
+        }
+    }
+
+    private func dispatchReminderStatus(_ status: String) {
+        webView.evaluateJavaScript("if (typeof shiziReminderStatus === 'function') shiziReminderStatus({permission:'\(status)'}); void 0;")
     }
 }
 

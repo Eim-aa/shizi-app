@@ -1653,6 +1653,7 @@ $("addInput").onkeydown=e=>{ if(e.key==="Enter" && !e.isComposing && !$("addConf
 $("addSheet").onclick=e=>{ if(e.target===$("addSheet")) closeAddSheet(); };
 
 // ---- 数据备份 / 恢复（localStorage 是唯一存储，换手机或清缓存前先导出）----
+// 新增 shizi.* 持久键时必须同步加入；SESSION_KEY 与 shizi.nativeSmoke.v1 为刻意排除。
 const BACKUP_KEYS=[DECK_KEY,OPEN_KEY,MEMORY_KEY,QUALITY_KEY,PREF_KEY,TUNING_KEY,ACTIVITY_KEY,BACKUP_META_KEY,REMINDER_KEY,TOPIC_KEY,CUSTOM_KEY,ADDED_KEY];
 function backupAgeDays(){ const ts=Number(backupMeta.lastExportAt)||0; return ts?Math.max(0,Math.floor((Date.now()-ts)/86400000)):Number.POSITIVE_INFINITY; }
 function backupRelativeText(){ const days=backupAgeDays(); if(!Number.isFinite(days)) return "从未备份"; if(days===0) return "上次备份 · 今天"; if(days===1) return "上次备份 · 昨天"; return `上次备份 · ${days} 天前`; }

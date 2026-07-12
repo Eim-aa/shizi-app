@@ -430,12 +430,14 @@ async function expectHidden(page, selector, label) {
     legacyPayload.data["shizi.unknown.v1"] = "legacy-unknown";
     localStorage.setItem(SESSION_KEY, JSON.stringify({ current: true }));
     const restored = restoreBackupPayload(legacyPayload, { skipConfirm: true, reload: false });
+    const transientAfterRestore = localStorage.getItem("shizi.transient.verify");
+    localStorage.removeItem("shizi.transient.verify");
     return {
       exportedKeys: Object.keys(payload.data),
       sessionExported: Object.prototype.hasOwnProperty.call(payload.data, SESSION_KEY),
       transientExported: Object.prototype.hasOwnProperty.call(payload.data, "shizi.transient.verify"),
       sessionAfterRestore: localStorage.getItem(SESSION_KEY),
-      transientAfterRestore: localStorage.getItem("shizi.transient.verify"),
+      transientAfterRestore,
       unknownAfterRestore: localStorage.getItem("shizi.unknown.v1"),
       restoredKeys: restored.keys,
     };
@@ -667,12 +669,21 @@ async function expectHidden(page, selector, label) {
     throw new Error(`Expected auto-check copy to behave as assistant suggestion, got ${JSON.stringify(algorithm.verdictCopy)}`);
   }
 
+  const backupCoverage = await page.evaluate(() => {
+    const excluded = new Set([SESSION_KEY, "shizi.nativeSmoke.v1"]);
+    const storedKeys = Array.from({ length: localStorage.length }, (_, i) => localStorage.key(i)).filter(Boolean);
+    return storedKeys.filter((key) => key.startsWith("shizi.") && !BACKUP_KEYS.includes(key) && !excluded.has(key));
+  });
+  if (backupCoverage.length) {
+    throw new Error(`Unregistered shizi.* keys (add to BACKUP_KEYS or exclusions): ${backupCoverage.join(", ")}`);
+  }
+
   await page.waitForTimeout(500);
   await page.screenshot({ path: screenshotPath, fullPage: true });
   if (pageErrors.length) {
     throw new Error(`Browser reported errors: ${pageErrors.join(" | ")}`);
   }
-  console.log(JSON.stringify({ initial, streakMigration, practice, adaptive, home, shortRound, traceBefore, traceReady, traced, reveal, stamped, add, backupPolicy, book, review, summary, tuningCheck, focus, me, profile, devTools, devData, devAudit, algorithm, screenshotPath }, null, 2));
+  console.log(JSON.stringify({ initial, streakMigration, practice, adaptive, home, shortRound, traceBefore, traceReady, traced, reveal, stamped, add, backupPolicy, backupCoverage, book, review, summary, tuningCheck, focus, me, profile, devTools, devData, devAudit, algorithm, screenshotPath }, null, 2));
   await browser.close();
 })().catch(async (err) => {
   console.error(err);

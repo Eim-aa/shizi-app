@@ -6,6 +6,10 @@ const projectRoot = path.resolve(__dirname, "..");
 const appUrl = process.env.SHIZI_APP_URL || "http://127.0.0.1:8000/";
 const screenshotPath = path.join(projectRoot, "generated", "verify_8105_app.png");
 const expectedCount = 6854;
+const indexSource = fs.readFileSync(path.join(projectRoot, "index.html"), "utf8");
+if (/手感|口袋/.test(indexSource)) {
+  throw new Error("Deprecated user-facing vocabulary remains in index.html");
+}
 
 function appUrlWith(params) {
   const url = new URL(appUrl);
@@ -168,7 +172,7 @@ async function expectHidden(page, selector, label) {
   if (practice.activeMode !== "calibrate" || practice.batchSize !== 15 || practice.beadCount !== 15 || practice.hasElementary || practice.hasFallback) {
     throw new Error(`Expected first run to be a 15-card adult calibration batch, got ${JSON.stringify(practice)}`);
   }
-  if (!practice.hint.includes("起始难度") || !practice.posLabel.includes("1/15") || practice.tipText.indexOf("笔顺提示") < 0 || practice.showText !== "看答案" || practice.doneText !== "写好了" || practice.doneTouchAction !== "manipulation" || practice.tabTouchAction !== "manipulation") {
+  if (!practice.hint.includes("摸个底") || !practice.posLabel.includes("1/15") || practice.tipText.indexOf("笔顺提示") < 0 || practice.showText !== "看答案" || practice.doneText !== "写好了" || practice.doneTouchAction !== "manipulation" || practice.tabTouchAction !== "manipulation") {
     throw new Error(`Expected new practice copy and controls, got ${JSON.stringify(practice)}`);
   }
   if (practice.hasModebar) {
@@ -265,6 +269,29 @@ async function expectHidden(page, selector, label) {
     throw new Error(`Expected adaptive difficulty to rise after fast answers and lower only after repeated misses, got ${JSON.stringify(adaptive)}`);
   }
 
+  const sameDayRecovery = await page.evaluate(() => {
+    const idx = CARDS.findIndex((card) => card.target === "器");
+    status = {}; memory = {}; quality = {}; batch = [idx]; pos = 0; roundStats = []; missedThisRound = [];
+    activeMode = "focus"; sessionDone = new Set(); hintsUsedThisCard = 0; tracedThisCard = false; lastVerdict = null;
+    save(DECK_KEY, status); saveMemory(); saveQuality();
+    recordOutcome("miss");
+    const afterMiss = cloneObj(memory[cardKey(idx)]);
+    lastVerdict = { status: "bad", mode: "holistic", failed: [0], missing: 1 };
+    recordOutcome("fast");
+    const afterRecovery = cloneObj(memory[cardKey(idx)]);
+    const tomorrow = new Date(); tomorrow.setHours(24, 0, 0, 0);
+    const realNow = Date.now;
+    Date.now = () => tomorrow.getTime() + 1000;
+    const dueNextDay = reviewReady(idx);
+    Date.now = realNow;
+    return { missedOn: afterMiss.missedOn, due: afterRecovery.due, tomorrow: tomorrow.getTime(), dueNextDay,
+      systemSuggestion: afterRecovery.lastSystemSuggestion, systemStatus: afterRecovery.lastSystemStatus, systemAgree: afterRecovery.lastSystemAgree };
+  });
+  if (!sameDayRecovery.missedOn || sameDayRecovery.due > sameDayRecovery.tomorrow || !sameDayRecovery.dueNextDay
+    || sameDayRecovery.systemSuggestion !== "slow" || sameDayRecovery.systemStatus !== "bad" || sameDayRecovery.systemAgree !== false) {
+    throw new Error(`Expected same-day miss recovery to remain due by next midnight, got ${JSON.stringify(sameDayRecovery)}`);
+  }
+
   await page.evaluate(() => {
     status = {};
     memory = {};
@@ -280,7 +307,7 @@ async function expectHidden(page, selector, label) {
     clearSessionSnapshot();
     activity = newActivity();
     activity.inheritedStreak = 0;
-    saveActivity();
+    saveActivity(); reminder.milestonesShown = []; saveReminder();
     renderHome();
   });
   await expectVisible(page, "#home", "home");
@@ -318,10 +345,36 @@ async function expectHidden(page, selector, label) {
   if (!shortRound.completed || shortRound.groups !== 1 || shortRound.stamps !== 5 || !shortRound.title.includes("今日已拾5个字") || !shortRound.chip.includes("拾字第 1 天")) {
     throw new Error(`Expected a completed short group to establish today's completion state, got ${JSON.stringify(shortRound)}`);
   }
+  const calibrationFocus = await page.evaluate(() => {
+    const indexes = ["强", "器", "疑"].map((target) => CARDS.findIndex((card) => card.target === target));
+    tuning = { calibrated: false, offset: 0, contextStrict: 0, rounds: [] };
+    activeMode = "calibrate"; batch = indexes; roundId = "verify-calibration-focus";
+    roundStats = [
+      { idx: indexes[0], target: "强", outcome: "fast" },
+      { idx: indexes[1], target: "器", outcome: "miss" },
+      { idx: indexes[2], target: "疑", outcome: "hinted" },
+    ];
+    saveTuning(); roundSummary();
+    return {
+      visible: getComputedStyle(document.getElementById("calibPocketCard")).display !== "none",
+      title: document.getElementById("calibPocketTitle").textContent,
+      line: document.getElementById("calibPocketLine").textContent,
+      action: document.getElementById("calibPocketBtn").textContent,
+    };
+  });
+  if (!calibrationFocus.visible || !calibrationFocus.title.includes("2") || !calibrationFocus.line.includes("也可以现在就再拾一次") || calibrationFocus.action !== "马上再拾") {
+    throw new Error(`Expected calibration summary to offer immediate focused retry, got ${JSON.stringify(calibrationFocus)}`);
+  }
+  await page.click("#calibPocketBtn");
+  await page.waitForFunction(() => activeMode === "focus" && batch.length === 2 && getComputedStyle(document.getElementById("card")).display !== "none");
   await page.evaluate(() => {
+    status = {}; memory = {}; quality = {};
+    tuning = { calibrated: true, offset: 0, contextStrict: 0, rounds: [] };
+    preference = "balanced"; sessionDone = new Set(); clearSessionSnapshot();
+    save(DECK_KEY, status); saveMemory(); saveQuality(); saveTuning(); save(PREF_KEY, preference);
     activity = newActivity();
     activity.inheritedStreak = 0;
-    saveActivity();
+    saveActivity(); reminder.milestonesShown = []; saveReminder();
     batch = [];
     roundStats = [];
     renderHome();
@@ -331,6 +384,26 @@ async function expectHidden(page, selector, label) {
   await page.waitForFunction(() => batch.length === 15 && getComputedStyle(document.getElementById("card")).display !== "none");
   await page.waitForFunction(() => !document.getElementById("show").disabled);
   const firstTarget = await page.evaluate(() => cur.target);
+  const actionStates = await page.evaluate(async () => {
+    writer = { animateStroke: async () => {} };
+    groups = [1, 1]; groupIdx = 0; shownStrokes = 0; totalStrokes = 2; hintsUsedThisCard = 0; revealed = false; animating = false;
+    document.getElementById("tip").disabled = false; updateTip();
+    const read = () => ({ show: document.getElementById("show").textContent, done: document.getElementById("done").textContent });
+    const a = read();
+    await document.getElementById("tip").onclick(); const b = read();
+    await document.getElementById("tip").onclick(); const c = read();
+    writer = null; groups = []; groupIdx = 0; hintsUsedThisCard = 0; updateActionLabels(); const noData = read();
+    render(); const reset = read();
+    return { a, b, c, noData, reset };
+  });
+  await page.waitForFunction(() => !document.getElementById("show").disabled);
+  if (actionStates.a.show !== "看答案" || actionStates.a.done !== "写好了"
+    || actionStates.b.show !== "看答案" || actionStates.b.done !== "写完了"
+    || actionStates.c.show !== "描一遍" || actionStates.c.done !== "写完了"
+    || actionStates.noData.show !== "看答案" || actionStates.noData.done !== "写好了"
+    || actionStates.reset.show !== "看答案" || actionStates.reset.done !== "写好了") {
+    throw new Error(`Expected three-state practice labels and reset behavior, got ${JSON.stringify(actionStates)}`);
+  }
   await page.click("#show");
   await expectVisible(page, "#traceActions", "trace actions after showing answer");
   await expectVisible(page, "#practiceArea", "practice area while tracing");
@@ -341,8 +414,15 @@ async function expectHidden(page, selector, label) {
     traceDoneDisabled: document.getElementById("traceDone").disabled,
     missDisabled: document.getElementById("traceMiss").disabled,
     outlineVisible: getComputedStyle(document.getElementById("hzEl") || document.querySelector(".hz")).display !== "none",
+    missLabel: document.getElementById("traceMiss").textContent.replace(/\s+/g, ""),
+    doneLabel: document.getElementById("traceDone").textContent.replace(/\s+/g, ""),
+    missAria: document.getElementById("traceMiss").getAttribute("aria-label"),
+    doneAria: document.getElementById("traceDone").getAttribute("aria-label"),
   }));
-  if (!traceBefore.tracing || traceBefore.tracedThisCard || !traceBefore.traceDoneDisabled || traceBefore.missDisabled) {
+  if (!traceBefore.tracing || traceBefore.tracedThisCard || !traceBefore.traceDoneDisabled || traceBefore.missDisabled
+    || traceBefore.missLabel !== "还是不会印章：回炉" || traceBefore.doneLabel !== "描好了印章：补拾"
+    || !traceBefore.missAria.includes("还是不会") || !traceBefore.missAria.includes("回炉")
+    || !traceBefore.doneAria.includes("描好了") || !traceBefore.doneAria.includes("补拾")) {
     throw new Error(`Expected tracing to require a real stroke before hinted, got ${JSON.stringify(traceBefore)}`);
   }
   const inkBox = await page.locator(".inkc").boundingBox();
@@ -358,8 +438,16 @@ async function expectHidden(page, selector, label) {
     throw new Error(`Expected tracing stroke to enable hinted, got ${JSON.stringify(traceReady)}`);
   }
   const nextKeyBefore = await page.evaluate(() => cardKey(batch[1]));
+  const holdStartedAt = Date.now();
   await page.click("#traceDone");
+  await page.waitForTimeout(1020);
+  const stampHold = await page.evaluate(() => ({ pos, stamped, visible: getComputedStyle(document.getElementById("stampOnMine")).display !== "none", hold: STAMP_HOLD_MS, calibrationHold: CALIBRATION_FIRST_HOLD_MS, editWindow: EDIT_STAMP_WINDOW_MS }));
+  if (stampHold.pos !== 0 || !stampHold.stamped || !stampHold.visible || stampHold.hold !== 1100 || stampHold.calibrationHold !== 1800 || stampHold.editWindow !== 1500) {
+    throw new Error(`Expected stamp feedback to remain visible for at least one second, got ${JSON.stringify(stampHold)}`);
+  }
   await page.waitForFunction(() => pos === 1 && !revealed && getComputedStyle(document.getElementById("practiceArea")).display !== "none");
+  const stampHoldElapsed = Date.now() - holdStartedAt;
+  if (stampHoldElapsed < 1000) throw new Error(`Expected stamp hold >= 1000ms, got ${stampHoldElapsed}ms`);
   const traced = await page.evaluate(() => ({
     outcome: roundStats[0]?.outcome,
     traced: roundStats[0]?.traced,
@@ -386,11 +474,21 @@ async function expectHidden(page, selector, label) {
     rollback: { memory: Object.keys(memory).length, stats: roundStats.length, todayStamps: todayStampCount(), nextUntouched: memory[nextKey] == null },
     haptic: hapticDebug.last,
   }), nextKeyBefore);
-  if (!reveal.revealWord.includes(firstTarget) || !reveal.funcFirst || reveal.stampLabels.join(",") !== "会写/拾到,看提示写出/补拾,写错了/差点,不会写/回炉" || !reveal.note.includes("回炉") || !reveal.qualityVisible || reveal.rollback.memory !== 0 || reveal.rollback.stats !== 0 || reveal.rollback.todayStamps !== 0 || !reveal.rollback.nextUntouched || reveal.haptic !== "undo") {
+  if (!reveal.revealWord.includes(firstTarget) || !reveal.funcFirst || reveal.stampLabels.join(",") !== "会写/拾到,看提示写出/补拾,写错了/差点,不会写/回炉" || !reveal.note.includes("不会写") || !reveal.qualityVisible || reveal.rollback.memory !== 0 || reveal.rollback.stats !== 0 || reveal.rollback.todayStamps !== 0 || !reveal.rollback.nextUntouched || reveal.haptic !== "undo") {
     throw new Error(`Expected designer reveal and stamp self-assessment, got ${JSON.stringify(reveal)}`);
   }
 
   await page.click("#miss");
+  await page.waitForFunction(() => stamped && getComputedStyle(document.getElementById("stampOnMine")).display !== "none");
+  const skipStampHold = await page.evaluate(() => {
+    const before = pos, target = document.getElementById("reveal");
+    target.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    target.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    return { before, after: pos, stamped };
+  });
+  if (skipStampHold.after !== skipStampHold.before + 1 || skipStampHold.stamped) {
+    throw new Error(`Expected result tap to skip hold exactly once, got ${JSON.stringify(skipStampHold)}`);
+  }
   await page.waitForFunction(() => pos === 1 && !revealed && getComputedStyle(document.getElementById("practiceArea")).display !== "none");
   const stamped = await page.evaluate(() => {
     const entries = Object.values(memory);
@@ -537,7 +635,7 @@ async function expectHidden(page, selector, label) {
       more: document.getElementById("more").textContent,
     };
   });
-  if (!summary.visible || !summary.sheetVisible || !summary.lead.includes("放回口袋") || summary.tiles.length !== 3 || !summary.pocketVisible || !summary.pocketTitle.includes("2") || summary.tuneButtons.length !== 4 || summary.stop !== "回首页") {
+  if (!summary.visible || !summary.sheetVisible || !summary.lead.includes("还没拾到") || summary.tiles.length !== 3 || !summary.pocketVisible || !summary.pocketTitle.includes("2") || summary.tuneButtons.length !== 4 || summary.stop !== "回首页") {
     throw new Error(`Expected result sheet with pocket review and round feedback, got ${JSON.stringify(summary)}`);
   }
   // 首个完成日 = 累计第 1 天里程碑：结算页出现「见字如晤」庆祝行，且只记录一次
@@ -575,7 +673,7 @@ async function expectHidden(page, selector, label) {
     devTextVisible: document.body.innerText.includes("题库质检") || document.body.innerText.includes("实验数据"),
     activeTab: document.querySelector(".foot .tab.active")?.id,
   }));
-  if (!me.visible || Number(me.seen) < 3 || Number(me.risk) < 2 || !me.advice || !me.diagnosisEntry.includes("手感诊断") || me.prefButtons.length !== 3 || !me.internalHidden || me.toolsState !== "展开" || !me.devHidden || me.devTextVisible || me.activeTab !== "tabMe") {
+  if (!me.visible || Number(me.seen) < 3 || Number(me.risk) < 2 || !me.advice || !me.diagnosisEntry.includes("卡点分析") || me.prefButtons.length !== 3 || !me.internalHidden || me.toolsState !== "展开" || !me.devHidden || me.devTextVisible || me.activeTab !== "tabMe") {
     throw new Error(`Expected My page to summarize memory model, got ${JSON.stringify(me)}`);
   }
   await page.click("#toolsToggle");
@@ -597,7 +695,7 @@ async function expectHidden(page, selector, label) {
     levels: document.querySelectorAll("#profileLevels .profileRow").length,
     chars: document.querySelectorAll("#profileChars [data-profile-char]").length,
   }));
-  if (!profile.visible || !profile.footHidden || profile.metrics !== 4 || !profile.hero.includes("今日手感") || !profile.hero.includes("练回炉字") || profile.topics < 1 || profile.levels < 1 || profile.chars < 1) {
+  if (!profile.visible || !profile.footHidden || profile.metrics !== 4 || !profile.hero.includes("今日状态") || !profile.hero.includes("马上再拾") || profile.topics < 1 || profile.levels < 1 || profile.chars < 1) {
     throw new Error(`Expected profile drilldown to be reachable from My page, got ${JSON.stringify(profile)}`);
   }
 
@@ -641,6 +739,17 @@ async function expectHidden(page, selector, label) {
     };
     const balancedPool = withTemporaryPreference("balanced", () => newPool(false));
     const challengePool = withTemporaryPreference("challenge", () => newPool(false));
+    batch = [0]; pos = 0; cur = CARDS[0]; hintsUsedThisCard = 0;
+    showRevealState({ status: "bad", mode: "holistic", failed: [0], missing: 1 }, null);
+    const badReveal = {
+      copy: document.getElementById("askLine").textContent,
+      suggestions: document.querySelectorAll("#stampRow .suggest").length,
+    };
+    showRevealState({ status: "ok", mode: "exact", failed: [], missing: 0 }, null);
+    const okReveal = {
+      copy: document.getElementById("askLine").textContent,
+      suggestions: document.querySelectorAll("#stampRow .suggest").length,
+    };
     return {
       delays,
       balancedFallback: balancedPool.filter((idx) => contextSource(idx) === "fallback").length,
@@ -656,6 +765,7 @@ async function expectHidden(page, selector, label) {
         ok: suggestedOutcomeForVerdict({ status: "ok" }),
         bad: suggestedOutcomeForVerdict({ status: "bad", failed: [0], missing: 0 }),
       },
+      revealPresentation: { bad: badReveal, ok: okReveal, paintsFailedInk: revealAnswer.toString().includes("paintInkStrokes") },
       abilityLabels: [...new Set([48, 62, 83].map((d) => {
         const idx = CARDS.findIndex((card) => card.d >= d);
         return idx >= 0 ? abilityLevel(idx) : "";
@@ -667,6 +777,12 @@ async function expectHidden(page, selector, label) {
   }
   if (!algorithm.verdictCopy.ok.includes("系统建议") || algorithm.verdictCopy.ok.includes("机器") || !algorithm.verdictCopy.none.includes("不替你判") || algorithm.verdictSuggestion.ok !== "fast" || algorithm.verdictSuggestion.bad !== "slow") {
     throw new Error(`Expected auto-check copy to behave as assistant suggestion, got ${JSON.stringify(algorithm.verdictCopy)}`);
+  }
+  if (algorithm.verdictCopy.missing !== "系统建议：和右边对照一下，以你自己的判断为准。"
+    || algorithm.revealPresentation.bad.suggestions !== 0 || !algorithm.revealPresentation.bad.copy.includes("自己的判断")
+    || algorithm.revealPresentation.ok.suggestions !== 1 || !algorithm.revealPresentation.ok.copy.includes("笔画大致对上")
+    || algorithm.revealPresentation.paintsFailedInk) {
+    throw new Error(`Expected auto-check UI to praise only and never mark negative strokes, got ${JSON.stringify(algorithm.revealPresentation)}`);
   }
 
   const backupCoverage = await page.evaluate(() => {
@@ -683,7 +799,7 @@ async function expectHidden(page, selector, label) {
   if (pageErrors.length) {
     throw new Error(`Browser reported errors: ${pageErrors.join(" | ")}`);
   }
-  console.log(JSON.stringify({ initial, streakMigration, practice, adaptive, home, shortRound, traceBefore, traceReady, traced, reveal, stamped, add, backupPolicy, backupCoverage, book, review, summary, tuningCheck, focus, me, profile, devTools, devData, devAudit, algorithm, screenshotPath }, null, 2));
+  console.log(JSON.stringify({ initial, streakMigration, practice, adaptive, sameDayRecovery, home, shortRound, calibrationFocus, actionStates, traceBefore, traceReady, stampHold, stampHoldElapsed, traced, reveal, skipStampHold, stamped, add, backupPolicy, backupCoverage, book, review, summary, tuningCheck, focus, me, profile, devTools, devData, devAudit, algorithm, screenshotPath }, null, 2));
   await browser.close();
 })().catch(async (err) => {
   console.error(err);

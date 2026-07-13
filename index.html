@@ -130,7 +130,9 @@
   .undoBar span{ flex:1; min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
   .undoBar button{ flex:none; min-height:28px; padding:0 10px; border:1px solid var(--line); border-radius:999px; background:var(--card); color:var(--ink); font-weight:700; }
   .traceActions{ display:none; gap:8px; margin-top:auto; padding-top:10px; }
-  .traceActions button{ min-height:46px; }
+  .traceActions button{ min-height:52px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; }
+  .traceActions button span{ font-size:15px; font-weight:700; line-height:1.1; }
+  .traceActions button small{ font-size:10.5px; font-weight:600; line-height:1; opacity:.76; }
   .traceActions .traceMiss{ flex:.72; }
   .traceActions .traceDone{ flex:1; background:var(--gold); box-shadow:0 14px 28px -12px rgba(179,137,47,.55); }
 
@@ -299,7 +301,7 @@
   .toolsHint{ display:block; color:var(--faint); font-size:12px; line-height:1.55; margin-top:6px; }
   .devTools{ display:none; }
   .data{ display:none; margin-top:12px; background:var(--card); border:1px dashed var(--line); border-radius:14px; padding:14px; font-size:13px; color:var(--muted); line-height:1.7; }
-  /* ===== 手感诊断 ===== */
+  /* ===== 卡点分析 ===== */
   .profile,.audit{ display:none; flex:1; flex-direction:column; padding:18px 24px 24px; animation:screenIn .32s ease; }
   .profileHead,.auditHead{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
   .profileHead h2,.auditHead h2{ margin:0; font:900 24px/1 var(--song); }
@@ -407,7 +409,7 @@
       <div class="lede">每天六分钟，在手机上用手指写字，<br>把忘掉的字一个一个拾回来。</div>
       <div style="margin-top:52px; width:100%;">
         <button class="go" id="welcomeStart">先拾 15 个字试试</button>
-        <div class="goSub">这 15 个字会顺便估一下你的难度 · 不用注册</div>
+        <div class="goSub">这 15 个字顺便摸个底：哪些字还写得出 · 不用注册</div>
       </div>
     </div>
     <div class="motto" style="writing-mode:horizontal-tb; height:auto; border:0; padding:0;">提笔忘字，拾回便是</div>
@@ -423,7 +425,7 @@
       <div>
         <div class="homeGreeting" id="homeGreeting"></div>
         <h1 class="homeTitle" id="homeTitle">今天拾<br>十五个字</h1>
-        <div class="homeSub">手写的手感，<br>一天捡回一点。</div>
+        <div class="homeSub">一笔一画，<br>把忘掉的字拾回来。</div>
       </div>
       <div class="motto">提笔忘字，拾回便是</div>
     </div>
@@ -455,7 +457,7 @@
       <div class="mascotRow"><span class="blob"></span><span id="mascotLine"></span></div>
       <div id="inkTools">
         <button class="toolBtn" id="tip" disabled>笔顺提示</button>
-        <button class="toolBtn side" id="undoStroke" disabled>撤销一笔</button>
+        <button class="toolBtn side" id="undoStroke" disabled>撤销</button>
         <button class="toolBtn side" id="clear">重写</button>
       </div>
       <div id="actions">
@@ -463,8 +465,8 @@
         <button class="primaryAct" id="done" disabled>写好了</button>
       </div>
       <div class="traceActions" id="traceActions">
-        <button class="ghostAct traceMiss" id="traceMiss">还是不会 · 回炉</button>
-        <button class="primaryAct traceDone" id="traceDone" disabled>描好了 · 补拾</button>
+        <button class="ghostAct traceMiss" id="traceMiss" aria-label="还是不会，印章 回炉"><span>还是不会</span><small>印章：回炉</small></button>
+        <button class="primaryAct traceDone" id="traceDone" aria-label="描好了，印章 补拾" disabled><span>描好了</span><small>印章：补拾</small></button>
       </div>
     </div>
 
@@ -501,7 +503,7 @@
         <div class="stampWrap" id="wrapSlow"><button class="seal slow" id="slow"><span>差点</span></button><small>写错了</small></div>
         <div class="stampWrap" id="wrapMiss"><button class="seal miss" id="miss"><span>回炉</span></button><small>不会写</small></div>
       </div>
-      <div id="stampNote">前三枚章 → 字进字盒；回炉 → 放回口袋，明天再拾</div>
+      <div id="stampNote">盖「不会写」的字，明天会回来找你；其余都收进字盒，按情况安排复习</div>
 
       <div class="toastCard" id="stampedToast">
         <div class="tchar" id="toastChar"></div>
@@ -524,10 +526,15 @@
         <h2>第一把拾完，<br>摸清你的底了</h2>
         <div class="calibStats">
           <div><b class="ok" id="calibKept">0</b><span>拾到手</span></div>
-          <div><b class="warn" id="calibMiss">0</b><span>放回口袋</span></div>
+          <div><b class="warn" id="calibMiss">0</b><span>还没拾到</span></div>
         </div>
-        <div class="calibWhy">根据这 15 个字，你的起始难度定在 <b id="calibTier">标准</b>。<span id="calibWhyTxt"></span></div>
-        <div class="calibFoot"><span id="calibPocketLine"></span><br>每天一组，两周后你会明显感觉手感回来了。</div>
+        <div class="calibWhy">根据这 15 个字，先从 <b id="calibTier">标准</b> 难度的字出题。<span id="calibWhyTxt"></span></div>
+        <div class="calibFoot"><span id="calibPocketLine"></span><br>每天一组，两周后，提笔就忘的字会明显变少。</div>
+      </div>
+      <div class="pocketCard" id="calibPocketCard" style="display:none;">
+        <div class="pChips" id="calibPocketChips"></div>
+        <div class="ptxt"><b id="calibPocketTitle"></b><br><span>趁手还热，再拾一遍最划算</span></div>
+        <button class="pocketBtn" id="calibPocketBtn">马上再拾</button>
       </div>
       <div class="sumActions">
         <button class="ghostAct" id="calibDone">明天见</button>
@@ -567,7 +574,7 @@
     </div>
     <div class="filters" id="boxFilters">
       <button class="fchip active" data-filter="all">全部</button>
-      <button class="fchip" data-filter="risk">回炉中</button>
+      <button class="fchip" data-filter="risk">待拾回</button>
       <button class="fchip" data-filter="stable">已稳</button>
       <button class="addTxt" id="addLink2">＋加字</button>
     </div>
@@ -581,9 +588,9 @@
     <div class="meStats">
       <button class="meStat" id="meSeen"><b id="seenStat">0</b><span>已拾回</span></button>
       <div class="meStat"><b class="red" id="streakStat">1</b><span>练习天数</span></div>
-      <button class="meStat" id="meRisk"><b class="grey" id="riskStat">0</b><span>回炉中</span></button>
+      <button class="meStat" id="meRisk"><b class="grey" id="riskStat">0</b><span>待拾回</span></button>
     </div>
-    <button class="meCard" id="openProfile"><div class="meCardTop"><b>手感诊断</b><span>›</span></div><small id="meAdvice"></small></button>
+    <button class="meCard" id="openProfile"><div class="meCardTop"><b>卡点分析</b><span>›</span></div><small id="meAdvice"></small></button>
     <div class="meLabel">练习设置</div>
     <div class="meList">
       <div class="mePref"><div class="plbl">出题偏好</div><div class="prefBtns" id="prefBox">
@@ -620,9 +627,9 @@
     </div>
   </div>
 
-  <!-- 手感诊断 -->
-  <div class="profile" id="profilePanel" style="display:none" data-screen-label="手感诊断">
-    <div class="profileHead"><h2>手感诊断</h2><button class="ghost" id="closeProfile">返回</button></div>
+  <!-- 卡点分析 -->
+  <div class="profile" id="profilePanel" style="display:none" data-screen-label="卡点分析">
+    <div class="profileHead"><h2>卡点分析</h2><button class="ghost" id="closeProfile">返回</button></div>
     <div class="profileSummary" id="profileSummary"></div>
     <div class="profileAdvice" id="profileAdvice"></div>
     <div class="profileSection"><h3>先补这类字</h3><div class="profileRows" id="profileTopics"></div></div>
@@ -791,7 +798,7 @@ const MILESTONE_DAYS=[1,7,30,100];
 const MILESTONE_COPY={
   1:"见字如晤，久别重逢——那些被岁月搁下的字，从今天起，一笔一画都是归途。",
   7:"第七个练习日——拾回的字，攒成一小把了。",
-  30:"三十个练习日。字盒渐满，手感渐回。",
+  30:"三十个练习日。字盒渐满，提笔渐稳。",
   100:"第一百个练习日。提笔忘字这件事，正在离你远去。"};
 function celebrateMilestoneIfAny(){ const total=totalPracticeDays(); let changed=false, celebrate=null;
   MILESTONE_DAYS.forEach(d=>{ if(total>=d && !reminder.milestonesShown.includes(d)){ reminder.milestonesShown.push(d); changed=true; if(total===d) celebrate=d; } });
@@ -934,13 +941,13 @@ const GRADE_UI={
   fast:{seal:"拾到", func:"会写", funcHtml:"会写", cls:"fast", effect:"之后会隔久一点再出现"},
   hinted:{seal:"补拾", func:"看提示写出", funcHtml:"看提示<br>写出", cls:"hinted", effect:"近期会回来复习"},
   slow:{seal:"差点", func:"写错了", funcHtml:"写错了", cls:"slow", effect:"会优先回来复习"},
-  miss:{seal:"回炉", func:"不会写", funcHtml:"不会写", cls:"miss", effect:"先放回口袋，很快再拾"},
+  miss:{seal:"回炉", func:"不会写", funcHtml:"不会写", cls:"miss", effect:"很快会回来找你"},
 };
 const OUTCOME_DOT={ fast:"var(--accent)", hinted:"var(--gold)", slow:"var(--blue)", miss:"transparent" };
 const MASCOT_LINES=[
   "这个格子里的字，你上次写它可能是十年前",
-  "想不起来很正常，要不要看第一个部件？",
-  "凭手感写，连笔断笔都没关系",
+  "想不起来很正常，点「笔顺提示」先看开头几笔",
+  "凭感觉写，连笔断笔都没关系",
   "写不出来就看答案，描一遍也算拾回"
 ];
 const ROTS=[-1.5,1,2,-1,1.5,-2,1,-1.5,2,1,-1,1.5,-2,1,-1];
@@ -953,7 +960,7 @@ function maybeFinishCalibration(){ if(activeMode!=="calibrate" || tuning.calibra
   const counts=roundCounts(), hard=(counts.hinted||0)+(counts.miss||0)+(counts.slow||0), score=roundMasteryScore(counts); let why;
   if((counts.fast||0)>=12 && hard<=2){ tuning.offset=10; preference="challenge"; why="刚才这组你基本都写得出来，所以接下来会自动加难，多挑些你不太熟的字。"; }
   else if(hard>=6 || (counts.miss||0)>=3){ tuning.offset=-6; preference="practical"; why="刚才有几个卡住了，所以先把难度调稳一点，从你能写出来的字开始，再慢慢加。"; }
-  else { tuning.offset=2; preference="balanced"; why="刚才的难度大致合适，就先按这个节奏来，之后会根据你的手感再微调。"; }
+  else { tuning.offset=2; preference="balanced"; why="刚才的难度大致合适，就先按这个节奏来，之后会按你实际写的情况再微调。"; }
   tuning.calibrated=true; tuning.calibration={date:today(), counts, score:Math.round(score*100)/100, offset:tuning.offset, preference};
   activeMode="new"; saveTuning(); save(PREF_KEY,preference);
   return why;
@@ -1008,10 +1015,12 @@ function recordOutcome(outcome){ const idx=batch[pos], c=CARDS[idx], m=cardMemor
   if(outcome==="fast"){ m.fast=(m.fast||0)+1; m.streak=(m.streak||0)+1; m.ease=clamp((m.ease||50)+12,0,100); setStatus(idx,"rest"); }
   if(outcome==="slow"){ m.slow=(m.slow||0)+1; m.streak=0; m.ease=clamp((m.ease||50)-6,0,100); setStatus(idx,"indeck"); }
   if(outcome==="hinted"){ m.hints=(m.hints||0)+1; m.streak=0; m.ease=clamp((m.ease||50)-8,0,100); setStatus(idx,"indeck"); }
-  if(outcome==="miss"){ m.misses=(m.misses||0)+1; m.streak=0; m.ease=clamp((m.ease||50)-16,0,100); setStatus(idx,"indeck"); }
+  if(outcome==="miss"){ m.misses=(m.misses||0)+1; m.streak=0; m.ease=clamp((m.ease||50)-16,0,100); m.missedOn=today(); setStatus(idx,"indeck"); }
   // 「写错了」用累计次数递进复习间隔（0.5→1→3 天），和不会写/看提示一致；streak 已归零不能当 depth 用
   const depth=outcome==="miss"?Math.max(0,(m.misses||1)-1):outcome==="hinted"?Math.max(0,(m.hints||1)-1):outcome==="slow"?(m.slow||1):(m.streak||0);
-  m.due=now+delayFor(outcome,depth,m.ease||50); saveMemory(); markPracticeStamp();
+  m.due=now+delayFor(outcome,depth,m.ease||50);
+  if(outcome!=="miss" && m.missedOn===today()){ const tomorrow=new Date(); tomorrow.setHours(24,0,0,0); m.due=Math.min(m.due,tomorrow.getTime()); }
+  saveMemory(); markPracticeStamp();
   roundStats.push({idx, target:c.target, word:c.word, outcome, traced:!!tracedThisCard, level:abilityLevel(idx), topic:c.topic, due:m.due});
   if(hard) missedThisRound.push(c.target);
   adaptNextCard(outcome,idx);
@@ -1098,7 +1107,7 @@ function renderBook(){ displayView("book");
   const stable=i=>!isHighRisk(i) && ((memory[cardKey(i)]||{}).streak||0)>=2;
   const counts={all:seen.length, risk:seen.filter(isHighRisk).length, stable:seen.filter(stable).length};
   document.querySelectorAll("#boxFilters .fchip").forEach(b=>{ const f=b.dataset.filter; b.classList.toggle("active",f===boxFilter);
-    b.textContent=({all:"全部",risk:"回炉中",stable:"已稳"})[f]+" "+counts[f]; });
+    b.textContent=({all:"全部",risk:"待拾回",stable:"已稳"})[f]+" "+counts[f]; });
   let list=seen; if(boxFilter==="risk") list=seen.filter(isHighRisk); if(boxFilter==="stable") list=seen.filter(stable);
   const MAXT=59, shown=list.slice(0,MAXT);
   $("boxGrid").innerHTML=list.length
@@ -1123,12 +1132,12 @@ function profileGroupRows(indexes, labelFn, kind, limit=5){ const groups=profile
 function profileAdvice(indexes){ if(!indexes.length) return "先完成一组 15 字练习。系统会根据你盖的章，逐渐判断哪些主题、结构和难度层最容易让你提笔卡住。";
   const topic=profileGroups(indexes,cardTopic)[0], level=profileGroups(indexes,abilityLevel)[0], structure=profileGroups(indexes,structureLabel)[0], risk=highRiskCount();
   const bits=[]; if(topic) bits.push(`${topic.label}主题`); if(level) bits.push(`${level.label}难度`); if(structure) bits.push(`${structure.label}`);
-  return risk>0?`建议顺序：先把 ${risk} 个回炉字拿下，再专项练 ${bits.join("、")}。这样比随机刷字更快找回手感。`:`目前最值得观察的是 ${bits.join("、")}。继续练几组，这里会把真正反复卡住的字挑出来。`; }
+  return risk>0?`建议顺序：先把 ${risk} 个待拾回的字拿下，再专项练 ${bits.join("、")}。这样比随机刷字拾回得更快。`:`目前最值得观察的是 ${bits.join("、")}。继续练几组，这里会把真正反复卡住的字挑出来。`; }
 function profileDiagnosis(indexes){ if(!indexes.length) return {title:"先拾一组字，诊断就会长出来", body:"写完 15 个字后，这里会告诉你最容易卡住的主题、结构和具体字。", action:"先拾一组", disabled:true};
   const risk=highRiskCount(), topic=profileGroups(indexes,cardTopic)[0], level=profileGroups(indexes,abilityLevel)[0], structure=profileGroups(indexes,structureLabel)[0];
   const bits=[]; if(topic) bits.push(`${topic.label}主题`); if(level) bits.push(`${level.label}字`); if(structure) bits.push(structure.label);
-  if(risk>0) return {title:`今天先拾回 ${risk} 个回炉字`, body:`最常卡在 ${bits.join("、")}。先拿下刚才漏掉的字，再练同类，手感会回来得更快。`, action:"练回炉字", disabled:false};
-  return {title:"目前没有明显回炉字", body:`已练过 ${indexes.length} 个字。继续拾几组后，我会把反复卡住的模式排到最前面。`, action:"继续观察", disabled:true}; }
+  if(risk>0) return {title:`今天先拾回 ${risk} 个字`, body:`最常卡在 ${bits.join("、")}。先拿下刚才漏掉的字，再练同类，回来得更快。`, action:"马上再拾", disabled:false};
+  return {title:"目前没有待拾回的字", body:`已练过 ${indexes.length} 个字。继续拾几组后，我会把反复卡住的模式排到最前面。`, action:"继续观察", disabled:true}; }
 function profilePracticeIndexes(kind,value){ const indexes=profileIndexes(); let out=[];
   if(kind==="topic") out=indexes.filter(i=>cardTopic(i)===value);
   if(kind==="level") out=indexes.filter(i=>abilityLevel(i)===value);
@@ -1137,10 +1146,10 @@ function profilePracticeIndexes(kind,value){ const indexes=profileIndexes(); let
   return out.sort((a,b)=>weaknessScore(b)-weaknessScore(a) || personalDifficulty(b)-personalDifficulty(a)).slice(0,BATCH); }
 function renderProfile(){ displayView("profile"); const indexes=profileIndexes(), hard=indexes.filter(i=>hardCount(i)>0).length, avgEase=average(indexes,i=>(memory[cardKey(i)]||{}).ease||50);
   const diag=profileDiagnosis(indexes);
-  $("profileSummary").innerHTML=`<div class="profileHero"><div class="eyebrow">今日手感</div><h3>${esc(diag.title)}</h3><p>${esc(diag.body)}</p><button class="heroAct" data-profile-kind="risk" ${diag.disabled?"disabled":""}>${esc(diag.action)}</button></div><div class="profileMetrics"><div class="profileMetric"><b>${indexes.length}</b><span>练过</span></div><div class="profileMetric"><b style="color:var(--accent)">${hard}</b><span>卡过</span></div><div class="profileMetric"><b>${avgEase}</b><span>掌握感</span></div><div class="profileMetric"><b style="color:var(--grey)">${highRiskCount()}</b><span>回炉中</span></div></div>`;
+  $("profileSummary").innerHTML=`<div class="profileHero"><div class="eyebrow">今日状态</div><h3>${esc(diag.title)}</h3><p>${esc(diag.body)}</p><button class="heroAct" data-profile-kind="risk" ${diag.disabled?"disabled":""}>${esc(diag.action)}</button></div><div class="profileMetrics"><div class="profileMetric"><b>${indexes.length}</b><span>练过</span></div><div class="profileMetric"><b style="color:var(--accent)">${hard}</b><span>卡过</span></div><div class="profileMetric"><b>${avgEase}</b><span>掌握感</span></div><div class="profileMetric"><b style="color:var(--grey)">${highRiskCount()}</b><span>待拾回</span></div></div>`;
   $("profileAdvice").textContent=profileAdvice(indexes);
   $("profileTopics").innerHTML=profileGroupRows(indexes,cardTopic,"topic",5);
-  $("profileLevels").innerHTML=`<div class="profileSubhead"><b>能力难度</b></div>${profileGroupRows(indexes,abilityLevel,"level",3)}<div class="profileSubhead"><b>结构</b></div>${profileGroupRows(indexes,structureLabel,"structure",4)}`;
+  $("profileLevels").innerHTML=`<div class="profileSubhead"><b>难度层</b></div>${profileGroupRows(indexes,abilityLevel,"level",3)}<div class="profileSubhead"><b>结构</b></div>${profileGroupRows(indexes,structureLabel,"structure",4)}`;
   const weak=indexes.slice().sort((a,b)=>weaknessScore(b)-weaknessScore(a) || personalDifficulty(b)-personalDifficulty(a)).filter(i=>weaknessScore(i)>0 || hardCount(i)>0).slice(0,12);
   $("profileChars").innerHTML=weak.length?`<div class="charChips">${weak.map(i=>`<button class="charChip" data-profile-char="${i}" title="${esc(CARDS[i].word)}" style="${isHighRisk(i)?"border-color:var(--accent); color:var(--accent); background:var(--accentSoft);":""}">${CARDS[i].target}</button>`).join("")}</div>`:`<div class="empty">还没有明显易错字。等出现「补拾」「差点」「回炉」，这里会优先显示。</div>`; }
 function withTemporaryPreference(pref, fn){ const oldPref=preference, oldTopic=load(TOPIC_KEY,""); preference=pref;
@@ -1177,7 +1186,7 @@ let addedChars = load(ADDED_KEY, null);
 if(!Array.isArray(addedChars)){ addedChars=[...new Set(customWords.flatMap(w=>Array.from(w).filter(isCJK)))]; save(ADDED_KEY,addedChars); }
 function customIndexOf(ch){ for(let i=BASE_N;i<CARDS.length;i++){ if(CARDS[i].target===ch) return i; } return -1; }
 function unblockQuality(i){ const k=cardKey(i); if(quality[k]){ delete quality[k]; saveQuality(); } }
-// 现实里提笔忘了 = 一次真实的「不会写」：记进记忆模型，让它立刻进入今日复习和回炉
+// 现实里提笔忘了 = 一次真实的「不会写」：记进记忆模型，让它立刻进入今日复习和待拾回状态
 function recordRealWorldMiss(i){ const c=CARDS[i], m=cardMemory(i), now=Date.now();
   m.seen=(m.seen||0)+1; m.last=now; m.lastOutcome="miss"; m.misses=(m.misses||0)+1; m.streak=0; m.ease=clamp((m.ease||50)-16,0,100);
   m.topic=c.topic; m.level=c.level; m.word=c.word; m.target=c.target; m.due=now; setStatus(i,"indeck"); }
@@ -1343,11 +1352,14 @@ function suggestedOutcomeForVerdict(v){ if(!v) return ""; return v.status==="ok"
 function wrapIdForOutcome(outcome){ return "wrap"+outcome[0].toUpperCase()+outcome.slice(1); }
 function verdictShort(v){ if(!v) return "对照助手：我不替你判，看看右边标准字，再自己盖章。";
   if(v.status==="ok") return v.mode==="holistic"?"系统建议：整体看起来对上了；连笔不影响。最终还是你盖章。":"系统建议：笔画大致对上了。最终还是你盖章。";
-  if(v.missing) return `系统建议：可能少写了 ${v.missing} 笔；先对照右边，以你的判断为准。`;
-  if(v.failed.length) return `系统建议：可能有 ${v.failed.length} 笔没到位，已标红；你可以自己决定盖哪个章。`;
-  return "系统建议：和标准字差别可能较大；它只是提醒，不是判分。"; }
+  return "系统建议：和右边对照一下，以你自己的判断为准。"; }
 
-function updateTip(){ $("tip").textContent=`笔顺提示 ${groupIdx}/${groups.length}`; if(groupIdx>=groups.length) $("tip").disabled=true; }
+function updateActionLabels(){
+  const used=hintsUsedThisCard>0, exhausted=used && groups.length>0 && groupIdx>=groups.length;
+  $("show").textContent=exhausted?"描一遍":"看答案";
+  $("done").textContent=used?"写完了":"写好了";
+}
+function updateTip(){ $("tip").textContent=`笔顺提示 ${groupIdx}/${groups.length}`; if(groupIdx>=groups.length) $("tip").disabled=true; updateActionLabels(); }
 
 // ---- 教学（首启校准第一张卡的墨点引导；只出现一次）----
 let teachStage="done", teachTimer=0;
@@ -1415,9 +1427,9 @@ function render(){ fitBox(); cur=CARDS[batch[pos]]; const token=++loadToken;
   renderBeads(); updatePosLabel();
   // 练习时只留题面本身（挖空词＋拼音就是「词语＋语境」，别再用文字复述——复述会把答案印出来）
   $("prompt").innerHTML=promptHTML(cur);
-  $("hint").textContent=cur.custom?cur.hint:(activeMode==="calibrate"?"这组会用来估算你的起始难度":"");
+  $("hint").textContent=cur.custom?cur.hint:(activeMode==="calibrate"?"这组用来摸个底，之后按合适的难度出题":"");
   clearInk(); drawing=false; inkCanvas.style.opacity='1'; hzEl.style.opacity='1'; hzEl.classList.remove("traceFallback");
-  shownStrokes=0; totalStrokes=0; groups=[]; groupIdx=0; $("tip").disabled=true; $("show").disabled=true; $("done").disabled=true; $("tip").textContent="笔顺提示";
+  shownStrokes=0; totalStrokes=0; groups=[]; groupIdx=0; $("tip").disabled=true; $("show").disabled=true; $("done").disabled=true; $("tip").textContent="笔顺提示"; updateActionLabels();
   hzEl.innerHTML=""; writer=null; revealed=false;
   curMedians=null; lastVerdict=null;
   // 教学：只在校准组的第一张卡上出现
@@ -1464,7 +1476,7 @@ function showRevealState(verdict,inkUrl){
   $("qualityBox").style.display=teachReveal?"none":"flex";
   $("askLine").textContent=verdictShort(verdict);
   ["wrapFast","wrapHinted","wrapSlow","wrapMiss"].forEach(id=>$(id).classList.remove("suggest"));
-  const sug=suggestedOutcomeForVerdict(verdict); if(sug) $(wrapIdForOutcome(sug)).classList.add("suggest");
+  const sug=suggestedOutcomeForVerdict(verdict); if(verdict && verdict.status==="ok" && sug) $(wrapIdForOutcome(sug)).classList.add("suggest");
   renderQuality();
 }
 // 「写好了」进入对照；「看答案」留在田字格中描红，不再跳过重学动作。
@@ -1472,14 +1484,13 @@ function revealAnswer(done){
   if(revealed || Date.now()<actionCooldownUntil) return false; commitUndoWindow();
   const noData=!writer||!totalStrokes; // 离线未缓存/加载失败：右格用系统楷体兜底
   const verdict=(done && !tracing && !noData)?autoCheckInk():null;
-  if(verdict) paintInkStrokes(verdict.failed, cssVar('--accent',"#c2452c"));
   let inkUrl=null; if(inkStrokes.length){ try{ inkUrl=inkCanvas.toDataURL(); }catch(e){} }
   showRevealState(verdict,inkUrl); return true;
 }
 function showTracing(){ if(revealed || tracing || Date.now()<actionCooldownUntil) return; commitUndoWindow(); clearTimeout(teachTimer);
   tracing=true; hintsUsedThisCard++; clearInk(); traceStrokeStartCount=0; tracedThisCard=false;
   $("actions").style.display="none"; $("traceActions").style.display="flex"; $("tip").disabled=true;
-  $("hint").textContent="照着淡红轮廓描一遍；描过建议补拾，也可以自己选回炉";
+  $("hint").textContent="照着淡红轮廓描一遍，描完在下面照实选一个";
   let shown=false; try{ if(writer && totalStrokes>0 && typeof writer.showOutline==="function"){ writer.showOutline({duration:180}); shown=true; } }catch(e){}
   if(!shown){ hzEl.innerHTML=""; hzEl.classList.add("traceFallback"); hzEl.textContent=cur.target; }
   updateInkControls();
@@ -1500,7 +1511,8 @@ $("replayBtn").onclick=()=>{ if(replaying || !window.HanziWriter) return; replay
 function reopenStampChoices(){ if(!lastStampSnapshot) return;
   const snap=lastStampSnapshot; clearTimeout(autoNextTimer); clearTimeout(editStampTimer); hideUndoBar(false); lastStampSnapshot=null;
   restoreStampSnapshot(snap); stamped=false; pendingRepeat=false; render(); restoreRevealFromSnapshot(snap.revealState); renderBeads(); hapticFeedback("undo"); }
-// 盖章：按下去 = 这个字的去向定了。前三枚章进字盒，「回炉」放回口袋
+// 盖章：按下去 = 这个字的去向定了。前三枚章进字盒，「回炉」的字会再回来
+const STAMP_HOLD_MS=1100, CALIBRATION_FIRST_HOLD_MS=1800, EDIT_STAMP_WINDOW_MS=1500;
 function pickStamp(outcome){ if(stamped || !revealed) return; stamped=true;
   lastStampSnapshot=takeStampSnapshot();
   const firstCalibrationHold=activeMode==="calibrate" && pos===0 && !calibrationFirstHoldUsed;
@@ -1525,9 +1537,9 @@ function pickStamp(outcome){ if(stamped || !revealed) return; stamped=true;
   $("toastSubEl").textContent=firstCalibrationHold?"章会决定它何时再回来；接下来盖章后会直接换题":copy.sub;
   $("stampedToast").style.display=firstCalibrationHold?"flex":"none";
   $("editStamp").disabled=!firstCalibrationHold;
-  if(firstCalibrationHold){ clearTimeout(editStampTimer); editStampTimer=setTimeout(()=>{ $("editStamp").disabled=true; },1500); }
+  if(firstCalibrationHold){ clearTimeout(editStampTimer); editStampTimer=setTimeout(()=>{ $("editStamp").disabled=true; },EDIT_STAMP_WINDOW_MS); }
   renderBeads();
-  autoNextTimer=setTimeout(goNext,firstCalibrationHold?1800:220); }
+  autoNextTimer=setTimeout(goNext,firstCalibrationHold?CALIBRATION_FIRST_HOLD_MS:STAMP_HOLD_MS); }
 function goNext(){ clearTimeout(autoNextTimer); clearTimeout(editStampTimer); $("editStamp").disabled=true; if(!stamped) return; const r=pendingRepeat; pendingRepeat=false; next(r); }
 $("fast").onclick=()=>pickStamp("fast");
 $("slow").onclick=()=>pickStamp("slow");
@@ -1535,6 +1547,7 @@ $("hinted").onclick=()=>pickStamp("hinted");
 $("miss").onclick=()=>pickStamp("miss");
 $("editStamp").onclick=reopenStampChoices;
 $("undoLast").onclick=reopenStampChoices;
+$("reveal").addEventListener("click",e=>{ if(!stamped || e.target.closest("#editStamp") || e.target.closest("#stampRow")) return; goNext(); });
 function next(repeatSoon=false){ if(!repeatSoon) sessionDone.add(batch[pos]); pos++;
   if(pos<batch.length){ saveSessionSnapshot(); render(); }
   else { clearSessionSnapshot(); lastStampSnapshot=null; hideUndoBar(false); markRoundComplete(); roundSummary(); } }
@@ -1550,17 +1563,23 @@ function roundSummary(){ clearSessionSnapshot(); markRoundComplete(); const mile
   $("milestoneLine").style.display=milestone?"block":"none"; if(milestone){ $("milestoneLine").textContent=MILESTONE_COPY[milestone]; hapticFeedback("milestone"); }
   const wasCalibration=activeMode==="calibrate", calibrationNote=maybeFinishCalibration(), remain=availablePool().length;
   const counts=roundCounts(), hardN=(counts.hinted||0)+(counts.miss||0)+(counts.slow||0), keptN=roundStats.length-hardN, dayTotal=todayStampCount(), completedGroups=dailyActivity().completedGroups;
+  const risky=[...new Set(roundStats.filter(x=>x.outcome!=="fast").map(x=>x.idx))];
   $("calibCard").style.display=wasCalibration?"flex":"none"; $("calibCard").style.flexDirection="column"; $("calibCard").style.flex="1";
   $("sumSheet").style.display=wasCalibration?"none":"flex";
   if(wasCalibration){ // 教学 T4：替代普通结果页，只在校准组后出现一次
     $("calibKept").textContent=keptN; $("calibMiss").textContent=hardN;
     $("calibTier").textContent=tuningLabel();
-    $("calibWhyTxt").textContent=calibrationNote?` ${calibrationNote}`:" 之后每组会按你的手感自动微调。";
-    $("calibPocketLine").textContent=hardN>0?`口袋里的 ${hardN} 个字明天会回来找你。`:"这一把一个都没漏，下一组会稍微上点难度。";
+    $("calibWhyTxt").textContent=calibrationNote?` ${calibrationNote}`:" 之后每组会按你实际写的情况自动微调。";
+    $("calibPocketLine").textContent=hardN>0?`没拾到的 ${hardN} 个字，明天还会来找你——也可以现在就再拾一次。`:"这一把一个都没漏，下一组会稍微上点难度。";
+    if(risky.length){ $("calibPocketCard").style.display="flex";
+      $("calibPocketChips").innerHTML=risky.slice(0,3).map((i,k)=>`<span class="pChip" style="transform:rotate(${k%2?3:-4}deg)">${CARDS[i].target}</span>`).join("");
+      $("calibPocketTitle").textContent=`这 ${risky.length} 个先别走`;
+      $("calibPocketBtn").onclick=()=>startFocus(risky);
+    } else { $("calibPocketCard").style.display="none"; }
     return; }
-  const risky=[...new Set(roundStats.filter(x=>x.outcome!=="fast").map(x=>x.idx))];
+  $("calibPocketCard").style.display="none";
   $("sumH2").textContent=completedGroups>1?`今日已拾 ${dayTotal} 字`:"今日拾得";
-  $("sumLead").innerHTML=hardN>0?`拾回 <b class="ok">${keptN}</b> 字，<br><b class="warn">${hardN}</b> 个先放回口袋，明天再拾。`:`这一把 <b class="ok">${keptN}</b> 个字全拾到了。`;
+  $("sumLead").innerHTML=hardN>0?`拾回 <b class="ok">${keptN}</b> 字，<br><b class="warn">${hardN}</b> 个还没拾到，明天再拾。`:`这一把 <b class="ok">${keptN}</b> 个字全拾到了。`;
   $("dateSeal").textContent=dateCn();
   $("sumTiles").innerHTML=roundStats.map(sumTile).join("");
   if(risky.length){ $("pocketCard").style.display="flex";
@@ -1576,7 +1595,7 @@ function roundSummary(){ clearSessionSnapshot(); markRoundComplete(); const mile
 function allDone(){ displayView("summary"); $("milestoneLine").style.display="none";
   $("calibCard").style.display="none"; $("sumSheet").style.display="flex";
   $("sumH2").textContent="今天的字过完了";
-  $("sumLead").innerHTML=`字盒已收 <b class="ok">${memoryCount()}</b> 字 · 待复习 ${reviewCount()} · 回炉中 ${highRiskCount()}`;
+  $("sumLead").innerHTML=`字盒已收 <b class="ok">${memoryCount()}</b> 字 · 待复习 ${reviewCount()} · 待拾回 ${highRiskCount()}`;
   $("dateSeal").textContent=dateCn();
   $("sumTiles").innerHTML=""; $("pocketCard").style.display="none";
   $("roundTune").style.display="none"; $("more").style.display="none"; }
@@ -1623,7 +1642,7 @@ $("toolsToggle").onclick=()=>toggleInternalTools();
 $("dataLink").onclick=()=>{ const box=$("dataBox"); if(box.style.display==="block"){ box.style.display="none"; return; }
   const last7=activity.practiceDays.filter(d=>{ const diff=(new Date(today())-new Date(d))/86400000; return diff>=0 && diff<7; });
   box.style.display="block"; box.innerHTML=`<b>实验用，别天天盯（盯 streak 会污染“光靠痒”这个变量）</b><br>`+
-    `最近 7 天里，你实际盖过章 <b>${last7.length}</b> 天 → 目标 ≥4 天<br>出题偏好：<b>${prefLabel()}</b> · 难度校准：<b>${tuningLabel()} ${tuningShiftText()}</b> · 语境严格度：<b>${Number(tuning.contextStrict)||0}</b><br>题目反馈：<b>${qualityCount()}</b> 条 · 整组反馈：<b>${(tuning.rounds||[]).length}</b> 条<br>已记录：<b>${memoryCount()}</b> 个字 · 到期复习：<b>${reviewCount()}</b> 个 · 回炉中：<b>${highRiskCount()}</b> 个<br>你自己加的字：<b>${addedChars.length}</b> 个<br>累计练习日：${totalPracticeDays()} 天 · 历史打开：${opens.length} 天`; };
+    `最近 7 天里，你实际盖过章 <b>${last7.length}</b> 天 → 目标 ≥4 天<br>出题偏好：<b>${prefLabel()}</b> · 难度校准：<b>${tuningLabel()} ${tuningShiftText()}</b> · 语境严格度：<b>${Number(tuning.contextStrict)||0}</b><br>题目反馈：<b>${qualityCount()}</b> 条 · 整组反馈：<b>${(tuning.rounds||[]).length}</b> 条<br>已记录：<b>${memoryCount()}</b> 个字 · 到期复习：<b>${reviewCount()}</b> 个 · 待拾回：<b>${highRiskCount()}</b> 个<br>你自己加的字：<b>${addedChars.length}</b> 个<br>累计练习日：${totalPracticeDays()} 天 · 历史打开：${opens.length} 天`; };
 let toastTimer=0;
 function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove("show"),2200); }
 

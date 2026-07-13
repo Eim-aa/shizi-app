@@ -81,6 +81,10 @@ checks = {
     and handwriting.get("undoStrokeWorked") is True
     and handwriting.get("clearWorked") is True
     and handwriting.get("actionCooldownActive") is True,
+    "handwritingPeek": handwriting.get("peekEntered") is True
+    and handwriting.get("peekCancelledPartialStroke") is True
+    and handwriting.get("peekBlockedInk") is True
+    and handwriting.get("peekRestored") is True,
     "addSheet": data_flow.get("addSheetOpened") is True
     and data_flow.get("addPreviewRendered") is True
     and data_flow.get("addConfirmEnabled") is True
@@ -148,8 +152,13 @@ checks = {
     and practice.get("resumeHomeState") is True
     and practice.get("resumeRestored") is True,
     "reminderSync": practice.get("reminderSyncAfterStamp") is True,
-    "haptics": practice.get("hapticStampRecorded") is True
-    and practice.get("hapticUndoRecorded") is True,
+    "haptics": practice.get("hapticSelectTipRecorded") is True
+    and practice.get("hapticActionRevealRecorded") is True
+    and practice.get("hapticStampRecorded") is True
+    and practice.get("hapticUndoRecorded") is True
+    and practice.get("hapticSelectTracingRecorded") is True
+    and practice.get("hapticTraceStampOnly") is True
+    and practice.get("hapticRoundActionRecorded") is True,
     "practiceNext": practice.get("posLabelAfter") != practice.get("posLabelBefore"),
     "exitSheet": exit_flow.get("sheetOpened") is True,
     "exitHome": exit_flow.get("returnedHome") is True

@@ -12,6 +12,8 @@ final class WebViewController: UIViewController {
     private var reminderSyncGeneration = 0
     private lazy var stampHaptic = UIImpactFeedbackGenerator(style: .medium)
     private lazy var undoHaptic = UIImpactFeedbackGenerator(style: .light)
+    private lazy var actionHaptic = UIImpactFeedbackGenerator(style: .light)
+    private lazy var selectionHaptic = UISelectionFeedbackGenerator()
     private lazy var milestoneHaptic = UINotificationFeedbackGenerator()
 
     init() {
@@ -150,7 +152,11 @@ final class WebViewController: UIViewController {
               pageScrollStable: false,
               clearWorked: false,
               undoStrokeWorked: false,
-              actionCooldownActive: false
+              actionCooldownActive: false,
+              peekEntered: false,
+              peekCancelledPartialStroke: false,
+              peekBlockedInk: false,
+              peekRestored: false
             },
             dataFlow: {
               addSheetOpened: false,
@@ -223,8 +229,13 @@ final class WebViewController: UIViewController {
               resumeHomeState: false,
               resumeRestored: false,
               reminderSyncAfterStamp: false,
+              hapticSelectTipRecorded: false,
+              hapticActionRevealRecorded: false,
               hapticStampRecorded: false,
               hapticUndoRecorded: false,
+              hapticSelectTracingRecorded: false,
+              hapticTraceStampOnly: false,
+              hapticRoundActionRecorded: false,
               outcome: '',
               posLabelBefore: '',
               posLabelAfter: ''
@@ -478,10 +489,40 @@ final class WebViewController: UIViewController {
                 await new Promise(resolve => setTimeout(resolve, 340));
                 clearInk();
                 result.handwritingFlow.clearWorked = inkStrokes.length === 0 && pixelCount() === 0;
+                const peekRect = inkCanvas.getBoundingClientRect();
+                const peekPointer = (type, id, isPrimary, x, y, buttons) => new PointerEvent(type, {
+                  bubbles: true, cancelable: true, pointerId: id, pointerType: 'touch', isPrimary,
+                  button: 0, buttons, clientX: peekRect.left + peekRect.width * x, clientY: peekRect.top + peekRect.height * y
+                });
+                inkCanvas.dispatchEvent(peekPointer('pointerdown', 7001, true, 0.25, 0.30, 1));
+                inkCanvas.dispatchEvent(peekPointer('pointermove', 7001, true, 0.48, 0.50, 1));
+                const partialPixels = pixelCount();
+                inkCanvas.dispatchEvent(peekPointer('pointerdown', 7002, false, 0.72, 0.68, 1));
+                result.handwritingFlow.peekEntered = peeking === true && Number(inkCanvas.style.opacity) <= 0.06 && hzEl.classList.contains('peekHint');
+                result.handwritingFlow.peekCancelledPartialStroke = partialPixels > 0 && drawing === false && curInkStroke === null && pixelCount() === 0;
+                inkCanvas.dispatchEvent(peekPointer('pointermove', 7001, true, 0.62, 0.62, 1));
+                inkCanvas.dispatchEvent(peekPointer('pointermove', 7002, false, 0.78, 0.74, 1));
+                result.handwritingFlow.peekBlockedInk = inkStrokes.length === 0 && curInkStroke === null && pixelCount() === 0;
+                inkCanvas.dispatchEvent(peekPointer('pointerup', 7002, false, 0.78, 0.74, 0));
+                result.handwritingFlow.peekRestored = peeking === false && Number(inkCanvas.style.opacity) === 1 && !hzEl.classList.contains('peekHint');
+                inkCanvas.dispatchEvent(peekPointer('pointerup', 7001, true, 0.62, 0.62, 0));
+                await new Promise(resolve => setTimeout(resolve, 340));
+                clearInk();
                 dispatchStroke();
                 await new Promise(resolve => setTimeout(resolve, 340));
               }
 
+              if (document.getElementById('tip').disabled) {
+                writer = { animateStroke: async () => {} };
+                groups = [1]; groupIdx = 0; shownStrokes = 0; totalStrokes = 1;
+                document.getElementById('tip').disabled = false;
+                updateTip();
+              }
+              if (typeof document.getElementById('tip').onclick === 'function') {
+                hapticDebug.last = null;
+                await document.getElementById('tip').onclick();
+                result.practiceFlow.hapticSelectTipRecorded = hapticDebug.last === 'select';
+              }
               const firstIndex = batch[pos];
               const firstKey = cardKey(firstIndex);
               const firstMemoryBefore = JSON.stringify(memory[firstKey] || null);
@@ -491,6 +532,7 @@ final class WebViewController: UIViewController {
               const nextMemoryBefore = JSON.stringify(memory[cardKey(firstNextIndex)] || null);
               revealAnswer(true);
               await waitFor(() => visible('reveal'));
+              result.practiceFlow.hapticActionRevealRecorded = hapticDebug.last === 'action';
               result.practiceFlow.revealVisible = true;
               result.practiceFlow.stampVisible = visible('stampRow');
               result.practiceFlow.functionalStampLabels = document.getElementById('fast').textContent.includes('会写');
@@ -516,6 +558,7 @@ final class WebViewController: UIViewController {
               commitUndoWindow();
               showTracing();
               await waitFor(() => visible('traceActions'));
+              result.practiceFlow.hapticSelectTracingRecorded = hapticDebug.last === 'select';
               result.practiceFlow.traceModeVisible = visible('traceActions') && !visible('actions');
               result.practiceFlow.traceRequiresInk = document.getElementById('traceDone').disabled && !document.getElementById('traceMiss').disabled;
               if (dispatchStroke) {
@@ -523,8 +566,10 @@ final class WebViewController: UIViewController {
                 await new Promise(resolve => setTimeout(resolve, 340));
               }
               result.practiceFlow.traceReadyAfterInk = tracedThisCard === true && !document.getElementById('traceDone').disabled;
+              hapticDebug.events = [];
               finishTracing('hinted');
               await waitFor(() => pos === 2 && visible('card'));
+              result.practiceFlow.hapticTraceStampOnly = hapticDebug.last === 'stamp' && hapticDebug.events.join(',') === 'stamp';
               const tracedStat = roundStats[roundStats.length - 1] || {};
               const tracedMemory = memory[cardKey(tracedStat.idx)] || {};
               result.practiceFlow.traceRecorded = tracedStat.outcome === 'hinted' && tracedStat.traced === true && tracedMemory.traced === true;
@@ -555,6 +600,9 @@ final class WebViewController: UIViewController {
                 exitCurrentRound();
                 await waitFor(() => visible('home'));
               }
+              hapticDebug.last = null;
+              roundSummary(true);
+              result.practiceFlow.hapticRoundActionRecorded = hapticDebug.last === 'action';
             }
           } catch (error) {
             result.error = String(error && error.message ? error.message : error);
@@ -819,7 +867,7 @@ extension WebViewController: WKScriptMessageHandler {
     }
 }
 
-// MARK: - 触觉反馈：只响应 web 下发的三种 kind，未知值忽略；触发后 prepare() 备好下一次以压低连续盖章时延
+// MARK: - 触觉反馈：按记账、过程完成、选择切换分层；未知值忽略
 extension WebViewController {
     private func playHaptic(kind: String) {
         switch kind {
@@ -829,6 +877,12 @@ extension WebViewController {
         case "undo":
             undoHaptic.impactOccurred()
             undoHaptic.prepare()
+        case "action":
+            actionHaptic.impactOccurred()
+            actionHaptic.prepare()
+        case "select":
+            selectionHaptic.selectionChanged()
+            selectionHaptic.prepare()
         case "milestone":
             milestoneHaptic.notificationOccurred(.success)
             milestoneHaptic.prepare()

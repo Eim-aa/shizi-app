@@ -325,6 +325,61 @@ async function expectHidden(page, selector, label) {
     throw new Error(`Expected launcher home state, got ${JSON.stringify(home)}`);
   }
 
+  const queueFront = await page.evaluate(() => {
+    const resetModel = (calibrated = true) => {
+      status = {}; memory = {}; quality = {}; sessionDone = new Set(); batch = []; pos = 0; roundStats = [];
+      tuning = { calibrated, offset: 0, contextStrict: 0, rounds: [] };
+      save(DECK_KEY, status); saveMemory(); saveQuality(); saveTuning(); clearSessionSnapshot();
+    };
+    resetModel(true);
+    addWord("强"); addWord("器");
+    const queuedIndexes = indexesForChars(["强", "器"]);
+    activeMode = "new"; startRound();
+    const newFront = batch.slice(0, 2).map((idx) => CARDS[idx].target).join("");
+    queuedIndexes.forEach((idx, order) => { batch = [idx]; pos = 0; roundStats = []; recordOutcome(order ? "hinted" : "fast"); });
+    const consumed = queuedIndexes.every((idx) => !(memory[cardKey(idx)] || {}).queuedFront);
+    clearSessionSnapshot(); sessionDone = new Set(); activeMode = "new"; startRound();
+    const absentAfterUse = !batch.slice(0, 2).some((idx) => queuedIndexes.includes(idx));
+
+    resetModel(true);
+    addWord("强"); addWord("器"); activeMode = "review"; startRound();
+    const reviewFront = batch.slice(0, 2).map((idx) => CARDS[idx].target).join("");
+
+    resetModel(false);
+    addWord("强"); addWord("器"); activeMode = "calibrate"; startRound();
+    const calibrationFront = batch.slice(0, 2).map((idx) => CARDS[idx].target).join("");
+    const calibrationKeepsFlags = indexesForChars(["强", "器"]).every((idx) => (memory[cardKey(idx)] || {}).queuedFront === true);
+
+    renderHome(); tuning.calibrated = true; saveTuning(); document.getElementById("addInput").value = "器"; confirmAdd();
+    const calibratedToast = document.getElementById("toast").textContent;
+    renderHome(); tuning.calibrated = false; saveTuning(); document.getElementById("addInput").value = "疑"; confirmAdd();
+    const calibrationToast = document.getElementById("toast").textContent;
+    resetModel(true); renderHome();
+    return { newFront, reviewFront, consumed, absentAfterUse, calibrationFront, calibrationKeepsFlags, calibratedToast, calibrationToast };
+  });
+  if (queueFront.newFront !== "强器" || queueFront.reviewFront !== "强器" || !queueFront.consumed || !queueFront.absentAfterUse
+    || queueFront.calibrationFront === "强器" || !queueFront.calibrationKeepsFlags
+    || !queueFront.calibratedToast.includes("下次开练，第一个就是它") || !queueFront.calibrationToast.includes("校准这组结束后")) {
+    throw new Error(`Expected newly added characters to lead the next non-calibration round once, got ${JSON.stringify(queueFront)}`);
+  }
+
+  const homeRecent = await page.evaluate(() => {
+    const idx = CARDS.findIndex((card) => card.target === "器"), key = cardKey(idx), now = Date.now();
+    status = { [idx]: "indeck" };
+    memory = { [key]: { seen: 1, streak: 0, ease: 30, misses: 1, due: now, last: now, lastOutcome: "miss", target: "器", word: CARDS[idx].word } };
+    save(DECK_KEY, status); saveMemory(); renderHome();
+    const todayState = { label: document.getElementById("yesterLbl").textContent, text: document.getElementById("yesterRow").textContent.trim(), miss: !!document.querySelector("#yesterRow .yTile.miss") };
+    memory[key].last = now - 86400000; saveMemory(); renderHome();
+    const priorState = { label: document.getElementById("yesterLbl").textContent, text: document.getElementById("yesterRow").textContent.trim() };
+    memory = {}; status = {}; saveMemory(); save(DECK_KEY, status); renderHome();
+    const emptyState = document.getElementById("yesterRow").textContent.trim();
+    return { todayState, priorState, emptyState };
+  });
+  if (homeRecent.todayState.label !== "今日拾得" || homeRecent.todayState.text !== "器" || !homeRecent.todayState.miss
+    || homeRecent.priorState.label !== "昨日拾得" || homeRecent.priorState.text !== "器" || !homeRecent.emptyState.includes("今天拾的字会出现在这里")) {
+    throw new Error(`Expected home recent characters to prefer today and style misses quietly, got ${JSON.stringify(homeRecent)}`);
+  }
+
   const shortRound = await page.evaluate(() => {
     activity = newActivity();
     activity.inheritedStreak = 0;
@@ -391,18 +446,53 @@ async function expectHidden(page, selector, label) {
     const read = () => ({ show: document.getElementById("show").textContent, done: document.getElementById("done").textContent });
     const a = read();
     await document.getElementById("tip").onclick(); const b = read();
+    const peekGuide = tuning.peekHintShown === true && document.getElementById("mascotLine").textContent.includes("双指按住格子");
     await document.getElementById("tip").onclick(); const c = read();
     writer = null; groups = []; groupIdx = 0; hintsUsedThisCard = 0; updateActionLabels(); const noData = read();
     render(); const reset = read();
-    return { a, b, c, noData, reset };
+    return { a, b, c, noData, reset, tipHaptic: hapticDebug.events.filter((kind) => kind === "select").length >= 2, peekGuide };
   });
   await page.waitForFunction(() => !document.getElementById("show").disabled);
   if (actionStates.a.show !== "看答案" || actionStates.a.done !== "写好了"
     || actionStates.b.show !== "看答案" || actionStates.b.done !== "写完了"
     || actionStates.c.show !== "描一遍" || actionStates.c.done !== "写完了"
     || actionStates.noData.show !== "看答案" || actionStates.noData.done !== "写好了"
-    || actionStates.reset.show !== "看答案" || actionStates.reset.done !== "写好了") {
+    || actionStates.reset.show !== "看答案" || actionStates.reset.done !== "写好了" || !actionStates.tipHaptic || !actionStates.peekGuide) {
     throw new Error(`Expected three-state practice labels and reset behavior, got ${JSON.stringify(actionStates)}`);
+  }
+  const peekAndRevealHaptics = await page.evaluate(() => {
+    const canvas = inkCanvas, rect = canvas.getBoundingClientRect();
+    const pointer = (type, id, primary, x, y, buttons) => new PointerEvent(type, {
+      bubbles: true, cancelable: true, pointerId: id, pointerType: "touch", isPrimary: primary,
+      button: 0, buttons, clientX: rect.left + rect.width * x, clientY: rect.top + rect.height * y,
+    });
+    const pixels = () => { const data = inkCtx.getImageData(0, 0, inkCanvas.width, inkCanvas.height).data; let n = 0; for (let i = 3; i < data.length; i += 4) if (data[i]) n++; return n; };
+    clearInk(); activePointers.clear(); tracing = false; revealed = false; animating = false;
+    canvas.dispatchEvent(pointer("pointerdown", 81051, true, .2, .25, 1));
+    canvas.dispatchEvent(pointer("pointermove", 81051, true, .45, .5, 1));
+    const partial = pixels();
+    canvas.dispatchEvent(pointer("pointerdown", 81052, false, .75, .7, 1));
+    const entered = peeking && Number(canvas.style.opacity) <= .06 && hzEl.classList.contains("peekHint");
+    const cancelled = partial > 0 && !drawing && curInkStroke === null && pixels() === 0;
+    canvas.dispatchEvent(pointer("pointermove", 81051, true, .65, .65, 1));
+    canvas.dispatchEvent(pointer("pointermove", 81052, false, .8, .8, 1));
+    const blockedInk = inkStrokes.length === 0 && curInkStroke === null && pixels() === 0;
+    canvas.dispatchEvent(pointer("pointerup", 81052, false, .8, .8, 0));
+    const restored = !peeking && Number(canvas.style.opacity) === 1 && !hzEl.classList.contains("peekHint");
+    canvas.dispatchEvent(pointer("pointerup", 81051, true, .65, .65, 0));
+    activePointers.add(1); activePointers.add(2); animating = true; enterPeekHint(); activePointers.delete(2); exitPeekHint();
+    const animationRestore = Number(canvas.style.opacity) === .22;
+    resetPeekHint(); animating = false;
+    activePointers.add(1); activePointers.add(2); tracing = true; const tracingBlocked = !enterPeekHint(); resetPeekHint(); tracing = false;
+    activePointers.add(1); activePointers.add(2); revealed = true; const revealBlocked = !enterPeekHint(); resetPeekHint(); revealed = false;
+    actionCooldownUntil = 0; hapticDebug.events = []; hapticDebug.last = null; const revealedNow = revealAnswer(true);
+    const revealAction = revealedNow && hapticDebug.last === "action" && hapticDebug.events.join(",") === "action";
+    render();
+    return { entered, cancelled, blockedInk, restored, animationRestore, tracingBlocked, revealBlocked, revealAction };
+  });
+  await page.waitForFunction(() => !document.getElementById("show").disabled);
+  if (!Object.values(peekAndRevealHaptics).every(Boolean)) {
+    throw new Error(`Expected two-finger peek and reveal haptic hierarchy, got ${JSON.stringify(peekAndRevealHaptics)}`);
   }
   await page.click("#show");
   await expectVisible(page, "#traceActions", "trace actions after showing answer");
@@ -418,11 +508,14 @@ async function expectHidden(page, selector, label) {
     doneLabel: document.getElementById("traceDone").textContent.replace(/\s+/g, ""),
     missAria: document.getElementById("traceMiss").getAttribute("aria-label"),
     doneAria: document.getElementById("traceDone").getAttribute("aria-label"),
+    hint: document.getElementById("hint").textContent,
+    haptic: hapticDebug.last,
   }));
   if (!traceBefore.tracing || traceBefore.tracedThisCard || !traceBefore.traceDoneDisabled || traceBefore.missDisabled
-    || traceBefore.missLabel !== "还是不会印章：回炉" || traceBefore.doneLabel !== "描好了印章：补拾"
-    || !traceBefore.missAria.includes("还是不会") || !traceBefore.missAria.includes("回炉")
-    || !traceBefore.doneAria.includes("描好了") || !traceBefore.doneAria.includes("补拾")) {
+    || traceBefore.missLabel !== "不会写印章：回炉" || traceBefore.doneLabel !== "描好了印章：补拾"
+    || !traceBefore.missAria.includes("不会写") || !traceBefore.missAria.includes("回炉")
+    || !traceBefore.doneAria.includes("描好了") || !traceBefore.doneAria.includes("补拾")
+    || !traceBefore.hint.includes("实在不想描") || traceBefore.haptic !== "select") {
     throw new Error(`Expected tracing to require a real stroke before hinted, got ${JSON.stringify(traceBefore)}`);
   }
   const inkBox = await page.locator(".inkc").boundingBox();
@@ -438,6 +531,7 @@ async function expectHidden(page, selector, label) {
     throw new Error(`Expected tracing stroke to enable hinted, got ${JSON.stringify(traceReady)}`);
   }
   const nextKeyBefore = await page.evaluate(() => cardKey(batch[1]));
+  await page.evaluate(() => { hapticDebug.events = []; hapticDebug.last = null; });
   const holdStartedAt = Date.now();
   await page.click("#traceDone");
   await page.waitForTimeout(1020);
@@ -459,9 +553,24 @@ async function expectHidden(page, selector, label) {
     undoVisible: getComputedStyle(document.getElementById("undoBar")).display !== "none",
     session: load(SESSION_KEY, null),
     haptic: hapticDebug.last,
+    hapticEvents: hapticDebug.events.slice(),
   }));
-  if (traced.outcome !== "hinted" || !traced.traced || !traced.memoryTraced || traced.systemSuggestion !== "" || traced.systemStatus !== "none" || traced.systemAgree !== null || traced.todayStamps !== 1 || !traced.undoVisible || traced.session?.pos !== 1 || traced.haptic !== "stamp") {
+  if (traced.outcome !== "hinted" || !traced.traced || !traced.memoryTraced || traced.systemSuggestion !== "" || traced.systemStatus !== "none" || traced.systemAgree !== null || traced.todayStamps !== 1 || !traced.undoVisible || traced.session?.pos !== 1 || traced.haptic !== "stamp" || traced.hapticEvents.join(",") !== "stamp") {
     throw new Error(`Expected traced marker, activity and session snapshot, got ${JSON.stringify(traced)}`);
+  }
+  const undoLayout = await page.evaluate(() => {
+    const snap = lastStampSnapshot, canvas = inkCanvas, rect = canvas.getBoundingClientRect();
+    const before = document.getElementById("boxwrap").getBoundingClientRect().top;
+    const style = getComputedStyle(document.getElementById("undoBar"));
+    const event = (type, buttons) => new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 82001, pointerType: "touch", isPrimary: true, button: 0, buttons, clientX: rect.left + 30, clientY: rect.top + 30 });
+    canvas.dispatchEvent(event("pointerdown", 1)); canvas.dispatchEvent(event("pointerup", 0));
+    const hiddenOnWrite = getComputedStyle(document.getElementById("undoBar")).display === "none";
+    const after = document.getElementById("boxwrap").getBoundingClientRect().top;
+    clearInk(); lastStampSnapshot = snap; renderUndoBar();
+    return { position: style.position, hiddenOnWrite, shift: Math.abs(after - before), restored: getComputedStyle(document.getElementById("undoBar")).display !== "none" };
+  });
+  if (undoLayout.position !== "absolute" || !undoLayout.hiddenOnWrite || undoLayout.shift > .5 || !undoLayout.restored) {
+    throw new Error(`Expected undo bar to float without moving the writing layout, got ${JSON.stringify(undoLayout)}`);
   }
   await page.click("#undoLast");
   await page.waitForFunction(() => pos === 0 && revealed && getComputedStyle(document.getElementById("reveal")).display !== "none");
@@ -548,6 +657,7 @@ async function expectHidden(page, selector, label) {
     const fastIdx = CARDS.findIndex((card) => card.target === "强");
     const missIdx = CARDS.findIndex((card) => card.target === "器");
     const hintedIdx = CARDS.findIndex((card) => card.target === "疑");
+    const reviewingIdx = CARDS.findIndex((card) => card.target === "词");
     const now = Date.now();
     status = {};
     memory = {};
@@ -559,6 +669,7 @@ async function expectHidden(page, selector, label) {
       { idx: fastIdx, outcome: "fast", ease: 85, streak: 2, fast: 2, due: now + 7 * 86400000 },
       { idx: missIdx, outcome: "miss", ease: 32, streak: 0, misses: 1, due: now },
       { idx: hintedIdx, outcome: "hinted", ease: 40, streak: 0, hints: 1, due: now },
+      { idx: reviewingIdx, outcome: "fast", ease: 72, streak: 1, fast: 1, due: now + 3 * 86400000 },
     ].forEach((item) => {
       const c = CARDS[item.idx];
       status[item.idx] = item.outcome === "fast" ? "rest" : "indeck";
@@ -590,9 +701,17 @@ async function expectHidden(page, selector, label) {
     dueVisible: getComputedStyle(document.getElementById("dueCard")).display !== "none",
     dueTitle: document.getElementById("dueTitle").textContent,
     tiles: document.querySelectorAll("#boxGrid .boxTile").length,
+    riskTiles: document.querySelectorAll("#boxGrid .boxTile.risk").length,
+    reviewingTiles: document.querySelectorAll("#boxGrid .boxTile.reviewing").length,
+    stableTiles: document.querySelectorAll("#boxGrid .boxTile.stable").length,
+    reviewingDot: getComputedStyle(document.querySelector("#boxGrid .boxTile.reviewing .dot")).width,
+    stableDot: getComputedStyle(document.querySelector("#boxGrid .boxTile.stable .dot")).width,
+    legend: document.querySelector(".legend").textContent.replace(/\s+/g, ""),
     activeTab: document.querySelector(".foot .tab.active")?.id,
   }));
-  if (!book.visible || !book.count.includes("3") || !book.dueVisible || !book.dueTitle.includes("2") || book.tiles < 3 || book.activeTab !== "tabBook") {
+  if (!book.visible || !book.count.includes("4") || !book.dueVisible || !book.dueTitle.includes("2") || book.tiles < 4
+    || book.riskTiles !== 2 || book.reviewingTiles !== 1 || book.stableTiles !== 1 || book.reviewingDot !== "11px" || book.stableDot !== "6px"
+    || !book.legend.includes("大角标") || !book.legend.includes("灰小点=已稳") || book.activeTab !== "tabBook") {
     throw new Error(`Expected study book to expose due/risk cards, got ${JSON.stringify(book)}`);
   }
   await page.click("#practiceDue");
@@ -618,10 +737,17 @@ async function expectHidden(page, selector, label) {
     roundId = "verify-summary";
     batch = roundStats.map((s) => s.idx); // 对齐完成门槛：roundStats >= batch 才记完成
     saveTuning();
-    roundSummary();
+    hapticDebug.events = []; hapticDebug.last = null; roundSummary();
+    const milestoneHaptic = hapticDebug.last;
+    const milestoneVisible = getComputedStyle(document.getElementById("milestoneLine")).display !== "none";
+    const milestoneText = document.getElementById("milestoneLine").textContent;
+    roundSummary(true);
+    const completedRoundHaptic = hapticDebug.last;
     return {
-      milestoneVisible: getComputedStyle(document.getElementById("milestoneLine")).display !== "none",
-      milestoneText: document.getElementById("milestoneLine").textContent,
+      milestoneHaptic,
+      completedRoundHaptic,
+      milestoneVisible,
+      milestoneText,
       totalDays: totalPracticeDays(),
       milestonesShown: reminder.milestonesShown.slice(),
       visible: getComputedStyle(document.getElementById("summary")).display !== "none",
@@ -639,7 +765,8 @@ async function expectHidden(page, selector, label) {
     throw new Error(`Expected result sheet with pocket review and round feedback, got ${JSON.stringify(summary)}`);
   }
   // 首个完成日 = 累计第 1 天里程碑：结算页出现「见字如晤」庆祝行，且只记录一次
-  if (!summary.milestoneVisible || !summary.milestoneText.includes("见字如晤") || summary.totalDays !== 1 || summary.milestonesShown.join(",") !== "1") {
+  if (!summary.milestoneVisible || !summary.milestoneText.includes("见字如晤") || summary.totalDays !== 1 || summary.milestonesShown.join(",") !== "1"
+    || summary.milestoneHaptic !== "milestone" || summary.completedRoundHaptic !== "action") {
     throw new Error(`Expected day-1 milestone celebration on first completed day, got ${JSON.stringify(summary)}`);
   }
   await page.click('#roundTune [data-round-feedback="easy"]');

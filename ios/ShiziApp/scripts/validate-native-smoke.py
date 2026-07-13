@@ -94,14 +94,17 @@ checks = {
     and data_flow.get("backupHasAdded") is True
     and data_flow.get("backupHasCustom") is True
     and data_flow.get("backupHasMemory") is True
-    and data_flow.get("backupHasSmokeKey") is True
+    and data_flow.get("backupHasReminder") is True
+    and data_flow.get("backupExcludesSession") is True
+    and data_flow.get("backupExcludesSmokeKey") is True
     and data_flow.get("backupHasMeta") is True,
     "backupRestore": data_flow.get("backupRestoreApplied") is True
     and int(data_flow.get("backupRestoreKeyCount") or 0) > 0
     and data_flow.get("backupRestoreAdded") is True
     and data_flow.get("backupRestoreCustom") is True
     and data_flow.get("backupRestoreMemory") is True
-    and data_flow.get("backupRestoreSmokeKey") is True
+    and data_flow.get("backupRestoreClearsSession") is True
+    and data_flow.get("backupRestorePreservesSmokeKey") is True
     and data_flow.get("backupRestoreRejectsInvalid") is True,
     "nativeBridge": data_flow.get("nativeBridgeAvailable") is True,
     "nativeImport": data_flow.get("nativeImportAvailable") is True,

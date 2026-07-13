@@ -364,12 +364,15 @@ async function expectHidden(page, selector, label) {
     outcome: roundStats[0]?.outcome,
     traced: roundStats[0]?.traced,
     memoryTraced: memory[cardKey(roundStats[0]?.idx)]?.traced,
+    systemSuggestion: memory[cardKey(roundStats[0]?.idx)]?.lastSystemSuggestion,
+    systemStatus: memory[cardKey(roundStats[0]?.idx)]?.lastSystemStatus,
+    systemAgree: memory[cardKey(roundStats[0]?.idx)]?.lastSystemAgree,
     todayStamps: todayStampCount(),
     undoVisible: getComputedStyle(document.getElementById("undoBar")).display !== "none",
     session: load(SESSION_KEY, null),
     haptic: hapticDebug.last,
   }));
-  if (traced.outcome !== "hinted" || !traced.traced || !traced.memoryTraced || traced.todayStamps !== 1 || !traced.undoVisible || traced.session?.pos !== 1 || traced.haptic !== "stamp") {
+  if (traced.outcome !== "hinted" || !traced.traced || !traced.memoryTraced || traced.systemSuggestion !== "" || traced.systemStatus !== "none" || traced.systemAgree !== null || traced.todayStamps !== 1 || !traced.undoVisible || traced.session?.pos !== 1 || traced.haptic !== "stamp") {
     throw new Error(`Expected traced marker, activity and session snapshot, got ${JSON.stringify(traced)}`);
   }
   await page.click("#undoLast");
@@ -416,6 +419,31 @@ async function expectHidden(page, selector, label) {
   }));
   if (add.length < addBefore.length + 2 || add.inserted !== "蘸料" || !add.toast.includes("本次练习")) {
     throw new Error(`Expected added word to enter current queue with feedback, got ${JSON.stringify(add)}`);
+  }
+
+  const backupPolicy = await page.evaluate(() => {
+    saveSessionSnapshot();
+    localStorage.setItem("shizi.transient.verify", "keep-local");
+    const payload = JSON.parse(backupPayload());
+    const legacyPayload = cloneObj(payload);
+    legacyPayload.data[SESSION_KEY] = JSON.stringify({ version: 1, date: today(), batch: [0], pos: 0, roundStats: [] });
+    legacyPayload.data["shizi.unknown.v1"] = "legacy-unknown";
+    localStorage.setItem(SESSION_KEY, JSON.stringify({ current: true }));
+    const restored = restoreBackupPayload(legacyPayload, { skipConfirm: true, reload: false });
+    const transientAfterRestore = localStorage.getItem("shizi.transient.verify");
+    localStorage.removeItem("shizi.transient.verify");
+    return {
+      exportedKeys: Object.keys(payload.data),
+      sessionExported: Object.prototype.hasOwnProperty.call(payload.data, SESSION_KEY),
+      transientExported: Object.prototype.hasOwnProperty.call(payload.data, "shizi.transient.verify"),
+      sessionAfterRestore: localStorage.getItem(SESSION_KEY),
+      transientAfterRestore,
+      unknownAfterRestore: localStorage.getItem("shizi.unknown.v1"),
+      restoredKeys: restored.keys,
+    };
+  });
+  if (backupPolicy.sessionExported || backupPolicy.transientExported || backupPolicy.sessionAfterRestore !== null || backupPolicy.transientAfterRestore !== "keep-local" || backupPolicy.unknownAfterRestore !== null || backupPolicy.restoredKeys.includes("shizi.unknown.v1") || !backupPolicy.exportedKeys.includes("shizi.memory.v1") || !backupPolicy.exportedKeys.includes("shizi.reminder.v1")) {
+    throw new Error(`Expected backup allowlist to exclude sessions and transient keys, got ${JSON.stringify(backupPolicy)}`);
   }
 
   await page.evaluate(() => {
@@ -641,12 +669,21 @@ async function expectHidden(page, selector, label) {
     throw new Error(`Expected auto-check copy to behave as assistant suggestion, got ${JSON.stringify(algorithm.verdictCopy)}`);
   }
 
+  const backupCoverage = await page.evaluate(() => {
+    const excluded = new Set([SESSION_KEY, "shizi.nativeSmoke.v1"]);
+    const storedKeys = Array.from({ length: localStorage.length }, (_, i) => localStorage.key(i)).filter(Boolean);
+    return storedKeys.filter((key) => key.startsWith("shizi.") && !BACKUP_KEYS.includes(key) && !excluded.has(key));
+  });
+  if (backupCoverage.length) {
+    throw new Error(`Unregistered shizi.* keys (add to BACKUP_KEYS or exclusions): ${backupCoverage.join(", ")}`);
+  }
+
   await page.waitForTimeout(500);
   await page.screenshot({ path: screenshotPath, fullPage: true });
   if (pageErrors.length) {
     throw new Error(`Browser reported errors: ${pageErrors.join(" | ")}`);
   }
-  console.log(JSON.stringify({ initial, streakMigration, practice, adaptive, home, shortRound, traceBefore, traceReady, traced, reveal, stamped, add, book, review, summary, tuningCheck, focus, me, profile, devTools, devData, devAudit, algorithm, screenshotPath }, null, 2));
+  console.log(JSON.stringify({ initial, streakMigration, practice, adaptive, home, shortRound, traceBefore, traceReady, traced, reveal, stamped, add, backupPolicy, backupCoverage, book, review, summary, tuningCheck, focus, me, profile, devTools, devData, devAudit, algorithm, screenshotPath }, null, 2));
   await browser.close();
 })().catch(async (err) => {
   console.error(err);

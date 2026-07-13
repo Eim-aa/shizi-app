@@ -166,14 +166,17 @@ final class WebViewController: UIViewController {
               backupHasAdded: false,
               backupHasCustom: false,
               backupHasMemory: false,
-              backupHasSmokeKey: false,
+              backupHasReminder: false,
+              backupExcludesSession: false,
+              backupExcludesSmokeKey: false,
               backupHasMeta: false,
               backupRestoreApplied: false,
               backupRestoreKeyCount: 0,
               backupRestoreAdded: false,
               backupRestoreCustom: false,
               backupRestoreMemory: false,
-              backupRestoreSmokeKey: false,
+              backupRestoreClearsSession: false,
+              backupRestorePreservesSmokeKey: false,
               backupRestoreRejectsInvalid: false,
               nativeBridgeAvailable: false,
               nativeImportAvailable: false,
@@ -356,14 +359,19 @@ final class WebViewController: UIViewController {
               result.dataFlow.backupHasAdded = Object.prototype.hasOwnProperty.call(backupData, ADDED_KEY) && String(backupData[ADDED_KEY]).includes(smokeChar);
               result.dataFlow.backupHasCustom = BASE_BY_CHAR[smokeChar] != null || (Object.prototype.hasOwnProperty.call(backupData, CUSTOM_KEY) && String(backupData[CUSTOM_KEY]).includes(smokeChar));
               result.dataFlow.backupHasMemory = Object.prototype.hasOwnProperty.call(backupData, MEMORY_KEY) && String(backupData[MEMORY_KEY]).includes(smokeChar);
-              result.dataFlow.backupHasSmokeKey = Object.prototype.hasOwnProperty.call(backupData, 'shizi.nativeSmoke.v1');
+              result.dataFlow.backupHasReminder = Object.prototype.hasOwnProperty.call(backupData, REMINDER_KEY);
+              result.dataFlow.backupExcludesSession = !Object.prototype.hasOwnProperty.call(backupData, SESSION_KEY);
+              result.dataFlow.backupExcludesSmokeKey = !Object.prototype.hasOwnProperty.call(backupData, 'shizi.nativeSmoke.v1');
               result.dataFlow.backupHasMeta = Object.prototype.hasOwnProperty.call(backupData, BACKUP_META_KEY);
               if (typeof restoreBackupPayload === 'function') {
                 localStorage.setItem(ADDED_KEY, JSON.stringify([]));
                 localStorage.setItem(CUSTOM_KEY, JSON.stringify([]));
                 localStorage.setItem(MEMORY_KEY, JSON.stringify({}));
-                localStorage.removeItem('shizi.nativeSmoke.v1');
-                const restoreResult = restoreBackupPayload(JSON.stringify(backup), { skipConfirm: true, reload: false });
+                localStorage.setItem(SESSION_KEY, JSON.stringify({ current: true }));
+                const legacyBackup = JSON.parse(JSON.stringify(backup));
+                legacyBackup.data[SESSION_KEY] = JSON.stringify({ legacy: true });
+                const smokeValueBeforeRestore = localStorage.getItem('shizi.nativeSmoke.v1');
+                const restoreResult = restoreBackupPayload(JSON.stringify(legacyBackup), { skipConfirm: true, reload: false });
                 const restoredAdded = JSON.parse(localStorage.getItem(ADDED_KEY) || '[]');
                 const restoredCustom = JSON.parse(localStorage.getItem(CUSTOM_KEY) || '[]');
                 result.dataFlow.backupRestoreApplied = !!restoreResult && restoreResult.applied === true;
@@ -371,7 +379,8 @@ final class WebViewController: UIViewController {
                 result.dataFlow.backupRestoreAdded = Array.isArray(restoredAdded) && restoredAdded.includes(smokeChar);
                 result.dataFlow.backupRestoreCustom = BASE_BY_CHAR[smokeChar] != null || (Array.isArray(restoredCustom) && restoredCustom.includes(smokeChar));
                 result.dataFlow.backupRestoreMemory = String(localStorage.getItem(MEMORY_KEY) || '').includes(smokeChar);
-                result.dataFlow.backupRestoreSmokeKey = localStorage.getItem('shizi.nativeSmoke.v1') !== null;
+                result.dataFlow.backupRestoreClearsSession = localStorage.getItem(SESSION_KEY) === null;
+                result.dataFlow.backupRestorePreservesSmokeKey = localStorage.getItem('shizi.nativeSmoke.v1') === smokeValueBeforeRestore;
                 try {
                   restoreBackupPayload({ app: 'wrong-app', data: { 'shizi.bad': '1' } }, { skipConfirm: true, reload: false });
                 } catch (_) {
@@ -712,6 +721,10 @@ extension WebViewController: WKUIDelegate {
         initiatedByFrame frame: WKFrameInfo,
         completionHandler: @escaping () -> Void
     ) {
+        guard presentedViewController == nil else {
+            completionHandler()
+            return
+        }
         let alert = UIAlertController(title: "拾字", message: message, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "知道了", style: .default) { _ in completionHandler() })
         present(alert, animated: true)
@@ -728,6 +741,11 @@ extension WebViewController: WKUIDelegate {
             return
         }
 
+        guard presentedViewController == nil else {
+            completionHandler(false)
+            return
+        }
+
         let alert = UIAlertController(title: "拾字", message: message, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "取消", style: .cancel) { _ in completionHandler(false) })
         alert.addAction(UIAlertAction(title: "确定", style: .default) { _ in completionHandler(true) })
@@ -741,6 +759,10 @@ extension WebViewController: WKUIDelegate {
         initiatedByFrame frame: WKFrameInfo,
         completionHandler: @escaping (String?) -> Void
     ) {
+        guard presentedViewController == nil else {
+            completionHandler(nil)
+            return
+        }
         let alert = UIAlertController(title: "拾字", message: prompt, preferredStyle: .alert)
         alert.addTextField { $0.text = defaultText }
         alert.addAction(UIAlertAction(title: "取消", style: .cancel) { _ in completionHandler(nil) })

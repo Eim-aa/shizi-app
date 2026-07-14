@@ -596,7 +596,7 @@ async function elementHash(page, selector) {
       button: 0, buttons, clientX: rect.left + rect.width * x, clientY: rect.top + rect.height * y,
     });
     const pixels = () => { const data = inkCtx.getImageData(0, 0, inkCanvas.width, inkCanvas.height).data; let n = 0; for (let i = 3; i < data.length; i += 4) if (data[i]) n++; return n; };
-    clearInk(); activePointers.clear(); tracing = false; revealed = false; animating = false;
+    clearInk(); activePointers.clear(); peekReleasePending = false; tracing = false; revealed = false; animating = false;
     canvas.dispatchEvent(pointer("pointerdown", 81051, true, .2, .25, 1));
     canvas.dispatchEvent(pointer("pointermove", 81051, true, .45, .5, 1));
     const partial = pixels();
@@ -611,6 +611,26 @@ async function elementHash(page, selector) {
     const restored = !peeking && Number(canvas.style.opacity) === 1 && !hzEl.classList.contains("peekHint");
     const releaseUnlocked = !document.getElementById("actions").classList.contains("tlock") && Number(getComputedStyle(document.getElementById("actions")).opacity) === 1;
     canvas.dispatchEvent(pointer("pointerup", 81051, true, .65, .65, 0));
+    clearInk(); activePointers.clear(); peekReleasePending = false;
+    canvas.dispatchEvent(pointer("pointerdown", 81061, true, .2, .2, 1));
+    canvas.dispatchEvent(pointer("pointerdown", 81062, false, .5, .5, 1));
+    canvas.dispatchEvent(pointer("pointerdown", 81063, false, .8, .8, 1));
+    const threeFingerEntered = peeking && activePointers.size === 3;
+    canvas.dispatchEvent(pointer("pointerup", 81063, false, .8, .8, 0));
+    const anyLiftRestored = !peeking && peekReleasePending && activePointers.size === 2 && Number(canvas.style.opacity) === 1 && !hzEl.classList.contains("peekHint");
+    canvas.dispatchEvent(pointer("pointermove", 81061, true, .65, .65, 1));
+    canvas.dispatchEvent(pointer("pointermove", 81062, false, .75, .75, 1));
+    canvas.dispatchEvent(pointer("pointerdown", 81064, false, .4, .7, 1));
+    const releaseGestureBlocked = !peeking && !drawing && inkStrokes.length === 0 && curInkStroke === null && pixels() === 0;
+    canvas.dispatchEvent(pointer("pointercancel", 81064, false, .4, .7, 0));
+    canvas.dispatchEvent(pointer("pointerup", 81062, false, .75, .75, 0));
+    canvas.dispatchEvent(pointer("pointerup", 81061, true, .65, .65, 0));
+    const releaseGestureEnded = !peekReleasePending && activePointers.size === 0;
+    canvas.dispatchEvent(pointer("pointerdown", 81065, true, .25, .25, 1));
+    canvas.dispatchEvent(pointer("pointermove", 81065, true, .55, .55, 1));
+    canvas.dispatchEvent(pointer("pointerup", 81065, true, .55, .55, 0));
+    const nextGestureWrites = inkStrokes.length === 1 && pixels() > 0;
+    clearInk(); unlockGradeActions();
     activePointers.add(1); activePointers.add(2); animating = true; enterPeekHint(); activePointers.delete(2); exitPeekHint();
     const animationRestore = Number(canvas.style.opacity) === .22;
     resetPeekHint(); animating = false;
@@ -619,7 +639,8 @@ async function elementHash(page, selector) {
     actionCooldownUntil = 0; hapticDebug.events = []; hapticDebug.last = null; const revealedNow = revealAnswer(true);
     const revealAction = revealedNow && hapticDebug.last === "action" && hapticDebug.events.join(",") === "action";
     render();
-    return { entered, cancelled, peekUnlocked, blockedInk, restored, releaseUnlocked, animationRestore, tracingBlocked, revealBlocked, revealAction };
+    return { entered, cancelled, peekUnlocked, blockedInk, restored, releaseUnlocked, threeFingerEntered, anyLiftRestored,
+      releaseGestureBlocked, releaseGestureEnded, nextGestureWrites, animationRestore, tracingBlocked, revealBlocked, revealAction };
   });
   await page.waitForFunction(() => !document.getElementById("show").disabled);
   if (!Object.values(peekAndRevealHaptics).every(Boolean)) {

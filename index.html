@@ -1268,7 +1268,7 @@ let S = idealBoxSize();
 const RS=150; // 揭晓对照格尺寸（CSS .cmpBox 同步）
 let gridCanvas, inkCanvas, inkCtx, hzEl, writer=null, practiceCharData=null, loadToken=0, shownStrokes=0, totalStrokes=0, groups=[], groupIdx=0;
 const PEEK_INK_OPACITY=0.04;
-let drawing=false, last=null, cur=null, actionCooldownUntil=0, actionUnlockTimer=0, activePointers=new Set(), peeking=false, actionStack=[], seenGroups=new Set();
+let drawing=false, last=null, cur=null, actionCooldownUntil=0, actionUnlockTimer=0, activePointers=new Set(), peeking=false, peekReleasePending=false, actionStack=[], seenGroups=new Set();
 
 function drawGridOn(ctx){ ctx.clearRect(0,0,S,S); ctx.fillStyle=cssVar('--card',"#fdfaf1"); ctx.fillRect(0,0,S,S);
   const red=cssVar('--accent',"#c2452c");
@@ -1282,11 +1282,11 @@ function strokeTo(p){ inkCtx.strokeStyle=cssVar('--inkPen',"#2b2620"); inkCtx.li
 function unlockGradeActions(){ clearTimeout(actionUnlockTimer); actionCooldownUntil=0; ["actions","traceActions"].forEach(id=>$(id)&&$(id).classList.remove("tlock")); }
 function cancelCurrentStroke(applyCooldown=true){ if(!drawing && !curInkStroke){ if(!applyCooldown) unlockGradeActions(); return; } drawing=false; curInkStroke=null; redrawInk(); updateInkControls();
   if(applyCooldown) armGradeActions(); else unlockGradeActions(); onTeachStrokeEnd(); }
-function enterPeekHint(){ if(peeking || tracing || revealed || !inkCanvas || activePointers.size<2) return false;
+function enterPeekHint(){ if(peeking || peekReleasePending || tracing || revealed || !inkCanvas || activePointers.size<2) return false;
   cancelCurrentStroke(false); peeking=true; inkCanvas.style.opacity=String(PEEK_INK_OPACITY); hzEl.classList.add("peekHint"); return true; }
 function exitPeekHint(force=false){ if(!peeking || (!force && activePointers.size>=2)) return false;
   peeking=false; if(inkCanvas) inkCanvas.style.opacity=animating?'0.22':'1'; if(hzEl) hzEl.classList.remove("peekHint"); return true; }
-function resetPeekHint(){ activePointers.clear(); peeking=false; if(hzEl) hzEl.classList.remove("peekHint"); if(inkCanvas) inkCanvas.style.opacity='1'; }
+function resetPeekHint(){ activePointers.clear(); peeking=false; peekReleasePending=false; if(hzEl) hzEl.classList.remove("peekHint"); if(inkCanvas) inkCanvas.style.opacity='1'; }
 function initBox(){ const box=document.createElement('div'); box.className='box'; box.style.width=S+'px'; box.style.height=S+'px';
   gridCanvas=document.createElement('canvas'); gridCanvas.className='gridc';
   hzEl=document.createElement('div'); hzEl.className='hz'; hzEl.style.width=S+'px'; hzEl.style.height=S+'px';
@@ -1294,7 +1294,7 @@ function initBox(){ const box=document.createElement('div'); box.className='box'
   [gridCanvas,inkCanvas].forEach(c=>{ c.style.width=S+'px'; c.style.height=S+'px'; c.width=S*DPR; c.height=S*DPR; c.getContext('2d').scale(DPR,DPR); });
   box.appendChild(gridCanvas); box.appendChild(hzEl); box.appendChild(inkCanvas); $("boxwrap").appendChild(box);
   inkCtx=inkCanvas.getContext('2d'); drawGridOn(gridCanvas.getContext('2d')); inkCanvas.style.transition='opacity .2s'; hzEl.style.transition='opacity .2s';
-  inkStrokes=[]; curInkStroke=null; activePointers.clear(); peeking=false; // 画布重建=墨迹清空，记录的笔画同步作废
+  inkStrokes=[]; curInkStroke=null; activePointers.clear(); peeking=false; peekReleasePending=false; // 画布重建=墨迹清空，记录的笔画同步作废
   inkCanvas.addEventListener('pointerdown',e=>{ e.preventDefault(); activePointers.add(e.pointerId);
     if(activePointers.size>=2){ enterPeekHint(); return; } if(e.isPrimary===false || peeking) return; commitUndoWindow(); const p=P(e);
     drawing=true; lockGradeActions(); last=p; inkBegin(p); try{inkCanvas.setPointerCapture(e.pointerId);}catch(_){} });
@@ -1302,7 +1302,9 @@ function initBox(){ const box=document.createElement('div'); box.className='box'
     let samples=typeof e.getCoalescedEvents==='function'?e.getCoalescedEvents():[e]; if(!samples.length) samples=[e];
     samples.forEach(sample=>{ const p=P(sample); strokeTo(p); inkMove(p); }); });
   ['pointerup','pointercancel','pointerleave'].forEach(ev=>inkCanvas.addEventListener(ev,e=>{ e.preventDefault(); const wasPeeking=peeking; activePointers.delete(e.pointerId);
-    if(wasPeeking){ exitPeekHint(); return; } if(e.isPrimary===false || !drawing) return; drawing=false; inkEnd(); armGradeActions(); }));
+    if(wasPeeking){ exitPeekHint(true); peekReleasePending=activePointers.size>0; return; }
+    if(peekReleasePending){ if(activePointers.size===0) peekReleasePending=false; return; }
+    if(e.isPrimary===false || !drawing) return; drawing=false; inkEnd(); armGradeActions(); }));
   ['touchstart','touchmove','touchend','touchcancel'].forEach(ev=>inkCanvas.addEventListener(ev,e=>e.preventDefault(), {passive:false})); }
 function lockGradeActions(){ clearTimeout(actionUnlockTimer); actionCooldownUntil=Number.POSITIVE_INFINITY; ["actions","traceActions"].forEach(id=>$(id)&&$(id).classList.add("tlock")); }
 function armGradeActions(){ actionCooldownUntil=Date.now()+300; clearTimeout(actionUnlockTimer); actionUnlockTimer=setTimeout(()=>{
@@ -1527,7 +1529,7 @@ function render(){ fitBox(); cur=CARDS[batch[pos]]; const token=++loadToken;
     setTimeout(()=>{ if(token===loadToken && $("show").disabled) allowNoStrokeData("笔顺加载较慢，也可以先看答案"); }, 2500);
   } else { $("show").disabled=false; $("done").disabled=false; } }
 
-async function rewriteCurrentCard(){ commitUndoWindow(); activePointers.clear(); exitPeekHint(true);
+async function rewriteCurrentCard(){ commitUndoWindow(); activePointers.clear(); peekReleasePending=false; exitPeekHint(true);
   if(tracing){ actionStack=[]; clearInk(); drawing=false; updateInkControls(); return true; }
   if(animating){ loadToken++; animating=false; }
   actionStack=[]; clearInk(); drawing=false; groupIdx=0; shownStrokes=0; hzEl.classList.remove("peekHint");
@@ -1552,7 +1554,7 @@ $("tip").onclick=async ()=>{ if(!writer||animating||revealed||groupIdx>=groups.l
   return true;
 };
 function showRevealState(verdict,inkUrl){
-  activePointers.clear(); exitPeekHint(true); revealed=true; clearTimeout(teachTimer);
+  activePointers.clear(); peekReleasePending=false; exitPeekHint(true); revealed=true; clearTimeout(teachTimer);
   $("actions").classList.remove("tlock"); $("traceActions").classList.remove("tlock");
   $("practiceArea").style.display="none"; $("reveal").style.display="flex";
   $("revealWord").textContent=cur.word; $("revealPy").textContent=cur.py||"";
@@ -1582,7 +1584,7 @@ function revealAnswer(done){
   let inkUrl=null; if(inkStrokes.length){ try{ inkUrl=inkCanvas.toDataURL(); }catch(e){} }
   showRevealState(verdict,inkUrl); if(!wasTracing) hapticFeedback("action"); return true;
 }
-function showTracing(){ if(revealed || tracing || Date.now()<actionCooldownUntil) return; commitUndoWindow(); hapticFeedback("select"); activePointers.clear(); exitPeekHint(true); clearTimeout(teachTimer);
+function showTracing(){ if(revealed || tracing || Date.now()<actionCooldownUntil) return; commitUndoWindow(); hapticFeedback("select"); activePointers.clear(); peekReleasePending=false; exitPeekHint(true); clearTimeout(teachTimer);
   tracing=true; hintsUsedThisCard++; actionStack=[]; clearInk(); traceStrokeStartCount=0; tracedThisCard=false;
   $("actions").style.display="none"; $("traceActions").style.display="flex"; $("tip").disabled=true;
   $("hint").textContent="照着淡红轮廓描一遍——描一遍也算拾回；实在不想描，就照实选『不会写』";

@@ -1,4 +1,5 @@
 const { chromium } = require("playwright");
+const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
 
@@ -33,6 +34,10 @@ async function expectVisible(page, selector, label) {
 async function expectHidden(page, selector, label) {
   const hidden = await page.locator(selector).evaluate((node) => getComputedStyle(node).display === "none");
   if (!hidden) throw new Error(`Expected ${label || selector} to be hidden`);
+}
+
+async function elementHash(page, selector) {
+  return crypto.createHash("sha256").update(await page.locator(selector).screenshot()).digest("hex");
 }
 
 (async () => {
@@ -384,12 +389,29 @@ async function expectHidden(page, selector, label) {
     const todayState = { label: document.getElementById("yesterLbl").textContent, text: document.getElementById("yesterRow").textContent.trim(), miss: !!document.querySelector("#yesterRow .yTile.miss") };
     memory[key].last = now - 86400000; saveMemory(); renderHome();
     const priorState = { label: document.getElementById("yesterLbl").textContent, text: document.getElementById("yesterRow").textContent.trim() };
+    status = {}; memory = {};
+    allIndexes().slice(0, 6).forEach((cardIdx, order) => {
+      const card = CARDS[cardIdx]; status[cardIdx] = "rest";
+      memory[cardKey(cardIdx)] = { seen: 1, streak: 2, ease: 70, due: now + 86400000, last: now - order, lastOutcome: order === 1 ? "miss" : "fast", target: card.target, word: card.word };
+    });
+    save(DECK_KEY, status); saveMemory(); renderHome();
+    const row = document.getElementById("yesterRow"), rowStyle = getComputedStyle(row);
+    const scrollState = {
+      tiles: row.querySelectorAll(".yTile:not(.more)").length,
+      more: !!row.querySelector(".yTile.more"),
+      scrollable: row.scrollWidth > row.clientWidth,
+      mask: rowStyle.maskImage || rowStyle.webkitMaskImage,
+      noVerticalOverflow: row.scrollHeight <= row.clientHeight + 1,
+      miss: !!row.querySelector(".yTile.miss"),
+    };
     memory = {}; status = {}; saveMemory(); save(DECK_KEY, status); renderHome();
     const emptyState = document.getElementById("yesterRow").textContent.trim();
-    return { todayState, priorState, emptyState };
+    return { todayState, priorState, scrollState, emptyState };
   });
   if (homeRecent.todayState.label !== "今日拾得" || homeRecent.todayState.text !== "器" || !homeRecent.todayState.miss
-    || homeRecent.priorState.label !== "昨日拾得" || homeRecent.priorState.text !== "器" || !homeRecent.emptyState.includes("今天拾的字会出现在这里")) {
+    || homeRecent.priorState.label !== "昨日拾得" || homeRecent.priorState.text !== "器"
+    || homeRecent.scrollState.tiles !== 6 || homeRecent.scrollState.more || !homeRecent.scrollState.scrollable || homeRecent.scrollState.mask === "none" || !homeRecent.scrollState.noVerticalOverflow || !homeRecent.scrollState.miss
+    || !homeRecent.emptyState.includes("今天拾的字会出现在这里")) {
     throw new Error(`Expected home recent characters to prefer today and style misses quietly, got ${JSON.stringify(homeRecent)}`);
   }
 
@@ -454,24 +476,118 @@ async function expectHidden(page, selector, label) {
   const firstTarget = await page.evaluate(() => cur.target);
   const actionStates = await page.evaluate(async () => {
     writer = { animateStroke: async () => {} };
-    groups = [1, 1]; groupIdx = 0; shownStrokes = 0; totalStrokes = 2; hintsUsedThisCard = 0; revealed = false; animating = false;
+    groups = [1, 1]; groupIdx = 0; shownStrokes = 0; totalStrokes = 2; hintsUsedThisCard = 0; actionStack = []; seenGroups = new Set(); revealed = false; animating = false;
     document.getElementById("tip").disabled = false; updateTip();
-    const read = () => ({ show: document.getElementById("show").textContent, done: document.getElementById("done").textContent });
+    const read = () => ({
+      show: document.getElementById("show").textContent,
+      showVisible: getComputedStyle(document.getElementById("show")).display !== "none",
+      done: document.getElementById("done").textContent,
+      mascot: document.getElementById("mascotLine").textContent,
+    });
     const a = read();
     await document.getElementById("tip").onclick(); const b = read();
     const peekGuide = tuning.peekHintShown === true && document.getElementById("mascotLine").textContent.includes("双指按住格子");
     await document.getElementById("tip").onclick(); const c = read();
-    writer = null; groups = []; groupIdx = 0; hintsUsedThisCard = 0; updateActionLabels(); const noData = read();
+    writer = null; groups = []; groupIdx = 0; hintsUsedThisCard = 0; actionStack = []; seenGroups = new Set(); updateActionLabels(); const noData = read();
     render(); const reset = read();
     return { a, b, c, noData, reset, tipHaptic: hapticDebug.events.filter((kind) => kind === "select").length >= 2, peekGuide };
   });
   await page.waitForFunction(() => !document.getElementById("show").disabled);
   if (actionStates.a.show !== "看答案" || actionStates.a.done !== "写好了"
     || actionStates.b.show !== "看答案" || actionStates.b.done !== "写完了"
-    || actionStates.c.show !== "描一遍" || actionStates.c.done !== "写完了"
+    || actionStates.c.showVisible || actionStates.c.done !== "写完了" || !actionStates.c.mascot.includes("提示用完了") || !actionStates.c.mascot.includes("描一遍也算拾回")
     || actionStates.noData.show !== "看答案" || actionStates.noData.done !== "写好了"
     || actionStates.reset.show !== "看答案" || actionStates.reset.done !== "写好了" || !actionStates.tipHaptic || !actionStates.peekGuide) {
-    throw new Error(`Expected three-state practice labels and reset behavior, got ${JSON.stringify(actionStates)}`);
+    throw new Error(`Expected merged exhausted-hint state and reset behavior, got ${JSON.stringify(actionStates)}`);
+  }
+  await page.waitForFunction(() => !document.getElementById("tip").disabled && !!practiceCharData);
+  await page.evaluate(async () => {
+    groups = [1, 1]; groupIdx = 0; shownStrokes = 0; hintsUsedThisCard = 0; actionStack = []; seenGroups = new Set();
+    await rebuildHintLayer(0); updateTip();
+  });
+  const hintEmptyHash = await elementHash(page, ".hz");
+  const actionStackFlow = await page.evaluate(async () => {
+    const addStroke = () => { curInkStroke = [{ x: 20, y: 20 }, { x: 60, y: 60 }]; inkEnd(); };
+    addStroke(); await document.getElementById("tip").onclick(); addStroke();
+    const stacked = actionStack.map((action) => action.type).join(",");
+    await undoInkStroke();
+    const afterStroke = { ink: inkStrokes.length, groupIdx, shownStrokes, stack: actionStack.map((action) => action.type).join(",") };
+    await undoInkStroke();
+    const afterHint = { ink: inkStrokes.length, groupIdx, shownStrokes, tipDisabled: document.getElementById("tip").disabled, stack: actionStack.map((action) => action.type).join(",") };
+    await undoInkStroke();
+    const empty = { ink: inkStrokes.length, disabled: document.getElementById("undoStroke").disabled, stack: actionStack.length };
+    return { stacked, afterStroke, afterHint, empty };
+  });
+  const hintAfterUndoHash = await elementHash(page, ".hz");
+  const hintStateFlow = await page.evaluate(async () => {
+    await document.getElementById("tip").onclick();
+    const oneGroup = { hints: hintsUsedThisCard, groupIdx, shownStrokes };
+    await document.getElementById("tip").onclick();
+    const exhausted = {
+      showVisible: getComputedStyle(document.getElementById("show")).display !== "none",
+      done: document.getElementById("done").textContent,
+      mascot: document.getElementById("mascotLine").textContent,
+    };
+    await undoInkStroke();
+    const backedOut = {
+      showVisible: getComputedStyle(document.getElementById("show")).display !== "none",
+      show: document.getElementById("show").textContent,
+      done: document.getElementById("done").textContent,
+      mascot: document.getElementById("mascotLine").textContent,
+      groupIdx,
+      shownStrokes,
+    };
+    actionStack = []; seenGroups = new Set(); hintsUsedThisCard = 0; groupIdx = 0; shownStrokes = 0; clearInk(); await rebuildHintLayer(0); updateTip();
+    await document.getElementById("tip").onclick();
+    const firstUse = hintsUsedThisCard;
+    await rewriteCurrentCard();
+    const rewritten = { ink: inkStrokes.length, groupIdx, shownStrokes, stack: actionStack.length, tipDisabled: document.getElementById("tip").disabled, done: document.getElementById("done").textContent };
+    await document.getElementById("tip").onclick(); const replayUse = hintsUsedThisCard;
+    await document.getElementById("tip").onclick(); const newUse = hintsUsedThisCard;
+    return { oneGroup, exhausted, backedOut, firstUse, rewritten, replayUse, newUse };
+  });
+  await page.evaluate(() => rewriteCurrentCard());
+  const hintAfterRewriteHash = await elementHash(page, ".hz");
+  const animationGuards = await page.evaluate(async () => {
+    const originalWriter = writer;
+    groups = [1]; groupIdx = 0; shownStrokes = 0; hintsUsedThisCard = 0; actionStack = []; seenGroups = new Set();
+    writer = { animateStroke: () => new Promise((resolve) => setTimeout(resolve, 50)) }; updateTip();
+    const playing = document.getElementById("tip").onclick();
+    const undoIgnored = await undoInkStroke() === false && actionStack.length === 0 && animating;
+    const rewriting = rewriteCurrentCard();
+    await Promise.all([playing, rewriting]);
+    const result = { undoIgnored, animating, groupIdx, shownStrokes, stack: actionStack.length, ink: inkStrokes.length };
+    if (!writer) writer = originalWriter;
+    return result;
+  });
+  await page.evaluate(() => render());
+  await page.waitForFunction(() => !document.getElementById("tip").disabled && !!practiceCharData);
+  const directExhaustedTrace = await page.evaluate(async () => {
+    groups = [1]; groupIdx = 0; shownStrokes = 0; hintsUsedThisCard = 0; actionStack = []; seenGroups = new Set(); await rebuildHintLayer(0); updateTip();
+    await document.getElementById("tip").onclick();
+    inkStrokes = mediansToCanvas(curMedians); actionStack.push({ type: "stroke" }); redrawInk(); actionCooldownUntil = 0;
+    const opened = revealAnswer(true), verdict = lastVerdict?.status, suggestion = suggestedOutcomeForVerdict(lastVerdict), suggestedHinted = document.getElementById("wrapHinted").classList.contains("suggest");
+    render(); return { opened, verdict, suggestion, suggestedHinted };
+  });
+  await page.waitForFunction(() => !document.getElementById("show").disabled);
+  if (actionStackFlow.stacked !== "stroke,hint,stroke"
+    || actionStackFlow.afterStroke.ink !== 1 || actionStackFlow.afterStroke.stack !== "stroke,hint"
+    || actionStackFlow.afterHint.groupIdx !== 0 || actionStackFlow.afterHint.shownStrokes !== 0 || actionStackFlow.afterHint.tipDisabled || actionStackFlow.afterHint.stack !== "stroke"
+    || actionStackFlow.empty.ink !== 0 || !actionStackFlow.empty.disabled || actionStackFlow.empty.stack !== 0
+    || hintAfterUndoHash !== hintEmptyHash) {
+    throw new Error(`Expected undo to pop stroke/hint/stroke and redraw the hint layer, got ${JSON.stringify({ actionStackFlow, hintEmptyHash, hintAfterUndoHash })}`);
+  }
+  if (hintStateFlow.exhausted.showVisible || hintStateFlow.exhausted.done !== "写完了" || !hintStateFlow.exhausted.mascot.includes("提示用完了")
+    || !hintStateFlow.backedOut.showVisible || hintStateFlow.backedOut.show !== "看答案" || hintStateFlow.backedOut.done !== "写完了" || hintStateFlow.backedOut.mascot.includes("提示用完了")
+    || hintStateFlow.firstUse !== 1 || hintStateFlow.rewritten.ink !== 0 || hintStateFlow.rewritten.groupIdx !== 0 || hintStateFlow.rewritten.shownStrokes !== 0 || hintStateFlow.rewritten.stack !== 0 || hintStateFlow.rewritten.tipDisabled || hintStateFlow.rewritten.done !== "写完了"
+    || hintStateFlow.replayUse !== 1 || hintStateFlow.newUse !== 2 || hintAfterRewriteHash !== hintEmptyHash) {
+    throw new Error(`Expected exhausted-hint rollback and rewrite accounting, got ${JSON.stringify({ hintStateFlow, hintEmptyHash, hintAfterRewriteHash })}`);
+  }
+  if (!animationGuards.undoIgnored || animationGuards.animating || animationGuards.groupIdx !== 0 || animationGuards.shownStrokes !== 0 || animationGuards.stack !== 0 || animationGuards.ink !== 0) {
+    throw new Error(`Expected undo to ignore playback and rewrite to cancel it, got ${JSON.stringify(animationGuards)}`);
+  }
+  if (!directExhaustedTrace.opened || directExhaustedTrace.verdict !== "ok" || directExhaustedTrace.suggestion !== "hinted" || !directExhaustedTrace.suggestedHinted) {
+    throw new Error(`Expected direct tracing in exhausted state to suggest hinted, got ${JSON.stringify(directExhaustedTrace)}`);
   }
   const peekAndRevealHaptics = await page.evaluate(() => {
     const canvas = inkCanvas, rect = canvas.getBoundingClientRect();
@@ -487,11 +603,13 @@ async function expectHidden(page, selector, label) {
     canvas.dispatchEvent(pointer("pointerdown", 81052, false, .75, .7, 1));
     const entered = peeking && Number(canvas.style.opacity) <= .06 && hzEl.classList.contains("peekHint");
     const cancelled = partial > 0 && !drawing && curInkStroke === null && pixels() === 0;
+    const peekUnlocked = !document.getElementById("actions").classList.contains("tlock") && Number(getComputedStyle(document.getElementById("actions")).opacity) === 1;
     canvas.dispatchEvent(pointer("pointermove", 81051, true, .65, .65, 1));
     canvas.dispatchEvent(pointer("pointermove", 81052, false, .8, .8, 1));
     const blockedInk = inkStrokes.length === 0 && curInkStroke === null && pixels() === 0;
     canvas.dispatchEvent(pointer("pointerup", 81052, false, .8, .8, 0));
     const restored = !peeking && Number(canvas.style.opacity) === 1 && !hzEl.classList.contains("peekHint");
+    const releaseUnlocked = !document.getElementById("actions").classList.contains("tlock") && Number(getComputedStyle(document.getElementById("actions")).opacity) === 1;
     canvas.dispatchEvent(pointer("pointerup", 81051, true, .65, .65, 0));
     activePointers.add(1); activePointers.add(2); animating = true; enterPeekHint(); activePointers.delete(2); exitPeekHint();
     const animationRestore = Number(canvas.style.opacity) === .22;
@@ -501,7 +619,7 @@ async function expectHidden(page, selector, label) {
     actionCooldownUntil = 0; hapticDebug.events = []; hapticDebug.last = null; const revealedNow = revealAnswer(true);
     const revealAction = revealedNow && hapticDebug.last === "action" && hapticDebug.events.join(",") === "action";
     render();
-    return { entered, cancelled, blockedInk, restored, animationRestore, tracingBlocked, revealBlocked, revealAction };
+    return { entered, cancelled, peekUnlocked, blockedInk, restored, releaseUnlocked, animationRestore, tracingBlocked, revealBlocked, revealAction };
   });
   await page.waitForFunction(() => !document.getElementById("show").disabled);
   if (!Object.values(peekAndRevealHaptics).every(Boolean)) {
@@ -580,10 +698,19 @@ async function expectHidden(page, selector, label) {
     const hiddenOnWrite = getComputedStyle(document.getElementById("undoBar")).display === "none";
     const after = document.getElementById("boxwrap").getBoundingClientRect().top;
     clearInk(); lastStampSnapshot = snap; renderUndoBar();
-    return { position: style.position, hiddenOnWrite, shift: Math.abs(after - before), restored: getComputedStyle(document.getElementById("undoBar")).display !== "none" };
+    const bar = document.getElementById("undoBar").getBoundingClientRect(), prompt = document.getElementById("prompt").getBoundingClientRect();
+    const noPromptOverlap = bar.bottom <= prompt.top || bar.top >= prompt.bottom || bar.right <= prompt.left || bar.left >= prompt.right;
+    return { position: style.position, hiddenOnWrite, shift: Math.abs(after - before), restored: getComputedStyle(document.getElementById("undoBar")).display !== "none", noPromptOverlap };
   });
-  if (undoLayout.position !== "absolute" || !undoLayout.hiddenOnWrite || undoLayout.shift > .5 || !undoLayout.restored) {
-    throw new Error(`Expected undo bar to float without moving the writing layout, got ${JSON.stringify(undoLayout)}`);
+  await page.setViewportSize({ width: 390, height: 620 });
+  const undoShortLayout = await page.evaluate(() => {
+    renderUndoBar();
+    const bar = document.getElementById("undoBar").getBoundingClientRect(), prompt = document.getElementById("prompt").getBoundingClientRect();
+    return { bar: { top: bar.top, bottom: bar.bottom }, prompt: { top: prompt.top, bottom: prompt.bottom }, noPromptOverlap: bar.bottom <= prompt.top || bar.top >= prompt.bottom || bar.right <= prompt.left || bar.left >= prompt.right };
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  if (undoLayout.position !== "absolute" || !undoLayout.hiddenOnWrite || undoLayout.shift > .5 || !undoLayout.restored || !undoLayout.noPromptOverlap || !undoShortLayout.noPromptOverlap) {
+    throw new Error(`Expected undo bar to float above the prompt on default and short screens, got ${JSON.stringify({ undoLayout, undoShortLayout })}`);
   }
   await page.click("#undoLast");
   await page.waitForFunction(() => pos === 0 && revealed && getComputedStyle(document.getElementById("reveal")).display !== "none");
@@ -706,10 +833,46 @@ async function expectHidden(page, selector, label) {
     save(DECK_KEY, status);
     saveMemory();
     clearSessionSnapshot();
+    bookExpanded = false; boxFilter = "all";
     renderBook();
   });
+  const bookCollapsed = await page.evaluate(() => {
+    const baseStatus = cloneObj(status), baseMemory = cloneObj(memory);
+    const initial = {
+      allHidden: document.getElementById("boxAllSection").offsetParent === null && document.getElementById("boxGrid").offsetParent === null,
+      riskTitle: document.getElementById("boxRiskTitle").textContent,
+      riskTiles: document.querySelectorAll("#boxRiskGrid .boxTile[data-idx]").length,
+      riskMore: !!document.querySelector("#boxRiskGrid [data-expand-risk]"),
+      emptyHidden: getComputedStyle(document.getElementById("boxRiskEmpty")).display === "none",
+      addVisible: document.getElementById("addLink2").offsetParent !== null,
+      allTitle: document.getElementById("boxAllTitle").textContent,
+    };
+    Object.keys(memory).forEach((key) => { memory[key].streak = 2; memory[key].misses = 0; memory[key].hints = 0; memory[key].slow = 0; });
+    Object.keys(status).forEach((key) => { status[key] = "rest"; });
+    renderBook();
+    const empty = { visible: getComputedStyle(document.getElementById("boxRiskEmpty")).display !== "none", copy: document.getElementById("boxRiskEmpty").textContent, tiles: document.querySelectorAll("#boxRiskGrid .boxTile[data-idx]").length };
+    status = {}; memory = {};
+    allIndexes().slice(0, 12).forEach((idx, order) => {
+      const card = CARDS[idx]; status[idx] = "indeck";
+      memory[cardKey(idx)] = { seen: 1, streak: 0, ease: 30, misses: 1, hints: 0, slow: 0, due: Date.now(), last: Date.now() - order, lastOutcome: "miss", target: card.target, word: card.word };
+    });
+    bookExpanded = false; boxFilter = "all"; renderBook();
+    const preview = { tiles: document.querySelectorAll("#boxRiskGrid .boxTile[data-idx]").length, more: document.querySelector("#boxRiskGrid [data-expand-risk]")?.textContent };
+    document.querySelector("#boxRiskGrid [data-expand-risk]").click();
+    const moreOpened = { expanded: bookExpanded, filter: boxFilter, sectionVisible: document.getElementById("boxAllSection").offsetParent !== null, activeRisk: document.querySelector('#boxFilters [data-filter="risk"]').classList.contains("active") };
+    status = baseStatus; memory = baseMemory; save(DECK_KEY, status); saveMemory(); bookExpanded = false; boxFilter = "all"; renderBook();
+    return { initial, empty, preview, moreOpened };
+  });
+  if (!bookCollapsed.initial.allHidden || bookCollapsed.initial.riskTitle !== "待拾回 2" || bookCollapsed.initial.riskTiles !== 2 || bookCollapsed.initial.riskMore || !bookCollapsed.initial.emptyHidden || !bookCollapsed.initial.addVisible || bookCollapsed.initial.allTitle !== "全部 4 字"
+    || !bookCollapsed.empty.visible || !bookCollapsed.empty.copy.includes("没有待拾回的字") || bookCollapsed.empty.tiles !== 0
+    || bookCollapsed.preview.tiles !== 10 || bookCollapsed.preview.more !== "+2"
+    || !bookCollapsed.moreOpened.expanded || bookCollapsed.moreOpened.filter !== "risk" || !bookCollapsed.moreOpened.sectionVisible || !bookCollapsed.moreOpened.activeRisk) {
+    throw new Error(`Expected collapsed study book with risk-first preview, empty state, and +N expansion, got ${JSON.stringify(bookCollapsed)}`);
+  }
+  await page.click("#boxAllToggle");
   const book = await page.evaluate(() => ({
     visible: getComputedStyle(document.getElementById("studybook")).display !== "none",
+    expanded: document.getElementById("boxAllSection").offsetParent !== null,
     count: document.getElementById("boxCount").textContent,
     dueVisible: getComputedStyle(document.getElementById("dueCard")).display !== "none",
     dueTitle: document.getElementById("dueTitle").textContent,
@@ -722,7 +885,7 @@ async function expectHidden(page, selector, label) {
     legend: document.querySelector(".legend").textContent.replace(/\s+/g, ""),
     activeTab: document.querySelector(".foot .tab.active")?.id,
   }));
-  if (!book.visible || !book.count.includes("4") || !book.dueVisible || !book.dueTitle.includes("2") || book.tiles < 4
+  if (!book.visible || !book.expanded || !book.count.includes("4") || !book.count.includes("待复习 2") || !book.dueVisible || !book.dueTitle.includes("2") || book.tiles < 4
     || book.riskTiles !== 2 || book.reviewingTiles !== 1 || book.stableTiles !== 1 || book.reviewingDot !== "11px" || book.stableDot !== "6px"
     || !book.legend.includes("大角标") || !book.legend.includes("灰小点=已稳") || book.activeTab !== "tabBook") {
     throw new Error(`Expected study book to expose due/risk cards, got ${JSON.stringify(book)}`);
@@ -951,7 +1114,7 @@ async function expectHidden(page, selector, label) {
   if (pageErrors.length) {
     throw new Error(`Browser reported errors: ${pageErrors.join(" | ")}`);
   }
-  console.log(JSON.stringify({ initial, streakMigration, practice, adaptive, sameDayRecovery, home, shortRound, calibrationFocus, actionStates, traceBefore, traceReady, stampHold, stampHoldElapsed, traced, reveal, skipStampHold, stamped, add, backupPolicy, backupCoverage, book, review, summary, tuningCheck, focus, me, profile, devTools, devData, devAudit, algorithm, screenshotPath }, null, 2));
+  console.log(JSON.stringify({ initial, streakMigration, practice, adaptive, sameDayRecovery, home, homeRecent, shortRound, calibrationFocus, actionStates, actionStackFlow, hintStateFlow, animationGuards, directExhaustedTrace, traceBefore, traceReady, stampHold, stampHoldElapsed, traced, undoLayout, undoShortLayout, reveal, skipStampHold, stamped, add, backupPolicy, backupCoverage, bookCollapsed, book, review, summary, tuningCheck, focus, me, profile, devTools, devData, devAudit, algorithm, screenshotPath }, null, 2));
   await browser.close();
 })().catch(async (err) => {
   console.error(err);

@@ -155,6 +155,7 @@ final class WebViewController: UIViewController {
               actionCooldownActive: false,
               peekEntered: false,
               peekCancelledPartialStroke: false,
+              peekActionsUnlocked: false,
               peekBlockedInk: false,
               peekRestored: false
             },
@@ -500,6 +501,7 @@ final class WebViewController: UIViewController {
                 inkCanvas.dispatchEvent(peekPointer('pointerdown', 7002, false, 0.72, 0.68, 1));
                 result.handwritingFlow.peekEntered = peeking === true && Number(inkCanvas.style.opacity) <= 0.06 && hzEl.classList.contains('peekHint');
                 result.handwritingFlow.peekCancelledPartialStroke = partialPixels > 0 && drawing === false && curInkStroke === null && pixelCount() === 0;
+                result.handwritingFlow.peekActionsUnlocked = !document.getElementById('actions').classList.contains('tlock') && Number(getComputedStyle(document.getElementById('actions')).opacity) === 1;
                 inkCanvas.dispatchEvent(peekPointer('pointermove', 7001, true, 0.62, 0.62, 1));
                 inkCanvas.dispatchEvent(peekPointer('pointermove', 7002, false, 0.78, 0.74, 1));
                 result.handwritingFlow.peekBlockedInk = inkStrokes.length === 0 && curInkStroke === null && pixelCount() === 0;

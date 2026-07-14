@@ -83,6 +83,7 @@ checks = {
     and handwriting.get("actionCooldownActive") is True,
     "handwritingPeek": handwriting.get("peekEntered") is True
     and handwriting.get("peekCancelledPartialStroke") is True
+    and handwriting.get("peekActionsUnlocked") is True
     and handwriting.get("peekBlockedInk") is True
     and handwriting.get("peekRestored") is True,
     "addSheet": data_flow.get("addSheetOpened") is True

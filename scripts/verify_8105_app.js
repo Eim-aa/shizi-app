@@ -336,10 +336,21 @@ async function expectHidden(page, selector, label) {
     const queuedIndexes = indexesForChars(["强", "器"]);
     activeMode = "new"; startRound();
     const newFront = batch.slice(0, 2).map((idx) => CARDS[idx].target).join("");
-    queuedIndexes.forEach((idx, order) => { batch = [idx]; pos = 0; roundStats = []; recordOutcome(order ? "hinted" : "fast"); });
+    const firstKey = cardKey(queuedIndexes[0]), secondKey = cardKey(queuedIndexes[1]);
+    showRevealState(null, null); pickStamp("fast");
+    const nextPreservedBeforeAdvance = batch[1] === queuedIndexes[1];
+    goNext();
+    const secondIsNext = pos === 1 && cur.target === "器" && (memory[secondKey] || {}).queuedFront === true;
+    reopenStampChoices();
+    const undoRestored = pos === 0 && revealed && (memory[firstKey] || {}).queuedFront === true
+      && (memory[secondKey] || {}).queuedFront === true && roundStats.length === 0;
+    pickStamp("fast"); goNext();
+    const secondAfterRegrade = pos === 1 && cur.target === "器" && !(memory[firstKey] || {}).queuedFront
+      && (memory[firstKey] || {}).seen === 2 && roundStats.length === 1;
+    showRevealState(null, null); pickStamp("hinted"); goNext();
     const consumed = queuedIndexes.every((idx) => !(memory[cardKey(idx)] || {}).queuedFront);
     clearSessionSnapshot(); sessionDone = new Set(); activeMode = "new"; startRound();
-    const absentAfterUse = !batch.slice(0, 2).some((idx) => queuedIndexes.includes(idx));
+    const noForcedQueueAfterUse = queuedFrontPool().every((idx) => !queuedIndexes.includes(idx));
 
     resetModel(true);
     addWord("强"); addWord("器"); activeMode = "review"; startRound();
@@ -355,9 +366,11 @@ async function expectHidden(page, selector, label) {
     renderHome(); tuning.calibrated = false; saveTuning(); document.getElementById("addInput").value = "疑"; confirmAdd();
     const calibrationToast = document.getElementById("toast").textContent;
     resetModel(true); renderHome();
-    return { newFront, reviewFront, consumed, absentAfterUse, calibrationFront, calibrationKeepsFlags, calibratedToast, calibrationToast };
+    return { newFront, nextPreservedBeforeAdvance, secondIsNext, undoRestored, secondAfterRegrade, reviewFront, consumed,
+      noForcedQueueAfterUse, calibrationFront, calibrationKeepsFlags, calibratedToast, calibrationToast };
   });
-  if (queueFront.newFront !== "强器" || queueFront.reviewFront !== "强器" || !queueFront.consumed || !queueFront.absentAfterUse
+  if (queueFront.newFront !== "强器" || !queueFront.nextPreservedBeforeAdvance || !queueFront.secondIsNext || !queueFront.undoRestored
+    || !queueFront.secondAfterRegrade || queueFront.reviewFront !== "强器" || !queueFront.consumed || !queueFront.noForcedQueueAfterUse
     || queueFront.calibrationFront === "强器" || !queueFront.calibrationKeepsFlags
     || !queueFront.calibratedToast.includes("下次开练，第一个就是它") || !queueFront.calibrationToast.includes("校准这组结束后")) {
     throw new Error(`Expected newly added characters to lead the next non-calibration round once, got ${JSON.stringify(queueFront)}`);
@@ -726,30 +739,25 @@ async function expectHidden(page, selector, label) {
     const missIdx = CARDS.findIndex((card) => card.target === "器");
     const hintedIdx = CARDS.findIndex((card) => card.target === "疑");
     const now = Date.now();
-    roundStats = [
+    const summaryStats = [
       { idx: fastIdx, target: CARDS[fastIdx].target, word: CARDS[fastIdx].word, outcome: "fast", level: abilityLevel(fastIdx), topic: CARDS[fastIdx].topic, due: now + 7 * 86400000 },
       { idx: missIdx, target: CARDS[missIdx].target, word: CARDS[missIdx].word, outcome: "miss", level: abilityLevel(missIdx), topic: CARDS[missIdx].topic, due: now },
       { idx: hintedIdx, target: CARDS[hintedIdx].target, word: CARDS[hintedIdx].word, outcome: "hinted", level: abilityLevel(hintedIdx), topic: CARDS[hintedIdx].topic, due: now + 3600000 },
     ];
+    roundStats = cloneObj(summaryStats);
     activeMode = "new";
     tuning = { calibrated: true, offset: 0, contextStrict: 0, rounds: [] };
     roundFeedbackGiven = false;
     roundId = "verify-summary";
     batch = roundStats.map((s) => s.idx); // 对齐完成门槛：roundStats >= batch 才记完成
     saveTuning();
-    hapticDebug.events = []; hapticDebug.last = null; roundSummary();
+    pos = batch.length - 1; pendingRepeat = false; stamped = true;
+    hapticDebug.events = []; hapticDebug.last = null; goNext();
     const milestoneHaptic = hapticDebug.last;
+    const milestoneEvents = hapticDebug.events.slice();
     const milestoneVisible = getComputedStyle(document.getElementById("milestoneLine")).display !== "none";
     const milestoneText = document.getElementById("milestoneLine").textContent;
-    roundSummary(true);
-    const completedRoundHaptic = hapticDebug.last;
-    return {
-      milestoneHaptic,
-      completedRoundHaptic,
-      milestoneVisible,
-      milestoneText,
-      totalDays: totalPracticeDays(),
-      milestonesShown: reminder.milestonesShown.slice(),
+    const summaryUI = {
       visible: getComputedStyle(document.getElementById("summary")).display !== "none",
       sheetVisible: getComputedStyle(document.getElementById("sumSheet")).display !== "none",
       lead: document.getElementById("sumLead").textContent.replace(/\s+/g, ""),
@@ -760,13 +768,30 @@ async function expectHidden(page, selector, label) {
       stop: document.getElementById("stop").textContent,
       more: document.getElementById("more").textContent,
     };
+    roundStats = [cloneObj(summaryStats[0])]; batch = [fastIdx]; pos = 0; roundId = "verify-summary-action"; stamped = true; pendingRepeat = false;
+    hapticDebug.events = []; hapticDebug.last = null; goNext();
+    const completedRoundHaptic = hapticDebug.last;
+    const completedRoundEvents = hapticDebug.events.slice();
+    roundStats = cloneObj(summaryStats); batch = roundStats.map((s) => s.idx); roundId = "verify-summary"; roundSummary();
+    return {
+      milestoneHaptic,
+      milestoneEvents,
+      completedRoundHaptic,
+      completedRoundEvents,
+      milestoneVisible,
+      milestoneText,
+      totalDays: totalPracticeDays(),
+      milestonesShown: reminder.milestonesShown.slice(),
+      ...summaryUI,
+    };
   });
   if (!summary.visible || !summary.sheetVisible || !summary.lead.includes("还没拾到") || summary.tiles.length !== 3 || !summary.pocketVisible || !summary.pocketTitle.includes("2") || summary.tuneButtons.length !== 4 || summary.stop !== "回首页") {
     throw new Error(`Expected result sheet with pocket review and round feedback, got ${JSON.stringify(summary)}`);
   }
   // 首个完成日 = 累计第 1 天里程碑：结算页出现「见字如晤」庆祝行，且只记录一次
   if (!summary.milestoneVisible || !summary.milestoneText.includes("见字如晤") || summary.totalDays !== 1 || summary.milestonesShown.join(",") !== "1"
-    || summary.milestoneHaptic !== "milestone" || summary.completedRoundHaptic !== "action") {
+    || summary.milestoneHaptic !== "milestone" || summary.milestoneEvents.join(",") !== "milestone"
+    || summary.completedRoundHaptic !== "action" || summary.completedRoundEvents.join(",") !== "action") {
     throw new Error(`Expected day-1 milestone celebration on first completed day, got ${JSON.stringify(summary)}`);
   }
   await page.click('#roundTune [data-round-feedback="easy"]');

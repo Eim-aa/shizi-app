@@ -890,6 +890,7 @@ function adaptiveScore(i,outcome,anchorIdx){ let score=Math.abs(personalDifficul
     else if(outcome==="fast"){ if(sameTopic) score-=10; if(personalDifficulty(i)>personalDifficulty(anchorIdx)) score-=14; } }
   return score; }
 function adaptNextCard(outcome,anchorIdx){ if(activeMode!=="new" || pos+1>=batch.length) return null; adjustSessionTarget(outcome);
+  const scheduledNext=batch[pos+1]; if((memory[cardKey(scheduledNext)]||{}).queuedFront) return scheduledNext;
   const scheduled=new Set(batch), pool=newPool(true).filter(i=>!scheduled.has(i)); if(!pool.length) return null;
   // 连续不会写 → 别继续硬推，下一张挑个最容易上手的，让这一组以「写出来了」收尾
   const next = sessionMissStreak>=2

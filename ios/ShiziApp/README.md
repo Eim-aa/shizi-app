@@ -18,12 +18,13 @@
 - `index.html`
 - `deck-data.js`
 - `hanzi-writer.min.js`
+- `fsrs6.min.js`
 - `sw.js`
 - `manifest.webmanifest`
 - `icon-*.png`
 - `data/` 下全部笔画 JSON
 
-App 内部用 `shizi-resource://app/index.html` 加载页面，并通过同一个本地 scheme 读取 `data/*.json`。因此真机离线时也能加载已打包的首页、题库和本地笔画文件。PWA 的 service worker 在原生 App 里不是依赖项；离线能力来自 App bundle。
+App 内部用 `shizi-resource://app/index.html` 加载页面，并通过同一个本地 scheme 读取 `data/*.json`。因此真机离线时也能加载已打包的首页、题库、FSRS-6 调度器和本地笔画文件。PWA 的 service worker 在原生 App 里不是依赖项；离线能力来自 App bundle。
 
 ## 本地构建校验
 
@@ -61,7 +62,7 @@ ios/ShiziApp/scripts/smoke-simulator.sh
 ```
 
 它会构建模拟器包、安装启动 App、截图、检查 bundle 资源，并确认 WKWebView 的 `localStorage` 已写入 `shizi.*` 键；随后会终止并重启 App，验证 smoke 写入的 `shizi.nativeSmoke.v1` 仍然存在。
-同时它会让 WKWebView 在 App 内执行一次原生 smoke 检查：验证基础 `SEED/GROUPS` 是 6854、当前 `CARDS` 不少于基础字库数量、普通模式隐藏开发工具、`localStorage` 可写，并实际 `fetch('data/美.json')`，确认本地笔画 JSON 返回 200 且包含笔画数据。它还会走一遍主要页面、手写事件、加字/备份/恢复和练习流程：验证写字页固定在安全区内、动作按钮可达、viewport 可缩放、toast 可被读屏；合成 pointer 轨迹，确认落墨、防滚动、撤销、双指透视和 300ms 防误触；验证备份白名单及恢复；最后覆盖触觉事件分层、跨卡撤章与每日计数回滚、描红落笔门槛与 `traced` 标记、会话快照、退出后首页续练和恢复到原题位。
+同时它会让 WKWebView 在 App 内执行一次原生 smoke：验证 6854 基础字、开发入口隔离、本地笔画读取、页面导航、手写、防滚动、撤销、双指透视、加字和备份恢复。练习链会真实提交「提示笔画＋用户墨迹」完整字格，验证二选一判断、1.4 秒反馈、Again 事件、原子“改一下”、两步不会写教学、session v2、巩固队列、五类触觉以及退出后原位续练；备份断言覆盖 session v2、FSRS review log 和教学说明标记。
 
 开发入口也可以用同一个 smoke 脚本验证：
 
@@ -133,10 +134,11 @@ ios/ShiziApp/scripts/smoke-device.sh
 
 - 首页、写字页、字盒、我的、手感诊断都能打开。
 - 手指在田字格书写时页面不滚动，笔迹不断裂。
-- 提示、格内描红、对照、自评、立即换题和跨卡「改一下」流程正常。
+- 提示、完整提交字格、对错判断、自动盖章、1.4 秒反馈和「改一下」流程正常。
+- 「不会写」完成“先描一遍 -> 隐藏轮廓自己写 -> 本组稍后独立复写”，描写本身不算掌握。
 - 双指按住田字格可透视提示，松开任一指恢复，透视期间不会留下墨迹。
 - 新增加的字在下一组非校准练习最前出现；校准组不被插队。
-- 退出本组后返回首页，已自评记录保留，当前未自评卡不记录，并可继续同一组。
+- X 与左缘侧滑都打开同一退出确认；确认后返回首页并保留当前墨迹、教学阶段和巩固队列。
 - 完成第一组后「今日已拾」不回退，加练只累加今日字数。
 - 关闭再打开 App 后，`localStorage` 里的记忆模型、复习调度、加字记录仍在。
 - 飞行模式下首页和已打包笔画资源能加载。

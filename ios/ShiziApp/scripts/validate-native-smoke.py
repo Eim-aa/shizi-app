@@ -100,7 +100,9 @@ checks = {
     and data_flow.get("backupHasCustom") is True
     and data_flow.get("backupHasMemory") is True
     and data_flow.get("backupHasReminder") is True
-    and data_flow.get("backupExcludesSession") is True
+    and data_flow.get("backupHasSessionV2") is True
+    and data_flow.get("backupHasFSRSLog") is True
+    and data_flow.get("backupHasTraceTutorial") is True
     and data_flow.get("backupExcludesSmokeKey") is True
     and data_flow.get("backupHasMeta") is True,
     "backupRestore": data_flow.get("backupRestoreApplied") is True
@@ -108,7 +110,7 @@ checks = {
     and data_flow.get("backupRestoreAdded") is True
     and data_flow.get("backupRestoreCustom") is True
     and data_flow.get("backupRestoreMemory") is True
-    and data_flow.get("backupRestoreClearsSession") is True
+    and data_flow.get("backupRestorePreservesSessionV2") is True
     and data_flow.get("backupRestorePreservesSmokeKey") is True
     and data_flow.get("backupRestoreRejectsInvalid") is True,
     "nativeBridge": data_flow.get("nativeBridgeAvailable") is True,
@@ -135,31 +137,42 @@ checks = {
     "practiceActionsEnabled": practice.get("showEnabled") is True
     and practice.get("doneEnabled") is True,
     "practiceReveal": practice.get("revealVisible") is True
-    and practice.get("stampVisible") is True,
-    "practiceStamp": practice.get("outcome") == "fast"
+    and practice.get("decisionVisible") is True
+    and practice.get("functionalDecisionLabels") is True
+    and practice.get("submissionSnapshotComplete") is True,
+    "practiceStamp": practice.get("outcome") == "hinted"
     and practice.get("immediateAdvanced") is True
     and practice.get("noNextButton") is True
-    and practice.get("functionalStampLabels") is True,
+    and practice.get("feedbackHeld") is True
+    and practice.get("fsrsAgainOnly") is True,
     "practiceUndo": practice.get("undoBarFollowed") is True
     and practice.get("undoRollback") is True
     and practice.get("undoActivityRollback") is True
     and practice.get("nextCardUntouched") is True,
     "practiceTrace": practice.get("traceModeVisible") is True
+    and practice.get("traceTutorialVisible") is True
     and practice.get("traceRequiresInk") is True
     and practice.get("traceReadyAfterInk") is True
-    and practice.get("traceRecorded") is True,
+    and practice.get("postTraceRecall") is True
+    and practice.get("hapticTraceNoReview") is True,
     "practicePersistence": practice.get("activityRecorded") is True
     and practice.get("sessionSnapshotStored") is True
     and practice.get("resumeHomeState") is True
-    and practice.get("resumeRestored") is True,
+    and practice.get("resumeRestored") is True
+    and practice.get("historyGuardArmed") is True,
     "reminderSync": practice.get("reminderSyncAfterStamp") is True,
     "haptics": practice.get("hapticSelectTipRecorded") is True
     and practice.get("hapticActionRevealRecorded") is True
     and practice.get("hapticStampRecorded") is True
     and practice.get("hapticUndoRecorded") is True
-    and practice.get("hapticSelectTracingRecorded") is True
-    and practice.get("hapticTraceStampOnly") is True
-    and practice.get("hapticRoundActionRecorded") is True,
+    and practice.get("hapticSelectTracingRecorded") is True,
+    "hapticSequences": practice.get("hapticHintedSequence")
+    == ["select", "action", "stamp"]
+    and practice.get("hapticUndoSequence") == ["undo"]
+    and practice.get("hapticDontKnowSequence") == ["stamp", "select"]
+    and practice.get("hapticTraceCompletionSequence") == []
+    and practice.get("hapticMilestoneSequence") == ["milestone"]
+    and practice.get("hapticOrdinaryCompletionSequence") == ["action"],
     "practiceNext": practice.get("posLabelAfter") != practice.get("posLabelBefore"),
     "exitSheet": exit_flow.get("sheetOpened") is True,
     "exitHome": exit_flow.get("returnedHome") is True
@@ -167,6 +180,12 @@ checks = {
     and exit_flow.get("footVisible") is True,
     "exitUnrecordedCard": exit_flow.get("roundStatsUnchanged") is True
     and int(exit_flow.get("positionBeforeExit") or -1) >= 2,
+    "historySwipeState": int(exit_flow.get("historyInitialLength") or 0) >= 2
+    and int(exit_flow.get("swipeCancelCount") or 0) == 3
+    and exit_flow.get("historyLengthStable") is True
+    and exit_flow.get("swipeCancelStatePreserved") is True
+    and exit_flow.get("swipeConfirmSaved") is True
+    and exit_flow.get("homeBackNoop") is True,
     "noError": not data.get("error"),
 }
 

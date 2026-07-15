@@ -169,22 +169,22 @@ checks = {
     "hapticSequences": practice.get("hapticHintedSequence")
     == ["select", "action", "stamp"]
     and practice.get("hapticUndoSequence") == ["undo"]
-    and practice.get("hapticDontKnowSequence") == ["stamp", "select"]
+    and practice.get("hapticDontKnowSequence") == ["select"]
     and practice.get("hapticTraceCompletionSequence") == []
     and practice.get("hapticMilestoneSequence") == ["milestone"]
     and practice.get("hapticOrdinaryCompletionSequence") == ["action"],
     "practiceNext": practice.get("posLabelAfter") != practice.get("posLabelBefore"),
-    "exitSheet": exit_flow.get("sheetOpened") is True,
+    "exitSheetRemoved": exit_flow.get("noExitSheet") is True,
     "exitHome": exit_flow.get("returnedHome") is True
     and exit_flow.get("practiceHidden") is True
     and exit_flow.get("footVisible") is True,
     "exitUnrecordedCard": exit_flow.get("roundStatsUnchanged") is True
     and int(exit_flow.get("positionBeforeExit") or -1) >= 2,
     "historySwipeState": int(exit_flow.get("historyInitialLength") or 0) >= 2
-    and int(exit_flow.get("swipeCancelCount") or 0) == 3
+    and int(exit_flow.get("directReturnCount") or 0) == 3
     and exit_flow.get("historyLengthStable") is True
-    and exit_flow.get("swipeCancelStatePreserved") is True
-    and exit_flow.get("swipeConfirmSaved") is True
+    and exit_flow.get("directReturnStatePreserved") is True
+    and exit_flow.get("directReturnSaved") is True
     and exit_flow.get("homeBackNoop") is True,
     "noError": not data.get("error"),
 }

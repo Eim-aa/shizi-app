@@ -100,13 +100,9 @@
   /* ===== 练习卡 ===== */
   .card{ display:none; position:fixed; inset:0; width:min(100%,430px); height:100dvh; margin:0 auto; flex-direction:column;
     padding:calc(14px + env(safe-area-inset-top)) 22px calc(14px + env(safe-area-inset-bottom)); animation:screenIn .3s ease; overflow:hidden; overscroll-behavior:none; }
-  .chdr{ display:flex; align-items:center; gap:10px; }
-  .xbtn{ flex:none; width:34px; height:34px; border-radius:50%; border:1px solid var(--line); background:var(--card); color:var(--muted); font:400 15px/1 var(--sans); }
-  .beads{ flex:1; display:flex; align-items:center; justify-content:center; gap:5px; flex-wrap:wrap; }
-  .bead{ width:7px; height:7px; border-radius:50%; background:var(--dline); }
-  .bead.done{ background:var(--accent); }
-  .bead.cur{ width:13px; height:13px; background:var(--card); border:2px solid var(--accent); animation:breathe 1.8s ease-in-out infinite; }
-  .cardPos{ flex:none; font-size:11px; color:var(--faint); min-width:52px; text-align:right; }
+  .chdr{ display:grid; grid-template-columns:44px minmax(0,1fr) 70px; align-items:center; gap:6px; min-height:44px; }
+  .xbtn{ width:44px; height:44px; border-radius:50%; border:1px solid var(--line); background:var(--card); color:var(--muted); font:700 25px/1 var(--sans); }
+  .cardPos{ min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; text-align:center; font-size:12px; font-weight:700; color:var(--muted); }
   .addPill{ flex:none; height:30px; border-radius:999px; border:1px solid var(--line); background:var(--card); color:var(--muted); font:600 12px/1 var(--sans); padding:0 11px; }
   #prompt{ margin-top:14px; min-height:58px; display:flex; justify-content:center; align-items:center; gap:9px; flex-wrap:wrap; text-align:center; font:400 40px/1.1 var(--kai); }
   #prompt .blank{ display:inline-flex; align-items:center; justify-content:center; min-width:60px; height:60px; border:2.5px dashed var(--accent); border-radius:14px;
@@ -145,6 +141,7 @@
   .traceActions .traceMiss{ flex:.72; }
   .traceActions .traceDone{ flex:1; background:var(--gold); box-shadow:0 14px 28px -12px rgba(179,137,47,.55); }
   .phaseTitle{ min-height:18px; margin:5px auto 0; color:var(--accent); font-size:12px; font-weight:800; letter-spacing:.08em; text-align:center; }
+  .traceIntro{ display:none; margin:6px auto 0; max-width:330px; color:var(--muted); font-size:12px; line-height:1.55; text-align:center; }
   .decisionRow{ display:flex; gap:10px; margin-top:16px; }
   .decisionRow button{ flex:1; min-height:58px; border-radius:14px; padding:10px 8px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; }
   .decisionRow button span{ font-size:16px; font-weight:800; }
@@ -152,9 +149,6 @@
   .decisionRow button.suggest{ outline:2.5px solid var(--accent); outline-offset:3px; }
   .decisionRow .decisionCorrect{ background:var(--accent); color:var(--paperInk); }
   .decisionRow .decisionCorrect small{ color:rgba(253,250,241,.82); }
-  .traceTutorialList{ margin:14px 0 0; padding:0; list-style:none; display:grid; gap:10px; }
-  .traceTutorialList li{ display:flex; align-items:flex-start; gap:10px; color:var(--muted); font-size:14px; line-height:1.55; }
-  .traceTutorialList b{ flex:none; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:var(--accentSoft); color:var(--accent); }
 
   /* ===== 揭晓 · 对照 + 盖章 ===== */
   #reveal{ display:none; flex:1; flex-direction:column; animation:screenIn .3s ease; }
@@ -393,7 +387,7 @@
   .toast.show{ opacity:.94; }
   @media (max-height:620px){
     .card{ padding-top:calc(8px + env(safe-area-inset-top)); padding-bottom:calc(8px + env(safe-area-inset-bottom)); }
-    .chdr{ gap:7px; } .xbtn{ width:30px; height:30px; } .addPill{ height:28px; }
+    .chdr{ gap:4px; } .addPill{ height:28px; }
     #prompt{ margin-top:5px; min-height:48px; font-size:34px; } #prompt .blank{ min-width:52px; height:50px; font-size:16px; }
     .hint{ margin-top:3px; min-height:16px; font-size:12px; } #boxwrap{ margin-top:5px; }
     .mascotRow{ display:none; } #inkTools{ padding-top:6px; } .toolBtn{ padding:9px 6px; }
@@ -404,7 +398,6 @@
   @media (max-width:380px){ .cmpBox{ width:138px; height:138px; } .stampBtn{ width:136px; height:136px; font-size:72px; } }
   @media (prefers-reduced-motion:reduce){
     *,*::before,*::after{ scroll-behavior:auto !important; animation-duration:.15s !important; animation-delay:0s !important; animation-iteration-count:1 !important; transition-duration:.15s !important; }
-    .bead.cur{ animation:none; }
   }
   @media (prefers-color-scheme:dark){ .cmpBox.mine{ box-shadow:0 0 0 2px rgba(242,234,217,.4); } .backupBadge{ color:var(--gold) !important; } }
 </style>
@@ -454,9 +447,8 @@
   <!-- 练习 / 揭晓 -->
   <div class="card" id="card" style="display:none" data-screen-label="练习">
     <div class="chdr">
-      <button class="xbtn" id="exitPractice">✕</button>
-      <div class="beads" id="beads"></div>
-      <div class="cardPos" id="posLabel"></div>
+      <button class="xbtn" id="exitPractice" aria-label="返回">‹</button>
+      <div class="cardPos" id="posLabel" aria-live="polite"></div>
       <button class="addPill" id="addInPractice">＋加字</button>
     </div>
     <div class="undoBar" id="undoBar" aria-live="polite"><span id="undoCopy"></span><button id="undoLast">改一下</button></div>
@@ -465,6 +457,7 @@
       <div id="prompt"></div>
       <div class="hint" id="hint"></div>
       <div class="phaseTitle" id="phaseTitle"></div>
+      <div class="traceIntro" id="traceIntro">先沿着轮廓描一遍，接着答案会隐藏，再自己写一次。</div>
       <div class="tbubble" id="teachBubble" style="display:none"><b>格子里缺的字，直接用手指写</b><br>写得丑没关系，连笔断笔都行</div>
       <div id="boxwrap"></div>
       <div class="mascotRow"><span class="blob"></span><span id="mascotLine"></span></div>
@@ -478,7 +471,7 @@
         <button class="primaryAct" id="done" disabled>写好了</button>
       </div>
       <div class="traceActions" id="traceActions">
-        <button class="primaryAct traceDone" id="traceDone" disabled><span>描好了，自己写一遍</span><small>接着会收起答案轮廓</small></button>
+        <button class="primaryAct traceDone" id="traceDone" disabled><span>描好了，自己写</span><small>接着会收起答案轮廓</small></button>
       </div>
     </div>
 
@@ -510,8 +503,8 @@
       <div class="mascotRow" id="askRow"><span class="blob"></span><span id="askLine" style="font-weight:600; color:var(--ink);"></span></div>
 
       <div class="decisionRow" id="decisionRow">
-        <button class="decisionCorrect" id="decisionCorrect"><span>这次写对了</span><small id="correctEffect">本组通过</small></button>
-        <button class="ghostAct" id="decisionWrong"><span>这次写错了</span><small>本组稍后再写</small></button>
+        <button class="decisionCorrect" id="decisionCorrect" aria-label="写对了"><span>写对了</span><small id="correctEffect">本组通过</small></button>
+        <button class="ghostAct" id="decisionWrong" aria-label="写错了"><span>写错了</span><small>本组稍后再写</small></button>
       </div>
       <div id="stampNote"></div>
 
@@ -687,16 +680,6 @@
   <div class="sheetPreview" id="addPreview"></div>
   <div class="row"><button class="ghostAct" id="addCancel">取消</button><button class="primaryAct" id="addConfirm" disabled>加入卡组</button></div>
 </div></div>
-<div class="sheetMask" id="exitSheet"><div class="sheet">
-  <h3>退出本组？</h3>
-  <p class="sheetHint">进度会保存，回来继续这组。</p>
-  <div class="row"><button class="ghostAct" id="exitCancel">继续练</button><button class="primaryAct" id="exitConfirm">退出</button></div>
-</div></div>
-<div class="sheetMask" id="traceTutorial"><div class="sheet">
-  <h3>不会写时，分两步拾回来</h3>
-  <ul class="traceTutorialList"><li><b>1</b><span>先照着轮廓描一遍，不要求系统判对。</span></li><li><b>2</b><span>接着答案会收起，必须自己再写一次。</span></li></ul>
-  <div class="row"><button class="ghostAct" id="traceTutorialExit">暂时退出</button><button class="primaryAct" id="traceTutorialStart">开始描写</button></div>
-</div></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <input type="file" id="importFile" accept=".json,application/json" style="display:none">
 
@@ -717,7 +700,7 @@ const DECK_KEY="shizi.deck.v8105.context1", OPEN_KEY="shizi.opens.v1", MEMORY_KE
   ACTIVITY_KEY="shizi.activity.v1", SESSION_KEY="shizi.session.v1", BACKUP_META_KEY="shizi.backupMeta.v1", REMINDER_KEY="shizi.reminder.v1",
   FSRS_LOG_KEY="shizi.fsrsReviewLog.v1", TRACE_TUTORIAL_KEY="shizi.traceTutorial.v1";
 function load(k,d){ try{ return JSON.parse(localStorage.getItem(k)) ?? d; }catch(e){ return d; } }
-function save(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+function save(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); return true; }catch(e){ return false; } }
 function removeStored(k){ try{ localStorage.removeItem(k); }catch(e){} }
 let status = load(DECK_KEY, {});
 let memory = load(MEMORY_KEY, {});
@@ -861,39 +844,40 @@ function celebrateMilestoneIfAny(){ const total=totalPracticeDays(); let changed
 // ---- 出题池与双层学习会话 ----
 const BATCH=15, TOPIC_KEY="shizi.topic.v1";
 let sessionDone=new Set(), baseTargets=[], batch=[], pos=0, baseCursor=0, currentIndex=null, currentAttemptKind="base", currentAttemptId="";
-let reinforcementQueue=[], unresolved=new Set(), episodes={}, attemptSeq=0, practicePhase="recall", hintEverUsed=false, enteredTracingThisAttempt=false, submissionSnapshot=null, pendingSessionVisual=null, feedbackKind="";
+let manualQueue=[], reinforcementQueue=[], unresolved=new Set(), episodes={}, attemptSeq=0, practicePhase="recall", hintEverUsed=false, enteredTracingThisAttempt=false, submissionSnapshot=null, pendingSessionVisual=null, feedbackKind="";
 let missedThisRound=[], roundStats=[], focusQueue=[], hintsUsedThisCard=0, cardStartedAt=0, activeMode="new", sessionTarget=0, sessionFastStreak=0, sessionMissStreak=0, roundFeedbackGiven=false, roundId=0, calibrationFirstHoldUsed=false;
 function currentCardIndex(){ return Number.isInteger(currentIndex)?currentIndex:(Number.isInteger(batch[pos])?batch[pos]:null); }
 function episodeFor(idx){ const key=String(idx); return episodes[key] || (episodes[key]={idx,firstOutcome:null,attempts:[],assistanceUsed:false,independentlyRecovered:false,excluded:false,teachingComplete:false}); }
 function enqueueReinforcement(idx){ unresolved.add(idx); reinforcementQueue=reinforcementQueue.filter(item=>item.idx!==idx); reinforcementQueue.push({idx,eligibleAfter:attemptSeq+2,order:attemptSeq}); const m=cardMemory(idx); m.pendingLearning=true; m.dueDay=null; m.due=0; }
 function graduateReinforcement(idx){ unresolved.delete(idx); reinforcementQueue=reinforcementQueue.filter(item=>item.idx!==idx); const ep=episodeFor(idx); ep.independentlyRecovered=true; }
-function nextQueuedTarget(){ const ready=reinforcementQueue.find(item=>item.eligibleAfter<=attemptSeq); if(ready){ reinforcementQueue=reinforcementQueue.filter(item=>item!==ready); return {idx:ready.idx,kind:"reinforcement"}; }
+function nextQueuedTarget(){ if(manualQueue.length){ const item=manualQueue.shift(); return {idx:item.idx,kind:item.kind==="base"?"base":"manual"}; }
+  const ready=reinforcementQueue.find(item=>item.eligibleAfter<=attemptSeq); if(ready){ reinforcementQueue=reinforcementQueue.filter(item=>item!==ready); return {idx:ready.idx,kind:"reinforcement"}; }
   if(baseCursor<baseTargets.length) return {idx:baseTargets[baseCursor],kind:"base"};
   if(reinforcementQueue.length){ const item=reinforcementQueue.shift(); return {idx:item.idx,kind:"reinforcement"}; }
   return null; }
 function beginAttempt(next){ if(!next) return false; currentIndex=next.idx; currentAttemptKind=next.kind; pos=Math.min(baseCursor,Math.max(0,baseTargets.length-1));
   practicePhase=next.kind==="reinforcement"?"reinforcement":"recall"; currentAttemptId=`${roundId}-a${attemptSeq+1}-${currentIndex}`; hintEverUsed=false; enteredTracingThisAttempt=false; submissionSnapshot=null; feedbackKind=""; return true; }
-function roundIsComplete(){ return baseTargets.length>0 && baseCursor>=baseTargets.length && unresolved.size===0 && !["tracing","postTraceRecall","traceTutorial","revealDecision","feedback"].includes(practicePhase); }
+function roundIsComplete(){ return baseTargets.length>0 && baseCursor>=baseTargets.length && manualQueue.length===0 && unresolved.size===0 && !["tracing","postTraceRecall","revealDecision","feedback"].includes(practicePhase); }
 function capturePracticeVisual(){ return {practicePhase,currentIndex,currentAttemptKind,currentAttemptId,hintEverUsed,enteredTracingThisAttempt,hintsUsedThisCard,
   shownStrokes,groupIdx,seenGroups:[...seenGroups],inkStrokes:cloneObj(inkStrokes)||[],tracedThisCard,submissionSnapshot:cloneObj(submissionSnapshot),revealed,stamped}; }
 function sessionPayload(){ return {version:2,startedDate:(load(SESSION_KEY,null)||{}).startedDate||today(),updatedAt:Date.now(),activeMode,baseTargets:baseTargets.slice(),baseCursor,currentIndex,currentAttemptKind,currentAttemptId,
-  reinforcementQueue:cloneObj(reinforcementQueue)||[],unresolved:[...unresolved],episodes:cloneObj(episodes)||{},attemptSeq,practicePhase,visual:capturePracticeVisual(),
+  manualQueue:cloneObj(manualQueue)||[],reinforcementQueue:cloneObj(reinforcementQueue)||[],unresolved:[...unresolved],episodes:cloneObj(episodes)||{},attemptSeq,practicePhase,visual:capturePracticeVisual(),
   missedThisRound:missedThisRound.slice(),roundStats:cloneObj(roundStats)||[],focusQueue:focusQueue.slice(),sessionDone:[...sessionDone],sessionTarget,sessionFastStreak,sessionMissStreak,roundFeedbackGiven,roundId,calibrationFirstHoldUsed,lastStampSnapshot:cloneObj(lastStampSnapshot),feedbackKind}; }
-function saveSessionSnapshot(){ if(!baseTargets.length || !Number.isInteger(currentCardIndex())) return; save(SESSION_KEY,sessionPayload()); }
+function saveSessionSnapshot(){ if(!baseTargets.length || !Number.isInteger(currentCardIndex())) return false; return save(SESSION_KEY,sessionPayload()); }
 function clearSessionSnapshot(){ removeStored(SESSION_KEY); }
 function migrateV1Session(s){ const stats=Array.isArray(s.roundStats)?cloneObj(s.roundStats):[], targets=Array.isArray(s.batch)?s.batch.slice():[]; let cursor=Math.min(targets.length,stats.length);
   const eps={}, queue=[], open=new Set(); stats.forEach((row,n)=>{ const ep={idx:row.idx,firstOutcome:row.outcome,attempts:[{attemptId:`${s.roundId||"legacy"}-legacy-${n+1}`,outcome:row.outcome}],assistanceUsed:row.outcome==="hinted",independentlyRecovered:row.outcome==="fast",excluded:false,teachingComplete:row.outcome!=="miss"}; eps[String(row.idx)]=ep; if(row.outcome!=="fast"){ open.add(row.idx); queue.push({idx:row.idx,eligibleAfter:stats.length+2,order:n}); } });
   if(stats.length===Number(s.pos)+1) cursor=Math.min(targets.length,Number(s.pos)+1); else cursor=Math.min(targets.length,Number(s.pos)||0);
   const next=cursor<targets.length?{idx:targets[cursor],kind:"base"}:(queue.length?{idx:queue[0].idx,kind:"reinforcement"}:null);
   return {version:2,startedDate:s.date||today(),updatedAt:Date.now(),activeMode:s.activeMode,baseTargets:targets,baseCursor:cursor,currentIndex:next?next.idx:targets[Math.max(0,targets.length-1)],currentAttemptKind:next?next.kind:"base",currentAttemptId:`${s.roundId||Date.now()+"-migrated"}-a${stats.length+1}`,
-    reinforcementQueue:queue.filter(item=>!next||next.kind!=="reinforcement"||item.idx!==next.idx),unresolved:[...open],episodes:eps,attemptSeq:stats.length,practicePhase:next&&next.kind==="reinforcement"?"reinforcement":"recall",visual:null,
+    manualQueue:[],reinforcementQueue:queue.filter(item=>!next||next.kind!=="reinforcement"||item.idx!==next.idx),unresolved:[...open],episodes:eps,attemptSeq:stats.length,practicePhase:next&&next.kind==="reinforcement"?"reinforcement":"recall",visual:null,
     missedThisRound:Array.isArray(s.missedThisRound)?s.missedThisRound.slice():[],roundStats:stats,focusQueue:Array.isArray(s.focusQueue)?s.focusQueue.slice():[],sessionDone:Array.isArray(s.sessionDone)?s.sessionDone.slice():[],sessionTarget:s.sessionTarget,sessionFastStreak:s.sessionFastStreak,sessionMissStreak:s.sessionMissStreak,roundFeedbackGiven:!!s.roundFeedbackGiven,roundId:s.roundId||Date.now()+"-migrated",calibrationFirstHoldUsed:!!s.calibrationFirstHoldUsed,lastStampSnapshot:null}; }
 function resumableSession(){ let s=load(SESSION_KEY,null); if(!s) return null; if(s.version===1) s=migrateV1Session(s);
   const valid=s.version===2 && Array.isArray(s.baseTargets) && s.baseTargets.length>0 && s.baseTargets.every(i=>Number.isInteger(i)&&i>=0&&i<CARDS.length)
     && Number.isInteger(s.currentIndex)&&s.currentIndex>=0&&s.currentIndex<CARDS.length && ["new","review","calibrate","focus"].includes(s.activeMode);
   if(!valid){ clearSessionSnapshot(); return null; } return s; }
 function restoreSession(s){ if(!s) return false; if(s.version===1) s=migrateV1Session(s); activeMode=s.activeMode; baseTargets=s.baseTargets.slice(); batch=baseTargets; baseCursor=Math.max(0,Math.min(baseTargets.length,Number(s.baseCursor)||0)); currentIndex=s.currentIndex;
-  currentAttemptKind=s.currentAttemptKind||"base"; currentAttemptId=s.currentAttemptId||`${s.roundId}-a${(Number(s.attemptSeq)||0)+1}-${currentIndex}`; reinforcementQueue=Array.isArray(s.reinforcementQueue)?cloneObj(s.reinforcementQueue):[]; unresolved=new Set(Array.isArray(s.unresolved)?s.unresolved:[]); episodes=cloneObj(s.episodes)||{}; attemptSeq=Number(s.attemptSeq)||0; practicePhase=s.practicePhase||"recall";
+  currentAttemptKind=s.currentAttemptKind||"base"; currentAttemptId=s.currentAttemptId||`${s.roundId}-a${(Number(s.attemptSeq)||0)+1}-${currentIndex}`; manualQueue=Array.isArray(s.manualQueue)?cloneObj(s.manualQueue):[]; reinforcementQueue=Array.isArray(s.reinforcementQueue)?cloneObj(s.reinforcementQueue):[]; unresolved=new Set(Array.isArray(s.unresolved)?s.unresolved:[]); episodes=cloneObj(s.episodes)||{}; attemptSeq=Number(s.attemptSeq)||0; practicePhase=s.practicePhase||"recall";
   missedThisRound=Array.isArray(s.missedThisRound)?s.missedThisRound.slice():[]; roundStats=Array.isArray(s.roundStats)?cloneObj(s.roundStats):[]; focusQueue=Array.isArray(s.focusQueue)?s.focusQueue.slice():[]; sessionDone=new Set(Array.isArray(s.sessionDone)?s.sessionDone:[]);
   sessionTarget=Number(s.sessionTarget)||targetDifficulty(); sessionFastStreak=Number(s.sessionFastStreak)||0; sessionMissStreak=Number(s.sessionMissStreak)||0; roundFeedbackGiven=!!s.roundFeedbackGiven; roundId=s.roundId||Date.now()+"-resume"; calibrationFirstHoldUsed=!!s.calibrationFirstHoldUsed; lastStampSnapshot=cloneObj(s.lastStampSnapshot); feedbackKind=s.feedbackKind||"";
   if(baseCursor>=baseTargets.length && unresolved.size===0){ practicePhase="between"; clearSessionSnapshot(); markRoundComplete(); roundSummary(); return true; }
@@ -961,7 +945,7 @@ function adaptiveScore(i,outcome,anchorIdx){ let score=Math.abs(personalDifficul
     if(outcome==="miss" || outcome==="hinted"){ if(sameTopic) score-=28; if(sameStructure) score-=18; if(sameLevel) score-=10; }
     else if(outcome==="fast"){ if(sameTopic) score-=10; if(personalDifficulty(i)>personalDifficulty(anchorIdx)) score-=14; } }
   return score; }
-function adaptNextCard(outcome,anchorIdx){ if(activeMode!=="new" || pos+1>=batch.length) return null; adjustSessionTarget(outcome);
+function adaptNextCard(outcome,anchorIdx){ if(activeMode!=="new" || manualQueue.length || pos+1>=batch.length) return null; adjustSessionTarget(outcome);
   const scheduledNext=batch[pos+1]; if((memory[cardKey(scheduledNext)]||{}).queuedFront) return scheduledNext;
   const scheduled=new Set(batch), pool=newPool(true).filter(i=>!scheduled.has(i)); if(!pool.length) return null;
   // 连续不会写 → 别继续硬推，下一张挑个最容易上手的，让这一组以「写出来了」收尾
@@ -1053,13 +1037,14 @@ function updateKeyboardInset(){ const vv=window.visualViewport, inset=vv?Math.ma
 if(window.visualViewport){ window.visualViewport.addEventListener("resize", updateKeyboardInset); window.visualViewport.addEventListener("scroll", updateKeyboardInset); updateKeyboardInset(); }
 const VIEW_IDS={welcome:"welcome",home:"home",card:"card",summary:"summary",book:"studybook",profile:"profilePanel",audit:"auditPanel",me:"mePanel"};
 const FLEX_VIEWS=new Set(["welcome","home","card","summary","book","me","profile","audit"]);
-let practiceHistoryArmed=false, restoringPracticeHistory=false, pendingSwipeExit=false;
+let practiceHistoryArmed=false, restoringPracticeHistory=false;
 function armPracticeHistory(){ if(practiceHistoryArmed) return; try{ history.replaceState({shiziView:"home"},""); history.pushState({shiziView:"practice"},""); practiceHistoryArmed=true; }catch(e){} }
-function releasePracticeHistory(){ if(!practiceHistoryArmed) return; practiceHistoryArmed=false; try{ if(history.state&&history.state.shiziView==="practice") history.back(); }catch(e){} }
+function releasePracticeHistory(){ if(!practiceHistoryArmed) return; practiceHistoryArmed=false; try{ if(history.state&&history.state.shiziView==="practice"){ restoringPracticeHistory=true; history.back(); } }catch(e){ restoringPracticeHistory=false; } }
 window.addEventListener("popstate",()=>{
-  if(restoringPracticeHistory){ restoringPracticeHistory=false; if(pendingSwipeExit){ pendingSwipeExit=false; openExitSheet(); } return; }
+  if(restoringPracticeHistory){ restoringPracticeHistory=false; return; }
   if(!practiceHistoryArmed || $("card").style.display==="none") return;
-  restoringPracticeHistory=true; pendingSwipeExit=!stamped && !animating && !$("exitSheet").classList.contains("open"); try{ history.forward(); }catch(e){ restoringPracticeHistory=false; }
+  if($("addSheet").classList.contains("open")){ restoringPracticeHistory=true; try{ history.forward(); }catch(e){ restoringPracticeHistory=false; } closeAddSheet(); return; }
+  practiceHistoryArmed=false; exitCurrentRound(true);
 });
 function displayView(view){ Object.entries(VIEW_IDS).forEach(([k,id])=>{ $(id).style.display = view===k ? "flex" : "none"; });
   // 写字 / 首启 / 结果是全屏专注场景，收起底部 Tab
@@ -1136,9 +1121,10 @@ function renderHome(){ const resume=resumableSession();
   const totalDays=totalPracticeDays(); $("streakChip").textContent=totalDays>0?`拾字第 ${totalDays} 天`:"今天开始拾字";
   const due=reviewCount(), newN=newPool(false).length, stampedToday=todayStampCount(), complete=todayCompleted();
   homeResumeSession=resume;
-  if(resume){ const left=Math.max(0,resume.baseTargets.length-(Number(resume.baseCursor)||0)), reinforce=Array.isArray(resume.unresolved)?resume.unresolved.length:0;
+  if(resume){ const targetSet=new Set(resume.baseTargets), total=targetSet.size, practiced=new Set((resume.roundStats||[]).filter(row=>targetSet.has(row.idx)).map(row=>row.idx)).size, reinforce=new Set((resume.unresolved||[]).filter(idx=>targetSet.has(idx))).size;
     $("homeTitle").innerHTML=complete?`今日已拾<br>${stampedToday} 个字`:`今天拾了<br>${stampedToday} 个字`;
-    $("startBtn").textContent="续"; $("startCap").innerHTML=`继续${complete?"加练":""}这组 <span>· ${left?`还剩 ${left} 个字`:"基础字已过"}${reinforce?` · 待巩固 ${reinforce}`:""}</span>`; $("startBtn").disabled=false;
+    const progress=practiced>=total&&reinforce?`待巩固 ${reinforce}`:`已练 ${practiced}/${total}${reinforce?` · 待巩固 ${reinforce}`:""}`;
+    $("startBtn").textContent="续"; $("startCap").innerHTML=`继续${complete?"加练":""}这组 <span>· ${progress}</span>`; $("startBtn").disabled=false;
   } else if(complete){
     $("homeTitle").innerHTML=`今日已拾<br>${stampedToday} 个字`; $("startBtn").textContent="再";
     $("startCap").innerHTML=(newN||due)?`加练一组 <span>· 今日完成不会回退</span>`:"今天的字都过完了，明天见"; $("startBtn").disabled=(newN===0 && due===0);
@@ -1297,9 +1283,20 @@ function addWord(s){ s=(s||"").trim(); const chars=[...new Set(Array.from(s).fil
   const queuedAt=Math.max(Date.now(),latestQueuedAt+1); indexesForChars(chars).forEach((idx,order)=>{ const m=cardMemory(idx); m.queuedFront=true; m.queuedFrontAt=queuedAt+order; });
   saveMemory(); return chars; }
 function indexesForChars(chars){ return (chars||[]).map(ch=>{ const base=BASE_BY_CHAR[ch]; return base!=null?base:customIndexOf(ch); }).filter(i=>i!=null && i>=0); }
-function insertIntoCurrentBatch(indexes){ if($("card").style.display==="none" || !baseTargets.length) return 0;
-  const existing=new Set(baseTargets), fresh=[...new Set(indexes)].filter(i=>!existing.has(i));
-  const insertable=fresh.slice(0,Math.max(0,BATCH-baseTargets.length)); if(!insertable.length) return 0; const at=Math.min(baseTargets.length,baseCursor+(currentAttemptKind==="base"?1:0)); baseTargets.splice(at,0,...insertable); batch=baseTargets; saveSessionSnapshot(); renderBeads(); return insertable.length; }
+function insertIntoCurrentBatch(indexes){ if($("card").style.display==="none" || !baseTargets.length) return {queued:[],added:[],moved:[]};
+  const requested=[...new Set(indexes)], queued=[], added=[], moved=[];
+  requested.forEach(idx=>{
+    const existingManual=manualQueue.find(item=>item.idx===idx); if(existingManual){ queued.push(idx); return; }
+    reinforcementQueue=reinforcementQueue.filter(item=>item.idx!==idx);
+    const attemptRecorded=episodeFor(currentCardIndex()).attempts.some(item=>item.attemptId===currentAttemptId);
+    const activeOffset=currentAttemptKind==="base"&&!attemptRecorded?1:0, insertAt=Math.min(baseTargets.length,baseCursor+activeOffset+manualQueue.filter(item=>item.kind==="base").length);
+    const futureAt=baseTargets.indexOf(idx,baseCursor+activeOffset), isCurrent=idx===currentCardIndex(), alreadyPracticed=roundStats.some(row=>row.idx===idx)||sessionDone.has(idx);
+    if(futureAt>=0 && !isCurrent && !alreadyPracticed){ baseTargets.splice(futureAt,1); baseTargets.splice(insertAt,0,idx); manualQueue.push({idx,kind:"base"}); moved.push(idx); }
+    else if(!baseTargets.includes(idx)){ baseTargets.splice(insertAt,0,idx); manualQueue.push({idx,kind:"base"}); added.push(idx); }
+    else { manualQueue.push({idx,kind:"repeat"}); moved.push(idx); }
+    queued.push(idx);
+  });
+  batch=baseTargets; warmStrokeCache(queued.map(i=>CARDS[i].target)); saveSessionSnapshot(); updateProgressLabel(); return {queued,added,moved}; }
 function queuedFrontPool(){ return allIndexes().filter(i=>baseAvailable(i,false) && qualityAvailable(i) && (memory[cardKey(i)]||{}).queuedFront)
   .sort((a,b)=>(Number((memory[cardKey(a)]||{}).queuedFrontAt)||0)-(Number((memory[cardKey(b)]||{}).queuedFrontAt)||0)); }
 
@@ -1389,7 +1386,7 @@ function inkBegin(p){ curInkStroke=[{x:p.x,y:p.y}]; onTeachStrokeStart(); }
 function inkMove(p){ if(curInkStroke) curInkStroke.push({x:p.x,y:p.y}); }
 function inkEnd(){ if(!curInkStroke) return;
   // 无位移的点按没有留下墨迹，不算一笔
-  if(curInkStroke.length>=2){ inkStrokes.push(curInkStroke); actionStack.push({type:"stroke"}); if(tracing) tracedThisCard=true; }
+  if(curInkStroke.length>=2){ inkStrokes.push(curInkStroke); actionStack.push({type:"stroke"}); if(tracing){ tracedThisCard=true; if(!traceTutorialShown){ traceTutorialShown=true; save(TRACE_TUTORIAL_KEY,true); $("traceIntro").style.display="none"; } } }
   curInkStroke=null; updateInkControls(); onTeachStrokeEnd(); saveSessionSnapshot(); }
 function pathLen(pts){ let l=0; for(let i=1;i<pts.length;i++) l+=Math.hypot(pts[i].x-pts[i-1].x,pts[i].y-pts[i-1].y); return l; }
 function resamplePts(pts,n){ const src=pts.map(p=>({x:p.x,y:p.y})), out=[{x:src[0].x,y:src[0].y}];
@@ -1465,14 +1462,15 @@ function paintInkStrokes(idxs,color){ if(!idxs || !idxs.length) return;
 function suggestedOutcomeForVerdict(v){ if(!v) return ""; return v.status==="ok"?(hintsUsedThisCard>0?"hinted":"fast"):"slow"; }
 function wrapIdForOutcome(outcome){ return "wrap"+outcome[0].toUpperCase()+outcome.slice(1); }
 function verdictShort(v){ if(!v) return "对照助手不可用也没关系，请按实际字格判断。";
-  if(v.status==="ok") return v.mode==="holistic"?"系统建议：这次写对了；连笔不影响。最终以你的选择为准。":"系统建议：这次写对了。最终以你的选择为准。";
-  return "系统建议：和右边对照一下，以你自己的判断为准。"; }
+  if(v.status==="ok") return v.mode==="holistic"?"建议：写对了；连笔不影响。最终以你的选择为准。":"建议：写对了。最终以你的选择为准。";
+  if(v.status==="bad") return "建议：写错了。请和右边对照，最终以你的选择为准。";
+  return "和右边对照一下，以你自己的判断为准。"; }
 
 const EXHAUSTED_HINT_COPY="提示用完了——继续补完这个字，或点「不会写」先描后写";
 function hintVisualExhausted(){ return !animating && groups.length>0 && groupIdx>=groups.length; }
 function updateActionLabels(){
   const used=hintEverUsed||hintsUsedThisCard>0;
-  $("show").textContent=practicePhase==="postTraceRecall"?"再描一遍":"不会写"; $("show").style.display="";
+  $("show").textContent=practicePhase==="postTraceRecall"?"再描一遍":"不会写";
   $("show").setAttribute("aria-label",practicePhase==="postTraceRecall"?"再描一遍":"不会写：先描后写，本组稍后还会再写");
   $("done").textContent=used?"写完了":"写好了";
   updateTeachUI();
@@ -1497,9 +1495,8 @@ function onTeachStrokeEnd(){ if((teachStage==="intro"||teachStage==="writing") &
 
 // ---- 流程 ----
 function promptHTML(c){ return c.chars.map((ch,i)=> i===c.ci ? `<span class="blank">${c.py||"？"}</span>` : `<span class="given">${ch}</span>`).join(""); }
-function updatePosLabel(){ const total=baseTargets.length||batch.length, shown=Math.min(total,baseCursor+(currentAttemptKind==="base"?1:0));
-  $("posLabel").textContent=baseCursor>=total&&unresolved.size?`${total} 个字已完成 · 还差 ${unresolved.size} 个要独立写出`:`本组 ${shown}/${total} · 待巩固 ${unresolved.size}`; }
-function renderBeads(){ const list=baseTargets.length?baseTargets:batch, currentBase=list.indexOf(currentCardIndex()); $("beads").innerHTML=list.map((_,i)=>`<span class="bead ${i===currentBase?"cur":(i<baseCursor?"done":"")}"></span>`).join(""); updatePosLabel(); }
+function practiceProgress(){ const targets=new Set(baseTargets), practiced=new Set(roundStats.filter(row=>targets.has(row.idx)).map(row=>row.idx)); return {done:practiced.size,total:targets.size,unresolved:new Set([...unresolved].filter(idx=>targets.has(idx))).size}; }
+function updateProgressLabel(){ const p=practiceProgress(); $("posLabel").textContent=p.done>=p.total&&p.unresolved?`待巩固 ${p.unresolved}`:`已练 ${p.done}/${p.total}${p.unresolved?` · 待巩固 ${p.unresolved}`:""}`; }
 let stamped=false, autoNextTimer=0, editStampTimer=0, undoFollowTimer=0, lastStampSnapshot=null, overlayOn=false, replaying=false;
 function cloneObj(v){ return v==null?null:JSON.parse(JSON.stringify(v)); }
 function drawSnapshotStrokes(ctx,strokes,color,width){ ctx.strokeStyle=color; ctx.fillStyle=color; ctx.lineWidth=width; ctx.lineCap="round"; ctx.lineJoin="round";
@@ -1517,11 +1514,11 @@ function freezeSubmissionSnapshot(){ inkEnd(); const hintStrokeIds=curMedians?[.
 function captureRevealState(){ return cloneObj(submissionSnapshot)||freezeSubmissionSnapshot(); }
 function takeStampSnapshot(){ const idx=currentCardIndex(), key=cardKey(idx);
   return {position:pos,baseCursor,currentIndex,currentAttemptKind,currentAttemptId,practicePhase,attemptSeq,idx,key,target:CARDS[idx].target,statusValue:status[idx],memoryValue:cloneObj(memory[key]),activityValue:cloneObj(activity),fsrsLogValue:cloneObj(fsrsReviewLog)||[],
-    baseTargetsValue:baseTargets.slice(),queueValue:cloneObj(reinforcementQueue)||[],unresolvedValue:[...unresolved],episodesValue:cloneObj(episodes)||{},sessionDoneValue:[...sessionDone],roundStatsValue:cloneObj(roundStats)||[],missedValue:missedThisRound.slice(),
+    baseTargetsValue:baseTargets.slice(),manualQueueValue:cloneObj(manualQueue)||[],queueValue:cloneObj(reinforcementQueue)||[],unresolvedValue:[...unresolved],episodesValue:cloneObj(episodes)||{},sessionDoneValue:[...sessionDone],roundStatsValue:cloneObj(roundStats)||[],missedValue:missedThisRound.slice(),
     sessionTarget,sessionFastStreak,sessionMissStreak,calibrationFirstHoldUsed,revealState:captureRevealState()}; }
 function restoreStampSnapshot(snap){ if(!snap) return;
   pos=snap.position; baseCursor=Number(snap.baseCursor)||0; currentIndex=snap.currentIndex; currentAttemptKind=snap.currentAttemptKind; currentAttemptId=snap.currentAttemptId; practicePhase=snap.practicePhase||"revealDecision"; attemptSeq=Number(snap.attemptSeq)||0;
-  baseTargets=snap.baseTargetsValue.slice(); batch=baseTargets; reinforcementQueue=cloneObj(snap.queueValue)||[]; unresolved=new Set(snap.unresolvedValue||[]); episodes=cloneObj(snap.episodesValue)||{}; sessionDone=new Set(snap.sessionDoneValue||[]);
+  baseTargets=snap.baseTargetsValue.slice(); batch=baseTargets; manualQueue=cloneObj(snap.manualQueueValue)||[]; reinforcementQueue=cloneObj(snap.queueValue)||[]; unresolved=new Set(snap.unresolvedValue||[]); episodes=cloneObj(snap.episodesValue)||{}; sessionDone=new Set(snap.sessionDoneValue||[]);
   if(snap.statusValue==null) delete status[snap.idx]; else status[snap.idx]=snap.statusValue; save(DECK_KEY,status);
   if(snap.memoryValue==null) delete memory[snap.key]; else memory[snap.key]=snap.memoryValue; saveMemory();
   fsrsReviewLog=cloneObj(snap.fsrsLogValue)||[]; saveFSRSLog();
@@ -1558,10 +1555,12 @@ async function rebuildHintLayer(count=shownStrokes){
   }catch(e){ if(token===loadToken){ animating=false; updateTip(); } return false; }
   if(token!==loadToken || revealed) return false;
   hzEl.replaceChildren(...holder.childNodes); writer=nextWriter; animating=false; updateTip(); return true; }
-function renderPhaseControls(){ tracing=practicePhase==="tracing"; const post=practicePhase==="postTraceRecall";
-  $("phaseTitle").textContent=tracing?"第 1 步 · 照着轮廓描一遍":post?"第 2 步 · 答案已收起，自己写":"";
+function renderPhaseControls(){ tracing=practicePhase==="tracing"; const post=practicePhase==="postTraceRecall", teaching=tracing||post;
+  $("phaseTitle").textContent=tracing?"1/2 描写 · 先照着描一遍":post?"2/2 自己写 · 现在不看答案，自己写一次":"";
+  $("traceIntro").style.display=tracing&&!traceTutorialShown?"block":"none";
   $("actions").style.display=tracing?"none":"flex"; $("traceActions").style.display=tracing?"flex":"none";
-  $("tip").style.visibility=post?"hidden":""; if(post||tracing) $("tip").disabled=true; updateActionLabels(); updateInkControls(); }
+  $("tip").style.display=teaching?"none":""; $("show").style.display=tracing?"none":"";
+  $("clear").textContent=tracing?"重描":"重写"; if(teaching) $("tip").disabled=true; updateActionLabels(); updateInkControls(); }
 function render(){ fitBox(); cur=CARDS[currentCardIndex()]; const token=++loadToken, restoring=!!pendingSessionVisual;
   displayView("card");
   clearTimeout(autoNextTimer); clearTimeout(editStampTimer); stamped=false; overlayOn=false; replaying=false; animating=false;
@@ -1570,7 +1569,7 @@ function render(){ fitBox(); cur=CARDS[currentCardIndex()]; const token=++loadTo
   $("practiceArea").style.display="flex"; $("reveal").style.display="none";
   $("editStamp").disabled=true;
   tracing=practicePhase==="tracing"; traceStrokeStartCount=0; tracedThisCard=false; resetPeekHint(); renderUndoBar();
-  renderBeads(); updatePosLabel();
+  updateProgressLabel();
   // 练习时只留题面本身（挖空词＋拼音就是「词语＋语境」，别再用文字复述——复述会把答案印出来）
   $("prompt").innerHTML=promptHTML(cur);
   $("hint").textContent=cur.custom?cur.hint:(activeMode==="calibrate"?"这组用来摸个底，之后按合适的难度出题":"");
@@ -1596,7 +1595,6 @@ async function restoreSessionVisual(){ const state=pendingSessionVisual; if(!sta
   hintEverUsed=!!state.hintEverUsed; enteredTracingThisAttempt=!!state.enteredTracingThisAttempt; hintsUsedThisCard=Number(state.hintsUsedThisCard)||0; seenGroups=new Set(Array.isArray(state.seenGroups)?state.seenGroups:[]);
   inkStrokes=cloneObj(state.inkStrokes)||[]; tracedThisCard=!!state.tracedThisCard; submissionSnapshot=cloneObj(state.submissionSnapshot); redrawInk();
   shownStrokes=Math.max(0,Number(state.shownStrokes)||0); groupIdx=Math.max(0,Number(state.groupIdx)||0); renderPhaseControls();
-  if(practicePhase==="traceTutorial") $("traceTutorial").style.display="flex";
   if(practicePhase==="tracing") await showTraceOutline(); else if(practicePhase==="postTraceRecall"){ hzEl.innerHTML=""; hzEl.classList.remove("traceFallback"); }
   else if(shownStrokes&&practiceCharData) await rebuildHintLayer(shownStrokes);
   if(state.revealed && submissionSnapshot){ restoreRevealFromSnapshot(submissionSnapshot); if(savedPhase==="feedback"&&lastStampSnapshot&&lastStampSnapshot.outcome){ practicePhase="feedback"; stamped=true; if(feedbackKind==="teachingComplete") showTeachingCompleteFeedback(); else showStampedFeedback(lastStampSnapshot.outcome); autoNextTimer=setTimeout(goNext,STAMP_HOLD_MS); } }
@@ -1650,21 +1648,20 @@ function revealAnswer(){
   if(revealed || animating || Date.now()<actionCooldownUntil) return false; commitUndoWindow();
   const snap=freezeSubmissionSnapshot(); practicePhase="revealDecision"; showRevealState(snap); hapticFeedback("action"); saveSessionSnapshot(); return true;
 }
-async function beginTracingPhase(){ $("traceTutorial").style.display="none"; practicePhase="tracing"; tracing=true; enteredTracingThisAttempt=true; revealed=false; actionStack=[]; clearInk(); traceStrokeStartCount=0; tracedThisCard=false;
-  $("practiceArea").style.display="flex"; $("reveal").style.display="none"; $("hint").textContent="沿着轮廓描一遍即可，不把描写当成考试"; renderPhaseControls(); await showTraceOutline(); saveSessionSnapshot(); }
-function openTracingTeaching(){ if(Date.now()<actionCooldownUntil) return; commitUndoWindow(); hapticFeedback("select"); activePointers.clear(); peekReleasePending=false; exitPeekHint(true); clearTimeout(teachTimer);
-  enteredTracingThisAttempt=true; revealed=false; $("practiceArea").style.display="flex"; $("reveal").style.display="none"; if(!traceTutorialShown){ practicePhase="traceTutorial"; $("traceTutorial").style.display="flex"; saveSessionSnapshot(); return; } beginTracingPhase();
-}
+async function beginTracingPhase(){ loadToken++; animating=false; unlockGradeActions(); practicePhase="tracing"; tracing=true; enteredTracingThisAttempt=true; revealed=false; actionStack=[]; clearInk(); traceStrokeStartCount=0; tracedThisCard=false;
+  shownStrokes=0; groupIdx=0; activePointers.clear(); peekReleasePending=false; exitPeekHint(true); hzEl.innerHTML=""; hzEl.classList.remove("peekHint","traceFallback");
+  $("practiceArea").style.display="flex"; $("reveal").style.display="none"; $("stampedToast").style.display="none"; $("stampOnMine").style.display="none"; $("hint").textContent=""; renderPhaseControls(); await showTraceOutline(); saveSessionSnapshot(); }
+function openTracingTeaching(){ if(Date.now()<actionCooldownUntil) return false; commitUndoWindow(); hapticFeedback("select"); clearTimeout(teachTimer); beginTracingPhase(); return true; }
 async function finishTracing(){ if(!tracedThisCard) return; clearInk(); hzEl.innerHTML=""; hzEl.classList.remove("traceFallback"); practicePhase="postTraceRecall"; tracing=false; shownStrokes=0; groupIdx=0; hintEverUsed=false; hintsUsedThisCard=0; actionStack=[];
   $("hint").textContent="答案已经收起，现在不看提示自己写一次"; renderPhaseControls(); saveSessionSnapshot(); }
 function declareDontKnow(){ if(practicePhase==="postTraceRecall"){ beginTracingPhase(); return; } if(revealed||animating||Date.now()<actionCooldownUntil) return;
-  const snap=freezeSubmissionSnapshot(); showRevealState(snap); pickStamp("miss",{teaching:true}); }
+  if(!["recall","reinforcement"].includes(practicePhase)) return;
+  freezeSubmissionSnapshot(); recordOutcome("miss",{teaching:true}); updateProgressLabel(); openTracingTeaching(); }
 function restoreRevealFromSnapshot(state){ if(!state) return; loadToken++; submissionSnapshot=cloneObj(state); inkStrokes=cloneObj(state.inkStrokes)||[]; hintEverUsed=!!state.hintEverUsed; hintsUsedThisCard=Number(state.hintCount)||0;
   lastVerdict=cloneObj(state.lastVerdict); enteredTracingThisAttempt=!!state.enteredTracing; tracedThisCard=!!state.enteredTracing; tracing=false; practicePhase="revealDecision"; showRevealState(submissionSnapshot); }
 $("show").onclick=declareDontKnow;
 $("done").onclick=revealAnswer;
 $("traceDone").onclick=finishTracing;
-$("traceTutorialStart").onclick=()=>{ traceTutorialShown=true; save(TRACE_TUTORIAL_KEY,true); beginTracingPhase(); };
 $("overlayToggle").onclick=()=>{ overlayOn=!overlayOn; $("mineOverlay").style.display=overlayOn?"flex":"none"; $("overlayToggle").textContent=overlayOn?"分开看":"叠起来对比"; };
 $("replayBtn").onclick=()=>{ if(replaying || !window.HanziWriter) return; replaying=true;
   $("rightGlyph").style.opacity="0"; $("rightHz").innerHTML="";
@@ -1673,7 +1670,7 @@ $("replayBtn").onclick=()=>{ if(replaying || !window.HanziWriter) return; replay
   try{ w.animateCharacter({ onComplete:()=>{ replaying=false; } }); }catch(e){ replaying=false; $("rightGlyph").style.opacity="1"; } };
 function reopenStampChoices(){ if(!lastStampSnapshot) return;
   const snap=lastStampSnapshot; clearTimeout(autoNextTimer); clearTimeout(editStampTimer); hideUndoBar(false); lastStampSnapshot=null;
-  restoreStampSnapshot(snap); stamped=false; render(); restoreRevealFromSnapshot(snap.revealState); renderBeads(); hapticFeedback("undo"); }
+  restoreStampSnapshot(snap); stamped=false; render(); restoreRevealFromSnapshot(snap.revealState); updateProgressLabel(); hapticFeedback("undo"); }
 const STAMP_HOLD_MS=1400, CALIBRATION_FIRST_HOLD_MS=1800, EDIT_STAMP_WINDOW_MS=1800;
 function showStampedFeedback(outcome){ const ui=GRADE_UI[outcome], m=memory[cardKey(currentCardIndex())]||{}, st=$("stampOnMine"), face=st.querySelector(".face"), ring=st.querySelector(".ring"), solid={fast:"var(--accent)",hinted:"var(--gold)",slow:"var(--blue)"}[outcome];
   face.style.background=solid||"var(--card)"; face.style.border=solid?"0":"2px solid var(--grey)"; face.querySelector("span").textContent=ui.seal; face.querySelector("span").style.color=solid?"var(--paperInk)":"var(--muted)"; ring.style.borderColor=solid||"var(--grey)"; st.style.display="block";
@@ -1688,11 +1685,11 @@ function pickStamp(outcome,options={}){ if(stamped || !revealed) return; stamped
   recordOutcome(outcome,options); lastStampSnapshot.outcome=outcome; practicePhase="feedback"; feedbackKind=outcome; hapticFeedback("stamp");
   showStampedFeedback(outcome);
   clearTimeout(editStampTimer); editStampTimer=setTimeout(()=>{ $("editStamp").disabled=true; },EDIT_STAMP_WINDOW_MS);
-  renderBeads(); saveSessionSnapshot();
+  updateProgressLabel(); saveSessionSnapshot();
   autoNextTimer=setTimeout(goNext,firstCalibrationHold?CALIBRATION_FIRST_HOLD_MS:STAMP_HOLD_MS); }
 function goNext(){ clearTimeout(autoNextTimer); clearTimeout(editStampTimer); $("editStamp").disabled=true; if(!stamped) return;
-  const outcome=lastStampSnapshot&&lastStampSnapshot.outcome, ep=episodeFor(currentCardIndex()); stamped=false;
-  if(outcome==="miss" && !ep.teachingComplete){ openTracingTeaching(); return; } next(); }
+  const outcome=lastStampSnapshot&&lastStampSnapshot.outcome; stamped=false;
+  if(outcome==="miss"){ openTracingTeaching(); return; } next(); }
 function decideSubmission(correct){ if(stamped||!revealed||!submissionSnapshot) return;
   if(submissionSnapshot.practicePhase==="postTraceRecall"){
     if(!correct){ revealed=false; beginTracingPhase(); return; }
@@ -1711,7 +1708,7 @@ function chooseReviewBatch(all){ return all.slice().sort((a,b)=>reviewPriority(b
 function startRound(){ const p=availablePool(), queued=activeMode==="calibrate"?[]:queuedFrontPool(); if(p.length===0 && queued.length===0){ clearSessionSnapshot(); allDone(); return; } resetAdaptiveSession();
   baseTargets=activeMode==="focus"?chooseFocusBatch(p):(activeMode==="review"?chooseReviewBatch(p):(activeMode==="calibrate"?chooseCalibrationBatch(p):chooseBatch(p)));
   if(queued.length){ const front=new Set(queued); baseTargets=[...queued,...baseTargets.filter(i=>!front.has(i))].slice(0,BATCH); }
-  batch=baseTargets; warmStrokeCache(baseTargets.map(i=>CARDS[i].target)); pos=0; baseCursor=0; currentIndex=null; reinforcementQueue=[]; unresolved=new Set(); episodes={}; attemptSeq=0; practicePhase="recall";
+  batch=baseTargets; warmStrokeCache(baseTargets.map(i=>CARDS[i].target)); pos=0; baseCursor=0; currentIndex=null; pendingSessionVisual=null; manualQueue=[]; reinforcementQueue=[]; unresolved=new Set(); episodes={}; attemptSeq=0; practicePhase="recall";
   missedThisRound=[]; roundStats=[]; roundFeedbackGiven=false; calibrationFirstHoldUsed=false; lastStampSnapshot=null; hideUndoBar(false); roundId=Date.now()+"-"+Math.random().toString(36).slice(2,7);
   beginAttempt({idx:baseTargets[0],kind:"base"}); saveSessionSnapshot(); armPracticeHistory(); render(); }
 function sumTile(s,i){ const isMiss=s.outcome==="miss", recovered=s.outcome!=="fast"&&s.independentlyRecovered;
@@ -1751,14 +1748,18 @@ $("more").onclick=startRound;
 $("stop").onclick=renderHome;
 $("calibDone").onclick=renderHome;
 $("calibAgain").onclick=()=>startMode("new");
-function openExitSheet(){ if(stamped||animating||$("exitSheet").classList.contains("open")) return; commitUndoWindow(); $("traceTutorial").style.display="none"; $("exitSheet").classList.add("open"); }
-function closeExitSheet(){ $("exitSheet").classList.remove("open"); if(practicePhase==="traceTutorial") $("traceTutorial").style.display="flex"; }
-function exitCurrentRound(){ saveSessionSnapshot(); $("exitSheet").classList.remove("open"); $("traceTutorial").style.display="none"; loadToken++; animating=false; revealed=true; drawing=false; clearTimeout(teachTimer); clearTimeout(autoNextTimer); releasePracticeHistory(); renderHome(); toast("进度已保存，随时可继续这组"); }
-$("exitPractice").onclick=openExitSheet;
-$("exitCancel").onclick=closeExitSheet;
-$("exitConfirm").onclick=exitCurrentRound;
-$("traceTutorialExit").onclick=openExitSheet;
-$("exitSheet").onclick=e=>{ if(e.target===$("exitSheet")) closeExitSheet(); };
+let exitingPractice=false;
+function exitCurrentRound(fromHistory=false){ if(exitingPractice || $("card").style.display==="none") return false;
+  if($("addSheet").classList.contains("open")){ closeAddSheet(); return false; }
+  exitingPractice=true; clearTimeout(teachTimer); clearTimeout(autoNextTimer); clearTimeout(editStampTimer); inkEnd();
+  if(!saveSessionSnapshot()){
+    exitingPractice=false; if(fromHistory){ practiceHistoryArmed=true; restoringPracticeHistory=true; try{ history.forward(); }catch(e){ restoringPracticeHistory=false; } }
+    toast("未能保存进度，请重试返回"); return false;
+  }
+  loadToken++; pendingSessionVisual=null; animating=false; drawing=false; activePointers.clear(); exitPeekHint(true);
+  if(!fromHistory) releasePracticeHistory(); else practiceHistoryArmed=false;
+  renderHome(); exitingPractice=false; return true; }
+$("exitPractice").onclick=()=>exitCurrentRound(false);
 $("prefBox").onclick=e=>{ const b=e.target.closest("[data-pref]"); if(!b) return; preference=b.dataset.pref; save(PREF_KEY,preference); applyPrefUI(); };
 $("qualityBox").onclick=e=>{ const b=e.target.closest("[data-quality]"); if(!b) return; recordQuality(b.dataset.quality); };
 $("sumTiles").onclick=e=>{ const b=e.target.closest("[data-idx]"); if(b) startFocus([Number(b.dataset.idx)]); };
@@ -1803,13 +1804,18 @@ function renderAddPreview(){ const chars=[...new Set(Array.from($("addInput").va
   $("addConfirm").disabled=!chars.length;
   $("addPreview").innerHTML=chars.length?chars.map(ch=>{ const b=BASE_BY_CHAR[ch], idx=b!=null?b:customIndexOf(ch), m=idx>=0?memory[cardKey(idx)]:null;
     return `<span class="addChip"><b>${ch}</b>${b!=null?CARDS[b].py:"生僻字·自定义卡"}${m&&m.seen?" · 已练过":""}</span>`; }).join(""):`<span>输入含汉字的词</span>`; }
-function openAddSheet(){ commitUndoWindow(); $("addInput").value=""; renderAddPreview(); $("addSheet").classList.add("open"); updateKeyboardInset(); $("addInput").focus();
+let feedbackPausedForAdd=false;
+function openAddSheet(){ commitUndoWindow(); if(stamped){ clearTimeout(autoNextTimer); feedbackPausedForAdd=true; lastStampSnapshot=null; $("editStamp").disabled=true; hideUndoBar(false); }
+  $("addInput").value=""; renderAddPreview(); $("addSheet").classList.add("open"); updateKeyboardInset(); $("addInput").focus();
   requestAnimationFrame(()=>{ try{ $("addInput").scrollIntoView({block:"center", inline:"nearest"}); }catch(e){} }); }
-function closeAddSheet(){ $("addSheet").classList.remove("open"); $("addInput").blur(); updateKeyboardInset(); }
+function closeAddSheet(){ $("addSheet").classList.remove("open"); $("addInput").blur(); updateKeyboardInset(); if(feedbackPausedForAdd){ feedbackPausedForAdd=false; autoNextTimer=setTimeout(goNext,200); } }
 function confirmAdd(){ const chars=addWord($("addInput").value); if(!chars) return;
-  const inserted=insertIntoCurrentBatch(indexesForChars(chars));
+  const insertion=insertIntoCurrentBatch(indexesForChars(chars));
   closeAddSheet();
-  if(inserted){ renderBeads(); updatePosLabel(); toast(`已加入本次练习：${chars.join("、")}，下一题开始出现`); }
+  if(insertion.queued.length){ const order=manualQueue.map(item=>CARDS[item.idx].target);
+    if(order.length===1 && insertion.added.length===1) toast(`已加入本组，下一题写「${order[0]}」`);
+    else if(order.length===1) toast(`已排到下一题：「${order[0]}」`);
+    else toast(`已加入本组，将按「${order.join("」→「")}」练习`); }
   else toast(tuning.calibrated?`已加入：${chars.join("、")} · 下次开练，第一个就是它`:`已加入：${chars.join("、")} · 校准这组结束后，下一组第一个就是它`);
   if($("summary").style.display!=="none" && $("summary").style.display!=="") roundSummary();
   if($("summary").style.display==="flex") roundSummary();

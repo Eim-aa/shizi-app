@@ -144,6 +144,17 @@
   .traceActions button small{ font-size:10.5px; font-weight:600; line-height:1; opacity:.76; }
   .traceActions .traceMiss{ flex:.72; }
   .traceActions .traceDone{ flex:1; background:var(--gold); box-shadow:0 14px 28px -12px rgba(179,137,47,.55); }
+  .phaseTitle{ min-height:18px; margin:5px auto 0; color:var(--accent); font-size:12px; font-weight:800; letter-spacing:.08em; text-align:center; }
+  .decisionRow{ display:flex; gap:10px; margin-top:16px; }
+  .decisionRow button{ flex:1; min-height:58px; border-radius:14px; padding:10px 8px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; }
+  .decisionRow button span{ font-size:16px; font-weight:800; }
+  .decisionRow button small{ font-size:11px; line-height:1.25; color:var(--muted); }
+  .decisionRow button.suggest{ outline:2.5px solid var(--accent); outline-offset:3px; }
+  .decisionRow .decisionCorrect{ background:var(--accent); color:var(--paperInk); }
+  .decisionRow .decisionCorrect small{ color:rgba(253,250,241,.82); }
+  .traceTutorialList{ margin:14px 0 0; padding:0; list-style:none; display:grid; gap:10px; }
+  .traceTutorialList li{ display:flex; align-items:flex-start; gap:10px; color:var(--muted); font-size:14px; line-height:1.55; }
+  .traceTutorialList b{ flex:none; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:var(--accentSoft); color:var(--accent); }
 
   /* ===== 揭晓 · 对照 + 盖章 ===== */
   #reveal{ display:none; flex:1; flex-direction:column; animation:screenIn .3s ease; }
@@ -168,28 +179,6 @@
   .cmpLinks{ display:flex; justify-content:center; gap:22px; margin-top:10px; }
   .cmpLinks button{ font-size:12px; color:var(--faint); text-decoration:underline; text-underline-offset:3px; }
   #askRow{ margin-top:18px; }
-  #stampRow{ display:flex; justify-content:center; gap:11px; margin-top:14px; }
-  .stampWrap{ display:flex; flex-direction:column; align-items:center; gap:7px; }
-  .stampWrap small{ font-size:11px; color:var(--muted); }
-  .stampWrap small em{ font-style:normal; color:var(--accent); font-weight:700; }
-  .seal{ width:70px; height:70px; display:flex; align-items:center; justify-content:center; transition:transform .12s ease; }
-  .seal span{ writing-mode:vertical-rl; font:400 19px/1.1 var(--kai); letter-spacing:.08em; }
-  #stampRow.funcFirst{ gap:8px; }
-  #stampRow.funcFirst .seal{ width:76px; height:76px; }
-  #stampRow.funcFirst .seal span{ writing-mode:horizontal-tb; max-width:62px; text-align:center; font:800 15px/1.18 var(--sans); letter-spacing:0; }
-  #stampRow.funcFirst .seal span.multi{ font-size:13.5px; line-height:1.15; }
-  #stampRow.funcFirst .stampWrap small{ font-weight:700; color:var(--ink); }
-  #stampRow.funcFirst .stampWrap small::before{ content:"印章："; color:var(--faint); font-weight:400; }
-  .seal.fast{ background:var(--accent); border-radius:22% 18% 24% 20%; color:var(--paperInk); transform:rotate(-2deg);
-    box-shadow:inset 0 0 0 2px rgba(253,250,241,.4), inset 0 0 0 4.5px var(--accent), inset 0 0 14px rgba(120,20,6,.3), 0 8px 18px -8px var(--accent); }
-  .seal.hinted{ background:var(--gold); border-radius:20% 24% 20% 24%; color:var(--paperInk); transform:rotate(2deg);
-    box-shadow:inset 0 0 0 2px rgba(253,250,241,.4), inset 0 0 0 4.5px var(--gold), inset 0 0 14px rgba(100,70,10,.3), 0 8px 18px -8px var(--gold); }
-  .seal.slow{ background:var(--blue); border-radius:24% 20% 22% 20%; color:var(--paperInk); transform:rotate(-1.5deg);
-    box-shadow:inset 0 0 0 2px rgba(253,250,241,.4), inset 0 0 0 4.5px var(--blue), inset 0 0 14px rgba(15,35,60,.35), 0 8px 18px -8px var(--blue); }
-  .seal.miss{ background:var(--card); border:2px solid var(--grey); border-radius:20% 22% 20% 24%; color:var(--muted); transform:rotate(1.5deg);
-    box-shadow:inset 0 0 0 3px var(--card), inset 0 0 0 4.5px rgba(141,132,113,.5); }
-  .seal:active{ transform:scale(.88); }
-  .stampWrap.suggest .seal{ outline:2.5px solid var(--accent); outline-offset:3px; }
   #stampNote{ text-align:center; margin-top:12px; font-size:12px; color:var(--faint); }
   #stampOnMine{ position:absolute; right:6px; top:6px; width:56px; height:56px; display:none; pointer-events:none; }
   #stampOnMine .ring{ position:absolute; inset:0; border:3px solid var(--accent); border-radius:22% 18% 24% 20%; animation:ringOut .55s ease-out .2s both; }
@@ -220,6 +209,7 @@
   .sumTile{ position:relative; aspect-ratio:1; background:var(--tile); border:1px solid var(--line); border-radius:9px; display:flex; align-items:center; justify-content:center;
     font:400 32px/1 var(--kai); animation:tileIn .4s cubic-bezier(.2,1.3,.4,1) both; }
   .sumTile .dot{ position:absolute; right:5px; top:5px; width:9px; height:9px; border-radius:3px; }
+  .sumTile .recover{ position:absolute; left:4px; bottom:3px; font:700 8px/1 var(--sans); color:var(--green); }
   .sumTile.miss{ background:var(--accentSoft); border:1.5px solid var(--accent); color:var(--accent); }
   .bigSeal{ position:absolute; right:-8px; bottom:-14px; width:86px; height:86px; background:var(--accent); border-radius:22% 18% 24% 20%;
     display:flex; align-items:center; justify-content:center; animation:bigStampIn .45s cubic-bezier(.2,1.5,.4,1) .5s both;
@@ -409,9 +399,9 @@
     .mascotRow{ display:none; } #inkTools{ padding-top:6px; } .toolBtn{ padding:9px 6px; }
     #actions{ margin-top:6px; } .ghostAct,.primaryAct{ padding-top:10px; padding-bottom:10px; }
     .undoBar{ top:env(safe-area-inset-top); }
-    .revealWord{ margin-top:6px; } .cmpRow{ margin-top:8px; } #askRow{ margin-top:10px; } #stampRow{ margin-top:9px; }
+    .revealWord{ margin-top:6px; } .cmpRow{ margin-top:8px; } #askRow{ margin-top:10px; }
   }
-  @media (max-width:380px){ .cmpBox{ width:138px; height:138px; } .seal{ width:64px; height:64px; } .stampBtn{ width:136px; height:136px; font-size:72px; } }
+  @media (max-width:380px){ .cmpBox{ width:138px; height:138px; } .stampBtn{ width:136px; height:136px; font-size:72px; } }
   @media (prefers-reduced-motion:reduce){
     *,*::before,*::after{ scroll-behavior:auto !important; animation-duration:.15s !important; animation-delay:0s !important; animation-iteration-count:1 !important; transition-duration:.15s !important; }
     .bead.cur{ animation:none; }
@@ -474,6 +464,7 @@
     <div id="practiceArea" style="display:flex; flex:1; flex-direction:column;">
       <div id="prompt"></div>
       <div class="hint" id="hint"></div>
+      <div class="phaseTitle" id="phaseTitle"></div>
       <div class="tbubble" id="teachBubble" style="display:none"><b>格子里缺的字，直接用手指写</b><br>写得丑没关系，连笔断笔都行</div>
       <div id="boxwrap"></div>
       <div class="mascotRow"><span class="blob"></span><span id="mascotLine"></span></div>
@@ -483,12 +474,11 @@
         <button class="toolBtn side" id="clear">重写</button>
       </div>
       <div id="actions">
-        <button class="ghostAct" id="show" disabled>看答案</button>
+        <button class="ghostAct" id="show" disabled>不会写</button>
         <button class="primaryAct" id="done" disabled>写好了</button>
       </div>
       <div class="traceActions" id="traceActions">
-        <button class="ghostAct traceMiss" id="traceMiss" aria-label="不会写，印章 回炉"><span>不会写</span><small>印章：回炉</small></button>
-        <button class="primaryAct traceDone" id="traceDone" aria-label="描好了，印章 补拾" disabled><span>描好了</span><small>印章：补拾</small></button>
+        <button class="primaryAct traceDone" id="traceDone" disabled><span>描好了，自己写一遍</span><small>接着会收起答案轮廓</small></button>
       </div>
     </div>
 
@@ -503,7 +493,7 @@
             <div id="mineOverlay"></div>
             <div id="stampOnMine"><div class="ring"></div><div class="face"><span></span></div></div>
           </div>
-          <div class="cmpLbl">你写的</div>
+          <div class="cmpLbl">提交字格</div>
         </div>
         <div class="cmpCol">
           <div class="cmpBox std">
@@ -519,13 +509,11 @@
       <div class="tbubble" id="teachBubbleGrade" style="display:none; max-width:320px;"><b>对错你说了算，没有考试</b><br>照实盖章就行——盖「回炉」的字，<br>明天会自己回来找你，直到你拾到它</div>
       <div class="mascotRow" id="askRow"><span class="blob"></span><span id="askLine" style="font-weight:600; color:var(--ink);"></span></div>
 
-      <div id="stampRow">
-        <div class="stampWrap" id="wrapFast"><button class="seal fast" id="fast"><span>拾到</span></button><small>会写</small></div>
-        <div class="stampWrap" id="wrapHinted"><button class="seal hinted" id="hinted"><span>补拾</span></button><small>看提示写出</small></div>
-        <div class="stampWrap" id="wrapSlow"><button class="seal slow" id="slow"><span>差点</span></button><small>写错了</small></div>
-        <div class="stampWrap" id="wrapMiss"><button class="seal miss" id="miss"><span>回炉</span></button><small>不会写</small></div>
+      <div class="decisionRow" id="decisionRow">
+        <button class="decisionCorrect" id="decisionCorrect"><span>这次写对了</span><small id="correctEffect">本组通过</small></button>
+        <button class="ghostAct" id="decisionWrong"><span>这次写错了</span><small>本组稍后再写</small></button>
       </div>
-      <div id="stampNote">盖「不会写」的字，明天会回来找你；其余都收进字盒，按情况安排复习</div>
+      <div id="stampNote"></div>
 
       <div class="toastCard" id="stampedToast">
         <div class="tchar" id="toastChar"></div>
@@ -701,13 +689,19 @@
 </div></div>
 <div class="sheetMask" id="exitSheet"><div class="sheet">
   <h3>退出本组？</h3>
-  <p class="sheetHint">当前这张不会记录；已经盖过章的字会保留，回到首页可继续这组。</p>
+  <p class="sheetHint">进度会保存，回来继续这组。</p>
   <div class="row"><button class="ghostAct" id="exitCancel">继续练</button><button class="primaryAct" id="exitConfirm">退出</button></div>
+</div></div>
+<div class="sheetMask" id="traceTutorial"><div class="sheet">
+  <h3>不会写时，分两步拾回来</h3>
+  <ul class="traceTutorialList"><li><b>1</b><span>先照着轮廓描一遍，不要求系统判对。</span></li><li><b>2</b><span>接着答案会收起，必须自己再写一次。</span></li></ul>
+  <div class="row"><button class="ghostAct" id="traceTutorialExit">暂时退出</button><button class="primaryAct" id="traceTutorialStart">开始描写</button></div>
 </div></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <input type="file" id="importFile" accept=".json,application/json" style="display:none">
 
 <script src="hanzi-writer.min.js"></script>
+<script src="fsrs6.min.js"></script>
 <script src="deck-data.js"></script>
 <script>
 // ---- 词表 → 按“字”拆成卡片（一个格子只考一个字；另一个字给出来当语境）----
@@ -720,12 +714,16 @@ SEED.forEach(w=>{ const chars=Array.from(w.ans), pys=w.py.split(/\s+/);
 
 // ---- 本地存储 ----
 const DECK_KEY="shizi.deck.v8105.context1", OPEN_KEY="shizi.opens.v1", MEMORY_KEY="shizi.memory.v1", QUALITY_KEY="shizi.quality.v1", PREF_KEY="shizi.pref.v1", TUNING_KEY="shizi.tuning.v1",
-  ACTIVITY_KEY="shizi.activity.v1", SESSION_KEY="shizi.session.v1", BACKUP_META_KEY="shizi.backupMeta.v1", REMINDER_KEY="shizi.reminder.v1";
+  ACTIVITY_KEY="shizi.activity.v1", SESSION_KEY="shizi.session.v1", BACKUP_META_KEY="shizi.backupMeta.v1", REMINDER_KEY="shizi.reminder.v1",
+  FSRS_LOG_KEY="shizi.fsrsReviewLog.v1", TRACE_TUTORIAL_KEY="shizi.traceTutorial.v1";
 function load(k,d){ try{ return JSON.parse(localStorage.getItem(k)) ?? d; }catch(e){ return d; } }
 function save(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
 function removeStored(k){ try{ localStorage.removeItem(k); }catch(e){} }
 let status = load(DECK_KEY, {});
 let memory = load(MEMORY_KEY, {});
+let fsrsReviewLog = load(FSRS_LOG_KEY, []); if(!Array.isArray(fsrsReviewLog)) fsrsReviewLog=[];
+let traceTutorialShown = load(TRACE_TUTORIAL_KEY, false)===true;
+save(FSRS_LOG_KEY,fsrsReviewLog); save(TRACE_TUTORIAL_KEY,traceTutorialShown);
 let quality = load(QUALITY_KEY, {});
 let preference = load(PREF_KEY, "balanced");
 let tuning = load(TUNING_KEY, {calibrated:false, offset:0, contextStrict:0, rounds:[]});
@@ -738,6 +736,33 @@ function saveTuning(){ tuning.offset=clamp(Number(tuning.offset)||0,-18,22); tun
 function dayKey(d=new Date()){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
 function today(){ return dayKey(); }
 function shiftDay(key,amount){ const p=String(key).split("-").map(Number), d=new Date(p[0],p[1]-1,p[2],12); d.setDate(d.getDate()+amount); return dayKey(d); }
+function dayStartMs(key){ const p=String(key||"").split("-").map(Number); return p.length===3?new Date(p[0],p[1]-1,p[2]).getTime():0; }
+const FSRS_CONFIG=Object.freeze({schedulerVersion:"ts-fsrs 5.2.0 / FSRS-6.0",parameterVersion:"fsrs6-default-21-v1",desiredRetention:0.90,maximumInterval:150,timeZone:Intl.DateTimeFormat().resolvedOptions().timeZone||"local"});
+const fsrsEngine=window.FSRS?FSRS.fsrs(FSRS.generatorParameters({request_retention:FSRS_CONFIG.desiredRetention,maximum_interval:FSRS_CONFIG.maximumInterval,enable_fuzz:false,enable_short_term:true,learning_steps:[],relearning_steps:[]})):null;
+function saveFSRSLog(){ save(FSRS_LOG_KEY,fsrsReviewLog); }
+function serializeFSRSCard(card){ if(!card) return null; const out={...card}; out.due=new Date(card.due).toISOString(); out.last_review=card.last_review?new Date(card.last_review).toISOString():null; return out; }
+function deserializeFSRSCard(raw,now=Date.now()){ if(!raw || typeof raw!=="object" || !window.FSRS) return FSRS.createEmptyCard(new Date(now));
+  return {...raw,due:new Date(raw.due||now),last_review:raw.last_review?new Date(raw.last_review):undefined}; }
+function normalizeLegacySchedule(m){ if(!m || typeof m!=="object") return m;
+  if(!m.dueDay && Number(m.due)>0){ m.dueDay=dayKey(new Date(Number(m.due))); m.legacySchedule=true; }
+  if(m.schedulerVersion && !m.parameterVersion) m.parameterVersion=FSRS_CONFIG.parameterVersion;
+  return m; }
+Object.values(memory).forEach(normalizeLegacySchedule); saveMemory();
+function fsrsEventId(attemptId){ return `${attemptId}:fsrs` }
+function reviewEventById(eventId){ return fsrsReviewLog.find(e=>e && e.eventId===eventId)||null; }
+function applyFSRSReview(idx,rating,reason,attemptId,details={}){
+  const eventId=fsrsEventId(attemptId), existing=reviewEventById(eventId); if(existing) return existing;
+  const m=cardMemory(idx), now=Number(details.now)||Date.now(); if(!fsrsEngine) return null;
+  const previous=deserializeFSRSCard(m.fsrsCard,now), previousReview=previous.last_review?new Date(previous.last_review).getTime():0;
+  const grade=rating==="Good"?FSRS.Rating.Good:FSRS.Rating.Again, result=fsrsEngine.next(previous,new Date(now),grade), plannedDue=dayKey(new Date(result.card.due));
+  m.fsrsCard=serializeFSRSCard(result.card); m.schedulerVersion=FSRS_CONFIG.schedulerVersion; m.parameterVersion=FSRS_CONFIG.parameterVersion; m.schedulerTimeZone=FSRS_CONFIG.timeZone;
+  if(rating==="Good" && details.graduate){ m.pendingLearning=false; m.dueDay=[shiftDay(dayKey(new Date(now)),1),plannedDue].sort().pop(); m.due=dayStartMs(m.dueDay); }
+  else { m.pendingLearning=true; m.dueDay=null; m.due=0; }
+  const event={eventId,attemptId,cardKey:cardKey(idx),target:CARDS[idx].target,reviewedAt:new Date(now).toISOString(),localDay:dayKey(new Date(now)),rating,reason,
+    hintCount:Number(details.hintCount)||0,traced:!!details.traced,teaching:!!details.teaching,plannedDue,actualIntervalDays:previousReview?Math.max(0,(now-previousReview)/86400000):null,
+    scheduledDays:Number(result.card.scheduled_days)||0,schedulerVersion:FSRS_CONFIG.schedulerVersion,parameterVersion:FSRS_CONFIG.parameterVersion,desiredRetention:FSRS_CONFIG.desiredRetention,maximumInterval:FSRS_CONFIG.maximumInterval,timeZone:FSRS_CONFIG.timeZone};
+  fsrsReviewLog.push(event); saveFSRSLog(); saveMemory(); return event; }
+function formatDueDay(key){ if(!/^\d{4}-\d{2}-\d{2}$/.test(String(key||""))) return ""; const [y,m,d]=key.split("-").map(Number); return `${y}年${m}月${d}日`; }
 let opens = load(OPEN_KEY, []); if(!opens.includes(today())){ opens.push(today()); save(OPEN_KEY,opens); }
 function legacyStreakThrough(endKey){ const set=new Set(opens), start=String(endKey||today()); let n=0, key=start;
   while(set.has(key)){ n++; key=shiftDay(key,-1); } return n; }
@@ -754,12 +779,12 @@ let activity=normalizeActivity(load(ACTIVITY_KEY,null)); save(ACTIVITY_KEY,activ
 let backupMeta=load(BACKUP_META_KEY,{lastExportAt:0}); if(!backupMeta || typeof backupMeta!=="object") backupMeta={lastExportAt:0};
 function saveActivity(){ save(ACTIVITY_KEY,activity); }
 function dailyActivity(key=today()){ const row=activity.daily[key] && typeof activity.daily[key]==="object"?activity.daily[key]:{};
-  row.stamps=Math.max(0,Number(row.stamps)||0); row.completedRoundIds=Array.isArray(row.completedRoundIds)?row.completedRoundIds:[];
+  row.stamps=Math.max(0,Number(row.stamps)||0); row.attempts=Math.max(row.stamps,Number(row.attempts)||0); row.targetKeys=Array.isArray(row.targetKeys)?[...new Set(row.targetKeys)]:[]; row.completedRoundIds=Array.isArray(row.completedRoundIds)?row.completedRoundIds:[];
   row.completedGroups=row.completedRoundIds.length; activity.daily[key]=row; return row; }
-function markPracticeStamp(){ const key=today(), row=dailyActivity(key); row.stamps++; row.lastStampAt=Date.now();
+function markPracticeStamp(idx=null){ const key=today(), row=dailyActivity(key), targetKey=Number.isInteger(idx)?cardKey(idx):`legacy:${row.attempts}`; row.attempts++; if(!row.targetKeys.includes(targetKey)){ row.targetKeys.push(targetKey); row.stamps++; } row.lastStampAt=Date.now();
   if(!activity.practiceDays.includes(key)) activity.practiceDays.push(key); activity.practiceDays.sort(); saveActivity();
-  if(row.stamps===1) syncReminder(); }
-function markRoundComplete(){ if(!batch.length || roundStats.length<batch.length) return false; const row=dailyActivity();
+  if(row.attempts===1) syncReminder(); }
+function markRoundComplete(){ if(!roundIsComplete()) return false; const row=dailyActivity();
   if(!row.completedRoundIds.includes(roundId)){ row.completedRoundIds.push(roundId); row.completedGroups=row.completedRoundIds.length; row.firstCompletedAt=row.firstCompletedAt||Date.now(); saveActivity(); }
   return true; }
 function todayStampCount(){ return dailyActivity().stamps; }
@@ -833,24 +858,46 @@ function celebrateMilestoneIfAny(){ const total=totalPracticeDays(); let changed
   MILESTONE_DAYS.forEach(d=>{ if(total>=d && !reminder.milestonesShown.includes(d)){ reminder.milestonesShown.push(d); changed=true; if(total===d) celebrate=d; } });
   if(changed) saveReminder(); return celebrate; }
 
-// ---- 出题池 ----
-const BATCH=15, TOPIC_KEY="shizi.topic.v1"; let sessionDone=new Set(); let batch=[], pos=0, missedThisRound=[], roundStats=[], focusQueue=[], hintsUsedThisCard=0, cardStartedAt=0, activeMode="new", sessionTarget=0, sessionFastStreak=0, sessionMissStreak=0, roundFeedbackGiven=false, roundId=0, calibrationFirstHoldUsed=false;
-function sessionPayload(){ return {version:1,date:today(),updatedAt:Date.now(),activeMode,batch:batch.slice(),pos,missedThisRound:missedThisRound.slice(),roundStats:cloneObj(roundStats)||[],focusQueue:focusQueue.slice(),sessionDone:[...sessionDone],sessionTarget,sessionFastStreak,sessionMissStreak,roundFeedbackGiven,roundId,pendingRepeat,calibrationFirstHoldUsed}; }
-function saveSessionSnapshot(){ if(!batch.length || pos<0 || pos>=batch.length){ removeStored(SESSION_KEY); return; } save(SESSION_KEY,sessionPayload()); }
+// ---- 出题池与双层学习会话 ----
+const BATCH=15, TOPIC_KEY="shizi.topic.v1";
+let sessionDone=new Set(), baseTargets=[], batch=[], pos=0, baseCursor=0, currentIndex=null, currentAttemptKind="base", currentAttemptId="";
+let reinforcementQueue=[], unresolved=new Set(), episodes={}, attemptSeq=0, practicePhase="recall", hintEverUsed=false, enteredTracingThisAttempt=false, submissionSnapshot=null, pendingSessionVisual=null, feedbackKind="";
+let missedThisRound=[], roundStats=[], focusQueue=[], hintsUsedThisCard=0, cardStartedAt=0, activeMode="new", sessionTarget=0, sessionFastStreak=0, sessionMissStreak=0, roundFeedbackGiven=false, roundId=0, calibrationFirstHoldUsed=false;
+function currentCardIndex(){ return Number.isInteger(currentIndex)?currentIndex:(Number.isInteger(batch[pos])?batch[pos]:null); }
+function episodeFor(idx){ const key=String(idx); return episodes[key] || (episodes[key]={idx,firstOutcome:null,attempts:[],assistanceUsed:false,independentlyRecovered:false,excluded:false,teachingComplete:false}); }
+function enqueueReinforcement(idx){ unresolved.add(idx); reinforcementQueue=reinforcementQueue.filter(item=>item.idx!==idx); reinforcementQueue.push({idx,eligibleAfter:attemptSeq+2,order:attemptSeq}); const m=cardMemory(idx); m.pendingLearning=true; m.dueDay=null; m.due=0; }
+function graduateReinforcement(idx){ unresolved.delete(idx); reinforcementQueue=reinforcementQueue.filter(item=>item.idx!==idx); const ep=episodeFor(idx); ep.independentlyRecovered=true; }
+function nextQueuedTarget(){ const ready=reinforcementQueue.find(item=>item.eligibleAfter<=attemptSeq); if(ready){ reinforcementQueue=reinforcementQueue.filter(item=>item!==ready); return {idx:ready.idx,kind:"reinforcement"}; }
+  if(baseCursor<baseTargets.length) return {idx:baseTargets[baseCursor],kind:"base"};
+  if(reinforcementQueue.length){ const item=reinforcementQueue.shift(); return {idx:item.idx,kind:"reinforcement"}; }
+  return null; }
+function beginAttempt(next){ if(!next) return false; currentIndex=next.idx; currentAttemptKind=next.kind; pos=Math.min(baseCursor,Math.max(0,baseTargets.length-1));
+  practicePhase=next.kind==="reinforcement"?"reinforcement":"recall"; currentAttemptId=`${roundId}-a${attemptSeq+1}-${currentIndex}`; hintEverUsed=false; enteredTracingThisAttempt=false; submissionSnapshot=null; feedbackKind=""; return true; }
+function roundIsComplete(){ return baseTargets.length>0 && baseCursor>=baseTargets.length && unresolved.size===0 && !["tracing","postTraceRecall","traceTutorial","revealDecision","feedback"].includes(practicePhase); }
+function capturePracticeVisual(){ return {practicePhase,currentIndex,currentAttemptKind,currentAttemptId,hintEverUsed,enteredTracingThisAttempt,hintsUsedThisCard,
+  shownStrokes,groupIdx,seenGroups:[...seenGroups],inkStrokes:cloneObj(inkStrokes)||[],tracedThisCard,submissionSnapshot:cloneObj(submissionSnapshot),revealed,stamped}; }
+function sessionPayload(){ return {version:2,startedDate:(load(SESSION_KEY,null)||{}).startedDate||today(),updatedAt:Date.now(),activeMode,baseTargets:baseTargets.slice(),baseCursor,currentIndex,currentAttemptKind,currentAttemptId,
+  reinforcementQueue:cloneObj(reinforcementQueue)||[],unresolved:[...unresolved],episodes:cloneObj(episodes)||{},attemptSeq,practicePhase,visual:capturePracticeVisual(),
+  missedThisRound:missedThisRound.slice(),roundStats:cloneObj(roundStats)||[],focusQueue:focusQueue.slice(),sessionDone:[...sessionDone],sessionTarget,sessionFastStreak,sessionMissStreak,roundFeedbackGiven,roundId,calibrationFirstHoldUsed,lastStampSnapshot:cloneObj(lastStampSnapshot),feedbackKind}; }
+function saveSessionSnapshot(){ if(!baseTargets.length || !Number.isInteger(currentCardIndex())) return; save(SESSION_KEY,sessionPayload()); }
 function clearSessionSnapshot(){ removeStored(SESSION_KEY); }
-function resumableSession(){ const s=load(SESSION_KEY,null); if(!s) return null;
-  const valid=s.version===1 && s.date===today() && Array.isArray(s.batch) && s.batch.length>0 && Number.isInteger(s.pos) && s.pos>=0 && s.pos<s.batch.length
-    && s.batch.every(i=>Number.isInteger(i)&&i>=0&&i<CARDS.length) && Array.isArray(s.roundStats) && (s.roundStats.length===s.pos || s.roundStats.length===s.pos+1)
-    && ["new","review","calibrate","focus"].includes(s.activeMode);
+function migrateV1Session(s){ const stats=Array.isArray(s.roundStats)?cloneObj(s.roundStats):[], targets=Array.isArray(s.batch)?s.batch.slice():[]; let cursor=Math.min(targets.length,stats.length);
+  const eps={}, queue=[], open=new Set(); stats.forEach((row,n)=>{ const ep={idx:row.idx,firstOutcome:row.outcome,attempts:[{attemptId:`${s.roundId||"legacy"}-legacy-${n+1}`,outcome:row.outcome}],assistanceUsed:row.outcome==="hinted",independentlyRecovered:row.outcome==="fast",excluded:false,teachingComplete:row.outcome!=="miss"}; eps[String(row.idx)]=ep; if(row.outcome!=="fast"){ open.add(row.idx); queue.push({idx:row.idx,eligibleAfter:stats.length+2,order:n}); } });
+  if(stats.length===Number(s.pos)+1) cursor=Math.min(targets.length,Number(s.pos)+1); else cursor=Math.min(targets.length,Number(s.pos)||0);
+  const next=cursor<targets.length?{idx:targets[cursor],kind:"base"}:(queue.length?{idx:queue[0].idx,kind:"reinforcement"}:null);
+  return {version:2,startedDate:s.date||today(),updatedAt:Date.now(),activeMode:s.activeMode,baseTargets:targets,baseCursor:cursor,currentIndex:next?next.idx:targets[Math.max(0,targets.length-1)],currentAttemptKind:next?next.kind:"base",currentAttemptId:`${s.roundId||Date.now()+"-migrated"}-a${stats.length+1}`,
+    reinforcementQueue:queue.filter(item=>!next||next.kind!=="reinforcement"||item.idx!==next.idx),unresolved:[...open],episodes:eps,attemptSeq:stats.length,practicePhase:next&&next.kind==="reinforcement"?"reinforcement":"recall",visual:null,
+    missedThisRound:Array.isArray(s.missedThisRound)?s.missedThisRound.slice():[],roundStats:stats,focusQueue:Array.isArray(s.focusQueue)?s.focusQueue.slice():[],sessionDone:Array.isArray(s.sessionDone)?s.sessionDone.slice():[],sessionTarget:s.sessionTarget,sessionFastStreak:s.sessionFastStreak,sessionMissStreak:s.sessionMissStreak,roundFeedbackGiven:!!s.roundFeedbackGiven,roundId:s.roundId||Date.now()+"-migrated",calibrationFirstHoldUsed:!!s.calibrationFirstHoldUsed,lastStampSnapshot:null}; }
+function resumableSession(){ let s=load(SESSION_KEY,null); if(!s) return null; if(s.version===1) s=migrateV1Session(s);
+  const valid=s.version===2 && Array.isArray(s.baseTargets) && s.baseTargets.length>0 && s.baseTargets.every(i=>Number.isInteger(i)&&i>=0&&i<CARDS.length)
+    && Number.isInteger(s.currentIndex)&&s.currentIndex>=0&&s.currentIndex<CARDS.length && ["new","review","calibrate","focus"].includes(s.activeMode);
   if(!valid){ clearSessionSnapshot(); return null; } return s; }
-function restoreSession(s){ if(!s) return false; activeMode=s.activeMode; batch=s.batch.slice(); pos=s.pos; missedThisRound=Array.isArray(s.missedThisRound)?s.missedThisRound.slice():[];
-  roundStats=Array.isArray(s.roundStats)?cloneObj(s.roundStats):[]; focusQueue=Array.isArray(s.focusQueue)?s.focusQueue.slice():[]; sessionDone=new Set(Array.isArray(s.sessionDone)?s.sessionDone:[]);
-  sessionTarget=Number(s.sessionTarget)||targetDifficulty(); sessionFastStreak=Number(s.sessionFastStreak)||0; sessionMissStreak=Number(s.sessionMissStreak)||0;
-  roundFeedbackGiven=!!s.roundFeedbackGiven; roundId=s.roundId||Date.now()+"-resume"; pendingRepeat=!!s.pendingRepeat; calibrationFirstHoldUsed=!!s.calibrationFirstHoldUsed;
-  // 盖章后的 200ms 内若被系统杀掉，快照会处于“已记账、待换题”；恢复时先完成这一步，避免重复盖章。
-  if(roundStats.length===pos+1){ if(!pendingRepeat) sessionDone.add(batch[pos]); pos++; pendingRepeat=false; }
-  if(pos>=batch.length){ clearSessionSnapshot(); markRoundComplete(); roundSummary(); return true; }
-  saveSessionSnapshot(); render(); return true; }
+function restoreSession(s){ if(!s) return false; if(s.version===1) s=migrateV1Session(s); activeMode=s.activeMode; baseTargets=s.baseTargets.slice(); batch=baseTargets; baseCursor=Math.max(0,Math.min(baseTargets.length,Number(s.baseCursor)||0)); currentIndex=s.currentIndex;
+  currentAttemptKind=s.currentAttemptKind||"base"; currentAttemptId=s.currentAttemptId||`${s.roundId}-a${(Number(s.attemptSeq)||0)+1}-${currentIndex}`; reinforcementQueue=Array.isArray(s.reinforcementQueue)?cloneObj(s.reinforcementQueue):[]; unresolved=new Set(Array.isArray(s.unresolved)?s.unresolved:[]); episodes=cloneObj(s.episodes)||{}; attemptSeq=Number(s.attemptSeq)||0; practicePhase=s.practicePhase||"recall";
+  missedThisRound=Array.isArray(s.missedThisRound)?s.missedThisRound.slice():[]; roundStats=Array.isArray(s.roundStats)?cloneObj(s.roundStats):[]; focusQueue=Array.isArray(s.focusQueue)?s.focusQueue.slice():[]; sessionDone=new Set(Array.isArray(s.sessionDone)?s.sessionDone:[]);
+  sessionTarget=Number(s.sessionTarget)||targetDifficulty(); sessionFastStreak=Number(s.sessionFastStreak)||0; sessionMissStreak=Number(s.sessionMissStreak)||0; roundFeedbackGiven=!!s.roundFeedbackGiven; roundId=s.roundId||Date.now()+"-resume"; calibrationFirstHoldUsed=!!s.calibrationFirstHoldUsed; lastStampSnapshot=cloneObj(s.lastStampSnapshot); feedbackKind=s.feedbackKind||"";
+  if(baseCursor>=baseTargets.length && unresolved.size===0){ practicePhase="between"; clearSessionSnapshot(); markRoundComplete(); roundSummary(); return true; }
+  pendingSessionVisual=cloneObj(s.visual); pos=Math.min(baseCursor,Math.max(0,baseTargets.length-1)); render(); armPracticeHistory(); return true; }
 function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 function allIndexes(){ return [...Array(CARDS.length).keys()]; }
 function cardKey(i){ const c=CARDS[i]; return (c.custom?"custom:"+i+":":"base:")+c.target; }
@@ -880,10 +927,10 @@ function qualityWeight(i){ const c=CARDS[i], q=qualityFor(i), p=prefSettings(); 
   if(preference==="practical") score-=Math.max(0,cardDifficulty(i)-86)*0.6;
   if(preference==="challenge") score+=cardDifficulty(i)*0.16;
   return score - (q.rare||0)*10 - (q.easy||0)*20 - (q.badWord||0)*40; }
-function cardMemory(i){ const k=cardKey(i); return memory[k] || (memory[k]={seen:0, streak:0, ease:50, fast:0, slow:0, hints:0, misses:0, due:0, last:0}); }
+function cardMemory(i){ const k=cardKey(i), m=memory[k] || (memory[k]={seen:0, streak:0, ease:50, fast:0, slow:0, hints:0, misses:0, due:0, last:0}); return normalizeLegacySchedule(m); }
 function hasMemory(i){ const m=memory[cardKey(i)]; return !!(m && m.seen); }
-function isDue(i){ const m=memory[cardKey(i)]; return !m || !m.seen || !m.due || m.due<=Date.now(); }
-function reviewDue(i){ const m=memory[cardKey(i)]; return !!(m && m.seen && (!m.due || m.due<=Date.now())); }
+function isDue(i){ const m=memory[cardKey(i)]; if(!m||!m.seen) return true; normalizeLegacySchedule(m); if(m.pendingLearning) return false; return !m.dueDay || m.dueDay<=today(); }
+function reviewDue(i){ const m=memory[cardKey(i)]; if(!m||!m.seen) return false; normalizeLegacySchedule(m); return !m.pendingLearning && (!m.dueDay || m.dueDay<=today()); }
 function reviewReady(i){ return status[i]==="indeck" ? isDue(i) : reviewDue(i); }
 function baseAvailable(i,respectSession=true){ return (status[i]!=="known" || hasMemory(i)) && (!respectSession || !sessionDone.has(i)); }
 function reviewPool(respectSession=true){ return allIndexes().filter(i=>baseAvailable(i,respectSession) && qualityAvailable(i) && reviewReady(i)); }
@@ -954,19 +1001,12 @@ function chooseCalibrationBatch(all){ const targets=[48,56,62,66,70,74,78,82,86,
     if(pick!=null){ used.add(pick); topicCounts[cardTopic(pick)]=(topicCounts[cardTopic(pick)]||0)+1; out.push(pick); } });
   addNearest(out, all, 76, BATCH-out.length, used);
   return out.slice(0,BATCH).sort((a,b)=>cardDifficulty(a)-cardDifficulty(b)); }
-function delayFor(outcome, depth, ease=50){ const table={
-  fast:[7,21,45,90,150],
-  slow:[0.5,1,3,7,14],
-  hinted:[0.25,1,3,7,14],
-  miss:[0,0.25,1,2,5],
-}; const arr=table[outcome]||table.slow, idx=Math.max(0, Math.min((outcome==="fast"||outcome==="slow")?depth-1:depth,arr.length-1));
-  const days=arr[idx]; if(!days) return 0; const scale=(outcome==="fast"||outcome==="slow")?clamp((ease+70)/120,.7,1.35):1; return Math.round(days*scale*86400000); }
 function reviewCount(){ return reviewPool(false).length; }
 function memoryCount(){ return Object.values(memory).filter(m=>m && m.seen).length; }
 function isHighRisk(i){ const m=memory[cardKey(i)]; return !!(qualityAvailable(i) && m && (status[i]==="indeck" || m.misses || m.slow || m.hints>=2) && (m.streak||0)<2); }
 function highRiskIndexes(){ return allIndexes().filter(isHighRisk).sort((a,b)=>personalDifficulty(b)-personalDifficulty(a)); }
 function highRiskCount(){ return highRiskIndexes().length; }
-// 四枚印章 = 四档自评（对应记忆模型的四种结果）
+// 四枚印章保留为自动结果标签；用户只判断本次对错。
 const GRADE_UI={
   fast:{seal:"拾到", func:"会写", funcHtml:"会写", cls:"fast", effect:"之后会隔久一点再出现"},
   hinted:{seal:"补拾", func:"看提示写出", funcHtml:"看提示<br>写出", cls:"hinted", effect:"近期会回来复习"},
@@ -978,7 +1018,7 @@ const MASCOT_LINES=[
   "这个格子里的字，你上次写它可能是十年前",
   "想不起来很正常，点「笔顺提示」先看开头几笔",
   "凭感觉写，连笔断笔都没关系",
-  "写不出来就看答案，描一遍也算拾回"
+  "写不出来就点「不会写」，先描后写"
 ];
 const ROTS=[-1.5,1,2,-1,1.5,-2,1,-1.5,2,1,-1,1.5,-2,1,-1];
 const ROUND_FEEDBACK={easy:["太简单","下组加难"],ok:["刚刚好","保持节奏"],hard:["太难","下组降一点"],bad_context:["词不自然","收紧语境"]};
@@ -1007,15 +1047,20 @@ function recordRoundFeedback(kind){ if(roundFeedbackGiven || !ROUND_FEEDBACK[kin
   tuning.lastRoundId=roundId; tuning.lastRoundFeedback=kind; tuning.rounds=[...(tuning.rounds||[]),{id:roundId,date:today(),mode:activeMode,kind,counts,score:Math.round(score*100)/100,offset:Math.round(Number(tuning.offset)||0),contextStrict:Number(tuning.contextStrict)||0}].slice(-30);
   const consequence={easy:"好，下一组会更难一点。",hard:"好，下一组会降一点。",ok:"好，保持这个节奏。",bad_context:"好，之后会少出这类不自然的词。"}[kind] || "已记录。";
   saveTuning(); save(PREF_KEY,preference); roundFeedbackGiven=true; renderRoundTune(consequence); }
-function dueText(ts){ if(!ts) return "今天还会再见"; const left=ts-Date.now(); if(left<=0) return "今天再拾一次";
-  const hours=Math.ceil(left/3600000); if(hours<24) return `${hours} 小时后再见`; const diff=Math.ceil(left/86400000);
-  if(diff===1) return "明天再见"; return `${diff} 天后再见`; }
 function scrollTopNow(){ try{ window.scrollTo({top:0,left:0,behavior:"auto"}); }catch(e){ window.scrollTo(0,0); } }
 function updateKeyboardInset(){ const vv=window.visualViewport, inset=vv?Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop)):0;
   document.documentElement.style.setProperty("--keyboard-inset", inset+"px"); }
 if(window.visualViewport){ window.visualViewport.addEventListener("resize", updateKeyboardInset); window.visualViewport.addEventListener("scroll", updateKeyboardInset); updateKeyboardInset(); }
 const VIEW_IDS={welcome:"welcome",home:"home",card:"card",summary:"summary",book:"studybook",profile:"profilePanel",audit:"auditPanel",me:"mePanel"};
 const FLEX_VIEWS=new Set(["welcome","home","card","summary","book","me","profile","audit"]);
+let practiceHistoryArmed=false, restoringPracticeHistory=false, pendingSwipeExit=false;
+function armPracticeHistory(){ if(practiceHistoryArmed) return; try{ history.replaceState({shiziView:"home"},""); history.pushState({shiziView:"practice"},""); practiceHistoryArmed=true; }catch(e){} }
+function releasePracticeHistory(){ if(!practiceHistoryArmed) return; practiceHistoryArmed=false; try{ if(history.state&&history.state.shiziView==="practice") history.back(); }catch(e){} }
+window.addEventListener("popstate",()=>{
+  if(restoringPracticeHistory){ restoringPracticeHistory=false; if(pendingSwipeExit){ pendingSwipeExit=false; openExitSheet(); } return; }
+  if(!practiceHistoryArmed || $("card").style.display==="none") return;
+  restoringPracticeHistory=true; pendingSwipeExit=!stamped && !animating && !$("exitSheet").classList.contains("open"); try{ history.forward(); }catch(e){ restoringPracticeHistory=false; }
+});
 function displayView(view){ Object.entries(VIEW_IDS).forEach(([k,id])=>{ $(id).style.display = view===k ? "flex" : "none"; });
   // 写字 / 首启 / 结果是全屏专注场景，收起底部 Tab
   $("foot").style.display=(view==="card"||view==="welcome"||view==="summary"||view==="profile"||view==="audit")?"none":"";
@@ -1024,38 +1069,43 @@ function displayView(view){ Object.entries(VIEW_IDS).forEach(([k,id])=>{ $(id).s
   document.querySelectorAll(".foot .tab").forEach(el=>el.classList.toggle("active",el.id===active));
   requestAnimationFrame(scrollTopNow); }
 function qualityCount(){ return Object.values(quality).filter(q=>q && (q.easy || q.rare || q.badWord || q.hide)).length; }
-function renderQuality(){ if(!cur) return; const q=qualityFor(batch[pos]); document.querySelectorAll("#qualityBox button[data-quality]").forEach(btn=>btn.classList.toggle("active", !!q[btn.dataset.quality]));
+function renderQuality(){ if(!cur) return; const q=qualityFor(currentCardIndex()); document.querySelectorAll("#qualityBox button[data-quality]").forEach(btn=>btn.classList.toggle("active", !!q[btn.dataset.quality]));
   const notes=[]; if(q.easy) notes.push("已降难"); if(q.rare) notes.push("少出"); if(q.badWord) notes.push("避开词"); if(q.hide) notes.push("已隐藏");
   $("qualityNote").textContent=notes.length?`${notes.join(" · ")} · 再点可取消`:""; }
-function recordQuality(kind, idx=batch[pos]){ if(idx==null || idx<0) return; const c=CARDS[idx], k=cardKey(idx), q=quality[k] || {};
+function recordQuality(kind, idx=currentCardIndex()){ if(idx==null || idx<0) return; const c=CARDS[idx], k=cardKey(idx), q=quality[k] || {};
   if(kind==="hide") q.hide=!q.hide; else q[kind]=q[kind]?0:1;
   q.last=Date.now(); q.target=c.target; q.word=c.word; q.topic=c.topic; q.level=c.level; quality[k]=q; saveQuality();
   if(kind==="easy" && q.easy) setStatus(idx,"rest"); if(kind==="badWord" && q.badWord) sessionDone.add(idx);
-  if(kind==="hide"){ if(q.hide) sessionDone.add(idx); else sessionDone.delete(idx); }
-  if(cur && idx===batch[pos]) renderQuality(); }
-// 盖章立即记账；界面保留短暂落章反馈，随后自动进入下一题。
-let pendingRepeat=false;
-function recordOutcome(outcome){ const idx=batch[pos], c=CARDS[idx], m=cardMemory(idx), now=Date.now();
-  const hard=outcome==="miss" || outcome==="hinted" || outcome==="slow";
+  if(kind==="hide"){ if(q.hide){ sessionDone.add(idx); unresolved.delete(idx); reinforcementQueue=reinforcementQueue.filter(item=>item.idx!==idx); const ep=episodeFor(idx); ep.excluded=true; const m=cardMemory(idx); m.pendingLearning=false; m.dueDay=null; saveMemory(); }
+    else sessionDone.delete(idx); saveSessionSnapshot(); }
+  if(cur && idx===currentCardIndex()) renderQuality(); }
+// 每个真实回忆回合只记一次结果；本组队列与 FSRS 跨天调度分别处理。
+function recordOutcome(outcome,options={}){ const idx=currentCardIndex(), c=CARDS[idx], m=cardMemory(idx), now=Number(options.now)||Date.now(), ep=episodeFor(idx);
+  if(ep.attempts.some(a=>a.attemptId===currentAttemptId)) return ep.attempts.find(a=>a.attemptId===currentAttemptId);
+  const hard=outcome!=="fast", firstOutcome=!ep.firstOutcome, userCorrect=outcome==="fast"||outcome==="hinted";
   m.seen=(m.seen||0)+1; m.last=now; m.lastOutcome=outcome; m.lastHints=hintsUsedThisCard;
-  m.traced=!!tracedThisCard;
+  m.traced=!!enteredTracingThisAttempt;
   delete m.queuedFront; delete m.queuedFrontAt;
-  const sys=suggestedOutcomeForVerdict(lastVerdict);
-  m.lastSystemSuggestion=sys||""; m.lastSystemStatus=lastVerdict?lastVerdict.status:"none"; m.lastSystemAgree=sys?sys===outcome:null;
+  const sys=lastVerdict?(lastVerdict.status==="ok"):null;
+  m.lastSystemSuggestion=sys===null?"":(sys?"correct":"wrong"); m.lastSystemStatus=lastVerdict?lastVerdict.status:"none"; m.lastSystemAgree=sys===null?null:sys===userCorrect;
   m.topic=c.topic; m.level=c.level; m.word=c.word; m.target=c.target;
   if(outcome==="fast"){ m.fast=(m.fast||0)+1; m.streak=(m.streak||0)+1; m.ease=clamp((m.ease||50)+12,0,100); setStatus(idx,"rest"); }
   if(outcome==="slow"){ m.slow=(m.slow||0)+1; m.streak=0; m.ease=clamp((m.ease||50)-6,0,100); setStatus(idx,"indeck"); }
   if(outcome==="hinted"){ m.hints=(m.hints||0)+1; m.streak=0; m.ease=clamp((m.ease||50)-8,0,100); setStatus(idx,"indeck"); }
   if(outcome==="miss"){ m.misses=(m.misses||0)+1; m.streak=0; m.ease=clamp((m.ease||50)-16,0,100); m.missedOn=today(); setStatus(idx,"indeck"); }
-  // 「写错了」用累计次数递进复习间隔（0.5→1→3 天），和不会写/看提示一致；streak 已归零不能当 depth 用
-  const depth=outcome==="miss"?Math.max(0,(m.misses||1)-1):outcome==="hinted"?Math.max(0,(m.hints||1)-1):outcome==="slow"?(m.slow||1):(m.streak||0);
-  m.due=now+delayFor(outcome,depth,m.ease||50);
-  if(outcome!=="miss" && m.missedOn===today()){ const tomorrow=new Date(); tomorrow.setHours(24,0,0,0); m.due=Math.min(m.due,tomorrow.getTime()); }
-  saveMemory(); markPracticeStamp();
-  roundStats.push({idx, target:c.target, word:c.word, outcome, traced:!!tracedThisCard, level:abilityLevel(idx), topic:c.topic, due:m.due});
-  if(hard) missedThisRound.push(c.target);
-  adaptNextCard(outcome,idx);
-  pendingRepeat=(outcome==="miss");
+  const reason=outcome==="hinted"?"hinted":outcome==="slow"?"wrong":outcome==="miss"?"dontKnow":"independent";
+  const event=applyFSRSReview(idx,hard?"Again":"Good",reason,currentAttemptId,{now,graduate:!hard,hintCount:hintsUsedThisCard,traced:enteredTracingThisAttempt,teaching:!!options.teaching});
+  const attempt={attemptId:currentAttemptId,seq:attemptSeq+1,outcome,userCorrect,hintUsed:hintEverUsed,hintCount:hintsUsedThisCard,enteredTracing:enteredTracingThisAttempt,teaching:!!options.teaching,eventId:event&&event.eventId,at:now};
+  ep.attempts.push(attempt); ep.firstOutcome=ep.firstOutcome||outcome; ep.assistanceUsed=ep.assistanceUsed||hintEverUsed||enteredTracingThisAttempt;
+  if(firstOutcome){ roundStats.push({idx,target:c.target,word:c.word,outcome,traced:!!enteredTracingThisAttempt,hintUsed:hintEverUsed,level:abilityLevel(idx),topic:c.topic,dueDay:m.dueDay||null,independentlyRecovered:!hard});
+    if(hard) missedThisRound.push(c.target); adaptNextCard(outcome,idx); }
+  else { const stat=roundStats.find(row=>row.idx===idx); if(stat && !hard){ stat.independentlyRecovered=true; stat.dueDay=m.dueDay||null; } }
+  if(currentAttemptKind==="base"){ baseCursor=Math.min(baseTargets.length,baseCursor+1); sessionDone.add(idx); }
+  attemptSeq++;
+  if(hard && !qualityFor(idx).hide) enqueueReinforcement(idx); else if(hard){ ep.excluded=true; m.pendingLearning=false; m.dueDay=null; m.due=0; } else graduateReinforcement(idx);
+  m.lastEpisode={firstOutcome:ep.firstOutcome,attempts:ep.attempts.length,assistanceUsed:ep.assistanceUsed,independentlyRecovered:ep.independentlyRecovered};
+  if(submissionSnapshot) submissionSnapshot=Object.freeze({...submissionSnapshot,userCorrect});
+  saveMemory(); markPracticeStamp(idx); return attempt;
 }
 function prefLabel(){ return ({balanced:"高频易忘", practical:"偏实用", challenge:"偏挑战"})[preference] || "高频易忘"; }
 function needsCalibration(){ return !tuning.calibrated && memoryCount()===0; }
@@ -1080,16 +1130,15 @@ function updateBookBadge(){ const due=reviewCount(); $("bookBadge").textContent=
 let homeResumeSession=null;
 // 首页：未完成时续当前组；完成态一旦成立，当天新到期字只在字盒提示，不推翻句号。
 function renderHome(){ const resume=resumableSession();
-  if(resume && resume.roundStats.length===resume.pos+1 && resume.pos+1>=resume.batch.length){ restoreSession(resume); return; }
   if(needsCalibration() && !resume){ displayView("welcome"); warmUpcomingStrokeCache(); return; }
   displayView("home");
   $("homeGreeting").textContent=`${greeting()} · ${dateCn()}`;
   const totalDays=totalPracticeDays(); $("streakChip").textContent=totalDays>0?`拾字第 ${totalDays} 天`:"今天开始拾字";
   const due=reviewCount(), newN=newPool(false).length, stampedToday=todayStampCount(), complete=todayCompleted();
   homeResumeSession=resume;
-  if(resume){ const resumePos=resume.roundStats.length===resume.pos+1?resume.pos+1:resume.pos, left=Math.max(0,resume.batch.length-resumePos);
+  if(resume){ const left=Math.max(0,resume.baseTargets.length-(Number(resume.baseCursor)||0)), reinforce=Array.isArray(resume.unresolved)?resume.unresolved.length:0;
     $("homeTitle").innerHTML=complete?`今日已拾<br>${stampedToday} 个字`:`今天拾了<br>${stampedToday} 个字`;
-    $("startBtn").textContent="续"; $("startCap").innerHTML=`继续${complete?"加练":""}这组 <span>· 还剩 ${left} 个字</span>`; $("startBtn").disabled=false;
+    $("startBtn").textContent="续"; $("startCap").innerHTML=`继续${complete?"加练":""}这组 <span>· ${left?`还剩 ${left} 个字`:"基础字已过"}${reinforce?` · 待巩固 ${reinforce}`:""}</span>`; $("startBtn").disabled=false;
   } else if(complete){
     $("homeTitle").innerHTML=`今日已拾<br>${stampedToday} 个字`; $("startBtn").textContent="再";
     $("startCap").innerHTML=(newN||due)?`加练一组 <span>· 今日完成不会回退</span>`:"今天的字都过完了，明天见"; $("startBtn").disabled=(newN===0 && due===0);
@@ -1235,7 +1284,7 @@ function unblockQuality(i){ const k=cardKey(i); if(quality[k]){ delete quality[k
 // 现实里提笔忘了 = 一次真实的「不会写」：记进记忆模型，让它立刻进入今日复习和待拾回状态
 function recordRealWorldMiss(i){ const c=CARDS[i], m=cardMemory(i), now=Date.now();
   m.seen=(m.seen||0)+1; m.last=now; m.lastOutcome="miss"; m.misses=(m.misses||0)+1; m.streak=0; m.ease=clamp((m.ease||50)-16,0,100);
-  m.topic=c.topic; m.level=c.level; m.word=c.word; m.target=c.target; m.due=now; setStatus(i,"indeck"); }
+  m.topic=c.topic; m.level=c.level; m.word=c.word; m.target=c.target; m.due=dayStartMs(today()); m.dueDay=today(); m.pendingLearning=false; setStatus(i,"indeck"); }
 function addWord(s){ s=(s||"").trim(); const chars=[...new Set(Array.from(s).filter(isCJK))]; if(!chars.length) return null;
   const fresh=[];
   chars.forEach(ch=>{ const base=BASE_BY_CHAR[ch], idx=base!=null?base:customIndexOf(ch);
@@ -1248,9 +1297,9 @@ function addWord(s){ s=(s||"").trim(); const chars=[...new Set(Array.from(s).fil
   const queuedAt=Math.max(Date.now(),latestQueuedAt+1); indexesForChars(chars).forEach((idx,order)=>{ const m=cardMemory(idx); m.queuedFront=true; m.queuedFrontAt=queuedAt+order; });
   saveMemory(); return chars; }
 function indexesForChars(chars){ return (chars||[]).map(ch=>{ const base=BASE_BY_CHAR[ch]; return base!=null?base:customIndexOf(ch); }).filter(i=>i!=null && i>=0); }
-function insertIntoCurrentBatch(indexes){ if($("card").style.display==="none" || !Array.isArray(batch) || batch.length===0) return 0;
-  const existing=new Set(batch), fresh=[...new Set(indexes)].filter(i=>!existing.has(i));
-  if(!fresh.length) return 0; batch.splice(pos+1,0,...fresh); saveSessionSnapshot(); return fresh.length; }
+function insertIntoCurrentBatch(indexes){ if($("card").style.display==="none" || !baseTargets.length) return 0;
+  const existing=new Set(baseTargets), fresh=[...new Set(indexes)].filter(i=>!existing.has(i));
+  const insertable=fresh.slice(0,Math.max(0,BATCH-baseTargets.length)); if(!insertable.length) return 0; const at=Math.min(baseTargets.length,baseCursor+(currentAttemptKind==="base"?1:0)); baseTargets.splice(at,0,...insertable); batch=baseTargets; saveSessionSnapshot(); renderBeads(); return insertable.length; }
 function queuedFrontPool(){ return allIndexes().filter(i=>baseAvailable(i,false) && qualityAvailable(i) && (memory[cardKey(i)]||{}).queuedFront)
   .sort((a,b)=>(Number((memory[cardKey(a)]||{}).queuedFrontAt)||0)-(Number((memory[cardKey(b)]||{}).queuedFrontAt)||0)); }
 
@@ -1314,8 +1363,8 @@ function updateInkControls(){ if($("undoStroke")) $("undoStroke").disabled=!acti
   if($("traceDone")) $("traceDone").disabled=!(tracing && tracedThisCard); }
 function clearInk(){ inkCtx.clearRect(0,0,S,S); inkStrokes=[]; curInkStroke=null; actionStack=actionStack.filter(a=>a.type!=="stroke"); if(tracing) tracedThisCard=false; updateInkControls(); if(inkCanvas && !revealed) inkCanvas.style.opacity=peeking?String(PEEK_INK_OPACITY):'1'; }
 async function undoInkStroke(){ if(!actionStack.length || drawing || animating) return false; commitUndoWindow(); const action=actionStack.pop();
-  if(action.type==="stroke"){ inkStrokes.pop(); if(tracing) tracedThisCard=inkStrokes.length>traceStrokeStartCount; redrawInk(); updateInkControls(); return true; }
-  if(action.type==="hint"){ groupIdx=action.group; shownStrokes=action.start; await rebuildHintLayer(shownStrokes); updateTip(); return true; }
+  if(action.type==="stroke"){ inkStrokes.pop(); if(tracing) tracedThisCard=inkStrokes.length>traceStrokeStartCount; redrawInk(); updateInkControls(); saveSessionSnapshot(); return true; }
+  if(action.type==="hint"){ groupIdx=action.group; shownStrokes=action.start; await rebuildHintLayer(shownStrokes); updateTip(); saveSessionSnapshot(); return true; }
   updateInkControls(); return false; }
 
 function charLoader(char, onComplete){
@@ -1341,7 +1390,7 @@ function inkMove(p){ if(curInkStroke) curInkStroke.push({x:p.x,y:p.y}); }
 function inkEnd(){ if(!curInkStroke) return;
   // 无位移的点按没有留下墨迹，不算一笔
   if(curInkStroke.length>=2){ inkStrokes.push(curInkStroke); actionStack.push({type:"stroke"}); if(tracing) tracedThisCard=true; }
-  curInkStroke=null; updateInkControls(); onTeachStrokeEnd(); }
+  curInkStroke=null; updateInkControls(); onTeachStrokeEnd(); saveSessionSnapshot(); }
 function pathLen(pts){ let l=0; for(let i=1;i<pts.length;i++) l+=Math.hypot(pts[i].x-pts[i-1].x,pts[i].y-pts[i-1].y); return l; }
 function resamplePts(pts,n){ const src=pts.map(p=>({x:p.x,y:p.y})), out=[{x:src[0].x,y:src[0].y}];
   const I=pathLen(src)/(n-1); if(!(I>0)){ while(out.length<n) out.push({x:src[0].x,y:src[0].y}); return out; }
@@ -1415,19 +1464,20 @@ function paintInkStrokes(idxs,color){ if(!idxs || !idxs.length) return;
     inkCtx.beginPath(); inkCtx.moveTo(pts[0].x,pts[0].y); for(let k=1;k<pts.length;k++) inkCtx.lineTo(pts[k].x,pts[k].y); inkCtx.stroke(); }); }
 function suggestedOutcomeForVerdict(v){ if(!v) return ""; return v.status==="ok"?(hintsUsedThisCard>0?"hinted":"fast"):"slow"; }
 function wrapIdForOutcome(outcome){ return "wrap"+outcome[0].toUpperCase()+outcome.slice(1); }
-function verdictShort(v){ if(!v) return "对照助手：我不替你判，看看右边标准字，再自己盖章。";
-  if(v.status==="ok") return v.mode==="holistic"?"系统建议：整体看起来对上了；连笔不影响。最终还是你盖章。":"系统建议：笔画大致对上了。最终还是你盖章。";
+function verdictShort(v){ if(!v) return "对照助手不可用也没关系，请按实际字格判断。";
+  if(v.status==="ok") return v.mode==="holistic"?"系统建议：这次写对了；连笔不影响。最终以你的选择为准。":"系统建议：这次写对了。最终以你的选择为准。";
   return "系统建议：和右边对照一下，以你自己的判断为准。"; }
 
-const EXHAUSTED_HINT_COPY="提示用完了——这个字忘得比较深，照着格子里的字描一遍吧；描一遍也算拾回";
+const EXHAUSTED_HINT_COPY="提示用完了——继续补完这个字，或点「不会写」先描后写";
 function hintVisualExhausted(){ return !animating && groups.length>0 && groupIdx>=groups.length; }
 function updateActionLabels(){
-  const used=hintsUsedThisCard>0, exhausted=hintVisualExhausted();
-  $("show").textContent="看答案"; $("show").style.display=exhausted?"none":"";
+  const used=hintEverUsed||hintsUsedThisCard>0;
+  $("show").textContent=practicePhase==="postTraceRecall"?"再描一遍":"不会写"; $("show").style.display="";
+  $("show").setAttribute("aria-label",practicePhase==="postTraceRecall"?"再描一遍":"不会写：先描后写，本组稍后还会再写");
   $("done").textContent=used?"写完了":"写好了";
   updateTeachUI();
 }
-function updateTip(){ $("tip").textContent=`笔顺提示 ${groupIdx}/${groups.length}`; $("tip").disabled=animating || !writer || groupIdx>=groups.length; updateInkControls(); updateActionLabels(); }
+function updateTip(){ $("tip").textContent=`笔顺提示 ${groupIdx}/${groups.length}`; $("tip").title="用了提示，本组稍后会再写"; $("tip").disabled=animating || !writer || groupIdx>=groups.length || practicePhase==="postTraceRecall" || practicePhase==="tracing"; if(!revealed){ $("done").disabled=animating; $("show").disabled=animating; } updateInkControls(); updateActionLabels(); }
 
 // ---- 教学（首启校准第一张卡的墨点引导；只出现一次）----
 let teachStage="done", teachTimer=0;
@@ -1437,7 +1487,7 @@ function updateTeachUI(){ const stage=(teachActive() && !revealed)?teachStage:"d
   const helpersLocked=stage==="intro"||stage==="writing", writeLocked=stage==="intro";
   $("tip").classList.toggle("tlock",helpersLocked); $("show").classList.toggle("tlock",helpersLocked);
   $("clear").classList.toggle("tlock",writeLocked); $("done").classList.toggle("tlock",writeLocked);
-  $("mascotLine").textContent=hintVisualExhausted()?EXHAUSTED_HINT_COPY:(stage==="helpers"?"想不起来就点「笔顺提示」，或直接看答案——描一遍也算拾回"
+  $("mascotLine").textContent=hintVisualExhausted()?EXHAUSTED_HINT_COPY:(stage==="helpers"?"想不起来就点「笔顺提示」，或点「不会写」先描后写"
     :(stage!=="done"?"":(cur?MASCOT_LINES[pos%MASCOT_LINES.length]:""))); }
 function armTeachIdle(){ clearTimeout(teachTimer);
   teachTimer=setTimeout(()=>{ if((teachStage==="intro"||teachStage==="writing") && teachActive() && !revealed){ teachStage="helpers"; updateTeachUI(); } },8000); }
@@ -1447,43 +1497,48 @@ function onTeachStrokeEnd(){ if((teachStage==="intro"||teachStage==="writing") &
 
 // ---- 流程 ----
 function promptHTML(c){ return c.chars.map((ch,i)=> i===c.ci ? `<span class="blank">${c.py||"？"}</span>` : `<span class="given">${ch}</span>`).join(""); }
-function updatePosLabel(){ $("posLabel").textContent=activeMode==="calibrate"?`试练 ${pos+1}/${batch.length}`:`${pos+1} / ${batch.length}`; }
-function renderBeads(){ $("beads").innerHTML=batch.map((_,i)=>`<span class="bead ${i===pos?"cur":(i<pos?"done":"")}"></span>`).join(""); }
+function updatePosLabel(){ const total=baseTargets.length||batch.length, shown=Math.min(total,baseCursor+(currentAttemptKind==="base"?1:0));
+  $("posLabel").textContent=baseCursor>=total&&unresolved.size?`${total} 个字已完成 · 还差 ${unresolved.size} 个要独立写出`:`本组 ${shown}/${total} · 待巩固 ${unresolved.size}`; }
+function renderBeads(){ const list=baseTargets.length?baseTargets:batch, currentBase=list.indexOf(currentCardIndex()); $("beads").innerHTML=list.map((_,i)=>`<span class="bead ${i===currentBase?"cur":(i<baseCursor?"done":"")}"></span>`).join(""); updatePosLabel(); }
 let stamped=false, autoNextTimer=0, editStampTimer=0, undoFollowTimer=0, lastStampSnapshot=null, overlayOn=false, replaying=false;
-const STAMP_IDS={fast:"fast", hinted:"hinted", slow:"slow", miss:"miss"};
-function functionFirstStampLabels(){ return true; }
-function renderStampLabels(){
-  const funcFirst=functionFirstStampLabels();
-  $("stampRow").classList.toggle("funcFirst",funcFirst);
-  Object.entries(STAMP_IDS).forEach(([outcome,id])=>{
-    const ui=GRADE_UI[outcome], btn=$(id), wrap=$("wrap"+outcome[0].toUpperCase()+outcome.slice(1));
-    btn.innerHTML=`<span class="${funcFirst && ui.funcHtml.includes("<br>")?"multi":""}">${funcFirst?ui.funcHtml:ui.seal}</span>`;
-    btn.setAttribute("aria-label",funcFirst?`${ui.func}，印章 ${ui.seal}`:`${ui.seal}，${ui.func}`);
-    wrap.querySelector("small").textContent=funcFirst?ui.seal:ui.func;
-  });
-}
 function cloneObj(v){ return v==null?null:JSON.parse(JSON.stringify(v)); }
-function captureRevealState(){ let inkUrl=null; if(inkStrokes.length){ try{ inkUrl=inkCanvas.toDataURL(); }catch(e){} }
-  return {inkUrl,hasInk:!!inkUrl,inkStrokes:cloneObj(inkStrokes)||[],lastVerdict:cloneObj(lastVerdict),hintsUsedThisCard,tracedThisCard}; }
-function takeStampSnapshot(){ const idx=batch[pos], key=cardKey(idx);
-  return {position:pos,idx,key,target:CARDS[idx].target,statusValue:status[idx],memoryValue:cloneObj(memory[key]),activityValue:cloneObj(activity),
-    batchValue:batch.slice(),sessionDoneValue:[...sessionDone],roundStatsValue:cloneObj(roundStats)||[],missedValue:missedThisRound.slice(),
-    sessionTarget,sessionFastStreak,sessionMissStreak,pendingRepeat,calibrationFirstHoldUsed,revealState:captureRevealState()}; }
+function drawSnapshotStrokes(ctx,strokes,color,width){ ctx.strokeStyle=color; ctx.fillStyle=color; ctx.lineWidth=width; ctx.lineCap="round"; ctx.lineJoin="round";
+  (strokes||[]).forEach(pts=>{ if(!pts||!pts.length) return; if(pts.length<2){ ctx.beginPath(); ctx.arc(pts[0].x,pts[0].y,width/2,0,Math.PI*2); ctx.fill(); return; }
+    ctx.beginPath(); ctx.moveTo(pts[0].x,pts[0].y); for(let i=1;i<pts.length;i++) ctx.lineTo(pts[i].x,pts[i].y); ctx.stroke(); }); }
+function snapshotImage(hints,ink){ const canvas=document.createElement("canvas"); canvas.width=S; canvas.height=S; const ctx=canvas.getContext("2d");
+  drawSnapshotStrokes(ctx,hints,hintStroke(),Math.max(3,S*.025)); drawSnapshotStrokes(ctx,ink,cssVar('--inkPen',"#2b2620"),Math.max(5,S*.045));
+  try{ return canvas.toDataURL(); }catch(e){ return null; } }
+function freezeSubmissionSnapshot(){ inkEnd(); const hintStrokeIds=curMedians?[...Array(Math.min(shownStrokes,curMedians.length)).keys()]:[], hintStrokes=curMedians?mediansToCanvas(curMedians.slice(0,hintStrokeIds.length)):[];
+  const userInk=cloneObj(inkStrokes)||[], compositeGeometry=[...cloneObj(hintStrokes)||[],...cloneObj(userInk)||[]]; let verdict=null;
+  if(curMedians&&curMedians.length&&compositeGeometry.length){ try{ verdict=checkInk(compositeGeometry,mediansToCanvas(curMedians)); }catch(e){} }
+  const snap={target:cur.target,idx:currentCardIndex(),attemptId:currentAttemptId,createdAt:Date.now(),hintStrokeIds,hintCount:hintsUsedThisCard,hintStrokes:cloneObj(hintStrokes)||[],inkStrokes:userInk,
+    compositeGeometry,compositeImage:snapshotImage(hintStrokes,userInk),hintEverUsed,enteredTracing:enteredTracingThisAttempt,practicePhase,lastVerdict:cloneObj(verdict),userCorrect:null};
+  submissionSnapshot=Object.freeze(snap); lastVerdict=verdict; return submissionSnapshot; }
+function captureRevealState(){ return cloneObj(submissionSnapshot)||freezeSubmissionSnapshot(); }
+function takeStampSnapshot(){ const idx=currentCardIndex(), key=cardKey(idx);
+  return {position:pos,baseCursor,currentIndex,currentAttemptKind,currentAttemptId,practicePhase,attemptSeq,idx,key,target:CARDS[idx].target,statusValue:status[idx],memoryValue:cloneObj(memory[key]),activityValue:cloneObj(activity),fsrsLogValue:cloneObj(fsrsReviewLog)||[],
+    baseTargetsValue:baseTargets.slice(),queueValue:cloneObj(reinforcementQueue)||[],unresolvedValue:[...unresolved],episodesValue:cloneObj(episodes)||{},sessionDoneValue:[...sessionDone],roundStatsValue:cloneObj(roundStats)||[],missedValue:missedThisRound.slice(),
+    sessionTarget,sessionFastStreak,sessionMissStreak,calibrationFirstHoldUsed,revealState:captureRevealState()}; }
 function restoreStampSnapshot(snap){ if(!snap) return;
-  pos=snap.position; batch=snap.batchValue.slice(); sessionDone=new Set(snap.sessionDoneValue||[]);
+  pos=snap.position; baseCursor=Number(snap.baseCursor)||0; currentIndex=snap.currentIndex; currentAttemptKind=snap.currentAttemptKind; currentAttemptId=snap.currentAttemptId; practicePhase=snap.practicePhase||"revealDecision"; attemptSeq=Number(snap.attemptSeq)||0;
+  baseTargets=snap.baseTargetsValue.slice(); batch=baseTargets; reinforcementQueue=cloneObj(snap.queueValue)||[]; unresolved=new Set(snap.unresolvedValue||[]); episodes=cloneObj(snap.episodesValue)||{}; sessionDone=new Set(snap.sessionDoneValue||[]);
   if(snap.statusValue==null) delete status[snap.idx]; else status[snap.idx]=snap.statusValue; save(DECK_KEY,status);
   if(snap.memoryValue==null) delete memory[snap.key]; else memory[snap.key]=snap.memoryValue; saveMemory();
+  fsrsReviewLog=cloneObj(snap.fsrsLogValue)||[]; saveFSRSLog();
   activity=normalizeActivity(cloneObj(snap.activityValue)); saveActivity(); syncReminder();
   roundStats=cloneObj(snap.roundStatsValue)||[]; missedThisRound=(snap.missedValue||[]).slice();
-  sessionTarget=snap.sessionTarget; sessionFastStreak=snap.sessionFastStreak; sessionMissStreak=snap.sessionMissStreak; pendingRepeat=snap.pendingRepeat;
+  sessionTarget=snap.sessionTarget; sessionFastStreak=snap.sessionFastStreak; sessionMissStreak=snap.sessionMissStreak;
   calibrationFirstHoldUsed=!!snap.calibrationFirstHoldUsed; saveSessionSnapshot(); }
 function hideUndoBar(clearSnapshot=false){ clearTimeout(undoFollowTimer); $("undoBar").style.display="none"; if(clearSnapshot) lastStampSnapshot=null; }
-function commitUndoWindow(){ if(lastStampSnapshot && pos!==lastStampSnapshot.position) hideUndoBar(true); }
-function renderUndoBar(){ hideUndoBar(false); if(!lastStampSnapshot || pos!==lastStampSnapshot.position+1) return;
+function commitUndoWindow(){ if(lastStampSnapshot && currentAttemptId!==lastStampSnapshot.currentAttemptId) hideUndoBar(true); }
+function renderUndoBar(){ hideUndoBar(false); if(!lastStampSnapshot || currentAttemptId===lastStampSnapshot.currentAttemptId) return;
   const ui=GRADE_UI[lastStampSnapshot.outcome]||GRADE_UI.slow; $("undoCopy").textContent=`「${lastStampSnapshot.target}」已盖「${ui.seal}」`; $("undoBar").style.display="flex";
   undoFollowTimer=setTimeout(()=>hideUndoBar(true),5000); }
 function stampToastCopy(outcome,m){ const ui=GRADE_UI[outcome];
-  return { title:`「${cur.target}」已记为${ui.func}`, sub:`你盖了「${ui.seal}」 · ${ui.effect} · ${dueText(m.due)}` }; }
+  if(outcome==="fast"){ const ep=episodeFor(currentCardIndex()), recovered=ep.firstOutcome&&ep.firstOutcome!=="fast"; return {title:recovered?"今天已独立写出":`已记为${ui.func}`,sub:`${recovered?"本组巩固完成":"本组通过"} · 下次 ${formatDueDay(m.dueDay)}`}; }
+  if(outcome==="hinted") return {title:`已记为${ui.func}`,sub:"已加入本组巩固 · 完成本组巩固后安排下次复习"};
+  if(outcome==="slow") return {title:`已记为${ui.func}`,sub:"已加入本组巩固 · 完成本组巩固后安排下次复习"};
+  return {title:`已记为${ui.func}`,sub:"先描一遍，再自己写"}; }
 function createPracticeWriter(container,token,data=null,instant=false,onSuccess=()=>{},onError=()=>{}){
   const loader=data?((_,done)=>done(data)):charLoader;
   return HanziWriter.create(container, cur.target, { width:S, height:S, padding:Math.round(S*0.06),
@@ -1503,44 +1558,62 @@ async function rebuildHintLayer(count=shownStrokes){
   }catch(e){ if(token===loadToken){ animating=false; updateTip(); } return false; }
   if(token!==loadToken || revealed) return false;
   hzEl.replaceChildren(...holder.childNodes); writer=nextWriter; animating=false; updateTip(); return true; }
-function render(){ fitBox(); cur=CARDS[batch[pos]]; const token=++loadToken;
+function renderPhaseControls(){ tracing=practicePhase==="tracing"; const post=practicePhase==="postTraceRecall";
+  $("phaseTitle").textContent=tracing?"第 1 步 · 照着轮廓描一遍":post?"第 2 步 · 答案已收起，自己写":"";
+  $("actions").style.display=tracing?"none":"flex"; $("traceActions").style.display=tracing?"flex":"none";
+  $("tip").style.visibility=post?"hidden":""; if(post||tracing) $("tip").disabled=true; updateActionLabels(); updateInkControls(); }
+function render(){ fitBox(); cur=CARDS[currentCardIndex()]; const token=++loadToken, restoring=!!pendingSessionVisual;
   displayView("card");
-  clearTimeout(autoNextTimer); clearTimeout(editStampTimer); stamped=false; pendingRepeat=false; overlayOn=false; replaying=false; animating=false;
-  hintsUsedThisCard=0; actionStack=[]; seenGroups=new Set(); practiceCharData=null; cardStartedAt=Date.now();
+  clearTimeout(autoNextTimer); clearTimeout(editStampTimer); stamped=false; overlayOn=false; replaying=false; animating=false;
+  if(!restoring){ hintsUsedThisCard=0; hintEverUsed=false; enteredTracingThisAttempt=false; submissionSnapshot=null; }
+  actionStack=[]; seenGroups=new Set(); practiceCharData=null; cardStartedAt=Date.now();
   $("practiceArea").style.display="flex"; $("reveal").style.display="none";
-  $("actions").style.display="flex"; $("traceActions").style.display="none";
   $("editStamp").disabled=true;
-  tracing=false; traceStrokeStartCount=0; tracedThisCard=false; resetPeekHint(); renderUndoBar();
+  tracing=practicePhase==="tracing"; traceStrokeStartCount=0; tracedThisCard=false; resetPeekHint(); renderUndoBar();
   renderBeads(); updatePosLabel();
   // 练习时只留题面本身（挖空词＋拼音就是「词语＋语境」，别再用文字复述——复述会把答案印出来）
   $("prompt").innerHTML=promptHTML(cur);
   $("hint").textContent=cur.custom?cur.hint:(activeMode==="calibrate"?"这组用来摸个底，之后按合适的难度出题":"");
   clearInk(); drawing=false; inkCanvas.style.opacity='1'; hzEl.style.opacity='1'; hzEl.classList.remove("traceFallback");
   shownStrokes=0; totalStrokes=0; groups=[]; groupIdx=0; $("tip").disabled=true; $("show").disabled=true; $("done").disabled=true; $("tip").textContent="笔顺提示"; updateActionLabels();
-  hzEl.innerHTML=""; writer=null; revealed=false;
+  hzEl.innerHTML=""; hzEl.classList.remove("traceFallback"); writer=null; revealed=false;
   curMedians=null; lastVerdict=null;
   // 教学：只在校准组的第一张卡上出现
   teachStage=teachActive()?"intro":"done"; clearTimeout(teachTimer); if(teachActive()) armTeachIdle();
-  updateTeachUI();
-  function allowNoStrokeData(message){ if(token!==loadToken) return; loadToken++; $("show").disabled=false; $("done").disabled=false; $("tip").disabled=true; $("hint").textContent=(cur.custom?cur.hint+" · ":"")+message; }
+  updateTeachUI(); renderPhaseControls();
+  function allowNoStrokeData(message){ if(token!==loadToken) return; loadToken++; $("show").disabled=false; $("done").disabled=false; $("tip").disabled=true; $("hint").textContent=(cur.custom?cur.hint+" · ":"")+message; if(pendingSessionVisual) restoreSessionVisual(); }
   if(window.HanziWriter){
-    writer=createPracticeWriter(hzEl,token,null,false,function(d){ loadToken++; practiceCharData=d; totalStrokes=d.strokes.length; curMedians=(d.medians && d.medians.length===totalStrokes)?d.medians:null; var g=GROUPS[cur.target]; groups=(g && g.reduce((a,b)=>a+b,0)===totalStrokes)?g.slice():[totalStrokes]; groupIdx=0; shownStrokes=0; $("show").disabled=false; $("done").disabled=false; updateTip(); },
-      function(){ allowNoStrokeData("笔顺未缓存，也可以先看答案"); });
-    setTimeout(()=>{ if(token===loadToken && $("show").disabled) allowNoStrokeData("笔顺加载较慢，也可以先看答案"); }, 2500);
-  } else { $("show").disabled=false; $("done").disabled=false; } }
+    writer=createPracticeWriter(hzEl,token,null,false,function(d){ loadToken++; practiceCharData=d; totalStrokes=d.strokes.length; curMedians=(d.medians && d.medians.length===totalStrokes)?d.medians:null; var g=GROUPS[cur.target]; groups=(g && g.reduce((a,b)=>a+b,0)===totalStrokes)?g.slice():[totalStrokes]; groupIdx=0; shownStrokes=0; $("show").disabled=false; $("done").disabled=false; if(pendingSessionVisual) restoreSessionVisual(); else updateTip(); },
+      function(){ allowNoStrokeData("笔顺未缓存，仍可自行判断；不会写时可走系统字形教学"); });
+    setTimeout(()=>{ if(token===loadToken && $("show").disabled) allowNoStrokeData("笔顺加载较慢，仍可自行判断或点「不会写」"); }, 2500);
+  } else { $("show").disabled=false; $("done").disabled=false; if(pendingSessionVisual) restoreSessionVisual(); } }
+
+async function showTraceOutline(){ let shown=false; hzEl.classList.remove("traceFallback"); try{ if(writer&&totalStrokes>0&&typeof writer.showOutline==="function"){ writer.showOutline({duration:180}); shown=true; } }catch(e){}
+  if(!shown){ hzEl.innerHTML=""; hzEl.classList.add("traceFallback"); hzEl.textContent=cur.target; } }
+async function restoreSessionVisual(){ const state=pendingSessionVisual; if(!state) return; pendingSessionVisual=null;
+  const savedPhase=state.practicePhase||practicePhase;
+  practicePhase=state.practicePhase||practicePhase; currentIndex=Number.isInteger(state.currentIndex)?state.currentIndex:currentIndex; currentAttemptKind=state.currentAttemptKind||currentAttemptKind; currentAttemptId=state.currentAttemptId||currentAttemptId;
+  hintEverUsed=!!state.hintEverUsed; enteredTracingThisAttempt=!!state.enteredTracingThisAttempt; hintsUsedThisCard=Number(state.hintsUsedThisCard)||0; seenGroups=new Set(Array.isArray(state.seenGroups)?state.seenGroups:[]);
+  inkStrokes=cloneObj(state.inkStrokes)||[]; tracedThisCard=!!state.tracedThisCard; submissionSnapshot=cloneObj(state.submissionSnapshot); redrawInk();
+  shownStrokes=Math.max(0,Number(state.shownStrokes)||0); groupIdx=Math.max(0,Number(state.groupIdx)||0); renderPhaseControls();
+  if(practicePhase==="traceTutorial") $("traceTutorial").style.display="flex";
+  if(practicePhase==="tracing") await showTraceOutline(); else if(practicePhase==="postTraceRecall"){ hzEl.innerHTML=""; hzEl.classList.remove("traceFallback"); }
+  else if(shownStrokes&&practiceCharData) await rebuildHintLayer(shownStrokes);
+  if(state.revealed && submissionSnapshot){ restoreRevealFromSnapshot(submissionSnapshot); if(savedPhase==="feedback"&&lastStampSnapshot&&lastStampSnapshot.outcome){ practicePhase="feedback"; stamped=true; if(feedbackKind==="teachingComplete") showTeachingCompleteFeedback(); else showStampedFeedback(lastStampSnapshot.outcome); autoNextTimer=setTimeout(goNext,STAMP_HOLD_MS); } }
+  else { updateTip(); saveSessionSnapshot(); } }
 
 async function rewriteCurrentCard(){ commitUndoWindow(); activePointers.clear(); peekReleasePending=false; exitPeekHint(true);
-  if(tracing){ actionStack=[]; clearInk(); drawing=false; updateInkControls(); return true; }
+  if(tracing || practicePhase==="postTraceRecall"){ actionStack=[]; clearInk(); drawing=false; updateInkControls(); saveSessionSnapshot(); return true; }
   if(animating){ loadToken++; animating=false; }
   actionStack=[]; clearInk(); drawing=false; groupIdx=0; shownStrokes=0; hzEl.classList.remove("peekHint");
   if(practiceCharData) await rebuildHintLayer(0); else { hzEl.innerHTML=""; updateTip(); }
-  updateTip(); return true; }
+  updateTip(); saveSessionSnapshot(); return true; }
 $("clear").onclick=rewriteCurrentCard;
 $("undoStroke").onclick=undoInkStroke;
 let animating=false, revealed=false;
 $("tip").onclick=async ()=>{ if(!writer||animating||revealed||groupIdx>=groups.length) return false; commitUndoWindow(); hapticFeedback("select");
   const group=groupIdx, n=groups[group], start=shownStrokes, token=loadToken;
-  if(!seenGroups.has(group)){ seenGroups.add(group); hintsUsedThisCard++; }
+  hintEverUsed=true; if(!seenGroups.has(group)){ seenGroups.add(group); hintsUsedThisCard++; }
   animating=true;
   // 播放期间淡化笔迹避免和提示笔画重叠；播完恢复，用户接着写
   if(inkCanvas) inkCanvas.style.opacity=peeking?String(PEEK_INK_OPACITY):'0.22'; if(hzEl) hzEl.style.opacity='1';
@@ -1551,9 +1624,9 @@ $("tip").onclick=async ()=>{ if(!writer||animating||revealed||groupIdx>=groups.l
   animating=false; actionStack.push({type:"hint",group,n,start}); updateTip();
   if(inkCanvas){ inkCanvas.style.opacity=peeking?String(PEEK_INK_OPACITY):'1';
     if(!hintVisualExhausted() && !tuning.peekHintShown){ tuning.peekHintShown=true; saveTuning(); $("mascotLine").textContent="双指按住格子，可以透视提示"; } }
-  return true;
+  saveSessionSnapshot(); return true;
 };
-function showRevealState(verdict,inkUrl){
+function showRevealState(snapshot){ const verdict=snapshot&&snapshot.lastVerdict, inkUrl=snapshot&&snapshot.compositeImage;
   activePointers.clear(); peekReleasePending=false; exitPeekHint(true); revealed=true; clearTimeout(teachTimer);
   $("actions").classList.remove("tlock"); $("traceActions").classList.remove("tlock");
   $("practiceArea").style.display="none"; $("reveal").style.display="flex";
@@ -1563,42 +1636,35 @@ function showRevealState(verdict,inkUrl){
   overlayOn=false; $("mineOverlay").style.display="none"; $("mineOverlay").textContent=cur.target; $("overlayToggle").textContent="叠起来对比";
   $("rightGlyph").textContent=cur.target; $("rightGlyph").style.opacity="1"; $("rightHz").innerHTML=""; replaying=false;
   $("stampOnMine").style.display="none";
-  renderStampLabels();
-  $("stampRow").style.display="flex"; $("stampNote").style.display="";
+  $("decisionRow").style.display="flex"; $("stampNote").style.display="";
   $("stampedToast").style.display="none"; $("editStamp").disabled=true;
-  const teachReveal=teachActive();
-  $("teachBubbleGrade").style.display=teachReveal?"":"none";
-  $("askRow").style.display=teachReveal?"none":"flex";
-  $("qualityBox").style.display=teachReveal?"none":"flex";
+  const postTrace=snapshot&&snapshot.practicePhase==="postTraceRecall", used=!!(snapshot&&snapshot.hintEverUsed);
+  $("teachBubbleGrade").style.display="none"; $("askRow").style.display="flex"; $("qualityBox").style.display=postTrace?"none":"flex";
   $("askLine").textContent=verdictShort(verdict);
-  ["wrapFast","wrapHinted","wrapSlow","wrapMiss"].forEach(id=>$(id).classList.remove("suggest"));
-  const sug=suggestedOutcomeForVerdict(verdict); if(verdict && verdict.status==="ok" && sug) $(wrapIdForOutcome(sug)).classList.add("suggest");
+  $("decisionCorrect").classList.toggle("suggest",!!(verdict&&verdict.status==="ok")); $("decisionWrong").classList.toggle("suggest",!!(verdict&&verdict.status==="bad"));
+  $("correctEffect").textContent=postTrace?"完成教学检查，稍后仍会再写":used?"已用提示，本组稍后再写":"本组通过";
+  $("stampNote").textContent=postTrace?"写错会回到第 1 步；写对仍需稍后无辅助写出":used?"本回合用过提示，写对也会加入本组巩固":"请按提交瞬间的完整字格判断";
   renderQuality();
 }
-// 「写好了」进入对照；「看答案」留在田字格中描红，不再跳过重学动作。
-function revealAnswer(done){
-  if(revealed || Date.now()<actionCooldownUntil) return false; commitUndoWindow();
-  const wasTracing=tracing;
-  const noData=!writer||!totalStrokes; // 离线未缓存/加载失败：右格用系统楷体兜底
-  const verdict=(done && !tracing && !noData)?autoCheckInk():null;
-  let inkUrl=null; if(inkStrokes.length){ try{ inkUrl=inkCanvas.toDataURL(); }catch(e){} }
-  showRevealState(verdict,inkUrl); if(!wasTracing) hapticFeedback("action"); return true;
+function revealAnswer(){
+  if(revealed || animating || Date.now()<actionCooldownUntil) return false; commitUndoWindow();
+  const snap=freezeSubmissionSnapshot(); practicePhase="revealDecision"; showRevealState(snap); hapticFeedback("action"); saveSessionSnapshot(); return true;
 }
-function showTracing(){ if(revealed || tracing || Date.now()<actionCooldownUntil) return; commitUndoWindow(); hapticFeedback("select"); activePointers.clear(); peekReleasePending=false; exitPeekHint(true); clearTimeout(teachTimer);
-  tracing=true; hintsUsedThisCard++; actionStack=[]; clearInk(); traceStrokeStartCount=0; tracedThisCard=false;
-  $("actions").style.display="none"; $("traceActions").style.display="flex"; $("tip").disabled=true;
-  $("hint").textContent="照着淡红轮廓描一遍——描一遍也算拾回；实在不想描，就照实选『不会写』";
-  let shown=false; try{ if(writer && totalStrokes>0 && typeof writer.showOutline==="function"){ writer.showOutline({duration:180}); shown=true; } }catch(e){}
-  if(!shown){ hzEl.innerHTML=""; hzEl.classList.add("traceFallback"); hzEl.textContent=cur.target; }
-  updateInkControls();
+async function beginTracingPhase(){ $("traceTutorial").style.display="none"; practicePhase="tracing"; tracing=true; enteredTracingThisAttempt=true; revealed=false; actionStack=[]; clearInk(); traceStrokeStartCount=0; tracedThisCard=false;
+  $("practiceArea").style.display="flex"; $("reveal").style.display="none"; $("hint").textContent="沿着轮廓描一遍即可，不把描写当成考试"; renderPhaseControls(); await showTraceOutline(); saveSessionSnapshot(); }
+function openTracingTeaching(){ if(Date.now()<actionCooldownUntil) return; commitUndoWindow(); hapticFeedback("select"); activePointers.clear(); peekReleasePending=false; exitPeekHint(true); clearTimeout(teachTimer);
+  enteredTracingThisAttempt=true; revealed=false; $("practiceArea").style.display="flex"; $("reveal").style.display="none"; if(!traceTutorialShown){ practicePhase="traceTutorial"; $("traceTutorial").style.display="flex"; saveSessionSnapshot(); return; } beginTracingPhase();
 }
-function finishTracing(outcome){ if(outcome==="hinted" && !tracedThisCard) return; if(!revealAnswer(outcome==="hinted")) return; pickStamp(outcome); }
-function restoreRevealFromSnapshot(state){ if(!state) return; loadToken++; inkStrokes=cloneObj(state.inkStrokes)||[]; hintsUsedThisCard=Number(state.hintsUsedThisCard)||0;
-  lastVerdict=cloneObj(state.lastVerdict); tracedThisCard=!!state.tracedThisCard; tracing=false; showRevealState(lastVerdict,state.inkUrl||null); }
-$("show").onclick=showTracing;
-$("done").onclick=()=>revealAnswer(true);
-$("traceMiss").onclick=()=>finishTracing("miss");
-$("traceDone").onclick=()=>finishTracing("hinted");
+async function finishTracing(){ if(!tracedThisCard) return; clearInk(); hzEl.innerHTML=""; hzEl.classList.remove("traceFallback"); practicePhase="postTraceRecall"; tracing=false; shownStrokes=0; groupIdx=0; hintEverUsed=false; hintsUsedThisCard=0; actionStack=[];
+  $("hint").textContent="答案已经收起，现在不看提示自己写一次"; renderPhaseControls(); saveSessionSnapshot(); }
+function declareDontKnow(){ if(practicePhase==="postTraceRecall"){ beginTracingPhase(); return; } if(revealed||animating||Date.now()<actionCooldownUntil) return;
+  const snap=freezeSubmissionSnapshot(); showRevealState(snap); pickStamp("miss",{teaching:true}); }
+function restoreRevealFromSnapshot(state){ if(!state) return; loadToken++; submissionSnapshot=cloneObj(state); inkStrokes=cloneObj(state.inkStrokes)||[]; hintEverUsed=!!state.hintEverUsed; hintsUsedThisCard=Number(state.hintCount)||0;
+  lastVerdict=cloneObj(state.lastVerdict); enteredTracingThisAttempt=!!state.enteredTracing; tracedThisCard=!!state.enteredTracing; tracing=false; practicePhase="revealDecision"; showRevealState(submissionSnapshot); }
+$("show").onclick=declareDontKnow;
+$("done").onclick=revealAnswer;
+$("traceDone").onclick=finishTracing;
+$("traceTutorialStart").onclick=()=>{ traceTutorialShown=true; save(TRACE_TUTORIAL_KEY,true); beginTracingPhase(); };
 $("overlayToggle").onclick=()=>{ overlayOn=!overlayOn; $("mineOverlay").style.display=overlayOn?"flex":"none"; $("overlayToggle").textContent=overlayOn?"分开看":"叠起来对比"; };
 $("replayBtn").onclick=()=>{ if(replaying || !window.HanziWriter) return; replaying=true;
   $("rightGlyph").style.opacity="0"; $("rightHz").innerHTML="";
@@ -1607,57 +1673,50 @@ $("replayBtn").onclick=()=>{ if(replaying || !window.HanziWriter) return; replay
   try{ w.animateCharacter({ onComplete:()=>{ replaying=false; } }); }catch(e){ replaying=false; $("rightGlyph").style.opacity="1"; } };
 function reopenStampChoices(){ if(!lastStampSnapshot) return;
   const snap=lastStampSnapshot; clearTimeout(autoNextTimer); clearTimeout(editStampTimer); hideUndoBar(false); lastStampSnapshot=null;
-  restoreStampSnapshot(snap); stamped=false; pendingRepeat=false; render(); restoreRevealFromSnapshot(snap.revealState); renderBeads(); hapticFeedback("undo"); }
-// 盖章：按下去 = 这个字的去向定了。前三枚章进字盒，「回炉」的字会再回来
-const STAMP_HOLD_MS=1100, CALIBRATION_FIRST_HOLD_MS=1800, EDIT_STAMP_WINDOW_MS=1500;
-function pickStamp(outcome){ if(stamped || !revealed) return; stamped=true;
+  restoreStampSnapshot(snap); stamped=false; render(); restoreRevealFromSnapshot(snap.revealState); renderBeads(); hapticFeedback("undo"); }
+const STAMP_HOLD_MS=1400, CALIBRATION_FIRST_HOLD_MS=1800, EDIT_STAMP_WINDOW_MS=1800;
+function showStampedFeedback(outcome){ const ui=GRADE_UI[outcome], m=memory[cardKey(currentCardIndex())]||{}, st=$("stampOnMine"), face=st.querySelector(".face"), ring=st.querySelector(".ring"), solid={fast:"var(--accent)",hinted:"var(--gold)",slow:"var(--blue)"}[outcome];
+  face.style.background=solid||"var(--card)"; face.style.border=solid?"0":"2px solid var(--grey)"; face.querySelector("span").textContent=ui.seal; face.querySelector("span").style.color=solid?"var(--paperInk)":"var(--muted)"; ring.style.borderColor=solid||"var(--grey)"; st.style.display="block";
+  face.style.animation="none"; ring.style.animation="none"; void face.offsetWidth; face.style.animation=""; ring.style.animation="";
+  $("decisionRow").style.display="none"; $("stampNote").style.display="none"; $("askRow").style.display="none"; $("teachBubbleGrade").style.display="none"; $("qualityBox").style.display="none";
+  $("toastChar").textContent=cur.target; const copy=stampToastCopy(outcome,m); $("toastTitle").textContent=copy.title; $("toastSubEl").textContent=copy.sub; $("stampedToast").style.display="flex"; $("editStamp").disabled=false; }
+function showTeachingCompleteFeedback(){ showStampedFeedback("miss"); $("toastTitle").textContent="教学检查完成"; $("toastSubEl").textContent="已加入本组巩固 · 稍后还要无辅助写出"; $("editStamp").disabled=true; }
+function pickStamp(outcome,options={}){ if(stamped || !revealed) return; stamped=true;
   lastStampSnapshot=takeStampSnapshot();
-  const firstCalibrationHold=activeMode==="calibrate" && pos===0 && !calibrationFirstHoldUsed;
+  const firstCalibrationHold=activeMode==="calibrate" && baseCursor===0 && !calibrationFirstHoldUsed;
   if(firstCalibrationHold) calibrationFirstHoldUsed=true;
-  recordOutcome(outcome);
-  lastStampSnapshot.outcome=outcome; saveSessionSnapshot(); hapticFeedback("stamp");
-  const ui=GRADE_UI[outcome], m=memory[cardKey(batch[pos])]||{};
-  const st=$("stampOnMine"), face=st.querySelector(".face"), ring=st.querySelector(".ring");
-  const solid={fast:"var(--accent)",hinted:"var(--gold)",slow:"var(--blue)"}[outcome];
-  face.style.background=solid||"var(--card)"; face.style.border=solid?"0":"2px solid var(--grey)";
-  face.querySelector("span").textContent=ui.seal; face.querySelector("span").style.color=solid?"var(--paperInk)":"var(--muted)";
-  ring.style.borderColor=solid||"var(--grey)";
-  st.style.display="block";
-  // 重新触发动画
-  face.style.animation="none"; ring.style.animation="none"; void face.offsetWidth;
-  face.style.animation=""; ring.style.animation="";
-  $("stampRow").style.display="none"; $("stampNote").style.display="none";
-  $("askRow").style.display="none"; $("teachBubbleGrade").style.display="none"; $("qualityBox").style.display="none";
-  $("toastChar").textContent=cur.target;
-  const copy=stampToastCopy(outcome,m);
-  $("toastTitle").textContent=copy.title;
-  $("toastSubEl").textContent=firstCalibrationHold?"章会决定它何时再回来；接下来盖章后会直接换题":copy.sub;
-  $("stampedToast").style.display=firstCalibrationHold?"flex":"none";
-  $("editStamp").disabled=!firstCalibrationHold;
-  if(firstCalibrationHold){ clearTimeout(editStampTimer); editStampTimer=setTimeout(()=>{ $("editStamp").disabled=true; },EDIT_STAMP_WINDOW_MS); }
-  renderBeads();
+  recordOutcome(outcome,options); lastStampSnapshot.outcome=outcome; practicePhase="feedback"; feedbackKind=outcome; hapticFeedback("stamp");
+  showStampedFeedback(outcome);
+  clearTimeout(editStampTimer); editStampTimer=setTimeout(()=>{ $("editStamp").disabled=true; },EDIT_STAMP_WINDOW_MS);
+  renderBeads(); saveSessionSnapshot();
   autoNextTimer=setTimeout(goNext,firstCalibrationHold?CALIBRATION_FIRST_HOLD_MS:STAMP_HOLD_MS); }
-function goNext(){ clearTimeout(autoNextTimer); clearTimeout(editStampTimer); $("editStamp").disabled=true; if(!stamped) return; const r=pendingRepeat; pendingRepeat=false; next(r); }
-$("fast").onclick=()=>pickStamp("fast");
-$("slow").onclick=()=>pickStamp("slow");
-$("hinted").onclick=()=>pickStamp("hinted");
-$("miss").onclick=()=>pickStamp("miss");
+function goNext(){ clearTimeout(autoNextTimer); clearTimeout(editStampTimer); $("editStamp").disabled=true; if(!stamped) return;
+  const outcome=lastStampSnapshot&&lastStampSnapshot.outcome, ep=episodeFor(currentCardIndex()); stamped=false;
+  if(outcome==="miss" && !ep.teachingComplete){ openTracingTeaching(); return; } next(); }
+function decideSubmission(correct){ if(stamped||!revealed||!submissionSnapshot) return;
+  if(submissionSnapshot.practicePhase==="postTraceRecall"){
+    if(!correct){ revealed=false; beginTracingPhase(); return; }
+    const ep=episodeFor(currentCardIndex()); ep.teachingComplete=true; const stat=roundStats.find(row=>row.idx===currentCardIndex()); if(stat) stat.traced=true; const m=cardMemory(currentCardIndex()); if(m.lastEpisode) m.lastEpisode.teachingComplete=true; saveMemory(); practicePhase="feedback"; feedbackKind="teachingComplete"; $("decisionRow").style.display="none"; $("askRow").style.display="none"; $("qualityBox").style.display="none";
+    showTeachingCompleteFeedback(); stamped=true; saveSessionSnapshot(); autoNextTimer=setTimeout(()=>{ stamped=false; next(); },STAMP_HOLD_MS); return; }
+  pickStamp(correct?(submissionSnapshot.hintEverUsed?"hinted":"fast"):"slow"); }
+$("decisionCorrect").onclick=()=>decideSubmission(true);
+$("decisionWrong").onclick=()=>decideSubmission(false);
 $("editStamp").onclick=reopenStampChoices;
 $("undoLast").onclick=reopenStampChoices;
-$("reveal").addEventListener("click",e=>{ if(!stamped || e.target.closest("#editStamp") || e.target.closest("#stampRow")) return; goNext(); });
-function next(repeatSoon=false){ if(!repeatSoon) sessionDone.add(batch[pos]); pos++;
-  if(pos<batch.length){ saveSessionSnapshot(); render(); }
-  else { clearSessionSnapshot(); lastStampSnapshot=null; hideUndoBar(false); markRoundComplete(); roundSummary(true); } }
+function next(){ practicePhase="between"; const target=nextQueuedTarget();
+  if(target){ beginAttempt(target); saveSessionSnapshot(); render(); return; }
+  if(roundIsComplete()){ clearSessionSnapshot(); lastStampSnapshot=null; hideUndoBar(false); markRoundComplete(); roundSummary(true); } }
 function chooseFocusBatch(all){ return all.slice().sort((a,b)=>personalDifficulty(b)-personalDifficulty(a)).slice(0,BATCH); }
-function chooseReviewBatch(all){ return all.slice().sort((a,b)=>reviewPriority(b)-reviewPriority(a) || ((memory[cardKey(a)]||{}).due||0)-((memory[cardKey(b)]||{}).due||0) || personalDifficulty(b)-personalDifficulty(a)).slice(0,BATCH); }
+function chooseReviewBatch(all){ return all.slice().sort((a,b)=>reviewPriority(b)-reviewPriority(a) || String((memory[cardKey(a)]||{}).dueDay||"").localeCompare(String((memory[cardKey(b)]||{}).dueDay||"")) || personalDifficulty(b)-personalDifficulty(a)).slice(0,BATCH); }
 function startRound(){ const p=availablePool(), queued=activeMode==="calibrate"?[]:queuedFrontPool(); if(p.length===0 && queued.length===0){ clearSessionSnapshot(); allDone(); return; } resetAdaptiveSession();
-  batch=activeMode==="focus"?chooseFocusBatch(p):(activeMode==="review"?chooseReviewBatch(p):(activeMode==="calibrate"?chooseCalibrationBatch(p):chooseBatch(p)));
-  if(queued.length){ const front=new Set(queued); batch=[...queued,...batch.filter(i=>!front.has(i))].slice(0,BATCH); }
-  warmStrokeCache(batch.map(i=>CARDS[i].target)); pos=0; missedThisRound=[]; roundStats=[]; roundFeedbackGiven=false; calibrationFirstHoldUsed=false;
-  lastStampSnapshot=null; hideUndoBar(false); roundId=Date.now()+"-"+Math.random().toString(36).slice(2,7); saveSessionSnapshot(); render(); }
-function sumTile(s,i){ const isMiss=s.outcome==="miss";
-  return `<button class="sumTile ${isMiss?"miss":""}" data-idx="${s.idx}" style="transform:rotate(${ROTS[i%ROTS.length]}deg); animation-delay:${(i*0.05).toFixed(2)}s">${s.target}<span class="dot" style="background:${OUTCOME_DOT[s.outcome]}"></span></button>`; }
-function roundSummary(fromPractice=false){ clearSessionSnapshot(); markRoundComplete(); const milestone=celebrateMilestoneIfAny(); displayView("summary");
+  baseTargets=activeMode==="focus"?chooseFocusBatch(p):(activeMode==="review"?chooseReviewBatch(p):(activeMode==="calibrate"?chooseCalibrationBatch(p):chooseBatch(p)));
+  if(queued.length){ const front=new Set(queued); baseTargets=[...queued,...baseTargets.filter(i=>!front.has(i))].slice(0,BATCH); }
+  batch=baseTargets; warmStrokeCache(baseTargets.map(i=>CARDS[i].target)); pos=0; baseCursor=0; currentIndex=null; reinforcementQueue=[]; unresolved=new Set(); episodes={}; attemptSeq=0; practicePhase="recall";
+  missedThisRound=[]; roundStats=[]; roundFeedbackGiven=false; calibrationFirstHoldUsed=false; lastStampSnapshot=null; hideUndoBar(false); roundId=Date.now()+"-"+Math.random().toString(36).slice(2,7);
+  beginAttempt({idx:baseTargets[0],kind:"base"}); saveSessionSnapshot(); armPracticeHistory(); render(); }
+function sumTile(s,i){ const isMiss=s.outcome==="miss", recovered=s.outcome!=="fast"&&s.independentlyRecovered;
+  return `<button class="sumTile ${isMiss?"miss":""}" data-idx="${s.idx}" title="首次：${GRADE_UI[s.outcome].func}${recovered?"；本组已独立写出":""}" style="transform:rotate(${ROTS[i%ROTS.length]}deg); animation-delay:${(i*0.05).toFixed(2)}s">${s.target}<span class="dot" style="background:${OUTCOME_DOT[s.outcome]}"></span>${recovered?'<span class="recover">已独立</span>':''}</button>`; }
+function roundSummary(fromPractice=false){ clearSessionSnapshot(); markRoundComplete(); releasePracticeHistory(); const milestone=celebrateMilestoneIfAny(); displayView("summary");
   $("milestoneLine").style.display=milestone?"block":"none"; if(milestone){ $("milestoneLine").textContent=MILESTONE_COPY[milestone]; hapticFeedback("milestone"); }
   else if(fromPractice) hapticFeedback("action");
   const wasCalibration=activeMode==="calibrate", calibrationNote=maybeFinishCalibration(), remain=availablePool().length;
@@ -1669,27 +1728,17 @@ function roundSummary(fromPractice=false){ clearSessionSnapshot(); markRoundComp
     $("calibKept").textContent=keptN; $("calibMiss").textContent=hardN;
     $("calibTier").textContent=tuningLabel();
     $("calibWhyTxt").textContent=calibrationNote?` ${calibrationNote}`:" 之后每组会按你实际写的情况自动微调。";
-    $("calibPocketLine").textContent=hardN>0?`没拾到的 ${hardN} 个字，明天还会来找你——也可以现在就再拾一次。`:"这一把一个都没漏，下一组会稍微上点难度。";
-    if(risky.length){ $("calibPocketCard").style.display="flex";
-      $("calibPocketChips").innerHTML=risky.slice(0,3).map((i,k)=>`<span class="pChip" style="transform:rotate(${k%2?3:-4}deg)">${CARDS[i].target}</span>`).join("");
-      $("calibPocketTitle").textContent=`这 ${risky.length} 个先别走`;
-      $("calibPocketBtn").onclick=()=>startFocus(risky);
-    } else { $("calibPocketCard").style.display="none"; }
+    $("calibPocketLine").textContent=hardN>0?`其中 ${hardN} 个字经过本组巩固，已经独立写出。`:"这一把一个都没漏，下一组会稍微上点难度。";
+    $("calibPocketCard").style.display="none";
     return; }
   $("calibPocketCard").style.display="none";
   $("sumH2").textContent=completedGroups>1?`今日已拾 ${dayTotal} 字`:"今日拾得";
-  $("sumLead").innerHTML=hardN>0?`拾回 <b class="ok">${keptN}</b> 字，<br><b class="warn">${hardN}</b> 个还没拾到，明天再拾。`:`这一把 <b class="ok">${keptN}</b> 个字全拾到了。`;
+  $("sumLead").innerHTML=hardN>0?`本组 <b class="ok">${roundStats.length}</b> 个字全部完成，<br><b class="warn">${hardN}</b> 个经过巩固后已独立写出。`:`这一把 <b class="ok">${keptN}</b> 个字都独立写出了。`;
   $("dateSeal").textContent=dateCn();
   $("sumTiles").innerHTML=roundStats.map(sumTile).join("");
-  if(risky.length){ $("pocketCard").style.display="flex";
-    $("pocketChips").innerHTML=risky.slice(0,3).map((i,k)=>`<span class="pChip" style="transform:rotate(${k%2?3:-4}deg)">${CARDS[i].target}</span>`).join("");
-    $("pocketTitle").textContent=`这 ${risky.length} 个先别走`;
-    $("pocketBtn").onclick=()=>startFocus(risky);
-  } else { $("pocketCard").style.display="none"; }
+  $("pocketCard").style.display="none";
   renderRoundTune(calibrationNote);
-  const needsReviewFirst=(counts.miss+counts.slow)>=3 || hardN>=Math.ceil(Math.max(1,roundStats.length)/2);
-  // 这一组卡得多时，别继续推新字；把焦点放回「拿下刚才卡住的字」
-  $("more").style.display=(remain>0 && !needsReviewFirst)?"":"none";
+  $("more").style.display=remain>0?"":"none";
   $("more").textContent=activeMode==="review"?`继续复习（还剩 ${remain}）`:activeMode==="focus"?`继续（还剩 ${remain}）`:"加练一组"; }
 function allDone(){ displayView("summary"); $("milestoneLine").style.display="none";
   $("calibCard").style.display="none"; $("sumSheet").style.display="flex";
@@ -1702,12 +1751,13 @@ $("more").onclick=startRound;
 $("stop").onclick=renderHome;
 $("calibDone").onclick=renderHome;
 $("calibAgain").onclick=()=>startMode("new");
-function openExitSheet(){ if(stamped) return; commitUndoWindow(); $("exitSheet").classList.add("open"); }
-function closeExitSheet(){ $("exitSheet").classList.remove("open"); }
-function exitCurrentRound(){ closeExitSheet(); loadToken++; animating=false; revealed=true; drawing=false; clearTimeout(teachTimer); clearTimeout(autoNextTimer); saveSessionSnapshot(); renderHome(); toast("进度已保存，随时可继续这组"); }
+function openExitSheet(){ if(stamped||animating||$("exitSheet").classList.contains("open")) return; commitUndoWindow(); $("traceTutorial").style.display="none"; $("exitSheet").classList.add("open"); }
+function closeExitSheet(){ $("exitSheet").classList.remove("open"); if(practicePhase==="traceTutorial") $("traceTutorial").style.display="flex"; }
+function exitCurrentRound(){ saveSessionSnapshot(); $("exitSheet").classList.remove("open"); $("traceTutorial").style.display="none"; loadToken++; animating=false; revealed=true; drawing=false; clearTimeout(teachTimer); clearTimeout(autoNextTimer); releasePracticeHistory(); renderHome(); toast("进度已保存，随时可继续这组"); }
 $("exitPractice").onclick=openExitSheet;
 $("exitCancel").onclick=closeExitSheet;
 $("exitConfirm").onclick=exitCurrentRound;
+$("traceTutorialExit").onclick=openExitSheet;
 $("exitSheet").onclick=e=>{ if(e.target===$("exitSheet")) closeExitSheet(); };
 $("prefBox").onclick=e=>{ const b=e.target.closest("[data-pref]"); if(!b) return; preference=b.dataset.pref; save(PREF_KEY,preference); applyPrefUI(); };
 $("qualityBox").onclick=e=>{ const b=e.target.closest("[data-quality]"); if(!b) return; recordQuality(b.dataset.quality); };
@@ -1774,8 +1824,8 @@ $("addInput").onkeydown=e=>{ if(e.key==="Enter" && !e.isComposing && !$("addConf
 $("addSheet").onclick=e=>{ if(e.target===$("addSheet")) closeAddSheet(); };
 
 // ---- 数据备份 / 恢复（localStorage 是唯一存储，换手机或清缓存前先导出）----
-// 新增 shizi.* 持久键时必须同步加入；SESSION_KEY 与 shizi.nativeSmoke.v1 为刻意排除。
-const BACKUP_KEYS=[DECK_KEY,OPEN_KEY,MEMORY_KEY,QUALITY_KEY,PREF_KEY,TUNING_KEY,ACTIVITY_KEY,BACKUP_META_KEY,REMINDER_KEY,TOPIC_KEY,CUSTOM_KEY,ADDED_KEY];
+// 新增 shizi.* 持久键时必须同步加入；只有 shizi.nativeSmoke.v1 为刻意排除。
+const BACKUP_KEYS=[DECK_KEY,OPEN_KEY,MEMORY_KEY,QUALITY_KEY,PREF_KEY,TUNING_KEY,ACTIVITY_KEY,SESSION_KEY,FSRS_LOG_KEY,TRACE_TUTORIAL_KEY,BACKUP_META_KEY,REMINDER_KEY,TOPIC_KEY,CUSTOM_KEY,ADDED_KEY];
 function backupAgeDays(){ const ts=Number(backupMeta.lastExportAt)||0; return ts?Math.max(0,Math.floor((Date.now()-ts)/86400000)):Number.POSITIVE_INFINITY; }
 function backupRelativeText(){ const days=backupAgeDays(); if(!Number.isFinite(days)) return "从未备份"; if(days===0) return "上次备份 · 今天"; if(days===1) return "上次备份 · 昨天"; return `上次备份 · ${days} 天前`; }
 function renderBackupUI(){ $("backupStatus").textContent=backupRelativeText(); const needs=memoryCount()>=100 && backupAgeDays()>=14;
@@ -1798,7 +1848,7 @@ function restoreBackupPayload(payload, opts){ const options=opts||{}, obj=typeof
   if(!obj || obj.app!=="shizi" || !obj.data || typeof obj.data!=="object") throw new Error("format");
   const keys=Object.keys(obj.data).filter(k=>BACKUP_KEYS.includes(k)); if(!keys.length) throw new Error("empty");
   if(!options.skipConfirm && !confirm(`用这份备份（${String(obj.date||"未知日期").slice(0,10)}）覆盖当前记录？`)) return {applied:false, keys};
-  BACKUP_KEYS.forEach(k=>localStorage.removeItem(k)); removeStored(SESSION_KEY);
+  BACKUP_KEYS.forEach(k=>localStorage.removeItem(k));
   keys.forEach(k=>localStorage.setItem(k, String(obj.data[k])));
   if(options.reload!==false) location.reload();
   return {applied:true, keys};
@@ -1818,11 +1868,12 @@ $("reminderYes").onclick=acceptReminderInvite;
 $("reminderLater").onclick=dismissReminderInvite;
 $("importLink").onclick=requestBackupImport;
 $("importFile").onchange=e=>{ const f=e.target.files && e.target.files[0]; e.target.value=""; if(f) importBackup(f); };
-$("resetLink").onclick=()=>{ if(confirm("清空卡组和记录，从头开始？")){ status={}; memory={}; quality={}; tuning={calibrated:false, offset:0, contextStrict:0, rounds:[]}; preference="balanced"; opens=[today()]; customWords=[]; addedChars=[]; activity=newActivity(); backupMeta={lastExportAt:0}; reminder=normalizeReminder(null); saveReminder(); syncReminder(); save(DECK_KEY,status); save(MEMORY_KEY,memory); save(QUALITY_KEY,quality); saveTuning(); save(PREF_KEY,preference); save(OPEN_KEY,opens); save(CUSTOM_KEY,customWords); save(ADDED_KEY,addedChars); saveActivity(); save(BACKUP_META_KEY,backupMeta); buildCustomCards(); removeStored(TOPIC_KEY); clearSessionSnapshot(); sessionDone=new Set(); focusQueue=[]; renderHome(); $("dataBox").style.display="none"; } };
+$("resetLink").onclick=()=>{ if(confirm("清空卡组和记录，从头开始？")){ status={}; memory={}; fsrsReviewLog=[]; traceTutorialShown=false; quality={}; tuning={calibrated:false, offset:0, contextStrict:0, rounds:[]}; preference="balanced"; opens=[today()]; customWords=[]; addedChars=[]; activity=newActivity(); backupMeta={lastExportAt:0}; reminder=normalizeReminder(null); saveReminder(); syncReminder(); save(DECK_KEY,status); save(MEMORY_KEY,memory); saveFSRSLog(); save(TRACE_TUTORIAL_KEY,false); save(QUALITY_KEY,quality); saveTuning(); save(PREF_KEY,preference); save(OPEN_KEY,opens); save(CUSTOM_KEY,customWords); save(ADDED_KEY,addedChars); saveActivity(); save(BACKUP_META_KEY,backupMeta); buildCustomCards(); removeStored(TOPIC_KEY); clearSessionSnapshot(); sessionDone=new Set(); focusQueue=[]; renderHome(); $("dataBox").style.display="none"; } };
 
 initBox(); renderHome();
 try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(()=>{}); }catch(e){}
 if(reminderBridgeAvailable()){ syncReminder(); queryReminderStatus(); }
+document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="hidden" && baseTargets.length && $("card").style.display!=="none") saveSessionSnapshot(); });
 // 视口尺寸变化明显（旋转、分屏、加载时序）时重建写字区。正在写的卡不动（别丢笔迹）：
 // 非卡片视图立即重建；卡片视图里每张新卡 render() 前都会 fitBox()，下一张自动适配
 function fitBox(){ const n=idealBoxSize(); if(Math.abs(n-S)>=24){ S=n; $("boxwrap").innerHTML=""; initBox(); } }

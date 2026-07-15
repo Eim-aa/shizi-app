@@ -1,1143 +1,345 @@
 const { chromium } = require("playwright");
-const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
 
-const projectRoot = path.resolve(__dirname, "..");
+const root = path.resolve(__dirname, "..");
 const appUrl = process.env.SHIZI_APP_URL || "http://127.0.0.1:8000/";
-const screenshotPath = path.join(projectRoot, "generated", "verify_8105_app.png");
-const expectedCount = 6854;
-const indexSource = fs.readFileSync(path.join(projectRoot, "index.html"), "utf8");
-if (/手感|口袋/.test(indexSource)) {
-  throw new Error("Deprecated user-facing vocabulary remains in index.html");
-}
+const screenshotPath = path.join(root, "generated", "verify_8105_app.png");
+const SESSION_STORAGE_KEY = "shizi.session.v1";
+const source = fs.readFileSync(path.join(root, "index.html"), "utf8");
 
-function appUrlWith(params) {
-  const url = new URL(appUrl);
-  Object.entries(params).forEach(([key, value]) => url.searchParams.set(key, value));
-  return url.toString();
+if (/看答案|描一遍也算拾回|小时后再见/.test(source)) {
+  throw new Error("Deprecated practice vocabulary remains in index.html");
 }
 
 function chromeExecutable() {
-  const candidates = [
+  return [
     "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
     "/Applications/Chromium.app/Contents/MacOS/Chromium",
-  ];
-  return candidates.find((p) => fs.existsSync(p));
+  ].find((candidate) => fs.existsSync(candidate));
 }
 
-async function expectVisible(page, selector, label) {
-  const visible = await page.locator(selector).evaluate((node) => getComputedStyle(node).display !== "none");
-  if (!visible) throw new Error(`Expected ${label || selector} to be visible`);
+function assert(condition, message, details) {
+  if (!condition) throw new Error(`${message}${details ? `: ${JSON.stringify(details)}` : ""}`);
 }
 
-async function expectHidden(page, selector, label) {
-  const hidden = await page.locator(selector).evaluate((node) => getComputedStyle(node).display === "none");
-  if (!hidden) throw new Error(`Expected ${label || selector} to be hidden`);
+async function waitForWriter(page) {
+  await page.waitForFunction(() => Array.isArray(curMedians) && curMedians.length > 0 && !animating);
 }
 
-async function elementHash(page, selector) {
-  return crypto.createHash("sha256").update(await page.locator(selector).screenshot()).digest("hex");
+async function submitStandard(page, options = {}) {
+  await waitForWriter(page);
+  await page.evaluate(({ hintStrokes = 0 }) => {
+    if (hintStrokes > 0) {
+      shownStrokes = hintStrokes;
+      groupIdx = 1;
+      hintEverUsed = true;
+      hintsUsedThisCard = 1;
+    }
+    inkStrokes = mediansToCanvas(curMedians.slice(hintStrokes));
+    redrawInk();
+    revealAnswer();
+  }, options);
+  await page.waitForFunction(() => getComputedStyle(document.getElementById("reveal")).display !== "none");
 }
 
+async function chooseCorrect(page) {
+  await page.click("#decisionCorrect");
+  await page.waitForFunction(() => stamped && getComputedStyle(document.getElementById("stampedToast")).display !== "none");
+}
+
+let browser;
 (async () => {
   fs.mkdirSync(path.dirname(screenshotPath), { recursive: true });
-  const browser = await chromium.launch({
-    headless: true,
-    executablePath: chromeExecutable(),
-  });
+  browser = await chromium.launch({ headless: true, executablePath: chromeExecutable() });
   const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
   const pageErrors = [];
-  page.on("pageerror", (err) => pageErrors.push(err.message));
-  page.on("console", (msg) => {
-    if (msg.type() === "error") pageErrors.push(msg.text());
-  });
+  page.on("pageerror", (error) => pageErrors.push(error.message));
+  page.on("console", (message) => { if (message.type() === "error") pageErrors.push(message.text()); });
 
   await page.goto(appUrl, { waitUntil: "networkidle" });
-  await page.evaluate(() => {
-    [
-      "shizi.deck.v8105.context1",
-      "shizi.deck.v3500.context1",
-      "shizi.topic.v1",
-      "shizi.opens.v1",
-      "shizi.memory.v1",
-      "shizi.quality.v1",
-      "shizi.pref.v1",
-      "shizi.tuning.v1",
-      "shizi.activity.v1",
-      "shizi.session.v1",
-      "shizi.backupMeta.v1",
-      "shizi.custom.v1",
-      "shizi.added.v1",
-    ].forEach((key) => localStorage.removeItem(key));
-  });
+  await page.evaluate(() => localStorage.clear());
   await page.reload({ waitUntil: "networkidle" });
 
-  const initial = await page.evaluate(() => ({
+  const baseline = await page.evaluate(() => ({
     seed: SEED.length,
-    cards: CARDS.length,
     groups: Object.keys(GROUPS).length,
-    title: document.title,
-    welcomeText: document.getElementById("welcome").textContent.replace(/\s+/g, ""),
-    tabs: Array.from(document.querySelectorAll("#foot .tab")).map((node) => node.textContent.replace(/\s+/g, "")),
-    needsCalibration: needsCalibration(),
-    activeView: getComputedStyle(document.getElementById("welcome")).display !== "none" ? "welcome" : "other",
+    cards: CARDS.length,
+    fsrsVersion: FSRS.FSRSVersion,
+    weights: FSRS.default_w.length,
+    scheduler: FSRS_CONFIG,
+    decisionLabels: Array.from(document.querySelectorAll("#decisionRow button span")).map((node) => node.textContent),
+    oldStampChoices: document.querySelectorAll("#stampRow .stampWrap").length,
+    showLabel: document.getElementById("show").textContent,
+    viewport: document.querySelector('meta[name="viewport"]').content,
   }));
-  if (initial.seed !== expectedCount || initial.cards !== expectedCount || initial.groups !== expectedCount) {
-    throw new Error(`Expected ${expectedCount} deck entries, got ${JSON.stringify(initial)}`);
-  }
-  if (initial.activeView !== "welcome" || !initial.needsCalibration || !initial.welcomeText.includes("先拾15个字试试") || initial.tabs.join(",") !== "拾练习,盒字盒,我我的") {
-    throw new Error(`Expected designer welcome + 3-tab IA, got ${JSON.stringify(initial)}`);
-  }
-  await expectHidden(page, "#foot", "bottom nav on welcome");
+  assert(baseline.seed === 6854 && baseline.groups === 6854 && baseline.cards >= 6854, "Expected the complete 6854-card corpus", baseline);
+  assert(baseline.fsrsVersion.includes("FSRS-6.0") && baseline.weights === 21, "Expected fixed FSRS-6 runtime", baseline);
+  assert(baseline.scheduler.desiredRetention === 0.9 && baseline.scheduler.maximumInterval === 150 && baseline.scheduler.parameterVersion === "fsrs6-default-21-v1", "Expected versioned scheduler configuration", baseline.scheduler);
+  assert(baseline.decisionLabels.join("/") === "这次写对了/这次写错了" && baseline.oldStampChoices === 0 && baseline.showLabel === "不会写", "Expected two-decision result semantics", baseline);
+  assert(baseline.viewport.includes("viewport-fit=cover") && !/user-scalable=no|maximum-scale=1/.test(baseline.viewport), "Expected scalable safe-area viewport", baseline.viewport);
 
-  await page.evaluate(() => {
-    save(OPEN_KEY, [shiftDay(today(), -3), shiftDay(today(), -2), shiftDay(today(), -1), today()]);
-    localStorage.removeItem(ACTIVITY_KEY);
-    localStorage.removeItem(REMINDER_KEY);
-  });
-  await page.reload({ waitUntil: "networkidle" });
-  // 累计口径迁移：迁移日前的 opens 全额继承；盖章不加天、完成一组 +1；同日第二组不重复计
-  const streakMigration = await page.evaluate(() => {
-    const inherited = activity.inheritedTotalDays;
-    const beforeComplete = totalPracticeDays();
-    markPracticeStamp();
-    const stampedOnly = totalPracticeDays();
-    const runFakeRound = (id, from, to) => {
-      batch = allIndexes().slice(from, to);
-      roundStats = batch.map((idx) => ({ idx, target: CARDS[idx].target, outcome: "fast" }));
-      roundId = id;
-      roundStats.forEach(() => markPracticeStamp());
-      markRoundComplete();
-    };
-    runFakeRound("verify-migration-round-1", 0, 3);
-    const afterComplete = totalPracticeDays();
-    runFakeRound("verify-migration-round-2", 3, 6);
-    const afterSecondSameDay = totalPracticeDays();
-    return { inherited, beforeComplete, stampedOnly, afterComplete, afterSecondSameDay };
-  });
-  if (streakMigration.inherited !== 3 || streakMigration.beforeComplete !== 3 || streakMigration.stampedOnly !== 3
-    || streakMigration.afterComplete !== 4 || streakMigration.afterSecondSameDay !== 4) {
-    throw new Error(`Expected cumulative practice-day migration, got ${JSON.stringify(streakMigration)}`);
-  }
-  // medianPracticeTime 边界 + 浏览器（无桥）下提醒 UI 隐藏
-  const reminderChecks = await page.evaluate(() => {
-    activity = newActivity();
-    activity.daily = {}; activity.practiceDays = [];
-    const at = (h, m) => { const d = new Date(); d.setHours(h, m, 0, 0); return d.getTime(); };
-    for (let i = 0; i < 5; i++) {
-      const key = shiftDay(today(), -i);
-      activity.practiceDays.push(key);
-      activity.daily[key] = { stamps: 1, completedRoundIds: [], lastStampAt: at(9, 24) };
-    }
-    activity.practiceDays.sort(); saveActivity();
-    const median = medianPracticeTime();
-    const fewSamples = (() => { const days = activity.practiceDays; activity.practiceDays = days.slice(0, 2); const m = medianPracticeTime(); activity.practiceDays = days; return m.hour === 20 && m.minute === 0; })();
-    const clampLate = (() => { activity.practiceDays.forEach((k) => { activity.daily[k].lastStampAt = at(23, 30); }); const m = medianPracticeTime(); return m.hour === 22 && m.minute === 0; })();
-    if (typeof renderMe === "function") renderMe();
-    const reminderHiddenInBrowser = getComputedStyle(document.getElementById("reminderSection")).display === "none"
-      && getComputedStyle(document.getElementById("reminderInvite")).display === "none";
-    const syncPayload = (() => { syncReminder(); const p = reminderDebug.lastSync; return !!p && p.type === "syncReminder" && p.enabled === false && p.practicedToday === true; })();
-    return { medianHour: median.hour, medianMinute: median.minute, fewSamples, clampLate, reminderHiddenInBrowser, syncPayload };
-  });
-  if (reminderChecks.medianHour !== 9 || reminderChecks.medianMinute !== 24 || !reminderChecks.fewSamples || !reminderChecks.clampLate
-    || !reminderChecks.reminderHiddenInBrowser || !reminderChecks.syncPayload) {
-    throw new Error(`Expected median practice time + browser reminder fallback, got ${JSON.stringify(reminderChecks)}`);
-  }
-  await page.evaluate(() => {
-    localStorage.removeItem(OPEN_KEY);
-    localStorage.removeItem(ACTIVITY_KEY);
-    localStorage.removeItem(REMINDER_KEY);
-  });
-  await page.reload({ waitUntil: "networkidle" });
-
-  await page.click("#welcomeStart");
-  await page.waitForFunction(() => batch.length === 15 && getComputedStyle(document.getElementById("card")).display !== "none");
-  await page.waitForFunction(() => !document.getElementById("show").disabled && !document.getElementById("done").disabled);
-
-  const practice = await page.evaluate(() => ({
-    activeMode,
-    batchSize: batch.length,
-    topics: [...new Set(batch.map((idx) => CARDS[idx].topic))],
-    difficulties: batch.map((idx) => cardDifficulty(idx)),
-    levels: batch.map((idx) => cardLevel(idx)),
-    hasElementary: batch.some((idx) => cardLevel(idx) === "小学"),
-    hasFallback: batch.some((idx) => contextSource(idx) === "fallback"),
-    prompt: document.getElementById("prompt").textContent.replace(/\s+/g, ""),
-    hint: document.getElementById("hint").textContent,
-    beadCount: document.querySelectorAll("#beads .bead").length,
-    posLabel: document.getElementById("posLabel").textContent,
-    tipText: document.getElementById("tip").textContent,
-    showText: document.getElementById("show").textContent,
-    doneText: document.getElementById("done").textContent,
-    doneTouchAction: getComputedStyle(document.getElementById("done")).touchAction,
-    tabTouchAction: getComputedStyle(document.getElementById("tabPractice")).touchAction,
-    hasModebar: !!document.getElementById("modebar"),
-  }));
-  if (practice.activeMode !== "calibrate" || practice.batchSize !== 15 || practice.beadCount !== 15 || practice.hasElementary || practice.hasFallback) {
-    throw new Error(`Expected first run to be a 15-card adult calibration batch, got ${JSON.stringify(practice)}`);
-  }
-  if (!practice.hint.includes("摸个底") || !practice.posLabel.includes("1/15") || practice.tipText.indexOf("笔顺提示") < 0 || practice.showText !== "看答案" || practice.doneText !== "写好了" || practice.doneTouchAction !== "manipulation" || practice.tabTouchAction !== "manipulation") {
-    throw new Error(`Expected new practice copy and controls, got ${JSON.stringify(practice)}`);
-  }
-  if (practice.hasModebar) {
-    throw new Error(`Expected App-facing practice page to remove desktop continuous mode, got ${JSON.stringify(practice)}`);
-  }
-  if (practice.difficulties[practice.difficulties.length - 1] < practice.difficulties[0]) {
-    throw new Error(`Expected calibration difficulty to trend upward, got ${practice.difficulties.join(",")}`);
-  }
-
-  await page.evaluate(() => revealAnswer(false));
-  await expectVisible(page, "#reveal", "calibration reveal");
-  const newbieStamp = await page.evaluate(() => ({
-    funcFirst: document.getElementById("stampRow").classList.contains("funcFirst"),
-    labels: Array.from(document.querySelectorAll("#stampRow .stampWrap")).map((node) => ({
-      seal: node.querySelector(".seal").innerText.replace(/\s+/g, ""),
-      sub: node.querySelector("small").textContent.replace(/\s+/g, ""),
-    })),
-    qualityVisible: getComputedStyle(document.getElementById("qualityBox")).display !== "none",
-    teachVisible: getComputedStyle(document.getElementById("teachBubbleGrade")).display !== "none",
-  }));
-  if (!newbieStamp.funcFirst || newbieStamp.labels.map((x) => `${x.seal}/${x.sub}`).join(",") !== "会写/拾到,看提示写出/补拾,写错了/差点,不会写/回炉" || newbieStamp.qualityVisible || !newbieStamp.teachVisible) {
-    throw new Error(`Expected first calibration reveal to make function labels primary, got ${JSON.stringify(newbieStamp)}`);
-  }
-  await page.click("#fast");
-  await page.waitForFunction(() => getComputedStyle(document.getElementById("stampedToast")).display !== "none");
-  const newbieToast = await page.evaluate(() => ({
-    memoryCount: Object.values(memory).length,
-    outcome: Object.values(memory)[0]?.lastOutcome,
-    todayStamps: todayStampCount(),
-    toast: document.getElementById("stampedToast").textContent.replace(/\s+/g, ""),
-    editDisabled: document.getElementById("editStamp").disabled,
-    stampHidden: getComputedStyle(document.getElementById("stampRow")).display === "none",
-  }));
-  if (newbieToast.memoryCount !== 1 || newbieToast.outcome !== "fast" || newbieToast.todayStamps !== 1 || !newbieToast.toast.includes("已记为会写") || !newbieToast.toast.includes("改一下") || newbieToast.editDisabled || !newbieToast.stampHidden) {
-    throw new Error(`Expected stamped toast to explain the system interpretation and expose edit, got ${JSON.stringify(newbieToast)}`);
-  }
-  await page.click("#editStamp");
-  const editCheck = await page.evaluate(() => ({
-    memoryCount: Object.values(memory).length,
-    statusCount: Object.keys(status).length,
-    roundStats: roundStats.length,
-    todayStamps: todayStampCount(),
-    stamped,
-    stampVisible: getComputedStyle(document.getElementById("stampRow")).display !== "none",
-    editDisabled: document.getElementById("editStamp").disabled,
-  }));
-  if (editCheck.memoryCount !== 0 || editCheck.statusCount !== 0 || editCheck.roundStats !== 0 || editCheck.todayStamps !== 0 || editCheck.stamped || !editCheck.stampVisible || !editCheck.editDisabled) {
-    throw new Error(`Expected edit stamp to undo the memory write and reopen choices, got ${JSON.stringify(editCheck)}`);
-  }
-
-  const adaptive = await page.evaluate(() => {
-    status = {};
-    memory = {};
-    quality = {};
-    tuning = { calibrated: true, offset: 0, contextStrict: 0, rounds: [] };
-    preference = "balanced";
-    activeMode = "new";
-    focusQueue = [];
-    sessionDone = new Set();
-    save(DECK_KEY, status);
-    saveMemory();
-    saveQuality();
-    saveTuning();
-    save(PREF_KEY, preference);
-    localStorage.removeItem(TOPIC_KEY);
-    startRound();
-    const before = {
-      target: sessionTarget,
-      secondPersonal: personalDifficulty(batch[1]),
-      batchSize: batch.length,
-      unique: new Set(batch).size,
-    };
-    recordOutcome("fast");
-    const afterFast = {
-      target: sessionTarget,
-      fastStreak: sessionFastStreak,
-      pos,
-      nextPersonal: personalDifficulty(batch[1]),
-      unique: new Set(batch).size,
-      batchSize: batch.length,
-    };
-    sessionTarget = 80;
-    sessionFastStreak = 0;
-    sessionMissStreak = 0;
-    adjustSessionTarget("miss");
-    const missOne = { target: sessionTarget, missStreak: sessionMissStreak };
-    adjustSessionTarget("miss");
-    const missTwo = { target: sessionTarget, missStreak: sessionMissStreak };
-    return { before, afterFast, missOne, missTwo };
-  });
-  const beforeDistance = Math.abs(adaptive.before.secondPersonal - adaptive.afterFast.target);
-  const afterDistance = Math.abs(adaptive.afterFast.nextPersonal - adaptive.afterFast.target);
-  if (adaptive.afterFast.target <= adaptive.before.target || adaptive.afterFast.fastStreak !== 1 || adaptive.afterFast.pos !== 0 || afterDistance > beforeDistance || adaptive.afterFast.unique !== adaptive.afterFast.batchSize || adaptive.missOne.target !== 80 || adaptive.missTwo.target >= adaptive.missOne.target) {
-    throw new Error(`Expected adaptive difficulty to rise after fast answers and lower only after repeated misses, got ${JSON.stringify(adaptive)}`);
-  }
-
-  const sameDayRecovery = await page.evaluate(() => {
+  const migration = await page.evaluate(() => {
     const idx = CARDS.findIndex((card) => card.target === "器");
-    status = {}; memory = {}; quality = {}; batch = [idx]; pos = 0; roundStats = []; missedThisRound = [];
-    activeMode = "focus"; sessionDone = new Set(); hintsUsedThisCard = 0; tracedThisCard = false; lastVerdict = null;
-    save(DECK_KEY, status); saveMemory(); saveQuality();
-    recordOutcome("miss");
-    const afterMiss = cloneObj(memory[cardKey(idx)]);
-    lastVerdict = { status: "bad", mode: "holistic", failed: [0], missing: 1 };
-    recordOutcome("fast");
-    const afterRecovery = cloneObj(memory[cardKey(idx)]);
-    const tomorrow = new Date(); tomorrow.setHours(24, 0, 0, 0);
-    const realNow = Date.now;
-    Date.now = () => tomorrow.getTime() + 1000;
-    const dueNextDay = reviewReady(idx);
-    Date.now = realNow;
-    return { missedOn: afterMiss.missedOn, due: afterRecovery.due, tomorrow: tomorrow.getTime(), dueNextDay,
-      systemSuggestion: afterRecovery.lastSystemSuggestion, systemStatus: afterRecovery.lastSystemStatus, systemAgree: afterRecovery.lastSystemAgree };
+    const future = new Date(); future.setHours(18, 0, 0, 0); future.setDate(future.getDate() + 3);
+    const sameDay = new Date(); sameDay.setHours(23, 0, 0, 0);
+    const futureMemory = { seen: 1, due: future.getTime() };
+    const sameDayMemory = { seen: 1, due: sameDay.getTime() };
+    normalizeLegacySchedule(futureMemory); normalizeLegacySchedule(sameDayMemory);
+    const v1 = migrateV1Session({ version: 1, date: shiftDay(today(), -1), activeMode: "focus", batch: [idx], pos: 0, roundStats: [], sessionDone: [], roundId: "legacy-v1" });
+    return { futureDay: futureMemory.dueDay, expectedFuture: dayKey(future), sameDay: sameDayMemory.dueDay, today: today(), version: v1.version, startedDate: v1.startedDate, currentIndex: v1.currentIndex };
   });
-  if (!sameDayRecovery.missedOn || sameDayRecovery.due > sameDayRecovery.tomorrow || !sameDayRecovery.dueNextDay
-    || sameDayRecovery.systemSuggestion !== "slow" || sameDayRecovery.systemStatus !== "bad" || sameDayRecovery.systemAgree !== false) {
-    throw new Error(`Expected same-day miss recovery to remain due by next midnight, got ${JSON.stringify(sameDayRecovery)}`);
-  }
+  assert(migration.futureDay === migration.expectedFuture && migration.sameDay === migration.today, "Expected lossless legacy due migration", migration);
+  assert(migration.version === 2 && migration.startedDate !== migration.today && Number.isInteger(migration.currentIndex), "Expected cross-midnight v1 session migration", migration);
+
+  const queueEdges = await page.evaluate(() => {
+    const saved = {
+      activeMode, baseTargets: baseTargets.slice(), batch: batch.slice(), baseCursor, currentIndex,
+      reinforcementQueue: cloneObj(reinforcementQueue), unresolved: [...unresolved], episodes: cloneObj(episodes),
+      attemptSeq, practicePhase, memory: cloneObj(memory), quality: cloneObj(quality), activity: cloneObj(activity), sessionDone: [...sessionDone],
+    };
+    const indexes = ["器", "疑", "强", "赢", "衡", "辩", "警", "藏", "骤", "疆", "戴", "覆", "醒", "耀", "攀"].map((target) => CARDS.findIndex((card) => card.target === target));
+    const resetQueue = (total, cursor) => {
+      baseTargets = indexes.slice(0, total); batch = baseTargets; baseCursor = cursor; attemptSeq = cursor;
+      currentIndex = baseTargets[Math.min(cursor, total - 1)]; reinforcementQueue = []; unresolved = new Set(); episodes = {}; practicePhase = "between";
+    };
+
+    resetQueue(15, 1); enqueueReinforcement(indexes[0]);
+    const firstNext = nextQueuedTarget(); attemptSeq = 2; baseCursor = 2;
+    const firstSecond = nextQueuedTarget(); attemptSeq = 3; baseCursor = 3;
+    const firstReturn = nextQueuedTarget();
+
+    resetQueue(15, 14); enqueueReinforcement(indexes[13]);
+    const fourteenthNext = nextQueuedTarget(); attemptSeq = 15; baseCursor = 15;
+    const fourteenthReturn = nextQueuedTarget();
+
+    resetQueue(15, 15); enqueueReinforcement(indexes[14]);
+    const fifteenthReturn = nextQueuedTarget();
+
+    resetQueue(1, 1); enqueueReinforcement(indexes[0]);
+    const onlyFirst = nextQueuedTarget(); attemptSeq = 2; enqueueReinforcement(indexes[0]);
+    const onlySecond = nextQueuedTarget();
+
+    resetQueue(1, 1); unresolved.add(indexes[0]); reinforcementQueue.push({ idx: indexes[0], eligibleAfter: 3, order: 1 });
+    currentIndex = indexes[0]; quality = {}; recordQuality("hide", indexes[0]);
+    const exclusion = { unresolved: unresolved.size, queued: reinforcementQueue.length, excluded: episodeFor(indexes[0]).excluded, pending: cardMemory(indexes[0]).pendingLearning };
+
+    const modeCompletion = ["new", "review", "focus", "calibrate"].map((mode) => {
+      activeMode = mode; baseTargets = indexes.slice(0, 1); batch = baseTargets; baseCursor = 1; unresolved = new Set(); practicePhase = "between";
+      const complete = roundIsComplete(); unresolved.add(indexes[0]); const blocked = !roundIsComplete(); return { mode, complete, blocked };
+    });
+
+    activity = newActivity(); activity.inheritedTotalDays = 0; activity.inheritedStreak = 0; activity.daily = {}; activity.practiceDays = [];
+    for (let i = 0; i < 10; i += 1) markPracticeStamp(indexes[0]);
+    const repeatedCount = { stamps: dailyActivity().stamps, attempts: dailyActivity().attempts, targets: dailyActivity().targetKeys.length };
+
+    activeMode = saved.activeMode; baseTargets = saved.baseTargets; batch = saved.batch; baseCursor = saved.baseCursor; currentIndex = saved.currentIndex;
+    reinforcementQueue = saved.reinforcementQueue; unresolved = new Set(saved.unresolved); episodes = saved.episodes; attemptSeq = saved.attemptSeq; practicePhase = saved.practicePhase;
+    memory = saved.memory; quality = saved.quality; activity = normalizeActivity(saved.activity); sessionDone = new Set(saved.sessionDone); saveMemory(); saveQuality(); saveActivity();
+
+    return { firstNext, firstSecond, firstReturn, fourteenthNext, fourteenthReturn, fifteenthReturn, onlyFirst, onlySecond, exclusion, modeCompletion, repeatedCount, indexes };
+  });
+  assert(queueEdges.firstNext.idx === queueEdges.indexes[1] && queueEdges.firstSecond.idx === queueEdges.indexes[2] && queueEdges.firstReturn.idx === queueEdges.indexes[0], "Expected first-position difficulty to wait behind two other attempts", queueEdges);
+  assert(queueEdges.fourteenthNext.idx === queueEdges.indexes[14] && queueEdges.fourteenthReturn.idx === queueEdges.indexes[13] && queueEdges.fifteenthReturn.idx === queueEdges.indexes[14], "Expected positions 14 and 15 to fall back without deadlock", queueEdges);
+  assert(queueEdges.onlyFirst.idx === queueEdges.indexes[0] && queueEdges.onlySecond.idx === queueEdges.indexes[0], "Expected one repeatedly difficult target to keep rotating", queueEdges);
+  assert(queueEdges.exclusion.unresolved === 0 && queueEdges.exclusion.queued === 0 && queueEdges.exclusion.excluded && !queueEdges.exclusion.pending, "Expected explicit content exclusion to release the group without claiming mastery", queueEdges.exclusion);
+  assert(queueEdges.modeCompletion.every((row) => row.complete && row.blocked) && queueEdges.repeatedCount.stamps === 1 && queueEdges.repeatedCount.attempts === 10 && queueEdges.repeatedCount.targets === 1, "Expected all modes to share completion rules and repeated attempts to count one target", queueEdges);
 
   await page.evaluate(() => {
-    status = {};
-    memory = {};
-    quality = {};
     tuning = { calibrated: true, offset: 0, contextStrict: 0, rounds: [] };
-    preference = "balanced";
-    save(DECK_KEY, status);
-    saveMemory();
-    saveQuality();
     saveTuning();
-    save(PREF_KEY, preference);
-    localStorage.removeItem(TOPIC_KEY);
-    clearSessionSnapshot();
-    activity = newActivity();
-    activity.inheritedStreak = 0;
-    saveActivity(); reminder.milestonesShown = []; saveReminder();
-    renderHome();
-  });
-  await expectVisible(page, "#home", "home");
-  await expectVisible(page, "#foot", "bottom nav on home");
-
-  const home = await page.evaluate(() => ({
-    title: document.getElementById("homeTitle").textContent.replace(/\s+/g, ""),
-    startCap: document.getElementById("startCap").textContent,
-    boxStat: document.getElementById("boxStat").textContent,
-    startDisabled: document.getElementById("startBtn").disabled,
-    activeTab: document.querySelector(".foot .tab.active")?.id,
-    chip: document.getElementById("streakChip").textContent,
-  }));
-  if (!home.title.includes("今天拾十五个字") || !home.startCap.includes("15 字") || home.startDisabled || home.activeTab !== "tabPractice" || home.chip !== "今天开始拾字") {
-    throw new Error(`Expected launcher home state, got ${JSON.stringify(home)}`);
-  }
-
-  const queueFront = await page.evaluate(() => {
-    const resetModel = (calibrated = true) => {
-      status = {}; memory = {}; quality = {}; sessionDone = new Set(); batch = []; pos = 0; roundStats = [];
-      tuning = { calibrated, offset: 0, contextStrict: 0, rounds: [] };
-      save(DECK_KEY, status); saveMemory(); saveQuality(); saveTuning(); clearSessionSnapshot();
-    };
-    resetModel(true);
-    addWord("强"); addWord("器");
-    const queuedIndexes = indexesForChars(["强", "器"]);
-    activeMode = "new"; startRound();
-    const newFront = batch.slice(0, 2).map((idx) => CARDS[idx].target).join("");
-    const firstKey = cardKey(queuedIndexes[0]), secondKey = cardKey(queuedIndexes[1]);
-    showRevealState(null, null); pickStamp("fast");
-    const nextPreservedBeforeAdvance = batch[1] === queuedIndexes[1];
-    goNext();
-    const secondIsNext = pos === 1 && cur.target === "器" && (memory[secondKey] || {}).queuedFront === true;
-    reopenStampChoices();
-    const undoRestored = pos === 0 && revealed && (memory[firstKey] || {}).queuedFront === true
-      && (memory[secondKey] || {}).queuedFront === true && roundStats.length === 0;
-    pickStamp("fast"); goNext();
-    const secondAfterRegrade = pos === 1 && cur.target === "器" && !(memory[firstKey] || {}).queuedFront
-      && (memory[firstKey] || {}).seen === 2 && roundStats.length === 1;
-    showRevealState(null, null); pickStamp("hinted"); goNext();
-    const consumed = queuedIndexes.every((idx) => !(memory[cardKey(idx)] || {}).queuedFront);
-    clearSessionSnapshot(); sessionDone = new Set(); activeMode = "new"; startRound();
-    const noForcedQueueAfterUse = queuedFrontPool().every((idx) => !queuedIndexes.includes(idx));
-
-    resetModel(true);
-    addWord("强"); addWord("器"); activeMode = "review"; startRound();
-    const reviewFront = batch.slice(0, 2).map((idx) => CARDS[idx].target).join("");
-
-    resetModel(false);
-    addWord("强"); addWord("器"); activeMode = "calibrate"; startRound();
-    const calibrationFront = batch.slice(0, 2).map((idx) => CARDS[idx].target).join("");
-    const calibrationKeepsFlags = indexesForChars(["强", "器"]).every((idx) => (memory[cardKey(idx)] || {}).queuedFront === true);
-
-    renderHome(); tuning.calibrated = true; saveTuning(); document.getElementById("addInput").value = "器"; confirmAdd();
-    const calibratedToast = document.getElementById("toast").textContent;
-    renderHome(); tuning.calibrated = false; saveTuning(); document.getElementById("addInput").value = "疑"; confirmAdd();
-    const calibrationToast = document.getElementById("toast").textContent;
-    resetModel(true); renderHome();
-    return { newFront, nextPreservedBeforeAdvance, secondIsNext, undoRestored, secondAfterRegrade, reviewFront, consumed,
-      noForcedQueueAfterUse, calibrationFront, calibrationKeepsFlags, calibratedToast, calibrationToast };
-  });
-  if (queueFront.newFront !== "强器" || !queueFront.nextPreservedBeforeAdvance || !queueFront.secondIsNext || !queueFront.undoRestored
-    || !queueFront.secondAfterRegrade || queueFront.reviewFront !== "强器" || !queueFront.consumed || !queueFront.noForcedQueueAfterUse
-    || queueFront.calibrationFront === "强器" || !queueFront.calibrationKeepsFlags
-    || !queueFront.calibratedToast.includes("下次开练，第一个就是它") || !queueFront.calibrationToast.includes("校准这组结束后")) {
-    throw new Error(`Expected newly added characters to lead the next non-calibration round once, got ${JSON.stringify(queueFront)}`);
-  }
-
-  const homeRecent = await page.evaluate(() => {
-    const idx = CARDS.findIndex((card) => card.target === "器"), key = cardKey(idx), now = Date.now();
-    status = { [idx]: "indeck" };
-    memory = { [key]: { seen: 1, streak: 0, ease: 30, misses: 1, due: now, last: now, lastOutcome: "miss", target: "器", word: CARDS[idx].word } };
-    save(DECK_KEY, status); saveMemory(); renderHome();
-    const todayState = { label: document.getElementById("yesterLbl").textContent, text: document.getElementById("yesterRow").textContent.trim(), miss: !!document.querySelector("#yesterRow .yTile.miss") };
-    memory[key].last = now - 86400000; saveMemory(); renderHome();
-    const priorState = { label: document.getElementById("yesterLbl").textContent, text: document.getElementById("yesterRow").textContent.trim() };
-    status = {}; memory = {};
-    allIndexes().slice(0, 6).forEach((cardIdx, order) => {
-      const card = CARDS[cardIdx]; status[cardIdx] = "rest";
-      memory[cardKey(cardIdx)] = { seen: 1, streak: 2, ease: 70, due: now + 86400000, last: now - order, lastOutcome: order === 1 ? "miss" : "fast", target: card.target, word: card.word };
-    });
-    save(DECK_KEY, status); saveMemory(); renderHome();
-    const row = document.getElementById("yesterRow"), rowStyle = getComputedStyle(row);
-    const scrollState = {
-      tiles: row.querySelectorAll(".yTile:not(.more)").length,
-      more: !!row.querySelector(".yTile.more"),
-      scrollable: row.scrollWidth > row.clientWidth,
-      mask: rowStyle.maskImage || rowStyle.webkitMaskImage,
-      noVerticalOverflow: row.scrollHeight <= row.clientHeight + 1,
-      miss: !!row.querySelector(".yTile.miss"),
-    };
-    memory = {}; status = {}; saveMemory(); save(DECK_KEY, status); renderHome();
-    const emptyState = document.getElementById("yesterRow").textContent.trim();
-    return { todayState, priorState, scrollState, emptyState };
-  });
-  if (homeRecent.todayState.label !== "今日拾得" || homeRecent.todayState.text !== "器" || !homeRecent.todayState.miss
-    || homeRecent.priorState.label !== "昨日拾得" || homeRecent.priorState.text !== "器"
-    || homeRecent.scrollState.tiles !== 6 || homeRecent.scrollState.more || !homeRecent.scrollState.scrollable || homeRecent.scrollState.mask === "none" || !homeRecent.scrollState.noVerticalOverflow || !homeRecent.scrollState.miss
-    || !homeRecent.emptyState.includes("今天拾的字会出现在这里")) {
-    throw new Error(`Expected home recent characters to prefer today and style misses quietly, got ${JSON.stringify(homeRecent)}`);
-  }
-
-  const shortRound = await page.evaluate(() => {
-    activity = newActivity();
-    activity.inheritedStreak = 0;
-    batch = allIndexes().slice(0, 5);
-    roundStats = batch.map((idx) => ({ idx, target: CARDS[idx].target, outcome: "fast" }));
-    roundId = "verify-short-round";
-    roundStats.forEach(() => markPracticeStamp());
-    const completed = markRoundComplete();
-    renderHome();
-    return {
-      completed,
-      groups: dailyActivity().completedGroups,
-      stamps: todayStampCount(),
-      title: document.getElementById("homeTitle").textContent.replace(/\s+/g, ""),
-      chip: document.getElementById("streakChip").textContent,
-    };
-  });
-  if (!shortRound.completed || shortRound.groups !== 1 || shortRound.stamps !== 5 || !shortRound.title.includes("今日已拾5个字") || !shortRound.chip.includes("拾字第 1 天")) {
-    throw new Error(`Expected a completed short group to establish today's completion state, got ${JSON.stringify(shortRound)}`);
-  }
-  const calibrationFocus = await page.evaluate(() => {
-    const indexes = ["强", "器", "疑"].map((target) => CARDS.findIndex((card) => card.target === target));
-    tuning = { calibrated: false, offset: 0, contextStrict: 0, rounds: [] };
-    activeMode = "calibrate"; batch = indexes; roundId = "verify-calibration-focus";
-    roundStats = [
-      { idx: indexes[0], target: "强", outcome: "fast" },
-      { idx: indexes[1], target: "器", outcome: "miss" },
-      { idx: indexes[2], target: "疑", outcome: "hinted" },
-    ];
-    saveTuning(); roundSummary();
-    return {
-      visible: getComputedStyle(document.getElementById("calibPocketCard")).display !== "none",
-      title: document.getElementById("calibPocketTitle").textContent,
-      line: document.getElementById("calibPocketLine").textContent,
-      action: document.getElementById("calibPocketBtn").textContent,
-    };
-  });
-  if (!calibrationFocus.visible || !calibrationFocus.title.includes("2") || !calibrationFocus.line.includes("也可以现在就再拾一次") || calibrationFocus.action !== "马上再拾") {
-    throw new Error(`Expected calibration summary to offer immediate focused retry, got ${JSON.stringify(calibrationFocus)}`);
-  }
-  await page.click("#calibPocketBtn");
-  await page.waitForFunction(() => activeMode === "focus" && batch.length === 2 && getComputedStyle(document.getElementById("card")).display !== "none");
-  await page.evaluate(() => {
-    status = {}; memory = {}; quality = {};
-    tuning = { calibrated: true, offset: 0, contextStrict: 0, rounds: [] };
-    preference = "balanced"; sessionDone = new Set(); clearSessionSnapshot();
-    save(DECK_KEY, status); saveMemory(); saveQuality(); saveTuning(); save(PREF_KEY, preference);
-    activity = newActivity();
-    activity.inheritedStreak = 0;
-    saveActivity(); reminder.milestonesShown = []; saveReminder();
-    batch = [];
-    roundStats = [];
+    activity = newActivity(); activity.inheritedStreak = 0; activity.inheritedTotalDays = 0; saveActivity();
     renderHome();
   });
 
-  await page.click("#startBtn");
-  await page.waitForFunction(() => batch.length === 15 && getComputedStyle(document.getElementById("card")).display !== "none");
-  await page.waitForFunction(() => !document.getElementById("show").disabled);
-  const firstTarget = await page.evaluate(() => cur.target);
-  const actionStates = await page.evaluate(async () => {
-    writer = { animateStroke: async () => {} };
-    groups = [1, 1]; groupIdx = 0; shownStrokes = 0; totalStrokes = 2; hintsUsedThisCard = 0; actionStack = []; seenGroups = new Set(); revealed = false; animating = false;
-    document.getElementById("tip").disabled = false; updateTip();
-    const read = () => ({
-      show: document.getElementById("show").textContent,
-      showVisible: getComputedStyle(document.getElementById("show")).display !== "none",
-      done: document.getElementById("done").textContent,
-      mascot: document.getElementById("mascotLine").textContent,
-    });
-    const a = read();
-    await document.getElementById("tip").onclick(); const b = read();
-    const peekGuide = tuning.peekHintShown === true && document.getElementById("mascotLine").textContent.includes("双指按住格子");
-    await document.getElementById("tip").onclick(); const c = read();
-    writer = null; groups = []; groupIdx = 0; hintsUsedThisCard = 0; actionStack = []; seenGroups = new Set(); updateActionLabels(); const noData = read();
-    render(); const reset = read();
-    return { a, b, c, noData, reset, tipHaptic: hapticDebug.events.filter((kind) => kind === "select").length >= 2, peekGuide };
-  });
-  await page.waitForFunction(() => !document.getElementById("show").disabled);
-  if (actionStates.a.show !== "看答案" || actionStates.a.done !== "写好了"
-    || actionStates.b.show !== "看答案" || actionStates.b.done !== "写完了"
-    || actionStates.c.showVisible || actionStates.c.done !== "写完了" || !actionStates.c.mascot.includes("提示用完了") || !actionStates.c.mascot.includes("描一遍也算拾回")
-    || actionStates.noData.show !== "看答案" || actionStates.noData.done !== "写好了"
-    || actionStates.reset.show !== "看答案" || actionStates.reset.done !== "写好了" || !actionStates.tipHaptic || !actionStates.peekGuide) {
-    throw new Error(`Expected merged exhausted-hint state and reset behavior, got ${JSON.stringify(actionStates)}`);
-  }
-  await page.waitForFunction(() => !document.getElementById("tip").disabled && !!practiceCharData);
-  await page.evaluate(async () => {
-    groups = [1, 1]; groupIdx = 0; shownStrokes = 0; hintsUsedThisCard = 0; actionStack = []; seenGroups = new Set();
-    await rebuildHintLayer(0); updateTip();
-  });
-  const hintEmptyHash = await elementHash(page, ".hz");
-  const actionStackFlow = await page.evaluate(async () => {
-    const addStroke = () => { curInkStroke = [{ x: 20, y: 20 }, { x: 60, y: 60 }]; inkEnd(); };
-    addStroke(); await document.getElementById("tip").onclick(); addStroke();
-    const stacked = actionStack.map((action) => action.type).join(",");
-    await undoInkStroke();
-    const afterStroke = { ink: inkStrokes.length, groupIdx, shownStrokes, stack: actionStack.map((action) => action.type).join(",") };
-    await undoInkStroke();
-    const afterHint = { ink: inkStrokes.length, groupIdx, shownStrokes, tipDisabled: document.getElementById("tip").disabled, stack: actionStack.map((action) => action.type).join(",") };
-    await undoInkStroke();
-    const empty = { ink: inkStrokes.length, disabled: document.getElementById("undoStroke").disabled, stack: actionStack.length };
-    return { stacked, afterStroke, afterHint, empty };
-  });
-  const hintAfterUndoHash = await elementHash(page, ".hz");
-  const hintStateFlow = await page.evaluate(async () => {
-    await document.getElementById("tip").onclick();
-    const oneGroup = { hints: hintsUsedThisCard, groupIdx, shownStrokes };
-    await document.getElementById("tip").onclick();
-    const exhausted = {
-      showVisible: getComputedStyle(document.getElementById("show")).display !== "none",
-      done: document.getElementById("done").textContent,
-      mascot: document.getElementById("mascotLine").textContent,
-    };
-    await undoInkStroke();
-    const backedOut = {
-      showVisible: getComputedStyle(document.getElementById("show")).display !== "none",
-      show: document.getElementById("show").textContent,
-      done: document.getElementById("done").textContent,
-      mascot: document.getElementById("mascotLine").textContent,
-      groupIdx,
-      shownStrokes,
-    };
-    actionStack = []; seenGroups = new Set(); hintsUsedThisCard = 0; groupIdx = 0; shownStrokes = 0; clearInk(); await rebuildHintLayer(0); updateTip();
-    await document.getElementById("tip").onclick();
-    const firstUse = hintsUsedThisCard;
-    await rewriteCurrentCard();
-    const rewritten = { ink: inkStrokes.length, groupIdx, shownStrokes, stack: actionStack.length, tipDisabled: document.getElementById("tip").disabled, done: document.getElementById("done").textContent };
-    await document.getElementById("tip").onclick(); const replayUse = hintsUsedThisCard;
-    await document.getElementById("tip").onclick(); const newUse = hintsUsedThisCard;
-    return { oneGroup, exhausted, backedOut, firstUse, rewritten, replayUse, newUse };
-  });
-  await page.evaluate(() => rewriteCurrentCard());
-  const hintAfterRewriteHash = await elementHash(page, ".hz");
-  const animationGuards = await page.evaluate(async () => {
-    const originalWriter = writer;
-    groups = [1]; groupIdx = 0; shownStrokes = 0; hintsUsedThisCard = 0; actionStack = []; seenGroups = new Set();
-    writer = { animateStroke: () => new Promise((resolve) => setTimeout(resolve, 50)) }; updateTip();
-    const playing = document.getElementById("tip").onclick();
-    const undoIgnored = await undoInkStroke() === false && actionStack.length === 0 && animating;
-    const rewriting = rewriteCurrentCard();
-    await Promise.all([playing, rewriting]);
-    const result = { undoIgnored, animating, groupIdx, shownStrokes, stack: actionStack.length, ink: inkStrokes.length };
-    if (!writer) writer = originalWriter;
-    return result;
-  });
-  await page.evaluate(() => render());
-  await page.waitForFunction(() => !document.getElementById("tip").disabled && !!practiceCharData);
-  const directExhaustedTrace = await page.evaluate(async () => {
-    groups = [1]; groupIdx = 0; shownStrokes = 0; hintsUsedThisCard = 0; actionStack = []; seenGroups = new Set(); await rebuildHintLayer(0); updateTip();
-    await document.getElementById("tip").onclick();
-    inkStrokes = mediansToCanvas(curMedians); actionStack.push({ type: "stroke" }); redrawInk(); actionCooldownUntil = 0;
-    const opened = revealAnswer(true), verdict = lastVerdict?.status, suggestion = suggestedOutcomeForVerdict(lastVerdict), suggestedHinted = document.getElementById("wrapHinted").classList.contains("suggest");
-    render(); return { opened, verdict, suggestion, suggestedHinted };
-  });
-  await page.waitForFunction(() => !document.getElementById("show").disabled);
-  if (actionStackFlow.stacked !== "stroke,hint,stroke"
-    || actionStackFlow.afterStroke.ink !== 1 || actionStackFlow.afterStroke.stack !== "stroke,hint"
-    || actionStackFlow.afterHint.groupIdx !== 0 || actionStackFlow.afterHint.shownStrokes !== 0 || actionStackFlow.afterHint.tipDisabled || actionStackFlow.afterHint.stack !== "stroke"
-    || actionStackFlow.empty.ink !== 0 || !actionStackFlow.empty.disabled || actionStackFlow.empty.stack !== 0
-    || hintAfterUndoHash !== hintEmptyHash) {
-    throw new Error(`Expected undo to pop stroke/hint/stroke and redraw the hint layer, got ${JSON.stringify({ actionStackFlow, hintEmptyHash, hintAfterUndoHash })}`);
-  }
-  if (hintStateFlow.exhausted.showVisible || hintStateFlow.exhausted.done !== "写完了" || !hintStateFlow.exhausted.mascot.includes("提示用完了")
-    || !hintStateFlow.backedOut.showVisible || hintStateFlow.backedOut.show !== "看答案" || hintStateFlow.backedOut.done !== "写完了" || hintStateFlow.backedOut.mascot.includes("提示用完了")
-    || hintStateFlow.firstUse !== 1 || hintStateFlow.rewritten.ink !== 0 || hintStateFlow.rewritten.groupIdx !== 0 || hintStateFlow.rewritten.shownStrokes !== 0 || hintStateFlow.rewritten.stack !== 0 || hintStateFlow.rewritten.tipDisabled || hintStateFlow.rewritten.done !== "写完了"
-    || hintStateFlow.replayUse !== 1 || hintStateFlow.newUse !== 2 || hintAfterRewriteHash !== hintEmptyHash) {
-    throw new Error(`Expected exhausted-hint rollback and rewrite accounting, got ${JSON.stringify({ hintStateFlow, hintEmptyHash, hintAfterRewriteHash })}`);
-  }
-  if (!animationGuards.undoIgnored || animationGuards.animating || animationGuards.groupIdx !== 0 || animationGuards.shownStrokes !== 0 || animationGuards.stack !== 0 || animationGuards.ink !== 0) {
-    throw new Error(`Expected undo to ignore playback and rewrite to cancel it, got ${JSON.stringify(animationGuards)}`);
-  }
-  if (!directExhaustedTrace.opened || directExhaustedTrace.verdict !== "ok" || directExhaustedTrace.suggestion !== "hinted" || !directExhaustedTrace.suggestedHinted) {
-    throw new Error(`Expected direct tracing in exhausted state to suggest hinted, got ${JSON.stringify(directExhaustedTrace)}`);
-  }
-  const peekAndRevealHaptics = await page.evaluate(() => {
-    const canvas = inkCanvas, rect = canvas.getBoundingClientRect();
-    const pointer = (type, id, primary, x, y, buttons) => new PointerEvent(type, {
-      bubbles: true, cancelable: true, pointerId: id, pointerType: "touch", isPrimary: primary,
-      button: 0, buttons, clientX: rect.left + rect.width * x, clientY: rect.top + rect.height * y,
-    });
-    const pixels = () => { const data = inkCtx.getImageData(0, 0, inkCanvas.width, inkCanvas.height).data; let n = 0; for (let i = 3; i < data.length; i += 4) if (data[i]) n++; return n; };
-    clearInk(); activePointers.clear(); peekReleasePending = false; tracing = false; revealed = false; animating = false;
-    canvas.dispatchEvent(pointer("pointerdown", 81051, true, .2, .25, 1));
-    canvas.dispatchEvent(pointer("pointermove", 81051, true, .45, .5, 1));
-    const partial = pixels();
-    canvas.dispatchEvent(pointer("pointerdown", 81052, false, .75, .7, 1));
-    const entered = peeking && Number(canvas.style.opacity) <= .06 && hzEl.classList.contains("peekHint");
-    const cancelled = partial > 0 && !drawing && curInkStroke === null && pixels() === 0;
-    const peekUnlocked = !document.getElementById("actions").classList.contains("tlock") && Number(getComputedStyle(document.getElementById("actions")).opacity) === 1;
-    canvas.dispatchEvent(pointer("pointermove", 81051, true, .65, .65, 1));
-    canvas.dispatchEvent(pointer("pointermove", 81052, false, .8, .8, 1));
-    const blockedInk = inkStrokes.length === 0 && curInkStroke === null && pixels() === 0;
-    canvas.dispatchEvent(pointer("pointerup", 81052, false, .8, .8, 0));
-    const restored = !peeking && Number(canvas.style.opacity) === 1 && !hzEl.classList.contains("peekHint");
-    const releaseUnlocked = !document.getElementById("actions").classList.contains("tlock") && Number(getComputedStyle(document.getElementById("actions")).opacity) === 1;
-    canvas.dispatchEvent(pointer("pointerup", 81051, true, .65, .65, 0));
-    clearInk(); activePointers.clear(); peekReleasePending = false;
-    canvas.dispatchEvent(pointer("pointerdown", 81061, true, .2, .2, 1));
-    canvas.dispatchEvent(pointer("pointerdown", 81062, false, .5, .5, 1));
-    canvas.dispatchEvent(pointer("pointerdown", 81063, false, .8, .8, 1));
-    const threeFingerEntered = peeking && activePointers.size === 3;
-    canvas.dispatchEvent(pointer("pointerup", 81063, false, .8, .8, 0));
-    const anyLiftRestored = !peeking && peekReleasePending && activePointers.size === 2 && Number(canvas.style.opacity) === 1 && !hzEl.classList.contains("peekHint");
-    canvas.dispatchEvent(pointer("pointermove", 81061, true, .65, .65, 1));
-    canvas.dispatchEvent(pointer("pointermove", 81062, false, .75, .75, 1));
-    canvas.dispatchEvent(pointer("pointerdown", 81064, false, .4, .7, 1));
-    const releaseGestureBlocked = !peeking && !drawing && inkStrokes.length === 0 && curInkStroke === null && pixels() === 0;
-    canvas.dispatchEvent(pointer("pointercancel", 81064, false, .4, .7, 0));
-    canvas.dispatchEvent(pointer("pointerup", 81062, false, .75, .75, 0));
-    canvas.dispatchEvent(pointer("pointerup", 81061, true, .65, .65, 0));
-    const releaseGestureEnded = !peekReleasePending && activePointers.size === 0;
-    canvas.dispatchEvent(pointer("pointerdown", 81065, true, .25, .25, 1));
-    canvas.dispatchEvent(pointer("pointermove", 81065, true, .55, .55, 1));
-    canvas.dispatchEvent(pointer("pointerup", 81065, true, .55, .55, 0));
-    const nextGestureWrites = inkStrokes.length === 1 && pixels() > 0;
-    clearInk(); unlockGradeActions();
-    activePointers.add(1); activePointers.add(2); animating = true; enterPeekHint(); activePointers.delete(2); exitPeekHint();
-    const animationRestore = Number(canvas.style.opacity) === .22;
-    resetPeekHint(); animating = false;
-    activePointers.add(1); activePointers.add(2); tracing = true; const tracingBlocked = !enterPeekHint(); resetPeekHint(); tracing = false;
-    activePointers.add(1); activePointers.add(2); revealed = true; const revealBlocked = !enterPeekHint(); resetPeekHint(); revealed = false;
-    actionCooldownUntil = 0; hapticDebug.events = []; hapticDebug.last = null; const revealedNow = revealAnswer(true);
-    const revealAction = revealedNow && hapticDebug.last === "action" && hapticDebug.events.join(",") === "action";
-    render();
-    return { entered, cancelled, peekUnlocked, blockedInk, restored, releaseUnlocked, threeFingerEntered, anyLiftRestored,
-      releaseGestureBlocked, releaseGestureEnded, nextGestureWrites, animationRestore, tracingBlocked, revealBlocked, revealAction };
-  });
-  await page.waitForFunction(() => !document.getElementById("show").disabled);
-  if (!Object.values(peekAndRevealHaptics).every(Boolean)) {
-    throw new Error(`Expected two-finger peek and reveal haptic hierarchy, got ${JSON.stringify(peekAndRevealHaptics)}`);
-  }
-  await page.click("#show");
-  await expectVisible(page, "#traceActions", "trace actions after showing answer");
-  await expectVisible(page, "#practiceArea", "practice area while tracing");
-  await expectHidden(page, "#reveal", "comparison reveal while tracing");
-  const traceBefore = await page.evaluate(() => ({
-    tracing,
-    tracedThisCard,
-    traceDoneDisabled: document.getElementById("traceDone").disabled,
-    missDisabled: document.getElementById("traceMiss").disabled,
-    outlineVisible: getComputedStyle(document.getElementById("hzEl") || document.querySelector(".hz")).display !== "none",
-    missLabel: document.getElementById("traceMiss").textContent.replace(/\s+/g, ""),
-    doneLabel: document.getElementById("traceDone").textContent.replace(/\s+/g, ""),
-    missAria: document.getElementById("traceMiss").getAttribute("aria-label"),
-    doneAria: document.getElementById("traceDone").getAttribute("aria-label"),
-    hint: document.getElementById("hint").textContent,
-    haptic: hapticDebug.last,
-  }));
-  if (!traceBefore.tracing || traceBefore.tracedThisCard || !traceBefore.traceDoneDisabled || traceBefore.missDisabled
-    || traceBefore.missLabel !== "不会写印章：回炉" || traceBefore.doneLabel !== "描好了印章：补拾"
-    || !traceBefore.missAria.includes("不会写") || !traceBefore.missAria.includes("回炉")
-    || !traceBefore.doneAria.includes("描好了") || !traceBefore.doneAria.includes("补拾")
-    || !traceBefore.hint.includes("实在不想描") || traceBefore.haptic !== "select") {
-    throw new Error(`Expected tracing to require a real stroke before hinted, got ${JSON.stringify(traceBefore)}`);
-  }
-  const inkBox = await page.locator(".inkc").boundingBox();
-  if (!inkBox) throw new Error("Expected tracing canvas bounds");
-  await page.mouse.move(inkBox.x + inkBox.width * 0.25, inkBox.y + inkBox.height * 0.3);
-  await page.mouse.down();
-  await page.mouse.move(inkBox.x + inkBox.width * 0.5, inkBox.y + inkBox.height * 0.5, { steps: 4 });
-  await page.mouse.move(inkBox.x + inkBox.width * 0.72, inkBox.y + inkBox.height * 0.66, { steps: 4 });
-  await page.mouse.up();
-  await page.waitForTimeout(320);
-  const traceReady = await page.evaluate(() => ({ tracedThisCard, disabled: document.getElementById("traceDone").disabled }));
-  if (!traceReady.tracedThisCard || traceReady.disabled) {
-    throw new Error(`Expected tracing stroke to enable hinted, got ${JSON.stringify(traceReady)}`);
-  }
-  const nextKeyBefore = await page.evaluate(() => cardKey(batch[1]));
-  await page.evaluate(() => { hapticDebug.events = []; hapticDebug.last = null; });
-  const holdStartedAt = Date.now();
-  await page.click("#traceDone");
-  await page.waitForTimeout(1020);
-  const stampHold = await page.evaluate(() => ({ pos, stamped, visible: getComputedStyle(document.getElementById("stampOnMine")).display !== "none", hold: STAMP_HOLD_MS, calibrationHold: CALIBRATION_FIRST_HOLD_MS, editWindow: EDIT_STAMP_WINDOW_MS }));
-  if (stampHold.pos !== 0 || !stampHold.stamped || !stampHold.visible || stampHold.hold !== 1100 || stampHold.calibrationHold !== 1800 || stampHold.editWindow !== 1500) {
-    throw new Error(`Expected stamp feedback to remain visible for at least one second, got ${JSON.stringify(stampHold)}`);
-  }
-  await page.waitForFunction(() => pos === 1 && !revealed && getComputedStyle(document.getElementById("practiceArea")).display !== "none");
-  const stampHoldElapsed = Date.now() - holdStartedAt;
-  if (stampHoldElapsed < 1000) throw new Error(`Expected stamp hold >= 1000ms, got ${stampHoldElapsed}ms`);
-  const traced = await page.evaluate(() => ({
-    outcome: roundStats[0]?.outcome,
-    traced: roundStats[0]?.traced,
-    memoryTraced: memory[cardKey(roundStats[0]?.idx)]?.traced,
-    systemSuggestion: memory[cardKey(roundStats[0]?.idx)]?.lastSystemSuggestion,
-    systemStatus: memory[cardKey(roundStats[0]?.idx)]?.lastSystemStatus,
-    systemAgree: memory[cardKey(roundStats[0]?.idx)]?.lastSystemAgree,
-    todayStamps: todayStampCount(),
-    undoVisible: getComputedStyle(document.getElementById("undoBar")).display !== "none",
-    session: load(SESSION_KEY, null),
-    haptic: hapticDebug.last,
-    hapticEvents: hapticDebug.events.slice(),
-  }));
-  if (traced.outcome !== "hinted" || !traced.traced || !traced.memoryTraced || traced.systemSuggestion !== "" || traced.systemStatus !== "none" || traced.systemAgree !== null || traced.todayStamps !== 1 || !traced.undoVisible || traced.session?.pos !== 1 || traced.haptic !== "stamp" || traced.hapticEvents.join(",") !== "stamp") {
-    throw new Error(`Expected traced marker, activity and session snapshot, got ${JSON.stringify(traced)}`);
-  }
-  const undoLayout = await page.evaluate(() => {
-    const snap = lastStampSnapshot, canvas = inkCanvas, rect = canvas.getBoundingClientRect();
-    const before = document.getElementById("boxwrap").getBoundingClientRect().top;
-    const style = getComputedStyle(document.getElementById("undoBar"));
-    const event = (type, buttons) => new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 82001, pointerType: "touch", isPrimary: true, button: 0, buttons, clientX: rect.left + 30, clientY: rect.top + 30 });
-    canvas.dispatchEvent(event("pointerdown", 1)); canvas.dispatchEvent(event("pointerup", 0));
-    const hiddenOnWrite = getComputedStyle(document.getElementById("undoBar")).display === "none";
-    const after = document.getElementById("boxwrap").getBoundingClientRect().top;
-    clearInk(); lastStampSnapshot = snap; renderUndoBar();
-    const bar = document.getElementById("undoBar").getBoundingClientRect(), prompt = document.getElementById("prompt").getBoundingClientRect();
-    const noPromptOverlap = bar.bottom <= prompt.top || bar.top >= prompt.bottom || bar.right <= prompt.left || bar.left >= prompt.right;
-    return { position: style.position, hiddenOnWrite, shift: Math.abs(after - before), restored: getComputedStyle(document.getElementById("undoBar")).display !== "none", noPromptOverlap };
-  });
-  await page.setViewportSize({ width: 390, height: 620 });
-  const undoShortLayout = await page.evaluate(() => {
-    renderUndoBar();
-    const bar = document.getElementById("undoBar").getBoundingClientRect(), prompt = document.getElementById("prompt").getBoundingClientRect();
-    return { bar: { top: bar.top, bottom: bar.bottom }, prompt: { top: prompt.top, bottom: prompt.bottom }, noPromptOverlap: bar.bottom <= prompt.top || bar.top >= prompt.bottom || bar.right <= prompt.left || bar.left >= prompt.right };
-  });
-  await page.setViewportSize({ width: 390, height: 844 });
-  if (undoLayout.position !== "absolute" || !undoLayout.hiddenOnWrite || undoLayout.shift > .5 || !undoLayout.restored || !undoLayout.noPromptOverlap || !undoShortLayout.noPromptOverlap) {
-    throw new Error(`Expected undo bar to float above the prompt on default and short screens, got ${JSON.stringify({ undoLayout, undoShortLayout })}`);
-  }
-  await page.click("#undoLast");
-  await page.waitForFunction(() => pos === 0 && revealed && getComputedStyle(document.getElementById("reveal")).display !== "none");
-  const reveal = await page.evaluate((nextKey) => ({
-    revealWord: document.getElementById("revealWord").textContent,
-    funcFirst: document.getElementById("stampRow").classList.contains("funcFirst"),
-    stampLabels: Array.from(document.querySelectorAll("#stampRow .stampWrap")).map((node) => `${node.querySelector(".seal").innerText.replace(/\s+/g, "")}/${node.querySelector("small").textContent.replace(/\s+/g, "")}`),
-    note: document.getElementById("stampNote").textContent,
-    qualityVisible: getComputedStyle(document.getElementById("qualityBox")).display !== "none",
-    rollback: { memory: Object.keys(memory).length, stats: roundStats.length, todayStamps: todayStampCount(), nextUntouched: memory[nextKey] == null },
-    haptic: hapticDebug.last,
-  }), nextKeyBefore);
-  if (!reveal.revealWord.includes(firstTarget) || !reveal.funcFirst || reveal.stampLabels.join(",") !== "会写/拾到,看提示写出/补拾,写错了/差点,不会写/回炉" || !reveal.note.includes("不会写") || !reveal.qualityVisible || reveal.rollback.memory !== 0 || reveal.rollback.stats !== 0 || reveal.rollback.todayStamps !== 0 || !reveal.rollback.nextUntouched || reveal.haptic !== "undo") {
-    throw new Error(`Expected designer reveal and stamp self-assessment, got ${JSON.stringify(reveal)}`);
-  }
-
-  await page.click("#miss");
-  await page.waitForFunction(() => stamped && getComputedStyle(document.getElementById("stampOnMine")).display !== "none");
-  const skipStampHold = await page.evaluate(() => {
-    const before = pos, target = document.getElementById("reveal");
-    target.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    target.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    return { before, after: pos, stamped };
-  });
-  if (skipStampHold.after !== skipStampHold.before + 1 || skipStampHold.stamped) {
-    throw new Error(`Expected result tap to skip hold exactly once, got ${JSON.stringify(skipStampHold)}`);
-  }
-  await page.waitForFunction(() => pos === 1 && !revealed && getComputedStyle(document.getElementById("practiceArea")).display !== "none");
-  const stamped = await page.evaluate(() => {
-    const entries = Object.values(memory);
-    return {
-      entries: entries.length,
-      outcome: entries[0]?.lastOutcome,
-      target: entries[0]?.target,
-      statusValues: Object.values(status),
-      undo: document.getElementById("undoCopy").textContent,
-      pos,
-      noNextButton: !document.getElementById("nextBtn"),
-    };
-  });
-  if (stamped.entries !== 1 || stamped.outcome !== "miss" || stamped.target !== firstTarget || !stamped.statusValues.includes("indeck") || !stamped.undo.includes("回炉") || stamped.pos !== 1 || !stamped.noNextButton) {
-    throw new Error(`Expected miss stamp to update memory and review deck, got ${JSON.stringify(stamped)}`);
-  }
-
-  const addBefore = await page.evaluate(() => ({ length: batch.length, pos }));
-  await page.click("#addInPractice");
+  await page.click("#tabMe");
+  const me = await page.evaluate(() => ({ visible: getComputedStyle(mePanel).display !== "none", devHidden: getComputedStyle(devTools).display === "none", reminderHidden: getComputedStyle(reminderSection).display === "none" }));
+  assert(me.visible && me.devHidden && me.reminderHidden, "Expected normal My page without development tools", me);
+  await page.click("#addLink");
   await page.fill("#addInput", "蘸料");
   await page.click("#addConfirm");
-  const add = await page.evaluate(() => ({
-    length: batch.length,
-    inserted: batch.slice(pos + 1, pos + 3).map((idx) => CARDS[idx].target).join(""),
-    toast: document.getElementById("toast").textContent,
-  }));
-  if (add.length < addBefore.length + 2 || add.inserted !== "蘸料" || !add.toast.includes("本次练习")) {
-    throw new Error(`Expected added word to enter current queue with feedback, got ${JSON.stringify(add)}`);
-  }
-
-  const backupPolicy = await page.evaluate(() => {
-    saveSessionSnapshot();
-    localStorage.setItem("shizi.transient.verify", "keep-local");
-    const payload = JSON.parse(backupPayload());
-    const legacyPayload = cloneObj(payload);
-    legacyPayload.data[SESSION_KEY] = JSON.stringify({ version: 1, date: today(), batch: [0], pos: 0, roundStats: [] });
-    legacyPayload.data["shizi.unknown.v1"] = "legacy-unknown";
-    localStorage.setItem(SESSION_KEY, JSON.stringify({ current: true }));
-    const restored = restoreBackupPayload(legacyPayload, { skipConfirm: true, reload: false });
-    const transientAfterRestore = localStorage.getItem("shizi.transient.verify");
-    localStorage.removeItem("shizi.transient.verify");
-    return {
-      exportedKeys: Object.keys(payload.data),
-      sessionExported: Object.prototype.hasOwnProperty.call(payload.data, SESSION_KEY),
-      transientExported: Object.prototype.hasOwnProperty.call(payload.data, "shizi.transient.verify"),
-      sessionAfterRestore: localStorage.getItem(SESSION_KEY),
-      transientAfterRestore,
-      unknownAfterRestore: localStorage.getItem("shizi.unknown.v1"),
-      restoredKeys: restored.keys,
-    };
-  });
-  if (backupPolicy.sessionExported || backupPolicy.transientExported || backupPolicy.sessionAfterRestore !== null || backupPolicy.transientAfterRestore !== "keep-local" || backupPolicy.unknownAfterRestore !== null || backupPolicy.restoredKeys.includes("shizi.unknown.v1") || !backupPolicy.exportedKeys.includes("shizi.memory.v1") || !backupPolicy.exportedKeys.includes("shizi.reminder.v1")) {
-    throw new Error(`Expected backup allowlist to exclude sessions and transient keys, got ${JSON.stringify(backupPolicy)}`);
-  }
+  const add = await page.evaluate(() => ({ added: addedChars.includes("蘸") && addedChars.includes("料"), indexed: indexesForChars(["蘸", "料"]).length === 2, queued: indexesForChars(["蘸", "料"]).every((idx) => (memory[cardKey(idx)] || {}).queuedFront) }));
+  assert(add.added && add.indexed && add.queued, "Expected add-character workflow to persist and queue new cards", add);
 
   await page.evaluate(() => {
-    const fastIdx = CARDS.findIndex((card) => card.target === "强");
-    const missIdx = CARDS.findIndex((card) => card.target === "器");
-    const hintedIdx = CARDS.findIndex((card) => card.target === "疑");
-    const reviewingIdx = CARDS.findIndex((card) => card.target === "词");
-    const now = Date.now();
-    status = {};
-    memory = {};
-    quality = {};
-    save(DECK_KEY, status);
-    saveMemory();
-    saveQuality();
-    [
-      { idx: fastIdx, outcome: "fast", ease: 85, streak: 2, fast: 2, due: now + 7 * 86400000 },
-      { idx: missIdx, outcome: "miss", ease: 32, streak: 0, misses: 1, due: now },
-      { idx: hintedIdx, outcome: "hinted", ease: 40, streak: 0, hints: 1, due: now },
-      { idx: reviewingIdx, outcome: "fast", ease: 72, streak: 1, fast: 1, due: now + 3 * 86400000 },
-    ].forEach((item) => {
-      const c = CARDS[item.idx];
-      status[item.idx] = item.outcome === "fast" ? "rest" : "indeck";
-      memory[cardKey(item.idx)] = {
-        seen: 1,
-        streak: item.streak,
-        ease: item.ease,
-        fast: item.fast || 0,
-        slow: 0,
-        hints: item.hints || 0,
-        misses: item.misses || 0,
-        due: item.due,
-        last: now,
-        lastOutcome: item.outcome,
-        target: c.target,
-        word: c.word,
-        level: c.level,
-        topic: c.topic,
-      };
-    });
-    save(DECK_KEY, status);
-    saveMemory();
-    clearSessionSnapshot();
-    bookExpanded = false; boxFilter = "all";
-    renderBook();
+    status = {}; memory = {}; fsrsReviewLog = []; quality = {}; save(DECK_KEY, status); saveMemory(); saveFSRSLog(); saveQuality();
+    activity = newActivity(); activity.inheritedStreak = 0; activity.inheritedTotalDays = 0; saveActivity();
+    clearSessionSnapshot(); sessionDone = new Set();
+    const indexes = ["器", "疑", "强"].map((target) => CARDS.findIndex((card) => card.target === target));
+    startFocus(indexes);
   });
-  const bookCollapsed = await page.evaluate(() => {
-    const baseStatus = cloneObj(status), baseMemory = cloneObj(memory);
-    const initial = {
-      allHidden: document.getElementById("boxAllSection").offsetParent === null && document.getElementById("boxGrid").offsetParent === null,
-      riskTitle: document.getElementById("boxRiskTitle").textContent,
-      riskTiles: document.querySelectorAll("#boxRiskGrid .boxTile[data-idx]").length,
-      riskMore: !!document.querySelector("#boxRiskGrid [data-expand-risk]"),
-      emptyHidden: getComputedStyle(document.getElementById("boxRiskEmpty")).display === "none",
-      addVisible: document.getElementById("addLink2").offsetParent !== null,
-      allTitle: document.getElementById("boxAllTitle").textContent,
-    };
-    Object.keys(memory).forEach((key) => { memory[key].streak = 2; memory[key].misses = 0; memory[key].hints = 0; memory[key].slow = 0; });
-    Object.keys(status).forEach((key) => { status[key] = "rest"; });
-    renderBook();
-    const empty = { visible: getComputedStyle(document.getElementById("boxRiskEmpty")).display !== "none", copy: document.getElementById("boxRiskEmpty").textContent, tiles: document.querySelectorAll("#boxRiskGrid .boxTile[data-idx]").length };
-    status = {}; memory = {};
-    allIndexes().slice(0, 12).forEach((idx, order) => {
-      const card = CARDS[idx]; status[idx] = "indeck";
-      memory[cardKey(idx)] = { seen: 1, streak: 0, ease: 30, misses: 1, hints: 0, slow: 0, due: Date.now(), last: Date.now() - order, lastOutcome: "miss", target: card.target, word: card.word };
-    });
-    bookExpanded = false; boxFilter = "all"; renderBook();
-    const preview = { tiles: document.querySelectorAll("#boxRiskGrid .boxTile[data-idx]").length, more: document.querySelector("#boxRiskGrid [data-expand-risk]")?.textContent };
-    document.querySelector("#boxRiskGrid [data-expand-risk]").click();
-    const moreOpened = { expanded: bookExpanded, filter: boxFilter, sectionVisible: document.getElementById("boxAllSection").offsetParent !== null, activeRisk: document.querySelector('#boxFilters [data-filter="risk"]').classList.contains("active") };
-    status = baseStatus; memory = baseMemory; save(DECK_KEY, status); saveMemory(); bookExpanded = false; boxFilter = "all"; renderBook();
-    return { initial, empty, preview, moreOpened };
+  await waitForWriter(page);
+  const firstTarget = await page.evaluate(() => cur.target);
+
+  await page.evaluate(async () => {
+    shownStrokes = 1; groupIdx = 1; hintEverUsed = true; hintsUsedThisCard = 1;
+    inkStrokes = [mediansToCanvas(curMedians)[1]]; redrawInk();
+    await rebuildHintLayer(1); saveSessionSnapshot();
+    restoreSession(load(SESSION_KEY, null));
   });
-  if (!bookCollapsed.initial.allHidden || bookCollapsed.initial.riskTitle !== "待拾回 2" || bookCollapsed.initial.riskTiles !== 2 || bookCollapsed.initial.riskMore || !bookCollapsed.initial.emptyHidden || !bookCollapsed.initial.addVisible || bookCollapsed.initial.allTitle !== "全部 4 字"
-    || !bookCollapsed.empty.visible || !bookCollapsed.empty.copy.includes("没有待拾回的字") || bookCollapsed.empty.tiles !== 0
-    || bookCollapsed.preview.tiles !== 10 || bookCollapsed.preview.more !== "+2"
-    || !bookCollapsed.moreOpened.expanded || bookCollapsed.moreOpened.filter !== "risk" || !bookCollapsed.moreOpened.sectionVisible || !bookCollapsed.moreOpened.activeRisk) {
-    throw new Error(`Expected collapsed study book with risk-first preview, empty state, and +N expansion, got ${JSON.stringify(bookCollapsed)}`);
-  }
-  await page.click("#boxAllToggle");
-  const book = await page.evaluate(() => ({
-    visible: getComputedStyle(document.getElementById("studybook")).display !== "none",
-    expanded: document.getElementById("boxAllSection").offsetParent !== null,
-    count: document.getElementById("boxCount").textContent,
-    dueVisible: getComputedStyle(document.getElementById("dueCard")).display !== "none",
-    dueTitle: document.getElementById("dueTitle").textContent,
-    tiles: document.querySelectorAll("#boxGrid .boxTile").length,
-    riskTiles: document.querySelectorAll("#boxGrid .boxTile.risk").length,
-    reviewingTiles: document.querySelectorAll("#boxGrid .boxTile.reviewing").length,
-    stableTiles: document.querySelectorAll("#boxGrid .boxTile.stable").length,
-    reviewingDot: getComputedStyle(document.querySelector("#boxGrid .boxTile.reviewing .dot")).width,
-    stableDot: getComputedStyle(document.querySelector("#boxGrid .boxTile.stable .dot")).width,
-    legend: document.querySelector(".legend").textContent.replace(/\s+/g, ""),
-    activeTab: document.querySelector(".foot .tab.active")?.id,
-  }));
-  if (!book.visible || !book.expanded || !book.count.includes("4") || !book.count.includes("待复习 2") || !book.dueVisible || !book.dueTitle.includes("2") || book.tiles < 4
-    || book.riskTiles !== 2 || book.reviewingTiles !== 1 || book.stableTiles !== 1 || book.reviewingDot !== "11px" || book.stableDot !== "6px"
-    || !book.legend.includes("大角标") || !book.legend.includes("灰小点=已稳") || book.activeTab !== "tabBook") {
-    throw new Error(`Expected study book to expose due/risk cards, got ${JSON.stringify(book)}`);
-  }
-  await page.click("#practiceDue");
-  await page.waitForFunction(() => activeMode === "review" && batch.length > 0 && getComputedStyle(document.getElementById("card")).display !== "none");
-  const review = await page.evaluate(() => ({ activeMode, first: cur.target, reviewCount: reviewCount() }));
-  if (review.activeMode !== "review" || !["器", "疑"].includes(review.first)) {
-    throw new Error(`Expected due button to enter review mode, got ${JSON.stringify(review)}`);
-  }
+  await page.waitForFunction(() => pendingSessionVisual === null && Array.isArray(curMedians) && curMedians.length > 0 && !animating);
+  const recalledVisual = await page.evaluate(() => ({ phase: practicePhase, hints: shownStrokes, hintNodes: hzEl.childNodes.length, ink: inkStrokes.length, history: hintEverUsed }));
+  assert(recalledVisual.phase === "recall" && recalledVisual.hints === 1 && recalledVisual.hintNodes > 0 && recalledVisual.ink === 1 && recalledVisual.history, "Expected recall ink and visible hints to survive session restore", recalledVisual);
 
-  const summary = await page.evaluate(() => {
-    const fastIdx = CARDS.findIndex((card) => card.target === "强");
-    const missIdx = CARDS.findIndex((card) => card.target === "器");
-    const hintedIdx = CARDS.findIndex((card) => card.target === "疑");
-    const now = Date.now();
-    const summaryStats = [
-      { idx: fastIdx, target: CARDS[fastIdx].target, word: CARDS[fastIdx].word, outcome: "fast", level: abilityLevel(fastIdx), topic: CARDS[fastIdx].topic, due: now + 7 * 86400000 },
-      { idx: missIdx, target: CARDS[missIdx].target, word: CARDS[missIdx].word, outcome: "miss", level: abilityLevel(missIdx), topic: CARDS[missIdx].topic, due: now },
-      { idx: hintedIdx, target: CARDS[hintedIdx].target, word: CARDS[hintedIdx].word, outcome: "hinted", level: abilityLevel(hintedIdx), topic: CARDS[hintedIdx].topic, due: now + 3600000 },
-    ];
-    roundStats = cloneObj(summaryStats);
-    activeMode = "new";
-    tuning = { calibrated: true, offset: 0, contextStrict: 0, rounds: [] };
-    roundFeedbackGiven = false;
-    roundId = "verify-summary";
-    batch = roundStats.map((s) => s.idx); // 对齐完成门槛：roundStats >= batch 才记完成
-    saveTuning();
-    pos = batch.length - 1; pendingRepeat = false; stamped = true;
-    hapticDebug.events = []; hapticDebug.last = null; goNext();
-    const milestoneHaptic = hapticDebug.last;
-    const milestoneEvents = hapticDebug.events.slice();
-    const milestoneVisible = getComputedStyle(document.getElementById("milestoneLine")).display !== "none";
-    const milestoneText = document.getElementById("milestoneLine").textContent;
-    const summaryUI = {
-      visible: getComputedStyle(document.getElementById("summary")).display !== "none",
-      sheetVisible: getComputedStyle(document.getElementById("sumSheet")).display !== "none",
-      lead: document.getElementById("sumLead").textContent.replace(/\s+/g, ""),
-      tiles: Array.from(document.querySelectorAll("#sumTiles .sumTile")).map((node) => node.textContent),
-      pocketVisible: getComputedStyle(document.getElementById("pocketCard")).display !== "none",
-      pocketTitle: document.getElementById("pocketTitle").textContent,
-      tuneButtons: Array.from(document.querySelectorAll("#roundTune [data-round-feedback]")).map((node) => node.textContent),
-      stop: document.getElementById("stop").textContent,
-      more: document.getElementById("more").textContent,
-    };
-    roundStats = [cloneObj(summaryStats[0])]; batch = [fastIdx]; pos = 0; roundId = "verify-summary-action"; stamped = true; pendingRepeat = false;
-    hapticDebug.events = []; hapticDebug.last = null; goNext();
-    const completedRoundHaptic = hapticDebug.last;
-    const completedRoundEvents = hapticDebug.events.slice();
-    roundStats = cloneObj(summaryStats); batch = roundStats.map((s) => s.idx); roundId = "verify-summary"; roundSummary();
-    return {
-      milestoneHaptic,
-      milestoneEvents,
-      completedRoundHaptic,
-      completedRoundEvents,
-      milestoneVisible,
-      milestoneText,
-      totalDays: totalPracticeDays(),
-      milestonesShown: reminder.milestonesShown.slice(),
-      ...summaryUI,
-    };
+  await submitStandard(page, { hintStrokes: 1 });
+  const snapshot = await page.evaluate(() => ({
+    label: document.querySelector(".cmpLbl").textContent,
+    hintIds: submissionSnapshot.hintStrokeIds.length,
+    hintGeometry: submissionSnapshot.hintStrokes.length,
+    ink: submissionSnapshot.inkStrokes.length,
+    composite: submissionSnapshot.compositeGeometry.length,
+    verdict: submissionSnapshot.lastVerdict && submissionSnapshot.lastVerdict.status,
+    hintEverUsed: submissionSnapshot.hintEverUsed,
+    image: submissionSnapshot.compositeImage && submissionSnapshot.compositeImage.startsWith("data:image/png"),
+    effect: correctEffect.textContent,
+  }));
+  assert(snapshot.label === "提交字格" && snapshot.hintIds === 1 && snapshot.hintGeometry === 1 && snapshot.composite === snapshot.hintGeometry + snapshot.ink && snapshot.verdict === "ok" && snapshot.hintEverUsed && snapshot.image, "Expected one immutable complete-grid submission snapshot", snapshot);
+  assert(snapshot.effect.includes("已用提示"), "Expected correct action to explain reinforcement consequence", snapshot.effect);
+
+  await chooseCorrect(page);
+  await page.waitForTimeout(450);
+  const hold = await page.evaluate(() => ({ sameTarget: cur.target, feedback: stampedToast.textContent, outcome: roundStats[0] && roundStats[0].outcome, ratings: fsrsReviewLog.map((event) => event.rating), unresolved: [...unresolved] }));
+  assert(hold.sameTarget === firstTarget && hold.feedback.includes("已加入本组巩固") && hold.outcome === "hinted" && hold.ratings.join() === "Again" && hold.unresolved.length === 1, "Expected 1.4s hinted feedback with one Again", hold);
+
+  await page.click("#editStamp");
+  const rollback = await page.evaluate(() => ({ phase: practicePhase, events: fsrsReviewLog.length, stats: roundStats.length, attempts: dailyActivity().attempts, stamps: dailyActivity().stamps, queue: reinforcementQueue.length, unresolved: unresolved.size, image: submissionSnapshot.compositeImage }));
+  assert(rollback.phase === "revealDecision" && rollback.events === 0 && rollback.stats === 0 && rollback.attempts === 0 && rollback.stamps === 0 && rollback.queue === 0 && rollback.unresolved === 0 && rollback.image, "Expected atomic edit rollback", rollback);
+
+  await chooseCorrect(page);
+  await page.waitForTimeout(1500);
+  const afterHint = await page.evaluate(() => ({ baseCursor, attemptSeq, unresolved: [...unresolved], queue: cloneObj(reinforcementQueue), target: cur.target }));
+  assert(afterHint.baseCursor === 1 && afterHint.attemptSeq === 1 && afterHint.unresolved.length === 1 && afterHint.queue[0].eligibleAfter === 3 && afterHint.target !== firstTarget, "Expected hinted target to wait behind two other attempts", afterHint);
+
+  for (let i = 0; i < 2; i += 1) {
+    await submitStandard(page);
+    await chooseCorrect(page);
+    await page.waitForTimeout(1500);
+  }
+  const reinforcement = await page.evaluate(() => ({ target: cur.target, kind: currentAttemptKind, baseCursor, attemptSeq, unresolved: [...unresolved], progress: posLabel.textContent }));
+  assert(reinforcement.target === firstTarget && reinforcement.kind === "reinforcement" && reinforcement.baseCursor === 3 && reinforcement.attemptSeq === 3 && reinforcement.progress.includes("3 个字已完成") && reinforcement.progress.includes("还差 1 个"), "Expected two-card spacing and reinforcement progress", reinforcement);
+
+  await page.evaluate(() => { saveSessionSnapshot(); restoreSession(load(SESSION_KEY, null)); });
+  await waitForWriter(page);
+  const restoredReinforcement = await page.evaluate(() => ({ target: cur.target, kind: currentAttemptKind, phase: practicePhase, unresolved: unresolved.size }));
+  assert(restoredReinforcement.target === firstTarget && restoredReinforcement.kind === "reinforcement" && restoredReinforcement.phase === "reinforcement" && restoredReinforcement.unresolved === 1, "Expected reinforcement state to survive session restore", restoredReinforcement);
+
+  await submitStandard(page);
+  await chooseCorrect(page);
+  await page.waitForTimeout(1500);
+  const completed = await page.evaluate(() => ({
+    summary: getComputedStyle(summary).display !== "none",
+    stats: cloneObj(roundStats),
+    log: cloneObj(fsrsReviewLog),
+    activity: cloneObj(dailyActivity()),
+    groups: dailyActivity().completedGroups,
+    session: localStorage.getItem(SESSION_KEY),
+    tomorrow: shiftDay(today(), 1),
+    memory: cloneObj(memory),
+  }));
+  assert(completed.summary && completed.stats.length === 3 && completed.stats[0].outcome === "hinted" && completed.stats[0].independentlyRecovered, "Expected one summary tile per base target with recovery state", completed.stats);
+  assert(completed.log.map((event) => event.rating).join() === "Again,Good,Good,Good" && completed.log.every((event) => !["Hard", "Easy"].includes(event.rating)), "Expected Again/Good-only FSRS events", completed.log);
+  assert(completed.activity.stamps === 3 && completed.activity.attempts === 4 && completed.groups === 1 && completed.session === null, "Expected unique-day counts, attempt counts, and true completion", completed.activity);
+  assert(Object.values(completed.memory).every((item) => !item.pendingLearning && item.dueDay >= completed.tomorrow && item.schedulerVersion.includes("FSRS-6.0")), "Expected graduated cards to expose next-day-or-later dueDay", completed.memory);
+
+  await page.evaluate(() => { clearSessionSnapshot(); traceTutorialShown = false; save(TRACE_TUTORIAL_KEY, false); startFocus([CARDS.findIndex((card) => card.target === "器")]); });
+  await waitForWriter(page);
+  await page.click("#show");
+  await page.waitForFunction(() => practicePhase === "feedback");
+  const dontKnow = await page.evaluate(() => ({ outcome: roundStats[0].outcome, ratings: fsrsReviewLog.slice(-1).map((event) => `${event.rating}:${event.reason}:${event.teaching}`), feedback: stampedToast.textContent }));
+  assert(dontKnow.outcome === "miss" && dontKnow.ratings.join() === "Again:dontKnow:true" && dontKnow.feedback.includes("先描一遍，再自己写"), "Expected don't-know to record one miss/Again before teaching", dontKnow);
+  await page.waitForTimeout(1500);
+  const tutorial = await page.evaluate(() => ({ phase: practicePhase, visible: getComputedStyle(traceTutorial).display !== "none", shown: traceTutorialShown, copy: traceTutorial.textContent.replace(/\s+/g, "") }));
+  assert(tutorial.phase === "traceTutorial" && tutorial.visible && !tutorial.shown && tutorial.copy.includes("先照着轮廓描一遍") && tutorial.copy.includes("必须自己再写一次"), "Expected one-time trace tutorial", tutorial);
+  await page.click("#traceTutorialStart");
+  await page.waitForFunction(() => practicePhase === "tracing");
+  const traceStart = await page.evaluate(() => ({ title: phaseTitle.textContent, disabled: traceDone.disabled, shown: traceTutorialShown, stored: load(TRACE_TUTORIAL_KEY, false) }));
+  assert(traceStart.title.includes("第 1 步") && traceStart.disabled && traceStart.shown && traceStart.stored, "Expected persisted step-one tracing gate", traceStart);
+  await page.evaluate(() => { inkStrokes = [mediansToCanvas(curMedians)[0]]; tracedThisCard = true; redrawInk(); updateInkControls(); });
+  await page.evaluate(() => { saveSessionSnapshot(); restoreSession(load(SESSION_KEY, null)); });
+  await page.waitForFunction(() => pendingSessionVisual === null && practicePhase === "tracing" && tracedThisCard && inkStrokes.length === 1);
+  const restoredTracing = await page.evaluate(() => ({ phase: practicePhase, title: phaseTitle.textContent, outline: hzEl.childNodes.length > 0 || hzEl.classList.contains("traceFallback"), ink: inkStrokes.length }));
+  assert(restoredTracing.phase === "tracing" && restoredTracing.title.includes("第 1 步") && restoredTracing.outline && restoredTracing.ink === 1, "Expected tracing ink and outline to survive session restore", restoredTracing);
+  await page.click("#traceDone");
+  const postTrace = await page.evaluate(() => ({ phase: practicePhase, title: phaseTitle.textContent, ink: inkStrokes.length, hintLayer: hzEl.textContent, fallback: hzEl.classList.contains("traceFallback"), tipDisabled: tip.disabled, tipVisible: getComputedStyle(tip).visibility, show: show.textContent }));
+  assert(postTrace.phase === "postTraceRecall" && postTrace.title.includes("第 2 步") && postTrace.ink === 0 && !postTrace.hintLayer && !postTrace.fallback && postTrace.tipDisabled && postTrace.tipVisible === "hidden" && postTrace.show === "再描一遍", "Expected outline-free step-two recall", postTrace);
+  await page.evaluate(() => { saveSessionSnapshot(); restoreSession(load(SESSION_KEY, null)); });
+  await page.waitForFunction(() => pendingSessionVisual === null && practicePhase === "postTraceRecall");
+  const restoredPostTrace = await page.evaluate(() => ({ phase: practicePhase, title: phaseTitle.textContent, ink: inkStrokes.length, hintLayer: hzEl.textContent, fallback: hzEl.classList.contains("traceFallback"), tipDisabled: tip.disabled }));
+  assert(restoredPostTrace.phase === "postTraceRecall" && restoredPostTrace.title.includes("第 2 步") && restoredPostTrace.ink === 0 && !restoredPostTrace.hintLayer && !restoredPostTrace.fallback && restoredPostTrace.tipDisabled, "Expected post-trace recall to restore without teaching geometry", restoredPostTrace);
+
+  await submitStandard(page);
+  await page.click("#decisionWrong");
+  await page.waitForFunction(() => practicePhase === "tracing");
+  const teachingWrong = await page.evaluate(() => ({ events: fsrsReviewLog.filter((event) => event.attemptId === currentAttemptId).length, attempts: episodeFor(currentCardIndex()).attempts.length }));
+  assert(teachingWrong.events === 1 && teachingWrong.attempts === 1, "Expected teaching retry not to create another review", teachingWrong);
+  await page.evaluate(() => { inkStrokes = [mediansToCanvas(curMedians)[0]]; tracedThisCard = true; redrawInk(); updateInkControls(); });
+  await page.click("#traceDone");
+  await submitStandard(page);
+  await page.click("#decisionCorrect");
+  await page.waitForTimeout(1500);
+  const afterTeaching = await page.evaluate(() => ({ kind: currentAttemptKind, phase: practicePhase, ratings: fsrsReviewLog.slice(-1).map((event) => event.rating), teachingComplete: Object.values(episodes)[0].teachingComplete, unresolved: unresolved.size }));
+  assert(afterTeaching.kind === "reinforcement" && afterTeaching.phase === "reinforcement" && afterTeaching.ratings.join() === "Again" && afterTeaching.teachingComplete && afterTeaching.unresolved === 1, "Expected post-trace success to remain unresolved without Good", afterTeaching);
+  await submitStandard(page);
+  await chooseCorrect(page);
+  await page.waitForTimeout(1500);
+  const teachingDone = await page.evaluate(() => ({ ratings: fsrsReviewLog.slice(-2).map((event) => event.rating), stat: roundStats[0], tutorialStored: load(TRACE_TUTORIAL_KEY, false), summary: getComputedStyle(summary).display !== "none" }));
+  assert(teachingDone.ratings.join() === "Again,Good" && teachingDone.stat.outcome === "miss" && teachingDone.stat.traced && teachingDone.stat.independentlyRecovered && teachingDone.tutorialStored && teachingDone.summary, "Expected later independent recovery to graduate the don't-know episode", teachingDone);
+
+  await page.evaluate(() => { clearSessionSnapshot(); startFocus([CARDS.findIndex((card) => card.target === "疑")]); });
+  await waitForWriter(page);
+  await page.evaluate(() => { shownStrokes = 1; groupIdx = 1; hintEverUsed = true; hintsUsedThisCard = 1; inkStrokes = mediansToCanvas(curMedians.slice(1)); redrawInk(); revealAnswer(); const s = load(SESSION_KEY, null); s.startedDate = shiftDay(today(), -1); save(SESSION_KEY, s); });
+  const frozenBefore = await page.evaluate(() => JSON.stringify(submissionSnapshot));
+  await page.reload({ waitUntil: "networkidle" });
+  const resumable = await page.evaluate(() => resumableSession());
+  assert(resumable && resumable.version === 2 && resumable.startedDate !== await page.evaluate(() => today()), "Expected cross-midnight session to remain resumable", resumable);
+  await page.evaluate((session) => restoreSession(session), resumable);
+  await page.waitForFunction(() => getComputedStyle(reveal).display !== "none" && submissionSnapshot);
+  const restored = await page.evaluate(() => ({ frozen: JSON.stringify(submissionSnapshot), phase: practicePhase, hintEverUsed, eventCount: fsrsReviewLog.length, history: history.state && history.state.shiziView }));
+  assert(restored.frozen === frozenBefore && restored.phase === "revealDecision" && restored.hintEverUsed && restored.history === "practice", "Expected exact reveal snapshot and practice history restoration", restored);
+
+  await page.evaluate(() => history.back());
+  await page.waitForFunction(() => document.getElementById("exitSheet").classList.contains("open"));
+  const swipeOpen = await page.evaluate(() => ({ history: history.state && history.state.shiziView, phase: practicePhase, frozen: JSON.stringify(submissionSnapshot) }));
+  assert(swipeOpen.history === "practice" && swipeOpen.phase === "revealDecision" && swipeOpen.frozen === frozenBefore, "Expected swipe guard to preserve practice state", swipeOpen);
+  await page.click("#exitCancel");
+  const cancelled = await page.evaluate(() => ({ open: exitSheet.classList.contains("open"), history: history.state && history.state.shiziView, frozen: JSON.stringify(submissionSnapshot) }));
+  assert(!cancelled.open && cancelled.history === "practice" && cancelled.frozen === frozenBefore, "Expected swipe cancellation without another history layer", cancelled);
+  await page.click("#exitPractice");
+  await page.click("#exitConfirm");
+  const exited = await page.evaluate(() => ({ home: getComputedStyle(home).display !== "none", session: load(SESSION_KEY, null), armed: practiceHistoryArmed }));
+  assert(exited.home && exited.session && exited.session.version === 2 && !exited.armed, "Expected X exit to save v2 session and return home", exited);
+
+  const backup = await page.evaluate(() => {
+    const payload = JSON.parse(backupPayload());
+    localStorage.setItem("shizi.unknown.verify", "keep-local");
+    const restoredResult = restoreBackupPayload(payload, { skipConfirm: true, reload: false });
+    const result = { keys: Object.keys(payload.data), sessionVersion: JSON.parse(payload.data[SESSION_KEY]).version, fsrsLog: !!payload.data[FSRS_LOG_KEY], tutorial: payload.data[TRACE_TUTORIAL_KEY], restoredKeys: restoredResult.keys, unknown: localStorage.getItem("shizi.unknown.verify") };
+    localStorage.removeItem("shizi.unknown.verify"); return result;
   });
-  if (!summary.visible || !summary.sheetVisible || !summary.lead.includes("还没拾到") || summary.tiles.length !== 3 || !summary.pocketVisible || !summary.pocketTitle.includes("2") || summary.tuneButtons.length !== 4 || summary.stop !== "回首页") {
-    throw new Error(`Expected result sheet with pocket review and round feedback, got ${JSON.stringify(summary)}`);
-  }
-  // 首个完成日 = 累计第 1 天里程碑：结算页出现「见字如晤」庆祝行，且只记录一次
-  if (!summary.milestoneVisible || !summary.milestoneText.includes("见字如晤") || summary.totalDays !== 1 || summary.milestonesShown.join(",") !== "1"
-    || summary.milestoneHaptic !== "milestone" || summary.milestoneEvents.join(",") !== "milestone"
-    || summary.completedRoundHaptic !== "action" || summary.completedRoundEvents.join(",") !== "action") {
-    throw new Error(`Expected day-1 milestone celebration on first completed day, got ${JSON.stringify(summary)}`);
-  }
-  await page.click('#roundTune [data-round-feedback="easy"]');
-  const tuningCheck = await page.evaluate(() => ({
-    offset: tuning.offset,
-    last: tuning.lastRoundFeedback,
-    active: document.querySelector('#roundTune [data-round-feedback="easy"]').classList.contains("active"),
-    disabled: Array.from(document.querySelectorAll("#roundTune [data-round-feedback]")).every((node) => node.disabled),
-  }));
-  if (tuningCheck.offset <= 0 || tuningCheck.last !== "easy" || !tuningCheck.active || !tuningCheck.disabled) {
-    throw new Error(`Expected round-level feedback to tune future difficulty, got ${JSON.stringify(tuningCheck)}`);
-  }
-  await page.click("#sumTiles .sumTile.miss");
-  await page.waitForFunction(() => activeMode === "focus" && batch.length > 0 && getComputedStyle(document.getElementById("card")).display !== "none");
-  const focus = await page.evaluate(() => ({ activeMode, first: cur.target }));
-  if (focus.activeMode !== "focus" || focus.first !== "器") {
-    throw new Error(`Expected tapping weak result character to start focused practice, got ${JSON.stringify(focus)}`);
-  }
-
-  await page.evaluate(() => renderMe());
-  const me = await page.evaluate(() => ({
-    visible: getComputedStyle(document.getElementById("mePanel")).display !== "none",
-    seen: document.getElementById("seenStat").textContent,
-    risk: document.getElementById("riskStat").textContent,
-    advice: document.getElementById("meAdvice").textContent,
-    diagnosisEntry: document.getElementById("openProfile").textContent.replace(/\s+/g, ""),
-    prefButtons: Array.from(document.querySelectorAll("#prefBox button")).map((node) => node.textContent),
-    internalHidden: getComputedStyle(document.getElementById("internalTools")).display === "none",
-    toolsState: document.getElementById("toolsState").textContent,
-    devHidden: getComputedStyle(document.getElementById("devTools")).display === "none",
-    devTextVisible: document.body.innerText.includes("题库质检") || document.body.innerText.includes("实验数据"),
-    activeTab: document.querySelector(".foot .tab.active")?.id,
-  }));
-  if (!me.visible || Number(me.seen) < 3 || Number(me.risk) < 2 || !me.advice || !me.diagnosisEntry.includes("卡点分析") || me.prefButtons.length !== 3 || !me.internalHidden || me.toolsState !== "展开" || !me.devHidden || me.devTextVisible || me.activeTab !== "tabMe") {
-    throw new Error(`Expected My page to summarize memory model, got ${JSON.stringify(me)}`);
-  }
-  await page.click("#toolsToggle");
-  const toolsCheck = await page.evaluate(() => ({
-    visible: getComputedStyle(document.getElementById("internalTools")).display !== "none",
-    state: document.getElementById("toolsState").textContent,
-    rows: Array.from(document.querySelectorAll("#internalTools .meRow")).map((node) => node.textContent.replace(/\s+/g, "")),
-  }));
-  if (!toolsCheck.visible || toolsCheck.state !== "收起" || toolsCheck.rows.length !== 3 || !toolsCheck.rows[0].includes("导出备份") || toolsCheck.rows.some((row) => row.includes("题库质检") || row.includes("实验数据"))) {
-    throw new Error(`Expected data management to hide developer-only tools, got ${JSON.stringify(toolsCheck)}`);
-  }
-  await page.click("#openProfile");
-  const profile = await page.evaluate(() => ({
-    visible: getComputedStyle(document.getElementById("profilePanel")).display !== "none",
-    footHidden: getComputedStyle(document.getElementById("foot")).display === "none",
-    metrics: document.querySelectorAll("#profileSummary .profileMetric").length,
-    hero: document.querySelector("#profileSummary .profileHero")?.textContent.replace(/\s+/g, ""),
-    topics: document.querySelectorAll("#profileTopics .profileRow").length,
-    levels: document.querySelectorAll("#profileLevels .profileRow").length,
-    chars: document.querySelectorAll("#profileChars [data-profile-char]").length,
-  }));
-  if (!profile.visible || !profile.footHidden || profile.metrics !== 4 || !profile.hero.includes("今日状态") || !profile.hero.includes("马上再拾") || profile.topics < 1 || profile.levels < 1 || profile.chars < 1) {
-    throw new Error(`Expected profile drilldown to be reachable from My page, got ${JSON.stringify(profile)}`);
-  }
-
-  await page.goto(appUrlWith({ dev: "1" }), { waitUntil: "networkidle" });
-  await page.evaluate(() => renderMe());
-  const devTools = await page.evaluate(() => ({
-    devVisible: getComputedStyle(document.getElementById("devTools")).display !== "none",
-    rows: Array.from(document.querySelectorAll("#devTools .meRow")).map((node) => node.textContent.replace(/\s+/g, "")),
-  }));
-  if (!devTools.devVisible || devTools.rows.length !== 2 || !devTools.rows[0].includes("题库质检") || !devTools.rows[1].includes("实验数据")) {
-    throw new Error(`Expected ?dev=1 to expose developer tools only, got ${JSON.stringify(devTools)}`);
-  }
-  await page.click("#dataLink");
-  const devData = await page.evaluate(() => ({
-    visible: getComputedStyle(document.getElementById("dataBox")).display !== "none",
-    text: document.getElementById("dataBox").textContent.replace(/\s+/g, ""),
-  }));
-  if (!devData.visible || !devData.text.includes("实验用") || !devData.text.includes("难度校准")) {
-    throw new Error(`Expected dev experiment data panel to work, got ${JSON.stringify(devData)}`);
-  }
-  await page.click("#auditLink");
-  const devAudit = await page.evaluate(() => ({
-    visible: getComputedStyle(document.getElementById("auditPanel")).display !== "none",
-    title: document.querySelector("#auditPanel h2")?.textContent,
-    metrics: document.querySelectorAll("#auditSummary .auditMetric").length,
-    batchRows: document.querySelectorAll("#auditBatch .auditRow").length,
-    sampleRows: document.querySelectorAll("#auditSample .auditRow").length,
-  }));
-  if (!devAudit.visible || devAudit.title !== "题库质检" || devAudit.metrics !== 3 || devAudit.batchRows < 1 || devAudit.sampleRows < 1) {
-    throw new Error(`Expected dev audit panel to render, got ${JSON.stringify(devAudit)}`);
-  }
-  await page.click("#closeAudit");
-
-  const algorithm = await page.evaluate(() => {
-    const delays = {
-      missFirst: delayFor("miss", 0, 34),
-      missRepeat: delayFor("miss", 1, 34),
-      hintedFirst: delayFor("hinted", 0, 42),
-      slowFirst: delayFor("slow", 1, 54),
-      fastMature: delayFor("fast", 3, 82),
-    };
-    const balancedPool = withTemporaryPreference("balanced", () => newPool(false));
-    const challengePool = withTemporaryPreference("challenge", () => newPool(false));
-    batch = [0]; pos = 0; cur = CARDS[0]; hintsUsedThisCard = 0;
-    showRevealState({ status: "bad", mode: "holistic", failed: [0], missing: 1 }, null);
-    const badReveal = {
-      copy: document.getElementById("askLine").textContent,
-      suggestions: document.querySelectorAll("#stampRow .suggest").length,
-    };
-    showRevealState({ status: "ok", mode: "exact", failed: [], missing: 0 }, null);
-    const okReveal = {
-      copy: document.getElementById("askLine").textContent,
-      suggestions: document.querySelectorAll("#stampRow .suggest").length,
-    };
-    return {
-      delays,
-      balancedFallback: balancedPool.filter((idx) => contextSource(idx) === "fallback").length,
-      balancedTertiary: balancedPool.filter((idx) => normLevel(idx) === "三级").length,
-      challengeTertiary: challengePool.filter((idx) => normLevel(idx) === "三级").length,
-      verdictCopy: {
-        none: verdictShort(null),
-        ok: verdictShort({ status: "ok", mode: "exact", failed: [], missing: 0 }),
-        missing: verdictShort({ status: "bad", mode: "holistic", failed: [], missing: 1 }),
-      },
-      verdictSuggestion: {
-        none: suggestedOutcomeForVerdict(null),
-        ok: suggestedOutcomeForVerdict({ status: "ok" }),
-        bad: suggestedOutcomeForVerdict({ status: "bad", failed: [0], missing: 0 }),
-      },
-      revealPresentation: { bad: badReveal, ok: okReveal, paintsFailedInk: revealAnswer.toString().includes("paintInkStrokes") },
-      abilityLabels: [...new Set([48, 62, 83].map((d) => {
-        const idx = CARDS.findIndex((card) => card.d >= d);
-        return idx >= 0 ? abilityLevel(idx) : "";
-      }))],
-    };
-  });
-  if (algorithm.delays.missFirst !== 0 || !(algorithm.delays.missRepeat > algorithm.delays.missFirst) || !(algorithm.delays.hintedFirst < algorithm.delays.slowFirst) || !(algorithm.delays.slowFirst < algorithm.delays.fastMature) || algorithm.balancedFallback !== 0 || algorithm.balancedTertiary !== 0 || algorithm.challengeTertiary <= 0) {
-    throw new Error(`Expected review scheduling and pool filters to remain intact, got ${JSON.stringify(algorithm)}`);
-  }
-  if (!algorithm.verdictCopy.ok.includes("系统建议") || algorithm.verdictCopy.ok.includes("机器") || !algorithm.verdictCopy.none.includes("不替你判") || algorithm.verdictSuggestion.ok !== "fast" || algorithm.verdictSuggestion.bad !== "slow") {
-    throw new Error(`Expected auto-check copy to behave as assistant suggestion, got ${JSON.stringify(algorithm.verdictCopy)}`);
-  }
-  if (algorithm.verdictCopy.missing !== "系统建议：和右边对照一下，以你自己的判断为准。"
-    || algorithm.revealPresentation.bad.suggestions !== 0 || !algorithm.revealPresentation.bad.copy.includes("自己的判断")
-    || algorithm.revealPresentation.ok.suggestions !== 1 || !algorithm.revealPresentation.ok.copy.includes("笔画大致对上")
-    || algorithm.revealPresentation.paintsFailedInk) {
-    throw new Error(`Expected auto-check UI to praise only and never mark negative strokes, got ${JSON.stringify(algorithm.revealPresentation)}`);
-  }
+  assert(backup.keys.includes(SESSION_STORAGE_KEY) && backup.sessionVersion === 2 && backup.fsrsLog && backup.tutorial === "true" && backup.restoredKeys.includes(SESSION_STORAGE_KEY) && backup.unknown === "keep-local", "Expected session/FSRS/tutorial backup round trip with allowlist isolation", backup);
 
   const backupCoverage = await page.evaluate(() => {
-    const excluded = new Set([SESSION_KEY, "shizi.nativeSmoke.v1"]);
-    const storedKeys = Array.from({ length: localStorage.length }, (_, i) => localStorage.key(i)).filter(Boolean);
-    return storedKeys.filter((key) => key.startsWith("shizi.") && !BACKUP_KEYS.includes(key) && !excluded.has(key));
+    const excluded = new Set(["shizi.nativeSmoke.v1"]);
+    return Object.keys(localStorage).filter((key) => key.startsWith("shizi.") && !BACKUP_KEYS.includes(key) && !excluded.has(key));
   });
-  if (backupCoverage.length) {
-    throw new Error(`Unregistered shizi.* keys (add to BACKUP_KEYS or exclusions): ${backupCoverage.join(", ")}`);
-  }
+  assert(backupCoverage.length === 0, "Expected every persistent shizi key to be backed up or explicitly excluded", backupCoverage);
 
-  await page.waitForTimeout(500);
+  await page.setViewportSize({ width: 320, height: 620 });
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.evaluate(() => { const s = resumableSession(); if (s) restoreSession(s); });
+  await page.waitForFunction(() => getComputedStyle(reveal).display !== "none");
+  const compact = await page.evaluate(() => {
+    const boxes = Array.from(document.querySelectorAll(".cmpBox")).map((node) => node.getBoundingClientRect());
+    const cardRect = card.getBoundingClientRect(); return { widths: boxes.map((box) => box.width), within: boxes.every((box) => box.left >= cardRect.left && box.right <= cardRect.right), actions: decisionRow.getBoundingClientRect().bottom <= innerHeight + 1 };
+  });
+  assert(compact.widths.every((width) => width <= 138.5) && compact.within && compact.actions, "Expected dark small-screen comparison layout to fit", compact);
   await page.screenshot({ path: screenshotPath, fullPage: true });
-  if (pageErrors.length) {
-    throw new Error(`Browser reported errors: ${pageErrors.join(" | ")}`);
-  }
-  console.log(JSON.stringify({ initial, streakMigration, practice, adaptive, sameDayRecovery, home, homeRecent, shortRound, calibrationFocus, actionStates, actionStackFlow, hintStateFlow, animationGuards, directExhaustedTrace, traceBefore, traceReady, stampHold, stampHoldElapsed, traced, undoLayout, undoShortLayout, reveal, skipStampHold, stamped, add, backupPolicy, backupCoverage, bookCollapsed, book, review, summary, tuningCheck, focus, me, profile, devTools, devData, devAudit, algorithm, screenshotPath }, null, 2));
+
+  assert(pageErrors.length === 0, "Browser console/page errors", pageErrors);
   await browser.close();
-})().catch(async (err) => {
-  console.error(err);
-  process.exit(1);
+  console.log(`Verified FSRS-6 dual-loop practice, migration, persistence, backup, history, and ${baseline.cards} cards.`);
+})().catch(async (error) => {
+  console.error(error);
+  if (browser) await browser.close();
+  process.exitCode = 1;
 });

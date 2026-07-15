@@ -30,6 +30,7 @@ test -d "$APP" || { echo "App bundle not found: $APP" >&2; exit 66; }
 test -f "${WEB}/index.html" || { echo "Missing Web/index.html" >&2; exit 65; }
 test -f "${WEB}/deck-data.js" || { echo "Missing Web/deck-data.js" >&2; exit 65; }
 test -f "${WEB}/hanzi-writer.min.js" || { echo "Missing Web/hanzi-writer.min.js" >&2; exit 65; }
+test -f "${WEB}/fsrs6.min.js" || { echo "Missing Web/fsrs6.min.js" >&2; exit 65; }
 test -f "${WEB}/manifest.webmanifest" || { echo "Missing Web/manifest.webmanifest" >&2; exit 65; }
 test -d "${WEB}/data" || { echo "Missing Web/data" >&2; exit 65; }
 test -f "${APP}/PrivacyInfo.xcprivacy" || { echo "Missing PrivacyInfo.xcprivacy" >&2; exit 65; }

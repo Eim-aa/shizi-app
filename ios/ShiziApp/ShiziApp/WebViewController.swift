@@ -45,7 +45,7 @@ final class WebViewController: UIViewController {
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.navigationDelegate = self
         webView.uiDelegate = self
-        webView.allowsBackForwardNavigationGestures = false
+        webView.allowsBackForwardNavigationGestures = true
         webView.isOpaque = false
         let paper = UIColor { trait in
             trait.userInterfaceStyle == .dark
@@ -174,7 +174,6 @@ final class WebViewController: UIViewController {
               backupHasCustom: false,
               backupHasMemory: false,
               backupHasReminder: false,
-              backupExcludesSession: false,
               backupExcludesSmokeKey: false,
               backupHasMeta: false,
               backupRestoreApplied: false,
@@ -182,7 +181,6 @@ final class WebViewController: UIViewController {
               backupRestoreAdded: false,
               backupRestoreCustom: false,
               backupRestoreMemory: false,
-              backupRestoreClearsSession: false,
               backupRestorePreservesSmokeKey: false,
               backupRestoreRejectsInvalid: false,
               nativeBridgeAvailable: false,
@@ -213,9 +211,7 @@ final class WebViewController: UIViewController {
               showEnabled: false,
               doneEnabled: false,
               revealVisible: false,
-              stampVisible: false,
               noNextButton: false,
-              functionalStampLabels: false,
               immediateAdvanced: false,
               undoBarFollowed: false,
               undoRollback: false,
@@ -224,7 +220,6 @@ final class WebViewController: UIViewController {
               traceModeVisible: false,
               traceRequiresInk: false,
               traceReadyAfterInk: false,
-              traceRecorded: false,
               activityRecorded: false,
               sessionSnapshotStored: false,
               resumeHomeState: false,
@@ -235,8 +230,6 @@ final class WebViewController: UIViewController {
               hapticStampRecorded: false,
               hapticUndoRecorded: false,
               hapticSelectTracingRecorded: false,
-              hapticTraceStampOnly: false,
-              hapticRoundActionRecorded: false,
               outcome: '',
               posLabelBefore: '',
               posLabelAfter: ''
@@ -364,6 +357,7 @@ final class WebViewController: UIViewController {
               result.dataFlow.customCardIndexed = Number.isInteger(indexForSmokeChar) && indexForSmokeChar >= 0;
               result.dataFlow.memoryHasAddedChar = !!memoryForSmokeChar && memoryForSmokeChar.target === smokeChar && memoryForSmokeChar.lastOutcome === 'miss' && Number(memoryForSmokeChar.seen || 0) > 0;
 
+              localStorage.setItem(SESSION_KEY, JSON.stringify({ version: 2, smoke: true }));
               const backup = JSON.parse(backupPayload());
               const backupData = backup && backup.data ? backup.data : {};
               result.dataFlow.backupParses = true;
@@ -372,7 +366,9 @@ final class WebViewController: UIViewController {
               result.dataFlow.backupHasCustom = BASE_BY_CHAR[smokeChar] != null || (Object.prototype.hasOwnProperty.call(backupData, CUSTOM_KEY) && String(backupData[CUSTOM_KEY]).includes(smokeChar));
               result.dataFlow.backupHasMemory = Object.prototype.hasOwnProperty.call(backupData, MEMORY_KEY) && String(backupData[MEMORY_KEY]).includes(smokeChar);
               result.dataFlow.backupHasReminder = Object.prototype.hasOwnProperty.call(backupData, REMINDER_KEY);
-              result.dataFlow.backupExcludesSession = !Object.prototype.hasOwnProperty.call(backupData, SESSION_KEY);
+              result.dataFlow.backupHasSessionV2 = Object.prototype.hasOwnProperty.call(backupData, SESSION_KEY) && JSON.parse(backupData[SESSION_KEY]).version === 2;
+              result.dataFlow.backupHasFSRSLog = Object.prototype.hasOwnProperty.call(backupData, FSRS_LOG_KEY);
+              result.dataFlow.backupHasTraceTutorial = Object.prototype.hasOwnProperty.call(backupData, TRACE_TUTORIAL_KEY);
               result.dataFlow.backupExcludesSmokeKey = !Object.prototype.hasOwnProperty.call(backupData, 'shizi.nativeSmoke.v1');
               result.dataFlow.backupHasMeta = Object.prototype.hasOwnProperty.call(backupData, BACKUP_META_KEY);
               if (typeof restoreBackupPayload === 'function') {
@@ -380,10 +376,8 @@ final class WebViewController: UIViewController {
                 localStorage.setItem(CUSTOM_KEY, JSON.stringify([]));
                 localStorage.setItem(MEMORY_KEY, JSON.stringify({}));
                 localStorage.setItem(SESSION_KEY, JSON.stringify({ current: true }));
-                const legacyBackup = JSON.parse(JSON.stringify(backup));
-                legacyBackup.data[SESSION_KEY] = JSON.stringify({ legacy: true });
                 const smokeValueBeforeRestore = localStorage.getItem('shizi.nativeSmoke.v1');
-                const restoreResult = restoreBackupPayload(JSON.stringify(legacyBackup), { skipConfirm: true, reload: false });
+                const restoreResult = restoreBackupPayload(JSON.stringify(backup), { skipConfirm: true, reload: false });
                 const restoredAdded = JSON.parse(localStorage.getItem(ADDED_KEY) || '[]');
                 const restoredCustom = JSON.parse(localStorage.getItem(CUSTOM_KEY) || '[]');
                 result.dataFlow.backupRestoreApplied = !!restoreResult && restoreResult.applied === true;
@@ -391,7 +385,7 @@ final class WebViewController: UIViewController {
                 result.dataFlow.backupRestoreAdded = Array.isArray(restoredAdded) && restoredAdded.includes(smokeChar);
                 result.dataFlow.backupRestoreCustom = BASE_BY_CHAR[smokeChar] != null || (Array.isArray(restoredCustom) && restoredCustom.includes(smokeChar));
                 result.dataFlow.backupRestoreMemory = String(localStorage.getItem(MEMORY_KEY) || '').includes(smokeChar);
-                result.dataFlow.backupRestoreClearsSession = localStorage.getItem(SESSION_KEY) === null;
+                result.dataFlow.backupRestorePreservesSessionV2 = JSON.parse(localStorage.getItem(SESSION_KEY) || '{}').version === 2;
                 result.dataFlow.backupRestorePreservesSmokeKey = localStorage.getItem('shizi.nativeSmoke.v1') === smokeValueBeforeRestore;
                 try {
                   restoreBackupPayload({ app: 'wrong-app', data: { 'shizi.bad': '1' } }, { skipConfirm: true, reload: false });
@@ -408,7 +402,10 @@ final class WebViewController: UIViewController {
 
             if (typeof startMode === 'function' && typeof revealAnswer === 'function' && typeof pickStamp === 'function') {
               if (typeof clearSessionSnapshot === 'function') clearSessionSnapshot();
-              startMode('new');
+              Object.values(memory).forEach(item => { if (item) item.queuedFront = false; });
+              saveMemory();
+              const smokeTargets = indexesForChars(['器', '疑', '强']);
+              startFocus(smokeTargets);
               await waitFor(() => Array.isArray(batch) && batch.length > 2 && visible('card'));
               await waitFor(() => !document.getElementById('show').disabled && !document.getElementById('done').disabled);
               result.practiceFlow.started = true;
@@ -514,74 +511,84 @@ final class WebViewController: UIViewController {
                 await new Promise(resolve => setTimeout(resolve, 340));
               }
 
-              if (document.getElementById('tip').disabled) {
-                writer = { animateStroke: async () => {} };
-                groups = [1]; groupIdx = 0; shownStrokes = 0; totalStrokes = 1;
-                document.getElementById('tip').disabled = false;
-                updateTip();
-              }
-              if (typeof document.getElementById('tip').onclick === 'function') {
-                hapticDebug.last = null;
-                await document.getElementById('tip').onclick();
-                result.practiceFlow.hapticSelectTipRecorded = hapticDebug.last === 'select';
-              }
-              const firstIndex = batch[pos];
+              await waitFor(() => Array.isArray(curMedians) && curMedians.length > 0);
+              hapticDebug.last = null;
+              await document.getElementById('tip').onclick();
+              result.practiceFlow.hapticSelectTipRecorded = hapticDebug.last === 'select';
+              const firstIndex = currentCardIndex();
+              const firstAttempt = currentAttemptId;
               const firstKey = cardKey(firstIndex);
               const firstMemoryBefore = JSON.stringify(memory[firstKey] || null);
               const firstStatusBefore = status[firstIndex];
               const activityBefore = todayStampCount();
-              const firstNextIndex = batch[pos + 1];
+              const attemptsBefore = dailyActivity().attempts;
+              const fsrsBefore = fsrsReviewLog.length;
+              const firstNextIndex = baseTargets[1];
               const nextMemoryBefore = JSON.stringify(memory[cardKey(firstNextIndex)] || null);
-              revealAnswer(true);
+              inkStrokes = mediansToCanvas(curMedians.slice(shownStrokes));
+              redrawInk();
+              unlockGradeActions();
+              if (!revealAnswer()) {
+                throw new Error(`Reveal probe rejected: revealed=${revealed}, animating=${animating}, cooldown=${actionCooldownUntil}, ink=${inkStrokes.length}`);
+              }
               await waitFor(() => visible('reveal'));
               result.practiceFlow.hapticActionRevealRecorded = hapticDebug.last === 'action';
               result.practiceFlow.revealVisible = true;
-              result.practiceFlow.stampVisible = visible('stampRow');
-              result.practiceFlow.functionalStampLabels = document.getElementById('fast').textContent.includes('会写');
+              result.practiceFlow.decisionVisible = visible('decisionRow');
+              result.practiceFlow.functionalDecisionLabels = document.getElementById('decisionCorrect').textContent.includes('这次写对了') && document.getElementById('decisionWrong').textContent.includes('这次写错了');
+              result.practiceFlow.submissionSnapshotComplete = submissionSnapshot.hintStrokeIds.length > 0 && submissionSnapshot.compositeGeometry.length === submissionSnapshot.hintStrokes.length + submissionSnapshot.inkStrokes.length && submissionSnapshot.lastVerdict.status === 'ok';
 
-              pickStamp('fast');
-              await waitFor(() => pos === 1 && visible('card'));
-              result.practiceFlow.immediateAdvanced = true;
-              result.practiceFlow.undoBarFollowed = visible('undoBar');
+              decideSubmission(true);
+              await waitFor(() => stamped && visible('stampedToast'));
+              result.practiceFlow.feedbackHeld = currentAttemptId === firstAttempt && document.getElementById('stampedToast').textContent.includes('已加入本组巩固');
               result.practiceFlow.reminderSyncAfterStamp = !!(reminderDebug.lastSync && reminderDebug.lastSync.type === 'syncReminder' && reminderDebug.lastSync.practicedToday === true);
               result.practiceFlow.hapticStampRecorded = hapticDebug.last === 'stamp';
-              result.practiceFlow.outcome = roundStats.length ? roundStats[roundStats.length - 1].outcome : '';
-              result.practiceFlow.posLabelAfter = document.getElementById('posLabel').textContent;
+              result.practiceFlow.outcome = roundStats.length ? roundStats[0].outcome : '';
+              const firstFSRSEvents = fsrsReviewLog.slice(fsrsBefore);
+              result.practiceFlow.fsrsAgainOnly = firstFSRSEvents.length === 1 && firstFSRSEvents[0].rating === 'Again' && firstFSRSEvents[0].reason === 'hinted';
               reopenStampChoices();
-              await waitFor(() => pos === 0 && visible('reveal'));
-              result.practiceFlow.undoRollback = roundStats.length === 0 && JSON.stringify(memory[firstKey] || null) === firstMemoryBefore && status[firstIndex] === firstStatusBefore;
-              result.practiceFlow.undoActivityRollback = todayStampCount() === activityBefore;
+              await waitFor(() => visible('reveal') && practicePhase === 'revealDecision');
+              result.practiceFlow.undoRollback = roundStats.length === 0 && fsrsReviewLog.length === fsrsBefore && JSON.stringify(memory[firstKey] || null) === firstMemoryBefore && status[firstIndex] === firstStatusBefore;
+              result.practiceFlow.undoActivityRollback = todayStampCount() === activityBefore && dailyActivity().attempts === attemptsBefore;
               result.practiceFlow.hapticUndoRecorded = hapticDebug.last === 'undo';
               result.practiceFlow.nextCardUntouched = JSON.stringify(memory[cardKey(firstNextIndex)] || null) === nextMemoryBefore;
 
-              pickStamp('fast');
-              await waitFor(() => pos === 1 && visible('card'));
-              await waitFor(() => !document.getElementById('show').disabled);
-              commitUndoWindow();
-              showTracing();
-              await waitFor(() => visible('traceActions'));
+              decideSubmission(true);
+              await waitFor(() => currentAttemptId !== firstAttempt && visible('card'));
+              result.practiceFlow.immediateAdvanced = true;
+              result.practiceFlow.undoBarFollowed = visible('undoBar');
+              result.practiceFlow.posLabelAfter = document.getElementById('posLabel').textContent;
+              await waitFor(() => Array.isArray(curMedians) && curMedians.length > 0 && !document.getElementById('show').disabled);
+              traceTutorialShown = false;
+              save(TRACE_TUTORIAL_KEY, false);
+              declareDontKnow();
+              await waitFor(() => stamped && visible('stampedToast'));
+              const eventsBeforeTeaching = fsrsReviewLog.length;
+              await waitFor(() => practicePhase === 'traceTutorial');
               result.practiceFlow.hapticSelectTracingRecorded = hapticDebug.last === 'select';
+              result.practiceFlow.traceTutorialVisible = getComputedStyle(document.getElementById('traceTutorial')).display !== 'none';
+              document.getElementById('traceTutorialStart').click();
+              await waitFor(() => practicePhase === 'tracing' && visible('traceActions'));
               result.practiceFlow.traceModeVisible = visible('traceActions') && !visible('actions');
-              result.practiceFlow.traceRequiresInk = document.getElementById('traceDone').disabled && !document.getElementById('traceMiss').disabled;
+              result.practiceFlow.traceRequiresInk = document.getElementById('traceDone').disabled;
               if (dispatchStroke) {
                 dispatchStroke();
                 await new Promise(resolve => setTimeout(resolve, 340));
               }
               result.practiceFlow.traceReadyAfterInk = tracedThisCard === true && !document.getElementById('traceDone').disabled;
-              hapticDebug.events = [];
-              finishTracing('hinted');
-              await waitFor(() => pos === 2 && visible('card'));
-              result.practiceFlow.hapticTraceStampOnly = hapticDebug.last === 'stamp' && hapticDebug.events.join(',') === 'stamp';
-              const tracedStat = roundStats[roundStats.length - 1] || {};
-              const tracedMemory = memory[cardKey(tracedStat.idx)] || {};
-              result.practiceFlow.traceRecorded = tracedStat.outcome === 'hinted' && tracedStat.traced === true && tracedMemory.traced === true;
-              result.practiceFlow.activityRecorded = todayStampCount() === activityBefore + 2 && activity.practiceDays.includes(today());
+              finishTracing();
+              await waitFor(() => practicePhase === 'postTraceRecall');
+              result.practiceFlow.postTraceRecall = document.getElementById('phaseTitle').textContent.includes('第 2 步') && document.getElementById('tip').disabled && document.getElementById('show').textContent === '再描一遍';
+              result.practiceFlow.hapticTraceNoReview = fsrsReviewLog.length === eventsBeforeTeaching;
+              const practiceDay = dailyActivity();
+              result.practiceFlow.activityRecorded = todayStampCount() >= activityBefore && practiceDay.attempts === attemptsBefore + 2 && practiceDay.targetKeys.includes(firstKey) && practiceDay.targetKeys.includes(cardKey(currentCardIndex())) && activity.practiceDays.includes(today());
               const storedSession = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null');
-              result.practiceFlow.sessionSnapshotStored = !!storedSession && storedSession.pos === 2 && storedSession.roundStats.length === 2;
+              result.practiceFlow.sessionSnapshotStored = !!storedSession && storedSession.version === 2 && storedSession.practicePhase === 'postTraceRecall' && storedSession.unresolved.length === 2;
+              result.practiceFlow.historyGuardArmed = practiceHistoryArmed === true && history.state && history.state.shiziView === 'practice';
 
               if (typeof openExitSheet === 'function' && typeof exitCurrentRound === 'function') {
                 result.exitFlow.roundStatsBeforeExit = roundStats.length;
-                result.exitFlow.positionBeforeExit = pos;
+                result.exitFlow.positionBeforeExit = baseCursor;
                 openExitSheet();
                 await waitFor(() => document.getElementById('exitSheet').classList.contains('open'));
                 result.exitFlow.sheetOpened = true;
@@ -593,18 +600,15 @@ final class WebViewController: UIViewController {
                 result.exitFlow.roundStatsAfterExit = roundStats.length;
                 result.exitFlow.roundStatsUnchanged = result.exitFlow.roundStatsAfterExit === result.exitFlow.roundStatsBeforeExit;
                 const resume = resumableSession();
-                result.practiceFlow.resumeHomeState = !!resume && document.getElementById('startBtn').textContent === '续' && document.getElementById('startCap').textContent.includes('继续');
+                result.practiceFlow.resumeHomeState = !!resume && resume.version === 2 && document.getElementById('startBtn').textContent === '续';
                 restoreSession(resume);
-                await waitFor(() => visible('card') && pos === 2);
-                result.practiceFlow.resumeRestored = roundStats.length === 2 && document.getElementById('posLabel').textContent.includes('3');
+                await waitFor(() => visible('card') && practicePhase === 'postTraceRecall');
+                result.practiceFlow.resumeRestored = roundStats.length === 2 && document.getElementById('phaseTitle').textContent.includes('第 2 步');
                 openExitSheet();
                 await waitFor(() => document.getElementById('exitSheet').classList.contains('open'));
                 exitCurrentRound();
                 await waitFor(() => visible('home'));
               }
-              hapticDebug.last = null;
-              roundSummary(true);
-              result.practiceFlow.hapticRoundActionRecorded = hapticDebug.last === 'action';
             }
           } catch (error) {
             result.error = String(error && error.message ? error.message : error);

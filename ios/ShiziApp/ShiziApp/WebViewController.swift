@@ -230,6 +230,12 @@ final class WebViewController: UIViewController {
               hapticStampRecorded: false,
               hapticUndoRecorded: false,
               hapticSelectTracingRecorded: false,
+              hapticHintedSequence: [],
+              hapticUndoSequence: [],
+              hapticDontKnowSequence: [],
+              hapticTraceCompletionSequence: [],
+              hapticMilestoneSequence: [],
+              hapticOrdinaryCompletionSequence: [],
               outcome: '',
               posLabelBefore: '',
               posLabelAfter: ''
@@ -242,7 +248,13 @@ final class WebViewController: UIViewController {
               roundStatsUnchanged: false,
               roundStatsBeforeExit: -1,
               roundStatsAfterExit: -1,
-              positionBeforeExit: -1
+              positionBeforeExit: -1,
+              historyInitialLength: 0,
+              swipeCancelCount: 0,
+              historyLengthStable: false,
+              swipeCancelStatePreserved: false,
+              swipeConfirmSaved: false,
+              homeBackNoop: false
             },
             error: ''
           };
@@ -400,6 +412,64 @@ final class WebViewController: UIViewController {
               result.dataFlow.reminderSettingsRowVisible = getComputedStyle(document.getElementById('reminderSection')).display !== 'none' && getComputedStyle(document.getElementById('reminderRow')).display !== 'none';
             }
 
+            if (typeof roundSummary === 'function' && typeof markPracticeStamp === 'function') {
+              const completionState = {
+                activity: cloneObj(activity), reminder: cloneObj(reminder), tuning: cloneObj(tuning), activeMode,
+                baseTargets: baseTargets.slice(), batch: batch.slice(), baseCursor, roundStats: cloneObj(roundStats),
+                roundId, practicePhase, unresolved: [...unresolved]
+              };
+              const completionTargets = indexesForChars(['强', '器', '疑']);
+              activity = newActivity();
+              activity.inheritedStreak = 0;
+              activity.inheritedTotalDays = 0;
+              activity.daily = {};
+              activity.practiceDays = [];
+              reminder.milestonesShown = [];
+              tuning = { calibrated: true, offset: 0, contextStrict: 0, rounds: [] };
+              activeMode = 'new';
+              baseTargets = completionTargets.slice(0, 2);
+              batch = baseTargets;
+              baseCursor = baseTargets.length;
+              unresolved = new Set();
+              practicePhase = 'between';
+              roundStats = baseTargets.map(idx => ({ idx, target: CARDS[idx].target, outcome: 'fast', independentlyRecovered: false }));
+              roundId = 'native-smoke-milestone';
+              baseTargets.forEach(idx => markPracticeStamp(idx));
+              hapticDebug.events = [];
+              hapticDebug.last = null;
+              roundSummary(true);
+              result.practiceFlow.hapticMilestoneSequence = hapticDebug.events.slice();
+
+              baseTargets = completionTargets.slice(2);
+              batch = baseTargets;
+              baseCursor = baseTargets.length;
+              unresolved = new Set();
+              practicePhase = 'between';
+              roundStats = baseTargets.map(idx => ({ idx, target: CARDS[idx].target, outcome: 'fast', independentlyRecovered: false }));
+              roundId = 'native-smoke-ordinary';
+              baseTargets.forEach(idx => markPracticeStamp(idx));
+              hapticDebug.events = [];
+              hapticDebug.last = null;
+              roundSummary(true);
+              result.practiceFlow.hapticOrdinaryCompletionSequence = hapticDebug.events.slice();
+
+              activity = normalizeActivity(completionState.activity);
+              reminder = normalizeReminder(completionState.reminder);
+              tuning = completionState.tuning;
+              activeMode = completionState.activeMode;
+              baseTargets = completionState.baseTargets;
+              batch = completionState.batch;
+              baseCursor = completionState.baseCursor;
+              roundStats = completionState.roundStats;
+              roundId = completionState.roundId;
+              practicePhase = completionState.practicePhase;
+              unresolved = new Set(completionState.unresolved);
+              saveActivity();
+              saveReminder();
+              saveTuning();
+              renderHome();
+            }
+
             if (typeof startMode === 'function' && typeof revealAnswer === 'function' && typeof pickStamp === 'function') {
               if (typeof clearSessionSnapshot === 'function') clearSessionSnapshot();
               Object.values(memory).forEach(item => { if (item) item.queuedFront = false; });
@@ -512,6 +582,7 @@ final class WebViewController: UIViewController {
               }
 
               await waitFor(() => Array.isArray(curMedians) && curMedians.length > 0);
+              hapticDebug.events = [];
               hapticDebug.last = null;
               await document.getElementById('tip').onclick();
               result.practiceFlow.hapticSelectTipRecorded = hapticDebug.last === 'select';
@@ -543,14 +614,18 @@ final class WebViewController: UIViewController {
               result.practiceFlow.feedbackHeld = currentAttemptId === firstAttempt && document.getElementById('stampedToast').textContent.includes('已加入本组巩固');
               result.practiceFlow.reminderSyncAfterStamp = !!(reminderDebug.lastSync && reminderDebug.lastSync.type === 'syncReminder' && reminderDebug.lastSync.practicedToday === true);
               result.practiceFlow.hapticStampRecorded = hapticDebug.last === 'stamp';
+              result.practiceFlow.hapticHintedSequence = hapticDebug.events.slice();
               result.practiceFlow.outcome = roundStats.length ? roundStats[0].outcome : '';
               const firstFSRSEvents = fsrsReviewLog.slice(fsrsBefore);
               result.practiceFlow.fsrsAgainOnly = firstFSRSEvents.length === 1 && firstFSRSEvents[0].rating === 'Again' && firstFSRSEvents[0].reason === 'hinted';
+              hapticDebug.events = [];
+              hapticDebug.last = null;
               reopenStampChoices();
               await waitFor(() => visible('reveal') && practicePhase === 'revealDecision');
               result.practiceFlow.undoRollback = roundStats.length === 0 && fsrsReviewLog.length === fsrsBefore && JSON.stringify(memory[firstKey] || null) === firstMemoryBefore && status[firstIndex] === firstStatusBefore;
               result.practiceFlow.undoActivityRollback = todayStampCount() === activityBefore && dailyActivity().attempts === attemptsBefore;
               result.practiceFlow.hapticUndoRecorded = hapticDebug.last === 'undo';
+              result.practiceFlow.hapticUndoSequence = hapticDebug.events.slice();
               result.practiceFlow.nextCardUntouched = JSON.stringify(memory[cardKey(firstNextIndex)] || null) === nextMemoryBefore;
 
               decideSubmission(true);
@@ -561,11 +636,14 @@ final class WebViewController: UIViewController {
               await waitFor(() => Array.isArray(curMedians) && curMedians.length > 0 && !document.getElementById('show').disabled);
               traceTutorialShown = false;
               save(TRACE_TUTORIAL_KEY, false);
+              hapticDebug.events = [];
+              hapticDebug.last = null;
               declareDontKnow();
               await waitFor(() => stamped && visible('stampedToast'));
               const eventsBeforeTeaching = fsrsReviewLog.length;
               await waitFor(() => practicePhase === 'traceTutorial');
               result.practiceFlow.hapticSelectTracingRecorded = hapticDebug.last === 'select';
+              result.practiceFlow.hapticDontKnowSequence = hapticDebug.events.slice();
               result.practiceFlow.traceTutorialVisible = getComputedStyle(document.getElementById('traceTutorial')).display !== 'none';
               document.getElementById('traceTutorialStart').click();
               await waitFor(() => practicePhase === 'tracing' && visible('traceActions'));
@@ -576,8 +654,11 @@ final class WebViewController: UIViewController {
                 await new Promise(resolve => setTimeout(resolve, 340));
               }
               result.practiceFlow.traceReadyAfterInk = tracedThisCard === true && !document.getElementById('traceDone').disabled;
+              hapticDebug.events = [];
+              hapticDebug.last = null;
               finishTracing();
               await waitFor(() => practicePhase === 'postTraceRecall');
+              result.practiceFlow.hapticTraceCompletionSequence = hapticDebug.events.slice();
               result.practiceFlow.postTraceRecall = document.getElementById('phaseTitle').textContent.includes('第 2 步') && document.getElementById('tip').disabled && document.getElementById('show').textContent === '再描一遍';
               result.practiceFlow.hapticTraceNoReview = fsrsReviewLog.length === eventsBeforeTeaching;
               const practiceDay = dailyActivity();
@@ -589,17 +670,54 @@ final class WebViewController: UIViewController {
               if (typeof openExitSheet === 'function' && typeof exitCurrentRound === 'function') {
                 result.exitFlow.roundStatsBeforeExit = roundStats.length;
                 result.exitFlow.positionBeforeExit = baseCursor;
-                openExitSheet();
+                result.exitFlow.historyInitialLength = history.length;
+                const phaseBeforeSwipe = practicePhase;
+                const attemptBeforeSwipe = currentAttemptId;
+                let swipeStatePreserved = true;
+                for (let attempt = 0; attempt < 3; attempt++) {
+                  history.back();
+                  await waitFor(() => document.getElementById('exitSheet').classList.contains('open'));
+                  result.exitFlow.sheetOpened = true;
+                  const statePreserved = history.length === result.exitFlow.historyInitialLength
+                    && history.state && history.state.shiziView === 'practice'
+                    && practiceHistoryArmed === true
+                    && practicePhase === phaseBeforeSwipe
+                    && currentAttemptId === attemptBeforeSwipe
+                    && roundStats.length === result.exitFlow.roundStatsBeforeExit
+                    && pendingSwipeExit === false
+                    && restoringPracticeHistory === false;
+                  swipeStatePreserved = swipeStatePreserved && statePreserved;
+                  document.getElementById('exitCancel').click();
+                  await waitFor(() => !document.getElementById('exitSheet').classList.contains('open'));
+                  result.exitFlow.swipeCancelCount += 1;
+                }
+                result.exitFlow.historyLengthStable = history.length === result.exitFlow.historyInitialLength;
+                result.exitFlow.swipeCancelStatePreserved = swipeStatePreserved
+                  && history.state && history.state.shiziView === 'practice'
+                  && practicePhase === phaseBeforeSwipe
+                  && currentAttemptId === attemptBeforeSwipe;
+
+                history.back();
                 await waitFor(() => document.getElementById('exitSheet').classList.contains('open'));
-                result.exitFlow.sheetOpened = true;
-                exitCurrentRound();
-                await waitFor(() => visible('home'));
+                document.getElementById('exitConfirm').click();
+                await waitFor(() => visible('home') && practiceHistoryArmed === false);
+                await new Promise(resolve => setTimeout(resolve, 120));
                 result.exitFlow.returnedHome = visible('home');
                 result.exitFlow.practiceHidden = !visible('card');
                 result.exitFlow.footVisible = visible('foot');
                 result.exitFlow.roundStatsAfterExit = roundStats.length;
                 result.exitFlow.roundStatsUnchanged = result.exitFlow.roundStatsAfterExit === result.exitFlow.roundStatsBeforeExit;
                 const resume = resumableSession();
+                result.exitFlow.swipeConfirmSaved = !!resume && resume.version === 2
+                  && history.length === result.exitFlow.historyInitialLength
+                  && history.state && history.state.shiziView === 'home';
+                history.back();
+                await new Promise(resolve => setTimeout(resolve, 120));
+                result.exitFlow.homeBackNoop = visible('home')
+                  && !document.getElementById('exitSheet').classList.contains('open')
+                  && practiceHistoryArmed === false
+                  && history.length === result.exitFlow.historyInitialLength
+                  && history.state && history.state.shiziView === 'home';
                 result.practiceFlow.resumeHomeState = !!resume && resume.version === 2 && document.getElementById('startBtn').textContent === '续';
                 restoreSession(resume);
                 await waitFor(() => visible('card') && practicePhase === 'postTraceRecall');

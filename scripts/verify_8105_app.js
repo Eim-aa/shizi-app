@@ -61,6 +61,59 @@ let browser;
   await page.evaluate(() => localStorage.clear());
   await page.reload({ waitUntil: "networkidle" });
 
+  const firstRun = await page.evaluate(() => ({
+    welcome: getComputedStyle(document.getElementById("welcome")).display !== "none",
+    copy: document.getElementById("welcome").textContent.replace(/\s+/g, ""),
+    footHidden: getComputedStyle(document.getElementById("foot")).display === "none",
+    needsCalibration: needsCalibration(),
+    tabs: Array.from(document.querySelectorAll("#foot .tab")).map((node) => node.textContent.replace(/\s+/g, "")),
+  }));
+  assert(firstRun.welcome && firstRun.footHidden && firstRun.needsCalibration && firstRun.copy.includes("先拾15个字试试") && firstRun.tabs.join() === "拾练习,盒字盒,我我的", "Expected first-run calibration welcome and three-tab IA", firstRun);
+
+  const inheritedDays = await page.evaluate(() => {
+    opens = [shiftDay(today(), -3), shiftDay(today(), -2), shiftDay(today(), -1), today()]; save(OPEN_KEY, opens);
+    activity = newActivity();
+    const inherited = activity.inheritedTotalDays;
+    const before = totalPracticeDays();
+    const idx = CARDS.findIndex((card) => card.target === "器");
+    markPracticeStamp(idx);
+    const stampedOnly = totalPracticeDays();
+    const complete = (id) => {
+      baseTargets = [idx]; batch = baseTargets; baseCursor = 1; unresolved = new Set(); practicePhase = "between";
+      roundStats = [{ idx, target: "器", outcome: "fast" }]; roundId = id;
+      return markRoundComplete();
+    };
+    const firstComplete = complete("verify-inherited-1");
+    const afterFirst = totalPracticeDays();
+    const secondComplete = complete("verify-inherited-2");
+    const afterSecond = totalPracticeDays();
+    return { inherited, before, stampedOnly, firstComplete, afterFirst, secondComplete, afterSecond };
+  });
+  assert(inheritedDays.inherited === 3 && inheritedDays.before === 3 && inheritedDays.stampedOnly === 3 && inheritedDays.firstComplete && inheritedDays.secondComplete && inheritedDays.afterFirst === 4 && inheritedDays.afterSecond === 4, "Expected inherited practice days and same-day completion idempotence", inheritedDays);
+
+  const reminderBoundary = await page.evaluate(() => {
+    activity = newActivity(); activity.inheritedStreak = 0; activity.inheritedTotalDays = 0; activity.daily = {}; activity.practiceDays = [];
+    const at = (hour, minute) => { const date = new Date(); date.setHours(hour, minute, 0, 0); return date.getTime(); };
+    for (let i = 0; i < 5; i += 1) {
+      const key = shiftDay(today(), -i); activity.practiceDays.push(key);
+      activity.daily[key] = { stamps: 1, attempts: 1, targetKeys: [`verify:${i}`], completedRoundIds: [], lastStampAt: at(9, 24) };
+    }
+    activity.practiceDays.sort(); saveActivity();
+    const median = medianPracticeTime();
+    const allDays = activity.practiceDays.slice(); activity.practiceDays = allDays.slice(0, 2); const few = medianPracticeTime(); activity.practiceDays = allDays;
+    activity.practiceDays.forEach((key) => { activity.daily[key].lastStampAt = at(23, 30); }); const late = medianPracticeTime();
+    renderMe(); syncReminder();
+    return {
+      median, few, late,
+      hiddenInBrowser: getComputedStyle(reminderSection).display === "none" && getComputedStyle(reminderInvite).display === "none",
+      sync: cloneObj(reminderDebug.lastSync),
+    };
+  });
+  assert(reminderBoundary.median.hour === 9 && reminderBoundary.median.minute === 24 && reminderBoundary.few.hour === 20 && reminderBoundary.few.minute === 0 && reminderBoundary.late.hour === 22 && reminderBoundary.late.minute === 0 && reminderBoundary.hiddenInBrowser && reminderBoundary.sync.type === "syncReminder", "Expected reminder median, fallback, clamp, and browser fallback boundaries", reminderBoundary);
+
+  await page.evaluate(() => localStorage.clear());
+  await page.reload({ waitUntil: "networkidle" });
+
   const baseline = await page.evaluate(() => ({
     seed: SEED.length,
     groups: Object.keys(GROUPS).length,
@@ -162,13 +215,177 @@ let browser;
   assert(add.added && add.indexed && add.queued, "Expected add-character workflow to persist and queue new cards", add);
 
   await page.evaluate(() => {
+    status = {}; memory = {}; fsrsReviewLog = []; quality = {}; sessionDone = new Set();
+    tuning = { calibrated: true, offset: 0, contextStrict: 0, rounds: [] };
+    save(DECK_KEY, status); saveMemory(); saveFSRSLog(); saveQuality(); saveTuning(); clearSessionSnapshot();
+    addWord("强"); addWord("器"); activeMode = "new"; startRound();
+  });
+  await waitForWriter(page);
+  const queuedStart = await page.evaluate(() => ({
+    targets: baseTargets.slice(0, 2).map((idx) => CARDS[idx].target).join(""),
+    current: cur.target,
+    flags: indexesForChars(["强", "器"]).map((idx) => !!(memory[cardKey(idx)] || {}).queuedFront),
+  }));
+  assert(queuedStart.targets === "强器" && queuedStart.current === "强" && queuedStart.flags.every(Boolean), "Expected newly added characters to lead a real non-calibration round in entry order", queuedStart);
+
+  await submitStandard(page);
+  await chooseCorrect(page);
+  await page.waitForTimeout(1500);
+  const queuedSecond = await page.evaluate(() => ({ current: cur.target, firstConsumed: !(memory[cardKey(indexesForChars(["强"])[0])] || {}).queuedFront, secondQueued: !!(memory[cardKey(indexesForChars(["器"])[0])] || {}).queuedFront, undo: getComputedStyle(undoBar).display !== "none" }));
+  assert(queuedSecond.current === "器" && queuedSecond.firstConsumed && queuedSecond.secondQueued && queuedSecond.undo, "Expected first queued card to be consumed only after its stamp and leave the second next", queuedSecond);
+
+  await page.click("#undoLast");
+  await page.waitForFunction(() => practicePhase === "revealDecision" && cur.target === "强");
+  const queuedRollback = await page.evaluate(() => ({
+    current: cur.target,
+    flags: indexesForChars(["强", "器"]).map((idx) => !!(memory[cardKey(idx)] || {}).queuedFront),
+    stats: roundStats.length,
+    reviews: fsrsReviewLog.length,
+    baseCursor,
+  }));
+  assert(queuedRollback.current === "强" && queuedRollback.flags.every(Boolean) && queuedRollback.stats === 0 && queuedRollback.reviews === 0 && queuedRollback.baseCursor === 0, "Expected cross-card undo to restore queue-front flags and the ungraded position", queuedRollback);
+
+  await chooseCorrect(page);
+  await page.waitForTimeout(1500);
+  assert(await page.evaluate(() => cur.target === "器"), "Expected the second queued card after regrading the first");
+  await submitStandard(page);
+  await chooseCorrect(page);
+  await page.waitForTimeout(1500);
+  const queuedConsumed = await page.evaluate(() => ({
+    flags: indexesForChars(["强", "器"]).map((idx) => !!(memory[cardKey(idx)] || {}).queuedFront),
+    targets: roundStats.slice(0, 2).map((row) => row.target).join(""),
+  }));
+  assert(queuedConsumed.flags.every((flag) => !flag) && queuedConsumed.targets === "强器", "Expected queued cards to be consumed exactly once through the real grading path", queuedConsumed);
+
+  await page.evaluate(() => { exitCurrentRound(); clearSessionSnapshot(); sessionDone = new Set(); activeMode = "new"; startRound(); });
+  await waitForWriter(page);
+  const noSecondForce = await page.evaluate(() => !["强", "器"].includes(cur.target) && queuedFrontPool().every((idx) => !["强", "器"].includes(CARDS[idx].target)));
+  assert(noSecondForce, "Expected consumed additions not to be forced at the front of a later round");
+
+  await page.evaluate(() => {
+    exitCurrentRound(); clearSessionSnapshot(); status = {}; memory = {}; fsrsReviewLog = []; quality = {}; sessionDone = new Set();
+    tuning = { calibrated: false, offset: 0, contextStrict: 0, rounds: [] };
+    save(DECK_KEY, status); saveMemory(); saveFSRSLog(); saveQuality(); saveTuning();
+    addWord("强"); addWord("器"); activeMode = "calibrate"; startRound();
+  });
+  await waitForWriter(page);
+  const calibrationQueue = await page.evaluate(() => ({
+    front: baseTargets.slice(0, 2).map((idx) => CARDS[idx].target).join(""),
+    flags: indexesForChars(["强", "器"]).map((idx) => !!(memory[cardKey(idx)] || {}).queuedFront),
+    size: baseTargets.length,
+    unique: new Set(baseTargets).size,
+    adultOnly: baseTargets.every((idx) => cardLevel(idx) !== "小学" && contextSource(idx) !== "fallback"),
+    ascending: baseTargets.every((idx, order) => order === 0 || cardDifficulty(baseTargets[order - 1]) <= cardDifficulty(idx)),
+    labels: { show: show.textContent, done: done.textContent, noNext: !document.getElementById("nextBtn") },
+    touch: { done: getComputedStyle(done).touchAction, tab: getComputedStyle(tabPractice).touchAction },
+  }));
+  assert(calibrationQueue.front !== "强器" && calibrationQueue.flags.every(Boolean) && calibrationQueue.size === 15 && calibrationQueue.unique === 15 && calibrationQueue.adultOnly && calibrationQueue.ascending
+    && calibrationQueue.labels.show === "不会写" && calibrationQueue.labels.done === "写好了" && calibrationQueue.labels.noNext && calibrationQueue.touch.done === "manipulation" && calibrationQueue.touch.tab === "manipulation",
+  "Expected calibration to keep its adult difficulty ramp while ignoring queued additions without consuming them", calibrationQueue);
+
+  const completionHaptics = await page.evaluate(() => {
+    exitCurrentRound(); clearSessionSnapshot();
+    activity = newActivity(); activity.inheritedStreak = 0; activity.inheritedTotalDays = 0; activity.daily = {}; activity.practiceDays = []; saveActivity();
+    reminder.milestonesShown = []; saveReminder(); tuning = { calibrated: true, offset: 0, contextStrict: 0, rounds: [] }; saveTuning(); activeMode = "new";
+    const indexes = indexesForChars(["强", "器", "疑"]);
+    baseTargets = indexes.slice(0, 2); batch = baseTargets; baseCursor = baseTargets.length; unresolved = new Set(); practicePhase = "between";
+    roundStats = baseTargets.map((idx) => ({ idx, target: CARDS[idx].target, outcome: "fast", independentlyRecovered: false })); roundId = "verify-milestone";
+    baseTargets.forEach((idx) => markPracticeStamp(idx)); hapticDebug.events = []; hapticDebug.last = null; roundSummary(true);
+    const milestone = hapticDebug.events.slice();
+    baseTargets = indexes.slice(2); batch = baseTargets; baseCursor = baseTargets.length; unresolved = new Set(); practicePhase = "between";
+    roundStats = baseTargets.map((idx) => ({ idx, target: CARDS[idx].target, outcome: "fast", independentlyRecovered: false })); roundId = "verify-ordinary";
+    baseTargets.forEach((idx) => markPracticeStamp(idx)); hapticDebug.events = []; hapticDebug.last = null; roundSummary(true);
+    return { milestone, ordinary: hapticDebug.events.slice(), groups: dailyActivity().completedGroups, totalDays: totalPracticeDays() };
+  });
+  assert(completionHaptics.milestone.join() === "milestone" && completionHaptics.ordinary.join() === "action" && completionHaptics.groups === 2 && completionHaptics.totalDays === 1, "Expected milestone and ordinary completion haptics to be mutually exclusive", completionHaptics);
+
+  await page.evaluate(() => {
     status = {}; memory = {}; fsrsReviewLog = []; quality = {}; save(DECK_KEY, status); saveMemory(); saveFSRSLog(); saveQuality();
     activity = newActivity(); activity.inheritedStreak = 0; activity.inheritedTotalDays = 0; saveActivity();
+    reminder.milestonesShown = []; saveReminder();
     clearSessionSnapshot(); sessionDone = new Set();
     const indexes = ["器", "疑", "强"].map((target) => CARDS.findIndex((card) => card.target === target));
     startFocus(indexes);
   });
   await waitForWriter(page);
+
+  const handwritingBoundaries = await page.evaluate(async () => {
+    const originalWriter = writer;
+    const addStroke = () => { curInkStroke = [{ x: 24, y: 28 }, { x: 72, y: 78 }]; inkEnd(); };
+    clearInk(); actionStack = []; seenGroups = new Set(); groups = [1, 1]; groupIdx = 0; shownStrokes = 0; hintsUsedThisCard = 0; hintEverUsed = false;
+    writer = { animateStroke: async () => {} }; updateTip();
+    addStroke(); await tip.onclick(); addStroke();
+    const stacked = actionStack.map((action) => action.type).join(",");
+    await undoInkStroke(); const afterStroke = { ink: inkStrokes.length, stack: actionStack.map((action) => action.type).join(",") };
+    await undoInkStroke(); const afterHint = { ink: inkStrokes.length, groupIdx, shownStrokes, stack: actionStack.map((action) => action.type).join(","), tipDisabled: tip.disabled };
+    await undoInkStroke(); const empty = { ink: inkStrokes.length, stack: actionStack.length, undoDisabled: undoStroke.disabled };
+
+    actionStack = []; seenGroups = new Set(); groups = [1, 1]; groupIdx = 0; shownStrokes = 0; hintsUsedThisCard = 0; hintEverUsed = false; clearInk(); updateTip();
+    await tip.onclick(); const firstUse = hintsUsedThisCard;
+    await rewriteCurrentCard();
+    const rewritten = { ink: inkStrokes.length, groupIdx, shownStrokes, stack: actionStack.length, tipDisabled: tip.disabled, firstUse };
+    writer = { animateStroke: async () => {} }; groups = [1, 1]; updateTip();
+    await tip.onclick(); const replayUse = hintsUsedThisCard;
+    await tip.onclick(); const newUse = hintsUsedThisCard;
+
+    loadToken += 1; writer = { animateStroke: () => new Promise((resolve) => setTimeout(resolve, 70)) };
+    groups = [1]; groupIdx = 0; shownStrokes = 0; actionStack = []; seenGroups = new Set(); hintEverUsed = false; hintsUsedThisCard = 0; animating = false; revealed = false; clearInk(); updateTip();
+    const playback = tip.onclick(); await Promise.resolve();
+    const duringPlayback = { animating, opacity: Number(inkCanvas.style.opacity), doneDisabled: done.disabled, showDisabled: show.disabled, revealRejected: revealAnswer() === false };
+    await playback;
+    const afterPlayback = { animating, opacity: Number(inkCanvas.style.opacity), stack: actionStack.map((action) => action.type).join(",") };
+
+    loadToken += 1; writer = { animateStroke: () => new Promise((resolve) => setTimeout(resolve, 70)) };
+    groups = [1]; groupIdx = 0; shownStrokes = 0; actionStack = []; seenGroups = new Set(); animating = false; revealed = false; updateTip();
+    const interrupted = tip.onclick(); await Promise.resolve(); const rewriting = rewriteCurrentCard(); await Promise.all([interrupted, rewriting]);
+    const afterInterrupt = { animating, opacity: Number(inkCanvas.style.opacity), ink: inkStrokes.length, groupIdx, shownStrokes, stack: actionStack.length };
+    writer = originalWriter;
+    return { stacked, afterStroke, afterHint, empty, rewritten, replayUse, newUse, duringPlayback, afterPlayback, afterInterrupt };
+  });
+  assert(handwritingBoundaries.stacked === "stroke,hint,stroke"
+    && handwritingBoundaries.afterStroke.ink === 1 && handwritingBoundaries.afterStroke.stack === "stroke,hint"
+    && handwritingBoundaries.afterHint.ink === 1 && handwritingBoundaries.afterHint.groupIdx === 0 && handwritingBoundaries.afterHint.shownStrokes === 0 && handwritingBoundaries.afterHint.stack === "stroke" && !handwritingBoundaries.afterHint.tipDisabled
+    && handwritingBoundaries.empty.ink === 0 && handwritingBoundaries.empty.stack === 0 && handwritingBoundaries.empty.undoDisabled,
+  "Expected stroke/hint/stroke undo ordering and hint-layer rollback", handwritingBoundaries);
+  assert(handwritingBoundaries.rewritten.ink === 0 && handwritingBoundaries.rewritten.groupIdx === 0 && handwritingBoundaries.rewritten.shownStrokes === 0 && handwritingBoundaries.rewritten.stack === 0 && !handwritingBoundaries.rewritten.tipDisabled
+    && handwritingBoundaries.rewritten.firstUse === 1 && handwritingBoundaries.replayUse === 1 && handwritingBoundaries.newUse === 2,
+  "Expected rewrite to reset visual state without double-counting replayed hint groups", handwritingBoundaries);
+  assert(handwritingBoundaries.duringPlayback.animating && handwritingBoundaries.duringPlayback.opacity === 0.22 && handwritingBoundaries.duringPlayback.doneDisabled && handwritingBoundaries.duringPlayback.showDisabled && handwritingBoundaries.duringPlayback.revealRejected
+    && !handwritingBoundaries.afterPlayback.animating && handwritingBoundaries.afterPlayback.opacity === 1 && handwritingBoundaries.afterPlayback.stack === "hint"
+    && !handwritingBoundaries.afterInterrupt.animating && handwritingBoundaries.afterInterrupt.opacity === 1 && handwritingBoundaries.afterInterrupt.ink === 0 && handwritingBoundaries.afterInterrupt.groupIdx === 0 && handwritingBoundaries.afterInterrupt.shownStrokes === 0 && handwritingBoundaries.afterInterrupt.stack === 0,
+  "Expected hint playback opacity/submission lock and rewrite cancellation", handwritingBoundaries);
+
+  await page.evaluate(() => render());
+  await waitForWriter(page);
+  const peekBoundary = await page.evaluate(() => {
+    const canvas = inkCanvas; const rect = canvas.getBoundingClientRect();
+    const pointer = (type, id, primary, x, y, buttons) => new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: id, pointerType: "touch", isPrimary: primary, button: 0, buttons, clientX: rect.left + rect.width * x, clientY: rect.top + rect.height * y });
+    const pixels = () => { const data = inkCtx.getImageData(0, 0, inkCanvas.width, inkCanvas.height).data; let count = 0; for (let i = 3; i < data.length; i += 4) if (data[i]) count += 1; return count; };
+    clearInk(); activePointers.clear(); peekReleasePending = false; tracing = false; revealed = false; animating = false;
+    canvas.dispatchEvent(pointer("pointerdown", 81051, true, 0.2, 0.25, 1));
+    canvas.dispatchEvent(pointer("pointermove", 81051, true, 0.45, 0.5, 1));
+    const partial = pixels();
+    canvas.dispatchEvent(pointer("pointerdown", 81052, false, 0.75, 0.7, 1));
+    const entered = peeking && Number(canvas.style.opacity) <= 0.06 && hzEl.classList.contains("peekHint");
+    const cancelled = partial > 0 && !drawing && curInkStroke === null && pixels() === 0;
+    canvas.dispatchEvent(pointer("pointermove", 81051, true, 0.65, 0.65, 1));
+    canvas.dispatchEvent(pointer("pointermove", 81052, false, 0.8, 0.8, 1));
+    const blocked = inkStrokes.length === 0 && curInkStroke === null && pixels() === 0;
+    canvas.dispatchEvent(pointer("pointerup", 81052, false, 0.8, 0.8, 0));
+    const restoredOnAnyLift = !peeking && peekReleasePending && Number(canvas.style.opacity) === 1 && !hzEl.classList.contains("peekHint");
+    canvas.dispatchEvent(pointer("pointermove", 81051, true, 0.72, 0.72, 1));
+    const releaseBlocked = !drawing && inkStrokes.length === 0 && curInkStroke === null && pixels() === 0;
+    canvas.dispatchEvent(pointer("pointerup", 81051, true, 0.72, 0.72, 0));
+    const ended = !peekReleasePending && activePointers.size === 0;
+    canvas.dispatchEvent(pointer("pointerdown", 81053, true, 0.25, 0.25, 1));
+    canvas.dispatchEvent(pointer("pointermove", 81053, true, 0.55, 0.55, 1));
+    canvas.dispatchEvent(pointer("pointerup", 81053, true, 0.55, 0.55, 0));
+    const nextGestureWrites = inkStrokes.length === 1 && pixels() > 0;
+    clearInk(); resetPeekHint(); actionCooldownUntil = 0;
+    return { entered, cancelled, blocked, restoredOnAnyLift, releaseBlocked, ended, nextGestureWrites };
+  });
+  assert(Object.values(peekBoundary).every(Boolean), "Expected complete two-finger peek lifecycle without leaked ink", peekBoundary);
+
   const firstTarget = await page.evaluate(() => cur.target);
 
   await page.evaluate(async () => {
@@ -210,6 +427,27 @@ let browser;
   const afterHint = await page.evaluate(() => ({ baseCursor, attemptSeq, unresolved: [...unresolved], queue: cloneObj(reinforcementQueue), target: cur.target }));
   assert(afterHint.baseCursor === 1 && afterHint.attemptSeq === 1 && afterHint.unresolved.length === 1 && afterHint.queue[0].eligibleAfter === 3 && afterHint.target !== firstTarget, "Expected hinted target to wait behind two other attempts", afterHint);
 
+  const undoLayout = await page.evaluate(() => {
+    renderUndoBar();
+    const snapshot = lastStampSnapshot; const canvas = inkCanvas; const rect = canvas.getBoundingClientRect();
+    const beforeTop = boxwrap.getBoundingClientRect().top; const style = getComputedStyle(undoBar);
+    const pointer = (type, buttons) => new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 82001, pointerType: "touch", isPrimary: true, button: 0, buttons, clientX: rect.left + 30, clientY: rect.top + 30 });
+    canvas.dispatchEvent(pointer("pointerdown", 1)); canvas.dispatchEvent(pointer("pointerup", 0));
+    const hiddenOnWrite = getComputedStyle(undoBar).display === "none";
+    const afterTop = boxwrap.getBoundingClientRect().top;
+    clearInk(); actionCooldownUntil = 0; lastStampSnapshot = snapshot; renderUndoBar();
+    const bar = undoBar.getBoundingClientRect(); const promptRect = document.getElementById("prompt").getBoundingClientRect();
+    const noOverlap = bar.bottom <= promptRect.top || bar.top >= promptRect.bottom || bar.right <= promptRect.left || bar.left >= promptRect.right;
+    return { position: style.position, hiddenOnWrite, shift: Math.abs(afterTop - beforeTop), restored: getComputedStyle(undoBar).display !== "none", noOverlap };
+  });
+  await page.setViewportSize({ width: 390, height: 620 });
+  const undoShortLayout = await page.evaluate(() => {
+    renderUndoBar(); const bar = undoBar.getBoundingClientRect(); const promptRect = document.getElementById("prompt").getBoundingClientRect();
+    return { visible: getComputedStyle(undoBar).display !== "none", noOverlap: bar.bottom <= promptRect.top || bar.top >= promptRect.bottom || bar.right <= promptRect.left || bar.left >= promptRect.right, top: bar.top, bottom: bar.bottom };
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  assert(undoLayout.position === "absolute" && undoLayout.hiddenOnWrite && undoLayout.shift <= 0.5 && undoLayout.restored && undoLayout.noOverlap && undoShortLayout.visible && undoShortLayout.noOverlap, "Expected cross-card undo bar to float without shifting or overlapping short screens", { undoLayout, undoShortLayout });
+
   for (let i = 0; i < 2; i += 1) {
     await submitStandard(page);
     await chooseCorrect(page);
@@ -241,15 +479,42 @@ let browser;
   assert(completed.activity.stamps === 3 && completed.activity.attempts === 4 && completed.groups === 1 && completed.session === null, "Expected unique-day counts, attempt counts, and true completion", completed.activity);
   assert(Object.values(completed.memory).every((item) => !item.pendingLearning && item.dueDay >= completed.tomorrow && item.schedulerVersion.includes("FSRS-6.0")), "Expected graduated cards to expose next-day-or-later dueDay", completed.memory);
 
+  const summaryLayer = await page.evaluate(() => ({
+    targets: Array.from(document.querySelectorAll("#sumTiles .sumTile[data-idx]")).map((node) => CARDS[Number(node.dataset.idx)].target).sort(),
+    tiles: document.querySelectorAll("#sumTiles .sumTile[data-idx]").length,
+    lead: sumLead.textContent.replace(/\s+/g, ""),
+    milestoneEvents: hapticDebug.events.slice(-3),
+  }));
+  await page.click("#stop");
+  await page.waitForFunction(() => getComputedStyle(home).display !== "none");
+  const homeLayer = await page.evaluate(() => ({
+    title: homeTitle.textContent.replace(/\s+/g, ""),
+    label: yesterLbl.textContent,
+    targets: Array.from(document.querySelectorAll("#yesterRow .yTile:not(.more)")).map((node) => node.textContent.trim()).filter(Boolean).sort(),
+    completed: todayCompleted(),
+  }));
+  await page.click("#tabBook");
+  await page.waitForFunction(() => getComputedStyle(studybook).display !== "none");
+  if (await page.evaluate(() => boxAllSection.offsetParent === null)) await page.click("#boxAllToggle");
+  const bookLayer = await page.evaluate(() => ({
+    count: boxCount.textContent,
+    targets: Array.from(document.querySelectorAll("#boxGrid .boxTile[data-idx]")).map((node) => CARDS[Number(node.dataset.idx)].target).sort(),
+    active: tabBook.classList.contains("active"),
+  }));
+  assert(summaryLayer.tiles === 3 && summaryLayer.lead.includes("3") && homeLayer.title.includes("今日已拾3个字") && homeLayer.label === "今日拾得" && homeLayer.completed && bookLayer.count.includes("3") && bookLayer.active
+    && summaryLayer.targets.join() === homeLayer.targets.join() && summaryLayer.targets.every((target) => bookLayer.targets.includes(target)),
+  "Expected the same completed targets across summary, home recent, and study-book layers", { summaryLayer, homeLayer, bookLayer });
+
   await page.evaluate(() => { clearSessionSnapshot(); traceTutorialShown = false; save(TRACE_TUTORIAL_KEY, false); startFocus([CARDS.findIndex((card) => card.target === "器")]); });
   await waitForWriter(page);
+  await page.evaluate(() => { hapticDebug.events = []; hapticDebug.last = null; });
   await page.click("#show");
   await page.waitForFunction(() => practicePhase === "feedback");
-  const dontKnow = await page.evaluate(() => ({ outcome: roundStats[0].outcome, ratings: fsrsReviewLog.slice(-1).map((event) => `${event.rating}:${event.reason}:${event.teaching}`), feedback: stampedToast.textContent }));
-  assert(dontKnow.outcome === "miss" && dontKnow.ratings.join() === "Again:dontKnow:true" && dontKnow.feedback.includes("先描一遍，再自己写"), "Expected don't-know to record one miss/Again before teaching", dontKnow);
+  const dontKnow = await page.evaluate(() => ({ outcome: roundStats[0].outcome, ratings: fsrsReviewLog.slice(-1).map((event) => `${event.rating}:${event.reason}:${event.teaching}`), feedback: stampedToast.textContent, haptics: hapticDebug.events.slice() }));
+  assert(dontKnow.outcome === "miss" && dontKnow.ratings.join() === "Again:dontKnow:true" && dontKnow.feedback.includes("先描一遍，再自己写") && dontKnow.haptics.join() === "stamp", "Expected don't-know to record one miss/Again and one stamp haptic before teaching", dontKnow);
   await page.waitForTimeout(1500);
-  const tutorial = await page.evaluate(() => ({ phase: practicePhase, visible: getComputedStyle(traceTutorial).display !== "none", shown: traceTutorialShown, copy: traceTutorial.textContent.replace(/\s+/g, "") }));
-  assert(tutorial.phase === "traceTutorial" && tutorial.visible && !tutorial.shown && tutorial.copy.includes("先照着轮廓描一遍") && tutorial.copy.includes("必须自己再写一次"), "Expected one-time trace tutorial", tutorial);
+  const tutorial = await page.evaluate(() => ({ phase: practicePhase, visible: getComputedStyle(traceTutorial).display !== "none", shown: traceTutorialShown, copy: traceTutorial.textContent.replace(/\s+/g, ""), haptics: hapticDebug.events.slice() }));
+  assert(tutorial.phase === "traceTutorial" && tutorial.visible && !tutorial.shown && tutorial.copy.includes("先照着轮廓描一遍") && tutorial.copy.includes("必须自己再写一次") && tutorial.haptics.join() === "stamp,select", "Expected one-time trace tutorial and exact stamp/select sequence", tutorial);
   await page.click("#traceTutorialStart");
   await page.waitForFunction(() => practicePhase === "tracing");
   const traceStart = await page.evaluate(() => ({ title: phaseTitle.textContent, disabled: traceDone.disabled, shown: traceTutorialShown, stored: load(TRACE_TUTORIAL_KEY, false) }));
@@ -259,23 +524,28 @@ let browser;
   await page.waitForFunction(() => pendingSessionVisual === null && practicePhase === "tracing" && tracedThisCard && inkStrokes.length === 1);
   const restoredTracing = await page.evaluate(() => ({ phase: practicePhase, title: phaseTitle.textContent, outline: hzEl.childNodes.length > 0 || hzEl.classList.contains("traceFallback"), ink: inkStrokes.length }));
   assert(restoredTracing.phase === "tracing" && restoredTracing.title.includes("第 1 步") && restoredTracing.outline && restoredTracing.ink === 1, "Expected tracing ink and outline to survive session restore", restoredTracing);
+  await page.evaluate(() => { hapticDebug.events = []; hapticDebug.last = null; });
   await page.click("#traceDone");
-  const postTrace = await page.evaluate(() => ({ phase: practicePhase, title: phaseTitle.textContent, ink: inkStrokes.length, hintLayer: hzEl.textContent, fallback: hzEl.classList.contains("traceFallback"), tipDisabled: tip.disabled, tipVisible: getComputedStyle(tip).visibility, show: show.textContent }));
-  assert(postTrace.phase === "postTraceRecall" && postTrace.title.includes("第 2 步") && postTrace.ink === 0 && !postTrace.hintLayer && !postTrace.fallback && postTrace.tipDisabled && postTrace.tipVisible === "hidden" && postTrace.show === "再描一遍", "Expected outline-free step-two recall", postTrace);
+  const postTrace = await page.evaluate(() => ({ phase: practicePhase, title: phaseTitle.textContent, ink: inkStrokes.length, hintLayer: hzEl.textContent, fallback: hzEl.classList.contains("traceFallback"), tipDisabled: tip.disabled, tipVisible: getComputedStyle(tip).visibility, show: show.textContent, haptics: hapticDebug.events.slice() }));
+  assert(postTrace.phase === "postTraceRecall" && postTrace.title.includes("第 2 步") && postTrace.ink === 0 && !postTrace.hintLayer && !postTrace.fallback && postTrace.tipDisabled && postTrace.tipVisible === "hidden" && postTrace.show === "再描一遍" && postTrace.haptics.length === 0, "Expected outline-free step-two recall without duplicate action/stamp haptics", postTrace);
   await page.evaluate(() => { saveSessionSnapshot(); restoreSession(load(SESSION_KEY, null)); });
   await page.waitForFunction(() => pendingSessionVisual === null && practicePhase === "postTraceRecall");
   const restoredPostTrace = await page.evaluate(() => ({ phase: practicePhase, title: phaseTitle.textContent, ink: inkStrokes.length, hintLayer: hzEl.textContent, fallback: hzEl.classList.contains("traceFallback"), tipDisabled: tip.disabled }));
   assert(restoredPostTrace.phase === "postTraceRecall" && restoredPostTrace.title.includes("第 2 步") && restoredPostTrace.ink === 0 && !restoredPostTrace.hintLayer && !restoredPostTrace.fallback && restoredPostTrace.tipDisabled, "Expected post-trace recall to restore without teaching geometry", restoredPostTrace);
 
+  await page.evaluate(() => { hapticDebug.events = []; hapticDebug.last = null; });
   await submitStandard(page);
   await page.click("#decisionWrong");
   await page.waitForFunction(() => practicePhase === "tracing");
-  const teachingWrong = await page.evaluate(() => ({ events: fsrsReviewLog.filter((event) => event.attemptId === currentAttemptId).length, attempts: episodeFor(currentCardIndex()).attempts.length }));
-  assert(teachingWrong.events === 1 && teachingWrong.attempts === 1, "Expected teaching retry not to create another review", teachingWrong);
+  const teachingWrong = await page.evaluate(() => ({ events: fsrsReviewLog.filter((event) => event.attemptId === currentAttemptId).length, attempts: episodeFor(currentCardIndex()).attempts.length, haptics: hapticDebug.events.slice() }));
+  assert(teachingWrong.events === 1 && teachingWrong.attempts === 1 && teachingWrong.haptics.join() === "action", "Expected teaching retry not to create another review or stamp haptic", teachingWrong);
   await page.evaluate(() => { inkStrokes = [mediansToCanvas(curMedians)[0]]; tracedThisCard = true; redrawInk(); updateInkControls(); });
   await page.click("#traceDone");
+  await page.evaluate(() => { hapticDebug.events = []; hapticDebug.last = null; });
   await submitStandard(page);
   await page.click("#decisionCorrect");
+  const teachingDecisionHaptics = await page.evaluate(() => hapticDebug.events.slice());
+  assert(teachingDecisionHaptics.join() === "action", "Expected post-trace success to emit action only, never action plus stamp", teachingDecisionHaptics);
   await page.waitForTimeout(1500);
   const afterTeaching = await page.evaluate(() => ({ kind: currentAttemptKind, phase: practicePhase, ratings: fsrsReviewLog.slice(-1).map((event) => event.rating), teachingComplete: Object.values(episodes)[0].teachingComplete, unresolved: unresolved.size }));
   assert(afterTeaching.kind === "reinforcement" && afterTeaching.phase === "reinforcement" && afterTeaching.ratings.join() === "Again" && afterTeaching.teachingComplete && afterTeaching.unresolved === 1, "Expected post-trace success to remain unresolved without Good", afterTeaching);
@@ -297,17 +567,35 @@ let browser;
   const restored = await page.evaluate(() => ({ frozen: JSON.stringify(submissionSnapshot), phase: practicePhase, hintEverUsed, eventCount: fsrsReviewLog.length, history: history.state && history.state.shiziView }));
   assert(restored.frozen === frozenBefore && restored.phase === "revealDecision" && restored.hintEverUsed && restored.history === "practice", "Expected exact reveal snapshot and practice history restoration", restored);
 
+  const historyStart = await page.evaluate(() => ({ length: history.length, state: history.state && history.state.shiziView }));
+  const cancelledSwipes = [];
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    await page.evaluate(() => history.back());
+    await page.waitForFunction(() => document.getElementById("exitSheet").classList.contains("open"));
+    cancelledSwipes.push(await page.evaluate(() => ({
+      open: exitSheet.classList.contains("open"), length: history.length, history: history.state && history.state.shiziView,
+      phase: practicePhase, frozen: JSON.stringify(submissionSnapshot), pending: pendingSwipeExit, restoring: restoringPracticeHistory,
+    })));
+    await page.click("#exitCancel");
+    await page.waitForFunction(() => !document.getElementById("exitSheet").classList.contains("open"));
+  }
+  const afterCancels = await page.evaluate(() => ({ length: history.length, history: history.state && history.state.shiziView, phase: practicePhase, frozen: JSON.stringify(submissionSnapshot), open: exitSheet.classList.contains("open") }));
+  assert(historyStart.state === "practice" && cancelledSwipes.every((row) => row.open && row.length === historyStart.length && row.history === "practice" && row.phase === "revealDecision" && row.frozen === frozenBefore && !row.pending && !row.restoring)
+    && afterCancels.length === historyStart.length && afterCancels.history === "practice" && afterCancels.phase === "revealDecision" && afterCancels.frozen === frozenBefore && !afterCancels.open,
+  "Expected repeated swipe cancellations to preserve state without stacking history entries", { historyStart, cancelledSwipes, afterCancels });
+
   await page.evaluate(() => history.back());
   await page.waitForFunction(() => document.getElementById("exitSheet").classList.contains("open"));
-  const swipeOpen = await page.evaluate(() => ({ history: history.state && history.state.shiziView, phase: practicePhase, frozen: JSON.stringify(submissionSnapshot) }));
-  assert(swipeOpen.history === "practice" && swipeOpen.phase === "revealDecision" && swipeOpen.frozen === frozenBefore, "Expected swipe guard to preserve practice state", swipeOpen);
-  await page.click("#exitCancel");
-  const cancelled = await page.evaluate(() => ({ open: exitSheet.classList.contains("open"), history: history.state && history.state.shiziView, frozen: JSON.stringify(submissionSnapshot) }));
-  assert(!cancelled.open && cancelled.history === "practice" && cancelled.frozen === frozenBefore, "Expected swipe cancellation without another history layer", cancelled);
-  await page.click("#exitPractice");
   await page.click("#exitConfirm");
-  const exited = await page.evaluate(() => ({ home: getComputedStyle(home).display !== "none", session: load(SESSION_KEY, null), armed: practiceHistoryArmed }));
-  assert(exited.home && exited.session && exited.session.version === 2 && !exited.armed, "Expected X exit to save v2 session and return home", exited);
+  await page.waitForFunction(() => getComputedStyle(home).display !== "none" && !practiceHistoryArmed);
+  await page.waitForTimeout(100);
+  const exited = await page.evaluate(() => ({ home: getComputedStyle(home).display !== "none", session: load(SESSION_KEY, null), armed: practiceHistoryArmed, history: history.state && history.state.shiziView, length: history.length, open: exitSheet.classList.contains("open") }));
+  await page.evaluate(() => history.back());
+  await page.waitForTimeout(100);
+  const homeBack = await page.evaluate(() => ({ home: getComputedStyle(home).display !== "none", armed: practiceHistoryArmed, open: exitSheet.classList.contains("open"), history: history.state && history.state.shiziView, length: history.length }));
+  assert(exited.home && exited.session && exited.session.version === 2 && !exited.armed && exited.history === "home" && exited.length === historyStart.length && !exited.open
+    && homeBack.home && !homeBack.armed && !homeBack.open && homeBack.history === "home" && homeBack.length === historyStart.length,
+  "Expected confirmed swipe exit to save v2 state and history-back on home to be a no-op", { exited, homeBack });
 
   const backup = await page.evaluate(() => {
     const payload = JSON.parse(backupPayload());

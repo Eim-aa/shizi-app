@@ -724,6 +724,12 @@ let browser;
   const panelBack = await page.evaluate(() => ({ card: getComputedStyle(card).display !== "none", phase: practicePhase, frozen: JSON.stringify(submissionSnapshot), length: history.length }));
   assert(panelBack.card && panelBack.phase === "revealDecision" && panelBack.frozen === frozenBefore && panelBack.length === historyStart.length, "Expected back to close the add-character panel before leaving practice", panelBack);
 
+  await page.evaluate(() => roundBudgetSheet.classList.add("open"));
+  await page.evaluate(() => history.back());
+  await page.waitForFunction(() => !roundBudgetSheet.classList.contains("open") && history.state && history.state.shiziView === "practice");
+  const budgetBack = await page.evaluate(() => ({ card: getComputedStyle(card).display !== "none", armed: practiceHistoryArmed, length: history.length }));
+  assert(budgetBack.card && budgetBack.armed && budgetBack.length === historyStart.length, "Expected back to close the rhythm guard without disarming practice history", budgetBack);
+
   const directReturns = [];
   for (let attempt = 0; attempt < 3; attempt += 1) {
     await page.evaluate((nativeEvent) => nativeEvent ? window.dispatchEvent(new Event("shizi-native-back")) : history.back(), attempt === 0);

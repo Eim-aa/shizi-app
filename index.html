@@ -1061,6 +1061,7 @@ window.addEventListener("popstate",()=>{
   if(restoringPracticeHistory){ restoringPracticeHistory=false; return; }
   if(!practiceHistoryArmed || $("card").style.display==="none") return;
   if($("addSheet").classList.contains("open")){ restoringPracticeHistory=true; try{ history.forward(); }catch(e){ restoringPracticeHistory=false; } closeAddSheet(); return; }
+  if($("roundBudgetSheet").classList.contains("open")){ restoringPracticeHistory=true; try{ history.forward(); }catch(e){ restoringPracticeHistory=false; } closeRoundBudgetSheet(); return; }
   practiceHistoryArmed=false; exitCurrentRound(true);
 });
 function displayView(view){ Object.entries(VIEW_IDS).forEach(([k,id])=>{ $(id).style.display = view===k ? "flex" : "none"; });

@@ -8,6 +8,7 @@ final class WebViewController: UIViewController {
 
     private let schemeHandler: LocalWebSchemeHandler
     private var webView: WKWebView!
+    private var practiceBackGesture: UIScreenEdgePanGestureRecognizer!
     private var nativeSmokeDidRun = false
     private var reminderSyncGeneration = 0
     private lazy var stampHaptic = UIImpactFeedbackGenerator(style: .medium)
@@ -45,7 +46,7 @@ final class WebViewController: UIViewController {
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.navigationDelegate = self
         webView.uiDelegate = self
-        webView.allowsBackForwardNavigationGestures = true
+        webView.allowsBackForwardNavigationGestures = false
         webView.isOpaque = false
         let paper = UIColor { trait in
             trait.userInterfaceStyle == .dark
@@ -58,7 +59,13 @@ final class WebViewController: UIViewController {
         webView.scrollView.alwaysBounceVertical = false
         webView.scrollView.contentInsetAdjustmentBehavior = .never
 
+        let practiceBackGesture = UIScreenEdgePanGestureRecognizer(target: self, action: #selector(handlePracticeBackGesture(_:)))
+        practiceBackGesture.edges = .left
+        practiceBackGesture.maximumNumberOfTouches = 1
+        webView.addGestureRecognizer(practiceBackGesture)
+
         self.webView = webView
+        self.practiceBackGesture = practiceBackGesture
         view = webView
     }
 
@@ -69,6 +76,14 @@ final class WebViewController: UIViewController {
 
     override var preferredStatusBarStyle: UIStatusBarStyle {
         .default
+    }
+
+    @objc private func handlePracticeBackGesture(_ gesture: UIScreenEdgePanGestureRecognizer) {
+        guard gesture.state == .ended else { return }
+        let distance = gesture.translation(in: webView).x
+        let velocity = gesture.velocity(in: webView).x
+        guard distance > webView.bounds.width * 0.24 || velocity > 650 else { return }
+        webView.evaluateJavaScript("window.dispatchEvent(new Event('shizi-native-back')); void 0;")
     }
 
     private func loadApp() {
@@ -104,6 +119,8 @@ final class WebViewController: UIViewController {
             return
         }
         nativeSmokeDidRun = true
+        let backForwardSnapshotsDisabled = !webView.allowsBackForwardNavigationGestures
+        let nativeEdgeGestureInstalled = webView.gestureRecognizers?.contains(where: { $0 === practiceBackGesture }) == true
 
         let script = """
         (async function(){
@@ -218,6 +235,7 @@ final class WebViewController: UIViewController {
               undoActivityRollback: false,
               nextCardUntouched: false,
               traceModeVisible: false,
+              traceOutlineVisible: false,
               traceRequiresInk: false,
               traceReadyAfterInk: false,
               activityRecorded: false,
@@ -241,7 +259,7 @@ final class WebViewController: UIViewController {
               posLabelAfter: ''
             },
             exitFlow: {
-              sheetOpened: false,
+              noExitSheet: false,
               returnedHome: false,
               practiceHidden: false,
               footVisible: false,
@@ -250,10 +268,13 @@ final class WebViewController: UIViewController {
               roundStatsAfterExit: -1,
               positionBeforeExit: -1,
               historyInitialLength: 0,
-              swipeCancelCount: 0,
+              directReturnCount: 0,
               historyLengthStable: false,
-              swipeCancelStatePreserved: false,
-              swipeConfirmSaved: false,
+              directReturnStatePreserved: false,
+              directReturnSaved: false,
+              nativeEdgeBackEvent: false,
+              backForwardSnapshotsDisabled: \(backForwardSnapshotsDisabled),
+              nativeEdgeGestureInstalled: \(nativeEdgeGestureInstalled),
               homeBackNoop: false
             },
             error: ''
@@ -606,7 +627,7 @@ final class WebViewController: UIViewController {
               result.practiceFlow.hapticActionRevealRecorded = hapticDebug.last === 'action';
               result.practiceFlow.revealVisible = true;
               result.practiceFlow.decisionVisible = visible('decisionRow');
-              result.practiceFlow.functionalDecisionLabels = document.getElementById('decisionCorrect').textContent.includes('这次写对了') && document.getElementById('decisionWrong').textContent.includes('这次写错了');
+              result.practiceFlow.functionalDecisionLabels = document.getElementById('decisionCorrect').textContent.includes('写对了') && document.getElementById('decisionWrong').textContent.includes('写错了');
               result.practiceFlow.submissionSnapshotComplete = submissionSnapshot.hintStrokeIds.length > 0 && submissionSnapshot.compositeGeometry.length === submissionSnapshot.hintStrokes.length + submissionSnapshot.inkStrokes.length && submissionSnapshot.lastVerdict.status === 'ok';
 
               decideSubmission(true);
@@ -638,16 +659,24 @@ final class WebViewController: UIViewController {
               save(TRACE_TUTORIAL_KEY, false);
               hapticDebug.events = [];
               hapticDebug.last = null;
-              declareDontKnow();
-              await waitFor(() => stamped && visible('stampedToast'));
               const eventsBeforeTeaching = fsrsReviewLog.length;
-              await waitFor(() => practicePhase === 'traceTutorial');
+              declareDontKnow();
+              await waitFor(() => practicePhase === 'tracing' && visible('traceActions'));
+              await waitFor(() => {
+                const svg = hzEl.querySelector('svg');
+                if (hzEl.classList.contains('traceFallback')) return hzEl.textContent.trim() === cur.target;
+                if (!svg) return false;
+                const box = svg.getBoundingClientRect();
+                return box.width > 200 && box.height > 200 && Array.from(svg.querySelectorAll('path')).some(node => (node.getAttribute('d') || '').length > 0);
+              });
               result.practiceFlow.hapticSelectTracingRecorded = hapticDebug.last === 'select';
               result.practiceFlow.hapticDontKnowSequence = hapticDebug.events.slice();
-              result.practiceFlow.traceTutorialVisible = getComputedStyle(document.getElementById('traceTutorial')).display !== 'none';
-              document.getElementById('traceTutorialStart').click();
-              await waitFor(() => practicePhase === 'tracing' && visible('traceActions'));
+              result.practiceFlow.traceTutorialVisible = visible('traceIntro') && document.getElementById('traceIntro').textContent.includes('接着答案会隐藏');
               result.practiceFlow.traceModeVisible = visible('traceActions') && !visible('actions');
+              const traceLayer = hzEl;
+              const traceSVG = traceLayer.querySelector('svg');
+              const traceBox = traceSVG ? traceSVG.getBoundingClientRect() : null;
+              result.practiceFlow.traceOutlineVisible = (traceLayer.classList.contains('traceFallback') && traceLayer.textContent.trim() === cur.target) || !!(traceSVG && traceBox.width > 200 && traceBox.height > 200 && Array.from(traceSVG.querySelectorAll('path')).some(node => (node.getAttribute('d') || '').length > 0));
               result.practiceFlow.traceRequiresInk = document.getElementById('traceDone').disabled;
               if (dispatchStroke) {
                 dispatchStroke();
@@ -659,48 +688,41 @@ final class WebViewController: UIViewController {
               finishTracing();
               await waitFor(() => practicePhase === 'postTraceRecall');
               result.practiceFlow.hapticTraceCompletionSequence = hapticDebug.events.slice();
-              result.practiceFlow.postTraceRecall = document.getElementById('phaseTitle').textContent.includes('第 2 步') && document.getElementById('tip').disabled && document.getElementById('show').textContent === '再描一遍';
-              result.practiceFlow.hapticTraceNoReview = fsrsReviewLog.length === eventsBeforeTeaching;
+              result.practiceFlow.postTraceRecall = document.getElementById('phaseTitle').textContent.includes('2/2 自己写') && getComputedStyle(document.getElementById('tip')).display === 'none' && document.getElementById('show').textContent === '再描一遍';
+              result.practiceFlow.hapticTraceNoReview = fsrsReviewLog.length === eventsBeforeTeaching + 1 && fsrsReviewLog[fsrsReviewLog.length - 1].rating === 'Again';
               const practiceDay = dailyActivity();
               result.practiceFlow.activityRecorded = todayStampCount() >= activityBefore && practiceDay.attempts === attemptsBefore + 2 && practiceDay.targetKeys.includes(firstKey) && practiceDay.targetKeys.includes(cardKey(currentCardIndex())) && activity.practiceDays.includes(today());
               const storedSession = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null');
               result.practiceFlow.sessionSnapshotStored = !!storedSession && storedSession.version === 2 && storedSession.practicePhase === 'postTraceRecall' && storedSession.unresolved.length === 2;
               result.practiceFlow.historyGuardArmed = practiceHistoryArmed === true && history.state && history.state.shiziView === 'practice';
 
-              if (typeof openExitSheet === 'function' && typeof exitCurrentRound === 'function') {
+              if (typeof exitCurrentRound === 'function') {
                 result.exitFlow.roundStatsBeforeExit = roundStats.length;
                 result.exitFlow.positionBeforeExit = baseCursor;
                 result.exitFlow.historyInitialLength = history.length;
                 const phaseBeforeSwipe = practicePhase;
                 const attemptBeforeSwipe = currentAttemptId;
-                let swipeStatePreserved = true;
+                let directStatePreserved = true;
                 for (let attempt = 0; attempt < 3; attempt++) {
-                  history.back();
-                  await waitFor(() => document.getElementById('exitSheet').classList.contains('open'));
-                  result.exitFlow.sheetOpened = true;
+                  window.dispatchEvent(new Event('shizi-native-back'));
+                  await waitFor(() => visible('home') && practiceHistoryArmed === false && history.state && history.state.shiziView === 'home');
+                  const resume = resumableSession();
                   const statePreserved = history.length === result.exitFlow.historyInitialLength
-                    && history.state && history.state.shiziView === 'practice'
-                    && practiceHistoryArmed === true
-                    && practicePhase === phaseBeforeSwipe
-                    && currentAttemptId === attemptBeforeSwipe
-                    && roundStats.length === result.exitFlow.roundStatsBeforeExit
-                    && pendingSwipeExit === false
-                    && restoringPracticeHistory === false;
-                  swipeStatePreserved = swipeStatePreserved && statePreserved;
-                  document.getElementById('exitCancel').click();
-                  await waitFor(() => !document.getElementById('exitSheet').classList.contains('open'));
-                  result.exitFlow.swipeCancelCount += 1;
+                    && history.state && history.state.shiziView === 'home'
+                    && !!resume && resume.version === 2
+                    && resume.practicePhase === phaseBeforeSwipe
+                    && resume.currentAttemptId === attemptBeforeSwipe
+                    && resume.roundStats.length === result.exitFlow.roundStatsBeforeExit;
+                  directStatePreserved = directStatePreserved && statePreserved;
+                  result.exitFlow.directReturnCount += 1;
+                  result.exitFlow.nativeEdgeBackEvent = true;
+                  if (attempt < 2) {
+                    restoreSession(resume);
+                    await waitFor(() => visible('card') && practicePhase === phaseBeforeSwipe && practiceHistoryArmed === true);
+                  }
                 }
                 result.exitFlow.historyLengthStable = history.length === result.exitFlow.historyInitialLength;
-                result.exitFlow.swipeCancelStatePreserved = swipeStatePreserved
-                  && history.state && history.state.shiziView === 'practice'
-                  && practicePhase === phaseBeforeSwipe
-                  && currentAttemptId === attemptBeforeSwipe;
-
-                history.back();
-                await waitFor(() => document.getElementById('exitSheet').classList.contains('open'));
-                document.getElementById('exitConfirm').click();
-                await waitFor(() => visible('home') && practiceHistoryArmed === false);
+                result.exitFlow.directReturnStatePreserved = directStatePreserved;
                 await new Promise(resolve => setTimeout(resolve, 120));
                 result.exitFlow.returnedHome = visible('home');
                 result.exitFlow.practiceHidden = !visible('card');
@@ -708,22 +730,20 @@ final class WebViewController: UIViewController {
                 result.exitFlow.roundStatsAfterExit = roundStats.length;
                 result.exitFlow.roundStatsUnchanged = result.exitFlow.roundStatsAfterExit === result.exitFlow.roundStatsBeforeExit;
                 const resume = resumableSession();
-                result.exitFlow.swipeConfirmSaved = !!resume && resume.version === 2
+                result.exitFlow.directReturnSaved = !!resume && resume.version === 2
                   && history.length === result.exitFlow.historyInitialLength
                   && history.state && history.state.shiziView === 'home';
+                result.exitFlow.noExitSheet = !document.getElementById('exitSheet') && !document.body.textContent.includes('退出本组？');
                 history.back();
                 await new Promise(resolve => setTimeout(resolve, 120));
                 result.exitFlow.homeBackNoop = visible('home')
-                  && !document.getElementById('exitSheet').classList.contains('open')
                   && practiceHistoryArmed === false
                   && history.length === result.exitFlow.historyInitialLength
                   && history.state && history.state.shiziView === 'home';
                 result.practiceFlow.resumeHomeState = !!resume && resume.version === 2 && document.getElementById('startBtn').textContent === '续';
                 restoreSession(resume);
                 await waitFor(() => visible('card') && practicePhase === 'postTraceRecall');
-                result.practiceFlow.resumeRestored = roundStats.length === 2 && document.getElementById('phaseTitle').textContent.includes('第 2 步');
-                openExitSheet();
-                await waitFor(() => document.getElementById('exitSheet').classList.contains('open'));
+                result.practiceFlow.resumeRestored = roundStats.length === 2 && document.getElementById('phaseTitle').textContent.includes('2/2 自己写');
                 exitCurrentRound();
                 await waitFor(() => visible('home'));
               }

@@ -85,7 +85,11 @@ checks = {
     and handwriting.get("peekCancelledPartialStroke") is True
     and handwriting.get("peekActionsUnlocked") is True
     and handwriting.get("peekBlockedInk") is True
-    and handwriting.get("peekRestored") is True,
+    and handwriting.get("peekRestored") is True
+    and handwriting.get("peekControlVisible") is True
+    and handwriting.get("peekControlEntered") is True
+    and handwriting.get("peekControlGlyphVisible") is True
+    and handwriting.get("peekControlUncounted") is True,
     "addSheet": data_flow.get("addSheetOpened") is True
     and data_flow.get("addPreviewRendered") is True
     and data_flow.get("addConfirmEnabled") is True
@@ -126,13 +130,17 @@ checks = {
     and navigation.get("practiceTabActive") is True,
     "navBook": navigation.get("bookVisible") is True
     and navigation.get("bookTabActive") is True
-    and navigation.get("footVisibleOnBook") is True,
+    and navigation.get("footVisibleOnBook") is True
+    and navigation.get("bookAchievementVisible") is True,
     "navMe": navigation.get("meVisible") is True
     and navigation.get("meTabActive") is True
-    and navigation.get("footVisibleOnMe") is True,
+    and navigation.get("footVisibleOnMe") is True
+    and navigation.get("meActionsDisclosed") is True,
     "navProfile": navigation.get("profileVisible") is True
     and navigation.get("profileFootHidden") is True
-    and navigation.get("profileReturnedToMe") is True,
+    and navigation.get("profileReturnedToMe") is True
+    and navigation.get("profileHasNoDuplicateChars") is True,
+    "homeCapture": navigation.get("homeCaptureVisible") is True,
     "navAudit": navigation.get("auditVisible") is dev_mode
     and navigation.get("auditReturnedToMe") is dev_mode,
     "practiceStarted": practice.get("started") is True,

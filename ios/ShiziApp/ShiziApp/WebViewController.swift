@@ -199,6 +199,7 @@ final class WebViewController: UIViewController {
               backupHasCustom: false,
               backupHasMemory: false,
               backupHasReminder: false,
+              backupHasFunnel: false,
               backupExcludesSmokeKey: false,
               backupHasMeta: false,
               backupRestoreApplied: false,
@@ -206,12 +207,14 @@ final class WebViewController: UIViewController {
               backupRestoreAdded: false,
               backupRestoreCustom: false,
               backupRestoreMemory: false,
+              backupRestoreFunnel: false,
               backupRestorePreservesSmokeKey: false,
               backupRestoreRejectsInvalid: false,
               nativeBridgeAvailable: false,
               nativeImportAvailable: false,
               nativeConfirmAvailable: false,
               reminderStateAvailable: false,
+              funnelStateAvailable: false,
               reminderSettingsRowVisible: false,
               calibrationReturnInviteVisible: false,
               calibrationReturnPermissionRequested: false,
@@ -440,7 +443,7 @@ final class WebViewController: UIViewController {
               result.dataFlow.memoryHasAddedChar = !!memoryForSmokeChar && memoryForSmokeChar.target === smokeChar && memoryForSmokeChar.lastOutcome === 'miss' && Number(memoryForSmokeChar.seen || 0) > 0;
 
               localStorage.setItem(SESSION_KEY, JSON.stringify({ version: 2, smoke: true }));
-              const backup = JSON.parse(backupPayload());
+              const backup = JSON.parse(backupPayload({ funnelExportAt: Date.now() }));
               const backupData = backup && backup.data ? backup.data : {};
               result.dataFlow.backupParses = true;
               result.dataFlow.backupHasAppMarker = backup.app === 'shizi' && backup.version === 1;
@@ -448,6 +451,8 @@ final class WebViewController: UIViewController {
               result.dataFlow.backupHasCustom = BASE_BY_CHAR[smokeChar] != null || (Object.prototype.hasOwnProperty.call(backupData, CUSTOM_KEY) && String(backupData[CUSTOM_KEY]).includes(smokeChar));
               result.dataFlow.backupHasMemory = Object.prototype.hasOwnProperty.call(backupData, MEMORY_KEY) && String(backupData[MEMORY_KEY]).includes(smokeChar);
               result.dataFlow.backupHasReminder = Object.prototype.hasOwnProperty.call(backupData, REMINDER_KEY);
+              const backupFunnel = Object.prototype.hasOwnProperty.call(backupData, FUNNEL_KEY) ? JSON.parse(backupData[FUNNEL_KEY]) : null;
+              result.dataFlow.backupHasFunnel = !!backupFunnel && backupFunnel.version === 1 && backupFunnel.events.filter(row => row.name === 'backup_exported').length === 1;
               result.dataFlow.backupHasSessionV2 = Object.prototype.hasOwnProperty.call(backupData, SESSION_KEY) && JSON.parse(backupData[SESSION_KEY]).version === 2;
               result.dataFlow.backupHasFSRSLog = Object.prototype.hasOwnProperty.call(backupData, FSRS_LOG_KEY);
               result.dataFlow.backupHasTraceTutorial = Object.prototype.hasOwnProperty.call(backupData, TRACE_TUTORIAL_KEY);
@@ -468,6 +473,8 @@ final class WebViewController: UIViewController {
                 result.dataFlow.backupRestoreAdded = Array.isArray(restoredAdded) && restoredAdded.includes(smokeChar);
                 result.dataFlow.backupRestoreCustom = BASE_BY_CHAR[smokeChar] != null || (Array.isArray(restoredCustom) && restoredCustom.includes(smokeChar));
                 result.dataFlow.backupRestoreMemory = String(localStorage.getItem(MEMORY_KEY) || '').includes(smokeChar);
+                const restoredFunnel = JSON.parse(localStorage.getItem(FUNNEL_KEY) || '{}');
+                result.dataFlow.backupRestoreFunnel = restoredFunnel.version === 1 && restoredFunnel.events.filter(row => row.name === 'backup_exported').length === 1;
                 result.dataFlow.backupRestorePreservesSessionV2 = JSON.parse(localStorage.getItem(SESSION_KEY) || '{}').version === 2;
                 result.dataFlow.backupRestorePreservesSmokeKey = localStorage.getItem('shizi.nativeSmoke.v1') === smokeValueBeforeRestore;
                 const safetyCopy = JSON.parse(localStorage.getItem(SAFETY_KEY) || 'null');
@@ -483,6 +490,7 @@ final class WebViewController: UIViewController {
               result.dataFlow.shareCardBridgeAvailable = result.dataFlow.nativeBridgeAvailable && typeof sharePracticeCard === 'function';
               result.dataFlow.nativeConfirmAvailable = window.confirm('\(Self.nativeSmokeConfirmMessage)') === true;
               result.dataFlow.reminderStateAvailable = typeof reminder === 'object' && typeof reminder.enabled === 'boolean' && typeof totalPracticeDays === 'function' && Number.isInteger(totalPracticeDays());
+              result.dataFlow.funnelStateAvailable = typeof funnel === 'object' && funnel.version === 1 && typeof recordFunnelOnce === 'function' && typeof recordFunnelComparison === 'function';
               result.dataFlow.reminderSettingsRowVisible = getComputedStyle(document.getElementById('reminderSection')).display !== 'none' && getComputedStyle(document.getElementById('reminderRow')).display !== 'none';
               const reminderBeforeCalibrationInvite = cloneObj(reminder);
               const pendingBeforeCalibrationInvite = reminderPendingEnable;

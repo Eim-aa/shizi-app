@@ -1,5 +1,7 @@
 const { chromium } = require("playwright");
+const { execFileSync } = require("child_process");
 const fs = require("fs");
+const os = require("os");
 const path = require("path");
 
 const root = path.resolve(__dirname, "..");
@@ -27,6 +29,30 @@ function assert(condition, message, details) {
 
 assert(swSource.includes("shizi-v9") && swSource.includes("Promise.allSettled") && swSource.includes("INSTALL_BATCH_SIZE = 40") && swSource.includes("cacheCoreStrokes"), "Expected versioned, batched, failure-tolerant core stroke installation");
 assert(coreStrokeSource.includes("SHIZI_CORE_STROKES") && coreStrokeSource.includes("slice(0,600)"), "Expected a generated 600-character core stroke list");
+assert(!source.includes("sendBeacon") && !/method\s*:\s*["']POST["']/.test(source), "Expected the local funnel to add no analytics beacon or POST request");
+
+function verifyBackupSummaryScript() {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "shizi-funnel-"));
+  const backup = (opens, funnel) => ({ app: "shizi", version: 1, date: "2026-07-16T08:00:00.000Z", data: { "shizi.opens.v1": JSON.stringify(opens), "shizi.funnel.v1": JSON.stringify(funnel) } });
+  const events = (...names) => names.map((name, index) => ({ name, at: Date.UTC(2026, 6, index + 1), day: `2026-07-${String(index + 1).padStart(2, "0")}` }));
+  const rows = [
+    backup(["2026-07-01", "2026-07-02", "2026-07-08"], { version: 1, events: events("welcome_shown", "calib_card1_done", "calib_completed"), counts: { revealCompared: 10, revealDisagree: 2 }, rounds: [{ completedAt: 1, durationMs: 60000 }, { completedAt: 2, durationMs: 120000 }] }),
+    backup(["2026-07-01", "2026-07-03", "2026-07-08"], { version: 1, events: events("welcome_shown", "calib_card1_done"), counts: { revealCompared: 5, revealDisagree: 1 }, rounds: [{ completedAt: 3, durationMs: 30000 }] }),
+  ];
+  const files = rows.map((row, index) => { const file = path.join(dir, `${index}.json`); fs.writeFileSync(file, JSON.stringify(row)); return file; });
+  try {
+    const output = execFileSync("python3", [path.join(root, "scripts", "summarize_backups.py"), "--json", ...files], { encoding: "utf8" });
+    const summary = JSON.parse(output);
+    assert(summary.retention.d1.returned === 1 && summary.retention.d1.eligible === 2 && summary.retention.d7.returned === 2 && summary.retention.d7.eligible === 2
+      && summary.calibration.card1_rate === 1 && summary.calibration.completion_rate === 0.5
+      && summary.system_comparison.disagreement_rate === 0.2 && summary.rounds.completed === 3 && summary.rounds.average_duration_seconds === 70,
+    "Expected backup summary D1/D7, calibration, disagreement, and duration metrics", summary);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+verifyBackupSummaryScript();
 
 async function waitForWriter(page) {
   await page.waitForFunction(() => Array.isArray(curMedians) && curMedians.length > 0 && !animating);
@@ -74,8 +100,27 @@ let browser;
     needsCalibration: needsCalibration(),
     restoreVisible: getComputedStyle(document.getElementById("welcomeRestore")).display !== "none" && typeof document.getElementById("welcomeRestore").onclick === "function",
     tabs: Array.from(document.querySelectorAll("#foot .tab")).map((node) => node.textContent.replace(/\s+/g, "")),
+    welcomeEvents: funnel.events.filter((row) => row.name === "welcome_shown").length,
   }));
-  assert(firstRun.welcome && firstRun.footHidden && firstRun.needsCalibration && firstRun.restoreVisible && firstRun.copy.includes("先拾15个字试试") && firstRun.copy.includes("记录只存在这台手机上") && firstRun.tabs.join() === "拾练习,盒字盒,我我的", "Expected first-run calibration welcome, storage expectation, restore entry, and three-tab IA", firstRun);
+  assert(firstRun.welcome && firstRun.footHidden && firstRun.needsCalibration && firstRun.restoreVisible && firstRun.copy.includes("先拾15个字试试") && firstRun.copy.includes("记录只存在这台手机上") && firstRun.tabs.join() === "拾练习,盒字盒,我我的" && firstRun.welcomeEvents === 1, "Expected first-run calibration welcome, one-time funnel event, storage expectation, restore entry, and three-tab IA", firstRun);
+
+  const funnelBoundary = await page.evaluate(() => {
+    const originalFunnel = JSON.parse(JSON.stringify(funnel)), originalOpens = opens.slice(), originalRound = { roundId, activeMode, baseTargets: baseTargets.slice(), attemptSeq };
+    funnel = newFunnel(); saveFunnel(); renderHome(); renderHome();
+    opens = [shiftDay(today(), -1), today()]; maybeRecordD2Return(); maybeRecordD2Return();
+    recordFunnelComparison("verify-disagree", false, Date.now()); recordFunnelComparison("verify-disagree", false, Date.now()); recordFunnelComparison("verify-agree", true, Date.now());
+    roundId = "verify-funnel-round"; activeMode = "new"; baseTargets = [0, 1]; attemptSeq = 3; recordFunnelRound(90000); recordFunnelRound(180000);
+    dataLink.click(); const devCopy = dataBox.textContent; dataLink.click();
+    const exportedAt = Date.now(), projected = JSON.parse(backupPayload({ preserveMeta: true, exportedAt, funnelExportAt: exportedAt })), projectedFunnel = JSON.parse(projected.data[FUNNEL_KEY]);
+    const restored = normalizeFunnel(projectedFunnel), noDuplicateAfterRestore = !appendFunnelEvent(restored, "backup_exported", "backup_exported", exportedAt);
+    const result = { events: Object.fromEntries(["welcome_shown", "d2_return", "reveal_disagree"].map((name) => [name, funnel.events.filter((row) => row.name === name).length])), counts: { ...funnel.counts }, rounds: funnel.rounds.slice(), devCopy, projectedBackup: projectedFunnel.events.filter((row) => row.name === "backup_exported").length, localBackup: funnel.events.filter((row) => row.name === "backup_exported").length, noDuplicateAfterRestore, hasFunnelKey: BACKUP_KEYS.includes(FUNNEL_KEY) };
+    funnel = normalizeFunnel(originalFunnel); saveFunnel(); opens = originalOpens; save(OPEN_KEY, opens); roundId = originalRound.roundId; activeMode = originalRound.activeMode; baseTargets = originalRound.baseTargets; attemptSeq = originalRound.attemptSeq;
+    return result;
+  });
+  assert(funnelBoundary.events.welcome_shown === 1 && funnelBoundary.events.d2_return === 1 && funnelBoundary.events.reveal_disagree === 1
+    && funnelBoundary.counts.revealCompared === 2 && funnelBoundary.counts.revealDisagree === 1 && funnelBoundary.rounds.length === 1 && funnelBoundary.rounds[0].durationMs === 90000
+    && funnelBoundary.devCopy.includes("本地漏斗") && funnelBoundary.devCopy.includes("平均 90 秒") && funnelBoundary.projectedBackup === 1 && funnelBoundary.localBackup === 0 && funnelBoundary.noDuplicateAfterRestore && funnelBoundary.hasFunnelKey,
+  "Expected idempotent local funnel, projected successful-export event, and backup allowlist", funnelBoundary);
   const restoreChooser = page.waitForEvent("filechooser");
   await page.click("#welcomeRestore");
   assert(!!(await restoreChooser), "Expected the first-run restore entry to open the backup picker");
@@ -505,8 +550,8 @@ let browser;
 
   await page.click("#show");
   await page.waitForFunction(() => practicePhase === "tracing");
-  const calibrationHelp = await page.evaluate(() => ({ phase: practicePhase, comfort: calibrationComfortShown, copy: traceIntro.textContent, secondComfort: takeCalibrationComfort("slow") }));
-  assert(calibrationHelp.phase === "tracing" && calibrationHelp.comfort && calibrationHelp.copy.includes("忘了正常") && !calibrationHelp.secondComfort,
+  const calibrationHelp = await page.evaluate(() => ({ phase: practicePhase, comfort: calibrationComfortShown, copy: traceIntro.textContent, secondComfort: takeCalibrationComfort("slow"), card1Events: funnelEventCount("calib_card1_done") }));
+  assert(calibrationHelp.phase === "tracing" && calibrationHelp.comfort && calibrationHelp.copy.includes("忘了正常") && !calibrationHelp.secondComfort && calibrationHelp.card1Events === 1,
   "Expected first-card don't-know to enter tracing immediately and show calibration comfort only once", calibrationHelp);
 
   await page.evaluate(() => {
@@ -531,12 +576,12 @@ let browser;
     tuning = { calibrated: false, offset: 0, contextStrict: 0, rounds: [] }; preference = "balanced";
     const allCounts = roundCounts(), sampleCounts = roundCounts(calibrationRoundStats());
     maybeFinishCalibration();
-    return { original, extras, restored, total: baseTargets.length, allCounts, sampleCounts, calibration: cloneObj(tuning.calibration), preference, offset: tuning.offset };
+    return { original, extras, restored, total: baseTargets.length, allCounts, sampleCounts, calibration: cloneObj(tuning.calibration), preference, offset: tuning.offset, completedEvents: funnelEventCount("calib_completed") };
   });
   assert(calibrationIsolation.original.length === 15 && calibrationIsolation.extras.length === 3 && calibrationIsolation.total === 18
     && calibrationIsolation.restored.join() === calibrationIsolation.original.join() && calibrationIsolation.allCounts.fast === 15 && calibrationIsolation.allCounts.miss === 3
     && calibrationIsolation.sampleCounts.fast === 15 && calibrationIsolation.sampleCounts.miss === 0 && calibrationIsolation.calibration.sampleSize === 15
-    && calibrationIsolation.calibration.counts.fast === 15 && calibrationIsolation.calibration.counts.miss === 0 && calibrationIsolation.preference === "challenge" && calibrationIsolation.offset === 10,
+    && calibrationIsolation.calibration.counts.fast === 15 && calibrationIsolation.calibration.counts.miss === 0 && calibrationIsolation.preference === "challenge" && calibrationIsolation.offset === 10 && calibrationIsolation.completedEvents === 1,
   "Expected added calibration cards to persist and learn without changing the original 15-card calibration result", calibrationIsolation);
 
   const calibrationConsistency = await page.evaluate(() => {
@@ -1080,12 +1125,12 @@ let browser;
     undoSafetyRestore({ reload: false }); const latestRestored = String(localStorage.getItem(MEMORY_KEY)).includes("verify:before-second");
 
     restoreBackupPayload(original, { skipConfirm: true, reload: false, skipSafety: true }); localStorage.removeItem(SAFETY_KEY); hideSafetyUndo(); memory = originalMemory;
-    const result = { keys: Object.keys(original.data), sessionVersion: JSON.parse(original.data[SESSION_KEY]).version, fsrsLog: !!original.data[FSRS_LOG_KEY], tutorial: original.data[TRACE_TUTORIAL_KEY], restoredKeys: restoredResult.keys,
+    const result = { keys: Object.keys(original.data), sessionVersion: JSON.parse(original.data[SESSION_KEY]).version, fsrsLog: !!original.data[FSRS_LOG_KEY], tutorial: original.data[TRACE_TUTORIAL_KEY], funnelVersion: JSON.parse(original.data[FUNNEL_KEY]).version, restoredKeys: restoredResult.keys,
       unknown: localStorage.getItem("shizi.unknown.verify"), cancelled: !cancelled.applied, confirmCopy, incomingApplied, safetyReason: safetyAfterRestore && safetyAfterRestore.reason, undoOffered, undoApplied: undoResult.applied, currentRestored,
       resetReason: resetSafety && resetSafety.reason, overwrittenReason: overwrittenSafety && overwrittenSafety.reason, latestRestored, safetyExcluded: !Object.prototype.hasOwnProperty.call(original.data, SAFETY_KEY) };
     localStorage.removeItem("shizi.unknown.verify"); return result;
   });
-  assert(backup.keys.includes(SESSION_STORAGE_KEY) && backup.sessionVersion === 2 && backup.fsrsLog && backup.tutorial === "true" && backup.restoredKeys.includes(SESSION_STORAGE_KEY) && backup.unknown === "keep-local", "Expected session/FSRS/tutorial backup round trip with allowlist isolation", backup);
+  assert(backup.keys.includes(SESSION_STORAGE_KEY) && backup.sessionVersion === 2 && backup.fsrsLog && backup.tutorial === "true" && backup.funnelVersion === 1 && backup.restoredKeys.includes(SESSION_STORAGE_KEY) && backup.unknown === "keep-local", "Expected session/FSRS/tutorial/funnel backup round trip with allowlist isolation", backup);
   assert(backup.cancelled && backup.confirmCopy.includes("当前 2 字（最后练习 2026-07-11）→ 备份 1 字（2026-06-01）") && backup.incomingApplied && backup.safetyReason === "restore" && backup.undoOffered && backup.undoApplied && backup.currentRestored, "Expected differential restore confirmation and one-tap safety undo", backup);
   assert(backup.resetReason === "reset" && backup.overwrittenReason === "restore" && backup.latestRestored && backup.safetyExcluded, "Expected reset safety copy, latest-operation replacement, and backup exclusion", backup);
 

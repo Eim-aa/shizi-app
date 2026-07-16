@@ -62,7 +62,7 @@ ios/ShiziApp/scripts/smoke-simulator.sh
 ```
 
 它会构建模拟器包、安装启动 App、截图、检查 bundle 资源，并确认 WKWebView 的 `localStorage` 已写入 `shizi.*` 键；随后会终止并重启 App，验证 smoke 写入的 `shizi.nativeSmoke.v1` 仍然存在。
-同时它会让 WKWebView 在 App 内执行一次原生 smoke：验证 6854 基础字、开发入口隔离、本地笔画读取、页面导航、手写、防滚动、撤销、双指透视、加字和备份恢复。练习链会真实提交「提示笔画＋用户墨迹」完整字格，验证二选一判断、1.4 秒反馈、Again 事件、原子“重盖”、两步不会写教学、session v2、再练队列、五类触觉以及退出后原位续练；结算断言覆盖月度节奏、薄弱字口袋和本地分享图片的尺寸、桥接与隐私边界，备份断言覆盖 session v2、FSRS review log 和教学说明标记。
+同时它会让 WKWebView 在 App 内执行一次原生 smoke：验证 6854 基础字、开发入口隔离、本地笔画读取、页面导航、手写、防滚动、撤销、双指透视、加字和备份恢复。练习链会真实提交「提示笔画＋用户墨迹」完整字格，验证二选一判断、1.4 秒反馈、Again 事件、原子“重盖”、两步不会写教学、session v2、再练队列、五类触觉以及退出后原位续练；结算断言覆盖月度节奏、薄弱字口袋和本地分享图片的尺寸、桥接与隐私边界，备份断言覆盖 session v2、FSRS review log、教学说明标记和本地漏斗。
 
 开发入口也可以用同一个 smoke 脚本验证：
 
@@ -249,6 +249,6 @@ ios/ShiziApp/scripts/archive-testflight.sh
 
 ## 数据保留说明
 
-App 使用 `WKWebsiteDataStore.default()`，Web 侧仍使用 `localStorage` 保存记忆模型、复习调度、练习日、每日完成态、当前组快照和练习提醒设置。iOS 中「导出备份」调用原生分享面板，只有分享完成才更新上次备份时间；「恢复备份」调用原生 Files 文档选择器。结算页的 PNG 字帖也经原生 `sharePracticeCard` 桥调起系统分享面板，图片在 WebView 内即时生成，只含本组字、结果、日期和里程碑，不含完整记录或设备信息。浏览器/PWA 保留 Web Share、下载和 file input fallback。正常 App 更新会保留数据；卸载 App、抹掉设备数据或手动清理 WebKit 网站数据会删除本地记录。换机和长期内测前仍建议在「我的 -> 备份与恢复 -> 导出备份」导出 JSON。
+App 使用 `WKWebsiteDataStore.default()`，Web 侧仍使用 `localStorage` 保存记忆模型、复习调度、练习日、每日完成态、当前组快照、练习提醒设置和无设备标识的本地漏斗。漏斗随用户主动导出的备份回传，不使用匿名信标或其他统计网络请求。iOS 中「导出备份」调用原生分享面板，只有分享完成才更新上次备份时间；「恢复备份」调用原生 Files 文档选择器。结算页的 PNG 字帖也经原生 `sharePracticeCard` 桥调起系统分享面板，图片在 WebView 内即时生成，只含本组字、结果、日期和里程碑，不含完整记录或设备信息。浏览器/PWA 保留 Web Share、下载和 file input fallback。正常 App 更新会保留数据；卸载 App、抹掉设备数据或手动清理 WebKit 网站数据会删除本地记录。换机和长期内测前仍建议在「我的 -> 备份与恢复 -> 导出备份」导出 JSON。
 
 工程内包含 `PrivacyInfo.xcprivacy`，当前声明不追踪用户、不收集隐私数据、不使用需要声明的 required reason API；`ITSAppUsesNonExemptEncryption=false` 表示 App 没有使用非豁免加密。若后续加入埋点、账号、推送、第三方 SDK 或自研加密，需要同步更新这些声明和 App Store Connect 的 App Privacy/出口合规信息。

@@ -39,7 +39,7 @@ for script in "${SCRIPT_DIR}"/*.sh; do
   sh -n "$script"
 done
 PYTHONPYCACHEPREFIX="${IOS_ROOT}/build/verify/pycache" \
-  python3 -m py_compile "${SCRIPT_DIR}/validate-native-smoke.py"
+  python3 -m py_compile "${SCRIPT_DIR}/validate-native-smoke.py" "${REPO_ROOT}/scripts/summarize_backups.py"
 
 if git -C "$REPO_ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   git -C "$REPO_ROOT" diff --check

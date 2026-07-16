@@ -845,7 +845,7 @@ function celebrateMilestoneIfAny(){ const total=totalPracticeDays(); let changed
 const BATCH=15, TOPIC_KEY="shizi.topic.v1";
 let sessionDone=new Set(), baseTargets=[], batch=[], pos=0, baseCursor=0, currentIndex=null, currentAttemptKind="base", currentAttemptId="";
 let manualQueue=[], reinforcementQueue=[], unresolved=new Set(), episodes={}, attemptSeq=0, practicePhase="recall", hintEverUsed=false, enteredTracingThisAttempt=false, submissionSnapshot=null, pendingSessionVisual=null, feedbackKind="";
-let missedThisRound=[], roundStats=[], focusQueue=[], hintsUsedThisCard=0, cardStartedAt=0, activeMode="new", sessionTarget=0, sessionFastStreak=0, sessionMissStreak=0, roundFeedbackGiven=false, roundId=0, calibrationFirstHoldUsed=false;
+let missedThisRound=[], roundStats=[], focusQueue=[], hintsUsedThisCard=0, cardStartedAt=0, activeMode="new", sessionTarget=0, sessionFastStreak=0, sessionMissStreak=0, roundFeedbackGiven=false, roundId=0, calibrationFirstHoldUsed=false, calibrationTargets=[];
 function currentCardIndex(){ return Number.isInteger(currentIndex)?currentIndex:(Number.isInteger(batch[pos])?batch[pos]:null); }
 function episodeFor(idx){ const key=String(idx); return episodes[key] || (episodes[key]={idx,firstOutcome:null,attempts:[],assistanceUsed:false,independentlyRecovered:false,excluded:false,teachingComplete:false}); }
 function enqueueReinforcement(idx){ unresolved.add(idx); reinforcementQueue=reinforcementQueue.filter(item=>item.idx!==idx); reinforcementQueue.push({idx,eligibleAfter:attemptSeq+2,order:attemptSeq}); const m=cardMemory(idx); m.pendingLearning=true; m.dueDay=null; m.due=0; }
@@ -862,7 +862,7 @@ function capturePracticeVisual(){ return {practicePhase,currentIndex,currentAtte
   shownStrokes,groupIdx,seenGroups:[...seenGroups],inkStrokes:cloneObj(inkStrokes)||[],tracedThisCard,submissionSnapshot:cloneObj(submissionSnapshot),revealed,stamped}; }
 function sessionPayload(){ return {version:2,startedDate:(load(SESSION_KEY,null)||{}).startedDate||today(),updatedAt:Date.now(),activeMode,baseTargets:baseTargets.slice(),baseCursor,currentIndex,currentAttemptKind,currentAttemptId,
   manualQueue:cloneObj(manualQueue)||[],reinforcementQueue:cloneObj(reinforcementQueue)||[],unresolved:[...unresolved],episodes:cloneObj(episodes)||{},attemptSeq,practicePhase,visual:capturePracticeVisual(),
-  missedThisRound:missedThisRound.slice(),roundStats:cloneObj(roundStats)||[],focusQueue:focusQueue.slice(),sessionDone:[...sessionDone],sessionTarget,sessionFastStreak,sessionMissStreak,roundFeedbackGiven,roundId,calibrationFirstHoldUsed,lastStampSnapshot:cloneObj(lastStampSnapshot),feedbackKind}; }
+  missedThisRound:missedThisRound.slice(),roundStats:cloneObj(roundStats)||[],focusQueue:focusQueue.slice(),sessionDone:[...sessionDone],sessionTarget,sessionFastStreak,sessionMissStreak,roundFeedbackGiven,roundId,calibrationFirstHoldUsed,calibrationTargets:calibrationTargets.slice(),lastStampSnapshot:cloneObj(lastStampSnapshot),feedbackKind}; }
 function saveSessionSnapshot(){ if(!baseTargets.length || !Number.isInteger(currentCardIndex())) return false; return save(SESSION_KEY,sessionPayload()); }
 function clearSessionSnapshot(){ removeStored(SESSION_KEY); }
 function migrateV1Session(s){ const stats=Array.isArray(s.roundStats)?cloneObj(s.roundStats):[], targets=Array.isArray(s.batch)?s.batch.slice():[]; let cursor=Math.min(targets.length,stats.length);
@@ -871,7 +871,7 @@ function migrateV1Session(s){ const stats=Array.isArray(s.roundStats)?cloneObj(s
   const next=cursor<targets.length?{idx:targets[cursor],kind:"base"}:(queue.length?{idx:queue[0].idx,kind:"reinforcement"}:null);
   return {version:2,startedDate:s.date||today(),updatedAt:Date.now(),activeMode:s.activeMode,baseTargets:targets,baseCursor:cursor,currentIndex:next?next.idx:targets[Math.max(0,targets.length-1)],currentAttemptKind:next?next.kind:"base",currentAttemptId:`${s.roundId||Date.now()+"-migrated"}-a${stats.length+1}`,
     manualQueue:[],reinforcementQueue:queue.filter(item=>!next||next.kind!=="reinforcement"||item.idx!==next.idx),unresolved:[...open],episodes:eps,attemptSeq:stats.length,practicePhase:next&&next.kind==="reinforcement"?"reinforcement":"recall",visual:null,
-    missedThisRound:Array.isArray(s.missedThisRound)?s.missedThisRound.slice():[],roundStats:stats,focusQueue:Array.isArray(s.focusQueue)?s.focusQueue.slice():[],sessionDone:Array.isArray(s.sessionDone)?s.sessionDone.slice():[],sessionTarget:s.sessionTarget,sessionFastStreak:s.sessionFastStreak,sessionMissStreak:s.sessionMissStreak,roundFeedbackGiven:!!s.roundFeedbackGiven,roundId:s.roundId||Date.now()+"-migrated",calibrationFirstHoldUsed:!!s.calibrationFirstHoldUsed,lastStampSnapshot:null}; }
+    missedThisRound:Array.isArray(s.missedThisRound)?s.missedThisRound.slice():[],roundStats:stats,focusQueue:Array.isArray(s.focusQueue)?s.focusQueue.slice():[],sessionDone:Array.isArray(s.sessionDone)?s.sessionDone.slice():[],sessionTarget:s.sessionTarget,sessionFastStreak:s.sessionFastStreak,sessionMissStreak:s.sessionMissStreak,roundFeedbackGiven:!!s.roundFeedbackGiven,roundId:s.roundId||Date.now()+"-migrated",calibrationFirstHoldUsed:!!s.calibrationFirstHoldUsed,calibrationTargets:s.activeMode==="calibrate"?targets.slice(0,BATCH):[],lastStampSnapshot:null}; }
 function resumableSession(){ let s=load(SESSION_KEY,null); if(!s) return null; if(s.version===1) s=migrateV1Session(s);
   const valid=s.version===2 && Array.isArray(s.baseTargets) && s.baseTargets.length>0 && s.baseTargets.every(i=>Number.isInteger(i)&&i>=0&&i<CARDS.length)
     && Number.isInteger(s.currentIndex)&&s.currentIndex>=0&&s.currentIndex<CARDS.length && ["new","review","calibrate","focus"].includes(s.activeMode);
@@ -879,8 +879,9 @@ function resumableSession(){ let s=load(SESSION_KEY,null); if(!s) return null; i
 function restoreSession(s){ if(!s) return false; if(s.version===1) s=migrateV1Session(s); activeMode=s.activeMode; baseTargets=s.baseTargets.slice(); batch=baseTargets; baseCursor=Math.max(0,Math.min(baseTargets.length,Number(s.baseCursor)||0)); currentIndex=s.currentIndex;
   currentAttemptKind=s.currentAttemptKind||"base"; currentAttemptId=s.currentAttemptId||`${s.roundId}-a${(Number(s.attemptSeq)||0)+1}-${currentIndex}`; manualQueue=Array.isArray(s.manualQueue)?cloneObj(s.manualQueue):[]; reinforcementQueue=Array.isArray(s.reinforcementQueue)?cloneObj(s.reinforcementQueue):[]; unresolved=new Set(Array.isArray(s.unresolved)?s.unresolved:[]); episodes=cloneObj(s.episodes)||{}; attemptSeq=Number(s.attemptSeq)||0; practicePhase=s.practicePhase||"recall";
   missedThisRound=Array.isArray(s.missedThisRound)?s.missedThisRound.slice():[]; roundStats=Array.isArray(s.roundStats)?cloneObj(s.roundStats):[]; focusQueue=Array.isArray(s.focusQueue)?s.focusQueue.slice():[]; sessionDone=new Set(Array.isArray(s.sessionDone)?s.sessionDone:[]);
-  sessionTarget=Number(s.sessionTarget)||targetDifficulty(); sessionFastStreak=Number(s.sessionFastStreak)||0; sessionMissStreak=Number(s.sessionMissStreak)||0; roundFeedbackGiven=!!s.roundFeedbackGiven; roundId=s.roundId||Date.now()+"-resume"; calibrationFirstHoldUsed=!!s.calibrationFirstHoldUsed; lastStampSnapshot=cloneObj(s.lastStampSnapshot); feedbackKind=s.feedbackKind||"";
-  if(baseCursor>=baseTargets.length && unresolved.size===0){ practicePhase="between"; clearSessionSnapshot(); markRoundComplete(); roundSummary(); return true; }
+  sessionTarget=Number(s.sessionTarget)||targetDifficulty(); sessionFastStreak=Number(s.sessionFastStreak)||0; sessionMissStreak=Number(s.sessionMissStreak)||0; roundFeedbackGiven=!!s.roundFeedbackGiven; roundId=s.roundId||Date.now()+"-resume"; calibrationFirstHoldUsed=!!s.calibrationFirstHoldUsed;
+  calibrationTargets=activeMode==="calibrate"?[...new Set(Array.isArray(s.calibrationTargets)?s.calibrationTargets:baseTargets.slice(0,BATCH))].filter(i=>Number.isInteger(i)&&baseTargets.includes(i)).slice(0,BATCH):[]; lastStampSnapshot=cloneObj(s.lastStampSnapshot); feedbackKind=s.feedbackKind||"";
+  if(baseCursor>=baseTargets.length && manualQueue.length===0 && unresolved.size===0){ practicePhase="between"; clearSessionSnapshot(); markRoundComplete(); roundSummary(); return true; }
   pendingSessionVisual=cloneObj(s.visual); pos=Math.min(baseCursor,Math.max(0,baseTargets.length-1)); render(); armPracticeHistory(); return true; }
 function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 function allIndexes(){ return [...Array(CARDS.length).keys()]; }
@@ -1006,16 +1007,17 @@ const MASCOT_LINES=[
 ];
 const ROTS=[-1.5,1,2,-1,1.5,-2,1,-1.5,2,1,-1,1.5,-2,1,-1];
 const ROUND_FEEDBACK={easy:["太简单","下组加难"],ok:["刚刚好","保持节奏"],hard:["太难","下组降一点"],bad_context:["词不自然","收紧语境"]};
-function roundCounts(){ const out={fast:0,slow:0,hinted:0,miss:0}; roundStats.forEach(x=>{ out[x.outcome]=(out[x.outcome]||0)+1; }); return out; }
+function roundCounts(stats=roundStats){ const out={fast:0,slow:0,hinted:0,miss:0}; stats.forEach(x=>{ out[x.outcome]=(out[x.outcome]||0)+1; }); return out; }
 function tuningLabel(){ const o=Number(tuning.offset)||0; if(o>=14) return "高挑战"; if(o>=6) return "偏挑战"; if(o<=-10) return "偏稳"; if(o<=-4) return "稍稳"; return "标准"; }
 function tuningShiftText(){ const o=Math.round(Number(tuning.offset)||0); return o>0?`+${o}`:`${o}`; }
-function roundMasteryScore(counts=roundCounts()){ const total=Math.max(1,roundStats.length); return ((counts.fast||0)*2-(counts.slow||0)*1.1-(counts.hinted||0)*1.2-(counts.miss||0)*2.2)/total; }
+function roundMasteryScore(counts=roundCounts(),total=roundStats.length){ return ((counts.fast||0)*2-(counts.slow||0)*1.1-(counts.hinted||0)*1.2-(counts.miss||0)*2.2)/Math.max(1,total); }
+function calibrationRoundStats(){ const sample=new Set(calibrationTargets); return roundStats.filter(row=>sample.has(row.idx)); }
 function maybeFinishCalibration(){ if(activeMode!=="calibrate" || tuning.calibrated) return "";
-  const counts=roundCounts(), hard=(counts.hinted||0)+(counts.miss||0)+(counts.slow||0), score=roundMasteryScore(counts); let why;
+  const stats=calibrationRoundStats(), counts=roundCounts(stats), hard=(counts.hinted||0)+(counts.miss||0)+(counts.slow||0), score=roundMasteryScore(counts,stats.length); let why;
   if((counts.fast||0)>=12 && hard<=2){ tuning.offset=10; preference="challenge"; why="刚才这组你基本都写得出来，所以接下来会自动加难，多挑些你不太熟的字。"; }
   else if(hard>=6 || (counts.miss||0)>=3){ tuning.offset=-6; preference="practical"; why="刚才有几个卡住了，所以先把难度调稳一点，从你能写出来的字开始，再慢慢加。"; }
   else { tuning.offset=2; preference="balanced"; why="刚才的难度大致合适，就先按这个节奏来，之后会按你实际写的情况再微调。"; }
-  tuning.calibrated=true; tuning.calibration={date:today(), counts, score:Math.round(score*100)/100, offset:tuning.offset, preference};
+  tuning.calibrated=true; tuning.calibration={date:today(), counts, sampleSize:stats.length, score:Math.round(score*100)/100, offset:tuning.offset, preference};
   activeMode="new"; saveTuning(); save(PREF_KEY,preference);
   return why;
 }
@@ -1604,7 +1606,8 @@ async function restoreSessionVisual(){ const state=pendingSessionVisual; if(!sta
   shownStrokes=Math.max(0,Number(state.shownStrokes)||0); groupIdx=Math.max(0,Number(state.groupIdx)||0); renderPhaseControls();
   if(practicePhase==="tracing") await showTraceOutline(); else if(practicePhase==="postTraceRecall"){ hzEl.innerHTML=""; hzEl.classList.remove("traceFallback"); }
   else if(shownStrokes&&practiceCharData) await rebuildHintLayer(shownStrokes);
-  if(state.revealed && submissionSnapshot){ restoreRevealFromSnapshot(submissionSnapshot); if(savedPhase==="feedback"&&lastStampSnapshot&&lastStampSnapshot.outcome){ practicePhase="feedback"; stamped=true; if(feedbackKind==="teachingComplete") showTeachingCompleteFeedback(); else showStampedFeedback(lastStampSnapshot.outcome); autoNextTimer=setTimeout(goNext,STAMP_HOLD_MS); } }
+  if(state.revealed && submissionSnapshot){ restoreRevealFromSnapshot(submissionSnapshot); const savedFeedback=feedbackKind==="teachingComplete"?feedbackKind:(feedbackKind||(lastStampSnapshot&&lastStampSnapshot.outcome));
+    if(savedPhase==="feedback"&&savedFeedback){ practicePhase="feedback"; stamped=true; if(savedFeedback==="teachingComplete") showTeachingCompleteFeedback(); else showStampedFeedback(savedFeedback); if(!lastStampSnapshot) $("editStamp").disabled=true; autoNextTimer=setTimeout(goNext,STAMP_HOLD_MS); } }
   else { updateTip(); saveSessionSnapshot(); } }
 
 async function rewriteCurrentCard(){ commitUndoWindow(); activePointers.clear(); peekReleasePending=false; exitPeekHint(true);
@@ -1715,6 +1718,7 @@ function chooseReviewBatch(all){ return all.slice().sort((a,b)=>reviewPriority(b
 function startRound(){ const p=availablePool(), queued=activeMode==="calibrate"?[]:queuedFrontPool(); if(p.length===0 && queued.length===0){ clearSessionSnapshot(); allDone(); return; } resetAdaptiveSession();
   baseTargets=activeMode==="focus"?chooseFocusBatch(p):(activeMode==="review"?chooseReviewBatch(p):(activeMode==="calibrate"?chooseCalibrationBatch(p):chooseBatch(p)));
   if(queued.length){ const front=new Set(queued); baseTargets=[...queued,...baseTargets.filter(i=>!front.has(i))].slice(0,BATCH); }
+  calibrationTargets=activeMode==="calibrate"?baseTargets.slice():[];
   batch=baseTargets; warmStrokeCache(baseTargets.map(i=>CARDS[i].target)); pos=0; baseCursor=0; currentIndex=null; pendingSessionVisual=null; manualQueue=[]; reinforcementQueue=[]; unresolved=new Set(); episodes={}; attemptSeq=0; practicePhase="recall";
   missedThisRound=[]; roundStats=[]; roundFeedbackGiven=false; calibrationFirstHoldUsed=false; lastStampSnapshot=null; hideUndoBar(false); roundId=Date.now()+"-"+Math.random().toString(36).slice(2,7);
   beginAttempt({idx:baseTargets[0],kind:"base"}); saveSessionSnapshot(); armPracticeHistory(); render(); }
@@ -1723,8 +1727,8 @@ function sumTile(s,i){ const isMiss=s.outcome==="miss", recovered=s.outcome!=="f
 function roundSummary(fromPractice=false){ clearSessionSnapshot(); markRoundComplete(); releasePracticeHistory(); const milestone=celebrateMilestoneIfAny(); displayView("summary");
   $("milestoneLine").style.display=milestone?"block":"none"; if(milestone){ $("milestoneLine").textContent=MILESTONE_COPY[milestone]; hapticFeedback("milestone"); }
   else if(fromPractice) hapticFeedback("action");
-  const wasCalibration=activeMode==="calibrate", calibrationNote=maybeFinishCalibration(), remain=availablePool().length;
-  const counts=roundCounts(), hardN=(counts.hinted||0)+(counts.miss||0)+(counts.slow||0), keptN=roundStats.length-hardN, dayTotal=todayStampCount(), completedGroups=dailyActivity().completedGroups;
+  const wasCalibration=activeMode==="calibrate", calibrationStats=wasCalibration?calibrationRoundStats():roundStats, calibrationNote=maybeFinishCalibration(), remain=availablePool().length;
+  const counts=roundCounts(calibrationStats), hardN=(counts.hinted||0)+(counts.miss||0)+(counts.slow||0), keptN=calibrationStats.length-hardN, dayTotal=todayStampCount(), completedGroups=dailyActivity().completedGroups;
   const risky=[...new Set(roundStats.filter(x=>x.outcome!=="fast").map(x=>x.idx))];
   $("calibCard").style.display=wasCalibration?"flex":"none"; $("calibCard").style.flexDirection="column"; $("calibCard").style.flex="1";
   $("sumSheet").style.display=wasCalibration?"none":"flex";

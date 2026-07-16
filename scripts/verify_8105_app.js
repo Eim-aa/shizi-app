@@ -283,6 +283,29 @@ let browser;
     && calibrationQueue.labels.show === "不会写" && calibrationQueue.labels.done === "写好了" && calibrationQueue.labels.noNext && calibrationQueue.touch.done === "manipulation" && calibrationQueue.touch.tab === "manipulation",
   "Expected calibration to keep its adult difficulty ramp while ignoring queued additions without consuming them", calibrationQueue);
 
+  const calibrationIsolation = await page.evaluate(() => {
+    const original = calibrationTargets.slice(), originalSet = new Set(original);
+    const extras = allIndexes().filter((idx) => !originalSet.has(idx) && qualityAvailable(idx)).slice(0, 3);
+    insertIntoCurrentBatch(extras);
+    const saved = load(SESSION_KEY, null);
+    calibrationTargets = [];
+    restoreSession(saved);
+    const restored = calibrationTargets.slice();
+    roundStats = [
+      ...original.map((idx) => ({ idx, target: CARDS[idx].target, outcome: "fast" })),
+      ...extras.map((idx) => ({ idx, target: CARDS[idx].target, outcome: "miss" })),
+    ];
+    tuning = { calibrated: false, offset: 0, contextStrict: 0, rounds: [] }; preference = "balanced";
+    const allCounts = roundCounts(), sampleCounts = roundCounts(calibrationRoundStats());
+    maybeFinishCalibration();
+    return { original, extras, restored, total: baseTargets.length, allCounts, sampleCounts, calibration: cloneObj(tuning.calibration), preference, offset: tuning.offset };
+  });
+  assert(calibrationIsolation.original.length === 15 && calibrationIsolation.extras.length === 3 && calibrationIsolation.total === 18
+    && calibrationIsolation.restored.join() === calibrationIsolation.original.join() && calibrationIsolation.allCounts.fast === 15 && calibrationIsolation.allCounts.miss === 3
+    && calibrationIsolation.sampleCounts.fast === 15 && calibrationIsolation.sampleCounts.miss === 0 && calibrationIsolation.calibration.sampleSize === 15
+    && calibrationIsolation.calibration.counts.fast === 15 && calibrationIsolation.calibration.counts.miss === 0 && calibrationIsolation.preference === "challenge" && calibrationIsolation.offset === 10,
+  "Expected added calibration cards to persist and learn without changing the original 15-card calibration result", calibrationIsolation);
+
   const inRoundAdd = await page.evaluate(() => {
     const pool = allIndexes().filter((idx) => qualityAvailable(idx)).slice(100, 120), original = pool.slice(0, 15), extras = pool.slice(15, 17);
     displayView("card"); baseTargets = original.slice(); batch = baseTargets; baseCursor = 0; currentIndex = original[0]; currentAttemptKind = "base"; currentAttemptId = "verify-add-current";
@@ -305,6 +328,36 @@ let browser;
     && inRoundAdd.first.idx === inRoundAdd.extras[0] && inRoundAdd.second.idx === inRoundAdd.extras[1], "Expected a full group to grow and preserve deduplicated FIFO manual priority", inRoundAdd);
   assert(inRoundAdd.moved.added.length === 0 && inRoundAdd.movedNext.idx === inRoundAdd.original[8] && inRoundAdd.repeatTotal === 15 && inRoundAdd.repeated.queued[0] === inRoundAdd.original[0]
     && inRoundAdd.restoredQueue.length === 1 && inRoundAdd.restoredQueue[0].kind === "repeat" && inRoundAdd.modes.every((row) => row.total === 16 && row.originalsKept && row.next === inRoundAdd.extras[0]), "Expected future/current targets to move or repeat without growing the denominator and all modes to preserve manual priority", inRoundAdd);
+
+  await page.evaluate(() => {
+    exitCurrentRound(); clearSessionSnapshot(); status = {}; memory = {}; fsrsReviewLog = []; quality = {}; sessionDone = new Set();
+    tuning = { calibrated: true, offset: 0, contextStrict: 0, rounds: [] }; save(DECK_KEY, status); saveMemory(); saveFSRSLog(); saveQuality(); saveTuning();
+    startFocus([CARDS.findIndex((card) => card.target === "器")]);
+  });
+  await submitStandard(page);
+  await chooseCorrect(page);
+  const repeatTarget = await page.evaluate(() => cur.target);
+  await page.click("#addInPractice");
+  await page.fill("#addInput", repeatTarget);
+  const repeatExit = await page.evaluate(() => {
+    confirmAdd();
+    const before = { baseCursor, total: baseTargets.length, queue: cloneObj(manualQueue), phase: practicePhase };
+    exitCurrentRound(false);
+    return { before, saved: load(SESSION_KEY, null), home: getComputedStyle(home).display !== "none" };
+  });
+  assert(repeatExit.home && repeatExit.before.baseCursor === repeatExit.before.total && repeatExit.before.phase === "feedback"
+    && repeatExit.before.queue.length === 1 && repeatExit.before.queue[0].kind === "repeat" && repeatExit.saved.manualQueue.length === 1,
+  "Expected a last-card feedback addition to save its pending repeat before returning home", repeatExit);
+  await page.waitForFunction(() => history.state && history.state.shiziView === "home");
+  await page.click("#startBtn");
+  await page.waitForFunction(() => practiceHistoryArmed && getComputedStyle(card).display !== "none");
+  const repeatRestore = await page.evaluate(() => ({ summary: getComputedStyle(summary).display, phase: practicePhase, queue: cloneObj(manualQueue), session: load(SESSION_KEY, null) }));
+  assert(repeatRestore.summary === "none" && repeatRestore.phase === "feedback" && repeatRestore.queue.length === 1 && repeatRestore.session,
+  "Expected restore to keep the final-card feedback and pending manual repeat instead of summarizing", repeatRestore);
+  await page.waitForFunction((target) => currentAttemptKind === "manual" && cur.target === target && practicePhase === "recall", repeatTarget);
+  const repeatedAfterRestore = await page.evaluate(() => ({ target: cur.target, kind: currentAttemptKind, queue: manualQueue.length, total: baseTargets.length, summary: getComputedStyle(summary).display, session: load(SESSION_KEY, null) }));
+  assert(repeatedAfterRestore.target === repeatTarget && repeatedAfterRestore.kind === "manual" && repeatedAfterRestore.queue === 0 && repeatedAfterRestore.total === 1 && repeatedAfterRestore.summary === "none" && repeatedAfterRestore.session,
+  "Expected the restored next card to consume the queued repeat without growing the group", repeatedAfterRestore);
 
   const completionHaptics = await page.evaluate(() => {
     exitCurrentRound(); clearSessionSnapshot();

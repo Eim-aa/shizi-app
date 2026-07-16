@@ -230,6 +230,9 @@ final class WebViewController: UIViewController {
               showEnabled: false,
               doneEnabled: false,
               revealVisible: false,
+              comparisonGridComplete: false,
+              comparisonSkeletonVisible: false,
+              comparisonCoordinatesAligned: false,
               noNextButton: false,
               immediateAdvanced: false,
               undoBarFollowed: false,
@@ -651,6 +654,12 @@ final class WebViewController: UIViewController {
               await waitFor(() => visible('reveal'));
               result.practiceFlow.hapticActionRevealRecorded = hapticDebug.last === 'action';
               result.practiceFlow.revealVisible = true;
+              const comparisonBoxes = Array.from(document.querySelectorAll('.cmpBox'));
+              result.practiceFlow.comparisonGridComplete = comparisonBoxes.length === 2 && comparisonBoxes.every((box) => ['cx', 'cy', 'd1', 'd2'].every((name) => !!box.querySelector(`.${name}`)));
+              const standardSkeleton = document.querySelector('#rightHz svg');
+              const overlaySkeleton = document.querySelector('#mineOverlay svg');
+              result.practiceFlow.comparisonSkeletonVisible = !!standardSkeleton && document.querySelectorAll('#rightHz svg path').length === curMedians.length;
+              result.practiceFlow.comparisonCoordinatesAligned = !!standardSkeleton && !!overlaySkeleton && standardSkeleton.getAttribute('viewBox') === overlaySkeleton.getAttribute('viewBox');
               result.practiceFlow.decisionVisible = visible('decisionRow');
               result.practiceFlow.functionalDecisionLabels = document.getElementById('decisionCorrect').textContent.includes('写对了') && document.getElementById('decisionWrong').textContent.includes('写错了');
               result.practiceFlow.selfAssessmentControls = visible('uncertainAction') && document.getElementById('decisionUncertain').textContent.includes('记不清') && !visible('softConfirm');

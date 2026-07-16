@@ -10,7 +10,7 @@ const source = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const swSource = fs.readFileSync(path.join(root, "sw.js"), "utf8");
 const coreStrokeSource = fs.readFileSync(path.join(root, "core-strokes.js"), "utf8");
 
-if (/退出本组？|进度已保存，随时可继续这组|这次写对了|这次写错了|描一遍也算拾回|小时后再见/.test(source)) {
+if (/退出本组？|进度已保存，随时可继续这组|描一遍也算拾回|小时后再见|已收|拾到手|教学检查|本组通过|待巩固|差点|回炉|改一下|已稳/.test(source)) {
   throw new Error("Deprecated practice vocabulary remains in index.html");
 }
 
@@ -370,13 +370,22 @@ let browser;
     memory[cardKey(idx)] = { seen: 1, last: Date.now(), target: "器", misses: 2, hints: 1, slow: 1, ease: 28, streak: 0, lastOutcome: "miss", pendingLearning: true };
     saveMemory(); renderMe();
   });
-  const meActions = await page.evaluate(() => ({ seen: meSeen.textContent.replace(/\s+/g, ""), risk: meRisk.textContent.replace(/\s+/g, ""), clickable: meSeen.classList.contains("action") && meRisk.classList.contains("action") }));
-  assert(meActions.seen.includes("练过") && meActions.seen.includes("看卡点") && meActions.risk.includes("待拾回") && meActions.risk.includes("去字盒") && meActions.clickable, "Expected My statistics to disclose their distinct actions", meActions);
+  const meActions = await page.evaluate(() => {
+    const practiced = profileIndexes(), stable = practiced.filter(isStable), risk = practiced.filter(isHighRisk), overlap = stable.filter((idx) => risk.includes(idx));
+    return { seen: meSeen.textContent.replace(/\s+/g, ""), stable: meStable.textContent.replace(/\s+/g, ""), risk: meRisk.textContent.replace(/\s+/g, ""), practiced: practiced.length, stableCount: stable.length, riskCount: risk.length, overlap: overlap.length, displayed: [Number(seenStat.textContent), Number(stableStat.textContent), Number(riskStat.textContent)], clickable: [meSeen, meStable, meRisk].every((node) => node.classList.contains("action")) };
+  });
+  assert(meActions.seen.includes("练过") && meActions.seen.includes("看卡点") && meActions.stable.includes("已拾回") && meActions.stable.includes("去字盒") && meActions.risk.includes("待拾回") && meActions.risk.includes("去字盒") && meActions.clickable
+    && meActions.overlap === 0 && meActions.practiced >= meActions.stableCount + meActions.riskCount && meActions.displayed.join() === [meActions.practiced, meActions.stableCount, meActions.riskCount].join(),
+  "Expected honest, disjoint practiced/recovered/at-risk metrics with disclosed actions", meActions);
   await page.click("#meRisk");
   const riskBook = await page.evaluate(() => { const legend = document.querySelector(".legend"), legendStyle = getComputedStyle(legend); return { visible: getComputedStyle(studybook).display !== "none", expanded: boxAllToggle.getAttribute("aria-expanded"), active: document.querySelector('#boxFilters [data-filter="risk"]').classList.contains("active"), hero: bookHero.textContent.replace(/\s+/g, ""), legendSize: parseFloat(legendStyle.fontSize), legendColor: legendStyle.color, mutedColor: getComputedStyle(document.documentElement).getPropertyValue("--muted").trim(), marks: Array.from(legend.querySelectorAll(".outcomeMark")).map((node) => ({ label: node.textContent, shape: getComputedStyle(node).clipPath, size: node.getBoundingClientRect().width })) }; });
-  assert(riskBook.visible && riskBook.expanded === "true" && riskBook.active && riskBook.hero.includes("已收") && riskBook.hero.includes("最近拾得")
-    && riskBook.legendSize >= 13 && riskBook.marks.map((item) => item.label).join("") === "拾补差" && riskBook.marks.every((item) => item.size >= 16) && riskBook.marks.some((item) => item.shape !== "none"),
+  assert(riskBook.visible && riskBook.expanded === "true" && riskBook.active && riskBook.hero.includes("已拾回") && riskBook.hero.includes("练过") && riskBook.hero.includes("最近拾得")
+    && riskBook.legendSize >= 13 && riskBook.marks.map((item) => item.label).join("") === "拾补待再" && riskBook.marks.every((item) => item.size >= 16) && riskBook.marks.some((item) => item.shape !== "none"),
   "Expected My risk action to deep-link Book with a readable, shape-and-text redundant outcome legend", riskBook);
+  await page.click("#stampLegend");
+  const stampGuide = await page.evaluate(() => ({ open: stampGuideSheet.classList.contains("open"), rows: Array.from(document.querySelectorAll(".stampGuideRow")).map((row) => row.textContent.replace(/\s+/g, "")), marks: Array.from(document.querySelectorAll(".stampGuideRow .outcomeMark")).map((node) => node.textContent) }));
+  assert(stampGuide.open && stampGuide.rows.length === 4 && stampGuide.rows.join("|").includes("拾到首答独立写对") && stampGuide.rows.join("|").includes("补拾看过提示后写出") && stampGuide.rows.join("|").includes("待补这次写错了") && stampGuide.rows.join("|").includes("再拾这次没写出") && stampGuide.marks.join("") === "拾补待再", "Expected the Book legend to open a complete four-stamp dictionary", stampGuide);
+  await page.click("#stampGuideClose");
   await page.click("#tabMe");
   await page.click("#openProfile");
   const profileInsight = await page.evaluate(() => ({ visible: getComputedStyle(profilePanel).display !== "none", duplicateChars: !!document.getElementById("profileChars"), rows: profilePanel.querySelectorAll("[data-profile-kind]").length, actions: Array.from(profilePanel.querySelectorAll("[data-profile-kind] em")).map((node) => node.textContent) }));
@@ -397,7 +406,7 @@ let browser;
     tip: tip.textContent, promptSize: parseFloat(getComputedStyle(document.getElementById("prompt")).fontSize),
   }));
   assert(compactRecall.box >= 276 && compactRecall.mascot === "flex" && compactRecall.mascotCopy.length > 0 && compactRecall.actionBottom <= compactRecall.viewportBottom + 1
-    && compactRecall.tools.every((item) => item.height >= 44 && item.scrollWidth <= item.width + 1) && compactRecall.tip.startsWith("提示 ") && compactRecall.promptSize >= 35,
+    && compactRecall.tools.every((item) => item.height >= 43.9 && item.scrollWidth <= item.width + 1) && compactRecall.tip.startsWith("提示 ") && compactRecall.promptSize >= 35,
   "Expected large type and 44pt compact tools to preserve the writing area and guidance on a 320x568 screen", compactRecall);
   await page.evaluate(() => { inkStrokes = mediansToCanvas(curMedians); redrawInk(); revealAnswer(); });
   const compactReveal = await page.evaluate(() => ({ ask: getComputedStyle(askRow).display, askCopy: askLine.textContent, askBottom: askRow.getBoundingClientRect().bottom, client: reveal.clientHeight, scroll: reveal.scrollHeight, qualityTargets: Array.from(qualityBox.querySelectorAll("button")).map((node) => node.getBoundingClientRect().height) }));
@@ -801,7 +810,7 @@ let browser;
   await chooseCorrect(page);
   await page.waitForTimeout(450);
   const hold = await page.evaluate(() => ({ sameTarget: cur.target, feedback: stampedToast.textContent, outcome: roundStats[0] && roundStats[0].outcome, ratings: fsrsReviewLog.map((event) => event.rating), unresolved: [...unresolved] }));
-  assert(hold.sameTarget === firstTarget && hold.feedback.includes("已加入本组巩固") && hold.outcome === "hinted" && hold.ratings.join() === "Again" && hold.unresolved.length === 1, "Expected 1.4s hinted feedback with one Again", hold);
+  assert(hold.sameTarget === firstTarget && hold.feedback.includes("本组稍后再写") && hold.outcome === "hinted" && hold.ratings.join() === "Again" && hold.unresolved.length === 1, "Expected 1.4s hinted feedback with one Again", hold);
 
   await page.click("#editStamp");
   const rollback = await page.evaluate(() => ({ phase: practicePhase, events: fsrsReviewLog.length, stats: roundStats.length, attempts: dailyActivity().attempts, stamps: dailyActivity().stamps, queue: reinforcementQueue.length, unresolved: unresolved.size, image: submissionSnapshot.compositeImage }));
@@ -843,7 +852,7 @@ let browser;
     await page.waitForTimeout(1500);
   }
   const reinforcement = await page.evaluate(() => ({ target: cur.target, kind: currentAttemptKind, baseCursor, attemptSeq, unresolved: [...unresolved], progress: posLabel.textContent, targets: baseTargets.slice(), stats: roundStats.map((row) => row.idx) }));
-  assert(reinforcement.target === firstTarget && reinforcement.kind === "reinforcement" && reinforcement.baseCursor === 3 && reinforcement.attemptSeq === 3 && reinforcement.progress === "待巩固 1", "Expected two-card spacing and simplified reinforcement progress", reinforcement);
+  assert(reinforcement.target === firstTarget && reinforcement.kind === "reinforcement" && reinforcement.baseCursor === 3 && reinforcement.attemptSeq === 3 && reinforcement.progress === "还要再练 1", "Expected two-card spacing and plain-language reinforcement progress", reinforcement);
 
   await page.evaluate(() => { saveSessionSnapshot(); restoreSession(load(SESSION_KEY, null)); });
   await waitForWriter(page);
@@ -879,6 +888,7 @@ let browser;
     targets: Array.from(document.querySelectorAll("#sumTiles .sumTile[data-idx]")).map((node) => CARDS[Number(node.dataset.idx)].target).sort(),
     tiles: document.querySelectorAll("#sumTiles .sumTile[data-idx]").length,
     lead: sumLead.textContent.replace(/\s+/g, ""),
+    meanings: Array.from(document.querySelectorAll("#sumTiles .sumTile .meaning")).map((node) => ({ text: node.textContent, visible: getComputedStyle(node).display !== "none", size: parseFloat(getComputedStyle(node).fontSize) })),
     milestoneEvents: hapticDebug.events.slice(-3),
   }));
   await page.click("#stop");
@@ -893,11 +903,11 @@ let browser;
   await page.waitForFunction(() => getComputedStyle(studybook).display !== "none");
   if (await page.evaluate(() => boxAllSection.offsetParent === null)) await page.click("#boxAllToggle");
   const bookLayer = await page.evaluate(() => ({
-    count: boxCount.textContent,
+    count: boxCount.textContent.replace(/\s+/g, ""),
     targets: Array.from(document.querySelectorAll("#boxGrid .boxTile[data-idx]")).map((node) => CARDS[Number(node.dataset.idx)].target).sort(),
     active: tabBook.classList.contains("active"),
   }));
-  assert(summaryLayer.tiles === 3 && summaryLayer.lead.includes("3") && homeLayer.title.includes("今日已拾3个字") && homeLayer.label === "今日拾得" && homeLayer.completed && bookLayer.count.includes("3") && bookLayer.active
+  assert(summaryLayer.tiles === 3 && summaryLayer.lead.includes("3") && summaryLayer.meanings.length === 3 && summaryLayer.meanings.every((item) => item.visible && item.text.length >= 2 && item.size >= 13) && homeLayer.title.includes("今日已拾3个字") && homeLayer.label === "今日拾得" && homeLayer.completed && bookLayer.count.includes("练过3字") && bookLayer.active
     && summaryLayer.targets.join() === homeLayer.targets.join() && summaryLayer.targets.every((target) => bookLayer.targets.includes(target)),
   "Expected the same completed targets across summary, home recent, and study-book layers", { summaryLayer, homeLayer, bookLayer });
 

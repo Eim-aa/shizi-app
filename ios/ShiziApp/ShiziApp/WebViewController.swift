@@ -155,7 +155,11 @@ final class WebViewController: UIViewController {
               addConfirmReachableAboveKeyboard: false,
               practiceFixed: false,
               practiceActionsInViewport: false,
-              toastAriaLive: false
+              toastAriaLive: false,
+              largeTypeScaled: false,
+              criticalTargets44: false,
+              readableOutcomeLegend: false,
+              outcomeMarksRedundant: false
             },
             handwritingFlow: {
               pointerEventsSupported: false,
@@ -331,6 +335,9 @@ final class WebViewController: UIViewController {
               result.navigationFlow.bookTabActive = activeTab('tabBook');
               result.navigationFlow.footVisibleOnBook = visible('foot');
               result.navigationFlow.bookAchievementVisible = visible('bookHero') && document.getElementById('bookHero').textContent.includes('已收');
+              const legend = document.querySelector('.legend');
+              result.layoutFlow.readableOutcomeLegend = parseFloat(getComputedStyle(legend).fontSize) >= 13 && getComputedStyle(legend).color === getComputedStyle(document.getElementById('bookHeroRecent')).color;
+              result.layoutFlow.outcomeMarksRedundant = Array.from(legend.querySelectorAll('.outcomeMark')).map(node => node.textContent).join('') === '拾补差';
 
               document.getElementById('tabMe').click();
               await waitFor(() => visible('mePanel'));
@@ -338,6 +345,15 @@ final class WebViewController: UIViewController {
               result.navigationFlow.meTabActive = activeTab('tabMe');
               result.navigationFlow.footVisibleOnMe = visible('foot');
               result.navigationFlow.meActionsDisclosed = document.getElementById('meSeen').textContent.includes('看卡点') && document.getElementById('meRisk').textContent.includes('去字盒');
+              const oldFontScale = fontScaleLarge;
+              fontScaleLarge = false; applyFontScale();
+              const normalType = parseFloat(getComputedStyle(document.querySelector('.me h1')).fontSize);
+              fontScaleLarge = true; applyFontScale();
+              const largeType = parseFloat(getComputedStyle(document.querySelector('.me h1')).fontSize);
+              fontScaleLarge = oldFontScale; applyFontScale();
+              result.layoutFlow.largeTypeScaled = largeType >= normalType * 1.1 && document.getElementById('fontScaleRow').getAttribute('aria-pressed') === (oldFontScale ? 'true' : 'false');
+              result.layoutFlow.criticalTargets44 = ['exitPractice','addInPractice','tip','peekInk','show','done','fontScaleRow','overlayToggle','replayBtn'].every(id => parseFloat(getComputedStyle(document.getElementById(id)).minHeight) >= 44)
+                && Array.from(document.querySelectorAll('#qualityBox button')).every(node => parseFloat(getComputedStyle(node).minHeight) >= 44);
 
               document.getElementById('openProfile').click();
               await waitFor(() => visible('profilePanel'));

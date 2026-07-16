@@ -354,6 +354,11 @@ let browser;
   await page.click("#tabMe");
   const me = await page.evaluate(() => ({ visible: getComputedStyle(mePanel).display !== "none", devHidden: getComputedStyle(devTools).display === "none", reminderHidden: getComputedStyle(reminderSection).display === "none" }));
   assert(me.visible && me.devHidden && me.reminderHidden, "Expected normal My page without development tools", me);
+  const typeBefore = await page.evaluate(() => ({ title: parseFloat(getComputedStyle(document.querySelector(".me h1")).fontSize), advice: parseFloat(getComputedStyle(meAdvice).fontSize), pressed: fontScaleRow.getAttribute("aria-pressed") }));
+  await page.click("#fontScaleRow");
+  const typeAfter = await page.evaluate(() => { const payload = JSON.parse(backupPayload()); return { title: parseFloat(getComputedStyle(document.querySelector(".me h1")).fontSize), advice: parseFloat(getComputedStyle(meAdvice).fontSize), pressed: fontScaleRow.getAttribute("aria-pressed"), state: fontScaleState.textContent, stored: load(FONT_SCALE_KEY, false), backedUp: Object.prototype.hasOwnProperty.call(payload.data, FONT_SCALE_KEY) }; });
+  assert(typeAfter.title >= typeBefore.title * 1.1 && typeAfter.advice >= typeBefore.advice * 1.1 && typeAfter.pressed === "true" && typeAfter.state === "开" && typeAfter.stored && typeAfter.backedUp, "Expected the persisted large-type preference to scale fixed-pixel text and join backups", { typeBefore, typeAfter });
+  await page.click("#fontScaleRow");
   await page.click("#addLink");
   await page.fill("#addInput", "蘸料");
   await page.click("#addConfirm");
@@ -368,8 +373,10 @@ let browser;
   const meActions = await page.evaluate(() => ({ seen: meSeen.textContent.replace(/\s+/g, ""), risk: meRisk.textContent.replace(/\s+/g, ""), clickable: meSeen.classList.contains("action") && meRisk.classList.contains("action") }));
   assert(meActions.seen.includes("练过") && meActions.seen.includes("看卡点") && meActions.risk.includes("待拾回") && meActions.risk.includes("去字盒") && meActions.clickable, "Expected My statistics to disclose their distinct actions", meActions);
   await page.click("#meRisk");
-  const riskBook = await page.evaluate(() => ({ visible: getComputedStyle(studybook).display !== "none", expanded: boxAllToggle.getAttribute("aria-expanded"), active: document.querySelector('#boxFilters [data-filter="risk"]').classList.contains("active"), hero: bookHero.textContent.replace(/\s+/g, "") }));
-  assert(riskBook.visible && riskBook.expanded === "true" && riskBook.active && riskBook.hero.includes("已收") && riskBook.hero.includes("最近拾得"), "Expected My risk action to deep-link the authoritative Book risk filter with an achievement header", riskBook);
+  const riskBook = await page.evaluate(() => { const legend = document.querySelector(".legend"), legendStyle = getComputedStyle(legend); return { visible: getComputedStyle(studybook).display !== "none", expanded: boxAllToggle.getAttribute("aria-expanded"), active: document.querySelector('#boxFilters [data-filter="risk"]').classList.contains("active"), hero: bookHero.textContent.replace(/\s+/g, ""), legendSize: parseFloat(legendStyle.fontSize), legendColor: legendStyle.color, mutedColor: getComputedStyle(document.documentElement).getPropertyValue("--muted").trim(), marks: Array.from(legend.querySelectorAll(".outcomeMark")).map((node) => ({ label: node.textContent, shape: getComputedStyle(node).clipPath, size: node.getBoundingClientRect().width })) }; });
+  assert(riskBook.visible && riskBook.expanded === "true" && riskBook.active && riskBook.hero.includes("已收") && riskBook.hero.includes("最近拾得")
+    && riskBook.legendSize >= 13 && riskBook.marks.map((item) => item.label).join("") === "拾补差" && riskBook.marks.every((item) => item.size >= 16) && riskBook.marks.some((item) => item.shape !== "none"),
+  "Expected My risk action to deep-link Book with a readable, shape-and-text redundant outcome legend", riskBook);
   await page.click("#tabMe");
   await page.click("#openProfile");
   const profileInsight = await page.evaluate(() => ({ visible: getComputedStyle(profilePanel).display !== "none", duplicateChars: !!document.getElementById("profileChars"), rows: profilePanel.querySelectorAll("[data-profile-kind]").length, actions: Array.from(profilePanel.querySelectorAll("[data-profile-kind] em")).map((node) => node.textContent) }));
@@ -380,6 +387,24 @@ let browser;
   await page.click("#profileTopics [data-profile-kind]");
   const insightRoute = await page.evaluate(() => ({ book: getComputedStyle(studybook).display !== "none", active: document.querySelector('#boxFilters [data-filter="risk"]').classList.contains("active"), card: getComputedStyle(document.getElementById("card")).display }));
   assert(insightRoute.book && insightRoute.active && insightRoute.card === "none", "Expected Profile insights to route to Book instead of silently starting practice", insightRoute);
+
+  await page.setViewportSize({ width: 320, height: 568 });
+  await page.evaluate(() => { fontScaleLarge = true; save(FONT_SCALE_KEY, true); applyFontScale(); startFocus([CARDS.findIndex((card) => card.target === "器")]); });
+  await waitForWriter(page);
+  const compactRecall = await page.evaluate(() => ({
+    box: S, mascot: getComputedStyle(document.querySelector("#practiceArea > .mascotRow")).display, mascotCopy: mascotLine.textContent,
+    actionBottom: actions.getBoundingClientRect().bottom, viewportBottom: innerHeight, tools: Array.from(inkTools.querySelectorAll("button")).map((node) => ({ height: node.getBoundingClientRect().height, width: node.getBoundingClientRect().width, scrollWidth: node.scrollWidth })),
+    tip: tip.textContent, promptSize: parseFloat(getComputedStyle(document.getElementById("prompt")).fontSize),
+  }));
+  assert(compactRecall.box >= 276 && compactRecall.mascot === "flex" && compactRecall.mascotCopy.length > 0 && compactRecall.actionBottom <= compactRecall.viewportBottom + 1
+    && compactRecall.tools.every((item) => item.height >= 44 && item.scrollWidth <= item.width + 1) && compactRecall.tip.startsWith("提示 ") && compactRecall.promptSize >= 35,
+  "Expected large type and 44pt compact tools to preserve the writing area and guidance on a 320x568 screen", compactRecall);
+  await page.evaluate(() => { inkStrokes = mediansToCanvas(curMedians); redrawInk(); revealAnswer(); });
+  const compactReveal = await page.evaluate(() => ({ ask: getComputedStyle(askRow).display, askCopy: askLine.textContent, askBottom: askRow.getBoundingClientRect().bottom, client: reveal.clientHeight, scroll: reveal.scrollHeight, qualityTargets: Array.from(qualityBox.querySelectorAll("button")).map((node) => node.getBoundingClientRect().height) }));
+  assert(compactReveal.ask === "flex" && compactReveal.askCopy.length > 0 && compactReveal.askBottom <= 568 && compactReveal.scroll > compactReveal.client && compactReveal.qualityTargets.every((height) => height >= 44),
+  "Expected short-screen reveal advice to remain visible and lower 44pt actions to stay reachable by internal scrolling", compactReveal);
+  await page.evaluate(() => { exitCurrentRound(); clearSessionSnapshot(); fontScaleLarge = false; save(FONT_SCALE_KEY, false); applyFontScale(); });
+  await page.setViewportSize({ width: 390, height: 844 });
 
   await page.evaluate(() => {
     status = {}; memory = {}; fsrsReviewLog = []; quality = {}; sessionDone = new Set();

@@ -69,6 +69,10 @@ checks = {
     "practiceLayout": layout.get("practiceFixed") is True
     and layout.get("practiceActionsInViewport") is True
     and layout.get("toastAriaLive") is True,
+    "accessibilityLayout": layout.get("largeTypeScaled") is True
+    and layout.get("criticalTargets44") is True
+    and layout.get("readableOutcomeLegend") is True
+    and layout.get("outcomeMarksRedundant") is True,
     "handwritingPointerEvents": handwriting.get("pointerEventsSupported") is True
     and handwriting.get("touchActionNone") is True,
     "handwritingPreventsScroll": handwriting.get("pointerDownPrevented") is True

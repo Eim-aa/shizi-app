@@ -198,6 +198,58 @@ let browser;
   assert(queueEdges.exclusion.unresolved === 0 && queueEdges.exclusion.queued === 0 && queueEdges.exclusion.excluded && !queueEdges.exclusion.pending, "Expected explicit content exclusion to release the group without claiming mastery", queueEdges.exclusion);
   assert(queueEdges.modeCompletion.every((row) => row.complete && row.blocked) && queueEdges.repeatedCount.stamps === 1 && queueEdges.repeatedCount.attempts === 10 && queueEdges.repeatedCount.targets === 1, "Expected all modes to share completion rules and repeated attempts to count one target", queueEdges);
 
+  const rhythmGuard = await page.evaluate(() => {
+    const indexes = ["器", "疑", "强"].map((target) => CARDS.findIndex((card) => card.target === target));
+    const originalRender = render, originalRenderHome = renderHome, originalToast = toast;
+    render = () => {}; renderHome = () => {}; toast = () => {};
+    const setup = ({ attempts = 20, elapsed = 0, includeManual = false } = {}) => {
+      activeMode = "focus"; focusQueue = indexes.slice(); baseTargets = indexes.slice(); batch = baseTargets; baseCursor = indexes.length;
+      currentIndex = indexes[2]; currentAttemptKind = "base"; currentAttemptId = "verify-rhythm"; practicePhase = "between";
+      manualQueue = includeManual ? [{ idx: indexes[2], kind: "repeat" }] : [];
+      reinforcementQueue = [{ idx: indexes[1], eligibleAfter: 0, order: 1 }, { idx: indexes[0], eligibleAfter: 0, order: 2 }];
+      unresolved = new Set(indexes.slice(0, 2)); episodes = {}; attemptSeq = attempts; roundId = `verify-rhythm-${attempts}-${elapsed}`;
+      roundStats = indexes.map((idx) => ({ idx, target: CARDS[idx].target, outcome: idx === indexes[2] ? "fast" : "slow" }));
+      sessionDone = new Set(indexes); roundElapsedMs = elapsed; roundActiveStartedAt = Date.now(); roundBudgetPrompted = false;
+      activity = newActivity(); activity.inheritedTotalDays = 0; activity.inheritedStreak = 0; activity.daily = {}; activity.practiceDays = [];
+      indexes.slice(0, 2).forEach((idx) => { const m = cardMemory(idx); m.pendingLearning = true; m.dueDay = null; m.due = 0; setStatus(idx, "indeck"); });
+      closeRoundBudgetSheet(); clearSessionSnapshot();
+    };
+
+    setup(); next();
+    const attemptPrompt = roundBudgetSheet.classList.contains("open");
+    continueAfterBudget();
+    const continued = { prompted: roundBudgetPrompted, closed: !roundBudgetSheet.classList.contains("open"), current: currentIndex };
+    practicePhase = "between"; attemptSeq = 21; next();
+    const noSecondPrompt = !roundBudgetSheet.classList.contains("open");
+
+    setup({ attempts: 3, elapsed: ROUND_TIME_BUDGET_MS }); next();
+    const timePrompt = roundBudgetSheet.classList.contains("open"); closeRoundBudgetSheet();
+
+    setup({ attempts: 21, includeManual: true }); next(); deferRoundToTomorrow();
+    const queued = indexes.slice().sort((a, b) => cardMemory(a).queuedFrontAt - cardMemory(b).queuedFrontAt);
+    const deferred = { queued, expected: [indexes[2], indexes[1], indexes[0]], completed: todayCompleted(), session: localStorage.getItem(SESSION_KEY) };
+    sessionDone = new Set(); startRound();
+    const nextRound = baseTargets.slice(0, 3);
+
+    setup({ attempts: 21 }); baseCursor = 1; roundStats = roundStats.slice(0, 1); manualQueue = [];
+    unresolved = new Set([indexes[0]]); reinforcementQueue = [{ idx: indexes[0], eligibleAfter: 0, order: 1 }];
+    next(); deferRoundToTomorrow();
+    const incomplete = { queued: indexes.slice().sort((a, b) => cardMemory(a).queuedFrontAt - cardMemory(b).queuedFrontAt), completed: todayCompleted() };
+
+    setup({ attempts: 21 }); activeMode = "calibrate"; next();
+    const calibrationUninterrupted = !roundBudgetSheet.classList.contains("open");
+
+    render = originalRender; renderHome = originalRenderHome; toast = originalToast; closeRoundBudgetSheet();
+    return { indexes, attemptPrompt, continued, noSecondPrompt, timePrompt, deferred, nextRound, incomplete, calibrationUninterrupted };
+  });
+  assert(rhythmGuard.attemptPrompt && rhythmGuard.timePrompt, "Expected attempt and active-time budgets to prompt only between cards", rhythmGuard);
+  assert(rhythmGuard.continued.prompted && rhythmGuard.continued.closed && rhythmGuard.continued.current === rhythmGuard.indexes[1] && rhythmGuard.noSecondPrompt, "Expected continue to consume the next queued card without prompting again", rhythmGuard);
+  assert(rhythmGuard.deferred.queued.join() === rhythmGuard.deferred.expected.join() && rhythmGuard.deferred.completed && rhythmGuard.deferred.session === null && rhythmGuard.nextRound.join() === rhythmGuard.deferred.expected.join(), "Expected early stop to preserve pending order, valid completion, and next-round priority", rhythmGuard);
+  assert(rhythmGuard.incomplete.queued.join() === rhythmGuard.indexes.join() && !rhythmGuard.incomplete.completed && rhythmGuard.calibrationUninterrupted, "Expected incomplete base cards to carry forward without false completion while calibration stays uninterrupted", rhythmGuard);
+
+  await page.evaluate(() => localStorage.clear());
+  await page.reload({ waitUntil: "networkidle" });
+
   await page.evaluate(() => {
     tuning = { calibrated: true, offset: 0, contextStrict: 0, rounds: [] };
     saveTuning();
@@ -499,9 +551,13 @@ let browser;
   assert(rollback.phase === "revealDecision" && rollback.events === 0 && rollback.stats === 0 && rollback.attempts === 0 && rollback.stamps === 0 && rollback.queue === 0 && rollback.unresolved === 0 && rollback.image, "Expected atomic edit rollback", rollback);
 
   await chooseCorrect(page);
-  await page.waitForTimeout(1500);
+  await page.evaluate(() => {
+    reveal.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+    reveal.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+  });
+  await waitForWriter(page);
   const afterHint = await page.evaluate(() => ({ baseCursor, attemptSeq, unresolved: [...unresolved], queue: cloneObj(reinforcementQueue), target: cur.target }));
-  assert(afterHint.baseCursor === 1 && afterHint.attemptSeq === 1 && afterHint.unresolved.length === 1 && afterHint.queue[0].eligibleAfter === 3 && afterHint.target !== firstTarget, "Expected hinted target to wait behind two other attempts", afterHint);
+  assert(afterHint.baseCursor === 1 && afterHint.attemptSeq === 1 && afterHint.unresolved.length === 1 && afterHint.queue[0].eligibleAfter === 3 && afterHint.target !== firstTarget, "Expected feedback click to advance immediately while a double click cannot cross two cards", afterHint);
 
   const undoLayout = await page.evaluate(() => {
     renderUndoBar();

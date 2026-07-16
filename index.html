@@ -380,6 +380,7 @@
   .sheet .row{ display:flex; gap:8px; margin-top:12px; }
   .sheet .ghostAct{ flex:.8; padding:13px 10px; }
   .sheet .primaryAct{ padding:13px 10px; font-size:15px; }
+  .sheet .dangerSoft{ flex:1; padding:13px 10px; border:1px solid var(--line); border-radius:14px; background:var(--card); color:var(--ink); font-size:15px; font-weight:700; }
   .sheetPreview{ display:flex; flex-wrap:wrap; gap:6px; margin:10px 0 4px; min-height:34px; align-content:flex-start; font-size:12px; color:var(--muted); }
   .addChip{ display:inline-flex; align-items:baseline; gap:6px; border:1px solid var(--line); background:var(--card); border-radius:999px; padding:5px 10px; }
   .addChip b{ font-family:var(--kai); font-size:19px; color:var(--accent); font-weight:400; }
@@ -680,6 +681,15 @@
   <div class="sheetPreview" id="addPreview"></div>
   <div class="row"><button class="ghostAct" id="addCancel">取消</button><button class="primaryAct" id="addConfirm" disabled>加入卡组</button></div>
 </div></div>
+
+<div class="sheetMask" id="roundBudgetSheet"><div class="sheet">
+  <h3>今天先到这也很好</h3>
+  <p class="sheetHint" id="roundBudgetCopy">这一组已经练了一会儿，没写稳的字可以明天接着拾。</p>
+  <div class="row">
+    <button class="dangerSoft" id="deferRound">明天接着拾</button>
+    <button class="primaryAct" id="continueRound">继续练</button>
+  </div>
+</div></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <input type="file" id="importFile" accept=".json,application/json" style="display:none">
 
@@ -846,6 +856,8 @@ const BATCH=15, TOPIC_KEY="shizi.topic.v1";
 let sessionDone=new Set(), baseTargets=[], batch=[], pos=0, baseCursor=0, currentIndex=null, currentAttemptKind="base", currentAttemptId="";
 let manualQueue=[], reinforcementQueue=[], unresolved=new Set(), episodes={}, attemptSeq=0, practicePhase="recall", hintEverUsed=false, enteredTracingThisAttempt=false, submissionSnapshot=null, pendingSessionVisual=null, feedbackKind="";
 let missedThisRound=[], roundStats=[], focusQueue=[], hintsUsedThisCard=0, cardStartedAt=0, activeMode="new", sessionTarget=0, sessionFastStreak=0, sessionMissStreak=0, roundFeedbackGiven=false, roundId=0, calibrationFirstHoldUsed=false, calibrationTargets=[];
+let roundElapsedMs=0, roundActiveStartedAt=0, roundBudgetPrompted=false;
+const ROUND_ATTEMPT_BUDGET=20, ROUND_TIME_BUDGET_MS=6*60*1000;
 function currentCardIndex(){ return Number.isInteger(currentIndex)?currentIndex:(Number.isInteger(batch[pos])?batch[pos]:null); }
 function episodeFor(idx){ const key=String(idx); return episodes[key] || (episodes[key]={idx,firstOutcome:null,attempts:[],assistanceUsed:false,independentlyRecovered:false,excluded:false,teachingComplete:false}); }
 function enqueueReinforcement(idx){ unresolved.add(idx); reinforcementQueue=reinforcementQueue.filter(item=>item.idx!==idx); reinforcementQueue.push({idx,eligibleAfter:attemptSeq+2,order:attemptSeq}); const m=cardMemory(idx); m.pendingLearning=true; m.dueDay=null; m.due=0; }
@@ -860,9 +872,11 @@ function beginAttempt(next){ if(!next) return false; currentIndex=next.idx; curr
 function roundIsComplete(){ return baseTargets.length>0 && baseCursor>=baseTargets.length && manualQueue.length===0 && unresolved.size===0 && !["tracing","postTraceRecall","revealDecision","feedback"].includes(practicePhase); }
 function capturePracticeVisual(){ return {practicePhase,currentIndex,currentAttemptKind,currentAttemptId,hintEverUsed,enteredTracingThisAttempt,hintsUsedThisCard,
   shownStrokes,groupIdx,seenGroups:[...seenGroups],inkStrokes:cloneObj(inkStrokes)||[],tracedThisCard,submissionSnapshot:cloneObj(submissionSnapshot),revealed,stamped}; }
+function currentRoundElapsed(){ return roundElapsedMs+(roundActiveStartedAt?Math.max(0,Date.now()-roundActiveStartedAt):0); }
 function sessionPayload(){ return {version:2,startedDate:(load(SESSION_KEY,null)||{}).startedDate||today(),updatedAt:Date.now(),activeMode,baseTargets:baseTargets.slice(),baseCursor,currentIndex,currentAttemptKind,currentAttemptId,
   manualQueue:cloneObj(manualQueue)||[],reinforcementQueue:cloneObj(reinforcementQueue)||[],unresolved:[...unresolved],episodes:cloneObj(episodes)||{},attemptSeq,practicePhase,visual:capturePracticeVisual(),
-  missedThisRound:missedThisRound.slice(),roundStats:cloneObj(roundStats)||[],focusQueue:focusQueue.slice(),sessionDone:[...sessionDone],sessionTarget,sessionFastStreak,sessionMissStreak,roundFeedbackGiven,roundId,calibrationFirstHoldUsed,calibrationTargets:calibrationTargets.slice(),lastStampSnapshot:cloneObj(lastStampSnapshot),feedbackKind}; }
+  missedThisRound:missedThisRound.slice(),roundStats:cloneObj(roundStats)||[],focusQueue:focusQueue.slice(),sessionDone:[...sessionDone],sessionTarget,sessionFastStreak,sessionMissStreak,roundFeedbackGiven,roundId,calibrationFirstHoldUsed,calibrationTargets:calibrationTargets.slice(),lastStampSnapshot:cloneObj(lastStampSnapshot),feedbackKind,
+  roundElapsedMs:currentRoundElapsed(),roundBudgetPrompted}; }
 function saveSessionSnapshot(){ if(!baseTargets.length || !Number.isInteger(currentCardIndex())) return false; return save(SESSION_KEY,sessionPayload()); }
 function clearSessionSnapshot(){ removeStored(SESSION_KEY); }
 function migrateV1Session(s){ const stats=Array.isArray(s.roundStats)?cloneObj(s.roundStats):[], targets=Array.isArray(s.batch)?s.batch.slice():[]; let cursor=Math.min(targets.length,stats.length);
@@ -871,7 +885,7 @@ function migrateV1Session(s){ const stats=Array.isArray(s.roundStats)?cloneObj(s
   const next=cursor<targets.length?{idx:targets[cursor],kind:"base"}:(queue.length?{idx:queue[0].idx,kind:"reinforcement"}:null);
   return {version:2,startedDate:s.date||today(),updatedAt:Date.now(),activeMode:s.activeMode,baseTargets:targets,baseCursor:cursor,currentIndex:next?next.idx:targets[Math.max(0,targets.length-1)],currentAttemptKind:next?next.kind:"base",currentAttemptId:`${s.roundId||Date.now()+"-migrated"}-a${stats.length+1}`,
     manualQueue:[],reinforcementQueue:queue.filter(item=>!next||next.kind!=="reinforcement"||item.idx!==next.idx),unresolved:[...open],episodes:eps,attemptSeq:stats.length,practicePhase:next&&next.kind==="reinforcement"?"reinforcement":"recall",visual:null,
-    missedThisRound:Array.isArray(s.missedThisRound)?s.missedThisRound.slice():[],roundStats:stats,focusQueue:Array.isArray(s.focusQueue)?s.focusQueue.slice():[],sessionDone:Array.isArray(s.sessionDone)?s.sessionDone.slice():[],sessionTarget:s.sessionTarget,sessionFastStreak:s.sessionFastStreak,sessionMissStreak:s.sessionMissStreak,roundFeedbackGiven:!!s.roundFeedbackGiven,roundId:s.roundId||Date.now()+"-migrated",calibrationFirstHoldUsed:!!s.calibrationFirstHoldUsed,calibrationTargets:s.activeMode==="calibrate"?targets.slice(0,BATCH):[],lastStampSnapshot:null}; }
+    missedThisRound:Array.isArray(s.missedThisRound)?s.missedThisRound.slice():[],roundStats:stats,focusQueue:Array.isArray(s.focusQueue)?s.focusQueue.slice():[],sessionDone:Array.isArray(s.sessionDone)?s.sessionDone.slice():[],sessionTarget:s.sessionTarget,sessionFastStreak:s.sessionFastStreak,sessionMissStreak:s.sessionMissStreak,roundFeedbackGiven:!!s.roundFeedbackGiven,roundId:s.roundId||Date.now()+"-migrated",calibrationFirstHoldUsed:!!s.calibrationFirstHoldUsed,calibrationTargets:s.activeMode==="calibrate"?targets.slice(0,BATCH):[],lastStampSnapshot:null,roundElapsedMs:0,roundBudgetPrompted:false}; }
 function resumableSession(){ let s=load(SESSION_KEY,null); if(!s) return null; if(s.version===1) s=migrateV1Session(s);
   const valid=s.version===2 && Array.isArray(s.baseTargets) && s.baseTargets.length>0 && s.baseTargets.every(i=>Number.isInteger(i)&&i>=0&&i<CARDS.length)
     && Number.isInteger(s.currentIndex)&&s.currentIndex>=0&&s.currentIndex<CARDS.length && ["new","review","calibrate","focus"].includes(s.activeMode);
@@ -881,6 +895,7 @@ function restoreSession(s){ if(!s) return false; if(s.version===1) s=migrateV1Se
   missedThisRound=Array.isArray(s.missedThisRound)?s.missedThisRound.slice():[]; roundStats=Array.isArray(s.roundStats)?cloneObj(s.roundStats):[]; focusQueue=Array.isArray(s.focusQueue)?s.focusQueue.slice():[]; sessionDone=new Set(Array.isArray(s.sessionDone)?s.sessionDone:[]);
   sessionTarget=Number(s.sessionTarget)||targetDifficulty(); sessionFastStreak=Number(s.sessionFastStreak)||0; sessionMissStreak=Number(s.sessionMissStreak)||0; roundFeedbackGiven=!!s.roundFeedbackGiven; roundId=s.roundId||Date.now()+"-resume"; calibrationFirstHoldUsed=!!s.calibrationFirstHoldUsed;
   calibrationTargets=activeMode==="calibrate"?[...new Set(Array.isArray(s.calibrationTargets)?s.calibrationTargets:baseTargets.slice(0,BATCH))].filter(i=>Number.isInteger(i)&&baseTargets.includes(i)).slice(0,BATCH):[]; lastStampSnapshot=cloneObj(s.lastStampSnapshot); feedbackKind=s.feedbackKind||"";
+  roundElapsedMs=Math.max(0,Number(s.roundElapsedMs)||0); roundActiveStartedAt=Date.now(); roundBudgetPrompted=!!s.roundBudgetPrompted;
   if(baseCursor>=baseTargets.length && manualQueue.length===0 && unresolved.size===0){ practicePhase="between"; clearSessionSnapshot(); markRoundComplete(); roundSummary(); return true; }
   pendingSessionVisual=cloneObj(s.visual); pos=Math.min(baseCursor,Math.max(0,baseTargets.length-1)); render(); armPracticeHistory(); return true; }
 function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
@@ -1607,7 +1622,7 @@ async function restoreSessionVisual(){ const state=pendingSessionVisual; if(!sta
   if(practicePhase==="tracing") await showTraceOutline(); else if(practicePhase==="postTraceRecall"){ hzEl.innerHTML=""; hzEl.classList.remove("traceFallback"); }
   else if(shownStrokes&&practiceCharData) await rebuildHintLayer(shownStrokes);
   if(state.revealed && submissionSnapshot){ restoreRevealFromSnapshot(submissionSnapshot); const savedFeedback=feedbackKind==="teachingComplete"?feedbackKind:(feedbackKind||(lastStampSnapshot&&lastStampSnapshot.outcome));
-    if(savedPhase==="feedback"&&savedFeedback){ practicePhase="feedback"; stamped=true; if(savedFeedback==="teachingComplete") showTeachingCompleteFeedback(); else showStampedFeedback(savedFeedback); if(!lastStampSnapshot) $("editStamp").disabled=true; autoNextTimer=setTimeout(goNext,STAMP_HOLD_MS); } }
+    if(savedPhase==="feedback"&&savedFeedback){ practicePhase="feedback"; stamped=true; if(savedFeedback==="teachingComplete") showTeachingCompleteFeedback(); else showStampedFeedback(savedFeedback); if(!lastStampSnapshot) $("editStamp").disabled=true; autoNextTimer=setTimeout(advanceFeedback,STAMP_HOLD_MS); } }
   else { updateTip(); saveSessionSnapshot(); } }
 
 async function rewriteCurrentCard(){ commitUndoWindow(); activePointers.clear(); peekReleasePending=false; exitPeekHint(true);
@@ -1696,23 +1711,38 @@ function pickStamp(outcome,options={}){ if(stamped || !revealed) return; stamped
   showStampedFeedback(outcome);
   clearTimeout(editStampTimer); editStampTimer=setTimeout(()=>{ $("editStamp").disabled=true; },EDIT_STAMP_WINDOW_MS);
   updateProgressLabel(); saveSessionSnapshot();
-  autoNextTimer=setTimeout(goNext,firstCalibrationHold?CALIBRATION_FIRST_HOLD_MS:STAMP_HOLD_MS); }
+  autoNextTimer=setTimeout(advanceFeedback,firstCalibrationHold?CALIBRATION_FIRST_HOLD_MS:STAMP_HOLD_MS); }
 function goNext(){ clearTimeout(autoNextTimer); clearTimeout(editStampTimer); $("editStamp").disabled=true; if(!stamped) return;
   const outcome=lastStampSnapshot&&lastStampSnapshot.outcome; stamped=false;
   if(outcome==="miss"){ openTracingTeaching(); return; } next(); }
+function advanceFeedback(){ if(!stamped || practicePhase!=="feedback") return false; if(feedbackKind==="teachingComplete"){ clearTimeout(autoNextTimer); stamped=false; next(); return true; } goNext(); return true; }
 function decideSubmission(correct){ if(stamped||!revealed||!submissionSnapshot) return;
   if(submissionSnapshot.practicePhase==="postTraceRecall"){
     if(!correct){ revealed=false; beginTracingPhase(); return; }
     const ep=episodeFor(currentCardIndex()); ep.teachingComplete=true; const stat=roundStats.find(row=>row.idx===currentCardIndex()); if(stat) stat.traced=true; const m=cardMemory(currentCardIndex()); if(m.lastEpisode) m.lastEpisode.teachingComplete=true; saveMemory(); practicePhase="feedback"; feedbackKind="teachingComplete"; $("decisionRow").style.display="none"; $("askRow").style.display="none"; $("qualityBox").style.display="none";
-    showTeachingCompleteFeedback(); stamped=true; saveSessionSnapshot(); autoNextTimer=setTimeout(()=>{ stamped=false; next(); },STAMP_HOLD_MS); return; }
+    showTeachingCompleteFeedback(); stamped=true; saveSessionSnapshot(); autoNextTimer=setTimeout(advanceFeedback,STAMP_HOLD_MS); return; }
   pickStamp(correct?(submissionSnapshot.hintEverUsed?"hinted":"fast"):"slow"); }
 $("decisionCorrect").onclick=()=>decideSubmission(true);
 $("decisionWrong").onclick=()=>decideSubmission(false);
 $("editStamp").onclick=reopenStampChoices;
 $("undoLast").onclick=reopenStampChoices;
-function next(){ practicePhase="between"; const target=nextQueuedTarget();
+$("reveal").addEventListener("click",e=>{ if(practicePhase!=="feedback" || e.target.closest("#editStamp")) return; e.preventDefault(); e.stopPropagation(); advanceFeedback(); },true);
+function roundHasPendingWork(){ return baseCursor<baseTargets.length || manualQueue.length>0 || unresolved.size>0; }
+function roundBudgetReached(){ return activeMode!=="calibrate" && !roundBudgetPrompted && roundHasPendingWork() && (attemptSeq>=ROUND_ATTEMPT_BUDGET || currentRoundElapsed()>=ROUND_TIME_BUDGET_MS); }
+function openRoundBudgetSheet(){ $("roundBudgetCopy").textContent=`已经练了 ${attemptSeq} 次。今天先到这里，没写稳的字会排到明天最前面。`; $("roundBudgetSheet").classList.add("open"); }
+function closeRoundBudgetSheet(){ $("roundBudgetSheet").classList.remove("open"); }
+function continueAfterBudget(){ roundBudgetPrompted=true; closeRoundBudgetSheet(); saveSessionSnapshot(); advanceToNextTarget(); }
+function pendingTomorrowIndexes(){ const ordered=[], add=idx=>{ if(Number.isInteger(idx)&&!ordered.includes(idx)) ordered.push(idx); };
+  manualQueue.forEach(item=>add(item.idx)); reinforcementQueue.filter(item=>item.eligibleAfter<=attemptSeq&&unresolved.has(item.idx)).forEach(item=>add(item.idx)); baseTargets.slice(baseCursor).forEach(add); reinforcementQueue.filter(item=>item.eligibleAfter>attemptSeq&&unresolved.has(item.idx)).forEach(item=>add(item.idx)); unresolved.forEach(add); return ordered; }
+function deferRoundToTomorrow(){ roundBudgetPrompted=true; const pending=pendingTomorrowIndexes(), latest=Object.values(memory).reduce((max,m)=>Math.max(max,Number(m&&m.queuedFrontAt)||0),0), queuedAt=Math.max(Date.now(),latest+1);
+  pending.forEach((idx,order)=>{ const m=cardMemory(idx); m.pendingLearning=true; m.dueDay=null; m.due=0; m.queuedFront=true; m.queuedFrontAt=queuedAt+order; });
+  manualQueue=[]; reinforcementQueue=[]; unresolved=new Set(); practicePhase="between"; saveMemory(); closeRoundBudgetSheet(); clearSessionSnapshot(); lastStampSnapshot=null; hideUndoBar(false); markRoundComplete(); releasePracticeHistory(); renderHome(); toast(pending.length?`已把 ${pending.length} 个字排到明天最前面`:`今天先练到这里`); }
+function advanceToNextTarget(){ const target=nextQueuedTarget();
   if(target){ beginAttempt(target); saveSessionSnapshot(); render(); return; }
   if(roundIsComplete()){ clearSessionSnapshot(); lastStampSnapshot=null; hideUndoBar(false); markRoundComplete(); roundSummary(true); } }
+function next(){ practicePhase="between"; if(roundBudgetReached()){ openRoundBudgetSheet(); return; } advanceToNextTarget(); }
+$("continueRound").onclick=continueAfterBudget;
+$("deferRound").onclick=deferRoundToTomorrow;
 function chooseFocusBatch(all){ return all.slice().sort((a,b)=>personalDifficulty(b)-personalDifficulty(a)).slice(0,BATCH); }
 function chooseReviewBatch(all){ return all.slice().sort((a,b)=>reviewPriority(b)-reviewPriority(a) || String((memory[cardKey(a)]||{}).dueDay||"").localeCompare(String((memory[cardKey(b)]||{}).dueDay||"")) || personalDifficulty(b)-personalDifficulty(a)).slice(0,BATCH); }
 function startRound(){ const p=availablePool(), queued=activeMode==="calibrate"?[]:queuedFrontPool(); if(p.length===0 && queued.length===0){ clearSessionSnapshot(); allDone(); return; } resetAdaptiveSession();
@@ -1721,6 +1751,7 @@ function startRound(){ const p=availablePool(), queued=activeMode==="calibrate"?
   calibrationTargets=activeMode==="calibrate"?baseTargets.slice():[];
   batch=baseTargets; warmStrokeCache(baseTargets.map(i=>CARDS[i].target)); pos=0; baseCursor=0; currentIndex=null; pendingSessionVisual=null; manualQueue=[]; reinforcementQueue=[]; unresolved=new Set(); episodes={}; attemptSeq=0; practicePhase="recall";
   missedThisRound=[]; roundStats=[]; roundFeedbackGiven=false; calibrationFirstHoldUsed=false; lastStampSnapshot=null; hideUndoBar(false); roundId=Date.now()+"-"+Math.random().toString(36).slice(2,7);
+  roundElapsedMs=0; roundActiveStartedAt=Date.now(); roundBudgetPrompted=false;
   beginAttempt({idx:baseTargets[0],kind:"base"}); saveSessionSnapshot(); armPracticeHistory(); render(); }
 function sumTile(s,i){ const isMiss=s.outcome==="miss", recovered=s.outcome!=="fast"&&s.independentlyRecovered;
   return `<button class="sumTile ${isMiss?"miss":""}" data-idx="${s.idx}" title="首次：${GRADE_UI[s.outcome].func}${recovered?"；本组已独立写出":""}" style="transform:rotate(${ROTS[i%ROTS.length]}deg); animation-delay:${(i*0.05).toFixed(2)}s">${s.target}<span class="dot" style="background:${OUTCOME_DOT[s.outcome]}"></span>${recovered?'<span class="recover">已独立</span>':''}</button>`; }
@@ -1762,6 +1793,7 @@ $("calibAgain").onclick=()=>startMode("new");
 let exitingPractice=false;
 function exitCurrentRound(fromHistory=false){ if(exitingPractice || $("card").style.display==="none") return false;
   if($("addSheet").classList.contains("open")){ closeAddSheet(); return false; }
+  if($("roundBudgetSheet").classList.contains("open")){ closeRoundBudgetSheet(); return false; }
   exitingPractice=true; clearTimeout(teachTimer); clearTimeout(autoNextTimer); clearTimeout(editStampTimer); inkEnd();
   if(!saveSessionSnapshot()){
     exitingPractice=false; if(fromHistory){ practiceHistoryArmed=true; restoringPracticeHistory=true; try{ history.forward(); }catch(e){ restoringPracticeHistory=false; } }
@@ -1820,7 +1852,7 @@ let feedbackPausedForAdd=false;
 function openAddSheet(){ commitUndoWindow(); if(stamped){ clearTimeout(autoNextTimer); feedbackPausedForAdd=true; lastStampSnapshot=null; $("editStamp").disabled=true; hideUndoBar(false); }
   $("addInput").value=""; renderAddPreview(); $("addSheet").classList.add("open"); updateKeyboardInset(); $("addInput").focus();
   requestAnimationFrame(()=>{ try{ $("addInput").scrollIntoView({block:"center", inline:"nearest"}); }catch(e){} }); }
-function closeAddSheet(){ $("addSheet").classList.remove("open"); $("addInput").blur(); updateKeyboardInset(); if(feedbackPausedForAdd){ feedbackPausedForAdd=false; autoNextTimer=setTimeout(goNext,200); } }
+function closeAddSheet(){ $("addSheet").classList.remove("open"); $("addInput").blur(); updateKeyboardInset(); if(feedbackPausedForAdd){ feedbackPausedForAdd=false; autoNextTimer=setTimeout(advanceFeedback,200); } }
 function confirmAdd(){ const chars=addWord($("addInput").value); if(!chars) return;
   const insertion=insertIntoCurrentBatch(indexesForChars(chars));
   closeAddSheet();

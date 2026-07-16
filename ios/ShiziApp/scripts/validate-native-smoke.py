@@ -123,7 +123,10 @@ checks = {
     and data_flow.get("backupRestorePreservesSmokeKey") is True
     and data_flow.get("backupSafetyCreated") is True
     and data_flow.get("backupRestoreRejectsInvalid") is True,
-    "nativeBridge": data_flow.get("nativeBridgeAvailable") is True,
+    "nativeBridge": data_flow.get("nativeBridgeAvailable") is True
+    and data_flow.get("shareCardBridgeAvailable") is True,
+    "shareCard": data_flow.get("shareCardGenerated") is True
+    and data_flow.get("shareCardPrivate") is True,
     "nativeImport": data_flow.get("nativeImportAvailable") is True,
     "nativeConfirm": data_flow.get("nativeConfirmAvailable") is True,
     "reminderState": data_flow.get("reminderStateAvailable") is True
@@ -131,7 +134,8 @@ checks = {
     "calibrationReturn": data_flow.get("calibrationReturnInviteVisible") is True
     and data_flow.get("calibrationReturnPermissionRequested") is True,
     "navPractice": navigation.get("practiceEntryVisible") is True
-    and navigation.get("practiceTabActive") is True,
+    and navigation.get("practiceTabActive") is True
+    and navigation.get("monthlyRhythmVisible") is True,
     "navBook": navigation.get("bookVisible") is True
     and navigation.get("bookTabActive") is True
     and navigation.get("footVisibleOnBook") is True
@@ -166,7 +170,8 @@ checks = {
     and practice.get("immediateAdvanced") is True
     and practice.get("noNextButton") is True
     and practice.get("feedbackHeld") is True
-    and practice.get("fsrsAgainOnly") is True,
+    and practice.get("fsrsAgainOnly") is True
+    and practice.get("summaryPocketVisible") is True,
     "practiceUndo": practice.get("undoBarFollowed") is True
     and practice.get("undoRollback") is True
     and practice.get("undoActivityRollback") is True

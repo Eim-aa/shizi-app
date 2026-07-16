@@ -112,6 +112,22 @@ let browser;
   });
   assert(inheritedDays.inherited === 3 && inheritedDays.before === 3 && inheritedDays.stampedOnly === 3 && inheritedDays.firstComplete && inheritedDays.secondComplete && inheritedDays.afterFirst === 4 && inheritedDays.afterSecond === 4, "Expected inherited practice days and same-day completion idempotence", inheritedDays);
 
+  const rhythmAndMilestones = await page.evaluate(() => {
+    const monthStart = `${today().slice(0, 7)}-01`, thisMonth = [...new Set([monthStart, today()])], previousMonth = shiftDay(monthStart, -1);
+    activity = newActivity(); activity.inheritedStreak = 0; activity.inheritedTotalDays = 0; activity.daily = {}; activity.practiceDays = [...thisMonth, previousMonth].sort();
+    activity.practiceDays.forEach((key, i) => { activity.daily[key] = { stamps: 1, attempts: 1, targetKeys: [`rhythm:${i}`], completedRoundIds: [], lastStampAt: Date.now() }; }); saveActivity(); renderMonthSignal();
+    const monthly = { count: monthPracticeDays(), expected: thisMonth.length, copy: monthSignal.textContent };
+    activity = newActivity(); activity.inheritedStreak = 0; activity.daily = {}; activity.practiceDays = [];
+    reminder.milestonesShown = []; activity.inheritedTotalDays = 14; const day14 = celebrateMilestoneIfAny(), repeat14 = celebrateMilestoneIfAny(), shown14 = reminder.milestonesShown.slice();
+    reminder.milestonesShown = []; activity.inheritedTotalDays = 250; const skipped250 = celebrateMilestoneIfAny(), shown250 = reminder.milestonesShown.slice();
+    reminder.milestonesShown = [1, 7, 14, 30, 100, 200]; activity.inheritedTotalDays = 300; const day300 = celebrateMilestoneIfAny(), repeat300 = celebrateMilestoneIfAny(), copy300 = milestoneCopy(300);
+    return { monthly, schedule: milestoneDaysThrough(350), day14, repeat14, shown14, skipped250, shown250, day300, repeat300, copy300 };
+  });
+  assert(rhythmAndMilestones.monthly.count === rhythmAndMilestones.monthly.expected && rhythmAndMilestones.monthly.copy === `本月拾了 ${rhythmAndMilestones.monthly.expected} 天`
+    && rhythmAndMilestones.schedule.join() === "1,7,14,30,100,200,300" && rhythmAndMilestones.day14 === 14 && rhythmAndMilestones.repeat14 === null && rhythmAndMilestones.shown14.join() === "1,7,14"
+    && rhythmAndMilestones.skipped250 === null && rhythmAndMilestones.shown250.join() === "1,7,14,30,100,200" && rhythmAndMilestones.day300 === 300 && rhythmAndMilestones.repeat300 === null && rhythmAndMilestones.copy300.includes("300"),
+  "Expected penalty-free monthly rhythm, one-time day-14 celebration, silent inherited catch-up, and every-100 continuation", rhythmAndMilestones);
+
   const reminderBoundary = await page.evaluate(() => {
     activity = newActivity(); activity.inheritedStreak = 0; activity.inheritedTotalDays = 0; activity.daily = {}; activity.practiceDays = [];
     const at = (hour, minute) => { const date = new Date(); date.setHours(hour, minute, 0, 0); return date.getTime(); };
@@ -879,6 +895,17 @@ let browser;
 
   const summaryEntry = await page.evaluate(() => ({ visible: getComputedStyle(summaryProfile).display !== "none", label: summaryProfile.textContent.trim() }));
   assert(summaryEntry.visible && summaryEntry.label.includes("看看你卡在哪"), "Expected a hard-result summary to expose Profile", summaryEntry);
+  const sharePaths = await page.evaluate(async () => {
+    const messages = [], downloads = [], shared = [];
+    const canvas = renderPracticeCardCanvas(), native = await sharePracticeCard({ nativeBridge: { postMessage: (message) => messages.push(message) } });
+    const web = await sharePracticeCard({ nativeBridge: null, navigator: { canShare: ({ files }) => files.length === 1 && files[0].type === "image/png", share: async (payload) => shared.push(payload) } });
+    const download = await sharePracticeCard({ nativeBridge: null, navigator: {}, download: (blob, name) => downloads.push({ size: blob.size, name }) });
+    const rendererSource = renderPracticeCardCanvas.toString();
+    return { canvas: canvas && { width: canvas.width, height: canvas.height, png: canvas.toDataURL("image/png").startsWith("data:image/png;base64,"), pixels: canvas.toDataURL("image/png").length }, native, web, download, messageKeys: messages[0] && Object.keys(messages[0]).sort(), messageType: messages[0] && messages[0].type, messagePNG: messages[0] && messages[0].dataURL.startsWith("data:image/png;base64,"), shared: shared.length, downloaded: downloads[0], privateFree: !/localStorage|memory|activity|backup|seenStat|riskStat/.test(rendererSource), shareVisible: getComputedStyle(summaryShare).display !== "none" };
+  });
+  assert(sharePaths.canvas.width === 1080 && sharePaths.canvas.height === 1350 && sharePaths.canvas.png && sharePaths.canvas.pixels > 10000 && sharePaths.native.route === "native" && sharePaths.web.route === "share" && sharePaths.download.route === "download"
+    && sharePaths.messageKeys.join() === "dataURL,name,type" && sharePaths.messageType === "sharePracticeCard" && sharePaths.messagePNG && sharePaths.shared === 1 && sharePaths.downloaded.size > 1000 && sharePaths.downloaded.name.endsWith(".png") && sharePaths.privateFree && sharePaths.shareVisible,
+  "Expected a private-free PNG card and native, Web Share, and download delivery paths", sharePaths);
   await page.click("#summaryProfile");
   await page.waitForFunction(() => getComputedStyle(profilePanel).display !== "none");
   await page.click("#closeProfile");
@@ -911,7 +938,15 @@ let browser;
     && summaryLayer.targets.join() === homeLayer.targets.join() && summaryLayer.targets.every((target) => bookLayer.targets.includes(target)),
   "Expected the same completed targets across summary, home recent, and study-book layers", { summaryLayer, homeLayer, bookLayer });
 
-  await page.evaluate(() => { clearSessionSnapshot(); traceTutorialShown = false; save(TRACE_TUTORIAL_KEY, false); startFocus([CARDS.findIndex((card) => card.target === "器")]); });
+  await page.evaluate(() => { displayView("summary"); renderPracticePocket(summaryFocusIndexes, false); });
+  const pocketBefore = await page.evaluate(() => ({ visible: getComputedStyle(pocketCard).display === "flex", indexes: summaryFocusIndexes.slice(), chips: Array.from(pocketChips.children).map((node) => node.textContent), title: pocketTitle.textContent }));
+  assert(pocketBefore.visible && pocketBefore.indexes.length === 1 && pocketBefore.chips.length === 1 && pocketBefore.title.includes("趁热再拾"), "Expected a difficult-result pocket with the weak target", pocketBefore);
+  await page.click("#pocketBtn");
+  await page.waitForFunction(() => activeMode === "focus" && getComputedStyle(card).display !== "none");
+  const pocketPractice = await page.evaluate(() => ({ mode: activeMode, target: cur.target, expected: CARDS[summaryFocusIndexes[0]].target, batch: baseTargets.slice() }));
+  assert(pocketPractice.mode === "focus" && pocketPractice.target === pocketPractice.expected && pocketPractice.batch.length === 1, "Expected the pocket action to enter focused practice for the weak target", pocketPractice);
+
+  await page.evaluate(() => { exitCurrentRound(); clearSessionSnapshot(); traceTutorialShown = false; save(TRACE_TUTORIAL_KEY, false); startFocus([CARDS.findIndex((card) => card.target === "器")]); });
   await waitForWriter(page);
   await page.evaluate(() => { episodeFor(currentCardIndex()).teachingComplete = true; hapticDebug.events = []; hapticDebug.last = null; });
   await page.click("#show");

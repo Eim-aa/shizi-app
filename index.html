@@ -64,6 +64,8 @@
   /* ===== 首页 ===== */
   .home{ display:none; flex:1; flex-direction:column; padding:16px 24px 0; animation:screenIn .35s ease; }
   .homeTop{ display:flex; justify-content:space-between; align-items:flex-start; }
+  .homeRhythm{ display:flex; flex-direction:column; align-items:flex-end; gap:5px; }
+  .monthSignal{ color:var(--muted); font-size:calc(13px * var(--font-scale)); font-weight:600; }
   .brandRow{ display:flex; align-items:center; gap:10px; }
   .brandStamp{ width:40px; height:40px; background:var(--accent); border-radius:9px 7px 10px 8px; display:flex; align-items:center; justify-content:center;
     color:var(--paperInk); font:400 calc(24px * var(--font-scale))/1 var(--kai); transform:rotate(-4deg);
@@ -248,6 +250,7 @@
   .roundTuneBtns button{ padding:8px 12px; font-size:calc(12px * var(--font-scale)); font-weight:600; border-radius:999px; background:var(--card); border:1px solid var(--line); color:var(--muted); }
   .roundTuneBtns button.active{ background:var(--shade); border-color:var(--gold); color:var(--ink); font-weight:700; }
   .summaryProfileLink{ display:none; align-self:center; min-height:44px; margin:7px auto -7px; padding:9px 12px; color:var(--accent); font:700 calc(13px * var(--font-scale))/1 var(--sans); }
+  .summaryShare{ align-self:center; min-height:44px; margin:7px auto -7px; padding:9px 12px; color:var(--accent); font:700 calc(15px * var(--font-scale))/1 var(--sans); text-decoration:underline; text-underline-offset:3px; }
   .sumActions{ display:flex; gap:8px; margin-top:auto; padding-top:18px; }
   .sumActions .ghostAct{ flex:1; }
   .sumActions .darkAct{ flex:1; background:var(--ink); color:var(--card); border-radius:16px; padding:15px 10px; font:700 calc(15px * var(--font-scale)) var(--sans); }
@@ -480,7 +483,7 @@
   <div class="home" id="home" data-screen-label="首页">
     <div class="homeTop">
       <div class="brandRow"><div class="brandStamp">拾</div><div class="brandName">拾字</div></div>
-      <div class="streakChip"><i></i><span id="streakChip">今天开始拾字</span></div>
+      <div class="homeRhythm"><div class="streakChip"><i></i><span id="streakChip">今天开始拾字</span></div><div class="monthSignal" id="monthSignal">本月拾了 0 天</div></div>
     </div>
     <div class="homeMain">
       <div>
@@ -604,6 +607,7 @@
         <button class="pocketBtn" id="calibPocketBtn">马上再拾</button>
       </div>
       <button class="summaryProfileLink" id="calibProfile">看看你卡在哪 →</button>
+      <button class="summaryShare" id="calibShare">存成图 / 分享今日字帖</button>
       <div class="sumActions">
         <button class="ghostAct" id="calibDone">明天见</button>
         <button class="darkAct" id="calibAgain">再拾一组</button>
@@ -627,6 +631,7 @@
       <div class="roundTune" id="roundTune"></div>
       <div class="summaryBackupHint" id="summaryBackupHint"><span>记录只存在这台手机上，导出一份更安心。</span><button id="summaryBackupNow">导出备份</button></div>
       <button class="summaryProfileLink" id="summaryProfile">看看你卡在哪 →</button>
+      <button class="summaryShare" id="summaryShare">存成图 / 分享今日字帖</button>
       <div class="sumActions">
         <button class="ghostAct" id="stop">回首页</button>
         <button class="darkAct" id="more">再拾一组</button>
@@ -867,6 +872,8 @@ function todayCompleted(){ return dailyActivity().completedGroups>0; }
 // 累计练习日：历史继承 + 完成过至少一整组的日子。加练不重复计，只增不减。
 function completedDayCount(){ return Object.keys(activity.daily).filter(k=>/^\d{4}-\d{2}-\d{2}$/.test(k) && Array.isArray((activity.daily[k]||{}).completedRoundIds) && activity.daily[k].completedRoundIds.length>0).length; }
 function totalPracticeDays(){ return activity.inheritedTotalDays+completedDayCount(); }
+function monthPracticeDays(key=today()){ const prefix=String(key).slice(0,7)+"-"; return activity.practiceDays.filter(day=>day.startsWith(prefix)).length; }
+function renderMonthSignal(){ $("monthSignal").textContent=`本月拾了 ${monthPracticeDays()} 天`; }
 // 习惯练习时刻：最近 14 个练习日 lastStampAt 的中位时刻，钳制 07:00–22:00；样本不足 3 天默认 20:00
 function medianPracticeTime(){ const mins=activity.practiceDays.slice(-14).map(k=>Number((activity.daily[k]||{}).lastStampAt)||0).filter(t=>t>0)
     .map(t=>{ const d=new Date(t); return d.getHours()*60+d.getMinutes(); }).sort((a,b)=>a-b);
@@ -927,15 +934,17 @@ function renderCalibrationReturnHook(){ const native=reminderBridgeAvailable(), 
   if(reminder.enabled){ const t=medianPracticeTime(); $("calibReturnTitle").textContent="明天会提醒你"; $("calibReturnText").textContent=`${tomorrow} · ${String(t.hour).padStart(2,"0")}:${String(t.minute).padStart(2,"0")}`; button.style.display="none"; return; }
   $("calibReturnTitle").textContent="要在常练的时间提醒你吗？"; $("calibReturnText").textContent=reminder.permission==="denied"?"可稍后在系统设置中开启":`默认关闭，开启后随时可关 · ${tomorrow}`; button.style.display=reminder.permission==="denied"?"none":""; }
 
-// ---- 里程碑：累计练习日首次到达 1/7/30/100，结算页庆祝一次；被历史继承跳过的档位静默补记
-const MILESTONE_DAYS=[1,7,30,100];
+// ---- 里程碑：前 30 天补齐 14 日节奏，100 日后每满 100 续档；继承跳档静默补记
+const MILESTONE_DAYS=[1,7,14,30];
 const MILESTONE_COPY={
   1:"见字如晤，久别重逢——那些被岁月搁下的字，从今天起，一笔一画都是归途。",
   7:"第七个练习日——拾回的字，攒成一小把了。",
-  30:"三十个练习日。字盒渐满，提笔渐稳。",
-  100:"第一百个练习日。提笔忘字这件事，正在离你远去。"};
+  14:"第十四个练习日。两周的笔迹连起来，生疏的字开始认得回家的路。",
+  30:"三十个练习日。字盒渐满，提笔渐稳。"};
+function milestoneDaysThrough(total){ const days=MILESTONE_DAYS.filter(d=>d<=total); for(let d=100;d<=total;d+=100) days.push(d); return days; }
+function milestoneCopy(day){ if(MILESTONE_COPY[day]) return MILESTONE_COPY[day]; return `第 ${day} 个练习日。拾回的字一百一百地长，提笔也一日一日地稳。`; }
 function celebrateMilestoneIfAny(){ const total=totalPracticeDays(); let changed=false, celebrate=null;
-  MILESTONE_DAYS.forEach(d=>{ if(total>=d && !reminder.milestonesShown.includes(d)){ reminder.milestonesShown.push(d); changed=true; if(total===d) celebrate=d; } });
+  milestoneDaysThrough(total).forEach(d=>{ if(!reminder.milestonesShown.includes(d)){ reminder.milestonesShown.push(d); changed=true; if(total===d) celebrate=d; } });
   if(changed) saveReminder(); return celebrate; }
 
 // ---- 出题池与双层学习会话 ----
@@ -943,6 +952,7 @@ const BATCH=15, DAILY_REVIEW_BUDGET=30, TOPIC_KEY="shizi.topic.v1";
 let sessionDone=new Set(), baseTargets=[], batch=[], pos=0, baseCursor=0, currentIndex=null, currentAttemptKind="base", currentAttemptId="";
 let manualQueue=[], reinforcementQueue=[], unresolved=new Set(), episodes={}, attemptSeq=0, practicePhase="recall", hintEverUsed=false, enteredTracingThisAttempt=false, submissionSnapshot=null, pendingSessionVisual=null, feedbackKind="";
 let missedThisRound=[], roundStats=[], focusQueue=[], hintsUsedThisCard=0, cardStartedAt=0, activeMode="new", sessionTarget=0, sessionFastStreak=0, sessionMissStreak=0, roundFeedbackGiven=false, roundId=0, calibrationFirstHoldUsed=false, calibrationComfortShown=false, calibrationTargets=[];
+let summaryFocusIndexes=[];
 let roundElapsedMs=0, roundActiveStartedAt=0, roundBudgetPrompted=false;
 const ROUND_ATTEMPT_BUDGET=20, ROUND_TIME_BUDGET_MS=6*60*1000;
 function currentCardIndex(){ return Number.isInteger(currentIndex)?currentIndex:(Number.isInteger(batch[pos])?batch[pos]:null); }
@@ -1234,6 +1244,7 @@ function renderHome(){ const resume=resumableSession();
   displayView("home");
   $("homeGreeting").textContent=`${greeting()} · ${dateCn()}`;
   const totalDays=totalPracticeDays(); $("streakChip").textContent=totalDays>0?`拾字第 ${totalDays} 天`:"今天开始拾字";
+  renderMonthSignal();
   const due=reviewCount(), dueToday=reviewTodayCount(), newN=newPool(false).length, stampedToday=todayStampCount(), complete=todayCompleted();
   homeResumeSession=resume;
   if(resume){ const targetSet=new Set(resume.baseTargets), total=targetSet.size, practiced=new Set((resume.roundStats||[]).filter(row=>targetSet.has(row.idx)).map(row=>row.idx)).size, reinforce=new Set((resume.unresolved||[]).filter(idx=>targetSet.has(idx))).size;
@@ -1895,9 +1906,16 @@ function startRound(){ if(activeMode==="review" && reviewBudgetRemaining()===0){
   beginAttempt({idx:baseTargets[0],kind:"base"}); saveSessionSnapshot(); armPracticeHistory(); render(); }
 function sumTile(s,i){ const isMiss=s.outcome==="miss", recovered=s.outcome!=="fast"&&s.independentlyRecovered, ui=GRADE_UI[s.outcome];
   return `<button class="sumTile ${isMiss?"miss":""}" data-idx="${s.idx}" aria-label="${esc(s.target)}，首次${esc(ui.func)}${recovered?"，之后已独立写出":""}" style="transform:rotate(${ROTS[i%ROTS.length]}deg); animation-delay:${(i*0.05).toFixed(2)}s"><span class="glyphText">${s.target}</span><span class="dot outcomeMark ${s.outcome}" style="background:${OUTCOME_DOT[s.outcome]}">${OUTCOME_MARK[s.outcome]}</span><small class="meaning">${ui.short}</small>${recovered?'<span class="recover">稳</span>':''}</button>`; }
+function renderPracticePocket(indexes, calibration=false){ const unique=[...new Set((indexes||[]).filter(i=>Number.isInteger(i)&&i>=0&&i<CARDS.length))], card=$(calibration?"calibPocketCard":"pocketCard"), chips=$(calibration?"calibPocketChips":"pocketChips"), title=$(calibration?"calibPocketTitle":"pocketTitle");
+  summaryFocusIndexes=unique; card.style.display=unique.length?"flex":"none"; if(!unique.length) return;
+  chips.innerHTML=unique.slice(0,3).map((idx,k)=>`<span class="pChip" style="transform:rotate(${k%2?3:-4}deg)">${CARDS[idx].target}</span>`).join("");
+  title.textContent=`${unique.length} 个字，趁热再拾`; }
 function roundSummary(fromPractice=false){ clearSessionSnapshot(); markRoundComplete(); releasePracticeHistory(); const milestone=celebrateMilestoneIfAny(); displayView("summary");
-  $("milestoneLine").style.display=milestone?"block":"none"; if(milestone){ $("milestoneLine").textContent=MILESTONE_COPY[milestone]; hapticFeedback("milestone"); }
+  $("summaryShare").style.display="block"; $("calibShare").style.display="block";
+  $("milestoneLine").style.display=milestone?"block":"none"; if(milestone){ $("milestoneLine").textContent=milestoneCopy(milestone); hapticFeedback("milestone"); }
   else if(fromPractice) hapticFeedback("action");
+  $("summaryShare").textContent=milestone?"存成图 / 分享这张里程碑字帖":"存成图 / 分享今日字帖";
+  $("calibShare").textContent=milestone?"存成图 / 分享这张里程碑字帖":"存成图 / 分享今日字帖";
   const wasCalibration=activeMode==="calibrate", calibrationStats=wasCalibration?calibrationRoundStats():roundStats, calibrationNote=maybeFinishCalibration(), remain=activeMode==="review"?reviewTodayCount():availablePool().length;
   const counts=roundCounts(calibrationStats), hardN=(counts.hinted||0)+(counts.miss||0)+(counts.slow||0), keptN=calibrationStats.length-hardN, dayTotal=todayStampCount(), completedGroups=dailyActivity().completedGroups;
   const risky=[...new Set(roundStats.filter(x=>x.outcome!=="fast").map(x=>x.idx))];
@@ -1908,7 +1926,7 @@ function roundSummary(fromPractice=false){ clearSessionSnapshot(); markRoundComp
     $("calibTier").textContent=tuningLabel();
     $("calibWhyTxt").textContent=calibrationNote?` ${calibrationNote}`:" 之后每组会按你实际写的情况自动微调。";
     $("calibPocketLine").textContent=hardN>0?`首答没写出的 ${hardN} 个字，之后都已独立写出。`:"这一把首答一个都没漏，下一组会稍微上点难度。";
-    $("calibPocketCard").style.display="none"; $("calibProfile").style.display=hardN>0?"block":"none"; renderCalibrationReturnHook();
+    renderPracticePocket(risky,true); $("calibProfile").style.display=hardN>0?"block":"none"; renderCalibrationReturnHook();
     return; }
   $("calibPocketCard").style.display="none";
   $("summaryProfile").style.display=hardN>0?"block":"none";
@@ -1916,23 +1934,28 @@ function roundSummary(fromPractice=false){ clearSessionSnapshot(); markRoundComp
   $("sumLead").innerHTML=hardN>0?`本组 <b class="ok">${roundStats.length}</b> 个字全部完成，<br><b class="warn">${hardN}</b> 个首答没写出，之后已独立写出。`:`这一把 <b class="ok">${keptN}</b> 个字首答都独立写出了。`;
   $("dateSeal").textContent=dateCn();
   $("sumTiles").innerHTML=roundStats.map(sumTile).join("");
-  $("pocketCard").style.display="none";
+  renderPracticePocket(risky,false);
   renderRoundTune(calibrationNote);
   renderSummaryBackupHint();
   $("more").style.display=remain>0?"":"none";
   $("more").textContent=activeMode==="review"?`继续复习（今日还可 ${Math.min(BATCH,remain)}）`:activeMode==="focus"?`继续（还剩 ${remain}）`:"加练一组"; }
 function allDone(){ displayView("summary"); $("milestoneLine").style.display="none";
+  $("summaryShare").style.display="none"; $("calibShare").style.display="none";
   $("calibCard").style.display="none"; $("sumSheet").style.display="flex";
   $("sumH2").textContent="今天的字过完了";
   $("sumLead").innerHTML=`练过 <b>${memoryCount()}</b> 字 · 已拾回 <b class="ok">${stableCount()}</b> 字 · 待拾回 ${highRiskCount()}`;
   $("dateSeal").textContent=dateCn();
-  $("sumTiles").innerHTML=""; $("pocketCard").style.display="none"; $("summaryBackupHint").style.display="none";
+  $("sumTiles").innerHTML=""; $("pocketCard").style.display="none"; $("calibPocketCard").style.display="none"; summaryFocusIndexes=[]; $("summaryBackupHint").style.display="none";
   $("roundTune").style.display="none"; $("summaryProfile").style.display="none"; $("more").style.display="none"; }
 $("more").onclick=startRound;
 $("stop").onclick=renderHome;
 $("calibDone").onclick=renderHome;
 $("calibAgain").onclick=()=>startMode("new");
 $("calibReminderYes").onclick=()=>{ acceptReminderInvite(); renderCalibrationReturnHook(); };
+$("pocketBtn").onclick=()=>startFocus(summaryFocusIndexes);
+$("calibPocketBtn").onclick=()=>startFocus(summaryFocusIndexes);
+$("summaryShare").onclick=()=>sharePracticeCard();
+$("calibShare").onclick=()=>sharePracticeCard();
 let exitingPractice=false;
 function exitCurrentRound(fromHistory=false){ if(exitingPractice || $("card").style.display==="none") return false;
   if($("addSheet").classList.contains("open")){ closeAddSheet(); return false; }
@@ -2026,6 +2049,40 @@ $("addConfirm").onclick=confirmAdd;
 $("addInput").oninput=renderAddPreview;
 $("addInput").onkeydown=e=>{ if(e.key==="Enter" && !e.isComposing && !$("addConfirm").disabled) confirmAdd(); };
 $("addSheet").onclick=e=>{ if(e.target===$("addSheet")) closeAddSheet(); };
+
+// ---- 今日字帖分享：只重绘本组字、日期与章，不读取或写入任何个人字段 ----
+const shareCardDebug={lastRoute:null,lastMessage:null};
+function shareRoundRect(ctx,x,y,w,h,r){ const q=Math.min(r,w/2,h/2); ctx.beginPath(); ctx.moveTo(x+q,y); ctx.lineTo(x+w-q,y); ctx.quadraticCurveTo(x+w,y,x+w,y+q); ctx.lineTo(x+w,y+h-q); ctx.quadraticCurveTo(x+w,y+h,x+w-q,y+h); ctx.lineTo(x+q,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-q); ctx.lineTo(x,y+q); ctx.quadraticCurveTo(x,y,x+q,y); ctx.closePath(); }
+function shareWrappedText(ctx,text,x,y,maxWidth,lineHeight,maxLines=3){ const chars=Array.from(String(text||"")); let line="", lines=[]; chars.forEach(ch=>{ const next=line+ch; if(line&&ctx.measureText(next).width>maxWidth){ lines.push(line); line=ch; }else line=next; }); if(line) lines.push(line); lines=lines.slice(0,maxLines); lines.forEach((row,i)=>ctx.fillText(row,x,y+i*lineHeight)); return y+lines.length*lineHeight; }
+function renderPracticeCardCanvas(){ const stats=(roundStats||[]).slice(0,15); if(!stats.length) return null;
+  const canvas=document.createElement("canvas"); canvas.width=1080; canvas.height=1350; const ctx=canvas.getContext("2d"), paper="#efe7d3", card="#fdfaf1", ink="#2b2620", muted="#665d4d", accent="#c2452c", gold="#b3892f", blue="#547398", green="#5b8b67";
+  ctx.fillStyle=paper; ctx.fillRect(0,0,canvas.width,canvas.height);
+  const milestone=getComputedStyle($("milestoneLine")).display!=="none"?$("milestoneLine").textContent.trim():"";
+  let cardY=milestone?190:90;
+  if(milestone){ ctx.fillStyle="#f7e6df"; shareRoundRect(ctx,70,55,940,105,28); ctx.fill(); ctx.strokeStyle="#df9d8c"; ctx.lineWidth=3; ctx.stroke(); ctx.fillStyle=accent; ctx.font='600 31px "Songti SC","STSong",serif'; ctx.textAlign="center"; shareWrappedText(ctx,milestone,540,98,850,40,2); }
+  const cardH=1040; ctx.fillStyle=card; shareRoundRect(ctx,55,cardY,970,cardH,14); ctx.fill(); ctx.strokeStyle="#d99b89"; ctx.lineWidth=5; ctx.stroke(); ctx.strokeStyle="#efd1c8"; ctx.lineWidth=2; ctx.strokeRect(76,cardY+21,928,cardH-42);
+  ctx.textAlign="left"; ctx.fillStyle=ink; ctx.font='900 72px "Songti SC","STSong",serif'; ctx.fillText($("sumH2").textContent.trim()||"今日拾得",110,cardY+115);
+  ctx.fillStyle=muted; ctx.font='500 32px -apple-system,"PingFang SC",sans-serif'; ctx.fillText(`本组 ${stats.length} 个字`,110,cardY+175);
+  ctx.fillStyle=accent; ctx.font='500 29px "Kaiti SC","STKaiti",serif'; ctx.textAlign="center"; Array.from(dateCn()).forEach((ch,i)=>ctx.fillText(ch,930,cardY+70+i*34));
+  const cols=5, gap=18, tile=160, startX=108, startY=cardY+235, colors={fast:accent,hinted:gold,slow:blue,miss:"#8b8272"};
+  stats.forEach((stat,i)=>{ const col=i%cols,row=Math.floor(i/cols),x=startX+col*(tile+gap),y=startY+row*(tile+gap),ui=GRADE_UI[stat.outcome]||GRADE_UI.slow;
+    ctx.fillStyle=stat.outcome==="miss"?"#f8e9e3":"#fbf6ea"; shareRoundRect(ctx,x,y,tile,tile,14); ctx.fill(); ctx.strokeStyle=stat.outcome==="miss"?accent:"#e3d9c4"; ctx.lineWidth=stat.outcome==="miss"?3:2; ctx.stroke();
+    ctx.fillStyle=ink; ctx.font='400 70px "Kaiti SC","STKaiti",serif'; ctx.textAlign="center"; ctx.fillText(stat.target,x+tile/2,y+92);
+    ctx.fillStyle=muted; ctx.font='700 25px -apple-system,"PingFang SC",sans-serif'; ctx.fillText(ui.short,x+tile/2,y+137);
+    ctx.fillStyle=colors[stat.outcome]||accent; ctx.beginPath(); ctx.arc(x+tile-24,y+24,20,0,Math.PI*2); ctx.fill(); ctx.fillStyle="#fdfaf1"; ctx.font='700 21px -apple-system,"PingFang SC",sans-serif'; ctx.fillText(OUTCOME_MARK[stat.outcome]||"",x+tile-24,y+31);
+    if(stat.independentlyRecovered){ ctx.fillStyle=green; ctx.font='700 21px -apple-system,"PingFang SC",sans-serif'; ctx.textAlign="left"; ctx.fillText("稳",x+10,y+29); }
+  });
+  const sealX=canvas.width-280,sealY=cardY+cardH-250; ctx.save(); ctx.translate(sealX+95,sealY+95); ctx.rotate(-0.07); ctx.fillStyle=accent; shareRoundRect(ctx,-95,-95,190,190,38); ctx.fill(); ctx.strokeStyle="#e9a18f"; ctx.lineWidth=8; ctx.stroke(); ctx.fillStyle="#fdfaf1"; ctx.font='400 58px "Kaiti SC","STKaiti",serif'; ctx.textAlign="center"; ctx.fillText("拾",0,-10); ctx.fillText("字",0,58); ctx.restore();
+  ctx.fillStyle=muted; ctx.font='500 28px "Songti SC","STSong",serif'; ctx.textAlign="left"; ctx.fillText("提笔忘字，拾回便是",110,cardY+cardH-80);
+  return canvas; }
+function practiceCardBlob(canvas){ return new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error("image")),"image/png")); }
+async function sharePracticeCard(opts={}){ const canvas=renderPracticeCardCanvas(); if(!canvas){ toast("这组还没有可分享的字"); return {route:"empty"}; }
+  const name=`shizi-card-${today()}.png`, hasNative=Object.prototype.hasOwnProperty.call(opts,"nativeBridge"), native=hasNative?opts.nativeBridge:(window.webkit&&window.webkit.messageHandlers&&window.webkit.messageHandlers.shiziNative);
+  if(native){ const message={type:"sharePracticeCard",name,dataURL:canvas.toDataURL("image/png")}; native.postMessage(message); shareCardDebug.lastRoute="native"; shareCardDebug.lastMessage=message; return {route:"native",name,width:canvas.width,height:canvas.height}; }
+  const blob=await practiceCardBlob(canvas), nav=Object.prototype.hasOwnProperty.call(opts,"navigator")?opts.navigator:navigator, file=new File([blob],name,{type:"image/png"});
+  if(nav&&typeof nav.canShare==="function"&&typeof nav.share==="function"&&nav.canShare({files:[file]})){ try{ await nav.share({files:[file],title:"拾字 · 今日字帖"}); shareCardDebug.lastRoute="share"; toast("字帖已分享"); return {route:"share",name,size:blob.size}; }catch(e){ if(e&&e.name==="AbortError") return {route:"cancelled",name,size:blob.size}; } }
+  if(typeof opts.download==="function") opts.download(blob,name); else { const url=URL.createObjectURL(blob),a=document.createElement("a"); a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),4000); }
+  shareCardDebug.lastRoute="download"; toast("字帖已存成图片"); return {route:"download",name,size:blob.size}; }
 
 // ---- 数据备份 / 恢复（localStorage 是唯一存储，换手机或清缓存前先导出）----
 // 新增 shizi.* 持久键时必须同步加入；shizi.nativeSmoke.v1 与 SAFETY_KEY 为刻意排除。

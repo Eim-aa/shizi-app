@@ -214,7 +214,10 @@ final class WebViewController: UIViewController {
               reminderStateAvailable: false,
               reminderSettingsRowVisible: false,
               calibrationReturnInviteVisible: false,
-              calibrationReturnPermissionRequested: false
+              calibrationReturnPermissionRequested: false,
+              shareCardGenerated: false,
+              shareCardPrivate: false,
+              shareCardBridgeAvailable: false
             },
             navigationFlow: {
               practiceEntryVisible: false,
@@ -233,6 +236,7 @@ final class WebViewController: UIViewController {
               profileHasNoDuplicateChars: false,
               meActionsDisclosed: false,
               metricLanguageConsistent: false,
+              monthlyRhythmVisible: false,
               homeCaptureVisible: false,
               auditVisible: false,
               auditReturnedToMe: false
@@ -253,6 +257,7 @@ final class WebViewController: UIViewController {
               undoRollback: false,
               undoActivityRollback: false,
               nextCardUntouched: false,
+              summaryPocketVisible: false,
               traceModeVisible: false,
               traceOutlineVisible: false,
               traceRequiresInk: false,
@@ -388,6 +393,7 @@ final class WebViewController: UIViewController {
               result.navigationFlow.practiceEntryVisible = visible('home') || visible('welcome');
               result.navigationFlow.practiceTabActive = activeTab('tabPractice');
               result.navigationFlow.homeCaptureVisible = !!document.getElementById('homeAdd') && document.getElementById('homeAdd').textContent.includes('刚才忘了个字');
+              result.navigationFlow.monthlyRhythmVisible = !!document.getElementById('monthSignal') && document.getElementById('monthSignal').textContent === `本月拾了 ${monthPracticeDays()} 天`;
             }
 
             if (typeof openAddSheet === 'function' && typeof confirmAdd === 'function' && typeof backupPayload === 'function') {
@@ -474,6 +480,7 @@ final class WebViewController: UIViewController {
               }
               result.dataFlow.nativeBridgeAvailable = !!(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.shiziNative);
               result.dataFlow.nativeImportAvailable = result.dataFlow.nativeBridgeAvailable && typeof requestBackupImport === 'function';
+              result.dataFlow.shareCardBridgeAvailable = result.dataFlow.nativeBridgeAvailable && typeof sharePracticeCard === 'function';
               result.dataFlow.nativeConfirmAvailable = window.confirm('\(Self.nativeSmokeConfirmMessage)') === true;
               result.dataFlow.reminderStateAvailable = typeof reminder === 'object' && typeof reminder.enabled === 'boolean' && typeof totalPracticeDays === 'function' && Number.isInteger(totalPracticeDays());
               result.dataFlow.reminderSettingsRowVisible = getComputedStyle(document.getElementById('reminderSection')).display !== 'none' && getComputedStyle(document.getElementById('reminderRow')).display !== 'none';
@@ -519,13 +526,18 @@ final class WebViewController: UIViewController {
               baseCursor = baseTargets.length;
               unresolved = new Set();
               practicePhase = 'between';
-              roundStats = baseTargets.map(idx => ({ idx, target: CARDS[idx].target, outcome: 'fast', independentlyRecovered: false }));
+              roundStats = baseTargets.map((idx, position) => ({ idx, target: CARDS[idx].target, outcome: position === 0 ? 'hinted' : 'fast', independentlyRecovered: position === 0 }));
               roundId = 'native-smoke-milestone';
               baseTargets.forEach(idx => markPracticeStamp(idx));
               hapticDebug.events = [];
               hapticDebug.last = null;
               roundSummary(true);
               result.practiceFlow.hapticMilestoneSequence = hapticDebug.events.slice();
+              result.practiceFlow.summaryPocketVisible = visible('pocketCard') && summaryFocusIndexes.length === 1 && document.getElementById('pocketBtn').textContent.includes('马上再拾');
+              const shareCanvas = renderPracticeCardCanvas();
+              const shareSource = renderPracticeCardCanvas.toString();
+              result.dataFlow.shareCardGenerated = !!shareCanvas && shareCanvas.width === 1080 && shareCanvas.height === 1350 && shareCanvas.toDataURL('image/png').startsWith('data:image/png;base64,');
+              result.dataFlow.shareCardPrivate = !/localStorage|memory|activity|backup|seenStat|riskStat/.test(shareSource);
 
               baseTargets = completionTargets.slice(2);
               batch = baseTargets;
@@ -889,6 +901,41 @@ final class WebViewController: UIViewController {
         present(activity, animated: true)
     }
 
+    private func sharePracticeCard(filename: String, dataURL: String) {
+        guard presentedViewController == nil else { return }
+        guard
+            dataURL.hasPrefix("data:image/png;base64,"),
+            let comma = dataURL.firstIndex(of: ","),
+            let data = Data(base64Encoded: String(dataURL[dataURL.index(after: comma)...])),
+            data.count <= 12 * 1024 * 1024,
+            data.starts(with: [0x89, 0x50, 0x4E, 0x47])
+        else {
+            presentError(message: "字帖图片生成失败，请稍后再试。")
+            return
+        }
+
+        let safeStem = filename
+            .replacingOccurrences(of: "/", with: "-")
+            .replacingOccurrences(of: ":", with: "-")
+            .replacingOccurrences(of: "\\", with: "-")
+        let safeName = safeStem.lowercased().hasSuffix(".png") ? safeStem : "\(safeStem).png"
+        let fileURL = FileManager.default.temporaryDirectory.appendingPathComponent(safeName)
+        do {
+            try data.write(to: fileURL, options: .atomic)
+        } catch {
+            presentError(message: "字帖图片生成失败，请稍后再试。")
+            return
+        }
+
+        let activity = UIActivityViewController(activityItems: [fileURL], applicationActivities: nil)
+        if let popover = activity.popoverPresentationController {
+            popover.sourceView = view
+            popover.sourceRect = CGRect(x: view.bounds.midX, y: view.bounds.midY, width: 1, height: 1)
+            popover.permittedArrowDirections = []
+        }
+        present(activity, animated: true)
+    }
+
     private func presentBackupPicker() {
         let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.json], asCopy: true)
         picker.delegate = self
@@ -1081,6 +1128,10 @@ extension WebViewController: WKScriptMessageHandler {
             let name = body["name"] as? String ?? "shizi-backup.json"
             let payload = body["payload"] as? String ?? "{}"
             shareBackup(filename: name, payload: payload)
+        case "sharePracticeCard":
+            let name = body["name"] as? String ?? "shizi-card.png"
+            let dataURL = body["dataURL"] as? String ?? ""
+            sharePracticeCard(filename: name, dataURL: dataURL)
         case "pickBackup":
             presentBackupPicker()
         case "nativeSmokeResult":

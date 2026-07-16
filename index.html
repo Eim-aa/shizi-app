@@ -57,6 +57,7 @@
   .welcome .go{ margin-top:52px; width:100%; background:var(--accent); color:var(--paperInk); border-radius:16px; padding:17px 10px;
     font:700 16px var(--sans); box-shadow:0 14px 28px -12px rgba(194,69,44,.6); }
   .welcome .goSub{ margin-top:12px; font-size:12px; color:var(--faint); }
+  .welcome .restoreLink{ margin-top:12px; min-height:44px; padding:8px 12px; color:var(--muted); font-size:13px; text-decoration:underline; text-underline-offset:3px; }
   .welcome .motto{ font:400 13px/1.8 var(--kai); color:var(--faint); letter-spacing:.24em; }
 
   /* ===== 首页 ===== */
@@ -386,6 +387,11 @@
   .addChip b{ font-family:var(--kai); font-size:19px; color:var(--accent); font-weight:400; }
   .toast{ position:fixed; left:50%; bottom:calc(84px + env(safe-area-inset-bottom)); transform:translateX(-50%); background:var(--ink); color:var(--card); font-size:13px; padding:10px 16px; border-radius:999px; z-index:30; opacity:0; transition:opacity .25s; pointer-events:none; max-width:82vw; text-align:center; box-shadow:0 8px 24px -8px rgba(20,18,14,.5); }
   .toast.show{ opacity:.94; }
+  .undoToast{ display:none; position:fixed; z-index:31; left:50%; bottom:calc(84px + env(safe-area-inset-bottom)); transform:translateX(-50%); width:min(calc(100% - 32px),398px); min-height:48px; padding:7px 8px 7px 14px; align-items:center; gap:10px; border-radius:999px; background:var(--ink); color:var(--card); box-shadow:0 10px 28px -10px rgba(20,18,14,.55); }
+  .undoToast span{ flex:1; min-width:0; font-size:13px; }
+  .undoToast button{ flex:none; min-height:34px; padding:0 13px; border-radius:999px; background:var(--card); color:var(--ink); font-size:13px; font-weight:800; }
+  .summaryBackupHint{ display:none; align-items:center; justify-content:space-between; gap:10px; margin:10px 0 0; padding:10px 12px; border-top:1px solid var(--line); color:var(--muted); font-size:12.5px; }
+  .summaryBackupHint button{ flex:none; min-height:36px; padding:0 10px; border:1px solid var(--line); border-radius:999px; background:var(--card); color:var(--ink); font-weight:700; }
   @media (max-height:620px){
     .card{ padding-top:calc(8px + env(safe-area-inset-top)); padding-bottom:calc(8px + env(safe-area-inset-bottom)); }
     .chdr{ gap:4px; } .addPill{ height:28px; }
@@ -415,7 +421,8 @@
       <div class="lede">每天六分钟，在手机上用手指写字，<br>把忘掉的字一个一个拾回来。</div>
       <div style="margin-top:52px; width:100%;">
         <button class="go" id="welcomeStart">先拾 15 个字试试</button>
-        <div class="goSub">这 15 个字顺便摸个底：哪些字还写得出 · 不用注册</div>
+        <div class="goSub">这 15 个字顺便摸个底：哪些字还写得出 · 不用注册<br>记录只存在这台手机上，之后随时可导出一份</div>
+        <button class="restoreLink" id="welcomeRestore">之前练过？恢复一份备份</button>
       </div>
     </div>
     <div class="motto" style="writing-mode:horizontal-tb; height:auto; border:0; padding:0;">提笔忘字，拾回便是</div>
@@ -561,6 +568,7 @@
         <button class="pocketBtn" id="pocketBtn">马上再拾</button>
       </div>
       <div class="roundTune" id="roundTune"></div>
+      <div class="summaryBackupHint" id="summaryBackupHint"><span>记录只存在这台手机上，导出一份更安心。</span><button id="summaryBackupNow">导出备份</button></div>
       <div class="sumActions">
         <button class="ghostAct" id="stop">回首页</button>
         <button class="darkAct" id="more">再拾一组</button>
@@ -691,6 +699,7 @@
   </div>
 </div></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="undoToast" id="safetyUndo" role="status" aria-live="polite"><span id="safetyUndoCopy">已保留操作前的记录</span><button id="safetyUndoBtn">撤销</button></div>
 <input type="file" id="importFile" accept=".json,application/json" style="display:none">
 
 <script src="hanzi-writer.min.js"></script>
@@ -707,7 +716,7 @@ SEED.forEach(w=>{ const chars=Array.from(w.ans), pys=w.py.split(/\s+/);
 
 // ---- 本地存储 ----
 const DECK_KEY="shizi.deck.v8105.context1", OPEN_KEY="shizi.opens.v1", MEMORY_KEY="shizi.memory.v1", QUALITY_KEY="shizi.quality.v1", PREF_KEY="shizi.pref.v1", TUNING_KEY="shizi.tuning.v1",
-  ACTIVITY_KEY="shizi.activity.v1", SESSION_KEY="shizi.session.v1", BACKUP_META_KEY="shizi.backupMeta.v1", REMINDER_KEY="shizi.reminder.v1",
+  ACTIVITY_KEY="shizi.activity.v1", SESSION_KEY="shizi.session.v1", BACKUP_META_KEY="shizi.backupMeta.v1", REMINDER_KEY="shizi.reminder.v1", SAFETY_KEY="shizi.safety.v1",
   FSRS_LOG_KEY="shizi.fsrsReviewLog.v1", TRACE_TUTORIAL_KEY="shizi.traceTutorial.v1";
 function load(k,d){ try{ return JSON.parse(localStorage.getItem(k)) ?? d; }catch(e){ return d; } }
 function save(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); return true; }catch(e){ return false; } }
@@ -769,7 +778,8 @@ function normalizeActivity(raw){ const a=raw && typeof raw==="object"?raw:newAct
   a.practiceDays=Array.isArray(a.practiceDays)?[...new Set(a.practiceDays.filter(d=>/^\d{4}-\d{2}-\d{2}$/.test(d)))].sort():[];
   a.daily=a.daily && typeof a.daily==="object"?a.daily:{}; return a; }
 let activity=normalizeActivity(load(ACTIVITY_KEY,null)); save(ACTIVITY_KEY,activity);
-let backupMeta=load(BACKUP_META_KEY,{lastExportAt:0}); if(!backupMeta || typeof backupMeta!=="object") backupMeta={lastExportAt:0};
+function normalizeBackupMeta(raw){ const meta=raw&&typeof raw==="object"?raw:{}; return {lastExportAt:Math.max(0,Number(meta.lastExportAt)||0),summaryPromptShown:!!meta.summaryPromptShown}; }
+let backupMeta=normalizeBackupMeta(load(BACKUP_META_KEY,null)), summaryBackupHintVisible=false;
 function saveActivity(){ save(ACTIVITY_KEY,activity); }
 function dailyActivity(key=today()){ const row=activity.daily[key] && typeof activity.daily[key]==="object"?activity.daily[key]:{};
   row.stamps=Math.max(0,Number(row.stamps)||0); row.attempts=Math.max(row.stamps,Number(row.attempts)||0); row.targetKeys=Array.isArray(row.targetKeys)?[...new Set(row.targetKeys)]:[]; row.completedRoundIds=Array.isArray(row.completedRoundIds)?row.completedRoundIds:[];
@@ -1065,6 +1075,7 @@ window.addEventListener("popstate",()=>{
   practiceHistoryArmed=false; exitCurrentRound(true);
 });
 function displayView(view){ Object.entries(VIEW_IDS).forEach(([k,id])=>{ $(id).style.display = view===k ? "flex" : "none"; });
+  if(view!=="summary" && summaryBackupHintVisible){ summaryBackupHintVisible=false; $("summaryBackupHint").style.display="none"; }
   // 写字 / 首启 / 结果是全屏专注场景，收起底部 Tab
   $("foot").style.display=(view==="card"||view==="welcome"||view==="summary"||view==="profile"||view==="audit")?"none":"";
   if(view!=="me") $("dataBox").style.display="none";
@@ -1778,6 +1789,7 @@ function roundSummary(fromPractice=false){ clearSessionSnapshot(); markRoundComp
   $("sumTiles").innerHTML=roundStats.map(sumTile).join("");
   $("pocketCard").style.display="none";
   renderRoundTune(calibrationNote);
+  renderSummaryBackupHint();
   $("more").style.display=remain>0?"":"none";
   $("more").textContent=activeMode==="review"?`继续复习（还剩 ${remain}）`:activeMode==="focus"?`继续（还剩 ${remain}）`:"加练一组"; }
 function allDone(){ displayView("summary"); $("milestoneLine").style.display="none";
@@ -1785,7 +1797,7 @@ function allDone(){ displayView("summary"); $("milestoneLine").style.display="no
   $("sumH2").textContent="今天的字过完了";
   $("sumLead").innerHTML=`字盒已收 <b class="ok">${memoryCount()}</b> 字 · 待复习 ${reviewCount()} · 待拾回 ${highRiskCount()}`;
   $("dateSeal").textContent=dateCn();
-  $("sumTiles").innerHTML=""; $("pocketCard").style.display="none";
+  $("sumTiles").innerHTML=""; $("pocketCard").style.display="none"; $("summaryBackupHint").style.display="none";
   $("roundTune").style.display="none"; $("more").style.display="none"; }
 $("more").onclick=startRound;
 $("stop").onclick=renderHome;
@@ -1875,17 +1887,31 @@ $("addInput").onkeydown=e=>{ if(e.key==="Enter" && !e.isComposing && !$("addConf
 $("addSheet").onclick=e=>{ if(e.target===$("addSheet")) closeAddSheet(); };
 
 // ---- 数据备份 / 恢复（localStorage 是唯一存储，换手机或清缓存前先导出）----
-// 新增 shizi.* 持久键时必须同步加入；只有 shizi.nativeSmoke.v1 为刻意排除。
+// 新增 shizi.* 持久键时必须同步加入；shizi.nativeSmoke.v1 与 SAFETY_KEY 为刻意排除。
 const BACKUP_KEYS=[DECK_KEY,OPEN_KEY,MEMORY_KEY,QUALITY_KEY,PREF_KEY,TUNING_KEY,ACTIVITY_KEY,SESSION_KEY,FSRS_LOG_KEY,TRACE_TUTORIAL_KEY,BACKUP_META_KEY,REMINDER_KEY,TOPIC_KEY,CUSTOM_KEY,ADDED_KEY];
 function backupAgeDays(){ const ts=Number(backupMeta.lastExportAt)||0; return ts?Math.max(0,Math.floor((Date.now()-ts)/86400000)):Number.POSITIVE_INFINITY; }
 function backupRelativeText(){ const days=backupAgeDays(); if(!Number.isFinite(days)) return "从未备份"; if(days===0) return "上次备份 · 今天"; if(days===1) return "上次备份 · 昨天"; return `上次备份 · ${days} 天前`; }
-function renderBackupUI(){ $("backupStatus").textContent=backupRelativeText(); const needs=memoryCount()>=100 && backupAgeDays()>=14;
-  $("backupReminder").style.display=needs?"flex":"none"; $("backupReminderCopy").textContent=Number.isFinite(backupAgeDays())?`已有 ${memoryCount()} 个字，建议每两周导出一份。`:`已经练了 ${memoryCount()} 个字，建议现在导出第一份。`; }
-function markBackupExported(ts=Date.now()){ backupMeta={lastExportAt:Number(ts)||Date.now()}; save(BACKUP_META_KEY,backupMeta);
+function renderBackupUI(){ $("backupStatus").textContent=backupRelativeText(); const needs=(completedDayCount()>=5 || memoryCount()>=30) && backupAgeDays()>=7;
+  $("backupReminder").style.display=needs?"flex":"none"; $("backupReminderCopy").textContent=Number.isFinite(backupAgeDays())?`已有 ${memoryCount()} 个字，建议每周导出一份。`:`已经完成 ${completedDayCount()} 个练习日，建议现在导出第一份。`; }
+function renderSummaryBackupHint(){ const eligible=completedDayCount()>=3 && !backupMeta.summaryPromptShown;
+  if(eligible){ summaryBackupHintVisible=true; backupMeta.summaryPromptShown=true; save(BACKUP_META_KEY,backupMeta); }
+  $("summaryBackupHint").style.display=summaryBackupHintVisible?"flex":"none"; }
+function markBackupExported(ts=Date.now()){ backupMeta={...backupMeta,lastExportAt:Number(ts)||Date.now()}; save(BACKUP_META_KEY,backupMeta);
   if($("mePanel").style.display==="flex") renderBackupUI(); }
-function backupPayload(){ const data={}, exportedAt=Date.now(); BACKUP_KEYS.forEach(k=>{ const value=localStorage.getItem(k); if(value!==null) data[k]=value; });
-  data[BACKUP_META_KEY]=JSON.stringify({lastExportAt:exportedAt});
+function backupPayload(opts){ const options=opts||{}, data={}, exportedAt=Date.now(); BACKUP_KEYS.forEach(k=>{ const value=localStorage.getItem(k); if(value!==null) data[k]=value; });
+  if(!options.preserveMeta) data[BACKUP_META_KEY]=JSON.stringify({...backupMeta,lastExportAt:exportedAt});
   return JSON.stringify({app:"shizi", version:1, date:new Date(exportedAt).toISOString(), data}, null, 1); }
+function parseStoredObject(value){ try{ const obj=typeof value==="string"?JSON.parse(value):value; return obj&&typeof obj==="object"?obj:{}; }catch(e){ return {}; } }
+function payloadProgress(payload){ const mem=parseStoredObject(payload&&payload.data&&payload.data[MEMORY_KEY]), values=Object.values(mem).filter(m=>m&&m.seen), latest=values.reduce((max,m)=>Math.max(max,Number(m.last)||0),0); return {count:values.length,last:latest}; }
+function dateLabel(value){ const d=value?new Date(value):null; return d&&!Number.isNaN(d.getTime())?dayKey(d):"无记录"; }
+function currentProgress(){ const latest=Object.values(memory).reduce((max,m)=>Math.max(max,Number(m&&m.last)||0),0); return {count:memoryCount(),last:latest}; }
+function captureSafetySnapshot(reason){ const record={version:1,createdAt:Date.now(),reason,pendingUndo:true,offeredAt:0,payload:JSON.parse(backupPayload({preserveMeta:true}))}; localStorage.setItem(SAFETY_KEY,JSON.stringify(record)); return record; }
+function safetySnapshot(){ const row=parseStoredObject(localStorage.getItem(SAFETY_KEY)); return row.version===1&&row.pendingUndo&&row.payload?row:null; }
+let safetyUndoTimer=0;
+function hideSafetyUndo(){ clearTimeout(safetyUndoTimer); $("safetyUndo").style.display="none"; }
+function showSafetyUndo(){ const row=safetySnapshot(); if(!row || row.offeredAt) return false; row.offeredAt=Date.now(); localStorage.setItem(SAFETY_KEY,JSON.stringify(row));
+  $("safetyUndoCopy").textContent=row.reason==="reset"?"记录已清空，操作前的数据还在":"备份已恢复，覆盖前的数据还在"; $("safetyUndoBtn").textContent=row.reason==="reset"?"撤销清空":"撤销恢复"; $("safetyUndo").style.display="flex"; safetyUndoTimer=setTimeout(hideSafetyUndo,10000); return true; }
+function undoSafetyRestore(opts){ const options=opts||{}, row=safetySnapshot(); if(!row) return {applied:false}; const result=restoreBackupPayload(row.payload,{skipConfirm:true,reload:false,skipSafety:true}); localStorage.removeItem(SAFETY_KEY); hideSafetyUndo(); if(options.reload!==false) location.reload(); return result; }
 async function exportBackup(){ const payload=backupPayload(), name=`shizi-backup-${today()}.json`;
   if(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.shiziNative){
     window.webkit.messageHandlers.shiziNative.postMessage({type:"shareBackup", name, payload});
@@ -1898,7 +1924,9 @@ async function exportBackup(){ const payload=backupPayload(), name=`shizi-backup
 function restoreBackupPayload(payload, opts){ const options=opts||{}, obj=typeof payload==="string"?JSON.parse(payload):payload;
   if(!obj || obj.app!=="shizi" || !obj.data || typeof obj.data!=="object") throw new Error("format");
   const keys=Object.keys(obj.data).filter(k=>BACKUP_KEYS.includes(k)); if(!keys.length) throw new Error("empty");
-  if(!options.skipConfirm && !confirm(`用这份备份（${String(obj.date||"未知日期").slice(0,10)}）覆盖当前记录？`)) return {applied:false, keys};
+  const current=currentProgress(), incoming=payloadProgress(obj), incomingDate=dateLabel(obj.date||incoming.last);
+  if(!options.skipConfirm && !confirm(`当前 ${current.count} 字（最后练习 ${dateLabel(current.last)}）→ 备份 ${incoming.count} 字（${incomingDate}），确认覆盖？`)) return {applied:false, keys};
+  if(!options.skipSafety) captureSafetySnapshot("restore");
   BACKUP_KEYS.forEach(k=>localStorage.removeItem(k));
   keys.forEach(k=>localStorage.setItem(k, String(obj.data[k])));
   if(options.reload!==false) location.reload();
@@ -1914,14 +1942,20 @@ function requestBackupImport(){
 }
 $("exportLink").onclick=()=>{ exportBackup(); };
 $("backupNow").onclick=()=>{ exportBackup(); };
+$("summaryBackupNow").onclick=()=>{ exportBackup(); };
 $("reminderRow").onclick=toggleReminder;
 $("reminderYes").onclick=acceptReminderInvite;
 $("reminderLater").onclick=dismissReminderInvite;
 $("importLink").onclick=requestBackupImport;
+$("welcomeRestore").onclick=requestBackupImport;
 $("importFile").onchange=e=>{ const f=e.target.files && e.target.files[0]; e.target.value=""; if(f) importBackup(f); };
-$("resetLink").onclick=()=>{ if(confirm("清空卡组和记录，从头开始？")){ status={}; memory={}; fsrsReviewLog=[]; traceTutorialShown=false; quality={}; tuning={calibrated:false, offset:0, contextStrict:0, rounds:[]}; preference="balanced"; opens=[today()]; customWords=[]; addedChars=[]; activity=newActivity(); backupMeta={lastExportAt:0}; reminder=normalizeReminder(null); saveReminder(); syncReminder(); save(DECK_KEY,status); save(MEMORY_KEY,memory); saveFSRSLog(); save(TRACE_TUTORIAL_KEY,false); save(QUALITY_KEY,quality); saveTuning(); save(PREF_KEY,preference); save(OPEN_KEY,opens); save(CUSTOM_KEY,customWords); save(ADDED_KEY,addedChars); saveActivity(); save(BACKUP_META_KEY,backupMeta); buildCustomCards(); removeStored(TOPIC_KEY); clearSessionSnapshot(); sessionDone=new Set(); focusQueue=[]; renderHome(); $("dataBox").style.display="none"; } };
+function resetAllData(opts){ const options=opts||{}; if(!options.skipConfirm && !confirm(`清空当前 ${memoryCount()} 个字和全部练习记录？操作后可以撤销一次。`)) return false; captureSafetySnapshot("reset");
+  status={}; memory={}; fsrsReviewLog=[]; traceTutorialShown=false; quality={}; tuning={calibrated:false, offset:0, contextStrict:0, rounds:[]}; preference="balanced"; opens=[today()]; customWords=[]; addedChars=[]; activity=newActivity(); backupMeta=normalizeBackupMeta(null); summaryBackupHintVisible=false; reminder=normalizeReminder(null); saveReminder(); syncReminder(); save(DECK_KEY,status); save(MEMORY_KEY,memory); saveFSRSLog(); save(TRACE_TUTORIAL_KEY,false); save(QUALITY_KEY,quality); saveTuning(); save(PREF_KEY,preference); save(OPEN_KEY,opens); save(CUSTOM_KEY,customWords); save(ADDED_KEY,addedChars); saveActivity(); save(BACKUP_META_KEY,backupMeta); buildCustomCards(); removeStored(TOPIC_KEY); clearSessionSnapshot(); sessionDone=new Set(); focusQueue=[]; renderHome(); $("dataBox").style.display="none"; showSafetyUndo(); return true; }
+$("resetLink").onclick=resetAllData;
+$("safetyUndoBtn").onclick=()=>undoSafetyRestore();
 
 initBox(); renderHome();
+showSafetyUndo();
 try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(()=>{}); }catch(e){}
 if(reminderBridgeAvailable()){ syncReminder(); queryReminderStatus(); }
 document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="hidden" && baseTargets.length && $("card").style.display!=="none") saveSessionSnapshot(); });

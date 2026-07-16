@@ -403,6 +403,7 @@ final class WebViewController: UIViewController {
               result.dataFlow.backupHasFSRSLog = Object.prototype.hasOwnProperty.call(backupData, FSRS_LOG_KEY);
               result.dataFlow.backupHasTraceTutorial = Object.prototype.hasOwnProperty.call(backupData, TRACE_TUTORIAL_KEY);
               result.dataFlow.backupExcludesSmokeKey = !Object.prototype.hasOwnProperty.call(backupData, 'shizi.nativeSmoke.v1');
+              result.dataFlow.backupExcludesSafetyKey = !Object.prototype.hasOwnProperty.call(backupData, SAFETY_KEY);
               result.dataFlow.backupHasMeta = Object.prototype.hasOwnProperty.call(backupData, BACKUP_META_KEY);
               if (typeof restoreBackupPayload === 'function') {
                 localStorage.setItem(ADDED_KEY, JSON.stringify([]));
@@ -420,6 +421,8 @@ final class WebViewController: UIViewController {
                 result.dataFlow.backupRestoreMemory = String(localStorage.getItem(MEMORY_KEY) || '').includes(smokeChar);
                 result.dataFlow.backupRestorePreservesSessionV2 = JSON.parse(localStorage.getItem(SESSION_KEY) || '{}').version === 2;
                 result.dataFlow.backupRestorePreservesSmokeKey = localStorage.getItem('shizi.nativeSmoke.v1') === smokeValueBeforeRestore;
+                const safetyCopy = JSON.parse(localStorage.getItem(SAFETY_KEY) || 'null');
+                result.dataFlow.backupSafetyCreated = !!safetyCopy && safetyCopy.reason === 'restore' && !!safetyCopy.payload;
                 try {
                   restoreBackupPayload({ app: 'wrong-app', data: { 'shizi.bad': '1' } }, { skipConfirm: true, reload: false });
                 } catch (_) {

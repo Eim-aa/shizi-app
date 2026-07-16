@@ -120,6 +120,8 @@ checks = {
     "nativeConfirm": data_flow.get("nativeConfirmAvailable") is True,
     "reminderState": data_flow.get("reminderStateAvailable") is True
     and data_flow.get("reminderSettingsRowVisible") is True,
+    "calibrationReturn": data_flow.get("calibrationReturnInviteVisible") is True
+    and data_flow.get("calibrationReturnPermissionRequested") is True,
     "navPractice": navigation.get("practiceEntryVisible") is True
     and navigation.get("practiceTabActive") is True,
     "navBook": navigation.get("bookVisible") is True

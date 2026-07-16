@@ -204,7 +204,9 @@ final class WebViewController: UIViewController {
               nativeImportAvailable: false,
               nativeConfirmAvailable: false,
               reminderStateAvailable: false,
-              reminderSettingsRowVisible: false
+              reminderSettingsRowVisible: false,
+              calibrationReturnInviteVisible: false,
+              calibrationReturnPermissionRequested: false
             },
             navigationFlow: {
               practiceEntryVisible: false,
@@ -434,6 +436,26 @@ final class WebViewController: UIViewController {
               result.dataFlow.nativeConfirmAvailable = window.confirm('\(Self.nativeSmokeConfirmMessage)') === true;
               result.dataFlow.reminderStateAvailable = typeof reminder === 'object' && typeof reminder.enabled === 'boolean' && typeof totalPracticeDays === 'function' && Number.isInteger(totalPracticeDays());
               result.dataFlow.reminderSettingsRowVisible = getComputedStyle(document.getElementById('reminderSection')).display !== 'none' && getComputedStyle(document.getElementById('reminderRow')).display !== 'none';
+              const reminderBeforeCalibrationInvite = cloneObj(reminder);
+              const pendingBeforeCalibrationInvite = reminderPendingEnable;
+              const requestReminderPermissionBeforeSmoke = requestReminderPermission;
+              const summaryDisplayBeforeCalibrationInvite = document.getElementById('summary').style.display;
+              const calibrationDisplayBeforeInvite = document.getElementById('calibCard').style.display;
+              let calibrationPermissionRequested = false;
+              requestReminderPermission = () => { calibrationPermissionRequested = true; };
+              reminder = normalizeReminder(null);
+              document.getElementById('summary').style.display = 'flex';
+              document.getElementById('calibCard').style.display = 'flex';
+              renderCalibrationReturnHook();
+              result.dataFlow.calibrationReturnInviteVisible = visible('calibReturnHook') && visible('calibReminderYes');
+              document.getElementById('calibReminderYes').onclick();
+              result.dataFlow.calibrationReturnPermissionRequested = calibrationPermissionRequested && reminderPendingEnable && reminder.promptDismissed;
+              document.getElementById('summary').style.display = summaryDisplayBeforeCalibrationInvite;
+              document.getElementById('calibCard').style.display = calibrationDisplayBeforeInvite;
+              requestReminderPermission = requestReminderPermissionBeforeSmoke;
+              reminder = normalizeReminder(reminderBeforeCalibrationInvite);
+              reminderPendingEnable = pendingBeforeCalibrationInvite;
+              saveReminder();
             }
 
             if (typeof roundSummary === 'function' && typeof markPracticeStamp === 'function') {

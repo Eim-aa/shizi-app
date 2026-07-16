@@ -617,9 +617,9 @@ let browser;
 
   const directReturns = [];
   for (let attempt = 0; attempt < 3; attempt += 1) {
-    await page.evaluate(() => history.back());
-    await page.waitForFunction(() => getComputedStyle(home).display !== "none" && !practiceHistoryArmed);
-    directReturns.push(await page.evaluate(() => ({ session: load(SESSION_KEY, null), history: history.state && history.state.shiziView, length: history.length, toast: document.getElementById("toast").textContent })));
+    await page.evaluate((nativeEvent) => nativeEvent ? window.dispatchEvent(new Event("shizi-native-back")) : history.back(), attempt === 0);
+    await page.waitForFunction(() => getComputedStyle(home).display !== "none" && !practiceHistoryArmed && history.state && history.state.shiziView === "home");
+    directReturns.push(await page.evaluate((nativeEvent) => ({ nativeEvent, session: load(SESSION_KEY, null), history: history.state && history.state.shiziView, length: history.length, toast: document.getElementById("toast").textContent }), attempt === 0));
     if (attempt < 2) {
       await page.click("#startBtn");
       await page.waitForFunction(() => getComputedStyle(reveal).display !== "none" && practiceHistoryArmed);
@@ -631,7 +631,7 @@ let browser;
   await page.evaluate(() => history.back());
   await page.waitForTimeout(100);
   const homeBack = await page.evaluate(() => ({ home: getComputedStyle(home).display !== "none", armed: practiceHistoryArmed, history: history.state && history.state.shiziView, length: history.length }));
-  assert(directReturns.every((row) => row.session && row.session.version === 2 && row.history === "home" && row.length === historyStart.length && !row.toast.includes("进度已保存"))
+  assert(directReturns[0].nativeEvent && directReturns.every((row) => row.session && row.session.version === 2 && row.history === "home" && row.length === historyStart.length && !row.toast.includes("进度已保存"))
     && exited.home && exited.session && exited.session.version === 2 && !exited.armed && exited.history === "home" && exited.length === historyStart.length
     && homeBack.home && !homeBack.armed && homeBack.history === "home" && homeBack.length === historyStart.length,
   "Expected repeated direct returns to save v2 state without dialogs, toasts, or history growth", { exited, directReturns, homeBack });

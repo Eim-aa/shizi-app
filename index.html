@@ -1767,6 +1767,7 @@ function exitCurrentRound(fromHistory=false){ if(exitingPractice || $("card").st
   if(!fromHistory) releasePracticeHistory(); else practiceHistoryArmed=false;
   renderHome(); exitingPractice=false; return true; }
 $("exitPractice").onclick=()=>exitCurrentRound(false);
+window.addEventListener("shizi-native-back",()=>exitCurrentRound(false));
 $("prefBox").onclick=e=>{ const b=e.target.closest("[data-pref]"); if(!b) return; preference=b.dataset.pref; save(PREF_KEY,preference); applyPrefUI(); };
 $("qualityBox").onclick=e=>{ const b=e.target.closest("[data-quality]"); if(!b) return; recordQuality(b.dataset.quality); };
 $("sumTiles").onclick=e=>{ const b=e.target.closest("[data-idx]"); if(b) startFocus([Number(b.dataset.idx)]); };

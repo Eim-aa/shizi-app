@@ -8,6 +8,7 @@ final class WebViewController: UIViewController {
 
     private let schemeHandler: LocalWebSchemeHandler
     private var webView: WKWebView!
+    private var practiceBackGesture: UIScreenEdgePanGestureRecognizer!
     private var nativeSmokeDidRun = false
     private var reminderSyncGeneration = 0
     private lazy var stampHaptic = UIImpactFeedbackGenerator(style: .medium)
@@ -45,7 +46,7 @@ final class WebViewController: UIViewController {
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.navigationDelegate = self
         webView.uiDelegate = self
-        webView.allowsBackForwardNavigationGestures = true
+        webView.allowsBackForwardNavigationGestures = false
         webView.isOpaque = false
         let paper = UIColor { trait in
             trait.userInterfaceStyle == .dark
@@ -58,7 +59,13 @@ final class WebViewController: UIViewController {
         webView.scrollView.alwaysBounceVertical = false
         webView.scrollView.contentInsetAdjustmentBehavior = .never
 
+        let practiceBackGesture = UIScreenEdgePanGestureRecognizer(target: self, action: #selector(handlePracticeBackGesture(_:)))
+        practiceBackGesture.edges = .left
+        practiceBackGesture.maximumNumberOfTouches = 1
+        webView.addGestureRecognizer(practiceBackGesture)
+
         self.webView = webView
+        self.practiceBackGesture = practiceBackGesture
         view = webView
     }
 
@@ -69,6 +76,14 @@ final class WebViewController: UIViewController {
 
     override var preferredStatusBarStyle: UIStatusBarStyle {
         .default
+    }
+
+    @objc private func handlePracticeBackGesture(_ gesture: UIScreenEdgePanGestureRecognizer) {
+        guard gesture.state == .ended else { return }
+        let distance = gesture.translation(in: webView).x
+        let velocity = gesture.velocity(in: webView).x
+        guard distance > webView.bounds.width * 0.24 || velocity > 650 else { return }
+        webView.evaluateJavaScript("window.dispatchEvent(new Event('shizi-native-back')); void 0;")
     }
 
     private func loadApp() {
@@ -104,6 +119,8 @@ final class WebViewController: UIViewController {
             return
         }
         nativeSmokeDidRun = true
+        let backForwardSnapshotsDisabled = !webView.allowsBackForwardNavigationGestures
+        let nativeEdgeGestureInstalled = webView.gestureRecognizers?.contains(where: { $0 === practiceBackGesture }) == true
 
         let script = """
         (async function(){
@@ -255,6 +272,9 @@ final class WebViewController: UIViewController {
               historyLengthStable: false,
               directReturnStatePreserved: false,
               directReturnSaved: false,
+              nativeEdgeBackEvent: false,
+              backForwardSnapshotsDisabled: \(backForwardSnapshotsDisabled),
+              nativeEdgeGestureInstalled: \(nativeEdgeGestureInstalled),
               homeBackNoop: false
             },
             error: ''
@@ -684,8 +704,8 @@ final class WebViewController: UIViewController {
                 const attemptBeforeSwipe = currentAttemptId;
                 let directStatePreserved = true;
                 for (let attempt = 0; attempt < 3; attempt++) {
-                  history.back();
-                  await waitFor(() => visible('home') && practiceHistoryArmed === false);
+                  window.dispatchEvent(new Event('shizi-native-back'));
+                  await waitFor(() => visible('home') && practiceHistoryArmed === false && history.state && history.state.shiziView === 'home');
                   const resume = resumableSession();
                   const statePreserved = history.length === result.exitFlow.historyInitialLength
                     && history.state && history.state.shiziView === 'home'
@@ -695,6 +715,7 @@ final class WebViewController: UIViewController {
                     && resume.roundStats.length === result.exitFlow.roundStatsBeforeExit;
                   directStatePreserved = directStatePreserved && statePreserved;
                   result.exitFlow.directReturnCount += 1;
+                  result.exitFlow.nativeEdgeBackEvent = true;
                   if (attempt < 2) {
                     restoreSession(resume);
                     await waitFor(() => visible('card') && practicePhase === phaseBeforeSwipe && practiceHistoryArmed === true);

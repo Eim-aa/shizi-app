@@ -183,6 +183,9 @@ checks = {
     and int(exit_flow.get("positionBeforeExit") or -1) >= 2,
     "historySwipeState": int(exit_flow.get("historyInitialLength") or 0) >= 2
     and int(exit_flow.get("directReturnCount") or 0) == 3
+    and exit_flow.get("nativeEdgeBackEvent") is True
+    and exit_flow.get("backForwardSnapshotsDisabled") is True
+    and exit_flow.get("nativeEdgeGestureInstalled") is True
     and exit_flow.get("historyLengthStable") is True
     and exit_flow.get("directReturnStatePreserved") is True
     and exit_flow.get("directReturnSaved") is True

@@ -1536,10 +1536,10 @@ function stampToastCopy(outcome,m){ const ui=GRADE_UI[outcome];
   if(outcome==="hinted") return {title:`已记为${ui.func}`,sub:"已加入本组巩固 · 完成本组巩固后安排下次复习"};
   if(outcome==="slow") return {title:`已记为${ui.func}`,sub:"已加入本组巩固 · 完成本组巩固后安排下次复习"};
   return {title:`已记为${ui.func}`,sub:"先描一遍，再自己写"}; }
-function createPracticeWriter(container,token,data=null,instant=false,onSuccess=()=>{},onError=()=>{}){
+function createPracticeWriter(container,token,data=null,instant=false,onSuccess=()=>{},onError=()=>{},showOutline=false){
   const loader=data?((_,done)=>done(data)):charLoader;
   return HanziWriter.create(container, cur.target, { width:S, height:S, padding:Math.round(S*0.06),
-    showCharacter:false, showOutline:false, outlineColor:hintStroke(), strokeColor:hintStroke(), strokeAnimationSpeed:instant?1000:5, delayBetweenStrokes:instant?0:60,
+    showCharacter:false, showOutline, outlineColor:hintStroke(), strokeColor:hintStroke(), strokeAnimationSpeed:instant?1000:5, delayBetweenStrokes:instant?0:60,
     charDataLoader:loader,
     onLoadCharDataSuccess:d=>{ if(token===loadToken) onSuccess(d); },
     onLoadCharDataError:()=>{ if(token===loadToken) onError(); } }); }
@@ -1587,8 +1587,15 @@ function render(){ fitBox(); cur=CARDS[currentCardIndex()]; const token=++loadTo
     setTimeout(()=>{ if(token===loadToken && $("show").disabled) allowNoStrokeData("笔顺加载较慢，仍可自行判断或点「不会写」"); }, 2500);
   } else { $("show").disabled=false; $("done").disabled=false; if(pendingSessionVisual) restoreSessionVisual(); } }
 
-async function showTraceOutline(){ let shown=false; hzEl.classList.remove("traceFallback"); try{ if(writer&&totalStrokes>0&&typeof writer.showOutline==="function"){ writer.showOutline({duration:180}); shown=true; } }catch(e){}
-  if(!shown){ hzEl.innerHTML=""; hzEl.classList.add("traceFallback"); hzEl.textContent=cur.target; } }
+async function showTraceOutline(){ const token=++loadToken; hzEl.innerHTML=""; hzEl.classList.remove("traceFallback");
+  if(window.HanziWriter&&practiceCharData){
+    const holder=document.createElement("div"); holder.style.width=S+"px"; holder.style.height=S+"px"; let traceWriter=null;
+    const loaded=await new Promise(resolve=>{ try{ traceWriter=createPracticeWriter(holder,token,practiceCharData,true,()=>resolve(true),()=>resolve(false),true); }catch(e){ resolve(false); } });
+    if(token!==loadToken) return false;
+    if(loaded&&holder.childNodes.length){ hzEl.replaceChildren(...holder.childNodes); writer=traceWriter; return true; }
+  }
+  if(token!==loadToken) return false;
+  hzEl.classList.add("traceFallback"); hzEl.textContent=cur.target; return true; }
 async function restoreSessionVisual(){ const state=pendingSessionVisual; if(!state) return; pendingSessionVisual=null;
   const savedPhase=state.practicePhase||practicePhase;
   practicePhase=state.practicePhase||practicePhase; currentIndex=Number.isInteger(state.currentIndex)?state.currentIndex:currentIndex; currentAttemptKind=state.currentAttemptKind||currentAttemptKind; currentAttemptId=state.currentAttemptId||currentAttemptId;

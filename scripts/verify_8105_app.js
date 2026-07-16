@@ -533,6 +533,7 @@ let browser;
   await page.evaluate(() => { episodeFor(currentCardIndex()).teachingComplete = true; hapticDebug.events = []; hapticDebug.last = null; });
   await page.click("#show");
   await page.waitForFunction(() => practicePhase === "tracing");
+  await page.waitForFunction(() => hzEl.classList.contains("traceFallback") || Array.from(hzEl.querySelectorAll("svg path")).some((node) => { const box=node.getBoundingClientRect(); return box.width>0 && box.height>0; }));
   const dontKnow = await page.evaluate(() => { declareDontKnow(); return ({
     phase: practicePhase, outcome: roundStats[0].outcome,
     ratings: fsrsReviewLog.slice(-1).map((event) => `${event.rating}:${event.reason}:${event.teaching}`),
@@ -540,10 +541,15 @@ let browser;
     title: phaseTitle.textContent, intro: getComputedStyle(traceIntro).display !== "none", introCopy: traceIntro.textContent,
     traceTools: Array.from(document.querySelectorAll("#inkTools button, #traceActions button")).filter((node) => getComputedStyle(node).display !== "none").map((node) => node.textContent.replace(/\s+/g, "")),
     noRecallTools: getComputedStyle(tip).display === "none" && getComputedStyle(show).display === "none",
+    outlinePaths: Array.from(hzEl.querySelectorAll("svg path")).filter((node) => { const box=node.getBoundingClientRect(), style=getComputedStyle(node); return box.width>0 && box.height>0 && style.display!=="none" && style.visibility!=="hidden"; }).length,
+    outlineBox: (()=>{ const svg=hzEl.querySelector("svg"); if(!svg) return null; const box=svg.getBoundingClientRect(); return {width:Math.round(box.width),height:Math.round(box.height)}; })(),
+    fallback: hzEl.classList.contains("traceFallback") && hzEl.textContent.trim() === cur.target,
     haptics: hapticDebug.events.slice(), shown: traceTutorialShown, attempts: episodeFor(currentCardIndex()).attempts.length, unresolved: unresolved.size,
   }); });
   assert(dontKnow.phase === "tracing" && dontKnow.outcome === "miss" && dontKnow.ratings.join() === "Again:dontKnow:true" && dontKnow.revealHidden && dontKnow.stampHidden
-    && dontKnow.title.includes("1/2 描写") && dontKnow.intro && dontKnow.introCopy.includes("接着答案会隐藏") && dontKnow.noRecallTools && dontKnow.haptics.join() === "select" && !dontKnow.shown && dontKnow.attempts === 1 && dontKnow.unresolved === 1,
+    && dontKnow.title.includes("1/2 描写") && dontKnow.intro && dontKnow.introCopy.includes("接着答案会隐藏") && dontKnow.noRecallTools
+    && (dontKnow.outlinePaths>0 || dontKnow.fallback) && (!dontKnow.outlineBox || (dontKnow.outlineBox.width>200 && dontKnow.outlineBox.height>200))
+    && dontKnow.haptics.join() === "select" && !dontKnow.shown && dontKnow.attempts === 1 && dontKnow.unresolved === 1,
   "Expected don't-know to enter non-blocking tracing immediately with one miss/Again", dontKnow);
   await page.evaluate(() => { inkBegin({ x: 20, y: 20 }); inkMove({ x: 80, y: 80 }); inkEnd(); });
   const traceStart = await page.evaluate(() => ({ title: phaseTitle.textContent, disabled: traceDone.disabled, introHidden: getComputedStyle(traceIntro).display === "none", shown: traceTutorialShown, stored: load(TRACE_TUTORIAL_KEY, false) }));

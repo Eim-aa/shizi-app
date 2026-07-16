@@ -218,6 +218,7 @@ final class WebViewController: UIViewController {
               undoActivityRollback: false,
               nextCardUntouched: false,
               traceModeVisible: false,
+              traceOutlineVisible: false,
               traceRequiresInk: false,
               traceReadyAfterInk: false,
               activityRecorded: false,
@@ -641,10 +642,21 @@ final class WebViewController: UIViewController {
               const eventsBeforeTeaching = fsrsReviewLog.length;
               declareDontKnow();
               await waitFor(() => practicePhase === 'tracing' && visible('traceActions'));
+              await waitFor(() => {
+                const svg = hzEl.querySelector('svg');
+                if (hzEl.classList.contains('traceFallback')) return hzEl.textContent.trim() === cur.target;
+                if (!svg) return false;
+                const box = svg.getBoundingClientRect();
+                return box.width > 200 && box.height > 200 && Array.from(svg.querySelectorAll('path')).some(node => (node.getAttribute('d') || '').length > 0);
+              });
               result.practiceFlow.hapticSelectTracingRecorded = hapticDebug.last === 'select';
               result.practiceFlow.hapticDontKnowSequence = hapticDebug.events.slice();
               result.practiceFlow.traceTutorialVisible = visible('traceIntro') && document.getElementById('traceIntro').textContent.includes('接着答案会隐藏');
               result.practiceFlow.traceModeVisible = visible('traceActions') && !visible('actions');
+              const traceLayer = hzEl;
+              const traceSVG = traceLayer.querySelector('svg');
+              const traceBox = traceSVG ? traceSVG.getBoundingClientRect() : null;
+              result.practiceFlow.traceOutlineVisible = (traceLayer.classList.contains('traceFallback') && traceLayer.textContent.trim() === cur.target) || !!(traceSVG && traceBox.width > 200 && traceBox.height > 200 && Array.from(traceSVG.querySelectorAll('path')).some(node => (node.getAttribute('d') || '').length > 0));
               result.practiceFlow.traceRequiresInk = document.getElementById('traceDone').disabled;
               if (dispatchStroke) {
                 dispatchStroke();

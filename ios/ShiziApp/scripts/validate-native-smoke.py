@@ -151,6 +151,7 @@ checks = {
     and practice.get("nextCardUntouched") is True,
     "practiceTrace": practice.get("traceModeVisible") is True
     and practice.get("traceTutorialVisible") is True
+    and practice.get("traceOutlineVisible") is True
     and practice.get("traceRequiresInk") is True
     and practice.get("traceReadyAfterInk") is True
     and practice.get("postTraceRecall") is True

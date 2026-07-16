@@ -1375,7 +1375,7 @@ function idealBoxSize(){ const w=window.innerWidth||document.documentElement.cli
   return clamp(Math.min(w-44,h-fixed-safe),190,330); }
 let S = idealBoxSize();
 const RS=150; // 揭晓对照格尺寸（CSS .cmpBox 同步）
-let gridCanvas, inkCanvas, inkCtx, hzEl, writer=null, practiceCharData=null, loadToken=0, shownStrokes=0, totalStrokes=0, groups=[], groupIdx=0;
+let gridCanvas, inkCanvas, inkCtx, hzEl, writer=null, practiceCharData=null, loadToken=0, shownStrokes=0, totalStrokes=0, groups=[], groupIdx=0, strokeDataOffline=false;
 const PEEK_INK_OPACITY=0.04;
 let drawing=false, last=null, cur=null, actionCooldownUntil=0, actionUnlockTimer=0, activePointers=new Set(), peeking=false, peekReleasePending=false, actionStack=[], seenGroups=new Set();
 
@@ -1433,6 +1433,8 @@ function charLoader(char, onComplete){
   return fetch(local).then(r=>{ if(!r.ok) throw new Error("local char data"); return r.json(); })
     .catch(()=>fetch(cdn).then(r=>{ if(!r.ok) throw new Error("cdn char data"); return r.json(); }))
     .then(onComplete); }
+function strokeDataFailureCopy(kind="error"){ if(navigator.onLine===false) return "这个字的笔顺需要联网下载一次，仍可提交并自行判断";
+  return kind==="slow"?"笔顺加载较慢，仍可自行判断或点「不会写」":"笔顺暂时不可用，仍可提交并自行判断"; }
 
 function warmStrokeCache(chars){ if(!navigator.onLine) return;
   [...new Set(chars||[])].forEach(ch=>fetch('data/'+encodeURIComponent(ch)+'.json').catch(()=>{})); }
@@ -1642,7 +1644,7 @@ function render(){ fitBox(); cur=CARDS[currentCardIndex()]; const token=++loadTo
   displayView("card");
   clearTimeout(autoNextTimer); clearTimeout(editStampTimer); stamped=false; overlayOn=false; replaying=false; animating=false;
   if(!restoring){ hintsUsedThisCard=0; hintEverUsed=false; enteredTracingThisAttempt=false; submissionSnapshot=null; }
-  actionStack=[]; seenGroups=new Set(); practiceCharData=null; cardStartedAt=Date.now();
+  actionStack=[]; seenGroups=new Set(); practiceCharData=null; strokeDataOffline=false; cardStartedAt=Date.now();
   $("practiceArea").style.display="flex"; $("reveal").style.display="none";
   $("editStamp").disabled=true;
   tracing=practicePhase==="tracing"; traceStrokeStartCount=0; tracedThisCard=false; resetPeekHint(); renderUndoBar();
@@ -1657,11 +1659,11 @@ function render(){ fitBox(); cur=CARDS[currentCardIndex()]; const token=++loadTo
   // 教学：只在校准组的第一张卡上出现
   teachStage=teachActive()?"intro":"done"; clearTimeout(teachTimer); if(teachActive()) armTeachIdle();
   updateTeachUI(); renderPhaseControls();
-  function allowNoStrokeData(message){ if(token!==loadToken) return; loadToken++; $("show").disabled=false; $("done").disabled=false; $("tip").disabled=true; $("hint").textContent=(cur.custom?cur.hint+" · ":"")+message; if(pendingSessionVisual) restoreSessionVisual(); }
+  function allowNoStrokeData(kind){ if(token!==loadToken) return; loadToken++; strokeDataOffline=navigator.onLine===false; $("show").disabled=false; $("done").disabled=false; $("tip").disabled=true; $("hint").textContent=(cur.custom?cur.hint+" · ":"")+strokeDataFailureCopy(kind); if(pendingSessionVisual) restoreSessionVisual(); }
   if(window.HanziWriter){
-    writer=createPracticeWriter(hzEl,token,null,false,function(d){ loadToken++; practiceCharData=d; totalStrokes=d.strokes.length; curMedians=(d.medians && d.medians.length===totalStrokes)?d.medians:null; var g=GROUPS[cur.target]; groups=(g && g.reduce((a,b)=>a+b,0)===totalStrokes)?g.slice():[totalStrokes]; groupIdx=0; shownStrokes=0; $("show").disabled=false; $("done").disabled=false; if(pendingSessionVisual) restoreSessionVisual(); else updateTip(); },
-      function(){ allowNoStrokeData("笔顺未缓存，仍可自行判断；不会写时可走系统字形教学"); });
-    setTimeout(()=>{ if(token===loadToken && $("show").disabled) allowNoStrokeData("笔顺加载较慢，仍可自行判断或点「不会写」"); }, 2500);
+    writer=createPracticeWriter(hzEl,token,null,false,function(d){ loadToken++; strokeDataOffline=false; practiceCharData=d; totalStrokes=d.strokes.length; curMedians=(d.medians && d.medians.length===totalStrokes)?d.medians:null; var g=GROUPS[cur.target]; groups=(g && g.reduce((a,b)=>a+b,0)===totalStrokes)?g.slice():[totalStrokes]; groupIdx=0; shownStrokes=0; $("show").disabled=false; $("done").disabled=false; if(pendingSessionVisual) restoreSessionVisual(); else updateTip(); },
+      function(){ allowNoStrokeData("error"); });
+    setTimeout(()=>{ if(token===loadToken && $("show").disabled) allowNoStrokeData("slow"); }, 2500);
   } else { $("show").disabled=false; $("done").disabled=false; if(pendingSessionVisual) restoreSessionVisual(); } }
 
 async function showTraceOutline(){ const token=++loadToken; hzEl.innerHTML=""; hzEl.classList.remove("traceFallback");
@@ -2027,6 +2029,9 @@ document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==
 // 非卡片视图立即重建；卡片视图里每张新卡 render() 前都会 fitBox()，下一张自动适配
 function fitBox(){ const n=idealBoxSize(); if(Math.abs(n-S)>=24){ S=n; $("boxwrap").innerHTML=""; initBox(); } }
 window.addEventListener('resize',()=>{ if($("card").style.display==="none") fitBox(); });
+window.addEventListener('online',()=>{ if(!strokeDataOffline || !cur || revealed || $("card").style.display==="none") return; strokeDataOffline=false;
+  if(!animating && !drawing && inkStrokes.length===0 && ["recall","reinforcement"].includes(practicePhase)){ render(); toast("已联网，笔顺可以用了"); }
+  else $("hint").textContent=(cur.custom?cur.hint+" · ":"")+"已联网，下一张会自动加载笔顺"; });
 // 系统深浅色切换时重画田字格（画布颜色是绘制时取的，不会跟着 CSS 变量自动变）
 try{ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{ drawGridOn(gridCanvas.getContext('2d')); }); }catch(e){}
 </script>

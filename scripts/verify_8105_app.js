@@ -346,6 +346,11 @@ let browser;
     renderHome();
   });
 
+  await page.click("#homeAdd");
+  const homeCapture = await page.evaluate(() => ({ open: addSheet.classList.contains("open"), label: homeAdd.textContent.replace(/\s+/g, ""), mainVisible: getComputedStyle(startBtn).display !== "none" }));
+  assert(homeCapture.open && homeCapture.label === "＋刚才忘了个字" && homeCapture.mainVisible, "Expected a secondary home capture entry to open the existing add sheet", homeCapture);
+  await page.click("#addCancel");
+
   await page.click("#tabMe");
   const me = await page.evaluate(() => ({ visible: getComputedStyle(mePanel).display !== "none", devHidden: getComputedStyle(devTools).display === "none", reminderHidden: getComputedStyle(reminderSection).display === "none" }));
   assert(me.visible && me.devHidden && me.reminderHidden, "Expected normal My page without development tools", me);
@@ -354,6 +359,27 @@ let browser;
   await page.click("#addConfirm");
   const add = await page.evaluate(() => ({ added: addedChars.includes("蘸") && addedChars.includes("料"), indexed: indexesForChars(["蘸", "料"]).length === 2, queued: indexesForChars(["蘸", "料"]).every((idx) => (memory[cardKey(idx)] || {}).queuedFront) }));
   assert(add.added && add.indexed && add.queued, "Expected add-character workflow to persist and queue new cards", add);
+
+  await page.evaluate(() => {
+    const idx = CARDS.findIndex((card) => card.target === "器");
+    memory[cardKey(idx)] = { seen: 1, last: Date.now(), target: "器", misses: 2, hints: 1, slow: 1, ease: 28, streak: 0, lastOutcome: "miss", pendingLearning: true };
+    saveMemory(); renderMe();
+  });
+  const meActions = await page.evaluate(() => ({ seen: meSeen.textContent.replace(/\s+/g, ""), risk: meRisk.textContent.replace(/\s+/g, ""), clickable: meSeen.classList.contains("action") && meRisk.classList.contains("action") }));
+  assert(meActions.seen.includes("练过") && meActions.seen.includes("看卡点") && meActions.risk.includes("待拾回") && meActions.risk.includes("去字盒") && meActions.clickable, "Expected My statistics to disclose their distinct actions", meActions);
+  await page.click("#meRisk");
+  const riskBook = await page.evaluate(() => ({ visible: getComputedStyle(studybook).display !== "none", expanded: boxAllToggle.getAttribute("aria-expanded"), active: document.querySelector('#boxFilters [data-filter="risk"]').classList.contains("active"), hero: bookHero.textContent.replace(/\s+/g, "") }));
+  assert(riskBook.visible && riskBook.expanded === "true" && riskBook.active && riskBook.hero.includes("已收") && riskBook.hero.includes("最近拾得"), "Expected My risk action to deep-link the authoritative Book risk filter with an achievement header", riskBook);
+  await page.click("#tabMe");
+  await page.click("#openProfile");
+  const profileInsight = await page.evaluate(() => ({ visible: getComputedStyle(profilePanel).display !== "none", duplicateChars: !!document.getElementById("profileChars"), rows: profilePanel.querySelectorAll("[data-profile-kind]").length, actions: Array.from(profilePanel.querySelectorAll("[data-profile-kind] em")).map((node) => node.textContent) }));
+  assert(profileInsight.visible && !profileInsight.duplicateChars && profileInsight.rows > 0 && profileInsight.actions.every((label) => label === "去字盒"), "Expected Profile to remain insight-only without a duplicate weak-character list", profileInsight);
+  await page.click("#closeProfile");
+  assert(await page.evaluate(() => getComputedStyle(mePanel).display !== "none"), "Expected a Profile opened from My to return to My");
+  await page.click("#openProfile");
+  await page.click("#profileTopics [data-profile-kind]");
+  const insightRoute = await page.evaluate(() => ({ book: getComputedStyle(studybook).display !== "none", active: document.querySelector('#boxFilters [data-filter="risk"]').classList.contains("active"), card: getComputedStyle(document.getElementById("card")).display }));
+  assert(insightRoute.book && insightRoute.active && insightRoute.card === "none", "Expected Profile insights to route to Book instead of silently starting practice", insightRoute);
 
   await page.evaluate(() => {
     status = {}; memory = {}; fsrsReviewLog = []; quality = {}; sessionDone = new Set();
@@ -682,11 +708,20 @@ let browser;
 
   await page.evaluate(() => render());
   await waitForWriter(page);
+  await page.waitForFunction(() => !peekInk.disabled && peekEl && peekEl.querySelector("path"));
   const peekBoundary = await page.evaluate(() => {
     const canvas = inkCanvas; const rect = canvas.getBoundingClientRect();
     const pointer = (type, id, primary, x, y, buttons) => new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: id, pointerType: "touch", isPrimary: primary, button: 0, buttons, clientX: rect.left + rect.width * x, clientY: rect.top + rect.height * y });
     const pixels = () => { const data = inkCtx.getImageData(0, 0, inkCanvas.width, inkCanvas.height).data; let count = 0; for (let i = 3; i < data.length; i += 4) if (data[i]) count += 1; return count; };
     clearInk(); activePointers.clear(); peekReleasePending = false; tracing = false; revealed = false; animating = false;
+    const before = { ever: hintEverUsed, used: hintsUsedThisCard, group: groupIdx, shown: shownStrokes };
+    const peekRect = peekInk.getBoundingClientRect();
+    const controlPointer = (type, buttons) => new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 81050, pointerType: "touch", isPrimary: true, button: 0, buttons, clientX: peekRect.left + 20, clientY: peekRect.top + 20 });
+    peekInk.dispatchEvent(controlPointer("pointerdown", 1));
+    const controlEntered = peeking && peekEl.classList.contains("active") && peekEl.querySelectorAll("path").length > 0 && Number(canvas.style.opacity) <= 0.06;
+    peekInk.dispatchEvent(controlPointer("pointerup", 0));
+    const controlRestored = !peeking && !peekEl.classList.contains("active") && Number(canvas.style.opacity) === 1;
+    const uncounted = before.ever === hintEverUsed && before.used === hintsUsedThisCard && before.group === groupIdx && before.shown === shownStrokes;
     canvas.dispatchEvent(pointer("pointerdown", 81051, true, 0.2, 0.25, 1));
     canvas.dispatchEvent(pointer("pointermove", 81051, true, 0.45, 0.5, 1));
     const partial = pixels();
@@ -707,7 +742,7 @@ let browser;
     canvas.dispatchEvent(pointer("pointerup", 81053, true, 0.55, 0.55, 0));
     const nextGestureWrites = inkStrokes.length === 1 && pixels() > 0;
     clearInk(); resetPeekHint(); actionCooldownUntil = 0;
-    return { entered, cancelled, blocked, restoredOnAnyLift, releaseBlocked, ended, nextGestureWrites };
+    return { controlEntered, controlRestored, uncounted, entered, cancelled, blocked, restoredOnAnyLift, releaseBlocked, ended, nextGestureWrites };
   });
   assert(Object.values(peekBoundary).every(Boolean), "Expected complete two-finger peek lifecycle without leaked ink", peekBoundary);
 
@@ -807,6 +842,13 @@ let browser;
   assert(completed.log.map((event) => event.rating).join() === "Again,Good,Good,Good" && completed.log.every((event) => !["Hard", "Easy"].includes(event.rating)), "Expected Again/Good-only FSRS events", completed.log);
   assert(completed.activity.stamps === 3 && completed.activity.attempts === 4 && completed.groups === 1 && completed.session === null, "Expected unique-day counts, attempt counts, and true completion", completed.activity);
   assert(Object.values(completed.memory).every((item) => !item.pendingLearning && item.dueDay >= completed.tomorrow && item.schedulerVersion.includes("FSRS-6.0")), "Expected graduated cards to expose next-day-or-later dueDay", completed.memory);
+
+  const summaryEntry = await page.evaluate(() => ({ visible: getComputedStyle(summaryProfile).display !== "none", label: summaryProfile.textContent.trim() }));
+  assert(summaryEntry.visible && summaryEntry.label.includes("看看你卡在哪"), "Expected a hard-result summary to expose Profile", summaryEntry);
+  await page.click("#summaryProfile");
+  await page.waitForFunction(() => getComputedStyle(profilePanel).display !== "none");
+  await page.click("#closeProfile");
+  assert(await page.evaluate(() => getComputedStyle(summary).display !== "none" && getComputedStyle(sumSheet).display !== "none"), "Expected Profile to return to its Summary source");
 
   const summaryLayer = await page.evaluate(() => ({
     targets: Array.from(document.querySelectorAll("#sumTiles .sumTile[data-idx]")).map((node) => CARDS[Number(node.dataset.idx)].target).sort(),

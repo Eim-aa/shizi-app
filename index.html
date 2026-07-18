@@ -83,6 +83,8 @@
   .stampBtn:disabled{ opacity:.55; }
   .startCap{ margin-top:15px; font-size:13px; font-weight:600; }
   .startCap span{ color:var(--faint); font-weight:400; }
+  .quickAdd{ min-height:44px; margin-top:5px; padding:8px 13px; color:var(--muted); font:600 12px/1 var(--sans); }
+  .quickAdd span{ border-bottom:1px solid var(--dline); padding-bottom:2px; }
   .yester{ margin-top:auto; padding:22px 0 16px; }
   .yesterHead{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:10px; font-size:12px; color:var(--faint); }
   .yesterHead .lbl{ font-weight:600; letter-spacing:.14em; }
@@ -115,8 +117,10 @@
   .tbubble b{ color:#f0c8a8; }
   #boxwrap{ display:flex; justify-content:center; margin-top:8px; }
   .box{ position:relative; border-radius:8px; overflow:hidden; box-shadow:0 0 0 2px rgba(194,69,44,.45), 0 18px 36px -26px rgba(60,48,30,.55); }
-  .box .gridc, .box .hz, .box .inkc{ position:absolute; left:0; top:0; }
+  .box .gridc, .box .hz, .box .peekHz, .box .inkc{ position:absolute; left:0; top:0; }
   .box .hz{ pointer-events:none; }
+  .box .peekHz{ pointer-events:none; opacity:0; transition:opacity .12s ease; }
+  .box .peekHz.active{ opacity:.48; }
   .box .hz.peekHint{ filter:saturate(1.35) contrast(1.2); opacity:1 !important; }
   .box .hz.traceFallback{ display:flex; align-items:center; justify-content:center; color:transparent; -webkit-text-stroke:1.2px var(--accent); opacity:.45; font:400 min(62vw,220px)/1 var(--kai); }
   .box .inkc{ touch-action:none; cursor:crosshair; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; }
@@ -125,9 +129,12 @@
   .blob::before,.blob::after{ content:''; position:absolute; top:7px; width:4px; height:4px; border-radius:50%; background:var(--card); }
   .blob::before{ left:5px; } .blob::after{ right:5px; }
   .mascotRow span:last-child{ font-size:13px; color:var(--muted); }
-  #inkTools{ display:flex; gap:8px; margin-top:auto; padding-top:9px; }
+  #inkTools{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px 8px; margin-top:auto; padding-top:9px; }
   .toolBtn{ flex:1; background:var(--card); color:var(--ink); border:1px solid var(--line); border-radius:14px; padding:12px 8px; font:600 13px var(--sans); transition:opacity .3s; }
   .toolBtn.side{ color:var(--muted); }
+  .toolBtn.peek{ display:flex; align-items:baseline; justify-content:center; gap:5px; color:var(--accent); touch-action:none; user-select:none; -webkit-user-select:none; }
+  .toolBtn.peek small{ color:var(--faint); font-size:10px; font-weight:600; }
+  .toolBtn.peek.active{ background:var(--accentSoft); border-color:rgba(194,69,44,.4); }
   #actions{ display:flex; gap:8px; margin-top:8px; }
   .ghostAct{ flex:.7; background:transparent; color:var(--muted); border:1px solid var(--dline); border-radius:14px; padding:13px 10px; font:600 15px var(--sans); transition:opacity .3s; }
   .primaryAct{ flex:1; background:var(--accent); color:var(--paperInk); border-radius:14px; padding:13px 10px; font:700 16px var(--sans); box-shadow:0 14px 28px -12px rgba(194,69,44,.6); transition:opacity .3s; }
@@ -237,6 +244,7 @@
   .roundTuneBtns{ display:flex; justify-content:center; gap:7px; flex-wrap:wrap; }
   .roundTuneBtns button{ padding:8px 12px; font-size:12px; font-weight:600; border-radius:999px; background:var(--card); border:1px solid var(--line); color:var(--muted); }
   .roundTuneBtns button.active{ background:var(--shade); border-color:var(--gold); color:var(--ink); font-weight:700; }
+  .summaryProfileLink{ display:none; align-self:center; min-height:44px; margin:7px auto -7px; padding:9px 12px; color:var(--accent); font:700 13px/1 var(--sans); }
   .sumActions{ display:flex; gap:8px; margin-top:auto; padding-top:18px; }
   .sumActions .ghostAct{ flex:1; }
   .sumActions .darkAct{ flex:1; background:var(--ink); color:var(--card); border-radius:16px; padding:15px 10px; font:700 15px var(--sans); }
@@ -256,6 +264,10 @@
   .bookHead h1{ margin:0; font:900 28px/1 var(--song); letter-spacing:.04em; }
   .bookHead .cnt{ font-size:12px; color:var(--faint); }
   .bookHead .cnt b{ color:var(--accent); font-size:15px; }
+  .bookHero{ margin-top:14px; padding:12px 2px 13px; border-top:1px solid var(--line); border-bottom:1px solid var(--line); }
+  .bookHero b{ display:block; font:800 16px/1.45 var(--song); }
+  .bookHero span{ display:block; margin-top:4px; color:var(--muted); font:400 13px/1.6 var(--sans); }
+  .bookHero .recentChars{ color:var(--accent); font:400 21px/1.2 var(--kai); letter-spacing:.12em; }
   .bookSection{ margin-top:18px; }
   .bookSectionHead{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
   .bookSectionHead b{ font:800 15px/1 var(--song); }
@@ -292,6 +304,8 @@
   .meStat b{ display:block; font:900 25px/1 var(--song); }
   .meStat b.red{ color:var(--accent); } .meStat b.grey{ color:var(--grey); }
   .meStat span{ display:block; font-size:11px; color:var(--muted); margin-top:5px; }
+  .meStat.action{ border-color:rgba(194,69,44,.35); box-shadow:inset 0 -2px 0 var(--accentSoft); }
+  .meStat.action small{ display:block; margin-top:4px; color:var(--accent); font-size:10px; font-weight:700; }
   .meCard{ width:100%; margin-top:14px; text-align:left; background:var(--accentSoft); border:1px solid rgba(194,69,44,.35); border-radius:15px; padding:15px 16px; }
   .meCard .meCardTop{ display:flex; justify-content:space-between; align-items:center; }
   .meCard .meCardTop b{ font-size:13px; color:var(--accent); }
@@ -458,6 +472,7 @@
     <div class="homeStart">
       <button class="stampBtn" id="startBtn">拾</button>
       <div class="startCap" id="startCap"></div>
+      <button class="quickAdd" id="homeAdd"><span>＋刚才忘了个字</span></button>
     </div>
     <div class="yester" id="yesterBlock">
       <div class="yesterHead"><span class="lbl" id="yesterLbl">昨日拾得</span><span id="boxStat"></span></div>
@@ -484,6 +499,7 @@
       <div class="mascotRow"><span class="blob"></span><span id="mascotLine"></span></div>
       <div id="inkTools">
         <button class="toolBtn" id="tip" disabled>笔顺提示</button>
+        <button class="toolBtn peek" id="peekInk" disabled aria-label="按住看一眼，不计提示"><span>按住看一眼</span><small>不计</small></button>
         <button class="toolBtn side" id="undoStroke" disabled>撤销</button>
         <button class="toolBtn side" id="clear">重写</button>
       </div>
@@ -566,6 +582,7 @@
         <div class="ptxt"><b id="calibPocketTitle"></b><br><span>趁手还热，再拾一遍最划算</span></div>
         <button class="pocketBtn" id="calibPocketBtn">马上再拾</button>
       </div>
+      <button class="summaryProfileLink" id="calibProfile">看看你卡在哪 →</button>
       <div class="sumActions">
         <button class="ghostAct" id="calibDone">明天见</button>
         <button class="darkAct" id="calibAgain">再拾一组</button>
@@ -588,6 +605,7 @@
       </div>
       <div class="roundTune" id="roundTune"></div>
       <div class="summaryBackupHint" id="summaryBackupHint"><span>记录只存在这台手机上，导出一份更安心。</span><button id="summaryBackupNow">导出备份</button></div>
+      <button class="summaryProfileLink" id="summaryProfile">看看你卡在哪 →</button>
       <div class="sumActions">
         <button class="ghostAct" id="stop">回首页</button>
         <button class="darkAct" id="more">再拾一组</button>
@@ -598,6 +616,7 @@
   <!-- 字盒 -->
   <div class="book" id="studybook" style="display:none" data-screen-label="字盒">
     <div class="bookHead"><h1>字盒</h1><div class="cnt" id="boxCount"></div></div>
+    <div class="bookHero" id="bookHero"><b id="bookHeroTitle"></b><span id="bookHeroRecent"></span></div>
     <section class="bookSection" aria-labelledby="boxRiskTitle">
       <div class="bookSectionHead"><b id="boxRiskTitle">待拾回 0</b><button class="addTxt" id="addLink2">＋加字</button></div>
       <div class="boxGrid riskPreview" id="boxRiskGrid"></div>
@@ -624,9 +643,9 @@
   <div class="me" id="mePanel" style="display:none" data-screen-label="我的">
     <h1>我的</h1>
     <div class="meStats">
-      <button class="meStat" id="meSeen"><b id="seenStat">0</b><span>已拾回</span></button>
+      <button class="meStat action" id="meSeen"><b id="seenStat">0</b><span>练过</span><small>看卡点</small></button>
       <div class="meStat"><b class="red" id="streakStat">1</b><span>练习天数</span></div>
-      <button class="meStat" id="meRisk"><b class="grey" id="riskStat">0</b><span>待拾回</span></button>
+      <button class="meStat action" id="meRisk"><b class="grey" id="riskStat">0</b><span>待拾回</span><small>去字盒</small></button>
     </div>
     <button class="meCard" id="openProfile"><div class="meCardTop"><b>卡点分析</b><span>›</span></div><small id="meAdvice"></small></button>
     <div class="meLabel">练习设置</div>
@@ -672,7 +691,6 @@
     <div class="profileAdvice" id="profileAdvice"></div>
     <div class="profileSection"><h3>先补这类字</h3><div class="profileRows" id="profileTopics"></div></div>
     <div class="profileSection"><h3>结构和难度</h3><div class="profileRows" id="profileLevels"></div></div>
-    <div class="profileSection"><h3>最容易溜走的字 · 点字即练</h3><div class="profileChars" id="profileChars"></div></div>
   </div>
 
   <!-- 开发工具：只在 ?dev=1 时从「我的」页进入 -->
@@ -1229,11 +1247,14 @@ function lastOutcomeDot(i){ return OUTCOME_DOT[(memory[cardKey(i)]||{}).lastOutc
 function isStable(i){ return !isHighRisk(i) && ((memory[cardKey(i)]||{}).streak||0)>=2; }
 function boxTile(i,k){ const risk=isHighRisk(i), stable=isStable(i), state=risk?"risk":stable?"stable":"reviewing";
   return `<button class="boxTile ${state}" data-idx="${i}" title="${esc(CARDS[i].word)}" style="transform:rotate(${ROTS[k%ROTS.length]}deg)">${CARDS[i].target}<span class="dot" style="background:${risk?"var(--grey)":stable?"var(--dline)":lastOutcomeDot(i)}"></span></button>`; }
-function openBook(){ bookExpanded=false; boxFilter="all"; renderBook(); }
+function openBook(filter="all"){ bookExpanded=filter!=="all"; boxFilter=filter; renderBook(); }
 function renderBook(){ displayView("book");
   const seen=profileIndexes().sort((a,b)=>((memory[cardKey(b)]||{}).last||0)-((memory[cardKey(a)]||{}).last||0));
   const due=reviewCount();
   $("boxCount").innerHTML=`已收 <b>${seen.length}</b> 字 · 待复习 <b>${due}</b>`;
+  const stable=seen.filter(isStable), recent=seen.slice(0,6);
+  $("bookHeroTitle").textContent=seen.length?`已稳 ${stable.length} 字 · 已收 ${seen.length} 字`:`第一枚章，会收进这里`;
+  $("bookHeroRecent").innerHTML=recent.length?`最近拾得 <span class="recentChars">${recent.map(i=>CARDS[i].target).join(" ")}</span>`:"拾过的字会在这里慢慢长成一盒";
   updateBookBadge();
   if(due>0){ $("dueCard").style.display="flex";
     const todayDue=reviewTodayCount(), chips=chooseReviewBatch(reviewBudgetPool(false)).slice(0,3);
@@ -1270,7 +1291,7 @@ function profileGroupRows(indexes, labelFn, kind, limit=5){ const groups=profile
   if(!groups.length) return `<div class="empty">还没有足够记录。先练一组，这里会自动长出来。</div>`;
   const max=Math.max(1,...groups.map(g=>g.avg));
   return groups.map(g=>`<button class="profileRow" data-profile-kind="${kind}" data-profile-value="${esc(g.label)}">
-    <span><b>${esc(g.label)}</b><small>${g.count} 字 · 卡住 ${g.hard} 次 · 易忘度 ${g.avg}</small></span><em>专项练</em>
+    <span><b>${esc(g.label)}</b><small>${g.count} 字 · 卡住 ${g.hard} 次 · 易忘度 ${g.avg}</small></span><em>去字盒</em>
     <span class="profileBar"><i style="width:${Math.max(8,Math.round(g.avg/max*100))}%"></i></span>
   </button>`).join(""); }
 function profileAdvice(indexes){ if(!indexes.length) return "先完成一组 15 字练习。系统会根据你盖的章，逐渐判断哪些主题、结构和难度层最容易让你提笔卡住。";
@@ -1280,22 +1301,17 @@ function profileAdvice(indexes){ if(!indexes.length) return "先完成一组 15 
 function profileDiagnosis(indexes){ if(!indexes.length) return {title:"先拾一组字，诊断就会长出来", body:"写完 15 个字后，这里会告诉你最容易卡住的主题、结构和具体字。", action:"先拾一组", disabled:true};
   const risk=highRiskCount(), topic=profileGroups(indexes,cardTopic)[0], level=profileGroups(indexes,abilityLevel)[0], structure=profileGroups(indexes,structureLabel)[0];
   const bits=[]; if(topic) bits.push(`${topic.label}主题`); if(level) bits.push(`${level.label}字`); if(structure) bits.push(structure.label);
-  if(risk>0) return {title:`今天先拾回 ${risk} 个字`, body:`最常卡在 ${bits.join("、")}。先拿下刚才漏掉的字，再练同类，回来得更快。`, action:"马上再拾", disabled:false};
+  if(risk>0) return {title:`今天先拾回 ${risk} 个字`, body:`最常卡在 ${bits.join("、")}。先去字盒看看这些字，再决定从哪里开始。`, action:"去字盒看", disabled:false};
   return {title:"目前没有待拾回的字", body:`已练过 ${indexes.length} 个字。继续拾几组后，我会把反复卡住的模式排到最前面。`, action:"继续观察", disabled:true}; }
-function profilePracticeIndexes(kind,value){ const indexes=profileIndexes(); let out=[];
-  if(kind==="topic") out=indexes.filter(i=>cardTopic(i)===value);
-  if(kind==="level") out=indexes.filter(i=>abilityLevel(i)===value);
-  if(kind==="structure") out=indexes.filter(i=>structureLabel(i)===value);
-  if(kind==="risk") out=highRiskIndexes();
-  return out.sort((a,b)=>weaknessScore(b)-weaknessScore(a) || personalDifficulty(b)-personalDifficulty(a)).slice(0,BATCH); }
+let profileReturnView="me";
+function openProfile(source="me"){ profileReturnView=source; renderProfile(); }
+function closeProfile(){ if(profileReturnView==="summary") displayView("summary"); else renderMe(); }
 function renderProfile(){ displayView("profile"); const indexes=profileIndexes(), hard=indexes.filter(i=>hardCount(i)>0).length, avgEase=average(indexes,i=>(memory[cardKey(i)]||{}).ease||50);
   const diag=profileDiagnosis(indexes);
   $("profileSummary").innerHTML=`<div class="profileHero"><div class="eyebrow">今日状态</div><h3>${esc(diag.title)}</h3><p>${esc(diag.body)}</p><button class="heroAct" data-profile-kind="risk" ${diag.disabled?"disabled":""}>${esc(diag.action)}</button></div><div class="profileMetrics"><div class="profileMetric"><b>${indexes.length}</b><span>练过</span></div><div class="profileMetric"><b style="color:var(--accent)">${hard}</b><span>卡过</span></div><div class="profileMetric"><b>${avgEase}</b><span>掌握感</span></div><div class="profileMetric"><b style="color:var(--grey)">${highRiskCount()}</b><span>待拾回</span></div></div>`;
   $("profileAdvice").textContent=profileAdvice(indexes);
   $("profileTopics").innerHTML=profileGroupRows(indexes,cardTopic,"topic",5);
-  $("profileLevels").innerHTML=`<div class="profileSubhead"><b>难度层</b></div>${profileGroupRows(indexes,abilityLevel,"level",3)}<div class="profileSubhead"><b>结构</b></div>${profileGroupRows(indexes,structureLabel,"structure",4)}`;
-  const weak=indexes.slice().sort((a,b)=>weaknessScore(b)-weaknessScore(a) || personalDifficulty(b)-personalDifficulty(a)).filter(i=>weaknessScore(i)>0 || hardCount(i)>0).slice(0,12);
-  $("profileChars").innerHTML=weak.length?`<div class="charChips">${weak.map(i=>`<button class="charChip" data-profile-char="${i}" title="${esc(CARDS[i].word)}" style="${isHighRisk(i)?"border-color:var(--accent); color:var(--accent); background:var(--accentSoft);":""}">${CARDS[i].target}</button>`).join("")}</div>`:`<div class="empty">还没有明显易错字。等出现「补拾」「差点」「回炉」，这里会优先显示。</div>`; }
+  $("profileLevels").innerHTML=`<div class="profileSubhead"><b>难度层</b></div>${profileGroupRows(indexes,abilityLevel,"level",3)}<div class="profileSubhead"><b>结构</b></div>${profileGroupRows(indexes,structureLabel,"structure",4)}`; }
 function withTemporaryPreference(pref, fn){ const oldPref=preference, oldTopic=load(TOPIC_KEY,""); preference=pref;
   try{ return fn(); } finally { preference=oldPref; save(TOPIC_KEY,oldTopic); } }
 function countBy(items, fn){ const map={}; items.forEach(i=>{ const k=fn(i); map[k]=(map[k]||0)+1; }); return map; }
@@ -1375,7 +1391,7 @@ function idealBoxSize(){ const w=window.innerWidth||document.documentElement.cli
   return clamp(Math.min(w-44,h-fixed-safe),190,330); }
 let S = idealBoxSize();
 const RS=150; // 揭晓对照格尺寸（CSS .cmpBox 同步）
-let gridCanvas, inkCanvas, inkCtx, hzEl, writer=null, practiceCharData=null, loadToken=0, shownStrokes=0, totalStrokes=0, groups=[], groupIdx=0, strokeDataOffline=false;
+let gridCanvas, inkCanvas, inkCtx, hzEl, peekEl, writer=null, peekWriter=null, practiceCharData=null, loadToken=0, shownStrokes=0, totalStrokes=0, groups=[], groupIdx=0, strokeDataOffline=false;
 const PEEK_INK_OPACITY=0.04;
 let drawing=false, last=null, cur=null, actionCooldownUntil=0, actionUnlockTimer=0, activePointers=new Set(), peeking=false, peekReleasePending=false, actionStack=[], seenGroups=new Set();
 
@@ -1391,17 +1407,22 @@ function strokeTo(p){ inkCtx.strokeStyle=cssVar('--inkPen',"#2b2620"); inkCtx.li
 function unlockGradeActions(){ clearTimeout(actionUnlockTimer); actionCooldownUntil=0; ["actions","traceActions"].forEach(id=>$(id)&&$(id).classList.remove("tlock")); }
 function cancelCurrentStroke(applyCooldown=true){ if(!drawing && !curInkStroke){ if(!applyCooldown) unlockGradeActions(); return; } drawing=false; curInkStroke=null; redrawInk(); updateInkControls();
   if(applyCooldown) armGradeActions(); else unlockGradeActions(); onTeachStrokeEnd(); }
-function enterPeekHint(){ if(peeking || peekReleasePending || tracing || revealed || !inkCanvas || activePointers.size<2) return false;
-  cancelCurrentStroke(false); peeking=true; inkCanvas.style.opacity=String(PEEK_INK_OPACITY); hzEl.classList.add("peekHint"); return true; }
+function enterPeekHint(force=false){ if(peeking || peekReleasePending || tracing || revealed || !inkCanvas || !peekWriter || (!force && activePointers.size<2)) return false;
+  cancelCurrentStroke(false); peeking=true; inkCanvas.style.opacity=String(PEEK_INK_OPACITY); hzEl.classList.add("peekHint"); peekEl.classList.add("active"); $("peekInk").classList.add("active"); return true; }
 function exitPeekHint(force=false){ if(!peeking || (!force && activePointers.size>=2)) return false;
-  peeking=false; if(inkCanvas) inkCanvas.style.opacity=animating?'0.22':'1'; if(hzEl) hzEl.classList.remove("peekHint"); return true; }
-function resetPeekHint(){ activePointers.clear(); peeking=false; peekReleasePending=false; if(hzEl) hzEl.classList.remove("peekHint"); if(inkCanvas) inkCanvas.style.opacity='1'; }
+  peeking=false; if(inkCanvas) inkCanvas.style.opacity=animating?'0.22':'1'; if(hzEl) hzEl.classList.remove("peekHint"); if(peekEl) peekEl.classList.remove("active"); if($("peekInk")) $("peekInk").classList.remove("active"); return true; }
+function resetPeekHint(){ activePointers.clear(); peeking=false; peekReleasePending=false; if(hzEl) hzEl.classList.remove("peekHint"); if(peekEl) peekEl.classList.remove("active"); if($("peekInk")) $("peekInk").classList.remove("active"); if(inkCanvas) inkCanvas.style.opacity='1'; }
+function buildPeekWriter(token,data){ if(!peekEl || !window.HanziWriter || !data || token!==loadToken) return false;
+  const container=peekEl, target=cur.target; container.innerHTML=""; peekWriter=null; try{ const next=HanziWriter.create(container,target,{width:S,height:S,padding:Math.round(S*.06),showCharacter:true,showOutline:false,strokeColor:hintStroke(),charDataLoader:(_,done)=>done(data)});
+    next.getCharacterData().then(()=>{ if(peekEl===container && cur && cur.target===target){ peekWriter=next; updateTip(); } }).catch(()=>{}); updateTip(); return true; }
+  catch(e){ peekWriter=null; updateTip(); return false; } }
 function initBox(){ const box=document.createElement('div'); box.className='box'; box.style.width=S+'px'; box.style.height=S+'px';
   gridCanvas=document.createElement('canvas'); gridCanvas.className='gridc';
   hzEl=document.createElement('div'); hzEl.className='hz'; hzEl.style.width=S+'px'; hzEl.style.height=S+'px';
+  peekEl=document.createElement('div'); peekEl.className='peekHz'; peekEl.style.width=S+'px'; peekEl.style.height=S+'px';
   inkCanvas=document.createElement('canvas'); inkCanvas.className='inkc';
   [gridCanvas,inkCanvas].forEach(c=>{ c.style.width=S+'px'; c.style.height=S+'px'; c.width=S*DPR; c.height=S*DPR; c.getContext('2d').scale(DPR,DPR); });
-  box.appendChild(gridCanvas); box.appendChild(hzEl); box.appendChild(inkCanvas); $("boxwrap").appendChild(box);
+  box.appendChild(gridCanvas); box.appendChild(hzEl); box.appendChild(peekEl); box.appendChild(inkCanvas); $("boxwrap").appendChild(box);
   inkCtx=inkCanvas.getContext('2d'); drawGridOn(gridCanvas.getContext('2d')); inkCanvas.style.transition='opacity .2s'; hzEl.style.transition='opacity .2s';
   inkStrokes=[]; curInkStroke=null; activePointers.clear(); peeking=false; peekReleasePending=false; // 画布重建=墨迹清空，记录的笔画同步作废
   inkCanvas.addEventListener('pointerdown',e=>{ e.preventDefault(); activePointers.add(e.pointerId);
@@ -1540,7 +1561,7 @@ function updateActionLabels(){
   $("done").textContent=used?"写完了":"写好了";
   updateTeachUI();
 }
-function updateTip(){ $("tip").textContent=`笔顺提示 ${groupIdx}/${groups.length}`; $("tip").title="用了提示，本组稍后会再写"; $("tip").disabled=animating || !writer || groupIdx>=groups.length || practicePhase==="postTraceRecall" || practicePhase==="tracing"; if(!revealed){ $("done").disabled=animating; $("show").disabled=animating; } updateInkControls(); updateActionLabels(); }
+function updateTip(){ $("tip").textContent=`笔顺提示 ${groupIdx}/${groups.length}`; $("tip").title="用了提示，本组稍后会再写"; $("tip").disabled=animating || !writer || groupIdx>=groups.length || practicePhase==="postTraceRecall" || practicePhase==="tracing"; $("peekInk").disabled=animating || !peekWriter || revealed || practicePhase==="postTraceRecall" || practicePhase==="tracing"; if(!revealed){ $("done").disabled=animating; $("show").disabled=animating; } updateInkControls(); updateActionLabels(); }
 
 // ---- 教学（首启校准第一张卡的墨点引导；只出现一次）----
 let teachStage="done", teachTimer=0;
@@ -1638,13 +1659,13 @@ function renderPhaseControls(){ tracing=practicePhase==="tracing"; const post=pr
   $("phaseTitle").textContent=tracing?"1/2 描写 · 先照着描一遍":post?"2/2 自己写 · 现在不看答案，自己写一次":"";
   $("traceIntro").style.display=tracing&&!traceTutorialShown?"block":"none";
   $("actions").style.display=tracing?"none":"flex"; $("traceActions").style.display=tracing?"flex":"none";
-  $("tip").style.display=teaching?"none":""; $("show").style.display=tracing?"none":"";
+  $("tip").style.display=teaching?"none":""; $("peekInk").style.display=teaching?"none":""; $("show").style.display=tracing?"none":"";
   $("clear").textContent=tracing?"重描":"重写"; if(teaching) $("tip").disabled=true; updateActionLabels(); updateInkControls(); }
 function render(){ fitBox(); cur=CARDS[currentCardIndex()]; const token=++loadToken, restoring=!!pendingSessionVisual;
   displayView("card");
   clearTimeout(autoNextTimer); clearTimeout(editStampTimer); stamped=false; overlayOn=false; replaying=false; animating=false;
   if(!restoring){ hintsUsedThisCard=0; hintEverUsed=false; enteredTracingThisAttempt=false; submissionSnapshot=null; }
-  actionStack=[]; seenGroups=new Set(); practiceCharData=null; strokeDataOffline=false; cardStartedAt=Date.now();
+  actionStack=[]; seenGroups=new Set(); practiceCharData=null; peekWriter=null; strokeDataOffline=false; cardStartedAt=Date.now();
   $("practiceArea").style.display="flex"; $("reveal").style.display="none";
   $("editStamp").disabled=true;
   tracing=practicePhase==="tracing"; traceStrokeStartCount=0; tracedThisCard=false; resetPeekHint(); renderUndoBar();
@@ -1654,14 +1675,14 @@ function render(){ fitBox(); cur=CARDS[currentCardIndex()]; const token=++loadTo
   $("hint").textContent=cur.custom?cur.hint:(activeMode==="calibrate"?"这组用来摸个底，之后按合适的难度出题":"");
   clearInk(); drawing=false; inkCanvas.style.opacity='1'; hzEl.style.opacity='1'; hzEl.classList.remove("traceFallback");
   shownStrokes=0; totalStrokes=0; groups=[]; groupIdx=0; $("tip").disabled=true; $("show").disabled=true; $("done").disabled=true; $("tip").textContent="笔顺提示"; updateActionLabels();
-  hzEl.innerHTML=""; hzEl.classList.remove("traceFallback"); writer=null; revealed=false;
+  hzEl.innerHTML=""; peekEl.innerHTML=""; peekEl.classList.remove("active"); hzEl.classList.remove("traceFallback"); writer=null; revealed=false;
   curMedians=null; lastVerdict=null;
   // 教学：只在校准组的第一张卡上出现
   teachStage=teachActive()?"intro":"done"; clearTimeout(teachTimer); if(teachActive()) armTeachIdle();
   updateTeachUI(); renderPhaseControls();
   function allowNoStrokeData(kind){ if(token!==loadToken) return; loadToken++; strokeDataOffline=navigator.onLine===false; $("show").disabled=false; $("done").disabled=false; $("tip").disabled=true; $("hint").textContent=(cur.custom?cur.hint+" · ":"")+strokeDataFailureCopy(kind); if(pendingSessionVisual) restoreSessionVisual(); }
   if(window.HanziWriter){
-    writer=createPracticeWriter(hzEl,token,null,false,function(d){ loadToken++; strokeDataOffline=false; practiceCharData=d; totalStrokes=d.strokes.length; curMedians=(d.medians && d.medians.length===totalStrokes)?d.medians:null; var g=GROUPS[cur.target]; groups=(g && g.reduce((a,b)=>a+b,0)===totalStrokes)?g.slice():[totalStrokes]; groupIdx=0; shownStrokes=0; $("show").disabled=false; $("done").disabled=false; if(pendingSessionVisual) restoreSessionVisual(); else updateTip(); },
+    writer=createPracticeWriter(hzEl,token,null,false,function(d){ loadToken++; strokeDataOffline=false; practiceCharData=d; totalStrokes=d.strokes.length; curMedians=(d.medians && d.medians.length===totalStrokes)?d.medians:null; buildPeekWriter(loadToken,d); var g=GROUPS[cur.target]; groups=(g && g.reduce((a,b)=>a+b,0)===totalStrokes)?g.slice():[totalStrokes]; groupIdx=0; shownStrokes=0; $("show").disabled=false; $("done").disabled=false; if(pendingSessionVisual) restoreSessionVisual(); else updateTip(); },
       function(){ allowNoStrokeData("error"); });
     setTimeout(()=>{ if(token===loadToken && $("show").disabled) allowNoStrokeData("slow"); }, 2500);
   } else { $("show").disabled=false; $("done").disabled=false; if(pendingSessionVisual) restoreSessionVisual(); } }
@@ -1696,6 +1717,13 @@ async function rewriteCurrentCard(){ commitUndoWindow(); activePointers.clear();
 $("clear").onclick=rewriteCurrentCard;
 $("undoStroke").onclick=undoInkStroke;
 let animating=false, revealed=false;
+function pressPeekControl(e){ if(e){ e.preventDefault(); if(e.pointerId!=null) try{$("peekInk").setPointerCapture(e.pointerId);}catch(_){} } enterPeekHint(true); }
+function releasePeekControl(e){ if(e) e.preventDefault(); exitPeekHint(true); }
+$("peekInk").addEventListener("pointerdown",pressPeekControl);
+["pointerup","pointercancel","lostpointercapture"].forEach(type=>$("peekInk").addEventListener(type,releasePeekControl));
+$("peekInk").addEventListener("keydown",e=>{ if((e.key===" "||e.key==="Enter")&&!e.repeat) pressPeekControl(e); });
+$("peekInk").addEventListener("keyup",e=>{ if(e.key===" "||e.key==="Enter") releasePeekControl(e); });
+window.addEventListener("blur",()=>exitPeekHint(true));
 $("tip").onclick=async ()=>{ if(!writer||animating||revealed||groupIdx>=groups.length) return false; commitUndoWindow(); hapticFeedback("select");
   const group=groupIdx, n=groups[group], start=shownStrokes, token=loadToken;
   hintEverUsed=true; if(!seenGroups.has(group)){ seenGroups.add(group); hintsUsedThisCard++; }
@@ -1708,7 +1736,7 @@ $("tip").onclick=async ()=>{ if(!writer||animating||revealed||groupIdx>=groups.l
   if(token!==loadToken || revealed) return false;
   animating=false; actionStack.push({type:"hint",group,n,start}); updateTip();
   if(inkCanvas){ inkCanvas.style.opacity=peeking?String(PEEK_INK_OPACITY):'1';
-    if(!hintVisualExhausted() && !tuning.peekHintShown){ tuning.peekHintShown=true; saveTuning(); $("mascotLine").textContent="双指按住格子，可以透视提示"; } }
+    if(!hintVisualExhausted() && !tuning.peekHintShown){ tuning.peekHintShown=true; saveTuning(); $("mascotLine").textContent="也可以按住「看一眼」，它不计提示"; } }
   saveSessionSnapshot(); return true;
 };
 function showRevealState(snapshot){ const verdict=snapshot&&snapshot.lastVerdict, inkUrl=snapshot&&revealInkImage(snapshot), reference=snapshot&&snapshot.referenceStrokes;
@@ -1842,9 +1870,10 @@ function roundSummary(fromPractice=false){ clearSessionSnapshot(); markRoundComp
     $("calibTier").textContent=tuningLabel();
     $("calibWhyTxt").textContent=calibrationNote?` ${calibrationNote}`:" 之后每组会按你实际写的情况自动微调。";
     $("calibPocketLine").textContent=hardN>0?`其中 ${hardN} 个字经过本组巩固，已经独立写出。`:"这一把一个都没漏，下一组会稍微上点难度。";
-    $("calibPocketCard").style.display="none"; renderCalibrationReturnHook();
+    $("calibPocketCard").style.display="none"; $("calibProfile").style.display=hardN>0?"block":"none"; renderCalibrationReturnHook();
     return; }
   $("calibPocketCard").style.display="none";
+  $("summaryProfile").style.display=hardN>0?"block":"none";
   $("sumH2").textContent=completedGroups>1?`今日已拾 ${dayTotal} 字`:"今日拾得";
   $("sumLead").innerHTML=hardN>0?`本组 <b class="ok">${roundStats.length}</b> 个字全部完成，<br><b class="warn">${hardN}</b> 个经过巩固后已独立写出。`:`这一把 <b class="ok">${keptN}</b> 个字都独立写出了。`;
   $("dateSeal").textContent=dateCn();
@@ -1860,7 +1889,7 @@ function allDone(){ displayView("summary"); $("milestoneLine").style.display="no
   $("sumLead").innerHTML=`字盒已收 <b class="ok">${memoryCount()}</b> 字 · 待拾回 ${highRiskCount()}`;
   $("dateSeal").textContent=dateCn();
   $("sumTiles").innerHTML=""; $("pocketCard").style.display="none"; $("summaryBackupHint").style.display="none";
-  $("roundTune").style.display="none"; $("more").style.display="none"; }
+  $("roundTune").style.display="none"; $("summaryProfile").style.display="none"; $("more").style.display="none"; }
 $("more").onclick=startRound;
 $("stop").onclick=renderHome;
 $("calibDone").onclick=renderHome;
@@ -1893,14 +1922,15 @@ $("boxFilters").onclick=e=>{ const b=e.target.closest("[data-filter]"); if(b){ b
 $("startBtn").onclick=()=>{ if($("startBtn").disabled) return; startMode(reviewTodayCount()>0?"review":"new"); };
 $("welcomeStart").onclick=()=>startMode("new");
 $("tabPractice").onclick=renderHome;
-$("tabBook").onclick=openBook;
+$("tabBook").onclick=()=>openBook();
 $("tabMe").onclick=renderMe;
-$("meRisk").onclick=()=>{ if(highRiskCount()>0) startFocus(highRiskIndexes()); };
-$("meSeen").onclick=renderProfile;
-$("openProfile").onclick=renderProfile;
-$("closeProfile").onclick=renderMe;
-$("profilePanel").onclick=e=>{ const char=e.target.closest("[data-profile-char]"); if(char){ startFocus([Number(char.dataset.profileChar)]); return; }
-  const row=e.target.closest("[data-profile-kind]"); if(row){ const list=profilePracticeIndexes(row.dataset.profileKind,row.dataset.profileValue); if(list.length) startFocus(list); } };
+$("meRisk").onclick=()=>openBook("risk");
+$("meSeen").onclick=()=>openProfile("me");
+$("openProfile").onclick=()=>openProfile("me");
+$("summaryProfile").onclick=()=>openProfile("summary");
+$("calibProfile").onclick=()=>openProfile("summary");
+$("closeProfile").onclick=closeProfile;
+$("profilePanel").onclick=e=>{ const row=e.target.closest("[data-profile-kind]"); if(row) openBook("risk"); };
 $("auditLink").onclick=()=>renderAudit(preference);
 $("closeAudit").onclick=renderMe;
 $("resampleAudit").onclick=()=>renderAudit(auditPref);
@@ -1946,6 +1976,7 @@ function confirmAdd(){ const chars=addWord($("addInput").value); if(!chars) retu
 $("addLink").onclick=openAddSheet;
 $("addLink2").onclick=openAddSheet;
 $("addInPractice").onclick=openAddSheet;
+$("homeAdd").onclick=openAddSheet;
 $("addCancel").onclick=closeAddSheet;
 $("addConfirm").onclick=confirmAdd;
 $("addInput").oninput=renderAddPreview;

@@ -174,7 +174,11 @@ final class WebViewController: UIViewController {
               peekCancelledPartialStroke: false,
               peekActionsUnlocked: false,
               peekBlockedInk: false,
-              peekRestored: false
+              peekRestored: false,
+              peekControlVisible: false,
+              peekControlEntered: false,
+              peekControlGlyphVisible: false,
+              peekControlUncounted: false
             },
             dataFlow: {
               addSheetOpened: false,
@@ -214,12 +218,16 @@ final class WebViewController: UIViewController {
               bookVisible: false,
               bookTabActive: false,
               footVisibleOnBook: false,
+              bookAchievementVisible: false,
               meVisible: false,
               meTabActive: false,
               footVisibleOnMe: false,
               profileVisible: false,
               profileFootHidden: false,
               profileReturnedToMe: false,
+              profileHasNoDuplicateChars: false,
+              meActionsDisclosed: false,
+              homeCaptureVisible: false,
               auditVisible: false,
               auditReturnedToMe: false
             },
@@ -322,17 +330,20 @@ final class WebViewController: UIViewController {
               result.navigationFlow.bookVisible = visible('studybook');
               result.navigationFlow.bookTabActive = activeTab('tabBook');
               result.navigationFlow.footVisibleOnBook = visible('foot');
+              result.navigationFlow.bookAchievementVisible = visible('bookHero') && document.getElementById('bookHero').textContent.includes('已收');
 
               document.getElementById('tabMe').click();
               await waitFor(() => visible('mePanel'));
               result.navigationFlow.meVisible = visible('mePanel');
               result.navigationFlow.meTabActive = activeTab('tabMe');
               result.navigationFlow.footVisibleOnMe = visible('foot');
+              result.navigationFlow.meActionsDisclosed = document.getElementById('meSeen').textContent.includes('看卡点') && document.getElementById('meRisk').textContent.includes('去字盒');
 
               document.getElementById('openProfile').click();
               await waitFor(() => visible('profilePanel'));
               result.navigationFlow.profileVisible = visible('profilePanel');
               result.navigationFlow.profileFootHidden = !visible('foot');
+              result.navigationFlow.profileHasNoDuplicateChars = document.getElementById('profileChars') === null;
               document.getElementById('closeProfile').click();
               await waitFor(() => visible('mePanel'));
               result.navigationFlow.profileReturnedToMe = true;
@@ -350,6 +361,7 @@ final class WebViewController: UIViewController {
               await waitFor(() => visible('home') || visible('welcome'));
               result.navigationFlow.practiceEntryVisible = visible('home') || visible('welcome');
               result.navigationFlow.practiceTabActive = activeTab('tabPractice');
+              result.navigationFlow.homeCaptureVisible = !!document.getElementById('homeAdd') && document.getElementById('homeAdd').textContent.includes('刚才忘了个字');
             }
 
             if (typeof openAddSheet === 'function' && typeof confirmAdd === 'function' && typeof backupPayload === 'function') {
@@ -606,6 +618,22 @@ final class WebViewController: UIViewController {
                 await new Promise(resolve => setTimeout(resolve, 340));
                 clearInk();
                 result.handwritingFlow.clearWorked = inkStrokes.length === 0 && pixelCount() === 0;
+                const peekControl = document.getElementById('peekInk');
+                await waitFor(() => !peekControl.disabled && peekEl && peekEl.querySelector('path'));
+                result.handwritingFlow.peekControlVisible = visible('peekInk') && peekControl.textContent.includes('不计');
+                const hintBeforePeek = { ever: hintEverUsed, used: hintsUsedThisCard, group: groupIdx, shown: shownStrokes };
+                const controlRect = peekControl.getBoundingClientRect();
+                const controlPointer = (type, buttons) => new PointerEvent(type, {
+                  bubbles: true, cancelable: true, pointerId: 7000, pointerType: 'touch', isPrimary: true,
+                  button: 0, buttons, clientX: controlRect.left + 20, clientY: controlRect.top + 20
+                });
+                peekControl.dispatchEvent(controlPointer('pointerdown', 1));
+                result.handwritingFlow.peekControlEntered = peeking === true && peekEl.classList.contains('active') && Number(inkCanvas.style.opacity) <= 0.06;
+                result.handwritingFlow.peekControlGlyphVisible = peekEl.querySelectorAll('path').length > 0;
+                peekControl.dispatchEvent(controlPointer('pointerup', 0));
+                result.handwritingFlow.peekControlUncounted = peeking === false && !peekEl.classList.contains('active')
+                  && hintBeforePeek.ever === hintEverUsed && hintBeforePeek.used === hintsUsedThisCard
+                  && hintBeforePeek.group === groupIdx && hintBeforePeek.shown === shownStrokes;
                 const peekRect = inkCanvas.getBoundingClientRect();
                 const peekPointer = (type, id, isPrimary, x, y, buttons) => new PointerEvent(type, {
                   bubbles: true, cancelable: true, pointerId: id, pointerType: 'touch', isPrimary,

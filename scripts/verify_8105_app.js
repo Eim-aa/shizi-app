@@ -117,7 +117,10 @@ let browser;
   assert(firstRun.welcome && firstRun.footHidden && firstRun.needsCalibration && firstRun.restoreVisible && firstRun.copy.includes("先拾15个字试试") && firstRun.copy.includes("记录只存在这台手机上") && firstRun.tabs.join() === "拾练习,盒字盒,我我的" && firstRun.welcomeEvents === 1, "Expected first-run calibration welcome, one-time funnel event, storage expectation, restore entry, and three-tab IA", firstRun);
 
   const p2Style = await page.evaluate(async () => {
-    await document.fonts.ready; const root = getComputedStyle(document.documentElement), heading = getComputedStyle(document.querySelector(".welcome h1")), actions = getComputedStyle(document.querySelector(".welcomeActions")), cta = getComputedStyle(welcomeStart), body = getComputedStyle(document.body), sheet = getComputedStyle(document.querySelector(".sheetCard")), toastGlyph = getComputedStyle(toastChar), source = document.querySelector("style").textContent;
+    await document.fonts.ready;
+    const nodes = { root: document.documentElement, heading: document.querySelector(".welcome h1"), actions: document.querySelector(".welcomeActions"), cta: document.getElementById("welcomeStart"), body: document.body, sheet: document.querySelector(".sheetCard"), toastGlyph: document.getElementById("toastChar") };
+    const missing = Object.entries(nodes).filter(([, node]) => !(node instanceof Element)).map(([name]) => name); if (missing.length) throw new Error(`Missing style nodes: ${missing.join(",")}`);
+    const root = getComputedStyle(nodes.root), heading = getComputedStyle(nodes.heading), actions = getComputedStyle(nodes.actions), cta = getComputedStyle(nodes.cta), body = getComputedStyle(nodes.body), sheet = getComputedStyle(nodes.sheet), toastGlyph = getComputedStyle(nodes.toastGlyph), source = document.querySelector("style").textContent;
     const fontMatch = source.match(/data:font\/woff2;base64,([^)]*)/);
     return { tokens: ["--fs-caption", "--fs-note", "--fs-body", "--fs-emph"].map((name) => root.getPropertyValue(name).trim()), spaces: ["--space-1", "--space-2", "--space-3", "--space-4"].map((name) => root.getPropertyValue(name).trim()), letter: [root.getPropertyValue("--ls-label").trim(), root.getPropertyValue("--ls-motto").trim()], faint: root.getPropertyValue("--faint").trim(), kai: root.getPropertyValue("--kai"),
       heading: { size: parseFloat(heading.fontSize), line: parseFloat(heading.lineHeight), spacing: heading.letterSpacing }, actionsMargin: parseFloat(actions.marginTop), ctaMargin: parseFloat(cta.marginTop), toastGlyph: parseFloat(toastGlyph.fontSize), bodyNoise: body.backgroundImage, sheetNoise: sheet.backgroundImage,
@@ -1372,6 +1375,73 @@ let browser;
     && exited.home && exited.session && exited.session.version === 2 && !exited.armed && exited.history === "home" && exited.length === historyStart.length
     && homeBack.home && !homeBack.armed && homeBack.history === "home" && homeBack.length === historyStart.length,
   "Expected repeated direct returns to save v2 state without dialogs, toasts, or history growth", { exited, directReturns, homeBack });
+
+  const collections = await page.evaluate(async () => {
+    const saved = {
+      activity: cloneObj(activity), memory: cloneObj(memory), fsrs: cloneObj(fsrsReviewLog), session: localStorage.getItem(SESSION_KEY),
+      activeMode, makeupTargetDay, baseTargets: baseTargets.slice(), baseCursor, currentIndex, currentAttemptKind, currentAttemptId, practicePhase,
+      manualQueue: cloneObj(manualQueue), reinforcementQueue: cloneObj(reinforcementQueue), unresolved: [...unresolved], episodes: cloneObj(episodes), roundStats: cloneObj(roundStats), roundId,
+    };
+    clearSessionSnapshot();
+    const targets = uniqueCardIndexes(allIndexes().filter((idx) => qualityAvailable(idx) && !CARDS[idx].custom)).slice(0, 5);
+    const normalDay = shiftDay(today(), -1), makeupDay = shiftDay(today(), -2), untouchedDay = shiftDay(today(), -3), currentMonth = today().slice(0, 7);
+    activity = normalizeActivity({ version: 1, migrationDate: today(), inheritedStreak: 0, inheritedTotalDays: 0, practiceDays: [normalDay, today()], daily: {} });
+    const normal = dailyActivity(normalDay); normal.stamps = 1; normal.attempts = 1; normal.targetKeys = [cardKey(targets[0])]; normal.independentTargetKeys = [cardKey(targets[0])]; normal.lastStampAt = dayStartMs(normalDay) + 20 * 3600000;
+    const current = dailyActivity(today()); current.stamps = targets.length; current.attempts = targets.length; current.targetKeys = targets.map(cardKey); current.independentTargetKeys = targets.slice(0, 3).map(cardKey); current.lastStampAt = Date.now(); saveActivity();
+
+    calendarAnimatedMonths.clear(); openCalendar(currentMonth);
+    const before = {
+      normal: calendarGrid.querySelector(`[data-day="${normalDay}"]`)?.textContent || "",
+      makeupBlank: !!calendarGrid.querySelector(`[data-day="${makeupDay}"][data-makeup]`),
+      untouchedBlank: !!calendarGrid.querySelector(`[data-day="${untouchedDay}"][data-makeup]`),
+      month: calendarMonthTitle.textContent, stat: calendarMonthStat.textContent, nextDisabled: calendarNext.disabled, gridHeight: calendarGrid.getBoundingClientRect().height,
+    };
+
+    activeMode = "makeup"; makeupTargetDay = makeupDay; focusQueue = targets.slice(); baseTargets = targets.slice(); batch = baseTargets; baseCursor = targets.length - 1; currentIndex = targets[targets.length - 1]; currentAttemptKind = "base"; currentAttemptId = "verify-makeup-incomplete"; practicePhase = "between"; manualQueue = []; reinforcementQueue = []; unresolved = new Set(); episodes = {}; roundStats = targets.slice(0, 4).map((idx) => ({ idx, target: CARDS[idx].target, outcome: "fast", independentlyRecovered: true })); roundId = "verify-makeup-round";
+    const incomplete = markRoundComplete(), blankStayedBlank = !activity.practiceDays.includes(makeupDay) && !dailyActivity(makeupDay).makeup;
+    baseCursor = targets.length; roundStats = targets.map((idx) => ({ idx, target: CARDS[idx].target, outcome: "fast", independentlyRecovered: true }));
+    const completed = markRoundComplete(), completedAgain = markRoundComplete(), past = dailyActivity(makeupDay), makeupMarkers = past.completedRoundIds.filter((id) => id === "makeup:verify-makeup-round").length;
+
+    calendarAnimatedMonths.delete(currentMonth); renderCalendar();
+    const after = { makeup: calendarGrid.querySelector(`[data-day="${makeupDay}"]`)?.textContent || "", normal: calendarGrid.querySelector(`[data-day="${normalDay}"]`)?.textContent || "", practiceDays: monthPracticeDays(today()), markers: makeupMarkers };
+    const originalMatchMedia = window.matchMedia; window.matchMedia = () => ({ matches: true }); calendarAnimatedMonths.delete(currentMonth); renderCalendar(); const reducedDirect = !calendarGrid.querySelector(".calendarStamp.land"); window.matchMedia = originalMatchMedia;
+    calendarMonthKey = shiftMonth(currentMonth, -1); renderCalendar(); const previousMonth = { title: calendarMonthTitle.textContent, nextEnabled: !calendarNext.disabled }; calendarMonthKey = currentMonth;
+
+    activeMode = "makeup"; makeupTargetDay = makeupDay; baseTargets = targets.slice(); batch = baseTargets; baseCursor = 2; currentIndex = targets[2]; currentAttemptKind = "base"; currentAttemptId = "verify-makeup-session"; practicePhase = "recall"; manualQueue = []; reinforcementQueue = []; unresolved = new Set(); episodes = {}; roundStats = targets.slice(0, 2).map((idx) => ({ idx, target: CARDS[idx].target, outcome: "fast", independentlyRecovered: true })); roundId = "verify-makeup-session-round"; attemptSeq = 2; sessionDone = new Set(targets.slice(0, 2)); saveSessionSnapshot();
+    const resume = resumableSession(), sessionOK = resume && resume.activeMode === "makeup" && resume.makeupTargetDay === makeupDay && resume.baseTargets.length === 5; clearSessionSnapshot();
+
+    memory = {}; targets.forEach((idx, i) => { const m = cardMemory(idx); m.seen = 1; m.last = Date.now() - i * 1000; m.fast = 1; m.target = CARDS[idx].target; m.word = CARDS[idx].word; });
+    const inkStored = persistRecentInk(cardMemory(targets[0]), [[{ x: .2, y: .2 }, { x: .5, y: .75 }, { x: .8, y: .25 }]], Date.now() + 100000);
+    for (let i = 0; i < 110; i += 1) memory[`verify:ink:${i}`] = { seen: 0, recentInk: { version: 1, day: today(), at: Date.now() - i, dataURL: `data:image/webp;base64,${"A".repeat(5000)}` } };
+    const trimmed = trimRecentInk(), inkRows = recentInkRows(), cap = { kept: inkRows.length, bytes: inkRows.reduce((sum, row) => sum + row.bytes, 0), removed: trimmed.removed, realKept: !!cardMemory(targets[0]).recentInk };
+    saveMemory();
+
+    const monthly = monthReportData(currentMonth), canvas = await renderMonthlyPostCanvas(currentMonth); let nativeMessage = null; const share = await shareMonthlyPost({ month: currentMonth, nativeBridge: { postMessage: (message) => { nativeMessage = message; } } });
+    const annual = yearReportData(new Date().getFullYear()); renderAnnualReport(new Date().getFullYear()); const firstAnnualSlide = annualSlides.querySelector(".annualSlide"), annualUI = { slides: annualSlides.querySelectorAll(".annualSlide").length, copy: annualSlides.textContent.replace(/\s+/g, ""), clientHeight: annualSlides.clientHeight, scrollHeight: annualSlides.scrollHeight, firstHeight: firstAnnualSlide?.getBoundingClientRect().height || 0 };
+    const backupActivity = JSON.parse(JSON.parse(backupPayload({ preserveMeta: true })).data[ACTIVITY_KEY]);
+    const report = {
+      before, incomplete, blankStayedBlank, completed, completedAgain, after, reducedDirect, previousMonth, sessionOK,
+      makeup: { flag: past.makeup, targets: past.targetKeys.length, independent: past.independentTargetKeys.length, backup: backupActivity.daily[makeupDay]?.makeup === true },
+      inkStored, cap, monthly: { practiced: monthly.practiced, stable: monthly.stable, independent: monthly.independentCount, days: monthly.practiceDays, hardest: monthly.hardest, width: canvas.width, height: canvas.height, items: Number(canvas.dataset.itemCount), inkTiles: Number(canvas.dataset.inkTiles) },
+      share: { ...share, type: nativeMessage?.type, kind: nativeMessage?.kind, hasPNG: /^data:image\/png;base64,/.test(nativeMessage?.dataURL || "") }, annual: { ...annual, ...annualUI },
+    };
+
+    activity = normalizeActivity(saved.activity); saveActivity(); memory = saved.memory; saveMemory(); fsrsReviewLog = saved.fsrs; saveFSRSLog();
+    if (saved.session === null) clearSessionSnapshot(); else localStorage.setItem(SESSION_KEY, saved.session);
+    activeMode = saved.activeMode; makeupTargetDay = saved.makeupTargetDay; baseTargets = saved.baseTargets; batch = baseTargets; baseCursor = saved.baseCursor; currentIndex = saved.currentIndex; currentAttemptKind = saved.currentAttemptKind; currentAttemptId = saved.currentAttemptId; practicePhase = saved.practicePhase; manualQueue = saved.manualQueue || []; reinforcementQueue = saved.reinforcementQueue || []; unresolved = new Set(saved.unresolved || []); episodes = saved.episodes || {}; roundStats = saved.roundStats || []; roundId = saved.roundId; renderHome();
+    return report;
+  });
+  assert(collections.before.normal.includes("拾") && collections.before.makeupBlank && collections.before.untouchedBlank && collections.before.stat.includes("本月拾字 2 天") && collections.before.nextDisabled && collections.before.gridHeight < 360 && collections.previousMonth.nextEnabled,
+    "Expected normal/blank calendar states and cross-month navigation", collections);
+  assert(!collections.incomplete && collections.blankStayedBlank && collections.completed && collections.completedAgain && collections.makeup.flag && collections.makeup.targets === 5 && collections.makeup.independent === 5 && collections.after.makeup.includes("补") && collections.after.normal.includes("拾") && collections.after.markers === 1 && collections.reducedDirect && collections.sessionOK,
+    "Expected a resumable five-character makeup round to stamp exactly once only after completion", collections);
+  assert(collections.makeup.backup && collections.inkStored && collections.cap.kept <= 96 && collections.cap.bytes <= 420 * 1024 && collections.cap.removed > 0 && collections.cap.realKept,
+    "Expected makeup records in backup and bounded recent independent ink with oldest-first fallback", collections);
+  assert(collections.monthly.width === 1080 && collections.monthly.height === 1440 && collections.monthly.practiced === collections.monthly.items && collections.monthly.stable >= 0 && collections.monthly.stable <= collections.monthly.practiced && collections.monthly.independent >= 3 && collections.monthly.independent <= collections.monthly.practiced && collections.monthly.days >= 3 && Number.isInteger(collections.monthly.hardest) && collections.monthly.inkTiles >= 1
+    && collections.share.route === "native" && collections.share.type === "sharePracticeCard" && collections.share.kind === "monthly" && collections.share.hasPNG,
+  "Expected a private 1080x1440 monthly post through the existing native share route", collections);
+  assert(collections.annual.slides === 4 && collections.annual.keys.length >= 5 && collections.annual.busiest && Number.isInteger(collections.annual.rarest) && Number.isInteger(collections.annual.first) && collections.annual.clientHeight > 400 && Math.abs(collections.annual.firstHeight - collections.annual.clientHeight) < 2 && collections.annual.scrollHeight >= collections.annual.clientHeight * 3.9 && !collections.annual.copy.includes("击败") && !collections.annual.copy.includes("中断"),
+    "Expected a four-screen local annual report without comparisons or break-loss language", collections);
 
   const backup = await page.evaluate(() => {
     const original = JSON.parse(backupPayload({ preserveMeta: true })), originalMemory = cloneObj(memory);

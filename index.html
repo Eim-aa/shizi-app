@@ -361,7 +361,7 @@
   .me{ display:none; flex:1; flex-direction:column; padding:18px var(--space-4) var(--space-1); animation:fadeIn .22s ease; }
   .me h1{ margin:0; font:900 calc(28px * var(--font-scale))/1 var(--song); letter-spacing:var(--ls-label); }
   .meDayState{ margin-top:8px; color:var(--muted); font-size:calc(var(--fs-body) * var(--font-scale)); }
-  .meStats{ display:grid; grid-template-columns:repeat(3,1fr); gap:9px; margin-top:16px; }
+  .meStats{ display:grid; grid-template-columns:repeat(2,1fr); gap:9px; margin-top:16px; }
   .meStat{ background:var(--card); border:1px solid var(--line); border-radius:14px; padding:15px 0; text-align:center; }
   .meStat b{ display:block; }
   .meStat b.red{ color:var(--accent); } .meStat b.grey{ color:var(--grey); }
@@ -399,6 +399,43 @@
   .toolsHint{ display:block; color:var(--muted); font-size:calc(var(--fs-body) * var(--font-scale)); line-height:1.55; margin-top:6px; }
   .devTools{ display:none; }
   .data{ display:none; margin-top:12px; background:var(--card); border:1px dashed var(--line); border-radius:14px; padding:14px; font-size:calc(var(--fs-body) * var(--font-scale)); color:var(--muted); line-height:1.7; }
+  /* ===== 印历 / 年度报告 ===== */
+  .calendarPanel,.annualPanel{ display:none; flex:1; min-height:0; flex-direction:column; padding:18px var(--space-4) calc(24px + var(--safe-bottom)); animation:screenIn .28s ease; }
+  .collectionHead{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  .collectionHead h2{ margin:0; font:900 calc(24px * var(--font-scale))/1 var(--song); }
+  .collectionBack{ min-width:44px; min-height:44px; padding:8px 13px; border:1px solid var(--line); border-radius:999px; background:var(--card); color:var(--muted); font:700 calc(var(--fs-body) * var(--font-scale))/1 var(--sans); }
+  .calendarMonthNav{ display:grid; grid-template-columns:44px 1fr 44px; align-items:center; gap:8px; margin-top:18px; }
+  .calendarMonthNav button{ width:44px; height:44px; border:1px solid var(--line); border-radius:50%; background:var(--card); color:var(--ink); font:700 calc(22px * var(--font-scale))/1 var(--sans); }
+  .calendarMonthNav button:disabled{ opacity:.28; }
+  .calendarMonthTitle{ text-align:center; }
+  .calendarMonthTitle b{ display:block; font:900 calc(22px * var(--font-scale))/1 var(--song); }
+  .calendarMonthTitle span{ display:block; margin-top:5px; color:var(--muted); font-size:calc(var(--fs-note) * var(--font-scale)); }
+  .calendarWeek,.calendarGrid{ display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:5px; }
+  .calendarWeek{ margin-top:18px; color:var(--faint); text-align:center; font-size:calc(var(--fs-caption) * var(--font-scale)); }
+  .calendarGrid{ margin-top:8px; }
+  .calendarDay{ position:relative; aspect-ratio:1; min-width:0; border:1px solid transparent; border-radius:8px; color:var(--muted); font:600 calc(var(--fs-note) * var(--font-scale))/1 var(--sans); }
+  .calendarDay.calendarPad{ visibility:hidden; }
+  .calendarDay.future{ opacity:.35; }
+  .calendarDay.makeable{ border-color:var(--line); background:var(--card); color:var(--ink); }
+  .calendarDay.today{ box-shadow:inset 0 0 0 1px var(--accent-a35); color:var(--accent); }
+  .calendarDay .dayNumber{ position:absolute; left:5px; top:5px; }
+  .calendarStamp{ position:absolute; width:27px; height:27px; right:3px; bottom:3px; display:flex; align-items:center; justify-content:center; border-radius:7px 5px 8px 6px; background:var(--accent); color:var(--paperInk); font:400 calc(var(--fs-note) * var(--font-scale))/1 var(--kai); transform:rotate(-7deg); }
+  .calendarStamp.makeup{ color:var(--accent); background:transparent; border:1.5px solid var(--accent-a60); }
+  .calendarStamp.land{ animation:bigStampIn .34s ease-out both; animation-delay:var(--stamp-delay,0s); }
+  .calendarLegend{ display:flex; justify-content:center; gap:18px; margin-top:18px; color:var(--muted); font-size:calc(var(--fs-note) * var(--font-scale)); }
+  .calendarLegend span{ display:flex; align-items:center; gap:7px; }
+  .calendarLegend i{ position:static; width:24px; height:24px; flex:none; font-style:normal; }
+  .calendarHint{ margin:18px 4px 0; color:var(--muted); text-align:center; font-size:calc(var(--fs-note) * var(--font-scale)); line-height:1.65; }
+  .annualPanel{ height:calc(100svh - 10px - env(safe-area-inset-top)); flex:none; padding-left:0; padding-right:0; padding-bottom:0; }
+  .annualPanel > .collectionHead{ padding:0 var(--space-4); }
+  .annualSlides{ flex:1; min-height:0; margin-top:14px; overflow-y:auto; scroll-snap-type:y mandatory; }
+  .annualSlide{ height:100%; min-height:100%; scroll-snap-align:start; display:flex; flex-direction:column; justify-content:center; padding:46px 34px; border-top:1px solid var(--line); background:var(--card); }
+  .annualSlide:nth-child(even){ background:var(--accentSoft); }
+  .annualSlide .annualEyebrow{ color:var(--accent); font:700 calc(var(--fs-note) * var(--font-scale))/1 var(--sans); letter-spacing:var(--ls-label); }
+  .annualSlide b{ display:block; margin-top:18px; font:900 calc(56px * var(--font-scale))/1.08 var(--song); color:var(--ink); overflow-wrap:anywhere; }
+  .annualSlide p{ margin:18px 0 0; color:var(--muted); font:400 calc(19px * var(--font-scale))/1.7 var(--kai); }
+  .annualSlide .annualChar{ font:400 calc(112px * var(--font-scale))/1 var(--kai); color:var(--accent); }
+  .annualEmpty{ color:var(--muted); text-align:center; line-height:1.8; }
   /* ===== 卡点分析 ===== */
   .profile,.audit{ display:none; flex:1; flex-direction:column; padding:18px 24px 24px; animation:screenIn .32s ease; }
   .profileHead,.auditHead{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
@@ -734,8 +771,14 @@
       <button class="meStat action" id="meSeen"><b class="num" id="seenStat">0</b><span>练过</span><small>看卡点</small></button>
       <button class="meStat action" id="meStable"><b class="num" id="stableStat">0</b><span>已拾回</span><small>去字盒</small></button>
       <button class="meStat action" id="meRisk"><b class="num red" id="riskStat">0</b><span>待拾回</span><small>去字盒</small></button>
+      <button class="meStat action" id="meDays"><b class="num" id="daysStat">0</b><span>练习天数</span><small>看印历</small></button>
     </div>
     <button class="meCard" id="openProfile"><div class="meCardTop"><b>卡点分析</b><span>›</span></div><small id="meAdvice"></small></button>
+    <div class="meLabel">拾字收藏</div>
+    <div class="meList">
+      <button class="meRow" id="monthlyPostLink"><span class="meRowMain">本月拾字帖<small>当月字墙与独立书写记录</small></span><span>生成 ›</span></button>
+      <button class="meRow" id="annualReportLink"><span class="meRowMain">年度拾字报告<small>只在本机汇总，不上传记录</small></span><span>查看 ›</span></button>
+    </div>
     <div class="meLabel">练习设置</div>
     <div class="meList">
       <div class="mePref"><div class="plbl">出题偏好</div><div class="prefBtns" id="prefBox">
@@ -802,6 +845,26 @@
     <div class="auditList" id="auditSample"></div>
   </div>
 
+  <!-- 印历 -->
+  <div class="calendarPanel" id="calendarPanel" style="display:none" data-screen-label="印历">
+    <div class="collectionHead"><h2>印历</h2><button class="collectionBack" id="closeCalendar">返回</button></div>
+    <div class="calendarMonthNav">
+      <button id="calendarPrev" aria-label="上个月">‹</button>
+      <div class="calendarMonthTitle"><b id="calendarMonthTitle"></b><span id="calendarMonthStat"></span></div>
+      <button id="calendarNext" aria-label="下个月">›</button>
+    </div>
+    <div class="calendarWeek"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span></div>
+    <div class="calendarGrid" id="calendarGrid"></div>
+    <div class="calendarLegend"><span><i class="calendarStamp">拾</i>当天练过</span><span><i class="calendarStamp makeup">补</i>后来补帖</span></div>
+    <div class="calendarHint" id="calendarHint">最近 7 天的留白日可以补写一帖。补帖要完整写完 5 个字，才会落印。</div>
+  </div>
+
+  <!-- 年度报告：本地滚动，不请求服务端 -->
+  <div class="annualPanel" id="annualPanel" style="display:none" data-screen-label="年度拾字报告">
+    <div class="collectionHead"><h2 id="annualTitle">年度拾字报告</h2><button class="collectionBack" id="closeAnnual">返回</button></div>
+    <div class="annualSlides" id="annualSlides"></div>
+  </div>
+
   <div class="foot" id="foot">
     <a class="tab" id="tabPractice"><span class="tg">拾</span>练习</a>
     <a class="tab" id="tabBook"><span class="tg">盒</span><span class="tabBadge" id="bookBadge"></span>字盒</a>
@@ -824,6 +887,11 @@
     <button class="dangerSoft" id="deferRound">明天接着拾</button>
     <button class="primaryAct" id="continueRound">继续练</button>
   </div>
+</div></div>
+<div class="sheetMask" id="makeupSheet" role="dialog" aria-modal="true" aria-labelledby="makeupTitle"><div class="sheet">
+  <h3 id="makeupTitle">补写一帖</h3>
+  <p class="sheetHint" id="makeupCopy">写完 5 个字后，这一天会落一枚浅色「补」印。</p>
+  <div class="row"><button class="ghostAct" id="makeupCancel">取消</button><button class="primaryAct" id="makeupConfirm">开始补帖</button></div>
 </div></div>
 <div class="sheetMask" id="stampGuideSheet" role="dialog" aria-modal="true" aria-labelledby="stampGuideTitle"><div class="sheet">
   <h3 id="stampGuideTitle">四枚章，分别代表什么</h3>
@@ -872,7 +940,11 @@ applyFontScale();
 let auditPref = preference;
 const DEV_TOOLS = (()=>{ try{ return new URLSearchParams(location.search).get("dev")==="1"; }catch(e){ return false; } })();
 function setStatus(i,s){ status[i]=s; save(DECK_KEY,status); }
-function saveMemory(){ save(MEMORY_KEY,memory); }
+const RECENT_INK_MAX=96, RECENT_INK_BUDGET=420*1024;
+function recentInkRows(){ return Object.entries(memory).filter(([,m])=>m&&m.recentInk&&typeof m.recentInk.dataURL==="string").map(([key,m])=>({key,m,at:Math.max(0,Number(m.recentInk.at)||0),bytes:m.recentInk.dataURL.length*2})).sort((a,b)=>b.at-a.at); }
+function trimRecentInk(){ let kept=0, bytes=0, removed=0; recentInkRows().forEach(row=>{ if(kept<RECENT_INK_MAX && bytes+row.bytes<=RECENT_INK_BUDGET){ kept++; bytes+=row.bytes; }else{ delete row.m.recentInk; removed++; } }); return {kept,bytes,removed}; }
+function saveMemory(){ trimRecentInk(); if(save(MEMORY_KEY,memory)) return true;
+  const oldest=recentInkRows().sort((a,b)=>a.at-b.at); for(const row of oldest){ delete row.m.recentInk; if(save(MEMORY_KEY,memory)) return true; } return save(MEMORY_KEY,memory); }
 function saveQuality(){ save(QUALITY_KEY,quality); }
 function saveTuning(){ tuning.offset=clamp(Number(tuning.offset)||0,-18,22); tuning.contextStrict=clamp(Number(tuning.contextStrict)||0,0,4); tuning.rounds=(tuning.rounds||[]).slice(-30); save(TUNING_KEY,tuning); }
 function dayKey(d=new Date()){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
@@ -913,7 +985,7 @@ function normalizeFunnel(raw){ const f=raw&&typeof raw==="object"?raw:newFunnel(
   f.events=Array.isArray(f.events)?f.events.filter(e=>e&&typeof e.name==="string"&&Number(e.at)>0).map(e=>({name:e.name,at:Number(e.at),day:/^\d{4}-\d{2}-\d{2}$/.test(e.day||"")?e.day:dayKey(new Date(Number(e.at)))})):[];
   f.seen=Array.isArray(f.seen)?[...new Set(f.seen.filter(k=>typeof k==="string"))]:[];
   const counts=f.counts&&typeof f.counts==="object"?f.counts:{}; f.counts={revealCompared:Math.max(0,Number(counts.revealCompared)||0),revealDisagree:Math.max(0,Number(counts.revealDisagree)||0)};
-  f.rounds=Array.isArray(f.rounds)?f.rounds.filter(r=>r&&Number(r.completedAt)>0&&Number(r.durationMs)>=0).map(r=>({completedAt:Number(r.completedAt),day:/^\d{4}-\d{2}-\d{2}$/.test(r.day||"")?r.day:dayKey(new Date(Number(r.completedAt))),mode:["new","review","calibrate","focus"].includes(r.mode)?r.mode:"new",durationMs:Math.max(0,Math.round(Number(r.durationMs)||0)),targetCount:Math.max(0,Number(r.targetCount)||0),attemptCount:Math.max(0,Number(r.attemptCount)||0)})):[];
+  f.rounds=Array.isArray(f.rounds)?f.rounds.filter(r=>r&&Number(r.completedAt)>0&&Number(r.durationMs)>=0).map(r=>({completedAt:Number(r.completedAt),day:/^\d{4}-\d{2}-\d{2}$/.test(r.day||"")?r.day:dayKey(new Date(Number(r.completedAt))),mode:["new","review","calibrate","focus","makeup"].includes(r.mode)?r.mode:"new",durationMs:Math.max(0,Math.round(Number(r.durationMs)||0)),targetCount:Math.max(0,Number(r.targetCount)||0),attemptCount:Math.max(0,Number(r.attemptCount)||0)})):[];
   return f; }
 let funnel=normalizeFunnel(load(FUNNEL_KEY,null)); save(FUNNEL_KEY,funnel);
 function saveFunnel(){ save(FUNNEL_KEY,funnel); }
@@ -940,13 +1012,19 @@ function normalizeBackupMeta(raw){ const meta=raw&&typeof raw==="object"?raw:{};
 let backupMeta=normalizeBackupMeta(load(BACKUP_META_KEY,null)), summaryBackupHintVisible=false;
 function saveActivity(){ save(ACTIVITY_KEY,activity); }
 function dailyActivity(key=today()){ const row=activity.daily[key] && typeof activity.daily[key]==="object"?activity.daily[key]:{};
-  row.stamps=Math.max(0,Number(row.stamps)||0); row.attempts=Math.max(row.stamps,Number(row.attempts)||0); row.targetKeys=Array.isArray(row.targetKeys)?[...new Set(row.targetKeys)]:[]; row.reviewTargetKeys=Array.isArray(row.reviewTargetKeys)?[...new Set(row.reviewTargetKeys.filter(k=>typeof k==="string"))]:[]; row.completedRoundIds=Array.isArray(row.completedRoundIds)?row.completedRoundIds:[];
+  row.stamps=Math.max(0,Number(row.stamps)||0); row.attempts=Math.max(row.stamps,Number(row.attempts)||0); row.targetKeys=Array.isArray(row.targetKeys)?[...new Set(row.targetKeys.filter(k=>typeof k==="string"))]:[]; row.independentTargetKeys=Array.isArray(row.independentTargetKeys)?[...new Set(row.independentTargetKeys.filter(k=>typeof k==="string"))]:[]; row.reviewTargetKeys=Array.isArray(row.reviewTargetKeys)?[...new Set(row.reviewTargetKeys.filter(k=>typeof k==="string"))]:[]; row.completedRoundIds=Array.isArray(row.completedRoundIds)?[...new Set(row.completedRoundIds.filter(k=>typeof k==="string"||Number.isFinite(k)))]:[]; row.makeup=row.makeup===true;
   row.completedGroups=row.completedRoundIds.length; activity.daily[key]=row; return row; }
-function markPracticeStamp(idx=null){ const key=today(), row=dailyActivity(key), targetKey=Number.isInteger(idx)?cardKey(idx):`legacy:${row.attempts}`; row.attempts++; if(!row.targetKeys.includes(targetKey)){ row.targetKeys.push(targetKey); row.stamps++; } row.lastStampAt=Date.now();
+function markPracticeStamp(idx=null,outcome=""){ const key=today(), row=dailyActivity(key), targetKey=Number.isInteger(idx)?cardKey(idx):`legacy:${row.attempts}`; row.attempts++; if(!row.targetKeys.includes(targetKey)){ row.targetKeys.push(targetKey); row.stamps++; } if(outcome==="fast"&&!row.independentTargetKeys.includes(targetKey)) row.independentTargetKeys.push(targetKey); row.lastStampAt=Date.now();
   if(!activity.practiceDays.includes(key)) activity.practiceDays.push(key); activity.practiceDays.sort(); saveActivity();
   if(row.attempts===1) syncReminder(); }
 function markRoundComplete(){ if(!roundIsComplete()) return false; const row=dailyActivity();
   if(!row.completedRoundIds.includes(roundId)){ row.completedRoundIds.push(roundId); row.completedGroups=row.completedRoundIds.length; row.firstCompletedAt=row.firstCompletedAt||Date.now(); saveActivity(); }
+  if(activeMode==="makeup" && /^\d{4}-\d{2}-\d{2}$/.test(makeupTargetDay) && makeupTargetDay<today()){
+    const past=dailyActivity(makeupTargetDay), marker=`makeup:${roundId}`;
+    if(!past.completedRoundIds.includes(marker)){ const keys=baseTargets.map(cardKey), independent=roundStats.filter(stat=>stat.independentlyRecovered).map(stat=>cardKey(stat.idx));
+      past.makeup=true; past.makeupAt=Date.now(); past.completedRoundIds.push(marker); past.completedGroups=past.completedRoundIds.length; past.firstCompletedAt=past.firstCompletedAt||Date.now(); past.targetKeys=[...new Set([...past.targetKeys,...keys])]; past.independentTargetKeys=[...new Set([...past.independentTargetKeys,...independent])]; past.stamps=Math.max(past.stamps,past.targetKeys.length); past.attempts=Math.max(past.attempts,past.stamps);
+      if(!activity.practiceDays.includes(makeupTargetDay)) activity.practiceDays.push(makeupTargetDay); activity.practiceDays.sort(); saveActivity(); }
+  }
   return true; }
 function todayStampCount(){ return dailyActivity().stamps; }
 function todayCompleted(){ return dailyActivity().completedGroups>0; }
@@ -1076,7 +1154,7 @@ function milestoneText(milestone){ return milestone.kind==="characters"?`字盒�
 const BATCH=15, DAILY_REVIEW_BUDGET=30, TOPIC_KEY="shizi.topic.v1";
 let sessionDone=new Set(), baseTargets=[], batch=[], pos=0, baseCursor=0, currentIndex=null, currentAttemptKind="base", currentAttemptId="";
 let manualQueue=[], reinforcementQueue=[], unresolved=new Set(), episodes={}, attemptSeq=0, practicePhase="recall", hintEverUsed=false, enteredTracingThisAttempt=false, submissionSnapshot=null, pendingSessionVisual=null, feedbackKind="";
-let missedThisRound=[], roundStats=[], focusQueue=[], hintsUsedThisCard=0, cardStartedAt=0, activeMode="new", sessionTarget=0, sessionFastStreak=0, sessionMissStreak=0, roundFeedbackGiven=false, roundId=0, calibrationFirstHoldUsed=false, calibrationComfortShown=false, calibrationTargets=[];
+let missedThisRound=[], roundStats=[], focusQueue=[], hintsUsedThisCard=0, cardStartedAt=0, activeMode="new", makeupTargetDay="", sessionTarget=0, sessionFastStreak=0, sessionMissStreak=0, roundFeedbackGiven=false, roundId=0, calibrationFirstHoldUsed=false, calibrationComfortShown=false, calibrationTargets=[];
 let summaryFocusIndexes=[], roundStartMemoryCount=0, summarySealTimer=0, summaryMilestoneActive=false;
 let roundElapsedMs=0, roundActiveStartedAt=0, roundBudgetPrompted=false, roundTimerPaused=false;
 const ROUND_ATTEMPT_BUDGET=20, ROUND_TIME_BUDGET_MS=6*60*1000, ROUND_DURATION_CAP_MS=60*60*1000;
@@ -1095,7 +1173,7 @@ function roundIsComplete(){ return baseTargets.length>0 && baseCursor>=baseTarge
 function capturePracticeVisual(){ return {practicePhase,currentIndex,currentAttemptKind,currentAttemptId,hintEverUsed,enteredTracingThisAttempt,hintsUsedThisCard,
   shownStrokes,groupIdx,seenGroups:[...seenGroups],inkStrokes:cloneObj(inkStrokes)||[],tracedThisCard,submissionSnapshot:cloneObj(submissionSnapshot),revealed,stamped}; }
 function currentRoundElapsed(){ return roundElapsedMs+(roundActiveStartedAt?Math.max(0,Date.now()-roundActiveStartedAt):0); }
-function sessionPayload(){ return {version:2,startedDate:(load(SESSION_KEY,null)||{}).startedDate||today(),updatedAt:Date.now(),activeMode,baseTargets:baseTargets.slice(),baseCursor,currentIndex,currentAttemptKind,currentAttemptId,
+function sessionPayload(){ return {version:2,startedDate:(load(SESSION_KEY,null)||{}).startedDate||today(),updatedAt:Date.now(),activeMode,makeupTargetDay,baseTargets:baseTargets.slice(),baseCursor,currentIndex,currentAttemptKind,currentAttemptId,
   manualQueue:cloneObj(manualQueue)||[],reinforcementQueue:cloneObj(reinforcementQueue)||[],unresolved:[...unresolved],episodes:cloneObj(episodes)||{},attemptSeq,practicePhase,visual:capturePracticeVisual(),
   missedThisRound:missedThisRound.slice(),roundStats:cloneObj(roundStats)||[],focusQueue:focusQueue.slice(),sessionDone:[...sessionDone],sessionTarget,sessionFastStreak,sessionMissStreak,roundFeedbackGiven,roundId,calibrationFirstHoldUsed,calibrationComfortShown,calibrationTargets:calibrationTargets.slice(),lastStampSnapshot:cloneObj(lastStampSnapshot),feedbackKind,
   roundElapsedMs:currentRoundElapsed(),roundBudgetPrompted,roundStartMemoryCount}; }
@@ -1105,14 +1183,15 @@ function migrateV1Session(s){ const stats=Array.isArray(s.roundStats)?cloneObj(s
   const eps={}, queue=[], open=new Set(); stats.forEach((row,n)=>{ const ep={idx:row.idx,firstOutcome:row.outcome,attempts:[{attemptId:`${s.roundId||"legacy"}-legacy-${n+1}`,outcome:row.outcome}],assistanceUsed:row.outcome==="hinted",independentlyRecovered:row.outcome==="fast",excluded:false,teachingComplete:row.outcome!=="miss"}; eps[String(row.idx)]=ep; if(row.outcome!=="fast"){ open.add(row.idx); queue.push({idx:row.idx,eligibleAfter:stats.length+2,order:n}); } });
   if(stats.length===Number(s.pos)+1) cursor=Math.min(targets.length,Number(s.pos)+1); else cursor=Math.min(targets.length,Number(s.pos)||0);
   const next=cursor<targets.length?{idx:targets[cursor],kind:"base"}:(queue.length?{idx:queue[0].idx,kind:"reinforcement"}:null);
-  return {version:2,startedDate:s.date||today(),updatedAt:Date.now(),activeMode:s.activeMode,baseTargets:targets,baseCursor:cursor,currentIndex:next?next.idx:targets[Math.max(0,targets.length-1)],currentAttemptKind:next?next.kind:"base",currentAttemptId:`${s.roundId||Date.now()+"-migrated"}-a${stats.length+1}`,
+  return {version:2,startedDate:s.date||today(),updatedAt:Date.now(),activeMode:s.activeMode,makeupTargetDay:"",baseTargets:targets,baseCursor:cursor,currentIndex:next?next.idx:targets[Math.max(0,targets.length-1)],currentAttemptKind:next?next.kind:"base",currentAttemptId:`${s.roundId||Date.now()+"-migrated"}-a${stats.length+1}`,
     manualQueue:[],reinforcementQueue:queue.filter(item=>!next||next.kind!=="reinforcement"||item.idx!==next.idx),unresolved:[...open],episodes:eps,attemptSeq:stats.length,practicePhase:next&&next.kind==="reinforcement"?"reinforcement":"recall",visual:null,
     missedThisRound:Array.isArray(s.missedThisRound)?s.missedThisRound.slice():[],roundStats:stats,focusQueue:Array.isArray(s.focusQueue)?s.focusQueue.slice():[],sessionDone:Array.isArray(s.sessionDone)?s.sessionDone.slice():[],sessionTarget:s.sessionTarget,sessionFastStreak:s.sessionFastStreak,sessionMissStreak:s.sessionMissStreak,roundFeedbackGiven:!!s.roundFeedbackGiven,roundId:s.roundId||Date.now()+"-migrated",calibrationFirstHoldUsed:!!s.calibrationFirstHoldUsed,calibrationComfortShown:false,calibrationTargets:s.activeMode==="calibrate"?targets.slice(0,BATCH):[],lastStampSnapshot:null,roundElapsedMs:0,roundBudgetPrompted:false,roundStartMemoryCount:memoryCount()}; }
 function resumableSession(){ let s=load(SESSION_KEY,null); if(!s) return null; if(s.version===1) s=migrateV1Session(s);
   const valid=s.version===2 && Array.isArray(s.baseTargets) && s.baseTargets.length>0 && s.baseTargets.every(i=>Number.isInteger(i)&&i>=0&&i<CARDS.length)
-    && Number.isInteger(s.currentIndex)&&s.currentIndex>=0&&s.currentIndex<CARDS.length && ["new","review","calibrate","focus"].includes(s.activeMode);
+    && Number.isInteger(s.currentIndex)&&s.currentIndex>=0&&s.currentIndex<CARDS.length && ["new","review","calibrate","focus","makeup"].includes(s.activeMode)
+    && (s.activeMode!=="makeup" || (/^\d{4}-\d{2}-\d{2}$/.test(s.makeupTargetDay||"") && s.makeupTargetDay<today()));
   if(!valid){ clearSessionSnapshot(); return null; } return s; }
-function restoreSession(s){ if(!s) return false; if(s.version===1) s=migrateV1Session(s); activeMode=s.activeMode; baseTargets=s.baseTargets.slice(); batch=baseTargets; baseCursor=Math.max(0,Math.min(baseTargets.length,Number(s.baseCursor)||0)); currentIndex=s.currentIndex;
+function restoreSession(s){ if(!s) return false; if(s.version===1) s=migrateV1Session(s); activeMode=s.activeMode; makeupTargetDay=activeMode==="makeup"?s.makeupTargetDay:""; baseTargets=s.baseTargets.slice(); batch=baseTargets; baseCursor=Math.max(0,Math.min(baseTargets.length,Number(s.baseCursor)||0)); currentIndex=s.currentIndex;
   currentAttemptKind=s.currentAttemptKind||"base"; currentAttemptId=s.currentAttemptId||`${s.roundId}-a${(Number(s.attemptSeq)||0)+1}-${currentIndex}`; manualQueue=Array.isArray(s.manualQueue)?cloneObj(s.manualQueue):[]; reinforcementQueue=Array.isArray(s.reinforcementQueue)?cloneObj(s.reinforcementQueue):[]; unresolved=new Set(Array.isArray(s.unresolved)?s.unresolved:[]); episodes=cloneObj(s.episodes)||{}; attemptSeq=Number(s.attemptSeq)||0; practicePhase=s.practicePhase||"recall";
   missedThisRound=Array.isArray(s.missedThisRound)?s.missedThisRound.slice():[]; roundStats=Array.isArray(s.roundStats)?cloneObj(s.roundStats):[]; focusQueue=Array.isArray(s.focusQueue)?s.focusQueue.slice():[]; sessionDone=new Set(Array.isArray(s.sessionDone)?s.sessionDone:[]);
   sessionTarget=Number(s.sessionTarget)||targetDifficulty(); sessionFastStreak=Number(s.sessionFastStreak)||0; sessionMissStreak=Number(s.sessionMissStreak)||0; roundFeedbackGiven=!!s.roundFeedbackGiven; roundId=s.roundId||Date.now()+"-resume"; calibrationFirstHoldUsed=!!s.calibrationFirstHoldUsed; calibrationComfortShown=!!s.calibrationComfortShown;
@@ -1178,7 +1257,7 @@ function reviewTodayCount(){ return Math.min(reviewBudgetRemaining(),reviewBudge
 function reserveReviewTargets(indexes){ const row=dailyActivity(); (indexes||[]).forEach(i=>{ const key=cardKey(i); if(!row.reviewTargetKeys.includes(key) && row.reviewTargetKeys.length<DAILY_REVIEW_BUDGET) row.reviewTargetKeys.push(key); }); saveActivity(); }
 function newPool(respectSession=true){ return allIndexes().filter(i=>baseAvailable(i,respectSession) && qualityAvailable(i) && !hasMemory(i) && status[i]!=="indeck" && !CARDS[i].custom && strictNewEligible(i)); }
 function focusPool(respectSession=true){ return focusQueue.filter(i=>baseAvailable(i,respectSession) && !qualityBlocked(i)); }
-function availablePool(){ if(activeMode==="review") return reviewBudgetPool(true); if(activeMode==="focus") return focusPool(true); return newPool(true); }
+function availablePool(){ if(activeMode==="review") return reviewBudgetPool(true); if(activeMode==="focus"||activeMode==="makeup") return focusPool(true); return newPool(true); }
 function deckCount(){ return Object.values(status).filter(s=>s==="indeck").length; }
 function knownCount(){ return allIndexes().filter(i=>{ const m=memory[cardKey(i)]; return m && m.streak>=2 && status[i]!=="indeck"; }).length; }
 function clamp(n,min,max){ return Math.max(min, Math.min(max, n)); }
@@ -1298,8 +1377,8 @@ function scrollTopNow(){ try{ window.scrollTo({top:0,left:0,behavior:"auto"}); }
 function updateKeyboardInset(){ const vv=window.visualViewport, inset=vv?Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop)):0;
   document.documentElement.style.setProperty("--keyboard-inset", inset+"px"); }
 if(window.visualViewport){ window.visualViewport.addEventListener("resize", updateKeyboardInset); window.visualViewport.addEventListener("scroll", updateKeyboardInset); updateKeyboardInset(); }
-const VIEW_IDS={welcome:"welcome",home:"home",card:"card",summary:"summary",book:"studybook",profile:"profilePanel",audit:"auditPanel",me:"mePanel"};
-const FLEX_VIEWS=new Set(["welcome","home","card","summary","book","me","profile","audit"]);
+const VIEW_IDS={welcome:"welcome",home:"home",card:"card",summary:"summary",book:"studybook",profile:"profilePanel",audit:"auditPanel",me:"mePanel",calendar:"calendarPanel",annual:"annualPanel"};
+const FLEX_VIEWS=new Set(["welcome","home","card","summary","book","me","profile","audit","calendar","annual"]);
 let practiceHistoryArmed=false, restoringPracticeHistory=false;
 function armPracticeHistory(){ if(practiceHistoryArmed) return; try{ history.replaceState({shiziView:"home"},""); history.pushState({shiziView:"practice"},""); practiceHistoryArmed=true; }catch(e){} }
 function releasePracticeHistory(){ if(!practiceHistoryArmed) return; practiceHistoryArmed=false; try{ if(history.state&&history.state.shiziView==="practice"){ restoringPracticeHistory=true; history.back(); } }catch(e){ restoringPracticeHistory=false; } }
@@ -1314,9 +1393,9 @@ function displayView(view){ Object.entries(VIEW_IDS).forEach(([k,id])=>{ $(id).s
   if(view!=="summary" && summarySealTimer){ clearTimeout(summarySealTimer); summarySealTimer=0; }
   if(view!=="summary" && summaryBackupHintVisible){ summaryBackupHintVisible=false; $("summaryBackupHint").style.display="none"; }
   // 写字 / 首启 / 结果是全屏专注场景，收起底部 Tab
-  $("foot").style.display=(view==="card"||view==="welcome"||view==="summary"||view==="profile"||view==="audit")?"none":"";
+  $("foot").style.display=(view==="card"||view==="welcome"||view==="summary"||view==="profile"||view==="audit"||view==="calendar"||view==="annual")?"none":"";
   if(view!=="me") $("dataBox").style.display="none";
-  const active={home:"tabPractice",card:"tabPractice",summary:"tabPractice",welcome:"tabPractice",book:"tabBook",profile:"tabMe",audit:"tabMe",me:"tabMe"}[view];
+  const active={home:"tabPractice",card:"tabPractice",summary:"tabPractice",welcome:"tabPractice",book:"tabBook",profile:"tabMe",audit:"tabMe",me:"tabMe",calendar:"tabMe",annual:"tabMe"}[view];
   document.querySelectorAll(".foot .tab").forEach(el=>el.classList.toggle("active",el.id===active));
   requestAnimationFrame(scrollTopNow); }
 function qualityCount(){ return Object.values(quality).filter(q=>q && (q.easy || q.rare || q.badWord || q.hide)).length; }
@@ -1332,6 +1411,10 @@ function recordQuality(kind, idx=currentCardIndex()){ if(idx==null || idx<0) ret
   if(cur && idx===currentCardIndex()) renderQuality(); }
 function shareInkFromSnapshot(snapshot){ const source=snapshot&&Array.isArray(snapshot.inkStrokes)?snapshot.inkStrokes:[], size=Math.max(1,Number(snapshot&&snapshot.canvasSize)||S), maxPoints=48;
   return source.slice(0,48).map(points=>{ const list=Array.isArray(points)?points:[], sampled=list.length<=maxPoints?list:Array.from({length:maxPoints},(_,i)=>list[Math.round(i*(list.length-1)/(maxPoints-1))]); return sampled.map(point=>({x:Math.round(clamp(Number(point.x)/size,0,1)*1000)/1000,y:Math.round(clamp(Number(point.y)/size,0,1)*1000)/1000})).filter(point=>Number.isFinite(point.x)&&Number.isFinite(point.y)); }).filter(points=>points.length); }
+function persistRecentInk(m,strokes,at=Date.now()){ if(!m || !Array.isArray(strokes) || !strokes.some(points=>Array.isArray(points)&&points.length)) return false;
+  try{ const canvas=document.createElement("canvas"); canvas.width=120; canvas.height=120; const ctx=canvas.getContext("2d"); if(!ctx) return false; ctx.fillStyle="#fbf6ea"; ctx.fillRect(0,0,120,120); drawShareHandwriting(ctx,strokes,6,6,108,0); const dataURL=canvas.toDataURL("image/webp",.68); if(!/^data:image\/(webp|png);base64,/.test(dataURL)||dataURL.length*2>32*1024) return false;
+    m.recentInk={version:1,day:dayKey(new Date(Number(at)||Date.now())),at:Number(at)||Date.now(),dataURL}; trimRecentInk(); return true;
+  }catch(e){ return false; } }
 // 每个真实回忆回合只记一次结果；本组队列与 FSRS 跨天调度分别处理。
 function recordOutcome(outcome,options={}){ const idx=currentCardIndex(), c=CARDS[idx], m=cardMemory(idx), now=Number(options.now)||Date.now(), ep=episodeFor(idx);
   if(ep.attempts.some(a=>a.attemptId===currentAttemptId)) return ep.attempts.find(a=>a.attemptId===currentAttemptId);
@@ -1352,7 +1435,7 @@ function recordOutcome(outcome,options={}){ const idx=currentCardIndex(), c=CARD
   const attempt={attemptId:currentAttemptId,seq:attemptSeq+1,outcome,userCorrect,uncertain,hintUsed:hintEverUsed,hintCount:hintsUsedThisCard,enteredTracing:enteredTracingThisAttempt,teaching:!!options.teaching,eventId:event&&event.eventId,at:now};
   ep.attempts.push(attempt); ep.firstOutcome=ep.firstOutcome||outcome; ep.assistanceUsed=ep.assistanceUsed||hintEverUsed||enteredTracingThisAttempt;
   if(activeMode==="calibrate" && firstOutcome && idx===calibrationTargets[0]) recordFunnelOnce("calib_card1_done");
-  const handwriting=shareInkFromSnapshot(submissionSnapshot);
+  const handwriting=shareInkFromSnapshot(submissionSnapshot); if(!hard) persistRecentInk(m,handwriting,now);
   if(firstOutcome){ roundStats.push({idx,target:c.target,word:c.word,outcome,uncertain,geometryStatus:lastVerdict&&lastVerdict.status||"none",geometryMode:lastVerdict&&lastVerdict.mode||"none",traced:!!enteredTracingThisAttempt,hintUsed:hintEverUsed,level:abilityLevel(idx),topic:c.topic,dueDay:m.dueDay||null,independentlyRecovered:!hard,handwriting});
     if(hard) missedThisRound.push(c.target); adaptNextCard(outcome,idx); }
   else { const stat=roundStats.find(row=>row.idx===idx); if(stat && !hard){ stat.independentlyRecovered=true; stat.dueDay=m.dueDay||null; stat.handwriting=handwriting; } }
@@ -1361,7 +1444,7 @@ function recordOutcome(outcome,options={}){ const idx=currentCardIndex(), c=CARD
   if(hard && !qualityFor(idx).hide) enqueueReinforcement(idx); else if(hard){ ep.excluded=true; m.pendingLearning=false; m.dueDay=null; m.due=0; } else graduateReinforcement(idx);
   m.lastEpisode={firstOutcome:ep.firstOutcome,attempts:ep.attempts.length,assistanceUsed:ep.assistanceUsed,independentlyRecovered:ep.independentlyRecovered};
   if(submissionSnapshot) submissionSnapshot=Object.freeze({...submissionSnapshot,userCorrect});
-  saveMemory(); markPracticeStamp(idx); return attempt;
+  saveMemory(); markPracticeStamp(idx,outcome); return attempt;
 }
 function prefLabel(){ return ({balanced:"高频易忘", practical:"偏实用", challenge:"偏挑战"})[preference] || "高频易忘"; }
 function needsCalibration(){ return !tuning.calibrated && memoryCount()===0; }
@@ -1428,18 +1511,75 @@ function meAdviceText(idxs){ if(!idxs.length) return "练几组后，这里会�
 function renderMe(){ displayView("me");
   applyPrefUI(); renderSoundUI();
   const days=totalPracticeDays(); $("meDayState").textContent=days>0?`拾字第 ${days} 天`:(todayStampCount()>0?"拾字第 1 天 · 进行中":"今天还没开始拾字");
-  $("seenStat").textContent=memoryCount(); $("stableStat").textContent=stableCount(); $("riskStat").textContent=highRiskCount();
+  $("seenStat").textContent=memoryCount(); $("stableStat").textContent=stableCount(); $("riskStat").textContent=highRiskCount(); $("daysStat").textContent=days;
   $("meAdvice").textContent=meAdviceText(profileIndexes());
   renderBackupUI(); renderReminderUI(); updateBookBadge();
   $("devTools").style.display=DEV_TOOLS?"block":"none";
   if(!DEV_TOOLS) $("dataBox").style.display="none"; }
+
+// ---- 印历与补帖：留白不惩罚，最近 7 天可用一组真实书写补帖 ----
+let calendarMonthKey=today().slice(0,7), makeupPendingDay="";
+const calendarAnimatedMonths=new Set();
+function shiftMonth(key,amount){ const p=String(key).split("-").map(Number), d=new Date(p[0],p[1]-1+amount,1,12); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`; }
+function monthCn(key){ const [year,month]=String(key).split("-").map(Number); return `${year}年${numCn(month)}月`; }
+function daysFromToday(key){ return Math.round((dayStartMs(today())-dayStartMs(key))/86400000); }
+function canMakeupDay(key){ const gap=daysFromToday(key); return /^\d{4}-\d{2}-\d{2}$/.test(key) && gap>=1 && gap<=7 && !activity.practiceDays.includes(key); }
+function renderCalendar(){ const [year,month]=calendarMonthKey.split("-").map(Number), count=new Date(year,month,0).getDate(), first=(new Date(year,month-1,1).getDay()+6)%7, animate=!motionReduced()&&!calendarAnimatedMonths.has(calendarMonthKey), cells=[];
+  for(let i=0;i<first;i++) cells.push('<span class="calendarDay calendarPad"></span>');
+  let stampOrder=0; for(let date=1;date<=count;date++){ const key=`${calendarMonthKey}-${String(date).padStart(2,"0")}`, practiced=activity.practiceDays.includes(key), row=activity.daily[key]&&typeof activity.daily[key]==="object"?activity.daily[key]:{}, future=key>today(), makeable=canMakeupDay(key), stamp=practiced?`<i class="calendarStamp ${row.makeup?"makeup":""} ${animate?"land":""}" style="--stamp-delay:${(stampOrder++*.035).toFixed(3)}s">${row.makeup?"补":"拾"}</i>`:"";
+    cells.push(`<button class="calendarDay ${future?"future":""} ${makeable?"makeable":""} ${key===today()?"today":""}" data-day="${key}" ${makeable?'data-makeup="1"':''} ${future?'disabled':''}><span class="dayNumber">${date}</span>${stamp}</button>`); }
+  $("calendarGrid").innerHTML=cells.join(""); $("calendarMonthTitle").textContent=monthCn(calendarMonthKey); $("calendarMonthStat").textContent=`本月拾字 ${monthPracticeDays(calendarMonthKey+"-01")} 天`; $("calendarNext").disabled=calendarMonthKey>=today().slice(0,7);
+  $("calendarHint").textContent=resumableSession()?"当前还有一组未完成。写完这组后，可以补最近 7 天的留白日。":"最近 7 天的留白日可以补写一帖。补帖要完整写完 5 个字，才会落印。";
+  calendarAnimatedMonths.add(calendarMonthKey); }
+function openCalendar(month=calendarMonthKey){ calendarMonthKey=/^\d{4}-\d{2}$/.test(month)?month:today().slice(0,7); displayView("calendar"); renderCalendar(); }
+function closeMakeupSheet(){ makeupPendingDay=""; $("makeupSheet").classList.remove("open"); }
+function openMakeupSheet(key){ if(!canMakeupDay(key)) return; if(resumableSession()){ toast("先写完当前这组，再来补帖"); return; } makeupPendingDay=key; $("makeupTitle").textContent=`补写 ${Number(key.slice(5,7))}月${Number(key.slice(8))}日`;
+  $("makeupCopy").textContent="完整写完 5 个字后，这一天会落一枚浅色「补」印。中途返回不会落印。"; $("makeupSheet").classList.add("open"); }
+function uniqueCardIndexes(indexes){ const seen=new Set(); return (indexes||[]).filter(idx=>{ if(!Number.isInteger(idx)||idx<0||idx>=CARDS.length||qualityBlocked(idx)) return false; const key=cardKey(idx); if(seen.has(key)) return false; seen.add(key); return true; }); }
+function makeupCandidates(){ const due=reviewPool(false).sort(compareReviewPriority), risk=highRiskIndexes(), seen=profileIndexes().sort((a,b)=>personalDifficulty(b)-personalDifficulty(a)), fresh=newPool(false).sort((a,b)=>newScore(b)-newScore(a)); return uniqueCardIndexes([...due,...risk,...seen,...fresh]).slice(0,5); }
+function startMakeupDay(key=makeupPendingDay){ if(!canMakeupDay(key)) return false; const targets=makeupCandidates(); if(targets.length<5){ closeMakeupSheet(); toast("暂时凑不齐 5 个可练的字"); return false; }
+  closeMakeupSheet(); clearSessionSnapshot(); activeMode="makeup"; makeupTargetDay=key; focusQueue=targets; sessionDone=new Set(); startRound(); return true; }
+
+// ---- 月帖：按月汇总活动记录，优先使用有容量上限的最近独立墨迹 ----
+function cardIndexForStoredKey(key){ for(let i=0;i<CARDS.length;i++) if(cardKey(i)===key) return i; return -1; }
+function monthReportData(month=today().slice(0,7)){ const prefix=String(month).slice(0,7)+"-", days=activity.practiceDays.filter(day=>day.startsWith(prefix)).sort(), keys=[], independent=[];
+  days.forEach(day=>{ const row=dailyActivity(day); row.targetKeys.forEach(key=>{ if(!keys.includes(key)) keys.push(key); }); row.independentTargetKeys.forEach(key=>{ if(!independent.includes(key)) independent.push(key); }); });
+  fsrsReviewLog.filter(event=>event&&event.rating==="Good"&&String(event.localDay||"").startsWith(prefix)).forEach(event=>{ if(typeof event.cardKey==="string"&&!independent.includes(event.cardKey)) independent.push(event.cardKey); });
+  independent.forEach(key=>{ if(!keys.includes(key)) keys.push(key); });
+  const indexes=keys.map(cardIndexForStoredKey).filter(i=>i>=0), independentIndexes=independent.map(cardIndexForStoredKey).filter(i=>i>=0), hardest=independentIndexes.slice().sort((a,b)=>personalDifficulty(b)-personalDifficulty(a))[0], stable=indexes.filter(isStable).length;
+  return {month:String(month).slice(0,7),days,keys,indexes,independentKeys:independent,independentIndexes,practiced:keys.length,stable,independentCount:independent.length,practiceDays:days.length,hardest:Number.isInteger(hardest)?hardest:null}; }
+function loadInkImage(dataURL){ return new Promise(resolve=>{ if(!dataURL){ resolve(null); return; } const img=new Image(); img.onload=()=>resolve(img); img.onerror=()=>resolve(null); img.src=dataURL; }); }
+async function renderMonthlyPostCanvas(month=today().slice(0,7)){ const data=monthReportData(month), canvas=document.createElement("canvas"); canvas.width=1080; canvas.height=1440; const ctx=canvas.getContext("2d"), paper="#efe7d3", card="#fdfaf1", ink="#2b2620", muted="#665d4d", accent="#c2452c";
+  ctx.fillStyle=paper; ctx.fillRect(0,0,1080,1440); ctx.strokeStyle="rgba(82,66,45,.07)"; ctx.lineWidth=1; for(let y=25;y<1440;y+=31){ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(1080,y+8); ctx.stroke(); }
+  ctx.fillStyle=card; shareRoundRect(ctx,45,42,990,1350,14); ctx.fill(); ctx.strokeStyle="#d99b89"; ctx.lineWidth=4; ctx.stroke(); ctx.strokeStyle="#efd1c8"; ctx.lineWidth=2; ctx.strokeRect(67,64,946,1306);
+  ctx.fillStyle=ink; ctx.textAlign="left"; ctx.font='900 70px "Songti SC","STSong",serif'; ctx.fillText(`${Number(data.month.slice(5))}月拾得`,105,155); ctx.fillStyle=muted; ctx.font='500 27px -apple-system,"PingFang SC",sans-serif'; ctx.fillText("这一月，一笔一画拾回来的字",108,202);
+  const maxTiles=80, shown=data.indexes.slice(0,maxTiles), cols=shown.length<=20?5:shown.length<=42?7:10, rows=Math.max(1,Math.ceil(shown.length/cols)), gap=12, areaW=860, areaH=655, tile=Math.min(154,Math.floor((areaW-gap*(cols-1))/cols),Math.floor((areaH-gap*(rows-1))/rows)), gridW=cols*tile+(cols-1)*gap, startX=(1080-gridW)/2, startY=245;
+  const images=await Promise.all(shown.map(idx=>{ const recent=memory[cardKey(idx)]&&memory[cardKey(idx)].recentInk; return loadInkImage(recent&&String(recent.day||"").startsWith(data.month)?recent.dataURL:""); })); let inkTiles=0;
+  if(!shown.length){ ctx.fillStyle="#f8f2e5"; shareRoundRect(ctx,108,285,864,470,12); ctx.fill(); ctx.fillStyle=muted; ctx.textAlign="center"; ctx.font='400 42px "Kaiti SC","STKaiti",serif'; ctx.fillText("这个月的第一枚章，还在等你",540,535); }
+  shown.forEach((idx,i)=>{ const x=startX+(i%cols)*(tile+gap), y=startY+Math.floor(i/cols)*(tile+gap); ctx.save(); ctx.translate(x+tile/2,y+tile/2); ctx.rotate((ROTS[i%ROTS.length]||0)*Math.PI/360); ctx.translate(-x-tile/2,-y-tile/2); ctx.fillStyle="#fbf6ea"; shareRoundRect(ctx,x,y,tile,tile,Math.min(12,tile*.1)); ctx.fill(); ctx.strokeStyle="#e3d9c4"; ctx.lineWidth=2; ctx.stroke(); if(images[i]){ ctx.drawImage(images[i],x+5,y+5,tile-10,tile-10); inkTiles++; }else{ ctx.fillStyle=ink; ctx.textAlign="center"; ctx.font=`400 ${Math.max(30,Math.round(tile*.62))}px "Kaiti SC","STKaiti",serif`; ctx.fillText(CARDS[idx].target,x+tile/2,y+tile*.72); } ctx.restore(); });
+  if(data.indexes.length>maxTiles){ ctx.fillStyle=muted; ctx.textAlign="right"; ctx.font='500 24px -apple-system,"PingFang SC",sans-serif'; ctx.fillText(`另有 ${data.indexes.length-maxTiles} 字，也收在这个月里`,960,930); }
+  ctx.textAlign="left"; ctx.fillStyle=accent; ctx.font='900 104px "Songti SC","STSong",serif'; ctx.fillText(String(data.practiced),108,1115); ctx.fillStyle=ink; ctx.font='700 34px -apple-system,"PingFang SC",sans-serif'; ctx.fillText("当月练过",250,1100);
+  ctx.fillStyle=muted; ctx.font='600 28px -apple-system,"PingFang SC",sans-serif'; ctx.fillText(`已拾回 ${data.stable} 字`,108,1180); ctx.fillText(`独立写出 ${data.independentCount} 字`,365,1180); ctx.fillText(`练习 ${data.practiceDays} 天`,640,1180);
+  ctx.fillStyle=ink; ctx.font='500 31px "Kaiti SC","STKaiti",serif'; ctx.fillText(data.hardest!=null?`本月最难的一个字：${CARDS[data.hardest].target}`:"本月最难的一个字：还在等你",108,1254);
+  ctx.save(); ctx.translate(884,1160); ctx.rotate(-.08); ctx.fillStyle=accent; shareRoundRect(ctx,-72,-72,144,144,30); ctx.fill(); ctx.strokeStyle="#e9a18f"; ctx.lineWidth=6; ctx.stroke(); ctx.fillStyle="#fdfaf1"; ctx.textAlign="center"; ctx.font='400 48px "Kaiti SC","STKaiti",serif'; ctx.fillText("拾",0,-4); ctx.fillText("字",0,49); ctx.restore();
+  ctx.fillStyle=muted; ctx.textAlign="left"; ctx.font='500 25px "Songti SC","STSong",serif'; ctx.fillText(`${data.month.replace("-"," · ")} · 提笔忘字，拾回便是`,108,1330);
+  canvas.dataset.month=data.month; canvas.dataset.practiced=String(data.practiced); canvas.dataset.stable=String(data.stable); canvas.dataset.independent=String(data.independentCount); canvas.dataset.practiceDays=String(data.practiceDays); canvas.dataset.inkTiles=String(inkTiles); canvas.dataset.itemCount=String(data.indexes.length); return canvas; }
+async function shareMonthlyPost(opts={}){ const canvas=await renderMonthlyPostCanvas(opts.month||today().slice(0,7)), name=`shizi-month-${canvas.dataset.month}.png`, hasNative=Object.prototype.hasOwnProperty.call(opts,"nativeBridge"), native=hasNative?opts.nativeBridge:(window.webkit&&window.webkit.messageHandlers&&window.webkit.messageHandlers.shiziNative);
+  if(native){ const message={type:"sharePracticeCard",kind:"monthly",name,dataURL:canvas.toDataURL("image/png")}; native.postMessage(message); shareCardDebug.lastRoute="native"; shareCardDebug.lastMessage=message; return {route:"native",name,width:canvas.width,height:canvas.height}; }
+  const blob=await practiceCardBlob(canvas), nav=Object.prototype.hasOwnProperty.call(opts,"navigator")?opts.navigator:navigator, file=new File([blob],name,{type:"image/png"}); if(nav&&typeof nav.canShare==="function"&&typeof nav.share==="function"&&nav.canShare({files:[file]})){ try{ await nav.share({files:[file],title:"拾字 · 本月拾字帖"}); toast("月帖已分享"); return {route:"share",name,size:blob.size}; }catch(e){ if(e&&e.name==="AbortError") return {route:"cancelled",name,size:blob.size}; } }
+  if(typeof opts.download==="function") opts.download(blob,name); else { const url=URL.createObjectURL(blob),a=document.createElement("a"); a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),4000); } toast("月帖已存成图片"); return {route:"download",name,size:blob.size}; }
+
+// ---- 年度报告：当前年度四屏本地汇总，不上传、不比较 ----
+function yearReportData(year=new Date().getFullYear()){ const prefix=String(year)+"-", days=activity.practiceDays.filter(day=>day.startsWith(prefix)).sort(), months={}; days.forEach(day=>{ const key=day.slice(0,7); months[key]=(months[key]||0)+1; }); const keys=[]; days.forEach(day=>dailyActivity(day).targetKeys.forEach(key=>{ if(!keys.includes(key)) keys.push(key); })); const indexes=keys.map(cardIndexForStoredKey).filter(i=>i>=0), busiest=Object.entries(months).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]))[0]||null, rarest=indexes.slice().sort((a,b)=>(Number(CARDS[b].rank)||0)-(Number(CARDS[a].rank)||0)||cardDifficulty(b)-cardDifficulty(a))[0], firstDay=days.find(day=>dailyActivity(day).targetKeys.length), firstKey=firstDay&&dailyActivity(firstDay).targetKeys[0], first=firstKey?cardIndexForStoredKey(firstKey):-1; return {year,days,keys,indexes,busiest,rarest:Number.isInteger(rarest)?rarest:null,first:first>=0?first:null,firstDay}; }
+function renderAnnualReport(year=new Date().getFullYear()){ const data=yearReportData(year); displayView("annual"); $("annualTitle").textContent=`${year} 年拾字报告`; if(!data.days.length){ $("annualSlides").innerHTML='<div class="annualSlide"><div class="annualEmpty">今年的第一枚章还没落下。<br>练过的字会在这里慢慢长成一卷。</div></div>'; return; }
+  const month=data.busiest?Number(data.busiest[0].slice(5)):0, firstChar=data.first!=null?CARDS[data.first].target:"", rareChar=data.rarest!=null?CARDS[data.rarest].target:""; $("annualSlides").innerHTML=`<section class="annualSlide"><span class="annualEyebrow">${year} · 拾字总数</span><b>${data.keys.length} 字</b><p>这些字，都在你的笔下真实出现过。</p></section><section class="annualSlide"><span class="annualEyebrow">这一年最常提笔的月份</span><b>${month} 月</b><p>这个月练了 ${data.busiest[1]} 天。只记相遇，不记缺席。</p></section><section class="annualSlide"><span class="annualEyebrow">写过最生僻的一个字</span><b class="annualChar">${esc(rareChar)}</b><p>${data.rarest!=null?esc(CARDS[data.rarest].word):""}</p></section><section class="annualSlide"><span class="annualEyebrow">这一年的第一个字</span><b class="annualChar">${esc(firstChar)}</b><p>${data.firstDay||""}，从这一笔开始。</p></section>`; $("annualSlides").scrollTop=0; }
 function toggleInternalTools(force){
   const box=$("internalTools"), open=force==null?box.style.display!=="block":!!force;
   box.style.display=open?"block":"none"; box.classList.toggle("open",open); $("toolsState").textContent=open?"收起":"展开"; }
 function startMode(mode){ const resume=resumableSession(); if(resume){ restoreSession(resume); return; }
-  clearSessionSnapshot(); activeMode=(mode==="new" && needsCalibration())?"calibrate":mode; focusQueue=[]; sessionDone=new Set(); startRound(); }
+  clearSessionSnapshot(); activeMode=(mode==="new" && needsCalibration())?"calibrate":mode; makeupTargetDay=""; focusQueue=[]; sessionDone=new Set(); startRound(); }
 function startFocus(indexes){ focusQueue=[...new Set((indexes||highRiskIndexes()).filter(i=>i>=0 && i<CARDS.length))]; if(!focusQueue.length){ renderHome(); return; }
-  clearSessionSnapshot(); activeMode="focus"; sessionDone=new Set(); startRound(); }
+  clearSessionSnapshot(); activeMode="focus"; makeupTargetDay=""; sessionDone=new Set(); startRound(); }
 // ---- 字盒：收藏是主角，复习从收藏里长出来 ----
 let boxFilter="all", bookExpanded=false;
 function lastOutcomeDot(i){ return OUTCOME_DOT[(memory[cardKey(i)]||{}).lastOutcome]||"transparent"; }
@@ -2068,7 +2208,7 @@ function chooseReviewBatch(all){ return all.slice().sort(compareReviewPriority).
 function startRound(){ if(activeMode==="review" && reviewBudgetRemaining()===0){ clearSessionSnapshot(); renderHome(); toast("今天的复习已完成，可以拾新字"); return; }
   const p=availablePool(), queued=activeMode==="calibrate"?[]:queuedFrontPool(); if(p.length===0 && queued.length===0){ clearSessionSnapshot(); allDone(); return; } resetAdaptiveSession();
   roundStartMemoryCount=memoryCount();
-  baseTargets=activeMode==="focus"?chooseFocusBatch(p):(activeMode==="review"?chooseReviewBatch(p):(activeMode==="calibrate"?chooseCalibrationBatch(p):chooseBatch(p)));
+  baseTargets=(activeMode==="focus"||activeMode==="makeup")?chooseFocusBatch(p).slice(0,activeMode==="makeup"?5:BATCH):(activeMode==="review"?chooseReviewBatch(p):(activeMode==="calibrate"?chooseCalibrationBatch(p):chooseBatch(p)));
   if(queued.length){ const front=new Set(queued); baseTargets=[...queued,...baseTargets.filter(i=>!front.has(i))].slice(0,BATCH); }
   if(activeMode==="review"){ baseTargets=baseTargets.slice(0,reviewBudgetRemaining()); reserveReviewTargets(baseTargets); }
   calibrationTargets=activeMode==="calibrate"?baseTargets.slice():[];
@@ -2092,7 +2232,7 @@ function roundSummary(fromPractice=false){ const durationMs=currentRoundElapsed(
   clearTimeout(summarySealTimer); summarySealTimer=0; if(milestone||fromPractice) summarySealTimer=setTimeout(()=>hapticFeedback(milestone?"milestone":"action"),sealDelay*1000);
   $("summaryShare").textContent=milestone?"存为里程碑字帖":"存为字帖";
   $("calibShare").textContent=milestone?"存为里程碑字帖":"存为字帖";
-  const wasCalibration=activeMode==="calibrate", calibrationStats=wasCalibration?calibrationRoundStats():roundStats, calibrationNote=maybeFinishCalibration(), remain=activeMode==="review"?reviewTodayCount():availablePool().length;
+  const wasCalibration=activeMode==="calibrate", wasMakeup=activeMode==="makeup", calendarDay=makeupTargetDay, calibrationStats=wasCalibration?calibrationRoundStats():roundStats, calibrationNote=maybeFinishCalibration(), remain=activeMode==="review"?reviewTodayCount():availablePool().length;
   const counts=roundCounts(calibrationStats), hardN=(counts.hinted||0)+(counts.miss||0)+(counts.slow||0), keptN=calibrationStats.length-hardN, dayTotal=todayStampCount(), completedGroups=dailyActivity().completedGroups;
   const risky=[...new Set(roundStats.filter(x=>x.outcome!=="fast").map(x=>x.idx))];
   $("calibCard").style.display=wasCalibration?"flex":"none"; $("calibCard").style.flexDirection="column"; $("calibCard").style.flex="1";
@@ -2108,12 +2248,12 @@ function roundSummary(fromPractice=false){ const durationMs=currentRoundElapsed(
     return; }
   $("calibPocketCard").style.display="none";
   $("summaryProfile").style.display=hardN>0?"block":"none";
-  $("sumH2").textContent=completedGroups>1?`今日已拾 ${dayTotal} 字`:"今日拾得";
-  $("sumLead").innerHTML=hardN>0?`本组 <b class="ok">${roundStats.length}</b> 个字全部完成，<br><b class="warn">${hardN}</b> 个首答没写出，之后已独立写出。`:`这一把 <b class="ok">${keptN}</b> 个字首答都独立写出了。`;
+  $("sumH2").textContent=wasMakeup?"补帖已盖":(completedGroups>1?`今日已拾 ${dayTotal} 字`:"今日拾得");
+  $("sumLead").innerHTML=wasMakeup?`${formatDueDay(calendarDay)}补写完成，<br>这一天落下了一枚浅色「补」印。`:(hardN>0?`本组 <b class="ok">${roundStats.length}</b> 个字全部完成，<br><b class="warn">${hardN}</b> 个首答没写出，之后已独立写出。`:`这一把 <b class="ok">${keptN}</b> 个字首答都独立写出了。`);
   renderPracticePocket(risky,false);
   renderRoundTune(calibrationNote);
   renderSummaryBackupHint();
-  $("more").style.display=remain>0?"":"none";
+  $("more").style.display=!wasMakeup&&remain>0?"":"none";
   $("more").textContent=activeMode==="review"?`继续复习（今日还可 ${Math.min(BATCH,remain)}）`:activeMode==="focus"?`继续（还剩 ${remain}）`:"加练一组"; }
 function allDone(){ displayView("summary"); clearTimeout(summarySealTimer); summarySealTimer=0; renderSummaryMilestone(null);
   $("summaryShare").style.display="none"; $("calibShare").style.display="none";
@@ -2124,7 +2264,7 @@ function allDone(){ displayView("summary"); clearTimeout(summarySealTimer); summ
   $("sumTiles").innerHTML=""; $("sumPracticeHint").style.display="none"; $("calibPracticeHint").style.display="none"; $("pocketCard").style.display="none"; $("calibPocketCard").style.display="none"; summaryFocusIndexes=[]; $("summaryBackupHint").style.display="none";
   $("roundTune").style.display="none"; $("summaryProfile").style.display="none"; $("more").style.display="none"; }
 $("more").onclick=startRound;
-$("stop").onclick=renderHome;
+$("stop").onclick=()=>activeMode==="makeup"?openCalendar(makeupTargetDay.slice(0,7)):renderHome();
 $("calibDone").onclick=renderHome;
 $("calibAgain").onclick=()=>startMode("new");
 $("calibReminderYes").onclick=()=>{ acceptReminderInvite(); renderCalibrationReturnHook(); };
@@ -2168,6 +2308,17 @@ $("tabMe").onclick=renderMe;
 $("meRisk").onclick=()=>openBook("risk");
 $("meStable").onclick=()=>openBook("stable");
 $("meSeen").onclick=()=>openProfile("me");
+$("meDays").onclick=()=>openCalendar(today().slice(0,7));
+$("closeCalendar").onclick=renderMe;
+$("calendarPrev").onclick=()=>{ calendarMonthKey=shiftMonth(calendarMonthKey,-1); renderCalendar(); };
+$("calendarNext").onclick=()=>{ if(calendarMonthKey<today().slice(0,7)){ calendarMonthKey=shiftMonth(calendarMonthKey,1); renderCalendar(); } };
+$("calendarGrid").onclick=e=>{ const day=e.target.closest("[data-makeup]"); if(day) openMakeupSheet(day.dataset.day); };
+$("makeupCancel").onclick=closeMakeupSheet;
+$("makeupConfirm").onclick=()=>startMakeupDay();
+$("makeupSheet").onclick=e=>{ if(e.target===$("makeupSheet")) closeMakeupSheet(); };
+$("monthlyPostLink").onclick=async()=>{ const button=$("monthlyPostLink"); if(button.disabled) return; button.disabled=true; try{ await shareMonthlyPost(); }catch(e){ toast("月帖生成失败，请再试一次"); }finally{ button.disabled=false; } };
+$("annualReportLink").onclick=()=>renderAnnualReport();
+$("closeAnnual").onclick=renderMe;
 $("openProfile").onclick=()=>openProfile("me");
 $("summaryProfile").onclick=()=>openProfile("summary");
 $("calibProfile").onclick=()=>openProfile("summary");
@@ -2333,7 +2484,7 @@ $("importLink").onclick=requestBackupImport;
 $("welcomeRestore").onclick=requestBackupImport;
 $("importFile").onchange=e=>{ const f=e.target.files && e.target.files[0]; e.target.value=""; if(f) importBackup(f); };
 function resetAllData(opts){ const options=opts||{}; if(!options.skipConfirm && !confirm(`清空当前 ${memoryCount()} 个字和全部练习记录？操作后可以撤销一次。`)) return false; captureSafetySnapshot("reset");
-  status={}; memory={}; fsrsReviewLog=[]; traceTutorialShown=false; quality={}; tuning={calibrated:false, offset:0, contextStrict:0, rounds:[]}; preference="balanced"; fontScaleLarge=false; applyFontScale(); opens=[today()]; customWords=[]; addedChars=[]; activity=newActivity(); funnel=newFunnel(); backupMeta=normalizeBackupMeta(null); summaryBackupHintVisible=false; reminder=normalizeReminder(null); sound=normalizeSound(null); saveSound(); renderSoundUI(); saveReminder(); syncReminder(); save(DECK_KEY,status); save(MEMORY_KEY,memory); saveFSRSLog(); save(TRACE_TUTORIAL_KEY,false); save(QUALITY_KEY,quality); saveTuning(); save(PREF_KEY,preference); save(FONT_SCALE_KEY,false); save(OPEN_KEY,opens); save(CUSTOM_KEY,customWords); save(ADDED_KEY,addedChars); saveActivity(); saveFunnel(); save(BACKUP_META_KEY,backupMeta); buildCustomCards(); removeStored(TOPIC_KEY); clearSessionSnapshot(); sessionDone=new Set(); focusQueue=[]; renderHome(); $("dataBox").style.display="none"; showSafetyUndo(); return true; }
+  status={}; memory={}; fsrsReviewLog=[]; traceTutorialShown=false; quality={}; tuning={calibrated:false, offset:0, contextStrict:0, rounds:[]}; preference="balanced"; fontScaleLarge=false; applyFontScale(); opens=[today()]; customWords=[]; addedChars=[]; activity=newActivity(); funnel=newFunnel(); backupMeta=normalizeBackupMeta(null); summaryBackupHintVisible=false; reminder=normalizeReminder(null); sound=normalizeSound(null); saveSound(); renderSoundUI(); saveReminder(); syncReminder(); save(DECK_KEY,status); save(MEMORY_KEY,memory); saveFSRSLog(); save(TRACE_TUTORIAL_KEY,false); save(QUALITY_KEY,quality); saveTuning(); save(PREF_KEY,preference); save(FONT_SCALE_KEY,false); save(OPEN_KEY,opens); save(CUSTOM_KEY,customWords); save(ADDED_KEY,addedChars); saveActivity(); saveFunnel(); save(BACKUP_META_KEY,backupMeta); buildCustomCards(); removeStored(TOPIC_KEY); clearSessionSnapshot(); activeMode="new"; makeupTargetDay=""; sessionDone=new Set(); focusQueue=[]; renderHome(); $("dataBox").style.display="none"; showSafetyUndo(); return true; }
 $("resetLink").onclick=resetAllData;
 $("safetyUndoBtn").onclick=()=>undoSafetyRestore();
 

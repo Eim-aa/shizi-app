@@ -744,6 +744,7 @@
         <button data-pref="challenge">偏挑战</button>
       </div></div>
       <button class="meRow" id="fontScaleRow" aria-pressed="false"><span class="meRowMain">更大字体<small>练习、反馈和说明一起放大</small></span><span class="backupBadge" id="fontScaleState">关</span></button>
+      <button class="meRow" id="soundRow" aria-pressed="true"><span class="meRowMain">纸墨声音<small>只在盖章与描红落笔时响</small></span><span class="backupBadge" id="soundState">开</span></button>
       <button class="meRow" id="addLink"><span style="color:var(--ink);">＋ 加字（抓现实里提笔忘的字）</span><span>›</span></button>
     </div>
     <div id="reminderSection" style="display:none">
@@ -853,7 +854,7 @@ SEED.forEach(w=>{ const chars=Array.from(w.ans), pys=w.py.split(/\s+/);
 // ---- 本地存储 ----
 const DECK_KEY="shizi.deck.v8105.context1", OPEN_KEY="shizi.opens.v1", MEMORY_KEY="shizi.memory.v1", QUALITY_KEY="shizi.quality.v1", PREF_KEY="shizi.pref.v1", TUNING_KEY="shizi.tuning.v1",
   ACTIVITY_KEY="shizi.activity.v1", SESSION_KEY="shizi.session.v1", BACKUP_META_KEY="shizi.backupMeta.v1", REMINDER_KEY="shizi.reminder.v1", SAFETY_KEY="shizi.safety.v1",
-  FSRS_LOG_KEY="shizi.fsrsReviewLog.v1", TRACE_TUTORIAL_KEY="shizi.traceTutorial.v1", FONT_SCALE_KEY="shizi.fontScale.v1", FUNNEL_KEY="shizi.funnel.v1";
+  FSRS_LOG_KEY="shizi.fsrsReviewLog.v1", TRACE_TUTORIAL_KEY="shizi.traceTutorial.v1", FONT_SCALE_KEY="shizi.fontScale.v1", FUNNEL_KEY="shizi.funnel.v1", SOUND_KEY="shizi.sound.v1";
 function load(k,d){ try{ return JSON.parse(localStorage.getItem(k)) ?? d; }catch(e){ return d; } }
 function save(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); return true; }catch(e){ return false; } }
 function removeStored(k){ try{ localStorage.removeItem(k); }catch(e){} }
@@ -971,6 +972,26 @@ function normalizeReminder(raw){ const r=raw && typeof raw==="object"?raw:{};
 let reminder=normalizeReminder(load(REMINDER_KEY,null)); save(REMINDER_KEY,reminder);
 let reminderPendingEnable=false;
 const reminderDebug={lastSync:null};
+// ---- 纸墨声音：全局只在盖章与描红起笔两处触发；iOS 交给尊重静音键的原生 ambient 播放 ----
+function normalizeSound(raw){ const value=raw&&typeof raw==="object"?raw:{}; return {enabled:value.enabled!==false,tipShown:value.tipShown===true}; }
+let sound=normalizeSound(load(SOUND_KEY,null)); save(SOUND_KEY,sound);
+const soundDebug={last:null,events:[],contextCreated:0};
+let webAudioContext=null, lastPaperSoundAt=0;
+function saveSound(){ save(SOUND_KEY,sound); }
+function createWebAudioContext(){ if(webAudioContext) return webAudioContext; const AudioCtor=window.AudioContext||window.webkitAudioContext; if(!AudioCtor) return null;
+  try{ webAudioContext=new AudioCtor(); soundDebug.contextCreated++; return webAudioContext; }catch(e){ return null; } }
+function playWebPaperSound(kind){ const ctx=createWebAudioContext(); if(!ctx) return false; if(ctx.state==="suspended"&&typeof ctx.resume==="function") ctx.resume();
+  const duration=kind==="stamp"?.22:.11, length=Math.max(1,Math.round(ctx.sampleRate*duration)), buffer=ctx.createBuffer(1,length,ctx.sampleRate), data=buffer.getChannelData(0); let seed=kind==="stamp"?194:73, filtered=0;
+  for(let i=0;i<length;i++){ seed=(Math.imul(seed,1664525)+1013904223)>>>0; const noise=(seed/4294967295)*2-1, t=i/ctx.sampleRate, envelope=Math.pow(1-i/length,kind==="stamp"?2.8:1.4);
+    if(kind==="stamp"){ filtered=filtered*.82+noise*.18; data[i]=(Math.sin(2*Math.PI*(82+22*t)*t)*.58+filtered*.34)*envelope*.42; }
+    else data[i]=(noise-filtered)*envelope*.075, filtered=noise; }
+  const source=ctx.createBufferSource(), gain=ctx.createGain(); source.buffer=buffer; gain.gain.value=1; source.connect(gain); gain.connect(ctx.destination); source.start(); return true; }
+function soundFeedback(kind){ if(!sound.enabled || !["stamp","paper"].includes(kind)) return false; const now=Date.now(); if(kind==="paper"&&now-lastPaperSoundAt<100) return false; if(kind==="paper") lastPaperSoundAt=now;
+  soundDebug.last=kind; soundDebug.events.push(kind); soundDebug.events=soundDebug.events.slice(-30);
+  if(reminderBridgeAvailable()) window.webkit.messageHandlers.shiziNative.postMessage({type:"sound",kind}); else playWebPaperSound(kind); return true; }
+function renderSoundUI(){ const row=$("soundRow"); if(!row) return; row.setAttribute("aria-pressed",sound.enabled?"true":"false"); $("soundState").textContent=sound.enabled?"开":"关"; }
+function toggleSound(){ sound.enabled=!sound.enabled; saveSound(); renderSoundUI(); toast(sound.enabled?"纸墨声音已开启":"纸墨声音已关闭"); }
+function noteSoundTip(){ if(!sound.enabled||sound.tipShown) return; sound.tipShown=true; saveSound(); toast("盖章有声音了 · 可在\"我的\"里关"); }
 // ---- 触觉反馈（iOS 壳内按记账/过程完成/选择切换分层；浏览器/PWA no-op，仅记录供断言）----
 const hapticDebug={last:null,events:[]};
 function hapticFeedback(kind){ hapticDebug.last=kind; hapticDebug.events.push(kind); hapticDebug.events=hapticDebug.events.slice(-30);
@@ -978,9 +999,24 @@ function hapticFeedback(kind){ hapticDebug.last=kind; hapticDebug.events.push(ki
   else if(["stamp","milestone"].includes(kind) && navigator&&typeof navigator.vibrate==="function") try{ navigator.vibrate(10); }catch(e){} }
 function saveReminder(){ save(REMINDER_KEY,reminder); }
 function reminderBridgeAvailable(){ return !!(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.shiziNative); }
+function reminderQuestion(idx,day){ const c=CARDS[idx]; if(!c||!String(c.word||"").trim()||!String(c.py||"").trim()) return null;
+  return {day,title:`${c.word}的 ${c.py}`,body:"还写得出吗，点开写写看",targetCardKey:cardKey(idx)}; }
+function reminderCandidates(day){ const eligible=i=>{ const c=CARDS[i],m=memory[cardKey(i)]; return c&&m&&m.seen&&!m.pendingLearning&&!qualityBlocked(i)&&String(c.word||"").trim()&&String(c.py||"").trim(); };
+  const due=allIndexes().filter(i=>{ if(!eligible(i)) return false; const dueDay=(memory[cardKey(i)]||{}).dueDay; return !dueDay||dueDay<=day; });
+  const compare=(a,b)=>{ const am=(memory[cardKey(a)]||{}).lastOutcome==="miss",bm=(memory[cardKey(b)]||{}).lastOutcome==="miss"; if(am!==bm) return am?-1:1;
+    const ad=(memory[cardKey(a)]||{}).dueDay||"",bd=(memory[cardKey(b)]||{}).dueDay||""; return ad.localeCompare(bd)||personalDifficulty(b)-personalDifficulty(a); };
+  if(due.length) return due.sort(compare); return highRiskIndexes().filter(eligible).sort(compare); }
+function reminderQuestions(count=8){ const used=new Set(), result=[]; for(let offset=0;offset<count;offset++){ const day=shiftDay(today(),offset), candidates=reminderCandidates(day); if(!candidates.length) continue;
+    const idx=candidates.find(i=>!used.has(cardKey(i)))??candidates[0], question=reminderQuestion(idx,day); if(question){ used.add(question.targetCardKey); result.push(question); } } return result; }
+function indexForCardKey(key){ return allIndexes().find(i=>cardKey(i)===String(key||""))??-1; }
+function shiziOpenReminderTarget(targetCardKey){ const idx=indexForCardKey(targetCardKey); if(idx<0) return false; const resume=resumableSession();
+  if(resume){ restoreSession(resume); if(currentCardIndex()!==idx){ insertIntoCurrentBatch([idx]); toast(`通知里的「${CARDS[idx].target}」已排到下一题`); } return true; }
+  startFocus([idx]); return currentCardIndex()===idx; }
 // 唯一的调度入口。已练静默的门槛=盖第一章；累计 +1 的门槛=完成一组，两者刻意不同。
 function syncReminder(){ const t=medianPracticeTime();
-  const payload={type:"syncReminder", enabled:reminder.enabled && reminder.permission==="granted", hour:t.hour, minute:t.minute, practicedToday:dailyActivity().stamps>0};
+  const questions=reminderQuestions(), first=questions[0]||{};
+  const payload={type:"syncReminder", enabled:reminder.enabled && reminder.permission==="granted" && questions.length>0, hour:t.hour, minute:t.minute, practicedToday:dailyActivity().stamps>0,
+    title:first.title||"", body:first.body||"", targetCardKey:first.targetCardKey||"", questions};
   reminderDebug.lastSync=payload;
   if(reminderBridgeAvailable()) window.webkit.messageHandlers.shiziNative.postMessage(payload); }
 function requestReminderPermission(){ if(reminderBridgeAvailable()) window.webkit.messageHandlers.shiziNative.postMessage({type:"requestReminderPermission"}); }
@@ -995,7 +1031,7 @@ function reminderStatusText(){
   if(reminder.enabled && reminder.permission==="unknown") return "轻点完成开启";
   if(reminder.permission==="denied") return "需要在系统设置里允许通知";
   if(!reminder.enabled) return "关";
-  const t=medianPracticeTime(); return `每天 ${String(t.hour).padStart(2,"0")}:${String(t.minute).padStart(2,"0")}`; }
+  const t=medianPracticeTime(); return `每天 ${String(t.hour).padStart(2,"0")}:${String(t.minute).padStart(2,"0")} · 通知里先写一字`; }
 function renderReminderUI(){ if(!$("reminderSection")) return; const supported=reminderBridgeAvailable();
   $("reminderSection").style.display=supported?"block":"none";
   if(!supported) return;
@@ -1390,7 +1426,7 @@ function meAdviceText(idxs){ if(!idxs.length) return "练几组后，这里会�
   if(topic) bits.push(topic.label+"主题"); if(lvl) bits.push(lvl.label+"字"); if(st) bits.push(st.label);
   return `最常卡在：${bits.join("、")}。点开看详细分析。`; }
 function renderMe(){ displayView("me");
-  applyPrefUI();
+  applyPrefUI(); renderSoundUI();
   const days=totalPracticeDays(); $("meDayState").textContent=days>0?`拾字第 ${days} 天`:(todayStampCount()>0?"拾字第 1 天 · 进行中":"今天还没开始拾字");
   $("seenStat").textContent=memoryCount(); $("stableStat").textContent=stableCount(); $("riskStat").textContent=highRiskCount();
   $("meAdvice").textContent=meAdviceText(profileIndexes());
@@ -1642,7 +1678,7 @@ function warmUpcomingStrokeCache(){ if(!navigator.onLine) return; try{
 // 只在揭晓时判定，绝不在书写过程中反馈（写一半就提示对错=泄题，回忆练习会变成试错）。
 // 判定是近似（连笔/草书会被误判），所以结果只作为「建议」预圈印章，最终以用户盖章为准。
 let inkStrokes=[], curInkStroke=null, curMedians=null, lastVerdict=null, tracing=false, traceStrokeStartCount=0, tracedThisCard=false;
-function inkBegin(p){ curInkStroke=[{x:p.x,y:p.y}]; onTeachStrokeStart(); }
+function inkBegin(p){ curInkStroke=[{x:p.x,y:p.y}]; if(tracing) soundFeedback("paper"); onTeachStrokeStart(); }
 function inkMove(p){ if(curInkStroke) curInkStroke.push({x:p.x,y:p.y}); }
 function inkEnd(){ if(!curInkStroke) return;
   // 无位移的点按没有留下墨迹，不算一笔
@@ -1983,7 +2019,7 @@ function pickStamp(outcome,options={}){ if(stamped || !revealed) return; stamped
   lastStampSnapshot=takeStampSnapshot();
   const firstCalibrationHold=activeMode==="calibrate" && baseCursor===0 && !calibrationFirstHoldUsed;
   if(firstCalibrationHold) calibrationFirstHoldUsed=true;
-  const comfort=takeCalibrationComfort(outcome); recordOutcome(outcome,options); lastStampSnapshot.outcome=outcome; practicePhase="feedback"; feedbackKind=outcome; hapticFeedback("stamp");
+  const comfort=takeCalibrationComfort(outcome); recordOutcome(outcome,options); lastStampSnapshot.outcome=outcome; practicePhase="feedback"; feedbackKind=outcome; hapticFeedback("stamp"); soundFeedback("stamp"); noteSoundTip();
   showStampedFeedback(outcome,options); if(options.uncertain){ $("toastTitle").textContent="已记为记不清"; $("toastSubEl").textContent="盖「补拾」· 本组稍后再写"; }
   if(comfort){ $("toastTitle").textContent="忘了很正常"; $("toastSubEl").textContent="这个字很久没写了，待会再拾一次"; }
   clearTimeout(editStampTimer); editStampTimer=setTimeout(()=>{ $("editStamp").disabled=true; },EDIT_STAMP_WINDOW_MS);
@@ -2124,6 +2160,7 @@ $("boxFilters").onclick=e=>{ const b=e.target.closest("[data-filter]"); if(b){ b
 // ---- 底部三 tab + 首页大印章 ----
 $("startBtn").onclick=()=>{ if($("startBtn").disabled) return; startMode(reviewTodayCount()>0?"review":"new"); };
 $("yesterRow").onclick=e=>{ const target=e.target.closest("[data-daily-index]"); if(target) startFocus([Number(target.dataset.dailyIndex)]); };
+$("soundRow").onclick=toggleSound;
 $("welcomeStart").onclick=()=>startMode("new");
 $("tabPractice").onclick=renderHome;
 $("tabBook").onclick=()=>openBook();
@@ -2233,7 +2270,7 @@ async function sharePracticeCard(opts={}){ const canvas=renderPracticeCardCanvas
 
 // ---- 数据备份 / 恢复（localStorage 是唯一存储，换手机或清缓存前先导出）----
 // 新增 shizi.* 持久键时必须同步加入；shizi.nativeSmoke.v1 与 SAFETY_KEY 为刻意排除。
-const BACKUP_KEYS=[DECK_KEY,OPEN_KEY,MEMORY_KEY,QUALITY_KEY,PREF_KEY,TUNING_KEY,ACTIVITY_KEY,SESSION_KEY,FSRS_LOG_KEY,TRACE_TUTORIAL_KEY,BACKUP_META_KEY,REMINDER_KEY,FONT_SCALE_KEY,FUNNEL_KEY,TOPIC_KEY,CUSTOM_KEY,ADDED_KEY];
+const BACKUP_KEYS=[DECK_KEY,OPEN_KEY,MEMORY_KEY,QUALITY_KEY,PREF_KEY,TUNING_KEY,ACTIVITY_KEY,SESSION_KEY,FSRS_LOG_KEY,TRACE_TUTORIAL_KEY,BACKUP_META_KEY,REMINDER_KEY,FONT_SCALE_KEY,FUNNEL_KEY,SOUND_KEY,TOPIC_KEY,CUSTOM_KEY,ADDED_KEY];
 function backupAgeDays(){ const ts=Number(backupMeta.lastExportAt)||0; return ts?Math.max(0,Math.floor((Date.now()-ts)/86400000)):Number.POSITIVE_INFINITY; }
 function backupRelativeText(){ const days=backupAgeDays(); if(!Number.isFinite(days)) return "从未备份"; if(days===0) return "上次备份 · 今天"; if(days===1) return "上次备份 · 昨天"; return `上次备份 · ${days} 天前`; }
 function renderBackupUI(){ $("backupStatus").textContent=backupRelativeText(); const needs=(completedDayCount()>=5 || memoryCount()>=30) && backupAgeDays()>=7;
@@ -2296,7 +2333,7 @@ $("importLink").onclick=requestBackupImport;
 $("welcomeRestore").onclick=requestBackupImport;
 $("importFile").onchange=e=>{ const f=e.target.files && e.target.files[0]; e.target.value=""; if(f) importBackup(f); };
 function resetAllData(opts){ const options=opts||{}; if(!options.skipConfirm && !confirm(`清空当前 ${memoryCount()} 个字和全部练习记录？操作后可以撤销一次。`)) return false; captureSafetySnapshot("reset");
-  status={}; memory={}; fsrsReviewLog=[]; traceTutorialShown=false; quality={}; tuning={calibrated:false, offset:0, contextStrict:0, rounds:[]}; preference="balanced"; fontScaleLarge=false; applyFontScale(); opens=[today()]; customWords=[]; addedChars=[]; activity=newActivity(); funnel=newFunnel(); backupMeta=normalizeBackupMeta(null); summaryBackupHintVisible=false; reminder=normalizeReminder(null); saveReminder(); syncReminder(); save(DECK_KEY,status); save(MEMORY_KEY,memory); saveFSRSLog(); save(TRACE_TUTORIAL_KEY,false); save(QUALITY_KEY,quality); saveTuning(); save(PREF_KEY,preference); save(FONT_SCALE_KEY,false); save(OPEN_KEY,opens); save(CUSTOM_KEY,customWords); save(ADDED_KEY,addedChars); saveActivity(); saveFunnel(); save(BACKUP_META_KEY,backupMeta); buildCustomCards(); removeStored(TOPIC_KEY); clearSessionSnapshot(); sessionDone=new Set(); focusQueue=[]; renderHome(); $("dataBox").style.display="none"; showSafetyUndo(); return true; }
+  status={}; memory={}; fsrsReviewLog=[]; traceTutorialShown=false; quality={}; tuning={calibrated:false, offset:0, contextStrict:0, rounds:[]}; preference="balanced"; fontScaleLarge=false; applyFontScale(); opens=[today()]; customWords=[]; addedChars=[]; activity=newActivity(); funnel=newFunnel(); backupMeta=normalizeBackupMeta(null); summaryBackupHintVisible=false; reminder=normalizeReminder(null); sound=normalizeSound(null); saveSound(); renderSoundUI(); saveReminder(); syncReminder(); save(DECK_KEY,status); save(MEMORY_KEY,memory); saveFSRSLog(); save(TRACE_TUTORIAL_KEY,false); save(QUALITY_KEY,quality); saveTuning(); save(PREF_KEY,preference); save(FONT_SCALE_KEY,false); save(OPEN_KEY,opens); save(CUSTOM_KEY,customWords); save(ADDED_KEY,addedChars); saveActivity(); saveFunnel(); save(BACKUP_META_KEY,backupMeta); buildCustomCards(); removeStored(TOPIC_KEY); clearSessionSnapshot(); sessionDone=new Set(); focusQueue=[]; renderHome(); $("dataBox").style.display="none"; showSafetyUndo(); return true; }
 $("resetLink").onclick=resetAllData;
 $("safetyUndoBtn").onclick=()=>undoSafetyRestore();
 

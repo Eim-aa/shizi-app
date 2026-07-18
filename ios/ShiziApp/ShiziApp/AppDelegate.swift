@@ -27,4 +27,20 @@ extension AppDelegate: UNUserNotificationCenterDelegate {
         // 人已经在 App 里，前台不弹提醒横幅
         completionHandler([])
     }
+
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse,
+        withCompletionHandler completionHandler: @escaping () -> Void
+    ) {
+        defer { completionHandler() }
+        guard
+            let targetCardKey = response.notification.request.content.userInfo["targetCardKey"] as? String,
+            !targetCardKey.isEmpty,
+            let controller = window?.rootViewController as? WebViewController
+        else {
+            return
+        }
+        controller.openReminderTarget(cardKey: targetCardKey)
+    }
 }

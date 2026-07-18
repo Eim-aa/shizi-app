@@ -631,6 +631,7 @@ final class WebViewController: UIViewController {
               result.practiceFlow.revealVisible = true;
               result.practiceFlow.decisionVisible = visible('decisionRow');
               result.practiceFlow.functionalDecisionLabels = document.getElementById('decisionCorrect').textContent.includes('写对了') && document.getElementById('decisionWrong').textContent.includes('写错了');
+              result.practiceFlow.selfAssessmentControls = visible('uncertainAction') && document.getElementById('decisionUncertain').textContent.includes('记不清') && !visible('softConfirm');
               result.practiceFlow.submissionSnapshotComplete = submissionSnapshot.hintStrokeIds.length > 0 && submissionSnapshot.compositeGeometry.length === submissionSnapshot.hintStrokes.length + submissionSnapshot.inkStrokes.length && submissionSnapshot.lastVerdict.status === 'ok';
 
               decideSubmission(true);

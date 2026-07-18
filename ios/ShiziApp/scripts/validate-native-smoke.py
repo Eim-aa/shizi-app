@@ -141,6 +141,7 @@ checks = {
     "practiceReveal": practice.get("revealVisible") is True
     and practice.get("decisionVisible") is True
     and practice.get("functionalDecisionLabels") is True
+    and practice.get("selfAssessmentControls") is True
     and practice.get("submissionSnapshotComplete") is True,
     "practiceStamp": practice.get("outcome") == "hinted"
     and practice.get("immediateAdvanced") is True

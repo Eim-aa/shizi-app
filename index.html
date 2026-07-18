@@ -150,6 +150,14 @@
   .decisionRow button.suggest{ outline:2.5px solid var(--accent); outline-offset:3px; }
   .decisionRow .decisionCorrect{ background:var(--accent); color:var(--paperInk); }
   .decisionRow .decisionCorrect small{ color:rgba(253,250,241,.82); }
+  .decisionRow .decisionWrong{ background:var(--card); color:var(--ink); border-color:var(--line); }
+  .uncertainAction{ display:flex; justify-content:center; margin-top:10px; }
+  .uncertainAction button{ padding:5px 9px; color:var(--muted); font-size:12px; text-decoration:underline; text-underline-offset:3px; }
+  .softConfirm{ display:none; margin-top:12px; padding:12px; border:1px solid var(--line); border-radius:8px; background:var(--shade); text-align:center; }
+  .softConfirm p{ margin:0 0 10px; color:var(--ink); font-size:13px; line-height:1.5; }
+  .softConfirmActions{ display:flex; gap:8px; }
+  .softConfirmActions button{ flex:1; min-height:40px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--ink); font-size:13px; font-weight:700; }
+  .softConfirmActions .confirmCorrect{ background:var(--accent); color:var(--paperInk); border-color:var(--accent); }
 
   /* ===== 揭晓 · 对照 + 盖章 ===== */
   #reveal{ display:none; flex:1; flex-direction:column; animation:screenIn .3s ease; }
@@ -512,7 +520,12 @@
 
       <div class="decisionRow" id="decisionRow">
         <button class="decisionCorrect" id="decisionCorrect" aria-label="写对了"><span>写对了</span><small id="correctEffect">本组通过</small></button>
-        <button class="ghostAct" id="decisionWrong" aria-label="写错了"><span>写错了</span><small>本组稍后再写</small></button>
+        <button class="ghostAct decisionWrong" id="decisionWrong" aria-label="写错了"><span>写错了</span><small>本组稍后再写</small></button>
+      </div>
+      <div class="uncertainAction" id="uncertainAction"><button id="decisionUncertain">差一点，记不清</button></div>
+      <div class="softConfirm" id="softConfirm" role="dialog" aria-live="polite">
+        <p>这几笔和标准字差得比较多，确定算写对？</p>
+        <div class="softConfirmActions"><button id="compareAgain">再对一眼</button><button class="confirmCorrect" id="confirmCorrect">确定写对了</button></div>
       </div>
       <div id="stampNote"></div>
 
@@ -1038,11 +1051,12 @@ function tuningShiftText(){ const o=Math.round(Number(tuning.offset)||0); return
 function roundMasteryScore(counts=roundCounts(),total=roundStats.length){ return ((counts.fast||0)*2-(counts.slow||0)*1.1-(counts.hinted||0)*1.2-(counts.miss||0)*2.2)/Math.max(1,total); }
 function calibrationRoundStats(){ const sample=new Set(calibrationTargets); return roundStats.filter(row=>sample.has(row.idx)); }
 function maybeFinishCalibration(){ if(activeMode!=="calibrate" || tuning.calibrated) return "";
-  const stats=calibrationRoundStats(), counts=roundCounts(stats), hard=(counts.hinted||0)+(counts.miss||0)+(counts.slow||0), score=roundMasteryScore(counts,stats.length); let why;
-  if((counts.fast||0)>=12 && hard<=2){ tuning.offset=10; preference="challenge"; why="刚才这组你基本都写得出来，所以接下来会自动加难，多挑些你不太熟的字。"; }
+  const stats=calibrationRoundStats(), counts=roundCounts(stats), hard=(counts.hinted||0)+(counts.miss||0)+(counts.slow||0), score=roundMasteryScore(counts,stats.length);
+  const consistentFast=stats.reduce((sum,row)=>sum+(row.outcome==="fast"?(row.geometryStatus==="ok"?1:.5):0),0); let why;
+  if(consistentFast>=12 && hard<=2){ tuning.offset=10; preference="challenge"; why="刚才这组你基本都写得出来，所以接下来会自动加难，多挑些你不太熟的字。"; }
   else if(hard>=6 || (counts.miss||0)>=3){ tuning.offset=-6; preference="practical"; why="刚才有几个卡住了，所以先把难度调稳一点，从你能写出来的字开始，再慢慢加。"; }
   else { tuning.offset=2; preference="balanced"; why="刚才的难度大致合适，就先按这个节奏来，之后会按你实际写的情况再微调。"; }
-  tuning.calibrated=true; tuning.calibration={date:today(), counts, sampleSize:stats.length, score:Math.round(score*100)/100, offset:tuning.offset, preference};
+  tuning.calibrated=true; tuning.calibration={date:today(), counts, consistentFast, sampleSize:stats.length, score:Math.round(score*100)/100, offset:tuning.offset, preference};
   activeMode="new"; saveTuning(); save(PREF_KEY,preference);
   return why;
 }
@@ -1096,7 +1110,7 @@ function recordQuality(kind, idx=currentCardIndex()){ if(idx==null || idx<0) ret
 // 每个真实回忆回合只记一次结果；本组队列与 FSRS 跨天调度分别处理。
 function recordOutcome(outcome,options={}){ const idx=currentCardIndex(), c=CARDS[idx], m=cardMemory(idx), now=Number(options.now)||Date.now(), ep=episodeFor(idx);
   if(ep.attempts.some(a=>a.attemptId===currentAttemptId)) return ep.attempts.find(a=>a.attemptId===currentAttemptId);
-  const hard=outcome!=="fast", firstOutcome=!ep.firstOutcome, userCorrect=outcome==="fast"||outcome==="hinted";
+  const hard=outcome!=="fast", firstOutcome=!ep.firstOutcome, uncertain=!!options.uncertain, userCorrect=outcome==="fast"||(outcome==="hinted"&&!uncertain);
   m.seen=(m.seen||0)+1; m.last=now; m.lastOutcome=outcome; m.lastHints=hintsUsedThisCard;
   m.traced=!!enteredTracingThisAttempt;
   delete m.queuedFront; delete m.queuedFrontAt;
@@ -1109,9 +1123,9 @@ function recordOutcome(outcome,options={}){ const idx=currentCardIndex(), c=CARD
   if(outcome==="miss"){ m.misses=(m.misses||0)+1; m.streak=0; m.ease=clamp((m.ease||50)-16,0,100); m.missedOn=today(); setStatus(idx,"indeck"); }
   const reason=outcome==="hinted"?"hinted":outcome==="slow"?"wrong":outcome==="miss"?"dontKnow":"independent";
   const event=applyFSRSReview(idx,hard?"Again":"Good",reason,currentAttemptId,{now,graduate:!hard,hintCount:hintsUsedThisCard,traced:enteredTracingThisAttempt,teaching:!!options.teaching});
-  const attempt={attemptId:currentAttemptId,seq:attemptSeq+1,outcome,userCorrect,hintUsed:hintEverUsed,hintCount:hintsUsedThisCard,enteredTracing:enteredTracingThisAttempt,teaching:!!options.teaching,eventId:event&&event.eventId,at:now};
+  const attempt={attemptId:currentAttemptId,seq:attemptSeq+1,outcome,userCorrect,uncertain,hintUsed:hintEverUsed,hintCount:hintsUsedThisCard,enteredTracing:enteredTracingThisAttempt,teaching:!!options.teaching,eventId:event&&event.eventId,at:now};
   ep.attempts.push(attempt); ep.firstOutcome=ep.firstOutcome||outcome; ep.assistanceUsed=ep.assistanceUsed||hintEverUsed||enteredTracingThisAttempt;
-  if(firstOutcome){ roundStats.push({idx,target:c.target,word:c.word,outcome,traced:!!enteredTracingThisAttempt,hintUsed:hintEverUsed,level:abilityLevel(idx),topic:c.topic,dueDay:m.dueDay||null,independentlyRecovered:!hard});
+  if(firstOutcome){ roundStats.push({idx,target:c.target,word:c.word,outcome,uncertain,geometryStatus:lastVerdict&&lastVerdict.status||"none",geometryMode:lastVerdict&&lastVerdict.mode||"none",traced:!!enteredTracingThisAttempt,hintUsed:hintEverUsed,level:abilityLevel(idx),topic:c.topic,dueDay:m.dueDay||null,independentlyRecovered:!hard});
     if(hard) missedThisRound.push(c.target); adaptNextCard(outcome,idx); }
   else { const stat=roundStats.find(row=>row.idx===idx); if(stat && !hard){ stat.independentlyRecovered=true; stat.dueDay=m.dueDay||null; } }
   if(currentAttemptKind==="base"){ baseCursor=Math.min(baseTargets.length,baseCursor+1); sessionDone.add(idx); }
@@ -1671,10 +1685,10 @@ function showRevealState(snapshot){ const verdict=snapshot&&snapshot.lastVerdict
   overlayOn=false; $("mineOverlay").style.display="none"; $("mineOverlay").textContent=cur.target; $("overlayToggle").textContent="叠起来对比";
   $("rightGlyph").textContent=cur.target; $("rightGlyph").style.opacity="1"; $("rightHz").innerHTML=""; replaying=false;
   $("stampOnMine").style.display="none";
-  $("decisionRow").style.display="flex"; $("stampNote").style.display="";
+  $("decisionRow").style.display="flex"; $("uncertainAction").style.display="flex"; $("softConfirm").style.display="none"; $("stampNote").style.display="";
   $("stampedToast").style.display="none"; $("editStamp").disabled=true;
   const postTrace=snapshot&&snapshot.practicePhase==="postTraceRecall", used=!!(snapshot&&snapshot.hintEverUsed);
-  $("teachBubbleGrade").style.display="none"; $("askRow").style.display="flex"; $("qualityBox").style.display=postTrace?"none":"flex";
+  $("teachBubbleGrade").style.display="none"; $("askRow").style.display="flex"; $("qualityBox").style.display=postTrace?"none":"flex"; $("uncertainAction").style.display=postTrace?"none":"flex";
   $("askLine").textContent=verdictShort(verdict);
   $("decisionCorrect").classList.toggle("suggest",!!(verdict&&verdict.status==="ok")); $("decisionWrong").classList.toggle("suggest",!!(verdict&&verdict.status==="bad"));
   $("correctEffect").textContent=postTrace?"完成教学检查，稍后仍会再写":used?"已用提示，本组稍后再写":"本组通过";
@@ -1707,12 +1721,12 @@ $("replayBtn").onclick=()=>{ if(replaying || !window.HanziWriter) return; replay
   try{ w.animateCharacter({ onComplete:()=>{ replaying=false; } }); }catch(e){ replaying=false; $("rightGlyph").style.opacity="1"; } };
 function reopenStampChoices(){ if(!lastStampSnapshot) return;
   const snap=lastStampSnapshot; clearTimeout(autoNextTimer); clearTimeout(editStampTimer); hideUndoBar(false); lastStampSnapshot=null;
-  restoreStampSnapshot(snap); stamped=false; render(); restoreRevealFromSnapshot(snap.revealState); updateProgressLabel(); hapticFeedback("undo"); }
+  restoreStampSnapshot(snap); stamped=false; render(); restoreRevealFromSnapshot({...snap.revealState,softConfirmHandled:false}); updateProgressLabel(); hapticFeedback("undo"); }
 const STAMP_HOLD_MS=1400, CALIBRATION_FIRST_HOLD_MS=1800, EDIT_STAMP_WINDOW_MS=1800;
-function showStampedFeedback(outcome){ const ui=GRADE_UI[outcome], m=memory[cardKey(currentCardIndex())]||{}, st=$("stampOnMine"), face=st.querySelector(".face"), ring=st.querySelector(".ring"), solid={fast:"var(--accent)",hinted:"var(--gold)",slow:"var(--blue)"}[outcome];
+function showStampedFeedback(outcome,options={}){ const ui=GRADE_UI[outcome], m=memory[cardKey(currentCardIndex())]||{}, st=$("stampOnMine"), face=st.querySelector(".face"), ring=st.querySelector(".ring"), solid={fast:"var(--accent)",hinted:"var(--gold)",slow:"var(--blue)"}[outcome];
   face.style.background=solid||"var(--card)"; face.style.border=solid?"0":"2px solid var(--grey)"; face.querySelector("span").textContent=ui.seal; face.querySelector("span").style.color=solid?"var(--paperInk)":"var(--muted)"; ring.style.borderColor=solid||"var(--grey)"; st.style.display="block";
   face.style.animation="none"; ring.style.animation="none"; void face.offsetWidth; face.style.animation=""; ring.style.animation="";
-  $("decisionRow").style.display="none"; $("stampNote").style.display="none"; $("askRow").style.display="none"; $("teachBubbleGrade").style.display="none"; $("qualityBox").style.display="none";
+  $("decisionRow").style.display="none"; $("uncertainAction").style.display="none"; $("softConfirm").style.display="none"; $("stampNote").style.display="none"; $("askRow").style.display="none"; $("teachBubbleGrade").style.display="none"; $("qualityBox").style.display="none";
   $("toastChar").textContent=cur.target; const copy=stampToastCopy(outcome,m); $("toastTitle").textContent=copy.title; $("toastSubEl").textContent=copy.sub; $("stampedToast").style.display="flex"; $("editStamp").disabled=false; }
 function showTeachingCompleteFeedback(){ showStampedFeedback("miss"); $("toastTitle").textContent="教学检查完成"; $("toastSubEl").textContent="已加入本组巩固 · 稍后还要无辅助写出"; $("editStamp").disabled=true; }
 function pickStamp(outcome,options={}){ if(stamped || !revealed) return; stamped=true;
@@ -1720,7 +1734,7 @@ function pickStamp(outcome,options={}){ if(stamped || !revealed) return; stamped
   const firstCalibrationHold=activeMode==="calibrate" && baseCursor===0 && !calibrationFirstHoldUsed;
   if(firstCalibrationHold) calibrationFirstHoldUsed=true;
   recordOutcome(outcome,options); lastStampSnapshot.outcome=outcome; practicePhase="feedback"; feedbackKind=outcome; hapticFeedback("stamp");
-  showStampedFeedback(outcome);
+  showStampedFeedback(outcome,options); if(options.uncertain){ $("toastTitle").textContent="已记为记不清"; $("toastSubEl").textContent="盖「补拾」· 已加入本组巩固"; }
   clearTimeout(editStampTimer); editStampTimer=setTimeout(()=>{ $("editStamp").disabled=true; },EDIT_STAMP_WINDOW_MS);
   updateProgressLabel(); saveSessionSnapshot();
   autoNextTimer=setTimeout(advanceFeedback,firstCalibrationHold?CALIBRATION_FIRST_HOLD_MS:STAMP_HOLD_MS); }
@@ -1733,9 +1747,14 @@ function decideSubmission(correct){ if(stamped||!revealed||!submissionSnapshot) 
     if(!correct){ revealed=false; beginTracingPhase(); return; }
     const ep=episodeFor(currentCardIndex()); ep.teachingComplete=true; const stat=roundStats.find(row=>row.idx===currentCardIndex()); if(stat) stat.traced=true; const m=cardMemory(currentCardIndex()); if(m.lastEpisode) m.lastEpisode.teachingComplete=true; saveMemory(); practicePhase="feedback"; feedbackKind="teachingComplete"; $("decisionRow").style.display="none"; $("askRow").style.display="none"; $("qualityBox").style.display="none";
     showTeachingCompleteFeedback(); stamped=true; saveSessionSnapshot(); autoNextTimer=setTimeout(advanceFeedback,STAMP_HOLD_MS); return; }
+  if(correct && !submissionSnapshot.hintEverUsed && !submissionSnapshot.softConfirmHandled && submissionSnapshot.lastVerdict&&submissionSnapshot.lastVerdict.status==="bad"&&submissionSnapshot.lastVerdict.mode==="exact"){
+    submissionSnapshot=Object.freeze({...submissionSnapshot,softConfirmHandled:true}); $("decisionRow").style.display="none"; $("uncertainAction").style.display="none"; $("softConfirm").style.display="block"; saveSessionSnapshot(); return; }
   pickStamp(correct?(submissionSnapshot.hintEverUsed?"hinted":"fast"):"slow"); }
 $("decisionCorrect").onclick=()=>decideSubmission(true);
 $("decisionWrong").onclick=()=>decideSubmission(false);
+$("decisionUncertain").onclick=()=>pickStamp("hinted",{uncertain:true});
+$("compareAgain").onclick=()=>{ $("softConfirm").style.display="none"; $("decisionRow").style.display="flex"; $("uncertainAction").style.display="flex"; };
+$("confirmCorrect").onclick=()=>decideSubmission(true);
 $("editStamp").onclick=reopenStampChoices;
 $("undoLast").onclick=reopenStampChoices;
 $("reveal").addEventListener("click",e=>{ if(practicePhase!=="feedback" || e.target.closest("#editStamp")) return; e.preventDefault(); e.stopPropagation(); advanceFeedback(); },true);

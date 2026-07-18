@@ -376,7 +376,7 @@ let browser;
     restoreSession(saved);
     const restored = calibrationTargets.slice();
     roundStats = [
-      ...original.map((idx) => ({ idx, target: CARDS[idx].target, outcome: "fast" })),
+      ...original.map((idx) => ({ idx, target: CARDS[idx].target, outcome: "fast", geometryStatus: "ok", geometryMode: "exact" })),
       ...extras.map((idx) => ({ idx, target: CARDS[idx].target, outcome: "miss" })),
     ];
     tuning = { calibrated: false, offset: 0, contextStrict: 0, rounds: [] }; preference = "balanced";
@@ -389,6 +389,63 @@ let browser;
     && calibrationIsolation.sampleCounts.fast === 15 && calibrationIsolation.sampleCounts.miss === 0 && calibrationIsolation.calibration.sampleSize === 15
     && calibrationIsolation.calibration.counts.fast === 15 && calibrationIsolation.calibration.counts.miss === 0 && calibrationIsolation.preference === "challenge" && calibrationIsolation.offset === 10,
   "Expected added calibration cards to persist and learn without changing the original 15-card calibration result", calibrationIsolation);
+
+  const calibrationConsistency = await page.evaluate(() => {
+    const sample = calibrationTargets.slice(0, 12);
+    activeMode = "calibrate"; calibrationTargets = sample; tuning = { calibrated: false, offset: 0, contextStrict: 0, rounds: [] }; preference = "balanced";
+    roundStats = sample.map((idx, order) => ({ idx, target: CARDS[idx].target, outcome: "fast", geometryStatus: order < 8 ? "ok" : "bad", geometryMode: "exact" }));
+    maybeFinishCalibration();
+    return { calibration: cloneObj(tuning.calibration), preference, offset: tuning.offset };
+  });
+  assert(calibrationConsistency.calibration.counts.fast === 12 && calibrationConsistency.calibration.consistentFast === 10
+    && calibrationConsistency.preference === "balanced" && calibrationConsistency.offset === 2,
+  "Expected geometry disagreement to keep twelve self-rated fast cards out of challenge calibration", calibrationConsistency);
+
+  await page.evaluate(() => { clearSessionSnapshot(); activeMode = "focus"; startFocus([CARDS.findIndex((card) => card.target === "器")]); });
+  await waitForWriter(page);
+  await page.evaluate(() => {
+    inkStrokes = mediansToCanvas(curMedians); redrawInk(); revealAnswer();
+    lastVerdict = { status: "bad", mode: "exact" }; submissionSnapshot = Object.freeze({ ...submissionSnapshot, lastVerdict: cloneObj(lastVerdict) }); showRevealState(submissionSnapshot);
+  });
+  await page.click("#decisionCorrect");
+  const softConfirmFirst = await page.evaluate(() => ({ shown: getComputedStyle(softConfirm).display !== "none", stamped, attempts: episodeFor(currentCardIndex()).attempts.length }));
+  assert(softConfirmFirst.shown && !softConfirmFirst.stamped && softConfirmFirst.attempts === 0, "Expected exact-bad correct choice to pause before accounting", softConfirmFirst);
+  await page.click("#compareAgain");
+  await page.click("#decisionCorrect");
+  const softConfirmOnce = await page.evaluate(() => ({ hidden: getComputedStyle(softConfirm).display === "none", stamped, outcome: roundStats[0] && roundStats[0].outcome }));
+  assert(softConfirmOnce.hidden && softConfirmOnce.stamped && softConfirmOnce.outcome === "fast", "Expected compare-again to avoid repeating the soft confirmation on the same reveal", softConfirmOnce);
+  await page.click("#editStamp");
+  await page.click("#decisionCorrect");
+  const softConfirmAfterUndo = await page.evaluate(() => ({ shown: getComputedStyle(softConfirm).display !== "none", stamped, attempts: episodeFor(currentCardIndex()).attempts.length }));
+  assert(softConfirmAfterUndo.shown && !softConfirmAfterUndo.stamped && softConfirmAfterUndo.attempts === 0, "Expected edit rollback to reset the soft-confirm decision", softConfirmAfterUndo);
+  await page.click("#confirmCorrect");
+  const confirmedCorrect = await page.evaluate(() => ({ stamped, rating: fsrsReviewLog.slice(-1)[0] && fsrsReviewLog.slice(-1)[0].rating, outcome: roundStats[0] && roundStats[0].outcome }));
+  assert(confirmedCorrect.stamped && confirmedCorrect.rating === "Good" && confirmedCorrect.outcome === "fast", "Expected explicit confirmation to keep the existing graduation path", confirmedCorrect);
+
+  await page.evaluate(() => { clearTimeout(autoNextTimer); stamped = false; clearSessionSnapshot(); activeMode = "focus"; startFocus([CARDS.findIndex((card) => card.target === "疑")]); });
+  await waitForWriter(page);
+  await page.evaluate(() => {
+    inkStrokes = mediansToCanvas(curMedians); redrawInk(); revealAnswer();
+    lastVerdict = { status: "bad", mode: "holistic" }; submissionSnapshot = Object.freeze({ ...submissionSnapshot, lastVerdict: cloneObj(lastVerdict) }); showRevealState(submissionSnapshot);
+  });
+  await page.click("#decisionCorrect");
+  const holisticNoConfirm = await page.evaluate(() => ({ stamped, softHidden: getComputedStyle(softConfirm).display === "none", outcome: roundStats[0] && roundStats[0].outcome }));
+  assert(holisticNoConfirm.stamped && holisticNoConfirm.softHidden && holisticNoConfirm.outcome === "fast", "Expected holistic disagreement to remain advisory without soft confirmation", holisticNoConfirm);
+
+  await page.evaluate(() => { clearTimeout(autoNextTimer); stamped = false; clearSessionSnapshot(); activeMode = "focus"; startFocus([CARDS.findIndex((card) => card.target === "衡")]); });
+  await waitForWriter(page);
+  await submitStandard(page);
+  const uncertainBefore = await page.evaluate(() => dailyActivity().attempts);
+  await page.click("#decisionUncertain");
+  const uncertain = await page.evaluate((before) => {
+    const idx = currentCardIndex(), ep = episodeFor(idx), event = fsrsReviewLog.slice(-1)[0], stat = roundStats[0];
+    const row = dailyActivity();
+    return { before, after: row.attempts, targetOccurrences: row.targetKeys.filter((key) => key === cardKey(idx)).length, outcome: stat && stat.outcome, uncertain: stat && stat.uncertain, rating: event && event.rating, reason: event && event.reason,
+      queued: unresolved.has(idx) && reinforcementQueue.some((item) => item.idx === idx), pendingLearning: !!(memory[cardKey(idx)] || {}).pendingLearning, attempts: ep.attempts.length, userCorrect: ep.attempts[0] && ep.attempts[0].userCorrect };
+  }, uncertainBefore);
+  assert(uncertain.outcome === "hinted" && uncertain.uncertain && uncertain.rating === "Again" && uncertain.reason === "hinted"
+    && uncertain.queued && uncertain.pendingLearning && uncertain.attempts === 1 && !uncertain.userCorrect && uncertain.after === uncertain.before + 1 && uncertain.targetOccurrences === 1,
+  "Expected uncertain self-assessment to use the hinted reinforcement path without graduation", uncertain);
 
   const inRoundAdd = await page.evaluate(() => {
     const pool = allIndexes().filter((idx) => qualityAvailable(idx)).slice(100, 120), original = pool.slice(0, 15), extras = pool.slice(15, 17);

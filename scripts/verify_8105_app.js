@@ -355,17 +355,33 @@ let browser;
   await waitForWriter(page);
   const calibrationQueue = await page.evaluate(() => ({
     front: baseTargets.slice(0, 2).map((idx) => CARDS[idx].target).join(""),
+    tail: baseTargets.slice(-4).map((idx) => ({ target: CARDS[idx].target, difficulty: cardDifficulty(idx) })),
     flags: indexesForChars(["强", "器"]).map((idx) => !!(memory[cardKey(idx)] || {}).queuedFront),
     size: baseTargets.length,
     unique: new Set(baseTargets).size,
     adultOnly: baseTargets.every((idx) => cardLevel(idx) !== "小学" && contextSource(idx) !== "fallback"),
-    ascending: baseTargets.every((idx, order) => order === 0 || cardDifficulty(baseTargets[order - 1]) <= cardDifficulty(idx)),
     labels: { show: show.textContent, done: done.textContent, noNext: !document.getElementById("nextBtn") },
+    helpReady: !show.disabled && !show.classList.contains("tlock") && !tip.classList.contains("tlock"),
+    helpCopy: mascotLine.textContent,
     touch: { done: getComputedStyle(done).touchAction, tab: getComputedStyle(tabPractice).touchAction },
   }));
-  assert(calibrationQueue.front !== "强器" && calibrationQueue.flags.every(Boolean) && calibrationQueue.size === 15 && calibrationQueue.unique === 15 && calibrationQueue.adultOnly && calibrationQueue.ascending
+  assert(calibrationQueue.front === "尴嚏" && calibrationQueue.tail.every((row) => row.difficulty <= 85) && calibrationQueue.flags.every(Boolean) && calibrationQueue.size === 15 && calibrationQueue.unique === 15 && calibrationQueue.adultOnly
+    && calibrationQueue.helpReady && calibrationQueue.helpCopy.includes("写不出就点")
     && calibrationQueue.labels.show === "不会写" && calibrationQueue.labels.done === "写好了" && calibrationQueue.labels.noNext && calibrationQueue.touch.done === "manipulation" && calibrationQueue.touch.tab === "manipulation",
-  "Expected calibration to keep its adult difficulty ramp while ignoring queued additions without consuming them", calibrationQueue);
+  "Expected calibration hooks, capped finish, and immediately available first-card help", calibrationQueue);
+
+  await page.click("#show");
+  await page.waitForFunction(() => practicePhase === "tracing");
+  const calibrationHelp = await page.evaluate(() => ({ phase: practicePhase, comfort: calibrationComfortShown, copy: traceIntro.textContent, secondComfort: takeCalibrationComfort("slow") }));
+  assert(calibrationHelp.phase === "tracing" && calibrationHelp.comfort && calibrationHelp.copy.includes("忘了正常") && !calibrationHelp.secondComfort,
+  "Expected first-card don't-know to enter tracing immediately and show calibration comfort only once", calibrationHelp);
+
+  await page.evaluate(() => {
+    exitCurrentRound(); clearSessionSnapshot(); status = {}; memory = {}; fsrsReviewLog = []; quality = {}; sessionDone = new Set();
+    tuning = { calibrated: false, offset: 0, contextStrict: 0, rounds: [] };
+    save(DECK_KEY, status); saveMemory(); saveFSRSLog(); saveQuality(); saveTuning(); activeMode = "calibrate"; startRound();
+  });
+  await waitForWriter(page);
 
   const calibrationIsolation = await page.evaluate(() => {
     const original = calibrationTargets.slice(), originalSet = new Set(original);
@@ -400,6 +416,13 @@ let browser;
   assert(calibrationConsistency.calibration.counts.fast === 12 && calibrationConsistency.calibration.consistentFast === 10
     && calibrationConsistency.preference === "balanced" && calibrationConsistency.offset === 2,
   "Expected geometry disagreement to keep twelve self-rated fast cards out of challenge calibration", calibrationConsistency);
+
+  const calibrationWebReturn = await page.evaluate(() => {
+    summary.style.display = "flex"; calibCard.style.display = "flex"; renderCalibrationReturnHook();
+    return { visible: getComputedStyle(calibReturnHook).display === "flex", title: calibReturnTitle.textContent, date: calibReturnText.textContent, buttonHidden: getComputedStyle(calibReminderYes).display === "none", tomorrow: formatDueDay(shiftDay(today(), 1)) };
+  });
+  assert(calibrationWebReturn.visible && calibrationWebReturn.title.includes("明天再来") && calibrationWebReturn.date === calibrationWebReturn.tomorrow && calibrationWebReturn.buttonHidden,
+  "Expected Web calibration result to show a concrete next-day return expectation", calibrationWebReturn);
 
   await page.evaluate(() => { clearSessionSnapshot(); activeMode = "focus"; startFocus([CARDS.findIndex((card) => card.target === "器")]); });
   await waitForWriter(page);

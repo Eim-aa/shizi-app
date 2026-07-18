@@ -66,9 +66,24 @@ let browser;
     copy: document.getElementById("welcome").textContent.replace(/\s+/g, ""),
     footHidden: getComputedStyle(document.getElementById("foot")).display === "none",
     needsCalibration: needsCalibration(),
+    restoreVisible: getComputedStyle(document.getElementById("welcomeRestore")).display !== "none" && typeof document.getElementById("welcomeRestore").onclick === "function",
     tabs: Array.from(document.querySelectorAll("#foot .tab")).map((node) => node.textContent.replace(/\s+/g, "")),
   }));
-  assert(firstRun.welcome && firstRun.footHidden && firstRun.needsCalibration && firstRun.copy.includes("先拾15个字试试") && firstRun.tabs.join() === "拾练习,盒字盒,我我的", "Expected first-run calibration welcome and three-tab IA", firstRun);
+  assert(firstRun.welcome && firstRun.footHidden && firstRun.needsCalibration && firstRun.restoreVisible && firstRun.copy.includes("先拾15个字试试") && firstRun.copy.includes("记录只存在这台手机上") && firstRun.tabs.join() === "拾练习,盒字盒,我我的", "Expected first-run calibration welcome, storage expectation, restore entry, and three-tab IA", firstRun);
+  const restoreChooser = page.waitForEvent("filechooser");
+  await page.click("#welcomeRestore");
+  assert(!!(await restoreChooser), "Expected the first-run restore entry to open the backup picker");
+  await page.evaluate(() => {
+    const payload = JSON.parse(backupPayload()), idx = CARDS.findIndex((card) => card.target === "器"), key = cardKey(idx);
+    payload.data[MEMORY_KEY] = JSON.stringify({ [key]: { seen: 1, last: Date.now(), target: "器", fast: 1 } });
+    payload.data[TUNING_KEY] = JSON.stringify({ calibrated: true, offset: 0, contextStrict: 0, rounds: [] });
+    restoreBackupPayload(payload, { skipConfirm: true, reload: false });
+  });
+  await page.reload({ waitUntil: "networkidle" });
+  const firstRunRestore = await page.evaluate(() => ({ home: getComputedStyle(home).display !== "none", welcome: getComputedStyle(welcome).display !== "none", count: memoryCount() }));
+  assert(firstRunRestore.home && !firstRunRestore.welcome && firstRunRestore.count === 1, "Expected a valid first-run backup to enter the returning-user home", firstRunRestore);
+  await page.evaluate(() => localStorage.clear());
+  await page.reload({ waitUntil: "networkidle" });
 
   const inheritedDays = await page.evaluate(() => {
     opens = [shiftDay(today(), -3), shiftDay(today(), -2), shiftDay(today(), -1), today()]; save(OPEN_KEY, opens);
@@ -110,6 +125,23 @@ let browser;
     };
   });
   assert(reminderBoundary.median.hour === 9 && reminderBoundary.median.minute === 24 && reminderBoundary.few.hour === 20 && reminderBoundary.few.minute === 0 && reminderBoundary.late.hour === 22 && reminderBoundary.late.minute === 0 && reminderBoundary.hiddenInBrowser && reminderBoundary.sync.type === "syncReminder", "Expected reminder median, fallback, clamp, and browser fallback boundaries", reminderBoundary);
+
+  const backupReminderBoundary = await page.evaluate(() => {
+    const completed = (count) => {
+      activity = newActivity(); activity.inheritedTotalDays = 0; activity.inheritedStreak = 0; activity.daily = {}; activity.practiceDays = [];
+      for (let i = 0; i < count; i += 1) { const key = shiftDay(today(), -i); activity.practiceDays.push(key); activity.daily[key] = { stamps: 1, attempts: 1, targetKeys: [`backup:${i}`], completedRoundIds: [`round:${i}`], lastStampAt: Date.now() - i * 86400000 }; }
+      activity.practiceDays.sort(); saveActivity();
+    };
+    memory = {}; saveMemory(); backupMeta = normalizeBackupMeta({ lastExportAt: Date.now() - 8 * 86400000 }); save(BACKUP_META_KEY, backupMeta);
+    completed(5); renderBackupUI(); const fiveDays = getComputedStyle(backupReminder).display === "flex";
+    completed(0); memory = Object.fromEntries(Array.from({ length: 30 }, (_, i) => [`verify:${i}`, { seen: 1, last: Date.now() }])); saveMemory(); renderBackupUI(); const thirtyChars = getComputedStyle(backupReminder).display === "flex";
+    backupMeta.lastExportAt = Date.now() - 6 * 86400000; save(BACKUP_META_KEY, backupMeta); renderBackupUI(); const recentHidden = getComputedStyle(backupReminder).display === "none";
+    memory = {}; saveMemory(); completed(3); backupMeta = normalizeBackupMeta(null); summaryBackupHintVisible = false; save(BACKUP_META_KEY, backupMeta); renderSummaryBackupHint();
+    const dayThree = getComputedStyle(summaryBackupHint).display === "flex" && backupMeta.summaryPromptShown; renderSummaryBackupHint(); const remainsVisible = getComputedStyle(summaryBackupHint).display === "flex";
+    displayView("home"); displayView("summary"); renderSummaryBackupHint(); const nextSummaryHidden = getComputedStyle(summaryBackupHint).display === "none";
+    return { fiveDays, thirtyChars, recentHidden, dayThree, remainsVisible, nextSummaryHidden };
+  });
+  assert(backupReminderBoundary.fiveDays && backupReminderBoundary.thirtyChars && backupReminderBoundary.recentHidden && backupReminderBoundary.dayThree && backupReminderBoundary.remainsVisible && backupReminderBoundary.nextSummaryHidden, "Expected weekly backup reminder thresholds and one-time third-day summary hint", backupReminderBoundary);
 
   await page.evaluate(() => localStorage.clear());
   await page.reload({ waitUntil: "networkidle" });
@@ -752,16 +784,36 @@ let browser;
   "Expected repeated direct returns to save v2 state without dialogs, toasts, or history growth", { exited, directReturns, homeBack });
 
   const backup = await page.evaluate(() => {
-    const payload = JSON.parse(backupPayload());
+    const original = JSON.parse(backupPayload({ preserveMeta: true })), originalMemory = cloneObj(memory);
+    const currentMemory = { "verify:current-a": { seen: 1, last: new Date("2026-07-10T08:00:00Z").getTime() }, "verify:current-b": { seen: 1, last: new Date("2026-07-11T08:00:00Z").getTime() } };
+    memory = currentMemory; saveMemory();
+    const incoming = JSON.parse(JSON.stringify(original)); incoming.date = "2026-06-01T08:00:00.000Z"; incoming.data[MEMORY_KEY] = JSON.stringify({ "verify:incoming": { seen: 1, last: new Date("2026-05-31T08:00:00Z").getTime() } });
+    let confirmCopy = ""; const nativeConfirm = window.confirm; window.confirm = (copy) => { confirmCopy = copy; return false; };
+    const cancelled = restoreBackupPayload(incoming, { reload: false }); window.confirm = nativeConfirm;
     localStorage.setItem("shizi.unknown.verify", "keep-local");
-    const restoredResult = restoreBackupPayload(payload, { skipConfirm: true, reload: false });
-    const result = { keys: Object.keys(payload.data), sessionVersion: JSON.parse(payload.data[SESSION_KEY]).version, fsrsLog: !!payload.data[FSRS_LOG_KEY], tutorial: payload.data[TRACE_TUTORIAL_KEY], restoredKeys: restoredResult.keys, unknown: localStorage.getItem("shizi.unknown.verify") };
+    const restoredResult = restoreBackupPayload(incoming, { skipConfirm: true, reload: false });
+    const safetyAfterRestore = safetySnapshot(), incomingApplied = String(localStorage.getItem(MEMORY_KEY)).includes("verify:incoming");
+    const undoOffered = showSafetyUndo() && getComputedStyle(safetyUndo).display === "flex" && safetyUndoBtn.textContent === "撤销恢复";
+    const undoResult = undoSafetyRestore({ reload: false }), currentRestored = String(localStorage.getItem(MEMORY_KEY)).includes("verify:current-b");
+
+    memory = currentMemory; saveMemory(); resetAllData({ skipConfirm: true }); const resetSafety = safetySnapshot();
+    memory = { "verify:before-second": { seen: 1, last: Date.now() } }; saveMemory();
+    const secondIncoming = JSON.parse(JSON.stringify(incoming)); secondIncoming.data[MEMORY_KEY] = JSON.stringify({ "verify:second-incoming": { seen: 1, last: Date.now() } });
+    restoreBackupPayload(secondIncoming, { skipConfirm: true, reload: false }); const overwrittenSafety = safetySnapshot();
+    undoSafetyRestore({ reload: false }); const latestRestored = String(localStorage.getItem(MEMORY_KEY)).includes("verify:before-second");
+
+    restoreBackupPayload(original, { skipConfirm: true, reload: false, skipSafety: true }); localStorage.removeItem(SAFETY_KEY); hideSafetyUndo(); memory = originalMemory;
+    const result = { keys: Object.keys(original.data), sessionVersion: JSON.parse(original.data[SESSION_KEY]).version, fsrsLog: !!original.data[FSRS_LOG_KEY], tutorial: original.data[TRACE_TUTORIAL_KEY], restoredKeys: restoredResult.keys,
+      unknown: localStorage.getItem("shizi.unknown.verify"), cancelled: !cancelled.applied, confirmCopy, incomingApplied, safetyReason: safetyAfterRestore && safetyAfterRestore.reason, undoOffered, undoApplied: undoResult.applied, currentRestored,
+      resetReason: resetSafety && resetSafety.reason, overwrittenReason: overwrittenSafety && overwrittenSafety.reason, latestRestored, safetyExcluded: !Object.prototype.hasOwnProperty.call(original.data, SAFETY_KEY) };
     localStorage.removeItem("shizi.unknown.verify"); return result;
   });
   assert(backup.keys.includes(SESSION_STORAGE_KEY) && backup.sessionVersion === 2 && backup.fsrsLog && backup.tutorial === "true" && backup.restoredKeys.includes(SESSION_STORAGE_KEY) && backup.unknown === "keep-local", "Expected session/FSRS/tutorial backup round trip with allowlist isolation", backup);
+  assert(backup.cancelled && backup.confirmCopy.includes("当前 2 字（最后练习 2026-07-11）→ 备份 1 字（2026-06-01）") && backup.incomingApplied && backup.safetyReason === "restore" && backup.undoOffered && backup.undoApplied && backup.currentRestored, "Expected differential restore confirmation and one-tap safety undo", backup);
+  assert(backup.resetReason === "reset" && backup.overwrittenReason === "restore" && backup.latestRestored && backup.safetyExcluded, "Expected reset safety copy, latest-operation replacement, and backup exclusion", backup);
 
   const backupCoverage = await page.evaluate(() => {
-    const excluded = new Set(["shizi.nativeSmoke.v1"]);
+    const excluded = new Set(["shizi.nativeSmoke.v1", SAFETY_KEY]);
     return Object.keys(localStorage).filter((key) => key.startsWith("shizi.") && !BACKUP_KEYS.includes(key) && !excluded.has(key));
   });
   assert(backupCoverage.length === 0, "Expected every persistent shizi key to be backed up or explicitly excluded", backupCoverage);

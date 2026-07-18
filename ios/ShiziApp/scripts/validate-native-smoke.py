@@ -104,6 +104,7 @@ checks = {
     and data_flow.get("backupHasFSRSLog") is True
     and data_flow.get("backupHasTraceTutorial") is True
     and data_flow.get("backupExcludesSmokeKey") is True
+    and data_flow.get("backupExcludesSafetyKey") is True
     and data_flow.get("backupHasMeta") is True,
     "backupRestore": data_flow.get("backupRestoreApplied") is True
     and int(data_flow.get("backupRestoreKeyCount") or 0) > 0
@@ -112,6 +113,7 @@ checks = {
     and data_flow.get("backupRestoreMemory") is True
     and data_flow.get("backupRestorePreservesSessionV2") is True
     and data_flow.get("backupRestorePreservesSmokeKey") is True
+    and data_flow.get("backupSafetyCreated") is True
     and data_flow.get("backupRestoreRejectsInvalid") is True,
     "nativeBridge": data_flow.get("nativeBridgeAvailable") is True,
     "nativeImport": data_flow.get("nativeImportAvailable") is True,

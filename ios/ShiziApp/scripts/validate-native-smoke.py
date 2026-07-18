@@ -135,11 +135,13 @@ checks = {
     "navBook": navigation.get("bookVisible") is True
     and navigation.get("bookTabActive") is True
     and navigation.get("footVisibleOnBook") is True
-    and navigation.get("bookAchievementVisible") is True,
+    and navigation.get("bookAchievementVisible") is True
+    and navigation.get("stampGuideAvailable") is True,
     "navMe": navigation.get("meVisible") is True
     and navigation.get("meTabActive") is True
     and navigation.get("footVisibleOnMe") is True
-    and navigation.get("meActionsDisclosed") is True,
+    and navigation.get("meActionsDisclosed") is True
+    and navigation.get("metricLanguageConsistent") is True,
     "navProfile": navigation.get("profileVisible") is True
     and navigation.get("profileFootHidden") is True
     and navigation.get("profileReturnedToMe") is True

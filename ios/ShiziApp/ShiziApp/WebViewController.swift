@@ -223,6 +223,7 @@ final class WebViewController: UIViewController {
               bookTabActive: false,
               footVisibleOnBook: false,
               bookAchievementVisible: false,
+              stampGuideAvailable: false,
               meVisible: false,
               meTabActive: false,
               footVisibleOnMe: false,
@@ -231,6 +232,7 @@ final class WebViewController: UIViewController {
               profileReturnedToMe: false,
               profileHasNoDuplicateChars: false,
               meActionsDisclosed: false,
+              metricLanguageConsistent: false,
               homeCaptureVisible: false,
               auditVisible: false,
               auditReturnedToMe: false
@@ -334,17 +336,25 @@ final class WebViewController: UIViewController {
               result.navigationFlow.bookVisible = visible('studybook');
               result.navigationFlow.bookTabActive = activeTab('tabBook');
               result.navigationFlow.footVisibleOnBook = visible('foot');
-              result.navigationFlow.bookAchievementVisible = visible('bookHero') && document.getElementById('bookHero').textContent.includes('已收');
+              result.navigationFlow.bookAchievementVisible = visible('bookHero') && document.getElementById('bookHero').textContent.includes('已拾回') && document.getElementById('bookHero').textContent.includes('练过');
               const legend = document.querySelector('.legend');
               result.layoutFlow.readableOutcomeLegend = parseFloat(getComputedStyle(legend).fontSize) >= 13 && getComputedStyle(legend).color === getComputedStyle(document.getElementById('bookHeroRecent')).color;
-              result.layoutFlow.outcomeMarksRedundant = Array.from(legend.querySelectorAll('.outcomeMark')).map(node => node.textContent).join('') === '拾补差';
+              result.layoutFlow.outcomeMarksRedundant = Array.from(legend.querySelectorAll('.outcomeMark')).map(node => node.textContent).join('') === '拾补待再';
+              document.getElementById('stampLegend').click();
+              const guideRows = Array.from(document.querySelectorAll('.stampGuideRow'));
+              result.navigationFlow.stampGuideAvailable = document.getElementById('stampGuideSheet').classList.contains('open') && guideRows.length === 4 && guideRows.map(row => row.textContent).join('').includes('拾到') && guideRows.map(row => row.textContent).join('').includes('再拾');
+              document.getElementById('stampGuideClose').click();
 
               document.getElementById('tabMe').click();
               await waitFor(() => visible('mePanel'));
               result.navigationFlow.meVisible = visible('mePanel');
               result.navigationFlow.meTabActive = activeTab('tabMe');
               result.navigationFlow.footVisibleOnMe = visible('foot');
-              result.navigationFlow.meActionsDisclosed = document.getElementById('meSeen').textContent.includes('看卡点') && document.getElementById('meRisk').textContent.includes('去字盒');
+              result.navigationFlow.meActionsDisclosed = document.getElementById('meSeen').textContent.includes('看卡点') && document.getElementById('meStable').textContent.includes('去字盒') && document.getElementById('meRisk').textContent.includes('去字盒');
+              const practiced = profileIndexes();
+              const recovered = practiced.filter(isStable);
+              const atRisk = practiced.filter(isHighRisk);
+              result.navigationFlow.metricLanguageConsistent = document.getElementById('meSeen').textContent.includes('练过') && document.getElementById('meStable').textContent.includes('已拾回') && document.getElementById('meRisk').textContent.includes('待拾回') && recovered.every(index => !atRisk.includes(index)) && practiced.length >= recovered.length + atRisk.length && Number(document.getElementById('seenStat').textContent) === practiced.length && Number(document.getElementById('stableStat').textContent) === recovered.length && Number(document.getElementById('riskStat').textContent) === atRisk.length;
               const oldFontScale = fontScaleLarge;
               fontScaleLarge = false; applyFontScale();
               const normalType = parseFloat(getComputedStyle(document.querySelector('.me h1')).fontSize);
@@ -711,7 +721,7 @@ final class WebViewController: UIViewController {
 
               decideSubmission(true);
               await waitFor(() => stamped && visible('stampedToast'));
-              result.practiceFlow.feedbackHeld = currentAttemptId === firstAttempt && document.getElementById('stampedToast').textContent.includes('已加入本组巩固');
+              result.practiceFlow.feedbackHeld = currentAttemptId === firstAttempt && document.getElementById('stampedToast').textContent.includes('本组稍后再写');
               result.practiceFlow.reminderSyncAfterStamp = !!(reminderDebug.lastSync && reminderDebug.lastSync.type === 'syncReminder' && reminderDebug.lastSync.practicedToday === true);
               result.practiceFlow.hapticStampRecorded = hapticDebug.last === 'stamp';
               result.practiceFlow.hapticHintedSequence = hapticDebug.events.slice();

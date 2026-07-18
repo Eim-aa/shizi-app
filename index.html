@@ -20,7 +20,7 @@
   /* ===== 纸墨拾趣：宣纸 × 朱砂印 ===== */
   :root{ --font-scale:1; --sans:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue",sans-serif;
     --kai:"Shizi Brand","Kaiti SC","STKaiti","KaiTi","DFKai-SB","AR PL UKai CN","TW-Kai",serif; --song:"Songti SC","Noto Serif SC","STSong","SimSun",serif;
-    --fs-caption:11px; --fs-note:12px; --fs-body:13px; --fs-emph:15px; --space-1:8px; --space-2:12px; --space-3:16px; --space-4:24px; --ls-label:0; --ls-motto:0;
+    --fs-caption:11px; --fs-note:12px; --fs-body:13px; --fs-emph:15px; --space-1:8px; --space-2:12px; --space-3:16px; --space-4:24px; --ls-label:.12em; --ls-motto:.26em;
     --bg:#efe7d3; --soft:#f7f1e3; --card:#fdfaf1; --tile:#fbf6ea; --shade:#f3ead7;
     --ink:#2b2620; --muted:#665d4d; --faint:#6a604f; --line:#e3d9c4; --dline:#d9cdb2;
     --paper-noise:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.72' numOctaves='3' seed='8'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.045'/%3E%3C/svg%3E");
@@ -2173,17 +2173,18 @@ function drawShareHandwriting(ctx,strokes,x,y,size,rotation=0){ const paths=Arra
   ctx.strokeStyle="#c2452c38"; ctx.lineWidth=2; ctx.setLineDash([7,7]); [[x+size/2,y,x+size/2,y+size],[x,y+size/2,x+size,y+size/2],[x,y,x+size,y+size],[x+size,y,x,y+size]].forEach(line=>{ ctx.beginPath(); ctx.moveTo(line[0],line[1]); ctx.lineTo(line[2],line[3]); ctx.stroke(); }); ctx.setLineDash([]);
   ctx.strokeStyle="#2b2620"; ctx.fillStyle="#2b2620"; ctx.lineWidth=Math.max(8,size*.075); ctx.lineCap="round"; ctx.lineJoin="round";
   paths.forEach(points=>{ const first=points[0], px=point=>x+clamp(Number(point.x),0,1)*size, py=point=>y+clamp(Number(point.y),0,1)*size; if(points.length===1){ ctx.beginPath(); ctx.arc(px(first),py(first),ctx.lineWidth/2,0,Math.PI*2); ctx.fill(); return; } ctx.beginPath(); ctx.moveTo(px(first),py(first)); for(let i=1;i<points.length;i++) ctx.lineTo(px(points[i]),py(points[i])); ctx.stroke(); }); ctx.restore(); return paths.length; }
-function renderPracticeCardCanvas(){ const stats=(roundStats||[]).slice(0,15); if(!stats.length) return null;
-  const canvas=document.createElement("canvas"); canvas.width=1080; canvas.height=1440; const ctx=canvas.getContext("2d"), paper="#efe7d3", card="#fdfaf1", ink="#2b2620", muted="#665d4d", accent="#c2452c", gold="#b3892f", green="#5b8b67";
+function renderPracticeCardCanvas(){ const stats=(roundStats||[]).slice(); if(!stats.length) return null;
+  const cols=5, gap=18, tile=160, rows=Math.ceil(stats.length/cols), extraRows=Math.max(0,rows-3), cardH=1090+extraRows*(tile+gap);
+  const canvas=document.createElement("canvas"); canvas.width=1080; canvas.height=1440+extraRows*(tile+gap); const ctx=canvas.getContext("2d"), paper="#efe7d3", card="#fdfaf1", ink="#2b2620", muted="#665d4d", accent="#c2452c", gold="#b3892f", green="#5b8b67";
   ctx.fillStyle=paper; ctx.fillRect(0,0,canvas.width,canvas.height);
   const milestone=getComputedStyle($("milestoneLine")).display!=="none"?$("milestoneLine").textContent.trim():"";
   let cardY=milestone?190:90;
   if(milestone){ ctx.fillStyle="#f7e6df"; shareRoundRect(ctx,70,55,940,105,28); ctx.fill(); ctx.strokeStyle="#df9d8c"; ctx.lineWidth=3; ctx.stroke(); ctx.fillStyle=accent; ctx.font='600 31px "Songti SC","STSong",serif'; ctx.textAlign="center"; shareWrappedText(ctx,milestone,540,98,850,40,2); }
-  const cardH=1090; ctx.fillStyle=card; shareRoundRect(ctx,55,cardY,970,cardH,14); ctx.fill(); ctx.strokeStyle="#d99b89"; ctx.lineWidth=5; ctx.stroke(); ctx.strokeStyle="#efd1c8"; ctx.lineWidth=2; ctx.strokeRect(76,cardY+21,928,cardH-42);
+  ctx.fillStyle=card; shareRoundRect(ctx,55,cardY,970,cardH,14); ctx.fill(); ctx.strokeStyle="#d99b89"; ctx.lineWidth=5; ctx.stroke(); ctx.strokeStyle="#efd1c8"; ctx.lineWidth=2; ctx.strokeRect(76,cardY+21,928,cardH-42);
   ctx.textAlign="left"; ctx.fillStyle=ink; ctx.font='900 72px "Songti SC","STSong",serif'; ctx.fillText($("sumH2").textContent.trim()||"今日拾得",110,cardY+115);
   ctx.fillStyle=muted; ctx.font='500 32px -apple-system,"PingFang SC",sans-serif'; ctx.fillText(`本组 ${stats.length} 个字`,110,cardY+175);
   ctx.fillStyle=accent; ctx.font='500 29px "Kaiti SC","STKaiti",serif'; ctx.textAlign="center"; Array.from(dateCn()).forEach((ch,i)=>ctx.fillText(ch,930,cardY+70+i*34));
-  const cols=5, gap=18, tile=160, startX=108, startY=cardY+235, colors={hinted:gold,slow:accent,miss:accent}; let inkStrokeCount=0;
+  const startX=108, startY=cardY+235, colors={hinted:gold,slow:accent,miss:accent}; let inkStrokeCount=0;
   stats.forEach((stat,i)=>{ const col=i%cols,row=Math.floor(i/cols),x=startX+col*(tile+gap),y=startY+row*(tile+gap),ui=GRADE_UI[stat.outcome]||GRADE_UI.slow;
     ctx.fillStyle=stat.outcome==="miss"?"#f8e9e3":"#fbf6ea"; shareRoundRect(ctx,x,y,tile,tile,14); ctx.fill(); ctx.strokeStyle=stat.outcome==="miss"?accent:"#e3d9c4"; ctx.lineWidth=stat.outcome==="miss"?3:2; ctx.stroke();
     inkStrokeCount+=drawShareHandwriting(ctx,stat.handwriting,x+18,y+8,124,ROTS[i%ROTS.length]);
@@ -2192,7 +2193,7 @@ function renderPracticeCardCanvas(){ const stats=(roundStats||[]).slice(0,15); i
   });
   const sealX=canvas.width-280,sealY=cardY+cardH-250; ctx.save(); ctx.translate(sealX+95,sealY+95); ctx.rotate(-0.07); ctx.fillStyle=accent; shareRoundRect(ctx,-95,-95,190,190,38); ctx.fill(); ctx.strokeStyle="#e9a18f"; ctx.lineWidth=8; ctx.stroke(); ctx.fillStyle="#fdfaf1"; ctx.font='400 58px "Kaiti SC","STKaiti",serif'; ctx.textAlign="center"; ctx.fillText("拾",0,-10); ctx.fillText("字",0,58); ctx.restore();
   ctx.fillStyle=muted; ctx.font='500 28px "Songti SC","STSong",serif'; ctx.textAlign="left"; ctx.fillText("提笔忘字，拾回便是",110,cardY+cardH-80);
-  canvas.dataset.inkStrokeCount=String(inkStrokeCount);
+  canvas.dataset.itemCount=String(stats.length); canvas.dataset.inkStrokeCount=String(inkStrokeCount);
   return canvas; }
 function practiceCardBlob(canvas){ return new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error("image")),"image/png")); }
 async function sharePracticeCard(opts={}){ const canvas=renderPracticeCardCanvas(); if(!canvas){ toast("这组还没有可分享的字"); return {route:"empty"}; }

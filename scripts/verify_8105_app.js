@@ -118,7 +118,7 @@ let browser;
       heading: { size: parseFloat(heading.fontSize), line: parseFloat(heading.lineHeight), spacing: heading.letterSpacing }, actionsMargin: parseFloat(actions.marginTop), ctaMargin: parseFloat(cta.marginTop), toastGlyph: parseFloat(toastGlyph.fontSize), bodyNoise: body.backgroundImage, sheetNoise: sheet.backgroundImage,
       fontLoaded: document.fonts.check('24px "Shizi Brand"', "拾字练习"), fontBytes: fontMatch ? atob(fontMatch[1]).length : 0, inlineWelcomeStyle: document.querySelector(".welcomeActions").hasAttribute("style"), nonzeroLetterSpacing: Array.from(source.matchAll(/letter-spacing:\s*([^;}]+)/g), (match) => match[1].trim()).some((value) => !["0", "var(--ls-label)", "var(--ls-motto)"].includes(value)) };
   });
-  assert(p2Style.tokens.join() === "11px,12px,13px,15px" && p2Style.spaces.join() === "8px,12px,16px,24px" && p2Style.letter.join() === "0,0" && p2Style.faint === "#6a604f" && p2Style.kai.includes("DFKai-SB") && p2Style.kai.includes("AR PL UKai CN") && p2Style.kai.includes("TW-Kai")
+  assert(p2Style.tokens.join() === "11px,12px,13px,15px" && p2Style.spaces.join() === "8px,12px,16px,24px" && p2Style.letter.join() === ".12em,.26em" && p2Style.faint === "#6a604f" && p2Style.kai.includes("DFKai-SB") && p2Style.kai.includes("AR PL UKai CN") && p2Style.kai.includes("TW-Kai")
     && p2Style.heading.size === 31 && Math.abs(p2Style.heading.line / p2Style.heading.size - 1.35) < 0.02 && ["normal", "0px"].includes(p2Style.heading.spacing) && p2Style.actionsMargin === 52 && p2Style.ctaMargin === 0 && !p2Style.inlineWelcomeStyle
     && p2Style.toastGlyph === 26 && p2Style.bodyNoise !== "none" && p2Style.sheetNoise !== "none" && p2Style.fontLoaded && p2Style.fontBytes > 0 && p2Style.fontBytes < 20000 && !p2Style.nonzeroLetterSpacing,
   "Expected converged type/spacing tokens, an offline Android-safe brand font, and paper texture", p2Style);
@@ -1138,6 +1138,22 @@ let browser;
   assert(sharePaths.canvas.width === 1080 && sharePaths.canvas.height === 1440 && sharePaths.canvas.png && sharePaths.canvas.pixels > 10000 && sharePaths.canvas.inkStrokes > 0 && sharePaths.native.route === "native" && sharePaths.web.route === "share" && sharePaths.download.route === "download"
     && sharePaths.messageKeys.join() === "dataURL,name,type" && sharePaths.messageType === "sharePracticeCard" && sharePaths.messagePNG && sharePaths.shared === 1 && sharePaths.downloaded.size > 1000 && sharePaths.downloaded.name.endsWith(".png") && sharePaths.privateFree && sharePaths.printedTargetFree && sharePaths.shareVisible && sharePaths.shareLabel.includes("存为"),
   "Expected a private-free user-ink PNG card and native, Web Share, and download delivery paths", sharePaths);
+  const expandedShareCard = await page.evaluate(() => {
+    const savedStats = cloneObj(roundStats), originalFillText = CanvasRenderingContext2D.prototype.fillText, labels = [];
+    try {
+      CanvasRenderingContext2D.prototype.fillText = function(text, ...args) { labels.push(String(text)); return originalFillText.call(this, text, ...args); };
+      roundStats = Array.from({ length: 16 }, (_, idx) => ({ idx, target: CARDS[idx].target, outcome: idx % 3 === 0 ? "hinted" : "fast", independentlyRecovered: false,
+        handwriting: [[{ x: .12 + idx * .002, y: .18 }, { x: .82, y: .78 - idx * .002 }]] }));
+      const canvas = renderPracticeCardCanvas(), rendererSource = `${renderPracticeCardCanvas}`;
+      return { width: canvas.width, height: canvas.height, items: Number(canvas.dataset.itemCount), inkStrokes: Number(canvas.dataset.inkStrokeCount), labels,
+        png: canvas.toDataURL("image/png").startsWith("data:image/png;base64,"), noFifteenItemCutoff: !/slice\(0,\s*15\)/.test(rendererSource) };
+    } finally {
+      CanvasRenderingContext2D.prototype.fillText = originalFillText;
+      roundStats = savedStats;
+    }
+  });
+  assert(expandedShareCard.width === 1080 && expandedShareCard.height === 1618 && expandedShareCard.items === 16 && expandedShareCard.inkStrokes === 16 && expandedShareCard.labels.includes("本组 16 个字") && expandedShareCard.png && expandedShareCard.noFifteenItemCutoff,
+    "Expected an expanded practice card to render every item and handwriting stroke beyond the standard 15-character group", expandedShareCard);
   await page.click("#summaryProfile");
   await page.waitForFunction(() => getComputedStyle(profilePanel).display !== "none");
   await page.click("#closeProfile");

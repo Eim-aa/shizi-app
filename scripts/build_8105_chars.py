@@ -26,6 +26,9 @@ PY_DEPS = ROOT / ".python-deps"
 DECK_KEY = "shizi.deck.v8105.context1"
 GENERATED_JSON = "selected_8105_candidates.json"
 COVERAGE_JSON = "hanzi_writer_coverage.json"
+CORE_STROKE_SCRIPT = "core-strokes.js"
+CORE_STROKE_COUNT = 600
+CALIBRATION_CORE_CHARS = ["尴", "嚏", "狩", "晤", "飓", "痿", "俾", "跻", "徵", "瞰", "裘", "娩", "邃", "暧", "煲"]
 HANZI_WRITER_FLAT_URL = "https://data.jsdelivr.com/v1/package/npm/hanzi-writer-data@2.0.1/flat"
 if PY_DEPS.exists():
     sys.path.insert(0, str(PY_DEPS))
@@ -653,6 +656,7 @@ def patch_index(chosen, word_index):
     """
     index_path = ROOT / "index.html"
     data_path = ROOT / "deck-data.js"
+    core_path = ROOT / CORE_STROKE_SCRIPT
     html = index_path.read_text(encoding="utf-8")
 
     seed = []
@@ -696,6 +700,14 @@ def patch_index(chosen, word_index):
         "const SEED = " + js_string(seed) + ";\n"
         f"// 每个字的部件分组（自动生成：{len(chosen)} 个通用规范汉字候选，按 Make Me a Hanzi matches 递归部件分组）\n"
         "const GROUPS=" + js_string(groups) + ";\n",
+        encoding="utf-8",
+    )
+    core_path.write_text(
+        "// 由 scripts/build_8105_chars.py 同步生成：首日校准字优先，再按题库字频补满 600 字。\n"
+        "(function(scope){\n"
+        f"  const calibration={js_string(CALIBRATION_CORE_CHARS)};\n"
+        f"  scope.SHIZI_CORE_STROKES=[...new Set([...calibration,...SEED.slice().sort((a,b)=>a.rank-b.rank).map(card=>card.target)])].slice(0,{CORE_STROKE_COUNT});\n"
+        "})(self);\n",
         encoding="utf-8",
     )
 

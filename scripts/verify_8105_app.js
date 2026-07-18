@@ -7,6 +7,8 @@ const appUrl = process.env.SHIZI_APP_URL || "http://127.0.0.1:8000/";
 const screenshotPath = path.join(root, "generated", "verify_8105_app.png");
 const SESSION_STORAGE_KEY = "shizi.session.v1";
 const source = fs.readFileSync(path.join(root, "index.html"), "utf8");
+const swSource = fs.readFileSync(path.join(root, "sw.js"), "utf8");
+const coreStrokeSource = fs.readFileSync(path.join(root, "core-strokes.js"), "utf8");
 
 if (/退出本组？|进度已保存，随时可继续这组|这次写对了|这次写错了|描一遍也算拾回|小时后再见/.test(source)) {
   throw new Error("Deprecated practice vocabulary remains in index.html");
@@ -22,6 +24,9 @@ function chromeExecutable() {
 function assert(condition, message, details) {
   if (!condition) throw new Error(`${message}${details ? `: ${JSON.stringify(details)}` : ""}`);
 }
+
+assert(swSource.includes("shizi-v9") && swSource.includes("Promise.allSettled") && swSource.includes("INSTALL_BATCH_SIZE = 40") && swSource.includes("cacheCoreStrokes"), "Expected versioned, batched, failure-tolerant core stroke installation");
+assert(coreStrokeSource.includes("SHIZI_CORE_STROKES") && coreStrokeSource.includes("slice(0,600)"), "Expected a generated 600-character core stroke list");
 
 async function waitForWriter(page) {
   await page.waitForFunction(() => Array.isArray(curMedians) && curMedians.length > 0 && !animating);
@@ -54,8 +59,9 @@ let browser;
   browser = await chromium.launch({ headless: true, executablePath: chromeExecutable() });
   const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
   const pageErrors = [];
+  let offlineProbe = false;
   page.on("pageerror", (error) => pageErrors.push(error.message));
-  page.on("console", (message) => { if (message.type() === "error") pageErrors.push(message.text()); });
+  page.on("console", (message) => { const value = message.text(); if (message.type() === "error" && !(offlineProbe && /ERR_FAILED|ERR_INTERNET_DISCONNECTED/.test(value))) pageErrors.push(value); });
 
   await page.goto(appUrl, { waitUntil: "networkidle" });
   await page.evaluate(() => localStorage.clear());
@@ -164,6 +170,32 @@ let browser;
   assert(baseline.scheduler.desiredRetention === 0.9 && baseline.scheduler.maximumInterval === 365 && baseline.scheduler.enableFuzz && baseline.engineFuzz && baseline.scheduler.parameterVersion === "fsrs6-fuzz-365-v2", "Expected fuzzed scheduler with a one-year interval ceiling", baseline.scheduler);
   assert(baseline.decisionLabels.join("/") === "写对了/写错了" && baseline.oldStampChoices === 0 && baseline.showLabel === "不会写", "Expected concise two-decision result semantics", baseline);
   assert(baseline.viewport.includes("viewport-fit=cover") && !/user-scalable=no|maximum-scale=1/.test(baseline.viewport), "Expected scalable safe-area viewport", baseline.viewport);
+
+  await page.addScriptTag({ path: path.join(root, "core-strokes.js") });
+  const coreStrokes = await page.evaluate(() => ({ chars: self.SHIZI_CORE_STROKES.slice(), calibration: self.SHIZI_CORE_STROKES.slice(0, 15).join("") }));
+  const missingCoreFiles = coreStrokes.chars.filter((char) => !fs.existsSync(path.join(root, "data", `${char}.json`)));
+  const coreBytes = coreStrokes.chars.reduce((sum, char) => sum + fs.statSync(path.join(root, "data", `${char}.json`)).size, 0);
+  assert(coreStrokes.chars.length === 600 && new Set(coreStrokes.chars).size === 600 && coreStrokes.calibration === "尴嚏狩晤飓痿俾跻徵瞰裘娩邃暧煲" && missingCoreFiles.length === 0 && coreBytes >= 1024 * 1024 && coreBytes <= 2 * 1024 * 1024,
+  "Expected 600 unique core files including the exact first calibration group within the 1-2 MiB target", { count: coreStrokes.chars.length, calibration: coreStrokes.calibration, missingCoreFiles, coreBytes });
+  await page.waitForFunction(async () => { const cache = await caches.open("shizi-v9"), keys = await cache.keys(); return keys.filter((request) => new URL(request.url).pathname.includes("/data/")).length >= 600; }, null, { timeout: 30000 });
+  const coreCache = await page.evaluate(async () => { const cache = await caches.open("shizi-v9"), keys = await cache.keys(); return { core: keys.filter((request) => new URL(request.url).pathname.includes("/data/")).length, shell: !!(await cache.match("core-strokes.js")) }; });
+  assert(coreCache.core === 600 && coreCache.shell, "Expected the service worker to install all available core strokes and its generated list", coreCache);
+
+  await page.reload({ waitUntil: "networkidle" });
+  offlineProbe = true;
+  await page.context().setOffline(true);
+  await page.evaluate(() => { tuning = { calibrated: true, offset: 0, contextStrict: 0, rounds: [] }; saveTuning(); const idx = CARDS.findIndex((card) => card.target === "玃"); startFocus([idx]); });
+  await page.waitForFunction(() => !done.disabled && hint.textContent.includes("需要联网下载一次"));
+  const honestOffline = await page.evaluate(() => ({ copy: hint.textContent, done: !done.disabled, show: !show.disabled, noWriter: !practiceCharData, offline: navigator.onLine === false }));
+  assert(honestOffline.copy.includes("这个字的笔顺需要联网下载一次") && honestOffline.done && honestOffline.show && honestOffline.noWriter && honestOffline.offline,
+  "Expected an uncached offline card to explain the one-time download and keep self-assessment usable", honestOffline);
+  await page.context().setOffline(false);
+  await page.waitForFunction(() => Array.isArray(curMedians) && curMedians.length > 0 && !strokeDataOffline);
+  offlineProbe = false;
+  const onlineRecovery = await page.evaluate(() => ({ target: cur.target, medians: curMedians.length, copy: hint.textContent }));
+  assert(onlineRecovery.target === "玃" && onlineRecovery.medians > 0 && !onlineRecovery.copy.includes("需要联网下载一次"), "Expected reconnection to restore the current untouched card automatically", onlineRecovery);
+  await page.evaluate(() => localStorage.clear());
+  await page.reload({ waitUntil: "networkidle" });
 
   const migration = await page.evaluate(() => {
     const idx = CARDS.findIndex((card) => card.target === "器");

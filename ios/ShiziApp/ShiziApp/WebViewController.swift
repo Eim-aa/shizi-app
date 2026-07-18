@@ -536,7 +536,7 @@ final class WebViewController: UIViewController {
               baseCursor = baseTargets.length;
               unresolved = new Set();
               practicePhase = 'between';
-              roundStats = baseTargets.map((idx, position) => ({ idx, target: CARDS[idx].target, outcome: position === 0 ? 'hinted' : 'fast', independentlyRecovered: position === 0 }));
+              roundStats = baseTargets.map((idx, position) => ({ idx, target: CARDS[idx].target, outcome: position === 0 ? 'hinted' : 'fast', independentlyRecovered: position === 0, handwriting: [[{ x: 0.22, y: 0.25 }, { x: 0.44, y: 0.5 }, { x: 0.72, y: 0.68 }]] }));
               roundId = 'native-smoke-milestone';
               baseTargets.forEach(idx => markPracticeStamp(idx));
               hapticDebug.events = [];
@@ -546,8 +546,8 @@ final class WebViewController: UIViewController {
               result.practiceFlow.hapticMilestoneSequence = hapticDebug.events.slice();
               result.practiceFlow.summaryPocketVisible = visible('pocketCard') && summaryFocusIndexes.length === 1 && document.getElementById('pocketBtn').textContent.includes('马上再拾');
               const shareCanvas = renderPracticeCardCanvas();
-              const shareSource = renderPracticeCardCanvas.toString();
-              result.dataFlow.shareCardGenerated = !!shareCanvas && shareCanvas.width === 1080 && shareCanvas.height === 1350 && shareCanvas.toDataURL('image/png').startsWith('data:image/png;base64,');
+              const shareSource = `${renderPracticeCardCanvas}\n${drawShareHandwriting}`;
+              result.dataFlow.shareCardGenerated = !!shareCanvas && shareCanvas.width === 1080 && shareCanvas.height === 1440 && Number(shareCanvas.dataset.inkStrokeCount) === 2 && shareCanvas.toDataURL('image/png').startsWith('data:image/png;base64,') && !shareSource.includes('fillText(stat.target');
               result.dataFlow.shareCardPrivate = !/localStorage|memory|activity|backup|seenStat|riskStat/.test(shareSource);
 
               baseTargets = completionTargets.slice(2);

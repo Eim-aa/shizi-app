@@ -108,6 +108,7 @@ checks = {
     and data_flow.get("backupHasCustom") is True
     and data_flow.get("backupHasMemory") is True
     and data_flow.get("backupHasReminder") is True
+    and data_flow.get("backupHasFunnel") is True
     and data_flow.get("backupHasSessionV2") is True
     and data_flow.get("backupHasFSRSLog") is True
     and data_flow.get("backupHasTraceTutorial") is True
@@ -119,6 +120,7 @@ checks = {
     and data_flow.get("backupRestoreAdded") is True
     and data_flow.get("backupRestoreCustom") is True
     and data_flow.get("backupRestoreMemory") is True
+    and data_flow.get("backupRestoreFunnel") is True
     and data_flow.get("backupRestorePreservesSessionV2") is True
     and data_flow.get("backupRestorePreservesSmokeKey") is True
     and data_flow.get("backupSafetyCreated") is True
@@ -131,6 +133,7 @@ checks = {
     "nativeConfirm": data_flow.get("nativeConfirmAvailable") is True,
     "reminderState": data_flow.get("reminderStateAvailable") is True
     and data_flow.get("reminderSettingsRowVisible") is True,
+    "funnelState": data_flow.get("funnelStateAvailable") is True,
     "calibrationReturn": data_flow.get("calibrationReturnInviteVisible") is True
     and data_flow.get("calibrationReturnPermissionRequested") is True,
     "navPractice": navigation.get("practiceEntryVisible") is True

@@ -111,6 +111,18 @@ let browser;
   }));
   assert(firstRun.welcome && firstRun.footHidden && firstRun.needsCalibration && firstRun.restoreVisible && firstRun.copy.includes("先拾15个字试试") && firstRun.copy.includes("记录只存在这台手机上") && firstRun.tabs.join() === "拾练习,盒字盒,我我的" && firstRun.welcomeEvents === 1, "Expected first-run calibration welcome, one-time funnel event, storage expectation, restore entry, and three-tab IA", firstRun);
 
+  const p2Style = await page.evaluate(async () => {
+    await document.fonts.ready; const root = getComputedStyle(document.documentElement), heading = getComputedStyle(document.querySelector(".welcome h1")), actions = getComputedStyle(document.querySelector(".welcomeActions")), cta = getComputedStyle(welcomeStart), body = getComputedStyle(document.body), sheet = getComputedStyle(document.querySelector(".sheetCard")), toastGlyph = getComputedStyle(toastChar), source = document.querySelector("style").textContent;
+    const fontMatch = source.match(/data:font\/woff2;base64,([^)]*)/);
+    return { tokens: ["--fs-caption", "--fs-note", "--fs-body", "--fs-emph"].map((name) => root.getPropertyValue(name).trim()), spaces: ["--space-1", "--space-2", "--space-3", "--space-4"].map((name) => root.getPropertyValue(name).trim()), letter: [root.getPropertyValue("--ls-label").trim(), root.getPropertyValue("--ls-motto").trim()], faint: root.getPropertyValue("--faint").trim(), kai: root.getPropertyValue("--kai"),
+      heading: { size: parseFloat(heading.fontSize), line: parseFloat(heading.lineHeight), spacing: heading.letterSpacing }, actionsMargin: parseFloat(actions.marginTop), ctaMargin: parseFloat(cta.marginTop), toastGlyph: parseFloat(toastGlyph.fontSize), bodyNoise: body.backgroundImage, sheetNoise: sheet.backgroundImage,
+      fontLoaded: document.fonts.check('24px "Shizi Brand"', "拾字练习"), fontBytes: fontMatch ? atob(fontMatch[1]).length : 0, inlineWelcomeStyle: document.querySelector(".welcomeActions").hasAttribute("style"), nonzeroLetterSpacing: Array.from(source.matchAll(/letter-spacing:\s*([^;}]+)/g), (match) => match[1].trim()).some((value) => !["0", "var(--ls-label)", "var(--ls-motto)"].includes(value)) };
+  });
+  assert(p2Style.tokens.join() === "11px,12px,13px,15px" && p2Style.spaces.join() === "8px,12px,16px,24px" && p2Style.letter.join() === ".12em,.26em" && p2Style.faint === "#6a604f" && p2Style.kai.includes("DFKai-SB") && p2Style.kai.includes("AR PL UKai CN") && p2Style.kai.includes("TW-Kai")
+    && p2Style.heading.size === 31 && Math.abs(p2Style.heading.line / p2Style.heading.size - 1.35) < 0.02 && ["normal", "0px"].includes(p2Style.heading.spacing) && p2Style.actionsMargin === 52 && p2Style.ctaMargin === 0 && !p2Style.inlineWelcomeStyle
+    && p2Style.toastGlyph === 26 && p2Style.bodyNoise !== "none" && p2Style.sheetNoise !== "none" && p2Style.fontLoaded && p2Style.fontBytes > 0 && p2Style.fontBytes < 20000 && !p2Style.nonzeroLetterSpacing,
+  "Expected converged type/spacing tokens, an offline Android-safe brand font, and paper texture", p2Style);
+
   const funnelBoundary = await page.evaluate(() => {
     const originalFunnel = JSON.parse(JSON.stringify(funnel)), originalOpens = opens.slice(), originalRound = { roundId, activeMode, baseTargets: baseTargets.slice(), attemptSeq };
     funnel = newFunnel(); saveFunnel(); renderHome(); renderHome();
@@ -873,7 +885,8 @@ let browser;
 
     const idx = indexes[1]; currentIndex = idx; cur = CARDS[idx]; currentAttemptId = "verify-recovered-stamp"; episodes = { [String(idx)]: { idx, firstOutcome: "hinted", attempts: [] } };
     memory[cardKey(idx)] = { seen: 1, dueDay: "2026-07-30" }; showStampedFeedback("fast");
-    const recoveredStamp = { className: stampOnMine.className, shadow: getComputedStyle(stampOnMine.querySelector(".face")).boxShadow, copy: toastSubEl.textContent };
+    const recoveredStamp = { className: stampOnMine.className, shadow: getComputedStyle(stampOnMine.querySelector(".face")).boxShadow, copy: toastSubEl.textContent, mascot: feedbackBlob.className };
+    showStampedFeedback("slow"); recoveredStamp.concernedMascot = feedbackBlob.className;
 
     reminder.characterMilestonesShown = []; reminder.characterMilestoneDay = ""; saveReminder();
     const hundred = celebrateCharacterMilestoneIfAny(99, 100), repeated = celebrateCharacterMilestoneIfAny(99, 100); renderSummaryMilestone({ kind: "characters", value: hundred });
@@ -891,8 +904,8 @@ let browser;
     && p1Ceremony.before.sealDelay >= 690 && p1Ceremony.before.hint === "block" && p1Ceremony.before.legend && p1Ceremony.before.marks.join("") === "补待再"
     && p1Ceremony.before.recovered.filter(Boolean).every((copy) => copy === "已独立") && p1Ceremony.before.slowBorder !== p1Ceremony.before.blue && p1Ceremony.before.immediate.length === 0 && p1Ceremony.after.join() === "action",
   "Expected the first calibration result to play the full, risk-readable tile/date/final-seal ceremony", p1Ceremony);
-  assert(p1Ceremony.recoveredStamp.className.includes("recovered") && p1Ceremony.recoveredStamp.shadow !== "none" && p1Ceremony.recoveredStamp.copy.includes("7月30日") && !p1Ceremony.recoveredStamp.copy.includes("2026年"),
-  "Expected an independently recovered card to receive a distinct gold-edged seal and compact date", p1Ceremony.recoveredStamp);
+  assert(p1Ceremony.recoveredStamp.className.includes("recovered") && p1Ceremony.recoveredStamp.shadow !== "none" && p1Ceremony.recoveredStamp.copy.includes("7月30日") && !p1Ceremony.recoveredStamp.copy.includes("2026年") && p1Ceremony.recoveredStamp.mascot.includes("pleased") && p1Ceremony.recoveredStamp.concernedMascot.includes("concerned"),
+  "Expected an independently recovered card to receive a distinct gold-edged seal, compact date, and responsive mascot state", p1Ceremony.recoveredStamp);
   assert(p1Ceremony.character.hundred === 100 && p1Ceremony.character.repeated === null && p1Ceremony.character.badge === "百" && p1Ceremony.character.copy.includes("100")
     && p1Ceremony.character.reminder === "none" && p1Ceremony.character.summaryReminder === "none" && p1Ceremony.vibrated.join() === "10,10",
   "Expected one-time hundred-character recognition to take priority over backup prompts with Web vibration fallback", p1Ceremony);
@@ -1107,7 +1120,7 @@ let browser;
     tomorrow: shiftDay(today(), 1),
     memory: cloneObj(memory),
   }));
-  assert(completed.summary && completed.stats.length === 3 && completed.stats[0].outcome === "hinted" && completed.stats[0].independentlyRecovered, "Expected one summary tile per base target with recovery state", completed.stats);
+  assert(completed.summary && completed.stats.length === 3 && completed.stats[0].outcome === "hinted" && completed.stats[0].independentlyRecovered && completed.stats.some((row) => row.handwriting && row.handwriting.length) && completed.stats.flatMap((row) => row.handwriting || []).every((stroke) => stroke.length <= 48), "Expected one summary tile per base target with compact captured user ink", completed.stats);
   assert(completed.log.map((event) => event.rating).join() === "Again,Good,Good,Good" && completed.log.every((event) => !["Hard", "Easy"].includes(event.rating)), "Expected Again/Good-only FSRS events", completed.log);
   assert(completed.activity.stamps === 3 && completed.activity.attempts === 4 && completed.groups === 1 && completed.session === null, "Expected unique-day counts, attempt counts, and true completion", completed.activity);
   assert(Object.values(completed.memory).every((item) => !item.pendingLearning && item.dueDay >= completed.tomorrow && item.schedulerVersion.includes("FSRS-6.0")), "Expected graduated cards to expose next-day-or-later dueDay", completed.memory);
@@ -1119,12 +1132,28 @@ let browser;
     const canvas = renderPracticeCardCanvas(), native = await sharePracticeCard({ nativeBridge: { postMessage: (message) => messages.push(message) } });
     const web = await sharePracticeCard({ nativeBridge: null, navigator: { canShare: ({ files }) => files.length === 1 && files[0].type === "image/png", share: async (payload) => shared.push(payload) } });
     const download = await sharePracticeCard({ nativeBridge: null, navigator: {}, download: (blob, name) => downloads.push({ size: blob.size, name }) });
-    const rendererSource = renderPracticeCardCanvas.toString();
-    return { canvas: canvas && { width: canvas.width, height: canvas.height, png: canvas.toDataURL("image/png").startsWith("data:image/png;base64,"), pixels: canvas.toDataURL("image/png").length }, native, web, download, messageKeys: messages[0] && Object.keys(messages[0]).sort(), messageType: messages[0] && messages[0].type, messagePNG: messages[0] && messages[0].dataURL.startsWith("data:image/png;base64,"), shared: shared.length, downloaded: downloads[0], privateFree: !/localStorage|memory|activity|backup|seenStat|riskStat/.test(rendererSource), shareVisible: getComputedStyle(summaryShare).display !== "none" };
+    const rendererSource = `${renderPracticeCardCanvas}\n${drawShareHandwriting}`;
+    return { canvas: canvas && { width: canvas.width, height: canvas.height, png: canvas.toDataURL("image/png").startsWith("data:image/png;base64,"), pixels: canvas.toDataURL("image/png").length, inkStrokes: Number(canvas.dataset.inkStrokeCount) }, native, web, download, messageKeys: messages[0] && Object.keys(messages[0]).sort(), messageType: messages[0] && messages[0].type, messagePNG: messages[0] && messages[0].dataURL.startsWith("data:image/png;base64,"), shared: shared.length, downloaded: downloads[0], privateFree: !/localStorage|memory|activity|backup|seenStat|riskStat/.test(rendererSource), printedTargetFree: !/fillText\s*\(\s*stat\.target/.test(rendererSource), shareVisible: getComputedStyle(summaryShare).display !== "none", shareLabel: summaryShare.textContent.trim() };
   });
-  assert(sharePaths.canvas.width === 1080 && sharePaths.canvas.height === 1350 && sharePaths.canvas.png && sharePaths.canvas.pixels > 10000 && sharePaths.native.route === "native" && sharePaths.web.route === "share" && sharePaths.download.route === "download"
-    && sharePaths.messageKeys.join() === "dataURL,name,type" && sharePaths.messageType === "sharePracticeCard" && sharePaths.messagePNG && sharePaths.shared === 1 && sharePaths.downloaded.size > 1000 && sharePaths.downloaded.name.endsWith(".png") && sharePaths.privateFree && sharePaths.shareVisible,
-  "Expected a private-free PNG card and native, Web Share, and download delivery paths", sharePaths);
+  assert(sharePaths.canvas.width === 1080 && sharePaths.canvas.height === 1440 && sharePaths.canvas.png && sharePaths.canvas.pixels > 10000 && sharePaths.canvas.inkStrokes > 0 && sharePaths.native.route === "native" && sharePaths.web.route === "share" && sharePaths.download.route === "download"
+    && sharePaths.messageKeys.join() === "dataURL,name,type" && sharePaths.messageType === "sharePracticeCard" && sharePaths.messagePNG && sharePaths.shared === 1 && sharePaths.downloaded.size > 1000 && sharePaths.downloaded.name.endsWith(".png") && sharePaths.privateFree && sharePaths.printedTargetFree && sharePaths.shareVisible && sharePaths.shareLabel.includes("存为"),
+  "Expected a private-free user-ink PNG card and native, Web Share, and download delivery paths", sharePaths);
+  const expandedShareCard = await page.evaluate(() => {
+    const savedStats = cloneObj(roundStats), originalFillText = CanvasRenderingContext2D.prototype.fillText, labels = [];
+    try {
+      CanvasRenderingContext2D.prototype.fillText = function(text, ...args) { labels.push(String(text)); return originalFillText.call(this, text, ...args); };
+      roundStats = Array.from({ length: 16 }, (_, idx) => ({ idx, target: CARDS[idx].target, outcome: idx % 3 === 0 ? "hinted" : "fast", independentlyRecovered: false,
+        handwriting: [[{ x: .12 + idx * .002, y: .18 }, { x: .82, y: .78 - idx * .002 }]] }));
+      const canvas = renderPracticeCardCanvas(), rendererSource = `${renderPracticeCardCanvas}`;
+      return { width: canvas.width, height: canvas.height, items: Number(canvas.dataset.itemCount), inkStrokes: Number(canvas.dataset.inkStrokeCount), labels,
+        png: canvas.toDataURL("image/png").startsWith("data:image/png;base64,"), noFifteenItemCutoff: !/slice\(0,\s*15\)/.test(rendererSource) };
+    } finally {
+      CanvasRenderingContext2D.prototype.fillText = originalFillText;
+      roundStats = savedStats;
+    }
+  });
+  assert(expandedShareCard.width === 1080 && expandedShareCard.height === 1618 && expandedShareCard.items === 16 && expandedShareCard.inkStrokes === 16 && expandedShareCard.labels.includes("本组 16 个字") && expandedShareCard.png && expandedShareCard.noFifteenItemCutoff,
+    "Expected an expanded practice card to render every item and handwriting stroke beyond the standard 15-character group", expandedShareCard);
   await page.click("#summaryProfile");
   await page.waitForFunction(() => getComputedStyle(profilePanel).display !== "none");
   await page.click("#closeProfile");

@@ -347,7 +347,7 @@ final class WebViewController: UIViewController {
               result.navigationFlow.bookAchievementVisible = visible('bookHero') && document.getElementById('bookHero').textContent.includes('已拾回') && document.getElementById('bookHero').textContent.includes('练过');
               const legend = document.querySelector('.legend');
               result.layoutFlow.readableOutcomeLegend = parseFloat(getComputedStyle(legend).fontSize) >= 13 && getComputedStyle(legend).color === getComputedStyle(document.getElementById('bookHeroRecent')).color;
-              result.layoutFlow.outcomeMarksRedundant = Array.from(legend.querySelectorAll('.outcomeMark')).map(node => node.textContent).join('') === '拾补待再';
+              result.layoutFlow.outcomeMarksRedundant = Array.from(legend.querySelectorAll('.outcomeMark')).map(node => node.textContent).join('') === '补待再' && legend.textContent.includes('无点 拾到');
               document.getElementById('stampLegend').click();
               const guideRows = Array.from(document.querySelectorAll('.stampGuideRow'));
               result.navigationFlow.stampGuideAvailable = document.getElementById('stampGuideSheet').classList.contains('open') && guideRows.length === 4 && guideRows.map(row => row.textContent).join('').includes('拾到') && guideRows.map(row => row.textContent).join('').includes('再拾');
@@ -527,6 +527,8 @@ final class WebViewController: UIViewController {
               activity.daily = {};
               activity.practiceDays = [];
               reminder.milestonesShown = [];
+              reminder.characterMilestonesShown = CHARACTER_MILESTONES.slice();
+              reminder.characterMilestoneDay = '';
               tuning = { calibrated: true, offset: 0, contextStrict: 0, rounds: [] };
               activeMode = 'new';
               baseTargets = completionTargets.slice(0, 2);
@@ -540,6 +542,7 @@ final class WebViewController: UIViewController {
               hapticDebug.events = [];
               hapticDebug.last = null;
               roundSummary(true);
+              await waitFor(() => hapticDebug.events.length === 1);
               result.practiceFlow.hapticMilestoneSequence = hapticDebug.events.slice();
               result.practiceFlow.summaryPocketVisible = visible('pocketCard') && summaryFocusIndexes.length === 1 && document.getElementById('pocketBtn').textContent.includes('马上再拾');
               const shareCanvas = renderPracticeCardCanvas();
@@ -558,6 +561,7 @@ final class WebViewController: UIViewController {
               hapticDebug.events = [];
               hapticDebug.last = null;
               roundSummary(true);
+              await waitFor(() => hapticDebug.events.length === 1);
               result.practiceFlow.hapticOrdinaryCompletionSequence = hapticDebug.events.slice();
 
               activity = normalizeActivity(completionState.activity);

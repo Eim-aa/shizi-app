@@ -34,6 +34,9 @@ assert(!/rgba\(194,\s*69,\s*44/i.test(source) && source.includes("--accent-rgb:1
 assert(source.includes(".card.undoActive .chdr{ visibility:hidden; }") && !source.includes('$("tip").title='), "Expected the undo bar to replace the header and touch guidance to avoid invisible title copy");
 assert(/funnelValue\s*:\s*cloneObj\(funnel\)/.test(source) && /funnel\s*=\s*cloneObj\(snap\.funnelValue\)/.test(source), "Expected the stamp undo snapshot to capture and restore the local funnel");
 assert(source.includes("ROUND_DURATION_CAP_MS") && /durationMs\s*:\s*Math\.min\(/.test(source), "Expected the round duration to be capped client-side against background/idle inflation");
+assert(source.includes("STAMP_HOLD_MS=1800") && source.includes("EDIT_STAMP_WINDOW_MS=1800") && source.includes("shortDueDay(m.dueDay)"), "Expected readable 1800ms stamp feedback and a compact due date");
+assert(source.includes('navigator.vibrate(10)') && source.includes('animation="cardSwapIn .18s ease-out both"') && source.includes('classList.add("revealing")'), "Expected Web haptics and staggered card/reveal transitions");
+assert(source.includes('OUTCOME_DOT={ fast:"transparent", hinted:"var(--gold)", slow:"var(--accent)"') && !/slow:\s*"var\(--blue\)"/.test(source), "Expected silent success, gold assistance, and cinnabar risk result semantics");
 
 function verifyBackupSummaryScript() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "shizi-funnel-"));
@@ -502,7 +505,7 @@ let browser;
   await page.click("#meRisk");
   const riskBook = await page.evaluate(() => { const legend = document.querySelector(".legend"), legendStyle = getComputedStyle(legend); return { visible: getComputedStyle(studybook).display !== "none", expanded: boxAllToggle.getAttribute("aria-expanded"), active: document.querySelector('#boxFilters [data-filter="risk"]').classList.contains("active"), hero: bookHero.textContent.replace(/\s+/g, ""), legendSize: parseFloat(legendStyle.fontSize), legendColor: legendStyle.color, mutedColor: getComputedStyle(document.documentElement).getPropertyValue("--muted").trim(), marks: Array.from(legend.querySelectorAll(".outcomeMark")).map((node) => ({ label: node.textContent, shape: getComputedStyle(node).clipPath, size: node.getBoundingClientRect().width })) }; });
   assert(riskBook.visible && riskBook.expanded === "true" && riskBook.active && riskBook.hero.includes("已拾回") && riskBook.hero.includes("练过") && riskBook.hero.includes("最近拾得")
-    && riskBook.legendSize >= 13 && riskBook.marks.map((item) => item.label).join("") === "拾补待再" && riskBook.marks.every((item) => item.size >= 16) && riskBook.marks.some((item) => item.shape !== "none"),
+    && riskBook.legendSize >= 13 && riskBook.marks.map((item) => item.label).join("") === "补待再" && riskBook.marks.every((item) => item.size >= 16) && riskBook.marks.some((item) => item.shape !== "none"),
   "Expected My risk action to deep-link Book with a readable, shape-and-text redundant outcome legend", riskBook);
   await page.click("#stampLegend");
   const stampGuide = await page.evaluate(() => ({ open: stampGuideSheet.classList.contains("open"), rows: Array.from(document.querySelectorAll(".stampGuideRow")).map((row) => row.textContent.replace(/\s+/g, "")), marks: Array.from(document.querySelectorAll(".stampGuideRow .outcomeMark")).map((node) => node.textContent) }));
@@ -553,7 +556,7 @@ let browser;
 
   await submitStandard(page);
   await chooseCorrect(page);
-  await page.waitForTimeout(1500);
+  await page.waitForTimeout(1900);
   const queuedSecond = await page.evaluate(() => ({ current: cur.target, firstConsumed: !(memory[cardKey(indexesForChars(["强"])[0])] || {}).queuedFront, secondQueued: !!(memory[cardKey(indexesForChars(["器"])[0])] || {}).queuedFront, undo: getComputedStyle(undoBar).display !== "none" }));
   assert(queuedSecond.current === "器" && queuedSecond.firstConsumed && queuedSecond.secondQueued && queuedSecond.undo, "Expected first queued card to be consumed only after its stamp and leave the second next", queuedSecond);
 
@@ -569,11 +572,11 @@ let browser;
   assert(queuedRollback.current === "强" && queuedRollback.flags.every(Boolean) && queuedRollback.stats === 0 && queuedRollback.reviews === 0 && queuedRollback.baseCursor === 0, "Expected cross-card undo to restore queue-front flags and the ungraded position", queuedRollback);
 
   await chooseCorrect(page);
-  await page.waitForTimeout(1500);
+  await page.waitForTimeout(1900);
   assert(await page.evaluate(() => cur.target === "器"), "Expected the second queued card after regrading the first");
   await submitStandard(page);
   await chooseCorrect(page);
-  await page.waitForTimeout(1500);
+  await page.waitForTimeout(1900);
   const queuedConsumed = await page.evaluate(() => ({
     flags: indexesForChars(["强", "器"]).map((idx) => !!(memory[cardKey(idx)] || {}).queuedFront),
     targets: roundStats.slice(0, 2).map((row) => row.target).join(""),
@@ -634,11 +637,11 @@ let browser;
   await waitForWriter(page);
 
   await page.evaluate(() => { inkStrokes = mediansToCanvas(curMedians); redrawInk(); revealAnswer(); });
-  const firstCalibrationReveal = await page.evaluate(() => {
+  const firstCalibrationReveal = await page.evaluate(async () => {
     const snapshot = submissionSnapshot, baseStyle = (node) => { const style = getComputedStyle(node); return { background: style.backgroundColor, border: style.border, shadow: style.boxShadow }; };
     const first = { bubble: getComputedStyle(teachBubbleGrade).display, ask: getComputedStyle(askRow).display, decisionBottom: decisionRow.getBoundingClientRect().bottom, viewportBottom: innerHeight };
-    showRevealState({ ...snapshot, lastVerdict: null }); const neutral = { correct: baseStyle(decisionCorrect), wrong: baseStyle(decisionWrong), suggested: decisionCorrect.classList.contains("suggest") || decisionWrong.classList.contains("suggest") };
-    showRevealState({ ...snapshot, lastVerdict: { status: "bad", mode: "exact", failed: [0], missing: 0 } }); const wrongSuggested = { correct: baseStyle(decisionCorrect), wrong: baseStyle(decisionWrong), suggested: decisionWrong.classList.contains("suggest") && !decisionCorrect.classList.contains("suggest") };
+    showRevealState({ ...snapshot, lastVerdict: null }); await new Promise((resolve) => setTimeout(resolve, 160)); const neutral = { correct: baseStyle(decisionCorrect), wrong: baseStyle(decisionWrong), suggested: decisionCorrect.classList.contains("suggest") || decisionWrong.classList.contains("suggest") };
+    showRevealState({ ...snapshot, lastVerdict: { status: "bad", mode: "exact", failed: [0], missing: 0 } }); await new Promise((resolve) => setTimeout(resolve, 160)); const wrongSuggested = { correct: baseStyle(decisionCorrect), wrong: baseStyle(decisionWrong), suggested: decisionWrong.classList.contains("suggest") && !decisionCorrect.classList.contains("suggest") };
     showRevealState(snapshot);
     return { first, neutral, wrongSuggested };
   });
@@ -821,7 +824,7 @@ let browser;
   assert(repeatedAfterRestore.target === repeatTarget && repeatedAfterRestore.kind === "manual" && repeatedAfterRestore.queue === 0 && repeatedAfterRestore.total === 1 && repeatedAfterRestore.summary === "none" && repeatedAfterRestore.session,
   "Expected the restored next card to consume the queued repeat without growing the group", repeatedAfterRestore);
 
-  const completionHaptics = await page.evaluate(() => {
+  const completionHaptics = await page.evaluate(async () => {
     exitCurrentRound(); clearSessionSnapshot();
     activity = newActivity(); activity.inheritedStreak = 0; activity.inheritedTotalDays = 0; activity.daily = {}; activity.practiceDays = []; saveActivity();
     reminder.milestonesShown = []; saveReminder(); tuning = { calibrated: true, offset: 0, contextStrict: 0, rounds: [] }; saveTuning(); activeMode = "new";
@@ -829,13 +832,87 @@ let browser;
     baseTargets = indexes.slice(0, 2); batch = baseTargets; baseCursor = baseTargets.length; manualQueue = []; unresolved = new Set(); practicePhase = "between";
     roundStats = baseTargets.map((idx) => ({ idx, target: CARDS[idx].target, outcome: "fast", independentlyRecovered: false })); roundId = "verify-milestone";
     baseTargets.forEach((idx) => markPracticeStamp(idx)); hapticDebug.events = []; hapticDebug.last = null; roundSummary(true);
-    const milestone = hapticDebug.events.slice();
+    const milestoneDelay = parseFloat(getComputedStyle(summaryBigSeal).animationDelay) * 1000, milestoneImmediate = hapticDebug.events.slice();
+    await new Promise((resolve) => setTimeout(resolve, milestoneDelay + 100)); const milestone = hapticDebug.events.slice();
     baseTargets = indexes.slice(2); batch = baseTargets; baseCursor = baseTargets.length; manualQueue = []; unresolved = new Set(); practicePhase = "between";
     roundStats = baseTargets.map((idx) => ({ idx, target: CARDS[idx].target, outcome: "fast", independentlyRecovered: false })); roundId = "verify-ordinary";
     baseTargets.forEach((idx) => markPracticeStamp(idx)); hapticDebug.events = []; hapticDebug.last = null; roundSummary(true);
-    return { milestone, ordinary: hapticDebug.events.slice(), groups: dailyActivity().completedGroups, totalDays: totalPracticeDays() };
+    const ordinaryDelay = parseFloat(getComputedStyle(summaryBigSeal).animationDelay) * 1000, ordinaryImmediate = hapticDebug.events.slice();
+    await new Promise((resolve) => setTimeout(resolve, ordinaryDelay + 100));
+    return { milestoneImmediate, milestone, milestoneDelay, ordinaryImmediate, ordinary: hapticDebug.events.slice(), ordinaryDelay, groups: dailyActivity().completedGroups, totalDays: totalPracticeDays() };
   });
-  assert(completionHaptics.milestone.join() === "milestone" && completionHaptics.ordinary.join() === "action" && completionHaptics.groups === 2 && completionHaptics.totalDays === 1, "Expected milestone and ordinary completion haptics to be mutually exclusive", completionHaptics);
+  assert(completionHaptics.milestoneImmediate.length === 0 && completionHaptics.ordinaryImmediate.length === 0 && completionHaptics.milestone.join() === "milestone" && completionHaptics.ordinary.join() === "action"
+    && completionHaptics.milestoneDelay > completionHaptics.ordinaryDelay && completionHaptics.groups === 2 && completionHaptics.totalDays === 1,
+  "Expected milestone and ordinary completion haptics to land with their delayed final seal", completionHaptics);
+
+  const p1Ceremony = await page.evaluate(async () => {
+    clearTimeout(summarySealTimer); clearTimeout(autoNextTimer); clearSessionSnapshot();
+    status = {}; memory = {}; fsrsReviewLog = []; quality = {}; sessionDone = new Set();
+    activity = newActivity(); activity.inheritedStreak = 0; activity.inheritedTotalDays = 0; activity.daily = {}; activity.practiceDays = []; saveActivity();
+    reminder = normalizeReminder({ milestonesShown: [1], characterMilestonesShown: [] }); saveReminder();
+    tuning = { calibrated: false, offset: 0, contextStrict: 0, rounds: [] }; saveTuning(); activeMode = "calibrate";
+    const indexes = ["器", "疑", "强", "料"].map((target) => CARDS.findIndex((card) => card.target === target));
+    baseTargets = indexes.slice(); batch = baseTargets; calibrationTargets = baseTargets.slice(); baseCursor = baseTargets.length; manualQueue = []; unresolved = new Set(); practicePhase = "between";
+    roundStats = [
+      { idx: indexes[0], target: CARDS[indexes[0]].target, outcome: "fast", independentlyRecovered: false },
+      { idx: indexes[1], target: CARDS[indexes[1]].target, outcome: "hinted", independentlyRecovered: true },
+      { idx: indexes[2], target: CARDS[indexes[2]].target, outcome: "slow", independentlyRecovered: false },
+      { idx: indexes[3], target: CARDS[indexes[3]].target, outcome: "miss", independentlyRecovered: true },
+    ];
+    roundId = "verify-p1-ceremony"; roundStartMemoryCount = memoryCount(); indexes.forEach((idx) => markPracticeStamp(idx)); hapticDebug.events = []; hapticDebug.last = null;
+    roundSummary(true);
+    const sealDelay = parseFloat(getComputedStyle(calibBigSeal).animationDelay) * 1000;
+    const immediate = hapticDebug.events.slice(), tiles = Array.from(calibSumTiles.querySelectorAll(".sumTile"));
+    const before = {
+      calibration: getComputedStyle(calibCard).display, sheet: getComputedStyle(sumSheet).display, tiles: tiles.length, date: calibDateSeal.textContent,
+      sealDelay, hint: getComputedStyle(calibPracticeHint).display, legend: calibCard.textContent.includes("无点 拾到"),
+      marks: tiles.map((tile) => tile.querySelector(".outcomeMark")?.textContent || ""), recovered: tiles.map((tile) => tile.querySelector(".recover")?.textContent || ""),
+      slowBorder: getComputedStyle(tiles[2]).borderColor, blue: getComputedStyle(document.documentElement).getPropertyValue("--blue").trim(), immediate,
+    };
+    await new Promise((resolve) => setTimeout(resolve, sealDelay + 100));
+
+    const idx = indexes[1]; currentIndex = idx; cur = CARDS[idx]; currentAttemptId = "verify-recovered-stamp"; episodes = { [String(idx)]: { idx, firstOutcome: "hinted", attempts: [] } };
+    memory[cardKey(idx)] = { seen: 1, dueDay: "2026-07-30" }; showStampedFeedback("fast");
+    const recoveredStamp = { className: stampOnMine.className, shadow: getComputedStyle(stampOnMine.querySelector(".face")).boxShadow, copy: toastSubEl.textContent };
+
+    reminder.characterMilestonesShown = []; reminder.characterMilestoneDay = ""; saveReminder();
+    const hundred = celebrateCharacterMilestoneIfAny(99, 100), repeated = celebrateCharacterMilestoneIfAny(99, 100); renderSummaryMilestone({ kind: "characters", value: hundred });
+    memory = Object.fromEntries(Array.from({ length: 100 }, (_, order) => [`milestone:${order}`, { seen: 1, last: Date.now() }])); saveMemory();
+    activity.daily = {}; activity.practiceDays = []; for (let order = 0; order < 5; order += 1) { const key = shiftDay(today(), -order); activity.practiceDays.push(key); activity.daily[key] = { stamps: 1, attempts: 1, targetKeys: [`m:${order}`], completedRoundIds: [`m:${order}`] }; } saveActivity();
+    backupMeta = normalizeBackupMeta(null); summaryBackupHintVisible = false; save(BACKUP_META_KEY, backupMeta); renderBackupUI(); renderSummaryBackupHint();
+    const character = { hundred, repeated, badge: milestoneMiniSeal.textContent, copy: $("milestoneCopy").textContent, reminder: getComputedStyle(backupReminder).display, summaryReminder: getComputedStyle(summaryBackupHint).display };
+
+    const vibrated = []; try { Object.defineProperty(navigator, "vibrate", { configurable: true, value: (duration) => { vibrated.push(duration); return true; } }); } catch (error) {}
+    hapticFeedback("select"); hapticFeedback("stamp"); hapticFeedback("milestone");
+    clearTimeout(summarySealTimer); clearTimeout(autoNextTimer);
+    return { before, after: hapticDebug.events.slice(0, 1), recoveredStamp, character, vibrated };
+  });
+  assert(p1Ceremony.before.calibration === "flex" && p1Ceremony.before.sheet === "none" && p1Ceremony.before.tiles === 4 && p1Ceremony.before.date.length > 0
+    && p1Ceremony.before.sealDelay >= 690 && p1Ceremony.before.hint === "block" && p1Ceremony.before.legend && p1Ceremony.before.marks.join("") === "补待再"
+    && p1Ceremony.before.recovered.filter(Boolean).every((copy) => copy === "已独立") && p1Ceremony.before.slowBorder !== p1Ceremony.before.blue && p1Ceremony.before.immediate.length === 0 && p1Ceremony.after.join() === "action",
+  "Expected the first calibration result to play the full, risk-readable tile/date/final-seal ceremony", p1Ceremony);
+  assert(p1Ceremony.recoveredStamp.className.includes("recovered") && p1Ceremony.recoveredStamp.shadow !== "none" && p1Ceremony.recoveredStamp.copy.includes("7月30日") && !p1Ceremony.recoveredStamp.copy.includes("2026年"),
+  "Expected an independently recovered card to receive a distinct gold-edged seal and compact date", p1Ceremony.recoveredStamp);
+  assert(p1Ceremony.character.hundred === 100 && p1Ceremony.character.repeated === null && p1Ceremony.character.badge === "百" && p1Ceremony.character.copy.includes("100")
+    && p1Ceremony.character.reminder === "none" && p1Ceremony.character.summaryReminder === "none" && p1Ceremony.vibrated.join() === "10,10",
+  "Expected one-time hundred-character recognition to take priority over backup prompts with Web vibration fallback", p1Ceremony);
+
+  const p1Discovery = await page.evaluate(() => {
+    clearSessionSnapshot(); tuning = { calibrated: true, offset: 0, contextStrict: 0, rounds: [] }; saveTuning();
+    activity = newActivity(); activity.inheritedStreak = 0; activity.inheritedTotalDays = 0; activity.daily = {}; activity.practiceDays = []; memory = {}; status = {};
+    const idx = CARDS.findIndex((card) => card.target === "器"); memory[cardKey(idx)] = { seen: 1, last: Date.now(), misses: 1, streak: 0, lastOutcome: "miss", dueDay: today(), due: dayStartMs(today()) }; saveMemory(); markPracticeStamp(idx); renderMe();
+    const me = { day: meDayState.textContent, ready: profileSampleReady(), advice: meAdvice.textContent }; renderProfile(); const bars = profilePanel.querySelectorAll(".profileBar").length;
+    memory = {}; saveMemory(); renderBook(); const ghosts = document.querySelectorAll(".ghostTile").length;
+    memory[cardKey(idx)] = { seen: 1, last: Date.now(), streak: 2, lastOutcome: "fast", dueDay: today(), due: dayStartMs(today()) }; status = { [idx]: "rest" }; saveMemory(); save(DECK_KEY, status); activity = newActivity(); saveActivity(); renderHome(); const breathes = startBtn.classList.contains("dueBreathe");
+    activeMode = "focus"; baseTargets = [idx]; batch = baseTargets; baseCursor = 0; currentIndex = idx; currentAttemptKind = "base"; currentAttemptId = "verify-auto-overlay"; episodes = {}; roundStats = []; unresolved = new Set(); manualQueue = []; practicePhase = "recall"; cur = CARDS[idx]; stamped = false; revealed = false; lastVerdict = null; hintEverUsed = false; hintsUsedThisCard = 0;
+    submissionSnapshot = Object.freeze({ target: cur.target, idx, attemptId: currentAttemptId, createdAt: Date.now(), hintStrokeIds: [], hintCount: 0, hintStrokes: [], inkStrokes: [], referenceStrokes: [], compositeGeometry: [], compositeImage: null, hintEverUsed: false, enteredTracing: false, practicePhase: "recall", lastVerdict: null, userCorrect: null });
+    showRevealState(submissionSnapshot); decideSubmission(false); const autoOverlay = { on: overlayOn, display: getComputedStyle(mineOverlay).display, toggle: overlayToggle.textContent }; clearTimeout(autoNextTimer); clearTimeout(editStampTimer);
+    return { me, bars, ghosts, breathes, autoOverlay, homeAdd: !!homeAdd, qualityTargets: Array.from(qualityBox.querySelectorAll("button")).map((node) => parseFloat(getComputedStyle(node).minHeight)), compareTargets: Array.from(document.querySelectorAll(".cmpLinks button")).map((node) => parseFloat(getComputedStyle(node).minHeight)) };
+  });
+  assert(p1Discovery.me.day.includes("第 1 天") && p1Discovery.me.day.includes("进行中") && !p1Discovery.me.ready && p1Discovery.me.advice.includes("样本还少") && p1Discovery.bars === 0
+    && p1Discovery.ghosts >= 5 && p1Discovery.breathes && p1Discovery.autoOverlay.on && p1Discovery.autoOverlay.display === "flex" && p1Discovery.autoOverlay.toggle === "分开看"
+    && p1Discovery.homeAdd && p1Discovery.qualityTargets.every((height) => height >= 44) && p1Discovery.compareTargets.every((height) => height >= 40),
+  "Expected honest first-day/sample states, discoverable controls, ghost tiles, and a due-card breathe cue", p1Discovery);
 
   await page.evaluate(() => {
     status = {}; memory = {}; fsrsReviewLog = []; quality = {}; save(DECK_KEY, status); saveMemory(); saveFSRSLog(); saveQuality();
@@ -1007,7 +1084,7 @@ let browser;
   for (let i = 0; i < 2; i += 1) {
     await submitStandard(page);
     await chooseCorrect(page);
-    await page.waitForTimeout(1500);
+    await page.waitForTimeout(1900);
   }
   const reinforcement = await page.evaluate(() => ({ target: cur.target, kind: currentAttemptKind, baseCursor, attemptSeq, unresolved: [...unresolved], progress: posLabel.textContent, targets: baseTargets.slice(), stats: roundStats.map((row) => row.idx) }));
   assert(reinforcement.target === firstTarget && reinforcement.kind === "reinforcement" && reinforcement.baseCursor === 3 && reinforcement.attemptSeq === 3 && reinforcement.progress === "还要再练 1", "Expected two-card spacing and plain-language reinforcement progress", reinforcement);
@@ -1019,7 +1096,7 @@ let browser;
 
   await submitStandard(page);
   await chooseCorrect(page);
-  await page.waitForTimeout(1500);
+  await page.waitForTimeout(1900);
   const completed = await page.evaluate(() => ({
     summary: getComputedStyle(summary).display !== "none",
     stats: cloneObj(roundStats),
@@ -1140,12 +1217,12 @@ let browser;
   await page.click("#decisionCorrect");
   const teachingDecisionHaptics = await page.evaluate(() => hapticDebug.events.slice());
   assert(teachingDecisionHaptics.join() === "action", "Expected post-trace success to emit action only, never action plus stamp", teachingDecisionHaptics);
-  await page.waitForTimeout(1500);
+  await page.waitForTimeout(1900);
   const afterTeaching = await page.evaluate(() => ({ kind: currentAttemptKind, phase: practicePhase, ratings: fsrsReviewLog.slice(-1).map((event) => event.rating), teachingComplete: Object.values(episodes)[0].teachingComplete, unresolved: unresolved.size }));
   assert(afterTeaching.kind === "reinforcement" && afterTeaching.phase === "reinforcement" && afterTeaching.ratings.join() === "Again" && afterTeaching.teachingComplete && afterTeaching.unresolved === 1, "Expected post-trace success to remain unresolved without Good", afterTeaching);
   await submitStandard(page);
   await chooseCorrect(page);
-  await page.waitForTimeout(1500);
+  await page.waitForTimeout(1900);
   const teachingDone = await page.evaluate(() => ({ ratings: fsrsReviewLog.slice(-2).map((event) => event.rating), stat: roundStats[0], tutorialStored: load(TRACE_TUTORIAL_KEY, false), summary: getComputedStyle(summary).display !== "none" }));
   assert(teachingDone.ratings.join() === "Again,Good" && teachingDone.stat.outcome === "miss" && teachingDone.stat.traced && teachingDone.stat.independentlyRecovered && teachingDone.tutorialStored && teachingDone.summary, "Expected later independent recovery to graduate the don't-know episode", teachingDone);
 

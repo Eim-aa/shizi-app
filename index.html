@@ -103,6 +103,7 @@
   .startCap span{ color:var(--faint); font-weight:400; }
   .quickAdd{ min-height:44px; margin-top:5px; padding:8px 13px; color:var(--muted); font:600 calc(var(--fs-note) * var(--font-scale))/1 var(--sans); }
   .quickAdd span{ border-bottom:1px solid var(--dline); padding-bottom:2px; }
+  .motto.compactMotto{ font-size:calc(var(--fs-body) * var(--font-scale)); letter-spacing:var(--ls-label); }
   .yester{ margin-top:auto; padding:22px 0 16px; }
   .yesterHead{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:10px; font-size:calc(var(--fs-body) * var(--font-scale)); color:var(--muted); }
   .yesterHead .lbl{ font-weight:600; letter-spacing:var(--ls-label); }
@@ -117,6 +118,13 @@
   .yTile.miss{ color:var(--grey); border-color:var(--dline); background:var(--shade); }
   .yTile.more{ background:var(--shade); border-style:dashed; border-color:var(--dline); font:400 calc(var(--fs-note) * var(--font-scale)) var(--sans); color:var(--faint); }
   .yTile.placeholder{ flex-basis:auto; width:auto; padding:0 14px; }
+  .yesterRow.dailyWordMode{ width:100%; padding-right:0; overflow:visible; }
+  .dailyWord{ width:100%; min-height:76px; display:grid; grid-template-columns:64px minmax(0,1fr) auto; align-items:center; gap:13px; padding:8px 12px;
+    border:1px solid var(--line); border-radius:10px; background:var(--card); text-align:left; }
+  .dailyWord .glyph{ color:var(--accent); font:400 calc(48px * var(--font-scale))/1 var(--kai); text-align:center; }
+  .dailyWord .word{ display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font:700 calc(var(--fs-emph) * var(--font-scale))/1.45 var(--song); }
+  .dailyWord .py{ display:block; margin-top:4px; color:var(--muted); font-size:calc(var(--fs-note) * var(--font-scale)); }
+  .dailyWord .go{ color:var(--accent); font-size:calc(var(--fs-note) * var(--font-scale)); font-weight:700; white-space:nowrap; }
 
   /* ===== 练习卡 ===== */
   .card{ display:none; position:fixed; inset:0; width:min(100%,430px); height:100dvh; margin:0 auto; flex-direction:column;
@@ -518,7 +526,7 @@
         <button class="restoreLink" id="welcomeRestore">之前练过？恢复一份备份</button>
       </div>
     </div>
-    <div class="motto" style="writing-mode:horizontal-tb; height:auto; border:0; padding:0;">提笔忘字，拾回便是</div>
+    <div class="motto" id="welcomeMotto" style="writing-mode:horizontal-tb; height:auto; border:0; padding:0;">提笔忘字，拾回便是</div>
   </div>
 
   <!-- 首页 -->
@@ -533,7 +541,7 @@
         <h1 class="homeTitle" id="homeTitle">今天拾<br>十五个字</h1>
         <div class="homeSub">一笔一画，<br>把忘掉的字拾回来。</div>
       </div>
-      <div class="motto">提笔忘字，拾回便是</div>
+      <div class="motto" id="homeMotto">提笔忘字，拾回便是</div>
     </div>
     <div class="homeStart">
       <button class="stampBtn" id="startBtn">拾</button>
@@ -1088,6 +1096,20 @@ function normLevel(i){ return CARDS[i].norm || (CARDS[i].custom?"自定义":"一
 function contextSource(i){ return CARDS[i].ctx || "dict"; }
 function contextLabel(i){ const src=contextSource(i); return src==="fallback"?"语境待补":src==="override"?"补充语境":"词库语境"; }
 function contextUsable(i){ return CARDS[i].custom || contextSource(i)!=="fallback"; }
+const DAILY_MOTTOS=[
+  "提笔忘字，拾回便是","见字如晤，久别重逢","一笔一画，皆是归途","写过的字，都会回来","手比脑先想起来",
+  "字如故人，写即重逢","墨迹未干，记忆犹新","今日拾字，明日少忘","纸上得来，笔下不忘","好字如友，常写常新"
+];
+function stableTextHash(value){ let hash=2166136261; Array.from(String(value)).forEach(ch=>{ hash^=ch.codePointAt(0); hash=Math.imul(hash,16777619); }); return hash>>>0; }
+function datedSelectionIndex(key,size,salt){ if(size<=1) return 0; const parts=String(key).split("-").map(Number), ordinal=Math.floor(Date.UTC(parts[0],parts[1]-1,parts[2])/86400000);
+  const step=1+stableTextHash(`${salt}:step`)%(size-1), offset=stableTextHash(`${salt}:offset`)%size; return ((ordinal*step+offset)%size+size)%size; }
+function dailyMotto(key=today()){ return DAILY_MOTTOS[datedSelectionIndex(key,DAILY_MOTTOS.length,"motto")]; }
+let dailyCharacterPool=null;
+function dailyCharacterCandidates(){ if(dailyCharacterPool) return dailyCharacterPool; const seen=new Set(); dailyCharacterPool=allIndexes().filter(i=>{ const c=CARDS[i], norm=normLevel(i), d=Number(c.d)||0, common=Number(c.common)||0;
+    if(c.custom || seen.has(c.target) || !["一级","二级"].includes(norm) || common<1.5 || d<55 || d>85 || !contextUsable(i)) return false; seen.add(c.target); return true; }); return dailyCharacterPool; }
+function dailyCharacterIndex(key=today()){ const pool=dailyCharacterCandidates(); return pool.length?pool[datedSelectionIndex(key,pool.length,"character")]:-1; }
+function setDailyMotto(node,text){ if(!node) return; node.textContent=text; node.classList.toggle("compactMotto",Array.from(text).length>9); }
+function applyDailyMotto(key=today()){ const text=dailyMotto(key); setDailyMotto($("welcomeMotto"),text); setDailyMotto($("homeMotto"),text); return text; }
 function strictNewEligible(i){ if(CARDS[i].custom) return true; if(cardLevel(i)==="小学") return false;
   const norm=normLevel(i), d=cardDifficulty(i), common=Number(CARDS[i].common)||0, strict=Number(tuning.contextStrict)||0;
   if(!contextUsable(i)) return false;
@@ -1328,6 +1350,7 @@ function updateBookBadge(){ const due=reviewCount(); $("bookBadge").textContent=
 let homeResumeSession=null;
 // 首页：未完成时续当前组；完成态一旦成立，当天新到期字只在字盒提示，不推翻句号。
 function renderHome(){ const resume=resumableSession();
+  applyDailyMotto();
   if(needsCalibration() && !resume){ recordFunnelOnce("welcome_shown"); displayView("welcome"); warmUpcomingStrokeCache(); return; }
   displayView("home");
   $("homeGreeting").textContent=`${greeting()} · ${dateCn()}`;
@@ -1348,14 +1371,17 @@ function renderHome(){ const resume=resumableSession();
     $("startCap").innerHTML=dueToday?`今天先拾回一组 <span>· ${Math.min(BATCH,dueToday)} 字</span>`:(newN?`开始今日一组 <span>· ${BATCH} 字 · 按自己的节奏</span>`:"今天先到这里，明天见");
     $("startBtn").disabled=(newN===0 && dueToday===0);
   }
-  const y=homeRecentIndexes();
-  $("yesterLbl").textContent=y.label;
-  $("boxStat").innerHTML=dueToday?`练过 <b>${memoryCount()}</b> 字 · 今日复习 <b>${Math.min(BATCH,dueToday)}</b>`:`练过 <b>${memoryCount()}</b> 字${due?" · 今日复习已完成":""}`;
-  $("yesterRow").classList.toggle("scrollable",y.list.length>4);
-  const recentShown=y.list.slice(0,50);
-  $("yesterRow").innerHTML=y.list.length
-    ? recentShown.map((i,k)=>`<div class="yTile ${(memory[cardKey(i)]||{}).lastOutcome==="miss"?"miss":""}" style="transform:rotate(${ROTS[k%ROTS.length]}deg)">${CARDS[i].target}</div>`).join("")+(y.list.length>50?`<div class="yTile more">+${y.list.length-50}</div>`:"")
-    : `<div class="yTile more placeholder">今天拾的字会出现在这里</div>`;
+  const y=homeRecentIndexes(), dailyIdx=!resume&&stampedToday===0?dailyCharacterIndex():-1;
+  if(dailyIdx>=0){ const daily=CARDS[dailyIdx]; $("yesterLbl").textContent="今日一字"; $("boxStat").textContent="轻点就写";
+    $("yesterRow").classList.remove("scrollable"); $("yesterRow").classList.add("dailyWordMode");
+    $("yesterRow").innerHTML=`<button class="dailyWord" data-daily-index="${dailyIdx}" aria-label="练习今日一字 ${esc(daily.target)}"><span class="glyph">${daily.target}</span><span><b class="word">${esc(daily.word)}</b><small class="py">${esc(daily.py)}</small></span><span class="go">写一遍 ›</span></button>`;
+  } else { $("yesterLbl").textContent=y.label;
+    $("boxStat").innerHTML=dueToday?`练过 <b>${memoryCount()}</b> 字 · 今日复习 <b>${Math.min(BATCH,dueToday)}</b>`:`练过 <b>${memoryCount()}</b> 字${due?" · 今日复习已完成":""}`;
+    $("yesterRow").classList.remove("dailyWordMode"); $("yesterRow").classList.toggle("scrollable",y.list.length>4);
+    const recentShown=y.list.slice(0,50);
+    $("yesterRow").innerHTML=y.list.length
+      ? recentShown.map((i,k)=>`<div class="yTile ${(memory[cardKey(i)]||{}).lastOutcome==="miss"?"miss":""}" style="transform:rotate(${ROTS[k%ROTS.length]}deg)">${CARDS[i].target}</div>`).join("")+(y.list.length>50?`<div class="yTile more">+${y.list.length-50}</div>`:"")
+      : `<div class="yTile more placeholder">今天拾的字会出现在这里</div>`; }
   updateBookBadge();
   warmUpcomingStrokeCache(); }
 function meAdviceText(idxs){ if(!idxs.length) return "练几组后，这里会总结你最容易卡住的主题、难度和结构。";
@@ -2097,6 +2123,7 @@ $("boxAllToggle").onclick=()=>{ bookExpanded=!bookExpanded; renderBook(); };
 $("boxFilters").onclick=e=>{ const b=e.target.closest("[data-filter]"); if(b){ boxFilter=b.dataset.filter; renderBook(); } };
 // ---- 底部三 tab + 首页大印章 ----
 $("startBtn").onclick=()=>{ if($("startBtn").disabled) return; startMode(reviewTodayCount()>0?"review":"new"); };
+$("yesterRow").onclick=e=>{ const target=e.target.closest("[data-daily-index]"); if(target) startFocus([Number(target.dataset.dailyIndex)]); };
 $("welcomeStart").onclick=()=>startMode("new");
 $("tabPractice").onclick=renderHome;
 $("tabBook").onclick=()=>openBook();

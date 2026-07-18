@@ -20,13 +20,17 @@
     --kai:"Kaiti SC","STKaiti","KaiTi",serif; --song:"Songti SC","Noto Serif SC","STSong","SimSun",serif;
     --bg:#efe7d3; --soft:#f7f1e3; --card:#fdfaf1; --tile:#fbf6ea; --shade:#f3ead7;
     --ink:#2b2620; --muted:#665d4d; --faint:#776d5c; --line:#e3d9c4; --dline:#d9cdb2;
-    --accent:#c2452c; --accentSoft:#fdf0ec; --gold:#b3892f; --blue:#3f5a7d; --grey:#8d8471; --green:#43603a;
+    --accent:#c2452c; --accent-rgb:194,69,44; --accentSoft:#fdf0ec; --gold:#b3892f; --blue:#3f5a7d; --grey:#8d8471; --green:#43603a;
+    --accent-a12:rgba(var(--accent-rgb),.12); --accent-a18:rgba(var(--accent-rgb),.18); --accent-a22:rgba(var(--accent-rgb),.22);
+    --accent-a28:rgba(var(--accent-rgb),.28); --accent-a30:rgba(var(--accent-rgb),.30); --accent-a35:rgba(var(--accent-rgb),.35);
+    --accent-a40:rgba(var(--accent-rgb),.40); --accent-a45:rgba(var(--accent-rgb),.45); --accent-a50:rgba(var(--accent-rgb),.50);
+    --accent-a55:rgba(var(--accent-rgb),.55); --accent-a60:rgba(var(--accent-rgb),.60); --bubbleStrong:#f0c8a8;
     --inkPen:#2b2620; --paperInk:#fdfaf1; --keyboard-inset:0px; --safe-top:env(safe-area-inset-top); --safe-bottom:env(safe-area-inset-bottom); }
   @media (prefers-color-scheme: dark){
     :root{ --bg:#1b1813; --soft:#221e17; --card:#282218; --tile:#2b2519; --shade:#241f15;
       --ink:#f2ead9; --muted:#b3a893; --faint:#857b68; --line:#3a332a; --dline:#463e32;
-      --accent:#d4553a; --accentSoft:#38231d; --gold:#c89b45; --blue:#7d9cc0; --grey:#9a917e; --green:#8fb894;
-      --inkPen:#ecdfc6; --paperInk:#fdfaf1; } }
+      --accent:#d4553a; --accent-rgb:212,85,58; --accentSoft:#38231d; --gold:#c89b45; --blue:#7d9cc0; --grey:#9a917e; --green:#8fb894;
+      --inkPen:#ecdfc6; --paperInk:#fdfaf1; --bubbleStrong:#87452f; } }
   :root.largeText{ --font-scale:1.12; }
   *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   html,body{ min-height:100%; margin:0; color:var(--ink); line-height:1.45; font-family:var(--sans); overscroll-behavior:none; -webkit-text-size-adjust:100%; text-size-adjust:100%;
@@ -44,7 +48,7 @@
   @keyframes ringOut{ 0%{ transform:scale(.5); opacity:.55; } 100%{ transform:scale(1.7); opacity:0; } }
   @keyframes toastIn{ from{ transform:translateY(16px); opacity:0; } to{ transform:none; opacity:1; } }
   @keyframes tileIn{ from{ transform:scale(.55) rotate(-8deg); opacity:0; } to{ opacity:1; } }
-  @keyframes breathe{ 0%,100%{ box-shadow:0 0 0 0 rgba(194,69,44,.28); } 50%{ box-shadow:0 0 0 5px rgba(194,69,44,.12); } }
+  @keyframes breathe{ 0%,100%{ box-shadow:0 0 0 0 var(--accent-a28); } 50%{ box-shadow:0 0 0 5px var(--accent-a12); } }
   @keyframes undoBarIn{ from{ opacity:0; transform:translateY(-5px); } to{ opacity:1; transform:none; } }
 
   /* ===== 首启（教学 T1） ===== */
@@ -52,11 +56,11 @@
   .welcome .mid{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; }
   .logoStamp{ width:84px; height:84px; background:var(--accent); border-radius:22% 18% 24% 20%; display:flex; align-items:center; justify-content:center;
     color:var(--paperInk); font:400 calc(50px * var(--font-scale))/1 var(--kai); transform:rotate(-4deg);
-    box-shadow:inset 0 0 0 2.5px rgba(253,250,241,.4), inset 0 0 0 5px var(--accent), inset 0 0 18px rgba(120,20,6,.35), 0 16px 30px -12px rgba(194,69,44,.55); }
+    box-shadow:inset 0 0 0 2.5px rgba(253,250,241,.4), inset 0 0 0 5px var(--accent), inset 0 0 18px rgba(120,20,6,.35), 0 16px 30px -12px var(--accent-a55); }
   .welcome h1{ margin:34px 0 0; font:900 calc(31px * var(--font-scale))/1.55 var(--song); }
   .welcome .lede{ margin-top:16px; font-size:calc(15px * var(--font-scale)); line-height:1.9; color:var(--muted); }
   .welcome .go{ margin-top:52px; width:100%; background:var(--accent); color:var(--paperInk); border-radius:16px; padding:17px 10px;
-    font:700 calc(16px * var(--font-scale)) var(--sans); box-shadow:0 14px 28px -12px rgba(194,69,44,.6); }
+    font:700 calc(16px * var(--font-scale)) var(--sans); box-shadow:0 14px 28px -12px var(--accent-a60); }
   .welcome .goSub{ margin-top:12px; font-size:calc(13px * var(--font-scale)); color:var(--muted); }
   .welcome .restoreLink{ margin-top:12px; min-height:44px; padding:8px 12px; color:var(--muted); font-size:calc(13px * var(--font-scale)); text-decoration:underline; text-underline-offset:3px; }
   .welcome .motto{ font:400 calc(13px * var(--font-scale))/1.8 var(--kai); color:var(--faint); letter-spacing:.24em; }
@@ -69,7 +73,7 @@
   .brandRow{ display:flex; align-items:center; gap:10px; }
   .brandStamp{ width:40px; height:40px; background:var(--accent); border-radius:9px 7px 10px 8px; display:flex; align-items:center; justify-content:center;
     color:var(--paperInk); font:400 calc(24px * var(--font-scale))/1 var(--kai); transform:rotate(-4deg);
-    box-shadow:inset 0 0 0 2px rgba(253,250,241,.35), inset 0 0 0 4px var(--accent), 0 6px 14px -6px rgba(194,69,44,.5); }
+    box-shadow:inset 0 0 0 2px rgba(253,250,241,.35), inset 0 0 0 4px var(--accent), 0 6px 14px -6px var(--accent-a50); }
   .brandName{ font:900 calc(19px * var(--font-scale))/1 var(--song); letter-spacing:.12em; }
   .streakChip{ display:flex; align-items:center; gap:6px; background:var(--card); border:1px solid var(--line); border-radius:999px; padding:7px 12px; font-size:calc(12px * var(--font-scale)); font-weight:600; color:var(--muted); }
   .streakChip i{ width:8px; height:8px; border-radius:50%; background:var(--accent); font-style:normal; }
@@ -81,7 +85,7 @@
   .homeStart{ display:flex; flex-direction:column; align-items:center; margin-top:32px; }
   .stampBtn{ width:150px; height:150px; background:var(--accent); border-radius:24% 20% 26% 22%; color:var(--paperInk); font:400 calc(80px * var(--font-scale))/1 var(--kai);
     transform:rotate(-3deg); display:flex; align-items:center; justify-content:center; padding-bottom:6px; transition:transform .12s ease;
-    box-shadow:inset 0 0 0 3px rgba(253,250,241,.4), inset 0 0 0 7px var(--accent), inset 0 0 26px rgba(120,20,6,.35), 0 22px 40px -16px rgba(194,69,44,.55); }
+    box-shadow:inset 0 0 0 3px rgba(253,250,241,.4), inset 0 0 0 7px var(--accent), inset 0 0 26px rgba(120,20,6,.35), 0 22px 40px -16px var(--accent-a55); }
   .stampBtn:active{ transform:rotate(-3deg) scale(.93); }
   .stampBtn:disabled{ opacity:.55; }
   .startCap{ margin-top:15px; font-size:calc(13px * var(--font-scale)); font-weight:600; }
@@ -106,20 +110,20 @@
   /* ===== 练习卡 ===== */
   .card{ display:none; position:fixed; inset:0; width:min(100%,430px); height:100dvh; margin:0 auto; flex-direction:column;
     padding:calc(14px + env(safe-area-inset-top)) 22px calc(14px + env(safe-area-inset-bottom)); animation:screenIn .3s ease; overflow:hidden; overscroll-behavior:none; }
-  .chdr{ display:grid; grid-template-columns:44px minmax(0,1fr) 70px; align-items:center; gap:6px; min-height:44px; }
-  .xbtn{ width:44px; height:44px; border-radius:50%; border:1px solid var(--line); background:var(--card); color:var(--muted); font:700 calc(25px * var(--font-scale))/1 var(--sans); }
+  .chdr{ display:grid; grid-template-columns:70px minmax(0,1fr) 70px; align-items:center; gap:6px; min-height:44px; }
+  .xbtn{ justify-self:start; width:44px; height:44px; border-radius:50%; border:1px solid var(--line); background:var(--card); color:var(--muted); font:700 calc(25px * var(--font-scale))/1 var(--sans); }
   .cardPos{ min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; text-align:center; font-size:calc(13px * var(--font-scale)); font-weight:700; color:var(--muted); }
   .addPill{ flex:none; min-height:44px; border-radius:999px; border:1px solid var(--line); background:var(--card); color:var(--muted); font:600 calc(15px * var(--font-scale))/1 var(--sans); padding:0 11px; }
   #prompt{ margin-top:14px; min-height:58px; display:flex; justify-content:center; align-items:center; gap:9px; flex-wrap:wrap; text-align:center; font:400 calc(40px * var(--font-scale))/1.1 var(--kai); }
   #prompt .blank{ display:inline-flex; align-items:center; justify-content:center; min-width:60px; height:60px; border:2.5px dashed var(--accent); border-radius:14px;
     color:var(--accent); font:700 calc(18px * var(--font-scale))/1 var(--sans); letter-spacing:.03em; padding:0 8px; background:var(--card); }
   .hint{ margin:9px auto 0; max-width:350px; text-align:center; font-size:calc(12.5px * var(--font-scale)); color:var(--muted); line-height:1.6; min-height:19px; }
-  .tbubble{ margin:8px auto 0; position:relative; max-width:300px; background:#2b2620; color:#f5efe1; border-radius:14px; padding:12px 16px;
+  .tbubble{ margin:8px auto 0; position:relative; max-width:300px; background:var(--ink); color:var(--card); border-radius:14px; padding:12px 16px;
     font-size:calc(13.5px * var(--font-scale)); line-height:1.7; text-align:center; animation:toastIn .35s ease both; }
-  .tbubble::after{ content:''; position:absolute; left:50%; bottom:-7px; width:14px; height:14px; background:#2b2620; transform:translateX(-50%) rotate(45deg); }
-  .tbubble b{ color:#f0c8a8; }
+  .tbubble::after{ content:''; position:absolute; left:50%; bottom:-7px; width:14px; height:14px; background:var(--ink); transform:translateX(-50%) rotate(45deg); }
+  .tbubble b{ color:var(--bubbleStrong); }
   #boxwrap{ display:flex; justify-content:center; margin-top:8px; }
-  .box{ position:relative; border-radius:8px; overflow:hidden; box-shadow:0 0 0 2px rgba(194,69,44,.45), 0 18px 36px -26px rgba(60,48,30,.55); }
+  .box{ position:relative; border-radius:8px; overflow:hidden; box-shadow:0 0 0 2px var(--accent-a45), 0 18px 36px -26px rgba(60,48,30,.55); }
   .box .gridc, .box .hz, .box .peekHz, .box .inkc{ position:absolute; left:0; top:0; }
   .box .hz{ pointer-events:none; }
   .box .peekHz{ pointer-events:none; opacity:0; transition:opacity .12s ease; }
@@ -137,14 +141,15 @@
   .toolBtn.side{ color:var(--muted); }
   .toolBtn.peek{ display:flex; align-items:baseline; justify-content:center; gap:5px; color:var(--accent); white-space:nowrap; touch-action:none; user-select:none; -webkit-user-select:none; }
   .toolBtn.peek small{ color:var(--muted); font-size:calc(13px * var(--font-scale)); font-weight:600; }
-  .toolBtn.peek.active{ background:var(--accentSoft); border-color:rgba(194,69,44,.4); }
+  .toolBtn.peek.active{ background:var(--accentSoft); border-color:var(--accent-a40); }
   #actions{ display:flex; gap:8px; margin-top:8px; }
   .ghostAct{ flex:.7; background:transparent; color:var(--muted); border:1px solid var(--dline); border-radius:14px; padding:13px 10px; font:600 calc(15px * var(--font-scale)) var(--sans); transition:opacity .3s; }
-  .primaryAct{ flex:1; background:var(--accent); color:var(--paperInk); border-radius:14px; padding:13px 10px; font:700 calc(16px * var(--font-scale)) var(--sans); box-shadow:0 14px 28px -12px rgba(194,69,44,.6); transition:opacity .3s; }
+  .primaryAct{ flex:1; background:var(--accent); color:var(--paperInk); border-radius:14px; padding:13px 10px; font:700 calc(16px * var(--font-scale)) var(--sans); box-shadow:0 14px 28px -12px var(--accent-a60); transition:opacity .3s; }
   .undoBar{ display:none; position:absolute; z-index:4; top:calc(10px + env(safe-area-inset-top)); left:22px; right:22px; align-items:center; gap:10px; width:auto; min-height:36px; padding:7px 8px 7px 12px;
     background:var(--shade); border:1px solid rgba(179,137,47,.45); border-radius:999px; color:var(--muted); font-size:calc(12.5px * var(--font-scale)); box-shadow:0 8px 18px -14px rgba(30,24,16,.5); animation:undoBarIn .2s ease both; }
   .undoBar span{ flex:1; min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
   .undoBar button{ flex:none; min-height:28px; padding:0 10px; border:1px solid var(--line); border-radius:999px; background:var(--card); color:var(--ink); font-weight:700; }
+  .card.undoActive .chdr{ visibility:hidden; }
   .traceActions{ display:none; gap:8px; margin-top:auto; padding-top:10px; }
   .traceActions button{ min-height:52px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; }
   .traceActions button span{ font-size:calc(15px * var(--font-scale)); font-weight:700; line-height:1.1; }
@@ -157,11 +162,12 @@
   .decisionRow button{ flex:1; min-height:58px; border-radius:14px; padding:10px 8px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; }
   .decisionRow button span{ font-size:calc(16px * var(--font-scale)); font-weight:800; }
   .decisionRow button small{ font-size:calc(13px * var(--font-scale)); line-height:1.25; color:var(--muted); }
-  .decisionRow button.suggest{ position:relative; }
-  .decisionRow button.suggest::after{ content:""; position:absolute; inset:0; border-radius:inherit; background:var(--accentSoft); opacity:.28; pointer-events:none; }
-  .decisionRow .decisionCorrect{ background:var(--accent); color:var(--paperInk); }
-  .decisionRow .decisionCorrect small{ color:rgba(253,250,241,.82); }
-  .decisionRow .decisionWrong{ background:var(--card); color:var(--ink); border-color:var(--line); }
+  .decisionRow .decisionCorrect,.decisionRow .decisionWrong{ background:var(--card); border:1px solid var(--line); box-shadow:none; }
+  .decisionRow .decisionCorrect{ color:var(--accent); }
+  .decisionRow .decisionWrong{ color:var(--ink); }
+  .decisionRow .decisionCorrect.suggest{ background:var(--accent); border-color:var(--accent); color:var(--paperInk); box-shadow:0 12px 24px -14px var(--accent-a60); }
+  .decisionRow .decisionWrong.suggest{ background:var(--ink); border-color:var(--ink); color:var(--card); box-shadow:0 12px 24px -14px rgba(20,18,14,.55); }
+  .decisionRow button.suggest small{ color:inherit; opacity:.82; }
   .uncertainAction{ display:flex; justify-content:center; margin-top:10px; }
   .uncertainAction button{ padding:5px 9px; color:var(--muted); font-size:calc(15px * var(--font-scale)); text-decoration:underline; text-underline-offset:3px; }
   .softConfirm{ display:none; margin-top:12px; padding:12px; border:1px solid var(--line); border-radius:8px; background:var(--shade); text-align:center; }
@@ -179,11 +185,11 @@
   .cmpCol{ text-align:center; }
   .cmpBox{ position:relative; width:150px; height:150px; background:var(--card); border-radius:6px; overflow:hidden; }
   .cmpBox.mine{ box-shadow:0 0 0 2px rgba(43,38,32,.32); }
-  .cmpBox.std{ box-shadow:0 0 0 2px rgba(194,69,44,.5); }
+  .cmpBox.std{ box-shadow:0 0 0 2px var(--accent-a50); }
   .cmpBox .cx,.cmpBox .cy,.cmpBox .d1,.cmpBox .d2{ position:absolute; pointer-events:none; z-index:0; }
-  .cmpBox .cx{ left:0; top:50%; width:100%; border-top:1px dashed rgba(194,69,44,.22); }
-  .cmpBox .cy{ top:0; left:50%; height:100%; border-left:1px dashed rgba(194,69,44,.22); }
-  .cmpBox .d1,.cmpBox .d2{ left:-21%; top:50%; width:142%; border-top:1px dashed rgba(194,69,44,.22); transform-origin:center; }
+  .cmpBox .cx{ left:0; top:50%; width:100%; border-top:1px dashed var(--accent-a22); }
+  .cmpBox .cy{ top:0; left:50%; height:100%; border-left:1px dashed var(--accent-a22); }
+  .cmpBox .d1,.cmpBox .d2{ left:-21%; top:50%; width:142%; border-top:1px dashed var(--accent-a22); transform-origin:center; }
   .cmpBox .d1{ transform:rotate(45deg); }
   .cmpBox .d2{ transform:rotate(-45deg); }
   .cmpBox .glyph{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font:400 calc(108px * var(--font-scale))/1 var(--kai); color:var(--accent); }
@@ -218,7 +224,7 @@
   /* ===== 结果 ===== */
   .summary{ display:none; flex:1; flex-direction:column; padding:18px 24px calc(24px + env(safe-area-inset-bottom)); animation:screenIn .35s ease; }
   .sheetCard{ position:relative; background:var(--card); border-radius:8px; padding:22px 18px 84px;
-    box-shadow:0 0 0 2px rgba(194,69,44,.4), inset 0 0 0 6px var(--card), inset 0 0 0 7px rgba(194,69,44,.18), 0 18px 40px -26px rgba(60,48,30,.55); }
+    box-shadow:0 0 0 2px var(--accent-a40), inset 0 0 0 6px var(--card), inset 0 0 0 7px var(--accent-a18), 0 18px 40px -26px rgba(60,48,30,.55); }
   .sheetCard h2{ margin:0; font:900 calc(28px * var(--font-scale))/1.3 var(--song); }
   .sumLead{ margin-top:8px; font-size:calc(13px * var(--font-scale)); color:var(--muted); line-height:1.7; }
   .sumLead b.ok{ color:var(--green); } .sumLead b.warn{ color:var(--accent); }
@@ -242,7 +248,7 @@
   .pChip + .pChip{ margin-left:-8px; }
   .pocketCard .ptxt{ flex:1; font-size:calc(13px * var(--font-scale)); line-height:1.5; }
   .pocketCard .ptxt span{ color:var(--muted); font-size:calc(13px * var(--font-scale)); }
-  .pocketBtn{ flex:none; background:var(--accent); color:var(--paperInk); border-radius:12px; padding:11px 14px; font:700 calc(13px * var(--font-scale)) var(--sans); box-shadow:0 10px 20px -10px rgba(194,69,44,.6); }
+  .pocketBtn{ flex:none; background:var(--accent); color:var(--paperInk); border-radius:12px; padding:11px 14px; font:700 calc(13px * var(--font-scale)) var(--sans); box-shadow:0 10px 20px -10px var(--accent-a60); }
   .roundTune{ margin-top:14px; }
   .roundTuneHead{ display:flex; justify-content:center; gap:8px; color:var(--muted); font-size:calc(13px * var(--font-scale)); margin-bottom:9px; }
   .roundTuneHead b{ font-weight:600; color:var(--muted); }
@@ -260,7 +266,7 @@
   .calibStats b{ display:block; font:900 calc(24px * var(--font-scale))/1 var(--song); }
   .calibStats b.ok{ color:var(--green); } .calibStats b.warn{ color:var(--accent); }
   .calibStats span{ font-size:calc(11px * var(--font-scale)); color:var(--muted); }
-  .calibWhy{ margin-top:14px; background:var(--accentSoft); border:1px solid rgba(194,69,44,.3); border-radius:12px; padding:13px 14px; font-size:calc(13px * var(--font-scale)); line-height:1.8; color:var(--muted); }
+  .calibWhy{ margin-top:14px; background:var(--accentSoft); border:1px solid var(--accent-a30); border-radius:12px; padding:13px 14px; font-size:calc(13px * var(--font-scale)); line-height:1.8; color:var(--muted); }
   .calibWhy b{ color:var(--accent); }
   .calibFoot{ margin-top:14px; font-size:calc(13px * var(--font-scale)); color:var(--muted); line-height:1.8; }
 
@@ -321,11 +327,11 @@
   .meStat b{ display:block; font:900 calc(25px * var(--font-scale))/1 var(--song); }
   .meStat b.red{ color:var(--accent); } .meStat b.grey{ color:var(--grey); }
   .meStat span{ display:block; font-size:calc(13px * var(--font-scale)); color:var(--muted); margin-top:5px; }
-  .meStat.action{ border-color:rgba(194,69,44,.35); box-shadow:inset 0 -2px 0 var(--accentSoft); }
+  .meStat.action{ border-color:var(--accent-a35); box-shadow:inset 0 -2px 0 var(--accentSoft); }
   .meStat.action small{ display:block; margin-top:4px; color:var(--accent); font-size:calc(13px * var(--font-scale)); font-weight:700; }
-  .meCard{ width:100%; margin-top:14px; text-align:left; background:var(--accentSoft); border:1px solid rgba(194,69,44,.35); border-radius:15px; padding:15px 16px; }
+  .meCard{ width:100%; margin-top:14px; text-align:left; background:var(--accentSoft); border:1px solid var(--accent-a35); border-radius:15px; padding:15px 16px; }
   .meCard .meCardTop{ display:flex; justify-content:space-between; align-items:center; }
-  .meCard .meCardTop b{ font-size:calc(13px * var(--font-scale)); color:var(--accent); }
+  .meCard .meCardTop b{ font-size:calc(13px * var(--font-scale)); color:var(--ink); }
   .meCard .meCardTop span{ font-size:calc(17px * var(--font-scale)); color:var(--accent); }
   .meCard small{ display:block; color:var(--muted); font-size:calc(13px * var(--font-scale)); line-height:1.7; margin-top:6px; }
   .meLabel{ margin-top:20px; font-size:calc(11px * var(--font-scale)); color:var(--faint); letter-spacing:.14em; font-weight:600; }
@@ -341,7 +347,7 @@
   .backupReminder b{ color:var(--ink); }
   .backupReminder button{ flex:none; padding:10px 12px; border-radius:11px; background:var(--ink); color:var(--card); font-weight:700; font-size:calc(12.5px * var(--font-scale)); }
   .backupReminder .ghostMini{ background:transparent; color:var(--muted); border:1px solid var(--line); }
-  .milestoneLine{ display:none; margin:0 auto 12px; width:min(100%,340px); padding:12px 16px; background:var(--accentSoft); border:1px solid rgba(194,69,44,.35); border-radius:14px; color:var(--accent); font:600 calc(13.5px * var(--font-scale))/1.9 var(--song); text-align:center; letter-spacing:.02em; animation:screenIn .35s ease; }
+  .milestoneLine{ display:none; margin:0 auto 12px; width:min(100%,340px); padding:12px 16px; background:var(--accentSoft); border:1px solid var(--accent-a35); border-radius:14px; color:var(--accent); font:600 calc(13.5px * var(--font-scale))/1.9 var(--song); text-align:center; letter-spacing:.02em; animation:screenIn .35s ease; }
   .mePref{ padding:13px 16px; border-bottom:1px solid var(--line); }
   .mePref .plbl{ font-size:calc(13px * var(--font-scale)); color:var(--muted); margin-bottom:9px; }
   .prefBtns{ display:flex; gap:6px; }
@@ -358,7 +364,7 @@
   .profileHead h2,.auditHead h2{ margin:0; font:900 calc(24px * var(--font-scale))/1 var(--song); }
   .ghost{ flex:0 0 auto; background:var(--card); color:var(--muted); border:1px solid var(--line); padding:8px 14px; font:600 calc(12px * var(--font-scale)) var(--sans); border-radius:999px; }
   .profileSummary{ display:block; margin-bottom:12px; }
-  .profileHero{ position:relative; background:var(--card); border:1px solid rgba(194,69,44,.35); border-radius:18px; padding:18px 16px; overflow:hidden; box-shadow:0 18px 38px -28px rgba(60,48,30,.55); }
+  .profileHero{ position:relative; background:var(--card); border:1px solid var(--accent-a35); border-radius:18px; padding:18px 16px; overflow:hidden; box-shadow:0 18px 38px -28px rgba(60,48,30,.55); }
   .profileHero::after{ content:"诊"; position:absolute; right:-10px; bottom:-18px; width:92px; height:92px; border-radius:22% 18% 24% 20%; display:flex; align-items:center; justify-content:center; transform:rotate(-9deg); background:var(--accent); color:rgba(253,250,241,.9); font:400 calc(48px * var(--font-scale))/1 var(--kai); box-shadow:inset 0 0 0 3px rgba(253,250,241,.35), inset 0 0 0 7px var(--accent); opacity:.9; }
   .profileHero .eyebrow{ color:var(--accent); font:700 calc(12px * var(--font-scale))/1 var(--sans); letter-spacing:.12em; }
   .profileHero h3{ margin:8px 0 6px; font:900 calc(24px * var(--font-scale))/1.35 var(--song); max-width:260px; }
@@ -369,7 +375,7 @@
   .profileMetric{ background:var(--card); border:1px solid var(--line); border-radius:12px; padding:11px 4px; text-align:center; }
   .profileMetric b{ display:block; font:900 calc(19px * var(--font-scale))/1 var(--song); }
   .profileMetric span{ color:var(--muted); font-size:calc(13px * var(--font-scale)); }
-  .profileAdvice{ color:var(--muted); background:var(--accentSoft); border:1px solid rgba(194,69,44,.3); border-radius:14px; padding:13px 14px; font-size:calc(12.5px * var(--font-scale)); line-height:1.7; margin-bottom:12px; }
+  .profileAdvice{ color:var(--muted); background:var(--accentSoft); border:1px solid var(--accent-a30); border-radius:14px; padding:13px 14px; font-size:calc(12.5px * var(--font-scale)); line-height:1.7; margin-bottom:12px; }
   .profileSection{ margin-top:14px; }
   .profileSection h3{ margin:0 0 8px; font-size:calc(13px * var(--font-scale)); color:var(--muted); letter-spacing:.08em; }
   .profileRows{ display:grid; gap:7px; }
@@ -436,7 +442,7 @@
   .undoToast button{ flex:none; min-height:34px; padding:0 13px; border-radius:999px; background:var(--card); color:var(--ink); font-size:calc(13px * var(--font-scale)); font-weight:800; }
   .summaryBackupHint{ display:none; align-items:center; justify-content:space-between; gap:10px; margin:10px 0 0; padding:10px 12px; border-top:1px solid var(--line); color:var(--muted); font-size:calc(12.5px * var(--font-scale)); }
   .summaryBackupHint button{ flex:none; min-height:36px; padding:0 10px; border:1px solid var(--line); border-radius:999px; background:var(--card); color:var(--ink); font-weight:700; }
-  @media (max-height:620px){
+  @media (max-height:700px){
     .card{ padding-top:calc(8px + env(safe-area-inset-top)); padding-bottom:calc(8px + env(safe-area-inset-bottom)); }
     .chdr{ gap:4px; }
     #prompt{ margin-top:0; min-height:42px; font-size:calc(32px * var(--font-scale)); } #prompt .blank{ min-width:48px; height:46px; font-size:calc(16px * var(--font-scale)); }
@@ -856,7 +862,7 @@ function saveFunnel(){ save(FUNNEL_KEY,funnel); }
 function appendFunnelEvent(target,name,onceKey=name,at=Date.now()){ const key=String(onceKey||name); if(target.seen.includes(key)) return false; const ts=Math.max(1,Number(at)||Date.now()); target.seen.push(key); target.events.push({name,at:ts,day:dayKey(new Date(ts))}); return true; }
 function recordFunnelOnce(name,onceKey=name,at=Date.now()){ if(!appendFunnelEvent(funnel,name,onceKey,at)) return false; saveFunnel(); return true; }
 function recordFunnelComparison(attemptId,agree,at=Date.now()){ if(typeof agree!=="boolean") return false; const key=`reveal:${attemptId}`; if(funnel.seen.includes(key)) return false; funnel.seen.push(key); funnel.counts.revealCompared++; if(!agree){ const ts=Math.max(1,Number(at)||Date.now()); funnel.counts.revealDisagree++; funnel.events.push({name:"reveal_disagree",at:ts,day:dayKey(new Date(ts))}); } saveFunnel(); return true; }
-function recordFunnelRound(durationMs){ const key=`round:${roundId}`; if(funnel.seen.includes(key)) return false; funnel.seen.push(key); funnel.rounds.push({completedAt:Date.now(),day:today(),mode:activeMode,durationMs:Math.max(0,Math.round(Number(durationMs)||0)),targetCount:baseTargets.length,attemptCount:attemptSeq}); saveFunnel(); return true; }
+function recordFunnelRound(durationMs){ const key=`round:${roundId}`; if(funnel.seen.includes(key)) return false; funnel.seen.push(key); funnel.rounds.push({completedAt:Date.now(),day:today(),mode:activeMode,durationMs:Math.min(Math.max(0,Math.round(Number(durationMs)||0)),ROUND_DURATION_CAP_MS),targetCount:baseTargets.length,attemptCount:attemptSeq}); saveFunnel(); return true; }
 function projectedFunnelEvent(name,onceKey,at){ const projected=normalizeFunnel(JSON.parse(JSON.stringify(funnel))); appendFunnelEvent(projected,name,onceKey,at); return projected; }
 function maybeRecordD2Return(){ const days=[...new Set(opens.filter(d=>/^\d{4}-\d{2}-\d{2}$/.test(String(d))))].sort(); if(days.length&&today()===shiftDay(days[0],1)) recordFunnelOnce("d2_return"); }
 maybeRecordD2Return();
@@ -970,8 +976,8 @@ let sessionDone=new Set(), baseTargets=[], batch=[], pos=0, baseCursor=0, curren
 let manualQueue=[], reinforcementQueue=[], unresolved=new Set(), episodes={}, attemptSeq=0, practicePhase="recall", hintEverUsed=false, enteredTracingThisAttempt=false, submissionSnapshot=null, pendingSessionVisual=null, feedbackKind="";
 let missedThisRound=[], roundStats=[], focusQueue=[], hintsUsedThisCard=0, cardStartedAt=0, activeMode="new", sessionTarget=0, sessionFastStreak=0, sessionMissStreak=0, roundFeedbackGiven=false, roundId=0, calibrationFirstHoldUsed=false, calibrationComfortShown=false, calibrationTargets=[];
 let summaryFocusIndexes=[];
-let roundElapsedMs=0, roundActiveStartedAt=0, roundBudgetPrompted=false;
-const ROUND_ATTEMPT_BUDGET=20, ROUND_TIME_BUDGET_MS=6*60*1000;
+let roundElapsedMs=0, roundActiveStartedAt=0, roundBudgetPrompted=false, roundTimerPaused=false;
+const ROUND_ATTEMPT_BUDGET=20, ROUND_TIME_BUDGET_MS=6*60*1000, ROUND_DURATION_CAP_MS=60*60*1000;
 function currentCardIndex(){ return Number.isInteger(currentIndex)?currentIndex:(Number.isInteger(batch[pos])?batch[pos]:null); }
 function episodeFor(idx){ const key=String(idx); return episodes[key] || (episodes[key]={idx,firstOutcome:null,attempts:[],assistanceUsed:false,independentlyRecovered:false,excluded:false,teachingComplete:false}); }
 function enqueueReinforcement(idx){ unresolved.add(idx); reinforcementQueue=reinforcementQueue.filter(item=>item.idx!==idx); reinforcementQueue.push({idx,eligibleAfter:attemptSeq+2,order:attemptSeq}); const m=cardMemory(idx); m.pendingLearning=true; m.dueDay=null; m.due=0; }
@@ -1009,7 +1015,7 @@ function restoreSession(s){ if(!s) return false; if(s.version===1) s=migrateV1Se
   missedThisRound=Array.isArray(s.missedThisRound)?s.missedThisRound.slice():[]; roundStats=Array.isArray(s.roundStats)?cloneObj(s.roundStats):[]; focusQueue=Array.isArray(s.focusQueue)?s.focusQueue.slice():[]; sessionDone=new Set(Array.isArray(s.sessionDone)?s.sessionDone:[]);
   sessionTarget=Number(s.sessionTarget)||targetDifficulty(); sessionFastStreak=Number(s.sessionFastStreak)||0; sessionMissStreak=Number(s.sessionMissStreak)||0; roundFeedbackGiven=!!s.roundFeedbackGiven; roundId=s.roundId||Date.now()+"-resume"; calibrationFirstHoldUsed=!!s.calibrationFirstHoldUsed; calibrationComfortShown=!!s.calibrationComfortShown;
   calibrationTargets=activeMode==="calibrate"?[...new Set(Array.isArray(s.calibrationTargets)?s.calibrationTargets:baseTargets.slice(0,BATCH))].filter(i=>Number.isInteger(i)&&baseTargets.includes(i)).slice(0,BATCH):[]; lastStampSnapshot=cloneObj(s.lastStampSnapshot); feedbackKind=s.feedbackKind||"";
-  roundElapsedMs=Math.max(0,Number(s.roundElapsedMs)||0); roundActiveStartedAt=Date.now(); roundBudgetPrompted=!!s.roundBudgetPrompted;
+  roundElapsedMs=Math.max(0,Number(s.roundElapsedMs)||0); roundActiveStartedAt=Date.now(); roundBudgetPrompted=!!s.roundBudgetPrompted; roundTimerPaused=false;
   if(baseCursor>=baseTargets.length && manualQueue.length===0 && unresolved.size===0){ practicePhase="between"; clearSessionSnapshot(); markRoundComplete(); roundSummary(); return true; }
   pendingSessionVisual=cloneObj(s.visual); pos=Math.min(baseCursor,Math.max(0,baseTargets.length-1)); render(); armPracticeHistory(); return true; }
 function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
@@ -1456,10 +1462,9 @@ function hintStroke(){ return isDark()? 'rgba(226,138,110,0.75)' : '#d08b78'; }
 function idealBoxSize(){ const w=window.innerWidth||document.documentElement.clientWidth||375, vv=window.visualViewport;
   const h=(vv&&vv.height)||window.innerHeight||document.documentElement.clientHeight||667;
   const safe=(parseFloat(cssVar('--safe-top','0'))||0)+(parseFloat(cssVar('--safe-bottom','0'))||0), large=document.documentElement.classList.contains("largeText");
-  const fixed=h<=620?255:(large?236:218), floor=h<=620?220:190;
+  const fixed=h<=700?255:(large?236:218), floor=h<=700?220:190;
   return clamp(Math.min(w-44,h-fixed-safe),floor,330); }
 let S = idealBoxSize();
-const RS=150; // 揭晓对照格尺寸（CSS .cmpBox 同步）
 let gridCanvas, inkCanvas, inkCtx, hzEl, peekEl, writer=null, peekWriter=null, practiceCharData=null, loadToken=0, shownStrokes=0, totalStrokes=0, groups=[], groupIdx=0, strokeDataOffline=false;
 const PEEK_INK_OPACITY=0.04;
 let drawing=false, last=null, cur=null, actionCooldownUntil=0, actionUnlockTimer=0, activePointers=new Set(), peeking=false, peekReleasePending=false, actionStack=[], seenGroups=new Set();
@@ -1477,7 +1482,9 @@ function unlockGradeActions(){ clearTimeout(actionUnlockTimer); actionCooldownUn
 function cancelCurrentStroke(applyCooldown=true){ if(!drawing && !curInkStroke){ if(!applyCooldown) unlockGradeActions(); return; } drawing=false; curInkStroke=null; redrawInk(); updateInkControls();
   if(applyCooldown) armGradeActions(); else unlockGradeActions(); onTeachStrokeEnd(); }
 function enterPeekHint(force=false){ if(peeking || peekReleasePending || tracing || revealed || !inkCanvas || !peekWriter || (!force && activePointers.size<2)) return false;
-  cancelCurrentStroke(false); peeking=true; inkCanvas.style.opacity=String(PEEK_INK_OPACITY); hzEl.classList.add("peekHint"); peekEl.classList.add("active"); $("peekInk").classList.add("active"); return true; }
+  cancelCurrentStroke(false); peeking=true; inkCanvas.style.opacity=String(PEEK_INK_OPACITY); hzEl.classList.add("peekHint"); peekEl.classList.add("active"); $("peekInk").classList.add("active");
+  if(!tuning.peekHintUsed){ tuning.peekHintUsed=true; saveTuning(); }
+  return true; }
 function exitPeekHint(force=false){ if(!peeking || (!force && activePointers.size>=2)) return false;
   peeking=false; if(inkCanvas) inkCanvas.style.opacity=animating?'0.22':'1'; if(hzEl) hzEl.classList.remove("peekHint"); if(peekEl) peekEl.classList.remove("active"); if($("peekInk")) $("peekInk").classList.remove("active"); return true; }
 function resetPeekHint(){ activePointers.clear(); peeking=false; peekReleasePending=false; if(hzEl) hzEl.classList.remove("peekHint"); if(peekEl) peekEl.classList.remove("active"); if($("peekInk")) $("peekInk").classList.remove("active"); if(inkCanvas) inkCanvas.style.opacity='1'; }
@@ -1630,17 +1637,19 @@ function updateActionLabels(){
   $("done").textContent=used?"写完了":"写好了";
   updateTeachUI();
 }
-function updateTip(){ const vh=(window.visualViewport&&window.visualViewport.height)||window.innerHeight||667; $("tip").textContent=`${vh<=620?"提示":"笔顺提示"} ${groupIdx}/${groups.length}`; $("tip").title="用了提示，本组稍后会再写"; $("tip").disabled=animating || !writer || groupIdx>=groups.length || practicePhase==="postTraceRecall" || practicePhase==="tracing"; $("peekInk").disabled=animating || !peekWriter || revealed || practicePhase==="postTraceRecall" || practicePhase==="tracing"; if(!revealed){ $("done").disabled=animating; $("show").disabled=animating; } updateInkControls(); updateActionLabels(); }
+function updateTip(){ const vh=(window.visualViewport&&window.visualViewport.height)||window.innerHeight||667; $("tip").textContent=`${vh<=700?"提示":"笔顺提示"} ${groupIdx}/${groups.length}`; $("tip").removeAttribute("title"); $("tip").disabled=animating || !writer || groupIdx>=groups.length || practicePhase==="postTraceRecall" || practicePhase==="tracing"; $("peekInk").disabled=animating || !peekWriter || revealed || practicePhase==="postTraceRecall" || practicePhase==="tracing"; if(!revealed){ $("done").disabled=animating; $("show").disabled=animating; } updateInkControls(); updateActionLabels(); }
 
 // ---- 教学（首启校准第一张卡的墨点引导；只出现一次）----
 let teachStage="done", teachTimer=0;
 function teachActive(){ return activeMode==="calibrate" && pos===0; }
 function updateTeachUI(){ const stage=(teachActive() && !revealed)?teachStage:"done";
-  $("teachBubble").style.display=stage==="intro"?"":"none";
+  const tracePhase=practicePhase==="tracing", recallAfterTrace=practicePhase==="postTraceRecall", inTeaching=tracePhase||recallAfterTrace;
+  $("teachBubble").style.display=stage==="intro"&&!inTeaching?"":"none";
   const writeLocked=stage==="intro";
   $("tip").classList.remove("tlock"); $("show").classList.remove("tlock");
   $("clear").classList.toggle("tlock",writeLocked); $("done").classList.toggle("tlock",writeLocked);
-  $("mascotLine").textContent=hintVisualExhausted()?EXHAUSTED_HINT_COPY:(stage==="helpers"?"想不起来就点「笔顺提示」，或点「不会写」先描后写"
+  if(stage==="intro") $("show").disabled=false;
+  $("mascotLine").textContent=tracePhase?"沿着轮廓描，顺序不对也行":recallAfterTrace?"凭刚才的手感写":hintVisualExhausted()?EXHAUSTED_HINT_COPY:(stage==="helpers"?"想不起来就点「笔顺提示」，或点「不会写」先描后写"
     :(stage!=="done"?"先试着写，写不出就点「不会写」":(cur?MASCOT_LINES[pos%MASCOT_LINES.length]:""))); }
 function armTeachIdle(){ clearTimeout(teachTimer);
   teachTimer=setTimeout(()=>{ if((teachStage==="intro"||teachStage==="writing") && teachActive() && !revealed){ teachStage="helpers"; updateTeachUI(); } },3000); }
@@ -1682,7 +1691,7 @@ function freezeSubmissionSnapshot(){ inkEnd(); const hintStrokeIds=curMedians?[.
   submissionSnapshot=Object.freeze(snap); lastVerdict=verdict; return submissionSnapshot; }
 function captureRevealState(){ return cloneObj(submissionSnapshot)||freezeSubmissionSnapshot(); }
 function takeStampSnapshot(){ const idx=currentCardIndex(), key=cardKey(idx);
-  return {position:pos,baseCursor,currentIndex,currentAttemptKind,currentAttemptId,practicePhase,attemptSeq,idx,key,target:CARDS[idx].target,statusValue:status[idx],memoryValue:cloneObj(memory[key]),activityValue:cloneObj(activity),fsrsLogValue:cloneObj(fsrsReviewLog)||[],
+  return {position:pos,baseCursor,currentIndex,currentAttemptKind,currentAttemptId,practicePhase,attemptSeq,idx,key,target:CARDS[idx].target,statusValue:status[idx],memoryValue:cloneObj(memory[key]),activityValue:cloneObj(activity),fsrsLogValue:cloneObj(fsrsReviewLog)||[],funnelValue:cloneObj(funnel),
     baseTargetsValue:baseTargets.slice(),manualQueueValue:cloneObj(manualQueue)||[],queueValue:cloneObj(reinforcementQueue)||[],unresolvedValue:[...unresolved],episodesValue:cloneObj(episodes)||{},sessionDoneValue:[...sessionDone],roundStatsValue:cloneObj(roundStats)||[],missedValue:missedThisRound.slice(),
     sessionTarget,sessionFastStreak,sessionMissStreak,calibrationFirstHoldUsed,calibrationComfortShown,revealState:captureRevealState()}; }
 function restoreStampSnapshot(snap){ if(!snap) return;
@@ -1691,14 +1700,15 @@ function restoreStampSnapshot(snap){ if(!snap) return;
   if(snap.statusValue==null) delete status[snap.idx]; else status[snap.idx]=snap.statusValue; save(DECK_KEY,status);
   if(snap.memoryValue==null) delete memory[snap.key]; else memory[snap.key]=snap.memoryValue; saveMemory();
   fsrsReviewLog=cloneObj(snap.fsrsLogValue)||[]; saveFSRSLog();
+  if(snap.funnelValue){ funnel=cloneObj(snap.funnelValue)||funnel; saveFunnel(); }
   activity=normalizeActivity(cloneObj(snap.activityValue)); saveActivity(); syncReminder();
   roundStats=cloneObj(snap.roundStatsValue)||[]; missedThisRound=(snap.missedValue||[]).slice();
   sessionTarget=snap.sessionTarget; sessionFastStreak=snap.sessionFastStreak; sessionMissStreak=snap.sessionMissStreak;
   calibrationFirstHoldUsed=!!snap.calibrationFirstHoldUsed; calibrationComfortShown=!!snap.calibrationComfortShown; saveSessionSnapshot(); }
-function hideUndoBar(clearSnapshot=false){ clearTimeout(undoFollowTimer); $("undoBar").style.display="none"; if(clearSnapshot) lastStampSnapshot=null; }
+function hideUndoBar(clearSnapshot=false){ clearTimeout(undoFollowTimer); $("undoBar").style.display="none"; $("card").classList.remove("undoActive"); if(clearSnapshot) lastStampSnapshot=null; }
 function commitUndoWindow(){ if(lastStampSnapshot && currentAttemptId!==lastStampSnapshot.currentAttemptId) hideUndoBar(true); }
 function renderUndoBar(){ hideUndoBar(false); if(!lastStampSnapshot || currentAttemptId===lastStampSnapshot.currentAttemptId) return;
-  const ui=GRADE_UI[lastStampSnapshot.outcome]||GRADE_UI.slow; $("undoCopy").textContent=`「${lastStampSnapshot.target}」已盖「${ui.seal}」`; $("undoBar").style.display="flex";
+  const ui=GRADE_UI[lastStampSnapshot.outcome]||GRADE_UI.slow; $("undoCopy").textContent=`「${lastStampSnapshot.target}」已盖「${ui.seal}」`; $("undoBar").style.display="flex"; $("card").classList.add("undoActive");
   undoFollowTimer=setTimeout(()=>hideUndoBar(true),5000); }
 function stampToastCopy(outcome,m){ const ui=GRADE_UI[outcome];
   if(outcome==="fast"){ const ep=episodeFor(currentCardIndex()), recovered=ep.firstOutcome&&ep.firstOutcome!=="fast"; return {title:recovered?"今天已独立写出":`已记为${ui.func}`,sub:`${recovered?"这个字今天写稳了":"这次独立写对"} · 下次 ${formatDueDay(m.dueDay)}`}; }
@@ -1743,7 +1753,7 @@ function render(){ fitBox(); cur=CARDS[currentCardIndex()]; const token=++loadTo
   $("prompt").innerHTML=promptHTML(cur);
   $("hint").textContent=cur.custom?cur.hint:(activeMode==="calibrate"?"这组用来摸个底，之后按合适的难度出题":"");
   clearInk(); drawing=false; inkCanvas.style.opacity='1'; hzEl.style.opacity='1'; hzEl.classList.remove("traceFallback");
-  shownStrokes=0; totalStrokes=0; groups=[]; groupIdx=0; $("tip").disabled=true; $("show").disabled=true; $("done").disabled=true; $("tip").textContent="笔顺提示"; updateActionLabels();
+  shownStrokes=0; totalStrokes=0; groups=[]; groupIdx=0; $("tip").disabled=true; $("show").disabled=false; $("done").disabled=true; $("tip").textContent="笔顺提示"; updateActionLabels();
   hzEl.innerHTML=""; peekEl.innerHTML=""; peekEl.classList.remove("active"); hzEl.classList.remove("traceFallback"); writer=null; revealed=false;
   curMedians=null; lastVerdict=null;
   // 教学：只在校准组的第一张卡上出现
@@ -1805,7 +1815,8 @@ $("tip").onclick=async ()=>{ if(!writer||animating||revealed||groupIdx>=groups.l
   if(token!==loadToken || revealed) return false;
   animating=false; actionStack.push({type:"hint",group,n,start}); updateTip();
   if(inkCanvas){ inkCanvas.style.opacity=peeking?String(PEEK_INK_OPACITY):'1';
-    if(!hintVisualExhausted() && !tuning.peekHintShown){ tuning.peekHintShown=true; saveTuning(); $("mascotLine").textContent="也可以按住「看一眼」，它不计提示"; } }
+    if(!tuning.strokeHintConsequenceShown){ tuning.strokeHintConsequenceShown=true; saveTuning(); toast("用了提示，这个字本组稍后还会再写"); }
+    if(!hintVisualExhausted() && !tuning.peekHintUsed) $("hint").textContent="还想确认字形？按住「看一眼」，不计提示"; }
   saveSessionSnapshot(); return true;
 };
 function showRevealState(snapshot){ const verdict=snapshot&&snapshot.lastVerdict, inkUrl=snapshot&&revealInkImage(snapshot), reference=snapshot&&snapshot.referenceStrokes;
@@ -1821,8 +1832,8 @@ function showRevealState(snapshot){ const verdict=snapshot&&snapshot.lastVerdict
   $("stampOnMine").style.display="none";
   $("decisionRow").style.display="flex"; $("uncertainAction").style.display="flex"; $("softConfirm").style.display="none"; $("stampNote").style.display="";
   $("stampedToast").style.display="none"; $("editStamp").disabled=true;
-  const postTrace=snapshot&&snapshot.practicePhase==="postTraceRecall", used=!!(snapshot&&snapshot.hintEverUsed);
-  $("teachBubbleGrade").style.display="none"; $("askRow").style.display="flex"; $("qualityBox").style.display=postTrace?"none":"flex"; $("uncertainAction").style.display=postTrace?"none":"flex";
+  const postTrace=snapshot&&snapshot.practicePhase==="postTraceRecall", used=!!(snapshot&&snapshot.hintEverUsed), firstCalibrationReveal=activeMode==="calibrate"&&roundStats.length===0;
+  $("teachBubbleGrade").style.display=firstCalibrationReveal?"":"none"; $("askRow").style.display=firstCalibrationReveal?"none":"flex"; $("qualityBox").style.display=postTrace?"none":"flex"; $("uncertainAction").style.display=postTrace?"none":"flex";
   $("askLine").textContent=verdictShort(verdict);
   const exact=!!(verdict&&verdict.mode==="exact"); $("decisionCorrect").classList.toggle("suggest",exact&&verdict.status==="ok"); $("decisionWrong").classList.toggle("suggest",exact&&verdict.status==="bad");
   $("correctEffect").textContent=postTrace?"写对后，稍后还会再写":used?"已用提示，本组稍后再写":"这次独立写对";
@@ -1838,7 +1849,7 @@ async function beginTracingPhase(){ loadToken++; animating=false; unlockGradeAct
   $("practiceArea").style.display="flex"; $("reveal").style.display="none"; $("stampedToast").style.display="none"; $("stampOnMine").style.display="none"; $("hint").textContent=""; $("traceIntro").textContent="先沿着轮廓描一遍，接着答案会隐藏，再自己写一次。"; renderPhaseControls(); await showTraceOutline(); saveSessionSnapshot(); }
 function openTracingTeaching(){ if(Date.now()<actionCooldownUntil) return false; commitUndoWindow(); hapticFeedback("select"); clearTimeout(teachTimer); beginTracingPhase(); return true; }
 async function finishTracing(){ if(!tracedThisCard) return; clearInk(); hzEl.innerHTML=""; hzEl.classList.remove("traceFallback"); practicePhase="postTraceRecall"; tracing=false; shownStrokes=0; groupIdx=0; hintEverUsed=false; hintsUsedThisCard=0; actionStack=[];
-  $("hint").textContent="答案已经收起，现在不看提示自己写一次"; renderPhaseControls(); saveSessionSnapshot(); }
+  $("hint").textContent=""; renderPhaseControls(); saveSessionSnapshot(); }
 function declareDontKnow(){ if(practicePhase==="postTraceRecall"){ beginTracingPhase(); return; } if(revealed||animating||Date.now()<actionCooldownUntil) return;
   if(!["recall","reinforcement"].includes(practicePhase)) return;
   freezeSubmissionSnapshot(); const comfort=takeCalibrationComfort("miss"); recordOutcome("miss",{teaching:true}); updateProgressLabel(); openTracingTeaching();
@@ -1851,7 +1862,8 @@ $("traceDone").onclick=finishTracing;
 $("overlayToggle").onclick=()=>{ overlayOn=!overlayOn; $("mineOverlay").style.display=overlayOn?"flex":"none"; $("overlayToggle").textContent=overlayOn?"分开看":"叠起来对比"; };
 $("replayBtn").onclick=()=>{ if(replaying || !window.HanziWriter) return; replaying=true;
   $("rightGlyph").style.opacity="0"; $("rightHz").innerHTML="";
-  const w=HanziWriter.create($("rightHz"), cur.target, { width:RS, height:RS, padding:10, showCharacter:false, showOutline:false,
+  const revealSize=Math.max(1,Math.round($("rightHz").getBoundingClientRect().width||$("rightHz").parentElement.getBoundingClientRect().width||150));
+  const w=HanziWriter.create($("rightHz"), cur.target, { width:revealSize, height:revealSize, padding:Math.max(8,Math.round(revealSize*.067)), showCharacter:false, showOutline:false,
     strokeColor:cssVar('--accent',"#c2452c"), strokeAnimationSpeed:3.2, delayBetweenStrokes:90, charDataLoader:charLoader });
   try{ w.animateCharacter({ onComplete:()=>{ replaying=false; } }); }catch(e){ replaying=false; if(!renderStrokeSkeleton($("rightHz"),submissionSnapshot&&submissionSnapshot.referenceStrokes)) $("rightGlyph").style.opacity="1"; } };
 function reopenStampChoices(){ if(!lastStampSnapshot) return;
@@ -1922,7 +1934,7 @@ function startRound(){ if(activeMode==="review" && reviewBudgetRemaining()===0){
   calibrationTargets=activeMode==="calibrate"?baseTargets.slice():[];
   batch=baseTargets; warmStrokeCache(baseTargets.map(i=>CARDS[i].target)); pos=0; baseCursor=0; currentIndex=null; pendingSessionVisual=null; manualQueue=[]; reinforcementQueue=[]; unresolved=new Set(); episodes={}; attemptSeq=0; practicePhase="recall";
   missedThisRound=[]; roundStats=[]; roundFeedbackGiven=false; calibrationFirstHoldUsed=false; calibrationComfortShown=false; lastStampSnapshot=null; hideUndoBar(false); roundId=Date.now()+"-"+Math.random().toString(36).slice(2,7);
-  roundElapsedMs=0; roundActiveStartedAt=Date.now(); roundBudgetPrompted=false;
+  roundElapsedMs=0; roundActiveStartedAt=Date.now(); roundBudgetPrompted=false; roundTimerPaused=false;
   beginAttempt({idx:baseTargets[0],kind:"base"}); saveSessionSnapshot(); armPracticeHistory(); render(); }
 function sumTile(s,i){ const isMiss=s.outcome==="miss", recovered=s.outcome!=="fast"&&s.independentlyRecovered, ui=GRADE_UI[s.outcome];
   return `<button class="sumTile ${isMiss?"miss":""}" data-idx="${s.idx}" aria-label="${esc(s.target)}，首次${esc(ui.func)}${recovered?"，之后已独立写出":""}" style="transform:rotate(${ROTS[i%ROTS.length]}deg); animation-delay:${(i*0.05).toFixed(2)}s"><span class="glyphText">${s.target}</span><span class="dot outcomeMark ${s.outcome}" style="background:${OUTCOME_DOT[s.outcome]}">${OUTCOME_MARK[s.outcome]}</span><small class="meaning">${ui.short}</small>${recovered?'<span class="recover">稳</span>':''}</button>`; }
@@ -1930,7 +1942,7 @@ function renderPracticePocket(indexes, calibration=false){ const unique=[...new 
   summaryFocusIndexes=unique; card.style.display=unique.length?"flex":"none"; if(!unique.length) return;
   chips.innerHTML=unique.slice(0,3).map((idx,k)=>`<span class="pChip" style="transform:rotate(${k%2?3:-4}deg)">${CARDS[idx].target}</span>`).join("");
   title.textContent=`${unique.length} 个字，趁热再拾`; }
-function roundSummary(fromPractice=false){ const durationMs=currentRoundElapsed(); roundElapsedMs=durationMs; roundActiveStartedAt=0; recordFunnelRound(durationMs); clearSessionSnapshot(); markRoundComplete(); releasePracticeHistory(); const milestone=celebrateMilestoneIfAny(); displayView("summary");
+function roundSummary(fromPractice=false){ const durationMs=currentRoundElapsed(); roundElapsedMs=durationMs; roundActiveStartedAt=0; roundTimerPaused=false; recordFunnelRound(durationMs); clearSessionSnapshot(); markRoundComplete(); releasePracticeHistory(); const milestone=celebrateMilestoneIfAny(); displayView("summary");
   $("summaryShare").style.display="block"; $("calibShare").style.display="block";
   $("milestoneLine").style.display=milestone?"block":"none"; if(milestone){ $("milestoneLine").textContent=milestoneCopy(milestone); hapticFeedback("milestone"); }
   else if(fromPractice) hapticFeedback("action");
@@ -2178,7 +2190,10 @@ initBox(); renderHome();
 showSafetyUndo();
 try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(()=>{}); }catch(e){}
 if(reminderBridgeAvailable()){ syncReminder(); queryReminderStatus(); }
-document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="hidden" && baseTargets.length && $("card").style.display!=="none") saveSessionSnapshot(); });
+document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="hidden"){
+    if(roundActiveStartedAt){ roundElapsedMs=currentRoundElapsed(); roundActiveStartedAt=0; roundTimerPaused=true; }  // 后台/锁屏期间停表，空转墙钟不计入组时长
+    if(baseTargets.length && $("card").style.display!=="none") saveSessionSnapshot();
+  } else if(roundTimerPaused){ roundActiveStartedAt=Date.now(); roundTimerPaused=false; } });
 // 视口尺寸变化明显（旋转、分屏、加载时序）时重建写字区。正在写的卡不动（别丢笔迹）：
 // 非卡片视图立即重建；卡片视图里每张新卡 render() 前都会 fitBox()，下一张自动适配
 function fitBox(){ const n=idealBoxSize(); if(Math.abs(n-S)>=24){ S=n; $("boxwrap").innerHTML=""; initBox(); } }

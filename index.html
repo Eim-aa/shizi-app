@@ -758,8 +758,8 @@ function dayKey(d=new Date()){ return d.getFullYear()+"-"+String(d.getMonth()+1)
 function today(){ return dayKey(); }
 function shiftDay(key,amount){ const p=String(key).split("-").map(Number), d=new Date(p[0],p[1]-1,p[2],12); d.setDate(d.getDate()+amount); return dayKey(d); }
 function dayStartMs(key){ const p=String(key||"").split("-").map(Number); return p.length===3?new Date(p[0],p[1]-1,p[2]).getTime():0; }
-const FSRS_CONFIG=Object.freeze({schedulerVersion:"ts-fsrs 5.2.0 / FSRS-6.0",parameterVersion:"fsrs6-default-21-v1",desiredRetention:0.90,maximumInterval:150,timeZone:Intl.DateTimeFormat().resolvedOptions().timeZone||"local"});
-const fsrsEngine=window.FSRS?FSRS.fsrs(FSRS.generatorParameters({request_retention:FSRS_CONFIG.desiredRetention,maximum_interval:FSRS_CONFIG.maximumInterval,enable_fuzz:false,enable_short_term:true,learning_steps:[],relearning_steps:[]})):null;
+const FSRS_CONFIG=Object.freeze({schedulerVersion:"ts-fsrs 5.2.0 / FSRS-6.0",parameterVersion:"fsrs6-fuzz-365-v2",desiredRetention:0.90,maximumInterval:365,enableFuzz:true,timeZone:Intl.DateTimeFormat().resolvedOptions().timeZone||"local"});
+const fsrsEngine=window.FSRS?FSRS.fsrs(FSRS.generatorParameters({request_retention:FSRS_CONFIG.desiredRetention,maximum_interval:FSRS_CONFIG.maximumInterval,enable_fuzz:FSRS_CONFIG.enableFuzz,enable_short_term:true,learning_steps:[],relearning_steps:[]})):null;
 function saveFSRSLog(){ save(FSRS_LOG_KEY,fsrsReviewLog); }
 function serializeFSRSCard(card){ if(!card) return null; const out={...card}; out.due=new Date(card.due).toISOString(); out.last_review=card.last_review?new Date(card.last_review).toISOString():null; return out; }
 function deserializeFSRSCard(raw,now=Date.now()){ if(!raw || typeof raw!=="object" || !window.FSRS) return FSRS.createEmptyCard(new Date(now));
@@ -801,7 +801,7 @@ function normalizeBackupMeta(raw){ const meta=raw&&typeof raw==="object"?raw:{};
 let backupMeta=normalizeBackupMeta(load(BACKUP_META_KEY,null)), summaryBackupHintVisible=false;
 function saveActivity(){ save(ACTIVITY_KEY,activity); }
 function dailyActivity(key=today()){ const row=activity.daily[key] && typeof activity.daily[key]==="object"?activity.daily[key]:{};
-  row.stamps=Math.max(0,Number(row.stamps)||0); row.attempts=Math.max(row.stamps,Number(row.attempts)||0); row.targetKeys=Array.isArray(row.targetKeys)?[...new Set(row.targetKeys)]:[]; row.completedRoundIds=Array.isArray(row.completedRoundIds)?row.completedRoundIds:[];
+  row.stamps=Math.max(0,Number(row.stamps)||0); row.attempts=Math.max(row.stamps,Number(row.attempts)||0); row.targetKeys=Array.isArray(row.targetKeys)?[...new Set(row.targetKeys)]:[]; row.reviewTargetKeys=Array.isArray(row.reviewTargetKeys)?[...new Set(row.reviewTargetKeys.filter(k=>typeof k==="string"))]:[]; row.completedRoundIds=Array.isArray(row.completedRoundIds)?row.completedRoundIds:[];
   row.completedGroups=row.completedRoundIds.length; activity.daily[key]=row; return row; }
 function markPracticeStamp(idx=null){ const key=today(), row=dailyActivity(key), targetKey=Number.isInteger(idx)?cardKey(idx):`legacy:${row.attempts}`; row.attempts++; if(!row.targetKeys.includes(targetKey)){ row.targetKeys.push(targetKey); row.stamps++; } row.lastStampAt=Date.now();
   if(!activity.practiceDays.includes(key)) activity.practiceDays.push(key); activity.practiceDays.sort(); saveActivity();
@@ -886,7 +886,7 @@ function celebrateMilestoneIfAny(){ const total=totalPracticeDays(); let changed
   if(changed) saveReminder(); return celebrate; }
 
 // ---- 出题池与双层学习会话 ----
-const BATCH=15, TOPIC_KEY="shizi.topic.v1";
+const BATCH=15, DAILY_REVIEW_BUDGET=30, TOPIC_KEY="shizi.topic.v1";
 let sessionDone=new Set(), baseTargets=[], batch=[], pos=0, baseCursor=0, currentIndex=null, currentAttemptKind="base", currentAttemptId="";
 let manualQueue=[], reinforcementQueue=[], unresolved=new Set(), episodes={}, attemptSeq=0, practicePhase="recall", hintEverUsed=false, enteredTracingThisAttempt=false, submissionSnapshot=null, pendingSessionVisual=null, feedbackKind="";
 let missedThisRound=[], roundStats=[], focusQueue=[], hintsUsedThisCard=0, cardStartedAt=0, activeMode="new", sessionTarget=0, sessionFastStreak=0, sessionMissStreak=0, roundFeedbackGiven=false, roundId=0, calibrationFirstHoldUsed=false, calibrationComfortShown=false, calibrationTargets=[];
@@ -968,9 +968,15 @@ function reviewDue(i){ const m=memory[cardKey(i)]; if(!m||!m.seen) return false;
 function reviewReady(i){ return status[i]==="indeck" ? isDue(i) : reviewDue(i); }
 function baseAvailable(i,respectSession=true){ return (status[i]!=="known" || hasMemory(i)) && (!respectSession || !sessionDone.has(i)); }
 function reviewPool(respectSession=true){ return allIndexes().filter(i=>baseAvailable(i,respectSession) && qualityAvailable(i) && reviewReady(i)); }
+function reviewBudgetUsed(key=today()){ return dailyActivity(key).reviewTargetKeys.length; }
+function reviewBudgetRemaining(key=today()){ return Math.max(0,DAILY_REVIEW_BUDGET-reviewBudgetUsed(key)); }
+function reviewBudgetPool(respectSession=true){ const reserved=new Set(dailyActivity().reviewTargetKeys);
+  return reviewPool(respectSession).filter(i=>!reserved.has(cardKey(i))).sort(compareReviewPriority).slice(0,reviewBudgetRemaining()); }
+function reviewTodayCount(){ return Math.min(reviewBudgetRemaining(),reviewBudgetPool(false).length); }
+function reserveReviewTargets(indexes){ const row=dailyActivity(); (indexes||[]).forEach(i=>{ const key=cardKey(i); if(!row.reviewTargetKeys.includes(key) && row.reviewTargetKeys.length<DAILY_REVIEW_BUDGET) row.reviewTargetKeys.push(key); }); saveActivity(); }
 function newPool(respectSession=true){ return allIndexes().filter(i=>baseAvailable(i,respectSession) && qualityAvailable(i) && !hasMemory(i) && status[i]!=="indeck" && !CARDS[i].custom && strictNewEligible(i)); }
 function focusPool(respectSession=true){ return focusQueue.filter(i=>baseAvailable(i,respectSession) && !qualityBlocked(i)); }
-function availablePool(){ if(activeMode==="review") return reviewPool(true); if(activeMode==="focus") return focusPool(true); return newPool(true); }
+function availablePool(){ if(activeMode==="review") return reviewBudgetPool(true); if(activeMode==="focus") return focusPool(true); return newPool(true); }
 function deckCount(){ return Object.values(status).filter(s=>s==="indeck").length; }
 function knownCount(){ return allIndexes().filter(i=>{ const m=memory[cardKey(i)]; return m && m.streak>=2 && status[i]!=="indeck"; }).length; }
 function clamp(n,min,max){ return Math.max(min, Math.min(max, n)); }
@@ -1175,7 +1181,7 @@ function renderHome(){ const resume=resumableSession();
   displayView("home");
   $("homeGreeting").textContent=`${greeting()} · ${dateCn()}`;
   const totalDays=totalPracticeDays(); $("streakChip").textContent=totalDays>0?`拾字第 ${totalDays} 天`:"今天开始拾字";
-  const due=reviewCount(), newN=newPool(false).length, stampedToday=todayStampCount(), complete=todayCompleted();
+  const due=reviewCount(), dueToday=reviewTodayCount(), newN=newPool(false).length, stampedToday=todayStampCount(), complete=todayCompleted();
   homeResumeSession=resume;
   if(resume){ const targetSet=new Set(resume.baseTargets), total=targetSet.size, practiced=new Set((resume.roundStats||[]).filter(row=>targetSet.has(row.idx)).map(row=>row.idx)).size, reinforce=new Set((resume.unresolved||[]).filter(idx=>targetSet.has(idx))).size;
     $("homeTitle").innerHTML=complete?`今日已拾<br>${stampedToday} 个字`:`今天拾了<br>${stampedToday} 个字`;
@@ -1183,15 +1189,15 @@ function renderHome(){ const resume=resumableSession();
     $("startBtn").textContent="续"; $("startCap").innerHTML=`继续${complete?"加练":""}这组 <span>· ${progress}</span>`; $("startBtn").disabled=false;
   } else if(complete){
     $("homeTitle").innerHTML=`今日已拾<br>${stampedToday} 个字`; $("startBtn").textContent="再";
-    $("startCap").innerHTML=(newN||due)?`加练一组 <span>· 今日完成不会回退</span>`:"今天的字都过完了，明天见"; $("startBtn").disabled=(newN===0 && due===0);
+    $("startCap").innerHTML=(newN||dueToday)?`加练一组 <span>· ${dueToday?`今日复习还可 ${Math.min(BATCH,dueToday)} 字`:"今日完成不会回退"}</span>`:"今天先到这里，明天见"; $("startBtn").disabled=(newN===0 && dueToday===0);
   } else {
-    $("homeTitle").innerHTML=due?"先拾回<br>到期的字":"今天拾<br>十五个字"; $("startBtn").textContent="拾";
-    $("startCap").innerHTML=due?`开始今日一组 <span>· 先复习 ${due} 个到期</span>`:(newN?`开始今日一组 <span>· ${BATCH} 字 · 按自己的节奏</span>`:"今天的字都过完了，明天见");
-    $("startBtn").disabled=(newN===0 && due===0);
+    $("homeTitle").innerHTML=dueToday?"先拾回<br>到期的字":"今天拾<br>十五个字"; $("startBtn").textContent="拾";
+    $("startCap").innerHTML=dueToday?`今天先拾回一组 <span>· ${Math.min(BATCH,dueToday)} 字</span>`:(newN?`开始今日一组 <span>· ${BATCH} 字 · 按自己的节奏</span>`:"今天先到这里，明天见");
+    $("startBtn").disabled=(newN===0 && dueToday===0);
   }
   const y=homeRecentIndexes();
   $("yesterLbl").textContent=y.label;
-  $("boxStat").innerHTML=`字盒已收 <b>${memoryCount()}</b> 字 · 待复习 <b>${due}</b>`;
+  $("boxStat").innerHTML=dueToday?`字盒已收 <b>${memoryCount()}</b> 字 · 今日复习 <b>${Math.min(BATCH,dueToday)}</b>`:`字盒已收 <b>${memoryCount()}</b> 字${due?" · 今日复习已完成":""}`;
   $("yesterRow").classList.toggle("scrollable",y.list.length>4);
   const recentShown=y.list.slice(0,50);
   $("yesterRow").innerHTML=y.list.length
@@ -1230,9 +1236,10 @@ function renderBook(){ displayView("book");
   $("boxCount").innerHTML=`已收 <b>${seen.length}</b> 字 · 待复习 <b>${due}</b>`;
   updateBookBadge();
   if(due>0){ $("dueCard").style.display="flex";
-    const chips=chooseReviewBatch(reviewPool(false)).slice(0,3);
+    const todayDue=reviewTodayCount(), chips=chooseReviewBatch(reviewBudgetPool(false)).slice(0,3);
     $("dueChips").innerHTML=chips.map((i,k)=>`<span class="pChip" style="transform:rotate(${k%2?3:-4}deg)">${CARDS[i].target}</span>`).join("");
-    $("dueTitle").textContent=`${due} 个字今天到期`;
+    $("dueTitle").textContent=todayDue?`${due} 个字到期 · 今天先练 ${Math.min(BATCH,todayDue)}`:`${due} 个字到期 · 今日预算已完成`;
+    $("practiceDue").disabled=!todayDue; $("practiceDue").textContent=todayDue?"练一轮":"明天继续";
   } else { $("dueCard").style.display="none"; }
   const risk=seen.filter(isHighRisk), counts={all:seen.length, risk:risk.length, stable:seen.filter(isStable).length};
   $("boxRiskTitle").textContent=`待拾回 ${risk.length}`;
@@ -1430,7 +1437,7 @@ function charLoader(char, onComplete){
 function warmStrokeCache(chars){ if(!navigator.onLine) return;
   [...new Set(chars||[])].forEach(ch=>fetch('data/'+encodeURIComponent(ch)+'.json').catch(()=>{})); }
 function warmUpcomingStrokeCache(){ if(!navigator.onLine) return; try{
-  const indexes=reviewCount()?chooseReviewBatch(reviewPool(false)):(needsCalibration()?chooseCalibrationBatch(newPool(false)):withTemporaryPreference(preference,()=>chooseBatch(newPool(false))));
+  const indexes=reviewTodayCount()?chooseReviewBatch(reviewBudgetPool(false)):(needsCalibration()?chooseCalibrationBatch(newPool(false)):withTemporaryPreference(preference,()=>chooseBatch(newPool(false))));
   warmStrokeCache(indexes.map(i=>CARDS[i].target));
 }catch(e){} }
 
@@ -1806,10 +1813,13 @@ function next(){ practicePhase="between"; if(roundBudgetReached()){ openRoundBud
 $("continueRound").onclick=continueAfterBudget;
 $("deferRound").onclick=deferRoundToTomorrow;
 function chooseFocusBatch(all){ return all.slice().sort((a,b)=>personalDifficulty(b)-personalDifficulty(a)).slice(0,BATCH); }
-function chooseReviewBatch(all){ return all.slice().sort((a,b)=>reviewPriority(b)-reviewPriority(a) || String((memory[cardKey(a)]||{}).dueDay||"").localeCompare(String((memory[cardKey(b)]||{}).dueDay||"")) || personalDifficulty(b)-personalDifficulty(a)).slice(0,BATCH); }
-function startRound(){ const p=availablePool(), queued=activeMode==="calibrate"?[]:queuedFrontPool(); if(p.length===0 && queued.length===0){ clearSessionSnapshot(); allDone(); return; } resetAdaptiveSession();
+function compareReviewPriority(a,b){ return reviewPriority(b)-reviewPriority(a) || String((memory[cardKey(a)]||{}).dueDay||"").localeCompare(String((memory[cardKey(b)]||{}).dueDay||"")) || personalDifficulty(b)-personalDifficulty(a); }
+function chooseReviewBatch(all){ return all.slice().sort(compareReviewPriority).slice(0,BATCH); }
+function startRound(){ if(activeMode==="review" && reviewBudgetRemaining()===0){ clearSessionSnapshot(); renderHome(); toast("今天的复习已完成，可以拾新字"); return; }
+  const p=availablePool(), queued=activeMode==="calibrate"?[]:queuedFrontPool(); if(p.length===0 && queued.length===0){ clearSessionSnapshot(); allDone(); return; } resetAdaptiveSession();
   baseTargets=activeMode==="focus"?chooseFocusBatch(p):(activeMode==="review"?chooseReviewBatch(p):(activeMode==="calibrate"?chooseCalibrationBatch(p):chooseBatch(p)));
   if(queued.length){ const front=new Set(queued); baseTargets=[...queued,...baseTargets.filter(i=>!front.has(i))].slice(0,BATCH); }
+  if(activeMode==="review"){ baseTargets=baseTargets.slice(0,reviewBudgetRemaining()); reserveReviewTargets(baseTargets); }
   calibrationTargets=activeMode==="calibrate"?baseTargets.slice():[];
   batch=baseTargets; warmStrokeCache(baseTargets.map(i=>CARDS[i].target)); pos=0; baseCursor=0; currentIndex=null; pendingSessionVisual=null; manualQueue=[]; reinforcementQueue=[]; unresolved=new Set(); episodes={}; attemptSeq=0; practicePhase="recall";
   missedThisRound=[]; roundStats=[]; roundFeedbackGiven=false; calibrationFirstHoldUsed=false; calibrationComfortShown=false; lastStampSnapshot=null; hideUndoBar(false); roundId=Date.now()+"-"+Math.random().toString(36).slice(2,7);
@@ -1820,7 +1830,7 @@ function sumTile(s,i){ const isMiss=s.outcome==="miss", recovered=s.outcome!=="f
 function roundSummary(fromPractice=false){ clearSessionSnapshot(); markRoundComplete(); releasePracticeHistory(); const milestone=celebrateMilestoneIfAny(); displayView("summary");
   $("milestoneLine").style.display=milestone?"block":"none"; if(milestone){ $("milestoneLine").textContent=MILESTONE_COPY[milestone]; hapticFeedback("milestone"); }
   else if(fromPractice) hapticFeedback("action");
-  const wasCalibration=activeMode==="calibrate", calibrationStats=wasCalibration?calibrationRoundStats():roundStats, calibrationNote=maybeFinishCalibration(), remain=availablePool().length;
+  const wasCalibration=activeMode==="calibrate", calibrationStats=wasCalibration?calibrationRoundStats():roundStats, calibrationNote=maybeFinishCalibration(), remain=activeMode==="review"?reviewTodayCount():availablePool().length;
   const counts=roundCounts(calibrationStats), hardN=(counts.hinted||0)+(counts.miss||0)+(counts.slow||0), keptN=calibrationStats.length-hardN, dayTotal=todayStampCount(), completedGroups=dailyActivity().completedGroups;
   const risky=[...new Set(roundStats.filter(x=>x.outcome!=="fast").map(x=>x.idx))];
   $("calibCard").style.display=wasCalibration?"flex":"none"; $("calibCard").style.flexDirection="column"; $("calibCard").style.flex="1";
@@ -1841,11 +1851,11 @@ function roundSummary(fromPractice=false){ clearSessionSnapshot(); markRoundComp
   renderRoundTune(calibrationNote);
   renderSummaryBackupHint();
   $("more").style.display=remain>0?"":"none";
-  $("more").textContent=activeMode==="review"?`继续复习（还剩 ${remain}）`:activeMode==="focus"?`继续（还剩 ${remain}）`:"加练一组"; }
+  $("more").textContent=activeMode==="review"?`继续复习（今日还可 ${Math.min(BATCH,remain)}）`:activeMode==="focus"?`继续（还剩 ${remain}）`:"加练一组"; }
 function allDone(){ displayView("summary"); $("milestoneLine").style.display="none";
   $("calibCard").style.display="none"; $("sumSheet").style.display="flex";
   $("sumH2").textContent="今天的字过完了";
-  $("sumLead").innerHTML=`字盒已收 <b class="ok">${memoryCount()}</b> 字 · 待复习 ${reviewCount()} · 待拾回 ${highRiskCount()}`;
+  $("sumLead").innerHTML=`字盒已收 <b class="ok">${memoryCount()}</b> 字 · 待拾回 ${highRiskCount()}`;
   $("dateSeal").textContent=dateCn();
   $("sumTiles").innerHTML=""; $("pocketCard").style.display="none"; $("summaryBackupHint").style.display="none";
   $("roundTune").style.display="none"; $("more").style.display="none"; }
@@ -1878,7 +1888,7 @@ $("boxRiskGrid").onclick=e=>{ const more=e.target.closest("[data-expand-risk]");
 $("boxAllToggle").onclick=()=>{ bookExpanded=!bookExpanded; renderBook(); };
 $("boxFilters").onclick=e=>{ const b=e.target.closest("[data-filter]"); if(b){ boxFilter=b.dataset.filter; renderBook(); } };
 // ---- 底部三 tab + 首页大印章 ----
-$("startBtn").onclick=()=>{ if($("startBtn").disabled) return; startMode(reviewCount()>0?"review":"new"); };
+$("startBtn").onclick=()=>{ if($("startBtn").disabled) return; startMode(reviewTodayCount()>0?"review":"new"); };
 $("welcomeStart").onclick=()=>startMode("new");
 $("tabPractice").onclick=renderHome;
 $("tabBook").onclick=openBook;

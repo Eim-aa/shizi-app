@@ -153,6 +153,7 @@ let browser;
     fsrsVersion: FSRS.FSRSVersion,
     weights: FSRS.default_w.length,
     scheduler: FSRS_CONFIG,
+    engineFuzz: fsrsEngine.parameters.enable_fuzz,
     decisionLabels: Array.from(document.querySelectorAll("#decisionRow button span")).map((node) => node.textContent),
     oldStampChoices: document.querySelectorAll("#stampRow .stampWrap").length,
     showLabel: document.getElementById("show").textContent,
@@ -160,7 +161,7 @@ let browser;
   }));
   assert(baseline.seed === 6854 && baseline.groups === 6854 && baseline.cards >= 6854, "Expected the complete 6854-card corpus", baseline);
   assert(baseline.fsrsVersion.includes("FSRS-6.0") && baseline.weights === 21, "Expected fixed FSRS-6 runtime", baseline);
-  assert(baseline.scheduler.desiredRetention === 0.9 && baseline.scheduler.maximumInterval === 150 && baseline.scheduler.parameterVersion === "fsrs6-default-21-v1", "Expected versioned scheduler configuration", baseline.scheduler);
+  assert(baseline.scheduler.desiredRetention === 0.9 && baseline.scheduler.maximumInterval === 365 && baseline.scheduler.enableFuzz && baseline.engineFuzz && baseline.scheduler.parameterVersion === "fsrs6-fuzz-365-v2", "Expected fuzzed scheduler with a one-year interval ceiling", baseline.scheduler);
   assert(baseline.decisionLabels.join("/") === "写对了/写错了" && baseline.oldStampChoices === 0 && baseline.showLabel === "不会写", "Expected concise two-decision result semantics", baseline);
   assert(baseline.viewport.includes("viewport-fit=cover") && !/user-scalable=no|maximum-scale=1/.test(baseline.viewport), "Expected scalable safe-area viewport", baseline.viewport);
 
@@ -176,6 +177,30 @@ let browser;
   });
   assert(migration.futureDay === migration.expectedFuture && migration.sameDay === migration.today, "Expected lossless legacy due migration", migration);
   assert(migration.version === 2 && migration.startedDate !== migration.today && Number.isInteger(migration.currentIndex), "Expected cross-midnight v1 session migration", migration);
+
+  const reviewBudget = await page.evaluate(() => {
+    const saved = { memory: cloneObj(memory), status: cloneObj(status), quality: cloneObj(quality), activity: cloneObj(activity), tuning: cloneObj(tuning), sessionDone: [...sessionDone], activeMode, baseTargets: baseTargets.slice(), batch: batch.slice() };
+    const originalRender = render, originalRenderHome = renderHome, originalToast = toast, originalWarm = warmStrokeCache, originalArm = armPracticeHistory;
+    const dueIndexes = allIndexes().slice(0, 200); memory = {}; status = {}; quality = {}; activity = newActivity(); activity.inheritedTotalDays = 0; activity.daily = {}; sessionDone = new Set(); tuning = { calibrated: true, offset: 0, contextStrict: 0, rounds: [] };
+    dueIndexes.forEach((idx, order) => { memory[cardKey(idx)] = { seen: 1, dueDay: shiftDay(today(), -1), pendingLearning: false, lastOutcome: order % 4 === 0 ? "miss" : "fast", misses: order % 4 === 0 ? 1 : 0, ease: 50, streak: 1, last: Date.now() - order }; status[idx] = "rest"; });
+    saveMemory(); save(DECK_KEY, status); saveActivity();
+    const expectedTop = reviewPool(false).slice().sort(compareReviewPriority).slice(0, DAILY_REVIEW_BUDGET);
+    render = () => {}; renderHome = () => {}; toast = () => {}; warmStrokeCache = () => {}; armPracticeHistory = () => {};
+    activeMode = "review"; startRound(); const first = baseTargets.slice(), usedAfterFirst = reviewBudgetUsed(); first.forEach((idx) => { memory[cardKey(idx)].dueDay = shiftDay(today(), 1); }); sessionDone = new Set(); clearSessionSnapshot();
+    startRound(); const second = baseTargets.slice(), usedAfterSecond = reviewBudgetUsed(); second.forEach((idx) => { memory[cardKey(idx)].dueDay = shiftDay(today(), 1); }); sessionDone = new Set(); clearSessionSnapshot();
+    let exhaustedRedirect = false; renderHome = () => { exhaustedRedirect = true; }; startRound();
+    render = originalRender; renderHome = originalRenderHome; toast = originalToast; warmStrokeCache = originalWarm; armPracticeHistory = originalArm;
+    const selected = [...first, ...second], topPriority = selected.join() === expectedTop.join(), noDuplicates = new Set(selected).size === DAILY_REVIEW_BUDGET;
+    renderHome(); const homeCopy = `${homeTitle.textContent} ${startCap.textContent} ${boxStat.textContent}`; const homeNoDebt = !startCap.textContent.includes("200 个到期") && !startCap.textContent.includes("还剩 170");
+    const originalStartMode = startMode; let entry = ""; startMode = (mode) => { entry = mode; }; startBtn.onclick(); startMode = originalStartMode;
+    const persisted = cloneObj(dailyActivity().reviewTargetKeys);
+    memory = saved.memory; status = saved.status; quality = saved.quality; activity = normalizeActivity(saved.activity); tuning = saved.tuning; sessionDone = new Set(saved.sessionDone); activeMode = saved.activeMode; baseTargets = saved.baseTargets; batch = saved.batch;
+    saveMemory(); save(DECK_KEY, status); saveQuality(); saveActivity(); saveTuning(); clearSessionSnapshot();
+    return { first: first.length, second: second.length, usedAfterFirst, usedAfterSecond, selected: selected.length, topPriority, noDuplicates, exhaustedRedirect, remaining: reviewBudgetRemaining(), homeCopy, homeNoDebt, entry, persisted: persisted.length };
+  });
+  assert(reviewBudget.first === 15 && reviewBudget.second === 15 && reviewBudget.usedAfterFirst === 15 && reviewBudget.usedAfterSecond === 30 && reviewBudget.selected === 30
+    && reviewBudget.topPriority && reviewBudget.noDuplicates && reviewBudget.exhaustedRedirect && reviewBudget.homeNoDebt && reviewBudget.entry === "new" && reviewBudget.persisted === 30,
+  "Expected a persistent top-30 daily review budget and a new-card exit after exhaustion", reviewBudget);
 
   const queueEdges = await page.evaluate(() => {
     const saved = {

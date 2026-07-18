@@ -30,6 +30,8 @@ function assert(condition, message, details) {
 assert(swSource.includes("shizi-v9") && swSource.includes("Promise.allSettled") && swSource.includes("INSTALL_BATCH_SIZE = 40") && swSource.includes("cacheCoreStrokes"), "Expected versioned, batched, failure-tolerant core stroke installation");
 assert(coreStrokeSource.includes("SHIZI_CORE_STROKES") && coreStrokeSource.includes("slice(0,600)"), "Expected a generated 600-character core stroke list");
 assert(!source.includes("sendBeacon") && !/method\s*:\s*["']POST["']/.test(source), "Expected the local funnel to add no analytics beacon or POST request");
+assert(!/rgba\(194,\s*69,\s*44/i.test(source) && source.includes("--accent-rgb:194,69,44") && source.includes("--accent-rgb:212,85,58"), "Expected every cinnabar alpha to follow the light/dark theme token");
+assert(source.includes(".card.undoActive .chdr{ visibility:hidden; }") && !source.includes('$("tip").title='), "Expected the undo bar to replace the header and touch guidance to avoid invisible title copy");
 assert(/funnelValue\s*:\s*cloneObj\(funnel\)/.test(source) && /funnel\s*=\s*cloneObj\(snap\.funnelValue\)/.test(source), "Expected the stamp undo snapshot to capture and restore the local funnel");
 assert(source.includes("ROUND_DURATION_CAP_MS") && /durationMs\s*:\s*Math\.min\(/.test(source), "Expected the round duration to be capped client-side against background/idle inflation");
 
@@ -278,6 +280,18 @@ let browser;
   assert(baseline.scheduler.desiredRetention === 0.9 && baseline.scheduler.maximumInterval === 365 && baseline.scheduler.enableFuzz && baseline.engineFuzz && baseline.scheduler.parameterVersion === "fsrs6-fuzz-365-v2", "Expected fuzzed scheduler with a one-year interval ceiling", baseline.scheduler);
   assert(baseline.decisionLabels.join("/") === "写对了/写错了" && baseline.oldStampChoices === 0 && baseline.showLabel === "不会写", "Expected concise two-decision result semantics", baseline);
   assert(baseline.viewport.includes("viewport-fit=cover") && !/user-scalable=no|maximum-scale=1/.test(baseline.viewport), "Expected scalable safe-area viewport", baseline.viewport);
+
+  await page.emulateMedia({ colorScheme: "dark" });
+  const darkTheme = await page.evaluate(() => {
+    const bubble = getComputedStyle(teachBubble), after = getComputedStyle(teachBubble, "::after"), root = getComputedStyle(document.documentElement);
+    return {
+      bubble: bubble.backgroundColor, arrow: after.backgroundColor, card: root.getPropertyValue("--card").trim(), ink: root.getPropertyValue("--ink").trim(),
+      strong: getComputedStyle(teachBubble.querySelector("b")).color, meTitle: getComputedStyle(document.querySelector(".meCardTop b")).color,
+      boxShadow: getComputedStyle(document.querySelector(".box") || document.body).boxShadow,
+    };
+  });
+  assert(darkTheme.bubble === darkTheme.arrow && darkTheme.bubble !== darkTheme.card && darkTheme.meTitle === "rgb(242, 234, 217)", "Expected a shaped inverse teaching bubble and readable analysis title in dark mode", darkTheme);
+  await page.emulateMedia({ colorScheme: "light" });
 
   await page.addScriptTag({ path: path.join(root, "core-strokes.js") });
   const coreStrokes = await page.evaluate(() => ({ chars: self.SHIZI_CORE_STROKES.slice(), calibration: self.SHIZI_CORE_STROKES.slice(0, 15).join("") }));
@@ -571,12 +585,16 @@ let browser;
   const noSecondForce = await page.evaluate(() => !["强", "器"].includes(cur.target) && queuedFrontPool().every((idx) => !["强", "器"].includes(CARDS[idx].target)));
   assert(noSecondForce, "Expected consumed additions not to be forced at the front of a later round");
 
-  await page.evaluate(() => {
+  await page.setViewportSize({ width: 375, height: 667 });
+  const calibrationImmediate = await page.evaluate(() => {
     exitCurrentRound(); clearSessionSnapshot(); status = {}; memory = {}; fsrsReviewLog = []; quality = {}; sessionDone = new Set();
     tuning = { calibrated: false, offset: 0, contextStrict: 0, rounds: [] };
     save(DECK_KEY, status); saveMemory(); saveFSRSLog(); saveQuality(); saveTuning();
     addWord("强"); addWord("器"); activeMode = "calibrate"; startRound();
+    const label = posLabel.getBoundingClientRect();
+    return { helpReady: !show.disabled && !show.classList.contains("tlock"), progressCenter: label.left + label.width / 2, viewportCenter: innerWidth / 2 };
   });
+  assert(calibrationImmediate.helpReady && Math.abs(calibrationImmediate.progressCenter - calibrationImmediate.viewportCenter) <= 0.5, "Expected immediate first-card help and a truly centered compact progress label", calibrationImmediate);
   await waitForWriter(page);
   const calibrationQueue = await page.evaluate(() => ({
     front: baseTargets.slice(0, 2).map((idx) => CARDS[idx].target).join(""),
@@ -597,9 +615,16 @@ let browser;
 
   await page.click("#show");
   await page.waitForFunction(() => practicePhase === "tracing");
-  const calibrationHelp = await page.evaluate(() => ({ phase: practicePhase, comfort: calibrationComfortShown, copy: traceIntro.textContent, secondComfort: takeCalibrationComfort("slow"), card1Events: funnelEventCount("calib_card1_done") }));
-  assert(calibrationHelp.phase === "tracing" && calibrationHelp.comfort && calibrationHelp.copy.includes("忘了正常") && !calibrationHelp.secondComfort && calibrationHelp.card1Events === 1,
+  const calibrationHelp = await page.evaluate(() => ({ phase: practicePhase, comfort: calibrationComfortShown, copy: traceIntro.textContent, mascot: mascotLine.textContent, bubbleHidden: getComputedStyle(teachBubble).display === "none", actionBottom: traceActions.getBoundingClientRect().bottom, viewportBottom: innerHeight, secondComfort: takeCalibrationComfort("slow"), card1Events: funnelEventCount("calib_card1_done") }));
+  assert(calibrationHelp.phase === "tracing" && calibrationHelp.comfort && calibrationHelp.copy.includes("忘了正常") && calibrationHelp.mascot.includes("沿着轮廓描") && calibrationHelp.bubbleHidden && calibrationHelp.actionBottom <= calibrationHelp.viewportBottom
+    && !calibrationHelp.secondComfort && calibrationHelp.card1Events === 1,
   "Expected first-card don't-know to enter tracing immediately and show calibration comfort only once", calibrationHelp);
+
+  await page.evaluate(() => { tracedThisCard = true; updateInkControls(); });
+  await page.click("#traceDone");
+  const postTraceLayout = await page.evaluate(() => ({ phase: practicePhase, title: phaseTitle.textContent, hint: hint.textContent, mascot: mascotLine.textContent, actionBottom: actions.getBoundingClientRect().bottom, viewportBottom: innerHeight, show: show.textContent }));
+  assert(postTraceLayout.phase === "postTraceRecall" && postTraceLayout.title.includes("2/2 自己写") && postTraceLayout.hint === "" && postTraceLayout.mascot === "凭刚才的手感写"
+    && postTraceLayout.actionBottom <= postTraceLayout.viewportBottom && postTraceLayout.show === "再描一遍", "Expected the complete 375x667 post-trace controls without duplicate guidance", postTraceLayout);
 
   await page.evaluate(() => {
     exitCurrentRound(); clearSessionSnapshot(); status = {}; memory = {}; fsrsReviewLog = []; quality = {}; sessionDone = new Set();
@@ -607,6 +632,26 @@ let browser;
     save(DECK_KEY, status); saveMemory(); saveFSRSLog(); saveQuality(); saveTuning(); activeMode = "calibrate"; startRound();
   });
   await waitForWriter(page);
+
+  await page.evaluate(() => { inkStrokes = mediansToCanvas(curMedians); redrawInk(); revealAnswer(); });
+  const firstCalibrationReveal = await page.evaluate(() => {
+    const snapshot = submissionSnapshot, baseStyle = (node) => { const style = getComputedStyle(node); return { background: style.backgroundColor, border: style.border, shadow: style.boxShadow }; };
+    const first = { bubble: getComputedStyle(teachBubbleGrade).display, ask: getComputedStyle(askRow).display, decisionBottom: decisionRow.getBoundingClientRect().bottom, viewportBottom: innerHeight };
+    showRevealState({ ...snapshot, lastVerdict: null }); const neutral = { correct: baseStyle(decisionCorrect), wrong: baseStyle(decisionWrong), suggested: decisionCorrect.classList.contains("suggest") || decisionWrong.classList.contains("suggest") };
+    showRevealState({ ...snapshot, lastVerdict: { status: "bad", mode: "exact", failed: [0], missing: 0 } }); const wrongSuggested = { correct: baseStyle(decisionCorrect), wrong: baseStyle(decisionWrong), suggested: decisionWrong.classList.contains("suggest") && !decisionCorrect.classList.contains("suggest") };
+    showRevealState(snapshot);
+    return { first, neutral, wrongSuggested };
+  });
+  assert(firstCalibrationReveal.first.bubble === "block" && firstCalibrationReveal.first.ask === "none" && firstCalibrationReveal.first.decisionBottom <= firstCalibrationReveal.first.viewportBottom,
+    "Expected the first calibration reveal to explain honest self-assessment without duplicate mascot copy", firstCalibrationReveal.first);
+  assert(!firstCalibrationReveal.neutral.suggested && firstCalibrationReveal.neutral.correct.background === firstCalibrationReveal.neutral.wrong.background
+    && firstCalibrationReveal.neutral.correct.border === firstCalibrationReveal.neutral.wrong.border && firstCalibrationReveal.neutral.correct.shadow === firstCalibrationReveal.neutral.wrong.shadow
+    && firstCalibrationReveal.wrongSuggested.suggested && firstCalibrationReveal.wrongSuggested.wrong.background !== firstCalibrationReveal.wrongSuggested.correct.background,
+  "Expected neutral decisions to carry equal weight and an exact assistant suggestion to dominate on either side", firstCalibrationReveal);
+  await page.click("#replayBtn"); await page.waitForTimeout(80);
+  const compactReplay = await page.evaluate(() => { const box = document.querySelector(".cmpBox.std").getBoundingClientRect(), svg = rightHz.querySelector("svg").getBoundingClientRect(); return { box: [box.width, box.height], svg: [svg.width, svg.height], right: svg.right - box.right, bottom: svg.bottom - box.bottom }; });
+  assert(compactReplay.box.join() === "138,138" && compactReplay.svg.join() === compactReplay.box.join() && compactReplay.right <= 0.5 && compactReplay.bottom <= 0.5, "Expected 375px reveal playback to use the rendered comparison-box size without clipping", compactReplay);
+  await page.setViewportSize({ width: 390, height: 844 });
 
   const calibrationIsolation = await page.evaluate(() => {
     const original = calibrationTargets.slice(), originalSet = new Set(original);
@@ -805,9 +850,11 @@ let browser;
   const handwritingBoundaries = await page.evaluate(async () => {
     const originalWriter = writer;
     const addStroke = () => { curInkStroke = [{ x: 24, y: 28 }, { x: 72, y: 78 }]; inkEnd(); };
+    tuning.peekHintUsed = false; tuning.strokeHintConsequenceShown = false; saveTuning();
     clearInk(); actionStack = []; seenGroups = new Set(); groups = [1, 1]; groupIdx = 0; shownStrokes = 0; hintsUsedThisCard = 0; hintEverUsed = false;
     writer = { animateStroke: async () => {} }; updateTip();
     addStroke(); await tip.onclick(); addStroke();
+    const peekOffer = { copy: hint.textContent, consumed: !!tuning.peekHintUsed, consequenceShown: !!tuning.strokeHintConsequenceShown, title: tip.hasAttribute("title") };
     const stacked = actionStack.map((action) => action.type).join(",");
     await undoInkStroke(); const afterStroke = { ink: inkStrokes.length, stack: actionStack.map((action) => action.type).join(",") };
     await undoInkStroke(); const afterHint = { ink: inkStrokes.length, groupIdx, shownStrokes, stack: actionStack.map((action) => action.type).join(","), tipDisabled: tip.disabled };
@@ -833,9 +880,10 @@ let browser;
     const interrupted = tip.onclick(); await Promise.resolve(); const rewriting = rewriteCurrentCard(); await Promise.all([interrupted, rewriting]);
     const afterInterrupt = { animating, opacity: Number(inkCanvas.style.opacity), ink: inkStrokes.length, groupIdx, shownStrokes, stack: actionStack.length };
     writer = originalWriter;
-    return { stacked, afterStroke, afterHint, empty, rewritten, replayUse, newUse, duringPlayback, afterPlayback, afterInterrupt };
+    return { stacked, peekOffer, afterStroke, afterHint, empty, rewritten, replayUse, newUse, duringPlayback, afterPlayback, afterInterrupt };
   });
   assert(handwritingBoundaries.stacked === "stroke,hint,stroke"
+    && handwritingBoundaries.peekOffer.copy.includes("按住「看一眼」") && !handwritingBoundaries.peekOffer.consumed && handwritingBoundaries.peekOffer.consequenceShown && !handwritingBoundaries.peekOffer.title
     && handwritingBoundaries.afterStroke.ink === 1 && handwritingBoundaries.afterStroke.stack === "stroke,hint"
     && handwritingBoundaries.afterHint.ink === 1 && handwritingBoundaries.afterHint.groupIdx === 0 && handwritingBoundaries.afterHint.shownStrokes === 0 && handwritingBoundaries.afterHint.stack === "stroke" && !handwritingBoundaries.afterHint.tipDisabled
     && handwritingBoundaries.empty.ink === 0 && handwritingBoundaries.empty.stack === 0 && handwritingBoundaries.empty.undoDisabled,
@@ -855,12 +903,13 @@ let browser;
     const canvas = inkCanvas; const rect = canvas.getBoundingClientRect();
     const pointer = (type, id, primary, x, y, buttons) => new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: id, pointerType: "touch", isPrimary: primary, button: 0, buttons, clientX: rect.left + rect.width * x, clientY: rect.top + rect.height * y });
     const pixels = () => { const data = inkCtx.getImageData(0, 0, inkCanvas.width, inkCanvas.height).data; let count = 0; for (let i = 3; i < data.length; i += 4) if (data[i]) count += 1; return count; };
-    clearInk(); activePointers.clear(); peekReleasePending = false; tracing = false; revealed = false; animating = false;
+    clearInk(); activePointers.clear(); peekReleasePending = false; tracing = false; revealed = false; animating = false; tuning.peekHintUsed = false; saveTuning();
     const before = { ever: hintEverUsed, used: hintsUsedThisCard, group: groupIdx, shown: shownStrokes };
     const peekRect = peekInk.getBoundingClientRect();
     const controlPointer = (type, buttons) => new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 81050, pointerType: "touch", isPrimary: true, button: 0, buttons, clientX: peekRect.left + 20, clientY: peekRect.top + 20 });
     peekInk.dispatchEvent(controlPointer("pointerdown", 1));
     const controlEntered = peeking && peekEl.classList.contains("active") && peekEl.querySelectorAll("path").length > 0 && Number(canvas.style.opacity) <= 0.06;
+    const consumedOnUse = tuning.peekHintUsed === true;
     peekInk.dispatchEvent(controlPointer("pointerup", 0));
     const controlRestored = !peeking && !peekEl.classList.contains("active") && Number(canvas.style.opacity) === 1;
     const uncounted = before.ever === hintEverUsed && before.used === hintsUsedThisCard && before.group === groupIdx && before.shown === shownStrokes;
@@ -884,7 +933,7 @@ let browser;
     canvas.dispatchEvent(pointer("pointerup", 81053, true, 0.55, 0.55, 0));
     const nextGestureWrites = inkStrokes.length === 1 && pixels() > 0;
     clearInk(); resetPeekHint(); actionCooldownUntil = 0;
-    return { controlEntered, controlRestored, uncounted, entered, cancelled, blocked, restoredOnAnyLift, releaseBlocked, ended, nextGestureWrites };
+    return { controlEntered, consumedOnUse, controlRestored, uncounted, entered, cancelled, blocked, restoredOnAnyLift, releaseBlocked, ended, nextGestureWrites };
   });
   assert(Object.values(peekBoundary).every(Boolean), "Expected complete two-finger peek lifecycle without leaked ink", peekBoundary);
 
@@ -936,15 +985,16 @@ let browser;
   const undoLayout = await page.evaluate(() => {
     renderUndoBar();
     const snapshot = lastStampSnapshot; const canvas = inkCanvas; const rect = canvas.getBoundingClientRect();
-    const beforeTop = boxwrap.getBoundingClientRect().top; const style = getComputedStyle(undoBar);
+    const beforeTop = boxwrap.getBoundingClientRect().top; const style = getComputedStyle(undoBar), header = document.querySelector(".chdr");
+    const headerReplaced = getComputedStyle(header).visibility === "hidden" && card.classList.contains("undoActive");
     const pointer = (type, buttons) => new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 82001, pointerType: "touch", isPrimary: true, button: 0, buttons, clientX: rect.left + 30, clientY: rect.top + 30 });
     canvas.dispatchEvent(pointer("pointerdown", 1)); canvas.dispatchEvent(pointer("pointerup", 0));
-    const hiddenOnWrite = getComputedStyle(undoBar).display === "none";
+    const hiddenOnWrite = getComputedStyle(undoBar).display === "none" && getComputedStyle(header).visibility === "visible" && !card.classList.contains("undoActive");
     const afterTop = boxwrap.getBoundingClientRect().top;
     clearInk(); actionCooldownUntil = 0; lastStampSnapshot = snapshot; renderUndoBar();
     const bar = undoBar.getBoundingClientRect(); const promptRect = document.getElementById("prompt").getBoundingClientRect();
     const noOverlap = bar.bottom <= promptRect.top || bar.top >= promptRect.bottom || bar.right <= promptRect.left || bar.left >= promptRect.right;
-    return { position: style.position, hiddenOnWrite, shift: Math.abs(afterTop - beforeTop), restored: getComputedStyle(undoBar).display !== "none", noOverlap };
+    return { position: style.position, headerReplaced, hiddenOnWrite, shift: Math.abs(afterTop - beforeTop), restored: getComputedStyle(undoBar).display !== "none" && getComputedStyle(header).visibility === "hidden", noOverlap };
   });
   await page.setViewportSize({ width: 390, height: 620 });
   const undoShortLayout = await page.evaluate(() => {
@@ -952,7 +1002,7 @@ let browser;
     return { visible: getComputedStyle(undoBar).display !== "none", noOverlap: bar.bottom <= promptRect.top || bar.top >= promptRect.bottom || bar.right <= promptRect.left || bar.left >= promptRect.right, top: bar.top, bottom: bar.bottom };
   });
   await page.setViewportSize({ width: 390, height: 844 });
-  assert(undoLayout.position === "absolute" && undoLayout.hiddenOnWrite && undoLayout.shift <= 0.5 && undoLayout.restored && undoLayout.noOverlap && undoShortLayout.visible && undoShortLayout.noOverlap, "Expected cross-card undo bar to float without shifting or overlapping short screens", { undoLayout, undoShortLayout });
+  assert(undoLayout.position === "absolute" && undoLayout.headerReplaced && undoLayout.hiddenOnWrite && undoLayout.shift <= 0.5 && undoLayout.restored && undoLayout.noOverlap && undoShortLayout.visible && undoShortLayout.noOverlap, "Expected cross-card undo bar to replace the header without shifting or overlapping short screens", { undoLayout, undoShortLayout });
 
   for (let i = 0; i < 2; i += 1) {
     await submitStandard(page);

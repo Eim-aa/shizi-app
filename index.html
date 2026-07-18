@@ -147,7 +147,8 @@
   .decisionRow button{ flex:1; min-height:58px; border-radius:14px; padding:10px 8px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; }
   .decisionRow button span{ font-size:16px; font-weight:800; }
   .decisionRow button small{ font-size:11px; line-height:1.25; color:var(--muted); }
-  .decisionRow button.suggest{ outline:2.5px solid var(--accent); outline-offset:3px; }
+  .decisionRow button.suggest{ position:relative; }
+  .decisionRow button.suggest::after{ content:""; position:absolute; inset:0; border-radius:inherit; background:var(--accentSoft); opacity:.28; pointer-events:none; }
   .decisionRow .decisionCorrect{ background:var(--accent); color:var(--paperInk); }
   .decisionRow .decisionCorrect small{ color:rgba(253,250,241,.82); }
   .decisionRow .decisionWrong{ background:var(--card); color:var(--ink); border-color:var(--line); }
@@ -169,14 +170,18 @@
   .cmpBox{ position:relative; width:150px; height:150px; background:var(--card); border-radius:6px; overflow:hidden; }
   .cmpBox.mine{ box-shadow:0 0 0 2px rgba(43,38,32,.32); }
   .cmpBox.std{ box-shadow:0 0 0 2px rgba(194,69,44,.5); }
-  .cmpBox .cx,.cmpBox .cy{ position:absolute; pointer-events:none; }
+  .cmpBox .cx,.cmpBox .cy,.cmpBox .d1,.cmpBox .d2{ position:absolute; pointer-events:none; z-index:0; }
   .cmpBox .cx{ left:0; top:50%; width:100%; border-top:1px dashed rgba(194,69,44,.22); }
   .cmpBox .cy{ top:0; left:50%; height:100%; border-left:1px dashed rgba(194,69,44,.22); }
+  .cmpBox .d1,.cmpBox .d2{ left:-21%; top:50%; width:142%; border-top:1px dashed rgba(194,69,44,.22); transform-origin:center; }
+  .cmpBox .d1{ transform:rotate(45deg); }
+  .cmpBox .d2{ transform:rotate(-45deg); }
   .cmpBox .glyph{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font:400 108px/1 var(--kai); color:var(--accent); }
-  #mineInk{ position:absolute; inset:0; background-repeat:no-repeat; background-size:100% 100%; }
+  #mineInk{ position:absolute; inset:0; z-index:1; background-repeat:no-repeat; background-size:100% 100%; }
   #mineEmpty{ position:absolute; inset:0; display:none; align-items:center; justify-content:center; font-size:12px; color:var(--faint); }
-  #mineOverlay{ position:absolute; inset:0; display:none; align-items:center; justify-content:center; font:400 108px/1 var(--kai); color:var(--accent); opacity:.4; pointer-events:none; }
-  #rightHz{ position:absolute; inset:0; pointer-events:none; }
+  #mineOverlay{ position:absolute; inset:0; z-index:2; display:none; align-items:center; justify-content:center; font:400 108px/1 var(--kai); color:var(--accent); opacity:.46; pointer-events:none; }
+  #rightHz{ position:absolute; inset:0; z-index:1; pointer-events:none; }
+  #mineOverlay svg,#rightHz svg{ display:block; width:100%; height:100%; }
   .cmpLbl{ margin-top:8px; font-size:12px; font-weight:600; color:var(--muted); }
   .cmpLbl.red{ color:var(--accent); }
   .cmpLinks{ display:flex; justify-content:center; gap:22px; margin-top:10px; }
@@ -496,7 +501,7 @@
       <div class="cmpRow">
         <div class="cmpCol">
           <div class="cmpBox mine">
-            <div class="cx"></div><div class="cy"></div>
+            <div class="cx"></div><div class="cy"></div><div class="d1"></div><div class="d2"></div>
             <div id="mineInk"></div>
             <div id="mineEmpty">这次没写</div>
             <div id="mineOverlay"></div>
@@ -506,7 +511,7 @@
         </div>
         <div class="cmpCol">
           <div class="cmpBox std">
-            <div class="cx"></div><div class="cy"></div>
+            <div class="cx"></div><div class="cy"></div><div class="d1"></div><div class="d2"></div>
             <div class="glyph" id="rightGlyph"></div>
             <div id="rightHz"></div>
           </div>
@@ -1514,7 +1519,7 @@ function suggestedOutcomeForVerdict(v){ if(!v) return ""; return v.status==="ok"
 function wrapIdForOutcome(outcome){ return "wrap"+outcome[0].toUpperCase()+outcome.slice(1); }
 function verdictShort(v){ if(!v) return "对照助手不可用也没关系，请按实际字格判断。";
   if(v.status==="ok") return v.mode==="holistic"?"建议：写对了；连笔不影响。最终以你的选择为准。":"建议：写对了。最终以你的选择为准。";
-  if(v.status==="bad") return "建议：写错了。请和右边对照，最终以你的选择为准。";
+  if(v.status==="bad") return v.mode==="exact"&&v.failed&&v.failed.length?"这几笔再对一眼。最终以你的选择为准。":"建议：写错了。请和右边对照，最终以你的选择为准。";
   return "和右边对照一下，以你自己的判断为准。"; }
 
 const EXHAUSTED_HINT_COPY="提示用完了——继续补完这个字，或点「不会写」先描后写";
@@ -1556,11 +1561,25 @@ function drawSnapshotStrokes(ctx,strokes,color,width){ ctx.strokeStyle=color; ct
 function snapshotImage(hints,ink){ const canvas=document.createElement("canvas"); canvas.width=S; canvas.height=S; const ctx=canvas.getContext("2d");
   drawSnapshotStrokes(ctx,hints,hintStroke(),Math.max(3,S*.025)); drawSnapshotStrokes(ctx,ink,cssVar('--inkPen',"#2b2620"),Math.max(5,S*.045));
   try{ return canvas.toDataURL(); }catch(e){ return null; } }
+function failedUserStrokeIndexes(snapshot){ const verdict=snapshot&&snapshot.lastVerdict;
+  if(!verdict || verdict.status!=="bad" || verdict.mode!=="exact") return [];
+  const hintCount=(snapshot.hintStrokes||[]).length, inkCount=(snapshot.inkStrokes||[]).length;
+  return [...new Set((verdict.failed||[]).map(i=>i-hintCount).filter(i=>i>=0&&i<inkCount))]; }
+function revealInkImage(snapshot){ const failed=failedUserStrokeIndexes(snapshot), canvas=document.createElement("canvas"); canvas.width=S; canvas.height=S; const ctx=canvas.getContext("2d");
+  drawSnapshotStrokes(ctx,snapshot&&snapshot.hintStrokes,hintStroke(),Math.max(3,S*.025));
+  drawSnapshotStrokes(ctx,snapshot&&snapshot.inkStrokes,cssVar('--inkPen',"#2b2620"),Math.max(5,S*.045));
+  if(failed.length) drawSnapshotStrokes(ctx,failed.map(i=>snapshot.inkStrokes[i]),cssVar('--accent',"#c2452c"),Math.max(6,S*.052));
+  try{ return canvas.toDataURL(); }catch(e){ return snapshot&&snapshot.compositeImage||null; } }
+function renderStrokeSkeleton(container,strokes){ container.innerHTML=""; if(!strokes||!strokes.length) return false;
+  const ns="http://www.w3.org/2000/svg", svg=document.createElementNS(ns,"svg"); svg.setAttribute("viewBox",`0 0 ${S} ${S}`); svg.setAttribute("aria-hidden","true");
+  const color=cssVar('--accent',"#c2452c"), width=Math.max(5,S*.045);
+  strokes.forEach(points=>{ if(!points||!points.length) return; const path=document.createElementNS(ns,"path"); path.setAttribute("d",points.map((p,i)=>`${i?"L":"M"}${p.x.toFixed(2)} ${p.y.toFixed(2)}`).join(" ")); path.setAttribute("fill","none"); path.setAttribute("stroke",color); path.setAttribute("stroke-width",String(width)); path.setAttribute("stroke-linecap","round"); path.setAttribute("stroke-linejoin","round"); svg.appendChild(path); });
+  container.appendChild(svg); return true; }
 function freezeSubmissionSnapshot(){ inkEnd(); const hintStrokeIds=curMedians?[...Array(Math.min(shownStrokes,curMedians.length)).keys()]:[], hintStrokes=curMedians?mediansToCanvas(curMedians.slice(0,hintStrokeIds.length)):[];
-  const userInk=cloneObj(inkStrokes)||[], compositeGeometry=[...cloneObj(hintStrokes)||[],...cloneObj(userInk)||[]]; let verdict=null;
-  if(curMedians&&curMedians.length&&compositeGeometry.length){ try{ verdict=checkInk(compositeGeometry,mediansToCanvas(curMedians)); }catch(e){} }
+  const referenceStrokes=curMedians?mediansToCanvas(curMedians):[], userInk=cloneObj(inkStrokes)||[], compositeGeometry=[...cloneObj(hintStrokes)||[],...cloneObj(userInk)||[]]; let verdict=null;
+  if(referenceStrokes.length&&compositeGeometry.length){ try{ verdict=checkInk(compositeGeometry,referenceStrokes); }catch(e){} }
   const snap={target:cur.target,idx:currentCardIndex(),attemptId:currentAttemptId,createdAt:Date.now(),hintStrokeIds,hintCount:hintsUsedThisCard,hintStrokes:cloneObj(hintStrokes)||[],inkStrokes:userInk,
-    compositeGeometry,compositeImage:snapshotImage(hintStrokes,userInk),hintEverUsed,enteredTracing:enteredTracingThisAttempt,practicePhase,lastVerdict:cloneObj(verdict),userCorrect:null};
+    referenceStrokes:cloneObj(referenceStrokes)||[],compositeGeometry,compositeImage:snapshotImage(hintStrokes,userInk),hintEverUsed,enteredTracing:enteredTracingThisAttempt,practicePhase,lastVerdict:cloneObj(verdict),userCorrect:null};
   submissionSnapshot=Object.freeze(snap); lastVerdict=verdict; return submissionSnapshot; }
 function captureRevealState(){ return cloneObj(submissionSnapshot)||freezeSubmissionSnapshot(); }
 function takeStampSnapshot(){ const idx=currentCardIndex(), key=cardKey(idx);
@@ -1683,22 +1702,23 @@ $("tip").onclick=async ()=>{ if(!writer||animating||revealed||groupIdx>=groups.l
     if(!hintVisualExhausted() && !tuning.peekHintShown){ tuning.peekHintShown=true; saveTuning(); $("mascotLine").textContent="双指按住格子，可以透视提示"; } }
   saveSessionSnapshot(); return true;
 };
-function showRevealState(snapshot){ const verdict=snapshot&&snapshot.lastVerdict, inkUrl=snapshot&&snapshot.compositeImage;
+function showRevealState(snapshot){ const verdict=snapshot&&snapshot.lastVerdict, inkUrl=snapshot&&revealInkImage(snapshot), reference=snapshot&&snapshot.referenceStrokes;
   activePointers.clear(); peekReleasePending=false; exitPeekHint(true); revealed=true; clearTimeout(teachTimer);
   $("actions").classList.remove("tlock"); $("traceActions").classList.remove("tlock");
   $("practiceArea").style.display="none"; $("reveal").style.display="flex";
   $("revealWord").textContent=cur.word; $("revealPy").textContent=cur.py||"";
-  if(inkUrl){ $("mineInk").style.backgroundImage=`url(${inkUrl})`; $("mineInk").style.display=""; $("mineEmpty").style.display="none"; }
-  else { $("mineInk").style.backgroundImage="none"; $("mineEmpty").style.display="flex"; }
-  overlayOn=false; $("mineOverlay").style.display="none"; $("mineOverlay").textContent=cur.target; $("overlayToggle").textContent="叠起来对比";
-  $("rightGlyph").textContent=cur.target; $("rightGlyph").style.opacity="1"; $("rightHz").innerHTML=""; replaying=false;
+  if(inkUrl){ $("mineInk").style.backgroundImage=`url(${inkUrl})`; $("mineInk").style.display=""; $("mineInk").dataset.failedCount=String(failedUserStrokeIndexes(snapshot).length); $("mineEmpty").style.display="none"; }
+  else { $("mineInk").style.backgroundImage="none"; $("mineInk").dataset.failedCount="0"; $("mineEmpty").style.display="flex"; }
+  overlayOn=false; $("mineOverlay").style.display="none"; $("mineOverlay").textContent=""; $("overlayToggle").textContent="叠起来对比";
+  const hasSkeleton=renderStrokeSkeleton($("rightHz"),reference); $("rightGlyph").textContent=cur.target; $("rightGlyph").style.opacity=hasSkeleton?"0":"1";
+  if(!renderStrokeSkeleton($("mineOverlay"),reference)) $("mineOverlay").textContent=cur.target; replaying=false;
   $("stampOnMine").style.display="none";
   $("decisionRow").style.display="flex"; $("uncertainAction").style.display="flex"; $("softConfirm").style.display="none"; $("stampNote").style.display="";
   $("stampedToast").style.display="none"; $("editStamp").disabled=true;
   const postTrace=snapshot&&snapshot.practicePhase==="postTraceRecall", used=!!(snapshot&&snapshot.hintEverUsed);
   $("teachBubbleGrade").style.display="none"; $("askRow").style.display="flex"; $("qualityBox").style.display=postTrace?"none":"flex"; $("uncertainAction").style.display=postTrace?"none":"flex";
   $("askLine").textContent=verdictShort(verdict);
-  $("decisionCorrect").classList.toggle("suggest",!!(verdict&&verdict.status==="ok")); $("decisionWrong").classList.toggle("suggest",!!(verdict&&verdict.status==="bad"));
+  const exact=!!(verdict&&verdict.mode==="exact"); $("decisionCorrect").classList.toggle("suggest",exact&&verdict.status==="ok"); $("decisionWrong").classList.toggle("suggest",exact&&verdict.status==="bad");
   $("correctEffect").textContent=postTrace?"完成教学检查，稍后仍会再写":used?"已用提示，本组稍后再写":"本组通过";
   $("stampNote").textContent=postTrace?"写错会回到第 1 步；写对仍需稍后无辅助写出":used?"本回合用过提示，写对也会加入本组巩固":"请按提交瞬间的完整字格判断";
   renderQuality();
@@ -1727,7 +1747,7 @@ $("replayBtn").onclick=()=>{ if(replaying || !window.HanziWriter) return; replay
   $("rightGlyph").style.opacity="0"; $("rightHz").innerHTML="";
   const w=HanziWriter.create($("rightHz"), cur.target, { width:RS, height:RS, padding:10, showCharacter:false, showOutline:false,
     strokeColor:cssVar('--accent',"#c2452c"), strokeAnimationSpeed:3.2, delayBetweenStrokes:90, charDataLoader:charLoader });
-  try{ w.animateCharacter({ onComplete:()=>{ replaying=false; } }); }catch(e){ replaying=false; $("rightGlyph").style.opacity="1"; } };
+  try{ w.animateCharacter({ onComplete:()=>{ replaying=false; } }); }catch(e){ replaying=false; if(!renderStrokeSkeleton($("rightHz"),submissionSnapshot&&submissionSnapshot.referenceStrokes)) $("rightGlyph").style.opacity="1"; } };
 function reopenStampChoices(){ if(!lastStampSnapshot) return;
   const snap=lastStampSnapshot; clearTimeout(autoNextTimer); clearTimeout(editStampTimer); hideUndoBar(false); lastStampSnapshot=null;
   restoreStampSnapshot(snap); stamped=false; render(); restoreRevealFromSnapshot({...snap.revealState,softConfirmHandled:false}); updateProgressLabel(); hapticFeedback("undo"); }
@@ -1880,10 +1900,13 @@ $("auditSample").onclick=handleAuditListClick;
 $("practiceDue").onclick=()=>startMode("review");
 
 $("toolsToggle").onclick=()=>toggleInternalTools();
+function systemAgreementStats(){ const rows=Object.values(memory).filter(m=>m&&typeof m.lastSystemAgree==="boolean"), disagree=rows.filter(m=>m.lastSystemAgree===false).length;
+  return {total:rows.length,disagree,rate:rows.length?Math.round(disagree/rows.length*100):0}; }
 $("dataLink").onclick=()=>{ const box=$("dataBox"); if(box.style.display==="block"){ box.style.display="none"; return; }
   const last7=activity.practiceDays.filter(d=>{ const diff=(new Date(today())-new Date(d))/86400000; return diff>=0 && diff<7; });
+  const agreement=systemAgreementStats();
   box.style.display="block"; box.innerHTML=`<b>实验用，别天天盯（盯 streak 会污染“光靠痒”这个变量）</b><br>`+
-    `最近 7 天里，你实际盖过章 <b>${last7.length}</b> 天 → 目标 ≥4 天<br>出题偏好：<b>${prefLabel()}</b> · 难度校准：<b>${tuningLabel()} ${tuningShiftText()}</b> · 语境严格度：<b>${Number(tuning.contextStrict)||0}</b><br>题目反馈：<b>${qualityCount()}</b> 条 · 整组反馈：<b>${(tuning.rounds||[]).length}</b> 条<br>已记录：<b>${memoryCount()}</b> 个字 · 到期复习：<b>${reviewCount()}</b> 个 · 待拾回：<b>${highRiskCount()}</b> 个<br>你自己加的字：<b>${addedChars.length}</b> 个<br>累计练习日：${totalPracticeDays()} 天 · 历史打开：${opens.length} 天`; };
+    `最近 7 天里，你实际盖过章 <b>${last7.length}</b> 天 → 目标 ≥4 天<br>出题偏好：<b>${prefLabel()}</b> · 难度校准：<b>${tuningLabel()} ${tuningShiftText()}</b> · 语境严格度：<b>${Number(tuning.contextStrict)||0}</b><br>系统-用户分歧率：<b>${agreement.rate}%</b>（${agreement.disagree}/${agreement.total}）<br>题目反馈：<b>${qualityCount()}</b> 条 · 整组反馈：<b>${(tuning.rounds||[]).length}</b> 条<br>已记录：<b>${memoryCount()}</b> 个字 · 到期复习：<b>${reviewCount()}</b> 个 · 待拾回：<b>${highRiskCount()}</b> 个<br>你自己加的字：<b>${addedChars.length}</b> 个<br>累计练习日：${totalPracticeDays()} 天 · 历史打开：${opens.length} 天`; };
 let toastTimer=0;
 function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove("show"),2200); }
 

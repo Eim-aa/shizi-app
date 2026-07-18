@@ -428,8 +428,27 @@ let browser;
   await waitForWriter(page);
   await page.evaluate(() => {
     inkStrokes = mediansToCanvas(curMedians); redrawInk(); revealAnswer();
-    lastVerdict = { status: "bad", mode: "exact" }; submissionSnapshot = Object.freeze({ ...submissionSnapshot, lastVerdict: cloneObj(lastVerdict) }); showRevealState(submissionSnapshot);
+    lastVerdict = { status: "bad", mode: "exact", failed: [0], missing: 0 }; submissionSnapshot = Object.freeze({ ...submissionSnapshot, lastVerdict: cloneObj(lastVerdict) }); showRevealState(submissionSnapshot);
   });
+  const revealFidelity = await page.evaluate(() => {
+    const exactSnapshot = submissionSnapshot, mineBox = document.querySelector(".cmpBox.mine"), stdBox = document.querySelector(".cmpBox.std");
+    const result = {
+      grids: [mineBox, stdBox].map((box) => ["cx", "cy", "d1", "d2"].every((cls) => !!box.querySelector(`.${cls}`))),
+      standardPaths: rightHz.querySelectorAll("svg path").length,
+      overlayPaths: mineOverlay.querySelectorAll("svg path").length,
+      sameViewBox: rightHz.querySelector("svg")?.getAttribute("viewBox") === mineOverlay.querySelector("svg")?.getAttribute("viewBox"),
+      failedCount: Number(mineInk.dataset.failedCount),
+      copy: askLine.textContent,
+      exactSuggest: decisionWrong.classList.contains("suggest") && !decisionCorrect.classList.contains("suggest"),
+    };
+    showRevealState({ ...exactSnapshot, referenceStrokes: [] });
+    result.fallback = rightGlyph.style.opacity === "1" && rightHz.querySelectorAll("svg path").length === 0 && mineOverlay.textContent === cur.target;
+    showRevealState(exactSnapshot);
+    return result;
+  });
+  assert(revealFidelity.grids.every(Boolean) && revealFidelity.standardPaths > 0 && revealFidelity.standardPaths === revealFidelity.overlayPaths && revealFidelity.sameViewBox
+    && revealFidelity.failedCount === 1 && revealFidelity.copy.includes("这几笔再对一眼") && revealFidelity.exactSuggest && revealFidelity.fallback,
+  "Expected coordinate-aligned skeleton comparison, exact-stroke highlighting, soft suggestion tint, and font fallback", revealFidelity);
   await page.click("#decisionCorrect");
   const softConfirmFirst = await page.evaluate(() => ({ shown: getComputedStyle(softConfirm).display !== "none", stamped, attempts: episodeFor(currentCardIndex()).attempts.length }));
   assert(softConfirmFirst.shown && !softConfirmFirst.stamped && softConfirmFirst.attempts === 0, "Expected exact-bad correct choice to pause before accounting", softConfirmFirst);
@@ -449,11 +468,20 @@ let browser;
   await waitForWriter(page);
   await page.evaluate(() => {
     inkStrokes = mediansToCanvas(curMedians); redrawInk(); revealAnswer();
-    lastVerdict = { status: "bad", mode: "holistic" }; submissionSnapshot = Object.freeze({ ...submissionSnapshot, lastVerdict: cloneObj(lastVerdict) }); showRevealState(submissionSnapshot);
+    lastVerdict = { status: "bad", mode: "holistic", failed: [0], missing: 1 }; submissionSnapshot = Object.freeze({ ...submissionSnapshot, lastVerdict: cloneObj(lastVerdict) }); showRevealState(submissionSnapshot);
   });
+  const holisticRendering = await page.evaluate(() => ({ failedCount: Number(mineInk.dataset.failedCount), suggested: decisionCorrect.classList.contains("suggest") || decisionWrong.classList.contains("suggest") }));
+  assert(holisticRendering.failedCount === 0 && !holisticRendering.suggested, "Expected holistic verdicts to avoid stroke coloring and preselection", holisticRendering);
   await page.click("#decisionCorrect");
   const holisticNoConfirm = await page.evaluate(() => ({ stamped, softHidden: getComputedStyle(softConfirm).display === "none", outcome: roundStats[0] && roundStats[0].outcome }));
   assert(holisticNoConfirm.stamped && holisticNoConfirm.softHidden && holisticNoConfirm.outcome === "fast", "Expected holistic disagreement to remain advisory without soft confirmation", holisticNoConfirm);
+
+  const disagreementRate = await page.evaluate(() => {
+    const original = memory;
+    memory = { a: { lastSystemAgree: true }, b: { lastSystemAgree: false }, c: { lastSystemAgree: null }, d: {} };
+    const result = systemAgreementStats(); memory = original; return result;
+  });
+  assert(disagreementRate.total === 2 && disagreementRate.disagree === 1 && disagreementRate.rate === 50, "Expected dev disagreement rate to ignore unavailable assistant verdicts", disagreementRate);
 
   await page.evaluate(() => { clearTimeout(autoNextTimer); stamped = false; clearSessionSnapshot(); activeMode = "focus"; startFocus([CARDS.findIndex((card) => card.target === "衡")]); });
   await waitForWriter(page);

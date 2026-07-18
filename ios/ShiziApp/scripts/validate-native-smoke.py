@@ -144,7 +144,10 @@ checks = {
     and practice.get("decisionVisible") is True
     and practice.get("functionalDecisionLabels") is True
     and practice.get("selfAssessmentControls") is True
-    and practice.get("submissionSnapshotComplete") is True,
+    and practice.get("submissionSnapshotComplete") is True
+    and practice.get("comparisonGridComplete") is True
+    and practice.get("comparisonSkeletonVisible") is True
+    and practice.get("comparisonCoordinatesAligned") is True,
     "practiceStamp": practice.get("outcome") == "hinted"
     and practice.get("immediateAdvanced") is True
     and practice.get("noNextButton") is True

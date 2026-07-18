@@ -101,12 +101,14 @@ checks = {
     "addStored": data_flow.get("addedCharStored") is True
     and data_flow.get("customWordStored") is True
     and data_flow.get("customCardIndexed") is True
-    and data_flow.get("memoryHasAddedChar") is True,
+    and data_flow.get("memoryHasAddedChar") is True
+    and data_flow.get("recentInkStored") is True,
     "backupPayload": data_flow.get("backupParses") is True
     and data_flow.get("backupHasAppMarker") is True
     and data_flow.get("backupHasAdded") is True
     and data_flow.get("backupHasCustom") is True
     and data_flow.get("backupHasMemory") is True
+    and data_flow.get("backupHasRecentInk") is True
     and data_flow.get("backupHasReminder") is True
     and data_flow.get("backupHasSound") is True
     and data_flow.get("backupHasFunnel") is True
@@ -121,6 +123,7 @@ checks = {
     and data_flow.get("backupRestoreAdded") is True
     and data_flow.get("backupRestoreCustom") is True
     and data_flow.get("backupRestoreMemory") is True
+    and data_flow.get("backupRestoreRecentInk") is True
     and data_flow.get("backupRestoreFunnel") is True
     and data_flow.get("backupRestorePreservesSessionV2") is True
     and data_flow.get("backupRestorePreservesSmokeKey") is True
@@ -130,6 +133,10 @@ checks = {
     and data_flow.get("shareCardBridgeAvailable") is True,
     "shareCard": data_flow.get("shareCardGenerated") is True
     and data_flow.get("shareCardPrivate") is True,
+    "collections": data_flow.get("calendarAvailable") is True
+    and data_flow.get("monthlyPostGenerated") is True
+    and data_flow.get("annualReportAvailable") is True
+    and data_flow.get("recentInkBounded") is True,
     "nativeImport": data_flow.get("nativeImportAvailable") is True,
     "nativeConfirm": data_flow.get("nativeConfirmAvailable") is True,
     "reminderState": data_flow.get("reminderStateAvailable") is True

@@ -223,11 +223,13 @@ final class WebViewController: UIViewController {
               customWordStored: false,
               customCardIndexed: false,
               memoryHasAddedChar: false,
+              recentInkStored: false,
               backupParses: false,
               backupHasAppMarker: false,
               backupHasAdded: false,
               backupHasCustom: false,
               backupHasMemory: false,
+              backupHasRecentInk: false,
               backupHasReminder: false,
               backupHasSound: false,
               backupHasFunnel: false,
@@ -238,6 +240,7 @@ final class WebViewController: UIViewController {
               backupRestoreAdded: false,
               backupRestoreCustom: false,
               backupRestoreMemory: false,
+              backupRestoreRecentInk: false,
               backupRestoreFunnel: false,
               backupRestorePreservesSmokeKey: false,
               backupRestoreRejectsInvalid: false,
@@ -254,7 +257,11 @@ final class WebViewController: UIViewController {
               calibrationReturnPermissionRequested: false,
               shareCardGenerated: false,
               shareCardPrivate: false,
-              shareCardBridgeAvailable: false
+              shareCardBridgeAvailable: false,
+              calendarAvailable: false,
+              monthlyPostGenerated: false,
+              annualReportAvailable: false,
+              recentInkBounded: false
             },
             navigationFlow: {
               practiceEntryVisible: false,
@@ -477,6 +484,8 @@ final class WebViewController: UIViewController {
               result.dataFlow.customWordStored = BASE_BY_CHAR[smokeChar] != null || (Array.isArray(custom) && custom.includes(smokeChar));
               result.dataFlow.customCardIndexed = Number.isInteger(indexForSmokeChar) && indexForSmokeChar >= 0;
               result.dataFlow.memoryHasAddedChar = !!memoryForSmokeChar && memoryForSmokeChar.target === smokeChar && memoryForSmokeChar.lastOutcome === 'miss' && Number(memoryForSmokeChar.seen || 0) > 0;
+              result.dataFlow.recentInkStored = !!memoryForSmokeChar && persistRecentInk(memoryForSmokeChar, [[{ x: 0.2, y: 0.2 }, { x: 0.5, y: 0.75 }, { x: 0.8, y: 0.25 }]], Date.now()) && !!memoryForSmokeChar.recentInk;
+              saveMemory();
 
               localStorage.setItem(SESSION_KEY, JSON.stringify({ version: 2, smoke: true }));
               const backup = JSON.parse(backupPayload({ funnelExportAt: Date.now() }));
@@ -486,6 +495,7 @@ final class WebViewController: UIViewController {
               result.dataFlow.backupHasAdded = Object.prototype.hasOwnProperty.call(backupData, ADDED_KEY) && String(backupData[ADDED_KEY]).includes(smokeChar);
               result.dataFlow.backupHasCustom = BASE_BY_CHAR[smokeChar] != null || (Object.prototype.hasOwnProperty.call(backupData, CUSTOM_KEY) && String(backupData[CUSTOM_KEY]).includes(smokeChar));
               result.dataFlow.backupHasMemory = Object.prototype.hasOwnProperty.call(backupData, MEMORY_KEY) && String(backupData[MEMORY_KEY]).includes(smokeChar);
+              result.dataFlow.backupHasRecentInk = Object.prototype.hasOwnProperty.call(backupData, MEMORY_KEY) && String(backupData[MEMORY_KEY]).includes('recentInk');
               result.dataFlow.backupHasReminder = Object.prototype.hasOwnProperty.call(backupData, REMINDER_KEY);
               result.dataFlow.backupHasSound = Object.prototype.hasOwnProperty.call(backupData, SOUND_KEY);
               const backupFunnel = Object.prototype.hasOwnProperty.call(backupData, FUNNEL_KEY) ? JSON.parse(backupData[FUNNEL_KEY]) : null;
@@ -510,6 +520,7 @@ final class WebViewController: UIViewController {
                 result.dataFlow.backupRestoreAdded = Array.isArray(restoredAdded) && restoredAdded.includes(smokeChar);
                 result.dataFlow.backupRestoreCustom = BASE_BY_CHAR[smokeChar] != null || (Array.isArray(restoredCustom) && restoredCustom.includes(smokeChar));
                 result.dataFlow.backupRestoreMemory = String(localStorage.getItem(MEMORY_KEY) || '').includes(smokeChar);
+                result.dataFlow.backupRestoreRecentInk = String(localStorage.getItem(MEMORY_KEY) || '').includes('recentInk');
                 const restoredFunnel = JSON.parse(localStorage.getItem(FUNNEL_KEY) || '{}');
                 result.dataFlow.backupRestoreFunnel = restoredFunnel.version === 1 && restoredFunnel.events.filter(row => row.name === 'backup_exported').length === 1;
                 result.dataFlow.backupRestorePreservesSessionV2 = JSON.parse(localStorage.getItem(SESSION_KEY) || '{}').version === 2;
@@ -596,6 +607,11 @@ final class WebViewController: UIViewController {
               const shareSource = `${renderPracticeCardCanvas}\n${drawShareHandwriting}`;
               result.dataFlow.shareCardGenerated = !!shareCanvas && shareCanvas.width === 1080 && shareCanvas.height === 1440 && Number(shareCanvas.dataset.inkStrokeCount) === 2 && shareCanvas.toDataURL('image/png').startsWith('data:image/png;base64,') && !shareSource.includes('fillText(stat.target');
               result.dataFlow.shareCardPrivate = !/localStorage|memory|activity|backup|seenStat|riskStat/.test(shareSource);
+              result.dataFlow.calendarAvailable = typeof renderCalendar === 'function' && typeof startMakeupDay === 'function' && !!document.getElementById('calendarPanel') && !!document.getElementById('makeupSheet');
+              const monthlyCanvas = await renderMonthlyPostCanvas(today().slice(0, 7));
+              result.dataFlow.monthlyPostGenerated = !!monthlyCanvas && monthlyCanvas.width === 1080 && monthlyCanvas.height === 1440 && Number(monthlyCanvas.dataset.itemCount) >= 2 && monthlyCanvas.toDataURL('image/png').startsWith('data:image/png;base64,');
+              result.dataFlow.annualReportAvailable = typeof yearReportData === 'function' && typeof renderAnnualReport === 'function' && !!document.getElementById('annualPanel') && !!document.getElementById('annualSlides');
+              result.dataFlow.recentInkBounded = RECENT_INK_MAX === 96 && RECENT_INK_BUDGET === 420 * 1024 && typeof trimRecentInk === 'function';
 
               baseTargets = completionTargets.slice(2);
               batch = baseTargets;

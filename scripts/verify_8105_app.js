@@ -318,6 +318,35 @@ let browser;
   const coreCache = await page.evaluate(async () => { const cache = await caches.open("shizi-v9"), keys = await cache.keys(); return { core: keys.filter((request) => new URL(request.url).pathname.includes("/data/")).length, shell: !!(await cache.match("core-strokes.js")) }; });
   assert(coreCache.core === 600 && coreCache.shell, "Expected the service worker to install all available core strokes and its generated list", coreCache);
 
+  const dailyRitual = await page.evaluate(() => {
+    const original = { tuning: cloneObj(tuning), activity: cloneObj(activity), activeMode, focusQueue: focusQueue.slice(), sessionDone: [...sessionDone] };
+    const key = today(), tomorrow = shiftDay(key, 1), idx = dailyCharacterIndex(key), nextIdx = dailyCharacterIndex(tomorrow), motto = dailyMotto(key), nextMotto = dailyMotto(tomorrow), candidate = CARDS[idx];
+    tuning = { calibrated: true, offset: 0, contextStrict: 0, rounds: [] };
+    activity = { version: 1, migrationDate: key, inheritedStreak: 0, inheritedTotalDays: 0, practiceDays: [], daily: {} };
+    clearSessionSnapshot(); saveTuning(); saveActivity(); renderHome();
+    const button = yesterRow.querySelector("[data-daily-index]"), beforeClick = {
+      label: yesterLbl.textContent, index: Number(button && button.dataset.dailyIndex), target: button && button.querySelector(".glyph").textContent,
+      word: button && button.querySelector(".word").textContent, py: button && button.querySelector(".py").textContent,
+      homeMotto: homeMotto.textContent, welcomeMotto: welcomeMotto.textContent,
+    };
+    const overflow = DAILY_MOTTOS.map((text) => { setDailyMotto(homeMotto, text); return { text, scroll: homeMotto.scrollHeight, client: homeMotto.clientHeight }; });
+    applyDailyMotto(key); button.click();
+    const clicked = { mode: activeMode, current: currentCardIndex(), cardVisible: getComputedStyle(card).display !== "none" };
+    loadToken++; clearSessionSnapshot(); focusQueue = []; sessionDone = new Set();
+    activity = { version: 1, migrationDate: key, inheritedStreak: 0, inheritedTotalDays: 0, practiceDays: [key], daily: { [key]: { stamps: 1, attempts: 1, targetKeys: [cardKey(idx)], completedRoundIds: [], lastStampAt: Date.now() } } };
+    saveActivity(); renderHome(); const retired = !yesterRow.querySelector("[data-daily-index]");
+    tuning = original.tuning; activity = normalizeActivity(original.activity); activeMode = original.activeMode; focusQueue = original.focusQueue; sessionDone = new Set(original.sessionDone); saveTuning(); saveActivity(); clearSessionSnapshot(); renderHome();
+    return { key, tomorrow, idx, nextIdx, motto, nextMotto, repeatIdx: dailyCharacterIndex(key), repeatMotto: dailyMotto(key), candidate, beforeClick, overflow, clicked, retired, poolSize: dailyCharacterCandidates().length };
+  });
+  assert(dailyRitual.poolSize > 0 && dailyRitual.idx === dailyRitual.repeatIdx && dailyRitual.motto === dailyRitual.repeatMotto && dailyRitual.idx !== dailyRitual.nextIdx && dailyRitual.motto !== dailyRitual.nextMotto,
+    "Expected deterministic same-day and changing next-day character/motto selections", dailyRitual);
+  assert(["一级", "二级"].includes(dailyRitual.candidate.norm) && dailyRitual.candidate.common >= 1.5 && dailyRitual.candidate.d >= 55 && dailyRitual.candidate.d <= 85
+    && dailyRitual.beforeClick.label === "今日一字" && dailyRitual.beforeClick.index === dailyRitual.idx && dailyRitual.beforeClick.target === dailyRitual.candidate.target
+    && dailyRitual.beforeClick.word === dailyRitual.candidate.word && dailyRitual.beforeClick.py === dailyRitual.candidate.py && dailyRitual.beforeClick.homeMotto === dailyRitual.motto && dailyRitual.beforeClick.welcomeMotto === dailyRitual.motto,
+  "Expected the daily card to expose one eligible character, context word, pinyin, and synchronized motto", dailyRitual);
+  assert(dailyRitual.overflow.every((row) => row.scroll <= row.client + 1) && dailyRitual.clicked.mode === "focus" && dailyRitual.clicked.current === dailyRitual.idx && dailyRitual.clicked.cardVisible && dailyRitual.retired,
+    "Expected every motto to fit, daily-character click to start focus practice, and the card to retire after today's first stamp", dailyRitual);
+
   await page.reload({ waitUntil: "networkidle" });
   offlineProbe = true;
   await page.context().setOffline(true);

@@ -37,17 +37,20 @@
     background:var(--bg); -webkit-font-smoothing:antialiased; }
   .wrap{ width:min(100%,430px); min-height:100svh; margin:0 auto; display:flex; flex-direction:column;
     padding:calc(10px + env(safe-area-inset-top)) 0 0; }
-  button{ min-height:44px; font-family:var(--sans); border:0; background:none; color:inherit; cursor:pointer; padding:0; touch-action:manipulation; }
+  button{ min-height:44px; font-family:var(--sans); border:0; background:none; color:inherit; cursor:pointer; padding:0; touch-action:manipulation; transition:transform .12s ease,box-shadow .12s ease,background-color .12s ease,border-color .12s ease; }
   .tab{ touch-action:manipulation; }
   button:active{ transform:scale(.97); }
   button:disabled{ opacity:.45; }
   .tlock{ opacity:.35 !important; pointer-events:none; }
   @keyframes screenIn{ from{ opacity:0; transform:translateY(10px); } to{ opacity:1; transform:none; } }
+  @keyframes fadeIn{ from{ opacity:0; } to{ opacity:1; } }
+  @keyframes cardSwapIn{ from{ opacity:.35; transform:translateY(4px); } to{ opacity:1; transform:none; } }
+  @keyframes compareIn{ from{ opacity:0; transform:translateY(5px); } to{ opacity:1; transform:none; } }
   @keyframes stampIn{ 0%{ transform:scale(2) rotate(16deg); opacity:0; } 55%{ transform:scale(.94) rotate(8deg); opacity:1; } 75%{ transform:scale(1.05) rotate(9.5deg); } 100%{ transform:scale(1) rotate(9deg); } }
   @keyframes bigStampIn{ 0%{ transform:scale(2) rotate(-16deg); opacity:0; } 55%{ transform:scale(.94) rotate(-7deg); opacity:1; } 100%{ transform:scale(1) rotate(-8deg); } }
   @keyframes ringOut{ 0%{ transform:scale(.5); opacity:.55; } 100%{ transform:scale(1.7); opacity:0; } }
   @keyframes toastIn{ from{ transform:translateY(16px); opacity:0; } to{ transform:none; opacity:1; } }
-  @keyframes tileIn{ from{ transform:scale(.55) rotate(-8deg); opacity:0; } to{ opacity:1; } }
+  @keyframes tileIn{ from{ transform:scale(.9) rotate(-3deg); opacity:0; } to{ opacity:1; } }
   @keyframes breathe{ 0%,100%{ box-shadow:0 0 0 0 var(--accent-a28); } 50%{ box-shadow:0 0 0 5px var(--accent-a12); } }
   @keyframes undoBarIn{ from{ opacity:0; transform:translateY(-5px); } to{ opacity:1; transform:none; } }
 
@@ -66,17 +69,16 @@
   .welcome .motto{ font:400 calc(13px * var(--font-scale))/1.8 var(--kai); color:var(--faint); letter-spacing:.24em; }
 
   /* ===== 首页 ===== */
-  .home{ display:none; flex:1; flex-direction:column; padding:16px 24px 0; animation:screenIn .35s ease; }
+  .home{ display:none; flex:1; flex-direction:column; padding:16px 24px 0; animation:fadeIn .22s ease; }
   .homeTop{ display:flex; justify-content:space-between; align-items:flex-start; }
   .homeRhythm{ display:flex; flex-direction:column; align-items:flex-end; gap:5px; }
   .monthSignal{ color:var(--muted); font-size:calc(13px * var(--font-scale)); font-weight:600; }
   .brandRow{ display:flex; align-items:center; gap:10px; }
-  .brandStamp{ width:40px; height:40px; background:var(--accent); border-radius:9px 7px 10px 8px; display:flex; align-items:center; justify-content:center;
-    color:var(--paperInk); font:400 calc(24px * var(--font-scale))/1 var(--kai); transform:rotate(-4deg);
-    box-shadow:inset 0 0 0 2px rgba(253,250,241,.35), inset 0 0 0 4px var(--accent), 0 6px 14px -6px var(--accent-a50); }
+  .brandStamp{ width:40px; height:40px; background:transparent; border:2px solid var(--accent); border-radius:9px 7px 10px 8px; display:flex; align-items:center; justify-content:center;
+    color:var(--accent); font:400 calc(24px * var(--font-scale))/1 var(--kai); transform:rotate(-4deg); }
   .brandName{ font:900 calc(19px * var(--font-scale))/1 var(--song); letter-spacing:.12em; }
   .streakChip{ display:flex; align-items:center; gap:6px; background:var(--card); border:1px solid var(--line); border-radius:999px; padding:7px 12px; font-size:calc(12px * var(--font-scale)); font-weight:600; color:var(--muted); }
-  .streakChip i{ width:8px; height:8px; border-radius:50%; background:var(--accent); font-style:normal; }
+  .streakChip i{ width:8px; height:8px; border-radius:50%; background:var(--gold); font-style:normal; }
   .homeMain{ display:flex; justify-content:space-between; margin-top:36px; }
   .homeGreeting{ font-size:calc(13px * var(--font-scale)); color:var(--muted); letter-spacing:.2em; }
   .homeTitle{ margin:14px 0 0; font:900 calc(38px * var(--font-scale))/1.3 var(--song); letter-spacing:.02em; }
@@ -84,9 +86,10 @@
   .motto{ writing-mode:vertical-rl; font:400 calc(15px * var(--font-scale))/1.9 var(--kai); color:var(--faint); border-left:1px solid var(--line); padding-left:14px; height:186px; letter-spacing:.28em; }
   .homeStart{ display:flex; flex-direction:column; align-items:center; margin-top:32px; }
   .stampBtn{ width:150px; height:150px; background:var(--accent); border-radius:24% 20% 26% 22%; color:var(--paperInk); font:400 calc(80px * var(--font-scale))/1 var(--kai);
-    transform:rotate(-3deg); display:flex; align-items:center; justify-content:center; padding-bottom:6px; transition:transform .12s ease;
+    transform:rotate(-3deg); display:flex; align-items:center; justify-content:center; padding-bottom:6px; transition:transform .12s ease,box-shadow .12s ease;
     box-shadow:inset 0 0 0 3px rgba(253,250,241,.4), inset 0 0 0 7px var(--accent), inset 0 0 26px rgba(120,20,6,.35), 0 22px 40px -16px var(--accent-a55); }
-  .stampBtn:active{ transform:rotate(-3deg) scale(.93); }
+  .stampBtn:active{ transform:rotate(-3deg) scale(.93); box-shadow:inset 0 0 0 3px rgba(253,250,241,.4),inset 0 0 0 7px var(--accent),inset 0 0 20px rgba(120,20,6,.32),0 12px 20px -12px var(--accent-a50); }
+  .stampBtn.dueBreathe{ animation:breathe 3.5s ease-in-out infinite; }
   .stampBtn:disabled{ opacity:.55; }
   .startCap{ margin-top:15px; font-size:calc(13px * var(--font-scale)); font-weight:600; }
   .startCap span{ color:var(--faint); font-weight:400; }
@@ -95,7 +98,7 @@
   .yester{ margin-top:auto; padding:22px 0 16px; }
   .yesterHead{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:10px; font-size:calc(13px * var(--font-scale)); color:var(--muted); }
   .yesterHead .lbl{ font-weight:600; letter-spacing:.14em; }
-  .yesterHead b{ color:var(--accent); }
+  .yesterHead b{ color:var(--ink); }
   .yesterRow{ display:flex; gap:8px; width:min(100%,270px); overflow-x:auto; overflow-y:hidden; flex-wrap:nowrap; padding:0 18px 0 0;
     -webkit-overflow-scrolling:touch; scroll-snap-type:x proximity; scrollbar-width:none; }
   .yesterRow.scrollable{
@@ -144,7 +147,8 @@
   .toolBtn.peek.active{ background:var(--accentSoft); border-color:var(--accent-a40); }
   #actions{ display:flex; gap:8px; margin-top:8px; }
   .ghostAct{ flex:.7; background:transparent; color:var(--muted); border:1px solid var(--dline); border-radius:14px; padding:13px 10px; font:600 calc(15px * var(--font-scale)) var(--sans); transition:opacity .3s; }
-  .primaryAct{ flex:1; background:var(--accent); color:var(--paperInk); border-radius:14px; padding:13px 10px; font:700 calc(16px * var(--font-scale)) var(--sans); box-shadow:0 14px 28px -12px var(--accent-a60); transition:opacity .3s; }
+  .primaryAct{ flex:1; background:var(--accent); color:var(--paperInk); border-radius:14px; padding:13px 10px; font:700 calc(16px * var(--font-scale)) var(--sans); box-shadow:0 14px 28px -12px var(--accent-a60); transition:opacity .3s,transform .12s ease,box-shadow .12s ease; }
+  .primaryAct:active,.welcome .go:active,.pocketBtn:active{ box-shadow:0 7px 14px -8px var(--accent-a50); }
   .undoBar{ display:none; position:absolute; z-index:4; top:calc(10px + env(safe-area-inset-top)); left:22px; right:22px; align-items:center; gap:10px; width:auto; min-height:36px; padding:7px 8px 7px 12px;
     background:var(--shade); border:1px solid rgba(179,137,47,.45); border-radius:999px; color:var(--muted); font-size:calc(12.5px * var(--font-scale)); box-shadow:0 8px 18px -14px rgba(30,24,16,.5); animation:undoBarIn .2s ease both; }
   .undoBar span{ flex:1; min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
@@ -178,6 +182,8 @@
 
   /* ===== 揭晓 · 对照 + 盖章 ===== */
   #reveal{ display:none; min-height:0; flex:1; flex-direction:column; overflow-y:auto; overscroll-behavior:contain; padding-bottom:4px; animation:screenIn .3s ease; }
+  #reveal.revealing .cmpCol{ animation:compareIn .18s ease-out both; }
+  #reveal.revealing .cmpCol:nth-child(2){ animation-delay:.08s; }
   .revealWord{ margin-top:14px; text-align:center; }
   .revealWord .w{ font:400 calc(34px * var(--font-scale))/1 var(--kai); }
   .revealWord .p{ font:600 calc(14px * var(--font-scale))/1 var(--sans); color:var(--muted); margin-left:10px; }
@@ -200,14 +206,15 @@
   #mineOverlay svg,#rightHz svg{ display:block; width:100%; height:100%; }
   .cmpLbl{ margin-top:8px; font-size:calc(12px * var(--font-scale)); font-weight:600; color:var(--muted); }
   .cmpLbl.red{ color:var(--accent); }
-  .cmpLinks{ display:flex; justify-content:center; gap:22px; margin-top:10px; }
-  .cmpLinks button{ min-height:44px; padding:8px 4px; font-size:calc(15px * var(--font-scale)); color:var(--muted); text-decoration:underline; text-underline-offset:3px; }
+  .cmpLinks{ display:flex; justify-content:center; gap:10px; margin-top:10px; }
+  .cmpLinks button{ min-height:44px; padding:9px 14px; border:1px solid var(--line); border-radius:999px; background:var(--shade); font-size:calc(15px * var(--font-scale)); color:var(--muted); }
   #askRow{ margin-top:18px; }
   #stampNote{ text-align:center; margin-top:12px; font-size:calc(13px * var(--font-scale)); color:var(--muted); }
   #stampOnMine{ position:absolute; right:6px; top:6px; width:56px; height:56px; display:none; pointer-events:none; }
   #stampOnMine .ring{ position:absolute; inset:0; border:3px solid var(--accent); border-radius:22% 18% 24% 20%; animation:ringOut .55s ease-out .2s both; }
   #stampOnMine .face{ position:absolute; inset:0; border-radius:22% 18% 24% 20%; display:flex; align-items:center; justify-content:center;
-    box-shadow:inset 0 0 0 2px rgba(253,250,241,.5), inset 0 0 12px rgba(60,30,10,.3); animation:stampIn .4s cubic-bezier(.2,1.5,.4,1) both; }
+    box-shadow:inset 0 0 0 2px rgba(253,250,241,.5), inset 0 0 12px rgba(60,30,10,.3); animation:stampIn .4s ease-out both; }
+  #stampOnMine.recovered .face{ box-shadow:0 0 0 3px var(--gold),inset 0 0 0 2px rgba(253,250,241,.55),inset 0 0 12px rgba(60,30,10,.3); }
   #stampOnMine .face span{ writing-mode:vertical-rl; font:400 calc(17px * var(--font-scale))/1.1 var(--kai); letter-spacing:.08em; }
   .toastCard{ margin:20px auto 0; display:none; align-items:center; gap:12px; background:var(--card); border:1px solid var(--line); border-radius:14px; padding:10px 14px;
     box-shadow:0 10px 24px -18px rgba(60,48,30,.5); animation:toastIn .35s ease both; }
@@ -231,14 +238,15 @@
   .dateSeal{ position:absolute; right:18px; top:22px; writing-mode:vertical-rl; font:400 calc(13px * var(--font-scale))/1.8 var(--kai); color:var(--faint); letter-spacing:.24em; }
   .sumGrid{ display:grid; grid-template-columns:repeat(5,1fr); gap:9px; margin-top:18px; }
   .sumTile{ position:relative; aspect-ratio:1; background:var(--tile); border:1px solid var(--line); border-radius:9px; display:flex; align-items:center; justify-content:center;
-    animation:tileIn .4s cubic-bezier(.2,1.3,.4,1) both; }
+    animation:tileIn .4s ease-out both; }
   .sumTile .glyphText{ position:absolute; left:3px; right:3px; top:12px; text-align:center; font:400 calc(25px * var(--font-scale))/1 var(--kai); }
   .sumTile .dot{ position:absolute; right:3px; top:3px; }
-  .sumTile .recover{ position:absolute; left:4px; top:4px; font:700 calc(11px * var(--font-scale))/1 var(--sans); color:var(--green); }
   .sumTile .meaning{ position:absolute; left:2px; right:2px; bottom:4px; color:var(--muted); font:700 calc(13px * var(--font-scale))/1 var(--sans); text-align:center; }
+  .sumTile .meaning.recover{ color:var(--green); font-weight:800; }
+  .sumTile.slow{ border-color:var(--accent-a45); }
   .sumTile.miss{ background:var(--accentSoft); border:1.5px solid var(--accent); color:var(--accent); }
   .bigSeal{ position:absolute; right:-8px; bottom:-14px; width:86px; height:86px; background:var(--accent); border-radius:22% 18% 24% 20%;
-    display:flex; align-items:center; justify-content:center; animation:bigStampIn .45s cubic-bezier(.2,1.5,.4,1) .5s both;
+    display:flex; align-items:center; justify-content:center; animation:bigStampIn .45s ease-out var(--seal-delay,.5s) both;
     box-shadow:inset 0 0 0 2.5px rgba(253,250,241,.5), inset 0 0 0 5px var(--accent), inset 0 0 18px rgba(120,20,6,.4), 0 14px 30px -14px var(--accent); }
   .bigSeal span{ writing-mode:vertical-rl; font:400 calc(22px * var(--font-scale))/1.2 var(--kai); color:var(--paperInk); letter-spacing:.08em; }
   .pocketCard{ margin-top:22px; display:flex; align-items:center; gap:12px; background:var(--card); border:1px solid var(--line); border-radius:16px; padding:13px 16px; }
@@ -269,9 +277,12 @@
   .calibWhy{ margin-top:14px; background:var(--accentSoft); border:1px solid var(--accent-a30); border-radius:12px; padding:13px 14px; font-size:calc(13px * var(--font-scale)); line-height:1.8; color:var(--muted); }
   .calibWhy b{ color:var(--accent); }
   .calibFoot{ margin-top:14px; font-size:calc(13px * var(--font-scale)); color:var(--muted); line-height:1.8; }
+  .calibCeremony{ margin-top:18px; }
+  .summaryLegend,.summaryPracticeHint{ min-height:40px; margin:8px 0 0; padding:7px 2px; color:var(--muted); font-size:calc(12.5px * var(--font-scale)); line-height:1.65; text-align:center; }
+  .summaryPracticeHint{ display:none; color:var(--ink); font-weight:600; }
 
   /* ===== 字盒 ===== */
-  .book{ display:none; flex:1; flex-direction:column; padding:18px 24px 8px; animation:screenIn .32s ease; }
+  .book{ display:none; flex:1; flex-direction:column; padding:18px 24px 8px; animation:fadeIn .22s ease; }
   .bookHead{ display:flex; justify-content:space-between; align-items:baseline; }
   .bookHead h1{ margin:0; font:900 calc(28px * var(--font-scale))/1 var(--song); letter-spacing:.04em; }
   .bookHead .cnt{ font-size:calc(13px * var(--font-scale)); color:var(--muted); }
@@ -286,6 +297,8 @@
   .bookSectionHead .addTxt{ margin-left:auto; }
   .riskPreview{ margin-top:12px; }
   .bookEmpty{ margin-top:12px; padding:14px 2px; color:var(--faint); font-size:calc(13px * var(--font-scale)); }
+  .ghostTiles{ display:grid; grid-template-columns:repeat(5,1fr); gap:8px; margin-bottom:10px; }
+  .ghostTile{ aspect-ratio:1; border:1px dashed var(--dline); border-radius:9px; background:var(--tile); opacity:.55; }
   .bookAllToggle{ width:100%; margin-top:16px; display:flex; align-items:center; justify-content:space-between; padding:15px 16px; border:1px solid var(--line); border-radius:8px; background:var(--card); text-align:left; font:700 calc(13.5px * var(--font-scale))/1 var(--sans); }
   .bookAllToggle span:last-child{ color:var(--faint); font-size:calc(18px * var(--font-scale)); font-weight:400; transition:transform .2s ease; }
   .bookAllToggle[aria-expanded="true"] span:last-child{ transform:rotate(90deg); }
@@ -305,7 +318,7 @@
   .boxTile.stable .dot{ width:6px; height:6px; background:var(--dline) !important; border-radius:50%; }
   .boxTile.more{ background:var(--shade); border-style:dashed; border-color:var(--dline); font:400 calc(12px * var(--font-scale)) var(--sans); color:var(--faint); }
   .outcomeMark{ width:16px; height:16px; display:flex; align-items:center; justify-content:center; color:var(--paperInk); font:700 calc(9px * var(--font-scale))/1 var(--sans); box-shadow:0 0 0 1px rgba(43,38,32,.08); }
-  .outcomeMark.fast{ border-radius:50%; }
+  .outcomeMark.fast{ display:none; }
   .outcomeMark.hinted{ border-radius:1px; clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%); }
   .outcomeMark.slow{ border-radius:2px; }
   .outcomeMark.miss{ color:var(--accent); background:var(--card) !important; border:1px solid var(--accent); border-radius:50%; box-shadow:none; }
@@ -320,8 +333,9 @@
   .stampGuideRow span:last-child{ color:var(--muted); font-size:calc(13px * var(--font-scale)); line-height:1.55; }
 
   /* ===== 我的 ===== */
-  .me{ display:none; flex:1; flex-direction:column; padding:18px 24px 8px; animation:screenIn .32s ease; }
+  .me{ display:none; flex:1; flex-direction:column; padding:18px 24px 8px; animation:fadeIn .22s ease; }
   .me h1{ margin:0; font:900 calc(28px * var(--font-scale))/1 var(--song); letter-spacing:.04em; }
+  .meDayState{ margin-top:8px; color:var(--muted); font-size:calc(13px * var(--font-scale)); }
   .meStats{ display:grid; grid-template-columns:repeat(3,1fr); gap:9px; margin-top:16px; }
   .meStat{ background:var(--card); border:1px solid var(--line); border-radius:14px; padding:15px 0; text-align:center; }
   .meStat b{ display:block; font:900 calc(25px * var(--font-scale))/1 var(--song); }
@@ -347,7 +361,9 @@
   .backupReminder b{ color:var(--ink); }
   .backupReminder button{ flex:none; padding:10px 12px; border-radius:11px; background:var(--ink); color:var(--card); font-weight:700; font-size:calc(12.5px * var(--font-scale)); }
   .backupReminder .ghostMini{ background:transparent; color:var(--muted); border:1px solid var(--line); }
-  .milestoneLine{ display:none; margin:0 auto 12px; width:min(100%,340px); padding:12px 16px; background:var(--accentSoft); border:1px solid var(--accent-a35); border-radius:14px; color:var(--accent); font:600 calc(13.5px * var(--font-scale))/1.9 var(--song); text-align:center; letter-spacing:.02em; animation:screenIn .35s ease; }
+  .milestoneLine{ display:none; align-items:center; gap:12px; margin:0 auto 14px; width:min(100%,340px); padding:13px 16px; background:var(--accentSoft); border:1px solid var(--accent-a35); border-radius:14px; color:var(--ink); font:400 calc(15px * var(--font-scale))/2 var(--kai); text-align:left; animation:fadeIn .25s ease both; }
+  .milestoneMiniSeal{ flex:0 0 28px; width:28px; height:28px; display:flex; align-items:center; justify-content:center; border-radius:7px 5px 8px 6px; background:var(--accent); color:var(--paperInk); font:400 calc(13px * var(--font-scale))/1 var(--kai); transform:rotate(-6deg); animation:bigStampIn .38s ease-out both; }
+  .milestoneCopy{ flex:1; }
   .mePref{ padding:13px 16px; border-bottom:1px solid var(--line); }
   .mePref .plbl{ font-size:calc(13px * var(--font-scale)); color:var(--muted); margin-bottom:9px; }
   .prefBtns{ display:flex; gap:6px; }
@@ -478,7 +494,7 @@
       <div class="lede">一组字，按自己的节奏，<br>把忘掉的字一个一个拾回来。</div>
       <div style="margin-top:52px; width:100%;">
         <button class="go" id="welcomeStart">先拾 15 个字试试</button>
-        <div class="goSub">这 15 个字顺便摸个底：哪些字还写得出 · 不用注册<br>记录只存在这台手机上，之后随时可导出一份</div>
+        <div class="goSub">约 6–8 分钟 · 写不出的字会当场教你 · 不用注册<br>记录只存在这台手机上，之后随时可导出一份</div>
         <button class="restoreLink" id="welcomeRestore">之前练过？恢复一份备份</button>
       </div>
     </div>
@@ -594,7 +610,7 @@
 
   <!-- 结果 -->
   <div class="summary" id="summary" style="display:none" data-screen-label="结果">
-    <div class="milestoneLine" id="milestoneLine"></div>
+    <div class="milestoneLine" id="milestoneLine"><span class="milestoneMiniSeal" id="milestoneMiniSeal"></span><span class="milestoneCopy" id="milestoneCopy"></span></div>
     <!-- 校准结果（教学 T4） -->
     <div class="calibCard" id="calibCard">
       <div class="sheetCard" style="padding-bottom:28px;">
@@ -605,6 +621,14 @@
         </div>
         <div class="calibWhy">根据这 15 个字，先从 <b id="calibTier">标准</b> 难度的字出题。<span id="calibWhyTxt"></span></div>
         <div class="calibFoot"><span id="calibPocketLine"></span><br>按自己的节奏每天拾一组，提笔会慢慢变稳。</div>
+      </div>
+      <div class="sheetCard calibCeremony">
+        <h2>今日拾得</h2>
+        <div class="dateSeal" id="calibDateSeal"></div>
+        <div class="sumGrid" id="calibSumTiles"></div>
+        <div class="summaryLegend">无点 拾到 · <b style="color:var(--gold)">金菱 补拾</b> · <b style="color:var(--accent)">朱砂 待补 / 再拾</b></div>
+        <div class="summaryPracticeHint" id="calibPracticeHint">点任意字块，可单独再练</div>
+        <div class="bigSeal" id="calibBigSeal"><span>拾字</span></div>
       </div>
       <div class="backupReminder" id="calibReturnHook"><div><b id="calibReturnTitle">明天再来拾一组</b><br><span id="calibReturnText"></span></div><button id="calibReminderYes">开启提醒</button></div>
       <div class="pocketCard" id="calibPocketCard" style="display:none;">
@@ -627,7 +651,9 @@
         <div class="sumLead" id="sumLead"></div>
         <div class="dateSeal" id="dateSeal"></div>
         <div class="sumGrid" id="sumTiles"></div>
-        <div class="bigSeal"><span>拾字</span></div>
+        <div class="summaryLegend" id="sumLegend">无点 拾到 · <b style="color:var(--gold)">金菱 补拾</b> · <b style="color:var(--accent)">朱砂 待补 / 再拾</b></div>
+        <div class="summaryPracticeHint" id="sumPracticeHint">点任意字块，可单独再练</div>
+        <div class="bigSeal" id="summaryBigSeal"><span>拾字</span></div>
       </div>
       <div class="pocketCard" id="pocketCard" style="display:none;">
         <div class="pChips" id="pocketChips"></div>
@@ -668,16 +694,17 @@
       </div>
       <div class="boxGrid" id="boxGrid"></div>
     </div>
-    <button class="legend" id="stampLegend" aria-haspopup="dialog">红框 = 待拾回 · 灰小点 = 已拾回<br><i class="outcomeMark fast legendMark" style="background:var(--accent)">拾</i>拾到 <i class="outcomeMark hinted legendMark" style="background:var(--gold)">补</i>补拾 <i class="outcomeMark slow legendMark" style="background:var(--blue)">待</i>待补 <i class="outcomeMark miss legendMark">再</i>再拾 · <strong>看四章含义 ›</strong></button>
+    <button class="legend" id="stampLegend" aria-haspopup="dialog">红框 = 待拾回 · 灰小点 = 已拾回<br>无点 拾到 <i class="outcomeMark hinted legendMark" style="background:var(--gold)">补</i>补拾 <i class="outcomeMark slow legendMark" style="background:var(--accent)">待</i>待补 <i class="outcomeMark miss legendMark">再</i>再拾 · <strong>看四章含义 ›</strong></button>
   </div>
 
   <!-- 我的 -->
   <div class="me" id="mePanel" style="display:none" data-screen-label="我的">
     <h1>我的</h1>
+    <div class="meDayState" id="meDayState"></div>
     <div class="meStats">
       <button class="meStat action" id="meSeen"><b id="seenStat">0</b><span>练过</span><small>看卡点</small></button>
-      <button class="meStat action" id="meStable"><b class="red" id="stableStat">0</b><span>已拾回</span><small>去字盒</small></button>
-      <button class="meStat action" id="meRisk"><b class="grey" id="riskStat">0</b><span>待拾回</span><small>去字盒</small></button>
+      <button class="meStat action" id="meStable"><b id="stableStat">0</b><span>已拾回</span><small>去字盒</small></button>
+      <button class="meStat action" id="meRisk"><b class="red" id="riskStat">0</b><span>待拾回</span><small>去字盒</small></button>
     </div>
     <button class="meCard" id="openProfile"><div class="meCardTop"><b>卡点分析</b><span>›</span></div><small id="meAdvice"></small></button>
     <div class="meLabel">练习设置</div>
@@ -773,7 +800,7 @@
   <div class="stampGuide">
     <div class="stampGuideRow"><i class="outcomeMark fast" style="background:var(--accent)">拾</i><b>拾到</b><span>首答独立写对，之后按计划复习</span></div>
     <div class="stampGuideRow"><i class="outcomeMark hinted" style="background:var(--gold)">补</i><b>补拾</b><span>看过提示后写出，本组稍后再写</span></div>
-    <div class="stampGuideRow"><i class="outcomeMark slow" style="background:var(--blue)">待</i><b>待补</b><span>这次写错了，本组稍后再写</span></div>
+    <div class="stampGuideRow"><i class="outcomeMark slow" style="background:var(--accent)">待</i><b>待补</b><span>这次写错了，本组稍后再写</span></div>
     <div class="stampGuideRow"><i class="outcomeMark miss">再</i><b>再拾</b><span>这次没写出，描一遍后再自己写</span></div>
   </div>
   <button class="primaryAct" id="stampGuideClose">知道了</button>
@@ -848,6 +875,7 @@ function applyFSRSReview(idx,rating,reason,attemptId,details={}){
     scheduledDays:Number(result.card.scheduled_days)||0,schedulerVersion:FSRS_CONFIG.schedulerVersion,parameterVersion:FSRS_CONFIG.parameterVersion,desiredRetention:FSRS_CONFIG.desiredRetention,maximumInterval:FSRS_CONFIG.maximumInterval,timeZone:FSRS_CONFIG.timeZone};
   fsrsReviewLog.push(event); saveFSRSLog(); saveMemory(); return event; }
 function formatDueDay(key){ if(!/^\d{4}-\d{2}-\d{2}$/.test(String(key||""))) return ""; const [y,m,d]=key.split("-").map(Number); return `${y}年${m}月${d}日`; }
+function shortDueDay(key){ if(!/^\d{4}-\d{2}-\d{2}$/.test(String(key||""))) return "稍后"; const [,m,d]=key.split("-").map(Number); return `${m}月${d}日`; }
 let opens = load(OPEN_KEY, []); if(!opens.includes(today())){ opens.push(today()); save(OPEN_KEY,opens); }
 function newFunnel(){ return {version:1,createdAt:Date.now(),events:[],seen:[],counts:{revealCompared:0,revealDisagree:0},rounds:[]}; }
 function normalizeFunnel(raw){ const f=raw&&typeof raw==="object"?raw:newFunnel();
@@ -908,14 +936,17 @@ function medianPracticeTime(){ const mins=activity.practiceDays.slice(-14).map(k
 function normalizeReminder(raw){ const r=raw && typeof raw==="object"?raw:{};
   r.enabled=r.enabled===true; r.promptDismissed=r.promptDismissed===true;
   r.permission=["granted","denied"].includes(r.permission)?r.permission:"unknown";
-  r.milestonesShown=Array.isArray(r.milestonesShown)?r.milestonesShown.filter(n=>Number.isInteger(n)):[]; return r; }
+  r.milestonesShown=Array.isArray(r.milestonesShown)?r.milestonesShown.filter(n=>Number.isInteger(n)):[];
+  r.characterMilestonesShown=Array.isArray(r.characterMilestonesShown)?r.characterMilestonesShown.filter(n=>Number.isInteger(n)):[];
+  r.characterMilestoneDay=/^\d{4}-\d{2}-\d{2}$/.test(r.characterMilestoneDay||"")?r.characterMilestoneDay:""; return r; }
 let reminder=normalizeReminder(load(REMINDER_KEY,null)); save(REMINDER_KEY,reminder);
 let reminderPendingEnable=false;
 const reminderDebug={lastSync:null};
 // ---- 触觉反馈（iOS 壳内按记账/过程完成/选择切换分层；浏览器/PWA no-op，仅记录供断言）----
 const hapticDebug={last:null,events:[]};
 function hapticFeedback(kind){ hapticDebug.last=kind; hapticDebug.events.push(kind); hapticDebug.events=hapticDebug.events.slice(-30);
-  if(reminderBridgeAvailable()) window.webkit.messageHandlers.shiziNative.postMessage({type:"haptic", kind}); }
+  if(reminderBridgeAvailable()) window.webkit.messageHandlers.shiziNative.postMessage({type:"haptic", kind});
+  else if(["stamp","milestone"].includes(kind) && navigator&&typeof navigator.vibrate==="function") try{ navigator.vibrate(10); }catch(e){} }
 function saveReminder(){ save(REMINDER_KEY,reminder); }
 function reminderBridgeAvailable(){ return !!(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.shiziNative); }
 // 唯一的调度入口。已练静默的门槛=盖第一章；累计 +1 的门槛=完成一组，两者刻意不同。
@@ -969,13 +1000,19 @@ function milestoneCopy(day){ if(MILESTONE_COPY[day]) return MILESTONE_COPY[day];
 function celebrateMilestoneIfAny(){ const total=totalPracticeDays(); let changed=false, celebrate=null;
   milestoneDaysThrough(total).forEach(d=>{ if(!reminder.milestonesShown.includes(d)){ reminder.milestonesShown.push(d); changed=true; if(total===d) celebrate=d; } });
   if(changed) saveReminder(); return celebrate; }
+const CHARACTER_MILESTONES=[100,300];
+function celebrateCharacterMilestoneIfAny(before=roundStartMemoryCount,total=memoryCount()){ let changed=false,celebrate=null;
+  CHARACTER_MILESTONES.forEach(n=>{ if(total>=n&&!reminder.characterMilestonesShown.includes(n)){ reminder.characterMilestonesShown.push(n); changed=true; if(before<n) celebrate=n; } });
+  if(celebrate) reminder.characterMilestoneDay=today(); if(changed) saveReminder(); return celebrate; }
+function milestoneBadge(milestone){ if(!milestone) return ""; if(milestone.kind==="characters") return milestone.value===100?"百":"三百"; return ({1:"一",7:"七",14:"十四",30:"卅"})[milestone.value]||"百"; }
+function milestoneText(milestone){ return milestone.kind==="characters"?`字盒里已经有 ${milestone.value} 个练过的字。旧字一枚枚拾回，字盒也一格格长满。`:milestoneCopy(milestone.value); }
 
 // ---- 出题池与双层学习会话 ----
 const BATCH=15, DAILY_REVIEW_BUDGET=30, TOPIC_KEY="shizi.topic.v1";
 let sessionDone=new Set(), baseTargets=[], batch=[], pos=0, baseCursor=0, currentIndex=null, currentAttemptKind="base", currentAttemptId="";
 let manualQueue=[], reinforcementQueue=[], unresolved=new Set(), episodes={}, attemptSeq=0, practicePhase="recall", hintEverUsed=false, enteredTracingThisAttempt=false, submissionSnapshot=null, pendingSessionVisual=null, feedbackKind="";
 let missedThisRound=[], roundStats=[], focusQueue=[], hintsUsedThisCard=0, cardStartedAt=0, activeMode="new", sessionTarget=0, sessionFastStreak=0, sessionMissStreak=0, roundFeedbackGiven=false, roundId=0, calibrationFirstHoldUsed=false, calibrationComfortShown=false, calibrationTargets=[];
-let summaryFocusIndexes=[];
+let summaryFocusIndexes=[], roundStartMemoryCount=0, summarySealTimer=0, summaryMilestoneActive=false;
 let roundElapsedMs=0, roundActiveStartedAt=0, roundBudgetPrompted=false, roundTimerPaused=false;
 const ROUND_ATTEMPT_BUDGET=20, ROUND_TIME_BUDGET_MS=6*60*1000, ROUND_DURATION_CAP_MS=60*60*1000;
 function currentCardIndex(){ return Number.isInteger(currentIndex)?currentIndex:(Number.isInteger(batch[pos])?batch[pos]:null); }
@@ -996,7 +1033,7 @@ function currentRoundElapsed(){ return roundElapsedMs+(roundActiveStartedAt?Math
 function sessionPayload(){ return {version:2,startedDate:(load(SESSION_KEY,null)||{}).startedDate||today(),updatedAt:Date.now(),activeMode,baseTargets:baseTargets.slice(),baseCursor,currentIndex,currentAttemptKind,currentAttemptId,
   manualQueue:cloneObj(manualQueue)||[],reinforcementQueue:cloneObj(reinforcementQueue)||[],unresolved:[...unresolved],episodes:cloneObj(episodes)||{},attemptSeq,practicePhase,visual:capturePracticeVisual(),
   missedThisRound:missedThisRound.slice(),roundStats:cloneObj(roundStats)||[],focusQueue:focusQueue.slice(),sessionDone:[...sessionDone],sessionTarget,sessionFastStreak,sessionMissStreak,roundFeedbackGiven,roundId,calibrationFirstHoldUsed,calibrationComfortShown,calibrationTargets:calibrationTargets.slice(),lastStampSnapshot:cloneObj(lastStampSnapshot),feedbackKind,
-  roundElapsedMs:currentRoundElapsed(),roundBudgetPrompted}; }
+  roundElapsedMs:currentRoundElapsed(),roundBudgetPrompted,roundStartMemoryCount}; }
 function saveSessionSnapshot(){ if(!baseTargets.length || !Number.isInteger(currentCardIndex())) return false; return save(SESSION_KEY,sessionPayload()); }
 function clearSessionSnapshot(){ removeStored(SESSION_KEY); }
 function migrateV1Session(s){ const stats=Array.isArray(s.roundStats)?cloneObj(s.roundStats):[], targets=Array.isArray(s.batch)?s.batch.slice():[]; let cursor=Math.min(targets.length,stats.length);
@@ -1005,7 +1042,7 @@ function migrateV1Session(s){ const stats=Array.isArray(s.roundStats)?cloneObj(s
   const next=cursor<targets.length?{idx:targets[cursor],kind:"base"}:(queue.length?{idx:queue[0].idx,kind:"reinforcement"}:null);
   return {version:2,startedDate:s.date||today(),updatedAt:Date.now(),activeMode:s.activeMode,baseTargets:targets,baseCursor:cursor,currentIndex:next?next.idx:targets[Math.max(0,targets.length-1)],currentAttemptKind:next?next.kind:"base",currentAttemptId:`${s.roundId||Date.now()+"-migrated"}-a${stats.length+1}`,
     manualQueue:[],reinforcementQueue:queue.filter(item=>!next||next.kind!=="reinforcement"||item.idx!==next.idx),unresolved:[...open],episodes:eps,attemptSeq:stats.length,practicePhase:next&&next.kind==="reinforcement"?"reinforcement":"recall",visual:null,
-    missedThisRound:Array.isArray(s.missedThisRound)?s.missedThisRound.slice():[],roundStats:stats,focusQueue:Array.isArray(s.focusQueue)?s.focusQueue.slice():[],sessionDone:Array.isArray(s.sessionDone)?s.sessionDone.slice():[],sessionTarget:s.sessionTarget,sessionFastStreak:s.sessionFastStreak,sessionMissStreak:s.sessionMissStreak,roundFeedbackGiven:!!s.roundFeedbackGiven,roundId:s.roundId||Date.now()+"-migrated",calibrationFirstHoldUsed:!!s.calibrationFirstHoldUsed,calibrationComfortShown:false,calibrationTargets:s.activeMode==="calibrate"?targets.slice(0,BATCH):[],lastStampSnapshot:null,roundElapsedMs:0,roundBudgetPrompted:false}; }
+    missedThisRound:Array.isArray(s.missedThisRound)?s.missedThisRound.slice():[],roundStats:stats,focusQueue:Array.isArray(s.focusQueue)?s.focusQueue.slice():[],sessionDone:Array.isArray(s.sessionDone)?s.sessionDone.slice():[],sessionTarget:s.sessionTarget,sessionFastStreak:s.sessionFastStreak,sessionMissStreak:s.sessionMissStreak,roundFeedbackGiven:!!s.roundFeedbackGiven,roundId:s.roundId||Date.now()+"-migrated",calibrationFirstHoldUsed:!!s.calibrationFirstHoldUsed,calibrationComfortShown:false,calibrationTargets:s.activeMode==="calibrate"?targets.slice(0,BATCH):[],lastStampSnapshot:null,roundElapsedMs:0,roundBudgetPrompted:false,roundStartMemoryCount:memoryCount()}; }
 function resumableSession(){ let s=load(SESSION_KEY,null); if(!s) return null; if(s.version===1) s=migrateV1Session(s);
   const valid=s.version===2 && Array.isArray(s.baseTargets) && s.baseTargets.length>0 && s.baseTargets.every(i=>Number.isInteger(i)&&i>=0&&i<CARDS.length)
     && Number.isInteger(s.currentIndex)&&s.currentIndex>=0&&s.currentIndex<CARDS.length && ["new","review","calibrate","focus"].includes(s.activeMode);
@@ -1015,7 +1052,7 @@ function restoreSession(s){ if(!s) return false; if(s.version===1) s=migrateV1Se
   missedThisRound=Array.isArray(s.missedThisRound)?s.missedThisRound.slice():[]; roundStats=Array.isArray(s.roundStats)?cloneObj(s.roundStats):[]; focusQueue=Array.isArray(s.focusQueue)?s.focusQueue.slice():[]; sessionDone=new Set(Array.isArray(s.sessionDone)?s.sessionDone:[]);
   sessionTarget=Number(s.sessionTarget)||targetDifficulty(); sessionFastStreak=Number(s.sessionFastStreak)||0; sessionMissStreak=Number(s.sessionMissStreak)||0; roundFeedbackGiven=!!s.roundFeedbackGiven; roundId=s.roundId||Date.now()+"-resume"; calibrationFirstHoldUsed=!!s.calibrationFirstHoldUsed; calibrationComfortShown=!!s.calibrationComfortShown;
   calibrationTargets=activeMode==="calibrate"?[...new Set(Array.isArray(s.calibrationTargets)?s.calibrationTargets:baseTargets.slice(0,BATCH))].filter(i=>Number.isInteger(i)&&baseTargets.includes(i)).slice(0,BATCH):[]; lastStampSnapshot=cloneObj(s.lastStampSnapshot); feedbackKind=s.feedbackKind||"";
-  roundElapsedMs=Math.max(0,Number(s.roundElapsedMs)||0); roundActiveStartedAt=Date.now(); roundBudgetPrompted=!!s.roundBudgetPrompted; roundTimerPaused=false;
+  roundElapsedMs=Math.max(0,Number(s.roundElapsedMs)||0); roundActiveStartedAt=Date.now(); roundBudgetPrompted=!!s.roundBudgetPrompted; roundTimerPaused=false; roundStartMemoryCount=Math.max(0,Number(s.roundStartMemoryCount)||memoryCount());
   if(baseCursor>=baseTargets.length && manualQueue.length===0 && unresolved.size===0){ practicePhase="between"; clearSessionSnapshot(); markRoundComplete(); roundSummary(); return true; }
   pendingSessionVisual=cloneObj(s.visual); pos=Math.min(baseCursor,Math.max(0,baseTargets.length-1)); render(); armPracticeHistory(); return true; }
 function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
@@ -1141,7 +1178,7 @@ const GRADE_UI={
   slow:{seal:"待补", func:"写错了", short:"写错", funcHtml:"写错了", cls:"slow", effect:"会优先回来复习"},
   miss:{seal:"再拾", func:"不会写", short:"没写出", funcHtml:"不会写", cls:"miss", effect:"很快会回来找你"},
 };
-const OUTCOME_DOT={ fast:"var(--accent)", hinted:"var(--gold)", slow:"var(--blue)", miss:"transparent" }, OUTCOME_MARK={fast:"拾",hinted:"补",slow:"待",miss:"再"};
+const OUTCOME_DOT={ fast:"transparent", hinted:"var(--gold)", slow:"var(--accent)", miss:"transparent" }, OUTCOME_MARK={fast:"",hinted:"补",slow:"待",miss:"再"};
 const MASCOT_LINES=[
   "这个格子里的字，你上次写它可能是十年前",
   "想不起来很正常，点「笔顺提示」先看开头几笔",
@@ -1195,6 +1232,7 @@ window.addEventListener("popstate",()=>{
   practiceHistoryArmed=false; exitCurrentRound(true);
 });
 function displayView(view){ Object.entries(VIEW_IDS).forEach(([k,id])=>{ $(id).style.display = view===k ? "flex" : "none"; });
+  if(view!=="summary" && summarySealTimer){ clearTimeout(summarySealTimer); summarySealTimer=0; }
   if(view!=="summary" && summaryBackupHintVisible){ summaryBackupHintVisible=false; $("summaryBackupHint").style.display="none"; }
   // 写字 / 首启 / 结果是全屏专注场景，收起底部 Tab
   $("foot").style.display=(view==="card"||view==="welcome"||view==="summary"||view==="profile"||view==="audit")?"none":"";
@@ -1269,9 +1307,10 @@ function renderHome(){ const resume=resumableSession();
   if(needsCalibration() && !resume){ recordFunnelOnce("welcome_shown"); displayView("welcome"); warmUpcomingStrokeCache(); return; }
   displayView("home");
   $("homeGreeting").textContent=`${greeting()} · ${dateCn()}`;
-  const totalDays=totalPracticeDays(); $("streakChip").textContent=totalDays>0?`拾字第 ${totalDays} 天`:"今天开始拾字";
+  const totalDays=totalPracticeDays(), stampedBeforeRender=todayStampCount(); $("streakChip").textContent=totalDays>0?`拾字第 ${totalDays} 天`:(stampedBeforeRender>0?"拾字第 1 天 · 进行中":"今天开始拾字");
   renderMonthSignal();
   const due=reviewCount(), dueToday=reviewTodayCount(), newN=newPool(false).length, stampedToday=todayStampCount(), complete=todayCompleted();
+  $("startBtn").classList.toggle("dueBreathe",due>0&&stampedToday===0&&!complete);
   homeResumeSession=resume;
   if(resume){ const targetSet=new Set(resume.baseTargets), total=targetSet.size, practiced=new Set((resume.roundStats||[]).filter(row=>targetSet.has(row.idx)).map(row=>row.idx)).size, reinforce=new Set((resume.unresolved||[]).filter(idx=>targetSet.has(idx))).size;
     $("homeTitle").innerHTML=complete?`今日已拾<br>${stampedToday} 个字`:`今天拾了<br>${stampedToday} 个字`;
@@ -1296,11 +1335,13 @@ function renderHome(){ const resume=resumableSession();
   updateBookBadge();
   warmUpcomingStrokeCache(); }
 function meAdviceText(idxs){ if(!idxs.length) return "练几组后，这里会总结你最容易卡住的主题、难度和结构。";
+  if(!profileSampleReady(idxs)) return `已练 ${idxs.length} 个字，样本还少。先拾几组，卡点会逐渐清楚。`;
   const topic=profileGroups(idxs,cardTopic)[0], lvl=profileGroups(idxs,abilityLevel)[0], st=profileGroups(idxs,structureLabel)[0], bits=[];
   if(topic) bits.push(topic.label+"主题"); if(lvl) bits.push(lvl.label+"字"); if(st) bits.push(st.label);
   return `最常卡在：${bits.join("、")}。点开看详细分析。`; }
 function renderMe(){ displayView("me");
   applyPrefUI();
+  const days=totalPracticeDays(); $("meDayState").textContent=days>0?`拾字第 ${days} 天`:(todayStampCount()>0?"拾字第 1 天 · 进行中":"今天还没开始拾字");
   $("seenStat").textContent=memoryCount(); $("stableStat").textContent=stableCount(); $("riskStat").textContent=highRiskCount();
   $("meAdvice").textContent=meAdviceText(profileIndexes());
   renderBackupUI(); renderReminderUI(); updateBookBadge();
@@ -1319,7 +1360,7 @@ function lastOutcomeDot(i){ return OUTCOME_DOT[(memory[cardKey(i)]||{}).lastOutc
 function isStable(i){ return !isHighRisk(i) && ((memory[cardKey(i)]||{}).streak||0)>=2; }
 function stableCount(){ return profileIndexes().filter(isStable).length; }
 function boxTile(i,k){ const risk=isHighRisk(i), stable=isStable(i), state=risk?"risk":stable?"stable":"reviewing";
-  const outcome=(memory[cardKey(i)]||{}).lastOutcome||"", mark=stable?`<span class="dot" style="background:var(--dline)"></span>`:`<span class="dot outcomeMark ${outcome}" style="background:${lastOutcomeDot(i)}">${OUTCOME_MARK[outcome]||""}</span>`;
+  const outcome=(memory[cardKey(i)]||{}).lastOutcome||"", mark=stable?`<span class="dot" style="background:var(--dline)"></span>`:(outcome&&outcome!=="fast"?`<span class="dot outcomeMark ${outcome}" style="background:${lastOutcomeDot(i)}">${OUTCOME_MARK[outcome]||""}</span>`:"");
   return `<button class="boxTile ${state}" data-idx="${i}" title="${esc(CARDS[i].word)}" style="transform:rotate(${ROTS[k%ROTS.length]}deg)">${CARDS[i].target}${mark}</button>`; }
 function openBook(filter="all"){ bookExpanded=filter!=="all"; boxFilter=filter; renderBook(); }
 function renderBook(){ displayView("book");
@@ -1341,6 +1382,7 @@ function renderBook(){ displayView("book");
   const riskShown=risk.slice(0,10);
   $("boxRiskGrid").style.display=risk.length?"grid":"none";
   $("boxRiskEmpty").style.display=risk.length?"none":"block";
+  $("boxRiskEmpty").innerHTML=`<div class="ghostTiles" aria-hidden="true">${Array.from({length:5},(_,i)=>`<span class="ghostTile" style="transform:rotate(${ROTS[i]}deg)"></span>`).join("")}</div>目前没有待拾回的字`;
   $("boxRiskGrid").innerHTML=riskShown.map(boxTile).join("")+(risk.length>10?`<button class="boxTile more" data-expand-risk>+${risk.length-10}</button>`:"");
   $("boxAllTitle").textContent=`全部 ${seen.length} 字`;
   $("boxAllToggle").setAttribute("aria-expanded",bookExpanded?"true":"false");
@@ -1351,9 +1393,10 @@ function renderBook(){ displayView("book");
   const MAXT=59, shown=list.slice(0,MAXT);
   $("boxGrid").innerHTML=list.length
     ? shown.map(boxTile).join("")+(list.length>MAXT?`<div class="boxTile more">+${list.length-MAXT}</div>`:"")
-    : `<div class="empty">字盒还空着。拾一组字，盖过章的字都会收进来。</div>`; }
+    : `<div class="empty"><div class="ghostTiles" aria-hidden="true">${Array.from({length:5},(_,i)=>`<span class="ghostTile" style="transform:rotate(${ROTS[i]}deg)"></span>`).join("")}</div>字盒还空着。拾一组字，盖过章的字都会收进来。</div>`; }
 function esc(s){ return String(s).replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch])); }
 function hardCount(i){ const m=memory[cardKey(i)]||{}; return (m.misses||0)+(m.hints||0)+(m.slow||0); }
+function profileSampleReady(indexes=profileIndexes()){ return indexes.length>=10 && indexes.reduce((sum,i)=>sum+hardCount(i),0)>=3; }
 function weaknessScore(i){ const m=memory[cardKey(i)]||{}; return clamp((m.misses||0)*28+(m.hints||0)*18+(m.slow||0)*18-(m.fast||0)*6+Math.max(0,60-(m.ease||50))*0.8+(reviewReady(i)?10:0),0,100); }
 function profileIndexes(){ return allIndexes().filter(i=>{ const m=memory[cardKey(i)]; return m && m.seen; }); }
 function structureLabel(i){ const c=CARDS[i], strokes=Number(c.strokes)||0, parts=Number(c.parts)||1;
@@ -1369,11 +1412,13 @@ function profileGroupRows(indexes, labelFn, kind, limit=5){ const groups=profile
     <span class="profileBar"><i style="width:${Math.max(8,Math.round(g.avg/max*100))}%"></i></span>
   </button>`).join(""); }
 function profileAdvice(indexes){ if(!indexes.length) return "先完成一组 15 字练习。系统会根据你盖的章，逐渐判断哪些主题、结构和难度层最容易让你提笔卡住。";
+  if(!profileSampleReady(indexes)) return "样本还少，先拾几组。这里暂时只列真实卡过的字，不做主题或结构排名。";
   const topic=profileGroups(indexes,cardTopic)[0], level=profileGroups(indexes,abilityLevel)[0], structure=profileGroups(indexes,structureLabel)[0], risk=highRiskCount();
   const bits=[]; if(topic) bits.push(`${topic.label}主题`); if(level) bits.push(`${level.label}难度`); if(structure) bits.push(`${structure.label}`);
   return risk>0?`建议顺序：先把 ${risk} 个待拾回的字拿下，再专项练 ${bits.join("、")}。这样比随机刷字拾回得更快。`:`目前最值得观察的是 ${bits.join("、")}。继续练几组，这里会把真正反复卡住的字挑出来。`; }
 function profileDiagnosis(indexes){ if(!indexes.length) return {title:"先拾一组字，诊断就会长出来", body:"写完 15 个字后，这里会告诉你最容易卡住的主题、结构和具体字。", action:"先拾一组", disabled:true};
   const risk=highRiskCount(), topic=profileGroups(indexes,cardTopic)[0], level=profileGroups(indexes,abilityLevel)[0], structure=profileGroups(indexes,structureLabel)[0];
+  if(!profileSampleReady(indexes)) return {title:"样本还少，先拾几组",body:`已练 ${indexes.length} 个字，记录 ${indexes.reduce((sum,i)=>sum+hardCount(i),0)} 次卡住。先看具体字，不急着下结论。`,action:risk?"去字盒看":"继续观察",disabled:!risk};
   const bits=[]; if(topic) bits.push(`${topic.label}主题`); if(level) bits.push(`${level.label}字`); if(structure) bits.push(structure.label);
   if(risk>0) return {title:`今天先拾回 ${risk} 个字`, body:`最常卡在 ${bits.join("、")}。先去字盒看看这些字，再决定从哪里开始。`, action:"去字盒看", disabled:false};
   return {title:"目前没有待拾回的字", body:`已练过 ${indexes.length} 个字。继续拾几组后，我会把反复卡住的模式排到最前面。`, action:"继续观察", disabled:true}; }
@@ -1384,6 +1429,9 @@ function renderProfile(){ displayView("profile"); const indexes=profileIndexes()
   const diag=profileDiagnosis(indexes);
   $("profileSummary").innerHTML=`<div class="profileHero"><div class="eyebrow">今日状态</div><h3>${esc(diag.title)}</h3><p>${esc(diag.body)}</p><button class="heroAct" data-profile-kind="risk" ${diag.disabled?"disabled":""}>${esc(diag.action)}</button></div><div class="profileMetrics"><div class="profileMetric"><b>${indexes.length}</b><span>练过</span></div><div class="profileMetric"><b style="color:var(--accent)">${hard}</b><span>卡过</span></div><div class="profileMetric"><b>${avgEase}</b><span>掌握感</span></div><div class="profileMetric"><b style="color:var(--grey)">${highRiskCount()}</b><span>待拾回</span></div></div>`;
   $("profileAdvice").textContent=profileAdvice(indexes);
+  if(!profileSampleReady(indexes)){ const hardIndexes=indexes.filter(i=>hardCount(i)>0).sort((a,b)=>hardCount(b)-hardCount(a)).slice(0,8);
+    $("profileTopics").innerHTML=hardIndexes.length?hardIndexes.map(i=>`<button class="profileRow" data-profile-kind="risk"><span><b>${CARDS[i].target} · ${esc(CARDS[i].word)}</b><small>实际卡住 ${hardCount(i)} 次</small></span><em>去字盒</em></button>`).join(""):`<div class="empty">还没有卡住的字，继续按自己的节奏写。</div>`;
+    $("profileLevels").innerHTML=""; return; }
   $("profileTopics").innerHTML=profileGroupRows(indexes,cardTopic,"topic",5);
   $("profileLevels").innerHTML=`<div class="profileSubhead"><b>难度层</b></div>${profileGroupRows(indexes,abilityLevel,"level",3)}<div class="profileSubhead"><b>结构</b></div>${profileGroupRows(indexes,structureLabel,"structure",4)}`; }
 function withTemporaryPreference(pref, fn){ const oldPref=preference, oldTopic=load(TOPIC_KEY,""); preference=pref;
@@ -1711,7 +1759,7 @@ function renderUndoBar(){ hideUndoBar(false); if(!lastStampSnapshot || currentAt
   const ui=GRADE_UI[lastStampSnapshot.outcome]||GRADE_UI.slow; $("undoCopy").textContent=`「${lastStampSnapshot.target}」已盖「${ui.seal}」`; $("undoBar").style.display="flex"; $("card").classList.add("undoActive");
   undoFollowTimer=setTimeout(()=>hideUndoBar(true),5000); }
 function stampToastCopy(outcome,m){ const ui=GRADE_UI[outcome];
-  if(outcome==="fast"){ const ep=episodeFor(currentCardIndex()), recovered=ep.firstOutcome&&ep.firstOutcome!=="fast"; return {title:recovered?"今天已独立写出":`已记为${ui.func}`,sub:`${recovered?"这个字今天写稳了":"这次独立写对"} · 下次 ${formatDueDay(m.dueDay)}`}; }
+  if(outcome==="fast"){ const ep=episodeFor(currentCardIndex()), recovered=ep.firstOutcome&&ep.firstOutcome!=="fast"; return {title:recovered?"今天已独立写出":`已记为${ui.func}`,sub:`${recovered?"这个字今天写稳了":"这次独立写对"} · 下次 ${shortDueDay(m.dueDay)}`}; }
   if(outcome==="hinted") return {title:`已记为${ui.func}`,sub:"本组稍后再写 · 写稳后安排下次复习"};
   if(outcome==="slow") return {title:`已记为${ui.func}`,sub:"本组稍后再写 · 写稳后安排下次复习"};
   return {title:`已记为${ui.func}`,sub:"先描一遍，再自己写"}; }
@@ -1742,6 +1790,7 @@ function renderPhaseControls(){ tracing=practicePhase==="tracing"; const post=pr
   $("clear").textContent=tracing?"重描":"重写"; if(teaching) $("tip").disabled=true; updateActionLabels(); updateInkControls(); }
 function render(){ fitBox(); cur=CARDS[currentCardIndex()]; const token=++loadToken, restoring=!!pendingSessionVisual;
   displayView("card");
+  const area=$("practiceArea"); area.style.animation="none"; void area.offsetWidth; area.style.animation="cardSwapIn .18s ease-out both";
   clearTimeout(autoNextTimer); clearTimeout(editStampTimer); stamped=false; overlayOn=false; replaying=false; animating=false;
   if(!restoring){ hintsUsedThisCard=0; hintEverUsed=false; enteredTracingThisAttempt=false; submissionSnapshot=null; }
   actionStack=[]; seenGroups=new Set(); practiceCharData=null; peekWriter=null; strokeDataOffline=false; cardStartedAt=Date.now();
@@ -1823,6 +1872,7 @@ function showRevealState(snapshot){ const verdict=snapshot&&snapshot.lastVerdict
   activePointers.clear(); peekReleasePending=false; exitPeekHint(true); revealed=true; clearTimeout(teachTimer);
   $("actions").classList.remove("tlock"); $("traceActions").classList.remove("tlock");
   $("practiceArea").style.display="none"; $("reveal").style.display="flex";
+  $("reveal").classList.remove("revealing"); void $("reveal").offsetWidth; $("reveal").classList.add("revealing");
   $("revealWord").textContent=cur.word; $("revealPy").textContent=cur.py||"";
   if(inkUrl){ $("mineInk").style.backgroundImage=`url(${inkUrl})`; $("mineInk").style.display=""; $("mineInk").dataset.failedCount=String(failedUserStrokeIndexes(snapshot).length); $("mineEmpty").style.display="none"; }
   else { $("mineInk").style.backgroundImage="none"; $("mineInk").dataset.failedCount="0"; $("mineEmpty").style.display="flex"; }
@@ -1869,8 +1919,9 @@ $("replayBtn").onclick=()=>{ if(replaying || !window.HanziWriter) return; replay
 function reopenStampChoices(){ if(!lastStampSnapshot) return;
   const snap=lastStampSnapshot; clearTimeout(autoNextTimer); clearTimeout(editStampTimer); hideUndoBar(false); lastStampSnapshot=null;
   restoreStampSnapshot(snap); stamped=false; render(); restoreRevealFromSnapshot({...snap.revealState,softConfirmHandled:false}); updateProgressLabel(); hapticFeedback("undo"); }
-const STAMP_HOLD_MS=1400, CALIBRATION_FIRST_HOLD_MS=1800, EDIT_STAMP_WINDOW_MS=1800;
-function showStampedFeedback(outcome,options={}){ const ui=GRADE_UI[outcome], m=memory[cardKey(currentCardIndex())]||{}, st=$("stampOnMine"), face=st.querySelector(".face"), ring=st.querySelector(".ring"), solid={fast:"var(--accent)",hinted:"var(--gold)",slow:"var(--blue)"}[outcome];
+const STAMP_HOLD_MS=1800, CALIBRATION_FIRST_HOLD_MS=1800, EDIT_STAMP_WINDOW_MS=1800;
+function showStampedFeedback(outcome,options={}){ const ui=GRADE_UI[outcome], m=memory[cardKey(currentCardIndex())]||{}, st=$("stampOnMine"), face=st.querySelector(".face"), ring=st.querySelector(".ring"), solid={fast:"var(--accent)",hinted:"var(--gold)",slow:"var(--accent)"}[outcome], ep=episodeFor(currentCardIndex()), recovered=outcome==="fast"&&ep.firstOutcome&&ep.firstOutcome!=="fast";
+  st.classList.toggle("recovered",!!recovered);
   face.style.background=solid||"var(--card)"; face.style.border=solid?"0":"2px solid var(--grey)"; face.querySelector("span").textContent=ui.seal; face.querySelector("span").style.color=solid?"var(--paperInk)":"var(--muted)"; ring.style.borderColor=solid||"var(--grey)"; st.style.display="block";
   face.style.animation="none"; ring.style.animation="none"; void face.offsetWidth; face.style.animation=""; ring.style.animation="";
   $("decisionRow").style.display="none"; $("uncertainAction").style.display="none"; $("softConfirm").style.display="none"; $("stampNote").style.display="none"; $("askRow").style.display="none"; $("teachBubbleGrade").style.display="none"; $("qualityBox").style.display="none";
@@ -1892,6 +1943,7 @@ function goNext(){ clearTimeout(autoNextTimer); clearTimeout(editStampTimer); $(
   if(outcome==="miss"){ openTracingTeaching(); return; } next(); }
 function advanceFeedback(){ if(!stamped || practicePhase!=="feedback") return false; if(feedbackKind==="teachingComplete"){ clearTimeout(autoNextTimer); stamped=false; next(); return true; } goNext(); return true; }
 function decideSubmission(correct){ if(stamped||!revealed||!submissionSnapshot) return;
+  if(!correct){ overlayOn=true; $("mineOverlay").style.display="flex"; $("overlayToggle").textContent="分开看"; }
   if(submissionSnapshot.practicePhase==="postTraceRecall"){
     if(!correct){ revealed=false; beginTracingPhase(); return; }
     const ep=episodeFor(currentCardIndex()); ep.teachingComplete=true; const stat=roundStats.find(row=>row.idx===currentCardIndex()); if(stat) stat.traced=true; const m=cardMemory(currentCardIndex()); if(m.lastEpisode) m.lastEpisode.teachingComplete=true; saveMemory(); practicePhase="feedback"; feedbackKind="teachingComplete"; $("decisionRow").style.display="none"; $("askRow").style.display="none"; $("qualityBox").style.display="none";
@@ -1928,6 +1980,7 @@ function compareReviewPriority(a,b){ return reviewPriority(b)-reviewPriority(a) 
 function chooseReviewBatch(all){ return all.slice().sort(compareReviewPriority).slice(0,BATCH); }
 function startRound(){ if(activeMode==="review" && reviewBudgetRemaining()===0){ clearSessionSnapshot(); renderHome(); toast("今天的复习已完成，可以拾新字"); return; }
   const p=availablePool(), queued=activeMode==="calibrate"?[]:queuedFrontPool(); if(p.length===0 && queued.length===0){ clearSessionSnapshot(); allDone(); return; } resetAdaptiveSession();
+  roundStartMemoryCount=memoryCount();
   baseTargets=activeMode==="focus"?chooseFocusBatch(p):(activeMode==="review"?chooseReviewBatch(p):(activeMode==="calibrate"?chooseCalibrationBatch(p):chooseBatch(p)));
   if(queued.length){ const front=new Set(queued); baseTargets=[...queued,...baseTargets.filter(i=>!front.has(i))].slice(0,BATCH); }
   if(activeMode==="review"){ baseTargets=baseTargets.slice(0,reviewBudgetRemaining()); reserveReviewTargets(baseTargets); }
@@ -1936,16 +1989,20 @@ function startRound(){ if(activeMode==="review" && reviewBudgetRemaining()===0){
   missedThisRound=[]; roundStats=[]; roundFeedbackGiven=false; calibrationFirstHoldUsed=false; calibrationComfortShown=false; lastStampSnapshot=null; hideUndoBar(false); roundId=Date.now()+"-"+Math.random().toString(36).slice(2,7);
   roundElapsedMs=0; roundActiveStartedAt=Date.now(); roundBudgetPrompted=false; roundTimerPaused=false;
   beginAttempt({idx:baseTargets[0],kind:"base"}); saveSessionSnapshot(); armPracticeHistory(); render(); }
-function sumTile(s,i){ const isMiss=s.outcome==="miss", recovered=s.outcome!=="fast"&&s.independentlyRecovered, ui=GRADE_UI[s.outcome];
-  return `<button class="sumTile ${isMiss?"miss":""}" data-idx="${s.idx}" aria-label="${esc(s.target)}，首次${esc(ui.func)}${recovered?"，之后已独立写出":""}" style="transform:rotate(${ROTS[i%ROTS.length]}deg); animation-delay:${(i*0.05).toFixed(2)}s"><span class="glyphText">${s.target}</span><span class="dot outcomeMark ${s.outcome}" style="background:${OUTCOME_DOT[s.outcome]}">${OUTCOME_MARK[s.outcome]}</span><small class="meaning">${ui.short}</small>${recovered?'<span class="recover">稳</span>':''}</button>`; }
+function sumTile(s,i,delayOffset=0){ const recovered=s.outcome!=="fast"&&s.independentlyRecovered, ui=GRADE_UI[s.outcome], mark=s.outcome==="fast"?"":`<span class="dot outcomeMark ${s.outcome}" style="background:${OUTCOME_DOT[s.outcome]}">${OUTCOME_MARK[s.outcome]}</span>`;
+  return `<button class="sumTile ${s.outcome}" data-idx="${s.idx}" aria-label="${esc(s.target)}，首次${esc(ui.func)}${recovered?"，之后已独立写出":""}" style="transform:rotate(${ROTS[i%ROTS.length]}deg); animation-delay:${(delayOffset+i*0.05).toFixed(2)}s"><span class="glyphText">${s.target}</span>${mark}<small class="meaning${recovered?" recover":""}">${recovered?"已独立":ui.short}</small></button>`; }
+function motionReduced(){ return !!(window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches); }
+function renderSummaryMilestone(milestone){ summaryMilestoneActive=!!milestone; $("milestoneLine").style.display=milestone?"flex":"none"; $("milestoneMiniSeal").textContent=milestoneBadge(milestone); $("milestoneCopy").textContent=milestone?milestoneText(milestone):""; }
 function renderPracticePocket(indexes, calibration=false){ const unique=[...new Set((indexes||[]).filter(i=>Number.isInteger(i)&&i>=0&&i<CARDS.length))], card=$(calibration?"calibPocketCard":"pocketCard"), chips=$(calibration?"calibPocketChips":"pocketChips"), title=$(calibration?"calibPocketTitle":"pocketTitle");
   summaryFocusIndexes=unique; card.style.display=unique.length?"flex":"none"; if(!unique.length) return;
   chips.innerHTML=unique.slice(0,3).map((idx,k)=>`<span class="pChip" style="transform:rotate(${k%2?3:-4}deg)">${CARDS[idx].target}</span>`).join("");
   title.textContent=`${unique.length} 个字，趁热再拾`; }
-function roundSummary(fromPractice=false){ const durationMs=currentRoundElapsed(); roundElapsedMs=durationMs; roundActiveStartedAt=0; roundTimerPaused=false; recordFunnelRound(durationMs); clearSessionSnapshot(); markRoundComplete(); releasePracticeHistory(); const milestone=celebrateMilestoneIfAny(); displayView("summary");
+function roundSummary(fromPractice=false){ const durationMs=currentRoundElapsed(); roundElapsedMs=durationMs; roundActiveStartedAt=0; roundTimerPaused=false; recordFunnelRound(durationMs); clearSessionSnapshot(); markRoundComplete(); releasePracticeHistory(); const characterMilestone=celebrateCharacterMilestoneIfAny(), dayMilestone=celebrateMilestoneIfAny(), milestone=characterMilestone?{kind:"characters",value:characterMilestone}:dayMilestone?{kind:"days",value:dayMilestone}:null; displayView("summary");
   $("summaryShare").style.display="block"; $("calibShare").style.display="block";
-  $("milestoneLine").style.display=milestone?"block":"none"; if(milestone){ $("milestoneLine").textContent=milestoneCopy(milestone); hapticFeedback("milestone"); }
-  else if(fromPractice) hapticFeedback("action");
+  renderSummaryMilestone(milestone);
+  const reduced=motionReduced(), tileDelay=milestone&&!reduced?.6:0, sealDelay=reduced?0:tileDelay+roundStats.length*.05+.5;
+  [$("summaryBigSeal"),$("calibBigSeal")].forEach(seal=>seal.style.setProperty("--seal-delay",`${sealDelay.toFixed(2)}s`));
+  clearTimeout(summarySealTimer); summarySealTimer=0; if(milestone||fromPractice) summarySealTimer=setTimeout(()=>hapticFeedback(milestone?"milestone":"action"),sealDelay*1000);
   $("summaryShare").textContent=milestone?"存成图 / 分享这张里程碑字帖":"存成图 / 分享今日字帖";
   $("calibShare").textContent=milestone?"存成图 / 分享这张里程碑字帖":"存成图 / 分享今日字帖";
   const wasCalibration=activeMode==="calibrate", calibrationStats=wasCalibration?calibrationRoundStats():roundStats, calibrationNote=maybeFinishCalibration(), remain=activeMode==="review"?reviewTodayCount():availablePool().length;
@@ -1953,6 +2010,8 @@ function roundSummary(fromPractice=false){ const durationMs=currentRoundElapsed(
   const risky=[...new Set(roundStats.filter(x=>x.outcome!=="fast").map(x=>x.idx))];
   $("calibCard").style.display=wasCalibration?"flex":"none"; $("calibCard").style.flexDirection="column"; $("calibCard").style.flex="1";
   $("sumSheet").style.display=wasCalibration?"none":"flex";
+  $("calibDateSeal").textContent=dateCn(); $("calibSumTiles").innerHTML=roundStats.map((row,i)=>sumTile(row,i,tileDelay)).join(""); $("calibPracticeHint").style.display=risky.length?"block":"none";
+  $("dateSeal").textContent=dateCn(); $("sumTiles").innerHTML=roundStats.map((row,i)=>sumTile(row,i,tileDelay)).join(""); $("sumPracticeHint").style.display=risky.length?"block":"none";
   if(wasCalibration){ // 教学 T4：替代普通结果页，只在校准组后出现一次
     $("calibKept").textContent=keptN; $("calibMiss").textContent=hardN;
     $("calibTier").textContent=tuningLabel();
@@ -1964,20 +2023,18 @@ function roundSummary(fromPractice=false){ const durationMs=currentRoundElapsed(
   $("summaryProfile").style.display=hardN>0?"block":"none";
   $("sumH2").textContent=completedGroups>1?`今日已拾 ${dayTotal} 字`:"今日拾得";
   $("sumLead").innerHTML=hardN>0?`本组 <b class="ok">${roundStats.length}</b> 个字全部完成，<br><b class="warn">${hardN}</b> 个首答没写出，之后已独立写出。`:`这一把 <b class="ok">${keptN}</b> 个字首答都独立写出了。`;
-  $("dateSeal").textContent=dateCn();
-  $("sumTiles").innerHTML=roundStats.map(sumTile).join("");
   renderPracticePocket(risky,false);
   renderRoundTune(calibrationNote);
   renderSummaryBackupHint();
   $("more").style.display=remain>0?"":"none";
   $("more").textContent=activeMode==="review"?`继续复习（今日还可 ${Math.min(BATCH,remain)}）`:activeMode==="focus"?`继续（还剩 ${remain}）`:"加练一组"; }
-function allDone(){ displayView("summary"); $("milestoneLine").style.display="none";
+function allDone(){ displayView("summary"); clearTimeout(summarySealTimer); summarySealTimer=0; renderSummaryMilestone(null);
   $("summaryShare").style.display="none"; $("calibShare").style.display="none";
   $("calibCard").style.display="none"; $("sumSheet").style.display="flex";
   $("sumH2").textContent="今天的字过完了";
   $("sumLead").innerHTML=`练过 <b>${memoryCount()}</b> 字 · 已拾回 <b class="ok">${stableCount()}</b> 字 · 待拾回 ${highRiskCount()}`;
   $("dateSeal").textContent=dateCn();
-  $("sumTiles").innerHTML=""; $("pocketCard").style.display="none"; $("calibPocketCard").style.display="none"; summaryFocusIndexes=[]; $("summaryBackupHint").style.display="none";
+  $("sumTiles").innerHTML=""; $("sumPracticeHint").style.display="none"; $("calibPracticeHint").style.display="none"; $("pocketCard").style.display="none"; $("calibPocketCard").style.display="none"; summaryFocusIndexes=[]; $("summaryBackupHint").style.display="none";
   $("roundTune").style.display="none"; $("summaryProfile").style.display="none"; $("more").style.display="none"; }
 $("more").onclick=startRound;
 $("stop").onclick=renderHome;
@@ -2006,6 +2063,7 @@ $("prefBox").onclick=e=>{ const b=e.target.closest("[data-pref]"); if(!b) return
 $("fontScaleRow").onclick=()=>{ fontScaleLarge=!fontScaleLarge; save(FONT_SCALE_KEY,fontScaleLarge); applyFontScale(); fitBox(); };
 $("qualityBox").onclick=e=>{ const b=e.target.closest("[data-quality]"); if(!b) return; recordQuality(b.dataset.quality); };
 $("sumTiles").onclick=e=>{ const b=e.target.closest("[data-idx]"); if(b) startFocus([Number(b.dataset.idx)]); };
+$("calibSumTiles").onclick=e=>{ const b=e.target.closest("[data-idx]"); if(b) startFocus([Number(b.dataset.idx)]); };
 $("roundTune").onclick=e=>{ const b=e.target.closest("[data-round-feedback]"); if(b) recordRoundFeedback(b.dataset.roundFeedback); };
 $("boxGrid").onclick=e=>{ const b=e.target.closest("[data-idx]"); if(b) startFocus([Number(b.dataset.idx)]); };
 $("boxRiskGrid").onclick=e=>{ const more=e.target.closest("[data-expand-risk]"); if(more){ bookExpanded=true; boxFilter="risk"; renderBook(); return; }
@@ -2070,7 +2128,6 @@ function confirmAdd(){ const chars=addWord($("addInput").value); if(!chars) retu
     else if(order.length===1) toast(`已排到下一题：「${order[0]}」`);
     else toast(`已加入本组，将按「${order.join("」→「")}」练习`); }
   else toast(tuning.calibrated?`已加入：${chars.join("、")} · 下次开练，第一个就是它`:`已加入：${chars.join("、")} · 校准这组结束后，下一组第一个就是它`);
-  if($("summary").style.display!=="none" && $("summary").style.display!=="") roundSummary();
   if($("summary").style.display==="flex") roundSummary();
   if($("mePanel").style.display==="flex") renderMe(); if($("studybook").style.display==="flex") renderBook(); }
 $("addLink").onclick=openAddSheet;
@@ -2088,7 +2145,7 @@ const shareCardDebug={lastRoute:null,lastMessage:null};
 function shareRoundRect(ctx,x,y,w,h,r){ const q=Math.min(r,w/2,h/2); ctx.beginPath(); ctx.moveTo(x+q,y); ctx.lineTo(x+w-q,y); ctx.quadraticCurveTo(x+w,y,x+w,y+q); ctx.lineTo(x+w,y+h-q); ctx.quadraticCurveTo(x+w,y+h,x+w-q,y+h); ctx.lineTo(x+q,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-q); ctx.lineTo(x,y+q); ctx.quadraticCurveTo(x,y,x+q,y); ctx.closePath(); }
 function shareWrappedText(ctx,text,x,y,maxWidth,lineHeight,maxLines=3){ const chars=Array.from(String(text||"")); let line="", lines=[]; chars.forEach(ch=>{ const next=line+ch; if(line&&ctx.measureText(next).width>maxWidth){ lines.push(line); line=ch; }else line=next; }); if(line) lines.push(line); lines=lines.slice(0,maxLines); lines.forEach((row,i)=>ctx.fillText(row,x,y+i*lineHeight)); return y+lines.length*lineHeight; }
 function renderPracticeCardCanvas(){ const stats=(roundStats||[]).slice(0,15); if(!stats.length) return null;
-  const canvas=document.createElement("canvas"); canvas.width=1080; canvas.height=1350; const ctx=canvas.getContext("2d"), paper="#efe7d3", card="#fdfaf1", ink="#2b2620", muted="#665d4d", accent="#c2452c", gold="#b3892f", blue="#547398", green="#5b8b67";
+  const canvas=document.createElement("canvas"); canvas.width=1080; canvas.height=1350; const ctx=canvas.getContext("2d"), paper="#efe7d3", card="#fdfaf1", ink="#2b2620", muted="#665d4d", accent="#c2452c", gold="#b3892f", green="#5b8b67";
   ctx.fillStyle=paper; ctx.fillRect(0,0,canvas.width,canvas.height);
   const milestone=getComputedStyle($("milestoneLine")).display!=="none"?$("milestoneLine").textContent.trim():"";
   let cardY=milestone?190:90;
@@ -2097,13 +2154,12 @@ function renderPracticeCardCanvas(){ const stats=(roundStats||[]).slice(0,15); i
   ctx.textAlign="left"; ctx.fillStyle=ink; ctx.font='900 72px "Songti SC","STSong",serif'; ctx.fillText($("sumH2").textContent.trim()||"今日拾得",110,cardY+115);
   ctx.fillStyle=muted; ctx.font='500 32px -apple-system,"PingFang SC",sans-serif'; ctx.fillText(`本组 ${stats.length} 个字`,110,cardY+175);
   ctx.fillStyle=accent; ctx.font='500 29px "Kaiti SC","STKaiti",serif'; ctx.textAlign="center"; Array.from(dateCn()).forEach((ch,i)=>ctx.fillText(ch,930,cardY+70+i*34));
-  const cols=5, gap=18, tile=160, startX=108, startY=cardY+235, colors={fast:accent,hinted:gold,slow:blue,miss:"#8b8272"};
+  const cols=5, gap=18, tile=160, startX=108, startY=cardY+235, colors={hinted:gold,slow:accent,miss:accent};
   stats.forEach((stat,i)=>{ const col=i%cols,row=Math.floor(i/cols),x=startX+col*(tile+gap),y=startY+row*(tile+gap),ui=GRADE_UI[stat.outcome]||GRADE_UI.slow;
     ctx.fillStyle=stat.outcome==="miss"?"#f8e9e3":"#fbf6ea"; shareRoundRect(ctx,x,y,tile,tile,14); ctx.fill(); ctx.strokeStyle=stat.outcome==="miss"?accent:"#e3d9c4"; ctx.lineWidth=stat.outcome==="miss"?3:2; ctx.stroke();
     ctx.fillStyle=ink; ctx.font='400 70px "Kaiti SC","STKaiti",serif'; ctx.textAlign="center"; ctx.fillText(stat.target,x+tile/2,y+92);
-    ctx.fillStyle=muted; ctx.font='700 25px -apple-system,"PingFang SC",sans-serif'; ctx.fillText(ui.short,x+tile/2,y+137);
-    ctx.fillStyle=colors[stat.outcome]||accent; ctx.beginPath(); ctx.arc(x+tile-24,y+24,20,0,Math.PI*2); ctx.fill(); ctx.fillStyle="#fdfaf1"; ctx.font='700 21px -apple-system,"PingFang SC",sans-serif'; ctx.fillText(OUTCOME_MARK[stat.outcome]||"",x+tile-24,y+31);
-    if(stat.independentlyRecovered){ ctx.fillStyle=green; ctx.font='700 21px -apple-system,"PingFang SC",sans-serif'; ctx.textAlign="left"; ctx.fillText("稳",x+10,y+29); }
+    ctx.fillStyle=stat.independentlyRecovered?green:muted; ctx.font='700 25px -apple-system,"PingFang SC",sans-serif'; ctx.fillText(stat.independentlyRecovered?"已独立":ui.short,x+tile/2,y+137);
+    if(stat.outcome!=="fast"){ ctx.fillStyle=colors[stat.outcome]||accent; ctx.beginPath(); ctx.arc(x+tile-24,y+24,20,0,Math.PI*2); ctx.fill(); ctx.fillStyle="#fdfaf1"; ctx.font='700 21px -apple-system,"PingFang SC",sans-serif'; ctx.fillText(OUTCOME_MARK[stat.outcome]||"",x+tile-24,y+31); }
   });
   const sealX=canvas.width-280,sealY=cardY+cardH-250; ctx.save(); ctx.translate(sealX+95,sealY+95); ctx.rotate(-0.07); ctx.fillStyle=accent; shareRoundRect(ctx,-95,-95,190,190,38); ctx.fill(); ctx.strokeStyle="#e9a18f"; ctx.lineWidth=8; ctx.stroke(); ctx.fillStyle="#fdfaf1"; ctx.font='400 58px "Kaiti SC","STKaiti",serif'; ctx.textAlign="center"; ctx.fillText("拾",0,-10); ctx.fillText("字",0,58); ctx.restore();
   ctx.fillStyle=muted; ctx.font='500 28px "Songti SC","STSong",serif'; ctx.textAlign="left"; ctx.fillText("提笔忘字，拾回便是",110,cardY+cardH-80);
@@ -2123,8 +2179,8 @@ const BACKUP_KEYS=[DECK_KEY,OPEN_KEY,MEMORY_KEY,QUALITY_KEY,PREF_KEY,TUNING_KEY,
 function backupAgeDays(){ const ts=Number(backupMeta.lastExportAt)||0; return ts?Math.max(0,Math.floor((Date.now()-ts)/86400000)):Number.POSITIVE_INFINITY; }
 function backupRelativeText(){ const days=backupAgeDays(); if(!Number.isFinite(days)) return "从未备份"; if(days===0) return "上次备份 · 今天"; if(days===1) return "上次备份 · 昨天"; return `上次备份 · ${days} 天前`; }
 function renderBackupUI(){ $("backupStatus").textContent=backupRelativeText(); const needs=(completedDayCount()>=5 || memoryCount()>=30) && backupAgeDays()>=7;
-  $("backupReminder").style.display=needs?"flex":"none"; $("backupReminderCopy").textContent=Number.isFinite(backupAgeDays())?`已有 ${memoryCount()} 个字，建议每周导出一份。`:`已经完成 ${completedDayCount()} 个练习日，建议现在导出第一份。`; }
-function renderSummaryBackupHint(){ const eligible=completedDayCount()>=3 && !backupMeta.summaryPromptShown;
+  $("backupReminder").style.display=needs&&reminder.characterMilestoneDay!==today()?"flex":"none"; $("backupReminderCopy").textContent=Number.isFinite(backupAgeDays())?`已有 ${memoryCount()} 个字，建议每周导出一份。`:`已经完成 ${completedDayCount()} 个练习日，建议现在导出第一份。`; }
+function renderSummaryBackupHint(){ const eligible=!summaryMilestoneActive && reminder.characterMilestoneDay!==today() && completedDayCount()>=3 && !backupMeta.summaryPromptShown;
   if(eligible){ summaryBackupHintVisible=true; backupMeta.summaryPromptShown=true; save(BACKUP_META_KEY,backupMeta); }
   $("summaryBackupHint").style.display=summaryBackupHintVisible?"flex":"none"; }
 function markBackupExported(ts=Date.now()){ const exportedAt=Number(ts)||Date.now(); backupMeta={...backupMeta,lastExportAt:exportedAt}; save(BACKUP_META_KEY,backupMeta); recordFunnelOnce("backup_exported","backup_exported",exportedAt);

@@ -11,6 +11,8 @@ const SESSION_STORAGE_KEY = "shizi.session.v1";
 const source = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const swSource = fs.readFileSync(path.join(root, "sw.js"), "utf8");
 const coreStrokeSource = fs.readFileSync(path.join(root, "core-strokes.js"), "utf8");
+const appDelegateSource = fs.readFileSync(path.join(root, "ios", "ShiziApp", "ShiziApp", "AppDelegate.swift"), "utf8");
+const webViewSource = fs.readFileSync(path.join(root, "ios", "ShiziApp", "ShiziApp", "WebViewController.swift"), "utf8");
 
 if (/退出本组？|进度已保存，随时可继续这组|描一遍也算拾回|小时后再见|已收|拾到手|教学检查|本组通过|待巩固|差点|回炉|改一下|已稳/.test(source)) {
   throw new Error("Deprecated practice vocabulary remains in index.html");
@@ -37,6 +39,9 @@ assert(source.includes("ROUND_DURATION_CAP_MS") && /durationMs\s*:\s*Math\.min\(
 assert(source.includes("STAMP_HOLD_MS=1800") && source.includes("EDIT_STAMP_WINDOW_MS=1800") && source.includes("shortDueDay(m.dueDay)"), "Expected readable 1800ms stamp feedback and a compact due date");
 assert(source.includes('navigator.vibrate(10)') && source.includes('animation="cardSwapIn .18s ease-out both"') && source.includes('classList.add("revealing")'), "Expected Web haptics and staggered card/reveal transitions");
 assert(source.includes('OUTCOME_DOT={ fast:"transparent", hinted:"var(--gold)", slow:"var(--accent)"') && !/slow:\s*"var\(--blue\)"/.test(source), "Expected silent success, gold assistance, and cinnabar risk result semantics");
+assert(source.includes('if(!sound.enabled') && source.includes('{type:"sound",kind}') && source.includes('if(tracing) soundFeedback("paper")') && source.includes('soundFeedback("stamp")'), "Expected two-site, opt-out paper sound feedback with no disabled audio initialization");
+assert(webViewSource.includes("AVAudioSession.sharedInstance().setCategory(.ambient") && webViewSource.includes('case "sound"') && webViewSource.includes('content.userInfo = ["targetCardKey": question.targetCardKey]'), "Expected native ambient paper sounds and notification target metadata");
+assert(appDelegateSource.includes("didReceive response: UNNotificationResponse") && appDelegateSource.includes("openReminderTarget(cardKey: targetCardKey)"), "Expected notification taps to reach the Web practice target on cold or warm launch");
 
 function verifyBackupSummaryScript() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "shizi-funnel-"));
@@ -238,6 +243,7 @@ let browser;
   "Expected penalty-free monthly rhythm, one-time day-14 celebration, silent inherited catch-up, and every-100 continuation", rhythmAndMilestones);
 
   const reminderBoundary = await page.evaluate(() => {
+    const original = { memory: cloneObj(memory), status: cloneObj(status), reminder: cloneObj(reminder) };
     activity = newActivity(); activity.inheritedStreak = 0; activity.inheritedTotalDays = 0; activity.daily = {}; activity.practiceDays = [];
     const at = (hour, minute) => { const date = new Date(); date.setHours(hour, minute, 0, 0); return date.getTime(); };
     for (let i = 0; i < 5; i += 1) {
@@ -248,14 +254,22 @@ let browser;
     const median = medianPracticeTime();
     const allDays = activity.practiceDays.slice(); activity.practiceDays = allDays.slice(0, 2); const few = medianPracticeTime(); activity.practiceDays = allDays;
     activity.practiceDays.forEach((key) => { activity.daily[key].lastStampAt = at(23, 30); }); const late = medianPracticeTime();
-    renderMe(); syncReminder();
+    const missIdx = CARDS.findIndex((card) => card.target === "蘸"), otherIdx = CARDS.findIndex((card) => card.target === "器");
+    memory = {}; status = {}; [missIdx, otherIdx].forEach((idx, order) => { memory[cardKey(idx)] = { seen: 1, dueDay: today(), pendingLearning: false, lastOutcome: order === 0 ? "miss" : "fast", misses: order === 0 ? 2 : 0, ease: order === 0 ? 25 : 70, last: Date.now() - order }; status[idx] = "rest"; });
+    reminder = normalizeReminder({ enabled: true, permission: "granted" }); renderMe(); syncReminder(); const sync = cloneObj(reminderDebug.lastSync);
+    memory = {}; status = {}; syncReminder(); const noTarget = cloneObj(reminderDebug.lastSync);
+    memory = original.memory; status = original.status; reminder = normalizeReminder(original.reminder); saveMemory(); save(DECK_KEY, status); saveReminder();
     return {
       median, few, late,
       hiddenInBrowser: getComputedStyle(reminderSection).display === "none" && getComputedStyle(reminderInvite).display === "none",
-      sync: cloneObj(reminderDebug.lastSync),
+      sync, noTarget, missKey: cardKey(missIdx), missWord: CARDS[missIdx].word, missPy: CARDS[missIdx].py,
     };
   });
   assert(reminderBoundary.median.hour === 9 && reminderBoundary.median.minute === 24 && reminderBoundary.few.hour === 20 && reminderBoundary.few.minute === 0 && reminderBoundary.late.hour === 22 && reminderBoundary.late.minute === 0 && reminderBoundary.hiddenInBrowser && reminderBoundary.sync.type === "syncReminder", "Expected reminder median, fallback, clamp, and browser fallback boundaries", reminderBoundary);
+  assert(reminderBoundary.sync.enabled && reminderBoundary.sync.questions.length === 8 && reminderBoundary.sync.targetCardKey === reminderBoundary.missKey && reminderBoundary.sync.questions[0].targetCardKey === reminderBoundary.missKey
+    && reminderBoundary.sync.title === `${reminderBoundary.missWord}的 ${reminderBoundary.missPy}` && reminderBoundary.sync.body === "还写得出吗，点开写写看"
+    && reminderBoundary.sync.questions.every((question) => question.title && question.body && question.targetCardKey && /^\d{4}-\d{2}-\d{2}$/.test(question.day)) && !reminderBoundary.noTarget.enabled && reminderBoundary.noTarget.questions.length === 0,
+  "Expected missed-due-first question payloads, stable card keys, fixed copy, and no notification without a target", reminderBoundary);
 
   const backupReminderBoundary = await page.evaluate(() => {
     const completed = (count) => {
@@ -346,6 +360,17 @@ let browser;
   "Expected the daily card to expose one eligible character, context word, pinyin, and synchronized motto", dailyRitual);
   assert(dailyRitual.overflow.every((row) => row.scroll <= row.client + 1) && dailyRitual.clicked.mode === "focus" && dailyRitual.clicked.current === dailyRitual.idx && dailyRitual.clicked.cardVisible && dailyRitual.retired,
     "Expected every motto to fit, daily-character click to start focus practice, and the card to retire after today's first stamp", dailyRitual);
+  const notificationDeepLink = await page.evaluate(() => {
+    const original = { memory: cloneObj(memory), status: cloneObj(status), tuning: cloneObj(tuning), activeMode, focusQueue: focusQueue.slice(), sessionDone: [...sessionDone] };
+    const idx = CARDS.findIndex((card) => card.target === "蘸"), key = cardKey(idx);
+    memory = { [key]: { seen: 1, dueDay: today(), pendingLearning: false, lastOutcome: "miss", misses: 1, ease: 30, last: Date.now() } }; status = { [idx]: "rest" }; tuning = { calibrated: true, offset: 0, contextStrict: 0, rounds: [] };
+    clearSessionSnapshot(); saveMemory(); save(DECK_KEY, status); saveTuning(); const opened = shiziOpenReminderTarget(key);
+    const result = { opened, mode: activeMode, current: currentCardIndex(), target: CARDS[currentCardIndex()].target, cardVisible: getComputedStyle(card).display !== "none", invalidRejected: shiziOpenReminderTarget("base:不存在") === false };
+    loadToken++; clearSessionSnapshot(); memory = original.memory; status = original.status; tuning = original.tuning; activeMode = original.activeMode; focusQueue = original.focusQueue; sessionDone = new Set(original.sessionDone); saveMemory(); save(DECK_KEY, status); saveTuning();
+    return result;
+  });
+  assert(notificationDeepLink.opened && notificationDeepLink.mode === "focus" && notificationDeepLink.target === "蘸" && notificationDeepLink.cardVisible && notificationDeepLink.invalidRejected,
+    "Expected a valid notification card key to open that exact focus card and reject stale keys", notificationDeepLink);
 
   await page.reload({ waitUntil: "networkidle" });
   offlineProbe = true;
@@ -520,6 +545,13 @@ let browser;
   await page.click("#tabMe");
   const me = await page.evaluate(() => ({ visible: getComputedStyle(mePanel).display !== "none", devHidden: getComputedStyle(devTools).display === "none", reminderHidden: getComputedStyle(reminderSection).display === "none" }));
   assert(me.visible && me.devHidden && me.reminderHidden, "Expected normal My page without development tools", me);
+  const soundBefore = await page.evaluate(() => { const payload = JSON.parse(backupPayload()); return { pressed: soundRow.getAttribute("aria-pressed"), state: soundState.textContent, enabled: sound.enabled, backedUp: Object.prototype.hasOwnProperty.call(payload.data, SOUND_KEY) }; });
+  await page.click("#soundRow");
+  const soundOff = await page.evaluate(() => { const contexts = soundDebug.contextCreated, events = soundDebug.events.length, played = soundFeedback("stamp"), payload = JSON.parse(backupPayload()); return { pressed: soundRow.getAttribute("aria-pressed"), state: soundState.textContent, enabled: sound.enabled, played, contextsBefore: contexts, contextsAfter: soundDebug.contextCreated, eventsBefore: events, eventsAfter: soundDebug.events.length, stored: JSON.parse(payload.data[SOUND_KEY]) }; });
+  assert(soundBefore.pressed === "true" && soundBefore.state === "开" && soundBefore.enabled && soundBefore.backedUp && soundOff.pressed === "false" && soundOff.state === "关" && !soundOff.enabled && !soundOff.played
+    && soundOff.contextsAfter === soundOff.contextsBefore && soundOff.eventsAfter === soundOff.eventsBefore && soundOff.stored.enabled === false,
+  "Expected an on-by-default backed-up sound setting and zero AudioContext/event work while disabled", { soundBefore, soundOff });
+  await page.click("#soundRow");
   const typeBefore = await page.evaluate(() => ({ title: parseFloat(getComputedStyle(document.querySelector(".me h1")).fontSize), advice: parseFloat(getComputedStyle(meAdvice).fontSize), pressed: fontScaleRow.getAttribute("aria-pressed") }));
   await page.click("#fontScaleRow");
   const typeAfter = await page.evaluate(() => { const payload = JSON.parse(backupPayload()); return { title: parseFloat(getComputedStyle(document.querySelector(".me h1")).fontSize), advice: parseFloat(getComputedStyle(meAdvice).fontSize), pressed: fontScaleRow.getAttribute("aria-pressed"), state: fontScaleState.textContent, stored: load(FONT_SCALE_KEY, false), backedUp: Object.prototype.hasOwnProperty.call(payload.data, FONT_SCALE_KEY) }; });
@@ -596,7 +628,11 @@ let browser;
   assert(queuedStart.targets === "强器" && queuedStart.current === "强" && queuedStart.flags.every(Boolean), "Expected newly added characters to lead a real non-calibration round in entry order", queuedStart);
 
   await submitStandard(page);
+  await page.evaluate(() => { soundDebug.events = []; soundDebug.last = null; sound.tipShown = false; saveSound(); });
   await chooseCorrect(page);
+  const stampSound = await page.evaluate(() => ({ last: soundDebug.last, events: soundDebug.events.slice(), tipShown: sound.tipShown, tip: document.getElementById("toast").textContent, contextCreated: soundDebug.contextCreated }));
+  assert(stampSound.last === "stamp" && stampSound.events.join() === "stamp" && stampSound.tipShown && stampSound.tip.includes("盖章有声音了") && stampSound.contextCreated >= 1,
+    "Expected one restrained stamp sound in the same grading turn and a one-time settings hint", stampSound);
   await page.waitForTimeout(1900);
   const queuedSecond = await page.evaluate(() => ({ current: cur.target, firstConsumed: !(memory[cardKey(indexesForChars(["强"])[0])] || {}).queuedFront, secondQueued: !!(memory[cardKey(indexesForChars(["器"])[0])] || {}).queuedFront, undo: getComputedStyle(undoBar).display !== "none" }));
   assert(queuedSecond.current === "器" && queuedSecond.firstConsumed && queuedSecond.secondQueued && queuedSecond.undo, "Expected first queued card to be consumed only after its stamp and leave the second next", queuedSecond);
@@ -1246,9 +1282,9 @@ let browser;
     && (dontKnow.outlinePaths>0 || dontKnow.fallback) && (!dontKnow.outlineBox || (dontKnow.outlineBox.width>200 && dontKnow.outlineBox.height>200))
     && dontKnow.haptics.join() === "select" && !dontKnow.shown && dontKnow.attempts === 1 && dontKnow.unresolved === 1,
   "Expected don't-know to enter non-blocking tracing immediately with one miss/Again", dontKnow);
-  await page.evaluate(() => { inkBegin({ x: 20, y: 20 }); inkMove({ x: 80, y: 80 }); inkEnd(); });
-  const traceStart = await page.evaluate(() => ({ title: phaseTitle.textContent, disabled: traceDone.disabled, introHidden: getComputedStyle(traceIntro).display === "none", shown: traceTutorialShown, stored: load(TRACE_TUTORIAL_KEY, false) }));
-  assert(traceStart.title.includes("1/2 描写") && !traceStart.disabled && traceStart.introHidden && traceStart.shown && traceStart.stored, "Expected first valid trace to dismiss and persist the inline explanation", traceStart);
+  await page.evaluate(() => { soundDebug.events = []; soundDebug.last = null; lastPaperSoundAt = 0; inkBegin({ x: 20, y: 20 }); inkMove({ x: 80, y: 80 }); inkEnd(); });
+  const traceStart = await page.evaluate(() => ({ title: phaseTitle.textContent, disabled: traceDone.disabled, introHidden: getComputedStyle(traceIntro).display === "none", shown: traceTutorialShown, stored: load(TRACE_TUTORIAL_KEY, false), sound: soundDebug.events.slice() }));
+  assert(traceStart.title.includes("1/2 描写") && !traceStart.disabled && traceStart.introHidden && traceStart.shown && traceStart.stored && traceStart.sound.join() === "paper", "Expected first valid trace to dismiss the explanation and emit only the quiet paper-start sound", traceStart);
   await page.evaluate(() => { saveSessionSnapshot(); restoreSession(load(SESSION_KEY, null)); });
   await page.waitForFunction(() => pendingSessionVisual === null && practicePhase === "tracing" && tracedThisCard && inkStrokes.length === 1);
   const restoredTracing = await page.evaluate(() => ({ phase: practicePhase, title: phaseTitle.textContent, outline: hzEl.childNodes.length > 0 || hzEl.classList.contains("traceFallback"), ink: inkStrokes.length }));
@@ -1357,12 +1393,12 @@ let browser;
     undoSafetyRestore({ reload: false }); const latestRestored = String(localStorage.getItem(MEMORY_KEY)).includes("verify:before-second");
 
     restoreBackupPayload(original, { skipConfirm: true, reload: false, skipSafety: true }); localStorage.removeItem(SAFETY_KEY); hideSafetyUndo(); memory = originalMemory;
-    const result = { keys: Object.keys(original.data), sessionVersion: JSON.parse(original.data[SESSION_KEY]).version, fsrsLog: !!original.data[FSRS_LOG_KEY], tutorial: original.data[TRACE_TUTORIAL_KEY], funnelVersion: JSON.parse(original.data[FUNNEL_KEY]).version, restoredKeys: restoredResult.keys,
+    const result = { keys: Object.keys(original.data), sessionVersion: JSON.parse(original.data[SESSION_KEY]).version, fsrsLog: !!original.data[FSRS_LOG_KEY], tutorial: original.data[TRACE_TUTORIAL_KEY], funnelVersion: JSON.parse(original.data[FUNNEL_KEY]).version, sound: JSON.parse(original.data[SOUND_KEY]), restoredKeys: restoredResult.keys,
       unknown: localStorage.getItem("shizi.unknown.verify"), cancelled: !cancelled.applied, confirmCopy, incomingApplied, safetyReason: safetyAfterRestore && safetyAfterRestore.reason, undoOffered, undoApplied: undoResult.applied, currentRestored,
       resetReason: resetSafety && resetSafety.reason, overwrittenReason: overwrittenSafety && overwrittenSafety.reason, latestRestored, safetyExcluded: !Object.prototype.hasOwnProperty.call(original.data, SAFETY_KEY) };
     localStorage.removeItem("shizi.unknown.verify"); return result;
   });
-  assert(backup.keys.includes(SESSION_STORAGE_KEY) && backup.sessionVersion === 2 && backup.fsrsLog && backup.tutorial === "true" && backup.funnelVersion === 1 && backup.restoredKeys.includes(SESSION_STORAGE_KEY) && backup.unknown === "keep-local", "Expected session/FSRS/tutorial/funnel backup round trip with allowlist isolation", backup);
+  assert(backup.keys.includes(SESSION_STORAGE_KEY) && backup.sessionVersion === 2 && backup.fsrsLog && backup.tutorial === "true" && backup.funnelVersion === 1 && backup.sound.enabled === true && backup.restoredKeys.includes(SESSION_STORAGE_KEY) && backup.unknown === "keep-local", "Expected session/FSRS/tutorial/funnel/sound backup round trip with allowlist isolation", backup);
   assert(backup.cancelled && backup.confirmCopy.includes("当前 2 字（最后练习 2026-07-11）→ 备份 1 字（2026-06-01）") && backup.incomingApplied && backup.safetyReason === "restore" && backup.undoOffered && backup.undoApplied && backup.currentRestored, "Expected differential restore confirmation and one-tap safety undo", backup);
   assert(backup.resetReason === "reset" && backup.overwrittenReason === "restore" && backup.latestRestored && backup.safetyExcluded, "Expected reset safety copy, latest-operation replacement, and backup exclusion", backup);
 

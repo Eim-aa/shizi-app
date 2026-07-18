@@ -108,6 +108,7 @@ checks = {
     and data_flow.get("backupHasCustom") is True
     and data_flow.get("backupHasMemory") is True
     and data_flow.get("backupHasReminder") is True
+    and data_flow.get("backupHasSound") is True
     and data_flow.get("backupHasFunnel") is True
     and data_flow.get("backupHasSessionV2") is True
     and data_flow.get("backupHasFSRSLog") is True
@@ -132,7 +133,10 @@ checks = {
     "nativeImport": data_flow.get("nativeImportAvailable") is True,
     "nativeConfirm": data_flow.get("nativeConfirmAvailable") is True,
     "reminderState": data_flow.get("reminderStateAvailable") is True
-    and data_flow.get("reminderSettingsRowVisible") is True,
+    and data_flow.get("reminderSettingsRowVisible") is True
+    and data_flow.get("reminderQuestionPayload") is True,
+    "soundState": data_flow.get("soundStateAvailable") is True
+    and data_flow.get("soundSettingsRowVisible") is True,
     "funnelState": data_flow.get("funnelStateAvailable") is True,
     "calibrationReturn": data_flow.get("calibrationReturnInviteVisible") is True
     and data_flow.get("calibrationReturnPermissionRequested") is True,
@@ -185,7 +189,8 @@ checks = {
     and practice.get("traceRequiresInk") is True
     and practice.get("traceReadyAfterInk") is True
     and practice.get("postTraceRecall") is True
-    and practice.get("hapticTraceNoReview") is True,
+    and practice.get("hapticTraceNoReview") is True
+    and practice.get("soundPaperRecorded") is True,
     "practicePersistence": practice.get("activityRecorded") is True
     and practice.get("sessionSnapshotStored") is True
     and practice.get("resumeHomeState") is True
@@ -197,6 +202,8 @@ checks = {
     and practice.get("hapticStampRecorded") is True
     and practice.get("hapticUndoRecorded") is True
     and practice.get("hapticSelectTracingRecorded") is True,
+    "paperSounds": practice.get("soundStampRecorded") is True
+    and practice.get("soundPaperRecorded") is True,
     "hapticSequences": practice.get("hapticHintedSequence")
     == ["select", "action", "stamp"]
     and practice.get("hapticUndoSequence") == ["undo"]

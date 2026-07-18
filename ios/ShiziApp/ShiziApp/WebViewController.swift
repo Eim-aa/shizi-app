@@ -1,3 +1,4 @@
+import AVFoundation
 import UIKit
 import UniformTypeIdentifiers
 import UserNotifications
@@ -11,11 +12,15 @@ final class WebViewController: UIViewController {
     private var practiceBackGesture: UIScreenEdgePanGestureRecognizer!
     private var nativeSmokeDidRun = false
     private var reminderSyncGeneration = 0
+    private var pageReady = false
+    private var pendingReminderCardKey: String?
     private lazy var stampHaptic = UIImpactFeedbackGenerator(style: .medium)
     private lazy var undoHaptic = UIImpactFeedbackGenerator(style: .light)
     private lazy var actionHaptic = UIImpactFeedbackGenerator(style: .light)
     private lazy var selectionHaptic = UISelectionFeedbackGenerator()
     private lazy var milestoneHaptic = UINotificationFeedbackGenerator()
+    private lazy var stampSoundPlayer = makePaperSoundPlayer(kind: .stamp)
+    private lazy var paperSoundPlayer = makePaperSoundPlayer(kind: .paper)
 
     init() {
         guard let webRoot = Bundle.main.url(forResource: "Web", withExtension: nil) else {
@@ -87,6 +92,7 @@ final class WebViewController: UIViewController {
     }
 
     private func loadApp() {
+        pageReady = false
         var components = URLComponents()
         components.scheme = ShiziWebResource.scheme
         components.host = ShiziWebResource.host
@@ -102,6 +108,30 @@ final class WebViewController: UIViewController {
         }
 
         webView.load(URLRequest(url: url))
+    }
+
+    func openReminderTarget(cardKey: String) {
+        guard !cardKey.isEmpty else { return }
+        pendingReminderCardKey = cardKey
+        dispatchPendingReminderTargetIfReady()
+    }
+
+    private func dispatchPendingReminderTargetIfReady() {
+        guard pageReady, let cardKey = pendingReminderCardKey else { return }
+        guard
+            let encoded = try? JSONEncoder().encode(cardKey),
+            let literal = String(data: encoded, encoding: .utf8)
+        else {
+            pendingReminderCardKey = nil
+            return
+        }
+        pendingReminderCardKey = nil
+        let script = "typeof shiziOpenReminderTarget === 'function' && shiziOpenReminderTarget(\(literal));"
+        webView.evaluateJavaScript(script) { [weak self] _, error in
+            if error != nil {
+                self?.pendingReminderCardKey = cardKey
+            }
+        }
     }
 
     private static var devModeEnabled: Bool {
@@ -199,6 +229,7 @@ final class WebViewController: UIViewController {
               backupHasCustom: false,
               backupHasMemory: false,
               backupHasReminder: false,
+              backupHasSound: false,
               backupHasFunnel: false,
               backupExcludesSmokeKey: false,
               backupHasMeta: false,
@@ -214,8 +245,11 @@ final class WebViewController: UIViewController {
               nativeImportAvailable: false,
               nativeConfirmAvailable: false,
               reminderStateAvailable: false,
+              soundStateAvailable: false,
               funnelStateAvailable: false,
               reminderSettingsRowVisible: false,
+              soundSettingsRowVisible: false,
+              reminderQuestionPayload: false,
               calibrationReturnInviteVisible: false,
               calibrationReturnPermissionRequested: false,
               shareCardGenerated: false,
@@ -273,6 +307,8 @@ final class WebViewController: UIViewController {
               hapticSelectTipRecorded: false,
               hapticActionRevealRecorded: false,
               hapticStampRecorded: false,
+              soundStampRecorded: false,
+              soundPaperRecorded: false,
               hapticUndoRecorded: false,
               hapticSelectTracingRecorded: false,
               hapticHintedSequence: [],
@@ -451,6 +487,7 @@ final class WebViewController: UIViewController {
               result.dataFlow.backupHasCustom = BASE_BY_CHAR[smokeChar] != null || (Object.prototype.hasOwnProperty.call(backupData, CUSTOM_KEY) && String(backupData[CUSTOM_KEY]).includes(smokeChar));
               result.dataFlow.backupHasMemory = Object.prototype.hasOwnProperty.call(backupData, MEMORY_KEY) && String(backupData[MEMORY_KEY]).includes(smokeChar);
               result.dataFlow.backupHasReminder = Object.prototype.hasOwnProperty.call(backupData, REMINDER_KEY);
+              result.dataFlow.backupHasSound = Object.prototype.hasOwnProperty.call(backupData, SOUND_KEY);
               const backupFunnel = Object.prototype.hasOwnProperty.call(backupData, FUNNEL_KEY) ? JSON.parse(backupData[FUNNEL_KEY]) : null;
               result.dataFlow.backupHasFunnel = !!backupFunnel && backupFunnel.version === 1 && backupFunnel.events.filter(row => row.name === 'backup_exported').length === 1;
               result.dataFlow.backupHasSessionV2 = Object.prototype.hasOwnProperty.call(backupData, SESSION_KEY) && JSON.parse(backupData[SESSION_KEY]).version === 2;
@@ -490,8 +527,18 @@ final class WebViewController: UIViewController {
               result.dataFlow.shareCardBridgeAvailable = result.dataFlow.nativeBridgeAvailable && typeof sharePracticeCard === 'function';
               result.dataFlow.nativeConfirmAvailable = window.confirm('\(Self.nativeSmokeConfirmMessage)') === true;
               result.dataFlow.reminderStateAvailable = typeof reminder === 'object' && typeof reminder.enabled === 'boolean' && typeof totalPracticeDays === 'function' && Number.isInteger(totalPracticeDays());
+              result.dataFlow.soundStateAvailable = typeof sound === 'object' && sound.enabled === true && typeof soundFeedback === 'function';
               result.dataFlow.funnelStateAvailable = typeof funnel === 'object' && funnel.version === 1 && typeof recordFunnelOnce === 'function' && typeof recordFunnelComparison === 'function';
               result.dataFlow.reminderSettingsRowVisible = getComputedStyle(document.getElementById('reminderSection')).display !== 'none' && getComputedStyle(document.getElementById('reminderRow')).display !== 'none';
+              result.dataFlow.soundSettingsRowVisible = getComputedStyle(document.getElementById('soundRow')).display !== 'none' && document.getElementById('soundState').textContent === '开';
+              const reminderProbeIndex = CARDS.findIndex(card => card.target === '器');
+              const reminderProbeKey = cardKey(reminderProbeIndex);
+              const reminderProbeMemory = cloneObj(memory);
+              memory = { [reminderProbeKey]: { seen: 1, dueDay: today(), pendingLearning: false, lastOutcome: 'miss', misses: 2, ease: 24, last: Date.now() } };
+              const reminderProbe = reminderQuestions(2);
+              syncReminder();
+              result.dataFlow.reminderQuestionPayload = reminderProbe.length === 2 && reminderProbe[0].targetCardKey === reminderProbeKey && reminderDebug.lastSync.targetCardKey === reminderProbeKey && reminderDebug.lastSync.body.includes('点开写写看');
+              memory = reminderProbeMemory;
               const reminderBeforeCalibrationInvite = cloneObj(reminder);
               const pendingBeforeCalibrationInvite = reminderPendingEnable;
               const requestReminderPermissionBeforeSmoke = requestReminderPermission;
@@ -743,11 +790,14 @@ final class WebViewController: UIViewController {
               result.practiceFlow.selfAssessmentControls = visible('uncertainAction') && document.getElementById('decisionUncertain').textContent.includes('记不清') && !visible('softConfirm');
               result.practiceFlow.submissionSnapshotComplete = submissionSnapshot.hintStrokeIds.length > 0 && submissionSnapshot.compositeGeometry.length === submissionSnapshot.hintStrokes.length + submissionSnapshot.inkStrokes.length && submissionSnapshot.lastVerdict.status === 'ok';
 
+              soundDebug.events = [];
+              soundDebug.last = null;
               decideSubmission(true);
               await waitFor(() => stamped && visible('stampedToast'));
               result.practiceFlow.feedbackHeld = currentAttemptId === firstAttempt && document.getElementById('stampedToast').textContent.includes('本组稍后再写');
               result.practiceFlow.reminderSyncAfterStamp = !!(reminderDebug.lastSync && reminderDebug.lastSync.type === 'syncReminder' && reminderDebug.lastSync.practicedToday === true);
               result.practiceFlow.hapticStampRecorded = hapticDebug.last === 'stamp';
+              result.practiceFlow.soundStampRecorded = soundDebug.last === 'stamp' && soundDebug.events.join() === 'stamp';
               result.practiceFlow.hapticHintedSequence = hapticDebug.events.slice();
               result.practiceFlow.outcome = roundStats.length ? roundStats[0].outcome : '';
               const firstFSRSEvents = fsrsReviewLog.slice(fsrsBefore);
@@ -791,11 +841,15 @@ final class WebViewController: UIViewController {
               const traceBox = traceSVG ? traceSVG.getBoundingClientRect() : null;
               result.practiceFlow.traceOutlineVisible = (traceLayer.classList.contains('traceFallback') && traceLayer.textContent.trim() === cur.target) || !!(traceSVG && traceBox.width > 200 && traceBox.height > 200 && Array.from(traceSVG.querySelectorAll('path')).some(node => (node.getAttribute('d') || '').length > 0));
               result.practiceFlow.traceRequiresInk = document.getElementById('traceDone').disabled;
+              soundDebug.events = [];
+              soundDebug.last = null;
+              lastPaperSoundAt = 0;
               if (dispatchStroke) {
                 dispatchStroke();
                 await new Promise(resolve => setTimeout(resolve, 340));
               }
               result.practiceFlow.traceReadyAfterInk = tracedThisCard === true && !document.getElementById('traceDone').disabled;
+              result.practiceFlow.soundPaperRecorded = soundDebug.last === 'paper' && soundDebug.events.join() === 'paper';
               hapticDebug.events = [];
               hapticDebug.last = null;
               finishTracing();
@@ -1045,11 +1099,14 @@ extension WebViewController: WKNavigationDelegate {
     }
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        pageReady = true
+        dispatchPendingReminderTargetIfReady()
         runNativeSmokeIfNeeded()
     }
 
     func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
         nativeSmokeDidRun = false
+        pageReady = false
         loadApp()
     }
 }
@@ -1151,6 +1208,8 @@ extension WebViewController: WKScriptMessageHandler {
             writeNativeSmokeResult(payload)
         case "haptic":
             playHaptic(kind: body["kind"] as? String ?? "")
+        case "sound":
+            playPaperSound(kind: body["kind"] as? String ?? "")
         case "syncReminder":
             syncReminder(body: body)
         case "requestReminderPermission":
@@ -1159,6 +1218,90 @@ extension WebViewController: WKScriptMessageHandler {
             sendReminderStatus()
         default:
             break
+        }
+    }
+}
+
+// MARK: - 纸墨声音：ambient 会随静音键静默，并与其他音频混合
+extension WebViewController {
+    private enum PaperSoundKind {
+        case stamp
+        case paper
+    }
+
+    private func makePaperSoundPlayer(kind: PaperSoundKind) -> AVAudioPlayer? {
+        do {
+            try AVAudioSession.sharedInstance().setCategory(.ambient, mode: .default, options: [.mixWithOthers])
+            let player = try AVAudioPlayer(data: Self.paperSoundData(kind: kind))
+            player.prepareToPlay()
+            return player
+        } catch {
+            return nil
+        }
+    }
+
+    private func playPaperSound(kind: String) {
+        let player: AVAudioPlayer?
+        switch kind {
+        case "stamp":
+            player = stampSoundPlayer
+        case "paper":
+            player = paperSoundPlayer
+        default:
+            return
+        }
+        player?.currentTime = 0
+        player?.play()
+    }
+
+    private static func paperSoundData(kind: PaperSoundKind) -> Data {
+        let sampleRate: UInt32 = 22_050
+        let duration = kind == .stamp ? 0.22 : 0.11
+        let frameCount = Int(Double(sampleRate) * duration)
+        var pcm = Data(capacity: frameCount * 2)
+        var noiseState: UInt32 = kind == .stamp ? 194 : 73
+        var filteredNoise = 0.0
+
+        for index in 0..<frameCount {
+            noiseState = noiseState &* 1_664_525 &+ 1_013_904_223
+            let noise = Double(noiseState) / Double(UInt32.max) * 2 - 1
+            let progress = Double(index) / Double(frameCount)
+            let time = Double(index) / Double(sampleRate)
+            let value: Double
+            if kind == .stamp {
+                filteredNoise = filteredNoise * 0.82 + noise * 0.18
+                let envelope = pow(1 - progress, 2.8)
+                value = (sin(2 * .pi * (82 + 22 * time) * time) * 0.58 + filteredNoise * 0.34) * envelope * 0.42
+            } else {
+                let envelope = pow(1 - progress, 1.4)
+                value = (noise - filteredNoise) * envelope * 0.075
+                filteredNoise = noise
+            }
+            let sample = Int16(clamping: Int(value * Double(Int16.max)))
+            appendLittleEndian(sample, to: &pcm)
+        }
+
+        var wav = Data()
+        wav.append(Data("RIFF".utf8))
+        appendLittleEndian(UInt32(36 + pcm.count), to: &wav)
+        wav.append(Data("WAVEfmt ".utf8))
+        appendLittleEndian(UInt32(16), to: &wav)
+        appendLittleEndian(UInt16(1), to: &wav)
+        appendLittleEndian(UInt16(1), to: &wav)
+        appendLittleEndian(sampleRate, to: &wav)
+        appendLittleEndian(sampleRate * 2, to: &wav)
+        appendLittleEndian(UInt16(2), to: &wav)
+        appendLittleEndian(UInt16(16), to: &wav)
+        wav.append(Data("data".utf8))
+        appendLittleEndian(UInt32(pcm.count), to: &wav)
+        wav.append(pcm)
+        return wav
+    }
+
+    private static func appendLittleEndian<T: FixedWidthInteger>(_ value: T, to data: inout Data) {
+        var littleEndian = value.littleEndian
+        withUnsafeBytes(of: &littleEndian) { bytes in
+            data.append(contentsOf: bytes)
         }
     }
 }
@@ -1190,10 +1333,30 @@ extension WebViewController {
 
 // MARK: - 练习提醒：native 是无状态执行器，开关/习惯时间/已练状态全部由 web 侧下发
 extension WebViewController {
-    private enum ReminderCopy {
-        static let title = "拾字"
-        static let bodies = ["今天的字还没拾。三五分钟，拾几个回来。", "到你平时练字的时候了。"]
-        static let farewell = "好些天没见了，先不打扰。想练的时候，拾字在这儿。"
+    private struct ReminderQuestion {
+        let day: String
+        let title: String
+        let body: String
+        let targetCardKey: String
+
+        init?(_ value: [String: Any]) {
+            guard
+                let day = value["day"] as? String,
+                let title = value["title"] as? String,
+                let body = value["body"] as? String,
+                let targetCardKey = value["targetCardKey"] as? String,
+                !day.isEmpty,
+                !title.isEmpty,
+                !body.isEmpty,
+                !targetCardKey.isEmpty
+            else {
+                return nil
+            }
+            self.day = day
+            self.title = title
+            self.body = body
+            self.targetCardKey = targetCardKey
+        }
     }
 
     private static let reminderIdentifierPrefix = "shizi.reminder."
@@ -1204,6 +1367,7 @@ extension WebViewController {
         let hour = (body["hour"] as? NSNumber)?.intValue ?? 20
         let minute = (body["minute"] as? NSNumber)?.intValue ?? 0
         let practicedToday = body["practicedToday"] as? Bool ?? false
+        let questions = (body["questions"] as? [[String: Any]] ?? []).compactMap(ReminderQuestion.init)
         // 世代号防并发交错：快速开关时旧一轮的 remove/schedule 全部作废，只让最新一轮落地
         reminderSyncGeneration += 1
         let generation = reminderSyncGeneration
@@ -1213,22 +1377,21 @@ extension WebViewController {
                 guard let self, generation == self.reminderSyncGeneration else { return }
                 let ours = requests.map(\.identifier).filter { $0.hasPrefix(Self.reminderIdentifierPrefix) }
                 center.removePendingNotificationRequests(withIdentifiers: ours)
-                guard enabled else { return }
+                guard enabled, !questions.isEmpty else { return }
                 center.getNotificationSettings { settings in
                     DispatchQueue.main.async {
                         guard generation == self.reminderSyncGeneration else { return }
                         // web 侧的 permission 可能来自换机恢复的备份，调度前以本机授权状态为准
                         guard settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional else { return }
-                        Self.scheduleReminderWindow(hour: hour, minute: minute, practicedToday: practicedToday)
+                        Self.scheduleReminderWindow(hour: hour, minute: minute, practicedToday: practicedToday, questions: questions)
                     }
                 }
             }
         }
     }
 
-    // 窗口语义：每次同步总是预约接下来的 7 条（今天不可发就顺延到第 8 个自然日），
-    // 最后一条固定为告别文案 —— 用户 7 条内不打开 App 即自然停发，打开即重置窗口
-    private static func scheduleReminderWindow(hour: Int, minute: Int, practicedToday: Bool) {
+    // 每次同步最多预约接下来的 7 道题；没有有效目标的日期不发送。
+    private static func scheduleReminderWindow(hour: Int, minute: Int, practicedToday: Bool, questions: [ReminderQuestion]) {
         let calendar = Calendar.current
         let now = Date()
         let center = UNUserNotificationCenter.current()
@@ -1236,6 +1399,7 @@ extension WebViewController {
         formatter.calendar = Calendar(identifier: .gregorian)
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.dateFormat = "yyyy-MM-dd"
+        let questionsByDay = Dictionary(questions.map { ($0.day, $0) }, uniquingKeysWith: { first, _ in first })
         var scheduled = 0
         for offset in 0...reminderWindowDays {
             if scheduled == reminderWindowDays { break }
@@ -1244,16 +1408,17 @@ extension WebViewController {
                 let fireDate = calendar.date(bySettingHour: hour, minute: minute, second: 0, of: day)
             else { continue }
             if offset == 0 && (practicedToday || fireDate <= now) { continue }
+            let dayKey = formatter.string(from: fireDate)
+            guard let question = questionsByDay[dayKey] else { continue }
             scheduled += 1
             let content = UNMutableNotificationContent()
-            content.title = ReminderCopy.title
+            content.title = question.title
             content.sound = .default
-            content.body = scheduled == reminderWindowDays
-                ? ReminderCopy.farewell
-                : ReminderCopy.bodies[(scheduled - 1) % ReminderCopy.bodies.count]
+            content.body = question.body
+            content.userInfo = ["targetCardKey": question.targetCardKey]
             let components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: fireDate)
             let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
-            let identifier = reminderIdentifierPrefix + formatter.string(from: fireDate)
+            let identifier = reminderIdentifierPrefix + dayKey
             center.add(UNNotificationRequest(identifier: identifier, content: content, trigger: trigger))
         }
     }

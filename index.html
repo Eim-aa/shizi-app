@@ -856,7 +856,7 @@ function saveFunnel(){ save(FUNNEL_KEY,funnel); }
 function appendFunnelEvent(target,name,onceKey=name,at=Date.now()){ const key=String(onceKey||name); if(target.seen.includes(key)) return false; const ts=Math.max(1,Number(at)||Date.now()); target.seen.push(key); target.events.push({name,at:ts,day:dayKey(new Date(ts))}); return true; }
 function recordFunnelOnce(name,onceKey=name,at=Date.now()){ if(!appendFunnelEvent(funnel,name,onceKey,at)) return false; saveFunnel(); return true; }
 function recordFunnelComparison(attemptId,agree,at=Date.now()){ if(typeof agree!=="boolean") return false; const key=`reveal:${attemptId}`; if(funnel.seen.includes(key)) return false; funnel.seen.push(key); funnel.counts.revealCompared++; if(!agree){ const ts=Math.max(1,Number(at)||Date.now()); funnel.counts.revealDisagree++; funnel.events.push({name:"reveal_disagree",at:ts,day:dayKey(new Date(ts))}); } saveFunnel(); return true; }
-function recordFunnelRound(durationMs){ const key=`round:${roundId}`; if(funnel.seen.includes(key)) return false; funnel.seen.push(key); funnel.rounds.push({completedAt:Date.now(),day:today(),mode:activeMode,durationMs:Math.max(0,Math.round(Number(durationMs)||0)),targetCount:baseTargets.length,attemptCount:attemptSeq}); saveFunnel(); return true; }
+function recordFunnelRound(durationMs){ const key=`round:${roundId}`; if(funnel.seen.includes(key)) return false; funnel.seen.push(key); funnel.rounds.push({completedAt:Date.now(),day:today(),mode:activeMode,durationMs:Math.min(Math.max(0,Math.round(Number(durationMs)||0)),ROUND_DURATION_CAP_MS),targetCount:baseTargets.length,attemptCount:attemptSeq}); saveFunnel(); return true; }
 function projectedFunnelEvent(name,onceKey,at){ const projected=normalizeFunnel(JSON.parse(JSON.stringify(funnel))); appendFunnelEvent(projected,name,onceKey,at); return projected; }
 function maybeRecordD2Return(){ const days=[...new Set(opens.filter(d=>/^\d{4}-\d{2}-\d{2}$/.test(String(d))))].sort(); if(days.length&&today()===shiftDay(days[0],1)) recordFunnelOnce("d2_return"); }
 maybeRecordD2Return();
@@ -970,8 +970,8 @@ let sessionDone=new Set(), baseTargets=[], batch=[], pos=0, baseCursor=0, curren
 let manualQueue=[], reinforcementQueue=[], unresolved=new Set(), episodes={}, attemptSeq=0, practicePhase="recall", hintEverUsed=false, enteredTracingThisAttempt=false, submissionSnapshot=null, pendingSessionVisual=null, feedbackKind="";
 let missedThisRound=[], roundStats=[], focusQueue=[], hintsUsedThisCard=0, cardStartedAt=0, activeMode="new", sessionTarget=0, sessionFastStreak=0, sessionMissStreak=0, roundFeedbackGiven=false, roundId=0, calibrationFirstHoldUsed=false, calibrationComfortShown=false, calibrationTargets=[];
 let summaryFocusIndexes=[];
-let roundElapsedMs=0, roundActiveStartedAt=0, roundBudgetPrompted=false;
-const ROUND_ATTEMPT_BUDGET=20, ROUND_TIME_BUDGET_MS=6*60*1000;
+let roundElapsedMs=0, roundActiveStartedAt=0, roundBudgetPrompted=false, roundTimerPaused=false;
+const ROUND_ATTEMPT_BUDGET=20, ROUND_TIME_BUDGET_MS=6*60*1000, ROUND_DURATION_CAP_MS=60*60*1000;
 function currentCardIndex(){ return Number.isInteger(currentIndex)?currentIndex:(Number.isInteger(batch[pos])?batch[pos]:null); }
 function episodeFor(idx){ const key=String(idx); return episodes[key] || (episodes[key]={idx,firstOutcome:null,attempts:[],assistanceUsed:false,independentlyRecovered:false,excluded:false,teachingComplete:false}); }
 function enqueueReinforcement(idx){ unresolved.add(idx); reinforcementQueue=reinforcementQueue.filter(item=>item.idx!==idx); reinforcementQueue.push({idx,eligibleAfter:attemptSeq+2,order:attemptSeq}); const m=cardMemory(idx); m.pendingLearning=true; m.dueDay=null; m.due=0; }
@@ -1009,7 +1009,7 @@ function restoreSession(s){ if(!s) return false; if(s.version===1) s=migrateV1Se
   missedThisRound=Array.isArray(s.missedThisRound)?s.missedThisRound.slice():[]; roundStats=Array.isArray(s.roundStats)?cloneObj(s.roundStats):[]; focusQueue=Array.isArray(s.focusQueue)?s.focusQueue.slice():[]; sessionDone=new Set(Array.isArray(s.sessionDone)?s.sessionDone:[]);
   sessionTarget=Number(s.sessionTarget)||targetDifficulty(); sessionFastStreak=Number(s.sessionFastStreak)||0; sessionMissStreak=Number(s.sessionMissStreak)||0; roundFeedbackGiven=!!s.roundFeedbackGiven; roundId=s.roundId||Date.now()+"-resume"; calibrationFirstHoldUsed=!!s.calibrationFirstHoldUsed; calibrationComfortShown=!!s.calibrationComfortShown;
   calibrationTargets=activeMode==="calibrate"?[...new Set(Array.isArray(s.calibrationTargets)?s.calibrationTargets:baseTargets.slice(0,BATCH))].filter(i=>Number.isInteger(i)&&baseTargets.includes(i)).slice(0,BATCH):[]; lastStampSnapshot=cloneObj(s.lastStampSnapshot); feedbackKind=s.feedbackKind||"";
-  roundElapsedMs=Math.max(0,Number(s.roundElapsedMs)||0); roundActiveStartedAt=Date.now(); roundBudgetPrompted=!!s.roundBudgetPrompted;
+  roundElapsedMs=Math.max(0,Number(s.roundElapsedMs)||0); roundActiveStartedAt=Date.now(); roundBudgetPrompted=!!s.roundBudgetPrompted; roundTimerPaused=false;
   if(baseCursor>=baseTargets.length && manualQueue.length===0 && unresolved.size===0){ practicePhase="between"; clearSessionSnapshot(); markRoundComplete(); roundSummary(); return true; }
   pendingSessionVisual=cloneObj(s.visual); pos=Math.min(baseCursor,Math.max(0,baseTargets.length-1)); render(); armPracticeHistory(); return true; }
 function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
@@ -1682,7 +1682,7 @@ function freezeSubmissionSnapshot(){ inkEnd(); const hintStrokeIds=curMedians?[.
   submissionSnapshot=Object.freeze(snap); lastVerdict=verdict; return submissionSnapshot; }
 function captureRevealState(){ return cloneObj(submissionSnapshot)||freezeSubmissionSnapshot(); }
 function takeStampSnapshot(){ const idx=currentCardIndex(), key=cardKey(idx);
-  return {position:pos,baseCursor,currentIndex,currentAttemptKind,currentAttemptId,practicePhase,attemptSeq,idx,key,target:CARDS[idx].target,statusValue:status[idx],memoryValue:cloneObj(memory[key]),activityValue:cloneObj(activity),fsrsLogValue:cloneObj(fsrsReviewLog)||[],
+  return {position:pos,baseCursor,currentIndex,currentAttemptKind,currentAttemptId,practicePhase,attemptSeq,idx,key,target:CARDS[idx].target,statusValue:status[idx],memoryValue:cloneObj(memory[key]),activityValue:cloneObj(activity),fsrsLogValue:cloneObj(fsrsReviewLog)||[],funnelValue:cloneObj(funnel),
     baseTargetsValue:baseTargets.slice(),manualQueueValue:cloneObj(manualQueue)||[],queueValue:cloneObj(reinforcementQueue)||[],unresolvedValue:[...unresolved],episodesValue:cloneObj(episodes)||{},sessionDoneValue:[...sessionDone],roundStatsValue:cloneObj(roundStats)||[],missedValue:missedThisRound.slice(),
     sessionTarget,sessionFastStreak,sessionMissStreak,calibrationFirstHoldUsed,calibrationComfortShown,revealState:captureRevealState()}; }
 function restoreStampSnapshot(snap){ if(!snap) return;
@@ -1691,6 +1691,7 @@ function restoreStampSnapshot(snap){ if(!snap) return;
   if(snap.statusValue==null) delete status[snap.idx]; else status[snap.idx]=snap.statusValue; save(DECK_KEY,status);
   if(snap.memoryValue==null) delete memory[snap.key]; else memory[snap.key]=snap.memoryValue; saveMemory();
   fsrsReviewLog=cloneObj(snap.fsrsLogValue)||[]; saveFSRSLog();
+  if(snap.funnelValue){ funnel=cloneObj(snap.funnelValue)||funnel; saveFunnel(); }
   activity=normalizeActivity(cloneObj(snap.activityValue)); saveActivity(); syncReminder();
   roundStats=cloneObj(snap.roundStatsValue)||[]; missedThisRound=(snap.missedValue||[]).slice();
   sessionTarget=snap.sessionTarget; sessionFastStreak=snap.sessionFastStreak; sessionMissStreak=snap.sessionMissStreak;
@@ -1922,7 +1923,7 @@ function startRound(){ if(activeMode==="review" && reviewBudgetRemaining()===0){
   calibrationTargets=activeMode==="calibrate"?baseTargets.slice():[];
   batch=baseTargets; warmStrokeCache(baseTargets.map(i=>CARDS[i].target)); pos=0; baseCursor=0; currentIndex=null; pendingSessionVisual=null; manualQueue=[]; reinforcementQueue=[]; unresolved=new Set(); episodes={}; attemptSeq=0; practicePhase="recall";
   missedThisRound=[]; roundStats=[]; roundFeedbackGiven=false; calibrationFirstHoldUsed=false; calibrationComfortShown=false; lastStampSnapshot=null; hideUndoBar(false); roundId=Date.now()+"-"+Math.random().toString(36).slice(2,7);
-  roundElapsedMs=0; roundActiveStartedAt=Date.now(); roundBudgetPrompted=false;
+  roundElapsedMs=0; roundActiveStartedAt=Date.now(); roundBudgetPrompted=false; roundTimerPaused=false;
   beginAttempt({idx:baseTargets[0],kind:"base"}); saveSessionSnapshot(); armPracticeHistory(); render(); }
 function sumTile(s,i){ const isMiss=s.outcome==="miss", recovered=s.outcome!=="fast"&&s.independentlyRecovered, ui=GRADE_UI[s.outcome];
   return `<button class="sumTile ${isMiss?"miss":""}" data-idx="${s.idx}" aria-label="${esc(s.target)}，首次${esc(ui.func)}${recovered?"，之后已独立写出":""}" style="transform:rotate(${ROTS[i%ROTS.length]}deg); animation-delay:${(i*0.05).toFixed(2)}s"><span class="glyphText">${s.target}</span><span class="dot outcomeMark ${s.outcome}" style="background:${OUTCOME_DOT[s.outcome]}">${OUTCOME_MARK[s.outcome]}</span><small class="meaning">${ui.short}</small>${recovered?'<span class="recover">稳</span>':''}</button>`; }
@@ -1930,7 +1931,7 @@ function renderPracticePocket(indexes, calibration=false){ const unique=[...new 
   summaryFocusIndexes=unique; card.style.display=unique.length?"flex":"none"; if(!unique.length) return;
   chips.innerHTML=unique.slice(0,3).map((idx,k)=>`<span class="pChip" style="transform:rotate(${k%2?3:-4}deg)">${CARDS[idx].target}</span>`).join("");
   title.textContent=`${unique.length} 个字，趁热再拾`; }
-function roundSummary(fromPractice=false){ const durationMs=currentRoundElapsed(); roundElapsedMs=durationMs; roundActiveStartedAt=0; recordFunnelRound(durationMs); clearSessionSnapshot(); markRoundComplete(); releasePracticeHistory(); const milestone=celebrateMilestoneIfAny(); displayView("summary");
+function roundSummary(fromPractice=false){ const durationMs=currentRoundElapsed(); roundElapsedMs=durationMs; roundActiveStartedAt=0; roundTimerPaused=false; recordFunnelRound(durationMs); clearSessionSnapshot(); markRoundComplete(); releasePracticeHistory(); const milestone=celebrateMilestoneIfAny(); displayView("summary");
   $("summaryShare").style.display="block"; $("calibShare").style.display="block";
   $("milestoneLine").style.display=milestone?"block":"none"; if(milestone){ $("milestoneLine").textContent=milestoneCopy(milestone); hapticFeedback("milestone"); }
   else if(fromPractice) hapticFeedback("action");
@@ -2178,7 +2179,10 @@ initBox(); renderHome();
 showSafetyUndo();
 try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(()=>{}); }catch(e){}
 if(reminderBridgeAvailable()){ syncReminder(); queryReminderStatus(); }
-document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="hidden" && baseTargets.length && $("card").style.display!=="none") saveSessionSnapshot(); });
+document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="hidden"){
+    if(roundActiveStartedAt){ roundElapsedMs=currentRoundElapsed(); roundActiveStartedAt=0; roundTimerPaused=true; }  // 后台/锁屏期间停表，空转墙钟不计入组时长
+    if(baseTargets.length && $("card").style.display!=="none") saveSessionSnapshot();
+  } else if(roundTimerPaused){ roundActiveStartedAt=Date.now(); roundTimerPaused=false; } });
 // 视口尺寸变化明显（旋转、分屏、加载时序）时重建写字区。正在写的卡不动（别丢笔迹）：
 // 非卡片视图立即重建；卡片视图里每张新卡 render() 前都会 fitBox()，下一张自动适配
 function fitBox(){ const n=idealBoxSize(); if(Math.abs(n-S)>=24){ S=n; $("boxwrap").innerHTML=""; initBox(); } }

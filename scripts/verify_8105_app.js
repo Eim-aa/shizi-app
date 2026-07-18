@@ -30,6 +30,8 @@ function assert(condition, message, details) {
 assert(swSource.includes("shizi-v9") && swSource.includes("Promise.allSettled") && swSource.includes("INSTALL_BATCH_SIZE = 40") && swSource.includes("cacheCoreStrokes"), "Expected versioned, batched, failure-tolerant core stroke installation");
 assert(coreStrokeSource.includes("SHIZI_CORE_STROKES") && coreStrokeSource.includes("slice(0,600)"), "Expected a generated 600-character core stroke list");
 assert(!source.includes("sendBeacon") && !/method\s*:\s*["']POST["']/.test(source), "Expected the local funnel to add no analytics beacon or POST request");
+assert(/funnelValue\s*:\s*cloneObj\(funnel\)/.test(source) && /funnel\s*=\s*cloneObj\(snap\.funnelValue\)/.test(source), "Expected the stamp undo snapshot to capture and restore the local funnel");
+assert(source.includes("ROUND_DURATION_CAP_MS") && /durationMs\s*:\s*Math\.min\(/.test(source), "Expected the round duration to be capped client-side against background/idle inflation");
 
 function verifyBackupSummaryScript() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "shizi-funnel-"));
@@ -121,6 +123,51 @@ let browser;
     && funnelBoundary.counts.revealCompared === 2 && funnelBoundary.counts.revealDisagree === 1 && funnelBoundary.rounds.length === 1 && funnelBoundary.rounds[0].durationMs === 90000
     && funnelBoundary.devCopy.includes("本地漏斗") && funnelBoundary.devCopy.includes("平均 90 秒") && funnelBoundary.projectedBackup === 1 && funnelBoundary.localBackup === 0 && funnelBoundary.noDuplicateAfterRestore && funnelBoundary.hasFunnelKey,
   "Expected idempotent local funnel, projected successful-export event, and backup allowlist", funnelBoundary);
+
+  const undoFunnel = await page.evaluate(() => {
+    const original = JSON.parse(JSON.stringify(funnel));
+    funnel = newFunnel(); saveFunnel();
+    const preStamp = JSON.parse(JSON.stringify(funnel));           // 盖章前的 funnel，正是 takeStampSnapshot 通过 funnelValue:cloneObj(funnel) 捕获的
+    recordFunnelComparison("verify-undo", false, Date.now());       // 误盖“没写出”，与系统“判定 ok”分歧
+    const afterDisagree = { ...funnel.counts };
+    funnel = JSON.parse(JSON.stringify(preStamp)); saveFunnel();    // 撤销：restoreStampSnapshot 用 funnelValue 回滚 funnel
+    const afterUndo = { ...funnel.counts, seenHasKey: funnel.seen.includes("reveal:verify-undo") };
+    recordFunnelComparison("verify-undo", true, Date.now());        // 改盖“秒过”，与系统一致——修正后不应仍算分歧
+    const afterAgree = { ...funnel.counts };
+    funnel = normalizeFunnel(original); saveFunnel();
+    return { afterDisagree, afterUndo, afterAgree };
+  });
+  assert(undoFunnel.afterDisagree.revealCompared === 1 && undoFunnel.afterDisagree.revealDisagree === 1
+    && undoFunnel.afterUndo.revealCompared === 0 && undoFunnel.afterUndo.revealDisagree === 0 && !undoFunnel.afterUndo.seenHasKey
+    && undoFunnel.afterAgree.revealCompared === 1 && undoFunnel.afterAgree.revealDisagree === 0,
+  "Expected undo to roll back the funnel comparison so a corrected re-stamp is not counted as a system disagreement", undoFunnel);
+
+  const exportCommit = await page.evaluate(async () => {
+    const originalFunnel = JSON.parse(JSON.stringify(funnel)), originalMeta = JSON.parse(JSON.stringify(backupMeta));
+    const hadCanShare = Object.prototype.hasOwnProperty.call(navigator, "canShare"), hadShare = Object.prototype.hasOwnProperty.call(navigator, "share");
+    const localExports = () => funnel.events.filter((row) => row.name === "backup_exported").length;
+    try {
+      funnel = newFunnel(); saveFunnel();
+      const before = localExports();
+      navigator.canShare = () => true; navigator.share = () => Promise.resolve();  // 系统分享成功
+      await exportBackup();
+      const afterSuccess = localExports();                                          // 成功后本机落账一次
+      await exportBackup();
+      const afterRepeat = localExports();                                           // 再次导出幂等，不重复落账
+      funnel = newFunnel(); saveFunnel();
+      navigator.share = () => Promise.reject(Object.assign(new Error("cancelled"), { name: "AbortError" }));  // 用户取消分享
+      await exportBackup();
+      const afterCancel = localExports();                                           // 取消不落账
+      return { before, afterSuccess, afterRepeat, afterCancel };
+    } finally {
+      if (!hadCanShare) delete navigator.canShare;
+      if (!hadShare) delete navigator.share;
+      funnel = normalizeFunnel(originalFunnel); saveFunnel(); backupMeta = originalMeta; save(BACKUP_META_KEY, backupMeta);
+    }
+  });
+  assert(exportCommit.before === 0 && exportCommit.afterSuccess === 1 && exportCommit.afterRepeat === 1 && exportCommit.afterCancel === 0,
+  "Expected a successful share to commit backup_exported locally once (idempotent) and a cancelled share to not commit", exportCommit);
+
   const restoreChooser = page.waitForEvent("filechooser");
   await page.click("#welcomeRestore");
   assert(!!(await restoreChooser), "Expected the first-run restore entry to open the backup picker");

@@ -166,7 +166,7 @@ checks = {
     and navigation.get("profileHasNoDuplicateChars") is True,
     "homeCapture": navigation.get("homeCaptureVisible") is True,
     "navAudit": navigation.get("auditVisible") is dev_mode
-    and navigation.get("auditReturnedToMe") is dev_mode,
+    and navigation.get("auditReturnedToSettings") is dev_mode,
     "practiceStarted": practice.get("started") is True,
     "practiceBatch": int(practice.get("batchSize") or 0) >= 2,
     "practiceCardVisible": practice.get("cardVisible") is True,

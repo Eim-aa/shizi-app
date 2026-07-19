@@ -59,12 +59,49 @@ let browser;
   const wall43 = await page.evaluate(() => ({ count: memoryWall.querySelectorAll(".memoryChar").length, columns: getComputedStyle(memoryWall).gridTemplateColumns.split(" ").length, labels: memoryWall.querySelectorAll(".dot,.outcomeMark").length, curator: bookCuratorData(profileIndexes()).kind, countText: boxCount.textContent.trim() }));
   assert(wall43.count === 43 && wall43.columns === 6 && wall43.labels === 0 && wall43.curator === "action" && wall43.countText === "43 字", "Expected a 43-character six-column memory wall with action curation", wall43);
 
+  const chronology = await page.evaluate(() => {
+    const savedMemory = cloneObj(memory), savedStatus = cloneObj(status), savedLog = cloneObj(fsrsReviewLog);
+    const [newer, older] = allIndexes().slice(0, 2), year = Number(today().slice(0, 4)), olderDay = `${year - 1}-01-15`, newerDay = `${year}-06-10`;
+    memory = {
+      [cardKey(newer)]: { seen: 1, last: dayStartMs(newerDay), streak: 2, lastOutcome: "fast", dueDay: shiftDay(today(), 5), fsrsCard: { stability: 8 } },
+      [cardKey(older)]: { seen: 3, last: Date.now(), streak: 2, lastOutcome: "fast", dueDay: shiftDay(today(), 5), fsrsCard: { stability: 8 } }
+    };
+    status = { [newer]: "rest", [older]: "rest" };
+    fsrsReviewLog = [
+      { cardKey: cardKey(older), localDay: olderDay, reviewedAt: `${olderDay}T08:00:00.000Z` },
+      { cardKey: cardKey(older), localDay: today(), reviewedAt: `${today()}T08:00:00.000Z` },
+      { cardKey: cardKey(newer), localDay: newerDay, reviewedAt: `${newerDay}T08:00:00.000Z` }
+    ];
+    const snapshot = () => ({
+      order: Array.from(memoryWall.querySelectorAll(".memoryChar")).map((node) => Number(node.dataset.idx)),
+      olderMonth: memoryWall.querySelector(`[data-idx="${older}"] .monthTick`)?.textContent || "",
+      olderDay: firstSeenDay(older)
+    });
+    renderBook(); const before = snapshot();
+    memory[cardKey(older)].last = Date.now() + 100000;
+    fsrsReviewLog.push({ cardKey: cardKey(older), localDay: today(), reviewedAt: `${today()}T12:00:00.000Z` });
+    renderBook(); const after = snapshot();
+    memory = savedMemory; status = savedStatus; fsrsReviewLog = savedLog; renderBook();
+    return { before, after, expectedOlderDay: olderDay };
+  });
+  assert(JSON.stringify(chronology.before.order) === JSON.stringify(chronology.after.order) && chronology.before.olderMonth === "1月" && chronology.after.olderMonth === "1月" && chronology.before.olderDay === chronology.expectedOlderDay && chronology.after.olderDay === chronology.expectedOlderDay, "Expected an old character review to preserve collection order and month", chronology);
+
   await page.click("#memoryWall .memoryChar");
   const detail = await page.evaluate(() => ({ open: charSheet.classList.contains("open"), story: charDetailStory.textContent, noInk: charDetailEmpty.textContent, practice: charDetailPractice.textContent }));
   assert(detail.open && detail.story.includes("练过") && detail.noInk.includes("写一遍") && detail.practice === "再写一遍", "Expected the factual character detail fallback", detail);
   await page.click("#charDetailCompareToggle");
   assert(await page.evaluate(() => getComputedStyle(charDetailStandard).display === "flex"), "Expected standard-character comparison in the detail sheet");
-  await page.evaluate(() => closeCharSheet());
+  const swipe = await page.evaluate(() => {
+    const panel = document.querySelector("#charSheet .charSheet"), handle = panel.querySelector(".sheetHandle"), head = panel.querySelector(".charDetailHead"), ink = panel.querySelector(".charDetailInk");
+    const fire = (target, type, y) => { const event = new Event(type, { bubbles: true, cancelable: true }); Object.defineProperty(event, type === "touchstart" ? "touches" : "changedTouches", { value: [{ clientY: y }] }); target.dispatchEvent(event); };
+    panel.style.maxHeight = "180px"; panel.scrollTop = 40;
+    fire(head, "touchstart", 100); fire(head, "touchend", 190); const scrolledContentStayed = charSheet.classList.contains("open");
+    panel.scrollTop = 0;
+    fire(ink, "touchstart", 100); fire(ink, "touchend", 190); const contentStayed = charSheet.classList.contains("open");
+    fire(handle, "touchstart", 100); fire(handle, "touchend", 190); const handleClosed = !charSheet.classList.contains("open");
+    panel.style.maxHeight = ""; return { scrolledContentStayed, contentStayed, handleClosed };
+  });
+  assert(swipe.scrolledContentStayed && swipe.contentStayed && swipe.handleClosed, "Expected detail-sheet dismissal only from its top drag zone at scrollTop zero", swipe);
 
   const searchTargets = await page.evaluate(() => [CARDS[0].target, CARDS[100].target]);
   await page.fill("#bookSearchInput", searchTargets[0]);
@@ -101,6 +138,15 @@ let browser;
   await page.waitForTimeout(120);
   const me = await page.evaluate(() => ({ groups: [meCalendar, openProfile, document.querySelector(".meMonthCard"), document.querySelector(".mePrimaryRows"), annualReportLink].filter(Boolean).length, noStats: !document.querySelector(".meStats"), calendar: calendarGrid.querySelectorAll(".calendarDay").length, thumb: meMonthPreview.getAttribute("src") || "", backup: backupStatus.textContent }));
   assert(me.groups === 5 && me.noStats && me.calendar >= 28 && me.thumb.startsWith("data:image/") && me.backup.length > 0, "Expected the five-group study My page with a live monthly thumbnail", me);
+  const insight = await page.evaluate(() => {
+    const indexes = profileIndexes(), savedMemory = cloneObj(memory);
+    indexes.slice(0, 12).forEach((idx, index) => { memory[cardKey(idx)].misses = index < 4 ? 3 : 0; });
+    renderProfile(); const primary = primaryProfileInsight(indexes), topic = profileGroups(indexes, cardTopic)[0], structure = profileGroups(indexes, structureLabel)[0], level = profileGroups(indexes, abilityLevel)[0], copy = `${profileAdvice.textContent} ${profilePanel.querySelector(".profileHero p").textContent}`;
+    const secondaryLabels = [structure && structure.label, level && level.label].filter((label) => label && label !== primary.label);
+    memory = savedMemory; renderMe();
+    return { kind: primary.kind, primary: primary.label, includesPrimary: copy.includes(primary.label), secondaryLabels, includedSecondary: secondaryLabels.filter((label) => copy.includes(label)), copy, topic: topic && topic.label };
+  });
+  assert(insight.kind === "topic" && insight.primary === insight.topic && insight.includesPrimary && insight.includedSecondary.length === 0, "Expected profile guidance to mention only the fixed-priority primary insight", insight);
   await page.click("#openSettings");
   const settings = await page.evaluate(() => ({ visible: getComputedStyle(settingsPanel).display !== "none", groups: Array.from(settingsPanel.querySelectorAll(".meLabel")).map((node) => node.textContent), dangerous: getComputedStyle(resetLink).color, normal: getComputedStyle(exportLink).color, dev: getComputedStyle(devTools).display }));
   assert(settings.visible && settings.groups.includes("练习") && settings.groups.includes("显示") && settings.groups.includes("数据") && settings.dangerous !== settings.normal && settings.dev === "none", "Expected functional grouped settings with a distinct destructive action", settings);

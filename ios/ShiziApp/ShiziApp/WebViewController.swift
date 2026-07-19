@@ -283,7 +283,7 @@ final class WebViewController: UIViewController {
               monthlyRhythmVisible: false,
               homeCaptureVisible: false,
               auditVisible: false,
-              auditReturnedToMe: false
+              auditReturnedToSettings: false
             },
             practiceFlow: {
               started: false,
@@ -371,7 +371,11 @@ final class WebViewController: UIViewController {
             result.layoutFlow.keyboardInsetVar = /^\\d+px$/.test(getComputedStyle(document.documentElement).getPropertyValue('--keyboard-inset').trim());
             result.layoutFlow.visualViewportAvailable = !!window.visualViewport;
             if (typeof renderMe === 'function') renderMe();
-            result.devToolsDisplay = getComputedStyle(document.getElementById('devTools')).display;
+            if (typeof renderSettings === 'function') {
+              renderSettings(false);
+              result.devToolsDisplay = getComputedStyle(document.getElementById('devTools')).display;
+              renderMe();
+            }
             result.localStoragePersistedFromPreviousLaunch = localStorage.getItem('shizi.nativeSmoke.v1') !== null;
             localStorage.setItem('shizi.nativeSmoke.v1', new Date().toISOString());
             result.localStorageWritable = localStorage.getItem('shizi.nativeSmoke.v1') !== null;
@@ -434,8 +438,8 @@ final class WebViewController: UIViewController {
                 await waitFor(() => visible('auditPanel'));
                 result.navigationFlow.auditVisible = visible('auditPanel');
                 document.getElementById('closeAudit').click();
-                await waitFor(() => visible('mePanel'));
-                result.navigationFlow.auditReturnedToMe = true;
+                await waitFor(() => visible('settingsPanel'));
+                result.navigationFlow.auditReturnedToSettings = true;
               }
 
               document.getElementById('tabPractice').click();

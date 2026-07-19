@@ -1566,11 +1566,14 @@ function startMode(mode){ const resume=resumableSession(); if(resume){ restoreSe
 function startFocus(indexes){ focusQueue=[...new Set((indexes||highRiskIndexes()).filter(i=>i>=0 && i<CARDS.length))]; if(!focusQueue.length){ renderHome(); return; }
   clearSessionSnapshot(); activeMode="focus"; makeupTargetDay=""; sessionDone=new Set(); startRound(); }
 // ---- 单字详情：收藏先讲故事，再由用户决定是否重写 ----
-let charDetailIndex=-1, charDetailWriter=null, charDetailTouchY=null;
+let charDetailIndex=-1, charDetailWriter=null, charDetailTouchY=null, charDetailSwipeEligible=false;
 const OUTCOME_STORY={fast:"上次独立写出",hinted:"上次看提示写出",slow:"上次写错了",miss:"上次没写出来"};
-function firstSeenDay(i){ const key=cardKey(i), event=fsrsReviewLog.filter(row=>row&&row.cardKey===key&&/^\d{4}-\d{2}-\d{2}$/.test(String(row.localDay||""))).sort((a,b)=>String(a.reviewedAt||"").localeCompare(String(b.reviewedAt||"")))[0];
-  if(event) return event.localDay; const m=memory[key]||{}, fallback=Number(m.firstSeenAt)||Number(m.last)||0; return fallback?dayKey(new Date(fallback)):""; }
-function closeCharSheet(){ $("charSheet").classList.remove("open"); charDetailWriter=null; $("charDetailStroke").innerHTML=""; $("charDetailStroke").style.display="none"; charDetailTouchY=null; }
+function firstSeenRecord(i){ const key=cardKey(i), events=fsrsReviewLog.filter(row=>row&&row.cardKey===key&&/^\d{4}-\d{2}-\d{2}$/.test(String(row.localDay||"")));
+  events.sort((a,b)=>(Date.parse(a.reviewedAt)||dayStartMs(a.localDay))-(Date.parse(b.reviewedAt)||dayStartMs(b.localDay))); const event=events[0],m=memory[key]||{},fallback=Number(m.firstSeenAt)||Number(m.last)||0;
+  if(event) return {day:event.localDay,at:Date.parse(event.reviewedAt)||dayStartMs(event.localDay)}; return {day:fallback?dayKey(new Date(fallback)):"",at:fallback}; }
+function firstSeenDay(i){ return firstSeenRecord(i).day; }
+function firstSeenAt(i){ return firstSeenRecord(i).at; }
+function closeCharSheet(){ $("charSheet").classList.remove("open"); charDetailWriter=null; $("charDetailStroke").innerHTML=""; $("charDetailStroke").style.display="none"; charDetailTouchY=null; charDetailSwipeEligible=false; }
 function openCharSheet(i){ if(!Number.isInteger(i)||i<0||i>=CARDS.length) return; charDetailIndex=i; const c=CARDS[i],m=memory[cardKey(i)]||{},recent=m.recentInk&&m.recentInk.dataURL,first=firstSeenDay(i);
   $("charDetailGlyph").innerHTML=recent?`<img src="${recent}" alt="${esc(c.target)}的手写墨迹">`:esc(c.target);
   $("charDetailWord").textContent=c.word||c.target; $("charDetailPy").textContent=c.py||"";
@@ -1596,11 +1599,11 @@ function bookCuratorData(seen){ const due=seen.filter(reviewDue).sort(compareRev
   return {kind:"empty",indexes:[],text:"第一枚章，会在这里慢慢显出墨色",suffix:""}; }
 function openBook(){ renderBook(); }
 function renderBook(){ displayView("book");
-  const seen=profileIndexes().sort((a,b)=>((memory[cardKey(b)]||{}).last||0)-((memory[cardKey(a)]||{}).last||0));
+  const seen=profileIndexes().sort((a,b)=>firstSeenAt(b)-firstSeenAt(a)||a-b);
   $("boxCount").textContent=`${seen.length} 字`;
   const curator=bookCuratorData(seen); bookCuratorIndexes=curator.indexes; bookCuratorKind=curator.kind; $("bookCurator").innerHTML=`${esc(curator.text)} ${curator.suffix?`<span>${curator.suffix}</span>`:""}`; $("bookCurator").disabled=!curator.indexes.length;
   updateBookBadge();
-  let lastMonth=""; $("memoryWall").innerHTML=seen.length?seen.map((i,k)=>{ const m=memory[cardKey(i)]||{},month=m.last?dayKey(new Date(m.last)).slice(0,7):"", tick=month&&month!==lastMonth; lastMonth=month; const label=tick?`${Number(month.slice(5))}月`:"";
+  let lastMonth=""; $("memoryWall").innerHTML=seen.length?seen.map((i,k)=>{ const month=firstSeenDay(i).slice(0,7), tick=month&&month!==lastMonth; lastMonth=month; const label=tick?`${Number(month.slice(5))}月`:"";
     return `<button class="memoryChar" data-idx="${i}" aria-label="${esc(CARDS[i].target)}，${esc(CARDS[i].word)}" style="color:var(--memory-${memoryInkLevel(i)});transform:rotate(${ROTS[k%ROTS.length]/2}deg)">${esc(CARDS[i].target)}${label?`<span class="monthTick">${label}</span>`:""}</button>`; }).join(""):`<div class="memoryWallEmpty">字盒还空着。<br>拾一组字，墨色会从这里长出来。</div>`; }
 function handleBookSearch(){ const text=$("bookSearchInput").value.trim(),ch=Array.from(text).find(isCJK); if(!ch){ toast("输入一个想找的字"); return; } const base=BASE_BY_CHAR[ch],custom=customIndexOf(ch),idx=base!=null?base:custom; if(idx>=0&&hasMemory(idx)){ openCharSheet(idx); return; } openAddSheet(); $("addInput").value=text; renderAddPreview(); }
 function esc(s){ return String(s).replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch])); }
@@ -1620,14 +1623,16 @@ function profileGroupRows(indexes, labelFn, kind, limit=5){ const groups=profile
   </button>`).join(""); }
 function profileAdvice(indexes){ if(!indexes.length) return "先完成一组 15 字练习。系统会根据你盖的章，逐渐判断哪些主题、结构和难度层最容易让你提笔卡住。";
   if(!profileSampleReady(indexes)) return "样本还少，先拾几组。这里暂时只列真实卡过的字，不做主题或结构排名。";
-  const topic=profileGroups(indexes,cardTopic)[0], level=profileGroups(indexes,abilityLevel)[0], structure=profileGroups(indexes,structureLabel)[0], risk=highRiskCount();
-  const bits=[]; if(topic) bits.push(`${topic.label}主题`); if(level) bits.push(`${level.label}难度`); if(structure) bits.push(`${structure.label}`);
-  return risk>0?`建议顺序：先把 ${risk} 个待拾回的字拿下，再专项练 ${bits.join("、")}。这样比随机刷字拾回得更快。`:`目前最值得观察的是 ${bits.join("、")}。继续练几组，这里会把真正反复卡住的字挑出来。`; }
+  const insight=primaryProfileInsight(indexes), risk=highRiskCount();
+  return risk>0?`先把 ${risk} 个待拾回的字拿下，再留意${insight.text}。`:`目前最值得留意的是${insight.text}。`; }
+function primaryProfileInsight(indexes){ const topic=profileGroups(indexes,cardTopic)[0]; if(topic) return {kind:"topic",label:topic.label,text:`${topic.label}里的字`};
+  const structure=profileGroups(indexes,structureLabel)[0]; if(structure) return {kind:"structure",label:structure.label,text:`${structure.label}的字`};
+  const level=profileGroups(indexes,abilityLevel)[0]; if(level) return {kind:"level",label:level.label,text:`${level.label}的字`}; return {kind:"none",label:"",text:"最近写过的字"}; }
 function profileDiagnosis(indexes){ if(!indexes.length) return {title:"先拾一组字", body:"写完一组后，真正忘过的字会留在这里。", action:"先拾一组", disabled:true};
-  const risk=highRiskCount(), topic=profileGroups(indexes,cardTopic)[0], level=profileGroups(indexes,abilityLevel)[0], structure=profileGroups(indexes,structureLabel)[0];
+  const risk=highRiskCount();
   if(!profileSampleReady(indexes)) return {title:"样本还少，先拾几组",body:`已练 ${indexes.length} 个字，记录 ${indexes.reduce((sum,i)=>sum+hardCount(i),0)} 次卡住。先看具体字，不急着下结论。`,action:risk?"去字盒看":"继续观察",disabled:!risk};
-  const bits=[]; if(topic) bits.push(`${topic.label}主题`); if(level) bits.push(`${level.label}字`); if(structure) bits.push(structure.label);
-  if(risk>0) return {title:`今天先拾回 ${risk} 个字`, body:`最常卡在 ${bits.join("、")}。先去字盒看看这些字，再决定从哪里开始。`, action:"去字盒看", disabled:false};
+  const insight=primaryProfileInsight(indexes);
+  if(risk>0) return {title:`今天先拾回 ${risk} 个字`, body:`最近最常忘的是${insight.text}。`, action:"去字盒看", disabled:false};
   return {title:"目前没有待拾回的字", body:`已练过 ${indexes.length} 个字。继续拾几组后，我会把反复卡住的模式排到最前面。`, action:"继续观察", disabled:true}; }
 let profileReturnView="me";
 function openProfile(source="me"){ profileReturnView=source; renderProfile(); }
@@ -2320,8 +2325,8 @@ $("charDetailCompareToggle").onclick=toggleCharDetailCompare;
 $("charDetailStrokeBtn").onclick=replayCharDetail;
 $("charDetailPractice").onclick=()=>{ const idx=charDetailIndex; closeCharSheet(); startFocus([idx]); };
 $("charSheet").onclick=e=>{ if(e.target===$("charSheet")) closeCharSheet(); };
-$("charSheet").addEventListener("touchstart",e=>{ if(e.touches.length===1) charDetailTouchY=e.touches[0].clientY; },{passive:true});
-$("charSheet").addEventListener("touchend",e=>{ if(charDetailTouchY==null||!e.changedTouches.length) return; const dy=e.changedTouches[0].clientY-charDetailTouchY; charDetailTouchY=null; if(dy>70) closeCharSheet(); },{passive:true});
+$("charSheet").addEventListener("touchstart",e=>{ const panel=e.target.closest&&e.target.closest(".charSheet"), startZone=e.target.closest&&e.target.closest(".sheetHandle,.charDetailHead"); charDetailSwipeEligible=e.touches.length===1&&!!panel&&panel.scrollTop<=0&&!!startZone; charDetailTouchY=charDetailSwipeEligible?e.touches[0].clientY:null; },{passive:true});
+$("charSheet").addEventListener("touchend",e=>{ const panel=e.target.closest&&e.target.closest(".charSheet"), eligible=charDetailSwipeEligible&&panel&&panel.scrollTop<=0; charDetailSwipeEligible=false; if(!eligible||charDetailTouchY==null||!e.changedTouches.length){ charDetailTouchY=null; return; } const dy=e.changedTouches[0].clientY-charDetailTouchY; charDetailTouchY=null; if(dy>70) closeCharSheet(); },{passive:true});
 
 function systemAgreementStats(){ const rows=Object.values(memory).filter(m=>m&&typeof m.lastSystemAgree==="boolean"), disagree=rows.filter(m=>m.lastSystemAgree===false).length;
   return {total:rows.length,disagree,rate:rows.length?Math.round(disagree/rows.length*100):0}; }

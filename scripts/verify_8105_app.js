@@ -232,15 +232,15 @@ let browser;
   const rhythmAndMilestones = await page.evaluate(() => {
     const monthStart = `${today().slice(0, 7)}-01`, thisMonth = [...new Set([monthStart, today()])], previousMonth = shiftDay(monthStart, -1);
     activity = newActivity(); activity.inheritedStreak = 0; activity.inheritedTotalDays = 0; activity.daily = {}; activity.practiceDays = [...thisMonth, previousMonth].sort();
-    activity.practiceDays.forEach((key, i) => { activity.daily[key] = { stamps: 1, attempts: 1, targetKeys: [`rhythm:${i}`], completedRoundIds: [], lastStampAt: Date.now() }; }); saveActivity(); renderMonthSignal();
-    const monthly = { count: monthPracticeDays(), expected: thisMonth.length, copy: monthSignal.textContent };
+    activity.practiceDays.forEach((key, i) => { activity.daily[key] = { stamps: 1, attempts: 1, targetKeys: [`rhythm:${i}`], completedRoundIds: [], lastStampAt: Date.now() }; }); saveActivity(); calendarMonthKey = today().slice(0, 7); renderCalendar();
+    const monthly = { count: monthPracticeDays(), expected: thisMonth.length, copy: calendarMonthStat.textContent };
     activity = newActivity(); activity.inheritedStreak = 0; activity.daily = {}; activity.practiceDays = [];
     reminder.milestonesShown = []; activity.inheritedTotalDays = 14; const day14 = celebrateMilestoneIfAny(), repeat14 = celebrateMilestoneIfAny(), shown14 = reminder.milestonesShown.slice();
     reminder.milestonesShown = []; activity.inheritedTotalDays = 250; const skipped250 = celebrateMilestoneIfAny(), shown250 = reminder.milestonesShown.slice();
     reminder.milestonesShown = [1, 7, 14, 30, 100, 200]; activity.inheritedTotalDays = 300; const day300 = celebrateMilestoneIfAny(), repeat300 = celebrateMilestoneIfAny(), copy300 = milestoneCopy(300);
     return { monthly, schedule: milestoneDaysThrough(350), day14, repeat14, shown14, skipped250, shown250, day300, repeat300, copy300 };
   });
-  assert(rhythmAndMilestones.monthly.count === rhythmAndMilestones.monthly.expected && rhythmAndMilestones.monthly.copy === `本月拾了 ${rhythmAndMilestones.monthly.expected} 天`
+  assert(rhythmAndMilestones.monthly.count === rhythmAndMilestones.monthly.expected && rhythmAndMilestones.monthly.copy.startsWith(`本月 ${rhythmAndMilestones.monthly.expected} 天 · 累计`)
     && rhythmAndMilestones.schedule.join() === "1,7,14,30,100,200,300" && rhythmAndMilestones.day14 === 14 && rhythmAndMilestones.repeat14 === null && rhythmAndMilestones.shown14.join() === "1,7,14"
     && rhythmAndMilestones.skipped250 === null && rhythmAndMilestones.shown250.join() === "1,7,14,30,100,200" && rhythmAndMilestones.day300 === 300 && rhythmAndMilestones.repeat300 === null && rhythmAndMilestones.copy300.includes("300"),
   "Expected penalty-free monthly rhythm, one-time day-14 celebration, silent inherited catch-up, and every-100 continuation", rhythmAndMilestones);
@@ -417,7 +417,7 @@ let browser;
     let exhaustedRedirect = false; renderHome = () => { exhaustedRedirect = true; }; startRound();
     render = originalRender; renderHome = originalRenderHome; toast = originalToast; warmStrokeCache = originalWarm; armPracticeHistory = originalArm;
     const selected = [...first, ...second], topPriority = selected.join() === expectedTop.join(), noDuplicates = new Set(selected).size === DAILY_REVIEW_BUDGET;
-    renderHome(); const homeCopy = `${homeTitle.textContent} ${startCap.textContent} ${boxStat.textContent}`; const homeNoDebt = !startCap.textContent.includes("200 个到期") && !startCap.textContent.includes("还剩 170");
+    renderHome(); const homeCopy = `${homeTitle.textContent} ${startCap.textContent} ${yesterLbl.textContent}`; const homeNoDebt = !startCap.textContent.includes("200 个到期") && !startCap.textContent.includes("还剩 170");
     const originalStartMode = startMode; let entry = ""; startMode = (mode) => { entry = mode; }; startBtn.onclick(); startMode = originalStartMode;
     const persisted = cloneObj(dailyActivity().reviewTargetKeys);
     memory = saved.memory; status = saved.status; quality = saved.quality; activity = normalizeActivity(saved.activity); tuning = saved.tuning; sessionDone = new Set(saved.sessionDone); activeMode = saved.activeMode; baseTargets = saved.baseTargets; batch = saved.batch;
@@ -542,12 +542,13 @@ let browser;
 
   await page.click("#homeAdd");
   const homeCapture = await page.evaluate(() => ({ open: addSheet.classList.contains("open"), label: homeAdd.textContent.replace(/\s+/g, ""), mainVisible: getComputedStyle(startBtn).display !== "none" }));
-  assert(homeCapture.open && homeCapture.label === "＋刚才忘了个字" && homeCapture.mainVisible, "Expected a secondary home capture entry to open the existing add sheet", homeCapture);
+  assert(homeCapture.open && homeCapture.label === "＋加字" && homeCapture.mainVisible, "Expected the compact home add entry to open the existing add sheet", homeCapture);
   await page.click("#addCancel");
 
   await page.click("#tabMe");
-  const me = await page.evaluate(() => ({ visible: getComputedStyle(mePanel).display !== "none", devHidden: getComputedStyle(devTools).display === "none", reminderHidden: getComputedStyle(reminderSection).display === "none" }));
-  assert(me.visible && me.devHidden && me.reminderHidden, "Expected normal My page without development tools", me);
+  const me = await page.evaluate(() => ({ visible: getComputedStyle(mePanel).display !== "none", calendar: !!calendarGrid.querySelector(".calendarDay"), groups: [meCalendar, openProfile, document.querySelector(".meMonthCard"), document.querySelector(".mePrimaryRows"), annualReportLink].filter(Boolean).length, noStats: !document.querySelector(".meStats"), settingsHidden: getComputedStyle(settingsPanel).display === "none" }));
+  assert(me.visible && me.calendar && me.groups === 5 && me.noStats && me.settingsHidden, "Expected My to contain calendar, weak words, monthly work, two rows, and annual footer without naked statistic cards", me);
+  await page.click("#openSettings");
   const soundBefore = await page.evaluate(() => { const payload = JSON.parse(backupPayload()); return { pressed: soundRow.getAttribute("aria-pressed"), state: soundState.textContent, enabled: sound.enabled, backedUp: Object.prototype.hasOwnProperty.call(payload.data, SOUND_KEY) }; });
   await page.click("#soundRow");
   const soundOff = await page.evaluate(() => { const contexts = soundDebug.contextCreated, events = soundDebug.events.length, played = soundFeedback("stamp"), payload = JSON.parse(backupPayload()); return { pressed: soundRow.getAttribute("aria-pressed"), state: soundState.textContent, enabled: sound.enabled, played, contextsBefore: contexts, contextsAfter: soundDebug.contextCreated, eventsBefore: events, eventsAfter: soundDebug.events.length, stored: JSON.parse(payload.data[SOUND_KEY]) }; });
@@ -555,12 +556,15 @@ let browser;
     && soundOff.contextsAfter === soundOff.contextsBefore && soundOff.eventsAfter === soundOff.eventsBefore && soundOff.stored.enabled === false,
   "Expected an on-by-default backed-up sound setting and zero AudioContext/event work while disabled", { soundBefore, soundOff });
   await page.click("#soundRow");
-  const typeBefore = await page.evaluate(() => ({ title: parseFloat(getComputedStyle(document.querySelector(".me h1")).fontSize), advice: parseFloat(getComputedStyle(meAdvice).fontSize), pressed: fontScaleRow.getAttribute("aria-pressed") }));
+  const typeBefore = await page.evaluate(() => ({ title: parseFloat(getComputedStyle(document.querySelector(".settingsPanel h2")).fontSize), advice: parseFloat(getComputedStyle(reminderStatus).fontSize), pressed: fontScaleRow.getAttribute("aria-pressed") }));
   await page.click("#fontScaleRow");
-  const typeAfter = await page.evaluate(() => { const payload = JSON.parse(backupPayload()); return { title: parseFloat(getComputedStyle(document.querySelector(".me h1")).fontSize), advice: parseFloat(getComputedStyle(meAdvice).fontSize), pressed: fontScaleRow.getAttribute("aria-pressed"), state: fontScaleState.textContent, stored: load(FONT_SCALE_KEY, false), backedUp: Object.prototype.hasOwnProperty.call(payload.data, FONT_SCALE_KEY) }; });
+  const typeAfter = await page.evaluate(() => { const payload = JSON.parse(backupPayload()); return { title: parseFloat(getComputedStyle(document.querySelector(".settingsPanel h2")).fontSize), advice: parseFloat(getComputedStyle(reminderStatus).fontSize), pressed: fontScaleRow.getAttribute("aria-pressed"), state: fontScaleState.textContent, stored: load(FONT_SCALE_KEY, false), backedUp: Object.prototype.hasOwnProperty.call(payload.data, FONT_SCALE_KEY) }; });
   assert(typeAfter.title >= typeBefore.title * 1.1 && typeAfter.advice >= typeBefore.advice * 1.1 && typeAfter.pressed === "true" && typeAfter.state === "开" && typeAfter.stored && typeAfter.backedUp, "Expected the persisted large-type preference to scale fixed-pixel text and join backups", { typeBefore, typeAfter });
   await page.click("#fontScaleRow");
-  await page.click("#addLink");
+  await page.click("#closeSettings");
+  await page.click("#tabBook");
+  await page.fill("#bookSearchInput", "蘸料");
+  await page.click("#bookSearchGo");
   await page.fill("#addInput", "蘸料");
   await page.click("#addConfirm");
   const add = await page.evaluate(() => ({ added: addedChars.includes("蘸") && addedChars.includes("料"), indexed: indexesForChars(["蘸", "料"]).length === 2, queued: indexesForChars(["蘸", "料"]).every((idx) => (memory[cardKey(idx)] || {}).queuedFront) }));
@@ -571,32 +575,20 @@ let browser;
     memory[cardKey(idx)] = { seen: 1, last: Date.now(), target: "器", misses: 2, hints: 1, slow: 1, ease: 28, streak: 0, lastOutcome: "miss", pendingLearning: true };
     saveMemory(); renderMe();
   });
-  const meActions = await page.evaluate(() => {
-    const practiced = profileIndexes(), stable = practiced.filter(isStable), risk = practiced.filter(isHighRisk), overlap = stable.filter((idx) => risk.includes(idx));
-    return { seen: meSeen.textContent.replace(/\s+/g, ""), stable: meStable.textContent.replace(/\s+/g, ""), risk: meRisk.textContent.replace(/\s+/g, ""), practiced: practiced.length, stableCount: stable.length, riskCount: risk.length, overlap: overlap.length, displayed: [Number(seenStat.textContent), Number(stableStat.textContent), Number(riskStat.textContent)], clickable: [meSeen, meStable, meRisk].every((node) => node.classList.contains("action")) };
-  });
-  assert(meActions.seen.includes("练过") && meActions.seen.includes("看卡点") && meActions.stable.includes("已拾回") && meActions.stable.includes("去字盒") && meActions.risk.includes("待拾回") && meActions.risk.includes("去字盒") && meActions.clickable
-    && meActions.overlap === 0 && meActions.practiced >= meActions.stableCount + meActions.riskCount && meActions.displayed.join() === [meActions.practiced, meActions.stableCount, meActions.riskCount].join(),
-  "Expected honest, disjoint practiced/recovered/at-risk metrics with disclosed actions", meActions);
-  await page.click("#meRisk");
-  const riskBook = await page.evaluate(() => { const legend = document.querySelector(".legend"), legendStyle = getComputedStyle(legend); return { visible: getComputedStyle(studybook).display !== "none", expanded: boxAllToggle.getAttribute("aria-expanded"), active: document.querySelector('#boxFilters [data-filter="risk"]').classList.contains("active"), hero: bookHero.textContent.replace(/\s+/g, ""), legendSize: parseFloat(legendStyle.fontSize), legendColor: legendStyle.color, mutedColor: getComputedStyle(document.documentElement).getPropertyValue("--muted").trim(), marks: Array.from(legend.querySelectorAll(".outcomeMark")).map((node) => ({ label: node.textContent, shape: getComputedStyle(node).clipPath, size: node.getBoundingClientRect().width })) }; });
-  assert(riskBook.visible && riskBook.expanded === "true" && riskBook.active && riskBook.hero.includes("已拾回") && riskBook.hero.includes("练过") && riskBook.hero.includes("最近拾得")
-    && riskBook.legendSize >= 13 && riskBook.marks.map((item) => item.label).join("") === "补待再" && riskBook.marks.every((item) => item.size >= 16) && riskBook.marks.some((item) => item.shape !== "none"),
-  "Expected My risk action to deep-link Book with a readable, shape-and-text redundant outcome legend", riskBook);
-  await page.click("#stampLegend");
-  const stampGuide = await page.evaluate(() => ({ open: stampGuideSheet.classList.contains("open"), rows: Array.from(document.querySelectorAll(".stampGuideRow")).map((row) => row.textContent.replace(/\s+/g, "")), marks: Array.from(document.querySelectorAll(".stampGuideRow .outcomeMark")).map((node) => node.textContent) }));
-  assert(stampGuide.open && stampGuide.rows.length === 4 && stampGuide.rows.join("|").includes("拾到首答独立写对") && stampGuide.rows.join("|").includes("补拾看过提示后写出") && stampGuide.rows.join("|").includes("待补这次写错了") && stampGuide.rows.join("|").includes("再拾这次没写出") && stampGuide.marks.join("") === "拾补待再", "Expected the Book legend to open a complete four-stamp dictionary", stampGuide);
-  await page.click("#stampGuideClose");
-  await page.click("#tabMe");
+  const meStory = await page.evaluate(() => ({ weak: Array.from(meWeakChars.querySelectorAll("[data-char-idx]")).map(node => node.textContent), advice: meAdvice.textContent, calendarStat: calendarMonthStat.textContent, month: meMonthMeta.textContent, settings: !!openSettings, backup: backupStatus.textContent }));
+  assert(meStory.weak.includes("器") && meStory.advice.includes("写过还总忘") && meStory.calendarStat.includes("累计") && meStory.month.includes("字是你的手写") && meStory.settings && meStory.backup.length > 0, "Expected My to place real weak words, calendar days, monthly work, settings, and backup in context", meStory);
+  await page.click("#meWeakChars [data-char-idx]");
+  const detail = await page.evaluate(() => ({ open: charSheet.classList.contains("open"), word: charDetailWord.textContent, story: charDetailStory.textContent, actions: [charDetailStrokeBtn.textContent, charDetailPractice.textContent] }));
+  assert(detail.open && detail.word.length > 0 && detail.story.includes("练过") && detail.actions.join() === "看笔顺,再写一遍", "Expected a weak word to open its factual detail sheet", detail);
+  await page.evaluate(() => closeCharSheet());
   await page.click("#openProfile");
-  const profileInsight = await page.evaluate(() => ({ visible: getComputedStyle(profilePanel).display !== "none", duplicateChars: !!document.getElementById("profileChars"), rows: profilePanel.querySelectorAll("[data-profile-kind]").length, actions: Array.from(profilePanel.querySelectorAll("[data-profile-kind] em")).map((node) => node.textContent) }));
-  assert(profileInsight.visible && !profileInsight.duplicateChars && profileInsight.rows > 0 && profileInsight.actions.every((label) => label === "去字盒"), "Expected Profile to remain insight-only without a duplicate weak-character list", profileInsight);
+  const profileInsight = await page.evaluate(() => ({ visible: getComputedStyle(profilePanel).display !== "none", title: profilePanel.querySelector("h2").textContent, forbidden: /掌握感|易忘度|卡点分析/.test(profilePanel.textContent), rows: profilePanel.querySelectorAll("[data-profile-kind],[data-char-idx]").length }));
+  assert(profileInsight.visible && profileInsight.title === "常忘的字" && !profileInsight.forbidden && profileInsight.rows > 0, "Expected human profile language with no opaque algorithm score", profileInsight);
   await page.click("#closeProfile");
   assert(await page.evaluate(() => getComputedStyle(mePanel).display !== "none"), "Expected a Profile opened from My to return to My");
-  await page.click("#openProfile");
-  await page.click("#profileTopics [data-profile-kind]");
-  const insightRoute = await page.evaluate(() => ({ book: getComputedStyle(studybook).display !== "none", active: document.querySelector('#boxFilters [data-filter="risk"]').classList.contains("active"), card: getComputedStyle(document.getElementById("card")).display }));
-  assert(insightRoute.book && insightRoute.active && insightRoute.card === "none", "Expected Profile insights to route to Book instead of silently starting practice", insightRoute);
+  await page.click("#tabBook");
+  const wall = await page.evaluate(() => ({ count: memoryWall.querySelectorAll(".memoryChar").length, expected: profileIndexes().length, columns: getComputedStyle(memoryWall).gridTemplateColumns.split(" ").length, labels: memoryWall.querySelectorAll(".dot,.outcomeMark").length, colors: new Set(Array.from(memoryWall.querySelectorAll(".memoryChar")).map(node => getComputedStyle(node).color)).size, curator: bookCurator.textContent, search: bookSearchInput.placeholder }));
+  assert(wall.count === wall.expected && wall.columns === 6 && wall.labels === 0 && wall.colors >= 1 && wall.curator.length > 0 && wall.search.includes("找一个字"), "Expected the complete six-column memory wall with ink-only state and unified search", wall);
 
   await page.setViewportSize({ width: 320, height: 568 });
   await page.evaluate(() => { fontScaleLarge = true; save(FONT_SCALE_KEY, true); applyFontScale(); startFocus([CARDS.findIndex((card) => card.target === "器")]); });
@@ -982,18 +974,18 @@ let browser;
     clearSessionSnapshot(); tuning = { calibrated: true, offset: 0, contextStrict: 0, rounds: [] }; saveTuning();
     activity = newActivity(); activity.inheritedStreak = 0; activity.inheritedTotalDays = 0; activity.daily = {}; activity.practiceDays = []; memory = {}; status = {};
     const idx = CARDS.findIndex((card) => card.target === "器"); memory[cardKey(idx)] = { seen: 1, last: Date.now(), misses: 1, streak: 0, lastOutcome: "miss", dueDay: today(), due: dayStartMs(today()) }; saveMemory(); markPracticeStamp(idx); renderMe();
-    const me = { day: meDayState.textContent, ready: profileSampleReady(), advice: meAdvice.textContent }; renderProfile(); const bars = profilePanel.querySelectorAll(".profileBar").length;
-    memory = {}; saveMemory(); renderBook(); const ghosts = document.querySelectorAll(".ghostTile").length;
+    const me = { calendar: getComputedStyle(meCalendar).display !== "none", stat: calendarMonthStat.textContent, ready: profileSampleReady(), advice: meAdvice.textContent, weak: meWeakChars.textContent }; renderProfile(); const bars = profilePanel.querySelectorAll(".profileBar").length;
+    memory = {}; saveMemory(); renderBook(); const wallEmpty = !!document.querySelector(".memoryWallEmpty");
     memory[cardKey(idx)] = { seen: 1, last: Date.now(), streak: 2, lastOutcome: "fast", dueDay: today(), due: dayStartMs(today()) }; status = { [idx]: "rest" }; saveMemory(); save(DECK_KEY, status); activity = newActivity(); saveActivity(); renderHome(); const breathes = startBtn.classList.contains("dueBreathe");
     activeMode = "focus"; baseTargets = [idx]; batch = baseTargets; baseCursor = 0; currentIndex = idx; currentAttemptKind = "base"; currentAttemptId = "verify-auto-overlay"; episodes = {}; roundStats = []; unresolved = new Set(); manualQueue = []; practicePhase = "recall"; cur = CARDS[idx]; stamped = false; revealed = false; lastVerdict = null; hintEverUsed = false; hintsUsedThisCard = 0;
     submissionSnapshot = Object.freeze({ target: cur.target, idx, attemptId: currentAttemptId, createdAt: Date.now(), hintStrokeIds: [], hintCount: 0, hintStrokes: [], inkStrokes: [], referenceStrokes: [], compositeGeometry: [], compositeImage: null, hintEverUsed: false, enteredTracing: false, practicePhase: "recall", lastVerdict: null, userCorrect: null });
     showRevealState(submissionSnapshot); decideSubmission(false); const autoOverlay = { on: overlayOn, display: getComputedStyle(mineOverlay).display, toggle: overlayToggle.textContent }; clearTimeout(autoNextTimer); clearTimeout(editStampTimer);
-    return { me, bars, ghosts, breathes, autoOverlay, homeAdd: !!homeAdd, qualityTargets: Array.from(qualityBox.querySelectorAll("button")).map((node) => parseFloat(getComputedStyle(node).minHeight)), compareTargets: Array.from(document.querySelectorAll(".cmpLinks button")).map((node) => parseFloat(getComputedStyle(node).minHeight)) };
+    return { me, bars, wallEmpty, breathes, autoOverlay, homeAdd: !!homeAdd, qualityTargets: Array.from(qualityBox.querySelectorAll("button")).map((node) => parseFloat(getComputedStyle(node).minHeight)), compareTargets: Array.from(document.querySelectorAll(".cmpLinks button")).map((node) => parseFloat(getComputedStyle(node).minHeight)) };
   });
-  assert(p1Discovery.me.day.includes("第 1 天") && p1Discovery.me.day.includes("进行中") && !p1Discovery.me.ready && p1Discovery.me.advice.includes("样本还少") && p1Discovery.bars === 0
-    && p1Discovery.ghosts >= 5 && p1Discovery.breathes && p1Discovery.autoOverlay.on && p1Discovery.autoOverlay.display === "flex" && p1Discovery.autoOverlay.toggle === "分开看"
+  assert(p1Discovery.me.calendar && p1Discovery.me.stat.includes("累计") && !p1Discovery.me.ready && p1Discovery.me.advice.includes("写过还总忘") && p1Discovery.me.weak.includes("器") && p1Discovery.bars === 0
+    && p1Discovery.wallEmpty && p1Discovery.breathes && p1Discovery.autoOverlay.on && p1Discovery.autoOverlay.display === "flex" && p1Discovery.autoOverlay.toggle === "分开看"
     && p1Discovery.homeAdd && p1Discovery.qualityTargets.every((height) => height >= 44) && p1Discovery.compareTargets.every((height) => height >= 40),
-  "Expected honest first-day/sample states, discoverable controls, ghost tiles, and a due-card breathe cue", p1Discovery);
+  "Expected contextual My states, discoverable controls, an empty memory wall, and a due-card breathe cue", p1Discovery);
 
   await page.evaluate(() => {
     status = {}; memory = {}; fsrsReviewLog = []; quality = {}; save(DECK_KEY, status); saveMemory(); saveFSRSLog(); saveQuality();
@@ -1244,13 +1236,12 @@ let browser;
   }));
   await page.click("#tabBook");
   await page.waitForFunction(() => getComputedStyle(studybook).display !== "none");
-  if (await page.evaluate(() => boxAllSection.offsetParent === null)) await page.click("#boxAllToggle");
   const bookLayer = await page.evaluate(() => ({
     count: boxCount.textContent.replace(/\s+/g, ""),
-    targets: Array.from(document.querySelectorAll("#boxGrid .boxTile[data-idx]")).map((node) => CARDS[Number(node.dataset.idx)].target).sort(),
+    targets: Array.from(document.querySelectorAll("#memoryWall .memoryChar[data-idx]")).map((node) => CARDS[Number(node.dataset.idx)].target).sort(),
     active: tabBook.classList.contains("active"),
   }));
-  assert(summaryLayer.tiles === 3 && summaryLayer.lead.includes("3") && summaryLayer.meanings.length === 3 && summaryLayer.meanings.every((item) => item.visible && item.text.length >= 2 && item.size >= 13) && homeLayer.title.includes("今日已拾3个字") && homeLayer.label === "今日拾得" && homeLayer.completed && bookLayer.count.includes("练过3字") && bookLayer.active
+  assert(summaryLayer.tiles === 3 && summaryLayer.lead.includes("3") && summaryLayer.meanings.length === 3 && summaryLayer.meanings.every((item) => item.visible && item.text.length >= 2 && item.size >= 13) && homeLayer.title.includes("今日已拾3个字") && homeLayer.label === "今日拾得" && homeLayer.completed && bookLayer.count === "3字" && bookLayer.active
     && summaryLayer.targets.join() === homeLayer.targets.join() && summaryLayer.targets.every((target) => bookLayer.targets.includes(target)),
   "Expected the same completed targets across summary, home recent, and study-book layers", { summaryLayer, homeLayer, bookLayer });
 
@@ -1431,7 +1422,7 @@ let browser;
     activeMode = saved.activeMode; makeupTargetDay = saved.makeupTargetDay; baseTargets = saved.baseTargets; batch = baseTargets; baseCursor = saved.baseCursor; currentIndex = saved.currentIndex; currentAttemptKind = saved.currentAttemptKind; currentAttemptId = saved.currentAttemptId; practicePhase = saved.practicePhase; manualQueue = saved.manualQueue || []; reinforcementQueue = saved.reinforcementQueue || []; unresolved = new Set(saved.unresolved || []); episodes = saved.episodes || {}; roundStats = saved.roundStats || []; roundId = saved.roundId; renderHome();
     return report;
   });
-  assert(collections.before.normal.includes("拾") && collections.before.makeupBlank && collections.before.untouchedBlank && collections.before.stat.includes("本月拾字 2 天") && collections.before.nextDisabled && collections.before.gridHeight < 360 && collections.previousMonth.nextEnabled,
+  assert(collections.before.normal.includes("拾") && collections.before.makeupBlank && collections.before.untouchedBlank && collections.before.stat.includes("本月 2 天 · 累计") && collections.before.nextDisabled && collections.before.gridHeight < 360 && collections.previousMonth.nextEnabled,
     "Expected normal/blank calendar states and cross-month navigation", collections);
   assert(!collections.incomplete && collections.blankStayedBlank && collections.completed && collections.completedAgain && collections.makeup.flag && collections.makeup.targets === 5 && collections.makeup.independent === 5 && collections.after.makeup.includes("补") && collections.after.normal.includes("拾") && collections.after.markers === 1 && collections.reducedDirect && collections.sessionOK,
     "Expected a resumable five-character makeup round to stamp exactly once only after completion", collections);

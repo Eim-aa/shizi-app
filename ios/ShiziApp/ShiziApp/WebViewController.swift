@@ -387,35 +387,37 @@ final class WebViewController: UIViewController {
               result.navigationFlow.bookVisible = visible('studybook');
               result.navigationFlow.bookTabActive = activeTab('tabBook');
               result.navigationFlow.footVisibleOnBook = visible('foot');
-              result.navigationFlow.bookAchievementVisible = visible('bookHero') && document.getElementById('bookHero').textContent.includes('已拾回') && document.getElementById('bookHero').textContent.includes('练过');
-              const legend = document.querySelector('.legend');
-              result.layoutFlow.readableOutcomeLegend = parseFloat(getComputedStyle(legend).fontSize) >= 13 && getComputedStyle(legend).color === getComputedStyle(document.getElementById('bookHeroRecent')).color;
-              result.layoutFlow.outcomeMarksRedundant = Array.from(legend.querySelectorAll('.outcomeMark')).map(node => node.textContent).join('') === '补待再' && legend.textContent.includes('无点 拾到');
-              document.getElementById('stampLegend').click();
-              const guideRows = Array.from(document.querySelectorAll('.stampGuideRow'));
-              result.navigationFlow.stampGuideAvailable = document.getElementById('stampGuideSheet').classList.contains('open') && guideRows.length === 4 && guideRows.map(row => row.textContent).join('').includes('拾到') && guideRows.map(row => row.textContent).join('').includes('再拾');
-              document.getElementById('stampGuideClose').click();
+              const wall = document.getElementById('memoryWall');
+              const wallChars = Array.from(wall.querySelectorAll('.memoryChar'));
+              result.navigationFlow.bookAchievementVisible = document.getElementById('boxCount').textContent.includes('字') && document.getElementById('bookCurator').textContent.length > 0;
+              result.layoutFlow.readableOutcomeLegend = wallChars.every(node => parseFloat(getComputedStyle(node).fontSize) >= 21);
+              result.layoutFlow.outcomeMarksRedundant = wall.querySelectorAll('.dot,.outcomeMark').length === 0 && getComputedStyle(wall).gridTemplateColumns.split(' ').length === 6;
+              result.navigationFlow.stampGuideAvailable = document.getElementById('bookSearchInput').placeholder.includes('找一个字') && !!document.getElementById('bookSaveMonth');
 
               document.getElementById('tabMe').click();
               await waitFor(() => visible('mePanel'));
               result.navigationFlow.meVisible = visible('mePanel');
               result.navigationFlow.meTabActive = activeTab('tabMe');
               result.navigationFlow.footVisibleOnMe = visible('foot');
-              result.navigationFlow.meActionsDisclosed = document.getElementById('meSeen').textContent.includes('看卡点') && document.getElementById('meStable').textContent.includes('去字盒') && document.getElementById('meRisk').textContent.includes('去字盒');
+              result.navigationFlow.meActionsDisclosed = visible('meCalendar') && !!document.getElementById('openProfile') && !!document.querySelector('.meMonthCard') && !!document.getElementById('openSettings') && !!document.getElementById('openBackupSettings');
               const practiced = profileIndexes();
               const recovered = practiced.filter(isStable);
               const atRisk = practiced.filter(isHighRisk);
-              result.navigationFlow.metricLanguageConsistent = document.getElementById('meSeen').textContent.includes('练过') && document.getElementById('meStable').textContent.includes('已拾回') && document.getElementById('meRisk').textContent.includes('待拾回') && recovered.every(index => !atRisk.includes(index)) && practiced.length >= recovered.length + atRisk.length && Number(document.getElementById('seenStat').textContent) === practiced.length && Number(document.getElementById('stableStat').textContent) === recovered.length && Number(document.getElementById('riskStat').textContent) === atRisk.length;
+              result.navigationFlow.metricLanguageConsistent = !document.querySelector('.meStats') && recovered.every(index => !atRisk.includes(index)) && practiced.length >= recovered.length + atRisk.length && document.getElementById('calendarMonthStat').textContent.includes('累计') && document.getElementById('meMonthMeta').textContent.includes('字是你的手写');
+              document.getElementById('openSettings').click();
+              await waitFor(() => visible('settingsPanel'));
               const oldFontScale = fontScaleLarge;
               fontScaleLarge = false; applyFontScale();
-              const normalType = parseFloat(getComputedStyle(document.querySelector('.me h1')).fontSize);
+              const normalType = parseFloat(getComputedStyle(document.querySelector('.settingsPanel h2')).fontSize);
               fontScaleLarge = true; applyFontScale();
-              const largeType = parseFloat(getComputedStyle(document.querySelector('.me h1')).fontSize);
+              const largeType = parseFloat(getComputedStyle(document.querySelector('.settingsPanel h2')).fontSize);
               fontScaleLarge = oldFontScale; applyFontScale();
               result.layoutFlow.largeTypeScaled = largeType >= normalType * 1.1 && document.getElementById('fontScaleRow').getAttribute('aria-pressed') === (oldFontScale ? 'true' : 'false');
               result.layoutFlow.criticalTargets44 = ['exitPractice','addInPractice','tip','peekInk','show','done','fontScaleRow','overlayToggle','replayBtn'].every(id => parseFloat(getComputedStyle(document.getElementById(id)).minHeight) >= 44)
                 && Array.from(document.querySelectorAll('#qualityBox button')).every(node => parseFloat(getComputedStyle(node).minHeight) >= 44);
 
+              document.getElementById('closeSettings').click();
+              await waitFor(() => visible('mePanel'));
               document.getElementById('openProfile').click();
               await waitFor(() => visible('profilePanel'));
               result.navigationFlow.profileVisible = visible('profilePanel');
@@ -426,6 +428,8 @@ final class WebViewController: UIViewController {
               result.navigationFlow.profileReturnedToMe = true;
 
               if (result.devQuery) {
+                document.getElementById('openSettings').click();
+                await waitFor(() => visible('settingsPanel'));
                 document.getElementById('auditLink').click();
                 await waitFor(() => visible('auditPanel'));
                 result.navigationFlow.auditVisible = visible('auditPanel');
@@ -438,8 +442,8 @@ final class WebViewController: UIViewController {
               await waitFor(() => visible('home') || visible('welcome'));
               result.navigationFlow.practiceEntryVisible = visible('home') || visible('welcome');
               result.navigationFlow.practiceTabActive = activeTab('tabPractice');
-              result.navigationFlow.homeCaptureVisible = !!document.getElementById('homeAdd') && document.getElementById('homeAdd').textContent.includes('刚才忘了个字');
-              result.navigationFlow.monthlyRhythmVisible = !!document.getElementById('monthSignal') && document.getElementById('monthSignal').textContent === `本月拾了 ${monthPracticeDays()} 天`;
+              result.navigationFlow.homeCaptureVisible = !!document.getElementById('homeAdd') && document.getElementById('homeAdd').textContent.includes('加字');
+              result.navigationFlow.monthlyRhythmVisible = !document.getElementById('monthSignal') && !!document.getElementById('calendarMonthStat');
             }
 
             if (typeof openAddSheet === 'function' && typeof confirmAdd === 'function' && typeof backupPayload === 'function') {
@@ -607,7 +611,7 @@ final class WebViewController: UIViewController {
               const shareSource = `${renderPracticeCardCanvas}\n${drawShareHandwriting}`;
               result.dataFlow.shareCardGenerated = !!shareCanvas && shareCanvas.width === 1080 && shareCanvas.height === 1440 && Number(shareCanvas.dataset.inkStrokeCount) === 2 && shareCanvas.toDataURL('image/png').startsWith('data:image/png;base64,') && !shareSource.includes('fillText(stat.target');
               result.dataFlow.shareCardPrivate = !/localStorage|memory|activity|backup|seenStat|riskStat/.test(shareSource);
-              result.dataFlow.calendarAvailable = typeof renderCalendar === 'function' && typeof startMakeupDay === 'function' && !!document.getElementById('calendarPanel') && !!document.getElementById('makeupSheet');
+              result.dataFlow.calendarAvailable = typeof renderCalendar === 'function' && typeof startMakeupDay === 'function' && !!document.getElementById('meCalendar') && !!document.getElementById('makeupSheet');
               const monthlyCanvas = await renderMonthlyPostCanvas(today().slice(0, 7));
               result.dataFlow.monthlyPostGenerated = !!monthlyCanvas && monthlyCanvas.width === 1080 && monthlyCanvas.height === 1440 && Number(monthlyCanvas.dataset.itemCount) >= 2 && monthlyCanvas.toDataURL('image/png').startsWith('data:image/png;base64,');
               result.dataFlow.annualReportAvailable = typeof yearReportData === 'function' && typeof renderAnnualReport === 'function' && !!document.getElementById('annualPanel') && !!document.getElementById('annualSlides');

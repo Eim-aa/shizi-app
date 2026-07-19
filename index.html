@@ -951,7 +951,10 @@ function normalizeLegacySchedule(m){ if(!m || typeof m!=="object") return m;
   if(!m.dueDay && Number(m.due)>0){ m.dueDay=dayKey(new Date(Number(m.due))); m.legacySchedule=true; }
   if(m.schedulerVersion && !m.parameterVersion) m.parameterVersion=FSRS_CONFIG.parameterVersion;
   return m; }
-Object.values(memory).forEach(normalizeLegacySchedule); saveMemory();
+function earliestReviewAt(key,rows=fsrsReviewLog){ return (rows||[]).reduce((first,row)=>{ if(!row||row.cardKey!==key) return first; const at=Date.parse(row.reviewedAt)||dayStartMs(row.localDay); return at>0&&(!first||at<first)?at:first; },0); }
+function markFirstSeen(m,at=Date.now()){ if(!m||typeof m!=="object") return 0; const stored=Number(m.firstSeenAt)||0; if(stored>0) return stored; const first=Math.max(1,Number(at)||Date.now()); m.firstSeenAt=first; return first; }
+function migrateFirstSeenAt(mem=memory,rows=fsrsReviewLog){ let changed=false; Object.entries(mem||{}).forEach(([key,m])=>{ if(!m||typeof m!=="object"||!m.seen||Number(m.firstSeenAt)>0) return; const at=earliestReviewAt(key,rows)||Number(m.last)||0; if(at>0){ markFirstSeen(m,at); changed=true; } }); return changed; }
+Object.values(memory).forEach(normalizeLegacySchedule); migrateFirstSeenAt(); saveMemory();
 function fsrsEventId(attemptId){ return `${attemptId}:fsrs` }
 function reviewEventById(eventId){ return fsrsReviewLog.find(e=>e && e.eventId===eventId)||null; }
 function applyFSRSReview(idx,rating,reason,attemptId,details={}){
@@ -1231,7 +1234,7 @@ function qualityWeight(i){ const c=CARDS[i], q=qualityFor(i), p=prefSettings(); 
   if(preference==="practical") score-=Math.max(0,cardDifficulty(i)-86)*0.6;
   if(preference==="challenge") score+=cardDifficulty(i)*0.16;
   return score - (q.rare||0)*10 - (q.easy||0)*20 - (q.badWord||0)*40; }
-function cardMemory(i){ const k=cardKey(i), m=memory[k] || (memory[k]={seen:0, streak:0, ease:50, fast:0, slow:0, hints:0, misses:0, due:0, last:0}); return normalizeLegacySchedule(m); }
+function cardMemory(i){ const k=cardKey(i), m=memory[k] || (memory[k]={seen:0, firstSeenAt:0, streak:0, ease:50, fast:0, slow:0, hints:0, misses:0, due:0, last:0}); return normalizeLegacySchedule(m); }
 function hasMemory(i){ const m=memory[cardKey(i)]; return !!(m && m.seen); }
 function isDue(i){ const m=memory[cardKey(i)]; if(!m||!m.seen) return true; normalizeLegacySchedule(m); if(m.pendingLearning) return false; return !m.dueDay || m.dueDay<=today(); }
 function reviewDue(i){ const m=memory[cardKey(i)]; if(!m||!m.seen) return false; normalizeLegacySchedule(m); return !m.pendingLearning && (!m.dueDay || m.dueDay<=today()); }
@@ -1408,7 +1411,7 @@ function persistRecentInk(m,strokes,at=Date.now()){ if(!m || !Array.isArray(stro
 function recordOutcome(outcome,options={}){ const idx=currentCardIndex(), c=CARDS[idx], m=cardMemory(idx), now=Number(options.now)||Date.now(), ep=episodeFor(idx);
   if(ep.attempts.some(a=>a.attemptId===currentAttemptId)) return ep.attempts.find(a=>a.attemptId===currentAttemptId);
   const hard=outcome!=="fast", firstOutcome=!ep.firstOutcome, uncertain=!!options.uncertain, userCorrect=outcome==="fast"||(outcome==="hinted"&&!uncertain);
-  m.seen=(m.seen||0)+1; m.last=now; m.lastOutcome=outcome; m.lastHints=hintsUsedThisCard;
+  markFirstSeen(m,now); m.seen=(m.seen||0)+1; m.last=now; m.lastOutcome=outcome; m.lastHints=hintsUsedThisCard;
   m.traced=!!enteredTracingThisAttempt;
   delete m.queuedFront; delete m.queuedFrontAt;
   const sys=lastVerdict?(lastVerdict.status==="ok"):null;
@@ -1568,9 +1571,7 @@ function startFocus(indexes){ focusQueue=[...new Set((indexes||highRiskIndexes()
 // ---- 单字详情：收藏先讲故事，再由用户决定是否重写 ----
 let charDetailIndex=-1, charDetailWriter=null, charDetailTouchY=null, charDetailSwipeEligible=false;
 const OUTCOME_STORY={fast:"上次独立写出",hinted:"上次看提示写出",slow:"上次写错了",miss:"上次没写出来"};
-function firstSeenRecord(i){ const key=cardKey(i), events=fsrsReviewLog.filter(row=>row&&row.cardKey===key&&/^\d{4}-\d{2}-\d{2}$/.test(String(row.localDay||"")));
-  events.sort((a,b)=>(Date.parse(a.reviewedAt)||dayStartMs(a.localDay))-(Date.parse(b.reviewedAt)||dayStartMs(b.localDay))); const event=events[0],m=memory[key]||{},fallback=Number(m.firstSeenAt)||Number(m.last)||0;
-  if(event) return {day:event.localDay,at:Date.parse(event.reviewedAt)||dayStartMs(event.localDay)}; return {day:fallback?dayKey(new Date(fallback)):"",at:fallback}; }
+function firstSeenRecord(i){ const at=Number((memory[cardKey(i)]||{}).firstSeenAt)||0; return {day:at?dayKey(new Date(at)):"",at}; }
 function firstSeenDay(i){ return firstSeenRecord(i).day; }
 function firstSeenAt(i){ return firstSeenRecord(i).at; }
 function closeCharSheet(){ $("charSheet").classList.remove("open"); charDetailWriter=null; $("charDetailStroke").innerHTML=""; $("charDetailStroke").style.display="none"; charDetailTouchY=null; charDetailSwipeEligible=false; }
@@ -1682,7 +1683,7 @@ function customIndexOf(ch){ for(let i=BASE_N;i<CARDS.length;i++){ if(CARDS[i].ta
 function unblockQuality(i){ const k=cardKey(i); if(quality[k]){ delete quality[k]; saveQuality(); } }
 // 现实里提笔忘了 = 一次真实的「不会写」：记进记忆模型，让它立刻进入今日复习和待拾回状态
 function recordRealWorldMiss(i){ const c=CARDS[i], m=cardMemory(i), now=Date.now();
-  m.seen=(m.seen||0)+1; m.last=now; m.lastOutcome="miss"; m.misses=(m.misses||0)+1; m.streak=0; m.ease=clamp((m.ease||50)-16,0,100);
+  markFirstSeen(m,now); m.seen=(m.seen||0)+1; m.last=now; m.lastOutcome="miss"; m.misses=(m.misses||0)+1; m.streak=0; m.ease=clamp((m.ease||50)-16,0,100);
   m.topic=c.topic; m.level=c.level; m.word=c.word; m.target=c.target; m.due=dayStartMs(today()); m.dueDay=today(); m.pendingLearning=false; setStatus(i,"indeck"); }
 function addWord(s){ s=(s||"").trim(); const chars=[...new Set(Array.from(s).filter(isCJK))]; if(!chars.length) return null;
   const fresh=[];

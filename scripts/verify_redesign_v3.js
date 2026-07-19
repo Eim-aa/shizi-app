@@ -42,7 +42,7 @@ let browser;
     memory = {}; status = {};
     allIndexes().slice(0, 43).forEach((idx, index) => {
       const day = shiftDay(today(), -Math.floor(index / 12));
-      memory[cardKey(idx)] = { seen: index + 1, last: dayStartMs(day) + index, streak: index % 5, ease: 40 + index % 50, misses: index % 7 === 0 ? 1 : 0, lastOutcome: index % 7 === 0 ? "miss" : "fast", pendingLearning: false, dueDay: index < 2 ? today() : shiftDay(today(), 5), fsrsCard: { stability: [0.4, 1.5, 4, 8, 18][index % 5] } };
+      memory[cardKey(idx)] = { seen: index + 1, firstSeenAt: dayStartMs(day) + index, last: dayStartMs(day) + index, streak: index % 5, ease: 40 + index % 50, misses: index % 7 === 0 ? 1 : 0, lastOutcome: index % 7 === 0 ? "miss" : "fast", pendingLearning: false, dueDay: index < 2 ? today() : shiftDay(today(), 5), fsrsCard: { stability: [0.4, 1.5, 4, 8, 18][index % 5] } };
       status[idx] = "rest";
     });
     saveMemory(); save(DECK_KEY, status); renderHome();
@@ -59,32 +59,31 @@ let browser;
   const wall43 = await page.evaluate(() => ({ count: memoryWall.querySelectorAll(".memoryChar").length, columns: getComputedStyle(memoryWall).gridTemplateColumns.split(" ").length, labels: memoryWall.querySelectorAll(".dot,.outcomeMark").length, curator: bookCuratorData(profileIndexes()).kind, countText: boxCount.textContent.trim() }));
   assert(wall43.count === 43 && wall43.columns === 6 && wall43.labels === 0 && wall43.curator === "action" && wall43.countText === "43 字", "Expected a 43-character six-column memory wall with action curation", wall43);
 
-  const chronology = await page.evaluate(() => {
-    const savedMemory = cloneObj(memory), savedStatus = cloneObj(status), savedLog = cloneObj(fsrsReviewLog);
+  const legacyPage = await browser.newPage({ viewport: { width: 375, height: 667 }, colorScheme: "light" });
+  await legacyPage.goto(appUrl, { waitUntil: "networkidle" });
+  const legacySeed = await legacyPage.evaluate(() => {
     const [newer, older] = allIndexes().slice(0, 2), year = Number(today().slice(0, 4)), olderDay = `${year - 1}-01-15`, newerDay = `${year}-06-10`;
-    memory = {
+    const legacyMemory = {
       [cardKey(newer)]: { seen: 1, last: dayStartMs(newerDay), streak: 2, lastOutcome: "fast", dueDay: shiftDay(today(), 5), fsrsCard: { stability: 8 } },
-      [cardKey(older)]: { seen: 3, last: Date.now(), streak: 2, lastOutcome: "fast", dueDay: shiftDay(today(), 5), fsrsCard: { stability: 8 } }
+      [cardKey(older)]: { seen: 3, last: dayStartMs(olderDay), streak: 2, lastOutcome: "fast", dueDay: shiftDay(today(), 5), fsrsCard: { stability: 8 } }
     };
-    status = { [newer]: "rest", [older]: "rest" };
-    fsrsReviewLog = [
-      { cardKey: cardKey(older), localDay: olderDay, reviewedAt: `${olderDay}T08:00:00.000Z` },
-      { cardKey: cardKey(older), localDay: today(), reviewedAt: `${today()}T08:00:00.000Z` },
-      { cardKey: cardKey(newer), localDay: newerDay, reviewedAt: `${newerDay}T08:00:00.000Z` }
-    ];
-    const snapshot = () => ({
-      order: Array.from(memoryWall.querySelectorAll(".memoryChar")).map((node) => Number(node.dataset.idx)),
-      olderMonth: memoryWall.querySelector(`[data-idx="${older}"] .monthTick`)?.textContent || "",
-      olderDay: firstSeenDay(older)
-    });
-    renderBook(); const before = snapshot();
-    memory[cardKey(older)].last = Date.now() + 100000;
-    fsrsReviewLog.push({ cardKey: cardKey(older), localDay: today(), reviewedAt: `${today()}T12:00:00.000Z` });
-    renderBook(); const after = snapshot();
-    memory = savedMemory; status = savedStatus; fsrsReviewLog = savedLog; renderBook();
-    return { before, after, expectedOlderDay: olderDay };
+    localStorage.setItem(MEMORY_KEY, JSON.stringify(legacyMemory)); localStorage.setItem(FSRS_LOG_KEY, "[]");
+    return { newer, older, olderDay };
   });
-  assert(JSON.stringify(chronology.before.order) === JSON.stringify(chronology.after.order) && chronology.before.olderMonth === "1月" && chronology.after.olderMonth === "1月" && chronology.before.olderDay === chronology.expectedOlderDay && chronology.after.olderDay === chronology.expectedOlderDay, "Expected an old character review to preserve collection order and month", chronology);
+  await legacyPage.reload({ waitUntil: "networkidle" }); await legacyPage.click("#tabBook");
+  const chronologySnapshot = async () => legacyPage.evaluate(({ older }) => ({
+    order: Array.from(memoryWall.querySelectorAll(".memoryChar")).map((node) => Number(node.dataset.idx)),
+    olderMonth: memoryWall.querySelector(`[data-idx="${older}"] .monthTick`)?.textContent || "",
+    olderDay: firstSeenDay(older),
+    firstSeenAt: memory[cardKey(older)].firstSeenAt,
+    noReviewLog: fsrsReviewLog.length === 0
+  }), legacySeed);
+  const chronologyBefore = await chronologySnapshot();
+  await legacyPage.evaluate(({ older }) => { const m=memory[cardKey(older)]; markFirstSeen(m,Date.now()); m.seen++; m.last=Date.now(); saveMemory(); }, legacySeed);
+  await legacyPage.reload({ waitUntil: "networkidle" }); await legacyPage.click("#tabBook");
+  const chronologyAfter = await chronologySnapshot(); await legacyPage.close();
+  const chronology = { before: chronologyBefore, after: chronologyAfter, expectedOlderDay: legacySeed.olderDay };
+  assert(chronology.before.noReviewLog && chronology.after.noReviewLog && chronology.before.firstSeenAt === chronology.after.firstSeenAt && JSON.stringify(chronology.before.order) === JSON.stringify(chronology.after.order) && chronology.before.olderMonth === "1月" && chronology.after.olderMonth === "1月" && chronology.before.olderDay === chronology.expectedOlderDay && chronology.after.olderDay === chronology.expectedOlderDay, "Expected an app-reloaded no-log legacy character review to preserve persisted collection order and month", chronology);
 
   await page.click("#memoryWall .memoryChar");
   const detail = await page.evaluate(() => ({ open: charSheet.classList.contains("open"), story: charDetailStory.textContent, noInk: charDetailEmpty.textContent, practice: charDetailPractice.textContent }));

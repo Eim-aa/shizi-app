@@ -6,8 +6,8 @@
 */
 importScripts('./deck-data.js', './core-strokes.js');
 
-const VERSION = 'shizi-v10';
-const SHELL = ['./', 'index.html', 'deck-data.js', 'hanzi-writer.min.js', 'fsrs6.min.js', 'manifest.webmanifest',
+const VERSION = 'shizi-v11';
+const SHELL = ['./', 'index.html', 'deck-data.js', 'data/context-overrides.js', 'hanzi-writer.min.js', 'fsrs6.min.js', 'manifest.webmanifest',
   'core-strokes.js', 'data/etymology.json', 'icon-180.png', 'icon-192.png', 'icon-512.png'];
 const CORE_STROKE_PATHS = (self.SHIZI_CORE_STROKES || []).map(ch => `./data/${encodeURIComponent(ch)}.json`);
 const INSTALL_BATCH_SIZE = 40;

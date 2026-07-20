@@ -304,7 +304,18 @@
   .bookHead{ display:flex; justify-content:space-between; align-items:baseline; }
   .bookHead h1{ margin:0; font:900 calc(28px * var(--font-scale))/1 var(--song); letter-spacing:var(--ls-label); }
   .bookHead .cnt{ font-size:calc(var(--fs-body) * var(--font-scale)); color:var(--muted); }
-  .bookCurator{ width:100%; margin-top:16px; min-height:54px; padding:10px 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line); color:var(--ink); text-align:left; font:400 calc(var(--fs-emph) * var(--font-scale))/1.75 var(--kai); }
+  /* 在学的库（#106）：收藏获得分母。页面唯一新增元素 */
+  .libCard{ width:100%; margin-top:14px; display:flex; justify-content:space-between; align-items:center; gap:10px; padding:12px 14px; background:var(--card); border:1px solid var(--line); border-radius:10px; text-align:left; }
+  .libCard .libInfo b{ display:block; font-size:calc(var(--fs-emph) * var(--font-scale)); }
+  .libCard .libInfo small{ display:block; margin-top:3px; color:var(--muted); font-size:calc(var(--fs-note) * var(--font-scale)); font-variant-numeric:tabular-nums; }
+  .libCard .libGo{ flex:none; color:var(--muted); font-size:calc(var(--fs-note) * var(--font-scale)); font-weight:600; }
+  .libList{ display:grid; gap:7px; max-height:52vh; overflow-y:auto; }
+  .libRow{ width:100%; display:flex; justify-content:space-between; align-items:center; gap:10px; padding:12px 13px; background:var(--card); border:1px solid var(--line); border-radius:12px; text-align:left; }
+  .libRow.active{ border-color:var(--ink); background:var(--shade); }
+  .libRow b{ display:block; font-size:calc(var(--fs-body) * var(--font-scale)); }
+  .libRow small{ display:block; margin-top:2px; color:var(--muted); font-size:calc(var(--fs-note) * var(--font-scale)); line-height:1.5; }
+  .libRow .libCount{ flex:none; color:var(--muted); font-size:calc(var(--fs-note) * var(--font-scale)); font-variant-numeric:tabular-nums; }
+  .bookCurator{ width:100%; margin-top:14px; min-height:54px; padding:10px 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line); color:var(--ink); text-align:left; font:400 calc(var(--fs-emph) * var(--font-scale))/1.75 var(--kai); }
   .bookCurator span{ color:var(--accent); }
   .bookSearch{ margin-top:16px; }
   .bookSearch input{ width:100%; min-height:46px; padding:0 14px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--ink); font:400 calc(var(--fs-body) * var(--font-scale))/1 var(--sans); outline:none; }
@@ -766,6 +777,7 @@
   <!-- 字库：你的收藏 + 可选的分级库（选库功能见后续 issue） -->
   <div class="book" id="studybook" style="display:none" data-screen-label="字库">
     <div class="bookHead"><h1>字库</h1><div class="cnt" id="boxCount"></div></div>
+    <button class="libCard" id="libCard"><span class="libInfo"><b id="libName"></b><small id="libProg"></small></span><span class="libGo">换库 ›</span></button>
     <button class="bookCurator" id="bookCurator"></button>
     <div class="bookSearch"><input id="bookSearchInput" type="search" autocomplete="off" placeholder="找一个字，或把忘的字加进来" aria-label="找字或加字"></div>
     <div class="bookSearchNote" id="bookSearchNote"></div>
@@ -800,11 +812,7 @@
     <div class="collectionHead"><h2>设置</h2><button class="collectionBack" id="closeSettings" aria-label="返回">‹</button></div>
     <div class="meLabel">练习</div>
     <div class="meList">
-      <div class="mePref"><div class="plbl">选字偏好</div><div class="prefBtns" id="prefBox">
-        <button data-pref="balanced">常用但老忘</button>
-        <button data-pref="practical">偏实用</button>
-        <button data-pref="challenge">偏挑战</button>
-      </div></div>
+      <button class="meRow" id="settingsLibRow"><span class="meRowMain">在学的字库<small id="settingsLibName"></small></span><span>›</span></button>
       <button class="meRow" id="soundRow" aria-pressed="true"><span class="meRowMain">纸墨声音<small>只在盖章与描红落笔时响</small></span><span class="backupBadge" id="soundState">开</span></button>
       <button class="meRow" id="sceneRow"><span class="meRowMain">声景<small>习字时低声相伴，雨或炉火，默认关</small></span><span class="backupBadge" id="sceneState">关</span></button>
     </div>
@@ -888,6 +896,11 @@
 </div></div>
 <input type="file" id="wildPhotoInput" accept="image/*" capture="environment" style="display:none">
 
+<div class="sheetMask" id="libSheet"><div class="sheet">
+  <h3>在学的字库</h3>
+  <p class="sheetHint">换库不丢任何东西——拾过的字都在，只换接下来拾什么。复习照常跨库进行。</p>
+  <div class="libList" id="libList"></div>
+</div></div>
 <div class="sheetMask" id="roundBudgetSheet"><div class="sheet">
   <h3>今天先到这也很好</h3>
   <p class="sheetHint" id="roundBudgetCopy">这一组已经练了一会儿，没写稳的字可以明天接着拾。</p>
@@ -923,11 +936,20 @@
 <script src="hanzi-writer.min.js"></script>
 <script src="fsrs6.min.js"></script>
 <script src="deck-data.js"></script>
+<script src="data/context-overrides.js"></script>
 <script>
 // ---- 词表 → 按“字”拆成卡片（一个格子只考一个字；另一个字给出来当语境）----
 // SEED 与 GROUPS 数据在 deck-data.js（1.9MB 题库独立缓存，改界面不用重下数据）
 const CARDS=[];
-SEED.forEach(w=>{ const chars=Array.from(w.ans), pys=w.py.split(/\s+/);
+// 语境词覆盖（#105）：换词条目改写 ans/ci（目标字读音不变）；boost 平反词频误伤；gloss 走「单字＋释义」模式
+const OVERRIDES=typeof CONTEXT_OVERRIDES==="object"&&CONTEXT_OVERRIDES?CONTEXT_OVERRIDES:{};
+function applyContextOverride(w){ const t=w.target||Array.from(w.ans)[Number(w.ci)||0], ov=OVERRIDES[t]; if(!ov) return w;
+  const row={...w};
+  if(ov.boost) row.common=Math.max(Number(row.common)||0,1.2);
+  if(ov.w){ row.ans=ov.w; row.ci=Number(ov.ci)||0; row.target=t; row.ctx="override"; }
+  else if(ov.gloss){ row.ans=t; row.ci=0; row.target=t; row.ctx="gloss"; row.hint=ov.gloss; row.common=Math.max(Number(row.common)||0,1.0); }
+  return row; }
+SEED.forEach(raw=>{ const w=applyContextOverride(raw); const chars=Array.from(w.ans), pys=w.py.split(/\s+/);
   const meta={rank:w.rank||999999, strokes:w.strokes||0, parts:w.parts||1, topic:w.topic||"综合", d:w.d||50, level:w.level||"高中", common:w.common||0, norm:w.norm||"一级", std:w.std||0, ctx:w.ctx||"dict"};
   if(Number.isInteger(w.ci)){ const ci=w.ci; CARDS.push({ word:w.ans, chars, ci, target:w.target||chars[ci], py:w.py, hint:w.hint, ...meta }); return; }
   chars.forEach((ch,ci)=>CARDS.push({ word:w.ans, chars, ci, target:ch, py:pys[ci]||w.py, hint:w.hint, ...meta })); });
@@ -952,6 +974,27 @@ save(FSRS_LOG_KEY,fsrsReviewLog); save(TRACE_TUTORIAL_KEY,traceTutorialShown);
 let quality = loadShaped(QUALITY_KEY, {}, "object");
 let preference = load(PREF_KEY, "balanced"); if(typeof preference!=="string") preference="balanced";
 let tuning = loadShaped(TUNING_KEY, {calibrated:false, offset:0, contextStrict:0, rounds:[]}, "object");
+// ---- 分级字库（#106）：像选词书一样选字库。库只过滤新字池，复习/自加字/记忆全部跨库延续 ----
+const LIB_KEY="shizi.library.v1";
+const LIBRARIES=[
+  {id:"core3500", name:"常用三千五", desc:"通用规范一级字，日常读写九成五在这里", test:c=>c.norm==="一级"},
+  {id:"adv3000",  name:"进阶三千",   desc:"规范二级字，报刊与书面语的进阶层",     test:c=>c.norm==="二级"},
+  {id:"rare1600", name:"生僻字",     desc:"规范三级字，人名地名与古籍用字，难",   test:c=>c.norm==="三级"},
+  {id:"primary",  name:"小学",       desc:"小学学段要求会写的字",                 test:c=>c.level==="小学"},
+  {id:"junior",   name:"初中",       desc:"初中学段的字",                         test:c=>c.level==="初中"},
+  {id:"senior",   name:"高中",       desc:"高中学段的字",                         test:c=>c.level==="高中"}
+];
+function defaultLibraryId(){ return preference==="challenge"?"adv3000":"core3500"; } // 老用户按现有校准无感映射
+function normalizeLibrary(raw){ const id=raw&&typeof raw==="object"?raw.id:raw; return LIBRARIES.some(l=>l.id===id)?{id}:{id:defaultLibraryId()}; }
+let libraryState=normalizeLibrary(load(LIB_KEY,null)); save(LIB_KEY,libraryState);
+function currentLibrary(){ return LIBRARIES.find(l=>l.id===libraryState.id)||LIBRARIES[0]; }
+function setLibrary(id){ libraryState=normalizeLibrary({id}); save(LIB_KEY,libraryState); }
+let libraryCountsCache={};
+function libraryCounts(lib){ const stamp=memoryCount(), hit=libraryCountsCache[lib.id]; if(hit&&hit.stamp===stamp) return hit;
+  const seenT=new Set(); let total=0,got=0;
+  for(let i=0;i<CARDS.length;i++){ const c=CARDS[i]; if(c.custom||seenT.has(c.target)) continue; seenT.add(c.target);
+    if(!lib.test(c)) continue; total++; const m=memory["base:"+c.target]; if(m&&m.seen) got++; }
+  return libraryCountsCache[lib.id]={total,got,stamp}; }
 let fontScaleLarge = load(FONT_SCALE_KEY,false)===true;
 function applyFontScale(){ document.documentElement.classList.toggle("largeText",fontScaleLarge); const row=document.getElementById("fontScaleRow"), state=document.getElementById("fontScaleState"); if(row) row.setAttribute("aria-pressed",fontScaleLarge?"true":"false"); if(state) state.textContent=fontScaleLarge?"开":"关"; }
 applyFontScale();
@@ -1256,7 +1299,7 @@ function qualityBlocked(i){ const q=qualityFor(i); return !!(q.hide || q.badWord
 function qualityAvailable(i){ const q=qualityFor(i); if(qualityBlocked(i) || q.easy) return false; if(q.rare && preference!=="challenge") return false; return true; }
 function normLevel(i){ return CARDS[i].norm || (CARDS[i].custom?"自定义":"一级"); }
 function contextSource(i){ return CARDS[i].ctx || "dict"; }
-function contextLabel(i){ const src=contextSource(i); return src==="fallback"?"语境待补":src==="override"?"补充语境":"词库语境"; }
+function contextLabel(i){ const src=contextSource(i); return src==="fallback"?"语境待补":src==="override"?"覆盖语境":src==="gloss"?"释义模式":"词库语境"; }
 function contextUsable(i){ return CARDS[i].custom || contextSource(i)!=="fallback"; }
 // 题记真文献库（#95）：引必有据，出处即包浆。每句均对照原文核准；节引以「·节」标注；自造句不冒充古人
 const DAILY_MOTTOS=[
@@ -1297,14 +1340,14 @@ function setDailyMotto(node,entry){ if(!node) return; const row=typeof entry==="
   node.innerHTML=lines+(row.a?`<span class="mSrc">${esc(row.a)}</span>`:"");
   node.classList.toggle("compactMotto",Array.from(s).length>9); }
 function applyDailyMotto(key=today()){ const entry=dailyMotto(key); setDailyMotto($("welcomeMotto"),entry); setDailyMotto($("homeMotto"),entry); return entry.t; }
-function strictNewEligible(i){ if(CARDS[i].custom) return true; if(cardLevel(i)==="小学") return false;
-  const norm=normLevel(i), d=cardDifficulty(i), common=Number(CARDS[i].common)||0, strict=Number(tuning.contextStrict)||0;
+// 新字资格改由「所选字库」定边界（#106）：选库即知情同意，旧的 norm 闸门退役——
+// 否则进阶/生僻库的分母会虚（大量字永远出不来）。冷门词止血只保留在常用库（#105）。
+function strictNewEligible(i){ const c=CARDS[i]; if(c.custom) return true;
   if(!contextUsable(i)) return false;
+  const strict=Number(tuning.contextStrict)||0, common=Number(c.common)||0;
   if(strict && common < 2.25 + strict * 0.25) return false;
-  // 冷门语境词不拿来教新字（用户反馈：词都不认识，就没法确定要写哪个字）；语境词换血管线落地前的选题侧止血
-  if(norm==="一级") return d>=35 && common>=0.9;
-  if(norm==="二级") return d>=50 && common>=1.4;
-  if(norm==="三级") return (preference==="challenge" || tuning.offset>=12) && d>=72 && common>=2.2 + strict * 0.25;
+  const lib=currentLibrary(); if(!lib.test(c)) return false;
+  if(lib.id==="core3500" && common<0.9) return false; // 常用库不拿冷门词教新字
   return true; }
 function qualityWeight(i){ const c=CARDS[i], q=qualityFor(i), p=prefSettings(); let score=(Number(c.common)||0)*p.common + (LEVEL_RANK[cardLevel(i)]||0)*p.challenge;
   const norm=normLevel(i), ctx=contextSource(i), strict=Number(tuning.contextStrict)||0;
@@ -1522,7 +1565,6 @@ function recordOutcome(outcome,options={}){ const idx=currentCardIndex(), c=CARD
 }
 function prefLabel(){ return ({balanced:"常用但老忘", practical:"偏实用", challenge:"偏挑战"})[preference] || "常用但老忘"; }
 function needsCalibration(){ return !tuning.calibrated && memoryCount()===0; }
-function applyPrefUI(){ document.querySelectorAll("#prefBox button[data-pref]").forEach(btn=>btn.classList.toggle("active", btn.dataset.pref===preference)); }
 // 问候删繁就简（#94）：日期 + 一个时辰字，电视台腔退场
 function timeWord(){ const h=new Date().getHours(); if(h<5) return "夜"; if(h<11) return "晨"; if(h<14) return "午"; if(h<19) return "暮"; return "夜"; }
 function numCn(n){ if(!Number.isInteger(n)||n<0||n>99) return String(n); const d=["零","一","二","三","四","五","六","七","八","九","十"]; if(n<=10) return d[n]; if(n<20) return "十"+d[n-10]; return d[Math.floor(n/10)]+"十"+(n%10?d[n%10]:""); }
@@ -1586,7 +1628,7 @@ function renderMe(){ displayView("me"); calendarMonthKey=calendarMonthKey||today
   const indexes=profileIndexes(), weak=indexes.filter(i=>hardCount(i)>0).sort((a,b)=>hardCount(b)-hardCount(a)||((memory[cardKey(b)]||{}).last||0)-((memory[cardKey(a)]||{}).last||0)).slice(0,3);
   $("meWeakChars").innerHTML=weak.map(i=>`<span data-char-idx="${i}">${esc(CARDS[i].target)}</span>`).join(""); $("meWeakChars").style.display=weak.length?"flex":"none"; $("meAdvice").textContent=weak.length?"这几个，写过还总忘":meAdviceText(indexes);
   const annualReady=new Date().getMonth()===11; $("annualReportLink").classList.toggle("ready",annualReady); $("annualFootText").textContent=annualReady?`${new Date().getFullYear()} 年拾字报告已可开卷`:`${new Date().getFullYear()} 年拾字报告 · 年末开卷`; renderBackupUI(); renderMeMonthCard(); }
-function renderSettings(focusData=false){ displayView("settings"); applyPrefUI(); renderSoundUI(); renderReminderUI(); renderBackupUI(); $("devTools").style.display=DEV_TOOLS?"block":"none"; if(!DEV_TOOLS) $("dataBox").style.display="none";
+function renderSettings(focusData=false){ displayView("settings"); $("settingsLibName").textContent=currentLibrary().name; renderSoundUI(); renderReminderUI(); renderBackupUI(); $("devTools").style.display=DEV_TOOLS?"block":"none"; if(!DEV_TOOLS) $("dataBox").style.display="none";
   if(focusData) requestAnimationFrame(()=>$("settingsDataLabel").scrollIntoView({block:"start",behavior:motionReduced()?"auto":"smooth"})); }
 
 // ---- 印历与补帖：留白不惩罚，最近 7 天可用一组真实书写补帖 ----
@@ -1710,9 +1752,17 @@ function bookCuratorData(seen){ const due=seen.filter(reviewDue).sort(compareRev
   if(discovery) return {kind:"discovery",indexes:discovery.items,text:`${discovery.label}的字，你已经收了${numCn(discovery.count)}个`,suffix:"›"};
   return {kind:"empty",indexes:[],text:"第一枚章，会在这里慢慢显出墨色",suffix:""}; }
 function openBook(){ renderBook(); }
+function renderLibCard(){ const lib=currentLibrary(), n=libraryCounts(lib);
+  $("libName").textContent=lib.name; $("libProg").textContent=`已拾 ${n.got} / ${n.total}`; }
+function openLibSheet(){ const active=currentLibrary().id;
+  $("libList").innerHTML=LIBRARIES.map(lib=>{ const n=libraryCounts(lib);
+    return `<button class="libRow ${lib.id===active?"active":""}" data-lib="${lib.id}"><span><b>${esc(lib.name)}</b><small>${esc(lib.desc)}</small></span><span class="libCount">已拾 ${n.got} / ${n.total}</span></button>`; }).join("");
+  $("libSheet").classList.add("open"); }
+function closeLibSheet(){ $("libSheet").classList.remove("open"); }
 function renderBook(){ displayView("book");
   const seen=profileIndexes().sort((a,b)=>firstSeenAt(b)-firstSeenAt(a)||a-b);
   $("boxCount").textContent=`${seen.length} 字`;
+  renderLibCard();
   const curator=bookCuratorData(seen); bookCuratorIndexes=curator.indexes; bookCuratorKind=curator.kind; $("bookCurator").innerHTML=`${esc(curator.text)} ${curator.suffix?`<span>${curator.suffix}</span>`:""}`; $("bookCurator").disabled=!curator.indexes.length;
   clearBookSearchState();
   // 月份刻度已删（#90 选 B）：墙不解释月份也完全成立，字缝里不许有非字像素
@@ -2168,7 +2218,7 @@ function render(){ fitBox(); cur=CARDS[currentCardIndex()]; const token=++loadTo
   updateProgressLabel();
   // 练习时只留题面本身（挖空词＋拼音就是「词语＋语境」，别再用文字复述——复述会把答案印出来）
   $("prompt").innerHTML=promptHTML(cur);
-  $("hint").textContent=cur.custom?cur.hint:(activeMode==="calibrate"?"这组用来摸个底，之后按合适的难度出题":((Number(cur.common)||0)<0.9?"这个词少见，不影响——按拼音写出那个字就好":""));
+  $("hint").textContent=cur.custom?cur.hint:(cur.ctx==="gloss"&&cur.hint?cur.hint:(activeMode==="calibrate"?"这组用来摸个底，之后按合适的难度出题":((Number(cur.common)||0)<0.9?"这个词少见，不影响——按拼音写出那个字就好":"")));
   clearInk(); drawing=false; inkCanvas.style.opacity='1'; hzEl.style.opacity='1'; hzEl.classList.remove("traceFallback");
   shownStrokes=0; totalStrokes=0; groups=[]; groupIdx=0; $("tip").disabled=true; $("show").disabled=false; $("done").disabled=true; $("tip").textContent="点拨"; updateActionLabels();
   hzEl.innerHTML=""; peekEl.innerHTML=""; peekEl.classList.remove("active"); hzEl.classList.remove("traceFallback"); writer=null; revealed=false;
@@ -2436,8 +2486,8 @@ function exitCurrentRound(fromHistory=false){ if(exitingPractice || $("card").st
   returnFromPractice(); exitingPractice=false; return true; }
 $("exitPractice").onclick=()=>exitCurrentRound(false);
 window.addEventListener("shizi-native-back",()=>{ if($("charSheet").classList.contains("open")){ closeCharSheet(); return; } if($("settingsPanel").style.display==="flex"||$("annualPanel").style.display==="flex"){ renderMe(); return; } if($("profilePanel").style.display==="flex"){ closeProfile(); return; } if($("auditPanel").style.display==="flex"){ renderSettings(false); return; } exitCurrentRound(false); });
-window.addEventListener("keydown",e=>{ if(e.key==="Escape"&&$("charSheet").classList.contains("open")) closeCharSheet(); });
-$("prefBox").onclick=e=>{ const b=e.target.closest("[data-pref]"); if(!b) return; preference=b.dataset.pref; save(PREF_KEY,preference); applyPrefUI(); };
+window.addEventListener("keydown",e=>{ if(e.key==="Escape"){ if($("charSheet").classList.contains("open")) closeCharSheet(); if($("libSheet").classList.contains("open")) closeLibSheet(); } });
+$("settingsLibRow").onclick=openLibSheet; // 选字偏好三胶囊退役（#106 设置守恒一换一），难度微调仍由校准引擎自动做
 $("fontScaleRow").onclick=()=>{ fontScaleLarge=!fontScaleLarge; save(FONT_SCALE_KEY,fontScaleLarge); applyFontScale(); fitBox(); };
 $("qualityBox").onclick=e=>{ const b=e.target.closest("[data-quality]"); if(!b) return; recordQuality(b.dataset.quality); };
 $("sumTiles").onclick=e=>{ const b=e.target.closest("[data-idx]"); if(b) openCharSheet(Number(b.dataset.idx)); };
@@ -2445,6 +2495,9 @@ $("calibSumTiles").onclick=e=>{ const b=e.target.closest("[data-idx]"); if(b) op
 $("roundTune").onclick=e=>{ const b=e.target.closest("[data-round-feedback]"); if(b) recordRoundFeedback(b.dataset.roundFeedback); };
 $("memoryWall").onclick=e=>{ const b=e.target.closest("[data-idx]"); if(b) openCharSheet(Number(b.dataset.idx)); };
 $("bookCurator").onclick=()=>{ if(!bookCuratorIndexes.length) return; if(bookCuratorKind==="recall") openCharSheet(bookCuratorIndexes[0]); else startFocus(bookCuratorIndexes); };
+$("libCard").onclick=openLibSheet;
+$("libSheet").onclick=e=>{ if(e.target===$("libSheet")){ closeLibSheet(); return; } const row=e.target.closest("[data-lib]"); if(!row) return;
+  const lib=LIBRARIES.find(l=>l.id===row.dataset.lib); if(!lib) return; setLibrary(lib.id); closeLibSheet(); renderBook(); toast(`在学：${lib.name}`); };
 $("bookSearchInput").oninput=()=>{ clearTimeout(bookSearchTimer); bookSearchTimer=setTimeout(bookSearchLive,120); };
 $("bookSearchInput").onkeydown=e=>{ if(e.key==="Enter"&&!e.isComposing) handleBookSearch(); };
 $("bookSearchNote").onclick=e=>{ if(e.target.closest("#bookSearchAdd")) handleBookSearch(); };
@@ -2620,7 +2673,7 @@ async function sharePracticeCard(opts={}){ const canvas=renderPracticeCardCanvas
 
 // ---- 数据备份 / 恢复（localStorage 是唯一存储，换手机或清缓存前先导出）----
 // 新增 shizi.* 持久键时必须同步加入；shizi.nativeSmoke.v1 与 SAFETY_KEY 为刻意排除。
-const BACKUP_KEYS=[DECK_KEY,OPEN_KEY,MEMORY_KEY,QUALITY_KEY,PREF_KEY,TUNING_KEY,ACTIVITY_KEY,SESSION_KEY,FSRS_LOG_KEY,TRACE_TUTORIAL_KEY,BACKUP_META_KEY,REMINDER_KEY,FONT_SCALE_KEY,FUNNEL_KEY,SOUND_KEY,TOPIC_KEY,CUSTOM_KEY,ADDED_KEY];
+const BACKUP_KEYS=[DECK_KEY,OPEN_KEY,MEMORY_KEY,QUALITY_KEY,PREF_KEY,TUNING_KEY,ACTIVITY_KEY,SESSION_KEY,FSRS_LOG_KEY,TRACE_TUTORIAL_KEY,BACKUP_META_KEY,REMINDER_KEY,FONT_SCALE_KEY,FUNNEL_KEY,SOUND_KEY,TOPIC_KEY,CUSTOM_KEY,ADDED_KEY,LIB_KEY];
 function backupAgeDays(){ const ts=Number(backupMeta.lastExportAt)||0; return ts?Math.max(0,Math.floor((Date.now()-ts)/86400000)):Number.POSITIVE_INFINITY; }
 function backupRelativeText(){ const days=backupAgeDays(); if(!Number.isFinite(days)) return "从未备份"; if(days===0) return "上次备份 · 今天"; if(days===1) return "上次备份 · 昨天"; return `上次备份 · ${days} 天前`; }
 function renderBackupUI(){ $("backupStatus").textContent=backupRelativeText();
@@ -2687,7 +2740,7 @@ $("importLink").onclick=requestBackupImport;
 $("welcomeRestore").onclick=requestBackupImport;
 $("importFile").onchange=e=>{ const f=e.target.files && e.target.files[0]; e.target.value=""; if(f) importBackup(f); };
 function resetAllData(opts){ const options=opts||{}; if(!options.skipConfirm && !confirm(`清空当前 ${memoryCount()} 个字和全部练习记录？操作后可以撤销一次。`)) return false; captureSafetySnapshot("reset");
-  status={}; memory={}; fsrsReviewLog=[]; traceTutorialShown=false; quality={}; tuning={calibrated:false, offset:0, contextStrict:0, rounds:[]}; preference="balanced"; fontScaleLarge=false; applyFontScale(); opens=[today()]; customWords=[]; addedChars=[]; activity=newActivity(); funnel=newFunnel(); backupMeta=normalizeBackupMeta(null); summaryBackupHintVisible=false; reminder=normalizeReminder(null); sound=normalizeSound(null); saveSound(); renderSoundUI(); saveReminder(); syncReminder(); save(DECK_KEY,status); save(MEMORY_KEY,memory); saveFSRSLog(); save(TRACE_TUTORIAL_KEY,false); save(QUALITY_KEY,quality); saveTuning(); save(PREF_KEY,preference); save(FONT_SCALE_KEY,false); save(OPEN_KEY,opens); save(CUSTOM_KEY,customWords); save(ADDED_KEY,addedChars); saveActivity(); saveFunnel(); save(BACKUP_META_KEY,backupMeta); buildCustomCards(); removeStored(TOPIC_KEY); clearSessionSnapshot(); activeMode="new"; makeupTargetDay=""; sessionDone=new Set(); focusQueue=[]; renderHome(); $("dataBox").style.display="none"; showSafetyUndo(); return true; }
+  status={}; memory={}; fsrsReviewLog=[]; traceTutorialShown=false; quality={}; tuning={calibrated:false, offset:0, contextStrict:0, rounds:[]}; preference="balanced"; fontScaleLarge=false; applyFontScale(); opens=[today()]; customWords=[]; addedChars=[]; activity=newActivity(); funnel=newFunnel(); backupMeta=normalizeBackupMeta(null); summaryBackupHintVisible=false; reminder=normalizeReminder(null); sound=normalizeSound(null); saveSound(); libraryState=normalizeLibrary(null); save(LIB_KEY,libraryState); libraryCountsCache={}; renderSoundUI(); saveReminder(); syncReminder(); save(DECK_KEY,status); save(MEMORY_KEY,memory); saveFSRSLog(); save(TRACE_TUTORIAL_KEY,false); save(QUALITY_KEY,quality); saveTuning(); save(PREF_KEY,preference); save(FONT_SCALE_KEY,false); save(OPEN_KEY,opens); save(CUSTOM_KEY,customWords); save(ADDED_KEY,addedChars); saveActivity(); saveFunnel(); save(BACKUP_META_KEY,backupMeta); buildCustomCards(); removeStored(TOPIC_KEY); clearSessionSnapshot(); activeMode="new"; makeupTargetDay=""; sessionDone=new Set(); focusQueue=[]; renderHome(); $("dataBox").style.display="none"; showSafetyUndo(); return true; }
 $("resetLink").onclick=resetAllData;
 $("safetyUndoBtn").onclick=()=>undoSafetyRestore();
 

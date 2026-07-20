@@ -518,7 +518,7 @@
   .sheet .dangerSoft{ flex:1; padding:13px 10px; border:1px solid var(--line); border-radius:14px; background:var(--card); color:var(--ink); font-size:calc(var(--fs-emph) * var(--font-scale)); font-weight:700; }
   .sheetPreview{ display:flex; flex-wrap:wrap; gap:6px; margin:10px 0 4px; min-height:34px; align-content:flex-start; font-size:calc(var(--fs-note) * var(--font-scale)); color:var(--muted); }
   .addChip{ display:inline-flex; align-items:baseline; gap:6px; border:1px solid var(--line); background:var(--card); border-radius:999px; padding:5px 10px; }
-  /* 拍字入匣（#99）：在生活里遇到写不出的字，拍下来收进字匣；照片只存本机 */
+  /* 拍字入库（#99）：在生活里遇到写不出的字，拍下来收进字库；照片只存本机 */
   .wildRow{ display:flex; align-items:center; gap:10px; margin-top:4px; min-height:36px; }
   .wildRow button{ min-height:36px; color:var(--muted); font-size:calc(var(--fs-body) * var(--font-scale)); font-weight:600; text-decoration:underline; text-underline-offset:3px; }
   .wildRow img{ width:34px; height:34px; border-radius:6px; object-fit:cover; border:1px solid var(--line); display:block; }
@@ -763,9 +763,9 @@
     </div>
   </div>
 
-  <!-- 字匣：装珍藏的匣子 -->
-  <div class="book" id="studybook" style="display:none" data-screen-label="字匣">
-    <div class="bookHead"><h1>字匣</h1><div class="cnt" id="boxCount"></div></div>
+  <!-- 字库：你的收藏 + 可选的分级库（选库功能见后续 issue） -->
+  <div class="book" id="studybook" style="display:none" data-screen-label="字库">
+    <div class="bookHead"><h1>字库</h1><div class="cnt" id="boxCount"></div></div>
     <button class="bookCurator" id="bookCurator"></button>
     <div class="bookSearch"><input id="bookSearchInput" type="search" autocomplete="off" placeholder="找一个字，或把忘的字加进来" aria-label="找字或加字"></div>
     <div class="bookSearchNote" id="bookSearchNote"></div>
@@ -873,7 +873,7 @@
   <!-- 命名换血（#94）：单层楷体三词，大字+小字双层冗余退场 -->
   <div class="foot" id="foot">
     <a class="tab" id="tabPractice">习字</a>
-    <a class="tab" id="tabBook">字匣</a>
+    <a class="tab" id="tabBook">字库</a>
     <a class="tab" id="tabMe">我的</a>
   </div>
 </div>
@@ -884,7 +884,7 @@
   <input id="addInput" type="text" autocomplete="off" autocapitalize="off" maxlength="20" placeholder="蘸料">
   <div class="sheetPreview" id="addPreview"></div>
   <div class="wildRow"><button id="addPhotoBtn">拍一个字 ›</button><span id="wildThumbWrap" style="display:none"><img id="wildThumb" alt="拍到的字"></span></div>
-  <div class="row"><button class="ghostAct" id="addCancel">取消</button><button class="primaryAct" id="addConfirm" disabled>收进字匣</button></div>
+  <div class="row"><button class="ghostAct" id="addCancel">取消</button><button class="primaryAct" id="addConfirm" disabled>收进字库</button></div>
 </div></div>
 <input type="file" id="wildPhotoInput" accept="image/*" capture="environment" style="display:none">
 
@@ -1183,7 +1183,7 @@ const MILESTONE_COPY={
   1:"见字如晤，久别重逢——那些被岁月搁下的字，从今天起，一笔一画都是归途。",
   7:"第七个练习日——拾回的字，攒成一小把了。",
   14:"第十四个练习日。两周的笔迹连起来，生疏的字开始认得回家的路。",
-  30:"三十个练习日。字匣渐满，提笔渐稳。"};
+  30:"三十个练习日。字库渐满，提笔渐稳。"};
 function milestoneDaysThrough(total){ const days=MILESTONE_DAYS.filter(d=>d<=total); for(let d=100;d<=total;d+=100) days.push(d); return days; }
 function milestoneCopy(day){ if(MILESTONE_COPY[day]) return MILESTONE_COPY[day]; return `第 ${day} 个练习日。拾回的字一百一百地长，提笔也一日一日地稳。`; }
 function celebrateMilestoneIfAny(){ const total=totalPracticeDays(); let changed=false, celebrate=null;
@@ -1194,7 +1194,7 @@ function celebrateCharacterMilestoneIfAny(before=roundStartMemoryCount,total=mem
   CHARACTER_MILESTONES.forEach(n=>{ if(total>=n&&!reminder.characterMilestonesShown.includes(n)){ reminder.characterMilestonesShown.push(n); changed=true; if(before<n) celebrate=n; } });
   if(celebrate) reminder.characterMilestoneDay=today(); if(changed) saveReminder(); return celebrate; }
 function milestoneBadge(milestone){ if(!milestone) return ""; if(milestone.kind==="characters") return milestone.value===100?"百":"三百"; return ({1:"一",7:"七",14:"十四",30:"卅"})[milestone.value]||"百"; }
-function milestoneText(milestone){ return milestone.kind==="characters"?`字匣里已经有 ${milestone.value} 个练过的字。旧字一枚枚拾回，墨色一日日变深。`:milestoneCopy(milestone.value); }
+function milestoneText(milestone){ return milestone.kind==="characters"?`字库里已经有 ${milestone.value} 个练过的字。旧字一枚枚拾回，墨色一日日变深。`:milestoneCopy(milestone.value); }
 
 // ---- 出题池与双层学习会话 ----
 const BATCH=15, DAILY_REVIEW_BUDGET=30, TOPIC_KEY="shizi.topic.v1";
@@ -1677,7 +1677,7 @@ function junkWord(c){ const w=String(c.word||"").trim(); return !w || w===c.targ
 function openCharSheet(i){ if(!Number.isInteger(i)||i<0||i>=CARDS.length) return; charDetailIndex=i; const c=CARDS[i],m=memory[cardKey(i)]||{},recent=m.recentInk&&m.recentInk.dataURL,first=firstSeenDay(i);
   $("charDetailGlyph").innerHTML=recent?`<img src="${recent}" alt="${esc(c.target)}的手写墨迹">`:esc(c.target);
   $("charDetailWord").textContent=junkWord(c)?c.target:c.word; $("charDetailPy").textContent=c.py||"";
-  $("charDetailStory").innerHTML=`${first?`${formatDayHuman(first)} 收进字匣<br>`:""}${m.wild?`${formatDayHuman(m.wild.day)} 拾于生活<br>`:""}练过 ${Number(m.seen)||0} 次${m.lastOutcome?` · ${OUTCOME_STORY[m.lastOutcome]||"上次练过"}`:""}<span class="etymLine" id="etymLine" style="display:none"></span>`;
+  $("charDetailStory").innerHTML=`${first?`${formatDayHuman(first)} 收进字库<br>`:""}${m.wild?`${formatDayHuman(m.wild.day)} 拾于生活<br>`:""}练过 ${Number(m.seen)||0} 次${m.lastOutcome?` · ${OUTCOME_STORY[m.lastOutcome]||"上次练过"}`:""}<span class="etymLine" id="etymLine" style="display:none"></span>`;
   // 空态止谎（#90）：没有墨迹=虚线空纸格，范字不冒充手写；「对范字」只在有墨迹时出现
   $("charDetailInk").classList.toggle("empty",!recent);
   $("charDetailInk").innerHTML=`${recent?`<img src="${recent}" alt="我上次写的${esc(c.target)}">`:""}<div class="charDetailInkOverlay" id="charDetailInkOverlay">${esc(c.target)}</div>`;
@@ -1716,7 +1716,7 @@ function renderBook(){ displayView("book");
   const curator=bookCuratorData(seen); bookCuratorIndexes=curator.indexes; bookCuratorKind=curator.kind; $("bookCurator").innerHTML=`${esc(curator.text)} ${curator.suffix?`<span>${curator.suffix}</span>`:""}`; $("bookCurator").disabled=!curator.indexes.length;
   clearBookSearchState();
   // 月份刻度已删（#90 选 B）：墙不解释月份也完全成立，字缝里不许有非字像素
-  $("memoryWall").innerHTML=seen.length?seen.map((i,k)=>`<button class="memoryChar" data-idx="${i}" aria-label="${esc(CARDS[i].target)}，${esc(CARDS[i].word)}" style="color:var(--memory-${memoryInkLevel(i)});transform:rotate(${ROTS[k%ROTS.length]/2}deg)">${esc(CARDS[i].target)}</button>`).join(""):`<div class="memoryWallEmpty">字匣还空着。<br>拾一组字，墨色会从这里长出来。</div>`; }
+  $("memoryWall").innerHTML=seen.length?seen.map((i,k)=>`<button class="memoryChar" data-idx="${i}" aria-label="${esc(CARDS[i].target)}，${esc(CARDS[i].word)}" style="color:var(--memory-${memoryInkLevel(i)});transform:rotate(${ROTS[k%ROTS.length]/2}deg)">${esc(CARDS[i].target)}</button>`).join(""):`<div class="memoryWallEmpty">字库还空着。<br>拾一组字，墨色会从这里长出来。</div>`; }
 // ---- 搜索即时化（#90）：输入即反馈——已收藏字浮起并自动开 sheet；在库未收字给收字建议；无匹配轻声说 ----
 let bookSearchTimer=0, bookSearchOpenTimer=0;
 function clearBookSearchState(){ clearTimeout(bookSearchOpenTimer); $("memoryWall").classList.remove("searching"); $("memoryWall").querySelectorAll(".hit").forEach(el=>el.classList.remove("hit")); if($("bookSearchNote")) $("bookSearchNote").innerHTML=""; }
@@ -1727,9 +1727,9 @@ function bookSearchLive(){ const text=$("bookSearchInput").value.trim(), ch=Arra
     if(tile){ $("memoryWall").classList.add("searching"); tile.classList.add("hit"); try{ tile.scrollIntoView({block:"center",behavior:motionReduced()?"auto":"smooth"}); }catch(e){}
       bookSearchOpenTimer=setTimeout(()=>{ if($("bookSearchInput").value.trim()===text) openCharSheet(idx); },800); }
     return; }
-  if(idx>=0||base!=null){ $("bookSearchNote").innerHTML=`<button id="bookSearchAdd">「${esc(ch)}」还没收进来 · 收进字匣 ›</button>`; return; }
+  if(idx>=0||base!=null){ $("bookSearchNote").innerHTML=`<button id="bookSearchAdd">「${esc(ch)}」还没收进来 · 收进字库 ›</button>`; return; }
   $("bookSearchNote").innerHTML=`「${esc(ch)}」是生僻字 · <button id="bookSearchAdd">按自定义收进来 ›</button>`; }
-function handleBookSearch(){ const text=$("bookSearchInput").value.trim(),ch=Array.from(text).find(isCJK); if(!ch){ toast("输入一个想找的字"); return; } const base=BASE_BY_CHAR[ch],custom=customIndexOf(ch),idx=base!=null?base:custom; if(idx>=0&&hasMemory(idx)){ clearBookSearchState(); openCharSheet(idx); return; } addWord(ch); clearBookSearchState(); $("bookSearchInput").value=""; renderBook(); toast(`「${ch}」已收进字匣，排在下次最前`); }
+function handleBookSearch(){ const text=$("bookSearchInput").value.trim(),ch=Array.from(text).find(isCJK); if(!ch){ toast("输入一个想找的字"); return; } const base=BASE_BY_CHAR[ch],custom=customIndexOf(ch),idx=base!=null?base:custom; if(idx>=0&&hasMemory(idx)){ clearBookSearchState(); openCharSheet(idx); return; } addWord(ch); clearBookSearchState(); $("bookSearchInput").value=""; renderBook(); toast(`「${ch}」已收进字库，排在下次最前`); }
 function esc(s){ return String(s).replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch])); }
 function hardCount(i){ const m=memory[cardKey(i)]||{}; return (m.misses||0)+(m.hints||0)+(m.slow||0); }
 function profileSampleReady(indexes=profileIndexes()){ return indexes.length>=10 && indexes.reduce((sum,i)=>sum+hardCount(i),0)>=3; }
@@ -2529,7 +2529,7 @@ function confirmAdd(){ const chars=addWord($("addInput").value); if(!chars) retu
   else toast(tuning.calibrated?`已加入：${chars.join("、")} · 下次开练，第一个就是它`:`已加入：${chars.join("、")} · 校准这组结束后，下一组第一个就是它`);
   if($("summary").style.display==="flex") roundSummary();
   if($("mePanel").style.display==="flex") renderMe(); if($("studybook").style.display==="flex") renderBook(); }
-// ---- 拍字入匣（#99 MVP）：照片只存本机缩略、永不上传；iOS 壳走 Vision 识字，web 手动输入 ----
+// ---- 拍字入库（#99 MVP）：照片只存本机缩略、永不上传；iOS 壳走 Vision 识字，web 手动输入 ----
 let pendingWildThumb="";
 const WILD_MAX=30;
 function trimWildThumbs(){ const rows=Object.values(memory).filter(m=>m&&m.wild&&m.wild.thumb).sort((a,b)=>(b.wild.at||0)-(a.wild.at||0)); rows.slice(WILD_MAX).forEach(m=>{ delete m.wild.thumb; }); }

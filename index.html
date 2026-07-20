@@ -84,17 +84,19 @@
   .homeMain{ margin-top:-62px; padding-right:58px; }
   .homeTitle{ margin:0; font:900 calc(38px * var(--font-scale))/1.3 var(--song); letter-spacing:var(--ls-label); }
   .motto{ writing-mode:vertical-rl; font:400 calc(var(--fs-emph) * var(--font-scale))/1.9 var(--kai); color:var(--faint); border-left:1px solid var(--line); padding-left:12px; height:116px; letter-spacing:var(--ls-motto); }
-  .homeStart{ display:flex; flex-direction:column; align-items:center; margin-top:42px; }
+  .motto.mottoColumns{ writing-mode:horizontal-tb; display:flex; flex-direction:row-reverse; gap:2px; }
+  .motto.mottoColumns span{ writing-mode:vertical-rl; text-orientation:mixed; }
+  .homeStart{ display:flex; flex-direction:column; align-items:center; justify-content:center; flex:1; min-height:250px; margin-top:12px; }
   .stampBtn{ width:165px; height:165px; background:var(--accent); border-radius:24% 20% 26% 22%; color:var(--paperInk); font:400 calc(86px * var(--font-scale))/1 var(--kai);
     transform:rotate(-3deg); display:flex; align-items:center; justify-content:center; padding-bottom:6px; transition:transform .12s ease,box-shadow .12s ease;
-    box-shadow:inset 0 0 0 2px rgba(253,251,244,.32), inset 0 0 0 7px var(--accent), inset 0 0 18px rgba(120,20,6,.28), 0 12px 24px -12px var(--accent-a45); }
-  .stampBtn:active{ transform:rotate(-3deg) scale(.93); box-shadow:inset 0 0 0 3px rgba(253,250,241,.4),inset 0 0 0 7px var(--accent),inset 0 0 20px rgba(120,20,6,.32),0 12px 20px -12px var(--accent-a50); }
+    border:2px solid rgba(90,24,12,.16); background-image:var(--paper-noise); box-shadow:0 7px 13px -10px rgba(90,24,12,.62); }
+  .stampBtn:active{ transform:rotate(-3deg) scale(.93); box-shadow:0 4px 9px -7px rgba(90,24,12,.65); }
   .stampBtn.dueBreathe{ animation:breathe 3.5s ease-in-out infinite; }
   .stampBtn:disabled{ opacity:.55; }
   .startCap{ margin-top:15px; font-size:calc(var(--fs-body) * var(--font-scale)); font-weight:600; }
   .startCap span{ color:var(--faint); font-weight:400; }
   .motto.compactMotto{ font-size:calc(var(--fs-body) * var(--font-scale)); letter-spacing:var(--ls-label); }
-  .yester{ margin-top:auto; padding:28px 0 16px; }
+  .yester{ margin-top:auto; padding:20px 0 16px; }
   .yesterHead{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:10px; font-size:calc(var(--fs-body) * var(--font-scale)); color:var(--muted); }
   .yesterHead .lbl{ font-weight:600; letter-spacing:var(--ls-label); }
   .yesterHead .addTxt{ min-height:44px; margin:-12px -10px -12px 0; padding:0 10px; }
@@ -105,13 +107,13 @@
     mask-image:linear-gradient(90deg,transparent 0,#000 18px,#000 calc(100% - 26px),transparent 100%); }
   .yesterRow::-webkit-scrollbar{ display:none; }
   .yTile{ flex:0 0 52px; width:52px; height:52px; background:var(--card); border:1px solid var(--line); border-radius:10px; display:flex; align-items:center; justify-content:center; font:400 calc(30px * var(--font-scale))/1 var(--kai); scroll-snap-align:start; }
-  .yTile.miss{ color:var(--grey); border-color:var(--dline); background:var(--shade); }
+  .yTile.miss{ color:var(--ink); border-color:var(--line); background:var(--card); }
   .yTile.more{ background:var(--shade); border-style:dashed; border-color:var(--dline); font:400 calc(var(--fs-note) * var(--font-scale)) var(--sans); color:var(--faint); }
   .yTile.placeholder{ flex-basis:auto; width:auto; padding:0 14px; }
   .yesterRow.dailyWordMode{ width:100%; padding-right:0; overflow:visible; }
   .dailyWord{ width:100%; min-height:76px; display:grid; grid-template-columns:64px minmax(0,1fr) auto; align-items:center; gap:13px; padding:8px 12px;
     border:1px solid var(--line); border-radius:10px; background:var(--card); text-align:left; }
-  .dailyWord .glyph{ color:var(--accent); font:400 calc(48px * var(--font-scale))/1 var(--kai); text-align:center; }
+  .dailyWord .glyph{ color:var(--ink); font:400 calc(48px * var(--font-scale))/1 var(--kai); text-align:center; }
   .dailyWord .word{ display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font:700 calc(var(--fs-emph) * var(--font-scale))/1.45 var(--song); }
   .dailyWord .py{ display:block; margin-top:4px; color:var(--muted); font-size:calc(var(--fs-note) * var(--font-scale)); }
   .dailyWord .go{ color:var(--accent); font-size:calc(var(--fs-note) * var(--font-scale)); font-weight:700; white-space:nowrap; }
@@ -119,10 +121,9 @@
   /* ===== 练习卡 ===== */
   .card{ display:none; position:fixed; inset:0; width:min(100%,430px); height:100dvh; margin:0 auto; flex-direction:column;
     padding:calc(14px + env(safe-area-inset-top)) 22px calc(14px + env(safe-area-inset-bottom)); animation:screenIn .3s ease; overflow:hidden; overscroll-behavior:none; }
-  .chdr{ display:grid; grid-template-columns:70px minmax(0,1fr) 70px; align-items:center; gap:6px; min-height:44px; }
+  .chdr{ display:grid; grid-template-columns:44px minmax(0,1fr) 44px; align-items:center; gap:6px; min-height:44px; }
   .xbtn{ justify-self:start; width:44px; height:44px; border-radius:50%; border:1px solid var(--line); background:var(--card); color:var(--muted); font:700 calc(25px * var(--font-scale))/1 var(--sans); }
   .cardPos{ min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; text-align:center; font-size:calc(var(--fs-body) * var(--font-scale)); font-weight:700; color:var(--muted); }
-  .addPill{ flex:none; min-height:44px; border-radius:999px; border:1px solid var(--line); background:var(--card); color:var(--muted); font:600 calc(var(--fs-emph) * var(--font-scale))/1 var(--sans); padding:0 11px; }
   #prompt{ margin-top:14px; min-height:58px; display:flex; justify-content:center; align-items:center; gap:9px; flex-wrap:wrap; text-align:center; font:400 calc(40px * var(--font-scale))/1.1 var(--kai); }
   #prompt .blank{ display:inline-flex; align-items:center; justify-content:center; min-width:60px; height:60px; border:2.5px dashed var(--accent); border-radius:14px;
     color:var(--accent); font:700 calc(18px * var(--font-scale))/1 var(--sans); letter-spacing:var(--ls-label); padding:0 8px; background:var(--card); }
@@ -131,7 +132,8 @@
     font-size:calc(var(--fs-body) * var(--font-scale)); line-height:1.7; text-align:center; animation:toastIn .35s ease both; }
   .tbubble::after{ content:''; position:absolute; left:50%; bottom:-7px; width:14px; height:14px; background:var(--ink); transform:translateX(-50%) rotate(45deg); }
   .tbubble b{ color:var(--bubbleStrong); }
-  #boxwrap{ display:flex; justify-content:center; margin-top:8px; }
+  .practiceCanvas{ position:relative; width:fit-content; margin:8px auto 0; }
+  #boxwrap{ display:flex; justify-content:center; margin:0; }
   .box{ position:relative; border-radius:8px; overflow:hidden; box-shadow:0 0 0 2px var(--accent-a45), 0 18px 36px -26px rgba(60,48,30,.55); }
   .box .gridc, .box .hz, .box .peekHz, .box .inkc{ position:absolute; left:0; top:0; }
   .box .hz{ pointer-events:none; }
@@ -149,10 +151,17 @@
   .blob.concerned::before{ top:8px; transform:translateY(1px); animation:none; }
   .blob.concerned::after{ top:6px; animation:none; }
   .mascotRow span:last-child{ font-size:calc(var(--fs-body) * var(--font-scale)); color:var(--muted); }
-  #inkTools{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px 8px; margin-top:auto; padding-top:9px; }
-  .toolBtn{ min-height:44px; flex:1; background:var(--card); color:var(--ink); border:1px solid var(--line); border-radius:14px; padding:10px 8px; font:600 calc(var(--fs-emph) * var(--font-scale)) var(--sans); transition:opacity .3s; }
-  .toolBtn.side{ color:var(--muted); }
-  .toolBtn.peek{ display:flex; align-items:baseline; justify-content:center; gap:5px; color:var(--accent); white-space:nowrap; touch-action:none; user-select:none; -webkit-user-select:none; }
+  #practiceArea > .mascotRow .blob{ display:none; }
+  #inkTools{ position:absolute; z-index:3; inset:7px; pointer-events:none; }
+  .toolBtn{ position:absolute; min-height:44px; background:color-mix(in srgb,var(--card) 88%,transparent); color:var(--ink); border:1px solid var(--line); border-radius:999px; padding:0 12px; font:700 calc(var(--fs-note) * var(--font-scale))/1 var(--sans); backdrop-filter:blur(5px); pointer-events:auto; }
+  #tip{ left:0; top:0; }
+  .toolBtn.side{ top:0; width:44px; padding:0; color:var(--muted); font-size:0; opacity:1; transition:opacity .15s; }
+  .toolBtn.side:disabled{ opacity:0; pointer-events:none; }
+  #undoStroke{ right:49px; }
+  #clear{ right:0; }
+  #undoStroke::before{ content:"↶"; font-size:18px; }
+  #clear::before{ content:"×"; font-size:20px; }
+  .toolBtn.peek{ display:none; }
   .toolBtn.peek small{ color:var(--muted); font-size:calc(var(--fs-body) * var(--font-scale)); font-weight:600; }
   .toolBtn.peek.active{ background:var(--accentSoft); border-color:var(--accent-a40); }
   #actions{ display:flex; gap:8px; margin-top:8px; }
@@ -180,7 +189,7 @@
   .decisionRow .decisionCorrect{ color:var(--accent); }
   .decisionRow .decisionWrong{ color:var(--ink); }
   .decisionRow .decisionCorrect.suggest{ background:var(--accent); border-color:var(--accent); color:var(--paperInk); box-shadow:0 12px 24px -14px var(--accent-a60); }
-  .decisionRow .decisionWrong.suggest{ background:var(--ink); border-color:var(--ink); color:var(--card); box-shadow:0 12px 24px -14px rgba(20,18,14,.55); }
+  .decisionRow .decisionWrong.suggest{ background:var(--shade); border-color:var(--ink); color:var(--ink); box-shadow:0 12px 24px -14px rgba(20,18,14,.35); }
   .decisionRow button.suggest small{ color:inherit; opacity:.82; }
   .uncertainAction{ display:flex; justify-content:center; margin-top:10px; }
   .uncertainAction button{ padding:5px 9px; color:var(--muted); font-size:calc(var(--fs-emph) * var(--font-scale)); text-decoration:underline; text-underline-offset:3px; }
@@ -280,7 +289,7 @@
   .summaryShare{ align-self:center; min-height:44px; margin:7px auto -7px; padding:9px 12px; color:var(--accent); font:700 calc(var(--fs-emph) * var(--font-scale))/1 var(--sans); text-decoration:underline; text-underline-offset:3px; }
   .sumActions{ display:flex; gap:8px; margin-top:auto; padding-top:18px; }
   .sumActions .ghostAct{ flex:1; }
-  .sumActions .darkAct{ flex:1; background:var(--ink); color:var(--card); border-radius:16px; padding:15px 10px; font:700 calc(var(--fs-emph) * var(--font-scale)) var(--sans); }
+  .sumActions .darkAct{ flex:1; background:var(--accent); color:var(--paperInk); border-radius:16px; padding:15px 10px; font:700 calc(var(--fs-emph) * var(--font-scale)) var(--sans); }
   .calibCard{ display:none; }
   .calibStats{ margin-top:14px; display:flex; gap:9px; }
   .calibStats > div{ flex:1; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:13px 0; text-align:center; }
@@ -303,13 +312,15 @@
   .bookHead .cnt{ font-size:calc(var(--fs-body) * var(--font-scale)); color:var(--muted); }
   .bookCurator{ width:100%; margin-top:16px; min-height:54px; padding:10px 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line); color:var(--ink); text-align:left; font:400 calc(var(--fs-emph) * var(--font-scale))/1.75 var(--kai); }
   .bookCurator span{ color:var(--accent); }
-  .bookSearch{ display:grid; grid-template-columns:minmax(0,1fr) 48px; gap:8px; margin-top:16px; }
+  .bookSearch{ display:block; margin-top:16px; }
   .bookSearch input{ width:100%; min-height:46px; padding:0 14px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--ink); font:400 calc(var(--fs-body) * var(--font-scale))/1 var(--sans); outline:none; }
   .bookSearch input:focus{ border-color:var(--accent-a60); }
-  .bookSearch button{ border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--accent); font-size:calc(18px * var(--font-scale)); }
-  .memoryWall{ position:relative; margin-top:20px; display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:5px 4px; padding-right:18px; }
+  .bookSearchResult{ min-height:30px; padding:7px 4px 0; color:var(--muted); font-size:calc(var(--fs-note) * var(--font-scale)); }
+  .bookSearchResult button{ display:inline; min-height:30px; color:var(--accent); font-weight:700; }
+  .memoryWall{ position:relative; margin-top:14px; display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:5px 4px; }
   .memoryChar{ position:relative; aspect-ratio:1; display:flex; align-items:center; justify-content:center; border-radius:4px; font:400 calc(23px * var(--font-scale))/1 var(--kai); }
-  .memoryChar .monthTick{ position:absolute; left:calc(100% + 5px); top:50%; transform:translateY(-50%); writing-mode:vertical-rl; white-space:nowrap; color:var(--faint); font:500 calc(9px * var(--font-scale))/1 var(--sans); }
+  .memoryChar.searchDim{ opacity:.18; }
+  .memoryChar.searchHit{ z-index:2; background:var(--shade); box-shadow:0 4px 12px -8px rgba(43,38,32,.75); transform:translateY(-2px) scale(1.12) !important; }
   .memoryWallEmpty{ grid-column:1/-1; padding:54px 10px; color:var(--faint); text-align:center; font-size:calc(var(--fs-body) * var(--font-scale)); line-height:1.8; }
   .memoryWallFoot{ display:flex; justify-content:space-between; align-items:center; gap:12px; margin-top:20px; padding:14px 0 8px; border-top:1px solid var(--line); color:var(--faint); font-size:calc(var(--fs-note) * var(--font-scale)); }
   .memoryWallFoot button{ min-height:44px; color:var(--accent); font-size:calc(var(--fs-note) * var(--font-scale)); font-weight:700; }
@@ -352,11 +363,14 @@
   .meRowMain{ display:flex; min-width:0; flex-direction:column; gap:3px; color:var(--ink) !important; }
   .meRowMain small{ color:var(--muted); font-size:calc(var(--fs-note) * var(--font-scale)); font-weight:400; }
   .backupBadge{ flex:none; border:1px solid rgba(179,137,47,.45); background:var(--shade); color:#76591d !important; border-radius:999px; padding:6px 9px; font-weight:700; }
+  .backupStatusUrgent{ color:var(--accent) !important; font-weight:700 !important; }
+  .backupUrgency{ display:none; width:22px; height:22px; flex:none; align-items:center; justify-content:center; border-radius:6px 5px 7px 5px; background:var(--accent); color:var(--paperInk) !important; font:700 calc(var(--fs-note) * var(--font-scale))/1 var(--song) !important; transform:rotate(-5deg); }
   .backupReminder{ display:none; align-items:center; gap:12px; margin-top:10px; padding:13px 14px; background:var(--shade); border:1px solid rgba(179,137,47,.45); border-radius:14px; }
   .backupReminder div{ flex:1; color:var(--muted); font-size:calc(var(--fs-note) * var(--font-scale)); line-height:1.6; }
   .backupReminder b{ color:var(--ink); }
-  .backupReminder button{ flex:none; padding:10px 12px; border-radius:11px; background:var(--ink); color:var(--card); font-weight:700; font-size:calc(var(--fs-note) * var(--font-scale)); }
+  .backupReminder button{ flex:none; padding:10px 12px; border-radius:11px; background:var(--accent); color:var(--paperInk); font-weight:700; font-size:calc(var(--fs-note) * var(--font-scale)); }
   .backupReminder .ghostMini{ background:transparent; color:var(--muted); border:1px solid var(--line); }
+  .backupReminder.settingsNotice{ border:0; border-top:1px solid var(--line); border-radius:0; background:transparent; padding:12px 2px; }
   .milestoneLine{ display:none; align-items:center; gap:12px; margin:0 auto 14px; width:min(100%,340px); padding:13px 16px; background:var(--accentSoft); border:1px solid var(--accent-a35); border-radius:14px; color:var(--ink); font:400 calc(var(--fs-emph) * var(--font-scale))/2 var(--kai); text-align:left; animation:fadeIn .25s ease both; }
   .milestoneMiniSeal{ flex:0 0 28px; width:28px; height:28px; display:flex; align-items:center; justify-content:center; border-radius:7px 5px 8px 6px; background:var(--accent); color:var(--paperInk); font:400 calc(var(--fs-body) * var(--font-scale))/1 var(--kai); transform:rotate(-6deg); animation:bigStampIn .38s ease-out both; }
   .milestoneCopy{ flex:1; }
@@ -364,7 +378,7 @@
   .mePref .plbl{ font-size:calc(var(--fs-body) * var(--font-scale)); color:var(--muted); margin-bottom:9px; }
   .prefBtns{ display:flex; gap:6px; }
   .prefBtns button{ flex:1; padding:9px 0; font:600 calc(var(--fs-note) * var(--font-scale)) var(--sans); border-radius:999px; background:transparent; border:1px solid var(--line); color:var(--muted); }
-  .prefBtns button.active{ background:var(--accent); border-color:var(--accent); color:var(--paperInk); font-weight:700; }
+  .prefBtns button.active{ background:var(--shade); border-color:var(--ink); color:var(--ink); font-weight:700; }
   .advancedTools{ display:none; border-top:1px solid var(--line); }
   .advancedTools.open{ display:block; }
   .toolsHint{ display:block; color:var(--muted); font-size:calc(var(--fs-body) * var(--font-scale)); line-height:1.55; margin-top:6px; }
@@ -400,9 +414,9 @@
   .settingsDataList .dangerRow span{ color:var(--accent); }
   /* ===== 印历 / 年度报告 ===== */
   .calendarPanel,.annualPanel{ display:none; flex:1; min-height:0; flex-direction:column; padding:18px var(--space-4) calc(24px + var(--safe-bottom)); animation:screenIn .28s ease; }
-  .collectionHead{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
-  .collectionHead h2{ margin:0; font:900 calc(24px * var(--font-scale))/1 var(--song); }
-  .collectionBack{ min-width:44px; min-height:44px; padding:8px 13px; border:1px solid var(--line); border-radius:999px; background:var(--card); color:var(--muted); font:700 calc(var(--fs-body) * var(--font-scale))/1 var(--sans); }
+  .collectionHead{ display:grid; grid-template-columns:44px minmax(0,1fr) 44px; align-items:center; gap:12px; }
+  .collectionHead h2{ margin:0; text-align:center; font:900 calc(24px * var(--font-scale))/1 var(--song); }
+  .collectionBack{ min-width:44px; min-height:44px; padding:0; }
   .calendarMonthNav{ display:grid; grid-template-columns:44px 1fr 44px; align-items:center; gap:8px; margin-top:18px; }
   .calendarMonthNav button{ width:44px; height:44px; border:1px solid var(--line); border-radius:50%; background:var(--card); color:var(--ink); font:700 calc(22px * var(--font-scale))/1 var(--sans); }
   .calendarMonthNav button:disabled{ opacity:.28; }
@@ -415,10 +429,12 @@
   .calendarDay{ position:relative; aspect-ratio:1; min-width:0; border:1px solid transparent; border-radius:8px; color:var(--muted); font:600 calc(var(--fs-note) * var(--font-scale))/1 var(--sans); }
   .calendarDay.calendarPad{ visibility:hidden; }
   .calendarDay.future{ opacity:.35; }
-  .calendarDay.makeable{ border-color:var(--line); background:var(--card); color:var(--ink); }
-  .calendarDay.today{ box-shadow:inset 0 0 0 1px var(--accent-a35); color:var(--accent); }
+  .calendarDay.makeable{ border:1px dashed var(--dline); background:transparent; color:var(--ink); }
+  .calendarDay.today{ color:var(--accent); }
   .calendarDay .dayNumber{ position:absolute; left:5px; top:5px; }
-  .calendarStamp{ position:absolute; width:27px; height:27px; right:3px; bottom:3px; display:flex; align-items:center; justify-content:center; border-radius:7px 5px 8px 6px; background:var(--accent); color:var(--paperInk); font:400 calc(var(--fs-note) * var(--font-scale))/1 var(--kai); transform:rotate(-7deg); }
+  .calendarStamp{ position:absolute; width:18px; height:18px; right:5px; bottom:5px; display:flex; align-items:center; justify-content:center; border-radius:5px 4px 5px 4px; background:var(--accent-a40); color:var(--accent); font:400 calc(9px * var(--font-scale))/1 var(--kai); transform:rotate(-7deg); }
+  .calendarStamp.todayStamp{ width:27px; height:27px; right:3px; bottom:3px; border-radius:7px 5px 8px 6px; background:var(--accent); color:var(--paperInk); font-size:calc(var(--fs-note) * var(--font-scale)); }
+  .me.backupUrgent .calendarStamp.todayStamp{ width:18px; height:18px; right:5px; bottom:5px; background:var(--accent-a40); color:var(--accent); font-size:calc(9px * var(--font-scale)); }
   .calendarStamp.makeup{ color:var(--accent); background:transparent; border:1.5px solid var(--accent-a60); }
   .calendarStamp.land{ animation:bigStampIn .34s ease-out both; animation-delay:var(--stamp-delay,0s); }
   .calendarLegend{ display:flex; justify-content:center; gap:18px; margin-top:18px; color:var(--muted); font-size:calc(var(--fs-note) * var(--font-scale)); }
@@ -437,29 +453,23 @@
   .annualEmpty{ color:var(--muted); text-align:center; line-height:1.8; }
   /* ===== 常忘的字 ===== */
   .profile,.audit{ display:none; flex:1; flex-direction:column; padding:18px 24px 24px; animation:screenIn .32s ease; }
-  .profileHead,.auditHead{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
-  .profileHead h2,.auditHead h2{ margin:0; font:900 calc(24px * var(--font-scale))/1 var(--song); }
+  .profileHead,.auditHead{ display:grid; grid-template-columns:44px 1fr 44px; align-items:center; gap:12px; margin-bottom:12px; }
+  .profileHead h2,.auditHead h2{ grid-column:2; margin:0; text-align:center; font:900 calc(24px * var(--font-scale))/1 var(--song); }
   .ghost{ flex:0 0 auto; background:var(--card); color:var(--muted); border:1px solid var(--line); padding:8px 14px; font:600 calc(var(--fs-note) * var(--font-scale)) var(--sans); border-radius:999px; }
-  .profileSummary{ display:block; margin-bottom:12px; }
-  .profileHero{ position:relative; background:var(--card); border:1px solid var(--accent-a35); border-radius:18px; padding:18px 16px; overflow:hidden; box-shadow:0 18px 38px -28px rgba(60,48,30,.55); }
-  .profileHero::after{ content:"诊"; position:absolute; right:-10px; bottom:-18px; width:92px; height:92px; border-radius:22% 18% 24% 20%; display:flex; align-items:center; justify-content:center; transform:rotate(-9deg); background:var(--accent); color:rgba(253,250,241,.9); font:400 calc(48px * var(--font-scale))/1 var(--kai); box-shadow:inset 0 0 0 3px rgba(253,250,241,.35), inset 0 0 0 7px var(--accent); opacity:.9; }
-  .profileHero .eyebrow{ color:var(--accent); font:700 calc(var(--fs-note) * var(--font-scale))/1 var(--sans); letter-spacing:var(--ls-label); }
-  .profileHero h3{ margin:8px 0 6px; font:900 calc(24px * var(--font-scale))/1.35 var(--song); max-width:260px; }
-  .profileHero p{ margin:0; color:var(--muted); font-size:calc(var(--fs-body) * var(--font-scale)); line-height:1.75; max-width:280px; }
-  .profileHero .heroAct{ margin-top:14px; background:var(--ink); color:var(--card); border-radius:14px; padding:12px 18px; font:700 calc(var(--fs-body) * var(--font-scale))/1 var(--sans); }
-  .profileHero .heroAct:disabled{ display:none; }
-  .profileMetrics{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:10px; }
-  .profileMetric{ background:var(--card); border:1px solid var(--line); border-radius:12px; padding:11px 4px; text-align:center; }
-  .profileMetric b{ display:block; font:900 calc(19px * var(--font-scale))/1 var(--song); }
-  .profileMetric span{ color:var(--muted); font-size:calc(var(--fs-body) * var(--font-scale)); }
-  .profileAdvice{ color:var(--muted); background:var(--accentSoft); border:1px solid var(--accent-a30); border-radius:14px; padding:13px 14px; font-size:calc(var(--fs-note) * var(--font-scale)); line-height:1.7; margin-bottom:12px; }
+  .profileSummary{ margin-bottom:12px; color:var(--ink); font:400 calc(var(--fs-emph) * var(--font-scale))/1.8 var(--kai); }
+  .profileAdvice{ display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); align-items:end; gap:7px; min-height:144px; margin:8px 0 18px; }
+  .weakChar{ min-width:0; color:var(--ink); text-align:center; }
+  .weakChar b{ display:block; font:400 calc(var(--weak-size,32px) * var(--font-scale))/1 var(--kai); }
+  .weakChar small{ display:block; margin-top:7px; color:var(--muted); font-size:calc(var(--fs-caption) * var(--font-scale)); white-space:nowrap; }
+  .profileMainAction{ width:100%; margin-top:auto; background:var(--accent); color:var(--paperInk); border-radius:14px; padding:13px 16px; font:700 calc(var(--fs-emph) * var(--font-scale))/1 var(--sans); }
+  .profileMainAction:disabled{ display:none; }
   .profileSection{ margin-top:14px; }
   .profileSection h3{ margin:0 0 8px; font-size:calc(var(--fs-body) * var(--font-scale)); color:var(--muted); letter-spacing:var(--ls-label); }
   .profileRows{ display:grid; gap:7px; }
-  .profileRow{ width:100%; display:grid; grid-template-columns:1fr auto; gap:6px; align-items:center; text-align:left; background:var(--card); color:var(--ink); border:1px solid var(--line); border-radius:13px; padding:11px 13px; }
+  .profileRow{ width:100%; display:grid; grid-template-columns:1fr auto; gap:6px; align-items:center; text-align:left; background:var(--shade); color:var(--ink); border:1px solid var(--line); border-radius:8px; padding:11px 13px; }
   .profileRow b{ font-size:calc(var(--fs-body) * var(--font-scale)); }
   .profileRow small{ display:block; color:var(--muted); line-height:1.45; margin-top:2px; font-size:calc(var(--fs-body) * var(--font-scale)); }
-  .profileRow em{ font-style:normal; color:var(--accent); font-size:calc(var(--fs-note) * var(--font-scale)); font-weight:700; }
+  .profileRow em{ font-style:normal; color:var(--muted); font-size:calc(var(--fs-note) * var(--font-scale)); font-weight:700; }
   .profileBar{ grid-column:1 / -1; height:6px; border-radius:999px; overflow:hidden; background:var(--bg); }
   .profileBar i{ display:block; height:100%; background:var(--accent); border-radius:999px; }
   .charChips{ display:flex; gap:8px; flex-wrap:wrap; }
@@ -495,7 +505,6 @@
   .foot .tab{ position:relative; display:flex; flex-direction:column; align-items:center; gap:4px; font:600 calc(var(--fs-note) * var(--font-scale)) var(--sans); color:var(--faint); cursor:pointer; padding:2px 14px; }
   .foot .tab .tg{ font:400 calc(20px * var(--font-scale))/1 var(--kai); }
   .foot .tab.active{ color:var(--accent); font-weight:700; }
-  .tabBadge{ display:none; position:absolute; top:-3px; left:calc(50% + 8px); min-width:17px; height:17px; padding:0 4px; align-items:center; justify-content:center; border-radius:999px; background:var(--accent); color:var(--paperInk); border:2px solid var(--card); font:700 calc(var(--fs-caption) * var(--font-scale))/1 var(--sans); }
 
   /* ===== 弹层 / 提示 ===== */
   .sheetMask{ display:none; position:fixed; inset:0; z-index:20; background:rgba(30,24,16,.45); backdrop-filter:blur(2px); align-items:flex-start; justify-content:center; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:calc(14vh + env(safe-area-inset-top)) 24px calc(24px + env(safe-area-inset-bottom) + var(--keyboard-inset)); }
@@ -526,10 +535,12 @@
   .charDetailCompareHead{ display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; color:var(--muted); font-size:calc(var(--fs-note) * var(--font-scale)); }
   .charDetailCompareHead button{ min-height:36px; color:var(--accent); font-size:calc(var(--fs-note) * var(--font-scale)); font-weight:700; }
   .charDetailCompareBody{ display:flex; align-items:center; gap:12px; }
-  .charDetailInk{ width:92px; height:92px; flex:none; display:flex; align-items:center; justify-content:center; border:1px solid var(--line); border-radius:8px; overflow:hidden; background:var(--card); color:var(--faint); font:400 calc(54px * var(--font-scale))/1 var(--kai); }
+  .charDetailInk{ position:relative; width:92px; height:92px; flex:none; display:flex; align-items:center; justify-content:center; border:1px dashed var(--dline); border-radius:8px; overflow:hidden; background:var(--card); color:var(--faint); font:400 calc(54px * var(--font-scale))/1 var(--kai); }
   .charDetailInk img{ width:100%; height:100%; object-fit:cover; }
   .charDetailEmpty{ color:var(--muted); font-size:calc(var(--fs-body) * var(--font-scale)); line-height:1.65; }
   .charDetailStandard{ display:none; width:92px; height:92px; flex:none; align-items:center; justify-content:center; border:1px solid var(--accent-a35); border-radius:8px; background:var(--card); color:var(--accent); font:400 calc(62px * var(--font-scale))/1 var(--kai); }
+  .charDetailCompareBody.overlay .charDetailStandard{ margin-left:-104px; background:transparent; border-color:transparent; opacity:.45; pointer-events:none; }
+  .charDetailOverlayToggle{ display:none; min-height:36px; margin-left:auto; padding:0 8px; color:var(--muted); font-weight:700; }
   .charDetailStroke{ display:none; width:180px; height:180px; margin:16px auto 0; border:1px solid var(--accent-a35); border-radius:8px; background:var(--card); overflow:hidden; }
   .charDetailActions{ display:grid; grid-template-columns:1fr 1.35fr; gap:8px; margin-top:20px; }
   .charDetailActions button{ min-height:48px; border-radius:12px; font-size:calc(var(--fs-emph) * var(--font-scale)); font-weight:700; }
@@ -537,6 +548,7 @@
   .charDetailPractice{ background:var(--accent); color:var(--paperInk); }
   .toast{ position:fixed; left:50%; bottom:calc(84px + env(safe-area-inset-bottom)); transform:translateX(-50%); background:var(--ink); color:var(--card); font-size:calc(var(--fs-body) * var(--font-scale)); padding:10px 16px; border-radius:999px; z-index:30; opacity:0; transition:opacity .25s; pointer-events:none; max-width:82vw; text-align:center; box-shadow:0 8px 24px -8px rgba(20,18,14,.5); }
   .toast.show{ opacity:.94; }
+  .bootNotice{ display:none; position:fixed; z-index:32; left:50%; top:calc(10px + env(safe-area-inset-top)); transform:translateX(-50%); width:min(calc(100% - 32px),398px); padding:10px 14px; border:1px solid var(--line); border-radius:10px; background:var(--card); color:var(--muted); font-size:calc(var(--fs-body) * var(--font-scale)); text-align:center; box-shadow:0 8px 24px -16px rgba(20,18,14,.55); }
   .undoToast{ display:none; position:fixed; z-index:31; left:50%; bottom:calc(84px + env(safe-area-inset-bottom)); transform:translateX(-50%); width:min(calc(100% - 32px),398px); min-height:48px; padding:7px 8px 7px 14px; align-items:center; gap:10px; border-radius:999px; background:var(--ink); color:var(--card); box-shadow:0 10px 28px -10px rgba(20,18,14,.55); }
   .undoToast span{ flex:1; min-width:0; font-size:calc(var(--fs-body) * var(--font-scale)); }
   .undoToast button{ flex:none; min-height:34px; padding:0 13px; border-radius:999px; background:var(--card); color:var(--ink); font-size:calc(var(--fs-body) * var(--font-scale)); font-weight:800; }
@@ -553,8 +565,7 @@
     #askRow{ display:flex; min-height:22px; margin-top:5px; }
     #askRow .blob{ display:none; }
     #askRow span:last-child{ font-size:calc(var(--fs-body) * var(--font-scale)); line-height:1.4; }
-    #inkTools{ grid-template-columns:1.35fr 1.35fr .65fr .65fr; padding-top:6px; } .toolBtn{ min-width:0; padding:7px 2px; white-space:nowrap; }
-    .peekLong{ display:none; }
+    .toolBtn{ white-space:nowrap; }
     #actions{ margin-top:6px; } .ghostAct,.primaryAct{ padding-top:10px; padding-bottom:10px; }
     .undoBar{ top:env(safe-area-inset-top); }
     .revealWord{ margin-top:6px; } .cmpRow{ margin-top:8px; } #askRow{ margin-top:10px; }
@@ -607,7 +618,7 @@
     <div class="chdr">
       <button class="xbtn" id="exitPractice" aria-label="返回">‹</button>
       <div class="cardPos" id="posLabel" aria-live="polite"></div>
-      <button class="addPill" id="addInPractice">＋加字</button>
+      <span aria-hidden="true"></span>
     </div>
     <div class="undoBar" id="undoBar" aria-live="polite"><span id="undoCopy"></span><button id="undoLast">重盖</button></div>
 
@@ -617,14 +628,16 @@
       <div class="phaseTitle" id="phaseTitle"></div>
       <div class="traceIntro" id="traceIntro">先沿着轮廓描一遍，接着答案会隐藏，再自己写一次。</div>
       <div class="tbubble" id="teachBubble" style="display:none"><b>格子里缺的字，直接用手指写</b><br>写得丑没关系，连笔断笔都行</div>
-      <div id="boxwrap"></div>
-      <div class="mascotRow"><span class="blob"></span><span id="mascotLine"></span></div>
-      <div id="inkTools">
-        <button class="toolBtn" id="tip" disabled>笔顺提示</button>
-        <button class="toolBtn peek" id="peekInk" disabled aria-label="按住看一眼，不计提示"><span>按住看<span class="peekLong">一眼</span></span><small>不计</small></button>
-        <button class="toolBtn side" id="undoStroke" disabled>撤销</button>
-        <button class="toolBtn side" id="clear">重写</button>
+      <div class="practiceCanvas">
+        <div id="boxwrap"></div>
+        <div id="inkTools">
+          <button class="toolBtn" id="tip" disabled aria-label="提示：轻点看下一笔，按住看完整字形">提示</button>
+          <button class="toolBtn peek" id="peekInk" disabled aria-hidden="true" tabindex="-1">看一眼</button>
+          <button class="toolBtn side" id="undoStroke" disabled aria-label="撤销一笔">撤销</button>
+          <button class="toolBtn side" id="clear" disabled aria-label="重写">重写</button>
+        </div>
       </div>
+      <div class="mascotRow"><span class="blob"></span><span id="mascotLine"></span></div>
       <div id="actions">
         <button class="ghostAct" id="show" disabled>不会写</button>
         <button class="primaryAct" id="done" disabled>写好了</button>
@@ -752,7 +765,7 @@
   <div class="book" id="studybook" style="display:none" data-screen-label="字盒">
     <div class="bookHead"><h1>字盒</h1><div class="cnt" id="boxCount"></div></div>
     <button class="bookCurator" id="bookCurator"></button>
-    <div class="bookSearch"><input id="bookSearchInput" type="search" autocomplete="off" placeholder="找一个字，或把忘的字加进来" aria-label="找字或加字"><button id="bookSearchGo" aria-label="查找">⌕</button></div>
+    <div class="bookSearch"><input id="bookSearchInput" type="search" autocomplete="off" placeholder="找一个字，或把忘的字加进来" aria-label="找字或加字"><div class="bookSearchResult" id="bookSearchResult" aria-live="polite"></div></div>
     <div class="memoryWall" id="memoryWall"></div>
     <div class="memoryWallFoot"><span>墨色即记忆 · 淡了就去写</span><button id="bookSaveMonth">存月帖</button></div>
   </div>
@@ -774,18 +787,18 @@
     </div>
     <div class="meList mePrimaryRows">
       <button class="meRow" id="openSettings"><span>设置</span><span>›</span></button>
-      <button class="meRow" id="openBackupSettings"><span class="meRowMain">备份<small id="backupStatus">从未备份</small></span><span>›</span></button>
+      <button class="meRow" id="openBackupSettings"><span class="meRowMain">备份<small id="backupStatus">从未备份</small></span><span class="backupUrgency" id="backupUrgency">!</span><span>›</span></button>
     </div>
     <button class="meAnnualFoot" id="annualReportLink"><span id="annualFootText"></span> ›</button>
   </div>
 
   <!-- 设置：功能项从「我的」分离 -->
   <div class="settingsPanel" id="settingsPanel" style="display:none" data-screen-label="设置">
-    <div class="collectionHead"><h2>设置</h2><button class="collectionBack" id="closeSettings">返回</button></div>
+    <div class="collectionHead"><button class="xbtn collectionBack" id="closeSettings" aria-label="返回">‹</button><h2>设置</h2><span></span></div>
     <div class="meLabel">练习</div>
     <div class="meList">
       <div class="mePref"><div class="plbl">选字偏好</div><div class="prefBtns" id="prefBox">
-        <button data-pref="balanced">高频易忘</button>
+        <button data-pref="balanced">常用但老忘</button>
         <button data-pref="practical">偏实用</button>
         <button data-pref="challenge">偏挑战</button>
       </div></div>
@@ -807,7 +820,7 @@
       <button class="meRow" id="importLink">恢复备份<span>覆盖当前记录</span></button>
       <button class="meRow dangerRow" id="resetLink">清空记录<span>慎用</span></button>
     </div>
-    <div class="backupReminder" id="backupReminder"><div><b>记录只存在这台设备上</b><br><span id="backupReminderCopy"></span></div><button id="backupNow">立即备份</button></div>
+    <div class="backupReminder settingsNotice" id="backupReminder"><div><span id="backupReminderCopy"></span></div></div>
     <div class="devTools" id="devTools">
       <div class="meLabel">开发工具</div>
       <div class="meList">
@@ -820,19 +833,20 @@
 
   <!-- 常忘的字 -->
   <div class="profile" id="profilePanel" style="display:none" data-screen-label="常忘的字">
-    <div class="profileHead"><h2>常忘的字</h2><button class="ghost" id="closeProfile">返回</button></div>
+    <div class="profileHead"><button class="xbtn" id="closeProfile" aria-label="返回">‹</button><h2>常忘的字</h2><span></span></div>
     <div class="profileSummary" id="profileSummary"></div>
     <div class="profileAdvice" id="profileAdvice"></div>
-    <div class="profileSection"><h3>先补这类字</h3><div class="profileRows" id="profileTopics"></div></div>
-    <div class="profileSection"><h3>结构和难度</h3><div class="profileRows" id="profileLevels"></div></div>
+    <div class="profileSection" id="profileTopicsSection"><h3>再看一层</h3><div class="profileRows" id="profileTopics"></div></div>
+    <div class="profileSection" id="profileLevelsSection"><div class="profileRows" id="profileLevels"></div></div>
+    <button class="profileMainAction" id="profilePractice">把这几个写一遍</button>
   </div>
 
   <!-- 开发工具：只在 ?dev=1 时从「我的」页进入 -->
   <div class="audit" id="auditPanel" style="display:none" data-screen-label="题库质检">
-    <div class="auditHead"><h2>题库质检</h2><button class="ghost" id="closeAudit">返回</button></div>
+    <div class="auditHead"><button class="xbtn" id="closeAudit" aria-label="返回">‹</button><h2>题库质检</h2><span></span></div>
     <div class="auditControls">
       <div class="auditPrefs" id="auditPrefs">
-        <button data-pref="balanced">高频易忘</button>
+        <button data-pref="balanced">常用但老忘</button>
         <button data-pref="practical">偏实用</button>
         <button data-pref="challenge">偏挑战</button>
       </div>
@@ -848,13 +862,13 @@
 
   <!-- 年度报告：本地滚动，不请求服务端 -->
   <div class="annualPanel" id="annualPanel" style="display:none" data-screen-label="年度拾字报告">
-    <div class="collectionHead"><h2 id="annualTitle">年度拾字报告</h2><button class="collectionBack" id="closeAnnual">返回</button></div>
+    <div class="collectionHead"><button class="xbtn collectionBack" id="closeAnnual" aria-label="返回">‹</button><h2 id="annualTitle">年度拾字报告</h2><span></span></div>
     <div class="annualSlides" id="annualSlides"></div>
   </div>
 
   <div class="foot" id="foot">
     <a class="tab" id="tabPractice"><span class="tg">拾</span>练习</a>
-    <a class="tab" id="tabBook"><span class="tg">盒</span><span class="tabBadge" id="bookBadge"></span>字盒</a>
+    <a class="tab" id="tabBook"><span class="tg">盒</span>字盒</a>
     <a class="tab" id="tabMe"><span class="tg">我</span>我的</a>
   </div>
 </div>
@@ -887,13 +901,14 @@
     <div class="charDetailMeta"><h3 id="charDetailWord"></h3><span class="charDetailPy" id="charDetailPy"></span><div class="charDetailStory" id="charDetailStory"></div></div>
   </div>
   <div class="charDetailCompare">
-    <div class="charDetailCompareHead"><span>我上次写的</span><button id="charDetailCompareToggle">对比标准字</button></div>
+    <div class="charDetailCompareHead"><span>我上次写的</span><button id="charDetailCompareToggle">对比标准字</button><button class="charDetailOverlayToggle" id="charDetailOverlayToggle">叠</button></div>
     <div class="charDetailCompareBody"><div class="charDetailInk" id="charDetailInk"></div><div class="charDetailStandard" id="charDetailStandard"></div><div class="charDetailEmpty" id="charDetailEmpty"></div></div>
   </div>
   <div class="charDetailStroke" id="charDetailStroke"></div>
   <div class="charDetailActions"><button class="charDetailStrokeBtn" id="charDetailStrokeBtn">看笔顺</button><button class="charDetailPractice" id="charDetailPractice">再写一遍</button></div>
 </div></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="bootNotice" id="bootNotice" role="status" aria-live="polite">有一份记录损坏，已隔离，其余照常</div>
 <div class="undoToast" id="safetyUndo" role="status" aria-live="polite"><span id="safetyUndoCopy">已保留操作前的记录</span><button id="safetyUndoBtn">撤销</button></div>
 <input type="file" id="importFile" accept=".json,application/json" style="display:none">
 
@@ -912,19 +927,28 @@ SEED.forEach(w=>{ const chars=Array.from(w.ans), pys=w.py.split(/\s+/);
 // ---- 本地存储 ----
 const DECK_KEY="shizi.deck.v8105.context1", OPEN_KEY="shizi.opens.v1", MEMORY_KEY="shizi.memory.v1", QUALITY_KEY="shizi.quality.v1", PREF_KEY="shizi.pref.v1", TUNING_KEY="shizi.tuning.v1",
   ACTIVITY_KEY="shizi.activity.v1", SESSION_KEY="shizi.session.v1", BACKUP_META_KEY="shizi.backupMeta.v1", REMINDER_KEY="shizi.reminder.v1", SAFETY_KEY="shizi.safety.v1",
-  FSRS_LOG_KEY="shizi.fsrsReviewLog.v1", TRACE_TUTORIAL_KEY="shizi.traceTutorial.v1", FONT_SCALE_KEY="shizi.fontScale.v1", FUNNEL_KEY="shizi.funnel.v1", SOUND_KEY="shizi.sound.v1";
+  FSRS_LOG_KEY="shizi.fsrsReviewLog.v1", TRACE_TUTORIAL_KEY="shizi.traceTutorial.v1", FONT_SCALE_KEY="shizi.fontScale.v1", FUNNEL_KEY="shizi.funnel.v1", SOUND_KEY="shizi.sound.v1",
+  TOPIC_KEY="shizi.topic.v1", CUSTOM_KEY="shizi.custom.v1", ADDED_KEY="shizi.added.v1";
 function load(k,d){ try{ return JSON.parse(localStorage.getItem(k)) ?? d; }catch(e){ return d; } }
 function save(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); return true; }catch(e){ return false; } }
 function removeStored(k){ try{ localStorage.removeItem(k); }catch(e){} }
-let status = load(DECK_KEY, {});
-let memory = load(MEMORY_KEY, {});
-let fsrsReviewLog = load(FSRS_LOG_KEY, []); if(!Array.isArray(fsrsReviewLog)) fsrsReviewLog=[];
-let traceTutorialShown = load(TRACE_TUTORIAL_KEY, false)===true;
+const bootCorruptKeys=[];
+function quarantineStoredKey(k,raw){ try{ localStorage.setItem(`shizi.corrupt.${k}`,raw==null?"null":String(raw)); localStorage.removeItem(k); bootCorruptKeys.push(k); }catch(e){} }
+function bootLoad(k,d,valid=()=>true){ const raw=localStorage.getItem(k); if(raw===null) return d; try{ const value=JSON.parse(raw); if(!valid(value)) throw new Error("shape"); return value??d; }catch(e){ quarantineStoredKey(k,raw); return d; } }
+function bootNormalize(k,value,fallback,normalize){ try{ return normalize(value); }catch(e){ quarantineStoredKey(k,localStorage.getItem(k)); return normalize(fallback); } }
+const plainObject=v=>!!v&&typeof v==="object"&&!Array.isArray(v);
+const objectValuesAre=(value,predicate)=>plainObject(value)&&Object.values(value).every(predicate);
+let status = bootLoad(DECK_KEY, {}, v=>objectValuesAre(v,row=>typeof row==="string"));
+let memory = bootLoad(MEMORY_KEY, {}, v=>objectValuesAre(v,plainObject));
+let fsrsReviewLog = bootLoad(FSRS_LOG_KEY, [], Array.isArray);
+let traceTutorialShown = bootLoad(TRACE_TUTORIAL_KEY, false, v=>typeof v==="boolean")===true;
 save(FSRS_LOG_KEY,fsrsReviewLog); save(TRACE_TUTORIAL_KEY,traceTutorialShown);
-let quality = load(QUALITY_KEY, {});
-let preference = load(PREF_KEY, "balanced");
-let tuning = load(TUNING_KEY, {calibrated:false, offset:0, contextStrict:0, rounds:[]});
-let fontScaleLarge = load(FONT_SCALE_KEY,false)===true;
+let quality = bootLoad(QUALITY_KEY, {}, v=>objectValuesAre(v,plainObject));
+let preference = bootLoad(PREF_KEY, "balanced", v=>["balanced","practical","challenge"].includes(v));
+let tuning = bootLoad(TUNING_KEY, {calibrated:false, offset:0, contextStrict:0, rounds:[]}, v=>plainObject(v)&&(!("rounds" in v)||Array.isArray(v.rounds)));
+let fontScaleLarge = bootLoad(FONT_SCALE_KEY,false,v=>typeof v==="boolean")===true;
+bootLoad(TOPIC_KEY,"",v=>typeof v==="string");
+bootLoad(SAFETY_KEY,null,v=>v===null||plainObject(v));
 function applyFontScale(){ document.documentElement.classList.toggle("largeText",fontScaleLarge); const row=document.getElementById("fontScaleRow"), state=document.getElementById("fontScaleState"); if(row) row.setAttribute("aria-pressed",fontScaleLarge?"true":"false"); if(state) state.textContent=fontScaleLarge?"开":"关"; }
 applyFontScale();
 let auditPref = preference;
@@ -971,7 +995,7 @@ function applyFSRSReview(idx,rating,reason,attemptId,details={}){
   fsrsReviewLog.push(event); saveFSRSLog(); saveMemory(); return event; }
 function formatDueDay(key){ if(!/^\d{4}-\d{2}-\d{2}$/.test(String(key||""))) return ""; const [y,m,d]=key.split("-").map(Number); return `${y}年${m}月${d}日`; }
 function shortDueDay(key){ if(!/^\d{4}-\d{2}-\d{2}$/.test(String(key||""))) return "稍后"; const [,m,d]=key.split("-").map(Number); return `${m}月${d}日`; }
-let opens = load(OPEN_KEY, []); if(!opens.includes(today())){ opens.push(today()); save(OPEN_KEY,opens); }
+let opens = bootLoad(OPEN_KEY, [], Array.isArray); if(!opens.includes(today())){ opens.push(today()); save(OPEN_KEY,opens); }
 function newFunnel(){ return {version:1,createdAt:Date.now(),events:[],seen:[],counts:{revealCompared:0,revealDisagree:0},rounds:[]}; }
 function normalizeFunnel(raw){ const f=raw&&typeof raw==="object"?raw:newFunnel();
   f.version=1; f.createdAt=Math.max(0,Number(f.createdAt)||Date.now());
@@ -980,7 +1004,7 @@ function normalizeFunnel(raw){ const f=raw&&typeof raw==="object"?raw:newFunnel(
   const counts=f.counts&&typeof f.counts==="object"?f.counts:{}; f.counts={revealCompared:Math.max(0,Number(counts.revealCompared)||0),revealDisagree:Math.max(0,Number(counts.revealDisagree)||0)};
   f.rounds=Array.isArray(f.rounds)?f.rounds.filter(r=>r&&Number(r.completedAt)>0&&Number(r.durationMs)>=0).map(r=>({completedAt:Number(r.completedAt),day:/^\d{4}-\d{2}-\d{2}$/.test(r.day||"")?r.day:dayKey(new Date(Number(r.completedAt))),mode:["new","review","calibrate","focus","makeup"].includes(r.mode)?r.mode:"new",durationMs:Math.max(0,Math.round(Number(r.durationMs)||0)),targetCount:Math.max(0,Number(r.targetCount)||0),attemptCount:Math.max(0,Number(r.attemptCount)||0)})):[];
   return f; }
-let funnel=normalizeFunnel(load(FUNNEL_KEY,null)); save(FUNNEL_KEY,funnel);
+let funnel=bootNormalize(FUNNEL_KEY,bootLoad(FUNNEL_KEY,null,v=>v===null||plainObject(v)),null,normalizeFunnel); save(FUNNEL_KEY,funnel);
 function saveFunnel(){ save(FUNNEL_KEY,funnel); }
 function appendFunnelEvent(target,name,onceKey=name,at=Date.now()){ const key=String(onceKey||name); if(target.seen.includes(key)) return false; const ts=Math.max(1,Number(at)||Date.now()); target.seen.push(key); target.events.push({name,at:ts,day:dayKey(new Date(ts))}); return true; }
 function recordFunnelOnce(name,onceKey=name,at=Date.now()){ if(!appendFunnelEvent(funnel,name,onceKey,at)) return false; saveFunnel(); return true; }
@@ -1000,9 +1024,9 @@ function normalizeActivity(raw){ const a=raw && typeof raw==="object"?raw:newAct
   a.inheritedTotalDays=Number.isInteger(a.inheritedTotalDays)&&a.inheritedTotalDays>=0?a.inheritedTotalDays:legacyDaysBefore(a.migrationDate);
   a.practiceDays=Array.isArray(a.practiceDays)?[...new Set(a.practiceDays.filter(d=>/^\d{4}-\d{2}-\d{2}$/.test(d)))].sort():[];
   a.daily=a.daily && typeof a.daily==="object"?a.daily:{}; return a; }
-let activity=normalizeActivity(load(ACTIVITY_KEY,null)); save(ACTIVITY_KEY,activity);
+let activity=bootNormalize(ACTIVITY_KEY,bootLoad(ACTIVITY_KEY,null,v=>v===null||plainObject(v)),null,normalizeActivity); save(ACTIVITY_KEY,activity);
 function normalizeBackupMeta(raw){ const meta=raw&&typeof raw==="object"?raw:{}; return {lastExportAt:Math.max(0,Number(meta.lastExportAt)||0),summaryPromptShown:!!meta.summaryPromptShown}; }
-let backupMeta=normalizeBackupMeta(load(BACKUP_META_KEY,null)), summaryBackupHintVisible=false;
+let backupMeta=bootNormalize(BACKUP_META_KEY,bootLoad(BACKUP_META_KEY,null,v=>v===null||plainObject(v)),null,normalizeBackupMeta), summaryBackupHintVisible=false;
 function saveActivity(){ save(ACTIVITY_KEY,activity); }
 function dailyActivity(key=today()){ const row=activity.daily[key] && typeof activity.daily[key]==="object"?activity.daily[key]:{};
   row.stamps=Math.max(0,Number(row.stamps)||0); row.attempts=Math.max(row.stamps,Number(row.attempts)||0); row.targetKeys=Array.isArray(row.targetKeys)?[...new Set(row.targetKeys.filter(k=>typeof k==="string"))]:[]; row.independentTargetKeys=Array.isArray(row.independentTargetKeys)?[...new Set(row.independentTargetKeys.filter(k=>typeof k==="string"))]:[]; row.reviewTargetKeys=Array.isArray(row.reviewTargetKeys)?[...new Set(row.reviewTargetKeys.filter(k=>typeof k==="string"))]:[]; row.completedRoundIds=Array.isArray(row.completedRoundIds)?[...new Set(row.completedRoundIds.filter(k=>typeof k==="string"||Number.isFinite(k)))]:[]; row.makeup=row.makeup===true;
@@ -1039,12 +1063,12 @@ function normalizeReminder(raw){ const r=raw && typeof raw==="object"?raw:{};
   r.milestonesShown=Array.isArray(r.milestonesShown)?r.milestonesShown.filter(n=>Number.isInteger(n)):[];
   r.characterMilestonesShown=Array.isArray(r.characterMilestonesShown)?r.characterMilestonesShown.filter(n=>Number.isInteger(n)):[];
   r.characterMilestoneDay=/^\d{4}-\d{2}-\d{2}$/.test(r.characterMilestoneDay||"")?r.characterMilestoneDay:""; return r; }
-let reminder=normalizeReminder(load(REMINDER_KEY,null)); save(REMINDER_KEY,reminder);
+let reminder=bootNormalize(REMINDER_KEY,bootLoad(REMINDER_KEY,null,v=>v===null||plainObject(v)),null,normalizeReminder); save(REMINDER_KEY,reminder);
 let reminderPendingEnable=false;
 const reminderDebug={lastSync:null};
 // ---- 纸墨声音：全局只在盖章与描红起笔两处触发；iOS 交给尊重静音键的原生 ambient 播放 ----
 function normalizeSound(raw){ const value=raw&&typeof raw==="object"?raw:{}; return {enabled:value.enabled!==false,tipShown:value.tipShown===true}; }
-let sound=normalizeSound(load(SOUND_KEY,null)); save(SOUND_KEY,sound);
+let sound=bootNormalize(SOUND_KEY,bootLoad(SOUND_KEY,null,v=>v===null||plainObject(v)),null,normalizeSound); save(SOUND_KEY,sound);
 const soundDebug={last:null,events:[],contextCreated:0};
 let webAudioContext=null, lastPaperSoundAt=0;
 function saveSound(){ save(SOUND_KEY,sound); }
@@ -1143,11 +1167,11 @@ function milestoneBadge(milestone){ if(!milestone) return ""; if(milestone.kind=
 function milestoneText(milestone){ return milestone.kind==="characters"?`字盒里已经有 ${milestone.value} 个练过的字。旧字一枚枚拾回，字盒也一格格长满。`:milestoneCopy(milestone.value); }
 
 // ---- 出题池与双层学习会话 ----
-const BATCH=15, DAILY_REVIEW_BUDGET=30, TOPIC_KEY="shizi.topic.v1";
+const BATCH=15, DAILY_REVIEW_BUDGET=30;
 let sessionDone=new Set(), baseTargets=[], batch=[], pos=0, baseCursor=0, currentIndex=null, currentAttemptKind="base", currentAttemptId="";
 let manualQueue=[], reinforcementQueue=[], unresolved=new Set(), episodes={}, attemptSeq=0, practicePhase="recall", hintEverUsed=false, enteredTracingThisAttempt=false, submissionSnapshot=null, pendingSessionVisual=null, feedbackKind="";
 let missedThisRound=[], roundStats=[], focusQueue=[], hintsUsedThisCard=0, cardStartedAt=0, activeMode="new", makeupTargetDay="", sessionTarget=0, sessionFastStreak=0, sessionMissStreak=0, roundFeedbackGiven=false, roundId=0, calibrationFirstHoldUsed=false, calibrationComfortShown=false, calibrationTargets=[];
-let summaryFocusIndexes=[], roundStartMemoryCount=0, summarySealTimer=0, summaryMilestoneActive=false;
+let summaryFocusIndexes=[], roundStartMemoryCount=0, summarySealTimer=0, summaryMilestoneActive=false, focusReturnView="home";
 let roundElapsedMs=0, roundActiveStartedAt=0, roundBudgetPrompted=false, roundTimerPaused=false;
 const ROUND_ATTEMPT_BUDGET=20, ROUND_TIME_BUDGET_MS=6*60*1000, ROUND_DURATION_CAP_MS=60*60*1000;
 function currentCardIndex(){ return Number.isInteger(currentIndex)?currentIndex:(Number.isInteger(batch[pos])?batch[pos]:null); }
@@ -1169,7 +1193,7 @@ function sessionPayload(){ return {version:2,startedDate:(load(SESSION_KEY,null)
   manualQueue:cloneObj(manualQueue)||[],reinforcementQueue:cloneObj(reinforcementQueue)||[],unresolved:[...unresolved],episodes:cloneObj(episodes)||{},attemptSeq,practicePhase,visual:capturePracticeVisual(),
   missedThisRound:missedThisRound.slice(),roundStats:cloneObj(roundStats)||[],focusQueue:focusQueue.slice(),sessionDone:[...sessionDone],sessionTarget,sessionFastStreak,sessionMissStreak,roundFeedbackGiven,roundId,calibrationFirstHoldUsed,calibrationComfortShown,calibrationTargets:calibrationTargets.slice(),lastStampSnapshot:cloneObj(lastStampSnapshot),feedbackKind,
   roundElapsedMs:currentRoundElapsed(),roundBudgetPrompted,roundStartMemoryCount}; }
-function saveSessionSnapshot(){ if(!baseTargets.length || !Number.isInteger(currentCardIndex())) return false; return save(SESSION_KEY,sessionPayload()); }
+function saveSessionSnapshot(){ if(!baseTargets.length || !Number.isInteger(currentCardIndex())) return false; if(activeMode==="focus"&&baseTargets.length===1){ clearSessionSnapshot(); return true; } return save(SESSION_KEY,sessionPayload()); }
 function clearSessionSnapshot(){ removeStored(SESSION_KEY); }
 function migrateV1Session(s){ const stats=Array.isArray(s.roundStats)?cloneObj(s.roundStats):[], targets=Array.isArray(s.batch)?s.batch.slice():[]; let cursor=Math.min(targets.length,stats.length);
   const eps={}, queue=[], open=new Set(); stats.forEach((row,n)=>{ const ep={idx:row.idx,firstOutcome:row.outcome,attempts:[{attemptId:`${s.roundId||"legacy"}-legacy-${n+1}`,outcome:row.outcome}],assistanceUsed:row.outcome==="hinted",independentlyRecovered:row.outcome==="fast",excluded:false,teachingComplete:row.outcome!=="miss"}; eps[String(row.idx)]=ep; if(row.outcome!=="fast"){ open.add(row.idx); queue.push({idx:row.idx,eligibleAfter:stats.length+2,order:n}); } });
@@ -1178,11 +1202,11 @@ function migrateV1Session(s){ const stats=Array.isArray(s.roundStats)?cloneObj(s
   return {version:2,startedDate:s.date||today(),updatedAt:Date.now(),activeMode:s.activeMode,makeupTargetDay:"",baseTargets:targets,baseCursor:cursor,currentIndex:next?next.idx:targets[Math.max(0,targets.length-1)],currentAttemptKind:next?next.kind:"base",currentAttemptId:`${s.roundId||Date.now()+"-migrated"}-a${stats.length+1}`,
     manualQueue:[],reinforcementQueue:queue.filter(item=>!next||next.kind!=="reinforcement"||item.idx!==next.idx),unresolved:[...open],episodes:eps,attemptSeq:stats.length,practicePhase:next&&next.kind==="reinforcement"?"reinforcement":"recall",visual:null,
     missedThisRound:Array.isArray(s.missedThisRound)?s.missedThisRound.slice():[],roundStats:stats,focusQueue:Array.isArray(s.focusQueue)?s.focusQueue.slice():[],sessionDone:Array.isArray(s.sessionDone)?s.sessionDone.slice():[],sessionTarget:s.sessionTarget,sessionFastStreak:s.sessionFastStreak,sessionMissStreak:s.sessionMissStreak,roundFeedbackGiven:!!s.roundFeedbackGiven,roundId:s.roundId||Date.now()+"-migrated",calibrationFirstHoldUsed:!!s.calibrationFirstHoldUsed,calibrationComfortShown:false,calibrationTargets:s.activeMode==="calibrate"?targets.slice(0,BATCH):[],lastStampSnapshot:null,roundElapsedMs:0,roundBudgetPrompted:false,roundStartMemoryCount:memoryCount()}; }
-function resumableSession(){ let s=load(SESSION_KEY,null); if(!s) return null; if(s.version===1) s=migrateV1Session(s);
+function resumableSession(){ let s=bootLoad(SESSION_KEY,null,v=>v===null||plainObject(v)); if(!s) return null; if(s.version===1) s=migrateV1Session(s);
   const valid=s.version===2 && Array.isArray(s.baseTargets) && s.baseTargets.length>0 && s.baseTargets.every(i=>Number.isInteger(i)&&i>=0&&i<CARDS.length)
     && Number.isInteger(s.currentIndex)&&s.currentIndex>=0&&s.currentIndex<CARDS.length && ["new","review","calibrate","focus","makeup"].includes(s.activeMode)
     && (s.activeMode!=="makeup" || (/^\d{4}-\d{2}-\d{2}$/.test(s.makeupTargetDay||"") && s.makeupTargetDay<today()));
-  if(!valid){ clearSessionSnapshot(); return null; } return s; }
+  if(!valid){ quarantineStoredKey(SESSION_KEY,localStorage.getItem(SESSION_KEY)); return null; } return s; }
 function restoreSession(s){ if(!s) return false; if(s.version===1) s=migrateV1Session(s); activeMode=s.activeMode; makeupTargetDay=activeMode==="makeup"?s.makeupTargetDay:""; baseTargets=s.baseTargets.slice(); batch=baseTargets; baseCursor=Math.max(0,Math.min(baseTargets.length,Number(s.baseCursor)||0)); currentIndex=s.currentIndex;
   currentAttemptKind=s.currentAttemptKind||"base"; currentAttemptId=s.currentAttemptId||`${s.roundId}-a${(Number(s.attemptSeq)||0)+1}-${currentIndex}`; manualQueue=Array.isArray(s.manualQueue)?cloneObj(s.manualQueue):[]; reinforcementQueue=Array.isArray(s.reinforcementQueue)?cloneObj(s.reinforcementQueue):[]; unresolved=new Set(Array.isArray(s.unresolved)?s.unresolved:[]); episodes=cloneObj(s.episodes)||{}; attemptSeq=Number(s.attemptSeq)||0; practicePhase=s.practicePhase||"recall";
   missedThisRound=Array.isArray(s.missedThisRound)?s.missedThisRound.slice():[]; roundStats=Array.isArray(s.roundStats)?cloneObj(s.roundStats):[]; focusQueue=Array.isArray(s.focusQueue)?s.focusQueue.slice():[]; sessionDone=new Set(Array.isArray(s.sessionDone)?s.sessionDone:[]);
@@ -1215,7 +1239,7 @@ let dailyCharacterPool=null;
 function dailyCharacterCandidates(){ if(dailyCharacterPool) return dailyCharacterPool; const seen=new Set(); dailyCharacterPool=allIndexes().filter(i=>{ const c=CARDS[i], norm=normLevel(i), d=Number(c.d)||0, common=Number(c.common)||0;
     if(c.custom || seen.has(c.target) || !["一级","二级"].includes(norm) || common<1.5 || d<55 || d>85 || !contextUsable(i)) return false; seen.add(c.target); return true; }); return dailyCharacterPool; }
 function dailyCharacterIndex(key=today()){ const pool=dailyCharacterCandidates(); return pool.length?pool[datedSelectionIndex(key,pool.length,"character")]:-1; }
-function setDailyMotto(node,text){ if(!node) return; node.textContent=text; node.classList.toggle("compactMotto",Array.from(text).length>9); }
+function setDailyMotto(node,text){ if(!node) return; const split=node.id==="homeMotto"&&text==="写过的字，都会回来"; node.classList.toggle("mottoColumns",split); if(split) node.innerHTML="<span>写过的字，</span><span>都会回来</span>"; else node.textContent=text; node.classList.toggle("compactMotto",Array.from(text).length>9); }
 function applyDailyMotto(key=today()){ const text=dailyMotto(key); setDailyMotto($("welcomeMotto"),text); setDailyMotto($("homeMotto"),text); return text; }
 function strictNewEligible(i){ if(CARDS[i].custom) return true; if(cardLevel(i)==="小学") return false;
   const norm=normLevel(i), d=cardDifficulty(i), common=Number(CARDS[i].common)||0, strict=Number(tuning.contextStrict)||0;
@@ -1438,11 +1462,11 @@ function recordOutcome(outcome,options={}){ const idx=currentCardIndex(), c=CARD
   if(submissionSnapshot) submissionSnapshot=Object.freeze({...submissionSnapshot,userCorrect});
   saveMemory(); markPracticeStamp(idx,outcome); return attempt;
 }
-function prefLabel(){ return ({balanced:"高频易忘", practical:"偏实用", challenge:"偏挑战"})[preference] || "高频易忘"; }
+function prefLabel(){ return ({balanced:"常用但老忘", practical:"偏实用", challenge:"偏挑战"})[preference] || "常用但老忘"; }
 function needsCalibration(){ return !tuning.calibrated && memoryCount()===0; }
 function applyPrefUI(){ document.querySelectorAll("#prefBox button[data-pref]").forEach(btn=>btn.classList.toggle("active", btn.dataset.pref===preference)); }
 function greeting(){ const h=new Date().getHours(); if(h<5) return "夜深了"; if(h<11) return "早上好"; if(h<14) return "中午好"; if(h<18) return "下午好"; return "晚上好"; }
-function numCn(n){ const d=["","一","二","三","四","五","六","七","八","九","十"]; if(n<=10) return d[n]; if(n<20) return "十"+d[n-10]; return d[Math.floor(n/10)]+"十"+(n%10?d[n%10]:""); }
+function numCn(n){ const d=["零","一","二","三","四","五","六","七","八","九"], value=Math.max(0,Math.floor(Number(n)||0)); if(value<10) return d[value]; if(value<20) return "十"+(value%10?d[value%10]:""); if(value<100) return d[Math.floor(value/10)]+"十"+(value%10?d[value%10]:""); if(value<1000) return d[Math.floor(value/100)]+"百"+(value%100?(value%100<10?"零":"")+numCn(value%100):""); return String(value); }
 function dateCn(){ const now=new Date(); return numCn(now.getMonth()+1)+"月"+numCn(now.getDate())+"日"; }
 // V1 口径：streak = 累计练习日（totalPracticeDays），连续口径已下线；activity.inheritedStreak 仅作数据保留
 // 「昨日拾得」：最近一个练习日（今天之前）拾过的字
@@ -1457,7 +1481,7 @@ function homeRecentIndexes(){ const dayStart=new Date(); dayStart.setHours(0,0,0
   const todayList=profileIndexes().filter(i=>((memory[cardKey(i)]||{}).last||0)>=dayStart.getTime())
     .sort((a,b)=>((memory[cardKey(b)]||{}).last||0)-((memory[cardKey(a)]||{}).last||0));
   return {label:"今日拾得",list:todayList}; }
-function updateBookBadge(){ const due=reviewCount(); $("bookBadge").textContent=due>99?"99+":String(due); $("bookBadge").style.display=due?"flex":"none"; }
+function updateBookBadge(){}
 let homeResumeSession=null;
 // 首页：未完成时续当前组；完成态一旦成立，当天新到期字只在字盒提示，不推翻句号。
 function renderHome(){ const resume=resumableSession();
@@ -1469,12 +1493,12 @@ function renderHome(){ const resume=resumableSession();
   $("startBtn").classList.toggle("dueBreathe",due>0&&stampedToday===0&&!complete);
   homeResumeSession=resume;
   if(resume){ const targetSet=new Set(resume.baseTargets), total=targetSet.size, practiced=new Set((resume.roundStats||[]).filter(row=>targetSet.has(row.idx)).map(row=>row.idx)).size, reinforce=new Set((resume.unresolved||[]).filter(idx=>targetSet.has(idx))).size;
-    $("homeTitle").innerHTML=complete?`今日已拾<br>${stampedToday} 个字`:`今天拾了<br>${stampedToday} 个字`;
+    $("homeTitle").innerHTML=complete?`今日已拾<br>${numCn(stampedToday)}个字`:`今天拾了<br>${numCn(stampedToday)}个字`;
     const progress=practiced>=total&&reinforce?`还要再练 ${reinforce}`:`已练 ${practiced}/${total}${reinforce?` · 还要再练 ${reinforce}`:""}`;
     $("startBtn").textContent="续"; $("startCap").innerHTML=`继续${complete?"加练":""}这组 <span>· ${progress}</span>`; $("startBtn").disabled=false;
   } else if(complete){
-    $("homeTitle").innerHTML=`今日已拾<br>${stampedToday} 个字`; $("startBtn").textContent="再";
-    $("startCap").innerHTML=(newN||dueToday)?`加练一组 <span>· 今日完成不会回退</span>`:"今天先到这里，明天见"; $("startBtn").disabled=(newN===0 && dueToday===0);
+    $("homeTitle").innerHTML=`今日已拾<br>${numCn(stampedToday)}个字`; $("startBtn").textContent="再";
+    $("startCap").innerHTML=(newN||dueToday)?"加练一组":"今天先到这里，明天见"; $("startBtn").disabled=(newN===0 && dueToday===0);
   } else {
     $("homeTitle").innerHTML=dueToday?"先拾回<br>到期的字":"今天拾<br>十五个字"; $("startBtn").textContent="拾";
     $("startCap").innerHTML=(dueToday||newN)?"按自己的节奏":"今天先到这里，明天见";
@@ -1488,7 +1512,7 @@ function renderHome(){ const resume=resumableSession();
     $("yesterRow").classList.remove("dailyWordMode"); $("yesterRow").classList.toggle("scrollable",y.list.length>4);
     const recentShown=y.list.slice(0,50);
     $("yesterRow").innerHTML=y.list.length
-      ? recentShown.map((i,k)=>`<div class="yTile ${(memory[cardKey(i)]||{}).lastOutcome==="miss"?"miss":""}" style="transform:rotate(${ROTS[k%ROTS.length]}deg)">${CARDS[i].target}</div>`).join("")+(y.list.length>50?`<div class="yTile more">+${y.list.length-50}</div>`:"")
+      ? recentShown.map((i,k)=>`<div class="yTile" style="transform:rotate(${ROTS[k%ROTS.length]}deg)">${CARDS[i].target}</div>`).join("")+(y.list.length>50?`<div class="yTile more">+${y.list.length-50}</div>`:"")
       : `<div class="yTile more placeholder">今天拾的字会出现在这里</div>`; }
   updateBookBadge();
   warmUpcomingStrokeCache(); }
@@ -1496,8 +1520,8 @@ function meAdviceText(idxs){ if(!idxs.length) return "练几组后，这里会�
   if(!profileSampleReady(idxs)) return `已练 ${idxs.length} 个字，样本还少。先看看真正忘过的字。`;
   const topic=profileGroups(idxs,cardTopic)[0], lvl=profileGroups(idxs,abilityLevel)[0], st=profileGroups(idxs,structureLabel)[0], bits=[];
   if(st) return `${st.label}的字最容易从你手里溜走。`;
-  if(topic) return `${topic.label}里的字，你更容易忘。`;
-  return `${lvl.label}的字，你更容易忘。`; }
+  if(topic) return `${topic.label}里的字，你更常卡住。`;
+  return `${lvl.label}的字，你更常卡住。`; }
 let meMonthPreviewToken=0;
 async function renderMeMonthCard(){ const token=++meMonthPreviewToken, month=today().slice(0,7), data=monthReportData(month); $("meMonthTitle").textContent=`${numCn(Number(month.slice(5)))}月拾字帖`; $("meMonthMeta").textContent=`${data.practiced} 字 · ${data.independentCount} 字是你的手写`;
   try{ const canvas=await renderMonthlyPostCanvas(month); if(token===meMonthPreviewToken && $("mePanel").style.display==="flex") $("meMonthPreview").src=canvas.toDataURL("image/jpeg",.72); }catch(e){ if(token===meMonthPreviewToken) $("meMonthPreview").removeAttribute("src"); } }
@@ -1509,7 +1533,7 @@ function renderSettings(focusData=false){ displayView("settings"); applyPrefUI()
   if(focusData) requestAnimationFrame(()=>$("settingsDataLabel").scrollIntoView({block:"start",behavior:motionReduced()?"auto":"smooth"})); }
 
 // ---- 印历与补帖：留白不惩罚，最近 7 天可用一组真实书写补帖 ----
-let calendarMonthKey=today().slice(0,7), makeupPendingDay="";
+let calendarMonthKey=today().slice(0,7), makeupPendingDay="", makeupInterestShown=false;
 const calendarAnimatedMonths=new Set();
 function shiftMonth(key,amount){ const p=String(key).split("-").map(Number), d=new Date(p[0],p[1]-1+amount,1,12); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`; }
 function monthCn(key){ const [year,month]=String(key).split("-").map(Number); return `${year}年${numCn(month)}月`; }
@@ -1517,14 +1541,14 @@ function daysFromToday(key){ return Math.round((dayStartMs(today())-dayStartMs(k
 function canMakeupDay(key){ const gap=daysFromToday(key); return /^\d{4}-\d{2}-\d{2}$/.test(key) && gap>=1 && gap<=7 && !activity.practiceDays.includes(key); }
 function renderCalendar(){ const [year,month]=calendarMonthKey.split("-").map(Number), count=new Date(year,month,0).getDate(), first=(new Date(year,month-1,1).getDay()+6)%7, animate=!motionReduced()&&!calendarAnimatedMonths.has(calendarMonthKey), cells=[];
   for(let i=0;i<first;i++) cells.push('<span class="calendarDay calendarPad"></span>');
-  let stampOrder=0; for(let date=1;date<=count;date++){ const key=`${calendarMonthKey}-${String(date).padStart(2,"0")}`, practiced=activity.practiceDays.includes(key), row=activity.daily[key]&&typeof activity.daily[key]==="object"?activity.daily[key]:{}, future=key>today(), makeable=canMakeupDay(key), stamp=practiced?`<i class="calendarStamp ${row.makeup?"makeup":""} ${animate?"land":""}" style="--stamp-delay:${(stampOrder++*.035).toFixed(3)}s">${row.makeup?"补":"拾"}</i>`:"";
+  let stampOrder=0; for(let date=1;date<=count;date++){ const key=`${calendarMonthKey}-${String(date).padStart(2,"0")}`, practiced=activity.practiceDays.includes(key), row=activity.daily[key]&&typeof activity.daily[key]==="object"?activity.daily[key]:{}, future=key>today(), makeable=canMakeupDay(key), stamp=practiced?`<i class="calendarStamp ${key===today()?"todayStamp":""} ${row.makeup?"makeup":""} ${animate?"land":""}" style="--stamp-delay:${(stampOrder++*.035).toFixed(3)}s">${row.makeup?"补":"拾"}</i>`:"";
     cells.push(`<button class="calendarDay ${future?"future":""} ${makeable?"makeable":""} ${key===today()?"today":""}" data-day="${key}" ${makeable?'data-makeup="1"':''} ${future?'disabled':''}><span class="dayNumber">${date}</span>${stamp}</button>`); }
   $("calendarGrid").innerHTML=cells.join(""); $("calendarMonthTitle").textContent=year===new Date().getFullYear()?`${numCn(month)}月`:monthCn(calendarMonthKey); $("calendarMonthStat").textContent=`本月 ${monthPracticeDays(calendarMonthKey+"-01")} 天 · 累计 ${totalPracticeDays()} 天`; $("calendarNext").disabled=calendarMonthKey>=today().slice(0,7);
-  $("calendarHint").textContent=resumableSession()?"当前还有一组未完成。写完这组后，可以补最近 7 天的留白日。":"最近 7 天的留白日可以补写一帖。补帖要完整写完 5 个字，才会落印。";
+  $("calendarHint").textContent=resumableSession()&&makeupInterestShown?"手上这组写完，就能补前几天的空。":"最近 7 天的留白日可以补写一帖。补帖要完整写完 5 个字，才会落印。";
   calendarAnimatedMonths.add(calendarMonthKey); }
 function openCalendar(month=calendarMonthKey){ calendarMonthKey=/^\d{4}-\d{2}$/.test(month)?month:today().slice(0,7); renderMe(); }
 function closeMakeupSheet(){ makeupPendingDay=""; $("makeupSheet").classList.remove("open"); }
-function openMakeupSheet(key){ if(!canMakeupDay(key)) return; if(resumableSession()){ toast("先写完当前这组，再来补帖"); return; } makeupPendingDay=key; $("makeupTitle").textContent=`补写 ${Number(key.slice(5,7))}月${Number(key.slice(8))}日`;
+function openMakeupSheet(key){ if(!canMakeupDay(key)) return; makeupInterestShown=true; if(resumableSession()){ renderCalendar(); toast("手上这组写完，就能补前几天的空"); return; } makeupPendingDay=key; $("makeupTitle").textContent=`补写 ${Number(key.slice(5,7))}月${Number(key.slice(8))}日`;
   $("makeupCopy").textContent="完整写完 5 个字后，这一天会落一枚浅色「补」印。中途返回不会落印。"; $("makeupSheet").classList.add("open"); }
 function uniqueCardIndexes(indexes){ const seen=new Set(); return (indexes||[]).filter(idx=>{ if(!Number.isInteger(idx)||idx<0||idx>=CARDS.length||qualityBlocked(idx)) return false; const key=cardKey(idx); if(seen.has(key)) return false; seen.add(key); return true; }); }
 function makeupCandidates(){ const due=reviewPool(false).sort(compareReviewPriority), risk=highRiskIndexes(), seen=profileIndexes().sort((a,b)=>personalDifficulty(b)-personalDifficulty(a)), fresh=newPool(false).sort((a,b)=>newScore(b)-newScore(a)); return uniqueCardIndexes([...due,...risk,...seen,...fresh]).slice(0,5); }
@@ -1566,8 +1590,8 @@ function renderAnnualReport(year=new Date().getFullYear()){ const data=yearRepor
   const month=data.busiest?Number(data.busiest[0].slice(5)):0, firstChar=data.first!=null?CARDS[data.first].target:"", rareChar=data.rarest!=null?CARDS[data.rarest].target:""; $("annualSlides").innerHTML=`<section class="annualSlide"><span class="annualEyebrow">${year} · 拾字总数</span><b>${data.keys.length} 字</b><p>这些字，都在你的笔下真实出现过。</p></section><section class="annualSlide"><span class="annualEyebrow">这一年最常提笔的月份</span><b>${month} 月</b><p>这个月练了 ${data.busiest[1]} 天。只记相遇，不记缺席。</p></section><section class="annualSlide"><span class="annualEyebrow">写过最生僻的一个字</span><b class="annualChar">${esc(rareChar)}</b><p>${data.rarest!=null?esc(CARDS[data.rarest].word):""}</p></section><section class="annualSlide"><span class="annualEyebrow">这一年的第一个字</span><b class="annualChar">${esc(firstChar)}</b><p>${data.firstDay||""}，从这一笔开始。</p></section>`; $("annualSlides").scrollTop=0; }
 function startMode(mode){ const resume=resumableSession(); if(resume){ restoreSession(resume); return; }
   clearSessionSnapshot(); activeMode=(mode==="new" && needsCalibration())?"calibrate":mode; makeupTargetDay=""; focusQueue=[]; sessionDone=new Set(); startRound(); }
-function startFocus(indexes){ focusQueue=[...new Set((indexes||highRiskIndexes()).filter(i=>i>=0 && i<CARDS.length))]; if(!focusQueue.length){ renderHome(); return; }
-  clearSessionSnapshot(); activeMode="focus"; makeupTargetDay=""; sessionDone=new Set(); startRound(); }
+function startFocus(indexes,options={}){ focusQueue=[...new Set((indexes||highRiskIndexes()).filter(i=>i>=0 && i<CARDS.length))]; if(!focusQueue.length){ renderHome(); return; }
+  focusReturnView=options.returnView||"home"; clearSessionSnapshot(); activeMode="focus"; makeupTargetDay=""; sessionDone=new Set(); startRound(); }
 // ---- 单字详情：收藏先讲故事，再由用户决定是否重写 ----
 let charDetailIndex=-1, charDetailWriter=null, charDetailTouchY=null, charDetailSwipeEligible=false;
 const OUTCOME_STORY={fast:"上次独立写出",hinted:"上次看提示写出",slow:"上次写错了",miss:"上次没写出来"};
@@ -1575,15 +1599,19 @@ function firstSeenRecord(i){ const at=Number((memory[cardKey(i)]||{}).firstSeenA
 function firstSeenDay(i){ return firstSeenRecord(i).day; }
 function firstSeenAt(i){ return firstSeenRecord(i).at; }
 function closeCharSheet(){ $("charSheet").classList.remove("open"); charDetailWriter=null; $("charDetailStroke").innerHTML=""; $("charDetailStroke").style.display="none"; charDetailTouchY=null; charDetailSwipeEligible=false; }
-function openCharSheet(i){ if(!Number.isInteger(i)||i<0||i>=CARDS.length) return; charDetailIndex=i; const c=CARDS[i],m=memory[cardKey(i)]||{},recent=m.recentInk&&m.recentInk.dataURL,first=firstSeenDay(i);
+const TRANSLITERATED_WORDS=new Set(["黛比","杰克","汤姆","玛丽","约翰","彼得","迈克","露西","安娜","艾米","凯文","大卫","罗伯特"]);
+function suspiciousDictionaryWord(i){ const c=CARDS[i]||{}, word=String(c.word||""); return word===`${c.target}字`||TRANSLITERATED_WORDS.has(word); }
+function collectedDateText(day){ if(!day) return ""; const [year,month,date]=day.split("-").map(Number); return year===new Date().getFullYear()?`${month}月${date}日`:`${year}年${month}月${date}日`; }
+function openCharSheet(i){ if(!Number.isInteger(i)||i<0||i>=CARDS.length) return; charDetailIndex=i; const c=CARDS[i],m=memory[cardKey(i)]||{},recent=m.recentInk&&m.recentInk.dataURL,first=firstSeenDay(i),safeWord=suspiciousDictionaryWord(i)?c.target:(c.word||c.target);
   $("charDetailGlyph").innerHTML=recent?`<img src="${recent}" alt="${esc(c.target)}的手写墨迹">`:esc(c.target);
-  $("charDetailWord").textContent=c.word||c.target; $("charDetailPy").textContent=c.py||"";
-  $("charDetailStory").innerHTML=`${first?`${formatDueDay(first)} 收进字盒<br>`:""}练过 ${Number(m.seen)||0} 次${m.lastOutcome?` · ${OUTCOME_STORY[m.lastOutcome]||"上次练过"}`:""}`;
-  $("charDetailInk").innerHTML=recent?`<img src="${recent}" alt="我上次写的${esc(c.target)}">`:esc(c.target);
+  $("charDetailWord").textContent=safeWord; $("charDetailPy").textContent=c.py||"";
+  $("charDetailStory").innerHTML=`${first?`${collectedDateText(first)} 收进字盒<br>`:""}练过 ${Number(m.seen)||0} 次${m.lastOutcome?` · ${OUTCOME_STORY[m.lastOutcome]||"上次练过"}`:""}`;
+  $("charDetailInk").innerHTML=recent?`<img src="${recent}" alt="我上次写的${esc(c.target)}">`:"";
   $("charDetailEmpty").textContent=recent?"":"还没留下手写，写一遍就有了"; $("charDetailEmpty").style.display=recent?"none":"block";
-  $("charDetailStandard").textContent=c.target; $("charDetailStandard").style.display="none"; $("charDetailCompareToggle").textContent="对比标准字";
+  $("charDetailStandard").textContent=c.target; $("charDetailStandard").style.display="none"; $("charDetailCompareToggle").textContent="对比标准字"; $("charDetailCompareToggle").style.display=recent?"":"none"; $("charDetailOverlayToggle").style.display="none"; $("charDetailOverlayToggle").textContent="叠"; $("charDetailStandard").parentElement.classList.remove("overlay");
   $("charDetailStroke").style.display="none"; $("charDetailStroke").innerHTML=""; charDetailWriter=null; $("charSheet").classList.add("open"); }
-function toggleCharDetailCompare(){ const open=$("charDetailStandard").style.display==="flex"; $("charDetailStandard").style.display=open?"none":"flex"; $("charDetailCompareToggle").textContent=open?"对比标准字":"收起标准字"; }
+function toggleCharDetailCompare(){ const open=$("charDetailStandard").style.display==="flex"; $("charDetailStandard").style.display=open?"none":"flex"; $("charDetailCompareToggle").textContent=open?"对比标准字":"收起标准字"; $("charDetailOverlayToggle").style.display=open?"none":"block"; if(open) $("charDetailStandard").parentElement.classList.remove("overlay"); }
+function toggleCharDetailOverlay(){ const body=$("charDetailStandard").parentElement, active=body.classList.toggle("overlay"); $("charDetailOverlayToggle").textContent=active?"并排":"叠"; }
 function replayCharDetail(){ if(charDetailIndex<0||!window.HanziWriter) return; const target=CARDS[charDetailIndex].target,el=$("charDetailStroke"); el.style.display="block";
   if(!charDetailWriter){ el.innerHTML=""; try{ charDetailWriter=HanziWriter.create(el,target,{width:180,height:180,padding:10,showCharacter:false,showOutline:true,strokeColor:cssVar("--accent","#c2452c"),outlineColor:cssVar("--accent-a22","#dcb7ad"),charDataLoader:charLoader}); }catch(e){ toast("这个字的笔顺暂时不可用"); return; } }
   try{ charDetailWriter.animateCharacter({onComplete:()=>{}}); }catch(e){ toast("这个字的笔顺暂时不可用"); } }
@@ -1591,7 +1619,7 @@ function replayCharDetail(){ if(charDetailIndex<0||!window.HanziWriter) return; 
 let bookCuratorIndexes=[], bookCuratorKind="discovery";
 function isStable(i){ return !isHighRisk(i) && ((memory[cardKey(i)]||{}).streak||0)>=2; }
 function stableCount(){ return profileIndexes().filter(isStable).length; }
-function memoryInkLevel(i){ const m=memory[cardKey(i)]||{}, stability=Number(m.fsrsCard&&m.fsrsCard.stability)||0; if(m.pendingLearning) return 2; if(stability>=14||(m.streak||0)>=4) return 1; if(stability>=7||(m.streak||0)>=3) return 2; if(stability>=3||(m.streak||0)>=2) return 3; if(stability>=1||(m.streak||0)>=1) return 4; return 5; }
+function memoryInkLevel(i){ const m=memory[cardKey(i)]||{}, stability=Number(m.fsrsCard&&m.fsrsCard.stability)||0; if(stability>=7||(m.streak||0)>=3) return 1; if(stability>=2||(m.streak||0)>=1||m.pendingLearning) return 3; return 5; }
 function bookCuratorData(seen){ const due=seen.filter(reviewDue).sort(compareReviewPriority); if(due.length){ const indexes=due.slice(0,2),chars=indexes.map(i=>`「${CARDS[i].target}」`).join("和"); return {kind:"action",indexes,text:`${chars}的墨色淡了，写一遍就回来`,suffix:"›"}; }
   const lastYear=`${new Date().getFullYear()-1}-${today().slice(5)}`, prior=fsrsReviewLog.filter(row=>row&&String(row.localDay||"")===lastYear).sort((a,b)=>String(b.reviewedAt||"").localeCompare(String(a.reviewedAt||"")))[0], priorIdx=prior?cardIndexForStoredKey(prior.cardKey):-1;
   const groups=profileGroups(seen,cardTopic), discovery=groups[datedSelectionIndex(today(),Math.max(1,groups.length),"book-curator")];
@@ -1604,80 +1632,70 @@ function renderBook(){ displayView("book");
   $("boxCount").textContent=`${seen.length} 字`;
   const curator=bookCuratorData(seen); bookCuratorIndexes=curator.indexes; bookCuratorKind=curator.kind; $("bookCurator").innerHTML=`${esc(curator.text)} ${curator.suffix?`<span>${curator.suffix}</span>`:""}`; $("bookCurator").disabled=!curator.indexes.length;
   updateBookBadge();
-  let lastMonth=""; $("memoryWall").innerHTML=seen.length?seen.map((i,k)=>{ const month=firstSeenDay(i).slice(0,7), tick=month&&month!==lastMonth; lastMonth=month; const label=tick?`${Number(month.slice(5))}月`:"";
-    return `<button class="memoryChar" data-idx="${i}" aria-label="${esc(CARDS[i].target)}，${esc(CARDS[i].word)}" style="color:var(--memory-${memoryInkLevel(i)});transform:rotate(${ROTS[k%ROTS.length]/2}deg)">${esc(CARDS[i].target)}${label?`<span class="monthTick">${label}</span>`:""}</button>`; }).join(""):`<div class="memoryWallEmpty">字盒还空着。<br>拾一组字，墨色会从这里长出来。</div>`; }
-function handleBookSearch(){ const text=$("bookSearchInput").value.trim(),ch=Array.from(text).find(isCJK); if(!ch){ toast("输入一个想找的字"); return; } const base=BASE_BY_CHAR[ch],custom=customIndexOf(ch),idx=base!=null?base:custom; if(idx>=0&&hasMemory(idx)){ openCharSheet(idx); return; } openAddSheet(); $("addInput").value=text; renderAddPreview(); }
+  $("memoryWall").innerHTML=seen.length?seen.map((i,k)=>`<button class="memoryChar" data-idx="${i}" aria-label="${esc(CARDS[i].target)}，${esc(CARDS[i].word)}" style="color:var(--memory-${memoryInkLevel(i)});transform:rotate(${ROTS[k%ROTS.length]/2}deg)">${esc(CARDS[i].target)}</button>`).join(""):`<div class="memoryWallEmpty">字盒还空着。<br>拾一组字，墨色会从这里长出来。</div>`; handleBookSearchInput(false); }
+let bookSearchTimer=0, bookSearchIndex=-1;
+function bookSearchTarget(){ const text=$("bookSearchInput").value.trim(),ch=Array.from(text).find(isCJK),base=ch&&BASE_BY_CHAR[ch],custom=ch?customIndexOf(ch):-1,idx=base!=null?base:custom; return {text,ch,idx:Number.isInteger(idx)?idx:-1}; }
+function handleBookSearchInput(autoOpen=true){ clearTimeout(bookSearchTimer); const {text,ch,idx}=bookSearchTarget(), nodes=[...$("memoryWall").querySelectorAll(".memoryChar")], result=$("bookSearchResult"); bookSearchIndex=-1; nodes.forEach(node=>node.classList.remove("searchDim","searchHit")); if(!text){ result.textContent=""; return; }
+  if(!ch){ result.textContent="没有这个字"; return; }
+  if(idx>=0&&hasMemory(idx)){ bookSearchIndex=idx; nodes.forEach(node=>{ const hit=Number(node.dataset.idx)===idx; node.classList.toggle("searchHit",hit); node.classList.toggle("searchDim",!hit); }); result.textContent=`找到「${ch}」`; if(autoOpen) bookSearchTimer=setTimeout(()=>{ if(bookSearchIndex===idx) openCharSheet(idx); },800); return; }
+  if(idx>=0){ result.innerHTML=`字盒里还没有「${esc(ch)}」 · <button data-book-add="1">收进字盒</button>`; return; }
+  result.textContent="没有这个字"; }
+function handleBookSearch(){ const {text,idx}=bookSearchTarget(); if(idx>=0&&hasMemory(idx)){ openCharSheet(idx); return; } if(!text){ toast("输入一个想找的字"); return; } openAddSheet(); $("addInput").value=text; renderAddPreview(); }
 function esc(s){ return String(s).replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch])); }
 function hardCount(i){ const m=memory[cardKey(i)]||{}; return (m.misses||0)+(m.hints||0)+(m.slow||0); }
-function profileSampleReady(indexes=profileIndexes()){ return indexes.length>=10 && indexes.reduce((sum,i)=>sum+hardCount(i),0)>=3; }
+function missCount(i){ return Math.max(0,Number((memory[cardKey(i)]||{}).misses)||0); }
+function profileSampleReady(indexes=profileIndexes()){ return indexes.length>=10 && indexes.reduce((sum,i)=>sum+missCount(i),0)>=3; }
 function weaknessScore(i){ const m=memory[cardKey(i)]||{}; return clamp((m.misses||0)*28+(m.hints||0)*18+(m.slow||0)*18-(m.fast||0)*6+Math.max(0,60-(m.ease||50))*0.8+(reviewReady(i)?10:0),0,100); }
 function profileIndexes(){ return allIndexes().filter(i=>{ const m=memory[cardKey(i)]; return m && m.seen; }); }
 function structureLabel(i){ const c=CARDS[i], strokes=Number(c.strokes)||0, parts=Number(c.parts)||1;
   if(parts>=5 || strokes>=17) return "复杂结构"; if(parts>=4 || strokes>=13) return "多部件"; if(parts>=3 || strokes>=9) return "中等结构"; return "简单结构"; }
 function profileGroups(indexes, labelFn){ const map={}; indexes.forEach(i=>{ const label=labelFn(i), g=map[label]||(map[label]={label,items:[],count:0,hard:0,score:0});
-  g.items.push(i); g.count++; g.hard+=hardCount(i); g.score+=weaknessScore(i); });
+  g.items.push(i); g.count++; g.hard+=missCount(i); g.score+=weaknessScore(i); });
   return Object.values(map).map(g=>({...g,avg:Math.round(g.score/Math.max(1,g.count))})).sort((a,b)=>b.avg-a.avg || b.hard-a.hard || b.count-a.count || String(a.label).localeCompare(String(b.label))); }
-function profileGroupRows(indexes, labelFn, kind, limit=5){ const groups=profileGroups(indexes,labelFn).slice(0,limit);
-  if(!groups.length) return `<div class="empty">还没有足够记录。先练一组，这里会自动长出来。</div>`;
-  return groups.map(g=>`<button class="profileRow" data-profile-kind="${kind}" data-profile-value="${esc(g.label)}">
-    <span><b>${esc(g.label)}</b><small>${g.count} 个字里，忘过 ${g.hard} 次</small></span><em>去字盒</em>
-  </button>`).join(""); }
-function profileAdvice(indexes){ if(!indexes.length) return "先完成一组 15 字练习。系统会根据你盖的章，逐渐判断哪些主题、结构和难度层最容易让你提笔卡住。";
-  if(!profileSampleReady(indexes)) return "样本还少，先拾几组。这里暂时只列真实卡过的字，不做主题或结构排名。";
-  const insight=primaryProfileInsight(indexes), risk=highRiskCount();
-  return risk>0?`先把 ${risk} 个待拾回的字拿下，再留意${insight.text}。`:`目前最值得留意的是${insight.text}。`; }
+function profileAdvice(indexes){ const weak=indexes.filter(i=>missCount(i)>0); if(!weak.length) return "写过几组后，反复忘的字会在这里露出来。"; if(!profileSampleReady(indexes)) return "先看这些真实忘过的字，记录多一点再找规律。"; const insight=primaryProfileInsight(weak); return `${insight.text}最容易从你手里溜走。`; }
 function primaryProfileInsight(indexes){ const topic=profileGroups(indexes,cardTopic)[0]; if(topic) return {kind:"topic",label:topic.label,text:`${topic.label}里的字`};
   const structure=profileGroups(indexes,structureLabel)[0]; if(structure) return {kind:"structure",label:structure.label,text:`${structure.label}的字`};
   const level=profileGroups(indexes,abilityLevel)[0]; if(level) return {kind:"level",label:level.label,text:`${level.label}的字`}; return {kind:"none",label:"",text:"最近写过的字"}; }
-function profileDiagnosis(indexes){ if(!indexes.length) return {title:"先拾一组字", body:"写完一组后，真正忘过的字会留在这里。", action:"先拾一组", disabled:true};
-  const risk=highRiskCount();
-  if(!profileSampleReady(indexes)) return {title:"样本还少，先拾几组",body:`已练 ${indexes.length} 个字，记录 ${indexes.reduce((sum,i)=>sum+hardCount(i),0)} 次卡住。先看具体字，不急着下结论。`,action:risk?"去字盒看":"继续观察",disabled:!risk};
-  const insight=primaryProfileInsight(indexes);
-  if(risk>0) return {title:`今天先拾回 ${risk} 个字`, body:`最近最常忘的是${insight.text}。`, action:"去字盒看", disabled:false};
-  return {title:"目前没有待拾回的字", body:`已练过 ${indexes.length} 个字。继续拾几组后，我会把反复卡住的模式排到最前面。`, action:"继续观察", disabled:true}; }
-let profileReturnView="me";
+let profileReturnView="me", profilePracticeIndexes=[];
 function openProfile(source="me"){ profileReturnView=source; renderProfile(); }
 function closeProfile(){ if(profileReturnView==="summary") displayView("summary"); else renderMe(); }
-function renderProfile(){ displayView("profile"); const indexes=profileIndexes(), hard=indexes.filter(i=>hardCount(i)>0).length, hardEvents=indexes.reduce((sum,i)=>sum+hardCount(i),0);
-  const diag=profileDiagnosis(indexes);
-  $("profileSummary").innerHTML=`<div class="profileHero"><div class="eyebrow">最近的记忆</div><h3>${esc(diag.title)}</h3><p>${esc(diag.body)}</p><button class="heroAct" data-profile-kind="risk" ${diag.disabled?"disabled":""}>${esc(diag.action)}</button></div><div class="profileMetrics"><div class="profileMetric"><b class="num compact">${indexes.length}</b><span>练过的字</span></div><div class="profileMetric"><b class="num compact" style="color:var(--accent)">${hard}</b><span>忘过的字</span></div><div class="profileMetric"><b class="num compact">${hardEvents}</b><span>忘过几次</span></div></div>`;
-  $("profileAdvice").textContent=profileAdvice(indexes);
-  if(!profileSampleReady(indexes)){ const hardIndexes=indexes.filter(i=>hardCount(i)>0).sort((a,b)=>hardCount(b)-hardCount(a)).slice(0,8);
-    $("profileTopics").innerHTML=hardIndexes.length?hardIndexes.map(i=>`<button class="profileRow" data-char-idx="${i}"><span><b>${CARDS[i].target} · ${esc(CARDS[i].word)}</b><small>实际忘过 ${hardCount(i)} 次</small></span><em>看这个字</em></button>`).join(""):`<div class="empty">还没有忘过的字，继续按自己的节奏写。</div>`;
-    $("profileLevels").innerHTML=""; return; }
-  $("profileTopics").innerHTML=profileGroupRows(indexes,cardTopic,"topic",5);
-  $("profileLevels").innerHTML=`<div class="profileSubhead"><b>难度层</b></div>${profileGroupRows(indexes,abilityLevel,"level",3)}<div class="profileSubhead"><b>结构</b></div>${profileGroupRows(indexes,structureLabel,"structure",4)}`; }
+function renderProfile(){ displayView("profile"); const indexes=profileIndexes(), weak=indexes.filter(i=>missCount(i)>0).sort((a,b)=>missCount(b)-missCount(a)||weaknessScore(b)-weaknessScore(a)); profilePracticeIndexes=weak.slice(0,15);
+  $("profileSummary").textContent=profileAdvice(indexes);
+  $("profileAdvice").innerHTML=weak.length?weak.slice(0,15).map(i=>{ const misses=missCount(i),size=clamp(27+misses*3,30,48); return `<button class="weakChar" data-char-idx="${i}" style="--weak-size:${size}px"><b>${esc(CARDS[i].target)}</b><small>忘过 ${misses} 次</small></button>`; }).join(""):`<div class="empty">还没有忘过的字，继续按自己的节奏写。</div>`;
+  const topicGroups=profileGroups(weak,cardTopic).filter(g=>g.count>=3).slice(0,4), structureGroups=profileGroups(weak,structureLabel).filter(g=>g.count>=3).slice(0,3), rows=[...topicGroups,...structureGroups];
+  $("profileTopics").innerHTML=rows.map(g=>`<div class="profileRow"><span><b>${esc(g.label)}</b><small>${g.count} 个字，合计忘过 ${g.hard} 次</small></span></div>`).join("");
+  $("profileTopicsSection").style.display=rows.length?"block":"none"; $("profileLevelsSection").style.display="none"; $("profilePractice").disabled=!profilePracticeIndexes.length; }
 function withTemporaryPreference(pref, fn){ const oldPref=preference, oldTopic=load(TOPIC_KEY,""); preference=pref;
   try{ return fn(); } finally { preference=oldPref; save(TOPIC_KEY,oldTopic); } }
 function countBy(items, fn){ const map={}; items.forEach(i=>{ const k=fn(i); map[k]=(map[k]||0)+1; }); return map; }
 function tagList(map, limit=8){ return Object.entries(map).sort((a,b)=>b[1]-a[1] || String(a[0]).localeCompare(String(b[0]))).slice(0,limit).map(([k,v])=>`<span>${k} ${v}</span>`).join(""); }
 function average(items, fn){ return items.length ? Math.round(items.reduce((s,i)=>s+fn(i),0)/items.length) : 0; }
 function qualityText(i){ const q=qualityFor(i), out=[]; if(q.easy) out.push("太简单"); if(q.rare) out.push("太生僻"); if(q.badWord) out.push("词不自然"); if(q.hide) out.push("不想练"); return out.join(" · "); }
-function auditRow(i){ const c=CARDS[i], q=qualityFor(i), qt=qualityText(i); return `<div class="auditRow" data-idx="${i}">
-  <div class="char">${c.target}</div><div class="main"><b>${c.word}</b><small>${c.py||"无拼音"} · ${normLevel(i)} · ${contextLabel(i)} · ${cardTopic(i)} · ${abilityMeta(i)} · 字频#${c.rank||"未收录"} · ${c.strokes||0}画/${c.parts||1}部件${qt?` · ${qt}`:""}</small></div>
+function auditRow(i){ const c=CARDS[i], q=qualityFor(i), qt=qualityText(i), suspicious=suspiciousDictionaryWord(i); return `<div class="auditRow" data-idx="${i}">
+  <div class="char">${c.target}</div><div class="main"><b>${c.word}</b><small>${c.py||"无拼音"} · ${normLevel(i)} · ${contextLabel(i)} · ${cardTopic(i)} · ${abilityMeta(i)} · 字频#${c.rank||"未收录"} · ${c.strokes||0}画/${c.parts||1}部件${suspicious?" · ⚑ 疑似凑数/音译词":""}${qt?` · ${qt}`:""}</small></div>
   <div class="auditActions"><button data-audit-practice="${i}">练这个</button><button data-audit-quality="easy" class="${q.easy?"active":""}">太简单</button><button data-audit-quality="rare" class="${q.rare?"active":""}">太生僻</button><button data-audit-quality="badWord" class="${q.badWord?"active":""}">词不自然</button><button data-audit-quality="hide" class="${q.hide?"active":""}">不想练</button></div>
 </div>`; }
 function auditData(pref=auditPref){ return withTemporaryPreference(pref,()=>{ const pool=newPool(false), sample=shuffle(pool).slice(0,100), batch=chooseBatch(pool);
   return { pool, sample, batch, target:targetDifficulty(), avg:average(sample,cardDifficulty), topic:batch[0]?cardTopic(batch[0]):"无" }; }); }
-function renderAudit(pref=auditPref){ auditPref=pref; displayView("audit"); const data=auditData(pref), flagged=Object.values(quality).filter(q=>q && (q.easy||q.rare||q.badWord||q.hide)).length;
+function renderAudit(pref=auditPref){ auditPref=pref; displayView("audit"); const data=auditData(pref), flagged=Object.values(quality).filter(q=>q && (q.easy||q.rare||q.badWord||q.hide)).length, suspicious=allIndexes().filter(suspiciousDictionaryWord).length;
   document.querySelectorAll("#auditPrefs button[data-pref]").forEach(btn=>btn.classList.toggle("active",btn.dataset.pref===pref));
-  $("auditSummary").innerHTML=`<div class="auditMetric"><b>${data.pool.length}</b><span>可出新字</span></div><div class="auditMetric"><b>${data.target}</b><span>目标难度</span></div><div class="auditMetric"><b>${flagged}</b><span>质量反馈</span></div>`;
+  $("auditSummary").innerHTML=`<div class="auditMetric"><b>${data.pool.length}</b><span>可出新字</span></div><div class="auditMetric"><b>${suspicious}</b><span>可疑词条</span></div><div class="auditMetric"><b>${flagged}</b><span>质量反馈</span></div>`;
   $("auditBands").innerHTML=`<div class="auditBand"><b>样本规范等级分布</b><div class="auditTags">${tagList(countBy(data.sample,normLevel),6)}</div></div><div class="auditBand"><b>样本能力难度分布</b><div class="auditTags">${tagList(countBy(data.sample,abilityLevel),3)}</div></div><div class="auditBand"><b>样本主题分布</b><div class="auditTags">${tagList(countBy(data.sample,cardTopic),10)}</div></div>`;
   $("auditBatchNote").textContent=`${data.topic} · 均难度 ${average(data.batch,cardDifficulty)}`;
   $("auditBatch").innerHTML=data.batch.length?data.batch.map(auditRow).join(""):`<div class="empty">当前偏好下没有可出的新字。</div>`;
   $("auditSample").innerHTML=data.sample.length?data.sample.slice(0,30).map(auditRow).join(""):`<div class="empty">当前偏好下没有样本。</div>`; }
-function prefLabelFor(pref){ return ({balanced:"高频易忘", practical:"偏实用", challenge:"偏挑战"})[pref] || "高频易忘"; }
+function prefLabelFor(pref){ return ({balanced:"常用但老忘", practical:"偏实用", challenge:"偏挑战"})[pref] || "常用但老忘"; }
 
 // ---- 自定义加字（抓住现实里提笔忘的那个字；卡片追加在 SEED 之后，索引稳定）----
-const CUSTOM_KEY="shizi.custom.v1", ADDED_KEY="shizi.added.v1", BASE_N=CARDS.length;
-let customWords = load(CUSTOM_KEY, []);
+const BASE_N=CARDS.length;
+let customWords = bootLoad(CUSTOM_KEY, [], v=>Array.isArray(v)&&v.every(row=>typeof row==="string"));
 const isCJK=c=>/[一-鿿]/.test(c);
 const BASE_BY_CHAR={}; for(let i=0;i<BASE_N;i++){ const t=CARDS[i].target; if(BASE_BY_CHAR[t]==null) BASE_BY_CHAR[t]=i; }
 function pushWordCards(s){ const chars=Array.from(s).filter(isCJK); const start=CARDS.length;
   chars.forEach((ch,ci)=>CARDS.push({ word:chars.join(""), chars, ci, target:ch, py:"", hint:"你刚才卡壳的字", custom:true, topic:"自定义", d:76, level:"大学", rank:999999, strokes:0, parts:1, common:0, norm:"自定义", ctx:"custom" })); return [start, CARDS.length]; }
 function buildCustomCards(){ CARDS.length=BASE_N; customWords.forEach(pushWordCards); }
 buildCustomCards();
-let addedChars = load(ADDED_KEY, null);
+let addedChars = bootLoad(ADDED_KEY, null, v=>v===null||(Array.isArray(v)&&v.every(row=>typeof row==="string")));
 if(!Array.isArray(addedChars)){ addedChars=[...new Set(customWords.flatMap(w=>Array.from(w).filter(isCJK)))]; save(ADDED_KEY,addedChars); }
 function customIndexOf(ch){ for(let i=BASE_N;i<CARDS.length;i++){ if(CARDS[i].target===ch) return i; } return -1; }
 function unblockQuality(i){ const k=cardKey(i); if(quality[k]){ delete quality[k]; saveQuality(); } }
@@ -1731,9 +1749,9 @@ const PEEK_INK_OPACITY=0.04;
 let drawing=false, last=null, cur=null, actionCooldownUntil=0, actionUnlockTimer=0, activePointers=new Set(), peeking=false, peekReleasePending=false, actionStack=[], seenGroups=new Set();
 
 function drawGridOn(ctx){ ctx.clearRect(0,0,S,S); ctx.fillStyle=cssVar('--card',"#fdfbf4"); ctx.fillRect(0,0,S,S);
-  const red=cssVar('--accent',"#c2452c");
-  ctx.save(); ctx.globalAlpha=.55; ctx.strokeStyle=red; ctx.lineWidth=2; ctx.strokeRect(1,1,S-2,S-2); ctx.restore();
-  ctx.save(); ctx.globalAlpha=.28; ctx.strokeStyle=red; ctx.lineWidth=1; ctx.setLineDash([5,6]); ctx.beginPath();
+  const ink=cssVar('--muted',"#665d4d"), red=cssVar('--accent',"#c2452c");
+  ctx.save(); ctx.globalAlpha=.6; ctx.strokeStyle=red; ctx.lineWidth=1.4; ctx.strokeRect(1,1,S-2,S-2); ctx.restore();
+  ctx.save(); ctx.globalAlpha=.24; ctx.strokeStyle=ink; ctx.lineWidth=1; ctx.setLineDash([5,6]); ctx.beginPath();
   ctx.moveTo(S/2,4);ctx.lineTo(S/2,S-4); ctx.moveTo(4,S/2);ctx.lineTo(S-4,S/2);
   ctx.moveTo(4,4);ctx.lineTo(S-4,S-4); ctx.moveTo(S-4,4);ctx.lineTo(4,S-4); ctx.stroke(); ctx.restore(); }
 function P(e){ const r=inkCanvas.getBoundingClientRect(); return {x:(e.clientX-r.left)*(S/r.width), y:(e.clientY-r.top)*(S/r.height)}; }
@@ -1777,7 +1795,7 @@ function lockGradeActions(){ clearTimeout(actionUnlockTimer); actionCooldownUnti
 function armGradeActions(){ actionCooldownUntil=Date.now()+300; clearTimeout(actionUnlockTimer); actionUnlockTimer=setTimeout(()=>{
   actionCooldownUntil=0; ["actions","traceActions"].forEach(id=>$(id)&&$(id).classList.remove("tlock")); },300); }
 function redrawInk(){ inkCtx.clearRect(0,0,S,S); paintInkStrokes(inkStrokes.map((_,i)=>i),cssVar('--inkPen',"#29241d")); }
-function updateInkControls(){ if($("undoStroke")) $("undoStroke").disabled=!actionStack.length || drawing || animating;
+function updateInkControls(){ const hasInk=inkStrokes.length>0; if($("undoStroke")) $("undoStroke").disabled=!hasInk || drawing || animating; if($("clear")) $("clear").disabled=!hasInk || drawing || animating;
   if($("traceDone")) $("traceDone").disabled=!(tracing && tracedThisCard); }
 function clearInk(){ inkCtx.clearRect(0,0,S,S); inkStrokes=[]; curInkStroke=null; actionStack=actionStack.filter(a=>a.type!=="stroke"); if(tracing) tracedThisCard=false; updateInkControls(); if(inkCanvas && !revealed) inkCanvas.style.opacity=peeking?String(PEEK_INK_OPACITY):'1'; }
 async function undoInkStroke(){ if(!actionStack.length || drawing || animating) return false; commitUndoWindow(); const action=actionStack.pop();
@@ -1889,7 +1907,7 @@ function verdictShort(v){ if(!v) return "对照助手不可用也没关系，请
   if(v.status==="bad") return v.mode==="exact"&&v.failed&&v.failed.length?"这几笔再对一眼。最终以你的选择为准。":"建议：写错了。请和右边对照，最终以你的选择为准。";
   return "和右边对照一下，以你自己的判断为准。"; }
 
-const EXHAUSTED_HINT_COPY="提示用完了——继续补完这个字，或点「不会写」先描后写";
+const EXHAUSTED_HINT_COPY="提示看完了——继续补完这个字，或点「不会写」先描后写";
 function hintVisualExhausted(){ return !animating && groups.length>0 && groupIdx>=groups.length; }
 function updateActionLabels(){
   const used=hintEverUsed||hintsUsedThisCard>0;
@@ -1898,7 +1916,7 @@ function updateActionLabels(){
   $("done").textContent=used?"写完了":"写好了";
   updateTeachUI();
 }
-function updateTip(){ const vh=(window.visualViewport&&window.visualViewport.height)||window.innerHeight||667; $("tip").textContent=`${vh<=700?"提示":"笔顺提示"} ${groupIdx}/${groups.length}`; $("tip").removeAttribute("title"); $("tip").disabled=animating || !writer || groupIdx>=groups.length || practicePhase==="postTraceRecall" || practicePhase==="tracing"; $("peekInk").disabled=animating || !peekWriter || revealed || practicePhase==="postTraceRecall" || practicePhase==="tracing"; if(!revealed){ $("done").disabled=animating; $("show").disabled=animating; } updateInkControls(); updateActionLabels(); }
+function updateTip(){ $("tip").textContent="提示"; $("tip").removeAttribute("title"); $("tip").disabled=animating || !writer || groupIdx>=groups.length || practicePhase==="postTraceRecall" || practicePhase==="tracing"; $("peekInk").disabled=animating || !peekWriter || revealed || practicePhase==="postTraceRecall" || practicePhase==="tracing"; if(!revealed){ $("done").disabled=animating; $("show").disabled=animating; } updateInkControls(); updateActionLabels(); }
 
 // ---- 教学（首启校准第一张卡的墨点引导；只出现一次）----
 let teachStage="done", teachTimer=0;
@@ -1910,7 +1928,7 @@ function updateTeachUI(){ const stage=(teachActive() && !revealed)?teachStage:"d
   $("tip").classList.remove("tlock"); $("show").classList.remove("tlock");
   $("clear").classList.toggle("tlock",writeLocked); $("done").classList.toggle("tlock",writeLocked);
   if(stage==="intro") $("show").disabled=false;
-  $("mascotLine").textContent=tracePhase?"沿着轮廓描，顺序不对也行":recallAfterTrace?"凭刚才的手感写":hintVisualExhausted()?EXHAUSTED_HINT_COPY:(stage==="helpers"?"想不起来就点「笔顺提示」，或点「不会写」先描后写"
+  $("mascotLine").textContent=tracePhase?"沿着轮廓描，顺序不对也行":recallAfterTrace?"凭刚才的手感写":hintVisualExhausted()?EXHAUSTED_HINT_COPY:(stage==="helpers"?"想不起来就点「提示」，或点「不会写」先描后写"
     :(stage!=="done"?"先试着写，写不出就点「不会写」":(cur?MASCOT_LINES[pos%MASCOT_LINES.length]:""))); }
 function armTeachIdle(){ clearTimeout(teachTimer);
   teachTimer=setTimeout(()=>{ if((teachStage==="intro"||teachStage==="writing") && teachActive() && !revealed){ teachStage="helpers"; updateTeachUI(); } },3000); }
@@ -1921,7 +1939,7 @@ function onTeachStrokeEnd(){}
 // ---- 流程 ----
 function promptHTML(c){ return c.chars.map((ch,i)=> i===c.ci ? `<span class="blank">${c.py||"？"}</span>` : `<span class="given">${ch}</span>`).join(""); }
 function practiceProgress(){ const targets=new Set(baseTargets), practiced=new Set(roundStats.filter(row=>targets.has(row.idx)).map(row=>row.idx)); return {done:practiced.size,total:targets.size,unresolved:new Set([...unresolved].filter(idx=>targets.has(idx))).size}; }
-function updateProgressLabel(){ const p=practiceProgress(); $("posLabel").textContent=p.done>=p.total&&p.unresolved?`还要再练 ${p.unresolved}`:`已练 ${p.done}/${p.total}${p.unresolved?` · 还要再练 ${p.unresolved}`:""}`; }
+function updateProgressLabel(){ const p=practiceProgress(); $("posLabel").textContent=p.total===1?"":(p.done>=p.total&&p.unresolved?`还要再练 ${p.unresolved}`:`已练 ${p.done}/${p.total}${p.unresolved?` · 还要再练 ${p.unresolved}`:""}`); }
 let stamped=false, autoNextTimer=0, editStampTimer=0, undoFollowTimer=0, lastStampSnapshot=null, overlayOn=false, replaying=false;
 function cloneObj(v){ return v==null?null:JSON.parse(JSON.stringify(v)); }
 function drawSnapshotStrokes(ctx,strokes,color,width){ ctx.strokeStyle=color; ctx.fillStyle=color; ctx.lineWidth=width; ctx.lineCap="round"; ctx.lineJoin="round";
@@ -2015,7 +2033,7 @@ function render(){ fitBox(); cur=CARDS[currentCardIndex()]; const token=++loadTo
   $("prompt").innerHTML=promptHTML(cur);
   $("hint").textContent=cur.custom?cur.hint:(activeMode==="calibrate"?"这组用来摸个底，之后按合适的难度出题":"");
   clearInk(); drawing=false; inkCanvas.style.opacity='1'; hzEl.style.opacity='1'; hzEl.classList.remove("traceFallback");
-  shownStrokes=0; totalStrokes=0; groups=[]; groupIdx=0; $("tip").disabled=true; $("show").disabled=false; $("done").disabled=true; $("tip").textContent="笔顺提示"; updateActionLabels();
+  shownStrokes=0; totalStrokes=0; groups=[]; groupIdx=0; $("tip").disabled=true; $("show").disabled=false; $("done").disabled=true; $("tip").textContent="提示"; updateActionLabels();
   hzEl.innerHTML=""; peekEl.innerHTML=""; peekEl.classList.remove("active"); hzEl.classList.remove("traceFallback"); writer=null; revealed=false;
   curMedians=null; lastVerdict=null;
   // 教学：只在校准组的第一张卡上出现
@@ -2058,6 +2076,13 @@ async function rewriteCurrentCard(){ commitUndoWindow(); activePointers.clear();
 $("clear").onclick=rewriteCurrentCard;
 $("undoStroke").onclick=undoInkStroke;
 let animating=false, revealed=false;
+let tipHoldTimer=0, tipHoldConsumed=false;
+function notePracticeHintEntry(){ if(tuning.practiceHintExplained) return; tuning.practiceHintExplained=true; saveTuning(); toast("轻点看下一笔，按住看完整字形"); }
+function armTipHold(e){ if($("tip").disabled) return; notePracticeHintEntry(); tipHoldConsumed=false; clearTimeout(tipHoldTimer); tipHoldTimer=setTimeout(()=>{ if(enterPeekHint(true)){ tipHoldConsumed=true; hapticFeedback("select"); } },360); }
+function releaseTipHold(){ clearTimeout(tipHoldTimer); if(tipHoldConsumed) exitPeekHint(true); }
+$("tip").addEventListener("pointerdown",armTipHold);
+$("tip").addEventListener("pointerup",releaseTipHold);
+$("tip").addEventListener("pointercancel",releaseTipHold);
 function pressPeekControl(e){ if(e){ e.preventDefault(); if(e.pointerId!=null) try{$("peekInk").setPointerCapture(e.pointerId);}catch(_){} } enterPeekHint(true); }
 function releasePeekControl(e){ if(e) e.preventDefault(); exitPeekHint(true); }
 $("peekInk").addEventListener("pointerdown",pressPeekControl);
@@ -2065,7 +2090,7 @@ $("peekInk").addEventListener("pointerdown",pressPeekControl);
 $("peekInk").addEventListener("keydown",e=>{ if((e.key===" "||e.key==="Enter")&&!e.repeat) pressPeekControl(e); });
 $("peekInk").addEventListener("keyup",e=>{ if(e.key===" "||e.key==="Enter") releasePeekControl(e); });
 window.addEventListener("blur",()=>exitPeekHint(true));
-$("tip").onclick=async ()=>{ if(!writer||animating||revealed||groupIdx>=groups.length) return false; commitUndoWindow(); hapticFeedback("select");
+$("tip").onclick=async ()=>{ if(tipHoldConsumed){ tipHoldConsumed=false; return false; } if(!writer||animating||revealed||groupIdx>=groups.length) return false; commitUndoWindow(); hapticFeedback("select");
   const group=groupIdx, n=groups[group], start=shownStrokes, token=loadToken;
   hintEverUsed=true; if(!seenGroups.has(group)){ seenGroups.add(group); hintsUsedThisCard++; }
   animating=true;
@@ -2078,7 +2103,7 @@ $("tip").onclick=async ()=>{ if(!writer||animating||revealed||groupIdx>=groups.l
   animating=false; actionStack.push({type:"hint",group,n,start}); updateTip();
   if(inkCanvas){ inkCanvas.style.opacity=peeking?String(PEEK_INK_OPACITY):'1';
     if(!tuning.strokeHintConsequenceShown){ tuning.strokeHintConsequenceShown=true; saveTuning(); toast("用了提示，这个字本组稍后还会再写"); }
-    if(!hintVisualExhausted() && !tuning.peekHintUsed) $("hint").textContent="还想确认字形？按住「看一眼」，不计提示"; }
+    if(!hintVisualExhausted() && !tuning.peekHintUsed) $("hint").textContent="轻点看下一笔，按住「提示」看完整字形"; }
   saveSessionSnapshot(); return true;
 };
 function showRevealState(snapshot){ const verdict=snapshot&&snapshot.lastVerdict, inkUrl=snapshot&&revealInkImage(snapshot), reference=snapshot&&snapshot.referenceStrokes;
@@ -2270,7 +2295,8 @@ function exitCurrentRound(fromHistory=false){ if(exitingPractice || $("card").st
   }
   loadToken++; pendingSessionVisual=null; animating=false; drawing=false; activePointers.clear(); exitPeekHint(true);
   if(!fromHistory) releasePracticeHistory(); else practiceHistoryArmed=false;
-  renderHome(); exitingPractice=false; return true; }
+  if(activeMode==="focus"&&baseTargets.length===1){ clearSessionSnapshot(); if(focusReturnView==="book") renderBook(); else if(focusReturnView==="profile") renderProfile(); else if(focusReturnView==="me") renderMe(); else renderHome(); }
+  else renderHome(); exitingPractice=false; return true; }
 $("exitPractice").onclick=()=>exitCurrentRound(false);
 window.addEventListener("shizi-native-back",()=>{ if($("charSheet").classList.contains("open")){ closeCharSheet(); return; } if($("settingsPanel").style.display==="flex"||$("annualPanel").style.display==="flex"){ renderMe(); return; } if($("profilePanel").style.display==="flex"){ closeProfile(); return; } if($("auditPanel").style.display==="flex"){ renderSettings(false); return; } exitCurrentRound(false); });
 window.addEventListener("keydown",e=>{ if(e.key==="Escape"&&$("charSheet").classList.contains("open")) closeCharSheet(); });
@@ -2282,8 +2308,9 @@ $("calibSumTiles").onclick=e=>{ const b=e.target.closest("[data-idx]"); if(b) op
 $("roundTune").onclick=e=>{ const b=e.target.closest("[data-round-feedback]"); if(b) recordRoundFeedback(b.dataset.roundFeedback); };
 $("memoryWall").onclick=e=>{ const b=e.target.closest("[data-idx]"); if(b) openCharSheet(Number(b.dataset.idx)); };
 $("bookCurator").onclick=()=>{ if(!bookCuratorIndexes.length) return; if(bookCuratorKind==="recall") openCharSheet(bookCuratorIndexes[0]); else startFocus(bookCuratorIndexes); };
-$("bookSearchGo").onclick=handleBookSearch;
+$("bookSearchInput").oninput=()=>handleBookSearchInput(true);
 $("bookSearchInput").onkeydown=e=>{ if(e.key==="Enter"&&!e.isComposing) handleBookSearch(); };
+$("bookSearchResult").onclick=e=>{ if(e.target.closest("[data-book-add]")) handleBookSearch(); };
 $("bookSaveMonth").onclick=async()=>{ const button=$("bookSaveMonth"); if(button.disabled) return; button.disabled=true; try{ await shareMonthlyPost(); }catch(e){ toast("月帖生成失败，请再试一次"); }finally{ button.disabled=false; } };
 // ---- 底部三 tab + 首页大印章 ----
 $("startBtn").onclick=()=>{ if($("startBtn").disabled) return; startMode(reviewTodayCount()>0?"review":"new"); };
@@ -2313,6 +2340,7 @@ $("openProfile").onclick=()=>openProfile("me");
 $("summaryProfile").onclick=()=>openProfile("summary");
 $("calibProfile").onclick=()=>openProfile("summary");
 $("closeProfile").onclick=closeProfile;
+$("profilePractice").onclick=()=>startFocus(profilePracticeIndexes,{returnView:"profile"});
 $("profilePanel").onclick=e=>{ const char=e.target.closest("[data-char-idx]"); if(char){ openCharSheet(Number(char.dataset.charIdx)); return; } const row=e.target.closest("[data-profile-kind]"); if(row) openBook("risk"); };
 $("auditLink").onclick=()=>renderAudit(preference);
 $("closeAudit").onclick=()=>renderSettings(false);
@@ -2323,8 +2351,9 @@ function handleAuditListClick(e){ const practice=e.target.closest("[data-audit-p
 $("auditBatch").onclick=handleAuditListClick;
 $("auditSample").onclick=handleAuditListClick;
 $("charDetailCompareToggle").onclick=toggleCharDetailCompare;
+$("charDetailOverlayToggle").onclick=toggleCharDetailOverlay;
 $("charDetailStrokeBtn").onclick=replayCharDetail;
-$("charDetailPractice").onclick=()=>{ const idx=charDetailIndex; closeCharSheet(); startFocus([idx]); };
+$("charDetailPractice").onclick=()=>{ const idx=charDetailIndex, returnView=$("profilePanel").style.display==="flex"?"profile":$("studybook").style.display==="flex"?"book":$("mePanel").style.display==="flex"?"me":"home"; closeCharSheet(); startFocus([idx],{returnView}); };
 $("charSheet").onclick=e=>{ if(e.target===$("charSheet")) closeCharSheet(); };
 $("charSheet").addEventListener("touchstart",e=>{ const panel=e.target.closest&&e.target.closest(".charSheet"), startZone=e.target.closest&&e.target.closest(".sheetHandle,.charDetailHead"); charDetailSwipeEligible=e.touches.length===1&&!!panel&&panel.scrollTop<=0&&!!startZone; charDetailTouchY=charDetailSwipeEligible?e.touches[0].clientY:null; },{passive:true});
 $("charSheet").addEventListener("touchend",e=>{ const panel=e.target.closest&&e.target.closest(".charSheet"), eligible=charDetailSwipeEligible&&panel&&panel.scrollTop<=0; charDetailSwipeEligible=false; if(!eligible||charDetailTouchY==null||!e.changedTouches.length){ charDetailTouchY=null; return; } const dy=e.changedTouches[0].clientY-charDetailTouchY; charDetailTouchY=null; if(dy>70) closeCharSheet(); },{passive:true});
@@ -2360,7 +2389,6 @@ function confirmAdd(){ const chars=addWord($("addInput").value); if(!chars) retu
   else toast(tuning.calibrated?`已加入：${chars.join("、")} · 下次开练，第一个就是它`:`已加入：${chars.join("、")} · 校准这组结束后，下一组第一个就是它`);
   if($("summary").style.display==="flex") roundSummary();
   if($("mePanel").style.display==="flex") renderMe(); if($("studybook").style.display==="flex") renderBook(); }
-$("addInPractice").onclick=openAddSheet;
 $("homeAdd").onclick=openAddSheet;
 $("addCancel").onclick=closeAddSheet;
 $("addConfirm").onclick=confirmAdd;
@@ -2412,8 +2440,8 @@ async function sharePracticeCard(opts={}){ const canvas=renderPracticeCardCanvas
 const BACKUP_KEYS=[DECK_KEY,OPEN_KEY,MEMORY_KEY,QUALITY_KEY,PREF_KEY,TUNING_KEY,ACTIVITY_KEY,SESSION_KEY,FSRS_LOG_KEY,TRACE_TUTORIAL_KEY,BACKUP_META_KEY,REMINDER_KEY,FONT_SCALE_KEY,FUNNEL_KEY,SOUND_KEY,TOPIC_KEY,CUSTOM_KEY,ADDED_KEY];
 function backupAgeDays(){ const ts=Number(backupMeta.lastExportAt)||0; return ts?Math.max(0,Math.floor((Date.now()-ts)/86400000)):Number.POSITIVE_INFINITY; }
 function backupRelativeText(){ const days=backupAgeDays(); if(!Number.isFinite(days)) return "从未备份"; if(days===0) return "上次备份 · 今天"; if(days===1) return "上次备份 · 昨天"; return `上次备份 · ${days} 天前`; }
-function renderBackupUI(){ $("backupStatus").textContent=backupRelativeText(); const needs=(completedDayCount()>=5 || memoryCount()>=30) && backupAgeDays()>=7;
-  $("backupReminder").style.display=needs&&reminder.characterMilestoneDay!==today()?"flex":"none"; $("backupReminderCopy").textContent=Number.isFinite(backupAgeDays())?`已有 ${memoryCount()} 个字，建议每周导出一份。`:`已经完成 ${completedDayCount()} 个练习日，建议现在导出第一份。`; }
+function renderBackupUI(){ const age=backupAgeDays(), never=!Number.isFinite(age), urgent=(completedDayCount()>=14&&never)||(!never&&age>=30); $("backupStatus").textContent=backupRelativeText(); $("backupStatus").classList.toggle("backupStatusUrgent",urgent); $("backupUrgency").style.display=urgent?"flex":"none"; $("mePanel").classList.toggle("backupUrgent",urgent);
+  const needs=(completedDayCount()>=5 || memoryCount()>=30) && age>=7; $("backupReminder").style.display=needs&&reminder.characterMilestoneDay!==today()?"flex":"none"; $("backupReminderCopy").textContent=never?"记录只存在这台设备上，可以导出一份备份。":`已有 ${memoryCount()} 个字，上次备份在 ${age} 天前。`; }
 function renderSummaryBackupHint(){ const eligible=!summaryMilestoneActive && reminder.characterMilestoneDay!==today() && completedDayCount()>=3 && !backupMeta.summaryPromptShown;
   if(eligible){ summaryBackupHintVisible=true; backupMeta.summaryPromptShown=true; save(BACKUP_META_KEY,backupMeta); }
   $("summaryBackupHint").style.display=summaryBackupHintVisible?"flex":"none"; }
@@ -2463,7 +2491,6 @@ function requestBackupImport(){
   $("importFile").click();
 }
 $("exportLink").onclick=()=>{ exportBackup(); };
-$("backupNow").onclick=()=>{ exportBackup(); };
 $("summaryBackupNow").onclick=()=>{ exportBackup(); };
 $("reminderRow").onclick=toggleReminder;
 $("reminderYes").onclick=acceptReminderInvite;
@@ -2478,6 +2505,7 @@ $("safetyUndoBtn").onclick=()=>undoSafetyRestore();
 
 initBox(); renderHome();
 showSafetyUndo();
+if(bootCorruptKeys.length){ $("bootNotice").style.display="block"; setTimeout(()=>$("bootNotice").style.display="none",5000); }
 try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(()=>{}); }catch(e){}
 if(reminderBridgeAvailable()){ syncReminder(); queryReminderStatus(); }
 document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="hidden"){

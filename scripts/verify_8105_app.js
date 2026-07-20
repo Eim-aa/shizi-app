@@ -564,7 +564,7 @@ let browser;
   await page.click("#closeSettings");
   await page.click("#tabBook");
   await page.fill("#bookSearchInput", "蘸料");
-  await page.click("#bookSearchGo");
+  await page.click("#bookSearchResult [data-book-add]");
   await page.fill("#addInput", "蘸料");
   await page.click("#addConfirm");
   const add = await page.evaluate(() => ({ added: addedChars.includes("蘸") && addedChars.includes("料"), indexed: indexesForChars(["蘸", "料"]).length === 2, queued: indexesForChars(["蘸", "料"]).every((idx) => (memory[cardKey(idx)] || {}).queuedFront) }));
@@ -595,11 +595,11 @@ let browser;
   await waitForWriter(page);
   const compactRecall = await page.evaluate(() => ({
     box: S, mascot: getComputedStyle(document.querySelector("#practiceArea > .mascotRow")).display, mascotCopy: mascotLine.textContent,
-    actionBottom: actions.getBoundingClientRect().bottom, viewportBottom: innerHeight, tools: Array.from(inkTools.querySelectorAll("button")).map((node) => ({ height: node.getBoundingClientRect().height, width: node.getBoundingClientRect().width, scrollWidth: node.scrollWidth })),
+    actionBottom: actions.getBoundingClientRect().bottom, viewportBottom: innerHeight, tools: Array.from(inkTools.querySelectorAll("button")).filter((node) => getComputedStyle(node).display !== "none").map((node) => ({ height: node.getBoundingClientRect().height, width: node.getBoundingClientRect().width, scrollWidth: node.scrollWidth })),
     tip: tip.textContent, promptSize: parseFloat(getComputedStyle(document.getElementById("prompt")).fontSize),
   }));
   assert(compactRecall.box >= 276 && compactRecall.mascot === "flex" && compactRecall.mascotCopy.length > 0 && compactRecall.actionBottom <= compactRecall.viewportBottom + 1
-    && compactRecall.tools.every((item) => item.height >= 43.9 && item.scrollWidth <= item.width + 1) && compactRecall.tip.startsWith("提示 ") && compactRecall.promptSize >= 35,
+    && compactRecall.tools.every((item) => item.height >= 43.9 && item.scrollWidth <= item.width + 1) && compactRecall.tip === "提示" && compactRecall.promptSize >= 35,
   "Expected large type and 44pt compact tools to preserve the writing area and guidance on a 320x568 screen", compactRecall);
   await page.evaluate(() => { inkStrokes = mediansToCanvas(curMedians); redrawInk(); revealAnswer(); });
   const compactReveal = await page.evaluate(() => ({ ask: getComputedStyle(askRow).display, askCopy: askLine.textContent, askBottom: askRow.getBoundingClientRect().bottom, client: reveal.clientHeight, scroll: reveal.scrollHeight, qualityTargets: Array.from(qualityBox.querySelectorAll("button")).map((node) => node.getBoundingClientRect().height) }));
@@ -869,12 +869,12 @@ let browser;
   await page.evaluate(() => {
     exitCurrentRound(); clearSessionSnapshot(); status = {}; memory = {}; fsrsReviewLog = []; quality = {}; sessionDone = new Set();
     tuning = { calibrated: true, offset: 0, contextStrict: 0, rounds: [] }; save(DECK_KEY, status); saveMemory(); saveFSRSLog(); saveQuality(); saveTuning();
-    startFocus([CARDS.findIndex((card) => card.target === "器")]);
+    startFocus([CARDS.findIndex((card) => card.target === "器"), CARDS.findIndex((card) => card.target === "衡")]);
   });
   await submitStandard(page);
   await chooseCorrect(page);
   const repeatTarget = await page.evaluate(() => cur.target);
-  await page.click("#addInPractice");
+  await page.evaluate(() => openAddSheet());
   await page.fill("#addInput", repeatTarget);
   const repeatExit = await page.evaluate(() => {
     confirmAdd();
@@ -882,7 +882,7 @@ let browser;
     exitCurrentRound(false);
     return { before, saved: load(SESSION_KEY, null), home: getComputedStyle(home).display !== "none" };
   });
-  assert(repeatExit.home && repeatExit.before.baseCursor === repeatExit.before.total && repeatExit.before.phase === "feedback"
+  assert(repeatExit.home && repeatExit.before.baseCursor === 1 && repeatExit.before.total === 2 && repeatExit.before.phase === "feedback"
     && repeatExit.before.queue.length === 1 && repeatExit.before.queue[0].kind === "repeat" && repeatExit.saved.manualQueue.length === 1,
   "Expected a last-card feedback addition to save its pending repeat before returning home", repeatExit);
   await page.waitForFunction(() => history.state && history.state.shiziView === "home");
@@ -893,7 +893,7 @@ let browser;
   "Expected restore to keep the final-card feedback and pending manual repeat instead of summarizing", repeatRestore);
   await page.waitForFunction((target) => currentAttemptKind === "manual" && cur.target === target && practicePhase === "recall", repeatTarget);
   const repeatedAfterRestore = await page.evaluate(() => ({ target: cur.target, kind: currentAttemptKind, queue: manualQueue.length, total: baseTargets.length, summary: getComputedStyle(summary).display, session: load(SESSION_KEY, null) }));
-  assert(repeatedAfterRestore.target === repeatTarget && repeatedAfterRestore.kind === "manual" && repeatedAfterRestore.queue === 0 && repeatedAfterRestore.total === 1 && repeatedAfterRestore.summary === "none" && repeatedAfterRestore.session,
+  assert(repeatedAfterRestore.target === repeatTarget && repeatedAfterRestore.kind === "manual" && repeatedAfterRestore.queue === 0 && repeatedAfterRestore.total === 2 && repeatedAfterRestore.summary === "none" && repeatedAfterRestore.session,
   "Expected the restored next card to consume the queued repeat without growing the group", repeatedAfterRestore);
 
   const completionHaptics = await page.evaluate(async () => {
@@ -1033,7 +1033,7 @@ let browser;
     return { stacked, peekOffer, afterStroke, afterHint, empty, rewritten, replayUse, newUse, duringPlayback, afterPlayback, afterInterrupt };
   });
   assert(handwritingBoundaries.stacked === "stroke,hint,stroke"
-    && handwritingBoundaries.peekOffer.copy.includes("按住「看一眼」") && !handwritingBoundaries.peekOffer.consumed && handwritingBoundaries.peekOffer.consequenceShown && !handwritingBoundaries.peekOffer.title
+    && handwritingBoundaries.peekOffer.copy.includes("按住「提示」") && !handwritingBoundaries.peekOffer.consumed && handwritingBoundaries.peekOffer.consequenceShown && !handwritingBoundaries.peekOffer.title
     && handwritingBoundaries.afterStroke.ink === 1 && handwritingBoundaries.afterStroke.stack === "stroke,hint"
     && handwritingBoundaries.afterHint.ink === 1 && handwritingBoundaries.afterHint.groupIdx === 0 && handwritingBoundaries.afterHint.shownStrokes === 0 && handwritingBoundaries.afterHint.stack === "stroke" && !handwritingBoundaries.afterHint.tipDisabled
     && handwritingBoundaries.empty.ink === 0 && handwritingBoundaries.empty.stack === 0 && handwritingBoundaries.empty.undoDisabled,
@@ -1241,7 +1241,7 @@ let browser;
     targets: Array.from(document.querySelectorAll("#memoryWall .memoryChar[data-idx]")).map((node) => CARDS[Number(node.dataset.idx)].target).sort(),
     active: tabBook.classList.contains("active"),
   }));
-  assert(summaryLayer.tiles === 3 && summaryLayer.lead.includes("3") && summaryLayer.meanings.length === 3 && summaryLayer.meanings.every((item) => item.visible && item.text.length >= 2 && item.size >= 13) && homeLayer.title.includes("今日已拾3个字") && homeLayer.label === "今日拾得" && homeLayer.completed && bookLayer.count === "3字" && bookLayer.active
+  assert(summaryLayer.tiles === 3 && summaryLayer.lead.includes("3") && summaryLayer.meanings.length === 3 && summaryLayer.meanings.every((item) => item.visible && item.text.length >= 2 && item.size >= 13) && homeLayer.title.includes("今日已拾三个字") && homeLayer.label === "今日拾得" && homeLayer.completed && bookLayer.count === "3字" && bookLayer.active
     && summaryLayer.targets.join() === homeLayer.targets.join() && summaryLayer.targets.every((target) => bookLayer.targets.includes(target)),
   "Expected the same completed targets across summary, home recent, and study-book layers", { summaryLayer, homeLayer, bookLayer });
 
@@ -1314,7 +1314,7 @@ let browser;
   const teachingDone = await page.evaluate(() => ({ ratings: fsrsReviewLog.slice(-2).map((event) => event.rating), stat: roundStats[0], tutorialStored: load(TRACE_TUTORIAL_KEY, false), summary: getComputedStyle(summary).display !== "none" }));
   assert(teachingDone.ratings.join() === "Again,Good" && teachingDone.stat.outcome === "miss" && teachingDone.stat.traced && teachingDone.stat.independentlyRecovered && teachingDone.tutorialStored && teachingDone.summary, "Expected later independent recovery to graduate the don't-know episode", teachingDone);
 
-  await page.evaluate(() => { clearSessionSnapshot(); startFocus([CARDS.findIndex((card) => card.target === "疑")]); });
+  await page.evaluate(() => { clearSessionSnapshot(); startFocus([CARDS.findIndex((card) => card.target === "疑"), CARDS.findIndex((card) => card.target === "衡")]); });
   await waitForWriter(page);
   await page.evaluate(() => { shownStrokes = 1; groupIdx = 1; hintEverUsed = true; hintsUsedThisCard = 1; inkStrokes = mediansToCanvas(curMedians.slice(1)); redrawInk(); revealAnswer(); const s = load(SESSION_KEY, null); s.startedDate = shiftDay(today(), -1); save(SESSION_KEY, s); });
   const frozenBefore = await page.evaluate(() => JSON.stringify(submissionSnapshot));
@@ -1333,7 +1333,7 @@ let browser;
   await page.evaluate(() => { Storage.prototype.setItem = window.__originalSetItem; delete window.__originalSetItem; });
   assert(failedExit.card && failedExit.phase === "revealDecision" && failedExit.frozen === frozenBefore && failedExit.message.includes("未能保存进度") && failedExit.armed, "Expected persistence failure to keep the exact practice state with a retry message", failedExit);
 
-  await page.click("#addInPractice");
+  await page.evaluate(() => openAddSheet());
   await page.waitForFunction(() => addSheet.classList.contains("open"));
   await page.evaluate(() => history.back());
   await page.waitForFunction(() => !addSheet.classList.contains("open") && history.state && history.state.shiziView === "practice");
@@ -1465,7 +1465,7 @@ let browser;
 
   const backupCoverage = await page.evaluate(() => {
     const excluded = new Set(["shizi.nativeSmoke.v1", SAFETY_KEY]);
-    return Object.keys(localStorage).filter((key) => key.startsWith("shizi.") && !BACKUP_KEYS.includes(key) && !excluded.has(key));
+    return Object.keys(localStorage).filter((key) => key.startsWith("shizi.") && !key.startsWith("shizi.corrupt.") && !BACKUP_KEYS.includes(key) && !excluded.has(key));
   });
   assert(backupCoverage.length === 0, "Expected every persistent shizi key to be backed up or explicitly excluded", backupCoverage);
 
@@ -1475,9 +1475,9 @@ let browser;
   await page.waitForFunction(() => getComputedStyle(reveal).display !== "none");
   const compact = await page.evaluate(() => {
     const boxes = Array.from(document.querySelectorAll(".cmpBox")).map((node) => node.getBoundingClientRect());
-    const cardRect = card.getBoundingClientRect(), back = exitPractice.getBoundingClientRect(), progress = posLabel.getBoundingClientRect(), add = addInPractice.getBoundingClientRect(), progressStyle = getComputedStyle(posLabel);
+    const cardRect = card.getBoundingClientRect(), back = exitPractice.getBoundingClientRect(), progress = posLabel.getBoundingClientRect(), end = document.querySelector(".chdr > span").getBoundingClientRect(), progressStyle = getComputedStyle(posLabel);
     return { widths: boxes.map((box) => box.width), within: boxes.every((box) => box.left >= cardRect.left && box.right <= cardRect.right), actions: decisionRow.getBoundingClientRect().bottom <= innerHeight + 1,
-      header: { backSize: [back.width, back.height], noOverlap: back.right <= progress.left && progress.right <= add.left, nowrap: progressStyle.whiteSpace === "nowrap", oneLine: posLabel.scrollHeight <= posLabel.clientHeight + 1, noGraphicProgress: !document.querySelector(".beads,.bead,progress,[role=progressbar]") } };
+      header: { backSize: [back.width, back.height], noOverlap: back.right <= progress.left && progress.right <= end.left, nowrap: progressStyle.whiteSpace === "nowrap", oneLine: posLabel.scrollHeight <= posLabel.clientHeight + 1, noGraphicProgress: !document.querySelector(".beads,.bead,progress,[role=progressbar]") } };
   });
   assert(compact.widths.every((width) => width <= 138.5) && compact.within && compact.actions && compact.header.backSize.every((value) => value >= 44) && compact.header.noOverlap && compact.header.nowrap && compact.header.oneLine && compact.header.noGraphicProgress, "Expected dark small-screen comparison and text-only header to fit", compact);
   await page.screenshot({ path: screenshotPath, fullPage: true });

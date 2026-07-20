@@ -2,6 +2,7 @@ import AVFoundation
 import UIKit
 import UniformTypeIdentifiers
 import UserNotifications
+import Vision
 import WebKit
 
 final class WebViewController: UIViewController {
@@ -1240,9 +1241,38 @@ extension WebViewController: WKScriptMessageHandler {
             requestReminderPermission()
         case "queryReminderStatus":
             sendReminderStatus()
+        case "recognizeChars":
+            // 拍字入池（#99）：本机 Vision 识字，候选回传由用户确认；图像不落盘不上传
+            guard let dataURL = body["dataURL"] as? String else { break }
+            recognizeChars(dataURL: dataURL)
         default:
             break
         }
+    }
+}
+
+// MARK: - 拍字入池：Vision 中文识别（#99）
+extension WebViewController {
+    private func recognizeChars(dataURL: String) {
+        guard let comma = dataURL.range(of: ","),
+              let data = Data(base64Encoded: String(dataURL[comma.upperBound...])),
+              let image = UIImage(data: data)?.cgImage else { return ocrReply("") }
+        let request = VNRecognizeTextRequest { [weak self] request, _ in
+            let observations = (request.results as? [VNRecognizedTextObservation]) ?? []
+            let text = observations.compactMap { $0.topCandidates(1).first?.string }.joined()
+            DispatchQueue.main.async { self?.ocrReply(text) }
+        }
+        request.recognitionLevel = .accurate
+        request.recognitionLanguages = ["zh-Hans", "zh-Hant"]
+        DispatchQueue.global(qos: .userInitiated).async {
+            let handler = VNImageRequestHandler(cgImage: image, options: [:])
+            try? handler.perform([request])
+        }
+    }
+
+    private func ocrReply(_ text: String) {
+        let payload = String(data: (try? JSONSerialization.data(withJSONObject: [text])) ?? Data("[\"\"]".utf8), encoding: .utf8) ?? "[\"\"]"
+        webView.evaluateJavaScript("window.shiziOCRResult && window.shiziOCRResult(\(payload)[0])", completionHandler: nil)
     }
 }
 

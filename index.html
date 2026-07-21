@@ -304,17 +304,25 @@
   .bookHead{ display:flex; justify-content:space-between; align-items:baseline; }
   .bookHead h1{ margin:0; font:900 calc(28px * var(--font-scale))/1 var(--song); letter-spacing:var(--ls-label); }
   .bookHead .cnt{ font-size:calc(var(--fs-body) * var(--font-scale)); color:var(--muted); }
-  /* 在学的库（#106）：收藏获得分母。页面唯一新增元素 */
-  .libCard{ width:100%; margin-top:14px; display:flex; justify-content:space-between; align-items:center; gap:10px; padding:12px 14px; background:var(--card); border:1px solid var(--line); border-radius:10px; text-align:left; }
-  .libCard .libInfo b{ display:block; font-size:calc(var(--fs-emph) * var(--font-scale)); }
-  .libCard .libInfo small{ display:block; margin-top:3px; color:var(--muted); font-size:calc(var(--fs-note) * var(--font-scale)); font-variant-numeric:tabular-nums; }
-  .libCard .libGo{ flex:none; color:var(--muted); font-size:calc(var(--fs-note) * var(--font-scale)); font-weight:600; }
+  /* 在学的库（#106，参考墨墨选词页的翻译版）：分段进度=墨色本身（浓/正/淡/未拾），加时间感（预计拾完） */
+  .libCard{ width:100%; margin-top:14px; display:block; padding:13px 14px 12px; background:var(--card); border:1px solid var(--line); border-radius:10px; text-align:left; }
+  .libCardTop{ display:flex; justify-content:space-between; align-items:baseline; gap:10px; }
+  .libCardTop b{ font-size:calc(var(--fs-emph) * var(--font-scale)); }
+  .libCardTop .libGo{ flex:none; color:var(--muted); font-size:calc(var(--fs-note) * var(--font-scale)); font-weight:600; }
+  .libBar{ display:flex; height:8px; margin-top:10px; border-radius:999px; overflow:hidden; background:var(--shade); }
+  .libBar i{ display:block; height:100%; }
+  .libBar .t1{ background:var(--memory-1); } .libBar .t3{ background:var(--memory-3); } .libBar .t5{ background:var(--memory-5); }
+  .libTones{ margin-top:8px; display:flex; gap:12px; color:var(--muted); font-size:calc(var(--fs-note) * var(--font-scale)); font-variant-numeric:tabular-nums; }
+  .libTones i{ font-style:normal; display:inline-block; width:9px; height:9px; border-radius:2px; vertical-align:-1px; margin-right:4px; }
+  .libMeta{ margin-top:7px; color:var(--faint); font-size:calc(var(--fs-note) * var(--font-scale)); font-variant-numeric:tabular-nums; }
   .libList{ display:grid; gap:7px; max-height:52vh; overflow-y:auto; }
-  .libRow{ width:100%; display:flex; justify-content:space-between; align-items:center; gap:10px; padding:12px 13px; background:var(--card); border:1px solid var(--line); border-radius:12px; text-align:left; }
+  .libRow{ width:100%; display:block; padding:12px 13px; background:var(--card); border:1px solid var(--line); border-radius:12px; text-align:left; }
   .libRow.active{ border-color:var(--ink); background:var(--shade); }
-  .libRow b{ display:block; font-size:calc(var(--fs-body) * var(--font-scale)); }
-  .libRow small{ display:block; margin-top:2px; color:var(--muted); font-size:calc(var(--fs-note) * var(--font-scale)); line-height:1.5; }
+  .libRowTop{ display:flex; justify-content:space-between; align-items:baseline; gap:10px; }
+  .libRow b{ font-size:calc(var(--fs-body) * var(--font-scale)); }
   .libRow .libCount{ flex:none; color:var(--muted); font-size:calc(var(--fs-note) * var(--font-scale)); font-variant-numeric:tabular-nums; }
+  .libRow small{ display:block; margin-top:2px; color:var(--muted); font-size:calc(var(--fs-note) * var(--font-scale)); line-height:1.5; }
+  .libRow .libBar{ margin-top:8px; height:5px; }
   .bookCurator{ width:100%; margin-top:14px; min-height:54px; padding:10px 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line); color:var(--ink); text-align:left; font:400 calc(var(--fs-emph) * var(--font-scale))/1.75 var(--kai); }
   .bookCurator span{ color:var(--accent); }
   .bookSearch{ margin-top:16px; }
@@ -777,7 +785,12 @@
   <!-- 字库：你的收藏 + 可选的分级库（选库功能见后续 issue） -->
   <div class="book" id="studybook" style="display:none" data-screen-label="字库">
     <div class="bookHead"><h1>字库</h1><div class="cnt" id="boxCount"></div></div>
-    <button class="libCard" id="libCard"><span class="libInfo"><b id="libName"></b><small id="libProg"></small></span><span class="libGo">换库 ›</span></button>
+    <button class="libCard" id="libCard">
+      <span class="libCardTop"><b id="libName"></b><span class="libGo">换库 ›</span></span>
+      <span class="libBar" id="libBar"></span>
+      <span class="libTones" id="libTones"></span>
+      <span class="libMeta" id="libMeta"></span>
+    </button>
     <button class="bookCurator" id="bookCurator"></button>
     <div class="bookSearch"><input id="bookSearchInput" type="search" autocomplete="off" placeholder="找一个字，或把忘的字加进来" aria-label="找字或加字"></div>
     <div class="bookSearchNote" id="bookSearchNote"></div>
@@ -989,12 +1002,24 @@ function normalizeLibrary(raw){ const id=raw&&typeof raw==="object"?raw.id:raw; 
 let libraryState=normalizeLibrary(load(LIB_KEY,null)); save(LIB_KEY,libraryState);
 function currentLibrary(){ return LIBRARIES.find(l=>l.id===libraryState.id)||LIBRARIES[0]; }
 function setLibrary(id){ libraryState=normalizeLibrary({id}); save(LIB_KEY,libraryState); }
+// 墨墨选词页的进度分段，翻译成墨语：浓/正/淡三档 + 未拾（空纸）。分母让收藏可感（#106）。
 let libraryCountsCache={};
-function libraryCounts(lib){ const stamp=memoryCount(), hit=libraryCountsCache[lib.id]; if(hit&&hit.stamp===stamp) return hit;
-  const seenT=new Set(); let total=0,got=0;
+function libraryCounts(lib){ const stamp=memoryCount()+":"+Object.keys(memory).length, hit=libraryCountsCache[lib.id]; if(hit&&hit.stamp===stamp) return hit;
+  const seenT=new Set(), cutoff=Date.now()-30*86400000; let total=0,got=0,deep=0,mid=0,faint=0,recent=0;
   for(let i=0;i<CARDS.length;i++){ const c=CARDS[i]; if(c.custom||seenT.has(c.target)) continue; seenT.add(c.target);
-    if(!lib.test(c)) continue; total++; const m=memory["base:"+c.target]; if(m&&m.seen) got++; }
-  return libraryCountsCache[lib.id]={total,got,stamp}; }
+    if(!lib.test(c)) continue; total++; const m=memory["base:"+c.target];
+    if(m&&m.seen){ got++; const lvl=memoryInkLevel(i); if(lvl<=2) deep++; else if(lvl===3) mid++; else faint++;
+      if(Number(m.firstSeenAt)>=cutoff) recent++; } }
+  return libraryCountsCache[lib.id]={total,got,deep,mid,faint,recent,stamp}; }
+// 分段墨色进度条：浓/正/淡 + 未拾留白。零文字，条本身即状态
+function libBarHTML(n){ if(!n.total) return ""; const pct=x=>`${(x/n.total*100).toFixed(2)}%`;
+  return `<i class="t1" style="width:${pct(n.deep)}"></i><i class="t3" style="width:${pct(n.mid)}"></i><i class="t5" style="width:${pct(n.faint)}"></i>`; }
+// 时间感：翻译墨墨「预计还需 N 个月完成」——去掉倒计时的催促，只留平静的手速陈述（本产品不记缺席、不设截止）
+function libPaceText(n){ const remain=n.total-n.got; if(remain<=0) return "这一库，你已拾遍";
+  if(n.recent<3) return ""; const perDay=n.recent/30, days=remain/perDay;
+  if(days<=45) return `照最近的手速，还有个把月拾完`;
+  if(days<=400) return `照最近的手速，约 ${Math.round(days/30)} 个月拾完`;
+  return "照最近的手速，还能拾上很久";}
 let fontScaleLarge = load(FONT_SCALE_KEY,false)===true;
 function applyFontScale(){ document.documentElement.classList.toggle("largeText",fontScaleLarge); const row=document.getElementById("fontScaleRow"), state=document.getElementById("fontScaleState"); if(row) row.setAttribute("aria-pressed",fontScaleLarge?"true":"false"); if(state) state.textContent=fontScaleLarge?"开":"关"; }
 applyFontScale();
@@ -1752,11 +1777,15 @@ function bookCuratorData(seen){ const due=seen.filter(reviewDue).sort(compareRev
   if(discovery) return {kind:"discovery",indexes:discovery.items,text:`${discovery.label}的字，你已经收了${numCn(discovery.count)}个`,suffix:"›"};
   return {kind:"empty",indexes:[],text:"第一枚章，会在这里慢慢显出墨色",suffix:""}; }
 function openBook(){ renderBook(); }
-function renderLibCard(){ const lib=currentLibrary(), n=libraryCounts(lib);
-  $("libName").textContent=lib.name; $("libProg").textContent=`已拾 ${n.got} / ${n.total}`; }
-function openLibSheet(){ const active=currentLibrary().id;
+function renderLibCard(){ libraryCountsCache={}; // 每次渲染都重算：复习让某字墨色变浓但 memoryCount/键数不变，缓存会漏更（避免在 saveMemory 里清——boot 早于 let 声明会 TDZ 白屏，见 #92）
+  const lib=currentLibrary(), n=libraryCounts(lib);
+  $("libName").textContent=lib.name;
+  $("libBar").innerHTML=libBarHTML(n);
+  $("libTones").innerHTML=n.got?`<span><i class="t1" style="background:var(--memory-1)"></i>浓 ${n.deep}</span><span><i class="t3" style="background:var(--memory-3)"></i>正 ${n.mid}</span><span><i class="t5" style="background:var(--memory-5)"></i>淡 ${n.faint}</span>`:"";
+  const pace=libPaceText(n); $("libMeta").textContent=`已拾 ${n.got} / ${n.total}${pace?` · ${pace}`:""}`; }
+function openLibSheet(){ libraryCountsCache={}; const active=currentLibrary().id;
   $("libList").innerHTML=LIBRARIES.map(lib=>{ const n=libraryCounts(lib);
-    return `<button class="libRow ${lib.id===active?"active":""}" data-lib="${lib.id}"><span><b>${esc(lib.name)}</b><small>${esc(lib.desc)}</small></span><span class="libCount">已拾 ${n.got} / ${n.total}</span></button>`; }).join("");
+    return `<button class="libRow ${lib.id===active?"active":""}" data-lib="${lib.id}"><span class="libRowTop"><b>${esc(lib.name)}</b><span class="libCount">已拾 ${n.got} / ${n.total}</span></span><small>${esc(lib.desc)}</small><span class="libBar">${libBarHTML(n)}</span></button>`; }).join("");
   $("libSheet").classList.add("open"); }
 function closeLibSheet(){ $("libSheet").classList.remove("open"); }
 function renderBook(){ displayView("book");

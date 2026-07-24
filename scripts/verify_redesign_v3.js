@@ -228,6 +228,18 @@ let browser;
   await page.screenshot({ path: path.join(generatedDir, "practice-light-375x667.png"), fullPage: true });
   await page.click("#exitPractice");
 
+  await page.evaluate(() => startFocus([BASE_BY_CHAR["毓"]], { returnView: "book" }));
+  await page.waitForFunction(() => getComputedStyle(card).display !== "none" && !show.disabled);
+  const idiomContext = await page.evaluate(() => { const node=$("prompt"); return { copy: node.textContent, targetVisible: node.textContent.includes("毓"), fits: node.scrollWidth <= node.clientWidth + 1 }; });
+  assert(idiomContext.copy.includes("钟") && idiomContext.copy.includes("灵") && idiomContext.copy.includes("秀") && idiomContext.copy.includes("yù") && !idiomContext.targetVisible && idiomContext.fits, "Expected a four-character idiom to fit while blanking only the target", idiomContext);
+  await page.click("#exitPractice");
+  await page.evaluate(() => startFocus([BASE_BY_CHAR["谔"]], { returnView: "book" }));
+  await page.waitForFunction(() => getComputedStyle(card).display !== "none" && !show.disabled);
+  const glossContext = await page.evaluate(() => { const promptNode=$("prompt"),hintNode=$("hint"); return { prompt: promptNode.textContent, hint: hintNode.textContent, targetVisible: promptNode.textContent.includes("谔"), hintBottom: hintNode.getBoundingClientRect().bottom, actionTop: $("actions").getBoundingClientRect().top }; });
+  assert(glossContext.prompt.includes("è") && !glossContext.targetVisible && glossContext.hint.includes("直言争辩") && glossContext.hintBottom <= glossContext.actionTop, "Expected gloss mode to show pronunciation and a non-overlapping plain-language clue without leaking the target", glossContext);
+  await page.screenshot({ path: path.join(generatedDir, "context-gloss-light-375x667.png"), fullPage: true });
+  await page.click("#exitPractice");
+
   assert(errors.length === 0, "Browser errors", errors);
   await browser.close(); browser = null;
   console.log("Verified interface redesign v4 palette, home, honest detail sheet, instant memory wall search, My, settings, and responsive layouts.");

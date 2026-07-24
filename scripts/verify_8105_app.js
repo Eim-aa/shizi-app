@@ -10,6 +10,7 @@ const screenshotPath = path.join(root, "generated", "verify_8105_app.png");
 const SESSION_STORAGE_KEY = "shizi.session.v1";
 const source = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const swSource = fs.readFileSync(path.join(root, "sw.js"), "utf8");
+const contextOverrideSource = fs.readFileSync(path.join(root, "data", "context-overrides.js"), "utf8");
 const coreStrokeSource = fs.readFileSync(path.join(root, "core-strokes.js"), "utf8");
 const appDelegateSource = fs.readFileSync(path.join(root, "ios", "ShiziApp", "ShiziApp", "AppDelegate.swift"), "utf8");
 const webViewSource = fs.readFileSync(path.join(root, "ios", "ShiziApp", "ShiziApp", "WebViewController.swift"), "utf8");
@@ -30,6 +31,7 @@ function assert(condition, message, details) {
 }
 
 assert(swSource.includes("shizi-v9") && swSource.includes("Promise.allSettled") && swSource.includes("INSTALL_BATCH_SIZE = 40") && swSource.includes("cacheCoreStrokes"), "Expected versioned, batched, failure-tolerant core stroke installation");
+assert(swSource.includes("data/context-overrides.js") && source.includes('<script src="data/context-overrides.js"></script>') && contextOverrideSource.includes("CONTEXT_OVERRIDES"), "Expected context overrides in both online and offline shells");
 assert(coreStrokeSource.includes("SHIZI_CORE_STROKES") && coreStrokeSource.includes("slice(0,600)"), "Expected a generated 600-character core stroke list");
 assert(!source.includes("sendBeacon") && !/method\s*:\s*["']POST["']/.test(source), "Expected the local funnel to add no analytics beacon or POST request");
 assert(!/rgba\(194,\s*69,\s*44/i.test(source) && source.includes("--accent-rgb:194,69,44") && source.includes("--accent-rgb:212,85,58"), "Expected every cinnabar alpha to follow the light/dark theme token");
@@ -313,6 +315,41 @@ let browser;
   assert(baseline.decisionLabels.join("/") === "写对了/写错了" && baseline.oldStampChoices === 0 && baseline.showLabel === "提笔忘了", "Expected concise two-decision result semantics and final recall action naming", baseline);
   assert(baseline.viewport.includes("viewport-fit=cover") && !/user-scalable=no|maximum-scale=1/.test(baseline.viewport), "Expected scalable safe-area viewport", baseline.viewport);
 
+  const contextOverrides = await page.evaluate(() => {
+    const originalFor = (target) => SEED.find((row) => (row.target || Array.from(row.ans)[Number(row.ci) || 0]) === target);
+    const rows = Object.entries(OVERRIDES).map(([target, override]) => {
+      const index = BASE_BY_CHAR[target], card = CARDS[index], original = originalFor(target);
+      return {
+        target, index, originalWord: original && original.ans, word: card && card.word, py: card && card.py, originalPy: original && original.py,
+        ctx: card && card.ctx, hint: card && card.hint, common: Number(card && card.common) || 0,
+        key: Number.isInteger(index) ? cardKey(index) : "", targetAtIndex: override.w ? Array.from(override.w)[override.ci] : target,
+        expectedWord: override.w || (override.gloss ? target : original && original.ans),
+        kind: override.w ? "word" : override.gloss ? "gloss" : "boost",
+        boosted: !!override.boost,
+      };
+    });
+    const idiom = CARDS[BASE_BY_CHAR["毓"]], idiomPrompt = promptHTML(idiom);
+    const gloss = CARDS[BASE_BY_CHAR["谔"]], glossPrompt = promptHTML(gloss);
+    const legacyMemory = { seen: 3, last: Date.now() - 86400000, target: "毓" };
+    memory["base:毓"] = legacyMemory;
+    const compatibleMemory = cardMemory(BASE_BY_CHAR["毓"]) === legacyMemory;
+    delete memory["base:毓"];
+    return {
+      rows, idiom: { word: idiom.word, prompt: idiomPrompt, visible: idiomPrompt.replace(/<[^>]+>/g, ""), py: idiom.py },
+      gloss: { word: gloss.word, prompt: glossPrompt, hint: gloss.hint, label: contextLabel(BASE_BY_CHAR["谔"]) },
+      compatibleMemory,
+    };
+  });
+  const contextKinds = Object.fromEntries(["word", "gloss", "boost"].map((kind) => [kind, contextOverrides.rows.filter((row) => row.kind === kind).length]));
+  assert(contextOverrides.rows.length === 56 && contextKinds.word === 13 && contextKinds.gloss === 31 && contextKinds.boost === 12 && contextOverrides.rows.filter((row) => row.boosted).length === 14,
+    "Expected exactly 42 person-name replacements plus 14 cold-word/idiom corrections in the first override batch", { contextKinds });
+  assert(contextOverrides.rows.every((row) => Number.isInteger(row.index) && row.index >= 0 && row.word === row.expectedWord && row.py === row.originalPy && row.key === `base:${row.target}` && row.targetAtIndex === row.target && (row.kind !== "word" || row.ctx === "override") && (row.kind !== "gloss" || (row.ctx === "gloss" && row.hint)) && (!row.boosted || row.common >= 1.2)),
+    "Expected every override to preserve target, pronunciation, memory key, and valid context metadata", contextOverrides.rows.filter((row) => !(Number.isInteger(row.index) && row.index >= 0 && row.word === row.expectedWord && row.py === row.originalPy && row.key === `base:${row.target}` && row.targetAtIndex === row.target)));
+  assert(contextOverrides.idiom.word === "钟灵毓秀" && contextOverrides.idiom.visible.includes("钟灵") && contextOverrides.idiom.visible.includes("秀") && !contextOverrides.idiom.visible.includes("毓") && contextOverrides.idiom.visible.includes(contextOverrides.idiom.py),
+    "Expected four-character idiom context to blank only the target while retaining its original pronunciation", contextOverrides.idiom);
+  assert(contextOverrides.gloss.word === "谔" && contextOverrides.gloss.prompt.includes(contextOverrides.gloss.word) === false && contextOverrides.gloss.hint.includes("直言争辩") && contextOverrides.gloss.label === "释义模式" && contextOverrides.compatibleMemory,
+    "Expected gloss mode to show pronunciation plus plain-language meaning without breaking legacy memory", contextOverrides.gloss);
+
   await page.emulateMedia({ colorScheme: "dark" });
   const darkTheme = await page.evaluate(() => {
     const bubble = getComputedStyle(teachBubble), after = getComputedStyle(teachBubble, "::after"), root = getComputedStyle(document.documentElement);
@@ -332,8 +369,8 @@ let browser;
   assert(coreStrokes.chars.length === 600 && new Set(coreStrokes.chars).size === 600 && coreStrokes.calibration === "尴嚏狩晤飓痿俾跻徵瞰裘娩邃暧煲" && missingCoreFiles.length === 0 && coreBytes >= 1024 * 1024 && coreBytes <= 2 * 1024 * 1024,
   "Expected 600 unique core files including the exact first calibration group within the 1-2 MiB target", { count: coreStrokes.chars.length, calibration: coreStrokes.calibration, missingCoreFiles, coreBytes });
   await page.waitForFunction(async () => { const cache = await caches.open("shizi-v9"), keys = await cache.keys(); return keys.filter((request) => new URL(request.url).pathname.includes("/data/")).length >= 600; }, null, { timeout: 30000 });
-  const coreCache = await page.evaluate(async () => { const cache = await caches.open("shizi-v9"), keys = await cache.keys(); return { core: keys.filter((request) => new URL(request.url).pathname.includes("/data/")).length, shell: !!(await cache.match("core-strokes.js")) }; });
-  assert(coreCache.core === 600 && coreCache.shell, "Expected the service worker to install all available core strokes and its generated list", coreCache);
+  const coreCache = await page.evaluate(async () => { const cache = await caches.open("shizi-v9"), keys = await cache.keys(); return { core: keys.filter((request) => new URL(request.url).pathname.includes("/data/") && !new URL(request.url).pathname.endsWith("context-overrides.js")).length, shell: !!(await cache.match("core-strokes.js")), contexts: !!(await cache.match("data/context-overrides.js")) }; });
+  assert(coreCache.core === 600 && coreCache.shell && coreCache.contexts, "Expected the service worker to install all available core strokes, its generated list, and context overrides", coreCache);
 
   const dailyRitual = await page.evaluate(() => {
     const original = { tuning: cloneObj(tuning), activity: cloneObj(activity), activeMode, focusQueue: focusQueue.slice(), sessionDone: [...sessionDone] };

@@ -224,6 +224,10 @@ final class WebViewController: UIViewController {
               customCardIndexed: false,
               memoryHasAddedChar: false,
               recentInkStored: false,
+              contextAvailable: false,
+              contextOverridesApplied: false,
+              contextMemoryStable: false,
+              contextOfflineResource: false,
               backupParses: false,
               backupHasAppMarker: false,
               backupHasAdded: false,
@@ -387,6 +391,17 @@ final class WebViewController: UIViewController {
             result.fetchStatus = response.status;
             const payload = await response.json();
             result.strokeCount = Array.isArray(payload.strokes) ? payload.strokes.length : 0;
+            const contextResponse = await fetch('data/context-overrides.js');
+            result.dataFlow.contextOfflineResource = contextResponse.ok && (await contextResponse.text()).includes('CONTEXT_OVERRIDES');
+            const contextIndex = BASE_BY_CHAR['毓'];
+            const glossIndex = BASE_BY_CHAR['谔'];
+            const contextCard = CARDS[contextIndex];
+            const glossCard = CARDS[glossIndex];
+            const originalContext = SEED.find(row => (row.target || Array.from(row.ans)[Number(row.ci) || 0]) === '毓');
+            result.dataFlow.contextAvailable = Object.keys(OVERRIDES).length === 56;
+            result.dataFlow.contextOverridesApplied = contextCard.word === '钟灵毓秀' && contextCard.ctx === 'override'
+              && glossCard.word === '谔' && glossCard.ctx === 'gloss' && glossCard.hint.includes('直言争辩');
+            result.dataFlow.contextMemoryStable = cardKey(contextIndex) === 'base:毓' && contextCard.py === originalContext.py;
 
             if (typeof renderBook === 'function' && typeof renderMe === 'function' && typeof renderProfile === 'function' && typeof renderHome === 'function') {
               document.getElementById('tabBook').click();

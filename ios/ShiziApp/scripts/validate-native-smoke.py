@@ -116,12 +116,18 @@ checks = {
     and data_flow.get("wildFailureFallback") is True
     and data_flow.get("wildPhotoMime") in {"image/webp", "image/jpeg"}
     and int(data_flow.get("wildVisionCandidateCount") or 0) >= 0,
+    "handCard": data_flow.get("handCardDetailEntry") is True
+    and data_flow.get("handCardGenerated") is True
+    and data_flow.get("handCardNativeRoutes") is True
+    and data_flow.get("handCardPromptBounded") is True
+    and data_flow.get("handCardLegacyBlocked") is True,
     "backupPayload": data_flow.get("backupParses") is True
     and data_flow.get("backupHasAppMarker") is True
     and data_flow.get("backupHasAdded") is True
     and data_flow.get("backupHasCustom") is True
     and data_flow.get("backupHasMemory") is True
     and data_flow.get("backupHasRecentInk") is True
+    and data_flow.get("backupHasHandCard") is True
     and data_flow.get("backupHasWild") is True
     and data_flow.get("backupHasReminder") is True
     and data_flow.get("backupHasSound") is True
@@ -138,6 +144,7 @@ checks = {
     and data_flow.get("backupRestoreCustom") is True
     and data_flow.get("backupRestoreMemory") is True
     and data_flow.get("backupRestoreRecentInk") is True
+    and data_flow.get("backupRestoreHandCard") is True
     and data_flow.get("backupRestoreWild") is True
     and data_flow.get("backupRestoreFunnel") is True
     and data_flow.get("backupRestorePreservesSessionV2") is True
@@ -147,6 +154,7 @@ checks = {
     "nativeBridge": data_flow.get("nativeBridgeAvailable") is True
     and data_flow.get("shareCardBridgeAvailable") is True
     and data_flow.get("nativeOCRBridgeAvailable") is True,
+    "nativeCardSave": data_flow.get("nativeCardSaveBridgeAvailable") is True,
     "shareCard": data_flow.get("shareCardGenerated") is True
     and data_flow.get("shareCardPrivate") is True,
     "collections": data_flow.get("calendarAvailable") is True

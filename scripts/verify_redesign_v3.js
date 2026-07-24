@@ -252,15 +252,34 @@ let browser;
       const detailLayout = await page.evaluate((dataURL) => {
         const index = CARDS.findIndex((card) => card.target === "水"), m = cardMemory(index);
         m.source = "wild"; m.wildDay = "2026-07-19"; wildState.captures["水"] = { day: m.wildDay, at: 1, dataURL };
+        persistRecentInk(m, [
+          [{ x: .35, y: .27, w: 1.15, v: .25 }, { x: .27, y: .38, w: .9, v: .75 }],
+          [{ x: .51, y: .16, w: 1.2, v: .18 }, { x: .51, y: .62, w: .95, v: .7 }, { x: .44, y: .82, w: .7, v: 1.05 }],
+          [{ x: .43, y: .46, w: 1.05, v: .3 }, { x: .3, y: .62, w: .85, v: .8 }, { x: .17, y: .73, w: .65, v: 1.15 }],
+          [{ x: .58, y: .42, w: 1.05, v: .3 }, { x: .68, y: .58, w: .85, v: .75 }, { x: .83, y: .74, w: .65, v: 1.1 }],
+        ], new Date("2026-07-19T08:00:00Z").getTime());
         let unknown = ""; for (let code = 0x4e00; code <= 0x9fff && !unknown; code += 1) { const char = String.fromCharCode(code); if (BASE_BY_CHAR[char] == null) unknown = char; }
         wildState.wishes[unknown] = { day: "2026-07-20", at: 2, dataURL }; renderBook(); openCharSheet(index);
         const panel = document.querySelector(".charSheet"), line = etymLine;
-        return { visible: getComputedStyle(line).display, oneLine: getComputedStyle(line).whiteSpace, lineFits: line.scrollWidth <= line.clientWidth + 1, panelFits: panel.scrollWidth <= panel.clientWidth + 1, sheetFits: document.documentElement.scrollWidth <= innerWidth + 1, wildVisible: getComputedStyle(charDetailWild).display === "grid", wildStory: charDetailStory.textContent, wishVisible: getComputedStyle(wildWish).display };
+        return { visible: getComputedStyle(line).display, oneLine: getComputedStyle(line).whiteSpace, lineFits: line.scrollWidth <= line.clientWidth + 1, panelFits: panel.scrollWidth <= panel.clientWidth + 1, sheetFits: document.documentElement.scrollWidth <= innerWidth + 1, wildVisible: getComputedStyle(charDetailWild).display === "grid", wildStory: charDetailStory.textContent, wishVisible: getComputedStyle(wildWish).display, handCardVisible: getComputedStyle(charDetailCard).display };
       }, realWildPhoto.dataURL);
-      assert(detailLayout.visible === "block" && detailLayout.oneLine === "nowrap" && detailLayout.lineFits && detailLayout.panelFits && detailLayout.sheetFits && detailLayout.wildVisible && detailLayout.wildStory.includes("7月19日 拾于生活") && detailLayout.wishVisible === "block",
+      assert(detailLayout.visible === "block" && detailLayout.oneLine === "nowrap" && detailLayout.lineFits && detailLayout.panelFits && detailLayout.sheetFits && detailLayout.wildVisible && detailLayout.wildStory.includes("7月19日 拾于生活") && detailLayout.wishVisible === "block" && detailLayout.handCardVisible === "block",
         "Expected origin and photographed-source details plus the unsupported-character wishlist to fit both target viewports and themes", { size, colorScheme, detailLayout });
       await page.screenshot({ path: path.join(generatedDir, `detail-etymology-${colorScheme}-${size.width}x${size.height}.png`), fullPage: true });
       await page.evaluate(() => closeCharSheet());
+
+      const handCardLayout = await page.evaluate(async () => {
+        const index = CARDS.findIndex((card) => card.target === "水"); openHandCard(index); await updateHandCardPreview();
+        const sheet = document.querySelector("#handCardSheet .handCardSheet"), portrait = { width: handCardPreview.width, height: handCardPreview.height, source: handCardPreview.dataset.inkSource, paper: [...handCardPreview.getContext("2d").getImageData(0, 0, 1, 1).data] };
+        setHandCardRatio("square"); await updateHandCardPreview();
+        const square = { width: handCardPreview.width, height: handCardPreview.height, className: handCardPreview.className, pressed: document.querySelector('[data-hand-card-ratio="square"]').getAttribute("aria-pressed") };
+        return { portrait, square, sheetFits: sheet.scrollWidth <= sheet.clientWidth + 1, pageFits: document.documentElement.scrollWidth <= innerWidth + 1, actions: [handCardCancel, handCardSave, handCardShare].every(button => button.getBoundingClientRect().height >= 44), future: document.querySelector(".handCardFuture").textContent };
+      });
+      assert(handCardLayout.portrait.width === 1080 && handCardLayout.portrait.height === 1440 && handCardLayout.portrait.source === "vector" && handCardLayout.portrait.paper.slice(0, 3).join() === "244,239,226"
+        && handCardLayout.square.width === 1080 && handCardLayout.square.height === 1080 && handCardLayout.square.className.includes("square") && handCardLayout.square.pressed === "true" && handCardLayout.sheetFits && handCardLayout.pageFits && handCardLayout.actions && handCardLayout.future.includes("下一阶段"),
+      "Expected fixed-paper 3:4 and 1:1 handwriting-card previews to fit both target viewports and themes", { size, colorScheme, handCardLayout });
+      await page.screenshot({ path: path.join(generatedDir, `hand-card-${colorScheme}-${size.width}x${size.height}.png`), fullPage: true });
+      await page.evaluate(() => closeHandCard());
 
       const captureLayout = await page.evaluate((dataURL) => {
         openAddSheet(); wildOCRRequest = 91; wildDraft = { version: 1, day: today(), at: Date.now(), dataURL, requestId: 91 };

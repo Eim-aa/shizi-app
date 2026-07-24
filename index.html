@@ -542,6 +542,8 @@
   .charDetailMeta h3{ margin:0; font:900 calc(21px * var(--font-scale))/1.35 var(--song); }
   .charDetailPy{ display:block; margin-top:3px; color:var(--muted); font-size:calc(var(--fs-body) * var(--font-scale)); }
   .charDetailStory{ margin-top:10px; color:var(--muted); font-size:calc(var(--fs-body) * var(--font-scale)); line-height:1.7; }
+  .etymLine{ display:none; min-width:0; margin-top:8px; overflow:hidden; color:var(--faint); font:400 calc(var(--fs-note) * var(--font-scale))/1.5 var(--kai); white-space:nowrap; text-overflow:ellipsis; }
+  .etymLine small{ margin-left:5px; color:var(--faint); font:400 calc(var(--fs-caption) * var(--font-scale))/1.5 var(--sans); }
   .charDetailCompare{ margin-top:20px; padding-top:16px; border-top:1px solid var(--line); }
   .charDetailCompareHead{ display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; color:var(--muted); font-size:calc(var(--fs-note) * var(--font-scale)); }
   .charDetailCompareHead button{ min-height:36px; color:var(--accent); font-size:calc(var(--fs-note) * var(--font-scale)); font-weight:700; }
@@ -922,6 +924,7 @@
     <div class="charDetailGlyph" id="charDetailGlyph"></div>
     <div class="charDetailMeta"><h3 id="charDetailWord"></h3><span class="charDetailPy" id="charDetailPy"></span><div class="charDetailStory" id="charDetailStory"></div></div>
   </div>
+  <div class="etymLine" id="etymLine"><span id="etymGloss"></span><small id="etymSource"></small></div>
   <div class="charDetailCompare">
     <div class="charDetailCompareHead"><span>我上次写的</span><button id="charDetailCompareToggle">对范字</button><button class="charDetailOverlayToggle" id="charDetailOverlayToggle">叠</button></div>
     <div class="charDetailCompareBody"><div class="charDetailInk" id="charDetailInk"></div><div class="charDetailStandard" id="charDetailStandard"></div><div class="charDetailEmpty" id="charDetailEmpty"></div></div>
@@ -1712,6 +1715,13 @@ function closeCharSheet(){ $("charSheet").classList.remove("open"); charDetailWr
 const TRANSLITERATED_WORDS=new Set(["黛比","杰克","汤姆","玛丽","约翰","彼得","迈克","露西","安娜","艾米","凯文","大卫","罗伯特"]);
 function suspiciousDictionaryWord(i){ const c=CARDS[i]||{}, word=String(c.word||""); return word===`${c.target}字`||TRANSLITERATED_WORDS.has(word); }
 function collectedDateText(day){ if(!day) return ""; const [year,month,date]=day.split("-").map(Number); return year===new Date().getFullYear()?`${month}月${date}日`:`${year}年${month}月${date}日`; }
+let etymologyData=null, etymologyLoading=null;
+function loadEtymology(){ if(etymologyData) return Promise.resolve(etymologyData); if(etymologyLoading) return etymologyLoading;
+  etymologyLoading=fetch("data/etymology.json").then(response=>response.ok?response.json():[]).then(rows=>{ const map=new Map();
+    if(Array.isArray(rows)) rows.forEach(row=>{ const char=String(row&&row.char||""),gloss=String(row&&row.gloss||""),source=String(row&&row.source||""); if(Array.from(char).length===1&&gloss&&gloss.length<=20&&source) map.set(char,{gloss,source}); });
+    etymologyData=map; return map; }).catch(()=>{ etymologyData=new Map(); return etymologyData; }).finally(()=>{ etymologyLoading=null; }); return etymologyLoading; }
+function renderEtymLine(){ const line=$("etymLine"), card=CARDS[charDetailIndex], item=card&&etymologyData&&etymologyData.get(card.target);
+  line.style.display=item?"block":"none"; $("etymGloss").textContent=item?item.gloss:""; $("etymSource").textContent=item?`——${item.source}`:""; }
 function openCharSheet(i){ if(!Number.isInteger(i)||i<0||i>=CARDS.length) return; charDetailIndex=i; const c=CARDS[i],m=memory[cardKey(i)]||{},recent=m.recentInk&&m.recentInk.dataURL,first=firstSeenDay(i),safeWord=suspiciousDictionaryWord(i)?c.target:(c.word||c.target);
   $("charDetailGlyph").innerHTML=recent?`<img src="${recent}" alt="${esc(c.target)}的手写墨迹">`:esc(c.target);
   $("charDetailWord").textContent=safeWord; $("charDetailPy").textContent=c.py||"";
@@ -1719,7 +1729,7 @@ function openCharSheet(i){ if(!Number.isInteger(i)||i<0||i>=CARDS.length) return
   $("charDetailInk").innerHTML=recent?`<img src="${recent}" alt="我上次写的${esc(c.target)}">`:"";
   $("charDetailEmpty").textContent=recent?"":"还没留下手写，写一遍就有了"; $("charDetailEmpty").style.display=recent?"none":"block";
   $("charDetailStandard").textContent=c.target; $("charDetailStandard").style.display="none"; $("charDetailCompareToggle").textContent="对范字"; $("charDetailCompareToggle").style.display=recent?"":"none"; $("charDetailOverlayToggle").style.display="none"; $("charDetailOverlayToggle").textContent="叠"; $("charDetailStandard").parentElement.classList.remove("overlay");
-  $("charDetailStroke").style.display="none"; $("charDetailStroke").innerHTML=""; charDetailWriter=null; $("charSheet").classList.add("open"); }
+  $("charDetailStroke").style.display="none"; $("charDetailStroke").innerHTML=""; charDetailWriter=null; $("charSheet").classList.add("open"); renderEtymLine(); loadEtymology().then(renderEtymLine); }
 function toggleCharDetailCompare(){ const open=$("charDetailStandard").style.display==="flex"; $("charDetailStandard").style.display=open?"none":"flex"; $("charDetailCompareToggle").textContent=open?"对范字":"收起范字"; $("charDetailOverlayToggle").style.display=open?"none":"block"; if(open) $("charDetailStandard").parentElement.classList.remove("overlay"); }
 function toggleCharDetailOverlay(){ const body=$("charDetailStandard").parentElement, active=body.classList.toggle("overlay"); $("charDetailOverlayToggle").textContent=active?"并排":"叠"; }
 function replayCharDetail(){ if(charDetailIndex<0||!window.HanziWriter) return; const target=CARDS[charDetailIndex].target,el=$("charDetailStroke"); el.style.display="block";

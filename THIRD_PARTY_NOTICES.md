@@ -1,5 +1,40 @@
 # Third-Party Notices
 
+## Shuowen.org data
+
+`data/etymology.json` contains modified and condensed records generated from
+[`shuowenjiezi/shuowen`](https://github.com/shuowenjiezi/shuowen), pinned at
+commit `6553a350763ce4feca2c5d1cc2cad7e594dc2975`.
+
+The source is licensed under Apache License 2.0. The generated records were
+converted to simplified display forms, shortened to at most 20 characters,
+and 50 representative rows were manually edited and checked. A copy of the
+license is included at `sources/LICENSE-APACHE-2.0.txt`.
+
+## OpenCC character mappings
+
+`sources/opencc-st-characters.txt` and `sources/opencc-ts-characters.txt` are
+snapshots of `STCharacters.txt` and `TSCharacters.txt` from
+[`BYVoid/OpenCC`](https://github.com/BYVoid/OpenCC), pinned at commit
+`8a8ef3eb10e563ed013f27628e6a46a5f0ade7d8`. They are used only while
+generating the character-origin data.
+
+OpenCC is licensed under Apache License 2.0. A copy of the license is included
+at `sources/LICENSE-APACHE-2.0.txt`.
+
+## Make Me a Hanzi dictionary metadata
+
+`sources/make-me-a-hanzi-dict.txt` is derived from the `dictionary.txt`
+metadata published by
+[`skishore/makemeahanzi`](https://github.com/skishore/makemeahanzi). Its
+explicit pictophonetic fields and a small set of manually translated
+ideographic hints provide fallback records in `data/etymology.json`.
+
+The upstream dictionary metadata is licensed under GNU LGPL version 3 or, at
+your option, any later version. The generated fallback records have been
+modified and condensed. A copy of the license is included at
+`sources/LICENSE-LGPL-3.0.txt`.
+
 ## ts-fsrs 5.2.0
 
 `fsrs6.min.js` vendors the UMD distribution of

@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 2,
+  "entries": [
+    {"char": "着", "status": "absent", "strategy": "unreviewed-index-alias"},
+    {"char": "同", "status": "present", "source": "《说文解字》", "sourceHeadword": "同", "matchKind": "reviewed-context+reviewed-copy", "gloss": "表示会合，与共同相聚有关"},
+    {"char": "院", "status": "present", "source": "《说文解字》", "sourceHeadword": "院", "matchKind": "exact+reviewed-copy", "gloss": "本指坚固，与土坡有关，完声"},
+    {"char": "发", "status": "absent", "strategy": "ambiguous-opencc"},
+    {"char": "后", "status": "present", "source": "《说文解字》", "sourceHeadword": "後", "matchKind": "reviewed-context", "gloss": "迟也。从彳、幺、夊者，后也"},
+    {"char": "里", "status": "present", "source": "《说文解字》", "sourceHeadword": "裏", "matchKind": "reviewed-context", "gloss": "衣内也。从衣里声"},
+    {"char": "复", "status": "absent", "strategy": "ambiguous-opencc"},
+    {"char": "志", "status": "absent", "strategy": "ambiguous-opencc"},
+    {"char": "几", "status": "present", "source": "《说文解字》", "sourceHeadword": "幾", "matchKind": "reviewed-context+reviewed-copy", "gloss": "本指细微，后来表示多少"},
+    {"char": "极", "status": "present", "source": "《说文解字》", "sourceHeadword": "極", "matchKind": "reviewed-context", "gloss": "栋也。从木亟声"},
+    {"char": "台", "status": "present", "source": "《说文解字》", "sourceHeadword": "臺", "matchKind": "reviewed-context", "gloss": "观，四方而高者。从至从之，从高省"},
+    {"char": "价", "status": "present", "source": "《说文解字》", "sourceHeadword": "價", "matchKind": "reviewed-context", "gloss": "物直也。从人、贾，贾亦声"},
+    {"char": "广", "status": "present", "source": "《说文解字》", "sourceHeadword": "廣", "matchKind": "reviewed-context", "gloss": "殿之大屋也。从广黄声"},
+    {"char": "吃", "status": "present", "source": "《说文解字》", "sourceHeadword": "喫", "matchKind": "reviewed-context", "gloss": "食也。从口契声"},
+    {"char": "愿", "status": "absent", "strategy": "reviewed-context-omission"},
+    {"char": "适", "status": "present", "source": "《说文解字》", "sourceHeadword": "適", "matchKind": "reviewed-context", "gloss": "之也。从辵啻声"},
+    {"char": "范", "status": "present", "source": "《说文解字》", "sourceHeadword": "範", "matchKind": "reviewed-context+reviewed-copy", "gloss": "本指车行前祭路神，后来指规范"},
+    {"char": "胜", "status": "present", "source": "《说文解字》", "sourceHeadword": "勝", "matchKind": "reviewed-context", "gloss": "任也。从力朕声"},
+    {"char": "厂", "status": "absent", "strategy": "reviewed-context-omission"}
+  ]
+}

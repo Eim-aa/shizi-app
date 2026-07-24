@@ -1,7 +1,9 @@
 import AVFoundation
+import ImageIO
 import UIKit
 import UniformTypeIdentifiers
 import UserNotifications
+import Vision
 import WebKit
 
 final class WebViewController: UIViewController {
@@ -228,6 +230,16 @@ final class WebViewController: UIViewController {
               customCardIndexed: false,
               memoryHasAddedChar: false,
               recentInkStored: false,
+              wildPhotoInputProcessed: false,
+              wildVisionRequestCompleted: false,
+              wildOCRRequiresSelection: false,
+              wildCaptureStored: false,
+              wildPhotoBounded: false,
+              wildPhotoViewsDecode: false,
+              wildFailureFallback: false,
+              wildPhotoMime: '',
+              wildVisionCandidateCount: -1,
+              wildSmokeStage: 'not-started',
               backupParses: false,
               backupHasAppMarker: false,
               backupHasAdded: false,
@@ -515,6 +527,70 @@ final class WebViewController: UIViewController {
               result.dataFlow.recentInkStored = !!memoryForSmokeChar && persistRecentInk(memoryForSmokeChar, [[{ x: 0.2, y: 0.2 }, { x: 0.5, y: 0.75 }, { x: 0.8, y: 0.25 }]], Date.now()) && !!memoryForSmokeChar.recentInk;
               saveMemory();
 
+              const wildKnownChar = '拾';
+              result.dataFlow.wildSmokeStage = 'opening-sheet';
+              openAddSheet();
+              await waitFor(() => document.getElementById('addSheet').classList.contains('open'));
+              const originalOCRResult = window.shiziOCRResult;
+              let nativeOCRPayload = null;
+              window.shiziOCRResult = payload => {
+                nativeOCRPayload = payload;
+                return originalOCRResult(payload);
+              };
+              const fixtureResponse = await fetch('icon-192.png');
+              const fixtureBlob = await fixtureResponse.blob();
+              const fixtureFile = new File([fixtureBlob], 'wild-photo-fixture.png', { type: fixtureBlob.type || 'image/png' });
+              result.dataFlow.wildSmokeStage = `handling-photo:${fixtureBlob.type}:${fixtureBlob.size}`;
+              const handledWildPhoto = await handleWildPhoto(fixtureFile);
+              result.dataFlow.wildSmokeStage = `waiting-thumbnail:${handledWildPhoto}`;
+              await waitFor(() => wildDraft && document.getElementById('wildCaptureThumb').complete && document.getElementById('wildCaptureThumb').naturalWidth > 0);
+              const nativeRequestID = wildDraft.requestId;
+              result.dataFlow.wildSmokeStage = `waiting-vision:${nativeRequestID}`;
+              await waitFor(() => nativeOCRPayload && Number(nativeOCRPayload.requestId) === nativeRequestID, 15000);
+              result.dataFlow.wildSmokeStage = 'vision-complete';
+              result.dataFlow.wildPhotoInputProcessed = handledWildPhoto === true
+                && (wildDraft.dataURL.startsWith('data:image/webp;base64,')
+                  || wildDraft.dataURL.startsWith('data:image/jpeg;base64,'))
+                && wildImageBytes(wildDraft.dataURL) > 0
+                && wildImageBytes(wildDraft.dataURL) <= WILD_PHOTO_MAX_BYTES;
+              result.dataFlow.wildVisionRequestCompleted = Number(nativeOCRPayload.requestId) === nativeRequestID
+                && Array.isArray(nativeOCRPayload.candidates);
+              result.dataFlow.wildPhotoMime = wildDraft.dataURL.split(';', 1)[0].slice(5);
+              result.dataFlow.wildVisionCandidateCount = Array.isArray(nativeOCRPayload.candidates)
+                ? nativeOCRPayload.candidates.length : -1;
+              const nativeOCRLeftSelectionEmpty = document.getElementById('addInput').value === ''
+                && document.getElementById('addConfirm').disabled;
+              window.shiziOCRResult = originalOCRResult;
+              window.shiziOCRResult({ requestId: nativeRequestID, candidates: ['拾时拾'] });
+              const wildCandidateButtons = Array.from(document.querySelectorAll('#wildCandidates [data-wild-candidate]'));
+              result.dataFlow.wildOCRRequiresSelection = nativeOCRLeftSelectionEmpty
+                && wildCandidateButtons.map(button => button.textContent).join('') === '拾时'
+                && document.getElementById('addInput').value === '';
+              wildCandidateButtons[0].click();
+              confirmAdd();
+              await waitFor(() => !document.getElementById('addSheet').classList.contains('open'));
+              const wildIndex = BASE_BY_CHAR[wildKnownChar];
+              const wildMemory = memory[cardKey(wildIndex)] || {};
+              result.dataFlow.wildCaptureStored = wildMemory.source === 'wild'
+                && wildMemory.wildDay === today() && !!wildCaptureFor(wildKnownChar);
+              result.dataFlow.wildPhotoBounded = wildImageBytes(wildCaptureFor(wildKnownChar).dataURL) <= WILD_PHOTO_MAX_BYTES
+                && WILD_PHOTO_MAX === 30 && WILD_PHOTO_BUDGET === 420 * 1024;
+              openCharSheet(wildIndex);
+              await waitFor(() => document.getElementById('charDetailWildImage').complete && document.getElementById('charDetailWildImage').naturalWidth > 0);
+              document.getElementById('charDetailWild').click();
+              await waitFor(() => document.getElementById('wildPhotoSheet').classList.contains('open')
+                && document.getElementById('wildPhotoFull').complete && document.getElementById('wildPhotoFull').naturalWidth > 0);
+              result.dataFlow.wildPhotoViewsDecode = document.getElementById('charDetailWildImage').naturalWidth > 0
+                && document.getElementById('wildPhotoFull').naturalWidth > 0;
+              closeWildPhoto(); closeCharSheet();
+              openAddSheet();
+              const failedWildPhoto = await handleWildPhoto(new File(['not-an-image'], 'broken.png', { type: 'image/png' }));
+              result.dataFlow.wildFailureFallback = failedWildPhoto === false && wildDraft === null
+                && document.getElementById('wildCaptureNote').textContent.includes('手动输入')
+                && !document.getElementById('addInput').disabled;
+              closeAddSheet();
+              result.dataFlow.wildSmokeStage = 'complete';
+
               localStorage.setItem(SESSION_KEY, JSON.stringify({ version: 2, smoke: true }));
               const backup = JSON.parse(backupPayload({ funnelExportAt: Date.now() }));
               const backupData = backup && backup.data ? backup.data : {};
@@ -524,6 +600,7 @@ final class WebViewController: UIViewController {
               result.dataFlow.backupHasCustom = BASE_BY_CHAR[smokeChar] != null || (Object.prototype.hasOwnProperty.call(backupData, CUSTOM_KEY) && String(backupData[CUSTOM_KEY]).includes(smokeChar));
               result.dataFlow.backupHasMemory = Object.prototype.hasOwnProperty.call(backupData, MEMORY_KEY) && String(backupData[MEMORY_KEY]).includes(smokeChar);
               result.dataFlow.backupHasRecentInk = Object.prototype.hasOwnProperty.call(backupData, MEMORY_KEY) && String(backupData[MEMORY_KEY]).includes('recentInk');
+              result.dataFlow.backupHasWild = Object.prototype.hasOwnProperty.call(backupData, WILD_KEY) && String(backupData[WILD_KEY]).includes(wildKnownChar);
               result.dataFlow.backupHasReminder = Object.prototype.hasOwnProperty.call(backupData, REMINDER_KEY);
               result.dataFlow.backupHasSound = Object.prototype.hasOwnProperty.call(backupData, SOUND_KEY);
               const backupFunnel = Object.prototype.hasOwnProperty.call(backupData, FUNNEL_KEY) ? JSON.parse(backupData[FUNNEL_KEY]) : null;
@@ -538,6 +615,7 @@ final class WebViewController: UIViewController {
                 localStorage.setItem(ADDED_KEY, JSON.stringify([]));
                 localStorage.setItem(CUSTOM_KEY, JSON.stringify([]));
                 localStorage.setItem(MEMORY_KEY, JSON.stringify({}));
+                localStorage.setItem(WILD_KEY, JSON.stringify({ version: 1, captures: {}, wishes: {} }));
                 localStorage.setItem(SESSION_KEY, JSON.stringify({ current: true }));
                 const smokeValueBeforeRestore = localStorage.getItem('shizi.nativeSmoke.v1');
                 const restoreResult = restoreBackupPayload(JSON.stringify(backup), { skipConfirm: true, reload: false });
@@ -549,6 +627,7 @@ final class WebViewController: UIViewController {
                 result.dataFlow.backupRestoreCustom = BASE_BY_CHAR[smokeChar] != null || (Array.isArray(restoredCustom) && restoredCustom.includes(smokeChar));
                 result.dataFlow.backupRestoreMemory = String(localStorage.getItem(MEMORY_KEY) || '').includes(smokeChar);
                 result.dataFlow.backupRestoreRecentInk = String(localStorage.getItem(MEMORY_KEY) || '').includes('recentInk');
+                result.dataFlow.backupRestoreWild = String(localStorage.getItem(WILD_KEY) || '').includes(wildKnownChar);
                 const restoredFunnel = JSON.parse(localStorage.getItem(FUNNEL_KEY) || '{}');
                 result.dataFlow.backupRestoreFunnel = restoredFunnel.version === 1 && restoredFunnel.events.filter(row => row.name === 'backup_exported').length === 1;
                 result.dataFlow.backupRestorePreservesSessionV2 = JSON.parse(localStorage.getItem(SESSION_KEY) || '{}').version === 2;
@@ -562,6 +641,7 @@ final class WebViewController: UIViewController {
                 }
               }
               result.dataFlow.nativeBridgeAvailable = !!(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.shiziNative);
+              result.dataFlow.nativeOCRBridgeAvailable = result.dataFlow.nativeBridgeAvailable && typeof handleWildPhoto === 'function' && typeof window.shiziOCRResult === 'function';
               result.dataFlow.nativeImportAvailable = result.dataFlow.nativeBridgeAvailable && typeof requestBackupImport === 'function';
               result.dataFlow.shareCardBridgeAvailable = result.dataFlow.nativeBridgeAvailable && typeof sharePracticeCard === 'function';
               result.dataFlow.nativeConfirmAvailable = window.confirm('\(Self.nativeSmokeConfirmMessage)') === true;
@@ -1277,8 +1357,79 @@ extension WebViewController: WKScriptMessageHandler {
             requestReminderPermission()
         case "queryReminderStatus":
             sendReminderStatus()
+        case "recognizeChars":
+            let dataURL = body["dataURL"] as? String ?? ""
+            let requestID = (body["requestId"] as? NSNumber)?.intValue ?? 0
+            recognizeChars(dataURL: dataURL, requestID: requestID)
         default:
             break
+        }
+    }
+}
+
+// MARK: - 拍字入盒：Vision 只返回候选，最终选字始终由 Web 端用户确认
+extension WebViewController {
+    private static func visionOrientation(for image: UIImage) -> CGImagePropertyOrientation {
+        switch image.imageOrientation {
+        case .up: .up
+        case .down: .down
+        case .left: .left
+        case .right: .right
+        case .upMirrored: .upMirrored
+        case .downMirrored: .downMirrored
+        case .leftMirrored: .leftMirrored
+        case .rightMirrored: .rightMirrored
+        @unknown default: .up
+        }
+    }
+
+    private func recognizeChars(dataURL: String, requestID: Int) {
+        guard
+            dataURL.hasPrefix("data:image/"),
+            let comma = dataURL.firstIndex(of: ","),
+            let data = Data(base64Encoded: String(dataURL[dataURL.index(after: comma)...])),
+            data.count <= 64 * 1024,
+            let image = UIImage(data: data),
+            let cgImage = image.cgImage
+        else {
+            sendRecognizedChars([], requestID: requestID)
+            return
+        }
+
+        let orientation = Self.visionOrientation(for: image)
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            let request = VNRecognizeTextRequest()
+            request.recognitionLevel = .accurate
+            request.recognitionLanguages = ["zh-Hans"]
+            request.usesLanguageCorrection = true
+
+            do {
+                try VNImageRequestHandler(cgImage: cgImage, orientation: orientation, options: [:]).perform([request])
+                let candidates = (request.results ?? []).flatMap { observation in
+                    observation.topCandidates(3).map(\.string)
+                }
+                self?.sendRecognizedChars(candidates, requestID: requestID)
+            } catch {
+                self?.sendRecognizedChars([], requestID: requestID)
+            }
+        }
+    }
+
+    private func sendRecognizedChars(_ candidates: [String], requestID: Int) {
+        let payload: [String: Any] = [
+            "requestId": requestID,
+            "candidates": candidates,
+        ]
+        guard
+            let data = try? JSONSerialization.data(withJSONObject: payload),
+            let literal = String(data: data, encoding: .utf8)
+        else {
+            return
+        }
+        DispatchQueue.main.async { [weak self] in
+            self?.webView.evaluateJavaScript(
+                "if (typeof window.shiziOCRResult === 'function') window.shiziOCRResult(\(literal)); void 0;"
+            )
         }
     }
 }

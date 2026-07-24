@@ -215,6 +215,17 @@ let browser;
   await page.screenshot({ path: path.join(generatedDir, "settings-light-375x667.png"), fullPage: true });
 
   const screens = ["home", "book", "me", "profile", "settings"];
+  const realWildPhoto = await page.evaluate(async () => {
+    const response = await fetch("icon-192.png");
+    const blob = await response.blob();
+    const dataURL = await cropWildPhoto(new File([blob], "wild-photo-fixture.png", { type: blob.type || "image/png" }));
+    const image = new Image(); image.src = dataURL; await image.decode();
+    return { dataURL, width: image.naturalWidth, height: image.naturalHeight, bytes: wildImageBytes(dataURL) };
+  });
+  assert(realWildPhoto.dataURL.startsWith("data:image/webp;base64,") && realWildPhoto.width > 0
+    && realWildPhoto.width === realWildPhoto.height && realWildPhoto.bytes <= 64 * 1024,
+  "Expected the visual fixtures to use a real decoded and bounded photographed-character image", realWildPhoto);
+
   for (const size of [{ width: 375, height: 667 }, { width: 375, height: 812 }]) {
     await page.setViewportSize(size);
     for (const colorScheme of ["light", "dark"]) {
@@ -238,15 +249,29 @@ let browser;
     await page.setViewportSize(size);
     for (const colorScheme of ["light", "dark"]) {
       await page.emulateMedia({ colorScheme });
-      const detailLayout = await page.evaluate(() => {
-        renderBook(); openCharSheet(CARDS.findIndex((card) => card.target === "水"));
+      const detailLayout = await page.evaluate((dataURL) => {
+        const index = CARDS.findIndex((card) => card.target === "水"), m = cardMemory(index);
+        m.source = "wild"; m.wildDay = "2026-07-19"; wildState.captures["水"] = { day: m.wildDay, at: 1, dataURL };
+        let unknown = ""; for (let code = 0x4e00; code <= 0x9fff && !unknown; code += 1) { const char = String.fromCharCode(code); if (BASE_BY_CHAR[char] == null) unknown = char; }
+        wildState.wishes[unknown] = { day: "2026-07-20", at: 2, dataURL }; renderBook(); openCharSheet(index);
         const panel = document.querySelector(".charSheet"), line = etymLine;
-        return { visible: getComputedStyle(line).display, oneLine: getComputedStyle(line).whiteSpace, lineFits: line.scrollWidth <= line.clientWidth + 1, panelFits: panel.scrollWidth <= panel.clientWidth + 1, sheetFits: document.documentElement.scrollWidth <= innerWidth + 1 };
-      });
-      assert(detailLayout.visible === "block" && detailLayout.oneLine === "nowrap" && detailLayout.lineFits && detailLayout.panelFits && detailLayout.sheetFits,
-        "Expected the source line to stay light, single-row and overflow-free in both target viewports and themes", { size, colorScheme, detailLayout });
+        return { visible: getComputedStyle(line).display, oneLine: getComputedStyle(line).whiteSpace, lineFits: line.scrollWidth <= line.clientWidth + 1, panelFits: panel.scrollWidth <= panel.clientWidth + 1, sheetFits: document.documentElement.scrollWidth <= innerWidth + 1, wildVisible: getComputedStyle(charDetailWild).display === "grid", wildStory: charDetailStory.textContent, wishVisible: getComputedStyle(wildWish).display };
+      }, realWildPhoto.dataURL);
+      assert(detailLayout.visible === "block" && detailLayout.oneLine === "nowrap" && detailLayout.lineFits && detailLayout.panelFits && detailLayout.sheetFits && detailLayout.wildVisible && detailLayout.wildStory.includes("7月19日 拾于生活") && detailLayout.wishVisible === "block",
+        "Expected origin and photographed-source details plus the unsupported-character wishlist to fit both target viewports and themes", { size, colorScheme, detailLayout });
       await page.screenshot({ path: path.join(generatedDir, `detail-etymology-${colorScheme}-${size.width}x${size.height}.png`), fullPage: true });
       await page.evaluate(() => closeCharSheet());
+
+      const captureLayout = await page.evaluate((dataURL) => {
+        openAddSheet(); wildOCRRequest = 91; wildDraft = { version: 1, day: today(), at: Date.now(), dataURL, requestId: 91 };
+        wildCapture.classList.add("hasPhoto"); wildCaptureThumb.src = wildDraft.dataURL; wildCaptureThumb.style.display = "block"; window.shiziOCRResult({ requestId: 91, candidates: ["水永冰"] });
+        const sheet = document.querySelector("#addSheet .sheet"), candidates = [...wildCandidates.querySelectorAll("button")];
+        return { candidates: candidates.length, inputEmpty: addInput.value === "", confirmDisabled: addConfirm.disabled, sheetFits: sheet.scrollWidth <= sheet.clientWidth + 1, pageFits: document.documentElement.scrollWidth <= innerWidth + 1, photoNote: wildCaptureNote.textContent };
+      }, realWildPhoto.dataURL);
+      assert(captureLayout.candidates === 3 && captureLayout.inputEmpty && captureLayout.confirmDisabled && captureLayout.sheetFits && captureLayout.pageFits && captureLayout.photoNote.includes("不会自动收字"),
+        "Expected the photo candidate picker to remain explicit and overflow-free in both target viewports and themes", { size, colorScheme, captureLayout });
+      await page.screenshot({ path: path.join(generatedDir, `capture-${colorScheme}-${size.width}x${size.height}.png`), fullPage: true });
+      await page.evaluate(() => closeAddSheet());
     }
   }
 

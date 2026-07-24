@@ -121,6 +121,10 @@ checks = {
     and data_flow.get("handCardNativeRoutes") is True
     and data_flow.get("handCardPromptBounded") is True
     and data_flow.get("handCardLegacyBlocked") is True,
+    "library": data_flow.get("libraryAvailable") is True
+    and data_flow.get("libraryReachable") is True
+    and data_flow.get("libraryUI") is True
+    and data_flow.get("libraryCalibrationLifecycle") is True,
     "backupPayload": data_flow.get("backupParses") is True
     and data_flow.get("backupHasAppMarker") is True
     and data_flow.get("backupHasAdded") is True
@@ -131,6 +135,7 @@ checks = {
     and data_flow.get("backupHasWild") is True
     and data_flow.get("backupHasReminder") is True
     and data_flow.get("backupHasSound") is True
+    and data_flow.get("backupHasLibrary") is True
     and data_flow.get("backupHasFunnel") is True
     and data_flow.get("backupHasSessionV2") is True
     and data_flow.get("backupHasFSRSLog") is True
@@ -146,6 +151,7 @@ checks = {
     and data_flow.get("backupRestoreRecentInk") is True
     and data_flow.get("backupRestoreHandCard") is True
     and data_flow.get("backupRestoreWild") is True
+    and data_flow.get("backupRestoreLibrary") is True
     and data_flow.get("backupRestoreFunnel") is True
     and data_flow.get("backupRestorePreservesSessionV2") is True
     and data_flow.get("backupRestorePreservesSmokeKey") is True

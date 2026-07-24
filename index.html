@@ -319,7 +319,19 @@
   .bookHead{ display:flex; justify-content:space-between; align-items:baseline; }
   .bookHead h1{ margin:0; font:900 calc(28px * var(--font-scale))/1 var(--song); letter-spacing:var(--ls-label); }
   .bookHead .cnt{ font-size:calc(var(--fs-body) * var(--font-scale)); color:var(--muted); }
-  .bookCurator{ width:100%; margin-top:16px; min-height:54px; padding:10px 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line); color:var(--ink); text-align:left; font:400 calc(var(--fs-emph) * var(--font-scale))/1.75 var(--kai); }
+  .libCard{ width:100%; margin-top:14px; display:block; padding:13px 14px 12px; background:var(--card); border:1px solid var(--line); border-radius:8px; text-align:left; }
+  .libCardTop{ display:flex; justify-content:space-between; align-items:baseline; gap:10px; }
+  .libCardTop b{ font-size:calc(var(--fs-emph) * var(--font-scale)); }
+  .libCardTop .libGo{ flex:none; color:var(--muted); font-size:calc(var(--fs-note) * var(--font-scale)); font-weight:600; }
+  .libMeta{ margin-top:7px; color:var(--faint); font-size:calc(var(--fs-note) * var(--font-scale)); font-variant-numeric:tabular-nums; }
+  .libList{ display:grid; gap:7px; max-height:52vh; overflow-y:auto; }
+  .libRow{ width:100%; display:block; padding:12px 13px; background:var(--card); border:1px solid var(--line); border-radius:8px; text-align:left; }
+  .libRow.active{ border-color:var(--ink); background:var(--shade); }
+  .libRowTop{ display:flex; justify-content:space-between; align-items:baseline; gap:10px; }
+  .libRow b{ font-size:calc(var(--fs-body) * var(--font-scale)); }
+  .libRow .libCount{ flex:none; color:var(--muted); font-size:calc(var(--fs-note) * var(--font-scale)); font-variant-numeric:tabular-nums; }
+  .libRow small{ display:block; margin-top:2px; color:var(--muted); font-size:calc(var(--fs-note) * var(--font-scale)); line-height:1.5; }
+  .bookCurator{ width:100%; margin-top:14px; min-height:54px; padding:10px 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line); color:var(--ink); text-align:left; font:400 calc(var(--fs-emph) * var(--font-scale))/1.75 var(--kai); }
   .bookCurator span{ color:var(--accent); }
   .bookSearch{ display:block; margin-top:16px; }
   .bookSearch input{ width:100%; min-height:46px; padding:0 14px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--ink); font:400 calc(var(--fs-body) * var(--font-scale))/1 var(--sans); outline:none; }
@@ -821,6 +833,10 @@
   <!-- 字库 -->
   <div class="book" id="studybook" style="display:none" data-screen-label="字库">
     <div class="bookHead"><h1>字库</h1><div class="cnt" id="boxCount"></div></div>
+    <button class="libCard" id="libCard">
+      <span class="libCardTop"><b id="libName"></b><span class="libGo">换库 ›</span></span>
+      <span class="libMeta" id="libMeta"></span>
+    </button>
     <button class="bookCurator" id="bookCurator"></button>
     <div class="bookSearch"><input id="bookSearchInput" type="search" autocomplete="off" placeholder="找一个字，或把忘的字收进来" aria-label="找字或收字"><div class="bookSearchResult" id="bookSearchResult" aria-live="polite"></div></div>
     <div class="memoryWall" id="memoryWall"></div>
@@ -855,11 +871,7 @@
     <div class="collectionHead"><button class="xbtn collectionBack" id="closeSettings" aria-label="返回">‹</button><h2>设置</h2><span></span></div>
     <div class="meLabel">练习</div>
     <div class="meList">
-      <div class="mePref"><div class="plbl">选字偏好</div><div class="prefBtns" id="prefBox">
-        <button data-pref="balanced">常用但老忘</button>
-        <button data-pref="practical">偏实用</button>
-        <button data-pref="challenge">偏挑战</button>
-      </div></div>
+      <button class="meRow" id="settingsLibRow"><span class="meRowMain">在学的字库<small id="settingsLibName"></small></span><span>›</span></button>
       <button class="meRow" id="soundRow" aria-pressed="true"><span class="meRowMain">纸墨声音<small>只在盖章与描红落笔时响</small></span><span class="backupBadge" id="soundState">开</span></button>
       <div class="mePref scenePref" id="soundscapeRow"><div class="plbl"><span>书房声景</span><small>只在习字时轻响</small></div><div class="prefBtns" id="soundscapeBox" role="group" aria-label="书房声景">
         <button data-scene="off" aria-pressed="true">关</button>
@@ -951,6 +963,12 @@
   <div class="row"><button class="ghostAct" id="addCancel">取消</button><button class="primaryAct" id="addConfirm" disabled>收进字库</button></div>
 </div></div>
 
+<div class="sheetMask" id="libSheet" role="dialog" aria-modal="true" aria-labelledby="libSheetTitle"><div class="sheet">
+  <h3 id="libSheetTitle">在学的字库</h3>
+  <p class="sheetHint">换库不丢任何东西——拾过的字都在，只换接下来拾什么。复习照常跨库进行。</p>
+  <div class="libList" id="libList"></div>
+</div></div>
+
 <div class="sheetMask" id="roundBudgetSheet"><div class="sheet">
   <h3>今天先到这也很好</h3>
   <p class="sheetHint" id="roundBudgetCopy">这一组已经练了一会儿，没写稳的字可以明天接着拾。</p>
@@ -1020,7 +1038,7 @@ SEED.forEach(w=>{ const chars=Array.from(w.ans), pys=w.py.split(/\s+/);
 const DECK_KEY="shizi.deck.v8105.context1", OPEN_KEY="shizi.opens.v1", MEMORY_KEY="shizi.memory.v1", QUALITY_KEY="shizi.quality.v1", PREF_KEY="shizi.pref.v1", TUNING_KEY="shizi.tuning.v1",
   ACTIVITY_KEY="shizi.activity.v1", SESSION_KEY="shizi.session.v1", BACKUP_META_KEY="shizi.backupMeta.v1", REMINDER_KEY="shizi.reminder.v1", SAFETY_KEY="shizi.safety.v1",
   FSRS_LOG_KEY="shizi.fsrsReviewLog.v1", TRACE_TUTORIAL_KEY="shizi.traceTutorial.v1", FONT_SCALE_KEY="shizi.fontScale.v1", FUNNEL_KEY="shizi.funnel.v1", SOUND_KEY="shizi.sound.v1",
-  TOPIC_KEY="shizi.topic.v1", CUSTOM_KEY="shizi.custom.v1", ADDED_KEY="shizi.added.v1", WILD_KEY="shizi.wild.v1", HAND_CARD_KEY="shizi.handCard.v1";
+  TOPIC_KEY="shizi.topic.v1", CUSTOM_KEY="shizi.custom.v1", ADDED_KEY="shizi.added.v1", WILD_KEY="shizi.wild.v1", HAND_CARD_KEY="shizi.handCard.v1", LIB_KEY="shizi.library.v1";
 function load(k,d){ try{ return JSON.parse(localStorage.getItem(k)) ?? d; }catch(e){ return d; } }
 function save(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); return true; }catch(e){ return false; } }
 function removeStored(k){ try{ localStorage.removeItem(k); }catch(e){} }
@@ -1039,6 +1057,20 @@ save(FSRS_LOG_KEY,fsrsReviewLog); save(TRACE_TUTORIAL_KEY,traceTutorialShown);
 let quality = bootLoad(QUALITY_KEY, {}, v=>objectValuesAre(v,plainObject));
 let preference = bootLoad(PREF_KEY, "balanced", v=>["balanced","practical","challenge"].includes(v));
 let tuning = bootLoad(TUNING_KEY, {calibrated:false, offset:0, contextStrict:0, rounds:[]}, v=>plainObject(v)&&(!("rounds" in v)||Array.isArray(v.rounds)));
+const LIBRARIES=[
+  {id:"core3500",name:"常用三千五",desc:"通用规范一级字，日常读写九成五在这里",test:c=>c.norm==="一级"},
+  {id:"adv3000",name:"进阶三千",desc:"规范二级字，报刊与书面语的进阶层",test:c=>c.norm==="二级"},
+  {id:"rare",name:"生僻字",desc:"规范三级字，人名地名与古籍用字，难",test:c=>c.norm==="三级"},
+  {id:"primary",name:"小学",desc:"小学学段要求会写的字",test:c=>c.level==="小学"},
+  {id:"junior",name:"初中",desc:"初中学段的字",test:c=>c.level==="初中"},
+  {id:"senior",name:"高中",desc:"高中学段的字",test:c=>c.level==="高中"}
+];
+function defaultLibraryId(){ return preference==="challenge"?"adv3000":"core3500"; }
+function normalizeLibrary(raw){ const id=plainObject(raw)?raw.id:raw,valid=LIBRARIES.some(lib=>lib.id===id),userSelected=plainObject(raw)?raw.userSelected===true:(typeof raw==="string"&&valid); return {id:valid?id:defaultLibraryId(),userSelected}; }
+let libraryState=bootNormalize(LIB_KEY,bootLoad(LIB_KEY,null,v=>v===null||typeof v==="string"||plainObject(v)),null,normalizeLibrary); save(LIB_KEY,libraryState);
+function currentLibrary(){ return LIBRARIES.find(lib=>lib.id===libraryState.id)||LIBRARIES[0]; }
+function setLibrary(id){ libraryState=normalizeLibrary({id,userSelected:true}); save(LIB_KEY,libraryState); return currentLibrary(); }
+function syncCalibrationLibrary(){ if(libraryState.userSelected) return false; libraryState={id:defaultLibraryId(),userSelected:false}; save(LIB_KEY,libraryState); return true; }
 let fontScaleLarge = bootLoad(FONT_SCALE_KEY,false,v=>typeof v==="boolean")===true;
 bootLoad(TOPIC_KEY,"",v=>typeof v==="string");
 bootLoad(SAFETY_KEY,null,v=>v===null||plainObject(v));
@@ -1423,14 +1455,8 @@ function mottoSource(entry){ const work=entry.source?`《${entry.source}》`:"";
 function setDailyMotto(node,entry){ if(!node) return; const row=typeof entry==="string"?{text:entry,author:"",source:""}:entry, text=String(row.text||""), split=text.search(/[，。；！？]/), parts=split>=0?[text.slice(0,split+1),text.slice(split+1)]:[text];
   node.innerHTML=parts.filter(Boolean).map(part=>`<span class="mLine">${esc(part)}</span>`).join("")+(mottoSource(row)?`<small class="mSrc">${esc(mottoSource(row))}</small>`:""); node.classList.toggle("compactMotto",Array.from(text).length>9); }
 function applyDailyMotto(key=today()){ const entry=dailyMotto(key); setDailyMotto($("welcomeMotto"),entry); setDailyMotto($("homeMotto"),entry); return entry.text; }
-function strictNewEligible(i){ if(CARDS[i].custom) return true; if(cardLevel(i)==="小学") return false;
-  const norm=normLevel(i), d=cardDifficulty(i), common=Number(CARDS[i].common)||0, strict=Number(tuning.contextStrict)||0;
-  if(!contextUsable(i)) return false;
-  if(strict && common < 2.25 + strict * 0.25) return false;
-  if(norm==="一级") return d>=35;
-  if(norm==="二级") return d>=50 && common>=1.4;
-  if(norm==="三级") return (preference==="challenge" || tuning.offset>=12) && d>=72 && common>=2.2 + strict * 0.25;
-  return true; }
+// 选库是新字范围的唯一闸门。旧语境严格度和 fallback 只影响排序/提示，不再让库内字永远不可达。
+function strictNewEligible(i){ const c=CARDS[i]; return !!(c.custom||currentLibrary().test(c)); }
 function qualityWeight(i){ const c=CARDS[i], q=qualityFor(i), p=prefSettings(); let score=(Number(c.common)||0)*p.common + (LEVEL_RANK[cardLevel(i)]||0)*p.challenge;
   const norm=normLevel(i), ctx=contextSource(i), strict=Number(tuning.contextStrict)||0;
   if(norm==="二级") score+=preference==="practical"?0.8:0.5;
@@ -1454,8 +1480,9 @@ function reviewBudgetPool(respectSession=true){ const reserved=new Set(dailyActi
 function reviewTodayCount(){ return Math.min(reviewBudgetRemaining(),reviewBudgetPool(false).length); }
 function reserveReviewTargets(indexes){ const row=dailyActivity(); (indexes||[]).forEach(i=>{ const key=cardKey(i); if(!row.reviewTargetKeys.includes(key) && row.reviewTargetKeys.length<DAILY_REVIEW_BUDGET) row.reviewTargetKeys.push(key); }); saveActivity(); }
 function newPool(respectSession=true){ return allIndexes().filter(i=>baseAvailable(i,respectSession) && qualityAvailable(i) && !hasMemory(i) && status[i]!=="indeck" && !CARDS[i].custom && strictNewEligible(i)); }
+function calibrationPool(respectSession=true){ return allIndexes().filter(i=>baseAvailable(i,respectSession) && qualityAvailable(i) && !hasMemory(i) && status[i]!=="indeck" && !CARDS[i].custom); }
 function focusPool(respectSession=true){ return focusQueue.filter(i=>baseAvailable(i,respectSession) && !qualityBlocked(i)); }
-function availablePool(){ if(activeMode==="review") return reviewBudgetPool(true); if(activeMode==="focus"||activeMode==="makeup") return focusPool(true); return newPool(true); }
+function availablePool(){ if(activeMode==="review") return reviewBudgetPool(true); if(activeMode==="focus"||activeMode==="makeup") return focusPool(true); if(activeMode==="calibrate") return calibrationPool(true); return newPool(true); }
 function deckCount(){ return Object.values(status).filter(s=>s==="indeck").length; }
 function knownCount(){ return allIndexes().filter(i=>{ const m=memory[cardKey(i)]; return m && m.streak>=2 && status[i]!=="indeck"; }).length; }
 function clamp(n,min,max){ return Math.max(min, Math.min(max, n)); }
@@ -1556,7 +1583,7 @@ function maybeFinishCalibration(){ if(activeMode!=="calibrate" || tuning.calibra
   else { tuning.offset=2; preference="balanced"; why="刚才的难度大致合适，就先按这个节奏来，之后会按你实际写的情况再微调。"; }
   tuning.calibrated=true; tuning.calibration={date:today(), counts, consistentFast, sampleSize:stats.length, score:Math.round(score*100)/100, offset:tuning.offset, preference};
   recordFunnelOnce("calib_completed");
-  activeMode="new"; saveTuning(); save(PREF_KEY,preference);
+  activeMode="new"; syncCalibrationLibrary(); saveTuning(); save(PREF_KEY,preference);
   return why;
 }
 function showRoundTuning(){ return activeMode==="new" || activeMode==="calibrate"; }
@@ -1651,7 +1678,6 @@ function recordOutcome(outcome,options={}){ const idx=currentCardIndex(), c=CARD
 }
 function prefLabel(){ return ({balanced:"常用但老忘", practical:"偏实用", challenge:"偏挑战"})[preference] || "常用但老忘"; }
 function needsCalibration(){ return !tuning.calibrated && memoryCount()===0; }
-function applyPrefUI(){ document.querySelectorAll("#prefBox button[data-pref]").forEach(btn=>btn.classList.toggle("active", btn.dataset.pref===preference)); }
 function timeWord(){ const h=new Date().getHours(); if(h<5) return "夜"; if(h<11) return "晨"; if(h<14) return "午"; if(h<19) return "暮"; return "夜"; }
 function numCn(n){ const d=["零","一","二","三","四","五","六","七","八","九"], value=Math.max(0,Math.floor(Number(n)||0)); if(value<10) return d[value]; if(value<20) return "十"+(value%10?d[value%10]:""); if(value<100) return d[Math.floor(value/10)]+"十"+(value%10?d[value%10]:""); if(value<1000) return d[Math.floor(value/100)]+"百"+(value%100?(value%100<10?"零":"")+numCn(value%100):""); return String(value); }
 function dateCn(){ const now=new Date(); return numCn(now.getMonth()+1)+"月"+numCn(now.getDate())+"日"; }
@@ -1716,7 +1742,7 @@ function renderMe(){ displayView("me"); calendarMonthKey=calendarMonthKey||today
   const indexes=profileIndexes(), weak=indexes.filter(i=>hardCount(i)>0).sort((a,b)=>hardCount(b)-hardCount(a)||((memory[cardKey(b)]||{}).last||0)-((memory[cardKey(a)]||{}).last||0)).slice(0,3);
   $("meWeakChars").innerHTML=weak.map(i=>`<span data-char-idx="${i}">${esc(CARDS[i].target)}</span>`).join(""); $("meWeakChars").style.display=weak.length?"flex":"none"; $("meAdvice").textContent=weak.length?"这几个，写过还总忘":meAdviceText(indexes);
   const annualReady=new Date().getMonth()===11; $("annualReportLink").classList.toggle("ready",annualReady); $("annualFootText").textContent=annualReady?`${new Date().getFullYear()} 年拾字报告已可开卷`:`${new Date().getFullYear()} 年拾字报告 · 年末开卷`; renderBackupUI(); updateBookBadge(); renderMeMonthCard(); }
-function renderSettings(focusData=false){ displayView("settings"); applyPrefUI(); renderSoundUI(); renderHandCardPref(); renderReminderUI(); renderBackupUI(); $("devTools").style.display=DEV_TOOLS?"block":"none"; if(!DEV_TOOLS) $("dataBox").style.display="none";
+function renderSettings(focusData=false){ displayView("settings"); $("settingsLibName").textContent=currentLibrary().name; renderSoundUI(); renderHandCardPref(); renderReminderUI(); renderBackupUI(); $("devTools").style.display=DEV_TOOLS?"block":"none"; if(!DEV_TOOLS) $("dataBox").style.display="none";
   if(focusData) requestAnimationFrame(()=>$("settingsDataLabel").scrollIntoView({block:"start",behavior:motionReduced()?"auto":"smooth"})); }
 
 // ---- 印历与补帖：留白不惩罚，最近 7 天可用一组真实书写补帖 ----
@@ -1825,9 +1851,18 @@ function bookCuratorData(seen){ const due=seen.filter(reviewDue).sort(compareRev
   if(discovery) return {kind:"discovery",indexes:discovery.items,text:`${discovery.label}的字，你已经收了${numCn(discovery.count)}个`,suffix:"›"};
   return {kind:"empty",indexes:[],text:"第一枚章，会在这里慢慢显出墨色",suffix:""}; }
 function openBook(){ renderBook(); }
+function libraryCounts(lib){ const seenTargets=new Set(),cutoff=Date.now()-30*86400000; let total=0,got=0,deep=0,mid=0,faint=0,recent=0;
+  for(let i=0;i<BASE_N;i++){ const c=CARDS[i]; if(seenTargets.has(c.target)||!lib.test(c)) continue; seenTargets.add(c.target); total++; const m=memory[cardKey(i)];
+    if(m&&m.seen){ got++; const level=memoryInkLevel(i); if(level<=2) deep++; else if(level===3) mid++; else faint++; if(Number(m.firstSeenAt)>=cutoff) recent++; } }
+  return {total,got,deep,mid,faint,recent}; }
+function renderLibCard(){ const lib=currentLibrary(),counts=libraryCounts(lib); $("libName").textContent=lib.name; $("libMeta").textContent=`已拾 ${counts.got} / ${counts.total}`; }
+function openLibSheet(){ const active=currentLibrary().id; $("libList").innerHTML=LIBRARIES.map(lib=>{ const counts=libraryCounts(lib);
+    return `<button class="libRow ${lib.id===active?"active":""}" data-lib="${lib.id}"><span class="libRowTop"><b>${esc(lib.name)}</b><span class="libCount">已拾 ${counts.got} / ${counts.total}</span></span><small>${esc(lib.desc)}</small></button>`; }).join(""); $("libSheet").classList.add("open"); }
+function closeLibSheet(){ $("libSheet").classList.remove("open"); }
 function renderBook(){ displayView("book");
   const seen=profileIndexes().sort((a,b)=>firstSeenAt(b)-firstSeenAt(a)||a-b);
   $("boxCount").textContent=`${seen.length} 字`;
+  renderLibCard();
   const curator=bookCuratorData(seen); bookCuratorIndexes=curator.indexes; bookCuratorKind=curator.kind; $("bookCurator").innerHTML=`${esc(curator.text)} ${curator.suffix?`<span>${curator.suffix}</span>`:""}`; $("bookCurator").disabled=!curator.indexes.length;
   updateBookBadge();
   $("memoryWall").innerHTML=seen.length?seen.map((i,k)=>`<button class="memoryChar" data-idx="${i}" aria-label="${esc(CARDS[i].target)}，${esc(CARDS[i].word)}" style="color:var(--memory-${memoryInkLevel(i)});transform:rotate(${ROTS[k%ROTS.length]/2}deg)">${esc(CARDS[i].target)}</button>`).join(""):`<div class="memoryWallEmpty">字库还空着。<br>拾一组字，墨色会从这里长出来。</div>`; renderWildWishes(); handleBookSearchInput(false); }
@@ -2285,7 +2320,7 @@ function render(){ fitBox(); cur=CARDS[currentCardIndex()]; const token=++loadTo
   updateProgressLabel();
   // 练习时只留题面本身（挖空词＋拼音就是「词语＋语境」，别再用文字复述——复述会把答案印出来）
   $("prompt").innerHTML=promptHTML(cur);
-  $("hint").textContent=cur.custom?cur.hint:(activeMode==="calibrate"?"这组用来摸个底，之后按合适的难度出题":"");
+  $("hint").textContent=cur.custom?cur.hint:(cur.ctx==="fallback"?"这个字暂时没有常用词，按拼音写就好":(activeMode==="calibrate"?"这组用来摸个底，之后按合适的难度出题":""));
   clearInk(); drawing=false; inkCanvas.style.opacity='1'; hzEl.style.opacity='1'; hzEl.classList.remove("traceFallback");
   shownStrokes=0; totalStrokes=0; groups=[]; groupIdx=0; $("tip").disabled=true; $("show").disabled=false; $("done").disabled=true; $("tip").textContent="点拨"; updateActionLabels();
   hzEl.innerHTML=""; peekEl.innerHTML=""; peekEl.classList.remove("active"); hzEl.classList.remove("traceFallback"); writer=null; revealed=false;
@@ -2563,9 +2598,9 @@ function exitCurrentRound(fromHistory=false){ if(exitingPractice || $("card").st
   if(activeMode==="focus"&&baseTargets.length===1){ clearSessionSnapshot(); if(focusReturnView==="book") renderBook(); else if(focusReturnView==="profile") renderProfile(); else if(focusReturnView==="me") renderMe(); else renderHome(); }
   else renderHome(); exitingPractice=false; return true; }
 $("exitPractice").onclick=()=>exitCurrentRound(false);
-window.addEventListener("shizi-native-back",()=>{ if($("handCardSheet").classList.contains("open")){ closeHandCard(); return; } if($("charSheet").classList.contains("open")){ closeCharSheet(); return; } if($("settingsPanel").style.display==="flex"||$("annualPanel").style.display==="flex"){ renderMe(); return; } if($("profilePanel").style.display==="flex"){ closeProfile(); return; } if($("auditPanel").style.display==="flex"){ renderSettings(false); return; } exitCurrentRound(false); });
-window.addEventListener("keydown",e=>{ if(e.key==="Escape"&&$("charSheet").classList.contains("open")) closeCharSheet(); });
-$("prefBox").onclick=e=>{ const b=e.target.closest("[data-pref]"); if(!b) return; preference=b.dataset.pref; save(PREF_KEY,preference); applyPrefUI(); };
+window.addEventListener("shizi-native-back",()=>{ if($("handCardSheet").classList.contains("open")){ closeHandCard(); return; } if($("libSheet").classList.contains("open")){ closeLibSheet(); return; } if($("charSheet").classList.contains("open")){ closeCharSheet(); return; } if($("settingsPanel").style.display==="flex"||$("annualPanel").style.display==="flex"){ renderMe(); return; } if($("profilePanel").style.display==="flex"){ closeProfile(); return; } if($("auditPanel").style.display==="flex"){ renderSettings(false); return; } exitCurrentRound(false); });
+window.addEventListener("keydown",e=>{ if(e.key==="Escape"){ if($("libSheet").classList.contains("open")) closeLibSheet(); else if($("charSheet").classList.contains("open")) closeCharSheet(); } });
+$("settingsLibRow").onclick=openLibSheet;
 $("fontScaleRow").onclick=()=>{ fontScaleLarge=!fontScaleLarge; save(FONT_SCALE_KEY,fontScaleLarge); applyFontScale(); fitBox(); };
 $("qualityBox").onclick=e=>{ const b=e.target.closest("[data-quality]"); if(!b) return; recordQuality(b.dataset.quality); };
 $("sumTiles").onclick=e=>{ const b=e.target.closest("[data-idx]"); if(b) openCharSheet(Number(b.dataset.idx)); };
@@ -2574,6 +2609,9 @@ $("roundTune").onclick=e=>{ const b=e.target.closest("[data-round-feedback]"); i
 $("memoryWall").onclick=e=>{ const b=e.target.closest("[data-idx]"); if(b) openCharSheet(Number(b.dataset.idx)); };
 $("wildWishChars").onclick=e=>{ const b=e.target.closest("[data-wild-wish]"); if(!b) return; const ch=b.dataset.wildWish,row=wildState.wishes[ch]; if(row&&row.dataURL) openWildPhoto(row.dataURL,`${ch} · ${collectedDateText(row.day)}拾于生活`); else toast(`「${ch}」已经记下，字帖还在路上`); };
 $("bookCurator").onclick=()=>{ if(!bookCuratorIndexes.length) return; if(bookCuratorKind==="recall") openCharSheet(bookCuratorIndexes[0]); else startFocus(bookCuratorIndexes); };
+$("libCard").onclick=openLibSheet;
+$("libSheet").onclick=e=>{ if(e.target===$("libSheet")){ closeLibSheet(); return; } const row=e.target.closest("[data-lib]"); if(!row) return; const lib=LIBRARIES.find(item=>item.id===row.dataset.lib); if(!lib) return;
+  setLibrary(lib.id); closeLibSheet(); if($("studybook").style.display==="flex") renderBook(); else renderSettings(false); toast(`在学：${lib.name}`); };
 $("bookSearchInput").oninput=()=>handleBookSearchInput(true);
 $("bookSearchInput").onkeydown=e=>{ if(e.key==="Enter"&&!e.isComposing) handleBookSearch(); };
 $("bookSearchResult").onclick=e=>{ if(e.target.closest("[data-book-add]")) handleBookSearch(); };
@@ -2643,7 +2681,7 @@ $("dataLink").onclick=()=>{ const box=$("dataBox"); if(box.style.display==="bloc
   const last7=activity.practiceDays.filter(d=>{ const diff=(new Date(today())-new Date(d))/86400000; return diff>=0 && diff<7; });
   const agreement=systemAgreementStats(), compared=funnel.counts.revealCompared, funnelRate=compared?Math.round(funnel.counts.revealDisagree/compared*100):0, avgRound=funnel.rounds.length?Math.round(funnel.rounds.reduce((sum,row)=>sum+row.durationMs,0)/funnel.rounds.length/1000):0;
   box.style.display="block"; box.innerHTML=`<b>实验用，别天天盯（盯 streak 会污染“光靠痒”这个变量）</b><br>`+
-    `最近 7 天里，你实际盖过章 <b>${last7.length}</b> 天 → 目标 ≥4 天<br>选字偏好：<b>${prefLabel()}</b> · 难度校准：<b>${tuningLabel()} ${tuningShiftText()}</b> · 语境严格度：<b>${Number(tuning.contextStrict)||0}</b><br>本地漏斗：首启 <b>${funnelEventCount("welcome_shown")}</b> · 首卡 <b>${funnelEventCount("calib_card1_done")}</b> · 校准完成 <b>${funnelEventCount("calib_completed")}</b> · 次日回访 <b>${funnelEventCount("d2_return")}</b> · 备份 <b>${funnelEventCount("backup_exported")}</b><br>累计系统-用户分歧率：<b>${funnelRate}%</b>（${funnel.counts.revealDisagree}/${compared}） · 完整组：<b>${funnel.rounds.length}</b> 组${funnel.rounds.length?` · 平均 ${avgRound} 秒`:""}<br>当前字系统-用户分歧率：<b>${agreement.rate}%</b>（${agreement.disagree}/${agreement.total}）<br>题目反馈：<b>${qualityCount()}</b> 条 · 整组反馈：<b>${(tuning.rounds||[]).length}</b> 条<br>已记录：<b>${memoryCount()}</b> 个字 · 到期复习：<b>${reviewCount()}</b> 个 · 待拾回：<b>${highRiskCount()}</b> 个<br>你自己加的字：<b>${addedChars.length}</b> 个<br>累计练习日：${totalPracticeDays()} 天 · 历史打开：${opens.length} 天`; };
+    `最近 7 天里，你实际盖过章 <b>${last7.length}</b> 天 → 目标 ≥4 天<br>在学字库：<b>${currentLibrary().name}</b> · 内部排序档：<b>${prefLabel()}</b> · 难度校准：<b>${tuningLabel()} ${tuningShiftText()}</b> · 语境严格度：<b>${Number(tuning.contextStrict)||0}</b><br>本地漏斗：首启 <b>${funnelEventCount("welcome_shown")}</b> · 首卡 <b>${funnelEventCount("calib_card1_done")}</b> · 校准完成 <b>${funnelEventCount("calib_completed")}</b> · 次日回访 <b>${funnelEventCount("d2_return")}</b> · 备份 <b>${funnelEventCount("backup_exported")}</b><br>累计系统-用户分歧率：<b>${funnelRate}%</b>（${funnel.counts.revealDisagree}/${compared}） · 完整组：<b>${funnel.rounds.length}</b> 组${funnel.rounds.length?` · 平均 ${avgRound} 秒`:""}<br>当前字系统-用户分歧率：<b>${agreement.rate}%</b>（${agreement.disagree}/${agreement.total}）<br>题目反馈：<b>${qualityCount()}</b> 条 · 整组反馈：<b>${(tuning.rounds||[]).length}</b> 条<br>已记录：<b>${memoryCount()}</b> 个字 · 到期复习：<b>${reviewCount()}</b> 个 · 待拾回：<b>${highRiskCount()}</b> 个<br>你自己加的字：<b>${addedChars.length}</b> 个<br>累计练习日：${totalPracticeDays()} 天 · 历史打开：${opens.length} 天`; };
 let toastTimer=0;
 function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove("show"),2200); }
 
@@ -2772,7 +2810,7 @@ async function sharePracticeCard(opts={}){ const canvas=renderPracticeCardCanvas
 
 // ---- 数据备份 / 恢复（localStorage 是唯一存储，换手机或清缓存前先导出）----
 // 新增 shizi.* 持久键时必须同步加入；shizi.nativeSmoke.v1 与 SAFETY_KEY 为刻意排除。
-const BACKUP_KEYS=[DECK_KEY,OPEN_KEY,MEMORY_KEY,QUALITY_KEY,PREF_KEY,TUNING_KEY,ACTIVITY_KEY,SESSION_KEY,FSRS_LOG_KEY,TRACE_TUTORIAL_KEY,BACKUP_META_KEY,REMINDER_KEY,FONT_SCALE_KEY,FUNNEL_KEY,SOUND_KEY,TOPIC_KEY,CUSTOM_KEY,ADDED_KEY,WILD_KEY,HAND_CARD_KEY];
+const BACKUP_KEYS=[DECK_KEY,OPEN_KEY,MEMORY_KEY,QUALITY_KEY,PREF_KEY,TUNING_KEY,ACTIVITY_KEY,SESSION_KEY,FSRS_LOG_KEY,TRACE_TUTORIAL_KEY,BACKUP_META_KEY,REMINDER_KEY,FONT_SCALE_KEY,FUNNEL_KEY,SOUND_KEY,TOPIC_KEY,CUSTOM_KEY,ADDED_KEY,WILD_KEY,HAND_CARD_KEY,LIB_KEY];
 function backupAgeDays(){ const ts=Number(backupMeta.lastExportAt)||0; return ts?Math.max(0,Math.floor((Date.now()-ts)/86400000)):Number.POSITIVE_INFINITY; }
 function backupRelativeText(){ const days=backupAgeDays(); if(!Number.isFinite(days)) return "从未备份"; if(days===0) return "上次备份 · 今天"; if(days===1) return "上次备份 · 昨天"; return `上次备份 · ${days} 天前`; }
 function renderBackupUI(){ const age=backupAgeDays(), never=!Number.isFinite(age), urgent=(completedDayCount()>=14&&never)||(!never&&age>=30); $("backupStatus").textContent=backupRelativeText(); $("backupStatus").classList.toggle("backupStatusUrgent",urgent); $("backupUrgency").style.display=urgent?"flex":"none"; $("mePanel").classList.toggle("backupUrgent",urgent);
@@ -2834,7 +2872,7 @@ $("importLink").onclick=requestBackupImport;
 $("welcomeRestore").onclick=requestBackupImport;
 $("importFile").onchange=e=>{ const f=e.target.files && e.target.files[0]; e.target.value=""; if(f) importBackup(f); };
 function resetAllData(opts){ const options=opts||{}; if(!options.skipConfirm && !confirm(`清空当前 ${memoryCount()} 个字和全部练习记录？操作后可以撤销一次。`)) return false; captureSafetySnapshot("reset");
-  status={}; memory={}; fsrsReviewLog=[]; traceTutorialShown=false; quality={}; tuning={calibrated:false, offset:0, contextStrict:0, rounds:[]}; preference="balanced"; fontScaleLarge=false; applyFontScale(); opens=[today()]; customWords=[]; addedChars=[]; wildState=normalizeWildState(null); handCardPref=normalizeHandCardPref(null); activity=newActivity(); funnel=newFunnel(); backupMeta=normalizeBackupMeta(null); summaryBackupHintVisible=false; reminder=normalizeReminder(null); sound=normalizeSound(null); stopAmbient(true); saveSound(); renderSoundUI(); renderHandCardPref(); hideHandCardPrompt(); save(HAND_CARD_KEY,handCardPref); saveReminder(); syncReminder(); save(DECK_KEY,status); save(MEMORY_KEY,memory); saveFSRSLog(); save(TRACE_TUTORIAL_KEY,false); save(QUALITY_KEY,quality); saveTuning(); save(PREF_KEY,preference); save(FONT_SCALE_KEY,false); save(OPEN_KEY,opens); save(CUSTOM_KEY,customWords); save(ADDED_KEY,addedChars); saveWildState(); saveActivity(); saveFunnel(); save(BACKUP_META_KEY,backupMeta); buildCustomCards(); removeStored(TOPIC_KEY); clearSessionSnapshot(); activeMode="new"; makeupTargetDay=""; sessionDone=new Set(); focusQueue=[]; renderHome(); $("dataBox").style.display="none"; showSafetyUndo(); return true; }
+  status={}; memory={}; fsrsReviewLog=[]; traceTutorialShown=false; quality={}; tuning={calibrated:false, offset:0, contextStrict:0, rounds:[]}; preference="balanced"; libraryState=normalizeLibrary(null); fontScaleLarge=false; applyFontScale(); opens=[today()]; customWords=[]; addedChars=[]; wildState=normalizeWildState(null); handCardPref=normalizeHandCardPref(null); activity=newActivity(); funnel=newFunnel(); backupMeta=normalizeBackupMeta(null); summaryBackupHintVisible=false; reminder=normalizeReminder(null); sound=normalizeSound(null); stopAmbient(true); saveSound(); save(LIB_KEY,libraryState); renderSoundUI(); renderHandCardPref(); hideHandCardPrompt(); save(HAND_CARD_KEY,handCardPref); saveReminder(); syncReminder(); save(DECK_KEY,status); save(MEMORY_KEY,memory); saveFSRSLog(); save(TRACE_TUTORIAL_KEY,false); save(QUALITY_KEY,quality); saveTuning(); save(PREF_KEY,preference); save(FONT_SCALE_KEY,false); save(OPEN_KEY,opens); save(CUSTOM_KEY,customWords); save(ADDED_KEY,addedChars); saveWildState(); saveActivity(); saveFunnel(); save(BACKUP_META_KEY,backupMeta); buildCustomCards(); removeStored(TOPIC_KEY); clearSessionSnapshot(); activeMode="new"; makeupTargetDay=""; sessionDone=new Set(); focusQueue=[]; renderHome(); $("dataBox").style.display="none"; showSafetyUndo(); return true; }
 $("resetLink").onclick=resetAllData;
 $("safetyUndoBtn").onclick=()=>undoSafetyRestore();
 

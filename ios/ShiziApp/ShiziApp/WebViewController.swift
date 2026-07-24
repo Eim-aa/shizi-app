@@ -245,6 +245,10 @@ final class WebViewController: UIViewController {
               libraryReachable: false,
               libraryUI: false,
               libraryCalibrationLifecycle: false,
+              contextAvailable: false,
+              contextOverridesApplied: false,
+              contextMemoryStable: false,
+              contextOfflineResource: false,
               backupParses: false,
               backupHasAppMarker: false,
               backupHasAdded: false,
@@ -417,6 +421,24 @@ final class WebViewController: UIViewController {
             const etymologyResponse = await fetch('data/etymology.json');
             const etymologyPayload = etymologyResponse.ok ? await etymologyResponse.json() : [];
             result.dataFlow.etymologyResourceAvailable = Array.isArray(etymologyPayload) && etymologyPayload.length >= 1000 && etymologyPayload.every(row => row && typeof row.char === 'string' && typeof row.gloss === 'string' && row.gloss.length <= 20 && typeof row.source === 'string');
+            const contextResponse = await fetch('data/context-overrides.js');
+            result.dataFlow.contextOfflineResource = contextResponse.ok && (await contextResponse.text()).includes('CONTEXT_OVERRIDES');
+            const contextIndex = BASE_BY_CHAR['毓'];
+            const glossIndex = BASE_BY_CHAR['谔'];
+            const contextCard = CARDS[contextIndex];
+            const glossCard = CARDS[glossIndex];
+            const originalContext = SEED.find(row => (row.target || Array.from(row.ans)[Number(row.ci) || 0]) === '毓');
+            const contextLeaks = Object.keys(OVERRIDES).filter(target => {
+              const card = CARDS[BASE_BY_CHAR[target]];
+              return !card || (promptHTML(card).replace(/<[^>]+>/g, '') + ' ' + (card.hint || '')).includes(target);
+            });
+            const rejectedPromptWords = ['战战兢兢', '千里迢迢', '翩翩起舞', '谆谆教诲', '佼佼者', '年高德劭', '崔嵬', '陶埙', '匏瓜', '勖勉', '安瓿', '礞石', '老趼', '振翮'];
+            result.dataFlow.contextAvailable = Object.keys(OVERRIDES).length === 56;
+            result.dataFlow.contextOverridesApplied = contextCard.word === '钟灵毓秀' && contextCard.ctx === 'override'
+              && glossCard.word === '谔' && glossCard.ctx === 'gloss' && glossCard.hint === '直言争辩的样子'
+              && contextLeaks.length === 0
+              && !Object.values(OVERRIDES).some(row => rejectedPromptWords.includes(row.w));
+            result.dataFlow.contextMemoryStable = cardKey(contextIndex) === 'base:毓' && contextCard.py === originalContext.py;
 
             if (typeof renderBook === 'function' && typeof renderMe === 'function' && typeof renderProfile === 'function' && typeof renderHome === 'function') {
               document.getElementById('tabBook').click();

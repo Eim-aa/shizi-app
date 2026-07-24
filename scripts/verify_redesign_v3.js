@@ -61,8 +61,8 @@ let browser;
     return { groups: children.length, removed: !!document.querySelector(".brandRow,.streakChip,.monthSignal,.homeSub,.quickAdd"), stamp: [stamp.width, stamp.height], axes: [greeting.left, title.left, recent.left], titleText: homeTitle.textContent.replace(/\s+/g, ""), greeting:homeGreeting.textContent.trim(), add: homeAdd.textContent.trim(), tabs:tabs.map(node=>node.textContent.trim()), tabLayers:tabs.reduce((sum,node)=>sum+node.children.length,0), solid };
   });
   assert(home.groups === 4 && !home.removed && home.stamp.every((value) => value >= 164) && Math.max(...home.axes) - Math.min(...home.axes) < 1 && home.add === "收字" && home.tabs.join() === "习字,字库,我的" && home.tabLayers === 0 && /· (晨|午|暮|夜)$/.test(home.greeting) && home.solid <= 1 && !/\d/.test(home.titleText), "Expected the reduced, aligned home with final single-layer navigation, one solid red, and Chinese title numerals", home);
-  const mottoBreak = await page.evaluate(() => { setDailyMotto(homeMotto,"写过的字，都会回来"); const result=Array.from(homeMotto.children).map(node=>node.textContent); applyDailyMotto(); return result; });
-  assert(mottoBreak.join("/") === "写过的字，/都会回来", "Expected the long vertical motto to break at punctuation", mottoBreak);
+  const mottoBreak = await page.evaluate(() => { setDailyMotto(homeMotto,{text:"翰不虚动，下必有由",author:"孙过庭",source:"书谱"}); const result=Array.from(homeMotto.children).map(node=>node.textContent); applyDailyMotto(); return result; });
+  assert(mottoBreak.join("/") === "翰不虚动，/下必有由/——孙过庭《书谱》", "Expected the sourced vertical motto to break at punctuation", mottoBreak);
   await page.screenshot({ path: path.join(generatedDir, "home-light-375x667.png"), fullPage: true });
 
   await page.click("#tabBook");

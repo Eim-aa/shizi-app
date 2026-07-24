@@ -81,6 +81,9 @@ checks = {
     and handwriting.get("pageScrollStable") is True,
     "handwritingRecordsInk": handwriting.get("strokeRecorded") is True
     and int(handwriting.get("strokePointCount") or 0) >= 4
+    and handwriting.get("brushRendererAvailable") is True
+    and handwriting.get("brushMetadataRecorded") is True
+    and handwriting.get("brushShareMetadata") is True
     and handwriting.get("inkPixelsChanged") is True
     and handwriting.get("undoStrokeWorked") is True
     and handwriting.get("clearWorked") is True

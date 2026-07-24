@@ -199,6 +199,9 @@ final class WebViewController: UIViewController {
               touchMovePrevented: false,
               strokeRecorded: false,
               strokePointCount: 0,
+              brushRendererAvailable: false,
+              brushMetadataRecorded: false,
+              brushShareMetadata: false,
               inkPixelsChanged: false,
               pageScrollStable: false,
               clearWorked: false,
@@ -734,6 +737,10 @@ final class WebViewController: UIViewController {
                 result.handwritingFlow.touchMovePrevented = touchProbe.defaultPrevented;
                 result.handwritingFlow.strokeRecorded = inkStrokes.length === 1;
                 result.handwritingFlow.strokePointCount = inkStrokes.length ? inkStrokes[0].length : 0;
+                result.handwritingFlow.brushRendererAvailable = typeof paintBrushStroke === 'function' && typeof brushWidthFor === 'function';
+                result.handwritingFlow.brushMetadataRecorded = inkStrokes.length === 1 && inkStrokes[0].every(point => Number.isFinite(point.w) && Number.isFinite(point.v));
+                const sharedBrush = shareInkFromSnapshot({ canvasSize: S, inkStrokes });
+                result.handwritingFlow.brushShareMetadata = sharedBrush.length === 1 && sharedBrush[0].every(point => Number.isFinite(point.w) && Number.isFinite(point.v));
                 result.handwritingFlow.inkPixelsChanged = pixelCount() > pixelsBefore;
                 const scrollAfter = document.scrollingElement ? document.scrollingElement.scrollTop : window.scrollY;
                 result.handwritingFlow.pageScrollStable = scrollAfter === scrollBefore;

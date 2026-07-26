@@ -305,12 +305,17 @@ let browser;
     decisionLabels: Array.from(document.querySelectorAll("#decisionRow button span")).map((node) => node.textContent),
     oldStampChoices: document.querySelectorAll("#stampRow .stampWrap").length,
     showLabel: document.getElementById("show").textContent,
+    showAria: document.getElementById("show").getAttribute("aria-label"),
+    doneLabel: document.getElementById("done").textContent,
+    doneAria: document.getElementById("done").getAttribute("aria-label"),
     viewport: document.querySelector('meta[name="viewport"]').content,
   }));
   assert(baseline.seed === 6854 && baseline.groups === 6854 && baseline.cards >= 6854, "Expected the complete 6854-card corpus", baseline);
   assert(baseline.fsrsVersion.includes("FSRS-6.0") && baseline.weights === 21, "Expected fixed FSRS-6 runtime", baseline);
   assert(baseline.scheduler.desiredRetention === 0.9 && baseline.scheduler.maximumInterval === 365 && baseline.scheduler.enableFuzz && baseline.engineFuzz && baseline.scheduler.parameterVersion === "fsrs6-fuzz-365-v2", "Expected fuzzed scheduler with a one-year interval ceiling", baseline.scheduler);
-  assert(baseline.decisionLabels.join("/") === "写对了/写错了" && baseline.oldStampChoices === 0 && baseline.showLabel === "提笔忘了", "Expected concise two-decision result semantics and final recall action naming", baseline);
+  assert(baseline.decisionLabels.join("/") === "写对了/写错了" && baseline.oldStampChoices === 0
+    && baseline.showLabel === "不会写" && baseline.showAria.startsWith("不会写：") && baseline.doneLabel === "写好了" && baseline.doneAria === "写好了",
+  "Expected concise two-decision semantics and user-tested direct recall actions", baseline);
   assert(baseline.viewport.includes("viewport-fit=cover") && !/user-scalable=no|maximum-scale=1/.test(baseline.viewport), "Expected scalable safe-area viewport", baseline.viewport);
 
   await page.emulateMedia({ colorScheme: "dark" });
@@ -685,7 +690,7 @@ let browser;
   }));
   assert(calibrationQueue.front === "尴嚏" && calibrationQueue.tail.every((row) => row.difficulty <= 85) && calibrationQueue.flags.every(Boolean) && calibrationQueue.size === 15 && calibrationQueue.unique === 15 && calibrationQueue.adultOnly
     && calibrationQueue.helpReady && calibrationQueue.helpCopy.includes("写不出就点")
-    && calibrationQueue.labels.show === "提笔忘了" && calibrationQueue.labels.done === "收笔" && calibrationQueue.labels.noNext && calibrationQueue.touch.done === "manipulation" && calibrationQueue.touch.tab === "manipulation",
+    && calibrationQueue.labels.show === "不会写" && calibrationQueue.labels.done === "写好了" && calibrationQueue.labels.noNext && calibrationQueue.touch.done === "manipulation" && calibrationQueue.touch.tab === "manipulation",
   "Expected calibration hooks, capped finish, and immediately available first-card help", calibrationQueue);
 
   await page.click("#show");

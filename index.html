@@ -638,8 +638,8 @@
       </div>
       <div class="mascotRow"><span class="blob"></span><span id="mascotLine"></span></div>
       <div id="actions">
-        <button class="ghostAct" id="show" disabled>提笔忘了</button>
-        <button class="primaryAct" id="done" disabled>收笔</button>
+        <button class="ghostAct" id="show" disabled aria-label="不会写：先描后写，本组稍后还会再写">不会写</button>
+        <button class="primaryAct" id="done" disabled aria-label="写好了">写好了</button>
       </div>
       <div class="traceActions" id="traceActions">
         <button class="primaryAct traceDone" id="traceDone" disabled><span>描好了，自己写</span><small>接着会收起答案轮廓</small></button>
@@ -873,7 +873,7 @@
 </div>
 
 <div class="sheetMask" id="addSheet"><div class="sheet">
-  <h3>刚才提笔忘了哪个字？</h3>
+  <h3>刚才哪个字不会写？</h3>
   <p class="sheetHint">输入那个字，或它所在的词（如「蘸料」）。字库里有的字会带上拼音和语境词。</p>
   <input id="addInput" type="text" autocomplete="off" autocapitalize="off" maxlength="20" placeholder="蘸料">
   <div class="sheetPreview" id="addPreview"></div>
@@ -1356,7 +1356,7 @@ const MASCOT_LINES=[
   "这个格子里的字，你上次写它可能是十年前",
   "想不起来很正常，点「点拨」先看开头几笔",
   "凭感觉写，连笔断笔都没关系",
-  "写不出来就点「提笔忘了」，先描后写"
+  "写不出来就点「不会写」，先描后写"
 ];
 const ROTS=[-1.5,1,2,-1,1.5,-2,1,-1.5,2,1,-1,1.5,-2,1,-1];
 const ROUND_FEEDBACK={easy:["太简单","下组加难"],ok:["刚刚好","保持节奏"],hard:["太难","下组降一点"],bad_context:["词不自然","收紧语境"]};
@@ -1698,7 +1698,7 @@ let addedChars = bootLoad(ADDED_KEY, null, v=>v===null||(Array.isArray(v)&&v.eve
 if(!Array.isArray(addedChars)){ addedChars=[...new Set(customWords.flatMap(w=>Array.from(w).filter(isCJK)))]; save(ADDED_KEY,addedChars); }
 function customIndexOf(ch){ for(let i=BASE_N;i<CARDS.length;i++){ if(CARDS[i].target===ch) return i; } return -1; }
 function unblockQuality(i){ const k=cardKey(i); if(quality[k]){ delete quality[k]; saveQuality(); } }
-// 现实里提笔忘了 = 一次真实的「不会写」：记进记忆模型，让它立刻进入今日复习和待拾回状态
+// 现实里不会写 = 一次真实的薄弱信号：记进记忆模型，让它立刻进入今日复习和待拾回状态
 function recordRealWorldMiss(i){ const c=CARDS[i], m=cardMemory(i), now=Date.now();
   markFirstSeen(m,now); m.seen=(m.seen||0)+1; m.last=now; m.lastOutcome="miss"; m.misses=(m.misses||0)+1; m.streak=0; m.ease=clamp((m.ease||50)-16,0,100);
   m.topic=c.topic; m.level=c.level; m.word=c.word; m.target=c.target; m.due=dayStartMs(today()); m.dueDay=today(); m.pendingLearning=false; setStatus(i,"indeck"); }
@@ -1808,8 +1808,8 @@ function charLoader(char, onComplete){
   return fetch(local).then(r=>{ if(!r.ok) throw new Error("local char data"); return r.json(); })
     .catch(()=>fetch(cdn).then(r=>{ if(!r.ok) throw new Error("cdn char data"); return r.json(); }))
     .then(onComplete); }
-function strokeDataFailureCopy(kind="error"){ if(navigator.onLine===false) return "这个字的笔顺需要联网下载一次，仍可收笔自行判断";
-  return kind==="slow"?"笔顺加载较慢，仍可自行判断或点「提笔忘了」":"笔顺暂时不可用，仍可收笔自行判断"; }
+function strokeDataFailureCopy(kind="error"){ if(navigator.onLine===false) return "这个字的笔顺需要联网下载一次，仍可点「写好了」自行判断";
+  return kind==="slow"?"笔顺加载较慢，仍可自行判断或点「不会写」":"笔顺暂时不可用，仍可点「写好了」自行判断"; }
 
 function warmStrokeCache(chars){ if(!navigator.onLine) return;
   [...new Set(chars||[])].forEach(ch=>fetch('data/'+encodeURIComponent(ch)+'.json').catch(()=>{})); }
@@ -1906,13 +1906,14 @@ function verdictShort(v){ if(!v) return "对照助手不可用也没关系，请
   if(v.status==="bad") return v.mode==="exact"&&v.failed&&v.failed.length?"这几笔再对一眼。最终以你的选择为准。":"建议：写错了。请和右边对照，最终以你的选择为准。";
   return "和右边对照一下，以你自己的判断为准。"; }
 
-const EXHAUSTED_HINT_COPY="点拨看完了——继续补完这个字，或点「提笔忘了」先描后写";
+const EXHAUSTED_HINT_COPY="点拨看完了——继续补完这个字，或点「不会写」先描后写";
 function hintVisualExhausted(){ return !animating && groups.length>0 && groupIdx>=groups.length; }
 function updateActionLabels(){
   const used=hintEverUsed||hintsUsedThisCard>0;
-  $("show").textContent=practicePhase==="postTraceRecall"?"再描一遍":"提笔忘了";
-  $("show").setAttribute("aria-label",practicePhase==="postTraceRecall"?"再描一遍":"提笔忘了：先描后写，本组稍后还会再写");
-  $("done").textContent="收笔";
+  $("show").textContent=practicePhase==="postTraceRecall"?"再描一遍":"不会写";
+  $("show").setAttribute("aria-label",practicePhase==="postTraceRecall"?"再描一遍":"不会写：先描后写，本组稍后还会再写");
+  $("done").textContent="写好了";
+  $("done").setAttribute("aria-label","写好了");
   updateTeachUI();
 }
 function updateTip(){ $("tip").textContent="点拨"; $("tip").removeAttribute("title"); $("tip").disabled=animating || !writer || groupIdx>=groups.length || practicePhase==="postTraceRecall" || practicePhase==="tracing"; $("peekInk").disabled=animating || !peekWriter || revealed || practicePhase==="postTraceRecall" || practicePhase==="tracing"; if(!revealed){ $("done").disabled=animating; $("show").disabled=animating; } updateInkControls(); updateActionLabels(); }
@@ -1927,8 +1928,8 @@ function updateTeachUI(){ const stage=(teachActive() && !revealed)?teachStage:"d
   $("tip").classList.remove("tlock"); $("show").classList.remove("tlock");
   $("clear").classList.toggle("tlock",writeLocked); $("done").classList.toggle("tlock",writeLocked);
   if(stage==="intro") $("show").disabled=false;
-  $("mascotLine").textContent=tracePhase?"沿着轮廓描，顺序不对也行":recallAfterTrace?"凭刚才的手感写":hintVisualExhausted()?EXHAUSTED_HINT_COPY:(stage==="helpers"?"想不起来就点「点拨」，或点「提笔忘了」先描后写"
-    :(stage!=="done"?"先试着写，写不出就点「提笔忘了」":(cur?MASCOT_LINES[pos%MASCOT_LINES.length]:""))); }
+  $("mascotLine").textContent=tracePhase?"沿着轮廓描，顺序不对也行":recallAfterTrace?"凭刚才的手感写":hintVisualExhausted()?EXHAUSTED_HINT_COPY:(stage==="helpers"?"想不起来就点「点拨」，或点「不会写」先描后写"
+    :(stage!=="done"?"先试着写，写不出就点「不会写」":(cur?MASCOT_LINES[pos%MASCOT_LINES.length]:""))); }
 function armTeachIdle(){ clearTimeout(teachTimer);
   teachTimer=setTimeout(()=>{ if((teachStage==="intro"||teachStage==="writing") && teachActive() && !revealed){ teachStage="helpers"; updateTeachUI(); } },3000); }
 function onTeachStrokeStart(){

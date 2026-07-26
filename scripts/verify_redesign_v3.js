@@ -224,7 +224,7 @@ let browser;
   await page.evaluate(() => startFocus([profileIndexes()[0]], { returnView: "book" }));
   await page.waitForFunction(() => getComputedStyle(card).display !== "none" && !show.disabled);
   const practice = await page.evaluate(() => ({ progress: posLabel.textContent, tip: tip.textContent, visibleMain: [show, done].filter((node) => getComputedStyle(node).display !== "none").map((node) => node.textContent), hiddenPeek: getComputedStyle(peekInk).display, undoOpacity: getComputedStyle(undoStroke).opacity, clearOpacity: getComputedStyle(clear).opacity, quota: /\d+\/5|不计/.test(card.textContent) }));
-  assert(practice.progress === "" && practice.tip === "点拨" && practice.visibleMain.join() === "提笔忘了,收笔" && practice.hiddenPeek === "none" && practice.undoOpacity === "0" && practice.clearOpacity === "0" && !practice.quota, "Expected the reduced transient single-character practice card with final action names", practice);
+  assert(practice.progress === "" && practice.tip === "点拨" && practice.visibleMain.join() === "不会写,写好了" && practice.hiddenPeek === "none" && practice.undoOpacity === "0" && practice.clearOpacity === "0" && !practice.quota, "Expected the reduced transient single-character practice card with user-tested direct action names", practice);
   await page.screenshot({ path: path.join(generatedDir, "practice-light-375x667.png"), fullPage: true });
   await page.click("#exitPractice");
 

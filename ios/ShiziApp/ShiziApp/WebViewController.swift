@@ -210,6 +210,7 @@ final class WebViewController: UIViewController {
               peekBlockedInk: false,
               peekRestored: false,
               peekControlVisible: false,
+              actionLabelsDirect: false,
               peekControlEntered: false,
               peekControlGlyphVisible: false,
               peekControlUncounted: false
@@ -745,6 +746,13 @@ final class WebViewController: UIViewController {
                 const peekControl = document.getElementById('tip');
                 await waitFor(() => !peekControl.disabled && peekEl && peekEl.querySelector('path'));
                 result.handwritingFlow.peekControlVisible = visible('tip') && peekControl.textContent.trim() === '点拨';
+                const showControl = document.getElementById('show');
+                const doneControl = document.getElementById('done');
+                result.handwritingFlow.actionLabelsDirect = visible('show') && visible('done')
+                  && showControl.textContent.trim() === '不会写'
+                  && showControl.getAttribute('aria-label').startsWith('不会写：')
+                  && doneControl.textContent.trim() === '写好了'
+                  && doneControl.getAttribute('aria-label') === '写好了';
                 const hintBeforePeek = { ever: hintEverUsed, used: hintsUsedThisCard, group: groupIdx, shown: shownStrokes };
                 const controlRect = peekControl.getBoundingClientRect();
                 const controlPointer = (type, buttons) => new PointerEvent(type, {

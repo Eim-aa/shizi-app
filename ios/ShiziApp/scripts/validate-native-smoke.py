@@ -148,6 +148,8 @@ checks = {
     and data_flow.get("reminderQuestionPayload") is True,
     "soundState": data_flow.get("soundStateAvailable") is True
     and data_flow.get("soundSettingsRowVisible") is True,
+    "soundscapeState": data_flow.get("soundscapeStateAvailable") is True
+    and data_flow.get("soundscapeSettingsRowVisible") is True,
     "funnelState": data_flow.get("funnelStateAvailable") is True,
     "calibrationReturn": data_flow.get("calibrationReturnInviteVisible") is True
     and data_flow.get("calibrationReturnPermissionRequested") is True,

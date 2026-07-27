@@ -253,9 +253,11 @@ final class WebViewController: UIViewController {
               nativeConfirmAvailable: false,
               reminderStateAvailable: false,
               soundStateAvailable: false,
+              soundscapeStateAvailable: false,
               funnelStateAvailable: false,
               reminderSettingsRowVisible: false,
               soundSettingsRowVisible: false,
+              soundscapeSettingsRowVisible: false,
               reminderQuestionPayload: false,
               calibrationReturnInviteVisible: false,
               calibrationReturnPermissionRequested: false,
@@ -554,9 +556,11 @@ final class WebViewController: UIViewController {
               result.dataFlow.nativeConfirmAvailable = window.confirm('\(Self.nativeSmokeConfirmMessage)') === true;
               result.dataFlow.reminderStateAvailable = typeof reminder === 'object' && typeof reminder.enabled === 'boolean' && typeof totalPracticeDays === 'function' && Number.isInteger(totalPracticeDays());
               result.dataFlow.soundStateAvailable = typeof sound === 'object' && sound.enabled === true && typeof soundFeedback === 'function';
+              result.dataFlow.soundscapeStateAvailable = sound.scene === 'off' && typeof startAmbient === 'function' && typeof stopAmbient === 'function' && typeof ambientNoiseBuffer === 'function';
               result.dataFlow.funnelStateAvailable = typeof funnel === 'object' && funnel.version === 1 && typeof recordFunnelOnce === 'function' && typeof recordFunnelComparison === 'function';
               result.dataFlow.reminderSettingsRowVisible = getComputedStyle(document.getElementById('reminderSection')).display !== 'none' && getComputedStyle(document.getElementById('reminderRow')).display !== 'none';
               result.dataFlow.soundSettingsRowVisible = getComputedStyle(document.getElementById('soundRow')).display !== 'none' && document.getElementById('soundState').textContent === '开';
+              result.dataFlow.soundscapeSettingsRowVisible = getComputedStyle(document.getElementById('soundscapeRow')).display !== 'none' && document.querySelector('#soundscapeBox [data-scene="off"]').getAttribute('aria-pressed') === 'true';
               const reminderProbeIndex = CARDS.findIndex(card => card.target === '器');
               const reminderProbeKey = cardKey(reminderProbeIndex);
               const reminderProbeMemory = cloneObj(memory);
@@ -1254,6 +1258,8 @@ extension WebViewController: WKScriptMessageHandler {
             playHaptic(kind: body["kind"] as? String ?? "")
         case "sound":
             playPaperSound(kind: body["kind"] as? String ?? "")
+        case "soundscape":
+            configureAmbientAudioSession()
         case "syncReminder":
             syncReminder(body: body)
         case "requestReminderPermission":
@@ -1271,6 +1277,10 @@ extension WebViewController {
     private enum PaperSoundKind {
         case stamp
         case paper
+    }
+
+    private func configureAmbientAudioSession() {
+        try? AVAudioSession.sharedInstance().setCategory(.ambient, mode: .default, options: [.mixWithOthers])
     }
 
     private func makePaperSoundPlayer(kind: PaperSoundKind) -> AVAudioPlayer? {

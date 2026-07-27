@@ -72,7 +72,9 @@ assert(source.includes('navigator.vibrate(10)') && source.includes('animation="c
 assert(source.includes('OUTCOME_DOT={ fast:"transparent", hinted:"var(--gold)", slow:"var(--accent)"') && !/slow:\s*"var\(--blue\)"/.test(source), "Expected silent success, gold assistance, and cinnabar risk result semantics");
 assert(source.includes('if(!sound.enabled') && source.includes('{type:"sound",kind}') && source.includes('if(tracing) soundFeedback("paper")') && source.includes('soundFeedback("stamp")'), "Expected two-site, opt-out paper sound feedback with no disabled audio initialization");
 assert(source.includes("brushWidthFor") && source.includes("paintBrushStroke") && source.includes("brushStrokeLayer") && source.includes("compositeBrushLayer") && source.includes('pointer==="pen"') && source.includes('"destination-out"') && source.includes('"source-over"') && source.includes("paintInkBloom") && !source.includes("dryColor"), "Expected one shared pressure, taper, isolated dry-brush, and ink-bloom renderer");
-assert(webViewSource.includes("AVAudioSession.sharedInstance().setCategory(.ambient") && webViewSource.includes('case "sound"') && webViewSource.includes('content.userInfo = ["targetCardKey": question.targetCardKey]'), "Expected native ambient paper sounds and notification target metadata");
+assert(source.includes("SOUNDSCAPE_SCENES") && source.includes("ambientNoiseBuffer") && source.includes("syncAmbientForView") && !/function startAmbient[^{]*\{[^}]*sound\.enabled/.test(source), "Expected an independent, procedural, practice-only soundscape");
+assert(source.includes("enterWritingChrome") && source.includes("finishWritingChrome") && source.includes("setWritingChromeHidden") && source.includes("paperReveal") && source.includes("REST_LINES"), "Expected accessible stove-mode chrome, one-time paper reveal, and fixed closing microcopy");
+assert(webViewSource.includes("AVAudioSession.sharedInstance().setCategory(.ambient") && webViewSource.includes('case "sound"') && webViewSource.includes('case "soundscape"') && webViewSource.includes('content.userInfo = ["targetCardKey": question.targetCardKey]'), "Expected native ambient audio-session setup, paper sounds, and notification target metadata");
 assert(appDelegateSource.includes("didReceive response: UNNotificationResponse") && appDelegateSource.includes("openReminderTarget(cardKey: targetCardKey)"), "Expected notification taps to reach the Web practice target on cold or warm launch");
 
 function verifyBackupSummaryScript() {
@@ -687,13 +689,19 @@ let browser;
   const me = await page.evaluate(() => ({ visible: getComputedStyle(mePanel).display !== "none", calendar: !!calendarGrid.querySelector(".calendarDay"), groups: [meCalendar, openProfile, document.querySelector(".meMonthCard"), document.querySelector(".mePrimaryRows"), annualReportLink].filter(Boolean).length, noStats: !document.querySelector(".meStats"), settingsHidden: getComputedStyle(settingsPanel).display === "none" }));
   assert(me.visible && me.calendar && me.groups === 5 && me.noStats && me.settingsHidden, "Expected My to contain calendar, weak words, monthly work, two rows, and annual footer without naked statistic cards", me);
   await page.click("#openSettings");
-  const soundBefore = await page.evaluate(() => { const payload = JSON.parse(backupPayload()); return { pressed: soundRow.getAttribute("aria-pressed"), state: soundState.textContent, enabled: sound.enabled, backedUp: Object.prototype.hasOwnProperty.call(payload.data, SOUND_KEY) }; });
+  const soundBefore = await page.evaluate(() => { const payload = JSON.parse(backupPayload()); return { pressed: soundRow.getAttribute("aria-pressed"), state: soundState.textContent, enabled: sound.enabled, scene: sound.scene, scenePressed: document.querySelector('#soundscapeBox [data-scene="off"]').getAttribute("aria-pressed"), backedUp: Object.prototype.hasOwnProperty.call(payload.data, SOUND_KEY) }; });
   await page.click("#soundRow");
   const soundOff = await page.evaluate(() => { const contexts = soundDebug.contextCreated, events = soundDebug.events.length, played = soundFeedback("stamp"), payload = JSON.parse(backupPayload()); return { pressed: soundRow.getAttribute("aria-pressed"), state: soundState.textContent, enabled: sound.enabled, played, contextsBefore: contexts, contextsAfter: soundDebug.contextCreated, eventsBefore: events, eventsAfter: soundDebug.events.length, stored: JSON.parse(payload.data[SOUND_KEY]) }; });
-  assert(soundBefore.pressed === "true" && soundBefore.state === "开" && soundBefore.enabled && soundBefore.backedUp && soundOff.pressed === "false" && soundOff.state === "关" && !soundOff.enabled && !soundOff.played
-    && soundOff.contextsAfter === soundOff.contextsBefore && soundOff.eventsAfter === soundOff.eventsBefore && soundOff.stored.enabled === false,
+  assert(soundBefore.pressed === "true" && soundBefore.state === "开" && soundBefore.enabled && soundBefore.scene === "off" && soundBefore.scenePressed === "true" && soundBefore.backedUp && soundOff.pressed === "false" && soundOff.state === "关" && !soundOff.enabled && !soundOff.played
+    && soundOff.contextsAfter === soundOff.contextsBefore && soundOff.eventsAfter === soundOff.eventsBefore && soundOff.stored.enabled === false && soundOff.stored.scene === "off",
   "Expected an on-by-default backed-up sound setting and zero AudioContext/event work while disabled", { soundBefore, soundOff });
   await page.click("#soundRow");
+  const ambientStartsBeforeSetting = await page.evaluate(() => ambientDebug.starts);
+  await page.click('#soundscapeBox [data-scene="rain"]');
+  const soundscapeSetting = await page.evaluate(() => { const stored=JSON.parse(JSON.parse(backupPayload()).data[SOUND_KEY]); return { scene:sound.scene, paper:sound.enabled, rainPressed:document.querySelector('#soundscapeBox [data-scene="rain"]').getAttribute("aria-pressed"), starts:ambientDebug.starts, stored }; });
+  assert(soundscapeSetting.scene === "rain" && soundscapeSetting.paper && soundscapeSetting.rainPressed === "true" && soundscapeSetting.starts === ambientStartsBeforeSetting && soundscapeSetting.stored.scene === "rain",
+    "Expected the explicit rain setting to persist independently without starting outside practice", soundscapeSetting);
+  await page.click('#soundscapeBox [data-scene="off"]');
   const typeBefore = await page.evaluate(() => ({ title: parseFloat(getComputedStyle(document.querySelector(".settingsPanel h2")).fontSize), advice: parseFloat(getComputedStyle(reminderStatus).fontSize), pressed: fontScaleRow.getAttribute("aria-pressed") }));
   await page.click("#fontScaleRow");
   const typeAfter = await page.evaluate(() => { const payload = JSON.parse(backupPayload()); return { title: parseFloat(getComputedStyle(document.querySelector(".settingsPanel h2")).fontSize), advice: parseFloat(getComputedStyle(reminderStatus).fontSize), pressed: fontScaleRow.getAttribute("aria-pressed"), state: fontScaleState.textContent, stored: load(FONT_SCALE_KEY, false), backedUp: Object.prototype.hasOwnProperty.call(payload.data, FONT_SCALE_KEY) }; });
@@ -750,18 +758,73 @@ let browser;
     status = {}; memory = {}; fsrsReviewLog = []; quality = {}; sessionDone = new Set();
     tuning = { calibrated: true, offset: 0, contextStrict: 0, rounds: [] };
     save(DECK_KEY, status); saveMemory(); saveFSRSLog(); saveQuality(); saveTuning(); clearSessionSnapshot();
-    addWord("强"); addWord("器"); activeMode = "new"; startRound();
+    sound.enabled = false; sound.scene = "rain"; saveSound(); ambientDebug.starts = 0; ambientDebug.stops = 0; ambientDebug.events = [];
+    addWord("强"); addWord("器"); activeMode = "new"; roundOpeningPending = true; startRound(); window.__openingAtStart = practiceArea.classList.contains("opening");
   });
   await waitForWriter(page);
   const queuedStart = await page.evaluate(() => ({
     targets: baseTargets.slice(0, 2).map((idx) => CARDS[idx].target).join(""),
     current: cur.target,
     flags: indexesForChars(["强", "器"]).map((idx) => !!(memory[cardKey(idx)] || {}).queuedFront),
+    opening: window.__openingAtStart, openingConsumed: !roundOpeningPending && playRoundOpening() === false,
+    ambient: { scene: ambientScene, starts: ambientDebug.starts, paperEnabled: sound.enabled },
   }));
-  assert(queuedStart.targets === "强器" && queuedStart.current === "强" && queuedStart.flags.every(Boolean), "Expected newly added characters to lead a real non-calibration round in entry order", queuedStart);
+  assert(queuedStart.targets === "强器" && queuedStart.current === "强" && queuedStart.flags.every(Boolean) && queuedStart.opening && queuedStart.openingConsumed
+    && queuedStart.ambient.scene === "rain" && queuedStart.ambient.starts === 1 && !queuedStart.ambient.paperEnabled,
+  "Expected queued cards, a once-only opening reveal, and rain independent from paper sounds", queuedStart);
+
+  const ambientLifecycle = await page.evaluate(async () => {
+    stopAmbient(true); const originalContext=ambientAudioContext, sources=[];
+    const mockContext={sampleRate:80,currentTime:0,state:"running",destination:{},resume(){},
+      createBuffer(_channels,length){ const data=new Float32Array(length); return {getChannelData:()=>data}; },
+      createBufferSource(){ const source={loop:false,started:0,stopCalls:0,connect(){},start(){ this.started++; },stop(){ this.stopCalls++; }}; sources.push(source); return source; },
+      createGain(){ const gain={value:.04,cancelScheduledValues(){},setValueAtTime(value){ this.value=value; },linearRampToValueAtTime(value){ this.value=value; }}; return {gain,connect(){}}; },
+      createBiquadFilter(){ return {type:"",frequency:{value:0},Q:{value:0},connect(){}}; }};
+    ambientAudioContext=mockContext; startAmbient("rain"); stopAmbient(false); startAmbient("rain"); startAmbient("fire"); stopAmbient(false);
+    await new Promise(resolve=>setTimeout(resolve,560)); startAmbient("rain");
+    const result={sources:sources.map(source=>({started:source.started,stops:source.stopCalls})), pending:ambientStopTasks.size,
+      active:sources.filter(source=>source.stopCalls===0).length, activeIsLatest:ambientSource===sources[sources.length-1], scene:ambientScene};
+    stopAmbient(true); ambientAudioContext=originalContext; startAmbient(sound.scene); return result;
+  });
+  assert(ambientLifecycle.sources.length === 4 && ambientLifecycle.sources.slice(0,-1).every(source => source.started === 1 && source.stops === 1)
+    && ambientLifecycle.sources.at(-1).started === 1 && ambientLifecycle.sources.at(-1).stops === 0 && ambientLifecycle.pending === 0 && ambientLifecycle.active === 1 && ambientLifecycle.activeIsLatest && ambientLifecycle.scene === "rain",
+  "Expected rapid leave/return and scene changes to stop every old loop exactly once and retain only the latest source", ambientLifecycle);
+
+  const stoveFirstDown = await page.evaluate(() => {
+    tuning.chromeFadeSeen = false; saveTuning(); resetWritingChrome(); clearInk(); done.disabled=false; done.focus(); const focusedBefore=document.activeElement===done, rect=inkCanvas.getBoundingClientRect();
+    const pointer=(type,x,y,buttons)=>new PointerEvent(type,{bubbles:true,cancelable:true,pointerId:72001,pointerType:"touch",isPrimary:true,button:0,buttons,clientX:rect.left+x,clientY:rect.top+y});
+    inkCanvas.dispatchEvent(pointer("pointerdown",30,34,1)); const down={writing:card.classList.contains("writing"),header:getComputedStyle(document.querySelector(".chdr")).opacity};
+    inkCanvas.dispatchEvent(pointer("pointermove",92,96,1)); inkCanvas.dispatchEvent(pointer("pointerup",92,96,0));
+    done.focus(); const hiddenNodes=writingChromeNodes(), completed={writing:card.classList.contains("writing"),seen:tuning.chromeFadeSeen,stored:load(TUNING_KEY,{}).chromeFadeSeen,actionsPointer:getComputedStyle(actions).pointerEvents,toolOpacity:Number(getComputedStyle(tip).opacity),
+      focusedBefore,focusBlocked:document.activeElement!==done,focusOutside:hiddenNodes.every(node=>node!==document.activeElement&&!node.contains(document.activeElement)),inert:hiddenNodes.every(node=>node.inert&&node.getAttribute("aria-hidden")==="true"),toolsAvailable:[tip,undoStroke,clear].every(node=>!node.inert&&node.getAttribute("aria-hidden")!=="true")};
+    return {down,done:completed};
+  });
+  await page.waitForFunction(() => card.classList.contains("writing") && Number(getComputedStyle(document.querySelector(".chdr")).opacity) <= .01 && Number(getComputedStyle(actions).opacity) <= .01);
+  await page.keyboard.press("Enter");
+  const stoveFaded = await page.evaluate(() => ({ header:Number(getComputedStyle(document.querySelector(".chdr")).opacity), actions:Number(getComputedStyle(actions).opacity) }));
+  assert(!stoveFirstDown.down.writing && Number(stoveFirstDown.down.header) === 1 && stoveFirstDown.done.writing && stoveFirstDown.done.seen && stoveFirstDown.done.stored
+    && stoveFaded.header <= .01 && stoveFaded.actions <= .01 && stoveFirstDown.done.actionsPointer === "none" && stoveFirstDown.done.toolOpacity > 0.25 && stoveFirstDown.done.toolOpacity < 0.35
+    && stoveFirstDown.done.focusedBefore && stoveFirstDown.done.focusBlocked && stoveFirstDown.done.focusOutside && stoveFirstDown.done.inert && stoveFirstDown.done.toolsAvailable && !await page.evaluate(() => revealed),
+  "Expected the first-ever stroke to hide and inert chrome without exposing its actions or corner tools to the wrong accessibility state", { stoveFirstDown, stoveFaded });
+  await page.waitForFunction(() => !card.classList.contains("writing") && Number(getComputedStyle(document.querySelector(".chdr")).opacity) >= .99 && Number(getComputedStyle(actions).opacity) >= .99, null, { timeout: 3000 });
+  const stoveReturnAndSecond = await page.evaluate(() => {
+    const returned=!card.classList.contains("writing") && Number(getComputedStyle(document.querySelector(".chdr")).opacity) >= .99 && writingChromeNodes().every(node=>!node.inert&&node.getAttribute("aria-hidden")!=="true"), rect=inkCanvas.getBoundingClientRect();
+    const pointer=(type,x,y,buttons)=>new PointerEvent(type,{bubbles:true,cancelable:true,pointerId:72002,pointerType:"touch",isPrimary:true,button:0,buttons,clientX:rect.left+x,clientY:rect.top+y});
+    inkCanvas.dispatchEvent(pointer("pointerdown",44,50,1)); const immediate=card.classList.contains("writing");
+    inkCanvas.dispatchEvent(pointer("pointermove",98,103,1)); inkCanvas.dispatchEvent(pointer("pointerup",98,103,0)); clearInk();
+    return {returned,immediate};
+  });
+  await page.waitForFunction(() => card.classList.contains("writing") && Number(getComputedStyle(document.querySelector(".chdr")).opacity) <= .01);
+  const stoveSecondFaded = await page.evaluate(() => {
+    const faded=Number(getComputedStyle(document.querySelector(".chdr")).opacity) <= .01; resetWritingChrome(); unlockGradeActions();
+    const original=window.matchMedia; window.matchMedia=()=>({matches:true}); roundOpeningPending=true; const reducedOpening=playRoundOpening(); const direct=!practiceArea.classList.contains("opening"); window.matchMedia=original;
+    return {faded,reducedOpening,direct};
+  });
+  assert(stoveReturnAndSecond.returned && stoveReturnAndSecond.immediate && stoveSecondFaded.faded && !stoveSecondFaded.reducedOpening && stoveSecondFaded.direct,
+    "Expected two-second chrome return, immediate later-stroke fade, and direct reduced-motion opening", { stoveReturnAndSecond, stoveSecondFaded });
 
   await submitStandard(page);
-  await page.evaluate(() => { soundDebug.events = []; soundDebug.last = null; sound.tipShown = false; saveSound(); });
+  await page.evaluate(() => { sound.enabled = true; soundDebug.events = []; soundDebug.last = null; sound.tipShown = false; saveSound(); });
   await chooseCorrect(page);
   const stampSound = await page.evaluate(() => ({ last: soundDebug.last, events: soundDebug.events.slice(), tipShown: sound.tipShown, tip: document.getElementById("toast").textContent, contextCreated: soundDebug.contextCreated }));
   assert(stampSound.last === "stamp" && stampSound.events.join() === "stamp" && stampSound.tipShown && stampSound.tip.includes("盖章有声音了") && stampSound.contextCreated >= 1,
@@ -1271,7 +1334,7 @@ let browser;
   assert(afterHint.baseCursor === 1 && afterHint.attemptSeq === 1 && afterHint.unresolved.length === 1 && afterHint.queue[0].eligibleAfter === 3 && afterHint.target !== firstTarget, "Expected feedback click to advance immediately while a double click cannot cross two cards", afterHint);
 
   const undoLayout = await page.evaluate(() => {
-    renderUndoBar();
+    resetWritingChrome(); renderUndoBar();
     const snapshot = lastStampSnapshot; const canvas = inkCanvas; const rect = canvas.getBoundingClientRect();
     const beforeTop = boxwrap.getBoundingClientRect().top; const style = getComputedStyle(undoBar), header = document.querySelector(".chdr");
     const headerReplaced = getComputedStyle(header).visibility === "hidden" && card.classList.contains("undoActive");
@@ -1279,7 +1342,7 @@ let browser;
     canvas.dispatchEvent(pointer("pointerdown", 1)); canvas.dispatchEvent(pointer("pointerup", 0));
     const hiddenOnWrite = getComputedStyle(undoBar).display === "none" && getComputedStyle(header).visibility === "visible" && !card.classList.contains("undoActive");
     const afterTop = boxwrap.getBoundingClientRect().top;
-    clearInk(); actionCooldownUntil = 0; lastStampSnapshot = snapshot; renderUndoBar();
+    clearInk(); resetWritingChrome(); actionCooldownUntil = 0; lastStampSnapshot = snapshot; renderUndoBar();
     const bar = undoBar.getBoundingClientRect(); const promptRect = document.getElementById("prompt").getBoundingClientRect();
     const noOverlap = bar.bottom <= promptRect.top || bar.top >= promptRect.bottom || bar.right <= promptRect.left || bar.left >= promptRect.right;
     return { position: style.position, headerReplaced, hiddenOnWrite, shift: Math.abs(afterTop - beforeTop), restored: getComputedStyle(undoBar).display !== "none" && getComputedStyle(header).visibility === "hidden", noOverlap };
@@ -1317,11 +1380,15 @@ let browser;
     session: localStorage.getItem(SESSION_KEY),
     tomorrow: shiftDay(today(), 1),
     memory: cloneObj(memory),
+    restLine: summaryRestLine.textContent,
+    restKnown: REST_LINES.includes(summaryRestLine.textContent),
+    ambient: { scene: ambientScene, stops: ambientDebug.stops },
   }));
   assert(completed.summary && completed.stats.length === 3 && completed.stats[0].outcome === "hinted" && completed.stats[0].independentlyRecovered && completed.stats.some((row) => row.handwriting && row.handwriting.length) && completed.stats.flatMap((row) => row.handwriting || []).every((stroke) => stroke.length <= 48), "Expected one summary tile per base target with compact captured user ink", completed.stats);
   assert(completed.log.map((event) => event.rating).join() === "Again,Good,Good,Good" && completed.log.every((event) => !["Hard", "Easy"].includes(event.rating)), "Expected Again/Good-only FSRS events", completed.log);
   assert(completed.activity.stamps === 3 && completed.activity.attempts === 4 && completed.groups === 1 && completed.session === null, "Expected unique-day counts, attempt counts, and true completion", completed.activity);
   assert(Object.values(completed.memory).every((item) => !item.pendingLearning && item.dueDay >= completed.tomorrow && item.schedulerVersion.includes("FSRS-6.0")), "Expected graduated cards to expose next-day-or-later dueDay", completed.memory);
+  assert(completed.restKnown && completed.restLine.length > 0 && completed.ambient.scene === "off" && completed.ambient.stops >= 1, "Expected one fixed-library closing line and soundscape fade on summary", completed);
 
   const summaryEntry = await page.evaluate(() => ({ visible: getComputedStyle(summaryProfile).display !== "none", label: summaryProfile.textContent.trim() }));
   assert(summaryEntry.visible && summaryEntry.label.includes("看看你卡在哪"), "Expected a hard-result summary to expose Profile", summaryEntry);
@@ -1416,8 +1483,10 @@ let browser;
     && dontKnow.haptics.join() === "select" && !dontKnow.shown && dontKnow.attempts === 1 && dontKnow.unresolved === 1,
   "Expected don't-know to enter non-blocking tracing immediately with one miss/Again", dontKnow);
   await page.evaluate(() => { soundDebug.events = []; soundDebug.last = null; lastPaperSoundAt = 0; inkBegin({ x: 20, y: 20 }); inkMove({ x: 80, y: 80 }); inkEnd(); });
-  const traceStart = await page.evaluate(() => ({ title: phaseTitle.textContent, disabled: traceDone.disabled, introHidden: getComputedStyle(traceIntro).display === "none", shown: traceTutorialShown, stored: load(TRACE_TUTORIAL_KEY, false), sound: soundDebug.events.slice() }));
-  assert(traceStart.title.includes("1/2 描写") && !traceStart.disabled && traceStart.introHidden && traceStart.shown && traceStart.stored && traceStart.sound.join() === "paper", "Expected first valid trace to dismiss the explanation and emit only the quiet paper-start sound", traceStart);
+  await page.waitForTimeout(230);
+  const traceStart = await page.evaluate(() => ({ title: phaseTitle.textContent, disabled: traceDone.disabled, introHidden: getComputedStyle(traceIntro).display === "none", shown: traceTutorialShown, stored: load(TRACE_TUTORIAL_KEY, false), sound: soundDebug.events.slice(), writing:card.classList.contains("writing"), chrome:Number(getComputedStyle(phaseTitle).opacity) }));
+  assert(traceStart.title.includes("1/2 描写") && !traceStart.disabled && traceStart.introHidden && traceStart.shown && traceStart.stored && traceStart.sound.join() === "paper" && traceStart.writing && traceStart.chrome === 0,
+    "Expected tracing to share stove mode while dismissing the explanation and emitting only the quiet paper-start sound", traceStart);
   await page.evaluate(() => { saveSessionSnapshot(); restoreSession(load(SESSION_KEY, null)); });
   await page.waitForFunction(() => pendingSessionVisual === null && practicePhase === "tracing" && tracedThisCard && inkStrokes.length === 1);
   const restoredTracing = await page.evaluate(() => ({ phase: practicePhase, title: phaseTitle.textContent, outline: hzEl.childNodes.length > 0 || hzEl.classList.contains("traceFallback"), ink: inkStrokes.length }));
@@ -1598,7 +1667,7 @@ let browser;
       resetReason: resetSafety && resetSafety.reason, overwrittenReason: overwrittenSafety && overwrittenSafety.reason, latestRestored, safetyExcluded: !Object.prototype.hasOwnProperty.call(original.data, SAFETY_KEY) };
     localStorage.removeItem("shizi.unknown.verify"); return result;
   });
-  assert(backup.keys.includes(SESSION_STORAGE_KEY) && backup.sessionVersion === 2 && backup.fsrsLog && backup.tutorial === "true" && backup.funnelVersion === 1 && backup.sound.enabled === true && backup.restoredKeys.includes(SESSION_STORAGE_KEY) && backup.unknown === "keep-local", "Expected session/FSRS/tutorial/funnel/sound backup round trip with allowlist isolation", backup);
+  assert(backup.keys.includes(SESSION_STORAGE_KEY) && backup.sessionVersion === 2 && backup.fsrsLog && backup.tutorial === "true" && backup.funnelVersion === 1 && backup.sound.enabled === true && backup.sound.scene === "rain" && backup.restoredKeys.includes(SESSION_STORAGE_KEY) && backup.unknown === "keep-local", "Expected session/FSRS/tutorial/funnel/soundscape backup round trip with allowlist isolation", backup);
   assert(backup.cancelled && backup.confirmCopy.includes("当前 2 字（最后练习 2026-07-11）→ 备份 1 字（2026-06-01）") && backup.incomingApplied && backup.safetyReason === "restore" && backup.undoOffered && backup.undoApplied && backup.currentRestored, "Expected differential restore confirmation and one-tap safety undo", backup);
   assert(backup.resetReason === "reset" && backup.overwrittenReason === "restore" && backup.latestRestored && backup.safetyExcluded, "Expected reset safety copy, latest-operation replacement, and backup exclusion", backup);
 

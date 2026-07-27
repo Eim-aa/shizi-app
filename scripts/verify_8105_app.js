@@ -90,7 +90,7 @@ assert(mottoFixture.entries.find((entry) => entry.text === "传不习乎")?.auth
   && mottoFixture.entries.find((entry) => entry.text === "如切如磋，如琢如磨")?.source === "诗经·卫风·淇奥",
 "Expected the reviewed fixture to preserve the corrected Zengzi and Classic of Poetry attributions");
 
-assert(swSource.includes("shizi-v10") && swSource.includes("'data/etymology.json'") && swSource.includes("Promise.allSettled") && swSource.includes("INSTALL_BATCH_SIZE = 40") && swSource.includes("cacheCoreStrokes"), "Expected versioned, offline etymology and failure-tolerant core stroke installation");
+assert(swSource.includes("shizi-v11") && swSource.includes("'data/etymology.json'") && swSource.includes("Promise.allSettled") && swSource.includes("INSTALL_BATCH_SIZE = 40") && swSource.includes("cacheCoreStrokes"), "Expected versioned, offline etymology and failure-tolerant core stroke installation");
 assert(swSource.includes("data/context-overrides.js") && source.includes('<script src="data/context-overrides.js"></script>') && contextOverrideSource.includes("CONTEXT_OVERRIDES"), "Expected context overrides in both online and offline shells");
 assert(coreStrokeSource.includes("SHIZI_CORE_STROKES") && coreStrokeSource.includes("slice(0,600)"), "Expected a generated 600-character core stroke list");
 assert(Array.isArray(etymology) && etymology.length === etymologyCoverage.totals.entries && new Set(etymology.map((row) => row.char)).size === etymology.length
@@ -568,8 +568,8 @@ let browser;
   const coreBytes = coreStrokes.chars.reduce((sum, char) => sum + fs.statSync(path.join(root, "data", `${char}.json`)).size, 0);
   assert(coreStrokes.chars.length === 600 && new Set(coreStrokes.chars).size === 600 && coreStrokes.calibration === "尴嚏狩晤飓痿俾跻徵瞰裘娩邃暧煲" && missingCoreFiles.length === 0 && coreBytes >= 1024 * 1024 && coreBytes <= 2 * 1024 * 1024,
   "Expected 600 unique core files including the exact first calibration group within the 1-2 MiB target", { count: coreStrokes.chars.length, calibration: coreStrokes.calibration, missingCoreFiles, coreBytes });
-  await page.waitForFunction(async () => { const cache = await caches.open("shizi-v10"), keys = await cache.keys(); return keys.filter((request) => new URL(request.url).pathname.includes("/data/")).length >= 602; }, null, { timeout: 30000 });
-  const coreCache = await page.evaluate(async () => { const cache = await caches.open("shizi-v10"), keys = await cache.keys(); return { core: keys.filter((request) => new URL(request.url).pathname.includes("/data/") && !new URL(request.url).pathname.endsWith("context-overrides.js") && !new URL(request.url).pathname.endsWith("etymology.json")).length, shell: !!(await cache.match("core-strokes.js")), etymology: !!(await cache.match("data/etymology.json")), contexts: !!(await cache.match("data/context-overrides.js")) }; });
+  await page.waitForFunction(async () => { const cache = await caches.open("shizi-v11"), keys = await cache.keys(); return keys.filter((request) => new URL(request.url).pathname.includes("/data/")).length >= 602; }, null, { timeout: 30000 });
+  const coreCache = await page.evaluate(async () => { const cache = await caches.open("shizi-v11"), keys = await cache.keys(); return { core: keys.filter((request) => new URL(request.url).pathname.includes("/data/") && !new URL(request.url).pathname.endsWith("context-overrides.js") && !new URL(request.url).pathname.endsWith("etymology.json")).length, shell: !!(await cache.match("core-strokes.js")), etymology: !!(await cache.match("data/etymology.json")), contexts: !!(await cache.match("data/context-overrides.js")) }; });
   assert(coreCache.core >= 600 && coreCache.shell && coreCache.etymology && coreCache.contexts, "Expected the service worker to install all core strokes, etymology, context overrides, and retain runtime-fetched extras", coreCache);
 
   const dailyRitual = await page.evaluate(() => {
@@ -1000,13 +1000,13 @@ let browser;
     flags: indexesForChars(["强", "器"]).map((idx) => !!(memory[cardKey(idx)] || {}).queuedFront),
     size: baseTargets.length,
     unique: new Set(baseTargets).size,
-    adultOnly: baseTargets.every((idx) => cardLevel(idx) !== "小学" && contextSource(idx) !== "fallback"),
+    calibrationReady: baseTargets.every((idx) => cardDifficultyBand(idx) !== "入门" && contextSource(idx) !== "fallback"),
     labels: { show: show.textContent, done: done.textContent, noNext: !document.getElementById("nextBtn") },
     helpReady: !show.disabled && !show.classList.contains("tlock") && !tip.classList.contains("tlock"),
     helpCopy: mascotLine.textContent,
     touch: { done: getComputedStyle(done).touchAction, tab: getComputedStyle(tabPractice).touchAction },
   }));
-  assert(calibrationQueue.front === "尴嚏" && calibrationQueue.tail.every((row) => row.difficulty <= 85) && calibrationQueue.flags.every(Boolean) && calibrationQueue.size === 15 && calibrationQueue.unique === 15 && calibrationQueue.adultOnly
+  assert(calibrationQueue.front === "尴嚏" && calibrationQueue.tail.every((row) => row.difficulty <= 85) && calibrationQueue.flags.every(Boolean) && calibrationQueue.size === 15 && calibrationQueue.unique === 15 && calibrationQueue.calibrationReady
     && calibrationQueue.helpReady && calibrationQueue.helpCopy.includes("写不出就点")
     && calibrationQueue.labels.show === "不会写" && calibrationQueue.labels.done === "写好了" && calibrationQueue.labels.noNext && calibrationQueue.touch.done === "manipulation" && calibrationQueue.touch.tab === "manipulation",
   "Expected calibration hooks, capped finish, and immediately available first-card help", calibrationQueue);
@@ -2008,7 +2008,12 @@ let browser;
     memory = {}; status = {}; quality = {}; sessionDone = new Set();
     preference = "balanced";
     tuning = { ...tuning, calibrated: true, contextStrict: 4 };
-    const expected = { core3500: 3500, adv3000: 2868, rare: 486, primary: 283, junior: 911, senior: 2097 };
+    const expected = {
+      core3500: { available: 3500, official: 3500 },
+      adv3000: { available: 2868, official: 3000 },
+      rare: { available: 486, official: 1605 },
+      curriculum2500: { available: 2500, official: 2500 },
+    };
     const rows = LIBRARIES.map((lib) => {
       setLibrary(lib.id);
       tuning.contextStrict = 4;
@@ -2017,7 +2022,7 @@ let browser;
       const strict0 = newPool(false);
       const counts = libraryCounts(lib);
       return {
-        id: lib.id, name: lib.name, total: counts.total, expected: expected[lib.id],
+        id: lib.id, name: lib.name, total: counts.total, officialTotal: counts.officialTotal, expected: expected[lib.id],
         strict0: strict0.length, strict4: strict4.length,
         unique: new Set(strict4.map((idx) => CARDS[idx].target)).size,
         belongs: strict4.every((idx) => lib.test(CARDS[idx])),
@@ -2043,6 +2048,9 @@ let browser;
     const practicalMigration = normalizeLibrary(null).id;
     preference = "challenge";
     const challengeMigration = normalizeLibrary(null).id;
+    const legacyPrimary = normalizeLibrary({ id: "primary", userSelected: true });
+    const legacyJunior = normalizeLibrary({ id: "junior", userSelected: true });
+    const legacySenior = normalizeLibrary({ id: "senior", userSelected: true });
 
     const calibrationIndexes = allIndexes().slice(0, 15);
     const completeChallengeCalibration = (manualLibrary = "") => {
@@ -2057,9 +2065,9 @@ let browser;
       return { before, preference, id: libraryState.id, userSelected: libraryState.userSelected, stored: load(LIB_KEY, null) };
     };
     const freshCalibration = completeChallengeCalibration();
-    const manualCalibration = completeChallengeCalibration("junior");
+    const manualCalibration = completeChallengeCalibration("curriculum2500");
 
-    setLibrary("junior");
+    setLibrary("curriculum2500");
     renderBook();
     openLibSheet();
     const ui = {
@@ -2067,6 +2075,8 @@ let browser;
       rows: libList.querySelectorAll("[data-lib]").length,
       active: libList.querySelectorAll(".active").length,
       reassurance: libSheet.textContent.includes("换库不丢任何东西") && libSheet.textContent.includes("复习照常跨库进行"),
+      transparentCoverage: libSheet.textContent.includes("官方 3000") && libSheet.textContent.includes("官方 1605"),
+      noSchoolClaims: !/小学|初中|高中/.test(libSheet.textContent),
       noUnapprovedProgress: !document.getElementById("libCard").querySelector(".libBar,.libTones") && !libList.querySelector(".libBar") && !/拾完|手速|墨色进度/.test(libSheet.textContent + libCard.textContent),
       settings: (() => { closeLibSheet(); renderSettings(false); return settingsLibName.textContent; })(),
     };
@@ -2083,21 +2093,23 @@ let browser;
     closeLibSheet(); renderHome();
     return {
       rows, crossLibraryReview, rareNewOnly, searchAcrossLibrary,
-      migration: { balancedMigration, practicalMigration, challengeMigration },
+      migration: { balancedMigration, practicalMigration, challengeMigration, legacyPrimary, legacyJunior, legacySenior },
       calibration: { fresh: freshCalibration, manual: manualCalibration }, ui, restoredLibrary,
     };
   });
-  assert(libraries.rows.length === 6 && libraries.rows.every((row) => row.total === row.expected && row.strict0 === row.total && row.strict4 === row.total && row.unique === row.total && row.belongs) && libraries.rows.some((row) => row.fallbacks > 0),
-    "Expected all six library totals to remain fully reachable at context strictness 0 and 4, including fallback-context characters", libraries);
+  assert(libraries.rows.length === 4 && libraries.rows.every((row) => row.total === row.expected.available && row.officialTotal === row.expected.official && row.strict0 === row.total && row.strict4 === row.total && row.unique === row.total && row.belongs) && libraries.rows.some((row) => row.fallbacks > 0),
+    "Expected four source-backed library totals to remain fully reachable while distinguishing practice availability from official totals", libraries);
   assert(libraries.crossLibraryReview && libraries.rareNewOnly && libraries.searchAcrossLibrary,
     "Expected the selected library to scope only new characters while review and search remain cross-library", libraries);
-  assert(libraries.migration.balancedMigration === "core3500" && libraries.migration.practicalMigration === "core3500" && libraries.migration.challengeMigration === "adv3000" && libraries.restoredLibrary === "junior",
-    "Expected old preference migration and library backup/restore to preserve the selected library", libraries);
+  assert(libraries.migration.balancedMigration === "core3500" && libraries.migration.practicalMigration === "core3500" && libraries.migration.challengeMigration === "adv3000" && libraries.restoredLibrary === "curriculum2500"
+    && libraries.migration.legacyPrimary.id === "curriculum2500" && libraries.migration.legacyJunior.id === "core3500" && libraries.migration.legacySenior.id === "core3500"
+    && libraries.migration.legacyPrimary.userSelected && libraries.migration.legacyJunior.userSelected && libraries.migration.legacySenior.userSelected,
+    "Expected old preference and retired school-library migrations plus backup restore to preserve an explicit source-backed choice", libraries);
   assert(libraries.calibration.fresh.before.id === "core3500" && !libraries.calibration.fresh.before.userSelected && libraries.calibration.fresh.preference === "challenge" && libraries.calibration.fresh.id === "adv3000" && !libraries.calibration.fresh.userSelected && libraries.calibration.fresh.stored.id === "adv3000"
-    && libraries.calibration.manual.before.id === "junior" && libraries.calibration.manual.before.userSelected && libraries.calibration.manual.preference === "challenge" && libraries.calibration.manual.id === "junior" && libraries.calibration.manual.userSelected,
+    && libraries.calibration.manual.before.id === "curriculum2500" && libraries.calibration.manual.before.userSelected && libraries.calibration.manual.preference === "challenge" && libraries.calibration.manual.id === "curriculum2500" && libraries.calibration.manual.userSelected,
     "Expected a real first-install challenge calibration to advance only the untouched default library while preserving a manual choice", libraries.calibration);
-  assert(libraries.ui.card === "初中" && libraries.ui.settings === "初中" && libraries.ui.rows === 6 && libraries.ui.active === 1 && libraries.ui.reassurance && libraries.ui.noUnapprovedProgress,
-    "Expected one honest six-library selector in the library and settings surfaces", libraries);
+  assert(libraries.ui.card === "义教基础字" && libraries.ui.settings === "义教基础字" && libraries.ui.rows === 4 && libraries.ui.active === 1 && libraries.ui.reassurance && libraries.ui.transparentCoverage && libraries.ui.noSchoolClaims && libraries.ui.noUnapprovedProgress,
+    "Expected one source-backed selector with transparent official/practice counts and no unsupported school-stage claims", libraries);
 
   const backup = await page.evaluate(() => {
     const original = JSON.parse(backupPayload({ preserveMeta: true })), originalMemory = cloneObj(memory);

@@ -567,3 +567,9 @@
 ```bash
 NODE_PATH=/Users/orange/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules /Users/orange/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node scripts/verify_8105_app.js
 ```
+## 2026-07-28 - 字库来源与口径治理
+
+- 移除由算法书写难度伪装成教育阶段的“小学 / 初中 / 高中”字库；原五档改名为入门、基础、进阶、较难、挑战，只用于内部排序与校准。
+- 在《通用规范汉字表（2013）》三级来源之外，加入《义务教育语文课程标准（2022年版）》附录5字表一 2500 字的逐字来源；字表二 1000 字由一级字表减去字表一严格推导。
+- 在学字库收为规范常用字、规范次常用字、规范专门用字、义教基础字四库。界面同时区分当前可练数与官方总数，不再使用“日常读写九成五”或把三级字笼统称为生僻字。
+- 新增 `generated/library-governance.json` 与 `scripts/verify_library_governance.py`，锁定 8105 字官方分级、课程字表集合、来源哈希、6854 个可练字和 1251 个不可练字的逐项原因；旧小学/初中/高中选择有确定迁移路径。

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import json
+import hashlib
 import logging
 import math
 import re
@@ -22,14 +23,19 @@ LEVEL_PATHS = [
 ]
 HANZI_DB_PATH = SRC_DIR / "hanzi_db.json"
 JIEBA_DICT_PATH = SRC_DIR / "jieba_dict.txt"
+CURRICULUM_PATH = SRC_DIR / "curriculum-common-2500.txt"
 PY_DEPS = ROOT / ".python-deps"
 DECK_KEY = "shizi.deck.v8105.context1"
 GENERATED_JSON = "selected_8105_candidates.json"
 COVERAGE_JSON = "hanzi_writer_coverage.json"
+LIBRARY_AUDIT_JSON = "library-governance.json"
 CORE_STROKE_SCRIPT = "core-strokes.js"
 CORE_STROKE_COUNT = 600
 CALIBRATION_CORE_CHARS = ["尴", "嚏", "狩", "晤", "飓", "痿", "俾", "跻", "徵", "瞰", "裘", "娩", "邃", "暧", "煲"]
 HANZI_WRITER_FLAT_URL = "https://data.jsdelivr.com/v1/package/npm/hanzi-writer-data@2.0.1/flat"
+NORMATIVE_SOURCE_URL = "https://www.gov.cn/gzdt/att/att/site1/20130819/tygfhzb.pdf"
+CURRICULUM_SOURCE_URL = "https://hudong.moe.gov.cn/srcsite/A26/s8001/202204/W020220420582344386456.pdf"
+CURRICULUM_SOURCE_SHA256 = "3ef0ec8a30b5a950211202658df07d99f5427f750f8ba0c3cfda12736b7bd71a"
 if PY_DEPS.exists():
     sys.path.insert(0, str(PY_DEPS))
 
@@ -252,16 +258,16 @@ def calc_difficulty(item, context):
     return round(max(1, min(100, score)))
 
 
-def difficulty_level(score):
+def difficulty_band(score):
     if score < 35:
-        return "小学"
+        return "入门"
     if score < 52:
-        return "初中"
+        return "基础"
     if score < 68:
-        return "高中"
+        return "进阶"
     if score < 84:
-        return "大学"
-    return "专业"
+        return "较难"
+    return "挑战"
 
 
 def read_make_me_hanzi():
@@ -294,6 +300,17 @@ def read_standard_table():
                 "standard_order": len(rows) + 1,
             })
     return rows
+
+
+def read_curriculum_table_one():
+    chars = list("".join(CURRICULUM_PATH.read_text(encoding="utf-8").split()))
+    if len(chars) != 2500 or len(set(chars)) != 2500 or any(not CJK_RE.match(ch) for ch in chars):
+        raise RuntimeError("The curriculum table-one source must contain exactly 2500 unique Han characters")
+    return chars
+
+
+def file_sha256(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def read_hanzi_writer_available_chars():
@@ -505,7 +522,7 @@ def score_candidate(row, groups):
     return score
 
 
-def choose_candidates(mm, standard_rows, hanzi_db_rows, hanzi_writer_chars):
+def choose_candidates(mm, standard_rows, hanzi_db_rows, hanzi_writer_chars, curriculum_table_one):
     resolve_groups = build_group_resolver(mm)
     rows_by_char = {}
     for row in hanzi_db_rows:
@@ -541,6 +558,7 @@ def choose_candidates(mm, standard_rows, hanzi_db_rows, hanzi_writer_chars):
             "norm_level": standard["norm_level"],
             "norm_level_index": standard["norm_level_index"],
             "norm_level_order": standard["norm_level_order"],
+            "curriculum_table": "表一" if ch in curriculum_table_one else ("表二" if standard["norm_level"] == "一级" else None),
             "stroke_count": strokes,
             "groups": groups,
             "decomposition": mm[ch].get("decomposition", ""),
@@ -664,7 +682,7 @@ def patch_index(chosen, word_index):
         context = choose_context(item, word_index)
         topic = infer_topic(context["word"], item)
         difficulty = calc_difficulty(item, context)
-        level = difficulty_level(difficulty)
+        band = difficulty_band(difficulty)
         item["context_word"] = context["word"]
         item["context_index"] = context["ci"]
         item["context_pinyin"] = context["py"]
@@ -674,10 +692,10 @@ def patch_index(chosen, word_index):
         item["context_source"] = context["context_source"]
         item["topic"] = topic
         item["difficulty"] = difficulty
-        item["level"] = level
+        item["difficulty_band"] = band
         seed.append({
             "py": context["py"],
-            "hint": f"{item['norm_level']} · {level} · 常用语境 · {item['stroke_count']}画 · {len(item['groups'])}个部件 · 字频#{item['frequency_rank'] if item['frequency_rank'] < 999999 else '未收录'}",
+            "hint": f"{item['norm_level']} · 书写{band} · 常用语境 · {item['stroke_count']}画 · {len(item['groups'])}个部件 · 字频#{item['frequency_rank'] if item['frequency_rank'] < 999999 else '未收录'}",
             "ans": context["word"],
             "ci": context["ci"],
             "target": item["character"],
@@ -686,7 +704,8 @@ def patch_index(chosen, word_index):
             "parts": len(item["groups"]),
             "topic": topic,
             "d": difficulty,
-            "level": level,
+            "band": band,
+            "edu": item["curriculum_table"],
             "common": round(context["commonness"] or 0, 2),
             "norm": item["norm_level"],
             "std": item["standard_order"],
@@ -722,11 +741,76 @@ def patch_index(chosen, word_index):
     index_path.write_text(html, encoding="utf-8")
 
 
+def library_governance_report(standard_rows, curriculum_table_one, chosen, skipped):
+    norm_sets = {
+        level: {row["character"] for row in standard_rows if row["norm_level"] == level}
+        for level, _ in LEVEL_PATHS
+    }
+    curriculum_set = set(curriculum_table_one)
+    selected_set = {row["character"] for row in chosen}
+    reason_by_char = {
+        row["character"]: reason
+        for reason, rows in skipped.items()
+        for row in rows
+    }
+    all_standard = {row["character"] for row in standard_rows}
+    classified = selected_set | set(reason_by_char)
+    if curriculum_set - norm_sets["一级"]:
+        raise RuntimeError("Curriculum table one must be a subset of the normative level-one table")
+    if classified != all_standard or selected_set & set(reason_by_char):
+        raise RuntimeError("Every normative character must have exactly one practice-availability status")
+    expected_counts = {"一级": 3500, "二级": 3000, "三级": 1605}
+    actual_counts = {level: len(chars) for level, chars in norm_sets.items()}
+    if actual_counts != expected_counts:
+        raise RuntimeError(f"Unexpected normative table counts: {actual_counts}")
+    return {
+        "schema_version": 1,
+        "normative_source": {
+            "title": "通用规范汉字表（2013）",
+            "url": NORMATIVE_SOURCE_URL,
+            "files": [
+                {"path": str(path.relative_to(ROOT)), "level": level, "count": len(norm_sets[level]), "sha256": file_sha256(path)}
+                for level, path in LEVEL_PATHS
+            ],
+            "total": len(all_standard),
+        },
+        "curriculum_source": {
+            "title": "义务教育语文课程标准（2022年版）附录5",
+            "url": CURRICULUM_SOURCE_URL,
+            "document_sha256": CURRICULUM_SOURCE_SHA256,
+            "table_one": {
+                "path": str(CURRICULUM_PATH.relative_to(ROOT)),
+                "count": 2500,
+                "sha256": file_sha256(CURRICULUM_PATH),
+                "members_sha256": hashlib.sha256("".join(curriculum_table_one).encode("utf-8")).hexdigest(),
+            },
+            "table_two": {"derived_from": "规范一级字减去字表一", "count": len(norm_sets["一级"] - curriculum_set)},
+            "total": len(norm_sets["一级"]),
+        },
+        "practice_availability": {
+            "available": len(selected_set),
+            "unavailable": len(all_standard - selected_set),
+            "available_by_norm_level": {level: len(chars & selected_set) for level, chars in norm_sets.items()},
+            "unavailable_by_norm_level": {level: len(chars - selected_set) for level, chars in norm_sets.items()},
+            "unavailable_by_reason": {
+                reason: {"count": len(rows), "characters": "".join(row["character"] for row in rows)}
+                for reason, rows in skipped.items()
+            },
+        },
+        "invariants": {
+            "normative_counts": expected_counts,
+            "curriculum_table_one_is_level_one_subset": True,
+            "curriculum_tables_are_cumulative_2500_then_3500": True,
+            "every_normative_character_has_availability_status": True,
+            "difficulty_is_not_an_education_stage": True,
+        },
+    }
 def main():
     DATA_DIR.mkdir(exist_ok=True)
     GENERATED_DIR.mkdir(exist_ok=True)
     mm = read_make_me_hanzi()
     standard_rows = read_standard_table()
+    curriculum_table_one = read_curriculum_table_one()
     rows = read_hanzi_db()
     word_index = read_context_words()
     hanzi_writer_chars = read_hanzi_writer_available_chars()
@@ -735,13 +819,17 @@ def main():
         json.dumps(coverage, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
-    chosen, skipped = choose_candidates(mm, standard_rows, rows, hanzi_writer_chars)
+    chosen, skipped = choose_candidates(mm, standard_rows, rows, hanzi_writer_chars, set(curriculum_table_one))
     if not chosen:
         raise RuntimeError("No candidates selected")
     validate_and_fetch(chosen)
     patch_index(chosen, word_index)
     (GENERATED_DIR / GENERATED_JSON).write_text(
         json.dumps({"selected": chosen, "skipped": skipped}, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    (GENERATED_DIR / LIBRARY_AUDIT_JSON).write_text(
+        json.dumps(library_governance_report(standard_rows, curriculum_table_one, chosen, skipped), ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
     print(f"selected={len(chosen)}")

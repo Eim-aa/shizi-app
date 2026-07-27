@@ -1038,7 +1038,7 @@ function applyContextOverride(source){ const target=source.target||Array.from(so
   else if(override.gloss){ row.ans=target; row.ci=0; row.target=target; row.ctx="gloss"; row.hint=override.gloss; row.common=Math.max(Number(row.common)||0,1); }
   return row; }
 SEED.forEach(raw=>{ const w=applyContextOverride(raw), chars=Array.from(w.ans), pys=w.py.split(/\s+/);
-  const meta={rank:w.rank||999999, strokes:w.strokes||0, parts:w.parts||1, topic:w.topic||"综合", d:w.d||50, level:w.level||"高中", common:w.common||0, norm:w.norm||"一级", std:w.std||0, ctx:w.ctx||"dict"};
+  const meta={rank:w.rank||999999, strokes:w.strokes||0, parts:w.parts||1, topic:w.topic||"综合", d:w.d||50, band:w.band||"进阶", edu:w.edu||null, common:w.common||0, norm:w.norm||"一级", std:w.std||0, ctx:w.ctx||"dict"};
   if(Number.isInteger(w.ci)){ const ci=w.ci; CARDS.push({ word:w.ans, chars, ci, target:w.target||chars[ci], py:w.py, hint:w.hint, ...meta }); return; }
   chars.forEach((ch,ci)=>CARDS.push({ word:w.ans, chars, ci, target:ch, py:pys[ci]||w.py, hint:w.hint, ...meta })); });
 
@@ -1066,15 +1066,14 @@ let quality = bootLoad(QUALITY_KEY, {}, v=>objectValuesAre(v,plainObject));
 let preference = bootLoad(PREF_KEY, "balanced", v=>["balanced","practical","challenge"].includes(v));
 let tuning = bootLoad(TUNING_KEY, {calibrated:false, offset:0, contextStrict:0, rounds:[]}, v=>plainObject(v)&&(!("rounds" in v)||Array.isArray(v.rounds)));
 const LIBRARIES=[
-  {id:"core3500",name:"常用三千五",desc:"通用规范一级字，日常读写九成五在这里",test:c=>c.norm==="一级"},
-  {id:"adv3000",name:"进阶三千",desc:"规范二级字，报刊与书面语的进阶层",test:c=>c.norm==="二级"},
-  {id:"rare",name:"生僻字",desc:"规范三级字，人名地名与古籍用字，难",test:c=>c.norm==="三级"},
-  {id:"primary",name:"小学",desc:"小学学段要求会写的字",test:c=>c.level==="小学"},
-  {id:"junior",name:"初中",desc:"初中学段的字",test:c=>c.level==="初中"},
-  {id:"senior",name:"高中",desc:"高中学段的字",test:c=>c.level==="高中"}
+  {id:"core3500",name:"规范常用字",desc:"通用规范一级字，也是义务教育常用字表全部3500字",officialTotal:3500,test:c=>c.norm==="一级"},
+  {id:"adv3000",name:"规范次常用字",desc:"通用规范二级字；缺少笔顺数据的字暂不进入练习",officialTotal:3000,test:c=>c.norm==="二级"},
+  {id:"rare",name:"规范专门用字",desc:"通用规范三级字，覆盖姓名、地名、术语与教材文言用字",officialTotal:1605,test:c=>c.norm==="三级"},
+  {id:"curriculum2500",name:"义教基础字",desc:"2022年语文课标附录5字表一，2500字",officialTotal:2500,test:c=>c.edu==="表一"}
 ];
 function defaultLibraryId(){ return preference==="challenge"?"adv3000":"core3500"; }
-function normalizeLibrary(raw){ const id=plainObject(raw)?raw.id:raw,valid=LIBRARIES.some(lib=>lib.id===id),userSelected=plainObject(raw)?raw.userSelected===true:(typeof raw==="string"&&valid); return {id:valid?id:defaultLibraryId(),userSelected}; }
+const LEGACY_LIBRARY_IDS={primary:"curriculum2500",junior:"core3500",senior:"core3500"};
+function normalizeLibrary(raw){ const storedId=plainObject(raw)?raw.id:raw,id=LEGACY_LIBRARY_IDS[storedId]||storedId,valid=LIBRARIES.some(lib=>lib.id===id),userSelected=plainObject(raw)?raw.userSelected===true:(typeof raw==="string"&&(valid||storedId in LEGACY_LIBRARY_IDS)); return {id:valid?id:defaultLibraryId(),userSelected}; }
 let libraryState=bootNormalize(LIB_KEY,bootLoad(LIB_KEY,null,v=>v===null||typeof v==="string"||plainObject(v)),null,normalizeLibrary); save(LIB_KEY,libraryState);
 function currentLibrary(){ return LIBRARIES.find(lib=>lib.id===libraryState.id)||LIBRARIES[0]; }
 function setLibrary(id){ libraryState=normalizeLibrary({id,userSelected:true}); save(LIB_KEY,libraryState); return currentLibrary(); }
@@ -1465,7 +1464,7 @@ function setDailyMotto(node,entry){ if(!node) return; const row=typeof entry==="
 function applyDailyMotto(key=today()){ const entry=dailyMotto(key); setDailyMotto($("welcomeMotto"),entry); setDailyMotto($("homeMotto"),entry); return entry.text; }
 // 选库是新字范围的唯一闸门。旧语境严格度和 fallback 只影响排序/提示，不再让库内字永远不可达。
 function strictNewEligible(i){ const c=CARDS[i]; return !!(c.custom||currentLibrary().test(c)); }
-function qualityWeight(i){ const c=CARDS[i], q=qualityFor(i), p=prefSettings(); let score=(Number(c.common)||0)*p.common + (LEVEL_RANK[cardLevel(i)]||0)*p.challenge;
+function qualityWeight(i){ const c=CARDS[i], q=qualityFor(i), p=prefSettings(); let score=(Number(c.common)||0)*p.common + (BAND_RANK[cardDifficultyBand(i)]||0)*p.challenge;
   const norm=normLevel(i), ctx=contextSource(i), strict=Number(tuning.contextStrict)||0;
   if(norm==="二级") score+=preference==="practical"?0.8:0.5;
   if(norm==="三级") score+=preference==="challenge"?1.8:-6;
@@ -1495,8 +1494,8 @@ function deckCount(){ return Object.values(status).filter(s=>s==="indeck").lengt
 function knownCount(){ return allIndexes().filter(i=>{ const m=memory[cardKey(i)]; return m && m.streak>=2 && status[i]!=="indeck"; }).length; }
 function clamp(n,min,max){ return Math.max(min, Math.min(max, n)); }
 function cardDifficulty(i){ return Number(CARDS[i].d)||50; }
-const LEVEL_RANK={"小学":0,"初中":1,"高中":2,"大学":3,"专业":4}, LEVEL_TARGET={"初中":48,"高中":62,"大学":76,"专业":90};
-function cardLevel(i){ return CARDS[i].level || "高中"; }
+const BAND_RANK={"入门":0,"基础":1,"进阶":2,"较难":3,"挑战":4}, BAND_TARGET={"基础":48,"进阶":62,"较难":76,"挑战":90};
+function cardDifficultyBand(i){ return CARDS[i].band || "进阶"; }
 function practiceEligible(i){ return qualityAvailable(i) && (reviewReady(i) || CARDS[i].custom || strictNewEligible(i)); }
 function cardTopic(i){ return CARDS[i].topic || (CARDS[i].custom?"自定义":"综合"); }
 function targetDifficulty(){ const p=prefSettings(), base=68 + Math.sqrt(knownCount()/Math.max(1,CARDS.length))*18 + p.targetShift + (Number(tuning.offset)||0); return clamp(base - Math.min(deckCount(),40)*0.12, p.min, p.max); }
@@ -1511,8 +1510,8 @@ function adjustSessionTarget(outcome){ if(!sessionTarget) resetAdaptiveSession()
   else if(outcome==="miss"){ sessionFastStreak=0; sessionMissStreak++; if(sessionMissStreak>=2) sessionTarget-=6; }
   sessionTarget=clamp(Math.round(sessionTarget),p.min,p.max); return sessionTarget; }
 function adaptiveScore(i,outcome,anchorIdx){ let score=Math.abs(personalDifficulty(i)-sessionTarget)*10 - qualityWeight(i);
-  if(anchorIdx!=null && anchorIdx>=0){ const sameTopic=cardTopic(i)===cardTopic(anchorIdx), sameLevel=cardLevel(i)===cardLevel(anchorIdx), sameStructure=structureLabel(i)===structureLabel(anchorIdx);
-    if(outcome==="miss" || outcome==="hinted"){ if(sameTopic) score-=28; if(sameStructure) score-=18; if(sameLevel) score-=10; }
+  if(anchorIdx!=null && anchorIdx>=0){ const sameTopic=cardTopic(i)===cardTopic(anchorIdx), sameBand=cardDifficultyBand(i)===cardDifficultyBand(anchorIdx), sameStructure=structureLabel(i)===structureLabel(anchorIdx);
+    if(outcome==="miss" || outcome==="hinted"){ if(sameTopic) score-=28; if(sameStructure) score-=18; if(sameBand) score-=10; }
     else if(outcome==="fast"){ if(sameTopic) score-=10; if(personalDifficulty(i)>personalDifficulty(anchorIdx)) score-=14; } }
   return score; }
 function adaptNextCard(outcome,anchorIdx){ if(activeMode!=="new" || manualQueue.length || pos+1>=batch.length) return null; adjustSessionTarget(outcome);
@@ -1528,28 +1527,28 @@ function reviewPriority(i){ const m=memory[cardKey(i)]||{}, outcome=m.lastOutcom
   return outcomeWeight + hardCount(i)*18 + Math.max(0,100-(m.ease||50))*0.7 + overdueDays(i)*9 + personalDifficulty(i)*0.25 - (m.streak||0)*6; }
 function candidateDistance(i,target){ return Math.abs(personalDifficulty(i)-target)*10 - qualityWeight(i); }
 function addNearest(out, candidates, target, limit, used){ candidates.filter(i=>!used.has(i)).sort((a,b)=>candidateDistance(a,target)-candidateDistance(b,target) || personalDifficulty(b)-personalDifficulty(a)).slice(0,limit).forEach(i=>{ used.add(i); out.push(i); }); }
-function addLevel(out, candidates, level, limit, used){ addNearest(out, candidates.filter(i=>cardLevel(i)===level), LEVEL_TARGET[level]||70, limit, used); }
+function addBand(out, candidates, band, limit, used){ addNearest(out, candidates.filter(i=>cardDifficultyBand(i)===band), BAND_TARGET[band]||70, limit, used); }
 function chooseTopic(all,target){ const buckets={}; all.forEach(i=>{ const t=cardTopic(i); (buckets[t]||(buckets[t]=[])).push(i); });
   const last=load(TOPIC_KEY,""), p=prefSettings(); let best=null;
   Object.entries(buckets).forEach(([topic,items])=>{ const due=items.filter(reviewReady).length; const avg=items.reduce((s,i)=>s+personalDifficulty(i),0)/items.length;
-    const adult=items.filter(i=>(LEVEL_RANK[cardLevel(i)]||0)>=2).length, common=items.reduce((s,i)=>s+(Number(CARDS[i].common)||0),0)/items.length;
+    const substantial=items.filter(i=>(BAND_RANK[cardDifficultyBand(i)]||0)>=2).length, common=items.reduce((s,i)=>s+(Number(CARDS[i].common)||0),0)/items.length;
     const broadPenalty=due?0:(topic==="综合"?34:topic==="语法"?22:topic==="数量"?12:0);
     const prefScore=common*p.common*4 + avg*p.challenge*.35;
-    const score=due*22 + Math.min(adult,BATCH)*6 + (adult>=BATCH?18:0) + prefScore - Math.abs(avg-target)*0.55 - (topic===last?18:0) - broadPenalty;
+    const score=due*22 + Math.min(substantial,BATCH)*6 + (substantial>=BATCH?18:0) + prefScore - Math.abs(avg-target)*0.55 - (topic===last?18:0) - broadPenalty;
     if(!best || score>best.score) best={topic,score}; });
   save(TOPIC_KEY,best?best.topic:""); return best?best.topic:"综合"; }
 function chooseBatch(all){ if(all.length<=BATCH) return all.slice(); const target=targetDifficulty(), topic=chooseTopic(all,target);
   const themed=all.filter(i=>cardTopic(i)===topic), out=[], used=new Set();
   addNearest(out, themed.filter(reviewReady), target, 4, used);
-  addLevel(out, themed, "初中", 1, used);
-  addLevel(out, themed, "高中", 4, used);
-  addLevel(out, themed, "大学", 7, used);
-  addLevel(out, themed, "专业", 3, used);
+  addBand(out, themed, "基础", 1, used);
+  addBand(out, themed, "进阶", 4, used);
+  addBand(out, themed, "较难", 7, used);
+  addBand(out, themed, "挑战", 3, used);
   addNearest(out, themed, target, BATCH-out.length, used);
   addNearest(out, all, target, BATCH-out.length, used);
-  return out.slice(0,BATCH).sort((a,b)=>(LEVEL_RANK[cardLevel(a)]||0)-(LEVEL_RANK[cardLevel(b)]||0) || cardDifficulty(a)-cardDifficulty(b)); }
+  return out.slice(0,BATCH).sort((a,b)=>(BAND_RANK[cardDifficultyBand(a)]||0)-(BAND_RANK[cardDifficultyBand(b)]||0) || cardDifficulty(a)-cardDifficulty(b)); }
 function calibrationScore(i,target,topicCounts){ return Math.abs(personalDifficulty(i)-target)*8 + (topicCounts[cardTopic(i)]||0)*18 - qualityWeight(i) - (normLevel(i)==="二级"?4:0); }
-function chooseCalibrationBatch(all){ const targets=[48,56,62,66,70,74,78,82,86,90,94,76,84,88,98], pool=all.filter(i=>contextUsable(i) && normLevel(i)!=="三级" && cardLevel(i)!=="小学");
+function chooseCalibrationBatch(all){ const targets=[48,56,62,66,70,74,78,82,86,90,94,76,84,88,98], pool=all.filter(i=>contextUsable(i) && normLevel(i)!=="三级" && cardDifficultyBand(i)!=="入门");
   const source=pool.length?pool:all, out=[], used=new Set(), topicCounts={}, hooks=["尴","嚏"];
   hooks.forEach(target=>{ const pick=source.find(i=>!used.has(i)&&CARDS[i].target===target); if(pick!=null){ used.add(pick); topicCounts[cardTopic(pick)]=(topicCounts[cardTopic(pick)]||0)+1; out.push(pick); } });
   targets.slice(out.length).forEach((target,order,list)=>{ let candidates=source.filter(i=>!used.has(i)); if(order>=list.length-4) candidates=candidates.filter(i=>cardDifficulty(i)<=85);
@@ -1640,7 +1639,7 @@ function renderQuality(){ if(!cur) return; const q=qualityFor(currentCardIndex()
   $("qualityNote").textContent=notes.length?`${notes.join(" · ")} · 再点可取消`:""; }
 function recordQuality(kind, idx=currentCardIndex()){ if(idx==null || idx<0) return; const c=CARDS[idx], k=cardKey(idx), q=quality[k] || {};
   if(kind==="hide") q.hide=!q.hide; else q[kind]=q[kind]?0:1;
-  q.last=Date.now(); q.target=c.target; q.word=c.word; q.topic=c.topic; q.level=c.level; quality[k]=q; saveQuality();
+  q.last=Date.now(); q.target=c.target; q.word=c.word; q.topic=c.topic; q.band=c.band; quality[k]=q; saveQuality();
   if(kind==="easy" && q.easy) setStatus(idx,"rest"); if(kind==="badWord" && q.badWord) sessionDone.add(idx);
   if(kind==="hide"){ if(q.hide){ sessionDone.add(idx); unresolved.delete(idx); reinforcementQueue=reinforcementQueue.filter(item=>item.idx!==idx); const ep=episodeFor(idx); ep.excluded=true; const m=cardMemory(idx); m.pendingLearning=false; m.dueDay=null; saveMemory(); }
     else sessionDone.delete(idx); saveSessionSnapshot(); }
@@ -1663,7 +1662,7 @@ function recordOutcome(outcome,options={}){ const idx=currentCardIndex(), c=CARD
   const sys=lastVerdict?(lastVerdict.status==="ok"):null;
   m.lastSystemSuggestion=sys===null?"":(sys?"correct":"wrong"); m.lastSystemStatus=lastVerdict?lastVerdict.status:"none"; m.lastSystemAgree=sys===null?null:sys===userCorrect;
   recordFunnelComparison(currentAttemptId,m.lastSystemAgree,now);
-  m.topic=c.topic; m.level=c.level; m.word=c.word; m.target=c.target;
+  m.topic=c.topic; m.band=c.band; m.word=c.word; m.target=c.target;
   if(outcome==="fast"){ m.fast=(m.fast||0)+1; m.streak=(m.streak||0)+1; m.ease=clamp((m.ease||50)+12,0,100); setStatus(idx,"rest"); }
   if(outcome==="slow"){ m.slow=(m.slow||0)+1; m.streak=0; m.ease=clamp((m.ease||50)-6,0,100); setStatus(idx,"indeck"); }
   if(outcome==="hinted"){ m.hints=(m.hints||0)+1; m.streak=0; m.ease=clamp((m.ease||50)-8,0,100); setStatus(idx,"indeck"); }
@@ -1862,10 +1861,11 @@ function openBook(){ renderBook(); }
 function libraryCounts(lib){ const seenTargets=new Set(),cutoff=Date.now()-30*86400000; let total=0,got=0,deep=0,mid=0,faint=0,recent=0;
   for(let i=0;i<BASE_N;i++){ const c=CARDS[i]; if(seenTargets.has(c.target)||!lib.test(c)) continue; seenTargets.add(c.target); total++; const m=memory[cardKey(i)];
     if(m&&m.seen){ got++; const level=memoryInkLevel(i); if(level<=2) deep++; else if(level===3) mid++; else faint++; if(Number(m.firstSeenAt)>=cutoff) recent++; } }
-  return {total,got,deep,mid,faint,recent}; }
-function renderLibCard(){ const lib=currentLibrary(),counts=libraryCounts(lib); $("libName").textContent=lib.name; $("libMeta").textContent=`已拾 ${counts.got} / ${counts.total}`; }
+  return {total,officialTotal:Number(lib.officialTotal)||total,got,deep,mid,faint,recent}; }
+function libraryProgressText(lib,counts){ return counts.total===counts.officialTotal?`已拾 ${counts.got} / ${counts.total}`:`已拾 ${counts.got} / ${counts.total} 可练 · 官方 ${counts.officialTotal}`; }
+function renderLibCard(){ const lib=currentLibrary(),counts=libraryCounts(lib); $("libName").textContent=lib.name; $("libMeta").textContent=libraryProgressText(lib,counts); }
 function openLibSheet(){ const active=currentLibrary().id; $("libList").innerHTML=LIBRARIES.map(lib=>{ const counts=libraryCounts(lib);
-    return `<button class="libRow ${lib.id===active?"active":""}" data-lib="${lib.id}"><span class="libRowTop"><b>${esc(lib.name)}</b><span class="libCount">已拾 ${counts.got} / ${counts.total}</span></span><small>${esc(lib.desc)}</small></button>`; }).join(""); $("libSheet").classList.add("open"); }
+    return `<button class="libRow ${lib.id===active?"active":""}" data-lib="${lib.id}"><span class="libRowTop"><b>${esc(lib.name)}</b><span class="libCount">${esc(libraryProgressText(lib,counts))}</span></span><small>${esc(lib.desc)}</small></button>`; }).join(""); $("libSheet").classList.add("open"); }
 function closeLibSheet(){ $("libSheet").classList.remove("open"); }
 function renderBook(){ displayView("book");
   const seen=profileIndexes().sort((a,b)=>firstSeenAt(b)-firstSeenAt(a)||a-b);
@@ -1945,7 +1945,7 @@ function wildCaptureFor(ch){ const row=wildState.captures[ch]; return row&&row.d
 function renderWildWishes(){ const rows=Object.entries(wildState.wishes).sort((a,b)=>(b[1].at||0)-(a[1].at||0)); $("wildWish").style.display=rows.length?"block":"none"; $("wildWishCount").textContent=rows.length?`${rows.length} 字 · 已记下`:""; $("wildWishChars").innerHTML=rows.map(([ch,row])=>`<button class="wildWishChar" data-wild-wish="${esc(ch)}" aria-label="${esc(ch)}，${collectedDateText(row.day)}拾于生活">${esc(ch)}</button>`).join(""); }
 saveWildState();
 function pushWordCards(s){ const chars=Array.from(s).filter(isCJK); const start=CARDS.length;
-  chars.forEach((ch,ci)=>CARDS.push({ word:chars.join(""), chars, ci, target:ch, py:"", hint:"你刚才卡壳的字", custom:true, topic:"自定义", d:76, level:"大学", rank:999999, strokes:0, parts:1, common:0, norm:"自定义", ctx:"custom" })); return [start, CARDS.length]; }
+  chars.forEach((ch,ci)=>CARDS.push({ word:chars.join(""), chars, ci, target:ch, py:"", hint:"你刚才卡壳的字", custom:true, topic:"自定义", d:76, band:"较难", edu:null, rank:999999, strokes:0, parts:1, common:0, norm:"自定义", ctx:"custom" })); return [start, CARDS.length]; }
 function buildCustomCards(){ CARDS.length=BASE_N; customWords.forEach(pushWordCards); }
 buildCustomCards();
 let addedChars = bootLoad(ADDED_KEY, null, v=>v===null||(Array.isArray(v)&&v.every(row=>typeof row==="string")));
@@ -1955,7 +1955,7 @@ function unblockQuality(i){ const k=cardKey(i); if(quality[k]){ delete quality[k
 // 现实里不会写 = 一次真实的薄弱信号：记进记忆模型，让它立刻进入今日复习和待拾回状态
 function recordRealWorldMiss(i){ const c=CARDS[i], m=cardMemory(i), now=Date.now();
   markFirstSeen(m,now); m.seen=(m.seen||0)+1; m.last=now; m.lastOutcome="miss"; m.misses=(m.misses||0)+1; m.streak=0; m.ease=clamp((m.ease||50)-16,0,100);
-  m.topic=c.topic; m.level=c.level; m.word=c.word; m.target=c.target; m.due=dayStartMs(today()); m.dueDay=today(); m.pendingLearning=false; setStatus(i,"indeck"); }
+  m.topic=c.topic; m.band=c.band; m.word=c.word; m.target=c.target; m.due=dayStartMs(today()); m.dueDay=today(); m.pendingLearning=false; setStatus(i,"indeck"); }
 function addWord(s){ s=(s||"").trim(); const chars=[...new Set(Array.from(s).filter(isCJK))]; if(!chars.length) return null;
   const fresh=[];
   chars.forEach(ch=>{ const base=BASE_BY_CHAR[ch], idx=base!=null?base:customIndexOf(ch);

@@ -70,7 +70,7 @@ let browser;
   await page.click("#tabBook");
   await page.waitForTimeout(300);
   const wall43 = await page.evaluate(() => ({ count: memoryWall.querySelectorAll(".memoryChar").length, columns: getComputedStyle(memoryWall).gridTemplateColumns.split(" ").length, labels: memoryWall.querySelectorAll(".dot,.outcomeMark").length, curator: bookCuratorData(profileIndexes()).kind, countText: boxCount.textContent.trim(), library: libName.textContent, libraryMeta: libMeta.textContent }));
-  assert(wall43.count === 43 && wall43.columns === 6 && wall43.labels === 0 && wall43.curator === "action" && wall43.countText === "43 字" && wall43.library === "常用三千五" && /已拾 \d+ \/ 3500/.test(wall43.libraryMeta), "Expected a 43-character six-column memory wall with honest library progress and action curation", wall43);
+  assert(wall43.count === 43 && wall43.columns === 6 && wall43.labels === 0 && wall43.curator === "action" && wall43.countText === "43 字" && wall43.library === "规范常用字" && /已拾 \d+ \/ 3500/.test(wall43.libraryMeta), "Expected a 43-character six-column memory wall with honest library progress and action curation", wall43);
   await page.screenshot({ path: path.join(generatedDir, "book-light-375x667.png"), fullPage: true });
 
   const etymologyDetail = await page.evaluate(async () => {
@@ -256,7 +256,7 @@ let browser;
               noUnapprovedProgress: !libCard.querySelector(".libBar,.libTones") && !libList.querySelector(".libBar") && !/拾完|手速|墨色进度/.test(libSheet.textContent + libCard.textContent),
             };
           });
-          assert(librarySheet.rows === 6 && librarySheet.active === 1 && librarySheet.minTarget >= 44 && librarySheet.horizontalFit && librarySheet.reachable && librarySheet.reassurance && librarySheet.noUnapprovedProgress, "Expected the finalized six-library sheet without extra progress or pace UI to fit target iPhone viewports", { size, colorScheme, librarySheet });
+          assert(librarySheet.rows === 4 && librarySheet.active === 1 && librarySheet.minTarget >= 44 && librarySheet.horizontalFit && librarySheet.reachable && librarySheet.reassurance && librarySheet.noUnapprovedProgress, "Expected the source-backed four-library sheet without extra progress or pace UI to fit target iPhone viewports", { size, colorScheme, librarySheet });
           await page.screenshot({ path: path.join(generatedDir, `library-${colorScheme}-${size.width}x${size.height}.png`), fullPage: true });
           await page.evaluate(() => closeLibSheet());
         }

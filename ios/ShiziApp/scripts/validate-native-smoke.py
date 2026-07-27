@@ -107,12 +107,22 @@ checks = {
     and data_flow.get("customCardIndexed") is True
     and data_flow.get("memoryHasAddedChar") is True
     and data_flow.get("recentInkStored") is True,
+    "wildCapture": data_flow.get("wildPhotoInputProcessed") is True
+    and data_flow.get("wildVisionRequestCompleted") is True
+    and data_flow.get("wildOCRRequiresSelection") is True
+    and data_flow.get("wildCaptureStored") is True
+    and data_flow.get("wildPhotoBounded") is True
+    and data_flow.get("wildPhotoViewsDecode") is True
+    and data_flow.get("wildFailureFallback") is True
+    and data_flow.get("wildPhotoMime") in {"image/webp", "image/jpeg"}
+    and int(data_flow.get("wildVisionCandidateCount") or 0) >= 0,
     "backupPayload": data_flow.get("backupParses") is True
     and data_flow.get("backupHasAppMarker") is True
     and data_flow.get("backupHasAdded") is True
     and data_flow.get("backupHasCustom") is True
     and data_flow.get("backupHasMemory") is True
     and data_flow.get("backupHasRecentInk") is True
+    and data_flow.get("backupHasWild") is True
     and data_flow.get("backupHasReminder") is True
     and data_flow.get("backupHasSound") is True
     and data_flow.get("backupHasFunnel") is True
@@ -128,13 +138,15 @@ checks = {
     and data_flow.get("backupRestoreCustom") is True
     and data_flow.get("backupRestoreMemory") is True
     and data_flow.get("backupRestoreRecentInk") is True
+    and data_flow.get("backupRestoreWild") is True
     and data_flow.get("backupRestoreFunnel") is True
     and data_flow.get("backupRestorePreservesSessionV2") is True
     and data_flow.get("backupRestorePreservesSmokeKey") is True
     and data_flow.get("backupSafetyCreated") is True
     and data_flow.get("backupRestoreRejectsInvalid") is True,
     "nativeBridge": data_flow.get("nativeBridgeAvailable") is True
-    and data_flow.get("shareCardBridgeAvailable") is True,
+    and data_flow.get("shareCardBridgeAvailable") is True
+    and data_flow.get("nativeOCRBridgeAvailable") is True,
     "shareCard": data_flow.get("shareCardGenerated") is True
     and data_flow.get("shareCardPrivate") is True,
     "collections": data_flow.get("calendarAvailable") is True

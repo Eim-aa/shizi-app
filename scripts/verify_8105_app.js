@@ -7,6 +7,7 @@ const path = require("path");
 const root = path.resolve(__dirname, "..");
 const appUrl = process.env.SHIZI_APP_URL || "http://127.0.0.1:8000/";
 const screenshotPath = path.join(root, "generated", "verify_8105_app.png");
+const wildPhotoFixturePath = path.join(root, "icon-192.png");
 const SESSION_STORAGE_KEY = "shizi.session.v1";
 const source = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const readme = fs.readFileSync(path.join(root, "README.md"), "utf8");
@@ -27,6 +28,9 @@ const openccOneToMany = new Set(fs.readFileSync(path.join(root, "sources", "open
   .split(/\r?\n/)
   .filter((line) => line.includes("\t") && line.split("\t", 2)[1].trim().split(/\s+/).length > 1)
   .map((line) => line.split("\t", 1)[0]));
+const wildPhotoFixture = fs.readFileSync(wildPhotoFixturePath);
+assert(wildPhotoFixture.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])),
+  "Expected the photographed-character fixture to be a real PNG image");
 
 if (/退出本组？|进度已保存，随时可继续这组|描一遍也算拾回|小时后再见|已收|拾到手|教学检查|本组通过|待巩固|差点|回炉|改一下|已稳/.test(source)) {
   throw new Error("Deprecated practice vocabulary remains in index.html");
@@ -136,6 +140,10 @@ assert(source.includes("SOUNDSCAPE_SCENES") && source.includes("ambientNoiseBuff
 assert(source.includes("enterWritingChrome") && source.includes("finishWritingChrome") && source.includes("setWritingChromeHidden") && source.includes("paperReveal") && source.includes("REST_LINES"), "Expected accessible stove-mode chrome, one-time paper reveal, and fixed closing microcopy");
 assert(source.includes("loadEtymology") && source.includes("renderEtymLine") && source.includes('fetch("data/etymology.json")') && !source.includes("暂无释义"), "Expected a lazy, silent-absence etymology row");
 assert(webViewSource.includes("AVAudioSession.sharedInstance().setCategory(.ambient") && webViewSource.includes('case "sound"') && webViewSource.includes('case "soundscape"') && webViewSource.includes('content.userInfo = ["targetCardKey": question.targetCardKey]'), "Expected native ambient audio-session setup, paper sounds, and notification target metadata");
+assert(webViewSource.includes("VNImageRequestHandler(cgImage: cgImage, orientation: orientation")
+  && webViewSource.includes("const fixtureFile = new File([fixtureBlob]")
+  && webViewSource.includes("wildVisionRequestCompleted"),
+"Expected native OCR to honor image orientation and its smoke to process a real decodable image through Vision");
 assert(appDelegateSource.includes("didReceive response: UNNotificationResponse") && appDelegateSource.includes("openReminderTarget(cardKey: targetCardKey)"), "Expected notification taps to reach the Web practice target on cold or warm launch");
 
 function verifyBackupSummaryScript() {
@@ -1702,6 +1710,145 @@ let browser;
   "Expected a private 1080x1440 monthly post through the existing native share route", collections);
   assert(collections.annual.slides === 4 && collections.annual.keys.length >= 5 && collections.annual.busiest && Number.isInteger(collections.annual.rarest) && Number.isInteger(collections.annual.first) && collections.annual.clientHeight > 400 && Math.abs(collections.annual.firstHeight - collections.annual.clientHeight) < 2 && collections.annual.scrollHeight >= collections.annual.clientHeight * 3.9 && !collections.annual.copy.includes("击败") && !collections.annual.copy.includes("中断"),
     "Expected a four-screen local annual report without comparisons or break-loss language", collections);
+
+  await page.evaluate(() => {
+    window.__wildVerifySaved = {
+      memory: cloneObj(memory), status: cloneObj(status), wild: cloneObj(wildState),
+      added: addedChars.slice(), custom: customWords.slice(), wildRaw: localStorage.getItem(WILD_KEY),
+      webkit: window.webkit,
+    };
+    window.__wildBridgeMessages = [];
+    Object.defineProperty(window, "webkit", {
+      configurable: true,
+      value: { messageHandlers: { shiziNative: { postMessage: (message) => window.__wildBridgeMessages.push(cloneObj(message)) } } },
+    });
+    wildState = normalizeWildState(null);
+    renderHome();
+    openAddSheet();
+  });
+  await page.setInputFiles("#wildPhotoInput", wildPhotoFixturePath);
+  await page.waitForFunction(() => wildDraft?.dataURL?.startsWith("data:image/webp;base64,")
+    && wildCaptureThumb.complete && wildCaptureThumb.naturalWidth > 0
+    && window.__wildBridgeMessages.some((message) => message.type === "recognizeChars"));
+  const processedPhoto = await page.evaluate(async () => {
+    await wildCaptureThumb.decode();
+    const message = window.__wildBridgeMessages.find((row) => row.type === "recognizeChars");
+    return {
+      sourceType: message?.dataURL?.slice(0, 23), requestId: message?.requestId,
+      draftRequestId: wildDraft?.requestId, bytes: wildImageBytes(wildDraft?.dataURL),
+      thumbWidth: wildCaptureThumb.naturalWidth, thumbHeight: wildCaptureThumb.naturalHeight,
+      inputCleared: wildPhotoInput.value === "", note: wildCaptureNote.textContent,
+    };
+  });
+  assert(processedPhoto.sourceType === "data:image/webp;base64," && processedPhoto.requestId === processedPhoto.draftRequestId
+    && processedPhoto.bytes > 0 && processedPhoto.bytes <= 64 * 1024
+    && processedPhoto.thumbWidth > 0 && processedPhoto.thumbWidth === processedPhoto.thumbHeight
+    && processedPhoto.inputCleared && processedPhoto.note.includes("正在本机认字"),
+  "Expected a real PNG file input to decode, center-crop, compress to bounded WebP, render, and cross the native OCR bridge", processedPhoto);
+
+  const candidateState = await page.evaluate(() => {
+    const requestId = wildDraft.requestId;
+    window.shiziOCRResult({ requestId, candidates: ["拾时拾"] });
+    const buttons = [...wildCandidates.querySelectorAll("[data-wild-candidate]")];
+    const noAutoSelection = addInput.value === "" && addConfirm.disabled;
+    window.shiziOCRResult({ requestId: requestId - 1, candidates: ["水"] });
+    const staleIgnored = [...wildCandidates.querySelectorAll("[data-wild-candidate]")].map((button) => button.textContent).join("") === "拾时";
+    return { labels: buttons.map((button) => button.textContent), noAutoSelection, staleIgnored };
+  });
+  await page.click('#wildCandidates [data-wild-candidate="拾"]');
+  const explicitSelection = await page.evaluate(() => addInput.value === "拾" && !addConfirm.disabled
+    && wildCandidates.querySelector('[data-wild-candidate="拾"]').classList.contains("selected"));
+  await page.click("#addConfirm");
+  await page.waitForFunction(() => !addSheet.classList.contains("open"));
+
+  const wildCapture = await page.evaluate(async () => {
+    const known = "拾", knownIndex = BASE_BY_CHAR[known], knownMemory = cloneObj(memory[cardKey(knownIndex)]), capture = wildCaptureFor(known);
+    openCharSheet(knownIndex);
+    await charDetailWildImage.decode();
+    charDetailWild.click();
+    await wildPhotoFull.decode();
+    const detail = {
+      story: charDetailStory.textContent,
+      photoVisible: getComputedStyle(charDetailWild).display === "grid",
+      photoBytes: wildImageBytes(capture.dataURL),
+      thumbDecoded: charDetailWildImage.naturalWidth > 0 && charDetailWildImage.naturalHeight > 0,
+      fullVisible: wildPhotoSheet.classList.contains("open"),
+      fullDecoded: wildPhotoFull.naturalWidth > 0 && wildPhotoFull.naturalHeight > 0,
+    };
+    closeWildPhoto(); closeCharSheet();
+
+    let unknown = "";
+    for (let code = 0x4e00; code <= 0x9fff && !unknown; code += 1) {
+      const char = String.fromCharCode(code);
+      if (BASE_BY_CHAR[char] == null) unknown = char;
+    }
+    const cardsBeforeWish = CARDS.length, customBeforeWish = customWords.length;
+    const wishResult = collectWildCharacter(unknown, { day: "2026-07-20", at: 2000, dataURL: capture.dataURL });
+    renderBook();
+    const wishlist = {
+      visible: getComputedStyle(wildWish).display === "block",
+      listed: !!wildWishChars.querySelector(`[data-wild-wish="${unknown}"]`),
+      cardsUnchanged: CARDS.length === cardsBeforeWish,
+      customUnchanged: customWords.length === customBeforeWish,
+    };
+    const backup = JSON.parse(backupPayload({ preserveMeta: true }));
+    const backedUp = Object.prototype.hasOwnProperty.call(backup.data, WILD_KEY)
+      && JSON.parse(backup.data[WILD_KEY]).wishes[unknown].day === "2026-07-20";
+    const oversized = `data:image/webp;base64,${"A".repeat(90000)}`;
+    wildState.wishes[unknown] = normalizeWildEntry({ day: today(), at: 3000, dataURL: oversized });
+    const singleLimit = !wildState.wishes[unknown].dataURL;
+
+    wildState = normalizeWildState(null);
+    const budgetChars = [];
+    for (let code = 0x4e00; budgetChars.length < 35; code += 1) budgetChars.push(String.fromCharCode(code));
+    budgetChars.forEach((char, index) => {
+      wildState.wishes[char] = { day: today(), at: index + 1, dataURL: capture.dataURL };
+    });
+    const trimmed = trimWildPhotos(), rows = wildPhotoRows();
+    const bounded = rows.length <= WILD_PHOTO_MAX
+      && rows.reduce((sum, row) => sum + row.bytes, 0) <= WILD_PHOTO_BUDGET
+      && !wildState.wishes[budgetChars[0]].dataURL
+      && !!wildState.wishes[budgetChars.at(-1)].dataURL;
+    return {
+      known: true, source: knownMemory.source, wildDay: knownMemory.wildDay, expectedDay: today(),
+      wishKnown: wishResult.known, unknown, detail, wishlist, backedUp, singleLimit,
+      cap: { kept: rows.length, bytes: rows.reduce((sum, row) => sum + row.bytes, 0), removed: trimmed.removed }, bounded,
+    };
+  });
+
+  await page.evaluate(() => openAddSheet());
+  await page.setInputFiles("#wildPhotoInput", { name: "broken.png", mimeType: "image/png", buffer: Buffer.from("not-an-image") });
+  await page.waitForFunction(() => wildCaptureNote.textContent.includes("照片没能读出来"));
+  const failureFallback = await page.evaluate(() => ({
+    noDraft: wildDraft === null, manualEnabled: !addInput.disabled,
+    confirmDisabled: addConfirm.disabled, note: wildCaptureNote.textContent,
+  }));
+  await page.evaluate(() => {
+    closeAddSheet();
+    const saved = window.__wildVerifySaved;
+    memory = saved.memory; status = saved.status; wildState = normalizeWildState(saved.wild);
+    addedChars = saved.added; customWords = saved.custom; buildCustomCards();
+    save(DECK_KEY, status); saveMemory(); save(ADDED_KEY, addedChars); save(CUSTOM_KEY, customWords);
+    if (saved.wildRaw === null) localStorage.removeItem(WILD_KEY); else localStorage.setItem(WILD_KEY, saved.wildRaw);
+    if (saved.webkit === undefined) delete window.webkit;
+    else Object.defineProperty(window, "webkit", { configurable: true, value: saved.webkit });
+    delete window.__wildBridgeMessages; delete window.__wildVerifySaved;
+    renderHome();
+  });
+
+  assert(wildCapture.known && wildCapture.source === "wild" && wildCapture.wildDay === wildCapture.expectedDay
+    && wildCapture.detail.story.includes("拾于生活") && wildCapture.detail.photoVisible
+    && wildCapture.detail.photoBytes <= 64 * 1024 && wildCapture.detail.thumbDecoded
+    && wildCapture.detail.fullVisible && wildCapture.detail.fullDecoded,
+  "Expected a photographed in-library character to retain local source metadata and decodable thumbnail/full-photo views", wildCapture);
+  assert(!wildCapture.wishKnown && wildCapture.wishlist.visible && wildCapture.wishlist.listed && wildCapture.wishlist.cardsUnchanged && wildCapture.wishlist.customUnchanged,
+    "Expected an unsupported photographed character to stay visible in the wishlist without entering practice", wildCapture);
+  assert(candidateState.labels.join("") === "拾时" && candidateState.noAutoSelection && explicitSelection && candidateState.staleIgnored,
+    "Expected native OCR candidates to require explicit selection and ignore stale callbacks", candidateState);
+  assert(failureFallback.noDraft && failureFallback.manualEnabled && failureFallback.confirmDisabled && failureFallback.note.includes("手动输入"),
+    "Expected an undecodable selected image to fail silently back to manual input", failureFallback);
+  assert(wildCapture.backedUp && wildCapture.singleLimit && wildCapture.bounded && wildCapture.cap.kept <= 30 && wildCapture.cap.bytes <= 420 * 1024 && wildCapture.cap.removed > 0,
+    "Expected photographed-character state in backup with 64KiB per-photo and oldest-first aggregate bounds", wildCapture);
 
   const backup = await page.evaluate(() => {
     const original = JSON.parse(backupPayload({ preserveMeta: true })), originalMemory = cloneObj(memory);

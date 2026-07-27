@@ -326,6 +326,11 @@
   .bookSearch input:focus{ border-color:var(--accent-a60); }
   .bookSearchResult{ min-height:30px; padding:7px 4px 0; color:var(--muted); font-size:calc(var(--fs-note) * var(--font-scale)); }
   .bookSearchResult button{ display:inline; min-height:30px; color:var(--accent); font-weight:700; }
+  .wildWish{ display:none; margin-top:20px; padding-top:14px; border-top:1px solid var(--line); }
+  .wildWishHead{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; color:var(--muted); font-size:calc(var(--fs-note) * var(--font-scale)); }
+  .wildWishHead b{ color:var(--ink); font-size:calc(var(--fs-body) * var(--font-scale)); }
+  .wildWishChars{ display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+  .wildWishChar{ width:44px; height:44px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--muted); font:400 calc(24px * var(--font-scale))/1 var(--kai); }
   .memoryWall{ position:relative; margin-top:14px; display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:5px 4px; }
   .memoryChar{ position:relative; aspect-ratio:1; display:flex; align-items:center; justify-content:center; border-radius:4px; font:400 calc(23px * var(--font-scale))/1 var(--kai); }
   .memoryChar.searchDim{ opacity:.18; }
@@ -532,6 +537,16 @@
   .sheetPreview{ display:flex; flex-wrap:wrap; gap:6px; margin:10px 0 4px; min-height:34px; align-content:flex-start; font-size:calc(var(--fs-note) * var(--font-scale)); color:var(--muted); }
   .addChip{ display:inline-flex; align-items:baseline; gap:6px; border:1px solid var(--line); background:var(--card); border-radius:999px; padding:5px 10px; }
   .addChip b{ font-family:var(--kai); font-size:calc(19px * var(--font-scale)); color:var(--accent); font-weight:400; }
+  .wildCapture{ display:grid; grid-template-columns:minmax(0,1fr); gap:10px; align-items:center; margin-top:10px; padding-top:10px; border-top:1px solid var(--line); }
+  .wildCapture.hasPhoto{ grid-template-columns:56px minmax(0,1fr); }
+  .wildCaptureThumb{ display:none; width:56px; height:56px; border:1px solid var(--line); border-radius:8px; object-fit:cover; background:var(--card); }
+  .wildCaptureCopy{ min-width:0; }
+  .wildCaptureBtn{ min-height:44px; padding:0 12px; border:1px solid var(--line); border-radius:10px; background:var(--card); color:var(--ink); font-size:calc(var(--fs-body) * var(--font-scale)); font-weight:700; }
+  .wildCaptureNote{ display:block; margin-top:4px; color:var(--faint); font-size:calc(var(--fs-caption) * var(--font-scale)); line-height:1.45; }
+  .wildCandidates{ display:none; flex-wrap:wrap; gap:7px; margin-top:10px; }
+  .wildCandidates.visible{ display:flex; }
+  .wildCandidates button{ min-width:44px; height:44px; padding:0 10px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--ink); font:400 calc(23px * var(--font-scale))/1 var(--kai); }
+  .wildCandidates button.selected{ border-color:var(--accent); color:var(--accent); background:var(--accentSoft); }
   .sheetMask.bottomSheet{ align-items:flex-end; padding:calc(40px + env(safe-area-inset-top)) 0 0; overflow:hidden; }
   .charSheet{ width:min(100%,430px); max-height:calc(100dvh - 40px - env(safe-area-inset-top)); overflow-y:auto; border-radius:18px 18px 0 0; padding:8px 24px calc(24px + env(safe-area-inset-bottom)); background:var(--bg); animation:sheetUp .24s ease-out; }
   @keyframes sheetUp{ from{ transform:translateY(28px); opacity:.6; } to{ transform:none; opacity:1; } }
@@ -542,6 +557,12 @@
   .charDetailMeta h3{ margin:0; font:900 calc(21px * var(--font-scale))/1.35 var(--song); }
   .charDetailPy{ display:block; margin-top:3px; color:var(--muted); font-size:calc(var(--fs-body) * var(--font-scale)); }
   .charDetailStory{ margin-top:10px; color:var(--muted); font-size:calc(var(--fs-body) * var(--font-scale)); line-height:1.7; }
+  .charDetailWild{ display:none; width:100%; grid-template-columns:64px minmax(0,1fr) auto; gap:12px; align-items:center; margin-top:14px; padding:10px 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line); color:var(--ink); text-align:left; }
+  .charDetailWild img{ width:64px; height:64px; border-radius:8px; object-fit:cover; border:1px solid var(--line); }
+  .charDetailWild span{ min-width:0; font-size:calc(var(--fs-body) * var(--font-scale)); line-height:1.5; }
+  .charDetailWild small{ color:var(--faint); font-size:calc(var(--fs-note) * var(--font-scale)); }
+  .wildPhotoViewer{ text-align:center; }
+  .wildPhotoViewer img{ display:block; width:min(100%,280px); aspect-ratio:1; margin:8px auto 16px; border:1px solid var(--line); border-radius:8px; object-fit:contain; background:var(--card); }
   .etymLine{ display:none; min-width:0; margin-top:8px; overflow:hidden; color:var(--faint); font:400 calc(var(--fs-note) * var(--font-scale))/1.5 var(--kai); white-space:nowrap; text-overflow:ellipsis; }
   .etymLine small{ margin-left:5px; color:var(--faint); font:400 calc(var(--fs-caption) * var(--font-scale))/1.5 var(--sans); }
   .charDetailCompare{ margin-top:20px; padding-top:16px; border-top:1px solid var(--line); }
@@ -786,6 +807,7 @@
     <button class="bookCurator" id="bookCurator"></button>
     <div class="bookSearch"><input id="bookSearchInput" type="search" autocomplete="off" placeholder="找一个字，或把忘的字收进来" aria-label="找字或收字"><div class="bookSearchResult" id="bookSearchResult" aria-live="polite"></div></div>
     <div class="memoryWall" id="memoryWall"></div>
+    <section class="wildWish" id="wildWish"><div class="wildWishHead"><b>还没有字帖</b><span id="wildWishCount"></span></div><div class="wildWishChars" id="wildWishChars"></div></section>
     <div class="memoryWallFoot"><span>墨色即记忆 · 淡了就去写</span><button id="bookSaveMonth">存月帖</button></div>
   </div>
 
@@ -844,6 +866,7 @@
       <button class="meRow" id="importLink">恢复备份<span>覆盖当前记录</span></button>
       <button class="meRow dangerRow" id="resetLink">清空记录<span>慎用</span></button>
     </div>
+    <div class="backupReminder settingsNotice" style="display:flex"><div><span>练习记录与拍字照片只保存在本机，绝不上传。</span></div></div>
     <div class="backupReminder settingsNotice" id="backupReminder"><div><span id="backupReminderCopy"></span></div></div>
     <div class="devTools" id="devTools">
       <div class="meLabel">开发工具</div>
@@ -902,6 +925,11 @@
   <p class="sheetHint">输入那个字，或它所在的词（如「蘸料」）。字库里有的字会带上拼音和语境词。</p>
   <input id="addInput" type="text" autocomplete="off" autocapitalize="off" maxlength="20" placeholder="蘸料">
   <div class="sheetPreview" id="addPreview"></div>
+  <div class="wildCapture" id="wildCapture">
+    <img class="wildCaptureThumb" id="wildCaptureThumb" alt="拍到的字">
+    <div class="wildCaptureCopy"><button class="wildCaptureBtn" id="wildCaptureBtn">拍一个字</button><span class="wildCaptureNote" id="wildCaptureNote">可拍照或从相册选，只在本机识别与保存</span></div>
+  </div>
+  <div class="wildCandidates" id="wildCandidates" aria-label="识别到的候选字"></div>
   <div class="row"><button class="ghostAct" id="addCancel">取消</button><button class="primaryAct" id="addConfirm" disabled>收进字库</button></div>
 </div></div>
 
@@ -925,6 +953,7 @@
     <div class="charDetailMeta"><h3 id="charDetailWord"></h3><span class="charDetailPy" id="charDetailPy"></span><div class="charDetailStory" id="charDetailStory"></div></div>
   </div>
   <div class="etymLine" id="etymLine"><span id="etymGloss"></span><small id="etymSource"></small></div>
+  <button class="charDetailWild" id="charDetailWild"><img id="charDetailWildImage" alt="拾于生活的照片"><span id="charDetailWildCopy"></span><small>查看</small></button>
   <div class="charDetailCompare">
     <div class="charDetailCompareHead"><span>我上次写的</span><button id="charDetailCompareToggle">对范字</button><button class="charDetailOverlayToggle" id="charDetailOverlayToggle">叠</button></div>
     <div class="charDetailCompareBody"><div class="charDetailInk" id="charDetailInk"></div><div class="charDetailStandard" id="charDetailStandard"></div><div class="charDetailEmpty" id="charDetailEmpty"></div></div>
@@ -932,10 +961,16 @@
   <div class="charDetailStroke" id="charDetailStroke"></div>
   <div class="charDetailActions"><button class="charDetailStrokeBtn" id="charDetailStrokeBtn">看笔顺</button><button class="charDetailPractice" id="charDetailPractice">再写一遍</button></div>
 </div></div>
+<div class="sheetMask" id="wildPhotoSheet" role="dialog" aria-modal="true" aria-label="拾于生活的照片"><div class="sheet wildPhotoViewer">
+  <h3 id="wildPhotoTitle">拾于生活</h3>
+  <img id="wildPhotoFull" alt="拾于生活的照片">
+  <button class="primaryAct" id="wildPhotoClose">收起</button>
+</div></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <div class="bootNotice" id="bootNotice" role="status" aria-live="polite">有一份记录损坏，已隔离，其余照常</div>
 <div class="undoToast" id="safetyUndo" role="status" aria-live="polite"><span id="safetyUndoCopy">已保留操作前的记录</span><button id="safetyUndoBtn">撤销</button></div>
 <input type="file" id="importFile" accept=".json,application/json" style="display:none">
+<input type="file" id="wildPhotoInput" accept="image/*" style="display:none">
 
 <script src="hanzi-writer.min.js"></script>
 <script src="fsrs6.min.js"></script>
@@ -953,7 +988,7 @@ SEED.forEach(w=>{ const chars=Array.from(w.ans), pys=w.py.split(/\s+/);
 const DECK_KEY="shizi.deck.v8105.context1", OPEN_KEY="shizi.opens.v1", MEMORY_KEY="shizi.memory.v1", QUALITY_KEY="shizi.quality.v1", PREF_KEY="shizi.pref.v1", TUNING_KEY="shizi.tuning.v1",
   ACTIVITY_KEY="shizi.activity.v1", SESSION_KEY="shizi.session.v1", BACKUP_META_KEY="shizi.backupMeta.v1", REMINDER_KEY="shizi.reminder.v1", SAFETY_KEY="shizi.safety.v1",
   FSRS_LOG_KEY="shizi.fsrsReviewLog.v1", TRACE_TUTORIAL_KEY="shizi.traceTutorial.v1", FONT_SCALE_KEY="shizi.fontScale.v1", FUNNEL_KEY="shizi.funnel.v1", SOUND_KEY="shizi.sound.v1",
-  TOPIC_KEY="shizi.topic.v1", CUSTOM_KEY="shizi.custom.v1", ADDED_KEY="shizi.added.v1";
+  TOPIC_KEY="shizi.topic.v1", CUSTOM_KEY="shizi.custom.v1", ADDED_KEY="shizi.added.v1", WILD_KEY="shizi.wild.v1";
 function load(k,d){ try{ return JSON.parse(localStorage.getItem(k)) ?? d; }catch(e){ return d; } }
 function save(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); return true; }catch(e){ return false; } }
 function removeStored(k){ try{ localStorage.removeItem(k); }catch(e){} }
@@ -967,6 +1002,7 @@ let status = bootLoad(DECK_KEY, {}, v=>objectValuesAre(v,row=>typeof row==="stri
 let memory = bootLoad(MEMORY_KEY, {}, v=>objectValuesAre(v,plainObject));
 let fsrsReviewLog = bootLoad(FSRS_LOG_KEY, [], Array.isArray);
 let traceTutorialShown = bootLoad(TRACE_TUTORIAL_KEY, false, v=>typeof v==="boolean")===true;
+let wildState = bootLoad(WILD_KEY, {version:1,captures:{},wishes:{}}, plainObject);
 save(FSRS_LOG_KEY,fsrsReviewLog); save(TRACE_TUTORIAL_KEY,traceTutorialShown);
 let quality = bootLoad(QUALITY_KEY, {}, v=>objectValuesAre(v,plainObject));
 let preference = bootLoad(PREF_KEY, "balanced", v=>["balanced","practical","challenge"].includes(v));
@@ -1725,7 +1761,9 @@ function renderEtymLine(){ const line=$("etymLine"), card=CARDS[charDetailIndex]
 function openCharSheet(i){ if(!Number.isInteger(i)||i<0||i>=CARDS.length) return; charDetailIndex=i; const c=CARDS[i],m=memory[cardKey(i)]||{},recent=m.recentInk&&m.recentInk.dataURL,first=firstSeenDay(i),safeWord=suspiciousDictionaryWord(i)?c.target:(c.word||c.target);
   $("charDetailGlyph").innerHTML=recent?`<img src="${recent}" alt="${esc(c.target)}的手写墨迹">`:esc(c.target);
   $("charDetailWord").textContent=safeWord; $("charDetailPy").textContent=c.py||"";
-  $("charDetailStory").innerHTML=`${first?`${collectedDateText(first)} 收进字库<br>`:""}练过 ${Number(m.seen)||0} 次${m.lastOutcome?` · ${OUTCOME_STORY[m.lastOutcome]||"上次练过"}`:""}`;
+  const wild=wildCaptureFor(c.target),wildDay=m.wildDay||(wild&&wild.day),wildStory=m.source==="wild"&&wildDay?`${collectedDateText(wildDay)} 拾于生活<br>`:"";
+  $("charDetailStory").innerHTML=`${wildStory}${first&&!wildStory?`${collectedDateText(first)} 收进字库<br>`:""}练过 ${Number(m.seen)||0} 次${m.lastOutcome?` · ${OUTCOME_STORY[m.lastOutcome]||"上次练过"}`:""}`;
+  $("charDetailWild").style.display=wild&&wild.dataURL?"grid":"none"; $("charDetailWildImage").src=wild&&wild.dataURL?wild.dataURL:""; $("charDetailWildCopy").textContent=wildDay?`${collectedDateText(wildDay)} 拾于生活`:"拾于生活";
   $("charDetailInk").innerHTML=recent?`<img src="${recent}" alt="我上次写的${esc(c.target)}">`:"";
   $("charDetailEmpty").textContent=recent?"":"还没留下手写，写一遍就有了"; $("charDetailEmpty").style.display=recent?"none":"block";
   $("charDetailStandard").textContent=c.target; $("charDetailStandard").style.display="none"; $("charDetailCompareToggle").textContent="对范字"; $("charDetailCompareToggle").style.display=recent?"":"none"; $("charDetailOverlayToggle").style.display="none"; $("charDetailOverlayToggle").textContent="叠"; $("charDetailStandard").parentElement.classList.remove("overlay");
@@ -1752,7 +1790,7 @@ function renderBook(){ displayView("book");
   $("boxCount").textContent=`${seen.length} 字`;
   const curator=bookCuratorData(seen); bookCuratorIndexes=curator.indexes; bookCuratorKind=curator.kind; $("bookCurator").innerHTML=`${esc(curator.text)} ${curator.suffix?`<span>${curator.suffix}</span>`:""}`; $("bookCurator").disabled=!curator.indexes.length;
   updateBookBadge();
-  $("memoryWall").innerHTML=seen.length?seen.map((i,k)=>`<button class="memoryChar" data-idx="${i}" aria-label="${esc(CARDS[i].target)}，${esc(CARDS[i].word)}" style="color:var(--memory-${memoryInkLevel(i)});transform:rotate(${ROTS[k%ROTS.length]/2}deg)">${esc(CARDS[i].target)}</button>`).join(""):`<div class="memoryWallEmpty">字库还空着。<br>拾一组字，墨色会从这里长出来。</div>`; handleBookSearchInput(false); }
+  $("memoryWall").innerHTML=seen.length?seen.map((i,k)=>`<button class="memoryChar" data-idx="${i}" aria-label="${esc(CARDS[i].target)}，${esc(CARDS[i].word)}" style="color:var(--memory-${memoryInkLevel(i)});transform:rotate(${ROTS[k%ROTS.length]/2}deg)">${esc(CARDS[i].target)}</button>`).join(""):`<div class="memoryWallEmpty">字库还空着。<br>拾一组字，墨色会从这里长出来。</div>`; renderWildWishes(); handleBookSearchInput(false); }
 let bookSearchTimer=0, bookSearchIndex=-1;
 function bookSearchTarget(){ const text=$("bookSearchInput").value.trim(),ch=Array.from(text).find(isCJK),base=ch&&BASE_BY_CHAR[ch],custom=ch?customIndexOf(ch):-1,idx=base!=null?base:custom; return {text,ch,idx:Number.isInteger(idx)?idx:-1}; }
 function handleBookSearchInput(autoOpen=true){ clearTimeout(bookSearchTimer); const {text,ch,idx}=bookSearchTarget(), nodes=[...$("memoryWall").querySelectorAll(".memoryChar")], result=$("bookSearchResult"); bookSearchIndex=-1; nodes.forEach(node=>node.classList.remove("searchDim","searchHit")); if(!text){ result.textContent=""; return; }
@@ -1811,6 +1849,18 @@ const BASE_N=CARDS.length;
 let customWords = bootLoad(CUSTOM_KEY, [], v=>Array.isArray(v)&&v.every(row=>typeof row==="string"));
 const isCJK=c=>/[一-鿿]/.test(c);
 const BASE_BY_CHAR={}; for(let i=0;i<BASE_N;i++){ const t=CARDS[i].target; if(BASE_BY_CHAR[t]==null) BASE_BY_CHAR[t]=i; }
+const WILD_PHOTO_MAX=30, WILD_PHOTO_BUDGET=420*1024, WILD_PHOTO_MAX_BYTES=64*1024;
+function wildImageBytes(dataURL){ const raw=String(dataURL||"").split(",")[1]||"",padding=(raw.match(/=*$/)||[""])[0].length; return Math.max(0,Math.floor(raw.length*3/4)-padding); }
+function isWildPhotoDataURL(value){ return /^data:image\/(?:webp|jpeg);base64,/.test(String(value||"")); }
+function normalizeWildEntry(row){ if(!plainObject(row)) return null; const at=Math.max(1,Number(row.at)||Date.now()), day=/^\d{4}-\d{2}-\d{2}$/.test(String(row.day||""))?String(row.day):dayKey(new Date(at)), dataURL=typeof row.dataURL==="string"&&isWildPhotoDataURL(row.dataURL)&&wildImageBytes(row.dataURL)<=WILD_PHOTO_MAX_BYTES?row.dataURL:""; return {day,at,...(dataURL?{dataURL}:{})}; }
+function normalizeWildState(value){ const out={version:1,captures:{},wishes:{}}; ["captures","wishes"].forEach(group=>{ const rows=plainObject(value&&value[group])?value[group]:{}; Object.entries(rows).forEach(([ch,row])=>{ const item=normalizeWildEntry(row); if(Array.from(ch).length===1&&isCJK(ch)&&item) out[group][ch]=item; }); }); return out; }
+wildState=normalizeWildState(wildState);
+function wildPhotoRows(){ return ["captures","wishes"].flatMap(group=>Object.entries(wildState[group]).filter(([,row])=>row&&row.dataURL).map(([ch,row])=>({group,ch,row,at:row.at,bytes:row.dataURL.length*2}))).sort((a,b)=>b.at-a.at); }
+function trimWildPhotos(){ let kept=0,bytes=0,removed=0; wildPhotoRows().forEach(item=>{ if(kept<WILD_PHOTO_MAX&&bytes+item.bytes<=WILD_PHOTO_BUDGET){ kept++; bytes+=item.bytes; }else{ delete item.row.dataURL; removed++; } }); return {kept,bytes,removed}; }
+function saveWildState(){ trimWildPhotos(); if(save(WILD_KEY,wildState)) return true; const oldest=wildPhotoRows().sort((a,b)=>a.at-b.at); for(const item of oldest){ delete item.row.dataURL; if(save(WILD_KEY,wildState)) return true; } return save(WILD_KEY,wildState); }
+function wildCaptureFor(ch){ const row=wildState.captures[ch]; return row&&row.dataURL?row:null; }
+function renderWildWishes(){ const rows=Object.entries(wildState.wishes).sort((a,b)=>(b[1].at||0)-(a[1].at||0)); $("wildWish").style.display=rows.length?"block":"none"; $("wildWishCount").textContent=rows.length?`${rows.length} 字 · 已记下`:""; $("wildWishChars").innerHTML=rows.map(([ch,row])=>`<button class="wildWishChar" data-wild-wish="${esc(ch)}" aria-label="${esc(ch)}，${collectedDateText(row.day)}拾于生活">${esc(ch)}</button>`).join(""); }
+saveWildState();
 function pushWordCards(s){ const chars=Array.from(s).filter(isCJK); const start=CARDS.length;
   chars.forEach((ch,ci)=>CARDS.push({ word:chars.join(""), chars, ci, target:ch, py:"", hint:"你刚才卡壳的字", custom:true, topic:"自定义", d:76, level:"大学", rank:999999, strokes:0, parts:1, common:0, norm:"自定义", ctx:"custom" })); return [start, CARDS.length]; }
 function buildCustomCards(){ CARDS.length=BASE_N; customWords.forEach(pushWordCards); }
@@ -1834,6 +1884,10 @@ function addWord(s){ s=(s||"").trim(); const chars=[...new Set(Array.from(s).fil
   const latestQueuedAt=Object.values(memory).reduce((max,m)=>Math.max(max,Number(m&&m.queuedFrontAt)||0),0);
   const queuedAt=Math.max(Date.now(),latestQueuedAt+1); indexesForChars(chars).forEach((idx,order)=>{ const m=cardMemory(idx); m.queuedFront=true; m.queuedFrontAt=queuedAt+order; });
   saveMemory(); return chars; }
+function collectWildCharacter(ch,capture){ ch=Array.from(String(ch||"")).find(isCJK)||""; if(!ch) return {known:false,char:""};
+  const at=Math.max(1,Number(capture&&capture.at)||Date.now()),day=capture&&capture.day||dayKey(new Date(at)),entry=normalizeWildEntry({day,at,...(capture&&capture.dataURL?{dataURL:capture.dataURL}:{})})||{day,at},base=BASE_BY_CHAR[ch];
+  if(base==null){ wildState.wishes[ch]=entry; saveWildState(); return {known:false,char:ch}; }
+  const chars=addWord(ch),idx=BASE_BY_CHAR[ch],m=cardMemory(idx); m.source="wild"; m.wildDay=day; if(entry.dataURL) wildState.captures[ch]=entry; delete wildState.wishes[ch]; saveMemory(); saveWildState(); return {known:true,char:ch,chars,idx}; }
 function indexesForChars(chars){ return (chars||[]).map(ch=>{ const base=BASE_BY_CHAR[ch]; return base!=null?base:customIndexOf(ch); }).filter(i=>i!=null && i>=0); }
 function insertIntoCurrentBatch(indexes){ if($("card").style.display==="none" || !baseTargets.length) return {queued:[],added:[],moved:[]};
   const requested=[...new Set(indexes)], queued=[], added=[], moved=[];
@@ -2477,6 +2531,7 @@ $("sumTiles").onclick=e=>{ const b=e.target.closest("[data-idx]"); if(b) openCha
 $("calibSumTiles").onclick=e=>{ const b=e.target.closest("[data-idx]"); if(b) openCharSheet(Number(b.dataset.idx)); };
 $("roundTune").onclick=e=>{ const b=e.target.closest("[data-round-feedback]"); if(b) recordRoundFeedback(b.dataset.roundFeedback); };
 $("memoryWall").onclick=e=>{ const b=e.target.closest("[data-idx]"); if(b) openCharSheet(Number(b.dataset.idx)); };
+$("wildWishChars").onclick=e=>{ const b=e.target.closest("[data-wild-wish]"); if(!b) return; const ch=b.dataset.wildWish,row=wildState.wishes[ch]; if(row&&row.dataURL) openWildPhoto(row.dataURL,`${ch} · ${collectedDateText(row.day)}拾于生活`); else toast(`「${ch}」已经记下，字帖还在路上`); };
 $("bookCurator").onclick=()=>{ if(!bookCuratorIndexes.length) return; if(bookCuratorKind==="recall") openCharSheet(bookCuratorIndexes[0]); else startFocus(bookCuratorIndexes); };
 $("bookSearchInput").oninput=()=>handleBookSearchInput(true);
 $("bookSearchInput").onkeydown=e=>{ if(e.key==="Enter"&&!e.isComposing) handleBookSearch(); };
@@ -2525,6 +2580,9 @@ $("charDetailCompareToggle").onclick=toggleCharDetailCompare;
 $("charDetailOverlayToggle").onclick=toggleCharDetailOverlay;
 $("charDetailStrokeBtn").onclick=replayCharDetail;
 $("charDetailPractice").onclick=()=>{ const idx=charDetailIndex, returnView=$("profilePanel").style.display==="flex"?"profile":$("studybook").style.display==="flex"?"book":$("mePanel").style.display==="flex"?"me":"home"; closeCharSheet(); startFocus([idx],{returnView}); };
+$("charDetailWild").onclick=()=>{ if(charDetailIndex<0) return; const c=CARDS[charDetailIndex],row=wildCaptureFor(c.target); if(row) openWildPhoto(row.dataURL,`${c.target} · ${collectedDateText(row.day)}拾于生活`); };
+$("wildPhotoClose").onclick=closeWildPhoto;
+$("wildPhotoSheet").onclick=e=>{ if(e.target===$("wildPhotoSheet")) closeWildPhoto(); };
 $("charSheet").onclick=e=>{ if(e.target===$("charSheet")) closeCharSheet(); };
 $("charSheet").addEventListener("touchstart",e=>{ const panel=e.target.closest&&e.target.closest(".charSheet"), startZone=e.target.closest&&e.target.closest(".sheetHandle,.charDetailHead"); charDetailSwipeEligible=e.touches.length===1&&!!panel&&panel.scrollTop<=0&&!!startZone; charDetailTouchY=charDetailSwipeEligible?e.touches[0].clientY:null; },{passive:true});
 $("charSheet").addEventListener("touchend",e=>{ const panel=e.target.closest&&e.target.closest(".charSheet"), eligible=charDetailSwipeEligible&&panel&&panel.scrollTop<=0; charDetailSwipeEligible=false; if(!eligible||charDetailTouchY==null||!e.changedTouches.length){ charDetailTouchY=null; return; } const dy=e.changedTouches[0].clientY-charDetailTouchY; charDetailTouchY=null; if(dy>70) closeCharSheet(); },{passive:true});
@@ -2541,16 +2599,38 @@ let toastTimer=0;
 function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove("show"),2200); }
 
 // ---- ＋加字面板（替代 window.prompt：输入即预览识别出的字，在库字直接带出拼音）----
-function renderAddPreview(){ const chars=[...new Set(Array.from($("addInput").value).filter(isCJK))];
+let wildDraft=null,wildOCRRequest=0;
+function openWildPhoto(dataURL,title="拾于生活"){ if(!dataURL) return; $("wildPhotoTitle").textContent=title; $("wildPhotoFull").src=dataURL; $("wildPhotoSheet").classList.add("open"); }
+function closeWildPhoto(){ $("wildPhotoSheet").classList.remove("open"); $("wildPhotoFull").src=""; }
+function nativeOCRBridge(){ return window.webkit&&window.webkit.messageHandlers&&window.webkit.messageHandlers.shiziNative; }
+async function wildImageBitmap(file){ if(window.createImageBitmap) return createImageBitmap(file); return new Promise((resolve,reject)=>{ const img=new Image(),url=URL.createObjectURL(file); img.onload=()=>{ URL.revokeObjectURL(url); resolve(img); }; img.onerror=()=>{ URL.revokeObjectURL(url); reject(new Error("image")); }; img.src=url; }); }
+async function cropWildPhoto(file){ const image=await wildImageBitmap(file),side=Math.min(image.width,image.height),sx=(image.width-side)/2,sy=(image.height-side)/2,canvas=document.createElement("canvas"),ctx=canvas.getContext("2d"); let result="";
+  outer: for(const mime of ["image/webp","image/jpeg"]){ for(const size of [256,224,192,160]){ canvas.width=size; canvas.height=size; ctx.clearRect(0,0,size,size); ctx.drawImage(image,sx,sy,side,side,0,0,size,size); for(const quality of [.78,.64,.5,.38]){ const candidate=canvas.toDataURL(mime,quality); if(candidate.startsWith(`data:${mime};base64,`)&&wildImageBytes(candidate)<=WILD_PHOTO_MAX_BYTES){ result=candidate; break outer; } } } }
+  if(typeof image.close==="function") image.close(); return isWildPhotoDataURL(result)&&wildImageBytes(result)<=WILD_PHOTO_MAX_BYTES?result:""; }
+function uniqueWildCandidates(value){ const source=Array.isArray(value)?value.join(""):String(value||""); return [...new Set(Array.from(source).filter(isCJK))].slice(0,12); }
+function showWildCandidates(value,requestId=wildOCRRequest){ if(!wildDraft||requestId!==wildOCRRequest) return []; const chars=uniqueWildCandidates(value),box=$("wildCandidates"); box.classList.toggle("visible",chars.length>0); box.innerHTML=chars.map(ch=>`<button data-wild-candidate="${esc(ch)}">${esc(ch)}</button>`).join(""); $("wildCaptureNote").textContent=chars.length?"点一下你看到的字；识别不会自动收字":"没认准也没关系，直接手动输入"; return chars; }
+window.shiziOCRResult=payload=>{ const body=plainObject(payload)?payload:{candidates:payload},requestId=Number(body.requestId)||wildOCRRequest; showWildCandidates(body.candidates||[],requestId); };
+async function handleWildPhoto(file){ if(!file||!String(file.type||"").startsWith("image/")) return false; $("wildCaptureNote").textContent="正在整理照片…";
+  try{ const dataURL=await cropWildPhoto(file); if(!dataURL) throw new Error("size"); const at=Date.now(); wildOCRRequest+=1; wildDraft={version:1,day:today(),at,dataURL,requestId:wildOCRRequest}; $("wildCapture").classList.add("hasPhoto"); $("wildCaptureThumb").src=dataURL; $("wildCaptureThumb").style.display="block"; $("wildCandidates").classList.remove("visible"); $("wildCandidates").innerHTML=""; $("addInput").value=""; $("addInput").placeholder="你看到的是哪个字？"; renderAddPreview();
+    const bridge=nativeOCRBridge(); if(bridge){ $("wildCaptureNote").textContent="正在本机认字…"; bridge.postMessage({type:"recognizeChars",requestId:wildOCRRequest,dataURL}); } else $("wildCaptureNote").textContent="你看到的是哪个字？请手动输入";
+    $("addInput").focus(); return true;
+  }catch(e){ wildDraft=null; $("wildCaptureNote").textContent="照片没能读出来，可以直接手动输入"; toast("照片没能读出来，可以手动输入"); return false; } }
+function clearWildDraft(){ wildDraft=null; wildOCRRequest+=1; $("wildPhotoInput").value=""; $("wildCapture").classList.remove("hasPhoto"); $("wildCaptureThumb").src=""; $("wildCaptureThumb").style.display="none"; $("wildCandidates").classList.remove("visible"); $("wildCandidates").innerHTML=""; $("wildCaptureNote").textContent="可拍照或从相册选，只在本机识别与保存"; $("addInput").placeholder="蘸料"; }
+function renderAddPreview(){ const raw=[...new Set(Array.from($("addInput").value).filter(isCJK))],chars=wildDraft?raw.slice(0,1):raw;
   $("addConfirm").disabled=!chars.length;
   $("addPreview").innerHTML=chars.length?chars.map(ch=>{ const b=BASE_BY_CHAR[ch], idx=b!=null?b:customIndexOf(ch), m=idx>=0?memory[cardKey(idx)]:null;
-    return `<span class="addChip"><b>${ch}</b>${b!=null?CARDS[b].py:"生僻字·自定义卡"}${m&&m.seen?" · 已练过":""}</span>`; }).join(""):`<span>输入含汉字的词</span>`; }
+    return `<span class="addChip"><b>${ch}</b>${b!=null?CARDS[b].py:(wildDraft?"还没有字帖":"生僻字·自定义卡")}${m&&m.seen?" · 已练过":""}</span>`; }).join(""):`<span>${wildDraft?"输入或点选一个汉字":"输入含汉字的词"}</span>`;
+  $("wildCandidates").querySelectorAll("[data-wild-candidate]").forEach(btn=>btn.classList.toggle("selected",btn.dataset.wildCandidate===chars[0])); }
 let feedbackPausedForAdd=false;
 function openAddSheet(){ commitUndoWindow(); if(stamped){ clearTimeout(autoNextTimer); feedbackPausedForAdd=true; lastStampSnapshot=null; $("editStamp").disabled=true; hideUndoBar(false); }
-  $("addInput").value=""; renderAddPreview(); $("addSheet").classList.add("open"); updateKeyboardInset(); $("addInput").focus();
+  clearWildDraft(); $("addInput").value=""; renderAddPreview(); $("addSheet").classList.add("open"); updateKeyboardInset(); $("addInput").focus();
   requestAnimationFrame(()=>{ try{ $("addInput").scrollIntoView({block:"center", inline:"nearest"}); }catch(e){} }); }
-function closeAddSheet(){ $("addSheet").classList.remove("open"); $("addInput").blur(); updateKeyboardInset(); if(feedbackPausedForAdd){ feedbackPausedForAdd=false; autoNextTimer=setTimeout(advanceFeedback,200); } }
-function confirmAdd(){ const chars=addWord($("addInput").value); if(!chars) return;
+function closeAddSheet(){ $("addSheet").classList.remove("open"); $("addInput").blur(); clearWildDraft(); updateKeyboardInset(); if(feedbackPausedForAdd){ feedbackPausedForAdd=false; autoNextTimer=setTimeout(advanceFeedback,200); } }
+function confirmAdd(){ if(wildDraft){ const ch=Array.from($("addInput").value).find(isCJK),capture=wildDraft,result=collectWildCharacter(ch,capture); if(!result.char) return; const insertion=result.known?insertIntoCurrentBatch([result.idx]):{queued:[]}; closeAddSheet();
+    if(!result.known){ toast("这个字还没有字帖，先记下了"); if($("studybook").style.display==="flex") renderBook(); return; }
+    if(insertion.queued.length) toast(`已加入本组，下一题写「${result.char}」`); else toast(`已拾下「${result.char}」 · 下次开练先写它`);
+    if($("summary").style.display==="flex") roundSummary(); if($("mePanel").style.display==="flex") renderMe(); if($("studybook").style.display==="flex") renderBook(); return; }
+  const chars=addWord($("addInput").value); if(!chars) return;
   const insertion=insertIntoCurrentBatch(indexesForChars(chars));
   closeAddSheet();
   if(insertion.queued.length){ const order=manualQueue.map(item=>CARDS[item.idx].target);
@@ -2565,6 +2645,9 @@ $("addCancel").onclick=closeAddSheet;
 $("addConfirm").onclick=confirmAdd;
 $("addInput").oninput=renderAddPreview;
 $("addInput").onkeydown=e=>{ if(e.key==="Enter" && !e.isComposing && !$("addConfirm").disabled) confirmAdd(); };
+$("wildCaptureBtn").onclick=()=>$("wildPhotoInput").click();
+$("wildPhotoInput").onchange=e=>{ const file=e.target.files&&e.target.files[0]; e.target.value=""; if(file) handleWildPhoto(file); };
+$("wildCandidates").onclick=e=>{ const btn=e.target.closest("[data-wild-candidate]"); if(!btn) return; $("addInput").value=btn.dataset.wildCandidate; renderAddPreview(); };
 $("addSheet").onclick=e=>{ if(e.target===$("addSheet")) closeAddSheet(); };
 
 // ---- 今日字帖分享：只重绘本组字、日期与章，不读取或写入任何个人字段 ----
@@ -2607,7 +2690,7 @@ async function sharePracticeCard(opts={}){ const canvas=renderPracticeCardCanvas
 
 // ---- 数据备份 / 恢复（localStorage 是唯一存储，换手机或清缓存前先导出）----
 // 新增 shizi.* 持久键时必须同步加入；shizi.nativeSmoke.v1 与 SAFETY_KEY 为刻意排除。
-const BACKUP_KEYS=[DECK_KEY,OPEN_KEY,MEMORY_KEY,QUALITY_KEY,PREF_KEY,TUNING_KEY,ACTIVITY_KEY,SESSION_KEY,FSRS_LOG_KEY,TRACE_TUTORIAL_KEY,BACKUP_META_KEY,REMINDER_KEY,FONT_SCALE_KEY,FUNNEL_KEY,SOUND_KEY,TOPIC_KEY,CUSTOM_KEY,ADDED_KEY];
+const BACKUP_KEYS=[DECK_KEY,OPEN_KEY,MEMORY_KEY,QUALITY_KEY,PREF_KEY,TUNING_KEY,ACTIVITY_KEY,SESSION_KEY,FSRS_LOG_KEY,TRACE_TUTORIAL_KEY,BACKUP_META_KEY,REMINDER_KEY,FONT_SCALE_KEY,FUNNEL_KEY,SOUND_KEY,TOPIC_KEY,CUSTOM_KEY,ADDED_KEY,WILD_KEY];
 function backupAgeDays(){ const ts=Number(backupMeta.lastExportAt)||0; return ts?Math.max(0,Math.floor((Date.now()-ts)/86400000)):Number.POSITIVE_INFINITY; }
 function backupRelativeText(){ const days=backupAgeDays(); if(!Number.isFinite(days)) return "从未备份"; if(days===0) return "上次备份 · 今天"; if(days===1) return "上次备份 · 昨天"; return `上次备份 · ${days} 天前`; }
 function renderBackupUI(){ const age=backupAgeDays(), never=!Number.isFinite(age), urgent=(totalPracticeDays()>=14&&never)||(!never&&age>=30); $("backupStatus").textContent=backupRelativeText(); $("backupStatus").classList.toggle("backupStatusUrgent",urgent); $("backupUrgency").style.display=urgent?"flex":"none"; $("mePanel").classList.toggle("backupUrgent",urgent);
@@ -2669,7 +2752,7 @@ $("importLink").onclick=requestBackupImport;
 $("welcomeRestore").onclick=requestBackupImport;
 $("importFile").onchange=e=>{ const f=e.target.files && e.target.files[0]; e.target.value=""; if(f) importBackup(f); };
 function resetAllData(opts){ const options=opts||{}; if(!options.skipConfirm && !confirm(`清空当前 ${memoryCount()} 个字和全部练习记录？操作后可以撤销一次。`)) return false; captureSafetySnapshot("reset");
-  status={}; memory={}; fsrsReviewLog=[]; traceTutorialShown=false; quality={}; tuning={calibrated:false, offset:0, contextStrict:0, rounds:[]}; preference="balanced"; fontScaleLarge=false; applyFontScale(); opens=[today()]; customWords=[]; addedChars=[]; activity=newActivity(); funnel=newFunnel(); backupMeta=normalizeBackupMeta(null); summaryBackupHintVisible=false; reminder=normalizeReminder(null); sound=normalizeSound(null); stopAmbient(true); saveSound(); renderSoundUI(); saveReminder(); syncReminder(); save(DECK_KEY,status); save(MEMORY_KEY,memory); saveFSRSLog(); save(TRACE_TUTORIAL_KEY,false); save(QUALITY_KEY,quality); saveTuning(); save(PREF_KEY,preference); save(FONT_SCALE_KEY,false); save(OPEN_KEY,opens); save(CUSTOM_KEY,customWords); save(ADDED_KEY,addedChars); saveActivity(); saveFunnel(); save(BACKUP_META_KEY,backupMeta); buildCustomCards(); removeStored(TOPIC_KEY); clearSessionSnapshot(); activeMode="new"; makeupTargetDay=""; sessionDone=new Set(); focusQueue=[]; renderHome(); $("dataBox").style.display="none"; showSafetyUndo(); return true; }
+  status={}; memory={}; fsrsReviewLog=[]; traceTutorialShown=false; quality={}; tuning={calibrated:false, offset:0, contextStrict:0, rounds:[]}; preference="balanced"; fontScaleLarge=false; applyFontScale(); opens=[today()]; customWords=[]; addedChars=[]; wildState=normalizeWildState(null); activity=newActivity(); funnel=newFunnel(); backupMeta=normalizeBackupMeta(null); summaryBackupHintVisible=false; reminder=normalizeReminder(null); sound=normalizeSound(null); stopAmbient(true); saveSound(); renderSoundUI(); saveReminder(); syncReminder(); save(DECK_KEY,status); save(MEMORY_KEY,memory); saveFSRSLog(); save(TRACE_TUTORIAL_KEY,false); save(QUALITY_KEY,quality); saveTuning(); save(PREF_KEY,preference); save(FONT_SCALE_KEY,false); save(OPEN_KEY,opens); save(CUSTOM_KEY,customWords); save(ADDED_KEY,addedChars); saveWildState(); saveActivity(); saveFunnel(); save(BACKUP_META_KEY,backupMeta); buildCustomCards(); removeStored(TOPIC_KEY); clearSessionSnapshot(); activeMode="new"; makeupTargetDay=""; sessionDone=new Set(); focusQueue=[]; renderHome(); $("dataBox").style.display="none"; showSafetyUndo(); return true; }
 $("resetLink").onclick=resetAllData;
 $("safetyUndoBtn").onclick=()=>undoSafetyRestore();
 

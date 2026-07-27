@@ -241,6 +241,10 @@ final class WebViewController: UIViewController {
               wildPhotoMime: '',
               wildVisionCandidateCount: -1,
               wildSmokeStage: 'not-started',
+              libraryAvailable: false,
+              libraryReachable: false,
+              libraryUI: false,
+              libraryCalibrationLifecycle: false,
               backupParses: false,
               backupHasAppMarker: false,
               backupHasAdded: false,
@@ -249,6 +253,7 @@ final class WebViewController: UIViewController {
               backupHasRecentInk: false,
               backupHasReminder: false,
               backupHasSound: false,
+              backupHasLibrary: false,
               backupHasFunnel: false,
               backupExcludesSmokeKey: false,
               backupHasMeta: false,
@@ -258,6 +263,7 @@ final class WebViewController: UIViewController {
               backupRestoreCustom: false,
               backupRestoreMemory: false,
               backupRestoreRecentInk: false,
+              backupRestoreLibrary: false,
               backupRestoreFunnel: false,
               backupRestorePreservesSmokeKey: false,
               backupRestoreRejectsInvalid: false,
@@ -429,6 +435,63 @@ final class WebViewController: UIViewController {
                 openCharSheet(CARDS.findIndex(card => card.target === '水'));
                 result.dataFlow.etymologyDetailAvailable = getComputedStyle(document.getElementById('etymLine')).display === 'block' && document.getElementById('etymGloss').textContent.length > 0 && document.getElementById('etymSource').textContent.includes('说文解字');
                 closeCharSheet();
+              }
+              if (typeof openLibSheet === 'function' && typeof libraryCounts === 'function') {
+                const libraryBefore = cloneObj(libraryState);
+                const tuningBefore = cloneObj(tuning);
+                const memoryBeforeLibrary = cloneObj(memory);
+                const statusBeforeLibrary = cloneObj(status);
+                const qualityBeforeLibrary = cloneObj(quality);
+                const sessionDoneBeforeLibrary = [...sessionDone];
+                const preferenceBeforeLibrary = preference;
+                const activeModeBeforeLibrary = activeMode;
+                const calibrationTargetsBeforeLibrary = calibrationTargets.slice();
+                const roundStatsBeforeLibrary = cloneObj(roundStats);
+                const funnelBeforeLibrary = cloneObj(funnel);
+                memory = {}; status = {}; quality = {}; sessionDone = new Set();
+                const libraryRows = LIBRARIES.map(lib => {
+                  setLibrary(lib.id);
+                  tuning.contextStrict = 4;
+                  const strict4 = newPool(false).length;
+                  tuning.contextStrict = 0;
+                  const strict0 = newPool(false).length;
+                  return { total: libraryCounts(lib).total, strict0, strict4 };
+                });
+                setLibrary('junior');
+                renderBook();
+                openLibSheet();
+                result.dataFlow.libraryAvailable = LIBRARIES.length === 6 && BACKUP_KEYS.includes(LIB_KEY);
+                result.dataFlow.libraryReachable = libraryRows.every(row => row.total > 0 && row.strict0 === row.total && row.strict4 === row.total);
+                result.dataFlow.libraryUI = document.getElementById('libList').querySelectorAll('[data-lib]').length === 6
+                  && document.getElementById('libSheet').textContent.includes('换库不丢任何东西')
+                  && document.getElementById('libName').textContent === '初中'
+                  && LIBRARIES[2].name === '生僻字' && libraryRows[2].total === 486
+                  && !document.getElementById('libCard').querySelector('.libBar,.libTones')
+                  && !document.getElementById('libList').querySelector('.libBar')
+                  && !/拾完|手速|墨色进度/.test(document.getElementById('libSheet').textContent + document.getElementById('libCard').textContent);
+                closeLibSheet();
+                const calibrationIndexes = allIndexes().slice(0, 15);
+                const completeChallengeCalibration = manualLibrary => {
+                  preference = 'balanced'; tuning = { calibrated: false, offset: 0, contextStrict: 0, rounds: [] };
+                  libraryState = normalizeLibrary(null); save(LIB_KEY, libraryState);
+                  if (manualLibrary) setLibrary(manualLibrary);
+                  activeMode = 'calibrate'; calibrationTargets = calibrationIndexes.slice();
+                  roundStats = calibrationIndexes.map(idx => ({ idx, outcome: 'fast', geometryStatus: 'ok' }));
+                  const before = cloneObj(libraryState); maybeFinishCalibration();
+                  return { before, preference, after: cloneObj(libraryState), stored: load(LIB_KEY, null) };
+                };
+                const freshCalibration = completeChallengeCalibration('');
+                const manualCalibration = completeChallengeCalibration('junior');
+                result.dataFlow.libraryCalibrationLifecycle = freshCalibration.before.id === 'core3500' && !freshCalibration.before.userSelected
+                  && freshCalibration.preference === 'challenge' && freshCalibration.after.id === 'adv3000' && !freshCalibration.after.userSelected
+                  && freshCalibration.stored.id === 'adv3000'
+                  && manualCalibration.before.id === 'junior' && manualCalibration.before.userSelected
+                  && manualCalibration.preference === 'challenge' && manualCalibration.after.id === 'junior' && manualCalibration.after.userSelected;
+                memory = memoryBeforeLibrary; status = statusBeforeLibrary; quality = qualityBeforeLibrary; sessionDone = new Set(sessionDoneBeforeLibrary);
+                tuning = tuningBefore; libraryState = normalizeLibrary(libraryBefore); preference = preferenceBeforeLibrary; activeMode = activeModeBeforeLibrary;
+                calibrationTargets = calibrationTargetsBeforeLibrary; roundStats = roundStatsBeforeLibrary; funnel = funnelBeforeLibrary;
+                saveMemory(); save(DECK_KEY, status); saveQuality(); saveTuning(); save(PREF_KEY, preference); save(LIB_KEY, libraryState); saveFunnel();
+                renderBook();
               }
 
               document.getElementById('tabMe').click();
@@ -640,6 +703,7 @@ final class WebViewController: UIViewController {
               result.dataFlow.backupHasWild = Object.prototype.hasOwnProperty.call(backupData, WILD_KEY) && String(backupData[WILD_KEY]).includes(wildKnownChar);
               result.dataFlow.backupHasReminder = Object.prototype.hasOwnProperty.call(backupData, REMINDER_KEY);
               result.dataFlow.backupHasSound = Object.prototype.hasOwnProperty.call(backupData, SOUND_KEY);
+              result.dataFlow.backupHasLibrary = Object.prototype.hasOwnProperty.call(backupData, LIB_KEY);
               const backupFunnel = Object.prototype.hasOwnProperty.call(backupData, FUNNEL_KEY) ? JSON.parse(backupData[FUNNEL_KEY]) : null;
               result.dataFlow.backupHasFunnel = !!backupFunnel && backupFunnel.version === 1 && backupFunnel.events.filter(row => row.name === 'backup_exported').length === 1;
               result.dataFlow.backupHasSessionV2 = Object.prototype.hasOwnProperty.call(backupData, SESSION_KEY) && JSON.parse(backupData[SESSION_KEY]).version === 2;
@@ -668,6 +732,7 @@ final class WebViewController: UIViewController {
                 result.dataFlow.backupRestoreHandCard = String(localStorage.getItem(HAND_CARD_KEY) || '').includes('promptEnabled')
                   && String(localStorage.getItem(MEMORY_KEY) || '').includes('strokes');
                 result.dataFlow.backupRestoreWild = String(localStorage.getItem(WILD_KEY) || '').includes(wildKnownChar);
+                result.dataFlow.backupRestoreLibrary = localStorage.getItem(LIB_KEY) === backupData[LIB_KEY];
                 const restoredFunnel = JSON.parse(localStorage.getItem(FUNNEL_KEY) || '{}');
                 result.dataFlow.backupRestoreFunnel = restoredFunnel.version === 1 && restoredFunnel.events.filter(row => row.name === 'backup_exported').length === 1;
                 result.dataFlow.backupRestorePreservesSessionV2 = JSON.parse(localStorage.getItem(SESSION_KEY) || '{}').version === 2;

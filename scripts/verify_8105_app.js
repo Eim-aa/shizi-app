@@ -517,7 +517,7 @@ let browser;
   "Expected 600 unique core files including the exact first calibration group within the 1-2 MiB target", { count: coreStrokes.chars.length, calibration: coreStrokes.calibration, missingCoreFiles, coreBytes });
   await page.waitForFunction(async () => { const cache = await caches.open("shizi-v10"), keys = await cache.keys(); return keys.filter((request) => new URL(request.url).pathname.includes("/data/")).length >= 601; }, null, { timeout: 30000 });
   const coreCache = await page.evaluate(async () => { const cache = await caches.open("shizi-v10"), keys = await cache.keys(); return { core: keys.filter((request) => new URL(request.url).pathname.includes("/data/")).length, shell: !!(await cache.match("core-strokes.js")), etymology: !!(await cache.match("data/etymology.json")) }; });
-  assert(coreCache.core === 601 && coreCache.shell && coreCache.etymology, "Expected the service worker to install all available core strokes, their generated list and etymology", coreCache);
+  assert(coreCache.core >= 601 && coreCache.shell && coreCache.etymology, "Expected the service worker to install all core strokes and etymology while retaining runtime-fetched extras", coreCache);
 
   const dailyRitual = await page.evaluate(() => {
     const original = { tuning: cloneObj(tuning), activity: cloneObj(activity), activeMode, focusQueue: focusQueue.slice(), sessionDone: [...sessionDone] };
@@ -1945,6 +1945,106 @@ let browser;
   assert(handCards.nativeSave.route === "native-save" && handCards.nativeShare.route === "native-share" && handCards.nativeMessages[0].type === "savePracticeCard" && handCards.nativeMessages[1].type === "sharePracticeCard" && handCards.nativeMessages.every((message) => message.kind === "character" && message.png)
     && handCards.webSave.route === "download" && handCards.downloads.length === 1 && handCards.webShare.route === "share" && handCards.shares === 1 && handCards.backedUp && handCards.inkBytes > 0,
   "Expected photo-library, system-share, Web Share/download, backup, and bounded recent-ink routes", handCards);
+  const libraries = await page.evaluate(() => {
+    const originalPayload = backupPayload({ preserveMeta: true });
+    const saved = {
+      memory: cloneObj(memory), status: cloneObj(status), quality: cloneObj(quality), tuning: cloneObj(tuning),
+      preference, library: cloneObj(libraryState), sessionDone: [...sessionDone], activeMode,
+      calibrationTargets: calibrationTargets.slice(), roundStats: cloneObj(roundStats),
+    };
+    memory = {}; status = {}; quality = {}; sessionDone = new Set();
+    preference = "balanced";
+    tuning = { ...tuning, calibrated: true, contextStrict: 4 };
+    const expected = { core3500: 3500, adv3000: 2868, rare: 486, primary: 283, junior: 911, senior: 2097 };
+    const rows = LIBRARIES.map((lib) => {
+      setLibrary(lib.id);
+      tuning.contextStrict = 4;
+      const strict4 = newPool(false);
+      tuning.contextStrict = 0;
+      const strict0 = newPool(false);
+      const counts = libraryCounts(lib);
+      return {
+        id: lib.id, name: lib.name, total: counts.total, expected: expected[lib.id],
+        strict0: strict0.length, strict4: strict4.length,
+        unique: new Set(strict4.map((idx) => CARDS[idx].target)).size,
+        belongs: strict4.every((idx) => lib.test(CARDS[idx])),
+        fallbacks: strict4.filter((idx) => contextSource(idx) === "fallback").length,
+      };
+    });
+
+    const coreIndex = allIndexes().find((idx) => LIBRARIES[0].test(CARDS[idx]));
+    const advancedIndex = allIndexes().find((idx) => LIBRARIES[1].test(CARDS[idx]));
+    [coreIndex, advancedIndex].forEach((idx) => {
+      const row = cardMemory(idx);
+      row.seen = 1; row.pendingLearning = false; row.dueDay = today(); row.last = Date.now();
+      status[idx] = "rest";
+    });
+    setLibrary("rare");
+    const crossLibraryReview = [coreIndex, advancedIndex].every((idx) => reviewPool(false).includes(idx));
+    const rareNewOnly = newPool(false).every((idx) => currentLibrary().test(CARDS[idx]));
+    const searchAcrossLibrary = BASE_BY_CHAR[CARDS[coreIndex].target] === coreIndex;
+
+    preference = "balanced";
+    const balancedMigration = normalizeLibrary(null).id;
+    preference = "practical";
+    const practicalMigration = normalizeLibrary(null).id;
+    preference = "challenge";
+    const challengeMigration = normalizeLibrary(null).id;
+
+    const calibrationIndexes = allIndexes().slice(0, 15);
+    const completeChallengeCalibration = (manualLibrary = "") => {
+      preference = "balanced";
+      tuning = { calibrated: false, offset: 0, contextStrict: 0, rounds: [] };
+      libraryState = normalizeLibrary(null); save(LIB_KEY, libraryState);
+      if (manualLibrary) setLibrary(manualLibrary);
+      activeMode = "calibrate"; calibrationTargets = calibrationIndexes.slice();
+      roundStats = calibrationIndexes.map((idx) => ({ idx, outcome: "fast", geometryStatus: "ok" }));
+      const before = { id: libraryState.id, userSelected: libraryState.userSelected, stored: load(LIB_KEY, null) };
+      maybeFinishCalibration();
+      return { before, preference, id: libraryState.id, userSelected: libraryState.userSelected, stored: load(LIB_KEY, null) };
+    };
+    const freshCalibration = completeChallengeCalibration();
+    const manualCalibration = completeChallengeCalibration("junior");
+
+    setLibrary("junior");
+    renderBook();
+    openLibSheet();
+    const ui = {
+      card: libName.textContent,
+      rows: libList.querySelectorAll("[data-lib]").length,
+      active: libList.querySelectorAll(".active").length,
+      reassurance: libSheet.textContent.includes("换库不丢任何东西") && libSheet.textContent.includes("复习照常跨库进行"),
+      noUnapprovedProgress: !document.getElementById("libCard").querySelector(".libBar,.libTones") && !libList.querySelector(".libBar") && !/拾完|手速|墨色进度/.test(libSheet.textContent + libCard.textContent),
+      settings: (() => { closeLibSheet(); renderSettings(false); return settingsLibName.textContent; })(),
+    };
+    const libraryBackup = JSON.parse(backupPayload({ preserveMeta: true }));
+    setLibrary("rare");
+    restoreBackupPayload(libraryBackup, { skipConfirm: true, reload: false, skipSafety: true });
+    const restoredLibrary = normalizeLibrary(load(LIB_KEY, null)).id;
+
+    restoreBackupPayload(originalPayload, { skipConfirm: true, reload: false, skipSafety: true });
+    memory = saved.memory; status = saved.status; quality = saved.quality; tuning = saved.tuning;
+    preference = saved.preference; libraryState = normalizeLibrary(saved.library); sessionDone = new Set(saved.sessionDone);
+    activeMode = saved.activeMode; calibrationTargets = saved.calibrationTargets; roundStats = saved.roundStats;
+    saveMemory(); save(DECK_KEY, status); saveQuality(); saveTuning(); save(PREF_KEY, preference); save(LIB_KEY, libraryState);
+    closeLibSheet(); renderHome();
+    return {
+      rows, crossLibraryReview, rareNewOnly, searchAcrossLibrary,
+      migration: { balancedMigration, practicalMigration, challengeMigration },
+      calibration: { fresh: freshCalibration, manual: manualCalibration }, ui, restoredLibrary,
+    };
+  });
+  assert(libraries.rows.length === 6 && libraries.rows.every((row) => row.total === row.expected && row.strict0 === row.total && row.strict4 === row.total && row.unique === row.total && row.belongs) && libraries.rows.some((row) => row.fallbacks > 0),
+    "Expected all six library totals to remain fully reachable at context strictness 0 and 4, including fallback-context characters", libraries);
+  assert(libraries.crossLibraryReview && libraries.rareNewOnly && libraries.searchAcrossLibrary,
+    "Expected the selected library to scope only new characters while review and search remain cross-library", libraries);
+  assert(libraries.migration.balancedMigration === "core3500" && libraries.migration.practicalMigration === "core3500" && libraries.migration.challengeMigration === "adv3000" && libraries.restoredLibrary === "junior",
+    "Expected old preference migration and library backup/restore to preserve the selected library", libraries);
+  assert(libraries.calibration.fresh.before.id === "core3500" && !libraries.calibration.fresh.before.userSelected && libraries.calibration.fresh.preference === "challenge" && libraries.calibration.fresh.id === "adv3000" && !libraries.calibration.fresh.userSelected && libraries.calibration.fresh.stored.id === "adv3000"
+    && libraries.calibration.manual.before.id === "junior" && libraries.calibration.manual.before.userSelected && libraries.calibration.manual.preference === "challenge" && libraries.calibration.manual.id === "junior" && libraries.calibration.manual.userSelected,
+    "Expected a real first-install challenge calibration to advance only the untouched default library while preserving a manual choice", libraries.calibration);
+  assert(libraries.ui.card === "初中" && libraries.ui.settings === "初中" && libraries.ui.rows === 6 && libraries.ui.active === 1 && libraries.ui.reassurance && libraries.ui.noUnapprovedProgress,
+    "Expected one honest six-library selector in the library and settings surfaces", libraries);
 
   const backup = await page.evaluate(() => {
     const original = JSON.parse(backupPayload({ preserveMeta: true })), originalMemory = cloneObj(memory);
@@ -1971,7 +2071,7 @@ let browser;
       resetReason: resetSafety && resetSafety.reason, overwrittenReason: overwrittenSafety && overwrittenSafety.reason, latestRestored, safetyExcluded: !Object.prototype.hasOwnProperty.call(original.data, SAFETY_KEY) };
     localStorage.removeItem("shizi.unknown.verify"); return result;
   });
-  assert(backup.keys.includes(SESSION_STORAGE_KEY) && backup.sessionVersion === 2 && backup.fsrsLog && backup.tutorial === "true" && backup.funnelVersion === 1 && backup.sound.enabled === true && backup.sound.scene === "rain" && backup.restoredKeys.includes(SESSION_STORAGE_KEY) && backup.unknown === "keep-local", "Expected session/FSRS/tutorial/funnel/soundscape backup round trip with allowlist isolation", backup);
+  assert(backup.keys.includes(SESSION_STORAGE_KEY) && backup.keys.includes("shizi.library.v1") && backup.sessionVersion === 2 && backup.fsrsLog && backup.tutorial === "true" && backup.funnelVersion === 1 && backup.sound.enabled === true && backup.sound.scene === "rain" && backup.restoredKeys.includes(SESSION_STORAGE_KEY) && backup.unknown === "keep-local", "Expected session/FSRS/tutorial/funnel/soundscape/library backup round trip with allowlist isolation", backup);
   assert(backup.cancelled && backup.confirmCopy.includes("当前 2 字（最后练习 2026-07-11）→ 备份 1 字（2026-06-01）") && backup.incomingApplied && backup.safetyReason === "restore" && backup.undoOffered && backup.undoApplied && backup.currentRestored, "Expected differential restore confirmation and one-tap safety undo", backup);
   assert(backup.resetReason === "reset" && backup.overwrittenReason === "restore" && backup.latestRestored && backup.safetyExcluded, "Expected reset safety copy, latest-operation replacement, and backup exclusion", backup);
 

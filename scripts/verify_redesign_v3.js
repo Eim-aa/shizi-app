@@ -29,6 +29,7 @@ assert(!/--soft\s*:|--tile\s*:|var\(--soft\)|var\(--tile\)/.test(source), "Expec
 assert(!/#efe7d3|#f7f1e3|#fbf6ea|#f3ead7|#e3d9c4|#2b2620|#b3892f/i.test(source), "Expected no legacy light-palette values");
 assert(!/卡点分析|掌握感|易忘度|出题偏好/.test(source), "Expected no PM terms or dimensionless scores in the app UI");
 assert(!/id="bookBadge"|id="addInPractice"|id="bookSearchGo"|id="backupNow"|高频易忘/.test(source), "Expected no red tab debt badge, redundant search/backup button, in-practice add distraction, or retired preference wording");
+assert(source.includes('id="libCard"') && source.includes('id="libSheet"') && source.includes("换库不丢任何东西") && !source.includes('id="prefBox"') && !source.includes("选字偏好") && !source.includes("libPaceText") && !source.includes('id="libBar"') && !source.includes('id="libTones"'), "Expected one reassuring library selector with no retired preference, progress-density, or pace UI");
 assert(changelog.includes("一屏至多一个实心朱红") && changelog.includes("印章语义只许两种"), "Expected the permanent red-budget and seal-semantics laws in the changelog");
 assert(contrast("#756b5a", "#f4efe2") >= 4.5, "Expected the palest memory ink to meet 4.5:1 contrast", { ratio: contrast("#756b5a", "#f4efe2") });
 
@@ -67,8 +68,8 @@ let browser;
 
   await page.click("#tabBook");
   await page.waitForTimeout(300);
-  const wall43 = await page.evaluate(() => ({ count: memoryWall.querySelectorAll(".memoryChar").length, columns: getComputedStyle(memoryWall).gridTemplateColumns.split(" ").length, labels: memoryWall.querySelectorAll(".dot,.outcomeMark").length, curator: bookCuratorData(profileIndexes()).kind, countText: boxCount.textContent.trim() }));
-  assert(wall43.count === 43 && wall43.columns === 6 && wall43.labels === 0 && wall43.curator === "action" && wall43.countText === "43 字", "Expected a 43-character six-column memory wall with action curation", wall43);
+  const wall43 = await page.evaluate(() => ({ count: memoryWall.querySelectorAll(".memoryChar").length, columns: getComputedStyle(memoryWall).gridTemplateColumns.split(" ").length, labels: memoryWall.querySelectorAll(".dot,.outcomeMark").length, curator: bookCuratorData(profileIndexes()).kind, countText: boxCount.textContent.trim(), library: libName.textContent, libraryMeta: libMeta.textContent }));
+  assert(wall43.count === 43 && wall43.columns === 6 && wall43.labels === 0 && wall43.curator === "action" && wall43.countText === "43 字" && wall43.library === "常用三千五" && /已拾 \d+ \/ 3500/.test(wall43.libraryMeta), "Expected a 43-character six-column memory wall with honest library progress and action curation", wall43);
   await page.screenshot({ path: path.join(generatedDir, "book-light-375x667.png"), fullPage: true });
 
   const etymologyDetail = await page.evaluate(async () => {
@@ -241,6 +242,23 @@ let browser;
         }, screen);
         assert(layout.visible && layout.scrollWidth <= layout.innerWidth + 1 && layout.solid <= 1, "Expected every v4 screen to fit both target iPhone viewports and respect the one-solid-red budget", { screen, size, colorScheme, layout });
         await page.screenshot({ path: path.join(generatedDir, `${screen}-${colorScheme}-${size.width}x${size.height}.png`), fullPage: true });
+        if (screen === "book") {
+          await page.evaluate(() => openLibSheet());
+          const librarySheet = await page.evaluate(() => {
+            const rect = libSheet.querySelector(".sheet").getBoundingClientRect(), rows = Array.from(libList.querySelectorAll(".libRow"));
+            return {
+              rows: rows.length, active: rows.filter((row) => row.classList.contains("active")).length,
+              minTarget: Math.min(...rows.map((row) => row.getBoundingClientRect().height)),
+              horizontalFit: rect.left >= -1 && rect.right <= innerWidth + 1,
+              reachable: libSheet.scrollHeight <= libSheet.clientHeight + 1 || getComputedStyle(libSheet).overflowY === "auto",
+              reassurance: libSheet.textContent.includes("换库不丢任何东西"),
+              noUnapprovedProgress: !libCard.querySelector(".libBar,.libTones") && !libList.querySelector(".libBar") && !/拾完|手速|墨色进度/.test(libSheet.textContent + libCard.textContent),
+            };
+          });
+          assert(librarySheet.rows === 6 && librarySheet.active === 1 && librarySheet.minTarget >= 44 && librarySheet.horizontalFit && librarySheet.reachable && librarySheet.reassurance && librarySheet.noUnapprovedProgress, "Expected the finalized six-library sheet without extra progress or pace UI to fit target iPhone viewports", { size, colorScheme, librarySheet });
+          await page.screenshot({ path: path.join(generatedDir, `library-${colorScheme}-${size.width}x${size.height}.png`), fullPage: true });
+          await page.evaluate(() => closeLibSheet());
+        }
       }
     }
   }

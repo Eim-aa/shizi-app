@@ -84,8 +84,9 @@
   .homeMain{ margin-top:-62px; padding-right:58px; }
   .homeTitle{ margin:0; font:900 calc(38px * var(--font-scale))/1.3 var(--song); letter-spacing:var(--ls-label); }
   .motto{ writing-mode:vertical-rl; font:400 calc(var(--fs-emph) * var(--font-scale))/1.9 var(--kai); color:var(--faint); border-left:1px solid var(--line); padding-left:12px; height:116px; letter-spacing:var(--ls-motto); }
-  .motto.mottoColumns{ writing-mode:horizontal-tb; display:flex; flex-direction:row-reverse; gap:2px; }
-  .motto.mottoColumns span{ writing-mode:vertical-rl; text-orientation:mixed; }
+  .motto .mLine{ display:block; }
+  .motto .mSrc{ display:block; margin-left:5px; font:400 calc(var(--fs-caption) * var(--font-scale))/1.55 var(--sans); letter-spacing:0; color:var(--faint); }
+  #welcomeMotto .mSrc{ margin:4px 0 0; }
   .homeStart{ display:flex; flex-direction:column; align-items:center; justify-content:center; flex:1; min-height:250px; margin-top:12px; }
   .stampBtn{ width:165px; height:165px; background:var(--accent); border-radius:24% 20% 26% 22%; color:var(--paperInk); font:400 calc(86px * var(--font-scale))/1 var(--kai);
     transform:rotate(-3deg); display:flex; align-items:center; justify-content:center; padding-bottom:6px; transition:transform .12s ease,box-shadow .12s ease;
@@ -1227,8 +1228,58 @@ function contextSource(i){ return CARDS[i].ctx || "dict"; }
 function contextLabel(i){ const src=contextSource(i); return src==="fallback"?"语境待补":src==="override"?"补充语境":"词库语境"; }
 function contextUsable(i){ return CARDS[i].custom || contextSource(i)!=="fallback"; }
 const DAILY_MOTTOS=[
-  "提笔忘字，拾回便是","见字如晤，久别重逢","一笔一画，皆是归途","写过的字，都会回来","手比脑先想起来",
-  "字如故人，写即重逢","墨迹未干，记忆犹新","今日拾字，明日少忘","纸上得来，笔下不忘","好字如友，常写常新"
+  {text:"翰不虚动，下必有由",author:"孙过庭",source:"书谱"},
+  {text:"心不厌精，手不忘熟",author:"孙过庭",source:"书谱"},
+  {text:"初学分布，但求平正",author:"孙过庭",source:"书谱"},
+  {text:"既知平正，务追险绝",author:"孙过庭",source:"书谱"},
+  {text:"既能险绝，复归平正",author:"孙过庭",source:"书谱"},
+  {text:"察之者尚精，拟之者贵似",author:"孙过庭",source:"书谱"},
+  {text:"一点成一字之规",author:"孙过庭",source:"书谱"},
+  {text:"一字乃终篇之准",author:"孙过庭",source:"书谱"},
+  {text:"思虑通审，志气和平",author:"孙过庭",source:"书谱"},
+  {text:"不激不厉，而风规自远",author:"孙过庭",source:"书谱"},
+  {text:"导之则泉注，顿之则山安",author:"孙过庭",source:"书谱"},
+  {text:"得时不如得器",author:"孙过庭",source:"书谱"},
+  {text:"得器不如得志",author:"孙过庭",source:"书谱"},
+  {text:"真以点画为形质",author:"孙过庭",source:"书谱"},
+  {text:"草以使转为形质",author:"孙过庭",source:"书谱"},
+  {text:"篆尚婉而通",author:"孙过庭",source:"书谱"},
+  {text:"隶欲精而密",author:"孙过庭",source:"书谱"},
+  {text:"草贵流而畅",author:"孙过庭",source:"书谱"},
+  {text:"章务险而便",author:"孙过庭",source:"书谱"},
+  {text:"纸墨相发",author:"孙过庭",source:"书谱"},
+  {text:"神融笔畅",author:"孙过庭",source:"书谱"},
+  {text:"意先笔后，潇洒流落",author:"孙过庭",source:"书谱"},
+  {text:"书者，散也",author:"蔡邕",source:"笔论"},
+  {text:"欲书，先散怀抱",author:"蔡邕",source:"笔论"},
+  {text:"任情恣性，然后书之",author:"蔡邕",source:"笔论"},
+  {text:"夫书，先默坐静思",author:"蔡邕",source:"笔论"},
+  {text:"随意所适",author:"蔡邕",source:"笔论"},
+  {text:"言不出口，气不盈息",author:"蔡邕",source:"笔论"},
+  {text:"沈密神彩，如对至尊",author:"蔡邕",source:"笔论"},
+  {text:"玉不琢，不成器",author:"",source:"礼记·学记"},
+  {text:"人不学，不知道",author:"",source:"礼记·学记"},
+  {text:"教学为先",author:"",source:"礼记·学记"},
+  {text:"学然后知不足",author:"",source:"礼记·学记"},
+  {text:"教然后知困",author:"",source:"礼记·学记"},
+  {text:"知不足，然后能自反",author:"",source:"礼记·学记"},
+  {text:"知困，然后能自强",author:"",source:"礼记·学记"},
+  {text:"教学相长",author:"",source:"礼记·学记"},
+  {text:"敬业乐群",author:"",source:"礼记·学记"},
+  {text:"博习亲师",author:"",source:"礼记·学记"},
+  {text:"学不躐等",author:"",source:"礼记·学记"},
+  {text:"业精于勤，荒于嬉",author:"韩愈",source:"进学解"},
+  {text:"行成于思，毁于随",author:"韩愈",source:"进学解"},
+  {text:"口不绝吟于六艺之文",author:"韩愈",source:"进学解"},
+  {text:"手不停披于百家之编",author:"韩愈",source:"进学解"},
+  {text:"学而时习之，不亦说乎",author:"孔子",source:"论语·学而"},
+  {text:"传不习乎",author:"曾子",source:"论语·学而"},
+  {text:"行有余力，则以学文",author:"孔子",source:"论语·学而"},
+  {text:"学则不固",author:"孔子",source:"论语·学而"},
+  {text:"过则勿惮改",author:"孔子",source:"论语·学而"},
+  {text:"敏于事而慎于言",author:"孔子",source:"论语·学而"},
+  {text:"如切如磋，如琢如磨",author:"",source:"诗经·卫风·淇奥"},
+  {text:"作字要熟，熟则神气完实",author:"欧阳修",source:"试笔"}
 ];
 function stableTextHash(value){ let hash=2166136261; Array.from(String(value)).forEach(ch=>{ hash^=ch.codePointAt(0); hash=Math.imul(hash,16777619); }); return hash>>>0; }
 function datedSelectionIndex(key,size,salt){ if(size<=1) return 0; const parts=String(key).split("-").map(Number), ordinal=Math.floor(Date.UTC(parts[0],parts[1]-1,parts[2])/86400000);
@@ -1238,8 +1289,10 @@ let dailyCharacterPool=null;
 function dailyCharacterCandidates(){ if(dailyCharacterPool) return dailyCharacterPool; const seen=new Set(); dailyCharacterPool=allIndexes().filter(i=>{ const c=CARDS[i], norm=normLevel(i), d=Number(c.d)||0, common=Number(c.common)||0;
     if(c.custom || seen.has(c.target) || !["一级","二级"].includes(norm) || common<1.5 || d<55 || d>85 || !contextUsable(i)) return false; seen.add(c.target); return true; }); return dailyCharacterPool; }
 function dailyCharacterIndex(key=today()){ const pool=dailyCharacterCandidates(); return pool.length?pool[datedSelectionIndex(key,pool.length,"character")]:-1; }
-function setDailyMotto(node,text){ if(!node) return; const split=node.id==="homeMotto"&&text==="写过的字，都会回来"; node.classList.toggle("mottoColumns",split); if(split) node.innerHTML="<span>写过的字，</span><span>都会回来</span>"; else node.textContent=text; node.classList.toggle("compactMotto",Array.from(text).length>9); }
-function applyDailyMotto(key=today()){ const text=dailyMotto(key); setDailyMotto($("welcomeMotto"),text); setDailyMotto($("homeMotto"),text); return text; }
+function mottoSource(entry){ const work=entry.source?`《${entry.source}》`:""; return entry.author?`——${entry.author}${work}`:(work?`——${work}`:""); }
+function setDailyMotto(node,entry){ if(!node) return; const row=typeof entry==="string"?{text:entry,author:"",source:""}:entry, text=String(row.text||""), split=text.search(/[，。；！？]/), parts=split>=0?[text.slice(0,split+1),text.slice(split+1)]:[text];
+  node.innerHTML=parts.filter(Boolean).map(part=>`<span class="mLine">${esc(part)}</span>`).join("")+(mottoSource(row)?`<small class="mSrc">${esc(mottoSource(row))}</small>`:""); node.classList.toggle("compactMotto",Array.from(text).length>9); }
+function applyDailyMotto(key=today()){ const entry=dailyMotto(key); setDailyMotto($("welcomeMotto"),entry); setDailyMotto($("homeMotto"),entry); return entry.text; }
 function strictNewEligible(i){ if(CARDS[i].custom) return true; if(cardLevel(i)==="小学") return false;
   const norm=normLevel(i), d=cardDifficulty(i), common=Number(CARDS[i].common)||0, strict=Number(tuning.contextStrict)||0;
   if(!contextUsable(i)) return false;

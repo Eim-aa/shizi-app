@@ -9,10 +9,12 @@ const appUrl = process.env.SHIZI_APP_URL || "http://127.0.0.1:8000/";
 const screenshotPath = path.join(root, "generated", "verify_8105_app.png");
 const SESSION_STORAGE_KEY = "shizi.session.v1";
 const source = fs.readFileSync(path.join(root, "index.html"), "utf8");
+const readme = fs.readFileSync(path.join(root, "README.md"), "utf8");
 const swSource = fs.readFileSync(path.join(root, "sw.js"), "utf8");
 const coreStrokeSource = fs.readFileSync(path.join(root, "core-strokes.js"), "utf8");
 const appDelegateSource = fs.readFileSync(path.join(root, "ios", "ShiziApp", "ShiziApp", "AppDelegate.swift"), "utf8");
 const webViewSource = fs.readFileSync(path.join(root, "ios", "ShiziApp", "ShiziApp", "WebViewController.swift"), "utf8");
+const mottoFixture = JSON.parse(fs.readFileSync(path.join(root, "scripts", "fixtures", "motto_classics.json"), "utf8"));
 
 if (/退出本组？|进度已保存，随时可继续这组|描一遍也算拾回|小时后再见|已收|拾到手|教学检查|本组通过|待巩固|差点|回炉|改一下|已稳/.test(source)) {
   throw new Error("Deprecated practice vocabulary remains in index.html");
@@ -28,6 +30,35 @@ function chromeExecutable() {
 function assert(condition, message, details) {
   if (!condition) throw new Error(`${message}${details ? `: ${JSON.stringify(details)}` : ""}`);
 }
+
+function cssRgb(value) {
+  const channels = String(value).match(/[\d.]+/g)?.slice(0, 3).map(Number);
+  assert(channels?.length === 3 && channels.every(Number.isFinite), "Expected a computed RGB color", { value });
+  return channels;
+}
+
+function relativeLuminance(channels) {
+  const linear = channels.map((channel) => {
+    const value = channel / 255;
+    return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2];
+}
+
+function computedContrast(foreground, background, opacity = 1) {
+  const bg = cssRgb(background), fg = cssRgb(foreground), alpha = Number(opacity);
+  const composite = fg.map((channel, index) => channel * alpha + bg[index] * (1 - alpha));
+  const [high, low] = [relativeLuminance(composite), relativeLuminance(bg)].sort((a, b) => b - a);
+  return (high + 0.05) / (low + 0.05);
+}
+
+assert(mottoFixture.entries.length === 52 && Object.keys(mottoFixture.references).length === 7,
+  "Expected the reviewed 52-entry classics fixture and its seven primary references", mottoFixture);
+assert(Object.keys(mottoFixture.references).every((sourceName) => readme.includes(`《${sourceName}》`)),
+  "Expected README to list every reviewed motto source", Object.keys(mottoFixture.references));
+assert(mottoFixture.entries.find((entry) => entry.text === "传不习乎")?.author === "曾子"
+  && mottoFixture.entries.find((entry) => entry.text === "如切如磋，如琢如磨")?.source === "诗经·卫风·淇奥",
+"Expected the reviewed fixture to preserve the corrected Zengzi and Classic of Poetry attributions");
 
 assert(swSource.includes("shizi-v9") && swSource.includes("Promise.allSettled") && swSource.includes("INSTALL_BATCH_SIZE = 40") && swSource.includes("cacheCoreStrokes"), "Expected versioned, batched, failure-tolerant core stroke installation");
 assert(coreStrokeSource.includes("SHIZI_CORE_STROKES") && coreStrokeSource.includes("slice(0,600)"), "Expected a generated 600-character core stroke list");
@@ -354,25 +385,50 @@ let browser;
     const button = yesterRow.querySelector("[data-daily-index]"), beforeClick = {
       label: yesterLbl.textContent, index: Number(button && button.dataset.dailyIndex), target: button && button.querySelector(".glyph").textContent,
       word: button && button.querySelector(".word").textContent, py: button && button.querySelector(".py").textContent,
-      homeMotto: homeMotto.textContent, welcomeMotto: welcomeMotto.textContent,
+      homeMotto: homeMotto.textContent, welcomeMotto: welcomeMotto.textContent, source: homeMotto.querySelector(".mSrc")?.textContent, expectedSource: mottoSource(motto),
     };
-    const overflow = DAILY_MOTTOS.map((text) => { setDailyMotto(homeMotto, text); return { text, scroll: homeMotto.scrollHeight, client: homeMotto.clientHeight }; });
+    const library = {
+      count: DAILY_MOTTOS.length,
+      structured: DAILY_MOTTOS.every((entry) => Object.keys(entry).sort().join() === "author,source,text" && typeof entry.text === "string" && typeof entry.author === "string" && typeof entry.source === "string" && entry.text && entry.source),
+      unique: new Set(DAILY_MOTTOS.map((entry) => entry.text)).size,
+      entries: DAILY_MOTTOS.map((entry) => ({ ...entry })),
+    };
+    const overflow = DAILY_MOTTOS.map((entry) => { setDailyMotto(homeMotto, entry); return { text: entry.text, source: homeMotto.querySelector(".mSrc")?.textContent, scroll: homeMotto.scrollHeight, client: homeMotto.clientHeight }; });
     applyDailyMotto(key); button.click();
     const clicked = { mode: activeMode, current: currentCardIndex(), cardVisible: getComputedStyle(card).display !== "none" };
     loadToken++; clearSessionSnapshot(); focusQueue = []; sessionDone = new Set();
     activity = { version: 1, migrationDate: key, inheritedStreak: 0, inheritedTotalDays: 0, practiceDays: [key], daily: { [key]: { stamps: 1, attempts: 1, targetKeys: [cardKey(idx)], completedRoundIds: [], lastStampAt: Date.now() } } };
     saveActivity(); renderHome(); const retired = !yesterRow.querySelector("[data-daily-index]");
     tuning = original.tuning; activity = normalizeActivity(original.activity); activeMode = original.activeMode; focusQueue = original.focusQueue; sessionDone = new Set(original.sessionDone); saveTuning(); saveActivity(); clearSessionSnapshot(); renderHome();
-    return { key, tomorrow, idx, nextIdx, motto, nextMotto, repeatIdx: dailyCharacterIndex(key), repeatMotto: dailyMotto(key), candidate, beforeClick, overflow, clicked, retired, poolSize: dailyCharacterCandidates().length };
+    return { key, tomorrow, idx, nextIdx, motto, nextMotto, repeatIdx: dailyCharacterIndex(key), repeatMotto: dailyMotto(key), candidate, beforeClick, overflow, clicked, retired, poolSize: dailyCharacterCandidates().length, library };
   });
-  assert(dailyRitual.poolSize > 0 && dailyRitual.idx === dailyRitual.repeatIdx && dailyRitual.motto === dailyRitual.repeatMotto && dailyRitual.idx !== dailyRitual.nextIdx && dailyRitual.motto !== dailyRitual.nextMotto,
+  assert(dailyRitual.library.count >= 40 && dailyRitual.library.structured && dailyRitual.library.unique === dailyRitual.library.count,
+    "Expected at least 40 unique, fully sourced motto records", dailyRitual.library);
+  assert(JSON.stringify(dailyRitual.library.entries) === JSON.stringify(mottoFixture.entries)
+    && [...new Set(mottoFixture.entries.map((entry) => entry.source))].every((sourceName) => mottoFixture.references[sourceName]),
+  "Expected every runtime motto text, author, and source to match the reviewed primary-source fixture", dailyRitual.library.entries);
+  assert(dailyRitual.poolSize > 0 && dailyRitual.idx === dailyRitual.repeatIdx && JSON.stringify(dailyRitual.motto) === JSON.stringify(dailyRitual.repeatMotto) && dailyRitual.idx !== dailyRitual.nextIdx && dailyRitual.motto.text !== dailyRitual.nextMotto.text,
     "Expected deterministic same-day and changing next-day character/motto selections", dailyRitual);
   assert(["一级", "二级"].includes(dailyRitual.candidate.norm) && dailyRitual.candidate.common >= 1.5 && dailyRitual.candidate.d >= 55 && dailyRitual.candidate.d <= 85
     && dailyRitual.beforeClick.label === "今日一字" && dailyRitual.beforeClick.index === dailyRitual.idx && dailyRitual.beforeClick.target === dailyRitual.candidate.target
-    && dailyRitual.beforeClick.word === dailyRitual.candidate.word && dailyRitual.beforeClick.py === dailyRitual.candidate.py && dailyRitual.beforeClick.homeMotto === dailyRitual.motto && dailyRitual.beforeClick.welcomeMotto === dailyRitual.motto,
-  "Expected the daily card to expose one eligible character, context word, pinyin, and synchronized motto", dailyRitual);
-  assert(dailyRitual.overflow.every((row) => row.scroll <= row.client + 1) && dailyRitual.clicked.mode === "focus" && dailyRitual.clicked.current === dailyRitual.idx && dailyRitual.clicked.cardVisible && dailyRitual.retired,
-    "Expected every motto to fit, daily-character click to start focus practice, and the card to retire after today's first stamp", dailyRitual);
+    && dailyRitual.beforeClick.word === dailyRitual.candidate.word && dailyRitual.beforeClick.py === dailyRitual.candidate.py && dailyRitual.beforeClick.homeMotto.includes(dailyRitual.motto.text) && dailyRitual.beforeClick.welcomeMotto.includes(dailyRitual.motto.text)
+    && dailyRitual.beforeClick.source === dailyRitual.beforeClick.expectedSource,
+  "Expected the daily card to expose one eligible character, context word, pinyin, and synchronized sourced motto", dailyRitual);
+  assert(dailyRitual.overflow.every((row) => row.scroll <= row.client + 1 && row.source) && dailyRitual.clicked.mode === "focus" && dailyRitual.clicked.current === dailyRitual.idx && dailyRitual.clicked.cardVisible && dailyRitual.retired,
+    "Expected every sourced motto to fit, daily-character click to start focus practice, and the card to retire after today's first stamp", dailyRitual);
+  const mottoContrast = {};
+  for (const colorScheme of ["light", "dark"]) {
+    await page.emulateMedia({ colorScheme });
+    mottoContrast[colorScheme] = await page.evaluate(() => {
+      applyDailyMotto();
+      const node = homeMotto.querySelector(".mSrc"), style = getComputedStyle(node), background = getComputedStyle(document.body);
+      return { color: style.color, opacity: style.opacity, background: background.backgroundColor };
+    });
+    mottoContrast[colorScheme].ratio = computedContrast(mottoContrast[colorScheme].color, mottoContrast[colorScheme].background, mottoContrast[colorScheme].opacity);
+  }
+  await page.emulateMedia({ colorScheme: "light" });
+  assert(Object.values(mottoContrast).every((row) => Number(row.opacity) === 1 && row.ratio >= 4.5),
+    "Expected computed 11px motto sources to meet 4.5:1 contrast in light and dark themes", mottoContrast);
   const notificationDeepLink = await page.evaluate(() => {
     const original = { memory: cloneObj(memory), status: cloneObj(status), tuning: cloneObj(tuning), activeMode, focusQueue: focusQueue.slice(), sessionDone: [...sessionDone] };
     const idx = CARDS.findIndex((card) => card.target === "蘸"), key = cardKey(idx);

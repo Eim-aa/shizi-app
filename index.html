@@ -502,9 +502,8 @@
 
   /* ===== 底部 tab ===== */
   .foot{ position:sticky; bottom:0; z-index:12; margin-top:auto; padding:10px 8px calc(14px + env(safe-area-inset-bottom)); border-top:1px solid var(--line); background:var(--card); display:flex; justify-content:space-around; align-items:center; }
-  .foot .tab{ position:relative; display:flex; flex-direction:column; align-items:center; gap:4px; font:600 calc(var(--fs-note) * var(--font-scale)) var(--sans); color:var(--faint); cursor:pointer; padding:2px 14px; }
-  .foot .tab .tg{ font:400 calc(20px * var(--font-scale))/1 var(--kai); }
-  .foot .tab.active{ color:var(--accent); font-weight:700; }
+  .foot .tab{ position:relative; display:flex; align-items:center; font:400 calc(18px * var(--font-scale))/1 var(--kai); letter-spacing:var(--ls-label); color:var(--faint); cursor:pointer; padding:10px 16px; }
+  .foot .tab.active{ color:var(--accent); }
 
   /* ===== 弹层 / 提示 ===== */
   .sheetMask{ display:none; position:fixed; inset:0; z-index:20; background:rgba(30,24,16,.45); backdrop-filter:blur(2px); align-items:flex-start; justify-content:center; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:calc(14vh + env(safe-area-inset-top)) 24px calc(24px + env(safe-area-inset-bottom) + var(--keyboard-inset)); }
@@ -608,7 +607,7 @@
       <div class="startCap" id="startCap"></div>
     </div>
     <div class="yester" id="yesterBlock">
-      <div class="yesterHead"><span class="lbl" id="yesterLbl">今日拾得</span><button class="addTxt" id="homeAdd">＋加字</button></div>
+      <div class="yesterHead"><span class="lbl" id="yesterLbl">今日拾得</span><button class="addTxt" id="homeAdd">收字</button></div>
       <div class="yesterRow" id="yesterRow"></div>
     </div>
   </div>
@@ -631,16 +630,16 @@
       <div class="practiceCanvas">
         <div id="boxwrap"></div>
         <div id="inkTools">
-          <button class="toolBtn" id="tip" disabled aria-label="提示：轻点看下一笔，按住看完整字形">提示</button>
-          <button class="toolBtn peek" id="peekInk" disabled aria-hidden="true" tabindex="-1">看一眼</button>
-          <button class="toolBtn side" id="undoStroke" disabled aria-label="撤销一笔">撤销</button>
-          <button class="toolBtn side" id="clear" disabled aria-label="重写">重写</button>
+          <button class="toolBtn" id="tip" disabled aria-label="点拨：轻点看下一笔，按住瞥一眼完整字形">点拨</button>
+          <button class="toolBtn peek" id="peekInk" disabled aria-hidden="true" tabindex="-1">瞥一眼</button>
+          <button class="toolBtn side" id="undoStroke" disabled aria-label="回一笔">回</button>
+          <button class="toolBtn side" id="clear" disabled aria-label="另起，重写这个字">另</button>
         </div>
       </div>
       <div class="mascotRow"><span class="blob"></span><span id="mascotLine"></span></div>
       <div id="actions">
-        <button class="ghostAct" id="show" disabled>不会写</button>
-        <button class="primaryAct" id="done" disabled>写好了</button>
+        <button class="ghostAct" id="show" disabled aria-label="不会写：先描后写，本组稍后还会再写">不会写</button>
+        <button class="primaryAct" id="done" disabled aria-label="写好了">写好了</button>
       </div>
       <div class="traceActions" id="traceActions">
         <button class="primaryAct traceDone" id="traceDone" disabled><span>描好了，自己写</span><small>接着会收起答案轮廓</small></button>
@@ -666,7 +665,7 @@
             <div class="glyph" id="rightGlyph"></div>
             <div id="rightHz"></div>
           </div>
-          <div class="cmpLbl red">标准字</div>
+          <div class="cmpLbl red">范字</div>
         </div>
       </div>
       <div class="cmpLinks"><button id="overlayToggle">叠起来对比</button><button id="replayBtn">看笔顺</button></div>
@@ -680,7 +679,7 @@
       </div>
       <div class="uncertainAction" id="uncertainAction"><button id="decisionUncertain">拿不准，记不清</button></div>
       <div class="softConfirm" id="softConfirm" role="dialog" aria-live="polite">
-        <p>这几笔和标准字差得比较多，确定算写对？</p>
+        <p>这几笔和范字差得比较多，确定算写对？</p>
         <div class="softConfirmActions"><button id="compareAgain">再对一眼</button><button class="confirmCorrect" id="confirmCorrect">确定写对了</button></div>
       </div>
       <div id="stampNote"></div>
@@ -761,11 +760,11 @@
     </div>
   </div>
 
-  <!-- 字盒 -->
-  <div class="book" id="studybook" style="display:none" data-screen-label="字盒">
-    <div class="bookHead"><h1>字盒</h1><div class="cnt" id="boxCount"></div></div>
+  <!-- 字库 -->
+  <div class="book" id="studybook" style="display:none" data-screen-label="字库">
+    <div class="bookHead"><h1>字库</h1><div class="cnt" id="boxCount"></div></div>
     <button class="bookCurator" id="bookCurator"></button>
-    <div class="bookSearch"><input id="bookSearchInput" type="search" autocomplete="off" placeholder="找一个字，或把忘的字加进来" aria-label="找字或加字"><div class="bookSearchResult" id="bookSearchResult" aria-live="polite"></div></div>
+    <div class="bookSearch"><input id="bookSearchInput" type="search" autocomplete="off" placeholder="找一个字，或把忘的字收进来" aria-label="找字或收字"><div class="bookSearchResult" id="bookSearchResult" aria-live="polite"></div></div>
     <div class="memoryWall" id="memoryWall"></div>
     <div class="memoryWallFoot"><span>墨色即记忆 · 淡了就去写</span><button id="bookSaveMonth">存月帖</button></div>
   </div>
@@ -867,18 +866,18 @@
   </div>
 
   <div class="foot" id="foot">
-    <a class="tab" id="tabPractice"><span class="tg">拾</span>练习</a>
-    <a class="tab" id="tabBook"><span class="tg">盒</span>字盒</a>
-    <a class="tab" id="tabMe"><span class="tg">我</span>我的</a>
+    <a class="tab" id="tabPractice">习字</a>
+    <a class="tab" id="tabBook">字库</a>
+    <a class="tab" id="tabMe">我的</a>
   </div>
 </div>
 
 <div class="sheetMask" id="addSheet"><div class="sheet">
-  <h3>刚才提笔忘了哪个字？</h3>
+  <h3>刚才哪个字不会写？</h3>
   <p class="sheetHint">输入那个字，或它所在的词（如「蘸料」）。字库里有的字会带上拼音和语境词。</p>
   <input id="addInput" type="text" autocomplete="off" autocapitalize="off" maxlength="20" placeholder="蘸料">
   <div class="sheetPreview" id="addPreview"></div>
-  <div class="row"><button class="ghostAct" id="addCancel">取消</button><button class="primaryAct" id="addConfirm" disabled>加入卡组</button></div>
+  <div class="row"><button class="ghostAct" id="addCancel">取消</button><button class="primaryAct" id="addConfirm" disabled>收进字库</button></div>
 </div></div>
 
 <div class="sheetMask" id="roundBudgetSheet"><div class="sheet">
@@ -901,7 +900,7 @@
     <div class="charDetailMeta"><h3 id="charDetailWord"></h3><span class="charDetailPy" id="charDetailPy"></span><div class="charDetailStory" id="charDetailStory"></div></div>
   </div>
   <div class="charDetailCompare">
-    <div class="charDetailCompareHead"><span>我上次写的</span><button id="charDetailCompareToggle">对比标准字</button><button class="charDetailOverlayToggle" id="charDetailOverlayToggle">叠</button></div>
+    <div class="charDetailCompareHead"><span>我上次写的</span><button id="charDetailCompareToggle">对范字</button><button class="charDetailOverlayToggle" id="charDetailOverlayToggle">叠</button></div>
     <div class="charDetailCompareBody"><div class="charDetailInk" id="charDetailInk"></div><div class="charDetailStandard" id="charDetailStandard"></div><div class="charDetailEmpty" id="charDetailEmpty"></div></div>
   </div>
   <div class="charDetailStroke" id="charDetailStroke"></div>
@@ -1153,7 +1152,7 @@ const MILESTONE_COPY={
   1:"见字如晤，久别重逢——那些被岁月搁下的字，从今天起，一笔一画都是归途。",
   7:"第七个练习日——拾回的字，攒成一小把了。",
   14:"第十四个练习日。两周的笔迹连起来，生疏的字开始认得回家的路。",
-  30:"三十个练习日。字盒渐满，提笔渐稳。"};
+  30:"三十个练习日。字库渐满，提笔渐稳。"};
 function milestoneDaysThrough(total){ const days=MILESTONE_DAYS.filter(d=>d<=total); for(let d=100;d<=total;d+=100) days.push(d); return days; }
 function milestoneCopy(day){ if(MILESTONE_COPY[day]) return MILESTONE_COPY[day]; return `第 ${day} 个练习日。拾回的字一百一百地长，提笔也一日一日地稳。`; }
 function celebrateMilestoneIfAny(){ const total=totalPracticeDays(); let changed=false, celebrate=null;
@@ -1164,7 +1163,7 @@ function celebrateCharacterMilestoneIfAny(before=roundStartMemoryCount,total=mem
   CHARACTER_MILESTONES.forEach(n=>{ if(total>=n&&!reminder.characterMilestonesShown.includes(n)){ reminder.characterMilestonesShown.push(n); changed=true; if(before<n) celebrate=n; } });
   if(celebrate) reminder.characterMilestoneDay=today(); if(changed) saveReminder(); return celebrate; }
 function milestoneBadge(milestone){ if(!milestone) return ""; if(milestone.kind==="characters") return milestone.value===100?"百":"三百"; return ({1:"一",7:"七",14:"十四",30:"卅"})[milestone.value]||"百"; }
-function milestoneText(milestone){ return milestone.kind==="characters"?`字盒里已经有 ${milestone.value} 个练过的字。旧字一枚枚拾回，字盒也一格格长满。`:milestoneCopy(milestone.value); }
+function milestoneText(milestone){ return milestone.kind==="characters"?`字库里已经有 ${milestone.value} 个练过的字。旧字一枚枚拾回，字库也一格格长满。`:milestoneCopy(milestone.value); }
 
 // ---- 出题池与双层学习会话 ----
 const BATCH=15, DAILY_REVIEW_BUDGET=30;
@@ -1355,7 +1354,7 @@ const GRADE_UI={
 const OUTCOME_DOT={ fast:"transparent", hinted:"var(--gold)", slow:"var(--accent)", miss:"transparent" }, OUTCOME_MARK={fast:"",hinted:"补",slow:"待",miss:"再"};
 const MASCOT_LINES=[
   "这个格子里的字，你上次写它可能是十年前",
-  "想不起来很正常，点「笔顺提示」先看开头几笔",
+  "想不起来很正常，点「点拨」先看开头几笔",
   "凭感觉写，连笔断笔都没关系",
   "写不出来就点「不会写」，先描后写"
 ];
@@ -1465,7 +1464,7 @@ function recordOutcome(outcome,options={}){ const idx=currentCardIndex(), c=CARD
 function prefLabel(){ return ({balanced:"常用但老忘", practical:"偏实用", challenge:"偏挑战"})[preference] || "常用但老忘"; }
 function needsCalibration(){ return !tuning.calibrated && memoryCount()===0; }
 function applyPrefUI(){ document.querySelectorAll("#prefBox button[data-pref]").forEach(btn=>btn.classList.toggle("active", btn.dataset.pref===preference)); }
-function greeting(){ const h=new Date().getHours(); if(h<5) return "夜深了"; if(h<11) return "早上好"; if(h<14) return "中午好"; if(h<18) return "下午好"; return "晚上好"; }
+function timeWord(){ const h=new Date().getHours(); if(h<5) return "夜"; if(h<11) return "晨"; if(h<14) return "午"; if(h<19) return "暮"; return "夜"; }
 function numCn(n){ const d=["零","一","二","三","四","五","六","七","八","九"], value=Math.max(0,Math.floor(Number(n)||0)); if(value<10) return d[value]; if(value<20) return "十"+(value%10?d[value%10]:""); if(value<100) return d[Math.floor(value/10)]+"十"+(value%10?d[value%10]:""); if(value<1000) return d[Math.floor(value/100)]+"百"+(value%100?(value%100<10?"零":"")+numCn(value%100):""); return String(value); }
 function dateCn(){ const now=new Date(); return numCn(now.getMonth()+1)+"月"+numCn(now.getDate())+"日"; }
 // V1 口径：streak = 累计练习日（totalPracticeDays），连续口径已下线；activity.inheritedStreak 仅作数据保留
@@ -1488,7 +1487,7 @@ function renderHome(){ const resume=resumableSession();
   applyDailyMotto();
   if(needsCalibration() && !resume){ recordFunnelOnce("welcome_shown"); displayView("welcome"); warmUpcomingStrokeCache(); return; }
   displayView("home");
-  $("homeGreeting").textContent=`${dateCn()} · ${greeting()}`;
+  $("homeGreeting").textContent=`${dateCn()} · ${timeWord()}`;
   const due=reviewCount(), dueToday=reviewTodayCount(), newN=newPool(false).length, stampedToday=todayStampCount(), complete=todayCompleted();
   $("startBtn").classList.toggle("dueBreathe",due>0&&stampedToday===0&&!complete);
   homeResumeSession=resume;
@@ -1498,10 +1497,10 @@ function renderHome(){ const resume=resumableSession();
     $("startBtn").textContent="续"; $("startCap").innerHTML=`继续${complete?"加练":""}这组 <span>· ${progress}</span>`; $("startBtn").disabled=false;
   } else if(complete){
     $("homeTitle").innerHTML=`今日已拾<br>${numCn(stampedToday)}个字`; $("startBtn").textContent="再";
-    $("startCap").innerHTML=(newN||dueToday)?"加练一组":"今天先到这里，明天见"; $("startBtn").disabled=(newN===0 && dueToday===0);
+    $("startCap").innerHTML=(newN||dueToday)?"再写一组":"今天先到这里，明天见"; $("startBtn").disabled=(newN===0 && dueToday===0);
   } else {
     $("homeTitle").innerHTML=dueToday?"先拾回<br>到期的字":"今天拾<br>十五个字"; $("startBtn").textContent="拾";
-    $("startCap").innerHTML=(dueToday||newN)?"按自己的节奏":"今天先到这里，明天见";
+    $("startCap").innerHTML=(dueToday||newN)?"开笔 <span>· 按自己的节奏</span>":"今天先到这里，明天见";
     $("startBtn").disabled=(newN===0 && dueToday===0);
   }
   const y=homeRecentIndexes(), dailyIdx=!resume&&stampedToday===0?dailyCharacterIndex():-1;
@@ -1605,12 +1604,12 @@ function collectedDateText(day){ if(!day) return ""; const [year,month,date]=day
 function openCharSheet(i){ if(!Number.isInteger(i)||i<0||i>=CARDS.length) return; charDetailIndex=i; const c=CARDS[i],m=memory[cardKey(i)]||{},recent=m.recentInk&&m.recentInk.dataURL,first=firstSeenDay(i),safeWord=suspiciousDictionaryWord(i)?c.target:(c.word||c.target);
   $("charDetailGlyph").innerHTML=recent?`<img src="${recent}" alt="${esc(c.target)}的手写墨迹">`:esc(c.target);
   $("charDetailWord").textContent=safeWord; $("charDetailPy").textContent=c.py||"";
-  $("charDetailStory").innerHTML=`${first?`${collectedDateText(first)} 收进字盒<br>`:""}练过 ${Number(m.seen)||0} 次${m.lastOutcome?` · ${OUTCOME_STORY[m.lastOutcome]||"上次练过"}`:""}`;
+  $("charDetailStory").innerHTML=`${first?`${collectedDateText(first)} 收进字库<br>`:""}练过 ${Number(m.seen)||0} 次${m.lastOutcome?` · ${OUTCOME_STORY[m.lastOutcome]||"上次练过"}`:""}`;
   $("charDetailInk").innerHTML=recent?`<img src="${recent}" alt="我上次写的${esc(c.target)}">`:"";
   $("charDetailEmpty").textContent=recent?"":"还没留下手写，写一遍就有了"; $("charDetailEmpty").style.display=recent?"none":"block";
-  $("charDetailStandard").textContent=c.target; $("charDetailStandard").style.display="none"; $("charDetailCompareToggle").textContent="对比标准字"; $("charDetailCompareToggle").style.display=recent?"":"none"; $("charDetailOverlayToggle").style.display="none"; $("charDetailOverlayToggle").textContent="叠"; $("charDetailStandard").parentElement.classList.remove("overlay");
+  $("charDetailStandard").textContent=c.target; $("charDetailStandard").style.display="none"; $("charDetailCompareToggle").textContent="对范字"; $("charDetailCompareToggle").style.display=recent?"":"none"; $("charDetailOverlayToggle").style.display="none"; $("charDetailOverlayToggle").textContent="叠"; $("charDetailStandard").parentElement.classList.remove("overlay");
   $("charDetailStroke").style.display="none"; $("charDetailStroke").innerHTML=""; charDetailWriter=null; $("charSheet").classList.add("open"); }
-function toggleCharDetailCompare(){ const open=$("charDetailStandard").style.display==="flex"; $("charDetailStandard").style.display=open?"none":"flex"; $("charDetailCompareToggle").textContent=open?"对比标准字":"收起标准字"; $("charDetailOverlayToggle").style.display=open?"none":"block"; if(open) $("charDetailStandard").parentElement.classList.remove("overlay"); }
+function toggleCharDetailCompare(){ const open=$("charDetailStandard").style.display==="flex"; $("charDetailStandard").style.display=open?"none":"flex"; $("charDetailCompareToggle").textContent=open?"对范字":"收起范字"; $("charDetailOverlayToggle").style.display=open?"none":"block"; if(open) $("charDetailStandard").parentElement.classList.remove("overlay"); }
 function toggleCharDetailOverlay(){ const body=$("charDetailStandard").parentElement, active=body.classList.toggle("overlay"); $("charDetailOverlayToggle").textContent=active?"并排":"叠"; }
 function replayCharDetail(){ if(charDetailIndex<0||!window.HanziWriter) return; const target=CARDS[charDetailIndex].target,el=$("charDetailStroke"); el.style.display="block";
   if(!charDetailWriter){ el.innerHTML=""; try{ charDetailWriter=HanziWriter.create(el,target,{width:180,height:180,padding:10,showCharacter:false,showOutline:true,strokeColor:cssVar("--accent","#c2452c"),outlineColor:cssVar("--accent-a22","#dcb7ad"),charDataLoader:charLoader}); }catch(e){ toast("这个字的笔顺暂时不可用"); return; } }
@@ -1632,13 +1631,13 @@ function renderBook(){ displayView("book");
   $("boxCount").textContent=`${seen.length} 字`;
   const curator=bookCuratorData(seen); bookCuratorIndexes=curator.indexes; bookCuratorKind=curator.kind; $("bookCurator").innerHTML=`${esc(curator.text)} ${curator.suffix?`<span>${curator.suffix}</span>`:""}`; $("bookCurator").disabled=!curator.indexes.length;
   updateBookBadge();
-  $("memoryWall").innerHTML=seen.length?seen.map((i,k)=>`<button class="memoryChar" data-idx="${i}" aria-label="${esc(CARDS[i].target)}，${esc(CARDS[i].word)}" style="color:var(--memory-${memoryInkLevel(i)});transform:rotate(${ROTS[k%ROTS.length]/2}deg)">${esc(CARDS[i].target)}</button>`).join(""):`<div class="memoryWallEmpty">字盒还空着。<br>拾一组字，墨色会从这里长出来。</div>`; handleBookSearchInput(false); }
+  $("memoryWall").innerHTML=seen.length?seen.map((i,k)=>`<button class="memoryChar" data-idx="${i}" aria-label="${esc(CARDS[i].target)}，${esc(CARDS[i].word)}" style="color:var(--memory-${memoryInkLevel(i)});transform:rotate(${ROTS[k%ROTS.length]/2}deg)">${esc(CARDS[i].target)}</button>`).join(""):`<div class="memoryWallEmpty">字库还空着。<br>拾一组字，墨色会从这里长出来。</div>`; handleBookSearchInput(false); }
 let bookSearchTimer=0, bookSearchIndex=-1;
 function bookSearchTarget(){ const text=$("bookSearchInput").value.trim(),ch=Array.from(text).find(isCJK),base=ch&&BASE_BY_CHAR[ch],custom=ch?customIndexOf(ch):-1,idx=base!=null?base:custom; return {text,ch,idx:Number.isInteger(idx)?idx:-1}; }
 function handleBookSearchInput(autoOpen=true){ clearTimeout(bookSearchTimer); const {text,ch,idx}=bookSearchTarget(), nodes=[...$("memoryWall").querySelectorAll(".memoryChar")], result=$("bookSearchResult"); bookSearchIndex=-1; nodes.forEach(node=>node.classList.remove("searchDim","searchHit")); if(!text){ result.textContent=""; return; }
   if(!ch){ result.textContent="没有这个字"; return; }
   if(idx>=0&&hasMemory(idx)){ bookSearchIndex=idx; nodes.forEach(node=>{ const hit=Number(node.dataset.idx)===idx; node.classList.toggle("searchHit",hit); node.classList.toggle("searchDim",!hit); }); result.textContent=`找到「${ch}」`; if(autoOpen) bookSearchTimer=setTimeout(()=>{ if(bookSearchIndex===idx) openCharSheet(idx); },800); return; }
-  if(idx>=0){ result.innerHTML=`字盒里还没有「${esc(ch)}」 · <button data-book-add="1">收进字盒</button>`; return; }
+  if(idx>=0){ result.innerHTML=`字库里还没有「${esc(ch)}」 · <button data-book-add="1">收进字库</button>`; return; }
   result.textContent="没有这个字"; }
 function handleBookSearch(){ const {text,idx}=bookSearchTarget(); if(idx>=0&&hasMemory(idx)){ openCharSheet(idx); return; } if(!text){ toast("输入一个想找的字"); return; } openAddSheet(); $("addInput").value=text; renderAddPreview(); }
 function esc(s){ return String(s).replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch])); }
@@ -1699,7 +1698,7 @@ let addedChars = bootLoad(ADDED_KEY, null, v=>v===null||(Array.isArray(v)&&v.eve
 if(!Array.isArray(addedChars)){ addedChars=[...new Set(customWords.flatMap(w=>Array.from(w).filter(isCJK)))]; save(ADDED_KEY,addedChars); }
 function customIndexOf(ch){ for(let i=BASE_N;i<CARDS.length;i++){ if(CARDS[i].target===ch) return i; } return -1; }
 function unblockQuality(i){ const k=cardKey(i); if(quality[k]){ delete quality[k]; saveQuality(); } }
-// 现实里提笔忘了 = 一次真实的「不会写」：记进记忆模型，让它立刻进入今日复习和待拾回状态
+// 现实里不会写 = 一次真实的薄弱信号：记进记忆模型，让它立刻进入今日复习和待拾回状态
 function recordRealWorldMiss(i){ const c=CARDS[i], m=cardMemory(i), now=Date.now();
   markFirstSeen(m,now); m.seen=(m.seen||0)+1; m.last=now; m.lastOutcome="miss"; m.misses=(m.misses||0)+1; m.streak=0; m.ease=clamp((m.ease||50)-16,0,100);
   m.topic=c.topic; m.level=c.level; m.word=c.word; m.target=c.target; m.due=dayStartMs(today()); m.dueDay=today(); m.pendingLearning=false; setStatus(i,"indeck"); }
@@ -1809,8 +1808,8 @@ function charLoader(char, onComplete){
   return fetch(local).then(r=>{ if(!r.ok) throw new Error("local char data"); return r.json(); })
     .catch(()=>fetch(cdn).then(r=>{ if(!r.ok) throw new Error("cdn char data"); return r.json(); }))
     .then(onComplete); }
-function strokeDataFailureCopy(kind="error"){ if(navigator.onLine===false) return "这个字的笔顺需要联网下载一次，仍可提交并自行判断";
-  return kind==="slow"?"笔顺加载较慢，仍可自行判断或点「不会写」":"笔顺暂时不可用，仍可提交并自行判断"; }
+function strokeDataFailureCopy(kind="error"){ if(navigator.onLine===false) return "这个字的笔顺需要联网下载一次，仍可点「写好了」自行判断";
+  return kind==="slow"?"笔顺加载较慢，仍可自行判断或点「不会写」":"笔顺暂时不可用，仍可点「写好了」自行判断"; }
 
 function warmStrokeCache(chars){ if(!navigator.onLine) return;
   [...new Set(chars||[])].forEach(ch=>fetch('data/'+encodeURIComponent(ch)+'.json').catch(()=>{})); }
@@ -1907,16 +1906,17 @@ function verdictShort(v){ if(!v) return "对照助手不可用也没关系，请
   if(v.status==="bad") return v.mode==="exact"&&v.failed&&v.failed.length?"这几笔再对一眼。最终以你的选择为准。":"建议：写错了。请和右边对照，最终以你的选择为准。";
   return "和右边对照一下，以你自己的判断为准。"; }
 
-const EXHAUSTED_HINT_COPY="提示看完了——继续补完这个字，或点「不会写」先描后写";
+const EXHAUSTED_HINT_COPY="点拨看完了——继续补完这个字，或点「不会写」先描后写";
 function hintVisualExhausted(){ return !animating && groups.length>0 && groupIdx>=groups.length; }
 function updateActionLabels(){
   const used=hintEverUsed||hintsUsedThisCard>0;
   $("show").textContent=practicePhase==="postTraceRecall"?"再描一遍":"不会写";
   $("show").setAttribute("aria-label",practicePhase==="postTraceRecall"?"再描一遍":"不会写：先描后写，本组稍后还会再写");
-  $("done").textContent=used?"写完了":"写好了";
+  $("done").textContent="写好了";
+  $("done").setAttribute("aria-label","写好了");
   updateTeachUI();
 }
-function updateTip(){ $("tip").textContent="提示"; $("tip").removeAttribute("title"); $("tip").disabled=animating || !writer || groupIdx>=groups.length || practicePhase==="postTraceRecall" || practicePhase==="tracing"; $("peekInk").disabled=animating || !peekWriter || revealed || practicePhase==="postTraceRecall" || practicePhase==="tracing"; if(!revealed){ $("done").disabled=animating; $("show").disabled=animating; } updateInkControls(); updateActionLabels(); }
+function updateTip(){ $("tip").textContent="点拨"; $("tip").removeAttribute("title"); $("tip").disabled=animating || !writer || groupIdx>=groups.length || practicePhase==="postTraceRecall" || practicePhase==="tracing"; $("peekInk").disabled=animating || !peekWriter || revealed || practicePhase==="postTraceRecall" || practicePhase==="tracing"; if(!revealed){ $("done").disabled=animating; $("show").disabled=animating; } updateInkControls(); updateActionLabels(); }
 
 // ---- 教学（首启校准第一张卡的墨点引导；只出现一次）----
 let teachStage="done", teachTimer=0;
@@ -1928,7 +1928,7 @@ function updateTeachUI(){ const stage=(teachActive() && !revealed)?teachStage:"d
   $("tip").classList.remove("tlock"); $("show").classList.remove("tlock");
   $("clear").classList.toggle("tlock",writeLocked); $("done").classList.toggle("tlock",writeLocked);
   if(stage==="intro") $("show").disabled=false;
-  $("mascotLine").textContent=tracePhase?"沿着轮廓描，顺序不对也行":recallAfterTrace?"凭刚才的手感写":hintVisualExhausted()?EXHAUSTED_HINT_COPY:(stage==="helpers"?"想不起来就点「提示」，或点「不会写」先描后写"
+  $("mascotLine").textContent=tracePhase?"沿着轮廓描，顺序不对也行":recallAfterTrace?"凭刚才的手感写":hintVisualExhausted()?EXHAUSTED_HINT_COPY:(stage==="helpers"?"想不起来就点「点拨」，或点「不会写」先描后写"
     :(stage!=="done"?"先试着写，写不出就点「不会写」":(cur?MASCOT_LINES[pos%MASCOT_LINES.length]:""))); }
 function armTeachIdle(){ clearTimeout(teachTimer);
   teachTimer=setTimeout(()=>{ if((teachStage==="intro"||teachStage==="writing") && teachActive() && !revealed){ teachStage="helpers"; updateTeachUI(); } },3000); }
@@ -2018,7 +2018,7 @@ function renderPhaseControls(){ tracing=practicePhase==="tracing"; const post=pr
   $("traceIntro").style.display=tracing&&!traceTutorialShown?"block":"none";
   $("actions").style.display=tracing?"none":"flex"; $("traceActions").style.display=tracing?"flex":"none";
   $("tip").style.display=teaching?"none":""; $("peekInk").style.display=teaching?"none":""; $("show").style.display=tracing?"none":"";
-  $("clear").textContent=tracing?"重描":"重写"; if(teaching) $("tip").disabled=true; updateActionLabels(); updateInkControls(); }
+  $("clear").textContent=tracing?"描":"另"; $("clear").setAttribute("aria-label",tracing?"重描这个字":"另起，重写这个字"); if(teaching) $("tip").disabled=true; updateActionLabels(); updateInkControls(); }
 function render(){ fitBox(); cur=CARDS[currentCardIndex()]; const token=++loadToken, restoring=!!pendingSessionVisual;
   displayView("card");
   const area=$("practiceArea"); area.style.animation="none"; void area.offsetWidth; area.style.animation="cardSwapIn .18s ease-out both";
@@ -2033,7 +2033,7 @@ function render(){ fitBox(); cur=CARDS[currentCardIndex()]; const token=++loadTo
   $("prompt").innerHTML=promptHTML(cur);
   $("hint").textContent=cur.custom?cur.hint:(activeMode==="calibrate"?"这组用来摸个底，之后按合适的难度出题":"");
   clearInk(); drawing=false; inkCanvas.style.opacity='1'; hzEl.style.opacity='1'; hzEl.classList.remove("traceFallback");
-  shownStrokes=0; totalStrokes=0; groups=[]; groupIdx=0; $("tip").disabled=true; $("show").disabled=false; $("done").disabled=true; $("tip").textContent="提示"; updateActionLabels();
+  shownStrokes=0; totalStrokes=0; groups=[]; groupIdx=0; $("tip").disabled=true; $("show").disabled=false; $("done").disabled=true; $("tip").textContent="点拨"; updateActionLabels();
   hzEl.innerHTML=""; peekEl.innerHTML=""; peekEl.classList.remove("active"); hzEl.classList.remove("traceFallback"); writer=null; revealed=false;
   curMedians=null; lastVerdict=null;
   // 教学：只在校准组的第一张卡上出现
@@ -2077,7 +2077,7 @@ $("clear").onclick=rewriteCurrentCard;
 $("undoStroke").onclick=undoInkStroke;
 let animating=false, revealed=false;
 let tipHoldTimer=0, tipHoldConsumed=false;
-function notePracticeHintEntry(){ if(tuning.practiceHintExplained) return; tuning.practiceHintExplained=true; saveTuning(); toast("轻点看下一笔，按住看完整字形"); }
+function notePracticeHintEntry(){ if(tuning.practiceHintExplained) return; tuning.practiceHintExplained=true; saveTuning(); toast("轻点看下一笔，按住瞥一眼完整字形"); }
 function armTipHold(e){ if($("tip").disabled) return; notePracticeHintEntry(); tipHoldConsumed=false; clearTimeout(tipHoldTimer); tipHoldTimer=setTimeout(()=>{ if(enterPeekHint(true)){ tipHoldConsumed=true; hapticFeedback("select"); } },360); }
 function releaseTipHold(){ clearTimeout(tipHoldTimer); if(tipHoldConsumed) exitPeekHint(true); }
 $("tip").addEventListener("pointerdown",armTipHold);
@@ -2103,7 +2103,7 @@ $("tip").onclick=async ()=>{ if(tipHoldConsumed){ tipHoldConsumed=false; return 
   animating=false; actionStack.push({type:"hint",group,n,start}); updateTip();
   if(inkCanvas){ inkCanvas.style.opacity=peeking?String(PEEK_INK_OPACITY):'1';
     if(!tuning.strokeHintConsequenceShown){ tuning.strokeHintConsequenceShown=true; saveTuning(); toast("用了提示，这个字本组稍后还会再写"); }
-    if(!hintVisualExhausted() && !tuning.peekHintUsed) $("hint").textContent="轻点看下一笔，按住「提示」看完整字形"; }
+    if(!hintVisualExhausted() && !tuning.peekHintUsed) $("hint").textContent="轻点看下一笔，按住「点拨」瞥一眼"; }
   saveSessionSnapshot(); return true;
 };
 function showRevealState(snapshot){ const verdict=snapshot&&snapshot.lastVerdict, inkUrl=snapshot&&revealInkImage(snapshot), reference=snapshot&&snapshot.referenceStrokes;
@@ -2266,7 +2266,7 @@ function roundSummary(fromPractice=false){ const durationMs=currentRoundElapsed(
   renderRoundTune(calibrationNote);
   renderSummaryBackupHint();
   $("more").style.display=!wasMakeup&&remain>0?"":"none";
-  $("more").textContent=activeMode==="review"?`继续复习（今日还可 ${Math.min(BATCH,remain)}）`:activeMode==="focus"?`继续（还剩 ${remain}）`:"加练一组"; }
+  $("more").textContent=activeMode==="review"?`继续复习（今日还可 ${Math.min(BATCH,remain)}）`:activeMode==="focus"?`继续（还剩 ${remain}）`:"再写一组"; }
 function allDone(){ displayView("summary"); clearTimeout(summarySealTimer); summarySealTimer=0; renderSummaryMilestone(null);
   $("summaryShare").style.display="none"; $("calibShare").style.display="none";
   $("calibCard").style.display="none"; $("sumSheet").style.display="flex";

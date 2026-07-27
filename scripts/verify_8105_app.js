@@ -114,7 +114,7 @@ let browser;
     tabs: Array.from(document.querySelectorAll("#foot .tab")).map((node) => node.textContent.replace(/\s+/g, "")),
     welcomeEvents: funnel.events.filter((row) => row.name === "welcome_shown").length,
   }));
-  assert(firstRun.welcome && firstRun.footHidden && firstRun.needsCalibration && firstRun.restoreVisible && firstRun.copy.includes("先拾15个字试试") && firstRun.copy.includes("记录只存在这台手机上") && firstRun.tabs.join() === "拾练习,盒字盒,我我的" && firstRun.welcomeEvents === 1, "Expected first-run calibration welcome, one-time funnel event, storage expectation, restore entry, and three-tab IA", firstRun);
+  assert(firstRun.welcome && firstRun.footHidden && firstRun.needsCalibration && firstRun.restoreVisible && firstRun.copy.includes("先拾15个字试试") && firstRun.copy.includes("记录只存在这台手机上") && firstRun.tabs.join() === "习字,字库,我的" && firstRun.welcomeEvents === 1, "Expected first-run calibration welcome, one-time funnel event, storage expectation, restore entry, and final three-tab IA", firstRun);
 
   const p2Style = await page.evaluate(async () => {
     await document.fonts.ready;
@@ -310,12 +310,17 @@ let browser;
     decisionLabels: Array.from(document.querySelectorAll("#decisionRow button span")).map((node) => node.textContent),
     oldStampChoices: document.querySelectorAll("#stampRow .stampWrap").length,
     showLabel: document.getElementById("show").textContent,
+    showAria: document.getElementById("show").getAttribute("aria-label"),
+    doneLabel: document.getElementById("done").textContent,
+    doneAria: document.getElementById("done").getAttribute("aria-label"),
     viewport: document.querySelector('meta[name="viewport"]').content,
   }));
   assert(baseline.seed === 6854 && baseline.groups === 6854 && baseline.cards >= 6854, "Expected the complete 6854-card corpus", baseline);
   assert(baseline.fsrsVersion.includes("FSRS-6.0") && baseline.weights === 21, "Expected fixed FSRS-6 runtime", baseline);
   assert(baseline.scheduler.desiredRetention === 0.9 && baseline.scheduler.maximumInterval === 365 && baseline.scheduler.enableFuzz && baseline.engineFuzz && baseline.scheduler.parameterVersion === "fsrs6-fuzz-365-v2", "Expected fuzzed scheduler with a one-year interval ceiling", baseline.scheduler);
-  assert(baseline.decisionLabels.join("/") === "写对了/写错了" && baseline.oldStampChoices === 0 && baseline.showLabel === "不会写", "Expected concise two-decision result semantics", baseline);
+  assert(baseline.decisionLabels.join("/") === "写对了/写错了" && baseline.oldStampChoices === 0
+    && baseline.showLabel === "不会写" && baseline.showAria.startsWith("不会写：") && baseline.doneLabel === "写好了" && baseline.doneAria === "写好了",
+  "Expected concise two-decision semantics and user-tested direct recall actions", baseline);
   assert(baseline.viewport.includes("viewport-fit=cover") && !/user-scalable=no|maximum-scale=1/.test(baseline.viewport), "Expected scalable safe-area viewport", baseline.viewport);
 
   await page.emulateMedia({ colorScheme: "dark" });
@@ -547,7 +552,7 @@ let browser;
 
   await page.click("#homeAdd");
   const homeCapture = await page.evaluate(() => ({ open: addSheet.classList.contains("open"), label: homeAdd.textContent.replace(/\s+/g, ""), mainVisible: getComputedStyle(startBtn).display !== "none" }));
-  assert(homeCapture.open && homeCapture.label === "＋加字" && homeCapture.mainVisible, "Expected the compact home add entry to open the existing add sheet", homeCapture);
+  assert(homeCapture.open && homeCapture.label === "收字" && homeCapture.mainVisible, "Expected the compact home collection entry to open the existing add sheet", homeCapture);
   await page.click("#addCancel");
 
   await page.click("#tabMe");
@@ -604,7 +609,7 @@ let browser;
     tip: tip.textContent, promptSize: parseFloat(getComputedStyle(document.getElementById("prompt")).fontSize),
   }));
   assert(compactRecall.box >= 276 && compactRecall.mascot === "flex" && compactRecall.mascotCopy.length > 0 && compactRecall.actionBottom <= compactRecall.viewportBottom + 1
-    && compactRecall.tools.every((item) => item.height >= 43.9 && item.scrollWidth <= item.width + 1) && compactRecall.tip === "提示" && compactRecall.promptSize >= 35,
+    && compactRecall.tools.every((item) => item.height >= 43.9 && item.scrollWidth <= item.width + 1) && compactRecall.tip === "点拨" && compactRecall.promptSize >= 35,
   "Expected large type and 44pt compact tools to preserve the writing area and guidance on a 320x568 screen", compactRecall);
   await page.evaluate(() => { inkStrokes = mediansToCanvas(curMedians); redrawInk(); revealAnswer(); });
   const compactReveal = await page.evaluate(() => ({ ask: getComputedStyle(askRow).display, askCopy: askLine.textContent, askBottom: askRow.getBoundingClientRect().bottom, client: reveal.clientHeight, scroll: reveal.scrollHeight, qualityTargets: Array.from(qualityBox.querySelectorAll("button")).map((node) => node.getBoundingClientRect().height) }));
@@ -1038,7 +1043,7 @@ let browser;
     return { stacked, peekOffer, afterStroke, afterHint, empty, rewritten, replayUse, newUse, duringPlayback, afterPlayback, afterInterrupt };
   });
   assert(handwritingBoundaries.stacked === "stroke,hint,stroke"
-    && handwritingBoundaries.peekOffer.copy.includes("按住「提示」") && !handwritingBoundaries.peekOffer.consumed && handwritingBoundaries.peekOffer.consequenceShown && !handwritingBoundaries.peekOffer.title
+    && handwritingBoundaries.peekOffer.copy.includes("按住「点拨」") && !handwritingBoundaries.peekOffer.consumed && handwritingBoundaries.peekOffer.consequenceShown && !handwritingBoundaries.peekOffer.title
     && handwritingBoundaries.afterStroke.ink === 1 && handwritingBoundaries.afterStroke.stack === "stroke,hint"
     && handwritingBoundaries.afterHint.ink === 1 && handwritingBoundaries.afterHint.groupIdx === 0 && handwritingBoundaries.afterHint.shownStrokes === 0 && handwritingBoundaries.afterHint.stack === "stroke" && !handwritingBoundaries.afterHint.tipDisabled
     && handwritingBoundaries.empty.ink === 0 && handwritingBoundaries.empty.stack === 0 && handwritingBoundaries.empty.undoDisabled,
@@ -1291,7 +1296,7 @@ let browser;
   await page.evaluate(() => { hapticDebug.events = []; hapticDebug.last = null; });
   await page.click("#traceDone");
   const postTrace = await page.evaluate(() => ({ phase: practicePhase, title: phaseTitle.textContent, ink: inkStrokes.length, hintLayer: hzEl.textContent, fallback: hzEl.classList.contains("traceFallback"), tipDisabled: tip.disabled, tipDisplay: getComputedStyle(tip).display, show: show.textContent, clear: clear.textContent, haptics: hapticDebug.events.slice() }));
-  assert(postTrace.phase === "postTraceRecall" && postTrace.title.includes("2/2 自己写") && postTrace.ink === 0 && !postTrace.hintLayer && !postTrace.fallback && postTrace.tipDisabled && postTrace.tipDisplay === "none" && postTrace.show === "再描一遍" && postTrace.clear === "重写" && postTrace.haptics.length === 0, "Expected outline-free step-two recall with only its own tools", postTrace);
+  assert(postTrace.phase === "postTraceRecall" && postTrace.title.includes("2/2 自己写") && postTrace.ink === 0 && !postTrace.hintLayer && !postTrace.fallback && postTrace.tipDisabled && postTrace.tipDisplay === "none" && postTrace.show === "再描一遍" && postTrace.clear === "另" && postTrace.haptics.length === 0, "Expected outline-free step-two recall with only its own final-named tools", postTrace);
   await page.evaluate(() => { saveSessionSnapshot(); restoreSession(load(SESSION_KEY, null)); });
   await page.waitForFunction(() => pendingSessionVisual === null && practicePhase === "postTraceRecall");
   const restoredPostTrace = await page.evaluate(() => ({ phase: practicePhase, title: phaseTitle.textContent, ink: inkStrokes.length, hintLayer: hzEl.textContent, fallback: hzEl.classList.contains("traceFallback"), tipDisabled: tip.disabled }));

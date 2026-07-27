@@ -91,6 +91,7 @@ checks = {
     and handwriting.get("peekBlockedInk") is True
     and handwriting.get("peekRestored") is True
     and handwriting.get("peekControlVisible") is True
+    and handwriting.get("actionLabelsDirect") is True
     and handwriting.get("peekControlEntered") is True
     and handwriting.get("peekControlGlyphVisible") is True
     and handwriting.get("peekControlUncounted") is True,

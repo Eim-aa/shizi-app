@@ -71,6 +71,7 @@ assert(source.includes("STAMP_HOLD_MS=1800") && source.includes("EDIT_STAMP_WIND
 assert(source.includes('navigator.vibrate(10)') && source.includes('animation="cardSwapIn .18s ease-out both"') && source.includes('classList.add("revealing")'), "Expected Web haptics and staggered card/reveal transitions");
 assert(source.includes('OUTCOME_DOT={ fast:"transparent", hinted:"var(--gold)", slow:"var(--accent)"') && !/slow:\s*"var\(--blue\)"/.test(source), "Expected silent success, gold assistance, and cinnabar risk result semantics");
 assert(source.includes('if(!sound.enabled') && source.includes('{type:"sound",kind}') && source.includes('if(tracing) soundFeedback("paper")') && source.includes('soundFeedback("stamp")'), "Expected two-site, opt-out paper sound feedback with no disabled audio initialization");
+assert(source.includes("brushWidthFor") && source.includes("paintBrushStroke") && source.includes("brushStrokeLayer") && source.includes("compositeBrushLayer") && source.includes('pointer==="pen"') && source.includes('"destination-out"') && source.includes('"source-over"') && source.includes("paintInkBloom") && !source.includes("dryColor"), "Expected one shared pressure, taper, isolated dry-brush, and ink-bloom renderer");
 assert(webViewSource.includes("AVAudioSession.sharedInstance().setCategory(.ambient") && webViewSource.includes('case "sound"') && webViewSource.includes('content.userInfo = ["targetCardKey": question.targetCardKey]'), "Expected native ambient paper sounds and notification target metadata");
 assert(appDelegateSource.includes("didReceive response: UNNotificationResponse") && appDelegateSource.includes("openReminderTarget(cardKey: targetCardKey)"), "Expected notification taps to reach the Web practice target on cold or warm launch");
 
@@ -161,6 +162,77 @@ let browser;
     && p2Style.heading.size === 31 && Math.abs(p2Style.heading.line / p2Style.heading.size - 1.35) < 0.02 && ["normal", "0px"].includes(p2Style.heading.spacing) && p2Style.actionsMargin === 52 && p2Style.ctaMargin === 0 && !p2Style.inlineWelcomeStyle
     && p2Style.toastGlyph === 26 && p2Style.bodyNoise !== "none" && p2Style.sheetNoise !== "none" && p2Style.fontLoaded && p2Style.fontBytes > 0 && p2Style.fontBytes < 20000 && !p2Style.nonzeroLetterSpacing,
   "Expected converged type/spacing tokens, an offline Android-safe brand font, and paper texture", p2Style);
+
+  const brushEngine = await page.evaluate(() => {
+    const base = 20, previous = { x: 0, y: 0, t: 0 };
+    const width = (point) => brushWidthFor({ ...point }, previous, { ema: 0 }, base);
+    const widths = {
+      slow: width({ x: 5, y: 0, t: 20, p: 0 }),
+      fast: width({ x: 45, y: 0, t: 20, p: 0 }),
+      pressureLow: width({ x: 20, y: 0, t: 20, p: .15 }),
+      pressureHigh: width({ x: 20, y: 0, t: 20, p: .9 }),
+    };
+    const high = { hardwareConcurrency: 8, deviceMemory: 4 }, low = { hardwareConcurrency: 2, deviceMemory: 2 }, originalMatchMedia = window.matchMedia;
+    const fullDetail = brushDetailEnabled(high), lowDetail = brushDetailEnabled(low);
+    window.matchMedia = (query) => query.includes("prefers-reduced-motion") ? { matches: true } : originalMatchMedia(query);
+    const reducedDetail = brushDetailEnabled(high);
+    window.matchMedia = originalMatchMedia;
+
+    const makeCanvas = () => { const canvas = document.createElement("canvas"); canvas.width = 220; canvas.height = 100; return canvas; };
+    const points = Array.from({ length: 17 }, (_, i) => ({ x: 20 + i * 10, y: 50, t: i * 10, w: 1.2, v: i ? 1 : 0 }));
+    const simple = makeCanvas(), simpleCtx = simple.getContext("2d");
+    paintBrushStroke(simpleCtx, points, base, { color: "#000", detail: false });
+    const spanAt = (ctx, x) => { const data = ctx.getImageData(x, 0, 1, 100).data; let first = -1, last = -1; for (let y = 0; y < 100; y += 1) if (data[y * 4 + 3] > 12) { if (first < 0) first = y; last = y; } return last >= first ? last - first + 1 : 0; };
+    const taper = { head: spanAt(simpleCtx, 22), middle: spanAt(simpleCtx, 100), tail: spanAt(simpleCtx, 178) };
+
+    const detailed = makeCanvas(), detailedCtx = detailed.getContext("2d");
+    const fastPoints = points.map((point, i) => ({ ...point, v: i ? 1.7 : 0 }));
+    paintBrushStroke(detailedCtx, fastPoints, base, { color: "#000", detail: true, capabilities: high });
+    const alphaSum = (ctx, x1, x2) => { const data = ctx.getImageData(x1, 36, x2 - x1, 28).data; let sum = 0; for (let i = 3; i < data.length; i += 4) sum += data[i]; return sum; };
+    const texture = { simple: alphaSum(simpleCtx, 55, 165), detailed: alphaSum(detailedCtx, 55, 165), simpleHead: spanAt(simpleCtx, 20), detailedHead: spanAt(detailedCtx, 20) };
+
+    const target = [[{ x: 35, y: 35 }, { x: 100, y: 35 }, { x: 165, y: 35 }], [{ x: 100, y: 35 }, { x: 100, y: 100 }, { x: 100, y: 165 }]];
+    const enriched = target.map((stroke, row) => stroke.map((point, index) => ({ ...point, t: index * 14, w: .7 + index * .25, v: row + index * .4 })));
+    const recognition = { plain: checkInk(target, target), enriched: checkInk(enriched, target) }, legacyWidth = brushStrokeGeometry(target[0], base).widths[1];
+    const shared = shareInkFromSnapshot({ canvasSize: 200, inkStrokes: [enriched[0]] });
+
+    const squareCanvas = () => { const canvas = document.createElement("canvas"); canvas.width = 220; canvas.height = 220; return canvas; };
+    const vertical = Array.from({ length: 13 }, (_, i) => ({ x: 110, y: 20 + i * 15, w: 1.45, v: 0 }));
+    const horizontal = Array.from({ length: 17 }, (_, i) => ({ x: 20 + i * 11.25, y: 110, w: 1.2, v: i ? 2.2 : 0 }));
+    const crossing = squareCanvas(), crossingCtx = crossing.getContext("2d");
+    paintBrushStroke(crossingCtx, vertical, base, { color: "#29241d", detail: false });
+    const crossingBefore = crossingCtx.getImageData(0, 0, 220, 220).data;
+    paintBrushStroke(crossingCtx, horizontal, base, { color: "#29241d", detail: true, capabilities: high });
+    const crossingAfter = crossingCtx.getImageData(0, 0, 220, 220).data; let crossingAlphaLoss = 0;
+    for (let i = 3; i < crossingBefore.length; i += 4) if (crossingBefore[i] === 255 && crossingAfter[i] < 255) crossingAlphaLoss += 1;
+
+    const hint = squareCanvas(), hintCtx = hint.getContext("2d"); hintCtx.strokeStyle = "#d08b78"; hintCtx.lineWidth = 22; hintCtx.lineCap = "round"; hintCtx.beginPath(); hintCtx.moveTo(110, 20); hintCtx.lineTo(110, 200); hintCtx.stroke();
+    const hintBefore = hintCtx.getImageData(0, 0, 220, 220).data;
+    paintBrushStroke(hintCtx, horizontal, base, { color: "#29241d", detail: true, capabilities: high });
+    const hintAfter = hintCtx.getImageData(0, 0, 220, 220).data; let hintAlphaLoss = 0;
+    for (let i = 3; i < hintBefore.length; i += 4) if (hintBefore[i] === 255 && hintAfter[i] < 255) hintAlphaLoss += 1;
+
+    const normalized = [vertical, horizontal].map(stroke => stroke.map(point => ({ x: point.x / 220, y: point.y / 220, w: point.w, v: point.v })));
+    const share = squareCanvas(), shareCtx = share.getContext("2d"); shareCtx.fillStyle = "#fdfbf4"; shareCtx.fillRect(0, 0, 220, 220); drawShareHandwriting(shareCtx, normalized, 10, 10, 200, 0);
+    const expected = squareCanvas(), expectedCtx = expected.getContext("2d"); expectedCtx.fillStyle = "#fdfbf4"; expectedCtx.fillRect(0, 0, 220, 220); expectedCtx.strokeStyle = "#c2452c38"; expectedCtx.lineWidth = 2; expectedCtx.setLineDash([7, 7]);
+    [[110, 10, 110, 210], [10, 110, 210, 110], [10, 10, 210, 210], [210, 10, 10, 210]].forEach(line => { expectedCtx.beginPath(); expectedCtx.moveTo(line[0], line[1]); expectedCtx.lineTo(line[2], line[3]); expectedCtx.stroke(); }); expectedCtx.setLineDash([]);
+    normalized.forEach(stroke => { const layerCanvas = squareCanvas(), layerCtx = layerCanvas.getContext("2d"), scaled = stroke.map(point => ({ x: 10 + point.x * 200, y: 10 + point.y * 200, w: point.w, v: point.v })); paintBrushStroke(layerCtx, scaled, 15, { color: "#29241d", detail: true }); expectedCtx.drawImage(layerCanvas, 0, 0); });
+    const sharePixels = shareCtx.getImageData(0, 0, 220, 220).data, expectedPixels = expectedCtx.getImageData(0, 0, 220, 220).data; let shareMismatch = 0, shareMinAlpha = 255;
+    for (let i = 0; i < sharePixels.length; i += 1) { if (sharePixels[i] !== expectedPixels[i]) shareMismatch += 1; if (i % 4 === 3) shareMinAlpha = Math.min(shareMinAlpha, sharePixels[i]); }
+
+    const perfCanvas = document.createElement("canvas"); perfCanvas.width = 300; perfCanvas.height = 300; const perfCtx = perfCanvas.getContext("2d");
+    const perfPoints = Array.from({ length: 96 }, (_, i) => ({ x: 15 + i * 2.75, y: 150 + Math.sin(i / 7) * 55, t: i * 3, w: .75 + (i % 9) / 18, v: 1.25 + (i % 5) * .12 }));
+    const started = performance.now(); for (let i = 0; i < 90; i += 1) { perfCtx.clearRect(0, 0, 300, 300); paintBrushStroke(perfCtx, perfPoints, 14, { color: "#29241d", detail: true, capabilities: high }); } const averageMs = (performance.now() - started) / 90;
+    return { widths, detail: { fullDetail, lowDetail, reducedDetail }, taper, texture, recognition, legacyWidth, shared, layering: { crossingAlphaLoss, hintAlphaLoss, shareMismatch, shareMinAlpha }, averageMs };
+  });
+  assert(brushEngine.widths.slow > brushEngine.widths.fast && brushEngine.widths.pressureHigh > brushEngine.widths.pressureLow && brushEngine.detail.fullDetail && !brushEngine.detail.lowDetail && !brushEngine.detail.reducedDetail,
+    "Expected slower or harder Pencil input to draw wider and low-end/reduced-motion devices to simplify details", brushEngine);
+  assert(brushEngine.taper.middle > brushEngine.taper.head && brushEngine.taper.head > brushEngine.taper.tail && brushEngine.texture.detailed < brushEngine.texture.simple && brushEngine.texture.detailedHead <= brushEngine.texture.simpleHead + 4,
+    "Expected tapered endpoints, restrained dry-brush texture, and at most a two-pixel ink bloom per edge", brushEngine);
+  assert(JSON.stringify(brushEngine.recognition.plain) === JSON.stringify(brushEngine.recognition.enriched) && brushEngine.legacyWidth === 20 && brushEngine.shared[0].every((point) => Number.isFinite(point.w) && Number.isFinite(point.v)) && brushEngine.averageMs < 16.7,
+    "Expected brush metadata to leave recognition unchanged, preserve legacy ink width, survive sharing, and render within one 60fps frame", brushEngine);
+  assert(brushEngine.layering.crossingAlphaLoss === 0 && brushEngine.layering.hintAlphaLoss === 0 && brushEngine.layering.shareMismatch === 0 && brushEngine.layering.shareMinAlpha === 255,
+    "Expected each dry-brush stroke to preserve crossing ink and hints, match transparent-layer share composition, and keep PNG pixels opaque", brushEngine.layering);
 
   const funnelBoundary = await page.evaluate(() => {
     const originalFunnel = JSON.parse(JSON.stringify(funnel)), originalOpens = opens.slice(), originalRound = { roundId, activeMode, baseTargets: baseTargets.slice(), attemptSeq };
@@ -1259,9 +1331,10 @@ let browser;
     const web = await sharePracticeCard({ nativeBridge: null, navigator: { canShare: ({ files }) => files.length === 1 && files[0].type === "image/png", share: async (payload) => shared.push(payload) } });
     const download = await sharePracticeCard({ nativeBridge: null, navigator: {}, download: (blob, name) => downloads.push({ size: blob.size, name }) });
     const rendererSource = `${renderPracticeCardCanvas}\n${drawShareHandwriting}`;
-    return { canvas: canvas && { width: canvas.width, height: canvas.height, png: canvas.toDataURL("image/png").startsWith("data:image/png;base64,"), pixels: canvas.toDataURL("image/png").length, inkStrokes: Number(canvas.dataset.inkStrokeCount) }, native, web, download, messageKeys: messages[0] && Object.keys(messages[0]).sort(), messageType: messages[0] && messages[0].type, messagePNG: messages[0] && messages[0].dataURL.startsWith("data:image/png;base64,"), shared: shared.length, downloaded: downloads[0], privateFree: !/localStorage|memory|activity|backup|seenStat|riskStat/.test(rendererSource), printedTargetFree: !/fillText\s*\(\s*stat\.target/.test(rendererSource), shareVisible: getComputedStyle(summaryShare).display !== "none", shareLabel: summaryShare.textContent.trim() };
+    const imageData = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height).data; let minAlpha = 255; for (let i = 3; i < imageData.length; i += 4) minAlpha = Math.min(minAlpha, imageData[i]);
+    return { canvas: canvas && { width: canvas.width, height: canvas.height, png: canvas.toDataURL("image/png").startsWith("data:image/png;base64,"), pixels: canvas.toDataURL("image/png").length, inkStrokes: Number(canvas.dataset.inkStrokeCount), minAlpha }, native, web, download, messageKeys: messages[0] && Object.keys(messages[0]).sort(), messageType: messages[0] && messages[0].type, messagePNG: messages[0] && messages[0].dataURL.startsWith("data:image/png;base64,"), shared: shared.length, downloaded: downloads[0], privateFree: !/localStorage|memory|activity|backup|seenStat|riskStat/.test(rendererSource), printedTargetFree: !/fillText\s*\(\s*stat\.target/.test(rendererSource), shareVisible: getComputedStyle(summaryShare).display !== "none", shareLabel: summaryShare.textContent.trim() };
   });
-  assert(sharePaths.canvas.width === 1080 && sharePaths.canvas.height === 1440 && sharePaths.canvas.png && sharePaths.canvas.pixels > 10000 && sharePaths.canvas.inkStrokes > 0 && sharePaths.native.route === "native" && sharePaths.web.route === "share" && sharePaths.download.route === "download"
+  assert(sharePaths.canvas.width === 1080 && sharePaths.canvas.height === 1440 && sharePaths.canvas.png && sharePaths.canvas.pixels > 10000 && sharePaths.canvas.inkStrokes > 0 && sharePaths.canvas.minAlpha === 255 && sharePaths.native.route === "native" && sharePaths.web.route === "share" && sharePaths.download.route === "download"
     && sharePaths.messageKeys.join() === "dataURL,name,type" && sharePaths.messageType === "sharePracticeCard" && sharePaths.messagePNG && sharePaths.shared === 1 && sharePaths.downloaded.size > 1000 && sharePaths.downloaded.name.endsWith(".png") && sharePaths.privateFree && sharePaths.printedTargetFree && sharePaths.shareVisible && sharePaths.shareLabel.includes("存为"),
   "Expected a private-free user-ink PNG card and native, Web Share, and download delivery paths", sharePaths);
   const expandedShareCard = await page.evaluate(() => {

@@ -5,6 +5,7 @@ const path = require("path");
 const root = path.resolve(__dirname, "..");
 const source = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const changelog = fs.readFileSync(path.join(root, "CHANGELOG.md"), "utf8");
+const approvedContexts = JSON.parse(fs.readFileSync(path.join(root, "scripts", "fixtures", "context-overrides-approved.json"), "utf8"));
 const appUrl = process.env.SHIZI_APP_URL || "http://127.0.0.1:8000/";
 const generatedDir = path.join(root, "generated", "redesign-v4");
 fs.mkdirSync(generatedDir, { recursive: true });
@@ -320,9 +321,62 @@ let browser;
   await page.screenshot({ path: path.join(generatedDir, "practice-light-375x667.png"), fullPage: true });
   await page.click("#exitPractice");
 
+  await page.evaluate(() => startFocus([BASE_BY_CHAR["毓"]], { returnView: "book" }));
+  await page.waitForFunction(() => getComputedStyle(card).display !== "none" && !show.disabled);
+  const idiomContext = await page.evaluate(() => { const node=$("prompt"); return { copy: node.textContent, targetVisible: node.textContent.includes("毓"), fits: node.scrollWidth <= node.clientWidth + 1 }; });
+  assert(idiomContext.copy.includes("钟") && idiomContext.copy.includes("灵") && idiomContext.copy.includes("秀") && idiomContext.copy.includes("yù") && !idiomContext.targetVisible && idiomContext.fits, "Expected a four-character idiom to fit while blanking only the target", idiomContext);
+  await page.click("#exitPractice");
+  const glossCases = Object.entries(approvedContexts.approvedGlosses);
+  const glossCombinations = [
+    { width: 375, height: 667 },
+    { width: 375, height: 812 },
+  ].flatMap((size) => ["light", "dark"].flatMap((colorScheme) => [false, true].map((largeText) => ({ size, colorScheme, largeText }))));
+  assert(glossCases.length === 45 && glossCombinations.length === 8, "Expected the persistent gloss matrix to cover 45 entries across eight display combinations", { glosses: glossCases.length, combinations: glossCombinations.length });
+  let glossMatrixChecks = 0;
+  for (const combination of glossCombinations) {
+    await page.setViewportSize(combination.size);
+    await page.emulateMedia({ colorScheme: combination.colorScheme });
+    for (const [target, expectedHint] of glossCases) {
+      const layout = await page.evaluate(({ target, expectedHint, largeText }) => {
+        fontScaleLarge = largeText; applyFontScale();
+        startFocus([BASE_BY_CHAR[target]], { returnView: "book" });
+        const promptNode = $("prompt"), hintNode = $("hint"), area = $("practiceArea"), canvas = area.querySelector(".practiceCanvas"), actionNode = $("actions");
+        const rect = (node) => { const box = node.getBoundingClientRect(); return { left: box.left, right: box.right, top: box.top, bottom: box.bottom, width: box.width, height: box.height }; };
+        const promptRect = rect(promptNode), hintRect = rect(hintNode), canvasRect = rect(canvas), actionRect = rect(actionNode), cardRect = rect(card);
+        const labelled = (area.getAttribute("aria-labelledby") || "").split(/\s+/).filter(Boolean).map((id) => document.getElementById(id)?.textContent || "").join(" ");
+        const described = (area.getAttribute("aria-describedby") || "").split(/\s+/).filter(Boolean).map((id) => document.getElementById(id)?.textContent || "").join(" ");
+        return {
+          target, expectedHint, prompt: promptNode.textContent, hint: hintNode.textContent, py: CARDS[BASE_BY_CHAR[target]].py,
+          promptRect, hintRect, canvasRect, actionRect, cardRect, labelled, described,
+          role: area.getAttribute("role"), labelledBy: area.getAttribute("aria-labelledby"), describedBy: area.getAttribute("aria-describedby"),
+          pageWidth: document.documentElement.scrollWidth, innerWidth, hintScrollWidth: hintNode.scrollWidth, hintClientWidth: hintNode.clientWidth,
+          fontSize: parseFloat(getComputedStyle(hintNode).fontSize), largeClass: document.documentElement.classList.contains("largeText"),
+        };
+      }, { target, expectedHint, largeText: combination.largeText });
+      const aria = await page.locator("#practiceArea").ariaSnapshot();
+      const leak = layout.prompt.includes(target) || layout.hint.includes(target) || aria.includes(target);
+      const horizontalFit = layout.pageWidth <= layout.innerWidth + 1 && layout.hintScrollWidth <= layout.hintClientWidth + 1
+        && layout.hintRect.left >= layout.cardRect.left - 1 && layout.hintRect.right <= layout.cardRect.right + 1;
+      const verticalFit = layout.promptRect.bottom <= layout.hintRect.top + 1 && layout.hintRect.bottom <= layout.canvasRect.top + 1
+        && layout.canvasRect.bottom <= layout.actionRect.top + 1 && layout.actionRect.bottom <= layout.cardRect.bottom + 1;
+      const semanticText = layout.role === "group" && layout.labelledBy === "prompt" && layout.describedBy === "hint"
+        && layout.labelled.includes(layout.py) && layout.described === expectedHint && aria.includes(layout.py) && aria.includes(expectedHint);
+      const scaled = combination.largeText ? layout.largeClass && layout.fontSize >= 13.4 : !layout.largeClass && layout.fontSize >= 11.9 && layout.fontSize <= 12.1;
+      assert(!leak && layout.hint === expectedHint && horizontalFit && verticalFit && semanticText && scaled,
+        "Expected every approved gloss to remain readable, accessible, non-overlapping, and answer-free across the full display matrix",
+        { combination, layout, aria, leak, horizontalFit, verticalFit, semanticText, scaled });
+      glossMatrixChecks++;
+    }
+  }
+  assert(glossMatrixChecks === 360, "Expected all 360 gloss display combinations to run as a persistent regression gate", glossMatrixChecks);
+  await page.setViewportSize({ width: 375, height: 667 }); await page.emulateMedia({ colorScheme: "light" });
+  await page.evaluate(() => { fontScaleLarge = false; applyFontScale(); startFocus([BASE_BY_CHAR["谔"]], { returnView: "book" }); });
+  await page.screenshot({ path: path.join(generatedDir, "context-gloss-light-375x667.png"), fullPage: true });
+  await page.click("#exitPractice");
+
   assert(errors.length === 0, "Browser errors", errors);
   await browser.close(); browser = null;
-  console.log("Verified interface redesign v4 palette, home, honest detail sheet, instant memory wall search, My, settings, and responsive layouts.");
+  console.log("Verified interface redesign v4 and all 360 gloss layout/accessibility combinations.");
 })().catch(async (error) => {
   console.error(error);
   if (browser) await browser.close();

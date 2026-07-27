@@ -125,6 +125,10 @@ checks = {
     and data_flow.get("libraryReachable") is True
     and data_flow.get("libraryUI") is True
     and data_flow.get("libraryCalibrationLifecycle") is True,
+    "contextOverrides": data_flow.get("contextAvailable") is True
+    and data_flow.get("contextOverridesApplied") is True
+    and data_flow.get("contextMemoryStable") is True
+    and data_flow.get("contextOfflineResource") is True,
     "backupPayload": data_flow.get("backupParses") is True
     and data_flow.get("backupHasAppMarker") is True
     and data_flow.get("backupHasAdded") is True

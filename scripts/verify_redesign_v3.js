@@ -71,6 +71,20 @@ let browser;
   assert(wall43.count === 43 && wall43.columns === 6 && wall43.labels === 0 && wall43.curator === "action" && wall43.countText === "43 字", "Expected a 43-character six-column memory wall with action curation", wall43);
   await page.screenshot({ path: path.join(generatedDir, "book-light-375x667.png"), fullPage: true });
 
+  const etymologyDetail = await page.evaluate(async () => {
+    await loadEtymology();
+    const covered = CARDS.findIndex((card) => card.target === "一"), missing = CARDS.findIndex((card) => card.target === "的");
+    openCharSheet(covered);
+    const shown = { display: getComputedStyle(etymLine).display, gloss: etymGloss.textContent, source: etymSource.textContent, oneLine: getComputedStyle(etymLine).whiteSpace, overflow: etymLine.scrollWidth <= etymLine.clientWidth + 1 };
+    closeCharSheet(); openCharSheet(missing);
+    const hidden = getComputedStyle(etymLine).display;
+    closeCharSheet();
+    return { shown, hidden };
+  });
+  assert(etymologyDetail.shown.display === "block" && etymologyDetail.shown.gloss.length > 0 && etymologyDetail.shown.source === "——《说文解字》"
+    && etymologyDetail.shown.oneLine === "nowrap" && etymologyDetail.shown.overflow && etymologyDetail.hidden === "none",
+  "Expected one quiet sourced origin line and silent absence for an unverified character", etymologyDetail);
+
   const legacyPage = await browser.newPage({ viewport: { width: 375, height: 667 }, colorScheme: "light" });
   await legacyPage.goto(appUrl, { waitUntil: "networkidle" });
   const legacySeed = await legacyPage.evaluate(() => {
@@ -217,6 +231,22 @@ let browser;
         assert(layout.visible && layout.scrollWidth <= layout.innerWidth + 1 && layout.solid <= 1, "Expected every v4 screen to fit both target iPhone viewports and respect the one-solid-red budget", { screen, size, colorScheme, layout });
         await page.screenshot({ path: path.join(generatedDir, `${screen}-${colorScheme}-${size.width}x${size.height}.png`), fullPage: true });
       }
+    }
+  }
+
+  for (const size of [{ width: 375, height: 667 }, { width: 375, height: 812 }]) {
+    await page.setViewportSize(size);
+    for (const colorScheme of ["light", "dark"]) {
+      await page.emulateMedia({ colorScheme });
+      const detailLayout = await page.evaluate(() => {
+        renderBook(); openCharSheet(CARDS.findIndex((card) => card.target === "水"));
+        const panel = document.querySelector(".charSheet"), line = etymLine;
+        return { visible: getComputedStyle(line).display, oneLine: getComputedStyle(line).whiteSpace, lineFits: line.scrollWidth <= line.clientWidth + 1, panelFits: panel.scrollWidth <= panel.clientWidth + 1, sheetFits: document.documentElement.scrollWidth <= innerWidth + 1 };
+      });
+      assert(detailLayout.visible === "block" && detailLayout.oneLine === "nowrap" && detailLayout.lineFits && detailLayout.panelFits && detailLayout.sheetFits,
+        "Expected the source line to stay light, single-row and overflow-free in both target viewports and themes", { size, colorScheme, detailLayout });
+      await page.screenshot({ path: path.join(generatedDir, `detail-etymology-${colorScheme}-${size.width}x${size.height}.png`), fullPage: true });
+      await page.evaluate(() => closeCharSheet());
     }
   }
 

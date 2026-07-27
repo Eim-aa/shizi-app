@@ -11,10 +11,22 @@ const SESSION_STORAGE_KEY = "shizi.session.v1";
 const source = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const readme = fs.readFileSync(path.join(root, "README.md"), "utf8");
 const swSource = fs.readFileSync(path.join(root, "sw.js"), "utf8");
+const deckSource = fs.readFileSync(path.join(root, "deck-data.js"), "utf8");
 const coreStrokeSource = fs.readFileSync(path.join(root, "core-strokes.js"), "utf8");
+const etymology = JSON.parse(fs.readFileSync(path.join(root, "data", "etymology.json"), "utf8"));
+const etymologyCoverage = JSON.parse(fs.readFileSync(path.join(root, "generated", "etymology-coverage.json"), "utf8"));
+const etymologyBuilderSource = fs.readFileSync(path.join(root, "scripts", "build_etymology.py"), "utf8");
 const appDelegateSource = fs.readFileSync(path.join(root, "ios", "ShiziApp", "ShiziApp", "AppDelegate.swift"), "utf8");
 const webViewSource = fs.readFileSync(path.join(root, "ios", "ShiziApp", "ShiziApp", "WebViewController.swift"), "utf8");
 const mottoFixture = JSON.parse(fs.readFileSync(path.join(root, "scripts", "fixtures", "motto_classics.json"), "utf8"));
+const etymologyAccuracyFixture = JSON.parse(fs.readFileSync(path.join(root, "scripts", "fixtures", "etymology_accuracy.json"), "utf8"));
+const etymologyContextAudit = JSON.parse(fs.readFileSync(path.join(root, "scripts", "fixtures", "etymology_context_audit.json"), "utf8"));
+const etymologyCopyReview = JSON.parse(fs.readFileSync(path.join(root, "scripts", "fixtures", "etymology_copy_review.json"), "utf8"));
+const deckCharacters = new Set(JSON.parse(deckSource.match(/const SEED = (\[.*\]);/s)[1]).map((row) => row.target));
+const openccOneToMany = new Set(fs.readFileSync(path.join(root, "sources", "opencc-st-characters.txt"), "utf8")
+  .split(/\r?\n/)
+  .filter((line) => line.includes("\t") && line.split("\t", 2)[1].trim().split(/\s+/).length > 1)
+  .map((line) => line.split("\t", 1)[0]));
 
 if (/退出本组？|进度已保存，随时可继续这组|描一遍也算拾回|小时后再见|已收|拾到手|教学检查|本组通过|待巩固|差点|回炉|改一下|已稳/.test(source)) {
   throw new Error("Deprecated practice vocabulary remains in index.html");
@@ -29,6 +41,18 @@ function chromeExecutable() {
 
 function assert(condition, message, details) {
   if (!condition) throw new Error(`${message}${details ? `: ${JSON.stringify(details)}` : ""}`);
+}
+
+function hasCjkExtension(text) {
+  return Array.from(String(text)).some((char) => {
+    const codePoint = char.codePointAt(0);
+    return (codePoint >= 0x3400 && codePoint <= 0x4dbf) || (codePoint >= 0x20000 && codePoint <= 0x323af);
+  });
+}
+
+function isOpaqueAncientGloss(gloss) {
+  const match = String(gloss).split("。", 1)[0].match(/^(.{1,2})(?:也|同)$/u);
+  return !!match && Array.from(match[1]).some((char) => !deckCharacters.has(char));
 }
 
 function cssRgb(value) {
@@ -60,8 +84,44 @@ assert(mottoFixture.entries.find((entry) => entry.text === "传不习乎")?.auth
   && mottoFixture.entries.find((entry) => entry.text === "如切如磋，如琢如磨")?.source === "诗经·卫风·淇奥",
 "Expected the reviewed fixture to preserve the corrected Zengzi and Classic of Poetry attributions");
 
-assert(swSource.includes("shizi-v9") && swSource.includes("Promise.allSettled") && swSource.includes("INSTALL_BATCH_SIZE = 40") && swSource.includes("cacheCoreStrokes"), "Expected versioned, batched, failure-tolerant core stroke installation");
+assert(swSource.includes("shizi-v10") && swSource.includes("'data/etymology.json'") && swSource.includes("Promise.allSettled") && swSource.includes("INSTALL_BATCH_SIZE = 40") && swSource.includes("cacheCoreStrokes"), "Expected versioned, offline etymology and failure-tolerant core stroke installation");
 assert(coreStrokeSource.includes("SHIZI_CORE_STROKES") && coreStrokeSource.includes("slice(0,600)"), "Expected a generated 600-character core stroke list");
+assert(Array.isArray(etymology) && etymology.length === etymologyCoverage.totals.entries && new Set(etymology.map((row) => row.char)).size === etymology.length
+  && etymology.every((row) => Object.keys(row).sort().join() === "char,gloss,source" && Array.from(row.char).length === 1 && row.gloss.length >= 1 && row.gloss.length <= 20 && ["《说文解字》", "Make Me a Hanzi"].includes(row.source)),
+"Expected unique, compact and explicitly attributed etymology records", { count: etymology.length });
+assert(etymologyCoverage.schemaVersion === 2 && etymologyCoverage.totals.topCharacters === 1000 && etymologyCoverage.totals.topCovered >= 900
+  && etymologyCoverage.totals.radicalCovered + etymologyCoverage.missingRadicalCharacters.length === etymologyCoverage.totals.radicalCharacters
+  && etymologyCoverage.missingRadicalCharacters.every((char) => etymologyCoverage.omissions[char])
+  && etymologyCoverage.missingTopCharacters.every((char) => !etymology.some((row) => row.char === char)),
+"Expected every top-frequency and radical coverage gap to be explicit", etymologyCoverage.totals);
+assert(etymologyBuilderSource.includes("build_shuowen_indexes") && etymologyBuilderSource.includes("len(traditional) == 1") && !etymologyBuilderSource.includes("next((candidate for candidate in candidates"),
+  "Expected exact headword indexing and one-to-one-only automatic OpenCC resolution");
+assert(Object.entries(etymologyCoverage.detail).every(([char, row]) => {
+  const baseKind = row.matchKind.replace("+reviewed-copy", "");
+  return ["exact", "reviewed-alias", "reviewed-context", "opencc-one-to-one", "make-me-a-hanzi"].includes(baseKind)
+    && (baseKind !== "exact" || row.sourceHeadword === char);
+}),
+  "Expected every published source match to disclose a safe resolution path");
+assert(Object.entries(etymologyCoverage.detail).every(([char, row]) => !openccOneToMany.has(char) || row.matchKind.startsWith("reviewed-context")),
+  "Expected every published OpenCC one-to-many character to require context review");
+assert(etymologyContextAudit.entries.length === etymologyContextAudit.expectedCount && etymologyCoverage.contextAudit.count === etymologyContextAudit.expectedCount,
+  "Expected the complete 69-character context audit to remain enforced");
+assert(etymologyCopyReview.entries.length === etymologyCopyReview.expectedCount && etymologyCoverage.copyReview.count === etymologyCopyReview.expectedCount,
+  "Expected every readability exception to have an explicit human decision");
+assert(etymology.every((row) => !hasCjkExtension(row.gloss) && !isOpaqueAncientGloss(row.gloss)),
+  "Expected published copy to reject CJK extensions and opaque ancient one-word definitions");
+const etymologyByChar = new Map(etymology.map((row) => [row.char, row]));
+assert(etymologyAccuracyFixture.entries.every((expected) => {
+  const row = etymologyByChar.get(expected.char), detail = etymologyCoverage.detail[expected.char], omission = etymologyCoverage.omissions[expected.char];
+  if (expected.status === "absent") return !row && !detail && omission?.reason === expected.strategy;
+  return row?.source === expected.source && row?.gloss === expected.gloss && detail?.sourceHeadword === expected.sourceHeadword
+    && detail?.matchKind === expected.matchKind && detail?.gloss === expected.gloss;
+}), "Expected reviewed exact-headword and ambiguity fixtures to match generated output", etymologyAccuracyFixture);
+assert(etymologyCopyReview.entries.every((expected) => {
+  const row = etymologyByChar.get(expected.char), detail = etymologyCoverage.detail[expected.char], omission = etymologyCoverage.omissions[expected.char];
+  if (expected.status === "absent") return !row && !detail && omission?.reason === "readability-review-omission" && omission?.candidate === expected.candidate;
+  return row?.gloss === expected.copy && detail?.gloss === expected.copy && detail?.matchKind.endsWith("+reviewed-copy");
+}), "Expected every approved plain-language copy or intentional omission to match its fixed candidate", etymologyCopyReview);
 assert(!source.includes("sendBeacon") && !/method\s*:\s*["']POST["']/.test(source), "Expected the local funnel to add no analytics beacon or POST request");
 assert(!/rgba\(194,\s*69,\s*44/i.test(source) && source.includes("--accent-rgb:194,69,44") && source.includes("--accent-rgb:212,85,58"), "Expected every cinnabar alpha to follow the light/dark theme token");
 assert(source.includes(".card.undoActive .chdr{ visibility:hidden; }") && !source.includes('$("tip").title='), "Expected the undo bar to replace the header and touch guidance to avoid invisible title copy");
@@ -74,6 +134,7 @@ assert(source.includes('if(!sound.enabled') && source.includes('{type:"sound",ki
 assert(source.includes("brushWidthFor") && source.includes("paintBrushStroke") && source.includes("brushStrokeLayer") && source.includes("compositeBrushLayer") && source.includes('pointer==="pen"') && source.includes('"destination-out"') && source.includes('"source-over"') && source.includes("paintInkBloom") && !source.includes("dryColor"), "Expected one shared pressure, taper, isolated dry-brush, and ink-bloom renderer");
 assert(source.includes("SOUNDSCAPE_SCENES") && source.includes("ambientNoiseBuffer") && source.includes("syncAmbientForView") && !/function startAmbient[^{]*\{[^}]*sound\.enabled/.test(source), "Expected an independent, procedural, practice-only soundscape");
 assert(source.includes("enterWritingChrome") && source.includes("finishWritingChrome") && source.includes("setWritingChromeHidden") && source.includes("paperReveal") && source.includes("REST_LINES"), "Expected accessible stove-mode chrome, one-time paper reveal, and fixed closing microcopy");
+assert(source.includes("loadEtymology") && source.includes("renderEtymLine") && source.includes('fetch("data/etymology.json")') && !source.includes("暂无释义"), "Expected a lazy, silent-absence etymology row");
 assert(webViewSource.includes("AVAudioSession.sharedInstance().setCategory(.ambient") && webViewSource.includes('case "sound"') && webViewSource.includes('case "soundscape"') && webViewSource.includes('content.userInfo = ["targetCardKey": question.targetCardKey]'), "Expected native ambient audio-session setup, paper sounds, and notification target metadata");
 assert(appDelegateSource.includes("didReceive response: UNNotificationResponse") && appDelegateSource.includes("openReminderTarget(cardKey: targetCardKey)"), "Expected notification taps to reach the Web practice target on cold or warm launch");
 
@@ -446,9 +507,9 @@ let browser;
   const coreBytes = coreStrokes.chars.reduce((sum, char) => sum + fs.statSync(path.join(root, "data", `${char}.json`)).size, 0);
   assert(coreStrokes.chars.length === 600 && new Set(coreStrokes.chars).size === 600 && coreStrokes.calibration === "尴嚏狩晤飓痿俾跻徵瞰裘娩邃暧煲" && missingCoreFiles.length === 0 && coreBytes >= 1024 * 1024 && coreBytes <= 2 * 1024 * 1024,
   "Expected 600 unique core files including the exact first calibration group within the 1-2 MiB target", { count: coreStrokes.chars.length, calibration: coreStrokes.calibration, missingCoreFiles, coreBytes });
-  await page.waitForFunction(async () => { const cache = await caches.open("shizi-v9"), keys = await cache.keys(); return keys.filter((request) => new URL(request.url).pathname.includes("/data/")).length >= 600; }, null, { timeout: 30000 });
-  const coreCache = await page.evaluate(async () => { const cache = await caches.open("shizi-v9"), keys = await cache.keys(); return { core: keys.filter((request) => new URL(request.url).pathname.includes("/data/")).length, shell: !!(await cache.match("core-strokes.js")) }; });
-  assert(coreCache.core === 600 && coreCache.shell, "Expected the service worker to install all available core strokes and its generated list", coreCache);
+  await page.waitForFunction(async () => { const cache = await caches.open("shizi-v10"), keys = await cache.keys(); return keys.filter((request) => new URL(request.url).pathname.includes("/data/")).length >= 601; }, null, { timeout: 30000 });
+  const coreCache = await page.evaluate(async () => { const cache = await caches.open("shizi-v10"), keys = await cache.keys(); return { core: keys.filter((request) => new URL(request.url).pathname.includes("/data/")).length, shell: !!(await cache.match("core-strokes.js")), etymology: !!(await cache.match("data/etymology.json")) }; });
+  assert(coreCache.core === 601 && coreCache.shell && coreCache.etymology, "Expected the service worker to install all available core strokes, their generated list and etymology", coreCache);
 
   const dailyRitual = await page.evaluate(() => {
     const original = { tuning: cloneObj(tuning), activity: cloneObj(activity), activeMode, focusQueue: focusQueue.slice(), sessionDone: [...sessionDone] };

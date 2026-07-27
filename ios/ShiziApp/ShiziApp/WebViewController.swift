@@ -254,6 +254,8 @@ final class WebViewController: UIViewController {
               reminderStateAvailable: false,
               soundStateAvailable: false,
               soundscapeStateAvailable: false,
+              etymologyResourceAvailable: false,
+              etymologyDetailAvailable: false,
               funnelStateAvailable: false,
               reminderSettingsRowVisible: false,
               soundSettingsRowVisible: false,
@@ -393,6 +395,9 @@ final class WebViewController: UIViewController {
             result.fetchStatus = response.status;
             const payload = await response.json();
             result.strokeCount = Array.isArray(payload.strokes) ? payload.strokes.length : 0;
+            const etymologyResponse = await fetch('data/etymology.json');
+            const etymologyPayload = etymologyResponse.ok ? await etymologyResponse.json() : [];
+            result.dataFlow.etymologyResourceAvailable = Array.isArray(etymologyPayload) && etymologyPayload.length >= 1000 && etymologyPayload.every(row => row && typeof row.char === 'string' && typeof row.gloss === 'string' && row.gloss.length <= 20 && typeof row.source === 'string');
 
             if (typeof renderBook === 'function' && typeof renderMe === 'function' && typeof renderProfile === 'function' && typeof renderHome === 'function') {
               document.getElementById('tabBook').click();
@@ -406,6 +411,12 @@ final class WebViewController: UIViewController {
               result.layoutFlow.readableOutcomeLegend = wallChars.every(node => parseFloat(getComputedStyle(node).fontSize) >= 21);
               result.layoutFlow.outcomeMarksRedundant = wall.querySelectorAll('.dot,.outcomeMark').length === 0 && getComputedStyle(wall).gridTemplateColumns.split(' ').length === 6;
               result.navigationFlow.stampGuideAvailable = document.getElementById('bookSearchInput').placeholder.includes('找一个字') && !!document.getElementById('bookSaveMonth');
+              if (typeof loadEtymology === 'function' && typeof openCharSheet === 'function') {
+                await loadEtymology();
+                openCharSheet(CARDS.findIndex(card => card.target === '水'));
+                result.dataFlow.etymologyDetailAvailable = getComputedStyle(document.getElementById('etymLine')).display === 'block' && document.getElementById('etymGloss').textContent.length > 0 && document.getElementById('etymSource').textContent.includes('说文解字');
+                closeCharSheet();
+              }
 
               document.getElementById('tabMe').click();
               await waitFor(() => visible('mePanel'));

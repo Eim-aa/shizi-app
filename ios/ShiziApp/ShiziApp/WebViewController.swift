@@ -1,5 +1,6 @@
 import AVFoundation
 import ImageIO
+import Photos
 import UIKit
 import UniformTypeIdentifiers
 import UserNotifications
@@ -527,6 +528,40 @@ final class WebViewController: UIViewController {
               result.dataFlow.recentInkStored = !!memoryForSmokeChar && persistRecentInk(memoryForSmokeChar, [[{ x: 0.2, y: 0.2 }, { x: 0.5, y: 0.75 }, { x: 0.8, y: 0.25 }]], Date.now()) && !!memoryForSmokeChar.recentInk;
               saveMemory();
 
+              const handCardCanvas = await renderHandCardCanvas(indexForSmokeChar, 'portrait');
+              const handCardSquare = await renderHandCardCanvas(indexForSmokeChar, 'square');
+              openCharSheet(indexForSmokeChar);
+              result.dataFlow.handCardDetailEntry = getComputedStyle(document.getElementById('charDetailCard')).display === 'block';
+              closeCharSheet();
+              result.dataFlow.handCardGenerated = !!handCardCanvas && handCardCanvas.width === 1080 && handCardCanvas.height === 1440
+                && handCardCanvas.dataset.inkSource === 'vector' && Number(handCardCanvas.dataset.inkStrokeCount) > 0
+                && !!handCardSquare && handCardSquare.width === 1080 && handCardSquare.height === 1080;
+              const handCardMessages = [];
+              const handCardBridge = { postMessage: message => handCardMessages.push(message) };
+              const handCardSave = await exportHandCard('save', { index: indexForSmokeChar, ratio: 'portrait', nativeBridge: handCardBridge });
+              const handCardShare = await exportHandCard('share', { index: indexForSmokeChar, ratio: 'square', nativeBridge: handCardBridge });
+              result.dataFlow.handCardNativeRoutes = handCardSave.route === 'native-save' && handCardShare.route === 'native-share'
+                && handCardMessages[0].type === 'savePracticeCard' && handCardMessages[1].type === 'sharePracticeCard'
+                && handCardMessages.every(message => message.kind === 'character' && message.dataURL.startsWith('data:image/png;base64,'));
+              handCardPref = normalizeHandCardPref({ promptEnabled: true, lastPromptDay: '' });
+              const handCardPromptFirst = maybeOfferHandCard(indexForSmokeChar, 'fast');
+              const handCardPromptSecond = maybeOfferHandCard(indexForSmokeChar, 'fast');
+              handCardPref.promptEnabled = false; handCardPref.lastPromptDay = ''; save(HAND_CARD_KEY, handCardPref);
+              result.dataFlow.handCardPromptBounded = handCardPromptFirst && !handCardPromptSecond && !maybeOfferHandCard(indexForSmokeChar, 'fast');
+              hideHandCardPrompt();
+              const vectorRecentInk = JSON.parse(JSON.stringify(memoryForSmokeChar.recentInk));
+              memoryForSmokeChar.recentInk = { version: 1, day: vectorRecentInk.day, at: vectorRecentInk.at, dataURL: vectorRecentInk.dataURL };
+              openCharSheet(indexForSmokeChar);
+              const legacyEntryHidden = getComputedStyle(document.getElementById('charDetailCard')).display === 'none';
+              const legacyPromptVisible = getComputedStyle(document.getElementById('charDetailCardLegacy')).display === 'block'
+                && document.getElementById('charDetailCardLegacy').textContent.includes('重新独立写一次');
+              closeCharSheet();
+              const legacyCanvas = await renderHandCardCanvas(indexForSmokeChar, 'portrait');
+              const legacyExport = await exportHandCard('share', { index: indexForSmokeChar, ratio: 'square', nativeBridge: handCardBridge });
+              result.dataFlow.handCardLegacyBlocked = legacyEntryHidden && legacyPromptVisible && legacyCanvas === null && legacyExport.route === 'empty';
+              memoryForSmokeChar.recentInk = vectorRecentInk;
+              saveMemory();
+
               const wildKnownChar = '拾';
               result.dataFlow.wildSmokeStage = 'opening-sheet';
               openAddSheet();
@@ -600,6 +635,8 @@ final class WebViewController: UIViewController {
               result.dataFlow.backupHasCustom = BASE_BY_CHAR[smokeChar] != null || (Object.prototype.hasOwnProperty.call(backupData, CUSTOM_KEY) && String(backupData[CUSTOM_KEY]).includes(smokeChar));
               result.dataFlow.backupHasMemory = Object.prototype.hasOwnProperty.call(backupData, MEMORY_KEY) && String(backupData[MEMORY_KEY]).includes(smokeChar);
               result.dataFlow.backupHasRecentInk = Object.prototype.hasOwnProperty.call(backupData, MEMORY_KEY) && String(backupData[MEMORY_KEY]).includes('recentInk');
+              result.dataFlow.backupHasHandCard = Object.prototype.hasOwnProperty.call(backupData, HAND_CARD_KEY)
+                && String(backupData[MEMORY_KEY]).includes('strokes');
               result.dataFlow.backupHasWild = Object.prototype.hasOwnProperty.call(backupData, WILD_KEY) && String(backupData[WILD_KEY]).includes(wildKnownChar);
               result.dataFlow.backupHasReminder = Object.prototype.hasOwnProperty.call(backupData, REMINDER_KEY);
               result.dataFlow.backupHasSound = Object.prototype.hasOwnProperty.call(backupData, SOUND_KEY);
@@ -615,6 +652,7 @@ final class WebViewController: UIViewController {
                 localStorage.setItem(ADDED_KEY, JSON.stringify([]));
                 localStorage.setItem(CUSTOM_KEY, JSON.stringify([]));
                 localStorage.setItem(MEMORY_KEY, JSON.stringify({}));
+                localStorage.setItem(HAND_CARD_KEY, JSON.stringify({ promptEnabled: true, lastPromptDay: '' }));
                 localStorage.setItem(WILD_KEY, JSON.stringify({ version: 1, captures: {}, wishes: {} }));
                 localStorage.setItem(SESSION_KEY, JSON.stringify({ current: true }));
                 const smokeValueBeforeRestore = localStorage.getItem('shizi.nativeSmoke.v1');
@@ -627,6 +665,8 @@ final class WebViewController: UIViewController {
                 result.dataFlow.backupRestoreCustom = BASE_BY_CHAR[smokeChar] != null || (Array.isArray(restoredCustom) && restoredCustom.includes(smokeChar));
                 result.dataFlow.backupRestoreMemory = String(localStorage.getItem(MEMORY_KEY) || '').includes(smokeChar);
                 result.dataFlow.backupRestoreRecentInk = String(localStorage.getItem(MEMORY_KEY) || '').includes('recentInk');
+                result.dataFlow.backupRestoreHandCard = String(localStorage.getItem(HAND_CARD_KEY) || '').includes('promptEnabled')
+                  && String(localStorage.getItem(MEMORY_KEY) || '').includes('strokes');
                 result.dataFlow.backupRestoreWild = String(localStorage.getItem(WILD_KEY) || '').includes(wildKnownChar);
                 const restoredFunnel = JSON.parse(localStorage.getItem(FUNNEL_KEY) || '{}');
                 result.dataFlow.backupRestoreFunnel = restoredFunnel.version === 1 && restoredFunnel.events.filter(row => row.name === 'backup_exported').length === 1;
@@ -642,6 +682,7 @@ final class WebViewController: UIViewController {
               }
               result.dataFlow.nativeBridgeAvailable = !!(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.shiziNative);
               result.dataFlow.nativeOCRBridgeAvailable = result.dataFlow.nativeBridgeAvailable && typeof handleWildPhoto === 'function' && typeof window.shiziOCRResult === 'function';
+              result.dataFlow.nativeCardSaveBridgeAvailable = result.dataFlow.nativeBridgeAvailable && typeof exportHandCard === 'function' && typeof window.shiziCardSaved === 'function';
               result.dataFlow.nativeImportAvailable = result.dataFlow.nativeBridgeAvailable && typeof requestBackupImport === 'function';
               result.dataFlow.shareCardBridgeAvailable = result.dataFlow.nativeBridgeAvailable && typeof sharePracticeCard === 'function';
               result.dataFlow.nativeConfirmAvailable = window.confirm('\(Self.nativeSmokeConfirmMessage)') === true;
@@ -1340,6 +1381,9 @@ extension WebViewController: WKScriptMessageHandler {
             let name = body["name"] as? String ?? "shizi-card.png"
             let dataURL = body["dataURL"] as? String ?? ""
             sharePracticeCard(filename: name, dataURL: dataURL)
+        case "savePracticeCard":
+            let dataURL = body["dataURL"] as? String ?? ""
+            savePracticeCard(dataURL: dataURL)
         case "pickBackup":
             presentBackupPicker()
         case "nativeSmokeResult":
@@ -1363,6 +1407,48 @@ extension WebViewController: WKScriptMessageHandler {
             recognizeChars(dataURL: dataURL, requestID: requestID)
         default:
             break
+        }
+    }
+}
+
+extension WebViewController {
+    private func practiceCardImage(dataURL: String) -> UIImage? {
+        guard
+            dataURL.hasPrefix("data:image/png;base64,"),
+            let comma = dataURL.firstIndex(of: ","),
+            let data = Data(base64Encoded: String(dataURL[dataURL.index(after: comma)...])),
+            data.count <= 12 * 1024 * 1024,
+            data.starts(with: [0x89, 0x50, 0x4E, 0x47])
+        else {
+            return nil
+        }
+        return UIImage(data: data)
+    }
+
+    private func savePracticeCard(dataURL: String) {
+        guard let image = practiceCardImage(dataURL: dataURL) else {
+            sendPracticeCardSaveResult(false)
+            return
+        }
+
+        PHPhotoLibrary.requestAuthorization(for: .addOnly) { [weak self] status in
+            guard status == .authorized || status == .limited else {
+                self?.sendPracticeCardSaveResult(false)
+                return
+            }
+            PHPhotoLibrary.shared().performChanges({
+                PHAssetChangeRequest.creationRequestForAsset(from: image)
+            }) { success, _ in
+                self?.sendPracticeCardSaveResult(success)
+            }
+        }
+    }
+
+    private func sendPracticeCardSaveResult(_ success: Bool) {
+        DispatchQueue.main.async { [weak self] in
+            self?.webView.evaluateJavaScript(
+                "if (typeof window.shiziCardSaved === 'function') window.shiziCardSaved({success:\(success ? "true" : "false")}); void 0;"
+            )
         }
     }
 }

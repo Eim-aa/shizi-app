@@ -563,6 +563,20 @@
   .charDetailWild small{ color:var(--faint); font-size:calc(var(--fs-note) * var(--font-scale)); }
   .wildPhotoViewer{ text-align:center; }
   .wildPhotoViewer img{ display:block; width:min(100%,280px); aspect-ratio:1; margin:8px auto 16px; border:1px solid var(--line); border-radius:8px; object-fit:contain; background:var(--card); }
+  .handCardSheet{ width:min(100%,360px); }
+  .handCardPreviewWrap{ display:flex; justify-content:center; min-height:252px; margin:12px 0; padding:12px; border:1px solid var(--line); border-radius:8px; background:var(--shade); overflow:hidden; }
+  .handCardPreview{ display:block; width:auto; max-width:100%; height:252px; border-radius:3px; box-shadow:0 10px 25px -18px rgba(20,18,14,.6); }
+  .handCardPreview.square{ width:252px; height:252px; }
+  .handCardSizes{ display:flex; gap:8px; }
+  .handCardSizes button{ flex:1; min-height:44px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--muted); font-weight:700; }
+  .handCardSizes button.active{ border-color:var(--accent); color:var(--accent); background:var(--accentSoft); }
+  .handCardActions{ display:grid; grid-template-columns:.75fr 1fr 1fr; gap:8px; margin-top:12px; }
+  .handCardActions button{ min-height:46px; padding:0 8px; border-radius:10px; font-size:calc(var(--fs-body) * var(--font-scale)); font-weight:700; }
+  .handCardSave{ border:1px solid var(--line); background:var(--card); color:var(--ink); }
+  .handCardFuture{ display:block; margin-top:10px; color:var(--faint); font-size:calc(var(--fs-caption) * var(--font-scale)); line-height:1.45; text-align:center; }
+  .handCardPrompt{ display:none; position:fixed; z-index:31; left:50%; bottom:calc(20px + env(safe-area-inset-bottom)); transform:translateX(-50%); width:min(calc(100% - 32px),360px); min-height:48px; padding:6px 7px 6px 14px; align-items:center; gap:10px; border-radius:999px; background:var(--ink); color:var(--card); box-shadow:0 10px 28px -10px rgba(20,18,14,.55); }
+  .handCardPrompt span{ flex:1; min-width:0; font-size:calc(var(--fs-body) * var(--font-scale)); }
+  .handCardPrompt button{ flex:none; min-height:36px; padding:0 13px; border-radius:999px; background:var(--card); color:var(--ink); font-size:calc(var(--fs-body) * var(--font-scale)); font-weight:800; }
   .etymLine{ display:none; min-width:0; margin-top:8px; overflow:hidden; color:var(--faint); font:400 calc(var(--fs-note) * var(--font-scale))/1.5 var(--kai); white-space:nowrap; text-overflow:ellipsis; }
   .etymLine small{ margin-left:5px; color:var(--faint); font:400 calc(var(--fs-caption) * var(--font-scale))/1.5 var(--sans); }
   .charDetailCompare{ margin-top:20px; padding-top:16px; border-top:1px solid var(--line); }
@@ -576,6 +590,9 @@
   .charDetailCompareBody.overlay .charDetailStandard{ margin-left:-104px; background:transparent; border-color:transparent; opacity:.45; pointer-events:none; }
   .charDetailOverlayToggle{ display:none; min-height:36px; margin-left:auto; padding:0 8px; color:var(--muted); font-weight:700; }
   .charDetailStroke{ display:none; width:180px; height:180px; margin:16px auto 0; border:1px solid var(--accent-a35); border-radius:8px; background:var(--card); overflow:hidden; }
+  .charDetailCard{ display:none; width:100%; min-height:48px; margin-top:16px; padding:0 2px; border-top:1px solid var(--line); border-bottom:1px solid var(--line); color:var(--ink); text-align:left; font-size:calc(var(--fs-body) * var(--font-scale)); font-weight:700; }
+  .charDetailCard span{ float:right; color:var(--accent); }
+  .charDetailCardLegacy{ display:none; margin:14px 2px 0; color:var(--muted); font-size:calc(var(--fs-caption) * var(--font-scale)); line-height:1.55; }
   .charDetailActions{ display:grid; grid-template-columns:1fr 1.35fr; gap:8px; margin-top:20px; }
   .charDetailActions button{ min-height:48px; border-radius:12px; font-size:calc(var(--fs-emph) * var(--font-scale)); font-weight:700; }
   .charDetailStrokeBtn{ border:1px solid var(--line); background:var(--card); color:var(--ink); }
@@ -849,6 +866,7 @@
         <button data-scene="rain" aria-pressed="false">雨声</button>
         <button data-scene="fire" aria-pressed="false">炉火</button>
       </div></div>
+      <button class="meRow" id="handCardPromptRow" aria-pressed="true"><span class="meRowMain">好字成卡提示<small>写得好时每天最多轻提示一次</small></span><span class="backupBadge" id="handCardPromptState">开</span></button>
     </div>
     <div id="reminderSection" style="display:none">
       <div class="backupReminder" id="reminderInvite"><div><b>要在常练的时间提一句吗？</b><br><span>可以在你平时练字的时间发一条提醒，随时可关。</span></div><button id="reminderYes">好</button><button class="ghostMini" id="reminderLater">先不用</button></div>
@@ -959,6 +977,8 @@
     <div class="charDetailCompareBody"><div class="charDetailInk" id="charDetailInk"></div><div class="charDetailStandard" id="charDetailStandard"></div><div class="charDetailEmpty" id="charDetailEmpty"></div></div>
   </div>
   <div class="charDetailStroke" id="charDetailStroke"></div>
+  <button class="charDetailCard" id="charDetailCard">做张字卡 <span>›</span></button>
+  <p class="charDetailCardLegacy" id="charDetailCardLegacy">这份旧墨迹还不能做字卡，重新独立写一次即可。</p>
   <div class="charDetailActions"><button class="charDetailStrokeBtn" id="charDetailStrokeBtn">看笔顺</button><button class="charDetailPractice" id="charDetailPractice">再写一遍</button></div>
 </div></div>
 <div class="sheetMask" id="wildPhotoSheet" role="dialog" aria-modal="true" aria-label="拾于生活的照片"><div class="sheet wildPhotoViewer">
@@ -966,6 +986,18 @@
   <img id="wildPhotoFull" alt="拾于生活的照片">
   <button class="primaryAct" id="wildPhotoClose">收起</button>
 </div></div>
+<div class="sheetMask" id="handCardSheet" role="dialog" aria-modal="true" aria-labelledby="handCardTitle"><div class="sheet handCardSheet">
+  <h3 id="handCardTitle">做张字卡</h3>
+  <p class="sheetHint" id="handCardHint">只用你的这一笔，做成一张可以带走的卡。</p>
+  <div class="handCardPreviewWrap"><canvas class="handCardPreview" id="handCardPreview" width="1080" height="1440"></canvas></div>
+  <div class="handCardSizes" id="handCardSizes" role="group" aria-label="字卡尺寸">
+    <button class="active" data-hand-card-ratio="portrait" aria-pressed="true">3:4 · 社交</button>
+    <button data-hand-card-ratio="square" aria-pressed="false">1:1 · 头像</button>
+  </div>
+  <div class="handCardActions"><button class="ghostAct" id="handCardCancel">取消</button><button class="handCardSave" id="handCardSave">存到相册</button><button class="primaryAct" id="handCardShare">分享</button></div>
+  <small class="handCardFuture">春节的手写福与春联，留待下一阶段。</small>
+</div></div>
+<div class="handCardPrompt" id="handCardPrompt" role="status"><span>这一笔不错，做张字卡？</span><button id="handCardPromptOpen">看看</button></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <div class="bootNotice" id="bootNotice" role="status" aria-live="polite">有一份记录损坏，已隔离，其余照常</div>
 <div class="undoToast" id="safetyUndo" role="status" aria-live="polite"><span id="safetyUndoCopy">已保留操作前的记录</span><button id="safetyUndoBtn">撤销</button></div>
@@ -988,7 +1020,7 @@ SEED.forEach(w=>{ const chars=Array.from(w.ans), pys=w.py.split(/\s+/);
 const DECK_KEY="shizi.deck.v8105.context1", OPEN_KEY="shizi.opens.v1", MEMORY_KEY="shizi.memory.v1", QUALITY_KEY="shizi.quality.v1", PREF_KEY="shizi.pref.v1", TUNING_KEY="shizi.tuning.v1",
   ACTIVITY_KEY="shizi.activity.v1", SESSION_KEY="shizi.session.v1", BACKUP_META_KEY="shizi.backupMeta.v1", REMINDER_KEY="shizi.reminder.v1", SAFETY_KEY="shizi.safety.v1",
   FSRS_LOG_KEY="shizi.fsrsReviewLog.v1", TRACE_TUTORIAL_KEY="shizi.traceTutorial.v1", FONT_SCALE_KEY="shizi.fontScale.v1", FUNNEL_KEY="shizi.funnel.v1", SOUND_KEY="shizi.sound.v1",
-  TOPIC_KEY="shizi.topic.v1", CUSTOM_KEY="shizi.custom.v1", ADDED_KEY="shizi.added.v1", WILD_KEY="shizi.wild.v1";
+  TOPIC_KEY="shizi.topic.v1", CUSTOM_KEY="shizi.custom.v1", ADDED_KEY="shizi.added.v1", WILD_KEY="shizi.wild.v1", HAND_CARD_KEY="shizi.handCard.v1";
 function load(k,d){ try{ return JSON.parse(localStorage.getItem(k)) ?? d; }catch(e){ return d; } }
 function save(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); return true; }catch(e){ return false; } }
 function removeStored(k){ try{ localStorage.removeItem(k); }catch(e){} }
@@ -1016,7 +1048,7 @@ let auditPref = preference;
 const DEV_TOOLS = (()=>{ try{ return new URLSearchParams(location.search).get("dev")==="1"; }catch(e){ return false; } })();
 function setStatus(i,s){ status[i]=s; save(DECK_KEY,status); }
 const RECENT_INK_MAX=96, RECENT_INK_BUDGET=420*1024;
-function recentInkRows(){ return Object.entries(memory).filter(([,m])=>m&&m.recentInk&&typeof m.recentInk.dataURL==="string").map(([key,m])=>({key,m,at:Math.max(0,Number(m.recentInk.at)||0),bytes:m.recentInk.dataURL.length*2})).sort((a,b)=>b.at-a.at); }
+function recentInkRows(){ return Object.entries(memory).filter(([,m])=>m&&m.recentInk&&typeof m.recentInk.dataURL==="string").map(([key,m])=>({key,m,at:Math.max(0,Number(m.recentInk.at)||0),bytes:m.recentInk.dataURL.length*2+(m.recentInk.strokes?JSON.stringify(m.recentInk.strokes).length*2:0)})).sort((a,b)=>b.at-a.at); }
 function trimRecentInk(){ let kept=0, bytes=0, removed=0; recentInkRows().forEach(row=>{ if(kept<RECENT_INK_MAX && bytes+row.bytes<=RECENT_INK_BUDGET){ kept++; bytes+=row.bytes; }else{ delete row.m.recentInk; removed++; } }); return {kept,bytes,removed}; }
 function saveMemory(){ trimRecentInk(); if(save(MEMORY_KEY,memory)) return true;
   const oldest=recentInkRows().sort((a,b)=>a.at-b.at); for(const row of oldest){ delete row.m.recentInk; if(save(MEMORY_KEY,memory)) return true; } return save(MEMORY_KEY,memory); }
@@ -1131,6 +1163,8 @@ const reminderDebug={lastSync:null};
 const SOUNDSCAPE_SCENES=["off","rain","fire"];
 function normalizeSound(raw){ const value=raw&&typeof raw==="object"?raw:{}, scene=SOUNDSCAPE_SCENES.includes(value.scene)?value.scene:"off"; return {enabled:value.enabled!==false,tipShown:value.tipShown===true,scene}; }
 let sound=bootNormalize(SOUND_KEY,bootLoad(SOUND_KEY,null,v=>v===null||plainObject(v)),null,normalizeSound); save(SOUND_KEY,sound);
+function normalizeHandCardPref(raw){ const value=raw&&typeof raw==="object"?raw:{}; return {promptEnabled:value.promptEnabled!==false,lastPromptDay:/^\d{4}-\d{2}-\d{2}$/.test(String(value.lastPromptDay||""))?String(value.lastPromptDay):""}; }
+let handCardPref=bootNormalize(HAND_CARD_KEY,bootLoad(HAND_CARD_KEY,null,v=>v===null||plainObject(v)),null,normalizeHandCardPref); save(HAND_CARD_KEY,handCardPref);
 const soundDebug={last:null,events:[],contextCreated:0};
 let webAudioContext=null, lastPaperSoundAt=0;
 let ambientAudioContext=null, ambientSource=null, ambientGain=null, ambientScene="off";
@@ -1177,6 +1211,8 @@ function startAmbient(scene=sound.scene){ if(!SOUNDSCAPE_SCENES.includes(scene)|
 function syncAmbientForView(view){ if(view==="card"&&sound.scene!=="off") startAmbient(); else stopAmbient(false); }
 function renderSoundUI(){ const row=$("soundRow"); if(!row) return; row.setAttribute("aria-pressed",sound.enabled?"true":"false"); $("soundState").textContent=sound.enabled?"开":"关";
   document.querySelectorAll("#soundscapeBox [data-scene]").forEach(button=>button.setAttribute("aria-pressed",button.dataset.scene===sound.scene?"true":"false")); }
+function renderHandCardPref(){ const row=$("handCardPromptRow"); if(!row) return; row.setAttribute("aria-pressed",handCardPref.promptEnabled?"true":"false"); $("handCardPromptState").textContent=handCardPref.promptEnabled?"开":"关"; }
+function toggleHandCardPrompt(){ handCardPref.promptEnabled=!handCardPref.promptEnabled; save(HAND_CARD_KEY,handCardPref); renderHandCardPref(); hideHandCardPrompt(); toast(handCardPref.promptEnabled?"好字成卡提示已开启":"好字成卡提示已关闭"); }
 function toggleSound(){ sound.enabled=!sound.enabled; saveSound(); renderSoundUI(); toast(sound.enabled?"纸墨声音已开启":"纸墨声音已关闭"); }
 function setSoundscape(scene){ if(!SOUNDSCAPE_SCENES.includes(scene)||scene===sound.scene) return false; sound.scene=scene; saveSound(); renderSoundUI(); if(practiceSoundscapeActive()) startAmbient(scene); else stopAmbient(false); toast(scene==="off"?"书房声景已关闭":scene==="rain"?"习字时会有轻雨声":"习字时会有轻炉火声"); return true; }
 function noteSoundTip(){ if(!sound.enabled||sound.tipShown) return; sound.tipShown=true; saveSound(); toast("盖章有声音了 · 可在\"我的\"里关"); }
@@ -1547,6 +1583,7 @@ function releasePracticeHistory(){ if(!practiceHistoryArmed) return; practiceHis
 window.addEventListener("popstate",()=>{
   if(restoringPracticeHistory){ restoringPracticeHistory=false; return; }
   if(!practiceHistoryArmed || $("card").style.display==="none") return;
+  if($("handCardSheet").classList.contains("open")){ restoringPracticeHistory=true; try{ history.forward(); }catch(e){ restoringPracticeHistory=false; } closeHandCard(); return; }
   if($("addSheet").classList.contains("open")){ restoringPracticeHistory=true; try{ history.forward(); }catch(e){ restoringPracticeHistory=false; } closeAddSheet(); return; }
   if($("roundBudgetSheet").classList.contains("open")){ restoringPracticeHistory=true; try{ history.forward(); }catch(e){ restoringPracticeHistory=false; } closeRoundBudgetSheet(); return; }
   practiceHistoryArmed=false; exitCurrentRound(true);
@@ -1576,9 +1613,10 @@ function recordQuality(kind, idx=currentCardIndex()){ if(idx==null || idx<0) ret
 function shareInkFromSnapshot(snapshot){ const source=snapshot&&Array.isArray(snapshot.inkStrokes)?snapshot.inkStrokes:[], size=Math.max(1,Number(snapshot&&snapshot.canvasSize)||S), maxPoints=48;
   return source.slice(0,48).map(points=>{ const list=Array.isArray(points)?points:[], sampled=list.length<=maxPoints?list:Array.from({length:maxPoints},(_,i)=>list[Math.round(i*(list.length-1)/(maxPoints-1))]); return sampled.map(point=>{ const row={x:Math.round(clamp(Number(point.x)/size,0,1)*1000)/1000,y:Math.round(clamp(Number(point.y)/size,0,1)*1000)/1000};
       if(Number.isFinite(Number(point.w))) row.w=Math.round(clamp(Number(point.w),.35,1.7)*1000)/1000; if(Number.isFinite(Number(point.v))) row.v=Math.round(clamp(Number(point.v),0,6)*1000)/1000; return row; }).filter(point=>Number.isFinite(point.x)&&Number.isFinite(point.y)); }).filter(points=>points.length); }
+function compactHandCardStrokes(strokes){ return (strokes||[]).slice(0,36).map(points=>{ const list=Array.isArray(points)?points:[],max=24,sampled=list.length<=max?list:Array.from({length:max},(_,i)=>list[Math.round(i*(list.length-1)/(max-1))]); return sampled.map(point=>({x:Math.round(clamp(Number(point.x),0,1)*1000)/1000,y:Math.round(clamp(Number(point.y),0,1)*1000)/1000,w:Math.round(clamp(Number(point.w)||1,.35,1.7)*100)/100,v:Math.round(clamp(Number(point.v)||0,0,6)*100)/100})); }).filter(points=>points.length); }
 function persistRecentInk(m,strokes,at=Date.now()){ if(!m || !Array.isArray(strokes) || !strokes.some(points=>Array.isArray(points)&&points.length)) return false;
   try{ const canvas=document.createElement("canvas"); canvas.width=120; canvas.height=120; const ctx=canvas.getContext("2d"); if(!ctx) return false; ctx.fillStyle="#fdfbf4"; ctx.fillRect(0,0,120,120); drawShareHandwriting(ctx,strokes,6,6,108,0); const dataURL=canvas.toDataURL("image/webp",.68); if(!/^data:image\/(webp|png);base64,/.test(dataURL)||dataURL.length*2>32*1024) return false;
-    m.recentInk={version:1,day:dayKey(new Date(Number(at)||Date.now())),at:Number(at)||Date.now(),dataURL}; trimRecentInk(); return true;
+    m.recentInk={version:2,day:dayKey(new Date(Number(at)||Date.now())),at:Number(at)||Date.now(),dataURL,strokes:compactHandCardStrokes(strokes)}; trimRecentInk(); return true;
   }catch(e){ return false; } }
 // 每个真实回忆回合只记一次结果；本组队列与 FSRS 跨天调度分别处理。
 function recordOutcome(outcome,options={}){ const idx=currentCardIndex(), c=CARDS[idx], m=cardMemory(idx), now=Number(options.now)||Date.now(), ep=episodeFor(idx);
@@ -1678,7 +1716,7 @@ function renderMe(){ displayView("me"); calendarMonthKey=calendarMonthKey||today
   const indexes=profileIndexes(), weak=indexes.filter(i=>hardCount(i)>0).sort((a,b)=>hardCount(b)-hardCount(a)||((memory[cardKey(b)]||{}).last||0)-((memory[cardKey(a)]||{}).last||0)).slice(0,3);
   $("meWeakChars").innerHTML=weak.map(i=>`<span data-char-idx="${i}">${esc(CARDS[i].target)}</span>`).join(""); $("meWeakChars").style.display=weak.length?"flex":"none"; $("meAdvice").textContent=weak.length?"这几个，写过还总忘":meAdviceText(indexes);
   const annualReady=new Date().getMonth()===11; $("annualReportLink").classList.toggle("ready",annualReady); $("annualFootText").textContent=annualReady?`${new Date().getFullYear()} 年拾字报告已可开卷`:`${new Date().getFullYear()} 年拾字报告 · 年末开卷`; renderBackupUI(); updateBookBadge(); renderMeMonthCard(); }
-function renderSettings(focusData=false){ displayView("settings"); applyPrefUI(); renderSoundUI(); renderReminderUI(); renderBackupUI(); $("devTools").style.display=DEV_TOOLS?"block":"none"; if(!DEV_TOOLS) $("dataBox").style.display="none";
+function renderSettings(focusData=false){ displayView("settings"); applyPrefUI(); renderSoundUI(); renderHandCardPref(); renderReminderUI(); renderBackupUI(); $("devTools").style.display=DEV_TOOLS?"block":"none"; if(!DEV_TOOLS) $("dataBox").style.display="none";
   if(focusData) requestAnimationFrame(()=>$("settingsDataLabel").scrollIntoView({block:"start",behavior:motionReduced()?"auto":"smooth"})); }
 
 // ---- 印历与补帖：留白不惩罚，最近 7 天可用一组真实书写补帖 ----
@@ -1767,6 +1805,8 @@ function openCharSheet(i){ if(!Number.isInteger(i)||i<0||i>=CARDS.length) return
   $("charDetailInk").innerHTML=recent?`<img src="${recent}" alt="我上次写的${esc(c.target)}">`:"";
   $("charDetailEmpty").textContent=recent?"":"还没留下手写，写一遍就有了"; $("charDetailEmpty").style.display=recent?"none":"block";
   $("charDetailStandard").textContent=c.target; $("charDetailStandard").style.display="none"; $("charDetailCompareToggle").textContent="对范字"; $("charDetailCompareToggle").style.display=recent?"":"none"; $("charDetailOverlayToggle").style.display="none"; $("charDetailOverlayToggle").textContent="叠"; $("charDetailStandard").parentElement.classList.remove("overlay");
+  const cardReady=!!handCardData(i),legacyInk=!!recent&&!cardReady;
+  $("charDetailCard").style.display=cardReady?"block":"none"; $("charDetailCardLegacy").style.display=legacyInk?"block":"none";
   $("charDetailStroke").style.display="none"; $("charDetailStroke").innerHTML=""; charDetailWriter=null; $("charSheet").classList.add("open"); renderEtymLine(); loadEtymology().then(renderEtymLine); }
 function toggleCharDetailCompare(){ const open=$("charDetailStandard").style.display==="flex"; $("charDetailStandard").style.display=open?"none":"flex"; $("charDetailCompareToggle").textContent=open?"对范字":"收起范字"; $("charDetailOverlayToggle").style.display=open?"none":"block"; if(open) $("charDetailStandard").parentElement.classList.remove("overlay"); }
 function toggleCharDetailOverlay(){ const body=$("charDetailStandard").parentElement, active=body.classList.toggle("overlay"); $("charDetailOverlayToggle").textContent=active?"并排":"叠"; }
@@ -2387,6 +2427,7 @@ function pickStamp(outcome,options={}){ if(stamped || !revealed) return; stamped
   if(firstCalibrationHold) calibrationFirstHoldUsed=true;
   const comfort=takeCalibrationComfort(outcome); recordOutcome(outcome,options); lastStampSnapshot.outcome=outcome; practicePhase="feedback"; feedbackKind=outcome; hapticFeedback("stamp"); soundFeedback("stamp"); noteSoundTip();
   showStampedFeedback(outcome,options); if(options.uncertain){ $("toastTitle").textContent="已记为记不清"; $("toastSubEl").textContent="盖「补拾」· 本组稍后再写"; }
+  maybeOfferHandCard(currentCardIndex(),outcome);
   if(comfort){ $("toastTitle").textContent="忘了很正常"; $("toastSubEl").textContent="这个字很久没写了，待会再拾一次"; }
   clearTimeout(editStampTimer); editStampTimer=setTimeout(()=>{ $("editStamp").disabled=true; },EDIT_STAMP_WINDOW_MS);
   updateProgressLabel(); saveSessionSnapshot();
@@ -2522,7 +2563,7 @@ function exitCurrentRound(fromHistory=false){ if(exitingPractice || $("card").st
   if(activeMode==="focus"&&baseTargets.length===1){ clearSessionSnapshot(); if(focusReturnView==="book") renderBook(); else if(focusReturnView==="profile") renderProfile(); else if(focusReturnView==="me") renderMe(); else renderHome(); }
   else renderHome(); exitingPractice=false; return true; }
 $("exitPractice").onclick=()=>exitCurrentRound(false);
-window.addEventListener("shizi-native-back",()=>{ if($("charSheet").classList.contains("open")){ closeCharSheet(); return; } if($("settingsPanel").style.display==="flex"||$("annualPanel").style.display==="flex"){ renderMe(); return; } if($("profilePanel").style.display==="flex"){ closeProfile(); return; } if($("auditPanel").style.display==="flex"){ renderSettings(false); return; } exitCurrentRound(false); });
+window.addEventListener("shizi-native-back",()=>{ if($("handCardSheet").classList.contains("open")){ closeHandCard(); return; } if($("charSheet").classList.contains("open")){ closeCharSheet(); return; } if($("settingsPanel").style.display==="flex"||$("annualPanel").style.display==="flex"){ renderMe(); return; } if($("profilePanel").style.display==="flex"){ closeProfile(); return; } if($("auditPanel").style.display==="flex"){ renderSettings(false); return; } exitCurrentRound(false); });
 window.addEventListener("keydown",e=>{ if(e.key==="Escape"&&$("charSheet").classList.contains("open")) closeCharSheet(); });
 $("prefBox").onclick=e=>{ const b=e.target.closest("[data-pref]"); if(!b) return; preference=b.dataset.pref; save(PREF_KEY,preference); applyPrefUI(); };
 $("fontScaleRow").onclick=()=>{ fontScaleLarge=!fontScaleLarge; save(FONT_SCALE_KEY,fontScaleLarge); applyFontScale(); fitBox(); };
@@ -2541,6 +2582,7 @@ $("bookSaveMonth").onclick=async()=>{ const button=$("bookSaveMonth"); if(button
 $("startBtn").onclick=()=>{ if($("startBtn").disabled) return; startMode(reviewTodayCount()>0?"review":"new"); };
 $("yesterRow").onclick=e=>{ const target=e.target.closest("[data-daily-index]"); if(target) startFocus([Number(target.dataset.dailyIndex)]); };
 $("soundRow").onclick=toggleSound;
+$("handCardPromptRow").onclick=toggleHandCardPrompt;
 $("soundscapeBox").onclick=e=>{ const button=e.target.closest("[data-scene]"); if(button) setSoundscape(button.dataset.scene); };
 $("welcomeStart").onclick=()=>startMode("new");
 $("tabPractice").onclick=renderHome;
@@ -2579,10 +2621,17 @@ $("auditSample").onclick=handleAuditListClick;
 $("charDetailCompareToggle").onclick=toggleCharDetailCompare;
 $("charDetailOverlayToggle").onclick=toggleCharDetailOverlay;
 $("charDetailStrokeBtn").onclick=replayCharDetail;
+$("charDetailCard").onclick=()=>openHandCard(charDetailIndex);
 $("charDetailPractice").onclick=()=>{ const idx=charDetailIndex, returnView=$("profilePanel").style.display==="flex"?"profile":$("studybook").style.display==="flex"?"book":$("mePanel").style.display==="flex"?"me":"home"; closeCharSheet(); startFocus([idx],{returnView}); };
 $("charDetailWild").onclick=()=>{ if(charDetailIndex<0) return; const c=CARDS[charDetailIndex],row=wildCaptureFor(c.target); if(row) openWildPhoto(row.dataURL,`${c.target} · ${collectedDateText(row.day)}拾于生活`); };
 $("wildPhotoClose").onclick=closeWildPhoto;
 $("wildPhotoSheet").onclick=e=>{ if(e.target===$("wildPhotoSheet")) closeWildPhoto(); };
+$("handCardCancel").onclick=closeHandCard;
+$("handCardSheet").onclick=e=>{ if(e.target===$("handCardSheet")) closeHandCard(); };
+$("handCardSizes").onclick=e=>{ const button=e.target.closest("[data-hand-card-ratio]"); if(button) setHandCardRatio(button.dataset.handCardRatio); };
+$("handCardPromptOpen").onclick=()=>{ if(handCardPromptIndex>=0) openHandCard(handCardPromptIndex,{fromPrompt:true}); };
+$("handCardSave").onclick=()=>runHandCardAction($("handCardSave"),"save");
+$("handCardShare").onclick=()=>runHandCardAction($("handCardShare"),"share");
 $("charSheet").onclick=e=>{ if(e.target===$("charSheet")) closeCharSheet(); };
 $("charSheet").addEventListener("touchstart",e=>{ const panel=e.target.closest&&e.target.closest(".charSheet"), startZone=e.target.closest&&e.target.closest(".sheetHandle,.charDetailHead"); charDetailSwipeEligible=e.touches.length===1&&!!panel&&panel.scrollTop<=0&&!!startZone; charDetailTouchY=charDetailSwipeEligible?e.touches[0].clientY:null; },{passive:true});
 $("charSheet").addEventListener("touchend",e=>{ const panel=e.target.closest&&e.target.closest(".charSheet"), eligible=charDetailSwipeEligible&&panel&&panel.scrollTop<=0; charDetailSwipeEligible=false; if(!eligible||charDetailTouchY==null||!e.changedTouches.length){ charDetailTouchY=null; return; } const dy=e.changedTouches[0].clientY-charDetailTouchY; charDetailTouchY=null; if(dy>70) closeCharSheet(); },{passive:true});
@@ -2657,6 +2706,39 @@ function shareWrappedText(ctx,text,x,y,maxWidth,lineHeight,maxLines=3){ const ch
 function drawShareHandwriting(ctx,strokes,x,y,size,rotation=0){ const paths=Array.isArray(strokes)?strokes.filter(points=>Array.isArray(points)&&points.length):[]; ctx.save(); ctx.translate(x+size/2,y+size/2); ctx.rotate(Number(rotation||0)*Math.PI/180); ctx.translate(-x-size/2,-y-size/2);
   ctx.strokeStyle="#c2452c38"; ctx.lineWidth=2; ctx.setLineDash([7,7]); [[x+size/2,y,x+size/2,y+size],[x,y+size/2,x+size,y+size/2],[x,y,x+size,y+size],[x+size,y,x,y+size]].forEach(line=>{ ctx.beginPath(); ctx.moveTo(line[0],line[1]); ctx.lineTo(line[2],line[3]); ctx.stroke(); }); ctx.setLineDash([]);
   paths.forEach(points=>{ const scaled=points.map(point=>({x:x+clamp(Number(point.x),0,1)*size,y:y+clamp(Number(point.y),0,1)*size,w:Number(point.w),v:Number(point.v)})); paintBrushStroke(ctx,scaled,Math.max(8,size*.075),{color:"#29241d",detail:true}); }); ctx.restore(); return paths.length; }
+
+// ---- 手写字卡：主字只来自 recentInk 真迹，文字层不补印刷目标字 ----
+const HAND_CARD_RATIOS={portrait:{width:1080,height:1440,label:"3:4"},square:{width:1080,height:1080,label:"1:1"}};
+let handCardIndex=-1,handCardRatio="portrait",handCardResumeFeedback=false,handCardPromptIndex=-1,handCardPromptTimer=0,handCardRenderToken=0;
+function sexagenaryYear(year){ const stems="甲乙丙丁戊己庚辛壬癸",branches="子丑寅卯辰巳午未申酉戌亥",offset=((Number(year)-4)%60+60)%60; return stems[offset%10]+branches[offset%12]; }
+function handCardDateText(at=Date.now()){ const date=new Date(Number(at)||Date.now()); return `${sexagenaryYear(date.getFullYear())}年 ${numCn(date.getMonth()+1)}月${numCn(date.getDate())}`; }
+function handCardData(index){ const card=CARDS[index],m=memory[cardKey(index)]||{},recent=m.recentInk,strokes=recent&&recent.strokes; if(!card||!recent||Number(recent.version)<2||!Array.isArray(strokes)||!strokes.some(points=>Array.isArray(points)&&points.length)) return null; const word=suspiciousDictionaryWord(index)?card.target:(card.word||card.target); return {index,word,py:card.py||"",recent}; }
+function drawHandCardPaper(ctx,width,height){ ctx.fillStyle="#f4efe2"; ctx.fillRect(0,0,width,height); let seed=width*31+height*17;
+  ctx.save(); ctx.lineWidth=1; for(let i=0;i<180;i++){ seed=(Math.imul(seed,1664525)+1013904223)>>>0; const x=seed%width; seed=(Math.imul(seed,1664525)+1013904223)>>>0; const y=seed%height, len=18+(seed%70); ctx.strokeStyle=i%4===0?"rgba(110,92,62,.032)":"rgba(255,255,255,.055)"; ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(Math.min(width,x+len),y+(i%3-1)*.7); ctx.stroke(); } ctx.restore(); }
+function drawHandCardInk(ctx,strokes,x,y,size){ const paths=Array.isArray(strokes)?strokes.filter(points=>Array.isArray(points)&&points.length):[]; paths.forEach(points=>{ const scaled=points.map(point=>({x:x+clamp(Number(point.x),0,1)*size,y:y+clamp(Number(point.y),0,1)*size,w:Number(point.w),v:Number(point.v)})); paintBrushStroke(ctx,scaled,Math.max(16,size*.075),{color:"#29241d",detail:true}); }); return paths.length; }
+async function renderHandCardCanvas(index,ratio="portrait",targetCanvas=null){ const data=handCardData(index),spec=HAND_CARD_RATIOS[ratio]||HAND_CARD_RATIOS.portrait; if(!data) return null;
+  const canvas=targetCanvas||document.createElement("canvas"); canvas.width=spec.width; canvas.height=spec.height; const ctx=canvas.getContext("2d"); if(!ctx) return null; drawHandCardPaper(ctx,spec.width,spec.height);
+  const square=ratio==="square",inkSize=square?650:720,inkX=(spec.width-inkSize)/2,inkY=square?90:150,strokes=data.recent.strokes;
+  if(!drawHandCardInk(ctx,strokes,inkX,inkY,inkSize)) return null;
+  const infoY=square?790:990,dateY=square?870:1085,sealY=square?825:1040;
+  ctx.textAlign="center"; ctx.fillStyle="#29241d"; ctx.font='500 36px "Songti SC","STSong",serif'; ctx.fillText([data.word,data.py].filter(Boolean).join(" · "),spec.width/2,infoY);
+  ctx.fillStyle="#665d4d"; ctx.font='400 32px "Kaiti SC","STKaiti",serif'; ctx.fillText(handCardDateText(data.recent.at),spec.width/2,dateY);
+  ctx.save(); ctx.translate(spec.width-170,sealY); ctx.strokeStyle="#c2452c"; ctx.lineWidth=5; ctx.strokeRect(0,0,82,82); ctx.fillStyle="#c2452c"; ctx.font='500 54px "Kaiti SC","STKaiti",serif'; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillText("拾",41,43); ctx.restore();
+  ctx.fillStyle="#756b5a"; ctx.font='400 20px "Songti SC","STSong",serif'; ctx.textAlign="center"; ctx.fillText("拾字",spec.width/2,spec.height-42);
+  canvas.dataset.ratio=ratio; canvas.dataset.inkSource="vector"; canvas.dataset.inkStrokeCount=String(Array.isArray(strokes)?strokes.length:0); canvas.dataset.signatureSize="20"; canvas.dataset.dateSize="32"; return canvas; }
+async function updateHandCardPreview(){ if(handCardIndex<0) return false; const token=++handCardRenderToken,canvas=$("handCardPreview"); $("handCardHint").textContent="只用你的这一笔，做成一张可以带走的卡。"; const rendered=await renderHandCardCanvas(handCardIndex,handCardRatio,canvas); if(token!==handCardRenderToken) return false; if(!rendered){ $("handCardHint").textContent="这份真迹暂时没能打开，请稍后再试。"; return false; } canvas.classList.toggle("square",handCardRatio==="square"); return true; }
+function setHandCardRatio(ratio){ if(!HAND_CARD_RATIOS[ratio]) return false; handCardRatio=ratio; document.querySelectorAll("[data-hand-card-ratio]").forEach(button=>{ const active=button.dataset.handCardRatio===ratio; button.classList.toggle("active",active); button.setAttribute("aria-pressed",active?"true":"false"); }); updateHandCardPreview(); return true; }
+function openHandCard(index,options={}){ if(!handCardData(index)) return false; handCardIndex=index; handCardResumeFeedback=!!options.fromPrompt&&stamped&&practicePhase==="feedback"; if(handCardResumeFeedback){ clearTimeout(autoNextTimer); clearTimeout(editStampTimer); } hideHandCardPrompt(); setHandCardRatio("portrait"); $("handCardSheet").classList.add("open"); return true; }
+function closeHandCard(){ if(!$("handCardSheet").classList.contains("open")) return false; $("handCardSheet").classList.remove("open"); handCardRenderToken++; const resume=handCardResumeFeedback; handCardResumeFeedback=false; if(resume&&stamped&&practicePhase==="feedback") autoNextTimer=setTimeout(advanceFeedback,200); return true; }
+function handCardName(index,ratio){ const card=CARDS[index],suffix=ratio==="square"?"square":"portrait"; return `shizi-${card&&card.target||"ink"}-${suffix}-${today()}.png`; }
+async function exportHandCard(mode,options={}){ const index=Number.isInteger(options.index)?options.index:handCardIndex,ratio=options.ratio||handCardRatio,canvas=await renderHandCardCanvas(index,ratio); if(!canvas) return {route:"empty"}; const name=handCardName(index,ratio),dataURL=canvas.toDataURL("image/png"),native=Object.prototype.hasOwnProperty.call(options,"nativeBridge")?options.nativeBridge:(window.webkit&&window.webkit.messageHandlers&&window.webkit.messageHandlers.shiziNative);
+  if(native){ const type=mode==="save"?"savePracticeCard":"sharePracticeCard",message={type,kind:"character",name,dataURL}; native.postMessage(message); return {route:mode==="save"?"native-save":"native-share",name,width:canvas.width,height:canvas.height,message}; }
+  const blob=await practiceCardBlob(canvas); if(mode==="share"){ const nav=Object.prototype.hasOwnProperty.call(options,"navigator")?options.navigator:navigator,file=new File([blob],name,{type:"image/png"}); if(nav&&typeof nav.canShare==="function"&&typeof nav.share==="function"&&nav.canShare({files:[file]})){ try{ await nav.share({files:[file],title:"拾字 · 手写字卡"}); return {route:"share",name,size:blob.size,width:canvas.width,height:canvas.height}; }catch(e){ if(e&&e.name==="AbortError") return {route:"cancelled",name,size:blob.size}; } } }
+  if(typeof options.download==="function") options.download(blob,name); else { const url=URL.createObjectURL(blob),a=document.createElement("a"); a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),4000); } toast(mode==="save"?"字卡已存成图片":"字卡已存成图片"); return {route:"download",name,size:blob.size,width:canvas.width,height:canvas.height}; }
+async function runHandCardAction(button,mode){ if(!button||button.disabled) return; button.disabled=true; try{ const result=await exportHandCard(mode); if(result.route==="empty") toast("这份真迹暂时没能打开"); }catch(e){ toast(mode==="save"?"字卡保存失败，请再试一次":"字卡分享失败，请再试一次"); }finally{ button.disabled=false; } }
+function hideHandCardPrompt(){ clearTimeout(handCardPromptTimer); $("handCardPrompt").style.display="none"; }
+function maybeOfferHandCard(index,outcome){ const data=handCardData(index); if(outcome!=="fast"||!data||!handCardPref.promptEnabled||handCardPref.lastPromptDay===today()) return false; handCardPref.lastPromptDay=today(); save(HAND_CARD_KEY,handCardPref); handCardPromptIndex=index; $("handCardPrompt").style.display="flex"; clearTimeout(handCardPromptTimer); handCardPromptTimer=setTimeout(hideHandCardPrompt,5000); return true; }
+window.shiziCardSaved=result=>{ if(result&&result.success) toast("字卡已存到相册"); else toast("没能存到相册，请检查照片权限"); };
 function renderPracticeCardCanvas(){ const stats=(roundStats||[]).slice(); if(!stats.length) return null;
   const cols=5, gap=18, tile=160, rows=Math.ceil(stats.length/cols), extraRows=Math.max(0,rows-3), cardH=1090+extraRows*(tile+gap);
   const canvas=document.createElement("canvas"); canvas.width=1080; canvas.height=1440+extraRows*(tile+gap); const ctx=canvas.getContext("2d"), paper="#f4efe2", card="#fdfbf4", ink="#29241d", muted="#665d4d", accent="#c2452c", gold="#a67c26", green="#5b8b67";
@@ -2690,7 +2772,7 @@ async function sharePracticeCard(opts={}){ const canvas=renderPracticeCardCanvas
 
 // ---- 数据备份 / 恢复（localStorage 是唯一存储，换手机或清缓存前先导出）----
 // 新增 shizi.* 持久键时必须同步加入；shizi.nativeSmoke.v1 与 SAFETY_KEY 为刻意排除。
-const BACKUP_KEYS=[DECK_KEY,OPEN_KEY,MEMORY_KEY,QUALITY_KEY,PREF_KEY,TUNING_KEY,ACTIVITY_KEY,SESSION_KEY,FSRS_LOG_KEY,TRACE_TUTORIAL_KEY,BACKUP_META_KEY,REMINDER_KEY,FONT_SCALE_KEY,FUNNEL_KEY,SOUND_KEY,TOPIC_KEY,CUSTOM_KEY,ADDED_KEY,WILD_KEY];
+const BACKUP_KEYS=[DECK_KEY,OPEN_KEY,MEMORY_KEY,QUALITY_KEY,PREF_KEY,TUNING_KEY,ACTIVITY_KEY,SESSION_KEY,FSRS_LOG_KEY,TRACE_TUTORIAL_KEY,BACKUP_META_KEY,REMINDER_KEY,FONT_SCALE_KEY,FUNNEL_KEY,SOUND_KEY,TOPIC_KEY,CUSTOM_KEY,ADDED_KEY,WILD_KEY,HAND_CARD_KEY];
 function backupAgeDays(){ const ts=Number(backupMeta.lastExportAt)||0; return ts?Math.max(0,Math.floor((Date.now()-ts)/86400000)):Number.POSITIVE_INFINITY; }
 function backupRelativeText(){ const days=backupAgeDays(); if(!Number.isFinite(days)) return "从未备份"; if(days===0) return "上次备份 · 今天"; if(days===1) return "上次备份 · 昨天"; return `上次备份 · ${days} 天前`; }
 function renderBackupUI(){ const age=backupAgeDays(), never=!Number.isFinite(age), urgent=(totalPracticeDays()>=14&&never)||(!never&&age>=30); $("backupStatus").textContent=backupRelativeText(); $("backupStatus").classList.toggle("backupStatusUrgent",urgent); $("backupUrgency").style.display=urgent?"flex":"none"; $("mePanel").classList.toggle("backupUrgent",urgent);
@@ -2752,7 +2834,7 @@ $("importLink").onclick=requestBackupImport;
 $("welcomeRestore").onclick=requestBackupImport;
 $("importFile").onchange=e=>{ const f=e.target.files && e.target.files[0]; e.target.value=""; if(f) importBackup(f); };
 function resetAllData(opts){ const options=opts||{}; if(!options.skipConfirm && !confirm(`清空当前 ${memoryCount()} 个字和全部练习记录？操作后可以撤销一次。`)) return false; captureSafetySnapshot("reset");
-  status={}; memory={}; fsrsReviewLog=[]; traceTutorialShown=false; quality={}; tuning={calibrated:false, offset:0, contextStrict:0, rounds:[]}; preference="balanced"; fontScaleLarge=false; applyFontScale(); opens=[today()]; customWords=[]; addedChars=[]; wildState=normalizeWildState(null); activity=newActivity(); funnel=newFunnel(); backupMeta=normalizeBackupMeta(null); summaryBackupHintVisible=false; reminder=normalizeReminder(null); sound=normalizeSound(null); stopAmbient(true); saveSound(); renderSoundUI(); saveReminder(); syncReminder(); save(DECK_KEY,status); save(MEMORY_KEY,memory); saveFSRSLog(); save(TRACE_TUTORIAL_KEY,false); save(QUALITY_KEY,quality); saveTuning(); save(PREF_KEY,preference); save(FONT_SCALE_KEY,false); save(OPEN_KEY,opens); save(CUSTOM_KEY,customWords); save(ADDED_KEY,addedChars); saveWildState(); saveActivity(); saveFunnel(); save(BACKUP_META_KEY,backupMeta); buildCustomCards(); removeStored(TOPIC_KEY); clearSessionSnapshot(); activeMode="new"; makeupTargetDay=""; sessionDone=new Set(); focusQueue=[]; renderHome(); $("dataBox").style.display="none"; showSafetyUndo(); return true; }
+  status={}; memory={}; fsrsReviewLog=[]; traceTutorialShown=false; quality={}; tuning={calibrated:false, offset:0, contextStrict:0, rounds:[]}; preference="balanced"; fontScaleLarge=false; applyFontScale(); opens=[today()]; customWords=[]; addedChars=[]; wildState=normalizeWildState(null); handCardPref=normalizeHandCardPref(null); activity=newActivity(); funnel=newFunnel(); backupMeta=normalizeBackupMeta(null); summaryBackupHintVisible=false; reminder=normalizeReminder(null); sound=normalizeSound(null); stopAmbient(true); saveSound(); renderSoundUI(); renderHandCardPref(); hideHandCardPrompt(); save(HAND_CARD_KEY,handCardPref); saveReminder(); syncReminder(); save(DECK_KEY,status); save(MEMORY_KEY,memory); saveFSRSLog(); save(TRACE_TUTORIAL_KEY,false); save(QUALITY_KEY,quality); saveTuning(); save(PREF_KEY,preference); save(FONT_SCALE_KEY,false); save(OPEN_KEY,opens); save(CUSTOM_KEY,customWords); save(ADDED_KEY,addedChars); saveWildState(); saveActivity(); saveFunnel(); save(BACKUP_META_KEY,backupMeta); buildCustomCards(); removeStored(TOPIC_KEY); clearSessionSnapshot(); activeMode="new"; makeupTargetDay=""; sessionDone=new Set(); focusQueue=[]; renderHome(); $("dataBox").style.display="none"; showSafetyUndo(); return true; }
 $("resetLink").onclick=resetAllData;
 $("safetyUndoBtn").onclick=()=>undoSafetyRestore();
 

@@ -1850,6 +1850,102 @@ let browser;
   assert(wildCapture.backedUp && wildCapture.singleLimit && wildCapture.bounded && wildCapture.cap.kept <= 30 && wildCapture.cap.bytes <= 420 * 1024 && wildCapture.cap.removed > 0,
     "Expected photographed-character state in backup with 64KiB per-photo and oldest-first aggregate bounds", wildCapture);
 
+  const handCards = await page.evaluate(async () => {
+    const saved = {
+      memory: cloneObj(memory), handCardPref: cloneObj(handCardPref),
+      handCardRaw: localStorage.getItem(HAND_CARD_KEY), mode: document.documentElement.style.colorScheme,
+    };
+    const index = CARDS.findIndex((card) => card.target === "水"), emptyIndex = CARDS.findIndex((card) => card.target === "火"), m = cardMemory(index);
+    const strokes = [
+      [{ x: .48, y: .1, w: 1.2, v: .2 }, { x: .48, y: .3, w: 1.15, v: .4 }, { x: .5, y: .55, w: 1, v: .8 }, { x: .48, y: .88, w: .75, v: 1.4 }],
+      [{ x: .18, y: .43, w: 1.1, v: .3 }, { x: .35, y: .5, w: 1, v: .6 }, { x: .2, y: .73, w: .7, v: 1.2 }],
+      [{ x: .82, y: .4, w: 1.1, v: .3 }, { x: .65, y: .52, w: 1, v: .7 }, { x: .83, y: .78, w: .7, v: 1.3 }],
+    ];
+    m.seen = 1; m.firstSeenAt = new Date("2026-07-19T08:00:00Z").getTime(); m.target = "水"; m.word = CARDS[index].word;
+    const stored = persistRecentInk(m, strokes, new Date("2026-07-19T08:00:00Z").getTime());
+    saveMemory();
+
+    openCharSheet(index);
+    const detailEntry = getComputedStyle(charDetailCard).display === "block" && charDetailCard.textContent.includes("做张字卡");
+    closeCharSheet(); openCharSheet(emptyIndex);
+    const emptyHidden = getComputedStyle(charDetailCard).display === "none";
+    closeCharSheet();
+
+    const portrait = await renderHandCardCanvas(index, "portrait"), square = await renderHandCardCanvas(index, "square");
+    const inspect = (canvas, ratio) => {
+      const ctx = canvas.getContext("2d"), pixels = ctx.getImageData(100, 80, canvas.width - 200, Math.min(820, canvas.height - 160)).data;
+      const inkSize = ratio === "square" ? 650 : 720, inkX = (canvas.width - inkSize) / 2, inkY = ratio === "square" ? 90 : 150;
+      const inkPixels = ctx.getImageData(inkX, inkY, inkSize, inkSize).data;
+      let dark = 0, redGrid = 0, legacyPaper = 0;
+      for (let i = 0; i < pixels.length; i += 4) if (pixels[i] < 90 && pixels[i + 1] < 90 && pixels[i + 2] < 90) dark += 1;
+      for (let i = 0; i < inkPixels.length; i += 4) {
+        const r = inkPixels[i], g = inkPixels[i + 1], b = inkPixels[i + 2];
+        if (r > 135 && r > g + 24 && r > b + 24) redGrid += 1;
+        if (Math.abs(r - 253) <= 1 && Math.abs(g - 251) <= 1 && Math.abs(b - 244) <= 1) legacyPaper += 1;
+      }
+      const paper = [...ctx.getImageData(0, 0, 1, 1).data];
+      return { width: canvas.width, height: canvas.height, source: canvas.dataset.inkSource, strokes: Number(canvas.dataset.inkStrokeCount), signature: Number(canvas.dataset.signatureSize), date: Number(canvas.dataset.dateSize), dark, redGrid, legacyPaper, paper };
+    };
+    const cards = { portrait: inspect(portrait, "portrait"), square: inspect(square, "square") };
+    const rendererSource = `${renderHandCardCanvas}\n${drawHandCardInk}`;
+
+    handCardPref = normalizeHandCardPref({ promptEnabled: true, lastPromptDay: "" });
+    const firstPrompt = maybeOfferHandCard(index, "fast"), promptVisible = getComputedStyle(handCardPrompt).display === "flex", secondPrompt = maybeOfferHandCard(index, "fast"), wrongPrompt = maybeOfferHandCard(index, "slow");
+    handCardPromptOpen.click(); const promptOpened = handCardSheet.classList.contains("open") && handCardIndex === index; closeHandCard();
+    handCardPref.lastPromptDay = ""; handCardPref.promptEnabled = false; save(HAND_CARD_KEY, handCardPref);
+    const disabledPrompt = maybeOfferHandCard(index, "fast"); renderHandCardPref();
+    const settingOff = handCardPromptRow.getAttribute("aria-pressed") === "false" && handCardPromptState.textContent === "关";
+
+    const nativeMessages = [], nativeBridge = { postMessage: (message) => nativeMessages.push(message) };
+    const nativeSave = await exportHandCard("save", { index, ratio: "portrait", nativeBridge });
+    const nativeShare = await exportHandCard("share", { index, ratio: "square", nativeBridge });
+    const downloads = [], webSave = await exportHandCard("save", { index, ratio: "square", nativeBridge: null, download: (blob, name) => downloads.push({ size: blob.size, name }) });
+    const shares = [], webShare = await exportHandCard("share", { index, ratio: "portrait", nativeBridge: null, navigator: { canShare: () => true, share: async (payload) => shares.push(payload) } });
+    const backup = JSON.parse(backupPayload({ preserveMeta: true })), backupMemory = JSON.parse(backup.data[MEMORY_KEY]), backedUp = Object.prototype.hasOwnProperty.call(backup.data, HAND_CARD_KEY) && Array.isArray(backupMemory[cardKey(index)].recentInk.strokes);
+    const inkRow = recentInkRows().find((row) => row.key === cardKey(index));
+
+    m.recentInk = { version: 1, day: m.recentInk.day, at: m.recentInk.at, dataURL: m.recentInk.dataURL };
+    saveMemory();
+    const legacyBackup = backupPayload({ preserveMeta: true });
+    memory = {}; saveMemory();
+    const legacyRestore = restoreBackupPayload(legacyBackup, { skipConfirm: true, reload: false });
+    memory = load(MEMORY_KEY, {});
+    openCharSheet(index);
+    const legacyDetail = {
+      entryHidden: getComputedStyle(charDetailCard).display === "none",
+      promptVisible: getComputedStyle(charDetailCardLegacy).display === "block" && charDetailCardLegacy.textContent.includes("重新独立写一次"),
+    };
+    closeCharSheet();
+    const legacyPortrait = await renderHandCardCanvas(index, "portrait"), legacySquare = await renderHandCardCanvas(index, "square");
+    const legacyExport = await exportHandCard("share", { index, ratio: "square", nativeBridge });
+
+    memory = saved.memory; handCardPref = normalizeHandCardPref(saved.handCardPref); saveMemory();
+    if (saved.handCardRaw === null) localStorage.removeItem(HAND_CARD_KEY); else localStorage.setItem(HAND_CARD_KEY, saved.handCardRaw);
+    document.documentElement.style.colorScheme = saved.mode; hideHandCardPrompt(); renderHome();
+    return {
+      stored, detailEntry, emptyHidden, cards,
+      noPrintedTargetFallback: !/fillText\s*\(\s*(?:data|card)\.target/.test(rendererSource),
+      noMarketing: !/二维码|下载引导|扫码|slogan/i.test(rendererSource),
+      firstPrompt, promptVisible, secondPrompt, wrongPrompt, promptOpened, disabledPrompt, settingOff,
+      nativeSave, nativeShare, nativeMessages: nativeMessages.map((message) => ({ type: message.type, kind: message.kind, png: message.dataURL.startsWith("data:image/png;base64,") })),
+      webSave, webShare, downloads, shares: shares.length, backedUp, inkBytes: inkRow && inkRow.bytes,
+      legacy: { restored: legacyRestore && legacyRestore.applied, detail: legacyDetail, portraitBlocked: legacyPortrait === null, squareBlocked: legacySquare === null, exportRoute: legacyExport.route },
+    };
+  });
+  assert(handCards.stored && handCards.detailEntry && handCards.emptyHidden && handCards.cards.portrait.width === 1080 && handCards.cards.portrait.height === 1440 && handCards.cards.square.width === 1080 && handCards.cards.square.height === 1080,
+    "Expected a recent-ink-only detail entry and clear 2x portrait/square canvases", handCards);
+  assert(handCards.cards.portrait.source === "vector" && handCards.cards.square.source === "vector" && handCards.cards.portrait.strokes === 3 && handCards.cards.portrait.dark > 100 && handCards.cards.square.dark > 100
+    && handCards.cards.portrait.redGrid === 0 && handCards.cards.square.redGrid === 0 && handCards.cards.portrait.legacyPaper === 0 && handCards.cards.square.legacyPaper === 0
+    && handCards.cards.portrait.paper[0] === 244 && handCards.cards.portrait.paper[1] === 239 && handCards.cards.portrait.paper[2] === 226 && handCards.cards.portrait.signature < handCards.cards.portrait.date && handCards.noPrintedTargetFallback && handCards.noMarketing,
+  "Expected fixed raw-paper cards whose main glyph comes only from brush-engine handwriting with restrained attribution", handCards);
+  assert(handCards.legacy.restored && handCards.legacy.detail.entryHidden && handCards.legacy.detail.promptVisible && handCards.legacy.portraitBlocked && handCards.legacy.squareBlocked && handCards.legacy.exportRoute === "empty",
+    "Expected restored v1 raster-only handwriting to stay viewable but never become a gridded or printed handwriting card", handCards.legacy);
+  assert(handCards.firstPrompt && handCards.promptVisible && !handCards.secondPrompt && !handCards.wrongPrompt && handCards.promptOpened && !handCards.disabledPrompt && handCards.settingOff,
+    "Expected one non-blocking good-stroke prompt per day with a persistent off switch", handCards);
+  assert(handCards.nativeSave.route === "native-save" && handCards.nativeShare.route === "native-share" && handCards.nativeMessages[0].type === "savePracticeCard" && handCards.nativeMessages[1].type === "sharePracticeCard" && handCards.nativeMessages.every((message) => message.kind === "character" && message.png)
+    && handCards.webSave.route === "download" && handCards.downloads.length === 1 && handCards.webShare.route === "share" && handCards.shares === 1 && handCards.backedUp && handCards.inkBytes > 0,
+  "Expected photo-library, system-share, Web Share/download, backup, and bounded recent-ink routes", handCards);
+
   const backup = await page.evaluate(() => {
     const original = JSON.parse(backupPayload({ preserveMeta: true })), originalMemory = cloneObj(memory);
     const currentMemory = { "verify:current-a": { seen: 1, last: new Date("2026-07-10T08:00:00Z").getTime() }, "verify:current-b": { seen: 1, last: new Date("2026-07-11T08:00:00Z").getTime() } };

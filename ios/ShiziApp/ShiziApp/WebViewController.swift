@@ -361,7 +361,10 @@ final class WebViewController: UIViewController {
               };
               tick();
             });
-            const visible = (id) => getComputedStyle(document.getElementById(id)).display !== 'none';
+            const visible = (id) => {
+              const element = document.getElementById(id);
+              return !!element && getComputedStyle(element).display !== 'none';
+            };
             const activeTab = (id) => document.getElementById(id).classList.contains('active');
             const viewportMeta = document.querySelector('meta[name="viewport"]');
             result.layoutFlow.viewportFitCover = !!viewportMeta && viewportMeta.content.includes('viewport-fit=cover');
@@ -417,7 +420,7 @@ final class WebViewController: UIViewController {
               const largeType = parseFloat(getComputedStyle(document.querySelector('.settingsPanel h2')).fontSize);
               fontScaleLarge = oldFontScale; applyFontScale();
               result.layoutFlow.largeTypeScaled = largeType >= normalType * 1.1 && document.getElementById('fontScaleRow').getAttribute('aria-pressed') === (oldFontScale ? 'true' : 'false');
-              result.layoutFlow.criticalTargets44 = ['exitPractice','addInPractice','tip','peekInk','show','done','fontScaleRow','overlayToggle','replayBtn'].every(id => parseFloat(getComputedStyle(document.getElementById(id)).minHeight) >= 44)
+              result.layoutFlow.criticalTargets44 = ['exitPractice','tip','undoStroke','clear','show','done','fontScaleRow','overlayToggle','replayBtn'].every(id => parseFloat(getComputedStyle(document.getElementById(id)).minHeight) >= 44)
                 && Array.from(document.querySelectorAll('#qualityBox button')).every(node => parseFloat(getComputedStyle(node).minHeight) >= 44);
 
               document.getElementById('closeSettings').click();
@@ -739,9 +742,9 @@ final class WebViewController: UIViewController {
                 await new Promise(resolve => setTimeout(resolve, 340));
                 clearInk();
                 result.handwritingFlow.clearWorked = inkStrokes.length === 0 && pixelCount() === 0;
-                const peekControl = document.getElementById('peekInk');
+                const peekControl = document.getElementById('tip');
                 await waitFor(() => !peekControl.disabled && peekEl && peekEl.querySelector('path'));
-                result.handwritingFlow.peekControlVisible = visible('peekInk') && peekControl.textContent.includes('不计');
+                result.handwritingFlow.peekControlVisible = visible('tip') && peekControl.textContent.trim() === '提示';
                 const hintBeforePeek = { ever: hintEverUsed, used: hintsUsedThisCard, group: groupIdx, shown: shownStrokes };
                 const controlRect = peekControl.getBoundingClientRect();
                 const controlPointer = (type, buttons) => new PointerEvent(type, {
@@ -749,9 +752,11 @@ final class WebViewController: UIViewController {
                   button: 0, buttons, clientX: controlRect.left + 20, clientY: controlRect.top + 20
                 });
                 peekControl.dispatchEvent(controlPointer('pointerdown', 1));
+                await new Promise(resolve => setTimeout(resolve, 420));
                 result.handwritingFlow.peekControlEntered = peeking === true && peekEl.classList.contains('active') && Number(inkCanvas.style.opacity) <= 0.06;
                 result.handwritingFlow.peekControlGlyphVisible = peekEl.querySelectorAll('path').length > 0;
                 peekControl.dispatchEvent(controlPointer('pointerup', 0));
+                peekControl.click();
                 result.handwritingFlow.peekControlUncounted = peeking === false && !peekEl.classList.contains('active')
                   && hintBeforePeek.ever === hintEverUsed && hintBeforePeek.used === hintsUsedThisCard
                   && hintBeforePeek.group === groupIdx && hintBeforePeek.shown === shownStrokes;

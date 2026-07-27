@@ -5,9 +5,11 @@ node_modules/
 .python-deps/
 __pycache__/
 generated/*.png
+generated/redesign-v4/
 .claude/
 ios/**/xcuserdata/
 ios/**/*.xcuserstate
+ios/**/project.xcworkspace/
 ios/**/DerivedData/
 ios/**/build/
 ios/ShiziApp/Config/Signing.local.xcconfig

@@ -25,7 +25,7 @@ HANZI_DB_PATH = SRC_DIR / "hanzi_db.json"
 JIEBA_DICT_PATH = SRC_DIR / "jieba_dict.txt"
 CURRICULUM_PATH = SRC_DIR / "curriculum-common-2500.txt"
 PY_DEPS = ROOT / ".python-deps"
-DECK_KEY = "shizi.deck.v8105.context1"
+DECK_KEY = "shizi.deck.v8105.context2"
 GENERATED_JSON = "selected_8105_candidates.json"
 COVERAGE_JSON = "hanzi_writer_coverage.json"
 LIBRARY_AUDIT_JSON = "library-governance.json"
@@ -33,6 +33,13 @@ CORE_STROKE_SCRIPT = "core-strokes.js"
 CORE_STROKE_COUNT = 600
 CALIBRATION_CORE_CHARS = ["尴", "嚏", "狩", "晤", "飓", "痿", "俾", "跻", "徵", "瞰", "裘", "娩", "邃", "暧", "煲"]
 HANZI_WRITER_FLAT_URL = "https://data.jsdelivr.com/v1/package/npm/hanzi-writer-data@2.0.1/flat"
+HANZI_WRITER_VERSION = "2.0.1"
+HANZI_WRITER_BASELINE_STANDARD_COUNT = 6854
+HANZI_WRITER_BASELINE_MEMBERS_SHA256 = "a199c0ed9390769bd0834b5a322c22c8fac820c4284c5aa932bf8f930e73c9f3"
+VECTOR_DATA_MANIFEST_PATH = ROOT / "audit" / "vector-data-460-manifest.json"
+VECTOR_DATA_HINT_GROUPS_PATH = ROOT / "audit" / "vector-data-460-hint-groups.json"
+VECTOR_DATA_SUPPLEMENT_COUNT = 460
+VECTOR_DATA_SUPPLEMENT_MEMBERS_SHA256 = "0dd98d7e718598d3aa9fa94eb0ab9c56379f957e90d8ba0468a4ddbb40433b75"
 NORMATIVE_SOURCE_URL = "https://www.gov.cn/gzdt/att/att/site1/20130819/tygfhzb.pdf"
 CURRICULUM_SOURCE_URL = "https://hudong.moe.gov.cn/srcsite/A26/s8001/202204/W020220420582344386456.pdf"
 CURRICULUM_SOURCE_SHA256 = "3ef0ec8a30b5a950211202658df07d99f5427f750f8ba0c3cfda12736b7bd71a"
@@ -313,18 +320,127 @@ def file_sha256(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def read_hanzi_writer_available_chars():
-    with urllib.request.urlopen(HANZI_WRITER_FLAT_URL, timeout=60) as response:
-        payload = json.loads(response.read().decode("utf-8"))
-    chars = set()
-    for item in payload.get("files", []):
-        match = re.fullmatch(r"/([^/])\.json", item.get("name", ""))
-        if match:
-            chars.add(match.group(1))
-    return chars
+def read_hanzi_writer_available_chars(standard_rows):
+    """Return the exact, locally bundled practice-data inventory.
+
+    The original 6,854-character baseline is independently pinned to the
+    Hanzi Writer Data 2.0.1 membership used by this repository. The only
+    accepted additions are the 460 records in the reviewed supplement
+    manifest; an arbitrary JSON file copied into data/ cannot silently enter
+    the practice deck.
+    """
+    manifest = json.loads(VECTOR_DATA_MANIFEST_PATH.read_text(encoding="utf-8"))
+    if manifest.get("artifact") != "shizi-vector-data-460-final-manifest":
+        raise RuntimeError("Unexpected vector-data supplement manifest")
+    records = manifest.get("records") or []
+    supplement_chars = {record.get("character") for record in records}
+    if len(records) != len(supplement_chars) or len(records) != VECTOR_DATA_SUPPLEMENT_COUNT:
+        raise RuntimeError("The vector-data supplement must contain exactly 460 unique characters")
+
+    standard_order = [row["character"] for row in standard_rows]
+    standard_set = set(standard_order)
+    if not supplement_chars <= standard_set:
+        raise RuntimeError("The vector-data supplement contains a non-normative character")
+
+    for record in records:
+        character = record["character"]
+        expected_path = f"data/{character}.json"
+        if record.get("data_path") != expected_path:
+            raise RuntimeError(f"Unexpected supplement data path for {character}")
+        data_path = ROOT / expected_path
+        if not data_path.is_file() or file_sha256(data_path) != record.get("data_sha256"):
+            raise RuntimeError(f"Supplement data hash mismatch for {character}")
+        payload = json.loads(data_path.read_text(encoding="utf-8"))
+        strokes = payload.get("strokes")
+        medians = payload.get("medians")
+        expected_count = record.get("normative_stroke_count")
+        if (
+            set(payload) != {"strokes", "medians"}
+            or not isinstance(strokes, list)
+            or not isinstance(medians, list)
+            or len(strokes) != len(medians)
+            or len(strokes) != expected_count
+        ):
+            raise RuntimeError(f"Invalid supplement payload for {character}")
+
+    local_standard_chars = {
+        path.stem
+        for path in DATA_DIR.glob("*.json")
+        if CJK_RE.fullmatch(path.stem) and path.stem in standard_set
+    }
+    baseline_chars = local_standard_chars - supplement_chars
+    baseline_order = [character for character in standard_order if character in baseline_chars]
+    supplement_order = [character for character in standard_order if character in supplement_chars]
+    baseline_digest = hashlib.sha256("".join(baseline_order).encode("utf-8")).hexdigest()
+    supplement_digest = hashlib.sha256("".join(supplement_order).encode("utf-8")).hexdigest()
+    if len(baseline_chars) != HANZI_WRITER_BASELINE_STANDARD_COUNT or baseline_digest != HANZI_WRITER_BASELINE_MEMBERS_SHA256:
+        raise RuntimeError("The pinned Hanzi Writer Data 2.0.1 baseline membership changed")
+    if supplement_digest != VECTOR_DATA_SUPPLEMENT_MEMBERS_SHA256:
+        raise RuntimeError("The reviewed 460-character supplement membership changed")
+    if local_standard_chars != baseline_chars | supplement_chars:
+        raise RuntimeError("Local vector-data inventory is not exactly baseline plus reviewed supplement")
+
+    source_inventory = {
+        "official_baseline": {
+            "package": "hanzi-writer-data",
+            "version": HANZI_WRITER_VERSION,
+            "flat_manifest_url": HANZI_WRITER_FLAT_URL,
+            "standard_character_count": len(baseline_chars),
+            "members_sha256": baseline_digest,
+        },
+        "reviewed_project_supplement": {
+            "manifest_path": str(VECTOR_DATA_MANIFEST_PATH.relative_to(ROOT)),
+            "manifest_sha256": file_sha256(VECTOR_DATA_MANIFEST_PATH),
+            "character_count": len(supplement_chars),
+            "members_sha256": supplement_digest,
+        },
+        "combined_standard_character_count": len(local_standard_chars),
+    }
+    return local_standard_chars, source_inventory
 
 
-def coverage_report(standard_rows, hanzi_writer_chars):
+def read_vector_data_hint_groups():
+    manifest = json.loads(VECTOR_DATA_MANIFEST_PATH.read_text(encoding="utf-8"))
+    manifest_records = {record["character"]: record for record in manifest["records"]}
+    payload = json.loads(VECTOR_DATA_HINT_GROUPS_PATH.read_text(encoding="utf-8"))
+    if payload.get("artifact") != "shizi-vector-data-460-hint-groups":
+        raise RuntimeError("Unexpected vector-data hint-group manifest")
+    binding = payload.get("source_bindings", {}).get("vector_data_manifest", {})
+    if binding.get("path") != str(VECTOR_DATA_MANIFEST_PATH.relative_to(ROOT)) or binding.get("sha256") != file_sha256(VECTOR_DATA_MANIFEST_PATH):
+        raise RuntimeError("Hint groups are not bound to the current vector-data manifest")
+    if not all((payload.get("gates") or {}).values()):
+        raise RuntimeError("A vector-data hint-group gate is false")
+
+    records = payload.get("records") or []
+    groups_by_char = {}
+    for record in records:
+        character = record.get("character")
+        groups = record.get("groups")
+        source = manifest_records.get(character)
+        if source is None or character in groups_by_char:
+            raise RuntimeError(f"Unexpected or duplicate hint-group character: {character}")
+        if (
+            not isinstance(groups, list)
+            or not 1 <= len(groups) <= 5
+            or any(type(count) is not int or count <= 0 for count in groups)
+            or sum(groups) != source["normative_stroke_count"]
+            or record.get("normative_stroke_count") != source["normative_stroke_count"]
+            or record.get("route") != source["route"]
+        ):
+            raise RuntimeError(f"Invalid hint groups for {character}: {groups}")
+        groups_by_char[character] = groups
+    if set(groups_by_char) != set(manifest_records) or len(groups_by_char) != VECTOR_DATA_SUPPLEMENT_COUNT:
+        raise RuntimeError("Hint-group manifest must cover the exact reviewed 460-character supplement")
+    return groups_by_char, {
+        "path": str(VECTOR_DATA_HINT_GROUPS_PATH.relative_to(ROOT)),
+        "sha256": file_sha256(VECTOR_DATA_HINT_GROUPS_PATH),
+        "character_count": len(groups_by_char),
+        "maximum_groups_per_character": 5,
+        "source": payload["method"]["source"],
+    }
+
+
+def coverage_report(standard_rows, hanzi_writer_chars, source_inventory):
     by_level = {}
     missing = []
     for row in standard_rows:
@@ -342,6 +458,7 @@ def coverage_report(standard_rows, hanzi_writer_chars):
     return {
         "source": "通用规范汉字表 2013（sources/level-1.txt, level-2.txt, level-3.txt）",
         "hanzi_writer_data": HANZI_WRITER_FLAT_URL,
+        "vector_data_inventory": source_inventory,
         "total": total,
         "available": available,
         "missing": len(missing),
@@ -522,7 +639,14 @@ def score_candidate(row, groups):
     return score
 
 
-def choose_candidates(mm, standard_rows, hanzi_db_rows, hanzi_writer_chars, curriculum_table_one):
+def choose_candidates(
+    mm,
+    standard_rows,
+    hanzi_db_rows,
+    hanzi_writer_chars,
+    curriculum_table_one,
+    supplemental_groups,
+):
     resolve_groups = build_group_resolver(mm)
     rows_by_char = {}
     for row in hanzi_db_rows:
@@ -537,18 +661,23 @@ def choose_candidates(mm, standard_rows, hanzi_db_rows, hanzi_writer_chars, curr
         if ch not in hanzi_writer_chars:
             skipped["no_hanzi_writer"].append(standard)
             continue
-        if ch not in mm:
+        if ch not in mm and ch not in supplemental_groups:
             skipped["no_make_me_hanzi"].append(standard)
             continue
         row = rows_by_char.get(ch, {})
-        strokes = parse_first_int(row.get("stroke_count"), len(mm[ch].get("matches") or []))
+        mm_entry = mm.get(ch, {})
+        groups = supplemental_groups.get(ch) or resolve_groups(ch)
+        strokes = (
+            sum(groups)
+            if ch in supplemental_groups
+            else parse_first_int(row.get("stroke_count"), len(mm_entry.get("matches") or []))
+        )
         rank = parse_first_int(row.get("frequency_rank"), 999999 + standard["standard_order"])
-        groups = resolve_groups(ch)
         if sum(groups) != strokes:
             skipped["stroke_mismatch"].append({**standard, "groups": groups, "stroke_count": strokes})
             continue
-        pinyin = mm[ch].get("pinyin") or [row.get("pinyin", "")]
-        definition = row.get("definition") or mm[ch].get("definition") or ""
+        pinyin = mm_entry.get("pinyin") or [row.get("pinyin", "")]
+        definition = row.get("definition") or mm_entry.get("definition") or ""
         candidates.append({
             "character": ch,
             "pinyin": pinyin[0] if pinyin else "",
@@ -561,8 +690,9 @@ def choose_candidates(mm, standard_rows, hanzi_db_rows, hanzi_writer_chars, curr
             "curriculum_table": "表一" if ch in curriculum_table_one else ("表二" if standard["norm_level"] == "一级" else None),
             "stroke_count": strokes,
             "groups": groups,
-            "decomposition": mm[ch].get("decomposition", ""),
-            "radical": mm[ch].get("radical", row.get("radical", "")),
+            "group_source": "reviewed_vector_data_supplement" if ch in supplemental_groups else "make_me_a_hanzi",
+            "decomposition": mm_entry.get("decomposition", ""),
+            "radical": mm_entry.get("radical", row.get("radical", "")),
             "score": score_candidate(row, groups),
         })
     candidates.sort(key=lambda x: (x["frequency_rank"], x["norm_level_index"], x["standard_order"]))
@@ -741,7 +871,7 @@ def patch_index(chosen, word_index):
     index_path.write_text(html, encoding="utf-8")
 
 
-def library_governance_report(standard_rows, curriculum_table_one, chosen, skipped):
+def library_governance_report(standard_rows, curriculum_table_one, chosen, skipped, source_inventory):
     norm_sets = {
         level: {row["character"] for row in standard_rows if row["norm_level"] == level}
         for level, _ in LEVEL_PATHS
@@ -787,6 +917,7 @@ def library_governance_report(standard_rows, curriculum_table_one, chosen, skipp
             "table_two": {"derived_from": "规范一级字减去字表一", "count": len(norm_sets["一级"] - curriculum_set)},
             "total": len(norm_sets["一级"]),
         },
+        "vector_data_inventory": source_inventory,
         "practice_availability": {
             "available": len(selected_set),
             "unavailable": len(all_standard - selected_set),
@@ -813,13 +944,22 @@ def main():
     curriculum_table_one = read_curriculum_table_one()
     rows = read_hanzi_db()
     word_index = read_context_words()
-    hanzi_writer_chars = read_hanzi_writer_available_chars()
-    coverage = coverage_report(standard_rows, hanzi_writer_chars)
+    hanzi_writer_chars, source_inventory = read_hanzi_writer_available_chars(standard_rows)
+    supplemental_groups, hint_group_inventory = read_vector_data_hint_groups()
+    source_inventory["reviewed_project_supplement"]["hint_groups"] = hint_group_inventory
+    coverage = coverage_report(standard_rows, hanzi_writer_chars, source_inventory)
     (GENERATED_DIR / COVERAGE_JSON).write_text(
         json.dumps(coverage, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
-    chosen, skipped = choose_candidates(mm, standard_rows, rows, hanzi_writer_chars, set(curriculum_table_one))
+    chosen, skipped = choose_candidates(
+        mm,
+        standard_rows,
+        rows,
+        hanzi_writer_chars,
+        set(curriculum_table_one),
+        supplemental_groups,
+    )
     if not chosen:
         raise RuntimeError("No candidates selected")
     validate_and_fetch(chosen)
@@ -829,7 +969,7 @@ def main():
         encoding="utf-8",
     )
     (GENERATED_DIR / LIBRARY_AUDIT_JSON).write_text(
-        json.dumps(library_governance_report(standard_rows, curriculum_table_one, chosen, skipped), ensure_ascii=False, indent=2),
+        json.dumps(library_governance_report(standard_rows, curriculum_table_one, chosen, skipped, source_inventory), ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
     print(f"selected={len(chosen)}")

@@ -90,7 +90,7 @@ assert(mottoFixture.entries.find((entry) => entry.text === "传不习乎")?.auth
   && mottoFixture.entries.find((entry) => entry.text === "如切如磋，如琢如磨")?.source === "诗经·卫风·淇奥",
 "Expected the reviewed fixture to preserve the corrected Zengzi and Classic of Poetry attributions");
 
-assert(swSource.includes("shizi-v11") && swSource.includes("'data/etymology.json'") && swSource.includes("Promise.allSettled") && swSource.includes("INSTALL_BATCH_SIZE = 40") && swSource.includes("cacheCoreStrokes"), "Expected versioned, offline etymology and failure-tolerant core stroke installation");
+assert(swSource.includes("shizi-v12") && swSource.includes("'data/etymology.json'") && swSource.includes("Promise.allSettled") && swSource.includes("INSTALL_BATCH_SIZE = 40") && swSource.includes("cacheCoreStrokes"), "Expected versioned, offline etymology and failure-tolerant core stroke installation");
 assert(swSource.includes("data/context-overrides.js") && source.includes('<script src="data/context-overrides.js"></script>') && contextOverrideSource.includes("CONTEXT_OVERRIDES"), "Expected context overrides in both online and offline shells");
 assert(coreStrokeSource.includes("SHIZI_CORE_STROKES") && coreStrokeSource.includes("slice(0,600)"), "Expected a generated 600-character core stroke list");
 assert(Array.isArray(etymology) && etymology.length === etymologyCoverage.totals.entries && new Set(etymology.map((row) => row.char)).size === etymology.length
@@ -492,7 +492,7 @@ let browser;
     doneAria: document.getElementById("done").getAttribute("aria-label"),
     viewport: document.querySelector('meta[name="viewport"]').content,
   }));
-  assert(baseline.seed === 6854 && baseline.groups === 6854 && baseline.cards >= 6854, "Expected the complete 6854-card corpus", baseline);
+  assert(baseline.seed === 7314 && baseline.groups === 7314 && baseline.cards >= 7314, "Expected the complete 7314-card corpus", baseline);
   assert(baseline.fsrsVersion.includes("FSRS-6.0") && baseline.weights === 21, "Expected fixed FSRS-6 runtime", baseline);
   assert(baseline.scheduler.desiredRetention === 0.9 && baseline.scheduler.maximumInterval === 365 && baseline.scheduler.enableFuzz && baseline.engineFuzz && baseline.scheduler.parameterVersion === "fsrs6-fuzz-365-v2", "Expected fuzzed scheduler with a one-year interval ceiling", baseline.scheduler);
   assert(baseline.decisionLabels.join("/") === "写对了/写错了" && baseline.oldStampChoices === 0
@@ -568,8 +568,8 @@ let browser;
   const coreBytes = coreStrokes.chars.reduce((sum, char) => sum + fs.statSync(path.join(root, "data", `${char}.json`)).size, 0);
   assert(coreStrokes.chars.length === 600 && new Set(coreStrokes.chars).size === 600 && coreStrokes.calibration === "尴嚏狩晤飓痿俾跻徵瞰裘娩邃暧煲" && missingCoreFiles.length === 0 && coreBytes >= 1024 * 1024 && coreBytes <= 2 * 1024 * 1024,
   "Expected 600 unique core files including the exact first calibration group within the 1-2 MiB target", { count: coreStrokes.chars.length, calibration: coreStrokes.calibration, missingCoreFiles, coreBytes });
-  await page.waitForFunction(async () => { const cache = await caches.open("shizi-v11"), keys = await cache.keys(); return keys.filter((request) => new URL(request.url).pathname.includes("/data/")).length >= 602; }, null, { timeout: 30000 });
-  const coreCache = await page.evaluate(async () => { const cache = await caches.open("shizi-v11"), keys = await cache.keys(); return { core: keys.filter((request) => new URL(request.url).pathname.includes("/data/") && !new URL(request.url).pathname.endsWith("context-overrides.js") && !new URL(request.url).pathname.endsWith("etymology.json")).length, shell: !!(await cache.match("core-strokes.js")), etymology: !!(await cache.match("data/etymology.json")), contexts: !!(await cache.match("data/context-overrides.js")) }; });
+  await page.waitForFunction(async () => { const cache = await caches.open("shizi-v12"), keys = await cache.keys(); return keys.filter((request) => new URL(request.url).pathname.includes("/data/")).length >= 602; }, null, { timeout: 30000 });
+  const coreCache = await page.evaluate(async () => { const cache = await caches.open("shizi-v12"), keys = await cache.keys(); return { core: keys.filter((request) => new URL(request.url).pathname.includes("/data/") && !new URL(request.url).pathname.endsWith("context-overrides.js") && !new URL(request.url).pathname.endsWith("etymology.json")).length, shell: !!(await cache.match("core-strokes.js")), etymology: !!(await cache.match("data/etymology.json")), contexts: !!(await cache.match("data/context-overrides.js")) }; });
   assert(coreCache.core >= 600 && coreCache.shell && coreCache.etymology && coreCache.contexts, "Expected the service worker to install all core strokes, etymology, context overrides, and retain runtime-fetched extras", coreCache);
 
   const dailyRitual = await page.evaluate(() => {
@@ -2010,8 +2010,8 @@ let browser;
     tuning = { ...tuning, calibrated: true, contextStrict: 4 };
     const expected = {
       core3500: { available: 3500, official: 3500 },
-      adv3000: { available: 2868, official: 3000 },
-      rare: { available: 486, official: 1605 },
+      adv3000: { available: 2976, official: 3000 },
+      rare: { available: 838, official: 1605 },
       curriculum2500: { available: 2500, official: 2500 },
     };
     const rows = LIBRARIES.map((lib) => {

@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "artifact": "shizi-strokeorder-next-five-human-review",
+  "recorded_at_utc": "2026-08-06T06:59:06.241Z",
+  "reviewer_role": "product_owner",
+  "reviewer_response_verbatim": "这些字没有一个通过的",
+  "decision": "HUMAN_REJECTED_ALL_STOP_ROUTE",
+  "counts": {
+    "total": 5,
+    "human_accepted": 0,
+    "human_rejected": 5
+  },
+  "rejected_characters": [
+    "侹",
+    "岠",
+    "婼",
+    "鄀",
+    "髎"
+  ],
+  "frozen_input": {
+    "path": "tmp/vector-mve/strokeorder-next-sample/evaluation.json",
+    "sha256": "7d881f8386566b49cdf9120dd8f8c89f3ba51995326376f42f3d8c34ad9a85bf"
+  },
+  "methodology_consequence": [
+    "Do not scale the existing strokeorder strict/0.99 merge candidates to the remaining issue characters.",
+    "Do not infer a shared 艹 defect for this mixed sample.",
+    "Diagnose the failed component or stroke per character before generating another candidate."
+  ],
+  "production_import_allowed": false,
+  "app_data_modified": false
+}

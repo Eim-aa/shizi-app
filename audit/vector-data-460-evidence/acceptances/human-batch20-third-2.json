@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "recorded_at_utc": "2026-08-01T10:03:44Z",
+  "review_scope": "batch20-third producer CANDIDATE drafts: same-character rendering plus Hanzi Writer stroke animation",
+  "reviewer_role": "project_owner",
+  "review_surface": "batch20-third/review/index.html",
+  "review_prompt": {
+    "criteria": [
+      "glyph proportions and visual style are acceptable",
+      "stroke order is acceptable",
+      "stroke direction is acceptable"
+    ],
+    "requested_reply": "通过了，或指出具体问题字和笔画"
+  },
+  "reviewer_response_verbatim": "通过了",
+  "interaction_evidence": {
+    "user_reply_recorded": true,
+    "user_click_telemetry_recorded": false,
+    "assistant_runtime_check_before_handoff": "2/2 candidate hashes validated; 12/12 strokes, medians and frozen mapping replay passed; browser runtime gate remained unavailable"
+  },
+  "decision": "HUMAN_ACCEPTED",
+  "characters": [
+    {
+      "character": "㧐",
+      "codepoint": "U+39D0",
+      "normative_stroke_count": 7,
+      "candidate_sha256": "f984589036e929035ba1f32c777033719dc3d4589ff68edc37734985c02e0523",
+      "runtime_outcome_retained": "CANDIDATE",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "圢",
+      "codepoint": "U+5722",
+      "normative_stroke_count": 5,
+      "candidate_sha256": "b6df074276352c7c80677befcaead12a093411fd35611a7f1e39dc6644b8d836",
+      "runtime_outcome_retained": "CANDIDATE",
+      "decision": "HUMAN_ACCEPTED"
+    }
+  ],
+  "evidence_bindings": {
+    "gate_summary": {
+      "path": "../gates/output/summary.json",
+      "sha256": "5c7b8f356c363c5f2ada8f9c5396df4ff4f9454e01b92f6c9fd3440ef81c3a85"
+    },
+    "gate_receipt": {
+      "path": "../gates/output/receipt.json",
+      "sha256": "99272fc9f2101076ec858f9412115103bf70270861197fc5926978947fcc0bba"
+    },
+    "review_page": {
+      "path": "../review/index.html",
+      "sha256": "440d26ebfa7f37c53b453825b9f9b5e0ddb7e89fdec35a13439ef6348425e9a7"
+    },
+    "review_runtime": {
+      "path": "../review/review.js",
+      "sha256": "7da4b1520cb44a8b66705acb151b6aae73d5c88c69996d9628d26a255d6149e0"
+    }
+  },
+  "limitations": [
+    "This approval closes the requested human visual, stroke-order and stroke-direction review for these exact candidate hashes only.",
+    "The receipt records the user's explicit acceptance response; it does not claim independent click telemetry.",
+    "The runtime batch classification remains subject to the unavailable browser gate; this approval does not claim MACHINE_PASS.",
+    "It does not authorize App import, question-bank changes, commit, push, or a general batch expansion.",
+    "Any candidate byte change invalidates this approval and requires a new review."
+  ]
+}

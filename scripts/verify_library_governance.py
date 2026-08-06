@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import hashlib
 import json
+from collections import Counter
 from pathlib import Path
 
 
@@ -16,11 +17,11 @@ EXPECTED_NORM_SHA256 = {
     "二级": "d597a6e99ea7b8c41215081f824c6e8587bf1c9a3f45fb13086a826306789785",
     "三级": "c9fbc83a9f8cd860306b218bf16c6a4cc56d7c4a22a686d403b176a0dbec7931",
 }
-EXPECTED_AVAILABLE = {"一级": 3500, "二级": 2976, "三级": 838}
+EXPECTED_AVAILABLE = {"一级": 3500, "二级": 2976, "三级": 818}
 EXPECTED_VECTOR_BASELINE = 6854
-EXPECTED_VECTOR_SUPPLEMENT = 460
-EXPECTED_PRACTICE_READY = 7314
-EXPECTED_UNAVAILABLE = 791
+EXPECTED_VECTOR_SUPPLEMENT = 440
+EXPECTED_PRACTICE_READY = 7294
+EXPECTED_UNAVAILABLE = 811
 EXPECTED_CURRICULUM_FILE_SHA256 = "c9b12e616ca252a3af6e7c872a953281ae7d5614bd2263f640131e90bf67b528"
 EXPECTED_CURRICULUM_MEMBERS_SHA256 = "c3de017903fc18076a7ab59ad9f41a29d0daba9a1725f04d206c0158a28de4aa"
 EXPECTED_CURRICULUM_PDF_SHA256 = "3ef0ec8a30b5a950211202658df07d99f5427f750f8ba0c3cfda12736b7bd71a"
@@ -108,9 +109,12 @@ def main():
     vector_manifest_path = ROOT / "audit" / "vector-data-460-manifest.json"
     vector_manifest = json.loads(vector_manifest_path.read_text(encoding="utf-8"))
     vector_chars = {row["character"] for row in vector_manifest["records"]}
-    require(len(vector_chars) == EXPECTED_VECTOR_SUPPLEMENT, "reviewed vector supplement must contain 460 unique characters")
-    require(vector_chars <= selected_chars, "every reviewed vector supplement character must be practice-ready")
-    require(sum(row.get("group_source") == "reviewed_vector_data_supplement" for row in selected) == EXPECTED_VECTOR_SUPPLEMENT, "reviewed vector supplement group provenance is incomplete")
+    require(len(vector_chars) == EXPECTED_VECTOR_SUPPLEMENT, "vector supplement must contain 440 unique characters")
+    require(vector_chars <= selected_chars, "every vector supplement character must be practice-ready")
+    require(sum(row.get("group_source") == "vector_data_supplement" for row in selected) == EXPECTED_VECTOR_SUPPLEMENT, "vector supplement group provenance is incomplete")
+    review_counts = Counter(row.get("human_review_status") for row in vector_manifest["records"])
+    require(review_counts == Counter({"HUMAN_ACCEPTED": 440}), "vector supplement review-state split changed")
+    require(Counter(row.get("vector_data_review_status") for row in selected if row.get("group_source") == "vector_data_supplement") == review_counts, "generated candidate review states differ from the technical manifest")
     hint_manifest_path = ROOT / "audit" / "vector-data-460-hint-groups.json"
     hint_manifest = json.loads(hint_manifest_path.read_text(encoding="utf-8"))
     hint_groups = {row["character"]: row["groups"] for row in hint_manifest["records"]}
@@ -132,6 +136,7 @@ def main():
     inventory = audit["vector_data_inventory"]
     require(inventory["official_baseline"]["standard_character_count"] == EXPECTED_VECTOR_BASELINE, "official Hanzi Writer baseline count changed")
     require(inventory["reviewed_project_supplement"]["character_count"] == EXPECTED_VECTOR_SUPPLEMENT, "reviewed vector supplement count changed")
+    require(inventory["reviewed_project_supplement"]["human_accepted_character_count"] == 440 and inventory["reviewed_project_supplement"]["human_review_pending_character_count"] == 0, "vector supplement review counts changed")
     require(inventory["combined_standard_character_count"] == EXPECTED_PRACTICE_READY, "combined vector inventory count changed")
     require(sha256(ROOT / inventory["reviewed_project_supplement"]["manifest_path"]) == inventory["reviewed_project_supplement"]["manifest_sha256"], "vector supplement manifest hash mismatch")
     hint_inventory = inventory["reviewed_project_supplement"]["hint_groups"]
@@ -151,7 +156,7 @@ def main():
     require("LEVEL_RANK" not in html and "cardLevel(" not in html, "education terminology is still used for writing difficulty")
     require(all(name in html for name in ("规范常用字", "规范次常用字", "规范专门用字", "义教基础字")), "source-backed library labels are incomplete")
 
-    print("library governance: 8105 normative characters classified; 3500 curriculum characters verified; 7314 practice-ready; 791 explicitly unavailable")
+    print("library governance: 8105 normative characters classified; 3500 curriculum characters verified; 7294 practice-ready; 811 explicitly unavailable")
 
 
 if __name__ == "__main__":

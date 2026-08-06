@@ -8,6 +8,7 @@ import sys
 import time
 import urllib.parse
 import urllib.request
+from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
@@ -38,8 +39,10 @@ HANZI_WRITER_BASELINE_STANDARD_COUNT = 6854
 HANZI_WRITER_BASELINE_MEMBERS_SHA256 = "a199c0ed9390769bd0834b5a322c22c8fac820c4284c5aa932bf8f930e73c9f3"
 VECTOR_DATA_MANIFEST_PATH = ROOT / "audit" / "vector-data-460-manifest.json"
 VECTOR_DATA_HINT_GROUPS_PATH = ROOT / "audit" / "vector-data-460-hint-groups.json"
-VECTOR_DATA_SUPPLEMENT_COUNT = 460
-VECTOR_DATA_SUPPLEMENT_MEMBERS_SHA256 = "0dd98d7e718598d3aa9fa94eb0ab9c56379f957e90d8ba0468a4ddbb40433b75"
+VECTOR_DATA_SUPPLEMENT_COUNT = 440
+VECTOR_DATA_HUMAN_ACCEPTED_COUNT = 440
+VECTOR_DATA_HUMAN_REVIEW_PENDING_COUNT = 0
+VECTOR_DATA_SUPPLEMENT_MEMBERS_SHA256 = "c8835eaa2eb28c133a82433854bd460f6e8632e15812a5d4bba51921103c8dbc"
 NORMATIVE_SOURCE_URL = "https://www.gov.cn/gzdt/att/att/site1/20130819/tygfhzb.pdf"
 CURRICULUM_SOURCE_URL = "https://hudong.moe.gov.cn/srcsite/A26/s8001/202204/W020220420582344386456.pdf"
 CURRICULUM_SOURCE_SHA256 = "3ef0ec8a30b5a950211202658df07d99f5427f750f8ba0c3cfda12736b7bd71a"
@@ -325,25 +328,43 @@ def read_hanzi_writer_available_chars(standard_rows):
 
     The original 6,854-character baseline is independently pinned to the
     Hanzi Writer Data 2.0.1 membership used by this repository. The only
-    accepted additions are the 460 records in the reviewed supplement
+    explicit additions are the 440 records in the final technical supplement
     manifest; an arbitrary JSON file copied into data/ cannot silently enter
-    the practice deck.
+    the practice deck. Human-review state remains separately hash-bound so a
+    later payload change cannot inherit an earlier acceptance.
     """
     manifest = json.loads(VECTOR_DATA_MANIFEST_PATH.read_text(encoding="utf-8"))
-    if manifest.get("artifact") != "shizi-vector-data-460-final-manifest":
+    if manifest.get("schema_version") != 2 or manifest.get("artifact") != "shizi-vector-data-440-technical-manifest":
         raise RuntimeError("Unexpected vector-data supplement manifest")
+    scope = manifest.get("scope") or {}
+    if (
+        scope.get("technically_validated_count") != VECTOR_DATA_SUPPLEMENT_COUNT
+        or scope.get("human_accepted_count") != VECTOR_DATA_HUMAN_ACCEPTED_COUNT
+        or scope.get("human_review_pending_count") != VECTOR_DATA_HUMAN_REVIEW_PENDING_COUNT
+        or manifest.get("gates", {}).get("human_review_gate") != "440 accepted; 0 pending"
+    ):
+        raise RuntimeError("Unexpected vector-data technical/review scope")
+    evidence = manifest.get("clean_clone_evidence") or {}
+    evidence_path = ROOT / str(evidence.get("index_path", ""))
+    if not evidence_path.is_file() or file_sha256(evidence_path) != evidence.get("index_sha256"):
+        raise RuntimeError("Vector-data clean-clone evidence index mismatch")
     records = manifest.get("records") or []
     supplement_chars = {record.get("character") for record in records}
     if len(records) != len(supplement_chars) or len(records) != VECTOR_DATA_SUPPLEMENT_COUNT:
-        raise RuntimeError("The vector-data supplement must contain exactly 460 unique characters")
+        raise RuntimeError("The vector-data supplement must contain exactly 440 unique characters")
 
     standard_order = [row["character"] for row in standard_rows]
     standard_set = set(standard_order)
     if not supplement_chars <= standard_set:
         raise RuntimeError("The vector-data supplement contains a non-normative character")
 
+    review_status_by_char = {}
     for record in records:
         character = record["character"]
+        review_status = record.get("human_review_status")
+        if review_status not in {"HUMAN_ACCEPTED", "PENDING_HUMAN_REVIEW"}:
+            raise RuntimeError(f"Unknown vector-data review status for {character}")
+        review_status_by_char[character] = review_status
         expected_path = f"data/{character}.json"
         if record.get("data_path") != expected_path:
             raise RuntimeError(f"Unexpected supplement data path for {character}")
@@ -376,9 +397,16 @@ def read_hanzi_writer_available_chars(standard_rows):
     if len(baseline_chars) != HANZI_WRITER_BASELINE_STANDARD_COUNT or baseline_digest != HANZI_WRITER_BASELINE_MEMBERS_SHA256:
         raise RuntimeError("The pinned Hanzi Writer Data 2.0.1 baseline membership changed")
     if supplement_digest != VECTOR_DATA_SUPPLEMENT_MEMBERS_SHA256:
-        raise RuntimeError("The reviewed 460-character supplement membership changed")
+        raise RuntimeError("The reviewed 440-character supplement membership changed")
     if local_standard_chars != baseline_chars | supplement_chars:
         raise RuntimeError("Local vector-data inventory is not exactly baseline plus reviewed supplement")
+    review_counts = Counter(review_status_by_char.values())
+    if (
+        review_counts["HUMAN_ACCEPTED"] != VECTOR_DATA_HUMAN_ACCEPTED_COUNT
+        or review_counts["PENDING_HUMAN_REVIEW"] != VECTOR_DATA_HUMAN_REVIEW_PENDING_COUNT
+        or set(review_counts) - {"HUMAN_ACCEPTED", "PENDING_HUMAN_REVIEW"}
+    ):
+        raise RuntimeError("Vector-data human-review counts changed")
 
     source_inventory = {
         "official_baseline": {
@@ -393,17 +421,23 @@ def read_hanzi_writer_available_chars(standard_rows):
             "manifest_sha256": file_sha256(VECTOR_DATA_MANIFEST_PATH),
             "character_count": len(supplement_chars),
             "members_sha256": supplement_digest,
+            "audit_state": manifest["audit_state"],
+            "human_accepted_character_count": review_counts["HUMAN_ACCEPTED"],
+            "human_review_pending_character_count": review_counts["PENDING_HUMAN_REVIEW"],
+            "evidence_index_path": str(evidence_path.relative_to(ROOT)),
+            "evidence_index_sha256": file_sha256(evidence_path),
+            "license_review": evidence.get("license_review"),
         },
         "combined_standard_character_count": len(local_standard_chars),
     }
-    return local_standard_chars, source_inventory
+    return local_standard_chars, source_inventory, review_status_by_char
 
 
 def read_vector_data_hint_groups():
     manifest = json.loads(VECTOR_DATA_MANIFEST_PATH.read_text(encoding="utf-8"))
     manifest_records = {record["character"]: record for record in manifest["records"]}
     payload = json.loads(VECTOR_DATA_HINT_GROUPS_PATH.read_text(encoding="utf-8"))
-    if payload.get("artifact") != "shizi-vector-data-460-hint-groups":
+    if payload.get("artifact") != "shizi-vector-data-440-hint-groups":
         raise RuntimeError("Unexpected vector-data hint-group manifest")
     binding = payload.get("source_bindings", {}).get("vector_data_manifest", {})
     if binding.get("path") != str(VECTOR_DATA_MANIFEST_PATH.relative_to(ROOT)) or binding.get("sha256") != file_sha256(VECTOR_DATA_MANIFEST_PATH):
@@ -430,7 +464,7 @@ def read_vector_data_hint_groups():
             raise RuntimeError(f"Invalid hint groups for {character}: {groups}")
         groups_by_char[character] = groups
     if set(groups_by_char) != set(manifest_records) or len(groups_by_char) != VECTOR_DATA_SUPPLEMENT_COUNT:
-        raise RuntimeError("Hint-group manifest must cover the exact reviewed 460-character supplement")
+        raise RuntimeError("Hint-group manifest must cover the exact reviewed 440-character supplement")
     return groups_by_char, {
         "path": str(VECTOR_DATA_HINT_GROUPS_PATH.relative_to(ROOT)),
         "sha256": file_sha256(VECTOR_DATA_HINT_GROUPS_PATH),
@@ -646,6 +680,7 @@ def choose_candidates(
     hanzi_writer_chars,
     curriculum_table_one,
     supplemental_groups,
+    supplemental_review_statuses,
 ):
     resolve_groups = build_group_resolver(mm)
     rows_by_char = {}
@@ -690,7 +725,8 @@ def choose_candidates(
             "curriculum_table": "表一" if ch in curriculum_table_one else ("表二" if standard["norm_level"] == "一级" else None),
             "stroke_count": strokes,
             "groups": groups,
-            "group_source": "reviewed_vector_data_supplement" if ch in supplemental_groups else "make_me_a_hanzi",
+            "group_source": "vector_data_supplement" if ch in supplemental_groups else "make_me_a_hanzi",
+            "vector_data_review_status": supplemental_review_statuses.get(ch),
             "decomposition": mm_entry.get("decomposition", ""),
             "radical": mm_entry.get("radical", row.get("radical", "")),
             "score": score_candidate(row, groups),
@@ -944,7 +980,7 @@ def main():
     curriculum_table_one = read_curriculum_table_one()
     rows = read_hanzi_db()
     word_index = read_context_words()
-    hanzi_writer_chars, source_inventory = read_hanzi_writer_available_chars(standard_rows)
+    hanzi_writer_chars, source_inventory, supplemental_review_statuses = read_hanzi_writer_available_chars(standard_rows)
     supplemental_groups, hint_group_inventory = read_vector_data_hint_groups()
     source_inventory["reviewed_project_supplement"]["hint_groups"] = hint_group_inventory
     coverage = coverage_report(standard_rows, hanzi_writer_chars, source_inventory)
@@ -959,6 +995,7 @@ def main():
         hanzi_writer_chars,
         set(curriculum_table_one),
         supplemental_groups,
+        supplemental_review_statuses,
     )
     if not chosen:
         raise RuntimeError("No candidates selected")

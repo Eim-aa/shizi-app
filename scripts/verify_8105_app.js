@@ -492,7 +492,7 @@ let browser;
     doneAria: document.getElementById("done").getAttribute("aria-label"),
     viewport: document.querySelector('meta[name="viewport"]').content,
   }));
-  assert(baseline.seed === 7314 && baseline.groups === 7314 && baseline.cards >= 7314, "Expected the complete 7314-card corpus", baseline);
+  assert(baseline.seed === 7294 && baseline.groups === 7294 && baseline.cards >= 7294, "Expected the complete 7294-card corpus", baseline);
   assert(baseline.fsrsVersion.includes("FSRS-6.0") && baseline.weights === 21, "Expected fixed FSRS-6 runtime", baseline);
   assert(baseline.scheduler.desiredRetention === 0.9 && baseline.scheduler.maximumInterval === 365 && baseline.scheduler.enableFuzz && baseline.engineFuzz && baseline.scheduler.parameterVersion === "fsrs6-fuzz-365-v2", "Expected fuzzed scheduler with a one-year interval ceiling", baseline.scheduler);
   assert(baseline.decisionLabels.join("/") === "写对了/写错了" && baseline.oldStampChoices === 0
@@ -2011,7 +2011,7 @@ let browser;
     const expected = {
       core3500: { available: 3500, official: 3500 },
       adv3000: { available: 2976, official: 3000 },
-      rare: { available: 838, official: 1605 },
+      rare: { available: 818, official: 1605 },
       curriculum2500: { available: 2500, official: 2500 },
     };
     const rows = LIBRARIES.map((lib) => {
@@ -2048,9 +2048,8 @@ let browser;
     const practicalMigration = normalizeLibrary(null).id;
     preference = "challenge";
     const challengeMigration = normalizeLibrary(null).id;
-    const legacyPrimary = normalizeLibrary({ id: "primary", userSelected: true });
-    const legacyJunior = normalizeLibrary({ id: "junior", userSelected: true });
-    const legacySenior = normalizeLibrary({ id: "senior", userSelected: true });
+    const legacyObjects = Object.fromEntries(["primary", "junior", "senior"].map((id) => [id, normalizeLibrary({ id, userSelected: true })]));
+    const legacyStrings = Object.fromEntries(["primary", "junior", "senior"].map((id) => [id, normalizeLibrary(id)]));
 
     const calibrationIndexes = allIndexes().slice(0, 15);
     const completeChallengeCalibration = (manualLibrary = "") => {
@@ -2093,7 +2092,7 @@ let browser;
     closeLibSheet(); renderHome();
     return {
       rows, crossLibraryReview, rareNewOnly, searchAcrossLibrary,
-      migration: { balancedMigration, practicalMigration, challengeMigration, legacyPrimary, legacyJunior, legacySenior },
+      migration: { balancedMigration, practicalMigration, challengeMigration, legacyObjects, legacyStrings },
       calibration: { fresh: freshCalibration, manual: manualCalibration }, ui, restoredLibrary,
     };
   });
@@ -2102,9 +2101,12 @@ let browser;
   assert(libraries.crossLibraryReview && libraries.rareNewOnly && libraries.searchAcrossLibrary,
     "Expected the selected library to scope only new characters while review and search remain cross-library", libraries);
   assert(libraries.migration.balancedMigration === "core3500" && libraries.migration.practicalMigration === "core3500" && libraries.migration.challengeMigration === "adv3000" && libraries.restoredLibrary === "curriculum2500"
-    && libraries.migration.legacyPrimary.id === "curriculum2500" && libraries.migration.legacyJunior.id === "core3500" && libraries.migration.legacySenior.id === "core3500"
-    && libraries.migration.legacyPrimary.userSelected && libraries.migration.legacyJunior.userSelected && libraries.migration.legacySenior.userSelected,
-    "Expected old preference and retired school-library migrations plus backup restore to preserve an explicit source-backed choice", libraries);
+    && libraries.migration.legacyObjects.primary.id === "curriculum2500" && libraries.migration.legacyObjects.junior.id === "core3500" && libraries.migration.legacyObjects.senior.id === "adv3000"
+    && libraries.migration.legacyStrings.primary.id === "curriculum2500" && libraries.migration.legacyStrings.junior.id === "core3500" && libraries.migration.legacyStrings.senior.id === "adv3000"
+    && Object.values(libraries.migration.legacyObjects).every((row) => row.userSelected)
+    && Object.values(libraries.migration.legacyStrings).every((row) => row.userSelected)
+    && new Set(Object.values(libraries.migration.legacyObjects).map((row) => row.id)).size === 3,
+    "Expected object and string forms of the retired school libraries to preserve an explicit, distinct source-backed choice", libraries);
   assert(libraries.calibration.fresh.before.id === "core3500" && !libraries.calibration.fresh.before.userSelected && libraries.calibration.fresh.preference === "challenge" && libraries.calibration.fresh.id === "adv3000" && !libraries.calibration.fresh.userSelected && libraries.calibration.fresh.stored.id === "adv3000"
     && libraries.calibration.manual.before.id === "curriculum2500" && libraries.calibration.manual.before.userSelected && libraries.calibration.manual.preference === "challenge" && libraries.calibration.manual.id === "curriculum2500" && libraries.calibration.manual.userSelected,
     "Expected a real first-install challenge calibration to advance only the untouched default library while preserving a manual choice", libraries.calibration);

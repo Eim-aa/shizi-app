@@ -1,0 +1,126 @@
+{
+  "schema_version": 1,
+  "recorded_at_utc": "2026-08-02T17:27:27Z",
+  "review_scope": "MOE_NONE875_MACHINE_PASS_PENDING_HUMAN same-character rendering plus Hanzi Writer stroke animation",
+  "reviewer_role": "project_owner",
+  "review_surface": "tmp/vector-mve/moe-stroke-svg-review/index.html",
+  "review_prompt": {
+    "criteria": [
+      "glyph proportions and visual style are acceptable",
+      "stroke order is acceptable",
+      "stroke direction is acceptable"
+    ],
+    "requested_reply": "通过了，或指出具体问题字和笔画"
+  },
+  "reviewer_response_verbatim": "通过了",
+  "interaction_evidence": {
+    "user_reply_recorded": true,
+    "user_click_telemetry_recorded": false,
+    "machine_gate_before_handoff": "10/10 exact stroke counts; 10/10 source-order/path counts; 10/10 static path checks; 10/10 runtime load, full animation, per-stroke callbacks and quiz start/cancel"
+  },
+  "decision": "HUMAN_ACCEPTED",
+  "characters": [
+    {
+      "character": "嚭",
+      "codepoint": "U+56AD",
+      "normative_stroke_count": 19,
+      "candidate_sha256": "59ce439046d459e345dce4caa4a04dc0b7e3ca859dd5608f565359e664ca8cab",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "墘",
+      "codepoint": "U+5898",
+      "normative_stroke_count": 14,
+      "candidate_sha256": "1efad61d50b544a58a212790acf110fde478b5136b3bcf2c345c1d9cfc1565b1",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "嫄",
+      "codepoint": "U+5AC4",
+      "normative_stroke_count": 13,
+      "candidate_sha256": "1af9e76e3cc3b7f640325c3a1c3b882e29130adf61a25e4688cefe4a030746fa",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "尪",
+      "codepoint": "U+5C2A",
+      "normative_stroke_count": 7,
+      "candidate_sha256": "2ab535911d3c4410ab3ce339137be0e0bfc2eb0be8e160d9513a6d6bdbda2ef0",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "屼",
+      "codepoint": "U+5C7C",
+      "normative_stroke_count": 6,
+      "candidate_sha256": "7c72cffc7ceb9093c24e6503a0694bba791ee488eccb07d740ea5cb62e2e97d2",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "崁",
+      "codepoint": "U+5D01",
+      "normative_stroke_count": 10,
+      "candidate_sha256": "673ca2d5b32b8ec52bd48bd29f302859ac8ebe21a2b103bab1073a5eb64a55a3",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "帨",
+      "codepoint": "U+5E28",
+      "normative_stroke_count": 10,
+      "candidate_sha256": "9f472f2833fce5bbf82194a1d6a3c7862b3051edaa85b697417496d604b5906c",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "踦",
+      "codepoint": "U+8E26",
+      "normative_stroke_count": 15,
+      "candidate_sha256": "95ddebaa1c0d69b5d76df0ba42dcb89f8b77fbeebb947021c601b5ee84a27822",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "雱",
+      "codepoint": "U+96F1",
+      "normative_stroke_count": 12,
+      "candidate_sha256": "5cc74869a245e80a5425342f851e532da619e01c721f31da23e3069e9fa6a4b2",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "龢",
+      "codepoint": "U+9FA2",
+      "normative_stroke_count": 22,
+      "candidate_sha256": "ddf3e45542ff19f6dca1be4d58fbe614324a5c807b2d85f760811b3a7fd60c48",
+      "decision": "HUMAN_ACCEPTED"
+    }
+  ],
+  "evidence_bindings": {
+    "coverage": {
+      "path": "../none875-coverage.json",
+      "sha256": "ae51083af740ab80fdc801f59de3a6a30fd8c7b90767cb2546c02e076e2fe8e3"
+    },
+    "candidate_manifest": {
+      "path": "../../moe-stroke-svg-candidates/manifest.json",
+      "sha256": "b0b45ad26adf99842e05c82cc83d77d2b1a14d963aae8699da7d73bcce770fe6"
+    },
+    "runtime_receipt": {
+      "path": "../runtime-receipt-10.json",
+      "sha256": "382672e8bdb70b445208755b6a41dd21e343dbcab8f74e9de7862fd0040e5864"
+    },
+    "source_order_audit": {
+      "path": "../source-order-audit.json",
+      "sha256": "bfd80d02f6aa522c43d3cc791565e0ed4f038b5dc26d901c848f59ab29a2dbe3"
+    },
+    "review_page": {
+      "path": "../../moe-stroke-svg-review/index.html",
+      "sha256": "a6cf9ae83020fd6e029cb477254c08b32479e6617f3c3880c7645ee927b7dbc7"
+    },
+    "review_data": {
+      "path": "../../moe-stroke-svg-review/draft-data.js",
+      "sha256": "d51021ef37d7ea5ffe23b937fa6341cf12c644738130ef27e1dcc344af9b71c0"
+    }
+  },
+  "limitations": [
+    "This approval closes the requested human visual, stroke-order and stroke-direction review for these exact candidate hashes only.",
+    "The receipt records the user's explicit acceptance response; it does not claim independent click telemetry.",
+    "It does not authorize Hanzipi candidates, question-bank changes, commit, push, or a general batch expansion.",
+    "Any candidate byte change invalidates this approval and requires a new review."
+  ]
+}

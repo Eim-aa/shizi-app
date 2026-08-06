@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "artifact": "shizi-strokeorder-same-position-component-four-human-review",
+  "recorded_at_utc": "2026-08-06T15:15:07.479Z",
+  "reviewer_role": "product_owner",
+  "reviewer_response_verbatim": "都通过",
+  "decision": "HUMAN_ACCEPTED_ALL_FOUR",
+  "accepted_characters": [
+    "溚",
+    "溞",
+    "爟",
+    "醨"
+  ],
+  "counts": {
+    "total": 4,
+    "human_accepted": 4,
+    "human_rejected": 0
+  },
+  "accepted_method": "retain target left component; directly transplant an exact right-side HWD component from a valid same-layout donor with no coordinate transform",
+  "frozen_evidence": {
+    "evaluation": {
+      "path": "tmp/vector-mve/strokeorder-side-component-four/evaluation.json",
+      "sha256": "58e325d697808d836d7b0df695b9c9ff705cbd7fca22bca63195b5998612eeac"
+    },
+    "runtime_receipt": {
+      "path": "tmp/vector-mve/strokeorder-side-component-four/receipt-runtime.json",
+      "sha256": "9abfce6fed28548ac3780770305a5282db3e4cc28be5b208deb12560a78475cf"
+    },
+    "self_visual_review": {
+      "path": "audit/vector-data-460-evidence/investigations/strokeorder-side-component-four-self-review.json",
+      "sha256": "6e0638d33badf41505a6f9a0e44d891e53849948a3d2fe2aecebf458a51e025a"
+    },
+    "review_page": {
+      "path": "tmp/vector-mve/strokeorder-side-component-four/review.html",
+      "sha256": "6d66b1bd2e982dbdee9d607a886bc09d51e3d623881e552dcaf717467619d781"
+    },
+    "candidates": {
+      "溚": {
+        "path": "tmp/vector-mve/strokeorder-side-component-four/candidates/溚.json",
+        "sha256": "ad1b91bcce04cf241de4eb579c4798b6151746a6f22fa4292723ddb0f6900698"
+      },
+      "溞": {
+        "path": "tmp/vector-mve/strokeorder-side-component-four/candidates/溞.json",
+        "sha256": "3c8ec9a19c9e9ca924fede9622e519928f996a258687d41d0d4eb2fdb6a24144"
+      },
+      "爟": {
+        "path": "tmp/vector-mve/strokeorder-side-component-four/candidates/爟.json",
+        "sha256": "58107881958a411cae79e22f58dc93c9eebd3df35362805abd79f66f5fce5415"
+      },
+      "醨": {
+        "path": "tmp/vector-mve/strokeorder-side-component-four/candidates/醨.json",
+        "sha256": "340896c17a66971b5f92a3447ae3f5fbe74c9fa1541a36870c51986c68cfbbac"
+      }
+    }
+  },
+  "scale_permission": "same-position exact-component candidates with comparable left/right layout only; each expanded batch still requires machine gates and explicit human review",
+  "production_import_allowed": false,
+  "app_data_modified": false
+}

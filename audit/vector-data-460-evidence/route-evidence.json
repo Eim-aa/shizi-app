@@ -1,0 +1,556 @@
+{
+  "schema_version": 1,
+  "artifact": "shizi-vector-data-440-route-evidence",
+  "evidence_snapshot_date": "2026-08-06",
+  "scope": {
+    "purpose": "Clean-clone verification of provenance, transformation, receipt and acceptance metadata",
+    "raw_third_party_payloads_included": false,
+    "license_review": "OUT_OF_SCOPE_PENDING_SEPARATE_REVIEW"
+  },
+  "review_state": {
+    "human_accepted": 440,
+    "human_review_pending": 0,
+    "product_scope_excluded": 20,
+    "technically_validated_payloads": 440
+  },
+  "routes": {
+    "animcjk_363": {
+      "count": 363,
+      "human_review_status": "HUMAN_ACCEPTED",
+      "historical_receipt": {
+        "historical_path": "tmp/vector-mve/animcjk-363/production-import/receipt.json",
+        "sha256": "82396401474d41891156bebe7a672c05444245b7586c789dbb2407184403e356",
+        "byte_size": 153654
+      },
+      "historical_provenance": {
+        "historical_path": "tmp/vector-mve/animcjk-363/provenance.json",
+        "sha256": "a4101737fb87e05d1e9b3d40e9615d06d261ee9d917d27732a3b558466c08808",
+        "byte_size": 2940
+      },
+      "provenance": {
+        "schema_version": 1,
+        "status": "isolated_candidate_only_not_integrated",
+        "snapshot_date": "2026-07-29",
+        "upstream": {
+          "repository": "https://github.com/parsimonhi/animCJK",
+          "commit": "ec5e17cca76c87587790bcbce5ea0b4d4fb753d6",
+          "graphics_zh_hans": {
+            "input": "external-local/private/tmp/shizi-animcjk-graphicsZhHans.txt",
+            "sha256": "5a5c157fddd0fd9bfaf5580b25c20a1ba2b0cabc0b7142e09f6149cbd5547798"
+          },
+          "graphics_ja": {
+            "input": "external-local/private/tmp/shizi-animcjk-graphicsJa.txt",
+            "sha256": "2bcd1c6d186e5376c5f9202b4eae2eaeff13c2566675a55f1c9dd548a2ef31c8"
+          }
+        },
+        "frozen_population": {
+          "input": "tmp/vector-mve/frozen-candidate-sets.json",
+          "sha256": "84002af06312af312b51c9d2126df09cb3ad7086beb1dc0299600885c03997bc",
+          "characters_sha256": "068a4692045cfbf9e7cc6e3202fa67aa3349b37c74465ac5977e707d6bbf7de5"
+        },
+        "frozen_mve_gates": {
+          "input": "tmp/vector-mve/mve-gates.json",
+          "sha256": "83cca8ea0580c7c00fdc935b3a17ebbcd57be2b9d7b1b4f2cf902521dfee0cee",
+          "minimum_per_stroke_median_inside_ratio": 0.86,
+          "minimum_fraction_of_strokes_at_or_above_0_98": 0.99
+        },
+        "audit_evidence": {
+          "zh_hans_machine_audit": {
+            "path": "external-local/private/tmp/animcjk-machine-audit.json",
+            "sha256": "7a8032d3a01d1986add17425900cc586660cc58a18ac73cd7a83dbb179d19e41"
+          },
+          "ja_mainland_gf0023_audit": {
+            "path": "external-local/private/tmp/gf-animcjk-ja56-final-audit.json",
+            "sha256": "d254e38d38b1db7db9f42eba4854c8680fa74a79552a3b09a1a29b5b32cd56ad"
+          },
+          "packaged_files": {
+            "animcjk-zh-hans-machine-audit.json": {
+              "source": "external-local/private/tmp/animcjk-machine-audit.json",
+              "sha256": "7a8032d3a01d1986add17425900cc586660cc58a18ac73cd7a83dbb179d19e41"
+            },
+            "gf0023-zh-hans-307-summary.json": {
+              "source": "external-local/private/tmp/gf-animcjk-crosscheck-summary.json",
+              "sha256": "b83507c8d9a77d27baac00b6e7bdbb337cba9fe033f35a729d13bfc57615e8ff"
+            },
+            "gf0023-ja-mainland-56-audit.json": {
+              "source": "external-local/private/tmp/gf-animcjk-ja56-final-audit.json",
+              "sha256": "d254e38d38b1db7db9f42eba4854c8680fa74a79552a3b09a1a29b5b32cd56ad"
+            }
+          },
+          "gf0023_structure_and_stroke_order": {
+            "zh_hans_pass": 307,
+            "ja_mainland_pass": 56,
+            "total_pass": 363,
+            "confirmed_failures": 0
+          }
+        },
+        "transformations": {
+          "raw_361": "Drop only the source character key; preserve strokes and medians exactly.",
+          "豨": "Keep every outline; exchange medians 5 and 7.",
+          "镵": "Keep every outline and all other medians; reorder the three existing stroke-13 anchors from 1-2-3 to 2-1-3."
+        },
+        "scope_exclusions": [
+          "No App data or curriculum file is modified.",
+          "No import, commit, push, or release approval is implied.",
+          "This pack establishes technical candidate data only."
+        ]
+      },
+      "acceptance": {
+        "source": {
+          "historical_path": "tmp/vector-mve/animcjk-363/human-review/acceptance.json",
+          "sha256": "d92371084c85fbbf41ded64370b1ad489c26fb9e2d07f5e9f6ffef607a03def2",
+          "byte_size": 105348
+        },
+        "recorded_at_utc": "2026-08-03T02:41:54.407989Z",
+        "reviewer_role": "project_owner",
+        "reviewer_response_verbatim": "363通过",
+        "decision": "HUMAN_ACCEPTED",
+        "review_scope": "AnimCJK 363 candidate pack: full static gallery, focused risk pages and Hanzi Writer runtime harness",
+        "review_surface": "tmp/vector-mve/animcjk-363/review.html",
+        "interaction_evidence": {
+          "user_reply_recorded": true,
+          "user_click_telemetry_recorded": false,
+          "machine_gate_before_handoff": "363/363 static visual QA; 363/363 runtime animation; 363/363 format/normative-count dry-run; 0 App collisions"
+        },
+        "evidence_bindings": {
+          "manifest": {
+            "path": "tmp/vector-mve/animcjk-363/manifest.json",
+            "sha256": "79162ac2be71d2d4dd181a971531552163ae235c2056c3935572c4032bed3884"
+          },
+          "validation": {
+            "path": "tmp/vector-mve/animcjk-363/validation.json",
+            "sha256": "278ccdf6c0324ea3eb31673ee542237885ba6e14ada890f9b25ec2d63275f17e"
+          },
+          "runtime": {
+            "path": "tmp/vector-mve/animcjk-363/runtime-validation.json",
+            "sha256": "234ba2fd16f53243599d53a0171032c6afa39cc57b6b708097e849df8848814c"
+          },
+          "visual_review": {
+            "path": "tmp/vector-mve/animcjk-363/visual-review.json",
+            "sha256": "b324c2e6c10c89b74dae2ad1596b336b0aaa9f9b4afa2c1340f588959a247080"
+          },
+          "production_dry_run": {
+            "path": "tmp/vector-mve/animcjk-363/production-dry-run.json",
+            "sha256": "7b0cf39b170daa7c7985b5668774c776a3b46f19c0b8510faa60910efd4aaca8"
+          },
+          "review_page": {
+            "path": "tmp/vector-mve/animcjk-363/review.html",
+            "sha256": "cf926178d7cd3ad68cd0df0dce14ab609640443211b7d71adac68aa193f64cfe"
+          },
+          "review_instructions": {
+            "path": "tmp/vector-mve/animcjk-363/human-review/README.md",
+            "sha256": "20bcf6a277cf1a7068c4a86545cdc0df30a896aae0c3fbd5651be2a2b023fb02"
+          }
+        },
+        "limitations": [
+          "This approval closes the visual, stroke-order and stroke-direction review for these exact 363 candidate hashes only.",
+          "The receipt records the user's explicit acceptance response; it does not claim independent click telemetry.",
+          "It does not authorize Hanzipi candidates, other unreviewed batches, question-bank changes, commit or push.",
+          "Any candidate byte change invalidates this approval and requires a new review."
+        ],
+        "character_count": 363
+      },
+      "acceptance_artifact": "audit/vector-data-460-evidence/acceptances/animcjk-363.json"
+    },
+    "moe_stroke_svg_10": {
+      "count": 10,
+      "human_review_status": "HUMAN_ACCEPTED",
+      "historical_receipt": {
+        "historical_path": "tmp/vector-mve/moe-stroke-svg-pilot/production-import/receipt.json",
+        "sha256": "e243dd9f404068f4cc8801315f0dd87f022f56566e69116da139f892de54315f",
+        "byte_size": 4756
+      },
+      "historical_conversion_audit": {
+        "historical_path": "tmp/vector-mve/moe-stroke-svg-pilot/conversion-audit.json",
+        "sha256": "ef790a06034401481f7532c4f1bd49a7aeb8b358063e9531a919f352f7f86154",
+        "byte_size": 1879276
+      },
+      "historical_source_order_audit": {
+        "historical_path": "tmp/vector-mve/moe-stroke-svg-pilot/source-order-audit.json",
+        "sha256": "bfd80d02f6aa522c43d3cc791565e0ed4f038b5dc26d901c848f59ab29a2dbe3",
+        "byte_size": 1778
+      },
+      "conversion_summary": {
+        "source_records": 49,
+        "count_match": 37,
+        "count_mismatch": 12,
+        "median_pass": 44,
+        "path_parse_pass": 49,
+        "geometry_pass": 42,
+        "machine_static_pass": 31,
+        "production_import_allowed": false,
+        "app_data_modified": false
+      },
+      "source_order_summary": {
+        "characters": 10,
+        "count_matches": 10,
+        "source_order_authority": true,
+        "normative_code_crosswalk": "not independently inferred",
+        "production_import_allowed": false,
+        "app_data_modified": false
+      },
+      "source_order_method": "For each dictFrame page, count the inline XML <Stroke> elements and the direct path children of the page's outline group. The page's inline XML is the authoritative animation payload; the extracted path array preserves that DOM order.",
+      "evidence_url_template": "https://stroke-order.cityinfo.com.tw/dictFrame.jsp?ID={id}",
+      "acceptance": {
+        "source": {
+          "historical_path": "tmp/vector-mve/moe-stroke-svg-pilot/human-review/acceptance.json",
+          "sha256": "328000103d0da6bc0fd5e2c976326a0be78f3c4456e397dde426311e08b20938",
+          "byte_size": 4786
+        },
+        "recorded_at_utc": "2026-08-02T17:27:27Z",
+        "reviewer_role": "project_owner",
+        "reviewer_response_verbatim": "通过了",
+        "decision": "HUMAN_ACCEPTED",
+        "review_scope": "MOE_NONE875_MACHINE_PASS_PENDING_HUMAN same-character rendering plus Hanzi Writer stroke animation",
+        "review_surface": "tmp/vector-mve/moe-stroke-svg-review/index.html",
+        "interaction_evidence": {
+          "user_reply_recorded": true,
+          "user_click_telemetry_recorded": false,
+          "machine_gate_before_handoff": "10/10 exact stroke counts; 10/10 source-order/path counts; 10/10 static path checks; 10/10 runtime load, full animation, per-stroke callbacks and quiz start/cancel"
+        },
+        "evidence_bindings": {
+          "coverage": {
+            "path": "../none875-coverage.json",
+            "sha256": "ae51083af740ab80fdc801f59de3a6a30fd8c7b90767cb2546c02e076e2fe8e3"
+          },
+          "candidate_manifest": {
+            "path": "../../moe-stroke-svg-candidates/manifest.json",
+            "sha256": "b0b45ad26adf99842e05c82cc83d77d2b1a14d963aae8699da7d73bcce770fe6"
+          },
+          "runtime_receipt": {
+            "path": "../runtime-receipt-10.json",
+            "sha256": "382672e8bdb70b445208755b6a41dd21e343dbcab8f74e9de7862fd0040e5864"
+          },
+          "source_order_audit": {
+            "path": "../source-order-audit.json",
+            "sha256": "bfd80d02f6aa522c43d3cc791565e0ed4f038b5dc26d901c848f59ab29a2dbe3"
+          },
+          "review_page": {
+            "path": "../../moe-stroke-svg-review/index.html",
+            "sha256": "a6cf9ae83020fd6e029cb477254c08b32479e6617f3c3880c7645ee927b7dbc7"
+          },
+          "review_data": {
+            "path": "../../moe-stroke-svg-review/draft-data.js",
+            "sha256": "d51021ef37d7ea5ffe23b937fa6341cf12c644738130ef27e1dcc344af9b71c0"
+          }
+        },
+        "limitations": [
+          "This approval closes the requested human visual, stroke-order and stroke-direction review for these exact candidate hashes only.",
+          "The receipt records the user's explicit acceptance response; it does not claim independent click telemetry.",
+          "It does not authorize Hanzipi candidates, question-bank changes, commit, push, or a general batch expansion.",
+          "Any candidate byte change invalidates this approval and requires a new review."
+        ],
+        "character_count": 10
+      },
+      "acceptance_artifact": "audit/vector-data-460-evidence/acceptances/moe-10.json"
+    },
+    "human_generated_8": {
+      "count": 8,
+      "human_review_status": "HUMAN_ACCEPTED",
+      "historical_receipt": {
+        "historical_path": "tmp/vector-mve/human-accepted-production-import/receipt.json",
+        "sha256": "71e67b2b0d251ff1963e8e0531cff4fa9c6c5d92613f04638f70bc01b4798aa4",
+        "byte_size": 8445
+      },
+      "receipt_summary": {
+        "approved_records": 9,
+        "newly_imported": 8,
+        "newly_imported_this_invocation": 0,
+        "recovered_after_post_write_assertion": 8,
+        "already_present_matching": 8,
+        "already_present_different_payload": 1
+      },
+      "selected_import_records": [
+        {
+          "character": "𠙶",
+          "codepoint": "U+20676",
+          "source_path": "tmp/vector-mve/batch20/runs/u20676/candidate.json",
+          "source_sha256": "9c40a97771a1e9f18f575a907249207e246be8defe863f49488b8672e64c9962",
+          "approved_sha256": "9c40a97771a1e9f18f575a907249207e246be8defe863f49488b8672e64c9962",
+          "target_path": "data/𠙶.json",
+          "target_sha256": "10dbabb0a1e33ebf0615b643d53dd45dd49675141efd4a691a3396b230567306",
+          "acceptance_historical_path": "tmp/vector-mve/batch20/human-review/acceptance.json",
+          "acceptance_artifact": "audit/vector-data-460-evidence/acceptances/human-batch20-3.json"
+        },
+        {
+          "character": "觃",
+          "codepoint": "U+89C3",
+          "source_path": "tmp/vector-mve/batch20/runs/u89c3/candidate.json",
+          "source_sha256": "67454824ec2424b7490528f5552da6ee4a56685bdc40f1fc01cc6fab89ba5be0",
+          "approved_sha256": "67454824ec2424b7490528f5552da6ee4a56685bdc40f1fc01cc6fab89ba5be0",
+          "target_path": "data/觃.json",
+          "target_sha256": "b29ea59ed5908d80350674f954883afa0dbc4b0e730d989e6f009478155e3e6c",
+          "acceptance_historical_path": "tmp/vector-mve/batch20/human-review/acceptance.json",
+          "acceptance_artifact": "audit/vector-data-460-evidence/acceptances/human-batch20-3.json"
+        },
+        {
+          "character": "珋",
+          "codepoint": "U+73CB",
+          "source_path": "tmp/vector-mve/batch20/runs/u73cb/candidate.json",
+          "source_sha256": "6aada00541c9a597f1ad4994c6146198e51698491d41140aab2ebae89a74df5e",
+          "approved_sha256": "6aada00541c9a597f1ad4994c6146198e51698491d41140aab2ebae89a74df5e",
+          "target_path": "data/珋.json",
+          "target_sha256": "ca606b340863edaa33eaadf09f62164c6db03c12f9ceb2f856ad2a0085f008e0",
+          "acceptance_historical_path": "tmp/vector-mve/batch20/human-review/acceptance.json",
+          "acceptance_artifact": "audit/vector-data-460-evidence/acceptances/human-batch20-3.json"
+        },
+        {
+          "character": "㧐",
+          "codepoint": "U+39D0",
+          "source_path": "tmp/vector-mve/batch20-third/runs/characters/u39d0/candidate.json",
+          "source_sha256": "f984589036e929035ba1f32c777033719dc3d4589ff68edc37734985c02e0523",
+          "approved_sha256": "f984589036e929035ba1f32c777033719dc3d4589ff68edc37734985c02e0523",
+          "target_path": "data/㧐.json",
+          "target_sha256": "6306fabc4a92879252c525a2f5ae3f651a4b0407a139bfcc1da9600c55065a0f",
+          "acceptance_historical_path": "tmp/vector-mve/batch20-third/human-review/acceptance.json",
+          "acceptance_artifact": "audit/vector-data-460-evidence/acceptances/human-batch20-third-2.json"
+        },
+        {
+          "character": "圢",
+          "codepoint": "U+5722",
+          "source_path": "tmp/vector-mve/batch20-third/runs/characters/u5722/candidate.json",
+          "source_sha256": "b6df074276352c7c80677befcaead12a093411fd35611a7f1e39dc6644b8d836",
+          "approved_sha256": "b6df074276352c7c80677befcaead12a093411fd35611a7f1e39dc6644b8d836",
+          "target_path": "data/圢.json",
+          "target_sha256": "1cf764591b58428e989941d34bb6c4ac9e32642888a036613d1747bdf3f209a4",
+          "acceptance_historical_path": "tmp/vector-mve/batch20-third/human-review/acceptance.json",
+          "acceptance_artifact": "audit/vector-data-460-evidence/acceptances/human-batch20-third-2.json"
+        },
+        {
+          "character": "𬇕",
+          "codepoint": "U+2C1D5",
+          "source_path": "tmp/vector-mve/type-unknown-9/review-drafts/u2c1d5/candidate.json",
+          "source_sha256": "caf478c363aab7f6a7536d276f0c35f31c9a96be66b5dd2138769c68fe169ae6",
+          "approved_sha256": "caf478c363aab7f6a7536d276f0c35f31c9a96be66b5dd2138769c68fe169ae6",
+          "target_path": "data/𬇕.json",
+          "target_sha256": "28a34ff9cd4b4193a55556efa41c9fd1faa922f05b1b969186d576bdef85f593",
+          "acceptance_historical_path": "tmp/vector-mve/type-unknown-9/human-review/acceptance.json",
+          "acceptance_artifact": "audit/vector-data-460-evidence/acceptances/human-type-unknown-4.json"
+        },
+        {
+          "character": "庱",
+          "codepoint": "U+5EB1",
+          "source_path": "tmp/vector-mve/type-unknown-9/review-drafts/u5eb1/candidate.json",
+          "source_sha256": "e89956b764feefed05e40f7b1f8f8d87ceb2c0b907656b8c55aeee61e202287c",
+          "approved_sha256": "e89956b764feefed05e40f7b1f8f8d87ceb2c0b907656b8c55aeee61e202287c",
+          "target_path": "data/庱.json",
+          "target_sha256": "3a74c35a05f9679baa03dafc6e7f70f8c7adcf30990c3d707bf8f2b93ff2ba3c",
+          "acceptance_historical_path": "tmp/vector-mve/type-unknown-9/human-review/acceptance.json",
+          "acceptance_artifact": "audit/vector-data-460-evidence/acceptances/human-type-unknown-4.json"
+        },
+        {
+          "character": "衎",
+          "codepoint": "U+884E",
+          "source_path": "tmp/vector-mve/type-unknown-9/review-drafts/u884e/candidate.json",
+          "source_sha256": "1de5f39639bd7cdfdd0b203e89aca90d9d48aa604ef184a32583a44776023c32",
+          "approved_sha256": "1de5f39639bd7cdfdd0b203e89aca90d9d48aa604ef184a32583a44776023c32",
+          "target_path": "data/衎.json",
+          "target_sha256": "deeba8ffecdcb8d7752336801d49e46a268558710070363646ce010a4b743c74",
+          "acceptance_historical_path": "tmp/vector-mve/type-unknown-9/human-review/acceptance.json",
+          "acceptance_artifact": "audit/vector-data-460-evidence/acceptances/human-type-unknown-4.json"
+        }
+      ],
+      "acceptances": [
+        {
+          "source": {
+            "historical_path": "tmp/vector-mve/batch20/human-review/acceptance.json",
+            "sha256": "c2f73e2fb4c5ca2d5c85be47524611f7fca185d094dd3e2ddf23645afaad0cf0",
+            "byte_size": 2722
+          },
+          "recorded_at_utc": "2026-08-01T02:50:27Z",
+          "reviewer_role": "project_owner",
+          "reviewer_response_verbatim": "这 3 个没问题",
+          "decision": "HUMAN_ACCEPTED",
+          "review_scope": "batch20 calibration15 MACHINE_PASS candidates",
+          "review_surface": "same-character static rendering plus Hanzi Writer stroke animation",
+          "interaction_evidence": {
+            "user_reply_recorded": true,
+            "user_click_telemetry_recorded": false,
+            "assistant_runtime_check_before_handoff": "3/3 candidate hashes validated; all three animations completed; browser warnings/errors=0"
+          },
+          "evidence_bindings": {
+            "gate_summary": {
+              "path": "../gates/calibration15-output-v2/summary.json",
+              "sha256": "b6303333ae32818cfb7d443d3386b270dc457c5ee55560c3216d5ce70d9ef572"
+            },
+            "gate_receipt": {
+              "path": "../gates/calibration15-output-v2/receipt.json",
+              "sha256": "50c725b21d8a218720436a2446b8f597082d072c92dd7561052b22a47334f34a"
+            },
+            "review_page": {
+              "path": "../review/index.html",
+              "sha256": "65c1542b2957310e0e4215eebe5ac2789774a1a07b94ccbc8910f32d7faf2a6e"
+            },
+            "review_runtime": {
+              "path": "../review/review.js",
+              "sha256": "41dfb57dcc23d34231f6dce7880e6365f8cb7b85696b7c1e135762cd986c744a"
+            }
+          },
+          "limitations": [
+            "This approval closes the requested human visual and animated stroke review for these exact candidate hashes only.",
+            "The receipt records the user's explicit acceptance response; it does not claim independent telemetry of the user's clicks.",
+            "It does not authorize App import, question-bank changes, a batch expansion, commit, or push.",
+            "Any candidate byte change invalidates this approval and requires a new review."
+          ],
+          "character_count": 3
+        },
+        {
+          "source": {
+            "historical_path": "tmp/vector-mve/batch20-third/human-review/acceptance.json",
+            "sha256": "52f1d1bae6d575f26449699a72f2312ac5136801d3c3f2a2f24593804c031d8b",
+            "byte_size": 2731
+          },
+          "recorded_at_utc": "2026-08-01T10:03:44Z",
+          "reviewer_role": "project_owner",
+          "reviewer_response_verbatim": "通过了",
+          "decision": "HUMAN_ACCEPTED",
+          "review_scope": "batch20-third producer CANDIDATE drafts: same-character rendering plus Hanzi Writer stroke animation",
+          "review_surface": "batch20-third/review/index.html",
+          "interaction_evidence": {
+            "user_reply_recorded": true,
+            "user_click_telemetry_recorded": false,
+            "assistant_runtime_check_before_handoff": "2/2 candidate hashes validated; 12/12 strokes, medians and frozen mapping replay passed; browser runtime gate remained unavailable"
+          },
+          "evidence_bindings": {
+            "gate_summary": {
+              "path": "../gates/output/summary.json",
+              "sha256": "5c7b8f356c363c5f2ada8f9c5396df4ff4f9454e01b92f6c9fd3440ef81c3a85"
+            },
+            "gate_receipt": {
+              "path": "../gates/output/receipt.json",
+              "sha256": "99272fc9f2101076ec858f9412115103bf70270861197fc5926978947fcc0bba"
+            },
+            "review_page": {
+              "path": "../review/index.html",
+              "sha256": "440d26ebfa7f37c53b453825b9f9b5e0ddb7e89fdec35a13439ef6348425e9a7"
+            },
+            "review_runtime": {
+              "path": "../review/review.js",
+              "sha256": "7da4b1520cb44a8b66705acb151b6aae73d5c88c69996d9628d26a255d6149e0"
+            }
+          },
+          "limitations": [
+            "This approval closes the requested human visual, stroke-order and stroke-direction review for these exact candidate hashes only.",
+            "The receipt records the user's explicit acceptance response; it does not claim independent click telemetry.",
+            "The runtime batch classification remains subject to the unavailable browser gate; this approval does not claim MACHINE_PASS.",
+            "It does not authorize App import, question-bank changes, commit, push, or a general batch expansion.",
+            "Any candidate byte change invalidates this approval and requires a new review."
+          ],
+          "character_count": 2
+        },
+        {
+          "source": {
+            "historical_path": "tmp/vector-mve/type-unknown-9/human-review/acceptance.json",
+            "sha256": "3f75f35e65a4f04a72dfd0255f1da7046dcede18318b0865fa0035de34f2ab14",
+            "byte_size": 3208
+          },
+          "recorded_at_utc": "2026-08-01T07:56:14Z",
+          "reviewer_role": "project_owner",
+          "reviewer_response_verbatim": "通过了",
+          "decision": "HUMAN_ACCEPTED",
+          "review_scope": "type-unknown-9 HUMAN_REVIEW_DRAFT same-character rendering plus Hanzi Writer stroke animation",
+          "review_surface": "type-unknown-9/review/index.html",
+          "interaction_evidence": {
+            "user_reply_recorded": true,
+            "user_click_telemetry_recorded": false,
+            "assistant_runtime_check_before_handoff": "4/4 draft hashes validated; 33/33 strokes, medians, SVG paths and frozen mapping replay passed"
+          },
+          "evidence_bindings": {
+            "review_manifest": {
+              "path": "../review-drafts/manifest.json",
+              "sha256": "5a6155f36315370c9f72ed6db7a4e049e0738ddd5ef2622286015a9e8e8b3c46"
+            },
+            "review_receipt": {
+              "path": "../review-drafts/receipt.json",
+              "sha256": "db1088de626fca57b42f32617f5ec0e60610287c742977b7a69c196d5c28d1ac"
+            },
+            "review_page": {
+              "path": "../review/index.html",
+              "sha256": "594b2ac5bb247a118bef3f13165bd21c8212806f6b80d23438c121747fed5c1f"
+            },
+            "review_runtime": {
+              "path": "../review/review.js",
+              "sha256": "f5794ed71371512f830da3558ca278c52b24bdbeb7290eabb1686c6642caf8cc"
+            }
+          },
+          "limitations": [
+            "This approval closes the requested human visual, stroke-order and stroke-direction review for these exact draft hashes only.",
+            "The receipt records the user's explicit acceptance response; it does not claim independent click telemetry.",
+            "The four runtime outcomes remain AMBIGUOUS; this approval does not convert them into MACHINE_PASS.",
+            "It does not authorize App import, question-bank changes, commit, push, or a general batch expansion.",
+            "Any draft byte change invalidates this approval and requires a new review."
+          ],
+          "character_count": 4
+        }
+      ],
+      "acceptance_scope_reconciliation": {
+        "accepted_characters_in_source_artifacts": 9,
+        "imported_matching_current_payload": 8,
+        "acceptance_only_not_imported": [
+          {
+            "character": "芣",
+            "accepted_draft_sha256": "5a12b9b861cd425edb0a09f4b7bda69e31e9b0de92448a6861ab8488df2c8e63",
+            "current_route": "strokeorder_merge_79",
+            "current_data_sha256": "410f95e62399ffa75079797610deb09bcc6164f29bb04e63ddcca14a46348bc4",
+            "current_human_review_status": "PENDING_HUMAN_REVIEW",
+            "reason": "The accepted draft hash differs from the production payload; the current strokeorder payload remains in the separate 79-character pending review set"
+          }
+        ]
+      }
+    },
+    "strokeorder_merge_79": {
+      "count": 59,
+      "human_review_status": "HUMAN_ACCEPTED",
+      "historical_receipt": {
+        "historical_path": "tmp/vector-mve/strokeorder-production-import/receipt.json",
+        "sha256": "595a4041dfe70bb688b1dd9c4db5245d13cb26b573c63664609cd6cf05afd57a",
+        "byte_size": 77260
+      },
+      "receipt_claim_not_treated_as_acceptance": "USER_APPROVED_CURRENT_79_REVIEW",
+      "review_history": [
+        {
+          "initial_response": "这个我检查了，没有问题，批准通过",
+          "withdrawal_response": "等会，发现有几个问题的字，先别通过",
+          "disposition": "WITHDRAWN_BEFORE_COMMIT"
+        }
+      ],
+      "strict_runtime": {
+        "source": {
+          "historical_path": "tmp/vector-mve/strokeorder-merged-runtime-v2/receipt-runtime-resilient.json",
+          "sha256": "a105c46b8b6eb8a3b9345ff8dfb79bd55a0f96df6fcdbb53b19adfe9254029f2",
+          "byte_size": 118985
+        },
+        "historical_status": "RUNTIME_COMPLETE_PENDING_HUMAN_REVIEW",
+        "count": 50,
+        "pass": 50
+      },
+      "relaxed_runtime": {
+        "source": {
+          "historical_path": "tmp/vector-mve/strokeorder-relaxed-runtime/receipt-runtime-resilient.json",
+          "sha256": "1a27a151f4f4bfab902e77fcf9336bc179709636de99a10074a14dd5e045f494",
+          "byte_size": 68694
+        },
+        "historical_status": "RUNTIME_COMPLETE_PENDING_HUMAN_REVIEW",
+        "count": 29,
+        "pass": 29
+      },
+      "historical_imported_count": 79,
+      "final_retained_count": 59,
+      "original_payloads_human_accepted": 30,
+      "corrected_payloads_human_accepted": 29,
+      "product_scope_excluded_count": 20,
+      "partial_review_artifact": "audit/vector-data-460-evidence/review-decisions/strokeorder-79-partial.json",
+      "scope_closure_artifact": "audit/vector-data-460-evidence/review-decisions/strokeorder-49-scope-closure.json",
+      "final_import_receipt": "audit/vector-data-460-evidence/imports/finalize-440.json"
+    }
+  },
+  "acceptance_reconciliation": {
+    "original_cohort": 460,
+    "previously_human_accepted": 411,
+    "newly_corrected_and_human_accepted": 29,
+    "product_scope_excluded": 20,
+    "final_human_accepted": 440,
+    "reconciled": true,
+    "closure_path": "audit/vector-data-460-evidence/review-decisions/strokeorder-49-scope-closure.json"
+  }
+}

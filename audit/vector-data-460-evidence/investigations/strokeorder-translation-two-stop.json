@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "artifact": "shizi-strokeorder-translation-only-component-two-stop",
+  "recorded_at_utc": "2026-08-06T15:18:45Z",
+  "decision": "STATIC_GATE_STOP_BEFORE_OUTPUT_OR_HUMAN_REVIEW",
+  "intended_sample": [
+    "婼",
+    "梴"
+  ],
+  "method_under_test": "retain target left component; rigidly translate an exact same-position HWD right component to the rejected component bbox center; no scale or reshaping",
+  "failure": {
+    "character": "婼",
+    "gate": "translated component gap must be between -25 and 80 units",
+    "observed_gap_units": -27.918624999999963,
+    "error_verbatim": "STOP: 婼: translated component gap outside MVE gate: -27.918624999999963"
+  },
+  "stop_loss_actions": {
+    "threshold_changed_after_observation": false,
+    "alternative_offsets_tried": false,
+    "second_character_generated": false,
+    "review_page_generated": false,
+    "production_data_modified": false,
+    "route_scaled": false
+  },
+  "frozen_evidence": {
+    "script": {
+      "path": "scripts/build_strokeorder_translation_two.py",
+      "sha256": "1f9dbc510e50f8f76d56f10912a41eb028ff8b8b120e408850c574f21d30dfd7"
+    },
+    "prior_human_approval": {
+      "path": "audit/vector-data-460-evidence/review-decisions/strokeorder-side-component-four.json",
+      "sha256": "7a40881001aaecf444ebde232ba4db4d983ad5246f14b1dab5a3b285c3368944"
+    }
+  },
+  "next_action": "Do not tune this placement rule. Reclassify the remaining unresolved characters by exact faulty component and only propose a new bounded MVE after the cause and donor geometry are frozen.",
+  "production_import_allowed": false,
+  "app_data_modified": false
+}

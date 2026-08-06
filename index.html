@@ -1072,7 +1072,8 @@ const LIBRARIES=[
   {id:"curriculum2500",name:"义教基础字",desc:"2022年语文课标附录5字表一，2500字",officialTotal:2500,test:c=>c.edu==="表一"}
 ];
 function defaultLibraryId(){ return preference==="challenge"?"adv3000":"core3500"; }
-const LEGACY_LIBRARY_IDS={primary:"curriculum2500",junior:"core3500",senior:"core3500"};
+// 旧六库只迁移后续新字范围；已拾字与复习始终跨库保留，手动选择标记不得丢失。
+const LEGACY_LIBRARY_IDS=Object.freeze({primary:"curriculum2500",junior:"core3500",senior:"adv3000"});
 function normalizeLibrary(raw){ const storedId=plainObject(raw)?raw.id:raw,id=LEGACY_LIBRARY_IDS[storedId]||storedId,valid=LIBRARIES.some(lib=>lib.id===id),userSelected=plainObject(raw)?raw.userSelected===true:(typeof raw==="string"&&(valid||storedId in LEGACY_LIBRARY_IDS)); return {id:valid?id:defaultLibraryId(),userSelected}; }
 let libraryState=bootNormalize(LIB_KEY,bootLoad(LIB_KEY,null,v=>v===null||typeof v==="string"||plainObject(v)),null,normalizeLibrary); save(LIB_KEY,libraryState);
 function currentLibrary(){ return LIBRARIES.find(lib=>lib.id===libraryState.id)||LIBRARIES[0]; }

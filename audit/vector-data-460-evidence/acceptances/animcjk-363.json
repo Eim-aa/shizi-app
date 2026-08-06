@@ -1,0 +1,2964 @@
+{
+  "schema_version": 1,
+  "recorded_at_utc": "2026-08-03T02:41:54.407989Z",
+  "review_scope": "AnimCJK 363 candidate pack: full static gallery, focused risk pages and Hanzi Writer runtime harness",
+  "reviewer_role": "project_owner",
+  "review_surface": "tmp/vector-mve/animcjk-363/review.html",
+  "review_prompt": {
+    "criteria": [
+      "glyph proportions and visual style are acceptable",
+      "stroke order and stroke direction are acceptable",
+      "the batch can be mixed with existing Make Me a Hanzi data without an obvious visual break"
+    ],
+    "requested_reply": "363通过，或指出具体问题字和笔画"
+  },
+  "reviewer_response_verbatim": "363通过",
+  "interaction_evidence": {
+    "user_reply_recorded": true,
+    "user_click_telemetry_recorded": false,
+    "machine_gate_before_handoff": "363/363 static visual QA; 363/363 runtime animation; 363/363 format/normative-count dry-run; 0 App collisions"
+  },
+  "decision": "HUMAN_ACCEPTED",
+  "characters": [
+    {
+      "character": "匜",
+      "codepoint": "U+531C",
+      "normative_stroke_count": 5,
+      "candidate_sha256": "2189df96933f7a521bb7c2b05f8c976f8fe1186820cda1a3fd8f4b6ff8a07a97",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "厾",
+      "codepoint": "U+53BE",
+      "normative_stroke_count": 6,
+      "candidate_sha256": "ba00b5c7fa2bbd4fb03a3fa59871e573effa24f4ba1981c03d2c4cb5b8756735",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "玕",
+      "codepoint": "U+7395",
+      "normative_stroke_count": 7,
+      "candidate_sha256": "ddaa5d49db7adf330368c189083ed5c1cf146008c878902a778e31d119db8167",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "玙",
+      "codepoint": "U+7399",
+      "normative_stroke_count": 7,
+      "candidate_sha256": "9ed4d0419eac71b9d1b7ac634f2fc44b57c07981363ccccc56af05bcdd3abcba",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "抔",
+      "codepoint": "U+6294",
+      "normative_stroke_count": 7,
+      "candidate_sha256": "d6bee8e3ec3dfd9ca8b6832f1a9759a6ed6ee4bea01c2419ba50f5d4f0a96bab",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "芼",
+      "codepoint": "U+82BC",
+      "normative_stroke_count": 7,
+      "candidate_sha256": "a1aab265f19edc5af8d0e0813a6f00fc69de60aa9ea7f08f3c58e75452ab4246",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "旸",
+      "codepoint": "U+65F8",
+      "normative_stroke_count": 7,
+      "candidate_sha256": "84cbf0b08102b0275e46087777b24838096c75241763357b23261f89929cfd9c",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "吽",
+      "codepoint": "U+543D",
+      "normative_stroke_count": 7,
+      "candidate_sha256": "dcb2b2932421ae1a1bac593215311a902ee1b41fcb3e258325ea9ac9fbf5ed10",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "沚",
+      "codepoint": "U+6C9A",
+      "normative_stroke_count": 7,
+      "candidate_sha256": "782a0594c39ec6eb1b2409c0e5e6d138b46050c7b222425e2528288f32225f55",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "沨",
+      "codepoint": "U+6CA8",
+      "normative_stroke_count": 7,
+      "candidate_sha256": "c34401753e808c451036f91ceec81764b44364cee09cb6d6b2ce9e6c3a88ec4d",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "玠",
+      "codepoint": "U+73A0",
+      "normative_stroke_count": 8,
+      "candidate_sha256": "65748a87733c2ca12539fcdb82e940371413916d557e1ab5495f81ce404b8cfb",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "玥",
+      "codepoint": "U+73A5",
+      "normative_stroke_count": 8,
+      "candidate_sha256": "339200c374e05b410b0307bd9ec21f4aeacec2746d0d1fa2c94035a6f5c34453",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "玦",
+      "codepoint": "U+73A6",
+      "normative_stroke_count": 8,
+      "candidate_sha256": "f41084d652d4895825a53eda76f5e170f49bbecbcbbea6dba9e682d9d85baad4",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "拤",
+      "codepoint": "U+62E4",
+      "normative_stroke_count": 8,
+      "candidate_sha256": "9e9cffae3515fa5e435e350c152a923e0b7216a6d0ad0fce06cc4598d7fbd97e",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "拃",
+      "codepoint": "U+62C3",
+      "normative_stroke_count": 8,
+      "candidate_sha256": "875c60912f92d22290be5d6f835ebc51bf753ea627e4f67d70b94eef20ffcb5e",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "茓",
+      "codepoint": "U+8313",
+      "normative_stroke_count": 8,
+      "candidate_sha256": "4f8a11261314971246934782bc0b835d68554ea6cc440e67e64fb72a1842a99b",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "杻",
+      "codepoint": "U+677B",
+      "normative_stroke_count": 8,
+      "candidate_sha256": "bf5066c937fa3aaa703592dfb1c2c7a4a00181a36995c8de80f98ee3977c7a38",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "旻",
+      "codepoint": "U+65FB",
+      "normative_stroke_count": 8,
+      "candidate_sha256": "d5f6db440c4e36a76daa6e6833982a1295bf368ca40a0e1279fc702e0d28cc87",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "垱",
+      "codepoint": "U+57B1",
+      "normative_stroke_count": 9,
+      "candidate_sha256": "3e55769bfc68b48aca1b524ad5526af608a0588bb0161bceaa3691911fe672b4",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "挦",
+      "codepoint": "U+6326",
+      "normative_stroke_count": 9,
+      "candidate_sha256": "fe737c871406af2bcaef0efa42f5781486f5cd03d20023e2571fdbff6a71fbaa",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "柈",
+      "codepoint": "U+67C8",
+      "normative_stroke_count": 9,
+      "candidate_sha256": "526a4ad20aabb2f3e41cdefa655b4618cdb87f1dc02a34eb413c87aaf054efde",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "眊",
+      "codepoint": "U+770A",
+      "normative_stroke_count": 9,
+      "candidate_sha256": "ed7a324821edf324854efd75c03e00674c6ce3c122b9f99aab5bf9403762c210",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "峣",
+      "codepoint": "U+5CE3",
+      "normative_stroke_count": 9,
+      "candidate_sha256": "4dc1568caf73a5b62268a7854688159f83df6823d31d9bb5323200631a8dd800",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "竑",
+      "codepoint": "U+7AD1",
+      "normative_stroke_count": 9,
+      "candidate_sha256": "297bf9702453bbf79dab340d8789edfd20ca8945000c6b7fbc89712badc88baf",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "闿",
+      "codepoint": "U+95FF",
+      "normative_stroke_count": 9,
+      "candidate_sha256": "d6d56e2e26e386fd8c26657cc6cbfdfb5c2839fd460325bc82a1668b6947ef07",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "羑",
+      "codepoint": "U+7F91",
+      "normative_stroke_count": 9,
+      "candidate_sha256": "1701b3d5dedffec2bd35ffe331bd3f97c56a048fb21a0ef31aa1c7e42e7b83e3",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "浕",
+      "codepoint": "U+6D55",
+      "normative_stroke_count": 9,
+      "candidate_sha256": "4d11b92771bd86d6eda65cf4a0f0f98f189626319a49c39e8bdeb402a30f36a2",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "牁",
+      "codepoint": "U+7241",
+      "normative_stroke_count": 9,
+      "candidate_sha256": "007c19cf6141f22587490ca52c20fd77638251aa3c831ba3f8a388bae9a837f3",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "珰",
+      "codepoint": "U+73F0",
+      "normative_stroke_count": 10,
+      "candidate_sha256": "e6d60b9519f6e5e3a5794f9c712c77bd181c460617fdfe6269ed50f03a8bf9f5",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "珣",
+      "codepoint": "U+73E3",
+      "normative_stroke_count": 10,
+      "candidate_sha256": "38a074a30ba6617bcc2b82297fbad54a8f133a0d9eec2711cd819bea5f8b026b",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "琤",
+      "codepoint": "U+7424",
+      "normative_stroke_count": 10,
+      "candidate_sha256": "57539ecd355eabdbfeb41b60b2032fedafc9b52c9005c36bd74d6aae1d4822f0",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "栟",
+      "codepoint": "U+681F",
+      "normative_stroke_count": 10,
+      "candidate_sha256": "0da40aed92ac28445c742dfc50f1e732a2158e7ec2ce676f1070ad2a383662bf",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "盉",
+      "codepoint": "U+76C9",
+      "normative_stroke_count": 10,
+      "candidate_sha256": "c58b564c61f51af8027e63b7401974feda54d3834abe0d7e809705d581de5fe4",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "俵",
+      "codepoint": "U+4FF5",
+      "normative_stroke_count": 10,
+      "candidate_sha256": "ea3256aa15d7bd76294a2a92bf77083cba2f5461c1dd3a34babffc56c662fe47",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "俶",
+      "codepoint": "U+4FF6",
+      "normative_stroke_count": 10,
+      "candidate_sha256": "12b386985e8e5dc51841e20b0c940cc9e7ec4c9ce0a14243415177a44af468eb",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "浥",
+      "codepoint": "U+6D65",
+      "normative_stroke_count": 10,
+      "candidate_sha256": "1f723ebef97730e8d5e336d54eb204a345d71851f5ce5ceb9422281f82b6c2c5",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "牂",
+      "codepoint": "U+7242",
+      "normative_stroke_count": 10,
+      "candidate_sha256": "62efa6d5c3ccdd7419b7786037e6938a1be98cb130b0bafb49e81626843b6c68",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "骎",
+      "codepoint": "U+9A8E",
+      "normative_stroke_count": 10,
+      "candidate_sha256": "992d59525e6ae1fd7bd7f6d1a0ba46e189df93bdd0df99a37f745771beebb021",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "琇",
+      "codepoint": "U+7407",
+      "normative_stroke_count": 11,
+      "candidate_sha256": "faf69168e731f5536de7930a848b6c88504c9671c698aeaa84effdf060b53b9e",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "捯",
+      "codepoint": "U+636F",
+      "normative_stroke_count": 11,
+      "candidate_sha256": "8addc838d066a798364fa44568eb984f0f6819ec5f4ce55a56574c0a19bd51e8",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "堉",
+      "codepoint": "U+5809",
+      "normative_stroke_count": 11,
+      "candidate_sha256": "723fd362f9a18a6341a681959ae148b326fa7e7ccc119de6452ea7d58852685a",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "棁",
+      "codepoint": "U+68C1",
+      "normative_stroke_count": 11,
+      "candidate_sha256": "c283e96502b7bb475774083a31cc644649edbe86229e7d360ca69bd4cb7863fc",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "晞",
+      "codepoint": "U+665E",
+      "normative_stroke_count": 11,
+      "candidate_sha256": "13e74e28a3180048fb1a4be018f87d9da7e871caae45d7e45e870a278390c1d5",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "崚",
+      "codepoint": "U+5D1A",
+      "normative_stroke_count": 11,
+      "candidate_sha256": "ba5b64a7e32785f76927ffbabafd37062b1c9bedd28448f2f34d8b2e90e9f498",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "秾",
+      "codepoint": "U+79FE",
+      "normative_stroke_count": 11,
+      "candidate_sha256": "0755c60a68000b2063c138106508170d925ba4b97781c2eae5c4874d6b8b2753",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "馃",
+      "codepoint": "U+9983",
+      "normative_stroke_count": 11,
+      "candidate_sha256": "569864eab536f9d9aadeed2a767eeac2536888f4934c52290c689c9c8318f14f",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "惇",
+      "codepoint": "U+60C7",
+      "normative_stroke_count": 11,
+      "candidate_sha256": "36083cc55ac364aa678001b50c6a34e7de510c77ea6bae1354d67d5a1028520c",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "郿",
+      "codepoint": "U+90FF",
+      "normative_stroke_count": 11,
+      "candidate_sha256": "211742e030adb9cdcfff9052cbf1687d604c79b93755b8bf7cd1abcd16c41bc4",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "琫",
+      "codepoint": "U+742B",
+      "normative_stroke_count": 12,
+      "candidate_sha256": "7552841daa5bad4f1a58771e6600d4aa832da60cecfb450bd8d831b6781a0c49",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "琯",
+      "codepoint": "U+742F",
+      "normative_stroke_count": 12,
+      "candidate_sha256": "7402a6a81136f9f5123e329f33e55c71f333ac3917f4fd14fa01a2570cb79bcc",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "揳",
+      "codepoint": "U+63F3",
+      "normative_stroke_count": 12,
+      "candidate_sha256": "25a79b479b2bdb893af285aa840e494a8945b85ef6bfc2e396dcbbbed61f2411",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "塆",
+      "codepoint": "U+5846",
+      "normative_stroke_count": 12,
+      "candidate_sha256": "d357c81c5bfcdb469ffa15008b2d2392e13f894ca5057b8af8e1441430222dfb",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "靰",
+      "codepoint": "U+9770",
+      "normative_stroke_count": 12,
+      "candidate_sha256": "babec53a26b05fc88ca76c0e73888403051d4c8fe5f10f97878a848f97d38f14",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "靸",
+      "codepoint": "U+9778",
+      "normative_stroke_count": 12,
+      "candidate_sha256": "010042fa44dd34d5da621750b5726dd14ace3c61cd56308e8433a2641ead826e",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "嗞",
+      "codepoint": "U+55DE",
+      "normative_stroke_count": 12,
+      "candidate_sha256": "e05303a4ff2bf3e0b4ae213cf0357eb2e4e286d33aa27a3fc4a2a06399bc9c5f",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "嵖",
+      "codepoint": "U+5D56",
+      "normative_stroke_count": 12,
+      "candidate_sha256": "457adb7efc10a4736b61f80be7dfaf6d1cdee00f8ad0d6ff66ee1f32d06a27e4",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "嵎",
+      "codepoint": "U+5D4E",
+      "normative_stroke_count": 12,
+      "candidate_sha256": "6616eaf94bab657df19b21cb94407f86791ecbd31b83baa9f3f94ab50aa28066",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "铻",
+      "codepoint": "U+94FB",
+      "normative_stroke_count": 12,
+      "candidate_sha256": "320941a10cb0d12c7a633b9bbb13a8cdc67bf4a1354122a5fac4421224fc0330",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "鲀",
+      "codepoint": "U+9C80",
+      "normative_stroke_count": 12,
+      "candidate_sha256": "aeb21dbd65f9f73ca362a8b1513ffdea6269ae1c1d6126aa481a7fd5d3858858",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "焜",
+      "codepoint": "U+711C",
+      "normative_stroke_count": 12,
+      "candidate_sha256": "8a38c801b59366e437cfa1dc6df0b10535fadff291281c5c65c764aa50727026",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "湜",
+      "codepoint": "U+6E5C",
+      "normative_stroke_count": 12,
+      "candidate_sha256": "b4ad017d1a6b2b1c6de0d4a7ccce65a35b3cae7311f3442a293258b1a8b58be1",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "湲",
+      "codepoint": "U+6E72",
+      "normative_stroke_count": 12,
+      "candidate_sha256": "d9d144518239078bd7bfab102339a66e4f5678013f52fb22255e0cb2658ffd87",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "愔",
+      "codepoint": "U+6114",
+      "normative_stroke_count": 12,
+      "candidate_sha256": "7f4de8c1524fce11751ecf87ebf6f5586fedab80e1668c7ab7908fc56b791fae",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "祾",
+      "codepoint": "U+797E",
+      "normative_stroke_count": 12,
+      "candidate_sha256": "6514df87d241afb05f0bd405d4d82c3cb16e10eb3ff23f5793cf3e996c93f3fd",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "翚",
+      "codepoint": "U+7FDA",
+      "normative_stroke_count": 12,
+      "candidate_sha256": "c8a81d2a2cf502fcb169220ad43f86fa6fc11c18f901887bd4a384ed48575cc8",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "楯",
+      "codepoint": "U+696F",
+      "normative_stroke_count": 13,
+      "candidate_sha256": "2885bc38f708683957004e66a2d8f4bafcca88386e3be406e4458dc8e4cb51b4",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "跐",
+      "codepoint": "U+8DD0",
+      "normative_stroke_count": 13,
+      "candidate_sha256": "6b37677809236119a33d8e51032a14b8f436bc4ac2bf00ff5ea590fb118ca992",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "锜",
+      "codepoint": "U+951C",
+      "normative_stroke_count": 13,
+      "candidate_sha256": "3fd328854226bcf3b2d0e0bedd5d120a41aacbf84db97dd157bb334747c728c9",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "鹐",
+      "codepoint": "U+9E50",
+      "normative_stroke_count": 13,
+      "candidate_sha256": "b1a6d407485236e8fa81f24af674d1b0f1e1a3cd0d03f722967356e85cc7dc7f",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "瘆",
+      "codepoint": "U+7606",
+      "normative_stroke_count": 13,
+      "candidate_sha256": "1cc6b4213aefc73b57043190f9a6385b82840df45ee293fcb8f202695e027644",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "滃",
+      "codepoint": "U+6EC3",
+      "normative_stroke_count": 13,
+      "candidate_sha256": "acf16a27725bba0b3153b0ef0ebb17fa56ad8c8eaa1c5305eefce2ea5bbf3c32",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "滪",
+      "codepoint": "U+6EEA",
+      "normative_stroke_count": 13,
+      "candidate_sha256": "2a6e4192305657cf18300ecc37d2f93dccf93a28a379dbfb68448c4c4470f18b",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "璈",
+      "codepoint": "U+7488",
+      "normative_stroke_count": 14,
+      "candidate_sha256": "6cd6169a3bb25b171d65ab64f180a0743ca04c8320f8062f72e2aa3d3681e7e8",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "榖",
+      "codepoint": "U+6996",
+      "normative_stroke_count": 14,
+      "candidate_sha256": "775e24aeecf0f55d5d9c0e3b4c28cc61bca36e86b8c2669fa579c4a42f2d5714",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "靺",
+      "codepoint": "U+977A",
+      "normative_stroke_count": 14,
+      "candidate_sha256": "b72101927aa384cf0ec9576160ba92dd2b1b40b56dc360ad5462c24448d68197",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "靿",
+      "codepoint": "U+977F",
+      "normative_stroke_count": 14,
+      "candidate_sha256": "b3c8e31fa0416d83c7f4add88670889cf50ed3d63058f6dec66b8f6be1ce8a6f",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "僰",
+      "codepoint": "U+50F0",
+      "normative_stroke_count": 14,
+      "candidate_sha256": "ba04e9bc89e196898b6169f7ca7e1b39c4145ac4470a7876f23d7ba01c376c3c",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "豨",
+      "codepoint": "U+8C68",
+      "normative_stroke_count": 14,
+      "candidate_sha256": "3c780edb997ab1ef8e0a48e5dfb3b64bda167d53a75d453df6b7a5f7ec1a15a4",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "嘡",
+      "codepoint": "U+5621",
+      "normative_stroke_count": 14,
+      "candidate_sha256": "64dc3b63ffdae1fb4d3e0c97272c5edb8e5982647c24ed0466fe395d635a2ab7",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "熥",
+      "codepoint": "U+71A5",
+      "normative_stroke_count": 14,
+      "candidate_sha256": "03953f5e0a47637499381c586a7467b35d9f9d0cd0bbffa472013c336504670d",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "鋆",
+      "codepoint": "U+92C6",
+      "normative_stroke_count": 15,
+      "candidate_sha256": "771d66aa6ac0ea253bb3a3efbe7b6aa31a075de364cbacbafcd7942df605a894",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "颙",
+      "codepoint": "U+9899",
+      "normative_stroke_count": 15,
+      "candidate_sha256": "7bdb9a0c63b276a0c3b9aa3fb4847c194f96ccef4de7edb7a6f6ccf60f3f7559",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "璟",
+      "codepoint": "U+749F",
+      "normative_stroke_count": 16,
+      "candidate_sha256": "b4483cedd757e1035232f5d52e437c34da406ad0a84feb2b8382f8871d753e68",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "璠",
+      "codepoint": "U+74A0",
+      "normative_stroke_count": 16,
+      "candidate_sha256": "46f3505a06d21677ae11cc91f235ee76eb3978f4c66b9a722284014ceabdeeb8",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "璘",
+      "codepoint": "U+7498",
+      "normative_stroke_count": 16,
+      "candidate_sha256": "21424f624094e09a3d1f531758818bf39011a93b4b396caa74c54d89636d26be",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "螠",
+      "codepoint": "U+87A0",
+      "normative_stroke_count": 16,
+      "candidate_sha256": "3fce3346d063491b111f9eb05311ca6908e0904e5c841777a4a4672babd907c4",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "镠",
+      "codepoint": "U+9560",
+      "normative_stroke_count": 16,
+      "candidate_sha256": "7332af62fa3d63793bae6b4bddb004f28b55c265e71f428c6845537dc39e7517",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "膙",
+      "codepoint": "U+8199",
+      "normative_stroke_count": 16,
+      "candidate_sha256": "43be80bdedb35f31460777462401fa3f678e95474dc5d4d185ee38faa56212e9",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "獴",
+      "codepoint": "U+7374",
+      "normative_stroke_count": 16,
+      "candidate_sha256": "a800595587791c2f9c12734ba146b8677c250e05f11f1eb799b214d843e002d4",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "赟",
+      "codepoint": "U+8D5F",
+      "normative_stroke_count": 16,
+      "candidate_sha256": "f30fc422d7cefc3cb55b570135a72a602ff7035b5956677032175dac2a7a0896",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "璪",
+      "codepoint": "U+74AA",
+      "normative_stroke_count": 17,
+      "candidate_sha256": "8464f0842fa198b92d8a7a9a92ee86b4635ce9398619cd30cd51fb6dcb845f96",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "鞡",
+      "codepoint": "U+97A1",
+      "normative_stroke_count": 17,
+      "candidate_sha256": "11f8fa6a5971494b7a2a76c0733ba90e6da69de1b19e8a3754f7210fcc249b3d",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "罽",
+      "codepoint": "U+7F7D",
+      "normative_stroke_count": 17,
+      "candidate_sha256": "3871c1080887f8cb8144fcd7b0c46b0dad60aa681aaa11e7e562100b89531da6",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "鞨",
+      "codepoint": "U+97A8",
+      "normative_stroke_count": 18,
+      "candidate_sha256": "a29df398f464082e78cf25be31879aac3c0eb05f706b6063165d57e2608e8359",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "鞧",
+      "codepoint": "U+97A7",
+      "normative_stroke_count": 18,
+      "candidate_sha256": "8bcba28761635bbc0c1d1ed434b811fb6bb0820ba0bb382e67dfaff7872343b1",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "藠",
+      "codepoint": "U+85E0",
+      "normative_stroke_count": 18,
+      "candidate_sha256": "a13bd05af7df7acb8f37831736df0587ce3958dd0e860a06fd4165c559e53aae",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "蹽",
+      "codepoint": "U+8E7D",
+      "normative_stroke_count": 19,
+      "candidate_sha256": "f6e0372d54bd0524ad10b0d4dcad30e24e228892982aca7422bc96d367d7eb20",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "蹾",
+      "codepoint": "U+8E7E",
+      "normative_stroke_count": 19,
+      "candidate_sha256": "d982c53d2be27caad1958ce7ef9565629cd5e55729ac968a39d18e661da5b6fd",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "齁",
+      "codepoint": "U+9F41",
+      "normative_stroke_count": 19,
+      "candidate_sha256": "3d65e995203614f98ce00aa36b686a6beb368b2b7580a4424971ccf8a42655a0",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "巉",
+      "codepoint": "U+5DC9",
+      "normative_stroke_count": 20,
+      "candidate_sha256": "2b89261f2b13c9217cc7f0e0f4a320a29212b541ee1c138078eedd451e805a16",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "瓘",
+      "codepoint": "U+74D8",
+      "normative_stroke_count": 21,
+      "candidate_sha256": "93ce2634bda55160b24cbed7740ca56476c1193af9ce1382c19b5fd17b012f22",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "镵",
+      "codepoint": "U+9575",
+      "normative_stroke_count": 22,
+      "candidate_sha256": "7fc429c57e6127f71694f5a8b4d358a25205d877d1ed3ea8f3b47dde6f9e0f65",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "齉",
+      "codepoint": "U+9F49",
+      "normative_stroke_count": 36,
+      "candidate_sha256": "b02a6c50f5b6cf40501ce6ee26585590c3dfada964af1bffc2926c020ef3d680",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "伋",
+      "codepoint": "U+4F0B",
+      "normative_stroke_count": 5,
+      "candidate_sha256": "47636d3399eb316f4ad3fb7a9603a4da6501dd087c18cb72a1ccaa7d2c0cdae4",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "汈",
+      "codepoint": "U+6C48",
+      "normative_stroke_count": 5,
+      "candidate_sha256": "19607267b200e7b74ca18c5ad1a6dc0679a9b1ff89b2027ae9701baab28bc985",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "扞",
+      "codepoint": "U+625E",
+      "normative_stroke_count": 6,
+      "candidate_sha256": "6e81ceeeb14436d953a65039725c35b13d44e7863ccaa37d879235c250caa27b",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "朸",
+      "codepoint": "U+6738",
+      "normative_stroke_count": 6,
+      "candidate_sha256": "9792323f800271f173157fad906d56eea397135de3ecacfa81183d3e85d4e667",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "孖",
+      "codepoint": "U+5B56",
+      "normative_stroke_count": 6,
+      "candidate_sha256": "5b446cdab1707e4b7a7bd886932a9e537da46e6ad784ac361624a525d409f3db",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "玚",
+      "codepoint": "U+739A",
+      "normative_stroke_count": 7,
+      "candidate_sha256": "cc8cc9563b198eb91aaa6077e5a03afa315e652dfdc1df3839cf41a30e7b2f92",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "扺",
+      "codepoint": "U+627A",
+      "normative_stroke_count": 7,
+      "candidate_sha256": "b788560f738be13973b4dff93e66937d9a78101bda76dfa64d5c1f7be43283e8",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "毐",
+      "codepoint": "U+6BD0",
+      "normative_stroke_count": 7,
+      "candidate_sha256": "82b0f682a0d6403fbc13d8b6ab2177f730c135ed3fdd750df752b396665258d8",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "杙",
+      "codepoint": "U+6759",
+      "normative_stroke_count": 7,
+      "candidate_sha256": "b96a2eb16f26a8149716308fd9df1080365bd5a0240752f10188859b992c186b",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "杧",
+      "codepoint": "U+6767",
+      "normative_stroke_count": 7,
+      "candidate_sha256": "94c2f58e593c1b5a938c1984d6ae0677a3c91566c011f1624d89596222c24942",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "轪",
+      "codepoint": "U+8F6A",
+      "normative_stroke_count": 7,
+      "candidate_sha256": "2a1d8e3977f201767b424d9e6f9c4a2f97f74b55dbd269d1676218872583c4d0",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "沄",
+      "codepoint": "U+6C84",
+      "normative_stroke_count": 7,
+      "candidate_sha256": "63c76cb428cb1d2854bffdc1e2c7a03969744defec46353287b41102abcc2097",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "沘",
+      "codepoint": "U+6C98",
+      "normative_stroke_count": 7,
+      "candidate_sha256": "5035ea1aa5f718408edccf83795207aa9bb0b59398957fa624b01d6eaf383e67",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "汭",
+      "codepoint": "U+6C6D",
+      "normative_stroke_count": 7,
+      "candidate_sha256": "3e76b8f9310841f35d1d62b88643f9dc94517cf7fbebdf1dbf4bd853d4cc7a78",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "祃",
+      "codepoint": "U+7943",
+      "normative_stroke_count": 7,
+      "candidate_sha256": "007119e05fcd1ed38e07098297a3d92068f21e658e0f2e7e91b200a762386779",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "诐",
+      "codepoint": "U+8BD0",
+      "normative_stroke_count": 7,
+      "candidate_sha256": "4b0a99291e6d1c58a6fc9856716858a4570048c765cbaef7483902ccedb0a581",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "纻",
+      "codepoint": "U+7EBB",
+      "normative_stroke_count": 7,
+      "candidate_sha256": "3d62266fc32fdc2e76bb0b1cbaf5694fa26cf3d23d521a85d727f34c651088b4",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "邽",
+      "codepoint": "U+90BD",
+      "normative_stroke_count": 8,
+      "candidate_sha256": "111859b5f85b0be338ae830e2ab29c0f59cc552d2a2df72f6ee0c50b530b876f",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "枅",
+      "codepoint": "U+6785",
+      "normative_stroke_count": 8,
+      "candidate_sha256": "b0540c46083b829cf7b225131bd0d15a3ec0a8a65f02e7dadf453d5faa95827c",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "矼",
+      "codepoint": "U+77FC",
+      "normative_stroke_count": 8,
+      "candidate_sha256": "a4d464097fa85ccc3d6c7371762a164e8f41a11325c994325cb946b078e80905",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "岨",
+      "codepoint": "U+5CA8",
+      "normative_stroke_count": 8,
+      "candidate_sha256": "926a192ba6077a954139a6ea1c499accd36aaff7bfe92eff58884ccfc08caa73",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "峂",
+      "codepoint": "U+5CC2",
+      "normative_stroke_count": 8,
+      "candidate_sha256": "8d5cdc384e69d4c0a13c703cf9ac365105e62c17d907fbc81fb2f882df7c57df",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "垈",
+      "codepoint": "U+5788",
+      "normative_stroke_count": 8,
+      "candidate_sha256": "7648110a3e3e8eac77a86762556f8317afedb3be3395aad9021384ae45242e6f",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "侘",
+      "codepoint": "U+4F98",
+      "normative_stroke_count": 8,
+      "candidate_sha256": "920c02c8989f47a0d3ed770b69813feed3f1097a6fb2af2b64696770bf863c13",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "郈",
+      "codepoint": "U+90C8",
+      "normative_stroke_count": 8,
+      "candidate_sha256": "6ee2f328308401e6ac7a134cb5cef5ac5058749976ccbe14a64bd0ae3bf1c873",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "狝",
+      "codepoint": "U+72DD",
+      "normative_stroke_count": 8,
+      "candidate_sha256": "9b80d026edcafee1fec27f457cee859243760460f9e0a668f1daca5534ad02ac",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "饳",
+      "codepoint": "U+9973",
+      "normative_stroke_count": 8,
+      "candidate_sha256": "02e336b10089bd587d2e88fceafb21c4bc63f8c60040d067015f49c823e3ec0a",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "沺",
+      "codepoint": "U+6CBA",
+      "normative_stroke_count": 8,
+      "candidate_sha256": "f2924dec147ae505dde3a7c1a2175b06b412c70e1f951468a0866f0fcfe810a1",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "泜",
+      "codepoint": "U+6CDC",
+      "normative_stroke_count": 8,
+      "candidate_sha256": "17005a5fc02e523814aa4558e6a256f684008be5676c333868ab829214af4555",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "泃",
+      "codepoint": "U+6CC3",
+      "normative_stroke_count": 8,
+      "candidate_sha256": "157e9867f38db63d780dc4375c3920e115336c0a5b0652c395e727b48abf5285",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "鸤",
+      "codepoint": "U+9E24",
+      "normative_stroke_count": 8,
+      "candidate_sha256": "481af75c0c28360b784d534a16ce90f4ca73483574bd8bcefe94af4943b53118",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "韨",
+      "codepoint": "U+97E8",
+      "normative_stroke_count": 9,
+      "candidate_sha256": "177f259d96e8501be16a748ef36533c42b9ae71134a8dd4d7c4fe651e6473fd4",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "垍",
+      "codepoint": "U+578D",
+      "normative_stroke_count": 9,
+      "candidate_sha256": "e22fc4ce222e15f3c46bbee1180f93b16729c659a86b8d8e016218580239cf67",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "垟",
+      "codepoint": "U+579F",
+      "normative_stroke_count": 9,
+      "candidate_sha256": "ee3b2bc2bf190cca1c879a4243c5abd8a2c02b36e1b5aa2437558bec5c69d2e4",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "垞",
+      "codepoint": "U+579E",
+      "normative_stroke_count": 9,
+      "candidate_sha256": "551bce046671a2419f5dc3331afd052141365874f6fa04e86b17eb1e50a81810",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "荙",
+      "codepoint": "U+8359",
+      "normative_stroke_count": 9,
+      "candidate_sha256": "121124fe42e2a3c570e9cc9540c48120cbb1cede8d9f3fca2ad337eb2c641203",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "枹",
+      "codepoint": "U+67B9",
+      "normative_stroke_count": 9,
+      "candidate_sha256": "a6218b62e98b8175bcc883c2d74d37fd6b71c66a8c6d282ff4a9e19a836db5a9",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "郚",
+      "codepoint": "U+90DA",
+      "normative_stroke_count": 9,
+      "candidate_sha256": "a380b296b55788f8375aa8f2c1da3f56aa9ceaa2ea25d66f64c881a545d6e4b5",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "剅",
+      "codepoint": "U+5245",
+      "normative_stroke_count": 9,
+      "candidate_sha256": "39151adf88778aae2ef1741478b19b030f56b5ef0125baee1a67a743383984ce",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "厖",
+      "codepoint": "U+5396",
+      "normative_stroke_count": 9,
+      "candidate_sha256": "07a424d11e9acb3b1fb6f1376db1c65f60a9d1d05b97acdaff62a6f5f243653b",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "昽",
+      "codepoint": "U+663D",
+      "normative_stroke_count": 9,
+      "candidate_sha256": "5cd5b5ce5e55479851c17c9590e62b5ed24342d34f97a16df7245e8ee64f3133",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "峧",
+      "codepoint": "U+5CE7",
+      "normative_stroke_count": 9,
+      "candidate_sha256": "d4ebe664302cf5c908b6d8584d8c04fdc6a3ab395799e84fa8a9a599f8b0fb8c",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "帡",
+      "codepoint": "U+5E21",
+      "normative_stroke_count": 9,
+      "candidate_sha256": "794c6d50ab320de1142dea82bc72b1202cce0967a186abbf32eac67efef5311d",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "钘",
+      "codepoint": "U+9498",
+      "normative_stroke_count": 9,
+      "candidate_sha256": "1f030045e76af67be0238b0b9c97379d6a754d5c809e5621ed18cf08971e2bb6",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "朏",
+      "codepoint": "U+670F",
+      "normative_stroke_count": 9,
+      "candidate_sha256": "1270bbfb383eaeb020ad3214fe40610dc1440f1523417c391a0ca84e46344100",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "訄",
+      "codepoint": "U+8A04",
+      "normative_stroke_count": 9,
+      "candidate_sha256": "877916b114908db0d603bc8910a9ab5e00cf4b80a8a419995de821d1659901d9",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "饻",
+      "codepoint": "U+997B",
+      "normative_stroke_count": 9,
+      "candidate_sha256": "2d920b214998490c684cd4aebdf9b60ca9ba3e1a20bd7107d781f82a7e8c1078",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "庤",
+      "codepoint": "U+5EA4",
+      "normative_stroke_count": 9,
+      "candidate_sha256": "3708cfb62bb275662f08ea7be1c8a80b4f289382fe4271e170ed8e1bff229cda",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "疢",
+      "codepoint": "U+75A2",
+      "normative_stroke_count": 9,
+      "candidate_sha256": "222b588841ef59c3a0020f144fcaedbf436341f216f6556054c712421ee3b142",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "炟",
+      "codepoint": "U+709F",
+      "normative_stroke_count": 9,
+      "candidate_sha256": "b95a2933564c427e4e01cb68ec417ffd4533278f6cdde994afd755f30c69bf65",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "泚",
+      "codepoint": "U+6CDA",
+      "normative_stroke_count": 9,
+      "candidate_sha256": "841168a0f1b9ee9baf076179994ffcde777e05aed8610ca8ddb73e7a081c3948",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "洸",
+      "codepoint": "U+6D38",
+      "normative_stroke_count": 9,
+      "candidate_sha256": "83cc192d6f83f382f7be842eeccc4995474ad8901ee5060956cbb5e24ae782e7",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "洑",
+      "codepoint": "U+6D11",
+      "normative_stroke_count": 9,
+      "candidate_sha256": "37b0494d45557b4530ac119312760abd65970ab4f9ee6161a88b43889111a50f",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "洺",
+      "codepoint": "U+6D3A",
+      "normative_stroke_count": 9,
+      "candidate_sha256": "81ddea89ced9d10fead9a1a0001c4dd6b0054dc513d37f9e1796e8d7c21313f4",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "洴",
+      "codepoint": "U+6D34",
+      "normative_stroke_count": 9,
+      "candidate_sha256": "5d6ba1cbae32aa0afa5dc32f632ec6fcca55cb23d98be13c9fa348621bf41dda",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "宬",
+      "codepoint": "U+5BAC",
+      "normative_stroke_count": 9,
+      "candidate_sha256": "a109c7736deff044eea23ae53827a94d94250402a9395984ecb7ddf8d4a94569",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "袆",
+      "codepoint": "U+8886",
+      "normative_stroke_count": 9,
+      "candidate_sha256": "52a2f81fd9dba69cae3ab8ff6a3abf8edac5842ae36d1285c73e65d180f66d26",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "祐",
+      "codepoint": "U+7950",
+      "normative_stroke_count": 9,
+      "candidate_sha256": "bbc31a7c2503dc4e6cb247d759edcdb787da017bd65df70bcee0748742ecfca6",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "姞",
+      "codepoint": "U+59DE",
+      "normative_stroke_count": 9,
+      "candidate_sha256": "8774786525860c9decaeec6dd66624da0e30f5ba7ffc4cebfc52805404f4ba69",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "姶",
+      "codepoint": "U+59F6",
+      "normative_stroke_count": 9,
+      "candidate_sha256": "3f79072cd7da6725e7b08f0f41bd0dde548abe43b9cc9bd2ada70150543da19f",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "姽",
+      "codepoint": "U+59FD",
+      "normative_stroke_count": 9,
+      "candidate_sha256": "1d415c046e6c57227445226238fe4c53ca08e999c5ed631111b73107dc6e3c0f",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "珪",
+      "codepoint": "U+73EA",
+      "normative_stroke_count": 10,
+      "candidate_sha256": "107958d941ce8781345b8d5521813a1b3a35cef0f4d580f05ce3d56475881212",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "珽",
+      "codepoint": "U+73FD",
+      "normative_stroke_count": 10,
+      "candidate_sha256": "787f19ade753f9e73196c4302145dccf90b3b6a26ab6fb99e6ef3c2fa31d93d6",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "埆",
+      "codepoint": "U+57C6",
+      "normative_stroke_count": 10,
+      "candidate_sha256": "d6171f39faca6b49ed79cc983d74bdf8752ac720714e9491166e69ff2d6cdf63",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "茝",
+      "codepoint": "U+831D",
+      "normative_stroke_count": 10,
+      "candidate_sha256": "b4980c28dc1cd10bdf459a041f7145903fd08c9ece74891d1ec0c658036358e2",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "𬜯",
+      "codepoint": "U+2C72F",
+      "normative_stroke_count": 10,
+      "candidate_sha256": "19672478cb247687b64dca3170a43ed49c4fa287d090a4ffadf00aea7485eb00",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "莙",
+      "codepoint": "U+8399",
+      "normative_stroke_count": 10,
+      "candidate_sha256": "c17e6210efa62160cd2a55b3072811b5c13d2225ae90ba9d5a6ddf64af165b0b",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "栒",
+      "codepoint": "U+6812",
+      "normative_stroke_count": 10,
+      "candidate_sha256": "8a0efbf2214e926de4dfc33524226f72ccd3936afa6a9fbac4c45eea825f32cc",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "砠",
+      "codepoint": "U+7820",
+      "normative_stroke_count": 10,
+      "candidate_sha256": "8b4a407e23e434050e2b83d30373849bb933b6f4d40d2458ae4bb009210b0854",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "硁",
+      "codepoint": "U+7841",
+      "normative_stroke_count": 10,
+      "candidate_sha256": "9d51d848c7a3846dc9502b7f0643f4058769d82e3878036852630ec09cab9845",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "辀",
+      "codepoint": "U+8F80",
+      "normative_stroke_count": 10,
+      "candidate_sha256": "dc73d4e41d97951ed8f0cc5229247ddbebce885ed1fbfd74ed668e159f5bdbba",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "剕",
+      "codepoint": "U+5255",
+      "normative_stroke_count": 10,
+      "candidate_sha256": "db23d08050283c69b8878fc13d7ff3b10246ad41d9435796882a9660b16ff62b",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "哢",
+      "codepoint": "U+54E2",
+      "normative_stroke_count": 10,
+      "candidate_sha256": "8f2da17be0037288b900c2f32aa27ab7ba9b73a3c554bbcf8bb407ef2eb9871a",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "倓",
+      "codepoint": "U+5013",
+      "normative_stroke_count": 10,
+      "candidate_sha256": "d9214da10ef463e1056c76610628d07e62b5434242c3d94e4f6f9155d3bcb514",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "鱽",
+      "codepoint": "U+9C7D",
+      "normative_stroke_count": 10,
+      "candidate_sha256": "a08518a8c20fceaa35a121cf660e163865b5e396a871512388a37fcfd36ee2e9",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "勍",
+      "codepoint": "U+52CD",
+      "normative_stroke_count": 10,
+      "candidate_sha256": "63fc0d294e97502bb0cbf6bdd8c4d0234d98f560bb6cc6ae0fe2d4f1686eb12f",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "浡",
+      "codepoint": "U+6D61",
+      "normative_stroke_count": 10,
+      "candidate_sha256": "0c9b194124c1c770d76e938a58823e7df0fd614b4b81996a8cf36fdf2430eded",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "浬",
+      "codepoint": "U+6D6C",
+      "normative_stroke_count": 10,
+      "candidate_sha256": "929b0f04a16145feb0a288621043d297fa2bad4b0ba53064761c648af8629dbb",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "涢",
+      "codepoint": "U+6DA2",
+      "normative_stroke_count": 10,
+      "candidate_sha256": "a4a38b3acb05b4aea8633dce94465c63fd62272c51b02abe42157450cb4f1e7d",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "涘",
+      "codepoint": "U+6D98",
+      "normative_stroke_count": 10,
+      "candidate_sha256": "2d41cd9f5dabd199aadda371dc94b453805429ee5930205bfa5c95af60bbd936",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "悢",
+      "codepoint": "U+60A2",
+      "normative_stroke_count": 10,
+      "candidate_sha256": "180d199aaa0e1543d18a26bd7836464fd81498bb220dd8a1b5cffea11fae4653",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "扅",
+      "codepoint": "U+6245",
+      "normative_stroke_count": 10,
+      "candidate_sha256": "13296a260ddfdbcd1ecd8069a4e261e1d13a681d94b62473e77cbda0eb2d3a15",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "袪",
+      "codepoint": "U+88AA",
+      "normative_stroke_count": 10,
+      "candidate_sha256": "c15ce87efc037b0d94f18e38e743b5a04a5d6e0eabf781f91316fcc2ab598fcb",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "袗",
+      "codepoint": "U+8897",
+      "normative_stroke_count": 10,
+      "candidate_sha256": "a6ea0a1777aa0aadedeb74ac4215dd13d1c96cfd78d53c783f77ef94026d668e",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "疍",
+      "codepoint": "U+758D",
+      "normative_stroke_count": 10,
+      "candidate_sha256": "d1985be62debcb28b7c8348c7dd3db4fcc97b7ddef2c7804c1c1f6c2b51a6076",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "砮",
+      "codepoint": "U+782E",
+      "normative_stroke_count": 10,
+      "candidate_sha256": "030b3bd608885797d2e5ca3c24a64eda05f20e9ce3535491d2a77719b7638d72",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "剟",
+      "codepoint": "U+525F",
+      "normative_stroke_count": 10,
+      "candidate_sha256": "d2c0719d061e0972adf3bd6a2b43e86ca629347d72e4a2a54a0825f90f54f754",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "绤",
+      "codepoint": "U+7EE4",
+      "normative_stroke_count": 10,
+      "candidate_sha256": "f94762d1638e88f74dfa4b5b8cb55fe5317f8629ef69e11f0cbcf15fdfd86ef7",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "骍",
+      "codepoint": "U+9A8D",
+      "normative_stroke_count": 10,
+      "candidate_sha256": "73b36be6edc797bf42fd7e4749d53036a295ed2420a52aba4bf0027fc72ff264",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "琎",
+      "codepoint": "U+740E",
+      "normative_stroke_count": 11,
+      "candidate_sha256": "895ffe48282e6e34b3bd820b765c00029f5163ae863b0382e14ae68b33588bd4",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "珸",
+      "codepoint": "U+73F8",
+      "normative_stroke_count": 11,
+      "candidate_sha256": "20959d2bdf78fa7e27a6710aaa824515e949bbbc40ae5180466b7c645246e3cf",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "堌",
+      "codepoint": "U+580C",
+      "normative_stroke_count": 11,
+      "candidate_sha256": "8281b3209f89878797d46e463c8482072f614cc13a378d562f2061913092d2bf",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "晢",
+      "codepoint": "U+6662",
+      "normative_stroke_count": 11,
+      "candidate_sha256": "8b790e59522cdf0befae02c89679ae096a01087925f25e3774916c404107b478",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "菂",
+      "codepoint": "U+83C2",
+      "normative_stroke_count": 11,
+      "candidate_sha256": "9c46cce325ceb8a78079036ac0ca7e5e44336c481b678498c62858436732da00",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "菼",
+      "codepoint": "U+83FC",
+      "normative_stroke_count": 11,
+      "candidate_sha256": "175f25d59268a099c77e67e326ae5e981f5aa802ef91827d8f3ead2c9df0e2f6",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "梽",
+      "codepoint": "U+68BD",
+      "normative_stroke_count": 11,
+      "candidate_sha256": "3a11bf45d0aea776f951b2a7661f0a7b00cc04e26842bf3d5cb95db9a9405838",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "硚",
+      "codepoint": "U+785A",
+      "normative_stroke_count": 11,
+      "candidate_sha256": "296b3ed9215dd5bae373f8e92739094e331a4e99cfc97d6f8f55b484e2374a22",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "龁",
+      "codepoint": "U+9F81",
+      "normative_stroke_count": 11,
+      "candidate_sha256": "0169e003477583c4d6988b5fb0662d9c509d2e83c6a162a331fafc41f1ce627b",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "畤",
+      "codepoint": "U+7564",
+      "normative_stroke_count": 11,
+      "candidate_sha256": "9946fd55cba1e5076bab4748d93835ff1a7b29dec3258faab26b79e61af3ae87",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "崟",
+      "codepoint": "U+5D1F",
+      "normative_stroke_count": 11,
+      "candidate_sha256": "a45c2af48c2273ec8d47a1da07ee2bb6c7e550f068e0ff15a85a4451423ba522",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "铚",
+      "codepoint": "U+94DA",
+      "normative_stroke_count": 11,
+      "candidate_sha256": "ed4ac124c427d505c2705114df39b0b59b83cbf277fbfca65d08b17e782ffe01",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "偲",
+      "codepoint": "U+5072",
+      "normative_stroke_count": 11,
+      "candidate_sha256": "beba8f2e220532a7383407102becf3b1b4dbcb2b973a00b53e434cc1c9eadb53",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "衒",
+      "codepoint": "U+8852",
+      "normative_stroke_count": 11,
+      "candidate_sha256": "afd4fd3b24259864b9adc49236991fdde90090629350f718d486400c0d800973",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "鸼",
+      "codepoint": "U+9E3C",
+      "normative_stroke_count": 11,
+      "candidate_sha256": "cad90cba1513158c61e2dd250ea5dab853c7475db449827b3ffc39324278f822",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "瓻",
+      "codepoint": "U+74FB",
+      "normative_stroke_count": 11,
+      "candidate_sha256": "63cacd096ba7aae8365de84e584c7015f7fca7dd1540efa82fc0e380e19e8af7",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "鱾",
+      "codepoint": "U+9C7E",
+      "normative_stroke_count": 11,
+      "candidate_sha256": "04c6aa899e3a84648fa361887442ba4255cde1553f53a6809b114854bc715b6e",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "猄",
+      "codepoint": "U+7304",
+      "normative_stroke_count": 11,
+      "candidate_sha256": "871c49ca242a5753cfc23598cb8589125ba8691a5d7e1ba5fd6ad8fcadd141dc",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "庼",
+      "codepoint": "U+5EBC",
+      "normative_stroke_count": 11,
+      "candidate_sha256": "c3e87f80591b16f7e139b2b6b1d8e728e5d4cf69119fc370ddd364066843df40",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "烺",
+      "codepoint": "U+70FA",
+      "normative_stroke_count": 11,
+      "candidate_sha256": "121a55da2d7759d08f892d91aa98946d63cdde619ee971d1cfaa708cac668d0b",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "淏",
+      "codepoint": "U+6DCF",
+      "normative_stroke_count": 11,
+      "candidate_sha256": "06d8785d9e9afaaba42585166f1444b5e5a3c3fb48653d9d1edc2bf6b65a11ca",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "裈",
+      "codepoint": "U+88C8",
+      "normative_stroke_count": 11,
+      "candidate_sha256": "f7856bef64daf403279f390194fc7e40955310f667d90a940ac25dd7db15e68a",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "祲",
+      "codepoint": "U+7972",
+      "normative_stroke_count": 11,
+      "candidate_sha256": "856b84a1c1705ac3f181cc0412ff4ace46c88d008c01c9696305354d61c58c25",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "弸",
+      "codepoint": "U+5F38",
+      "normative_stroke_count": 11,
+      "candidate_sha256": "86b539b178c9e84eacab41639ede41983afb3aeb6518cf7a3679d5f1de1982e0",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "婞",
+      "codepoint": "U+5A5E",
+      "normative_stroke_count": 11,
+      "candidate_sha256": "8e1a06368f896705e35446fb5d5f70ff6aca269e38fad7335026f137f48ab1fc",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "娵",
+      "codepoint": "U+5A35",
+      "normative_stroke_count": 11,
+      "candidate_sha256": "1da607c4f2b3a4af237add6a3e1e7de2429fd6f5594fdc678ab82f2cbff18170",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "婳",
+      "codepoint": "U+5A73",
+      "normative_stroke_count": 11,
+      "candidate_sha256": "5e8e0c8a318227e570df6a9bb946613e6ef5410f72451fad980615d9d7322caa",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "绹",
+      "codepoint": "U+7EF9",
+      "normative_stroke_count": 11,
+      "candidate_sha256": "6b23a8b521bb64f07255e8ba2d5e15ffcd939b29984fc207918a61449819c984",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "琲",
+      "codepoint": "U+7432",
+      "normative_stroke_count": 12,
+      "candidate_sha256": "75e3701928b9ae0aa814bcc8f4689863d44156858b0806d0ba982100e4988688",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "蓇",
+      "codepoint": "U+84C7",
+      "normative_stroke_count": 12,
+      "candidate_sha256": "8c7d61e9b78b59c5de8ed3dcb6abc7a40ddbc6491a1b17b036a5daa56cc81ae8",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "萩",
+      "codepoint": "U+8429",
+      "normative_stroke_count": 12,
+      "candidate_sha256": "70b187d98346170e9c823bad786962899f32663cfeb5c3eeab3d94b00a105ffc",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "葎",
+      "codepoint": "U+844E",
+      "normative_stroke_count": 12,
+      "candidate_sha256": "73176c73e4aefd3c3307c2a7a5c1c68ed6b19c6e7b8e3902363e0396247c89c2",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "葖",
+      "codepoint": "U+8456",
+      "normative_stroke_count": 12,
+      "candidate_sha256": "a4d084524deff5e31069ae1a85e1baa73c1e79170c9a1d2575b3b9ee9bfeb81b",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "蒄",
+      "codepoint": "U+8484",
+      "normative_stroke_count": 12,
+      "candidate_sha256": "033d87c9d81ba2e8b63816382b3d1890dde12a41ddb2b60f8407fabb39764553",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "椑",
+      "codepoint": "U+6911",
+      "normative_stroke_count": 12,
+      "candidate_sha256": "7714887fa4985b5b2d80edd72e34fe95f5579dc9c89d17d2052da5bad214f10b",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "鹀",
+      "codepoint": "U+9E40",
+      "normative_stroke_count": 12,
+      "candidate_sha256": "fd6a0af46f4dfb9f20f92205bcaedefd38ac45f14be03e822743e0f9a186fb3e",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "棬",
+      "codepoint": "U+68EC",
+      "normative_stroke_count": 12,
+      "candidate_sha256": "e5e6adacb1992d3259f5857b7bedd7fe2f2e5eac38931e54920db77d8e82ff31",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "椀",
+      "codepoint": "U+6900",
+      "normative_stroke_count": 12,
+      "candidate_sha256": "f7cadcb67ba3a47b83e7db4ff62479ffaec79fa2911c2774a46ebc9ebb67de33",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "畯",
+      "codepoint": "U+756F",
+      "normative_stroke_count": 12,
+      "candidate_sha256": "ad37630f01d9ec0073d1e0bd09e7ba22667ae997b4c5f92b0cb177fa5b220946",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "斝",
+      "codepoint": "U+659D",
+      "normative_stroke_count": 12,
+      "candidate_sha256": "958fe506088d6ee1ad23c365869743fab581e2d9e58774ecbb9d8a8db4805ab5",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "喤",
+      "codepoint": "U+55A4",
+      "normative_stroke_count": 12,
+      "candidate_sha256": "5e898bf2d66830eb6b931e74a0c37090b9afd4add3556f3c82d32d673db9c22b",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "嵚",
+      "codepoint": "U+5D5A",
+      "normative_stroke_count": 12,
+      "candidate_sha256": "5b9770f494fee767218165f8596eeb25172ec4692eaf787d4d71399f2ed498be",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "翙",
+      "codepoint": "U+7FD9",
+      "normative_stroke_count": 12,
+      "candidate_sha256": "f7b9af4da93f6724bc2768883bd372932d8cc6e85fa1efe8d362e45357f1bfc6",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "犇",
+      "codepoint": "U+7287",
+      "normative_stroke_count": 12,
+      "candidate_sha256": "114d34091b276cfd386f4624e7ca2da944b0fe1bb5692d439ecd71401aa8060d",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "颋",
+      "codepoint": "U+988B",
+      "normative_stroke_count": 12,
+      "candidate_sha256": "323358e640314cb8d1d1f2a3dec9fc0eed64a9e8f5202594453a4412b63c65da",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "腒",
+      "codepoint": "U+8152",
+      "normative_stroke_count": 12,
+      "candidate_sha256": "51485bfdb1aa0b7ecd33e0281d5baa34a93b0174b71ac38da27e7b2a3353d7e5",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "猯",
+      "codepoint": "U+732F",
+      "normative_stroke_count": 12,
+      "candidate_sha256": "7d2f45a05da3e2bbd74700773d88e9945eddcc5e427cf67d5ef028824ed84d24",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "馉",
+      "codepoint": "U+9989",
+      "normative_stroke_count": 12,
+      "candidate_sha256": "337c52a16aa408443b626aad101020b5e2098fb2033735f3137db661d853757d",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "廋",
+      "codepoint": "U+5ECB",
+      "normative_stroke_count": 12,
+      "candidate_sha256": "fa8676f13f1a236188ae212f366b62662da0219074d99adb8510f2af784c0881",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "鄌",
+      "codepoint": "U+910C",
+      "normative_stroke_count": 12,
+      "candidate_sha256": "576009e0e4cbb183a03d4d08f9ebfa264aa31c2a83b981c402ef9ef12846d0ae",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "湝",
+      "codepoint": "U+6E5D",
+      "normative_stroke_count": 12,
+      "candidate_sha256": "0d88a2c4aa8b65a7658baef5c577cc20615ed4719f3a8c714e2e281f13cb8039",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "渟",
+      "codepoint": "U+6E1F",
+      "normative_stroke_count": 12,
+      "candidate_sha256": "d4d45a36d2189404d67f2e969f8ca510645d969217d019cff17b04f15255e461",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "溠",
+      "codepoint": "U+6EA0",
+      "normative_stroke_count": 12,
+      "candidate_sha256": "3056189c145403d6e02bf35dca2041076e20b22cd5be95d7b87002589c3cf07d",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "溇",
+      "codepoint": "U+6E87",
+      "normative_stroke_count": 12,
+      "candidate_sha256": "7e8a36565ba2f88c380be83eb4827d703e129f2fa02e34267b36100e604a9839",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "愃",
+      "codepoint": "U+6103",
+      "normative_stroke_count": 12,
+      "candidate_sha256": "92de45b86c72970c70c13e7da3938a55930fb61d8c64f950928a151b6436d3a5",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "棨",
+      "codepoint": "U+68E8",
+      "normative_stroke_count": 12,
+      "candidate_sha256": "b67ad293189f1f1cba9fbd58c1bd85d6faf430d29d2c3254a8969b164d286f43",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "扊",
+      "codepoint": "U+624A",
+      "normative_stroke_count": 12,
+      "candidate_sha256": "c97040c31d47c0c9f1b3467eaf8a8fdc201aff8731609b17e927355b74b23f48",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "祼",
+      "codepoint": "U+797C",
+      "normative_stroke_count": 12,
+      "candidate_sha256": "de441045edc9f876a58ef6b7387f8e57d812cd816208698913e36fe01431b702",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "骙",
+      "codepoint": "U+9A99",
+      "normative_stroke_count": 12,
+      "candidate_sha256": "b85e4040507646d796ee87c8aa8eac3fb6265eb7c27f0c72562804c61e392819",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "瑀",
+      "codepoint": "U+7440",
+      "normative_stroke_count": 13,
+      "candidate_sha256": "f61ced9449deef5fa4642b6ac94ab9bc55f7fbfcc24ed5795e07eccedfa7898b",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "堽",
+      "codepoint": "U+583D",
+      "normative_stroke_count": 13,
+      "candidate_sha256": "df55b911e6543e7e2b9e2d3abe5a07e704912349cb1e87ea1a9263fbc40e87c3",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "赪",
+      "codepoint": "U+8D6A",
+      "normative_stroke_count": 13,
+      "candidate_sha256": "9c5ce37706547b99f568f15e72bcfd482c7d65400a85273ed38fd7da6e0bad0b",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "楪",
+      "codepoint": "U+696A",
+      "normative_stroke_count": 13,
+      "candidate_sha256": "74c4b48633c380df1180f1920b8acb6ba247dbd3aaa820638269a5fc1fb358a9",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "暅",
+      "codepoint": "U+6685",
+      "normative_stroke_count": 13,
+      "candidate_sha256": "dda4f99a17fd9c28a0fee16b8013e8d9f69491a2523f919cb4af99902cd6499c",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "锧",
+      "codepoint": "U+9527",
+      "normative_stroke_count": 13,
+      "candidate_sha256": "ce0b52d6bd87d5fce7f497fced5dba1ec8f5b0886556b30df6dc9393645a8197",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "僇",
+      "codepoint": "U+50C7",
+      "normative_stroke_count": 13,
+      "candidate_sha256": "962a166462f9cfe33502c6c4f05b9be9e99c4ad37679f29b1d13d53c7b5472f5",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "鲉",
+      "codepoint": "U+9C89",
+      "normative_stroke_count": 13,
+      "candidate_sha256": "e50b907fccf8c1f9f8fb1e6ff755216cd42959b25ee1aca4e44462c8d35e2ece",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "鲊",
+      "codepoint": "U+9C8A",
+      "normative_stroke_count": 13,
+      "candidate_sha256": "331a10a5a23e8d86c8248ea94bd3895ecd8d6eec5569abb8709907ea8a5e5960",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "鲌",
+      "codepoint": "U+9C8C",
+      "normative_stroke_count": 13,
+      "candidate_sha256": "c71688980b579ed923a806ad9c3fa134e49878a0311184fb91432397650059df",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "鲏",
+      "codepoint": "U+9C8F",
+      "normative_stroke_count": 13,
+      "candidate_sha256": "d99a36bc74652a2f21b5e3b7442b21f653274e5da01631ae15f6a9f7635a795d",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "飔",
+      "codepoint": "U+98D4",
+      "normative_stroke_count": 13,
+      "candidate_sha256": "6ee1ef000092c8da2865a6af8aeaeb9f949e0babed828b4a2a886b752de9bbfb",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "馌",
+      "codepoint": "U+998C",
+      "normative_stroke_count": 13,
+      "candidate_sha256": "be984ed1524942b974b2417f117a41d98b7ad6f2da1210b43f6a98084f998d8a",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "鄘",
+      "codepoint": "U+9118",
+      "normative_stroke_count": 13,
+      "candidate_sha256": "03d5ab5d1e288f9fe177dc26676125f7f8b12eec8311001844f26294e5b90776",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "阘",
+      "codepoint": "U+9618",
+      "normative_stroke_count": 13,
+      "candidate_sha256": "b583512776434d6b9239ffe3883e5bbf68930ea81d32529404cb12d422109896",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "滉",
+      "codepoint": "U+6EC9",
+      "normative_stroke_count": 13,
+      "candidate_sha256": "999cdce62dd5419eb1e73335cc3c32aeb04e6107b4b932de02ebd00350c585ab",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "滘",
+      "codepoint": "U+6ED8",
+      "normative_stroke_count": 13,
+      "candidate_sha256": "06a56606b0cca7d2c1b3348f5a1c745cfa4f0f7e7c1487c67e04bf571379d8bf",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "滍",
+      "codepoint": "U+6ECD",
+      "normative_stroke_count": 13,
+      "candidate_sha256": "c6f12bce5fd88ccc29bc069d2cffe929cabc76c3dc85db9e5f84e8d0374bd9b7",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "慥",
+      "codepoint": "U+6165",
+      "normative_stroke_count": 13,
+      "candidate_sha256": "cc14c1438fb66b576a107a9464e1c336039a2a26da4a18334a1eee5eb36d27ba",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "勠",
+      "codepoint": "U+52E0",
+      "normative_stroke_count": 13,
+      "candidate_sha256": "10e14b8999bca97ff087fd6ec68a05fbe445ecb3fb3bff5f6237c0a2bca4693b",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "瑢",
+      "codepoint": "U+7462",
+      "normative_stroke_count": 14,
+      "candidate_sha256": "e0af5027e835885ee4ca51128d007f8f48e60534f75bcc00602e5290106e3681",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "墈",
+      "codepoint": "U+5888",
+      "normative_stroke_count": 14,
+      "candidate_sha256": "0db982372b47656577a157cc3f03f93a5a18cdb6204e08c4bd8b9c750c2cd443",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "靽",
+      "codepoint": "U+977D",
+      "normative_stroke_count": 14,
+      "candidate_sha256": "75effc6dbd4cb56372dde1f9da54033e5ec6383349f745fed9b4a6f8f77a0c33",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "鞁",
+      "codepoint": "U+9781",
+      "normative_stroke_count": 14,
+      "candidate_sha256": "42eb6a1509af4581c2d8f348a4f3240f3d2e9cebe9deebac5d82dbde660ab847",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "榑",
+      "codepoint": "U+6991",
+      "normative_stroke_count": 14,
+      "candidate_sha256": "853f6bba601ec082c5d577f30f3858be92ec38d36e3f8b00d52780da506e6816",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "槚",
+      "codepoint": "U+69DA",
+      "normative_stroke_count": 14,
+      "candidate_sha256": "16e32053c05df3a3526f4023f8dd752bd36dd85ca067eb4cbe81718ec1814637",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "碶",
+      "codepoint": "U+78B6",
+      "normative_stroke_count": 14,
+      "candidate_sha256": "065460199d2a1e5df0d8c96ee137f5b33522b8d059c32b8f1ca7c4f75e07cc20",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "锽",
+      "codepoint": "U+953D",
+      "normative_stroke_count": 14,
+      "candidate_sha256": "1a9d0905125bbbb6824d7b29820bc45f20f481179b6479b909a0042a9c9d2db4",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "镃",
+      "codepoint": "U+9543",
+      "normative_stroke_count": 14,
+      "candidate_sha256": "191f62abb22b7a63062898949ed513d3d159c0f5d3e7f31ce4c82c53da9b91dc",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "夐",
+      "codepoint": "U+5910",
+      "normative_stroke_count": 14,
+      "candidate_sha256": "40b0edc68f9b03b9c72b0a87d58b5f5b35d0aa709aac67fc04b73e290f6a2e9a",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "飗",
+      "codepoint": "U+98D7",
+      "normative_stroke_count": 14,
+      "candidate_sha256": "cf707b324fda8ada58e2b6a184e380d2f071d10b7a08f0708ed1423f12981984",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "廙",
+      "codepoint": "U+5ED9",
+      "normative_stroke_count": 14,
+      "candidate_sha256": "07fab025835374a6ecd448f846f35e247e90658b0aec612e11e44316051c1a86",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "麹",
+      "codepoint": "U+9EB9",
+      "normative_stroke_count": 15,
+      "candidate_sha256": "6fbdfc1f7089ce85b242cc1c0d64a9a30e53efe91f5a0fc04a3f2110dc7db9ba",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "璆",
+      "codepoint": "U+7486",
+      "normative_stroke_count": 15,
+      "candidate_sha256": "652c15acd85b3f6b99dd209db5f7be2b2a3ba891cd0311850542ade4300d631d",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "墦",
+      "codepoint": "U+58A6",
+      "normative_stroke_count": 15,
+      "candidate_sha256": "1e876cf3a3ffa73a8feb6e24875675212b7e992d8ede6f441abc4b044c6a7172",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "蕰",
+      "codepoint": "U+8570",
+      "normative_stroke_count": 15,
+      "candidate_sha256": "ae8d7e22f0e319d477bf6129ae216ed1ee8485fdbd16d4cf114bca80225a6bbe",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "鼒",
+      "codepoint": "U+9F12",
+      "normative_stroke_count": 15,
+      "candidate_sha256": "c6d77c8c5c40ed4cb7395dac05b4636c2fed0cd788d23f79c16085090fa0cc73",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "鹝",
+      "codepoint": "U+9E5D",
+      "normative_stroke_count": 15,
+      "candidate_sha256": "e1ba107f4a320c0d03506e242e640f4878ec7f656ce326ba4be2d41d52cbf1f5",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "殣",
+      "codepoint": "U+6BA3",
+      "normative_stroke_count": 15,
+      "candidate_sha256": "22785d285e9de773cc4596bac2ff96a9cadbc2bb3b9e903f9f96b2d44d2cd3c1",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "慭",
+      "codepoint": "U+616D",
+      "normative_stroke_count": 15,
+      "candidate_sha256": "9380d7209a4c9452ec5ad121fbdc1df59acd5cd2edbba2bd48a6af8dae673a41",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "噂",
+      "codepoint": "U+5642",
+      "normative_stroke_count": 15,
+      "candidate_sha256": "7a2560fd0c87baf1fccb1aad4fd4679dcef911235f8b47ecc857276df0ea3c1f",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "噀",
+      "codepoint": "U+5640",
+      "normative_stroke_count": 15,
+      "candidate_sha256": "5cee7ba40e5f7b9524d932face83c9af3247014bc3a95a44de8fca6b8166f79d",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "嶓",
+      "codepoint": "U+5D93",
+      "normative_stroke_count": 15,
+      "candidate_sha256": "65a5daea25210600dc99667c64b105bb2cab0b7f2e4caff58691fcb20bdd8eae",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "镋",
+      "codepoint": "U+954B",
+      "normative_stroke_count": 15,
+      "candidate_sha256": "d40a852af4940345b4e9a9bacd6a6c0d647cb5ef38a2735bde740b11f5688b0d",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "皛",
+      "codepoint": "U+769B",
+      "normative_stroke_count": 15,
+      "candidate_sha256": "7224f4e3e718c27d14bba9a071a79ebacf46e633d1007bc7d4dce27e347a3515",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "鹟",
+      "codepoint": "U+9E5F",
+      "normative_stroke_count": 15,
+      "candidate_sha256": "50113f7050debce618df77362db52acaa8762ae1d5c61e154cbef6cb91b00697",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "鲪",
+      "codepoint": "U+9CAA",
+      "normative_stroke_count": 15,
+      "candidate_sha256": "25be8d57c912d63a66ae35eddd7964a8651571855805a189655db088a58e4284",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "鲬",
+      "codepoint": "U+9CAC",
+      "normative_stroke_count": 15,
+      "candidate_sha256": "2a9fb286ffc13b84736b3dfab080caf865e986c255c39905ceaf7f9fd4829ddb",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "潵",
+      "codepoint": "U+6F75",
+      "normative_stroke_count": 15,
+      "candidate_sha256": "374ebf65e0dcd54757e48dceb75c3d06ddcf7aaf6c7dd5d837b3ad9e5c6b74d8",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "澂",
+      "codepoint": "U+6F82",
+      "normative_stroke_count": 15,
+      "candidate_sha256": "6b24abffc55bfd54dc62eed1e7f6223b0c78458cb4d50a3dc5d44ea73ffdff5e",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "潏",
+      "codepoint": "U+6F4F",
+      "normative_stroke_count": 15,
+      "candidate_sha256": "3ee98fc6dd9db8d6536bec040203415882734378c9a89a1325113f438dba5e8d",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "禤",
+      "codepoint": "U+79A4",
+      "normative_stroke_count": 15,
+      "candidate_sha256": "4fd8bb8969878a882d82fd04947e04cf4a7db0f4eb3cc80cf72bb853edb55f4c",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "憙",
+      "codepoint": "U+6199",
+      "normative_stroke_count": 16,
+      "candidate_sha256": "916a8965ac5944ff2b929eba00b5233509bf773eab19a8ae260e346099139bf2",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "黇",
+      "codepoint": "U+9EC7",
+      "normative_stroke_count": 16,
+      "candidate_sha256": "070540fc3d31dbeb5d893fdc93aaf053fc3de9563129c5e7e74543e19017c14e",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "蕗",
+      "codepoint": "U+8557",
+      "normative_stroke_count": 16,
+      "candidate_sha256": "b72d38f34d2858f2bf757f131a7ca7a9f5564b5fe08ff1bb9910e32bd74430a3",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "橦",
+      "codepoint": "U+6A66",
+      "normative_stroke_count": 16,
+      "candidate_sha256": "669d5a0a43c6b72c1cf202763684bfbc8674f845a4eba7a250d8d5935254b44a",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "曈",
+      "codepoint": "U+66C8",
+      "normative_stroke_count": 16,
+      "candidate_sha256": "91350840b0509af4fce39e52367f1bf477b71a222841e4be3bb9defdf77b3a9a",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "蹅",
+      "codepoint": "U+8E45",
+      "normative_stroke_count": 16,
+      "candidate_sha256": "aa068b7821197a6394a19c918fd77736c0d8004cb9491aea6009f92e31fdb38f",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "幪",
+      "codepoint": "U+5E6A",
+      "normative_stroke_count": 16,
+      "candidate_sha256": "a5611876900f590e6274e24aa57e00a6ddb92b007a92df99e7515e7fa98796a7",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "穄",
+      "codepoint": "U+7A44",
+      "normative_stroke_count": 16,
+      "candidate_sha256": "782bdee63b01102c86006067ca3ea7ac1cef51b8cf4fab9707e981ada10ccf7a",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "盦",
+      "codepoint": "U+76E6",
+      "normative_stroke_count": 16,
+      "candidate_sha256": "9ba5ae9e4951cc9678ad76e2873675f52a56900e88ec29f4b66abfadfe999f4b",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "螣",
+      "codepoint": "U+87A3",
+      "normative_stroke_count": 16,
+      "candidate_sha256": "a7b92f55ce64d69e1cd23f9c7922f807f74262edf557dec15ca76aef755e1640",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "縢",
+      "codepoint": "U+7E22",
+      "normative_stroke_count": 16,
+      "candidate_sha256": "398938fed467947d4c96d064f76f7314bcfa8cbc102519f948eb5e1e57978e60",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "鲹",
+      "codepoint": "U+9CB9",
+      "normative_stroke_count": 16,
+      "candidate_sha256": "2a47d22a0fec72d203ef5c867d7b2e5d9f0095faa1c2810cb8fa6d918746a8f0",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "亸",
+      "codepoint": "U+4EB8",
+      "normative_stroke_count": 16,
+      "candidate_sha256": "60d886b7869fccce9f3304ba0142d69081de8a64c36245ed2b3b10961c760441",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "糒",
+      "codepoint": "U+7CD2",
+      "normative_stroke_count": 16,
+      "candidate_sha256": "0dc32faa5e36c9ca0ad2e39875feccabd23874c72690c440a9432abfcc955cd4",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "燊",
+      "codepoint": "U+71CA",
+      "normative_stroke_count": 16,
+      "candidate_sha256": "7ea4a203b419dfe78912526ca343b36f170ae6925fc718e51cc64d018243a203",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "燏",
+      "codepoint": "U+71CF",
+      "normative_stroke_count": 16,
+      "candidate_sha256": "01f0d49990cacaf02c601f537d5158f9bba78bf2c1e6410823a58e5de18faaf0",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "澪",
+      "codepoint": "U+6FAA",
+      "normative_stroke_count": 16,
+      "candidate_sha256": "0819b35af498a17582684b53b1d10963444ed758317d2f9fc33b9313b3bdaaa3",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "澴",
+      "codepoint": "U+6FB4",
+      "normative_stroke_count": 16,
+      "candidate_sha256": "714cd413e0a9353dd9db3bcdf953ca6fb041c44bec61a0f4c1db509adc59122e",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "澼",
+      "codepoint": "U+6FBC",
+      "normative_stroke_count": 16,
+      "candidate_sha256": "533b1b97594374338de2ff5404403a30d571fe2c417c55cda13ebd8533962074",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "憺",
+      "codepoint": "U+61BA",
+      "normative_stroke_count": 16,
+      "candidate_sha256": "90da8ff73b5d90452b858a8ce0b9f7298a2d9dd1ec6aba37dee4ad9bcd58f333",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "翯",
+      "codepoint": "U+7FEF",
+      "normative_stroke_count": 16,
+      "candidate_sha256": "1e4679197f60f687d6cd02fade95cdf6463610304c273c729741a2b54e936a77",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "繄",
+      "codepoint": "U+7E44",
+      "normative_stroke_count": 17,
+      "candidate_sha256": "cd7f81c6f7a86fe76e8d4c419edaa2987eb55aa545531ffbf07d6c08a2f861dc",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "蹐",
+      "codepoint": "U+8E50",
+      "normative_stroke_count": 17,
+      "candidate_sha256": "f38a5a1b9cef7deca59a9e7cb98796978673896104518b70f969476f01c591e5",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "簃",
+      "codepoint": "U+7C03",
+      "normative_stroke_count": 17,
+      "candidate_sha256": "8e9edb4d21d718ae883f445b637011165418dc25c8ad2f6c0ee80feea8bde72c",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "鲾",
+      "codepoint": "U+9CBE",
+      "normative_stroke_count": 17,
+      "candidate_sha256": "c1cc4b3cb288d54a9737fb2106b577f98f0578e484772d5ab8c7ede85342c521",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "鳁",
+      "codepoint": "U+9CC1",
+      "normative_stroke_count": 17,
+      "candidate_sha256": "9abb64aa42b3ab43fa3fd59b9038f47e942f6460d7928d1f6a84f770eb9706cd",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "鳂",
+      "codepoint": "U+9CC2",
+      "normative_stroke_count": 17,
+      "candidate_sha256": "2f8c321f9efeac2d4b19e195b9c144c06477dca0c410749e407c93abdb3263c9",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "鳈",
+      "codepoint": "U+9CC8",
+      "normative_stroke_count": 17,
+      "candidate_sha256": "91d15fe545261ac1ecaf108cc558e574b05317ece637ccf264490c8bae66cd60",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "鳉",
+      "codepoint": "U+9CC9",
+      "normative_stroke_count": 17,
+      "candidate_sha256": "8a8bd50ab83049379f34bad03cab46cd7ee55be8c34538d8f399d6d58d3d4cff",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "襕",
+      "codepoint": "U+8955",
+      "normative_stroke_count": 17,
+      "candidate_sha256": "bb37b4c288ccadcd721276b653b6c3c34d1392fe0c443418c4bc5061c8c3eb11",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "嬬",
+      "codepoint": "U+5B2C",
+      "normative_stroke_count": 17,
+      "candidate_sha256": "8483a05cb728eeaf7989ddd0400bdc6f061c80a902869d7f99a6a612bfe399bf",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "鹲",
+      "codepoint": "U+9E72",
+      "normative_stroke_count": 18,
+      "candidate_sha256": "93f1ed5f6e968d75dd872877f76717593e09a4ff6d9005eba5c5e10db6874270",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "礌",
+      "codepoint": "U+790C",
+      "normative_stroke_count": 18,
+      "candidate_sha256": "8ab4e6a6db69630e812bd64406e45eef4bddf2856cee4740e9da477c80baa6bf",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "蹢",
+      "codepoint": "U+8E62",
+      "normative_stroke_count": 18,
+      "candidate_sha256": "6d4f183da91a2405a6976e732b54247644513a5c0dce21f640be230ac385b26c",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "蹜",
+      "codepoint": "U+8E5C",
+      "normative_stroke_count": 18,
+      "candidate_sha256": "03962916c790d8c0295b2133813eec052992842a792b0bf283b6fb19737b2515",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "嚚",
+      "codepoint": "U+569A",
+      "normative_stroke_count": 18,
+      "candidate_sha256": "ff97f63a6a9d8e2c6e49b546bb5c730aec87b31448efb7480dc2644bd0299372",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "簠",
+      "codepoint": "U+7C20",
+      "normative_stroke_count": 18,
+      "candidate_sha256": "8b777729494fce9a5eab23feddc89aab60648f96a85dc82709e38f66094a2558",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "鼫",
+      "codepoint": "U+9F2B",
+      "normative_stroke_count": 18,
+      "candidate_sha256": "1e953d147b13328c63b77b610a6c268b99d64c4581251ef7d40e6a519695c4cc",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "臑",
+      "codepoint": "U+81D1",
+      "normative_stroke_count": 18,
+      "candidate_sha256": "fd929a8b0a4be16262cdfa4c65b4cf2815784f71ed020b690a7860c7bd2c87a8",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "瀍",
+      "codepoint": "U+700D",
+      "normative_stroke_count": 18,
+      "candidate_sha256": "cbc68fd74f77af13cecf51c54e6c3b29a8723d32c6ffefb0a4eebaf6dbbac65c",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "瀌",
+      "codepoint": "U+700C",
+      "normative_stroke_count": 18,
+      "candidate_sha256": "6088d900cc255a71000fe6e12cbccb9f97b135b38d9482ec663a887c75df5741",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "蠋",
+      "codepoint": "U+880B",
+      "normative_stroke_count": 19,
+      "candidate_sha256": "39664ca0a28a2e37d5ea919b4eed857a72b2ee7f5fdeb94e1557f38e8ff7cad8",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "鳚",
+      "codepoint": "U+9CDA",
+      "normative_stroke_count": 19,
+      "candidate_sha256": "d70a951b52b806a66381c541c3f4d9c12c3a5d0d67f58004ca9240f1bf318170",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "犨",
+      "codepoint": "U+72A8",
+      "normative_stroke_count": 20,
+      "candidate_sha256": "908ed85e05691010af933da1ab9de9382d8be36455574f169c32c29cb24e0992",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "孅",
+      "codepoint": "U+5B45",
+      "normative_stroke_count": 20,
+      "candidate_sha256": "22cdaaf4ab84eefc6c0d7fc12eb2fe9f608e8d942883cbfe8ddb3885d29fc1d3",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "耰",
+      "codepoint": "U+8030",
+      "normative_stroke_count": 21,
+      "candidate_sha256": "3dd4b5c31319620eea7bb3c9259de04c5270c3082cc6bc0174a9c36bfe78a266",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "罍",
+      "codepoint": "U+7F4D",
+      "normative_stroke_count": 21,
+      "candidate_sha256": "36f6f2f86a2b7eadae762c088b2cde346cf668675d01c06613f8d1bf5e2df882",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "鳡",
+      "codepoint": "U+9CE1",
+      "normative_stroke_count": 21,
+      "candidate_sha256": "68fcce063b988c427317b129ff7fbd323d14c05a05f3d0bb79eeddad18cce5de",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "韂",
+      "codepoint": "U+97C2",
+      "normative_stroke_count": 22,
+      "candidate_sha256": "c7fe662b64e387d1ad25c84cc226053a7c14f420b0372a0a7eaf5751a16fdcf0",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "糵",
+      "codepoint": "U+7CF5",
+      "normative_stroke_count": 22,
+      "candidate_sha256": "dd449b71a3f7d6a1fa26ebc057bdd9915665f1c360fb94e3e3e0a9c24d72d366",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "鳤",
+      "codepoint": "U+9CE4",
+      "normative_stroke_count": 22,
+      "candidate_sha256": "2409adc9566860508855f8acc73bed032bef9375bae9e47098d2e27af1cb3494",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "籥",
+      "codepoint": "U+7C65",
+      "normative_stroke_count": 23,
+      "candidate_sha256": "a53ad2cb267daab3dfc06d4fd12878427611d75cc1113f67688bdf5cde098924",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "醾",
+      "codepoint": "U+91BE",
+      "normative_stroke_count": 24,
+      "candidate_sha256": "a0baaa207bd0b2fd0faa0827076a1fdab934a40f5a864bf8122195bbebd1fc96",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "茀",
+      "codepoint": "U+8300",
+      "normative_stroke_count": 8,
+      "candidate_sha256": "6960ba35c6f16869ba4eda8aab7485bd42133caa3e34aa62ca5c38905902b57c",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "蒟",
+      "codepoint": "U+849F",
+      "normative_stroke_count": 13,
+      "candidate_sha256": "147fb80e1d96fc11b0a877110a5b31f46e586bfb0b5f6ca8e8496379b4ec5f50",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "魆",
+      "codepoint": "U+9B46",
+      "normative_stroke_count": 14,
+      "candidate_sha256": "375fe1eecfd40b5a233b2b31b04d6cf2432243129a1779e9698d50f6e0531346",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "苧",
+      "codepoint": "U+82E7",
+      "normative_stroke_count": 8,
+      "candidate_sha256": "ed76d2261747503a505009c62580fdc08797d3b810a60a1b7ea2b4f17a926d84",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "蓂",
+      "codepoint": "U+84C2",
+      "normative_stroke_count": 13,
+      "candidate_sha256": "f1aa85794e94cfa508ae72ba2f68c3fa4b36642e1098af62b68be8c424f38b7e",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "蒻",
+      "codepoint": "U+84BB",
+      "normative_stroke_count": 13,
+      "candidate_sha256": "3a4d8be7672ec22ef4fe905177be987cc9998b77ffe4a49f9f448a09ac64b7ea",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "蘘",
+      "codepoint": "U+8618",
+      "normative_stroke_count": 20,
+      "candidate_sha256": "daf8bd62dbf544779de146d083999a3cd14dada32ecb24724af32d2ab6fb6cca",
+      "runtime_outcome_retained": "MACHINE_PASS",
+      "decision": "HUMAN_ACCEPTED"
+    }
+  ],
+  "evidence_bindings": {
+    "manifest": {
+      "path": "tmp/vector-mve/animcjk-363/manifest.json",
+      "sha256": "79162ac2be71d2d4dd181a971531552163ae235c2056c3935572c4032bed3884"
+    },
+    "validation": {
+      "path": "tmp/vector-mve/animcjk-363/validation.json",
+      "sha256": "278ccdf6c0324ea3eb31673ee542237885ba6e14ada890f9b25ec2d63275f17e"
+    },
+    "runtime": {
+      "path": "tmp/vector-mve/animcjk-363/runtime-validation.json",
+      "sha256": "234ba2fd16f53243599d53a0171032c6afa39cc57b6b708097e849df8848814c"
+    },
+    "visual_review": {
+      "path": "tmp/vector-mve/animcjk-363/visual-review.json",
+      "sha256": "b324c2e6c10c89b74dae2ad1596b336b0aaa9f9b4afa2c1340f588959a247080"
+    },
+    "production_dry_run": {
+      "path": "tmp/vector-mve/animcjk-363/production-dry-run.json",
+      "sha256": "7b0cf39b170daa7c7985b5668774c776a3b46f19c0b8510faa60910efd4aaca8"
+    },
+    "review_page": {
+      "path": "tmp/vector-mve/animcjk-363/review.html",
+      "sha256": "cf926178d7cd3ad68cd0df0dce14ab609640443211b7d71adac68aa193f64cfe"
+    },
+    "review_instructions": {
+      "path": "tmp/vector-mve/animcjk-363/human-review/README.md",
+      "sha256": "20bcf6a277cf1a7068c4a86545cdc0df30a896aae0c3fbd5651be2a2b023fb02"
+    }
+  },
+  "limitations": [
+    "This approval closes the visual, stroke-order and stroke-direction review for these exact 363 candidate hashes only.",
+    "The receipt records the user's explicit acceptance response; it does not claim independent click telemetry.",
+    "It does not authorize Hanzipi candidates, other unreviewed batches, question-bank changes, commit or push.",
+    "Any candidate byte change invalidates this approval and requires a new review."
+  ]
+}

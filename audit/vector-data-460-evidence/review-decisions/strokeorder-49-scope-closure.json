@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "artifact": "shizi-strokeorder-49-product-scope-closure",
+  "recorded_at_utc": "2026-08-06T15:24:10Z",
+  "reviewer_role": "product_owner",
+  "reviewer_response_verbatim": "后续还剩下的字都不用处理了，做到现在这里已经可以了，后面的还剩下的都是非常生僻的字，几乎不会在日常出现",
+  "decision": "CLOSE_REPAIR_SCOPE_WITH_29_ACCEPTED_AND_20_PRODUCT_EXCLUDED",
+  "scope": {
+    "original_issue_characters": 49,
+    "human_accepted_candidates": 29,
+    "product_scope_excluded_characters": 20,
+    "reconciliation_pass": true
+  },
+  "human_accepted_characters": [
+    "侹",
+    "岠",
+    "溚",
+    "溞",
+    "爟",
+    "芃",
+    "芠",
+    "芣",
+    "苉",
+    "苾",
+    "茽",
+    "荁",
+    "荄",
+    "荓",
+    "荖",
+    "莝",
+    "萳",
+    "萹",
+    "葴",
+    "蒨",
+    "蒱",
+    "蓏",
+    "蓢",
+    "蔈",
+    "蔊",
+    "薸",
+    "藟",
+    "藦",
+    "醨"
+  ],
+  "product_scope_excluded_characters": [
+    "婼",
+    "嶅",
+    "嶲",
+    "梴",
+    "欂",
+    "漋",
+    "濩",
+    "烻",
+    "璥",
+    "茋",
+    "菉",
+    "菍",
+    "薁",
+    "鄀",
+    "鄅",
+    "鄑",
+    "鄚",
+    "隩",
+    "鞳",
+    "髎"
+  ],
+  "interpretation": [
+    "事实：29 个候选已分别通过产品负责人的人工视觉复核。",
+    "事实：产品负责人基于日常使用价值，明确停止剩余 20 个生僻字的修复工作。",
+    "边界：剩余 20 个字是产品范围排除，不等于技术上无法修复，也不等于互联网上不存在笔画数据。",
+    "边界：本记录结束候选研发与验收范围，但不自动批准把 29 个候选覆盖到正式 data/。"
+  ],
+  "frozen_review_evidence": {
+    "direct_grass_two": {
+      "path": "audit/vector-data-460-evidence/review-decisions/strokeorder-direct-grass-two.json",
+      "sha256": "ffb37539e201553ace643cf92e7bbfffb576caf25794c51b5533f058cdbe0950"
+    },
+    "direct_grass_four": {
+      "path": "audit/vector-data-460-evidence/review-decisions/strokeorder-direct-grass-four.json",
+      "sha256": "fcc95744ed81808629539f93d687f2bcd4629143757a02f6f37204a2c96848d2"
+    },
+    "direct_grass_scale": {
+      "path": "audit/vector-data-460-evidence/review-decisions/strokeorder-direct-grass-scale.json",
+      "sha256": "84d2849a49410019d8ef1d06c00bc4815a41125e57f01c34db8e334b0bc3ae5e"
+    },
+    "same_position_two": {
+      "path": "audit/vector-data-460-evidence/review-decisions/strokeorder-side-component-two.json",
+      "sha256": "4dfc0d447326687e6bf02eba61eb1724f3da1a4d8990f434265b2fbb534eff36"
+    },
+    "same_position_four": {
+      "path": "audit/vector-data-460-evidence/review-decisions/strokeorder-side-component-four.json",
+      "sha256": "7a40881001aaecf444ebde232ba4db4d983ad5246f14b1dab5a3b285c3368944"
+    },
+    "last_failed_experiment_stop": {
+      "path": "audit/vector-data-460-evidence/investigations/strokeorder-translation-two-stop.json",
+      "sha256": "646ee01245af8b69fccd05d5b9e9bcd3f36f4823be1fc7730d2537aa7d6147a3"
+    }
+  },
+  "stopped_work": {
+    "further_source_search": true,
+    "further_component_conversion": true,
+    "further_runtime_batches": true,
+    "further_human_review_pages": true,
+    "unexecuted_right_city_probe": "scripts/build_strokeorder_right_city_two.py"
+  },
+  "production_import_allowed": false,
+  "app_data_modified_by_this_closure": false,
+  "next_action_requires_separate_approval": "Import only the 29 frozen human-accepted candidates into production data/, then rerun full App and native smoke gates."
+}

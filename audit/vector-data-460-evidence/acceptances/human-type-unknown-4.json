@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "recorded_at_utc": "2026-08-01T07:56:14Z",
+  "review_scope": "type-unknown-9 HUMAN_REVIEW_DRAFT same-character rendering plus Hanzi Writer stroke animation",
+  "reviewer_role": "project_owner",
+  "review_surface": "type-unknown-9/review/index.html",
+  "review_prompt": {
+    "criteria": [
+      "glyph proportions and visual style are acceptable",
+      "stroke order is acceptable",
+      "stroke direction is acceptable"
+    ],
+    "requested_reply": "通过了，或指出具体问题字和笔画"
+  },
+  "reviewer_response_verbatim": "通过了",
+  "interaction_evidence": {
+    "user_reply_recorded": true,
+    "user_click_telemetry_recorded": false,
+    "assistant_runtime_check_before_handoff": "4/4 draft hashes validated; 33/33 strokes, medians, SVG paths and frozen mapping replay passed"
+  },
+  "decision": "HUMAN_ACCEPTED",
+  "characters": [
+    {
+      "character": "𬇕",
+      "codepoint": "U+2C1D5",
+      "normative_stroke_count": 6,
+      "draft_sha256": "caf478c363aab7f6a7536d276f0c35f31c9a96be66b5dd2138769c68fe169ae6",
+      "runtime_outcome_retained": "AMBIGUOUS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "庱",
+      "codepoint": "U+5EB1",
+      "normative_stroke_count": 11,
+      "draft_sha256": "e89956b764feefed05e40f7b1f8f8d87ceb2c0b907656b8c55aeee61e202287c",
+      "runtime_outcome_retained": "AMBIGUOUS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "芣",
+      "codepoint": "U+82A3",
+      "normative_stroke_count": 7,
+      "draft_sha256": "5a12b9b861cd425edb0a09f4b7bda69e31e9b0de92448a6861ab8488df2c8e63",
+      "runtime_outcome_retained": "AMBIGUOUS",
+      "decision": "HUMAN_ACCEPTED"
+    },
+    {
+      "character": "衎",
+      "codepoint": "U+884E",
+      "normative_stroke_count": 9,
+      "draft_sha256": "1de5f39639bd7cdfdd0b203e89aca90d9d48aa604ef184a32583a44776023c32",
+      "runtime_outcome_retained": "AMBIGUOUS",
+      "decision": "HUMAN_ACCEPTED"
+    }
+  ],
+  "evidence_bindings": {
+    "review_manifest": {
+      "path": "../review-drafts/manifest.json",
+      "sha256": "5a6155f36315370c9f72ed6db7a4e049e0738ddd5ef2622286015a9e8e8b3c46"
+    },
+    "review_receipt": {
+      "path": "../review-drafts/receipt.json",
+      "sha256": "db1088de626fca57b42f32617f5ec0e60610287c742977b7a69c196d5c28d1ac"
+    },
+    "review_page": {
+      "path": "../review/index.html",
+      "sha256": "594b2ac5bb247a118bef3f13165bd21c8212806f6b80d23438c121747fed5c1f"
+    },
+    "review_runtime": {
+      "path": "../review/review.js",
+      "sha256": "f5794ed71371512f830da3558ca278c52b24bdbeb7290eabb1686c6642caf8cc"
+    }
+  },
+  "limitations": [
+    "This approval closes the requested human visual, stroke-order and stroke-direction review for these exact draft hashes only.",
+    "The receipt records the user's explicit acceptance response; it does not claim independent click telemetry.",
+    "The four runtime outcomes remain AMBIGUOUS; this approval does not convert them into MACHINE_PASS.",
+    "It does not authorize App import, question-bank changes, commit, push, or a general batch expansion.",
+    "Any draft byte change invalidates this approval and requires a new review."
+  ]
+}

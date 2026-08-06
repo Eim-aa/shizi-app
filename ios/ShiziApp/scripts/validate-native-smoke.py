@@ -40,10 +40,10 @@ navigation = data.get("navigationFlow") or {}
 practice = data.get("practiceFlow") or {}
 exit_flow = data.get("exitFlow") or {}
 checks = {
-    "seed": data.get("seed") == 6854,
-    "cards": int(data.get("cards") or 0) >= 6854
+    "seed": data.get("seed") == 7294,
+    "cards": int(data.get("cards") or 0) >= 7294
     and int(data.get("cards") or 0) >= int(data.get("seed") or 0),
-    "groups": data.get("groups") == 6854,
+    "groups": data.get("groups") == 7294,
     "devQuery": data.get("devQuery") is dev_mode,
     "devToolsDisplay": data.get("devToolsDisplay") == expected_dev_display,
     "localStorageWritable": data.get("localStorageWritable") is True,

@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "artifact": "shizi-strokeorder-same-position-component-two-human-review",
+  "recorded_at_utc": "2026-08-06T09:17:37.545Z",
+  "reviewer_role": "product_owner",
+  "reviewer_response_verbatim": "通过",
+  "decision": "HUMAN_ACCEPTED_BOTH",
+  "accepted_characters": [
+    "侹",
+    "岠"
+  ],
+  "counts": {
+    "total": 2,
+    "human_accepted": 2,
+    "human_rejected": 0
+  },
+  "accepted_method": "retain target left component; directly transplant an exact right-side HWD component from a valid same-layout donor with no coordinate transform",
+  "frozen_evidence": {
+    "evaluation": {
+      "path": "tmp/vector-mve/strokeorder-side-component-two/evaluation.json",
+      "sha256": "a1fcbff01fc4cc7725a09d45ac21ebae94d788b245826edf25b0a952b29e5e99"
+    },
+    "runtime_receipt": {
+      "path": "tmp/vector-mve/strokeorder-side-component-two/receipt-runtime.json",
+      "sha256": "f91c99fe0ab4c995a889b585003421cd5c46e9f7c84b4d4ffd844f83e8244971"
+    },
+    "review_page": {
+      "path": "tmp/vector-mve/strokeorder-side-component-two/review.html",
+      "sha256": "b487c9719cb5c4527d95a26c9e6f6cb3f0053ed218e0592f32e6f47041d107dd"
+    },
+    "candidates": {
+      "侹": {
+        "path": "tmp/vector-mve/strokeorder-side-component-two/candidates/侹.json",
+        "sha256": "20e3dc3a5efcd03b9b20fe8efc31c82bc8d8a70e74500ea1288bcd68cbcc33a5"
+      },
+      "岠": {
+        "path": "tmp/vector-mve/strokeorder-side-component-two/candidates/岠.json",
+        "sha256": "b67932fc119aa2e20ad40aa58ba2adbc17295d800648117e7df15cda6ca17e9c"
+      }
+    }
+  },
+  "scale_permission": "same-position exact-component candidates only; each expanded batch still requires machine gates and explicit human review",
+  "production_import_allowed": false,
+  "app_data_modified": false
+}

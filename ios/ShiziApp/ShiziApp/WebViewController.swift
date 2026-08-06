@@ -485,14 +485,14 @@ final class WebViewController: UIViewController {
                 renderBook();
                 openLibSheet();
                 result.dataFlow.libraryAvailable = LIBRARIES.length === 4 && BACKUP_KEYS.includes(LIB_KEY)
-                  && JSON.stringify(libraryRows.map(row => row.total)) === JSON.stringify([3500, 2868, 486, 2500])
+                  && JSON.stringify(libraryRows.map(row => row.total)) === JSON.stringify([3500, 2976, 818, 2500])
                   && JSON.stringify(libraryRows.map(row => row.officialTotal)) === JSON.stringify([3500, 3000, 1605, 2500])
                   && CARDS.slice(0, BASE_N).every(card => ['入门', '基础', '进阶', '较难', '挑战'].includes(card.band) && !('level' in card));
                 result.dataFlow.libraryReachable = libraryRows.every(row => row.total > 0 && row.strict0 === row.total && row.strict4 === row.total);
                 result.dataFlow.libraryUI = document.getElementById('libList').querySelectorAll('[data-lib]').length === 4
                   && document.getElementById('libSheet').textContent.includes('换库不丢任何东西')
                   && document.getElementById('libName').textContent === '义教基础字'
-                  && LIBRARIES[2].name === '规范专门用字' && libraryRows[2].total === 486 && libraryRows[2].officialTotal === 1605
+                  && LIBRARIES[2].name === '规范专门用字' && libraryRows[2].total === 818 && libraryRows[2].officialTotal === 1605
                   && document.getElementById('libSheet').textContent.includes('官方 3000')
                   && document.getElementById('libSheet').textContent.includes('官方 1605')
                   && !/小学|初中|高中/.test(document.getElementById('libSheet').textContent)
@@ -517,8 +517,8 @@ final class WebViewController: UIViewController {
                   && freshCalibration.stored.id === 'adv3000'
                   && manualCalibration.before.id === 'curriculum2500' && manualCalibration.before.userSelected
                   && manualCalibration.preference === 'challenge' && manualCalibration.after.id === 'curriculum2500' && manualCalibration.after.userSelected
-                  && legacyLibraries[0].id === 'curriculum2500' && legacyLibraries[1].id === 'core3500' && legacyLibraries[2].id === 'core3500'
-                  && legacyLibraries.every(row => row.userSelected);
+                  && legacyLibraries[0].id === 'curriculum2500' && legacyLibraries[1].id === 'core3500' && legacyLibraries[2].id === 'adv3000'
+                  && new Set(legacyLibraries.map(row => row.id)).size === 3 && legacyLibraries.every(row => row.userSelected);
                 memory = memoryBeforeLibrary; status = statusBeforeLibrary; quality = qualityBeforeLibrary; sessionDone = new Set(sessionDoneBeforeLibrary);
                 tuning = tuningBefore; libraryState = normalizeLibrary(libraryBefore); preference = preferenceBeforeLibrary; activeMode = activeModeBeforeLibrary;
                 calibrationTargets = calibrationTargetsBeforeLibrary; roundStats = roundStatsBeforeLibrary; funnel = funnelBeforeLibrary;

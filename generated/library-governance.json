@@ -51,18 +51,18 @@
     },
     "reviewed_project_supplement": {
       "manifest_path": "audit/vector-data-460-manifest.json",
-      "manifest_sha256": "e543f5132e5b6d6b6d0837fd02a4d0f0803bec2baf926047451bb31200a5469a",
+      "manifest_sha256": "c5add68779f17fd433672ef1ed063bcec6ae4b4ac632fd1e4aa858d02873d5ff",
       "character_count": 440,
       "members_sha256": "c8835eaa2eb28c133a82433854bd460f6e8632e15812a5d4bba51921103c8dbc",
       "audit_state": "TECHNICAL_AND_HUMAN_REVIEW_PASS_440",
       "human_accepted_character_count": 440,
       "human_review_pending_character_count": 0,
       "evidence_index_path": "audit/vector-data-460-evidence-index.json",
-      "evidence_index_sha256": "527b73f268e0654d8bd61ca1d5e93086e98fdc977f538996a8bb546910f09c6a",
+      "evidence_index_sha256": "1b0b5a20695f23091dd03c7b2d4a9ffb2a91ff299c71b13780eddd4c67f3f6a8",
       "license_review": "OUT_OF_SCOPE_PENDING_SEPARATE_REVIEW",
       "hint_groups": {
         "path": "audit/vector-data-460-hint-groups.json",
-        "sha256": "02c8ab5d751ebe017fccc100fdea83ff3d53488a7a896a538379142a9e691750",
+        "sha256": "cc94cefe9b82fabeb059e3f62b938efa8e196188af52c2a7326716f60839aad0",
         "character_count": 440,
         "maximum_groups_per_character": 5,
         "source": "Chaifen 0.4.0 G-tagged component graph"

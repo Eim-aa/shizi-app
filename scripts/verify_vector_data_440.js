@@ -42,6 +42,10 @@ function sha256(filePath) {
   return crypto.createHash("sha256").update(fs.readFileSync(filePath)).digest("hex");
 }
 
+function sha256Text(value) {
+  return crypto.createHash("sha256").update(value, "utf8").digest("hex");
+}
+
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, "utf8"));
 }
@@ -65,6 +69,123 @@ function mustRejectMutation(label, action) {
   let rejected = false;
   try { action(); } catch (_) { rejected = true; }
   check(rejected, "Semantic mutation guard failed open", { label });
+}
+
+function validateProductionApprovalLocator(approval, closure) {
+  const trace = approval.interaction_evidence;
+  const proposal = trace?.preceding_proposal;
+  const userApproval = trace?.approval;
+  const event = approval.authorization_event;
+  const revision = approval.authorization_revision;
+
+  check(
+    approval.record_type === "RETROSPECTIVE_TRANSCRIPTION_OF_PRIOR_CONVERSATION_AUTHORIZATION"
+      && approval.recorded_at_utc === "2026-08-07T13:19:05Z"
+      && revision?.revision === 2
+      && revision.corrected_at_utc === "2026-08-07T14:15:43.120Z"
+      && revision.prior_committed_sha256 === "717308edf4e45edd5fe34bbefb44ba04a88609283debbd738bc48dbc2707af7b",
+    "Production authorization transcription revision metadata is missing",
+  );
+  check(
+    trace?.source_thread_id === "019fa8ed-4419-76f1-b7a8-01bd6a67a1c5"
+      && trace.delegation_source_thread_id === "019fa8c3-c58b-7b10-b202-0f351f4d97b1"
+      && trace.source_thread_id !== trace.delegation_source_thread_id
+      && trace.thread_title === "拾字矢量笔画数据源专项调查"
+      && trace.evidence_source === "Codex original session response_item archive and read_thread projection",
+    "Production approval points to the wrong interaction task",
+  );
+  check(
+    proposal?.turn_id === "019fd7ae-c90a-7a32-866e-b63a465d9021"
+      && proposal.raw_message_id === "msg_04ef0ef2b832824a016a74a7f1a58081919826244eaa8ea4d4"
+      && proposal.thread_item_id === "item-2760"
+      && proposal.timestamp_utc === "2026-08-06T15:27:51.624Z"
+      && proposal.role === "assistant"
+      && proposal.message_sha256 === "12838aeb7a7249bf570731045a6d1e5bf755cd7c1f2ba98964bf7a9457020fe4"
+      && sha256Text(proposal.message_verbatim) === proposal.message_sha256,
+    "Production import proposal locator or message binding changed",
+  );
+  check(
+    userApproval?.turn_id === "019fd7b0-dae0-7d80-bf8e-4fef88576f8d"
+      && userApproval.raw_message_id === "msg_019fd7b0-db53-74a1-bebe-aab67953597b"
+      && userApproval.thread_item_id === "item-2761"
+      && userApproval.timestamp_utc === "2026-08-06T15:28:39.763Z"
+      && userApproval.role === "user"
+      && userApproval.message_sha256 === "b6f4b57ade409674cb0a60c9d9a67eb714f0c6bc2bfc9878f15547e39b444533"
+      && sha256Text(userApproval.message_verbatim) === userApproval.message_sha256
+      && userApproval.message_verbatim === "批准\n"
+      && trace.reviewer_response_verbatim === userApproval.message_verbatim
+      && trace.reviewer_response_normalized === "批准",
+    "Production approval response locator or message binding changed",
+  );
+  check(
+    event?.occurred_at_utc === userApproval.timestamp_utc
+      && event.occurred_at_local === "2026-08-06T23:28:39.763+08:00"
+      && event.timezone === "Asia/Shanghai"
+      && event.timestamp_precision === "millisecond_from_original_session_response_item"
+      && trace.sequence === "IMMEDIATE_NEXT_USER_TURN_AFTER_PROPOSAL",
+    "Production approval event metadata changed",
+  );
+
+  const closureTime = Date.parse(closure.recorded_at_utc);
+  const proposalTime = Date.parse(proposal.timestamp_utc);
+  const approvalTime = Date.parse(userApproval.timestamp_utc);
+  const transcriptionTime = Date.parse(approval.recorded_at_utc);
+  const correctionTime = Date.parse(revision.corrected_at_utc);
+  check(
+    [closureTime, proposalTime, approvalTime, transcriptionTime, correctionTime].every(Number.isFinite)
+      && closureTime < proposalTime
+      && proposalTime < approvalTime
+      && approvalTime < transcriptionTime
+      && transcriptionTime < correctionTime
+      && approvalTime - proposalTime === 48139
+      && trace.elapsed_milliseconds === 48139,
+    "Production approval chronology changed",
+  );
+}
+
+function validateProductionApprovalLocatorMutationGuards(approval, closure) {
+  const clone = () => JSON.parse(JSON.stringify(approval));
+  let guards = 0;
+  mustRejectMutation("approval_source_thread_is_delegation_source", () => {
+    const mutated = clone();
+    mutated.interaction_evidence.source_thread_id = mutated.interaction_evidence.delegation_source_thread_id;
+    validateProductionApprovalLocator(mutated, closure);
+  });
+  guards += 1;
+  for (const [section, field] of [
+    ["preceding_proposal", "turn_id"],
+    ["preceding_proposal", "raw_message_id"],
+    ["preceding_proposal", "thread_item_id"],
+    ["approval", "turn_id"],
+    ["approval", "raw_message_id"],
+    ["approval", "thread_item_id"],
+  ]) {
+    mustRejectMutation(`approval_locator_missing_${section}_${field}`, () => {
+      const mutated = clone();
+      delete mutated.interaction_evidence[section][field];
+      validateProductionApprovalLocator(mutated, closure);
+    });
+    guards += 1;
+  }
+  mustRejectMutation("approval_proposal_message_tamper", () => {
+    const mutated = clone();
+    mutated.interaction_evidence.preceding_proposal.message_verbatim += " ";
+    validateProductionApprovalLocator(mutated, closure);
+  });
+  guards += 1;
+  mustRejectMutation("approval_response_message_tamper", () => {
+    const mutated = clone();
+    mutated.interaction_evidence.approval.message_verbatim = "通过\n";
+    validateProductionApprovalLocator(mutated, closure);
+  });
+  guards += 1;
+  mustRejectMutation("approval_timestamp_or_order_tamper", () => {
+    const mutated = clone();
+    mutated.interaction_evidence.preceding_proposal.timestamp_utc = mutated.interaction_evidence.approval.timestamp_utc;
+    validateProductionApprovalLocator(mutated, closure);
+  });
+  guards += 1;
+  return guards;
 }
 
 function semanticRecord(character, decision, sourceSha256, dataSha256 = null) {
@@ -353,14 +474,13 @@ function validateEvidence(manifest) {
 
   const approval = readJson(PRODUCTION_APPROVAL_PATH);
   check(approval.artifact === "shizi-vector-data-finalize-440-production-import-authorization" && approval.decision === "PRODUCTION_IMPORT_APPROVED_FOR_EXACT_FROZEN_PAYLOADS", "Unexpected separate production approval");
-  check(approval.record_type === "RETROSPECTIVE_TRANSCRIPTION_OF_PRIOR_CONVERSATION_AUTHORIZATION" && typeof approval.recorded_at_utc === "string", "Production authorization transcription metadata is missing");
+  validateProductionApprovalLocator(approval, closure);
+  const approvalLocatorMutationGuards = validateProductionApprovalLocatorMutationGuards(approval, closure);
   check(
     approval.production_import_allowed === true
       && approval.reviewer_role === "product_owner"
-      && approval.interaction_evidence?.source_thread_id === "019fa8c3-c58b-7b10-b202-0f351f4d97b1"
-      && approval.interaction_evidence?.sequence === "SUBSEQUENT_TO_SCOPE_CLOSURE_AND_IMPORT_PROPOSAL"
-      && approval.interaction_evidence?.reviewer_response_verbatim === "批准",
-    "Separate production approval is not affirmative or traceable",
+      && approval.interaction_evidence?.reviewer_response_normalized === "批准",
+    "Separate production approval is not affirmative",
   );
   check(approval.closure_binding?.path === relative(CLOSURE_PATH) && approval.closure_binding.sha256 === sha256(CLOSURE_PATH), "Production approval does not bind the historical closure");
   check(approval.closure_binding.production_import_allowed_at_closure === false && approval.closure_binding.separate_approval_requirement === closure.next_action_requires_separate_approval, "Production approval does not preserve the closure's original prohibition");
@@ -376,9 +496,12 @@ function validateEvidence(manifest) {
   const receipt = readJson(RECEIPT_PATH);
   check(receipt.artifact === "shizi-vector-data-finalize-440-import-receipt", "Unexpected final import receipt");
   check(
-    receipt.receipt_revision?.revision === 2
-      && receipt.receipt_revision.revised_at_utc === approval.recorded_at_utc
-      && receipt.receipt_revision.prior_committed_sha256 === "ff4f14d22c80b54b270a0a681c08a182f5d2d516ac420133c674311218511d40",
+    receipt.receipt_revision?.revision === 3
+      && receipt.receipt_revision.revised_at_utc === approval.authorization_revision.corrected_at_utc
+      && receipt.receipt_revision.prior_committed_sha256 === "98bcf3fa307076d54cf463461930610c956c0c1b5b3a49a5b8625cc918c662f1"
+      && receipt.receipt_revision.prior_revision?.revision === 2
+      && receipt.receipt_revision.prior_revision.revised_at_utc === approval.recorded_at_utc
+      && receipt.receipt_revision.prior_revision.prior_committed_sha256 === "ff4f14d22c80b54b270a0a681c08a182f5d2d516ac420133c674311218511d40",
     "Import receipt revision history is missing",
   );
   check(receipt.path_semantics?.candidate_path?.startsWith("HISTORICAL_PROVENANCE_ONLY"), "Historical tmp/ candidate-path semantics are not explicit");
@@ -389,7 +512,12 @@ function validateEvidence(manifest) {
   check(receipt.gates?.separate_product_approval_bound === true && receipt.gates?.production_import_allowed === true, "Import receipt permits production without the separate approval gate");
   check(manifest.production_import_approval?.path === relative(PRODUCTION_APPROVAL_PATH) && manifest.production_import_approval.sha256 === sha256(PRODUCTION_APPROVAL_PATH), "Final manifest does not bind the separate product approval");
   check(manifest.production_import_approval.accepted_replacements === 29 && manifest.production_import_approval.product_scope_exclusions === 20, "Manifest production-approval scope changed");
-  check(manifest.revised_at_utc === approval.recorded_at_utc && typeof manifest.revision_reason === "string", "Manifest revision metadata is missing");
+  check(
+    manifest.revised_at_utc === approval.authorization_revision.corrected_at_utc
+      && manifest.prior_committed_sha256 === "e543f5132e5b6d6b6d0837fd02a4d0f0803bec2baf926047451bb31200a5469a"
+      && typeof manifest.revision_reason === "string",
+    "Manifest revision metadata is missing",
+  );
   checkUniqueCharacterRows(receipt.accepted_replacements, "Final receipt replacements");
   checkUniqueCharacterRows(receipt.product_scope_exclusions, "Final receipt exclusions");
   const replacements = new Map(receipt.accepted_replacements.map(row => [row.character, row]));
@@ -428,7 +556,14 @@ function validateEvidence(manifest) {
     if (replacements.has(row.character)) check(row.human_review.accepted_target_sha256 === expected.data_sha256, "Corrected record acceptance hash mismatch", { character: row.character });
   }
   check(evidenceCharacters.size === 440, "Record evidence membership changed");
-  return { indexedFiles: index.files.length, replacements: replacements.size, excluded: excluded.size, productionApproval: "PASS", receiptMutationGuards };
+  return {
+    indexedFiles: index.files.length,
+    replacements: replacements.size,
+    excluded: excluded.size,
+    productionApproval: "PASS",
+    approvalLocatorMutationGuards,
+    receiptMutationGuards,
+  };
 }
 
 function findChromeExecutable() {
@@ -541,6 +676,7 @@ async function main() {
     product_scope_excluded_characters: 20,
     accepted_replacements: evidence.replacements,
     production_import_approval_gate: evidence.productionApproval,
+    approval_locator_mutation_guards_verified: evidence.approvalLocatorMutationGuards,
     semantic_acceptance_records_verified: semanticAcceptanceRecords,
     semantic_acceptance_files_verified: acceptanceFiles,
     semantic_mutation_guards_verified: semanticMutationGuards,

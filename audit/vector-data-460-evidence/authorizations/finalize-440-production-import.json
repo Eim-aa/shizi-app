@@ -3,24 +3,48 @@
   "artifact": "shizi-vector-data-finalize-440-production-import-authorization",
   "recorded_at_utc": "2026-08-07T13:19:05Z",
   "record_type": "RETROSPECTIVE_TRANSCRIPTION_OF_PRIOR_CONVERSATION_AUTHORIZATION",
+  "authorization_revision": {
+    "revision": 2,
+    "corrected_at_utc": "2026-08-07T14:15:43.120Z",
+    "prior_committed_sha256": "717308edf4e45edd5fe34bbefb44ba04a88609283debbd738bc48dbc2707af7b",
+    "change": "Correct the approval locator from the delegation source task to the actual interaction task and bind the exact proposal and approval messages."
+  },
   "authorization_event": {
-    "local_date": "2026-08-06",
+    "occurred_at_utc": "2026-08-06T15:28:39.763Z",
+    "occurred_at_local": "2026-08-06T23:28:39.763+08:00",
     "timezone": "Asia/Shanghai",
-    "timestamp_precision": "date_and_conversation_order_only",
-    "note": "The exact event timestamp was not captured; this record was added later and does not backdate its own creation."
+    "timestamp_precision": "millisecond_from_original_session_response_item",
+    "note": "This is the original approval-message event time; recorded_at_utc remains the later retrospective-transcription creation time."
   },
   "reviewer_role": "product_owner",
   "interaction_evidence": {
-    "source_thread_id": "019fa8c3-c58b-7b10-b202-0f351f4d97b1",
-    "sequence": "SUBSEQUENT_TO_SCOPE_CLOSURE_AND_IMPORT_PROPOSAL",
-    "preceding_proposal": [
-      "Import the 29 exact, frozen, human-accepted corrected candidates into production data/.",
-      "Keep the 20 explicitly deferred rare characters outside the practice-ready supplement.",
-      "Regenerate the four-library governance artifacts and counts.",
-      "Run the full technical, App, and native smoke gates before publishing."
-    ],
-    "reviewer_response_verbatim": "批准",
-    "interpretation": "The one-word approval applies to the immediately preceding four-step proposal and no broader data set."
+    "source_thread_id": "019fa8ed-4419-76f1-b7a8-01bd6a67a1c5",
+    "delegation_source_thread_id": "019fa8c3-c58b-7b10-b202-0f351f4d97b1",
+    "thread_title": "拾字矢量笔画数据源专项调查",
+    "evidence_source": "Codex original session response_item archive and read_thread projection",
+    "preceding_proposal": {
+      "turn_id": "019fd7ae-c90a-7a32-866e-b63a465d9021",
+      "raw_message_id": "msg_04ef0ef2b832824a016a74a7f1a58081919826244eaa8ea4d4",
+      "thread_item_id": "item-2760",
+      "timestamp_utc": "2026-08-06T15:27:51.624Z",
+      "role": "assistant",
+      "message_verbatim": "下一步是“正式收口”，由我来做，你不需要再验字。\n\n当前 29 个候选文件齐全，但 0/29 尚未进入正式数据。具体要做：\n\n1. 把 29 个已通过候选覆盖到正式 `data/`。\n2. 将剩余 20 个错误字从“可练写”范围剔除，保留审计材料，但不能继续让 App 使用错误数据。\n3. 最终新增可用数据由 460 个调整为 440 个。\n4. 重新生成四字库数量、治理清单和相关哈希。\n5. 跑完整测试：440 字渲染与描写、7314 字业务回归、四字库 UI、iOS WKWebView smoke。\n6. 全部通过后提交到现有 PR #118，并请求重新审核，不另开 PR。\n\n如果你批准，我就按这个范围执行正式导入和收口。",
+      "message_sha256": "12838aeb7a7249bf570731045a6d1e5bf755cd7c1f2ba98964bf7a9457020fe4"
+    },
+    "approval": {
+      "turn_id": "019fd7b0-dae0-7d80-bf8e-4fef88576f8d",
+      "raw_message_id": "msg_019fd7b0-db53-74a1-bebe-aab67953597b",
+      "thread_item_id": "item-2761",
+      "timestamp_utc": "2026-08-06T15:28:39.763Z",
+      "role": "user",
+      "message_verbatim": "批准\n",
+      "message_sha256": "b6f4b57ade409674cb0a60c9d9a67eb714f0c6bc2bfc9878f15547e39b444533"
+    },
+    "sequence": "IMMEDIATE_NEXT_USER_TURN_AFTER_PROPOSAL",
+    "elapsed_milliseconds": 48139,
+    "reviewer_response_verbatim": "批准\n",
+    "reviewer_response_normalized": "批准",
+    "interpretation": "The one-word approval applies to the immediately preceding proposal and no broader data set."
   },
   "decision": "PRODUCTION_IMPORT_APPROVED_FOR_EXACT_FROZEN_PAYLOADS",
   "closure_binding": {

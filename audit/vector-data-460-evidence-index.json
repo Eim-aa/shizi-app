@@ -102,8 +102,8 @@
     },
     {
       "path": "audit/vector-data-460-evidence/authorizations/finalize-440-production-import.json",
-      "sha256": "717308edf4e45edd5fe34bbefb44ba04a88609283debbd738bc48dbc2707af7b",
-      "byte_size": 14921
+      "sha256": "8f2fb648ea8654e314e994b4f3e03c48fff5b7ce8d634c2475492ef983fae497",
+      "byte_size": 16852
     },
     {
       "path": "audit/vector-data-460-evidence/investigations/strokeorder-49-root-cause.json",
@@ -117,8 +117,8 @@
     },
     {
       "path": "audit/vector-data-460-evidence/imports/finalize-440.json",
-      "sha256": "98bcf3fa307076d54cf463461930610c956c0c1b5b3a49a5b8625cc918c662f1",
-      "byte_size": 25564
+      "sha256": "449fbbd16107038138b83a9da7e16f49fff731d6d77623c6d4fd45ea11018517",
+      "byte_size": 25770
     }
   ]
 }

@@ -2,8 +2,9 @@
   "schema_version": 2,
   "artifact": "shizi-vector-data-440-technical-manifest",
   "created_at_utc": "2026-08-05T04:15:47.576Z",
-  "revised_at_utc": "2026-08-07T13:19:05Z",
-  "revision_reason": "Bind the separately granted production import authorization and enforce character-level acceptance semantics.",
+  "revised_at_utc": "2026-08-07T14:15:43.120Z",
+  "prior_committed_sha256": "e543f5132e5b6d6b6d0837fd02a4d0f0803bec2baf926047451bb31200a5469a",
+  "revision_reason": "Rebind the production approval to the exact proposal and approval interaction locator; the 440 payloads and semantic acceptances are unchanged.",
   "source_worktree": {
     "branch": "feat/library-governance",
     "base_commit": "f9969e20b48f51ebb3372dfa1021536b383b72c5"
@@ -6684,13 +6685,13 @@
   "audit_state": "TECHNICAL_AND_HUMAN_REVIEW_PASS_440",
   "production_import_approval": {
     "path": "audit/vector-data-460-evidence/authorizations/finalize-440-production-import.json",
-    "sha256": "717308edf4e45edd5fe34bbefb44ba04a88609283debbd738bc48dbc2707af7b",
+    "sha256": "8f2fb648ea8654e314e994b4f3e03c48fff5b7ce8d634c2475492ef983fae497",
     "accepted_replacements": 29,
     "product_scope_exclusions": 20
   },
   "clean_clone_evidence": {
     "index_path": "audit/vector-data-460-evidence-index.json",
-    "index_sha256": "527b73f268e0654d8bd61ca1d5e93086e98fdc977f538996a8bb546910f09c6a",
+    "index_sha256": "1b0b5a20695f23091dd03c7b2d4a9ffb2a91ff299c71b13780eddd4c67f3f6a8",
     "raw_third_party_payloads_included": false,
     "license_review": "OUT_OF_SCOPE_PENDING_SEPARATE_REVIEW"
   }

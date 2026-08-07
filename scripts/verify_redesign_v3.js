@@ -34,9 +34,17 @@ assert(source.includes('id="libCard"') && source.includes('id="libSheet"') && so
 assert(changelog.includes("一屏至多一个实心朱红") && changelog.includes("印章语义只许两种"), "Expected the permanent red-budget and seal-semantics laws in the changelog");
 assert(contrast("#756b5a", "#f4efe2") >= 4.5, "Expected the palest memory ink to meet 4.5:1 contrast", { ratio: contrast("#756b5a", "#f4efe2") });
 
+function chromeExecutable() {
+  return [
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+    "/Applications/Chromium.app/Contents/MacOS/Chromium",
+  ].find((candidate) => fs.existsSync(candidate));
+}
+
 let browser;
 (async () => {
-  browser = await chromium.launch({ headless: true, executablePath: "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" });
+  const localChrome = chromeExecutable();
+  browser = await chromium.launch({ headless: true, ...(localChrome ? { executablePath: localChrome } : {}) });
   const page = await browser.newPage({ viewport: { width: 375, height: 667 }, colorScheme: "light" });
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));

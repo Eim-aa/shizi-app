@@ -31,7 +31,9 @@ final class LocalWebSchemeHandler: NSObject, WKURLSchemeHandler {
                 headerFields: [
                     "Content-Type": contentType(for: fileURL),
                     "Content-Length": String(data.count),
-                    "Cache-Control": "no-cache"
+                    "Cache-Control": "no-cache",
+                    "Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; media-src 'self' data:; worker-src 'self'; object-src 'none'; base-uri 'none'; frame-src 'none'; form-action 'none'",
+                    "X-Content-Type-Options": "nosniff"
                 ]
             ) ?? URLResponse(
                 url: requestURL,

@@ -3,6 +3,7 @@ const { execFileSync } = require("child_process");
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
+const vm = require("vm");
 
 const root = path.resolve(__dirname, "..");
 const appUrl = process.env.SHIZI_APP_URL || "http://127.0.0.1:8000/";
@@ -11,6 +12,8 @@ const wildPhotoFixturePath = path.join(root, "icon-192.png");
 const SESSION_STORAGE_KEY = "shizi.session.v1";
 const source = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const readme = fs.readFileSync(path.join(root, "README.md"), "utf8");
+const thirdPartyNotices = fs.readFileSync(path.join(root, "THIRD_PARTY_NOTICES.md"), "utf8");
+const legalChecklist = fs.readFileSync(path.join(root, "LEGAL_RELEASE_CHECKLIST.md"), "utf8");
 const swSource = fs.readFileSync(path.join(root, "sw.js"), "utf8");
 const deckSource = fs.readFileSync(path.join(root, "deck-data.js"), "utf8");
 const contextOverrideSource = fs.readFileSync(path.join(root, "data", "context-overrides.js"), "utf8");
@@ -21,6 +24,7 @@ const etymologyCoverage = JSON.parse(fs.readFileSync(path.join(root, "generated"
 const etymologyBuilderSource = fs.readFileSync(path.join(root, "scripts", "build_etymology.py"), "utf8");
 const appDelegateSource = fs.readFileSync(path.join(root, "ios", "ShiziApp", "ShiziApp", "AppDelegate.swift"), "utf8");
 const webViewSource = fs.readFileSync(path.join(root, "ios", "ShiziApp", "ShiziApp", "WebViewController.swift"), "utf8");
+const schemeHandlerSource = fs.readFileSync(path.join(root, "ios", "ShiziApp", "ShiziApp", "LocalWebSchemeHandler.swift"), "utf8");
 const mottoFixture = JSON.parse(fs.readFileSync(path.join(root, "scripts", "fixtures", "motto_classics.json"), "utf8"));
 const etymologyAccuracyFixture = JSON.parse(fs.readFileSync(path.join(root, "scripts", "fixtures", "etymology_accuracy.json"), "utf8"));
 const etymologyContextAudit = JSON.parse(fs.readFileSync(path.join(root, "scripts", "fixtures", "etymology_context_audit.json"), "utf8"));
@@ -89,8 +93,16 @@ assert(Object.keys(mottoFixture.references).every((sourceName) => readme.include
 assert(mottoFixture.entries.find((entry) => entry.text === "传不习乎")?.author === "曾子"
   && mottoFixture.entries.find((entry) => entry.text === "如切如磋，如琢如磨")?.source === "诗经·卫风·淇奥",
 "Expected the reviewed fixture to preserve the corrected Zengzi and Classic of Poetry attributions");
+assert(thirdPartyNotices.includes("Hanzi Writer 3.7.3") && thirdPartyNotices.includes("17b11a1e025b780cb518d49b30faacc770dfa7fbc387aa3876e3e5c1bd31e642")
+  && fs.existsSync(path.join(root, "sources", "LICENSE-MIT-HANZI-WRITER.txt")) && fs.existsSync(path.join(root, "sources", "LICENSE-ARPHIC-PUBLIC.txt")),
+  "Expected pinned Hanzi Writer code and data notices with complete local license texts");
+assert(legalChecklist.includes("Project-authored code and content") && legalChecklist.includes("MOE/stroke-order supplement")
+  && legalChecklist.includes("Human-generated supplement") && legalChecklist.includes("Stroke-order merged supplement") && legalChecklist.includes("BLOCKED"),
+  "Expected unresolved ownership and supplemental-data rights to remain explicit release gates");
 
-assert(swSource.includes("shizi-v12") && swSource.includes("'data/etymology.json'") && swSource.includes("Promise.allSettled") && swSource.includes("INSTALL_BATCH_SIZE = 40") && swSource.includes("cacheCoreStrokes"), "Expected versioned, offline etymology and failure-tolerant core stroke installation");
+assert(swSource.includes("shizi-cache-v2") && swSource.includes("'data/etymology.json'") && swSource.includes("Promise.allSettled") && swSource.includes("INSTALL_BATCH_SIZE = 40")
+  && swSource.includes("STROKE_CACHE_LIMIT = 800") && swSource.includes("trimStrokeCache") && swSource.includes("cacheResponseBestEffort") && swSource.includes("event.waitUntil(updateCacheFromNetwork"),
+"Expected offline core installation, bounded stroke LRU, and content refresh without a per-release cache version");
 assert(swSource.includes("data/context-overrides.js") && source.includes('<script src="data/context-overrides.js"></script>') && contextOverrideSource.includes("CONTEXT_OVERRIDES"), "Expected context overrides in both online and offline shells");
 assert(coreStrokeSource.includes("SHIZI_CORE_STROKES") && coreStrokeSource.includes("slice(0,600)"), "Expected a generated 600-character core stroke list");
 assert(Array.isArray(etymology) && etymology.length === etymologyCoverage.totals.entries && new Set(etymology.map((row) => row.char)).size === etymology.length
@@ -130,10 +142,30 @@ assert(etymologyCopyReview.entries.every((expected) => {
   return row?.gloss === expected.copy && detail?.gloss === expected.copy && detail?.matchKind.endsWith("+reviewed-copy");
 }), "Expected every approved plain-language copy or intentional omission to match its fixed candidate", etymologyCopyReview);
 assert(!source.includes("sendBeacon") && !/method\s*:\s*["']POST["']/.test(source), "Expected the local funnel to add no analytics beacon or POST request");
+assert(source.includes('http-equiv="Content-Security-Policy"') && source.includes("default-src 'self'") && source.includes("frame-src 'none'") && !source.includes("cdn.jsdelivr.net"),
+  "Expected a self-contained CSP with no remote stroke-data fallback");
+assert(schemeHandlerSource.includes('"Content-Security-Policy"') && schemeHandlerSource.includes('"X-Content-Type-Options": "nosniff"'),
+  "Expected the custom scheme to emit CSP and nosniff headers");
+assert(webViewSource.includes("message.frameInfo.isMainFrame") && webViewSource.includes('["http", "https", "mailto"].contains(scheme)')
+  && webViewSource.includes("url.host == ShiziWebResource.host") && !/targetFrame\?\.isMainFrame != false[\s\S]{0,180}else\s*\{\s*decisionHandler\(\.allow\)/.test(webViewSource),
+  "Expected the native bridge, local origin, external schemes, and subframe navigation to be explicitly constrained");
+assert(webViewSource.includes("WeakScriptMessageHandler(delegate: self)") && webViewSource.includes('removeScriptMessageHandler(forName: "shiziNative")')
+  && /#if DEBUG[\s\S]+__shizi_native_smoke_confirm__[\s\S]+#else[\s\S]+runNativeSmokeIfNeeded\(\) \{\}/.test(webViewSource)
+  && webViewSource.includes("cleanupTemporaryShareFiles()") && webViewSource.includes("completionWithItemsHandler")
+  && webViewSource.includes("shouldRemoveCopy") && webViewSource.includes("private func presentBackupPicker() {\n        guard presentedViewController == nil")
+  && webViewSource.includes("private func presentError(message: String) {\n        guard presentedViewController == nil"),
+"Expected a cycle-free bridge, Debug-only smoke, temporary-file cleanup, and consistent presentation guards");
+assert(source.includes(":focus-visible") && source.includes("手写区。可用手指或触控笔书写；无法手写时请选择不会写。"),
+  "Expected visible keyboard focus and a spoken alternative for the handwriting canvas");
 assert(!/rgba\(194,\s*69,\s*44/i.test(source) && source.includes("--accent-rgb:194,69,44") && source.includes("--accent-rgb:212,85,58"), "Expected every cinnabar alpha to follow the light/dark theme token");
 assert(source.includes(".card.undoActive .chdr{ visibility:hidden; }") && !source.includes('$("tip").title='), "Expected the undo bar to replace the header and touch guidance to avoid invisible title copy");
-assert(/funnelValue\s*:\s*cloneObj\(funnel\)/.test(source) && /funnel\s*=\s*cloneObj\(snap\.funnelValue\)/.test(source), "Expected the stamp undo snapshot to capture and restore the local funnel");
-assert(source.includes("ROUND_DURATION_CAP_MS") && /durationMs\s*:\s*Math\.min\(/.test(source), "Expected the round duration to be capped client-side against background/idle inflation");
+assert(/funnelSeenLength\s*:\s*funnel\.seen\.length/.test(source) && /funnelEventsLength\s*:\s*funnel\.events\.length/.test(source)
+  && /funnel\.seen\s*=\s*funnel\.seen\.slice/.test(source) && !/funnelValue\s*:\s*cloneObj\(funnel\)/.test(source),
+"Expected stamp undo to persist only bounded funnel deltas instead of the full history");
+assert(source.includes("FSRS_RAW_RETENTION_DAYS=120") && source.includes("ACTIVITY_RAW_RETENTION_DAYS=400")
+  && source.includes("roundStats:sessionRoundStats()") && !/sessionPayload\(\)[\s\S]{0,700}lastStampSnapshot/.test(source),
+"Expected bounded raw histories and a session payload without transient undo or handwriting data");
+assert(source.includes("ROUND_DURATION_CAP_MS") && /const bounded\s*=\s*Math\.min\(/.test(source) && /durationMs\s*:\s*bounded/.test(source), "Expected the round duration to be capped client-side against background/idle inflation");
 assert(source.includes("STAMP_HOLD_MS=1800") && source.includes("EDIT_STAMP_WINDOW_MS=1800") && source.includes("shortDueDay(m.dueDay)"), "Expected readable 1800ms stamp feedback and a compact due date");
 assert(source.includes('navigator.vibrate(10)') && source.includes('animation="cardSwapIn .18s ease-out both"') && source.includes('classList.add("revealing")'), "Expected Web haptics and staggered card/reveal transitions");
 assert(source.includes('OUTCOME_DOT={ fast:"transparent", hinted:"var(--gold)", slow:"var(--accent)"') && !/slow:\s*"var\(--blue\)"/.test(source), "Expected silent success, gold assistance, and cinnabar risk result semantics");
@@ -165,12 +197,54 @@ function verifyBackupSummaryScript() {
       && summary.calibration.card1_rate === 1 && summary.calibration.completion_rate === 0.5
       && summary.system_comparison.disagreement_rate === 0.2 && summary.rounds.completed === 3 && summary.rounds.average_duration_seconds === 70,
     "Expected backup summary D1/D7, calibration, disagreement, and duration metrics", summary);
+    const v2File = path.join(dir, "v2.json");
+    fs.writeFileSync(v2File, JSON.stringify(backup(["2026-07-01"], { version: 2, events: [], eventCounts: { welcome_shown: 1, calib_card1_done: 1, calib_completed: 1 }, counts: { revealCompared: 8, revealDisagree: 2 }, rounds: [{ completedAt: 4, mode: "calibrate", durationMs: 900000 }, { completedAt: 5, mode: "new", durationMs: 30000 }], roundTotals: { count: 11, durationMs: 1920000, byMode: { calibrate: { count: 5, durationMs: 1500000 }, new: { count: 4, durationMs: 240000 }, review: { count: 2, durationMs: 180000 } } } })));
+    const v2Summary = JSON.parse(execFileSync("python3", [path.join(root, "scripts", "summarize_backups.py"), "--json", v2File], { encoding: "utf8" }));
+    assert(v2Summary.files.with_funnel === 1 && v2Summary.calibration.completed === 1 && v2Summary.system_comparison.disagreement_rate === 0.25
+      && v2Summary.rounds.completed === 6 && v2Summary.rounds.average_duration_seconds === 70 && v2Summary.rounds.median_duration_seconds === 30,
+    "Expected bounded funnel v2 lifetime counters and mode totals to remain reportable without calibration inflation", v2Summary);
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }
 }
 
 verifyBackupSummaryScript();
+
+async function verifyServiceWorkerCacheFailureIsolation() {
+  const listeners = {};
+  const coreURL = "http://127.0.0.1:8000/data/%E6%B0%B4.json";
+  const stored = new Map([[coreURL, "cached-core"]]);
+  let deleteCalls = 0;
+  const requestURL = request => request && request.url ? request.url : String(request);
+  const cache = {
+    addAll: async () => {},
+    keys: async () => Array.from(stored.keys(), url => new Request(url)),
+    delete: async request => { deleteCalls += 1; return stored.delete(requestURL(request)); },
+    match: async request => stored.has(requestURL(request)) ? new Response(stored.get(requestURL(request))) : undefined,
+    put: async () => { throw new DOMException("quota", "QuotaExceededError"); },
+  };
+  const context = {
+    self: { SHIZI_CORE_STROKES: ["水"], location: { href: "http://127.0.0.1:8000/sw.js", origin: "http://127.0.0.1:8000" }, addEventListener: (name, handler) => { listeners[name] = handler; }, skipWaiting: async () => {}, clients: { claim: async () => {} } },
+    caches: { open: async () => cache, match: request => cache.match(request), keys: async () => [], delete: async () => true },
+    fetch: async request => new Response(`fresh:${new URL(request.url).pathname}`, { status: 200 }),
+    importScripts: () => {}, Request, Response, URL, DOMException, Promise, Set,
+  };
+  vm.runInNewContext(swSource, context, { filename: "sw.js" });
+  async function dispatch(pathname, accept = "application/javascript") {
+    let responsePromise; const waits = [];
+    listeners.fetch({ request: new Request(`http://127.0.0.1:8000${pathname}`, { headers: { accept } }), respondWith: promise => { responsePromise = Promise.resolve(promise); }, waitUntil: promise => waits.push(Promise.resolve(promise)) });
+    const response = await responsePromise; await Promise.all(waits); return response && response.text();
+  }
+  const results = {
+    html: await dispatch("/", "text/html"),
+    static: await dispatch("/deck-data.js"),
+    stroke: await dispatch("/data/%E7%81%AB.json", "application/json"),
+    core: await dispatch("/data/%E6%B0%B4.json", "application/json"),
+  };
+  assert(results.html === "fresh:/" && results.static === "fresh:/deck-data.js" && results.stroke === "fresh:/data/%E7%81%AB.json"
+    && results.core === "cached-core" && stored.get(coreURL) === "cached-core" && deleteCalls === 0,
+  "Expected cache quota failures to preserve successful responses and any existing offline core copy", { results, deleteCalls, stored: Array.from(stored.entries()) });
+}
 
 async function waitForWriter(page) {
   await page.waitForFunction(() => Array.isArray(curMedians) && curMedians.length > 0 && !animating);
@@ -199,8 +273,10 @@ async function chooseCorrect(page) {
 
 let browser;
 (async () => {
+  await verifyServiceWorkerCacheFailureIsolation();
   fs.mkdirSync(path.dirname(screenshotPath), { recursive: true });
-  browser = await chromium.launch({ headless: true, executablePath: chromeExecutable() });
+  const localChrome = chromeExecutable();
+  browser = await chromium.launch({ headless: true, ...(localChrome ? { executablePath: localChrome } : {}) });
   const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
   const pageErrors = [];
   let offlineProbe = false;
@@ -329,10 +405,10 @@ let browser;
   const undoFunnel = await page.evaluate(() => {
     const original = JSON.parse(JSON.stringify(funnel));
     funnel = newFunnel(); saveFunnel();
-    const preStamp = JSON.parse(JSON.stringify(funnel));           // 盖章前的 funnel，正是 takeStampSnapshot 通过 funnelValue:cloneObj(funnel) 捕获的
+    const preStamp = { seen: funnel.seen.length, events: funnel.events.length, counts: { ...funnel.counts }, eventCounts: { ...funnel.eventCounts } };
     recordFunnelComparison("verify-undo", false, Date.now());       // 误盖“没写出”，与系统“判定 ok”分歧
     const afterDisagree = { ...funnel.counts };
-    funnel = JSON.parse(JSON.stringify(preStamp)); saveFunnel();    // 撤销：restoreStampSnapshot 用 funnelValue 回滚 funnel
+    funnel.seen = funnel.seen.slice(0, preStamp.seen); funnel.events = funnel.events.slice(0, preStamp.events); funnel.counts = preStamp.counts; funnel.eventCounts = preStamp.eventCounts; saveFunnel();
     const afterUndo = { ...funnel.counts, seenHasKey: funnel.seen.includes("reveal:verify-undo") };
     recordFunnelComparison("verify-undo", true, Date.now());        // 改盖“秒过”，与系统一致——修正后不应仍算分歧
     const afterAgree = { ...funnel.counts };
@@ -568,9 +644,19 @@ let browser;
   const coreBytes = coreStrokes.chars.reduce((sum, char) => sum + fs.statSync(path.join(root, "data", `${char}.json`)).size, 0);
   assert(coreStrokes.chars.length === 600 && new Set(coreStrokes.chars).size === 600 && coreStrokes.calibration === "尴嚏狩晤飓痿俾跻徵瞰裘娩邃暧煲" && missingCoreFiles.length === 0 && coreBytes >= 1024 * 1024 && coreBytes <= 2 * 1024 * 1024,
   "Expected 600 unique core files including the exact first calibration group within the 1-2 MiB target", { count: coreStrokes.chars.length, calibration: coreStrokes.calibration, missingCoreFiles, coreBytes });
-  await page.waitForFunction(async () => { const cache = await caches.open("shizi-v12"), keys = await cache.keys(); return keys.filter((request) => new URL(request.url).pathname.includes("/data/")).length >= 602; }, null, { timeout: 30000 });
-  const coreCache = await page.evaluate(async () => { const cache = await caches.open("shizi-v12"), keys = await cache.keys(); return { core: keys.filter((request) => new URL(request.url).pathname.includes("/data/") && !new URL(request.url).pathname.endsWith("context-overrides.js") && !new URL(request.url).pathname.endsWith("etymology.json")).length, shell: !!(await cache.match("core-strokes.js")), etymology: !!(await cache.match("data/etymology.json")), contexts: !!(await cache.match("data/context-overrides.js")) }; });
+  await page.waitForFunction(async () => { const cache = await caches.open("shizi-cache-v2"), keys = await cache.keys(); return keys.filter((request) => new URL(request.url).pathname.includes("/data/")).length >= 602; }, null, { timeout: 30000 });
+  const coreCache = await page.evaluate(async () => { const cache = await caches.open("shizi-cache-v2"), keys = await cache.keys(); return { core: keys.filter((request) => new URL(request.url).pathname.includes("/data/") && !new URL(request.url).pathname.endsWith("context-overrides.js") && !new URL(request.url).pathname.endsWith("etymology.json")).length, shell: !!(await cache.match("core-strokes.js")), etymology: !!(await cache.match("data/etymology.json")), contexts: !!(await cache.match("data/context-overrides.js")) }; });
   assert(coreCache.core >= 600 && coreCache.shell && coreCache.etymology && coreCache.contexts, "Expected the service worker to install all core strokes, etymology, context overrides, and retain runtime-fetched extras", coreCache);
+  const boundedStrokeCache = await page.evaluate(async () => {
+    const cache = await caches.open("shizi-cache-v2"), core = new Set(self.SHIZI_CORE_STROKES), runtime = CARDS.find(card => !core.has(card.target) && !card.custom && card.target);
+    for (let index = 0; index < 230; index += 1) await cache.put(`data/__verify-cache-${index}.json`, new Response("{}", { headers: { "Content-Type": "application/json" } }));
+    await fetch(`data/${encodeURIComponent(runtime.target)}.json?verify-cache-limit=1`);
+    await new Promise(resolve => setTimeout(resolve, 150));
+    const keys = await cache.keys(), strokes = keys.filter(request => /\/data\/[^/]+\.json$/.test(new URL(request.url).pathname) && !new URL(request.url).pathname.endsWith("/data/etymology.json"));
+    const corePresent = await Promise.all(self.SHIZI_CORE_STROKES.map(char => cache.match(`data/${encodeURIComponent(char)}.json`)));
+    return { count: strokes.length, allCorePresent: corePresent.every(Boolean), runtime: runtime.target };
+  });
+  assert(boundedStrokeCache.count <= 800 && boundedStrokeCache.allCorePresent, "Expected stroke cache eviction to keep the core 600 while bounding runtime entries", boundedStrokeCache);
 
   const dailyRitual = await page.evaluate(() => {
     const original = { tuning: cloneObj(tuning), activity: cloneObj(activity), activeMode, focusQueue: focusQueue.slice(), sessionDone: [...sessionDone] };
@@ -641,15 +727,12 @@ let browser;
   offlineProbe = true;
   await page.context().setOffline(true);
   await page.evaluate(() => { tuning = { calibrated: true, offset: 0, contextStrict: 0, rounds: [] }; saveTuning(); const idx = CARDS.findIndex((card) => card.target === "玃"); startFocus([idx]); });
-  await page.waitForFunction(() => !done.disabled && hint.textContent.includes("需要联网下载一次"));
+  await page.waitForFunction(() => !done.disabled && hint.textContent.includes("暂未收录笔顺"));
   const honestOffline = await page.evaluate(() => ({ copy: hint.textContent, done: !done.disabled, show: !show.disabled, noWriter: !practiceCharData, offline: navigator.onLine === false }));
-  assert(honestOffline.copy.includes("这个字的笔顺需要联网下载一次") && honestOffline.done && honestOffline.show && honestOffline.noWriter && honestOffline.offline,
-  "Expected an uncached offline card to explain the one-time download and keep self-assessment usable", honestOffline);
+  assert(honestOffline.copy.includes("这个字暂未收录笔顺") && honestOffline.done && honestOffline.show && honestOffline.noWriter && honestOffline.offline,
+  "Expected a character without bundled stroke data to explain its limitation and keep self-assessment usable offline", honestOffline);
   await page.context().setOffline(false);
-  await page.waitForFunction(() => Array.isArray(curMedians) && curMedians.length > 0 && !strokeDataOffline);
   offlineProbe = false;
-  const onlineRecovery = await page.evaluate(() => ({ target: cur.target, medians: curMedians.length, copy: hint.textContent }));
-  assert(onlineRecovery.target === "玃" && onlineRecovery.medians > 0 && !onlineRecovery.copy.includes("需要联网下载一次"), "Expected reconnection to restore the current untouched card automatically", onlineRecovery);
   await page.evaluate(() => localStorage.clear());
   await page.reload({ waitUntil: "networkidle" });
 
@@ -1439,8 +1522,8 @@ let browser;
 
   await chooseCorrect(page);
   await page.waitForTimeout(450);
-  const hold = await page.evaluate(() => ({ sameTarget: cur.target, feedback: stampedToast.textContent, outcome: roundStats[0] && roundStats[0].outcome, ratings: fsrsReviewLog.map((event) => event.rating), unresolved: [...unresolved] }));
-  assert(hold.sameTarget === firstTarget && hold.feedback.includes("本组稍后再写") && hold.outcome === "hinted" && hold.ratings.join() === "Again" && hold.unresolved.length === 1, "Expected 1.4s hinted feedback with one Again", hold);
+  const hold = await page.evaluate(() => { const stored=load(SESSION_KEY,null); return { sameTarget: cur.target, feedback: stampedToast.textContent, outcome: roundStats[0] && roundStats[0].outcome, ratings: fsrsReviewLog.map((event) => event.rating), unresolved: [...unresolved], sessionHasUndo:Object.prototype.hasOwnProperty.call(stored||{},"lastStampSnapshot"),sessionHasHandwriting:(stored&&stored.roundStats||[]).some(row=>Object.prototype.hasOwnProperty.call(row,"handwriting")) }; });
+  assert(hold.sameTarget === firstTarget && hold.feedback.includes("本组稍后再写") && hold.outcome === "hinted" && hold.ratings.join() === "Again" && hold.unresolved.length === 1 && !hold.sessionHasUndo && !hold.sessionHasHandwriting, "Expected hinted feedback with one Again and a compact session payload", hold);
 
   await page.click("#editStamp");
   const rollback = await page.evaluate(() => ({ phase: practicePhase, events: fsrsReviewLog.length, stats: roundStats.length, attempts: dailyActivity().attempts, stamps: dailyActivity().stamps, queue: reinforcementQueue.length, unresolved: unresolved.size, image: submissionSnapshot.compositeImage }));
@@ -1487,8 +1570,8 @@ let browser;
 
   await page.evaluate(() => { saveSessionSnapshot(); restoreSession(load(SESSION_KEY, null)); });
   await waitForWriter(page);
-  const restoredReinforcement = await page.evaluate(() => ({ target: cur.target, kind: currentAttemptKind, phase: practicePhase, unresolved: unresolved.size }));
-  assert(restoredReinforcement.target === firstTarget && restoredReinforcement.kind === "reinforcement" && restoredReinforcement.phase === "reinforcement" && restoredReinforcement.unresolved === 1, "Expected reinforcement state to survive session restore", restoredReinforcement);
+  const restoredReinforcement = await page.evaluate(() => ({ target: cur.target, kind: currentAttemptKind, phase: practicePhase, unresolved: unresolved.size, noUndo:lastStampSnapshot===null&&getComputedStyle(undoBar).display==="none" }));
+  assert(restoredReinforcement.target === firstTarget && restoredReinforcement.kind === "reinforcement" && restoredReinforcement.phase === "reinforcement" && restoredReinforcement.unresolved === 1 && restoredReinforcement.noUndo, "Expected reinforcement state, but not the five-second undo window, to survive session restore", restoredReinforcement);
 
   await submitStandard(page);
   await chooseCorrect(page);
@@ -1496,6 +1579,7 @@ let browser;
   const completed = await page.evaluate(() => ({
     summary: getComputedStyle(summary).display !== "none",
     stats: cloneObj(roundStats),
+    handwriting: cloneObj(roundHandwriting),
     log: cloneObj(fsrsReviewLog),
     activity: cloneObj(dailyActivity()),
     groups: dailyActivity().completedGroups,
@@ -1506,7 +1590,7 @@ let browser;
     restKnown: REST_LINES.includes(summaryRestLine.textContent),
     ambient: { scene: ambientScene, stops: ambientDebug.stops },
   }));
-  assert(completed.summary && completed.stats.length === 3 && completed.stats[0].outcome === "hinted" && completed.stats[0].independentlyRecovered && completed.stats.some((row) => row.handwriting && row.handwriting.length) && completed.stats.flatMap((row) => row.handwriting || []).every((stroke) => stroke.length <= 48), "Expected one summary tile per base target with compact captured user ink", completed.stats);
+  assert(completed.summary && completed.stats.length === 3 && completed.stats[0].outcome === "hinted" && completed.stats[0].independentlyRecovered && completed.stats.every((row) => !Object.prototype.hasOwnProperty.call(row,"handwriting")) && Object.values(completed.handwriting).some((strokes) => strokes.length) && Object.values(completed.handwriting).flat().every((stroke) => stroke.length <= 48), "Expected compact user ink to remain in memory without bloating persisted round stats", completed);
   assert(completed.log.map((event) => event.rating).join() === "Again,Good,Good,Good" && completed.log.every((event) => !["Hard", "Easy"].includes(event.rating)), "Expected Again/Good-only FSRS events", completed.log);
   assert(completed.activity.stamps === 3 && completed.activity.attempts === 4 && completed.groups === 1 && completed.session === null, "Expected unique-day counts, attempt counts, and true completion", completed.activity);
   assert(Object.values(completed.memory).every((item) => !item.pendingLearning && item.dueDay >= completed.tomorrow && item.schedulerVersion.includes("FSRS-6.0")), "Expected graduated cards to expose next-day-or-later dueDay", completed.memory);
@@ -1527,17 +1611,17 @@ let browser;
     && sharePaths.messageKeys.join() === "dataURL,name,type" && sharePaths.messageType === "sharePracticeCard" && sharePaths.messagePNG && sharePaths.shared === 1 && sharePaths.downloaded.size > 1000 && sharePaths.downloaded.name.endsWith(".png") && sharePaths.privateFree && sharePaths.printedTargetFree && sharePaths.shareVisible && sharePaths.shareLabel.includes("存为"),
   "Expected a private-free user-ink PNG card and native, Web Share, and download delivery paths", sharePaths);
   const expandedShareCard = await page.evaluate(() => {
-    const savedStats = cloneObj(roundStats), originalFillText = CanvasRenderingContext2D.prototype.fillText, labels = [];
+    const savedStats = cloneObj(roundStats), savedHandwriting=cloneObj(roundHandwriting), originalFillText = CanvasRenderingContext2D.prototype.fillText, labels = [];
     try {
       CanvasRenderingContext2D.prototype.fillText = function(text, ...args) { labels.push(String(text)); return originalFillText.call(this, text, ...args); };
-      roundStats = Array.from({ length: 16 }, (_, idx) => ({ idx, target: CARDS[idx].target, outcome: idx % 3 === 0 ? "hinted" : "fast", independentlyRecovered: false,
-        handwriting: [[{ x: .12 + idx * .002, y: .18 }, { x: .82, y: .78 - idx * .002 }]] }));
+      roundStats = Array.from({ length: 16 }, (_, idx) => ({ idx, target: CARDS[idx].target, outcome: idx % 3 === 0 ? "hinted" : "fast", independentlyRecovered: false }));
+      roundHandwriting=Object.fromEntries(roundStats.map(({idx})=>[String(idx),[[{ x: .12 + idx * .002, y: .18 }, { x: .82, y: .78 - idx * .002 }]]]));
       const canvas = renderPracticeCardCanvas(), rendererSource = `${renderPracticeCardCanvas}`;
       return { width: canvas.width, height: canvas.height, items: Number(canvas.dataset.itemCount), inkStrokes: Number(canvas.dataset.inkStrokeCount), labels,
         png: canvas.toDataURL("image/png").startsWith("data:image/png;base64,"), noFifteenItemCutoff: !/slice\(0,\s*15\)/.test(rendererSource) };
     } finally {
       CanvasRenderingContext2D.prototype.fillText = originalFillText;
-      roundStats = savedStats;
+      roundStats = savedStats; roundHandwriting=savedHandwriting;
     }
   });
   assert(expandedShareCard.width === 1080 && expandedShareCard.height === 1618 && expandedShareCard.items === 16 && expandedShareCard.inkStrokes === 16 && expandedShareCard.labels.includes("本组 16 个字") && expandedShareCard.png && expandedShareCard.noFifteenItemCutoff,
@@ -2132,15 +2216,102 @@ let browser;
     restoreBackupPayload(secondIncoming, { skipConfirm: true, reload: false }); const overwrittenSafety = safetySnapshot();
     undoSafetyRestore({ reload: false }); const latestRestored = String(localStorage.getItem(MEMORY_KEY)).includes("verify:before-second");
 
-    restoreBackupPayload(original, { skipConfirm: true, reload: false, skipSafety: true }); localStorage.removeItem(SAFETY_KEY); hideSafetyUndo(); memory = originalMemory;
+    const malicious = JSON.parse(JSON.stringify(original)), maliciousIndex = CARDS.findIndex(card => card.target === "水"), maliciousKey = cardKey(maliciousIndex);
+    malicious.data[MEMORY_KEY] = JSON.stringify({ [maliciousKey]: { seen: 1, recentInk: { version: 2, dataURL: `x\" onerror=\"window.__recentInkXss=1` } } });
+    restoreBackupPayload(malicious, { skipConfirm: true, reload: false, skipSafety: true }); memory = load(MEMORY_KEY, {}); window.__recentInkXss = 0; openCharSheet(maliciousIndex);
+    const maliciousInkRejected = window.__recentInkXss === 0 && charDetailGlyph.textContent === "水" && !charDetailGlyph.querySelector("img") && !charDetailInk.querySelector("img"); closeCharSheet();
+    const activityAttack = JSON.parse(JSON.stringify(original)), attackYear = new Date().getFullYear(), attackDay = `${attackYear}-01-01`, attackMonth = attackDay.slice(0, 7), attackMarkup = `<img src=x onerror="window.__activityXss=1">`;
+    const rawAttackActivity = { version: 2, migrationDate: attackDay, inheritedStreak: 0, inheritedTotalDays: 0, practiceDays: [attackDay], daily: {}, monthly: { [attackMonth]: { days: 1, completedDays: 1, stamps: 1, attempts: 1, completedGroups: 1, targetKeys: [maliciousKey], independentTargetKeys: [], reviewTargetKeys: [], makeupDays: [], firstDay: attackMarkup, firstTargetKey: maliciousKey, lastStampAt: 1 } } };
+    activityAttack.data[ACTIVITY_KEY] = JSON.stringify(rawAttackActivity); restoreBackupPayload(activityAttack, { skipConfirm: true, reload: false, skipSafety: true });
+    const storedAttackActivity = JSON.parse(localStorage.getItem(ACTIVITY_KEY)), maliciousActivitySanitized = storedAttackActivity.monthly[attackMonth].firstDay === "";
+    activity = rawAttackActivity; window.__activityXss = 0; renderAnnualReport(attackYear); const maliciousActivityEscaped = window.__activityXss === 0 && !annualSlides.querySelector("img") && annualSlides.textContent.includes("<img");
+    restoreBackupPayload(original, { skipConfirm: true, reload: false, skipSafety: true }); localStorage.removeItem(SAFETY_KEY); hideSafetyUndo(); memory = originalMemory; activity = normalizeActivity(JSON.parse(original.data[ACTIVITY_KEY]));
+    const customStart = CARDS.length; CARDS.push({ custom: true, target: "春" }); const customKeyBefore = cardKey(customStart);
+    CARDS.splice(BASE_N, 0, { custom: false, target: "验" }); const customKeyAfter = cardKey(customStart + 1); CARDS.splice(BASE_N, 1); CARDS.pop();
+    const legacyCustomKey = "custom:120:春", legacyCustomMemory = { [legacyCustomKey]: { seen: 1, last: 200, dueDay: "2026-09-01", fsrsCard: { stability: 3 } }, "custom:春": { seen: 1, last: 100, dueDay: "2026-08-01" } }, migratedCustom = migrateCustomKeyedRows(legacyCustomMemory), migratedAgain = migrateCustomKeyedRows(migratedCustom.value);
+    const migratedFSRS = normalizeFSRSStored([{ eventId: "legacy-custom", attemptId: "legacy", cardKey: legacyCustomKey, target: "春", reviewedAt: new Date().toISOString(), localDay: today(), rating: "Good" }]);
+    const migratedActivity = normalizeActivity({ version: 2, migrationDate: today(), inheritedStreak: 0, inheritedTotalDays: 0, practiceDays: [today()], daily: { [today()]: { stamps: 1, attempts: 1, targetKeys: [legacyCustomKey], independentTargetKeys: [legacyCustomKey], reviewTargetKeys: [legacyCustomKey], completedRoundIds: [] } }, monthly: {} });
+    const customMigration = { changed: migratedCustom.changed, keys: Object.keys(migratedCustom.value), memory: migratedCustom.value["custom:春"], idempotent: !migratedAgain.changed && JSON.stringify(migratedAgain.value) === JSON.stringify(migratedCustom.value), fsrsKey: migratedFSRS.events[0] && migratedFSRS.events[0].cardKey, activityKeys: migratedActivity.daily[today()].targetKeys };
+    const beforeFailure = Object.fromEntries(BACKUP_KEYS.map(k => [k, localStorage.getItem(k)]));
+    const failingIncoming = JSON.parse(JSON.stringify(original)); failingIncoming.data[MEMORY_KEY] = JSON.stringify({ "verify:atomic-incoming": { seen: 1 } }); failingIncoming.data[QUALITY_KEY] = JSON.stringify({ "verify:atomic-quality": { easy: 1 } });
+    const nativeSetItem = Storage.prototype.setItem; let injectedFailure = false, atomicRejected = false;
+    Storage.prototype.setItem = function(key, value){ if(key===QUALITY_KEY && !injectedFailure){ injectedFailure=true; throw new DOMException("quota", "QuotaExceededError"); } return nativeSetItem.call(this,key,value); };
+    try{ restoreBackupPayload(failingIncoming,{skipConfirm:true,reload:false,skipSafety:true}); }catch(e){ atomicRejected=e&&e.name==="QuotaExceededError"; } finally{ Storage.prototype.setItem=nativeSetItem; }
+    const afterFailure = Object.fromEntries(BACKUP_KEYS.map(k => [k, localStorage.getItem(k)]));
     const result = { keys: Object.keys(original.data), sessionVersion: JSON.parse(original.data[SESSION_KEY]).version, fsrsLog: !!original.data[FSRS_LOG_KEY], tutorial: original.data[TRACE_TUTORIAL_KEY], funnelVersion: JSON.parse(original.data[FUNNEL_KEY]).version, sound: JSON.parse(original.data[SOUND_KEY]), restoredKeys: restoredResult.keys,
       unknown: localStorage.getItem("shizi.unknown.verify"), cancelled: !cancelled.applied, confirmCopy, incomingApplied, safetyReason: safetyAfterRestore && safetyAfterRestore.reason, undoOffered, undoApplied: undoResult.applied, currentRestored,
-      resetReason: resetSafety && resetSafety.reason, overwrittenReason: overwrittenSafety && overwrittenSafety.reason, latestRestored, safetyExcluded: !Object.prototype.hasOwnProperty.call(original.data, SAFETY_KEY) };
+      resetReason: resetSafety && resetSafety.reason, overwrittenReason: overwrittenSafety && overwrittenSafety.reason, latestRestored, safetyExcluded: !Object.prototype.hasOwnProperty.call(original.data, SAFETY_KEY),
+      customKeyBefore, customKeyAfter, customMigration, maliciousInkRejected, maliciousActivitySanitized, maliciousActivityEscaped, atomicRejected, atomicRestored: JSON.stringify(afterFailure)===JSON.stringify(beforeFailure) };
     localStorage.removeItem("shizi.unknown.verify"); return result;
   });
-  assert(backup.keys.includes(SESSION_STORAGE_KEY) && backup.keys.includes("shizi.library.v1") && backup.sessionVersion === 2 && backup.fsrsLog && backup.tutorial === "true" && backup.funnelVersion === 1 && backup.sound.enabled === true && backup.sound.scene === "rain" && backup.restoredKeys.includes(SESSION_STORAGE_KEY) && backup.unknown === "keep-local", "Expected session/FSRS/tutorial/funnel/soundscape/library backup round trip with allowlist isolation", backup);
+  assert(backup.keys.includes(SESSION_STORAGE_KEY) && backup.keys.includes("shizi.library.v1") && backup.sessionVersion === 2 && backup.fsrsLog && backup.tutorial === "true" && backup.funnelVersion === 2 && backup.sound.enabled === true && backup.sound.scene === "rain" && backup.restoredKeys.includes(SESSION_STORAGE_KEY) && backup.unknown === "keep-local", "Expected session/FSRS/tutorial/funnel/soundscape/library backup round trip with allowlist isolation", backup);
   assert(backup.cancelled && backup.confirmCopy.includes("当前 2 字（最后练习 2026-07-11）→ 备份 1 字（2026-06-01）") && backup.incomingApplied && backup.safetyReason === "restore" && backup.undoOffered && backup.undoApplied && backup.currentRestored, "Expected differential restore confirmation and one-tap safety undo", backup);
   assert(backup.resetReason === "reset" && backup.overwrittenReason === "restore" && backup.latestRestored && backup.safetyExcluded, "Expected reset safety copy, latest-operation replacement, and backup exclusion", backup);
+  assert(backup.customKeyBefore === "custom:春" && backup.customKeyAfter === backup.customKeyBefore, "Expected custom card keys to remain stable when the base deck size changes", backup);
+  assert(backup.customMigration.changed && backup.customMigration.keys.length === 1 && backup.customMigration.keys[0] === "custom:春" && backup.customMigration.memory.last === 200 && backup.customMigration.memory.dueDay === "2026-09-01" && backup.customMigration.memory.fsrsCard.stability === 3
+    && backup.customMigration.idempotent && backup.customMigration.fsrsKey === "custom:春" && backup.customMigration.activityKeys[0] === "custom:春",
+    "Expected legacy indexed custom keys to migrate once across memory, FSRS history, and activity while keeping the newest schedule", backup.customMigration);
+  assert(backup.maliciousInkRejected, "Expected restored recent-ink markup to be rejected before DOM rendering", backup);
+  assert(backup.maliciousActivitySanitized && backup.maliciousActivityEscaped, "Expected restored activity fields to be schema-normalized and annual-report text to remain escaped", backup);
+  assert(backup.atomicRejected && backup.atomicRestored, "Expected a failed backup write to restore every previous allowlisted value", backup);
+
+  const boundedPersistence = await page.evaluate(() => {
+    const saved = {
+      fsrsReviewLog: cloneObj(fsrsReviewLog), fsrsReviewMonthly: cloneObj(fsrsReviewMonthly),
+      activity: cloneObj(activity), funnel: cloneObj(funnel), storageWriteFailed,
+      storageNoticeDisplay: storageNotice.style.display, storageNoticeText: storageNotice.textContent,
+    };
+    try {
+      const oldReviewDay = `${new Date().getFullYear() - 1}-${today().slice(5)}`;
+      fsrsReviewLog = [{ eventId: "verify-old-review", cardKey: cardKey(0), localDay: oldReviewDay,
+        reviewedAt: new Date(dayStartMs(oldReviewDay) + 8 * 3600 * 1000).toISOString(), rating: "Good", hintCount: 1, traced: true },
+      { eventId: "verify-old-review-latest", cardKey: cardKey(1), localDay: oldReviewDay,
+        reviewedAt: new Date(dayStartMs(oldReviewDay) + 9 * 3600 * 1000).toISOString(), rating: "Again", hintCount: 0, traced: false }];
+      fsrsReviewMonthly = {}; saveFSRSLog();
+      const reviewMonth = oldReviewDay.slice(0, 7), reviewArchive = cloneObj(fsrsReviewMonthly[reviewMonth]), curatorArchive = bookCuratorData([]);
+
+      const oldActivityDay = shiftDay(today(), -(ACTIVITY_RAW_RETENTION_DAYS + 1)), activityMonth = oldActivityDay.slice(0, 7), targetKey = cardKey(0);
+      activity = normalizeActivity({ version: 2, migrationDate: today(), inheritedStreak: 0, inheritedTotalDays: 0,
+        practiceDays: [oldActivityDay], daily: { [oldActivityDay]: { stamps: 1, attempts: 2, targetKeys: [targetKey], independentTargetKeys: [targetKey], reviewTargetKeys: [], completedRoundIds: ["verify-old-round"], lastStampAt: dayStartMs(oldActivityDay) + 9 * 3600 * 1000 } }, monthly: {} });
+      saveActivity(); const activityArchive = cloneObj(activity.monthly[activityMonth]), monthlyReport = monthReportData(activityMonth);
+
+      funnel = newFunnel();
+      funnel.seen = Array.from({ length: 600 }, (_, index) => `verify-seen-${index}`);
+      funnel.events = Array.from({ length: 600 }, (_, index) => ({ name: "verify_event", at: Date.now() + index, day: today() }));
+      funnel.eventCounts = { verify_event: 600 };
+      funnel.rounds = Array.from({ length: 220 }, (_, index) => ({ completedAt: Date.now() + index, day: today(), mode: "new", durationMs: 1000, targetCount: 1, attemptCount: 1 }));
+      funnel.roundTotals = { count: 220, durationMs: 220000, byMode: { new: { count: 220, durationMs: 220000 } } }; saveFunnel(true);
+      const funnelState = { seen: funnel.seen.length, events: funnel.events.length, rounds: funnel.rounds.length, eventTotal: funnel.eventCounts.verify_event, roundTotal: cloneObj(funnel.roundTotals) };
+
+      storageNotice.style.display = "none"; storageWriteFailed = false;
+      const nativeSetItem = Storage.prototype.setItem;
+      Storage.prototype.setItem = function(key, value){ if(key === "shizi.verify.quota") throw new DOMException("quota", "QuotaExceededError"); return nativeSetItem.call(this, key, value); };
+      let quotaSaved;
+      try { quotaSaved = save("shizi.verify.quota", { value: 1 }); } finally { Storage.prototype.setItem = nativeSetItem; }
+      const quota = { saved: quotaSaved, flagged: storageWriteFailed, visible: getComputedStyle(storageNotice).display !== "none", copy: storageNotice.textContent };
+      const pressure = storagePressure({ usage: 90, quota: 100 });
+      return {
+        fsrs: { raw: fsrsReviewLog.length, archive: reviewArchive, curator: curatorArchive },
+        activity: { raw: Object.prototype.hasOwnProperty.call(activity.daily, oldActivityDay), archive: activityArchive, reportKeys: monthlyReport.keys, reportDays: monthlyReport.practiceDays },
+        funnel: funnelState, quota, pressure,
+      };
+    } finally {
+      fsrsReviewLog = saved.fsrsReviewLog; fsrsReviewMonthly = saved.fsrsReviewMonthly; save(FSRS_LOG_KEY, { version: 2, events: fsrsReviewLog, monthly: fsrsReviewMonthly });
+      activity = normalizeActivity(saved.activity); save(ACTIVITY_KEY, activity);
+      funnel = normalizeFunnel(saved.funnel); save(FUNNEL_KEY, funnel);
+      storageWriteFailed = saved.storageWriteFailed; storageNotice.style.display = saved.storageNoticeDisplay; storageNotice.textContent = saved.storageNoticeText;
+    }
+  });
+  assert(boundedPersistence.fsrs.raw === 0 && boundedPersistence.fsrs.archive.reviews === 2 && boundedPersistence.fsrs.archive.good === 1 && boundedPersistence.fsrs.archive.again === 1 && boundedPersistence.fsrs.archive.hinted === 1 && boundedPersistence.fsrs.archive.traced === 1
+    && Object.values(boundedPersistence.fsrs.archive.lastReviewByDay)[0]?.cardKey
+    && boundedPersistence.fsrs.curator.kind === "recall" && boundedPersistence.fsrs.curator.indexes[0] === 1,
+    "Expected old FSRS detail to compact into durable counters while preserving last-year-today recall", boundedPersistence.fsrs);
+  assert(!boundedPersistence.activity.raw && boundedPersistence.activity.archive.days === 1 && boundedPersistence.activity.archive.completedDays === 1 && boundedPersistence.activity.reportKeys.length === 1 && boundedPersistence.activity.reportDays === 1,
+    "Expected old activity detail to compact without disappearing from monthly reports", boundedPersistence.activity);
+  assert(boundedPersistence.funnel.seen === 512 && boundedPersistence.funnel.events === 256 && boundedPersistence.funnel.rounds === 180 && boundedPersistence.funnel.eventTotal === 600 && boundedPersistence.funnel.roundTotal.count === 220 && boundedPersistence.funnel.roundTotal.durationMs === 220000 && boundedPersistence.funnel.roundTotal.byMode.new.count === 220,
+    "Expected bounded funnel detail with lifetime counters preserved", boundedPersistence.funnel);
+  assert(!boundedPersistence.quota.saved && boundedPersistence.quota.flagged && boundedPersistence.quota.visible && boundedPersistence.quota.copy.includes("没有保存") && boundedPersistence.pressure.high,
+    "Expected quota failures and high storage pressure to be visible instead of silent", boundedPersistence);
 
   const backupCoverage = await page.evaluate(() => {
     const excluded = new Set(["shizi.nativeSmoke.v1", SAFETY_KEY]);
@@ -2160,6 +2331,23 @@ let browser;
   });
   assert(compact.widths.every((width) => width <= 138.5) && compact.within && compact.actions && compact.header.backSize.every((value) => value >= 44) && compact.header.noOverlap && compact.header.nowrap && compact.header.oneLine && compact.header.noGraphicProgress, "Expected dark small-screen comparison and text-only header to fit", compact);
   await page.screenshot({ path: screenshotPath, fullPage: true });
+
+  const blockedContext = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
+  await blockedContext.addInitScript(() => {
+    Storage.prototype.getItem = function(){ throw new DOMException("blocked", "SecurityError"); };
+    Storage.prototype.setItem = function(){ throw new DOMException("blocked", "SecurityError"); };
+  });
+  const blockedPage = await blockedContext.newPage(), blockedErrors = [];
+  blockedPage.on("pageerror", (error) => blockedErrors.push(error.message));
+  await blockedPage.goto(appUrl, { waitUntil: "networkidle" });
+  await blockedPage.waitForFunction(() => document.getElementById("storageGate")?.classList.contains("open"));
+  const blockedStorage = await blockedPage.evaluate(() => ({
+    open: storageGate.classList.contains("open"), title: storageGateTitle.textContent,
+    copy: storageGate.textContent.replace(/\s+/g, ""), reload: storageReload.textContent,
+  }));
+  await blockedContext.close();
+  assert(blockedErrors.length === 0 && blockedStorage.open && blockedStorage.title === "暂时无法保存练习" && blockedStorage.copy.includes("系统没有开放本地存储") && blockedStorage.reload === "重新检查",
+    "Expected a readable blocking page when storage access is disabled at boot", { blockedErrors, blockedStorage });
 
   assert(pageErrors.length === 0, "Browser console/page errors", pageErrors);
   await browser.close();

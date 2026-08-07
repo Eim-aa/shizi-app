@@ -1,5 +1,5 @@
-#!/bin/sh
-set -eu
+#!/bin/bash
+set -euo pipefail
 
 if [ $# -ne 1 ]; then
   echo "Usage: $0 /path/to/Shizi.app|/path/to/Shizi.xcarchive" >&2

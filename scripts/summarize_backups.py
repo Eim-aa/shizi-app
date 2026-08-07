@@ -54,6 +54,9 @@ def load_backup(path: Path) -> dict[str, Any]:
 
 
 def has_event(funnel: dict[str, Any], name: str) -> bool:
+    event_counts = funnel.get("eventCounts")
+    if isinstance(event_counts, dict) and isinstance(event_counts.get(name), (int, float)) and event_counts[name] > 0:
+        return True
     events = funnel.get("events")
     if not isinstance(events, list):
         return False
@@ -78,6 +81,7 @@ def summarize(backups: list[dict[str, Any]], invalid: int = 0) -> dict[str, Any]
     funnel_samples = welcome = card1 = calibrated = 0
     compared = disagreed = 0
     durations: list[int] = []
+    round_count = round_duration_ms = 0
     skipped = 0
 
     for payload in backups:
@@ -100,7 +104,7 @@ def summarize(backups: list[dict[str, Any]], invalid: int = 0) -> dict[str, Any]
                         d7_returned += int(d7 in opened)
 
             funnel = stored_json(data, FUNNEL_KEY, None)
-            if not isinstance(funnel, dict) or funnel.get("version") != 1:
+            if not isinstance(funnel, dict) or funnel.get("version") not in (1, 2):
                 continue
             funnel_samples += 1
             welcome += int(has_event(funnel, "welcome_shown"))
@@ -110,6 +114,7 @@ def summarize(backups: list[dict[str, Any]], invalid: int = 0) -> dict[str, Any]
             compared += max(0, safe_int(counts.get("revealCompared")))
             disagreed += max(0, safe_int(counts.get("revealDisagree")))
             rounds = funnel.get("rounds")
+            raw_round_count = raw_round_duration = 0
             if isinstance(rounds, list):
                 for row in rounds:
                     # 校准组结构性更慢且不受时间预算封顶，排除出常规练习均值。
@@ -117,12 +122,26 @@ def summarize(backups: list[dict[str, Any]], invalid: int = 0) -> dict[str, Any]
                         continue
                     duration = row.get("durationMs")
                     if isinstance(duration, (int, float)) and 0 <= duration <= MAX_ROUND_MS:
-                        durations.append(int(duration))
+                        value = int(duration)
+                        durations.append(value)
+                        raw_round_count += 1
+                        raw_round_duration += value
+            totals = funnel.get("roundTotals") if funnel.get("version") == 2 and isinstance(funnel.get("roundTotals"), dict) else {}
+            by_mode = totals.get("byMode") if isinstance(totals.get("byMode"), dict) else {}
+            usable_modes = [row for mode, row in by_mode.items() if mode in ("new", "review", "focus", "makeup") and isinstance(row, dict)]
+            if usable_modes:
+                for row in usable_modes:
+                    count = safe_int(row.get("count"))
+                    duration = min(safe_int(row.get("durationMs")), count * MAX_ROUND_MS)
+                    round_count += count
+                    round_duration_ms += duration
+            else:
+                round_count += raw_round_count
+                round_duration_ms += raw_round_duration
         except Exception as error:  # noqa: BLE001 - 坏备份跳过并计数，不中断整批
             skipped += 1
             print(f"跳过内容异常的备份 {payload.get('__path__', '?')}: {error}", file=sys.stderr)
 
-    round_count = len(durations)
     return {
         "files": {"valid": len(backups), "invalid": invalid, "skipped": skipped, "with_funnel": funnel_samples},
         "retention": {
@@ -143,8 +162,8 @@ def summarize(backups: list[dict[str, Any]], invalid: int = 0) -> dict[str, Any]
         },
         "rounds": {
             "completed": round_count,
-            "average_duration_seconds": round(sum(durations) / round_count / 1000, 1) if round_count else None,
-            "median_duration_seconds": round(median(durations) / 1000, 1) if round_count else None,
+            "average_duration_seconds": round(round_duration_ms / round_count / 1000, 1) if round_count else None,
+            "median_duration_seconds": round(median(durations) / 1000, 1) if durations else None,
         },
     }
 

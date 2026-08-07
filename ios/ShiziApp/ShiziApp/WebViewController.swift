@@ -7,8 +7,23 @@ import UserNotifications
 import Vision
 import WebKit
 
+private final class WeakScriptMessageHandler: NSObject, WKScriptMessageHandler {
+    weak var delegate: WKScriptMessageHandler?
+
+    init(delegate: WKScriptMessageHandler) {
+        self.delegate = delegate
+    }
+
+    func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+        delegate?.userContentController(userContentController, didReceive: message)
+    }
+}
+
 final class WebViewController: UIViewController {
+    #if DEBUG
     private static let nativeSmokeConfirmMessage = "__shizi_native_smoke_confirm__"
+    #endif
+    private static let temporarySharePrefix = "shizi-share-"
 
     private let schemeHandler: LocalWebSchemeHandler
     private var webView: WKWebView!
@@ -39,6 +54,10 @@ final class WebViewController: UIViewController {
         fatalError("init(coder:) has not been implemented")
     }
 
+    deinit {
+        webView?.configuration.userContentController.removeScriptMessageHandler(forName: "shiziNative")
+    }
+
     override func loadView() {
         let configuration = WKWebViewConfiguration()
         configuration.websiteDataStore = .default()
@@ -46,7 +65,7 @@ final class WebViewController: UIViewController {
         configuration.setURLSchemeHandler(schemeHandler, forURLScheme: ShiziWebResource.scheme)
 
         let userContentController = WKUserContentController()
-        userContentController.add(self, name: "shiziNative")
+        userContentController.add(WeakScriptMessageHandler(delegate: self), name: "shiziNative")
         configuration.userContentController = userContentController
 
         configuration.defaultWebpagePreferences.allowsContentJavaScript = true
@@ -79,6 +98,7 @@ final class WebViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        cleanupTemporaryShareFiles()
         loadApp()
     }
 
@@ -142,6 +162,7 @@ final class WebViewController: UIViewController {
         return process.arguments.contains("-shizi-dev") || process.environment["SHIZI_DEV"] == "1"
     }
 
+    #if DEBUG
     private static var nativeSmokeEnabled: Bool {
         let process = ProcessInfo.processInfo
         return process.arguments.contains("-shizi-smoke") || process.environment["SHIZI_SMOKE"] == "1"
@@ -737,7 +758,7 @@ final class WebViewController: UIViewController {
               result.dataFlow.backupHasSound = Object.prototype.hasOwnProperty.call(backupData, SOUND_KEY);
               result.dataFlow.backupHasLibrary = Object.prototype.hasOwnProperty.call(backupData, LIB_KEY);
               const backupFunnel = Object.prototype.hasOwnProperty.call(backupData, FUNNEL_KEY) ? JSON.parse(backupData[FUNNEL_KEY]) : null;
-              result.dataFlow.backupHasFunnel = !!backupFunnel && backupFunnel.version === 1 && backupFunnel.events.filter(row => row.name === 'backup_exported').length === 1;
+              result.dataFlow.backupHasFunnel = !!backupFunnel && backupFunnel.version === 2 && backupFunnel.events.filter(row => row.name === 'backup_exported').length === 1;
               result.dataFlow.backupHasSessionV2 = Object.prototype.hasOwnProperty.call(backupData, SESSION_KEY) && JSON.parse(backupData[SESSION_KEY]).version === 2;
               result.dataFlow.backupHasFSRSLog = Object.prototype.hasOwnProperty.call(backupData, FSRS_LOG_KEY);
               result.dataFlow.backupHasTraceTutorial = Object.prototype.hasOwnProperty.call(backupData, TRACE_TUTORIAL_KEY);
@@ -766,7 +787,7 @@ final class WebViewController: UIViewController {
                 result.dataFlow.backupRestoreWild = String(localStorage.getItem(WILD_KEY) || '').includes(wildKnownChar);
                 result.dataFlow.backupRestoreLibrary = localStorage.getItem(LIB_KEY) === backupData[LIB_KEY];
                 const restoredFunnel = JSON.parse(localStorage.getItem(FUNNEL_KEY) || '{}');
-                result.dataFlow.backupRestoreFunnel = restoredFunnel.version === 1 && restoredFunnel.events.filter(row => row.name === 'backup_exported').length === 1;
+                result.dataFlow.backupRestoreFunnel = restoredFunnel.version === 2 && restoredFunnel.events.filter(row => row.name === 'backup_exported').length === 1;
                 result.dataFlow.backupRestorePreservesSessionV2 = JSON.parse(localStorage.getItem(SESSION_KEY) || '{}').version === 2;
                 result.dataFlow.backupRestorePreservesSmokeKey = localStorage.getItem('shizi.nativeSmoke.v1') === smokeValueBeforeRestore;
                 const safetyCopy = JSON.parse(localStorage.getItem(SAFETY_KEY) || 'null');
@@ -786,7 +807,7 @@ final class WebViewController: UIViewController {
               result.dataFlow.reminderStateAvailable = typeof reminder === 'object' && typeof reminder.enabled === 'boolean' && typeof totalPracticeDays === 'function' && Number.isInteger(totalPracticeDays());
               result.dataFlow.soundStateAvailable = typeof sound === 'object' && sound.enabled === true && typeof soundFeedback === 'function';
               result.dataFlow.soundscapeStateAvailable = sound.scene === 'off' && typeof startAmbient === 'function' && typeof stopAmbient === 'function' && typeof ambientNoiseBuffer === 'function';
-              result.dataFlow.funnelStateAvailable = typeof funnel === 'object' && funnel.version === 1 && typeof recordFunnelOnce === 'function' && typeof recordFunnelComparison === 'function';
+              result.dataFlow.funnelStateAvailable = typeof funnel === 'object' && funnel.version === 2 && typeof recordFunnelOnce === 'function' && typeof recordFunnelComparison === 'function';
               result.dataFlow.reminderSettingsRowVisible = getComputedStyle(document.getElementById('reminderSection')).display !== 'none' && getComputedStyle(document.getElementById('reminderRow')).display !== 'none';
               result.dataFlow.soundSettingsRowVisible = getComputedStyle(document.getElementById('soundRow')).display !== 'none' && document.getElementById('soundState').textContent === '开';
               result.dataFlow.soundscapeSettingsRowVisible = getComputedStyle(document.getElementById('soundscapeRow')).display !== 'none' && document.querySelector('#soundscapeBox [data-scene="off"]').getAttribute('aria-pressed') === 'true';
@@ -842,7 +863,8 @@ final class WebViewController: UIViewController {
               baseCursor = baseTargets.length;
               unresolved = new Set();
               practicePhase = 'between';
-              roundStats = baseTargets.map((idx, position) => ({ idx, target: CARDS[idx].target, outcome: position === 0 ? 'hinted' : 'fast', independentlyRecovered: position === 0, handwriting: [[{ x: 0.22, y: 0.25 }, { x: 0.44, y: 0.5 }, { x: 0.72, y: 0.68 }]] }));
+              roundStats = baseTargets.map((idx, position) => ({ idx, target: CARDS[idx].target, outcome: position === 0 ? 'hinted' : 'fast', independentlyRecovered: position === 0 }));
+              roundHandwriting = Object.fromEntries(baseTargets.map(idx => [String(idx), [[{ x: 0.22, y: 0.25 }, { x: 0.44, y: 0.5 }, { x: 0.72, y: 0.68 }]]]));
               roundId = 'native-smoke-milestone';
               baseTargets.forEach(idx => markPracticeStamp(idx));
               hapticDebug.events = [];
@@ -1217,12 +1239,30 @@ final class WebViewController: UIViewController {
         let resultURL = documentsURL.appendingPathComponent("shizi-native-smoke.json")
         try? payload.data(using: .utf8)?.write(to: resultURL, options: .atomic)
     }
+    #else
+    private func runNativeSmokeIfNeeded() {}
+    #endif
 
-    private func shareBackup(filename: String, payload: String) {
+    private func cleanupTemporaryShareFiles() {
+        let manager = FileManager.default
+        guard let files = try? manager.contentsOfDirectory(at: manager.temporaryDirectory, includingPropertiesForKeys: nil) else {
+            return
+        }
+        files.filter { $0.lastPathComponent.hasPrefix(Self.temporarySharePrefix) }.forEach { try? manager.removeItem(at: $0) }
+    }
+
+    private func temporaryShareURL(filename: String) -> URL {
         let safeName = filename
             .replacingOccurrences(of: "/", with: "-")
             .replacingOccurrences(of: ":", with: "-")
-        let fileURL = FileManager.default.temporaryDirectory.appendingPathComponent(safeName)
+            .replacingOccurrences(of: "\\", with: "-")
+        return FileManager.default.temporaryDirectory
+            .appendingPathComponent("\(Self.temporarySharePrefix)\(UUID().uuidString)-\(safeName)")
+    }
+
+    private func shareBackup(filename: String, payload: String) {
+        guard presentedViewController == nil else { return }
+        let fileURL = temporaryShareURL(filename: filename)
 
         do {
             try payload.data(using: .utf8)?.write(to: fileURL, options: .atomic)
@@ -1233,6 +1273,7 @@ final class WebViewController: UIViewController {
 
         let activity = UIActivityViewController(activityItems: [fileURL], applicationActivities: nil)
         activity.completionWithItemsHandler = { [weak self] _, completed, _, _ in
+            defer { try? FileManager.default.removeItem(at: fileURL) }
             guard completed else { return }
             self?.webView.evaluateJavaScript("if (typeof markBackupExported === 'function') markBackupExported(); void 0;")
         }
@@ -1262,7 +1303,7 @@ final class WebViewController: UIViewController {
             .replacingOccurrences(of: ":", with: "-")
             .replacingOccurrences(of: "\\", with: "-")
         let safeName = safeStem.lowercased().hasSuffix(".png") ? safeStem : "\(safeStem).png"
-        let fileURL = FileManager.default.temporaryDirectory.appendingPathComponent(safeName)
+        let fileURL = temporaryShareURL(filename: safeName)
         do {
             try data.write(to: fileURL, options: .atomic)
         } catch {
@@ -1271,6 +1312,9 @@ final class WebViewController: UIViewController {
         }
 
         let activity = UIActivityViewController(activityItems: [fileURL], applicationActivities: nil)
+        activity.completionWithItemsHandler = { _, _, _, _ in
+            try? FileManager.default.removeItem(at: fileURL)
+        }
         if let popover = activity.popoverPresentationController {
             popover.sourceView = view
             popover.sourceRect = CGRect(x: view.bounds.midX, y: view.bounds.midY, width: 1, height: 1)
@@ -1280,6 +1324,7 @@ final class WebViewController: UIViewController {
     }
 
     private func presentBackupPicker() {
+        guard presentedViewController == nil else { return }
         let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.json], asCopy: true)
         picker.delegate = self
         picker.allowsMultipleSelection = false
@@ -1288,9 +1333,14 @@ final class WebViewController: UIViewController {
 
     private func importBackup(from url: URL) {
         let hasSecurityScope = url.startAccessingSecurityScopedResource()
+        let path = url.standardizedFileURL.path
+        let shouldRemoveCopy = path.hasPrefix(FileManager.default.temporaryDirectory.standardizedFileURL.path + "/") || path.contains("/Documents/Inbox/")
         defer {
             if hasSecurityScope {
                 url.stopAccessingSecurityScopedResource()
+            }
+            if shouldRemoveCopy {
+                try? FileManager.default.removeItem(at: url)
             }
         }
 
@@ -1307,7 +1357,12 @@ final class WebViewController: UIViewController {
                 let object = try JSONSerialization.jsonObject(with: data) as? [String: Any],
                 object["app"] as? String == "shizi",
                 let backupData = object["data"] as? [String: Any],
-                backupData.keys.contains(where: { $0.hasPrefix("shizi.") })
+                backupData.keys.contains(where: { $0.hasPrefix("shizi.") }),
+                backupData.allSatisfy({ key, value in
+                    guard key.hasPrefix("shizi."), let encodedValue = value as? String,
+                          let valueData = encodedValue.data(using: .utf8) else { return false }
+                    return (try? JSONSerialization.jsonObject(with: valueData, options: [.fragmentsAllowed])) != nil
+                })
             else {
                 throw BackupImportError.invalidFormat
             }
@@ -1337,12 +1392,17 @@ final class WebViewController: UIViewController {
     }
 
     private func presentError(message: String) {
+        guard presentedViewController == nil else { return }
         let alert = UIAlertController(title: "拾字", message: message, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "知道了", style: .default))
         present(alert, animated: true)
     }
 
     private func openExternally(_ url: URL) {
+        guard let scheme = url.scheme?.lowercased(), ["http", "https", "mailto"].contains(scheme) else {
+            presentError(message: "无法打开这个链接。")
+            return
+        }
         UIApplication.shared.open(url, options: [:]) { [weak self] opened in
             if !opened {
                 self?.presentError(message: "无法打开这个链接。")
@@ -1362,17 +1422,15 @@ extension WebViewController: WKNavigationDelegate {
             return
         }
 
-        if url.scheme == ShiziWebResource.scheme {
+        if url.scheme == ShiziWebResource.scheme, url.host == ShiziWebResource.host {
             decisionHandler(.allow)
             return
         }
 
         if navigationAction.targetFrame?.isMainFrame != false {
             openExternally(url)
-            decisionHandler(.cancel)
-        } else {
-            decisionHandler(.allow)
         }
+        decisionHandler(.cancel)
     }
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
@@ -1382,7 +1440,9 @@ extension WebViewController: WKNavigationDelegate {
     }
 
     func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+        #if DEBUG
         nativeSmokeDidRun = false
+        #endif
         pageReady = false
         loadApp()
     }
@@ -1410,10 +1470,12 @@ extension WebViewController: WKUIDelegate {
         initiatedByFrame frame: WKFrameInfo,
         completionHandler: @escaping (Bool) -> Void
     ) {
+        #if DEBUG
         if Self.nativeSmokeEnabled, message == Self.nativeSmokeConfirmMessage {
             completionHandler(true)
             return
         }
+        #endif
 
         guard presentedViewController == nil else {
             completionHandler(false)
@@ -1463,6 +1525,7 @@ extension WebViewController: WKScriptMessageHandler {
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
         guard
             message.name == "shiziNative",
+            message.frameInfo.isMainFrame,
             let body = message.body as? [String: Any],
             let type = body["type"] as? String
         else {
@@ -1483,9 +1546,11 @@ extension WebViewController: WKScriptMessageHandler {
             savePracticeCard(dataURL: dataURL)
         case "pickBackup":
             presentBackupPicker()
+        #if DEBUG
         case "nativeSmokeResult":
             let payload = body["payload"] as? String ?? #"{"error":"Missing native smoke payload"}"#
             writeNativeSmokeResult(payload)
+        #endif
         case "haptic":
             playHaptic(kind: body["kind"] as? String ?? "")
         case "sound":

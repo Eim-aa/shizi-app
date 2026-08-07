@@ -10,7 +10,7 @@
   "source_bindings": {
     "vector_data_manifest": {
       "path": "audit/vector-data-460-manifest.json",
-      "sha256": "3e739ddf379a0598694334954f9c95ee5f7da13f497918ebb4acc792169c15f0"
+      "sha256": "e543f5132e5b6d6b6d0837fd02a4d0f0803bec2baf926047451bb31200a5469a"
     },
     "chaifen_repertoire": {
       "path": "sources/chaifen-0.4.0/repertoire.json.deflate",

@@ -1,0 +1,333 @@
+{
+  "schema_version": 1,
+  "artifact": "shizi-vector-data-finalize-440-production-import-authorization",
+  "recorded_at_utc": "2026-08-07T13:19:05Z",
+  "record_type": "RETROSPECTIVE_TRANSCRIPTION_OF_PRIOR_CONVERSATION_AUTHORIZATION",
+  "authorization_event": {
+    "local_date": "2026-08-06",
+    "timezone": "Asia/Shanghai",
+    "timestamp_precision": "date_and_conversation_order_only",
+    "note": "The exact event timestamp was not captured; this record was added later and does not backdate its own creation."
+  },
+  "reviewer_role": "product_owner",
+  "interaction_evidence": {
+    "source_thread_id": "019fa8c3-c58b-7b10-b202-0f351f4d97b1",
+    "sequence": "SUBSEQUENT_TO_SCOPE_CLOSURE_AND_IMPORT_PROPOSAL",
+    "preceding_proposal": [
+      "Import the 29 exact, frozen, human-accepted corrected candidates into production data/.",
+      "Keep the 20 explicitly deferred rare characters outside the practice-ready supplement.",
+      "Regenerate the four-library governance artifacts and counts.",
+      "Run the full technical, App, and native smoke gates before publishing."
+    ],
+    "reviewer_response_verbatim": "批准",
+    "interpretation": "The one-word approval applies to the immediately preceding four-step proposal and no broader data set."
+  },
+  "decision": "PRODUCTION_IMPORT_APPROVED_FOR_EXACT_FROZEN_PAYLOADS",
+  "closure_binding": {
+    "path": "audit/vector-data-460-evidence/review-decisions/strokeorder-49-scope-closure.json",
+    "sha256": "410b42cb95586d7fa88632deb42f57f81bac9a3b78a1c8da6ac1a1cf0796028e",
+    "decision": "CLOSE_REPAIR_SCOPE_WITH_29_ACCEPTED_AND_20_PRODUCT_EXCLUDED",
+    "production_import_allowed_at_closure": false,
+    "separate_approval_requirement": "Import only the 29 frozen human-accepted candidates into production data/, then rerun full App and native smoke gates."
+  },
+  "scope": {
+    "accepted_replacements": 29,
+    "product_scope_exclusions": 20,
+    "final_supplement": 440
+  },
+  "approved_replacements": [
+    {
+      "character": "侹",
+      "candidate_sha256": "20e3dc3a5efcd03b9b20fe8efc31c82bc8d8a70e74500ea1288bcd68cbcc33a5",
+      "acceptance_path": "audit/vector-data-460-evidence/review-decisions/strokeorder-side-component-two.json",
+      "final_data_path": "data/侹.json"
+    },
+    {
+      "character": "岠",
+      "candidate_sha256": "b67932fc119aa2e20ad40aa58ba2adbc17295d800648117e7df15cda6ca17e9c",
+      "acceptance_path": "audit/vector-data-460-evidence/review-decisions/strokeorder-side-component-two.json",
+      "final_data_path": "data/岠.json"
+    },
+    {
+      "character": "溚",
+      "candidate_sha256": "ad1b91bcce04cf241de4eb579c4798b6151746a6f22fa4292723ddb0f6900698",
+      "acceptance_path": "audit/vector-data-460-evidence/review-decisions/strokeorder-side-component-four.json",
+      "final_data_path": "data/溚.json"
+    },
+    {
+      "character": "溞",
+      "candidate_sha256": "3c8ec9a19c9e9ca924fede9622e519928f996a258687d41d0d4eb2fdb6a24144",
+      "acceptance_path": "audit/vector-data-460-evidence/review-decisions/strokeorder-side-component-four.json",
+      "final_data_path": "data/溞.json"
+    },
+    {
+      "character": "爟",
+      "candidate_sha256": "58107881958a411cae79e22f58dc93c9eebd3df35362805abd79f66f5fce5415",
+      "acceptance_path": "audit/vector-data-460-evidence/review-decisions/strokeorder-side-component-four.json",
+      "final_data_path": "data/爟.json"
+    },
+    {
+      "character": "芃",
+      "candidate_sha256": "dee100f4eb6bce9069acd7660fc5cffc76ba5dee7b759e6afe74f06a4f752146",
+      "acceptance_path": "audit/vector-data-460-evidence/review-decisions/strokeorder-direct-grass-two.json",
+      "final_data_path": "data/芃.json"
+    },
+    {
+      "character": "芠",
+      "candidate_sha256": "43986db1eba9a51a11f01ae6e1f31828fd0f948277af7420a955b9bd5f7474dc",
+      "acceptance_path": "audit/vector-data-460-evidence/review-decisions/strokeorder-direct-grass-scale.json",
+      "final_data_path": "data/芠.json"
+    },
+    {
+      "character": "芣",
+      "candidate_sha256": "97b05d31439d9280e521168d73f4bb0cf07a26b12b37feb9e79188272b7ac41c",
+      "acceptance_path": "audit/vector-data-460-evidence/review-decisions/strokeorder-direct-grass-scale.json",
+      "final_data_path": "data/芣.json"
+    },
+    {
+      "character": "苉",
+      "candidate_sha256": "daeb541ef1753f4ddf1877a95fd74d043f74339d9178c3da2f75914ec8a03c87",
+      "acceptance_path": "audit/vector-data-460-evidence/review-decisions/strokeorder-direct-grass-scale.json",
+      "final_data_path": "data/苉.json"
+    },
+    {
+      "character": "苾",
+      "candidate_sha256": "54c4fd44b0b470ab51f7f098a42ea139f97422fda33296b11f845283ed435d67",
+      "acceptance_path": "audit/vector-data-460-evidence/review-decisions/strokeorder-direct-grass-two.json",
+      "final_data_path": "data/苾.json"
+    },
+    {
+      "character": "茽",
+      "candidate_sha256": "fef8840fd2e70914cb746086fec059c0da4346df4915145a8538d15092eb2dd3",
+      "acceptance_path": "audit/vector-data-460-evidence/review-decisions/strokeorder-direct-grass-scale.json",
+      "final_data_path": "data/茽.json"
+    },
+    {
+      "character": "荁",
+      "candidate_sha256": "9b9f8721c1fb92b2d3761e99959c4db3b81eff08a58a189281f22c6eff9c3c38",
+      "acceptance_path": "audit/vector-data-460-evidence/review-decisions/strokeorder-direct-grass-scale.json",
+      "final_data_path": "data/荁.json"
+    },
+    {
+      "character": "荄",
+      "candidate_sha256": "a42483053e759489a18f688b415ed8ece01209226d48bc4224f251f61e6795ee",
+      "acceptance_path": "audit/vector-data-460-evidence/review-decisions/strokeorder-direct-grass-scale.json",
+      "final_data_path": "data/荄.json"
+    },
+    {
+      "character": "荓",
+      "candidate_sha256": "079fd451fa2e476f9a0c63cd0b7b3e1cd6745dc2ff5a218f6bd982f5ad317d38",
+      "acceptance_path": "audit/vector-data-460-evidence/review-decisions/strokeorder-direct-grass-scale.json",
+      "final_data_path": "data/荓.json"
+    },
+    {
+      "character": "荖",
+      "candidate_sha256": "54250531b813e635b53bac3afc849164ed13668354d4c6c0e423821c53ec9afb",
+      "acceptance_path": "audit/vector-data-460-evidence/review-decisions/strokeorder-direct-grass-scale.json",
+      "final_data_path": "data/荖.json"
+    },
+    {
+      "character": "莝",
+      "candidate_sha256": "9d106761233252b07a94132b71063af206318fd0e04d6262fdc89a4d044ac8e7",
+      "acceptance_path": "audit/vector-data-460-evidence/review-decisions/strokeorder-direct-grass-scale.json",
+      "final_data_path": "data/莝.json"
+    },
+    {
+      "character": "萳",
+      "candidate_sha256": "6ad3f98e615182a18c741784a7cda13c66ab1e74d468cab0e62611df53a241c8",
+      "acceptance_path": "audit/vector-data-460-evidence/review-decisions/strokeorder-direct-grass-four.json",
+      "final_data_path": "data/萳.json"
+    },
+    {
+      "character": "萹",
+      "candidate_sha256": "3403eac0b1966136d4900ae5edeb6184bb49b52398ec2bb012084af3fb9136c6",
+      "acceptance_path": "audit/vector-data-460-evidence/review-decisions/strokeorder-direct-grass-scale.json",
+      "final_data_path": "data/萹.json"
+    },
+    {
+      "character": "葴",
+      "candidate_sha256": "f386fcb354c72efc7cf619c1325f9f525fe028ba14247abc3ce5ea50169769e8",
+      "acceptance_path": "audit/vector-data-460-evidence/review-decisions/strokeorder-direct-grass-scale.json",
+      "final_data_path": "data/葴.json"
+    },
+    {
+      "character": "蒨",
+      "candidate_sha256": "afb12dee98c9bb5fcaae32bba0dd239b582cd973b4e1c04fcf3669606b864a28",
+      "acceptance_path": "audit/vector-data-460-evidence/review-decisions/strokeorder-direct-grass-four.json",
+      "final_data_path": "data/蒨.json"
+    },
+    {
+      "character": "蒱",
+      "candidate_sha256": "215cde2890e2b3320a926dc2990a03d1e8d5a5a1a02342a30d0ad29c5f880858",
+      "acceptance_path": "audit/vector-data-460-evidence/review-decisions/strokeorder-direct-grass-scale.json",
+      "final_data_path": "data/蒱.json"
+    },
+    {
+      "character": "蓏",
+      "candidate_sha256": "1b230c54f7b145eaca630e733a4b31690becc3f7ff12a723f8cb9ae4dc729a88",
+      "acceptance_path": "audit/vector-data-460-evidence/review-decisions/strokeorder-direct-grass-scale.json",
+      "final_data_path": "data/蓏.json"
+    },
+    {
+      "character": "蓢",
+      "candidate_sha256": "a1b429ec9d1879b7b73a81bf2e333350e90213cf7361ee848dc38598a9369839",
+      "acceptance_path": "audit/vector-data-460-evidence/review-decisions/strokeorder-direct-grass-scale.json",
+      "final_data_path": "data/蓢.json"
+    },
+    {
+      "character": "蔈",
+      "candidate_sha256": "32d1cc4a0875bb2f201f50f47cd736e30e7eab6ff83377e905c403ce748654d6",
+      "acceptance_path": "audit/vector-data-460-evidence/review-decisions/strokeorder-direct-grass-scale.json",
+      "final_data_path": "data/蔈.json"
+    },
+    {
+      "character": "蔊",
+      "candidate_sha256": "d7cc90d13b432f6f261840b0311924dad41290754282e31c0c0cffb3b85d0456",
+      "acceptance_path": "audit/vector-data-460-evidence/review-decisions/strokeorder-direct-grass-scale.json",
+      "final_data_path": "data/蔊.json"
+    },
+    {
+      "character": "薸",
+      "candidate_sha256": "21f37ad5fdef3fa667756abd508e90153474860f941a607df793a22d2cfe65c6",
+      "acceptance_path": "audit/vector-data-460-evidence/review-decisions/strokeorder-direct-grass-four.json",
+      "final_data_path": "data/薸.json"
+    },
+    {
+      "character": "藟",
+      "candidate_sha256": "4f6e7d781cb24104f64e733551c893f897528b72ef1aae4df4ab71f5cb36c6bd",
+      "acceptance_path": "audit/vector-data-460-evidence/review-decisions/strokeorder-direct-grass-four.json",
+      "final_data_path": "data/藟.json"
+    },
+    {
+      "character": "藦",
+      "candidate_sha256": "60f47c486f83f0a9a905970b7660634310206a3883eee768e233795f0af64dad",
+      "acceptance_path": "audit/vector-data-460-evidence/review-decisions/strokeorder-direct-grass-scale.json",
+      "final_data_path": "data/藦.json"
+    },
+    {
+      "character": "醨",
+      "candidate_sha256": "340896c17a66971b5f92a3447ae3f5fbe74c9fa1541a36870c51986c68cfbbac",
+      "acceptance_path": "audit/vector-data-460-evidence/review-decisions/strokeorder-side-component-four.json",
+      "final_data_path": "data/醨.json"
+    }
+  ],
+  "approved_product_scope_exclusions": [
+    {
+      "character": "婼",
+      "removed_data_path": "data/婼.json",
+      "removed_data_sha256": "498660c0c20ed1547df958fb581d4fbc611cd4a07210362cff09cd960571a02e"
+    },
+    {
+      "character": "嶅",
+      "removed_data_path": "data/嶅.json",
+      "removed_data_sha256": "cdef41a1c788887e0a0475fd835c9df6b025e2c68be325f5360e201fa9238159"
+    },
+    {
+      "character": "嶲",
+      "removed_data_path": "data/嶲.json",
+      "removed_data_sha256": "1fc222e82932eb20c71c7272b5be97cb224e09bb03f1092d6041e15cff0e052b"
+    },
+    {
+      "character": "梴",
+      "removed_data_path": "data/梴.json",
+      "removed_data_sha256": "2b1bdc074201758aadae160ec1ad464313249f2d25114e83fffe02ed3cf3938c"
+    },
+    {
+      "character": "欂",
+      "removed_data_path": "data/欂.json",
+      "removed_data_sha256": "0e935413100d856ace79ed1043db1e1a6c40a7739731f9d091800ba7e7388a1c"
+    },
+    {
+      "character": "漋",
+      "removed_data_path": "data/漋.json",
+      "removed_data_sha256": "d95cc7081749a583e005fceada467be8c4cf2d8362b8956e457955cec3c13c8b"
+    },
+    {
+      "character": "濩",
+      "removed_data_path": "data/濩.json",
+      "removed_data_sha256": "12b410eecac2dca2a39c028d713a92f1ed2d4c77d9a77ee8a958c07c7338ddab"
+    },
+    {
+      "character": "烻",
+      "removed_data_path": "data/烻.json",
+      "removed_data_sha256": "9486df1f8ead35982f43a858f5a27645042f72e875571adcec29f8ce418355e8"
+    },
+    {
+      "character": "璥",
+      "removed_data_path": "data/璥.json",
+      "removed_data_sha256": "7b39ebdb049d9a2de7a77befe1271752d19973fade850d56dbe28cb3cf6b120a"
+    },
+    {
+      "character": "茋",
+      "removed_data_path": "data/茋.json",
+      "removed_data_sha256": "ea0ce71be88caede2c36d287b4b9ffd1bcf694b92c394428659f8cc761522e50"
+    },
+    {
+      "character": "菉",
+      "removed_data_path": "data/菉.json",
+      "removed_data_sha256": "971c073ac844d74850963e39710404cc543e258bfcbdb94ee4a59814615c16a0"
+    },
+    {
+      "character": "菍",
+      "removed_data_path": "data/菍.json",
+      "removed_data_sha256": "7ccd39dc89cbdb3072acd0390341e7e7100cd424f2191649d7d2181d152dd05d"
+    },
+    {
+      "character": "薁",
+      "removed_data_path": "data/薁.json",
+      "removed_data_sha256": "a0c5ce608ce582bddea300403aba6fa678a4eabe4568a6152dfba576095609e5"
+    },
+    {
+      "character": "鄀",
+      "removed_data_path": "data/鄀.json",
+      "removed_data_sha256": "ca61c5552533083c4b51d89a871a1afaad17cfdb038460f4063ab294e6d18d05"
+    },
+    {
+      "character": "鄅",
+      "removed_data_path": "data/鄅.json",
+      "removed_data_sha256": "f85add5065cd9a808a3340d9c1476244a15764367c092240e8a28586b7da8168"
+    },
+    {
+      "character": "鄑",
+      "removed_data_path": "data/鄑.json",
+      "removed_data_sha256": "ed1f917cf12c7679a7812887860f6314099d1cdfb765355466c966bf8fa62978"
+    },
+    {
+      "character": "鄚",
+      "removed_data_path": "data/鄚.json",
+      "removed_data_sha256": "b89757b86aae061c94fdff833ef1589337addb26d2ae1cb549fe0e6bf355204c"
+    },
+    {
+      "character": "隩",
+      "removed_data_path": "data/隩.json",
+      "removed_data_sha256": "7351de656bb789a77593aa6702086bbe955803e75025ee9c106acaa5c0c264d4"
+    },
+    {
+      "character": "鞳",
+      "removed_data_path": "data/鞳.json",
+      "removed_data_sha256": "2ef1d64e63e946228f20ed92f17ba1fa900d7ad1d8830f63f47dcccd744a29ea"
+    },
+    {
+      "character": "髎",
+      "removed_data_path": "data/髎.json",
+      "removed_data_sha256": "b4c2dd8354ea030f3684e2266b029bdfd30f4d4aeac9b720ba7366c9b5396a20"
+    }
+  ],
+  "production_import_allowed": true,
+  "conditions": [
+    "Every imported byte must match the candidate_sha256 frozen in approved_replacements.",
+    "Every replacement must retain its bound character-level human acceptance record.",
+    "All 20 approved product-scope exclusions must remain absent from production data/.",
+    "The full technical, App, and native smoke gates must pass before the pull request can become Ready."
+  ],
+  "invalidation_rules": [
+    "Any change to a character, candidate hash, acceptance path, or final data path requires a new approval.",
+    "Any addition beyond these exact 29 replacements requires a new approval.",
+    "Any restoration of the 20 excluded characters requires a new human acceptance and product decision."
+  ],
+  "limitations": [
+    "This is a product and technical import approval only.",
+    "It makes no licensing, commercial-use, attribution, or third-party-rights determination.",
+    "It does not approve the remaining 811 intentionally deferred characters."
+  ]
+}

@@ -2,6 +2,8 @@
   "schema_version": 2,
   "artifact": "shizi-vector-data-440-technical-manifest",
   "created_at_utc": "2026-08-05T04:15:47.576Z",
+  "revised_at_utc": "2026-08-07T13:19:05Z",
+  "revision_reason": "Bind the separately granted production import authorization and enforce character-level acceptance semantics.",
   "source_worktree": {
     "branch": "feat/library-governance",
     "base_commit": "f9969e20b48f51ebb3372dfa1021536b383b72c5"
@@ -32,7 +34,9 @@
     "normative_stroke_count_match": true,
     "finite_median_coordinates": true,
     "browser_svg_render_gate": "verified by scripts/verify_vector_data_460.js",
-    "human_review_gate": "440 accepted; 0 pending"
+    "human_review_gate": "440 accepted; 0 pending",
+    "acceptance_semantics_gate": "440 character + decision + candidate hash bindings verified",
+    "separate_product_approval_gate": "29 replacements + 20 exclusions approved"
   },
   "source_receipts": [
     {
@@ -6678,9 +6682,15 @@
     }
   ],
   "audit_state": "TECHNICAL_AND_HUMAN_REVIEW_PASS_440",
+  "production_import_approval": {
+    "path": "audit/vector-data-460-evidence/authorizations/finalize-440-production-import.json",
+    "sha256": "717308edf4e45edd5fe34bbefb44ba04a88609283debbd738bc48dbc2707af7b",
+    "accepted_replacements": 29,
+    "product_scope_exclusions": 20
+  },
   "clean_clone_evidence": {
     "index_path": "audit/vector-data-460-evidence-index.json",
-    "index_sha256": "bdf90960085d13600e2e06925237933e18bcd732952fe8068c37dd98a3922539",
+    "index_sha256": "527b73f268e0654d8bd61ca1d5e93086e98fdc977f538996a8bb546910f09c6a",
     "raw_third_party_payloads_included": false,
     "license_review": "OUT_OF_SCOPE_PENDING_SEPARATE_REVIEW"
   }

@@ -41,6 +41,8 @@ done
 PYTHONPYCACHEPREFIX="${IOS_ROOT}/build/verify/pycache" \
   python3 -m py_compile "${SCRIPT_DIR}/validate-native-smoke.py" "${REPO_ROOT}/scripts/summarize_backups.py" "${REPO_ROOT}/scripts/verify_library_governance.py"
 python3 "${REPO_ROOT}/scripts/verify_library_governance.py"
+run_logged "Verify 440 vector-data approvals" "${LOG_DIR}/verify-vector-data-440.log" \
+  node "${REPO_ROOT}/scripts/verify_vector_data_440.js" --static-only
 
 if git -C "$REPO_ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   git -C "$REPO_ROOT" diff --check

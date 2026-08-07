@@ -2,9 +2,22 @@
   "schema_version": 1,
   "artifact": "shizi-vector-data-finalize-440-import-receipt",
   "recorded_at_utc": "2026-08-06T16:00:00Z",
+  "receipt_revision": {
+    "revision": 2,
+    "revised_at_utc": "2026-08-07T13:19:05Z",
+    "prior_committed_sha256": "ff4f14d22c80b54b270a0a681c08a182f5d2d516ac420133c674311218511d40",
+    "change": "Bind the separate, previously granted product authorization without rewriting historical review or closure decisions."
+  },
+  "path_semantics": {
+    "candidate_path": "HISTORICAL_PROVENANCE_ONLY; clean-clone verification relies on the acceptance hash and committed final data, not tmp/ path existence."
+  },
   "decision_binding": {
     "path": "audit/vector-data-460-evidence/review-decisions/strokeorder-49-scope-closure.json",
     "sha256": "410b42cb95586d7fa88632deb42f57f81bac9a3b78a1c8da6ac1a1cf0796028e"
+  },
+  "production_approval_binding": {
+    "path": "audit/vector-data-460-evidence/authorizations/finalize-440-production-import.json",
+    "sha256": "717308edf4e45edd5fe34bbefb44ba04a88609283debbd738bc48dbc2707af7b"
   },
   "counts": {
     "original_supplement": 460,
@@ -419,6 +432,7 @@
   ],
   "gates": {
     "closure_reconciles_49": true,
+    "separate_product_approval_bound": true,
     "accepted_candidates_hash_bound": true,
     "all_payloads_parse": true,
     "all_stroke_counts_match": true,

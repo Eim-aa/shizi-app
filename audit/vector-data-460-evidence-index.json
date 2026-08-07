@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "artifact": "shizi-vector-data-440-clean-clone-evidence-index",
-  "evidence_snapshot_date": "2026-08-06",
+  "evidence_snapshot_date": "2026-08-07",
   "status": "TECHNICAL_AND_HUMAN_REVIEW_PASS_440",
   "counts": {
-    "files": 19,
+    "files": 20,
     "records": 440,
     "human_accepted": 440,
     "human_review_pending": 0,
@@ -15,13 +15,15 @@
     "license_review": "OUT_OF_SCOPE_PENDING_SEPARATE_REVIEW",
     "viewing_review_page_implies_acceptance": false,
     "accepted_records_directly_hash_bound": true,
+    "accepted_records_semantically_bound": true,
+    "production_import_requires_separate_product_approval": true,
     "machine_local_absolute_paths_forbidden": true
   },
   "files": [
     {
       "path": "audit/vector-data-460-evidence/README.md",
-      "sha256": "1b9f241ef31bd717e510483402e8ddaa43ba32122e4cd83a370458c6183b4fe7",
-      "byte_size": 779
+      "sha256": "71e847d8451439e629cea96f571154975d35f2dbf5e21fbf822b4e046077e2dc",
+      "byte_size": 1495
     },
     {
       "path": "audit/vector-data-460-evidence/acceptances/animcjk-363.json",
@@ -99,6 +101,11 @@
       "byte_size": 3562
     },
     {
+      "path": "audit/vector-data-460-evidence/authorizations/finalize-440-production-import.json",
+      "sha256": "717308edf4e45edd5fe34bbefb44ba04a88609283debbd738bc48dbc2707af7b",
+      "byte_size": 14921
+    },
+    {
       "path": "audit/vector-data-460-evidence/investigations/strokeorder-49-root-cause.json",
       "sha256": "4a14d3ba8f5c354358028b48033dc30c3fa758c05aced71d80c3cf275bd6e42d",
       "byte_size": 32558
@@ -110,8 +117,8 @@
     },
     {
       "path": "audit/vector-data-460-evidence/imports/finalize-440.json",
-      "sha256": "ff4f14d22c80b54b270a0a681c08a182f5d2d516ac420133c674311218511d40",
-      "byte_size": 24790
+      "sha256": "98bcf3fa307076d54cf463461930610c956c0c1b5b3a49a5b8625cc918c662f1",
+      "byte_size": 25564
     }
   ]
 }

@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GF8105 Hanzi Writer supplement MVE</title>
+  <style>
+    :root { color-scheme: light dark; font-family: system-ui, sans-serif; }
+    body { margin: 0; padding: 24px; background: #f5f1e8; color: #24211d; }
+    h1 { font-size: 22px; margin: 0 0 8px; }
+    p { margin: 0 0 20px; color: #625c53; }
+    main { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+    article { background: #fffdf8; border: 1px solid #d8d0c2; border-radius: 12px; padding: 16px; }
+    h2 { margin: 0; font-size: 28px; }
+    .meta { font-size: 13px; margin: 4px 0 12px; color: #746c61; }
+    .writer { width: 180px; height: 180px; margin: auto; }
+    .status { margin-top: 10px; font-size: 13px; }
+    article[data-status="pass"] .status { color: #287a45; }
+    article[data-status="fail"] .status { color: #a12622; }
+    @media (prefers-color-scheme: dark) {
+      body { background: #211f1b; color: #eee8dc; }
+      p, .meta { color: #bcb3a5; }
+      article { background: #2a2722; border-color: #4a443b; }
+    }
+  </style>
+</head>
+<body>
+  <h1>GF8105 Hanzi Writer supplement MVE</h1>
+  <p id="summary">Loading the frozen manifest…</p>
+  <main id="cards"></main>
+  <script
+    src="https://cdn.jsdelivr.net/npm/hanzi-writer@3.7.3/dist/hanzi-writer.min.js"
+    integrity="sha384-xd6VpwMU5AxPFzG/nyhXrW70SSR2usiUNV8RrA0wlOjYlCrZyzZC6JiR/mT51pm2"
+    crossorigin="anonymous"></script>
+  <script>
+    async function verifyRecord(record) {
+      const article = document.createElement('article');
+      article.dataset.character = record.character;
+      article.dataset.status = 'running';
+      article.innerHTML = `
+        <h2>${record.character}</h2>
+        <div class="meta">${record.codepoint} · ${record.strokes} strokes</div>
+        <div class="writer" aria-label="${record.character} stroke animation"></div>
+        <div class="status">Loading…</div>`;
+      document.querySelector('#cards').append(article);
+
+      try {
+        const response = await fetch(`data/${record.character}.json`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        if (data.strokes.length !== record.strokes || data.medians.length !== record.strokes) {
+          throw new Error('stroke/median count mismatch');
+        }
+
+        const writer = HanziWriter.create(article.querySelector('.writer'), record.character, {
+          width: 180,
+          height: 180,
+          padding: 8,
+          showOutline: true,
+          showCharacter: false,
+          strokeAnimationSpeed: 8,
+          delayBetweenStrokes: 20,
+          charDataLoader: () => data,
+        });
+        await new Promise((resolve) => writer.animateCharacter({ onComplete: resolve }));
+        article.dataset.status = 'pass';
+        article.querySelector('.status').textContent = 'PASS · loaded and animated';
+        return { character: record.character, strokes: record.strokes, status: 'pass' };
+      } catch (error) {
+        article.dataset.status = 'fail';
+        article.querySelector('.status').textContent = `FAIL · ${error.message}`;
+        return { character: record.character, strokes: 0, status: 'fail', error: error.message };
+      }
+    }
+
+    async function run() {
+      const response = await fetch('manifest.json');
+      if (!response.ok) throw new Error(`manifest HTTP ${response.status}`);
+      const manifest = await response.json();
+      const records = manifest.records.map((record) => ({
+        character: record.character,
+        codepoint: record.codepoint,
+        strokes: record.stroke_count,
+      }));
+      document.querySelector('#summary').textContent =
+        `${records.length}-character contribution sample loaded from manifest.json.`;
+      const results = await Promise.all(records.map(verifyRecord));
+      window.__MVE_RESULT__ = { done: true, results };
+    }
+
+    window.__MVE_RESULT__ = { done: false, results: [] };
+    run().catch((error) => {
+      window.__MVE_RESULT__ = { done: true, results: [], fatal: error.message };
+    });
+  </script>
+</body>
+</html>

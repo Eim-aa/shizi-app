@@ -1,0 +1,32 @@
+{
+  "name": "@eim-aa/gf8105-hanzi-writer-supplement-mve",
+  "version": "0.0.0-mve.1",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "description": "Three-character MVE for a GF8105 Hanzi Writer data supplement",
+  "files": [
+    "characters.txt",
+    "data",
+    "docs",
+    "LICENSE-ARPHIC.txt",
+    "LICENSE-HANZI-WRITER.txt",
+    "manifest.json",
+    "provenance",
+    "README.md",
+    "review.html",
+    "scripts",
+    "THIRD_PARTY_NOTICES.md",
+    "vendor"
+  ],
+  "scripts": {
+    "verify": "node scripts/verify.mjs",
+    "verify:browser": "node scripts/verify-browser.cjs",
+    "test": "node --test scripts/verify.test.mjs"
+  },
+  "devDependencies": {
+    "playwright": "1.62.0"
+  }
+}

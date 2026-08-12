@@ -209,6 +209,7 @@ checks = {
     "practiceBatch": int(practice.get("batchSize") or 0) >= 2,
     "practiceCardVisible": practice.get("cardVisible") is True,
     "practiceActionsEnabled": practice.get("showEnabled") is True
+    and practice.get("blankDoneDisabled") is True
     and practice.get("doneEnabled") is True,
     "practiceReveal": practice.get("revealVisible") is True
     and practice.get("decisionVisible") is True
@@ -236,7 +237,7 @@ checks = {
     and practice.get("postTraceRecall") is True
     and practice.get("hapticTraceNoReview") is True
     and practice.get("soundPaperRecorded") is True,
-    "practicePersistence": practice.get("activityRecorded") is True
+    "practicePersistence": practice.get("focusActivityExcluded") is True
     and practice.get("sessionSnapshotStored") is True
     and practice.get("resumeHomeState") is True
     and practice.get("resumeRestored") is True

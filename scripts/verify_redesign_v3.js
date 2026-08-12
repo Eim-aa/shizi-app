@@ -33,6 +33,11 @@ assert(!/id="bookBadge"|id="addInPractice"|id="bookSearchGo"|id="backupNow"|高�
 assert(source.includes('id="libCard"') && source.includes('id="libSheet"') && source.includes("换库不丢任何东西") && !source.includes('id="prefBox"') && !source.includes("选字偏好") && !source.includes("libPaceText") && !source.includes('id="libBar"') && !source.includes('id="libTones"'), "Expected one reassuring library selector with no retired preference, progress-density, or pace UI");
 assert(changelog.includes("一屏至多一个实心朱红") && changelog.includes("印章语义只许两种"), "Expected the permanent red-budget and seal-semantics laws in the changelog");
 assert(contrast("#756b5a", "#f4efe2") >= 4.5, "Expected the palest memory ink to meet 4.5:1 contrast", { ratio: contrast("#756b5a", "#f4efe2") });
+assert(contrast("#be442b", "#fdfbf4") >= 4.5 && contrast("#8a6720", "#fdfbf4") >= 4.5
+  && contrast("#d96a53", "#29241b") >= 4.5 && contrast("#d6ad5d", "#29241b") >= 4.5
+  && contrast("#fdfbf4", "#be442b") >= 4.5 && contrast("#29241b", "#d96a53") >= 4.5
+  && contrast("#1d1a15", "#a67c26") >= 4.5 && contrast("#1d1a15", "#c89b45") >= 4.5,
+"Expected light/dark cinnabar and gold text tokens to meet 4.5:1 contrast");
 
 function chromeExecutable() {
   return [
@@ -285,13 +290,16 @@ let browser;
           [{ x: .43, y: .46, w: 1.05, v: .3 }, { x: .3, y: .62, w: .85, v: .8 }, { x: .17, y: .73, w: .65, v: 1.15 }],
           [{ x: .58, y: .42, w: 1.05, v: .3 }, { x: .68, y: .58, w: .85, v: .75 }, { x: .83, y: .74, w: .65, v: 1.1 }],
         ], new Date("2026-07-19T08:00:00Z").getTime());
-        let unknown = ""; for (let code = 0x4e00; code <= 0x9fff && !unknown; code += 1) { const char = String.fromCharCode(code); if (BASE_BY_CHAR[char] == null) unknown = char; }
-        wildState.wishes[unknown] = { day: "2026-07-20", at: 2, dataURL }; renderBook(); openCharSheet(index);
+        wildState.wishes = {}; renderBook(); openCharSheet(index);
         const panel = document.querySelector(".charSheet"), line = etymLine;
-        return { visible: getComputedStyle(line).display, oneLine: getComputedStyle(line).whiteSpace, lineFits: line.scrollWidth <= line.clientWidth + 1, panelFits: panel.scrollWidth <= panel.clientWidth + 1, sheetFits: document.documentElement.scrollWidth <= innerWidth + 1, wildVisible: getComputedStyle(charDetailWild).display === "grid", wildStory: charDetailStory.textContent, wishVisible: getComputedStyle(wildWish).display, handCardVisible: getComputedStyle(charDetailCard).display };
+        const panelStyle = getComputedStyle(panel), maskStyle = getComputedStyle(charSheet);
+        return { visible: getComputedStyle(line).display, oneLine: getComputedStyle(line).whiteSpace, lineFits: line.scrollWidth <= line.clientWidth + 1, panelFits: panel.scrollWidth <= panel.clientWidth + 1, sheetFits: document.documentElement.scrollWidth <= innerWidth + 1, wildVisible: getComputedStyle(charDetailWild).display === "grid", wildStory: charDetailStory.textContent, wishHidden: getComputedStyle(wildWish).display === "none", handCardVisible: getComputedStyle(charDetailCard).display, panelBackground: panelStyle.backgroundColor, panelColor: panelStyle.color, panelShadow: panelStyle.boxShadow, maskBackground: maskStyle.backgroundColor };
       }, realWildPhoto.dataURL);
-      assert(detailLayout.visible === "block" && detailLayout.oneLine === "nowrap" && detailLayout.lineFits && detailLayout.panelFits && detailLayout.sheetFits && detailLayout.wildVisible && detailLayout.wildStory.includes("7月19日 拾于生活") && detailLayout.wishVisible === "block" && detailLayout.handCardVisible === "block",
-        "Expected origin and photographed-source details plus the unsupported-character wishlist to fit both target viewports and themes", { size, colorScheme, detailLayout });
+      assert(detailLayout.visible === "block" && detailLayout.oneLine === "nowrap" && detailLayout.lineFits && detailLayout.panelFits && detailLayout.sheetFits && detailLayout.wildVisible && detailLayout.wildStory.includes("7月19日 拾于生活") && detailLayout.wishHidden && detailLayout.handCardVisible === "block"
+        && detailLayout.panelBackground === (colorScheme === "dark" ? "rgb(41, 36, 27)" : "rgb(253, 251, 244)")
+        && detailLayout.panelColor === (colorScheme === "dark" ? "rgb(242, 234, 217)" : "rgb(41, 36, 29)")
+        && detailLayout.panelShadow !== "none" && detailLayout.maskBackground !== "rgba(0, 0, 0, 0)",
+        "Expected themed origin and photographed-source details, without the retired wishlist, to fit both target viewports", { size, colorScheme, detailLayout });
       await page.screenshot({ path: path.join(generatedDir, `detail-etymology-${colorScheme}-${size.width}x${size.height}.png`), fullPage: true });
       await page.evaluate(() => closeCharSheet());
 
@@ -300,10 +308,11 @@ let browser;
         const sheet = document.querySelector("#handCardSheet .handCardSheet"), portrait = { width: handCardPreview.width, height: handCardPreview.height, source: handCardPreview.dataset.inkSource, paper: [...handCardPreview.getContext("2d").getImageData(0, 0, 1, 1).data] };
         setHandCardRatio("square"); await updateHandCardPreview();
         const square = { width: handCardPreview.width, height: handCardPreview.height, className: handCardPreview.className, pressed: document.querySelector('[data-hand-card-ratio="square"]').getAttribute("aria-pressed") };
-        return { portrait, square, sheetFits: sheet.scrollWidth <= sheet.clientWidth + 1, pageFits: document.documentElement.scrollWidth <= innerWidth + 1, actions: [handCardCancel, handCardSave, handCardShare].every(button => button.getBoundingClientRect().height >= 44), future: document.querySelector(".handCardFuture").textContent };
+        return { portrait, square, sheetFits: sheet.scrollWidth <= sheet.clientWidth + 1, pageFits: document.documentElement.scrollWidth <= innerWidth + 1, actions: [handCardCancel, handCardSave, handCardShare].every(button => button.getBoundingClientRect().height >= 44), futureAbsent: !document.querySelector(".handCardFuture"), previewRole: handCardPreview.getAttribute("role"), previewLabel: handCardPreview.getAttribute("aria-label"), fallback: handCardPreview.textContent.trim(), background: getComputedStyle(sheet).backgroundColor, shadow: getComputedStyle(sheet).boxShadow };
       });
       assert(handCardLayout.portrait.width === 1080 && handCardLayout.portrait.height === 1440 && handCardLayout.portrait.source === "vector" && handCardLayout.portrait.paper.slice(0, 3).join() === "244,239,226"
-        && handCardLayout.square.width === 1080 && handCardLayout.square.height === 1080 && handCardLayout.square.className.includes("square") && handCardLayout.square.pressed === "true" && handCardLayout.sheetFits && handCardLayout.pageFits && handCardLayout.actions && handCardLayout.future.includes("下一阶段"),
+        && handCardLayout.square.width === 1080 && handCardLayout.square.height === 1080 && handCardLayout.square.className.includes("square") && handCardLayout.square.pressed === "true" && handCardLayout.sheetFits && handCardLayout.pageFits && handCardLayout.actions && handCardLayout.futureAbsent
+        && handCardLayout.previewRole === "img" && handCardLayout.previewLabel === "手写字卡预览" && handCardLayout.fallback.length > 0 && handCardLayout.shadow !== "none",
       "Expected fixed-paper 3:4 and 1:1 handwriting-card previews to fit both target viewports and themes", { size, colorScheme, handCardLayout });
       await page.screenshot({ path: path.join(generatedDir, `hand-card-${colorScheme}-${size.width}x${size.height}.png`), fullPage: true });
       await page.evaluate(() => closeHandCard());
@@ -312,9 +321,9 @@ let browser;
         openAddSheet(); wildOCRRequest = 91; wildDraft = { version: 1, day: today(), at: Date.now(), dataURL, requestId: 91 };
         wildCapture.classList.add("hasPhoto"); wildCaptureThumb.src = wildDraft.dataURL; wildCaptureThumb.style.display = "block"; window.shiziOCRResult({ requestId: 91, candidates: ["水永冰"] });
         const sheet = document.querySelector("#addSheet .sheet"), candidates = [...wildCandidates.querySelectorAll("button")];
-        return { candidates: candidates.length, inputEmpty: addInput.value === "", confirmDisabled: addConfirm.disabled, sheetFits: sheet.scrollWidth <= sheet.clientWidth + 1, pageFits: document.documentElement.scrollWidth <= innerWidth + 1, photoNote: wildCaptureNote.textContent };
+        return { candidates: candidates.length, inputEmpty: addInput.value === "", confirmDisabled: addConfirm.disabled, sheetFits: sheet.scrollWidth <= sheet.clientWidth + 1, pageFits: document.documentElement.scrollWidth <= innerWidth + 1, photoNote: wildCaptureNote.textContent, candidateState: candidates.map(button => [button.getAttribute("aria-pressed"), button.getAttribute("aria-label")]), background: getComputedStyle(sheet).backgroundColor, shadow: getComputedStyle(sheet).boxShadow };
       }, realWildPhoto.dataURL);
-      assert(captureLayout.candidates === 3 && captureLayout.inputEmpty && captureLayout.confirmDisabled && captureLayout.sheetFits && captureLayout.pageFits && captureLayout.photoNote.includes("不会自动收字"),
+      assert(captureLayout.candidates === 3 && captureLayout.inputEmpty && captureLayout.confirmDisabled && captureLayout.sheetFits && captureLayout.pageFits && captureLayout.photoNote.includes("再点一次可取消") && captureLayout.candidateState.every(([pressed, label]) => pressed === "false" && label.includes("选择候选字")) && captureLayout.shadow !== "none",
         "Expected the photo candidate picker to remain explicit and overflow-free in both target viewports and themes", { size, colorScheme, captureLayout });
       await page.screenshot({ path: path.join(generatedDir, `capture-${colorScheme}-${size.width}x${size.height}.png`), fullPage: true });
       await page.evaluate(() => closeAddSheet());
@@ -345,9 +354,11 @@ let browser;
     await page.setViewportSize(combination.size);
     await page.emulateMedia({ colorScheme: combination.colorScheme });
     for (const [target, expectedHint] of glossCases) {
-      const layout = await page.evaluate(({ target, expectedHint, largeText }) => {
+      const layout = await page.evaluate(async ({ target, expectedHint, largeText }) => {
         fontScaleLarge = largeText; applyFontScale();
         startFocus([BASE_BY_CHAR[target]], { returnView: "book" });
+        const deadline = Date.now() + 4000;
+        while ($("hint").textContent !== expectedHint && Date.now() < deadline) await new Promise((resolve) => setTimeout(resolve, 10));
         const promptNode = $("prompt"), hintNode = $("hint"), area = $("practiceArea"), canvas = area.querySelector(".practiceCanvas"), actionNode = $("actions");
         const rect = (node) => { const box = node.getBoundingClientRect(); return { left: box.left, right: box.right, top: box.top, bottom: box.bottom, width: box.width, height: box.height }; };
         const promptRect = rect(promptNode), hintRect = rect(hintNode), canvasRect = rect(canvas), actionRect = rect(actionNode), cardRect = rect(card);

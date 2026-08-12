@@ -157,8 +157,8 @@ assert(webViewSource.includes("WeakScriptMessageHandler(delegate: self)") && web
 "Expected a cycle-free bridge, Debug-only smoke, temporary-file cleanup, and consistent presentation guards");
 assert(source.includes(":focus-visible") && source.includes("手写区。可用手指或触控笔书写；无法手写时请选择不会写。"),
   "Expected visible keyboard focus and a spoken alternative for the handwriting canvas");
-assert(!/rgba\(194,\s*69,\s*44/i.test(source) && source.includes("--accent-rgb:194,69,44") && source.includes("--accent-rgb:212,85,58"), "Expected every cinnabar alpha to follow the light/dark theme token");
-assert(source.includes(".card.undoActive .chdr{ visibility:hidden; }") && !source.includes('$("tip").title='), "Expected the undo bar to replace the header and touch guidance to avoid invisible title copy");
+assert(!/rgba\((?:190,\s*68,\s*43|217,\s*106,\s*83)/i.test(source) && source.includes("--accent-rgb:190,68,43") && source.includes("--accent-rgb:217,106,83"), "Expected every cinnabar alpha to follow the light/dark theme token");
+assert(!source.includes(".card.undoActive .chdr{ visibility:hidden; }") && source.includes(".undoBar{ display:none; position:relative") && !source.includes('$("tip").title='), "Expected the undo bar to keep the return header visible and touch guidance to avoid invisible title copy");
 assert(/funnelSeenLength\s*:\s*funnel\.seen\.length/.test(source) && /funnelEventsLength\s*:\s*funnel\.events\.length/.test(source)
   && /funnel\.seen\s*=\s*funnel\.seen\.slice/.test(source) && !/funnelValue\s*:\s*cloneObj\(funnel\)/.test(source),
 "Expected stamp undo to persist only bounded funnel deltas instead of the full history");
@@ -166,7 +166,7 @@ assert(source.includes("FSRS_RAW_RETENTION_DAYS=120") && source.includes("ACTIVI
   && source.includes("roundStats:sessionRoundStats()") && !/sessionPayload\(\)[\s\S]{0,700}lastStampSnapshot/.test(source),
 "Expected bounded raw histories and a session payload without transient undo or handwriting data");
 assert(source.includes("ROUND_DURATION_CAP_MS") && /const bounded\s*=\s*Math\.min\(/.test(source) && /durationMs\s*:\s*bounded/.test(source), "Expected the round duration to be capped client-side against background/idle inflation");
-assert(source.includes("STAMP_HOLD_MS=1800") && source.includes("EDIT_STAMP_WINDOW_MS=1800") && source.includes("shortDueDay(m.dueDay)"), "Expected readable 1800ms stamp feedback and a compact due date");
+assert(source.includes("STAMP_HOLD_MS=1800") && source.includes("EDIT_STAMP_WINDOW_MS=1800") && !source.includes("shortDueDay(m.dueDay)"), "Expected readable 1800ms stamp feedback without exposing internal scheduling copy");
 assert(source.includes('navigator.vibrate(10)') && source.includes('animation="cardSwapIn .18s ease-out both"') && source.includes('classList.add("revealing")'), "Expected Web haptics and staggered card/reveal transitions");
 assert(source.includes('OUTCOME_DOT={ fast:"transparent", hinted:"var(--gold)", slow:"var(--accent)"') && !/slow:\s*"var\(--blue\)"/.test(source), "Expected silent success, gold assistance, and cinnabar risk result semantics");
 assert(source.includes('if(!sound.enabled') && source.includes('{type:"sound",kind}') && source.includes('if(tracing) soundFeedback("paper")') && source.includes('soundFeedback("stamp")'), "Expected two-site, opt-out paper sound feedback with no disabled audio initialization");
@@ -726,11 +726,11 @@ let browser;
   await page.reload({ waitUntil: "networkidle" });
   offlineProbe = true;
   await page.context().setOffline(true);
-  await page.evaluate(() => { tuning = { calibrated: true, offset: 0, contextStrict: 0, rounds: [] }; saveTuning(); const idx = CARDS.findIndex((card) => card.target === "玃"); startFocus([idx]); });
-  await page.waitForFunction(() => !done.disabled && hint.textContent.includes("暂未收录笔顺"));
-  const honestOffline = await page.evaluate(() => ({ copy: hint.textContent, done: !done.disabled, show: !show.disabled, noWriter: !practiceCharData, offline: navigator.onLine === false }));
-  assert(honestOffline.copy.includes("这个字暂未收录笔顺") && honestOffline.done && honestOffline.show && honestOffline.noWriter && honestOffline.offline,
-  "Expected a character without bundled stroke data to explain its limitation and keep self-assessment usable offline", honestOffline);
+  await page.evaluate(() => { tuning = { calibrated: true, offset: 0, contextStrict: 0, rounds: [] }; saveTuning(); removeStored(SESSION_KEY); focusPreservedSession=null; activeMode="new"; const idx = CARDS.findIndex((card) => card.target === "玃"); startFocus([idx]); });
+  await page.waitForTimeout(3500);
+  const honestOffline = await page.evaluate(() => { const blankDisabled=done.disabled; inkStrokes=[[{x:40,y:40,t:1,w:1,v:0},{x:120,y:120,t:2,w:1,v:0}]]; redrawInk(); updateInkControls(); return { copy: hint.textContent, blankDisabled, done: !done.disabled, show: !show.disabled, noWriter: !practiceCharData, offline: navigator.onLine === false }; });
+  assert(honestOffline.copy.includes("这个字暂未收录笔顺") && honestOffline.blankDisabled && honestOffline.done && honestOffline.show && honestOffline.noWriter && honestOffline.offline,
+  "Expected a character without bundled stroke data to explain its limitation, reject blank submission, and allow written self-assessment offline", honestOffline);
   await page.context().setOffline(false);
   offlineProbe = false;
   await page.evaluate(() => localStorage.clear());
@@ -872,7 +872,7 @@ let browser;
   });
   assert(rhythmGuard.attemptPrompt && rhythmGuard.timePrompt, "Expected attempt and active-time budgets to prompt only between cards", rhythmGuard);
   assert(rhythmGuard.continued.prompted && rhythmGuard.continued.closed && rhythmGuard.continued.current === rhythmGuard.indexes[1] && rhythmGuard.noSecondPrompt, "Expected continue to consume the next queued card without prompting again", rhythmGuard);
-  assert(rhythmGuard.deferred.queued.join() === rhythmGuard.deferred.expected.join() && rhythmGuard.deferred.completed && rhythmGuard.deferred.session === null && rhythmGuard.nextRound.join() === rhythmGuard.deferred.expected.join(), "Expected early stop to preserve pending order, valid completion, and next-round priority", rhythmGuard);
+  assert(rhythmGuard.deferred.queued.join() === rhythmGuard.deferred.expected.join() && !rhythmGuard.deferred.completed && rhythmGuard.deferred.session === null && rhythmGuard.nextRound.join() === rhythmGuard.deferred.expected.join(), "Expected focus-mode early stop to preserve pending order and next-round priority without claiming a completed day", rhythmGuard);
   assert(rhythmGuard.incomplete.queued.join() === rhythmGuard.indexes.join() && !rhythmGuard.incomplete.completed && rhythmGuard.calibrationUninterrupted, "Expected incomplete base cards to carry forward without false completion while calibration stays uninterrupted", rhythmGuard);
 
   await page.evaluate(() => localStorage.clear());
@@ -927,7 +927,7 @@ let browser;
     saveMemory(); renderMe();
   });
   const meStory = await page.evaluate(() => ({ weak: Array.from(meWeakChars.querySelectorAll("[data-char-idx]")).map(node => node.textContent), advice: meAdvice.textContent, calendarStat: calendarMonthStat.textContent, month: meMonthMeta.textContent, settings: !!openSettings, backup: backupStatus.textContent }));
-  assert(meStory.weak.includes("器") && meStory.advice.includes("写过还总忘") && meStory.calendarStat.includes("累计") && meStory.month.includes("字是你的手写") && meStory.settings && meStory.backup.length > 0, "Expected My to place real weak words, calendar days, monthly work, settings, and backup in context", meStory);
+  assert(meStory.weak.includes("器") && meStory.advice.includes("写过还总忘") && meStory.calendarStat.includes("累计") && meStory.month.includes("留下手写") && meStory.settings && meStory.backup.length > 0, "Expected My to place real weak words, calendar days, monthly work, settings, and backup in context", meStory);
   await page.click("#meWeakChars [data-char-idx]");
   const detail = await page.evaluate(() => ({ open: charSheet.classList.contains("open"), word: charDetailWord.textContent, story: charDetailStory.textContent, actions: [charDetailStrokeBtn.textContent, charDetailPractice.textContent] }));
   assert(detail.open && detail.word.length > 0 && detail.story.includes("练过") && detail.actions.join() === "看笔顺,再写一遍", "Expected a weak word to open its factual detail sheet", detail);
@@ -938,7 +938,7 @@ let browser;
   await page.click("#closeProfile");
   assert(await page.evaluate(() => getComputedStyle(mePanel).display !== "none"), "Expected a Profile opened from My to return to My");
   await page.click("#tabBook");
-  const wall = await page.evaluate(() => ({ count: memoryWall.querySelectorAll(".memoryChar").length, expected: profileIndexes().length, columns: getComputedStyle(memoryWall).gridTemplateColumns.split(" ").length, labels: memoryWall.querySelectorAll(".dot,.outcomeMark").length, colors: new Set(Array.from(memoryWall.querySelectorAll(".memoryChar")).map(node => getComputedStyle(node).color)).size, curator: bookCurator.textContent, search: bookSearchInput.placeholder }));
+  const wall = await page.evaluate(() => ({ count: memoryWall.querySelectorAll(".memoryChar").length, expected: collectionIndexes().length, practiced: profileIndexes().length, columns: getComputedStyle(memoryWall).gridTemplateColumns.split(" ").length, labels: memoryWall.querySelectorAll(".dot,.outcomeMark").length, colors: new Set(Array.from(memoryWall.querySelectorAll(".memoryChar")).map(node => getComputedStyle(node).color)).size, curator: bookCurator.textContent, search: bookSearchInput.placeholder }));
   assert(wall.count === wall.expected && wall.columns === 6 && wall.labels === 0 && wall.colors >= 1 && wall.curator.length > 0 && wall.search.includes("找一个字"), "Expected the complete six-column memory wall with ink-only state and unified search", wall);
 
   await page.setViewportSize({ width: 320, height: 568 });
@@ -1198,7 +1198,7 @@ let browser;
     return result;
   });
   assert(revealFidelity.grids.every(Boolean) && revealFidelity.standardPaths > 0 && revealFidelity.standardPaths === revealFidelity.overlayPaths && revealFidelity.sameViewBox
-    && revealFidelity.failedCount === 1 && revealFidelity.copy.includes("这几笔再对一眼") && revealFidelity.exactSuggest && revealFidelity.fallback,
+    && revealFidelity.failedCount === 1 && revealFidelity.copy.includes("这几笔和范字不太一样") && revealFidelity.exactSuggest && revealFidelity.fallback,
   "Expected coordinate-aligned skeleton comparison, exact-stroke highlighting, soft suggestion tint, and font fallback", revealFidelity);
   await page.click("#decisionCorrect");
   const softConfirmFirst = await page.evaluate(() => ({ shown: getComputedStyle(softConfirm).display !== "none", stamped, attempts: episodeFor(currentCardIndex()).attempts.length }));
@@ -1246,8 +1246,8 @@ let browser;
       queued: unresolved.has(idx) && reinforcementQueue.some((item) => item.idx === idx), pendingLearning: !!(memory[cardKey(idx)] || {}).pendingLearning, attempts: ep.attempts.length, userCorrect: ep.attempts[0] && ep.attempts[0].userCorrect };
   }, uncertainBefore);
   assert(uncertain.outcome === "hinted" && uncertain.uncertain && uncertain.rating === "Again" && uncertain.reason === "hinted"
-    && uncertain.queued && uncertain.pendingLearning && uncertain.attempts === 1 && !uncertain.userCorrect && uncertain.after === uncertain.before + 1 && uncertain.targetOccurrences === 1,
-  "Expected uncertain self-assessment to use the hinted reinforcement path without graduation", uncertain);
+    && uncertain.queued && uncertain.pendingLearning && uncertain.attempts === 1 && !uncertain.userCorrect && uncertain.after === uncertain.before && uncertain.targetOccurrences === 0,
+  "Expected uncertain focus self-assessment to reinforce memory without counting toward the daily practice log", uncertain);
 
   const inRoundAdd = await page.evaluate(() => {
     const pool = allIndexes().filter((idx) => qualityAvailable(idx)).slice(100, 120), original = pool.slice(0, 15), extras = pool.slice(15, 17);
@@ -1343,7 +1343,7 @@ let browser;
     const immediate = hapticDebug.events.slice(), tiles = Array.from(calibSumTiles.querySelectorAll(".sumTile"));
     const before = {
       calibration: getComputedStyle(calibCard).display, sheet: getComputedStyle(sumSheet).display, tiles: tiles.length, date: calibDateSeal.textContent,
-      sealDelay, hint: getComputedStyle(calibPracticeHint).display, legend: calibCard.textContent.includes("无点 拾到"),
+      sealDelay, hint: getComputedStyle(calibPracticeHint).display, legend: calibCard.textContent.includes("无点 · 拾到"),
       marks: tiles.map((tile) => tile.querySelector(".outcomeMark")?.textContent || ""), recovered: tiles.map((tile) => tile.querySelector(".recover")?.textContent || ""),
       slowBorder: getComputedStyle(tiles[2]).borderColor, blue: getComputedStyle(document.documentElement).getPropertyValue("--blue").trim(), immediate,
     };
@@ -1370,8 +1370,8 @@ let browser;
     && p1Ceremony.before.sealDelay >= 690 && p1Ceremony.before.hint === "block" && p1Ceremony.before.legend && p1Ceremony.before.marks.join("") === "补待再"
     && p1Ceremony.before.recovered.filter(Boolean).every((copy) => copy === "已独立") && p1Ceremony.before.slowBorder !== p1Ceremony.before.blue && p1Ceremony.before.immediate.length === 0 && p1Ceremony.after.join() === "action",
   "Expected the first calibration result to play the full, risk-readable tile/date/final-seal ceremony", p1Ceremony);
-  assert(p1Ceremony.recoveredStamp.className.includes("recovered") && p1Ceremony.recoveredStamp.shadow !== "none" && p1Ceremony.recoveredStamp.copy.includes("7月30日") && !p1Ceremony.recoveredStamp.copy.includes("2026年") && p1Ceremony.recoveredStamp.mascot.includes("pleased") && p1Ceremony.recoveredStamp.concernedMascot.includes("concerned"),
-  "Expected an independently recovered card to receive a distinct gold-edged seal, compact date, and responsive mascot state", p1Ceremony.recoveredStamp);
+  assert(p1Ceremony.recoveredStamp.className.includes("recovered") && p1Ceremony.recoveredStamp.shadow !== "none" && p1Ceremony.recoveredStamp.copy === "这个字今天写稳了" && p1Ceremony.recoveredStamp.mascot.includes("pleased") && p1Ceremony.recoveredStamp.concernedMascot.includes("concerned"),
+  "Expected an independently recovered card to receive a distinct gold-edged seal, plain-language feedback, and responsive mascot state", p1Ceremony.recoveredStamp);
   assert(p1Ceremony.character.hundred === 100 && p1Ceremony.character.repeated === null && p1Ceremony.character.badge === "百" && p1Ceremony.character.copy.includes("100")
     && p1Ceremony.character.reminder === "none" && p1Ceremony.character.summaryReminder === "none" && p1Ceremony.vibrated.join() === "10,10",
   "Expected one-time hundred-character recognition to take priority over backup prompts with Web vibration fallback", p1Ceremony);
@@ -1542,7 +1542,7 @@ let browser;
     resetWritingChrome(); renderUndoBar();
     const snapshot = lastStampSnapshot; const canvas = inkCanvas; const rect = canvas.getBoundingClientRect();
     const beforeTop = boxwrap.getBoundingClientRect().top; const style = getComputedStyle(undoBar), header = document.querySelector(".chdr");
-    const headerReplaced = getComputedStyle(header).visibility === "hidden" && card.classList.contains("undoActive");
+    const headerVisible = getComputedStyle(header).visibility === "visible" && card.classList.contains("undoActive");
     const pointer = (type, buttons) => new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 82001, pointerType: "touch", isPrimary: true, button: 0, buttons, clientX: rect.left + 30, clientY: rect.top + 30 });
     canvas.dispatchEvent(pointer("pointerdown", 1)); canvas.dispatchEvent(pointer("pointerup", 0));
     const hiddenOnWrite = getComputedStyle(undoBar).display === "none" && getComputedStyle(header).visibility === "visible" && !card.classList.contains("undoActive");
@@ -1550,7 +1550,7 @@ let browser;
     clearInk(); resetWritingChrome(); actionCooldownUntil = 0; lastStampSnapshot = snapshot; renderUndoBar();
     const bar = undoBar.getBoundingClientRect(); const promptRect = document.getElementById("prompt").getBoundingClientRect();
     const noOverlap = bar.bottom <= promptRect.top || bar.top >= promptRect.bottom || bar.right <= promptRect.left || bar.left >= promptRect.right;
-    return { position: style.position, headerReplaced, hiddenOnWrite, shift: Math.abs(afterTop - beforeTop), restored: getComputedStyle(undoBar).display !== "none" && getComputedStyle(header).visibility === "hidden", noOverlap };
+    return { position: style.position, headerVisible, hiddenOnWrite, shift: Math.abs(afterTop - beforeTop), restored: getComputedStyle(undoBar).display !== "none" && getComputedStyle(header).visibility === "visible", noOverlap };
   });
   await page.setViewportSize({ width: 390, height: 620 });
   const undoShortLayout = await page.evaluate(() => {
@@ -1558,7 +1558,7 @@ let browser;
     return { visible: getComputedStyle(undoBar).display !== "none", noOverlap: bar.bottom <= promptRect.top || bar.top >= promptRect.bottom || bar.right <= promptRect.left || bar.left >= promptRect.right, top: bar.top, bottom: bar.bottom };
   });
   await page.setViewportSize({ width: 390, height: 844 });
-  assert(undoLayout.position === "absolute" && undoLayout.headerReplaced && undoLayout.hiddenOnWrite && undoLayout.shift <= 0.5 && undoLayout.restored && undoLayout.noOverlap && undoShortLayout.visible && undoShortLayout.noOverlap, "Expected cross-card undo bar to replace the header without shifting or overlapping short screens", { undoLayout, undoShortLayout });
+  assert(undoLayout.position === "relative" && undoLayout.headerVisible && undoLayout.hiddenOnWrite && undoLayout.shift > 0 && undoLayout.restored && undoLayout.noOverlap && undoShortLayout.visible && undoShortLayout.noOverlap, "Expected the cross-card undo bar to keep the return header visible and avoid overlap on short screens", { undoLayout, undoShortLayout });
 
   for (let i = 0; i < 2; i += 1) {
     await submitStandard(page);
@@ -1592,7 +1592,7 @@ let browser;
   }));
   assert(completed.summary && completed.stats.length === 3 && completed.stats[0].outcome === "hinted" && completed.stats[0].independentlyRecovered && completed.stats.every((row) => !Object.prototype.hasOwnProperty.call(row,"handwriting")) && Object.values(completed.handwriting).some((strokes) => strokes.length) && Object.values(completed.handwriting).flat().every((stroke) => stroke.length <= 48), "Expected compact user ink to remain in memory without bloating persisted round stats", completed);
   assert(completed.log.map((event) => event.rating).join() === "Again,Good,Good,Good" && completed.log.every((event) => !["Hard", "Easy"].includes(event.rating)), "Expected Again/Good-only FSRS events", completed.log);
-  assert(completed.activity.stamps === 3 && completed.activity.attempts === 4 && completed.groups === 1 && completed.session === null, "Expected unique-day counts, attempt counts, and true completion", completed.activity);
+  assert(completed.activity.stamps === 0 && completed.activity.attempts === 0 && completed.groups === 0 && completed.session === null, "Expected a completed focus drill to update memory without counting as the day's completed group", completed.activity);
   assert(Object.values(completed.memory).every((item) => !item.pendingLearning && item.dueDay >= completed.tomorrow && item.schedulerVersion.includes("FSRS-6.0")), "Expected graduated cards to expose next-day-or-later dueDay", completed.memory);
   assert(completed.restKnown && completed.restLine.length > 0 && completed.ambient.scene === "off" && completed.ambient.stops >= 1, "Expected one fixed-library closing line and soundscape fade on summary", completed);
 
@@ -1605,10 +1605,10 @@ let browser;
     const download = await sharePracticeCard({ nativeBridge: null, navigator: {}, download: (blob, name) => downloads.push({ size: blob.size, name }) });
     const rendererSource = `${renderPracticeCardCanvas}\n${drawShareHandwriting}`;
     const imageData = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height).data; let minAlpha = 255; for (let i = 3; i < imageData.length; i += 4) minAlpha = Math.min(minAlpha, imageData[i]);
-    return { canvas: canvas && { width: canvas.width, height: canvas.height, png: canvas.toDataURL("image/png").startsWith("data:image/png;base64,"), pixels: canvas.toDataURL("image/png").length, inkStrokes: Number(canvas.dataset.inkStrokeCount), minAlpha }, native, web, download, messageKeys: messages[0] && Object.keys(messages[0]).sort(), messageType: messages[0] && messages[0].type, messagePNG: messages[0] && messages[0].dataURL.startsWith("data:image/png;base64,"), shared: shared.length, downloaded: downloads[0], privateFree: !/localStorage|memory|activity|backup|seenStat|riskStat/.test(rendererSource), printedTargetFree: !/fillText\s*\(\s*stat\.target/.test(rendererSource), shareVisible: getComputedStyle(summaryShare).display !== "none", shareLabel: summaryShare.textContent.trim() };
+    return { canvas: canvas && { width: canvas.width, height: canvas.height, png: canvas.toDataURL("image/png").startsWith("data:image/png;base64,"), pixels: canvas.toDataURL("image/png").length, inkStrokes: Number(canvas.dataset.inkStrokeCount), minAlpha }, native, web, download, messageKeys: messages[0] && Object.keys(messages[0]).sort(), messageType: messages[0] && messages[0].type, messageKind: messages[0] && messages[0].kind, messagePNG: messages[0] && messages[0].dataURL.startsWith("data:image/png;base64,"), shared: shared.length, downloaded: downloads[0], privateFree: !/localStorage|memory|activity|backup|seenStat|riskStat/.test(rendererSource), printedTargetFree: !/fillText\s*\(\s*stat\.target/.test(rendererSource), shareVisible: getComputedStyle(summaryShare).display !== "none", shareLabel: summaryShare.textContent.trim() };
   });
   assert(sharePaths.canvas.width === 1080 && sharePaths.canvas.height === 1440 && sharePaths.canvas.png && sharePaths.canvas.pixels > 10000 && sharePaths.canvas.inkStrokes > 0 && sharePaths.canvas.minAlpha === 255 && sharePaths.native.route === "native" && sharePaths.web.route === "share" && sharePaths.download.route === "download"
-    && sharePaths.messageKeys.join() === "dataURL,name,type" && sharePaths.messageType === "sharePracticeCard" && sharePaths.messagePNG && sharePaths.shared === 1 && sharePaths.downloaded.size > 1000 && sharePaths.downloaded.name.endsWith(".png") && sharePaths.privateFree && sharePaths.printedTargetFree && sharePaths.shareVisible && sharePaths.shareLabel.includes("存为"),
+    && sharePaths.messageKeys.join() === "dataURL,kind,name,type" && sharePaths.messageType === "sharePracticeCard" && sharePaths.messageKind === "round" && sharePaths.messagePNG && sharePaths.shared === 1 && sharePaths.downloaded.size > 1000 && sharePaths.downloaded.name.endsWith(".png") && sharePaths.privateFree && sharePaths.printedTargetFree && sharePaths.shareVisible && sharePaths.shareLabel.includes("存为"),
   "Expected a private-free user-ink PNG card and native, Web Share, and download delivery paths", sharePaths);
   const expandedShareCard = await page.evaluate(() => {
     const savedStats = cloneObj(roundStats), savedHandwriting=cloneObj(roundHandwriting), originalFillText = CanvasRenderingContext2D.prototype.fillText, labels = [];
@@ -1653,9 +1653,10 @@ let browser;
     targets: Array.from(document.querySelectorAll("#memoryWall .memoryChar[data-idx]")).map((node) => CARDS[Number(node.dataset.idx)].target).sort(),
     active: tabBook.classList.contains("active"),
   }));
-  assert(summaryLayer.tiles === 3 && summaryLayer.lead.includes("3") && summaryLayer.meanings.length === 3 && summaryLayer.meanings.every((item) => item.visible && item.text.length >= 2 && item.size >= 13) && homeLayer.title.includes("今日已拾三个字") && homeLayer.label === "今日拾得" && homeLayer.completed && bookLayer.count === "3字" && bookLayer.active
-    && summaryLayer.targets.join() === homeLayer.targets.join() && summaryLayer.targets.every((target) => bookLayer.targets.includes(target)),
-  "Expected the same completed targets across summary, home recent, and study-book layers", { summaryLayer, homeLayer, bookLayer });
+  assert(summaryLayer.tiles === 3 && summaryLayer.lead.includes("3") && summaryLayer.meanings.length === 3 && summaryLayer.meanings.every((item) => item.visible && item.text.length >= 2 && item.size >= 13)
+    && homeLayer.title.includes("今天拾十五个字") && homeLayer.label === "今日一字" && !homeLayer.completed && homeLayer.targets.length === 0 && bookLayer.count === "3字" && bookLayer.active
+    && summaryLayer.targets.every((target) => bookLayer.targets.includes(target)),
+  "Expected focus results in Summary and the study book without claiming the day's completed group on Home", { summaryLayer, homeLayer, bookLayer });
 
   await page.evaluate(() => { displayView("summary"); renderPracticePocket(summaryFocusIndexes, false); });
   const pocketBefore = await page.evaluate(() => ({ visible: getComputedStyle(pocketCard).display === "flex", indexes: summaryFocusIndexes.slice(), chips: Array.from(pocketChips.children).map((node) => node.textContent), title: pocketTitle.textContent }));
@@ -1789,8 +1790,9 @@ let browser;
     };
     clearSessionSnapshot();
     const targets = uniqueCardIndexes(allIndexes().filter((idx) => qualityAvailable(idx) && !CARDS[idx].custom)).slice(0, 5);
-    const normalDay = shiftDay(today(), -1), makeupDay = shiftDay(today(), -2), untouchedDay = shiftDay(today(), -3), currentMonth = today().slice(0, 7);
-    activity = normalizeActivity({ version: 1, migrationDate: today(), inheritedStreak: 0, inheritedTotalDays: 0, practiceDays: [normalDay, today()], daily: {} });
+    const normalDay = shiftDay(today(), -1), makeupDay = shiftDay(today(), -2), untouchedDay = shiftDay(today(), -3), annualDayA = shiftDay(today(), -40), annualDayB = shiftDay(today(), -41), currentMonth = today().slice(0, 7);
+    activity = normalizeActivity({ version: 1, migrationDate: today(), inheritedStreak: 0, inheritedTotalDays: 0, practiceDays: [annualDayB, annualDayA, normalDay, today()], daily: {} });
+    [annualDayA, annualDayB].forEach((day, order) => { const row = dailyActivity(day); row.stamps = 1; row.attempts = 1; row.targetKeys = [cardKey(targets[order + 1])]; row.independentTargetKeys = row.targetKeys.slice(); row.lastStampAt = dayStartMs(day) + 20 * 3600000; });
     const normal = dailyActivity(normalDay); normal.stamps = 1; normal.attempts = 1; normal.targetKeys = [cardKey(targets[0])]; normal.independentTargetKeys = [cardKey(targets[0])]; normal.lastStampAt = dayStartMs(normalDay) + 20 * 3600000;
     const current = dailyActivity(today()); current.stamps = targets.length; current.attempts = targets.length; current.targetKeys = targets.map(cardKey); current.independentTargetKeys = targets.slice(0, 3).map(cardKey); current.lastStampAt = Date.now(); saveActivity();
 
@@ -1919,18 +1921,23 @@ let browser;
       const char = String.fromCharCode(code);
       if (BASE_BY_CHAR[char] == null) unknown = char;
     }
-    const cardsBeforeWish = CARDS.length, customBeforeWish = customWords.length;
-    const wishResult = collectWildCharacter(unknown, { day: "2026-07-20", at: 2000, dataURL: capture.dataURL });
+    const cardsBeforeCollect = CARDS.length, customBeforeCollect = customWords.length;
+    const collectResult = collectWildCharacter(unknown, { day: "2026-07-20", at: 2000, dataURL: capture.dataURL });
+    const unknownMemory = cloneObj(memory[cardKey(collectResult.idx)]), unknownCapture = wildCaptureFor(unknown);
     renderBook();
-    const wishlist = {
-      visible: getComputedStyle(wildWish).display === "block",
-      listed: !!wildWishChars.querySelector(`[data-wild-wish="${unknown}"]`),
-      cardsUnchanged: CARDS.length === cardsBeforeWish,
-      customUnchanged: customWords.length === customBeforeWish,
+    const customCard = {
+      listed: !!memoryWall.querySelector(`[data-idx="${collectResult.idx}"]`),
+      cardAdded: CARDS.length === cardsBeforeCollect + 1,
+      customAdded: customWords.length === customBeforeCollect + 1,
+      collected: isCollected(collectResult.idx), practiced: profileIndexes().includes(collectResult.idx),
+      seen: Number(unknownMemory.seen)||0, misses: Number(unknownMemory.misses)||0,
+      lastOutcome: unknownMemory.lastOutcome || "", realWorldMisses: unknownMemory.realWorldMisses,
+      photoDay: unknownCapture && unknownCapture.day,
     };
     const backup = JSON.parse(backupPayload({ preserveMeta: true }));
     const backedUp = Object.prototype.hasOwnProperty.call(backup.data, WILD_KEY)
-      && JSON.parse(backup.data[WILD_KEY]).wishes[unknown].day === "2026-07-20";
+      && JSON.parse(backup.data[WILD_KEY]).captures[unknown].day === "2026-07-20"
+      && JSON.parse(backup.data[CUSTOM_KEY]).some((word) => word.includes(unknown));
     const oversized = `data:image/webp;base64,${"A".repeat(90000)}`;
     wildState.wishes[unknown] = normalizeWildEntry({ day: today(), at: 3000, dataURL: oversized });
     const singleLimit = !wildState.wishes[unknown].dataURL;
@@ -1948,7 +1955,7 @@ let browser;
       && !!wildState.wishes[budgetChars.at(-1)].dataURL;
     return {
       known: true, source: knownMemory.source, wildDay: knownMemory.wildDay, expectedDay: today(),
-      wishKnown: wishResult.known, unknown, detail, wishlist, backedUp, singleLimit,
+      collectKnown: collectResult.known, collectCreated: collectResult.created, unknown, detail, customCard, backedUp, singleLimit,
       cap: { kept: rows.length, bytes: rows.reduce((sum, row) => sum + row.bytes, 0), removed: trimmed.removed }, bounded,
     };
   });
@@ -1978,8 +1985,9 @@ let browser;
     && wildCapture.detail.photoBytes <= 64 * 1024 && wildCapture.detail.thumbDecoded
     && wildCapture.detail.fullVisible && wildCapture.detail.fullDecoded,
   "Expected a photographed in-library character to retain local source metadata and decodable thumbnail/full-photo views", wildCapture);
-  assert(!wildCapture.wishKnown && wildCapture.wishlist.visible && wildCapture.wishlist.listed && wildCapture.wishlist.cardsUnchanged && wildCapture.wishlist.customUnchanged,
-    "Expected an unsupported photographed character to stay visible in the wishlist without entering practice", wildCapture);
+  assert(wildCapture.collectKnown && wildCapture.collectCreated && wildCapture.customCard.listed && wildCapture.customCard.cardAdded && wildCapture.customCard.customAdded && wildCapture.customCard.collected && !wildCapture.customCard.practiced
+    && wildCapture.customCard.seen === 0 && wildCapture.customCard.misses === 0 && !wildCapture.customCard.lastOutcome && wildCapture.customCard.realWorldMisses === 1 && wildCapture.customCard.photoDay === "2026-07-20",
+    "Expected an unsupported photographed character to become a custom collected card without fabricating a practice result", wildCapture);
   assert(candidateState.labels.join("") === "拾时" && candidateState.noAutoSelection && explicitSelection && candidateState.staleIgnored,
     "Expected native OCR candidates to require explicit selection and ignore stale callbacks", candidateState);
   assert(failureFallback.noDraft && failureFallback.manualEnabled && failureFallback.confirmDisabled && failureFallback.note.includes("手动输入"),
@@ -2221,10 +2229,11 @@ let browser;
     restoreBackupPayload(malicious, { skipConfirm: true, reload: false, skipSafety: true }); memory = load(MEMORY_KEY, {}); window.__recentInkXss = 0; openCharSheet(maliciousIndex);
     const maliciousInkRejected = window.__recentInkXss === 0 && charDetailGlyph.textContent === "水" && !charDetailGlyph.querySelector("img") && !charDetailInk.querySelector("img"); closeCharSheet();
     const activityAttack = JSON.parse(JSON.stringify(original)), attackYear = new Date().getFullYear(), attackDay = `${attackYear}-01-01`, attackMonth = attackDay.slice(0, 7), attackMarkup = `<img src=x onerror="window.__activityXss=1">`;
-    const rawAttackActivity = { version: 2, migrationDate: attackDay, inheritedStreak: 0, inheritedTotalDays: 0, practiceDays: [attackDay], daily: {}, monthly: { [attackMonth]: { days: 1, completedDays: 1, stamps: 1, attempts: 1, completedGroups: 1, targetKeys: [maliciousKey], independentTargetKeys: [], reviewTargetKeys: [], makeupDays: [], firstDay: attackMarkup, firstTargetKey: maliciousKey, lastStampAt: 1 } } };
+    const attackDays = Array.from({ length: 5 }, (_, offset) => `${attackYear}-01-0${offset + 1}`);
+    const rawAttackActivity = { version: 2, migrationDate: attackDay, inheritedStreak: 0, inheritedTotalDays: 0, practiceDays: attackDays, daily: {}, monthly: { [attackMonth]: { days: 5, completedDays: 5, stamps: 5, attempts: 5, completedGroups: 5, targetKeys: [maliciousKey], independentTargetKeys: [], reviewTargetKeys: [], makeupDays: [], firstDay: attackMarkup, firstTargetKey: maliciousKey, lastStampAt: 1 } } };
     activityAttack.data[ACTIVITY_KEY] = JSON.stringify(rawAttackActivity); restoreBackupPayload(activityAttack, { skipConfirm: true, reload: false, skipSafety: true });
     const storedAttackActivity = JSON.parse(localStorage.getItem(ACTIVITY_KEY)), maliciousActivitySanitized = storedAttackActivity.monthly[attackMonth].firstDay === "";
-    activity = rawAttackActivity; window.__activityXss = 0; renderAnnualReport(attackYear); const maliciousActivityEscaped = window.__activityXss === 0 && !annualSlides.querySelector("img") && annualSlides.textContent.includes("<img");
+    activity = rawAttackActivity; window.__activityXss = 0; renderAnnualReport(attackYear); const maliciousActivityEscaped = window.__activityXss === 0 && !annualSlides.querySelector("img") && annualSlides.querySelectorAll(".annualSlide").length === 4;
     restoreBackupPayload(original, { skipConfirm: true, reload: false, skipSafety: true }); localStorage.removeItem(SAFETY_KEY); hideSafetyUndo(); memory = originalMemory; activity = normalizeActivity(JSON.parse(original.data[ACTIVITY_KEY]));
     const customStart = CARDS.length; CARDS.push({ custom: true, target: "春" }); const customKeyBefore = cardKey(customStart);
     CARDS.splice(BASE_N, 0, { custom: false, target: "验" }); const customKeyAfter = cardKey(customStart + 1); CARDS.splice(BASE_N, 1); CARDS.pop();
@@ -2296,7 +2305,7 @@ let browser;
         funnel: funnelState, quota, pressure,
       };
     } finally {
-      fsrsReviewLog = saved.fsrsReviewLog; fsrsReviewMonthly = saved.fsrsReviewMonthly; save(FSRS_LOG_KEY, { version: 2, events: fsrsReviewLog, monthly: fsrsReviewMonthly });
+      fsrsReviewLog = saved.fsrsReviewLog; fsrsReviewMonthly = saved.fsrsReviewMonthly; saveFSRSLog();
       activity = normalizeActivity(saved.activity); save(ACTIVITY_KEY, activity);
       funnel = normalizeFunnel(saved.funnel); save(FUNNEL_KEY, funnel);
       storageWriteFailed = saved.storageWriteFailed; storageNotice.style.display = saved.storageNoticeDisplay; storageNotice.textContent = saved.storageNoticeText;

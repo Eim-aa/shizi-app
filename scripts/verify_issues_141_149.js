@@ -105,13 +105,53 @@ async function resetState(page) {
 }
 
 async function drawInkStroke(page, start = { x: 0.28, y: 0.3 }, end = { x: 0.72, y: 0.68 }) {
-  const box = await page.locator(".inkc").boundingBox();
-  assert(box, "Expected a visible handwriting canvas");
-  await page.mouse.move(box.x + box.width * start.x, box.y + box.height * start.y);
-  await page.mouse.down();
-  await page.mouse.move(box.x + box.width * end.x, box.y + box.height * end.y, { steps: 8 });
-  await page.mouse.up();
-  await page.waitForTimeout(360);
+  const before = await page.evaluate(() => inkStrokes.length);
+  let lastState = null;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    await page.waitForFunction(() => {
+      if (!inkCanvas || !inkCanvas.isConnected || getComputedStyle(card).display === "none") return false;
+      const box = inkCanvas.getBoundingClientRect(), top = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
+      return box.width > 100 && box.height > 100 && top === inkCanvas && !drawing;
+    });
+    const canvas = page.locator(".inkc");
+    await canvas.scrollIntoViewIfNeeded();
+    const box = await canvas.boundingBox();
+    assert(box, "Expected a visible handwriting canvas");
+    await page.mouse.move(box.x + box.width * start.x, box.y + box.height * start.y);
+    await page.evaluate(() => {
+      const canvasNode = inkCanvas, events = { pointerId: null, down: 0, dragMove: 0, up: 0, cancel: 0, leave: 0, order: [] };
+      const samePointer = (event) => events.pointerId === event.pointerId;
+      const handlers = {
+        pointerdown: (event) => { if (events.pointerId === null) events.pointerId = event.pointerId; if (samePointer(event)) { events.down += 1; events.order.push("down"); } },
+        pointermove: (event) => { if (samePointer(event) && (event.buttons & 1)) { events.dragMove += 1; events.order.push("move"); } },
+        pointerup: (event) => { if (samePointer(event)) { events.up += 1; events.order.push("up"); } },
+        pointercancel: (event) => { if (samePointer(event)) { events.cancel += 1; events.order.push("cancel"); } },
+        pointerleave: (event) => { if (samePointer(event)) { events.leave += 1; events.order.push("leave"); } },
+      };
+      Object.entries(handlers).forEach(([type, handler]) => canvasNode.addEventListener(type, handler, true));
+      window.__issueInkPointerProbe = { canvasNode, events, handlers };
+    });
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width * end.x, box.y + box.height * end.y, { steps: 8 });
+    await page.mouse.up();
+    const attemptState = await page.evaluate((count) => {
+      const probe = window.__issueInkPointerProbe;
+      if (probe) Object.entries(probe.handlers).forEach(([type, handler]) => probe.canvasNode.removeEventListener(type, handler, true));
+      delete window.__issueInkPointerProbe;
+      return { inkCount: inkStrokes.length, drawing, connected: !!inkCanvas?.isConnected, sameCanvas: !!probe && probe.canvasNode === inkCanvas && probe.canvasNode.isConnected, events: probe ? { ...probe.events } : {}, cardVisible: getComputedStyle(card).display !== "none", increased: inkStrokes.length > count };
+    }, before);
+    if (attemptState.increased) {
+      await page.waitForTimeout(360);
+      return;
+    }
+    lastState = attemptState;
+    const downAt = attemptState.events.order?.indexOf("down") ?? -1, moveAt = attemptState.events.order?.indexOf("move") ?? -1, upAt = attemptState.events.order?.indexOf("up") ?? -1;
+    const completeDelivery = attemptState.sameCanvas && attemptState.events.down > 0 && attemptState.events.dragMove > 0 && attemptState.events.up > 0 && downAt >= 0 && moveAt > downAt && upAt > moveAt;
+    assert(!completeDelivery, "A complete pointer stroke reached the current canvas but the product discarded it", attemptState);
+    await page.evaluate(() => { if (drawing || curInkStroke) cancelCurrentStroke(false); activePointers.clear(); });
+    await page.waitForTimeout(120);
+  }
+  assert(false, "Expected a real pointer stroke to reach the handwriting canvas", lastState);
 }
 
 let browser;

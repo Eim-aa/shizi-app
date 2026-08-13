@@ -12,6 +12,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 DECK_PATH = ROOT / "deck-data.js"
 JIEBA_PATH = ROOT / "sources" / "jieba_dict.txt"
+APPROVED_PATH = ROOT / "scripts" / "fixtures" / "context-quality-approved.json"
 OUTPUT_PATH = ROOT / "data" / "context-quality.js"
 
 
@@ -38,12 +39,25 @@ def load_jieba() -> dict[str, tuple[int, frozenset[str]]]:
     return {word: (frequency, frozenset(tags[word])) for word, frequency in frequencies.items()}
 
 
-def rejection_reason(card: dict, jieba: dict[str, tuple[int, frozenset[str]]]) -> str:
+def load_approved_words() -> frozenset[str]:
+    payload = json.loads(APPROVED_PATH.read_text(encoding="utf-8"))
+    if payload.get("schemaVersion") != 1 or not isinstance(payload.get("approvedWords"), dict):
+        raise RuntimeError("invalid context-quality-approved.json")
+    return frozenset(str(word) for word in payload["approvedWords"])
+
+
+def rejection_reason(
+    card: dict,
+    jieba: dict[str, tuple[int, frozenset[str]]],
+    approved_words: frozenset[str] = frozenset(),
+) -> str:
     target = str(card.get("target", ""))
     word = str(card.get("ans", ""))
     frequency, tags = jieba.get(word, (0, frozenset()))
     if word == target + "字":
         return "placeholder"
+    if word in approved_words or "i" in tags:
+        return ""
     proper_noun_tags = {"nr", "nrt", "nrfg", "ns", "nt"}
     if tags and tags <= proper_noun_tags and frequency <= 300 and len(word) <= 3:
         return "low_frequency_proper_noun"
@@ -58,10 +72,11 @@ def main() -> None:
     options = parser.parse_args()
     cards = load_cards()
     jieba = load_jieba()
+    approved_words = load_approved_words()
     rejected = {
         card["target"]: reason
         for card in cards
-        if (reason := rejection_reason(card, jieba))
+        if (reason := rejection_reason(card, jieba, approved_words))
     }
     counts = Counter(rejected.values())
     summary = {
@@ -76,6 +91,8 @@ def main() -> None:
             "properNounMaximumCharacters": 3,
             "longContextMinimumCharacters": 4,
             "longContextMaximumFrequencyInclusive": 300,
+            "idiomTagExempted": True,
+            "reviewedSafeWords": len(approved_words),
         },
     }
     payload = (

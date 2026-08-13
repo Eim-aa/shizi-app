@@ -487,9 +487,10 @@
   .annualControls{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:8px var(--space-4) 0; }
   .annualControls select{ min-height:44px; padding:0 34px 0 12px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--ink); font-size:calc(var(--fs-body) * var(--font-scale)); }
   .annualPager{ display:flex; align-items:center; gap:10px; color:var(--faint); font-size:calc(var(--fs-caption) * var(--font-scale)); }
-  .annualDots{ display:flex; gap:5px; }
-  .annualDots button{ width:8px; min-height:8px; height:8px; border-radius:50%; background:var(--dline); }
-  .annualDots button.active{ background:var(--accent); transform:scale(1.25); }
+  .annualDots{ display:flex; gap:0; }
+  .annualDots button{ position:relative; width:44px; min-height:44px; height:44px; border-radius:0; background:transparent; }
+  .annualDots button::before{ content:""; position:absolute; left:50%; top:50%; width:8px; height:8px; border-radius:50%; background:var(--dline); transform:translate(-50%,-50%); }
+  .annualDots button.active::before{ background:var(--accent); transform:translate(-50%,-50%) scale(1.25); }
   /* ===== 常忘的字 ===== */
   .profile,.audit{ display:none; flex:1; flex-direction:column; padding:18px 24px 24px; animation:screenIn .32s ease; }
   .profileHead,.auditHead{ display:grid; grid-template-columns:44px 1fr 44px; align-items:center; gap:12px; margin-bottom:12px; }
@@ -1007,6 +1008,11 @@
   <p class="sheetHint" id="resetConfirmCopy"></p>
   <div class="row"><button class="ghostAct" id="resetConfirmCancel">保留记录</button><button class="dangerSoft" id="resetConfirmDo">确认清空</button></div>
 </div></div>
+<div class="sheetMask" id="restoreConfirmSheet" role="alertdialog" aria-modal="true" aria-labelledby="restoreConfirmTitle"><div class="sheet">
+  <h3 id="restoreConfirmTitle">确认恢复这份备份？</h3>
+  <p class="sheetHint" id="restoreConfirmCopy"></p>
+  <div class="row"><button class="ghostAct" id="restoreConfirmCancel">保留当前记录</button><button class="dangerSoft" id="restoreConfirmDo">确认覆盖</button></div>
+</div></div>
 <div class="sheetMask bottomSheet" id="charSheet" role="dialog" aria-modal="true" aria-labelledby="charDetailWord"><div class="charSheet">
   <div class="sheetHandle" aria-hidden="true"></div>
   <button class="charDetailClose" id="closeCharDetail" aria-label="关闭单字详情">×</button>
@@ -1038,7 +1044,7 @@
     <button class="active" data-hand-card-ratio="portrait" aria-pressed="true">3:4 · 社交</button>
     <button data-hand-card-ratio="square" aria-pressed="false">1:1 · 头像</button>
   </div>
-  <div class="handCardActions"><button class="ghostAct" id="handCardCancel">取消</button><button class="primaryAct" id="handCardSave">存到相册</button><button class="handCardSave" id="handCardShare">分享</button></div>
+  <div class="handCardActions"><button class="primaryAct" id="handCardSave">存到相册</button><button class="handCardSave" id="handCardShare">分享</button><button class="ghostAct" id="handCardCancel">取消</button></div>
 </div></div>
 <div class="handCardPrompt" id="handCardPrompt" role="status"><span>这一笔不错，做张字卡？</span><button id="handCardPromptOpen">看看</button></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -1443,14 +1449,15 @@ function beginAttempt(next){ if(!next) return false; currentIndex=next.idx; curr
   practicePhase=next.kind==="reinforcement"?"reinforcement":"recall"; currentAttemptId=`${roundId}-a${attemptSeq+1}-${currentIndex}`; hintEverUsed=false; enteredTracingThisAttempt=false; submissionSnapshot=null; feedbackKind=""; return true; }
 function roundIsComplete(){ return baseTargets.length>0 && baseCursor>=baseTargets.length && manualQueue.length===0 && unresolved.size===0 && !["tracing","postTraceRecall","revealDecision","feedback"].includes(practicePhase); }
 function capturePracticeVisual(){ return {practicePhase,currentIndex,currentAttemptKind,currentAttemptId,hintEverUsed,enteredTracingThisAttempt,hintsUsedThisCard,
-  shownStrokes,groupIdx,seenGroups:[...seenGroups],inkStrokes:cloneObj(inkStrokes)||[],tracedThisCard,submissionSnapshot:cloneObj(submissionSnapshot),revealed,stamped}; }
-function currentRoundElapsed(){ return roundElapsedMs+(roundActiveStartedAt?Math.max(0,Date.now()-roundActiveStartedAt):0); }
+  shownStrokes,groupIdx,seenGroups:[...seenGroups],inkStrokes:cloneObj(inkStrokes)||[],actionStack:cloneObj(actionStack)||[],tracedThisCard,submissionSnapshot:cloneObj(submissionSnapshot),revealed,stamped}; }
+function ensureCurrentRoundBudgetDay(){ const day=today(); if(roundBudgetDate===day) return false; roundElapsedMs=0; if(roundActiveStartedAt) roundActiveStartedAt=Date.now(); roundBudgetPrompted=false; roundBudgetAttemptBase=attemptSeq; roundBudgetDate=day; return true; }
+function currentRoundElapsed(){ ensureCurrentRoundBudgetDay(); return roundElapsedMs+(roundActiveStartedAt?Math.max(0,Date.now()-roundActiveStartedAt):0); }
 function sessionRoundStats(){ return (cloneObj(roundStats)||[]).map(row=>{ delete row.handwriting; return row; }); }
 function sessionPayload(){ return {version:2,startedDate:(load(SESSION_KEY,null)||{}).startedDate||today(),updatedAt:Date.now(),activeMode,makeupTargetDay,baseTargets:baseTargets.slice(),baseCursor,currentIndex,currentAttemptKind,currentAttemptId,
   manualQueue:cloneObj(manualQueue)||[],reinforcementQueue:cloneObj(reinforcementQueue)||[],unresolved:[...unresolved],episodes:cloneObj(episodes)||{},attemptSeq,practicePhase,visual:capturePracticeVisual(),
   missedThisRound:missedThisRound.slice(),roundStats:sessionRoundStats(),focusQueue:focusQueue.slice(),sessionDone:[...sessionDone],sessionTarget,sessionFastStreak,sessionMissStreak,roundFeedbackGiven,roundId,calibrationFirstHoldUsed,calibrationComfortShown,calibrationTargets:calibrationTargets.slice(),feedbackKind,
   roundElapsedMs:currentRoundElapsed(),roundBudgetPrompted,roundBudgetAttemptBase,roundBudgetDate,roundStartMemoryCount}; }
-function saveSessionSnapshot(){ if(!baseTargets.length || !Number.isInteger(currentCardIndex())) return false; if(activeMode==="focus"&&baseTargets.length===1) return true; return save(SESSION_KEY,sessionPayload()); }
+function saveSessionSnapshot(){ if(!baseTargets.length || !Number.isInteger(currentCardIndex())) return false; if(activeMode==="focus"&&(baseTargets.length===1||focusPreservedSession)) return true; return save(SESSION_KEY,sessionPayload()); }
 function clearSessionSnapshot(){ if(activeMode==="focus"&&focusPreservedSession){ save(SESSION_KEY,focusPreservedSession); return; } removeStored(SESSION_KEY); }
 function migrateV1Session(s){ const stats=Array.isArray(s.roundStats)?cloneObj(s.roundStats):[], targets=Array.isArray(s.batch)?s.batch.slice():[]; let cursor=Math.min(targets.length,stats.length);
   const eps={}, queue=[], open=new Set(); stats.forEach((row,n)=>{ const ep={idx:row.idx,firstOutcome:row.outcome,attempts:[{attemptId:`${s.roundId||"legacy"}-legacy-${n+1}`,outcome:row.outcome}],assistanceUsed:row.outcome==="hinted",independentlyRecovered:row.outcome==="fast",excluded:false,teachingComplete:row.outcome!=="miss"}; eps[String(row.idx)]=ep; if(row.outcome!=="fast"){ open.add(row.idx); queue.push({idx:row.idx,eligibleAfter:stats.length+2,order:n}); } });
@@ -1747,7 +1754,7 @@ function persistRecentInk(m,strokes,at=Date.now()){ if(!m || !Array.isArray(stro
 function recordOutcome(outcome,options={}){ const idx=currentCardIndex(), c=CARDS[idx], m=cardMemory(idx), now=Number(options.now)||Date.now(), ep=episodeFor(idx);
   if(ep.attempts.some(a=>a.attemptId===currentAttemptId)) return ep.attempts.find(a=>a.attemptId===currentAttemptId);
   const hard=outcome!=="fast", firstOutcome=!ep.firstOutcome, uncertain=!!options.uncertain, userCorrect=outcome==="fast"||(outcome==="hinted"&&!uncertain);
-  markFirstSeen(m,now); m.seen=(m.seen||0)+1; m.last=now; m.lastOutcome=outcome; m.lastHints=hintsUsedThisCard;
+  markFirstSeen(m,now); m.seen=(m.seen||0)+1; m.last=now; m.lastOutcome=outcome; m.lastUncertain=uncertain; m.lastHints=hintsUsedThisCard;
   m.traced=!!enteredTracingThisAttempt;
   delete m.queuedFront; delete m.queuedFrontAt;
   const sys=lastVerdict?(lastVerdict.status==="ok"):null;
@@ -1898,7 +1905,7 @@ async function shareMonthlyPost(opts={}){ const canvas=await renderMonthlyPostCa
 // ---- 年度报告：当前年度四屏本地汇总，不上传、不比较 ----
 function yearReportData(year=new Date().getFullYear()){ const prefix=String(year)+"-", days=activity.practiceDays.filter(day=>day.startsWith(prefix)).sort(), months={}; days.forEach(day=>{ const key=day.slice(0,7); months[key]=(months[key]||0)+1; }); const keys=[], archivedMonths=Object.entries(activity.monthly||{}).filter(([month])=>month.startsWith(prefix)); archivedMonths.forEach(([,row])=>(row.targetKeys||[]).forEach(key=>{ if(!keys.includes(key)) keys.push(key); })); days.forEach(day=>{ const row=activity.daily[day]; if(row) (row.targetKeys||[]).forEach(key=>{ if(!keys.includes(key)) keys.push(key); }); }); const indexes=keys.map(cardIndexForStoredKey).filter(i=>i>=0), busiest=Object.entries(months).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]))[0]||null, rarest=indexes.slice().sort((a,b)=>(Number(CARDS[b].rank)||0)-(Number(CARDS[a].rank)||0)||cardDifficulty(b)-cardDifficulty(a))[0], archivedFirst=archivedMonths.map(([,row])=>({day:row.firstDay,key:row.firstTargetKey})).filter(row=>row.day&&row.key).sort((a,b)=>a.day.localeCompare(b.day))[0], rawFirst=days.map(day=>({day,key:activity.daily[day]&&activity.daily[day].targetKeys&&activity.daily[day].targetKeys[0]})).find(row=>row.key), firstRow=[archivedFirst,rawFirst].filter(Boolean).sort((a,b)=>a.day.localeCompare(b.day))[0], first=firstRow?cardIndexForStoredKey(firstRow.key):-1; return {year,days,keys,indexes,busiest,rarest:Number.isInteger(rarest)?rarest:null,first:first>=0?first:null,firstDay:firstRow&&firstRow.day||""}; }
 function annualEligibleYears(){ const years=new Set([new Date().getFullYear(),...activity.practiceDays.map(day=>Number(String(day).slice(0,4))),...Object.keys(activity.monthly||{}).map(month=>Number(String(month).slice(0,4)))]); return [...years].filter(Number.isInteger).filter(year=>yearReportData(year).days.length>=5).sort((a,b)=>b-a); }
-function renderAnnualPager(active=0){ const count=$("annualSlides").querySelectorAll(".annualSlide").length; $("annualDots").innerHTML=Array.from({length:count},(_,i)=>`<button class="${i===active?"active":""}" data-annual-page="${i}" aria-label="第 ${i+1} 页" aria-current="${i===active?"page":"false"}"></button>`).join(""); }
+function renderAnnualPager(active=0){ const count=$("annualSlides").querySelectorAll(".annualSlide").length,dots=$("annualDots"); if(dots.children.length!==count) dots.innerHTML=Array.from({length:count},(_,i)=>`<button data-annual-page="${i}" aria-label="第 ${i+1} 页"></button>`).join(""); [...dots.children].forEach((dot,i)=>{ const current=i===active; dot.classList.toggle("active",current); dot.setAttribute("aria-current",current?"page":"false"); }); }
 function renderAnnualReport(year=new Date().getFullYear()){ const eligible=annualEligibleYears(), selected=eligible.includes(Number(year))?Number(year):eligible[0]; if(!selected){ toast(`练满 5 天后，这里会生成第一份拾字报告`); return false; } const data=yearReportData(selected); displayView("annual"); $("annualTitle").textContent=`${selected} 年拾字报告`; $("annualYearSelect").innerHTML=eligible.map(item=>`<option value="${item}" ${item===selected?"selected":""}>${item} 年</option>`).join("");
   const month=data.busiest?Number(data.busiest[0].slice(5)):0, firstChar=data.first!=null?CARDS[data.first].target:"", rareChar=data.rarest!=null?CARDS[data.rarest].target:""; $("annualSlides").innerHTML=`<section class="annualSlide"><span class="annualEyebrow">${selected} · 拾字总数</span><b>${data.keys.length} 字</b><p>这一年练了 ${data.days.length} 天。这些字，都在你的笔下真实出现过。</p></section><section class="annualSlide"><span class="annualEyebrow">这一年最常提笔的月份</span><b>${numCn(month)}月</b><p>这个月练了 ${data.busiest[1]} 天。只记相遇，不记缺席。</p></section><section class="annualSlide"><span class="annualEyebrow">写过最生僻的一个字</span><b class="annualChar">${esc(rareChar)}</b><p>${data.rarest!=null?esc(CARDS[data.rarest].word):""}</p></section><section class="annualSlide"><span class="annualEyebrow">这一年的第一个字</span><b class="annualChar">${esc(firstChar)}</b><p>${esc(collectedDateText(data.firstDay)||"")}，从这一笔开始。</p></section>`; $("annualSlides").scrollTop=0; renderAnnualPager(0); return true; }
 function startMode(mode){ const resume=resumableSession(); if(resume){ restoreSession(resume); return; }
@@ -1914,7 +1921,7 @@ const OUTCOME_STORY={fast:"上次独立写出",hinted:"上次看提示写出",sl
 function firstSeenRecord(i){ const at=Number((memory[cardKey(i)]||{}).firstSeenAt)||0; return {day:at?dayKey(new Date(at)):"",at}; }
 function firstSeenDay(i){ return firstSeenRecord(i).day; }
 function firstSeenAt(i){ return firstSeenRecord(i).at; }
-function closeCharSheet(){ $("charSheet").classList.remove("open"); charDetailWriter=null; $("charDetailStroke").innerHTML=""; $("charDetailStroke").style.display="none"; charDetailTouchY=null; charDetailSwipeEligible=false; }
+function closeCharSheet(){ closeAccessibleModal($("charSheet")); charDetailWriter=null; $("charDetailStroke").innerHTML=""; $("charDetailStroke").style.display="none"; charDetailTouchY=null; charDetailSwipeEligible=false; }
 const TRANSLITERATED_WORDS=new Set(["黛比","杰克","汤姆","玛丽","约翰","彼得","迈克","露西","安娜","艾米","凯文","大卫","罗伯特"]);
 function suspiciousDictionaryWord(i){ const c=CARDS[i]||{}, word=String(c.word||""); return word===`${c.target}字`||TRANSLITERATED_WORDS.has(word); }
 function collectedDateText(day){ if(!day) return ""; const [year,month,date]=day.split("-").map(Number); return year===new Date().getFullYear()?`${month}月${date}日`:`${year}年${month}月${date}日`; }
@@ -1925,20 +1932,22 @@ function loadEtymology(){ if(etymologyData) return Promise.resolve(etymologyData
     etymologyData=map; return map; }).catch(()=>{ etymologyData=new Map(); return etymologyData; }).finally(()=>{ etymologyLoading=null; }); return etymologyLoading; }
 function renderEtymLine(){ const line=$("etymLine"), card=CARDS[charDetailIndex], item=card&&etymologyData&&etymologyData.get(card.target);
   line.style.display=item?"block":"none"; $("etymGloss").textContent=item?item.gloss:""; $("etymSource").textContent=item?`——${item.source}`:""; }
-function renderRecentInkImage(container,recent,alt,fallback=""){ container.replaceChildren(); if(recent&&Number(recent.version)>=2&&Array.isArray(recent.strokes)&&recent.strokes.some(points=>Array.isArray(points)&&points.length)){ const canvas=document.createElement("canvas"); canvas.width=120; canvas.height=120; canvas.setAttribute("role","img"); canvas.setAttribute("aria-label",alt); const ctx=canvas.getContext("2d"); ctx.fillStyle=cssVar("--card","#fdfbf4"); ctx.fillRect(0,0,120,120); recent.strokes.forEach(points=>{ const scaled=points.map(point=>({x:6+clamp(Number(point.x),0,1)*108,y:6+clamp(Number(point.y),0,1)*108,w:Number(point.w),v:Number(point.v)})); paintBrushStroke(ctx,scaled,Math.max(8,108*.075),{color:cssVar("--inkPen","#29241d"),detail:true}); }); container.appendChild(canvas); return true; }
-  const dataURL=recent&&recent.dataURL; if(!isRecentInkDataURL(dataURL)){ container.textContent=fallback; return false; } const img=document.createElement("img"); img.src=dataURL; img.alt=alt; container.appendChild(img); return true; }
+function renderLegacyRecentInk(canvas,dataURL){ const image=new Image(); image.onload=()=>{ const source=document.createElement("canvas"),sourceCtx=source.getContext("2d"),ctx=canvas.getContext("2d"); source.width=120; source.height=120; sourceCtx.drawImage(image,0,0,120,120); const pixels=sourceCtx.getImageData(0,0,120,120),mask=sourceCtx.createImageData(120,120); for(let i=0;i<pixels.data.length;i+=4){ const alpha=pixels.data[i+3]/255,lum=.2126*pixels.data[i]+.7152*pixels.data[i+1]+.0722*pixels.data[i+2],inkAlpha=clamp((245-lum)/205,0,1)*alpha; mask.data[i]=mask.data[i+1]=mask.data[i+2]=0; mask.data[i+3]=Math.round(inkAlpha*255); } sourceCtx.clearRect(0,0,120,120); sourceCtx.putImageData(mask,0,0); sourceCtx.globalCompositeOperation="source-in"; sourceCtx.fillStyle=cssVar("--inkPen","#29241d"); sourceCtx.fillRect(0,0,120,120); ctx.fillStyle=cssVar("--card","#fdfbf4"); ctx.fillRect(0,0,120,120); ctx.drawImage(source,0,0); canvas.dataset.rendered="true"; }; image.onerror=()=>{ canvas.dataset.rendered="error"; }; image.src=dataURL; }
+function renderRecentInkImage(container,recent,alt,fallback=""){ container.replaceChildren(); if(recent&&Number(recent.version)>=2&&Array.isArray(recent.strokes)&&recent.strokes.some(points=>Array.isArray(points)&&points.length)){ const canvas=document.createElement("canvas"); canvas.width=120; canvas.height=120; canvas.setAttribute("role","img"); canvas.setAttribute("aria-label",alt); const ctx=canvas.getContext("2d"); ctx.fillStyle=cssVar("--card","#fdfbf4"); ctx.fillRect(0,0,120,120); recent.strokes.forEach(points=>{ const scaled=points.map(point=>({x:6+clamp(Number(point.x),0,1)*108,y:6+clamp(Number(point.y),0,1)*108,w:Number(point.w),v:Number(point.v)})); paintBrushStroke(ctx,scaled,Math.max(8,108*.075),{color:cssVar("--inkPen","#29241d"),detail:true}); }); canvas.dataset.rendered="true"; container.appendChild(canvas); return true; }
+  const dataURL=recent&&recent.dataURL; if(!isRecentInkDataURL(dataURL)){ container.textContent=fallback; return false; } const canvas=document.createElement("canvas"); canvas.width=120; canvas.height=120; canvas.setAttribute("role","img"); canvas.setAttribute("aria-label",alt); canvas.dataset.legacy="true"; container.appendChild(canvas); renderLegacyRecentInk(canvas,dataURL); return true; }
 function openCharSheet(i){ if(!Number.isInteger(i)||i<0||i>=CARDS.length) return; charDetailIndex=i; const c=CARDS[i],m=memory[cardKey(i)]||{},recent=m.recentInk&&isRecentInkDataURL(m.recentInk.dataURL)?m.recentInk:null,first=firstSeenDay(i),safeWord=suspiciousDictionaryWord(i)?c.target:(c.word||c.target);
   renderRecentInkImage($("charDetailGlyph"),recent,`${c.target}的手写墨迹`,c.target);
   $("charDetailWord").textContent=safeWord; $("charDetailPy").textContent=c.py||"";
   const wild=wildCaptureFor(c.target),wildDay=m.wildDay||(wild&&wild.day),wildStory=m.source==="wild"&&wildDay?`${collectedDateText(wildDay)} 拾于生活<br>`:"";
-  $("charDetailStory").innerHTML=`${wildStory}${first&&!wildStory?`${collectedDateText(first)} 收进字库<br>`:""}练过 ${Number(m.seen)||0} 次${m.lastOutcome?` · ${OUTCOME_STORY[m.lastOutcome]||"上次练过"}`:""}${m.lastAttemptHadInk===false&&recent?"<br>最近一次练习未留下手写，下方保留的是更早的墨迹":""}`;
+  const outcomeStory=m.lastUncertain?"上次拿不准，记不清":(OUTCOME_STORY[m.lastOutcome]||"上次练过");
+  $("charDetailStory").innerHTML=`${wildStory}${first&&!wildStory?`${collectedDateText(first)} 收进字库<br>`:""}练过 ${Number(m.seen)||0} 次${m.lastOutcome?` · ${outcomeStory}`:""}${m.lastAttemptHadInk===false&&recent?"<br>最近一次练习未留下手写，下方保留的是更早的墨迹":""}`;
   $("charDetailWild").style.display=wild&&wild.dataURL?"grid":"none"; $("charDetailWildImage").src=wild&&wild.dataURL?wild.dataURL:""; $("charDetailWildCopy").textContent=wildDay?`${collectedDateText(wildDay)} 拾于生活`:"拾于生活";
   renderRecentInkImage($("charDetailInk"),recent,`最近留下的${c.target}手写`);
   $("charDetailInkLabel").textContent="最近留下的手写"; $("charDetailEmpty").textContent=recent?"":(m.recentInkEvictedAt?"手写已为节省空间清理":"还没留下手写，写一遍就有了"); $("charDetailEmpty").style.display=recent?"none":"block";
   $("charDetailStandard").textContent=c.target; $("charDetailStandard").style.display="none"; $("charDetailCompareToggle").textContent="对范字"; $("charDetailCompareToggle").style.display=recent?"":"none"; $("charDetailOverlayToggle").style.display="none"; $("charDetailOverlayToggle").textContent="叠"; $("charDetailStandard").parentElement.classList.remove("overlay");
   const cardReady=!!handCardData(i),legacyInk=!!recent&&!cardReady;
   $("charDetailCard").style.display=cardReady?"block":"none"; $("charDetailCardLegacy").style.display=legacyInk?"block":"none";
-  $("charDetailStroke").style.display="none"; $("charDetailStroke").innerHTML=""; charDetailWriter=null; $("charSheet").classList.add("open"); renderEtymLine(); loadEtymology().then(renderEtymLine); }
+  $("charDetailStroke").style.display="none"; $("charDetailStroke").innerHTML=""; charDetailWriter=null; openAccessibleModal($("charSheet"),$("closeCharDetail"),closeCharSheet); renderEtymLine(); loadEtymology().then(renderEtymLine); }
 function toggleCharDetailCompare(){ const open=$("charDetailStandard").style.display==="flex"; $("charDetailStandard").style.display=open?"none":"flex"; $("charDetailCompareToggle").textContent=open?"对范字":"收起范字"; $("charDetailOverlayToggle").style.display=open?"none":"block"; if(open){ $("charDetailStandard").parentElement.classList.remove("overlay"); $("charDetailOverlayToggle").textContent="叠"; } }
 function toggleCharDetailOverlay(){ const body=$("charDetailStandard").parentElement, active=body.classList.toggle("overlay"); $("charDetailOverlayToggle").textContent=active?"并排":"叠"; }
 async function replayCharDetail(){ if(charDetailIndex<0||!window.HanziWriter) return false; const target=CARDS[charDetailIndex].target,el=$("charDetailStroke"); el.style.display="block";
@@ -2089,6 +2098,14 @@ function queuedFrontPool(){ return allIndexes().filter(i=>baseAvailable(i,false)
 
 // ---- 画布 / 笔顺 ----
 const DPR=window.devicePixelRatio||1, $=id=>document.getElementById(id);
+const accessibleModalStack=[],accessibleModalReturnFocus=new WeakMap(),accessibleModalClose=new WeakMap();
+function modalFocusable(modal){ return [...modal.querySelectorAll('button:not([disabled]),a[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])')].filter(node=>!node.inert&&getComputedStyle(node).display!=="none"&&getComputedStyle(node).visibility!=="hidden"); }
+function syncAccessibleModalLayers(){ const open=accessibleModalStack.filter(node=>node.classList.contains("open")); accessibleModalStack.splice(0,accessibleModalStack.length,...open); const top=open.length?open[open.length-1]:null,wrap=document.querySelector(".wrap"); if(wrap){ wrap.inert=!!top; if(top) wrap.setAttribute("aria-hidden","true"); else wrap.removeAttribute("aria-hidden"); } open.forEach(node=>{ const active=node===top; node.inert=!active; if(active) node.removeAttribute("aria-hidden"); else node.setAttribute("aria-hidden","true"); }); }
+function openAccessibleModal(modal,initialFocus,closeHandler){ if(!modal) return false; if(!accessibleModalStack.includes(modal)){ const active=document.activeElement; accessibleModalReturnFocus.set(modal,active instanceof HTMLElement?active:null); accessibleModalStack.push(modal); } if(closeHandler) accessibleModalClose.set(modal,closeHandler); modal.classList.add("open"); modal.inert=false; syncAccessibleModalLayers(); requestAnimationFrame(()=>{ const target=typeof initialFocus==="string"?modal.querySelector(initialFocus):initialFocus; (target||modalFocusable(modal)[0])?.focus({preventScroll:true}); }); return true; }
+function closeAccessibleModal(modal,options={}){ if(!modal) return false; const wasOpen=modal.classList.contains("open"),wasTop=accessibleModalStack[accessibleModalStack.length-1]===modal,returnFocus=accessibleModalReturnFocus.get(modal); modal.classList.remove("open"); modal.inert=true; modal.setAttribute("aria-hidden","true"); const index=accessibleModalStack.lastIndexOf(modal); if(index>=0) accessibleModalStack.splice(index,1); syncAccessibleModalLayers(); if(wasTop&&options.restoreFocus!==false&&returnFocus&&returnFocus.isConnected&&!returnFocus.inert) requestAnimationFrame(()=>returnFocus.focus({preventScroll:true})); accessibleModalReturnFocus.delete(modal); accessibleModalClose.delete(modal); return wasOpen; }
+function closeTopAccessibleModal(){ const modal=accessibleModalStack[accessibleModalStack.length-1]; if(!modal||!modal.classList.contains("open")) return false; const close=accessibleModalClose.get(modal); if(!close) return false; close(); return true; }
+function resetAccessibleModals(){ accessibleModalStack.splice(0); document.querySelectorAll(".sheetMask").forEach(node=>{ node.classList.remove("open"); node.inert=false; node.removeAttribute("aria-hidden"); }); const wrap=document.querySelector(".wrap"); if(wrap){ wrap.inert=false; wrap.removeAttribute("aria-hidden"); } }
+document.addEventListener("keydown",event=>{ const modal=accessibleModalStack[accessibleModalStack.length-1]; if(!modal||!modal.classList.contains("open")) return; if(event.key==="Escape"){ if(accessibleModalClose.has(modal)){ event.preventDefault(); event.stopPropagation(); closeTopAccessibleModal(); } return; } if(event.key!=="Tab") return; const focusable=modalFocusable(modal); if(!focusable.length){ event.preventDefault(); return; } const first=focusable[0],lastNode=focusable[focusable.length-1]; if(event.shiftKey&&document.activeElement===first){ event.preventDefault(); lastNode.focus(); }else if(!event.shiftKey&&document.activeElement===lastNode){ event.preventDefault(); first.focus(); } });
 function cssVar(n,f){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim()||f; }
 function isDark(){ return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches; }
 function hintStroke(){ return isDark()? 'rgba(226,138,110,0.75)' : '#d08b78'; }
@@ -2321,7 +2338,7 @@ function updateTeachUI(){ const stage=(teachActive() && !revealed)?teachStage:"d
   $("tip").classList.remove("tlock"); $("show").classList.remove("tlock");
   setInteractionLocked($("clear"),writeLocked); setInteractionLocked($("done"),writeLocked);
   if(stage==="intro") $("show").disabled=false;
-  $("mascotLine").textContent=tracePhase?"沿着轮廓描，顺序不对也行":recallAfterTrace?"凭刚才的手感写":hintVisualExhausted()?EXHAUSTED_HINT_COPY:(stage==="helpers"?"想不起来就点「点拨」，或点「不会写」先描后写"
+  $("mascotLine").textContent=tracePhase?"沿着轮廓描，顺序不对也行":recallAfterTrace?"不看范字，再独立写一次":hintVisualExhausted()?EXHAUSTED_HINT_COPY:(stage==="helpers"?"想不起来就点「点拨」，或点「不会写」先描后写"
     :(stage!=="done"?"先试着写，写不出就点「不会写」":(cur?MASCOT_LINES[pos%MASCOT_LINES.length]:""))); }
 function armTeachIdle(){ clearTimeout(teachTimer);
   teachTimer=setTimeout(()=>{ if((teachStage==="intro"||teachStage==="writing") && teachActive() && !revealed){ teachStage="helpers"; updateTeachUI(); } },3000); }
@@ -2442,7 +2459,7 @@ function render(){ fitBox(); cur=CARDS[currentCardIndex()]; const token=++loadTo
   if(window.HanziWriter){
     writer=createPracticeWriter(hzEl,token,null,false,function(d){ loadToken++; strokeDataOffline=false; practiceCharData=d; totalStrokes=d.strokes.length; curMedians=(d.medians && d.medians.length===totalStrokes)?d.medians:null; buildPeekWriter(loadToken,d); var g=GROUPS[cur.target]; groups=(g && g.reduce((a,b)=>a+b,0)===totalStrokes)?g.slice():[totalStrokes]; groupIdx=0; shownStrokes=0; $("show").disabled=false; $("hint").textContent=baseHint; if(pendingSessionVisual) restoreSessionVisual(); else updateTip(); },
       function(){ allowNoStrokeData("error"); });
-    setTimeout(()=>{ if(token===loadToken && $("done").disabled) allowNoStrokeData(navigator.onLine===false?"error":"slow"); }, 2500);
+    setTimeout(()=>{ if(token===loadToken) allowNoStrokeData(navigator.onLine===false?"error":"slow"); }, 2500);
   } else { $("show").disabled=false; $("hint").textContent=baseHint; if(pendingSessionVisual) restoreSessionVisual(); else updateInkControls(); } }
 
 async function showTraceOutline(){ const token=++loadToken; hzEl.innerHTML=""; hzEl.classList.remove("traceFallback");
@@ -2458,7 +2475,7 @@ async function restoreSessionVisual(){ const state=pendingSessionVisual; if(!sta
   const savedPhase=state.practicePhase||practicePhase;
   practicePhase=state.practicePhase||practicePhase; currentIndex=Number.isInteger(state.currentIndex)?state.currentIndex:currentIndex; currentAttemptKind=state.currentAttemptKind||currentAttemptKind; currentAttemptId=state.currentAttemptId||currentAttemptId;
   hintEverUsed=!!state.hintEverUsed; enteredTracingThisAttempt=!!state.enteredTracingThisAttempt; hintsUsedThisCard=Number(state.hintsUsedThisCard)||0; seenGroups=new Set(Array.isArray(state.seenGroups)?state.seenGroups:[]);
-  inkStrokes=cloneObj(state.inkStrokes)||[]; tracedThisCard=!!state.tracedThisCard; submissionSnapshot=cloneObj(state.submissionSnapshot); redrawInk();
+  inkStrokes=cloneObj(state.inkStrokes)||[]; actionStack=cloneObj(state.actionStack)||[]; tracedThisCard=!!state.tracedThisCard; submissionSnapshot=cloneObj(state.submissionSnapshot); redrawInk();
   shownStrokes=Math.max(0,Number(state.shownStrokes)||0); groupIdx=Math.max(0,Number(state.groupIdx)||0); renderPhaseControls();
   if(practicePhase==="tracing") await showTraceOutline(); else if(practicePhase==="postTraceRecall"){ hzEl.innerHTML=""; hzEl.classList.remove("traceFallback"); }
   else if(shownStrokes&&practiceCharData) await rebuildHintLayer(shownStrokes);
@@ -2539,7 +2556,7 @@ async function finishTracing(){ if(!tracedThisCard) return; resetWritingChrome()
   $("hint").textContent=""; renderPhaseControls(); saveSessionSnapshot(); }
 function declareDontKnow(){ if(practicePhase==="postTraceRecall"){ beginTracingPhase(); return; } if(revealed||animating||Date.now()<actionCooldownUntil) return;
   if(!["recall","reinforcement"].includes(practicePhase)) return;
-  freezeSubmissionSnapshot(); lastStampSnapshot=takeStampSnapshot(); lastStampSnapshot.outcome="miss"; lastStampSnapshot.missEntry=true; const comfort=takeCalibrationComfort("miss"); recordOutcome("miss",{teaching:true}); updateProgressLabel(); openTracingTeaching(); renderUndoBar(true);
+  inkEnd(); const preMissVisual=capturePracticeVisual(); freezeSubmissionSnapshot(); lastStampSnapshot=takeStampSnapshot(); lastStampSnapshot.practiceVisualValue=preMissVisual; lastStampSnapshot.outcome="miss"; lastStampSnapshot.missEntry=true; const comfort=takeCalibrationComfort("miss"); recordOutcome("miss",{teaching:true}); updateProgressLabel(); openTracingTeaching(); renderUndoBar(true);
   if(comfort){ $("traceIntro").textContent="这个字十年没写了，忘了正常。先沿着轮廓描一遍，接着再自己写一次。"; $("traceIntro").style.display="block"; } }
 function restoreRevealFromSnapshot(state){ if(!state) return; loadToken++; submissionSnapshot=cloneObj(state); inkStrokes=cloneObj(state.inkStrokes)||[]; hintEverUsed=!!state.hintEverUsed; hintsUsedThisCard=Number(state.hintCount)||0;
   lastVerdict=cloneObj(state.lastVerdict); enteredTracingThisAttempt=!!state.enteredTracing; tracedThisCard=!!state.enteredTracing; tracing=false; practicePhase="revealDecision"; showRevealState(submissionSnapshot); }
@@ -2556,7 +2573,7 @@ $("replayBtn").onclick=()=>{ if(replaying || !window.HanziWriter) return; replay
 function reopenStampChoices(){ if(!lastStampSnapshot) return;
   const snap=lastStampSnapshot; clearTimeout(autoNextTimer); clearTimeout(editStampTimer); hideUndoBar(false); lastStampSnapshot=null;
   restoreStampSnapshot(snap); stamped=false; feedbackKind="";
-  if(snap.missEntry){ const state=snap.revealState||{}; pendingSessionVisual={practicePhase:snap.practicePhase||"recall",currentIndex:snap.currentIndex,currentAttemptKind:snap.currentAttemptKind,currentAttemptId:snap.currentAttemptId,hintEverUsed:!!state.hintEverUsed,enteredTracingThisAttempt:!!state.enteredTracing,hintsUsedThisCard:Number(state.hintCount)||0,shownStrokes:Array.isArray(state.hintStrokeIds)?state.hintStrokeIds.length:0,groupIdx:0,seenGroups:[],inkStrokes:cloneObj(state.inkStrokes)||[],tracedThisCard:false,submissionSnapshot:null,revealed:false}; render(); }
+  if(snap.missEntry){ pendingSessionVisual=cloneObj(snap.practiceVisualValue)||{practicePhase:snap.practicePhase||"recall",currentIndex:snap.currentIndex,currentAttemptKind:snap.currentAttemptKind,currentAttemptId:snap.currentAttemptId,revealed:false}; render(); }
   else { render(); restoreRevealFromSnapshot({...snap.revealState,softConfirmHandled:false}); }
   updateProgressLabel(); hapticFeedback("undo"); }
 const STAMP_HOLD_MS=1800, CALIBRATION_FIRST_HOLD_MS=1800, EDIT_STAMP_WINDOW_MS=1800;
@@ -2600,9 +2617,9 @@ $("compareAgain").onclick=()=>{ $("softConfirm").style.display="none"; $("decisi
 $("confirmCorrect").onclick=()=>decideSubmission(true);
 $("editStamp").onclick=reopenStampChoices;
 $("undoLast").onclick=reopenStampChoices;
-$("reveal").addEventListener("click",e=>{ if(practicePhase!=="feedback" || e.target.closest("#editStamp")) return; e.preventDefault(); e.stopPropagation(); advanceFeedback(); },true);
+$("reveal").addEventListener("click",e=>{ if(practicePhase!=="feedback" || e.target.closest("#editStamp,#decisionRow,#uncertainAction,#softConfirm")) return; e.preventDefault(); e.stopPropagation(); advanceFeedback(); },true);
 function roundHasPendingWork(){ return baseCursor<baseTargets.length || manualQueue.length>0 || unresolved.size>0; }
-function currentBudgetAttempts(){ return Math.max(0,attemptSeq-roundBudgetAttemptBase); }
+function currentBudgetAttempts(){ ensureCurrentRoundBudgetDay(); return Math.max(0,attemptSeq-roundBudgetAttemptBase); }
 function roundBudgetReached(){ return activeMode!=="calibrate" && !roundBudgetPrompted && roundHasPendingWork() && (currentBudgetAttempts()>=ROUND_ATTEMPT_BUDGET || currentRoundElapsed()>=ROUND_TIME_BUDGET_MS); }
 function openRoundBudgetSheet(){ const progress=practiceProgress(); $("roundBudgetCopy").textContent=`这次已练 ${progress.done}/${progress.total} 个字。今天先到这里，没写稳的字会排到下次最前面。`; $("roundBudgetSheet").classList.add("open"); }
 function closeRoundBudgetSheet(){ $("roundBudgetSheet").classList.remove("open"); }
@@ -2622,7 +2639,7 @@ function chooseFocusBatch(all){ return all.slice().sort((a,b)=>personalDifficult
 function compareReviewPriority(a,b){ return reviewPriority(b)-reviewPriority(a) || String((memory[cardKey(a)]||{}).dueDay||"").localeCompare(String((memory[cardKey(b)]||{}).dueDay||"")) || personalDifficulty(b)-personalDifficulty(a); }
 function chooseReviewBatch(all){ return all.slice().sort(compareReviewPriority).slice(0,BATCH); }
 function startRound(){ if(activeMode==="review" && reviewBudgetRemaining()===0){ clearSessionSnapshot(); renderHome(); toast("今天的复习已完成，可以拾新字"); return; }
-  const p=availablePool(), queued=activeMode==="calibrate"?[]:queuedFrontPool(); if(p.length===0 && queued.length===0){ clearSessionSnapshot(); allDone(); return; } resetAdaptiveSession();
+  const p=availablePool(), queued=(activeMode==="new"||activeMode==="review")?queuedFrontPool():[]; if(p.length===0 && queued.length===0){ clearSessionSnapshot(); allDone(); return; } resetAdaptiveSession();
   roundStartMemoryCount=memoryCount();
   baseTargets=(activeMode==="focus"||activeMode==="makeup")?chooseFocusBatch(p).slice(0,activeMode==="makeup"?5:BATCH):(activeMode==="review"?chooseReviewBatch(p):(activeMode==="calibrate"?chooseCalibrationBatch(p):chooseBatch(p)));
   if(queued.length){ const front=new Set(queued); baseTargets=[...queued,...baseTargets.filter(i=>!front.has(i))].slice(0,BATCH); }
@@ -2709,10 +2726,10 @@ function exitCurrentRound(fromHistory=false){ if(exitingPractice || $("card").st
   }
   loadToken++; pendingSessionVisual=null; animating=false; drawing=false; activePointers.clear(); exitPeekHint(true);
   if(!fromHistory) releasePracticeHistory(); else practiceHistoryArmed=false;
-  if(activeMode==="focus"&&baseTargets.length===1){ clearSessionSnapshot(); if(focusReturnView==="book") renderBook(); else if(focusReturnView==="profile") renderProfile(); else if(focusReturnView==="me") renderMe(); else renderHome(); }
+  if(activeMode==="focus"&&(baseTargets.length===1||focusPreservedSession)){ clearSessionSnapshot(); if(focusReturnView==="book") renderBook(); else if(focusReturnView==="profile") renderProfile(); else if(focusReturnView==="me") renderMe(); else renderHome(); }
   else renderHome(); exitingPractice=false; return true; }
 $("exitPractice").onclick=()=>exitCurrentRound(false);
-window.addEventListener("shizi-native-back",()=>{ if($("handCardSheet").classList.contains("open")){ closeHandCard(); return; } if($("libSheet").classList.contains("open")){ closeLibSheet(); return; } if($("charSheet").classList.contains("open")){ closeCharSheet(); return; } if($("settingsPanel").style.display==="flex"||$("annualPanel").style.display==="flex"){ renderMe(); return; } if($("profilePanel").style.display==="flex"){ closeProfile(); return; } if($("auditPanel").style.display==="flex"){ renderSettings(false); return; } exitCurrentRound(false); });
+window.addEventListener("shizi-native-back",()=>{ if(closeTopAccessibleModal()) return; if($("handCardSheet").classList.contains("open")){ closeHandCard(); return; } if($("libSheet").classList.contains("open")){ closeLibSheet(); return; } if($("charSheet").classList.contains("open")){ closeCharSheet(); return; } if($("settingsPanel").style.display==="flex"||$("annualPanel").style.display==="flex"){ renderMe(); return; } if($("profilePanel").style.display==="flex"){ closeProfile(); return; } if($("auditPanel").style.display==="flex"){ renderSettings(false); return; } exitCurrentRound(false); });
 window.addEventListener("keydown",e=>{ if(e.key==="Escape"){ if($("libSheet").classList.contains("open")) closeLibSheet(); else if($("charSheet").classList.contains("open")) closeCharSheet(); } });
 $("settingsLibRow").onclick=openLibSheet;
 $("fontScaleRow").onclick=()=>{ fontScaleLarge=!fontScaleLarge; save(FONT_SCALE_KEY,fontScaleLarge); applyFontScale(); fitBox(); };
@@ -2811,8 +2828,8 @@ async function checkStoragePressure(){ if(!storageReadable||!navigator.storage||
 
 // ---- ＋加字面板（替代 window.prompt：输入即预览识别出的字，在库字直接带出拼音）----
 let wildDraft=null,wildOCRRequest=0;
-function openWildPhoto(dataURL,title="拾于生活"){ if(!dataURL) return; $("wildPhotoTitle").textContent=title; $("wildPhotoFull").src=dataURL; $("wildPhotoSheet").classList.add("open"); }
-function closeWildPhoto(){ $("wildPhotoSheet").classList.remove("open"); $("wildPhotoFull").src=""; }
+function openWildPhoto(dataURL,title="拾于生活"){ if(!dataURL) return; $("wildPhotoTitle").textContent=title; $("wildPhotoFull").src=dataURL; openAccessibleModal($("wildPhotoSheet"),$("wildPhotoClose"),closeWildPhoto); }
+function closeWildPhoto(){ closeAccessibleModal($("wildPhotoSheet")); $("wildPhotoFull").src=""; }
 function nativeOCRBridge(){ return window.webkit&&window.webkit.messageHandlers&&window.webkit.messageHandlers.shiziNative; }
 function wildCaptureDefaultNote(){ return nativeOCRBridge()?"可拍照或从相册选，只在本机识别与保存":"可拍照或从相册选；照片只保存在本机，请手动确认文字"; }
 async function wildImageBitmap(file){ if(window.createImageBitmap) return createImageBitmap(file); return new Promise((resolve,reject)=>{ const img=new Image(),url=URL.createObjectURL(file); img.onload=()=>{ URL.revokeObjectURL(url); resolve(img); }; img.onerror=()=>{ URL.revokeObjectURL(url); reject(new Error("image")); }; img.src=url; }); }
@@ -2891,8 +2908,8 @@ async function renderHandCardCanvas(index,ratio="portrait",targetCanvas=null){ c
   canvas.dataset.ratio=ratio; canvas.dataset.inkSource="vector"; canvas.dataset.inkStrokeCount=String(Array.isArray(strokes)?strokes.length:0); canvas.dataset.signatureSize="20"; canvas.dataset.dateSize="32"; return canvas; }
 async function updateHandCardPreview(){ if(handCardIndex<0) return false; const token=++handCardRenderToken,canvas=$("handCardPreview"); $("handCardHint").textContent="只用你的这一笔，做成一张可以带走的卡。"; const rendered=await renderHandCardCanvas(handCardIndex,handCardRatio,canvas); if(token!==handCardRenderToken) return false; if(!rendered){ $("handCardHint").textContent="这份真迹暂时没能打开，请稍后再试。"; return false; } canvas.classList.toggle("square",handCardRatio==="square"); return true; }
 function setHandCardRatio(ratio){ if(!HAND_CARD_RATIOS[ratio]) return false; handCardRatio=ratio; document.querySelectorAll("[data-hand-card-ratio]").forEach(button=>{ const active=button.dataset.handCardRatio===ratio; button.classList.toggle("active",active); button.setAttribute("aria-pressed",active?"true":"false"); }); updateHandCardPreview(); return true; }
-function openHandCard(index,options={}){ if(!handCardData(index)) return false; handCardIndex=index; handCardResumeFeedback=!!options.fromPrompt&&stamped&&practicePhase==="feedback"; if(handCardResumeFeedback){ clearTimeout(autoNextTimer); clearTimeout(editStampTimer); } hideHandCardPrompt(); setHandCardRatio("portrait"); $("handCardSheet").classList.add("open"); return true; }
-function closeHandCard(){ if(!$("handCardSheet").classList.contains("open")) return false; $("handCardSheet").classList.remove("open"); handCardRenderToken++; const resume=handCardResumeFeedback; handCardResumeFeedback=false; if(resume&&stamped&&practicePhase==="feedback") autoNextTimer=setTimeout(advanceFeedback,200); return true; }
+function openHandCard(index,options={}){ if(!handCardData(index)) return false; handCardIndex=index; handCardResumeFeedback=!!options.fromPrompt&&stamped&&practicePhase==="feedback"; if(handCardResumeFeedback){ clearTimeout(autoNextTimer); clearTimeout(editStampTimer); } hideHandCardPrompt(); setHandCardRatio("portrait"); openAccessibleModal($("handCardSheet"),$("handCardSave"),closeHandCard); return true; }
+function closeHandCard(){ if(!$("handCardSheet").classList.contains("open")) return false; closeAccessibleModal($("handCardSheet")); handCardRenderToken++; const resume=handCardResumeFeedback; handCardResumeFeedback=false; if(resume&&stamped&&practicePhase==="feedback") autoNextTimer=setTimeout(advanceFeedback,200); return true; }
 function handCardName(index,ratio){ const card=CARDS[index],suffix=ratio==="square"?"square":"portrait"; return `shizi-${card&&card.target||"ink"}-${suffix}-${today()}.png`; }
 async function exportHandCard(mode,options={}){ const index=Number.isInteger(options.index)?options.index:handCardIndex,ratio=options.ratio||handCardRatio,canvas=await renderHandCardCanvas(index,ratio); if(!canvas) return {route:"empty"}; const name=handCardName(index,ratio),dataURL=canvas.toDataURL("image/png"),native=Object.prototype.hasOwnProperty.call(options,"nativeBridge")?options.nativeBridge:(window.webkit&&window.webkit.messageHandlers&&window.webkit.messageHandlers.shiziNative);
   if(native){ const type=mode==="save"?"savePracticeCard":"sharePracticeCard",message={type,kind:"character",name,dataURL}; native.postMessage(message); return {route:mode==="save"?"native-save":"native-share",name,width:canvas.width,height:canvas.height,message}; }
@@ -2980,16 +2997,19 @@ function validatedBackupData(payload){ const obj=typeof payload==="string"?JSON.
   return {obj,keys,data}; }
 function replaceBackupData(data){ BACKUP_KEYS.forEach(k=>localStorage.removeItem(k)); Object.entries(data).forEach(([k,value])=>localStorage.setItem(k,value));
   if(Object.entries(data).some(([k,value])=>localStorage.getItem(k)!==value)) throw new Error("write"); }
+let pendingRestoreRequest=null;
+function closeRestoreConfirm(){ pendingRestoreRequest=null; closeAccessibleModal($("restoreConfirmSheet")); }
+function confirmPendingRestore(){ const pending=pendingRestoreRequest; pendingRestoreRequest=null; closeAccessibleModal($("restoreConfirmSheet")); if(!pending) return {applied:false}; try{ return restoreBackupPayload(pending.payload,pending.options); }catch(error){ toast("备份恢复失败，请确认文件内容后重试"); return {applied:false,error:true}; } }
 function restoreBackupPayload(payload, opts){ const options=opts||{}, validated=validatedBackupData(payload), obj=validated.obj, keys=validated.keys;
   const current=currentProgress(), incoming=payloadProgress(obj), incomingDate=dateLabel(obj.date||incoming.last);
-  if(!options.skipConfirm && !confirm(`当前 ${current.count} 字（最后练习 ${dateLabel(current.last)}）→ 备份 ${incoming.count} 字（${incomingDate}），确认覆盖？`)) return {applied:false, keys};
+  if(!options.skipConfirm){ pendingRestoreRequest={payload:obj,options:{...options,skipConfirm:true}}; $("restoreConfirmCopy").textContent=`当前 ${current.count} 字（最后练习 ${dateLabel(current.last)}），备份 ${incoming.count} 字（最后练习 ${incomingDate}）。恢复后将覆盖当前记录。`; openAccessibleModal($("restoreConfirmSheet"),$("restoreConfirmCancel"),closeRestoreConfirm); return {applied:false,pending:true,keys}; }
   const rollbackPayload=JSON.parse(backupPayload({preserveMeta:true})); if(!options.skipSafety) captureSafetySnapshot("restore");
   try{ replaceBackupData(validated.data); }
   catch(error){ try{ replaceBackupData(validatedBackupData(rollbackPayload).data); }catch(rollbackError){ error.rollbackError=rollbackError; } throw error; }
   if(options.reload!==false) location.reload();
   return {applied:true, keys};
 }
-function importBackup(file){ file.text().then(t=>restoreBackupPayload(t)).catch(()=>alert("这个文件不是有效的拾字备份")); }
+function importBackup(file){ file.text().then(t=>restoreBackupPayload(t)).catch(()=>toast("这个文件不是有效的拾字备份")); }
 function requestBackupImport(){
   if(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.shiziNative){
     window.webkit.messageHandlers.shiziNative.postMessage({type:"pickBackup"});
@@ -3005,14 +3025,17 @@ $("reminderLater").onclick=dismissReminderInvite;
 $("importLink").onclick=requestBackupImport;
 $("welcomeRestore").onclick=requestBackupImport;
 $("importFile").onchange=e=>{ const f=e.target.files && e.target.files[0]; e.target.value=""; if(f) importBackup(f); };
-function openResetConfirm(){ $("resetConfirmCopy").textContent=`将清空当前 ${memoryCount()} 个字、练习进度、照片和偏好设置。清空后可在 10 秒内撤销一次。`; $("resetConfirmSheet").classList.add("open"); }
-function closeResetConfirm(){ $("resetConfirmSheet").classList.remove("open"); }
+function openResetConfirm(){ $("resetConfirmCopy").textContent=`将清空当前 ${memoryCount()} 个字、练习进度、照片和偏好设置。清空后可在 10 秒内撤销一次。`; openAccessibleModal($("resetConfirmSheet"),$("resetConfirmCancel"),closeResetConfirm); }
+function closeResetConfirm(){ closeAccessibleModal($("resetConfirmSheet")); }
 function resetAllData(opts){ const options=opts||{}; if(!options.skipConfirm&&!options.confirmed){ openResetConfirm(); return false; } closeResetConfirm(); captureSafetySnapshot("reset");
   status={}; memory={}; fsrsReviewLog=[]; fsrsReviewMonthly={}; roundHandwriting={}; traceTutorialShown=false; quality={}; tuning={calibrated:false, offset:0, contextStrict:0, rounds:[]}; preference="balanced"; libraryState=normalizeLibrary(null); fontScaleLarge=false; applyFontScale(); opens=[today()]; customWords=[]; addedChars=[]; wildState=normalizeWildState(null); handCardPref=normalizeHandCardPref(null); activity=newActivity(); funnel=newFunnel(); backupMeta=normalizeBackupMeta(null); summaryBackupHintVisible=false; reminder=normalizeReminder(null); sound=normalizeSound(null); stopAmbient(true); saveSound(); save(LIB_KEY,libraryState); renderSoundUI(); renderHandCardPref(); hideHandCardPrompt(); save(HAND_CARD_KEY,handCardPref); saveReminder(); syncReminder(); save(DECK_KEY,status); save(MEMORY_KEY,memory); saveFSRSLog(); save(TRACE_TUTORIAL_KEY,false); save(QUALITY_KEY,quality); saveTuning(); save(PREF_KEY,preference); save(FONT_SCALE_KEY,false); save(OPEN_KEY,opens); save(CUSTOM_KEY,customWords); save(ADDED_KEY,addedChars); saveWildState(); saveActivity(); saveFunnel(); save(BACKUP_META_KEY,backupMeta); buildCustomCards(); removeStored(TOPIC_KEY); focusPreservedSession=null; clearSessionSnapshot(); activeMode="new"; makeupTargetDay=""; sessionDone=new Set(); focusQueue=[]; renderHome(); $("dataBox").style.display="none"; showSafetyUndo(); return true; }
 $("resetLink").onclick=openResetConfirm;
 $("resetConfirmCancel").onclick=closeResetConfirm;
 $("resetConfirmDo").onclick=()=>resetAllData({confirmed:true});
 $("resetConfirmSheet").onclick=e=>{ if(e.target===$("resetConfirmSheet")) closeResetConfirm(); };
+$("restoreConfirmCancel").onclick=closeRestoreConfirm;
+$("restoreConfirmDo").onclick=confirmPendingRestore;
+$("restoreConfirmSheet").onclick=e=>{ if(e.target===$("restoreConfirmSheet")) closeRestoreConfirm(); };
 $("safetyUndoBtn").onclick=()=>undoSafetyRestore();
 
 initBox(); renderHome();
@@ -3025,7 +3048,7 @@ document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==
     stopAmbient(true);
     if(roundActiveStartedAt){ roundElapsedMs=currentRoundElapsed(); roundActiveStartedAt=0; roundTimerPaused=true; }  // 后台/锁屏期间停表，空转墙钟不计入组时长
     if(baseTargets.length && $("card").style.display!=="none") saveSessionSnapshot();
-  } else { if(roundTimerPaused){ roundActiveStartedAt=Date.now(); roundTimerPaused=false; } if($("card").style.display!=="none") startAmbient(); } });
+  } else { ensureCurrentRoundBudgetDay(); if(roundTimerPaused){ roundActiveStartedAt=Date.now(); roundTimerPaused=false; } if($("card").style.display!=="none") startAmbient(); } });
 // 视口尺寸变化明显（旋转、分屏、加载时序）时重建写字区。正在写的卡不动（别丢笔迹）：
 // 非卡片视图立即重建；卡片视图里每张新卡 render() 前都会 fitBox()，下一张自动适配
 function fitBox(){ const n=idealBoxSize(); if(Math.abs(n-S)>=24){ S=n; $("boxwrap").innerHTML=""; initBox(); } }

@@ -856,7 +856,7 @@ let browser;
     setup({ attempts: 21, includeManual: true }); next(); deferRoundToTomorrow();
     const queued = indexes.slice().sort((a, b) => cardMemory(a).queuedFrontAt - cardMemory(b).queuedFrontAt);
     const deferred = { queued, expected: [indexes[2], indexes[1], indexes[0]], completed: todayCompleted(), session: localStorage.getItem(SESSION_KEY) };
-    sessionDone = new Set(); startRound();
+    activeMode = "review"; focusQueue = []; sessionDone = new Set(); startRound();
     const nextRound = baseTargets.slice(0, 3);
 
     setup({ attempts: 21 }); baseCursor = 1; roundStats = roundStats.slice(0, 1); manualQueue = [];
@@ -872,7 +872,7 @@ let browser;
   });
   assert(rhythmGuard.attemptPrompt && rhythmGuard.timePrompt, "Expected attempt and active-time budgets to prompt only between cards", rhythmGuard);
   assert(rhythmGuard.continued.prompted && rhythmGuard.continued.closed && rhythmGuard.continued.current === rhythmGuard.indexes[1] && rhythmGuard.noSecondPrompt, "Expected continue to consume the next queued card without prompting again", rhythmGuard);
-  assert(rhythmGuard.deferred.queued.join() === rhythmGuard.deferred.expected.join() && !rhythmGuard.deferred.completed && rhythmGuard.deferred.session === null && rhythmGuard.nextRound.join() === rhythmGuard.deferred.expected.join(), "Expected focus-mode early stop to preserve pending order and next-round priority without claiming a completed day", rhythmGuard);
+  assert(rhythmGuard.deferred.queued.join() === rhythmGuard.deferred.expected.join() && !rhythmGuard.deferred.completed && rhythmGuard.deferred.session === null && rhythmGuard.nextRound.join() === rhythmGuard.deferred.expected.join(), "Expected focus-mode early stop to preserve pending order for the next ordinary round without claiming a completed day", rhythmGuard);
   assert(rhythmGuard.incomplete.queued.join() === rhythmGuard.indexes.join() && !rhythmGuard.incomplete.completed && rhythmGuard.calibrationUninterrupted, "Expected incomplete base cards to carry forward without false completion while calibration stays uninterrupted", rhythmGuard);
 
   await page.evaluate(() => localStorage.clear());
@@ -1104,7 +1104,7 @@ let browser;
   await page.evaluate(() => { tracedThisCard = true; updateInkControls(); });
   await page.click("#traceDone");
   const postTraceLayout = await page.evaluate(() => ({ phase: practicePhase, title: phaseTitle.textContent, hint: hint.textContent, mascot: mascotLine.textContent, actionBottom: actions.getBoundingClientRect().bottom, viewportBottom: innerHeight, show: show.textContent }));
-  assert(postTraceLayout.phase === "postTraceRecall" && postTraceLayout.title.includes("2/2 自己写") && postTraceLayout.hint === "" && postTraceLayout.mascot === "凭刚才的手感写"
+  assert(postTraceLayout.phase === "postTraceRecall" && postTraceLayout.title.includes("2/2 自己写") && postTraceLayout.hint === "" && postTraceLayout.mascot === "不看范字，再独立写一次"
     && postTraceLayout.actionBottom <= postTraceLayout.viewportBottom && postTraceLayout.show === "再描一遍", "Expected the complete 375x667 post-trace controls without duplicate guidance", postTraceLayout);
 
   await page.evaluate(() => {
@@ -2210,8 +2210,8 @@ let browser;
     const currentMemory = { "verify:current-a": { seen: 1, last: new Date("2026-07-10T08:00:00Z").getTime() }, "verify:current-b": { seen: 1, last: new Date("2026-07-11T08:00:00Z").getTime() } };
     memory = currentMemory; saveMemory();
     const incoming = JSON.parse(JSON.stringify(original)); incoming.date = "2026-06-01T08:00:00.000Z"; incoming.data[MEMORY_KEY] = JSON.stringify({ "verify:incoming": { seen: 1, last: new Date("2026-05-31T08:00:00Z").getTime() } });
-    let confirmCopy = ""; const nativeConfirm = window.confirm; window.confirm = (copy) => { confirmCopy = copy; return false; };
-    const cancelled = restoreBackupPayload(incoming, { reload: false }); window.confirm = nativeConfirm;
+    let systemConfirmCalled = false; const nativeConfirm = window.confirm; window.confirm = () => { systemConfirmCalled = true; return false; };
+    const cancelled = restoreBackupPayload(incoming, { reload: false }), confirmCopy = restoreConfirmCopy.textContent, confirmOpen = restoreConfirmSheet.classList.contains("open"), confirmButtons = [restoreConfirmCancel.textContent, restoreConfirmDo.textContent]; closeRestoreConfirm(); window.confirm = nativeConfirm;
     localStorage.setItem("shizi.unknown.verify", "keep-local");
     const restoredResult = restoreBackupPayload(incoming, { skipConfirm: true, reload: false });
     const safetyAfterRestore = safetySnapshot(), incomingApplied = String(localStorage.getItem(MEMORY_KEY)).includes("verify:incoming");
@@ -2248,13 +2248,15 @@ let browser;
     try{ restoreBackupPayload(failingIncoming,{skipConfirm:true,reload:false,skipSafety:true}); }catch(e){ atomicRejected=e&&e.name==="QuotaExceededError"; } finally{ Storage.prototype.setItem=nativeSetItem; }
     const afterFailure = Object.fromEntries(BACKUP_KEYS.map(k => [k, localStorage.getItem(k)]));
     const result = { keys: Object.keys(original.data), sessionVersion: JSON.parse(original.data[SESSION_KEY]).version, fsrsLog: !!original.data[FSRS_LOG_KEY], tutorial: original.data[TRACE_TUTORIAL_KEY], funnelVersion: JSON.parse(original.data[FUNNEL_KEY]).version, sound: JSON.parse(original.data[SOUND_KEY]), restoredKeys: restoredResult.keys,
-      unknown: localStorage.getItem("shizi.unknown.verify"), cancelled: !cancelled.applied, confirmCopy, incomingApplied, safetyReason: safetyAfterRestore && safetyAfterRestore.reason, undoOffered, undoApplied: undoResult.applied, currentRestored,
+      unknown: localStorage.getItem("shizi.unknown.verify"), cancelled: !cancelled.applied, pending: cancelled.pending, confirmCopy, confirmOpen, confirmButtons, systemConfirmCalled, incomingApplied, safetyReason: safetyAfterRestore && safetyAfterRestore.reason, undoOffered, undoApplied: undoResult.applied, currentRestored,
       resetReason: resetSafety && resetSafety.reason, overwrittenReason: overwrittenSafety && overwrittenSafety.reason, latestRestored, safetyExcluded: !Object.prototype.hasOwnProperty.call(original.data, SAFETY_KEY),
       customKeyBefore, customKeyAfter, customMigration, maliciousInkRejected, maliciousActivitySanitized, maliciousActivityEscaped, atomicRejected, atomicRestored: JSON.stringify(afterFailure)===JSON.stringify(beforeFailure) };
     localStorage.removeItem("shizi.unknown.verify"); return result;
   });
   assert(backup.keys.includes(SESSION_STORAGE_KEY) && backup.keys.includes("shizi.library.v1") && backup.sessionVersion === 2 && backup.fsrsLog && backup.tutorial === "true" && backup.funnelVersion === 2 && backup.sound.enabled === true && backup.sound.scene === "rain" && backup.restoredKeys.includes(SESSION_STORAGE_KEY) && backup.unknown === "keep-local", "Expected session/FSRS/tutorial/funnel/soundscape/library backup round trip with allowlist isolation", backup);
-  assert(backup.cancelled && backup.confirmCopy.includes("当前 2 字（最后练习 2026-07-11）→ 备份 1 字（2026-06-01）") && backup.incomingApplied && backup.safetyReason === "restore" && backup.undoOffered && backup.undoApplied && backup.currentRestored, "Expected differential restore confirmation and one-tap safety undo", backup);
+  assert(backup.cancelled && backup.pending && backup.confirmOpen && !backup.systemConfirmCalled && backup.confirmCopy.includes("当前 2 字（最后练习 2026-07-11），备份 1 字（最后练习 2026-06-01）")
+    && backup.confirmButtons.join("/") === "保留当前记录/确认覆盖" && backup.incomingApplied && backup.safetyReason === "restore" && backup.undoOffered && backup.undoApplied && backup.currentRestored,
+    "Expected an in-app differential restore confirmation and one-tap safety undo", backup);
   assert(backup.resetReason === "reset" && backup.overwrittenReason === "restore" && backup.latestRestored && backup.safetyExcluded, "Expected reset safety copy, latest-operation replacement, and backup exclusion", backup);
   assert(backup.customKeyBefore === "custom:春" && backup.customKeyAfter === backup.customKeyBefore, "Expected custom card keys to remain stable when the base deck size changes", backup);
   assert(backup.customMigration.changed && backup.customMigration.keys.length === 1 && backup.customMigration.keys[0] === "custom:春" && backup.customMigration.memory.last === 200 && backup.customMigration.memory.dueDay === "2026-09-01" && backup.customMigration.memory.fsrsCard.stability === 3

@@ -459,7 +459,7 @@ final class WebViewController: UIViewController {
             const rejectedPromptWords = ['战战兢兢', '千里迢迢', '翩翩起舞', '谆谆教诲', '佼佼者', '年高德劭', '崔嵬', '陶埙', '匏瓜', '勖勉', '安瓿', '礞石', '老趼', '振翮'];
             const placeholderTarget = Object.keys(REJECTED_CONTEXTS).find(target => REJECTED_CONTEXTS[target] === 'placeholder');
             const placeholderCard = placeholderTarget ? CARDS[BASE_BY_CHAR[placeholderTarget]] : null;
-            result.dataFlow.contextAvailable = Object.keys(OVERRIDES).length === 56 && Object.keys(REJECTED_CONTEXTS).length === 1988
+            result.dataFlow.contextAvailable = Object.keys(OVERRIDES).length === 56 && Object.keys(REJECTED_CONTEXTS).length === 1783
               && placeholderCard && placeholderCard.ctx === 'fallback' && placeholderCard.word === placeholderTarget;
             result.dataFlow.contextOverridesApplied = contextCard.word === '钟灵毓秀' && contextCard.ctx === 'override'
               && glossCard.word === '谔' && glossCard.ctx === 'gloss' && glossCard.hint === '直言争辩的样子'
@@ -1401,9 +1401,7 @@ final class WebViewController: UIViewController {
 
             let script = """
             (function(payload){
-              const result = restoreBackupPayload(payload, { reload: false });
-              if (result && result.applied) setTimeout(function(){ location.reload(); }, 0);
-              return result;
+              return restoreBackupPayload(payload);
             })(\(arguments)[0]);
             """
             webView.evaluateJavaScript(script) { [weak self] _, error in

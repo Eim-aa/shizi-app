@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "approvedWords": {
+    "勾勒": "常用动词；jieba 的 nrt 标注属于误标",
+    "墨水": "常用名词；jieba 的 ns 标注属于误标"
+  }
+}

@@ -12,6 +12,8 @@ const webViewSource = fs.readFileSync(path.join(root, "ios", "ShiziApp", "ShiziA
 const deckSource = fs.readFileSync(path.join(root, "deck-data.js"), "utf8");
 const qualitySource = fs.readFileSync(path.join(root, "data", "context-quality.js"), "utf8");
 const overrideSource = fs.readFileSync(path.join(root, "data", "context-overrides.js"), "utf8");
+const approvedContextQuality = JSON.parse(fs.readFileSync(path.join(root, "scripts", "fixtures", "context-quality-approved.json"), "utf8"));
+const jiebaSource = fs.readFileSync(path.join(root, "sources", "jieba_dict.txt"), "utf8");
 const deck = JSON.parse(deckSource.match(/const SEED = (\[.*\]);/s)[1]);
 
 function assert(condition, message, details) {
@@ -41,10 +43,20 @@ const overrides = loadConst(overrideSource, "CONTEXT_OVERRIDES");
 const placeholders = deck.filter((card) => card.ans === `${card.target}字`);
 const manualOverlap = Object.keys(overrides).filter((target) => rejected[target]);
 
-assert(qualitySummary.deckCards === 7294 && qualitySummary.rejectedCards === 1988
-  && qualitySummary.reasons.placeholder === 954 && placeholders.length === 954
+const idiomWords = new Set(jiebaSource.split(/\r?\n/).flatMap((line) => { const parts = line.match(/^(.*) (\d+) (\S+)$/); return parts && parts[3] === "i" ? [parts[1]] : []; }));
+const rejectedIdioms = deck.filter((card) => idiomWords.has(card.ans) && rejected[card.target]);
+const approvedWords = new Set(Object.keys(approvedContextQuality.approvedWords || {}));
+const rejectedApproved = deck.filter((card) => approvedWords.has(card.ans) && rejected[card.target]);
+assert(qualitySummary.deckCards === 7294 && qualitySummary.rejectedCards === 1783
+  && qualitySummary.reasons.placeholder === 954 && qualitySummary.reasons.low_frequency_long_context === 349
+  && qualitySummary.reasons.low_frequency_proper_noun === 480 && qualitySummary.rules.idiomTagExempted
+  && qualitySummary.rules.reviewedSafeWords === approvedWords.size && placeholders.length === 954
   && placeholders.every((card) => rejected[card.target] === "placeholder"),
 "#148 context quality gate must reject every generated placeholder", qualitySummary);
+assert(rejectedIdioms.length === 0 && rejectedApproved.length === 0
+  && ["新陈代谢", "根深蒂固", "千钧一发", "琳琅满目"].every((word) => idiomWords.has(word))
+  && approvedWords.has("勾勒") && approvedWords.has("墨水"),
+"#148 context quality gate must preserve tagged idioms and human-reviewed jieba false positives", { rejectedIdioms, rejectedApproved });
 assert(manualOverlap.length > 0 && source.indexOf('data/context-quality.js') < source.indexOf('data/context-overrides.js')
   && source.includes('if(!override && REJECTED_CONTEXTS[target])')
   && swSource.includes("'data/context-quality.js'") && swSource.includes("'data/context-overrides.js'")
@@ -61,7 +73,8 @@ assert(!/box-shadow:[^;}]*rgba\((?:20,18,14|30,24,16|43,38,32|60,48,30)/.test(so
 assert(!source.includes(">存月帖<") && !source.includes(">存图 ›<") && !source.includes('toast("月帖')
   && source.includes(">存本月拾字帖<") && source.includes(">存本月拾字帖 ›<"),
 "#148 the monthly share action must use one product name everywhere");
-assert(!source.includes("shortDueDay(m.dueDay)") && source.includes('id="resetConfirmSheet"')
+assert(!source.includes("shortDueDay(m.dueDay)") && source.includes('id="resetConfirmSheet"') && source.includes('id="restoreConfirmSheet"')
+  && !source.includes("凭刚才的手感写") && !/\bconfirm\s*\(/.test(source)
   && source.includes('window.shiziCardShared') && webViewSource.includes("sendPracticeCardShareResult"),
 "#148/#149 must keep scheduling out of feedback, use a custom destructive dialog, and close the native share callback");
 
@@ -86,9 +99,19 @@ async function resetState(page) {
     sessionDone = new Set(); attemptSeq = 0; practicePhase = "between"; roundId = 0; lastStampSnapshot = null;
     roundElapsedMs = 0; roundActiveStartedAt = 0; roundBudgetPrompted = false; roundBudgetAttemptBase = 0; roundBudgetDate = today();
     save(DECK_KEY, status); saveMemory(); saveQuality(); saveFSRSLog(); saveActivity(); saveTuning(); save(CUSTOM_KEY, customWords); save(ADDED_KEY, addedChars); saveWildState();
-    ["addSheet", "makeupSheet", "focusChoiceSheet", "roundBudgetSheet", "charSheet", "handCardSheet", "resetConfirmSheet"].forEach((id) => $(id).classList.remove("open"));
+    resetAccessibleModals(); pendingRestoreRequest = null;
     hideUndoBar(true); unlockGradeActions(); renderHome();
   });
+}
+
+async function drawInkStroke(page, start = { x: 0.28, y: 0.3 }, end = { x: 0.72, y: 0.68 }) {
+  const box = await page.locator(".inkc").boundingBox();
+  assert(box, "Expected a visible handwriting canvas");
+  await page.mouse.move(box.x + box.width * start.x, box.y + box.height * start.y);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width * end.x, box.y + box.height * end.y, { steps: 8 });
+  await page.mouse.up();
+  await page.waitForTimeout(360);
 }
 
 let browser;
@@ -150,28 +173,57 @@ let browser;
     "#143 a cross-day resume must reset the budget and use the cross-day Home copy", issue143);
 
   await resetState(page);
+  const liveDayRollover = await page.evaluate(() => {
+    startMode("new"); attemptSeq = ROUND_ATTEMPT_BUDGET + 3; roundBudgetAttemptBase = 0; roundElapsedMs = ROUND_TIME_BUDGET_MS + 1000;
+    roundActiveStartedAt = Date.now() - 5000; roundBudgetPrompted = true; roundBudgetDate = shiftDay(today(), -1);
+    const reached = roundBudgetReached();
+    return { reached, elapsed: currentRoundElapsed(), attempts: currentBudgetAttempts(), prompted: roundBudgetPrompted, budgetDate: roundBudgetDate, attemptSeq };
+  });
+  assert(!liveDayRollover.reached && liveDayRollover.elapsed < 1000 && liveDayRollover.attempts === 0 && !liveDayRollover.prompted
+    && liveDayRollover.budgetDate === await page.evaluate(() => today()) && liveDayRollover.attemptSeq === 23,
+    "#143 a foreground session crossing midnight must reset its budget without reload or restore", liveDayRollover);
+
+  await resetState(page);
+  const queueIsolation = await page.evaluate(() => {
+    const queuedIndex = BASE_BY_CHAR["水"], available = allIndexes().filter((idx) => idx !== queuedIndex), focusIndexes = available.slice(0, 3), makeupIndexes = available.slice(3, 8), queuedMemory = cardMemory(queuedIndex);
+    queuedMemory.queuedFront = true; queuedMemory.queuedFrontAt = Date.now(); queuedMemory.pendingLearning = true; saveMemory();
+    activeMode = "focus"; focusQueue = focusIndexes.slice(); sessionDone = new Set(); removeStored(SESSION_KEY); startRound();
+    const focus = { targets: baseTargets.slice(), queued: !!cardMemory(queuedIndex).queuedFront };
+    focusPreservedSession = null; removeStored(SESSION_KEY); activeMode = "makeup"; makeupTargetDay = shiftDay(today(), -2); focusQueue = makeupIndexes.slice(); sessionDone = new Set(); startRound();
+    const makeup = { targets: baseTargets.slice(), queued: !!cardMemory(queuedIndex).queuedFront, historicalTargets: dailyActivity(makeupTargetDay).targetKeys.slice() };
+    return { queuedIndex, focusIndexes, makeupIndexes, focus, makeup };
+  });
+  assert(JSON.stringify(queueIsolation.focus.targets.slice().sort((a, b) => a - b)) === JSON.stringify(queueIsolation.focusIndexes.slice().sort((a, b) => a - b)) && queueIsolation.focus.queued
+    && JSON.stringify(queueIsolation.makeup.targets.slice().sort((a, b) => a - b)) === JSON.stringify(queueIsolation.makeupIndexes.slice().sort((a, b) => a - b)) && queueIsolation.makeup.targets.length === 5
+    && queueIsolation.makeup.queued && queueIsolation.makeup.historicalTargets.length === 0,
+    "#141/#144 queued-front cards must stay out of focus and makeup rounds", queueIsolation);
+
+  await resetState(page);
   const issue144Seed = await page.evaluate(() => {
     startMode("new"); const raw = localStorage.getItem(SESSION_KEY), session = JSON.parse(raw);
-    const focusIndex = allIndexes().find((idx) => !session.baseTargets.includes(idx));
-    window.__issue144 = { raw, session: cloneObj(session), focusIndex };
-    const started = startFocus([focusIndex], { returnView: "home" });
-    return { started, sheetOpen: focusChoiceSheet.classList.contains("open"), originalMode: session.activeMode, originalIndex: session.currentIndex };
+    const focusIndexes = allIndexes().filter((idx) => !session.baseTargets.includes(idx)).slice(0, 3);
+    window.__issue144 = { raw, session: cloneObj(session), focusIndexes };
+    const started = startFocus(focusIndexes, { returnView: "home" });
+    return { started, sheetOpen: focusChoiceSheet.classList.contains("open"), originalMode: session.activeMode, originalIndex: session.currentIndex, focusIndexes, session };
   });
   assert(!issue144Seed.started && issue144Seed.sheetOpen, "#144 an ordinary resumable group must offer a choice before focus practice", issue144Seed);
   await page.click("#focusChoiceSingle");
-  await page.waitForFunction(() => activeMode === "focus" && baseTargets.length === 1 && getComputedStyle(card).display !== "none");
-  const focusPreserved = await page.evaluate(() => ({ sameStored: JSON.stringify(JSON.parse(localStorage.getItem(SESSION_KEY))) === JSON.stringify(window.__issue144.session), target: currentCardIndex(), expected: window.__issue144.focusIndex }));
+  await page.waitForFunction(() => activeMode === "focus" && baseTargets.length === 3 && getComputedStyle(card).display !== "none");
+  const focusPreserved = await page.evaluate(() => ({ sameStored: JSON.stringify(JSON.parse(localStorage.getItem(SESSION_KEY))) === JSON.stringify(window.__issue144.session), targets: baseTargets.slice(), expected: window.__issue144.focusIndexes.slice() }));
   await page.click("#exitPractice");
   await page.waitForFunction(() => getComputedStyle(home).display !== "none");
   const afterFocusExit = await page.evaluate(() => { const session = resumableSession(); return { sameStored: JSON.stringify(session) === JSON.stringify(window.__issue144.session), mode: session && session.activeMode, index: session && session.currentIndex, title: homeTitle.textContent.replace(/\s+/g, "") }; });
-  await page.evaluate(() => startFocus([window.__issue144.focusIndex], { returnView: "home" }));
+  await page.reload({ waitUntil: "networkidle" });
+  const afterReload = await page.evaluate((expected) => { const session = resumableSession(); return { sameStored: JSON.stringify(session) === JSON.stringify(expected), mode: session && session.activeMode, index: session && session.currentIndex }; }, issue144Seed.session);
+  await page.evaluate((indexes) => startFocus(indexes, { returnView: "home" }), issue144Seed.focusIndexes);
   await page.click("#focusChoiceResume");
-  await page.waitForFunction(() => activeMode === window.__issue144.session.activeMode && currentCardIndex() === window.__issue144.session.currentIndex);
-  const resumedOriginal = await page.evaluate(() => ({ mode: activeMode, index: currentCardIndex(), expectedMode: window.__issue144.session.activeMode, expectedIndex: window.__issue144.session.currentIndex }));
-  assert(focusPreserved.sameStored && focusPreserved.target === focusPreserved.expected && afterFocusExit.sameStored
+  await page.waitForFunction((expected) => activeMode === expected.activeMode && currentCardIndex() === expected.currentIndex, issue144Seed.session);
+  const resumedOriginal = await page.evaluate((expected) => ({ mode: activeMode, index: currentCardIndex(), expectedMode: expected.activeMode, expectedIndex: expected.currentIndex }), issue144Seed.session);
+  assert(focusPreserved.sameStored && JSON.stringify(focusPreserved.targets.slice().sort((a, b) => a - b)) === JSON.stringify(focusPreserved.expected.slice().sort((a, b) => a - b)) && afterFocusExit.sameStored && afterReload.sameStored
+    && afterReload.mode === issue144Seed.originalMode && afterReload.index === issue144Seed.originalIndex
     && afterFocusExit.mode === issue144Seed.originalMode && afterFocusExit.index === issue144Seed.originalIndex && afterFocusExit.title.includes("接着写这一组")
     && resumedOriginal.mode === resumedOriginal.expectedMode && resumedOriginal.index === resumedOriginal.expectedIndex,
-    "#144 one-character focus must preserve and resume the exact ordinary group", { focusPreserved, afterFocusExit, resumedOriginal });
+    "#144 multi-character focus must preserve and resume the exact ordinary group across exit and reload", { focusPreserved, afterFocusExit, afterReload, resumedOriginal });
 
   const summaryLayouts = [];
   for (const size of [{ width: 375, height: 667 }, { width: 375, height: 812 }]) {
@@ -213,34 +265,52 @@ let browser;
     window.HanziWriter = { create: () => ({ animateStroke: () => Promise.resolve(), animateCharacter: () => {} }) };
     startFocus([BASE_BY_CHAR["水"]]);
   });
+  await drawInkStroke(page);
   await page.waitForTimeout(2700);
-  const weakNetwork = await page.evaluate(() => ({ hint: hint.textContent, showEnabled: !show.disabled, doneDisabled: done.disabled, actionsDisabled: actions.getAttribute("aria-disabled") }));
-  assert(weakNetwork.hint.includes("加载较慢") && weakNetwork.showEnabled && weakNetwork.doneDisabled && weakNetwork.actionsDisabled === "false",
-    "#146 a hanging stroke loader must fall back within three seconds without trapping actions", weakNetwork);
+  const weakNetwork = await page.evaluate(() => ({ hint: hint.textContent, showEnabled: !show.disabled, doneEnabled: !done.disabled, inkCount: inkStrokes.length, actionsDisabled: actions.getAttribute("aria-disabled") }));
+  assert(weakNetwork.hint.includes("加载较慢") && weakNetwork.showEnabled && weakNetwork.doneEnabled && weakNetwork.inkCount === 1 && weakNetwork.actionsDisabled === "false",
+    "#146 a hanging stroke loader must explain fallback after the user writes without losing ink or trapping submission", weakNetwork);
   await page.evaluate(() => { window.HanziWriter = window.__issue146Writer; delete window.__issue146Writer; removeStored(SESSION_KEY); focusPreservedSession = null; activeMode = "new"; renderHome(); });
   await page.evaluate(() => startFocus([BASE_BY_CHAR["器"]]));
-  await page.waitForFunction(() => !show.disabled);
+  await page.waitForFunction(() => !tip.disabled && Array.isArray(curMedians) && curMedians.length > 0);
+  await page.click("#tip");
+  await page.waitForFunction(() => !animating && actionStack.length === 1 && actionStack[0].type === "hint");
+  await drawInkStroke(page, { x: 0.25, y: 0.68 }, { x: 0.72, y: 0.32 });
+  const missVisualBefore = await page.evaluate(() => ({ shownStrokes, groupIdx, seenGroups: [...seenGroups], hintsUsedThisCard, inkStrokes: cloneObj(inkStrokes), actions: actionStack.map((item) => item.type) }));
   await page.click("#show");
   await page.waitForFunction(() => practicePhase === "tracing" && getComputedStyle(undoBar).display !== "none");
   const missBeforeUndo = await page.evaluate(() => ({ stats: roundStats.length, events: fsrsReviewLog.length, attempts: episodeFor(currentCardIndex()).attempts.length, header: getComputedStyle(document.querySelector(".chdr")).visibility, undo: undoBar.textContent }));
   await page.click("#undoLast");
-  await page.waitForFunction(() => practicePhase === "recall" && pendingSessionVisual === null);
-  const missAfterUndo = await page.evaluate(() => {
+  await page.waitForFunction(() => practicePhase === "recall" && pendingSessionVisual === null && !animating && actionStack.length === 2 && inkStrokes.length === 1);
+  const missAfterUndo = await page.evaluate(async () => {
     lockGradeActions(); const locked = { group: actions.getAttribute("aria-disabled"), buttons: [...actions.querySelectorAll("button")].map((button) => button.getAttribute("aria-disabled")) };
     unlockGradeActions(); const unlocked = { group: actions.getAttribute("aria-disabled"), buttons: [...actions.querySelectorAll("button")].map((button) => button.getAttribute("aria-disabled")) };
-    return { stats: roundStats.length, events: fsrsReviewLog.length, attempts: episodeFor(currentCardIndex()).attempts.length, phase: practicePhase, locked, unlocked };
+    const restored = { shownStrokes, groupIdx, seenGroups: [...seenGroups], hintsUsedThisCard, inkStrokes: cloneObj(inkStrokes), actions: actionStack.map((item) => item.type) };
+    const undone = await undoInkStroke();
+    const afterStrokeUndo = { undone, shownStrokes, groupIdx, seenGroups: [...seenGroups], hintsUsedThisCard, inkCount: inkStrokes.length, actions: actionStack.map((item) => item.type) };
+    return { stats: roundStats.length, events: fsrsReviewLog.length, attempts: episodeFor(currentCardIndex()).attempts.length, phase: practicePhase, locked, unlocked, restored, afterStrokeUndo };
   });
   assert(missBeforeUndo.stats === 1 && missBeforeUndo.events === 1 && missBeforeUndo.attempts === 1 && missBeforeUndo.header === "visible" && missBeforeUndo.undo.includes("重盖")
     && missAfterUndo.stats === 0 && missAfterUndo.events === 0 && missAfterUndo.attempts === 0 && missAfterUndo.phase === "recall"
+    && JSON.stringify(missAfterUndo.restored) === JSON.stringify(missVisualBefore)
+    && missAfterUndo.afterStrokeUndo.undone && missAfterUndo.afterStrokeUndo.inkCount === 0
+    && missAfterUndo.afterStrokeUndo.actions.join() === "hint" && missAfterUndo.afterStrokeUndo.shownStrokes === missVisualBefore.shownStrokes
+    && missAfterUndo.afterStrokeUndo.groupIdx === 1 && missAfterUndo.afterStrokeUndo.seenGroups.join() === "0" && missAfterUndo.afterStrokeUndo.hintsUsedThisCard === 1
     && missAfterUndo.locked.group === "true" && missAfterUndo.locked.buttons.every((value) => value === "true")
     && missAfterUndo.unlocked.group === "false" && missAfterUndo.unlocked.buttons.every((value) => value === "false"),
-    "#146 don't-know must be undoable while the visible and accessibility lock states stay synchronized", { missBeforeUndo, missAfterUndo });
+    "#146 don't-know undo must restore the exact hint/ink/action state and keep the next stroke undoable", { missVisualBefore, missBeforeUndo, missAfterUndo });
+  await resetState(page);
+  await page.evaluate(() => startFocus([BASE_BY_CHAR["器"]]));
   await page.waitForFunction(() => Array.isArray(curMedians) && curMedians.length > 0);
   const doubleDecision = await page.evaluate(() => {
-    inkStrokes = mediansToCanvas(curMedians); redrawInk(); actionCooldownUntil = 0; revealAnswer();
-    decisionCorrect.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
-    decisionCorrect.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
-    return { stamped, stats: roundStats.length, events: fsrsReviewLog.length, attempts: episodeFor(currentCardIndex()).attempts.length };
+    const originalSaveSessionSnapshot = saveSessionSnapshot;
+    try {
+      saveSessionSnapshot = () => { const until = performance.now() + 360; while (performance.now() < until) {} return true; };
+      inkStrokes = mediansToCanvas(curMedians); redrawInk(); actionCooldownUntil = 0; revealAnswer();
+      decisionCorrect.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+      decisionCorrect.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+      return { stamped, stats: roundStats.length, events: fsrsReviewLog.length, attempts: episodeFor(currentCardIndex()).attempts.length };
+    } finally { saveSessionSnapshot = originalSaveSessionSnapshot; }
   });
   assert(doubleDecision.stamped && doubleDecision.stats === 1 && doubleDecision.events === 1 && doubleDecision.attempts === 1,
     "#146 a double tap must record exactly one decision", doubleDecision);
@@ -269,6 +339,25 @@ let browser;
     && Math.min(...lightInk.stored.slice(0, 3), ...lightInk.cardPaper.slice(0, 3)) > 220,
     "#147 UI ink must follow the theme while stored and exported images stay fixed light", themeInk);
 
+  await page.evaluate((idx) => { const recent = memory[cardKey(idx)].recentInk; recent.version = 1; delete recent.strokes; saveMemory(); }, inkIndex);
+  const legacyThemeInk = [];
+  for (const colorScheme of ["light", "dark"]) {
+    await page.emulateMedia({ colorScheme });
+    await page.evaluate((idx) => openCharSheet(idx), inkIndex);
+    await page.waitForFunction(() => charDetailGlyph.querySelector("canvas")?.dataset.rendered === "true");
+    const pixels = await page.evaluate(() => {
+      const canvas = charDetailGlyph.querySelector("canvas"), data = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height).data, values = [];
+      for (let i = 0; i < data.length; i += 4) values.push((data[i] + data[i + 1] + data[i + 2]) / 3);
+      return { background: values[0], darkest: Math.min(...values), lightest: Math.max(...values), legacy: canvas.dataset.legacy };
+    });
+    legacyThemeInk.push({ colorScheme, pixels });
+    await page.evaluate(() => closeCharSheet());
+  }
+  assert(legacyThemeInk[0].pixels.background > 240 && legacyThemeInk[0].pixels.darkest < 100
+    && legacyThemeInk[1].pixels.background < 70 && legacyThemeInk[1].pixels.lightest > 150
+    && legacyThemeInk.every((row) => row.pixels.legacy === "true"),
+    "#147 legacy v1 bitmap ink must be recolored for both light and dark UI themes", legacyThemeInk);
+
   await page.emulateMedia({ colorScheme: "light" });
   const issue149 = await page.evaluate(async () => {
     const idx = BASE_BY_CHAR["水"], m = cardMemory(idx), blank = { snapshot: snapshotImage([], []), reveal: revealInkImage({ inkStrokes: [] }) };
@@ -288,7 +377,8 @@ let browser;
     activity = newActivity(); activity.inheritedStreak = 0; activity.inheritedTotalDays = 0; activity.practiceDays = days.slice();
     days.forEach((day, order) => { const row = dailyActivity(day); row.stamps = 1; row.attempts = 1; row.targetKeys = [cardKey(order)]; row.independentTargetKeys = row.targetKeys.slice(); row.completedRoundIds = [`annual-${order}`]; }); saveActivity();
     renderMe(); const meCopy = annualFootText.textContent; const reportOpened = renderAnnualReport(previousYear), options = [...annualYearSelect.options].map((option) => Number(option.value));
-    const annual = { reportOpened, options, slides: annualSlides.querySelectorAll(".annualSlide").length, dots: annualDots.querySelectorAll("button").length, meCopy };
+    const dotNodes = [...annualDots.querySelectorAll("button")], dotTargets = dotNodes.map((node) => { const box = node.getBoundingClientRect(); return { width: box.width, height: box.height }; }); dotNodes[0].focus(); const focusedDot = dotNodes[0]; renderAnnualPager(1);
+    const annual = { reportOpened, options, slides: annualSlides.querySelectorAll(".annualSlide").length, dots: annualDots.querySelectorAll("button").length, meCopy, dotTargets, focusPreserved: document.activeElement === focusedDot, current: focusedDot.getAttribute("aria-current") };
     window.shiziCardShared({ status: "shared", kind: "character" }); const shared = $("toast").textContent;
     window.shiziCardShared({ status: "cancelled", kind: "character" }); const cancelled = $("toast").textContent;
     window.shiziCardShared({ status: "failed", kind: "character" }); const failed = $("toast").textContent;
@@ -308,9 +398,91 @@ let browser;
     && issue149.uncertainAria.includes("补拾") && issue149.uncertainAria.includes("拿不准") && !issue149.uncertainAria.includes("看提示"),
     "#148/#149 Web photo and uncertain-result accessibility copy must describe the real behavior", { webPhotoNote: issue149.webPhotoNote, uncertainAria: issue149.uncertainAria });
   assert(issue149.annual.reportOpened && issue149.annual.slides === 4 && issue149.annual.dots === 4 && issue149.annual.options.length === 1
+    && issue149.annual.dotTargets.every((box) => box.width >= 44 && box.height >= 44) && issue149.annual.focusPreserved && issue149.annual.current === "false"
     && !issue149.annual.meCopy.includes("年末") && issue149.callbacks.shared === "字卡已分享" && issue149.callbacks.cancelled === "已取消字卡分享" && issue149.callbacks.failed === "字卡分享失败，请再试一次"
     && issue149.canvas.role === "img" && issue149.canvas.label === "手写字卡预览" && issue149.canvas.fallback.length > 0,
     "#149 historical annual reports, native share callbacks, and canvas accessibility must remain complete", issue149);
+
+  await resetState(page); await page.emulateMedia({ colorScheme: "light" });
+  const uncertainDetail = await page.evaluate(() => {
+    const idx = BASE_BY_CHAR["水"]; startFocus([idx]); hintEverUsed = true; hintsUsedThisCard = 1; lastVerdict = null;
+    recordOutcome("hinted", { uncertain: true, now: Date.now() }); const stored = cloneObj(memory[cardKey(idx)]);
+    openCharSheet(idx); const story = charDetailStory.textContent; closeCharSheet();
+    const backedUp = JSON.parse(JSON.parse(backupPayload({ preserveMeta: true })).data[MEMORY_KEY])[cardKey(idx)];
+    return { lastUncertain: stored.lastUncertain, outcome: stored.lastOutcome, story, backedUp: backedUp.lastUncertain };
+  });
+  assert(uncertainDetail.lastUncertain && uncertainDetail.backedUp && uncertainDetail.outcome === "hinted"
+    && uncertainDetail.story.includes("上次拿不准，记不清") && !uncertainDetail.story.includes("上次看提示写出"),
+    "#149 uncertain decisions must keep their own persisted detail language", uncertainDetail);
+
+  await resetState(page);
+  const modalIndex = await page.evaluate(() => {
+    const idx = BASE_BY_CHAR["水"], m = cardMemory(idx); m.seen = 1; m.target = "水"; m.word = CARDS[idx].word;
+    persistRecentInk(m, [[{ x: .2, y: .2, w: 1 }, { x: .5, y: .8, w: .8 }, { x: .8, y: .3, w: .7 }]], Date.now()); saveMemory(); renderBook(); return idx;
+  });
+  const memoryTrigger = page.locator(`.memoryChar[data-idx="${modalIndex}"]`);
+  await memoryTrigger.click();
+  await page.waitForFunction(() => document.activeElement === closeCharDetail);
+  const charModal = await page.evaluate(() => ({ backgroundInert: document.querySelector(".wrap").inert, backgroundHidden: document.querySelector(".wrap").getAttribute("aria-hidden"), dialogOpen: charSheet.classList.contains("open"), active: document.activeElement.id }));
+  await page.click("#charDetailCard");
+  await page.waitForFunction(() => handCardSheet.classList.contains("open") && document.activeElement === handCardSave);
+  const handCardModal = await page.evaluate(() => {
+    const nodes = [...document.querySelectorAll(".handCardActions button")], boxes = nodes.map((node) => { const box = node.getBoundingClientRect(); return { id: node.id, top: box.top, left: box.left }; });
+    return { ids: nodes.map((node) => node.id), boxes, charInert: charSheet.inert, active: document.activeElement.id };
+  });
+  await page.keyboard.press("Escape");
+  await page.waitForFunction(() => !handCardSheet.classList.contains("open") && charSheet.classList.contains("open") && document.activeElement === charDetailCard && !charSheet.inert);
+  const afterNestedEscape = await page.evaluate(() => ({ charOpen: charSheet.classList.contains("open"), handCardOpen: handCardSheet.classList.contains("open"), active: document.activeElement.id }));
+  await page.evaluate((idx) => openWildPhoto(memory[cardKey(idx)].recentInk.dataURL, "水 · 拾于生活"), modalIndex);
+  await page.waitForFunction(() => wildPhotoSheet.classList.contains("open") && document.activeElement === wildPhotoClose);
+  await page.evaluate(() => window.dispatchEvent(new Event("shizi-native-back")));
+  await page.waitForFunction(() => !wildPhotoSheet.classList.contains("open") && charSheet.classList.contains("open") && document.activeElement === charDetailCard && !charSheet.inert);
+  const afterNativeBack = await page.evaluate(() => ({ charOpen: charSheet.classList.contains("open"), wildOpen: wildPhotoSheet.classList.contains("open"), stack: accessibleModalStack.map(node => node.id), active: document.activeElement.id }));
+  await page.click("#closeCharDetail");
+  await page.waitForFunction((idx) => document.activeElement?.matches(`.memoryChar[data-idx="${idx}"]`) && !document.querySelector(".wrap").inert, modalIndex);
+  const modalClosed = await page.evaluate(() => ({ backgroundInert: document.querySelector(".wrap").inert, backgroundHidden: document.querySelector(".wrap").hasAttribute("aria-hidden"), activeIndex: document.activeElement.dataset.idx }));
+  await page.evaluate(() => { window.__issueArrayAt = Array.prototype.at; Array.prototype.at = undefined; });
+  await memoryTrigger.click();
+  await page.waitForFunction(() => charSheet.classList.contains("open") && document.activeElement === closeCharDetail && document.querySelector(".wrap").inert);
+  const legacyWebKitOpen = await page.evaluate(() => ({ backgroundHidden: document.querySelector(".wrap").getAttribute("aria-hidden"), active: document.activeElement.id }));
+  await page.evaluate(() => window.dispatchEvent(new Event("shizi-native-back")));
+  await page.waitForFunction((idx) => !charSheet.classList.contains("open") && !document.querySelector(".wrap").inert && document.activeElement?.matches(`.memoryChar[data-idx="${idx}"]`), modalIndex);
+  const legacyWebKitModal = await page.evaluate(() => {
+    const result = { closed: !charSheet.classList.contains("open"), stack: accessibleModalStack.map(node => node.id), backgroundHidden: document.querySelector(".wrap").hasAttribute("aria-hidden"), activeIndex: document.activeElement.dataset.idx };
+    Array.prototype.at = window.__issueArrayAt; delete window.__issueArrayAt; return result;
+  });
+  assert(charModal.backgroundInert && charModal.backgroundHidden === "true" && charModal.dialogOpen && charModal.active === "closeCharDetail"
+    && handCardModal.ids.join() === "handCardSave,handCardShare,handCardCancel" && handCardModal.charInert && handCardModal.active === "handCardSave"
+    && handCardModal.boxes[0].top === handCardModal.boxes[1].top && handCardModal.boxes[2].top > handCardModal.boxes[0].top
+    && afterNestedEscape.charOpen && !afterNestedEscape.handCardOpen && afterNestedEscape.active === "charDetailCard"
+    && afterNativeBack.charOpen && !afterNativeBack.wildOpen && afterNativeBack.stack.join() === "charSheet" && afterNativeBack.active === "charDetailCard"
+    && !modalClosed.backgroundInert && !modalClosed.backgroundHidden && Number(modalClosed.activeIndex) === modalIndex
+    && legacyWebKitOpen.backgroundHidden === "true" && legacyWebKitOpen.active === "closeCharDetail"
+    && legacyWebKitModal.closed && legacyWebKitModal.stack.length === 0 && !legacyWebKitModal.backgroundHidden && Number(legacyWebKitModal.activeIndex) === modalIndex,
+    "#149 dialogs must isolate background, close only the top keyboard/native-back layer, preserve iOS 15.0 compatibility, match visual keyboard order, and restore focus", { charModal, handCardModal, afterNestedEscape, afterNativeBack, modalClosed, legacyWebKitOpen, legacyWebKitModal });
+
+  const restoreSeed = await page.evaluate(() => {
+    const current = { "verify:restore-current": { seen: 1, last: Date.now() } }; memory = current; saveMemory();
+    const payload = JSON.parse(backupPayload({ preserveMeta: true })); payload.data[MEMORY_KEY] = JSON.stringify({ "verify:restore-incoming": { seen: 1, last: Date.now() - 1000 } });
+    document.activeElement.focus(); const staged = restoreBackupPayload(payload, { reload: false }); window.__issueRestorePayload = payload;
+    return { staged, copy: restoreConfirmCopy.textContent, active: document.activeElement.id, backgroundInert: document.querySelector(".wrap").inert, currentStored: localStorage.getItem(MEMORY_KEY) };
+  });
+  await page.waitForFunction(() => document.activeElement === restoreConfirmCancel);
+  await page.evaluate(() => window.dispatchEvent(new Event("shizi-native-back")));
+  await page.waitForFunction(() => !restoreConfirmSheet.classList.contains("open") && !document.querySelector(".wrap").inert);
+  const restoreCancelled = await page.evaluate(() => ({ currentKept: localStorage.getItem(MEMORY_KEY).includes("restore-current"), pending: pendingRestoreRequest }));
+  await page.evaluate(() => restoreBackupPayload(window.__issueRestorePayload, { reload: false }));
+  await page.waitForFunction(() => document.activeElement === restoreConfirmCancel);
+  await page.click("#restoreConfirmDo");
+  const restoreConfirmed = await page.evaluate(() => ({ incomingApplied: localStorage.getItem(MEMORY_KEY).includes("restore-incoming"), closed: !restoreConfirmSheet.classList.contains("open"), pending: pendingRestoreRequest }));
+  await page.evaluate(() => openResetConfirm());
+  await page.waitForFunction(() => resetConfirmSheet.classList.contains("open") && document.activeElement === resetConfirmCancel);
+  await page.evaluate(() => window.dispatchEvent(new Event("shizi-native-back")));
+  const resetCancelled = await page.evaluate(() => ({ closed: !resetConfirmSheet.classList.contains("open"), incomingKept: localStorage.getItem(MEMORY_KEY).includes("restore-incoming"), stack: accessibleModalStack.map(node => node.id) }));
+  assert(restoreSeed.staged.pending && !restoreSeed.staged.applied && restoreSeed.copy.includes("恢复后将覆盖当前记录") && restoreSeed.backgroundInert
+    && restoreCancelled.currentKept && restoreCancelled.pending === null && restoreConfirmed.incomingApplied && restoreConfirmed.closed && restoreConfirmed.pending === null
+    && resetCancelled.closed && resetCancelled.incomingKept && resetCancelled.stack.length === 0,
+    "#149 backup restore/reset must use cancellable in-app dialogs that native back closes safely", { restoreSeed, restoreCancelled, restoreConfirmed, resetCancelled });
 
   const persistence = await page.evaluate(() => {
     const saved = { memory: cloneObj(memory), activity: cloneObj(activity), fsrs: cloneObj(fsrsReviewLog), monthly: cloneObj(fsrsReviewMonthly), funnel: cloneObj(funnel) };

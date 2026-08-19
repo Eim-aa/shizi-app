@@ -774,7 +774,7 @@
         <h2>第一组完成，<br>找到合适的起点</h2>
         <div class="calibStats">
           <div><b class="num ok" id="calibKept">0</b><span>第一次就写出</span></div>
-          <div><b class="num warn" id="calibMiss">0</b><span>第一次没写出</span></div>
+          <div><b class="num warn" id="calibMiss">0</b><span>第一次没写稳</span></div>
         </div>
         <div class="calibWhy">根据这 15 个字，先从 <b id="calibTier">标准</b> 难度的字出题。<span id="calibWhyTxt"></span></div>
         <div class="calibFoot"><span id="calibPocketLine"></span><br>按自己的节奏每天练一组，提笔会慢慢变稳。</div>
@@ -783,7 +783,7 @@
         <h2>今日拾得</h2>
         <div class="dateSeal" id="calibDateSeal"></div>
         <div class="sumGrid" id="calibSumTiles"></div>
-        <div class="summaryLegend">无标记 独立写对 · <b style="color:var(--gold)">金菱 稍后再写</b> · <b style="color:var(--accent)">朱砂 写错 / 没写出</b></div>
+        <div class="summaryLegend">首次结果：无标记 独立写对 · <b style="color:var(--gold)">金菱 看过提示 / 不确定</b> · <b style="color:var(--accent)">朱砂 写错 / 没写出</b></div>
         <div class="summaryPracticeHint" id="calibPracticeHint">点任意字块，可单独再练</div>
         <div class="bigSeal" id="calibBigSeal"><span>拾字</span></div>
         <div class="restLine" id="calibRestLine"></div>
@@ -791,10 +791,10 @@
       <div class="backupReminder" id="calibReturnHook"><div><b id="calibReturnTitle">明天继续练一组</b><br><span id="calibReturnText"></span></div><button id="calibReminderYes">开启提醒</button></div>
       <div class="pocketCard" id="calibPocketCard" style="display:none;">
         <div class="pChips" id="calibPocketChips"></div>
-        <div class="ptxt"><b id="calibPocketTitle"></b><br><span>趁手感还在，再写一遍。</span></div>
-        <button class="pocketBtn" id="calibPocketBtn">现在再写</button>
+        <div class="ptxt"><b id="calibPocketTitle"></b><br><span>想巩固一下，可以趁现在再写一遍。</span></div>
+        <button class="pocketBtn" id="calibPocketBtn">再写一遍</button>
       </div>
-      <button class="summaryProfileLink" id="calibProfile">看看哪些字要再练 →</button>
+      <button class="summaryProfileLink" id="calibProfile">看看最近写不稳的字 →</button>
       <button class="summaryShare" id="calibShare">存为字帖</button>
       <div class="sumActions">
         <button class="ghostAct" id="calibDone">明天见</button>
@@ -809,19 +809,19 @@
         <div class="sumLead" id="sumLead"></div>
         <div class="dateSeal" id="dateSeal"></div>
         <div class="sumGrid" id="sumTiles"></div>
-        <div class="summaryLegend" id="sumLegend">无标记 独立写对 · <b style="color:var(--gold)">金菱 稍后再写</b> · <b style="color:var(--accent)">朱砂 写错 / 没写出</b></div>
+        <div class="summaryLegend" id="sumLegend">首次结果：无标记 独立写对 · <b style="color:var(--gold)">金菱 看过提示 / 不确定</b> · <b style="color:var(--accent)">朱砂 写错 / 没写出</b></div>
         <div class="summaryPracticeHint" id="sumPracticeHint">点任意字块，可单独再练</div>
         <div class="bigSeal" id="summaryBigSeal"><span>拾字</span></div>
         <div class="restLine" id="summaryRestLine"></div>
       </div>
       <div class="pocketCard" id="pocketCard" style="display:none;">
         <div class="pChips" id="pocketChips"></div>
-        <div class="ptxt"><b id="pocketTitle"></b><br><span>趁手感还在，再写一遍。</span></div>
-        <button class="pocketBtn" id="pocketBtn">现在再写</button>
+        <div class="ptxt"><b id="pocketTitle"></b><br><span>想巩固一下，可以趁现在再写一遍。</span></div>
+        <button class="pocketBtn" id="pocketBtn">再写一遍</button>
       </div>
       <div class="roundTune" id="roundTune"></div>
       <div class="summaryBackupHint" id="summaryBackupHint"><span>记录默认保存在当前设备，导出备份更安心。</span><button id="summaryBackupNow">导出备份</button></div>
-      <button class="summaryProfileLink" id="summaryProfile">看看哪些字要再练 →</button>
+      <button class="summaryProfileLink" id="summaryProfile">看看最近写不稳的字 →</button>
       <button class="summaryShare" id="summaryShare">存为字帖</button>
       <div class="sumActions">
         <button class="ghostAct" id="stop">回首页</button>
@@ -2543,7 +2543,7 @@ function renderSummaryMilestone(milestone){ summaryMilestoneActive=!!milestone; 
 function renderPracticePocket(indexes, calibration=false){ const unique=[...new Set((indexes||[]).filter(i=>Number.isInteger(i)&&i>=0&&i<CARDS.length))], card=$(calibration?"calibPocketCard":"pocketCard"), chips=$(calibration?"calibPocketChips":"pocketChips"), title=$(calibration?"calibPocketTitle":"pocketTitle");
   summaryFocusIndexes=unique; card.style.display=unique.length?"flex":"none"; if(!unique.length) return;
   chips.innerHTML=unique.slice(0,3).map((idx,k)=>`<span class="pChip" style="transform:rotate(${k%2?3:-4}deg)">${CARDS[idx].target}</span>`).join("");
-  title.textContent=`${unique.length} 个字还要再练`; }
+  title.textContent=`${unique.length} 个字第一次没写稳`; }
 function roundSummary(fromPractice=false){ const durationMs=currentRoundElapsed(); roundElapsedMs=durationMs; roundActiveStartedAt=0; roundTimerPaused=false; recordFunnelRound(durationMs); clearSessionSnapshot(); markRoundComplete(); releasePracticeHistory(); const characterMilestone=celebrateCharacterMilestoneIfAny(), dayMilestone=celebrateMilestoneIfAny(), milestone=characterMilestone?{kind:"characters",value:characterMilestone}:dayMilestone?{kind:"days",value:dayMilestone}:null; displayView("summary");
   $("summaryShare").style.display="block"; $("calibShare").style.display="block";
   renderSummaryMilestone(milestone); renderRoundRestLine();
@@ -2563,13 +2563,13 @@ function roundSummary(fromPractice=false){ const durationMs=currentRoundElapsed(
     $("calibKept").textContent=keptN; $("calibMiss").textContent=hardN;
     $("calibTier").textContent=tuningLabel();
     $("calibWhyTxt").textContent=calibrationNote?` ${calibrationNote}`:" 之后每组会按你实际写的情况自动微调。";
-    $("calibPocketLine").textContent=hardN>0?`第一次没写出的 ${hardN} 个字，之后都已独立写出。`:"这组每个字第一次都写出来了，下一组会稍微增加难度。";
+    $("calibPocketLine").textContent=hardN>0?`${hardN} 个字第一次没写稳。`:"这组每个字第一次都写出来了，下一组会稍微增加难度。";
     renderPracticePocket(risky,true); $("calibProfile").style.display=hardN>0?"block":"none"; renderCalibrationReturnHook();
     return; }
   $("calibPocketCard").style.display="none";
   $("summaryProfile").style.display=hardN>0?"block":"none";
   $("sumH2").textContent=wasMakeup?"补帖已盖":(completedGroups>1?`今日已拾 ${dayTotal} 字`:"今日拾得");
-  $("sumLead").innerHTML=wasMakeup?`${formatDueDay(calendarDay)}补写完成，<br>这一天落下了一枚浅色「补」印。`:(hardN>0?`本组 <b class="ok">${roundStats.length}</b> 个字全部完成，<br>其中 <b class="warn">${hardN}</b> 个字第一次没写出，之后已独立写出。`:`本组 <b class="ok">${keptN}</b> 个字第一次都独立写出了。`);
+  $("sumLead").innerHTML=wasMakeup?`${formatDueDay(calendarDay)}补写完成，<br>这一天落下了一枚浅色「补」印。`:(hardN>0?`本组 <b class="ok">${roundStats.length}</b> 个字全部完成，<br>其中 <b class="warn">${hardN}</b> 个字第一次没写稳。`:`本组 <b class="ok">${keptN}</b> 个字第一次都独立写出了。`);
   renderPracticePocket(risky,false);
   renderRoundTune(calibrationNote);
   renderSummaryBackupHint();
@@ -2818,7 +2818,7 @@ async function sharePracticeCard(opts={}){ const canvas=renderPracticeCardCanvas
 
 // ---- 数据备份 / 恢复（localStorage 是唯一存储，换手机或清缓存前先导出）----
 // 新增 shizi.* 持久键时必须同步加入；shizi.nativeSmoke.v1 与 SAFETY_KEY 为刻意排除。
-const BACKUP_KEYS=[DECK_KEY,OPEN_KEY,MEMORY_KEY,QUALITY_KEY,PREF_KEY,TUNING_KEY,ACTIVITY_KEY,SESSION_KEY,FSRS_LOG_KEY,TRACE_TUTORIAL_KEY,BACKUP_META_KEY,REMINDER_KEY,FONT_SCALE_KEY,FUNNEL_KEY,SOUND_KEY,TOPIC_KEY,CUSTOM_KEY,ADDED_KEY,WILD_KEY,HAND_CARD_KEY,LIB_KEY];
+const BACKUP_KEYS=[DECK_KEY,OPEN_KEY,MEMORY_KEY,QUALITY_KEY,PREF_KEY,TUNING_KEY,ACTIVITY_KEY,SESSION_KEY,FSRS_LOG_KEY,TRACE_TUTORIAL_KEY,BACKUP_META_KEY,REMINDER_KEY,FONT_SCALE_KEY,FUNNEL_KEY,SOUND_KEY,TOPIC_KEY,CUSTOM_KEY,ADDED_KEY,WILD_KEY,HAND_CARD_KEY,LIB_KEY], SAFETY_UNDO_MS=10000;
 function backupAgeDays(){ const ts=Number(backupMeta.lastExportAt)||0; return ts?Math.max(0,Math.floor((Date.now()-ts)/86400000)):Number.POSITIVE_INFINITY; }
 function backupRelativeText(){ const days=backupAgeDays(); if(!Number.isFinite(days)) return "从未备份"; if(days===0) return "上次备份 · 今天"; if(days===1) return "上次备份 · 昨天"; return `上次备份 · ${days} 天前`; }
 function renderBackupUI(){ const age=backupAgeDays(), never=!Number.isFinite(age), urgent=(totalPracticeDays()>=14&&never)||(!never&&age>=30); $("backupStatus").textContent=backupRelativeText(); $("backupStatus").classList.toggle("backupStatusUrgent",urgent); $("backupUrgency").style.display=urgent?"flex":"none"; $("mePanel").classList.toggle("backupUrgent",urgent);
@@ -2836,12 +2836,16 @@ function parseStoredObject(value){ try{ const obj=typeof value==="string"?JSON.p
 function payloadProgress(payload){ const mem=parseStoredObject(payload&&payload.data&&payload.data[MEMORY_KEY]), values=Object.values(mem).filter(m=>m&&m.seen), latest=values.reduce((max,m)=>Math.max(max,Number(m.last)||0),0); return {count:values.length,last:latest}; }
 function dateLabel(value){ const d=value?new Date(value):null; return d&&!Number.isNaN(d.getTime())?dayKey(d):"无记录"; }
 function currentProgress(){ const latest=Object.values(memory).reduce((max,m)=>Math.max(max,Number(m&&m.last)||0),0); return {count:memoryCount(),last:latest}; }
-function captureSafetySnapshot(reason){ const record={version:1,createdAt:Date.now(),reason,pendingUndo:true,offeredAt:0,payload:JSON.parse(backupPayload({preserveMeta:true}))}; localStorage.setItem(SAFETY_KEY,JSON.stringify(record)); return record; }
-function safetySnapshot(){ const row=parseStoredObject(localStorage.getItem(SAFETY_KEY)); return row.version===1&&row.pendingUndo&&row.payload?row:null; }
 let safetyUndoTimer=0;
-function hideSafetyUndo(){ clearTimeout(safetyUndoTimer); $("safetyUndo").style.display="none"; }
-function showSafetyUndo(){ const row=safetySnapshot(); if(!row || row.offeredAt) return false; row.offeredAt=Date.now(); localStorage.setItem(SAFETY_KEY,JSON.stringify(row));
-  $("safetyUndoCopy").textContent=row.reason==="reset"?"数据已清空，可在 10 秒内撤销":"备份已恢复，可在 10 秒内撤销"; $("safetyUndoBtn").textContent=row.reason==="reset"?"撤销清空":"撤销恢复"; $("safetyUndo").style.display="flex"; safetyUndoTimer=setTimeout(hideSafetyUndo,10000); return true; }
+function hideSafetyUndo(){ clearTimeout(safetyUndoTimer); safetyUndoTimer=0; $("safetyUndo").style.display="none"; }
+function discardSafetySnapshot(){ removeStored(SAFETY_KEY); hideSafetyUndo(); }
+function captureSafetySnapshot(reason){ hideSafetyUndo(); const createdAt=Date.now(), record={version:1,createdAt,expiresAt:createdAt+SAFETY_UNDO_MS,reason,pendingUndo:true,offeredAt:0,payload:JSON.parse(backupPayload({preserveMeta:true}))}; localStorage.setItem(SAFETY_KEY,JSON.stringify(record)); return record; }
+function safetySnapshot(now=Date.now()){ const row=parseStoredObject(localStorage.getItem(SAFETY_KEY)), createdAt=Number(row.createdAt), expiresAt=createdAt+SAFETY_UNDO_MS;
+  if(row.version!==1 || !row.pendingUndo || !row.payload || !Number.isFinite(createdAt) || createdAt<=0 || Number(now)>=expiresAt){ discardSafetySnapshot(); return null; }
+  row.expiresAt=expiresAt; return row; }
+function showSafetyUndo(){ const row=safetySnapshot(); if(!row) return false; if(!row.offeredAt){ row.offeredAt=Date.now(); localStorage.setItem(SAFETY_KEY,JSON.stringify(row)); }
+  const remaining=Math.max(0,row.expiresAt-Date.now()); if(!remaining){ discardSafetySnapshot(); return false; } const seconds=Math.max(1,Math.ceil(remaining/1000));
+  $("safetyUndoCopy").textContent=row.reason==="reset"?`数据已清空，可在 ${seconds} 秒内撤销`:`备份已恢复，可在 ${seconds} 秒内撤销`; $("safetyUndoBtn").textContent=row.reason==="reset"?"撤销清空":"撤销恢复"; $("safetyUndo").style.display="flex"; clearTimeout(safetyUndoTimer); const expectedCreatedAt=row.createdAt; safetyUndoTimer=setTimeout(()=>{ const current=parseStoredObject(localStorage.getItem(SAFETY_KEY)); if(Number(current.createdAt)===Number(expectedCreatedAt)) discardSafetySnapshot(); },remaining); return true; }
 function undoSafetyRestore(opts){ const options=opts||{}, row=safetySnapshot(); if(!row) return {applied:false}; const result=restoreBackupPayload(row.payload,{skipConfirm:true,reload:false,skipSafety:true}); localStorage.removeItem(SAFETY_KEY); hideSafetyUndo(); if(options.reload!==false) location.reload(); return result; }
 async function exportBackup(){ const exportedAt=Date.now(), payload=backupPayload({exportedAt,funnelExportAt:exportedAt}), name=`shizi-backup-${today()}.json`;
   if(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.shiziNative){
@@ -2893,7 +2897,7 @@ document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==
     stopAmbient(true);
     if(roundActiveStartedAt){ roundElapsedMs=currentRoundElapsed(); roundActiveStartedAt=0; roundTimerPaused=true; }  // 后台/锁屏期间停表，空转墙钟不计入组时长
     if(baseTargets.length && $("card").style.display!=="none") saveSessionSnapshot();
-  } else { if(roundTimerPaused){ roundActiveStartedAt=Date.now(); roundTimerPaused=false; } if($("card").style.display!=="none") startAmbient(); } });
+  } else { showSafetyUndo(); if(roundTimerPaused){ roundActiveStartedAt=Date.now(); roundTimerPaused=false; } if($("card").style.display!=="none") startAmbient(); } });
 // 视口尺寸变化明显（旋转、分屏、加载时序）时重建写字区。正在写的卡不动（别丢笔迹）：
 // 非卡片视图立即重建；卡片视图里每张新卡 render() 前都会 fitBox()，下一张自动适配
 function fitBox(){ const n=idealBoxSize(); if(Math.abs(n-S)>=24){ S=n; $("boxwrap").innerHTML=""; initBox(); } }

@@ -841,7 +841,7 @@ final class WebViewController: UIViewController {
               roundSummary(true);
               await waitFor(() => hapticDebug.events.length === 1);
               result.practiceFlow.hapticMilestoneSequence = hapticDebug.events.slice();
-              result.practiceFlow.summaryPocketVisible = visible('pocketCard') && summaryFocusIndexes.length === 1 && document.getElementById('pocketBtn').textContent.includes('现在再写');
+              result.practiceFlow.summaryPocketVisible = visible('pocketCard') && summaryFocusIndexes.length === 1 && document.getElementById('pocketTitle').textContent.includes('第一次没写稳') && document.getElementById('pocketBtn').textContent.includes('再写一遍');
               const shareCanvas = renderPracticeCardCanvas();
               const shareSource = `${renderPracticeCardCanvas}\n${drawShareHandwriting}`;
               result.dataFlow.shareCardGenerated = !!shareCanvas && shareCanvas.width === 1080 && shareCanvas.height === 1440 && Number(shareCanvas.dataset.inkStrokeCount) === 2 && shareCanvas.toDataURL('image/png').startsWith('data:image/png;base64,') && !shareSource.includes('fillText(stat.target');

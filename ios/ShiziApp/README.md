@@ -134,7 +134,7 @@ ios/ShiziApp/scripts/smoke-device.sh
 
 - 首页、习字页、字库、我的、手感诊断都能打开。
 - 手指在田字格书写时页面不滚动，笔迹不断裂。
-- 点拨、完整提交字格、对错判断、自动盖章、1.8 秒反馈和「重盖」流程正常。
+- 点拨、完整「你写的」字格、对错判断、自动盖章、1.8 秒反馈和「重盖」流程正常。
 - 「不会写」完成“先描一遍 -> 隐藏轮廓自己写 -> 本组稍后独立复写”，描写本身不算掌握。
 - 双指按住田字格可透视提示，松开任一指恢复，透视期间不会留下墨迹。
 - 新收的字在下一组非校准习字最前出现；校准组不被插队。
@@ -247,7 +247,7 @@ ios/ShiziApp/scripts/archive-testflight.sh
 
 ## 练习提醒
 
-「我的 -> 设置 -> 练习提醒」可开启本地通知（默认关，仅 iOS 壳内生效）。开关、习惯时刻、当日已练状态和未来题面全部由 Web 侧经 `shiziNative` 桥下发（`syncReminder` / `requestReminderPermission` / `queryReminderStatus`）。Web 优先选到期且上次没写出的字，没有到期字时选最近忘过的字；没有有效目标就不调度。原生侧收到同步先清空 `shizi.reminder.*` 待发项，再最多预约未来 7 道「语境词 + 拼音」题面，当天已盖章或时刻已过则跳过今天。每条通知的 `userInfo.targetCardKey` 经 `AppDelegate` 交给 `shiziOpenReminderTarget`，页面未加载完时先排队，冷启动和后台点击都进入对应练习卡。授权结果经 `shiziReminderStatus` 回调回 Web，App 前台不弹提醒横幅。
+「我的 -> 设置 -> 练习提醒」可开启本地通知（默认关，仅 iOS 壳内生效）。开关、习惯时刻、当日已练状态和未来题面全部由 Web 侧经 `shiziNative` 桥下发（`syncReminder` / `requestReminderPermission` / `queryReminderStatus`）。Web 优先选到期且上次没写出的字，没有到期字时选最近没写出的字；没有有效目标就不调度。原生侧收到同步先清空 `shizi.reminder.*` 待发项，再最多预约未来 7 道「语境词（拼音）」题面，当天已盖章或时刻已过则跳过今天。每条通知的 `userInfo.targetCardKey` 经 `AppDelegate` 交给 `shiziOpenReminderTarget`，页面未加载完时先排队，冷启动和后台点击都进入对应练习卡。授权结果经 `shiziReminderStatus` 回调回 Web，App 前台不弹提醒横幅。
 
 ## 纸墨声音
 

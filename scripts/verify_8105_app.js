@@ -220,7 +220,7 @@ let browser;
     tabs: Array.from(document.querySelectorAll("#foot .tab")).map((node) => node.textContent.replace(/\s+/g, "")),
     welcomeEvents: funnel.events.filter((row) => row.name === "welcome_shown").length,
   }));
-  assert(firstRun.welcome && firstRun.footHidden && firstRun.needsCalibration && firstRun.restoreVisible && firstRun.copy.includes("先拾15个字试试") && firstRun.copy.includes("记录只存在这台手机上") && firstRun.tabs.join() === "习字,字库,我的" && firstRun.welcomeEvents === 1, "Expected first-run calibration welcome, one-time funnel event, storage expectation, restore entry, and final three-tab IA", firstRun);
+  assert(firstRun.welcome && firstRun.footHidden && firstRun.needsCalibration && firstRun.restoreVisible && firstRun.copy.includes("先练15个字") && firstRun.copy.includes("记录默认保存在当前设备") && firstRun.tabs.join() === "习字,字库,我的" && firstRun.welcomeEvents === 1, "Expected first-run calibration welcome, one-time funnel event, storage expectation, restore entry, and final three-tab IA", firstRun);
 
   const p2Style = await page.evaluate(async () => {
     await document.fonts.ready;
@@ -417,7 +417,7 @@ let browser;
     reminder.milestonesShown = [1, 7, 14, 30, 100, 200]; activity.inheritedTotalDays = 300; const day300 = celebrateMilestoneIfAny(), repeat300 = celebrateMilestoneIfAny(), copy300 = milestoneCopy(300);
     return { monthly, schedule: milestoneDaysThrough(350), day14, repeat14, shown14, skipped250, shown250, day300, repeat300, copy300 };
   });
-  assert(rhythmAndMilestones.monthly.count === rhythmAndMilestones.monthly.expected && rhythmAndMilestones.monthly.copy.startsWith(`本月 ${rhythmAndMilestones.monthly.expected} 天 · 累计`)
+  assert(rhythmAndMilestones.monthly.count === rhythmAndMilestones.monthly.expected && rhythmAndMilestones.monthly.copy.startsWith(`本月练习 ${rhythmAndMilestones.monthly.expected} 天 · 累计练习`)
     && rhythmAndMilestones.schedule.join() === "1,7,14,30,100,200,300" && rhythmAndMilestones.day14 === 14 && rhythmAndMilestones.repeat14 === null && rhythmAndMilestones.shown14.join() === "1,7,14"
     && rhythmAndMilestones.skipped250 === null && rhythmAndMilestones.shown250.join() === "1,7,14,30,100,200" && rhythmAndMilestones.day300 === 300 && rhythmAndMilestones.repeat300 === null && rhythmAndMilestones.copy300.includes("300"),
   "Expected penalty-free monthly rhythm, one-time day-14 celebration, silent inherited catch-up, and every-100 continuation", rhythmAndMilestones);
@@ -447,7 +447,7 @@ let browser;
   });
   assert(reminderBoundary.median.hour === 9 && reminderBoundary.median.minute === 24 && reminderBoundary.few.hour === 20 && reminderBoundary.few.minute === 0 && reminderBoundary.late.hour === 22 && reminderBoundary.late.minute === 0 && reminderBoundary.hiddenInBrowser && reminderBoundary.sync.type === "syncReminder", "Expected reminder median, fallback, clamp, and browser fallback boundaries", reminderBoundary);
   assert(reminderBoundary.sync.enabled && reminderBoundary.sync.questions.length === 8 && reminderBoundary.sync.targetCardKey === reminderBoundary.missKey && reminderBoundary.sync.questions[0].targetCardKey === reminderBoundary.missKey
-    && reminderBoundary.sync.title === `${reminderBoundary.missWord}的 ${reminderBoundary.missPy}` && reminderBoundary.sync.body === "还写得出吗，点开写写看"
+    && reminderBoundary.sync.title === `${reminderBoundary.missWord}（${reminderBoundary.missPy}）` && reminderBoundary.sync.body === "还记得这个字怎么写吗？点开试试。"
     && reminderBoundary.sync.questions.every((question) => question.title && question.body && question.targetCardKey && /^\d{4}-\d{2}-\d{2}$/.test(question.day)) && !reminderBoundary.noTarget.enabled && reminderBoundary.noTarget.questions.length === 0,
   "Expected missed-due-first question payloads, stable card keys, fixed copy, and no notification without a target", reminderBoundary);
 
@@ -844,14 +844,14 @@ let browser;
     saveMemory(); renderMe();
   });
   const meStory = await page.evaluate(() => ({ weak: Array.from(meWeakChars.querySelectorAll("[data-char-idx]")).map(node => node.textContent), advice: meAdvice.textContent, calendarStat: calendarMonthStat.textContent, month: meMonthMeta.textContent, settings: !!openSettings, backup: backupStatus.textContent }));
-  assert(meStory.weak.includes("器") && meStory.advice.includes("写过还总忘") && meStory.calendarStat.includes("累计") && meStory.month.includes("字是你的手写") && meStory.settings && meStory.backup.length > 0, "Expected My to place real weak words, calendar days, monthly work, settings, and backup in context", meStory);
+  assert(meStory.weak.includes("器") && meStory.advice.includes("更容易写错或想不起来") && meStory.calendarStat.includes("累计") && meStory.month.includes("个独立写出") && meStory.settings && meStory.backup.length > 0, "Expected My to place real weak words, calendar days, monthly work, settings, and backup in context", meStory);
   await page.click("#meWeakChars [data-char-idx]");
   const detail = await page.evaluate(() => ({ open: charSheet.classList.contains("open"), word: charDetailWord.textContent, story: charDetailStory.textContent, actions: [charDetailStrokeBtn.textContent, charDetailPractice.textContent] }));
   assert(detail.open && detail.word.length > 0 && detail.story.includes("练过") && detail.actions.join() === "看笔顺,再写一遍", "Expected a weak word to open its factual detail sheet", detail);
   await page.evaluate(() => closeCharSheet());
   await page.click("#openProfile");
   const profileInsight = await page.evaluate(() => ({ visible: getComputedStyle(profilePanel).display !== "none", title: profilePanel.querySelector("h2").textContent, forbidden: /掌握感|易忘度|卡点分析/.test(profilePanel.textContent), rows: profilePanel.querySelectorAll("[data-profile-kind],[data-char-idx]").length }));
-  assert(profileInsight.visible && profileInsight.title === "常忘的字" && !profileInsight.forbidden && profileInsight.rows > 0, "Expected human profile language with no opaque algorithm score", profileInsight);
+  assert(profileInsight.visible && profileInsight.title === "最近写不稳的字" && !profileInsight.forbidden && profileInsight.rows > 0, "Expected human profile language with no opaque algorithm score", profileInsight);
   await page.click("#closeProfile");
   assert(await page.evaluate(() => getComputedStyle(mePanel).display !== "none"), "Expected a Profile opened from My to return to My");
   await page.click("#tabBook");
@@ -949,7 +949,7 @@ let browser;
   await page.evaluate(() => { sound.enabled = true; soundDebug.events = []; soundDebug.last = null; sound.tipShown = false; saveSound(); });
   await chooseCorrect(page);
   const stampSound = await page.evaluate(() => ({ last: soundDebug.last, events: soundDebug.events.slice(), tipShown: sound.tipShown, tip: document.getElementById("toast").textContent, contextCreated: soundDebug.contextCreated }));
-  assert(stampSound.last === "stamp" && stampSound.events.join() === "stamp" && stampSound.tipShown && stampSound.tip.includes("盖章有声音了") && stampSound.contextCreated >= 1,
+  assert(stampSound.last === "stamp" && stampSound.events.join() === "stamp" && stampSound.tipShown && stampSound.tip.includes("盖章音效已开启") && stampSound.contextCreated >= 1,
     "Expected one restrained stamp sound in the same grading turn and a one-time settings hint", stampSound);
   await page.waitForTimeout(1900);
   const queuedSecond = await page.evaluate(() => ({ current: cur.target, firstConsumed: !(memory[cardKey(indexesForChars(["强"])[0])] || {}).queuedFront, secondQueued: !!(memory[cardKey(indexesForChars(["器"])[0])] || {}).queuedFront, undo: getComputedStyle(undoBar).display !== "none" }));
@@ -1014,14 +1014,14 @@ let browser;
   await page.click("#show");
   await page.waitForFunction(() => practicePhase === "tracing");
   const calibrationHelp = await page.evaluate(() => ({ phase: practicePhase, comfort: calibrationComfortShown, copy: traceIntro.textContent, mascot: mascotLine.textContent, bubbleHidden: getComputedStyle(teachBubble).display === "none", actionBottom: traceActions.getBoundingClientRect().bottom, viewportBottom: innerHeight, secondComfort: takeCalibrationComfort("slow"), card1Events: funnelEventCount("calib_card1_done") }));
-  assert(calibrationHelp.phase === "tracing" && calibrationHelp.comfort && calibrationHelp.copy.includes("忘了正常") && calibrationHelp.mascot.includes("沿着轮廓描") && calibrationHelp.bubbleHidden && calibrationHelp.actionBottom <= calibrationHelp.viewportBottom
+  assert(calibrationHelp.phase === "tracing" && calibrationHelp.comfort && calibrationHelp.copy.includes("想不起来很正常") && calibrationHelp.mascot.includes("沿着轮廓写") && calibrationHelp.bubbleHidden && calibrationHelp.actionBottom <= calibrationHelp.viewportBottom
     && !calibrationHelp.secondComfort && calibrationHelp.card1Events === 1,
   "Expected first-card don't-know to enter tracing immediately and show calibration comfort only once", calibrationHelp);
 
   await page.evaluate(() => { tracedThisCard = true; updateInkControls(); });
   await page.click("#traceDone");
   const postTraceLayout = await page.evaluate(() => ({ phase: practicePhase, title: phaseTitle.textContent, hint: hint.textContent, mascot: mascotLine.textContent, actionBottom: actions.getBoundingClientRect().bottom, viewportBottom: innerHeight, show: show.textContent }));
-  assert(postTraceLayout.phase === "postTraceRecall" && postTraceLayout.title.includes("2/2 自己写") && postTraceLayout.hint === "" && postTraceLayout.mascot === "凭刚才的手感写"
+  assert(postTraceLayout.phase === "postTraceRecall" && postTraceLayout.title.includes("第 2 步：自己写") && postTraceLayout.hint === "" && postTraceLayout.mascot === "凭刚才的手感写"
     && postTraceLayout.actionBottom <= postTraceLayout.viewportBottom && postTraceLayout.show === "再描一遍", "Expected the complete 375x667 post-trace controls without duplicate guidance", postTraceLayout);
 
   await page.evaluate(() => {
@@ -1089,7 +1089,7 @@ let browser;
     summary.style.display = "flex"; calibCard.style.display = "flex"; renderCalibrationReturnHook();
     return { visible: getComputedStyle(calibReturnHook).display === "flex", title: calibReturnTitle.textContent, date: calibReturnText.textContent, buttonHidden: getComputedStyle(calibReminderYes).display === "none", tomorrow: formatDueDay(shiftDay(today(), 1)) };
   });
-  assert(calibrationWebReturn.visible && calibrationWebReturn.title.includes("明天再来") && calibrationWebReturn.date === calibrationWebReturn.tomorrow && calibrationWebReturn.buttonHidden,
+  assert(calibrationWebReturn.visible && calibrationWebReturn.title.includes("明天继续") && calibrationWebReturn.date === calibrationWebReturn.tomorrow && calibrationWebReturn.buttonHidden,
   "Expected Web calibration result to show a concrete next-day return expectation", calibrationWebReturn);
 
   await page.evaluate(() => { clearSessionSnapshot(); activeMode = "focus"; startFocus([CARDS.findIndex((card) => card.target === "器")]); });
@@ -1115,7 +1115,7 @@ let browser;
     return result;
   });
   assert(revealFidelity.grids.every(Boolean) && revealFidelity.standardPaths > 0 && revealFidelity.standardPaths === revealFidelity.overlayPaths && revealFidelity.sameViewBox
-    && revealFidelity.failedCount === 1 && revealFidelity.copy.includes("这几笔再对一眼") && revealFidelity.exactSuggest && revealFidelity.fallback,
+    && revealFidelity.failedCount === 1 && revealFidelity.copy.includes("这几笔可以再和范字对照一下") && revealFidelity.exactSuggest && revealFidelity.fallback,
   "Expected coordinate-aligned skeleton comparison, exact-stroke highlighting, soft suggestion tint, and font fallback", revealFidelity);
   await page.click("#decisionCorrect");
   const softConfirmFirst = await page.evaluate(() => ({ shown: getComputedStyle(softConfirm).display !== "none", stamped, attempts: episodeFor(currentCardIndex()).attempts.length }));
@@ -1260,7 +1260,7 @@ let browser;
     const immediate = hapticDebug.events.slice(), tiles = Array.from(calibSumTiles.querySelectorAll(".sumTile"));
     const before = {
       calibration: getComputedStyle(calibCard).display, sheet: getComputedStyle(sumSheet).display, tiles: tiles.length, date: calibDateSeal.textContent,
-      sealDelay, hint: getComputedStyle(calibPracticeHint).display, legend: calibCard.textContent.includes("无点 拾到"),
+      sealDelay, hint: getComputedStyle(calibPracticeHint).display, legend: calibCard.textContent.includes("无标记 独立写对"),
       marks: tiles.map((tile) => tile.querySelector(".outcomeMark")?.textContent || ""), recovered: tiles.map((tile) => tile.querySelector(".recover")?.textContent || ""),
       slowBorder: getComputedStyle(tiles[2]).borderColor, blue: getComputedStyle(document.documentElement).getPropertyValue("--blue").trim(), immediate,
     };
@@ -1305,7 +1305,7 @@ let browser;
     showRevealState(submissionSnapshot); decideSubmission(false); const autoOverlay = { on: overlayOn, display: getComputedStyle(mineOverlay).display, toggle: overlayToggle.textContent }; clearTimeout(autoNextTimer); clearTimeout(editStampTimer);
     return { me, bars, wallEmpty, breathes, autoOverlay, homeAdd: !!homeAdd, qualityTargets: Array.from(qualityBox.querySelectorAll("button")).map((node) => parseFloat(getComputedStyle(node).minHeight)), compareTargets: Array.from(document.querySelectorAll(".cmpLinks button")).map((node) => parseFloat(getComputedStyle(node).minHeight)) };
   });
-  assert(p1Discovery.me.calendar && p1Discovery.me.stat.includes("累计") && !p1Discovery.me.ready && p1Discovery.me.advice.includes("写过还总忘") && p1Discovery.me.weak.includes("器") && p1Discovery.bars === 0
+  assert(p1Discovery.me.calendar && p1Discovery.me.stat.includes("累计") && !p1Discovery.me.ready && p1Discovery.me.advice.includes("更容易写错或想不起来") && p1Discovery.me.weak.includes("器") && p1Discovery.bars === 0
     && p1Discovery.wallEmpty && p1Discovery.breathes && p1Discovery.autoOverlay.on && p1Discovery.autoOverlay.display === "flex" && p1Discovery.autoOverlay.toggle === "分开看"
     && p1Discovery.homeAdd && p1Discovery.qualityTargets.every((height) => height >= 44) && p1Discovery.compareTargets.every((height) => height >= 40),
   "Expected contextual My states, discoverable controls, an empty memory wall, and a due-card breathe cue", p1Discovery);
@@ -1434,13 +1434,13 @@ let browser;
     image: submissionSnapshot.compositeImage && submissionSnapshot.compositeImage.startsWith("data:image/png"),
     effect: correctEffect.textContent,
   }));
-  assert(snapshot.label === "提交字格" && snapshot.hintIds === 1 && snapshot.hintGeometry === 1 && snapshot.composite === snapshot.hintGeometry + snapshot.ink && snapshot.verdict === "ok" && snapshot.hintEverUsed && snapshot.image, "Expected one immutable complete-grid submission snapshot", snapshot);
+  assert(snapshot.label === "你写的" && snapshot.hintIds === 1 && snapshot.hintGeometry === 1 && snapshot.composite === snapshot.hintGeometry + snapshot.ink && snapshot.verdict === "ok" && snapshot.hintEverUsed && snapshot.image, "Expected one immutable complete-grid submission snapshot", snapshot);
   assert(snapshot.effect.includes("已用提示"), "Expected correct action to explain reinforcement consequence", snapshot.effect);
 
   await chooseCorrect(page);
   await page.waitForTimeout(450);
   const hold = await page.evaluate(() => ({ sameTarget: cur.target, feedback: stampedToast.textContent, outcome: roundStats[0] && roundStats[0].outcome, ratings: fsrsReviewLog.map((event) => event.rating), unresolved: [...unresolved] }));
-  assert(hold.sameTarget === firstTarget && hold.feedback.includes("本组稍后再写") && hold.outcome === "hinted" && hold.ratings.join() === "Again" && hold.unresolved.length === 1, "Expected 1.4s hinted feedback with one Again", hold);
+  assert(hold.sameTarget === firstTarget && hold.feedback.includes("稍后不看提示再写一次") && hold.outcome === "hinted" && hold.ratings.join() === "Again" && hold.unresolved.length === 1, "Expected 1.4s hinted feedback with one Again", hold);
 
   await page.click("#editStamp");
   const rollback = await page.evaluate(() => ({ phase: practicePhase, events: fsrsReviewLog.length, stats: roundStats.length, attempts: dailyActivity().attempts, stamps: dailyActivity().stamps, queue: reinforcementQueue.length, unresolved: unresolved.size, image: submissionSnapshot.compositeImage }));
@@ -1483,7 +1483,7 @@ let browser;
     await page.waitForTimeout(1900);
   }
   const reinforcement = await page.evaluate(() => ({ target: cur.target, kind: currentAttemptKind, baseCursor, attemptSeq, unresolved: [...unresolved], progress: posLabel.textContent, targets: baseTargets.slice(), stats: roundStats.map((row) => row.idx) }));
-  assert(reinforcement.target === firstTarget && reinforcement.kind === "reinforcement" && reinforcement.baseCursor === 3 && reinforcement.attemptSeq === 3 && reinforcement.progress === "还要再练 1", "Expected two-card spacing and plain-language reinforcement progress", reinforcement);
+  assert(reinforcement.target === firstTarget && reinforcement.kind === "reinforcement" && reinforcement.baseCursor === 3 && reinforcement.attemptSeq === 3 && reinforcement.progress === "另有 1 个字要再练", "Expected two-card spacing and plain-language reinforcement progress", reinforcement);
 
   await page.evaluate(() => { saveSessionSnapshot(); restoreSession(load(SESSION_KEY, null)); });
   await waitForWriter(page);
@@ -1513,7 +1513,7 @@ let browser;
   assert(completed.restKnown && completed.restLine.length > 0 && completed.ambient.scene === "off" && completed.ambient.stops >= 1, "Expected one fixed-library closing line and soundscape fade on summary", completed);
 
   const summaryEntry = await page.evaluate(() => ({ visible: getComputedStyle(summaryProfile).display !== "none", label: summaryProfile.textContent.trim() }));
-  assert(summaryEntry.visible && summaryEntry.label.includes("看看你卡在哪"), "Expected a hard-result summary to expose Profile", summaryEntry);
+  assert(summaryEntry.visible && summaryEntry.label.includes("看看哪些字要再练"), "Expected a hard-result summary to expose Profile", summaryEntry);
   const sharePaths = await page.evaluate(async () => {
     const messages = [], downloads = [], shared = [];
     const canvas = renderPracticeCardCanvas(), native = await sharePracticeCard({ nativeBridge: { postMessage: (message) => messages.push(message) } });
@@ -1575,7 +1575,7 @@ let browser;
 
   await page.evaluate(() => { displayView("summary"); renderPracticePocket(summaryFocusIndexes, false); });
   const pocketBefore = await page.evaluate(() => ({ visible: getComputedStyle(pocketCard).display === "flex", indexes: summaryFocusIndexes.slice(), chips: Array.from(pocketChips.children).map((node) => node.textContent), title: pocketTitle.textContent }));
-  assert(pocketBefore.visible && pocketBefore.indexes.length === 1 && pocketBefore.chips.length === 1 && pocketBefore.title.includes("趁热再拾"), "Expected a difficult-result pocket with the weak target", pocketBefore);
+  assert(pocketBefore.visible && pocketBefore.indexes.length === 1 && pocketBefore.chips.length === 1 && pocketBefore.title.includes("还要再练"), "Expected a difficult-result pocket with the weak target", pocketBefore);
   await page.click("#pocketBtn");
   await page.waitForFunction(() => activeMode === "focus" && getComputedStyle(card).display !== "none");
   const pocketPractice = await page.evaluate(() => ({ mode: activeMode, target: cur.target, expected: CARDS[summaryFocusIndexes[0]].target, batch: baseTargets.slice() }));
@@ -1600,27 +1600,27 @@ let browser;
     haptics: hapticDebug.events.slice(), shown: traceTutorialShown, attempts: episodeFor(currentCardIndex()).attempts.length, unresolved: unresolved.size,
   }); });
   assert(dontKnow.phase === "tracing" && dontKnow.outcome === "miss" && dontKnow.ratings.join() === "Again:dontKnow:true" && dontKnow.revealHidden && dontKnow.stampHidden
-    && dontKnow.title.includes("1/2 描写") && dontKnow.intro && dontKnow.introCopy.includes("接着答案会隐藏") && dontKnow.noRecallTools
+    && dontKnow.title.includes("第 1 步：描红") && dontKnow.intro && dontKnow.introCopy.includes("下一步会隐藏轮廓") && dontKnow.noRecallTools
     && (dontKnow.outlinePaths>0 || dontKnow.fallback) && (!dontKnow.outlineBox || (dontKnow.outlineBox.width>200 && dontKnow.outlineBox.height>200))
     && dontKnow.haptics.join() === "select" && !dontKnow.shown && dontKnow.attempts === 1 && dontKnow.unresolved === 1,
   "Expected don't-know to enter non-blocking tracing immediately with one miss/Again", dontKnow);
   await page.evaluate(() => { soundDebug.events = []; soundDebug.last = null; lastPaperSoundAt = 0; inkBegin({ x: 20, y: 20 }); inkMove({ x: 80, y: 80 }); inkEnd(); });
   await page.waitForTimeout(230);
   const traceStart = await page.evaluate(() => ({ title: phaseTitle.textContent, disabled: traceDone.disabled, introHidden: getComputedStyle(traceIntro).display === "none", shown: traceTutorialShown, stored: load(TRACE_TUTORIAL_KEY, false), sound: soundDebug.events.slice(), writing:card.classList.contains("writing"), chrome:Number(getComputedStyle(phaseTitle).opacity) }));
-  assert(traceStart.title.includes("1/2 描写") && !traceStart.disabled && traceStart.introHidden && traceStart.shown && traceStart.stored && traceStart.sound.join() === "paper" && traceStart.writing && traceStart.chrome === 0,
+  assert(traceStart.title.includes("第 1 步：描红") && !traceStart.disabled && traceStart.introHidden && traceStart.shown && traceStart.stored && traceStart.sound.join() === "paper" && traceStart.writing && traceStart.chrome === 0,
     "Expected tracing to share stove mode while dismissing the explanation and emitting only the quiet paper-start sound", traceStart);
   await page.evaluate(() => { saveSessionSnapshot(); restoreSession(load(SESSION_KEY, null)); });
   await page.waitForFunction(() => pendingSessionVisual === null && practicePhase === "tracing" && tracedThisCard && inkStrokes.length === 1);
   const restoredTracing = await page.evaluate(() => ({ phase: practicePhase, title: phaseTitle.textContent, outline: hzEl.childNodes.length > 0 || hzEl.classList.contains("traceFallback"), ink: inkStrokes.length }));
-  assert(restoredTracing.phase === "tracing" && restoredTracing.title.includes("1/2 描写") && restoredTracing.outline && restoredTracing.ink === 1, "Expected tracing ink and outline to survive session restore", restoredTracing);
+  assert(restoredTracing.phase === "tracing" && restoredTracing.title.includes("第 1 步：描红") && restoredTracing.outline && restoredTracing.ink === 1, "Expected tracing ink and outline to survive session restore", restoredTracing);
   await page.evaluate(() => { hapticDebug.events = []; hapticDebug.last = null; });
   await page.click("#traceDone");
   const postTrace = await page.evaluate(() => ({ phase: practicePhase, title: phaseTitle.textContent, ink: inkStrokes.length, hintLayer: hzEl.textContent, fallback: hzEl.classList.contains("traceFallback"), tipDisabled: tip.disabled, tipDisplay: getComputedStyle(tip).display, show: show.textContent, clear: clear.textContent, haptics: hapticDebug.events.slice() }));
-  assert(postTrace.phase === "postTraceRecall" && postTrace.title.includes("2/2 自己写") && postTrace.ink === 0 && !postTrace.hintLayer && !postTrace.fallback && postTrace.tipDisabled && postTrace.tipDisplay === "none" && postTrace.show === "再描一遍" && postTrace.clear === "另" && postTrace.haptics.length === 0, "Expected outline-free step-two recall with only its own final-named tools", postTrace);
+  assert(postTrace.phase === "postTraceRecall" && postTrace.title.includes("第 2 步：自己写") && postTrace.ink === 0 && !postTrace.hintLayer && !postTrace.fallback && postTrace.tipDisabled && postTrace.tipDisplay === "none" && postTrace.show === "再描一遍" && postTrace.clear === "重写" && postTrace.haptics.length === 0, "Expected outline-free step-two recall with only its own final-named tools", postTrace);
   await page.evaluate(() => { saveSessionSnapshot(); restoreSession(load(SESSION_KEY, null)); });
   await page.waitForFunction(() => pendingSessionVisual === null && practicePhase === "postTraceRecall");
   const restoredPostTrace = await page.evaluate(() => ({ phase: practicePhase, title: phaseTitle.textContent, ink: inkStrokes.length, hintLayer: hzEl.textContent, fallback: hzEl.classList.contains("traceFallback"), tipDisabled: tip.disabled }));
-  assert(restoredPostTrace.phase === "postTraceRecall" && restoredPostTrace.title.includes("2/2 自己写") && restoredPostTrace.ink === 0 && !restoredPostTrace.hintLayer && !restoredPostTrace.fallback && restoredPostTrace.tipDisabled, "Expected post-trace recall to restore without teaching geometry", restoredPostTrace);
+  assert(restoredPostTrace.phase === "postTraceRecall" && restoredPostTrace.title.includes("第 2 步：自己写") && restoredPostTrace.ink === 0 && !restoredPostTrace.hintLayer && !restoredPostTrace.fallback && restoredPostTrace.tipDisabled, "Expected post-trace recall to restore without teaching geometry", restoredPostTrace);
 
   await page.evaluate(() => { hapticDebug.events = []; hapticDebug.last = null; });
   await submitStandard(page);
@@ -1661,7 +1661,7 @@ let browser;
   await page.click("#exitPractice");
   const failedExit = await page.evaluate(() => ({ card: getComputedStyle(card).display !== "none", phase: practicePhase, frozen: JSON.stringify(submissionSnapshot), message: document.getElementById("toast").textContent, armed: practiceHistoryArmed }));
   await page.evaluate(() => { Storage.prototype.setItem = window.__originalSetItem; delete window.__originalSetItem; });
-  assert(failedExit.card && failedExit.phase === "revealDecision" && failedExit.frozen === frozenBefore && failedExit.message.includes("未能保存进度") && failedExit.armed, "Expected persistence failure to keep the exact practice state with a retry message", failedExit);
+  assert(failedExit.card && failedExit.phase === "revealDecision" && failedExit.frozen === frozenBefore && failedExit.message.includes("进度暂时无法保存") && failedExit.armed, "Expected persistence failure to keep the exact practice state with a retry message", failedExit);
 
   await page.evaluate(() => openAddSheet());
   await page.waitForFunction(() => addSheet.classList.contains("open"));
@@ -1752,7 +1752,7 @@ let browser;
     activeMode = saved.activeMode; makeupTargetDay = saved.makeupTargetDay; baseTargets = saved.baseTargets; batch = baseTargets; baseCursor = saved.baseCursor; currentIndex = saved.currentIndex; currentAttemptKind = saved.currentAttemptKind; currentAttemptId = saved.currentAttemptId; practicePhase = saved.practicePhase; manualQueue = saved.manualQueue || []; reinforcementQueue = saved.reinforcementQueue || []; unresolved = new Set(saved.unresolved || []); episodes = saved.episodes || {}; roundStats = saved.roundStats || []; roundId = saved.roundId; renderHome();
     return report;
   });
-  assert(collections.before.normal.includes("拾") && collections.before.makeupBlank && collections.before.untouchedBlank && collections.before.stat.includes("本月 2 天 · 累计") && collections.before.nextDisabled && collections.before.gridHeight < 360 && collections.previousMonth.nextEnabled,
+  assert(collections.before.normal.includes("拾") && collections.before.makeupBlank && collections.before.untouchedBlank && collections.before.stat.includes("本月练习 2 天 · 累计练习") && collections.before.nextDisabled && collections.before.gridHeight < 360 && collections.previousMonth.nextEnabled,
     "Expected normal/blank calendar states and cross-month navigation", collections);
   assert(!collections.incomplete && collections.blankStayedBlank && collections.completed && collections.completedAgain && collections.makeup.flag && collections.makeup.targets === 5 && collections.makeup.independent === 5 && collections.after.makeup.includes("补") && collections.after.normal.includes("拾") && collections.after.markers === 1 && collections.reducedDirect && collections.sessionOK,
     "Expected a resumable five-character makeup round to stamp exactly once only after completion", collections);
@@ -1796,7 +1796,7 @@ let browser;
   assert(processedPhoto.sourceType === "data:image/webp;base64," && processedPhoto.requestId === processedPhoto.draftRequestId
     && processedPhoto.bytes > 0 && processedPhoto.bytes <= 64 * 1024
     && processedPhoto.thumbWidth > 0 && processedPhoto.thumbWidth === processedPhoto.thumbHeight
-    && processedPhoto.inputCleared && processedPhoto.note.includes("正在本机认字"),
+    && processedPhoto.inputCleared && processedPhoto.note.includes("正在当前设备上识别"),
   "Expected a real PNG file input to decode, center-crop, compress to bounded WebP, render, and cross the native OCR bridge", processedPhoto);
 
   const candidateState = await page.evaluate(() => {
@@ -2066,7 +2066,7 @@ let browser;
       card: libName.textContent,
       rows: libList.querySelectorAll("[data-lib]").length,
       active: libList.querySelectorAll(".active").length,
-      reassurance: libSheet.textContent.includes("换库不丢任何东西") && libSheet.textContent.includes("复习照常跨库进行"),
+      reassurance: libSheet.textContent.includes("切换字库不会影响已有练习记录") && libSheet.textContent.includes("复习仍包含所有字库"),
       noUnapprovedProgress: !document.getElementById("libCard").querySelector(".libBar,.libTones") && !libList.querySelector(".libBar") && !/拾完|手速|墨色进度/.test(libSheet.textContent + libCard.textContent),
       settings: (() => { closeLibSheet(); renderSettings(false); return settingsLibName.textContent; })(),
     };
@@ -2125,7 +2125,7 @@ let browser;
     localStorage.removeItem("shizi.unknown.verify"); return result;
   });
   assert(backup.keys.includes(SESSION_STORAGE_KEY) && backup.keys.includes("shizi.library.v1") && backup.sessionVersion === 2 && backup.fsrsLog && backup.tutorial === "true" && backup.funnelVersion === 1 && backup.sound.enabled === true && backup.sound.scene === "rain" && backup.restoredKeys.includes(SESSION_STORAGE_KEY) && backup.unknown === "keep-local", "Expected session/FSRS/tutorial/funnel/soundscape/library backup round trip with allowlist isolation", backup);
-  assert(backup.cancelled && backup.confirmCopy.includes("当前 2 字（最后练习 2026-07-11）→ 备份 1 字（2026-06-01）") && backup.incomingApplied && backup.safetyReason === "restore" && backup.undoOffered && backup.undoApplied && backup.currentRestored, "Expected differential restore confirmation and one-tap safety undo", backup);
+  assert(backup.cancelled && backup.confirmCopy.includes("当前：2 个字，最后练习 2026-07-11") && backup.confirmCopy.includes("备份：1 个字，备份时间 2026-06-01") && backup.incomingApplied && backup.safetyReason === "restore" && backup.undoOffered && backup.undoApplied && backup.currentRestored, "Expected differential restore confirmation and one-tap safety undo", backup);
   assert(backup.resetReason === "reset" && backup.overwrittenReason === "restore" && backup.latestRestored && backup.safetyExcluded, "Expected reset safety copy, latest-operation replacement, and backup exclusion", backup);
 
   const backupCoverage = await page.evaluate(() => {

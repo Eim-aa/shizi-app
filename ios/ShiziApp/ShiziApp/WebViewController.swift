@@ -1102,7 +1102,7 @@ final class WebViewController: UIViewController {
               });
               result.practiceFlow.hapticSelectTracingRecorded = hapticDebug.last === 'select';
               result.practiceFlow.hapticDontKnowSequence = hapticDebug.events.slice();
-              result.practiceFlow.traceTutorialVisible = visible('traceIntro') && document.getElementById('traceIntro').textContent.includes('下一步会隐藏轮廓');
+              result.practiceFlow.traceTutorialVisible = visible('traceIntro') && document.getElementById('traceIntro').textContent.includes('轮廓隐藏后');
               result.practiceFlow.traceModeVisible = visible('traceActions') && !visible('actions');
               const traceLayer = hzEl;
               const traceSVG = traceLayer.querySelector('svg');

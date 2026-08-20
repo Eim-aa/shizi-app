@@ -5,6 +5,7 @@ const os = require("os");
 const path = require("path");
 
 const root = path.resolve(__dirname, "..");
+execFileSync("python3", [path.join(root, "scripts", "verify_ui_copy.py")], { stdio: "inherit" });
 const appUrl = process.env.SHIZI_APP_URL || "http://127.0.0.1:8000/";
 const screenshotPath = path.join(root, "generated", "verify_8105_app.png");
 const wildPhotoFixturePath = path.join(root, "icon-192.png");
@@ -851,7 +852,7 @@ let browser;
   await page.evaluate(() => closeCharSheet());
   await page.click("#openProfile");
   const profileInsight = await page.evaluate(() => ({ visible: getComputedStyle(profilePanel).display !== "none", title: profilePanel.querySelector("h2").textContent, forbidden: /掌握感|易忘度|卡点分析/.test(profilePanel.textContent), rows: profilePanel.querySelectorAll("[data-profile-kind],[data-char-idx]").length }));
-  assert(profileInsight.visible && profileInsight.title === "最近写不稳的字" && !profileInsight.forbidden && profileInsight.rows > 0, "Expected human profile language with no opaque algorithm score", profileInsight);
+  assert(profileInsight.visible && profileInsight.title === "写得不稳的字" && !profileInsight.forbidden && profileInsight.rows > 0, "Expected human profile language with no opaque algorithm score", profileInsight);
   await page.click("#closeProfile");
   assert(await page.evaluate(() => getComputedStyle(mePanel).display !== "none"), "Expected a Profile opened from My to return to My");
   await page.click("#tabBook");
@@ -1250,18 +1251,20 @@ let browser;
     baseTargets = indexes.slice(); batch = baseTargets; calibrationTargets = baseTargets.slice(); baseCursor = baseTargets.length; manualQueue = []; unresolved = new Set(); practicePhase = "between";
     roundStats = [
       { idx: indexes[0], target: CARDS[indexes[0]].target, outcome: "fast", independentlyRecovered: false },
-      { idx: indexes[1], target: CARDS[indexes[1]].target, outcome: "hinted", independentlyRecovered: true },
+      { idx: indexes[1], target: CARDS[indexes[1]].target, outcome: "hinted", uncertain: true, independentlyRecovered: true },
       { idx: indexes[2], target: CARDS[indexes[2]].target, outcome: "slow", independentlyRecovered: false },
       { idx: indexes[3], target: CARDS[indexes[3]].target, outcome: "miss", independentlyRecovered: true },
     ];
     roundId = "verify-p1-ceremony"; roundStartMemoryCount = memoryCount(); indexes.forEach((idx) => markPracticeStamp(idx)); hapticDebug.events = []; hapticDebug.last = null;
     roundSummary(true);
     const sealDelay = parseFloat(getComputedStyle(calibBigSeal).animationDelay) * 1000;
-    const immediate = hapticDebug.events.slice(), tiles = Array.from(calibSumTiles.querySelectorAll(".sumTile"));
+    const immediate = hapticDebug.events.slice(), tiles = Array.from(calibSumTiles.querySelectorAll(".sumTile")), ariaProbe = document.createElement("div");
+    ariaProbe.innerHTML = sumTile({ idx: indexes[1], target: CARDS[indexes[1]].target, outcome: "hinted", uncertain: false, independentlyRecovered: false }, 0);
     const before = {
       calibration: getComputedStyle(calibCard).display, sheet: getComputedStyle(sumSheet).display, tiles: tiles.length, date: calibDateSeal.textContent,
       sealDelay, hint: getComputedStyle(calibPracticeHint).display, legend: calibCard.textContent.includes("首次结果：无标记 独立写对") && calibCard.textContent.includes("金菱 看过提示 / 不确定"),
       marks: tiles.map((tile) => tile.querySelector(".outcomeMark")?.textContent || ""), recovered: tiles.map((tile) => tile.querySelector(".recover")?.textContent || ""),
+      arias: tiles.map((tile) => tile.getAttribute("aria-label")), hintedAria: ariaProbe.firstElementChild?.getAttribute("aria-label") || "",
       slowBorder: getComputedStyle(tiles[2]).borderColor, blue: getComputedStyle(document.documentElement).getPropertyValue("--blue").trim(), immediate,
     };
     await new Promise((resolve) => setTimeout(resolve, sealDelay + 100));
@@ -1285,7 +1288,10 @@ let browser;
   });
   assert(p1Ceremony.before.calibration === "flex" && p1Ceremony.before.sheet === "none" && p1Ceremony.before.tiles === 4 && p1Ceremony.before.date.length > 0
     && p1Ceremony.before.sealDelay >= 690 && p1Ceremony.before.hint === "block" && p1Ceremony.before.legend && p1Ceremony.before.marks.join("") === "补待再"
-    && p1Ceremony.before.recovered.filter(Boolean).every((copy) => copy === "已独立") && p1Ceremony.before.slowBorder !== p1Ceremony.before.blue && p1Ceremony.before.immediate.length === 0 && p1Ceremony.after.join() === "action",
+    && p1Ceremony.before.recovered.filter(Boolean).every((copy) => copy === "已独立")
+    && p1Ceremony.before.arias[0].includes("第一次独立写对") && p1Ceremony.before.arias[1].includes("第一次不太确定，之后已独立写出")
+    && p1Ceremony.before.arias[2].includes("第一次写错") && p1Ceremony.before.arias[3].includes("第一次没写出") && p1Ceremony.before.hintedAria.includes("第一次看过提示后写出")
+    && p1Ceremony.before.slowBorder !== p1Ceremony.before.blue && p1Ceremony.before.immediate.length === 0 && p1Ceremony.after.join() === "action",
   "Expected the first calibration result to play the full, risk-readable tile/date/final-seal ceremony", p1Ceremony);
   assert(p1Ceremony.recoveredStamp.className.includes("recovered") && p1Ceremony.recoveredStamp.shadow !== "none" && p1Ceremony.recoveredStamp.copy.includes("7月30日") && !p1Ceremony.recoveredStamp.copy.includes("2026年") && p1Ceremony.recoveredStamp.mascot.includes("pleased") && p1Ceremony.recoveredStamp.concernedMascot.includes("concerned"),
   "Expected an independently recovered card to receive a distinct gold-edged seal, compact date, and responsive mascot state", p1Ceremony.recoveredStamp);
@@ -1513,7 +1519,7 @@ let browser;
   assert(completed.restKnown && completed.restLine.length > 0 && completed.ambient.scene === "off" && completed.ambient.stops >= 1, "Expected one fixed-library closing line and soundscape fade on summary", completed);
 
   const summaryEntry = await page.evaluate(() => ({ visible: getComputedStyle(summaryProfile).display !== "none", label: summaryProfile.textContent.trim() }));
-  assert(summaryEntry.visible && summaryEntry.label.includes("看看最近写不稳的字"), "Expected a hard-result summary to expose Profile", summaryEntry);
+  assert(summaryEntry.visible && summaryEntry.label.includes("看看写得不稳的字"), "Expected a hard-result summary to expose Profile", summaryEntry);
   const sharePaths = await page.evaluate(async () => {
     const messages = [], downloads = [], shared = [];
     const canvas = renderPracticeCardCanvas(), native = await sharePracticeCard({ nativeBridge: { postMessage: (message) => messages.push(message) } });
@@ -1600,7 +1606,7 @@ let browser;
     haptics: hapticDebug.events.slice(), shown: traceTutorialShown, attempts: episodeFor(currentCardIndex()).attempts.length, unresolved: unresolved.size,
   }); });
   assert(dontKnow.phase === "tracing" && dontKnow.outcome === "miss" && dontKnow.ratings.join() === "Again:dontKnow:true" && dontKnow.revealHidden && dontKnow.stampHidden
-    && dontKnow.title.includes("第 1 步：描红") && dontKnow.intro && dontKnow.introCopy.includes("下一步会隐藏轮廓") && dontKnow.noRecallTools
+    && dontKnow.title.includes("第 1 步：描红") && dontKnow.intro && dontKnow.introCopy.includes("轮廓隐藏后") && dontKnow.noRecallTools
     && (dontKnow.outlinePaths>0 || dontKnow.fallback) && (!dontKnow.outlineBox || (dontKnow.outlineBox.width>200 && dontKnow.outlineBox.height>200))
     && dontKnow.haptics.join() === "select" && !dontKnow.shown && dontKnow.attempts === 1 && dontKnow.unresolved === 1,
   "Expected don't-know to enter non-blocking tracing immediately with one miss/Again", dontKnow);
@@ -2099,7 +2105,7 @@ let browser;
   assert(libraries.ui.card === "初中" && libraries.ui.settings === "初中" && libraries.ui.rows === 6 && libraries.ui.active === 1 && libraries.ui.reassurance && libraries.ui.noUnapprovedProgress,
     "Expected one honest six-library selector in the library and settings surfaces", libraries);
 
-  const backup = await page.evaluate(async () => {
+  const backup = await page.evaluate(() => {
     const original = JSON.parse(backupPayload({ preserveMeta: true })), originalMemory = cloneObj(memory);
     const currentMemory = { "verify:current-a": { seen: 1, last: new Date("2026-07-10T08:00:00Z").getTime() }, "verify:current-b": { seen: 1, last: new Date("2026-07-11T08:00:00Z").getTime() } };
     memory = currentMemory; saveMemory();
@@ -2118,25 +2124,15 @@ let browser;
     restoreBackupPayload(secondIncoming, { skipConfirm: true, reload: false }); const overwrittenSafety = safetySnapshot();
     undoSafetyRestore({ reload: false }); const latestRestored = String(localStorage.getItem(MEMORY_KEY)).includes("verify:before-second");
 
-    const expiryPayload = JSON.parse(backupPayload({ preserveMeta: true })), nearExpiryCreatedAt = Date.now() - SAFETY_UNDO_MS + 400;
-    localStorage.setItem(SAFETY_KEY, JSON.stringify({ version: 1, createdAt: nearExpiryCreatedAt, expiresAt: nearExpiryCreatedAt + SAFETY_UNDO_MS, reason: "reset", pendingUndo: true, offeredAt: nearExpiryCreatedAt + 1, payload: expiryPayload }));
-    const resumedUndo = showSafetyUndo() && getComputedStyle(safetyUndo).display === "flex" && safetyUndoCopy.textContent.includes("秒内撤销");
-    await new Promise((resolve) => setTimeout(resolve, 550));
-    const timerDeletedSafety = localStorage.getItem(SAFETY_KEY) === null && getComputedStyle(safetyUndo).display === "none";
-    const expiredCreatedAt = Date.now() - SAFETY_UNDO_MS - 1;
-    localStorage.setItem(SAFETY_KEY, JSON.stringify({ version: 1, createdAt: expiredCreatedAt, expiresAt: expiredCreatedAt + SAFETY_UNDO_MS, reason: "restore", pendingUndo: true, offeredAt: expiredCreatedAt + 1, payload: expiryPayload }));
-    const expiredAtBoot = !showSafetyUndo() && localStorage.getItem(SAFETY_KEY) === null && getComputedStyle(safetyUndo).display === "none";
-    const expiredUndoRejected = !undoSafetyRestore({ reload: false }).applied;
-
     restoreBackupPayload(original, { skipConfirm: true, reload: false, skipSafety: true }); localStorage.removeItem(SAFETY_KEY); hideSafetyUndo(); memory = originalMemory;
     const result = { keys: Object.keys(original.data), sessionVersion: JSON.parse(original.data[SESSION_KEY]).version, fsrsLog: !!original.data[FSRS_LOG_KEY], tutorial: original.data[TRACE_TUTORIAL_KEY], funnelVersion: JSON.parse(original.data[FUNNEL_KEY]).version, sound: JSON.parse(original.data[SOUND_KEY]), restoredKeys: restoredResult.keys,
       unknown: localStorage.getItem("shizi.unknown.verify"), cancelled: !cancelled.applied, confirmCopy, incomingApplied, safetyReason: safetyAfterRestore && safetyAfterRestore.reason, undoOffered, undoApplied: undoResult.applied, currentRestored,
-      resetReason: resetSafety && resetSafety.reason, overwrittenReason: overwrittenSafety && overwrittenSafety.reason, latestRestored, resumedUndo, timerDeletedSafety, expiredAtBoot, expiredUndoRejected, safetyExcluded: !Object.prototype.hasOwnProperty.call(original.data, SAFETY_KEY) };
+      resetReason: resetSafety && resetSafety.reason, overwrittenReason: overwrittenSafety && overwrittenSafety.reason, latestRestored, safetyExcluded: !Object.prototype.hasOwnProperty.call(original.data, SAFETY_KEY) };
     localStorage.removeItem("shizi.unknown.verify"); return result;
   });
   assert(backup.keys.includes(SESSION_STORAGE_KEY) && backup.keys.includes("shizi.library.v1") && backup.sessionVersion === 2 && backup.fsrsLog && backup.tutorial === "true" && backup.funnelVersion === 1 && backup.sound.enabled === true && backup.sound.scene === "rain" && backup.restoredKeys.includes(SESSION_STORAGE_KEY) && backup.unknown === "keep-local", "Expected session/FSRS/tutorial/funnel/soundscape/library backup round trip with allowlist isolation", backup);
   assert(backup.cancelled && backup.confirmCopy.includes("当前：2 个字，最后练习 2026-07-11") && backup.confirmCopy.includes("备份：1 个字，备份时间 2026-06-01") && backup.incomingApplied && backup.safetyReason === "restore" && backup.undoOffered && backup.undoApplied && backup.currentRestored, "Expected differential restore confirmation and one-tap safety undo", backup);
-  assert(backup.resetReason === "reset" && backup.overwrittenReason === "restore" && backup.latestRestored && backup.resumedUndo && backup.timerDeletedSafety && backup.expiredAtBoot && backup.expiredUndoRejected && backup.safetyExcluded, "Expected reset safety copy, latest-operation replacement, hard 10-second expiry, restart cleanup, and backup exclusion", backup);
+  assert(backup.resetReason === "reset" && backup.overwrittenReason === "restore" && backup.latestRestored && backup.safetyExcluded, "Expected reset safety copy, latest-operation replacement, and backup exclusion", backup);
 
   const backupCoverage = await page.evaluate(() => {
     const excluded = new Set(["shizi.nativeSmoke.v1", SAFETY_KEY]);

@@ -6,7 +6,7 @@
 <title>拾字｜提笔忘字，拾回便是</title>
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f4efe2">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1d1a15">
-<meta name="description" content="每天写几个容易提笔忘掉的汉字，重新找回手写记忆。">
+<meta name="description" content="每天练几个容易提笔忘掉的汉字，把这些字重新写熟。">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -480,7 +480,7 @@
   .annualSlide p{ margin:18px 0 0; color:var(--muted); font:400 calc(19px * var(--font-scale))/1.7 var(--kai); }
   .annualSlide .annualChar{ font:400 calc(112px * var(--font-scale))/1 var(--kai); color:var(--accent); }
   .annualEmpty{ color:var(--muted); text-align:center; line-height:1.8; }
-  /* ===== 最近写不稳的字 ===== */
+  /* ===== 写得不稳的字 ===== */
   .profile,.audit{ display:none; flex:1; flex-direction:column; padding:18px 24px 24px; animation:screenIn .32s ease; }
   .profileHead,.auditHead{ display:grid; grid-template-columns:44px 1fr 44px; align-items:center; gap:12px; margin-bottom:12px; }
   .profileHead h2,.auditHead h2{ grid-column:2; margin:0; text-align:center; font:900 calc(24px * var(--font-scale))/1 var(--song); }
@@ -693,7 +693,7 @@
       <div id="prompt"></div>
       <div class="hint" id="hint"></div>
       <div class="phaseTitle" id="phaseTitle"></div>
-      <div class="traceIntro" id="traceIntro">先沿着轮廓写一遍，下一步会隐藏轮廓，再自己写一次。</div>
+      <div class="traceIntro" id="traceIntro">先沿着轮廓写一遍；轮廓隐藏后，再自己写一次。</div>
       <div class="tbubble" id="teachBubble" style="display:none"><b>格子里缺的字，直接用手指写</b><br>写得不好看也没关系，连笔、断笔都可以</div>
       <div class="practiceCanvas">
         <div id="boxwrap"></div>
@@ -710,7 +710,7 @@
         <button class="primaryAct" id="done" disabled aria-label="写好了">写好了</button>
       </div>
       <div class="traceActions" id="traceActions">
-        <button class="primaryAct traceDone" id="traceDone" disabled><span>描好了，下一步自己写</span><small>下一步会隐藏轮廓</small></button>
+        <button class="primaryAct traceDone" id="traceDone" disabled><span>描好了，自己写</span><small>轮廓会先隐藏</small></button>
       </div>
     </div>
 
@@ -794,7 +794,7 @@
         <div class="ptxt"><b id="calibPocketTitle"></b><br><span>想巩固一下，可以趁现在再写一遍。</span></div>
         <button class="pocketBtn" id="calibPocketBtn">再写一遍</button>
       </div>
-      <button class="summaryProfileLink" id="calibProfile">看看最近写不稳的字 →</button>
+      <button class="summaryProfileLink" id="calibProfile">看看写得不稳的字 →</button>
       <button class="summaryShare" id="calibShare">存为字帖</button>
       <div class="sumActions">
         <button class="ghostAct" id="calibDone">明天见</button>
@@ -821,7 +821,7 @@
       </div>
       <div class="roundTune" id="roundTune"></div>
       <div class="summaryBackupHint" id="summaryBackupHint"><span>记录默认保存在当前设备，导出备份更安心。</span><button id="summaryBackupNow">导出备份</button></div>
-      <button class="summaryProfileLink" id="summaryProfile">看看最近写不稳的字 →</button>
+      <button class="summaryProfileLink" id="summaryProfile">看看写得不稳的字 →</button>
       <button class="summaryShare" id="summaryShare">存为字帖</button>
       <div class="sumActions">
         <button class="ghostAct" id="stop">回首页</button>
@@ -853,7 +853,7 @@
       <div class="calendarGrid" id="calendarGrid"></div>
       <div class="calendarHint" id="calendarHint"></div>
     </section>
-    <button class="meCard meWeakCard" id="openProfile"><div class="meCardTop"><b>最近写不稳的字</b><span>›</span></div><div class="meWeakChars" id="meWeakChars"></div><small id="meAdvice"></small></button>
+    <button class="meCard meWeakCard" id="openProfile"><div class="meCardTop"><b>写得不稳的字</b><span>›</span></div><div class="meWeakChars" id="meWeakChars"></div><small id="meAdvice"></small></button>
     <div class="meMonthCard">
       <div class="meMonthPreview"><img id="meMonthPreview" alt="本月拾字帖缩略图"></div>
       <div class="meMonthCopy"><b id="meMonthTitle">本月拾字帖</b><small id="meMonthMeta"></small></div>
@@ -908,9 +908,9 @@
     </div>
   </div>
 
-  <!-- 最近写不稳的字 -->
-  <div class="profile" id="profilePanel" style="display:none" data-screen-label="最近写不稳的字">
-    <div class="profileHead"><button class="xbtn" id="closeProfile" aria-label="返回">‹</button><h2>最近写不稳的字</h2><span></span></div>
+  <!-- 写得不稳的字 -->
+  <div class="profile" id="profilePanel" style="display:none" data-screen-label="写得不稳的字">
+    <div class="profileHead"><button class="xbtn" id="closeProfile" aria-label="返回">‹</button><h2>写得不稳的字</h2><span></span></div>
     <div class="profileSummary" id="profileSummary"></div>
     <div class="profileAdvice" id="profileAdvice"></div>
     <div class="profileSection" id="profileTopicsSection"><h3>再看一层</h3><div class="profileRows" id="profileTopics"></div></div>
@@ -1018,7 +1018,7 @@
 <div class="handCardPrompt" id="handCardPrompt" role="status"><span>要把刚写的字做成字卡吗？</span><button id="handCardPromptOpen">制作</button></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <div class="bootNotice" id="bootNotice" role="status" aria-live="polite">部分记录已损坏，已跳过；其他记录仍可正常使用</div>
-<div class="undoToast" id="safetyUndo" role="status" aria-live="polite"><span id="safetyUndoCopy">操作前的数据可在 10 秒内恢复</span><button id="safetyUndoBtn">撤销</button></div>
+<div class="undoToast" id="safetyUndo" role="status" aria-live="polite"><span id="safetyUndoCopy">操作前的数据已保留</span><button id="safetyUndoBtn">撤销</button></div>
 <input type="file" id="importFile" accept=".json,application/json" style="display:none">
 <input type="file" id="wildPhotoInput" accept="image/*" style="display:none">
 
@@ -1324,11 +1324,11 @@ function renderCalibrationReturnHook(){ const native=reminderBridgeAvailable(), 
 const MILESTONE_DAYS=[1,7,14,30];
 const MILESTONE_COPY={
   1:"第一天，写下第一组字。",
-  7:"已经完成 7 个练习日。",
-  14:"已经完成 14 个练习日。",
-  30:"已经完成 30 个练习日。"};
+  7:"已经练了 7 天。",
+  14:"已经练了 14 天。",
+  30:"已经练了 30 天。"};
 function milestoneDaysThrough(total){ const days=MILESTONE_DAYS.filter(d=>d<=total); for(let d=100;d<=total;d+=100) days.push(d); return days; }
-function milestoneCopy(day){ if(MILESTONE_COPY[day]) return MILESTONE_COPY[day]; return `已经完成 ${day} 个练习日。`; }
+function milestoneCopy(day){ if(MILESTONE_COPY[day]) return MILESTONE_COPY[day]; return `已经练了 ${day} 天。`; }
 function celebrateMilestoneIfAny(){ const total=totalPracticeDays(); let changed=false, celebrate=null;
   milestoneDaysThrough(total).forEach(d=>{ if(!reminder.milestonesShown.includes(d)){ reminder.milestonesShown.push(d); changed=true; if(total===d) celebrate=d; } });
   if(changed) saveReminder(); return celebrate; }
@@ -1740,18 +1740,18 @@ function renderHome(){ const resume=resumableSession();
       : `<div class="yTile more placeholder">今天练过的字会出现在这里</div>`; }
   updateBookBadge();
   warmUpcomingStrokeCache(); }
-function meAdviceText(idxs){ if(!idxs.length) return "练几组后，这里会显示最近写不稳的字。";
-  if(!profileSampleReady(idxs)) return `已练 ${idxs.length} 个字，记录还少。先看看最近没写出的字。`;
+function meAdviceText(idxs){ if(!idxs.length) return "练几组后，这里会显示写得不稳的字。";
+  if(!profileSampleReady(idxs)) return `已练 ${idxs.length} 个字，记录还少。先看看练习中没写出的字。`;
   const topic=profileGroups(idxs,cardTopic)[0], lvl=profileGroups(idxs,abilityLevel)[0], st=profileGroups(idxs,structureLabel)[0], bits=[];
-  if(st) return `${st.label}的字最近更容易写错或想不起来。`;
-  if(topic) return `${topic.label}里的字，最近更容易写不出来。`;
-  return `${lvl.label}的字，最近更容易写不出来。`; }
+  if(st) return `${st.label}的字更容易写错或想不起来。`;
+  if(topic) return `${topic.label}里的字更容易写不出来。`;
+  return `${lvl.label}的字更容易写不出来。`; }
 let meMonthPreviewToken=0;
 async function renderMeMonthCard(){ const token=++meMonthPreviewToken, month=today().slice(0,7), data=monthReportData(month); $("meMonthTitle").textContent=`${numCn(Number(month.slice(5)))}月拾字帖`; $("meMonthMeta").textContent=`${data.practiced} 个字 · 其中 ${data.independentCount} 个独立写出`;
   try{ const canvas=await renderMonthlyPostCanvas(month); if(token===meMonthPreviewToken && $("mePanel").style.display==="flex") $("meMonthPreview").src=canvas.toDataURL("image/jpeg",.72); }catch(e){ if(token===meMonthPreviewToken) $("meMonthPreview").removeAttribute("src"); } }
 function renderMe(){ displayView("me"); calendarMonthKey=calendarMonthKey||today().slice(0,7); renderCalendar();
   const indexes=profileIndexes(), weak=indexes.filter(i=>hardCount(i)>0).sort((a,b)=>hardCount(b)-hardCount(a)||((memory[cardKey(b)]||{}).last||0)-((memory[cardKey(a)]||{}).last||0)).slice(0,3);
-  $("meWeakChars").innerHTML=weak.map(i=>`<span data-char-idx="${i}">${esc(CARDS[i].target)}</span>`).join(""); $("meWeakChars").style.display=weak.length?"flex":"none"; $("meAdvice").textContent=weak.length?"最近更容易写错或想不起来":meAdviceText(indexes);
+  $("meWeakChars").innerHTML=weak.map(i=>`<span data-char-idx="${i}">${esc(CARDS[i].target)}</span>`).join(""); $("meWeakChars").style.display=weak.length?"flex":"none"; $("meAdvice").textContent=weak.length?"练习中更容易写错或想不起来":meAdviceText(indexes);
   const annualReady=new Date().getMonth()===11; $("annualReportLink").classList.toggle("ready",annualReady); $("annualFootText").textContent=annualReady?`${new Date().getFullYear()} 年拾字报告已生成`:`查看 ${new Date().getFullYear()} 年拾字记录`; renderBackupUI(); updateBookBadge(); renderMeMonthCard(); }
 function renderSettings(focusData=false){ displayView("settings"); $("settingsLibName").textContent=currentLibrary().name; renderSoundUI(); renderHandCardPref(); renderReminderUI(); renderBackupUI(); $("devTools").style.display=DEV_TOOLS?"block":"none"; if(!DEV_TOOLS) $("dataBox").style.display="none";
   if(focusData) requestAnimationFrame(()=>$("settingsDataLabel").scrollIntoView({block:"start",behavior:motionReduced()?"auto":"smooth"})); }
@@ -1811,7 +1811,7 @@ async function shareMonthlyPost(opts={}){ const canvas=await renderMonthlyPostCa
 // ---- 年度报告：当前年度四屏本地汇总，不上传、不比较 ----
 function yearReportData(year=new Date().getFullYear()){ const prefix=String(year)+"-", days=activity.practiceDays.filter(day=>day.startsWith(prefix)).sort(), months={}; days.forEach(day=>{ const key=day.slice(0,7); months[key]=(months[key]||0)+1; }); const keys=[]; days.forEach(day=>dailyActivity(day).targetKeys.forEach(key=>{ if(!keys.includes(key)) keys.push(key); })); const indexes=keys.map(cardIndexForStoredKey).filter(i=>i>=0), busiest=Object.entries(months).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]))[0]||null, rarest=indexes.slice().sort((a,b)=>(Number(CARDS[b].rank)||0)-(Number(CARDS[a].rank)||0)||cardDifficulty(b)-cardDifficulty(a))[0], firstDay=days.find(day=>dailyActivity(day).targetKeys.length), firstKey=firstDay&&dailyActivity(firstDay).targetKeys[0], first=firstKey?cardIndexForStoredKey(firstKey):-1; return {year,days,keys,indexes,busiest,rarest:Number.isInteger(rarest)?rarest:null,first:first>=0?first:null,firstDay}; }
 function renderAnnualReport(year=new Date().getFullYear()){ const data=yearReportData(year); displayView("annual"); $("annualTitle").textContent=`${year} 年拾字报告`; if(!data.days.length){ $("annualSlides").innerHTML='<div class="annualSlide"><div class="annualEmpty">今年的第一枚章还没落下。<br>练过的字会在这里慢慢长成一卷。</div></div>'; return; }
-  const month=data.busiest?Number(data.busiest[0].slice(5)):0, firstChar=data.first!=null?CARDS[data.first].target:"", rareChar=data.rarest!=null?CARDS[data.rarest].target:""; $("annualSlides").innerHTML=`<section class="annualSlide"><span class="annualEyebrow">${year} · 练过的不同汉字</span><b>${data.keys.length} 字</b><p>这些是你今年练过的不同汉字。</p></section><section class="annualSlide"><span class="annualEyebrow">练习天数最多的月份</span><b>${month} 月</b><p>这个月练习了 ${data.busiest[1]} 天。</p></section><section class="annualSlide"><span class="annualEyebrow">练过的字中字频最低的一个</span><b class="annualChar">${esc(rareChar)}</b><p>${data.rarest!=null?esc(CARDS[data.rarest].word):""}</p></section><section class="annualSlide"><span class="annualEyebrow">这一年练的第一个字</span><b class="annualChar">${esc(firstChar)}</b><p>${data.firstDay||""}，从这个字开始。</p></section>`; $("annualSlides").scrollTop=0; }
+  const month=data.busiest?Number(data.busiest[0].slice(5)):0, firstChar=data.first!=null?CARDS[data.first].target:"", rareChar=data.rarest!=null?CARDS[data.rarest].target:""; $("annualSlides").innerHTML=`<section class="annualSlide"><span class="annualEyebrow">${year} · 练过的不同汉字</span><b>${data.keys.length} 字</b><p>这些是你今年练过的不同汉字。</p></section><section class="annualSlide"><span class="annualEyebrow">练习天数最多的月份</span><b>${month} 月</b><p>这个月练习了 ${data.busiest[1]} 天。</p></section><section class="annualSlide"><span class="annualEyebrow">练过的字里最少见的一个</span><b class="annualChar">${esc(rareChar)}</b><p>${data.rarest!=null?esc(CARDS[data.rarest].word):""}</p></section><section class="annualSlide"><span class="annualEyebrow">这一年练的第一个字</span><b class="annualChar">${esc(firstChar)}</b><p>${data.firstDay||""}，从这个字开始。</p></section>`; $("annualSlides").scrollTop=0; }
 function startMode(mode){ const resume=resumableSession(); if(resume){ restoreSession(resume); return; }
   clearSessionSnapshot(); activeMode=(mode==="new" && needsCalibration())?"calibrate":mode; makeupTargetDay=""; focusQueue=[]; sessionDone=new Set(); roundOpeningPending=true; startRound(); }
 function startFocus(indexes,options={}){ focusQueue=[...new Set((indexes||highRiskIndexes()).filter(i=>i>=0 && i<CARDS.length))]; if(!focusQueue.length){ renderHome(); return; }
@@ -1896,10 +1896,10 @@ function structureLabel(i){ const c=CARDS[i], strokes=Number(c.strokes)||0, part
 function profileGroups(indexes, labelFn){ const map={}; indexes.forEach(i=>{ const label=labelFn(i), g=map[label]||(map[label]={label,items:[],count:0,hard:0,score:0});
   g.items.push(i); g.count++; g.hard+=missCount(i); g.score+=weaknessScore(i); });
   return Object.values(map).map(g=>({...g,avg:Math.round(g.score/Math.max(1,g.count))})).sort((a,b)=>b.avg-a.avg || b.hard-a.hard || b.count-a.count || String(a.label).localeCompare(String(b.label))); }
-function profileAdvice(indexes){ const weak=indexes.filter(i=>missCount(i)>0); if(!weak.length) return "练几组后，这里会显示最近没写出的字。"; if(!profileSampleReady(indexes)) return "先看看这些最近没写出的字，记录多一些后再找规律。"; const insight=primaryProfileInsight(weak); return `${insight.text}目前更容易写错或想不起来。`; }
+function profileAdvice(indexes){ const weak=indexes.filter(i=>missCount(i)>0); if(!weak.length) return "练几组后，这里会显示练习中没写出的字。"; if(!profileSampleReady(indexes)) return "先看看这些练习中没写出的字，记录多一些后再找规律。"; const insight=primaryProfileInsight(weak); return `${insight.text}更容易写错或想不起来。`; }
 function primaryProfileInsight(indexes){ const topic=profileGroups(indexes,cardTopic)[0]; if(topic) return {kind:"topic",label:topic.label,text:`${topic.label}里的字`};
   const structure=profileGroups(indexes,structureLabel)[0]; if(structure) return {kind:"structure",label:structure.label,text:`${structure.label}的字`};
-  const level=profileGroups(indexes,abilityLevel)[0]; if(level) return {kind:"level",label:level.label,text:`${level.label}的字`}; return {kind:"none",label:"",text:"最近写过的字"}; }
+  const level=profileGroups(indexes,abilityLevel)[0]; if(level) return {kind:"level",label:level.label,text:`${level.label}的字`}; return {kind:"none",label:"",text:"练过的字"}; }
 let profileReturnView="me", profilePracticeIndexes=[];
 function openProfile(source="me"){ profileReturnView=source; renderProfile(); }
 function closeProfile(){ if(profileReturnView==="summary") displayView("summary"); else renderMe(); }
@@ -2434,7 +2434,7 @@ function revealAnswer(){
 }
 async function beginTracingPhase(){ resetWritingChrome(); loadToken++; animating=false; unlockGradeActions(); practicePhase="tracing"; tracing=true; enteredTracingThisAttempt=true; revealed=false; actionStack=[]; clearInk(); traceStrokeStartCount=0; tracedThisCard=false;
   shownStrokes=0; groupIdx=0; activePointers.clear(); peekReleasePending=false; exitPeekHint(true); hzEl.innerHTML=""; hzEl.classList.remove("peekHint","traceFallback");
-  $("practiceArea").style.display="flex"; $("reveal").style.display="none"; $("stampedToast").style.display="none"; $("stampOnMine").style.display="none"; $("hint").textContent=""; $("traceIntro").textContent="先沿着轮廓写一遍，下一步会隐藏轮廓，再自己写一次。"; renderPhaseControls(); await showTraceOutline(); saveSessionSnapshot(); }
+  $("practiceArea").style.display="flex"; $("reveal").style.display="none"; $("stampedToast").style.display="none"; $("stampOnMine").style.display="none"; $("hint").textContent=""; $("traceIntro").textContent="先沿着轮廓写一遍；轮廓隐藏后，再自己写一次。"; renderPhaseControls(); await showTraceOutline(); saveSessionSnapshot(); }
 function openTracingTeaching(){ if(Date.now()<actionCooldownUntil) return false; commitUndoWindow(); hapticFeedback("select"); clearTimeout(teachTimer); beginTracingPhase(); return true; }
 async function finishTracing(){ if(!tracedThisCard) return; resetWritingChrome(); clearInk(); hzEl.innerHTML=""; hzEl.classList.remove("traceFallback"); practicePhase="postTraceRecall"; tracing=false; shownStrokes=0; groupIdx=0; hintEverUsed=false; hintsUsedThisCard=0; actionStack=[];
   $("hint").textContent=""; renderPhaseControls(); saveSessionSnapshot(); }
@@ -2529,8 +2529,8 @@ function startRound(){ if(activeMode==="review" && reviewBudgetRemaining()===0){
   missedThisRound=[]; roundStats=[]; roundFeedbackGiven=false; calibrationFirstHoldUsed=false; calibrationComfortShown=false; lastStampSnapshot=null; hideUndoBar(false); roundId=Date.now()+"-"+Math.random().toString(36).slice(2,7);
   roundElapsedMs=0; roundActiveStartedAt=Date.now(); roundBudgetPrompted=false; roundTimerPaused=false;
   beginAttempt({idx:baseTargets[0],kind:"base"}); saveSessionSnapshot(); armPracticeHistory(); render(); }
-function sumTile(s,i,delayOffset=0){ const recovered=s.outcome!=="fast"&&s.independentlyRecovered, ui=GRADE_UI[s.outcome], mark=s.outcome==="fast"?"":`<span class="dot outcomeMark ${s.outcome}" style="background:${OUTCOME_DOT[s.outcome]}">${OUTCOME_MARK[s.outcome]}</span>`;
-  return `<button class="sumTile ${s.outcome}" data-idx="${s.idx}" aria-label="${esc(s.target)}，${esc(ui.func)}${recovered?"，之后已独立写出":""}" style="transform:rotate(${ROTS[i%ROTS.length]}deg); animation-delay:${(delayOffset+i*0.05).toFixed(2)}s"><span class="glyphText">${s.target}</span>${mark}<small class="meaning${recovered?" recover":""}">${recovered?"已独立":ui.short}</small></button>`; }
+function sumTile(s,i,delayOffset=0){ const recovered=s.outcome!=="fast"&&s.independentlyRecovered, ui=GRADE_UI[s.outcome], mark=s.outcome==="fast"?"":`<span class="dot outcomeMark ${s.outcome}" style="background:${OUTCOME_DOT[s.outcome]}">${OUTCOME_MARK[s.outcome]}</span>`, firstCopy=s.outcome==="fast"?"第一次独立写对":(s.outcome==="hinted"?(s.uncertain?"第一次不太确定":"第一次看过提示后写出"):(s.outcome==="slow"?"第一次写错":"第一次没写出"));
+  return `<button class="sumTile ${s.outcome}" data-idx="${s.idx}" aria-label="${esc(s.target)}，${firstCopy}${recovered?"，之后已独立写出":""}" style="transform:rotate(${ROTS[i%ROTS.length]}deg); animation-delay:${(delayOffset+i*0.05).toFixed(2)}s"><span class="glyphText">${s.target}</span>${mark}<small class="meaning${recovered?" recover":""}">${recovered?"已独立":ui.short}</small></button>`; }
 function motionReduced(){ return !!(window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches); }
 const REST_LINES=[
   "今天先写到这里。",
@@ -2818,7 +2818,7 @@ async function sharePracticeCard(opts={}){ const canvas=renderPracticeCardCanvas
 
 // ---- 数据备份 / 恢复（localStorage 是唯一存储，换手机或清缓存前先导出）----
 // 新增 shizi.* 持久键时必须同步加入；shizi.nativeSmoke.v1 与 SAFETY_KEY 为刻意排除。
-const BACKUP_KEYS=[DECK_KEY,OPEN_KEY,MEMORY_KEY,QUALITY_KEY,PREF_KEY,TUNING_KEY,ACTIVITY_KEY,SESSION_KEY,FSRS_LOG_KEY,TRACE_TUTORIAL_KEY,BACKUP_META_KEY,REMINDER_KEY,FONT_SCALE_KEY,FUNNEL_KEY,SOUND_KEY,TOPIC_KEY,CUSTOM_KEY,ADDED_KEY,WILD_KEY,HAND_CARD_KEY,LIB_KEY], SAFETY_UNDO_MS=10000;
+const BACKUP_KEYS=[DECK_KEY,OPEN_KEY,MEMORY_KEY,QUALITY_KEY,PREF_KEY,TUNING_KEY,ACTIVITY_KEY,SESSION_KEY,FSRS_LOG_KEY,TRACE_TUTORIAL_KEY,BACKUP_META_KEY,REMINDER_KEY,FONT_SCALE_KEY,FUNNEL_KEY,SOUND_KEY,TOPIC_KEY,CUSTOM_KEY,ADDED_KEY,WILD_KEY,HAND_CARD_KEY,LIB_KEY];
 function backupAgeDays(){ const ts=Number(backupMeta.lastExportAt)||0; return ts?Math.max(0,Math.floor((Date.now()-ts)/86400000)):Number.POSITIVE_INFINITY; }
 function backupRelativeText(){ const days=backupAgeDays(); if(!Number.isFinite(days)) return "从未备份"; if(days===0) return "上次备份 · 今天"; if(days===1) return "上次备份 · 昨天"; return `上次备份 · ${days} 天前`; }
 function renderBackupUI(){ const age=backupAgeDays(), never=!Number.isFinite(age), urgent=(totalPracticeDays()>=14&&never)||(!never&&age>=30); $("backupStatus").textContent=backupRelativeText(); $("backupStatus").classList.toggle("backupStatusUrgent",urgent); $("backupUrgency").style.display=urgent?"flex":"none"; $("mePanel").classList.toggle("backupUrgent",urgent);
@@ -2836,16 +2836,12 @@ function parseStoredObject(value){ try{ const obj=typeof value==="string"?JSON.p
 function payloadProgress(payload){ const mem=parseStoredObject(payload&&payload.data&&payload.data[MEMORY_KEY]), values=Object.values(mem).filter(m=>m&&m.seen), latest=values.reduce((max,m)=>Math.max(max,Number(m.last)||0),0); return {count:values.length,last:latest}; }
 function dateLabel(value){ const d=value?new Date(value):null; return d&&!Number.isNaN(d.getTime())?dayKey(d):"无记录"; }
 function currentProgress(){ const latest=Object.values(memory).reduce((max,m)=>Math.max(max,Number(m&&m.last)||0),0); return {count:memoryCount(),last:latest}; }
+function captureSafetySnapshot(reason){ const record={version:1,createdAt:Date.now(),reason,pendingUndo:true,offeredAt:0,payload:JSON.parse(backupPayload({preserveMeta:true}))}; localStorage.setItem(SAFETY_KEY,JSON.stringify(record)); return record; }
+function safetySnapshot(){ const row=parseStoredObject(localStorage.getItem(SAFETY_KEY)); return row.version===1&&row.pendingUndo&&row.payload?row:null; }
 let safetyUndoTimer=0;
-function hideSafetyUndo(){ clearTimeout(safetyUndoTimer); safetyUndoTimer=0; $("safetyUndo").style.display="none"; }
-function discardSafetySnapshot(){ removeStored(SAFETY_KEY); hideSafetyUndo(); }
-function captureSafetySnapshot(reason){ hideSafetyUndo(); const createdAt=Date.now(), record={version:1,createdAt,expiresAt:createdAt+SAFETY_UNDO_MS,reason,pendingUndo:true,offeredAt:0,payload:JSON.parse(backupPayload({preserveMeta:true}))}; localStorage.setItem(SAFETY_KEY,JSON.stringify(record)); return record; }
-function safetySnapshot(now=Date.now()){ const row=parseStoredObject(localStorage.getItem(SAFETY_KEY)), createdAt=Number(row.createdAt), expiresAt=createdAt+SAFETY_UNDO_MS;
-  if(row.version!==1 || !row.pendingUndo || !row.payload || !Number.isFinite(createdAt) || createdAt<=0 || Number(now)>=expiresAt){ discardSafetySnapshot(); return null; }
-  row.expiresAt=expiresAt; return row; }
-function showSafetyUndo(){ const row=safetySnapshot(); if(!row) return false; if(!row.offeredAt){ row.offeredAt=Date.now(); localStorage.setItem(SAFETY_KEY,JSON.stringify(row)); }
-  const remaining=Math.max(0,row.expiresAt-Date.now()); if(!remaining){ discardSafetySnapshot(); return false; } const seconds=Math.max(1,Math.ceil(remaining/1000));
-  $("safetyUndoCopy").textContent=row.reason==="reset"?`数据已清空，可在 ${seconds} 秒内撤销`:`备份已恢复，可在 ${seconds} 秒内撤销`; $("safetyUndoBtn").textContent=row.reason==="reset"?"撤销清空":"撤销恢复"; $("safetyUndo").style.display="flex"; clearTimeout(safetyUndoTimer); const expectedCreatedAt=row.createdAt; safetyUndoTimer=setTimeout(()=>{ const current=parseStoredObject(localStorage.getItem(SAFETY_KEY)); if(Number(current.createdAt)===Number(expectedCreatedAt)) discardSafetySnapshot(); },remaining); return true; }
+function hideSafetyUndo(){ clearTimeout(safetyUndoTimer); $("safetyUndo").style.display="none"; }
+function showSafetyUndo(){ const row=safetySnapshot(); if(!row || row.offeredAt) return false; row.offeredAt=Date.now(); localStorage.setItem(SAFETY_KEY,JSON.stringify(row));
+  $("safetyUndoCopy").textContent=row.reason==="reset"?"数据已清空，可撤销本次操作":"备份已恢复，可撤销本次操作"; $("safetyUndoBtn").textContent=row.reason==="reset"?"撤销清空":"撤销恢复"; $("safetyUndo").style.display="flex"; safetyUndoTimer=setTimeout(hideSafetyUndo,10000); return true; }
 function undoSafetyRestore(opts){ const options=opts||{}, row=safetySnapshot(); if(!row) return {applied:false}; const result=restoreBackupPayload(row.payload,{skipConfirm:true,reload:false,skipSafety:true}); localStorage.removeItem(SAFETY_KEY); hideSafetyUndo(); if(options.reload!==false) location.reload(); return result; }
 async function exportBackup(){ const exportedAt=Date.now(), payload=backupPayload({exportedAt,funnelExportAt:exportedAt}), name=`shizi-backup-${today()}.json`;
   if(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.shiziNative){
@@ -2860,7 +2856,7 @@ function restoreBackupPayload(payload, opts){ const options=opts||{}, obj=typeof
   if(!obj || obj.app!=="shizi" || !obj.data || typeof obj.data!=="object") throw new Error("format");
   const keys=Object.keys(obj.data).filter(k=>BACKUP_KEYS.includes(k)); if(!keys.length) throw new Error("empty");
   const current=currentProgress(), incoming=payloadProgress(obj), incomingDate=dateLabel(obj.date||incoming.last);
-  if(!options.skipConfirm && !confirm(`恢复备份会用其中的练习记录、拍字照片、自定义字和设置覆盖当前设备上的数据。\n\n当前：${current.count} 个字，最后练习 ${dateLabel(current.last)}\n备份：${incoming.count} 个字，备份时间 ${incomingDate}\n\n恢复后可在 10 秒内撤销。是否继续？`)) return {applied:false, keys};
+  if(!options.skipConfirm && !confirm(`恢复备份会用其中的练习记录、拍字照片、自定义字和设置覆盖当前设备上的数据。\n\n当前：${current.count} 个字，最后练习 ${dateLabel(current.last)}\n备份：${incoming.count} 个字，备份时间 ${incomingDate}\n\n恢复完成后，页面底部会短暂显示「撤销恢复」。是否继续？`)) return {applied:false, keys};
   if(!options.skipSafety) captureSafetySnapshot("restore");
   BACKUP_KEYS.forEach(k=>localStorage.removeItem(k));
   keys.forEach(k=>localStorage.setItem(k, String(obj.data[k])));
@@ -2883,7 +2879,7 @@ $("reminderLater").onclick=dismissReminderInvite;
 $("importLink").onclick=requestBackupImport;
 $("welcomeRestore").onclick=requestBackupImport;
 $("importFile").onchange=e=>{ const f=e.target.files && e.target.files[0]; e.target.value=""; if(f) importBackup(f); };
-function resetAllData(opts){ const options=opts||{}; if(!options.skipConfirm && !confirm(`要清空当前设备上的全部数据吗？\n\n这会删除 ${memoryCount()} 个字的练习记录、拍字照片、自定义字和各项设置。清空后仅可在 10 秒内撤销。`)) return false; captureSafetySnapshot("reset");
+function resetAllData(opts){ const options=opts||{}; if(!options.skipConfirm && !confirm(`要清空当前设备上的全部数据吗？\n\n这会删除 ${memoryCount()} 个字的练习记录、拍字照片、自定义字和各项设置。清空完成后，页面底部会短暂显示「撤销清空」。`)) return false; captureSafetySnapshot("reset");
   status={}; memory={}; fsrsReviewLog=[]; traceTutorialShown=false; quality={}; tuning={calibrated:false, offset:0, contextStrict:0, rounds:[]}; preference="balanced"; libraryState=normalizeLibrary(null); fontScaleLarge=false; applyFontScale(); opens=[today()]; customWords=[]; addedChars=[]; wildState=normalizeWildState(null); handCardPref=normalizeHandCardPref(null); activity=newActivity(); funnel=newFunnel(); backupMeta=normalizeBackupMeta(null); summaryBackupHintVisible=false; reminder=normalizeReminder(null); sound=normalizeSound(null); stopAmbient(true); saveSound(); save(LIB_KEY,libraryState); renderSoundUI(); renderHandCardPref(); hideHandCardPrompt(); save(HAND_CARD_KEY,handCardPref); saveReminder(); syncReminder(); save(DECK_KEY,status); save(MEMORY_KEY,memory); saveFSRSLog(); save(TRACE_TUTORIAL_KEY,false); save(QUALITY_KEY,quality); saveTuning(); save(PREF_KEY,preference); save(FONT_SCALE_KEY,false); save(OPEN_KEY,opens); save(CUSTOM_KEY,customWords); save(ADDED_KEY,addedChars); saveWildState(); saveActivity(); saveFunnel(); save(BACKUP_META_KEY,backupMeta); buildCustomCards(); removeStored(TOPIC_KEY); clearSessionSnapshot(); activeMode="new"; makeupTargetDay=""; sessionDone=new Set(); focusQueue=[]; renderHome(); $("dataBox").style.display="none"; showSafetyUndo(); return true; }
 $("resetLink").onclick=resetAllData;
 $("safetyUndoBtn").onclick=()=>undoSafetyRestore();
@@ -2897,7 +2893,7 @@ document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==
     stopAmbient(true);
     if(roundActiveStartedAt){ roundElapsedMs=currentRoundElapsed(); roundActiveStartedAt=0; roundTimerPaused=true; }  // 后台/锁屏期间停表，空转墙钟不计入组时长
     if(baseTargets.length && $("card").style.display!=="none") saveSessionSnapshot();
-  } else { showSafetyUndo(); if(roundTimerPaused){ roundActiveStartedAt=Date.now(); roundTimerPaused=false; } if($("card").style.display!=="none") startAmbient(); } });
+  } else { if(roundTimerPaused){ roundActiveStartedAt=Date.now(); roundTimerPaused=false; } if($("card").style.display!=="none") startAmbient(); } });
 // 视口尺寸变化明显（旋转、分屏、加载时序）时重建写字区。正在写的卡不动（别丢笔迹）：
 // 非卡片视图立即重建；卡片视图里每张新卡 render() 前都会 fitBox()，下一张自动适配
 function fitBox(){ const n=idealBoxSize(); if(Math.abs(n-S)>=24){ S=n; $("boxwrap").innerHTML=""; initBox(); } }

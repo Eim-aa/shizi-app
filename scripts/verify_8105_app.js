@@ -833,6 +833,21 @@ let browser;
   assert(typeAfter.title >= typeBefore.title * 1.1 && typeAfter.advice >= typeBefore.advice * 1.1 && typeAfter.pressed === "true" && typeAfter.state === "开" && typeAfter.stored && typeAfter.backedUp, "Expected the persisted large-type preference to scale fixed-pixel text and join backups", { typeBefore, typeAfter });
   await page.click("#fontScaleRow");
   await page.click("#closeSettings");
+  const nonMissWeakPreview = await page.evaluate(() => {
+    const saved = cloneObj(memory), hintIdx = CARDS.findIndex((card) => card.target === "器"), slowIdx = CARDS.findIndex((card) => card.target === "品");
+    memory = {
+      [cardKey(hintIdx)]: { seen: 1, last: Date.now(), target: CARDS[hintIdx].target, misses: 0, hints: 1, slow: 0 },
+      [cardKey(slowIdx)]: { seen: 1, last: Date.now() - 1, target: CARDS[slowIdx].target, misses: 0, hints: 0, slow: 1 },
+    };
+    renderMe();
+    const preview = Array.from(meWeakChars.querySelectorAll("[data-char-idx]")).map((node) => Number(node.dataset.charIdx)), advice = meAdvice.textContent;
+    renderProfile();
+    const profile = { indexes: profilePracticeIndexes.slice(), empty: document.getElementById("profileAdvice").textContent.includes("目前没有记录到没写出的字"), disabled: profilePractice.disabled };
+    memory = saved; renderMe();
+    return { hintIdx, slowIdx, preview, advice, profile };
+  });
+  assert(nonMissWeakPreview.preview.length === 0 && nonMissWeakPreview.advice === "目前没有记录到没写出的字。" && nonMissWeakPreview.profile.indexes.length === 0 && nonMissWeakPreview.profile.empty && nonMissWeakPreview.profile.disabled,
+    "Expected hint-only and slow-only records to stay out of the miss-based preview and detail", nonMissWeakPreview);
   await page.click("#tabBook");
   await page.fill("#bookSearchInput", "蘸料");
   await page.click("#bookSearchResult [data-book-add]");

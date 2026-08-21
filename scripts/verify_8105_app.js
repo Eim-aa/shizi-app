@@ -440,19 +440,20 @@ let browser;
     const missIdx = CARDS.findIndex((card) => card.target === "蘸"), otherIdx = CARDS.findIndex((card) => card.target === "器");
     memory = {}; status = {}; [missIdx, otherIdx].forEach((idx, order) => { memory[cardKey(idx)] = { seen: 1, dueDay: today(), pendingLearning: false, lastOutcome: order === 0 ? "miss" : "fast", misses: order === 0 ? 2 : 0, ease: order === 0 ? 25 : 70, last: Date.now() - order }; status[idx] = "rest"; });
     reminder = normalizeReminder({ enabled: true, permission: "granted" }); renderMe(); syncReminder(); const sync = cloneObj(reminderDebug.lastSync);
+    const fallbackIdx = CARDS.findIndex((card) => card.target === "品"); memory = { [cardKey(fallbackIdx)]: { seen: 1, dueDay: shiftDay(today(), 30), pendingLearning: false, lastOutcome: "slow", slow: 1, ease: 35, last: Date.now() } }; status = { [fallbackIdx]: "rest" }; syncReminder(); const fallback = cloneObj(reminderDebug.lastSync);
     memory = {}; status = {}; syncReminder(); const noTarget = cloneObj(reminderDebug.lastSync);
     memory = original.memory; status = original.status; reminder = normalizeReminder(original.reminder); saveMemory(); save(DECK_KEY, status); saveReminder();
     return {
       median, few, late,
       hiddenInBrowser: getComputedStyle(reminderSection).display === "none" && getComputedStyle(reminderInvite).display === "none",
-      sync, noTarget, missKey: cardKey(missIdx), missWord: CARDS[missIdx].word, missPy: CARDS[missIdx].py,
+      sync, fallback, noTarget, missKey: cardKey(missIdx), missWord: CARDS[missIdx].word, missPy: CARDS[missIdx].py, fallbackKey: cardKey(fallbackIdx),
     };
   });
   assert(reminderBoundary.median.hour === 9 && reminderBoundary.median.minute === 24 && reminderBoundary.few.hour === 20 && reminderBoundary.few.minute === 0 && reminderBoundary.late.hour === 22 && reminderBoundary.late.minute === 0 && reminderBoundary.hiddenInBrowser && reminderBoundary.sync.type === "syncReminder", "Expected reminder median, fallback, clamp, and browser fallback boundaries", reminderBoundary);
   assert(reminderBoundary.sync.enabled && reminderBoundary.sync.questions.length === 8 && reminderBoundary.sync.targetCardKey === reminderBoundary.missKey && reminderBoundary.sync.questions[0].targetCardKey === reminderBoundary.missKey
     && reminderBoundary.sync.title === `${reminderBoundary.missWord}（${reminderBoundary.missPy}）` && reminderBoundary.sync.body === "还记得这个字怎么写吗？点开试试。"
-    && reminderBoundary.sync.questions.every((question) => question.title && question.body && question.targetCardKey && /^\d{4}-\d{2}-\d{2}$/.test(question.day)) && !reminderBoundary.noTarget.enabled && reminderBoundary.noTarget.questions.length === 0,
-  "Expected missed-due-first question payloads, stable card keys, fixed copy, and no notification without a target", reminderBoundary);
+    && reminderBoundary.sync.questions.every((question) => question.title && question.body && question.targetCardKey && /^\d{4}-\d{2}-\d{2}$/.test(question.day)) && reminderBoundary.fallback.enabled && reminderBoundary.fallback.targetCardKey === reminderBoundary.fallbackKey && !reminderBoundary.noTarget.enabled && reminderBoundary.noTarget.questions.length === 0,
+  "Expected missed-due-first payloads, a later high-risk fallback, stable card keys, fixed copy, and no notification without a target", reminderBoundary);
 
   const backupReminderBoundary = await page.evaluate(() => {
     const completed = (count) => {
@@ -862,7 +863,7 @@ let browser;
     saveMemory(); renderMe();
   });
   const meStory = await page.evaluate(() => ({ weak: Array.from(meWeakChars.querySelectorAll("[data-char-idx]")).map(node => node.textContent), advice: meAdvice.textContent, calendarStat: calendarMonthStat.textContent, month: meMonthMeta.textContent, settings: !!openSettings, backup: backupStatus.textContent }));
-  assert(meStory.weak.includes("器") && meStory.advice.includes("更容易写错或想不起来") && meStory.calendarStat.includes("累计") && meStory.month.includes("个独立写出") && meStory.settings && meStory.backup.length > 0, "Expected My to place real weak words, calendar days, monthly work, settings, and backup in context", meStory);
+  assert(meStory.weak.includes("器") && meStory.advice === "这些字在练习中没写出来过" && meStory.calendarStat.includes("累计") && meStory.month.includes("个独立写出") && meStory.settings && meStory.backup.length > 0, "Expected My to place real weak words, calendar days, monthly work, settings, and backup in context", meStory);
   await page.click("#meWeakChars [data-char-idx]");
   const detail = await page.evaluate(() => ({ open: charSheet.classList.contains("open"), word: charDetailWord.textContent, story: charDetailStory.textContent, actions: [charDetailStrokeBtn.textContent, charDetailPractice.textContent] }));
   assert(detail.open && detail.word.length > 0 && detail.story.includes("练过") && detail.actions.join() === "看笔顺,再写一遍", "Expected a weak word to open its factual detail sheet", detail);
@@ -1328,7 +1329,7 @@ let browser;
     showRevealState(submissionSnapshot); decideSubmission(false); const autoOverlay = { on: overlayOn, display: getComputedStyle(mineOverlay).display, toggle: overlayToggle.textContent }; clearTimeout(autoNextTimer); clearTimeout(editStampTimer);
     return { me, bars, wallEmpty, breathes, autoOverlay, homeAdd: !!homeAdd, qualityTargets: Array.from(qualityBox.querySelectorAll("button")).map((node) => parseFloat(getComputedStyle(node).minHeight)), compareTargets: Array.from(document.querySelectorAll(".cmpLinks button")).map((node) => parseFloat(getComputedStyle(node).minHeight)) };
   });
-  assert(p1Discovery.me.calendar && p1Discovery.me.stat.includes("累计") && !p1Discovery.me.ready && p1Discovery.me.advice.includes("更容易写错或想不起来") && p1Discovery.me.weak.includes("器") && p1Discovery.bars === 0
+  assert(p1Discovery.me.calendar && p1Discovery.me.stat.includes("累计") && !p1Discovery.me.ready && p1Discovery.me.advice === "这些字在练习中没写出来过" && p1Discovery.me.weak.includes("器") && p1Discovery.bars === 0
     && p1Discovery.wallEmpty && p1Discovery.breathes && p1Discovery.autoOverlay.on && p1Discovery.autoOverlay.display === "flex" && p1Discovery.autoOverlay.toggle === "分开看"
     && p1Discovery.homeAdd && p1Discovery.qualityTargets.every((height) => height >= 44) && p1Discovery.compareTargets.every((height) => height >= 40),
   "Expected contextual My states, discoverable controls, an empty memory wall, and a due-card breathe cue", p1Discovery);
@@ -1800,11 +1801,13 @@ let browser;
     };
     fontScaleLarge = false; applyFontScale(); renderMe(); const standard = inspect();
     fontScaleLarge = true; applyFontScale(); renderCalendar(); const large = inspect();
-    activity = normalizeActivity(saved.activity); calendarMonthKey = saved.month; fontScaleLarge = saved.fontScaleLarge; applyFontScale(); renderHome();
-    return { standard, large };
+    activity = normalizeActivity(saved.activity); calendarMonthKey = saved.month; fontScaleLarge = saved.fontScaleLarge; applyFontScale(); renderMe();
+    return { standard, large, restoredAria: calendarMonthStat.getAttribute("aria-label") };
   });
-  assert([compactCalendarStat.standard, compactCalendarStat.large].every((row) => row.copy === "盖章 31天 · 累计 365天" && row.aria === "盖章 31 天 · 累计练习 365 天" && row.lines === 1 && row.within),
+  const accessibleCalendarStat = await page.getByRole("group", { name: compactCalendarStat.restoredAria, exact: true }).count();
+  assert([compactCalendarStat.standard, compactCalendarStat.large].every((row) => row.copy === "盖章 31天 · 累计 365天" && row.aria === "盖章 31 天 · 累计练习 365 天" && row.lines === 1 && row.within) && accessibleCalendarStat === 1,
     "Expected compact visible calendar stats and complete accessible labels to fit one line at 320px in default and large text", compactCalendarStat);
+  await page.evaluate(() => renderHome());
   await page.setViewportSize({ width: 390, height: 844 });
 
   await page.evaluate(() => {

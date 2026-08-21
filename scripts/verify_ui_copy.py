@@ -53,6 +53,7 @@ FORBIDDEN_BY_FILE = {
         "练习天数最多的月份",
         "这个月练习了",
         "练习 ${data.practiceDays} 天",
+        '<span id="calendarMonthStat"></span>',
     ),
     "README.md": (
         "稍后再练用金菱",
@@ -71,6 +72,7 @@ FORBIDDEN_BY_FILE = {
         "用「盖章 N 天」统计",
         "至少包含 3 个写不稳字的主题或结构",
         "练习天数最多的月份",
+        "到期或最近没写出的字",
     ),
     "ios/ShiziApp/README.md": (
         "手感诊断",
@@ -83,6 +85,7 @@ FORBIDDEN_BY_FILE = {
         "本月盖章 N 天",
         "累计练完 N 天",
         "「盖章 N 天」按所选月份",
+        "没有到期字时选最近没写出的字",
         "薄弱字口袋",
         "分享这张字帖",
         "最近写不稳的字",
@@ -107,6 +110,7 @@ FORBIDDEN_BY_FILE = {
         "字库里暂时找不到『X』",
         "「盖章 N 天」统计所选月份",
         "练习天数最多的月份",
+        "最近没写出的目标",
     ),
     "ios/ShiziApp/ShiziApp/WebViewController.swift": (
         "字帖图片生成失败",
@@ -157,6 +161,8 @@ REQUIRED_BY_FILE = {
         "盖章天数最多的月份",
         "这个月盖章",
         "盖章 ${data.practiceDays} 天",
+        'id="calendarMonthStat" role="group"',
+        "这些字在练习中没写出来过",
     ),
     "README.md": (
         "页面底部会短暂显示一次撤销入口",
@@ -174,6 +180,8 @@ REQUIRED_BY_FILE = {
         "累计 N天",
         "读屏会完整说明为「累计练习 N 天」",
         "某一主题或结构至少包含 3 个写得不稳的字",
+        "当前到期或更需要复习的字",
+        "同一批候选中优先上次没写出的字",
     ),
     "ios/ShiziApp/README.md": (
         "写得不稳的字",
@@ -185,6 +193,7 @@ REQUIRED_BY_FILE = {
         "读屏完整说明为「累计练习 N 天」",
         "累计练习 N 天",
         "存为字帖",
+        "没有到期字时，从写错、没写出、反复看提示或仍待巩固的字中选择",
     ),
     "ios/ShiziApp/DEVICE_QA.md": (
         "对错由你判断，没有考试",
@@ -207,6 +216,7 @@ REQUIRED_BY_FILE = {
         "盖章 N天",
         "累计 N天",
         "读屏完整说明为「盖章 N 天 · 累计练习 N 天」",
+        "清空所有到期和更需复习的候选后不再产生通知",
     ),
     "ios/ShiziApp/ShiziApp/WebViewController.swift": (
         "没能生成备份文件，请稍后重新导出。",

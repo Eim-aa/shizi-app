@@ -247,7 +247,7 @@ ios/ShiziApp/scripts/archive-testflight.sh
 
 ## 练习提醒
 
-「我的 -> 设置 -> 练习提醒」可开启本地通知（默认关，仅 iOS 壳内生效）。开关、习惯时刻、当日已练状态和未来题面全部由 Web 侧经 `shiziNative` 桥下发（`syncReminder` / `requestReminderPermission` / `queryReminderStatus`）。Web 优先选到期且上次没写出的字，没有到期字时选最近没写出的字；没有有效目标就不调度。原生侧收到同步先清空 `shizi.reminder.*` 待发项，再最多预约未来 7 道「语境词（拼音）」题面，当天已盖章或时刻已过则跳过今天。每条通知的 `userInfo.targetCardKey` 经 `AppDelegate` 交给 `shiziOpenReminderTarget`，页面未加载完时先排队，冷启动和后台点击都进入对应练习卡。授权结果经 `shiziReminderStatus` 回调回 Web，App 前台不弹提醒横幅。
+「我的 -> 设置 -> 练习提醒」可开启本地通知（默认关，仅 iOS 壳内生效）。开关、习惯时刻、当日已练状态和未来题面全部由 Web 侧经 `shiziNative` 桥下发（`syncReminder` / `requestReminderPermission` / `queryReminderStatus`）。Web 先从当前到期的可练字中选择，上次没写出的字优先；没有到期字时，从写错、没写出、反复看提示或仍待巩固的字中选择。没有有效目标就不调度。原生侧收到同步先清空 `shizi.reminder.*` 待发项，再最多预约未来 7 道「语境词（拼音）」题面，当天已盖章或时刻已过则跳过今天。每条通知的 `userInfo.targetCardKey` 经 `AppDelegate` 交给 `shiziOpenReminderTarget`，页面未加载完时先排队，冷启动和后台点击都进入对应练习卡。授权结果经 `shiziReminderStatus` 回调回 Web，App 前台不弹提醒横幅。
 
 ## 纸墨声音
 

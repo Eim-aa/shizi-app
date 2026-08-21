@@ -848,7 +848,7 @@
   <div class="me" id="mePanel" style="display:none" data-screen-label="我的">
     <h1>我的</h1>
     <section class="meCalendar" id="meCalendar">
-      <div class="meCalendarHead"><button id="calendarPrev" aria-label="上个月">‹</button><b id="calendarMonthTitle"></b><span id="calendarMonthStat"></span><button id="calendarNext" aria-label="下个月">›</button></div>
+      <div class="meCalendarHead"><button id="calendarPrev" aria-label="上个月">‹</button><b id="calendarMonthTitle"></b><span id="calendarMonthStat" role="group"></span><button id="calendarNext" aria-label="下个月">›</button></div>
       <div class="calendarWeek"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span></div>
       <div class="calendarGrid" id="calendarGrid"></div>
       <div class="calendarHint" id="calendarHint"></div>
@@ -1751,7 +1751,7 @@ async function renderMeMonthCard(){ const token=++meMonthPreviewToken, month=tod
   try{ const canvas=await renderMonthlyPostCanvas(month); if(token===meMonthPreviewToken && $("mePanel").style.display==="flex") $("meMonthPreview").src=canvas.toDataURL("image/jpeg",.72); }catch(e){ if(token===meMonthPreviewToken) $("meMonthPreview").removeAttribute("src"); } }
 function renderMe(){ displayView("me"); calendarMonthKey=calendarMonthKey||today().slice(0,7); renderCalendar();
   const indexes=profileIndexes(), weak=indexes.filter(i=>missCount(i)>0).sort((a,b)=>missCount(b)-missCount(a)||((memory[cardKey(b)]||{}).last||0)-((memory[cardKey(a)]||{}).last||0)).slice(0,3);
-  $("meWeakChars").innerHTML=weak.map(i=>`<span data-char-idx="${i}">${esc(CARDS[i].target)}</span>`).join(""); $("meWeakChars").style.display=weak.length?"flex":"none"; $("meAdvice").textContent=weak.length?"练习中更容易写错或想不起来":meAdviceText(indexes);
+  $("meWeakChars").innerHTML=weak.map(i=>`<span data-char-idx="${i}">${esc(CARDS[i].target)}</span>`).join(""); $("meWeakChars").style.display=weak.length?"flex":"none"; $("meAdvice").textContent=weak.length?"这些字在练习中没写出来过":meAdviceText(indexes);
   const annualReady=new Date().getMonth()===11; $("annualReportLink").classList.toggle("ready",annualReady); $("annualFootText").textContent=annualReady?`${new Date().getFullYear()} 年拾字报告已生成`:`查看 ${new Date().getFullYear()} 年拾字记录`; renderBackupUI(); updateBookBadge(); renderMeMonthCard(); }
 function renderSettings(focusData=false){ displayView("settings"); $("settingsLibName").textContent=currentLibrary().name; renderSoundUI(); renderHandCardPref(); renderReminderUI(); renderBackupUI(); $("devTools").style.display=DEV_TOOLS?"block":"none"; if(!DEV_TOOLS) $("dataBox").style.display="none";
   if(focusData) requestAnimationFrame(()=>$("settingsDataLabel").scrollIntoView({block:"start",behavior:motionReduced()?"auto":"smooth"})); }

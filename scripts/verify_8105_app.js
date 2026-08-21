@@ -394,6 +394,8 @@ let browser;
     const idx = CARDS.findIndex((card) => card.target === "器");
     markPracticeStamp(idx);
     const stampedOnly = totalPracticeDays();
+    calendarMonthKey = today().slice(0, 7); renderCalendar();
+    const inheritedCopy = calendarMonthStat.textContent;
     const complete = (id) => {
       baseTargets = [idx]; batch = baseTargets; baseCursor = 1; unresolved = new Set(); practicePhase = "between";
       roundStats = [{ idx, target: "器", outcome: "fast" }]; roundId = id;
@@ -403,9 +405,9 @@ let browser;
     const afterFirst = totalPracticeDays();
     const secondComplete = complete("verify-inherited-2");
     const afterSecond = totalPracticeDays();
-    return { inherited, before, stampedOnly, firstComplete, afterFirst, secondComplete, afterSecond };
+    return { inherited, before, stampedOnly, inheritedCopy, firstComplete, afterFirst, secondComplete, afterSecond };
   });
-  assert(inheritedDays.inherited === 3 && inheritedDays.before === 3 && inheritedDays.stampedOnly === 3 && inheritedDays.firstComplete && inheritedDays.secondComplete && inheritedDays.afterFirst === 4 && inheritedDays.afterSecond === 4, "Expected inherited practice days and same-day completion idempotence", inheritedDays);
+  assert(inheritedDays.inherited === 3 && inheritedDays.before === 3 && inheritedDays.stampedOnly === 3 && inheritedDays.inheritedCopy === "盖章 1 天 · 累计练习 3 天" && inheritedDays.firstComplete && inheritedDays.secondComplete && inheritedDays.afterFirst === 4 && inheritedDays.afterSecond === 4, "Expected inherited practice days and same-day completion idempotence", inheritedDays);
 
   const rhythmAndMilestones = await page.evaluate(() => {
     const monthStart = `${today().slice(0, 7)}-01`, thisMonth = [...new Set([monthStart, today()])], previousMonth = shiftDay(monthStart, -1);
@@ -418,7 +420,7 @@ let browser;
     reminder.milestonesShown = [1, 7, 14, 30, 100, 200]; activity.inheritedTotalDays = 300; const day300 = celebrateMilestoneIfAny(), repeat300 = celebrateMilestoneIfAny(), copy300 = milestoneCopy(300);
     return { monthly, schedule: milestoneDaysThrough(350), day14, repeat14, shown14, skipped250, shown250, day300, repeat300, copy300 };
   });
-  assert(rhythmAndMilestones.monthly.count === rhythmAndMilestones.monthly.expected && rhythmAndMilestones.monthly.copy === `本月盖章 ${rhythmAndMilestones.monthly.expected} 天 · 累计练完 0 天`
+  assert(rhythmAndMilestones.monthly.count === rhythmAndMilestones.monthly.expected && rhythmAndMilestones.monthly.copy === `盖章 ${rhythmAndMilestones.monthly.expected} 天 · 累计练习 0 天`
     && rhythmAndMilestones.schedule.join() === "1,7,14,30,100,200,300" && rhythmAndMilestones.day14 === 14 && rhythmAndMilestones.repeat14 === null && rhythmAndMilestones.shown14.join() === "1,7,14"
     && rhythmAndMilestones.skipped250 === null && rhythmAndMilestones.shown250.join() === "1,7,14,30,100,200" && rhythmAndMilestones.day300 === 300 && rhythmAndMilestones.repeat300 === null && rhythmAndMilestones.copy300.includes("300"),
   "Expected penalty-free monthly rhythm, one-time day-14 celebration, silent inherited catch-up, and every-100 continuation", rhythmAndMilestones);
@@ -1758,7 +1760,7 @@ let browser;
     activeMode = saved.activeMode; makeupTargetDay = saved.makeupTargetDay; baseTargets = saved.baseTargets; batch = baseTargets; baseCursor = saved.baseCursor; currentIndex = saved.currentIndex; currentAttemptKind = saved.currentAttemptKind; currentAttemptId = saved.currentAttemptId; practicePhase = saved.practicePhase; manualQueue = saved.manualQueue || []; reinforcementQueue = saved.reinforcementQueue || []; unresolved = new Set(saved.unresolved || []); episodes = saved.episodes || {}; roundStats = saved.roundStats || []; roundId = saved.roundId; renderHome();
     return report;
   });
-  assert(collections.before.normal.includes("拾") && collections.before.makeupBlank && collections.before.untouchedBlank && collections.before.stat.includes("本月盖章 2 天 · 累计练完") && collections.before.nextDisabled && collections.before.gridHeight < 360 && collections.previousMonth.nextEnabled,
+  assert(collections.before.normal.includes("拾") && collections.before.makeupBlank && collections.before.untouchedBlank && collections.before.stat.includes("盖章 2 天 · 累计练习") && collections.before.nextDisabled && collections.before.gridHeight < 360 && collections.previousMonth.nextEnabled,
     "Expected normal/blank calendar states and cross-month navigation", collections);
   assert(!collections.incomplete && collections.blankStayedBlank && collections.completed && collections.completedAgain && collections.makeup.flag && collections.makeup.targets === 5 && collections.makeup.independent === 5 && collections.after.makeup.includes("补") && collections.after.normal.includes("拾") && collections.after.markers === 1 && collections.reducedDirect && collections.sessionOK,
     "Expected a resumable five-character makeup round to stamp exactly once only after completion", collections);
@@ -1769,6 +1771,18 @@ let browser;
   "Expected a private 1080x1440 monthly post through the existing native share route", collections);
   assert(collections.annual.slides === 4 && collections.annual.keys.length >= 5 && collections.annual.busiest && Number.isInteger(collections.annual.rarest) && Number.isInteger(collections.annual.first) && collections.annual.clientHeight > 400 && Math.abs(collections.annual.firstHeight - collections.annual.clientHeight) < 2 && collections.annual.scrollHeight >= collections.annual.clientHeight * 3.9 && !collections.annual.copy.includes("击败") && !collections.annual.copy.includes("中断"),
     "Expected a four-screen local annual report without comparisons or break-loss language", collections);
+
+  await page.setViewportSize({ width: 320, height: 568 });
+  const compactCalendarStat = await page.evaluate(() => {
+    renderMe();
+    const range = document.createRange(); range.selectNodeContents(calendarMonthStat);
+    const rect = calendarMonthStat.getBoundingClientRect(), head = calendarMonthStat.parentElement.getBoundingClientRect();
+    const result = { copy: calendarMonthStat.textContent, lines: range.getClientRects().length, within: rect.left >= head.left && rect.right <= head.right };
+    renderHome(); return result;
+  });
+  assert(/^盖章 \d+ 天 · 累计练习 \d+ 天$/.test(compactCalendarStat.copy) && compactCalendarStat.lines === 1 && compactCalendarStat.within,
+    "Expected the two calendar day definitions to remain distinct and fit one line at 320px", compactCalendarStat);
+  await page.setViewportSize({ width: 390, height: 844 });
 
   await page.evaluate(() => {
     window.__wildVerifySaved = {

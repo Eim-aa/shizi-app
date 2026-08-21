@@ -1929,6 +1929,9 @@ let browser;
     closeCharSheet(); openCharSheet(emptyIndex);
     const emptyHidden = getComputedStyle(charDetailCard).display === "none";
     closeCharSheet();
+    openHandCard(index); await updateHandCardPreview();
+    const historicalHint = handCardHint.textContent;
+    closeHandCard();
 
     const portrait = await renderHandCardCanvas(index, "portrait"), square = await renderHandCardCanvas(index, "square");
     const inspect = (canvas, ratio) => {
@@ -1982,7 +1985,7 @@ let browser;
     if (saved.handCardRaw === null) localStorage.removeItem(HAND_CARD_KEY); else localStorage.setItem(HAND_CARD_KEY, saved.handCardRaw);
     document.documentElement.style.colorScheme = saved.mode; hideHandCardPrompt(); renderHome();
     return {
-      stored, detailEntry, emptyHidden, cards,
+      stored, detailEntry, emptyHidden, historicalHint, cards,
       noPrintedTargetFallback: !/fillText\s*\(\s*(?:data|card)\.target/.test(rendererSource),
       noMarketing: !/二维码|下载引导|扫码|slogan/i.test(rendererSource),
       firstPrompt, promptVisible, secondPrompt, wrongPrompt, promptOpened, disabledPrompt, settingOff,
@@ -1991,7 +1994,7 @@ let browser;
       legacy: { restored: legacyRestore && legacyRestore.applied, detail: legacyDetail, portraitBlocked: legacyPortrait === null, squareBlocked: legacySquare === null, exportRoute: legacyExport.route },
     };
   });
-  assert(handCards.stored && handCards.detailEntry && handCards.emptyHidden && handCards.cards.portrait.width === 1080 && handCards.cards.portrait.height === 1440 && handCards.cards.square.width === 1080 && handCards.cards.square.height === 1080,
+  assert(handCards.stored && handCards.detailEntry && handCards.emptyHidden && handCards.historicalHint === "用这份笔迹做一张字卡。" && handCards.cards.portrait.width === 1080 && handCards.cards.portrait.height === 1440 && handCards.cards.square.width === 1080 && handCards.cards.square.height === 1080,
     "Expected a recent-ink-only detail entry and clear 2x portrait/square canvases", handCards);
   assert(handCards.cards.portrait.source === "vector" && handCards.cards.square.source === "vector" && handCards.cards.portrait.strokes === 3 && handCards.cards.portrait.dark > 100 && handCards.cards.square.dark > 100
     && handCards.cards.portrait.redGrid === 0 && handCards.cards.square.redGrid === 0 && handCards.cards.portrait.legacyPaper === 0 && handCards.cards.square.legacyPaper === 0
@@ -2116,9 +2119,16 @@ let browser;
     const restoredResult = restoreBackupPayload(incoming, { skipConfirm: true, reload: false });
     const safetyAfterRestore = safetySnapshot(), incomingApplied = String(localStorage.getItem(MEMORY_KEY)).includes("verify:incoming");
     const undoOffered = showSafetyUndo() && getComputedStyle(safetyUndo).display === "flex" && safetyUndoBtn.textContent === "撤销恢复";
+    const restoreUndoCopy = safetyUndoCopy.textContent;
     const undoResult = undoSafetyRestore({ reload: false }), currentRestored = String(localStorage.getItem(MEMORY_KEY)).includes("verify:current-b");
 
-    memory = currentMemory; saveMemory(); resetAllData({ skipConfirm: true }); const resetSafety = safetySnapshot();
+    memory = currentMemory; saveMemory();
+    let resetConfirmCopy = ""; window.confirm = (copy) => { resetConfirmCopy = copy; return false; };
+    const resetCancelled = resetAllData() === false;
+    window.confirm = nativeConfirm;
+    const resetCancelledIntact = String(localStorage.getItem(MEMORY_KEY)).includes("verify:current-b");
+    resetAllData({ skipConfirm: true }); const resetSafety = safetySnapshot(), resetUndoCopy = safetyUndoCopy.textContent;
+    hideSafetyUndo(); const resetSafetyAfterPrompt = safetySnapshot();
     memory = { "verify:before-second": { seen: 1, last: Date.now() } }; saveMemory();
     const secondIncoming = JSON.parse(JSON.stringify(incoming)); secondIncoming.data[MEMORY_KEY] = JSON.stringify({ "verify:second-incoming": { seen: 1, last: Date.now() } });
     restoreBackupPayload(secondIncoming, { skipConfirm: true, reload: false }); const overwrittenSafety = safetySnapshot();
@@ -2127,12 +2137,13 @@ let browser;
     restoreBackupPayload(original, { skipConfirm: true, reload: false, skipSafety: true }); localStorage.removeItem(SAFETY_KEY); hideSafetyUndo(); memory = originalMemory;
     const result = { keys: Object.keys(original.data), sessionVersion: JSON.parse(original.data[SESSION_KEY]).version, fsrsLog: !!original.data[FSRS_LOG_KEY], tutorial: original.data[TRACE_TUTORIAL_KEY], funnelVersion: JSON.parse(original.data[FUNNEL_KEY]).version, sound: JSON.parse(original.data[SOUND_KEY]), restoredKeys: restoredResult.keys,
       unknown: localStorage.getItem("shizi.unknown.verify"), cancelled: !cancelled.applied, confirmCopy, incomingApplied, safetyReason: safetyAfterRestore && safetyAfterRestore.reason, undoOffered, undoApplied: undoResult.applied, currentRestored,
+      restoreUndoCopy, resetCancelled, resetConfirmCopy, resetCancelledIntact, resetUndoCopy, resetAfterPromptReason: resetSafetyAfterPrompt && resetSafetyAfterPrompt.reason,
       resetReason: resetSafety && resetSafety.reason, overwrittenReason: overwrittenSafety && overwrittenSafety.reason, latestRestored, safetyExcluded: !Object.prototype.hasOwnProperty.call(original.data, SAFETY_KEY) };
     localStorage.removeItem("shizi.unknown.verify"); return result;
   });
   assert(backup.keys.includes(SESSION_STORAGE_KEY) && backup.keys.includes("shizi.library.v1") && backup.sessionVersion === 2 && backup.fsrsLog && backup.tutorial === "true" && backup.funnelVersion === 1 && backup.sound.enabled === true && backup.sound.scene === "rain" && backup.restoredKeys.includes(SESSION_STORAGE_KEY) && backup.unknown === "keep-local", "Expected session/FSRS/tutorial/funnel/soundscape/library backup round trip with allowlist isolation", backup);
-  assert(backup.cancelled && backup.confirmCopy.includes("当前：2 个字，最后练习 2026-07-11") && backup.confirmCopy.includes("备份：1 个字，备份时间 2026-06-01") && backup.incomingApplied && backup.safetyReason === "restore" && backup.undoOffered && backup.undoApplied && backup.currentRestored, "Expected differential restore confirmation and one-tap safety undo", backup);
-  assert(backup.resetReason === "reset" && backup.overwrittenReason === "restore" && backup.latestRestored && backup.safetyExcluded, "Expected reset safety copy, latest-operation replacement, and backup exclusion", backup);
+  assert(backup.cancelled && backup.confirmCopy.includes("当前：2 个字，最后练习 2026-07-11") && backup.confirmCopy.includes("备份：1 个字，备份时间 2026-06-01") && backup.confirmCopy.includes("覆盖前的数据会作为一份安全副本留在当前设备") && backup.confirmCopy.includes("下次恢复或清空会覆盖这份副本") && backup.incomingApplied && backup.safetyReason === "restore" && backup.undoOffered && backup.restoreUndoCopy.includes("覆盖前的数据仍留在本设备") && backup.undoApplied && backup.currentRestored, "Expected differential restore confirmation and one-tap safety undo", backup);
+  assert(backup.resetCancelled && backup.resetCancelledIntact && backup.resetConfirmCopy.includes("要清空应用当前使用的数据吗") && backup.resetConfirmCopy.includes("操作前的数据会作为一份安全副本留在当前设备") && backup.resetConfirmCopy.includes("不会随撤销提示消失") && backup.resetUndoCopy.includes("操作前的数据仍留在本设备") && backup.resetReason === "reset" && backup.resetAfterPromptReason === "reset" && backup.overwrittenReason === "restore" && backup.latestRestored && backup.safetyExcluded, "Expected an honest reset warning, retained safety copy after the prompt, latest-operation replacement, and backup exclusion", backup);
 
   const backupCoverage = await page.evaluate(() => {
     const excluded = new Set(["shizi.nativeSmoke.v1", SAFETY_KEY]);

@@ -894,7 +894,7 @@
     <div class="meList settingsDataList">
       <button class="meRow" id="exportLink">导出备份<span>包含练习记录和拍字照片</span></button>
       <button class="meRow" id="importLink">恢复备份<span>覆盖当前设备的数据</span></button>
-      <button class="meRow dangerRow" id="resetLink">清空全部数据<span>删除记录、照片、自定义字和设置</span></button>
+      <button class="meRow dangerRow" id="resetLink">清空当前数据<span>清空记录、照片、自定义字和设置</span></button>
     </div>
     <div class="backupReminder settingsNotice" style="display:flex"><div><span>练习记录和拍字照片默认保存在当前设备。只有你主动导出备份时，才会写入所选位置；应用不会在后台上传。</span></div></div>
     <div class="backupReminder settingsNotice" id="backupReminder"><div><span id="backupReminderCopy"></span></div></div>
@@ -1006,7 +1006,7 @@
 </div></div>
 <div class="sheetMask" id="handCardSheet" role="dialog" aria-modal="true" aria-labelledby="handCardTitle"><div class="sheet handCardSheet">
   <h3 id="handCardTitle">做张字卡</h3>
-  <p class="sheetHint" id="handCardHint">用你刚写的这个字生成一张字卡。</p>
+  <p class="sheetHint" id="handCardHint">用这份笔迹做一张字卡。</p>
   <div class="handCardPreviewWrap"><canvas class="handCardPreview" id="handCardPreview" width="1080" height="1440"></canvas></div>
   <div class="handCardSizes" id="handCardSizes" role="group" aria-label="字卡尺寸">
     <button class="active" data-hand-card-ratio="portrait" aria-pressed="true">3:4 · 社交</button>
@@ -2772,7 +2772,7 @@ async function renderHandCardCanvas(index,ratio="portrait",targetCanvas=null){ c
   ctx.save(); ctx.translate(spec.width-170,sealY); ctx.strokeStyle="#c2452c"; ctx.lineWidth=5; ctx.strokeRect(0,0,82,82); ctx.fillStyle="#c2452c"; ctx.font='500 54px "Kaiti SC","STKaiti",serif'; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillText("拾",41,43); ctx.restore();
   ctx.fillStyle="#756b5a"; ctx.font='400 20px "Songti SC","STSong",serif'; ctx.textAlign="center"; ctx.fillText("拾字",spec.width/2,spec.height-42);
   canvas.dataset.ratio=ratio; canvas.dataset.inkSource="vector"; canvas.dataset.inkStrokeCount=String(Array.isArray(strokes)?strokes.length:0); canvas.dataset.signatureSize="20"; canvas.dataset.dateSize="32"; return canvas; }
-async function updateHandCardPreview(){ if(handCardIndex<0) return false; const token=++handCardRenderToken,canvas=$("handCardPreview"); $("handCardHint").textContent="用你刚写的这个字生成一张字卡。"; const rendered=await renderHandCardCanvas(handCardIndex,handCardRatio,canvas); if(token!==handCardRenderToken) return false; if(!rendered){ $("handCardHint").textContent="字卡暂时无法生成，请稍后再试。"; return false; } canvas.classList.toggle("square",handCardRatio==="square"); return true; }
+async function updateHandCardPreview(){ if(handCardIndex<0) return false; const token=++handCardRenderToken,canvas=$("handCardPreview"); $("handCardHint").textContent="用这份笔迹做一张字卡。"; const rendered=await renderHandCardCanvas(handCardIndex,handCardRatio,canvas); if(token!==handCardRenderToken) return false; if(!rendered){ $("handCardHint").textContent="字卡暂时无法生成，请稍后再试。"; return false; } canvas.classList.toggle("square",handCardRatio==="square"); return true; }
 function setHandCardRatio(ratio){ if(!HAND_CARD_RATIOS[ratio]) return false; handCardRatio=ratio; document.querySelectorAll("[data-hand-card-ratio]").forEach(button=>{ const active=button.dataset.handCardRatio===ratio; button.classList.toggle("active",active); button.setAttribute("aria-pressed",active?"true":"false"); }); updateHandCardPreview(); return true; }
 function openHandCard(index,options={}){ if(!handCardData(index)) return false; handCardIndex=index; handCardResumeFeedback=!!options.fromPrompt&&stamped&&practicePhase==="feedback"; if(handCardResumeFeedback){ clearTimeout(autoNextTimer); clearTimeout(editStampTimer); } hideHandCardPrompt(); setHandCardRatio("portrait"); $("handCardSheet").classList.add("open"); return true; }
 function closeHandCard(){ if(!$("handCardSheet").classList.contains("open")) return false; $("handCardSheet").classList.remove("open"); handCardRenderToken++; const resume=handCardResumeFeedback; handCardResumeFeedback=false; if(resume&&stamped&&practicePhase==="feedback") autoNextTimer=setTimeout(advanceFeedback,200); return true; }
@@ -2841,7 +2841,7 @@ function safetySnapshot(){ const row=parseStoredObject(localStorage.getItem(SAFE
 let safetyUndoTimer=0;
 function hideSafetyUndo(){ clearTimeout(safetyUndoTimer); $("safetyUndo").style.display="none"; }
 function showSafetyUndo(){ const row=safetySnapshot(); if(!row || row.offeredAt) return false; row.offeredAt=Date.now(); localStorage.setItem(SAFETY_KEY,JSON.stringify(row));
-  $("safetyUndoCopy").textContent=row.reason==="reset"?"数据已清空，可撤销本次操作":"备份已恢复，可撤销本次操作"; $("safetyUndoBtn").textContent=row.reason==="reset"?"撤销清空":"撤销恢复"; $("safetyUndo").style.display="flex"; safetyUndoTimer=setTimeout(hideSafetyUndo,10000); return true; }
+  $("safetyUndoCopy").textContent=row.reason==="reset"?"当前数据已清空，操作前的数据仍留在本设备":"备份已恢复，覆盖前的数据仍留在本设备"; $("safetyUndoBtn").textContent=row.reason==="reset"?"撤销清空":"撤销恢复"; $("safetyUndo").style.display="flex"; safetyUndoTimer=setTimeout(hideSafetyUndo,10000); return true; }
 function undoSafetyRestore(opts){ const options=opts||{}, row=safetySnapshot(); if(!row) return {applied:false}; const result=restoreBackupPayload(row.payload,{skipConfirm:true,reload:false,skipSafety:true}); localStorage.removeItem(SAFETY_KEY); hideSafetyUndo(); if(options.reload!==false) location.reload(); return result; }
 async function exportBackup(){ const exportedAt=Date.now(), payload=backupPayload({exportedAt,funnelExportAt:exportedAt}), name=`shizi-backup-${today()}.json`;
   if(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.shiziNative){
@@ -2856,7 +2856,7 @@ function restoreBackupPayload(payload, opts){ const options=opts||{}, obj=typeof
   if(!obj || obj.app!=="shizi" || !obj.data || typeof obj.data!=="object") throw new Error("format");
   const keys=Object.keys(obj.data).filter(k=>BACKUP_KEYS.includes(k)); if(!keys.length) throw new Error("empty");
   const current=currentProgress(), incoming=payloadProgress(obj), incomingDate=dateLabel(obj.date||incoming.last);
-  if(!options.skipConfirm && !confirm(`恢复备份会用其中的练习记录、拍字照片、自定义字和设置覆盖当前设备上的数据。\n\n当前：${current.count} 个字，最后练习 ${dateLabel(current.last)}\n备份：${incoming.count} 个字，备份时间 ${incomingDate}\n\n恢复完成后，页面底部会短暂显示「撤销恢复」。是否继续？`)) return {applied:false, keys};
+  if(!options.skipConfirm && !confirm(`恢复备份会用其中的练习记录、拍字照片、自定义字和设置覆盖当前设备上的数据。\n\n当前：${current.count} 个字，最后练习 ${dateLabel(current.last)}\n备份：${incoming.count} 个字，备份时间 ${incomingDate}\n\n覆盖前的数据会作为一份安全副本留在当前设备，不会随撤销提示消失；下次恢复或清空会覆盖这份副本。\n\n页面底部会短暂显示「撤销恢复」。是否继续？`)) return {applied:false, keys};
   if(!options.skipSafety) captureSafetySnapshot("restore");
   BACKUP_KEYS.forEach(k=>localStorage.removeItem(k));
   keys.forEach(k=>localStorage.setItem(k, String(obj.data[k])));
@@ -2879,7 +2879,7 @@ $("reminderLater").onclick=dismissReminderInvite;
 $("importLink").onclick=requestBackupImport;
 $("welcomeRestore").onclick=requestBackupImport;
 $("importFile").onchange=e=>{ const f=e.target.files && e.target.files[0]; e.target.value=""; if(f) importBackup(f); };
-function resetAllData(opts){ const options=opts||{}; if(!options.skipConfirm && !confirm(`要清空当前设备上的全部数据吗？\n\n这会删除 ${memoryCount()} 个字的练习记录、拍字照片、自定义字和各项设置。清空完成后，页面底部会短暂显示「撤销清空」。`)) return false; captureSafetySnapshot("reset");
+function resetAllData(opts){ const options=opts||{}; if(!options.skipConfirm && !confirm(`要清空应用当前使用的数据吗？\n\n这会清空 ${memoryCount()} 个字的练习记录、拍字照片、自定义字和各项设置。操作前的数据会作为一份安全副本留在当前设备，不会随撤销提示消失；下次恢复或清空会覆盖这份副本。\n\n页面底部会短暂显示「撤销清空」。`)) return false; captureSafetySnapshot("reset");
   status={}; memory={}; fsrsReviewLog=[]; traceTutorialShown=false; quality={}; tuning={calibrated:false, offset:0, contextStrict:0, rounds:[]}; preference="balanced"; libraryState=normalizeLibrary(null); fontScaleLarge=false; applyFontScale(); opens=[today()]; customWords=[]; addedChars=[]; wildState=normalizeWildState(null); handCardPref=normalizeHandCardPref(null); activity=newActivity(); funnel=newFunnel(); backupMeta=normalizeBackupMeta(null); summaryBackupHintVisible=false; reminder=normalizeReminder(null); sound=normalizeSound(null); stopAmbient(true); saveSound(); save(LIB_KEY,libraryState); renderSoundUI(); renderHandCardPref(); hideHandCardPrompt(); save(HAND_CARD_KEY,handCardPref); saveReminder(); syncReminder(); save(DECK_KEY,status); save(MEMORY_KEY,memory); saveFSRSLog(); save(TRACE_TUTORIAL_KEY,false); save(QUALITY_KEY,quality); saveTuning(); save(PREF_KEY,preference); save(FONT_SCALE_KEY,false); save(OPEN_KEY,opens); save(CUSTOM_KEY,customWords); save(ADDED_KEY,addedChars); saveWildState(); saveActivity(); saveFunnel(); save(BACKUP_META_KEY,backupMeta); buildCustomCards(); removeStored(TOPIC_KEY); clearSessionSnapshot(); activeMode="new"; makeupTargetDay=""; sessionDone=new Set(); focusQueue=[]; renderHome(); $("dataBox").style.display="none"; showSafetyUndo(); return true; }
 $("resetLink").onclick=resetAllData;
 $("safetyUndoBtn").onclick=()=>undoSafetyRestore();

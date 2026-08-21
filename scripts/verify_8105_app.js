@@ -395,7 +395,7 @@ let browser;
     markPracticeStamp(idx);
     const stampedOnly = totalPracticeDays();
     calendarMonthKey = today().slice(0, 7); renderCalendar();
-    const inheritedCopy = calendarMonthStat.textContent;
+    const inheritedCopy = calendarMonthStat.textContent, inheritedAria = calendarMonthStat.getAttribute("aria-label");
     const complete = (id) => {
       baseTargets = [idx]; batch = baseTargets; baseCursor = 1; unresolved = new Set(); practicePhase = "between";
       roundStats = [{ idx, target: "器", outcome: "fast" }]; roundId = id;
@@ -405,22 +405,22 @@ let browser;
     const afterFirst = totalPracticeDays();
     const secondComplete = complete("verify-inherited-2");
     const afterSecond = totalPracticeDays();
-    return { inherited, before, stampedOnly, inheritedCopy, firstComplete, afterFirst, secondComplete, afterSecond };
+    return { inherited, before, stampedOnly, inheritedCopy, inheritedAria, firstComplete, afterFirst, secondComplete, afterSecond };
   });
-  assert(inheritedDays.inherited === 3 && inheritedDays.before === 3 && inheritedDays.stampedOnly === 3 && inheritedDays.inheritedCopy === "盖章 1 天 · 累计练习 3 天" && inheritedDays.firstComplete && inheritedDays.secondComplete && inheritedDays.afterFirst === 4 && inheritedDays.afterSecond === 4, "Expected inherited practice days and same-day completion idempotence", inheritedDays);
+  assert(inheritedDays.inherited === 3 && inheritedDays.before === 3 && inheritedDays.stampedOnly === 3 && inheritedDays.inheritedCopy === "盖章 1天 · 累计 3天" && inheritedDays.inheritedAria === "盖章 1 天 · 累计练习 3 天" && inheritedDays.firstComplete && inheritedDays.secondComplete && inheritedDays.afterFirst === 4 && inheritedDays.afterSecond === 4, "Expected inherited practice days and same-day completion idempotence", inheritedDays);
 
   const rhythmAndMilestones = await page.evaluate(() => {
     const monthStart = `${today().slice(0, 7)}-01`, thisMonth = [...new Set([monthStart, today()])], previousMonth = shiftDay(monthStart, -1);
     activity = newActivity(); activity.inheritedStreak = 0; activity.inheritedTotalDays = 0; activity.daily = {}; activity.practiceDays = [...thisMonth, previousMonth].sort();
     activity.practiceDays.forEach((key, i) => { activity.daily[key] = { stamps: 1, attempts: 1, targetKeys: [`rhythm:${i}`], completedRoundIds: [], lastStampAt: Date.now() }; }); saveActivity(); calendarMonthKey = today().slice(0, 7); renderCalendar();
-    const monthly = { count: monthPracticeDays(), expected: thisMonth.length, copy: calendarMonthStat.textContent };
+    const monthly = { count: monthPracticeDays(), expected: thisMonth.length, copy: calendarMonthStat.textContent, aria: calendarMonthStat.getAttribute("aria-label") };
     activity = newActivity(); activity.inheritedStreak = 0; activity.daily = {}; activity.practiceDays = [];
     reminder.milestonesShown = []; activity.inheritedTotalDays = 14; const day14 = celebrateMilestoneIfAny(), repeat14 = celebrateMilestoneIfAny(), shown14 = reminder.milestonesShown.slice();
     reminder.milestonesShown = []; activity.inheritedTotalDays = 250; const skipped250 = celebrateMilestoneIfAny(), shown250 = reminder.milestonesShown.slice();
     reminder.milestonesShown = [1, 7, 14, 30, 100, 200]; activity.inheritedTotalDays = 300; const day300 = celebrateMilestoneIfAny(), repeat300 = celebrateMilestoneIfAny(), copy300 = milestoneCopy(300);
     return { monthly, schedule: milestoneDaysThrough(350), day14, repeat14, shown14, skipped250, shown250, day300, repeat300, copy300 };
   });
-  assert(rhythmAndMilestones.monthly.count === rhythmAndMilestones.monthly.expected && rhythmAndMilestones.monthly.copy === `盖章 ${rhythmAndMilestones.monthly.expected} 天 · 累计练习 0 天`
+  assert(rhythmAndMilestones.monthly.count === rhythmAndMilestones.monthly.expected && rhythmAndMilestones.monthly.copy === `盖章 ${rhythmAndMilestones.monthly.expected}天 · 累计 0天` && rhythmAndMilestones.monthly.aria === `盖章 ${rhythmAndMilestones.monthly.expected} 天 · 累计练习 0 天`
     && rhythmAndMilestones.schedule.join() === "1,7,14,30,100,200,300" && rhythmAndMilestones.day14 === 14 && rhythmAndMilestones.repeat14 === null && rhythmAndMilestones.shown14.join() === "1,7,14"
     && rhythmAndMilestones.skipped250 === null && rhythmAndMilestones.shown250.join() === "1,7,14,30,100,200" && rhythmAndMilestones.day300 === 300 && rhythmAndMilestones.repeat300 === null && rhythmAndMilestones.copy300.includes("300"),
   "Expected penalty-free monthly rhythm, one-time day-14 celebration, silent inherited catch-up, and every-100 continuation", rhythmAndMilestones);
@@ -1760,7 +1760,7 @@ let browser;
     activeMode = saved.activeMode; makeupTargetDay = saved.makeupTargetDay; baseTargets = saved.baseTargets; batch = baseTargets; baseCursor = saved.baseCursor; currentIndex = saved.currentIndex; currentAttemptKind = saved.currentAttemptKind; currentAttemptId = saved.currentAttemptId; practicePhase = saved.practicePhase; manualQueue = saved.manualQueue || []; reinforcementQueue = saved.reinforcementQueue || []; unresolved = new Set(saved.unresolved || []); episodes = saved.episodes || {}; roundStats = saved.roundStats || []; roundId = saved.roundId; renderHome();
     return report;
   });
-  assert(collections.before.normal.includes("拾") && collections.before.makeupBlank && collections.before.untouchedBlank && collections.before.stat.includes("盖章 2 天 · 累计练习") && collections.before.nextDisabled && collections.before.gridHeight < 360 && collections.previousMonth.nextEnabled,
+  assert(collections.before.normal.includes("拾") && collections.before.makeupBlank && collections.before.untouchedBlank && collections.before.stat.includes("盖章 2天 · 累计") && collections.before.nextDisabled && collections.before.gridHeight < 360 && collections.previousMonth.nextEnabled,
     "Expected normal/blank calendar states and cross-month navigation", collections);
   assert(!collections.incomplete && collections.blankStayedBlank && collections.completed && collections.completedAgain && collections.makeup.flag && collections.makeup.targets === 5 && collections.makeup.independent === 5 && collections.after.makeup.includes("补") && collections.after.normal.includes("拾") && collections.after.markers === 1 && collections.reducedDirect && collections.sessionOK,
     "Expected a resumable five-character makeup round to stamp exactly once only after completion", collections);
@@ -1774,14 +1774,22 @@ let browser;
 
   await page.setViewportSize({ width: 320, height: 568 });
   const compactCalendarStat = await page.evaluate(() => {
-    renderMe();
-    const range = document.createRange(); range.selectNodeContents(calendarMonthStat);
-    const rect = calendarMonthStat.getBoundingClientRect(), head = calendarMonthStat.parentElement.getBoundingClientRect();
-    const result = { copy: calendarMonthStat.textContent, lines: range.getClientRects().length, within: rect.left >= head.left && rect.right <= head.right };
-    renderHome(); return result;
+    const saved = { activity: cloneObj(activity), fontScaleLarge, month: calendarMonthKey };
+    const days = Array.from({ length: 31 }, (_, i) => `2026-01-${String(i + 1).padStart(2, "0")}`);
+    activity = normalizeActivity({ version: 1, migrationDate: "2026-02-01", inheritedStreak: 0, inheritedTotalDays: 365, practiceDays: days, daily: Object.fromEntries(days.map((day, i) => [day, { stamps: 1, attempts: 1, targetKeys: [`compact:${i}`], completedRoundIds: [], lastStampAt: Date.now() }])) });
+    calendarMonthKey = "2026-01";
+    const inspect = () => {
+      const range = document.createRange(); range.selectNodeContents(calendarMonthStat);
+      const rect = calendarMonthStat.getBoundingClientRect(), head = calendarMonthStat.parentElement.getBoundingClientRect();
+      return { copy: calendarMonthStat.textContent, aria: calendarMonthStat.getAttribute("aria-label"), lines: range.getClientRects().length, within: rect.left >= head.left && rect.right <= head.right };
+    };
+    fontScaleLarge = false; applyFontScale(); renderMe(); const standard = inspect();
+    fontScaleLarge = true; applyFontScale(); renderCalendar(); const large = inspect();
+    activity = normalizeActivity(saved.activity); calendarMonthKey = saved.month; fontScaleLarge = saved.fontScaleLarge; applyFontScale(); renderHome();
+    return { standard, large };
   });
-  assert(/^盖章 \d+ 天 · 累计练习 \d+ 天$/.test(compactCalendarStat.copy) && compactCalendarStat.lines === 1 && compactCalendarStat.within,
-    "Expected the two calendar day definitions to remain distinct and fit one line at 320px", compactCalendarStat);
+  assert([compactCalendarStat.standard, compactCalendarStat.large].every((row) => row.copy === "盖章 31天 · 累计 365天" && row.aria === "盖章 31 天 · 累计练习 365 天" && row.lines === 1 && row.within),
+    "Expected compact visible calendar stats and complete accessible labels to fit one line at 320px in default and large text", compactCalendarStat);
   await page.setViewportSize({ width: 390, height: 844 });
 
   await page.evaluate(() => {

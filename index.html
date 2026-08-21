@@ -6,7 +6,7 @@
 <title>拾字｜提笔忘字，拾回便是</title>
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f4efe2">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1d1a15">
-<meta name="description" content="每天写几个你会写错的汉字，把手写能力练回来。">
+<meta name="description" content="每天练几个容易提笔忘掉的汉字，把这些字重新写熟。">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -480,7 +480,7 @@
   .annualSlide p{ margin:18px 0 0; color:var(--muted); font:400 calc(19px * var(--font-scale))/1.7 var(--kai); }
   .annualSlide .annualChar{ font:400 calc(112px * var(--font-scale))/1 var(--kai); color:var(--accent); }
   .annualEmpty{ color:var(--muted); text-align:center; line-height:1.8; }
-  /* ===== 常忘的字 ===== */
+  /* ===== 写得不稳的字 ===== */
   .profile,.audit{ display:none; flex:1; flex-direction:column; padding:18px 24px 24px; animation:screenIn .32s ease; }
   .profileHead,.auditHead{ display:grid; grid-template-columns:44px 1fr 44px; align-items:center; gap:12px; margin-bottom:12px; }
   .profileHead h2,.auditHead h2{ grid-column:2; margin:0; text-align:center; font:900 calc(24px * var(--font-scale))/1 var(--song); }
@@ -655,12 +655,12 @@
   <div class="welcome" id="welcome" data-screen-label="首启">
     <div class="mid">
       <div class="logoStamp">拾</div>
-      <h1>打字十年，<br>好多字提笔就忘。</h1>
+      <h1>打字多了，<br>有些字提笔就忘。</h1>
       <div class="lede">一组字，按自己的节奏，<br>把忘掉的字一个一个拾回来。</div>
       <div class="welcomeActions">
-        <button class="go" id="welcomeStart">先拾 15 个字试试</button>
-        <div class="goSub">约 6–8 分钟 · 写不出的字会当场教你 · 不用注册<br>记录只存在这台手机上，之后随时可导出一份</div>
-        <button class="restoreLink" id="welcomeRestore">之前练过？恢复一份备份</button>
+        <button class="go" id="welcomeStart">先练 15 个字</button>
+        <div class="goSub">约 6–8 分钟 · 写不出时会提供提示 · 无需注册<br>记录默认保存在当前设备，之后可随时导出备份</div>
+        <button class="restoreLink" id="welcomeRestore">练过了？恢复备份</button>
       </div>
     </div>
     <div class="motto" id="welcomeMotto" style="writing-mode:horizontal-tb; height:auto; border:0; padding:0;">提笔忘字，拾回便是</div>
@@ -671,7 +671,7 @@
     <div class="homeTop"><div class="homeGreeting" id="homeGreeting"></div><div class="motto" id="homeMotto">提笔忘字，拾回便是</div></div>
     <div class="homeMain"><h1 class="homeTitle" id="homeTitle">今天拾<br>十五个字</h1></div>
     <div class="homeStart">
-      <button class="stampBtn" id="startBtn">拾</button>
+      <button class="stampBtn" id="startBtn" aria-label="开始练习">拾</button>
       <div class="startCap" id="startCap"></div>
     </div>
     <div class="yester" id="yesterBlock">
@@ -693,15 +693,15 @@
       <div id="prompt"></div>
       <div class="hint" id="hint"></div>
       <div class="phaseTitle" id="phaseTitle"></div>
-      <div class="traceIntro" id="traceIntro">先沿着轮廓描一遍，接着答案会隐藏，再自己写一次。</div>
-      <div class="tbubble" id="teachBubble" style="display:none"><b>格子里缺的字，直接用手指写</b><br>写得丑没关系，连笔断笔都行</div>
+      <div class="traceIntro" id="traceIntro">先沿着轮廓写一遍；轮廓隐藏后，再自己写一次。</div>
+      <div class="tbubble" id="teachBubble" style="display:none"><b>格子里缺的字，直接用手指写</b><br>写得不好看也没关系，连笔、断笔都可以</div>
       <div class="practiceCanvas">
         <div id="boxwrap"></div>
         <div id="inkTools">
           <button class="toolBtn" id="tip" disabled aria-label="点拨：轻点看下一笔，按住瞥一眼完整字形">点拨</button>
           <button class="toolBtn peek" id="peekInk" disabled aria-hidden="true" tabindex="-1">瞥一眼</button>
-          <button class="toolBtn side" id="undoStroke" disabled aria-label="回一笔">回</button>
-          <button class="toolBtn side" id="clear" disabled aria-label="另起，重写这个字">另</button>
+          <button class="toolBtn side" id="undoStroke" disabled aria-label="撤一笔">撤一笔</button>
+          <button class="toolBtn side" id="clear" disabled aria-label="重写这个字">重写</button>
         </div>
       </div>
       <div class="mascotRow"><span class="blob"></span><span id="mascotLine"></span></div>
@@ -710,7 +710,7 @@
         <button class="primaryAct" id="done" disabled aria-label="写好了">写好了</button>
       </div>
       <div class="traceActions" id="traceActions">
-        <button class="primaryAct traceDone" id="traceDone" disabled><span>描好了，自己写</span><small>接着会收起答案轮廓</small></button>
+        <button class="primaryAct traceDone" id="traceDone" disabled><span>描好了，自己写</span><small>轮廓会先隐藏</small></button>
       </div>
     </div>
 
@@ -725,7 +725,7 @@
             <div id="mineOverlay"></div>
             <div id="stampOnMine"><div class="ring"></div><div class="face"><span></span></div></div>
           </div>
-          <div class="cmpLbl">提交字格</div>
+          <div class="cmpLbl">你写的</div>
         </div>
         <div class="cmpCol">
           <div class="cmpBox std">
@@ -738,14 +738,14 @@
       </div>
       <div class="cmpLinks"><button id="overlayToggle">叠起来对比</button><button id="replayBtn">看笔顺</button></div>
 
-      <div class="tbubble" id="teachBubbleGrade" style="display:none; max-width:320px;"><b>对错你说了算，没有考试</b><br>照实盖章就行——盖「再拾」的字，<br>会回来让你再写，直到真正拾回它</div>
+      <div class="tbubble" id="teachBubbleGrade" style="display:none; max-width:320px;"><b>对错由你判断，没有考试</b><br>按实际情况选择。写错或不确定的字，<br>本组稍后会再写一次</div>
       <div class="mascotRow" id="askRow"><span class="blob"></span><span id="askLine" style="font-weight:600; color:var(--ink);"></span></div>
 
       <div class="decisionRow" id="decisionRow">
         <button class="decisionCorrect" id="decisionCorrect" aria-label="写对了"><span>写对了</span><small id="correctEffect">这次独立写对</small></button>
         <button class="ghostAct decisionWrong" id="decisionWrong" aria-label="写错了"><span>写错了</span><small>本组稍后再写</small></button>
       </div>
-      <div class="uncertainAction" id="uncertainAction"><button id="decisionUncertain">拿不准，记不清</button></div>
+      <div class="uncertainAction" id="uncertainAction"><button id="decisionUncertain" aria-label="不太确定">不太确定</button></div>
       <div class="softConfirm" id="softConfirm" role="dialog" aria-live="polite">
         <p>这几笔和范字差得比较多，确定算写对？</p>
         <div class="softConfirmActions"><button id="compareAgain">再对一眼</button><button class="confirmCorrect" id="confirmCorrect">确定写对了</button></div>
@@ -771,34 +771,34 @@
     <!-- 校准结果（教学 T4） -->
     <div class="calibCard" id="calibCard">
       <div class="sheetCard" style="padding-bottom:28px;">
-        <h2>第一把拾完，<br>摸清你的底了</h2>
+        <h2>第一组完成，<br>找到合适的起点</h2>
         <div class="calibStats">
-          <div><b class="num ok" id="calibKept">0</b><span>首答会写</span></div>
-          <div><b class="num warn" id="calibMiss">0</b><span>首答没写出</span></div>
+          <div><b class="num ok" id="calibKept">0</b><span>第一次就写出</span></div>
+          <div><b class="num warn" id="calibMiss">0</b><span>第一次没写稳</span></div>
         </div>
         <div class="calibWhy">根据这 15 个字，先从 <b id="calibTier">标准</b> 难度的字出题。<span id="calibWhyTxt"></span></div>
-        <div class="calibFoot"><span id="calibPocketLine"></span><br>按自己的节奏每天拾一组，提笔会慢慢变稳。</div>
+        <div class="calibFoot"><span id="calibPocketLine"></span><br>按自己的节奏每天练一组，提笔会慢慢变稳。</div>
       </div>
       <div class="sheetCard calibCeremony">
         <h2>今日拾得</h2>
         <div class="dateSeal" id="calibDateSeal"></div>
         <div class="sumGrid" id="calibSumTiles"></div>
-        <div class="summaryLegend">无点 拾到 · <b style="color:var(--gold)">金菱 补拾</b> · <b style="color:var(--accent)">朱砂 待补 / 再拾</b></div>
+        <div class="summaryLegend">首次结果：无标记 独立写对 · <b style="color:var(--gold)">金菱 看过提示 / 不确定</b> · <b style="color:var(--accent)">朱砂 写错 / 没写出</b></div>
         <div class="summaryPracticeHint" id="calibPracticeHint">点任意字块，可单独再练</div>
         <div class="bigSeal" id="calibBigSeal"><span>拾字</span></div>
         <div class="restLine" id="calibRestLine"></div>
       </div>
-      <div class="backupReminder" id="calibReturnHook"><div><b id="calibReturnTitle">明天再来拾一组</b><br><span id="calibReturnText"></span></div><button id="calibReminderYes">开启提醒</button></div>
+      <div class="backupReminder" id="calibReturnHook"><div><b id="calibReturnTitle">明天继续练一组</b><br><span id="calibReturnText"></span></div><button id="calibReminderYes">开启提醒</button></div>
       <div class="pocketCard" id="calibPocketCard" style="display:none;">
         <div class="pChips" id="calibPocketChips"></div>
-        <div class="ptxt"><b id="calibPocketTitle"></b><br><span>趁手还热，再拾一遍最划算</span></div>
-        <button class="pocketBtn" id="calibPocketBtn">马上再拾</button>
+        <div class="ptxt"><b id="calibPocketTitle"></b><br><span>想巩固一下，可以趁现在再写一遍。</span></div>
+        <button class="pocketBtn" id="calibPocketBtn">再写一遍</button>
       </div>
-      <button class="summaryProfileLink" id="calibProfile">看看你卡在哪 →</button>
+      <button class="summaryProfileLink" id="calibProfile">看看写得不稳的字 →</button>
       <button class="summaryShare" id="calibShare">存为字帖</button>
       <div class="sumActions">
         <button class="ghostAct" id="calibDone">明天见</button>
-        <button class="darkAct" id="calibAgain">再拾一组</button>
+        <button class="darkAct" id="calibAgain">再练一组</button>
       </div>
     </div>
 
@@ -809,19 +809,19 @@
         <div class="sumLead" id="sumLead"></div>
         <div class="dateSeal" id="dateSeal"></div>
         <div class="sumGrid" id="sumTiles"></div>
-        <div class="summaryLegend" id="sumLegend">无点 拾到 · <b style="color:var(--gold)">金菱 补拾</b> · <b style="color:var(--accent)">朱砂 待补 / 再拾</b></div>
+        <div class="summaryLegend" id="sumLegend">首次结果：无标记 独立写对 · <b style="color:var(--gold)">金菱 看过提示 / 不确定</b> · <b style="color:var(--accent)">朱砂 写错 / 没写出</b></div>
         <div class="summaryPracticeHint" id="sumPracticeHint">点任意字块，可单独再练</div>
         <div class="bigSeal" id="summaryBigSeal"><span>拾字</span></div>
         <div class="restLine" id="summaryRestLine"></div>
       </div>
       <div class="pocketCard" id="pocketCard" style="display:none;">
         <div class="pChips" id="pocketChips"></div>
-        <div class="ptxt"><b id="pocketTitle"></b><br><span>趁手还热，再拾一遍最划算</span></div>
-        <button class="pocketBtn" id="pocketBtn">马上再拾</button>
+        <div class="ptxt"><b id="pocketTitle"></b><br><span>想巩固一下，可以趁现在再写一遍。</span></div>
+        <button class="pocketBtn" id="pocketBtn">再写一遍</button>
       </div>
       <div class="roundTune" id="roundTune"></div>
-      <div class="summaryBackupHint" id="summaryBackupHint"><span>记录只存在这台手机上，导出一份更安心。</span><button id="summaryBackupNow">导出备份</button></div>
-      <button class="summaryProfileLink" id="summaryProfile">看看你卡在哪 →</button>
+      <div class="summaryBackupHint" id="summaryBackupHint"><span>记录默认保存在当前设备，导出备份更安心。</span><button id="summaryBackupNow">导出备份</button></div>
+      <button class="summaryProfileLink" id="summaryProfile">看看写得不稳的字 →</button>
       <button class="summaryShare" id="summaryShare">存为字帖</button>
       <div class="sumActions">
         <button class="ghostAct" id="stop">回首页</button>
@@ -840,24 +840,24 @@
     <button class="bookCurator" id="bookCurator"></button>
     <div class="bookSearch"><input id="bookSearchInput" type="search" autocomplete="off" placeholder="找一个字，或把忘的字收进来" aria-label="找字或收字"><div class="bookSearchResult" id="bookSearchResult" aria-live="polite"></div></div>
     <div class="memoryWall" id="memoryWall"></div>
-    <section class="wildWish" id="wildWish"><div class="wildWishHead"><b>还没有字帖</b><span id="wildWishCount"></span></div><div class="wildWishChars" id="wildWishChars"></div></section>
-    <div class="memoryWallFoot"><span>墨色即记忆 · 淡了就去写</span><button id="bookSaveMonth">存月帖</button></div>
+    <section class="wildWish" id="wildWish"><div class="wildWishHead"><b>暂不支持练习</b><span id="wildWishCount"></span></div><div class="wildWishChars" id="wildWishChars"></div></section>
+    <div class="memoryWallFoot"><span>墨色即记忆 · 淡了就去写</span><button id="bookSaveMonth">导出月帖</button></div>
   </div>
 
   <!-- 我的 -->
   <div class="me" id="mePanel" style="display:none" data-screen-label="我的">
     <h1>我的</h1>
     <section class="meCalendar" id="meCalendar">
-      <div class="meCalendarHead"><button id="calendarPrev" aria-label="上个月">‹</button><b id="calendarMonthTitle"></b><span id="calendarMonthStat"></span><button id="calendarNext" aria-label="下个月">›</button></div>
+      <div class="meCalendarHead"><button id="calendarPrev" aria-label="上个月">‹</button><b id="calendarMonthTitle"></b><span id="calendarMonthStat" role="group"></span><button id="calendarNext" aria-label="下个月">›</button></div>
       <div class="calendarWeek"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span></div>
       <div class="calendarGrid" id="calendarGrid"></div>
       <div class="calendarHint" id="calendarHint"></div>
     </section>
-    <button class="meCard meWeakCard" id="openProfile"><div class="meCardTop"><b>常忘的字</b><span>›</span></div><div class="meWeakChars" id="meWeakChars"></div><small id="meAdvice"></small></button>
+    <button class="meCard meWeakCard" id="openProfile"><div class="meCardTop"><b>写得不稳的字</b><span>›</span></div><div class="meWeakChars" id="meWeakChars"></div><small id="meAdvice"></small></button>
     <div class="meMonthCard">
       <div class="meMonthPreview"><img id="meMonthPreview" alt="本月拾字帖缩略图"></div>
       <div class="meMonthCopy"><b id="meMonthTitle">本月拾字帖</b><small id="meMonthMeta"></small></div>
-      <button id="monthlyPostLink">存图 ›</button>
+      <button id="monthlyPostLink">导出月帖 ›</button>
     </div>
     <div class="meList mePrimaryRows">
       <button class="meRow" id="openSettings"><span>设置</span><span>›</span></button>
@@ -873,15 +873,15 @@
     <div class="meList">
       <button class="meRow" id="settingsLibRow"><span class="meRowMain">在学的字库<small id="settingsLibName"></small></span><span>›</span></button>
       <button class="meRow" id="soundRow" aria-pressed="true"><span class="meRowMain">纸墨声音<small>只在盖章与描红落笔时响</small></span><span class="backupBadge" id="soundState">开</span></button>
-      <div class="mePref scenePref" id="soundscapeRow"><div class="plbl"><span>书房声景</span><small>只在习字时轻响</small></div><div class="prefBtns" id="soundscapeBox" role="group" aria-label="书房声景">
+      <div class="mePref scenePref" id="soundscapeRow"><div class="plbl"><span>练字背景音</span><small>只在练字时播放</small></div><div class="prefBtns" id="soundscapeBox" role="group" aria-label="练字背景音">
         <button data-scene="off" aria-pressed="true">关</button>
         <button data-scene="rain" aria-pressed="false">雨声</button>
         <button data-scene="fire" aria-pressed="false">炉火</button>
       </div></div>
-      <button class="meRow" id="handCardPromptRow" aria-pressed="true"><span class="meRowMain">好字成卡提示<small>写得好时每天最多轻提示一次</small></span><span class="backupBadge" id="handCardPromptState">开</span></button>
+      <button class="meRow" id="handCardPromptRow" aria-pressed="true"><span class="meRowMain">字卡提示<small>独立写对后，每天最多提示一次</small></span><span class="backupBadge" id="handCardPromptState">开</span></button>
     </div>
     <div id="reminderSection" style="display:none">
-      <div class="backupReminder" id="reminderInvite"><div><b>要在常练的时间提一句吗？</b><br><span>可以在你平时练字的时间发一条提醒，随时可关。</span></div><button id="reminderYes">好</button><button class="ghostMini" id="reminderLater">先不用</button></div>
+      <div class="backupReminder" id="reminderInvite"><div><b>要开启练习提醒吗？</b><br><span>每天按你常用的练字时间提醒，随时可关闭。</span></div><button id="reminderYes">开启</button><button class="ghostMini" id="reminderLater">先不用</button></div>
       <div class="meList">
         <button class="meRow" id="reminderRow"><span class="meRowMain">练习提醒<small id="reminderStatus">关</small></span><span class="backupBadge" id="reminderState">开启</span></button>
       </div>
@@ -892,25 +892,25 @@
     </div>
     <div class="meLabel" id="settingsDataLabel">数据</div>
     <div class="meList settingsDataList">
-      <button class="meRow" id="exportLink">导出备份<span>换手机前使用</span></button>
-      <button class="meRow" id="importLink">恢复备份<span>覆盖当前记录</span></button>
-      <button class="meRow dangerRow" id="resetLink">清空记录<span>慎用</span></button>
+      <button class="meRow" id="exportLink">导出备份<span>包含练习记录和拍字照片</span></button>
+      <button class="meRow" id="importLink">恢复备份<span>覆盖当前设备的数据</span></button>
+      <button class="meRow dangerRow" id="resetLink">清空当前数据<span>清空记录、照片、自定义字和设置</span></button>
     </div>
-    <div class="backupReminder settingsNotice" style="display:flex"><div><span>练习记录与拍字照片只保存在本机，绝不上传。</span></div></div>
+    <div class="backupReminder settingsNotice" style="display:flex"><div><span>练习记录和拍字照片默认保存在当前设备。只有你主动导出备份时，才会写入所选位置；应用不会在后台上传。</span></div></div>
     <div class="backupReminder settingsNotice" id="backupReminder"><div><span id="backupReminderCopy"></span></div></div>
     <div class="devTools" id="devTools">
       <div class="meLabel">开发工具</div>
       <div class="meList">
         <button class="meRow" id="auditLink">题库质检<span>开发 / 运营</span></button>
-        <button class="meRow" id="dataLink">实验数据<span>本机记录</span></button>
+        <button class="meRow" id="dataLink">实验数据<span>当前设备上的记录</span></button>
       </div>
       <div class="data" id="dataBox"></div>
     </div>
   </div>
 
-  <!-- 常忘的字 -->
-  <div class="profile" id="profilePanel" style="display:none" data-screen-label="常忘的字">
-    <div class="profileHead"><button class="xbtn" id="closeProfile" aria-label="返回">‹</button><h2>常忘的字</h2><span></span></div>
+  <!-- 写得不稳的字 -->
+  <div class="profile" id="profilePanel" style="display:none" data-screen-label="写得不稳的字">
+    <div class="profileHead"><button class="xbtn" id="closeProfile" aria-label="返回">‹</button><h2>写得不稳的字</h2><span></span></div>
     <div class="profileSummary" id="profileSummary"></div>
     <div class="profileAdvice" id="profileAdvice"></div>
     <div class="profileSection" id="profileTopicsSection"><h3>再看一层</h3><div class="profileRows" id="profileTopics"></div></div>
@@ -957,7 +957,7 @@
   <div class="sheetPreview" id="addPreview"></div>
   <div class="wildCapture" id="wildCapture">
     <img class="wildCaptureThumb" id="wildCaptureThumb" alt="拍到的字">
-    <div class="wildCaptureCopy"><button class="wildCaptureBtn" id="wildCaptureBtn">拍一个字</button><span class="wildCaptureNote" id="wildCaptureNote">可拍照或从相册选，只在本机识别与保存</span></div>
+    <div class="wildCaptureCopy"><button class="wildCaptureBtn" id="wildCaptureBtn">拍一个字</button><span class="wildCaptureNote" id="wildCaptureNote">可拍照或从相册选择；照片默认保存在当前设备</span></div>
   </div>
   <div class="wildCandidates" id="wildCandidates" aria-label="识别到的候选字"></div>
   <div class="row"><button class="ghostAct" id="addCancel">取消</button><button class="primaryAct" id="addConfirm" disabled>收进字库</button></div>
@@ -965,7 +965,7 @@
 
 <div class="sheetMask" id="libSheet" role="dialog" aria-modal="true" aria-labelledby="libSheetTitle"><div class="sheet">
   <h3 id="libSheetTitle">在学的字库</h3>
-  <p class="sheetHint">换库不丢任何东西——拾过的字都在，只换接下来拾什么。复习照常跨库进行。</p>
+  <p class="sheetHint">切换字库不会影响已有练习记录。之后从新字库出新题，复习仍包含所有字库。</p>
   <div class="libList" id="libList"></div>
 </div></div>
 
@@ -1006,19 +1006,19 @@
 </div></div>
 <div class="sheetMask" id="handCardSheet" role="dialog" aria-modal="true" aria-labelledby="handCardTitle"><div class="sheet handCardSheet">
   <h3 id="handCardTitle">做张字卡</h3>
-  <p class="sheetHint" id="handCardHint">只用你的这一笔，做成一张可以带走的卡。</p>
+  <p class="sheetHint" id="handCardHint">用这份笔迹做一张字卡。</p>
   <div class="handCardPreviewWrap"><canvas class="handCardPreview" id="handCardPreview" width="1080" height="1440"></canvas></div>
   <div class="handCardSizes" id="handCardSizes" role="group" aria-label="字卡尺寸">
     <button class="active" data-hand-card-ratio="portrait" aria-pressed="true">3:4 · 社交</button>
     <button data-hand-card-ratio="square" aria-pressed="false">1:1 · 头像</button>
   </div>
   <div class="handCardActions"><button class="ghostAct" id="handCardCancel">取消</button><button class="handCardSave" id="handCardSave">存到相册</button><button class="primaryAct" id="handCardShare">分享</button></div>
-  <small class="handCardFuture">春节的手写福与春联，留待下一阶段。</small>
+  <small class="handCardFuture">可保存到相册，也可直接分享。</small>
 </div></div>
-<div class="handCardPrompt" id="handCardPrompt" role="status"><span>这一笔不错，做张字卡？</span><button id="handCardPromptOpen">看看</button></div>
+<div class="handCardPrompt" id="handCardPrompt" role="status"><span>要把刚写的字做成字卡吗？</span><button id="handCardPromptOpen">制作</button></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<div class="bootNotice" id="bootNotice" role="status" aria-live="polite">有一份记录损坏，已隔离，其余照常</div>
-<div class="undoToast" id="safetyUndo" role="status" aria-live="polite"><span id="safetyUndoCopy">已保留操作前的记录</span><button id="safetyUndoBtn">撤销</button></div>
+<div class="bootNotice" id="bootNotice" role="status" aria-live="polite">部分记录已损坏，已跳过；其他记录仍可正常使用</div>
+<div class="undoToast" id="safetyUndo" role="status" aria-live="polite"><span id="safetyUndoCopy">操作前的数据已保留</span><button id="safetyUndoBtn">撤销</button></div>
 <input type="file" id="importFile" accept=".json,application/json" style="display:none">
 <input type="file" id="wildPhotoInput" accept="image/*" style="display:none">
 
@@ -1066,9 +1066,9 @@ let quality = bootLoad(QUALITY_KEY, {}, v=>objectValuesAre(v,plainObject));
 let preference = bootLoad(PREF_KEY, "balanced", v=>["balanced","practical","challenge"].includes(v));
 let tuning = bootLoad(TUNING_KEY, {calibrated:false, offset:0, contextStrict:0, rounds:[]}, v=>plainObject(v)&&(!("rounds" in v)||Array.isArray(v.rounds)));
 const LIBRARIES=[
-  {id:"core3500",name:"常用三千五",desc:"通用规范一级字，日常读写九成五在这里",test:c=>c.norm==="一级"},
-  {id:"adv3000",name:"进阶三千",desc:"规范二级字，报刊与书面语的进阶层",test:c=>c.norm==="二级"},
-  {id:"rare",name:"生僻字",desc:"规范三级字，人名地名与古籍用字，难",test:c=>c.norm==="三级"},
+  {id:"core3500",name:"常用三千五",desc:"《通用规范汉字表》一级字，适合日常读写练习",test:c=>c.norm==="一级"},
+  {id:"adv3000",name:"进阶三千",desc:"《通用规范汉字表》二级字，多见于报刊和书面语",test:c=>c.norm==="二级"},
+  {id:"rare",name:"生僻字",desc:"《通用规范汉字表》三级字，多见于人名、地名和古籍，难度较高",test:c=>c.norm==="三级"},
   {id:"primary",name:"小学",desc:"小学学段要求会写的字",test:c=>c.level==="小学"},
   {id:"junior",name:"初中",desc:"初中学段的字",test:c=>c.level==="初中"},
   {id:"senior",name:"高中",desc:"高中学段的字",test:c=>c.level==="高中"}
@@ -1199,7 +1199,7 @@ function normalizeReminder(raw){ const r=raw && typeof raw==="object"?raw:{};
 let reminder=bootNormalize(REMINDER_KEY,bootLoad(REMINDER_KEY,null,v=>v===null||plainObject(v)),null,normalizeReminder); save(REMINDER_KEY,reminder);
 let reminderPendingEnable=false;
 const reminderDebug={lastSync:null};
-// ---- 纸墨声音与书房声景：两个开关彼此独立，都尊重 iOS 静音键 ----
+// ---- 纸墨声音与练字背景音：两个开关彼此独立，都尊重 iOS 静音键 ----
 const SOUNDSCAPE_SCENES=["off","rain","fire"];
 function normalizeSound(raw){ const value=raw&&typeof raw==="object"?raw:{}, scene=SOUNDSCAPE_SCENES.includes(value.scene)?value.scene:"off"; return {enabled:value.enabled!==false,tipShown:value.tipShown===true,scene}; }
 let sound=bootNormalize(SOUND_KEY,bootLoad(SOUND_KEY,null,v=>v===null||plainObject(v)),null,normalizeSound); save(SOUND_KEY,sound);
@@ -1252,10 +1252,10 @@ function syncAmbientForView(view){ if(view==="card"&&sound.scene!=="off") startA
 function renderSoundUI(){ const row=$("soundRow"); if(!row) return; row.setAttribute("aria-pressed",sound.enabled?"true":"false"); $("soundState").textContent=sound.enabled?"开":"关";
   document.querySelectorAll("#soundscapeBox [data-scene]").forEach(button=>button.setAttribute("aria-pressed",button.dataset.scene===sound.scene?"true":"false")); }
 function renderHandCardPref(){ const row=$("handCardPromptRow"); if(!row) return; row.setAttribute("aria-pressed",handCardPref.promptEnabled?"true":"false"); $("handCardPromptState").textContent=handCardPref.promptEnabled?"开":"关"; }
-function toggleHandCardPrompt(){ handCardPref.promptEnabled=!handCardPref.promptEnabled; save(HAND_CARD_KEY,handCardPref); renderHandCardPref(); hideHandCardPrompt(); toast(handCardPref.promptEnabled?"好字成卡提示已开启":"好字成卡提示已关闭"); }
+function toggleHandCardPrompt(){ handCardPref.promptEnabled=!handCardPref.promptEnabled; save(HAND_CARD_KEY,handCardPref); renderHandCardPref(); hideHandCardPrompt(); toast(handCardPref.promptEnabled?"字卡提示已开启":"字卡提示已关闭"); }
 function toggleSound(){ sound.enabled=!sound.enabled; saveSound(); renderSoundUI(); toast(sound.enabled?"纸墨声音已开启":"纸墨声音已关闭"); }
-function setSoundscape(scene){ if(!SOUNDSCAPE_SCENES.includes(scene)||scene===sound.scene) return false; sound.scene=scene; saveSound(); renderSoundUI(); if(practiceSoundscapeActive()) startAmbient(scene); else stopAmbient(false); toast(scene==="off"?"书房声景已关闭":scene==="rain"?"习字时会有轻雨声":"习字时会有轻炉火声"); return true; }
-function noteSoundTip(){ if(!sound.enabled||sound.tipShown) return; sound.tipShown=true; saveSound(); toast("盖章有声音了 · 可在\"我的\"里关"); }
+function setSoundscape(scene){ if(!SOUNDSCAPE_SCENES.includes(scene)||scene===sound.scene) return false; sound.scene=scene; saveSound(); renderSoundUI(); if(practiceSoundscapeActive()) startAmbient(scene); else stopAmbient(false); toast(scene==="off"?"练字背景音已关闭":scene==="rain"?"练字时会播放轻雨声":"练字时会播放炉火声"); return true; }
+function noteSoundTip(){ if(!sound.enabled||sound.tipShown) return; sound.tipShown=true; saveSound(); toast("盖章音效已开启，可在「我的」→「设置」→「纸墨声音」中关闭"); }
 // ---- 触觉反馈（iOS 壳内按记账/过程完成/选择切换分层；浏览器/PWA no-op，仅记录供断言）----
 const hapticDebug={last:null,events:[]};
 function hapticFeedback(kind){ hapticDebug.last=kind; hapticDebug.events.push(kind); hapticDebug.events=hapticDebug.events.slice(-30);
@@ -1264,7 +1264,7 @@ function hapticFeedback(kind){ hapticDebug.last=kind; hapticDebug.events.push(ki
 function saveReminder(){ save(REMINDER_KEY,reminder); }
 function reminderBridgeAvailable(){ return !!(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.shiziNative); }
 function reminderQuestion(idx,day){ const c=CARDS[idx]; if(!c||!String(c.word||"").trim()||!String(c.py||"").trim()) return null;
-  return {day,title:`${c.word}的 ${c.py}`,body:"还写得出吗，点开写写看",targetCardKey:cardKey(idx)}; }
+  return {day,title:`${c.word}（${c.py}）`,body:"还记得这个字怎么写吗？点开试试。",targetCardKey:cardKey(idx)}; }
 function reminderCandidates(day){ const eligible=i=>{ const c=CARDS[i],m=memory[cardKey(i)]; return c&&m&&m.seen&&!m.pendingLearning&&!qualityBlocked(i)&&String(c.word||"").trim()&&String(c.py||"").trim(); };
   const due=allIndexes().filter(i=>{ if(!eligible(i)) return false; const dueDay=(memory[cardKey(i)]||{}).dueDay; return !dueDay||dueDay<=day; });
   const compare=(a,b)=>{ const am=(memory[cardKey(a)]||{}).lastOutcome==="miss",bm=(memory[cardKey(b)]||{}).lastOutcome==="miss"; if(am!==bm) return am?-1:1;
@@ -1292,14 +1292,17 @@ function shiziReminderStatus(result){ const p=result && result.permission;
   reminderPendingEnable=false; saveReminder(); syncReminder(); renderReminderUI(); }
 function reminderStatusText(){
   // 换机恢复：enabled=true 但本机从未请求过授权（unknown）——系统设置里根本没有本 App，正确动作是轻点重新请求
-  if(reminder.enabled && reminder.permission==="unknown") return "轻点完成开启";
-  if(reminder.permission==="denied") return "需要在系统设置里允许通知";
+  if(reminder.enabled && reminder.permission==="unknown") return "需要重新授权通知，点此开启";
+  if(reminder.permission==="denied") return "需要在系统设置中开启通知";
   if(!reminder.enabled) return "关";
-  const t=medianPracticeTime(); return `每天 ${String(t.hour).padStart(2,"0")}:${String(t.minute).padStart(2,"0")} · 通知里先写一字`; }
+  const t=medianPracticeTime(); return `每天 ${String(t.hour).padStart(2,"0")}:${String(t.minute).padStart(2,"0")} · 点开练一个字`; }
 function renderReminderUI(){ if(!$("reminderSection")) return; const supported=reminderBridgeAvailable();
   $("reminderSection").style.display=supported?"block":"none";
   if(!supported) return;
   $("reminderStatus").textContent=reminderStatusText(); $("reminderState").textContent=reminder.enabled?"关闭":"开启";
+  const t=medianPracticeTime(), time=`${String(t.hour).padStart(2,"0")}:${String(t.minute).padStart(2,"0")}`;
+  $("reminderInvite").querySelector("b").textContent=`要每天 ${time} 提醒你练习吗？`;
+  $("reminderInvite").querySelector("span").textContent=`每天 ${time} 提醒一次，随时可关闭。`;
   // 邀请卡门槛用「迁移后真实完成日」而非累计总数：老用户继承的历史天数不触发弹卡
   const invite=!reminder.enabled && !reminder.promptDismissed && reminder.permission!=="denied" && completedDayCount()>=1;
   $("reminderInvite").style.display=invite?"flex":"none"; }
@@ -1307,25 +1310,25 @@ function toggleReminder(){
   if(reminder.enabled && reminder.permission==="unknown"){ reminderPendingEnable=true; requestReminderPermission(); return; }
   if(reminder.enabled){ reminder.enabled=false; saveReminder(); syncReminder(); renderReminderUI(); toast("练习提醒已关闭"); return; }
   if(reminder.permission==="granted"){ reminder.enabled=true; saveReminder(); syncReminder(); renderReminderUI(); toast("练习提醒已开启"); return; }
-  if(reminder.permission==="denied"){ toast("请在 系统设置 → 通知 → 拾字 里允许通知"); return; }
+  if(reminder.permission==="denied"){ toast("通知权限已关闭。请前往「设置」→「通知」→「拾字」开启通知"); return; }
   reminderPendingEnable=true; requestReminderPermission(); }
 function acceptReminderInvite(){ reminder.promptDismissed=true; saveReminder(); toggleReminder(); renderReminderUI(); }
 function dismissReminderInvite(){ reminder.promptDismissed=true; saveReminder(); renderReminderUI(); }
-function renderCalibrationReturnHook(){ const native=reminderBridgeAvailable(), button=$("calibReminderYes"), tomorrow=formatDueDay(shiftDay(today(),1));
+function renderCalibrationReturnHook(){ const native=reminderBridgeAvailable(), button=$("calibReminderYes"), tomorrow=formatDueDay(shiftDay(today(),1)), t=medianPracticeTime(), time=`${String(t.hour).padStart(2,"0")}:${String(t.minute).padStart(2,"0")}`;
   $("calibReturnHook").style.display="flex";
-  if(!native){ $("calibReturnTitle").textContent="明天再来拾一组"; $("calibReturnText").textContent=tomorrow; button.style.display="none"; return; }
-  if(reminder.enabled){ const t=medianPracticeTime(); $("calibReturnTitle").textContent="明天会提醒你"; $("calibReturnText").textContent=`${tomorrow} · ${String(t.hour).padStart(2,"0")}:${String(t.minute).padStart(2,"0")}`; button.style.display="none"; return; }
-  $("calibReturnTitle").textContent="要在常练的时间提醒你吗？"; $("calibReturnText").textContent=reminder.permission==="denied"?"可稍后在系统设置中开启":`默认关闭，开启后随时可关 · ${tomorrow}`; button.style.display=reminder.permission==="denied"?"none":""; }
+  if(!native){ $("calibReturnTitle").textContent="明天继续练一组"; $("calibReturnText").textContent=tomorrow; button.style.display="none"; return; }
+  if(reminder.enabled){ $("calibReturnTitle").textContent="明天会提醒你"; $("calibReturnText").textContent=`${tomorrow} · ${time}`; button.style.display="none"; return; }
+  $("calibReturnTitle").textContent=`要每天 ${time} 提醒你练习吗？`; $("calibReturnText").textContent=reminder.permission==="denied"?"可稍后在系统设置中开启通知":`开启后随时可关 · ${tomorrow}`; button.style.display=reminder.permission==="denied"?"none":""; }
 
 // ---- 里程碑：前 30 天补齐 14 日节奏，100 日后每满 100 续档；继承跳档静默补记
 const MILESTONE_DAYS=[1,7,14,30];
 const MILESTONE_COPY={
-  1:"见字如晤，久别重逢——那些被岁月搁下的字，从今天起，一笔一画都是归途。",
-  7:"第七个练习日——拾回的字，攒成一小把了。",
-  14:"第十四个练习日。两周的笔迹连起来，生疏的字开始认得回家的路。",
-  30:"三十个练习日。字库渐满，提笔渐稳。"};
+  1:"第一天，写下第一组字。",
+  7:"已经练了 7 天。",
+  14:"已经练了 14 天。",
+  30:"已经练了 30 天。"};
 function milestoneDaysThrough(total){ const days=MILESTONE_DAYS.filter(d=>d<=total); for(let d=100;d<=total;d+=100) days.push(d); return days; }
-function milestoneCopy(day){ if(MILESTONE_COPY[day]) return MILESTONE_COPY[day]; return `第 ${day} 个练习日。拾回的字一百一百地长，提笔也一日一日地稳。`; }
+function milestoneCopy(day){ if(MILESTONE_COPY[day]) return MILESTONE_COPY[day]; return `已经练了 ${day} 天。`; }
 function celebrateMilestoneIfAny(){ const total=totalPracticeDays(); let changed=false, celebrate=null;
   milestoneDaysThrough(total).forEach(d=>{ if(!reminder.milestonesShown.includes(d)){ reminder.milestonesShown.push(d); changed=true; if(total===d) celebrate=d; } });
   if(changed) saveReminder(); return celebrate; }
@@ -1334,7 +1337,7 @@ function celebrateCharacterMilestoneIfAny(before=roundStartMemoryCount,total=mem
   CHARACTER_MILESTONES.forEach(n=>{ if(total>=n&&!reminder.characterMilestonesShown.includes(n)){ reminder.characterMilestonesShown.push(n); changed=true; if(before<n) celebrate=n; } });
   if(celebrate) reminder.characterMilestoneDay=today(); if(changed) saveReminder(); return celebrate; }
 function milestoneBadge(milestone){ if(!milestone) return ""; if(milestone.kind==="characters") return milestone.value===100?"百":"三百"; return ({1:"一",7:"七",14:"十四",30:"卅"})[milestone.value]||"百"; }
-function milestoneText(milestone){ return milestone.kind==="characters"?`字库里已经有 ${milestone.value} 个练过的字。旧字一枚枚拾回，字库也一格格长满。`:milestoneCopy(milestone.value); }
+function milestoneText(milestone){ return milestone.kind==="characters"?`已经练过 ${milestone.value} 个不同汉字。`:milestoneCopy(milestone.value); }
 
 // ---- 出题池与双层学习会话 ----
 const BATCH=15, DAILY_REVIEW_BUDGET=30;
@@ -1564,14 +1567,14 @@ function highRiskIndexes(){ return allIndexes().filter(isHighRisk).sort((a,b)=>p
 function highRiskCount(){ return highRiskIndexes().length; }
 // 四枚印章保留为自动结果标签；用户只判断本次对错。
 const GRADE_UI={
-  fast:{seal:"拾到", func:"会写", short:"会写", funcHtml:"会写", cls:"fast", effect:"之后会隔久一点再出现"},
-  hinted:{seal:"补拾", func:"看提示写出", short:"看提示", funcHtml:"看提示<br>写出", cls:"hinted", effect:"近期会回来复习"},
-  slow:{seal:"待补", func:"写错了", short:"写错", funcHtml:"写错了", cls:"slow", effect:"会优先回来复习"},
-  miss:{seal:"再拾", func:"不会写", short:"没写出", funcHtml:"不会写", cls:"miss", effect:"很快会回来找你"},
+  fast:{seal:"拾到", func:"独立写对", short:"独立写对", funcHtml:"独立<br>写对", cls:"fast", effect:"之后会隔久一点再出现"},
+  hinted:{seal:"补拾", func:"稍后再练", short:"稍后再练", funcHtml:"稍后<br>再练", cls:"hinted", effect:"近期会回来复习"},
+  slow:{seal:"待补", func:"写错", short:"写错", funcHtml:"写错", cls:"slow", effect:"会优先回来复习"},
+  miss:{seal:"再拾", func:"没写出", short:"没写出", funcHtml:"没写出", cls:"miss", effect:"很快会回来找你"},
 };
 const OUTCOME_DOT={ fast:"transparent", hinted:"var(--gold)", slow:"var(--accent)", miss:"transparent" }, OUTCOME_MARK={fast:"",hinted:"补",slow:"待",miss:"再"};
 const MASCOT_LINES=[
-  "这个格子里的字，你上次写它可能是十年前",
+  "先按记得的部分写，不确定也没关系",
   "想不起来很正常，点「点拨」先看开头几笔",
   "凭感觉写，连笔断笔都没关系",
   "写不出来就点「不会写」，先描后写"
@@ -1597,7 +1600,7 @@ function maybeFinishCalibration(){ if(activeMode!=="calibrate" || tuning.calibra
 function showRoundTuning(){ return activeMode==="new" || activeMode==="calibrate"; }
 function renderRoundTune(message=""){ const box=$("roundTune"); if(!showRoundTuning()){ box.style.display="none"; box.innerHTML=""; return; }
   box.style.display="block"; const picked=roundFeedbackGiven?String(tuning.lastRoundFeedback||""):"";
-  box.innerHTML=`<div class="roundTuneHead"><b>这组感觉</b><span>${message||`当前 ${tuningLabel()} ${tuningShiftText()}`}</span></div><div class="roundTuneBtns">${Object.entries(ROUND_FEEDBACK).map(([kind,row])=>`<button data-round-feedback="${kind}" class="${picked===kind?"active":""}" ${roundFeedbackGiven?"disabled":""}>${row[0]}</button>`).join("")}</div>`; }
+  box.innerHTML=`<div class="roundTuneHead"><b>这组感觉</b><span>${message||`当前难度：${tuningLabel()}`}</span></div><div class="roundTuneBtns">${Object.entries(ROUND_FEEDBACK).map(([kind,row])=>`<button data-round-feedback="${kind}" class="${picked===kind?"active":""}" ${roundFeedbackGiven?"disabled":""}>${row[0]}</button>`).join("")}</div>`; }
 function recordRoundFeedback(kind){ if(roundFeedbackGiven || !ROUND_FEEDBACK[kind]) return; const counts=roundCounts(), score=roundMasteryScore(counts);
   if(kind==="easy"){ tuning.easyStreak=(tuning.easyStreak||0)+1; tuning.hardStreak=0; tuning.offset=(Number(tuning.offset)||0)+(tuning.easyStreak>=2?10:7); if(tuning.offset>=12) preference="challenge"; }
   if(kind==="hard"){ tuning.hardStreak=(tuning.hardStreak||0)+1; tuning.easyStreak=0; tuning.offset=(Number(tuning.offset)||0)-(tuning.hardStreak>=2?10:7); if(tuning.offset<=-12) preference="practical"; else if(preference==="challenge") preference="balanced"; }
@@ -1691,13 +1694,13 @@ function numCn(n){ const d=["零","一","二","三","四","五","六","七","八
 function dateCn(){ const now=new Date(); return numCn(now.getMonth()+1)+"月"+numCn(now.getDate())+"日"; }
 // V1 口径：streak = 累计练习日（totalPracticeDays），连续口径已下线；activity.inheritedStreak 仅作数据保留
 // 「昨日拾得」：最近一个练习日（今天之前）拾过的字
-function lastDayIndexes(){ const idxs=profileIndexes(); if(!idxs.length) return {label:"昨日拾得", list:[]};
+function lastDayIndexes(){ const idxs=profileIndexes(); if(!idxs.length) return {label:"昨日练过", list:[]};
   const t0=new Date(); t0.setHours(0,0,0,0); const dayStart=t0.getTime();
   const prev=idxs.filter(i=>{ const l=(memory[cardKey(i)]||{}).last||0; return l && l<dayStart; });
-  if(!prev.length) return {label:"昨日拾得", list:[]};
+  if(!prev.length) return {label:"昨日练过", list:[]};
   const latest=Math.max(...prev.map(i=>memory[cardKey(i)].last)); const d=new Date(latest); d.setHours(0,0,0,0); const s=d.getTime();
   const list=prev.filter(i=>{ const l=memory[cardKey(i)].last; return l>=s && l<s+86400000; });
-  return {label:(dayStart-s<=86400000)?"昨日拾得":"上回拾得", list}; }
+  return {label:(dayStart-s<=86400000)?"昨日练过":"上次练过", list}; }
 function homeRecentIndexes(){ const dayStart=new Date(); dayStart.setHours(0,0,0,0);
   const todayList=profileIndexes().filter(i=>((memory[cardKey(i)]||{}).last||0)>=dayStart.getTime())
     .sort((a,b)=>((memory[cardKey(b)]||{}).last||0)-((memory[cardKey(a)]||{}).last||0));
@@ -1715,14 +1718,14 @@ function renderHome(){ const resume=resumableSession();
   homeResumeSession=resume;
   if(resume){ const targetSet=new Set(resume.baseTargets), total=targetSet.size, practiced=new Set((resume.roundStats||[]).filter(row=>targetSet.has(row.idx)).map(row=>row.idx)).size, reinforce=new Set((resume.unresolved||[]).filter(idx=>targetSet.has(idx))).size;
     $("homeTitle").innerHTML=complete?`今日已拾<br>${numCn(stampedToday)}个字`:`今天拾了<br>${numCn(stampedToday)}个字`;
-    const progress=practiced>=total&&reinforce?`还要再练 ${reinforce}`:`已练 ${practiced}/${total}${reinforce?` · 还要再练 ${reinforce}`:""}`;
-    $("startBtn").textContent="续"; $("startCap").innerHTML=`继续${complete?"加练":""}这组 <span>· ${progress}</span>`; $("startBtn").disabled=false;
+    const progress=practiced>=total&&reinforce?`另有 ${reinforce} 个字要再练`:`已练 ${practiced} / ${total} 个${reinforce?` · 另有 ${reinforce} 个字要再练`:""}`;
+    $("startBtn").textContent="续"; $("startBtn").setAttribute("aria-label","继续练习"); $("startCap").innerHTML=`继续${complete?"加练":""}这组 <span>· ${progress}</span>`; $("startBtn").disabled=false;
   } else if(complete){
-    $("homeTitle").innerHTML=`今日已拾<br>${numCn(stampedToday)}个字`; $("startBtn").textContent="再";
+    $("homeTitle").innerHTML=`今日已拾<br>${numCn(stampedToday)}个字`; $("startBtn").textContent="再"; $("startBtn").setAttribute("aria-label","再练一组");
     $("startCap").innerHTML=(newN||dueToday)?"再写一组":"今天先到这里，明天见"; $("startBtn").disabled=(newN===0 && dueToday===0);
   } else {
-    $("homeTitle").innerHTML=dueToday?"先拾回<br>到期的字":"今天拾<br>十五个字"; $("startBtn").textContent="拾";
-    $("startCap").innerHTML=(dueToday||newN)?"开笔 <span>· 按自己的节奏</span>":"今天先到这里，明天见";
+    $("homeTitle").innerHTML=dueToday?"今天先<br>复习一组":"今天拾<br>十五个字"; $("startBtn").textContent="拾"; $("startBtn").setAttribute("aria-label",dueToday?"开始复习":"开始练习");
+    $("startCap").innerHTML=(dueToday||newN)?"开始练习 <span>· 按自己的节奏</span>":"今天先到这里，明天见";
     $("startBtn").disabled=(newN===0 && dueToday===0);
   }
   const y=homeRecentIndexes(), dailyIdx=!resume&&stampedToday===0?dailyCharacterIndex():-1;
@@ -1734,22 +1737,22 @@ function renderHome(){ const resume=resumableSession();
     const recentShown=y.list.slice(0,50);
     $("yesterRow").innerHTML=y.list.length
       ? recentShown.map((i,k)=>`<div class="yTile" style="transform:rotate(${ROTS[k%ROTS.length]}deg)">${CARDS[i].target}</div>`).join("")+(y.list.length>50?`<div class="yTile more">+${y.list.length-50}</div>`:"")
-      : `<div class="yTile more placeholder">今天拾的字会出现在这里</div>`; }
+      : `<div class="yTile more placeholder">今天练过的字会出现在这里</div>`; }
   updateBookBadge();
   warmUpcomingStrokeCache(); }
-function meAdviceText(idxs){ if(!idxs.length) return "练几组后，这里会把反复忘的字放到你眼前。";
-  if(!profileSampleReady(idxs)) return `已练 ${idxs.length} 个字，样本还少。先看看真正忘过的字。`;
+function meAdviceText(idxs){ if(!idxs.length) return "练几组后，这里会显示写得不稳的字。"; if(!idxs.some(i=>missCount(i)>0)) return "目前没有记录到没写出的字。";
+  if(!profileSampleReady(idxs)) return `已练 ${idxs.length} 个字，记录还少。先看看练习中没写出的字。`;
   const topic=profileGroups(idxs,cardTopic)[0], lvl=profileGroups(idxs,abilityLevel)[0], st=profileGroups(idxs,structureLabel)[0], bits=[];
-  if(st) return `${st.label}的字最容易从你手里溜走。`;
-  if(topic) return `${topic.label}里的字，你更常卡住。`;
-  return `${lvl.label}的字，你更常卡住。`; }
+  if(st) return `${st.label}的字更容易写错或想不起来。`;
+  if(topic) return `${topic.label}里的字更容易写不出来。`;
+  return `${lvl.label}的字更容易写不出来。`; }
 let meMonthPreviewToken=0;
-async function renderMeMonthCard(){ const token=++meMonthPreviewToken, month=today().slice(0,7), data=monthReportData(month); $("meMonthTitle").textContent=`${numCn(Number(month.slice(5)))}月拾字帖`; $("meMonthMeta").textContent=`${data.practiced} 字 · ${data.independentCount} 字是你的手写`;
+async function renderMeMonthCard(){ const token=++meMonthPreviewToken, month=today().slice(0,7), data=monthReportData(month); $("meMonthTitle").textContent=`${numCn(Number(month.slice(5)))}月拾字帖`; $("meMonthMeta").textContent=`${data.practiced} 个字 · 其中 ${data.independentCount} 个独立写出`;
   try{ const canvas=await renderMonthlyPostCanvas(month); if(token===meMonthPreviewToken && $("mePanel").style.display==="flex") $("meMonthPreview").src=canvas.toDataURL("image/jpeg",.72); }catch(e){ if(token===meMonthPreviewToken) $("meMonthPreview").removeAttribute("src"); } }
 function renderMe(){ displayView("me"); calendarMonthKey=calendarMonthKey||today().slice(0,7); renderCalendar();
-  const indexes=profileIndexes(), weak=indexes.filter(i=>hardCount(i)>0).sort((a,b)=>hardCount(b)-hardCount(a)||((memory[cardKey(b)]||{}).last||0)-((memory[cardKey(a)]||{}).last||0)).slice(0,3);
-  $("meWeakChars").innerHTML=weak.map(i=>`<span data-char-idx="${i}">${esc(CARDS[i].target)}</span>`).join(""); $("meWeakChars").style.display=weak.length?"flex":"none"; $("meAdvice").textContent=weak.length?"这几个，写过还总忘":meAdviceText(indexes);
-  const annualReady=new Date().getMonth()===11; $("annualReportLink").classList.toggle("ready",annualReady); $("annualFootText").textContent=annualReady?`${new Date().getFullYear()} 年拾字报告已可开卷`:`${new Date().getFullYear()} 年拾字报告 · 年末开卷`; renderBackupUI(); updateBookBadge(); renderMeMonthCard(); }
+  const indexes=profileIndexes(), weak=indexes.filter(i=>missCount(i)>0).sort((a,b)=>missCount(b)-missCount(a)||((memory[cardKey(b)]||{}).last||0)-((memory[cardKey(a)]||{}).last||0)).slice(0,3);
+  $("meWeakChars").innerHTML=weak.map(i=>`<span data-char-idx="${i}">${esc(CARDS[i].target)}</span>`).join(""); $("meWeakChars").style.display=weak.length?"flex":"none"; $("meAdvice").textContent=weak.length?"这些字在练习中没写出来过":meAdviceText(indexes);
+  const annualReady=new Date().getMonth()===11; $("annualReportLink").classList.toggle("ready",annualReady); $("annualFootText").textContent=annualReady?`${new Date().getFullYear()} 年拾字报告已生成`:`查看 ${new Date().getFullYear()} 年拾字记录`; renderBackupUI(); updateBookBadge(); renderMeMonthCard(); }
 function renderSettings(focusData=false){ displayView("settings"); $("settingsLibName").textContent=currentLibrary().name; renderSoundUI(); renderHandCardPref(); renderReminderUI(); renderBackupUI(); $("devTools").style.display=DEV_TOOLS?"block":"none"; if(!DEV_TOOLS) $("dataBox").style.display="none";
   if(focusData) requestAnimationFrame(()=>$("settingsDataLabel").scrollIntoView({block:"start",behavior:motionReduced()?"auto":"smooth"})); }
 
@@ -1764,7 +1767,7 @@ function renderCalendar(){ const [year,month]=calendarMonthKey.split("-").map(Nu
   for(let i=0;i<first;i++) cells.push('<span class="calendarDay calendarPad"></span>');
   let stampOrder=0; for(let date=1;date<=count;date++){ const key=`${calendarMonthKey}-${String(date).padStart(2,"0")}`, practiced=activity.practiceDays.includes(key), row=activity.daily[key]&&typeof activity.daily[key]==="object"?activity.daily[key]:{}, future=key>today(), makeable=canMakeupDay(key), stamp=practiced?`<i class="calendarStamp ${key===today()?"todayStamp":""} ${row.makeup?"makeup":""} ${animate?"land":""}" style="--stamp-delay:${(stampOrder++*.035).toFixed(3)}s">${row.makeup?"补":"拾"}</i>`:"";
     cells.push(`<button class="calendarDay ${future?"future":""} ${makeable?"makeable":""} ${key===today()?"today":""}" data-day="${key}" ${makeable?'data-makeup="1"':''} ${future?'disabled':''}><span class="dayNumber">${date}</span>${stamp}</button>`); }
-  $("calendarGrid").innerHTML=cells.join(""); $("calendarMonthTitle").textContent=year===new Date().getFullYear()?`${numCn(month)}月`:monthCn(calendarMonthKey); $("calendarMonthStat").textContent=`本月 ${monthPracticeDays(calendarMonthKey+"-01")} 天 · 累计 ${totalPracticeDays()} 天`; $("calendarNext").disabled=calendarMonthKey>=today().slice(0,7);
+  $("calendarGrid").innerHTML=cells.join(""); $("calendarMonthTitle").textContent=year===new Date().getFullYear()?`${numCn(month)}月`:monthCn(calendarMonthKey); const monthDays=monthPracticeDays(calendarMonthKey+"-01"), totalDays=totalPracticeDays(), monthStat=$("calendarMonthStat"); monthStat.textContent=`盖章 ${monthDays}天 · 累计 ${totalDays}天`; monthStat.setAttribute("aria-label",`盖章 ${monthDays} 天 · 累计练习 ${totalDays} 天`); $("calendarNext").disabled=calendarMonthKey>=today().slice(0,7);
   $("calendarHint").textContent=resumableSession()&&makeupInterestShown?"手上这组写完，就能补前几天的空。":"最近 7 天的留白日可以补写一帖。补帖要完整写完 5 个字，才会落印。";
   calendarAnimatedMonths.add(calendarMonthKey); }
 function openCalendar(month=calendarMonthKey){ calendarMonthKey=/^\d{4}-\d{2}$/.test(month)?month:today().slice(0,7); renderMe(); }
@@ -1795,7 +1798,7 @@ async function renderMonthlyPostCanvas(month=today().slice(0,7)){ const data=mon
   shown.forEach((idx,i)=>{ const x=startX+(i%cols)*(tile+gap), y=startY+Math.floor(i/cols)*(tile+gap); ctx.save(); ctx.translate(x+tile/2,y+tile/2); ctx.rotate((ROTS[i%ROTS.length]||0)*Math.PI/360); ctx.translate(-x-tile/2,-y-tile/2); ctx.fillStyle="#fdfbf4"; shareRoundRect(ctx,x,y,tile,tile,Math.min(12,tile*.1)); ctx.fill(); ctx.strokeStyle="#e5ddc9"; ctx.lineWidth=2; ctx.stroke(); if(images[i]){ ctx.drawImage(images[i],x+5,y+5,tile-10,tile-10); inkTiles++; }else{ ctx.fillStyle=ink; ctx.textAlign="center"; ctx.font=`400 ${Math.max(30,Math.round(tile*.62))}px "Kaiti SC","STKaiti",serif`; ctx.fillText(CARDS[idx].target,x+tile/2,y+tile*.72); } ctx.restore(); });
   if(data.indexes.length>maxTiles){ ctx.fillStyle=muted; ctx.textAlign="right"; ctx.font='500 24px -apple-system,"PingFang SC",sans-serif'; ctx.fillText(`另有 ${data.indexes.length-maxTiles} 字，也收在这个月里`,960,930); }
   ctx.textAlign="left"; ctx.fillStyle=accent; ctx.font='900 104px "Songti SC","STSong",serif'; ctx.fillText(String(data.practiced),108,1115); ctx.fillStyle=ink; ctx.font='700 34px -apple-system,"PingFang SC",sans-serif'; ctx.fillText("当月练过",250,1100);
-  ctx.fillStyle=muted; ctx.font='600 28px -apple-system,"PingFang SC",sans-serif'; ctx.fillText(`已拾回 ${data.stable} 字`,108,1180); ctx.fillText(`独立写出 ${data.independentCount} 字`,365,1180); ctx.fillText(`练习 ${data.practiceDays} 天`,640,1180);
+  ctx.fillStyle=muted; ctx.font='600 28px -apple-system,"PingFang SC",sans-serif'; ctx.fillText(`已拾回 ${data.stable} 字`,108,1180); ctx.fillText(`独立写出 ${data.independentCount} 字`,365,1180); ctx.fillText(`盖章 ${data.practiceDays} 天`,640,1180);
   ctx.fillStyle=ink; ctx.font='500 31px "Kaiti SC","STKaiti",serif'; ctx.fillText(data.hardest!=null?`本月最难的一个字：${CARDS[data.hardest].target}`:"本月最难的一个字：还在等你",108,1254);
   ctx.save(); ctx.translate(884,1160); ctx.rotate(-.08); ctx.fillStyle=accent; shareRoundRect(ctx,-72,-72,144,144,30); ctx.fill(); ctx.strokeStyle="#e9a18f"; ctx.lineWidth=6; ctx.stroke(); ctx.fillStyle="#fdfbf4"; ctx.textAlign="center"; ctx.font='400 48px "Kaiti SC","STKaiti",serif'; ctx.fillText("拾",0,-4); ctx.fillText("字",0,49); ctx.restore();
   ctx.fillStyle=muted; ctx.textAlign="left"; ctx.font='500 25px "Songti SC","STSong",serif'; ctx.fillText(`${data.month.replace("-"," · ")} · 提笔忘字，拾回便是`,108,1330);
@@ -1808,14 +1811,14 @@ async function shareMonthlyPost(opts={}){ const canvas=await renderMonthlyPostCa
 // ---- 年度报告：当前年度四屏本地汇总，不上传、不比较 ----
 function yearReportData(year=new Date().getFullYear()){ const prefix=String(year)+"-", days=activity.practiceDays.filter(day=>day.startsWith(prefix)).sort(), months={}; days.forEach(day=>{ const key=day.slice(0,7); months[key]=(months[key]||0)+1; }); const keys=[]; days.forEach(day=>dailyActivity(day).targetKeys.forEach(key=>{ if(!keys.includes(key)) keys.push(key); })); const indexes=keys.map(cardIndexForStoredKey).filter(i=>i>=0), busiest=Object.entries(months).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]))[0]||null, rarest=indexes.slice().sort((a,b)=>(Number(CARDS[b].rank)||0)-(Number(CARDS[a].rank)||0)||cardDifficulty(b)-cardDifficulty(a))[0], firstDay=days.find(day=>dailyActivity(day).targetKeys.length), firstKey=firstDay&&dailyActivity(firstDay).targetKeys[0], first=firstKey?cardIndexForStoredKey(firstKey):-1; return {year,days,keys,indexes,busiest,rarest:Number.isInteger(rarest)?rarest:null,first:first>=0?first:null,firstDay}; }
 function renderAnnualReport(year=new Date().getFullYear()){ const data=yearReportData(year); displayView("annual"); $("annualTitle").textContent=`${year} 年拾字报告`; if(!data.days.length){ $("annualSlides").innerHTML='<div class="annualSlide"><div class="annualEmpty">今年的第一枚章还没落下。<br>练过的字会在这里慢慢长成一卷。</div></div>'; return; }
-  const month=data.busiest?Number(data.busiest[0].slice(5)):0, firstChar=data.first!=null?CARDS[data.first].target:"", rareChar=data.rarest!=null?CARDS[data.rarest].target:""; $("annualSlides").innerHTML=`<section class="annualSlide"><span class="annualEyebrow">${year} · 拾字总数</span><b>${data.keys.length} 字</b><p>这些字，都在你的笔下真实出现过。</p></section><section class="annualSlide"><span class="annualEyebrow">这一年最常提笔的月份</span><b>${month} 月</b><p>这个月练了 ${data.busiest[1]} 天。只记相遇，不记缺席。</p></section><section class="annualSlide"><span class="annualEyebrow">写过最生僻的一个字</span><b class="annualChar">${esc(rareChar)}</b><p>${data.rarest!=null?esc(CARDS[data.rarest].word):""}</p></section><section class="annualSlide"><span class="annualEyebrow">这一年的第一个字</span><b class="annualChar">${esc(firstChar)}</b><p>${data.firstDay||""}，从这一笔开始。</p></section>`; $("annualSlides").scrollTop=0; }
+  const month=data.busiest?Number(data.busiest[0].slice(5)):0, firstChar=data.first!=null?CARDS[data.first].target:"", rareChar=data.rarest!=null?CARDS[data.rarest].target:""; $("annualSlides").innerHTML=`<section class="annualSlide"><span class="annualEyebrow">${year} · 练过的不同汉字</span><b>${data.keys.length} 字</b><p>这些是你今年练过的不同汉字。</p></section><section class="annualSlide"><span class="annualEyebrow">盖章天数最多的月份</span><b>${month} 月</b><p>这个月盖章 ${data.busiest[1]} 天。</p></section><section class="annualSlide"><span class="annualEyebrow">练过的字里最少见的一个</span><b class="annualChar">${esc(rareChar)}</b><p>${data.rarest!=null?esc(CARDS[data.rarest].word):""}</p></section><section class="annualSlide"><span class="annualEyebrow">这一年练的第一个字</span><b class="annualChar">${esc(firstChar)}</b><p>${data.firstDay||""}，从这个字开始。</p></section>`; $("annualSlides").scrollTop=0; }
 function startMode(mode){ const resume=resumableSession(); if(resume){ restoreSession(resume); return; }
   clearSessionSnapshot(); activeMode=(mode==="new" && needsCalibration())?"calibrate":mode; makeupTargetDay=""; focusQueue=[]; sessionDone=new Set(); roundOpeningPending=true; startRound(); }
 function startFocus(indexes,options={}){ focusQueue=[...new Set((indexes||highRiskIndexes()).filter(i=>i>=0 && i<CARDS.length))]; if(!focusQueue.length){ renderHome(); return; }
   focusReturnView=options.returnView||"home"; clearSessionSnapshot(); activeMode="focus"; makeupTargetDay=""; sessionDone=new Set(); roundOpeningPending=true; startRound(); }
 // ---- 单字详情：收藏先讲故事，再由用户决定是否重写 ----
 let charDetailIndex=-1, charDetailWriter=null, charDetailTouchY=null, charDetailSwipeEligible=false;
-const OUTCOME_STORY={fast:"上次独立写出",hinted:"上次看提示写出",slow:"上次写错了",miss:"上次没写出来"};
+const OUTCOME_STORY={fast:"上次独立写出",hinted:"上次需要再练",slow:"上次写错了",miss:"上次没写出来"};
 function firstSeenRecord(i){ const at=Number((memory[cardKey(i)]||{}).firstSeenAt)||0; return {day:at?dayKey(new Date(at)):"",at}; }
 function firstSeenDay(i){ return firstSeenRecord(i).day; }
 function firstSeenAt(i){ return firstSeenRecord(i).at; }
@@ -1863,9 +1866,9 @@ function libraryCounts(lib){ const seenTargets=new Set(),cutoff=Date.now()-30*86
   for(let i=0;i<BASE_N;i++){ const c=CARDS[i]; if(seenTargets.has(c.target)||!lib.test(c)) continue; seenTargets.add(c.target); total++; const m=memory[cardKey(i)];
     if(m&&m.seen){ got++; const level=memoryInkLevel(i); if(level<=2) deep++; else if(level===3) mid++; else faint++; if(Number(m.firstSeenAt)>=cutoff) recent++; } }
   return {total,got,deep,mid,faint,recent}; }
-function renderLibCard(){ const lib=currentLibrary(),counts=libraryCounts(lib); $("libName").textContent=lib.name; $("libMeta").textContent=`已拾 ${counts.got} / ${counts.total}`; }
+function renderLibCard(){ const lib=currentLibrary(),counts=libraryCounts(lib); $("libName").textContent=lib.name; $("libMeta").textContent=`已练 ${counts.got} / 共 ${counts.total}`; }
 function openLibSheet(){ const active=currentLibrary().id; $("libList").innerHTML=LIBRARIES.map(lib=>{ const counts=libraryCounts(lib);
-    return `<button class="libRow ${lib.id===active?"active":""}" data-lib="${lib.id}"><span class="libRowTop"><b>${esc(lib.name)}</b><span class="libCount">已拾 ${counts.got} / ${counts.total}</span></span><small>${esc(lib.desc)}</small></button>`; }).join(""); $("libSheet").classList.add("open"); }
+    return `<button class="libRow ${lib.id===active?"active":""}" data-lib="${lib.id}"><span class="libRowTop"><b>${esc(lib.name)}</b><span class="libCount">已练 ${counts.got} / 共 ${counts.total}</span></span><small>${esc(lib.desc)}</small></button>`; }).join(""); $("libSheet").classList.add("open"); }
 function closeLibSheet(){ $("libSheet").classList.remove("open"); }
 function renderBook(){ displayView("book");
   const seen=profileIndexes().sort((a,b)=>firstSeenAt(b)-firstSeenAt(a)||a-b);
@@ -1877,11 +1880,11 @@ function renderBook(){ displayView("book");
 let bookSearchTimer=0, bookSearchIndex=-1;
 function bookSearchTarget(){ const text=$("bookSearchInput").value.trim(),ch=Array.from(text).find(isCJK),base=ch&&BASE_BY_CHAR[ch],custom=ch?customIndexOf(ch):-1,idx=base!=null?base:custom; return {text,ch,idx:Number.isInteger(idx)?idx:-1}; }
 function handleBookSearchInput(autoOpen=true){ clearTimeout(bookSearchTimer); const {text,ch,idx}=bookSearchTarget(), nodes=[...$("memoryWall").querySelectorAll(".memoryChar")], result=$("bookSearchResult"); bookSearchIndex=-1; nodes.forEach(node=>node.classList.remove("searchDim","searchHit")); if(!text){ result.textContent=""; return; }
-  if(!ch){ result.textContent="没有这个字"; return; }
+  if(!ch){ result.textContent="请输入一个汉字"; return; }
   if(idx>=0&&hasMemory(idx)){ bookSearchIndex=idx; nodes.forEach(node=>{ const hit=Number(node.dataset.idx)===idx; node.classList.toggle("searchHit",hit); node.classList.toggle("searchDim",!hit); }); result.textContent=`找到「${ch}」`; if(autoOpen) bookSearchTimer=setTimeout(()=>{ if(bookSearchIndex===idx) openCharSheet(idx); },800); return; }
-  if(idx>=0){ result.innerHTML=`字库里还没有「${esc(ch)}」 · <button data-book-add="1">收进字库</button>`; return; }
-  result.textContent="没有这个字"; }
-function handleBookSearch(){ const {text,idx}=bookSearchTarget(); if(idx>=0&&hasMemory(idx)){ openCharSheet(idx); return; } if(!text){ toast("输入一个想找的字"); return; } openAddSheet(); $("addInput").value=text; renderAddPreview(); }
+  if(idx>=0){ result.innerHTML=`还未练过「${esc(ch)}」 · <button data-book-add="1">收进字库</button>`; return; }
+  result.textContent=`字库里暂时找不到「${ch}」`; }
+function handleBookSearch(){ const {text,idx}=bookSearchTarget(); if(idx>=0&&hasMemory(idx)){ openCharSheet(idx); return; } if(!text){ toast("请输入一个想找的字"); return; } openAddSheet(); $("addInput").value=text; renderAddPreview(); }
 function esc(s){ return String(s).replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch])); }
 function hardCount(i){ const m=memory[cardKey(i)]||{}; return (m.misses||0)+(m.hints||0)+(m.slow||0); }
 function missCount(i){ return Math.max(0,Number((memory[cardKey(i)]||{}).misses)||0); }
@@ -1893,18 +1896,18 @@ function structureLabel(i){ const c=CARDS[i], strokes=Number(c.strokes)||0, part
 function profileGroups(indexes, labelFn){ const map={}; indexes.forEach(i=>{ const label=labelFn(i), g=map[label]||(map[label]={label,items:[],count:0,hard:0,score:0});
   g.items.push(i); g.count++; g.hard+=missCount(i); g.score+=weaknessScore(i); });
   return Object.values(map).map(g=>({...g,avg:Math.round(g.score/Math.max(1,g.count))})).sort((a,b)=>b.avg-a.avg || b.hard-a.hard || b.count-a.count || String(a.label).localeCompare(String(b.label))); }
-function profileAdvice(indexes){ const weak=indexes.filter(i=>missCount(i)>0); if(!weak.length) return "写过几组后，反复忘的字会在这里露出来。"; if(!profileSampleReady(indexes)) return "先看这些真实忘过的字，记录多一点再找规律。"; const insight=primaryProfileInsight(weak); return `${insight.text}最容易从你手里溜走。`; }
+function profileAdvice(indexes){ const weak=indexes.filter(i=>missCount(i)>0); if(!weak.length) return "练几组后，这里会显示练习中没写出的字。"; if(!profileSampleReady(indexes)) return "先看看这些练习中没写出的字，记录多一些后再找规律。"; const insight=primaryProfileInsight(weak); return `${insight.text}更容易写错或想不起来。`; }
 function primaryProfileInsight(indexes){ const topic=profileGroups(indexes,cardTopic)[0]; if(topic) return {kind:"topic",label:topic.label,text:`${topic.label}里的字`};
   const structure=profileGroups(indexes,structureLabel)[0]; if(structure) return {kind:"structure",label:structure.label,text:`${structure.label}的字`};
-  const level=profileGroups(indexes,abilityLevel)[0]; if(level) return {kind:"level",label:level.label,text:`${level.label}的字`}; return {kind:"none",label:"",text:"最近写过的字"}; }
+  const level=profileGroups(indexes,abilityLevel)[0]; if(level) return {kind:"level",label:level.label,text:`${level.label}的字`}; return {kind:"none",label:"",text:"练过的字"}; }
 let profileReturnView="me", profilePracticeIndexes=[];
 function openProfile(source="me"){ profileReturnView=source; renderProfile(); }
 function closeProfile(){ if(profileReturnView==="summary") displayView("summary"); else renderMe(); }
 function renderProfile(){ displayView("profile"); const indexes=profileIndexes(), weak=indexes.filter(i=>missCount(i)>0).sort((a,b)=>missCount(b)-missCount(a)||weaknessScore(b)-weaknessScore(a)); profilePracticeIndexes=weak.slice(0,15);
   $("profileSummary").textContent=profileAdvice(indexes);
-  $("profileAdvice").innerHTML=weak.length?weak.slice(0,15).map(i=>{ const misses=missCount(i),size=clamp(27+misses*3,30,48); return `<button class="weakChar" data-char-idx="${i}" style="--weak-size:${size}px"><b>${esc(CARDS[i].target)}</b><small>忘过 ${misses} 次</small></button>`; }).join(""):`<div class="empty">还没有忘过的字，继续按自己的节奏写。</div>`;
+  $("profileAdvice").innerHTML=weak.length?weak.slice(0,15).map(i=>{ const misses=missCount(i),size=clamp(27+misses*3,30,48); return `<button class="weakChar" data-char-idx="${i}" style="--weak-size:${size}px"><b>${esc(CARDS[i].target)}</b><small>没写出 ${misses} 次</small></button>`; }).join(""):`<div class="empty">目前没有记录到没写出的字。</div>`;
   const topicGroups=profileGroups(weak,cardTopic).filter(g=>g.count>=3).slice(0,4), structureGroups=profileGroups(weak,structureLabel).filter(g=>g.count>=3).slice(0,3), rows=[...topicGroups,...structureGroups];
-  $("profileTopics").innerHTML=rows.map(g=>`<div class="profileRow"><span><b>${esc(g.label)}</b><small>${g.count} 个字，合计忘过 ${g.hard} 次</small></span></div>`).join("");
+  $("profileTopics").innerHTML=rows.map(g=>`<div class="profileRow"><span><b>${esc(g.label)}</b><small>${g.count} 个字，合计没写出 ${g.hard} 次</small></span></div>`).join("");
   $("profileTopicsSection").style.display=rows.length?"block":"none"; $("profileLevelsSection").style.display="none"; $("profilePractice").disabled=!profilePracticeIndexes.length; }
 function withTemporaryPreference(pref, fn){ const oldPref=preference, oldTopic=load(TOPIC_KEY,""); preference=pref;
   try{ return fn(); } finally { preference=oldPref; save(TOPIC_KEY,oldTopic); } }
@@ -2197,10 +2200,10 @@ function paintInkStrokes(idxs,color){ if(!idxs || !idxs.length) return; const de
   idxs.forEach(i=>paintBrushStroke(inkCtx,inkStrokes[i],penBaseWidth(),{color,detail:detailed})); }
 function suggestedOutcomeForVerdict(v){ if(!v) return ""; return v.status==="ok"?(hintsUsedThisCard>0?"hinted":"fast"):"slow"; }
 function wrapIdForOutcome(outcome){ return "wrap"+outcome[0].toUpperCase()+outcome.slice(1); }
-function verdictShort(v){ if(!v) return "对照助手不可用也没关系，请按实际字格判断。";
-  if(v.status==="ok") return v.mode==="holistic"?"建议：写对了；连笔不影响。最终以你的选择为准。":"建议：写对了。最终以你的选择为准。";
-  if(v.status==="bad") return v.mode==="exact"&&v.failed&&v.failed.length?"这几笔再对一眼。最终以你的选择为准。":"建议：写错了。请和右边对照，最终以你的选择为准。";
-  return "和右边对照一下，以你自己的判断为准。"; }
+function verdictShort(v){ if(!v) return "暂时无法自动对比，请和范字核对。";
+  if(v.status==="ok") return v.mode==="holistic"?"看起来写对了，连笔不影响；请再和范字确认。":"看起来写对了，请再和范字确认。";
+  if(v.status==="bad") return v.mode==="exact"&&v.failed&&v.failed.length?"这几笔可以再和范字对照一下。":"看起来有些差异，请和范字对照后选择。";
+  return "请和范字对照后选择。"; }
 
 const EXHAUSTED_HINT_COPY="点拨看完了——继续补完这个字，或点「不会写」先描后写";
 function hintVisualExhausted(){ return !animating && groups.length>0 && groupIdx>=groups.length; }
@@ -2224,7 +2227,7 @@ function updateTeachUI(){ const stage=(teachActive() && !revealed)?teachStage:"d
   $("tip").classList.remove("tlock"); $("show").classList.remove("tlock");
   $("clear").classList.toggle("tlock",writeLocked); $("done").classList.toggle("tlock",writeLocked);
   if(stage==="intro") $("show").disabled=false;
-  $("mascotLine").textContent=tracePhase?"沿着轮廓描，顺序不对也行":recallAfterTrace?"凭刚才的手感写":hintVisualExhausted()?EXHAUSTED_HINT_COPY:(stage==="helpers"?"想不起来就点「点拨」，或点「不会写」先描后写"
+  $("mascotLine").textContent=tracePhase?"沿着轮廓写就行，不必严格按笔顺":recallAfterTrace?"凭刚才的手感写":hintVisualExhausted()?EXHAUSTED_HINT_COPY:(stage==="helpers"?"想不起来就点「点拨」，或点「不会写」先描后写"
     :(stage!=="done"?"先试着写，写不出就点「不会写」":(cur?MASCOT_LINES[pos%MASCOT_LINES.length]:""))); }
 function armTeachIdle(){ clearTimeout(teachTimer);
   teachTimer=setTimeout(()=>{ if((teachStage==="intro"||teachStage==="writing") && teachActive() && !revealed){ teachStage="helpers"; updateTeachUI(); } },3000); }
@@ -2235,7 +2238,7 @@ function onTeachStrokeEnd(){}
 // ---- 流程 ----
 function promptHTML(c){ return c.chars.map((ch,i)=> i===c.ci ? `<span class="blank">${c.py||"？"}</span>` : `<span class="given">${ch}</span>`).join(""); }
 function practiceProgress(){ const targets=new Set(baseTargets), practiced=new Set(roundStats.filter(row=>targets.has(row.idx)).map(row=>row.idx)); return {done:practiced.size,total:targets.size,unresolved:new Set([...unresolved].filter(idx=>targets.has(idx))).size}; }
-function updateProgressLabel(){ const p=practiceProgress(); $("posLabel").textContent=p.total===1?"":(p.done>=p.total&&p.unresolved?`还要再练 ${p.unresolved}`:`已练 ${p.done}/${p.total}${p.unresolved?` · 还要再练 ${p.unresolved}`:""}`); }
+function updateProgressLabel(){ const p=practiceProgress(); $("posLabel").textContent=p.total===1?"":(p.done>=p.total&&p.unresolved?`另有 ${p.unresolved} 个字要再练`:`已练 ${p.done} / ${p.total} 个${p.unresolved?` · 另有 ${p.unresolved} 个字要再练`:""}`); }
 let stamped=false, autoNextTimer=0, editStampTimer=0, undoFollowTimer=0, lastStampSnapshot=null, overlayOn=false, replaying=false;
 function cloneObj(v){ return v==null?null:JSON.parse(JSON.stringify(v)); }
 function drawSnapshotStrokes(ctx,strokes,color,width,brush=false){ if(brush){ (strokes||[]).forEach(points=>paintBrushStroke(ctx,points,width,{color,detail:true})); return; } ctx.strokeStyle=color; ctx.fillStyle=color; ctx.lineWidth=width; ctx.lineCap="round"; ctx.lineJoin="round";
@@ -2286,10 +2289,10 @@ function renderUndoBar(){ hideUndoBar(false); if(!lastStampSnapshot || currentAt
   const ui=GRADE_UI[lastStampSnapshot.outcome]||GRADE_UI.slow; $("undoCopy").textContent=`「${lastStampSnapshot.target}」已盖「${ui.seal}」`; $("undoBar").style.display="flex"; $("card").classList.add("undoActive");
   undoFollowTimer=setTimeout(()=>hideUndoBar(true),5000); }
 function stampToastCopy(outcome,m){ const ui=GRADE_UI[outcome];
-  if(outcome==="fast"){ const ep=episodeFor(currentCardIndex()), recovered=ep.firstOutcome&&ep.firstOutcome!=="fast"; return {title:recovered?"今天已独立写出":`已记为${ui.func}`,sub:`${recovered?"这个字今天写稳了":"这次独立写对"} · 下次 ${shortDueDay(m.dueDay)}`}; }
-  if(outcome==="hinted") return {title:`已记为${ui.func}`,sub:"本组稍后再写 · 写稳后安排下次复习"};
-  if(outcome==="slow") return {title:`已记为${ui.func}`,sub:"本组稍后再写 · 写稳后安排下次复习"};
-  return {title:`已记为${ui.func}`,sub:"先描一遍，再自己写"}; }
+  if(outcome==="fast"){ const ep=episodeFor(currentCardIndex()), recovered=ep.firstOutcome&&ep.firstOutcome!=="fast"; return {title:"这次独立写对了",sub:recovered?`这个字今天写稳了 · 下次复习：${shortDueDay(m.dueDay)}`:`下次复习：${shortDueDay(m.dueDay)}`}; }
+  if(outcome==="hinted") return {title:"用了提示，写出来了",sub:"稍后不看提示再写一次"};
+  if(outcome==="slow") return {title:"这次没写对",sub:"稍后再写一次"};
+  return {title:"这次没写出来",sub:"先描红，再自己写一次"}; }
 function createPracticeWriter(container,token,data=null,instant=false,onSuccess=()=>{},onError=()=>{},showOutline=false){
   const loader=data?((_,done)=>done(data)):charLoader;
   return HanziWriter.create(container, cur.target, { width:S, height:S, padding:Math.round(S*0.06),
@@ -2310,11 +2313,11 @@ async function rebuildHintLayer(count=shownStrokes){
   if(token!==loadToken || revealed) return false;
   hzEl.replaceChildren(...holder.childNodes); writer=nextWriter; animating=false; updateTip(); return true; }
 function renderPhaseControls(){ tracing=practicePhase==="tracing"; const post=practicePhase==="postTraceRecall", teaching=tracing||post;
-  $("phaseTitle").textContent=tracing?"1/2 描写 · 先照着描一遍":post?"2/2 自己写 · 现在不看答案，自己写一次":"";
+  $("phaseTitle").textContent=tracing?"第 1 步：描红":post?"第 2 步：自己写":"";
   $("traceIntro").style.display=tracing&&!traceTutorialShown?"block":"none";
   $("actions").style.display=tracing?"none":"flex"; $("traceActions").style.display=tracing?"flex":"none";
   $("tip").style.display=teaching?"none":""; $("peekInk").style.display=teaching?"none":""; $("show").style.display=tracing?"none":"";
-  $("clear").textContent=tracing?"描":"另"; $("clear").setAttribute("aria-label",tracing?"重描这个字":"另起，重写这个字"); if(teaching) $("tip").disabled=true; updateActionLabels(); updateInkControls(); }
+  $("clear").textContent=tracing?"重描":"重写"; $("clear").setAttribute("aria-label",tracing?"重描这个字":"重写这个字"); if(teaching) $("tip").disabled=true; updateActionLabels(); updateInkControls(); }
 function render(){ fitBox(); cur=CARDS[currentCardIndex()]; const token=++loadToken, restoring=!!pendingSessionVisual;
   displayView("card");
   const area=$("practiceArea"); area.style.animation="none"; void area.offsetWidth; area.style.animation="cardSwapIn .18s ease-out both";
@@ -2328,7 +2331,7 @@ function render(){ fitBox(); cur=CARDS[currentCardIndex()]; const token=++loadTo
   updateProgressLabel();
   // 练习时只留题面本身（挖空词＋拼音就是「词语＋语境」，别再用文字复述——复述会把答案印出来）
   $("prompt").innerHTML=promptHTML(cur);
-  $("hint").textContent=cur.custom?cur.hint:(cur.ctx==="gloss"&&cur.hint?cur.hint:(cur.ctx==="fallback"?"这个字暂时没有常用词，按拼音写就好":(activeMode==="calibrate"?"这组用来摸个底，之后按合适的难度出题":"")));
+  $("hint").textContent=cur.custom?cur.hint:(cur.ctx==="gloss"&&cur.hint?cur.hint:(cur.ctx==="fallback"?"这个字暂时没有常用词，按拼音写就好":(activeMode==="calibrate"?"先写一组，之后会按你的情况调整难度":"")));
   clearInk(); drawing=false; inkCanvas.style.opacity='1'; hzEl.style.opacity='1'; hzEl.classList.remove("traceFallback");
   shownStrokes=0; totalStrokes=0; groups=[]; groupIdx=0; $("tip").disabled=true; $("show").disabled=false; $("done").disabled=true; $("tip").textContent="点拨"; updateActionLabels();
   hzEl.innerHTML=""; peekEl.innerHTML=""; peekEl.classList.remove("active"); hzEl.classList.remove("traceFallback"); writer=null; revealed=false;
@@ -2422,7 +2425,7 @@ function showRevealState(snapshot){ const verdict=snapshot&&snapshot.lastVerdict
   $("askLine").textContent=verdictShort(verdict);
   const exact=!!(verdict&&verdict.mode==="exact"); $("decisionCorrect").classList.toggle("suggest",exact&&verdict.status==="ok"); $("decisionWrong").classList.toggle("suggest",exact&&verdict.status==="bad");
   $("correctEffect").textContent=postTrace?"写对后，稍后还会再写":used?"已用提示，本组稍后再写":"这次独立写对";
-  $("stampNote").textContent=postTrace?"写错会回到第 1 步；写对仍需稍后无辅助写出":used?"本回合用过提示，写对后本组还会再写":"请按提交瞬间的完整字格判断";
+  $("stampNote").textContent=postTrace?"写错会重新描红；写对后，稍后还会不看提示再写一次":used?"这次看过提示，写对后本组还会再写一次":"请按现在写下的字判断";
   renderQuality();
 }
 function revealAnswer(){
@@ -2431,14 +2434,14 @@ function revealAnswer(){
 }
 async function beginTracingPhase(){ resetWritingChrome(); loadToken++; animating=false; unlockGradeActions(); practicePhase="tracing"; tracing=true; enteredTracingThisAttempt=true; revealed=false; actionStack=[]; clearInk(); traceStrokeStartCount=0; tracedThisCard=false;
   shownStrokes=0; groupIdx=0; activePointers.clear(); peekReleasePending=false; exitPeekHint(true); hzEl.innerHTML=""; hzEl.classList.remove("peekHint","traceFallback");
-  $("practiceArea").style.display="flex"; $("reveal").style.display="none"; $("stampedToast").style.display="none"; $("stampOnMine").style.display="none"; $("hint").textContent=""; $("traceIntro").textContent="先沿着轮廓描一遍，接着答案会隐藏，再自己写一次。"; renderPhaseControls(); await showTraceOutline(); saveSessionSnapshot(); }
+  $("practiceArea").style.display="flex"; $("reveal").style.display="none"; $("stampedToast").style.display="none"; $("stampOnMine").style.display="none"; $("hint").textContent=""; $("traceIntro").textContent="先沿着轮廓写一遍；轮廓隐藏后，再自己写一次。"; renderPhaseControls(); await showTraceOutline(); saveSessionSnapshot(); }
 function openTracingTeaching(){ if(Date.now()<actionCooldownUntil) return false; commitUndoWindow(); hapticFeedback("select"); clearTimeout(teachTimer); beginTracingPhase(); return true; }
 async function finishTracing(){ if(!tracedThisCard) return; resetWritingChrome(); clearInk(); hzEl.innerHTML=""; hzEl.classList.remove("traceFallback"); practicePhase="postTraceRecall"; tracing=false; shownStrokes=0; groupIdx=0; hintEverUsed=false; hintsUsedThisCard=0; actionStack=[];
   $("hint").textContent=""; renderPhaseControls(); saveSessionSnapshot(); }
 function declareDontKnow(){ if(practicePhase==="postTraceRecall"){ beginTracingPhase(); return; } if(revealed||animating||Date.now()<actionCooldownUntil) return;
   if(!["recall","reinforcement"].includes(practicePhase)) return;
   freezeSubmissionSnapshot(); const comfort=takeCalibrationComfort("miss"); recordOutcome("miss",{teaching:true}); updateProgressLabel(); openTracingTeaching();
-  if(comfort){ $("traceIntro").textContent="这个字十年没写了，忘了正常。先沿着轮廓描一遍，接着再自己写一次。"; $("traceIntro").style.display="block"; } }
+  if(comfort){ $("traceIntro").textContent="一时想不起来很正常。先沿着轮廓写一遍，再自己写一次。"; $("traceIntro").style.display="block"; } }
 function restoreRevealFromSnapshot(state){ if(!state) return; loadToken++; submissionSnapshot=cloneObj(state); inkStrokes=cloneObj(state.inkStrokes)||[]; hintEverUsed=!!state.hintEverUsed; hintsUsedThisCard=Number(state.hintCount)||0;
   lastVerdict=cloneObj(state.lastVerdict); enteredTracingThisAttempt=!!state.enteredTracing; tracedThisCard=!!state.enteredTracing; tracing=false; practicePhase="revealDecision"; showRevealState(submissionSnapshot); }
 $("show").onclick=declareDontKnow;
@@ -2462,16 +2465,16 @@ function showStampedFeedback(outcome,options={}){ const ui=GRADE_UI[outcome], m=
   $("decisionRow").style.display="none"; $("uncertainAction").style.display="none"; $("softConfirm").style.display="none"; $("stampNote").style.display="none"; $("askRow").style.display="none"; $("teachBubbleGrade").style.display="none"; $("qualityBox").style.display="none";
   $("toastChar").textContent=cur.target; const feedbackBlob=$("feedbackBlob"); feedbackBlob.classList.remove("pleased","concerned"); if(outcome==="fast"||recovered) feedbackBlob.classList.add("pleased"); else if(outcome==="slow"||outcome==="miss") feedbackBlob.classList.add("concerned");
   const copy=stampToastCopy(outcome,m); $("toastTitle").textContent=copy.title; $("toastSubEl").textContent=copy.sub; $("stampedToast").style.display="flex"; $("editStamp").disabled=false; }
-function showTeachingCompleteFeedback(){ showStampedFeedback("miss"); $("toastTitle").textContent="描写后已经写出"; $("toastSubEl").textContent="本组稍后还要无辅助再写"; $("editStamp").disabled=true; }
+function showTeachingCompleteFeedback(){ showStampedFeedback("miss"); $("toastTitle").textContent="描红后已经写出"; $("toastSubEl").textContent="本组稍后还会不看提示再写一次"; $("editStamp").disabled=true; }
 function takeCalibrationComfort(outcome){ if(activeMode!=="calibrate" || outcome==="fast" || calibrationComfortShown) return false; calibrationComfortShown=true; return true; }
 function pickStamp(outcome,options={}){ if(stamped || !revealed) return; stamped=true;
   lastStampSnapshot=takeStampSnapshot();
   const firstCalibrationHold=activeMode==="calibrate" && baseCursor===0 && !calibrationFirstHoldUsed;
   if(firstCalibrationHold) calibrationFirstHoldUsed=true;
   const comfort=takeCalibrationComfort(outcome); recordOutcome(outcome,options); lastStampSnapshot.outcome=outcome; practicePhase="feedback"; feedbackKind=outcome; hapticFeedback("stamp"); soundFeedback("stamp"); noteSoundTip();
-  showStampedFeedback(outcome,options); if(options.uncertain){ $("toastTitle").textContent="已记为记不清"; $("toastSubEl").textContent="盖「补拾」· 本组稍后再写"; }
+  showStampedFeedback(outcome,options); if(options.uncertain){ $("toastTitle").textContent="先记下来"; $("toastSubEl").textContent="这个字稍后再写一次"; }
   maybeOfferHandCard(currentCardIndex(),outcome);
-  if(comfort){ $("toastTitle").textContent="忘了很正常"; $("toastSubEl").textContent="这个字很久没写了，待会再拾一次"; }
+  if(comfort){ $("toastTitle").textContent="一时想不起来很正常"; $("toastSubEl").textContent="先描红，稍后再写一次"; }
   clearTimeout(editStampTimer); editStampTimer=setTimeout(()=>{ $("editStamp").disabled=true; },EDIT_STAMP_WINDOW_MS);
   updateProgressLabel(); saveSessionSnapshot();
   autoNextTimer=setTimeout(advanceFeedback,firstCalibrationHold?CALIBRATION_FIRST_HOLD_MS:STAMP_HOLD_MS); }
@@ -2515,7 +2518,7 @@ $("deferRound").onclick=deferRoundToTomorrow;
 function chooseFocusBatch(all){ return all.slice().sort((a,b)=>personalDifficulty(b)-personalDifficulty(a)).slice(0,BATCH); }
 function compareReviewPriority(a,b){ return reviewPriority(b)-reviewPriority(a) || String((memory[cardKey(a)]||{}).dueDay||"").localeCompare(String((memory[cardKey(b)]||{}).dueDay||"")) || personalDifficulty(b)-personalDifficulty(a); }
 function chooseReviewBatch(all){ return all.slice().sort(compareReviewPriority).slice(0,BATCH); }
-function startRound(){ if(activeMode==="review" && reviewBudgetRemaining()===0){ clearSessionSnapshot(); renderHome(); toast("今天的复习已完成，可以拾新字"); return; }
+function startRound(){ if(activeMode==="review" && reviewBudgetRemaining()===0){ clearSessionSnapshot(); renderHome(); toast("今天的复习已完成，可以练新字"); return; }
   const p=availablePool(), queued=activeMode==="calibrate"?[]:queuedFrontPool(); if(p.length===0 && queued.length===0){ clearSessionSnapshot(); allDone(); return; } resetAdaptiveSession();
   roundStartMemoryCount=memoryCount();
   baseTargets=(activeMode==="focus"||activeMode==="makeup")?chooseFocusBatch(p).slice(0,activeMode==="makeup"?5:BATCH):(activeMode==="review"?chooseReviewBatch(p):(activeMode==="calibrate"?chooseCalibrationBatch(p):chooseBatch(p)));
@@ -2526,16 +2529,13 @@ function startRound(){ if(activeMode==="review" && reviewBudgetRemaining()===0){
   missedThisRound=[]; roundStats=[]; roundFeedbackGiven=false; calibrationFirstHoldUsed=false; calibrationComfortShown=false; lastStampSnapshot=null; hideUndoBar(false); roundId=Date.now()+"-"+Math.random().toString(36).slice(2,7);
   roundElapsedMs=0; roundActiveStartedAt=Date.now(); roundBudgetPrompted=false; roundTimerPaused=false;
   beginAttempt({idx:baseTargets[0],kind:"base"}); saveSessionSnapshot(); armPracticeHistory(); render(); }
-function sumTile(s,i,delayOffset=0){ const recovered=s.outcome!=="fast"&&s.independentlyRecovered, ui=GRADE_UI[s.outcome], mark=s.outcome==="fast"?"":`<span class="dot outcomeMark ${s.outcome}" style="background:${OUTCOME_DOT[s.outcome]}">${OUTCOME_MARK[s.outcome]}</span>`;
-  return `<button class="sumTile ${s.outcome}" data-idx="${s.idx}" aria-label="${esc(s.target)}，首次${esc(ui.func)}${recovered?"，之后已独立写出":""}" style="transform:rotate(${ROTS[i%ROTS.length]}deg); animation-delay:${(delayOffset+i*0.05).toFixed(2)}s"><span class="glyphText">${s.target}</span>${mark}<small class="meaning${recovered?" recover":""}">${recovered?"已独立":ui.short}</small></button>`; }
+function sumTile(s,i,delayOffset=0){ const recovered=s.outcome!=="fast"&&s.independentlyRecovered, ui=GRADE_UI[s.outcome], mark=s.outcome==="fast"?"":`<span class="dot outcomeMark ${s.outcome}" style="background:${OUTCOME_DOT[s.outcome]}">${OUTCOME_MARK[s.outcome]}</span>`, firstCopy=s.outcome==="fast"?"第一次独立写对":(s.outcome==="hinted"?(s.uncertain?"第一次不太确定":"第一次看过提示后写出"):(s.outcome==="slow"?"第一次写错":"第一次没写出"));
+  return `<button class="sumTile ${s.outcome}" data-idx="${s.idx}" aria-label="${esc(s.target)}，${firstCopy}${recovered?"，之后已独立写出":""}" style="transform:rotate(${ROTS[i%ROTS.length]}deg); animation-delay:${(delayOffset+i*0.05).toFixed(2)}s"><span class="glyphText">${s.target}</span>${mark}<small class="meaning${recovered?" recover":""}">${recovered?"已独立":ui.short}</small></button>`; }
 function motionReduced(){ return !!(window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches); }
 const REST_LINES=[
-  "今日字数已足，笔可以搁了",
-  "墨痕留在纸上，手也记住了",
-  "这一页写定，余下的明日再拾",
-  "收笔不收心，字会慢慢回来",
-  "一页有一页的功夫，今日到这里",
-  "纸上留痕，心里也多了一笔"
+  "今天先写到这里。",
+  "这组已经完成。",
+  "明天再继续。"
 ];
 function roundRestLine(id=roundId){ return REST_LINES[stableTextHash(`${id}:${today()}`)%REST_LINES.length]; }
 function renderRoundRestLine(){ const line=roundRestLine(); $("calibRestLine").textContent=line; $("summaryRestLine").textContent=line; }
@@ -2543,7 +2543,7 @@ function renderSummaryMilestone(milestone){ summaryMilestoneActive=!!milestone; 
 function renderPracticePocket(indexes, calibration=false){ const unique=[...new Set((indexes||[]).filter(i=>Number.isInteger(i)&&i>=0&&i<CARDS.length))], card=$(calibration?"calibPocketCard":"pocketCard"), chips=$(calibration?"calibPocketChips":"pocketChips"), title=$(calibration?"calibPocketTitle":"pocketTitle");
   summaryFocusIndexes=unique; card.style.display=unique.length?"flex":"none"; if(!unique.length) return;
   chips.innerHTML=unique.slice(0,3).map((idx,k)=>`<span class="pChip" style="transform:rotate(${k%2?3:-4}deg)">${CARDS[idx].target}</span>`).join("");
-  title.textContent=`${unique.length} 个字，趁热再拾`; }
+  title.textContent=`${unique.length} 个字第一次没写稳`; }
 function roundSummary(fromPractice=false){ const durationMs=currentRoundElapsed(); roundElapsedMs=durationMs; roundActiveStartedAt=0; roundTimerPaused=false; recordFunnelRound(durationMs); clearSessionSnapshot(); markRoundComplete(); releasePracticeHistory(); const characterMilestone=celebrateCharacterMilestoneIfAny(), dayMilestone=celebrateMilestoneIfAny(), milestone=characterMilestone?{kind:"characters",value:characterMilestone}:dayMilestone?{kind:"days",value:dayMilestone}:null; displayView("summary");
   $("summaryShare").style.display="block"; $("calibShare").style.display="block";
   renderSummaryMilestone(milestone); renderRoundRestLine();
@@ -2563,13 +2563,13 @@ function roundSummary(fromPractice=false){ const durationMs=currentRoundElapsed(
     $("calibKept").textContent=keptN; $("calibMiss").textContent=hardN;
     $("calibTier").textContent=tuningLabel();
     $("calibWhyTxt").textContent=calibrationNote?` ${calibrationNote}`:" 之后每组会按你实际写的情况自动微调。";
-    $("calibPocketLine").textContent=hardN>0?`首答没写出的 ${hardN} 个字，之后都已独立写出。`:"这一把首答一个都没漏，下一组会稍微上点难度。";
+    $("calibPocketLine").textContent=hardN>0?`${hardN} 个字第一次没写稳。`:"这组每个字第一次都写出来了，下一组会稍微增加难度。";
     renderPracticePocket(risky,true); $("calibProfile").style.display=hardN>0?"block":"none"; renderCalibrationReturnHook();
     return; }
   $("calibPocketCard").style.display="none";
   $("summaryProfile").style.display=hardN>0?"block":"none";
   $("sumH2").textContent=wasMakeup?"补帖已盖":(completedGroups>1?`今日已拾 ${dayTotal} 字`:"今日拾得");
-  $("sumLead").innerHTML=wasMakeup?`${formatDueDay(calendarDay)}补写完成，<br>这一天落下了一枚浅色「补」印。`:(hardN>0?`本组 <b class="ok">${roundStats.length}</b> 个字全部完成，<br><b class="warn">${hardN}</b> 个首答没写出，之后已独立写出。`:`这一把 <b class="ok">${keptN}</b> 个字首答都独立写出了。`);
+  $("sumLead").innerHTML=wasMakeup?`${formatDueDay(calendarDay)}补写完成，<br>这一天落下了一枚浅色「补」印。`:(hardN>0?`本组 <b class="ok">${roundStats.length}</b> 个字全部完成，<br>其中 <b class="warn">${hardN}</b> 个字第一次没写稳。`:`本组 <b class="ok">${keptN}</b> 个字第一次都独立写出了。`);
   renderPracticePocket(risky,false);
   renderRoundTune(calibrationNote);
   renderSummaryBackupHint();
@@ -2578,8 +2578,8 @@ function roundSummary(fromPractice=false){ const durationMs=currentRoundElapsed(
 function allDone(){ displayView("summary"); clearTimeout(summarySealTimer); summarySealTimer=0; renderSummaryMilestone(null);
   $("summaryShare").style.display="none"; $("calibShare").style.display="none";
   $("calibCard").style.display="none"; $("sumSheet").style.display="flex";
-  $("sumH2").textContent="今天的字过完了";
-  $("sumLead").innerHTML=`练过 <b>${memoryCount()}</b> 字 · 已拾回 <b class="ok">${stableCount()}</b> 字 · 待拾回 ${highRiskCount()}`;
+  $("sumH2").textContent="今天的字都练完了";
+  $("sumLead").innerHTML=`练过 <b>${memoryCount()}</b> 个字 · 已写稳 <b class="ok">${stableCount()}</b> 个字 · 还有 ${highRiskCount()} 个字要练`;
   $("dateSeal").textContent=dateCn();
   $("sumTiles").innerHTML=""; $("sumPracticeHint").style.display="none"; $("calibPracticeHint").style.display="none"; $("summaryRestLine").textContent=""; $("calibRestLine").textContent=""; $("pocketCard").style.display="none"; $("calibPocketCard").style.display="none"; summaryFocusIndexes=[]; $("summaryBackupHint").style.display="none";
   $("roundTune").style.display="none"; $("summaryProfile").style.display="none"; $("more").style.display="none"; }
@@ -2599,7 +2599,7 @@ function exitCurrentRound(fromHistory=false){ if(exitingPractice || $("card").st
   exitingPractice=true; clearTimeout(teachTimer); clearTimeout(autoNextTimer); clearTimeout(editStampTimer); inkEnd(); resetWritingChrome();
   if(!saveSessionSnapshot()){
     exitingPractice=false; if(fromHistory){ practiceHistoryArmed=true; restoringPracticeHistory=true; try{ history.forward(); }catch(e){ restoringPracticeHistory=false; } }
-    toast("未能保存进度，请重试返回"); return false;
+    toast("进度暂时无法保存，请稍后再返回"); return false;
   }
   loadToken++; pendingSessionVisual=null; animating=false; drawing=false; activePointers.clear(); exitPeekHint(true);
   if(!fromHistory) releasePracticeHistory(); else practiceHistoryArmed=false;
@@ -2615,7 +2615,7 @@ $("sumTiles").onclick=e=>{ const b=e.target.closest("[data-idx]"); if(b) openCha
 $("calibSumTiles").onclick=e=>{ const b=e.target.closest("[data-idx]"); if(b) openCharSheet(Number(b.dataset.idx)); };
 $("roundTune").onclick=e=>{ const b=e.target.closest("[data-round-feedback]"); if(b) recordRoundFeedback(b.dataset.roundFeedback); };
 $("memoryWall").onclick=e=>{ const b=e.target.closest("[data-idx]"); if(b) openCharSheet(Number(b.dataset.idx)); };
-$("wildWishChars").onclick=e=>{ const b=e.target.closest("[data-wild-wish]"); if(!b) return; const ch=b.dataset.wildWish,row=wildState.wishes[ch]; if(row&&row.dataURL) openWildPhoto(row.dataURL,`${ch} · ${collectedDateText(row.day)}拾于生活`); else toast(`「${ch}」已经记下，字帖还在路上`); };
+$("wildWishChars").onclick=e=>{ const b=e.target.closest("[data-wild-wish]"); if(!b) return; const ch=b.dataset.wildWish,row=wildState.wishes[ch]; if(row&&row.dataURL) openWildPhoto(row.dataURL,`${ch} · ${collectedDateText(row.day)}拾于生活`); else toast(`「${ch}」暂不支持练习，已先保存记录`); };
 $("bookCurator").onclick=()=>{ if(!bookCuratorIndexes.length) return; if(bookCuratorKind==="recall") openCharSheet(bookCuratorIndexes[0]); else startFocus(bookCuratorIndexes); };
 $("libCard").onclick=openLibSheet;
 $("libSheet").onclick=e=>{ if(e.target===$("libSheet")){ closeLibSheet(); return; } const row=e.target.closest("[data-lib]"); if(!row) return; const lib=LIBRARIES.find(item=>item.id===row.dataset.lib); if(!lib) return;
@@ -2707,14 +2707,14 @@ function showWildCandidates(value,requestId=wildOCRRequest){ if(!wildDraft||requ
 window.shiziOCRResult=payload=>{ const body=plainObject(payload)?payload:{candidates:payload},requestId=Number(body.requestId)||wildOCRRequest; showWildCandidates(body.candidates||[],requestId); };
 async function handleWildPhoto(file){ if(!file||!String(file.type||"").startsWith("image/")) return false; $("wildCaptureNote").textContent="正在整理照片…";
   try{ const dataURL=await cropWildPhoto(file); if(!dataURL) throw new Error("size"); const at=Date.now(); wildOCRRequest+=1; wildDraft={version:1,day:today(),at,dataURL,requestId:wildOCRRequest}; $("wildCapture").classList.add("hasPhoto"); $("wildCaptureThumb").src=dataURL; $("wildCaptureThumb").style.display="block"; $("wildCandidates").classList.remove("visible"); $("wildCandidates").innerHTML=""; $("addInput").value=""; $("addInput").placeholder="你看到的是哪个字？"; renderAddPreview();
-    const bridge=nativeOCRBridge(); if(bridge){ $("wildCaptureNote").textContent="正在本机认字…"; bridge.postMessage({type:"recognizeChars",requestId:wildOCRRequest,dataURL}); } else $("wildCaptureNote").textContent="你看到的是哪个字？请手动输入";
+    const bridge=nativeOCRBridge(); if(bridge){ $("wildCaptureNote").textContent="正在当前设备上识别…"; bridge.postMessage({type:"recognizeChars",requestId:wildOCRRequest,dataURL}); } else $("wildCaptureNote").textContent="你看到的是哪个字？请手动输入";
     $("addInput").focus(); return true;
   }catch(e){ wildDraft=null; $("wildCaptureNote").textContent="照片没能读出来，可以直接手动输入"; toast("照片没能读出来，可以手动输入"); return false; } }
-function clearWildDraft(){ wildDraft=null; wildOCRRequest+=1; $("wildPhotoInput").value=""; $("wildCapture").classList.remove("hasPhoto"); $("wildCaptureThumb").src=""; $("wildCaptureThumb").style.display="none"; $("wildCandidates").classList.remove("visible"); $("wildCandidates").innerHTML=""; $("wildCaptureNote").textContent="可拍照或从相册选，只在本机识别与保存"; $("addInput").placeholder="蘸料"; }
+function clearWildDraft(){ wildDraft=null; wildOCRRequest+=1; $("wildPhotoInput").value=""; $("wildCapture").classList.remove("hasPhoto"); $("wildCaptureThumb").src=""; $("wildCaptureThumb").style.display="none"; $("wildCandidates").classList.remove("visible"); $("wildCandidates").innerHTML=""; $("wildCaptureNote").textContent="可拍照或从相册选择；照片默认保存在当前设备"; $("addInput").placeholder="蘸料"; }
 function renderAddPreview(){ const raw=[...new Set(Array.from($("addInput").value).filter(isCJK))],chars=wildDraft?raw.slice(0,1):raw;
   $("addConfirm").disabled=!chars.length;
   $("addPreview").innerHTML=chars.length?chars.map(ch=>{ const b=BASE_BY_CHAR[ch], idx=b!=null?b:customIndexOf(ch), m=idx>=0?memory[cardKey(idx)]:null;
-    return `<span class="addChip"><b>${ch}</b>${b!=null?CARDS[b].py:(wildDraft?"还没有字帖":"生僻字·自定义卡")}${m&&m.seen?" · 已练过":""}</span>`; }).join(""):`<span>${wildDraft?"输入或点选一个汉字":"输入含汉字的词"}</span>`;
+    return `<span class="addChip"><b>${ch}</b>${b!=null?CARDS[b].py:(wildDraft?"暂不支持练习":"生僻字·自定义卡")}${m&&m.seen?" · 已练过":""}</span>`; }).join(""):`<span>${wildDraft?"输入或点选一个汉字":"输入含汉字的词"}</span>`;
   $("wildCandidates").querySelectorAll("[data-wild-candidate]").forEach(btn=>btn.classList.toggle("selected",btn.dataset.wildCandidate===chars[0])); }
 let feedbackPausedForAdd=false;
 function openAddSheet(){ commitUndoWindow(); if(stamped){ clearTimeout(autoNextTimer); feedbackPausedForAdd=true; lastStampSnapshot=null; $("editStamp").disabled=true; hideUndoBar(false); }
@@ -2722,7 +2722,7 @@ function openAddSheet(){ commitUndoWindow(); if(stamped){ clearTimeout(autoNextT
   requestAnimationFrame(()=>{ try{ $("addInput").scrollIntoView({block:"center", inline:"nearest"}); }catch(e){} }); }
 function closeAddSheet(){ $("addSheet").classList.remove("open"); $("addInput").blur(); clearWildDraft(); updateKeyboardInset(); if(feedbackPausedForAdd){ feedbackPausedForAdd=false; autoNextTimer=setTimeout(advanceFeedback,200); } }
 function confirmAdd(){ if(wildDraft){ const ch=Array.from($("addInput").value).find(isCJK),capture=wildDraft,result=collectWildCharacter(ch,capture); if(!result.char) return; const insertion=result.known?insertIntoCurrentBatch([result.idx]):{queued:[]}; closeAddSheet();
-    if(!result.known){ toast("这个字还没有字帖，先记下了"); if($("studybook").style.display==="flex") renderBook(); return; }
+    if(!result.known){ toast("这个字暂不支持练习，已先保存记录"); if($("studybook").style.display==="flex") renderBook(); return; }
     if(insertion.queued.length) toast(`已加入本组，下一题写「${result.char}」`); else toast(`已拾下「${result.char}」 · 下次开练先写它`);
     if($("summary").style.display==="flex") roundSummary(); if($("mePanel").style.display==="flex") renderMe(); if($("studybook").style.display==="flex") renderBook(); return; }
   const chars=addWord($("addInput").value); if(!chars) return;
@@ -2772,7 +2772,7 @@ async function renderHandCardCanvas(index,ratio="portrait",targetCanvas=null){ c
   ctx.save(); ctx.translate(spec.width-170,sealY); ctx.strokeStyle="#c2452c"; ctx.lineWidth=5; ctx.strokeRect(0,0,82,82); ctx.fillStyle="#c2452c"; ctx.font='500 54px "Kaiti SC","STKaiti",serif'; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillText("拾",41,43); ctx.restore();
   ctx.fillStyle="#756b5a"; ctx.font='400 20px "Songti SC","STSong",serif'; ctx.textAlign="center"; ctx.fillText("拾字",spec.width/2,spec.height-42);
   canvas.dataset.ratio=ratio; canvas.dataset.inkSource="vector"; canvas.dataset.inkStrokeCount=String(Array.isArray(strokes)?strokes.length:0); canvas.dataset.signatureSize="20"; canvas.dataset.dateSize="32"; return canvas; }
-async function updateHandCardPreview(){ if(handCardIndex<0) return false; const token=++handCardRenderToken,canvas=$("handCardPreview"); $("handCardHint").textContent="只用你的这一笔，做成一张可以带走的卡。"; const rendered=await renderHandCardCanvas(handCardIndex,handCardRatio,canvas); if(token!==handCardRenderToken) return false; if(!rendered){ $("handCardHint").textContent="这份真迹暂时没能打开，请稍后再试。"; return false; } canvas.classList.toggle("square",handCardRatio==="square"); return true; }
+async function updateHandCardPreview(){ if(handCardIndex<0) return false; const token=++handCardRenderToken,canvas=$("handCardPreview"); $("handCardHint").textContent="用这份笔迹做一张字卡。"; const rendered=await renderHandCardCanvas(handCardIndex,handCardRatio,canvas); if(token!==handCardRenderToken) return false; if(!rendered){ $("handCardHint").textContent="字卡暂时无法生成，请稍后再试。"; return false; } canvas.classList.toggle("square",handCardRatio==="square"); return true; }
 function setHandCardRatio(ratio){ if(!HAND_CARD_RATIOS[ratio]) return false; handCardRatio=ratio; document.querySelectorAll("[data-hand-card-ratio]").forEach(button=>{ const active=button.dataset.handCardRatio===ratio; button.classList.toggle("active",active); button.setAttribute("aria-pressed",active?"true":"false"); }); updateHandCardPreview(); return true; }
 function openHandCard(index,options={}){ if(!handCardData(index)) return false; handCardIndex=index; handCardResumeFeedback=!!options.fromPrompt&&stamped&&practicePhase==="feedback"; if(handCardResumeFeedback){ clearTimeout(autoNextTimer); clearTimeout(editStampTimer); } hideHandCardPrompt(); setHandCardRatio("portrait"); $("handCardSheet").classList.add("open"); return true; }
 function closeHandCard(){ if(!$("handCardSheet").classList.contains("open")) return false; $("handCardSheet").classList.remove("open"); handCardRenderToken++; const resume=handCardResumeFeedback; handCardResumeFeedback=false; if(resume&&stamped&&practicePhase==="feedback") autoNextTimer=setTimeout(advanceFeedback,200); return true; }
@@ -2781,10 +2781,10 @@ async function exportHandCard(mode,options={}){ const index=Number.isInteger(opt
   if(native){ const type=mode==="save"?"savePracticeCard":"sharePracticeCard",message={type,kind:"character",name,dataURL}; native.postMessage(message); return {route:mode==="save"?"native-save":"native-share",name,width:canvas.width,height:canvas.height,message}; }
   const blob=await practiceCardBlob(canvas); if(mode==="share"){ const nav=Object.prototype.hasOwnProperty.call(options,"navigator")?options.navigator:navigator,file=new File([blob],name,{type:"image/png"}); if(nav&&typeof nav.canShare==="function"&&typeof nav.share==="function"&&nav.canShare({files:[file]})){ try{ await nav.share({files:[file],title:"拾字 · 手写字卡"}); return {route:"share",name,size:blob.size,width:canvas.width,height:canvas.height}; }catch(e){ if(e&&e.name==="AbortError") return {route:"cancelled",name,size:blob.size}; } } }
   if(typeof options.download==="function") options.download(blob,name); else { const url=URL.createObjectURL(blob),a=document.createElement("a"); a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),4000); } toast(mode==="save"?"字卡已存成图片":"字卡已存成图片"); return {route:"download",name,size:blob.size,width:canvas.width,height:canvas.height}; }
-async function runHandCardAction(button,mode){ if(!button||button.disabled) return; button.disabled=true; try{ const result=await exportHandCard(mode); if(result.route==="empty") toast("这份真迹暂时没能打开"); }catch(e){ toast(mode==="save"?"字卡保存失败，请再试一次":"字卡分享失败，请再试一次"); }finally{ button.disabled=false; } }
+async function runHandCardAction(button,mode){ if(!button||button.disabled) return; button.disabled=true; try{ const result=await exportHandCard(mode); if(result.route==="empty") toast("字卡暂时无法生成，请稍后再试"); }catch(e){ toast(mode==="save"?"字卡保存失败，请再试一次":"字卡分享失败，请再试一次"); }finally{ button.disabled=false; } }
 function hideHandCardPrompt(){ clearTimeout(handCardPromptTimer); $("handCardPrompt").style.display="none"; }
 function maybeOfferHandCard(index,outcome){ const data=handCardData(index); if(outcome!=="fast"||!data||!handCardPref.promptEnabled||handCardPref.lastPromptDay===today()) return false; handCardPref.lastPromptDay=today(); save(HAND_CARD_KEY,handCardPref); handCardPromptIndex=index; $("handCardPrompt").style.display="flex"; clearTimeout(handCardPromptTimer); handCardPromptTimer=setTimeout(hideHandCardPrompt,5000); return true; }
-window.shiziCardSaved=result=>{ if(result&&result.success) toast("字卡已存到相册"); else toast("没能存到相册，请检查照片权限"); };
+window.shiziCardSaved=result=>{ if(result&&result.success) toast("字卡已存到相册"); else toast("没能保存到相册。请检查照片权限，或稍后重试"); };
 function renderPracticeCardCanvas(){ const stats=(roundStats||[]).slice(); if(!stats.length) return null;
   const cols=5, gap=18, tile=160, rows=Math.ceil(stats.length/cols), extraRows=Math.max(0,rows-3), cardH=1090+extraRows*(tile+gap);
   const canvas=document.createElement("canvas"); canvas.width=1080; canvas.height=1440+extraRows*(tile+gap); const ctx=canvas.getContext("2d"), paper="#f4efe2", card="#fdfbf4", ink="#29241d", muted="#665d4d", accent="#c2452c", gold="#a67c26", green="#5b8b67";
@@ -2822,7 +2822,7 @@ const BACKUP_KEYS=[DECK_KEY,OPEN_KEY,MEMORY_KEY,QUALITY_KEY,PREF_KEY,TUNING_KEY,
 function backupAgeDays(){ const ts=Number(backupMeta.lastExportAt)||0; return ts?Math.max(0,Math.floor((Date.now()-ts)/86400000)):Number.POSITIVE_INFINITY; }
 function backupRelativeText(){ const days=backupAgeDays(); if(!Number.isFinite(days)) return "从未备份"; if(days===0) return "上次备份 · 今天"; if(days===1) return "上次备份 · 昨天"; return `上次备份 · ${days} 天前`; }
 function renderBackupUI(){ const age=backupAgeDays(), never=!Number.isFinite(age), urgent=(totalPracticeDays()>=14&&never)||(!never&&age>=30); $("backupStatus").textContent=backupRelativeText(); $("backupStatus").classList.toggle("backupStatusUrgent",urgent); $("backupUrgency").style.display=urgent?"flex":"none"; $("mePanel").classList.toggle("backupUrgent",urgent);
-  const needs=(completedDayCount()>=5 || memoryCount()>=30) && age>=7; $("backupReminder").style.display=needs&&reminder.characterMilestoneDay!==today()?"flex":"none"; $("backupReminderCopy").textContent=never?"记录只存在这台设备上，可以导出一份备份。":`已有 ${memoryCount()} 个字，上次备份在 ${age} 天前。`; }
+  const needs=(completedDayCount()>=5 || memoryCount()>=30) && age>=7; $("backupReminder").style.display=needs&&reminder.characterMilestoneDay!==today()?"flex":"none"; $("backupReminderCopy").textContent=never?"数据默认保存在当前设备，建议导出一份备份。":`已有 ${memoryCount()} 个字，上次备份在 ${age} 天前。`; }
 function renderSummaryBackupHint(){ const eligible=!summaryMilestoneActive && reminder.characterMilestoneDay!==today() && completedDayCount()>=3 && !backupMeta.summaryPromptShown;
   if(eligible){ summaryBackupHintVisible=true; backupMeta.summaryPromptShown=true; save(BACKUP_META_KEY,backupMeta); }
   $("summaryBackupHint").style.display=summaryBackupHintVisible?"flex":"none"; }
@@ -2841,7 +2841,7 @@ function safetySnapshot(){ const row=parseStoredObject(localStorage.getItem(SAFE
 let safetyUndoTimer=0;
 function hideSafetyUndo(){ clearTimeout(safetyUndoTimer); $("safetyUndo").style.display="none"; }
 function showSafetyUndo(){ const row=safetySnapshot(); if(!row || row.offeredAt) return false; row.offeredAt=Date.now(); localStorage.setItem(SAFETY_KEY,JSON.stringify(row));
-  $("safetyUndoCopy").textContent=row.reason==="reset"?"记录已清空，操作前的数据还在":"备份已恢复，覆盖前的数据还在"; $("safetyUndoBtn").textContent=row.reason==="reset"?"撤销清空":"撤销恢复"; $("safetyUndo").style.display="flex"; safetyUndoTimer=setTimeout(hideSafetyUndo,10000); return true; }
+  $("safetyUndoCopy").textContent=row.reason==="reset"?"当前数据已清空，操作前的数据仍留在本设备":"备份已恢复，覆盖前的数据仍留在本设备"; $("safetyUndoBtn").textContent=row.reason==="reset"?"撤销清空":"撤销恢复"; $("safetyUndo").style.display="flex"; safetyUndoTimer=setTimeout(hideSafetyUndo,10000); return true; }
 function undoSafetyRestore(opts){ const options=opts||{}, row=safetySnapshot(); if(!row) return {applied:false}; const result=restoreBackupPayload(row.payload,{skipConfirm:true,reload:false,skipSafety:true}); localStorage.removeItem(SAFETY_KEY); hideSafetyUndo(); if(options.reload!==false) location.reload(); return result; }
 async function exportBackup(){ const exportedAt=Date.now(), payload=backupPayload({exportedAt,funnelExportAt:exportedAt}), name=`shizi-backup-${today()}.json`;
   if(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.shiziNative){
@@ -2856,14 +2856,14 @@ function restoreBackupPayload(payload, opts){ const options=opts||{}, obj=typeof
   if(!obj || obj.app!=="shizi" || !obj.data || typeof obj.data!=="object") throw new Error("format");
   const keys=Object.keys(obj.data).filter(k=>BACKUP_KEYS.includes(k)); if(!keys.length) throw new Error("empty");
   const current=currentProgress(), incoming=payloadProgress(obj), incomingDate=dateLabel(obj.date||incoming.last);
-  if(!options.skipConfirm && !confirm(`当前 ${current.count} 字（最后练习 ${dateLabel(current.last)}）→ 备份 ${incoming.count} 字（${incomingDate}），确认覆盖？`)) return {applied:false, keys};
+  if(!options.skipConfirm && !confirm(`恢复备份会用其中的练习记录、拍字照片、自定义字和设置覆盖当前设备上的数据。\n\n当前：${current.count} 个字，最后练习 ${dateLabel(current.last)}\n备份：${incoming.count} 个字，备份时间 ${incomingDate}\n\n覆盖前的数据会作为一份安全副本留在当前设备，不会随撤销提示消失；下次恢复或清空会覆盖这份副本。\n\n页面底部会短暂显示「撤销恢复」。是否继续？`)) return {applied:false, keys};
   if(!options.skipSafety) captureSafetySnapshot("restore");
   BACKUP_KEYS.forEach(k=>localStorage.removeItem(k));
   keys.forEach(k=>localStorage.setItem(k, String(obj.data[k])));
   if(options.reload!==false) location.reload();
   return {applied:true, keys};
 }
-function importBackup(file){ file.text().then(t=>restoreBackupPayload(t)).catch(()=>alert("这个文件不是有效的拾字备份")); }
+function importBackup(file){ file.text().then(t=>restoreBackupPayload(t)).catch(()=>alert("无法恢复这份备份。请选择由「拾字」导出的备份文件。")); }
 function requestBackupImport(){
   if(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.shiziNative){
     window.webkit.messageHandlers.shiziNative.postMessage({type:"pickBackup"});
@@ -2879,7 +2879,7 @@ $("reminderLater").onclick=dismissReminderInvite;
 $("importLink").onclick=requestBackupImport;
 $("welcomeRestore").onclick=requestBackupImport;
 $("importFile").onchange=e=>{ const f=e.target.files && e.target.files[0]; e.target.value=""; if(f) importBackup(f); };
-function resetAllData(opts){ const options=opts||{}; if(!options.skipConfirm && !confirm(`清空当前 ${memoryCount()} 个字和全部练习记录？操作后可以撤销一次。`)) return false; captureSafetySnapshot("reset");
+function resetAllData(opts){ const options=opts||{}; if(!options.skipConfirm && !confirm(`要清空应用当前使用的数据吗？\n\n这会清空 ${memoryCount()} 个字的练习记录、拍字照片、自定义字和各项设置。操作前的数据会作为一份安全副本留在当前设备，不会随撤销提示消失；下次恢复或清空会覆盖这份副本。\n\n页面底部会短暂显示「撤销清空」。`)) return false; captureSafetySnapshot("reset");
   status={}; memory={}; fsrsReviewLog=[]; traceTutorialShown=false; quality={}; tuning={calibrated:false, offset:0, contextStrict:0, rounds:[]}; preference="balanced"; libraryState=normalizeLibrary(null); fontScaleLarge=false; applyFontScale(); opens=[today()]; customWords=[]; addedChars=[]; wildState=normalizeWildState(null); handCardPref=normalizeHandCardPref(null); activity=newActivity(); funnel=newFunnel(); backupMeta=normalizeBackupMeta(null); summaryBackupHintVisible=false; reminder=normalizeReminder(null); sound=normalizeSound(null); stopAmbient(true); saveSound(); save(LIB_KEY,libraryState); renderSoundUI(); renderHandCardPref(); hideHandCardPrompt(); save(HAND_CARD_KEY,handCardPref); saveReminder(); syncReminder(); save(DECK_KEY,status); save(MEMORY_KEY,memory); saveFSRSLog(); save(TRACE_TUTORIAL_KEY,false); save(QUALITY_KEY,quality); saveTuning(); save(PREF_KEY,preference); save(FONT_SCALE_KEY,false); save(OPEN_KEY,opens); save(CUSTOM_KEY,customWords); save(ADDED_KEY,addedChars); saveWildState(); saveActivity(); saveFunnel(); save(BACKUP_META_KEY,backupMeta); buildCustomCards(); removeStored(TOPIC_KEY); clearSessionSnapshot(); activeMode="new"; makeupTargetDay=""; sessionDone=new Set(); focusQueue=[]; renderHome(); $("dataBox").style.display="none"; showSafetyUndo(); return true; }
 $("resetLink").onclick=resetAllData;
 $("safetyUndoBtn").onclick=()=>undoSafetyRestore();

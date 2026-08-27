@@ -490,7 +490,8 @@ final class WebViewController: UIViewController {
                   && CARDS.slice(0, BASE_N).every(card => ['入门', '基础', '进阶', '较难', '挑战'].includes(card.band) && !('level' in card));
                 result.dataFlow.libraryReachable = libraryRows.every(row => row.total > 0 && row.strict0 === row.total && row.strict4 === row.total);
                 result.dataFlow.libraryUI = document.getElementById('libList').querySelectorAll('[data-lib]').length === 4
-                  && document.getElementById('libSheet').textContent.includes('换库不丢任何东西')
+                  && document.getElementById('libSheet').textContent.includes('切换字库不会影响已有练习记录')
+                  && document.getElementById('libSheet').textContent.includes('复习仍包含所有字库')
                   && document.getElementById('libName').textContent === '义教基础字'
                   && LIBRARIES[2].name === '规范专门用字' && libraryRows[2].total === 818 && libraryRows[2].officialTotal === 1605
                   && document.getElementById('libSheet').textContent.includes('官方 3000')
@@ -535,7 +536,7 @@ final class WebViewController: UIViewController {
               const practiced = profileIndexes();
               const recovered = practiced.filter(isStable);
               const atRisk = practiced.filter(isHighRisk);
-              result.navigationFlow.metricLanguageConsistent = !document.querySelector('.meStats') && recovered.every(index => !atRisk.includes(index)) && practiced.length >= recovered.length + atRisk.length && document.getElementById('calendarMonthStat').textContent.includes('累计') && document.getElementById('meMonthMeta').textContent.includes('字是你的手写');
+              result.navigationFlow.metricLanguageConsistent = !document.querySelector('.meStats') && recovered.every(index => !atRisk.includes(index)) && practiced.length >= recovered.length + atRisk.length && document.getElementById('calendarMonthStat').textContent.includes('累计') && document.getElementById('meMonthMeta').textContent.includes('个独立写出');
               document.getElementById('openSettings').click();
               await waitFor(() => visible('settingsPanel'));
               const oldFontScale = fontScaleLarge;
@@ -796,7 +797,7 @@ final class WebViewController: UIViewController {
               memory = { [reminderProbeKey]: { seen: 1, dueDay: today(), pendingLearning: false, lastOutcome: 'miss', misses: 2, ease: 24, last: Date.now() } };
               const reminderProbe = reminderQuestions(2);
               syncReminder();
-              result.dataFlow.reminderQuestionPayload = reminderProbe.length === 2 && reminderProbe[0].targetCardKey === reminderProbeKey && reminderDebug.lastSync.targetCardKey === reminderProbeKey && reminderDebug.lastSync.body.includes('点开写写看');
+              result.dataFlow.reminderQuestionPayload = reminderProbe.length === 2 && reminderProbe[0].targetCardKey === reminderProbeKey && reminderDebug.lastSync.targetCardKey === reminderProbeKey && reminderDebug.lastSync.body.includes('点开试试');
               memory = reminderProbeMemory;
               const reminderBeforeCalibrationInvite = cloneObj(reminder);
               const pendingBeforeCalibrationInvite = reminderPendingEnable;
@@ -850,7 +851,7 @@ final class WebViewController: UIViewController {
               roundSummary(true);
               await waitFor(() => hapticDebug.events.length === 1);
               result.practiceFlow.hapticMilestoneSequence = hapticDebug.events.slice();
-              result.practiceFlow.summaryPocketVisible = visible('pocketCard') && summaryFocusIndexes.length === 1 && document.getElementById('pocketBtn').textContent.includes('马上再拾');
+              result.practiceFlow.summaryPocketVisible = visible('pocketCard') && summaryFocusIndexes.length === 1 && document.getElementById('pocketTitle').textContent.includes('第一次没写稳') && document.getElementById('pocketBtn').textContent.includes('再写一遍');
               const shareCanvas = renderPracticeCardCanvas();
               const shareSource = `${renderPracticeCardCanvas}\n${drawShareHandwriting}`;
               result.dataFlow.shareCardGenerated = !!shareCanvas && shareCanvas.width === 1080 && shareCanvas.height === 1440 && Number(shareCanvas.dataset.inkStrokeCount) === 2 && shareCanvas.toDataURL('image/png').startsWith('data:image/png;base64,') && !shareSource.includes('fillText(stat.target');
@@ -1064,14 +1065,14 @@ final class WebViewController: UIViewController {
               result.practiceFlow.comparisonCoordinatesAligned = !!standardSkeleton && !!overlaySkeleton && standardSkeleton.getAttribute('viewBox') === overlaySkeleton.getAttribute('viewBox');
               result.practiceFlow.decisionVisible = visible('decisionRow');
               result.practiceFlow.functionalDecisionLabels = document.getElementById('decisionCorrect').textContent.includes('写对了') && document.getElementById('decisionWrong').textContent.includes('写错了');
-              result.practiceFlow.selfAssessmentControls = visible('uncertainAction') && document.getElementById('decisionUncertain').textContent.includes('记不清') && !visible('softConfirm');
+              result.practiceFlow.selfAssessmentControls = visible('uncertainAction') && document.getElementById('decisionUncertain').textContent.includes('不太确定') && !visible('softConfirm');
               result.practiceFlow.submissionSnapshotComplete = submissionSnapshot.hintStrokeIds.length > 0 && submissionSnapshot.compositeGeometry.length === submissionSnapshot.hintStrokes.length + submissionSnapshot.inkStrokes.length && submissionSnapshot.lastVerdict.status === 'ok';
 
               soundDebug.events = [];
               soundDebug.last = null;
               decideSubmission(true);
               await waitFor(() => stamped && visible('stampedToast'));
-              result.practiceFlow.feedbackHeld = currentAttemptId === firstAttempt && document.getElementById('stampedToast').textContent.includes('本组稍后再写');
+              result.practiceFlow.feedbackHeld = currentAttemptId === firstAttempt && document.getElementById('stampedToast').textContent.includes('稍后不看提示再写一次');
               result.practiceFlow.reminderSyncAfterStamp = !!(reminderDebug.lastSync && reminderDebug.lastSync.type === 'syncReminder' && reminderDebug.lastSync.practicedToday === true);
               result.practiceFlow.hapticStampRecorded = hapticDebug.last === 'stamp';
               result.practiceFlow.soundStampRecorded = soundDebug.last === 'stamp' && soundDebug.events.join() === 'stamp';
@@ -1111,7 +1112,7 @@ final class WebViewController: UIViewController {
               });
               result.practiceFlow.hapticSelectTracingRecorded = hapticDebug.last === 'select';
               result.practiceFlow.hapticDontKnowSequence = hapticDebug.events.slice();
-              result.practiceFlow.traceTutorialVisible = visible('traceIntro') && document.getElementById('traceIntro').textContent.includes('接着答案会隐藏');
+              result.practiceFlow.traceTutorialVisible = visible('traceIntro') && document.getElementById('traceIntro').textContent.includes('轮廓隐藏后');
               result.practiceFlow.traceModeVisible = visible('traceActions') && !visible('actions');
               const traceLayer = hzEl;
               const traceSVG = traceLayer.querySelector('svg');
@@ -1132,7 +1133,7 @@ final class WebViewController: UIViewController {
               finishTracing();
               await waitFor(() => practicePhase === 'postTraceRecall');
               result.practiceFlow.hapticTraceCompletionSequence = hapticDebug.events.slice();
-              result.practiceFlow.postTraceRecall = document.getElementById('phaseTitle').textContent.includes('2/2 自己写') && getComputedStyle(document.getElementById('tip')).display === 'none' && document.getElementById('show').textContent === '再描一遍';
+              result.practiceFlow.postTraceRecall = document.getElementById('phaseTitle').textContent.includes('第 2 步：自己写') && getComputedStyle(document.getElementById('tip')).display === 'none' && document.getElementById('show').textContent === '再描一遍';
               result.practiceFlow.hapticTraceNoReview = fsrsReviewLog.length === eventsBeforeTeaching + 1 && fsrsReviewLog[fsrsReviewLog.length - 1].rating === 'Again';
               const practiceDay = dailyActivity();
               result.practiceFlow.activityRecorded = todayStampCount() >= activityBefore && practiceDay.attempts === attemptsBefore + 2 && practiceDay.targetKeys.includes(firstKey) && practiceDay.targetKeys.includes(cardKey(currentCardIndex())) && activity.practiceDays.includes(today());
@@ -1187,7 +1188,7 @@ final class WebViewController: UIViewController {
                 result.practiceFlow.resumeHomeState = !!resume && resume.version === 2 && document.getElementById('startBtn').textContent === '续';
                 restoreSession(resume);
                 await waitFor(() => visible('card') && practicePhase === 'postTraceRecall');
-                result.practiceFlow.resumeRestored = roundStats.length === 2 && document.getElementById('phaseTitle').textContent.includes('2/2 自己写');
+                result.practiceFlow.resumeRestored = roundStats.length === 2 && document.getElementById('phaseTitle').textContent.includes('第 2 步：自己写');
                 exitCurrentRound();
                 await waitFor(() => visible('home'));
               }
@@ -1227,7 +1228,7 @@ final class WebViewController: UIViewController {
         do {
             try payload.data(using: .utf8)?.write(to: fileURL, options: .atomic)
         } catch {
-            presentError(message: "备份文件生成失败，请稍后再试。")
+            presentError(message: "没能生成备份文件，请稍后重新导出。")
             return
         }
 
@@ -1253,7 +1254,7 @@ final class WebViewController: UIViewController {
             data.count <= 12 * 1024 * 1024,
             data.starts(with: [0x89, 0x50, 0x4E, 0x47])
         else {
-            presentError(message: "字帖图片生成失败，请稍后再试。")
+            presentError(message: "图片暂时无法生成，请稍后再试。")
             return
         }
 
@@ -1266,7 +1267,7 @@ final class WebViewController: UIViewController {
         do {
             try data.write(to: fileURL, options: .atomic)
         } catch {
-            presentError(message: "字帖图片生成失败，请稍后再试。")
+            presentError(message: "图片暂时无法生成，请稍后再试。")
             return
         }
 
@@ -1326,13 +1327,13 @@ final class WebViewController: UIViewController {
             """
             webView.evaluateJavaScript(script) { [weak self] _, error in
                 if error != nil {
-                    self?.presentError(message: "备份恢复失败，请确认文件内容后重试。")
+                    self?.presentError(message: "没能恢复这份备份。请重新选择由「拾字」导出的备份文件；如果仍然失败，请稍后再试。")
                 }
             }
         } catch BackupImportError.tooLarge {
-            presentError(message: "备份文件超过 10 MB，无法导入。")
+            presentError(message: "这份备份超过 10 MB，当前版本无法恢复。")
         } catch {
-            presentError(message: "这个文件不是有效的拾字备份。")
+            presentError(message: "无法识别这份文件。请选择由「拾字」导出的 .json 备份文件。")
         }
     }
 
@@ -1345,7 +1346,7 @@ final class WebViewController: UIViewController {
     private func openExternally(_ url: URL) {
         UIApplication.shared.open(url, options: [:]) { [weak self] opened in
             if !opened {
-                self?.presentError(message: "无法打开这个链接。")
+                self?.presentError(message: "这个链接暂时无法打开，请稍后再试。")
             }
         }
     }

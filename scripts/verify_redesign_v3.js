@@ -30,7 +30,7 @@ assert(!/--soft\s*:|--tile\s*:|var\(--soft\)|var\(--tile\)/.test(source), "Expec
 assert(!/#efe7d3|#f7f1e3|#fbf6ea|#f3ead7|#e3d9c4|#2b2620|#b3892f/i.test(source), "Expected no legacy light-palette values");
 assert(!/卡点分析|掌握感|易忘度|出题偏好/.test(source), "Expected no PM terms or dimensionless scores in the app UI");
 assert(!/id="bookBadge"|id="addInPractice"|id="bookSearchGo"|id="backupNow"|高频易忘/.test(source), "Expected no red tab debt badge, redundant search/backup button, in-practice add distraction, or retired preference wording");
-assert(source.includes('id="libCard"') && source.includes('id="libSheet"') && source.includes("换库不丢任何东西") && !source.includes('id="prefBox"') && !source.includes("选字偏好") && !source.includes("libPaceText") && !source.includes('id="libBar"') && !source.includes('id="libTones"'), "Expected one reassuring library selector with no retired preference, progress-density, or pace UI");
+assert(source.includes('id="libCard"') && source.includes('id="libSheet"') && source.includes("切换字库不会影响已有练习记录") && source.includes("复习仍包含所有字库") && !source.includes('id="prefBox"') && !source.includes("选字偏好") && !source.includes("libPaceText") && !source.includes('id="libBar"') && !source.includes('id="libTones"'), "Expected one reassuring library selector with no retired preference, progress-density, or pace UI");
 assert(changelog.includes("一屏至多一个实心朱红") && changelog.includes("印章语义只许两种"), "Expected the permanent red-budget and seal-semantics laws in the changelog");
 assert(contrast("#756b5a", "#f4efe2") >= 4.5, "Expected the palest memory ink to meet 4.5:1 contrast", { ratio: contrast("#756b5a", "#f4efe2") });
 
@@ -70,7 +70,7 @@ let browser;
   await page.click("#tabBook");
   await page.waitForTimeout(300);
   const wall43 = await page.evaluate(() => ({ count: memoryWall.querySelectorAll(".memoryChar").length, columns: getComputedStyle(memoryWall).gridTemplateColumns.split(" ").length, labels: memoryWall.querySelectorAll(".dot,.outcomeMark").length, curator: bookCuratorData(profileIndexes()).kind, countText: boxCount.textContent.trim(), library: libName.textContent, libraryMeta: libMeta.textContent }));
-  assert(wall43.count === 43 && wall43.columns === 6 && wall43.labels === 0 && wall43.curator === "action" && wall43.countText === "43 字" && wall43.library === "规范常用字" && /已拾 \d+ \/ 3500/.test(wall43.libraryMeta), "Expected a 43-character six-column memory wall with honest library progress and action curation", wall43);
+  assert(wall43.count === 43 && wall43.columns === 6 && wall43.labels === 0 && wall43.curator === "action" && wall43.countText === "43 字" && wall43.library === "规范常用字" && /已练 \d+ \/ 共 3500/.test(wall43.libraryMeta), "Expected a 43-character six-column memory wall with honest library progress and action curation", wall43);
   await page.screenshot({ path: path.join(generatedDir, "book-light-375x667.png"), fullPage: true });
 
   const etymologyDetail = await page.evaluate(async () => {
@@ -160,7 +160,7 @@ let browser;
   assert(await page.evaluate(() => addSheet.classList.contains("open") && addInput.value.length > 0 && addConfirm.textContent.trim() === "收进字库"), "Expected an unseen library character to enter the final collection flow");
   await page.evaluate(() => closeAddSheet());
   await page.fill("#bookSearchInput", "龘");
-  assert(await page.evaluate(() => bookSearchResult.textContent === "没有这个字"), "Expected an unknown character to show an immediate no-match response");
+  assert(await page.evaluate(() => bookSearchResult.textContent === "字库里暂时找不到「龘」"), "Expected an unknown character to show an immediate no-match response");
 
   await page.evaluate(() => { renderBook(); openCharSheet(profileIndexes()[0]); });
   await page.click("#charDetailPractice");
@@ -197,7 +197,7 @@ let browser;
   assert(backupUrgency.status === "从未备份" && backupUrgency.urgent === "flex" && backupUrgency.color !== backupUrgency.muted, "Expected inherited old-user practice days to make the never-backed-up status visibly urgent on My", backupUrgency);
   assert(backupUrgency.solid <= 1 && backupUrgency.todayBg !== backupUrgency.accent, "Expected My to carry the sole urgent backup seal while downgrading today's calendar seal", backupUrgency);
   const profile = await page.evaluate(() => { const indexes=profileIndexes(); indexes.slice(0,12).forEach((idx,index)=>{ memory[cardKey(idx)].misses=index<6?3:1; }); memory[cardKey(indexes[0])].misses=1; memory[cardKey(indexes[0])].hints=9; memory[cardKey(indexes[0])].slow=7; saveMemory(); renderProfile(); const accent=getComputedStyle(profilePractice).backgroundColor, solid=Array.from(profilePanel.querySelectorAll("*")).filter(node=>{ const r=node.getBoundingClientRect(); return r.width&&r.height&&getComputedStyle(node).backgroundColor===accent; }).length; const factual=document.getElementById("profileAdvice").querySelector(`[data-char-idx="${indexes[0]}"] small`)?.textContent; return { weak:profilePanel.querySelectorAll(".weakChar").length, metrics:profilePanel.querySelectorAll(".profileMetrics,.profileHero").length, action:profilePractice.textContent.trim(), solid, factual }; });
-  assert(profile.weak >= 6 && profile.metrics === 0 && profile.action === "把这几个写一遍" && profile.solid <= 1 && profile.factual === "忘过 1 次", "Expected real weak characters with miss-only facts, no diagnosis/stat cards, one direct practice action, and one solid red", profile);
+  assert(profile.weak >= 6 && profile.metrics === 0 && profile.action === "把这几个写一遍" && profile.solid <= 1 && profile.factual === "没写出 1 次", "Expected real weak characters with miss-only facts, no diagnosis/stat cards, one direct practice action, and one solid red", profile);
   await page.waitForTimeout(320);
   await page.screenshot({ path: path.join(generatedDir, "profile-light-375x667.png"), fullPage: true });
   await page.evaluate(() => renderMe());
@@ -252,7 +252,7 @@ let browser;
               minTarget: Math.min(...rows.map((row) => row.getBoundingClientRect().height)),
               horizontalFit: rect.left >= -1 && rect.right <= innerWidth + 1,
               reachable: libSheet.scrollHeight <= libSheet.clientHeight + 1 || getComputedStyle(libSheet).overflowY === "auto",
-              reassurance: libSheet.textContent.includes("换库不丢任何东西"),
+              reassurance: libSheet.textContent.includes("切换字库不会影响已有练习记录") && libSheet.textContent.includes("复习仍包含所有字库"),
               noUnapprovedProgress: !libCard.querySelector(".libBar,.libTones") && !libList.querySelector(".libBar") && !/拾完|手速|墨色进度/.test(libSheet.textContent + libCard.textContent),
             };
           });
@@ -295,7 +295,7 @@ let browser;
         return { portrait, square, sheetFits: sheet.scrollWidth <= sheet.clientWidth + 1, pageFits: document.documentElement.scrollWidth <= innerWidth + 1, actions: [handCardCancel, handCardSave, handCardShare].every(button => button.getBoundingClientRect().height >= 44), future: document.querySelector(".handCardFuture").textContent };
       });
       assert(handCardLayout.portrait.width === 1080 && handCardLayout.portrait.height === 1440 && handCardLayout.portrait.source === "vector" && handCardLayout.portrait.paper.slice(0, 3).join() === "244,239,226"
-        && handCardLayout.square.width === 1080 && handCardLayout.square.height === 1080 && handCardLayout.square.className.includes("square") && handCardLayout.square.pressed === "true" && handCardLayout.sheetFits && handCardLayout.pageFits && handCardLayout.actions && handCardLayout.future.includes("下一阶段"),
+        && handCardLayout.square.width === 1080 && handCardLayout.square.height === 1080 && handCardLayout.square.className.includes("square") && handCardLayout.square.pressed === "true" && handCardLayout.sheetFits && handCardLayout.pageFits && handCardLayout.actions && handCardLayout.future.includes("可保存到相册"),
       "Expected fixed-paper 3:4 and 1:1 handwriting-card previews to fit both target viewports and themes", { size, colorScheme, handCardLayout });
       await page.screenshot({ path: path.join(generatedDir, `hand-card-${colorScheme}-${size.width}x${size.height}.png`), fullPage: true });
       await page.evaluate(() => closeHandCard());

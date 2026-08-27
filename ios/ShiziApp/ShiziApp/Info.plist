@@ -23,9 +23,9 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>用于拍下生活中遇到的汉字，照片只在本机识别与保存。</string>
+	<string>用于拍摄生活中遇到的汉字。照片默认只在当前设备处理与保存，主动导出备份时会包含在备份文件中。</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>用于把你制作的手写字卡保存到相册。</string>
+	<string>用于将你制作的手写字卡保存到系统相册。</string>
 	<key>UILaunchScreen</key>
 	<dict/>
 	<key>UIRequiresFullScreen</key>

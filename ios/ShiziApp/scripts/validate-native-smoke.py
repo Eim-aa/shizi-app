@@ -141,7 +141,7 @@ checks = {
     and data_flow.get("backupHasSound") is True
     and data_flow.get("backupHasLibrary") is True
     and data_flow.get("backupHasFunnel") is True
-    and data_flow.get("backupHasSessionV2") is True
+    and data_flow.get("backupHasSessionV3") is True
     and data_flow.get("backupHasFSRSLog") is True
     and data_flow.get("backupHasTraceTutorial") is True
     and data_flow.get("backupExcludesSmokeKey") is True
@@ -157,7 +157,7 @@ checks = {
     and data_flow.get("backupRestoreWild") is True
     and data_flow.get("backupRestoreLibrary") is True
     and data_flow.get("backupRestoreFunnel") is True
-    and data_flow.get("backupRestorePreservesSessionV2") is True
+    and data_flow.get("backupRestorePreservesSessionV3") is True
     and data_flow.get("backupRestorePreservesSmokeKey") is True
     and data_flow.get("backupSafetyCreated") is True
     and data_flow.get("backupRestoreRejectsInvalid") is True,

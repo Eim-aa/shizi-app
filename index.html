@@ -7,6 +7,7 @@
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f4efe2">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1d1a15">
 <meta name="description" content="每天练几个容易提笔忘掉的汉字，把这些字重新写熟。">
+<meta name="shizi-asset-build" content="8105-3ac0637e30ec">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1024,8 +1025,8 @@
 
 <script src="hanzi-writer.min.js"></script>
 <script src="fsrs6.min.js"></script>
-<script src="deck-data.js"></script>
-<script src="data/context-overrides.js"></script>
+<script src="deck-data.js?v=3ac0637e30ec"></script>
+<script src="data/context-overrides.js?v=11516601699b"></script>
 <script>
 // ---- 词表 → 按“字”拆成卡片（一个格子只考一个字；另一个字给出来当语境）----
 // SEED 与 GROUPS 数据在 deck-data.js（1.9MB 题库独立缓存，改界面不用重下数据）
@@ -1051,6 +1052,7 @@ function load(k,d){ try{ return JSON.parse(localStorage.getItem(k)) ?? d; }catch
 function save(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); return true; }catch(e){ return false; } }
 function removeStored(k){ try{ localStorage.removeItem(k); }catch(e){} }
 const bootCorruptKeys=[];
+let legacySessionDiscarded=false;
 function quarantineStoredKey(k,raw){ try{ localStorage.setItem(`shizi.corrupt.${k}`,raw==null?"null":String(raw)); localStorage.removeItem(k); bootCorruptKeys.push(k); }catch(e){} }
 function bootLoad(k,d,valid=()=>true){ const raw=localStorage.getItem(k); if(raw===null) return d; try{ const value=JSON.parse(raw); if(!valid(value)) throw new Error("shape"); return value??d; }catch(e){ quarantineStoredKey(k,raw); return d; } }
 function bootNormalize(k,value,fallback,normalize){ try{ return normalize(value); }catch(e){ quarantineStoredKey(k,localStorage.getItem(k)); return normalize(fallback); } }
@@ -1086,7 +1088,8 @@ function applyFontScale(){ document.documentElement.classList.toggle("largeText"
 applyFontScale();
 let auditPref = preference;
 const DEV_TOOLS = (()=>{ try{ return new URLSearchParams(location.search).get("dev")==="1"; }catch(e){ return false; } })();
-function setStatus(i,s){ status[i]=s; save(DECK_KEY,status); }
+function statusFor(i){ return status[cardKey(i)]; }
+function setStatus(i,s){ status[cardKey(i)]=s; save(DECK_KEY,status); }
 const RECENT_INK_MAX=96, RECENT_INK_BUDGET=420*1024;
 function recentInkRows(){ return Object.entries(memory).filter(([,m])=>m&&m.recentInk&&typeof m.recentInk.dataURL==="string").map(([key,m])=>({key,m,at:Math.max(0,Number(m.recentInk.at)||0),bytes:m.recentInk.dataURL.length*2+(m.recentInk.strokes?JSON.stringify(m.recentInk.strokes).length*2:0)})).sort((a,b)=>b.at-a.at); }
 function trimRecentInk(){ let kept=0, bytes=0, removed=0; recentInkRows().forEach(row=>{ if(kept<RECENT_INK_MAX && bytes+row.bytes<=RECENT_INK_BUDGET){ kept++; bytes+=row.bytes; }else{ delete row.m.recentInk; removed++; } }); return {kept,bytes,removed}; }
@@ -1272,7 +1275,9 @@ function reminderCandidates(day){ const eligible=i=>{ const c=CARDS[i],m=memory[
   if(due.length) return due.sort(compare); return highRiskIndexes().filter(eligible).sort(compare); }
 function reminderQuestions(count=8){ const used=new Set(), result=[]; for(let offset=0;offset<count;offset++){ const day=shiftDay(today(),offset), candidates=reminderCandidates(day); if(!candidates.length) continue;
     const idx=candidates.find(i=>!used.has(cardKey(i)))??candidates[0], question=reminderQuestion(idx,day); if(question){ used.add(question.targetCardKey); result.push(question); } } return result; }
-function indexForCardKey(key){ return allIndexes().find(i=>cardKey(i)===String(key||""))??-1; }
+function indexForCardKey(key){ const stable=canonicalCardKey(key), target=cardTargetFromKey(stable); if(!target) return -1;
+  if(stable.startsWith("base:")) return BASE_BY_CHAR[target]??-1;
+  return stable.startsWith("custom:")?customIndexOf(target):-1; }
 function shiziOpenReminderTarget(targetCardKey){ const idx=indexForCardKey(targetCardKey); if(idx<0) return false; const resume=resumableSession();
   if(resume){ restoreSession(resume); if(currentCardIndex()!==idx){ insertIntoCurrentBatch([idx]); toast(`通知里的「${CARDS[idx].target}」已排到下一题`); } return true; }
   startFocus([idx]); return currentCardIndex()===idx; }
@@ -1362,25 +1367,46 @@ function roundIsComplete(){ return baseTargets.length>0 && baseCursor>=baseTarge
 function capturePracticeVisual(){ return {practicePhase,currentIndex,currentAttemptKind,currentAttemptId,hintEverUsed,enteredTracingThisAttempt,hintsUsedThisCard,
   shownStrokes,groupIdx,seenGroups:[...seenGroups],inkStrokes:cloneObj(inkStrokes)||[],tracedThisCard,submissionSnapshot:cloneObj(submissionSnapshot),revealed,stamped}; }
 function currentRoundElapsed(){ return roundElapsedMs+(roundActiveStartedAt?Math.max(0,Date.now()-roundActiveStartedAt):0); }
-function sessionPayload(){ return {version:2,startedDate:(load(SESSION_KEY,null)||{}).startedDate||today(),updatedAt:Date.now(),activeMode,makeupTargetDay,baseTargets:baseTargets.slice(),baseCursor,currentIndex,currentAttemptKind,currentAttemptId,
-  manualQueue:cloneObj(manualQueue)||[],reinforcementQueue:cloneObj(reinforcementQueue)||[],unresolved:[...unresolved],episodes:cloneObj(episodes)||{},attemptSeq,practicePhase,visual:capturePracticeVisual(),
-  missedThisRound:missedThisRound.slice(),roundStats:cloneObj(roundStats)||[],focusQueue:focusQueue.slice(),sessionDone:[...sessionDone],sessionTarget,sessionFastStreak,sessionMissStreak,roundFeedbackGiven,roundId,calibrationFirstHoldUsed,calibrationComfortShown,calibrationTargets:calibrationTargets.slice(),lastStampSnapshot:cloneObj(lastStampSnapshot),feedbackKind,
+function storedCardRef(idx){ return Number.isInteger(idx)&&CARDS[idx]?cardKey(idx):""; }
+function storedCardRefs(indexes){ return (indexes||[]).map(storedCardRef).filter(Boolean); }
+function storedIndexedRow(row){ if(!plainObject(row)) return null; const ref=storedCardRef(row.idx); if(!ref) return null; const out={}; Object.entries(cloneObj(row)).forEach(([key,value])=>{ if(key==="idx") out.cardKey=ref; else out[key]=value; }); return out; }
+function storedIndexedRows(rows){ return (rows||[]).map(storedIndexedRow).filter(Boolean); }
+function storedQueue(rows){ return storedIndexedRows(rows); }
+function storedEpisodes(value){ return Object.values(value||{}).map(storedIndexedRow).filter(Boolean); }
+function storedSubmission(value){ return value?storedIndexedRow(value):null; }
+function storedVisual(value){ if(!value) return null; const out=cloneObj(value), ref=storedCardRef(out.currentIndex); if(!ref) return null; out.currentCardKey=ref; delete out.currentIndex;
+  if(out.submissionSnapshot) out.submissionSnapshot=storedSubmission(out.submissionSnapshot); return out; }
+function storedStampSnapshot(value){ if(!value) return null; const out=cloneObj(value), ref=canonicalCardKey(out.key||storedCardRef(out.idx)), currentRef=storedCardRef(out.currentIndex); if(!ref||!currentRef) return null;
+  out.cardKey=ref; out.currentCardKey=currentRef; out.baseTargetKeys=storedCardRefs(out.baseTargetsValue); out.manualQueueValue=storedQueue(out.manualQueueValue); out.queueValue=storedQueue(out.queueValue);
+  out.unresolvedKeys=storedCardRefs(out.unresolvedValue); out.episodeRows=storedEpisodes(out.episodesValue); out.sessionDoneKeys=storedCardRefs(out.sessionDoneValue); out.roundStatsValue=storedIndexedRows(out.roundStatsValue); out.revealState=storedSubmission(out.revealState);
+  delete out.key; delete out.idx; delete out.currentIndex; delete out.baseTargetsValue; delete out.unresolvedValue; delete out.episodesValue; delete out.sessionDoneValue; return out; }
+function sessionPayload(){ return {version:3,startedDate:(load(SESSION_KEY,null)||{}).startedDate||today(),updatedAt:Date.now(),activeMode,makeupTargetDay,baseTargetKeys:storedCardRefs(baseTargets),baseCursor,currentCardKey:storedCardRef(currentIndex),currentAttemptKind,currentAttemptId,
+  manualQueue:storedQueue(manualQueue),reinforcementQueue:storedQueue(reinforcementQueue),unresolvedKeys:storedCardRefs([...unresolved]),episodeRows:storedEpisodes(episodes),attemptSeq,practicePhase,visual:storedVisual(capturePracticeVisual()),
+  missedThisRound:missedThisRound.slice(),roundStats:storedIndexedRows(roundStats),focusKeys:storedCardRefs(focusQueue),sessionDoneKeys:storedCardRefs([...sessionDone]),sessionTarget,sessionFastStreak,sessionMissStreak,roundFeedbackGiven,roundId,calibrationFirstHoldUsed,calibrationComfortShown,calibrationTargetKeys:storedCardRefs(calibrationTargets),lastStampSnapshot:storedStampSnapshot(lastStampSnapshot),feedbackKind,
   roundElapsedMs:currentRoundElapsed(),roundBudgetPrompted,roundStartMemoryCount}; }
 function saveSessionSnapshot(){ if(!baseTargets.length || !Number.isInteger(currentCardIndex())) return false; if(activeMode==="focus"&&baseTargets.length===1){ clearSessionSnapshot(); return true; } return save(SESSION_KEY,sessionPayload()); }
 function clearSessionSnapshot(){ removeStored(SESSION_KEY); }
-function migrateV1Session(s){ const stats=Array.isArray(s.roundStats)?cloneObj(s.roundStats):[], targets=Array.isArray(s.batch)?s.batch.slice():[]; let cursor=Math.min(targets.length,stats.length);
-  const eps={}, queue=[], open=new Set(); stats.forEach((row,n)=>{ const ep={idx:row.idx,firstOutcome:row.outcome,attempts:[{attemptId:`${s.roundId||"legacy"}-legacy-${n+1}`,outcome:row.outcome}],assistanceUsed:row.outcome==="hinted",independentlyRecovered:row.outcome==="fast",excluded:false,teachingComplete:row.outcome!=="miss"}; eps[String(row.idx)]=ep; if(row.outcome!=="fast"){ open.add(row.idx); queue.push({idx:row.idx,eligibleAfter:stats.length+2,order:n}); } });
-  if(stats.length===Number(s.pos)+1) cursor=Math.min(targets.length,Number(s.pos)+1); else cursor=Math.min(targets.length,Number(s.pos)||0);
-  const next=cursor<targets.length?{idx:targets[cursor],kind:"base"}:(queue.length?{idx:queue[0].idx,kind:"reinforcement"}:null);
-  return {version:2,startedDate:s.date||today(),updatedAt:Date.now(),activeMode:s.activeMode,makeupTargetDay:"",baseTargets:targets,baseCursor:cursor,currentIndex:next?next.idx:targets[Math.max(0,targets.length-1)],currentAttemptKind:next?next.kind:"base",currentAttemptId:`${s.roundId||Date.now()+"-migrated"}-a${stats.length+1}`,
-    manualQueue:[],reinforcementQueue:queue.filter(item=>!next||next.kind!=="reinforcement"||item.idx!==next.idx),unresolved:[...open],episodes:eps,attemptSeq:stats.length,practicePhase:next&&next.kind==="reinforcement"?"reinforcement":"recall",visual:null,
-    missedThisRound:Array.isArray(s.missedThisRound)?s.missedThisRound.slice():[],roundStats:stats,focusQueue:Array.isArray(s.focusQueue)?s.focusQueue.slice():[],sessionDone:Array.isArray(s.sessionDone)?s.sessionDone.slice():[],sessionTarget:s.sessionTarget,sessionFastStreak:s.sessionFastStreak,sessionMissStreak:s.sessionMissStreak,roundFeedbackGiven:!!s.roundFeedbackGiven,roundId:s.roundId||Date.now()+"-migrated",calibrationFirstHoldUsed:!!s.calibrationFirstHoldUsed,calibrationComfortShown:false,calibrationTargets:s.activeMode==="calibrate"?targets.slice(0,BATCH):[],lastStampSnapshot:null,roundElapsedMs:0,roundBudgetPrompted:false,roundStartMemoryCount:memoryCount()}; }
-function resumableSession(){ let s=bootLoad(SESSION_KEY,null,v=>v===null||plainObject(v)); if(!s) return null; if(s.version===1) s=migrateV1Session(s);
-  const valid=s.version===2 && Array.isArray(s.baseTargets) && s.baseTargets.length>0 && s.baseTargets.every(i=>Number.isInteger(i)&&i>=0&&i<CARDS.length)
-    && Number.isInteger(s.currentIndex)&&s.currentIndex>=0&&s.currentIndex<CARDS.length && ["new","review","calibrate","focus","makeup"].includes(s.activeMode)
-    && (s.activeMode!=="makeup" || (/^\d{4}-\d{2}-\d{2}$/.test(s.makeupTargetDay||"") && s.makeupTargetDay<today()));
-  if(!valid){ quarantineStoredKey(SESSION_KEY,localStorage.getItem(SESSION_KEY)); return null; } return s; }
-function restoreSession(s){ if(!s) return false; if(s.version===1) s=migrateV1Session(s); activeMode=s.activeMode; makeupTargetDay=activeMode==="makeup"?s.makeupTargetDay:""; baseTargets=s.baseTargets.slice(); batch=baseTargets; baseCursor=Math.max(0,Math.min(baseTargets.length,Number(s.baseCursor)||0)); currentIndex=s.currentIndex;
+function restoredIndex(ref){ const idx=indexForCardKey(ref); return idx>=0?idx:null; }
+function restoredRefs(refs){ if(!Array.isArray(refs)) return null; const out=refs.map(restoredIndex); return out.every(Number.isInteger)?out:null; }
+function restoredIndexedRow(row){ if(!plainObject(row)) return null; const idx=restoredIndex(row.cardKey); if(!Number.isInteger(idx)||(row.target&&row.target!==CARDS[idx].target)) return null; const out={}; Object.entries(cloneObj(row)).forEach(([key,value])=>{ if(key==="cardKey") out.idx=idx; else out[key]=value; }); return out; }
+function restoredIndexedRows(rows){ if(!Array.isArray(rows)) return null; const out=rows.map(restoredIndexedRow); return out.every(Boolean)?out:null; }
+function restoredEpisodes(rows){ const decoded=restoredIndexedRows(rows); if(!decoded) return null; return Object.fromEntries(decoded.map(row=>[String(row.idx),row])); }
+function restoredVisual(value){ if(!value) return null; if(!plainObject(value)) return false; const idx=restoredIndex(value.currentCardKey); if(!Number.isInteger(idx)) return false; const out={...cloneObj(value),currentIndex:idx}; delete out.currentCardKey;
+  if(out.submissionSnapshot){ out.submissionSnapshot=restoredIndexedRow(out.submissionSnapshot); if(!out.submissionSnapshot) return false; } return out; }
+function restoredStampSnapshot(value){ if(!value) return null; if(!plainObject(value)) return false; const idx=restoredIndex(value.cardKey), current=restoredIndex(value.currentCardKey), base=restoredRefs(value.baseTargetKeys), manual=restoredIndexedRows(value.manualQueueValue), queue=restoredIndexedRows(value.queueValue), unresolvedRows=restoredRefs(value.unresolvedKeys), episodeMap=restoredEpisodes(value.episodeRows), done=restoredRefs(value.sessionDoneKeys), stats=restoredIndexedRows(value.roundStatsValue);
+  if(!Number.isInteger(idx)||!Number.isInteger(current)||!base||!manual||!queue||!unresolvedRows||!episodeMap||!done||!stats) return false;
+  const out={...cloneObj(value),idx,key:cardKey(idx),currentIndex:current,baseTargetsValue:base,manualQueueValue:manual,queueValue:queue,unresolvedValue:unresolvedRows,episodesValue:episodeMap,sessionDoneValue:done,roundStatsValue:stats};
+  delete out.cardKey; delete out.currentCardKey; delete out.baseTargetKeys; delete out.unresolvedKeys; delete out.episodeRows; delete out.sessionDoneKeys;
+  if(out.revealState){ out.revealState=restoredIndexedRow(out.revealState); if(!out.revealState) return false; } return out; }
+function decodeSessionV3(s){ if(!plainObject(s)||s.version!==3) return null; const targets=restoredRefs(s.baseTargetKeys), current=restoredIndex(s.currentCardKey), manual=restoredIndexedRows(s.manualQueue), reinforcement=restoredIndexedRows(s.reinforcementQueue), open=restoredRefs(s.unresolvedKeys), episodeMap=restoredEpisodes(s.episodeRows), stats=restoredIndexedRows(s.roundStats), focus=restoredRefs(s.focusKeys), done=restoredRefs(s.sessionDoneKeys), calibration=restoredRefs(s.calibrationTargetKeys), visual=restoredVisual(s.visual), stamp=restoredStampSnapshot(s.lastStampSnapshot);
+  if(!targets||!targets.length||!Number.isInteger(current)||!manual||!reinforcement||!open||!episodeMap||!stats||!focus||!done||!calibration||visual===false||stamp===false) return null;
+  return {...s,baseTargets:targets,currentIndex:current,manualQueue:manual,reinforcementQueue:reinforcement,unresolved:open,episodes:episodeMap,roundStats:stats,focusQueue:focus,sessionDone:done,calibrationTargets:calibration,visual,lastStampSnapshot:stamp}; }
+function discardLegacySession(raw){ try{ localStorage.setItem(`shizi.corrupt.${SESSION_KEY}`,String(raw||"")); localStorage.removeItem(SESSION_KEY); legacySessionDiscarded=true; }catch(e){} }
+function resumableSession(){ const raw=localStorage.getItem(SESSION_KEY); const s=bootLoad(SESSION_KEY,null,v=>v===null||plainObject(v)); if(!s) return null; if(s.version===1||s.version===2){ discardLegacySession(raw); return null; }
+  const decoded=decodeSessionV3(s), valid=decoded && ["new","review","calibrate","focus","makeup"].includes(decoded.activeMode)
+    && (decoded.activeMode!=="makeup" || (/^\d{4}-\d{2}-\d{2}$/.test(decoded.makeupTargetDay||"") && decoded.makeupTargetDay<today()));
+  if(!valid){ quarantineStoredKey(SESSION_KEY,raw); return null; } return decoded; }
+function restoreSession(s){ if(!s) return false; if(s.version===3&&!Array.isArray(s.baseTargets)) s=decodeSessionV3(s); if(!s) return false; activeMode=s.activeMode; makeupTargetDay=activeMode==="makeup"?s.makeupTargetDay:""; baseTargets=s.baseTargets.slice(); batch=baseTargets; baseCursor=Math.max(0,Math.min(baseTargets.length,Number(s.baseCursor)||0)); currentIndex=s.currentIndex;
   currentAttemptKind=s.currentAttemptKind||"base"; currentAttemptId=s.currentAttemptId||`${s.roundId}-a${(Number(s.attemptSeq)||0)+1}-${currentIndex}`; manualQueue=Array.isArray(s.manualQueue)?cloneObj(s.manualQueue):[]; reinforcementQueue=Array.isArray(s.reinforcementQueue)?cloneObj(s.reinforcementQueue):[]; unresolved=new Set(Array.isArray(s.unresolved)?s.unresolved:[]); episodes=cloneObj(s.episodes)||{}; attemptSeq=Number(s.attemptSeq)||0; practicePhase=s.practicePhase||"recall";
   missedThisRound=Array.isArray(s.missedThisRound)?s.missedThisRound.slice():[]; roundStats=Array.isArray(s.roundStats)?cloneObj(s.roundStats):[]; focusQueue=Array.isArray(s.focusQueue)?s.focusQueue.slice():[]; sessionDone=new Set(Array.isArray(s.sessionDone)?s.sessionDone:[]);
   sessionTarget=Number(s.sessionTarget)||targetDifficulty(); sessionFastStreak=Number(s.sessionFastStreak)||0; sessionMissStreak=Number(s.sessionMissStreak)||0; roundFeedbackGiven=!!s.roundFeedbackGiven; roundId=s.roundId||Date.now()+"-resume"; calibrationFirstHoldUsed=!!s.calibrationFirstHoldUsed; calibrationComfortShown=!!s.calibrationComfortShown;
@@ -1390,7 +1416,9 @@ function restoreSession(s){ if(!s) return false; if(s.version===1) s=migrateV1Se
   pendingSessionVisual=cloneObj(s.visual); pos=Math.min(baseCursor,Math.max(0,baseTargets.length-1)); render(); armPracticeHistory(); return true; }
 function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 function allIndexes(){ return [...Array(CARDS.length).keys()]; }
-function cardKey(i){ const c=CARDS[i]; return (c.custom?"custom:"+i+":":"base:")+c.target; }
+function cardKey(i){ const c=CARDS[i]; return (c.custom?"custom:":"base:")+c.target; }
+function cardTargetFromKey(key){ const value=String(key||""); if(value.startsWith("base:")) return value.slice(5); const match=/^custom:(?:\d+:)?(.+)$/u.exec(value); return match?match[1]:""; }
+function canonicalCardKey(key){ const value=String(key||""), target=cardTargetFromKey(value); if(!target||Array.from(target).length!==1) return value; return BASE_BY_CHAR[target]!=null?`base:${target}`:`custom:${target}`; }
 const PREFS={ balanced:{targetShift:0,min:60,max:92, common:1, challenge:0}, practical:{targetShift:-6,min:56,max:84, common:2.2, challenge:-1}, challenge:{targetShift:10,min:70,max:104, common:.4, challenge:2} };
 function prefSettings(){ return PREFS[preference] || PREFS.balanced; }
 function qualityFor(i){ return quality[cardKey(i)] || {}; }
@@ -1481,8 +1509,8 @@ function cardMemory(i){ const k=cardKey(i), m=memory[k] || (memory[k]={seen:0, f
 function hasMemory(i){ const m=memory[cardKey(i)]; return !!(m && m.seen); }
 function isDue(i){ const m=memory[cardKey(i)]; if(!m||!m.seen) return true; normalizeLegacySchedule(m); if(m.pendingLearning) return false; return !m.dueDay || m.dueDay<=today(); }
 function reviewDue(i){ const m=memory[cardKey(i)]; if(!m||!m.seen) return false; normalizeLegacySchedule(m); return !m.pendingLearning && (!m.dueDay || m.dueDay<=today()); }
-function reviewReady(i){ return status[i]==="indeck" ? isDue(i) : reviewDue(i); }
-function baseAvailable(i,respectSession=true){ return (status[i]!=="known" || hasMemory(i)) && (!respectSession || !sessionDone.has(i)); }
+function reviewReady(i){ return statusFor(i)==="indeck" ? isDue(i) : reviewDue(i); }
+function baseAvailable(i,respectSession=true){ return (statusFor(i)!=="known" || hasMemory(i)) && (!respectSession || !sessionDone.has(i)); }
 function reviewPool(respectSession=true){ return allIndexes().filter(i=>baseAvailable(i,respectSession) && qualityAvailable(i) && reviewReady(i)); }
 function reviewBudgetUsed(key=today()){ return dailyActivity(key).reviewTargetKeys.length; }
 function reviewBudgetRemaining(key=today()){ return Math.max(0,DAILY_REVIEW_BUDGET-reviewBudgetUsed(key)); }
@@ -1490,12 +1518,12 @@ function reviewBudgetPool(respectSession=true){ const reserved=new Set(dailyActi
   return reviewPool(respectSession).filter(i=>!reserved.has(cardKey(i))).sort(compareReviewPriority).slice(0,reviewBudgetRemaining()); }
 function reviewTodayCount(){ return Math.min(reviewBudgetRemaining(),reviewBudgetPool(false).length); }
 function reserveReviewTargets(indexes){ const row=dailyActivity(); (indexes||[]).forEach(i=>{ const key=cardKey(i); if(!row.reviewTargetKeys.includes(key) && row.reviewTargetKeys.length<DAILY_REVIEW_BUDGET) row.reviewTargetKeys.push(key); }); saveActivity(); }
-function newPool(respectSession=true){ return allIndexes().filter(i=>baseAvailable(i,respectSession) && qualityAvailable(i) && !hasMemory(i) && status[i]!=="indeck" && !CARDS[i].custom && strictNewEligible(i)); }
-function calibrationPool(respectSession=true){ return allIndexes().filter(i=>baseAvailable(i,respectSession) && qualityAvailable(i) && !hasMemory(i) && status[i]!=="indeck" && !CARDS[i].custom); }
+function newPool(respectSession=true){ return allIndexes().filter(i=>baseAvailable(i,respectSession) && qualityAvailable(i) && !hasMemory(i) && statusFor(i)!=="indeck" && !CARDS[i].custom && strictNewEligible(i)); }
+function calibrationPool(respectSession=true){ return allIndexes().filter(i=>baseAvailable(i,respectSession) && qualityAvailable(i) && !hasMemory(i) && statusFor(i)!=="indeck" && !CARDS[i].custom); }
 function focusPool(respectSession=true){ return focusQueue.filter(i=>baseAvailable(i,respectSession) && !qualityBlocked(i)); }
 function availablePool(){ if(activeMode==="review") return reviewBudgetPool(true); if(activeMode==="focus"||activeMode==="makeup") return focusPool(true); if(activeMode==="calibrate") return calibrationPool(true); return newPool(true); }
 function deckCount(){ return Object.values(status).filter(s=>s==="indeck").length; }
-function knownCount(){ return allIndexes().filter(i=>{ const m=memory[cardKey(i)]; return m && m.streak>=2 && status[i]!=="indeck"; }).length; }
+function knownCount(){ return allIndexes().filter(i=>{ const m=memory[cardKey(i)]; return m && m.streak>=2 && statusFor(i)!=="indeck"; }).length; }
 function clamp(n,min,max){ return Math.max(min, Math.min(max, n)); }
 function cardDifficulty(i){ return Number(CARDS[i].d)||50; }
 const BAND_RANK={"入门":0,"基础":1,"进阶":2,"较难":3,"挑战":4}, BAND_TARGET={"基础":48,"进阶":62,"较难":76,"挑战":90};
@@ -1562,7 +1590,7 @@ function chooseCalibrationBatch(all){ const targets=[48,56,62,66,70,74,78,82,86,
   return out.slice(0,BATCH); }
 function reviewCount(){ return reviewPool(false).length; }
 function memoryCount(){ return Object.values(memory).filter(m=>m && m.seen).length; }
-function isHighRisk(i){ const m=memory[cardKey(i)]; return !!(qualityAvailable(i) && m && (status[i]==="indeck" || m.misses || m.slow || m.hints>=2) && (m.streak||0)<2); }
+function isHighRisk(i){ const m=memory[cardKey(i)]; return !!(qualityAvailable(i) && m && (statusFor(i)==="indeck" || m.misses || m.slow || m.hints>=2) && (m.streak||0)<2); }
 function highRiskIndexes(){ return allIndexes().filter(isHighRisk).sort((a,b)=>personalDifficulty(b)-personalDifficulty(a)); }
 function highRiskCount(){ return highRiskIndexes().length; }
 // 四枚印章保留为自动结果标签；用户只判断本次对错。
@@ -1949,9 +1977,21 @@ function wildCaptureFor(ch){ const row=wildState.captures[ch]; return row&&row.d
 function renderWildWishes(){ const rows=Object.entries(wildState.wishes).sort((a,b)=>(b[1].at||0)-(a[1].at||0)); $("wildWish").style.display=rows.length?"block":"none"; $("wildWishCount").textContent=rows.length?`${rows.length} 字 · 已记下`:""; $("wildWishChars").innerHTML=rows.map(([ch,row])=>`<button class="wildWishChar" data-wild-wish="${esc(ch)}" aria-label="${esc(ch)}，${collectedDateText(row.day)}拾于生活">${esc(ch)}</button>`).join(""); }
 saveWildState();
 function pushWordCards(s){ const chars=Array.from(s).filter(isCJK); const start=CARDS.length;
-  chars.forEach((ch,ci)=>CARDS.push({ word:chars.join(""), chars, ci, target:ch, py:"", hint:"你刚才卡壳的字", custom:true, topic:"自定义", d:76, band:"较难", edu:null, rank:999999, strokes:0, parts:1, common:0, norm:"自定义", ctx:"custom" })); return [start, CARDS.length]; }
+  chars.forEach((ch,ci)=>{ if(BASE_BY_CHAR[ch]!=null||customIndexOf(ch)>=0) return; CARDS.push({ word:chars.join(""), chars, ci, target:ch, py:"", hint:"你刚才卡壳的字", custom:true, topic:"自定义", d:76, band:"较难", edu:null, rank:999999, strokes:0, parts:1, common:0, norm:"自定义", ctx:"custom" }); }); return [start, CARDS.length]; }
 function buildCustomCards(){ CARDS.length=BASE_N; customWords.forEach(pushWordCards); }
 buildCustomCards();
+function mergeStableRows(left,right){ if(!left) return cloneObj(right); if(!right) return cloneObj(left); const a=cloneObj(left),b=cloneObj(right), newer=(Number(b.last)||0)>=(Number(a.last)||0)?b:a, older=newer===b?a:b, out={...older,...newer};
+  ["seen","fast","slow","hints","misses","streak"].forEach(k=>{ if(k in a||k in b) out[k]=Math.max(Number(a[k])||0,Number(b[k])||0); }); const first=[Number(a.firstSeenAt)||0,Number(b.firstSeenAt)||0].filter(Boolean); if(first.length) out.firstSeenAt=Math.min(...first); return out; }
+function migrateStableCardIdentity(){ const nextMemory={},nextQuality={},nextStatus={};
+  Object.entries(memory).forEach(([key,row])=>{ const stable=canonicalCardKey(key); nextMemory[stable]=mergeStableRows(nextMemory[stable],row); });
+  Object.entries(quality).forEach(([key,row])=>{ const stable=canonicalCardKey(key), old=nextQuality[stable]||{}; nextQuality[stable]={...old,...row}; ["easy","rare","badWord","hide"].forEach(k=>{ if(old[k]||row[k]) nextQuality[stable][k]=true; }); });
+  Object.entries(status).forEach(([key,value])=>{ if(/^\d+$/.test(key)) return; const stable=canonicalCardKey(key); if(cardTargetFromKey(stable)) nextStatus[stable]=value; });
+  Object.entries(nextMemory).forEach(([key,row])=>{ if(nextStatus[key]) return; const markedEasy=!!(nextQuality[key]&&nextQuality[key].easy); nextStatus[key]=!markedEasy&&(row.pendingLearning||["slow","hinted","miss"].includes(row.lastOutcome))?"indeck":"rest"; });
+  memory=nextMemory; quality=nextQuality; status=nextStatus;
+  fsrsReviewLog=(fsrsReviewLog||[]).map(row=>row&&row.cardKey?{...row,cardKey:canonicalCardKey(row.cardKey)}:row);
+  Object.values(activity.daily||{}).forEach(row=>["targetKeys","independentTargetKeys","reviewTargetKeys"].forEach(field=>{ if(Array.isArray(row[field])) row[field]=[...new Set(row[field].map(canonicalCardKey))]; }));
+  saveMemory(); saveQuality(); save(DECK_KEY,status); saveFSRSLog(); saveActivity(); }
+migrateStableCardIdentity();
 let addedChars = bootLoad(ADDED_KEY, null, v=>v===null||(Array.isArray(v)&&v.every(row=>typeof row==="string")));
 if(!Array.isArray(addedChars)){ addedChars=[...new Set(customWords.flatMap(w=>Array.from(w).filter(isCJK)))]; save(ADDED_KEY,addedChars); }
 function customIndexOf(ch){ for(let i=BASE_N;i<CARDS.length;i++){ if(CARDS[i].target===ch) return i; } return -1; }
@@ -2270,13 +2310,13 @@ function freezeSubmissionSnapshot(){ inkEnd(); const hintStrokeIds=curMedians?[.
   submissionSnapshot=Object.freeze(snap); lastVerdict=verdict; return submissionSnapshot; }
 function captureRevealState(){ return cloneObj(submissionSnapshot)||freezeSubmissionSnapshot(); }
 function takeStampSnapshot(){ const idx=currentCardIndex(), key=cardKey(idx);
-  return {position:pos,baseCursor,currentIndex,currentAttemptKind,currentAttemptId,practicePhase,attemptSeq,idx,key,target:CARDS[idx].target,statusValue:status[idx],memoryValue:cloneObj(memory[key]),activityValue:cloneObj(activity),fsrsLogValue:cloneObj(fsrsReviewLog)||[],funnelValue:cloneObj(funnel),
+  return {position:pos,baseCursor,currentIndex,currentAttemptKind,currentAttemptId,practicePhase,attemptSeq,idx,key,target:CARDS[idx].target,statusValue:statusFor(idx),memoryValue:cloneObj(memory[key]),activityValue:cloneObj(activity),fsrsLogValue:cloneObj(fsrsReviewLog)||[],funnelValue:cloneObj(funnel),
     baseTargetsValue:baseTargets.slice(),manualQueueValue:cloneObj(manualQueue)||[],queueValue:cloneObj(reinforcementQueue)||[],unresolvedValue:[...unresolved],episodesValue:cloneObj(episodes)||{},sessionDoneValue:[...sessionDone],roundStatsValue:cloneObj(roundStats)||[],missedValue:missedThisRound.slice(),
     sessionTarget,sessionFastStreak,sessionMissStreak,calibrationFirstHoldUsed,calibrationComfortShown,revealState:captureRevealState()}; }
 function restoreStampSnapshot(snap){ if(!snap) return;
   pos=snap.position; baseCursor=Number(snap.baseCursor)||0; currentIndex=snap.currentIndex; currentAttemptKind=snap.currentAttemptKind; currentAttemptId=snap.currentAttemptId; practicePhase=snap.practicePhase||"revealDecision"; attemptSeq=Number(snap.attemptSeq)||0;
   baseTargets=snap.baseTargetsValue.slice(); batch=baseTargets; manualQueue=cloneObj(snap.manualQueueValue)||[]; reinforcementQueue=cloneObj(snap.queueValue)||[]; unresolved=new Set(snap.unresolvedValue||[]); episodes=cloneObj(snap.episodesValue)||{}; sessionDone=new Set(snap.sessionDoneValue||[]);
-  if(snap.statusValue==null) delete status[snap.idx]; else status[snap.idx]=snap.statusValue; save(DECK_KEY,status);
+  if(snap.statusValue==null) delete status[snap.key]; else status[snap.key]=snap.statusValue; save(DECK_KEY,status);
   if(snap.memoryValue==null) delete memory[snap.key]; else memory[snap.key]=snap.memoryValue; saveMemory();
   fsrsReviewLog=cloneObj(snap.fsrsLogValue)||[]; saveFSRSLog();
   if(snap.funnelValue){ funnel=cloneObj(snap.funnelValue)||funnel; saveFunnel(); }
@@ -2887,7 +2927,7 @@ $("safetyUndoBtn").onclick=()=>undoSafetyRestore();
 
 initBox(); renderHome();
 showSafetyUndo();
-if(bootCorruptKeys.length){ $("bootNotice").style.display="block"; setTimeout(()=>$("bootNotice").style.display="none",5000); }
+if(legacySessionDiscarded||bootCorruptKeys.length){ if(legacySessionDiscarded) $("bootNotice").textContent="应用更新后，未完成的旧练习已安全结束；已盖章记录不受影响"; $("bootNotice").style.display="block"; setTimeout(()=>$("bootNotice").style.display="none",5000); }
 try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(()=>{}); }catch(e){}
 if(reminderBridgeAvailable()){ syncReminder(); queryReminderStatus(); }
 document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="hidden"){

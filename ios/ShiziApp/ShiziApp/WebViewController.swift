@@ -722,7 +722,7 @@ final class WebViewController: UIViewController {
               closeAddSheet();
               result.dataFlow.wildSmokeStage = 'complete';
 
-              localStorage.setItem(SESSION_KEY, JSON.stringify({ version: 2, smoke: true }));
+              localStorage.setItem(SESSION_KEY, JSON.stringify({ version: 3, smoke: true }));
               const backup = JSON.parse(backupPayload({ funnelExportAt: Date.now() }));
               const backupData = backup && backup.data ? backup.data : {};
               result.dataFlow.backupParses = true;
@@ -739,7 +739,7 @@ final class WebViewController: UIViewController {
               result.dataFlow.backupHasLibrary = Object.prototype.hasOwnProperty.call(backupData, LIB_KEY);
               const backupFunnel = Object.prototype.hasOwnProperty.call(backupData, FUNNEL_KEY) ? JSON.parse(backupData[FUNNEL_KEY]) : null;
               result.dataFlow.backupHasFunnel = !!backupFunnel && backupFunnel.version === 1 && backupFunnel.events.filter(row => row.name === 'backup_exported').length === 1;
-              result.dataFlow.backupHasSessionV2 = Object.prototype.hasOwnProperty.call(backupData, SESSION_KEY) && JSON.parse(backupData[SESSION_KEY]).version === 2;
+              result.dataFlow.backupHasSessionV3 = Object.prototype.hasOwnProperty.call(backupData, SESSION_KEY) && JSON.parse(backupData[SESSION_KEY]).version === 3;
               result.dataFlow.backupHasFSRSLog = Object.prototype.hasOwnProperty.call(backupData, FSRS_LOG_KEY);
               result.dataFlow.backupHasTraceTutorial = Object.prototype.hasOwnProperty.call(backupData, TRACE_TUTORIAL_KEY);
               result.dataFlow.backupExcludesSmokeKey = !Object.prototype.hasOwnProperty.call(backupData, 'shizi.nativeSmoke.v1');
@@ -768,7 +768,7 @@ final class WebViewController: UIViewController {
                 result.dataFlow.backupRestoreLibrary = localStorage.getItem(LIB_KEY) === backupData[LIB_KEY];
                 const restoredFunnel = JSON.parse(localStorage.getItem(FUNNEL_KEY) || '{}');
                 result.dataFlow.backupRestoreFunnel = restoredFunnel.version === 1 && restoredFunnel.events.filter(row => row.name === 'backup_exported').length === 1;
-                result.dataFlow.backupRestorePreservesSessionV2 = JSON.parse(localStorage.getItem(SESSION_KEY) || '{}').version === 2;
+                result.dataFlow.backupRestorePreservesSessionV3 = JSON.parse(localStorage.getItem(SESSION_KEY) || '{}').version === 3;
                 result.dataFlow.backupRestorePreservesSmokeKey = localStorage.getItem('shizi.nativeSmoke.v1') === smokeValueBeforeRestore;
                 const safetyCopy = JSON.parse(localStorage.getItem(SAFETY_KEY) || 'null');
                 result.dataFlow.backupSafetyCreated = !!safetyCopy && safetyCopy.reason === 'restore' && !!safetyCopy.payload;
@@ -1042,7 +1042,7 @@ final class WebViewController: UIViewController {
               const firstAttempt = currentAttemptId;
               const firstKey = cardKey(firstIndex);
               const firstMemoryBefore = JSON.stringify(memory[firstKey] || null);
-              const firstStatusBefore = status[firstIndex];
+              const firstStatusBefore = statusFor(firstIndex);
               const activityBefore = todayStampCount();
               const attemptsBefore = dailyActivity().attempts;
               const fsrsBefore = fsrsReviewLog.length;
@@ -1084,7 +1084,7 @@ final class WebViewController: UIViewController {
               hapticDebug.last = null;
               reopenStampChoices();
               await waitFor(() => visible('reveal') && practicePhase === 'revealDecision');
-              result.practiceFlow.undoRollback = roundStats.length === 0 && fsrsReviewLog.length === fsrsBefore && JSON.stringify(memory[firstKey] || null) === firstMemoryBefore && status[firstIndex] === firstStatusBefore;
+              result.practiceFlow.undoRollback = roundStats.length === 0 && fsrsReviewLog.length === fsrsBefore && JSON.stringify(memory[firstKey] || null) === firstMemoryBefore && statusFor(firstIndex) === firstStatusBefore;
               result.practiceFlow.undoActivityRollback = todayStampCount() === activityBefore && dailyActivity().attempts === attemptsBefore;
               result.practiceFlow.hapticUndoRecorded = hapticDebug.last === 'undo';
               result.practiceFlow.hapticUndoSequence = hapticDebug.events.slice();
@@ -1138,7 +1138,8 @@ final class WebViewController: UIViewController {
               const practiceDay = dailyActivity();
               result.practiceFlow.activityRecorded = todayStampCount() >= activityBefore && practiceDay.attempts === attemptsBefore + 2 && practiceDay.targetKeys.includes(firstKey) && practiceDay.targetKeys.includes(cardKey(currentCardIndex())) && activity.practiceDays.includes(today());
               const storedSession = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null');
-              result.practiceFlow.sessionSnapshotStored = !!storedSession && storedSession.version === 2 && storedSession.practicePhase === 'postTraceRecall' && storedSession.unresolved.length === 2;
+              result.practiceFlow.sessionSnapshotStored = !!storedSession && storedSession.version === 3 && storedSession.practicePhase === 'postTraceRecall' && storedSession.unresolvedKeys.length === 2
+                && storedSession.baseTargetKeys.every(key => typeof key === 'string') && !Object.prototype.hasOwnProperty.call(storedSession, 'baseTargets');
               result.practiceFlow.historyGuardArmed = practiceHistoryArmed === true && history.state && history.state.shiziView === 'practice';
 
               if (typeof exitCurrentRound === 'function') {
@@ -1154,7 +1155,7 @@ final class WebViewController: UIViewController {
                   const resume = resumableSession();
                   const statePreserved = history.length === result.exitFlow.historyInitialLength
                     && history.state && history.state.shiziView === 'home'
-                    && !!resume && resume.version === 2
+                    && !!resume && resume.version === 3
                     && resume.practicePhase === phaseBeforeSwipe
                     && resume.currentAttemptId === attemptBeforeSwipe
                     && resume.roundStats.length === result.exitFlow.roundStatsBeforeExit;
@@ -1175,7 +1176,7 @@ final class WebViewController: UIViewController {
                 result.exitFlow.roundStatsAfterExit = roundStats.length;
                 result.exitFlow.roundStatsUnchanged = result.exitFlow.roundStatsAfterExit === result.exitFlow.roundStatsBeforeExit;
                 const resume = resumableSession();
-                result.exitFlow.directReturnSaved = !!resume && resume.version === 2
+                result.exitFlow.directReturnSaved = !!resume && resume.version === 3
                   && history.length === result.exitFlow.historyInitialLength
                   && history.state && history.state.shiziView === 'home';
                 result.exitFlow.noExitSheet = !document.getElementById('exitSheet') && !document.body.textContent.includes('退出本组？');
@@ -1185,7 +1186,7 @@ final class WebViewController: UIViewController {
                   && practiceHistoryArmed === false
                   && history.length === result.exitFlow.historyInitialLength
                   && history.state && history.state.shiziView === 'home';
-                result.practiceFlow.resumeHomeState = !!resume && resume.version === 2 && document.getElementById('startBtn').textContent === '续';
+                result.practiceFlow.resumeHomeState = !!resume && resume.version === 3 && document.getElementById('startBtn').textContent === '续';
                 restoreSession(resume);
                 await waitFor(() => visible('card') && practicePhase === 'postTraceRecall');
                 result.practiceFlow.resumeRestored = roundStats.length === 2 && document.getElementById('phaseTitle').textContent.includes('第 2 步：自己写');

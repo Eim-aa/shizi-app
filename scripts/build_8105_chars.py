@@ -836,7 +836,8 @@ def patch_index(chosen, word_index):
     """生成 deck-data.js（SEED/GROUPS 题库数据），并同步 index.html 里的 DECK_KEY。
 
     题库数据独立成文件后，index.html 只含界面与逻辑（~90KB）；
-    数据更新时记得 bump sw.js 的 VERSION，旧缓存才会整体换新。
+    数据更新后必须同步 index.html/sw.js 的内容指纹与 BUILD；
+    verify_pwa_upgrade.js 会在标准门禁中阻止指纹不一致的提交。
     """
     index_path = ROOT / "index.html"
     data_path = ROOT / "deck-data.js"
@@ -878,6 +879,8 @@ def patch_index(chosen, word_index):
             "ctx": context["context_source"],
         })
     groups = {item["character"]: item["groups"] for item in chosen}
+    ranked_core = [row["target"] for row in sorted(seed, key=lambda row: row["rank"])]
+    core_chars = list(dict.fromkeys(CALIBRATION_CORE_CHARS + ranked_core))[:CORE_STROKE_COUNT]
 
     data_path.write_text(
         "// 拾字题库数据（由 scripts/build_8105_chars.py 生成，勿手改）\n"
@@ -890,8 +893,7 @@ def patch_index(chosen, word_index):
     core_path.write_text(
         "// 由 scripts/build_8105_chars.py 同步生成：首日校准字优先，再按题库字频补满 600 字。\n"
         "(function(scope){\n"
-        f"  const calibration={js_string(CALIBRATION_CORE_CHARS)};\n"
-        f"  scope.SHIZI_CORE_STROKES=[...new Set([...calibration,...SEED.slice().sort((a,b)=>a.rank-b.rank).map(card=>card.target)])].slice(0,{CORE_STROKE_COUNT});\n"
+        f"  scope.SHIZI_CORE_STROKES={js_string(core_chars)};\n"
         "})(self);\n",
         encoding="utf-8",
     )

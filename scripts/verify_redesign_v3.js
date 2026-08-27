@@ -50,7 +50,7 @@ let browser;
     allIndexes().slice(0, 43).forEach((idx, index) => {
       const day = shiftDay(today(), -Math.floor(index / 12));
       memory[cardKey(idx)] = { seen: index + 1, firstSeenAt: dayStartMs(day) + index, last: dayStartMs(day) + index, streak: index % 5, ease: 40 + index % 50, misses: index % 7 === 0 ? 1 : 0, lastOutcome: index % 7 === 0 ? "miss" : "fast", pendingLearning: false, dueDay: index < 2 ? today() : shiftDay(today(), 5), fsrsCard: { stability: [0.4, 1.5, 4, 8, 18][index % 5] } };
-      status[idx] = "rest";
+      status[cardKey(idx)] = "rest";
     });
     saveMemory(); save(DECK_KEY, status); renderHome();
   });
@@ -183,7 +183,7 @@ let browser;
 
   const wall300 = await page.evaluate(() => {
     memory = {}; status = {}; const started = performance.now();
-    allIndexes().slice(0, 300).forEach((idx, index) => { memory[cardKey(idx)] = { seen: 1, last: Date.now() - index, streak: index % 4, lastOutcome: "fast", dueDay: shiftDay(today(), 5), fsrsCard: { stability: 1 + index % 20 } }; status[idx] = "rest"; });
+    allIndexes().slice(0, 300).forEach((idx, index) => { memory[cardKey(idx)] = { seen: 1, last: Date.now() - index, streak: index % 4, lastOutcome: "fast", dueDay: shiftDay(today(), 5), fsrsCard: { stability: 1 + index % 20 } }; status[cardKey(idx)] = "rest"; });
     renderBook(); return { count: memoryWall.querySelectorAll(".memoryChar").length, ms: performance.now() - started, scrollWidth: document.documentElement.scrollWidth, innerWidth };
   });
   assert(wall300.count === 300 && wall300.ms < 500 && wall300.scrollWidth <= wall300.innerWidth + 1, "Expected the 300-character wall to render quickly without horizontal overflow", wall300);

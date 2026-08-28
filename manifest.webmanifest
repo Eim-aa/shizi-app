@@ -1,7 +1,7 @@
 {
   "name": "拾字 · 提笔忘字",
   "short_name": "拾字",
-  "description": "每天写几个你会写错的汉字，把手写能力练回来。",
+  "description": "每天练几个容易提笔忘掉的汉字，把这些字重新写熟。",
   "start_url": "./?source=pwa",
   "id": "./",
   "scope": "./",

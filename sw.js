@@ -55,6 +55,29 @@ self.addEventListener('activate', e => {
   })());
 });
 
+// 只认当前这一代的缓存：失败安装留下的空缓存、或还没清掉的旧版本，都不该被当成兜底内容
+async function cachedFromVersion(request) {
+  const cache = await caches.open(VERSION);
+  return (await cache.match(request)) || null;
+}
+
+function cacheIfOk(req, res) {
+  // clone 必须在 body 被页面消费前同步调用；错误响应不能写进缓存，否则污染离线兜底
+  if (res && res.ok) { const copy = res.clone(); caches.open(VERSION).then(c => c.put(req, copy)); }
+  return res;
+}
+
+async function networkThenCache(req, fallback) {
+  let res = null;
+  try { res = await fetch(new Request(req, { cache: 'reload' })); } catch (err) { res = null; }
+  if (res && res.ok) return cacheIfOk(req, res);
+  // fetch() 只在网络层面失败时 reject。服务器返回 503 时它照样 resolve，
+  // 把这个响应交给页面就等于让浏览器把一段错误正文当脚本执行（SEED is not defined）。
+  // 所以非 ok 一律按"这次没取到"处理，先回落缓存。
+  const cached = await fallback(req, res);
+  return cached || res || Response.error();
+}
+
 self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET') return;
@@ -65,23 +88,20 @@ self.addEventListener('fetch', e => {
     (req.headers.get('accept') || '').includes('text/html');
 
   if (isHTML) {
-    // 网络优先：更新随时能落地；断网才用缓存
-    e.respondWith(
-      fetch(new Request(req, { cache: 'reload' })).then(res => {
-        // clone 必须在 body 被页面消费前同步调用；错误响应不能写进缓存，否则污染离线兜底
-        if (res && res.ok) { const copy = res.clone(); caches.open(VERSION).then(c => c.put(req, copy)); }
-        return res;
-      }).catch(() => caches.match(req).then(r => r || caches.match('index.html')))
-    );
+    // 网络优先：更新随时能落地；断网或服务端抽风才用缓存。
+    // 4xx 是"这个地址真的没有"，不拿缓存冒充；5xx / 408 / 429 跟断网同一类。
+    e.respondWith(networkThenCache(req, async (request, res) => {
+      if (res && res.status < 500 && res.status !== 408 && res.status !== 429) return null;
+      return (await cachedFromVersion(request)) || (await cachedFromVersion('index.html'));
+    }));
     return;
   }
 
   const critical = ['/deck-data.js', '/core-strokes.js', '/data/context-overrides.js'];
   if (critical.some(path => url.pathname.endsWith(path))) {
-    e.respondWith(fetch(new Request(req, { cache: 'reload' })).then(res => {
-      if (res && res.ok) { const copy = res.clone(); caches.open(VERSION).then(c => c.put(req, copy)); }
-      return res;
-    }).catch(() => caches.match(req)));
+    // 关键资源都带内容指纹：同一个 URL 的缓存副本就是它应有的内容，
+    // 任何非 ok（503、以及指纹文件被清掉后的 404）都优先用缓存，取不到才把错误响应交回去。
+    e.respondWith(networkThenCache(req, request => cachedFromVersion(request)));
     return;
   }
 

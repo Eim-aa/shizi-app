@@ -132,6 +132,56 @@ let browser;
     return { home: ["flex", "block"].includes(getComputedStyle(home).display), notice: getComputedStyle(bootNotice).display, opens: Array.isArray(opens), memoryRoot: typeof memory === "object" && !Array.isArray(memory), custom: Array.isArray(customWords), quarantined };
   });
   assert(selfHeal.home && selfHeal.notice === "block" && selfHeal.opens && selfHeal.memoryRoot && selfHeal.custom && selfHeal.quarantined.every(([, raw]) => raw !== null), "Expected malformed startup keys and an invalid session to be quarantined independently while the app reaches Home", selfHeal);
+
+  // 旧版 dailyActivity() 会把某一天为 null 的行按 {} 自愈，所以线上真的存在这种脏记录。
+  // 稳定字键迁移要遍历每一天的 targetKeys，嵌套坏行必须在 normalizeActivity() 就被规范掉，
+  // 否则整页启动会中断、首页按钮不绑定，而且坏数据留在本地，每次打开都再崩一次。
+  const activityFixtures = [
+    { label: "daily row null", daily: { "2026-01-01": null } },
+    { label: "daily row array", daily: { "2026-01-01": [] } },
+    { label: "daily row scalar", daily: { "2026-01-01": 42 } },
+    { label: "daily row string", daily: { "2026-01-01": "practiced" } },
+    { label: "daily null", daily: null },
+    { label: "daily array", daily: [1, 2, 3] },
+    { label: "mixed rows keep the good day", daily: { "2026-01-01": null, "2026-01-02": { stamps: 2, attempts: 3, targetKeys: ["base:一"], completedRoundIds: ["r1"] } } },
+  ];
+  const activityHealing = [];
+  for (const fixture of activityFixtures) {
+    await corruptPage.evaluate((row) => {
+      localStorage.removeItem("shizi.corrupt.shizi.activity.v1");
+      // 校准状态在这一组 fixture 里必须稳定，否则页面会停在首日校准而不是首页
+      localStorage.setItem("shizi.tuning.v1", JSON.stringify({ calibrated: true, offset: 0, contextStrict: 0, rounds: [] }));
+      localStorage.setItem("shizi.activity.v1", JSON.stringify({
+        version: 1, migrationDate: "2026-01-01", inheritedStreak: 2, inheritedTotalDays: 5,
+        practiceDays: ["2026-01-01"], daily: row.daily,
+      }));
+    }, fixture);
+    await corruptPage.reload({ waitUntil: "networkidle" });
+    activityHealing.push(await corruptPage.evaluate((label) => {
+      const rows = Object.values(activity.daily);
+      const persisted = JSON.parse(localStorage.getItem("shizi.activity.v1") || "null");
+      const kept = activity.daily["2026-01-02"];
+      return {
+        label,
+        home: ["flex", "block"].includes(getComputedStyle(home).display),
+        startBound: typeof startBtn.onclick === "function",
+        cards: CARDS.length,
+        rowsAreObjects: rows.every((row) => !!row && typeof row === "object" && !Array.isArray(row) && Array.isArray(row.targetKeys)),
+        dailyIsPlainObject: !!persisted && typeof persisted.daily === "object" && !Array.isArray(persisted.daily),
+        persistedRowsAreObjects: Object.values((persisted && persisted.daily) || {}).every((row) => !!row && typeof row === "object" && !Array.isArray(row)),
+        inheritedStreak: persisted && persisted.inheritedStreak,
+        keptGoodDay: kept ? { stamps: kept.stamps, attempts: kept.attempts, targetKeys: kept.targetKeys, completedGroups: kept.completedGroups } : null,
+      };
+    }, fixture.label));
+  }
+  const activityQuarantine = await corruptPage.evaluate(() => localStorage.getItem("shizi.corrupt.shizi.activity.v1"));
+  assert(activityHealing.every((row) => row.home && row.startBound && row.cards > 0 && row.rowsAreObjects && row.dailyIsPlainObject && row.persistedRowsAreObjects && row.inheritedStreak === 2),
+    "Expected malformed activity.daily rows to be normalized at startup so migration cannot abort boot", activityHealing);
+  const keptGoodDay = activityHealing[activityHealing.length - 1].keptGoodDay;
+  assert(keptGoodDay && keptGoodDay.stamps === 2 && keptGoodDay.attempts === 3 && keptGoodDay.completedGroups === 1 && JSON.stringify(keptGoodDay.targetKeys) === JSON.stringify(["base:一"]),
+    "Expected a healthy day row to survive alongside a discarded malformed one", keptGoodDay);
+  assert(activityQuarantine === null,
+    "Expected malformed activity rows to self-heal in place instead of quarantining the whole activity key", { activityQuarantine });
   await corruptPage.close();
 
   await page.click("#memoryWall .memoryChar");

@@ -1153,20 +1153,22 @@ function legacyStreakThrough(endKey){ const set=new Set(opens), start=String(end
   while(set.has(key)){ n++; key=shiftDay(key,-1); } return n; }
 function legacyDaysBefore(dateKey){ return [...new Set(opens.filter(d=>/^\d{4}-\d{2}-\d{2}$/.test(String(d)) && String(d)<String(dateKey)))].length; }
 function newActivity(){ return {version:1,migrationDate:today(),inheritedStreak:legacyStreakThrough(shiftDay(today(),-1)),inheritedTotalDays:legacyDaysBefore(today()),practiceDays:[],daily:{}}; }
-function normalizeActivity(raw){ const a=raw && typeof raw==="object"?raw:newActivity();
+function normalizeActivityRow(raw){ const row=plainObject(raw)?raw:{};
+  row.stamps=Math.max(0,Number(row.stamps)||0); row.attempts=Math.max(row.stamps,Number(row.attempts)||0); row.targetKeys=Array.isArray(row.targetKeys)?[...new Set(row.targetKeys.filter(k=>typeof k==="string"))]:[]; row.independentTargetKeys=Array.isArray(row.independentTargetKeys)?[...new Set(row.independentTargetKeys.filter(k=>typeof k==="string"))]:[]; row.reviewTargetKeys=Array.isArray(row.reviewTargetKeys)?[...new Set(row.reviewTargetKeys.filter(k=>typeof k==="string"))]:[]; row.completedRoundIds=Array.isArray(row.completedRoundIds)?[...new Set(row.completedRoundIds.filter(k=>typeof k==="string"||Number.isFinite(k)))]:[]; row.makeup=row.makeup===true;
+  row.completedGroups=row.completedRoundIds.length; return row; }
+function normalizeActivity(raw){ const a=plainObject(raw)?raw:newActivity();
   a.version=1; a.migrationDate=/^\d{4}-\d{2}-\d{2}$/.test(a.migrationDate||"")?a.migrationDate:today();
   a.inheritedStreak=Math.max(0,Number(a.inheritedStreak)||0);
   // 累计口径的历史继承：迁移日之前的打开日全额计入；迁移日起只认完成日，与迁移后的 opens 不会重复计数
   a.inheritedTotalDays=Number.isInteger(a.inheritedTotalDays)&&a.inheritedTotalDays>=0?a.inheritedTotalDays:legacyDaysBefore(a.migrationDate);
   a.practiceDays=Array.isArray(a.practiceDays)?[...new Set(a.practiceDays.filter(d=>/^\d{4}-\d{2}-\d{2}$/.test(d)))].sort():[];
-  a.daily=a.daily && typeof a.daily==="object"?a.daily:{}; return a; }
+  // 旧数据某天可能是 null / 数组 / 标量：逐日规范化，别让后面的迁移直接读坏行把整页启动打断
+  a.daily=plainObject(a.daily)?a.daily:{}; Object.keys(a.daily).forEach(key=>{ a.daily[key]=normalizeActivityRow(a.daily[key]); }); return a; }
 let activity=bootNormalize(ACTIVITY_KEY,bootLoad(ACTIVITY_KEY,null,v=>v===null||plainObject(v)),null,normalizeActivity); save(ACTIVITY_KEY,activity);
 function normalizeBackupMeta(raw){ const meta=raw&&typeof raw==="object"?raw:{}; return {lastExportAt:Math.max(0,Number(meta.lastExportAt)||0),summaryPromptShown:!!meta.summaryPromptShown}; }
 let backupMeta=bootNormalize(BACKUP_META_KEY,bootLoad(BACKUP_META_KEY,null,v=>v===null||plainObject(v)),null,normalizeBackupMeta), summaryBackupHintVisible=false;
 function saveActivity(){ save(ACTIVITY_KEY,activity); }
-function dailyActivity(key=today()){ const row=activity.daily[key] && typeof activity.daily[key]==="object"?activity.daily[key]:{};
-  row.stamps=Math.max(0,Number(row.stamps)||0); row.attempts=Math.max(row.stamps,Number(row.attempts)||0); row.targetKeys=Array.isArray(row.targetKeys)?[...new Set(row.targetKeys.filter(k=>typeof k==="string"))]:[]; row.independentTargetKeys=Array.isArray(row.independentTargetKeys)?[...new Set(row.independentTargetKeys.filter(k=>typeof k==="string"))]:[]; row.reviewTargetKeys=Array.isArray(row.reviewTargetKeys)?[...new Set(row.reviewTargetKeys.filter(k=>typeof k==="string"))]:[]; row.completedRoundIds=Array.isArray(row.completedRoundIds)?[...new Set(row.completedRoundIds.filter(k=>typeof k==="string"||Number.isFinite(k)))]:[]; row.makeup=row.makeup===true;
-  row.completedGroups=row.completedRoundIds.length; activity.daily[key]=row; return row; }
+function dailyActivity(key=today()){ const row=normalizeActivityRow(activity.daily[key]); activity.daily[key]=row; return row; }
 function markPracticeStamp(idx=null,outcome=""){ const key=today(), row=dailyActivity(key), targetKey=Number.isInteger(idx)?cardKey(idx):`legacy:${row.attempts}`; row.attempts++; if(!row.targetKeys.includes(targetKey)){ row.targetKeys.push(targetKey); row.stamps++; } if(outcome==="fast"&&!row.independentTargetKeys.includes(targetKey)) row.independentTargetKeys.push(targetKey); row.lastStampAt=Date.now();
   if(!activity.practiceDays.includes(key)) activity.practiceDays.push(key); activity.practiceDays.sort(); saveActivity();
   if(row.attempts===1) syncReminder(); }
@@ -1989,7 +1991,7 @@ function migrateStableCardIdentity(){ const nextMemory={},nextQuality={},nextSta
   Object.entries(nextMemory).forEach(([key,row])=>{ if(nextStatus[key]) return; const markedEasy=!!(nextQuality[key]&&nextQuality[key].easy); nextStatus[key]=!markedEasy&&(row.pendingLearning||["slow","hinted","miss"].includes(row.lastOutcome))?"indeck":"rest"; });
   memory=nextMemory; quality=nextQuality; status=nextStatus;
   fsrsReviewLog=(fsrsReviewLog||[]).map(row=>row&&row.cardKey?{...row,cardKey:canonicalCardKey(row.cardKey)}:row);
-  Object.values(activity.daily||{}).forEach(row=>["targetKeys","independentTargetKeys","reviewTargetKeys"].forEach(field=>{ if(Array.isArray(row[field])) row[field]=[...new Set(row[field].map(canonicalCardKey))]; }));
+  Object.values(activity.daily||{}).forEach(row=>{ if(!plainObject(row)) return; ["targetKeys","independentTargetKeys","reviewTargetKeys"].forEach(field=>{ if(Array.isArray(row[field])) row[field]=[...new Set(row[field].map(canonicalCardKey))]; }); });
   saveMemory(); saveQuality(); save(DECK_KEY,status); saveFSRSLog(); saveActivity(); }
 migrateStableCardIdentity();
 let addedChars = bootLoad(ADDED_KEY, null, v=>v===null||(Array.isArray(v)&&v.every(row=>typeof row==="string")));

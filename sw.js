@@ -4,11 +4,12 @@
    - 同源静态资源：缓存优先；安装时预缓存首日校准 + 高频核心 600 字，其余笔顺按需缓存
    - 跨源（CDN 兜底字）：不拦截，照常走网络
 */
-importScripts('./deck-data.js', './core-strokes.js');
+importScripts('./core-strokes.js?v=13f7db4fa836');
 
-const VERSION = 'shizi-v10';
-const SHELL = ['./', 'index.html', 'deck-data.js', 'hanzi-writer.min.js', 'fsrs6.min.js', 'manifest.webmanifest',
-  'core-strokes.js', 'data/etymology.json', 'data/context-overrides.js', 'icon-180.png', 'icon-192.png', 'icon-512.png'];
+const BUILD = '8105-3ac0637e30ec';
+const VERSION = `shizi-v13-${BUILD}`;
+const SHELL = ['./', 'index.html', 'deck-data.js?v=3ac0637e30ec', 'hanzi-writer.min.js', 'fsrs6.min.js', 'manifest.webmanifest',
+  'core-strokes.js?v=13f7db4fa836', 'data/etymology.json', 'data/context-overrides.js?v=11516601699b', 'icon-180.png', 'icon-192.png', 'icon-512.png'];
 const CORE_STROKE_PATHS = (self.SHIZI_CORE_STROKES || []).map(ch => `./data/${encodeURIComponent(ch)}.json`);
 const INSTALL_BATCH_SIZE = 40;
 
@@ -16,27 +17,66 @@ async function cacheCoreStrokes(cache) {
   for (let start = 0; start < CORE_STROKE_PATHS.length; start += INSTALL_BATCH_SIZE) {
     const batch = CORE_STROKE_PATHS.slice(start, start + INSTALL_BATCH_SIZE);
     await Promise.allSettled(batch.map(async path => {
-      const request = new Request(path, { cache: 'reload' });
+      const request = new Request(new URL(path, self.location.href), { cache: 'reload' });
       const response = await fetch(request);
       if (response && response.ok) await cache.put(request, response);
     }));
   }
 }
 
+async function cacheFreshShell(cache) {
+  const requests = SHELL.map(path => new Request(new URL(path, self.location.href), { cache: 'reload' }));
+  // Cache.addAll commits the batch atomically. A failed response therefore
+  // cannot expose a partly populated new-version cache to an older worker.
+  await cache.addAll(requests);
+}
+
 self.addEventListener('install', e => {
   e.waitUntil((async () => {
     const cache = await caches.open(VERSION);
-    await cache.addAll(SHELL);
+    await cacheFreshShell(cache);
     await cacheCoreStrokes(cache);
     await self.skipWaiting();
   })());
 });
 
 self.addEventListener('activate', e => {
-  e.waitUntil(caches.keys()
-    .then(keys => Promise.all(keys.filter(k => k !== VERSION).map(k => caches.delete(k))))
-    .then(() => self.clients.claim()));
+  e.waitUntil((async () => {
+    const keys = await caches.keys();
+    const obsolete = keys.filter(key => key !== VERSION && key.startsWith('shizi-'));
+    await Promise.all(obsolete.map(key => caches.delete(key)));
+    await self.clients.claim();
+    if (obsolete.length) {
+      const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+      // Waiting for navigate here deadlocks activation: navigation itself waits for
+      // this worker to become active. Start it, then let the activate event finish.
+      windows.forEach(client => { client.navigate(client.url).catch(() => null); });
+    }
+  })());
 });
+
+// 只认当前这一代的缓存：失败安装留下的空缓存、或还没清掉的旧版本，都不该被当成兜底内容
+async function cachedFromVersion(request) {
+  const cache = await caches.open(VERSION);
+  return (await cache.match(request)) || null;
+}
+
+function cacheIfOk(req, res) {
+  // clone 必须在 body 被页面消费前同步调用；错误响应不能写进缓存，否则污染离线兜底
+  if (res && res.ok) { const copy = res.clone(); caches.open(VERSION).then(c => c.put(req, copy)); }
+  return res;
+}
+
+async function networkThenCache(req, fallback) {
+  let res = null;
+  try { res = await fetch(new Request(req, { cache: 'reload' })); } catch (err) { res = null; }
+  if (res && res.ok) return cacheIfOk(req, res);
+  // fetch() 只在网络层面失败时 reject。服务器返回 503 时它照样 resolve，
+  // 把这个响应交给页面就等于让浏览器把一段错误正文当脚本执行（SEED is not defined）。
+  // 所以非 ok 一律按"这次没取到"处理，先回落缓存。
+  const cached = await fallback(req, res);
+  return cached || res || Response.error();
+}
 
 self.addEventListener('fetch', e => {
   const req = e.request;
@@ -48,14 +88,20 @@ self.addEventListener('fetch', e => {
     (req.headers.get('accept') || '').includes('text/html');
 
   if (isHTML) {
-    // 网络优先：更新随时能落地；断网才用缓存
-    e.respondWith(
-      fetch(req).then(res => {
-        // clone 必须在 body 被页面消费前同步调用；错误响应不能写进缓存，否则污染离线兜底
-        if (res && res.ok) { const copy = res.clone(); caches.open(VERSION).then(c => c.put(req, copy)); }
-        return res;
-      }).catch(() => caches.match(req).then(r => r || caches.match('index.html')))
-    );
+    // 网络优先：更新随时能落地；断网或服务端抽风才用缓存。
+    // 4xx 是"这个地址真的没有"，不拿缓存冒充；5xx / 408 / 429 跟断网同一类。
+    e.respondWith(networkThenCache(req, async (request, res) => {
+      if (res && res.status < 500 && res.status !== 408 && res.status !== 429) return null;
+      return (await cachedFromVersion(request)) || (await cachedFromVersion('index.html'));
+    }));
+    return;
+  }
+
+  const critical = ['/deck-data.js', '/core-strokes.js', '/data/context-overrides.js'];
+  if (critical.some(path => url.pathname.endsWith(path))) {
+    // 关键资源都带内容指纹：同一个 URL 的缓存副本就是它应有的内容，
+    // 任何非 ok（503、以及指纹文件被清掉后的 404）都优先用缓存，取不到才把错误响应交回去。
+    e.respondWith(networkThenCache(req, request => cachedFromVersion(request)));
     return;
   }
 

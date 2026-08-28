@@ -1,0 +1,124 @@
+{
+  "schema_version": 1,
+  "artifact": "shizi-vector-data-440-clean-clone-evidence-index",
+  "evidence_snapshot_date": "2026-08-07",
+  "status": "TECHNICAL_AND_HUMAN_REVIEW_PASS_440",
+  "counts": {
+    "files": 20,
+    "records": 440,
+    "human_accepted": 440,
+    "human_review_pending": 0,
+    "product_scope_excluded": 20
+  },
+  "policy": {
+    "raw_third_party_svg_gif_or_font_included": false,
+    "license_review": "OUT_OF_SCOPE_PENDING_SEPARATE_REVIEW",
+    "viewing_review_page_implies_acceptance": false,
+    "accepted_records_directly_hash_bound": true,
+    "accepted_records_semantically_bound": true,
+    "production_import_requires_separate_product_approval": true,
+    "machine_local_absolute_paths_forbidden": true
+  },
+  "files": [
+    {
+      "path": "audit/vector-data-460-evidence/README.md",
+      "sha256": "71e847d8451439e629cea96f571154975d35f2dbf5e21fbf822b4e046077e2dc",
+      "byte_size": 1495
+    },
+    {
+      "path": "audit/vector-data-460-evidence/acceptances/animcjk-363.json",
+      "sha256": "d92371084c85fbbf41ded64370b1ad489c26fb9e2d07f5e9f6ffef607a03def2",
+      "byte_size": 105348
+    },
+    {
+      "path": "audit/vector-data-460-evidence/acceptances/human-batch20-3.json",
+      "sha256": "c2f73e2fb4c5ca2d5c85be47524611f7fca185d094dd3e2ddf23645afaad0cf0",
+      "byte_size": 2722
+    },
+    {
+      "path": "audit/vector-data-460-evidence/acceptances/human-batch20-third-2.json",
+      "sha256": "52f1d1bae6d575f26449699a72f2312ac5136801d3c3f2a2f24593804c031d8b",
+      "byte_size": 2731
+    },
+    {
+      "path": "audit/vector-data-460-evidence/acceptances/human-type-unknown-4.json",
+      "sha256": "3f75f35e65a4f04a72dfd0255f1da7046dcede18318b0865fa0035de34f2ab14",
+      "byte_size": 3208
+    },
+    {
+      "path": "audit/vector-data-460-evidence/acceptances/moe-10.json",
+      "sha256": "328000103d0da6bc0fd5e2c976326a0be78f3c4456e397dde426311e08b20938",
+      "byte_size": 4786
+    },
+    {
+      "path": "audit/vector-data-460-evidence/records.json",
+      "sha256": "6bbffe4eee03c7d07efcafba9294a8fbe6e79c2d34c9bc3a0bd7f2e5cec0ef5b",
+      "byte_size": 602777
+    },
+    {
+      "path": "audit/vector-data-460-evidence/route-evidence.json",
+      "sha256": "95281b000d4f00c0e5660f1c1808bd538dac5b9b6bb8facdb29971febe8be0e5",
+      "byte_size": 28643
+    },
+    {
+      "path": "audit/vector-data-460-evidence/review-decisions/strokeorder-79-partial.json",
+      "sha256": "abd62e9301427ae3885f7ae1427bd0badf9ef2ad5ba5338543c9f4a916b7af2b",
+      "byte_size": 72241
+    },
+    {
+      "path": "audit/vector-data-460-evidence/review-decisions/strokeorder-direct-grass-two.json",
+      "sha256": "ffb37539e201553ace643cf92e7bbfffb576caf25794c51b5533f058cdbe0950",
+      "byte_size": 3203
+    },
+    {
+      "path": "audit/vector-data-460-evidence/review-decisions/strokeorder-direct-grass-four.json",
+      "sha256": "fcc95744ed81808629539f93d687f2bcd4629143757a02f6f37204a2c96848d2",
+      "byte_size": 5386
+    },
+    {
+      "path": "audit/vector-data-460-evidence/review-decisions/strokeorder-direct-grass-scale.json",
+      "sha256": "84d2849a49410019d8ef1d06c00bc4815a41125e57f01c34db8e334b0bc3ae5e",
+      "byte_size": 12275
+    },
+    {
+      "path": "audit/vector-data-460-evidence/review-decisions/strokeorder-side-component-two.json",
+      "sha256": "4dfc0d447326687e6bf02eba61eb1724f3da1a4d8990f434265b2fbb534eff36",
+      "byte_size": 1801
+    },
+    {
+      "path": "audit/vector-data-460-evidence/review-decisions/strokeorder-side-component-four.json",
+      "sha256": "7a40881001aaecf444ebde232ba4db4d983ad5246f14b1dab5a3b285c3368944",
+      "byte_size": 2490
+    },
+    {
+      "path": "audit/vector-data-460-evidence/review-decisions/strokeorder-direct-grass-scale-skip.json",
+      "sha256": "21d4f2dfbd8cab90dde256a3f30dff6a96687b70b5ea144cb67e1fdd79bb63a0",
+      "byte_size": 1192
+    },
+    {
+      "path": "audit/vector-data-460-evidence/review-decisions/strokeorder-49-scope-closure.json",
+      "sha256": "410b42cb95586d7fa88632deb42f57f81bac9a3b78a1c8da6ac1a1cf0796028e",
+      "byte_size": 3562
+    },
+    {
+      "path": "audit/vector-data-460-evidence/authorizations/finalize-440-production-import.json",
+      "sha256": "8f2fb648ea8654e314e994b4f3e03c48fff5b7ce8d634c2475492ef983fae497",
+      "byte_size": 16852
+    },
+    {
+      "path": "audit/vector-data-460-evidence/investigations/strokeorder-49-root-cause.json",
+      "sha256": "4a14d3ba8f5c354358028b48033dc30c3fa758c05aced71d80c3cf275bd6e42d",
+      "byte_size": 32558
+    },
+    {
+      "path": "audit/vector-data-460-evidence/investigations/strokeorder-translation-two-stop.json",
+      "sha256": "646ee01245af8b69fccd05d5b9e9bcd3f36f4823be1fc7730d2537aa7d6147a3",
+      "byte_size": 1650
+    },
+    {
+      "path": "audit/vector-data-460-evidence/imports/finalize-440.json",
+      "sha256": "449fbbd16107038138b83a9da7e16f49fff731d6d77623c6d4fd45ea11018517",
+      "byte_size": 25770
+    }
+  ]
+}

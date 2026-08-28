@@ -1,0 +1,87 @@
+{
+  "schema_version": 1,
+  "artifact": "shizi-strokeorder-direct-grass-two-character-human-review",
+  "recorded_at_utc": "2026-08-06T02:47:42Z",
+  "reviewer_role": "product_owner",
+  "reviewer_response_verbatim": "都通过",
+  "decision": "HUMAN_ACCEPTED",
+  "scope": {
+    "characters": [
+      "芃",
+      "苾"
+    ],
+    "count": 2,
+    "accepted": 2
+  },
+  "reviewed_payloads": {
+    "芃": {
+      "decision": "HUMAN_ACCEPTED",
+      "candidate": {
+        "path": "tmp/vector-mve/strokeorder-direct-grass-mve/candidates/芃.json",
+        "sha256": "dee100f4eb6bce9069acd7660fc5cffc76ba5dee7b759e6afe74f06a4f752146"
+      },
+      "production_before_review": {
+        "path": "data/芃.json",
+        "sha256": "e37c48d454c112a16e03ca49f0b7603d126433e1716d9258726422a382b58321"
+      },
+      "production_file_reverified_unchanged": true
+    },
+    "苾": {
+      "decision": "HUMAN_ACCEPTED",
+      "candidate": {
+        "path": "tmp/vector-mve/strokeorder-direct-grass-mve/candidates/苾.json",
+        "sha256": "54c4fd44b0b470ab51f7f098a42ea139f97422fda33296b11f845283ed435d67"
+      },
+      "production_before_review": {
+        "path": "data/苾.json",
+        "sha256": "fcf7cfe13f0d3f704a87b967e3c1f64f0a44dd661365c17a52d26b23352ff89c"
+      },
+      "production_file_reverified_unchanged": true
+    }
+  },
+  "evidence_bindings": {
+    "partial_review": {
+      "path": "audit/vector-data-460-evidence/review-decisions/strokeorder-79-partial.json",
+      "sha256": "abd62e9301427ae3885f7ae1427bd0badf9ef2ad5ba5338543c9f4a916b7af2b"
+    },
+    "root_cause": {
+      "path": "audit/vector-data-460-evidence/investigations/strokeorder-49-root-cause.json",
+      "sha256": "4a14d3ba8f5c354358028b48033dc30c3fa758c05aced71d80c3cf275bd6e42d"
+    },
+    "static_evaluation": {
+      "path": "tmp/vector-mve/strokeorder-direct-grass-mve/evaluation.json",
+      "sha256": "23bbbce24e2afa35b7db102a9c1c926d5b47e48e7fd941ba523b9e89cd3fa190"
+    },
+    "runtime_v1_failure": {
+      "path": "tmp/vector-mve/strokeorder-direct-grass-mve/receipt-runtime.json",
+      "sha256": "65aadc64d2f6a85071ff643572370827f2f1846b5fa0ef72a18a9f70b91b33ab"
+    },
+    "runtime_v2": {
+      "path": "tmp/vector-mve/strokeorder-direct-grass-mve/receipt-runtime-v2.json",
+      "sha256": "7c581051e6c9cb8fca6be2e77edde1cba92464fd6b543e8d3246885467f8842c"
+    },
+    "review_page": {
+      "path": "tmp/vector-mve/strokeorder-direct-grass-mve/review.html",
+      "sha256": "9a7e276b05858768ea54df8ffb31c9b44556e2ee4f396618b68fb00c41c3f5ad"
+    }
+  },
+  "interpretation": [
+    "The product owner accepted both exact candidate payloads shown on the frozen same-character A/B review page.",
+    "This proves only the two-character feasibility sample; it does not approve any unreviewed character.",
+    "The App production data files remain unchanged at recording time."
+  ],
+  "stop_loss": {
+    "next_allowed_action": "generate and validate only the four-character confirmation sample 蒨、薸、萳、藟",
+    "confirmation_characters": [
+      "蒨",
+      "薸",
+      "萳",
+      "藟"
+    ],
+    "not_allowed": [
+      "cohort batch generation",
+      "App data import",
+      "commit or push"
+    ]
+  }
+}

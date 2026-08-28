@@ -40,10 +40,10 @@ navigation = data.get("navigationFlow") or {}
 practice = data.get("practiceFlow") or {}
 exit_flow = data.get("exitFlow") or {}
 checks = {
-    "seed": data.get("seed") == 6854,
-    "cards": int(data.get("cards") or 0) >= 6854
+    "seed": data.get("seed") == 7294,
+    "cards": int(data.get("cards") or 0) >= 7294
     and int(data.get("cards") or 0) >= int(data.get("seed") or 0),
-    "groups": data.get("groups") == 6854,
+    "groups": data.get("groups") == 7294,
     "devQuery": data.get("devQuery") is dev_mode,
     "devToolsDisplay": data.get("devToolsDisplay") == expected_dev_display,
     "localStorageWritable": data.get("localStorageWritable") is True,
@@ -141,7 +141,7 @@ checks = {
     and data_flow.get("backupHasSound") is True
     and data_flow.get("backupHasLibrary") is True
     and data_flow.get("backupHasFunnel") is True
-    and data_flow.get("backupHasSessionV2") is True
+    and data_flow.get("backupHasSessionV3") is True
     and data_flow.get("backupHasFSRSLog") is True
     and data_flow.get("backupHasTraceTutorial") is True
     and data_flow.get("backupExcludesSmokeKey") is True
@@ -157,7 +157,7 @@ checks = {
     and data_flow.get("backupRestoreWild") is True
     and data_flow.get("backupRestoreLibrary") is True
     and data_flow.get("backupRestoreFunnel") is True
-    and data_flow.get("backupRestorePreservesSessionV2") is True
+    and data_flow.get("backupRestorePreservesSessionV3") is True
     and data_flow.get("backupRestorePreservesSmokeKey") is True
     and data_flow.get("backupSafetyCreated") is True
     and data_flow.get("backupRestoreRejectsInvalid") is True,

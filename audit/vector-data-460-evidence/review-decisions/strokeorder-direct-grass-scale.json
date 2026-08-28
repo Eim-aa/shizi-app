@@ -1,0 +1,367 @@
+{
+  "schema_version": 1,
+  "artifact": "shizi-strokeorder-direct-grass-scale-human-review",
+  "recorded_at_utc": "2026-08-06T06:24:37Z",
+  "reviewer_role": "product_owner",
+  "reviewer_response_verbatim": "芠：通过\n芣：通过\n苉：通过\n茋：不通过\n茽：通过\n荁：通过\n荄：通过\n荓：通过\n荖：通过\n莝：通过\n菉：不通过\n菍：不通过\n萹：通过\n葴：通过\n蒱：通过\n蓏：通过\n蓢：通过\n蔈：通过\n蔊：通过\n藦：通过",
+  "decision": "HUMAN_REVIEW_COMPLETE_WITH_17_ACCEPTED_3_REJECTED",
+  "scope": {
+    "characters": [
+      "芠",
+      "芣",
+      "苉",
+      "茋",
+      "茽",
+      "荁",
+      "荄",
+      "荓",
+      "荖",
+      "莝",
+      "菉",
+      "菍",
+      "萹",
+      "葴",
+      "蒱",
+      "蓏",
+      "蓢",
+      "蔈",
+      "蔊",
+      "藦"
+    ],
+    "count": 20,
+    "human_accepted": [
+      "芠",
+      "芣",
+      "苉",
+      "茽",
+      "荁",
+      "荄",
+      "荓",
+      "荖",
+      "莝",
+      "萹",
+      "葴",
+      "蒱",
+      "蓏",
+      "蓢",
+      "蔈",
+      "蔊",
+      "藦"
+    ],
+    "human_rejected": [
+      "茋",
+      "菉",
+      "菍"
+    ],
+    "machine_runtime_pass": 20
+  },
+  "reviewed_payloads": {
+    "芠": {
+      "decision": "HUMAN_ACCEPTED",
+      "candidate": {
+        "path": "tmp/vector-mve/strokeorder-direct-grass-scale/candidates/芠.json",
+        "sha256": "43986db1eba9a51a11f01ae6e1f31828fd0f948277af7420a955b9bd5f7474dc"
+      },
+      "production": {
+        "path": "data/芠.json",
+        "sha256": "99cf23ff8a252b44e1ee9521debafb744794e581168055ab3e041d6511567a41",
+        "unchanged": true
+      }
+    },
+    "芣": {
+      "decision": "HUMAN_ACCEPTED",
+      "candidate": {
+        "path": "tmp/vector-mve/strokeorder-direct-grass-scale/candidates/芣.json",
+        "sha256": "97b05d31439d9280e521168d73f4bb0cf07a26b12b37feb9e79188272b7ac41c"
+      },
+      "production": {
+        "path": "data/芣.json",
+        "sha256": "410f95e62399ffa75079797610deb09bcc6164f29bb04e63ddcca14a46348bc4",
+        "unchanged": true
+      }
+    },
+    "苉": {
+      "decision": "HUMAN_ACCEPTED",
+      "candidate": {
+        "path": "tmp/vector-mve/strokeorder-direct-grass-scale/candidates/苉.json",
+        "sha256": "daeb541ef1753f4ddf1877a95fd74d043f74339d9178c3da2f75914ec8a03c87"
+      },
+      "production": {
+        "path": "data/苉.json",
+        "sha256": "5f702cee53fcd2eec5696bc8b27422a2b3ffa795bc7360faa834a11b711461c7",
+        "unchanged": true
+      }
+    },
+    "茋": {
+      "decision": "HUMAN_REJECTED",
+      "candidate": {
+        "path": "tmp/vector-mve/strokeorder-direct-grass-scale/candidates/茋.json",
+        "sha256": "836dd6e3a8ce30d9809ed21848fa14ed1b191c585da7e9cfc95393c118f40c9c"
+      },
+      "production": {
+        "path": "data/茋.json",
+        "sha256": "ea0ce71be88caede2c36d287b4b9ffd1bcf694b92c394428659f8cc761522e50",
+        "unchanged": true
+      }
+    },
+    "茽": {
+      "decision": "HUMAN_ACCEPTED",
+      "candidate": {
+        "path": "tmp/vector-mve/strokeorder-direct-grass-scale/candidates/茽.json",
+        "sha256": "fef8840fd2e70914cb746086fec059c0da4346df4915145a8538d15092eb2dd3"
+      },
+      "production": {
+        "path": "data/茽.json",
+        "sha256": "45d5388542ed46b8b169c921c74b29e44b6c0b573f40f72552c19e6ddf23c6cc",
+        "unchanged": true
+      }
+    },
+    "荁": {
+      "decision": "HUMAN_ACCEPTED",
+      "candidate": {
+        "path": "tmp/vector-mve/strokeorder-direct-grass-scale/candidates/荁.json",
+        "sha256": "9b9f8721c1fb92b2d3761e99959c4db3b81eff08a58a189281f22c6eff9c3c38"
+      },
+      "production": {
+        "path": "data/荁.json",
+        "sha256": "e2b887ff4064597fccc0304d522379917473fab11814a2fa85c7e96a9de7c932",
+        "unchanged": true
+      }
+    },
+    "荄": {
+      "decision": "HUMAN_ACCEPTED",
+      "candidate": {
+        "path": "tmp/vector-mve/strokeorder-direct-grass-scale/candidates/荄.json",
+        "sha256": "a42483053e759489a18f688b415ed8ece01209226d48bc4224f251f61e6795ee"
+      },
+      "production": {
+        "path": "data/荄.json",
+        "sha256": "a30b26f4110062ff9d5d6c5a6fc4013d44f6e3d6cf77d85623b906e1b2585dc0",
+        "unchanged": true
+      }
+    },
+    "荓": {
+      "decision": "HUMAN_ACCEPTED",
+      "candidate": {
+        "path": "tmp/vector-mve/strokeorder-direct-grass-scale/candidates/荓.json",
+        "sha256": "079fd451fa2e476f9a0c63cd0b7b3e1cd6745dc2ff5a218f6bd982f5ad317d38"
+      },
+      "production": {
+        "path": "data/荓.json",
+        "sha256": "53c715af1cc9ac75cd0f741f44a56c749b2fa8ff49d937b8c951a2e30f806891",
+        "unchanged": true
+      }
+    },
+    "荖": {
+      "decision": "HUMAN_ACCEPTED",
+      "candidate": {
+        "path": "tmp/vector-mve/strokeorder-direct-grass-scale/candidates/荖.json",
+        "sha256": "54250531b813e635b53bac3afc849164ed13668354d4c6c0e423821c53ec9afb"
+      },
+      "production": {
+        "path": "data/荖.json",
+        "sha256": "4e8183d958a940255648a7db40c60a6d9cdbaf0ed1ef70b78dac604d1936ccde",
+        "unchanged": true
+      }
+    },
+    "莝": {
+      "decision": "HUMAN_ACCEPTED",
+      "candidate": {
+        "path": "tmp/vector-mve/strokeorder-direct-grass-scale/candidates/莝.json",
+        "sha256": "9d106761233252b07a94132b71063af206318fd0e04d6262fdc89a4d044ac8e7"
+      },
+      "production": {
+        "path": "data/莝.json",
+        "sha256": "d557087e960d1958d5ba2c7b1cde936db132db489816cd30292b57f2d46f73d2",
+        "unchanged": true
+      }
+    },
+    "菉": {
+      "decision": "HUMAN_REJECTED",
+      "candidate": {
+        "path": "tmp/vector-mve/strokeorder-direct-grass-scale/candidates/菉.json",
+        "sha256": "47169fa4bf85577bf26cb968c1407605179745613ac6d6fc466a8646291ebae1"
+      },
+      "production": {
+        "path": "data/菉.json",
+        "sha256": "971c073ac844d74850963e39710404cc543e258bfcbdb94ee4a59814615c16a0",
+        "unchanged": true
+      }
+    },
+    "菍": {
+      "decision": "HUMAN_REJECTED",
+      "candidate": {
+        "path": "tmp/vector-mve/strokeorder-direct-grass-scale/candidates/菍.json",
+        "sha256": "d7211c2c93ab6a23d057eaf502769f2ce78c749f73174acad8ac92e7a0716578"
+      },
+      "production": {
+        "path": "data/菍.json",
+        "sha256": "7ccd39dc89cbdb3072acd0390341e7e7100cd424f2191649d7d2181d152dd05d",
+        "unchanged": true
+      }
+    },
+    "萹": {
+      "decision": "HUMAN_ACCEPTED",
+      "candidate": {
+        "path": "tmp/vector-mve/strokeorder-direct-grass-scale/candidates/萹.json",
+        "sha256": "3403eac0b1966136d4900ae5edeb6184bb49b52398ec2bb012084af3fb9136c6"
+      },
+      "production": {
+        "path": "data/萹.json",
+        "sha256": "7d317c56f6926b58e2615f936e07ed9768999bc47b534da7c20a0fdab764a159",
+        "unchanged": true
+      }
+    },
+    "葴": {
+      "decision": "HUMAN_ACCEPTED",
+      "candidate": {
+        "path": "tmp/vector-mve/strokeorder-direct-grass-scale/candidates/葴.json",
+        "sha256": "f386fcb354c72efc7cf619c1325f9f525fe028ba14247abc3ce5ea50169769e8"
+      },
+      "production": {
+        "path": "data/葴.json",
+        "sha256": "31cb134321f94501377888ed53f817f0879446cefd4c9953c21353fd44f13131",
+        "unchanged": true
+      }
+    },
+    "蒱": {
+      "decision": "HUMAN_ACCEPTED",
+      "candidate": {
+        "path": "tmp/vector-mve/strokeorder-direct-grass-scale/candidates/蒱.json",
+        "sha256": "215cde2890e2b3320a926dc2990a03d1e8d5a5a1a02342a30d0ad29c5f880858"
+      },
+      "production": {
+        "path": "data/蒱.json",
+        "sha256": "493f13a74a52128e6aa0be19cfb64dc75ead3775bd3412f350defcc898c949c0",
+        "unchanged": true
+      }
+    },
+    "蓏": {
+      "decision": "HUMAN_ACCEPTED",
+      "candidate": {
+        "path": "tmp/vector-mve/strokeorder-direct-grass-scale/candidates/蓏.json",
+        "sha256": "1b230c54f7b145eaca630e733a4b31690becc3f7ff12a723f8cb9ae4dc729a88"
+      },
+      "production": {
+        "path": "data/蓏.json",
+        "sha256": "3bcb5dbaa7a358bd1a4b1fefd599ea3fd1b605f36cebfcb2196d4e1306f64040",
+        "unchanged": true
+      }
+    },
+    "蓢": {
+      "decision": "HUMAN_ACCEPTED",
+      "candidate": {
+        "path": "tmp/vector-mve/strokeorder-direct-grass-scale/candidates/蓢.json",
+        "sha256": "a1b429ec9d1879b7b73a81bf2e333350e90213cf7361ee848dc38598a9369839"
+      },
+      "production": {
+        "path": "data/蓢.json",
+        "sha256": "f70b2b7a53f5ed6ba4661559ad48712839823f8dbf6ad34dbf0fadf1b5323d2b",
+        "unchanged": true
+      }
+    },
+    "蔈": {
+      "decision": "HUMAN_ACCEPTED",
+      "candidate": {
+        "path": "tmp/vector-mve/strokeorder-direct-grass-scale/candidates/蔈.json",
+        "sha256": "32d1cc4a0875bb2f201f50f47cd736e30e7eab6ff83377e905c403ce748654d6"
+      },
+      "production": {
+        "path": "data/蔈.json",
+        "sha256": "54c9057afd9ffd84236cb5ee129b767c4e8b2d47e8c6c49df4ac21c4bbf87284",
+        "unchanged": true
+      }
+    },
+    "蔊": {
+      "decision": "HUMAN_ACCEPTED",
+      "candidate": {
+        "path": "tmp/vector-mve/strokeorder-direct-grass-scale/candidates/蔊.json",
+        "sha256": "d7cc90d13b432f6f261840b0311924dad41290754282e31c0c0cffb3b85d0456"
+      },
+      "production": {
+        "path": "data/蔊.json",
+        "sha256": "3b580e370379a96b4546b0781cb4f9ddf62f6d294ce8840e0cd01907e532d1d5",
+        "unchanged": true
+      }
+    },
+    "藦": {
+      "decision": "HUMAN_ACCEPTED",
+      "candidate": {
+        "path": "tmp/vector-mve/strokeorder-direct-grass-scale/candidates/藦.json",
+        "sha256": "60f47c486f83f0a9a905970b7660634310206a3883eee768e233795f0af64dad"
+      },
+      "production": {
+        "path": "data/藦.json",
+        "sha256": "68fb8c0a7f411aed8c377499e0b2c5121cf2398b23662bafb95e3dfc61f46315",
+        "unchanged": true
+      }
+    }
+  },
+  "evidence_bindings": {
+    "root_cause": {
+      "path": "audit/vector-data-460-evidence/investigations/strokeorder-49-root-cause.json",
+      "sha256": "4a14d3ba8f5c354358028b48033dc30c3fa758c05aced71d80c3cf275bd6e42d"
+    },
+    "four_review": {
+      "path": "audit/vector-data-460-evidence/review-decisions/strokeorder-direct-grass-four.json",
+      "sha256": "fcc95744ed81808629539f93d687f2bcd4629143757a02f6f37204a2c96848d2"
+    },
+    "static_evaluation": {
+      "path": "tmp/vector-mve/strokeorder-direct-grass-scale/evaluation.json",
+      "sha256": "184c470fb5f5fb949d201d18bae8887c5e506244d59a47c49f68dc6c0b0ff8b1"
+    },
+    "runtime_harness": {
+      "path": "tmp/vector-mve/strokeorder-direct-grass-scale/run-runtime-gate-v3.mjs",
+      "sha256": "576dae4d6338a808799ee1ea5319a2c486eb42abaa37c4b5985691055ef6f745"
+    },
+    "runtime_receipt": {
+      "path": "tmp/vector-mve/strokeorder-direct-grass-scale/receipt-runtime-v3.json",
+      "sha256": "a8c5db87341e2fddf36bfe5150fbefba976a851af3dab7df8be10f078588e451"
+    },
+    "review_page_builder": {
+      "path": "tmp/vector-mve/strokeorder-direct-grass-scale/build_runtime_review_page.mjs",
+      "sha256": "861a83ce424b551584ac654b0ba3936a98f5aa0f0309f6fe48beb1ed0d9b22a4"
+    },
+    "review_page": {
+      "path": "tmp/vector-mve/strokeorder-direct-grass-scale/review-runtime.html",
+      "sha256": "a30bb76bff98e25467e21f30fce32e53972ab843b9728014dc07dd940058481c"
+    }
+  },
+  "interpretation": [
+    "事实：产品负责人逐字接受 17 个候选，明确拒绝茋、菉、菍。",
+    "事实：20 个候选均通过机器静态与 Hanzi Writer 运行时门禁。",
+    "边界：本记录不批准 3 个拒绝字、不批准未复核字，也不批准覆盖 App 正式 data/。"
+  ],
+  "stop_loss": {
+    "next_allowed_action": "仅调查并修正茋、菉、菍；修正须先做极小样本验证，再重新跑静态、运行时和人工复核",
+    "accepted_pending_import": [
+      "芠",
+      "芣",
+      "苉",
+      "茽",
+      "荁",
+      "荄",
+      "荓",
+      "荖",
+      "莝",
+      "萹",
+      "葴",
+      "蒱",
+      "蓏",
+      "蓢",
+      "蔈",
+      "蔊",
+      "藦"
+    ],
+    "rejected_for_follow_up": [
+      "茋",
+      "菉",
+      "菍"
+    ],
+    "not_allowed": [
+      "overwrite App data/",
+      "batch import into production",
+      "commit or push"
+    ]
+  }
+}

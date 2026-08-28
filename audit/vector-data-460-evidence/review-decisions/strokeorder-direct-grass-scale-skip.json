@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "artifact": "shizi-strokeorder-direct-grass-scale-skip",
+  "recorded_at_utc": "2026-08-06T06:30:00Z",
+  "reviewer_role": "product_owner",
+  "reviewer_response_verbatim": "这三个字错的不是草字头，而是别的地方，你没看出来吗？算了先跳过这三个字吧，继续处理其他的字",
+  "decision": "SKIPPED_FOR_NOW",
+  "scope": {
+    "characters": [
+      "茋",
+      "菉",
+      "菍"
+    ],
+    "count": 3,
+    "production_import_allowed": false,
+    "app_data_modified": false
+  },
+  "binding": {
+    "previous_scale_review": {
+      "path": "audit/vector-data-460-evidence/review-decisions/strokeorder-direct-grass-scale.json",
+      "sha256": "84d2849a49410019d8ef1d06c00bc4815a41125e57f01c34db8e334b0bc3ae5e"
+    }
+  },
+  "interpretation": [
+    "事实：产品负责人指出茋、菉、菍的问题不在草字头。",
+    "事实：这三个字从当前草字头路线中移出，暂不修正、不导入。",
+    "边界：后续应按其真实问题重新诊断，不得继续套用 direct-grass donor 路线。"
+  ],
+  "next_allowed_action": "继续处理其他未复核问题字；茋、菉、菍单独留待后续诊断"
+}

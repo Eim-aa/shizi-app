@@ -477,18 +477,26 @@ final class WebViewController: UIViewController {
                   const strict4 = newPool(false).length;
                   tuning.contextStrict = 0;
                   const strict0 = newPool(false).length;
-                  return { total: libraryCounts(lib).total, strict0, strict4 };
+                  const counts = libraryCounts(lib);
+                  return { total: counts.total, officialTotal: counts.officialTotal, strict0, strict4 };
                 });
-                setLibrary('junior');
+                const legacyLibraries = ['primary', 'junior', 'senior'].map(id => normalizeLibrary({ id, userSelected: true }));
+                setLibrary('curriculum2500');
                 renderBook();
                 openLibSheet();
-                result.dataFlow.libraryAvailable = LIBRARIES.length === 6 && BACKUP_KEYS.includes(LIB_KEY);
+                result.dataFlow.libraryAvailable = LIBRARIES.length === 4 && BACKUP_KEYS.includes(LIB_KEY)
+                  && JSON.stringify(libraryRows.map(row => row.total)) === JSON.stringify([3500, 2976, 818, 2500])
+                  && JSON.stringify(libraryRows.map(row => row.officialTotal)) === JSON.stringify([3500, 3000, 1605, 2500])
+                  && CARDS.slice(0, BASE_N).every(card => ['入门', '基础', '进阶', '较难', '挑战'].includes(card.band) && !('level' in card));
                 result.dataFlow.libraryReachable = libraryRows.every(row => row.total > 0 && row.strict0 === row.total && row.strict4 === row.total);
-                result.dataFlow.libraryUI = document.getElementById('libList').querySelectorAll('[data-lib]').length === 6
+                result.dataFlow.libraryUI = document.getElementById('libList').querySelectorAll('[data-lib]').length === 4
                   && document.getElementById('libSheet').textContent.includes('切换字库不会影响已有练习记录')
                   && document.getElementById('libSheet').textContent.includes('复习仍包含所有字库')
-                  && document.getElementById('libName').textContent === '初中'
-                  && LIBRARIES[2].name === '生僻字' && libraryRows[2].total === 486
+                  && document.getElementById('libName').textContent === '义教基础字'
+                  && LIBRARIES[2].name === '规范专门用字' && libraryRows[2].total === 818 && libraryRows[2].officialTotal === 1605
+                  && document.getElementById('libSheet').textContent.includes('官方 3000')
+                  && document.getElementById('libSheet').textContent.includes('官方 1605')
+                  && !/小学|初中|高中/.test(document.getElementById('libSheet').textContent)
                   && !document.getElementById('libCard').querySelector('.libBar,.libTones')
                   && !document.getElementById('libList').querySelector('.libBar')
                   && !/拾完|手速|墨色进度/.test(document.getElementById('libSheet').textContent + document.getElementById('libCard').textContent);
@@ -504,12 +512,14 @@ final class WebViewController: UIViewController {
                   return { before, preference, after: cloneObj(libraryState), stored: load(LIB_KEY, null) };
                 };
                 const freshCalibration = completeChallengeCalibration('');
-                const manualCalibration = completeChallengeCalibration('junior');
+                const manualCalibration = completeChallengeCalibration('curriculum2500');
                 result.dataFlow.libraryCalibrationLifecycle = freshCalibration.before.id === 'core3500' && !freshCalibration.before.userSelected
                   && freshCalibration.preference === 'challenge' && freshCalibration.after.id === 'adv3000' && !freshCalibration.after.userSelected
                   && freshCalibration.stored.id === 'adv3000'
-                  && manualCalibration.before.id === 'junior' && manualCalibration.before.userSelected
-                  && manualCalibration.preference === 'challenge' && manualCalibration.after.id === 'junior' && manualCalibration.after.userSelected;
+                  && manualCalibration.before.id === 'curriculum2500' && manualCalibration.before.userSelected
+                  && manualCalibration.preference === 'challenge' && manualCalibration.after.id === 'curriculum2500' && manualCalibration.after.userSelected
+                  && legacyLibraries[0].id === 'curriculum2500' && legacyLibraries[1].id === 'core3500' && legacyLibraries[2].id === 'adv3000'
+                  && new Set(legacyLibraries.map(row => row.id)).size === 3 && legacyLibraries.every(row => row.userSelected);
                 memory = memoryBeforeLibrary; status = statusBeforeLibrary; quality = qualityBeforeLibrary; sessionDone = new Set(sessionDoneBeforeLibrary);
                 tuning = tuningBefore; libraryState = normalizeLibrary(libraryBefore); preference = preferenceBeforeLibrary; activeMode = activeModeBeforeLibrary;
                 calibrationTargets = calibrationTargetsBeforeLibrary; roundStats = roundStatsBeforeLibrary; funnel = funnelBeforeLibrary;
@@ -712,7 +722,7 @@ final class WebViewController: UIViewController {
               closeAddSheet();
               result.dataFlow.wildSmokeStage = 'complete';
 
-              localStorage.setItem(SESSION_KEY, JSON.stringify({ version: 2, smoke: true }));
+              localStorage.setItem(SESSION_KEY, JSON.stringify({ version: 3, smoke: true }));
               const backup = JSON.parse(backupPayload({ funnelExportAt: Date.now() }));
               const backupData = backup && backup.data ? backup.data : {};
               result.dataFlow.backupParses = true;
@@ -729,7 +739,7 @@ final class WebViewController: UIViewController {
               result.dataFlow.backupHasLibrary = Object.prototype.hasOwnProperty.call(backupData, LIB_KEY);
               const backupFunnel = Object.prototype.hasOwnProperty.call(backupData, FUNNEL_KEY) ? JSON.parse(backupData[FUNNEL_KEY]) : null;
               result.dataFlow.backupHasFunnel = !!backupFunnel && backupFunnel.version === 1 && backupFunnel.events.filter(row => row.name === 'backup_exported').length === 1;
-              result.dataFlow.backupHasSessionV2 = Object.prototype.hasOwnProperty.call(backupData, SESSION_KEY) && JSON.parse(backupData[SESSION_KEY]).version === 2;
+              result.dataFlow.backupHasSessionV3 = Object.prototype.hasOwnProperty.call(backupData, SESSION_KEY) && JSON.parse(backupData[SESSION_KEY]).version === 3;
               result.dataFlow.backupHasFSRSLog = Object.prototype.hasOwnProperty.call(backupData, FSRS_LOG_KEY);
               result.dataFlow.backupHasTraceTutorial = Object.prototype.hasOwnProperty.call(backupData, TRACE_TUTORIAL_KEY);
               result.dataFlow.backupExcludesSmokeKey = !Object.prototype.hasOwnProperty.call(backupData, 'shizi.nativeSmoke.v1');
@@ -758,7 +768,7 @@ final class WebViewController: UIViewController {
                 result.dataFlow.backupRestoreLibrary = localStorage.getItem(LIB_KEY) === backupData[LIB_KEY];
                 const restoredFunnel = JSON.parse(localStorage.getItem(FUNNEL_KEY) || '{}');
                 result.dataFlow.backupRestoreFunnel = restoredFunnel.version === 1 && restoredFunnel.events.filter(row => row.name === 'backup_exported').length === 1;
-                result.dataFlow.backupRestorePreservesSessionV2 = JSON.parse(localStorage.getItem(SESSION_KEY) || '{}').version === 2;
+                result.dataFlow.backupRestorePreservesSessionV3 = JSON.parse(localStorage.getItem(SESSION_KEY) || '{}').version === 3;
                 result.dataFlow.backupRestorePreservesSmokeKey = localStorage.getItem('shizi.nativeSmoke.v1') === smokeValueBeforeRestore;
                 const safetyCopy = JSON.parse(localStorage.getItem(SAFETY_KEY) || 'null');
                 result.dataFlow.backupSafetyCreated = !!safetyCopy && safetyCopy.reason === 'restore' && !!safetyCopy.payload;
@@ -1032,7 +1042,7 @@ final class WebViewController: UIViewController {
               const firstAttempt = currentAttemptId;
               const firstKey = cardKey(firstIndex);
               const firstMemoryBefore = JSON.stringify(memory[firstKey] || null);
-              const firstStatusBefore = status[firstIndex];
+              const firstStatusBefore = statusFor(firstIndex);
               const activityBefore = todayStampCount();
               const attemptsBefore = dailyActivity().attempts;
               const fsrsBefore = fsrsReviewLog.length;
@@ -1074,7 +1084,7 @@ final class WebViewController: UIViewController {
               hapticDebug.last = null;
               reopenStampChoices();
               await waitFor(() => visible('reveal') && practicePhase === 'revealDecision');
-              result.practiceFlow.undoRollback = roundStats.length === 0 && fsrsReviewLog.length === fsrsBefore && JSON.stringify(memory[firstKey] || null) === firstMemoryBefore && status[firstIndex] === firstStatusBefore;
+              result.practiceFlow.undoRollback = roundStats.length === 0 && fsrsReviewLog.length === fsrsBefore && JSON.stringify(memory[firstKey] || null) === firstMemoryBefore && statusFor(firstIndex) === firstStatusBefore;
               result.practiceFlow.undoActivityRollback = todayStampCount() === activityBefore && dailyActivity().attempts === attemptsBefore;
               result.practiceFlow.hapticUndoRecorded = hapticDebug.last === 'undo';
               result.practiceFlow.hapticUndoSequence = hapticDebug.events.slice();
@@ -1128,7 +1138,8 @@ final class WebViewController: UIViewController {
               const practiceDay = dailyActivity();
               result.practiceFlow.activityRecorded = todayStampCount() >= activityBefore && practiceDay.attempts === attemptsBefore + 2 && practiceDay.targetKeys.includes(firstKey) && practiceDay.targetKeys.includes(cardKey(currentCardIndex())) && activity.practiceDays.includes(today());
               const storedSession = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null');
-              result.practiceFlow.sessionSnapshotStored = !!storedSession && storedSession.version === 2 && storedSession.practicePhase === 'postTraceRecall' && storedSession.unresolved.length === 2;
+              result.practiceFlow.sessionSnapshotStored = !!storedSession && storedSession.version === 3 && storedSession.practicePhase === 'postTraceRecall' && storedSession.unresolvedKeys.length === 2
+                && storedSession.baseTargetKeys.every(key => typeof key === 'string') && !Object.prototype.hasOwnProperty.call(storedSession, 'baseTargets');
               result.practiceFlow.historyGuardArmed = practiceHistoryArmed === true && history.state && history.state.shiziView === 'practice';
 
               if (typeof exitCurrentRound === 'function') {
@@ -1144,7 +1155,7 @@ final class WebViewController: UIViewController {
                   const resume = resumableSession();
                   const statePreserved = history.length === result.exitFlow.historyInitialLength
                     && history.state && history.state.shiziView === 'home'
-                    && !!resume && resume.version === 2
+                    && !!resume && resume.version === 3
                     && resume.practicePhase === phaseBeforeSwipe
                     && resume.currentAttemptId === attemptBeforeSwipe
                     && resume.roundStats.length === result.exitFlow.roundStatsBeforeExit;
@@ -1165,7 +1176,7 @@ final class WebViewController: UIViewController {
                 result.exitFlow.roundStatsAfterExit = roundStats.length;
                 result.exitFlow.roundStatsUnchanged = result.exitFlow.roundStatsAfterExit === result.exitFlow.roundStatsBeforeExit;
                 const resume = resumableSession();
-                result.exitFlow.directReturnSaved = !!resume && resume.version === 2
+                result.exitFlow.directReturnSaved = !!resume && resume.version === 3
                   && history.length === result.exitFlow.historyInitialLength
                   && history.state && history.state.shiziView === 'home';
                 result.exitFlow.noExitSheet = !document.getElementById('exitSheet') && !document.body.textContent.includes('退出本组？');
@@ -1175,7 +1186,7 @@ final class WebViewController: UIViewController {
                   && practiceHistoryArmed === false
                   && history.length === result.exitFlow.historyInitialLength
                   && history.state && history.state.shiziView === 'home';
-                result.practiceFlow.resumeHomeState = !!resume && resume.version === 2 && document.getElementById('startBtn').textContent === '续';
+                result.practiceFlow.resumeHomeState = !!resume && resume.version === 3 && document.getElementById('startBtn').textContent === '续';
                 restoreSession(resume);
                 await waitFor(() => visible('card') && practicePhase === 'postTraceRecall');
                 result.practiceFlow.resumeRestored = roundStats.length === 2 && document.getElementById('phaseTitle').textContent.includes('第 2 步：自己写');

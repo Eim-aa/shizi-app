@@ -1,0 +1,112 @@
+{
+  "schema_version": 1,
+  "normative_source": {
+    "title": "通用规范汉字表（2013）",
+    "url": "https://www.gov.cn/gzdt/att/att/site1/20130819/tygfhzb.pdf",
+    "files": [
+      {
+        "path": "sources/level-1.txt",
+        "level": "一级",
+        "count": 3500,
+        "sha256": "79a6c710013cc86617d5db65871f59b2d67dee72415d380a2cc7145a51450fe4"
+      },
+      {
+        "path": "sources/level-2.txt",
+        "level": "二级",
+        "count": 3000,
+        "sha256": "d597a6e99ea7b8c41215081f824c6e8587bf1c9a3f45fb13086a826306789785"
+      },
+      {
+        "path": "sources/level-3.txt",
+        "level": "三级",
+        "count": 1605,
+        "sha256": "c9fbc83a9f8cd860306b218bf16c6a4cc56d7c4a22a686d403b176a0dbec7931"
+      }
+    ],
+    "total": 8105
+  },
+  "curriculum_source": {
+    "title": "义务教育语文课程标准（2022年版）附录5",
+    "url": "https://hudong.moe.gov.cn/srcsite/A26/s8001/202204/W020220420582344386456.pdf",
+    "document_sha256": "3ef0ec8a30b5a950211202658df07d99f5427f750f8ba0c3cfda12736b7bd71a",
+    "table_one": {
+      "path": "sources/curriculum-common-2500.txt",
+      "count": 2500,
+      "sha256": "c9b12e616ca252a3af6e7c872a953281ae7d5614bd2263f640131e90bf67b528",
+      "members_sha256": "c3de017903fc18076a7ab59ad9f41a29d0daba9a1725f04d206c0158a28de4aa"
+    },
+    "table_two": {
+      "derived_from": "规范一级字减去字表一",
+      "count": 1000
+    },
+    "total": 3500
+  },
+  "vector_data_inventory": {
+    "official_baseline": {
+      "package": "hanzi-writer-data",
+      "version": "2.0.1",
+      "flat_manifest_url": "https://data.jsdelivr.com/v1/package/npm/hanzi-writer-data@2.0.1/flat",
+      "standard_character_count": 6854,
+      "members_sha256": "a199c0ed9390769bd0834b5a322c22c8fac820c4284c5aa932bf8f930e73c9f3"
+    },
+    "reviewed_project_supplement": {
+      "manifest_path": "audit/vector-data-460-manifest.json",
+      "manifest_sha256": "c5add68779f17fd433672ef1ed063bcec6ae4b4ac632fd1e4aa858d02873d5ff",
+      "character_count": 440,
+      "members_sha256": "c8835eaa2eb28c133a82433854bd460f6e8632e15812a5d4bba51921103c8dbc",
+      "audit_state": "TECHNICAL_AND_HUMAN_REVIEW_PASS_440",
+      "human_accepted_character_count": 440,
+      "human_review_pending_character_count": 0,
+      "evidence_index_path": "audit/vector-data-460-evidence-index.json",
+      "evidence_index_sha256": "1b0b5a20695f23091dd03c7b2d4a9ffb2a91ff299c71b13780eddd4c67f3f6a8",
+      "license_review": "OUT_OF_SCOPE_PENDING_SEPARATE_REVIEW",
+      "hint_groups": {
+        "path": "audit/vector-data-460-hint-groups.json",
+        "sha256": "cc94cefe9b82fabeb059e3f62b938efa8e196188af52c2a7326716f60839aad0",
+        "character_count": 440,
+        "maximum_groups_per_character": 5,
+        "source": "Chaifen 0.4.0 G-tagged component graph"
+      }
+    },
+    "combined_standard_character_count": 7294
+  },
+  "practice_availability": {
+    "available": 7294,
+    "unavailable": 811,
+    "available_by_norm_level": {
+      "一级": 3500,
+      "二级": 2976,
+      "三级": 818
+    },
+    "unavailable_by_norm_level": {
+      "一级": 0,
+      "二级": 24,
+      "三级": 787
+    },
+    "unavailable_by_reason": {
+      "no_hanzi_writer": {
+        "count": 811,
+        "characters": "牤玭㧟䏝𬉼炘㤘𠳐䥽捽睄媭颎滫叆䁖粿踒𥻗縠䦃鞬霨㸆冮𬣙讱圲圫朳𨙸辿伣伈癿汋䜣讻𬣞𬘓玒玘刬𫭟坉扽𫭢坋㧑𫇭杕杄𫐄旴旵㕮𫵷呇㑇伭佖佁飏汫𣲘𣲗𬇙㳇忳忺𬣡诇𫸩岊䢺妧妘𨚕纮驲𫘜𬘘𫘝纼玤玞玱坥坰坬坽弆䢼𦭜茋㭎枍匼𬨂𬀩𬀪旿昄昒昈咉咇咍岞㟃𬬩钖牥侁佸佺㑊侂舠攽肸炌泂泇峃祋祊𫍣𬣳𬩽弢弨𬮿𬯀乸妭姈𫰛𬳵𬳶䌹𫠊㛃玶珇珅𬍛玹珌玿垙耇鿍垎挓垵垏𬜬𦰡㭕柷栐柖䴓迺砆砄耏䶮昺𪾢盷咡咺昳昣昤昡昪虷虸哃峘峛𪨰峗𫓧𬬮𬬱𬬭秬俫俙俍垕侴䏡𦙶胈胣炣㶲洭洘洓洿㳚洢洈㳘恔祏娀姱姤枲绖骃𬘡𬳽𬘩𫄧骉珛珹玼珖𪟝珦珫珒𬍤珢珕珝𫭼垾垺垿埌鄀䓖栻𬂩梠梴𫠆砵砫翃𨐈𬌗晅晊冔晐畖蚄蚆𫑡峿𪨶崄崀𬬸𬬻𬬹𬬿𬭁甡倴脩倕𫢸倧衃舥朓虓峱𫗧羖羓烠烔烻𬊈涍浭涄涐浰浟浛浲悈𬒈宧窊窎堲𨺙㛚翀翂𬳿𫄨𬘫䂮珵琄琈琀珺堎堐埫𫮃掞埪壸㙍萚莿䓫勚䓬菍萣䓨菉䓛桯梌桹敔硔鿎硊硍勔䴕翈㫰晙𬱖蛃蚲𬟽䎃崌崡铏𫓯𫟹𫟼牻笯偰偡偭偁㿠鄅偓徛悆䝙脟䏲𠅤痓䴔竫焆𬇹淟淜淴涴𬍡㥄惔悰寁𬤇𫍯𬤊𫍲谞弶𬯎婼媖婍婌婫婤婘婠𬘬𬘭𬴂𫘦𫟅𬘯𫘧珷琡琟琔琭堾堼揕㙘堧堨塅𪣻𡎚惎靬鄚蒐葰鄑棤棽棫椓𬃊棓棪𬷕奡詟𫐐棐龂𬹼睎晫晪晱𧿹崶嵁𫶇嵅崿𫖮圌圐鿏𬭊𨱇𫓶𬭎稌筥傃傉翛傒𫖯脿腘䐃𬱟猰𫛭㺄凓𫷷旐𬮱焞𬊤𣸣溁渰㴔渼湑愐敩婻媆媞㛹媓媂媄𬴃𫘨缐瑃瑓瑅瑆䴖瑖瑝瑔𤧛瑳瑂嶅瑑摛塝蔀榃楒楩椸歅𬪩碃碏𬒔碈䃅硿𬨎𫐓䣘暕𫫇㬊跱蜐嵲赗𫓹锳𬭚𬭛稑䅟𬕂筶筤谼貆腨腯䲟𬶋𬶍雊猺觟𦝼裛麀𫔶煁煃煴煋煟煓溍溹滆溵滧愭慆塱𫌀禋禔禘禒𫖳媱戣𫘪𫘬缞瑧𫞩瑨斠摏墕墐摴𡐓𪤗榰𣗋𬸘酺䃎𬒗碨𥔲𫚖䴗鹖幖嶍𨱏𬭤馝箖僔僎㙦𫚕鲖鲘𬶐𬶏𩽾𬸚凘鲝熇漹漖潩漴㽏漈漋漻慬㮾𬤝褕隩嫕嫭𬙂㻬漦叇墣墡薁蔃槱暵暲暶䗖蝘蝲噇罶嶲㠇嶟嶒𬭩皞䴘𩾃觭鹢熛潖㵐澛瑬潾憭憕𬸣戭褯𫍽嫽𬴊璥璒薳𬞟薢橞橑磡𥕢磜𫟦𬺈𫠜虤暿曌㬚䗛疁㠓𪩘嶦𬭬𨱑𬭯馞篯衠𫗴𬸦羱燋熻燚濩濋澽澭𫄷璱𤩽璬璮髽薿檞磹磻瞫㘎𬭳𬭶𫔍𬭸𨱔𬭼𫔎矰穙穜簕儦斶𬸪䲠𬶟𬶠鲿䗪𬶨螱嬥𦈡𫄸瓀鬶鞳𬟁藨黡𥖨䗴髃镮馧簝簰䲢鳒鹯癗𦒍翷䎖瀔襜䴙𬙊㰀鬷翾儳儴𬶭𩾌鳛麑麖嬿欂𨟠巇髎𬶮𨭉㸌爔瀱瀼𬙋𤫉瓖鬘𬺓鳠爚灈礵皭𫚭齇觿"
+      },
+      "no_make_me_hanzi": {
+        "count": 0,
+        "characters": ""
+      },
+      "stroke_mismatch": {
+        "count": 0,
+        "characters": ""
+      }
+    }
+  },
+  "invariants": {
+    "normative_counts": {
+      "一级": 3500,
+      "二级": 3000,
+      "三级": 1605
+    },
+    "curriculum_table_one_is_level_one_subset": true,
+    "curriculum_tables_are_cumulative_2500_then_3500": true,
+    "every_normative_character_has_availability_status": true,
+    "difficulty_is_not_an_education_stage": true
+  }
+}

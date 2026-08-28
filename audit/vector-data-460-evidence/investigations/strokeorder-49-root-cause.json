@@ -1,0 +1,1133 @@
+{
+  "schema_version": 1,
+  "artifact": "shizi-strokeorder-49-root-cause-audit",
+  "recorded_at_utc": "2026-08-05T17:22:41Z",
+  "status": "ROOT_CAUSE_BOUNDED_DIRECT_GRASS_ROUTE_READY_FOR_TWO_CHARACTER_MVE",
+  "scope": {
+    "reviewed_characters": 79,
+    "human_accepted": 30,
+    "issue_reported": 49,
+    "direct_grass_issue_characters": 27,
+    "any_depth_grass_issue_characters": 36,
+    "non_grass_issue_characters": 13
+  },
+  "bindings": {
+    "partial_review": {
+      "path": "audit/vector-data-460-evidence/review-decisions/strokeorder-79-partial.json",
+      "sha256": "abd62e9301427ae3885f7ae1427bd0badf9ef2ad5ba5338543c9f4a916b7af2b",
+      "byte_size": 72241
+    },
+    "pending_scope": {
+      "path": "audit/vector-data-460-evidence/strokeorder-79-pending-review.json",
+      "sha256": "19584a37a3b429b32d1e5ea586b6ac43d9b2ae3f83cfbc2cfe2b6f8cb3db7e58",
+      "byte_size": 67058
+    },
+    "component_hints": {
+      "path": "audit/vector-data-460-hint-groups.json",
+      "sha256": "80f6b7c02e1ad48c63eeff8b87694bd8aa1f69d18e11ca2a93f2b13cfcfbeabd",
+      "byte_size": 902589
+    },
+    "strokeorder_extractor": {
+      "path": "tmp/vector-mve/strokeorder-route/build_batch.py",
+      "sha256": "03adeb5b316a5df20123bfccb19437e1e1232cfd4c7a8944369c4204a7b73841",
+      "byte_size": 18345
+    },
+    "contiguous_merge_builder": {
+      "path": "tmp/vector-mve/strokeorder-route/build_merged.py",
+      "sha256": "86eb5fee9780b0f62d1386c6aa4f35af9789b7e1bd5a7a565a01a863fb0ce582",
+      "byte_size": 12151
+    },
+    "relaxed_merge_builder": {
+      "path": "tmp/vector-mve/strokeorder-route/build_merged_relaxed.py",
+      "sha256": "ceb4d5707c4a9d5c87e0cc9abcbf136928c2b5744222f7bd2f78da914442d0ca",
+      "byte_size": 4712
+    },
+    "prior_component_patch_script": {
+      "path": "tmp/vector-mve/component-patch-rescue/build_bbox_baseline_patches.py",
+      "sha256": "01b38282265d950aaada1c57b22d94636c4edd3af09c1b4976e1607f318c9fef",
+      "byte_size": 28543
+    },
+    "prior_component_patch_evaluation": {
+      "path": "tmp/vector-mve/component-patch-rescue/evaluation.json",
+      "sha256": "80861cfd5a72c0c976241d1bcbd7e0c65ec811a3631be1a360042e8b2ea88e35",
+      "byte_size": 17667
+    },
+    "proposed_donor_data": {
+      "path": "data/蓥.json",
+      "sha256": "e4cc7a9bcf3cbc85ccafbe0915dc2c737b2d328377fc9f947e061999d35cfa5d",
+      "byte_size": 3362
+    }
+  },
+  "facts": {
+    "direct_grass_characters": [
+      "芃",
+      "芠",
+      "芣",
+      "苉",
+      "苾",
+      "茋",
+      "茽",
+      "荁",
+      "荄",
+      "荓",
+      "荖",
+      "莝",
+      "菉",
+      "菍",
+      "萳",
+      "萹",
+      "葴",
+      "蒨",
+      "蒱",
+      "蓏",
+      "蓢",
+      "蔈",
+      "蔊",
+      "薁",
+      "薸",
+      "藟",
+      "藦"
+    ],
+    "nested_only_grass_characters": [
+      "婼",
+      "欂",
+      "溚",
+      "濩",
+      "爟",
+      "璥",
+      "鄀",
+      "鄚",
+      "鞳"
+    ],
+    "non_grass_characters": [
+      "侹",
+      "岠",
+      "嶅",
+      "嶲",
+      "梴",
+      "溞",
+      "漋",
+      "烻",
+      "鄅",
+      "鄑",
+      "醨",
+      "隩",
+      "髎"
+    ],
+    "direct_grass_route_variants": {
+      "strokeorder_normative_merge": 16,
+      "strokeorder_relaxed_merge_0.99": 11
+    },
+    "direct_grass_source_minus_normative": {
+      "1": 26,
+      "2": 1
+    },
+    "all_27_direct_grass_normative_sequence_is_122": true,
+    "all_27_direct_grass_merge_prefix_is_1_1_2_1_1": true,
+    "pipeline_behavior": [
+      "build_merged.py enumerates contiguous positive compositions only",
+      "merge_ranges unions adjacent source transition groups without constructing a new regional glyph outline",
+      "all 27 direct-艹 records selected [1,1,2,...], so target stroke 3 contains source groups 3 and 4"
+    ]
+  },
+  "inference": {
+    "root_cause": "The source asset uses a four-part split 艹 form, while the Mainland target requires three strokes (横、竖、竖). The current contiguous merge lowers the count but preserves the source outline and therefore cannot correct the glyph form.",
+    "confidence": "high for the 27 direct-艹 records; not generalized to the other 22 issue records",
+    "why_machine_gates_missed_it": "The existing gates prove path renderability, median containment, direction, count and runtime completion; they do not compare the regional glyph form against the Mainland three-stroke 艹 structure."
+  },
+  "route_decision": {
+    "continue_tuning_contiguous_merge": "NO_GO",
+    "reason": "A different ranking or threshold cannot create the missing full horizontal outline because the current algorithm only groups existing adjacent masks.",
+    "two_character_component_patch_mve": "GO",
+    "sample": [
+      {
+        "character": "芃",
+        "reason": "strict route, direct 艹, six-stroke small structure"
+      },
+      {
+        "character": "苾",
+        "reason": "relaxed_0.99 route, direct 艹, different lower component"
+      }
+    ],
+    "confirmation_sample_after_two_character_go": [
+      {
+        "character": "蒨",
+        "reason": "strict route, denser lower structure"
+      },
+      {
+        "character": "薸",
+        "reason": "strict route, high stroke count"
+      },
+      {
+        "character": "萳",
+        "reason": "relaxed_0.99 route, enclosed lower structure"
+      },
+      {
+        "character": "藟",
+        "reason": "relaxed_0.99 route, very dense lower structure"
+      }
+    ],
+    "batch_gate": "The two-character MVE proves feasibility only. After 2/2 explicit approval, freeze and review the four-character confirmation sample; only 6/6 permits batching the matching direct-艹 cohort.",
+    "proposed_operation": "Replace only strokes/medians 1-3 with one real-outline Mainland 艹 donor transformed by a single component-level bbox affine; retain every later stroke and median exactly.",
+    "prior_mve_support": {
+      "characters": "莿薳藨",
+      "count": 3,
+      "stroke_count_gate": "3/3",
+      "retained_body_byte_identity_gate": "3/3",
+      "minimum_median_inside_ratio": 1.0,
+      "boundary": "supporting evidence only; it does not approve the new sample"
+    }
+  },
+  "stop_loss": {
+    "batching_allowed": false,
+    "app_data_writes_allowed": false,
+    "required_before_any_batch": [
+      "the two MVE candidates and four confirmation candidates bind exact bad-input, donor and output hashes",
+      "all non-艹 strokes and medians remain byte-identical",
+      "normative stroke count and 122 艹 order pass",
+      "all SVG paths parse and all medians remain inside their paths",
+      "Hanzi Writer animation and quiz complete",
+      "the two-character MVE receives explicit user approval before the confirmation sample is generated",
+      "the four-character confirmation sample receives explicit user approval before the matching cohort is batched"
+    ],
+    "immediate_stop_conditions": [
+      "either sample has an unnatural radical width, height, baseline, spacing or stroke weight",
+      "either sample changes a non-艹 stroke or median",
+      "either sample fails count, path, median, animation or quiz",
+      "the fix requires per-stroke warping, hand drawing or target-specific visual nudges"
+    ]
+  },
+  "records": [
+    {
+      "character": "芃",
+      "codepoint": "U+8283",
+      "route_variant": "strokeorder_normative_merge",
+      "review_decision": "ISSUE_REPORTED",
+      "normative_grass_strokes": {
+        "indices_1based": [
+          1,
+          2,
+          3
+        ],
+        "five_class_sequence": "122",
+        "component_path": "芃 > 艹"
+      },
+      "source_group_count": 7,
+      "normative_stroke_count": 6,
+      "source_minus_normative": 1,
+      "merged_ranges": [
+        1,
+        1,
+        2,
+        1,
+        1,
+        1
+      ],
+      "merge_interpretation": "target stroke 3 is the union of source transition groups 3 and 4",
+      "source_candidate_sha256": "71d1102947bbe8709907259fb1f42609a4ebf2e2c89f78bf5541e3012ea1c2bd",
+      "reviewed_data_sha256": "e37c48d454c112a16e03ca49f0b7603d126433e1716d9258726422a382b58321"
+    },
+    {
+      "character": "芠",
+      "codepoint": "U+82A0",
+      "route_variant": "strokeorder_normative_merge",
+      "review_decision": "ISSUE_REPORTED",
+      "normative_grass_strokes": {
+        "indices_1based": [
+          1,
+          2,
+          3
+        ],
+        "five_class_sequence": "122",
+        "component_path": "芠 > 艹"
+      },
+      "source_group_count": 8,
+      "normative_stroke_count": 7,
+      "source_minus_normative": 1,
+      "merged_ranges": [
+        1,
+        1,
+        2,
+        1,
+        1,
+        1,
+        1
+      ],
+      "merge_interpretation": "target stroke 3 is the union of source transition groups 3 and 4",
+      "source_candidate_sha256": "2b45bcad158a6955a1cfad8b47fc1d87e3dee55da785840528503e309847cfa0",
+      "reviewed_data_sha256": "99cf23ff8a252b44e1ee9521debafb744794e581168055ab3e041d6511567a41"
+    },
+    {
+      "character": "芣",
+      "codepoint": "U+82A3",
+      "route_variant": "strokeorder_normative_merge",
+      "review_decision": "ISSUE_REPORTED",
+      "normative_grass_strokes": {
+        "indices_1based": [
+          1,
+          2,
+          3
+        ],
+        "five_class_sequence": "122",
+        "component_path": "芣 > 艹"
+      },
+      "source_group_count": 8,
+      "normative_stroke_count": 7,
+      "source_minus_normative": 1,
+      "merged_ranges": [
+        1,
+        1,
+        2,
+        1,
+        1,
+        1,
+        1
+      ],
+      "merge_interpretation": "target stroke 3 is the union of source transition groups 3 and 4",
+      "source_candidate_sha256": "3f06348253ad7e65b17a9d263fe9ca231ef493d32b7321b507263655b8c42e62",
+      "reviewed_data_sha256": "410f95e62399ffa75079797610deb09bcc6164f29bb04e63ddcca14a46348bc4"
+    },
+    {
+      "character": "苉",
+      "codepoint": "U+82C9",
+      "route_variant": "strokeorder_normative_merge",
+      "review_decision": "ISSUE_REPORTED",
+      "normative_grass_strokes": {
+        "indices_1based": [
+          1,
+          2,
+          3
+        ],
+        "five_class_sequence": "122",
+        "component_path": "苉 > 艹"
+      },
+      "source_group_count": 8,
+      "normative_stroke_count": 7,
+      "source_minus_normative": 1,
+      "merged_ranges": [
+        1,
+        1,
+        2,
+        1,
+        1,
+        1,
+        1
+      ],
+      "merge_interpretation": "target stroke 3 is the union of source transition groups 3 and 4",
+      "source_candidate_sha256": "1545a66385dcb59a683eb4f4c66fb49796fefeae2c34215ef0ee3076193f3c9a",
+      "reviewed_data_sha256": "5f702cee53fcd2eec5696bc8b27422a2b3ffa795bc7360faa834a11b711461c7"
+    },
+    {
+      "character": "苾",
+      "codepoint": "U+82FE",
+      "route_variant": "strokeorder_relaxed_merge_0.99",
+      "review_decision": "ISSUE_REPORTED",
+      "normative_grass_strokes": {
+        "indices_1based": [
+          1,
+          2,
+          3
+        ],
+        "five_class_sequence": "122",
+        "component_path": "苾 > 艹"
+      },
+      "source_group_count": 9,
+      "normative_stroke_count": 8,
+      "source_minus_normative": 1,
+      "merged_ranges": [
+        1,
+        1,
+        2,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "merge_interpretation": "target stroke 3 is the union of source transition groups 3 and 4",
+      "source_candidate_sha256": "fd91feb6b84d84d0cd9c2d9b40d3d1e065b46e089b3f04357e51a3d3adec9370",
+      "reviewed_data_sha256": "fcf7cfe13f0d3f704a87b967e3c1f64f0a44dd661365c17a52d26b23352ff89c"
+    },
+    {
+      "character": "茋",
+      "codepoint": "U+830B",
+      "route_variant": "strokeorder_normative_merge",
+      "review_decision": "ISSUE_REPORTED",
+      "normative_grass_strokes": {
+        "indices_1based": [
+          1,
+          2,
+          3
+        ],
+        "five_class_sequence": "122",
+        "component_path": "茋 > 艹"
+      },
+      "source_group_count": 9,
+      "normative_stroke_count": 8,
+      "source_minus_normative": 1,
+      "merged_ranges": [
+        1,
+        1,
+        2,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "merge_interpretation": "target stroke 3 is the union of source transition groups 3 and 4",
+      "source_candidate_sha256": "8301cd243b8579d5b7864853bef68652718b32028ea300839b1068be21317d0c",
+      "reviewed_data_sha256": "ea0ce71be88caede2c36d287b4b9ffd1bcf694b92c394428659f8cc761522e50"
+    },
+    {
+      "character": "茽",
+      "codepoint": "U+833D",
+      "route_variant": "strokeorder_normative_merge",
+      "review_decision": "ISSUE_REPORTED",
+      "normative_grass_strokes": {
+        "indices_1based": [
+          1,
+          2,
+          3
+        ],
+        "five_class_sequence": "122",
+        "component_path": "茽 > 艹"
+      },
+      "source_group_count": 10,
+      "normative_stroke_count": 9,
+      "source_minus_normative": 1,
+      "merged_ranges": [
+        1,
+        1,
+        2,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "merge_interpretation": "target stroke 3 is the union of source transition groups 3 and 4",
+      "source_candidate_sha256": "5d38876f7f0369b9da3245c6ee3926e8a048bca4412541eb60bfae1b7a1f97a1",
+      "reviewed_data_sha256": "45d5388542ed46b8b169c921c74b29e44b6c0b573f40f72552c19e6ddf23c6cc"
+    },
+    {
+      "character": "荁",
+      "codepoint": "U+8341",
+      "route_variant": "strokeorder_normative_merge",
+      "review_decision": "ISSUE_REPORTED",
+      "normative_grass_strokes": {
+        "indices_1based": [
+          1,
+          2,
+          3
+        ],
+        "five_class_sequence": "122",
+        "component_path": "荁 > 艹"
+      },
+      "source_group_count": 10,
+      "normative_stroke_count": 9,
+      "source_minus_normative": 1,
+      "merged_ranges": [
+        1,
+        1,
+        2,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "merge_interpretation": "target stroke 3 is the union of source transition groups 3 and 4",
+      "source_candidate_sha256": "b55c3c4c78879b39333e807a4bc60b53e366754351787f1b1e6ba90ccae042d5",
+      "reviewed_data_sha256": "e2b887ff4064597fccc0304d522379917473fab11814a2fa85c7e96a9de7c932"
+    },
+    {
+      "character": "荄",
+      "codepoint": "U+8344",
+      "route_variant": "strokeorder_relaxed_merge_0.99",
+      "review_decision": "ISSUE_REPORTED",
+      "normative_grass_strokes": {
+        "indices_1based": [
+          1,
+          2,
+          3
+        ],
+        "five_class_sequence": "122",
+        "component_path": "荄 > 艹"
+      },
+      "source_group_count": 10,
+      "normative_stroke_count": 9,
+      "source_minus_normative": 1,
+      "merged_ranges": [
+        1,
+        1,
+        2,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "merge_interpretation": "target stroke 3 is the union of source transition groups 3 and 4",
+      "source_candidate_sha256": "203f8d843337eabaaa8d0833a9157b7c763f02c12bbffe1e01af4404c509c537",
+      "reviewed_data_sha256": "a30b26f4110062ff9d5d6c5a6fc4013d44f6e3d6cf77d85623b906e1b2585dc0"
+    },
+    {
+      "character": "荓",
+      "codepoint": "U+8353",
+      "route_variant": "strokeorder_relaxed_merge_0.99",
+      "review_decision": "ISSUE_REPORTED",
+      "normative_grass_strokes": {
+        "indices_1based": [
+          1,
+          2,
+          3
+        ],
+        "five_class_sequence": "122",
+        "component_path": "荓 > 艹"
+      },
+      "source_group_count": 10,
+      "normative_stroke_count": 9,
+      "source_minus_normative": 1,
+      "merged_ranges": [
+        1,
+        1,
+        2,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "merge_interpretation": "target stroke 3 is the union of source transition groups 3 and 4",
+      "source_candidate_sha256": "b9977eb74b6af1b25bead9973a351bb298ad05658d742b8abb5b009e49506705",
+      "reviewed_data_sha256": "53c715af1cc9ac75cd0f741f44a56c749b2fa8ff49d937b8c951a2e30f806891"
+    },
+    {
+      "character": "荖",
+      "codepoint": "U+8356",
+      "route_variant": "strokeorder_relaxed_merge_0.99",
+      "review_decision": "ISSUE_REPORTED",
+      "normative_grass_strokes": {
+        "indices_1based": [
+          1,
+          2,
+          3
+        ],
+        "five_class_sequence": "122",
+        "component_path": "荖 > 艹"
+      },
+      "source_group_count": 10,
+      "normative_stroke_count": 9,
+      "source_minus_normative": 1,
+      "merged_ranges": [
+        1,
+        1,
+        2,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "merge_interpretation": "target stroke 3 is the union of source transition groups 3 and 4",
+      "source_candidate_sha256": "5f2fea989e63eafd07e61773f6396c40a486fb896b27f241ce02b1f7fddaad12",
+      "reviewed_data_sha256": "4e8183d958a940255648a7db40c60a6d9cdbaf0ed1ef70b78dac604d1936ccde"
+    },
+    {
+      "character": "莝",
+      "codepoint": "U+839D",
+      "route_variant": "strokeorder_normative_merge",
+      "review_decision": "ISSUE_REPORTED",
+      "normative_grass_strokes": {
+        "indices_1based": [
+          1,
+          2,
+          3
+        ],
+        "five_class_sequence": "122",
+        "component_path": "莝 > 艹"
+      },
+      "source_group_count": 11,
+      "normative_stroke_count": 10,
+      "source_minus_normative": 1,
+      "merged_ranges": [
+        1,
+        1,
+        2,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "merge_interpretation": "target stroke 3 is the union of source transition groups 3 and 4",
+      "source_candidate_sha256": "e7231304b1abfcb1d36decceea9c318e9ab0e490a0fc474a39d4b77e74d08ee5",
+      "reviewed_data_sha256": "d557087e960d1958d5ba2c7b1cde936db132db489816cd30292b57f2d46f73d2"
+    },
+    {
+      "character": "菉",
+      "codepoint": "U+83C9",
+      "route_variant": "strokeorder_normative_merge",
+      "review_decision": "ISSUE_REPORTED",
+      "normative_grass_strokes": {
+        "indices_1based": [
+          1,
+          2,
+          3
+        ],
+        "five_class_sequence": "122",
+        "component_path": "菉 > 艹"
+      },
+      "source_group_count": 12,
+      "normative_stroke_count": 11,
+      "source_minus_normative": 1,
+      "merged_ranges": [
+        1,
+        1,
+        2,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "merge_interpretation": "target stroke 3 is the union of source transition groups 3 and 4",
+      "source_candidate_sha256": "8fadc53fcd0bbf0c6ab2c894e4c2dba0c6f13a6b8c145dcae08008fb5b4d4fa0",
+      "reviewed_data_sha256": "971c073ac844d74850963e39710404cc543e258bfcbdb94ee4a59814615c16a0"
+    },
+    {
+      "character": "菍",
+      "codepoint": "U+83CD",
+      "route_variant": "strokeorder_relaxed_merge_0.99",
+      "review_decision": "ISSUE_REPORTED",
+      "normative_grass_strokes": {
+        "indices_1based": [
+          1,
+          2,
+          3
+        ],
+        "five_class_sequence": "122",
+        "component_path": "菍 > 艹"
+      },
+      "source_group_count": 12,
+      "normative_stroke_count": 11,
+      "source_minus_normative": 1,
+      "merged_ranges": [
+        1,
+        1,
+        2,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "merge_interpretation": "target stroke 3 is the union of source transition groups 3 and 4",
+      "source_candidate_sha256": "a9c144ccfdd49a495850443604be02c6d94cabff84ae57c9f07b5cd3c591e1c4",
+      "reviewed_data_sha256": "7ccd39dc89cbdb3072acd0390341e7e7100cd424f2191649d7d2181d152dd05d"
+    },
+    {
+      "character": "萳",
+      "codepoint": "U+8433",
+      "route_variant": "strokeorder_relaxed_merge_0.99",
+      "review_decision": "ISSUE_REPORTED",
+      "normative_grass_strokes": {
+        "indices_1based": [
+          1,
+          2,
+          3
+        ],
+        "five_class_sequence": "122",
+        "component_path": "萳 > 艹"
+      },
+      "source_group_count": 13,
+      "normative_stroke_count": 12,
+      "source_minus_normative": 1,
+      "merged_ranges": [
+        1,
+        1,
+        2,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "merge_interpretation": "target stroke 3 is the union of source transition groups 3 and 4",
+      "source_candidate_sha256": "49161a9fdb8d6566d24b996451a6aa741e13903025c5e3745b8b6887cf857daf",
+      "reviewed_data_sha256": "a3a71795a3583c916c4823d6e479856c65af80e3fe67220068b943e89fe00801"
+    },
+    {
+      "character": "萹",
+      "codepoint": "U+8439",
+      "route_variant": "strokeorder_relaxed_merge_0.99",
+      "review_decision": "ISSUE_REPORTED",
+      "normative_grass_strokes": {
+        "indices_1based": [
+          1,
+          2,
+          3
+        ],
+        "five_class_sequence": "122",
+        "component_path": "萹 > 艹"
+      },
+      "source_group_count": 13,
+      "normative_stroke_count": 12,
+      "source_minus_normative": 1,
+      "merged_ranges": [
+        1,
+        1,
+        2,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "merge_interpretation": "target stroke 3 is the union of source transition groups 3 and 4",
+      "source_candidate_sha256": "774c7c600fed38c171637396046a8c67d373bd1065b3d73176110d8a62f82b11",
+      "reviewed_data_sha256": "7d317c56f6926b58e2615f936e07ed9768999bc47b534da7c20a0fdab764a159"
+    },
+    {
+      "character": "葴",
+      "codepoint": "U+8474",
+      "route_variant": "strokeorder_relaxed_merge_0.99",
+      "review_decision": "ISSUE_REPORTED",
+      "normative_grass_strokes": {
+        "indices_1based": [
+          1,
+          2,
+          3
+        ],
+        "five_class_sequence": "122",
+        "component_path": "葴 > 艹"
+      },
+      "source_group_count": 13,
+      "normative_stroke_count": 12,
+      "source_minus_normative": 1,
+      "merged_ranges": [
+        1,
+        1,
+        2,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "merge_interpretation": "target stroke 3 is the union of source transition groups 3 and 4",
+      "source_candidate_sha256": "e603a0cc1e4398d6f9bd7f0e5d7ad64de067564d1b2e903ebb6b1a57a546e331",
+      "reviewed_data_sha256": "31cb134321f94501377888ed53f817f0879446cefd4c9953c21353fd44f13131"
+    },
+    {
+      "character": "蒨",
+      "codepoint": "U+84A8",
+      "route_variant": "strokeorder_normative_merge",
+      "review_decision": "ISSUE_REPORTED",
+      "normative_grass_strokes": {
+        "indices_1based": [
+          1,
+          2,
+          3
+        ],
+        "five_class_sequence": "122",
+        "component_path": "蒨 > 艹"
+      },
+      "source_group_count": 14,
+      "normative_stroke_count": 13,
+      "source_minus_normative": 1,
+      "merged_ranges": [
+        1,
+        1,
+        2,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "merge_interpretation": "target stroke 3 is the union of source transition groups 3 and 4",
+      "source_candidate_sha256": "87a593af1006db36c9f7d602e134711f89356070ed860402a43c18231d9ff880",
+      "reviewed_data_sha256": "219e6e7afc69a8cd42b0c3b40f6b59f837e4e54a0108c93f042e608ffece5c65"
+    },
+    {
+      "character": "蒱",
+      "codepoint": "U+84B1",
+      "route_variant": "strokeorder_relaxed_merge_0.99",
+      "review_decision": "ISSUE_REPORTED",
+      "normative_grass_strokes": {
+        "indices_1based": [
+          1,
+          2,
+          3
+        ],
+        "five_class_sequence": "122",
+        "component_path": "蒱 > 艹"
+      },
+      "source_group_count": 14,
+      "normative_stroke_count": 13,
+      "source_minus_normative": 1,
+      "merged_ranges": [
+        1,
+        1,
+        2,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "merge_interpretation": "target stroke 3 is the union of source transition groups 3 and 4",
+      "source_candidate_sha256": "144912e0faaf92d800062c426bf2aae414b1158682d13d57e2c89bd9e8e14c07",
+      "reviewed_data_sha256": "493f13a74a52128e6aa0be19cfb64dc75ead3775bd3412f350defcc898c949c0"
+    },
+    {
+      "character": "蓏",
+      "codepoint": "U+84CF",
+      "route_variant": "strokeorder_normative_merge",
+      "review_decision": "ISSUE_REPORTED",
+      "normative_grass_strokes": {
+        "indices_1based": [
+          1,
+          2,
+          3
+        ],
+        "five_class_sequence": "122",
+        "component_path": "蓏 > 艹"
+      },
+      "source_group_count": 14,
+      "normative_stroke_count": 13,
+      "source_minus_normative": 1,
+      "merged_ranges": [
+        1,
+        1,
+        2,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "merge_interpretation": "target stroke 3 is the union of source transition groups 3 and 4",
+      "source_candidate_sha256": "6808f5464073f34de9855f33eeca01ab8fe3a53e37488132cafe89fbdbb3b02a",
+      "reviewed_data_sha256": "3bcb5dbaa7a358bd1a4b1fefd599ea3fd1b605f36cebfcb2196d4e1306f64040"
+    },
+    {
+      "character": "蓢",
+      "codepoint": "U+84E2",
+      "route_variant": "strokeorder_relaxed_merge_0.99",
+      "review_decision": "ISSUE_REPORTED",
+      "normative_grass_strokes": {
+        "indices_1based": [
+          1,
+          2,
+          3
+        ],
+        "five_class_sequence": "122",
+        "component_path": "蓢 > 艹"
+      },
+      "source_group_count": 14,
+      "normative_stroke_count": 13,
+      "source_minus_normative": 1,
+      "merged_ranges": [
+        1,
+        1,
+        2,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "merge_interpretation": "target stroke 3 is the union of source transition groups 3 and 4",
+      "source_candidate_sha256": "afa56f5282d61e7bfa8a196b30fdf55f76f3db5f2937e4e2b0c9baff3d335e87",
+      "reviewed_data_sha256": "f70b2b7a53f5ed6ba4661559ad48712839823f8dbf6ad34dbf0fadf1b5323d2b"
+    },
+    {
+      "character": "蔈",
+      "codepoint": "U+8508",
+      "route_variant": "strokeorder_normative_merge",
+      "review_decision": "ISSUE_REPORTED",
+      "normative_grass_strokes": {
+        "indices_1based": [
+          1,
+          2,
+          3
+        ],
+        "five_class_sequence": "122",
+        "component_path": "蔈 > 艹"
+      },
+      "source_group_count": 15,
+      "normative_stroke_count": 14,
+      "source_minus_normative": 1,
+      "merged_ranges": [
+        1,
+        1,
+        2,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "merge_interpretation": "target stroke 3 is the union of source transition groups 3 and 4",
+      "source_candidate_sha256": "d514eec6aea58535c25581d3a1c7aa94253da1c1bd7a9ab3fe4b9ddbda2454d9",
+      "reviewed_data_sha256": "54c9057afd9ffd84236cb5ee129b767c4e8b2d47e8c6c49df4ac21c4bbf87284"
+    },
+    {
+      "character": "蔊",
+      "codepoint": "U+850A",
+      "route_variant": "strokeorder_normative_merge",
+      "review_decision": "ISSUE_REPORTED",
+      "normative_grass_strokes": {
+        "indices_1based": [
+          1,
+          2,
+          3
+        ],
+        "five_class_sequence": "122",
+        "component_path": "蔊 > 艹"
+      },
+      "source_group_count": 15,
+      "normative_stroke_count": 14,
+      "source_minus_normative": 1,
+      "merged_ranges": [
+        1,
+        1,
+        2,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "merge_interpretation": "target stroke 3 is the union of source transition groups 3 and 4",
+      "source_candidate_sha256": "f6963c9310dca6c368d78914fef90552f28af589b6db91582254618466ffc221",
+      "reviewed_data_sha256": "3b580e370379a96b4546b0781cb4f9ddf62f6d294ce8840e0cd01907e532d1d5"
+    },
+    {
+      "character": "薁",
+      "codepoint": "U+8581",
+      "route_variant": "strokeorder_normative_merge",
+      "review_decision": "ISSUE_REPORTED",
+      "normative_grass_strokes": {
+        "indices_1based": [
+          1,
+          2,
+          3
+        ],
+        "five_class_sequence": "122",
+        "component_path": "薁 > 艹"
+      },
+      "source_group_count": 17,
+      "normative_stroke_count": 15,
+      "source_minus_normative": 2,
+      "merged_ranges": [
+        1,
+        1,
+        2,
+        1,
+        1,
+        2,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "merge_interpretation": "target stroke 3 is the union of source transition groups 3 and 4",
+      "source_candidate_sha256": "f5b3806dc0be77cf024b9b3e32d1ca129e2f8a452d8b71d1c2cf0abee11abb0e",
+      "reviewed_data_sha256": "a0c5ce608ce582bddea300403aba6fa678a4eabe4568a6152dfba576095609e5"
+    },
+    {
+      "character": "薸",
+      "codepoint": "U+85B8",
+      "route_variant": "strokeorder_normative_merge",
+      "review_decision": "ISSUE_REPORTED",
+      "normative_grass_strokes": {
+        "indices_1based": [
+          1,
+          2,
+          3
+        ],
+        "five_class_sequence": "122",
+        "component_path": "薸 > 艹"
+      },
+      "source_group_count": 18,
+      "normative_stroke_count": 17,
+      "source_minus_normative": 1,
+      "merged_ranges": [
+        1,
+        1,
+        2,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "merge_interpretation": "target stroke 3 is the union of source transition groups 3 and 4",
+      "source_candidate_sha256": "f39a4079036e5a31d8903ecebaf1e3f899946bfcffe8ba42822ad780f6722660",
+      "reviewed_data_sha256": "5a32a14886e146eb47bcd0ed361ee1d2eb86430a4d034c555ba1d10c76b1ca13"
+    },
+    {
+      "character": "藟",
+      "codepoint": "U+85DF",
+      "route_variant": "strokeorder_relaxed_merge_0.99",
+      "review_decision": "ISSUE_REPORTED",
+      "normative_grass_strokes": {
+        "indices_1based": [
+          1,
+          2,
+          3
+        ],
+        "five_class_sequence": "122",
+        "component_path": "藟 > 艹"
+      },
+      "source_group_count": 19,
+      "normative_stroke_count": 18,
+      "source_minus_normative": 1,
+      "merged_ranges": [
+        1,
+        1,
+        2,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "merge_interpretation": "target stroke 3 is the union of source transition groups 3 and 4",
+      "source_candidate_sha256": "6d27715bfd6dd11f3501444ead037ca9b8b4e9c2b52e23b74625d2bc88dbd3e9",
+      "reviewed_data_sha256": "121616730fd1852f5977d71cae720c2dd12b7a70d61e32bbcb5abd54daa03580"
+    },
+    {
+      "character": "藦",
+      "codepoint": "U+85E6",
+      "route_variant": "strokeorder_normative_merge",
+      "review_decision": "ISSUE_REPORTED",
+      "normative_grass_strokes": {
+        "indices_1based": [
+          1,
+          2,
+          3
+        ],
+        "five_class_sequence": "122",
+        "component_path": "藦 > 艹"
+      },
+      "source_group_count": 19,
+      "normative_stroke_count": 18,
+      "source_minus_normative": 1,
+      "merged_ranges": [
+        1,
+        1,
+        2,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "merge_interpretation": "target stroke 3 is the union of source transition groups 3 and 4",
+      "source_candidate_sha256": "cefc0ad2a5d303134e7cef9428a0ce8f26375b786a4017171b2be83c2ce2822e",
+      "reviewed_data_sha256": "68fb8c0a7f411aed8c377499e0b2c5121cf2398b23662bafb95e3dfc61f46315"
+    }
+  ],
+  "limitations": [
+    "The 9 nested-艹 records need a separate bounded sample because the component is not necessarily strokes 1-3.",
+    "The 13 non-艹 records have not been assigned a cause or repair route.",
+    "薁 has one additional source-count discrepancy outside the common direct-艹 prefix and must not be included in a one-cause batch without another gate.",
+    "The prior three-character component patch is supporting technical evidence, not acceptance of the new outputs."
+  ]
+}

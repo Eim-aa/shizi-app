@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import json
+import hashlib
 import logging
 import math
 import re
@@ -7,6 +8,7 @@ import sys
 import time
 import urllib.parse
 import urllib.request
+from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
@@ -22,14 +24,28 @@ LEVEL_PATHS = [
 ]
 HANZI_DB_PATH = SRC_DIR / "hanzi_db.json"
 JIEBA_DICT_PATH = SRC_DIR / "jieba_dict.txt"
+CURRICULUM_PATH = SRC_DIR / "curriculum-common-2500.txt"
 PY_DEPS = ROOT / ".python-deps"
-DECK_KEY = "shizi.deck.v8105.context1"
+DECK_KEY = "shizi.deck.v8105.context2"
 GENERATED_JSON = "selected_8105_candidates.json"
 COVERAGE_JSON = "hanzi_writer_coverage.json"
+LIBRARY_AUDIT_JSON = "library-governance.json"
 CORE_STROKE_SCRIPT = "core-strokes.js"
 CORE_STROKE_COUNT = 600
 CALIBRATION_CORE_CHARS = ["尴", "嚏", "狩", "晤", "飓", "痿", "俾", "跻", "徵", "瞰", "裘", "娩", "邃", "暧", "煲"]
 HANZI_WRITER_FLAT_URL = "https://data.jsdelivr.com/v1/package/npm/hanzi-writer-data@2.0.1/flat"
+HANZI_WRITER_VERSION = "2.0.1"
+HANZI_WRITER_BASELINE_STANDARD_COUNT = 6854
+HANZI_WRITER_BASELINE_MEMBERS_SHA256 = "a199c0ed9390769bd0834b5a322c22c8fac820c4284c5aa932bf8f930e73c9f3"
+VECTOR_DATA_MANIFEST_PATH = ROOT / "audit" / "vector-data-460-manifest.json"
+VECTOR_DATA_HINT_GROUPS_PATH = ROOT / "audit" / "vector-data-460-hint-groups.json"
+VECTOR_DATA_SUPPLEMENT_COUNT = 440
+VECTOR_DATA_HUMAN_ACCEPTED_COUNT = 440
+VECTOR_DATA_HUMAN_REVIEW_PENDING_COUNT = 0
+VECTOR_DATA_SUPPLEMENT_MEMBERS_SHA256 = "c8835eaa2eb28c133a82433854bd460f6e8632e15812a5d4bba51921103c8dbc"
+NORMATIVE_SOURCE_URL = "https://www.gov.cn/gzdt/att/att/site1/20130819/tygfhzb.pdf"
+CURRICULUM_SOURCE_URL = "https://hudong.moe.gov.cn/srcsite/A26/s8001/202204/W020220420582344386456.pdf"
+CURRICULUM_SOURCE_SHA256 = "3ef0ec8a30b5a950211202658df07d99f5427f750f8ba0c3cfda12736b7bd71a"
 if PY_DEPS.exists():
     sys.path.insert(0, str(PY_DEPS))
 
@@ -252,16 +268,16 @@ def calc_difficulty(item, context):
     return round(max(1, min(100, score)))
 
 
-def difficulty_level(score):
+def difficulty_band(score):
     if score < 35:
-        return "小学"
+        return "入门"
     if score < 52:
-        return "初中"
+        return "基础"
     if score < 68:
-        return "高中"
+        return "进阶"
     if score < 84:
-        return "大学"
-    return "专业"
+        return "较难"
+    return "挑战"
 
 
 def read_make_me_hanzi():
@@ -296,18 +312,169 @@ def read_standard_table():
     return rows
 
 
-def read_hanzi_writer_available_chars():
-    with urllib.request.urlopen(HANZI_WRITER_FLAT_URL, timeout=60) as response:
-        payload = json.loads(response.read().decode("utf-8"))
-    chars = set()
-    for item in payload.get("files", []):
-        match = re.fullmatch(r"/([^/])\.json", item.get("name", ""))
-        if match:
-            chars.add(match.group(1))
+def read_curriculum_table_one():
+    chars = list("".join(CURRICULUM_PATH.read_text(encoding="utf-8").split()))
+    if len(chars) != 2500 or len(set(chars)) != 2500 or any(not CJK_RE.match(ch) for ch in chars):
+        raise RuntimeError("The curriculum table-one source must contain exactly 2500 unique Han characters")
     return chars
 
 
-def coverage_report(standard_rows, hanzi_writer_chars):
+def file_sha256(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def read_hanzi_writer_available_chars(standard_rows):
+    """Return the exact, locally bundled practice-data inventory.
+
+    The original 6,854-character baseline is independently pinned to the
+    Hanzi Writer Data 2.0.1 membership used by this repository. The only
+    explicit additions are the 440 records in the final technical supplement
+    manifest; an arbitrary JSON file copied into data/ cannot silently enter
+    the practice deck. Human-review state remains separately hash-bound so a
+    later payload change cannot inherit an earlier acceptance.
+    """
+    manifest = json.loads(VECTOR_DATA_MANIFEST_PATH.read_text(encoding="utf-8"))
+    if manifest.get("schema_version") != 2 or manifest.get("artifact") != "shizi-vector-data-440-technical-manifest":
+        raise RuntimeError("Unexpected vector-data supplement manifest")
+    scope = manifest.get("scope") or {}
+    if (
+        scope.get("technically_validated_count") != VECTOR_DATA_SUPPLEMENT_COUNT
+        or scope.get("human_accepted_count") != VECTOR_DATA_HUMAN_ACCEPTED_COUNT
+        or scope.get("human_review_pending_count") != VECTOR_DATA_HUMAN_REVIEW_PENDING_COUNT
+        or manifest.get("gates", {}).get("human_review_gate") != "440 accepted; 0 pending"
+    ):
+        raise RuntimeError("Unexpected vector-data technical/review scope")
+    evidence = manifest.get("clean_clone_evidence") or {}
+    evidence_path = ROOT / str(evidence.get("index_path", ""))
+    if not evidence_path.is_file() or file_sha256(evidence_path) != evidence.get("index_sha256"):
+        raise RuntimeError("Vector-data clean-clone evidence index mismatch")
+    records = manifest.get("records") or []
+    supplement_chars = {record.get("character") for record in records}
+    if len(records) != len(supplement_chars) or len(records) != VECTOR_DATA_SUPPLEMENT_COUNT:
+        raise RuntimeError("The vector-data supplement must contain exactly 440 unique characters")
+
+    standard_order = [row["character"] for row in standard_rows]
+    standard_set = set(standard_order)
+    if not supplement_chars <= standard_set:
+        raise RuntimeError("The vector-data supplement contains a non-normative character")
+
+    review_status_by_char = {}
+    for record in records:
+        character = record["character"]
+        review_status = record.get("human_review_status")
+        if review_status not in {"HUMAN_ACCEPTED", "PENDING_HUMAN_REVIEW"}:
+            raise RuntimeError(f"Unknown vector-data review status for {character}")
+        review_status_by_char[character] = review_status
+        expected_path = f"data/{character}.json"
+        if record.get("data_path") != expected_path:
+            raise RuntimeError(f"Unexpected supplement data path for {character}")
+        data_path = ROOT / expected_path
+        if not data_path.is_file() or file_sha256(data_path) != record.get("data_sha256"):
+            raise RuntimeError(f"Supplement data hash mismatch for {character}")
+        payload = json.loads(data_path.read_text(encoding="utf-8"))
+        strokes = payload.get("strokes")
+        medians = payload.get("medians")
+        expected_count = record.get("normative_stroke_count")
+        if (
+            set(payload) != {"strokes", "medians"}
+            or not isinstance(strokes, list)
+            or not isinstance(medians, list)
+            or len(strokes) != len(medians)
+            or len(strokes) != expected_count
+        ):
+            raise RuntimeError(f"Invalid supplement payload for {character}")
+
+    local_standard_chars = {
+        path.stem
+        for path in DATA_DIR.glob("*.json")
+        if CJK_RE.fullmatch(path.stem) and path.stem in standard_set
+    }
+    baseline_chars = local_standard_chars - supplement_chars
+    baseline_order = [character for character in standard_order if character in baseline_chars]
+    supplement_order = [character for character in standard_order if character in supplement_chars]
+    baseline_digest = hashlib.sha256("".join(baseline_order).encode("utf-8")).hexdigest()
+    supplement_digest = hashlib.sha256("".join(supplement_order).encode("utf-8")).hexdigest()
+    if len(baseline_chars) != HANZI_WRITER_BASELINE_STANDARD_COUNT or baseline_digest != HANZI_WRITER_BASELINE_MEMBERS_SHA256:
+        raise RuntimeError("The pinned Hanzi Writer Data 2.0.1 baseline membership changed")
+    if supplement_digest != VECTOR_DATA_SUPPLEMENT_MEMBERS_SHA256:
+        raise RuntimeError("The reviewed 440-character supplement membership changed")
+    if local_standard_chars != baseline_chars | supplement_chars:
+        raise RuntimeError("Local vector-data inventory is not exactly baseline plus reviewed supplement")
+    review_counts = Counter(review_status_by_char.values())
+    if (
+        review_counts["HUMAN_ACCEPTED"] != VECTOR_DATA_HUMAN_ACCEPTED_COUNT
+        or review_counts["PENDING_HUMAN_REVIEW"] != VECTOR_DATA_HUMAN_REVIEW_PENDING_COUNT
+        or set(review_counts) - {"HUMAN_ACCEPTED", "PENDING_HUMAN_REVIEW"}
+    ):
+        raise RuntimeError("Vector-data human-review counts changed")
+
+    source_inventory = {
+        "official_baseline": {
+            "package": "hanzi-writer-data",
+            "version": HANZI_WRITER_VERSION,
+            "flat_manifest_url": HANZI_WRITER_FLAT_URL,
+            "standard_character_count": len(baseline_chars),
+            "members_sha256": baseline_digest,
+        },
+        "reviewed_project_supplement": {
+            "manifest_path": str(VECTOR_DATA_MANIFEST_PATH.relative_to(ROOT)),
+            "manifest_sha256": file_sha256(VECTOR_DATA_MANIFEST_PATH),
+            "character_count": len(supplement_chars),
+            "members_sha256": supplement_digest,
+            "audit_state": manifest["audit_state"],
+            "human_accepted_character_count": review_counts["HUMAN_ACCEPTED"],
+            "human_review_pending_character_count": review_counts["PENDING_HUMAN_REVIEW"],
+            "evidence_index_path": str(evidence_path.relative_to(ROOT)),
+            "evidence_index_sha256": file_sha256(evidence_path),
+            "license_review": evidence.get("license_review"),
+        },
+        "combined_standard_character_count": len(local_standard_chars),
+    }
+    return local_standard_chars, source_inventory, review_status_by_char
+
+
+def read_vector_data_hint_groups():
+    manifest = json.loads(VECTOR_DATA_MANIFEST_PATH.read_text(encoding="utf-8"))
+    manifest_records = {record["character"]: record for record in manifest["records"]}
+    payload = json.loads(VECTOR_DATA_HINT_GROUPS_PATH.read_text(encoding="utf-8"))
+    if payload.get("artifact") != "shizi-vector-data-440-hint-groups":
+        raise RuntimeError("Unexpected vector-data hint-group manifest")
+    binding = payload.get("source_bindings", {}).get("vector_data_manifest", {})
+    if binding.get("path") != str(VECTOR_DATA_MANIFEST_PATH.relative_to(ROOT)) or binding.get("sha256") != file_sha256(VECTOR_DATA_MANIFEST_PATH):
+        raise RuntimeError("Hint groups are not bound to the current vector-data manifest")
+    if not all((payload.get("gates") or {}).values()):
+        raise RuntimeError("A vector-data hint-group gate is false")
+
+    records = payload.get("records") or []
+    groups_by_char = {}
+    for record in records:
+        character = record.get("character")
+        groups = record.get("groups")
+        source = manifest_records.get(character)
+        if source is None or character in groups_by_char:
+            raise RuntimeError(f"Unexpected or duplicate hint-group character: {character}")
+        if (
+            not isinstance(groups, list)
+            or not 1 <= len(groups) <= 5
+            or any(type(count) is not int or count <= 0 for count in groups)
+            or sum(groups) != source["normative_stroke_count"]
+            or record.get("normative_stroke_count") != source["normative_stroke_count"]
+            or record.get("route") != source["route"]
+        ):
+            raise RuntimeError(f"Invalid hint groups for {character}: {groups}")
+        groups_by_char[character] = groups
+    if set(groups_by_char) != set(manifest_records) or len(groups_by_char) != VECTOR_DATA_SUPPLEMENT_COUNT:
+        raise RuntimeError("Hint-group manifest must cover the exact reviewed 440-character supplement")
+    return groups_by_char, {
+        "path": str(VECTOR_DATA_HINT_GROUPS_PATH.relative_to(ROOT)),
+        "sha256": file_sha256(VECTOR_DATA_HINT_GROUPS_PATH),
+        "character_count": len(groups_by_char),
+        "maximum_groups_per_character": 5,
+        "source": payload["method"]["source"],
+    }
+
+
+def coverage_report(standard_rows, hanzi_writer_chars, source_inventory):
     by_level = {}
     missing = []
     for row in standard_rows:
@@ -325,6 +492,7 @@ def coverage_report(standard_rows, hanzi_writer_chars):
     return {
         "source": "通用规范汉字表 2013（sources/level-1.txt, level-2.txt, level-3.txt）",
         "hanzi_writer_data": HANZI_WRITER_FLAT_URL,
+        "vector_data_inventory": source_inventory,
         "total": total,
         "available": available,
         "missing": len(missing),
@@ -505,7 +673,15 @@ def score_candidate(row, groups):
     return score
 
 
-def choose_candidates(mm, standard_rows, hanzi_db_rows, hanzi_writer_chars):
+def choose_candidates(
+    mm,
+    standard_rows,
+    hanzi_db_rows,
+    hanzi_writer_chars,
+    curriculum_table_one,
+    supplemental_groups,
+    supplemental_review_statuses,
+):
     resolve_groups = build_group_resolver(mm)
     rows_by_char = {}
     for row in hanzi_db_rows:
@@ -520,18 +696,23 @@ def choose_candidates(mm, standard_rows, hanzi_db_rows, hanzi_writer_chars):
         if ch not in hanzi_writer_chars:
             skipped["no_hanzi_writer"].append(standard)
             continue
-        if ch not in mm:
+        if ch not in mm and ch not in supplemental_groups:
             skipped["no_make_me_hanzi"].append(standard)
             continue
         row = rows_by_char.get(ch, {})
-        strokes = parse_first_int(row.get("stroke_count"), len(mm[ch].get("matches") or []))
+        mm_entry = mm.get(ch, {})
+        groups = supplemental_groups.get(ch) or resolve_groups(ch)
+        strokes = (
+            sum(groups)
+            if ch in supplemental_groups
+            else parse_first_int(row.get("stroke_count"), len(mm_entry.get("matches") or []))
+        )
         rank = parse_first_int(row.get("frequency_rank"), 999999 + standard["standard_order"])
-        groups = resolve_groups(ch)
         if sum(groups) != strokes:
             skipped["stroke_mismatch"].append({**standard, "groups": groups, "stroke_count": strokes})
             continue
-        pinyin = mm[ch].get("pinyin") or [row.get("pinyin", "")]
-        definition = row.get("definition") or mm[ch].get("definition") or ""
+        pinyin = mm_entry.get("pinyin") or [row.get("pinyin", "")]
+        definition = row.get("definition") or mm_entry.get("definition") or ""
         candidates.append({
             "character": ch,
             "pinyin": pinyin[0] if pinyin else "",
@@ -541,10 +722,13 @@ def choose_candidates(mm, standard_rows, hanzi_db_rows, hanzi_writer_chars):
             "norm_level": standard["norm_level"],
             "norm_level_index": standard["norm_level_index"],
             "norm_level_order": standard["norm_level_order"],
+            "curriculum_table": "表一" if ch in curriculum_table_one else ("表二" if standard["norm_level"] == "一级" else None),
             "stroke_count": strokes,
             "groups": groups,
-            "decomposition": mm[ch].get("decomposition", ""),
-            "radical": mm[ch].get("radical", row.get("radical", "")),
+            "group_source": "vector_data_supplement" if ch in supplemental_groups else "make_me_a_hanzi",
+            "vector_data_review_status": supplemental_review_statuses.get(ch),
+            "decomposition": mm_entry.get("decomposition", ""),
+            "radical": mm_entry.get("radical", row.get("radical", "")),
             "score": score_candidate(row, groups),
         })
     candidates.sort(key=lambda x: (x["frequency_rank"], x["norm_level_index"], x["standard_order"]))
@@ -652,7 +836,8 @@ def patch_index(chosen, word_index):
     """生成 deck-data.js（SEED/GROUPS 题库数据），并同步 index.html 里的 DECK_KEY。
 
     题库数据独立成文件后，index.html 只含界面与逻辑（~90KB）；
-    数据更新时记得 bump sw.js 的 VERSION，旧缓存才会整体换新。
+    数据更新后必须同步 index.html/sw.js 的内容指纹与 BUILD；
+    verify_pwa_upgrade.js 会在标准门禁中阻止指纹不一致的提交。
     """
     index_path = ROOT / "index.html"
     data_path = ROOT / "deck-data.js"
@@ -664,7 +849,7 @@ def patch_index(chosen, word_index):
         context = choose_context(item, word_index)
         topic = infer_topic(context["word"], item)
         difficulty = calc_difficulty(item, context)
-        level = difficulty_level(difficulty)
+        band = difficulty_band(difficulty)
         item["context_word"] = context["word"]
         item["context_index"] = context["ci"]
         item["context_pinyin"] = context["py"]
@@ -674,10 +859,10 @@ def patch_index(chosen, word_index):
         item["context_source"] = context["context_source"]
         item["topic"] = topic
         item["difficulty"] = difficulty
-        item["level"] = level
+        item["difficulty_band"] = band
         seed.append({
             "py": context["py"],
-            "hint": f"{item['norm_level']} · {level} · 常用语境 · {item['stroke_count']}画 · {len(item['groups'])}个部件 · 字频#{item['frequency_rank'] if item['frequency_rank'] < 999999 else '未收录'}",
+            "hint": f"{item['norm_level']} · 书写{band} · 常用语境 · {item['stroke_count']}画 · {len(item['groups'])}个部件 · 字频#{item['frequency_rank'] if item['frequency_rank'] < 999999 else '未收录'}",
             "ans": context["word"],
             "ci": context["ci"],
             "target": item["character"],
@@ -686,13 +871,16 @@ def patch_index(chosen, word_index):
             "parts": len(item["groups"]),
             "topic": topic,
             "d": difficulty,
-            "level": level,
+            "band": band,
+            "edu": item["curriculum_table"],
             "common": round(context["commonness"] or 0, 2),
             "norm": item["norm_level"],
             "std": item["standard_order"],
             "ctx": context["context_source"],
         })
     groups = {item["character"]: item["groups"] for item in chosen}
+    ranked_core = [row["target"] for row in sorted(seed, key=lambda row: row["rank"])]
+    core_chars = list(dict.fromkeys(CALIBRATION_CORE_CHARS + ranked_core))[:CORE_STROKE_COUNT]
 
     data_path.write_text(
         "// 拾字题库数据（由 scripts/build_8105_chars.py 生成，勿手改）\n"
@@ -705,8 +893,7 @@ def patch_index(chosen, word_index):
     core_path.write_text(
         "// 由 scripts/build_8105_chars.py 同步生成：首日校准字优先，再按题库字频补满 600 字。\n"
         "(function(scope){\n"
-        f"  const calibration={js_string(CALIBRATION_CORE_CHARS)};\n"
-        f"  scope.SHIZI_CORE_STROKES=[...new Set([...calibration,...SEED.slice().sort((a,b)=>a.rank-b.rank).map(card=>card.target)])].slice(0,{CORE_STROKE_COUNT});\n"
+        f"  scope.SHIZI_CORE_STROKES={js_string(core_chars)};\n"
         "})(self);\n",
         encoding="utf-8",
     )
@@ -722,26 +909,106 @@ def patch_index(chosen, word_index):
     index_path.write_text(html, encoding="utf-8")
 
 
+def library_governance_report(standard_rows, curriculum_table_one, chosen, skipped, source_inventory):
+    norm_sets = {
+        level: {row["character"] for row in standard_rows if row["norm_level"] == level}
+        for level, _ in LEVEL_PATHS
+    }
+    curriculum_set = set(curriculum_table_one)
+    selected_set = {row["character"] for row in chosen}
+    reason_by_char = {
+        row["character"]: reason
+        for reason, rows in skipped.items()
+        for row in rows
+    }
+    all_standard = {row["character"] for row in standard_rows}
+    classified = selected_set | set(reason_by_char)
+    if curriculum_set - norm_sets["一级"]:
+        raise RuntimeError("Curriculum table one must be a subset of the normative level-one table")
+    if classified != all_standard or selected_set & set(reason_by_char):
+        raise RuntimeError("Every normative character must have exactly one practice-availability status")
+    expected_counts = {"一级": 3500, "二级": 3000, "三级": 1605}
+    actual_counts = {level: len(chars) for level, chars in norm_sets.items()}
+    if actual_counts != expected_counts:
+        raise RuntimeError(f"Unexpected normative table counts: {actual_counts}")
+    return {
+        "schema_version": 1,
+        "normative_source": {
+            "title": "通用规范汉字表（2013）",
+            "url": NORMATIVE_SOURCE_URL,
+            "files": [
+                {"path": str(path.relative_to(ROOT)), "level": level, "count": len(norm_sets[level]), "sha256": file_sha256(path)}
+                for level, path in LEVEL_PATHS
+            ],
+            "total": len(all_standard),
+        },
+        "curriculum_source": {
+            "title": "义务教育语文课程标准（2022年版）附录5",
+            "url": CURRICULUM_SOURCE_URL,
+            "document_sha256": CURRICULUM_SOURCE_SHA256,
+            "table_one": {
+                "path": str(CURRICULUM_PATH.relative_to(ROOT)),
+                "count": 2500,
+                "sha256": file_sha256(CURRICULUM_PATH),
+                "members_sha256": hashlib.sha256("".join(curriculum_table_one).encode("utf-8")).hexdigest(),
+            },
+            "table_two": {"derived_from": "规范一级字减去字表一", "count": len(norm_sets["一级"] - curriculum_set)},
+            "total": len(norm_sets["一级"]),
+        },
+        "vector_data_inventory": source_inventory,
+        "practice_availability": {
+            "available": len(selected_set),
+            "unavailable": len(all_standard - selected_set),
+            "available_by_norm_level": {level: len(chars & selected_set) for level, chars in norm_sets.items()},
+            "unavailable_by_norm_level": {level: len(chars - selected_set) for level, chars in norm_sets.items()},
+            "unavailable_by_reason": {
+                reason: {"count": len(rows), "characters": "".join(row["character"] for row in rows)}
+                for reason, rows in skipped.items()
+            },
+        },
+        "invariants": {
+            "normative_counts": expected_counts,
+            "curriculum_table_one_is_level_one_subset": True,
+            "curriculum_tables_are_cumulative_2500_then_3500": True,
+            "every_normative_character_has_availability_status": True,
+            "difficulty_is_not_an_education_stage": True,
+        },
+    }
 def main():
     DATA_DIR.mkdir(exist_ok=True)
     GENERATED_DIR.mkdir(exist_ok=True)
     mm = read_make_me_hanzi()
     standard_rows = read_standard_table()
+    curriculum_table_one = read_curriculum_table_one()
     rows = read_hanzi_db()
     word_index = read_context_words()
-    hanzi_writer_chars = read_hanzi_writer_available_chars()
-    coverage = coverage_report(standard_rows, hanzi_writer_chars)
+    hanzi_writer_chars, source_inventory, supplemental_review_statuses = read_hanzi_writer_available_chars(standard_rows)
+    supplemental_groups, hint_group_inventory = read_vector_data_hint_groups()
+    source_inventory["reviewed_project_supplement"]["hint_groups"] = hint_group_inventory
+    coverage = coverage_report(standard_rows, hanzi_writer_chars, source_inventory)
     (GENERATED_DIR / COVERAGE_JSON).write_text(
         json.dumps(coverage, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
-    chosen, skipped = choose_candidates(mm, standard_rows, rows, hanzi_writer_chars)
+    chosen, skipped = choose_candidates(
+        mm,
+        standard_rows,
+        rows,
+        hanzi_writer_chars,
+        set(curriculum_table_one),
+        supplemental_groups,
+        supplemental_review_statuses,
+    )
     if not chosen:
         raise RuntimeError("No candidates selected")
     validate_and_fetch(chosen)
     patch_index(chosen, word_index)
     (GENERATED_DIR / GENERATED_JSON).write_text(
         json.dumps({"selected": chosen, "skipped": skipped}, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    (GENERATED_DIR / LIBRARY_AUDIT_JSON).write_text(
+        json.dumps(library_governance_report(standard_rows, curriculum_table_one, chosen, skipped, source_inventory), ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
     print(f"selected={len(chosen)}")

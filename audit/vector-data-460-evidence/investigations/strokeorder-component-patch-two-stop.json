@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "artifact": "shizi-strokeorder-bbox-component-two-stop",
+  "recorded_at_utc": "2026-08-06T07:13:29Z",
+  "decision": "SELF_VISUAL_STOP_BEFORE_HUMAN_REVIEW",
+  "scope": [
+    "侹",
+    "岠"
+  ],
+  "machine_result": "2/2 static and runtime gates passed",
+  "visual_result": {
+    "侹": "not promoted independently because the two-character route is stopped as a cohort",
+    "岠": "failed: standalone 巨 was bbox-scaled too wide and crowded/overlapped the retained 山 component"
+  },
+  "cause": "A standalone whole-character donor was treated as a right-side component; bbox fitting preserved the wrong component proportions.",
+  "stop_loss": [
+    "Do not present this scaled prototype as a viable candidate.",
+    "Do not scale this donor-selection method to other characters.",
+    "Try only same-position HWD component donors without coordinate transformation in the next two-character MVE."
+  ],
+  "evidence": {
+    "evaluation": {
+      "path": "tmp/vector-mve/strokeorder-component-patch-two/evaluation.json",
+      "sha256": "3a55d3bffbb10d91b4e2689671855c4950df577d6dc5950adf1a43a36673b480"
+    },
+    "runtime_receipt": {
+      "path": "tmp/vector-mve/strokeorder-component-patch-two/receipt-runtime.json",
+      "sha256": "66b03adad6d9ab42f5f9f692de8a6744539cff164e49877cf39a926289338366"
+    },
+    "failed_visual": {
+      "path": "tmp/vector-mve/strokeorder-component-patch-two/runtime-evidence/岠-animation-complete.png",
+      "sha256": "082fc71c2ebad54652d9fb8271142cfdaacc467e90a5e7b1e65b6d6062b9582b"
+    }
+  },
+  "production_import_allowed": false,
+  "app_data_modified": false
+}

@@ -1,0 +1,145 @@
+{
+  "schema_version": 1,
+  "artifact": "shizi-strokeorder-direct-grass-four-character-human-review",
+  "recorded_at_utc": "2026-08-06T04:22:20Z",
+  "reviewer_role": "product_owner",
+  "reviewer_response_verbatim": "都通过了，也意味着这个方法可行，可以scale up 到其他有问题的字当中，接下来扩大范围进行问题处理",
+  "decision": "HUMAN_ACCEPTED_AND_SCALE_AUTHORIZED",
+  "scope": {
+    "characters": [
+      "蒨",
+      "薸",
+      "萳",
+      "藟"
+    ],
+    "count": 4,
+    "human_accepted": 4,
+    "machine_runtime_pass": 4
+  },
+  "evidence_bindings": {
+    "previous_two_review": {
+      "path": "audit/vector-data-460-evidence/review-decisions/strokeorder-direct-grass-two.json",
+      "sha256": "ffb37539e201553ace643cf92e7bbfffb576caf25794c51b5533f058cdbe0950"
+    },
+    "root_cause": {
+      "path": "audit/vector-data-460-evidence/investigations/strokeorder-49-root-cause.json",
+      "sha256": "4a14d3ba8f5c354358028b48033dc30c3fa758c05aced71d80c3cf275bd6e42d"
+    },
+    "builder": {
+      "path": "tmp/vector-mve/strokeorder-direct-grass-confirmation-mve/build_four_character_confirmation.py",
+      "sha256": "132cbd5b9c032d686ef4b4fc1cbed2ddb9e20e334ae4b9f0ad86e064f5d379e6"
+    },
+    "evaluation": {
+      "path": "tmp/vector-mve/strokeorder-direct-grass-confirmation-mve/evaluation.json",
+      "sha256": "1d510e70c54ff3936bc161042a473fa36e0be62c0a0fa0cfb09807e507452faf"
+    },
+    "runtime_harness": {
+      "path": "tmp/vector-mve/strokeorder-direct-grass-confirmation-mve/run-runtime-gate.mjs",
+      "sha256": "2e4ad47d8dd3730c2902860fbc13c072083c7ccb89f0ba5e67268a9e556567f5"
+    },
+    "runtime_receipt": {
+      "path": "tmp/vector-mve/strokeorder-direct-grass-confirmation-mve/receipt-runtime.json",
+      "sha256": "952855187838eb81b46843a67c2226d79ac1b5c88acbc28de662cab77d047508"
+    },
+    "review_page_builder": {
+      "path": "tmp/vector-mve/strokeorder-direct-grass-confirmation-mve/build_runtime_review_page.mjs",
+      "sha256": "f7230acc32da5f35078b4c2bda830db0354edbcb13ea2558893591b84f0c13bd"
+    },
+    "review_page": {
+      "path": "tmp/vector-mve/strokeorder-direct-grass-confirmation-mve/review-runtime.html",
+      "sha256": "9b15afd80ee90019180b68bf4d5156f5e09363e4aced81aa20012a3e06b22e6c"
+    }
+  },
+  "candidate_bindings": {
+    "蒨": {
+      "candidate": {
+        "path": "tmp/vector-mve/strokeorder-direct-grass-confirmation-mve/candidates/蒨.json",
+        "sha256": "afb12dee98c9bb5fcaae32bba0dd239b582cd973b4e1c04fcf3669606b864a28"
+      },
+      "production": {
+        "path": "data/蒨.json",
+        "sha256": "219e6e7afc69a8cd42b0c3b40f6b59f837e4e54a0108c93f042e608ffece5c65"
+      }
+    },
+    "薸": {
+      "candidate": {
+        "path": "tmp/vector-mve/strokeorder-direct-grass-confirmation-mve/candidates/薸.json",
+        "sha256": "21f37ad5fdef3fa667756abd508e90153474860f941a607df793a22d2cfe65c6"
+      },
+      "production": {
+        "path": "data/薸.json",
+        "sha256": "5a32a14886e146eb47bcd0ed361ee1d2eb86430a4d034c555ba1d10c76b1ca13"
+      }
+    },
+    "萳": {
+      "candidate": {
+        "path": "tmp/vector-mve/strokeorder-direct-grass-confirmation-mve/candidates/萳.json",
+        "sha256": "6ad3f98e615182a18c741784a7cda13c66ab1e74d468cab0e62611df53a241c8"
+      },
+      "production": {
+        "path": "data/萳.json",
+        "sha256": "a3a71795a3583c916c4823d6e479856c65af80e3fe67220068b943e89fe00801"
+      }
+    },
+    "藟": {
+      "candidate": {
+        "path": "tmp/vector-mve/strokeorder-direct-grass-confirmation-mve/candidates/藟.json",
+        "sha256": "4f6e7d781cb24104f64e733551c893f897528b72ef1aae4df4ab71f5cb36c6bd"
+      },
+      "production": {
+        "path": "data/藟.json",
+        "sha256": "121616730fd1852f5977d71cae720c2dd12b7a70d61e32bbcb5abd54daa03580"
+      }
+    }
+  },
+  "interpretation": [
+    "事实：产品负责人逐字接受蒨、薸、萳、藟四个确认候选。",
+    "推断：已批准的局部路线可以扩展到同一直接顶部艹、且只有一个旧合并的同类字群。",
+    "边界：本记录不批准薁、嵌套艹字、非艹问题字，也不批准覆盖 App 正式 data/。"
+  ],
+  "scale_up_scope": {
+    "rule": "direct grass; normative first three strokes 122; old merge ranges contain exactly one 2 at target stroke 3; no second merge; same donor and one shared bbox affine; body index 3 onward exact",
+    "eligible_remaining_characters": [
+      "芠",
+      "芣",
+      "苉",
+      "茋",
+      "茽",
+      "荁",
+      "荄",
+      "荓",
+      "荖",
+      "莝",
+      "菉",
+      "菍",
+      "萹",
+      "葴",
+      "蒱",
+      "蓏",
+      "蓢",
+      "蔈",
+      "蔊",
+      "藦"
+    ],
+    "eligible_remaining_count": 20,
+    "excluded_from_this_route": [
+      {
+        "character": "薁",
+        "reason": "同一字存在第二处 [1,1,2,...,2,...] 合并，不能沿用只修顶部三笔的路线"
+      }
+    ],
+    "separate_follow_up_required": [
+      "9 nested-grass characters",
+      "13 non-grass problem characters",
+      "薁 with a second bad merge"
+    ]
+  },
+  "stop_loss": {
+    "next_allowed_action": "build isolated candidates and run static/runtime gates for the 20 eligible remaining direct-grass characters",
+    "not_allowed": [
+      "overwrite App data/",
+      "batch import into production",
+      "commit or push"
+    ]
+  }
+}

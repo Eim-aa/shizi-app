@@ -91,9 +91,9 @@ assert(mottoFixture.entries.find((entry) => entry.text === "传不习乎")?.auth
   && mottoFixture.entries.find((entry) => entry.text === "如切如磋，如琢如磨")?.source === "诗经·卫风·淇奥",
 "Expected the reviewed fixture to preserve the corrected Zengzi and Classic of Poetry attributions");
 
-assert(swSource.includes("shizi-v10") && swSource.includes("'data/etymology.json'") && swSource.includes("Promise.allSettled") && swSource.includes("INSTALL_BATCH_SIZE = 40") && swSource.includes("cacheCoreStrokes"), "Expected versioned, offline etymology and failure-tolerant core stroke installation");
-assert(swSource.includes("data/context-overrides.js") && source.includes('<script src="data/context-overrides.js"></script>') && contextOverrideSource.includes("CONTEXT_OVERRIDES"), "Expected context overrides in both online and offline shells");
-assert(coreStrokeSource.includes("SHIZI_CORE_STROKES") && coreStrokeSource.includes("slice(0,600)"), "Expected a generated 600-character core stroke list");
+assert(swSource.includes("shizi-v13-") && swSource.includes("'data/etymology.json'") && swSource.includes("Promise.allSettled") && swSource.includes("INSTALL_BATCH_SIZE = 40") && swSource.includes("cacheFreshShell") && swSource.includes("cache.addAll(requests)") && swSource.includes("cache: 'reload'"), "Expected atomic, versioned and failure-tolerant offline installation");
+assert(swSource.includes("data/context-overrides.js?v=") && source.includes('<script src="data/context-overrides.js?v=') && source.includes('<script src="deck-data.js?v=') && contextOverrideSource.includes("CONTEXT_OVERRIDES"), "Expected fingerprinted corpus/context assets in both online and offline shells");
+assert(coreStrokeSource.includes("SHIZI_CORE_STROKES") && !coreStrokeSource.includes("SEED"), "Expected a self-contained generated core stroke list that the worker can load atomically");
 assert(Array.isArray(etymology) && etymology.length === etymologyCoverage.totals.entries && new Set(etymology.map((row) => row.char)).size === etymology.length
   && etymology.every((row) => Object.keys(row).sort().join() === "char,gloss,source" && Array.from(row.char).length === 1 && row.gloss.length >= 1 && row.gloss.length <= 20 && ["《说文解字》", "Make Me a Hanzi"].includes(row.source)),
 "Expected unique, compact and explicitly attributed etymology records", { count: etymology.length });
@@ -438,9 +438,9 @@ let browser;
     const allDays = activity.practiceDays.slice(); activity.practiceDays = allDays.slice(0, 2); const few = medianPracticeTime(); activity.practiceDays = allDays;
     activity.practiceDays.forEach((key) => { activity.daily[key].lastStampAt = at(23, 30); }); const late = medianPracticeTime();
     const missIdx = CARDS.findIndex((card) => card.target === "蘸"), otherIdx = CARDS.findIndex((card) => card.target === "器");
-    memory = {}; status = {}; [missIdx, otherIdx].forEach((idx, order) => { memory[cardKey(idx)] = { seen: 1, dueDay: today(), pendingLearning: false, lastOutcome: order === 0 ? "miss" : "fast", misses: order === 0 ? 2 : 0, ease: order === 0 ? 25 : 70, last: Date.now() - order }; status[idx] = "rest"; });
+    memory = {}; status = {}; [missIdx, otherIdx].forEach((idx, order) => { memory[cardKey(idx)] = { seen: 1, dueDay: today(), pendingLearning: false, lastOutcome: order === 0 ? "miss" : "fast", misses: order === 0 ? 2 : 0, ease: order === 0 ? 25 : 70, last: Date.now() - order }; status[cardKey(idx)] = "rest"; });
     reminder = normalizeReminder({ enabled: true, permission: "granted" }); renderMe(); syncReminder(); const sync = cloneObj(reminderDebug.lastSync);
-    const fallbackIdx = CARDS.findIndex((card) => card.target === "品"); memory = { [cardKey(fallbackIdx)]: { seen: 1, dueDay: shiftDay(today(), 30), pendingLearning: false, lastOutcome: "slow", slow: 1, ease: 35, last: Date.now() } }; status = { [fallbackIdx]: "rest" }; syncReminder(); const fallback = cloneObj(reminderDebug.lastSync);
+    const fallbackIdx = CARDS.findIndex((card) => card.target === "品"), fallbackKey = cardKey(fallbackIdx); memory = { [fallbackKey]: { seen: 1, dueDay: shiftDay(today(), 30), pendingLearning: false, lastOutcome: "slow", slow: 1, ease: 35, last: Date.now() } }; status = { [fallbackKey]: "rest" }; syncReminder(); const fallback = cloneObj(reminderDebug.lastSync);
     memory = {}; status = {}; syncReminder(); const noTarget = cloneObj(reminderDebug.lastSync);
     memory = original.memory; status = original.status; reminder = normalizeReminder(original.reminder); saveMemory(); save(DECK_KEY, status); saveReminder();
     return {
@@ -496,7 +496,7 @@ let browser;
     doneAria: document.getElementById("done").getAttribute("aria-label"),
     viewport: document.querySelector('meta[name="viewport"]').content,
   }));
-  assert(baseline.seed === 6854 && baseline.groups === 6854 && baseline.cards >= 6854, "Expected the complete 6854-card corpus", baseline);
+  assert(baseline.seed === 7294 && baseline.groups === 7294 && baseline.cards >= 7294, "Expected the complete 7294-card corpus", baseline);
   assert(baseline.fsrsVersion.includes("FSRS-6.0") && baseline.weights === 21, "Expected fixed FSRS-6 runtime", baseline);
   assert(baseline.scheduler.desiredRetention === 0.9 && baseline.scheduler.maximumInterval === 365 && baseline.scheduler.enableFuzz && baseline.engineFuzz && baseline.scheduler.parameterVersion === "fsrs6-fuzz-365-v2", "Expected fuzzed scheduler with a one-year interval ceiling", baseline.scheduler);
   assert(baseline.decisionLabels.join("/") === "写对了/写错了" && baseline.oldStampChoices === 0
@@ -572,8 +572,8 @@ let browser;
   const coreBytes = coreStrokes.chars.reduce((sum, char) => sum + fs.statSync(path.join(root, "data", `${char}.json`)).size, 0);
   assert(coreStrokes.chars.length === 600 && new Set(coreStrokes.chars).size === 600 && coreStrokes.calibration === "尴嚏狩晤飓痿俾跻徵瞰裘娩邃暧煲" && missingCoreFiles.length === 0 && coreBytes >= 1024 * 1024 && coreBytes <= 2 * 1024 * 1024,
   "Expected 600 unique core files including the exact first calibration group within the 1-2 MiB target", { count: coreStrokes.chars.length, calibration: coreStrokes.calibration, missingCoreFiles, coreBytes });
-  await page.waitForFunction(async () => { const cache = await caches.open("shizi-v10"), keys = await cache.keys(); return keys.filter((request) => new URL(request.url).pathname.includes("/data/")).length >= 602; }, null, { timeout: 30000 });
-  const coreCache = await page.evaluate(async () => { const cache = await caches.open("shizi-v10"), keys = await cache.keys(); return { core: keys.filter((request) => new URL(request.url).pathname.includes("/data/") && !new URL(request.url).pathname.endsWith("context-overrides.js") && !new URL(request.url).pathname.endsWith("etymology.json")).length, shell: !!(await cache.match("core-strokes.js")), etymology: !!(await cache.match("data/etymology.json")), contexts: !!(await cache.match("data/context-overrides.js")) }; });
+  await page.waitForFunction(async () => { const name=(await caches.keys()).find(key=>key.startsWith("shizi-v13-")); if(!name) return false; const cache = await caches.open(name), keys = await cache.keys(); return keys.filter((request) => new URL(request.url).pathname.includes("/data/")).length >= 602; }, null, { timeout: 30000 });
+  const coreCache = await page.evaluate(async () => { const name=(await caches.keys()).find(key=>key.startsWith("shizi-v13-")), cache = await caches.open(name), keys = await cache.keys(); return { name, core: keys.filter((request) => new URL(request.url).pathname.includes("/data/") && !new URL(request.url).pathname.endsWith("context-overrides.js") && !new URL(request.url).pathname.endsWith("etymology.json")).length, shell: keys.some(request=>new URL(request.url).pathname.endsWith("/core-strokes.js")&&new URL(request.url).search), etymology: keys.some(request=>new URL(request.url).pathname.endsWith("/data/etymology.json")), contexts: keys.some(request=>new URL(request.url).pathname.endsWith("/data/context-overrides.js")&&new URL(request.url).search) }; });
   assert(coreCache.core >= 600 && coreCache.shell && coreCache.etymology && coreCache.contexts, "Expected the service worker to install all core strokes, etymology, context overrides, and retain runtime-fetched extras", coreCache);
 
   const dailyRitual = await page.evaluate(() => {
@@ -632,7 +632,7 @@ let browser;
   const notificationDeepLink = await page.evaluate(() => {
     const original = { memory: cloneObj(memory), status: cloneObj(status), tuning: cloneObj(tuning), activeMode, focusQueue: focusQueue.slice(), sessionDone: [...sessionDone] };
     const idx = CARDS.findIndex((card) => card.target === "蘸"), key = cardKey(idx);
-    memory = { [key]: { seen: 1, dueDay: today(), pendingLearning: false, lastOutcome: "miss", misses: 1, ease: 30, last: Date.now() } }; status = { [idx]: "rest" }; tuning = { calibrated: true, offset: 0, contextStrict: 0, rounds: [] };
+    memory = { [key]: { seen: 1, dueDay: today(), pendingLearning: false, lastOutcome: "miss", misses: 1, ease: 30, last: Date.now() } }; status = { [key]: "rest" }; tuning = { calibrated: true, offset: 0, contextStrict: 0, rounds: [] };
     clearSessionSnapshot(); saveMemory(); save(DECK_KEY, status); saveTuning(); const opened = shiziOpenReminderTarget(key);
     const result = { opened, mode: activeMode, current: currentCardIndex(), target: CARDS[currentCardIndex()].target, cardVisible: getComputedStyle(card).display !== "none", invalidRejected: shiziOpenReminderTarget("base:不存在") === false };
     loadToken++; clearSessionSnapshot(); memory = original.memory; status = original.status; tuning = original.tuning; activeMode = original.activeMode; focusQueue = original.focusQueue; sessionDone = new Set(original.sessionDone); saveMemory(); save(DECK_KEY, status); saveTuning();
@@ -658,23 +658,41 @@ let browser;
   await page.reload({ waitUntil: "networkidle" });
 
   const migration = await page.evaluate(() => {
-    const idx = CARDS.findIndex((card) => card.target === "器");
     const future = new Date(); future.setHours(18, 0, 0, 0); future.setDate(future.getDate() + 3);
     const sameDay = new Date(); sameDay.setHours(23, 0, 0, 0);
     const futureMemory = { seen: 1, due: future.getTime() };
     const sameDayMemory = { seen: 1, due: sameDay.getTime() };
     normalizeLegacySchedule(futureMemory); normalizeLegacySchedule(sameDayMemory);
-    const v1 = migrateV1Session({ version: 1, date: shiftDay(today(), -1), activeMode: "focus", batch: [idx], pos: 0, roundStats: [], sessionDone: [], roundId: "legacy-v1" });
-    return { futureDay: futureMemory.dueDay, expectedFuture: dayKey(future), sameDay: sameDayMemory.dueDay, today: today(), version: v1.version, startedDate: v1.startedDate, currentIndex: v1.currentIndex };
+    const saved = { customWords: customWords.slice(), memory: cloneObj(memory), quality: cloneObj(quality), status: cloneObj(status), fsrs: cloneObj(fsrsReviewLog), activity: cloneObj(activity), session: localStorage.getItem(SESSION_KEY), legacySessionDiscarded };
+    const oldKey = "custom:6854:丂", oldInk = "data:image/png;base64,verify";
+    customWords = ["丂"]; buildCustomCards();
+    memory = { [oldKey]: { seen: 2, misses: 1, lastOutcome: "miss", last: 1234, recentInk: { at: 1234, dataURL: oldInk } } };
+    quality = { [oldKey]: { rare: true } }; status = { "6854": "indeck" };
+    fsrsReviewLog = [{ eventId: "legacy-custom", cardKey: oldKey, target: "丂" }];
+    activity = normalizeActivity({ version: 1, migrationDate: today(), inheritedStreak: 0, inheritedTotalDays: 0, practiceDays: [today()], daily: { [today()]: { stamps: 1, attempts: 1, targetKeys: [oldKey], independentTargetKeys: [], reviewTargetKeys: [oldKey], completedRoundIds: [] } } });
+    migrateStableCardIdentity();
+    const customIdx = customIndexOf("丂"), stableKey = cardKey(customIdx);
+    localStorage.setItem(SESSION_KEY, JSON.stringify({ version: 2, startedDate: shiftDay(today(), -1), activeMode: "new", baseTargets: [4103], currentIndex: 4103 }));
+    const legacyResume = resumableSession(), quarantined = localStorage.getItem(`shizi.corrupt.${SESSION_KEY}`);
+    const result = { futureDay: futureMemory.dueDay, expectedFuture: dayKey(future), sameDay: sameDayMemory.dueDay, today: today(),
+      stableKey, customIdx, memory: cloneObj(memory[stableKey]), quality: cloneObj(quality[stableKey]), status: statusFor(customIdx), fsrsKey: fsrsReviewLog[0].cardKey,
+      activityKey: dailyActivity().targetKeys[0], reminderIndex: indexForCardKey(oldKey), legacyResume, quarantined: !!quarantined, legacyNumericTargetNow: CARDS[4103].target };
+    customWords = saved.customWords; buildCustomCards(); memory = saved.memory; quality = saved.quality; status = saved.status; fsrsReviewLog = saved.fsrs; activity = normalizeActivity(saved.activity); legacySessionDiscarded = saved.legacySessionDiscarded;
+    save(CUSTOM_KEY, customWords); saveMemory(); saveQuality(); save(DECK_KEY, status); saveFSRSLog(); saveActivity(); localStorage.removeItem(`shizi.corrupt.${SESSION_KEY}`); if(saved.session===null) clearSessionSnapshot(); else localStorage.setItem(SESSION_KEY,saved.session);
+    return result;
   });
   assert(migration.futureDay === migration.expectedFuture && migration.sameDay === migration.today, "Expected lossless legacy due migration", migration);
-  assert(migration.version === 2 && migration.startedDate !== migration.today && Number.isInteger(migration.currentIndex), "Expected cross-midnight v1 session migration", migration);
+  assert(migration.stableKey === "custom:丂" && migration.customIdx === 7294 && migration.memory.seen === 2 && migration.memory.recentInk.dataURL
+    && migration.quality.rare && migration.status === "indeck" && migration.fsrsKey === migration.stableKey && migration.activityKey === migration.stableKey
+    && migration.reminderIndex === migration.customIdx, "Expected legacy custom identity and every dependent record to migrate to a stable key", migration);
+  assert(migration.legacyResume === null && migration.quarantined && migration.legacyNumericTargetNow === "铿",
+    "Expected an unsafe v2 numeric session to be quarantined instead of resuming as a different character", migration);
 
   const reviewBudget = await page.evaluate(() => {
     const saved = { memory: cloneObj(memory), status: cloneObj(status), quality: cloneObj(quality), activity: cloneObj(activity), tuning: cloneObj(tuning), sessionDone: [...sessionDone], activeMode, baseTargets: baseTargets.slice(), batch: batch.slice() };
     const originalRender = render, originalRenderHome = renderHome, originalToast = toast, originalWarm = warmStrokeCache, originalArm = armPracticeHistory;
     const dueIndexes = allIndexes().slice(0, 200); memory = {}; status = {}; quality = {}; activity = newActivity(); activity.inheritedTotalDays = 0; activity.daily = {}; sessionDone = new Set(); tuning = { calibrated: true, offset: 0, contextStrict: 0, rounds: [] };
-    dueIndexes.forEach((idx, order) => { memory[cardKey(idx)] = { seen: 1, dueDay: shiftDay(today(), -1), pendingLearning: false, lastOutcome: order % 4 === 0 ? "miss" : "fast", misses: order % 4 === 0 ? 1 : 0, ease: 50, streak: 1, last: Date.now() - order }; status[idx] = "rest"; });
+    dueIndexes.forEach((idx, order) => { memory[cardKey(idx)] = { seen: 1, dueDay: shiftDay(today(), -1), pendingLearning: false, lastOutcome: order % 4 === 0 ? "miss" : "fast", misses: order % 4 === 0 ? 1 : 0, ease: 50, streak: 1, last: Date.now() - order }; status[cardKey(idx)] = "rest"; });
     saveMemory(); save(DECK_KEY, status); saveActivity();
     const expectedTop = reviewPool(false).slice().sort(compareReviewPriority).slice(0, DAILY_REVIEW_BUDGET);
     render = () => {}; renderHome = () => {}; toast = () => {}; warmStrokeCache = () => {}; armPracticeHistory = () => {};
@@ -1019,13 +1037,13 @@ let browser;
     flags: indexesForChars(["强", "器"]).map((idx) => !!(memory[cardKey(idx)] || {}).queuedFront),
     size: baseTargets.length,
     unique: new Set(baseTargets).size,
-    adultOnly: baseTargets.every((idx) => cardLevel(idx) !== "小学" && contextSource(idx) !== "fallback"),
+    calibrationReady: baseTargets.every((idx) => cardDifficultyBand(idx) !== "入门" && contextSource(idx) !== "fallback"),
     labels: { show: show.textContent, done: done.textContent, noNext: !document.getElementById("nextBtn") },
     helpReady: !show.disabled && !show.classList.contains("tlock") && !tip.classList.contains("tlock"),
     helpCopy: mascotLine.textContent,
     touch: { done: getComputedStyle(done).touchAction, tab: getComputedStyle(tabPractice).touchAction },
   }));
-  assert(calibrationQueue.front === "尴嚏" && calibrationQueue.tail.every((row) => row.difficulty <= 85) && calibrationQueue.flags.every(Boolean) && calibrationQueue.size === 15 && calibrationQueue.unique === 15 && calibrationQueue.adultOnly
+  assert(calibrationQueue.front === "尴嚏" && calibrationQueue.tail.every((row) => row.difficulty <= 85) && calibrationQueue.flags.every(Boolean) && calibrationQueue.size === 15 && calibrationQueue.unique === 15 && calibrationQueue.calibrationReady
     && calibrationQueue.helpReady && calibrationQueue.helpCopy.includes("写不出就点")
     && calibrationQueue.labels.show === "不会写" && calibrationQueue.labels.done === "写好了" && calibrationQueue.labels.noNext && calibrationQueue.touch.done === "manipulation" && calibrationQueue.touch.tab === "manipulation",
   "Expected calibration hooks, capped finish, and immediately available first-card help", calibrationQueue);
@@ -1672,9 +1690,12 @@ let browser;
   await waitForWriter(page);
   await page.evaluate(() => { shownStrokes = 1; groupIdx = 1; hintEverUsed = true; hintsUsedThisCard = 1; inkStrokes = mediansToCanvas(curMedians.slice(1)); redrawInk(); revealAnswer(); const s = load(SESSION_KEY, null); s.startedDate = shiftDay(today(), -1); save(SESSION_KEY, s); });
   const frozenBefore = await page.evaluate(() => JSON.stringify(submissionSnapshot));
+  const stableSession = await page.evaluate(() => { const s=load(SESSION_KEY,null); return { version:s.version,baseTargetKeys:s.baseTargetKeys,currentCardKey:s.currentCardKey,numericTargets:"baseTargets" in s||"currentIndex" in s,visualNumeric:!!(s.visual&&("currentIndex" in s.visual||(s.visual.submissionSnapshot&&"idx" in s.visual.submissionSnapshot))),visualKey:s.visual&&s.visual.submissionSnapshot&&s.visual.submissionSnapshot.cardKey }; });
+  assert(stableSession.version === 3 && stableSession.baseTargetKeys.every((key) => typeof key === "string") && stableSession.currentCardKey === stableSession.baseTargetKeys[0] && !stableSession.numericTargets && !stableSession.visualNumeric && stableSession.visualKey === stableSession.currentCardKey,
+    "Expected session v3 to persist only stable card keys, including the visual snapshot", stableSession);
   await page.reload({ waitUntil: "networkidle" });
   const resumable = await page.evaluate(() => resumableSession());
-  assert(resumable && resumable.version === 2 && resumable.startedDate !== await page.evaluate(() => today()), "Expected cross-midnight session to remain resumable", resumable);
+  assert(resumable && resumable.version === 3 && resumable.startedDate !== await page.evaluate(() => today()), "Expected cross-midnight stable-key session to remain resumable", resumable);
   await page.evaluate((session) => restoreSession(session), resumable);
   await page.waitForFunction(() => getComputedStyle(reveal).display !== "none" && submissionSnapshot);
   const restored = await page.evaluate(() => ({ frozen: JSON.stringify(submissionSnapshot), phase: practicePhase, hintEverUsed, eventCount: fsrsReviewLog.length, history: history.state && history.state.shiziView }));
@@ -1716,10 +1737,10 @@ let browser;
   await page.evaluate(() => history.back());
   await page.waitForTimeout(100);
   const homeBack = await page.evaluate(() => ({ home: getComputedStyle(home).display !== "none", armed: practiceHistoryArmed, history: history.state && history.state.shiziView, length: history.length }));
-  assert(directReturns[0].nativeEvent && directReturns.every((row) => row.session && row.session.version === 2 && row.history === "home" && row.length === historyStart.length && !row.toast.includes("进度已保存"))
-    && exited.home && exited.session && exited.session.version === 2 && !exited.armed && exited.history === "home" && exited.length === historyStart.length
+  assert(directReturns[0].nativeEvent && directReturns.every((row) => row.session && row.session.version === 3 && row.history === "home" && row.length === historyStart.length && !row.toast.includes("进度已保存"))
+    && exited.home && exited.session && exited.session.version === 3 && !exited.armed && exited.history === "home" && exited.length === historyStart.length
     && homeBack.home && !homeBack.armed && homeBack.history === "home" && homeBack.length === historyStart.length,
-  "Expected repeated direct returns to save v2 state without dialogs, toasts, or history growth", { exited, directReturns, homeBack });
+  "Expected repeated direct returns to save v3 stable-key state without dialogs, toasts, or history growth", { exited, directReturns, homeBack });
 
   const collections = await page.evaluate(async () => {
     const saved = {
@@ -2057,7 +2078,12 @@ let browser;
     memory = {}; status = {}; quality = {}; sessionDone = new Set();
     preference = "balanced";
     tuning = { ...tuning, calibrated: true, contextStrict: 4 };
-    const expected = { core3500: 3500, adv3000: 2868, rare: 486, primary: 283, junior: 911, senior: 2097 };
+    const expected = {
+      core3500: { available: 3500, official: 3500 },
+      adv3000: { available: 2976, official: 3000 },
+      rare: { available: 818, official: 1605 },
+      curriculum2500: { available: 2500, official: 2500 },
+    };
     const rows = LIBRARIES.map((lib) => {
       setLibrary(lib.id);
       tuning.contextStrict = 4;
@@ -2066,7 +2092,7 @@ let browser;
       const strict0 = newPool(false);
       const counts = libraryCounts(lib);
       return {
-        id: lib.id, name: lib.name, total: counts.total, expected: expected[lib.id],
+        id: lib.id, name: lib.name, total: counts.total, officialTotal: counts.officialTotal, expected: expected[lib.id],
         strict0: strict0.length, strict4: strict4.length,
         unique: new Set(strict4.map((idx) => CARDS[idx].target)).size,
         belongs: strict4.every((idx) => lib.test(CARDS[idx])),
@@ -2079,7 +2105,7 @@ let browser;
     [coreIndex, advancedIndex].forEach((idx) => {
       const row = cardMemory(idx);
       row.seen = 1; row.pendingLearning = false; row.dueDay = today(); row.last = Date.now();
-      status[idx] = "rest";
+      status[cardKey(idx)] = "rest";
     });
     setLibrary("rare");
     const crossLibraryReview = [coreIndex, advancedIndex].every((idx) => reviewPool(false).includes(idx));
@@ -2092,6 +2118,8 @@ let browser;
     const practicalMigration = normalizeLibrary(null).id;
     preference = "challenge";
     const challengeMigration = normalizeLibrary(null).id;
+    const legacyObjects = Object.fromEntries(["primary", "junior", "senior"].map((id) => [id, normalizeLibrary({ id, userSelected: true })]));
+    const legacyStrings = Object.fromEntries(["primary", "junior", "senior"].map((id) => [id, normalizeLibrary(id)]));
 
     const calibrationIndexes = allIndexes().slice(0, 15);
     const completeChallengeCalibration = (manualLibrary = "") => {
@@ -2106,9 +2134,9 @@ let browser;
       return { before, preference, id: libraryState.id, userSelected: libraryState.userSelected, stored: load(LIB_KEY, null) };
     };
     const freshCalibration = completeChallengeCalibration();
-    const manualCalibration = completeChallengeCalibration("junior");
+    const manualCalibration = completeChallengeCalibration("curriculum2500");
 
-    setLibrary("junior");
+    setLibrary("curriculum2500");
     renderBook();
     openLibSheet();
     const ui = {
@@ -2116,6 +2144,8 @@ let browser;
       rows: libList.querySelectorAll("[data-lib]").length,
       active: libList.querySelectorAll(".active").length,
       reassurance: libSheet.textContent.includes("切换字库不会影响已有练习记录") && libSheet.textContent.includes("复习仍包含所有字库"),
+      transparentCoverage: libSheet.textContent.includes("官方 3000") && libSheet.textContent.includes("官方 1605"),
+      noSchoolClaims: !/小学|初中|高中/.test(libSheet.textContent),
       noUnapprovedProgress: !document.getElementById("libCard").querySelector(".libBar,.libTones") && !libList.querySelector(".libBar") && !/拾完|手速|墨色进度/.test(libSheet.textContent + libCard.textContent),
       settings: (() => { closeLibSheet(); renderSettings(false); return settingsLibName.textContent; })(),
     };
@@ -2132,21 +2162,26 @@ let browser;
     closeLibSheet(); renderHome();
     return {
       rows, crossLibraryReview, rareNewOnly, searchAcrossLibrary,
-      migration: { balancedMigration, practicalMigration, challengeMigration },
+      migration: { balancedMigration, practicalMigration, challengeMigration, legacyObjects, legacyStrings },
       calibration: { fresh: freshCalibration, manual: manualCalibration }, ui, restoredLibrary,
     };
   });
-  assert(libraries.rows.length === 6 && libraries.rows.every((row) => row.total === row.expected && row.strict0 === row.total && row.strict4 === row.total && row.unique === row.total && row.belongs) && libraries.rows.some((row) => row.fallbacks > 0),
-    "Expected all six library totals to remain fully reachable at context strictness 0 and 4, including fallback-context characters", libraries);
+  assert(libraries.rows.length === 4 && libraries.rows.every((row) => row.total === row.expected.available && row.officialTotal === row.expected.official && row.strict0 === row.total && row.strict4 === row.total && row.unique === row.total && row.belongs) && libraries.rows.some((row) => row.fallbacks > 0),
+    "Expected four source-backed library totals to remain fully reachable while distinguishing practice availability from official totals", libraries);
   assert(libraries.crossLibraryReview && libraries.rareNewOnly && libraries.searchAcrossLibrary,
     "Expected the selected library to scope only new characters while review and search remain cross-library", libraries);
-  assert(libraries.migration.balancedMigration === "core3500" && libraries.migration.practicalMigration === "core3500" && libraries.migration.challengeMigration === "adv3000" && libraries.restoredLibrary === "junior",
-    "Expected old preference migration and library backup/restore to preserve the selected library", libraries);
+  assert(libraries.migration.balancedMigration === "core3500" && libraries.migration.practicalMigration === "core3500" && libraries.migration.challengeMigration === "adv3000" && libraries.restoredLibrary === "curriculum2500"
+    && libraries.migration.legacyObjects.primary.id === "curriculum2500" && libraries.migration.legacyObjects.junior.id === "core3500" && libraries.migration.legacyObjects.senior.id === "adv3000"
+    && libraries.migration.legacyStrings.primary.id === "curriculum2500" && libraries.migration.legacyStrings.junior.id === "core3500" && libraries.migration.legacyStrings.senior.id === "adv3000"
+    && Object.values(libraries.migration.legacyObjects).every((row) => row.userSelected)
+    && Object.values(libraries.migration.legacyStrings).every((row) => row.userSelected)
+    && new Set(Object.values(libraries.migration.legacyObjects).map((row) => row.id)).size === 3,
+    "Expected object and string forms of the retired school libraries to preserve an explicit, distinct source-backed choice", libraries);
   assert(libraries.calibration.fresh.before.id === "core3500" && !libraries.calibration.fresh.before.userSelected && libraries.calibration.fresh.preference === "challenge" && libraries.calibration.fresh.id === "adv3000" && !libraries.calibration.fresh.userSelected && libraries.calibration.fresh.stored.id === "adv3000"
-    && libraries.calibration.manual.before.id === "junior" && libraries.calibration.manual.before.userSelected && libraries.calibration.manual.preference === "challenge" && libraries.calibration.manual.id === "junior" && libraries.calibration.manual.userSelected,
+    && libraries.calibration.manual.before.id === "curriculum2500" && libraries.calibration.manual.before.userSelected && libraries.calibration.manual.preference === "challenge" && libraries.calibration.manual.id === "curriculum2500" && libraries.calibration.manual.userSelected,
     "Expected a real first-install challenge calibration to advance only the untouched default library while preserving a manual choice", libraries.calibration);
-  assert(libraries.ui.card === "初中" && libraries.ui.settings === "初中" && libraries.ui.rows === 6 && libraries.ui.active === 1 && libraries.ui.reassurance && libraries.ui.noUnapprovedProgress,
-    "Expected one honest six-library selector in the library and settings surfaces", libraries);
+  assert(libraries.ui.card === "义教基础字" && libraries.ui.settings === "义教基础字" && libraries.ui.rows === 4 && libraries.ui.active === 1 && libraries.ui.reassurance && libraries.ui.transparentCoverage && libraries.ui.noSchoolClaims && libraries.ui.noUnapprovedProgress,
+    "Expected one source-backed selector with transparent official/practice counts and no unsupported school-stage claims", libraries);
 
   const backup = await page.evaluate(() => {
     const original = JSON.parse(backupPayload({ preserveMeta: true })), originalMemory = cloneObj(memory);
@@ -2181,7 +2216,7 @@ let browser;
       resetReason: resetSafety && resetSafety.reason, overwrittenReason: overwrittenSafety && overwrittenSafety.reason, latestRestored, safetyExcluded: !Object.prototype.hasOwnProperty.call(original.data, SAFETY_KEY) };
     localStorage.removeItem("shizi.unknown.verify"); return result;
   });
-  assert(backup.keys.includes(SESSION_STORAGE_KEY) && backup.keys.includes("shizi.library.v1") && backup.sessionVersion === 2 && backup.fsrsLog && backup.tutorial === "true" && backup.funnelVersion === 1 && backup.sound.enabled === true && backup.sound.scene === "rain" && backup.restoredKeys.includes(SESSION_STORAGE_KEY) && backup.unknown === "keep-local", "Expected session/FSRS/tutorial/funnel/soundscape/library backup round trip with allowlist isolation", backup);
+  assert(backup.keys.includes(SESSION_STORAGE_KEY) && backup.keys.includes("shizi.library.v1") && backup.sessionVersion === 3 && backup.fsrsLog && backup.tutorial === "true" && backup.funnelVersion === 1 && backup.sound.enabled === true && backup.sound.scene === "rain" && backup.restoredKeys.includes(SESSION_STORAGE_KEY) && backup.unknown === "keep-local", "Expected session/FSRS/tutorial/funnel/soundscape/library backup round trip with allowlist isolation", backup);
   assert(backup.cancelled && backup.confirmCopy.includes("当前：2 个字，最后练习 2026-07-11") && backup.confirmCopy.includes("备份：1 个字，备份时间 2026-06-01") && backup.confirmCopy.includes("覆盖前的数据会作为一份安全副本留在当前设备") && backup.confirmCopy.includes("下次恢复或清空会覆盖这份副本") && backup.incomingApplied && backup.safetyReason === "restore" && backup.undoOffered && backup.restoreUndoCopy.includes("覆盖前的数据仍留在本设备") && backup.undoApplied && backup.currentRestored, "Expected differential restore confirmation and one-tap safety undo", backup);
   assert(backup.resetCancelled && backup.resetCancelledIntact && backup.resetConfirmCopy.includes("要清空应用当前使用的数据吗") && backup.resetConfirmCopy.includes("操作前的数据会作为一份安全副本留在当前设备") && backup.resetConfirmCopy.includes("不会随撤销提示消失") && backup.resetUndoCopy.includes("操作前的数据仍留在本设备") && backup.resetReason === "reset" && backup.resetAfterPromptReason === "reset" && backup.overwrittenReason === "restore" && backup.latestRestored && backup.safetyExcluded, "Expected an honest reset warning, retained safety copy after the prompt, latest-operation replacement, and backup exclusion", backup);
 

@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "artifact": "shizi-strokeorder-same-position-component-four-self-review",
+  "recorded_at_utc": "2026-08-06T09:28:55Z",
+  "reviewer_role": "implementation_agent_visual_precheck",
+  "decision": "SELF_VISUAL_PASS_PENDING_PRODUCT_OWNER_REVIEW",
+  "characters": [
+    "溚",
+    "溞",
+    "爟",
+    "醨"
+  ],
+  "observations": {
+    "obvious_component_breakage": false,
+    "obvious_component_collision": false,
+    "obvious_affine_distortion": false,
+    "obvious_layout_failure": false,
+    "route_may_proceed_to_human_review": true
+  },
+  "frozen_evidence": {
+    "builder": {
+      "path": "scripts/build_strokeorder_side_component_four.py",
+      "sha256": "d6fabf49029098074bb618c330c039495c1c2c092cda8905904d698998a61959"
+    },
+    "evaluation": {
+      "path": "tmp/vector-mve/strokeorder-side-component-four/evaluation.json",
+      "sha256": "58e325d697808d836d7b0df695b9c9ff705cbd7fca22bca63195b5998612eeac"
+    },
+    "runtime_gate": {
+      "path": "tmp/vector-mve/strokeorder-side-component-four/run-runtime-gate.mjs",
+      "sha256": "4af8c376e546f898c7dcd3a4ce1c46410e63aede9ddaee14b21c45e5b9d83b2a"
+    },
+    "runtime_receipt": {
+      "path": "tmp/vector-mve/strokeorder-side-component-four/receipt-runtime.json",
+      "sha256": "9abfce6fed28548ac3780770305a5282db3e4cc28be5b208deb12560a78475cf"
+    },
+    "review_page": {
+      "path": "tmp/vector-mve/strokeorder-side-component-four/review.html",
+      "sha256": "6d66b1bd2e982dbdee9d607a886bc09d51e3d623881e552dcaf717467619d781"
+    },
+    "animation_screenshots": {
+      "溚": "bae0334b622f949752dbab82dacb54223b2238c43449c09a9c47be0157fd9552",
+      "溞": "9bade2fb4e6d6b1bffdbbf50d494e1b70bf2932b1c83f5859f1ec6f984c6c393",
+      "爟": "d268f012aebc1f45eb3c472a63b3c88bc15081b14c5b70e2c233a260d9044e09",
+      "醨": "0b43cc5b9e7c857888b713ab85ae2834adeed58be27f3fe88acda9823d61b00f"
+    }
+  },
+  "runtime_summary": {
+    "characters": 4,
+    "expected_and_correct_strokes": 62,
+    "mistakes": 0,
+    "page_errors": 0,
+    "console_errors": 0
+  },
+  "production_import_allowed": false,
+  "app_data_modified": false
+}

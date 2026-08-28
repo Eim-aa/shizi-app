@@ -5,15 +5,18 @@ const crypto = require("crypto");
 const fs = require("fs");
 const http = require("http");
 const path = require("path");
+const zlib = require("zlib");
 
 const ROOT = path.resolve(__dirname, "..");
 const MANIFEST_PATH = path.join(ROOT, "audit/vector-data-460-manifest.json");
 const INDEX_PATH = path.join(ROOT, "audit/vector-data-460-evidence-index.json");
 const RECORDS_PATH = path.join(ROOT, "audit/vector-data-460-evidence/records.json");
+const SOURCE_REPLAY_PATH = path.join(ROOT, "audit/vector-data-381-accepted-source-replay.json.gz");
 const ROUTES_PATH = path.join(ROOT, "audit/vector-data-460-evidence/route-evidence.json");
 const CLOSURE_PATH = path.join(ROOT, "audit/vector-data-460-evidence/review-decisions/strokeorder-49-scope-closure.json");
 const PRODUCTION_APPROVAL_PATH = path.join(ROOT, "audit/vector-data-460-evidence/authorizations/finalize-440-production-import.json");
 const RECEIPT_PATH = path.join(ROOT, "audit/vector-data-460-evidence/imports/finalize-440.json");
+const EXPECTED_SOURCE_TARGET_MAP_SHA256 = "6bbffe4eee03c7d07efcafba9294a8fbe6e79c2d34c9bc3a0bd7f2e5cec0ef5b";
 const EXPECTED_ROUTE_COUNTS = { animcjk_363: 363, moe_stroke_svg_10: 10, human_generated_8: 8, strokeorder_merge_79: 59 };
 const EXPECTED_ACCEPTANCE_PATH_COUNTS = {
   "audit/vector-data-460-evidence/acceptances/animcjk-363.json": 363,
@@ -284,15 +287,83 @@ function validateAcceptanceBinding(record, accepted, acceptancePath) {
   check(accepted.decision === "HUMAN_ACCEPTED", "Manifest character is not semantically accepted", { character: record.character, acceptancePath, decision: accepted.decision });
   check(accepted.sourceSha256 === record.source_sha256, "Manifest source hash differs from accepted candidate", { character: record.character, acceptancePath, manifest: record.source_sha256, accepted: accepted.sourceSha256 });
   if (accepted.dataSha256 !== null) {
-    check(accepted.dataSha256 === record.data_sha256, "Manifest data hash differs from acceptance record", { character: record.character, acceptancePath, manifest: record.data_sha256, accepted: accepted.dataSha256 });
+    checkSha256(accepted.dataSha256, "Accepted production payload hash is invalid", { character: record.character, acceptancePath });
+    check(accepted.dataSha256 === record.data_sha256, "Manifest data hash differs from accepted production payload", { character: record.character, acceptancePath, manifest: record.data_sha256, accepted: accepted.dataSha256 });
   }
 }
 
-function validateSemanticMutationGuards(sampleRecord, sampleAcceptance) {
+function loadAcceptedSourceReplay() {
+  const payload = JSON.parse(zlib.gunzipSync(fs.readFileSync(SOURCE_REPLAY_PATH)));
+  check(payload.schema_version === 1 && payload.artifact === "shizi-vector-data-381-accepted-source-replay", "Unexpected accepted-source replay artifact");
+  check(Array.isArray(payload.records) && payload.records.length === 381, "Accepted-source replay count changed");
+  const sources = new Map();
+  const routes = { animcjk_363: 0, moe_stroke_svg_10: 0, human_generated_8: 0 };
+  for (const row of payload.records) {
+    check(typeof row.character === "string" && [...row.character].length === 1 && !sources.has(row.character), "Accepted-source replay character is invalid or duplicated", { character: row.character });
+    check(routes[row.route] !== undefined, "Accepted-source replay route changed", { character: row.character, route: row.route });
+    check(typeof row.historical_path === "string" && row.historical_path.startsWith("tmp/vector-mve/"), "Accepted-source replay path is invalid", { character: row.character });
+    checkSha256(row.accepted_source_sha256, "Accepted-source replay hash is invalid", { character: row.character });
+    check(typeof row.payload_base64 === "string" && row.payload_base64.length > 0, "Accepted-source replay bytes are missing", { character: row.character });
+    const sourceBytes = Buffer.from(row.payload_base64, "base64");
+    check(sourceBytes.toString("base64") === row.payload_base64, "Accepted-source replay base64 is not canonical", { character: row.character });
+    check(sha256Text(sourceBytes) === row.accepted_source_sha256, "Accepted-source replay bytes differ from the human-accepted candidate", { character: row.character });
+    sources.set(row.character, { ...row, sourceBytes });
+    routes[row.route] += 1;
+  }
+  check(JSON.stringify(routes) === JSON.stringify({ animcjk_363: 363, moe_stroke_svg_10: 10, human_generated_8: 8 }), "Accepted-source replay route counts changed", routes);
+  return sources;
+}
+
+function validateProductionPayloadReplay(record, accepted, replaySources, finalPayload) {
+  // Some repair acceptances bind the exact candidate bytes, which were copied
+  // unchanged into data/. Their accepted source hash is therefore also the
+  // final payload hash and needs no transformation replay.
+  if (accepted.dataSha256 !== null || accepted.sourceSha256 === record.data_sha256) return "accepted-target";
+  const replay = replaySources.get(record.character);
+  check(replay, "Candidate-only acceptance has no replayable source bytes", { character: record.character });
+  check(
+    replay.route === record.route
+      && replay.historical_path === record.source_path
+      && replay.accepted_source_sha256 === accepted.sourceSha256,
+    "Accepted-source replay provenance differs from the manifest",
+    { character: record.character },
+  );
+  check(sha256Text(replay.sourceBytes) === accepted.sourceSha256, "Accepted-source replay bytes were modified", { character: record.character });
+  const sourcePayload = JSON.parse(replay.sourceBytes);
+  const keys = Object.keys(sourcePayload).sort();
+  if (record.route === "animcjk_363") {
+    check(JSON.stringify(keys) === JSON.stringify(["medians", "strokes"]), "AnimCJK accepted source schema changed", { character: record.character, keys });
+  } else {
+    check(JSON.stringify(keys) === JSON.stringify(["_manual5", "medians", "radStrokes", "strokes"]), "Generated accepted source schema changed", { character: record.character, keys });
+    check(sourcePayload._manual5?.character === record.character, "Generated accepted source character changed", { character: record.character });
+  }
+  check(JSON.stringify(sourcePayload.strokes) === JSON.stringify(finalPayload.strokes), "Production strokes differ from the human-accepted source", { character: record.character });
+  check(JSON.stringify(sourcePayload.medians) === JSON.stringify(finalPayload.medians), "Production medians differ from the human-accepted source", { character: record.character });
+  return "replayed-source";
+}
+
+function validateSemanticMutationGuards(sampleRecord, sampleAcceptance, replaySources, samplePayload, targetRecord, targetAcceptance) {
   mustRejectMutation("character", () => validateAcceptanceBinding(sampleRecord, undefined, sampleRecord.acceptance_path));
   mustRejectMutation("decision", () => validateAcceptanceBinding(sampleRecord, { ...sampleAcceptance, decision: "HUMAN_REJECTED" }, sampleRecord.acceptance_path));
   mustRejectMutation("candidate_hash", () => validateAcceptanceBinding(sampleRecord, { ...sampleAcceptance, sourceSha256: "0".repeat(64) }, sampleRecord.acceptance_path));
-  return 3;
+  mustRejectMutation("accepted_source_bytes", () => {
+    const mutated = new Map(replaySources);
+    const replay = replaySources.get(sampleRecord.character);
+    mutated.set(sampleRecord.character, { ...replay, sourceBytes: Buffer.concat([replay.sourceBytes, Buffer.from(" ")]) });
+    validateProductionPayloadReplay(sampleRecord, sampleAcceptance, mutated, samplePayload);
+  });
+  mustRejectMutation("production_payload_geometry", () => validateProductionPayloadReplay(
+    sampleRecord,
+    sampleAcceptance,
+    replaySources,
+    { ...samplePayload, strokes: [...samplePayload.strokes, "M0 0L1 1"] },
+  ));
+  mustRejectMutation("accepted_target_hash", () => validateAcceptanceBinding(
+    targetRecord,
+    { ...targetAcceptance, dataSha256: "0".repeat(64) },
+    targetRecord.acceptance_path,
+  ));
+  return 6;
 }
 
 function collectAbsoluteLocalPaths(value, jsonPath = "$") {
@@ -346,14 +417,21 @@ function validateManifest() {
       && manifest.gates.separate_product_approval_gate === "29 replacements + 20 exclusions approved",
     "Final semantic or production-approval gate changed",
   );
-  check(manifest.clean_clone_evidence.index_path === "audit/vector-data-460-evidence-index.json" && sha256(INDEX_PATH) === manifest.clean_clone_evidence.index_sha256, "Evidence-index binding mismatch");
+  check(
+    manifest.clean_clone_evidence.index_path === "audit/vector-data-460-evidence-index.json"
+      && sha256(INDEX_PATH) === manifest.clean_clone_evidence.index_sha256,
+    "Evidence-index binding mismatch",
+  );
 
   const characters = new Set();
   const routes = Object.fromEntries(Object.keys(EXPECTED_ROUTE_COUNTS).map(route => [route, 0]));
   const acceptancePathCounts = Object.fromEntries(Object.keys(EXPECTED_ACCEPTANCE_PATH_COUNTS).map(acceptancePath => [acceptancePath, 0]));
   const acceptanceCatalog = new Map();
+  const replaySources = loadAcceptedSourceReplay();
   let strokeTotal = 0;
   let semanticAcceptanceRecords = 0;
+  let replayedSourceBindings = 0;
+  let acceptedTargetBindings = 0;
   for (const record of manifest.records) {
     check(!characters.has(record.character), "Duplicate manifest character", { character: record.character });
     characters.add(record.character);
@@ -362,7 +440,8 @@ function validateManifest() {
     check(record.human_review_status === "HUMAN_ACCEPTED" && typeof record.acceptance_path === "string", "Final record is not human accepted", { character: record.character });
     check(acceptancePathCounts[record.acceptance_path] !== undefined, "Manifest references an unexpected acceptance file", { character: record.character, acceptancePath: record.acceptance_path });
     if (!acceptanceCatalog.has(record.acceptance_path)) acceptanceCatalog.set(record.acceptance_path, parseAcceptanceSemantics(record.acceptance_path));
-    validateAcceptanceBinding(record, acceptanceCatalog.get(record.acceptance_path).get(record.character), record.acceptance_path);
+    const accepted = acceptanceCatalog.get(record.acceptance_path).get(record.character);
+    validateAcceptanceBinding(record, accepted, record.acceptance_path);
     acceptancePathCounts[record.acceptance_path] += 1;
     semanticAcceptanceRecords += 1;
     check(record.data_path === `data/${record.character}.json`, "Data path/character mismatch", { character: record.character });
@@ -370,15 +449,42 @@ function validateManifest() {
     check(fs.existsSync(dataPath) && sha256(dataPath) === record.data_sha256 && fs.statSync(dataPath).size === record.byte_size, "Final data binding mismatch", { character: record.character });
     const payload = readJson(dataPath);
     validatePayload(record.character, payload, record.normative_stroke_count);
+    const bindingType = validateProductionPayloadReplay(record, accepted, replaySources, payload);
+    if (bindingType === "replayed-source") replayedSourceBindings += 1;
+    else acceptedTargetBindings += 1;
     check(payload.strokes.length === record.stroke_count && payload.medians.length === record.median_count, "Manifest payload counts differ", { character: record.character });
     strokeTotal += record.stroke_count;
   }
   check(characters.size === 440 && JSON.stringify(routes) === JSON.stringify(EXPECTED_ROUTE_COUNTS), "Observed final membership changed", { characters: characters.size, routes });
   check(JSON.stringify(acceptancePathCounts) === JSON.stringify(EXPECTED_ACCEPTANCE_PATH_COUNTS), "Manifest acceptance-file coverage changed", acceptancePathCounts);
   check(acceptanceCatalog.size === 11 && semanticAcceptanceRecords === 440, "Semantic acceptance coverage is incomplete", { files: acceptanceCatalog.size, records: semanticAcceptanceRecords });
-  const sampleRecord = manifest.records[0];
-  const semanticMutationGuards = validateSemanticMutationGuards(sampleRecord, acceptanceCatalog.get(sampleRecord.acceptance_path).get(sampleRecord.character));
-  return { manifest, characters, strokeTotal, semanticAcceptanceRecords, acceptanceFiles: acceptanceCatalog.size, semanticMutationGuards };
+  check(replayedSourceBindings === 381 && acceptedTargetBindings === 59 && replaySources.size === 381, "Production payload binding coverage changed", { replayedSourceBindings, acceptedTargetBindings, replaySources: replaySources.size });
+  const sampleRecord = manifest.records.find(record => replaySources.has(record.character));
+  const sampleAcceptance = acceptanceCatalog.get(sampleRecord.acceptance_path).get(sampleRecord.character);
+  const targetRecord = manifest.records.find(record => {
+    const accepted = acceptanceCatalog.get(record.acceptance_path).get(record.character);
+    return accepted?.dataSha256 !== null;
+  });
+  const targetAcceptance = acceptanceCatalog.get(targetRecord.acceptance_path).get(targetRecord.character);
+  const semanticMutationGuards = validateSemanticMutationGuards(
+    sampleRecord,
+    sampleAcceptance,
+    replaySources,
+    readJson(path.join(ROOT, sampleRecord.data_path)),
+    targetRecord,
+    targetAcceptance,
+  );
+  return {
+    manifest,
+    characters,
+    strokeTotal,
+    semanticAcceptanceRecords,
+    acceptanceFiles: acceptanceCatalog.size,
+    semanticMutationGuards,
+    productionPayloadBindings: replayedSourceBindings + acceptedTargetBindings,
+    replayedSourceBindings,
+    acceptedTargetBindings,
+  };
 }
 
 function validateReplacementBinding(row, approved, manifestRecord, indexed) {
@@ -450,6 +556,7 @@ function validateEvidence(manifest) {
     if (file.path.endsWith(".json")) validatePortableAuditJson(filePath);
   }
   for (const required of [relative(RECORDS_PATH), relative(ROUTES_PATH), relative(CLOSURE_PATH), relative(PRODUCTION_APPROVAL_PATH), relative(RECEIPT_PATH)]) check(indexed.has(required), "Required final evidence is not indexed", { path: required });
+  check(sha256(RECORDS_PATH) === EXPECTED_SOURCE_TARGET_MAP_SHA256, "Source-target map changed without payload review");
 
   const closure = readJson(CLOSURE_PATH);
   check(closure.decision === "CLOSE_REPAIR_SCOPE_WITH_29_ACCEPTED_AND_20_PRODUCT_EXCLUDED", "Scope closure decision changed");
@@ -658,7 +765,16 @@ async function validateBrowserPaths(manifest, browserSampleSize = null) {
 }
 
 async function main() {
-  const { manifest, strokeTotal, semanticAcceptanceRecords, acceptanceFiles, semanticMutationGuards } = validateManifest();
+  const {
+    manifest,
+    strokeTotal,
+    semanticAcceptanceRecords,
+    acceptanceFiles,
+    semanticMutationGuards,
+    productionPayloadBindings,
+    replayedSourceBindings,
+    acceptedTargetBindings,
+  } = validateManifest();
   const evidence = validateEvidence(manifest);
   const staticOnly = process.argv.includes("--static-only");
   const sampleArgument = process.argv.find(value => value.startsWith("--browser-sample="));
@@ -679,6 +795,9 @@ async function main() {
     approval_locator_mutation_guards_verified: evidence.approvalLocatorMutationGuards,
     semantic_acceptance_records_verified: semanticAcceptanceRecords,
     semantic_acceptance_files_verified: acceptanceFiles,
+    production_payload_bindings_verified: productionPayloadBindings,
+    replayed_accepted_source_bindings_verified: replayedSourceBindings,
+    directly_accepted_target_bindings_verified: acceptedTargetBindings,
     semantic_mutation_guards_verified: semanticMutationGuards,
     receipt_mutation_guards_verified: evidence.receiptMutationGuards,
     route_counts: manifest.counts.routes,

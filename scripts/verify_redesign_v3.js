@@ -30,7 +30,7 @@ assert(!/--soft\s*:|--tile\s*:|var\(--soft\)|var\(--tile\)/.test(source), "Expec
 assert(!/#efe7d3|#f7f1e3|#fbf6ea|#f3ead7|#e3d9c4|#2b2620|#b3892f/i.test(source), "Expected no legacy light-palette values");
 assert(!/卡点分析|掌握感|易忘度|出题偏好/.test(source), "Expected no PM terms or dimensionless scores in the app UI");
 assert(!/id="bookBadge"|id="addInPractice"|id="bookSearchGo"|id="backupNow"|高频易忘/.test(source), "Expected no red tab debt badge, redundant search/backup button, in-practice add distraction, or retired preference wording");
-assert(source.includes('id="libCard"') && source.includes('id="libSheet"') && source.includes("换库不丢任何东西") && !source.includes('id="prefBox"') && !source.includes("选字偏好") && !source.includes("libPaceText") && !source.includes('id="libBar"') && !source.includes('id="libTones"'), "Expected one reassuring library selector with no retired preference, progress-density, or pace UI");
+assert(source.includes('id="libCard"') && source.includes('id="libSheet"') && source.includes("切换字库不会影响已有练习记录") && source.includes("复习仍包含所有字库") && !source.includes('id="prefBox"') && !source.includes("选字偏好") && !source.includes("libPaceText") && !source.includes('id="libBar"') && !source.includes('id="libTones"'), "Expected one reassuring library selector with no retired preference, progress-density, or pace UI");
 assert(changelog.includes("一屏至多一个实心朱红") && changelog.includes("印章语义只许两种"), "Expected the permanent red-budget and seal-semantics laws in the changelog");
 assert(contrast("#756b5a", "#f4efe2") >= 4.5, "Expected the palest memory ink to meet 4.5:1 contrast", { ratio: contrast("#756b5a", "#f4efe2") });
 assert(contrast("#be442b", "#fdfbf4") >= 4.5 && contrast("#8a6720", "#fdfbf4") >= 4.5
@@ -63,7 +63,7 @@ let browser;
     allIndexes().slice(0, 43).forEach((idx, index) => {
       const day = shiftDay(today(), -Math.floor(index / 12));
       memory[cardKey(idx)] = { seen: index + 1, firstSeenAt: dayStartMs(day) + index, last: dayStartMs(day) + index, streak: index % 5, ease: 40 + index % 50, misses: index % 7 === 0 ? 1 : 0, lastOutcome: index % 7 === 0 ? "miss" : "fast", pendingLearning: false, dueDay: index < 2 ? today() : shiftDay(today(), 5), fsrsCard: { stability: [0.4, 1.5, 4, 8, 18][index % 5] } };
-      status[idx] = "rest";
+      status[cardKey(idx)] = "rest";
     });
     saveMemory(); save(DECK_KEY, status); renderHome();
   });
@@ -83,7 +83,7 @@ let browser;
   await page.click("#tabBook");
   await page.waitForTimeout(300);
   const wall43 = await page.evaluate(() => ({ count: memoryWall.querySelectorAll(".memoryChar").length, columns: getComputedStyle(memoryWall).gridTemplateColumns.split(" ").length, labels: memoryWall.querySelectorAll(".dot,.outcomeMark").length, curator: bookCuratorData(profileIndexes()).kind, countText: boxCount.textContent.trim(), library: libName.textContent, libraryMeta: libMeta.textContent }));
-  assert(wall43.count === 43 && wall43.columns === 6 && wall43.labels === 0 && wall43.curator === "action" && wall43.countText === "43 字" && wall43.library === "规范常用字" && /已拾 \d+ \/ 3500/.test(wall43.libraryMeta), "Expected a 43-character six-column memory wall with honest library progress and action curation", wall43);
+  assert(wall43.count === 43 && wall43.columns === 6 && wall43.labels === 0 && wall43.curator === "action" && wall43.countText === "43 字" && wall43.library === "规范常用字" && /已练 \d+ \/ 共 3500/.test(wall43.libraryMeta), "Expected a 43-character six-column memory wall with honest library progress and action curation", wall43);
   await page.screenshot({ path: path.join(generatedDir, "book-light-375x667.png"), fullPage: true });
 
   const etymologyDetail = await page.evaluate(async () => {
@@ -145,6 +145,56 @@ let browser;
     return { home: ["flex", "block"].includes(getComputedStyle(home).display), notice: getComputedStyle(bootNotice).display, opens: Array.isArray(opens), memoryRoot: typeof memory === "object" && !Array.isArray(memory), custom: Array.isArray(customWords), quarantined };
   });
   assert(selfHeal.home && selfHeal.notice === "block" && selfHeal.opens && selfHeal.memoryRoot && selfHeal.custom && selfHeal.quarantined.every(([, raw]) => raw !== null), "Expected malformed startup keys and an invalid session to be quarantined independently while the app reaches Home", selfHeal);
+
+  // 旧版 dailyActivity() 会把某一天为 null 的行按 {} 自愈，所以线上真的存在这种脏记录。
+  // 稳定字键迁移要遍历每一天的 targetKeys，嵌套坏行必须在 normalizeActivity() 就被规范掉，
+  // 否则整页启动会中断、首页按钮不绑定，而且坏数据留在本地，每次打开都再崩一次。
+  const activityFixtures = [
+    { label: "daily row null", daily: { "2026-01-01": null } },
+    { label: "daily row array", daily: { "2026-01-01": [] } },
+    { label: "daily row scalar", daily: { "2026-01-01": 42 } },
+    { label: "daily row string", daily: { "2026-01-01": "practiced" } },
+    { label: "daily null", daily: null },
+    { label: "daily array", daily: [1, 2, 3] },
+    { label: "mixed rows keep the good day", daily: { "2026-01-01": null, "2026-01-02": { stamps: 2, attempts: 3, targetKeys: ["base:一"], completedRoundIds: ["r1"] } } },
+  ];
+  const activityHealing = [];
+  for (const fixture of activityFixtures) {
+    await corruptPage.evaluate((row) => {
+      localStorage.removeItem("shizi.corrupt.shizi.activity.v1");
+      // 校准状态在这一组 fixture 里必须稳定，否则页面会停在首日校准而不是首页
+      localStorage.setItem("shizi.tuning.v1", JSON.stringify({ calibrated: true, offset: 0, contextStrict: 0, rounds: [] }));
+      localStorage.setItem("shizi.activity.v1", JSON.stringify({
+        version: 1, migrationDate: "2026-01-01", inheritedStreak: 2, inheritedTotalDays: 5,
+        practiceDays: ["2026-01-01"], daily: row.daily,
+      }));
+    }, fixture);
+    await corruptPage.reload({ waitUntil: "networkidle" });
+    activityHealing.push(await corruptPage.evaluate((label) => {
+      const rows = Object.values(activity.daily);
+      const persisted = JSON.parse(localStorage.getItem("shizi.activity.v1") || "null");
+      const kept = activity.daily["2026-01-02"];
+      return {
+        label,
+        home: ["flex", "block"].includes(getComputedStyle(home).display),
+        startBound: typeof startBtn.onclick === "function",
+        cards: CARDS.length,
+        rowsAreObjects: rows.every((row) => !!row && typeof row === "object" && !Array.isArray(row) && Array.isArray(row.targetKeys)),
+        dailyIsPlainObject: !!persisted && typeof persisted.daily === "object" && !Array.isArray(persisted.daily),
+        persistedRowsAreObjects: Object.values((persisted && persisted.daily) || {}).every((row) => !!row && typeof row === "object" && !Array.isArray(row)),
+        inheritedStreak: persisted && persisted.inheritedStreak,
+        keptGoodDay: kept ? { stamps: kept.stamps, attempts: kept.attempts, targetKeys: kept.targetKeys, completedGroups: kept.completedGroups } : null,
+      };
+    }, fixture.label));
+  }
+  const activityQuarantine = await corruptPage.evaluate(() => localStorage.getItem("shizi.corrupt.shizi.activity.v1"));
+  assert(activityHealing.every((row) => row.home && row.startBound && row.cards > 0 && row.rowsAreObjects && row.dailyIsPlainObject && row.persistedRowsAreObjects && row.inheritedStreak === 2),
+    "Expected malformed activity.daily rows to be normalized at startup so migration cannot abort boot", activityHealing);
+  const keptGoodDay = activityHealing[activityHealing.length - 1].keptGoodDay;
+  assert(keptGoodDay && keptGoodDay.stamps === 2 && keptGoodDay.attempts === 3 && keptGoodDay.completedGroups === 1 && JSON.stringify(keptGoodDay.targetKeys) === JSON.stringify(["base:一"]),
+    "Expected a healthy day row to survive alongside a discarded malformed one", keptGoodDay);
+  assert(activityQuarantine === null,
+    "Expected malformed activity rows to self-heal in place instead of quarantining the whole activity key", { activityQuarantine });
   await corruptPage.close();
 
   await page.click("#memoryWall .memoryChar");
@@ -173,7 +223,7 @@ let browser;
   assert(await page.evaluate(() => addSheet.classList.contains("open") && addInput.value.length > 0 && addConfirm.textContent.trim() === "收进字库"), "Expected an unseen library character to enter the final collection flow");
   await page.evaluate(() => closeAddSheet());
   await page.fill("#bookSearchInput", "龘");
-  assert(await page.evaluate(() => bookSearchResult.textContent === "没有这个字"), "Expected an unknown character to show an immediate no-match response");
+  assert(await page.evaluate(() => bookSearchResult.textContent === "字库里暂时找不到「龘」"), "Expected an unknown character to show an immediate no-match response");
 
   await page.evaluate(() => { renderBook(); openCharSheet(profileIndexes()[0]); });
   await page.click("#charDetailPractice");
@@ -196,7 +246,7 @@ let browser;
 
   const wall300 = await page.evaluate(() => {
     memory = {}; status = {}; const started = performance.now();
-    allIndexes().slice(0, 300).forEach((idx, index) => { memory[cardKey(idx)] = { seen: 1, last: Date.now() - index, streak: index % 4, lastOutcome: "fast", dueDay: shiftDay(today(), 5), fsrsCard: { stability: 1 + index % 20 } }; status[idx] = "rest"; });
+    allIndexes().slice(0, 300).forEach((idx, index) => { memory[cardKey(idx)] = { seen: 1, last: Date.now() - index, streak: index % 4, lastOutcome: "fast", dueDay: shiftDay(today(), 5), fsrsCard: { stability: 1 + index % 20 } }; status[cardKey(idx)] = "rest"; });
     renderBook(); return { count: memoryWall.querySelectorAll(".memoryChar").length, ms: performance.now() - started, scrollWidth: document.documentElement.scrollWidth, innerWidth };
   });
   assert(wall300.count === 300 && wall300.ms < 500 && wall300.scrollWidth <= wall300.innerWidth + 1, "Expected the 300-character wall to render quickly without horizontal overflow", wall300);
@@ -210,7 +260,7 @@ let browser;
   assert(backupUrgency.status === "从未备份" && backupUrgency.urgent === "flex" && backupUrgency.color !== backupUrgency.muted, "Expected inherited old-user practice days to make the never-backed-up status visibly urgent on My", backupUrgency);
   assert(backupUrgency.solid <= 1 && backupUrgency.todayBg !== backupUrgency.accent, "Expected My to carry the sole urgent backup seal while downgrading today's calendar seal", backupUrgency);
   const profile = await page.evaluate(() => { const indexes=profileIndexes(); indexes.slice(0,12).forEach((idx,index)=>{ memory[cardKey(idx)].misses=index<6?3:1; }); memory[cardKey(indexes[0])].misses=1; memory[cardKey(indexes[0])].hints=9; memory[cardKey(indexes[0])].slow=7; saveMemory(); renderProfile(); const accent=getComputedStyle(profilePractice).backgroundColor, solid=Array.from(profilePanel.querySelectorAll("*")).filter(node=>{ const r=node.getBoundingClientRect(); return r.width&&r.height&&getComputedStyle(node).backgroundColor===accent; }).length; const factual=document.getElementById("profileAdvice").querySelector(`[data-char-idx="${indexes[0]}"] small`)?.textContent; return { weak:profilePanel.querySelectorAll(".weakChar").length, metrics:profilePanel.querySelectorAll(".profileMetrics,.profileHero").length, action:profilePractice.textContent.trim(), solid, factual }; });
-  assert(profile.weak >= 6 && profile.metrics === 0 && profile.action === "把这几个写一遍" && profile.solid <= 1 && profile.factual === "忘过 1 次", "Expected real weak characters with miss-only facts, no diagnosis/stat cards, one direct practice action, and one solid red", profile);
+  assert(profile.weak >= 6 && profile.metrics === 0 && profile.action === "把这几个写一遍" && profile.solid <= 1 && profile.factual === "没写出 1 次", "Expected real weak characters with miss-only facts, no diagnosis/stat cards, one direct practice action, and one solid red", profile);
   await page.waitForTimeout(320);
   await page.screenshot({ path: path.join(generatedDir, "profile-light-375x667.png"), fullPage: true });
   await page.evaluate(() => renderMe());
@@ -265,7 +315,7 @@ let browser;
               minTarget: Math.min(...rows.map((row) => row.getBoundingClientRect().height)),
               horizontalFit: rect.left >= -1 && rect.right <= innerWidth + 1,
               reachable: libSheet.scrollHeight <= libSheet.clientHeight + 1 || getComputedStyle(libSheet).overflowY === "auto",
-              reassurance: libSheet.textContent.includes("换库不丢任何东西"),
+              reassurance: libSheet.textContent.includes("切换字库不会影响已有练习记录") && libSheet.textContent.includes("复习仍包含所有字库"),
               noUnapprovedProgress: !libCard.querySelector(".libBar,.libTones") && !libList.querySelector(".libBar") && !/拾完|手速|墨色进度/.test(libSheet.textContent + libCard.textContent),
             };
           });

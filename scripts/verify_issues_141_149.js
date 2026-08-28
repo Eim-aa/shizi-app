@@ -59,7 +59,7 @@ assert(rejectedIdioms.length === 0 && rejectedApproved.length === 0
 "#148 context quality gate must preserve tagged idioms and human-reviewed jieba false positives", { rejectedIdioms, rejectedApproved });
 assert(manualOverlap.length > 0 && source.indexOf('data/context-quality.js') < source.indexOf('data/context-overrides.js')
   && source.includes('if(!override && REJECTED_CONTEXTS[target])')
-  && swSource.includes("'data/context-quality.js'") && swSource.includes("'data/context-overrides.js'")
+  && swSource.includes("'data/context-quality.js'") && swSource.includes("'data/context-overrides.js?v=")
   && readme.includes("人工批准的常用词与白话释义优先") && readme.includes("人工覆盖不受误伤"),
 "#148 reviewed context overrides must take precedence online and offline", { manualOverlap: manualOverlap.length });
 assert(contrast("#be442b", "#fdfbf4") >= 4.5 && contrast("#8a6720", "#fdfbf4") >= 4.5
@@ -240,7 +240,7 @@ let browser;
 
   await resetState(page);
   const issue144Seed = await page.evaluate(() => {
-    startMode("new"); const raw = localStorage.getItem(SESSION_KEY), session = JSON.parse(raw);
+    startMode("new"); const raw = localStorage.getItem(SESSION_KEY), session = decodeSessionV3(JSON.parse(raw));
     const focusIndexes = allIndexes().filter((idx) => !session.baseTargets.includes(idx)).slice(0, 3);
     window.__issue144 = { raw, session: cloneObj(session), focusIndexes };
     const started = startFocus(focusIndexes, { returnView: "home" });
@@ -249,7 +249,7 @@ let browser;
   assert(!issue144Seed.started && issue144Seed.sheetOpen, "#144 an ordinary resumable group must offer a choice before focus practice", issue144Seed);
   await page.click("#focusChoiceSingle");
   await page.waitForFunction(() => activeMode === "focus" && baseTargets.length === 3 && getComputedStyle(card).display !== "none");
-  const focusPreserved = await page.evaluate(() => ({ sameStored: JSON.stringify(JSON.parse(localStorage.getItem(SESSION_KEY))) === JSON.stringify(window.__issue144.session), targets: baseTargets.slice(), expected: window.__issue144.focusIndexes.slice() }));
+  const focusPreserved = await page.evaluate(() => ({ sameStored: JSON.stringify(decodeSessionV3(JSON.parse(localStorage.getItem(SESSION_KEY)))) === JSON.stringify(window.__issue144.session), targets: baseTargets.slice(), expected: window.__issue144.focusIndexes.slice() }));
   await page.click("#exitPractice");
   await page.waitForFunction(() => getComputedStyle(home).display !== "none");
   const afterFocusExit = await page.evaluate(() => { const session = resumableSession(); return { sameStored: JSON.stringify(session) === JSON.stringify(window.__issue144.session), mode: session && session.activeMode, index: session && session.currentIndex, title: homeTitle.textContent.replace(/\s+/g, "") }; });
@@ -435,7 +435,7 @@ let browser;
     && !issue149.overlay.reopened.active && issue149.overlay.reopened.label === "叠",
     "#149 compare controls must reset their label and state after closing", issue149.overlay);
   assert(issue149.webPhotoNote.includes("手动确认文字") && !issue149.webPhotoNote.includes("本机识别")
-    && issue149.uncertainAria.includes("补拾") && issue149.uncertainAria.includes("拿不准") && !issue149.uncertainAria.includes("看提示"),
+    && issue149.uncertainAria.includes("补拾") && issue149.uncertainAria.includes("不太确定") && !issue149.uncertainAria.includes("看提示"),
     "#148/#149 Web photo and uncertain-result accessibility copy must describe the real behavior", { webPhotoNote: issue149.webPhotoNote, uncertainAria: issue149.uncertainAria });
   assert(issue149.annual.reportOpened && issue149.annual.slides === 4 && issue149.annual.dots === 4 && issue149.annual.options.length === 1
     && issue149.annual.dotTargets.every((box) => box.width >= 44 && box.height >= 44) && issue149.annual.focusPreserved && issue149.annual.current === "false"
@@ -519,7 +519,7 @@ let browser;
   await page.waitForFunction(() => resetConfirmSheet.classList.contains("open") && document.activeElement === resetConfirmCancel);
   await page.evaluate(() => window.dispatchEvent(new Event("shizi-native-back")));
   const resetCancelled = await page.evaluate(() => ({ closed: !resetConfirmSheet.classList.contains("open"), incomingKept: localStorage.getItem(MEMORY_KEY).includes("restore-incoming"), stack: accessibleModalStack.map(node => node.id) }));
-  assert(restoreSeed.staged.pending && !restoreSeed.staged.applied && restoreSeed.copy.includes("恢复后将覆盖当前记录") && restoreSeed.backgroundInert
+  assert(restoreSeed.staged.pending && !restoreSeed.staged.applied && restoreSeed.copy.includes("覆盖当前设备上的数据") && restoreSeed.backgroundInert
     && restoreCancelled.currentKept && restoreCancelled.pending === null && restoreConfirmed.incomingApplied && restoreConfirmed.closed && restoreConfirmed.pending === null
     && resetCancelled.closed && resetCancelled.incomingKept && resetCancelled.stack.length === 0,
     "#149 backup restore/reset must use cancellable in-app dialogs that native back closes safely", { restoreSeed, restoreCancelled, restoreConfirmed, resetCancelled });

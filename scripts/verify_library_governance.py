@@ -22,6 +22,9 @@ EXPECTED_VECTOR_BASELINE = 6854
 EXPECTED_VECTOR_SUPPLEMENT = 440
 EXPECTED_PRACTICE_READY = 7294
 EXPECTED_UNAVAILABLE = 811
+EXPECTED_SELECTED_ORDER_SHA256 = "2d898ac1d6604a8fa315ad60ec3bc4de2f1b9d64efc47d1cdd6ba206a24f108b"
+EXPECTED_BASELINE_SELECTED_ORDER_SHA256 = "5955e843c604582905337b67465f080ba130e5a7865f317045a8963b2d363f57"
+EXPECTED_SUPPLEMENT_SELECTED_ORDER_SHA256 = "4ea80f9d0cb74adf651e7d61ec028882775ad67666cd39a05618befd17c29352"
 EXPECTED_CURRICULUM_FILE_SHA256 = "c9b12e616ca252a3af6e7c872a953281ae7d5614bd2263f640131e90bf67b528"
 EXPECTED_CURRICULUM_MEMBERS_SHA256 = "c3de017903fc18076a7ab59ad9f41a29d0daba9a1725f04d206c0158a28de4aa"
 EXPECTED_CURRICULUM_PDF_SHA256 = "3ef0ec8a30b5a950211202658df07d99f5427f750f8ba0c3cfda12736b7bd71a"
@@ -94,10 +97,12 @@ def main():
     selected_payload = json.loads((ROOT / "generated" / "selected_8105_candidates.json").read_text(encoding="utf-8"))
     selected = selected_payload["selected"]
     skipped = selected_payload["skipped"]
+    selected_order = [row["character"] for row in selected]
     selected_chars = {row["character"] for row in selected}
     skipped_chars = {row["character"] for rows in skipped.values() for row in rows}
     all_norm = set().union(*(set(rows) for rows in norm.values()))
     require(len(selected) == len(selected_chars) == EXPECTED_PRACTICE_READY, "selected practice cards must remain unique and explicit")
+    require(members_sha256(selected_order) == EXPECTED_SELECTED_ORDER_SHA256, "selected runtime membership/order changed without source review")
     require(selected_chars.isdisjoint(skipped_chars), "a character cannot be both available and unavailable")
     require(selected_chars | skipped_chars == all_norm, "every normative character needs an availability status")
     require({reason: len(rows) for reason, rows in skipped.items()} == {"no_hanzi_writer": EXPECTED_UNAVAILABLE, "no_make_me_hanzi": 0, "stroke_mismatch": 0}, "availability reasons changed without review")
@@ -121,12 +126,22 @@ def main():
     require(set(hint_groups) == vector_chars and len(hint_groups) == EXPECTED_VECTOR_SUPPLEMENT, "hint-group manifest does not cover the exact vector supplement")
     selected_by_char = {row["character"]: row for row in selected}
     require(all(selected_by_char[char]["groups"] == groups for char, groups in hint_groups.items()), "generated candidate groups differ from the reviewed supplement groups")
+    supplement_selected = [row["character"] for row in selected if row.get("group_source") == "vector_data_supplement"]
+    baseline_selected = [row["character"] for row in selected if row.get("group_source") == "make_me_a_hanzi"]
+    require(set(supplement_selected) == vector_chars, "supplement provenance must match the exact reviewed 440-character set")
+    require(set(baseline_selected) == selected_chars - vector_chars, "baseline provenance must match every non-supplement practice character")
+    require(len(supplement_selected) + len(baseline_selected) == len(selected), "a selected character has an unknown or missing group source")
+    require(members_sha256(supplement_selected) == EXPECTED_SUPPLEMENT_SELECTED_ORDER_SHA256, "supplement provenance/order changed without review")
+    require(members_sha256(baseline_selected) == EXPECTED_BASELINE_SELECTED_ORDER_SHA256, "baseline provenance/order changed without review")
 
     seed = load_seed()
-    require(len(seed) == len(selected), "runtime seed and selected manifest disagree")
+    runtime_chars = [row.get("target") or list(row["ans"])[int(row.get("ci", 0))] for row in seed]
+    require(len(seed) == len(selected) == len(set(runtime_chars)), "runtime seed must contain the exact unique selected character set")
+    require(runtime_chars == selected_order and set(runtime_chars) == selected_chars, "runtime seed and selected manifest membership/order disagree")
     require(all(row.get("band") in ALLOWED_BANDS and "level" not in row for row in seed), "runtime cards must not carry school-stage difficulty labels")
     require(sum(row.get("edu") == "表一" for row in seed) == 2500 and sum(row.get("edu") == "表二" for row in seed) == 1000, "runtime curriculum membership is incomplete")
     runtime_groups = load_groups()
+    require(set(runtime_groups) == selected_chars, "runtime GROUPS must cover exactly the runtime character set")
     require(all(runtime_groups.get(char) == groups for char, groups in hint_groups.items()), "runtime GROUPS differ from the reviewed supplement groups")
 
     audit_path = ROOT / "generated" / "library-governance.json"

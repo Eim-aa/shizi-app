@@ -6,6 +6,7 @@ const path = require("path");
 const vm = require("vm");
 
 const root = path.resolve(__dirname, "..");
+execFileSync("python3", [path.join(root, "scripts", "verify_ui_copy.py")], { stdio: "inherit" });
 const appUrl = process.env.SHIZI_APP_URL || "http://127.0.0.1:8000/";
 const screenshotPath = path.join(root, "generated", "verify_8105_app.png");
 const wildPhotoFixturePath = path.join(root, "icon-192.png");
@@ -100,11 +101,11 @@ assert(legalChecklist.includes("Project-authored code and content") && legalChec
   && legalChecklist.includes("Human-generated supplement") && legalChecklist.includes("Stroke-order merged supplement") && legalChecklist.includes("BLOCKED"),
   "Expected unresolved ownership and supplemental-data rights to remain explicit release gates");
 
-assert(swSource.includes("shizi-cache-v2") && swSource.includes("'data/etymology.json'") && swSource.includes("Promise.allSettled") && swSource.includes("INSTALL_BATCH_SIZE = 40")
-  && swSource.includes("STROKE_CACHE_LIMIT = 800") && swSource.includes("trimStrokeCache") && swSource.includes("cacheResponseBestEffort") && swSource.includes("event.waitUntil(updateCacheFromNetwork"),
-"Expected offline core installation, bounded stroke LRU, and content refresh without a per-release cache version");
-assert(swSource.includes("data/context-overrides.js") && source.includes('<script src="data/context-overrides.js"></script>') && contextOverrideSource.includes("CONTEXT_OVERRIDES"), "Expected context overrides in both online and offline shells");
-assert(coreStrokeSource.includes("SHIZI_CORE_STROKES") && coreStrokeSource.includes("slice(0,600)"), "Expected a generated 600-character core stroke list");
+assert(swSource.includes("shizi-v13-") && swSource.includes("'data/etymology.json'") && swSource.includes("Promise.allSettled") && swSource.includes("INSTALL_BATCH_SIZE = 40") && swSource.includes("cacheFreshShell") && swSource.includes("cache.addAll(requests)") && swSource.includes("cache: 'reload'")
+  && swSource.includes("STROKE_CACHE_LIMIT = 800") && swSource.includes("trimStrokeCache") && swSource.includes("cacheResponseBestEffort") && swSource.includes("updateCacheFromNetwork"),
+"Expected atomic versioned offline installation plus a bounded stroke cache with background refresh");
+assert(swSource.includes("data/context-overrides.js?v=") && source.includes('<script src="data/context-overrides.js?v=') && source.includes('<script src="deck-data.js?v=') && contextOverrideSource.includes("CONTEXT_OVERRIDES"), "Expected fingerprinted corpus/context assets in both online and offline shells");
+assert(coreStrokeSource.includes("SHIZI_CORE_STROKES") && !coreStrokeSource.includes("SEED"), "Expected a self-contained generated core stroke list that the worker can load atomically");
 assert(Array.isArray(etymology) && etymology.length === etymologyCoverage.totals.entries && new Set(etymology.map((row) => row.char)).size === etymology.length
   && etymology.every((row) => Object.keys(row).sort().join() === "char,gloss,source" && Array.from(row.char).length === 1 && row.gloss.length >= 1 && row.gloss.length <= 20 && ["《说文解字》", "Make Me a Hanzi"].includes(row.source)),
 "Expected unique, compact and explicitly attributed etymology records", { count: etymology.length });
@@ -296,7 +297,7 @@ let browser;
     tabs: Array.from(document.querySelectorAll("#foot .tab")).map((node) => node.textContent.replace(/\s+/g, "")),
     welcomeEvents: funnel.events.filter((row) => row.name === "welcome_shown").length,
   }));
-  assert(firstRun.welcome && firstRun.footHidden && firstRun.needsCalibration && firstRun.restoreVisible && firstRun.copy.includes("先拾15个字试试") && firstRun.copy.includes("记录只存在这台手机上") && firstRun.tabs.join() === "习字,字库,我的" && firstRun.welcomeEvents === 1, "Expected first-run calibration welcome, one-time funnel event, storage expectation, restore entry, and final three-tab IA", firstRun);
+  assert(firstRun.welcome && firstRun.footHidden && firstRun.needsCalibration && firstRun.restoreVisible && firstRun.copy.includes("先练15个字") && firstRun.copy.includes("记录默认保存在当前设备") && firstRun.tabs.join() === "习字,字库,我的" && firstRun.welcomeEvents === 1, "Expected first-run calibration welcome, one-time funnel event, storage expectation, restore entry, and final three-tab IA", firstRun);
 
   const p2Style = await page.evaluate(async () => {
     await document.fonts.ready;
@@ -469,6 +470,8 @@ let browser;
     const idx = CARDS.findIndex((card) => card.target === "器");
     markPracticeStamp(idx);
     const stampedOnly = totalPracticeDays();
+    calendarMonthKey = today().slice(0, 7); renderCalendar();
+    const inheritedCopy = calendarMonthStat.textContent, inheritedAria = calendarMonthStat.getAttribute("aria-label");
     const complete = (id) => {
       baseTargets = [idx]; batch = baseTargets; baseCursor = 1; unresolved = new Set(); practicePhase = "between";
       roundStats = [{ idx, target: "器", outcome: "fast" }]; roundId = id;
@@ -478,22 +481,22 @@ let browser;
     const afterFirst = totalPracticeDays();
     const secondComplete = complete("verify-inherited-2");
     const afterSecond = totalPracticeDays();
-    return { inherited, before, stampedOnly, firstComplete, afterFirst, secondComplete, afterSecond };
+    return { inherited, before, stampedOnly, inheritedCopy, inheritedAria, firstComplete, afterFirst, secondComplete, afterSecond };
   });
-  assert(inheritedDays.inherited === 3 && inheritedDays.before === 3 && inheritedDays.stampedOnly === 3 && inheritedDays.firstComplete && inheritedDays.secondComplete && inheritedDays.afterFirst === 4 && inheritedDays.afterSecond === 4, "Expected inherited practice days and same-day completion idempotence", inheritedDays);
+  assert(inheritedDays.inherited === 3 && inheritedDays.before === 3 && inheritedDays.stampedOnly === 3 && inheritedDays.inheritedCopy === "盖章 1天 · 累计 3天" && inheritedDays.inheritedAria === "盖章 1 天 · 累计练习 3 天" && inheritedDays.firstComplete && inheritedDays.secondComplete && inheritedDays.afterFirst === 4 && inheritedDays.afterSecond === 4, "Expected inherited practice days and same-day completion idempotence", inheritedDays);
 
   const rhythmAndMilestones = await page.evaluate(() => {
     const monthStart = `${today().slice(0, 7)}-01`, thisMonth = [...new Set([monthStart, today()])], previousMonth = shiftDay(monthStart, -1);
     activity = newActivity(); activity.inheritedStreak = 0; activity.inheritedTotalDays = 0; activity.daily = {}; activity.practiceDays = [...thisMonth, previousMonth].sort();
     activity.practiceDays.forEach((key, i) => { activity.daily[key] = { stamps: 1, attempts: 1, targetKeys: [`rhythm:${i}`], completedRoundIds: [], lastStampAt: Date.now() }; }); saveActivity(); calendarMonthKey = today().slice(0, 7); renderCalendar();
-    const monthly = { count: monthPracticeDays(), expected: thisMonth.length, copy: calendarMonthStat.textContent };
+    const monthly = { count: monthPracticeDays(), expected: thisMonth.length, copy: calendarMonthStat.textContent, aria: calendarMonthStat.getAttribute("aria-label") };
     activity = newActivity(); activity.inheritedStreak = 0; activity.daily = {}; activity.practiceDays = [];
     reminder.milestonesShown = []; activity.inheritedTotalDays = 14; const day14 = celebrateMilestoneIfAny(), repeat14 = celebrateMilestoneIfAny(), shown14 = reminder.milestonesShown.slice();
     reminder.milestonesShown = []; activity.inheritedTotalDays = 250; const skipped250 = celebrateMilestoneIfAny(), shown250 = reminder.milestonesShown.slice();
     reminder.milestonesShown = [1, 7, 14, 30, 100, 200]; activity.inheritedTotalDays = 300; const day300 = celebrateMilestoneIfAny(), repeat300 = celebrateMilestoneIfAny(), copy300 = milestoneCopy(300);
     return { monthly, schedule: milestoneDaysThrough(350), day14, repeat14, shown14, skipped250, shown250, day300, repeat300, copy300 };
   });
-  assert(rhythmAndMilestones.monthly.count === rhythmAndMilestones.monthly.expected && rhythmAndMilestones.monthly.copy.startsWith(`本月 ${rhythmAndMilestones.monthly.expected} 天 · 累计`)
+  assert(rhythmAndMilestones.monthly.count === rhythmAndMilestones.monthly.expected && rhythmAndMilestones.monthly.copy === `盖章 ${rhythmAndMilestones.monthly.expected}天 · 累计 0天` && rhythmAndMilestones.monthly.aria === `盖章 ${rhythmAndMilestones.monthly.expected} 天 · 累计练习 0 天`
     && rhythmAndMilestones.schedule.join() === "1,7,14,30,100,200,300" && rhythmAndMilestones.day14 === 14 && rhythmAndMilestones.repeat14 === null && rhythmAndMilestones.shown14.join() === "1,7,14"
     && rhythmAndMilestones.skipped250 === null && rhythmAndMilestones.shown250.join() === "1,7,14,30,100,200" && rhythmAndMilestones.day300 === 300 && rhythmAndMilestones.repeat300 === null && rhythmAndMilestones.copy300.includes("300"),
   "Expected penalty-free monthly rhythm, one-time day-14 celebration, silent inherited catch-up, and every-100 continuation", rhythmAndMilestones);
@@ -511,21 +514,22 @@ let browser;
     const allDays = activity.practiceDays.slice(); activity.practiceDays = allDays.slice(0, 2); const few = medianPracticeTime(); activity.practiceDays = allDays;
     activity.practiceDays.forEach((key) => { activity.daily[key].lastStampAt = at(23, 30); }); const late = medianPracticeTime();
     const missIdx = CARDS.findIndex((card) => card.target === "蘸"), otherIdx = CARDS.findIndex((card) => card.target === "器");
-    memory = {}; status = {}; [missIdx, otherIdx].forEach((idx, order) => { memory[cardKey(idx)] = { seen: 1, dueDay: today(), pendingLearning: false, lastOutcome: order === 0 ? "miss" : "fast", misses: order === 0 ? 2 : 0, ease: order === 0 ? 25 : 70, last: Date.now() - order }; status[idx] = "rest"; });
+    memory = {}; status = {}; [missIdx, otherIdx].forEach((idx, order) => { memory[cardKey(idx)] = { seen: 1, dueDay: today(), pendingLearning: false, lastOutcome: order === 0 ? "miss" : "fast", misses: order === 0 ? 2 : 0, ease: order === 0 ? 25 : 70, last: Date.now() - order }; status[cardKey(idx)] = "rest"; });
     reminder = normalizeReminder({ enabled: true, permission: "granted" }); renderMe(); syncReminder(); const sync = cloneObj(reminderDebug.lastSync);
+    const fallbackIdx = CARDS.findIndex((card) => card.target === "品"), fallbackKey = cardKey(fallbackIdx); memory = { [fallbackKey]: { seen: 1, dueDay: shiftDay(today(), 30), pendingLearning: false, lastOutcome: "slow", slow: 1, ease: 35, last: Date.now() } }; status = { [fallbackKey]: "rest" }; syncReminder(); const fallback = cloneObj(reminderDebug.lastSync);
     memory = {}; status = {}; syncReminder(); const noTarget = cloneObj(reminderDebug.lastSync);
     memory = original.memory; status = original.status; reminder = normalizeReminder(original.reminder); saveMemory(); save(DECK_KEY, status); saveReminder();
     return {
       median, few, late,
       hiddenInBrowser: getComputedStyle(reminderSection).display === "none" && getComputedStyle(reminderInvite).display === "none",
-      sync, noTarget, missKey: cardKey(missIdx), missWord: CARDS[missIdx].word, missPy: CARDS[missIdx].py,
+      sync, fallback, noTarget, missKey: cardKey(missIdx), missWord: CARDS[missIdx].word, missPy: CARDS[missIdx].py, fallbackKey: cardKey(fallbackIdx),
     };
   });
   assert(reminderBoundary.median.hour === 9 && reminderBoundary.median.minute === 24 && reminderBoundary.few.hour === 20 && reminderBoundary.few.minute === 0 && reminderBoundary.late.hour === 22 && reminderBoundary.late.minute === 0 && reminderBoundary.hiddenInBrowser && reminderBoundary.sync.type === "syncReminder", "Expected reminder median, fallback, clamp, and browser fallback boundaries", reminderBoundary);
   assert(reminderBoundary.sync.enabled && reminderBoundary.sync.questions.length === 8 && reminderBoundary.sync.targetCardKey === reminderBoundary.missKey && reminderBoundary.sync.questions[0].targetCardKey === reminderBoundary.missKey
-    && reminderBoundary.sync.title === `${reminderBoundary.missWord}的 ${reminderBoundary.missPy}` && reminderBoundary.sync.body === "还写得出吗，点开写写看"
-    && reminderBoundary.sync.questions.every((question) => question.title && question.body && question.targetCardKey && /^\d{4}-\d{2}-\d{2}$/.test(question.day)) && !reminderBoundary.noTarget.enabled && reminderBoundary.noTarget.questions.length === 0,
-  "Expected missed-due-first question payloads, stable card keys, fixed copy, and no notification without a target", reminderBoundary);
+    && reminderBoundary.sync.title === `${reminderBoundary.missWord}（${reminderBoundary.missPy}）` && reminderBoundary.sync.body === "还记得这个字怎么写吗？点开试试。"
+    && reminderBoundary.sync.questions.every((question) => question.title && question.body && question.targetCardKey && /^\d{4}-\d{2}-\d{2}$/.test(question.day)) && reminderBoundary.fallback.enabled && reminderBoundary.fallback.targetCardKey === reminderBoundary.fallbackKey && !reminderBoundary.noTarget.enabled && reminderBoundary.noTarget.questions.length === 0,
+  "Expected missed-due-first payloads, a later high-risk fallback, stable card keys, fixed copy, and no notification without a target", reminderBoundary);
 
   const backupReminderBoundary = await page.evaluate(() => {
     const completed = (count) => {
@@ -644,11 +648,11 @@ let browser;
   const coreBytes = coreStrokes.chars.reduce((sum, char) => sum + fs.statSync(path.join(root, "data", `${char}.json`)).size, 0);
   assert(coreStrokes.chars.length === 600 && new Set(coreStrokes.chars).size === 600 && coreStrokes.calibration === "尴嚏狩晤飓痿俾跻徵瞰裘娩邃暧煲" && missingCoreFiles.length === 0 && coreBytes >= 1024 * 1024 && coreBytes <= 2 * 1024 * 1024,
   "Expected 600 unique core files including the exact first calibration group within the 1-2 MiB target", { count: coreStrokes.chars.length, calibration: coreStrokes.calibration, missingCoreFiles, coreBytes });
-  await page.waitForFunction(async () => { const cache = await caches.open("shizi-cache-v2"), keys = await cache.keys(); return keys.filter((request) => new URL(request.url).pathname.includes("/data/")).length >= 602; }, null, { timeout: 30000 });
-  const coreCache = await page.evaluate(async () => { const cache = await caches.open("shizi-cache-v2"), keys = await cache.keys(); return { core: keys.filter((request) => new URL(request.url).pathname.includes("/data/") && !new URL(request.url).pathname.endsWith("context-overrides.js") && !new URL(request.url).pathname.endsWith("etymology.json")).length, shell: !!(await cache.match("core-strokes.js")), etymology: !!(await cache.match("data/etymology.json")), contexts: !!(await cache.match("data/context-overrides.js")) }; });
+  await page.waitForFunction(async () => { const name=(await caches.keys()).find(key=>key.startsWith("shizi-v13-")); if(!name) return false; const cache = await caches.open(name), keys = await cache.keys(); return keys.filter((request) => new URL(request.url).pathname.includes("/data/")).length >= 602; }, null, { timeout: 30000 });
+  const coreCache = await page.evaluate(async () => { const name=(await caches.keys()).find(key=>key.startsWith("shizi-v13-")), cache = await caches.open(name), keys = await cache.keys(); return { name, core: keys.filter((request) => new URL(request.url).pathname.includes("/data/") && !new URL(request.url).pathname.endsWith("context-overrides.js") && !new URL(request.url).pathname.endsWith("etymology.json")).length, shell: keys.some(request=>new URL(request.url).pathname.endsWith("/core-strokes.js")&&new URL(request.url).search), etymology: keys.some(request=>new URL(request.url).pathname.endsWith("/data/etymology.json")), contexts: keys.some(request=>new URL(request.url).pathname.endsWith("/data/context-overrides.js")&&new URL(request.url).search) }; });
   assert(coreCache.core >= 600 && coreCache.shell && coreCache.etymology && coreCache.contexts, "Expected the service worker to install all core strokes, etymology, context overrides, and retain runtime-fetched extras", coreCache);
   const boundedStrokeCache = await page.evaluate(async () => {
-    const cache = await caches.open("shizi-cache-v2"), core = new Set(self.SHIZI_CORE_STROKES), runtime = CARDS.find(card => !core.has(card.target) && !card.custom && card.target);
+    const name = (await caches.keys()).find(key => key.startsWith("shizi-v13-")), cache = await caches.open(name), core = new Set(self.SHIZI_CORE_STROKES), runtime = CARDS.find(card => !core.has(card.target) && !card.custom && card.target);
     for (let index = 0; index < 230; index += 1) await cache.put(`data/__verify-cache-${index}.json`, new Response("{}", { headers: { "Content-Type": "application/json" } }));
     await fetch(`data/${encodeURIComponent(runtime.target)}.json?verify-cache-limit=1`);
     await new Promise(resolve => setTimeout(resolve, 150));
@@ -714,7 +718,7 @@ let browser;
   const notificationDeepLink = await page.evaluate(() => {
     const original = { memory: cloneObj(memory), status: cloneObj(status), tuning: cloneObj(tuning), activeMode, focusQueue: focusQueue.slice(), sessionDone: [...sessionDone] };
     const idx = CARDS.findIndex((card) => card.target === "蘸"), key = cardKey(idx);
-    memory = { [key]: { seen: 1, dueDay: today(), pendingLearning: false, lastOutcome: "miss", misses: 1, ease: 30, last: Date.now() } }; status = { [idx]: "rest" }; tuning = { calibrated: true, offset: 0, contextStrict: 0, rounds: [] };
+    memory = { [key]: { seen: 1, dueDay: today(), pendingLearning: false, lastOutcome: "miss", misses: 1, ease: 30, last: Date.now() } }; status = { [key]: "rest" }; tuning = { calibrated: true, offset: 0, contextStrict: 0, rounds: [] };
     clearSessionSnapshot(); saveMemory(); save(DECK_KEY, status); saveTuning(); const opened = shiziOpenReminderTarget(key);
     const result = { opened, mode: activeMode, current: currentCardIndex(), target: CARDS[currentCardIndex()].target, cardVisible: getComputedStyle(card).display !== "none", invalidRejected: shiziOpenReminderTarget("base:不存在") === false };
     loadToken++; clearSessionSnapshot(); memory = original.memory; status = original.status; tuning = original.tuning; activeMode = original.activeMode; focusQueue = original.focusQueue; sessionDone = new Set(original.sessionDone); saveMemory(); save(DECK_KEY, status); saveTuning();
@@ -737,23 +741,41 @@ let browser;
   await page.reload({ waitUntil: "networkidle" });
 
   const migration = await page.evaluate(() => {
-    const idx = CARDS.findIndex((card) => card.target === "器");
     const future = new Date(); future.setHours(18, 0, 0, 0); future.setDate(future.getDate() + 3);
     const sameDay = new Date(); sameDay.setHours(23, 0, 0, 0);
     const futureMemory = { seen: 1, due: future.getTime() };
     const sameDayMemory = { seen: 1, due: sameDay.getTime() };
     normalizeLegacySchedule(futureMemory); normalizeLegacySchedule(sameDayMemory);
-    const v1 = migrateV1Session({ version: 1, date: shiftDay(today(), -1), activeMode: "focus", batch: [idx], pos: 0, roundStats: [], sessionDone: [], roundId: "legacy-v1" });
-    return { futureDay: futureMemory.dueDay, expectedFuture: dayKey(future), sameDay: sameDayMemory.dueDay, today: today(), version: v1.version, startedDate: v1.startedDate, currentIndex: v1.currentIndex };
+    const saved = { customWords: customWords.slice(), memory: cloneObj(memory), quality: cloneObj(quality), status: cloneObj(status), fsrs: cloneObj(fsrsReviewLog), activity: cloneObj(activity), session: localStorage.getItem(SESSION_KEY), legacySessionDiscarded };
+    const oldKey = "custom:6854:丂", oldInk = "data:image/png;base64,verify";
+    customWords = ["丂"]; buildCustomCards();
+    memory = { [oldKey]: { seen: 2, misses: 1, lastOutcome: "miss", last: 1234, recentInk: { at: 1234, dataURL: oldInk } } };
+    quality = { [oldKey]: { rare: true } }; status = { "6854": "indeck" };
+    fsrsReviewLog = [{ eventId: "legacy-custom", cardKey: oldKey, target: "丂" }];
+    activity = normalizeActivity({ version: 1, migrationDate: today(), inheritedStreak: 0, inheritedTotalDays: 0, practiceDays: [today()], daily: { [today()]: { stamps: 1, attempts: 1, targetKeys: [oldKey], independentTargetKeys: [], reviewTargetKeys: [oldKey], completedRoundIds: [] } } });
+    migrateStableCardIdentity();
+    const customIdx = customIndexOf("丂"), stableKey = cardKey(customIdx);
+    localStorage.setItem(SESSION_KEY, JSON.stringify({ version: 2, startedDate: shiftDay(today(), -1), activeMode: "new", baseTargets: [4103], currentIndex: 4103 }));
+    const legacyResume = resumableSession(), quarantined = localStorage.getItem(`shizi.corrupt.${SESSION_KEY}`);
+    const result = { futureDay: futureMemory.dueDay, expectedFuture: dayKey(future), sameDay: sameDayMemory.dueDay, today: today(),
+      stableKey, customIdx, memory: cloneObj(memory[stableKey]), quality: cloneObj(quality[stableKey]), status: statusFor(customIdx), fsrsKey: fsrsReviewLog[0].cardKey,
+      activityKey: dailyActivity().targetKeys[0], reminderIndex: indexForCardKey(oldKey), legacyResume, quarantined: !!quarantined, legacyNumericTargetNow: CARDS[4103].target };
+    customWords = saved.customWords; buildCustomCards(); memory = saved.memory; quality = saved.quality; status = saved.status; fsrsReviewLog = saved.fsrs; activity = normalizeActivity(saved.activity); legacySessionDiscarded = saved.legacySessionDiscarded;
+    save(CUSTOM_KEY, customWords); saveMemory(); saveQuality(); save(DECK_KEY, status); saveFSRSLog(); saveActivity(); localStorage.removeItem(`shizi.corrupt.${SESSION_KEY}`); if(saved.session===null) clearSessionSnapshot(); else localStorage.setItem(SESSION_KEY,saved.session);
+    return result;
   });
   assert(migration.futureDay === migration.expectedFuture && migration.sameDay === migration.today, "Expected lossless legacy due migration", migration);
-  assert(migration.version === 2 && migration.startedDate !== migration.today && Number.isInteger(migration.currentIndex), "Expected cross-midnight v1 session migration", migration);
+  assert(migration.stableKey === "custom:丂" && migration.customIdx === 7294 && migration.memory.seen === 2 && migration.memory.recentInk.dataURL
+    && migration.quality.rare && migration.status === "indeck" && migration.fsrsKey === migration.stableKey && migration.activityKey === migration.stableKey
+    && migration.reminderIndex === migration.customIdx, "Expected legacy custom identity and every dependent record to migrate to a stable key", migration);
+  assert(migration.legacyResume === null && migration.quarantined && migration.legacyNumericTargetNow === "铿",
+    "Expected an unsafe v2 numeric session to be quarantined instead of resuming as a different character", migration);
 
   const reviewBudget = await page.evaluate(() => {
     const saved = { memory: cloneObj(memory), status: cloneObj(status), quality: cloneObj(quality), activity: cloneObj(activity), tuning: cloneObj(tuning), sessionDone: [...sessionDone], activeMode, baseTargets: baseTargets.slice(), batch: batch.slice() };
     const originalRender = render, originalRenderHome = renderHome, originalToast = toast, originalWarm = warmStrokeCache, originalArm = armPracticeHistory;
     const dueIndexes = allIndexes().slice(0, 200); memory = {}; status = {}; quality = {}; activity = newActivity(); activity.inheritedTotalDays = 0; activity.daily = {}; sessionDone = new Set(); tuning = { calibrated: true, offset: 0, contextStrict: 0, rounds: [] };
-    dueIndexes.forEach((idx, order) => { memory[cardKey(idx)] = { seen: 1, dueDay: shiftDay(today(), -1), pendingLearning: false, lastOutcome: order % 4 === 0 ? "miss" : "fast", misses: order % 4 === 0 ? 1 : 0, ease: 50, streak: 1, last: Date.now() - order }; status[idx] = "rest"; });
+    dueIndexes.forEach((idx, order) => { memory[cardKey(idx)] = { seen: 1, dueDay: shiftDay(today(), -1), pendingLearning: false, lastOutcome: order % 4 === 0 ? "miss" : "fast", misses: order % 4 === 0 ? 1 : 0, ease: 50, streak: 1, last: Date.now() - order }; status[cardKey(idx)] = "rest"; });
     saveMemory(); save(DECK_KEY, status); saveActivity();
     const expectedTop = reviewPool(false).slice().sort(compareReviewPriority).slice(0, DAILY_REVIEW_BUDGET);
     render = () => {}; renderHome = () => {}; toast = () => {}; warmStrokeCache = () => {}; armPracticeHistory = () => {};
@@ -913,6 +935,21 @@ let browser;
   assert(typeAfter.title >= typeBefore.title * 1.1 && typeAfter.advice >= typeBefore.advice * 1.1 && typeAfter.pressed === "true" && typeAfter.state === "开" && typeAfter.stored && typeAfter.backedUp, "Expected the persisted large-type preference to scale fixed-pixel text and join backups", { typeBefore, typeAfter });
   await page.click("#fontScaleRow");
   await page.click("#closeSettings");
+  const nonMissWeakPreview = await page.evaluate(() => {
+    const saved = cloneObj(memory), hintIdx = CARDS.findIndex((card) => card.target === "器"), slowIdx = CARDS.findIndex((card) => card.target === "品");
+    memory = {
+      [cardKey(hintIdx)]: { seen: 1, last: Date.now(), target: CARDS[hintIdx].target, misses: 0, hints: 1, slow: 0 },
+      [cardKey(slowIdx)]: { seen: 1, last: Date.now() - 1, target: CARDS[slowIdx].target, misses: 0, hints: 0, slow: 1 },
+    };
+    renderMe();
+    const preview = Array.from(meWeakChars.querySelectorAll("[data-char-idx]")).map((node) => Number(node.dataset.charIdx)), advice = meAdvice.textContent;
+    renderProfile();
+    const profile = { indexes: profilePracticeIndexes.slice(), empty: document.getElementById("profileAdvice").textContent.includes("目前没有记录到没写出的字"), disabled: profilePractice.disabled };
+    memory = saved; renderMe();
+    return { hintIdx, slowIdx, preview, advice, profile };
+  });
+  assert(nonMissWeakPreview.preview.length === 0 && nonMissWeakPreview.advice === "目前没有记录到没写出的字。" && nonMissWeakPreview.profile.indexes.length === 0 && nonMissWeakPreview.profile.empty && nonMissWeakPreview.profile.disabled,
+    "Expected hint-only and slow-only records to stay out of the miss-based preview and detail", nonMissWeakPreview);
   await page.click("#tabBook");
   await page.fill("#bookSearchInput", "蘸料");
   await page.click("#bookSearchResult [data-book-add]");
@@ -927,14 +964,14 @@ let browser;
     saveMemory(); renderMe();
   });
   const meStory = await page.evaluate(() => ({ weak: Array.from(meWeakChars.querySelectorAll("[data-char-idx]")).map(node => node.textContent), advice: meAdvice.textContent, calendarStat: calendarMonthStat.textContent, month: meMonthMeta.textContent, settings: !!openSettings, backup: backupStatus.textContent }));
-  assert(meStory.weak.includes("器") && meStory.advice.includes("写过还总忘") && meStory.calendarStat.includes("累计") && meStory.month.includes("留下手写") && meStory.settings && meStory.backup.length > 0, "Expected My to place real weak words, calendar days, monthly work, settings, and backup in context", meStory);
+  assert(meStory.weak.includes("器") && meStory.advice === "这些字在练习中没写出来过" && meStory.calendarStat.includes("累计") && meStory.month.includes("个独立写出") && meStory.settings && meStory.backup.length > 0, "Expected My to place real weak words, calendar days, monthly work, settings, and backup in context", meStory);
   await page.click("#meWeakChars [data-char-idx]");
   const detail = await page.evaluate(() => ({ open: charSheet.classList.contains("open"), word: charDetailWord.textContent, story: charDetailStory.textContent, actions: [charDetailStrokeBtn.textContent, charDetailPractice.textContent] }));
   assert(detail.open && detail.word.length > 0 && detail.story.includes("练过") && detail.actions.join() === "看笔顺,再写一遍", "Expected a weak word to open its factual detail sheet", detail);
   await page.evaluate(() => closeCharSheet());
   await page.click("#openProfile");
   const profileInsight = await page.evaluate(() => ({ visible: getComputedStyle(profilePanel).display !== "none", title: profilePanel.querySelector("h2").textContent, forbidden: /掌握感|易忘度|卡点分析/.test(profilePanel.textContent), rows: profilePanel.querySelectorAll("[data-profile-kind],[data-char-idx]").length }));
-  assert(profileInsight.visible && profileInsight.title === "常忘的字" && !profileInsight.forbidden && profileInsight.rows > 0, "Expected human profile language with no opaque algorithm score", profileInsight);
+  assert(profileInsight.visible && profileInsight.title === "写得不稳的字" && !profileInsight.forbidden && profileInsight.rows > 0, "Expected human profile language with no opaque algorithm score", profileInsight);
   await page.click("#closeProfile");
   assert(await page.evaluate(() => getComputedStyle(mePanel).display !== "none"), "Expected a Profile opened from My to return to My");
   await page.click("#tabBook");
@@ -1032,7 +1069,7 @@ let browser;
   await page.evaluate(() => { sound.enabled = true; soundDebug.events = []; soundDebug.last = null; sound.tipShown = false; saveSound(); });
   await chooseCorrect(page);
   const stampSound = await page.evaluate(() => ({ last: soundDebug.last, events: soundDebug.events.slice(), tipShown: sound.tipShown, tip: document.getElementById("toast").textContent, contextCreated: soundDebug.contextCreated }));
-  assert(stampSound.last === "stamp" && stampSound.events.join() === "stamp" && stampSound.tipShown && stampSound.tip.includes("盖章有声音了") && stampSound.contextCreated >= 1,
+  assert(stampSound.last === "stamp" && stampSound.events.join() === "stamp" && stampSound.tipShown && stampSound.tip.includes("盖章音效已开启") && stampSound.contextCreated >= 1,
     "Expected one restrained stamp sound in the same grading turn and a one-time settings hint", stampSound);
   await page.waitForTimeout(1900);
   const queuedSecond = await page.evaluate(() => ({ current: cur.target, firstConsumed: !(memory[cardKey(indexesForChars(["强"])[0])] || {}).queuedFront, secondQueued: !!(memory[cardKey(indexesForChars(["器"])[0])] || {}).queuedFront, undo: getComputedStyle(undoBar).display !== "none" }));
@@ -1097,14 +1134,14 @@ let browser;
   await page.click("#show");
   await page.waitForFunction(() => practicePhase === "tracing");
   const calibrationHelp = await page.evaluate(() => ({ phase: practicePhase, comfort: calibrationComfortShown, copy: traceIntro.textContent, mascot: mascotLine.textContent, bubbleHidden: getComputedStyle(teachBubble).display === "none", actionBottom: traceActions.getBoundingClientRect().bottom, viewportBottom: innerHeight, secondComfort: takeCalibrationComfort("slow"), card1Events: funnelEventCount("calib_card1_done") }));
-  assert(calibrationHelp.phase === "tracing" && calibrationHelp.comfort && calibrationHelp.copy.includes("忘了正常") && calibrationHelp.mascot.includes("沿着轮廓描") && calibrationHelp.bubbleHidden && calibrationHelp.actionBottom <= calibrationHelp.viewportBottom
+  assert(calibrationHelp.phase === "tracing" && calibrationHelp.comfort && calibrationHelp.copy.includes("想不起来很正常") && calibrationHelp.mascot.includes("沿着轮廓写") && calibrationHelp.bubbleHidden && calibrationHelp.actionBottom <= calibrationHelp.viewportBottom
     && !calibrationHelp.secondComfort && calibrationHelp.card1Events === 1,
   "Expected first-card don't-know to enter tracing immediately and show calibration comfort only once", calibrationHelp);
 
   await page.evaluate(() => { tracedThisCard = true; updateInkControls(); });
   await page.click("#traceDone");
   const postTraceLayout = await page.evaluate(() => ({ phase: practicePhase, title: phaseTitle.textContent, hint: hint.textContent, mascot: mascotLine.textContent, actionBottom: actions.getBoundingClientRect().bottom, viewportBottom: innerHeight, show: show.textContent }));
-  assert(postTraceLayout.phase === "postTraceRecall" && postTraceLayout.title.includes("2/2 自己写") && postTraceLayout.hint === "" && postTraceLayout.mascot === "不看范字，再独立写一次"
+  assert(postTraceLayout.phase === "postTraceRecall" && postTraceLayout.title.includes("第 2 步：自己写") && postTraceLayout.hint === "" && postTraceLayout.mascot === "不看范字，再独立写一次"
     && postTraceLayout.actionBottom <= postTraceLayout.viewportBottom && postTraceLayout.show === "再描一遍", "Expected the complete 375x667 post-trace controls without duplicate guidance", postTraceLayout);
 
   await page.evaluate(() => {
@@ -1172,7 +1209,7 @@ let browser;
     summary.style.display = "flex"; calibCard.style.display = "flex"; renderCalibrationReturnHook();
     return { visible: getComputedStyle(calibReturnHook).display === "flex", title: calibReturnTitle.textContent, date: calibReturnText.textContent, buttonHidden: getComputedStyle(calibReminderYes).display === "none", tomorrow: formatDueDay(shiftDay(today(), 1)) };
   });
-  assert(calibrationWebReturn.visible && calibrationWebReturn.title.includes("明天再来") && calibrationWebReturn.date === calibrationWebReturn.tomorrow && calibrationWebReturn.buttonHidden,
+  assert(calibrationWebReturn.visible && calibrationWebReturn.title.includes("明天继续") && calibrationWebReturn.date === calibrationWebReturn.tomorrow && calibrationWebReturn.buttonHidden,
   "Expected Web calibration result to show a concrete next-day return expectation", calibrationWebReturn);
 
   await page.evaluate(() => { clearSessionSnapshot(); activeMode = "focus"; startFocus([CARDS.findIndex((card) => card.target === "器")]); });
@@ -1198,7 +1235,7 @@ let browser;
     return result;
   });
   assert(revealFidelity.grids.every(Boolean) && revealFidelity.standardPaths > 0 && revealFidelity.standardPaths === revealFidelity.overlayPaths && revealFidelity.sameViewBox
-    && revealFidelity.failedCount === 1 && revealFidelity.copy.includes("这几笔和范字不太一样") && revealFidelity.exactSuggest && revealFidelity.fallback,
+    && revealFidelity.failedCount === 1 && revealFidelity.copy.includes("这几笔可以再和范字对照一下") && revealFidelity.exactSuggest && revealFidelity.fallback,
   "Expected coordinate-aligned skeleton comparison, exact-stroke highlighting, soft suggestion tint, and font fallback", revealFidelity);
   await page.click("#decisionCorrect");
   const softConfirmFirst = await page.evaluate(() => ({ shown: getComputedStyle(softConfirm).display !== "none", stamped, attempts: episodeFor(currentCardIndex()).attempts.length }));
@@ -1333,18 +1370,20 @@ let browser;
     baseTargets = indexes.slice(); batch = baseTargets; calibrationTargets = baseTargets.slice(); baseCursor = baseTargets.length; manualQueue = []; unresolved = new Set(); practicePhase = "between";
     roundStats = [
       { idx: indexes[0], target: CARDS[indexes[0]].target, outcome: "fast", independentlyRecovered: false },
-      { idx: indexes[1], target: CARDS[indexes[1]].target, outcome: "hinted", independentlyRecovered: true },
+      { idx: indexes[1], target: CARDS[indexes[1]].target, outcome: "hinted", uncertain: true, independentlyRecovered: true },
       { idx: indexes[2], target: CARDS[indexes[2]].target, outcome: "slow", independentlyRecovered: false },
       { idx: indexes[3], target: CARDS[indexes[3]].target, outcome: "miss", independentlyRecovered: true },
     ];
     roundId = "verify-p1-ceremony"; roundStartMemoryCount = memoryCount(); indexes.forEach((idx) => markPracticeStamp(idx)); hapticDebug.events = []; hapticDebug.last = null;
     roundSummary(true);
     const sealDelay = parseFloat(getComputedStyle(calibBigSeal).animationDelay) * 1000;
-    const immediate = hapticDebug.events.slice(), tiles = Array.from(calibSumTiles.querySelectorAll(".sumTile"));
+    const immediate = hapticDebug.events.slice(), tiles = Array.from(calibSumTiles.querySelectorAll(".sumTile")), ariaProbe = document.createElement("div");
+    ariaProbe.innerHTML = sumTile({ idx: indexes[1], target: CARDS[indexes[1]].target, outcome: "hinted", uncertain: false, independentlyRecovered: false }, 0);
     const before = {
       calibration: getComputedStyle(calibCard).display, sheet: getComputedStyle(sumSheet).display, tiles: tiles.length, date: calibDateSeal.textContent,
-      sealDelay, hint: getComputedStyle(calibPracticeHint).display, legend: calibCard.textContent.includes("无点 · 拾到"),
+      sealDelay, hint: getComputedStyle(calibPracticeHint).display, legend: calibCard.textContent.includes("首次结果：无标记 独立写对") && calibCard.textContent.includes("金菱 看过提示 / 不确定"),
       marks: tiles.map((tile) => tile.querySelector(".outcomeMark")?.textContent || ""), recovered: tiles.map((tile) => tile.querySelector(".recover")?.textContent || ""),
+      arias: tiles.map((tile) => tile.getAttribute("aria-label")), hintedAria: ariaProbe.firstElementChild?.getAttribute("aria-label") || "",
       slowBorder: getComputedStyle(tiles[2]).borderColor, blue: getComputedStyle(document.documentElement).getPropertyValue("--blue").trim(), immediate,
     };
     await new Promise((resolve) => setTimeout(resolve, sealDelay + 100));
@@ -1368,7 +1407,10 @@ let browser;
   });
   assert(p1Ceremony.before.calibration === "flex" && p1Ceremony.before.sheet === "none" && p1Ceremony.before.tiles === 4 && p1Ceremony.before.date.length > 0
     && p1Ceremony.before.sealDelay >= 690 && p1Ceremony.before.hint === "block" && p1Ceremony.before.legend && p1Ceremony.before.marks.join("") === "补待再"
-    && p1Ceremony.before.recovered.filter(Boolean).every((copy) => copy === "已独立") && p1Ceremony.before.slowBorder !== p1Ceremony.before.blue && p1Ceremony.before.immediate.length === 0 && p1Ceremony.after.join() === "action",
+    && p1Ceremony.before.recovered.filter(Boolean).every((copy) => copy === "已独立")
+    && p1Ceremony.before.arias[0].includes("第一次独立写对") && p1Ceremony.before.arias[1].includes("第一次不太确定，之后已独立写出")
+    && p1Ceremony.before.arias[2].includes("第一次写错") && p1Ceremony.before.arias[3].includes("第一次没写出") && p1Ceremony.before.hintedAria.includes("第一次看过提示后写出")
+    && p1Ceremony.before.slowBorder !== p1Ceremony.before.blue && p1Ceremony.before.immediate.length === 0 && p1Ceremony.after.join() === "action",
   "Expected the first calibration result to play the full, risk-readable tile/date/final-seal ceremony", p1Ceremony);
   assert(p1Ceremony.recoveredStamp.className.includes("recovered") && p1Ceremony.recoveredStamp.shadow !== "none" && p1Ceremony.recoveredStamp.copy === "这个字今天写稳了" && p1Ceremony.recoveredStamp.mascot.includes("pleased") && p1Ceremony.recoveredStamp.concernedMascot.includes("concerned"),
   "Expected an independently recovered card to receive a distinct gold-edged seal, plain-language feedback, and responsive mascot state", p1Ceremony.recoveredStamp);
@@ -1388,7 +1430,7 @@ let browser;
     showRevealState(submissionSnapshot); decideSubmission(false); const autoOverlay = { on: overlayOn, display: getComputedStyle(mineOverlay).display, toggle: overlayToggle.textContent }; clearTimeout(autoNextTimer); clearTimeout(editStampTimer);
     return { me, bars, wallEmpty, breathes, autoOverlay, homeAdd: !!homeAdd, qualityTargets: Array.from(qualityBox.querySelectorAll("button")).map((node) => parseFloat(getComputedStyle(node).minHeight)), compareTargets: Array.from(document.querySelectorAll(".cmpLinks button")).map((node) => parseFloat(getComputedStyle(node).minHeight)) };
   });
-  assert(p1Discovery.me.calendar && p1Discovery.me.stat.includes("累计") && !p1Discovery.me.ready && p1Discovery.me.advice.includes("写过还总忘") && p1Discovery.me.weak.includes("器") && p1Discovery.bars === 0
+  assert(p1Discovery.me.calendar && p1Discovery.me.stat.includes("累计") && !p1Discovery.me.ready && p1Discovery.me.advice === "这些字在练习中没写出来过" && p1Discovery.me.weak.includes("器") && p1Discovery.bars === 0
     && p1Discovery.wallEmpty && p1Discovery.breathes && p1Discovery.autoOverlay.on && p1Discovery.autoOverlay.display === "flex" && p1Discovery.autoOverlay.toggle === "分开看"
     && p1Discovery.homeAdd && p1Discovery.qualityTargets.every((height) => height >= 44) && p1Discovery.compareTargets.every((height) => height >= 40),
   "Expected contextual My states, discoverable controls, an empty memory wall, and a due-card breathe cue", p1Discovery);
@@ -1517,13 +1559,13 @@ let browser;
     image: submissionSnapshot.compositeImage && submissionSnapshot.compositeImage.startsWith("data:image/png"),
     effect: correctEffect.textContent,
   }));
-  assert(snapshot.label === "提交字格" && snapshot.hintIds === 1 && snapshot.hintGeometry === 1 && snapshot.composite === snapshot.hintGeometry + snapshot.ink && snapshot.verdict === "ok" && snapshot.hintEverUsed && snapshot.image, "Expected one immutable complete-grid submission snapshot", snapshot);
+  assert(snapshot.label === "你写的" && snapshot.hintIds === 1 && snapshot.hintGeometry === 1 && snapshot.composite === snapshot.hintGeometry + snapshot.ink && snapshot.verdict === "ok" && snapshot.hintEverUsed && snapshot.image, "Expected one immutable complete-grid submission snapshot", snapshot);
   assert(snapshot.effect.includes("已用提示"), "Expected correct action to explain reinforcement consequence", snapshot.effect);
 
   await chooseCorrect(page);
   await page.waitForTimeout(450);
-  const hold = await page.evaluate(() => { const stored=load(SESSION_KEY,null); return { sameTarget: cur.target, feedback: stampedToast.textContent, outcome: roundStats[0] && roundStats[0].outcome, ratings: fsrsReviewLog.map((event) => event.rating), unresolved: [...unresolved], sessionHasUndo:Object.prototype.hasOwnProperty.call(stored||{},"lastStampSnapshot"),sessionHasHandwriting:(stored&&stored.roundStats||[]).some(row=>Object.prototype.hasOwnProperty.call(row,"handwriting")) }; });
-  assert(hold.sameTarget === firstTarget && hold.feedback.includes("本组稍后再写") && hold.outcome === "hinted" && hold.ratings.join() === "Again" && hold.unresolved.length === 1 && !hold.sessionHasUndo && !hold.sessionHasHandwriting, "Expected hinted feedback with one Again and a compact session payload", hold);
+  const hold = await page.evaluate(() => { const stored=load(SESSION_KEY,null); return { sameTarget: cur.target, feedback: stampedToast.textContent, outcome: roundStats[0] && roundStats[0].outcome, ratings: fsrsReviewLog.map((event) => event.rating), unresolved: [...unresolved], sessionHasUndo:Object.prototype.hasOwnProperty.call(stored||{},"lastStampSnapshot"),sessionHasHandwriting:(stored&&stored.roundStats||[]).some(row=>Object.prototype.hasOwnProperty.call(row,"handwriting")),stampSnapshotHasHandwriting:((stored&&stored.lastStampSnapshot&&stored.lastStampSnapshot.roundStatsValue)||[]).some(row=>Object.prototype.hasOwnProperty.call(row,"handwriting")) }; });
+  assert(hold.sameTarget === firstTarget && hold.feedback.includes("本组稍后再写") && hold.outcome === "hinted" && hold.ratings.join() === "Again" && hold.unresolved.length === 1 && hold.sessionHasUndo && !hold.sessionHasHandwriting && !hold.stampSnapshotHasHandwriting, "Expected hinted feedback with one Again, a restorable undo, and no handwriting in the session payload", hold);
 
   await page.click("#editStamp");
   const rollback = await page.evaluate(() => ({ phase: practicePhase, events: fsrsReviewLog.length, stats: roundStats.length, attempts: dailyActivity().attempts, stamps: dailyActivity().stamps, queue: reinforcementQueue.length, unresolved: unresolved.size, image: submissionSnapshot.compositeImage }));
@@ -1566,7 +1608,7 @@ let browser;
     await page.waitForTimeout(1900);
   }
   const reinforcement = await page.evaluate(() => ({ target: cur.target, kind: currentAttemptKind, baseCursor, attemptSeq, unresolved: [...unresolved], progress: posLabel.textContent, targets: baseTargets.slice(), stats: roundStats.map((row) => row.idx) }));
-  assert(reinforcement.target === firstTarget && reinforcement.kind === "reinforcement" && reinforcement.baseCursor === 3 && reinforcement.attemptSeq === 3 && reinforcement.progress === "还要再练 1", "Expected two-card spacing and plain-language reinforcement progress", reinforcement);
+  assert(reinforcement.target === firstTarget && reinforcement.kind === "reinforcement" && reinforcement.baseCursor === 3 && reinforcement.attemptSeq === 3 && reinforcement.progress === "另有 1 个字要再练", "Expected two-card spacing and plain-language reinforcement progress", reinforcement);
 
   await page.evaluate(() => { saveSessionSnapshot(); restoreSession(load(SESSION_KEY, null)); });
   await waitForWriter(page);
@@ -1597,7 +1639,7 @@ let browser;
   assert(completed.restKnown && completed.restLine.length > 0 && completed.ambient.scene === "off" && completed.ambient.stops >= 1, "Expected one fixed-library closing line and soundscape fade on summary", completed);
 
   const summaryEntry = await page.evaluate(() => ({ visible: getComputedStyle(summaryProfile).display !== "none", label: summaryProfile.textContent.trim() }));
-  assert(summaryEntry.visible && summaryEntry.label.includes("看看你卡在哪"), "Expected a hard-result summary to expose Profile", summaryEntry);
+  assert(summaryEntry.visible && summaryEntry.label.includes("看看写得不稳的字"), "Expected a hard-result summary to expose Profile", summaryEntry);
   const sharePaths = await page.evaluate(async () => {
     const messages = [], downloads = [], shared = [];
     const canvas = renderPracticeCardCanvas(), native = await sharePracticeCard({ nativeBridge: { postMessage: (message) => messages.push(message) } });
@@ -1659,8 +1701,8 @@ let browser;
   "Expected focus results in Summary and the study book without claiming the day's completed group on Home", { summaryLayer, homeLayer, bookLayer });
 
   await page.evaluate(() => { displayView("summary"); renderPracticePocket(summaryFocusIndexes, false); });
-  const pocketBefore = await page.evaluate(() => ({ visible: getComputedStyle(pocketCard).display === "flex", indexes: summaryFocusIndexes.slice(), chips: Array.from(pocketChips.children).map((node) => node.textContent), title: pocketTitle.textContent }));
-  assert(pocketBefore.visible && pocketBefore.indexes.length === 1 && pocketBefore.chips.length === 1 && pocketBefore.title.includes("趁热再拾"), "Expected a difficult-result pocket with the weak target", pocketBefore);
+  const pocketBefore = await page.evaluate(() => ({ visible: getComputedStyle(pocketCard).display === "flex", indexes: summaryFocusIndexes.slice(), chips: Array.from(pocketChips.children).map((node) => node.textContent), title: pocketTitle.textContent, note: pocketCard.querySelector(".ptxt span").textContent, action: pocketBtn.textContent }));
+  assert(pocketBefore.visible && pocketBefore.indexes.length === 1 && pocketBefore.chips.length === 1 && pocketBefore.title.includes("第一次没写稳") && pocketBefore.note.includes("想巩固一下") && pocketBefore.action === "再写一遍" && !pocketBefore.title.includes("还要再练"), "Expected an optional, historically worded practice pocket with the weak target", pocketBefore);
   await page.click("#pocketBtn");
   await page.waitForFunction(() => activeMode === "focus" && getComputedStyle(card).display !== "none");
   const pocketPractice = await page.evaluate(() => ({ mode: activeMode, target: cur.target, expected: CARDS[summaryFocusIndexes[0]].target, batch: baseTargets.slice() }));
@@ -1685,27 +1727,27 @@ let browser;
     haptics: hapticDebug.events.slice(), shown: traceTutorialShown, attempts: episodeFor(currentCardIndex()).attempts.length, unresolved: unresolved.size,
   }); });
   assert(dontKnow.phase === "tracing" && dontKnow.outcome === "miss" && dontKnow.ratings.join() === "Again:dontKnow:true" && dontKnow.revealHidden && dontKnow.stampHidden
-    && dontKnow.title.includes("1/2 描写") && dontKnow.intro && dontKnow.introCopy.includes("接着答案会隐藏") && dontKnow.noRecallTools
+    && dontKnow.title.includes("第 1 步：描红") && dontKnow.intro && dontKnow.introCopy.includes("轮廓隐藏后") && dontKnow.noRecallTools
     && (dontKnow.outlinePaths>0 || dontKnow.fallback) && (!dontKnow.outlineBox || (dontKnow.outlineBox.width>200 && dontKnow.outlineBox.height>200))
     && dontKnow.haptics.join() === "select" && !dontKnow.shown && dontKnow.attempts === 1 && dontKnow.unresolved === 1,
   "Expected don't-know to enter non-blocking tracing immediately with one miss/Again", dontKnow);
   await page.evaluate(() => { soundDebug.events = []; soundDebug.last = null; lastPaperSoundAt = 0; inkBegin({ x: 20, y: 20 }); inkMove({ x: 80, y: 80 }); inkEnd(); });
   await page.waitForTimeout(230);
   const traceStart = await page.evaluate(() => ({ title: phaseTitle.textContent, disabled: traceDone.disabled, introHidden: getComputedStyle(traceIntro).display === "none", shown: traceTutorialShown, stored: load(TRACE_TUTORIAL_KEY, false), sound: soundDebug.events.slice(), writing:card.classList.contains("writing"), chrome:Number(getComputedStyle(phaseTitle).opacity) }));
-  assert(traceStart.title.includes("1/2 描写") && !traceStart.disabled && traceStart.introHidden && traceStart.shown && traceStart.stored && traceStart.sound.join() === "paper" && traceStart.writing && traceStart.chrome === 0,
+  assert(traceStart.title.includes("第 1 步：描红") && !traceStart.disabled && traceStart.introHidden && traceStart.shown && traceStart.stored && traceStart.sound.join() === "paper" && traceStart.writing && traceStart.chrome === 0,
     "Expected tracing to share stove mode while dismissing the explanation and emitting only the quiet paper-start sound", traceStart);
   await page.evaluate(() => { saveSessionSnapshot(); restoreSession(load(SESSION_KEY, null)); });
   await page.waitForFunction(() => pendingSessionVisual === null && practicePhase === "tracing" && tracedThisCard && inkStrokes.length === 1);
   const restoredTracing = await page.evaluate(() => ({ phase: practicePhase, title: phaseTitle.textContent, outline: hzEl.childNodes.length > 0 || hzEl.classList.contains("traceFallback"), ink: inkStrokes.length }));
-  assert(restoredTracing.phase === "tracing" && restoredTracing.title.includes("1/2 描写") && restoredTracing.outline && restoredTracing.ink === 1, "Expected tracing ink and outline to survive session restore", restoredTracing);
+  assert(restoredTracing.phase === "tracing" && restoredTracing.title.includes("第 1 步：描红") && restoredTracing.outline && restoredTracing.ink === 1, "Expected tracing ink and outline to survive session restore", restoredTracing);
   await page.evaluate(() => { hapticDebug.events = []; hapticDebug.last = null; });
   await page.click("#traceDone");
   const postTrace = await page.evaluate(() => ({ phase: practicePhase, title: phaseTitle.textContent, ink: inkStrokes.length, hintLayer: hzEl.textContent, fallback: hzEl.classList.contains("traceFallback"), tipDisabled: tip.disabled, tipDisplay: getComputedStyle(tip).display, show: show.textContent, clear: clear.textContent, haptics: hapticDebug.events.slice() }));
-  assert(postTrace.phase === "postTraceRecall" && postTrace.title.includes("2/2 自己写") && postTrace.ink === 0 && !postTrace.hintLayer && !postTrace.fallback && postTrace.tipDisabled && postTrace.tipDisplay === "none" && postTrace.show === "再描一遍" && postTrace.clear === "另" && postTrace.haptics.length === 0, "Expected outline-free step-two recall with only its own final-named tools", postTrace);
+  assert(postTrace.phase === "postTraceRecall" && postTrace.title.includes("第 2 步：自己写") && postTrace.ink === 0 && !postTrace.hintLayer && !postTrace.fallback && postTrace.tipDisabled && postTrace.tipDisplay === "none" && postTrace.show === "再描一遍" && postTrace.clear === "重写" && postTrace.haptics.length === 0, "Expected outline-free step-two recall with only its own final-named tools", postTrace);
   await page.evaluate(() => { saveSessionSnapshot(); restoreSession(load(SESSION_KEY, null)); });
   await page.waitForFunction(() => pendingSessionVisual === null && practicePhase === "postTraceRecall");
   const restoredPostTrace = await page.evaluate(() => ({ phase: practicePhase, title: phaseTitle.textContent, ink: inkStrokes.length, hintLayer: hzEl.textContent, fallback: hzEl.classList.contains("traceFallback"), tipDisabled: tip.disabled }));
-  assert(restoredPostTrace.phase === "postTraceRecall" && restoredPostTrace.title.includes("2/2 自己写") && restoredPostTrace.ink === 0 && !restoredPostTrace.hintLayer && !restoredPostTrace.fallback && restoredPostTrace.tipDisabled, "Expected post-trace recall to restore without teaching geometry", restoredPostTrace);
+  assert(restoredPostTrace.phase === "postTraceRecall" && restoredPostTrace.title.includes("第 2 步：自己写") && restoredPostTrace.ink === 0 && !restoredPostTrace.hintLayer && !restoredPostTrace.fallback && restoredPostTrace.tipDisabled, "Expected post-trace recall to restore without teaching geometry", restoredPostTrace);
 
   await page.evaluate(() => { hapticDebug.events = []; hapticDebug.last = null; });
   await submitStandard(page);
@@ -1733,9 +1775,12 @@ let browser;
   await waitForWriter(page);
   await page.evaluate(() => { shownStrokes = 1; groupIdx = 1; hintEverUsed = true; hintsUsedThisCard = 1; inkStrokes = mediansToCanvas(curMedians.slice(1)); redrawInk(); revealAnswer(); const s = load(SESSION_KEY, null); s.startedDate = shiftDay(today(), -1); save(SESSION_KEY, s); });
   const frozenBefore = await page.evaluate(() => JSON.stringify(submissionSnapshot));
+  const stableSession = await page.evaluate(() => { const s=load(SESSION_KEY,null); return { version:s.version,baseTargetKeys:s.baseTargetKeys,currentCardKey:s.currentCardKey,numericTargets:"baseTargets" in s||"currentIndex" in s,visualNumeric:!!(s.visual&&("currentIndex" in s.visual||(s.visual.submissionSnapshot&&"idx" in s.visual.submissionSnapshot))),visualKey:s.visual&&s.visual.submissionSnapshot&&s.visual.submissionSnapshot.cardKey }; });
+  assert(stableSession.version === 3 && stableSession.baseTargetKeys.every((key) => typeof key === "string") && stableSession.currentCardKey === stableSession.baseTargetKeys[0] && !stableSession.numericTargets && !stableSession.visualNumeric && stableSession.visualKey === stableSession.currentCardKey,
+    "Expected session v3 to persist only stable card keys, including the visual snapshot", stableSession);
   await page.reload({ waitUntil: "networkidle" });
   const resumable = await page.evaluate(() => resumableSession());
-  assert(resumable && resumable.version === 2 && resumable.startedDate !== await page.evaluate(() => today()), "Expected cross-midnight session to remain resumable", resumable);
+  assert(resumable && resumable.version === 3 && resumable.startedDate !== await page.evaluate(() => today()), "Expected cross-midnight stable-key session to remain resumable", resumable);
   await page.evaluate((session) => restoreSession(session), resumable);
   await page.waitForFunction(() => getComputedStyle(reveal).display !== "none" && submissionSnapshot);
   const restored = await page.evaluate(() => ({ frozen: JSON.stringify(submissionSnapshot), phase: practicePhase, hintEverUsed, eventCount: fsrsReviewLog.length, history: history.state && history.state.shiziView }));
@@ -1746,7 +1791,7 @@ let browser;
   await page.click("#exitPractice");
   const failedExit = await page.evaluate(() => ({ card: getComputedStyle(card).display !== "none", phase: practicePhase, frozen: JSON.stringify(submissionSnapshot), message: document.getElementById("toast").textContent, armed: practiceHistoryArmed }));
   await page.evaluate(() => { Storage.prototype.setItem = window.__originalSetItem; delete window.__originalSetItem; });
-  assert(failedExit.card && failedExit.phase === "revealDecision" && failedExit.frozen === frozenBefore && failedExit.message.includes("未能保存进度") && failedExit.armed, "Expected persistence failure to keep the exact practice state with a retry message", failedExit);
+  assert(failedExit.card && failedExit.phase === "revealDecision" && failedExit.frozen === frozenBefore && failedExit.message.includes("进度暂时无法保存") && failedExit.armed, "Expected persistence failure to keep the exact practice state with a retry message", failedExit);
 
   await page.evaluate(() => openAddSheet());
   await page.waitForFunction(() => addSheet.classList.contains("open"));
@@ -1777,10 +1822,10 @@ let browser;
   await page.evaluate(() => history.back());
   await page.waitForTimeout(100);
   const homeBack = await page.evaluate(() => ({ home: getComputedStyle(home).display !== "none", armed: practiceHistoryArmed, history: history.state && history.state.shiziView, length: history.length }));
-  assert(directReturns[0].nativeEvent && directReturns.every((row) => row.session && row.session.version === 2 && row.history === "home" && row.length === historyStart.length && !row.toast.includes("进度已保存"))
-    && exited.home && exited.session && exited.session.version === 2 && !exited.armed && exited.history === "home" && exited.length === historyStart.length
+  assert(directReturns[0].nativeEvent && directReturns.every((row) => row.session && row.session.version === 3 && row.history === "home" && row.length === historyStart.length && !row.toast.includes("进度已保存"))
+    && exited.home && exited.session && exited.session.version === 3 && !exited.armed && exited.history === "home" && exited.length === historyStart.length
     && homeBack.home && !homeBack.armed && homeBack.history === "home" && homeBack.length === historyStart.length,
-  "Expected repeated direct returns to save v2 state without dialogs, toasts, or history growth", { exited, directReturns, homeBack });
+  "Expected repeated direct returns to save v3 stable-key state without dialogs, toasts, or history growth", { exited, directReturns, homeBack });
 
   const collections = await page.evaluate(async () => {
     const saved = {
@@ -1838,7 +1883,7 @@ let browser;
     activeMode = saved.activeMode; makeupTargetDay = saved.makeupTargetDay; baseTargets = saved.baseTargets; batch = baseTargets; baseCursor = saved.baseCursor; currentIndex = saved.currentIndex; currentAttemptKind = saved.currentAttemptKind; currentAttemptId = saved.currentAttemptId; practicePhase = saved.practicePhase; manualQueue = saved.manualQueue || []; reinforcementQueue = saved.reinforcementQueue || []; unresolved = new Set(saved.unresolved || []); episodes = saved.episodes || {}; roundStats = saved.roundStats || []; roundId = saved.roundId; renderHome();
     return report;
   });
-  assert(collections.before.normal.includes("拾") && collections.before.makeupBlank && collections.before.untouchedBlank && collections.before.stat.includes("本月 2 天 · 累计") && collections.before.nextDisabled && collections.before.gridHeight < 360 && collections.previousMonth.nextEnabled,
+  assert(collections.before.normal.includes("拾") && collections.before.makeupBlank && collections.before.untouchedBlank && collections.before.stat.includes("盖章 2天 · 累计") && collections.before.nextDisabled && collections.before.gridHeight < 360 && collections.previousMonth.nextEnabled,
     "Expected normal/blank calendar states and cross-month navigation", collections);
   assert(!collections.incomplete && collections.blankStayedBlank && collections.completed && collections.completedAgain && collections.makeup.flag && collections.makeup.targets === 5 && collections.makeup.independent === 5 && collections.after.makeup.includes("补") && collections.after.normal.includes("拾") && collections.after.markers === 1 && collections.reducedDirect && collections.sessionOK,
     "Expected a resumable five-character makeup round to stamp exactly once only after completion", collections);
@@ -1847,8 +1892,30 @@ let browser;
   assert(collections.monthly.width === 1080 && collections.monthly.height === 1440 && collections.monthly.practiced === collections.monthly.items && collections.monthly.stable >= 0 && collections.monthly.stable <= collections.monthly.practiced && collections.monthly.independent >= 3 && collections.monthly.independent <= collections.monthly.practiced && collections.monthly.days >= 3 && Number.isInteger(collections.monthly.hardest) && collections.monthly.inkTiles >= 1
     && collections.share.route === "native" && collections.share.type === "sharePracticeCard" && collections.share.kind === "monthly" && collections.share.hasPNG,
   "Expected a private 1080x1440 monthly post through the existing native share route", collections);
-  assert(collections.annual.slides === 4 && collections.annual.keys.length >= 5 && collections.annual.busiest && Number.isInteger(collections.annual.rarest) && Number.isInteger(collections.annual.first) && collections.annual.clientHeight > 400 && Math.abs(collections.annual.firstHeight - collections.annual.clientHeight) < 2 && collections.annual.scrollHeight >= collections.annual.clientHeight * 3.9 && !collections.annual.copy.includes("击败") && !collections.annual.copy.includes("中断"),
+  assert(collections.annual.slides === 4 && collections.annual.keys.length >= 5 && collections.annual.busiest && Number.isInteger(collections.annual.rarest) && Number.isInteger(collections.annual.first) && collections.annual.clientHeight > 400 && Math.abs(collections.annual.firstHeight - collections.annual.clientHeight) < 2 && collections.annual.scrollHeight >= collections.annual.clientHeight * 3.9 && collections.annual.copy.includes("盖章天数最多的月份") && collections.annual.copy.includes("这个月盖章") && !collections.annual.copy.includes("练习天数最多的月份") && !collections.annual.copy.includes("击败") && !collections.annual.copy.includes("中断"),
     "Expected a four-screen local annual report without comparisons or break-loss language", collections);
+
+  await page.setViewportSize({ width: 320, height: 568 });
+  const compactCalendarStat = await page.evaluate(() => {
+    const saved = { activity: cloneObj(activity), fontScaleLarge, month: calendarMonthKey };
+    const days = Array.from({ length: 31 }, (_, i) => `2026-01-${String(i + 1).padStart(2, "0")}`);
+    activity = normalizeActivity({ version: 1, migrationDate: "2026-02-01", inheritedStreak: 0, inheritedTotalDays: 365, practiceDays: days, daily: Object.fromEntries(days.map((day, i) => [day, { stamps: 1, attempts: 1, targetKeys: [`compact:${i}`], completedRoundIds: [], lastStampAt: Date.now() }])) });
+    calendarMonthKey = "2026-01";
+    const inspect = () => {
+      const range = document.createRange(); range.selectNodeContents(calendarMonthStat);
+      const rect = calendarMonthStat.getBoundingClientRect(), head = calendarMonthStat.parentElement.getBoundingClientRect();
+      return { copy: calendarMonthStat.textContent, aria: calendarMonthStat.getAttribute("aria-label"), lines: range.getClientRects().length, within: rect.left >= head.left && rect.right <= head.right };
+    };
+    fontScaleLarge = false; applyFontScale(); renderMe(); const standard = inspect();
+    fontScaleLarge = true; applyFontScale(); renderCalendar(); const large = inspect();
+    activity = normalizeActivity(saved.activity); calendarMonthKey = saved.month; fontScaleLarge = saved.fontScaleLarge; applyFontScale(); renderMe();
+    return { standard, large, restoredAria: calendarMonthStat.getAttribute("aria-label") };
+  });
+  const accessibleCalendarStat = await page.getByRole("group", { name: compactCalendarStat.restoredAria, exact: true }).count();
+  assert([compactCalendarStat.standard, compactCalendarStat.large].every((row) => row.copy === "盖章 31天 · 累计 365天" && row.aria === "盖章 31 天 · 累计练习 365 天" && row.lines === 1 && row.within) && accessibleCalendarStat === 1,
+    "Expected compact visible calendar stats and complete accessible labels to fit one line at 320px in default and large text", compactCalendarStat);
+  await page.evaluate(() => renderHome());
+  await page.setViewportSize({ width: 390, height: 844 });
 
   await page.evaluate(() => {
     window.__wildVerifySaved = {
@@ -1882,7 +1949,7 @@ let browser;
   assert(processedPhoto.sourceType === "data:image/webp;base64," && processedPhoto.requestId === processedPhoto.draftRequestId
     && processedPhoto.bytes > 0 && processedPhoto.bytes <= 64 * 1024
     && processedPhoto.thumbWidth > 0 && processedPhoto.thumbWidth === processedPhoto.thumbHeight
-    && processedPhoto.inputCleared && processedPhoto.note.includes("正在本机认字"),
+    && processedPhoto.inputCleared && processedPhoto.note.includes("正在当前设备上识别"),
   "Expected a real PNG file input to decode, center-crop, compress to bounded WebP, render, and cross the native OCR bridge", processedPhoto);
 
   const candidateState = await page.evaluate(() => {
@@ -2015,6 +2082,9 @@ let browser;
     closeCharSheet(); openCharSheet(emptyIndex);
     const emptyHidden = getComputedStyle(charDetailCard).display === "none";
     closeCharSheet();
+    openHandCard(index); await updateHandCardPreview();
+    const historicalHint = handCardHint.textContent;
+    closeHandCard();
 
     const portrait = await renderHandCardCanvas(index, "portrait"), square = await renderHandCardCanvas(index, "square");
     const inspect = (canvas, ratio) => {
@@ -2068,7 +2138,7 @@ let browser;
     if (saved.handCardRaw === null) localStorage.removeItem(HAND_CARD_KEY); else localStorage.setItem(HAND_CARD_KEY, saved.handCardRaw);
     document.documentElement.style.colorScheme = saved.mode; hideHandCardPrompt(); renderHome();
     return {
-      stored, detailEntry, emptyHidden, cards,
+      stored, detailEntry, emptyHidden, historicalHint, cards,
       noPrintedTargetFallback: !/fillText\s*\(\s*(?:data|card)\.target/.test(rendererSource),
       noMarketing: !/二维码|下载引导|扫码|slogan/i.test(rendererSource),
       firstPrompt, promptVisible, secondPrompt, wrongPrompt, promptOpened, disabledPrompt, settingOff,
@@ -2077,7 +2147,7 @@ let browser;
       legacy: { restored: legacyRestore && legacyRestore.applied, detail: legacyDetail, portraitBlocked: legacyPortrait === null, squareBlocked: legacySquare === null, exportRoute: legacyExport.route },
     };
   });
-  assert(handCards.stored && handCards.detailEntry && handCards.emptyHidden && handCards.cards.portrait.width === 1080 && handCards.cards.portrait.height === 1440 && handCards.cards.square.width === 1080 && handCards.cards.square.height === 1080,
+  assert(handCards.stored && handCards.detailEntry && handCards.emptyHidden && handCards.historicalHint === "用这份笔迹做一张字卡。" && handCards.cards.portrait.width === 1080 && handCards.cards.portrait.height === 1440 && handCards.cards.square.width === 1080 && handCards.cards.square.height === 1080,
     "Expected a recent-ink-only detail entry and clear 2x portrait/square canvases", handCards);
   assert(handCards.cards.portrait.source === "vector" && handCards.cards.square.source === "vector" && handCards.cards.portrait.strokes === 3 && handCards.cards.portrait.dark > 100 && handCards.cards.square.dark > 100
     && handCards.cards.portrait.redGrid === 0 && handCards.cards.square.redGrid === 0 && handCards.cards.portrait.legacyPaper === 0 && handCards.cards.square.legacyPaper === 0
@@ -2127,7 +2197,7 @@ let browser;
     [coreIndex, advancedIndex].forEach((idx) => {
       const row = cardMemory(idx);
       row.seen = 1; row.pendingLearning = false; row.dueDay = today(); row.last = Date.now();
-      status[idx] = "rest";
+      status[cardKey(idx)] = "rest";
     });
     setLibrary("rare");
     const crossLibraryReview = [coreIndex, advancedIndex].every((idx) => reviewPool(false).includes(idx));
@@ -2165,7 +2235,7 @@ let browser;
       card: libName.textContent,
       rows: libList.querySelectorAll("[data-lib]").length,
       active: libList.querySelectorAll(".active").length,
-      reassurance: libSheet.textContent.includes("换库不丢任何东西") && libSheet.textContent.includes("复习照常跨库进行"),
+      reassurance: libSheet.textContent.includes("切换字库不会影响已有练习记录") && libSheet.textContent.includes("复习仍包含所有字库"),
       transparentCoverage: libSheet.textContent.includes("官方 3000") && libSheet.textContent.includes("官方 1605"),
       noSchoolClaims: !/小学|初中|高中/.test(libSheet.textContent),
       noUnapprovedProgress: !document.getElementById("libCard").querySelector(".libBar,.libTones") && !libList.querySelector(".libBar") && !/拾完|手速|墨色进度/.test(libSheet.textContent + libCard.textContent),
@@ -2216,9 +2286,16 @@ let browser;
     const restoredResult = restoreBackupPayload(incoming, { skipConfirm: true, reload: false });
     const safetyAfterRestore = safetySnapshot(), incomingApplied = String(localStorage.getItem(MEMORY_KEY)).includes("verify:incoming");
     const undoOffered = showSafetyUndo() && getComputedStyle(safetyUndo).display === "flex" && safetyUndoBtn.textContent === "撤销恢复";
+    const restoreUndoCopy = safetyUndoCopy.textContent;
     const undoResult = undoSafetyRestore({ reload: false }), currentRestored = String(localStorage.getItem(MEMORY_KEY)).includes("verify:current-b");
 
-    memory = currentMemory; saveMemory(); resetAllData({ skipConfirm: true }); const resetSafety = safetySnapshot();
+    memory = currentMemory; saveMemory();
+    let resetConfirmCopy = ""; window.confirm = (copy) => { resetConfirmCopy = copy; return false; };
+    const resetCancelled = resetAllData() === false;
+    window.confirm = nativeConfirm;
+    const resetCancelledIntact = String(localStorage.getItem(MEMORY_KEY)).includes("verify:current-b");
+    resetAllData({ skipConfirm: true }); const resetSafety = safetySnapshot(), resetUndoCopy = safetyUndoCopy.textContent;
+    hideSafetyUndo(); const resetSafetyAfterPrompt = safetySnapshot();
     memory = { "verify:before-second": { seen: 1, last: Date.now() } }; saveMemory();
     const secondIncoming = JSON.parse(JSON.stringify(incoming)); secondIncoming.data[MEMORY_KEY] = JSON.stringify({ "verify:second-incoming": { seen: 1, last: Date.now() } });
     restoreBackupPayload(secondIncoming, { skipConfirm: true, reload: false }); const overwrittenSafety = safetySnapshot();
@@ -2240,7 +2317,7 @@ let browser;
     const legacyCustomKey = "custom:120:春", legacyCustomMemory = { [legacyCustomKey]: { seen: 1, last: 200, dueDay: "2026-09-01", fsrsCard: { stability: 3 } }, "custom:春": { seen: 1, last: 100, dueDay: "2026-08-01" } }, migratedCustom = migrateCustomKeyedRows(legacyCustomMemory), migratedAgain = migrateCustomKeyedRows(migratedCustom.value);
     const migratedFSRS = normalizeFSRSStored([{ eventId: "legacy-custom", attemptId: "legacy", cardKey: legacyCustomKey, target: "春", reviewedAt: new Date().toISOString(), localDay: today(), rating: "Good" }]);
     const migratedActivity = normalizeActivity({ version: 2, migrationDate: today(), inheritedStreak: 0, inheritedTotalDays: 0, practiceDays: [today()], daily: { [today()]: { stamps: 1, attempts: 1, targetKeys: [legacyCustomKey], independentTargetKeys: [legacyCustomKey], reviewTargetKeys: [legacyCustomKey], completedRoundIds: [] } }, monthly: {} });
-    const customMigration = { changed: migratedCustom.changed, keys: Object.keys(migratedCustom.value), memory: migratedCustom.value["custom:春"], idempotent: !migratedAgain.changed && JSON.stringify(migratedAgain.value) === JSON.stringify(migratedCustom.value), fsrsKey: migratedFSRS.events[0] && migratedFSRS.events[0].cardKey, activityKeys: migratedActivity.daily[today()].targetKeys };
+    const customMigration = { changed: migratedCustom.changed, keys: Object.keys(migratedCustom.value), memory: migratedCustom.value["base:春"], idempotent: !migratedAgain.changed && JSON.stringify(migratedAgain.value) === JSON.stringify(migratedCustom.value), fsrsKey: migratedFSRS.events[0] && migratedFSRS.events[0].cardKey, activityKeys: migratedActivity.daily[today()].targetKeys };
     const beforeFailure = Object.fromEntries(BACKUP_KEYS.map(k => [k, localStorage.getItem(k)]));
     const failingIncoming = JSON.parse(JSON.stringify(original)); failingIncoming.data[MEMORY_KEY] = JSON.stringify({ "verify:atomic-incoming": { seen: 1 } }); failingIncoming.data[QUALITY_KEY] = JSON.stringify({ "verify:atomic-quality": { easy: 1 } });
     const nativeSetItem = Storage.prototype.setItem; let injectedFailure = false, atomicRejected = false;
@@ -2249,23 +2326,25 @@ let browser;
     const afterFailure = Object.fromEntries(BACKUP_KEYS.map(k => [k, localStorage.getItem(k)]));
     const result = { keys: Object.keys(original.data), sessionVersion: JSON.parse(original.data[SESSION_KEY]).version, fsrsLog: !!original.data[FSRS_LOG_KEY], tutorial: original.data[TRACE_TUTORIAL_KEY], funnelVersion: JSON.parse(original.data[FUNNEL_KEY]).version, sound: JSON.parse(original.data[SOUND_KEY]), restoredKeys: restoredResult.keys,
       unknown: localStorage.getItem("shizi.unknown.verify"), cancelled: !cancelled.applied, pending: cancelled.pending, confirmCopy, confirmOpen, confirmButtons, systemConfirmCalled, incomingApplied, safetyReason: safetyAfterRestore && safetyAfterRestore.reason, undoOffered, undoApplied: undoResult.applied, currentRestored,
+      restoreUndoCopy, resetCancelled, resetConfirmCopy, resetCancelledIntact, resetUndoCopy, resetAfterPromptReason: resetSafetyAfterPrompt && resetSafetyAfterPrompt.reason,
       resetReason: resetSafety && resetSafety.reason, overwrittenReason: overwrittenSafety && overwrittenSafety.reason, latestRestored, safetyExcluded: !Object.prototype.hasOwnProperty.call(original.data, SAFETY_KEY),
       customKeyBefore, customKeyAfter, customMigration, maliciousInkRejected, maliciousActivitySanitized, maliciousActivityEscaped, atomicRejected, atomicRestored: JSON.stringify(afterFailure)===JSON.stringify(beforeFailure) };
     localStorage.removeItem("shizi.unknown.verify"); return result;
   });
-  assert(backup.keys.includes(SESSION_STORAGE_KEY) && backup.keys.includes("shizi.library.v1") && backup.sessionVersion === 2 && backup.fsrsLog && backup.tutorial === "true" && backup.funnelVersion === 2 && backup.sound.enabled === true && backup.sound.scene === "rain" && backup.restoredKeys.includes(SESSION_STORAGE_KEY) && backup.unknown === "keep-local", "Expected session/FSRS/tutorial/funnel/soundscape/library backup round trip with allowlist isolation", backup);
-  assert(backup.cancelled && backup.pending && backup.confirmOpen && !backup.systemConfirmCalled && backup.confirmCopy.includes("当前 2 字（最后练习 2026-07-11），备份 1 字（最后练习 2026-06-01）")
+  assert(backup.keys.includes(SESSION_STORAGE_KEY) && backup.keys.includes("shizi.library.v1") && backup.sessionVersion === 3 && backup.fsrsLog && backup.tutorial === "true" && backup.funnelVersion === 2 && backup.sound.enabled === true && backup.sound.scene === "rain" && backup.restoredKeys.includes(SESSION_STORAGE_KEY) && backup.unknown === "keep-local", "Expected session/FSRS/tutorial/funnel/soundscape/library backup round trip with allowlist isolation", backup);
+  assert(backup.cancelled && backup.pending && backup.confirmOpen && !backup.systemConfirmCalled && backup.confirmCopy.includes("当前：2 个字，最后练习 2026-07-11") && backup.confirmCopy.includes("备份：1 个字，备份时间 2026-06-01")
+    && backup.confirmCopy.includes("覆盖前的数据会作为一份安全副本留在当前设备") && backup.confirmCopy.includes("下次恢复或清空会覆盖这份副本")
+    && backup.restoreUndoCopy.includes("覆盖前的数据仍留在本设备")
     && backup.confirmButtons.join("/") === "保留当前记录/确认覆盖" && backup.incomingApplied && backup.safetyReason === "restore" && backup.undoOffered && backup.undoApplied && backup.currentRestored,
     "Expected an in-app differential restore confirmation and one-tap safety undo", backup);
   assert(backup.resetReason === "reset" && backup.overwrittenReason === "restore" && backup.latestRestored && backup.safetyExcluded, "Expected reset safety copy, latest-operation replacement, and backup exclusion", backup);
   assert(backup.customKeyBefore === "custom:春" && backup.customKeyAfter === backup.customKeyBefore, "Expected custom card keys to remain stable when the base deck size changes", backup);
-  assert(backup.customMigration.changed && backup.customMigration.keys.length === 1 && backup.customMigration.keys[0] === "custom:春" && backup.customMigration.memory.last === 200 && backup.customMigration.memory.dueDay === "2026-09-01" && backup.customMigration.memory.fsrsCard.stability === 3
-    && backup.customMigration.idempotent && backup.customMigration.fsrsKey === "custom:春" && backup.customMigration.activityKeys[0] === "custom:春",
+  assert(backup.customMigration.changed && backup.customMigration.keys.length === 1 && backup.customMigration.keys[0] === "base:春" && backup.customMigration.memory.last === 200 && backup.customMigration.memory.dueDay === "2026-09-01" && backup.customMigration.memory.fsrsCard.stability === 3
+    && backup.customMigration.idempotent && backup.customMigration.fsrsKey === "base:春" && backup.customMigration.activityKeys[0] === "base:春",
     "Expected legacy indexed custom keys to migrate once across memory, FSRS history, and activity while keeping the newest schedule", backup.customMigration);
   assert(backup.maliciousInkRejected, "Expected restored recent-ink markup to be rejected before DOM rendering", backup);
   assert(backup.maliciousActivitySanitized && backup.maliciousActivityEscaped, "Expected restored activity fields to be schema-normalized and annual-report text to remain escaped", backup);
   assert(backup.atomicRejected && backup.atomicRestored, "Expected a failed backup write to restore every previous allowlisted value", backup);
-
   const boundedPersistence = await page.evaluate(() => {
     const saved = {
       fsrsReviewLog: cloneObj(fsrsReviewLog), fsrsReviewMonthly: cloneObj(fsrsReviewMonthly),
@@ -2280,12 +2359,10 @@ let browser;
         reviewedAt: new Date(dayStartMs(oldReviewDay) + 9 * 3600 * 1000).toISOString(), rating: "Again", hintCount: 0, traced: false }];
       fsrsReviewMonthly = {}; saveFSRSLog();
       const reviewMonth = oldReviewDay.slice(0, 7), reviewArchive = cloneObj(fsrsReviewMonthly[reviewMonth]), curatorArchive = bookCuratorData([]);
-
       const oldActivityDay = shiftDay(today(), -(ACTIVITY_RAW_RETENTION_DAYS + 1)), activityMonth = oldActivityDay.slice(0, 7), targetKey = cardKey(0);
       activity = normalizeActivity({ version: 2, migrationDate: today(), inheritedStreak: 0, inheritedTotalDays: 0,
         practiceDays: [oldActivityDay], daily: { [oldActivityDay]: { stamps: 1, attempts: 2, targetKeys: [targetKey], independentTargetKeys: [targetKey], reviewTargetKeys: [], completedRoundIds: ["verify-old-round"], lastStampAt: dayStartMs(oldActivityDay) + 9 * 3600 * 1000 } }, monthly: {} });
       saveActivity(); const activityArchive = cloneObj(activity.monthly[activityMonth]), monthlyReport = monthReportData(activityMonth);
-
       funnel = newFunnel();
       funnel.seen = Array.from({ length: 600 }, (_, index) => `verify-seen-${index}`);
       funnel.events = Array.from({ length: 600 }, (_, index) => ({ name: "verify_event", at: Date.now() + index, day: today() }));
@@ -2293,7 +2370,6 @@ let browser;
       funnel.rounds = Array.from({ length: 220 }, (_, index) => ({ completedAt: Date.now() + index, day: today(), mode: "new", durationMs: 1000, targetCount: 1, attemptCount: 1 }));
       funnel.roundTotals = { count: 220, durationMs: 220000, byMode: { new: { count: 220, durationMs: 220000 } } }; saveFunnel(true);
       const funnelState = { seen: funnel.seen.length, events: funnel.events.length, rounds: funnel.rounds.length, eventTotal: funnel.eventCounts.verify_event, roundTotal: cloneObj(funnel.roundTotals) };
-
       storageNotice.style.display = "none"; storageWriteFailed = false;
       const nativeSetItem = Storage.prototype.setItem;
       Storage.prototype.setItem = function(key, value){ if(key === "shizi.verify.quota") throw new DOMException("quota", "QuotaExceededError"); return nativeSetItem.call(this, key, value); };

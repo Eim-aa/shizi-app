@@ -16,6 +16,9 @@ APPROVED_PATH = ROOT / "scripts" / "fixtures" / "context-quality-approved.json"
 OUTPUT_PATH = ROOT / "data" / "context-quality.js"
 
 
+EXPECTATIONS_PATH = ROOT / "scripts" / "fixtures" / "context-quality-expectations.json"
+
+
 def load_cards() -> list[dict]:
     source = DECK_PATH.read_text(encoding="utf-8")
     marker = "const SEED = "
@@ -39,24 +42,55 @@ def load_jieba() -> dict[str, tuple[int, frozenset[str]]]:
     return {word: (frequency, frozenset(tags[word])) for word, frequency in frequencies.items()}
 
 
-def load_approved_words() -> frozenset[str]:
+def load_approved_contexts() -> dict[tuple[str, str], str]:
+    """人工批准项必须绑定到「目标字 + 候选词」。
+
+    只按词字符串放行的话，候选换成别的词（勾勒 -> 勒令）仍然命中同一条批准记录，
+    批准就失去了它要表达的意思，候选变化也不会触发重审。
+    """
     payload = json.loads(APPROVED_PATH.read_text(encoding="utf-8"))
-    if payload.get("schemaVersion") != 1 or not isinstance(payload.get("approvedWords"), dict):
+    if payload.get("schemaVersion") != 2 or not isinstance(payload.get("approvedContexts"), list):
         raise RuntimeError("invalid context-quality-approved.json")
-    return frozenset(str(word) for word in payload["approvedWords"])
+    approved: dict[tuple[str, str], str] = {}
+    for row in payload["approvedContexts"]:
+        target, word = str(row.get("target", "")), str(row.get("word", ""))
+        if not target or not word:
+            raise RuntimeError("approved context needs both target and word")
+        if (target, word) in approved:
+            raise RuntimeError(f"duplicate approved context: {target} / {word}")
+        approved[(target, word)] = str(row.get("note", ""))
+    return approved
+
+
+def load_expectations() -> dict[str, list[tuple[str, str]]]:
+    payload = json.loads(EXPECTATIONS_PATH.read_text(encoding="utf-8"))
+    if payload.get("schemaVersion") != 1:
+        raise RuntimeError("invalid context-quality-expectations.json")
+    out = {}
+    for bucket in ("mustKeep", "mustReject"):
+        rows = payload.get(bucket)
+        if not isinstance(rows, list):
+            raise RuntimeError(f"invalid {bucket}")
+        out[bucket] = [(str(row["target"]), str(row["word"])) for row in rows]
+    return out
+
+
+# 候选生成器（scripts/build_8105_chars.py）把 i 和 l 都当成熟语，这里必须用同一套口径，
+# 否则「毋庸置疑、蔚为壮观」这类 l 类熟语会被当成低频长语境退回「只按拼音写」。
+IDIOM_TAGS = {"i", "l"}
 
 
 def rejection_reason(
     card: dict,
     jieba: dict[str, tuple[int, frozenset[str]]],
-    approved_words: frozenset[str] = frozenset(),
+    approved: dict[tuple[str, str], str] | None = None,
 ) -> str:
     target = str(card.get("target", ""))
     word = str(card.get("ans", ""))
     frequency, tags = jieba.get(word, (0, frozenset()))
     if word == target + "字":
         return "placeholder"
-    if word in approved_words or "i" in tags:
+    if (approved or {}).get((target, word)) is not None or (tags & IDIOM_TAGS):
         return ""
     proper_noun_tags = {"nr", "nrt", "nrfg", "ns", "nt"}
     if tags and tags <= proper_noun_tags and frequency <= 300 and len(word) <= 3:
@@ -72,12 +106,28 @@ def main() -> None:
     options = parser.parse_args()
     cards = load_cards()
     jieba = load_jieba()
-    approved_words = load_approved_words()
+    approved = load_approved_contexts()
+    expectations = load_expectations()
+    by_target = {str(card.get("target", "")): str(card.get("ans", "")) for card in cards}
+
+    # 每条人工批准必须恰好命中一张生产卡。候选换了词，这里就会失败并要求重审，
+    # 而不是让一条早已不适用的批准继续默默生效。
+    unmatched = [f"{t}/{w}" for (t, w) in approved if by_target.get(t) != w]
+    if unmatched:
+        raise SystemExit("approved contexts no longer match production cards: " + ", ".join(sorted(unmatched)))
+
     rejected = {
         card["target"]: reason
         for card in cards
-        if (reason := rejection_reason(card, jieba, approved_words))
+        if (reason := rejection_reason(card, jieba, approved))
     }
+
+    # 明确锁住「应保留 / 应拒绝」，不能只锁总数：总数不变也可能是一进一出。
+    kept_violations = [f"{t}/{w}" for (t, w) in expectations["mustKeep"] if by_target.get(t) != w or t in rejected]
+    reject_violations = [f"{t}/{w}" for (t, w) in expectations["mustReject"] if by_target.get(t) != w or t not in rejected]
+    if kept_violations or reject_violations:
+        raise SystemExit("context quality expectations drifted; keep=" + ", ".join(sorted(kept_violations))
+                         + " reject=" + ", ".join(sorted(reject_violations)))
     counts = Counter(rejected.values())
     summary = {
         "schemaVersion": 1,
@@ -91,8 +141,10 @@ def main() -> None:
             "properNounMaximumCharacters": 3,
             "longContextMinimumCharacters": 4,
             "longContextMaximumFrequencyInclusive": 300,
-            "idiomTagExempted": True,
-            "reviewedSafeWords": len(approved_words),
+            "idiomTagsExempted": sorted(IDIOM_TAGS),
+            "reviewedSafeContexts": len(approved),
+            "lockedKeep": len(expectations["mustKeep"]),
+            "lockedReject": len(expectations["mustReject"]),
         },
     }
     payload = (

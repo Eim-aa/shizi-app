@@ -1,0 +1,230 @@
+{
+  "schemaVersion": 1,
+  "note": "锁定语境质量门的「应保留 / 应拒绝」。mustKeep 是候选生成器已按熟语处理（jieba 标注 l）、此前被质量门误拒的题面，需人工复核后才可增删；mustReject 覆盖三类拒绝理由，防止口径被悄悄放宽。",
+  "mustKeep": [
+    {
+      "target": "颦",
+      "word": "一颦一笑",
+      "tag": "l",
+      "frequency": 28
+    },
+    {
+      "target": "蹿",
+      "word": "上蹿下跳",
+      "tag": "l",
+      "frequency": 18
+    },
+    {
+      "target": "韶",
+      "word": "仰韶文化",
+      "tag": "l",
+      "frequency": 107
+    },
+    {
+      "target": "帙",
+      "word": "卷帙浩繁",
+      "tag": "l",
+      "frequency": 23
+    },
+    {
+      "target": "叽",
+      "word": "叽哩咕噜",
+      "tag": "l",
+      "frequency": 100
+    },
+    {
+      "target": "哩",
+      "word": "叽哩咕噜",
+      "tag": "l",
+      "frequency": 100
+    },
+    {
+      "target": "舛",
+      "word": "命运多舛",
+      "tag": "l",
+      "frequency": 8
+    },
+    {
+      "target": "嗲",
+      "word": "嗲声嗲气",
+      "tag": "l",
+      "frequency": 19
+    },
+    {
+      "target": "禹",
+      "word": "大禹治水",
+      "tag": "l",
+      "frequency": 31
+    },
+    {
+      "target": "孰",
+      "word": "孰不可忍",
+      "tag": "l",
+      "frequency": 153
+    },
+    {
+      "target": "滦",
+      "word": "引滦入津",
+      "tag": "l",
+      "frequency": 16
+    },
+    {
+      "target": "怛",
+      "word": "惙怛伤悴",
+      "tag": "l",
+      "frequency": 3
+    },
+    {
+      "target": "惙",
+      "word": "惙怛伤悴",
+      "tag": "l",
+      "frequency": 3
+    },
+    {
+      "target": "戊",
+      "word": "戊戌变法",
+      "tag": "l",
+      "frequency": 129
+    },
+    {
+      "target": "戌",
+      "word": "戊戌变法",
+      "tag": "l",
+      "frequency": 129
+    },
+    {
+      "target": "抃",
+      "word": "扛鼎抃牛",
+      "tag": "l",
+      "frequency": 3
+    },
+    {
+      "target": "拊",
+      "word": "拊背扼吭",
+      "tag": "l",
+      "frequency": 3
+    },
+    {
+      "target": "枘",
+      "word": "枘圆凿方",
+      "tag": "l",
+      "frequency": 3
+    },
+    {
+      "target": "毋",
+      "word": "毋庸置疑",
+      "tag": "l",
+      "frequency": 66
+    },
+    {
+      "target": "拽",
+      "word": "生拉硬拽",
+      "tag": "l",
+      "frequency": 5
+    },
+    {
+      "target": "瞽",
+      "word": "瞽言妄举",
+      "tag": "l",
+      "frequency": 3
+    },
+    {
+      "target": "穗",
+      "word": "穗状花序",
+      "tag": "l",
+      "frequency": 53
+    },
+    {
+      "target": "腮",
+      "word": "络腮胡子",
+      "tag": "l",
+      "frequency": 77
+    },
+    {
+      "target": "碴",
+      "word": "胡子拉碴",
+      "tag": "l",
+      "frequency": 10
+    },
+    {
+      "target": "蔚",
+      "word": "蔚为壮观",
+      "tag": "l",
+      "frequency": 46
+    },
+    {
+      "target": "蔫",
+      "word": "蔫头耷脑",
+      "tag": "l",
+      "frequency": 11
+    },
+    {
+      "target": "褛",
+      "word": "衣衫褴褛",
+      "tag": "l",
+      "frequency": 84
+    },
+    {
+      "target": "褴",
+      "word": "衣衫褴褛",
+      "tag": "l",
+      "frequency": 84
+    },
+    {
+      "target": "姬",
+      "word": "霸王别姬",
+      "tag": "l",
+      "frequency": 27
+    },
+    {
+      "target": "溏",
+      "word": "食少便溏",
+      "tag": "l",
+      "frequency": 5
+    },
+    {
+      "target": "魆",
+      "word": "魆风骤雨",
+      "tag": "l",
+      "frequency": 3
+    },
+    {
+      "target": "鸮",
+      "word": "鸮啼鬼啸",
+      "tag": "l",
+      "frequency": 3
+    }
+  ],
+  "mustReject": [
+    {
+      "target": "抔",
+      "word": "一抔黄土",
+      "reason": "low_frequency_long_context"
+    },
+    {
+      "target": "撅",
+      "word": "一撅一拐",
+      "reason": "low_frequency_long_context"
+    },
+    {
+      "target": "俟",
+      "word": "万俟",
+      "reason": "low_frequency_proper_noun"
+    },
+    {
+      "target": "莞",
+      "word": "东莞",
+      "reason": "low_frequency_proper_noun"
+    },
+    {
+      "target": "㧐",
+      "word": "㧐字",
+      "reason": "placeholder"
+    },
+    {
+      "target": "㬎",
+      "word": "㬎字",
+      "reason": "placeholder"
+    }
+  ]
+}

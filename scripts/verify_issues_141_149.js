@@ -13,6 +13,7 @@ const deckSource = fs.readFileSync(path.join(root, "deck-data.js"), "utf8");
 const qualitySource = fs.readFileSync(path.join(root, "data", "context-quality.js"), "utf8");
 const overrideSource = fs.readFileSync(path.join(root, "data", "context-overrides.js"), "utf8");
 const approvedContextQuality = JSON.parse(fs.readFileSync(path.join(root, "scripts", "fixtures", "context-quality-approved.json"), "utf8"));
+const contextQualityExpectations = JSON.parse(fs.readFileSync(path.join(root, "scripts", "fixtures", "context-quality-expectations.json"), "utf8"));
 const jiebaSource = fs.readFileSync(path.join(root, "sources", "jieba_dict.txt"), "utf8");
 const deck = JSON.parse(deckSource.match(/const SEED = (\[.*\]);/s)[1]);
 
@@ -43,20 +44,32 @@ const overrides = loadConst(overrideSource, "CONTEXT_OVERRIDES");
 const placeholders = deck.filter((card) => card.ans === `${card.target}字`);
 const manualOverlap = Object.keys(overrides).filter((target) => rejected[target]);
 
-const idiomWords = new Set(jiebaSource.split(/\r?\n/).flatMap((line) => { const parts = line.match(/^(.*) (\d+) (\S+)$/); return parts && parts[3] === "i" ? [parts[1]] : []; }));
+// 候选生成器把 i 和 l 都当熟语，质量门必须用同一套口径
+const idiomWords = new Set(jiebaSource.split(/\r?\n/).flatMap((line) => { const parts = line.match(/^(.*) (\d+) (\S+)$/); return parts && (parts[3] === "i" || parts[3] === "l") ? [parts[1]] : []; }));
 const rejectedIdioms = deck.filter((card) => idiomWords.has(card.ans) && rejected[card.target]);
-const approvedWords = new Set(Object.keys(approvedContextQuality.approvedWords || {}));
-const rejectedApproved = deck.filter((card) => approvedWords.has(card.ans) && rejected[card.target]);
-assert(qualitySummary.deckCards === 7294 && qualitySummary.rejectedCards === 1783
-  && qualitySummary.reasons.placeholder === 954 && qualitySummary.reasons.low_frequency_long_context === 349
-  && qualitySummary.reasons.low_frequency_proper_noun === 480 && qualitySummary.rules.idiomTagExempted
-  && qualitySummary.rules.reviewedSafeWords === approvedWords.size && placeholders.length === 954
+const approvedContexts = (approvedContextQuality.approvedContexts || []).map((row) => ({ target: String(row.target), word: String(row.word) }));
+const deckByTarget = new Map(deck.map((card) => [card.target, card.ans]));
+// 批准项必须绑定到目标字+候选，并且恰好命中一张生产卡
+const approvedUnbound = approvedContexts.filter((row) => deckByTarget.get(row.target) !== row.word);
+const rejectedApproved = approvedContexts.filter((row) => rejected[row.target]);
+const expectKeep = contextQualityExpectations.mustKeep.filter((row) => deckByTarget.get(row.target) !== row.word || rejected[row.target]);
+const expectReject = contextQualityExpectations.mustReject.filter((row) => deckByTarget.get(row.target) !== row.word || !rejected[row.target]);
+assert(qualitySummary.deckCards === 7294 && qualitySummary.rejectedCards === 1751
+  && qualitySummary.reasons.placeholder === 954 && qualitySummary.reasons.low_frequency_long_context === 317
+  && qualitySummary.reasons.low_frequency_proper_noun === 480
+  && JSON.stringify(qualitySummary.rules.idiomTagsExempted) === JSON.stringify(["i", "l"])
+  && qualitySummary.rules.reviewedSafeContexts === approvedContexts.length && placeholders.length === 954
   && placeholders.every((card) => rejected[card.target] === "placeholder"),
 "#148 context quality gate must reject every generated placeholder", qualitySummary);
-assert(rejectedIdioms.length === 0 && rejectedApproved.length === 0
+assert(rejectedIdioms.length === 0 && rejectedApproved.length === 0 && approvedUnbound.length === 0
   && ["新陈代谢", "根深蒂固", "千钧一发", "琳琅满目"].every((word) => idiomWords.has(word))
-  && approvedWords.has("勾勒") && approvedWords.has("墨水"),
-"#148 context quality gate must preserve tagged idioms and human-reviewed jieba false positives", { rejectedIdioms, rejectedApproved });
+  && ["毋庸置疑", "蔚为壮观", "生拉硬拽", "上蹿下跳", "一颦一笑", "衣衫褴褛"].every((word) => idiomWords.has(word))
+  && approvedContexts.some((row) => row.target === "勒" && row.word === "勾勒")
+  && approvedContexts.some((row) => row.target === "墨" && row.word === "墨水"),
+"#148 context quality gate must preserve tagged idioms and target-bound human approvals", { rejectedIdioms, rejectedApproved, approvedUnbound });
+assert(contextQualityExpectations.mustKeep.length === 32 && contextQualityExpectations.mustReject.length === 6
+  && expectKeep.length === 0 && expectReject.length === 0,
+"#148 the reviewed keep/reject set must be locked item by item, not only by total count", { expectKeep, expectReject });
 assert(manualOverlap.length > 0 && source.indexOf('data/context-quality.js') < source.indexOf('data/context-overrides.js')
   && source.includes('if(!override && REJECTED_CONTEXTS[target])')
   && swSource.includes("'data/context-quality.js'") && swSource.includes("'data/context-overrides.js?v=")
@@ -224,19 +237,32 @@ let browser;
     "#143 a foreground session crossing midnight must reset its budget without reload or restore", liveDayRollover);
 
   await resetState(page);
+  // 走真实路径：addWord() 收字 → makeupCandidates() 选补帖候选 → 真实 startMakeupDay()。
+  // 之前这里手工构造 pendingLearning 并直接灌 focusQueue，绕开了会出问题的三个函数。
   const queueIsolation = await page.evaluate(() => {
-    const queuedIndex = BASE_BY_CHAR["水"], available = allIndexes().filter((idx) => idx !== queuedIndex), focusIndexes = available.slice(0, 3), makeupIndexes = available.slice(3, 8), queuedMemory = cardMemory(queuedIndex);
-    queuedMemory.queuedFront = true; queuedMemory.queuedFrontAt = Date.now(); queuedMemory.pendingLearning = true; saveMemory();
-    activeMode = "focus"; focusQueue = focusIndexes.slice(); sessionDone = new Set(); removeStored(SESSION_KEY); startRound();
-    const focus = { targets: baseTargets.slice(), queued: !!cardMemory(queuedIndex).queuedFront };
-    focusPreservedSession = null; removeStored(SESSION_KEY); activeMode = "makeup"; makeupTargetDay = shiftDay(today(), -2); focusQueue = makeupIndexes.slice(); sessionDone = new Set(); startRound();
-    const makeup = { targets: baseTargets.slice(), queued: !!cardMemory(queuedIndex).queuedFront, historicalTargets: dailyActivity(makeupTargetDay).targetKeys.slice() };
-    return { queuedIndex, focusIndexes, makeupIndexes, focus, makeup };
+    const chars = addWord("强"), queuedIndex = BASE_BY_CHAR["强"], m = cardMemory(queuedIndex);
+    const collected = { chars, queuedFront: !!m.queuedFront, pendingLearning: !!m.pendingLearning, dueToday: m.dueDay === today() };
+    const candidates = makeupCandidates();
+    const pastDay = shiftDay(today(), -2);
+    const started = startMakeupDay(pastDay);
+    const makeup = { targets: baseTargets.slice(), mode: activeMode, day: makeupTargetDay };
+    // 即使这个字因别的原因进了补帖组，写完也不该把置顶兑现掉
+    activeMode = "makeup"; recordOutcome(queuedIndex, "fast");
+    const afterMakeupOutcome = !!cardMemory(queuedIndex).queuedFront;
+    exitCurrentRound(); clearSessionSnapshot(); activeMode = "new"; sessionDone = new Set(); startRound();
+    const ordinary = { first: baseTargets[0], queuedIndex, pool: queuedFrontPool().includes(queuedIndex) };
+    recordOutcome(queuedIndex, "fast");
+    const afterOrdinaryOutcome = !!cardMemory(queuedIndex).queuedFront;
+    return { collected, queuedIndex, candidateHit: candidates.includes(queuedIndex), candidateCount: candidates.length,
+      started, makeup, makeupHit: makeup.targets.includes(queuedIndex), afterMakeupOutcome, ordinary, afterOrdinaryOutcome };
   });
-  assert(JSON.stringify(queueIsolation.focus.targets.slice().sort((a, b) => a - b)) === JSON.stringify(queueIsolation.focusIndexes.slice().sort((a, b) => a - b)) && queueIsolation.focus.queued
-    && JSON.stringify(queueIsolation.makeup.targets.slice().sort((a, b) => a - b)) === JSON.stringify(queueIsolation.makeupIndexes.slice().sort((a, b) => a - b)) && queueIsolation.makeup.targets.length === 5
-    && queueIsolation.makeup.queued && queueIsolation.makeup.historicalTargets.length === 0,
-    "#141/#144 queued-front cards must stay out of focus and makeup rounds", queueIsolation);
+  assert(queueIsolation.collected.queuedFront && queueIsolation.collected.dueToday && !queueIsolation.collected.pendingLearning
+    && !queueIsolation.candidateHit && queueIsolation.candidateCount === 5
+    && queueIsolation.started && queueIsolation.makeup.mode === "makeup" && !queueIsolation.makeupHit && queueIsolation.makeup.targets.length === 5
+    && queueIsolation.afterMakeupOutcome
+    && queueIsolation.ordinary.pool && queueIsolation.ordinary.first === queueIsolation.queuedIndex
+    && !queueIsolation.afterOrdinaryOutcome,
+    "#141 a really collected character must survive makeup and still lead the next ordinary group", queueIsolation);
 
   await resetState(page);
   const issue144Seed = await page.evaluate(() => {
@@ -339,6 +365,33 @@ let browser;
     && missAfterUndo.locked.group === "true" && missAfterUndo.locked.buttons.every((value) => value === "true")
     && missAfterUndo.unlocked.group === "false" && missAfterUndo.unlocked.buttons.every((value) => value === "false"),
     "#146 don't-know undo must restore the exact hint/ink/action state and keep the next stroke undoable", { missVisualBefore, missBeforeUndo, missAfterUndo });
+
+  // 复核发现：重盖后的视觉是异步 render 才落回来的。用户在这中间返回/刷新/切后台时，
+  // 保存下去的是当时的空状态，点拨、墨迹和撤销栈会被写没。这里刻意不等恢复完成。
+  // 用多字组，单字专项退出时本来就会清掉快照，测不到这条。
+  await page.evaluate(() => { removeStored(SESSION_KEY); focusPreservedSession = null; activeMode = "new"; renderHome(); });
+  await page.evaluate(() => startFocus([BASE_BY_CHAR["器"], BASE_BY_CHAR["强"], BASE_BY_CHAR["疑"]], { skipSessionCheck: true }));
+  await page.waitForFunction(() => !tip.disabled && Array.isArray(curMedians) && curMedians.length > 0);
+  await page.click("#tip");
+  await page.waitForFunction(() => !animating && actionStack.length === 1 && actionStack[0].type === "hint");
+  await drawInkStroke(page, { x: 0.25, y: 0.68 }, { x: 0.72, y: 0.32 });
+  const raceBefore = await page.evaluate(() => ({ shownStrokes, groupIdx, seen: [...seenGroups].length, ink: inkStrokes.length, actions: actionStack.length, targets: baseTargets.length }));
+  await page.click("#show");
+  await page.waitForFunction(() => practicePhase === "tracing" && getComputedStyle(undoBar).display !== "none");
+  const undoExitRace = await page.evaluate(() => {
+    reopenStampChoices();
+    const pendingSet = !!pendingSessionVisual;
+    const exited = exitCurrentRound();
+    const stored = decodeSessionV3(JSON.parse(localStorage.getItem(SESSION_KEY) || "null"));
+    const v = stored && stored.visual;
+    return { pendingSet, exited, visual: v ? { shownStrokes: v.shownStrokes, groupIdx: v.groupIdx,
+      seen: (v.seenGroups || []).length, ink: (v.inkStrokes || []).length, actions: (v.actionStack || []).length } : null };
+  });
+  assert(raceBefore.targets === 3 && undoExitRace.pendingSet && undoExitRace.exited && undoExitRace.visual
+    && undoExitRace.visual.shownStrokes === raceBefore.shownStrokes && undoExitRace.visual.groupIdx === raceBefore.groupIdx
+    && undoExitRace.visual.seen === raceBefore.seen && undoExitRace.visual.ink === raceBefore.ink
+    && undoExitRace.visual.actions === raceBefore.actions,
+    "#146 returning right after 重盖 must persist the restored visual, not the not-yet-applied empty one", { raceBefore, undoExitRace });
   await resetState(page);
   await page.evaluate(() => startFocus([BASE_BY_CHAR["器"]]));
   await page.waitForFunction(() => Array.isArray(curMedians) && curMedians.length > 0);
@@ -354,6 +407,36 @@ let browser;
   });
   assert(doubleDecision.stamped && doubleDecision.stats === 1 && doubleDecision.events === 1 && doubleDecision.attempts === 1,
     "#146 a double tap must record exactly one decision", doubleDecision);
+
+  // 上面那组是在同一个同步块里对同一个节点连发两次事件，第二次不经过 hit-test。
+  // 这里用真实坐标双击：第一击的同步活阻塞约 360ms，第二击排队后落在当时光标下的元素上。
+  await resetState(page);
+  await page.evaluate(() => startFocus([BASE_BY_CHAR["器"]]));
+  await page.waitForFunction(() => Array.isArray(curMedians) && curMedians.length > 0);
+  await page.evaluate(() => {
+    inkStrokes = mediansToCanvas(curMedians); redrawInk(); actionCooldownUntil = 0; stamped = false; revealAnswer();
+    window.__hits = [];
+    document.addEventListener("click", (e) => { const node = e.target.closest("[id]");
+      window.__hits.push({ id: node ? node.id : "(none)", cooldownLeft: Math.round(actionCooldownUntil - Date.now()), stamped, phase: practicePhase }); }, true);
+  });
+  await page.waitForFunction(() => practicePhase === "revealDecision" && getComputedStyle(decisionCorrect).display !== "none");
+  const decisionBox = await page.evaluate(() => {
+    window.__origSave = saveSessionSnapshot;
+    saveSessionSnapshot = () => { const until = performance.now() + 360; while (performance.now() < until) {} return true; };
+    const r = decisionCorrect.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+  });
+  const firstTap = page.mouse.click(decisionBox.x, decisionBox.y);
+  await page.waitForTimeout(100);
+  await page.mouse.click(decisionBox.x, decisionBox.y);
+  await firstTap;
+  const realDoubleTap = await page.evaluate(() => {
+    saveSessionSnapshot = window.__origSave;
+    return { stamped, phase: practicePhase, summaryVisible: getComputedStyle(summary).display !== "none",
+      stats: roundStats.length, events: fsrsReviewLog.length, hits: window.__hits.slice(0, 4) };
+  });
+  assert(realDoubleTap.stamped && realDoubleTap.phase === "feedback" && !realDoubleTap.summaryVisible
+    && realDoubleTap.stats === 1 && realDoubleTap.events === 1,
+    "#146 a real two-finger-speed double tap must not skip the feedback page", realDoubleTap);
 
   await resetState(page);
   const inkIndex = await page.evaluate(() => {

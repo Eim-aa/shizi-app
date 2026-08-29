@@ -1514,7 +1514,7 @@ function storedStampSnapshot(value){ if(!value) return null; const out=cloneObj(
   delete out.key; delete out.idx; delete out.currentIndex; delete out.baseTargetsValue; delete out.unresolvedValue; delete out.episodesValue; delete out.sessionDoneValue; return out; }
 function sessionRoundStats(rows){ return storedIndexedRows(rows||roundStats).map(row=>{ delete row.handwriting; return row; }); }
 function sessionPayload(){ return {version:3,startedDate:(load(SESSION_KEY,null)||{}).startedDate||today(),updatedAt:Date.now(),activeMode,makeupTargetDay,baseTargetKeys:storedCardRefs(baseTargets),baseCursor,currentCardKey:storedCardRef(currentIndex),currentAttemptKind,currentAttemptId,
-  manualQueue:storedQueue(manualQueue),reinforcementQueue:storedQueue(reinforcementQueue),unresolvedKeys:storedCardRefs([...unresolved]),episodeRows:storedEpisodes(episodes),attemptSeq,practicePhase,visual:storedVisual(capturePracticeVisual()),
+  manualQueue:storedQueue(manualQueue),reinforcementQueue:storedQueue(reinforcementQueue),unresolvedKeys:storedCardRefs([...unresolved]),episodeRows:storedEpisodes(episodes),attemptSeq,practicePhase,visual:storedVisual(pendingSessionVisual?cloneObj(pendingSessionVisual):capturePracticeVisual()),
   missedThisRound:missedThisRound.slice(),roundStats:sessionRoundStats(),focusKeys:storedCardRefs(focusQueue),sessionDoneKeys:storedCardRefs([...sessionDone]),sessionTarget,sessionFastStreak,sessionMissStreak,roundFeedbackGiven,roundId,calibrationFirstHoldUsed,calibrationComfortShown,calibrationTargetKeys:storedCardRefs(calibrationTargets),lastStampSnapshot:storedStampSnapshot(lastStampSnapshot),feedbackKind,
   roundElapsedMs:currentRoundElapsed(),roundBudgetPrompted,roundBudgetAttemptBase,roundBudgetDate,roundStartMemoryCount}; }
 function saveSessionSnapshot(){ if(!baseTargets.length || !Number.isInteger(currentCardIndex())) return false; if(activeMode==="focus"&&(baseTargets.length===1||focusPreservedSession)) return true; return save(SESSION_KEY,sessionPayload()); }
@@ -1826,7 +1826,8 @@ function recordOutcome(outcome,options={}){ const idx=currentCardIndex(), c=CARD
   const hard=outcome!=="fast", firstOutcome=!ep.firstOutcome, uncertain=!!options.uncertain, userCorrect=outcome==="fast"||(outcome==="hinted"&&!uncertain);
   markFirstSeen(m,now); m.seen=(m.seen||0)+1; m.last=now; m.lastOutcome=outcome; m.lastUncertain=uncertain; m.lastHints=hintsUsedThisCard;
   m.traced=!!enteredTracingThisAttempt;
-  delete m.queuedFront; delete m.queuedFrontAt;
+  // 只有普通练习和用户主动发起的专项才算兑现置顶；补帖写的是过去某天，校准是固定组
+  if(activeMode!=="makeup"&&activeMode!=="calibrate"){ delete m.queuedFront; delete m.queuedFrontAt; }
   const sys=lastVerdict?(lastVerdict.status==="ok"):null;
   m.lastSystemSuggestion=sys===null?"":(sys?"correct":"wrong"); m.lastSystemStatus=lastVerdict?lastVerdict.status:"none"; m.lastSystemAgree=sys===null?null:sys===userCorrect;
   recordFunnelComparison(currentAttemptId,m.lastSystemAgree,now);
@@ -1939,7 +1940,9 @@ function closeMakeupSheet(){ makeupPendingDay=""; $("makeupSheet").classList.rem
 function openMakeupSheet(key){ if(!canMakeupDay(key)) return; makeupInterestShown=true; if(resumableSession()){ renderCalendar(); toast("手上这组写完，就能补前几天的空"); return; } makeupPendingDay=key; $("makeupTitle").textContent=`补写 ${Number(key.slice(5,7))}月${Number(key.slice(8))}日`;
   $("makeupCopy").textContent="完整写完 5 个字后，这一天会落一枚浅色「补」印。中途返回不会落印。"; $("makeupSheet").classList.add("open"); }
 function uniqueCardIndexes(indexes){ const seen=new Set(); return (indexes||[]).filter(idx=>{ if(!Number.isInteger(idx)||idx<0||idx>=CARDS.length||qualityBlocked(idx)) return false; const key=cardKey(idx); if(seen.has(key)) return false; seen.add(key); return true; }); }
-function makeupCandidates(){ const due=reviewPool(false).sort(compareReviewPriority), risk=highRiskIndexes(), seen=profileIndexes().sort((a,b)=>personalDifficulty(b)-personalDifficulty(a)), fresh=newPool(false).sort((a,b)=>personalDifficulty(b)-personalDifficulty(a)); return uniqueCardIndexes([...due,...risk,...seen,...fresh]).slice(0,5); }
+function makeupCandidates(){ // 刚收进来、还等着在下一组普通练习里置顶的字不能被补帖取走
+  const reserved=new Set(queuedFrontPool()), keep=list=>list.filter(i=>!reserved.has(i));
+  const due=keep(reviewPool(false)).sort(compareReviewPriority), risk=keep(highRiskIndexes()), seen=keep(profileIndexes()).sort((a,b)=>personalDifficulty(b)-personalDifficulty(a)), fresh=keep(newPool(false)).sort((a,b)=>personalDifficulty(b)-personalDifficulty(a)); return uniqueCardIndexes([...due,...risk,...seen,...fresh]).slice(0,5); }
 function startMakeupDay(key=makeupPendingDay){ if(!canMakeupDay(key)) return false; const targets=makeupCandidates(); if(targets.length<5){ closeMakeupSheet(); toast("暂时凑不齐 5 个可练的字"); return false; }
   closeMakeupSheet(); clearSessionSnapshot(); activeMode="makeup"; makeupTargetDay=key; focusQueue=targets; sessionDone=new Set(); roundOpeningPending=true; startRound(); return true; }
 
@@ -2464,7 +2467,7 @@ function takeStampSnapshot(){ const idx=currentCardIndex(), key=cardKey(idx);
   return {position:pos,baseCursor,currentIndex,currentAttemptKind,currentAttemptId,practicePhase,attemptSeq,idx,key,target:CARDS[idx].target,statusValue:status[idx],memoryValue:cloneObj(memory[key]),fsrsEventId:fsrsEventId(currentAttemptId),activityKey,activityValue,activityHadPracticeDay:!!activityKey&&activity.practiceDays.includes(activityKey),funnelSeenLength:funnel.seen.length,funnelEventsLength:funnel.events.length,funnelCountsValue:cloneObj(funnel.counts),funnelEventCountsValue:cloneObj(funnel.eventCounts),roundHandwritingValue:cloneObj(roundHandwriting[String(idx)]),
     baseTargetsValue:baseTargets.slice(),manualQueueValue:cloneObj(manualQueue)||[],queueValue:cloneObj(reinforcementQueue)||[],unresolvedValue:[...unresolved],episodesValue:cloneObj(episodes)||{},sessionDoneValue:[...sessionDone],roundStatsValue:cloneObj(roundStats)||[],missedValue:missedThisRound.slice(),
     sessionTarget,sessionFastStreak,sessionMissStreak,calibrationFirstHoldUsed,calibrationComfortShown,revealState:captureRevealState()}; }
-function restoreStampSnapshot(snap){ if(!snap) return;
+function restoreStampSnapshot(snap,deferSave){ if(!snap) return;
   pos=snap.position; baseCursor=Number(snap.baseCursor)||0; currentIndex=snap.currentIndex; currentAttemptKind=snap.currentAttemptKind; currentAttemptId=snap.currentAttemptId; practicePhase=snap.practicePhase||"revealDecision"; attemptSeq=Number(snap.attemptSeq)||0;
   baseTargets=snap.baseTargetsValue.slice(); batch=baseTargets; manualQueue=cloneObj(snap.manualQueueValue)||[]; reinforcementQueue=cloneObj(snap.queueValue)||[]; unresolved=new Set(snap.unresolvedValue||[]); episodes=cloneObj(snap.episodesValue)||{}; sessionDone=new Set(snap.sessionDoneValue||[]);
   if(snap.statusValue==null) delete status[snap.key]; else status[snap.key]=snap.statusValue; save(DECK_KEY,status);
@@ -2475,7 +2478,7 @@ function restoreStampSnapshot(snap){ if(!snap) return;
   if(snap.roundHandwritingValue==null) delete roundHandwriting[String(snap.idx)]; else roundHandwriting[String(snap.idx)]=cloneObj(snap.roundHandwritingValue);
   roundStats=cloneObj(snap.roundStatsValue)||[]; missedThisRound=(snap.missedValue||[]).slice();
   sessionTarget=snap.sessionTarget; sessionFastStreak=snap.sessionFastStreak; sessionMissStreak=snap.sessionMissStreak;
-  calibrationFirstHoldUsed=!!snap.calibrationFirstHoldUsed; calibrationComfortShown=!!snap.calibrationComfortShown; saveSessionSnapshot(); }
+  calibrationFirstHoldUsed=!!snap.calibrationFirstHoldUsed; calibrationComfortShown=!!snap.calibrationComfortShown; if(!deferSave) saveSessionSnapshot(); }
 function hideUndoBar(clearSnapshot=false){ clearTimeout(undoFollowTimer); $("undoBar").style.display="none"; $("card").classList.remove("undoActive"); if(clearSnapshot) lastStampSnapshot=null; }
 function commitUndoWindow(){ if(lastStampSnapshot && currentAttemptId!==lastStampSnapshot.currentAttemptId) hideUndoBar(true); }
 function renderUndoBar(force=false){ hideUndoBar(false); if(!lastStampSnapshot || (!force&&currentAttemptId===lastStampSnapshot.currentAttemptId)) return;
@@ -2652,9 +2655,9 @@ $("replayBtn").onclick=()=>{ if(replaying || !window.HanziWriter) return; replay
   try{ w.animateCharacter({ onComplete:()=>{ replaying=false; } }); }catch(e){ replaying=false; if(!renderStrokeSkeleton($("rightHz"),submissionSnapshot&&submissionSnapshot.referenceStrokes)) $("rightGlyph").style.opacity="1"; } };
 function reopenStampChoices(){ if(!lastStampSnapshot) return;
   const snap=lastStampSnapshot; clearTimeout(autoNextTimer); clearTimeout(editStampTimer); hideUndoBar(false); lastStampSnapshot=null;
-  restoreStampSnapshot(snap); stamped=false; feedbackKind="";
-  if(snap.missEntry){ pendingSessionVisual=cloneObj(snap.practiceVisualValue)||{practicePhase:snap.practicePhase||"recall",currentIndex:snap.currentIndex,currentAttemptKind:snap.currentAttemptKind,currentAttemptId:snap.currentAttemptId,revealed:false}; render(); }
-  else { render(); restoreRevealFromSnapshot({...snap.revealState,softConfirmHandled:false}); }
+  restoreStampSnapshot(snap,true); stamped=false; feedbackKind="";
+  if(snap.missEntry){ pendingSessionVisual=cloneObj(snap.practiceVisualValue)||{practicePhase:snap.practicePhase||"recall",currentIndex:snap.currentIndex,currentAttemptKind:snap.currentAttemptKind,currentAttemptId:snap.currentAttemptId,revealed:false}; saveSessionSnapshot(); render(); }
+  else { saveSessionSnapshot(); render(); restoreRevealFromSnapshot({...snap.revealState,softConfirmHandled:false}); }
   updateProgressLabel(); hapticFeedback("undo"); }
 const STAMP_HOLD_MS=1800, CALIBRATION_FIRST_HOLD_MS=1800, EDIT_STAMP_WINDOW_MS=1800;
 function showStampedFeedback(outcome,options={}){ const ui=GRADE_UI[outcome], m=memory[cardKey(currentCardIndex())]||{}, st=$("stampOnMine"), face=st.querySelector(".face"), ring=st.querySelector(".ring"), solid={fast:"var(--accent)",hinted:"var(--gold)",slow:"var(--accent)"}[outcome], ep=episodeFor(currentCardIndex()), recovered=outcome==="fast"&&ep.firstOutcome&&ep.firstOutcome!=="fast";
@@ -2666,7 +2669,7 @@ function showStampedFeedback(outcome,options={}){ const ui=GRADE_UI[outcome], m=
   const copy=stampToastCopy(outcome,m); $("toastTitle").textContent=copy.title; $("toastSubEl").textContent=copy.sub; $("stampedToast").style.display="flex"; $("editStamp").disabled=false; }
 function showTeachingCompleteFeedback(){ showStampedFeedback("miss"); $("toastTitle").textContent="描红后已经写出"; $("toastSubEl").textContent="本组稍后还会不看提示再写一次"; $("editStamp").disabled=true; }
 function takeCalibrationComfort(outcome){ if(activeMode!=="calibrate" || outcome==="fast" || calibrationComfortShown) return false; calibrationComfortShown=true; return true; }
-function pickStamp(outcome,options={}){ if(stamped || !revealed || Date.now()<actionCooldownUntil) return; stamped=true; armGradeActions();
+function pickStamp(outcome,options={}){ if(stamped || !revealed || Date.now()<actionCooldownUntil) return; stamped=true; lockGradeActions();
   lastStampSnapshot=takeStampSnapshot();
   const firstCalibrationHold=activeMode==="calibrate" && baseCursor===0 && !calibrationFirstHoldUsed;
   if(firstCalibrationHold) calibrationFirstHoldUsed=true;
@@ -2676,6 +2679,9 @@ function pickStamp(outcome,options={}){ if(stamped || !revealed || Date.now()<ac
   if(comfort){ $("toastTitle").textContent="一时想不起来很正常"; $("toastSubEl").textContent="先描红，稍后再写一次"; }
   clearTimeout(editStampTimer); editStampTimer=setTimeout(()=>{ $("editStamp").disabled=true; },EDIT_STAMP_WINDOW_MS);
   updateProgressLabel(); saveSessionSnapshot();
+  // 冷却要从「同步活干完」开始算。盖章这一段可能跑掉几百毫秒，若按进函数的时刻起算，
+  // 用户第二次物理点击排队到此时冷却已经过期，会被当成推进，直接跳过反馈页。
+  armGradeActions();
   autoNextTimer=setTimeout(advanceFeedback,firstCalibrationHold?CALIBRATION_FIRST_HOLD_MS:STAMP_HOLD_MS); }
 function goNext(){ clearTimeout(autoNextTimer); clearTimeout(editStampTimer); $("editStamp").disabled=true; if(!stamped) return;
   const outcome=lastStampSnapshot&&lastStampSnapshot.outcome||feedbackKind; stamped=false;

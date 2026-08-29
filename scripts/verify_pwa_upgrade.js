@@ -105,26 +105,6 @@ function git(args, options = {}) {
   return execFileSync("git", ["-C", ROOT, ...args], { maxBuffer: 64 * 1024 * 1024, ...options });
 }
 
-// legacy 一代的静态笔顺资源直接用当前工作区的 data/ 提供，但必须先证明它们逐字节相同，
-// 否则就是在偷偷用新数据跑旧一代。
-function assertLegacyDataTreeIsUnchanged() {
-  const read = rev => {
-    const rows = git(["ls-tree", "-r", rev, "data/"], { encoding: "utf8" }).split("\n").filter(Boolean);
-    return new Map(rows.map(row => {
-      const [meta, file] = row.split("\t");
-      return [file, meta.split(/\s+/)[2]];
-    }));
-  };
-  const legacy = read(LEGACY_COMMIT);
-  const current = read("HEAD");
-  const drifted = [...legacy].filter(([file, oid]) => current.get(file) !== oid).map(([file]) => file);
-  check(legacy.size > 0, "Legacy commit exposes no data/ tree", { commit: LEGACY_COMMIT });
-  check(drifted.length === 0,
-    "Legacy data assets are not byte-identical in the current tree, so they cannot be replayed from the working copy",
-    { drifted: drifted.slice(0, 10), driftedCount: drifted.length });
-  note(`legacy data/ tree replayable from working copy: ${legacy.size} files, 0 drifted`);
-}
-
 function hasLegacyCommit() {
   try {
     git(["cat-file", "-e", `${LEGACY_COMMIT}^{commit}`], { stdio: "ignore" });
@@ -132,6 +112,29 @@ function hasLegacyCommit() {
   } catch (error) {
     return false;
   }
+}
+
+// legacy 一代的 data/ 默认用当前工作区提供，但必须先证明它逐字节相同。
+// 注意要跟「工作区」比，不是跟 HEAD 比：门禁服务的是工作区文件，
+// 只比 HEAD 会让未提交的改动在本机悄悄通过、到 CI 才红。
+// 真正漂移的那几个文件从 legacy commit 取回来单独提供，而不是直接判失败——
+// 分支往前走，data/ 出现合理差异是必然的。
+function materializeDriftedLegacyData(dir) {
+  const drifted = git(["diff", "--name-only", LEGACY_COMMIT, "--", "data/"], { encoding: "utf8" })
+    .split("\n").map(line => line.trim()).filter(Boolean);
+  const restored = [];
+  for (const file of drifted) {
+    let bytes = null;
+    try { bytes = git(["cat-file", "blob", `${LEGACY_COMMIT}:${file}`]); }
+    catch (error) { continue; } // 旧一代里本就不存在的文件，旧 App 不会请求
+    const target = path.join(dir, file);
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.writeFileSync(target, bytes);
+    restored.push(file);
+  }
+  note(`legacy data/: ${restored.length} drifted file(s) replayed from ${LEGACY_COMMIT.slice(0, 12)}`
+    + (restored.length ? ` (${restored.slice(0, 5).join(", ")}${restored.length > 5 ? ", …" : ""})` : ""));
+  return restored;
 }
 
 function materializeLegacyTree() {
@@ -168,7 +171,7 @@ function materializeLegacyTree() {
   const legacyWorker = fs.readFileSync(path.join(dir, "sw.js"), "utf8");
   check(/网络优先/.test(legacyWorker) && legacyWorker.includes("const VERSION = 'shizi-v10'"),
     "Replayed legacy worker is not the network-first v10 this gate claims to exercise");
-  assertLegacyDataTreeIsUnchanged();
+  materializeDriftedLegacyData(dir);
   note(`replaying real v10 from ${LEGACY_COMMIT.slice(0, 12)} at ${dir}`);
   return dir;
 }

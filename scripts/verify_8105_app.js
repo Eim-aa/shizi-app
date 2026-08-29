@@ -280,21 +280,31 @@ let browser;
   browser = await chromium.launch({ headless: true, ...(localChrome ? { executablePath: localChrome } : {}) });
   const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
   const pageErrors = [];
-  let offlineProbe = false;
   page.on("pageerror", (error) => pageErrors.push(error.message));
   // 网络类错误只忽略「测试自己刻意制造的那个请求」，并且按完整 URL 精确匹配。
   // 之前按「跨源」忽略是错的：应用里没有任何跨源资源（charLoader 只取同源 data/<字>.json），
   // 那条规则只会永久吞掉真实故障；CI 那次红其实是离线探针的同源失败迟到到窗口之外。
   const NETWORK_ERROR = /ERR_FAILED|ERR_INTERNET_DISCONNECTED|ERR_NAME_NOT_RESOLVED|ERR_CONNECTION|ERR_TIMED_OUT/;
-  const expectedNetworkFailures = new Set(), probeNetworkFailures = new Set();
-  function isExpectedNetworkFailure(text, url) { return NETWORK_ERROR.test(text) && !!url && expectedNetworkFailures.has(url); }
+  const expectedNetworkFailures = new Map();
+  function removeExpectedNetworkFailure(token) {
+    const queue = expectedNetworkFailures.get(token.url) || [], next = queue.filter((row) => row !== token);
+    if (next.length) expectedNetworkFailures.set(token.url, next); else expectedNetworkFailures.delete(token.url);
+  }
+  function expectNetworkFailureOnce(url) {
+    let resolveSeen;
+    const token = { url, remaining: 1, seen: 0, messages: [], seenPromise: new Promise((resolve) => { resolveSeen = resolve; }), resolveSeen };
+    const queue = expectedNetworkFailures.get(url) || []; queue.push(token); expectedNetworkFailures.set(url, queue); return token;
+  }
+  function consumeExpectedNetworkFailure(text, url) {
+    if (!NETWORK_ERROR.test(text) || !url) return false;
+    const token = (expectedNetworkFailures.get(url) || []).find((row) => row.remaining > 0);
+    if (!token) return false;
+    token.remaining -= 1; token.seen += 1; token.messages.push(text); removeExpectedNetworkFailure(token); token.resolveSeen(token); return true;
+  }
   page.on("console", (message) => {
     if (message.type() !== "error") return;
     const value = message.text(), url = (message.location() && message.location().url) || "";
-    if (isExpectedNetworkFailure(value, url)) return;
-    // 探针窗口内新出现的失败先登记下来，紧接着由断言核对它确实只有预期的那一个；
-    // 登记之后同一个 URL 的迟到消息也不会再被当成产品缺陷。
-    if (NETWORK_ERROR.test(value) && url && offlineProbe) { probeNetworkFailures.add(url); expectedNetworkFailures.add(url); return; }
+    if (consumeExpectedNetworkFailure(value, url)) return;
     pageErrors.push(url ? `${value} @ ${url}` : value);
   });
 
@@ -742,7 +752,14 @@ let browser;
     "Expected a valid notification card key to open that exact focus card and reject stale keys", notificationDeepLink);
 
   await page.reload({ waitUntil: "networkidle" });
-  offlineProbe = true;
+  // 令牌必须在请求发出前按完整 URL 登记；它只消费一次，首条消息即使迟到到恢复联网后也能归因，
+  // 随后的同 URL 错误则必须重新进入 pageErrors，不能留下永久白名单。
+  const expectedOfflineFailure = new URL(`data/${encodeURIComponent("玃")}.json`, appUrl).href;
+  const expectedOfflineConsole = expectNetworkFailureOnce(expectedOfflineFailure);
+  const failedOfflineRequest = page.waitForEvent("requestfailed", {
+    predicate: (request) => request.url() === expectedOfflineFailure,
+    timeout: 10000,
+  });
   await page.context().setOffline(true);
   await page.evaluate(() => { tuning = { calibrated: true, offset: 0, contextStrict: 0, rounds: [] }; saveTuning(); const idx = CARDS.findIndex((card) => card.target === "玃"); startFocus([idx]); });
   await page.waitForFunction(() => !done.disabled && hint.textContent.includes("暂未收录笔顺"));
@@ -750,18 +767,29 @@ let browser;
   assert(honestOffline.copy.includes("这个字暂未收录笔顺") && honestOffline.done && honestOffline.show && honestOffline.noWriter && honestOffline.offline,
   "Expected a character without bundled stroke data to explain its limitation and keep self-assessment usable offline", honestOffline);
   await page.context().setOffline(false);
-  offlineProbe = false;
-  // 探针只应该打挂那一个同源笔顺请求。多出任何别的失败都说明探针范围失控，必须红。
-  const expectedOfflineFailure = new URL(`data/${encodeURIComponent("玃")}.json`, appUrl).href;
-  assert(probeNetworkFailures.size > 0 && [...probeNetworkFailures].every((url) => url === expectedOfflineFailure),
-    "Expected the offline probe to fail exactly the bundled stroke request it targets",
-    { expected: expectedOfflineFailure, saw: [...probeNetworkFailures] });
-  // 两个反例，锁住过滤器不会重新变成「按来源放行」：
-  // 未知跨源资源失败必须红；子路径部署时的同源资源失败也必须红。
-  assert(!isExpectedNetworkFailure("Failed to load resource: net::ERR_CONNECTION_REFUSED", "https://cdn.example.com/required.png")
-    && !isExpectedNetworkFailure("Failed to load resource: net::ERR_FAILED", new URL("/required-api-resource.png", appUrl).href)
-    && isExpectedNetworkFailure("Failed to load resource: net::ERR_FAILED", expectedOfflineFailure),
-    "Expected only the registered probe URL to be treated as an expected network failure");
+  const failedRequest = await failedOfflineRequest;
+  // requestfailed 先证明真实请求已失败；再等 console 生命周期收束，专门覆盖「唯一消息恢复联网后才到」的 CI 路径。
+  const consoleSettled = await Promise.race([
+    expectedOfflineConsole.seenPromise.then(() => true),
+    new Promise((resolve) => setTimeout(() => resolve(false), 5000)),
+  ]);
+  removeExpectedNetworkFailure(expectedOfflineConsole);
+  assert(failedRequest.url() === expectedOfflineFailure && consoleSettled && expectedOfflineConsole.seen === 1
+    && expectedNetworkFailures.size === 0,
+    "Expected exactly one request-specific offline failure, including a late console message",
+    { expected: expectedOfflineFailure, request: failedRequest.url(), consoleSettled, seen: expectedOfflineConsole.seen });
+
+  // 负向反例：首条迟到消息仍可消费一次；同 URL 第二条以及任意未登记来源都必须红。
+  const delayedControlUrl = new URL("/__verify_delayed_network_failure__", appUrl).href;
+  const delayedControl = expectNetworkFailureOnce(delayedControlUrl);
+  await Promise.resolve();
+  const delayedAccepted = consumeExpectedNetworkFailure("Failed to load resource: net::ERR_FAILED", delayedControlUrl);
+  const repeatedRejected = !consumeExpectedNetworkFailure("Failed to load resource: net::ERR_FAILED", delayedControlUrl);
+  const crossOriginRejected = !consumeExpectedNetworkFailure("Failed to load resource: net::ERR_CONNECTION_REFUSED", "https://cdn.example.com/required.png");
+  const otherSameOriginRejected = !consumeExpectedNetworkFailure("Failed to load resource: net::ERR_FAILED", new URL("/required-api-resource.png", appUrl).href);
+  assert(delayedAccepted && delayedControl.seen === 1 && repeatedRejected && crossOriginRejected && otherSameOriginRejected
+    && expectedNetworkFailures.size === 0,
+    "Expected a delayed request token to be consumed once without hiding a later real failure");
   await page.evaluate(() => localStorage.clear());
   await page.reload({ waitUntil: "networkidle" });
 
@@ -2390,16 +2418,25 @@ let browser;
   // 上面那组是直接调函数 + reload:false。复核指出这绕开了真实文件导入与重启后的 resumableSession，
   // 所以 session 语义坏值和 recentInk 嵌套坏值都能「先恢复成功、刷新后才丢」。这里走真实路径。
   const goodBackupText = await page.evaluate(() => backupPayload());
+  const goodBackupPreflight = await page.evaluate((text) => { try{ const validated=validatedBackupData(text); return {valid:true,keys:validated.keys}; }
+    catch(error){ return {valid:false,key:error.backupKey||"",message:error.message}; } },goodBackupText);
+  assert(goodBackupPreflight.valid,"Expected the production backup fixture to remain valid before negative UI mutations",goodBackupPreflight);
+  let uiImportSequence=0;
   const importThroughUI = async (mutate) => {
-    const text = await page.evaluate(({ base, patch }) => {
-      const payload = JSON.parse(base); new Function("payload", patch)(payload); return JSON.stringify(payload);
-    }, { base: goodBackupText, patch: mutate });
+    const marker=1700000000000+(++uiImportSequence);
+    const text = await page.evaluate(({ base, patch, marker }) => {
+      const payload = JSON.parse(base); new Function("payload", patch)(payload);
+      const meta=JSON.parse(payload.data["shizi.backupMeta.v1"]||"{}"); meta.lastExportAt=marker;
+      payload.data["shizi.backupMeta.v1"]=JSON.stringify(meta); return JSON.stringify(payload);
+    }, { base: goodBackupText, patch: mutate, marker });
     const before = await page.evaluate(() => Object.fromEntries(BACKUP_KEYS.map((k) => [k, localStorage.getItem(k)])));
     const dialogs = []; const onDialog = (dialog) => { dialogs.push(dialog.message()); dialog.accept(); };
     page.on("dialog", onDialog);
     const navigation = page.waitForNavigation({ timeout: 4000 }).then(() => true).catch(() => false);
     await page.setInputFiles("#importFile", { name: "shizi-backup.json", mimeType: "application/json", buffer: Buffer.from(text, "utf8") });
-    const reloaded = await navigation;
+    const applied=page.waitForFunction((expected)=>{ try{return JSON.parse(localStorage.getItem("shizi.backupMeta.v1")||"{}").lastExportAt===expected
+      &&typeof backupMeta!=="undefined"&&backupMeta.lastExportAt===expected;}catch(error){return false;} },marker,{timeout:4000}).then(()=>true).catch(()=>false);
+    const [navigated,markerApplied]=await Promise.all([navigation,applied]),reloaded=navigated&&markerApplied;
     page.off("dialog", onDialog);
     const after = await page.evaluate(() => Object.fromEntries(BACKUP_KEYS.map((k) => [k, localStorage.getItem(k)])));
     // 失败提示可能走原生弹窗，也可能走应用内 toast；两种都算「告诉了用户」。
@@ -2413,6 +2450,72 @@ let browser;
   assert(!brokenSession.reloaded && brokenSession.untouched && brokenSessionState.quarantined === null
     && (brokenSession.dialogs.some((message) => message.includes("无法恢复")) || /不是有效的拾字备份|无法恢复/.test(brokenSession.notice)),
     "Expected a semantically unusable v3 session to be rejected at import instead of quarantined after the next start", { brokenSession, brokenSessionState });
+
+  // session.visual 也必须深查；[[null]] 在导入时规范成空墨迹并持久化，不能等到用户点「续」
+  // 后才在 redrawInk 里读 point.x 崩溃，也不能每次启动都从原始坏值重新复现。
+  const errorsBeforeBrokenSessionInk = pageErrors.length;
+  const brokenSessionInk = await importThroughUI(`
+    const key = cardKey(0);
+    payload.data["shizi.session.v1"] = JSON.stringify({ version: 3, startedDate: today(), updatedAt: Date.now(), activeMode: "new", makeupTargetDay: "",
+      baseTargetKeys: [key], baseCursor: 0, currentCardKey: key, manualQueue: [], reinforcementQueue: [], unresolvedKeys: [], episodeRows: [], roundStats: [], focusKeys: [], sessionDoneKeys: [], calibrationTargetKeys: [],
+      visual: { practicePhase: "recall", currentCardKey: key, inkStrokes: [[null]], submissionSnapshot: null }, lastStampSnapshot: null });`);
+  const brokenSessionInkResume = await page.evaluate(() => {
+    const stored=load(SESSION_KEY,null), decoded=resumableSession();
+    return { storedInk:stored&&stored.visual&&stored.visual.inkStrokes,decoded:!!decoded,homeResume:!!homeResumeSession,
+      continueLabel:document.querySelector("#startBtn").getAttribute("aria-label"),quarantined:localStorage.getItem(`shizi.corrupt.${SESSION_KEY}`) };
+  });
+  await page.click("#startBtn");
+  await page.waitForFunction(() => pendingSessionVisual===null&&!storageRuntimeFailed, null, {timeout:10000});
+  const brokenSessionInkAfter = await page.evaluate(() => ({ink:cloneObj(inkStrokes),runtimeFailed:storageRuntimeFailed,storedValid:storedSessionShape(load(SESSION_KEY,null)),quarantined:localStorage.getItem(`shizi.corrupt.${SESSION_KEY}`)}));
+  assert(brokenSessionInk.reloaded && !brokenSessionInk.untouched && Array.isArray(brokenSessionInkResume.storedInk)&&brokenSessionInkResume.storedInk.length===0
+    && brokenSessionInkResume.decoded&&brokenSessionInkResume.homeResume&&brokenSessionInkResume.continueLabel==="继续练习"&&brokenSessionInkResume.quarantined===null
+    && brokenSessionInkAfter.ink.length===0&&!brokenSessionInkAfter.runtimeFailed&&brokenSessionInkAfter.storedValid&&brokenSessionInkAfter.quarantined===null
+    && pageErrors.length===errorsBeforeBrokenSessionInk,
+    "Expected malformed session ink to be normalized during real file import and remain safe after refresh and resume", {brokenSessionInk,brokenSessionInkResume,brokenSessionInkAfter,pageErrors:pageErrors.slice(errorsBeforeBrokenSessionInk)});
+
+  // 真跨设备路径：目标设备当前没有这个自定义字，备份同时携带 custom + 未完成 session。
+  // 校验必须以候选 custom 为上下文，导入、刷新、点续写后仍能恢复同一张卡和合法墨迹。
+  // 上一例为验证续写停在卡片页；这里先真正清空并重启，不能让旧卡片的 visibilitychange 保存
+  // 干扰「干净目标设备」这个测试前提。
+  await page.evaluate(() => localStorage.clear());
+  await page.reload({waitUntil:"networkidle"});
+  const errorsBeforeCustomSession = pageErrors.length;
+  const customSession = await importThroughUI(`
+    let customChar = "";
+    for(let cp=0x9fff;cp>=0x4e00;cp--){ const ch=String.fromCodePoint(cp); if(BASE_BY_CHAR[ch]==null){ customChar=ch; break; } }
+    if(!customChar) throw new Error("no custom fixture character");
+    const key = "custom:" + customChar;
+    payload.data["shizi.custom.v1"] = JSON.stringify([customChar]);
+    payload.data["shizi.added.v1"] = JSON.stringify([customChar]);
+    payload.data["shizi.session.v1"] = JSON.stringify({ version: 3, startedDate: today(), updatedAt: Date.now(), activeMode: "new", makeupTargetDay: "",
+      baseTargetKeys: [key], baseCursor: 0, currentCardKey: key, currentAttemptKind: "base", currentAttemptId: "verify-custom-session",
+      manualQueue: [], reinforcementQueue: [], unresolvedKeys: [], episodeRows: [], attemptSeq: 0, practicePhase: "recall", missedThisRound: [], roundStats: [], focusKeys: [], sessionDoneKeys: [], calibrationTargetKeys: [],
+      visual: { practicePhase: "recall", currentCardKey: key, currentAttemptKind: "base", currentAttemptId: "verify-custom-session", inkStrokes: [[{x:16,y:20,t:0,w:1,v:0}],[{x:32,y:40,t:1,w:1,v:0},{x:92,y:110,t:2,w:1,v:0}]], submissionSnapshot: null },
+      lastStampSnapshot: null, roundId: "verify-custom-round", roundElapsedMs: 10 });`);
+  const importedCustomChar = await page.evaluate(() => (load(CUSTOM_KEY, [])[0] || ""));
+  const customResume = await page.evaluate(() => {
+    // 自定义字按产品定义可能没有自己的笔顺文件；走应用已有的 writer 不可用降级路径，
+    // 让本例只检验「导入→刷新→续写」和画布恢复，不制造无关的 404 console error。
+    window.__verifyHanziWriter = window.HanziWriter; window.HanziWriter = null;
+    const decoded = resumableSession();
+    return { decoded: !!decoded, homeResume:!!homeResumeSession, continueLabel:document.querySelector("#startBtn").getAttribute("aria-label"),
+      target: decoded && CARDS[decoded.currentIndex] && CARDS[decoded.currentIndex].target,
+      custom: !!(decoded && CARDS[decoded.currentIndex] && CARDS[decoded.currentIndex].custom), corrupt: localStorage.getItem(`shizi.corrupt.${SESSION_KEY}`),
+      writerDisabled:window.HanziWriter===null };
+  });
+  await page.click("#startBtn");
+  await page.waitForFunction(() => pendingSessionVisual===null&&!storageRuntimeFailed, null, {timeout:10000});
+  const customResumeAfter = await page.evaluate(() => ({ target: cur && cur.target, ink: cloneObj(inkStrokes), pending:!!pendingSessionVisual,runtimeFailed: storageRuntimeFailed,
+    storedInk:cloneObj((load(SESSION_KEY,null)||{}).visual&&load(SESSION_KEY,null).visual.inkStrokes),storedValid: storedSessionShape(load(SESSION_KEY, null)), corrupt: localStorage.getItem(`shizi.corrupt.${SESSION_KEY}`) }));
+  await page.evaluate(() => { if(window.__verifyHanziWriter){ window.HanziWriter=window.__verifyHanziWriter; delete window.__verifyHanziWriter; } });
+  assert(customSession.reloaded && !customSession.untouched && customResume.decoded && customResume.homeResume && customResume.continueLabel==="继续练习" && customResume.writerDisabled && customResume.custom
+    && customResume.target === importedCustomChar && customResumeAfter.target === importedCustomChar && customResumeAfter.ink.length === 2&&customResumeAfter.ink[0].length===1
+    && Array.isArray(customResumeAfter.storedInk)&&customResumeAfter.storedInk.length===2&&customResumeAfter.storedInk[0].length===1
+    && !customResumeAfter.runtimeFailed && customResumeAfter.storedValid && customResume.corrupt === null && customResumeAfter.corrupt === null
+    && pageErrors.length === errorsBeforeCustomSession,
+    "Expected a clean device to import and resume a backup-owned custom card session with valid ink", { customSession, customResume, customResumeAfter, pageErrors: pageErrors.slice(errorsBeforeCustomSession) });
+  await page.evaluate(() => localStorage.clear());
+  await page.reload({waitUntil:"networkidle"});
 
   // recentInk 的嵌套坏点：导入后必须已经被规范掉，字卡不能再拿它去画。
   const nestedInk = await importThroughUI(`

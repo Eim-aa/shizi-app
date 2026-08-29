@@ -743,7 +743,17 @@ final class WebViewController: UIViewController {
               closeAddSheet();
               result.dataFlow.wildSmokeStage = 'complete';
 
-              localStorage.setItem(SESSION_KEY, JSON.stringify({ version: 3, smoke: true }));
+              // 备份门禁会按真实 v3 schema 校验 session；smoke 也必须生成一份可续写的真实会话，
+              // 不能用 {version:3, smoke:true} 这种产品启动时必然隔离的假 fixture。
+              const smokeSessionKey = cardKey(indexForSmokeChar);
+              localStorage.setItem(SESSION_KEY, JSON.stringify({
+                version: 3, startedDate: today(), updatedAt: Date.now(), activeMode: 'new', makeupTargetDay: '',
+                baseTargetKeys: [smokeSessionKey], baseCursor: 0, currentCardKey: smokeSessionKey,
+                currentAttemptKind: 'base', currentAttemptId: 'native-smoke-backup', manualQueue: [], reinforcementQueue: [],
+                unresolvedKeys: [], episodeRows: [], attemptSeq: 0, practicePhase: 'recall', missedThisRound: [], roundStats: [],
+                focusKeys: [], sessionDoneKeys: [], calibrationTargetKeys: [], visual: null, lastStampSnapshot: null,
+                roundId: 'native-smoke-backup', roundElapsedMs: 0
+              }));
               const backup = JSON.parse(backupPayload({ funnelExportAt: Date.now() }));
               const backupData = backup && backup.data ? backup.data : {};
               result.dataFlow.backupParses = true;

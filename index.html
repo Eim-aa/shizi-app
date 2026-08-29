@@ -1149,6 +1149,12 @@ function normalizedInkStrokes(value){ if(!Array.isArray(value)) return [];
   return value.map(stroke=>Array.isArray(stroke)?stroke.filter(point=>plainObject(point)&&Number.isFinite(Number(point.x))&&Number.isFinite(Number(point.y)))
       .map(point=>{ const out={x:Number(point.x),y:Number(point.y)}; if(Number.isFinite(Number(point.w))) out.w=Number(point.w); if(Number.isFinite(Number(point.v))) out.v=Number(point.v); return out; }):[])
     .filter(stroke=>stroke.length>1); }
+// 会话画布允许合法单点：paintBrushStroke 会把它画成圆点。recentInk 字卡仍要求至少两点，
+// 两种持久化用途不能共用同一个最小点数，否则恢复备份会悄悄吃掉点按笔画。
+function normalizedSessionInkStrokes(value){ if(!Array.isArray(value)) return [];
+  return value.map(stroke=>Array.isArray(stroke)?stroke.filter(point=>plainObject(point)&&Number.isFinite(Number(point.x))&&Number.isFinite(Number(point.y)))
+      .map(point=>{ const out={x:Number(point.x),y:Number(point.y)}; ["t","w","v"].forEach(key=>{ if(Number.isFinite(Number(point[key]))) out[key]=Number(point[key]); }); return out; }):[])
+    .filter(stroke=>stroke.length>0); }
 function isRecentInkDataURL(value){ const dataURL=typeof value==="string"?value:""; return dataURL.length*2<=32*1024&&/^data:image\/(?:webp|png);base64,[A-Za-z0-9+/]*={0,2}$/.test(dataURL); }
 function recentInkRows(){ return Object.entries(memory).filter(([,m])=>m&&m.recentInk&&isRecentInkDataURL(m.recentInk.dataURL)).map(([key,m])=>({key,m,at:Math.max(0,Number(m.recentInk.at)||0),bytes:m.recentInk.dataURL.length*2+(m.recentInk.strokes?JSON.stringify(m.recentInk.strokes).length*2:0)})).sort((a,b)=>b.at-a.at); }
 function trimRecentInk(){ let kept=0, bytes=0, removed=0; recentInkRows().forEach(row=>{ if(kept<RECENT_INK_MAX && bytes+row.bytes<=RECENT_INK_BUDGET){ kept++; bytes+=row.bytes; }else{ delete row.m.recentInk; removed++; } }); return {kept,bytes,removed}; }
@@ -1483,6 +1489,7 @@ function restoredIndexedRow(row){ if(!plainObject(row)) return null; const idx=r
 function restoredIndexedRows(rows){ if(!Array.isArray(rows)) return null; const out=rows.map(restoredIndexedRow); return out.every(Boolean)?out:null; }
 function restoredEpisodes(rows){ const decoded=restoredIndexedRows(rows); if(!decoded) return null; return Object.fromEntries(decoded.map(row=>[String(row.idx),row])); }
 function restoredVisual(value){ if(!value) return null; if(!plainObject(value)) return false; const idx=restoredIndex(value.currentCardKey); if(!Number.isInteger(idx)) return false; const out={...cloneObj(value),currentIndex:idx}; delete out.currentCardKey;
+  if("inkStrokes" in out){ if(!Array.isArray(out.inkStrokes)) return false; out.inkStrokes=normalizedSessionInkStrokes(out.inkStrokes); }
   if(out.submissionSnapshot){ out.submissionSnapshot=restoredIndexedRow(out.submissionSnapshot); if(!out.submissionSnapshot) return false; } return out; }
 function restoredStampSnapshot(value){ if(!value) return null; if(!plainObject(value)) return false; const idx=restoredIndex(value.cardKey), current=restoredIndex(value.currentCardKey), base=restoredRefs(value.baseTargetKeys), manual=restoredIndexedRows(value.manualQueueValue), queue=restoredIndexedRows(value.queueValue), unresolvedRows=restoredRefs(value.unresolvedKeys), episodeMap=restoredEpisodes(value.episodeRows), done=restoredRefs(value.sessionDoneKeys), stats=restoredIndexedRows(value.roundStatsValue);
   if(!Number.isInteger(idx)||!Number.isInteger(current)||!base||!manual||!queue||!unresolvedRows||!episodeMap||!done||!stats) return false;
@@ -2496,7 +2503,8 @@ async function restoreSessionVisual(){ const state=pendingSessionVisual; if(!sta
   const savedPhase=state.practicePhase||practicePhase;
   practicePhase=state.practicePhase||practicePhase; currentIndex=Number.isInteger(state.currentIndex)?state.currentIndex:currentIndex; currentAttemptKind=state.currentAttemptKind||currentAttemptKind; currentAttemptId=state.currentAttemptId||currentAttemptId;
   hintEverUsed=!!state.hintEverUsed; enteredTracingThisAttempt=!!state.enteredTracingThisAttempt; hintsUsedThisCard=Number(state.hintsUsedThisCard)||0; seenGroups=new Set(Array.isArray(state.seenGroups)?state.seenGroups:[]);
-  inkStrokes=cloneObj(state.inkStrokes)||[]; tracedThisCard=!!state.tracedThisCard; submissionSnapshot=cloneObj(state.submissionSnapshot); redrawInk();
+  // restoredVisual 已校验并规范化结构；这里仍做一次防御性规范化，避免未来内部调用把嵌套坏点送进画布。
+  inkStrokes=normalizedSessionInkStrokes(state.inkStrokes); tracedThisCard=!!state.tracedThisCard; submissionSnapshot=cloneObj(state.submissionSnapshot); redrawInk();
   shownStrokes=Math.max(0,Number(state.shownStrokes)||0); groupIdx=Math.max(0,Number(state.groupIdx)||0); renderPhaseControls();
   if(practicePhase==="tracing") await showTraceOutline(); else if(practicePhase==="postTraceRecall"){ hzEl.innerHTML=""; hzEl.classList.remove("traceFallback"); }
   else if(shownStrokes&&practiceCharData) await rebuildHintLayer(shownStrokes);
@@ -2992,16 +3000,24 @@ async function exportBackup(){ const exportedAt=Date.now(), payload=backupPayloa
   const url=URL.createObjectURL(new Blob([payload],{type:"application/json"})), a=document.createElement("a");
   a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),4000); markBackupExported(exportedAt); toast("备份已下载"); }
 function normalizeBackupMemory(value){ if(!plainObject(value)) throw new Error("memory"); const out={}; Object.entries(value).forEach(([key,row])=>{ if(typeof key!=="string"||key.length>120||/[\u0000-\u001f<>]/.test(key)||!plainObject(row)) return; const normalizedKey=canonicalCardKey(key), clean={...row}; if("recentInk" in clean){ const ink=clean.recentInk; if(!plainObject(ink)||!isRecentInkDataURL(ink.dataURL)) delete clean.recentInk; else { const strokes=normalizedInkStrokes(ink.strokes); clean.recentInk={version:Math.max(1,Math.floor(Number(ink.version)||1)),day:validDayKey(ink.day)?String(ink.day):"",at:Math.max(0,Number(ink.at)||0),dataURL:ink.dataURL,strokes:strokes.length?strokes:undefined}; } } const current=out[normalizedKey], incomingLast=Math.max(0,Number(clean.last)||0), currentLast=Math.max(0,Number(current&&current.last)||0); if(!current||incomingLast>currentLast||(incomingLast===currentLast&&normalizedKey===key)) out[normalizedKey]=clean; }); return out; }
-function normalizeBackupValue(key,value){ if(key===MEMORY_KEY) return normalizeBackupMemory(value); if(key===ACTIVITY_KEY) return normalizeActivity(value); if(key===FSRS_LOG_KEY) return normalizeFSRSStored(value); if(key===FUNNEL_KEY) return normalizeFunnel(value); if(key===BACKUP_META_KEY) return normalizeBackupMeta(value); if(key===REMINDER_KEY) return normalizeReminder(value); if(key===SOUND_KEY) return normalizeSound(value); if(key===HAND_CARD_KEY) return normalizeHandCardPref(value); if(key===LIB_KEY) return normalizeLibrary(value); if(key===WILD_KEY) return normalizeWildState(value); return value; }
+function normalizeBackupSession(value){ const out=cloneObj(value); if(out&&out.version===3&&plainObject(out.visual)&&Array.isArray(out.visual.inkStrokes)) out.visual.inkStrokes=normalizedSessionInkStrokes(out.visual.inkStrokes); return out; }
+function normalizeBackupValue(key,value){ if(key===MEMORY_KEY) return normalizeBackupMemory(value); if(key===SESSION_KEY) return normalizeBackupSession(value); if(key===ACTIVITY_KEY) return normalizeActivity(value); if(key===FSRS_LOG_KEY) return normalizeFSRSStored(value); if(key===FUNNEL_KEY) return normalizeFunnel(value); if(key===BACKUP_META_KEY) return normalizeBackupMeta(value); if(key===REMINDER_KEY) return normalizeReminder(value); if(key===SOUND_KEY) return normalizeSound(value); if(key===HAND_CARD_KEY) return normalizeHandCardPref(value); if(key===LIB_KEY) return normalizeLibrary(value); if(key===WILD_KEY) return normalizeWildState(value); return value; }
+function withBackupCustomContext(words,fn){ const previous=customWords; customWords=words.slice(); buildCustomCards();
+  try{ return fn(); } finally { customWords=previous; buildCustomCards(); } }
 function validatedBackupData(payload){ const obj=typeof payload==="string"?JSON.parse(payload):payload;
   if(!obj || obj.app!=="shizi" || !plainObject(obj.data)) throw new Error("format");
-  const keys=Object.keys(obj.data).filter(k=>BACKUP_KEYS.includes(k)); if(!keys.length) throw new Error("empty"); const data={};
+  const keys=Object.keys(obj.data).filter(k=>BACKUP_KEYS.includes(k)); if(!keys.length) throw new Error("empty"); const data={},parsed={};
   // 形状检查必须在这里做完：一旦进了 replaceBackupData 就已经删掉本机数据，
   // 而坏值要到下次启动才被 bootLoad 隔离——用户会先收到「恢复成功」，重启后数据才悄悄少一块。
   keys.forEach(k=>{ const value=obj.data[k]; if(typeof value!=="string") throw new Error("value");
-    let parsed; try{ parsed=JSON.parse(value); }catch(e){ const error=new Error("shape"); error.backupKey=k; throw error; }
-    if(!storedShape(k)(parsed)){ const error=new Error("shape"); error.backupKey=k; throw error; }
-    data[k]=JSON.stringify(normalizeBackupValue(k,parsed)); });
+    try{ parsed[k]=JSON.parse(value); }catch(e){ const error=new Error("shape"); error.backupKey=k; throw error; } });
+  // session 的稳定键要在「这份备份将要安装的自定义字」里解析，而不是在导入前设备的 CARDS 里解析。
+  // 候选上下文只存在于同步校验期间，finally 会恢复当前运行态；任何失败都还没有触碰 localStorage。
+  const incomingCustom=Object.prototype.hasOwnProperty.call(parsed,CUSTOM_KEY)?parsed[CUSTOM_KEY]:[];
+  if(!stringArray(incomingCustom)){ const error=new Error("shape"); error.backupKey=CUSTOM_KEY; throw error; }
+  withBackupCustomContext(incomingCustom,()=>keys.forEach(k=>{ const value=parsed[k];
+    if(!storedShape(k)(value)){ const error=new Error("shape"); error.backupKey=k; throw error; }
+    data[k]=JSON.stringify(normalizeBackupValue(k,value)); }));
   return {obj,keys,data}; }
 function replaceBackupData(data){ BACKUP_KEYS.forEach(k=>localStorage.removeItem(k)); Object.entries(data).forEach(([k,value])=>localStorage.setItem(k,value));
   if(Object.entries(data).some(([k,value])=>localStorage.getItem(k)!==value)) throw new Error("write"); }

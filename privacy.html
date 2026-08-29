@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>隐私政策 · 拾字</title>
+<meta name="description" content="拾字的练习数据全部留在你自己的设备上：没有账号、没有服务器、没有分析 SDK。">
+<meta name="color-scheme" content="light dark">
+<style>
+:root{--bg:#f4efe2;--card:#fdfbf4;--ink:#29241d;--faint:#6f6656;--dline:#d9cdb2;--accent:#c2452c;--accentSoft:#fdf0ec}
+@media (prefers-color-scheme:dark){:root{--bg:#1d1a15;--card:#29241b;--ink:#f2ead9;--faint:#a99d87;--dline:#463e32;--accent:#d4553a;--accentSoft:#38231d}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.85 -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;-webkit-text-size-adjust:100%}
+.wrap{max-width:44rem;margin:0 auto;padding:2.5rem 1.25rem 4rem}
+header{border-bottom:1px solid var(--dline);padding-bottom:1.25rem;margin-bottom:2rem}
+.brand{display:inline-block;font-size:1.5rem;font-weight:700;letter-spacing:.08em;color:var(--accent);text-decoration:none}
+h1{font-size:1.6rem;line-height:1.4;margin:.75rem 0 .4rem}
+.sub{color:var(--faint);font-size:.9rem;margin:0}
+h2{font-size:1.12rem;margin:2.25rem 0 .6rem;padding-left:.6rem;border-left:3px solid var(--accent)}
+h3{font-size:1rem;margin:1.4rem 0 .35rem}
+p,li{margin:.5rem 0}
+ul{padding-left:1.25rem}
+code{background:var(--accentSoft);padding:.1em .4em;border-radius:3px;font-size:.88em;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;word-break:break-all}
+.card{background:var(--card);border:1px solid var(--dline);border-radius:10px;padding:1rem 1.25rem;margin:1.25rem 0}
+.lede{font-size:1.05rem}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:1rem 0}
+table{border-collapse:collapse;width:100%;min-width:32rem;font-size:.92rem}
+th,td{border:1px solid var(--dline);padding:.5rem .7rem;text-align:left;vertical-align:top}
+th{background:var(--accentSoft);font-weight:600;white-space:nowrap}
+footer{margin-top:3rem;padding-top:1.25rem;border-top:1px solid var(--dline);color:var(--faint);font-size:.85rem}
+a{color:var(--accent)}
+.note{color:var(--faint);font-size:.9rem}
+</style>
+</head>
+<body>
+<main class="wrap">
+<header>
+<a class="brand" href="./">拾字</a>
+<h1>隐私政策</h1>
+<p class="sub">最后更新：2026-08-30</p>
+</header>
+
+<p class="lede">拾字把你的练习数据全部留在你自己的设备上。没有账号，没有服务器，没有分析 SDK，没有广告。
+本页的每一条断言都能在公开仓库里核对，并且由 <code>scripts/verify_privacy_claims.py</code> 持续校验：代码一旦不再符合这里的说法，构建就会失败。</p>
+
+<h2>一、拾字存了什么，存在哪里</h2>
+<p>全部存在你这台设备上——网页版存在浏览器的 localStorage 与 Service Worker 缓存里，iOS 版存在 App 沙箱里。</p>
+<div class="scroll"><table>
+<tr><th>内容</th><th>存储位置</th><th>说明</th></tr>
+<tr><td>练习进度与每个字的记忆状态</td><td><code>shizi.deck.*</code> / <code>shizi.memory.v1</code></td><td>见过几次、写对写错、下次该复习的日子</td></tr>
+<tr><td>复习日志</td><td><code>shizi.fsrsReviewLog.v1</code></td><td>逐条只留 120 天，更早的压成月度计数</td></tr>
+<tr><td>日历与练习日</td><td><code>shizi.activity.v1</code></td><td>哪天练了、盖了几章</td></tr>
+<tr><td>偏好设置</td><td><code>shizi.pref.v1</code> 等</td><td>字号、声景、在学字库、提醒开关</td></tr>
+<tr><td>本地漏斗计数</td><td><code>shizi.funnel.v1</code></td><td>见下方第四节</td></tr>
+<tr><td>你自己加的字、拍到的字</td><td><code>shizi.added.v1</code> / <code>shizi.wild.v1</code></td><td>拍字照片也在这里，见第三节</td></tr>
+<tr><td>题库、笔顺、界面资源</td><td>Service Worker 缓存</td><td>为了断网也能练</td></tr>
+</table></div>
+<p class="note">卸载 App、或在浏览器里清除本站数据，以上内容全部消失，且无法从任何地方恢复——因为别处没有副本。</p>
+
+<h2>二、拾字不做什么</h2>
+<p>这些都可以在公开仓库里核对：</p>
+<ul>
+<li><b>没有账号，不需要注册</b>，也不收集姓名、手机号、邮箱。</li>
+<li><b>不向任何第三方发送数据。</b>App 发出的全部网络请求都指向同源的 <code>data/*.json</code>（笔顺与字源数据）；<code>index.html</code> 与 Service Worker 全文没有出现任何外部域名。</li>
+<li><b>没有分析、埋点上报或广告 SDK</b>，没有 <code>XMLHttpRequest</code>、<code>sendBeacon</code>、<code>WebSocket</code>。</li>
+<li><b>不使用 Cookie</b>，不使用 IndexedDB，不读取定位。</li>
+<li><b>iOS 原生层不发起任何网络请求</b>——工程里没有 <code>URLSession</code>。唯一涉及外部地址的代码，是你主动点击链接时把它交给系统浏览器打开。</li>
+<li>App 的隐私清单 <code>PrivacyInfo.xcprivacy</code> 声明：不做追踪，收集的数据类型为空，追踪域名为空。</li>
+</ul>
+
+<h2>三、摄像头与照片</h2>
+<h3>拍字入盒</h3>
+<p>你可以拍下生活中遇到的字。<b>识别在你的设备上完成</b>，用的是 Apple 系统自带的 Vision 框架，照片不上传。识别只给出候选字，最终选哪个字始终由你确认。</p>
+<div class="card">
+<p><b>请注意这一点：</b>拍到的照片保存在本机的 <code>shizi.wild.v1</code> 里，而它属于备份范围。
+<b>当你主动导出备份文件时，照片会包含在这个文件中。</b>备份文件由你自己保管；你把它发给谁，谁就能看到里面的照片。</p>
+<p class="note">这与 App 内相机权限说明的口径一致，不是额外的例外。</p>
+</div>
+<h3>保存字卡到相册</h3>
+<p>把手写字卡存进系统相册时需要相册写入权限。拾字<b>只写入，不读取</b>你的相册。</p>
+
+<h2>四、本地漏斗是什么</h2>
+<p>App 内记了几个计数，用来判断产品本身有没有做对：首次启动、校准首卡完成、校准完成、次日回访、导出过备份，以及每组练习的时长。</p>
+<ul>
+<li>它<b>不含任何设备标识、账号标识、IP 或位置</b>。</li>
+<li>它<b>只写在你的设备上，不会自动发送到任何地方</b>。</li>
+<li>只有在你主动导出备份、并且主动把这个文件交给开发者时，开发者才会看到它。你随时可以不这么做。</li>
+</ul>
+
+<h2>五、托管方能看到什么</h2>
+<p>这一条不是拾字的收集行为，但确实存在，所以写在这里：</p>
+<ul>
+<li><b>网页版</b>托管在 GitHub Pages。你打开页面时，GitHub 作为 Web 服务器会按通常方式记录请求（IP 地址、时间、User-Agent、请求了哪个文件）。这部分适用 GitHub 的隐私政策，拾字既不控制也读不到。</li>
+<li><b>iOS App</b> 从 App 内部读取资源，正常使用时不经过这条路径。</li>
+</ul>
+
+<h2>六、你的控制权</h2>
+<ul>
+<li><b>导出备份</b>：把全部数据导出成一个 JSON 文件，存到你想存的地方。</li>
+<li><b>导入备份</b>：换设备时用它恢复。</li>
+<li><b>清空全部数据</b>：App 内一键清除。</li>
+<li><b>卸载即删除</b>：没有服务端副本需要另行申请删除。</li>
+</ul>
+
+<h2>七、儿童</h2>
+<p>拾字不收集任何个人信息，因此不针对年龄做区分收集。App 内没有社交功能、没有用户生成内容的公开展示、没有站外链接推荐。</p>
+
+<h2>八、变更</h2>
+<p>本页如有变更，会更新顶部的日期，并在仓库的提交历史里留下完整记录。</p>
+
+<h2>九、联系</h2>
+<p>有任何隐私相关的问题，请在 <a href="https://github.com/Eim-aa/shizi-app/issues">GitHub Issues</a> 提出，或见<a href="./support.html">支持页</a>。</p>
+
+<footer>
+<p>拾字 · <a href="./">回到应用</a> · <a href="./privacy.html">隐私政策</a> · <a href="./support.html">支持</a></p>
+<p>源码与问题反馈：<a href="https://github.com/Eim-aa/shizi-app">github.com/Eim-aa/shizi-app</a></p>
+</footer>
+</main>
+</body>
+</html>

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>支持 · 拾字</title>
+<meta name="description" content="拾字的使用说明、常见问题与问题反馈渠道。">
+<meta name="color-scheme" content="light dark">
+<style>
+:root{--bg:#f4efe2;--card:#fdfbf4;--ink:#29241d;--faint:#6f6656;--dline:#d9cdb2;--accent:#c2452c;--accentSoft:#fdf0ec}
+@media (prefers-color-scheme:dark){:root{--bg:#1d1a15;--card:#29241b;--ink:#f2ead9;--faint:#a99d87;--dline:#463e32;--accent:#d4553a;--accentSoft:#38231d}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.85 -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;-webkit-text-size-adjust:100%}
+.wrap{max-width:44rem;margin:0 auto;padding:2.5rem 1.25rem 4rem}
+header{border-bottom:1px solid var(--dline);padding-bottom:1.25rem;margin-bottom:2rem}
+.brand{display:inline-block;font-size:1.5rem;font-weight:700;letter-spacing:.08em;color:var(--accent);text-decoration:none}
+h1{font-size:1.6rem;line-height:1.4;margin:.75rem 0 .4rem}
+.sub{color:var(--faint);font-size:.9rem;margin:0}
+h2{font-size:1.12rem;margin:2.25rem 0 .6rem;padding-left:.6rem;border-left:3px solid var(--accent)}
+h3{font-size:1rem;margin:1.4rem 0 .35rem}
+p,li{margin:.5rem 0}
+ul{padding-left:1.25rem}
+code{background:var(--accentSoft);padding:.1em .4em;border-radius:3px;font-size:.88em;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;word-break:break-all}
+.card{background:var(--card);border:1px solid var(--dline);border-radius:10px;padding:1rem 1.25rem;margin:1.25rem 0}
+.lede{font-size:1.05rem}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:1rem 0}
+table{border-collapse:collapse;width:100%;min-width:32rem;font-size:.92rem}
+th,td{border:1px solid var(--dline);padding:.5rem .7rem;text-align:left;vertical-align:top}
+th{background:var(--accentSoft);font-weight:600;white-space:nowrap}
+footer{margin-top:3rem;padding-top:1.25rem;border-top:1px solid var(--dline);color:var(--faint);font-size:.85rem}
+a{color:var(--accent)}
+.note{color:var(--faint);font-size:.9rem}
+</style>
+</head>
+<body>
+<main class="wrap">
+<header>
+<a class="brand" href="./">拾字</a>
+<h1>支持</h1>
+<p class="sub">打字多了，有些字提笔就忘。拾字帮你把这些字重新写熟。</p>
+</header>
+
+<h2>怎么开始</h2>
+<ul>
+<li>打开 <a href="./">拾字</a>，先做一次校准，让它知道哪些字对你是难的。</li>
+<li>之后每天来写一组。写不出来的字会更频繁地回来，写熟了的字会拉长间隔。</li>
+<li>在手机浏览器里选「添加到主屏幕」，它就能像 App 一样离线打开。</li>
+</ul>
+
+<h2>常见问题</h2>
+
+<h3>我的数据存在哪里？会丢吗？</h3>
+<p>全部存在你这台设备上，没有服务器副本。所以两件事同时成立：别人拿不到它，你自己也要负责保管它。
+<b>清除浏览器数据、卸载 App 都会让它消失。</b>建议定期用「导出备份」存一份。详见<a href="./privacy.html">隐私政策</a>。</p>
+
+<h3>换手机了怎么办？</h3>
+<p>旧设备上导出备份，把文件传到新设备，再用「导入备份」恢复。导入会覆盖新设备上已有的数据，导入前请先确认。</p>
+
+<h3>没网能用吗？</h3>
+<p>能。首次打开后，题库、笔顺和界面都会缓存到本地。断网时照常练习，联网后自动更新到最新版本。</p>
+
+<h3>有的字没有笔顺动画？</h3>
+<p>笔顺数据来自开源的 Hanzi Writer 数据集，它没有覆盖全部汉字。遇到这种字，卡片上会说明，你仍然可以自己判断写对没有，点「写好了」或「不会写」。</p>
+
+<h3>拍字识别不准怎么办？</h3>
+<p>识别只负责给候选，最终选哪个字由你点。如果候选里没有你要的字，可以直接手动输入。</p>
+
+<h3>提醒不响？</h3>
+<p>提醒默认是关闭的，需要你在设置里主动打开，并允许系统通知权限。它只在 iOS App 里可用。</p>
+
+<h3>能删除我的数据吗？</h3>
+<p>可以，而且不需要联系任何人：App 内「清空全部数据」，或直接卸载。没有服务端副本需要另行申请删除。</p>
+
+<h2>报告问题</h2>
+<p>请到 <a href="https://github.com/Eim-aa/shizi-app/issues">GitHub Issues</a> 提交。为了能复现，请尽量附上：</p>
+<ul>
+<li>设备与系统版本（例如 iPhone 13 / iOS 17.4），以及用的是网页版还是 App</li>
+<li>你做了什么、期望看到什么、实际看到什么</li>
+<li>截图或录屏</li>
+</ul>
+<div class="card">
+<p><b>附备份文件前请先想一下。</b>备份里包含你的练习记录，如果你用过拍字功能，<b>还包含你拍下的照片</b>。
+GitHub Issue 是公开的。除非确认里面没有你不想公开的内容，否则不要把备份贴上去。</p>
+</div>
+
+<h2>联系</h2>
+<p>GitHub Issues 是首选渠道，公开可查、有记录。</p>
+<p class="note">如需非公开联系方式，请在此填入邮箱后再发布本页。</p>
+
+<footer>
+<p>拾字 · <a href="./">回到应用</a> · <a href="./privacy.html">隐私政策</a> · <a href="./support.html">支持</a></p>
+<p>源码与问题反馈：<a href="https://github.com/Eim-aa/shizi-app">github.com/Eim-aa/shizi-app</a></p>
+</footer>
+</main>
+</body>
+</html>

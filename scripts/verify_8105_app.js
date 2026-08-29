@@ -2332,6 +2332,35 @@ let browser;
   assert(backup.maliciousInkRejected, "Expected restored recent-ink markup to be rejected before DOM rendering", backup);
   assert(backup.maliciousActivitySanitized && backup.maliciousActivityEscaped, "Expected restored activity fields to be schema-normalized and annual-report text to remain escaped", backup);
   assert(backup.atomicRejected && backup.atomicRestored, "Expected a failed backup write to restore every previous allowlisted value", backup);
+
+  // 复核发现：只有部分键会经 normalizeBackupValue，其余键只要是合法 JSON 就原样写入，
+  // 于是恢复先报成功、下次启动才把坏键隔离掉。导入必须在动本机数据之前整单拒绝。
+  const backupShape = await page.evaluate(() => {
+    const before = Object.fromEntries(BACKUP_KEYS.map((k) => [k, localStorage.getItem(k)]));
+    const good = JSON.parse(backupPayload());
+    const cases = [
+      { key: QUALITY_KEY, value: JSON.stringify({ "base:的": "not-an-object" }) },
+      { key: PREF_KEY, value: JSON.stringify(42) },
+      { key: CUSTOM_KEY, value: JSON.stringify([{ not: "a word" }]) },
+      { key: DECK_KEY, value: JSON.stringify({ "base:的": { nested: true } }) },
+      { key: TRACE_TUTORIAL_KEY, value: JSON.stringify("yes") },
+      { key: OPEN_KEY, value: JSON.stringify({ notAn: "array" }) },
+      { key: TOPIC_KEY, value: JSON.stringify(7) },
+      { key: FSRS_LOG_KEY, value: JSON.stringify({ events: "nope" }) },
+    ];
+    const rows = cases.map(({ key, value }) => {
+      const payload = JSON.parse(JSON.stringify(good)); payload.data[key] = value;
+      let applied = null, rejectedKey = "";
+      try { applied = restoreBackupPayload(payload, { skipConfirm: true, reload: false, skipSafety: true }).applied; }
+      catch (error) { applied = false; rejectedKey = error.backupKey || ""; }
+      const after = Object.fromEntries(BACKUP_KEYS.map((k) => [k, localStorage.getItem(k)]));
+      return { key, applied, rejectedKey, untouched: JSON.stringify(after) === JSON.stringify(before) };
+    });
+    const healthy = restoreBackupPayload(good, { skipConfirm: true, reload: false, skipSafety: true }).applied;
+    return { rows, healthy };
+  });
+  assert(backupShape.rows.every((row) => row.applied === false && row.rejectedKey === row.key && row.untouched) && backupShape.healthy,
+    "Expected a malformed value in any backup key to reject the whole import before touching local data", backupShape);
   const boundedPersistence = await page.evaluate(() => {
     const saved = {
       fsrsReviewLog: cloneObj(fsrsReviewLog), fsrsReviewMonthly: cloneObj(fsrsReviewMonthly),

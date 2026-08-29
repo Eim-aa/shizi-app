@@ -1076,19 +1076,48 @@ let legacySessionDiscarded=false;
 function quarantineStoredKey(k,raw){ try{ localStorage.setItem(`shizi.corrupt.${k}`,raw==null?"null":String(raw)); localStorage.removeItem(k); bootCorruptKeys.push(k); }catch(e){} }
 // 隔离坏 session 需要原文，但存储被禁时读取本身就会抛；启动路径上一律走安全读。
 function readStoredRaw(k){ try{ return localStorage.getItem(k); }catch(e){ reportStorageReadFailure(e); return null; } }
-function bootLoad(k,d,valid=()=>true){ let raw; try{ raw=localStorage.getItem(k); }catch(e){ reportStorageReadFailure(e); return d; } if(raw===null) return d; try{ const value=JSON.parse(raw); if(!valid(value)) throw new Error("shape"); return value??d; }catch(e){ quarantineStoredKey(k,raw); return d; } }
+function bootLoad(k,d,valid){ const check=valid||storedShape(k); let raw; try{ raw=localStorage.getItem(k); }catch(e){ reportStorageReadFailure(e); return d; } if(raw===null) return d; try{ const value=JSON.parse(raw); if(!check(value)) throw new Error("shape"); return value??d; }catch(e){ quarantineStoredKey(k,raw); return d; } }
 function bootNormalize(k,value,fallback,normalize){ try{ return normalize(value); }catch(e){ let raw=null; try{ raw=localStorage.getItem(k); }catch(storageError){ reportStorageReadFailure(storageError); } quarantineStoredKey(k,raw); return normalize(fallback); } }
 const plainObject=v=>!!v&&typeof v==="object"&&!Array.isArray(v);
 const objectValuesAre=(value,predicate)=>plainObject(value)&&Object.values(value).every(predicate);
-let status = bootLoad(DECK_KEY, {}, v=>objectValuesAre(v,row=>typeof row==="string"));
-let memory = bootLoad(MEMORY_KEY, {}, v=>objectValuesAre(v,plainObject));
+// 每个存储键的合法形状只写一份：启动时 bootLoad 用它隔离坏数据，导入备份时用它在
+// 动本机数据之前整单拒绝。分开写过一次，结果是备份能报「恢复成功」而下次启动才静默丢键。
+const nullOr=check=>v=>v===null||check(v);
+const stringArray=v=>Array.isArray(v)&&v.every(row=>typeof row==="string");
+const STORED_SHAPE={
+  [DECK_KEY]:v=>objectValuesAre(v,row=>typeof row==="string"),
+  [MEMORY_KEY]:v=>objectValuesAre(v,plainObject),
+  [QUALITY_KEY]:v=>objectValuesAre(v,plainObject),
+  [TRACE_TUTORIAL_KEY]:v=>typeof v==="boolean",
+  [WILD_KEY]:plainObject,
+  [PREF_KEY]:v=>["balanced","practical","challenge"].includes(v),
+  [TUNING_KEY]:v=>plainObject(v)&&(!("rounds" in v)||Array.isArray(v.rounds)),
+  [LIB_KEY]:nullOr(v=>typeof v==="string"||plainObject(v)),
+  [FONT_SCALE_KEY]:v=>typeof v==="boolean",
+  [TOPIC_KEY]:v=>typeof v==="string",
+  [SAFETY_KEY]:nullOr(plainObject),
+  [FSRS_LOG_KEY]:v=>Array.isArray(v)||(plainObject(v)&&Array.isArray(v.events)),
+  [OPEN_KEY]:Array.isArray,
+  [FUNNEL_KEY]:nullOr(plainObject),
+  [ACTIVITY_KEY]:nullOr(plainObject),
+  [BACKUP_META_KEY]:nullOr(plainObject),
+  [REMINDER_KEY]:nullOr(plainObject),
+  [SOUND_KEY]:nullOr(plainObject),
+  [HAND_CARD_KEY]:nullOr(plainObject),
+  [SESSION_KEY]:nullOr(plainObject),
+  [CUSTOM_KEY]:stringArray,
+  [ADDED_KEY]:nullOr(stringArray),
+};
+function storedShape(key){ return STORED_SHAPE[key]||(()=>true); }
+let status = bootLoad(DECK_KEY, {});
+let memory = bootLoad(MEMORY_KEY, {});
 let fsrsReviewLog=[], fsrsReviewMonthly={};
-let traceTutorialShown = bootLoad(TRACE_TUTORIAL_KEY, false, v=>typeof v==="boolean")===true;
-let wildState = bootLoad(WILD_KEY, {version:1,captures:{},wishes:{}}, plainObject);
+let traceTutorialShown = bootLoad(TRACE_TUTORIAL_KEY, false)===true;
+let wildState = bootLoad(WILD_KEY, {version:1,captures:{},wishes:{}});
 save(TRACE_TUTORIAL_KEY,traceTutorialShown);
-let quality = bootLoad(QUALITY_KEY, {}, v=>objectValuesAre(v,plainObject));
-let preference = bootLoad(PREF_KEY, "balanced", v=>["balanced","practical","challenge"].includes(v));
-let tuning = bootLoad(TUNING_KEY, {calibrated:false, offset:0, contextStrict:0, rounds:[]}, v=>plainObject(v)&&(!("rounds" in v)||Array.isArray(v.rounds)));
+let quality = bootLoad(QUALITY_KEY, {});
+let preference = bootLoad(PREF_KEY, "balanced");
+let tuning = bootLoad(TUNING_KEY, {calibrated:false, offset:0, contextStrict:0, rounds:[]});
 const LIBRARIES=[
   {id:"core3500",name:"规范常用字",desc:"通用规范一级字，也是义务教育常用字表全部3500字",officialTotal:3500,test:c=>c.norm==="一级"},
   {id:"adv3000",name:"规范次常用字",desc:"通用规范二级字；缺少笔顺数据的字暂不进入练习",officialTotal:3000,test:c=>c.norm==="二级"},
@@ -1099,13 +1128,13 @@ function defaultLibraryId(){ return preference==="challenge"?"adv3000":"core3500
 // 旧六库只迁移后续新字范围；已拾字与复习始终跨库保留，手动选择标记不得丢失。
 const LEGACY_LIBRARY_IDS=Object.freeze({primary:"curriculum2500",junior:"core3500",senior:"adv3000"});
 function normalizeLibrary(raw){ const storedId=plainObject(raw)?raw.id:raw,id=LEGACY_LIBRARY_IDS[storedId]||storedId,valid=LIBRARIES.some(lib=>lib.id===id),userSelected=plainObject(raw)?raw.userSelected===true:(typeof raw==="string"&&(valid||storedId in LEGACY_LIBRARY_IDS)); return {id:valid?id:defaultLibraryId(),userSelected}; }
-let libraryState=bootNormalize(LIB_KEY,bootLoad(LIB_KEY,null,v=>v===null||typeof v==="string"||plainObject(v)),null,normalizeLibrary); save(LIB_KEY,libraryState);
+let libraryState=bootNormalize(LIB_KEY,bootLoad(LIB_KEY,null),null,normalizeLibrary); save(LIB_KEY,libraryState);
 function currentLibrary(){ return LIBRARIES.find(lib=>lib.id===libraryState.id)||LIBRARIES[0]; }
 function setLibrary(id){ libraryState=normalizeLibrary({id,userSelected:true}); save(LIB_KEY,libraryState); return currentLibrary(); }
 function syncCalibrationLibrary(){ if(libraryState.userSelected) return false; libraryState={id:defaultLibraryId(),userSelected:false}; save(LIB_KEY,libraryState); return true; }
-let fontScaleLarge = bootLoad(FONT_SCALE_KEY,false,v=>typeof v==="boolean")===true;
-bootLoad(TOPIC_KEY,"",v=>typeof v==="string");
-bootLoad(SAFETY_KEY,null,v=>v===null||plainObject(v));
+let fontScaleLarge = bootLoad(FONT_SCALE_KEY,false)===true;
+bootLoad(TOPIC_KEY,"");
+bootLoad(SAFETY_KEY,null);
 function applyFontScale(){ document.documentElement.classList.toggle("largeText",fontScaleLarge); const row=document.getElementById("fontScaleRow"), state=document.getElementById("fontScaleState"); if(row) row.setAttribute("aria-pressed",fontScaleLarge?"true":"false"); if(state) state.textContent=fontScaleLarge?"开":"关"; }
 applyFontScale();
 let auditPref = preference;
@@ -1138,7 +1167,7 @@ function normalizeFSRSEvent(value){ if(!plainObject(value)) return null; const l
 function normalizeFSRSMonthly(value){ const out={}; if(!plainObject(value)) return out; Object.entries(value).forEach(([month,source])=>{ if(!validMonthKey(month)||!plainObject(source)) return; const lastReviewByDay={}; if(plainObject(source.lastReviewByDay)) Object.entries(source.lastReviewByDay).forEach(([day,row])=>{ const key=storedCardKey(row&&row.cardKey), reviewedAt=safeStoredTimestamp(row&&row.reviewedAt); if(validDayKey(day)&&day.startsWith(month+"-")&&plainObject(row)&&key&&reviewedAt) lastReviewByDay[day]={cardKey:key,reviewedAt}; }); out[month]={reviews:Math.max(0,Math.floor(Number(source.reviews)||0)),good:Math.max(0,Math.floor(Number(source.good)||0)),again:Math.max(0,Math.floor(Number(source.again)||0)),hinted:Math.max(0,Math.floor(Number(source.hinted)||0)),traced:Math.max(0,Math.floor(Number(source.traced)||0)),firstAt:safeStoredTimestamp(source.firstAt),lastAt:safeStoredTimestamp(source.lastAt),lastReviewByDay}; }); return out; }
 function normalizeFSRSStored(value){ const events=(Array.isArray(value)?value:plainObject(value)&&Array.isArray(value.events)?value.events:[]).map(normalizeFSRSEvent).filter(Boolean); return {version:2,events,monthly:normalizeFSRSMonthly(!Array.isArray(value)&&plainObject(value)?value.monthly:null)}; }
 const memoryKeyMigration=migrateCustomKeyedRows(memory,mergeStableRows), qualityKeyMigration=migrateCustomKeyedRows(quality,mergeQualityRows); memory=memoryKeyMigration.value; quality=qualityKeyMigration.value;
-const fsrsStored=normalizeFSRSStored(bootLoad(FSRS_LOG_KEY,[],value=>Array.isArray(value)||(plainObject(value)&&Array.isArray(value.events))));
+const fsrsStored=normalizeFSRSStored(bootLoad(FSRS_LOG_KEY,[]));
 fsrsReviewLog=fsrsStored.events; fsrsReviewMonthly=fsrsStored.monthly;
 const FSRS_CONFIG=Object.freeze({schedulerVersion:"ts-fsrs 5.2.0 / FSRS-6.0",parameterVersion:"fsrs6-fuzz-365-v2",desiredRetention:0.90,maximumInterval:365,enableFuzz:true,timeZone:Intl.DateTimeFormat().resolvedOptions().timeZone||"local"});
 const fsrsEngine=window.FSRS?FSRS.fsrs(FSRS.generatorParameters({request_retention:FSRS_CONFIG.desiredRetention,maximum_interval:FSRS_CONFIG.maximumInterval,enable_fuzz:FSRS_CONFIG.enableFuzz,enable_short_term:true,learning_steps:[],relearning_steps:[]})):null;
@@ -1175,7 +1204,7 @@ function applyFSRSReview(idx,rating,reason,attemptId,details={}){
   fsrsReviewLog.push(event); saveFSRSLog(); saveMemory(); return event; }
 function formatDueDay(key){ if(!/^\d{4}-\d{2}-\d{2}$/.test(String(key||""))) return ""; const [y,m,d]=key.split("-").map(Number); return `${y}年${m}月${d}日`; }
 function shortDueDay(key){ if(!/^\d{4}-\d{2}-\d{2}$/.test(String(key||""))) return "稍后"; const [,m,d]=key.split("-").map(Number); return `${m}月${d}日`; }
-let opens = bootLoad(OPEN_KEY, [], Array.isArray); if(!opens.includes(today())){ opens.push(today()); save(OPEN_KEY,opens); }
+let opens = bootLoad(OPEN_KEY, []); if(!opens.includes(today())){ opens.push(today()); save(OPEN_KEY,opens); }
 const FUNNEL_SEEN_LIMIT=512, FUNNEL_EVENT_LIMIT=256, FUNNEL_ROUND_LIMIT=180, FUNNEL_ROUND_CAP_MS=60*60*1000, FUNNEL_MODES=["new","review","calibrate","focus","makeup"];
 function newFunnel(){ return {version:2,createdAt:Date.now(),events:[],eventCounts:{},seen:[],counts:{revealCompared:0,revealDisagree:0},rounds:[],roundTotals:{count:0,durationMs:0,byMode:{}}}; }
 function normalizeFunnel(raw){ const f=raw&&typeof raw==="object"?raw:newFunnel();
@@ -1190,7 +1219,7 @@ function normalizeFunnel(raw){ const f=raw&&typeof raw==="object"?raw:newFunnel(
   const rawCount=Math.max(f.rounds.length,Math.floor(Number(totals&&totals.count)||0)), rawDuration=Math.max(f.rounds.reduce((sum,row)=>sum+row.durationMs,0),Math.round(Number(totals&&totals.durationMs)||0)), classifiedCount=Object.values(byMode).reduce((sum,row)=>sum+row.count,0), classifiedDuration=Object.values(byMode).reduce((sum,row)=>sum+row.durationMs,0), totalCount=Math.max(rawCount,classifiedCount), totalDuration=Math.max(classifiedDuration,Math.min(rawDuration,totalCount*FUNNEL_ROUND_CAP_MS)); if(totalCount>classifiedCount) byMode.unclassified={count:totalCount-classifiedCount,durationMs:Math.max(0,Math.min(totalDuration-classifiedDuration,(totalCount-classifiedCount)*FUNNEL_ROUND_CAP_MS))};
   f.roundTotals={count:totalCount,durationMs:totalDuration,byMode};
   return f; }
-let funnel=bootNormalize(FUNNEL_KEY,bootLoad(FUNNEL_KEY,null,v=>v===null||plainObject(v)),null,normalizeFunnel); saveFunnel(true);
+let funnel=bootNormalize(FUNNEL_KEY,bootLoad(FUNNEL_KEY,null),null,normalizeFunnel); saveFunnel(true);
 function saveFunnel(compact=false){ if(compact){ funnel.seen=funnel.seen.slice(-FUNNEL_SEEN_LIMIT); funnel.events=funnel.events.slice(-FUNNEL_EVENT_LIMIT); funnel.rounds=funnel.rounds.slice(-FUNNEL_ROUND_LIMIT); } return save(FUNNEL_KEY,funnel); }
 function appendFunnelEvent(target,name,onceKey=name,at=Date.now()){ const key=String(onceKey||name); if(target.seen.includes(key)) return false; const ts=Math.max(1,Number(at)||Date.now()); target.seen.push(key); target.events.push({name,at:ts,day:dayKey(new Date(ts))}); target.eventCounts=target.eventCounts||{}; target.eventCounts[name]=(target.eventCounts[name]||0)+1; return true; }
 function recordFunnelOnce(name,onceKey=name,at=Date.now()){ if(!appendFunnelEvent(funnel,name,onceKey,at)) return false; saveFunnel(); return true; }
@@ -1210,9 +1239,9 @@ function normalizeActivityMonth(month,value){ const row=plainObject(value)?value
 function normalizeActivity(raw){ const source=plainObject(raw)?raw:newActivity(), migrationDate=validDayKey(source.migrationDate)?String(source.migrationDate):today(), daily={}, monthly={}; if(plainObject(source.daily)) Object.entries(source.daily).forEach(([day,row])=>{ if(validDayKey(day)) daily[day]=normalizeActivityDay(row); }); if(plainObject(source.monthly)) Object.entries(source.monthly).forEach(([month,row])=>{ if(validMonthKey(month)) monthly[month]=normalizeActivityMonth(month,row); }); const a={version:2,migrationDate,inheritedStreak:Math.max(0,Number(source.inheritedStreak)||0),inheritedTotalDays:0,practiceDays:Array.isArray(source.practiceDays)?[...new Set(source.practiceDays.filter(validDayKey).map(String))].sort():[],daily,monthly};
   // 累计口径的历史继承：迁移日之前的打开日全额计入；迁移日起只认完成日，与迁移后的 opens 不会重复计数
   a.inheritedTotalDays=Number.isInteger(source.inheritedTotalDays)&&source.inheritedTotalDays>=0?source.inheritedTotalDays:legacyDaysBefore(a.migrationDate); return a; }
-let activity=bootNormalize(ACTIVITY_KEY,bootLoad(ACTIVITY_KEY,null,v=>v===null||plainObject(v)),null,normalizeActivity); saveActivity();
+let activity=bootNormalize(ACTIVITY_KEY,bootLoad(ACTIVITY_KEY,null),null,normalizeActivity); saveActivity();
 function normalizeBackupMeta(raw){ const meta=raw&&typeof raw==="object"?raw:{}; return {lastExportAt:Math.max(0,Number(meta.lastExportAt)||0),summaryPromptShown:!!meta.summaryPromptShown}; }
-let backupMeta=bootNormalize(BACKUP_META_KEY,bootLoad(BACKUP_META_KEY,null,v=>v===null||plainObject(v)),null,normalizeBackupMeta), summaryBackupHintVisible=false;
+let backupMeta=bootNormalize(BACKUP_META_KEY,bootLoad(BACKUP_META_KEY,null),null,normalizeBackupMeta), summaryBackupHintVisible=false;
 function archiveActivityDay(day,row){ const month=day.slice(0,7),archive=activity.monthly[month]&&typeof activity.monthly[month]==="object"?activity.monthly[month]:{days:0,completedDays:0,stamps:0,attempts:0,completedGroups:0,targetKeys:[],independentTargetKeys:[],reviewTargetKeys:[],makeupDays:[],firstDay:"",firstTargetKey:"",lastStampAt:0};
   archive.days++; archive.stamps+=Math.max(0,Number(row.stamps)||0); archive.attempts+=Math.max(0,Number(row.attempts)||0); archive.completedGroups+=Math.max(0,Number(row.completedGroups)||0); if((row.completedRoundIds||[]).length) archive.completedDays++;
   ["targetKeys","independentTargetKeys","reviewTargetKeys"].forEach(field=>{ archive[field]=[...new Set([...(archive[field]||[]),...(Array.isArray(row[field])?row[field]:[])])]; }); if(row.makeup===true&&!archive.makeupDays.includes(day)) archive.makeupDays.push(day); if(!archive.firstDay||day<archive.firstDay){ archive.firstDay=day; archive.firstTargetKey=Array.isArray(row.targetKeys)&&row.targetKeys[0]||""; } archive.lastStampAt=Math.max(Number(archive.lastStampAt)||0,Number(row.lastStampAt)||0); activity.monthly[month]=archive; }
@@ -1253,15 +1282,15 @@ function normalizeReminder(raw){ const r=raw && typeof raw==="object"?raw:{};
   r.milestonesShown=Array.isArray(r.milestonesShown)?r.milestonesShown.filter(n=>Number.isInteger(n)):[];
   r.characterMilestonesShown=Array.isArray(r.characterMilestonesShown)?r.characterMilestonesShown.filter(n=>Number.isInteger(n)):[];
   r.characterMilestoneDay=/^\d{4}-\d{2}-\d{2}$/.test(r.characterMilestoneDay||"")?r.characterMilestoneDay:""; return r; }
-let reminder=bootNormalize(REMINDER_KEY,bootLoad(REMINDER_KEY,null,v=>v===null||plainObject(v)),null,normalizeReminder); save(REMINDER_KEY,reminder);
+let reminder=bootNormalize(REMINDER_KEY,bootLoad(REMINDER_KEY,null),null,normalizeReminder); save(REMINDER_KEY,reminder);
 let reminderPendingEnable=false;
 const reminderDebug={lastSync:null};
 // ---- 纸墨声音与练字背景音：两个开关彼此独立，都尊重 iOS 静音键 ----
 const SOUNDSCAPE_SCENES=["off","rain","fire"];
 function normalizeSound(raw){ const value=raw&&typeof raw==="object"?raw:{}, scene=SOUNDSCAPE_SCENES.includes(value.scene)?value.scene:"off"; return {enabled:value.enabled!==false,tipShown:value.tipShown===true,scene}; }
-let sound=bootNormalize(SOUND_KEY,bootLoad(SOUND_KEY,null,v=>v===null||plainObject(v)),null,normalizeSound); save(SOUND_KEY,sound);
+let sound=bootNormalize(SOUND_KEY,bootLoad(SOUND_KEY,null),null,normalizeSound); save(SOUND_KEY,sound);
 function normalizeHandCardPref(raw){ const value=raw&&typeof raw==="object"?raw:{}; return {promptEnabled:value.promptEnabled!==false,lastPromptDay:/^\d{4}-\d{2}-\d{2}$/.test(String(value.lastPromptDay||""))?String(value.lastPromptDay):""}; }
-let handCardPref=bootNormalize(HAND_CARD_KEY,bootLoad(HAND_CARD_KEY,null,v=>v===null||plainObject(v)),null,normalizeHandCardPref); save(HAND_CARD_KEY,handCardPref);
+let handCardPref=bootNormalize(HAND_CARD_KEY,bootLoad(HAND_CARD_KEY,null),null,normalizeHandCardPref); save(HAND_CARD_KEY,handCardPref);
 const soundDebug={last:null,events:[],contextCreated:0};
 let webAudioContext=null, lastPaperSoundAt=0;
 let ambientAudioContext=null, ambientSource=null, ambientGain=null, ambientScene="off";
@@ -1457,7 +1486,7 @@ function decodeSessionV3(s){ if(!plainObject(s)||s.version!==3) return null; con
   if(!targets||!targets.length||!Number.isInteger(current)||!manual||!reinforcement||!open||!episodeMap||!stats||!focus||!done||!calibration||visual===false||stamp===false) return null;
   return {...s,baseTargets:targets,currentIndex:current,manualQueue:manual,reinforcementQueue:reinforcement,unresolved:open,episodes:episodeMap,roundStats:stats,focusQueue:focus,sessionDone:done,calibrationTargets:calibration,visual,lastStampSnapshot:stamp}; }
 function discardLegacySession(raw){ try{ localStorage.setItem(`shizi.corrupt.${SESSION_KEY}`,String(raw||"")); localStorage.removeItem(SESSION_KEY); legacySessionDiscarded=true; }catch(e){} }
-function resumableSession(){ const raw=readStoredRaw(SESSION_KEY); const s=bootLoad(SESSION_KEY,null,v=>v===null||plainObject(v)); if(!s) return null; if(s.version===1||s.version===2){ discardLegacySession(raw); return null; }
+function resumableSession(){ const raw=readStoredRaw(SESSION_KEY); const s=bootLoad(SESSION_KEY,null); if(!s) return null; if(s.version===1||s.version===2){ discardLegacySession(raw); return null; }
   const decoded=decodeSessionV3(s), valid=decoded && ["new","review","calibrate","focus","makeup"].includes(decoded.activeMode)
     && (decoded.activeMode!=="makeup" || (/^\d{4}-\d{2}-\d{2}$/.test(decoded.makeupTargetDay||"") && decoded.makeupTargetDay<today()));
   if(!valid){ quarantineStoredKey(SESSION_KEY,raw); return null; } return decoded; }
@@ -2018,7 +2047,7 @@ function renderAudit(pref=auditPref){ auditPref=pref; displayView("audit"); cons
 function prefLabelFor(pref){ return ({balanced:"常用但老忘", practical:"偏实用", challenge:"偏挑战"})[pref] || "常用但老忘"; }
 
 // ---- 自定义加字（抓住现实里提笔忘的那个字；卡片追加在 SEED 之后，索引稳定）----
-let customWords = bootLoad(CUSTOM_KEY, [], v=>Array.isArray(v)&&v.every(row=>typeof row==="string"));
+let customWords = bootLoad(CUSTOM_KEY, []);
 const isCJK=c=>/[一-鿿]/.test(c);
 const WILD_PHOTO_MAX=30, WILD_PHOTO_BUDGET=420*1024, WILD_PHOTO_MAX_BYTES=64*1024;
 function wildImageBytes(dataURL){ const raw=String(dataURL||"").split(",")[1]||"",padding=(raw.match(/=*$/)||[""])[0].length; return Math.max(0,Math.floor(raw.length*3/4)-padding); }
@@ -2048,7 +2077,7 @@ function migrateStableCardIdentity(){ const nextMemory={},nextQuality={},nextSta
   Object.values(activity.daily||{}).forEach(row=>{ if(!plainObject(row)) return; ["targetKeys","independentTargetKeys","reviewTargetKeys"].forEach(field=>{ if(Array.isArray(row[field])) row[field]=[...new Set(row[field].map(canonicalCardKey))]; }); });
   saveMemory(); saveQuality(); save(DECK_KEY,status); saveFSRSLog(); saveActivity(); }
 migrateStableCardIdentity();
-let addedChars = bootLoad(ADDED_KEY, null, v=>v===null||(Array.isArray(v)&&v.every(row=>typeof row==="string")));
+let addedChars = bootLoad(ADDED_KEY, null);
 if(!Array.isArray(addedChars)){ addedChars=[...new Set(customWords.flatMap(w=>Array.from(w).filter(isCJK)))]; save(ADDED_KEY,addedChars); }
 function customIndexOf(ch){ for(let i=BASE_N;i<CARDS.length;i++){ if(CARDS[i].target===ch) return i; } return -1; }
 function unblockQuality(i){ const k=cardKey(i); if(quality[k]){ delete quality[k]; saveQuality(); } }
@@ -2956,7 +2985,12 @@ function normalizeBackupValue(key,value){ if(key===MEMORY_KEY) return normalizeB
 function validatedBackupData(payload){ const obj=typeof payload==="string"?JSON.parse(payload):payload;
   if(!obj || obj.app!=="shizi" || !plainObject(obj.data)) throw new Error("format");
   const keys=Object.keys(obj.data).filter(k=>BACKUP_KEYS.includes(k)); if(!keys.length) throw new Error("empty"); const data={};
-  keys.forEach(k=>{ const value=obj.data[k]; if(typeof value!=="string") throw new Error("value"); data[k]=JSON.stringify(normalizeBackupValue(k,JSON.parse(value))); });
+  // 形状检查必须在这里做完：一旦进了 replaceBackupData 就已经删掉本机数据，
+  // 而坏值要到下次启动才被 bootLoad 隔离——用户会先收到「恢复成功」，重启后数据才悄悄少一块。
+  keys.forEach(k=>{ const value=obj.data[k]; if(typeof value!=="string") throw new Error("value");
+    let parsed; try{ parsed=JSON.parse(value); }catch(e){ const error=new Error("shape"); error.backupKey=k; throw error; }
+    if(!storedShape(k)(parsed)){ const error=new Error("shape"); error.backupKey=k; throw error; }
+    data[k]=JSON.stringify(normalizeBackupValue(k,parsed)); });
   return {obj,keys,data}; }
 function replaceBackupData(data){ BACKUP_KEYS.forEach(k=>localStorage.removeItem(k)); Object.entries(data).forEach(([k,value])=>localStorage.setItem(k,value));
   if(Object.entries(data).some(([k,value])=>localStorage.getItem(k)!==value)) throw new Error("write"); }

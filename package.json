@@ -5,7 +5,7 @@
   "packageManager": "pnpm@11.16.0",
   "scripts": {
     "start": "python3 -m http.server 8000 --bind 127.0.0.1",
-    "verify:data": "python3 scripts/verify_library_governance.py && node scripts/verify_vector_data_440.js && python3 scripts/verify_backup_summary.py && python3 scripts/verify_decisions.py && python3 scripts/verify_privacy_claims.py",
+    "verify:data": "python3 scripts/verify_library_governance.py && node scripts/verify_vector_data_440.js && python3 scripts/verify_backup_summary.py && python3 scripts/verify_decisions.py && python3 scripts/verify_privacy_claims.py && python3 scripts/audit_context_quality.py --check",
     "verify:e2e": "node scripts/verify_8105_app.js",
     "verify:ui": "node scripts/verify_redesign_v3.js",
     "verify:web": "pnpm run verify:e2e && pnpm run verify:ui && pnpm run verify:pwa",

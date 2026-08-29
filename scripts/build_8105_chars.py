@@ -3,6 +3,7 @@ import json
 import hashlib
 import logging
 import math
+import os
 import re
 import sys
 import time
@@ -58,7 +59,18 @@ try:
     import jieba
     jieba.setLogLevel(logging.ERROR)
     from wordfreq import top_n_list, zipf_frequency
-except ImportError:
+except ImportError as error:
+    # 缺 pypinyin 会直接 SystemExit，缺这两个却只是静默置 None——不对称的代价很实在：
+    # 降级后 `common` 不再是 Zipf 词频，而是 dict 语境走 `1 + len(str(word_freq))`、
+    # fallback/override 语境恒为 0 的整数代理值。题库照样生成、照样过全部门禁，
+    # 但 index.html 的 PREFS 选卡权重和 #132 的冷门率口径全部失真。
+    # c7c8fc2（2026-08-05）就是这么产生的，没人发现。要么装依赖，要么显式声明。
+    if os.environ.get("SHIZI_ALLOW_DEGRADED_WORDFREQ") != "1":
+        raise SystemExit(
+            "Missing jieba / wordfreq. Run: python3 -m pip install -r requirements.txt\n"
+            "缺少它们时 common 字段会退化成整数代理值，选卡权重与冷门率口径都会失真（#132）。\n"
+            "确实要做降级构建，请设 SHIZI_ALLOW_DEGRADED_WORDFREQ=1 后重试。"
+        ) from error
     top_n_list = None
     zipf_frequency = None
 

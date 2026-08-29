@@ -1135,7 +1135,7 @@ const STORED_SHAPE={
   [REMINDER_KEY]:nullOr(plainObject),
   [SOUND_KEY]:nullOr(plainObject),
   [HAND_CARD_KEY]:nullOr(plainObject),
-  [SESSION_KEY]:nullOr(plainObject),
+  [SESSION_KEY]:storedSessionShape,
   [CUSTOM_KEY]:stringArray,
   [ADDED_KEY]:nullOr(stringArray),
 };
@@ -1173,6 +1173,13 @@ const DEV_TOOLS = (()=>{ try{ return new URLSearchParams(location.search).get("d
 function statusFor(i){ return status[cardKey(i)]; }
 function setStatus(i,s){ status[cardKey(i)]=s; return save(DECK_KEY,status); }
 const RECENT_INK_MAX=96, RECENT_INK_BUDGET=420*1024;
+// 一笔至少要有两个有效点，点必须是 {x,y} 有限数。备份里塞 [[null]] 这类嵌套坏值时，
+// 只判外层 Array 会让它一路活到画布上，读 point.x 直接抛错并弹「页面发生异常」。
+// 导入侧和渲染侧共用这一份，避免只补一头。
+function normalizedInkStrokes(value){ if(!Array.isArray(value)) return [];
+  return value.map(stroke=>Array.isArray(stroke)?stroke.filter(point=>plainObject(point)&&Number.isFinite(Number(point.x))&&Number.isFinite(Number(point.y)))
+      .map(point=>{ const out={x:Number(point.x),y:Number(point.y)}; if(Number.isFinite(Number(point.w))) out.w=Number(point.w); if(Number.isFinite(Number(point.v))) out.v=Number(point.v); return out; }):[])
+    .filter(stroke=>stroke.length>1); }
 function isRecentInkDataURL(value){ const dataURL=typeof value==="string"?value:""; return dataURL.length*2<=32*1024&&/^data:image\/(?:webp|png);base64,[A-Za-z0-9+/]*={0,2}$/.test(dataURL); }
 function recentInkRows(){ return Object.entries(memory).filter(([,m])=>m&&m.recentInk&&isRecentInkDataURL(m.recentInk.dataURL)).map(([key,m])=>({key,m,at:Math.max(0,Number(m.recentInk.at)||0),bytes:m.recentInk.dataURL.length*2+(m.recentInk.strokes?JSON.stringify(m.recentInk.strokes).length*2:0)})).sort((a,b)=>b.at-a.at); }
 function evictRecentInk(row){ if(!row||!row.m) return; row.m.recentInkEvictedAt=Math.max(Date.now(),Number(row.at)||0); delete row.m.recentInk; }
@@ -1535,10 +1542,14 @@ function decodeSessionV3(s){ if(!plainObject(s)||s.version!==3) return null; con
   if(!targets||!targets.length||!Number.isInteger(current)||!manual||!reinforcement||!open||!episodeMap||!stats||!focus||!done||!calibration||visual===false||stamp===false) return null;
   return {...s,baseTargets:targets,currentIndex:current,manualQueue:manual,reinforcementQueue:reinforcement,unresolved:open,episodes:episodeMap,roundStats:stats,focusQueue:focus,sessionDone:done,calibrationTargets:calibration,visual,lastStampSnapshot:stamp}; }
 function discardLegacySession(raw){ try{ localStorage.setItem(`shizi.corrupt.${SESSION_KEY}`,String(raw||"")); localStorage.removeItem(SESSION_KEY); legacySessionDiscarded=true; }catch(e){} }
+function usableDecodedSession(decoded){ return !!decoded && ["new","review","calibrate","focus","makeup"].includes(decoded.activeMode)
+  && (decoded.activeMode!=="makeup" || (/^\d{4}-\d{2}-\d{2}$/.test(decoded.makeupTargetDay||"") && decoded.makeupTargetDay<today())); }
+// v1/v2 是明确的旧会话失效规则：允许存在，启动时安全结束并提示；v3 必须真的解得开。
+function storedSessionShape(v){ if(v===null) return true; if(!plainObject(v)) return false;
+  if(v.version===1||v.version===2) return true; return usableDecodedSession(decodeSessionV3(v)); }
 function resumableSession(){ const raw=readStoredRaw(SESSION_KEY); const s=bootLoad(SESSION_KEY,null); if(!s) return null; if(s.version===1||s.version===2){ discardLegacySession(raw); return null; }
-  const decoded=decodeSessionV3(s), valid=decoded && ["new","review","calibrate","focus","makeup"].includes(decoded.activeMode)
-    && (decoded.activeMode!=="makeup" || (/^\d{4}-\d{2}-\d{2}$/.test(decoded.makeupTargetDay||"") && decoded.makeupTargetDay<today()));
-  if(!valid){ quarantineStoredKey(SESSION_KEY,raw); return null; } return decoded; }
+  const decoded=decodeSessionV3(s);
+  if(!usableDecodedSession(decoded)){ quarantineStoredKey(SESSION_KEY,raw); return null; } return decoded; }
 function restoreSession(s){ if(!s) return false; focusPreservedSession=null; if(s.version===3&&!Array.isArray(s.baseTargets)) s=decodeSessionV3(s); if(!s) return false; activeMode=s.activeMode; makeupTargetDay=activeMode==="makeup"?s.makeupTargetDay:""; baseTargets=s.baseTargets.slice(); batch=baseTargets; baseCursor=Math.max(0,Math.min(baseTargets.length,Number(s.baseCursor)||0)); currentIndex=s.currentIndex;
   currentAttemptKind=s.currentAttemptKind||"base"; currentAttemptId=s.currentAttemptId||`${s.roundId}-a${(Number(s.attemptSeq)||0)+1}-${currentIndex}`; manualQueue=Array.isArray(s.manualQueue)?cloneObj(s.manualQueue):[]; reinforcementQueue=Array.isArray(s.reinforcementQueue)?cloneObj(s.reinforcementQueue):[]; unresolved=new Set(Array.isArray(s.unresolved)?s.unresolved:[]); episodes=cloneObj(s.episodes)||{}; attemptSeq=Number(s.attemptSeq)||0; practicePhase=s.practicePhase||"recall";
   missedThisRound=Array.isArray(s.missedThisRound)?s.missedThisRound.slice():[]; roundStats=Array.isArray(s.roundStats)?cloneObj(s.roundStats).map(row=>{ delete row.handwriting; return row; }):[]; roundHandwriting={}; focusQueue=Array.isArray(s.focusQueue)?s.focusQueue.slice():[]; sessionDone=new Set(Array.isArray(s.sessionDone)?s.sessionDone:[]);
@@ -2966,7 +2977,7 @@ $("addSheet").onclick=e=>{ if(e.target===$("addSheet")) closeAddSheet(); };
 const shareCardDebug={lastRoute:null,lastMessage:null};
 function shareRoundRect(ctx,x,y,w,h,r){ const q=Math.min(r,w/2,h/2); ctx.beginPath(); ctx.moveTo(x+q,y); ctx.lineTo(x+w-q,y); ctx.quadraticCurveTo(x+w,y,x+w,y+q); ctx.lineTo(x+w,y+h-q); ctx.quadraticCurveTo(x+w,y+h,x+w-q,y+h); ctx.lineTo(x+q,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-q); ctx.lineTo(x,y+q); ctx.quadraticCurveTo(x,y,x+q,y); ctx.closePath(); }
 function shareWrappedText(ctx,text,x,y,maxWidth,lineHeight,maxLines=3){ const chars=Array.from(String(text||"")); let line="", lines=[]; chars.forEach(ch=>{ const next=line+ch; if(line&&ctx.measureText(next).width>maxWidth){ lines.push(line); line=ch; }else line=next; }); if(line) lines.push(line); lines=lines.slice(0,maxLines); lines.forEach((row,i)=>ctx.fillText(row,x,y+i*lineHeight)); return y+lines.length*lineHeight; }
-function drawShareHandwriting(ctx,strokes,x,y,size,rotation=0){ const paths=Array.isArray(strokes)?strokes.filter(points=>Array.isArray(points)&&points.length):[]; ctx.save(); ctx.translate(x+size/2,y+size/2); ctx.rotate(Number(rotation||0)*Math.PI/180); ctx.translate(-x-size/2,-y-size/2);
+function drawShareHandwriting(ctx,strokes,x,y,size,rotation=0){ const paths=normalizedInkStrokes(strokes); ctx.save(); ctx.translate(x+size/2,y+size/2); ctx.rotate(Number(rotation||0)*Math.PI/180); ctx.translate(-x-size/2,-y-size/2);
   ctx.strokeStyle="#c2452c38"; ctx.lineWidth=2; ctx.setLineDash([7,7]); [[x+size/2,y,x+size/2,y+size],[x,y+size/2,x+size,y+size/2],[x,y,x+size,y+size],[x+size,y,x,y+size]].forEach(line=>{ ctx.beginPath(); ctx.moveTo(line[0],line[1]); ctx.lineTo(line[2],line[3]); ctx.stroke(); }); ctx.setLineDash([]);
   paths.forEach(points=>{ const scaled=points.map(point=>({x:x+clamp(Number(point.x),0,1)*size,y:y+clamp(Number(point.y),0,1)*size,w:Number(point.w),v:Number(point.v)})); paintBrushStroke(ctx,scaled,Math.max(8,size*.075),{color:"#29241d",detail:true}); }); ctx.restore(); return paths.length; }
 
@@ -2975,10 +2986,10 @@ const HAND_CARD_RATIOS={portrait:{width:1080,height:1440,label:"3:4"},square:{wi
 let handCardIndex=-1,handCardRatio="portrait",handCardResumeFeedback=false,handCardPromptIndex=-1,handCardPromptTimer=0,handCardRenderToken=0;
 function sexagenaryYear(year){ const stems="甲乙丙丁戊己庚辛壬癸",branches="子丑寅卯辰巳午未申酉戌亥",offset=((Number(year)-4)%60+60)%60; return stems[offset%10]+branches[offset%12]; }
 function handCardDateText(at=Date.now()){ const date=new Date(Number(at)||Date.now()); return `${sexagenaryYear(date.getFullYear())}年 ${numCn(date.getMonth()+1)}月${numCn(date.getDate())}`; }
-function handCardData(index){ const card=CARDS[index],m=memory[cardKey(index)]||{},recent=m.recentInk,strokes=recent&&recent.strokes; if(!card||!recent||Number(recent.version)<2||!Array.isArray(strokes)||!strokes.some(points=>Array.isArray(points)&&points.length)) return null; const word=suspiciousDictionaryWord(index)?card.target:(card.word||card.target); return {index,word,py:card.py||"",recent}; }
+function handCardData(index){ const card=CARDS[index],m=memory[cardKey(index)]||{},recent=m.recentInk,strokes=normalizedInkStrokes(recent&&recent.strokes); if(!card||!recent||Number(recent.version)<2||!strokes.length) return null; const word=suspiciousDictionaryWord(index)?card.target:(card.word||card.target); return {index,word,py:card.py||"",recent}; }
 function drawHandCardPaper(ctx,width,height){ ctx.fillStyle="#f4efe2"; ctx.fillRect(0,0,width,height); let seed=width*31+height*17;
   ctx.save(); ctx.lineWidth=1; for(let i=0;i<180;i++){ seed=(Math.imul(seed,1664525)+1013904223)>>>0; const x=seed%width; seed=(Math.imul(seed,1664525)+1013904223)>>>0; const y=seed%height, len=18+(seed%70); ctx.strokeStyle=i%4===0?"rgba(110,92,62,.032)":"rgba(255,255,255,.055)"; ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(Math.min(width,x+len),y+(i%3-1)*.7); ctx.stroke(); } ctx.restore(); }
-function drawHandCardInk(ctx,strokes,x,y,size){ const paths=Array.isArray(strokes)?strokes.filter(points=>Array.isArray(points)&&points.length):[]; paths.forEach(points=>{ const scaled=points.map(point=>({x:x+clamp(Number(point.x),0,1)*size,y:y+clamp(Number(point.y),0,1)*size,w:Number(point.w),v:Number(point.v)})); paintBrushStroke(ctx,scaled,Math.max(16,size*.075),{color:"#29241d",detail:true}); }); return paths.length; }
+function drawHandCardInk(ctx,strokes,x,y,size){ const paths=normalizedInkStrokes(strokes); paths.forEach(points=>{ const scaled=points.map(point=>({x:x+clamp(Number(point.x),0,1)*size,y:y+clamp(Number(point.y),0,1)*size,w:Number(point.w),v:Number(point.v)})); paintBrushStroke(ctx,scaled,Math.max(16,size*.075),{color:"#29241d",detail:true}); }); return paths.length; }
 async function renderHandCardCanvas(index,ratio="portrait",targetCanvas=null){ const data=handCardData(index),spec=HAND_CARD_RATIOS[ratio]||HAND_CARD_RATIOS.portrait; if(!data) return null;
   const canvas=targetCanvas||document.createElement("canvas"); canvas.width=spec.width; canvas.height=spec.height; const ctx=canvas.getContext("2d"); if(!ctx) return null; drawHandCardPaper(ctx,spec.width,spec.height);
   const square=ratio==="square",inkSize=square?650:720,inkX=(spec.width-inkSize)/2,inkY=square?90:150,strokes=data.recent.strokes;
@@ -3071,7 +3082,7 @@ async function exportBackup(){ const exportedAt=Date.now(), payload=backupPayloa
     if(navigator.canShare({files:[file]})){ await navigator.share({files:[file], title:"拾字备份"}); markBackupExported(exportedAt); toast("备份已导出"); return; } }catch(e){ if(e && e.name==="AbortError") return; } }
   const url=URL.createObjectURL(new Blob([payload],{type:"application/json"})), a=document.createElement("a");
   a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),4000); markBackupExported(exportedAt); toast("备份已下载"); }
-function normalizeBackupMemory(value){ if(!plainObject(value)) throw new Error("memory"); const out={}; Object.entries(value).forEach(([key,row])=>{ if(typeof key!=="string"||key.length>120||/[\u0000-\u001f<>]/.test(key)||!plainObject(row)) return; const normalizedKey=canonicalCardKey(key), clean={...row}; if("recentInk" in clean){ const ink=clean.recentInk; if(!plainObject(ink)||!isRecentInkDataURL(ink.dataURL)) delete clean.recentInk; else clean.recentInk={version:Math.max(1,Math.floor(Number(ink.version)||1)),day:validDayKey(ink.day)?String(ink.day):"",at:Math.max(0,Number(ink.at)||0),dataURL:ink.dataURL,strokes:Array.isArray(ink.strokes)?ink.strokes:undefined}; } const current=out[normalizedKey], incomingLast=Math.max(0,Number(clean.last)||0), currentLast=Math.max(0,Number(current&&current.last)||0); if(!current||incomingLast>currentLast||(incomingLast===currentLast&&normalizedKey===key)) out[normalizedKey]=clean; }); return out; }
+function normalizeBackupMemory(value){ if(!plainObject(value)) throw new Error("memory"); const out={}; Object.entries(value).forEach(([key,row])=>{ if(typeof key!=="string"||key.length>120||/[\u0000-\u001f<>]/.test(key)||!plainObject(row)) return; const normalizedKey=canonicalCardKey(key), clean={...row}; if("recentInk" in clean){ const ink=clean.recentInk; if(!plainObject(ink)||!isRecentInkDataURL(ink.dataURL)) delete clean.recentInk; else { const strokes=normalizedInkStrokes(ink.strokes); clean.recentInk={version:Math.max(1,Math.floor(Number(ink.version)||1)),day:validDayKey(ink.day)?String(ink.day):"",at:Math.max(0,Number(ink.at)||0),dataURL:ink.dataURL,strokes:strokes.length?strokes:undefined}; } } const current=out[normalizedKey], incomingLast=Math.max(0,Number(clean.last)||0), currentLast=Math.max(0,Number(current&&current.last)||0); if(!current||incomingLast>currentLast||(incomingLast===currentLast&&normalizedKey===key)) out[normalizedKey]=clean; }); return out; }
 function normalizeBackupValue(key,value){ if(key===MEMORY_KEY) return normalizeBackupMemory(value); if(key===ACTIVITY_KEY) return normalizeActivity(value); if(key===FSRS_LOG_KEY){ const stored=normalizeFSRSStored(value); return serializeFSRSStored(stored.events,stored.monthly); } if(key===FUNNEL_KEY) return normalizeFunnel(value); if(key===BACKUP_META_KEY) return normalizeBackupMeta(value); if(key===REMINDER_KEY) return normalizeReminder(value); if(key===SOUND_KEY) return normalizeSound(value); if(key===HAND_CARD_KEY) return normalizeHandCardPref(value); if(key===LIB_KEY) return normalizeLibrary(value); if(key===WILD_KEY) return normalizeWildState(value); return value; }
 function validatedBackupData(payload){ const obj=typeof payload==="string"?JSON.parse(payload):payload;
   if(!obj || obj.app!=="shizi" || !plainObject(obj.data)) throw new Error("format");

@@ -282,15 +282,19 @@ let browser;
   const pageErrors = [];
   let offlineProbe = false;
   page.on("pageerror", (error) => pageErrors.push(error.message));
-  // 记下来源 URL：只报「Failed to load resource: net::ERR_FAILED」而不说是哪个请求，
-  // 排查时根本分不清是产品缺陷还是环境问题。
-  const NETWORK_NOISE = /ERR_FAILED|ERR_INTERNET_DISCONNECTED|ERR_NAME_NOT_RESOLVED|ERR_CONNECTION|ERR_TIMED_OUT/;
+  // 网络类错误只忽略「测试自己刻意制造的那个请求」，并且按完整 URL 精确匹配。
+  // 之前按「跨源」忽略是错的：应用里没有任何跨源资源（charLoader 只取同源 data/<字>.json），
+  // 那条规则只会永久吞掉真实故障；CI 那次红其实是离线探针的同源失败迟到到窗口之外。
+  const NETWORK_ERROR = /ERR_FAILED|ERR_INTERNET_DISCONNECTED|ERR_NAME_NOT_RESOLVED|ERR_CONNECTION|ERR_TIMED_OUT/;
+  const expectedNetworkFailures = new Set(), probeNetworkFailures = new Set();
+  function isExpectedNetworkFailure(text, url) { return NETWORK_ERROR.test(text) && !!url && expectedNetworkFailures.has(url); }
   page.on("console", (message) => {
     if (message.type() !== "error") return;
     const value = message.text(), url = (message.location() && message.location().url) || "";
-    // 离线探针期间的失败是刻意制造的；跨源笔顺 CDN 兜底在隔离环境里本来就取不到，
-    // 两者都不是产品缺陷。同源资源取不到仍然要红。
-    if (NETWORK_NOISE.test(value) && (offlineProbe || (url && !url.startsWith(appUrl)))) return;
+    if (isExpectedNetworkFailure(value, url)) return;
+    // 探针窗口内新出现的失败先登记下来，紧接着由断言核对它确实只有预期的那一个；
+    // 登记之后同一个 URL 的迟到消息也不会再被当成产品缺陷。
+    if (NETWORK_ERROR.test(value) && url && offlineProbe) { probeNetworkFailures.add(url); expectedNetworkFailures.add(url); return; }
     pageErrors.push(url ? `${value} @ ${url}` : value);
   });
 
@@ -747,6 +751,17 @@ let browser;
   "Expected a character without bundled stroke data to explain its limitation, reject blank submission, and allow written self-assessment offline", honestOffline);
   await page.context().setOffline(false);
   offlineProbe = false;
+  // 探针只应该打挂那一个同源笔顺请求。多出任何别的失败都说明探针范围失控，必须红。
+  const expectedOfflineFailure = new URL(`data/${encodeURIComponent("玃")}.json`, appUrl).href;
+  assert(probeNetworkFailures.size > 0 && [...probeNetworkFailures].every((url) => url === expectedOfflineFailure),
+    "Expected the offline probe to fail exactly the bundled stroke request it targets",
+    { expected: expectedOfflineFailure, saw: [...probeNetworkFailures] });
+  // 两个反例，锁住过滤器不会重新变成「按来源放行」：
+  // 未知跨源资源失败必须红；子路径部署时的同源资源失败也必须红。
+  assert(!isExpectedNetworkFailure("Failed to load resource: net::ERR_CONNECTION_REFUSED", "https://cdn.example.com/required.png")
+    && !isExpectedNetworkFailure("Failed to load resource: net::ERR_FAILED", new URL("/required-api-resource.png", appUrl).href)
+    && isExpectedNetworkFailure("Failed to load resource: net::ERR_FAILED", expectedOfflineFailure),
+    "Expected only the registered probe URL to be treated as an expected network failure");
   await page.evaluate(() => localStorage.clear());
   await page.reload({ waitUntil: "networkidle" });
 
@@ -2384,6 +2399,50 @@ let browser;
   });
   assert(backupShape.rows.every((row) => row.applied === false && row.rejectedKey === row.key && row.untouched) && backupShape.healthy,
     "Expected a malformed value in any backup key to reject the whole import before touching local data", backupShape);
+
+  // 上面那组是直接调函数 + reload:false。复核指出这绕开了真实文件导入与重启后的 resumableSession，
+  // 所以 session 语义坏值和 recentInk 嵌套坏值都能「先恢复成功、刷新后才丢」。这里走真实路径。
+  const goodBackupText = await page.evaluate(() => backupPayload());
+  const importThroughUI = async (mutate) => {
+    const text = await page.evaluate(({ base, patch }) => {
+      const payload = JSON.parse(base); new Function("payload", patch)(payload); return JSON.stringify(payload);
+    }, { base: goodBackupText, patch: mutate });
+    const before = await page.evaluate(() => Object.fromEntries(BACKUP_KEYS.map((k) => [k, localStorage.getItem(k)])));
+    const dialogs = []; const onDialog = (dialog) => { dialogs.push(dialog.message()); dialog.accept(); };
+    page.on("dialog", onDialog);
+    const navigation = page.waitForNavigation({ timeout: 4000 }).then(() => true).catch(() => false);
+    await page.setInputFiles("#importFile", { name: "shizi-backup.json", mimeType: "application/json", buffer: Buffer.from(text, "utf8") });
+    const reloaded = await navigation;
+    page.off("dialog", onDialog);
+    const after = await page.evaluate(() => Object.fromEntries(BACKUP_KEYS.map((k) => [k, localStorage.getItem(k)])));
+    // 失败提示可能走原生弹窗，也可能走应用内 toast；两种都算「告诉了用户」。
+    const notice = await page.evaluate(() => (document.getElementById("toast") || {}).textContent || "");
+    return { reloaded, dialogs, notice, untouched: JSON.stringify(before) === JSON.stringify(after) };
+  };
+
+  // 语义上不可用的 v3 session：启动侧会隔离它，那导入侧就必须先拒绝，而不是报成功再让它消失。
+  const brokenSession = await importThroughUI('payload.data["shizi.session.v1"] = JSON.stringify({ version: 3 });');
+  const brokenSessionState = await page.evaluate(() => ({ quarantined: localStorage.getItem("shizi.corrupt.shizi.session.v1") }));
+  assert(!brokenSession.reloaded && brokenSession.untouched && brokenSessionState.quarantined === null
+    && (brokenSession.dialogs.some((message) => message.includes("无法恢复")) || /不是有效的拾字备份|无法恢复/.test(brokenSession.notice)),
+    "Expected a semantically unusable v3 session to be rejected at import instead of quarantined after the next start", { brokenSession, brokenSessionState });
+
+  // recentInk 的嵌套坏点：导入后必须已经被规范掉，字卡不能再拿它去画。
+  const nestedInk = await importThroughUI(`
+    const key = Object.keys(JSON.parse(payload.data["shizi.memory.v1"]))[0];
+    const memory = JSON.parse(payload.data["shizi.memory.v1"]);
+    memory[key] = Object.assign({}, memory[key], { recentInk: { version: 2, day: "2026-08-01", at: 1, dataURL: ${JSON.stringify("data:image/png;base64,iVBORw0KGgo=")}, strokes: [[null]] } });
+    payload.data["shizi.memory.v1"] = JSON.stringify(memory);`);
+  const nestedInkState = await page.evaluate(() => {
+    const rows = Object.values(memory).filter((row) => row && row.recentInk);
+    const bad = rows.filter((row) => (row.recentInk.strokes || []).some((stroke) => !Array.isArray(stroke) || stroke.some((point) => !point || !Number.isFinite(Number(point.x)))));
+    const idx = CARDS.findIndex((card) => memory[cardKey(CARDS.indexOf(card))]);
+    let cardThrew = false;
+    try { for (let i = 0; i < CARDS.length && i < 400; i += 1) handCardData(i); } catch (error) { cardThrew = true; }
+    return { badRows: bad.length, cardThrew, idx };
+  });
+  assert(nestedInkState.badRows === 0 && !nestedInkState.cardThrew,
+    "Expected nested bad ink points to be normalized at import so the handwriting card cannot crash", nestedInkState);
   const boundedPersistence = await page.evaluate(() => {
     const saved = {
       fsrsReviewLog: cloneObj(fsrsReviewLog), fsrsReviewMonthly: cloneObj(fsrsReviewMonthly),

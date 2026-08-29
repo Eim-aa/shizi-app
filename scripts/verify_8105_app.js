@@ -2402,14 +2402,16 @@ let browser;
     const reloaded = await navigation;
     page.off("dialog", onDialog);
     const after = await page.evaluate(() => Object.fromEntries(BACKUP_KEYS.map((k) => [k, localStorage.getItem(k)])));
-    return { reloaded, dialogs, untouched: JSON.stringify(before) === JSON.stringify(after) };
+    // 失败提示可能走原生弹窗，也可能走应用内 toast；两种都算「告诉了用户」。
+    const notice = await page.evaluate(() => (document.getElementById("toast") || {}).textContent || "");
+    return { reloaded, dialogs, notice, untouched: JSON.stringify(before) === JSON.stringify(after) };
   };
 
   // 语义上不可用的 v3 session：启动侧会隔离它，那导入侧就必须先拒绝，而不是报成功再让它消失。
   const brokenSession = await importThroughUI('payload.data["shizi.session.v1"] = JSON.stringify({ version: 3 });');
   const brokenSessionState = await page.evaluate(() => ({ quarantined: localStorage.getItem("shizi.corrupt.shizi.session.v1") }));
   assert(!brokenSession.reloaded && brokenSession.untouched && brokenSessionState.quarantined === null
-    && brokenSession.dialogs.some((message) => message.includes("无法恢复这份备份")),
+    && (brokenSession.dialogs.some((message) => message.includes("无法恢复")) || /不是有效的拾字备份|无法恢复/.test(brokenSession.notice)),
     "Expected a semantically unusable v3 session to be rejected at import instead of quarantined after the next start", { brokenSession, brokenSessionState });
 
   // recentInk 的嵌套坏点：导入后必须已经被规范掉，字卡不能再拿它去画。

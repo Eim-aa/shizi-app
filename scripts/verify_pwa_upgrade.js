@@ -132,27 +132,48 @@ function legacyDataPaths(repoRoot = ROOT) {
   ));
 }
 
-function hasLegacyCommit() {
+function refsSnapshot(repoRoot) {
+  return gitIn(repoRoot, ["for-each-ref", "--format=%(refname)%00%(objectname)%00"]);
+}
+
+function gitFileSnapshot(repoRoot, name) {
+  const rawPath = gitIn(repoRoot, ["rev-parse", "--git-path", name], { encoding: "utf8" }).trim();
+  const file = path.isAbsolute(rawPath) ? rawPath : path.resolve(repoRoot, rawPath);
+  return fs.existsSync(file) ? fs.readFileSync(file) : null;
+}
+
+function equalOptionalBuffers(left, right) {
+  return left === null ? right === null : right !== null && left.equals(right);
+}
+
+function hasLegacyCommit(repoRoot = ROOT) {
   try {
-    git(["cat-file", "-e", `${LEGACY_COMMIT}^{commit}`], { stdio: "ignore" });
+    gitIn(repoRoot, ["cat-file", "-e", `${LEGACY_COMMIT}^{commit}`], { stdio: "ignore" });
     return true;
   } catch (error) {
     return false;
   }
 }
 
-function ensureLegacyCommit() {
-  if (!hasLegacyCommit()) {
+function ensureLegacyCommit(repoRoot = ROOT) {
+  if (!hasLegacyCommit(repoRoot)) {
     // 浅克隆（CI 默认 fetch-depth: 1）里没有这个 commit。先按 SHA 单独取一次，
     // 取不到就直接失败——绝不把门禁降级成静默跳过。
     note(`legacy commit not present locally, fetching ${LEGACY_COMMIT.slice(0, 12)}`);
+    const refsBefore = refsSnapshot(repoRoot);
+    const fetchHeadBefore = gitFileSnapshot(repoRoot, "FETCH_HEAD");
     try {
-      git(["fetch", "--no-tags", "--depth=1", "origin", LEGACY_COMMIT], { stdio: "ignore" });
+      // 只取对象，不写 FETCH_HEAD，也不为验证脚本制造持久 ref。
+      gitIn(repoRoot, ["fetch", "--no-write-fetch-head", "--no-tags", "--depth=1", "origin", LEGACY_COMMIT],
+        { stdio: "ignore" });
     } catch (error) {
       // 忽略：下面统一判定
     }
+    check(refsSnapshot(repoRoot).equals(refsBefore), "Fetching the legacy object must not create or mutate repository refs");
+    check(equalOptionalBuffers(gitFileSnapshot(repoRoot, "FETCH_HEAD"), fetchHeadBefore),
+      "Fetching the legacy object must not overwrite FETCH_HEAD");
   }
-  if (!hasLegacyCommit()) {
+  if (!hasLegacyCommit(repoRoot)) {
     throw new Error(`This gate replays the real v10 generation and needs commit ${LEGACY_COMMIT}. `
       + `Fetch it (git fetch --depth=1 origin ${LEGACY_COMMIT}) or check out with fetch-depth: 0.`);
   }
@@ -188,13 +209,18 @@ function materializeDriftedLegacyData(dir, repoRoot = ROOT, emitNote = true) {
 }
 
 // 负向自测必须真的让一个旧提交中存在的中文文件发生工作区漂移。
-// 用本地 shared clone 隔离 mutation，避免测试过程改动调用者的工作树。
-function verifyUnicodeLegacyReplay() {
+// 每次都主动建立真的 depth-1 仓库，避免本地全历史掩盖 CI 边界；隔离仓库
+// 必须再按 SHA 无 ref 取回 legacy 对象，不能假设它会被 clone 顺带过来。
+function verifyUnicodeLegacyReplay(repoRoot = ROOT) {
   const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "shizi-pwa-unicode-replay-"));
   const repo = path.join(sandbox, "repo"), replayDir = path.join(sandbox, "legacy");
   const file = "data/水.json";
   try {
-    git(["clone", "--shared", "--quiet", ROOT, repo]);
+    gitIn(repoRoot, ["clone", "--no-local", "--depth=1", "--no-tags", "--origin=origin", "--quiet", repoRoot, repo]);
+    const shallow = gitIn(repo, ["rev-parse", "--is-shallow-repository"], { encoding: "utf8" }).trim();
+    check(shallow === "true", "Unicode replay control must use an actual depth-1 clone", { shallow });
+    check(!hasLegacyCommit(repo), "Depth-1 control unexpectedly inherited the pinned legacy commit");
+    ensureLegacyCommit(repo);
     gitIn(repo, ["config", "core.quotePath", "true"]);
     const current = fs.readFileSync(path.join(repo, file));
     fs.writeFileSync(path.join(repo, file), Buffer.concat([current, Buffer.from("\n ")]));

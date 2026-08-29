@@ -631,8 +631,8 @@ let browser;
   const sortedJSON = (value) => JSON.stringify(Object.fromEntries(Object.entries(value).sort(([a], [b]) => a.localeCompare(b, "zh-CN"))));
   const leaks = contextOverrides.rows.filter((row) => row.visible.includes(row.target));
   const rejectedPromptWords = contextOverrides.rows.filter((row) => approvedContextFixture.rejectedPromptWords.some((word) => row.word === word || row.hint?.includes(word)));
-  assert(contextOverrides.rows.length === 56 && contextKinds.word === 1 && contextKinds.gloss === 45 && contextKinds.boost === 10 && contextOverrides.rows.filter((row) => row.boosted).length === 14,
-    "Expected one manually approved common-word prompt, forty-five plain-language prompts, and ten boost-only corrections", { contextKinds });
+  assert(contextOverrides.rows.length === 59 && contextKinds.word === 4 && contextKinds.gloss === 45 && contextKinds.boost === 10 && contextOverrides.rows.filter((row) => row.boosted).length === 14,
+    "Expected four manually approved common-word prompts, forty-five plain-language prompts, and ten boost-only corrections", { contextKinds });
   assert(sortedJSON(contextOverrides.raw) === sortedJSON(approvedOverrides),
     "Expected runtime context overrides to match the independent manually approved fixture", { actual: contextOverrides.raw, approved: approvedOverrides });
   assert(leaks.length === 0, "Expected no rendered context or gloss to contain its target character", leaks);

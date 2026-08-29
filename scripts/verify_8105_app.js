@@ -282,7 +282,17 @@ let browser;
   const pageErrors = [];
   let offlineProbe = false;
   page.on("pageerror", (error) => pageErrors.push(error.message));
-  page.on("console", (message) => { const value = message.text(); if (message.type() === "error" && !(offlineProbe && /ERR_FAILED|ERR_INTERNET_DISCONNECTED/.test(value))) pageErrors.push(value); });
+  // 记下来源 URL：只报「Failed to load resource: net::ERR_FAILED」而不说是哪个请求，
+  // 排查时根本分不清是产品缺陷还是环境问题。
+  const NETWORK_NOISE = /ERR_FAILED|ERR_INTERNET_DISCONNECTED|ERR_NAME_NOT_RESOLVED|ERR_CONNECTION|ERR_TIMED_OUT/;
+  page.on("console", (message) => {
+    if (message.type() !== "error") return;
+    const value = message.text(), url = (message.location() && message.location().url) || "";
+    // 离线探针期间的失败是刻意制造的；跨源笔顺 CDN 兜底在隔离环境里本来就取不到，
+    // 两者都不是产品缺陷。同源资源取不到仍然要红。
+    if (NETWORK_NOISE.test(value) && (offlineProbe || (url && !url.startsWith(appUrl)))) return;
+    pageErrors.push(url ? `${value} @ ${url}` : value);
+  });
 
   await page.goto(appUrl, { waitUntil: "networkidle" });
   await page.evaluate(() => localStorage.clear());

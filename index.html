@@ -22,6 +22,7 @@
   /* ===== 纸墨拾趣：宣纸 × 朱砂印 ===== */
   :root{ --font-scale:1; --sans:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue",sans-serif;
     --kai:"Shizi Brand","Kaiti SC","STKaiti","KaiTi","DFKai-SB","AR PL UKai CN","TW-Kai",serif; --song:"Songti SC","Noto Serif SC","STSong","SimSun",serif;
+    --font-brand:var(--kai); --font-heading:var(--song); --font-ui:var(--sans); --font-reading:var(--song);
     --fs-caption:11px; --fs-note:12px; --fs-body:13px; --fs-emph:15px; --space-1:8px; --space-2:12px; --space-3:16px; --space-4:24px; --ls-label:.12em; --ls-motto:.26em;
     --bg:#f4efe2; --card:#fdfbf4; --shade:#ede7d6;
     --ink:#29241d; --muted:#665d4d; --faint:#6a604f; --line:#e5ddc9; --dline:#d9cdb2;
@@ -51,6 +52,7 @@
   button:disabled{ opacity:.45; }
   :where(button,a,input,select,textarea,[role="button"],[tabindex]):focus-visible{ outline:3px solid var(--blue); outline-offset:3px; }
   .tlock{ opacity:.35 !important; pointer-events:none; }
+  .inputLock{ pointer-events:none; }
   @keyframes screenIn{ from{ opacity:0; transform:translateY(10px); } to{ opacity:1; transform:none; } }
   @keyframes fadeIn{ from{ opacity:0; } to{ opacity:1; } }
   @keyframes cardSwapIn{ from{ opacity:.35; transform:translateY(4px); } to{ opacity:1; transform:none; } }
@@ -82,14 +84,18 @@
 
   /* ===== 首页 ===== */
   .home{ display:none; flex:1; flex-direction:column; padding:var(--space-3) var(--space-4) 0; animation:fadeIn .22s ease; }
-  .homeTop{ display:flex; justify-content:space-between; align-items:flex-start; min-height:118px; }
+  .homeTop{ display:flex; justify-content:space-between; align-items:flex-start; min-height:132px; }
   .homeGreeting{ padding-top:2px; font-size:calc(var(--fs-body) * var(--font-scale)); color:var(--faint); }
-  .homeMain{ margin-top:-62px; padding-right:58px; }
-  .homeTitle{ margin:0; font:900 calc(38px * var(--font-scale))/1.3 var(--song); letter-spacing:var(--ls-label); }
-  .motto{ writing-mode:vertical-rl; font:400 calc(var(--fs-emph) * var(--font-scale))/1.9 var(--kai); color:var(--faint); border-left:1px solid var(--line); padding-left:12px; height:116px; letter-spacing:var(--ls-motto); }
-  .motto .mLine{ display:block; }
-  .motto .mSrc{ display:block; margin-left:5px; font:400 calc(var(--fs-caption) * var(--font-scale))/1.55 var(--sans); letter-spacing:0; color:var(--faint); }
-  #welcomeMotto .mSrc{ margin:4px 0 0; }
+  .homeMain{ margin-top:-66px; padding-right:58px; }
+  .homeTitle{ width:max-content; max-width:100%; margin:0; font:900 calc(38px * var(--font-scale))/1.3 var(--font-heading); letter-spacing:var(--ls-label); }
+  .motto{ display:flex; flex-direction:row-reverse; align-items:flex-start; gap:7px; min-height:124px; color:var(--faint); border-left:1px solid var(--line); padding-left:12px; }
+  .motto .mBody{ display:flex; flex-direction:row-reverse; align-items:flex-start; gap:4px; }
+  .motto .mLine{ display:block; writing-mode:vertical-rl; white-space:nowrap; font:400 calc(var(--fs-emph) * var(--font-scale))/1.35 var(--font-brand); letter-spacing:var(--ls-label); }
+  .motto .mSrc{ display:block; writing-mode:vertical-rl; white-space:nowrap; margin-left:1px; font:500 calc(var(--fs-caption) * var(--font-scale))/1.4 var(--font-ui); letter-spacing:0; color:var(--faint); }
+  #welcomeMotto{ display:block; min-height:0; }
+  #welcomeMotto .mBody{ display:block; }
+  #welcomeMotto .mLine{ display:inline; writing-mode:horizontal-tb; white-space:normal; }
+  #welcomeMotto .mSrc{ display:block; writing-mode:horizontal-tb; margin:4px 0 0; }
   .homeStart{ display:flex; flex-direction:column; align-items:center; justify-content:center; flex:1; min-height:250px; margin-top:12px; }
   .stampBtn{ width:165px; height:165px; background:var(--accent); border-radius:24% 20% 26% 22%; color:var(--paperInk); font:400 calc(86px * var(--font-scale))/1 var(--kai);
     transform:rotate(-3deg); display:flex; align-items:center; justify-content:center; padding-bottom:6px; transition:transform .12s ease,box-shadow .12s ease;
@@ -100,10 +106,12 @@
   .startCap{ margin-top:15px; font-size:calc(var(--fs-body) * var(--font-scale)); font-weight:600; }
   .startCap span{ color:var(--faint); font-weight:400; }
   .motto.compactMotto{ font-size:calc(var(--fs-body) * var(--font-scale)); letter-spacing:var(--ls-label); }
+  @media (max-width:340px){ .homeTitle{ font-size:calc(32px * var(--font-scale)); letter-spacing:0; } }
   .yester{ margin-top:auto; padding:20px 0 16px; }
   .yesterHead{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:10px; font-size:calc(var(--fs-body) * var(--font-scale)); color:var(--muted); }
   .yesterHead .lbl{ font-weight:600; letter-spacing:var(--ls-label); }
-  .yesterHead .addTxt{ min-height:44px; margin:-12px -10px -12px 0; padding:0 10px; }
+  .yesterHead .addTxt{ min-height:44px; margin:-12px 0 -12px 0; padding:0 12px; border:1px solid var(--line); border-radius:999px; background:var(--card); color:var(--ink); font:700 calc(var(--fs-note) * var(--font-scale))/1 var(--font-ui); }
+  .yesterHead .addTxt .plus{ margin-right:4px; color:var(--accent); font-size:calc(var(--fs-emph) * var(--font-scale)); }
   .yesterRow{ display:flex; gap:8px; width:min(100%,270px); overflow-x:auto; overflow-y:hidden; flex-wrap:nowrap; padding:0 18px 0 0;
     -webkit-overflow-scrolling:touch; scroll-snap-type:x proximity; scrollbar-width:none; }
   .yesterRow.scrollable{
@@ -187,11 +195,8 @@
   .traceIntro{ display:none; margin:6px auto 0; max-width:330px; color:var(--muted); font-size:calc(var(--fs-body) * var(--font-scale)); line-height:1.55; text-align:center; }
   .card .chdr,.card #prompt,.card .hint,.card .phaseTitle,.card .traceIntro,.card #teachBubble,.card #practiceArea > .mascotRow,.card #actions,.card .traceActions{
     transition:opacity .2s ease; }
-  .card.writing .chdr,.card.writing #prompt,.card.writing .hint,.card.writing .phaseTitle,.card.writing .traceIntro,.card.writing #teachBubble,.card.writing #practiceArea > .mascotRow,.card.writing #actions,.card.writing .traceActions{
-    opacity:0; pointer-events:none; }
-  .card.writing #actions.tlock,.card.writing .traceActions.tlock{ opacity:0 !important; }
-  .card.writing .toolBtn:not(:disabled){ opacity:.3; }
-  .card.chromeDirect .chdr,.card.chromeDirect #prompt,.card.chromeDirect .hint,.card.chromeDirect .phaseTitle,.card.chromeDirect .traceIntro,.card.chromeDirect #teachBubble,.card.chromeDirect #practiceArea > .mascotRow,.card.chromeDirect #actions,.card.chromeDirect .traceActions{ transition:none !important; }
+  .skipAction{ display:flex; justify-content:center; min-height:44px; }
+  .skipAction button{ min-height:44px; padding:0 12px; color:var(--muted); font:600 calc(var(--fs-note) * var(--font-scale))/1 var(--font-ui); text-decoration:underline; text-underline-offset:3px; }
   #practiceArea.opening{ animation:paperReveal .36s ease-out both; }
   .decisionRow{ display:flex; gap:10px; margin-top:16px; }
   .decisionRow button{ flex:1; min-height:58px; border-radius:14px; padding:10px 8px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; }
@@ -334,13 +339,18 @@
   .libRow b{ font-size:calc(var(--fs-body) * var(--font-scale)); }
   .libRow .libCount{ flex:none; color:var(--muted); font-size:calc(var(--fs-note) * var(--font-scale)); font-variant-numeric:tabular-nums; }
   .libRow small{ display:block; margin-top:2px; color:var(--muted); font-size:calc(var(--fs-note) * var(--font-scale)); line-height:1.5; }
-  .bookCurator{ width:100%; margin-top:14px; min-height:54px; padding:10px 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line); color:var(--ink); text-align:left; font:400 calc(var(--fs-emph) * var(--font-scale))/1.75 var(--kai); }
-  .bookCurator span{ color:var(--accent); }
-  .bookSearch{ display:block; margin-top:16px; }
-  .bookSearch input{ width:100%; min-height:46px; padding:0 14px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--ink); font:400 calc(var(--fs-body) * var(--font-scale))/1 var(--sans); outline:none; }
-  .bookSearch input:focus{ border-color:var(--accent-a60); }
+  .bookTools{ margin-top:16px; }
+  .bookSearchLabel{ display:block; margin-bottom:7px; color:var(--muted); font:700 calc(var(--fs-note) * var(--font-scale))/1 var(--font-ui); }
+  .bookSearchRow{ display:grid; grid-template-columns:minmax(0,1fr) auto; gap:8px; }
+  .bookSearch{ position:relative; min-width:0; }
+  .bookSearch .searchIcon{ position:absolute; left:14px; top:50%; width:14px; height:14px; transform:translateY(-58%); border:1.6px solid var(--muted); border-radius:50%; pointer-events:none; }
+  .bookSearch .searchIcon::after{ content:""; position:absolute; width:6px; border-top:1.6px solid var(--muted); right:-5px; bottom:-3px; transform:rotate(45deg); transform-origin:left center; }
+  .bookSearch input{ width:100%; min-height:46px; padding:0 46px 0 40px; border:1px solid var(--dline); border-radius:8px; background:var(--card); color:var(--ink); font:400 calc(var(--fs-body) * var(--font-scale))/1 var(--font-ui); outline:none; }
+  .bookSearch input:focus{ border-color:var(--accent-a60); box-shadow:0 0 0 2px var(--accent-a12); }
+  .bookSearchClear{ display:none; position:absolute; right:1px; top:1px; width:44px; min-height:44px; color:var(--muted); font-size:20px; }
+  .bookPhoto{ min-height:46px; padding:0 12px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--ink); font:700 calc(var(--fs-note) * var(--font-scale))/1 var(--font-ui); white-space:nowrap; }
   .bookSearchResult{ min-height:30px; padding:7px 4px 0; color:var(--muted); font-size:calc(var(--fs-note) * var(--font-scale)); }
-  .bookSearchResult button{ display:inline; min-height:30px; color:var(--accent); font-weight:700; }
+  .bookSearchResult button{ display:inline; min-height:32px; padding:0 3px; color:var(--accent); font-weight:700; }
   .wildWish{ display:none; margin-top:20px; padding-top:14px; border-top:1px solid var(--line); }
   .wildWishHead{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; color:var(--muted); font-size:calc(var(--fs-note) * var(--font-scale)); }
   .wildWishHead b{ color:var(--ink); font-size:calc(var(--fs-body) * var(--font-scale)); }
@@ -534,8 +544,8 @@
 
   /* ===== 底部 tab ===== */
   .foot{ position:sticky; bottom:0; z-index:12; margin-top:auto; padding:10px 8px calc(14px + env(safe-area-inset-bottom)); border-top:1px solid var(--line); background:var(--card); display:flex; justify-content:space-around; align-items:center; }
-  .foot .tab{ position:relative; display:flex; align-items:center; font:400 calc(18px * var(--font-scale))/1 var(--kai); letter-spacing:var(--ls-label); color:var(--faint); cursor:pointer; padding:10px 16px; }
-  .foot .tab.active{ color:var(--accent); }
+  .foot .tab{ position:relative; display:flex; align-items:center; min-height:44px; font:650 calc(var(--fs-body) * var(--font-scale))/1 var(--font-ui); letter-spacing:0; color:var(--faint); cursor:pointer; padding:10px 16px; }
+  .foot .tab.active{ color:var(--accent); font-weight:800; }
 
   /* ===== 弹层 / 提示 ===== */
   .sheetMask{ display:none; position:fixed; inset:0; z-index:20; background:rgba(30,24,16,.45); backdrop-filter:blur(2px); align-items:flex-start; justify-content:center; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:calc(14vh + env(safe-area-inset-top)) 24px calc(24px + env(safe-area-inset-bottom) + var(--keyboard-inset)); }
@@ -608,6 +618,7 @@
   .charDetailCard{ display:none; width:100%; min-height:48px; margin-top:16px; padding:0 2px; border-top:1px solid var(--line); border-bottom:1px solid var(--line); color:var(--ink); text-align:left; font-size:calc(var(--fs-body) * var(--font-scale)); font-weight:700; }
   .charDetailCard span{ float:right; color:var(--accent); }
   .charDetailCardLegacy{ display:none; margin:14px 2px 0; color:var(--muted); font-size:calc(var(--fs-caption) * var(--font-scale)); line-height:1.55; }
+  .charDetailSchedule{ display:none; margin:12px 2px 0; color:var(--accent); font-size:calc(var(--fs-body) * var(--font-scale)); font-weight:700; }
   .charDetailActions{ display:grid; grid-template-columns:1fr 1.35fr; gap:8px; margin-top:20px; }
   .charDetailActions button{ min-height:48px; border-radius:12px; font-size:calc(var(--fs-emph) * var(--font-scale)); font-weight:700; }
   .charDetailStrokeBtn{ border:1px solid var(--line); background:var(--card); color:var(--ink); }
@@ -681,7 +692,7 @@
       <div class="startCap" id="startCap"></div>
     </div>
     <div class="yester" id="yesterBlock">
-      <div class="yesterHead"><span class="lbl" id="yesterLbl">今日拾得</span><button class="addTxt" id="homeAdd">收字</button></div>
+      <div class="yesterHead"><span class="lbl" id="yesterLbl">今日拾得</span></div>
       <div class="yesterRow" id="yesterRow"></div>
     </div>
   </div>
@@ -715,6 +726,7 @@
         <button class="ghostAct" id="show" disabled aria-label="不会写：先描后写，本组稍后还会再写">不会写</button>
         <button class="primaryAct" id="done" disabled aria-label="写好了">写好了</button>
       </div>
+      <div class="skipAction" id="skipAction"><button id="skipCard" aria-label="跳过这个字，以后不再自动安排；可以在字库恢复">跳过</button></div>
       <div class="traceActions" id="traceActions">
         <button class="primaryAct traceDone" id="traceDone" disabled><span>描好了，自己写</span><small>轮廓会先隐藏</small></button>
       </div>
@@ -722,7 +734,7 @@
 
     <div id="reveal" data-screen-label="揭晓">
       <div class="revealWord"><span class="w" id="revealWord"></span><span class="p" id="revealPy"></span></div>
-      <div class="cmpRow">
+      <div class="cmpRow" role="group" aria-label="书写对照：左侧是你的字迹，右侧是范字">
         <div class="cmpCol">
           <div class="cmpBox mine">
             <div class="cx"></div><div class="cy"></div><div class="d1"></div><div class="d2"></div>
@@ -742,7 +754,7 @@
           <div class="cmpLbl red">范字</div>
         </div>
       </div>
-      <div class="cmpLinks"><button id="overlayToggle">叠起来对比</button><button id="replayBtn">看笔顺</button></div>
+      <div class="cmpLinks"><button id="overlayToggle" aria-pressed="false" aria-label="把范字叠加到我的字迹上对比">叠起来对比</button><button id="replayBtn">看笔顺</button></div>
 
       <div class="tbubble" id="teachBubbleGrade" style="display:none; max-width:320px;"><b>对错由你判断，没有考试</b><br>按实际情况选择。写错或不确定的字，<br>本组稍后会再写一次</div>
       <div class="mascotRow" id="askRow"><span class="blob"></span><span id="askLine" style="font-weight:600; color:var(--ink);"></span></div>
@@ -843,11 +855,17 @@
       <span class="libCardTop"><b id="libName"></b><span class="libGo">换库 ›</span></span>
       <span class="libMeta" id="libMeta"></span>
     </button>
-    <button class="bookCurator" id="bookCurator"></button>
-    <div class="bookSearch"><input id="bookSearchInput" type="search" autocomplete="off" placeholder="找一个字，或把忘的字收进来" aria-label="找字或收字"><div class="bookSearchResult" id="bookSearchResult" aria-live="polite"></div></div>
+    <section class="bookTools" aria-labelledby="bookSearchLabel">
+      <label class="bookSearchLabel" id="bookSearchLabel" for="bookSearchInput">输入想练的字</label>
+      <div class="bookSearchRow">
+        <div class="bookSearch"><span class="searchIcon" aria-hidden="true"></span><input id="bookSearchInput" type="search" role="searchbox" autocomplete="off" placeholder="输入一个或多个汉字" aria-label="输入想练的字" aria-describedby="bookSearchResult"><button class="bookSearchClear" id="bookSearchClear" aria-label="清除输入内容">×</button></div>
+        <button class="bookPhoto" id="bookPhoto" aria-label="拍照识别想练的字">拍字</button>
+      </div>
+      <div class="bookSearchResult" id="bookSearchResult" aria-live="polite"></div>
+    </section>
     <div class="memoryWall" id="memoryWall"></div>
     <section class="wildWish" id="wildWish"><div class="wildWishHead"><b>暂不支持练习</b><span id="wildWishCount"></span></div><div class="wildWishChars" id="wildWishChars"></div></section>
-    <div class="memoryWallFoot"><span>墨色即记忆 · 淡了就去写</span><button id="bookSaveMonth">导出月帖</button></div>
+    <div class="memoryWallFoot"><span>点击任意字查看详情</span><button id="bookSaveMonth">导出月帖</button></div>
   </div>
 
   <!-- 我的 -->
@@ -956,9 +974,9 @@
   </div>
 </div>
 
-<div class="sheetMask" id="addSheet"><div class="sheet">
-  <h3>刚才哪个字不会写？</h3>
-  <p class="sheetHint">输入那个字，或它所在的词（如「蘸料」）。字库里有的字会带上拼音和语境词。</p>
+<div class="sheetMask" id="addSheet"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="addSheetTitle">
+  <h3 id="addSheetTitle">拍照或输入想练的字</h3>
+  <p class="sheetHint">输入一个或多个汉字，也可以拍照识别。确认后直接开始专项练习。</p>
   <input id="addInput" type="text" autocomplete="off" autocapitalize="off" maxlength="20" placeholder="蘸料">
   <div class="sheetPreview" id="addPreview"></div>
   <div class="wildCapture" id="wildCapture">
@@ -966,7 +984,7 @@
     <div class="wildCaptureCopy"><button class="wildCaptureBtn" id="wildCaptureBtn">拍一个字</button><span class="wildCaptureNote" id="wildCaptureNote">可拍照或从相册选择；照片默认保存在当前设备</span></div>
   </div>
   <div class="wildCandidates" id="wildCandidates" aria-label="识别到的候选字"></div>
-  <div class="row"><button class="ghostAct" id="addCancel">取消</button><button class="primaryAct" id="addConfirm" disabled>收进字库</button></div>
+  <div class="row"><button class="ghostAct" id="addCancel">取消</button><button class="primaryAct" id="addConfirm" disabled>练这个字</button></div>
 </div></div>
 
 <div class="sheetMask" id="libSheet" role="dialog" aria-modal="true" aria-labelledby="libSheetTitle"><div class="sheet">
@@ -1003,7 +1021,8 @@
   <div class="charDetailStroke" id="charDetailStroke"></div>
   <button class="charDetailCard" id="charDetailCard">做张字卡 <span>›</span></button>
   <p class="charDetailCardLegacy" id="charDetailCardLegacy">这份旧墨迹还不能做字卡，重新独立写一次即可。</p>
-  <div class="charDetailActions"><button class="charDetailStrokeBtn" id="charDetailStrokeBtn">看笔顺</button><button class="charDetailPractice" id="charDetailPractice">再写一遍</button></div>
+  <p class="charDetailSchedule" id="charDetailSchedule">已停止自动安排</p>
+  <div class="charDetailActions"><button class="charDetailStrokeBtn" id="charDetailStrokeBtn">看笔顺</button><button class="charDetailPractice" id="charDetailPractice">练这个字</button></div>
 </div></div>
 <div class="sheetMask" id="wildPhotoSheet" role="dialog" aria-modal="true" aria-label="拾于生活的照片"><div class="sheet wildPhotoViewer">
   <h3 id="wildPhotoTitle">拾于生活</h3>
@@ -1027,6 +1046,7 @@
 <div class="storageNotice" id="storageNotice" role="alert" aria-live="assertive"></div>
 <div class="storageGate" id="storageGate" role="alertdialog" aria-modal="true" aria-labelledby="storageGateTitle"><div><h1 id="storageGateTitle">暂时无法保存练习</h1><p>系统没有开放本地存储。拾字不会假装记住你的进度，请检查浏览器隐私设置或重新打开 App。</p><button class="primaryAct" id="storageReload">重新检查</button></div></div>
 <div class="undoToast" id="safetyUndo" role="status" aria-live="polite"><span id="safetyUndoCopy">操作前的数据已保留</span><button id="safetyUndoBtn">撤销</button></div>
+<div class="undoToast" id="skipUndoToast" role="status" aria-live="polite"><span id="skipUndoCopy">已跳过</span><button id="skipUndoBtn">撤销</button></div>
 <input type="file" id="importFile" accept=".json,application/json" style="display:none">
 <input type="file" id="wildPhotoInput" accept="image/*" style="display:none">
 
@@ -1059,7 +1079,7 @@ const BASE_BY_CHAR={}; for(let i=0;i<BASE_N;i++){ const t=CARDS[i].target; if(BA
 const DECK_KEY="shizi.deck.v8105.context2", OPEN_KEY="shizi.opens.v1", MEMORY_KEY="shizi.memory.v1", QUALITY_KEY="shizi.quality.v1", PREF_KEY="shizi.pref.v1", TUNING_KEY="shizi.tuning.v1",
   ACTIVITY_KEY="shizi.activity.v1", SESSION_KEY="shizi.session.v1", BACKUP_META_KEY="shizi.backupMeta.v1", REMINDER_KEY="shizi.reminder.v1", SAFETY_KEY="shizi.safety.v1",
   FSRS_LOG_KEY="shizi.fsrsReviewLog.v1", TRACE_TUTORIAL_KEY="shizi.traceTutorial.v1", FONT_SCALE_KEY="shizi.fontScale.v1", FUNNEL_KEY="shizi.funnel.v1", SOUND_KEY="shizi.sound.v1",
-  TOPIC_KEY="shizi.topic.v1", CUSTOM_KEY="shizi.custom.v1", ADDED_KEY="shizi.added.v1", WILD_KEY="shizi.wild.v1", HAND_CARD_KEY="shizi.handCard.v1", LIB_KEY="shizi.library.v1";
+  TOPIC_KEY="shizi.topic.v1", CUSTOM_KEY="shizi.custom.v1", ADDED_KEY="shizi.added.v1", WILD_KEY="shizi.wild.v1", HAND_CARD_KEY="shizi.handCard.v1", LIB_KEY="shizi.library.v1", SKIPPED_KEY="shizi.skipped.v1";
 let storageReadable=true, storageWriteFailed=false, storageRuntimeFailed=false;
 function showStorageNotice(message){ const node=document.getElementById("storageNotice"); if(node){ node.textContent=message; node.style.display="block"; } }
 function showStorageGate(){ storageReadable=false; const node=document.getElementById("storageGate"); if(node) node.classList.add("open"); }
@@ -1104,6 +1124,7 @@ const STORED_SHAPE={
   [REMINDER_KEY]:nullOr(plainObject),
   [SOUND_KEY]:nullOr(plainObject),
   [HAND_CARD_KEY]:nullOr(plainObject),
+  [SKIPPED_KEY]:nullOr(plainObject),
   [SESSION_KEY]:storedSessionShape,
   [CUSTOM_KEY]:stringArray,
   [ADDED_KEY]:nullOr(stringArray),
@@ -1284,7 +1305,7 @@ function dailyActivity(key=today()){ const row=activity.daily[key] && typeof act
 function markPracticeStamp(idx=null,outcome=""){ const key=today(), row=dailyActivity(key), targetKey=Number.isInteger(idx)?cardKey(idx):`legacy:${row.attempts}`; row.attempts++; if(!row.targetKeys.includes(targetKey)){ row.targetKeys.push(targetKey); row.stamps++; } if(outcome==="fast"&&!row.independentTargetKeys.includes(targetKey)) row.independentTargetKeys.push(targetKey); row.lastStampAt=Date.now();
   if(!activity.practiceDays.includes(key)) activity.practiceDays.push(key); activity.practiceDays.sort(); saveActivity();
   if(row.attempts===1) syncReminder(); }
-function markRoundComplete(){ if(!roundIsComplete()) return false; const row=dailyActivity();
+function markRoundComplete(){ if(activeMode==="focus"||roundCompletionSuppressed||!roundIsComplete()) return false; const row=dailyActivity();
   if(!row.completedRoundIds.includes(roundId)){ row.completedRoundIds.push(roundId); row.completedGroups=row.completedRoundIds.length; row.firstCompletedAt=row.firstCompletedAt||Date.now(); saveActivity(); }
   if(activeMode==="makeup" && /^\d{4}-\d{2}-\d{2}$/.test(makeupTargetDay) && makeupTargetDay<today()){
     const past=dailyActivity(makeupTargetDay), marker=`makeup:${roundId}`;
@@ -1382,7 +1403,7 @@ function saveReminder(){ save(REMINDER_KEY,reminder); }
 function reminderBridgeAvailable(){ return !!(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.shiziNative); }
 function reminderQuestion(idx,day){ const c=CARDS[idx]; if(!c||!String(c.word||"").trim()||!String(c.py||"").trim()) return null;
   return {day,title:`${c.word}（${c.py}）`,body:"还记得这个字怎么写吗？点开试试。",targetCardKey:cardKey(idx)}; }
-function reminderCandidates(day){ const eligible=i=>{ const c=CARDS[i],m=memory[cardKey(i)]; return c&&m&&m.seen&&!m.pendingLearning&&!qualityBlocked(i)&&String(c.word||"").trim()&&String(c.py||"").trim(); };
+function reminderCandidates(day){ const eligible=i=>{ const c=CARDS[i],m=memory[cardKey(i)]; return c&&m&&m.seen&&!m.pendingLearning&&!qualityBlocked(i)&&!isCardSkipped(i)&&String(c.word||"").trim()&&String(c.py||"").trim(); };
   const due=allIndexes().filter(i=>{ if(!eligible(i)) return false; const dueDay=(memory[cardKey(i)]||{}).dueDay; return !dueDay||dueDay<=day; });
   const compare=(a,b)=>{ const am=(memory[cardKey(a)]||{}).lastOutcome==="miss",bm=(memory[cardKey(b)]||{}).lastOutcome==="miss"; if(am!==bm) return am?-1:1;
     const ad=(memory[cardKey(a)]||{}).dueDay||"",bd=(memory[cardKey(b)]||{}).dueDay||""; return ad.localeCompare(bd)||personalDifficulty(b)-personalDifficulty(a); };
@@ -1392,13 +1413,13 @@ function reminderQuestions(count=8){ const used=new Set(), result=[]; for(let of
 function indexForCardKey(key){ const stable=canonicalCardKey(key), target=cardTargetFromKey(stable); if(!target) return -1;
   if(stable.startsWith("base:")) return BASE_BY_CHAR[target]??-1;
   return stable.startsWith("custom:")?customIndexOf(target):-1; }
-function shiziOpenReminderTarget(targetCardKey){ const idx=indexForCardKey(targetCardKey); if(idx<0) return false; const resume=resumableSession();
+function shiziOpenReminderTarget(targetCardKey){ const idx=indexForCardKey(targetCardKey); if(idx<0||isCardSkipped(idx)){ syncReminder(); return false; } const resume=resumableSession();
   if(resume){ restoreSession(resume); if(currentCardIndex()!==idx){ insertIntoCurrentBatch([idx]); toast(`通知里的「${CARDS[idx].target}」已排到下一题`); } return true; }
   startFocus([idx]); return currentCardIndex()===idx; }
 // 唯一的调度入口。已练静默的门槛=盖第一章；累计 +1 的门槛=完成一组，两者刻意不同。
 function syncReminder(){ const t=medianPracticeTime();
-  const questions=reminderQuestions(), first=questions[0]||{};
-  const payload={type:"syncReminder", enabled:reminder.enabled && reminder.permission==="granted" && questions.length>0, hour:t.hour, minute:t.minute, practicedToday:dailyActivity().stamps>0,
+  const questions=reminderQuestions(), first=questions[0]||{}, todayRow=activity.daily[today()]||{};
+  const payload={type:"syncReminder", enabled:reminder.enabled && reminder.permission==="granted" && questions.length>0, hour:t.hour, minute:t.minute, practicedToday:Math.max(0,Number(todayRow.stamps)||0)>0,
     title:first.title||"", body:first.body||"", targetCardKey:first.targetCardKey||"", questions};
   reminderDebug.lastSync=payload;
   if(reminderBridgeAvailable()) window.webkit.messageHandlers.shiziNative.postMessage(payload); }
@@ -1464,20 +1485,25 @@ let sessionDone=new Set(), baseTargets=[], batch=[], pos=0, baseCursor=0, curren
 let manualQueue=[], reinforcementQueue=[], unresolved=new Set(), episodes={}, attemptSeq=0, practicePhase="recall", hintEverUsed=false, enteredTracingThisAttempt=false, submissionSnapshot=null, pendingSessionVisual=null, feedbackKind="";
 let missedThisRound=[], roundStats=[], roundHandwriting={}, focusQueue=[], hintsUsedThisCard=0, cardStartedAt=0, activeMode="new", makeupTargetDay="", sessionTarget=0, sessionFastStreak=0, sessionMissStreak=0, roundFeedbackGiven=false, roundId=0, calibrationFirstHoldUsed=false, calibrationComfortShown=false, calibrationTargets=[];
 let summaryFocusIndexes=[], roundStartMemoryCount=0, summarySealTimer=0, summaryMilestoneActive=false, focusReturnView="home";
+let suspendedSessionPayload=null;
+let roundCompletionSuppressed=false;
 let roundElapsedMs=0, roundActiveStartedAt=0, roundBudgetPrompted=false, roundTimerPaused=false;
 const ROUND_ATTEMPT_BUDGET=20, ROUND_TIME_BUDGET_MS=6*60*1000, ROUND_DURATION_CAP_MS=FUNNEL_ROUND_CAP_MS;
 function currentCardIndex(){ return Number.isInteger(currentIndex)?currentIndex:(Number.isInteger(batch[pos])?batch[pos]:null); }
 function episodeFor(idx){ const key=String(idx); return episodes[key] || (episodes[key]={idx,firstOutcome:null,attempts:[],assistanceUsed:false,independentlyRecovered:false,excluded:false,teachingComplete:false}); }
 function enqueueReinforcement(idx){ unresolved.add(idx); reinforcementQueue=reinforcementQueue.filter(item=>item.idx!==idx); reinforcementQueue.push({idx,eligibleAfter:attemptSeq+2,order:attemptSeq}); const m=cardMemory(idx); m.pendingLearning=true; m.dueDay=null; m.due=0; }
 function graduateReinforcement(idx){ unresolved.delete(idx); reinforcementQueue=reinforcementQueue.filter(item=>item.idx!==idx); const ep=episodeFor(idx); ep.independentlyRecovered=true; }
-function nextQueuedTarget(){ if(manualQueue.length){ const item=manualQueue.shift(); return {idx:item.idx,kind:item.kind==="base"?"base":"manual"}; }
+function takeManualQueue(kindTest){ const at=manualQueue.findIndex(kindTest); if(at<0) return null; return manualQueue.splice(at,1)[0]; }
+function nextQueuedTarget(){ const manual=takeManualQueue(item=>item.kind!=="skip"); if(manual) return {idx:manual.idx,kind:manual.kind==="base"?"base":"manual"};
   const ready=reinforcementQueue.find(item=>item.eligibleAfter<=attemptSeq); if(ready){ reinforcementQueue=reinforcementQueue.filter(item=>item!==ready); return {idx:ready.idx,kind:"reinforcement"}; }
   if(baseCursor<baseTargets.length) return {idx:baseTargets[baseCursor],kind:"base"};
+  const skipped=takeManualQueue(item=>item.kind==="skip"); if(skipped) return {idx:skipped.idx,kind:"skip"};
   if(reinforcementQueue.length){ const item=reinforcementQueue.shift(); return {idx:item.idx,kind:"reinforcement"}; }
   return null; }
 function beginAttempt(next){ if(!next) return false; currentIndex=next.idx; currentAttemptKind=next.kind; pos=Math.min(baseCursor,Math.max(0,baseTargets.length-1));
   practicePhase=next.kind==="reinforcement"?"reinforcement":"recall"; currentAttemptId=`${roundId}-a${attemptSeq+1}-${currentIndex}`; hintEverUsed=false; enteredTracingThisAttempt=false; submissionSnapshot=null; feedbackKind=""; return true; }
-function roundIsComplete(){ return baseTargets.length>0 && baseCursor>=baseTargets.length && manualQueue.length===0 && unresolved.size===0 && !["tracing","postTraceRecall","revealDecision","feedback"].includes(practicePhase); }
+function currentAttemptRecorded(){ const ep=episodes[String(currentIndex)]; return !!(ep&&Array.isArray(ep.attempts)&&ep.attempts.some(attempt=>attempt.attemptId===currentAttemptId)); }
+function roundIsComplete(){ const hasWrittenTarget=baseTargets.length>0||roundStats.length>0, currentSettled=!Number.isInteger(currentIndex)||currentAttemptRecorded(); return hasWrittenTarget && baseCursor>=baseTargets.length && manualQueue.length===0 && unresolved.size===0 && currentSettled && !["tracing","postTraceRecall","revealDecision","feedback"].includes(practicePhase); }
 function capturePracticeVisual(){ return {practicePhase,currentIndex,currentAttemptKind,currentAttemptId,hintEverUsed,enteredTracingThisAttempt,hintsUsedThisCard,
   shownStrokes,groupIdx,seenGroups:[...seenGroups],inkStrokes:cloneObj(inkStrokes)||[],tracedThisCard,submissionSnapshot:cloneObj(submissionSnapshot),revealed,stamped}; }
 function currentRoundElapsed(){ return roundElapsedMs+(roundActiveStartedAt?Math.max(0,Date.now()-roundActiveStartedAt):0); }
@@ -1495,12 +1521,13 @@ function storedStampSnapshot(value){ if(!value) return null; const out=normalize
   out.unresolvedKeys=storedCardRefs(out.unresolvedValue); out.episodeRows=storedEpisodes(out.episodesValue); out.sessionDoneKeys=storedCardRefs(out.sessionDoneValue); out.roundStatsValue=sessionRoundStats(out.roundStatsValue); out.revealState=storedSubmission(out.revealState);
   delete out.key; delete out.idx; delete out.currentIndex; delete out.baseTargetsValue; delete out.unresolvedValue; delete out.episodesValue; delete out.sessionDoneValue; return out; }
 function sessionRoundStats(rows){ return storedIndexedRows(rows||roundStats).map(row=>{ delete row.handwriting; return row; }); }
-function sessionPayload(){ return {version:3,startedDate:(load(SESSION_KEY,null)||{}).startedDate||today(),updatedAt:Date.now(),activeMode,makeupTargetDay,baseTargetKeys:storedCardRefs(baseTargets),baseCursor,currentCardKey:storedCardRef(currentIndex),currentAttemptKind,currentAttemptId,
+function sessionPayload(){ const payload={version:3,startedDate:(load(SESSION_KEY,null)||{}).startedDate||today(),updatedAt:Date.now(),activeMode,makeupTargetDay,baseTargetKeys:storedCardRefs(baseTargets),baseCursor,currentCardKey:storedCardRef(currentIndex),currentAttemptKind,currentAttemptId,
   manualQueue:storedQueue(manualQueue),reinforcementQueue:storedQueue(reinforcementQueue),unresolvedKeys:storedCardRefs([...unresolved]),episodeRows:storedEpisodes(episodes),attemptSeq,practicePhase,visual:storedVisual(capturePracticeVisual()),
-  missedThisRound:missedThisRound.slice(),roundStats:sessionRoundStats(),focusKeys:storedCardRefs(focusQueue),sessionDoneKeys:storedCardRefs([...sessionDone]),sessionTarget,sessionFastStreak,sessionMissStreak,roundFeedbackGiven,roundId,calibrationFirstHoldUsed,calibrationComfortShown,calibrationTargetKeys:storedCardRefs(calibrationTargets),lastStampSnapshot:storedStampSnapshot(lastStampSnapshot),feedbackKind,
-  roundElapsedMs:currentRoundElapsed(),roundBudgetPrompted,roundStartMemoryCount}; }
-function saveSessionSnapshot(){ if(!baseTargets.length || !Number.isInteger(currentCardIndex())) return false; if(activeMode==="focus"&&baseTargets.length===1){ clearSessionSnapshot(); return true; } return save(SESSION_KEY,sessionPayload()); }
+  missedThisRound:missedThisRound.slice(),roundStats:sessionRoundStats(),focusKeys:storedCardRefs(focusQueue),sessionDoneKeys:storedCardRefs([...sessionDone]),sessionTarget,sessionFastStreak,sessionMissStreak,roundFeedbackGiven,roundId,calibrationFirstHoldUsed,calibrationComfortShown,calibrationTargetKeys:storedCardRefs(calibrationTargets),lastStampSnapshot:storedStampSnapshot(lastStampSnapshot),feedbackKind,focusReturnView,roundCompletionSuppressed,
+  roundElapsedMs:currentRoundElapsed(),roundBudgetPrompted,roundStartMemoryCount}; if(suspendedSessionPayload) payload.suspendedSession=cloneObj(suspendedSessionPayload); return payload; }
+function saveSessionSnapshot(){ if(!baseTargets.length || !Number.isInteger(currentCardIndex())) return false; return save(SESSION_KEY,sessionPayload()); }
 function clearSessionSnapshot(){ removeStored(SESSION_KEY); }
+function finishSessionSnapshot(){ const suspended=suspendedSessionPayload; suspendedSessionPayload=null; if(suspended){ const safe=sanitizeStoredSession(suspended); if(safe) return save(SESSION_KEY,safe); } clearSessionSnapshot(); return true; }
 function restoredIndex(ref){ const idx=indexForCardKey(ref); return idx>=0?idx:null; }
 function restoredRefs(refs){ if(!Array.isArray(refs)) return null; const out=refs.map(restoredIndex); return out.every(Number.isInteger)?out:null; }
 function restoredIndexedRow(row){ if(!plainObject(row)) return null; const idx=restoredIndex(row.cardKey); if(!Number.isInteger(idx)||(row.target&&row.target!==CARDS[idx].target)) return null; const out={}; Object.entries(cloneObj(row)).forEach(([key,value])=>{ if(key==="cardKey") out.idx=idx; else out[key]=value; }); return out; }
@@ -1515,9 +1542,30 @@ function restoredStampSnapshot(value){ if(!value) return null; if(!plainObject(v
   const out={...cloneObj(source),idx,key:cardKey(idx),currentIndex:current,baseTargetsValue:base,manualQueueValue:manual,queueValue:queue,unresolvedValue:unresolvedRows,episodesValue:episodeMap,sessionDoneValue:done,roundStatsValue:stats};
   delete out.cardKey; delete out.currentCardKey; delete out.baseTargetKeys; delete out.unresolvedKeys; delete out.episodeRows; delete out.sessionDoneKeys;
   if(out.revealState){ out.revealState=restoredSubmission(out.revealState); if(!out.revealState) return false; } return out; }
-function decodeSessionV3(s){ if(!plainObject(s)||s.version!==3) return null; const targets=restoredRefs(s.baseTargetKeys), current=restoredIndex(s.currentCardKey), manual=restoredIndexedRows(s.manualQueue), reinforcement=restoredIndexedRows(s.reinforcementQueue), open=restoredRefs(s.unresolvedKeys), episodeMap=restoredEpisodes(s.episodeRows), stats=restoredIndexedRows(s.roundStats), focus=restoredRefs(s.focusKeys), done=restoredRefs(s.sessionDoneKeys), calibration=restoredRefs(s.calibrationTargetKeys), visual=restoredVisual(s.visual), stamp=restoredStampSnapshot(s.lastStampSnapshot);
-  if(!targets||!targets.length||!Number.isInteger(current)||!manual||!reinforcement||!open||!episodeMap||!stats||!focus||!done||!calibration||visual===false||stamp===false) return null;
-  return {...s,baseTargets:targets,currentIndex:current,manualQueue:manual,reinforcementQueue:reinforcement,unresolved:open,episodes:episodeMap,roundStats:stats,focusQueue:focus,sessionDone:done,calibrationTargets:calibration,visual,lastStampSnapshot:stamp}; }
+function decodeSessionV3(s,allowSuspended=true){ if(!plainObject(s)||s.version!==3) return null; const targets=restoredRefs(s.baseTargetKeys), current=restoredIndex(s.currentCardKey), manual=restoredIndexedRows(s.manualQueue), reinforcement=restoredIndexedRows(s.reinforcementQueue), open=restoredRefs(s.unresolvedKeys), episodeMap=restoredEpisodes(s.episodeRows), stats=restoredIndexedRows(s.roundStats), focus=restoredRefs(s.focusKeys), done=restoredRefs(s.sessionDoneKeys), calibration=restoredRefs(s.calibrationTargetKeys), visual=restoredVisual(s.visual), stamp=restoredStampSnapshot(s.lastStampSnapshot), hasSuspended=s.suspendedSession!=null, suspended=hasSuspended&&allowSuspended?decodeSessionV3(s.suspendedSession,false):null;
+  if(!targets||!targets.length||!Number.isInteger(current)||!manual||!reinforcement||!open||!episodeMap||!stats||!focus||!done||!calibration||visual===false||stamp===false||(hasSuspended&&!suspended)) return null;
+  return {...s,baseTargets:targets,currentIndex:current,manualQueue:manual,reinforcementQueue:reinforcement,unresolved:open,episodes:episodeMap,roundStats:stats,focusQueue:focus,sessionDone:done,calibrationTargets:calibration,visual,lastStampSnapshot:stamp,suspendedSessionPayload:hasSuspended?cloneObj(s.suspendedSession):null,focusReturnView:["home","book","profile","me"].includes(s.focusReturnView)?s.focusReturnView:"home"}; }
+function storedRefIsSkipped(ref){ const idx=restoredIndex(ref); return Number.isInteger(idx)&&isCardSkipped(idx); }
+function refillStoredSessionTargets(out,desiredCount){ const doneRefs=Array.isArray(out.sessionDoneKeys)?out.sessionDoneKeys:[], doneIndexes=new Set(doneRefs.map(restoredIndex).filter(Number.isInteger)), focusIndexes=(Array.isArray(out.focusKeys)?out.focusKeys:[]).map(restoredIndex).filter(Number.isInteger), unavailable=new Set([
+    ...(out.baseTargetKeys||[]),...doneRefs,...(out.manualQueue||[]).map(row=>row&&row.cardKey),...(out.reinforcementQueue||[]).map(row=>row&&row.cardKey),...(out.roundStats||[]).map(row=>row&&row.cardKey)
+  ].map(storedCardKey).filter(Boolean)), pool=replacementPoolForMode(out.activeMode,focusIndexes,doneIndexes);
+  for(const idx of pool){ if(out.baseTargetKeys.length>=desiredCount) break; const ref=storedCardRef(idx); if(!ref||unavailable.has(ref)||isCardSkipped(idx)) continue; out.baseTargetKeys.push(ref); unavailable.add(ref);
+    if(out.activeMode==="calibrate"){ out.calibrationTargetKeys=Array.isArray(out.calibrationTargetKeys)?out.calibrationTargetKeys:[]; if(!out.calibrationTargetKeys.includes(ref)) out.calibrationTargetKeys.push(ref); }
+    if(out.activeMode==="focus"){ out.focusKeys=Array.isArray(out.focusKeys)?out.focusKeys:[]; if(!out.focusKeys.includes(ref)) out.focusKeys.push(ref); }
+  }
+  if(out.baseTargetKeys.length<desiredCount && out.activeMode!=="focus") out.roundCompletionSuppressed=true;
+  return out.baseTargetKeys.length>=desiredCount; }
+function sanitizeStoredSession(value){ if(!plainObject(value)||value.version!==3) return null; const out=cloneObj(value), original=Array.isArray(out.baseTargetKeys)?out.baseTargetKeys.slice():[], cursor=Math.max(0,Math.min(original.length,Number(out.baseCursor)||0)), removed=original.filter(storedRefIsSkipped), removedBefore=original.slice(0,cursor).filter(storedRefIsSkipped).length;
+  out.baseTargetKeys=original.filter(ref=>!storedRefIsSkipped(ref)); out.baseCursor=Math.max(0,Math.min(out.baseTargetKeys.length,cursor-removedBefore));
+  ["manualQueue","reinforcementQueue","episodeRows","roundStats"].forEach(field=>{ if(Array.isArray(out[field])) out[field]=out[field].filter(row=>!row||!storedRefIsSkipped(row.cardKey)); });
+  ["unresolvedKeys","focusKeys","sessionDoneKeys","calibrationTargetKeys"].forEach(field=>{ if(Array.isArray(out[field])) out[field]=out[field].filter(ref=>!storedRefIsSkipped(ref)); });
+  if(removed.length) refillStoredSessionTargets(out,original.length); if(!out.baseTargetKeys.length) return null;
+  if(storedRefIsSkipped(out.currentCardKey)){ out.currentCardKey=out.baseTargetKeys[Math.min(out.baseCursor,out.baseTargetKeys.length-1)]; out.currentAttemptKind="base"; out.currentAttemptId=`${out.roundId||"restored"}-skip-${Date.now()}`; out.practicePhase="recall"; out.visual=null; }
+  if(removed.length) out.lastStampSnapshot=null;
+  if(out.suspendedSession){ const nested=sanitizeStoredSession(out.suspendedSession); if(nested) out.suspendedSession=nested; else delete out.suspendedSession; }
+  return decodeSessionV3(out)?out:null; }
+function decodedSessionHasSkipped(decoded){ if(!decoded) return false; const pending=[...(decoded.baseTargets||[]),decoded.currentIndex,...(decoded.manualQueue||[]).map(row=>row.idx),...(decoded.reinforcementQueue||[]).map(row=>row.idx),...(decoded.unresolved||[]),...(decoded.focusQueue||[])];
+  if(pending.some(isCardSkipped)) return true; const nested=plainObject(decoded.suspendedSessionPayload)?decodeSessionV3(decoded.suspendedSessionPayload,false):null; return !!nested&&decodedSessionHasSkipped(nested); }
 function discardLegacySession(raw){ try{ localStorage.setItem(`shizi.corrupt.${SESSION_KEY}`,String(raw||"")); localStorage.removeItem(SESSION_KEY); legacySessionDiscarded=true; }catch(e){} }
 function usableDecodedSession(decoded){ return !!decoded && ["new","review","calibrate","focus","makeup"].includes(decoded.activeMode)
   && (decoded.activeMode!=="makeup" || (/^\d{4}-\d{2}-\d{2}$/.test(decoded.makeupTargetDay||"") && decoded.makeupTargetDay<today())); }
@@ -1526,15 +1574,18 @@ function storedSessionShape(v){ if(v===null) return true; if(!plainObject(v)) re
   if(v.version===1||v.version===2) return true; return usableDecodedSession(decodeSessionV3(v)); }
 function resumableSession(){ const raw=readStoredRaw(SESSION_KEY); let s=bootLoad(SESSION_KEY,null); if(!s) return null; if(s.version===1||s.version===2){ discardLegacySession(raw); return null; }
   const normalized=normalizeBackupSession(s); if(JSON.stringify(normalized)!==JSON.stringify(s)){ save(SESSION_KEY,normalized); s=normalized; }
-  const decoded=decodeSessionV3(s);
+  let decoded=decodeSessionV3(s);
+  if(decodedSessionHasSkipped(decoded)){ const safe=sanitizeStoredSession(s); if(!safe){ clearSessionSnapshot(); return null; } save(SESSION_KEY,safe); s=safe; decoded=decodeSessionV3(s); }
   if(!usableDecodedSession(decoded)){ quarantineStoredKey(SESSION_KEY,raw); return null; } return decoded; }
 function restoreSession(s){ if(!s) return false; if(s.version===3&&!Array.isArray(s.baseTargets)) s=decodeSessionV3(s); if(!s) return false; activeMode=s.activeMode; makeupTargetDay=activeMode==="makeup"?s.makeupTargetDay:""; baseTargets=s.baseTargets.slice(); batch=baseTargets; baseCursor=Math.max(0,Math.min(baseTargets.length,Number(s.baseCursor)||0)); currentIndex=s.currentIndex;
   currentAttemptKind=s.currentAttemptKind||"base"; currentAttemptId=s.currentAttemptId||`${s.roundId}-a${(Number(s.attemptSeq)||0)+1}-${currentIndex}`; manualQueue=Array.isArray(s.manualQueue)?cloneObj(s.manualQueue):[]; reinforcementQueue=Array.isArray(s.reinforcementQueue)?cloneObj(s.reinforcementQueue):[]; unresolved=new Set(Array.isArray(s.unresolved)?s.unresolved:[]); episodes=cloneObj(s.episodes)||{}; attemptSeq=Number(s.attemptSeq)||0; practicePhase=s.practicePhase||"recall";
   missedThisRound=Array.isArray(s.missedThisRound)?s.missedThisRound.slice():[]; roundStats=Array.isArray(s.roundStats)?cloneObj(s.roundStats).map(row=>{ delete row.handwriting; return row; }):[]; roundHandwriting={}; focusQueue=Array.isArray(s.focusQueue)?s.focusQueue.slice():[]; sessionDone=new Set(Array.isArray(s.sessionDone)?s.sessionDone:[]);
   sessionTarget=Number(s.sessionTarget)||targetDifficulty(); sessionFastStreak=Number(s.sessionFastStreak)||0; sessionMissStreak=Number(s.sessionMissStreak)||0; roundFeedbackGiven=!!s.roundFeedbackGiven; roundId=s.roundId||Date.now()+"-resume"; calibrationFirstHoldUsed=!!s.calibrationFirstHoldUsed; calibrationComfortShown=!!s.calibrationComfortShown;
   calibrationTargets=activeMode==="calibrate"?[...new Set(Array.isArray(s.calibrationTargets)?s.calibrationTargets:baseTargets.slice(0,BATCH))].filter(i=>Number.isInteger(i)&&baseTargets.includes(i)).slice(0,BATCH):[]; lastStampSnapshot=null; feedbackKind=s.feedbackKind||"";
+  suspendedSessionPayload=plainObject(s.suspendedSessionPayload)?cloneObj(s.suspendedSessionPayload):null; focusReturnView=["home","book","profile","me"].includes(s.focusReturnView)?s.focusReturnView:"home";
+  roundCompletionSuppressed=s.roundCompletionSuppressed===true;
   roundElapsedMs=Math.max(0,Number(s.roundElapsedMs)||0); roundActiveStartedAt=Date.now(); roundBudgetPrompted=!!s.roundBudgetPrompted; roundTimerPaused=false; roundStartMemoryCount=Math.max(0,Number(s.roundStartMemoryCount)||memoryCount());
-  if(baseCursor>=baseTargets.length && manualQueue.length===0 && unresolved.size===0){ practicePhase="between"; clearSessionSnapshot(); markRoundComplete(); roundSummary(); return true; }
+  if(roundIsComplete()){ practicePhase="between"; markRoundComplete(); roundSummary(); return true; }
   pendingSessionVisual=cloneObj(s.visual); pos=Math.min(baseCursor,Math.max(0,baseTargets.length-1)); render(); armPracticeHistory(); return true; }
 function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 function allIndexes(){ return [...Array(CARDS.length).keys()]; }
@@ -1611,10 +1662,16 @@ function dailyMotto(key=today()){ return DAILY_MOTTOS[datedSelectionIndex(key,DA
 let dailyCharacterPool=null;
 function dailyCharacterCandidates(){ if(dailyCharacterPool) return dailyCharacterPool; const seen=new Set(); dailyCharacterPool=allIndexes().filter(i=>{ const c=CARDS[i], norm=normLevel(i), d=Number(c.d)||0, common=Number(c.common)||0;
     if(c.custom || seen.has(c.target) || !["一级","二级"].includes(norm) || common<1.5 || d<55 || d>85 || !contextUsable(i)) return false; seen.add(c.target); return true; }); return dailyCharacterPool; }
-function dailyCharacterIndex(key=today()){ const pool=dailyCharacterCandidates(); return pool.length?pool[datedSelectionIndex(key,pool.length,"character")]:-1; }
+function dailyCharacterIndex(key=today()){ const pool=dailyCharacterCandidates().filter(i=>!isCardSkipped(i)); return pool.length?pool[datedSelectionIndex(key,pool.length,"character")]:-1; }
 function mottoSource(entry){ const work=entry.source?`《${entry.source}》`:""; return entry.author?`——${entry.author}${work}`:(work?`——${work}`:""); }
-function setDailyMotto(node,entry){ if(!node) return; const row=typeof entry==="string"?{text:entry,author:"",source:""}:entry, text=String(row.text||""), split=text.search(/[，。；！？]/), parts=split>=0?[text.slice(0,split+1),text.slice(split+1)]:[text];
-  node.innerHTML=parts.filter(Boolean).map(part=>`<span class="mLine">${esc(part)}</span>`).join("")+(mottoSource(row)?`<small class="mSrc">${esc(mottoSource(row))}</small>`:""); node.classList.toggle("compactMotto",Array.from(text).length>9); }
+function balancedMottoParts(text,maxPerColumn=6){ const chars=Array.from(String(text||"")); if(chars.length<=maxPerColumn) return chars.length?[chars.join("")]:[];
+  const natural=[], punctuation=new Set(["，","。","；","！","？"]); let current=[];
+  chars.forEach(ch=>{ current.push(ch); if(punctuation.has(ch)){ natural.push(current.join("")); current=[]; } }); if(current.length) natural.push(current.join(""));
+  if(natural.length>1 && natural.every(part=>Array.from(part).length<=maxPerColumn) && natural.every(part=>Array.from(part).length>1)) return natural;
+  const columns=Math.ceil(chars.length/maxPerColumn), base=Math.floor(chars.length/columns), extra=chars.length%columns, out=[]; let offset=0;
+  for(let i=0;i<columns;i++){ const size=base+(i<extra?1:0); out.push(chars.slice(offset,offset+size).join("")); offset+=size; } return out; }
+function setDailyMotto(node,entry){ if(!node) return; const row=typeof entry==="string"?{text:entry,author:"",source:""}:entry, text=String(row.text||""), parts=balancedMottoParts(text), source=mottoSource(row);
+  node.innerHTML=`<span class="mBody">${parts.map(part=>`<span class="mLine">${esc(part)}</span>`).join("")}</span>${source?`<small class="mSrc">${esc(source)}</small>`:""}`; node.classList.toggle("compactMotto",Array.from(text).length>9); }
 function applyDailyMotto(key=today()){ const entry=dailyMotto(key); setDailyMotto($("welcomeMotto"),entry); setDailyMotto($("homeMotto"),entry); return entry.text; }
 // 选库是新字范围的唯一闸门。旧语境严格度和 fallback 只影响排序/提示，不再让库内字永远不可达。
 function strictNewEligible(i){ const c=CARDS[i]; return !!(c.custom||currentLibrary().test(c)); }
@@ -1632,7 +1689,7 @@ function hasMemory(i){ const m=memory[cardKey(i)]; return !!(m && m.seen); }
 function isDue(i){ const m=memory[cardKey(i)]; if(!m||!m.seen) return true; normalizeLegacySchedule(m); if(m.pendingLearning) return false; return !m.dueDay || m.dueDay<=today(); }
 function reviewDue(i){ const m=memory[cardKey(i)]; if(!m||!m.seen) return false; normalizeLegacySchedule(m); return !m.pendingLearning && (!m.dueDay || m.dueDay<=today()); }
 function reviewReady(i){ return statusFor(i)==="indeck" ? isDue(i) : reviewDue(i); }
-function baseAvailable(i,respectSession=true){ return (statusFor(i)!=="known" || hasMemory(i)) && (!respectSession || !sessionDone.has(i)); }
+function baseAvailable(i,respectSession=true){ return !isCardSkipped(i) && (statusFor(i)!=="known" || hasMemory(i)) && (!respectSession || !sessionDone.has(i)); }
 function reviewPool(respectSession=true){ return allIndexes().filter(i=>baseAvailable(i,respectSession) && qualityAvailable(i) && reviewReady(i)); }
 function reviewBudgetUsed(key=today()){ return dailyActivity(key).reviewTargetKeys.length; }
 function reviewBudgetRemaining(key=today()){ return Math.max(0,DAILY_REVIEW_BUDGET-reviewBudgetUsed(key)); }
@@ -1650,7 +1707,7 @@ function clamp(n,min,max){ return Math.max(min, Math.min(max, n)); }
 function cardDifficulty(i){ return Number(CARDS[i].d)||50; }
 const BAND_RANK={"入门":0,"基础":1,"进阶":2,"较难":3,"挑战":4}, BAND_TARGET={"基础":48,"进阶":62,"较难":76,"挑战":90};
 function cardDifficultyBand(i){ return CARDS[i].band || "进阶"; }
-function practiceEligible(i){ return qualityAvailable(i) && (reviewReady(i) || CARDS[i].custom || strictNewEligible(i)); }
+function practiceEligible(i){ return !isCardSkipped(i) && qualityAvailable(i) && (reviewReady(i) || CARDS[i].custom || strictNewEligible(i)); }
 function cardTopic(i){ return CARDS[i].topic || (CARDS[i].custom?"自定义":"综合"); }
 function targetDifficulty(){ const p=prefSettings(), base=68 + Math.sqrt(knownCount()/Math.max(1,CARDS.length))*18 + p.targetShift + (Number(tuning.offset)||0); return clamp(base - Math.min(deckCount(),40)*0.12, p.min, p.max); }
 function personalDifficulty(i){ const m=memory[cardKey(i)]||{}, q=qualityFor(i); return clamp(cardDifficulty(i)+(reviewReady(i)?18:0)+(m.misses||0)*8+(m.hints||0)*5+(m.slow||0)*2-(m.fast||0)*3-(q.easy||0)*16+(preference==="challenge"?(q.rare||0)*4:0), 1, 115); }
@@ -1712,7 +1769,7 @@ function chooseCalibrationBatch(all){ const targets=[48,56,62,66,70,74,78,82,86,
   return out.slice(0,BATCH); }
 function reviewCount(){ return reviewPool(false).length; }
 function memoryCount(){ return Object.values(memory).filter(m=>m && m.seen).length; }
-function isHighRisk(i){ const m=memory[cardKey(i)]; return !!(qualityAvailable(i) && m && (statusFor(i)==="indeck" || m.misses || m.slow || m.hints>=2) && (m.streak||0)<2); }
+function isHighRisk(i){ const m=memory[cardKey(i)]; return !!(!isCardSkipped(i) && qualityAvailable(i) && m && (statusFor(i)==="indeck" || m.misses || m.slow || m.hints>=2) && (m.streak||0)<2); }
 function highRiskIndexes(){ return allIndexes().filter(isHighRisk).sort((a,b)=>personalDifficulty(b)-personalDifficulty(a)); }
 function highRiskCount(){ return highRiskIndexes().length; }
 // 四枚印章保留为自动结果标签；用户只判断本次对错。
@@ -1736,7 +1793,7 @@ function tuningLabel(){ const o=Number(tuning.offset)||0; if(o>=14) return "高�
 function tuningShiftText(){ const o=Math.round(Number(tuning.offset)||0); return o>0?`+${o}`:`${o}`; }
 function roundMasteryScore(counts=roundCounts(),total=roundStats.length){ return ((counts.fast||0)*2-(counts.slow||0)*1.1-(counts.hinted||0)*1.2-(counts.miss||0)*2.2)/Math.max(1,total); }
 function calibrationRoundStats(){ const sample=new Set(calibrationTargets); return roundStats.filter(row=>sample.has(row.idx)); }
-function maybeFinishCalibration(){ if(activeMode!=="calibrate" || tuning.calibrated) return "";
+function maybeFinishCalibration(){ if(activeMode!=="calibrate" || tuning.calibrated || roundCompletionSuppressed) return "";
   const stats=calibrationRoundStats(), counts=roundCounts(stats), hard=(counts.hinted||0)+(counts.miss||0)+(counts.slow||0), score=roundMasteryScore(counts,stats.length);
   const consistentFast=stats.reduce((sum,row)=>sum+(row.outcome==="fast"?(row.geometryStatus==="ok"?1:.5):0),0); let why;
   if(consistentFast>=12 && hard<=2){ tuning.offset=10; preference="challenge"; why="刚才这组你基本都写得出来，所以接下来会自动加难，多挑些你不太熟的字。"; }
@@ -1833,6 +1890,7 @@ function recordOutcome(outcome,options={}){ const idx=currentCardIndex(), c=CARD
     if(hard) missedThisRound.push(c.target); adaptNextCard(outcome,idx); }
   else { const stat=roundStats.find(row=>row.idx===idx); if(stat && !hard){ stat.independentlyRecovered=true; stat.dueDay=m.dueDay||null; setRoundHandwriting(idx,handwriting); } }
   if(currentAttemptKind==="base"){ baseCursor=Math.min(baseTargets.length,baseCursor+1); sessionDone.add(idx); }
+  else if(currentAttemptKind==="skip") sessionDone.add(idx);
   attemptSeq++;
   if(hard && !qualityFor(idx).hide) enqueueReinforcement(idx); else if(hard){ ep.excluded=true; m.pendingLearning=false; m.dueDay=null; m.due=0; } else graduateReinforcement(idx);
   m.lastEpisode={firstOutcome:ep.firstOutcome,attempts:ep.attempts.length,assistanceUsed:ep.assistanceUsed,independentlyRecovered:ep.independentlyRecovered};
@@ -1926,9 +1984,9 @@ function openCalendar(month=calendarMonthKey){ calendarMonthKey=/^\d{4}-\d{2}$/.
 function closeMakeupSheet(){ makeupPendingDay=""; $("makeupSheet").classList.remove("open"); }
 function openMakeupSheet(key){ if(!canMakeupDay(key)) return; makeupInterestShown=true; if(resumableSession()){ renderCalendar(); toast("手上这组写完，就能补前几天的空"); return; } makeupPendingDay=key; $("makeupTitle").textContent=`补写 ${Number(key.slice(5,7))}月${Number(key.slice(8))}日`;
   $("makeupCopy").textContent="完整写完 5 个字后，这一天会落一枚浅色「补」印。中途返回不会落印。"; $("makeupSheet").classList.add("open"); }
-function uniqueCardIndexes(indexes){ const seen=new Set(); return (indexes||[]).filter(idx=>{ if(!Number.isInteger(idx)||idx<0||idx>=CARDS.length||qualityBlocked(idx)) return false; const key=cardKey(idx); if(seen.has(key)) return false; seen.add(key); return true; }); }
-function makeupCandidates(){ const due=reviewPool(false).sort(compareReviewPriority), risk=highRiskIndexes(), seen=profileIndexes().sort((a,b)=>personalDifficulty(b)-personalDifficulty(a)), fresh=newPool(false).sort((a,b)=>newScore(b)-newScore(a)); return uniqueCardIndexes([...due,...risk,...seen,...fresh]).slice(0,5); }
-function startMakeupDay(key=makeupPendingDay){ if(!canMakeupDay(key)) return false; const targets=makeupCandidates(); if(targets.length<5){ closeMakeupSheet(); toast("暂时凑不齐 5 个可练的字"); return false; }
+function uniqueCardIndexes(indexes,done=sessionDone){ const seen=new Set(); return (indexes||[]).filter(idx=>{ if(!Number.isInteger(idx)||idx<0||idx>=CARDS.length||qualityBlocked(idx)||isCardSkipped(idx)||done.has(idx)) return false; const key=cardKey(idx); if(seen.has(key)) return false; seen.add(key); return true; }); }
+function makeupCandidates(done){ const excluded=done instanceof Set?done:new Set(), due=reviewPool(false).sort(compareReviewPriority), risk=highRiskIndexes(), seen=profileIndexes().sort((a,b)=>personalDifficulty(b)-personalDifficulty(a)), fresh=newPool(false).sort((a,b)=>personalDifficulty(a)-personalDifficulty(b)||qualityWeight(b)-qualityWeight(a)); return uniqueCardIndexes([...due,...risk,...seen,...fresh],excluded).slice(0,5); }
+function startMakeupDay(key=makeupPendingDay){ if(!canMakeupDay(key)) return false; const targets=makeupCandidates(new Set()); if(targets.length<5){ closeMakeupSheet(); toast("暂时凑不齐 5 个可练的字"); return false; }
   closeMakeupSheet(); clearSessionSnapshot(); activeMode="makeup"; makeupTargetDay=key; focusQueue=targets; sessionDone=new Set(); roundOpeningPending=true; startRound(); return true; }
 
 // ---- 月帖：按月汇总活动记录，优先使用有容量上限的最近独立墨迹 ----
@@ -1965,9 +2023,9 @@ function yearReportData(year=new Date().getFullYear()){ const prefix=String(year
 function renderAnnualReport(year=new Date().getFullYear()){ const data=yearReportData(year); displayView("annual"); $("annualTitle").textContent=`${year} 年拾字报告`; if(!data.days.length){ $("annualSlides").innerHTML='<div class="annualSlide"><div class="annualEmpty">今年的第一枚章还没落下。<br>练过的字会在这里慢慢长成一卷。</div></div>'; return; }
   const month=data.busiest?Number(data.busiest[0].slice(5)):0, firstChar=data.first!=null?CARDS[data.first].target:"", rareChar=data.rarest!=null?CARDS[data.rarest].target:""; $("annualSlides").innerHTML=`<section class="annualSlide"><span class="annualEyebrow">${year} · 练过的不同汉字</span><b>${data.keys.length} 字</b><p>这些是你今年练过的不同汉字。</p></section><section class="annualSlide"><span class="annualEyebrow">盖章天数最多的月份</span><b>${month} 月</b><p>这个月盖章 ${data.busiest[1]} 天。</p></section><section class="annualSlide"><span class="annualEyebrow">练过的字里最少见的一个</span><b class="annualChar">${esc(rareChar)}</b><p>${data.rarest!=null?esc(CARDS[data.rarest].word):""}</p></section><section class="annualSlide"><span class="annualEyebrow">这一年练的第一个字</span><b class="annualChar">${esc(firstChar)}</b><p>${esc(data.firstDay||"")}，从这个字开始。</p></section>`; $("annualSlides").scrollTop=0; }
 function startMode(mode){ const resume=resumableSession(); if(resume){ restoreSession(resume); return; }
-  clearSessionSnapshot(); activeMode=(mode==="new" && needsCalibration())?"calibrate":mode; makeupTargetDay=""; focusQueue=[]; sessionDone=new Set(); roundOpeningPending=true; startRound(); }
-function startFocus(indexes,options={}){ focusQueue=[...new Set((indexes||highRiskIndexes()).filter(i=>i>=0 && i<CARDS.length))]; if(!focusQueue.length){ renderHome(); return; }
-  focusReturnView=options.returnView||"home"; clearSessionSnapshot(); activeMode="focus"; makeupTargetDay=""; sessionDone=new Set(); roundOpeningPending=true; startRound(); }
+  suspendedSessionPayload=null; clearSessionSnapshot(); activeMode=(mode==="new" && needsCalibration())?"calibrate":mode; makeupTargetDay=""; focusQueue=[]; sessionDone=new Set(); roundOpeningPending=true; startRound(); }
+function startFocus(indexes,options={}){ focusQueue=[...new Set((indexes||highRiskIndexes()).filter(i=>i>=0 && i<CARDS.length && !isCardSkipped(i)))]; if(!focusQueue.length){ renderHome(); return; }
+  focusReturnView=options.returnView||"home"; const stored=options.preserveSession===true?load(SESSION_KEY,null):null; suspendedSessionPayload=plainObject(stored)&&stored.version===3?cloneObj(stored):null; if(!suspendedSessionPayload) clearSessionSnapshot(); activeMode="focus"; makeupTargetDay=""; sessionDone=new Set(); roundOpeningPending=true; startRound(); }
 // ---- 单字详情：收藏先讲故事，再由用户决定是否重写 ----
 let charDetailIndex=-1, charDetailWriter=null, charDetailTouchY=null, charDetailSwipeEligible=false;
 const OUTCOME_STORY={fast:"上次独立写出",hinted:"上次需要再练",slow:"上次写错了",miss:"上次没写出来"};
@@ -1990,30 +2048,24 @@ function openCharSheet(i){ if(!Number.isInteger(i)||i<0||i>=CARDS.length) return
   renderRecentInkImage($("charDetailGlyph"),recent,`${c.target}的手写墨迹`,c.target);
   $("charDetailWord").textContent=safeWord; $("charDetailPy").textContent=c.py||"";
   const wild=wildCaptureFor(c.target),wildDay=m.wildDay||(wild&&wild.day),wildStory=m.source==="wild"&&wildDay?`${collectedDateText(wildDay)} 拾于生活<br>`:"";
-  $("charDetailStory").innerHTML=`${wildStory}${first&&!wildStory?`${collectedDateText(first)} 收进字库<br>`:""}练过 ${Number(m.seen)||0} 次${m.lastOutcome?` · ${OUTCOME_STORY[m.lastOutcome]||"上次练过"}`:""}`;
+  $("charDetailStory").innerHTML=`${wildStory}${first&&!wildStory?`${collectedDateText(first)} 第一次练习<br>`:""}练过 ${Number(m.seen)||0} 次${m.lastOutcome?` · ${OUTCOME_STORY[m.lastOutcome]||"上次练过"}`:""}`;
   $("charDetailWild").style.display=wild&&wild.dataURL?"grid":"none"; $("charDetailWildImage").src=wild&&wild.dataURL?wild.dataURL:""; $("charDetailWildCopy").textContent=wildDay?`${collectedDateText(wildDay)} 拾于生活`:"拾于生活";
   renderRecentInkImage($("charDetailInk"),recent,`我上次写的${c.target}`);
   $("charDetailEmpty").textContent=recent?"":"还没留下手写，写一遍就有了"; $("charDetailEmpty").style.display=recent?"none":"block";
   $("charDetailStandard").textContent=c.target; $("charDetailStandard").style.display="none"; $("charDetailCompareToggle").textContent="对范字"; $("charDetailCompareToggle").style.display=recent?"":"none"; $("charDetailOverlayToggle").style.display="none"; $("charDetailOverlayToggle").textContent="叠"; $("charDetailStandard").parentElement.classList.remove("overlay");
   const cardReady=!!handCardData(i),legacyInk=!!recent&&!cardReady;
   $("charDetailCard").style.display=cardReady?"block":"none"; $("charDetailCardLegacy").style.display=legacyInk?"block":"none";
+  const stopped=isCardSkipped(i),due=!stopped&&hasMemory(i)&&reviewReady(i); $("charDetailSchedule").style.display=stopped||due?"block":"none"; $("charDetailSchedule").textContent=stopped?"已停止自动安排":"已排入今天的练习";
   $("charDetailStroke").style.display="none"; $("charDetailStroke").innerHTML=""; charDetailWriter=null; $("charSheet").classList.add("open"); renderEtymLine(); loadEtymology().then(renderEtymLine); }
 function toggleCharDetailCompare(){ const open=$("charDetailStandard").style.display==="flex"; $("charDetailStandard").style.display=open?"none":"flex"; $("charDetailCompareToggle").textContent=open?"对范字":"收起范字"; $("charDetailOverlayToggle").style.display=open?"none":"block"; if(open) $("charDetailStandard").parentElement.classList.remove("overlay"); }
 function toggleCharDetailOverlay(){ const body=$("charDetailStandard").parentElement, active=body.classList.toggle("overlay"); $("charDetailOverlayToggle").textContent=active?"并排":"叠"; }
 function replayCharDetail(){ if(charDetailIndex<0||!window.HanziWriter) return; const target=CARDS[charDetailIndex].target,el=$("charDetailStroke"); el.style.display="block";
   if(!charDetailWriter){ el.innerHTML=""; try{ charDetailWriter=HanziWriter.create(el,target,{width:180,height:180,padding:10,showCharacter:false,showOutline:true,strokeColor:cssVar("--accent","#c2452c"),outlineColor:cssVar("--accent-a22","#dcb7ad"),charDataLoader:charLoader}); }catch(e){ toast("这个字的笔顺暂时不可用"); return; } }
   try{ charDetailWriter.animateCharacter({onComplete:()=>{}}); }catch(e){ toast("这个字的笔顺暂时不可用"); } }
-// ---- 字盒：记忆之墙，墨色本身就是状态 ----
-let bookCuratorIndexes=[], bookCuratorKind="discovery";
+// ---- 字盒：已练过的字与专项练习入口 ----
 function isStable(i){ return !isHighRisk(i) && ((memory[cardKey(i)]||{}).streak||0)>=2; }
 function stableCount(){ return profileIndexes().filter(isStable).length; }
 function memoryInkLevel(i){ const m=memory[cardKey(i)]||{}, stability=Number(m.fsrsCard&&m.fsrsCard.stability)||0; if(stability>=7||(m.streak||0)>=3) return 1; if(stability>=2||(m.streak||0)>=1||m.pendingLearning) return 3; return 5; }
-function bookCuratorData(seen){ const due=seen.filter(reviewDue).sort(compareReviewPriority); if(due.length){ const indexes=due.slice(0,2),chars=indexes.map(i=>`「${CARDS[i].target}」`).join("和"); return {kind:"action",indexes,text:`${chars}的墨色淡了，写一遍就回来`,suffix:"›"}; }
-  const lastYear=`${new Date().getFullYear()-1}-${today().slice(5)}`, archived=fsrsReviewMonthly[lastYear.slice(0,7)]&&fsrsReviewMonthly[lastYear.slice(0,7)].lastReviewByDay&&fsrsReviewMonthly[lastYear.slice(0,7)].lastReviewByDay[lastYear], prior=[...fsrsReviewLog.filter(row=>row&&String(row.localDay||"")===lastYear),...(archived?[archived]:[])].sort((a,b)=>String(b.reviewedAt||"").localeCompare(String(a.reviewedAt||"")))[0], priorIdx=prior?cardIndexForStoredKey(prior.cardKey):-1;
-  const groups=profileGroups(seen,cardTopic), discovery=groups[datedSelectionIndex(today(),Math.max(1,groups.length),"book-curator")];
-  if(priorIdx>=0) return {kind:"recall",indexes:[priorIdx],text:`去年今日，你拾回了「${CARDS[priorIdx].target}」`,suffix:"›"};
-  if(discovery) return {kind:"discovery",indexes:discovery.items,text:`${discovery.label}的字，你已经收了${numCn(discovery.count)}个`,suffix:"›"};
-  return {kind:"empty",indexes:[],text:"第一枚章，会在这里慢慢显出墨色",suffix:""}; }
 function openBook(){ renderBook(); }
 function libraryCounts(lib){ const seenTargets=new Set(),cutoff=Date.now()-30*86400000; let total=0,got=0,deep=0,mid=0,faint=0,recent=0;
   for(let i=0;i<BASE_N;i++){ const c=CARDS[i]; if(seenTargets.has(c.target)||!lib.test(c)) continue; seenTargets.add(c.target); total++; const m=memory[cardKey(i)];
@@ -2028,17 +2080,24 @@ function renderBook(){ displayView("book");
   const seen=profileIndexes().sort((a,b)=>firstSeenAt(b)-firstSeenAt(a)||a-b);
   $("boxCount").textContent=`${seen.length} 字`;
   renderLibCard();
-  const curator=bookCuratorData(seen); bookCuratorIndexes=curator.indexes; bookCuratorKind=curator.kind; $("bookCurator").innerHTML=`${esc(curator.text)} ${curator.suffix?`<span>${curator.suffix}</span>`:""}`; $("bookCurator").disabled=!curator.indexes.length;
   updateBookBadge();
-  $("memoryWall").innerHTML=seen.length?seen.map((i,k)=>`<button class="memoryChar" data-idx="${i}" aria-label="${esc(CARDS[i].target)}，${esc(CARDS[i].word)}" style="color:var(--memory-${memoryInkLevel(i)});transform:rotate(${ROTS[k%ROTS.length]/2}deg)">${esc(CARDS[i].target)}</button>`).join(""):`<div class="memoryWallEmpty">字库还空着。<br>拾一组字，墨色会从这里长出来。</div>`; renderWildWishes(); handleBookSearchInput(false); }
+  $("memoryWall").innerHTML=seen.length?seen.map((i,k)=>`<button class="memoryChar" data-idx="${i}" aria-label="${esc(CARDS[i].target)}，${esc(CARDS[i].word)}${isCardSkipped(i)?"，已停止自动安排":""}" style="color:var(--memory-${memoryInkLevel(i)});transform:rotate(${ROTS[k%ROTS.length]/2}deg)">${esc(CARDS[i].target)}</button>`).join(""):`<div class="memoryWallEmpty">字库还空着。<br>练过的字会出现在这里。</div>`; renderWildWishes(); handleBookSearchInput(false); }
 let bookSearchTimer=0, bookSearchIndex=-1;
-function bookSearchTarget(){ const text=$("bookSearchInput").value.trim(),ch=Array.from(text).find(isCJK),base=ch&&BASE_BY_CHAR[ch],custom=ch?customIndexOf(ch):-1,idx=base!=null?base:custom; return {text,ch,idx:Number.isInteger(idx)?idx:-1}; }
-function handleBookSearchInput(autoOpen=true){ clearTimeout(bookSearchTimer); const {text,ch,idx}=bookSearchTarget(), nodes=[...$("memoryWall").querySelectorAll(".memoryChar")], result=$("bookSearchResult"); bookSearchIndex=-1; nodes.forEach(node=>node.classList.remove("searchDim","searchHit")); if(!text){ result.textContent=""; return; }
-  if(!ch){ result.textContent="请输入一个汉字"; return; }
-  if(idx>=0&&hasMemory(idx)){ bookSearchIndex=idx; nodes.forEach(node=>{ const hit=Number(node.dataset.idx)===idx; node.classList.toggle("searchHit",hit); node.classList.toggle("searchDim",!hit); }); result.textContent=`找到「${ch}」`; if(autoOpen) bookSearchTimer=setTimeout(()=>{ if(bookSearchIndex===idx) openCharSheet(idx); },800); return; }
-  if(idx>=0){ result.innerHTML=`还未练过「${esc(ch)}」 · <button data-book-add="1">收进字库</button>`; return; }
-  result.textContent=`字库里暂时找不到「${ch}」`; }
-function handleBookSearch(){ const {text,idx}=bookSearchTarget(); if(idx>=0&&hasMemory(idx)){ openCharSheet(idx); return; } if(!text){ toast("请输入一个想找的字"); return; } openAddSheet(); $("addInput").value=text; renderAddPreview(); }
+function requestedCharacters(value){ return [...new Set(Array.from(String(value||"")).filter(isCJK))].slice(0,20); }
+function bookSearchTarget(){ const text=$("bookSearchInput").value.trim(),chars=requestedCharacters(text),indexes=chars.map(ch=>{ const base=BASE_BY_CHAR[ch],custom=customIndexOf(ch); return base!=null?base:custom; }); return {text,chars,indexes}; }
+function practiceActionLabel(count){ return count===1?"练这个字":"练这几个字"; }
+function handleBookSearchInput(){ clearTimeout(bookSearchTimer); const {text,chars,indexes}=bookSearchTarget(), nodes=[...$("memoryWall").querySelectorAll(".memoryChar")], result=$("bookSearchResult"); bookSearchIndex=-1; $("bookSearchClear").style.display=text?"block":"none"; nodes.forEach(node=>node.classList.remove("searchDim","searchHit")); if(!text){ result.textContent=""; return; }
+  if(!chars.length){ result.textContent="请输入汉字"; return; }
+  if(chars.length===1){ const idx=indexes[0],ch=chars[0]; if(idx>=0&&hasMemory(idx)){ bookSearchIndex=idx; nodes.forEach(node=>{ const hit=Number(node.dataset.idx)===idx; node.classList.toggle("searchHit",hit); node.classList.toggle("searchDim",!hit); }); }
+    const state=idx>=0&&isCardSkipped(idx)?"已停止自动安排":idx>=0&&hasMemory(idx)?"已练过":idx>=0?"可直接练习":"开始时会建立个人字卡";
+    result.innerHTML=`「${esc(ch)}」${state} · <button data-book-practice="1">练这个字</button>${idx>=0?` · <button data-book-open="${idx}">查看详情</button>`:""}`; return; }
+  const personal=indexes.filter(idx=>idx<0).length, note=personal?`，其中 ${personal} 个会在开始时建立个人字卡`:""; result.innerHTML=`将专项练习 ${chars.length} 个字${note} · <button data-book-practice="1">练这几个字</button>`; }
+function ensurePracticeIndexes(chars){ const requested=requestedCharacters(chars),fresh=requested.filter(ch=>BASE_BY_CHAR[ch]==null&&customIndexOf(ch)<0); if(fresh.length){ const word=fresh.join(""); customWords.push(word); save(CUSTOM_KEY,customWords); pushWordCards(word); }
+  let addedChanged=false; requested.forEach(ch=>{ if(BASE_BY_CHAR[ch]==null&&!addedChars.includes(ch)){ addedChars.push(ch); addedChanged=true; } }); if(addedChanged) save(ADDED_KEY,addedChars); return indexesForChars(requested); }
+function startRequestedCharacters(value,options={}){ const chars=requestedCharacters(value); if(!chars.length){ toast("请输入想练的字"); return false; } const indexes=ensurePracticeIndexes(chars); let restoredStopped=false; for(const idx of indexes){ if(isCardSkipped(idx)){ if(!setCardSkipped(idx,false,{syncReminder:false})){ toast("恢复自动安排失败，请稍后再试"); return false; } restoredStopped=true; } } if(restoredStopped) syncReminder(); if(skippedState.undo&&indexes.some(idx=>cardKey(idx)===skippedState.undo.cardKey)){ skippedState.undo=null; saveSkippedState(); hideSkipUndo(); } if(!indexes.length){ toast("这些字暂时无法练习"); return false; }
+  if($("addSheet").classList.contains("open")) closeAddSheet(); startFocus(indexes,{returnView:options.returnView||"book",preserveSession:true}); return true; }
+function handleBookSearch(){ const target=bookSearchTarget(); return startRequestedCharacters(target.chars,{returnView:"book"}); }
+function clearBookSearch(){ $("bookSearchInput").value=""; handleBookSearchInput(); $("bookSearchInput").focus(); }
 function esc(s){ return String(s).replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch])); }
 function hardCount(i){ const m=memory[cardKey(i)]||{}; return (m.misses||0)+(m.hints||0)+(m.slow||0); }
 function missCount(i){ return Math.max(0,Number((memory[cardKey(i)]||{}).misses)||0); }
@@ -2103,6 +2162,19 @@ function pushWordCards(s){ const chars=Array.from(s).filter(isCJK); const start=
   chars.forEach((ch,ci)=>{ if(BASE_BY_CHAR[ch]!=null||customIndexOf(ch)>=0) return; CARDS.push({ word:chars.join(""), chars, ci, target:ch, py:"", hint:"你刚才卡壳的字", custom:true, topic:"自定义", d:76, band:"较难", edu:null, rank:999999, strokes:0, parts:1, common:0, norm:"自定义", ctx:"custom" }); }); return [start, CARDS.length]; }
 function buildCustomCards(){ CARDS.length=BASE_N; customWords.forEach(pushWordCards); }
 buildCustomCards();
+const SKIP_UNDO_WINDOW_MS=10000;
+function normalizeSkippedState(raw){ const source=plainObject(raw)?raw:{}, normalizeKeys=value=>[...new Set((Array.isArray(value)?value:[]).map(canonicalCardKey).filter(storedCardKey))], stopped=normalizeKeys(source.stopped), notified=normalizeKeys(source.notified); let undo=null;
+  if(plainObject(source.undo)){ const key=storedCardKey(canonicalCardKey(source.undo.cardKey)), expiresAt=Math.max(0,Number(source.undo.expiresAt)||0), session=plainObject(source.undo.session)&&source.undo.session.version===3?cloneObj(source.undo.session):null;
+    if(key&&session&&expiresAt>Date.now()) undo={cardKey:key,expiresAt,session,returnView:["home","book","profile","me"].includes(source.undo.returnView)?source.undo.returnView:"home",firstNotice:source.undo.firstNotice===true}; }
+  return {version:1,stopped,notified,undo}; }
+let skippedState=bootNormalize(SKIPPED_KEY,bootLoad(SKIPPED_KEY,null),null,normalizeSkippedState);
+function saveSkippedState(){ skippedState=normalizeSkippedState(skippedState); return save(SKIPPED_KEY,skippedState); }
+function isCardSkipped(idx){ return Number.isInteger(idx)&&skippedState.stopped.includes(cardKey(idx)); }
+function setCardSkipped(idx,stopped,options={}){ if(!Number.isInteger(idx)||!CARDS[idx]) return false; const key=cardKey(idx), wasStopped=skippedState.stopped.includes(key); if(wasStopped===!!stopped) return true; const previous=skippedState.stopped.slice(), set=new Set(previous); if(stopped) set.add(key); else set.delete(key); skippedState.stopped=[...set];
+  if(!saveSkippedState()){ skippedState.stopped=previous; return false; } if(options.syncReminder!==false) syncReminder(); return true; }
+function cardSkipWasExplained(idx){ return Number.isInteger(idx)&&skippedState.notified.includes(cardKey(idx)); }
+function rememberSkipExplanation(idx){ const key=cardKey(idx); if(!skippedState.notified.includes(key)) skippedState.notified.push(key); }
+saveSkippedState();
 function mergeStableRows(left,right){ if(!left) return cloneObj(right); if(!right) return cloneObj(left); const a=cloneObj(left),b=cloneObj(right), newer=(Number(b.last)||0)>=(Number(a.last)||0)?b:a, older=newer===b?a:b, out={...older,...newer};
   ["seen","fast","slow","hints","misses","streak"].forEach(k=>{ if(k in a||k in b) out[k]=Math.max(Number(a[k])||0,Number(b[k])||0); }); const first=[Number(a.firstSeenAt)||0,Number(b.firstSeenAt)||0].filter(Boolean); if(first.length) out.firstSeenAt=Math.min(...first); return out; }
 function migrateStableCardIdentity(){ const nextMemory={},nextQuality={},nextStatus={};
@@ -2113,8 +2185,10 @@ function migrateStableCardIdentity(){ const nextMemory={},nextQuality={},nextSta
   memory=nextMemory; quality=nextQuality; status=nextStatus;
   fsrsReviewLog=(fsrsReviewLog||[]).map(row=>row&&row.cardKey?{...row,cardKey:canonicalCardKey(row.cardKey)}:row);
   Object.values(activity.daily||{}).forEach(row=>{ if(!plainObject(row)) return; ["targetKeys","independentTargetKeys","reviewTargetKeys"].forEach(field=>{ if(Array.isArray(row[field])) row[field]=[...new Set(row[field].map(canonicalCardKey))]; }); });
+  skippedState=normalizeSkippedState(skippedState);
   saveMemory(); saveQuality(); save(DECK_KEY,status); saveFSRSLog(); saveActivity(); }
 migrateStableCardIdentity();
+saveSkippedState();
 let addedChars = bootLoad(ADDED_KEY, null);
 if(!Array.isArray(addedChars)){ addedChars=[...new Set(customWords.flatMap(w=>Array.from(w).filter(isCJK)))]; save(ADDED_KEY,addedChars); }
 function customIndexOf(ch){ for(let i=BASE_N;i<CARDS.length;i++){ if(CARDS[i].target===ch) return i; } return -1; }
@@ -2179,10 +2253,10 @@ function writingChromeNodes(){ const card=document.getElementById("card"); retur
 function setWritingChromeHidden(hidden){ const nodes=writingChromeNodes(), focused=document.activeElement;
   if(hidden && focused && nodes.some(node=>node===focused||node.contains(focused)) && typeof focused.blur==="function") focused.blur();
   nodes.forEach(node=>{ node.inert=hidden; if(hidden) node.setAttribute("aria-hidden","true"); else node.removeAttribute("aria-hidden"); }); }
-function enterWritingChrome(){ clearTimeout(writingChromeTimer); writingChromeTimer=0; if(tuning.chromeFadeSeen){ $("card").classList.add("writing"); setWritingChromeHidden(true); } }
-function exitWritingChrome(delay=2000){ clearTimeout(writingChromeTimer); writingChromeTimer=setTimeout(()=>{ writingChromeTimer=0; $("card").classList.remove("writing"); setWritingChromeHidden(false); },Math.max(0,delay)); }
-function finishWritingChrome(strokeCompleted){ if(strokeCompleted&&!tuning.chromeFadeSeen){ tuning.chromeFadeSeen=true; saveTuning(); $("card").classList.add("writing"); setWritingChromeHidden(true); } exitWritingChrome(); }
-function resetWritingChrome(direct=false){ clearTimeout(writingChromeTimer); writingChromeTimer=0; const card=document.getElementById("card"); if(!card) return; if(direct) card.classList.add("chromeDirect"); card.classList.remove("writing"); setWritingChromeHidden(false); if(direct){ void card.offsetWidth; requestAnimationFrame(()=>card.classList.remove("chromeDirect")); } }
+function enterWritingChrome(){ resetWritingChrome(); }
+function exitWritingChrome(){ resetWritingChrome(); }
+function finishWritingChrome(){ resetWritingChrome(); }
+function resetWritingChrome(){ clearTimeout(writingChromeTimer); writingChromeTimer=0; const card=document.getElementById("card"); if(!card) return; card.classList.remove("writing","chromeDirect"); setWritingChromeHidden(false); }
 function playRoundOpening(){ const area=$("practiceArea"); clearTimeout(roundOpeningTimer); roundOpeningTimer=0; area.classList.remove("opening"); if(!roundOpeningPending) return false;
   roundOpeningPending=false; area.style.animation="none"; if(motionReduced()) return false; area.style.animation=""; void area.offsetWidth; area.classList.add("opening"); roundOpeningTimer=setTimeout(()=>{ roundOpeningTimer=0; area.classList.remove("opening"); },420); return true; }
 
@@ -2221,7 +2295,7 @@ function paintBrushStroke(ctx,points,base,options={}){ if(!Array.isArray(points)
     const velocity=Number.isFinite(Number(b.v))?Number(b.v):(dt>0?Math.hypot(b.x-a.x,b.y-a.y)/dt:0); if(detail&&velocity>1.05&&Math.hypot(b.x-a.x,b.y-a.y)>base*.35){ brushCtx.save(); brushCtx.globalCompositeOperation="destination-out"; brushCtx.globalAlpha=Math.min(.2,.07+(velocity-1.05)*.05); brushCtx.strokeStyle="#000"; brushCtx.lineWidth=Math.max(.65,(ra+rb)*.12); brushCtx.lineCap="round"; brushCtx.setLineDash([Math.max(1,base*.42),Math.max(2,base*.72)]); brushCtx.lineDashOffset=-(i%3)*base*.23; brushCtx.beginPath(); brushCtx.moveTo(a.x,a.y); brushCtx.lineTo(b.x,b.y); brushCtx.stroke(); brushCtx.restore(); } }
   brushCtx.restore(); compositeBrushLayer(ctx,layer); return true; }
 function strokeTo(point){ const width=brushWidthFor(point,last,brushLiveState), color=cssVar('--inkPen',"#29241d"); inkCtx.save(); inkCtx.fillStyle=color; paintBrushRibbon(inkCtx,last,point,Math.max(1,(Number(last.w)||1)*penBaseWidth()/2),width/2); inkCtx.restore(); last=point; }
-function unlockGradeActions(){ clearTimeout(actionUnlockTimer); actionCooldownUntil=0; ["actions","traceActions"].forEach(id=>$(id)&&$(id).classList.remove("tlock")); }
+function unlockGradeActions(){ clearTimeout(actionUnlockTimer); actionCooldownUntil=0; ["actions","traceActions","skipAction"].forEach(id=>{ if(!$(id)) return; $(id).classList.remove("tlock","inputLock"); }); if($("skipCard")) $("skipCard").removeAttribute("aria-disabled"); }
 function cancelCurrentStroke(applyCooldown=true){ if(!drawing && !curInkStroke){ if(!applyCooldown) unlockGradeActions(); return; } drawing=false; curInkStroke=null; redrawInk(); updateInkControls();
   if(applyCooldown){ armGradeActions(); finishWritingChrome(false); } else { unlockGradeActions(); resetWritingChrome(true); } onTeachStrokeEnd(); }
 function enterPeekHint(force=false){ if(peeking || peekReleasePending || tracing || revealed || !inkCanvas || !peekWriter || (!force && activePointers.size<2)) return false;
@@ -2256,9 +2330,8 @@ function initBox(){ const box=document.createElement('div'); box.className='box'
     if(peekReleasePending){ if(activePointers.size===0) peekReleasePending=false; return; }
     if(e.isPrimary===false || !drawing) return; drawing=false; inkEnd(); redrawInk(); armGradeActions(); }));
   ['touchstart','touchmove','touchend','touchcancel'].forEach(ev=>inkCanvas.addEventListener(ev,e=>e.preventDefault(), {passive:false})); }
-function lockGradeActions(){ clearTimeout(actionUnlockTimer); actionCooldownUntil=Number.POSITIVE_INFINITY; ["actions","traceActions"].forEach(id=>$(id)&&$(id).classList.add("tlock")); }
-function armGradeActions(){ actionCooldownUntil=Date.now()+300; clearTimeout(actionUnlockTimer); actionUnlockTimer=setTimeout(()=>{
-  actionCooldownUntil=0; ["actions","traceActions"].forEach(id=>$(id)&&$(id).classList.remove("tlock")); },300); }
+function lockGradeActions(){ clearTimeout(actionUnlockTimer); actionCooldownUntil=Number.POSITIVE_INFINITY; ["actions","traceActions","skipAction"].forEach(id=>$(id)&&$(id).classList.add("inputLock")); if($("skipCard")) $("skipCard").setAttribute("aria-disabled","true"); }
+function armGradeActions(){ unlockGradeActions(); }
 function redrawInk(){ inkCtx.clearRect(0,0,S,S); paintInkStrokes(inkStrokes.map((_,i)=>i),cssVar('--inkPen',"#29241d")); }
 function updateInkControls(){ const hasInk=inkStrokes.length>0; if($("undoStroke")) $("undoStroke").disabled=!hasInk || drawing || animating; if($("clear")) $("clear").disabled=!hasInk || drawing || animating;
   if($("traceDone")) $("traceDone").disabled=!(tracing && tracedThisCard); }
@@ -2268,14 +2341,15 @@ async function undoInkStroke(){ if(!actionStack.length || drawing || animating) 
   if(action.type==="hint"){ groupIdx=action.group; shownStrokes=action.start; await rebuildHintLayer(shownStrokes); updateTip(); saveSessionSnapshot(); return true; }
   updateInkControls(); return false; }
 
-function charLoader(char, onComplete){
+function charLoader(char, onComplete, onError){
+  if(BASE_BY_CHAR[char]==null){ const error=new Error("local char data"); if(typeof onError==="function") return Promise.resolve().then(()=>onError(error)); return Promise.reject(error); }
   const local='data/'+encodeURIComponent(char)+'.json';
   return fetch(local).then(r=>{ if(!r.ok) throw new Error("local char data"); return r.json(); })
-    .then(onComplete); }
+    .then(onComplete).catch(error=>{ if(typeof onError==="function") return onError(error); throw error; }); }
 function strokeDataFailureCopy(kind="error"){ return kind==="slow"?"笔顺加载较慢，仍可自行判断或点「不会写」":"这个字暂未收录笔顺，仍可点「写好了」自行判断"; }
 
 function warmStrokeCache(chars){ if(!navigator.onLine) return;
-  [...new Set(chars||[])].forEach(ch=>fetch('data/'+encodeURIComponent(ch)+'.json').catch(()=>{})); }
+  [...new Set(chars||[])].filter(ch=>BASE_BY_CHAR[ch]!=null).forEach(ch=>fetch('data/'+encodeURIComponent(ch)+'.json').catch(()=>{})); }
 function warmUpcomingStrokeCache(){ if(!navigator.onLine) return; try{
   const indexes=reviewTodayCount()?chooseReviewBatch(reviewBudgetPool(false)):(needsCalibration()?chooseCalibrationBatch(newPool(false)):withTemporaryPreference(preference,()=>chooseBatch(newPool(false))));
   warmStrokeCache(indexes.map(i=>CARDS[i].target));
@@ -2479,7 +2553,7 @@ async function rebuildHintLayer(count=shownStrokes){
 function renderPhaseControls(){ tracing=practicePhase==="tracing"; const post=practicePhase==="postTraceRecall", teaching=tracing||post;
   $("phaseTitle").textContent=tracing?"第 1 步：描红":post?"第 2 步：自己写":"";
   $("traceIntro").style.display=tracing&&!traceTutorialShown?"block":"none";
-  $("actions").style.display=tracing?"none":"flex"; $("traceActions").style.display=tracing?"flex":"none";
+  $("actions").style.display=tracing?"none":"flex"; $("skipAction").style.display=teaching?"none":"flex"; $("traceActions").style.display=tracing?"flex":"none";
   $("tip").style.display=teaching?"none":""; $("peekInk").style.display=teaching?"none":""; $("show").style.display=tracing?"none":"";
   $("clear").textContent=tracing?"重描":"重写"; $("clear").setAttribute("aria-label",tracing?"重描这个字":"重写这个字"); if(teaching) $("tip").disabled=true; updateActionLabels(); updateInkControls(); }
 function render(){ fitBox(); cur=CARDS[currentCardIndex()]; const token=++loadToken, restoring=!!pendingSessionVisual;
@@ -2571,6 +2645,7 @@ $("tip").onclick=async ()=>{ if(tipHoldConsumed){ tipHoldConsumed=false; return 
     if(!hintVisualExhausted() && !tuning.peekHintUsed) $("hint").textContent="轻点看下一笔，按住「点拨」瞥一眼"; }
   saveSessionSnapshot(); return true;
 };
+function setOverlayComparison(active){ overlayOn=!!active; $("mineOverlay").style.display=overlayOn?"flex":"none"; $("overlayToggle").textContent=overlayOn?"分开看":"叠起来对比"; $("overlayToggle").setAttribute("aria-pressed",String(overlayOn)); $("overlayToggle").setAttribute("aria-label",overlayOn?"关闭范字与我的字迹叠加，改为分开看":"把范字叠加到我的字迹上对比"); }
 function showRevealState(snapshot){ snapshot=normalizedSubmissionSnapshot(snapshot); const verdict=snapshot&&snapshot.lastVerdict, inkUrl=snapshot&&revealInkImage(snapshot), reference=snapshot&&snapshot.referenceStrokes;
   activePointers.clear(); peekReleasePending=false; exitPeekHint(true); revealed=true; clearTimeout(teachTimer);
   $("actions").classList.remove("tlock"); $("traceActions").classList.remove("tlock");
@@ -2579,7 +2654,7 @@ function showRevealState(snapshot){ snapshot=normalizedSubmissionSnapshot(snapsh
   $("revealWord").textContent=cur.word; $("revealPy").textContent=cur.py||"";
   if(inkUrl){ $("mineInk").style.backgroundImage=`url(${inkUrl})`; $("mineInk").style.display=""; $("mineInk").dataset.failedCount=String(failedUserStrokeIndexes(snapshot).length); $("mineEmpty").style.display="none"; }
   else { $("mineInk").style.backgroundImage="none"; $("mineInk").dataset.failedCount="0"; $("mineEmpty").style.display="flex"; }
-  overlayOn=false; $("mineOverlay").style.display="none"; $("mineOverlay").textContent=""; $("overlayToggle").textContent="叠起来对比";
+  $("mineOverlay").textContent=""; setOverlayComparison(false);
   const hasSkeleton=renderStrokeSkeleton($("rightHz"),reference); $("rightGlyph").textContent=cur.target; $("rightGlyph").style.opacity=hasSkeleton?"0":"1";
   if(!renderStrokeSkeleton($("mineOverlay"),reference)) $("mineOverlay").textContent=cur.target; replaying=false;
   $("stampOnMine").style.display="none";
@@ -2612,7 +2687,7 @@ function restoreRevealFromSnapshot(state){ const safe=normalizedSubmissionSnapsh
 $("show").onclick=declareDontKnow;
 $("done").onclick=revealAnswer;
 $("traceDone").onclick=finishTracing;
-$("overlayToggle").onclick=()=>{ overlayOn=!overlayOn; $("mineOverlay").style.display=overlayOn?"flex":"none"; $("overlayToggle").textContent=overlayOn?"分开看":"叠起来对比"; };
+$("overlayToggle").onclick=()=>setOverlayComparison(!overlayOn);
 $("replayBtn").onclick=()=>{ if(replaying || !window.HanziWriter) return; replaying=true;
   $("rightGlyph").style.opacity="0"; $("rightHz").innerHTML="";
   const revealSize=Math.max(1,Math.round($("rightHz").getBoundingClientRect().width||$("rightHz").parentElement.getBoundingClientRect().width||150));
@@ -2648,7 +2723,6 @@ function goNext(){ clearTimeout(autoNextTimer); clearTimeout(editStampTimer); $(
   if(outcome==="miss"){ openTracingTeaching(); return; } next(); }
 function advanceFeedback(){ if(!stamped || practicePhase!=="feedback") return false; if(feedbackKind==="teachingComplete"){ clearTimeout(autoNextTimer); stamped=false; next(); return true; } goNext(); return true; }
 function decideSubmission(correct){ if(stamped||!revealed||!submissionSnapshot) return;
-  if(!correct){ overlayOn=true; $("mineOverlay").style.display="flex"; $("overlayToggle").textContent="分开看"; }
   if(submissionSnapshot.practicePhase==="postTraceRecall"){
     if(!correct){ revealed=false; beginTracingPhase(); return; }
     const ep=episodeFor(currentCardIndex()); ep.teachingComplete=true; const stat=roundStats.find(row=>row.idx===currentCardIndex()); if(stat) stat.traced=true; const m=cardMemory(currentCardIndex()); if(m.lastEpisode) m.lastEpisode.teachingComplete=true; saveMemory(); practicePhase="feedback"; feedbackKind="teachingComplete"; $("decisionRow").style.display="none"; $("askRow").style.display="none"; $("qualityBox").style.display="none";
@@ -2673,25 +2747,44 @@ function pendingTomorrowIndexes(){ const ordered=[], add=idx=>{ if(Number.isInte
   manualQueue.forEach(item=>add(item.idx)); reinforcementQueue.filter(item=>item.eligibleAfter<=attemptSeq&&unresolved.has(item.idx)).forEach(item=>add(item.idx)); baseTargets.slice(baseCursor).forEach(add); reinforcementQueue.filter(item=>item.eligibleAfter>attemptSeq&&unresolved.has(item.idx)).forEach(item=>add(item.idx)); unresolved.forEach(add); return ordered; }
 function deferRoundToTomorrow(){ roundBudgetPrompted=true; const pending=pendingTomorrowIndexes(), latest=Object.values(memory).reduce((max,m)=>Math.max(max,Number(m&&m.queuedFrontAt)||0),0), queuedAt=Math.max(Date.now(),latest+1);
   pending.forEach((idx,order)=>{ const m=cardMemory(idx); m.pendingLearning=true; m.dueDay=null; m.due=0; m.queuedFront=true; m.queuedFrontAt=queuedAt+order; });
-  manualQueue=[]; reinforcementQueue=[]; unresolved=new Set(); practicePhase="between"; saveMemory(); closeRoundBudgetSheet(); clearSessionSnapshot(); lastStampSnapshot=null; hideUndoBar(false); markRoundComplete(); releasePracticeHistory(); renderHome(); toast(pending.length?`已把 ${pending.length} 个字排到明天最前面`:`今天先练到这里`); }
+  manualQueue=[]; reinforcementQueue=[]; unresolved=new Set(); practicePhase="between"; saveMemory(); closeRoundBudgetSheet(); finishSessionSnapshot(); lastStampSnapshot=null; hideUndoBar(false); markRoundComplete(); releasePracticeHistory(); renderHome(); toast(pending.length?`已把 ${pending.length} 个字排到明天最前面`:`今天先练到这里`); }
 function advanceToNextTarget(){ const target=nextQueuedTarget();
   if(target){ beginAttempt(target); saveSessionSnapshot(); render(); return; }
-  if(roundIsComplete()){ clearSessionSnapshot(); lastStampSnapshot=null; hideUndoBar(false); markRoundComplete(); roundSummary(true); } }
+  if(roundIsComplete()){ lastStampSnapshot=null; hideUndoBar(false); markRoundComplete(); roundSummary(true); } }
 function next(){ practicePhase="between"; if(roundBudgetReached()){ openRoundBudgetSheet(); return; } advanceToNextTarget(); }
+let skipUndoTimer=0;
+function hideSkipUndo(clearExpired=false){ clearTimeout(skipUndoTimer); $("skipUndoToast").style.display="none"; if(clearExpired&&skippedState.undo&&skippedState.undo.expiresAt<=Date.now()){ skippedState.undo=null; saveSkippedState(); } }
+function showSkipUndo(){ const undo=skippedState.undo; if(!undo||undo.expiresAt<=Date.now()){ hideSkipUndo(true); return false; } hideSafetyUndo(); $("toast").classList.remove("show"); $("skipUndoCopy").textContent=undo.firstNotice?"已跳过，以后不再出现。可在字库恢复。":"已跳过"; $("skipUndoToast").style.display="flex"; skipUndoTimer=setTimeout(()=>hideSkipUndo(true),Math.max(0,undo.expiresAt-Date.now())); return true; }
+function replacementPoolForMode(mode,focusIndexes=focusQueue,done=sessionDone){ if(mode==="review") return reviewPool(false).sort(compareReviewPriority); if(mode==="focus") return focusIndexes.filter(i=>baseAvailable(i,false)&&!done.has(i)); if(mode==="makeup") return makeupCandidates(done); if(mode==="calibrate") return chooseCalibrationBatch(calibrationPool(false)); return newPool(false).sort((a,b)=>personalDifficulty(a)-personalDifficulty(b)||qualityWeight(b)-qualityWeight(a)); }
+function replacementPoolForSkip(){ return replacementPoolForMode(activeMode,focusQueue,sessionDone); }
+function skipReplacement(idx){ const existing=new Set(baseTargets), candidate=replacementPoolForSkip().find(item=>item!==idx&&!existing.has(item)&&!sessionDone.has(item)&&!isCardSkipped(item)); return Number.isInteger(candidate)?candidate:null; }
+function resetSkippedCardVisual(){ commitUndoWindow(); loadToken++; animating=false; drawing=false; curInkStroke=null; activePointers.clear(); exitPeekHint(true); unlockGradeActions(); resetWritingChrome(); clearInk(); hzEl.innerHTML=""; }
+function finishEmptySkippedRound(){ finishSessionSnapshot(); lastStampSnapshot=null; hideUndoBar(false); releasePracticeHistory(); if(activeMode==="focus"&&focusReturnView==="book") renderBook(); else if(activeMode==="focus"&&focusReturnView==="profile") renderProfile(); else if(activeMode==="focus"&&focusReturnView==="me") renderMe(); else renderHome(); }
+function skipCurrentCard(){ if(drawing||Date.now()<actionCooldownUntil||revealed||stamped||!["recall","reinforcement"].includes(practicePhase)||currentAttemptRecorded()||!Number.isInteger(currentCardIndex())) return false; const idx=currentCardIndex(), key=cardKey(idx), before=sessionPayload(), firstNotice=!cardSkipWasExplained(idx), oldAt=baseTargets.indexOf(idx);
+  skippedState.stopped=[...new Set([...skippedState.stopped,key])]; rememberSkipExplanation(idx); skippedState.undo={cardKey:key,expiresAt:Date.now()+SKIP_UNDO_WINDOW_MS,session:before,returnView:focusReturnView,firstNotice}; if(!saveSkippedState()) return false;
+  resetSkippedCardVisual(); manualQueue=manualQueue.filter(item=>item.idx!==idx); reinforcementQueue=reinforcementQueue.filter(item=>item.idx!==idx); unresolved.delete(idx); focusQueue=focusQueue.filter(item=>item!==idx); calibrationTargets=calibrationTargets.filter(item=>item!==idx);
+  if(oldAt>=0){ baseTargets.splice(oldAt,1); if(oldAt<baseCursor) baseCursor=Math.max(0,baseCursor-1); }
+  const replacement=skipReplacement(idx); if(Number.isInteger(replacement)){ baseTargets.push(replacement); if(activeMode==="focus"&&!focusQueue.includes(replacement)) focusQueue.push(replacement); if(activeMode==="calibrate"&&!calibrationTargets.includes(replacement)) calibrationTargets.push(replacement); } else roundCompletionSuppressed=true;
+  batch=baseTargets; currentIndex=null; currentAttemptKind="base"; currentAttemptId=""; practicePhase="between";
+  const nextTarget=nextQueuedTarget(); if(nextTarget){ beginAttempt(nextTarget); if(!saveSessionSnapshot()){ skippedState.stopped=skippedState.stopped.filter(item=>item!==key); skippedState.undo=null; saveSkippedState(); restoreSession(decodeSessionV3(before)); return false; } render(); }
+  else if(roundIsComplete()) roundSummary(false); else finishEmptySkippedRound(); syncReminder(); showSkipUndo(); return true; }
+function undoSkippedCard(){ const undo=skippedState.undo; if(!undo||undo.expiresAt<=Date.now()){ hideSkipUndo(true); return false; } const idx=indexForCardKey(undo.cardKey), session=cloneObj(undo.session), returnView=undo.returnView; if(Number.isInteger(idx)&&idx>=0) skippedState.stopped=skippedState.stopped.filter(key=>key!==cardKey(idx)); skippedState.undo=null; if(!saveSkippedState()) return false; syncReminder(); hideSkipUndo(); focusReturnView=returnView; const decoded=decodeSessionV3(session); if(!decoded) return false; return restoreSession(decoded); }
+$("skipCard").onclick=skipCurrentCard;
+$("skipUndoBtn").onclick=undoSkippedCard;
 $("continueRound").onclick=continueAfterBudget;
 $("deferRound").onclick=deferRoundToTomorrow;
-function chooseFocusBatch(all){ return all.slice().sort((a,b)=>personalDifficulty(b)-personalDifficulty(a)).slice(0,BATCH); }
+function chooseFocusBatch(all){ return all.slice(0,BATCH); }
 function compareReviewPriority(a,b){ return reviewPriority(b)-reviewPriority(a) || String((memory[cardKey(a)]||{}).dueDay||"").localeCompare(String((memory[cardKey(b)]||{}).dueDay||"")) || personalDifficulty(b)-personalDifficulty(a); }
 function chooseReviewBatch(all){ return all.slice().sort(compareReviewPriority).slice(0,BATCH); }
 function startRound(){ if(activeMode==="review" && reviewBudgetRemaining()===0){ clearSessionSnapshot(); renderHome(); toast("今天的复习已完成，可以练新字"); return; }
-  const p=availablePool(), queued=activeMode==="calibrate"?[]:queuedFrontPool(); if(p.length===0 && queued.length===0){ clearSessionSnapshot(); allDone(); return; } resetAdaptiveSession();
+  const p=availablePool(), queued=["new","review"].includes(activeMode)?queuedFrontPool():[]; if(p.length===0 && queued.length===0){ finishSessionSnapshot(); allDone(); return; } resetAdaptiveSession();
   roundStartMemoryCount=memoryCount();
   baseTargets=(activeMode==="focus"||activeMode==="makeup")?chooseFocusBatch(p).slice(0,activeMode==="makeup"?5:BATCH):(activeMode==="review"?chooseReviewBatch(p):(activeMode==="calibrate"?chooseCalibrationBatch(p):chooseBatch(p)));
   if(queued.length){ const front=new Set(queued); baseTargets=[...queued,...baseTargets.filter(i=>!front.has(i))].slice(0,BATCH); }
   if(activeMode==="review"){ baseTargets=baseTargets.slice(0,reviewBudgetRemaining()); reserveReviewTargets(baseTargets); }
   calibrationTargets=activeMode==="calibrate"?baseTargets.slice():[];
   batch=baseTargets; warmStrokeCache(baseTargets.map(i=>CARDS[i].target)); pos=0; baseCursor=0; currentIndex=null; pendingSessionVisual=null; manualQueue=[]; reinforcementQueue=[]; unresolved=new Set(); episodes={}; attemptSeq=0; practicePhase="recall";
-  missedThisRound=[]; roundStats=[]; roundHandwriting={}; roundFeedbackGiven=false; calibrationFirstHoldUsed=false; calibrationComfortShown=false; lastStampSnapshot=null; hideUndoBar(false); roundId=Date.now()+"-"+Math.random().toString(36).slice(2,7);
+  missedThisRound=[]; roundStats=[]; roundHandwriting={}; roundFeedbackGiven=false; calibrationFirstHoldUsed=false; calibrationComfortShown=false; roundCompletionSuppressed=false; lastStampSnapshot=null; hideUndoBar(false); roundId=Date.now()+"-"+Math.random().toString(36).slice(2,7);
   roundElapsedMs=0; roundActiveStartedAt=Date.now(); roundBudgetPrompted=false; roundTimerPaused=false;
   beginAttempt({idx:baseTargets[0],kind:"base"}); saveSessionSnapshot(); armPracticeHistory(); render(); }
 function sumTile(s,i,delayOffset=0){ const recovered=s.outcome!=="fast"&&s.independentlyRecovered, ui=GRADE_UI[s.outcome], mark=s.outcome==="fast"?"":`<span class="dot outcomeMark ${s.outcome}" style="background:${OUTCOME_DOT[s.outcome]}">${OUTCOME_MARK[s.outcome]}</span>`, firstCopy=s.outcome==="fast"?"第一次独立写对":(s.outcome==="hinted"?(s.uncertain?"第一次不太确定":"第一次看过提示后写出"):(s.outcome==="slow"?"第一次写错":"第一次没写出"));
@@ -2709,7 +2802,7 @@ function renderPracticePocket(indexes, calibration=false){ const unique=[...new 
   summaryFocusIndexes=unique; card.style.display=unique.length?"flex":"none"; if(!unique.length) return;
   chips.innerHTML=unique.slice(0,3).map((idx,k)=>`<span class="pChip" style="transform:rotate(${k%2?3:-4}deg)">${CARDS[idx].target}</span>`).join("");
   title.textContent=`${unique.length} 个字第一次没写稳`; }
-function roundSummary(fromPractice=false){ const durationMs=currentRoundElapsed(); roundElapsedMs=durationMs; roundActiveStartedAt=0; roundTimerPaused=false; recordFunnelRound(durationMs); clearSessionSnapshot(); markRoundComplete(); releasePracticeHistory(); const characterMilestone=celebrateCharacterMilestoneIfAny(), dayMilestone=celebrateMilestoneIfAny(), milestone=characterMilestone?{kind:"characters",value:characterMilestone}:dayMilestone?{kind:"days",value:dayMilestone}:null; displayView("summary");
+function roundSummary(fromPractice=false){ const durationMs=currentRoundElapsed(); roundElapsedMs=durationMs; roundActiveStartedAt=0; roundTimerPaused=false; recordFunnelRound(durationMs); finishSessionSnapshot(); markRoundComplete(); releasePracticeHistory(); const characterMilestone=celebrateCharacterMilestoneIfAny(), dayMilestone=celebrateMilestoneIfAny(), milestone=characterMilestone?{kind:"characters",value:characterMilestone}:dayMilestone?{kind:"days",value:dayMilestone}:null; displayView("summary");
   $("summaryShare").style.display="block"; $("calibShare").style.display="block";
   renderSummaryMilestone(milestone); renderRoundRestLine();
   const reduced=motionReduced(), tileDelay=milestone&&!reduced?.6:0, sealDelay=reduced?0:tileDelay+roundStats.length*.05+.5;
@@ -2717,7 +2810,7 @@ function roundSummary(fromPractice=false){ const durationMs=currentRoundElapsed(
   clearTimeout(summarySealTimer); summarySealTimer=0; if(milestone||fromPractice) summarySealTimer=setTimeout(()=>hapticFeedback(milestone?"milestone":"action"),sealDelay*1000);
   $("summaryShare").textContent=milestone?"存为里程碑字帖":"存为字帖";
   $("calibShare").textContent=milestone?"存为里程碑字帖":"存为字帖";
-  const wasCalibration=activeMode==="calibrate", wasMakeup=activeMode==="makeup", calendarDay=makeupTargetDay, calibrationStats=wasCalibration?calibrationRoundStats():roundStats, calibrationNote=maybeFinishCalibration(), remain=activeMode==="review"?reviewTodayCount():availablePool().length;
+  const wasCalibration=activeMode==="calibrate", wasMakeup=activeMode==="makeup", calendarDay=makeupTargetDay, makeupCompleted=wasMakeup&&!roundCompletionSuppressed&&dailyActivity(calendarDay).makeup===true, calibrationStats=wasCalibration?calibrationRoundStats():roundStats, calibrationNote=maybeFinishCalibration(), remain=activeMode==="review"?reviewTodayCount():availablePool().length;
   const counts=roundCounts(calibrationStats), hardN=(counts.hinted||0)+(counts.miss||0)+(counts.slow||0), keptN=calibrationStats.length-hardN, dayTotal=todayStampCount(), completedGroups=dailyActivity().completedGroups;
   const risky=[...new Set(roundStats.filter(x=>x.outcome!=="fast").map(x=>x.idx))];
   $("calibCard").style.display=wasCalibration?"flex":"none"; $("calibCard").style.flexDirection="column"; $("calibCard").style.flex="1";
@@ -2733,8 +2826,8 @@ function roundSummary(fromPractice=false){ const durationMs=currentRoundElapsed(
     return; }
   $("calibPocketCard").style.display="none";
   $("summaryProfile").style.display=hardN>0?"block":"none";
-  $("sumH2").textContent=wasMakeup?"补帖已盖":(completedGroups>1?`今日已拾 ${dayTotal} 字`:"今日拾得");
-  $("sumLead").innerHTML=wasMakeup?`${formatDueDay(calendarDay)}补写完成，<br>这一天落下了一枚浅色「补」印。`:(hardN>0?`本组 <b class="ok">${roundStats.length}</b> 个字全部完成，<br>其中 <b class="warn">${hardN}</b> 个字第一次没写稳。`:`本组 <b class="ok">${keptN}</b> 个字第一次都独立写出了。`);
+  $("sumH2").textContent=wasMakeup?(makeupCompleted?"补帖已盖":"这次先写到这里"):(completedGroups>1?`今日已拾 ${dayTotal} 字`:"今日拾得");
+  $("sumLead").innerHTML=wasMakeup?(makeupCompleted?`${formatDueDay(calendarDay)}补写完成，<br>这一天落下了一枚浅色「补」印。`:`这次写了 <b class="ok">${roundStats.length}</b> 个字，<br>凑满 5 个字后才会落下「补」印。`):(hardN>0?`本组 <b class="ok">${roundStats.length}</b> 个字全部完成，<br>其中 <b class="warn">${hardN}</b> 个字第一次没写稳。`:`本组 <b class="ok">${keptN}</b> 个字第一次都独立写出了。`);
   renderPracticePocket(risky,false);
   renderRoundTune(calibrationNote);
   renderSummaryBackupHint();
@@ -2768,7 +2861,7 @@ function exitCurrentRound(fromHistory=false){ if(exitingPractice || $("card").st
   }
   loadToken++; pendingSessionVisual=null; animating=false; drawing=false; activePointers.clear(); exitPeekHint(true);
   if(!fromHistory) releasePracticeHistory(); else practiceHistoryArmed=false;
-  if(activeMode==="focus"&&baseTargets.length===1){ clearSessionSnapshot(); if(focusReturnView==="book") renderBook(); else if(focusReturnView==="profile") renderProfile(); else if(focusReturnView==="me") renderMe(); else renderHome(); }
+  if(activeMode==="focus"&&(baseTargets.length===1||focusReturnView!=="home"||suspendedSessionPayload)){ finishSessionSnapshot(); if(focusReturnView==="book") renderBook(); else if(focusReturnView==="profile") renderProfile(); else if(focusReturnView==="me") renderMe(); else renderHome(); }
   else renderHome(); exitingPractice=false; return true; }
 $("exitPractice").onclick=()=>exitCurrentRound(false);
 window.addEventListener("shizi-native-back",()=>{ if($("handCardSheet").classList.contains("open")){ closeHandCard(); return; } if($("libSheet").classList.contains("open")){ closeLibSheet(); return; } if($("charSheet").classList.contains("open")){ closeCharSheet(); return; } if($("settingsPanel").style.display==="flex"||$("annualPanel").style.display==="flex"){ renderMe(); return; } if($("profilePanel").style.display==="flex"){ closeProfile(); return; } if($("auditPanel").style.display==="flex"){ renderSettings(false); return; } exitCurrentRound(false); });
@@ -2781,13 +2874,14 @@ $("calibSumTiles").onclick=e=>{ const b=e.target.closest("[data-idx]"); if(b) op
 $("roundTune").onclick=e=>{ const b=e.target.closest("[data-round-feedback]"); if(b) recordRoundFeedback(b.dataset.roundFeedback); };
 $("memoryWall").onclick=e=>{ const b=e.target.closest("[data-idx]"); if(b) openCharSheet(Number(b.dataset.idx)); };
 $("wildWishChars").onclick=e=>{ const b=e.target.closest("[data-wild-wish]"); if(!b) return; const ch=b.dataset.wildWish,row=wildState.wishes[ch]; if(row&&row.dataURL) openWildPhoto(row.dataURL,`${ch} · ${collectedDateText(row.day)}拾于生活`); else toast(`「${ch}」暂不支持练习，已先保存记录`); };
-$("bookCurator").onclick=()=>{ if(!bookCuratorIndexes.length) return; if(bookCuratorKind==="recall") openCharSheet(bookCuratorIndexes[0]); else startFocus(bookCuratorIndexes); };
 $("libCard").onclick=openLibSheet;
 $("libSheet").onclick=e=>{ if(e.target===$("libSheet")){ closeLibSheet(); return; } const row=e.target.closest("[data-lib]"); if(!row) return; const lib=LIBRARIES.find(item=>item.id===row.dataset.lib); if(!lib) return;
   setLibrary(lib.id); closeLibSheet(); if($("studybook").style.display==="flex") renderBook(); else renderSettings(false); toast(`在学：${lib.name}`); };
-$("bookSearchInput").oninput=()=>handleBookSearchInput(true);
+$("bookSearchInput").oninput=handleBookSearchInput;
 $("bookSearchInput").onkeydown=e=>{ if(e.key==="Enter"&&!e.isComposing) handleBookSearch(); };
-$("bookSearchResult").onclick=e=>{ if(e.target.closest("[data-book-add]")) handleBookSearch(); };
+$("bookSearchClear").onclick=clearBookSearch;
+$("bookPhoto").onclick=openAddSheet;
+$("bookSearchResult").onclick=e=>{ const open=e.target.closest("[data-book-open]"); if(open){ openCharSheet(Number(open.dataset.bookOpen)); return; } if(e.target.closest("[data-book-practice]")) handleBookSearch(); };
 $("bookSaveMonth").onclick=async()=>{ const button=$("bookSaveMonth"); if(button.disabled) return; button.disabled=true; try{ await shareMonthlyPost(); }catch(e){ toast("月帖生成失败，请再试一次"); }finally{ button.disabled=false; } };
 // ---- 底部三 tab + 首页大印章 ----
 $("startBtn").onclick=()=>{ if($("startBtn").disabled) return; startMode(reviewTodayCount()>0?"review":"new"); };
@@ -2833,7 +2927,7 @@ $("charDetailCompareToggle").onclick=toggleCharDetailCompare;
 $("charDetailOverlayToggle").onclick=toggleCharDetailOverlay;
 $("charDetailStrokeBtn").onclick=replayCharDetail;
 $("charDetailCard").onclick=()=>openHandCard(charDetailIndex);
-$("charDetailPractice").onclick=()=>{ const idx=charDetailIndex, returnView=$("profilePanel").style.display==="flex"?"profile":$("studybook").style.display==="flex"?"book":$("mePanel").style.display==="flex"?"me":"home"; closeCharSheet(); startFocus([idx],{returnView}); };
+$("charDetailPractice").onclick=()=>{ const idx=charDetailIndex, returnView=$("profilePanel").style.display==="flex"?"profile":$("studybook").style.display==="flex"?"book":$("mePanel").style.display==="flex"?"me":"home",target=CARDS[idx]&&CARDS[idx].target; closeCharSheet(); startRequestedCharacters([target],{returnView}); };
 $("charDetailWild").onclick=()=>{ if(charDetailIndex<0) return; const c=CARDS[charDetailIndex],row=wildCaptureFor(c.target); if(row) openWildPhoto(row.dataURL,`${c.target} · ${collectedDateText(row.day)}拾于生活`); };
 $("wildPhotoClose").onclick=closeWildPhoto;
 $("wildPhotoSheet").onclick=e=>{ if(e.target===$("wildPhotoSheet")) closeWildPhoto(); };
@@ -2870,39 +2964,28 @@ async function cropWildPhoto(file){ const image=await wildImageBitmap(file),side
   outer: for(const mime of ["image/webp","image/jpeg"]){ for(const size of [256,224,192,160]){ canvas.width=size; canvas.height=size; ctx.clearRect(0,0,size,size); ctx.drawImage(image,sx,sy,side,side,0,0,size,size); for(const quality of [.78,.64,.5,.38]){ const candidate=canvas.toDataURL(mime,quality); if(candidate.startsWith(`data:${mime};base64,`)&&wildImageBytes(candidate)<=WILD_PHOTO_MAX_BYTES){ result=candidate; break outer; } } } }
   if(typeof image.close==="function") image.close(); return isWildPhotoDataURL(result)&&wildImageBytes(result)<=WILD_PHOTO_MAX_BYTES?result:""; }
 function uniqueWildCandidates(value){ const source=Array.isArray(value)?value.join(""):String(value||""); return [...new Set(Array.from(source).filter(isCJK))].slice(0,12); }
-function showWildCandidates(value,requestId=wildOCRRequest){ if(!wildDraft||requestId!==wildOCRRequest) return []; const chars=uniqueWildCandidates(value),box=$("wildCandidates"); box.classList.toggle("visible",chars.length>0); box.innerHTML=chars.map(ch=>`<button data-wild-candidate="${esc(ch)}">${esc(ch)}</button>`).join(""); $("wildCaptureNote").textContent=chars.length?"点一下你看到的字；识别不会自动收字":"没认准也没关系，直接手动输入"; return chars; }
+function showWildCandidates(value,requestId=wildOCRRequest){ if(!wildDraft||requestId!==wildOCRRequest) return []; const chars=uniqueWildCandidates(value),box=$("wildCandidates"); box.classList.toggle("visible",chars.length>0); box.innerHTML=chars.map(ch=>`<button data-wild-candidate="${esc(ch)}">${esc(ch)}</button>`).join(""); $("wildCaptureNote").textContent=chars.length?"点一下你看到的字；识别不会自动开始练习":"没认准也没关系，直接手动输入"; return chars; }
 window.shiziOCRResult=payload=>{ const body=plainObject(payload)?payload:{candidates:payload},requestId=Number(body.requestId)||wildOCRRequest; showWildCandidates(body.candidates||[],requestId); };
 async function handleWildPhoto(file){ if(!file||!String(file.type||"").startsWith("image/")) return false; $("wildCaptureNote").textContent="正在整理照片…";
   try{ const dataURL=await cropWildPhoto(file); if(!dataURL) throw new Error("size"); const at=Date.now(); wildOCRRequest+=1; wildDraft={version:1,day:today(),at,dataURL,requestId:wildOCRRequest}; $("wildCapture").classList.add("hasPhoto"); $("wildCaptureThumb").src=dataURL; $("wildCaptureThumb").style.display="block"; $("wildCandidates").classList.remove("visible"); $("wildCandidates").innerHTML=""; $("addInput").value=""; $("addInput").placeholder="你看到的是哪个字？"; renderAddPreview();
     const bridge=nativeOCRBridge(); if(bridge){ $("wildCaptureNote").textContent="正在当前设备上识别…"; bridge.postMessage({type:"recognizeChars",requestId:wildOCRRequest,dataURL}); } else $("wildCaptureNote").textContent="你看到的是哪个字？请手动输入";
     $("addInput").focus(); return true;
   }catch(e){ wildDraft=null; $("wildCaptureNote").textContent="照片没能读出来，可以直接手动输入"; toast("照片没能读出来，可以手动输入"); return false; } }
-function clearWildDraft(){ wildDraft=null; wildOCRRequest+=1; $("wildPhotoInput").value=""; $("wildCapture").classList.remove("hasPhoto"); $("wildCaptureThumb").src=""; $("wildCaptureThumb").style.display="none"; $("wildCandidates").classList.remove("visible"); $("wildCandidates").innerHTML=""; $("wildCaptureNote").textContent="可拍照或从相册选择；照片默认保存在当前设备"; $("addInput").placeholder="蘸料"; }
+function clearWildDraft(){ wildDraft=null; wildOCRRequest+=1; $("wildPhotoInput").value=""; $("wildCapture").classList.remove("hasPhoto"); $("wildCaptureThumb").src=""; $("wildCaptureThumb").style.display="none"; $("wildCandidates").classList.remove("visible"); $("wildCandidates").innerHTML=""; $("wildCaptureNote").textContent="可拍照或从相册选择；照片默认保存在当前设备"; $("addInput").placeholder="输入一个或多个汉字"; }
 function renderAddPreview(){ const raw=[...new Set(Array.from($("addInput").value).filter(isCJK))],chars=wildDraft?raw.slice(0,1):raw;
-  $("addConfirm").disabled=!chars.length;
+  $("addConfirm").disabled=!chars.length; $("addConfirm").textContent=practiceActionLabel(chars.length);
   $("addPreview").innerHTML=chars.length?chars.map(ch=>{ const b=BASE_BY_CHAR[ch], idx=b!=null?b:customIndexOf(ch), m=idx>=0?memory[cardKey(idx)]:null;
-    return `<span class="addChip"><b>${ch}</b>${b!=null?CARDS[b].py:(wildDraft?"暂不支持练习":"生僻字·自定义卡")}${m&&m.seen?" · 已练过":""}</span>`; }).join(""):`<span>${wildDraft?"输入或点选一个汉字":"输入含汉字的词"}</span>`;
+    return `<span class="addChip"><b>${ch}</b>${b!=null?CARDS[b].py:(idx>=0?"个人字卡":"开始时建立个人字卡")}${m&&m.seen?" · 已练过":""}</span>`; }).join(""):`<span>${wildDraft?"输入或点选一个汉字":"输入想练的汉字"}</span>`;
   $("wildCandidates").querySelectorAll("[data-wild-candidate]").forEach(btn=>btn.classList.toggle("selected",btn.dataset.wildCandidate===chars[0])); }
 let feedbackPausedForAdd=false;
 function openAddSheet(){ commitUndoWindow(); if(stamped){ clearTimeout(autoNextTimer); feedbackPausedForAdd=true; lastStampSnapshot=null; $("editStamp").disabled=true; hideUndoBar(false); }
   clearWildDraft(); $("addInput").value=""; renderAddPreview(); $("addSheet").classList.add("open"); updateKeyboardInset(); $("addInput").focus();
   requestAnimationFrame(()=>{ try{ $("addInput").scrollIntoView({block:"center", inline:"nearest"}); }catch(e){} }); }
 function closeAddSheet(){ $("addSheet").classList.remove("open"); $("addInput").blur(); clearWildDraft(); updateKeyboardInset(); if(feedbackPausedForAdd){ feedbackPausedForAdd=false; autoNextTimer=setTimeout(advanceFeedback,200); } }
-function confirmAdd(){ if(wildDraft){ const ch=Array.from($("addInput").value).find(isCJK),capture=wildDraft,result=collectWildCharacter(ch,capture); if(!result.char) return; const insertion=result.known?insertIntoCurrentBatch([result.idx]):{queued:[]}; closeAddSheet();
-    if(!result.known){ toast("这个字暂不支持练习，已先保存记录"); if($("studybook").style.display==="flex") renderBook(); return; }
-    if(insertion.queued.length) toast(`已加入本组，下一题写「${result.char}」`); else toast(`已拾下「${result.char}」 · 下次开练先写它`);
-    if($("summary").style.display==="flex") roundSummary(); if($("mePanel").style.display==="flex") renderMe(); if($("studybook").style.display==="flex") renderBook(); return; }
-  const chars=addWord($("addInput").value); if(!chars) return;
-  const insertion=insertIntoCurrentBatch(indexesForChars(chars));
-  closeAddSheet();
-  if(insertion.queued.length){ const order=manualQueue.map(item=>CARDS[item.idx].target);
-    if(order.length===1 && insertion.added.length===1) toast(`已加入本组，下一题写「${order[0]}」`);
-    else if(order.length===1) toast(`已排到下一题：「${order[0]}」`);
-    else toast(`已加入本组，将按「${order.join("」→「")}」练习`); }
-  else toast(tuning.calibrated?`已加入：${chars.join("、")} · 下次开练，第一个就是它`:`已加入：${chars.join("、")} · 校准这组结束后，下一组第一个就是它`);
-  if($("summary").style.display==="flex") roundSummary();
-  if($("mePanel").style.display==="flex") renderMe(); if($("studybook").style.display==="flex") renderBook(); }
-$("homeAdd").onclick=openAddSheet;
+function confirmAdd(){ const chars=requestedCharacters($("addInput").value); if(!chars.length) return; const captured=wildDraft?normalizeWildEntry(wildDraft):null, capturedChar=captured?chars[0]:"";
+  if(captured){ wildState.captures[capturedChar]=captured; delete wildState.wishes[capturedChar]; saveWildState(); }
+  const started=startRequestedCharacters(chars,{returnView:"book"});
+  if(started&&captured){ const idx=indexesForChars([capturedChar])[0]; if(idx>=0){ const m=cardMemory(idx); m.source="wild"; m.wildDay=captured.day; saveMemory(); } } }
 $("addCancel").onclick=closeAddSheet;
 $("addConfirm").onclick=confirmAdd;
 $("addInput").oninput=renderAddPreview;
@@ -2985,7 +3068,7 @@ async function sharePracticeCard(opts={}){ const canvas=renderPracticeCardCanvas
 
 // ---- 数据备份 / 恢复（localStorage 是唯一存储，换手机或清缓存前先导出）----
 // 新增 shizi.* 持久键时必须同步加入；shizi.nativeSmoke.v1 与 SAFETY_KEY 为刻意排除。
-const BACKUP_KEYS=[DECK_KEY,OPEN_KEY,MEMORY_KEY,QUALITY_KEY,PREF_KEY,TUNING_KEY,ACTIVITY_KEY,SESSION_KEY,FSRS_LOG_KEY,TRACE_TUTORIAL_KEY,BACKUP_META_KEY,REMINDER_KEY,FONT_SCALE_KEY,FUNNEL_KEY,SOUND_KEY,TOPIC_KEY,CUSTOM_KEY,ADDED_KEY,WILD_KEY,HAND_CARD_KEY,LIB_KEY];
+const BACKUP_KEYS=[DECK_KEY,OPEN_KEY,MEMORY_KEY,QUALITY_KEY,PREF_KEY,TUNING_KEY,ACTIVITY_KEY,SESSION_KEY,FSRS_LOG_KEY,TRACE_TUTORIAL_KEY,BACKUP_META_KEY,REMINDER_KEY,FONT_SCALE_KEY,FUNNEL_KEY,SOUND_KEY,TOPIC_KEY,CUSTOM_KEY,ADDED_KEY,WILD_KEY,HAND_CARD_KEY,LIB_KEY,SKIPPED_KEY];
 function backupAgeDays(){ const ts=Number(backupMeta.lastExportAt)||0; return ts?Math.max(0,Math.floor((Date.now()-ts)/86400000)):Number.POSITIVE_INFINITY; }
 function backupRelativeText(){ const days=backupAgeDays(); if(!Number.isFinite(days)) return "从未备份"; if(days===0) return "上次备份 · 今天"; if(days===1) return "上次备份 · 昨天"; return `上次备份 · ${days} 天前`; }
 function renderBackupUI(){ const age=backupAgeDays(), never=!Number.isFinite(age), urgent=(totalPracticeDays()>=14&&never)||(!never&&age>=30); $("backupStatus").textContent=backupRelativeText(); $("backupStatus").classList.toggle("backupStatusUrgent",urgent); $("backupUrgency").style.display=urgent?"flex":"none"; $("mePanel").classList.toggle("backupUrgent",urgent);
@@ -2995,7 +3078,7 @@ function renderSummaryBackupHint(){ const eligible=!summaryMilestoneActive && re
   $("summaryBackupHint").style.display=summaryBackupHintVisible?"flex":"none"; }
 function markBackupExported(ts=Date.now()){ const exportedAt=Number(ts)||Date.now(); backupMeta={...backupMeta,lastExportAt:exportedAt}; save(BACKUP_META_KEY,backupMeta); recordFunnelOnce("backup_exported","backup_exported",exportedAt);
   if($("mePanel").style.display==="flex"||$("settingsPanel").style.display==="flex") renderBackupUI(); }
-function backupPayload(opts){ const options=opts||{}, data={}, exportedAt=Math.max(1,Number(options.exportedAt)||Date.now()); BACKUP_KEYS.forEach(k=>{ const value=localStorage.getItem(k); if(value!==null) data[k]=value; });
+function backupPayload(opts){ const options=opts||{}, data={}, exportedAt=Math.max(1,Number(options.exportedAt)||Date.now()); BACKUP_KEYS.forEach(k=>{ const value=localStorage.getItem(k); if(value!==null) data[k]=k===SKIPPED_KEY?JSON.stringify(normalizeBackupSkipped(JSON.parse(value))):value; });
   if(options.funnelExportAt) data[FUNNEL_KEY]=JSON.stringify(projectedFunnelEvent("backup_exported","backup_exported",options.funnelExportAt));
   if(!options.preserveMeta) data[BACKUP_META_KEY]=JSON.stringify({...backupMeta,lastExportAt:exportedAt});
   return JSON.stringify({app:"shizi", version:1, date:new Date(exportedAt).toISOString(), data}, null, 1); }
@@ -3023,8 +3106,9 @@ function normalizeBackupMemory(value){ if(!plainObject(value)) throw new Error("
 function normalizeBackupSession(value){ const out=cloneObj(value); if(!out||out.version!==3) return out;
   if(plainObject(out.visual)){ if(Array.isArray(out.visual.inkStrokes)) out.visual.inkStrokes=normalizedSessionInkStrokes(out.visual.inkStrokes); if(out.visual.submissionSnapshot) out.visual.submissionSnapshot=normalizedSubmissionSnapshot(out.visual.submissionSnapshot); }
   if(out.lastStampSnapshot) out.lastStampSnapshot=normalizedStampGeometry(out.lastStampSnapshot);
-  if(Array.isArray(out.roundStats)) out.roundStats=withoutPersistedHandwriting(out.roundStats); return out; }
-function normalizeBackupValue(key,value){ if(key===MEMORY_KEY) return normalizeBackupMemory(value); if(key===SESSION_KEY) return normalizeBackupSession(value); if(key===ACTIVITY_KEY) return normalizeActivity(value); if(key===FSRS_LOG_KEY) return normalizeFSRSStored(value); if(key===FUNNEL_KEY) return normalizeFunnel(value); if(key===BACKUP_META_KEY) return normalizeBackupMeta(value); if(key===REMINDER_KEY) return normalizeReminder(value); if(key===SOUND_KEY) return normalizeSound(value); if(key===HAND_CARD_KEY) return normalizeHandCardPref(value); if(key===LIB_KEY) return normalizeLibrary(value); if(key===WILD_KEY) return normalizeWildState(value); return value; }
+  if(Array.isArray(out.roundStats)) out.roundStats=withoutPersistedHandwriting(out.roundStats); if(out.suspendedSession) out.suspendedSession=normalizeBackupSession(out.suspendedSession); return out; }
+function normalizeBackupSkipped(value){ const out=normalizeSkippedState(value); out.undo=null; return out; }
+function normalizeBackupValue(key,value){ if(key===MEMORY_KEY) return normalizeBackupMemory(value); if(key===SESSION_KEY) return normalizeBackupSession(value); if(key===ACTIVITY_KEY) return normalizeActivity(value); if(key===FSRS_LOG_KEY) return normalizeFSRSStored(value); if(key===FUNNEL_KEY) return normalizeFunnel(value); if(key===BACKUP_META_KEY) return normalizeBackupMeta(value); if(key===REMINDER_KEY) return normalizeReminder(value); if(key===SOUND_KEY) return normalizeSound(value); if(key===HAND_CARD_KEY) return normalizeHandCardPref(value); if(key===LIB_KEY) return normalizeLibrary(value); if(key===WILD_KEY) return normalizeWildState(value); if(key===SKIPPED_KEY) return normalizeBackupSkipped(value); return value; }
 function withBackupCustomContext(words,fn){ const previous=customWords; customWords=words.slice(); buildCustomCards();
   try{ return fn(); } finally { customWords=previous; buildCustomCards(); } }
 function validatedBackupData(payload){ const obj=typeof payload==="string"?JSON.parse(payload):payload;
@@ -3070,12 +3154,13 @@ $("importLink").onclick=requestBackupImport;
 $("welcomeRestore").onclick=requestBackupImport;
 $("importFile").onchange=e=>{ const f=e.target.files && e.target.files[0]; e.target.value=""; if(f) importBackup(f); };
 function resetAllData(opts){ const options=opts||{}; if(!options.skipConfirm && !confirm(`要清空应用当前使用的数据吗？\n\n这会清空 ${memoryCount()} 个字的练习记录、拍字照片、自定义字和各项设置。操作前的数据会作为一份安全副本留在当前设备，不会随撤销提示消失；下次恢复或清空会覆盖这份副本。\n\n页面底部会短暂显示「撤销清空」。`)) return false; captureSafetySnapshot("reset");
-  status={}; memory={}; fsrsReviewLog=[]; fsrsReviewMonthly={}; roundHandwriting={}; traceTutorialShown=false; quality={}; tuning={calibrated:false, offset:0, contextStrict:0, rounds:[]}; preference="balanced"; libraryState=normalizeLibrary(null); fontScaleLarge=false; applyFontScale(); opens=[today()]; customWords=[]; addedChars=[]; wildState=normalizeWildState(null); handCardPref=normalizeHandCardPref(null); activity=newActivity(); funnel=newFunnel(); backupMeta=normalizeBackupMeta(null); summaryBackupHintVisible=false; reminder=normalizeReminder(null); sound=normalizeSound(null); stopAmbient(true); saveSound(); save(LIB_KEY,libraryState); renderSoundUI(); renderHandCardPref(); hideHandCardPrompt(); save(HAND_CARD_KEY,handCardPref); saveReminder(); syncReminder(); save(DECK_KEY,status); save(MEMORY_KEY,memory); saveFSRSLog(); save(TRACE_TUTORIAL_KEY,false); save(QUALITY_KEY,quality); saveTuning(); save(PREF_KEY,preference); save(FONT_SCALE_KEY,false); save(OPEN_KEY,opens); save(CUSTOM_KEY,customWords); save(ADDED_KEY,addedChars); saveWildState(); saveActivity(); saveFunnel(); save(BACKUP_META_KEY,backupMeta); buildCustomCards(); removeStored(TOPIC_KEY); clearSessionSnapshot(); activeMode="new"; makeupTargetDay=""; sessionDone=new Set(); focusQueue=[]; renderHome(); $("dataBox").style.display="none"; showSafetyUndo(); return true; }
+  status={}; memory={}; fsrsReviewLog=[]; fsrsReviewMonthly={}; roundHandwriting={}; traceTutorialShown=false; quality={}; tuning={calibrated:false, offset:0, contextStrict:0, rounds:[]}; preference="balanced"; libraryState=normalizeLibrary(null); fontScaleLarge=false; applyFontScale(); opens=[today()]; customWords=[]; addedChars=[]; wildState=normalizeWildState(null); skippedState=normalizeSkippedState(null); handCardPref=normalizeHandCardPref(null); activity=newActivity(); funnel=newFunnel(); backupMeta=normalizeBackupMeta(null); summaryBackupHintVisible=false; reminder=normalizeReminder(null); sound=normalizeSound(null); stopAmbient(true); saveSound(); save(LIB_KEY,libraryState); renderSoundUI(); renderHandCardPref(); hideHandCardPrompt(); save(HAND_CARD_KEY,handCardPref); saveSkippedState(); hideSkipUndo(); saveReminder(); syncReminder(); save(DECK_KEY,status); save(MEMORY_KEY,memory); saveFSRSLog(); save(TRACE_TUTORIAL_KEY,false); save(QUALITY_KEY,quality); saveTuning(); save(PREF_KEY,preference); save(FONT_SCALE_KEY,false); save(OPEN_KEY,opens); save(CUSTOM_KEY,customWords); save(ADDED_KEY,addedChars); saveWildState(); saveActivity(); saveFunnel(); save(BACKUP_META_KEY,backupMeta); buildCustomCards(); removeStored(TOPIC_KEY); suspendedSessionPayload=null; roundCompletionSuppressed=false; clearSessionSnapshot(); activeMode="new"; makeupTargetDay=""; sessionDone=new Set(); focusQueue=[]; renderHome(); $("dataBox").style.display="none"; showSafetyUndo(); return true; }
 $("resetLink").onclick=resetAllData;
 $("safetyUndoBtn").onclick=()=>undoSafetyRestore();
 
 initBox(); renderHome();
 showSafetyUndo();
+showSkipUndo();
 if(legacySessionDiscarded||bootCorruptKeys.length){ if(legacySessionDiscarded) $("bootNotice").textContent="应用更新后，未完成的旧练习已安全结束；已盖章记录不受影响"; $("bootNotice").style.display="block"; setTimeout(()=>$("bootNotice").style.display="none",5000); }
 $("storageReload").onclick=()=>location.reload(); if(!storageReadable) showStorageGate(); else checkStoragePressure();
 try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(()=>{}); }catch(e){}

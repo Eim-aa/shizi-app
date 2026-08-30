@@ -502,7 +502,8 @@ let browser;
     calendarMonthKey = today().slice(0, 7); renderCalendar();
     const inheritedCopy = calendarMonthStat.textContent, inheritedAria = calendarMonthStat.getAttribute("aria-label");
     const complete = (id) => {
-      baseTargets = [idx]; batch = baseTargets; baseCursor = 1; unresolved = new Set(); practicePhase = "between";
+      baseTargets = [idx]; batch = baseTargets; baseCursor = 1; currentIndex = idx; currentAttemptId = `${id}-attempt`; manualQueue = []; reinforcementQueue = []; unresolved = new Set(); practicePhase = "between";
+      episodes = { [idx]: { idx, attempts: [{ attemptId: currentAttemptId, outcome: "fast" }] } };
       roundStats = [{ idx, target: "器", outcome: "fast" }]; roundId = id;
       return markRoundComplete();
     };
@@ -708,7 +709,7 @@ let browser;
       unique: new Set(DAILY_MOTTOS.map((entry) => entry.text)).size,
       entries: DAILY_MOTTOS.map((entry) => ({ ...entry })),
     };
-    const overflow = DAILY_MOTTOS.map((entry) => { setDailyMotto(homeMotto, entry); return { text: entry.text, source: homeMotto.querySelector(".mSrc")?.textContent, scroll: homeMotto.scrollHeight, client: homeMotto.clientHeight }; });
+    const overflow = DAILY_MOTTOS.map((entry) => { setDailyMotto(homeMotto, entry); const box=homeMotto.getBoundingClientRect(),nodes=Array.from(homeMotto.querySelectorAll(".mLine,.mSrc")).map(node=>node.getBoundingClientRect()); return { text: entry.text, source: homeMotto.querySelector(".mSrc")?.textContent, parts:Array.from(homeMotto.querySelectorAll(".mLine")).map(node=>Array.from(node.textContent).length), inside:nodes.every(rect=>rect.left>=box.left-1&&rect.right<=box.right+1&&rect.top>=box.top-1&&rect.bottom<=box.bottom+1) }; });
     applyDailyMotto(key); button.click();
     const clicked = { mode: activeMode, current: currentCardIndex(), cardVisible: getComputedStyle(card).display !== "none" };
     loadToken++; clearSessionSnapshot(); focusQueue = []; sessionDone = new Set();
@@ -729,7 +730,7 @@ let browser;
     && dailyRitual.beforeClick.word === dailyRitual.candidate.word && dailyRitual.beforeClick.py === dailyRitual.candidate.py && dailyRitual.beforeClick.homeMotto.includes(dailyRitual.motto.text) && dailyRitual.beforeClick.welcomeMotto.includes(dailyRitual.motto.text)
     && dailyRitual.beforeClick.source === dailyRitual.beforeClick.expectedSource,
   "Expected the daily card to expose one eligible character, context word, pinyin, and synchronized sourced motto", dailyRitual);
-  assert(dailyRitual.overflow.every((row) => row.scroll <= row.client + 1 && row.source) && dailyRitual.clicked.mode === "focus" && dailyRitual.clicked.current === dailyRitual.idx && dailyRitual.clicked.cardVisible && dailyRitual.retired,
+  assert(dailyRitual.overflow.every((row) => row.inside && row.source && row.parts.every(size=>size!==1)) && dailyRitual.clicked.mode === "focus" && dailyRitual.clicked.current === dailyRitual.idx && dailyRitual.clicked.cardVisible && dailyRitual.retired,
     "Expected every sourced motto to fit, daily-character click to start focus practice, and the card to retire after today's first stamp", dailyRitual);
   const mottoContrast = {};
   for (const colorScheme of ["light", "dark"]) {
@@ -886,7 +887,8 @@ let browser;
     const exclusion = { unresolved: unresolved.size, queued: reinforcementQueue.length, excluded: episodeFor(indexes[0]).excluded, pending: cardMemory(indexes[0]).pendingLearning };
 
     const modeCompletion = ["new", "review", "focus", "calibrate"].map((mode) => {
-      activeMode = mode; baseTargets = indexes.slice(0, 1); batch = baseTargets; baseCursor = 1; unresolved = new Set(); practicePhase = "between";
+      activeMode = mode; baseTargets = indexes.slice(0, 1); batch = baseTargets; baseCursor = 1; currentIndex = indexes[0]; currentAttemptId = `verify-${mode}-complete`; manualQueue = []; reinforcementQueue = []; unresolved = new Set(); practicePhase = "between";
+      episodes = { [currentIndex]: { idx: currentIndex, attempts: [{ attemptId: currentAttemptId, outcome: "fast" }] } };
       const complete = roundIsComplete(); unresolved.add(indexes[0]); const blocked = !roundIsComplete(); return { mode, complete, blocked };
     });
 
@@ -911,11 +913,11 @@ let browser;
     const originalRender = render, originalRenderHome = renderHome, originalToast = toast;
     render = () => {}; renderHome = () => {}; toast = () => {};
     const setup = ({ attempts = 20, elapsed = 0, includeManual = false } = {}) => {
-      activeMode = "focus"; focusQueue = indexes.slice(); baseTargets = indexes.slice(); batch = baseTargets; baseCursor = indexes.length;
+      activeMode = "new"; focusQueue = []; suspendedSessionPayload = null; roundCompletionSuppressed = false; baseTargets = indexes.slice(); batch = baseTargets; baseCursor = indexes.length;
       currentIndex = indexes[2]; currentAttemptKind = "base"; currentAttemptId = "verify-rhythm"; practicePhase = "between";
       manualQueue = includeManual ? [{ idx: indexes[2], kind: "repeat" }] : [];
       reinforcementQueue = [{ idx: indexes[1], eligibleAfter: 0, order: 1 }, { idx: indexes[0], eligibleAfter: 0, order: 2 }];
-      unresolved = new Set(indexes.slice(0, 2)); episodes = {}; attemptSeq = attempts; roundId = `verify-rhythm-${attempts}-${elapsed}`;
+      unresolved = new Set(indexes.slice(0, 2)); episodes = { [currentIndex]: { idx: currentIndex, attempts: [{ attemptId: currentAttemptId, outcome: "fast" }] } }; attemptSeq = attempts; roundId = `verify-rhythm-${attempts}-${elapsed}`;
       roundStats = indexes.map((idx) => ({ idx, target: CARDS[idx].target, outcome: idx === indexes[2] ? "fast" : "slow" }));
       sessionDone = new Set(indexes); roundElapsedMs = elapsed; roundActiveStartedAt = Date.now(); roundBudgetPrompted = false;
       activity = newActivity(); activity.inheritedTotalDays = 0; activity.inheritedStreak = 0; activity.daily = {}; activity.practiceDays = [];
@@ -965,10 +967,8 @@ let browser;
     renderHome();
   });
 
-  await page.click("#homeAdd");
-  const homeCapture = await page.evaluate(() => ({ open: addSheet.classList.contains("open"), label: homeAdd.textContent.replace(/\s+/g, ""), mainVisible: getComputedStyle(startBtn).display !== "none" }));
-  assert(homeCapture.open && homeCapture.label === "收字" && homeCapture.mainVisible, "Expected the compact home collection entry to open the existing add sheet", homeCapture);
-  await page.click("#addCancel");
+  const homeCapture = await page.evaluate(() => ({ addAbsent: !document.getElementById("homeAdd"), mainVisible: getComputedStyle(startBtn).display !== "none", scheduledReviewEntries: home.querySelectorAll("[data-review-entry]").length }));
+  assert(homeCapture.addAbsent && homeCapture.mainVisible && homeCapture.scheduledReviewEntries === 0, "Expected Home to keep the system practice button as its only scheduled entry and omit character collection", homeCapture);
 
   await page.click("#tabMe");
   const me = await page.evaluate(() => ({ visible: getComputedStyle(mePanel).display !== "none", calendar: !!calendarGrid.querySelector(".calendarDay"), groups: [meCalendar, openProfile, document.querySelector(".meMonthCard"), document.querySelector(".mePrimaryRows"), annualReportLink].filter(Boolean).length, noStats: !document.querySelector(".meStats"), settingsHidden: getComputedStyle(settingsPanel).display === "none" }));
@@ -1009,12 +1009,23 @@ let browser;
   assert(nonMissWeakPreview.preview.length === 0 && nonMissWeakPreview.advice === "目前没有记录到没写出的字。" && nonMissWeakPreview.profile.indexes.length === 0 && nonMissWeakPreview.profile.empty && nonMissWeakPreview.profile.disabled,
     "Expected hint-only and slow-only records to stay out of the miss-based preview and detail", nonMissWeakPreview);
   await page.click("#tabBook");
+  const inputBaseline = await page.evaluate(() => ({ custom:customWords.length, memory:JSON.stringify(memory), counts:LIBRARIES.map(lib=>libraryCounts(lib).total) }));
   await page.fill("#bookSearchInput", "蘸料");
-  await page.click("#bookSearchResult [data-book-add]");
-  await page.fill("#addInput", "蘸料");
-  await page.click("#addConfirm");
-  const add = await page.evaluate(() => ({ added: addedChars.includes("蘸") && addedChars.includes("料"), indexed: indexesForChars(["蘸", "料"]).length === 2, queued: indexesForChars(["蘸", "料"]).every((idx) => (memory[cardKey(idx)] || {}).queuedFront) }));
-  assert(add.added && add.indexed && add.queued, "Expected add-character workflow to persist and queue new cards", add);
+  const multiSearch = await page.evaluate(() => ({ copy:bookSearchResult.textContent, custom:customWords.length, memory:JSON.stringify(memory) }));
+  await page.click("#bookSearchResult [data-book-practice]");
+  const directPractice = await page.evaluate(() => ({ mode:activeMode, targets:baseTargets.map(idx=>CARDS[idx].target), custom:customWords.length, memory:JSON.stringify(memory), completed:todayCompleted(), stored:load(SESSION_KEY,null) }));
+  assert(multiSearch.copy.includes("练这几个字") && multiSearch.custom === inputBaseline.custom && multiSearch.memory === inputBaseline.memory
+    && directPractice.mode === "focus" && directPractice.targets.join("") === "蘸料" && directPractice.custom === inputBaseline.custom && directPractice.memory === inputBaseline.memory && !directPractice.completed && directPractice.stored.activeMode === "focus",
+  "Expected multi-character input to stay read-only until one explicit action starts an exact focus group without ability or completion data", { inputBaseline, multiSearch, directPractice });
+  await page.evaluate(() => exitCurrentRound(false));
+  const delayedCustom = await page.evaluate(() => { let ch=""; for(let cp=0x4e00;cp<=0x9fff;cp++){ const value=String.fromCodePoint(cp); if(BASE_BY_CHAR[value]==null&&customIndexOf(value)<0){ ch=value; break; } } bookSearchInput.value=ch; handleBookSearchInput(); return { ch, before:customWords.length, cards:CARDS.length, counts:LIBRARIES.map(lib=>libraryCounts(lib).total), copy:bookSearchResult.textContent }; });
+  const delayedBeforeClick = await page.evaluate(() => ({ custom:customWords.length, cards:CARDS.length }));
+  await page.click("#bookSearchResult [data-book-practice]");
+  const delayedAfterClick = await page.evaluate(() => ({ mode:activeMode, target:CARDS[currentCardIndex()].target, custom:customWords.length, cards:CARDS.length, counts:LIBRARIES.map(lib=>libraryCounts(lib).total) }));
+  assert(delayedCustom.copy.includes("开始时会建立个人字卡") && delayedBeforeClick.custom === delayedCustom.before && delayedBeforeClick.cards === delayedCustom.cards
+    && delayedAfterClick.mode === "focus" && delayedAfterClick.target === delayedCustom.ch && delayedAfterClick.custom === delayedCustom.before + 1 && delayedAfterClick.cards === delayedCustom.cards + 1
+    && delayedAfterClick.counts.join() === delayedCustom.counts.join(), "Expected an outside-base character to create one personal card only when practice starts without changing four-library counts", { delayedCustom, delayedBeforeClick, delayedAfterClick });
+  await page.evaluate(() => exitCurrentRound(false));
 
   await page.evaluate(() => {
     const idx = CARDS.findIndex((card) => card.target === "器");
@@ -1025,7 +1036,7 @@ let browser;
   assert(meStory.weak.includes("器") && meStory.advice === "这些字在练习中没写出来过" && meStory.calendarStat.includes("累计") && meStory.month.includes("个独立写出") && meStory.settings && meStory.backup.length > 0, "Expected My to place real weak words, calendar days, monthly work, settings, and backup in context", meStory);
   await page.click("#meWeakChars [data-char-idx]");
   const detail = await page.evaluate(() => ({ open: charSheet.classList.contains("open"), word: charDetailWord.textContent, story: charDetailStory.textContent, actions: [charDetailStrokeBtn.textContent, charDetailPractice.textContent] }));
-  assert(detail.open && detail.word.length > 0 && detail.story.includes("练过") && detail.actions.join() === "看笔顺,再写一遍", "Expected a weak word to open its factual detail sheet", detail);
+  assert(detail.open && detail.word.length > 0 && detail.story.includes("练过") && detail.actions.join() === "看笔顺,练这个字", "Expected a weak word to open its factual detail sheet", detail);
   await page.evaluate(() => closeCharSheet());
   await page.click("#openProfile");
   const profileInsight = await page.evaluate(() => ({ visible: getComputedStyle(profilePanel).display !== "none", title: profilePanel.querySelector("h2").textContent, forbidden: /掌握感|易忘度|卡点分析/.test(profilePanel.textContent), rows: profilePanel.querySelectorAll("[data-profile-kind],[data-char-idx]").length }));
@@ -1033,8 +1044,8 @@ let browser;
   await page.click("#closeProfile");
   assert(await page.evaluate(() => getComputedStyle(mePanel).display !== "none"), "Expected a Profile opened from My to return to My");
   await page.click("#tabBook");
-  const wall = await page.evaluate(() => ({ count: memoryWall.querySelectorAll(".memoryChar").length, expected: profileIndexes().length, columns: getComputedStyle(memoryWall).gridTemplateColumns.split(" ").length, labels: memoryWall.querySelectorAll(".dot,.outcomeMark").length, colors: new Set(Array.from(memoryWall.querySelectorAll(".memoryChar")).map(node => getComputedStyle(node).color)).size, curator: bookCurator.textContent, search: bookSearchInput.placeholder }));
-  assert(wall.count === wall.expected && wall.columns === 6 && wall.labels === 0 && wall.colors >= 1 && wall.curator.length > 0 && wall.search.includes("找一个字"), "Expected the complete six-column memory wall with ink-only state and unified search", wall);
+  const wall = await page.evaluate(() => ({ count: memoryWall.querySelectorAll(".memoryChar").length, expected: profileIndexes().length, columns: getComputedStyle(memoryWall).gridTemplateColumns.split(" ").length, labels: memoryWall.querySelectorAll(".dot,.outcomeMark").length, colors: new Set(Array.from(memoryWall.querySelectorAll(".memoryChar")).map(node => getComputedStyle(node).color)).size, curatorAbsent:!document.getElementById("bookCurator"), search: bookSearchInput.placeholder, searchRole:bookSearchInput.getAttribute("role"), searchAria:bookSearchInput.getAttribute("aria-label"), photoAria:bookPhoto.getAttribute("aria-label") }));
+  assert(wall.count === wall.expected && wall.columns === 6 && wall.labels === 0 && wall.colors >= 1 && wall.curatorAbsent && wall.search === "输入一个或多个汉字" && wall.searchRole === "searchbox" && wall.searchAria === "输入想练的字" && wall.photoAria.includes("拍照识别"), "Expected a complete six-column wall with one unified explicit-practice input and no aggregate review entry", wall);
 
   await page.setViewportSize({ width: 320, height: 568 });
   await page.evaluate(() => { fontScaleLarge = true; save(FONT_SCALE_KEY, true); applyFontScale(); startFocus([CARDS.findIndex((card) => card.target === "器")]); });
@@ -1090,40 +1101,22 @@ let browser;
     && ambientLifecycle.sources.at(-1).started === 1 && ambientLifecycle.sources.at(-1).stops === 0 && ambientLifecycle.pending === 0 && ambientLifecycle.active === 1 && ambientLifecycle.activeIsLatest && ambientLifecycle.scene === "rain",
   "Expected rapid leave/return and scene changes to stop every old loop exactly once and retain only the latest source", ambientLifecycle);
 
-  const stoveFirstDown = await page.evaluate(() => {
-    tuning.chromeFadeSeen = false; saveTuning(); resetWritingChrome(); clearInk(); done.disabled=false; done.focus(); const focusedBefore=document.activeElement===done, rect=inkCanvas.getBoundingClientRect();
-    const pointer=(type,x,y,buttons)=>new PointerEvent(type,{bubbles:true,cancelable:true,pointerId:72001,pointerType:"touch",isPrimary:true,button:0,buttons,clientX:rect.left+x,clientY:rect.top+y});
-    inkCanvas.dispatchEvent(pointer("pointerdown",30,34,1)); const down={writing:card.classList.contains("writing"),header:getComputedStyle(document.querySelector(".chdr")).opacity};
-    inkCanvas.dispatchEvent(pointer("pointermove",92,96,1)); inkCanvas.dispatchEvent(pointer("pointerup",92,96,0));
-    done.focus(); const hiddenNodes=writingChromeNodes(), completed={writing:card.classList.contains("writing"),seen:tuning.chromeFadeSeen,stored:load(TUNING_KEY,{}).chromeFadeSeen,actionsPointer:getComputedStyle(actions).pointerEvents,toolOpacity:Number(getComputedStyle(tip).opacity),
-      focusedBefore,focusBlocked:document.activeElement!==done,focusOutside:hiddenNodes.every(node=>node!==document.activeElement&&!node.contains(document.activeElement)),inert:hiddenNodes.every(node=>node.inert&&node.getAttribute("aria-hidden")==="true"),toolsAvailable:[tip,undoStroke,clear].every(node=>!node.inert&&node.getAttribute("aria-hidden")!=="true")};
-    return {down,done:completed};
-  });
-  await page.waitForFunction(() => card.classList.contains("writing") && Number(getComputedStyle(document.querySelector(".chdr")).opacity) <= .01 && Number(getComputedStyle(actions).opacity) <= .01);
-  await page.keyboard.press("Enter");
-  const stoveFaded = await page.evaluate(() => ({ header:Number(getComputedStyle(document.querySelector(".chdr")).opacity), actions:Number(getComputedStyle(actions).opacity) }));
-  assert(!stoveFirstDown.down.writing && Number(stoveFirstDown.down.header) === 1 && stoveFirstDown.done.writing && stoveFirstDown.done.seen && stoveFirstDown.done.stored
-    && stoveFaded.header <= .01 && stoveFaded.actions <= .01 && stoveFirstDown.done.actionsPointer === "none" && stoveFirstDown.done.toolOpacity > 0.25 && stoveFirstDown.done.toolOpacity < 0.35
-    && stoveFirstDown.done.focusedBefore && stoveFirstDown.done.focusBlocked && stoveFirstDown.done.focusOutside && stoveFirstDown.done.inert && stoveFirstDown.done.toolsAvailable && !await page.evaluate(() => revealed),
-  "Expected the first-ever stroke to hide and inert chrome without exposing its actions or corner tools to the wrong accessibility state", { stoveFirstDown, stoveFaded });
-  await page.waitForFunction(() => !card.classList.contains("writing") && Number(getComputedStyle(document.querySelector(".chdr")).opacity) >= .99 && Number(getComputedStyle(actions).opacity) >= .99, null, { timeout: 3000 });
-  const stoveReturnAndSecond = await page.evaluate(() => {
-    const returned=!card.classList.contains("writing") && Number(getComputedStyle(document.querySelector(".chdr")).opacity) >= .99 && writingChromeNodes().every(node=>!node.inert&&node.getAttribute("aria-hidden")!=="true"), rect=inkCanvas.getBoundingClientRect();
-    const pointer=(type,x,y,buttons)=>new PointerEvent(type,{bubbles:true,cancelable:true,pointerId:72002,pointerType:"touch",isPrimary:true,button:0,buttons,clientX:rect.left+x,clientY:rect.top+y});
-    inkCanvas.dispatchEvent(pointer("pointerdown",44,50,1)); const immediate=card.classList.contains("writing");
-    inkCanvas.dispatchEvent(pointer("pointermove",98,103,1)); inkCanvas.dispatchEvent(pointer("pointerup",98,103,0)); clearInk();
-    return {returned,immediate};
-  });
-  await page.waitForFunction(() => card.classList.contains("writing") && Number(getComputedStyle(document.querySelector(".chdr")).opacity) <= .01);
-  const stoveSecondFaded = await page.evaluate(() => {
-    const faded=Number(getComputedStyle(document.querySelector(".chdr")).opacity) <= .01; resetWritingChrome(); unlockGradeActions();
-    const original=window.matchMedia; window.matchMedia=()=>({matches:true}); roundOpeningPending=true; const reducedOpening=playRoundOpening(); const direct=!practiceArea.classList.contains("opening"); window.matchMedia=original;
-    return {faded,reducedOpening,direct};
-  });
-  assert(stoveReturnAndSecond.returned && stoveReturnAndSecond.immediate && stoveSecondFaded.faded && !stoveSecondFaded.reducedOpening && stoveSecondFaded.direct,
-    "Expected two-second chrome return, immediate later-stroke fade, and direct reduced-motion opening", { stoveReturnAndSecond, stoveSecondFaded });
-
-  await submitStandard(page);
+  await page.evaluate(() => { resetWritingChrome(); clearInk(); done.disabled=false; });
+  const writingRect=await page.locator("#boxwrap canvas.inkc").boundingBox();
+  const pointerHit=await page.evaluate(()=>{ const rect=inkCanvas.getBoundingClientRect(); let point=null; for(const fy of [.2,.35,.5,.65,.8]) for(const fx of [.2,.35,.5,.65,.8]){ const x=rect.left+rect.width*fx,y=rect.top+rect.height*fy; if(document.elementFromPoint(x,y)===inkCanvas){ point={x,y}; break; } } const hit=point&&document.elementFromPoint(point.x,point.y); return {point,hit:hit&&hit.className,card:getComputedStyle(card).display,practice:getComputedStyle(practiceArea).display,reveal:getComputedStyle(reveal).display,canvas:getComputedStyle(inkCanvas).pointerEvents,rect:rect.toJSON()}; });
+  assert(pointerHit.point,"Expected an exposed point on the real handwriting canvas",pointerHit);
+  const touchSession=await page.context().newCDPSession(page),touchStart=pointerHit.point,touchEnd={x:Math.min(writingRect.x+writingRect.width-12,pointerHit.point.x+66),y:Math.min(writingRect.y+writingRect.height-12,pointerHit.point.y+68)};
+  await touchSession.send("Input.dispatchTouchEvent",{type:"touchStart",touchPoints:[touchStart]});
+  const duringRealPointer=await page.evaluate(() => ({header:Number(getComputedStyle(document.querySelector(".chdr")).opacity),prompt:Number(getComputedStyle(document.getElementById("prompt")).opacity),actions:Number(getComputedStyle(actions).opacity),writing:card.classList.contains("writing"),locked:actions.classList.contains("inputLock")&&skipAction.classList.contains("inputLock")}));
+  await touchSession.send("Input.dispatchTouchEvent",{type:"touchMove",touchPoints:[touchEnd]}); await touchSession.send("Input.dispatchTouchEvent",{type:"touchEnd",touchPoints:[]}); await touchSession.detach();
+  const afterRealPointer=await page.evaluate(() => ({header:Number(getComputedStyle(document.querySelector(".chdr")).opacity),prompt:Number(getComputedStyle(document.getElementById("prompt")).opacity),actions:Number(getComputedStyle(actions).opacity),writing:card.classList.contains("writing"),cooldown:actionCooldownUntil,locked:actions.classList.contains("inputLock")||skipAction.classList.contains("inputLock"),inert:writingChromeNodes().some(node=>node.inert||node.getAttribute("aria-hidden")==="true"),ink:inkStrokes.length}));
+  assert(duringRealPointer.header===1&&duringRealPointer.prompt===1&&duringRealPointer.actions===1&&!duringRealPointer.writing&&duringRealPointer.locked
+    &&afterRealPointer.header===1&&afterRealPointer.prompt===1&&afterRealPointer.actions===1&&!afterRealPointer.writing&&afterRealPointer.cooldown===0&&!afterRealPointer.locked&&!afterRealPointer.inert&&afterRealPointer.ink===1,
+    "Expected a real pointer stroke to keep layout stable and unlock grading immediately on release", {pointerHit,duringRealPointer,afterRealPointer});
+  const reducedOpening = await page.evaluate(() => { const original=window.matchMedia; window.matchMedia=()=>({matches:true}); roundOpeningPending=true; const played=playRoundOpening(),direct=!practiceArea.classList.contains("opening"); window.matchMedia=original; return {played,direct}; });
+  assert(!reducedOpening.played&&reducedOpening.direct,"Expected reduced motion to keep the round opening direct",reducedOpening);
+  await page.click("#done");
+  assert(await page.evaluate(()=>revealed&&getComputedStyle(reveal).display!=="none"),"Expected grading to be available on the first frame after the real pointer release");
   await page.evaluate(() => { sound.enabled = true; soundDebug.events = []; soundDebug.last = null; sound.tipShown = false; saveSound(); });
   await chooseCorrect(page);
   const stampSound = await page.evaluate(() => ({ last: soundDebug.last, events: soundDebug.events.slice(), tipShown: sound.tipShown, tip: document.getElementById("toast").textContent, contextCreated: soundDebug.contextCreated }));
@@ -1375,39 +1368,36 @@ let browser;
   await submitStandard(page);
   await chooseCorrect(page);
   const repeatTarget = await page.evaluate(() => cur.target);
-  await page.evaluate(() => openAddSheet());
-  await page.fill("#addInput", repeatTarget);
-  const repeatExit = await page.evaluate(() => {
-    confirmAdd();
-    const before = { baseCursor, total: baseTargets.length, queue: cloneObj(manualQueue), phase: practicePhase };
+  const repeatExit = await page.evaluate((target) => {
+    const before = cloneObj(load(SESSION_KEY, null));
+    const started = startRequestedCharacters(target, { returnView: "book" });
+    const focused = { target: cur.target, mode: activeMode, suspended: cloneObj(suspendedSessionPayload), session: cloneObj(load(SESSION_KEY, null)) };
     exitCurrentRound(false);
-    return { before, saved: load(SESSION_KEY, null), home: getComputedStyle(home).display !== "none" };
+    return { before, started, focused, saved: load(SESSION_KEY, null), book: getComputedStyle(studybook).display !== "none" };
+  }, repeatTarget);
+  assert(repeatExit.started && repeatExit.book && repeatExit.focused.mode === "focus" && repeatExit.focused.target === repeatTarget
+    && repeatExit.focused.suspended.practicePhase === "feedback" && repeatExit.focused.suspended.currentCardKey === repeatExit.before.currentCardKey
+    && repeatExit.saved.practicePhase === "feedback" && repeatExit.saved.currentCardKey === repeatExit.before.currentCardKey,
+  "Expected a Library focus practice to suspend and restore the final-card feedback exactly", repeatExit);
+  const repeatRestore = await page.evaluate(() => {
+    const saved = load(SESSION_KEY, null), restored = restoreSession(saved);
+    return { restored, summary: getComputedStyle(summary).display, phase: practicePhase, current: cardKey(currentCardIndex()), session: load(SESSION_KEY, null) };
   });
-  assert(repeatExit.home && repeatExit.before.baseCursor === 1 && repeatExit.before.total === 2 && repeatExit.before.phase === "feedback"
-    && repeatExit.before.queue.length === 1 && repeatExit.before.queue[0].kind === "repeat" && repeatExit.saved.manualQueue.length === 1,
-  "Expected a last-card feedback addition to save its pending repeat before returning home", repeatExit);
-  await page.waitForFunction(() => history.state && history.state.shiziView === "home");
-  await page.click("#startBtn");
-  await page.waitForFunction(() => practiceHistoryArmed && getComputedStyle(card).display !== "none");
-  const repeatRestore = await page.evaluate(() => ({ summary: getComputedStyle(summary).display, phase: practicePhase, queue: cloneObj(manualQueue), session: load(SESSION_KEY, null) }));
-  assert(repeatRestore.summary === "none" && repeatRestore.phase === "feedback" && repeatRestore.queue.length === 1 && repeatRestore.session,
-  "Expected restore to keep the final-card feedback and pending manual repeat instead of summarizing", repeatRestore);
-  await page.waitForFunction((target) => currentAttemptKind === "manual" && cur.target === target && practicePhase === "recall", repeatTarget);
-  const repeatedAfterRestore = await page.evaluate(() => ({ target: cur.target, kind: currentAttemptKind, queue: manualQueue.length, total: baseTargets.length, summary: getComputedStyle(summary).display, session: load(SESSION_KEY, null) }));
-  assert(repeatedAfterRestore.target === repeatTarget && repeatedAfterRestore.kind === "manual" && repeatedAfterRestore.queue === 0 && repeatedAfterRestore.total === 2 && repeatedAfterRestore.summary === "none" && repeatedAfterRestore.session,
-  "Expected the restored next card to consume the queued repeat without growing the group", repeatedAfterRestore);
+  assert(repeatRestore.restored && repeatRestore.summary === "none" && repeatRestore.phase === "feedback"
+    && repeatRestore.current === repeatExit.before.currentCardKey && repeatRestore.session,
+  "Expected the suspended ordinary feedback to remain resumable after leaving focus practice", repeatRestore);
 
   const completionHaptics = await page.evaluate(async () => {
     exitCurrentRound(); clearSessionSnapshot();
     activity = newActivity(); activity.inheritedStreak = 0; activity.inheritedTotalDays = 0; activity.daily = {}; activity.practiceDays = []; saveActivity();
     reminder.milestonesShown = []; saveReminder(); tuning = { calibrated: true, offset: 0, contextStrict: 0, rounds: [] }; saveTuning(); activeMode = "new";
     const indexes = indexesForChars(["强", "器", "疑"]);
-    baseTargets = indexes.slice(0, 2); batch = baseTargets; baseCursor = baseTargets.length; manualQueue = []; unresolved = new Set(); practicePhase = "between";
+    baseTargets = indexes.slice(0, 2); batch = baseTargets; baseCursor = baseTargets.length; currentIndex = baseTargets.at(-1); currentAttemptId = "verify-milestone-attempt"; manualQueue = []; reinforcementQueue = []; unresolved = new Set(); practicePhase = "between"; episodes = { [currentIndex]: { idx: currentIndex, attempts: [{ attemptId: currentAttemptId, outcome: "fast" }] } };
     roundStats = baseTargets.map((idx) => ({ idx, target: CARDS[idx].target, outcome: "fast", independentlyRecovered: false })); roundId = "verify-milestone";
     baseTargets.forEach((idx) => markPracticeStamp(idx)); hapticDebug.events = []; hapticDebug.last = null; roundSummary(true);
     const milestoneDelay = parseFloat(getComputedStyle(summaryBigSeal).animationDelay) * 1000, milestoneImmediate = hapticDebug.events.slice();
     await new Promise((resolve) => setTimeout(resolve, milestoneDelay + 100)); const milestone = hapticDebug.events.slice();
-    baseTargets = indexes.slice(2); batch = baseTargets; baseCursor = baseTargets.length; manualQueue = []; unresolved = new Set(); practicePhase = "between";
+    baseTargets = indexes.slice(2); batch = baseTargets; baseCursor = baseTargets.length; currentIndex = baseTargets.at(-1); currentAttemptId = "verify-ordinary-attempt"; manualQueue = []; reinforcementQueue = []; unresolved = new Set(); practicePhase = "between"; episodes = { [currentIndex]: { idx: currentIndex, attempts: [{ attemptId: currentAttemptId, outcome: "fast" }] } };
     roundStats = baseTargets.map((idx) => ({ idx, target: CARDS[idx].target, outcome: "fast", independentlyRecovered: false })); roundId = "verify-ordinary";
     baseTargets.forEach((idx) => markPracticeStamp(idx)); hapticDebug.events = []; hapticDebug.last = null; roundSummary(true);
     const ordinaryDelay = parseFloat(getComputedStyle(summaryBigSeal).animationDelay) * 1000, ordinaryImmediate = hapticDebug.events.slice();
@@ -1425,7 +1415,7 @@ let browser;
     reminder = normalizeReminder({ milestonesShown: [1], characterMilestonesShown: [] }); saveReminder();
     tuning = { calibrated: false, offset: 0, contextStrict: 0, rounds: [] }; saveTuning(); activeMode = "calibrate";
     const indexes = ["器", "疑", "强", "料"].map((target) => CARDS.findIndex((card) => card.target === target));
-    baseTargets = indexes.slice(); batch = baseTargets; calibrationTargets = baseTargets.slice(); baseCursor = baseTargets.length; manualQueue = []; unresolved = new Set(); practicePhase = "between";
+    baseTargets = indexes.slice(); batch = baseTargets; calibrationTargets = baseTargets.slice(); baseCursor = baseTargets.length; currentIndex = baseTargets.at(-1); currentAttemptId = "verify-p1-ceremony-attempt"; manualQueue = []; reinforcementQueue = []; unresolved = new Set(); practicePhase = "between"; episodes = { [currentIndex]: { idx: currentIndex, attempts: [{ attemptId: currentAttemptId, outcome: "miss" }] } };
     roundStats = [
       { idx: indexes[0], target: CARDS[indexes[0]].target, outcome: "fast", independentlyRecovered: false },
       { idx: indexes[1], target: CARDS[indexes[1]].target, outcome: "hinted", uncertain: true, independentlyRecovered: true },
@@ -1485,12 +1475,12 @@ let browser;
     memory[cardKey(idx)] = { seen: 1, last: Date.now(), streak: 2, lastOutcome: "fast", dueDay: today(), due: dayStartMs(today()) }; status = { [idx]: "rest" }; saveMemory(); save(DECK_KEY, status); activity = newActivity(); saveActivity(); renderHome(); const breathes = startBtn.classList.contains("dueBreathe");
     activeMode = "focus"; baseTargets = [idx]; batch = baseTargets; baseCursor = 0; currentIndex = idx; currentAttemptKind = "base"; currentAttemptId = "verify-auto-overlay"; episodes = {}; roundStats = []; unresolved = new Set(); manualQueue = []; practicePhase = "recall"; cur = CARDS[idx]; stamped = false; revealed = false; lastVerdict = null; hintEverUsed = false; hintsUsedThisCard = 0;
     submissionSnapshot = Object.freeze({ target: cur.target, idx, attemptId: currentAttemptId, createdAt: Date.now(), hintStrokeIds: [], hintCount: 0, hintStrokes: [], inkStrokes: [], referenceStrokes: [], compositeGeometry: [], compositeImage: null, hintEverUsed: false, enteredTracing: false, practicePhase: "recall", lastVerdict: null, userCorrect: null });
-    showRevealState(submissionSnapshot); decideSubmission(false); const autoOverlay = { on: overlayOn, display: getComputedStyle(mineOverlay).display, toggle: overlayToggle.textContent }; clearTimeout(autoNextTimer); clearTimeout(editStampTimer);
-    return { me, bars, wallEmpty, breathes, autoOverlay, homeAdd: !!homeAdd, qualityTargets: Array.from(qualityBox.querySelectorAll("button")).map((node) => parseFloat(getComputedStyle(node).minHeight)), compareTargets: Array.from(document.querySelectorAll(".cmpLinks button")).map((node) => parseFloat(getComputedStyle(node).minHeight)) };
+    showRevealState(submissionSnapshot); decideSubmission(false); const autoOverlay = { on: overlayOn, display: getComputedStyle(mineOverlay).display, toggle: overlayToggle.textContent, pressed:overlayToggle.getAttribute("aria-pressed"),group:document.querySelector(".cmpRow").getAttribute("aria-label") }; clearTimeout(autoNextTimer); clearTimeout(editStampTimer);
+    return { me, bars, wallEmpty, breathes, autoOverlay, homeAddAbsent: !document.getElementById("homeAdd"), qualityTargets: Array.from(qualityBox.querySelectorAll("button")).map((node) => parseFloat(getComputedStyle(node).minHeight)), compareTargets: Array.from(document.querySelectorAll(".cmpLinks button")).map((node) => parseFloat(getComputedStyle(node).minHeight)) };
   });
   assert(p1Discovery.me.calendar && p1Discovery.me.stat.includes("累计") && !p1Discovery.me.ready && p1Discovery.me.advice === "这些字在练习中没写出来过" && p1Discovery.me.weak.includes("器") && p1Discovery.bars === 0
-    && p1Discovery.wallEmpty && p1Discovery.breathes && p1Discovery.autoOverlay.on && p1Discovery.autoOverlay.display === "flex" && p1Discovery.autoOverlay.toggle === "分开看"
-    && p1Discovery.homeAdd && p1Discovery.qualityTargets.every((height) => height >= 44) && p1Discovery.compareTargets.every((height) => height >= 40),
+    && p1Discovery.wallEmpty && p1Discovery.breathes && !p1Discovery.autoOverlay.on && p1Discovery.autoOverlay.display === "none" && p1Discovery.autoOverlay.toggle === "叠起来对比" && p1Discovery.autoOverlay.pressed === "false" && p1Discovery.autoOverlay.group.includes("左侧是你的字迹")
+    && p1Discovery.homeAddAbsent && p1Discovery.qualityTargets.every((height) => height >= 44) && p1Discovery.compareTargets.every((height) => height >= 44),
   "Expected contextual My states, discoverable controls, an empty memory wall, and a due-card breathe cue", p1Discovery);
 
   await page.evaluate(() => {
@@ -1575,6 +1565,7 @@ let browser;
     canvas.dispatchEvent(pointer("pointerdown", 81052, false, 0.75, 0.7, 1));
     const entered = peeking && Number(canvas.style.opacity) <= 0.06 && hzEl.classList.contains("peekHint");
     const cancelled = partial > 0 && !drawing && curInkStroke === null && pixels() === 0;
+    const ariaUnlocked = !skipCard.hasAttribute("aria-disabled") && actionCooldownUntil === 0;
     canvas.dispatchEvent(pointer("pointermove", 81051, true, 0.65, 0.65, 1));
     canvas.dispatchEvent(pointer("pointermove", 81052, false, 0.8, 0.8, 1));
     const blocked = inkStrokes.length === 0 && curInkStroke === null && pixels() === 0;
@@ -1589,7 +1580,7 @@ let browser;
     canvas.dispatchEvent(pointer("pointerup", 81053, true, 0.55, 0.55, 0));
     const nextGestureWrites = inkStrokes.length === 1 && pixels() > 0;
     clearInk(); resetPeekHint(); actionCooldownUntil = 0;
-    return { controlEntered, consumedOnUse, controlRestored, uncounted, entered, cancelled, blocked, restoredOnAnyLift, releaseBlocked, ended, nextGestureWrites };
+    return { controlEntered, consumedOnUse, controlRestored, uncounted, entered, cancelled, ariaUnlocked, blocked, restoredOnAnyLift, releaseBlocked, ended, nextGestureWrites };
   });
   assert(Object.values(peekBoundary).every(Boolean), "Expected complete two-finger peek lifecycle without leaked ink", peekBoundary);
 
@@ -1692,7 +1683,8 @@ let browser;
   }));
   assert(completed.summary && completed.stats.length === 3 && completed.stats[0].outcome === "hinted" && completed.stats[0].independentlyRecovered && completed.stats.every((row) => !Object.prototype.hasOwnProperty.call(row,"handwriting")) && Object.values(completed.handwriting).some((strokes) => strokes.length) && Object.values(completed.handwriting).flat().every((stroke) => stroke.length <= 48), "Expected compact user ink to remain in memory without bloating persisted round stats", completed);
   assert(completed.log.map((event) => event.rating).join() === "Again,Good,Good,Good" && completed.log.every((event) => !["Hard", "Easy"].includes(event.rating)), "Expected Again/Good-only FSRS events", completed.log);
-  assert(completed.activity.stamps === 3 && completed.activity.attempts === 4 && completed.groups === 1 && completed.session === null, "Expected unique-day counts, attempt counts, and true completion", completed.activity);
+  assert(completed.activity.stamps === 3 && completed.activity.attempts === 4 && completed.groups === 0 && completed.activity.completedRoundIds.length === 0 && completed.session === null,
+  "Expected focus practice to count real writing without completing the default daily group", completed.activity);
   assert(Object.values(completed.memory).every((item) => !item.pendingLearning && item.dueDay >= completed.tomorrow && item.schedulerVersion.includes("FSRS-6.0")), "Expected graduated cards to expose next-day-or-later dueDay", completed.memory);
   assert(completed.restKnown && completed.restLine.length > 0 && completed.ambient.scene === "off" && completed.ambient.stops >= 1, "Expected one fixed-library closing line and soundscape fade on summary", completed);
 
@@ -1753,9 +1745,9 @@ let browser;
     targets: Array.from(document.querySelectorAll("#memoryWall .memoryChar[data-idx]")).map((node) => CARDS[Number(node.dataset.idx)].target).sort(),
     active: tabBook.classList.contains("active"),
   }));
-  assert(summaryLayer.tiles === 3 && summaryLayer.lead.includes("3") && summaryLayer.meanings.length === 3 && summaryLayer.meanings.every((item) => item.visible && item.text.length >= 2 && item.size >= 13) && homeLayer.title.includes("今日已拾三个字") && homeLayer.label === "今日拾得" && homeLayer.completed && bookLayer.count === "3字" && bookLayer.active
+  assert(summaryLayer.tiles === 3 && summaryLayer.lead.includes("3") && summaryLayer.meanings.length === 3 && summaryLayer.meanings.every((item) => item.visible && item.text.length >= 2 && item.size >= 13) && homeLayer.title.includes("今天拾") && !homeLayer.title.includes("今日已拾") && homeLayer.label === "今日拾得" && !homeLayer.completed && bookLayer.count === "3字" && bookLayer.active
     && summaryLayer.targets.join() === homeLayer.targets.join() && summaryLayer.targets.every((target) => bookLayer.targets.includes(target)),
-  "Expected the same completed targets across summary, home recent, and study-book layers", { summaryLayer, homeLayer, bookLayer });
+  "Expected focus-practice targets across summary, home recent, and Library without completing the daily group", { summaryLayer, homeLayer, bookLayer });
 
   await page.evaluate(() => { displayView("summary"); renderPracticePocket(summaryFocusIndexes, false); });
   const pocketBefore = await page.evaluate(() => ({ visible: getComputedStyle(pocketCard).display === "flex", indexes: summaryFocusIndexes.slice(), chips: Array.from(pocketChips.children).map((node) => node.textContent), title: pocketTitle.textContent, note: pocketCard.querySelector(".ptxt span").textContent, action: pocketBtn.textContent }));
@@ -1791,16 +1783,16 @@ let browser;
   await page.evaluate(() => { soundDebug.events = []; soundDebug.last = null; lastPaperSoundAt = 0; inkBegin({ x: 20, y: 20 }); inkMove({ x: 80, y: 80 }); inkEnd(); });
   await page.waitForTimeout(230);
   const traceStart = await page.evaluate(() => ({ title: phaseTitle.textContent, disabled: traceDone.disabled, introHidden: getComputedStyle(traceIntro).display === "none", shown: traceTutorialShown, stored: load(TRACE_TUTORIAL_KEY, false), sound: soundDebug.events.slice(), writing:card.classList.contains("writing"), chrome:Number(getComputedStyle(phaseTitle).opacity) }));
-  assert(traceStart.title.includes("第 1 步：描红") && !traceStart.disabled && traceStart.introHidden && traceStart.shown && traceStart.stored && traceStart.sound.join() === "paper" && traceStart.writing && traceStart.chrome === 0,
-    "Expected tracing to share stove mode while dismissing the explanation and emitting only the quiet paper-start sound", traceStart);
+  assert(traceStart.title.includes("第 1 步：描红") && !traceStart.disabled && traceStart.introHidden && traceStart.shown && traceStart.stored && traceStart.sound.join() === "paper" && !traceStart.writing && traceStart.chrome === 1,
+    "Expected tracing to keep stable chrome while dismissing the explanation and emitting only the quiet paper-start sound", traceStart);
   await page.evaluate(() => { saveSessionSnapshot(); restoreSession(load(SESSION_KEY, null)); });
   await page.waitForFunction(() => pendingSessionVisual === null && practicePhase === "tracing" && tracedThisCard && inkStrokes.length === 1);
   const restoredTracing = await page.evaluate(() => ({ phase: practicePhase, title: phaseTitle.textContent, outline: hzEl.childNodes.length > 0 || hzEl.classList.contains("traceFallback"), ink: inkStrokes.length }));
   assert(restoredTracing.phase === "tracing" && restoredTracing.title.includes("第 1 步：描红") && restoredTracing.outline && restoredTracing.ink === 1, "Expected tracing ink and outline to survive session restore", restoredTracing);
   await page.evaluate(() => { hapticDebug.events = []; hapticDebug.last = null; });
   await page.click("#traceDone");
-  const postTrace = await page.evaluate(() => ({ phase: practicePhase, title: phaseTitle.textContent, ink: inkStrokes.length, hintLayer: hzEl.textContent, fallback: hzEl.classList.contains("traceFallback"), tipDisabled: tip.disabled, tipDisplay: getComputedStyle(tip).display, show: show.textContent, clear: clear.textContent, haptics: hapticDebug.events.slice() }));
-  assert(postTrace.phase === "postTraceRecall" && postTrace.title.includes("第 2 步：自己写") && postTrace.ink === 0 && !postTrace.hintLayer && !postTrace.fallback && postTrace.tipDisabled && postTrace.tipDisplay === "none" && postTrace.show === "再描一遍" && postTrace.clear === "重写" && postTrace.haptics.length === 0, "Expected outline-free step-two recall with only its own final-named tools", postTrace);
+  const postTrace = await page.evaluate(() => { const before={idx:currentCardIndex(),cursor:baseCursor,queue:JSON.stringify(manualQueue)}, skipped=skipCurrentCard(); return { phase: practicePhase, title: phaseTitle.textContent, ink: inkStrokes.length, hintLayer: hzEl.textContent, fallback: hzEl.classList.contains("traceFallback"), tipDisabled: tip.disabled, tipDisplay: getComputedStyle(tip).display, skipHidden:getComputedStyle(skipAction).display==="none", skipBlocked:!skipped&&currentCardIndex()===before.idx&&baseCursor===before.cursor&&JSON.stringify(manualQueue)===before.queue, show: show.textContent, clear: clear.textContent, haptics: hapticDebug.events.slice() }; });
+  assert(postTrace.phase === "postTraceRecall" && postTrace.title.includes("第 2 步：自己写") && postTrace.ink === 0 && !postTrace.hintLayer && !postTrace.fallback && postTrace.tipDisabled && postTrace.tipDisplay === "none" && postTrace.skipHidden && postTrace.skipBlocked && postTrace.show === "再描一遍" && postTrace.clear === "重写" && postTrace.haptics.length === 0, "Expected outline-free step-two recall to hide and reject neutral skip without advancing another base card", postTrace);
   await page.evaluate(() => { saveSessionSnapshot(); restoreSession(load(SESSION_KEY, null)); });
   await page.waitForFunction(() => pendingSessionVisual === null && practicePhase === "postTraceRecall");
   const restoredPostTrace = await page.evaluate(() => ({ phase: practicePhase, title: phaseTitle.textContent, ink: inkStrokes.length, hintLayer: hzEl.textContent, fallback: hzEl.classList.contains("traceFallback"), tipDisabled: tip.disabled }));
@@ -1892,7 +1884,10 @@ let browser;
     };
     clearSessionSnapshot();
     const targets = uniqueCardIndexes(allIndexes().filter((idx) => qualityAvailable(idx) && !CARDS[idx].custom)).slice(0, 5);
-    const normalDay = shiftDay(today(), -1), makeupDay = shiftDay(today(), -2), untouchedDay = shiftDay(today(), -3), currentMonth = today().slice(0, 7);
+    const recentDays = Array.from({ length: 7 }, (_, index) => shiftDay(today(), -(index + 1)));
+    const calendarDays = Object.values(recentDays.reduce((groups, day) => { (groups[day.slice(0, 7)] ||= []).push(day); return groups; }, {})).find((days) => days.length >= 3);
+    const [normalDay, makeupDay, untouchedDay] = calendarDays, currentMonth = normalDay.slice(0, 7);
+    const beforeExpectedDays = [normalDay, today()].filter((day) => day.startsWith(currentMonth)).length;
     activity = normalizeActivity({ version: 1, migrationDate: today(), inheritedStreak: 0, inheritedTotalDays: 0, practiceDays: [normalDay, today()], daily: {} });
     const normal = dailyActivity(normalDay); normal.stamps = 1; normal.attempts = 1; normal.targetKeys = [cardKey(targets[0])]; normal.independentTargetKeys = [cardKey(targets[0])]; normal.lastStampAt = dayStartMs(normalDay) + 20 * 3600000;
     const current = dailyActivity(today()); current.stamps = targets.length; current.attempts = targets.length; current.targetKeys = targets.map(cardKey); current.independentTargetKeys = targets.slice(0, 3).map(cardKey); current.lastStampAt = Date.now(); saveActivity();
@@ -1902,12 +1897,12 @@ let browser;
       normal: calendarGrid.querySelector(`[data-day="${normalDay}"]`)?.textContent || "",
       makeupBlank: !!calendarGrid.querySelector(`[data-day="${makeupDay}"][data-makeup]`),
       untouchedBlank: !!calendarGrid.querySelector(`[data-day="${untouchedDay}"][data-makeup]`),
-      month: calendarMonthTitle.textContent, stat: calendarMonthStat.textContent, nextDisabled: calendarNext.disabled, gridHeight: calendarGrid.getBoundingClientRect().height,
+      month: calendarMonthTitle.textContent, stat: calendarMonthStat.textContent, expectedDays: beforeExpectedDays, nextDisabled: calendarNext.disabled, expectedNextDisabled: currentMonth >= today().slice(0, 7), gridHeight: calendarGrid.getBoundingClientRect().height,
     };
 
     activeMode = "makeup"; makeupTargetDay = makeupDay; focusQueue = targets.slice(); baseTargets = targets.slice(); batch = baseTargets; baseCursor = targets.length - 1; currentIndex = targets[targets.length - 1]; currentAttemptKind = "base"; currentAttemptId = "verify-makeup-incomplete"; practicePhase = "between"; manualQueue = []; reinforcementQueue = []; unresolved = new Set(); episodes = {}; roundStats = targets.slice(0, 4).map((idx) => ({ idx, target: CARDS[idx].target, outcome: "fast", independentlyRecovered: true })); roundId = "verify-makeup-round";
     const incomplete = markRoundComplete(), blankStayedBlank = !activity.practiceDays.includes(makeupDay) && !dailyActivity(makeupDay).makeup;
-    baseCursor = targets.length; roundStats = targets.map((idx) => ({ idx, target: CARDS[idx].target, outcome: "fast", independentlyRecovered: true }));
+    baseCursor = targets.length; currentAttemptId = "verify-makeup-complete"; episodes = { [currentIndex]: { idx: currentIndex, attempts: [{ attemptId: currentAttemptId, outcome: "fast" }] } }; roundStats = targets.map((idx) => ({ idx, target: CARDS[idx].target, outcome: "fast", independentlyRecovered: true }));
     const completed = markRoundComplete(), completedAgain = markRoundComplete(), past = dailyActivity(makeupDay), makeupMarkers = past.completedRoundIds.filter((id) => id === "makeup:verify-makeup-round").length;
 
     calendarAnimatedMonths.delete(currentMonth); renderCalendar();
@@ -1919,7 +1914,7 @@ let browser;
     const resume = resumableSession(), sessionOK = resume && resume.activeMode === "makeup" && resume.makeupTargetDay === makeupDay && resume.baseTargets.length === 5; clearSessionSnapshot();
 
     memory = {}; targets.forEach((idx, i) => { const m = cardMemory(idx); m.seen = 1; m.last = Date.now() - i * 1000; m.fast = 1; m.target = CARDS[idx].target; m.word = CARDS[idx].word; });
-    const inkStored = persistRecentInk(cardMemory(targets[0]), [[{ x: .2, y: .2 }, { x: .5, y: .75 }, { x: .8, y: .25 }]], Date.now() + 100000);
+    const inkStored = persistRecentInk(cardMemory(targets[0]), [[{ x: .2, y: .2 }, { x: .5, y: .75 }, { x: .8, y: .25 }]], dayStartMs(normalDay) + 20 * 3600000);
     for (let i = 0; i < 110; i += 1) memory[`verify:ink:${i}`] = { seen: 0, recentInk: { version: 1, day: today(), at: Date.now() - i, dataURL: `data:image/webp;base64,${"A".repeat(5000)}` } };
     const trimmed = trimRecentInk(), inkRows = recentInkRows(), cap = { kept: inkRows.length, bytes: inkRows.reduce((sum, row) => sum + row.bytes, 0), removed: trimmed.removed, realKept: !!cardMemory(targets[0]).recentInk };
     saveMemory();
@@ -1930,6 +1925,7 @@ let browser;
     const report = {
       before, incomplete, blankStayedBlank, completed, completedAgain, after, reducedDirect, previousMonth, sessionOK,
       makeup: { flag: past.makeup, targets: past.targetKeys.length, independent: past.independentTargetKeys.length, backup: backupActivity.daily[makeupDay]?.makeup === true },
+      expectedMonthlyDays: [normalDay, makeupDay, today()].filter((day) => day.startsWith(currentMonth)).length,
       inkStored, cap, monthly: { practiced: monthly.practiced, stable: monthly.stable, independent: monthly.independentCount, days: monthly.practiceDays, hardest: monthly.hardest, width: canvas.width, height: canvas.height, items: Number(canvas.dataset.itemCount), inkTiles: Number(canvas.dataset.inkTiles) },
       share: { ...share, type: nativeMessage?.type, kind: nativeMessage?.kind, hasPNG: /^data:image\/png;base64,/.test(nativeMessage?.dataURL || "") }, annual: { ...annual, ...annualUI },
     };
@@ -1939,13 +1935,13 @@ let browser;
     activeMode = saved.activeMode; makeupTargetDay = saved.makeupTargetDay; baseTargets = saved.baseTargets; batch = baseTargets; baseCursor = saved.baseCursor; currentIndex = saved.currentIndex; currentAttemptKind = saved.currentAttemptKind; currentAttemptId = saved.currentAttemptId; practicePhase = saved.practicePhase; manualQueue = saved.manualQueue || []; reinforcementQueue = saved.reinforcementQueue || []; unresolved = new Set(saved.unresolved || []); episodes = saved.episodes || {}; roundStats = saved.roundStats || []; roundId = saved.roundId; renderHome();
     return report;
   });
-  assert(collections.before.normal.includes("拾") && collections.before.makeupBlank && collections.before.untouchedBlank && collections.before.stat.includes("盖章 2天 · 累计") && collections.before.nextDisabled && collections.before.gridHeight < 360 && collections.previousMonth.nextEnabled,
+  assert(collections.before.normal.includes("拾") && collections.before.makeupBlank && collections.before.untouchedBlank && collections.before.stat.includes(`盖章 ${collections.before.expectedDays}天 · 累计`) && collections.before.nextDisabled === collections.before.expectedNextDisabled && collections.before.gridHeight < 360 && collections.previousMonth.nextEnabled,
     "Expected normal/blank calendar states and cross-month navigation", collections);
   assert(!collections.incomplete && collections.blankStayedBlank && collections.completed && collections.completedAgain && collections.makeup.flag && collections.makeup.targets === 5 && collections.makeup.independent === 5 && collections.after.makeup.includes("补") && collections.after.normal.includes("拾") && collections.after.markers === 1 && collections.reducedDirect && collections.sessionOK,
     "Expected a resumable five-character makeup round to stamp exactly once only after completion", collections);
   assert(collections.makeup.backup && collections.inkStored && collections.cap.kept <= 96 && collections.cap.bytes <= 420 * 1024 && collections.cap.removed > 0 && collections.cap.realKept,
     "Expected makeup records in backup and bounded recent independent ink with oldest-first fallback", collections);
-  assert(collections.monthly.width === 1080 && collections.monthly.height === 1440 && collections.monthly.practiced === collections.monthly.items && collections.monthly.stable >= 0 && collections.monthly.stable <= collections.monthly.practiced && collections.monthly.independent >= 3 && collections.monthly.independent <= collections.monthly.practiced && collections.monthly.days >= 3 && Number.isInteger(collections.monthly.hardest) && collections.monthly.inkTiles >= 1
+  assert(collections.monthly.width === 1080 && collections.monthly.height === 1440 && collections.monthly.practiced === collections.monthly.items && collections.monthly.stable >= 0 && collections.monthly.stable <= collections.monthly.practiced && collections.monthly.independent >= 3 && collections.monthly.independent <= collections.monthly.practiced && collections.monthly.days === collections.expectedMonthlyDays && Number.isInteger(collections.monthly.hardest) && collections.monthly.inkTiles >= 1
     && collections.share.route === "native" && collections.share.type === "sharePracticeCard" && collections.share.kind === "monthly" && collections.share.hasPNG,
   "Expected a private 1080x1440 monthly post through the existing native share route", collections);
   assert(collections.annual.slides === 4 && collections.annual.keys.length >= 5 && collections.annual.busiest && Number.isInteger(collections.annual.rarest) && Number.isInteger(collections.annual.first) && collections.annual.clientHeight > 400 && Math.abs(collections.annual.firstHeight - collections.annual.clientHeight) < 2 && collections.annual.scrollHeight >= collections.annual.clientHeight * 3.9 && collections.annual.copy.includes("盖章天数最多的月份") && collections.annual.copy.includes("这个月盖章") && !collections.annual.copy.includes("练习天数最多的月份") && !collections.annual.copy.includes("击败") && !collections.annual.copy.includes("中断"),
@@ -2674,7 +2670,7 @@ let browser;
       { eventId: "verify-old-review-latest", cardKey: cardKey(1), localDay: oldReviewDay,
         reviewedAt: new Date(dayStartMs(oldReviewDay) + 9 * 3600 * 1000).toISOString(), rating: "Again", hintCount: 0, traced: false }];
       fsrsReviewMonthly = {}; saveFSRSLog();
-      const reviewMonth = oldReviewDay.slice(0, 7), reviewArchive = cloneObj(fsrsReviewMonthly[reviewMonth]), curatorArchive = bookCuratorData([]);
+      const reviewMonth = oldReviewDay.slice(0, 7), reviewArchive = cloneObj(fsrsReviewMonthly[reviewMonth]);
       const oldActivityDay = shiftDay(today(), -(ACTIVITY_RAW_RETENTION_DAYS + 1)), activityMonth = oldActivityDay.slice(0, 7), targetKey = cardKey(0);
       activity = normalizeActivity({ version: 2, migrationDate: today(), inheritedStreak: 0, inheritedTotalDays: 0,
         practiceDays: [oldActivityDay], daily: { [oldActivityDay]: { stamps: 1, attempts: 2, targetKeys: [targetKey], independentTargetKeys: [targetKey], reviewTargetKeys: [], completedRoundIds: ["verify-old-round"], lastStampAt: dayStartMs(oldActivityDay) + 9 * 3600 * 1000 } }, monthly: {} });
@@ -2694,7 +2690,7 @@ let browser;
       const quota = { saved: quotaSaved, flagged: storageWriteFailed, visible: getComputedStyle(storageNotice).display !== "none", copy: storageNotice.textContent };
       const pressure = storagePressure({ usage: 90, quota: 100 });
       return {
-        fsrs: { raw: fsrsReviewLog.length, archive: reviewArchive, curator: curatorArchive },
+        fsrs: { raw: fsrsReviewLog.length, archive: reviewArchive, expectedLatest:cardKey(1) },
         activity: { raw: Object.prototype.hasOwnProperty.call(activity.daily, oldActivityDay), archive: activityArchive, reportKeys: monthlyReport.keys, reportDays: monthlyReport.practiceDays },
         funnel: funnelState, quota, pressure,
       };
@@ -2706,9 +2702,8 @@ let browser;
     }
   });
   assert(boundedPersistence.fsrs.raw === 0 && boundedPersistence.fsrs.archive.reviews === 2 && boundedPersistence.fsrs.archive.good === 1 && boundedPersistence.fsrs.archive.again === 1 && boundedPersistence.fsrs.archive.hinted === 1 && boundedPersistence.fsrs.archive.traced === 1
-    && Object.values(boundedPersistence.fsrs.archive.lastReviewByDay)[0]?.cardKey
-    && boundedPersistence.fsrs.curator.kind === "recall" && boundedPersistence.fsrs.curator.indexes[0] === 1,
-    "Expected old FSRS detail to compact into durable counters while preserving last-year-today recall", boundedPersistence.fsrs);
+    && Object.values(boundedPersistence.fsrs.archive.lastReviewByDay)[0]?.cardKey === boundedPersistence.fsrs.expectedLatest,
+    "Expected old FSRS detail to compact into durable counters while preserving the latest stable card reference", boundedPersistence.fsrs);
   assert(!boundedPersistence.activity.raw && boundedPersistence.activity.archive.days === 1 && boundedPersistence.activity.archive.completedDays === 1 && boundedPersistence.activity.reportKeys.length === 1 && boundedPersistence.activity.reportDays === 1,
     "Expected old activity detail to compact without disappearing from monthly reports", boundedPersistence.activity);
   assert(boundedPersistence.funnel.seen === 512 && boundedPersistence.funnel.events === 256 && boundedPersistence.funnel.rounds === 180 && boundedPersistence.funnel.eventTotal === 600 && boundedPersistence.funnel.roundTotal.count === 220 && boundedPersistence.funnel.roundTotal.durationMs === 220000 && boundedPersistence.funnel.roundTotal.byMode.new.count === 220,
@@ -2724,7 +2719,9 @@ let browser;
 
   await page.setViewportSize({ width: 320, height: 620 });
   await page.emulateMedia({ colorScheme: "dark" });
-  await page.evaluate(() => { const s = resumableSession(); if (s) restoreSession(s); });
+  await page.evaluate(() => { clearSessionSnapshot(); startFocus([allIndexes().find((idx) => qualityAvailable(idx))]); });
+  await waitForWriter(page);
+  await page.evaluate(() => { inkStrokes = mediansToCanvas(curMedians); redrawInk(); revealAnswer(); });
   await page.waitForFunction(() => getComputedStyle(reveal).display !== "none");
   const compact = await page.evaluate(() => {
     const boxes = Array.from(document.querySelectorAll(".cmpBox")).map((node) => node.getBoundingClientRect());
@@ -2734,6 +2731,89 @@ let browser;
   });
   assert(compact.widths.every((width) => width <= 138.5) && compact.within && compact.actions && compact.header.backSize.every((value) => value >= 44) && compact.header.noOverlap && compact.header.nowrap && compact.header.oneLine && compact.header.noGraphicProgress, "Expected dark small-screen comparison and text-only header to fit", compact);
   await page.screenshot({ path: screenshotPath, fullPage: true });
+
+  const skipContext = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, deviceScaleFactor: 3 });
+  const skipPage = await skipContext.newPage(), skipErrors=[];
+  skipPage.on("pageerror",error=>skipErrors.push(error.message));
+  await skipPage.goto(appUrl,{waitUntil:"networkidle"});
+  const skipTargets=await skipPage.evaluate(() => {
+    localStorage.clear(); tuning={calibrated:true,offset:0,contextStrict:0,rounds:[]}; saveTuning(); activity=newActivity(); saveActivity(); memory={}; status={}; quality={}; fsrsReviewLog=[]; skippedState=normalizeSkippedState(null); saveMemory(); save(DECK_KEY,status); saveQuality(); saveFSRSLog(); saveSkippedState();
+    const indexes=allIndexes().slice(0,3); activeMode="new"; suspendedSessionPayload=null; roundCompletionSuppressed=false; baseTargets=indexes.slice(); batch=baseTargets; baseCursor=0; currentIndex=null; currentAttemptKind="base"; manualQueue=[]; reinforcementQueue=[]; unresolved=new Set(); episodes={}; attemptSeq=0; roundStats=[]; roundHandwriting={}; sessionDone=new Set(); roundId="verify-permanent-skip"; practicePhase="recall"; hapticDebug.events=[]; beginAttempt({idx:indexes[0],kind:"base"}); render(); return indexes;
+  });
+  await waitForWriter(skipPage);
+  const beforeNeutral=await skipPage.evaluate(()=>({memory:JSON.stringify(memory),fsrs:JSON.stringify(fsrsReviewLog),activity:JSON.stringify(activity),stats:roundStats.length,haptics:hapticDebug.events.slice(),base:baseTargets.slice()}));
+  const drawingGuard=await skipPage.evaluate(()=>{ const rect=inkCanvas.getBoundingClientRect(), before={idx:currentCardIndex(),cursor:baseCursor,queue:JSON.stringify(manualQueue)};
+    const pointer=(type,x,y,buttons)=>new PointerEvent(type,{bubbles:true,cancelable:true,pointerId:8801,pointerType:"touch",isPrimary:true,button:0,buttons,clientX:x,clientY:y});
+    inkCanvas.dispatchEvent(pointer("pointerdown",rect.left+40,rect.top+50,1)); inkCanvas.dispatchEvent(pointer("pointermove",rect.left+90,rect.top+100,1)); const inkBefore=curInkStroke&&curInkStroke.length;
+    skipCard.click(); const blocked=currentCardIndex()===before.idx&&baseCursor===before.cursor&&JSON.stringify(manualQueue)===before.queue&&drawing&&curInkStroke&&curInkStroke.length===inkBefore;
+    const aria=skipCard.getAttribute("aria-disabled"); inkCanvas.dispatchEvent(pointer("pointerup",rect.left+90,rect.top+100,0)); const unlocked=!skipCard.hasAttribute("aria-disabled")&&actionCooldownUntil===0; clearInk(); inkStrokes=[[{x:31,y:41,t:1},{x:88,y:103,t:2}]]; hintEverUsed=true; shownStrokes=1; seenGroups=new Set([0]); saveSessionSnapshot(); return {blocked,aria,unlocked}; });
+  assert(drawingGuard.blocked&&drawingGuard.aria==="true"&&drawingGuard.unlocked,"Expected assistive activation of permanent skip during a live stroke to leave the card, queue, and ink untouched, then unlock immediately",drawingGuard);
+  await skipPage.click("#skipCard");
+  const firstSkip=await skipPage.evaluate(()=>{ const stored=load(SESSION_KEY,null),payload=JSON.parse(backupPayload()),backed=JSON.parse(payload.data[SKIPPED_KEY]); return {current:currentCardIndex(),base:baseTargets.slice(),skippedKey:skippedState.stopped[0],stopped:isCardSkipped(0),memory:JSON.stringify(memory),fsrs:JSON.stringify(fsrsReviewLog),activity:JSON.stringify(activity),stats:roundStats.length,haptics:hapticDebug.events.slice(),copy:skipUndoCopy.textContent,undoVisible:getComputedStyle(skipUndoToast).display,storedRefs:stored.baseTargetKeys,backupStopped:backed.stopped,backupUndo:backed.undo,aria:skipCard.getAttribute("aria-label")}; });
+  assert(firstSkip.current!==skipTargets[0]&&firstSkip.base.length===beforeNeutral.base.length&&!firstSkip.base.includes(skipTargets[0])&&firstSkip.memory===beforeNeutral.memory&&firstSkip.fsrs===beforeNeutral.fsrs&&firstSkip.activity===beforeNeutral.activity&&firstSkip.stats===0&&firstSkip.haptics.length===0
+    &&firstSkip.copy==="已跳过，以后不再出现。可在字库恢复。"&&firstSkip.undoVisible==="flex"&&!firstSkip.storedRefs.includes(firstSkip.skippedKey)&&firstSkip.backupStopped.includes(firstSkip.skippedKey)&&firstSkip.backupUndo===null&&firstSkip.aria.includes("以后不再自动安排"),
+    "Expected first permanent skip to remove and refill the card, expose recovery, back up only the stable stopped state, and write no learning signal",{beforeNeutral,firstSkip});
+  await skipPage.click("#skipUndoBtn");
+  await skipPage.waitForFunction(idx=>currentCardIndex()===idx&&inkStrokes.length===1,skipTargets[0]);
+  const restoredSkip=await skipPage.evaluate(idx=>({current:currentCardIndex(),base:baseTargets.slice(),ink:cloneObj(inkStrokes),hintEverUsed,shownStrokes,seen:[...seenGroups],stopped:isCardSkipped(idx),session:load(SESSION_KEY,null)}),skipTargets[0]);
+  assert(restoredSkip.current===skipTargets[0]&&restoredSkip.base.join()===beforeNeutral.base.join()&&restoredSkip.ink[0].length===2&&restoredSkip.hintEverUsed&&restoredSkip.shownStrokes===1&&restoredSkip.seen.includes(0)&&!restoredSkip.stopped,
+    "Expected skip undo to restore the exact card position, ink, hint state, and original group snapshot",restoredSkip);
+  await skipPage.click("#skipCard");
+  const subsequentSkip=await skipPage.evaluate(()=>{ skippedState.undo.expiresAt=Date.now()+30000; saveSkippedState(); return {copy:skipUndoCopy.textContent,stopped:skippedState.stopped.slice(),notified:skippedState.notified.slice()}; });
+  assert(subsequentSkip.copy==="已跳过"&&subsequentSkip.stopped.length===1&&subsequentSkip.notified.length===1,"Expected later skips of the same stable card to use only the short undo copy",subsequentSkip);
+  await skipPage.reload({waitUntil:"networkidle"});
+  const restartedSkip=await skipPage.evaluate(()=>{ const session=resumableSession(); return {stopped:skippedState.stopped.slice(),undo:!!skippedState.undo,visible:getComputedStyle(skipUndoToast).display,session,sessionHasStopped:!!session&&session.baseTargets.some(isCardSkipped)}; });
+  assert(restartedSkip.stopped.length===1&&restartedSkip.undo&&restartedSkip.visible==="flex"&&restartedSkip.session&&!restartedSkip.sessionHasStopped,"Expected refresh/restart to keep the stopped state, offer atomic undo, and sanitize the resumable group",restartedSkip);
+  await skipPage.click("#skipUndoBtn");
+  await skipPage.waitForFunction(idx=>currentCardIndex()===idx,skipTargets[0]);
+
+  const modeMatrix=await skipPage.evaluate(indexes=>{ const rows=[]; const setup=mode=>{ skippedState=normalizeSkippedState(null); saveSkippedState(); memory={}; status={}; quality={}; fsrsReviewLog=[]; activity=newActivity(); saveMemory(); save(DECK_KEY,status); saveQuality(); saveFSRSLog(); saveActivity(); activeMode=mode; makeupTargetDay=mode==="makeup"?shiftDay(today(),-1):""; focusQueue=mode==="focus"?indexes.slice():[]; suspendedSessionPayload=null; roundCompletionSuppressed=false; baseTargets=indexes.slice(); batch=baseTargets; baseCursor=0; currentIndex=null; currentAttemptKind="base"; manualQueue=[]; reinforcementQueue=[]; unresolved=new Set(); episodes={}; attemptSeq=0; roundStats=[]; roundHandwriting={}; sessionDone=new Set(); calibrationTargets=mode==="calibrate"?indexes.slice():[]; roundId=`verify-${mode}-skip`; practicePhase="recall"; beginAttempt({idx:indexes[0],kind:"base"}); render(); };
+    ["new","calibrate","makeup","focus"].forEach(mode=>{ setup(mode); const beforeActivity=JSON.stringify(activity),beforeMemory=JSON.stringify(memory); skipCurrentCard(); rows.push({mode,current:currentCardIndex(),base:baseTargets.slice(),stopped:isCardSkipped(indexes[0]),stats:roundStats.length,attempts:attemptSeq,activitySame:JSON.stringify(activity)===beforeActivity,memorySame:JSON.stringify(memory)===beforeMemory,completion:todayCompleted()}); }); return rows; },skipTargets);
+  assert(modeMatrix.every(row=>row.current!==skipTargets[0]&&!row.base.includes(skipTargets[0])&&row.stopped&&row.stats===0&&row.attempts===0&&row.activitySame&&row.memorySame&&!row.completion)
+    &&modeMatrix.filter(row=>row.mode!=="focus").every(row=>row.base.length===skipTargets.length)&&modeMatrix.find(row=>row.mode==="focus").base.length===skipTargets.length-1,
+    "Expected new/calibration/makeup to refill from their own source, focus to stay exact, and every mode to avoid learning/completion side effects",modeMatrix);
+
+  const freshMakeupAfterRound=await skipPage.evaluate(()=>{ skippedState=normalizeSkippedState(null);saveSkippedState();memory={};status={};quality={};activity=newActivity();const targets=allIndexes().slice(0,5),day=shiftDay(today(),-1);targets.forEach(idx=>{memory[cardKey(idx)]={seen:1,last:Date.now(),lastOutcome:"fast",dueDay:today(),pendingLearning:false};status[cardKey(idx)]="rest";});saveMemory();save(DECK_KEY,status);saveQuality();saveActivity();sessionDone=new Set(targets);makeupPendingDay=day;const staleWouldExclude=uniqueCardIndexes(targets,sessionDone).length,isolated=makeupCandidates(new Set()).map(cardKey),started=startMakeupDay(day);return {staleWouldExclude,isolated,started,mode:activeMode,targets:baseTargets.map(cardKey),sessionDone:[...sessionDone]}; });
+  assert(freshMakeupAfterRound.staleWouldExclude===0&&freshMakeupAfterRound.isolated.length===5&&freshMakeupAfterRound.started&&freshMakeupAfterRound.mode==="makeup"&&freshMakeupAfterRound.targets.length===5&&freshMakeupAfterRound.targets.join()===freshMakeupAfterRound.isolated.join()&&freshMakeupAfterRound.sessionDone.length===0,
+    "Expected a newly started makeup round to ignore the previous round's global sessionDone while nested refills keep using their local done set",freshMakeupAfterRound);
+
+  const reminderSkip=await skipPage.evaluate(indexes=>{ const [stopped,other,third]=indexes; skippedState=normalizeSkippedState(null); saveSkippedState(); memory={}; status={}; quality={}; fsrsReviewLog=[]; activity=newActivity(); reminder=normalizeReminder({enabled:true,permission:"granted"});
+    [stopped,other,third].forEach((idx,order)=>{ memory[cardKey(idx)]={seen:1,last:Date.now()-order*1000,lastOutcome:order?"fast":"miss",dueDay:today(),pendingLearning:false}; status[cardKey(idx)]="rest"; }); saveMemory(); save(DECK_KEY,status); saveQuality(); saveFSRSLog(); saveActivity(); saveReminder();
+    activeMode="review"; suspendedSessionPayload=null; roundCompletionSuppressed=false; baseTargets=indexes.slice(); batch=baseTargets;baseCursor=0;currentIndex=null;currentAttemptKind="base";manualQueue=[];reinforcementQueue=[];unresolved=new Set();episodes={};attemptSeq=0;roundStats=[];sessionDone=new Set();roundId="verify-reminder-skip";practicePhase="recall";beginAttempt({idx:stopped,kind:"base"});saveSessionSnapshot();syncReminder();
+    const sessionShape=()=>JSON.stringify({activeMode,baseTargets,baseCursor,currentIndex,currentAttemptKind,manualQueue,reinforcementQueue,unresolved:[...unresolved],roundStats});
+    const key=cardKey(stopped),before=cloneObj(reminderDebug.lastSync),skipped=skipCurrentCard(),afterSkip=cloneObj(reminderDebug.lastSync),sessionBeforeOld=sessionShape(),oldOpened=shiziOpenReminderTarget(key),sessionAfterOld=sessionShape(),queueAfterOld=manualQueue.map(row=>row.idx);
+    const undone=undoSkippedCard(),afterUndo=cloneObj(reminderDebug.lastSync); setCardSkipped(stopped,true); const afterStopAgain=cloneObj(reminderDebug.lastSync),directStarted=startRequestedCharacters([CARDS[stopped].target],{returnView:"book"}),afterDirect=cloneObj(reminderDebug.lastSync);
+    return {key,beforeFirst:before.questions[0]&&before.questions[0].targetCardKey,skipped,afterSkipKeys:afterSkip.questions.map(row=>row.targetCardKey),oldOpened,sessionStable:sessionBeforeOld===sessionAfterOld,queueAfterOld,undone,afterUndoKeys:afterUndo.questions.map(row=>row.targetCardKey),afterStopAgainKeys:afterStopAgain.questions.map(row=>row.targetCardKey),directStarted,stoppedAfterDirect:isCardSkipped(stopped),afterDirectKeys:afterDirect.questions.map(row=>row.targetCardKey)}; },skipTargets);
+  assert(reminderSkip.beforeFirst===reminderSkip.key&&reminderSkip.skipped&&!reminderSkip.afterSkipKeys.includes(reminderSkip.key)&&reminderSkip.oldOpened===false&&reminderSkip.sessionStable&&reminderSkip.queueAfterOld.length===0
+    &&reminderSkip.undone&&reminderSkip.afterUndoKeys.includes(reminderSkip.key)&&!reminderSkip.afterStopAgainKeys.includes(reminderSkip.key)&&reminderSkip.directStarted&&!reminderSkip.stoppedAfterDirect&&reminderSkip.afterDirectKeys.includes(reminderSkip.key),
+    "Expected permanent skip to cancel future reminder questions, reject stale notification insertion, and resync after undo or Library recovery",reminderSkip);
+
+  const suspendedSkip=await skipPage.evaluate(()=>{ skippedState=normalizeSkippedState(null); saveSkippedState(); memory={}; status={}; quality={}; fsrsReviewLog=[]; activity=newActivity(); saveMemory(); save(DECK_KEY,status); saveQuality(); saveFSRSLog(); saveActivity();
+    const ordinary=newPool(false).slice(0,BATCH),overlap=ordinary[0],focusExtra=newPool(false).find(idx=>!ordinary.includes(idx)); activeMode="new"; suspendedSessionPayload=null; roundCompletionSuppressed=false; baseTargets=ordinary.slice();batch=baseTargets;baseCursor=0;currentIndex=null;currentAttemptKind="base";manualQueue=[];reinforcementQueue=[];unresolved=new Set();episodes={};attemptSeq=0;roundStats=[];sessionDone=new Set();roundId="verify-suspended-ordinary";practicePhase="recall";beginAttempt({idx:overlap,kind:"base"});saveSessionSnapshot();
+    const original=cloneObj(load(SESSION_KEY,null)); startFocus([overlap,focusExtra],{returnView:"book",preserveSession:true}); const firstSkip=skipCurrentCard(),outer=resumableSession(),sanitizedNested=outer&&decodeSessionV3(outer.suspendedSessionPayload,false),nestedKeys=sanitizedNested?sanitizedNested.baseTargets.map(cardKey):[];
+    const undoOk=undoSkippedCard(),undoNested=decodeSessionV3(suspendedSessionPayload,false),undoExact=!!undoNested&&JSON.stringify(undoNested.baseTargets.map(cardKey))===JSON.stringify(original.baseTargetKeys); const secondSkip=skipCurrentCard(); finishSessionSnapshot(); const restoredRaw=load(SESSION_KEY,null),restored=decodeSessionV3(restoredRaw),restoredKeys=restored?restored.baseTargets.map(cardKey):[],replacement=restoredKeys.find(key=>!original.baseTargetKeys.includes(key));
+    restoreSession(restored); baseCursor=baseTargets.length;currentIndex=null;currentAttemptId="";practicePhase="between";manualQueue=[];reinforcementQueue=[];unresolved=new Set();roundStats=baseTargets.map(idx=>({idx,target:CARDS[idx].target,outcome:"fast"}));sessionDone=new Set(baseTargets);activity=newActivity();saveActivity();const completed=markRoundComplete(),completedGroups=dailyActivity().completedGroups;
+    memory={};status={};activity=newActivity();skippedState=normalizeSkippedState(null); const reviewTargets=allIndexes().slice(0,BATCH); reviewTargets.forEach(idx=>{memory[cardKey(idx)]={seen:1,last:Date.now(),lastOutcome:"fast",dueDay:today(),pendingLearning:false};status[cardKey(idx)]="rest";});saveMemory();save(DECK_KEY,status);saveActivity(); activeMode="review";suspendedSessionPayload=null;roundCompletionSuppressed=false;baseTargets=reviewTargets.slice();batch=baseTargets;baseCursor=0;currentIndex=null;currentAttemptKind="base";manualQueue=[];reinforcementQueue=[];unresolved=new Set();episodes={};attemptSeq=0;roundStats=[];sessionDone=new Set();roundId="verify-unfillable-suspended";practicePhase="recall";beginAttempt({idx:reviewTargets[0],kind:"base"});const unfillableRaw=sessionPayload();setCardSkipped(reviewTargets[0],true,{syncReminder:false});const unfillableSafe=sanitizeStoredSession(unfillableRaw),unfillable=decodeSessionV3(unfillableSafe);restoreSession(unfillable);baseCursor=baseTargets.length;currentIndex=null;currentAttemptId="";practicePhase="between";manualQueue=[];reinforcementQueue=[];unresolved=new Set();roundStats=baseTargets.map(idx=>({idx,target:CARDS[idx].target,outcome:"fast"}));sessionDone=new Set(baseTargets);activity=newActivity();saveActivity();const blockedCompletion=markRoundComplete();
+    return {ordinary:ordinary.map(cardKey),overlap:cardKey(overlap),firstSkip,nestedCount:nestedKeys.length,nestedHasStopped:nestedKeys.includes(cardKey(overlap)),nestedSuppressed:sanitizedNested&&sanitizedNested.roundCompletionSuppressed,undoOk,undoExact,secondSkip,restoredCount:restoredKeys.length,restoredHasStopped:restoredKeys.includes(cardKey(overlap)),replacement,restoredSuppressed:restored&&restored.roundCompletionSuppressed,completed,completedGroups,unfillableCount:unfillable&&unfillable.baseTargets.length,unfillableSuppressed:unfillable&&unfillable.roundCompletionSuppressed,blockedCompletion,unfillableGroups:dailyActivity().completedGroups}; });
+  assert(suspendedSkip.firstSkip&&suspendedSkip.nestedCount===15&&!suspendedSkip.nestedHasStopped&&!suspendedSkip.nestedSuppressed&&suspendedSkip.undoOk&&suspendedSkip.undoExact&&suspendedSkip.secondSkip
+    &&suspendedSkip.restoredCount===15&&!suspendedSkip.restoredHasStopped&&!!suspendedSkip.replacement&&!suspendedSkip.restoredSuppressed&&suspendedSkip.completed&&suspendedSkip.completedGroups===1
+    &&suspendedSkip.unfillableCount===14&&suspendedSkip.unfillableSuppressed&&suspendedSkip.blockedCompletion===false&&suspendedSkip.unfillableGroups===0,
+    "Expected a focus skip overlapping a suspended ordinary group to refill and remain undoable across restore, while an unfillable group stays completion-suppressed",suspendedSkip);
+
+  const lastCard=await skipPage.evaluate(indexes=>{ skippedState=normalizeSkippedState(null); saveSkippedState(); memory={}; status={}; quality={}; fsrsReviewLog=[]; activity=newActivity(); const [written,current]=indexes; [written,current].forEach(idx=>{ memory[cardKey(idx)]={seen:1,last:Date.now(),streak:0,dueDay:today(),pendingLearning:false}; status[cardKey(idx)]="rest"; }); saveMemory(); save(DECK_KEY,status); saveQuality(); saveFSRSLog(); saveActivity(); markPracticeStamp(written,"fast"); activeMode="review"; suspendedSessionPayload=null; roundCompletionSuppressed=false; baseTargets=[written,current]; batch=baseTargets; baseCursor=1; currentIndex=current; currentAttemptKind="base"; currentAttemptId="verify-last-skip"; manualQueue=[]; reinforcementQueue=[]; unresolved=new Set(); episodes={ [written]:{idx:written,attempts:[{attemptId:"written",outcome:"fast"}] } }; attemptSeq=1; roundStats=[{idx:written,target:CARDS[written].target,outcome:"fast"}]; roundHandwriting={}; sessionDone=new Set([written]); roundId="verify-last-skip"; practicePhase="recall"; hapticDebug.events=[]; render(); const before=JSON.stringify(activity); skipCurrentCard(); return {summary:getComputedStyle(summary).display!=="none",tiles:sumTiles.querySelectorAll("[data-idx]").length,stamps:dailyActivity().stamps,completed:dailyActivity().completedGroups,activitySame:JSON.stringify(activity)===before,haptics:hapticDebug.events.slice(),suppressed:roundCompletionSuppressed,session:localStorage.getItem(SESSION_KEY)}; },skipTargets);
+  assert(lastCard.summary&&lastCard.tiles===1&&lastCard.stamps===1&&lastCard.completed===0&&lastCard.activitySame&&lastCard.haptics.length===0&&lastCard.suppressed&&lastCard.session===null,
+    "Expected an unfillable final skip to end with only actually written cards and no daily completion or haptic",lastCard);
+  await skipPage.click("#skipUndoBtn");
+  await skipPage.waitForFunction(idx=>currentCardIndex()===idx,skipTargets[1]);
+
+  const customSkip=await skipPage.evaluate(()=>{ let ch=""; for(let cp=0x4e00;cp<=0x9fff;cp++){ const value=String.fromCodePoint(cp); if(BASE_BY_CHAR[value]==null&&customIndexOf(value)<0){ ch=value; break; } } const idx=ensurePracticeIndexes([ch])[0]; skippedState=normalizeSkippedState(null); saveSkippedState(); activeMode="focus"; focusReturnView="book"; focusQueue=[idx]; suspendedSessionPayload=null; roundCompletionSuppressed=false; baseTargets=[idx]; batch=baseTargets; baseCursor=0; currentIndex=null; currentAttemptKind="base"; manualQueue=[]; reinforcementQueue=[]; unresolved=new Set(); episodes={}; attemptSeq=0; roundStats=[]; sessionDone=new Set(); roundId="verify-custom-skip"; practicePhase="recall"; beginAttempt({idx,kind:"base"}); skipCurrentCard(); const key=cardKey(idx),payload=JSON.parse(backupPayload()),backed=JSON.parse(payload.data[SKIPPED_KEY]),validated=validatedBackupData(payload),restored=JSON.parse(validated.data[SKIPPED_KEY]); let other=""; for(let cp=0x9fff;cp>=0x4e00;cp--){ const value=String.fromCodePoint(cp); if(value!==ch&&BASE_BY_CHAR[value]==null){ other=value; break; } } customWords=[other,ch]; buildCustomCards(); const moved=customIndexOf(ch); return {ch,key,movedKey:cardKey(moved),stopped:isCardSkipped(moved),book:getComputedStyle(studybook).display!=="none",session:localStorage.getItem(SESSION_KEY),backed,restored,counts:LIBRARIES.map(lib=>libraryCounts(lib).total)}; });
+  assert(customSkip.key===`custom:${customSkip.ch}`&&customSkip.movedKey===customSkip.key&&customSkip.stopped&&customSkip.book&&customSkip.session===null&&customSkip.backed.stopped.includes(customSkip.key)&&customSkip.backed.undo===null&&customSkip.restored.stopped.includes(customSkip.key)&&customSkip.restored.undo===null&&customSkip.counts.join()==="3500,2976,818,2500",
+    "Expected a one-card custom focus skip to exit, keep stable identity after index movement, and back up without transient undo",customSkip);
+
+  const crossDayRestore=await skipPage.evaluate(()=>{ const stoppedIdx=indexForCardKey(skippedState.stopped[0]),other=allIndexes().find(idx=>idx!==stoppedIdx&&!isCardSkipped(idx)); activeMode="focus"; focusReturnView="book"; focusQueue=[stoppedIdx,other]; suspendedSessionPayload=null; roundCompletionSuppressed=false; baseTargets=[stoppedIdx,other]; batch=baseTargets;baseCursor=0;currentIndex=stoppedIdx;currentAttemptKind="base";currentAttemptId="verify-cross-day";manualQueue=[];reinforcementQueue=[];unresolved=new Set();episodes={};attemptSeq=0;roundStats=[];sessionDone=new Set();roundId="verify-cross-day";practicePhase="recall"; const stored=sessionPayload(); stored.startedDate=shiftDay(today(),-1); save(SESSION_KEY,stored); const restored=resumableSession(); const oldDefault=normalizeSkippedState(null); return {started:stored.startedDate,now:today(),targets:restored&&restored.baseTargets.map(cardKey),current:restored&&cardKey(restored.currentIndex),stopped:skippedState.stopped.slice(),oldDefault:oldDefault.stopped.length,backupListed:BACKUP_KEYS.includes(SKIPPED_KEY)}; });
+  assert(crossDayRestore.started!==crossDayRestore.now&&crossDayRestore.targets.length===1&&!crossDayRestore.targets.some(key=>crossDayRestore.stopped.includes(key))&&!crossDayRestore.stopped.includes(crossDayRestore.current)&&crossDayRestore.oldDefault===0&&crossDayRestore.backupListed&&skipErrors.length===0,
+    "Expected cross-day session restore to exclude stopped stable keys while legacy data defaults to no stopped cards",crossDayRestore);
+  await skipContext.close();
 
   const blockedContext = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
   await blockedContext.addInitScript(() => {

@@ -1,0 +1,85 @@
+{
+  "note": "棘轮基线：只允许变好。commonness_field.healthy 为 false 是已知回归（#132，自 c7c8fc2 起），不是正常状态——见 audit_context_quality.py 的COMMONNESS_REGRESSION。题库修好后请重跑 --write-baseline。",
+  "deck_cards": 7294,
+  "cold_threshold": 3.0,
+  "commonness_field": {
+    "healthy": false,
+    "fractional_values": 0,
+    "zero_valued_cards": 1059,
+    "non_dict_cards": 1059,
+    "degraded_signature": true
+  },
+  "context_source": {
+    "dict": 6235,
+    "override": 105,
+    "fallback": 954
+  },
+  "by_norm": {
+    "一级": {
+      "cards": 3500,
+      "fallback": 0,
+      "override": 54,
+      "fallback_rate": 0.0,
+      "median_commonness": null,
+      "cold_rate": null
+    },
+    "二级": {
+      "cards": 2976,
+      "fallback": 367,
+      "override": 51,
+      "fallback_rate": 0.1233,
+      "median_commonness": null,
+      "cold_rate": null
+    },
+    "三级": {
+      "cards": 818,
+      "fallback": 587,
+      "override": 0,
+      "fallback_rate": 0.7176,
+      "median_commonness": null,
+      "cold_rate": null
+    }
+  },
+  "by_rank_band": {
+    "1-500": {
+      "cards": 500,
+      "fallback": 0,
+      "override": 0,
+      "fallback_rate": 0.0,
+      "median_commonness": null,
+      "cold_rate": null
+    },
+    "501-1500": {
+      "cards": 1000,
+      "fallback": 0,
+      "override": 18,
+      "fallback_rate": 0.0,
+      "median_commonness": null,
+      "cold_rate": null
+    },
+    "1501-3500": {
+      "cards": 1998,
+      "fallback": 0,
+      "override": 14,
+      "fallback_rate": 0.0,
+      "median_commonness": null,
+      "cold_rate": null
+    },
+    "3501-6000": {
+      "cards": 2374,
+      "fallback": 134,
+      "override": 71,
+      "fallback_rate": 0.0564,
+      "median_commonness": null,
+      "cold_rate": null
+    },
+    "6001+": {
+      "cards": 1422,
+      "fallback": 820,
+      "override": 2,
+      "fallback_rate": 0.5767,
+      "median_commonness": null,
+      "cold_rate": null
+    }
+  }
+}

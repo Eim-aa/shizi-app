@@ -342,6 +342,7 @@ final class WebViewController: UIViewController {
               batchSize: 0,
               cardVisible: false,
               showEnabled: false,
+              blankDoneDisabled: false,
               doneEnabled: false,
               revealVisible: false,
               comparisonGridComplete: false,
@@ -358,7 +359,7 @@ final class WebViewController: UIViewController {
               traceOutlineVisible: false,
               traceRequiresInk: false,
               traceReadyAfterInk: false,
-              activityRecorded: false,
+              focusActivityExcluded: false,
               sessionSnapshotStored: false,
               resumeHomeState: false,
               resumeRestored: false,
@@ -443,7 +444,9 @@ final class WebViewController: UIViewController {
             const etymologyPayload = etymologyResponse.ok ? await etymologyResponse.json() : [];
             result.dataFlow.etymologyResourceAvailable = Array.isArray(etymologyPayload) && etymologyPayload.length >= 1000 && etymologyPayload.every(row => row && typeof row.char === 'string' && typeof row.gloss === 'string' && row.gloss.length <= 20 && typeof row.source === 'string');
             const contextResponse = await fetch('data/context-overrides.js');
-            result.dataFlow.contextOfflineResource = contextResponse.ok && (await contextResponse.text()).includes('CONTEXT_OVERRIDES');
+            const contextQualityResponse = await fetch('data/context-quality.js');
+            result.dataFlow.contextOfflineResource = contextResponse.ok && (await contextResponse.text()).includes('CONTEXT_OVERRIDES')
+              && contextQualityResponse.ok && (await contextQualityResponse.text()).includes('CONTEXT_REJECTED');
             const contextIndex = BASE_BY_CHAR['毓'];
             const glossIndex = BASE_BY_CHAR['谔'];
             const contextCard = CARDS[contextIndex];
@@ -454,7 +457,10 @@ final class WebViewController: UIViewController {
               return !card || (promptHTML(card).replace(/<[^>]+>/g, '') + ' ' + (card.hint || '')).includes(target);
             });
             const rejectedPromptWords = ['战战兢兢', '千里迢迢', '翩翩起舞', '谆谆教诲', '佼佼者', '年高德劭', '崔嵬', '陶埙', '匏瓜', '勖勉', '安瓿', '礞石', '老趼', '振翮'];
-            result.dataFlow.contextAvailable = Object.keys(OVERRIDES).length === 56;
+            const placeholderTarget = Object.keys(REJECTED_CONTEXTS).find(target => REJECTED_CONTEXTS[target] === 'placeholder');
+            const placeholderCard = placeholderTarget ? CARDS[BASE_BY_CHAR[placeholderTarget]] : null;
+            result.dataFlow.contextAvailable = Object.keys(OVERRIDES).length === 56 && Object.keys(REJECTED_CONTEXTS).length === 1783
+              && placeholderCard && placeholderCard.ctx === 'fallback' && placeholderCard.word === placeholderTarget;
             result.dataFlow.contextOverridesApplied = contextCard.word === '钟灵毓秀' && contextCard.ctx === 'override'
               && glossCard.word === '谔' && glossCard.ctx === 'gloss' && glossCard.hint === '直言争辩的样子'
               && contextLeaks.length === 0
@@ -557,7 +563,8 @@ final class WebViewController: UIViewController {
               const practiced = profileIndexes();
               const recovered = practiced.filter(isStable);
               const atRisk = practiced.filter(isHighRisk);
-              result.navigationFlow.metricLanguageConsistent = !document.querySelector('.meStats') && recovered.every(index => !atRisk.includes(index)) && practiced.length >= recovered.length + atRisk.length && document.getElementById('calendarMonthStat').textContent.includes('累计') && document.getElementById('meMonthMeta').textContent.includes('个独立写出');
+              const monthlyInkCopy = document.getElementById('meMonthMeta').textContent;
+              result.navigationFlow.metricLanguageConsistent = !document.querySelector('.meStats') && recovered.every(index => !atRisk.includes(index)) && practiced.length >= recovered.length + atRisk.length && document.getElementById('calendarMonthStat').textContent.includes('累计') && monthlyInkCopy.includes('字') && monthlyInkCopy.includes('留下') && monthlyInkCopy.includes('手写');
               document.getElementById('openSettings').click();
               await waitFor(() => visible('settingsPanel'));
               const oldFontScale = fontScaleLarge;
@@ -602,6 +609,13 @@ final class WebViewController: UIViewController {
 
             if (typeof openAddSheet === 'function' && typeof confirmAdd === 'function' && typeof backupPayload === 'function') {
               const smokeChar = '龘';
+              const smokeIndexBeforeAdd = indexesForChars([smokeChar])[0];
+              if (Number.isInteger(smokeIndexBeforeAdd)) {
+                delete memory[cardKey(smokeIndexBeforeAdd)];
+                delete status[smokeIndexBeforeAdd];
+                saveMemory();
+                save(DECK_KEY, status);
+              }
               openAddSheet();
               await waitFor(() => document.getElementById('addSheet').classList.contains('open'));
               await waitFor(() => document.activeElement === document.getElementById('addInput'));
@@ -641,7 +655,10 @@ final class WebViewController: UIViewController {
               result.dataFlow.addedCharStored = Array.isArray(added) && added.includes(smokeChar);
               result.dataFlow.customWordStored = BASE_BY_CHAR[smokeChar] != null || (Array.isArray(custom) && custom.includes(smokeChar));
               result.dataFlow.customCardIndexed = Number.isInteger(indexForSmokeChar) && indexForSmokeChar >= 0;
-              result.dataFlow.memoryHasAddedChar = !!memoryForSmokeChar && memoryForSmokeChar.target === smokeChar && memoryForSmokeChar.lastOutcome === 'miss' && Number(memoryForSmokeChar.seen || 0) > 0;
+              result.dataFlow.memoryHasAddedChar = !!memoryForSmokeChar && memoryForSmokeChar.target === smokeChar
+                && memoryForSmokeChar.collected === true && Number(memoryForSmokeChar.realWorldMisses || 0) === 1
+                && Number(memoryForSmokeChar.seen || 0) === 0 && !memoryForSmokeChar.lastOutcome
+                && !profileIndexes().includes(indexForSmokeChar);
               result.dataFlow.recentInkStored = !!memoryForSmokeChar && persistRecentInk(memoryForSmokeChar, [[{ x: 0.2, y: 0.2 }, { x: 0.5, y: 0.75 }, { x: 0.8, y: 0.25 }]], Date.now()) && !!memoryForSmokeChar.recentInk;
               saveMemory();
 
@@ -926,18 +943,19 @@ final class WebViewController: UIViewController {
             }
 
             if (typeof startMode === 'function' && typeof revealAnswer === 'function' && typeof pickStamp === 'function') {
-              if (typeof clearSessionSnapshot === 'function') clearSessionSnapshot();
+              focusPreservedSession = null;
+              removeStored(SESSION_KEY);
               Object.values(memory).forEach(item => { if (item) item.queuedFront = false; });
               saveMemory();
               const smokeTargets = indexesForChars(['器', '疑', '强']);
-              startFocus(smokeTargets);
+              if (!startFocus(smokeTargets, { skipSessionCheck: true })) throw new Error('Smoke focus session did not start');
               await waitFor(() => Array.isArray(batch) && batch.length > 2 && visible('card'));
-              await waitFor(() => !document.getElementById('show').disabled && !document.getElementById('done').disabled);
+              await waitFor(() => !document.getElementById('show').disabled);
               result.practiceFlow.started = true;
               result.practiceFlow.batchSize = Array.isArray(batch) ? batch.length : 0;
               result.practiceFlow.cardVisible = visible('card');
               result.practiceFlow.showEnabled = !document.getElementById('show').disabled;
-              result.practiceFlow.doneEnabled = !document.getElementById('done').disabled;
+              result.practiceFlow.blankDoneDisabled = document.getElementById('done').disabled;
               result.practiceFlow.noNextButton = !document.getElementById('nextBtn');
               result.practiceFlow.posLabelBefore = document.getElementById('posLabel').textContent;
 
@@ -1014,6 +1032,7 @@ final class WebViewController: UIViewController {
                 result.handwritingFlow.undoStrokeWorked = inkStrokes.length === 0 && pixelCount() === 0;
                 dispatchStroke();
                 await new Promise(resolve => setTimeout(resolve, 340));
+                result.practiceFlow.doneEnabled = !document.getElementById('done').disabled;
                 clearInk();
                 result.handwritingFlow.clearWorked = inkStrokes.length === 0 && pixelCount() === 0;
                 const peekControl = document.getElementById('tip');
@@ -1077,6 +1096,7 @@ final class WebViewController: UIViewController {
               const firstStatusBefore = statusFor(firstIndex);
               const activityBefore = todayStampCount();
               const attemptsBefore = dailyActivity().attempts;
+              const focusActivityBefore = JSON.stringify(activity);
               const fsrsBefore = fsrsReviewLog.length;
               const firstNextIndex = baseTargets[1];
               const nextMemoryBefore = JSON.stringify(memory[cardKey(firstNextIndex)] || null);
@@ -1167,8 +1187,8 @@ final class WebViewController: UIViewController {
               result.practiceFlow.hapticTraceCompletionSequence = hapticDebug.events.slice();
               result.practiceFlow.postTraceRecall = document.getElementById('phaseTitle').textContent.includes('第 2 步：自己写') && getComputedStyle(document.getElementById('tip')).display === 'none' && document.getElementById('show').textContent === '再描一遍';
               result.practiceFlow.hapticTraceNoReview = fsrsReviewLog.length === eventsBeforeTeaching + 1 && fsrsReviewLog[fsrsReviewLog.length - 1].rating === 'Again';
-              const practiceDay = dailyActivity();
-              result.practiceFlow.activityRecorded = todayStampCount() >= activityBefore && practiceDay.attempts === attemptsBefore + 2 && practiceDay.targetKeys.includes(firstKey) && practiceDay.targetKeys.includes(cardKey(currentCardIndex())) && activity.practiceDays.includes(today());
+              result.practiceFlow.focusActivityExcluded = JSON.stringify(activity) === focusActivityBefore
+                && todayStampCount() === activityBefore && dailyActivity().attempts === attemptsBefore;
               const storedSession = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null');
               result.practiceFlow.sessionSnapshotStored = !!storedSession && storedSession.version === 3 && storedSession.practicePhase === 'postTraceRecall' && storedSession.unresolvedKeys.length === 2
                 && storedSession.baseTargetKeys.every(key => typeof key === 'string') && !Object.prototype.hasOwnProperty.call(storedSession, 'baseTargets');
@@ -1297,8 +1317,11 @@ final class WebViewController: UIViewController {
         present(activity, animated: true)
     }
 
-    private func sharePracticeCard(filename: String, dataURL: String) {
-        guard presentedViewController == nil else { return }
+    private func sharePracticeCard(filename: String, dataURL: String, kind: String) {
+        guard presentedViewController == nil else {
+            sendPracticeCardShareResult("failed", kind: kind)
+            return
+        }
         guard
             dataURL.hasPrefix("data:image/png;base64,"),
             let comma = dataURL.firstIndex(of: ","),
@@ -1306,6 +1329,7 @@ final class WebViewController: UIViewController {
             data.count <= 12 * 1024 * 1024,
             data.starts(with: [0x89, 0x50, 0x4E, 0x47])
         else {
+            sendPracticeCardShareResult("failed", kind: kind)
             presentError(message: "图片暂时无法生成，请稍后再试。")
             return
         }
@@ -1319,13 +1343,16 @@ final class WebViewController: UIViewController {
         do {
             try data.write(to: fileURL, options: .atomic)
         } catch {
+            sendPracticeCardShareResult("failed", kind: kind)
             presentError(message: "图片暂时无法生成，请稍后再试。")
             return
         }
 
         let activity = UIActivityViewController(activityItems: [fileURL], applicationActivities: nil)
-        activity.completionWithItemsHandler = { _, _, _, _ in
+        activity.completionWithItemsHandler = { [weak self] _, completed, _, error in
             try? FileManager.default.removeItem(at: fileURL)
+            let status = error != nil ? "failed" : (completed ? "shared" : "cancelled")
+            self?.sendPracticeCardShareResult(status, kind: kind)
         }
         if let popover = activity.popoverPresentationController {
             popover.sourceView = view
@@ -1386,9 +1413,7 @@ final class WebViewController: UIViewController {
 
             let script = """
             (function(payload){
-              const result = restoreBackupPayload(payload, { reload: false });
-              if (result && result.applied) setTimeout(function(){ location.reload(); }, 0);
-              return result;
+              return restoreBackupPayload(payload);
             })(\(arguments)[0]);
             """
             webView.evaluateJavaScript(script) { [weak self] _, error in
@@ -1552,7 +1577,9 @@ extension WebViewController: WKScriptMessageHandler {
         case "sharePracticeCard":
             let name = body["name"] as? String ?? "shizi-card.png"
             let dataURL = body["dataURL"] as? String ?? ""
-            sharePracticeCard(filename: name, dataURL: dataURL)
+            let requestedKind = body["kind"] as? String ?? "round"
+            let kind = ["character", "monthly", "round"].contains(requestedKind) ? requestedKind : "round"
+            sharePracticeCard(filename: name, dataURL: dataURL, kind: kind)
         case "savePracticeCard":
             let dataURL = body["dataURL"] as? String ?? ""
             savePracticeCard(dataURL: dataURL)
@@ -1622,6 +1649,16 @@ extension WebViewController {
         DispatchQueue.main.async { [weak self] in
             self?.webView.evaluateJavaScript(
                 "if (typeof window.shiziCardSaved === 'function') window.shiziCardSaved({success:\(success ? "true" : "false")}); void 0;"
+            )
+        }
+    }
+
+    private func sendPracticeCardShareResult(_ status: String, kind: String) {
+        let safeStatus = ["shared", "cancelled", "failed"].contains(status) ? status : "failed"
+        let safeKind = ["character", "monthly", "round"].contains(kind) ? kind : "round"
+        DispatchQueue.main.async { [weak self] in
+            self?.webView.evaluateJavaScript(
+                "if (typeof window.shiziCardShared === 'function') window.shiziCardShared({status:'\(safeStatus)',kind:'\(safeKind)'}); void 0;"
             )
         }
     }

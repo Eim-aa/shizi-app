@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 2,
+  "note": "人工批准的题面。每条绑定「目标字 + 候选词」，并且必须恰好命中一张生产卡；候选一旦变化，build_context_quality.py 会直接失败并要求重审，而不是让旧批准继续默默生效。",
+  "approvedContexts": [
+    { "target": "勒", "word": "勾勒", "note": "常用动词；jieba 的 nrt 标注属于误标" },
+    { "target": "墨", "word": "墨水", "note": "常用名词；jieba 的 ns 标注属于误标" }
+  ]
+}

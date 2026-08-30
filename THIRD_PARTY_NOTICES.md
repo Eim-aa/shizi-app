@@ -1,5 +1,31 @@
 # Third-Party Notices
 
+## Hanzi Writer 3.7.3
+
+`hanzi-writer.min.js` vendors the browser distribution of
+[`chanind/hanzi-writer`](https://github.com/chanind/hanzi-writer) version
+3.7.3.
+
+Vendored SHA-256: `17b11a1e025b780cb518d49b30faacc770dfa7fbc387aa3876e3e5c1bd31e642`
+
+Hanzi Writer is licensed under the MIT License, Copyright (c) 2014 David
+Chanin. The complete notice is included at
+`sources/LICENSE-MIT-HANZI-WRITER.txt`.
+
+## Hanzi Writer Data 2.0.1
+
+The 6,854 baseline character records in `data/*.json` are pinned to
+[`chanind/hanzi-writer-data`](https://github.com/chanind/hanzi-writer-data)
+version 2.0.1. The upstream project states that this data is derived from
+Arphic fonts and may be redistributed or modified under the Arphic Public
+License. The complete, unmodified license text is included at
+`sources/LICENSE-ARPHIC-PUBLIC.txt`.
+
+The project also ships 440 reviewed supplemental records. Their technical
+provenance is recorded in `audit/vector-data-460-manifest.json`; outstanding
+redistribution and commercial-release decisions are explicit release gates in
+`LEGAL_RELEASE_CHECKLIST.md`.
+
 ## Shuowen.org data
 
 `data/etymology.json` contains modified and condensed records generated from

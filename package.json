@@ -1,0 +1,19 @@
+{
+  "name": "shizi-app",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@11.16.0",
+  "scripts": {
+    "start": "python3 -m http.server 8000 --bind 127.0.0.1",
+    "verify:data": "python3 scripts/verify_library_governance.py && node scripts/verify_vector_data_440.js",
+    "verify:e2e": "node scripts/verify_8105_app.js",
+    "verify:ui": "node scripts/verify_redesign_v3.js",
+    "verify:web": "pnpm run verify:e2e && pnpm run verify:ui && pnpm run verify:pwa",
+    "verify:native-smoke": "python3 ios/ShiziApp/scripts/validate-native-smoke.py",
+    "test": "pnpm run verify:data && pnpm run verify:web",
+    "verify:pwa": "node scripts/verify_pwa_upgrade.js"
+  },
+  "devDependencies": {
+    "playwright": "1.62.0"
+  }
+}

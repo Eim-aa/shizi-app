@@ -1,5 +1,5 @@
-#!/bin/sh
-set -eu
+#!/bin/bash
+set -euo pipefail
 
 if [ $# -ne 1 ]; then
   echo "Usage: $0 /path/to/Shizi.xcarchive" >&2
@@ -58,6 +58,13 @@ test "$app_platform" = "iPhoneOS" || { echo "Expected iPhoneOS platform, got ${a
 test "$app_device_family" = "1" || { echo "Expected iPhone-only UIDeviceFamily=1, got ${app_device_family}" >&2; exit 65; }
 test -n "$app_minimum_os" || { echo "Missing MinimumOSVersion" >&2; exit 65; }
 test -n "$app_executable" && test -f "${APP}/${app_executable}" || { echo "Archived executable is missing" >&2; exit 65; }
+
+for marker in "__shizi_native_smoke_confirm__" "nativeSmokeResult" "shizi-native-smoke.json"; do
+  if LC_ALL=C grep -aFq "$marker" "${APP}/${app_executable}"; then
+    echo "Release executable contains Debug native-smoke marker: ${marker}" >&2
+    exit 65
+  fi
+done
 
 if [ -n "${EXPECTED_BUNDLE_ID:-}" ] && [ "$app_bundle_id" != "$EXPECTED_BUNDLE_ID" ]; then
   echo "Expected bundle ID ${EXPECTED_BUNDLE_ID}, got ${app_bundle_id}" >&2

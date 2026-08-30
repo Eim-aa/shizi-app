@@ -9,6 +9,9 @@
 - `hanzi-writer.min.js`：汉字笔顺渲染库。
 - `fsrs6.min.js`：固定版本、完全离线的 FSRS-6 跨天调度器。
 - `THIRD_PARTY_NOTICES.md`：第三方库版本与许可证。
+- `LEGAL_RELEASE_CHECKLIST.md`：发布前必须关闭的授权与许可证门槛。
+- `CONTRIBUTING.md`：分支、验证、提交、PR 与合并后清理约定。
+- `docs/adr/`：影响运行时、数据与发布形态的架构决策记录。
 - `data/`：Hanzi Writer 的单字笔画数据，以及离线字源数据 `etymology.json`。
 - `scripts/`：生成数据和验证页面的脚本。
 - `generated/`：当前生成出的 8105 字覆盖率报告和 7294 个可写候选字结构化结果。
@@ -76,7 +79,7 @@
 
 「本月拾字帖」随时聚合当月练过、真正稳定的已拾回、独立写出、盖章天数和最难独立字，生成 1080×1440 本地 PNG，并复用日帖的原生分享 / Web Share / 下载通道。每个字只保留最近一次独立书写的 120px WebP 缩略图；全局最多 96 份、按 UTF-16 保守估算不超过约 420KiB，空间紧张时先淘汰最旧墨迹，月帖自动用楷体补位，绝不牺牲调度记录。「年度拾字报告」是四屏本地滚动页，汇总本年练过的不同汉字数、盖章天数最多的月份、练过的字里最少见的一个，以及这一年练的第一个字；报告不会上传，也不与他人比较。
 
-PWA 已配置 manifest、iOS 主屏幕图标、standalone 显示模式和 service worker。安装时会预缓存首日校准组与高频核心共 600 字（约 1.23 MiB），应用外壳、FSRS-6 和这些笔顺可直接离线运行；其余字首次需要联网下载一次，随后按需缓存。离线未缓存时页面会明确说明原因，仍允许点「写好了」并自行判断，「不会写」教学使用系统字形 fallback，不会卡死在单张卡片；恢复网络后未落笔的当前卡会自动重试。
+PWA 已配置 manifest、iOS 主屏幕图标、standalone 显示模式和 service worker。安装时会预缓存首日校准组与高频核心共 600 字（约 1.23 MiB），应用外壳、FSRS-6 和这些笔顺可直接离线运行；其余字首次需要联网下载一次，随后按需缓存。笔顺缓存总量限制为 800 项，核心 600 字不会被淘汰；壳资源走网络优先，内容更新不依赖手改发布缓存号。离线未缓存时页面会明确说明原因，仍允许点「写好了」并自行判断，「不会写」教学使用系统字形 fallback，不会卡死在单张卡片；恢复网络后未落笔的当前卡会自动重试。
 
 ## 线上版本（发给朋友测就用这个）
 
@@ -104,6 +107,30 @@ http://127.0.0.1:8000/
 ```text
 http://127.0.0.1:8000/?dev=1
 ```
+
+## 自动化验证
+
+Node 依赖由 `package.json` 与 `pnpm-lock.yaml` 固定。首次运行：
+
+```bash
+corepack enable
+pnpm install --frozen-lockfile
+pnpm exec playwright install chromium
+```
+
+启动本地预览后，运行完整数据与浏览器门禁：
+
+```bash
+pnpm test
+```
+
+已有原生 smoke JSON 可单独复核，例如普通模式并要求跨启动持久化：
+
+```bash
+pnpm run verify:native-smoke -- /path/to/shizi-native-smoke.json 0 1
+```
+
+Pull Request 和 `main` 推送会自动运行 `.github/workflows/verify.yml` 的 `Verify / quality-gate`。仓库分支保护应把该检查设为必需状态检查并禁止直接推送 `main`。
 
 ## iOS App / TestFlight
 
@@ -144,23 +171,6 @@ python3 scripts/verify_ui_copy.py
 python3 scripts/summarize_backups.py /path/to/backups/
 ```
 
-## Git 使用
+## 参与开发
 
-查看当前文件变化：
-
-```bash
-git status
-```
-
-保存一个版本点：
-
-```bash
-git add .
-git commit -m "描述这次改了什么"
-```
-
-查看历史版本：
-
-```bash
-git log --oneline
-```
+分支命名、固定依赖、完整验证、Conventional Commits、PR 审查和合并后分支清理规则见 `CONTRIBUTING.md`。发布 tag 只在真机与法律门槛都明确后由负责人创建，不把测试中间点冒充可发布版本。

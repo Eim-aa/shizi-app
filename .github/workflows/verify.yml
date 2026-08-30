@@ -1,0 +1,56 @@
+name: Verify
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Enable pinned pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.16.0 --activate
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Check source syntax
+        run: |
+          node --check scripts/verify_8105_app.js
+          node --check scripts/verify_redesign_v3.js
+          node --check scripts/verify_vector_data_440.js
+          python3 -m py_compile scripts/verify_library_governance.py ios/ShiziApp/scripts/validate-native-smoke.py
+          for script in ios/ShiziApp/scripts/*.sh; do bash -n "$script"; done
+          git diff --check
+      - name: Start local app
+        run: |
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/shizi-server.log 2>&1 &
+          echo $! >/tmp/shizi-server.pid
+          for attempt in {1..30}; do
+            curl --fail --silent http://127.0.0.1:8000/ >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/shizi-server.log
+          exit 1
+      - name: Verify data integrity
+        run: pnpm run verify:data
+      - name: Run browser regressions
+        run: pnpm run verify:web
+      - name: Stop local app
+        if: always()
+        run: test ! -f /tmp/shizi-server.pid || kill "$(cat /tmp/shizi-server.pid)" || true

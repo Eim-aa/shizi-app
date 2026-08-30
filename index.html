@@ -2,6 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; media-src 'self' data:; worker-src 'self'; object-src 'none'; base-uri 'none'; frame-src 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>拾字｜提笔忘字，拾回便是</title>
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f4efe2">
@@ -48,6 +49,7 @@
   .tab{ touch-action:manipulation; }
   button:active{ transform:scale(.97); }
   button:disabled{ opacity:.45; }
+  :where(button,a,input,select,textarea,[role="button"],[tabindex]):focus-visible{ outline:3px solid var(--blue); outline-offset:3px; }
   .tlock{ opacity:.35 !important; pointer-events:none; }
   @keyframes screenIn{ from{ opacity:0; transform:translateY(10px); } to{ opacity:1; transform:none; } }
   @keyframes fadeIn{ from{ opacity:0; } to{ opacity:1; } }
@@ -613,6 +615,9 @@
   .toast{ position:fixed; left:50%; bottom:calc(84px + env(safe-area-inset-bottom)); transform:translateX(-50%); background:var(--ink); color:var(--card); font-size:calc(var(--fs-body) * var(--font-scale)); padding:10px 16px; border-radius:999px; z-index:30; opacity:0; transition:opacity .25s; pointer-events:none; max-width:82vw; text-align:center; box-shadow:0 8px 24px -8px rgba(20,18,14,.5); }
   .toast.show{ opacity:.94; }
   .bootNotice{ display:none; position:fixed; z-index:32; left:50%; top:calc(10px + env(safe-area-inset-top)); transform:translateX(-50%); width:min(calc(100% - 32px),398px); padding:10px 14px; border:1px solid var(--line); border-radius:10px; background:var(--card); color:var(--muted); font-size:calc(var(--fs-body) * var(--font-scale)); text-align:center; box-shadow:0 8px 24px -16px rgba(20,18,14,.55); }
+  .storageNotice{ display:none; position:fixed; z-index:34; left:50%; top:calc(10px + env(safe-area-inset-top)); transform:translateX(-50%); width:min(calc(100% - 32px),398px); padding:10px 14px; border:1px solid var(--accent); border-radius:8px; background:var(--card); color:var(--ink); font-size:calc(var(--fs-body) * var(--font-scale)); text-align:center; box-shadow:0 8px 24px -16px rgba(20,18,14,.55); }
+  .storageGate{ display:none; position:fixed; z-index:90; inset:0; padding:calc(32px + env(safe-area-inset-top)) 24px calc(32px + env(safe-area-inset-bottom)); background:var(--bg); color:var(--ink); align-items:center; justify-content:center; text-align:center; }
+  .storageGate.open{ display:flex; } .storageGate > div{ width:min(100%,360px); } .storageGate h1{ margin:0 0 12px; font:700 calc(28px * var(--font-scale))/1.3 var(--song); } .storageGate p{ margin:0 0 20px; color:var(--muted); font-size:calc(var(--fs-body) * var(--font-scale)); }
   .undoToast{ display:none; position:fixed; z-index:31; left:50%; bottom:calc(84px + env(safe-area-inset-bottom)); transform:translateX(-50%); width:min(calc(100% - 32px),398px); min-height:48px; padding:7px 8px 7px 14px; align-items:center; gap:10px; border-radius:999px; background:var(--ink); color:var(--card); box-shadow:0 10px 28px -10px rgba(20,18,14,.55); }
   .undoToast span{ flex:1; min-width:0; font-size:calc(var(--fs-body) * var(--font-scale)); }
   .undoToast button{ flex:none; min-height:34px; padding:0 13px; border-radius:999px; background:var(--card); color:var(--ink); font-size:calc(var(--fs-body) * var(--font-scale)); font-weight:800; }
@@ -1019,6 +1024,8 @@
 <div class="handCardPrompt" id="handCardPrompt" role="status"><span>要把刚写的字做成字卡吗？</span><button id="handCardPromptOpen">制作</button></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <div class="bootNotice" id="bootNotice" role="status" aria-live="polite">部分记录已损坏，已跳过；其他记录仍可正常使用</div>
+<div class="storageNotice" id="storageNotice" role="alert" aria-live="assertive"></div>
+<div class="storageGate" id="storageGate" role="alertdialog" aria-modal="true" aria-labelledby="storageGateTitle"><div><h1 id="storageGateTitle">暂时无法保存练习</h1><p>系统没有开放本地存储。拾字不会假装记住你的进度，请检查浏览器隐私设置或重新打开 App。</p><button class="primaryAct" id="storageReload">重新检查</button></div></div>
 <div class="undoToast" id="safetyUndo" role="status" aria-live="polite"><span id="safetyUndoCopy">操作前的数据已保留</span><button id="safetyUndoBtn">撤销</button></div>
 <input type="file" id="importFile" accept=".json,application/json" style="display:none">
 <input type="file" id="wildPhotoInput" accept="image/*" style="display:none">
@@ -1043,30 +1050,74 @@ SEED.forEach(raw=>{ const w=applyContextOverride(raw), chars=Array.from(w.ans), 
   if(Number.isInteger(w.ci)){ const ci=w.ci; CARDS.push({ word:w.ans, chars, ci, target:w.target||chars[ci], py:w.py, hint:w.hint, ...meta }); return; }
   chars.forEach((ch,ci)=>CARDS.push({ word:w.ans, chars, ci, target:ch, py:pys[ci]||w.py, hint:w.hint, ...meta })); });
 
+// 基础卡索引在这里就要建好：启动阶段的 activity / FSRS 规范化会经 storedCardKey 调到
+// canonicalCardKey，而它要读 BASE_BY_CHAR。留在下面的自定义加字段落会踩 TDZ。
+const BASE_N=CARDS.length;
+const BASE_BY_CHAR={}; for(let i=0;i<BASE_N;i++){ const t=CARDS[i].target; if(BASE_BY_CHAR[t]==null) BASE_BY_CHAR[t]=i; }
+
 // ---- 本地存储 ----
 const DECK_KEY="shizi.deck.v8105.context2", OPEN_KEY="shizi.opens.v1", MEMORY_KEY="shizi.memory.v1", QUALITY_KEY="shizi.quality.v1", PREF_KEY="shizi.pref.v1", TUNING_KEY="shizi.tuning.v1",
   ACTIVITY_KEY="shizi.activity.v1", SESSION_KEY="shizi.session.v1", BACKUP_META_KEY="shizi.backupMeta.v1", REMINDER_KEY="shizi.reminder.v1", SAFETY_KEY="shizi.safety.v1",
   FSRS_LOG_KEY="shizi.fsrsReviewLog.v1", TRACE_TUTORIAL_KEY="shizi.traceTutorial.v1", FONT_SCALE_KEY="shizi.fontScale.v1", FUNNEL_KEY="shizi.funnel.v1", SOUND_KEY="shizi.sound.v1",
   TOPIC_KEY="shizi.topic.v1", CUSTOM_KEY="shizi.custom.v1", ADDED_KEY="shizi.added.v1", WILD_KEY="shizi.wild.v1", HAND_CARD_KEY="shizi.handCard.v1", LIB_KEY="shizi.library.v1";
-function load(k,d){ try{ return JSON.parse(localStorage.getItem(k)) ?? d; }catch(e){ return d; } }
-function save(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); return true; }catch(e){ return false; } }
-function removeStored(k){ try{ localStorage.removeItem(k); }catch(e){} }
+let storageReadable=true, storageWriteFailed=false, storageRuntimeFailed=false;
+function showStorageNotice(message){ const node=document.getElementById("storageNotice"); if(node){ node.textContent=message; node.style.display="block"; } }
+function showStorageGate(){ storageReadable=false; const node=document.getElementById("storageGate"); if(node) node.classList.add("open"); }
+function reportStorageReadFailure(){ showStorageGate(); }
+function reportStorageWriteFailure(error){ storageWriteFailed=true; const full=error&&["QuotaExceededError","NS_ERROR_DOM_QUOTA_REACHED"].includes(error.name); showStorageNotice(full?"本地空间已满，这次进度没有保存。请立即导出备份并清理空间。":"这次进度没有保存。请立即导出备份后重新打开 App。"); }
+function reportRuntimeFailure(){ if(storageRuntimeFailed) return; storageRuntimeFailed=true; showStorageNotice("页面发生异常。请先导出备份，再重新打开 App。"); }
+window.addEventListener("error",event=>reportRuntimeFailure(event.error||event.message));
+window.addEventListener("unhandledrejection",event=>reportRuntimeFailure(event.reason));
+function load(k,d){ let raw; try{ raw=localStorage.getItem(k); }catch(e){ reportStorageReadFailure(e); return d; } try{ return JSON.parse(raw) ?? d; }catch(e){ return d; } }
+function save(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); return true; }catch(e){ reportStorageWriteFailure(e); return false; } }
+function removeStored(k){ try{ localStorage.removeItem(k); }catch(e){ reportStorageWriteFailure(e); } }
 const bootCorruptKeys=[];
 let legacySessionDiscarded=false;
 function quarantineStoredKey(k,raw){ try{ localStorage.setItem(`shizi.corrupt.${k}`,raw==null?"null":String(raw)); localStorage.removeItem(k); bootCorruptKeys.push(k); }catch(e){} }
-function bootLoad(k,d,valid=()=>true){ const raw=localStorage.getItem(k); if(raw===null) return d; try{ const value=JSON.parse(raw); if(!valid(value)) throw new Error("shape"); return value??d; }catch(e){ quarantineStoredKey(k,raw); return d; } }
-function bootNormalize(k,value,fallback,normalize){ try{ return normalize(value); }catch(e){ quarantineStoredKey(k,localStorage.getItem(k)); return normalize(fallback); } }
+// 隔离坏 session 需要原文，但存储被禁时读取本身就会抛；启动路径上一律走安全读。
+function readStoredRaw(k){ try{ return localStorage.getItem(k); }catch(e){ reportStorageReadFailure(e); return null; } }
+function bootLoad(k,d,valid){ const check=valid||storedShape(k); let raw; try{ raw=localStorage.getItem(k); }catch(e){ reportStorageReadFailure(e); return d; } if(raw===null) return d; try{ const value=JSON.parse(raw); if(!check(value)) throw new Error("shape"); return value??d; }catch(e){ quarantineStoredKey(k,raw); return d; } }
+function bootNormalize(k,value,fallback,normalize){ try{ return normalize(value); }catch(e){ let raw=null; try{ raw=localStorage.getItem(k); }catch(storageError){ reportStorageReadFailure(storageError); } quarantineStoredKey(k,raw); return normalize(fallback); } }
 const plainObject=v=>!!v&&typeof v==="object"&&!Array.isArray(v);
 const objectValuesAre=(value,predicate)=>plainObject(value)&&Object.values(value).every(predicate);
-let status = bootLoad(DECK_KEY, {}, v=>objectValuesAre(v,row=>typeof row==="string"));
-let memory = bootLoad(MEMORY_KEY, {}, v=>objectValuesAre(v,plainObject));
-let fsrsReviewLog = bootLoad(FSRS_LOG_KEY, [], Array.isArray);
-let traceTutorialShown = bootLoad(TRACE_TUTORIAL_KEY, false, v=>typeof v==="boolean")===true;
-let wildState = bootLoad(WILD_KEY, {version:1,captures:{},wishes:{}}, plainObject);
-save(FSRS_LOG_KEY,fsrsReviewLog); save(TRACE_TUTORIAL_KEY,traceTutorialShown);
-let quality = bootLoad(QUALITY_KEY, {}, v=>objectValuesAre(v,plainObject));
-let preference = bootLoad(PREF_KEY, "balanced", v=>["balanced","practical","challenge"].includes(v));
-let tuning = bootLoad(TUNING_KEY, {calibrated:false, offset:0, contextStrict:0, rounds:[]}, v=>plainObject(v)&&(!("rounds" in v)||Array.isArray(v.rounds)));
+// 每个存储键的合法形状只写一份：启动时 bootLoad 用它隔离坏数据，导入备份时用它在
+// 动本机数据之前整单拒绝。分开写过一次，结果是备份能报「恢复成功」而下次启动才静默丢键。
+const nullOr=check=>v=>v===null||check(v);
+const stringArray=v=>Array.isArray(v)&&v.every(row=>typeof row==="string");
+const STORED_SHAPE={
+  [DECK_KEY]:v=>objectValuesAre(v,row=>typeof row==="string"),
+  [MEMORY_KEY]:v=>objectValuesAre(v,plainObject),
+  [QUALITY_KEY]:v=>objectValuesAre(v,plainObject),
+  [TRACE_TUTORIAL_KEY]:v=>typeof v==="boolean",
+  [WILD_KEY]:plainObject,
+  [PREF_KEY]:v=>["balanced","practical","challenge"].includes(v),
+  [TUNING_KEY]:v=>plainObject(v)&&(!("rounds" in v)||Array.isArray(v.rounds)),
+  [LIB_KEY]:nullOr(v=>typeof v==="string"||plainObject(v)),
+  [FONT_SCALE_KEY]:v=>typeof v==="boolean",
+  [TOPIC_KEY]:v=>typeof v==="string",
+  [SAFETY_KEY]:nullOr(plainObject),
+  [FSRS_LOG_KEY]:v=>Array.isArray(v)||(plainObject(v)&&Array.isArray(v.events)),
+  [OPEN_KEY]:Array.isArray,
+  [FUNNEL_KEY]:nullOr(plainObject),
+  [ACTIVITY_KEY]:nullOr(plainObject),
+  [BACKUP_META_KEY]:nullOr(plainObject),
+  [REMINDER_KEY]:nullOr(plainObject),
+  [SOUND_KEY]:nullOr(plainObject),
+  [HAND_CARD_KEY]:nullOr(plainObject),
+  [SESSION_KEY]:storedSessionShape,
+  [CUSTOM_KEY]:stringArray,
+  [ADDED_KEY]:nullOr(stringArray),
+};
+function storedShape(key){ return STORED_SHAPE[key]||(()=>true); }
+let status = bootLoad(DECK_KEY, {});
+let memory = bootLoad(MEMORY_KEY, {});
+let fsrsReviewLog=[], fsrsReviewMonthly={};
+let traceTutorialShown = bootLoad(TRACE_TUTORIAL_KEY, false)===true;
+let wildState = bootLoad(WILD_KEY, {version:1,captures:{},wishes:{}});
+save(TRACE_TUTORIAL_KEY,traceTutorialShown);
+let quality = bootLoad(QUALITY_KEY, {});
+let preference = bootLoad(PREF_KEY, "balanced");
+let tuning = bootLoad(TUNING_KEY, {calibrated:false, offset:0, contextStrict:0, rounds:[]});
 const LIBRARIES=[
   {id:"core3500",name:"规范常用字",desc:"通用规范一级字，也是义务教育常用字表全部3500字",officialTotal:3500,test:c=>c.norm==="一级"},
   {id:"adv3000",name:"规范次常用字",desc:"通用规范二级字；缺少笔顺数据的字暂不进入练习",officialTotal:3000,test:c=>c.norm==="二级"},
@@ -1077,33 +1128,86 @@ function defaultLibraryId(){ return preference==="challenge"?"adv3000":"core3500
 // 旧六库只迁移后续新字范围；已拾字与复习始终跨库保留，手动选择标记不得丢失。
 const LEGACY_LIBRARY_IDS=Object.freeze({primary:"curriculum2500",junior:"core3500",senior:"adv3000"});
 function normalizeLibrary(raw){ const storedId=plainObject(raw)?raw.id:raw,id=LEGACY_LIBRARY_IDS[storedId]||storedId,valid=LIBRARIES.some(lib=>lib.id===id),userSelected=plainObject(raw)?raw.userSelected===true:(typeof raw==="string"&&(valid||storedId in LEGACY_LIBRARY_IDS)); return {id:valid?id:defaultLibraryId(),userSelected}; }
-let libraryState=bootNormalize(LIB_KEY,bootLoad(LIB_KEY,null,v=>v===null||typeof v==="string"||plainObject(v)),null,normalizeLibrary); save(LIB_KEY,libraryState);
+let libraryState=bootNormalize(LIB_KEY,bootLoad(LIB_KEY,null),null,normalizeLibrary); save(LIB_KEY,libraryState);
 function currentLibrary(){ return LIBRARIES.find(lib=>lib.id===libraryState.id)||LIBRARIES[0]; }
 function setLibrary(id){ libraryState=normalizeLibrary({id,userSelected:true}); save(LIB_KEY,libraryState); return currentLibrary(); }
 function syncCalibrationLibrary(){ if(libraryState.userSelected) return false; libraryState={id:defaultLibraryId(),userSelected:false}; save(LIB_KEY,libraryState); return true; }
-let fontScaleLarge = bootLoad(FONT_SCALE_KEY,false,v=>typeof v==="boolean")===true;
-bootLoad(TOPIC_KEY,"",v=>typeof v==="string");
-bootLoad(SAFETY_KEY,null,v=>v===null||plainObject(v));
+let fontScaleLarge = bootLoad(FONT_SCALE_KEY,false)===true;
+bootLoad(TOPIC_KEY,"");
+bootLoad(SAFETY_KEY,null);
 function applyFontScale(){ document.documentElement.classList.toggle("largeText",fontScaleLarge); const row=document.getElementById("fontScaleRow"), state=document.getElementById("fontScaleState"); if(row) row.setAttribute("aria-pressed",fontScaleLarge?"true":"false"); if(state) state.textContent=fontScaleLarge?"开":"关"; }
 applyFontScale();
 let auditPref = preference;
 const DEV_TOOLS = (()=>{ try{ return new URLSearchParams(location.search).get("dev")==="1"; }catch(e){ return false; } })();
 function statusFor(i){ return status[cardKey(i)]; }
-function setStatus(i,s){ status[cardKey(i)]=s; save(DECK_KEY,status); }
+function setStatus(i,s){ status[cardKey(i)]=s; return save(DECK_KEY,status); }
 const RECENT_INK_MAX=96, RECENT_INK_BUDGET=420*1024;
-function recentInkRows(){ return Object.entries(memory).filter(([,m])=>m&&m.recentInk&&typeof m.recentInk.dataURL==="string").map(([key,m])=>({key,m,at:Math.max(0,Number(m.recentInk.at)||0),bytes:m.recentInk.dataURL.length*2+(m.recentInk.strokes?JSON.stringify(m.recentInk.strokes).length*2:0)})).sort((a,b)=>b.at-a.at); }
+// 一笔至少要有两个有效点，点必须是 {x,y} 有限数。备份里塞 [[null]] 这类嵌套坏值时，
+// 只判外层 Array 会让它一路活到画布上，读 point.x 直接抛错并弹「页面发生异常」。
+// 导入侧和渲染侧共用这一份，避免只补一头。
+function normalizedInkStrokes(value){ if(!Array.isArray(value)) return [];
+  return value.map(stroke=>Array.isArray(stroke)?stroke.filter(point=>plainObject(point)&&typeof point.x==="number"&&Number.isFinite(point.x)&&typeof point.y==="number"&&Number.isFinite(point.y))
+      .map(point=>{ const out={x:point.x,y:point.y}; if(typeof point.w==="number"&&Number.isFinite(point.w)) out.w=point.w; if(typeof point.v==="number"&&Number.isFinite(point.v)) out.v=point.v; return out; }):[])
+    .filter(stroke=>stroke.length>1); }
+// 会话画布允许合法单点：paintBrushStroke 会把它画成圆点。recentInk 字卡仍要求至少两点，
+// 两种持久化用途不能共用同一个最小点数，否则恢复备份会悄悄吃掉点按笔画。
+function normalizedSessionInkStrokes(value){ if(!Array.isArray(value)) return [];
+  return value.map(stroke=>Array.isArray(stroke)?stroke.filter(point=>plainObject(point)&&typeof point.x==="number"&&Number.isFinite(point.x)&&typeof point.y==="number"&&Number.isFinite(point.y))
+      .map(point=>{ const out={x:point.x,y:point.y}; ["t","p","w","v"].forEach(key=>{ if(typeof point[key]==="number"&&Number.isFinite(point[key])) out[key]=point[key]; }); return out; }):[])
+    .filter(stroke=>stroke.length>0); }
+const SUBMISSION_GEOMETRY_FIELDS=["inkStrokes","hintStrokes","referenceStrokes","compositeGeometry"];
+function safeSessionInkShape(value){ return Array.isArray(value)&&value.every(stroke=>Array.isArray(stroke)&&stroke.length>0&&stroke.every(point=>plainObject(point)&&typeof point.x==="number"&&Number.isFinite(point.x)&&typeof point.y==="number"&&Number.isFinite(point.y))); }
+function normalizedSubmissionVerdict(value){ if(value==null) return null; if(!plainObject(value)||!["ok","bad"].includes(value.status)||!["exact","holistic"].includes(value.mode)||!Array.isArray(value.failed)||!value.failed.every(index=>typeof index==="number"&&Number.isInteger(index)&&index>=0)) return null;
+  const out=cloneObj(value); out.failed=[...new Set(value.failed)]; ["u","t","missing"].forEach(key=>{ out[key]=Math.max(0,typeof value[key]==="number"&&Number.isFinite(value[key])?value[key]:0); }); return out; }
+function normalizedSubmissionSnapshot(value){ if(!plainObject(value)) return null; const out=cloneObj(value), raw={}; let geometryChanged=false;
+  SUBMISSION_GEOMETRY_FIELDS.forEach(key=>{ raw[key]=key in out?out[key]:[]; });
+  ["inkStrokes","hintStrokes","referenceStrokes"].forEach(key=>{ if(!safeSessionInkShape(raw[key])) geometryChanged=true; out[key]=normalizedSessionInkStrokes(raw[key]); });
+  const suppliedComposite=normalizedSessionInkStrokes(raw.compositeGeometry), rebuiltComposite=[...cloneObj(out.hintStrokes),...cloneObj(out.inkStrokes)];
+  if(!safeSessionInkShape(raw.compositeGeometry)||JSON.stringify(suppliedComposite)!==JSON.stringify(rebuiltComposite)) geometryChanged=true; out.compositeGeometry=rebuiltComposite;
+  out.hintStrokeIds=Array.isArray(out.hintStrokeIds)?[...new Set(out.hintStrokeIds.filter(index=>typeof index==="number"&&Number.isInteger(index)&&index>=0))]:[];
+  const verdict=normalizedSubmissionVerdict(out.lastVerdict); out.lastVerdict=geometryChanged?null:verdict;
+  out.compositeImage=!geometryChanged&&typeof out.compositeImage==="string"&&out.compositeImage.length<=2*1024*1024&&/^data:image\/png;base64,[A-Za-z0-9+/]*={0,2}$/.test(out.compositeImage)?out.compositeImage:null; return out; }
+function withoutPersistedHandwriting(rows){ if(!Array.isArray(rows)) return rows; return rows.map(row=>{ if(!plainObject(row)) return row; const out=cloneObj(row); delete out.handwriting; return out; }); }
+function normalizedStampGeometry(value){ if(!plainObject(value)) return null; const out=cloneObj(value);
+  if("roundHandwritingValue" in out) out.roundHandwritingValue=normalizedSessionInkStrokes(out.roundHandwritingValue);
+  if(plainObject(out.memoryValue)&&plainObject(out.memoryValue.recentInk)&&"strokes" in out.memoryValue.recentInk) out.memoryValue.recentInk.strokes=normalizedInkStrokes(out.memoryValue.recentInk.strokes);
+  if(Array.isArray(out.roundStatsValue)) out.roundStatsValue=withoutPersistedHandwriting(out.roundStatsValue);
+  if(out.revealState) out.revealState=normalizedSubmissionSnapshot(out.revealState); return out; }
+function isRecentInkDataURL(value){ const dataURL=typeof value==="string"?value:""; return dataURL.length*2<=32*1024&&/^data:image\/(?:webp|png);base64,[A-Za-z0-9+/]*={0,2}$/.test(dataURL); }
+function recentInkRows(){ return Object.entries(memory).filter(([,m])=>m&&m.recentInk&&isRecentInkDataURL(m.recentInk.dataURL)).map(([key,m])=>({key,m,at:Math.max(0,Number(m.recentInk.at)||0),bytes:m.recentInk.dataURL.length*2+(m.recentInk.strokes?JSON.stringify(m.recentInk.strokes).length*2:0)})).sort((a,b)=>b.at-a.at); }
 function trimRecentInk(){ let kept=0, bytes=0, removed=0; recentInkRows().forEach(row=>{ if(kept<RECENT_INK_MAX && bytes+row.bytes<=RECENT_INK_BUDGET){ kept++; bytes+=row.bytes; }else{ delete row.m.recentInk; removed++; } }); return {kept,bytes,removed}; }
 function saveMemory(){ trimRecentInk(); if(save(MEMORY_KEY,memory)) return true;
   const oldest=recentInkRows().sort((a,b)=>a.at-b.at); for(const row of oldest){ delete row.m.recentInk; if(save(MEMORY_KEY,memory)) return true; } return save(MEMORY_KEY,memory); }
-function saveQuality(){ save(QUALITY_KEY,quality); }
-function saveTuning(){ tuning.offset=clamp(Number(tuning.offset)||0,-18,22); tuning.contextStrict=clamp(Number(tuning.contextStrict)||0,0,4); tuning.rounds=(tuning.rounds||[]).slice(-30); save(TUNING_KEY,tuning); }
+function saveQuality(){ return save(QUALITY_KEY,quality); }
+function saveTuning(){ tuning.offset=clamp(Number(tuning.offset)||0,-18,22); tuning.contextStrict=clamp(Number(tuning.contextStrict)||0,0,4); tuning.rounds=(tuning.rounds||[]).slice(-30); return save(TUNING_KEY,tuning); }
 function dayKey(d=new Date()){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
 function today(){ return dayKey(); }
 function shiftDay(key,amount){ const p=String(key).split("-").map(Number), d=new Date(p[0],p[1]-1,p[2],12); d.setDate(d.getDate()+amount); return dayKey(d); }
 function dayStartMs(key){ const p=String(key||"").split("-").map(Number); return p.length===3?new Date(p[0],p[1]-1,p[2]).getTime():0; }
+const validDayKey=value=>{ const text=String(value||""); if(!/^\d{4}-\d{2}-\d{2}$/.test(text)) return false; const [year,month,date]=text.split("-").map(Number); return dayKey(new Date(year,month-1,date,12))===text; };
+const validMonthKey=value=>{ const match=String(value||"").match(/^(\d{4})-(\d{2})$/); return !!match&&Number(match[2])>=1&&Number(match[2])<=12; };
+function storedCardKey(value){ const key=canonicalCardKey(value); return key.length<=80&&!/[\u0000-\u001f<>"'&]/.test(key)&&/^(?:base|custom|legacy):/.test(key)?key:""; }
+// 两个旧键收敛到同一个稳定键时，整行丢弃较旧那条会连计数一起丢。
+// 这里改用和 migrateStableCardIdentity 相同的合并口径：记忆行取计数最大值，质量行按位或。
+function mergeQualityRows(left,right){ if(!left) return cloneObj(right); if(!right) return cloneObj(left); const a=cloneObj(left),b=cloneObj(right), out={...a,...b}; ["easy","rare","badWord","hide"].forEach(k=>{ if(a[k]||b[k]) out[k]=true; }); return out; }
+function migrateCustomKeyedRows(value,merge){ if(!plainObject(value)) return {value:{},changed:false}; const join=merge||mergeStableRows, out={}, legacy=[]; Object.entries(value).forEach(([key,row])=>{ const canonical=canonicalCardKey(key); if(canonical!==key) legacy.push([canonical,row]); else out[key]=row; }); legacy.forEach(([key,row])=>{ out[key]=join(out[key],row); }); return {value:out,changed:legacy.length>0}; }
+function safeStoredText(value,max=160){ const text=typeof value==="string"?value:""; return text.length<=max&&!/[\u0000-\u001f<>]/.test(text)?text:""; }
+function safeStoredTimestamp(value){ const text=typeof value==="string"?value:"", ms=Date.parse(text); return text.length<=40&&Number.isFinite(ms)?new Date(ms).toISOString():""; }
+function normalizeFSRSEvent(value){ if(!plainObject(value)) return null; const localDay=validDayKey(value.localDay)?String(value.localDay):"", key=storedCardKey(value.cardKey), reviewedAt=safeStoredTimestamp(value.reviewedAt); if(!localDay||!key||!reviewedAt) return null;
+  return {eventId:safeStoredText(value.eventId),attemptId:safeStoredText(value.attemptId),cardKey:key,target:Array.from(String(value.target||"")).slice(0,1).join(""),reviewedAt,localDay,rating:value.rating==="Good"?"Good":"Again",reason:safeStoredText(value.reason),hintCount:Math.max(0,Math.floor(Number(value.hintCount)||0)),traced:value.traced===true,teaching:value.teaching===true,plannedDue:validDayKey(value.plannedDue)?String(value.plannedDue):"",actualIntervalDays:Number.isFinite(Number(value.actualIntervalDays))?Math.max(0,Number(value.actualIntervalDays)):null,scheduledDays:Math.max(0,Number(value.scheduledDays)||0),schedulerVersion:safeStoredText(value.schedulerVersion),parameterVersion:safeStoredText(value.parameterVersion),desiredRetention:Math.max(0,Number(value.desiredRetention)||0),maximumInterval:Math.max(0,Number(value.maximumInterval)||0),timeZone:safeStoredText(value.timeZone)}; }
+function normalizeFSRSMonthly(value){ const out={}; if(!plainObject(value)) return out; Object.entries(value).forEach(([month,source])=>{ if(!validMonthKey(month)||!plainObject(source)) return; const lastReviewByDay={}; if(plainObject(source.lastReviewByDay)) Object.entries(source.lastReviewByDay).forEach(([day,row])=>{ const key=storedCardKey(row&&row.cardKey), reviewedAt=safeStoredTimestamp(row&&row.reviewedAt); if(validDayKey(day)&&day.startsWith(month+"-")&&plainObject(row)&&key&&reviewedAt) lastReviewByDay[day]={cardKey:key,reviewedAt}; }); out[month]={reviews:Math.max(0,Math.floor(Number(source.reviews)||0)),good:Math.max(0,Math.floor(Number(source.good)||0)),again:Math.max(0,Math.floor(Number(source.again)||0)),hinted:Math.max(0,Math.floor(Number(source.hinted)||0)),traced:Math.max(0,Math.floor(Number(source.traced)||0)),firstAt:safeStoredTimestamp(source.firstAt),lastAt:safeStoredTimestamp(source.lastAt),lastReviewByDay}; }); return out; }
+function normalizeFSRSStored(value){ const events=(Array.isArray(value)?value:plainObject(value)&&Array.isArray(value.events)?value.events:[]).map(normalizeFSRSEvent).filter(Boolean); return {version:2,events,monthly:normalizeFSRSMonthly(!Array.isArray(value)&&plainObject(value)?value.monthly:null)}; }
+const memoryKeyMigration=migrateCustomKeyedRows(memory,mergeStableRows), qualityKeyMigration=migrateCustomKeyedRows(quality,mergeQualityRows); memory=memoryKeyMigration.value; quality=qualityKeyMigration.value;
+const fsrsStored=normalizeFSRSStored(bootLoad(FSRS_LOG_KEY,[]));
+fsrsReviewLog=fsrsStored.events; fsrsReviewMonthly=fsrsStored.monthly;
 const FSRS_CONFIG=Object.freeze({schedulerVersion:"ts-fsrs 5.2.0 / FSRS-6.0",parameterVersion:"fsrs6-fuzz-365-v2",desiredRetention:0.90,maximumInterval:365,enableFuzz:true,timeZone:Intl.DateTimeFormat().resolvedOptions().timeZone||"local"});
 const fsrsEngine=window.FSRS?FSRS.fsrs(FSRS.generatorParameters({request_retention:FSRS_CONFIG.desiredRetention,maximum_interval:FSRS_CONFIG.maximumInterval,enable_fuzz:FSRS_CONFIG.enableFuzz,enable_short_term:true,learning_steps:[],relearning_steps:[]})):null;
-function saveFSRSLog(){ save(FSRS_LOG_KEY,fsrsReviewLog); }
+const FSRS_RAW_RETENTION_DAYS=120;
+function compactFSRSReviews(now=Date.now()){ const cutoff=shiftDay(dayKey(new Date(Number(now)||Date.now())),-FSRS_RAW_RETENTION_DAYS),kept=[];
+  fsrsReviewLog.forEach(event=>{ if(!event||!validDayKey(event.localDay)||event.localDay>=cutoff){ kept.push(event); return; } const month=event.localDay.slice(0,7),row=fsrsReviewMonthly[month]&&typeof fsrsReviewMonthly[month]==="object"?fsrsReviewMonthly[month]:{reviews:0,good:0,again:0,hinted:0,traced:0,firstAt:"",lastAt:"",lastReviewByDay:{}};
+    row.reviews++; if(event.rating==="Good") row.good++; else if(event.rating==="Again") row.again++; if(Number(event.hintCount)>0) row.hinted++; if(event.traced) row.traced++; const at=safeStoredTimestamp(event.reviewedAt); row.lastReviewByDay=plainObject(row.lastReviewByDay)?row.lastReviewByDay:{}; const previous=row.lastReviewByDay[event.localDay]; if(at&&(!previous||at>previous.reviewedAt)) row.lastReviewByDay[event.localDay]={cardKey:storedCardKey(event.cardKey),reviewedAt:at}; if(at&&(!row.firstAt||at<row.firstAt)) row.firstAt=at; if(at&&(!row.lastAt||at>row.lastAt)) row.lastAt=at; fsrsReviewMonthly[month]=row; });
+  fsrsReviewLog=kept; return {events:fsrsReviewLog,monthly:fsrsReviewMonthly}; }
+function saveFSRSLog(){ compactFSRSReviews(); return save(FSRS_LOG_KEY,{version:2,events:fsrsReviewLog,monthly:fsrsReviewMonthly}); }
 function serializeFSRSCard(card){ if(!card) return null; const out={...card}; out.due=new Date(card.due).toISOString(); out.last_review=card.last_review?new Date(card.last_review).toISOString():null; return out; }
 function deserializeFSRSCard(raw,now=Date.now()){ if(!raw || typeof raw!=="object" || !window.FSRS) return FSRS.createEmptyCard(new Date(now));
   return {...raw,due:new Date(raw.due||now),last_review:raw.last_review?new Date(raw.last_review):undefined}; }
@@ -1114,7 +1218,7 @@ function normalizeLegacySchedule(m){ if(!m || typeof m!=="object") return m;
 function earliestReviewAt(key,rows=fsrsReviewLog){ return (rows||[]).reduce((first,row)=>{ if(!row||row.cardKey!==key) return first; const at=Date.parse(row.reviewedAt)||dayStartMs(row.localDay); return at>0&&(!first||at<first)?at:first; },0); }
 function markFirstSeen(m,at=Date.now()){ if(!m||typeof m!=="object") return 0; const stored=Number(m.firstSeenAt)||0; if(stored>0) return stored; const first=Math.max(1,Number(at)||Date.now()); m.firstSeenAt=first; return first; }
 function migrateFirstSeenAt(mem=memory,rows=fsrsReviewLog){ let changed=false; Object.entries(mem||{}).forEach(([key,m])=>{ if(!m||typeof m!=="object"||!m.seen||Number(m.firstSeenAt)>0) return; const at=earliestReviewAt(key,rows)||Number(m.last)||0; if(at>0){ markFirstSeen(m,at); changed=true; } }); return changed; }
-Object.values(memory).forEach(normalizeLegacySchedule); migrateFirstSeenAt(); saveMemory();
+Object.values(memory).forEach(normalizeLegacySchedule); migrateFirstSeenAt(); saveMemory(); if(qualityKeyMigration.changed) saveQuality(); saveFSRSLog();
 function fsrsEventId(attemptId){ return `${attemptId}:fsrs` }
 function reviewEventById(eventId){ return fsrsReviewLog.find(e=>e && e.eventId===eventId)||null; }
 function applyFSRSReview(idx,rating,reason,attemptId,details={}){
@@ -1131,44 +1235,52 @@ function applyFSRSReview(idx,rating,reason,attemptId,details={}){
   fsrsReviewLog.push(event); saveFSRSLog(); saveMemory(); return event; }
 function formatDueDay(key){ if(!/^\d{4}-\d{2}-\d{2}$/.test(String(key||""))) return ""; const [y,m,d]=key.split("-").map(Number); return `${y}年${m}月${d}日`; }
 function shortDueDay(key){ if(!/^\d{4}-\d{2}-\d{2}$/.test(String(key||""))) return "稍后"; const [,m,d]=key.split("-").map(Number); return `${m}月${d}日`; }
-let opens = bootLoad(OPEN_KEY, [], Array.isArray); if(!opens.includes(today())){ opens.push(today()); save(OPEN_KEY,opens); }
-function newFunnel(){ return {version:1,createdAt:Date.now(),events:[],seen:[],counts:{revealCompared:0,revealDisagree:0},rounds:[]}; }
+let opens = bootLoad(OPEN_KEY, []); if(!opens.includes(today())){ opens.push(today()); save(OPEN_KEY,opens); }
+const FUNNEL_SEEN_LIMIT=512, FUNNEL_EVENT_LIMIT=256, FUNNEL_ROUND_LIMIT=180, FUNNEL_ROUND_CAP_MS=60*60*1000, FUNNEL_MODES=["new","review","calibrate","focus","makeup"];
+function newFunnel(){ return {version:2,createdAt:Date.now(),events:[],eventCounts:{},seen:[],counts:{revealCompared:0,revealDisagree:0},rounds:[],roundTotals:{count:0,durationMs:0,byMode:{}}}; }
 function normalizeFunnel(raw){ const f=raw&&typeof raw==="object"?raw:newFunnel();
-  f.version=1; f.createdAt=Math.max(0,Number(f.createdAt)||Date.now());
+  f.version=2; f.createdAt=Math.max(0,Number(f.createdAt)||Date.now());
   f.events=Array.isArray(f.events)?f.events.filter(e=>e&&typeof e.name==="string"&&Number(e.at)>0).map(e=>({name:e.name,at:Number(e.at),day:/^\d{4}-\d{2}-\d{2}$/.test(e.day||"")?e.day:dayKey(new Date(Number(e.at)))})):[];
   f.seen=Array.isArray(f.seen)?[...new Set(f.seen.filter(k=>typeof k==="string"))]:[];
   const counts=f.counts&&typeof f.counts==="object"?f.counts:{}; f.counts={revealCompared:Math.max(0,Number(counts.revealCompared)||0),revealDisagree:Math.max(0,Number(counts.revealDisagree)||0)};
-  f.rounds=Array.isArray(f.rounds)?f.rounds.filter(r=>r&&Number(r.completedAt)>0&&Number(r.durationMs)>=0).map(r=>({completedAt:Number(r.completedAt),day:/^\d{4}-\d{2}-\d{2}$/.test(r.day||"")?r.day:dayKey(new Date(Number(r.completedAt))),mode:["new","review","calibrate","focus","makeup"].includes(r.mode)?r.mode:"new",durationMs:Math.max(0,Math.round(Number(r.durationMs)||0)),targetCount:Math.max(0,Number(r.targetCount)||0),attemptCount:Math.max(0,Number(r.attemptCount)||0)})):[];
+  f.rounds=Array.isArray(f.rounds)?f.rounds.filter(r=>r&&Number(r.completedAt)>0&&Number(r.durationMs)>=0).map(r=>({completedAt:Number(r.completedAt),day:/^\d{4}-\d{2}-\d{2}$/.test(r.day||"")?r.day:dayKey(new Date(Number(r.completedAt))),mode:FUNNEL_MODES.includes(r.mode)?r.mode:"new",durationMs:Math.min(FUNNEL_ROUND_CAP_MS,Math.max(0,Math.round(Number(r.durationMs)||0))),targetCount:Math.max(0,Number(r.targetCount)||0),attemptCount:Math.max(0,Number(r.attemptCount)||0)})):[];
+  const providedEventCounts=f.eventCounts&&typeof f.eventCounts==="object"?f.eventCounts:null; f.eventCounts=providedEventCounts?Object.fromEntries(Object.entries(providedEventCounts).filter(([name,value])=>typeof name==="string"&&Number(value)>=0).map(([name,value])=>[name,Math.floor(Number(value))])):f.events.reduce((out,event)=>{ out[event.name]=(out[event.name]||0)+1; return out; },{});
+  const derived=f.rounds.reduce((out,row)=>{ const bucket=out[row.mode]||(out[row.mode]={count:0,durationMs:0}); bucket.count++; bucket.durationMs+=row.durationMs; return out; },{}), totals=f.roundTotals&&typeof f.roundTotals==="object"?f.roundTotals:null, providedModes=totals&&plainObject(totals.byMode)?totals.byMode:null, byMode={};
+  FUNNEL_MODES.forEach(mode=>{ const source=providedModes&&plainObject(providedModes[mode])?providedModes[mode]:derived[mode], rawCount=Math.max(0,Math.floor(Number(source&&source.count)||0)), count=Math.max(Number(derived[mode]&&derived[mode].count)||0,rawCount), rawDuration=Math.max(0,Math.round(Number(source&&source.durationMs)||0)); if(count) byMode[mode]={count,durationMs:Math.max(Number(derived[mode]&&derived[mode].durationMs)||0,Math.min(rawDuration,count*FUNNEL_ROUND_CAP_MS))}; });
+  const rawCount=Math.max(f.rounds.length,Math.floor(Number(totals&&totals.count)||0)), rawDuration=Math.max(f.rounds.reduce((sum,row)=>sum+row.durationMs,0),Math.round(Number(totals&&totals.durationMs)||0)), classifiedCount=Object.values(byMode).reduce((sum,row)=>sum+row.count,0), classifiedDuration=Object.values(byMode).reduce((sum,row)=>sum+row.durationMs,0), totalCount=Math.max(rawCount,classifiedCount), totalDuration=Math.max(classifiedDuration,Math.min(rawDuration,totalCount*FUNNEL_ROUND_CAP_MS)); if(totalCount>classifiedCount) byMode.unclassified={count:totalCount-classifiedCount,durationMs:Math.max(0,Math.min(totalDuration-classifiedDuration,(totalCount-classifiedCount)*FUNNEL_ROUND_CAP_MS))};
+  f.roundTotals={count:totalCount,durationMs:totalDuration,byMode};
   return f; }
-let funnel=bootNormalize(FUNNEL_KEY,bootLoad(FUNNEL_KEY,null,v=>v===null||plainObject(v)),null,normalizeFunnel); save(FUNNEL_KEY,funnel);
-function saveFunnel(){ save(FUNNEL_KEY,funnel); }
-function appendFunnelEvent(target,name,onceKey=name,at=Date.now()){ const key=String(onceKey||name); if(target.seen.includes(key)) return false; const ts=Math.max(1,Number(at)||Date.now()); target.seen.push(key); target.events.push({name,at:ts,day:dayKey(new Date(ts))}); return true; }
+let funnel=bootNormalize(FUNNEL_KEY,bootLoad(FUNNEL_KEY,null),null,normalizeFunnel); saveFunnel(true);
+function saveFunnel(compact=false){ if(compact){ funnel.seen=funnel.seen.slice(-FUNNEL_SEEN_LIMIT); funnel.events=funnel.events.slice(-FUNNEL_EVENT_LIMIT); funnel.rounds=funnel.rounds.slice(-FUNNEL_ROUND_LIMIT); } return save(FUNNEL_KEY,funnel); }
+function appendFunnelEvent(target,name,onceKey=name,at=Date.now()){ const key=String(onceKey||name); if(target.seen.includes(key)) return false; const ts=Math.max(1,Number(at)||Date.now()); target.seen.push(key); target.events.push({name,at:ts,day:dayKey(new Date(ts))}); target.eventCounts=target.eventCounts||{}; target.eventCounts[name]=(target.eventCounts[name]||0)+1; return true; }
 function recordFunnelOnce(name,onceKey=name,at=Date.now()){ if(!appendFunnelEvent(funnel,name,onceKey,at)) return false; saveFunnel(); return true; }
-function recordFunnelComparison(attemptId,agree,at=Date.now()){ if(typeof agree!=="boolean") return false; const key=`reveal:${attemptId}`; if(funnel.seen.includes(key)) return false; funnel.seen.push(key); funnel.counts.revealCompared++; if(!agree){ const ts=Math.max(1,Number(at)||Date.now()); funnel.counts.revealDisagree++; funnel.events.push({name:"reveal_disagree",at:ts,day:dayKey(new Date(ts))}); } saveFunnel(); return true; }
-function recordFunnelRound(durationMs){ const key=`round:${roundId}`; if(funnel.seen.includes(key)) return false; funnel.seen.push(key); funnel.rounds.push({completedAt:Date.now(),day:today(),mode:activeMode,durationMs:Math.min(Math.max(0,Math.round(Number(durationMs)||0)),ROUND_DURATION_CAP_MS),targetCount:baseTargets.length,attemptCount:attemptSeq}); saveFunnel(); return true; }
+function recordFunnelComparison(attemptId,agree,at=Date.now()){ if(typeof agree!=="boolean") return false; const key=`reveal:${attemptId}`; if(funnel.seen.includes(key)) return false; funnel.seen.push(key); funnel.counts.revealCompared++; if(!agree){ const ts=Math.max(1,Number(at)||Date.now()); funnel.counts.revealDisagree++; funnel.events.push({name:"reveal_disagree",at:ts,day:dayKey(new Date(ts))}); funnel.eventCounts.reveal_disagree=(funnel.eventCounts.reveal_disagree||0)+1; } saveFunnel(); return true; }
+function recordFunnelRound(durationMs){ const key=`round:${roundId}`; if(funnel.seen.includes(key)) return false; const bounded=Math.min(Math.max(0,Math.round(Number(durationMs)||0)),ROUND_DURATION_CAP_MS), mode=FUNNEL_MODES.includes(activeMode)?activeMode:"new"; funnel.seen.push(key); funnel.rounds.push({completedAt:Date.now(),day:today(),mode,durationMs:bounded,targetCount:baseTargets.length,attemptCount:attemptSeq}); funnel.roundTotals.count++; funnel.roundTotals.durationMs+=bounded; funnel.roundTotals.byMode=funnel.roundTotals.byMode||{}; const bucket=funnel.roundTotals.byMode[mode]||(funnel.roundTotals.byMode[mode]={count:0,durationMs:0}); bucket.count++; bucket.durationMs+=bounded; saveFunnel(true); return true; }
 function projectedFunnelEvent(name,onceKey,at){ const projected=normalizeFunnel(JSON.parse(JSON.stringify(funnel))); appendFunnelEvent(projected,name,onceKey,at); return projected; }
 function maybeRecordD2Return(){ const days=[...new Set(opens.filter(d=>/^\d{4}-\d{2}-\d{2}$/.test(String(d))))].sort(); if(days.length&&today()===shiftDay(days[0],1)) recordFunnelOnce("d2_return"); }
 maybeRecordD2Return();
 function legacyStreakThrough(endKey){ const set=new Set(opens), start=String(endKey||today()); let n=0, key=start;
   while(set.has(key)){ n++; key=shiftDay(key,-1); } return n; }
 function legacyDaysBefore(dateKey){ return [...new Set(opens.filter(d=>/^\d{4}-\d{2}-\d{2}$/.test(String(d)) && String(d)<String(dateKey)))].length; }
-function newActivity(){ return {version:1,migrationDate:today(),inheritedStreak:legacyStreakThrough(shiftDay(today(),-1)),inheritedTotalDays:legacyDaysBefore(today()),practiceDays:[],daily:{}}; }
-function normalizeActivityRow(raw){ const row=plainObject(raw)?raw:{};
-  row.stamps=Math.max(0,Number(row.stamps)||0); row.attempts=Math.max(row.stamps,Number(row.attempts)||0); row.targetKeys=Array.isArray(row.targetKeys)?[...new Set(row.targetKeys.filter(k=>typeof k==="string"))]:[]; row.independentTargetKeys=Array.isArray(row.independentTargetKeys)?[...new Set(row.independentTargetKeys.filter(k=>typeof k==="string"))]:[]; row.reviewTargetKeys=Array.isArray(row.reviewTargetKeys)?[...new Set(row.reviewTargetKeys.filter(k=>typeof k==="string"))]:[]; row.completedRoundIds=Array.isArray(row.completedRoundIds)?[...new Set(row.completedRoundIds.filter(k=>typeof k==="string"||Number.isFinite(k)))]:[]; row.makeup=row.makeup===true;
-  row.completedGroups=row.completedRoundIds.length; return row; }
-function normalizeActivity(raw){ const a=plainObject(raw)?raw:newActivity();
-  a.version=1; a.migrationDate=/^\d{4}-\d{2}-\d{2}$/.test(a.migrationDate||"")?a.migrationDate:today();
-  a.inheritedStreak=Math.max(0,Number(a.inheritedStreak)||0);
+const ACTIVITY_RAW_RETENTION_DAYS=400;
+function newActivity(){ return {version:2,migrationDate:today(),inheritedStreak:legacyStreakThrough(shiftDay(today(),-1)),inheritedTotalDays:legacyDaysBefore(today()),practiceDays:[],daily:{},monthly:{}}; }
+function normalizedCardKeyList(value){ return Array.isArray(value)?[...new Set(value.map(storedCardKey).filter(Boolean))].slice(0,10000):[]; }
+function normalizeActivityDay(value){ const row=plainObject(value)?value:{}, completedRoundIds=Array.isArray(row.completedRoundIds)?[...new Set(row.completedRoundIds.filter(item=>(typeof item==="string"&&item.length<=160)||Number.isFinite(item)))].slice(0,1000):[], stamps=Math.max(0,Math.floor(Number(row.stamps)||0)); return {stamps,attempts:Math.max(stamps,Math.floor(Number(row.attempts)||0)),targetKeys:normalizedCardKeyList(row.targetKeys),independentTargetKeys:normalizedCardKeyList(row.independentTargetKeys),reviewTargetKeys:normalizedCardKeyList(row.reviewTargetKeys),completedRoundIds,completedGroups:completedRoundIds.length,makeup:row.makeup===true,lastStampAt:Math.max(0,Number(row.lastStampAt)||0),firstCompletedAt:Math.max(0,Number(row.firstCompletedAt)||0),makeupAt:Math.max(0,Number(row.makeupAt)||0)}; }
+function normalizeActivityMonth(month,value){ const row=plainObject(value)?value:{}, firstDay=validDayKey(row.firstDay)&&String(row.firstDay).startsWith(month+"-")?String(row.firstDay):""; return {days:Math.max(0,Math.floor(Number(row.days)||0)),completedDays:Math.max(0,Math.floor(Number(row.completedDays)||0)),stamps:Math.max(0,Math.floor(Number(row.stamps)||0)),attempts:Math.max(0,Math.floor(Number(row.attempts)||0)),completedGroups:Math.max(0,Math.floor(Number(row.completedGroups)||0)),targetKeys:normalizedCardKeyList(row.targetKeys),independentTargetKeys:normalizedCardKeyList(row.independentTargetKeys),reviewTargetKeys:normalizedCardKeyList(row.reviewTargetKeys),makeupDays:Array.isArray(row.makeupDays)?[...new Set(row.makeupDays.filter(day=>validDayKey(day)&&String(day).startsWith(month+"-")))].sort():[],firstDay,firstTargetKey:firstDay?storedCardKey(row.firstTargetKey):"",lastStampAt:Math.max(0,Number(row.lastStampAt)||0)}; }
+function normalizeActivity(raw){ const source=plainObject(raw)?raw:newActivity(), migrationDate=validDayKey(source.migrationDate)?String(source.migrationDate):today(), daily={}, monthly={}; if(plainObject(source.daily)) Object.entries(source.daily).forEach(([day,row])=>{ if(validDayKey(day)) daily[day]=normalizeActivityDay(row); }); if(plainObject(source.monthly)) Object.entries(source.monthly).forEach(([month,row])=>{ if(validMonthKey(month)) monthly[month]=normalizeActivityMonth(month,row); }); const a={version:2,migrationDate,inheritedStreak:Math.max(0,Number(source.inheritedStreak)||0),inheritedTotalDays:0,practiceDays:Array.isArray(source.practiceDays)?[...new Set(source.practiceDays.filter(validDayKey).map(String))].sort():[],daily,monthly};
   // 累计口径的历史继承：迁移日之前的打开日全额计入；迁移日起只认完成日，与迁移后的 opens 不会重复计数
-  a.inheritedTotalDays=Number.isInteger(a.inheritedTotalDays)&&a.inheritedTotalDays>=0?a.inheritedTotalDays:legacyDaysBefore(a.migrationDate);
-  a.practiceDays=Array.isArray(a.practiceDays)?[...new Set(a.practiceDays.filter(d=>/^\d{4}-\d{2}-\d{2}$/.test(d)))].sort():[];
-  // 旧数据某天可能是 null / 数组 / 标量：逐日规范化，别让后面的迁移直接读坏行把整页启动打断
-  a.daily=plainObject(a.daily)?a.daily:{}; Object.keys(a.daily).forEach(key=>{ a.daily[key]=normalizeActivityRow(a.daily[key]); }); return a; }
-let activity=bootNormalize(ACTIVITY_KEY,bootLoad(ACTIVITY_KEY,null,v=>v===null||plainObject(v)),null,normalizeActivity); save(ACTIVITY_KEY,activity);
+  a.inheritedTotalDays=Number.isInteger(source.inheritedTotalDays)&&source.inheritedTotalDays>=0?source.inheritedTotalDays:legacyDaysBefore(a.migrationDate); return a; }
+let activity=bootNormalize(ACTIVITY_KEY,bootLoad(ACTIVITY_KEY,null),null,normalizeActivity); saveActivity();
 function normalizeBackupMeta(raw){ const meta=raw&&typeof raw==="object"?raw:{}; return {lastExportAt:Math.max(0,Number(meta.lastExportAt)||0),summaryPromptShown:!!meta.summaryPromptShown}; }
-let backupMeta=bootNormalize(BACKUP_META_KEY,bootLoad(BACKUP_META_KEY,null,v=>v===null||plainObject(v)),null,normalizeBackupMeta), summaryBackupHintVisible=false;
-function saveActivity(){ save(ACTIVITY_KEY,activity); }
-function dailyActivity(key=today()){ const row=normalizeActivityRow(activity.daily[key]); activity.daily[key]=row; return row; }
+let backupMeta=bootNormalize(BACKUP_META_KEY,bootLoad(BACKUP_META_KEY,null),null,normalizeBackupMeta), summaryBackupHintVisible=false;
+function archiveActivityDay(day,row){ const month=day.slice(0,7),archive=activity.monthly[month]&&typeof activity.monthly[month]==="object"?activity.monthly[month]:{days:0,completedDays:0,stamps:0,attempts:0,completedGroups:0,targetKeys:[],independentTargetKeys:[],reviewTargetKeys:[],makeupDays:[],firstDay:"",firstTargetKey:"",lastStampAt:0};
+  archive.days++; archive.stamps+=Math.max(0,Number(row.stamps)||0); archive.attempts+=Math.max(0,Number(row.attempts)||0); archive.completedGroups+=Math.max(0,Number(row.completedGroups)||0); if((row.completedRoundIds||[]).length) archive.completedDays++;
+  ["targetKeys","independentTargetKeys","reviewTargetKeys"].forEach(field=>{ archive[field]=[...new Set([...(archive[field]||[]),...(Array.isArray(row[field])?row[field]:[])])]; }); if(row.makeup===true&&!archive.makeupDays.includes(day)) archive.makeupDays.push(day); if(!archive.firstDay||day<archive.firstDay){ archive.firstDay=day; archive.firstTargetKey=Array.isArray(row.targetKeys)&&row.targetKeys[0]||""; } archive.lastStampAt=Math.max(Number(archive.lastStampAt)||0,Number(row.lastStampAt)||0); activity.monthly[month]=archive; }
+function compactActivity(now=Date.now()){ const cutoff=shiftDay(dayKey(new Date(Number(now)||Date.now())),-ACTIVITY_RAW_RETENTION_DAYS); Object.keys(activity.daily).filter(day=>/^\d{4}-\d{2}-\d{2}$/.test(day)&&day<cutoff).sort().forEach(day=>{ archiveActivityDay(day,activity.daily[day]||{}); delete activity.daily[day]; }); return activity; }
+function saveActivity(){ compactActivity(); return save(ACTIVITY_KEY,activity); }
+function dailyActivity(key=today()){ const row=activity.daily[key] && typeof activity.daily[key]==="object"?activity.daily[key]:{};
+  row.stamps=Math.max(0,Number(row.stamps)||0); row.attempts=Math.max(row.stamps,Number(row.attempts)||0); row.targetKeys=Array.isArray(row.targetKeys)?[...new Set(row.targetKeys.filter(k=>typeof k==="string"))]:[]; row.independentTargetKeys=Array.isArray(row.independentTargetKeys)?[...new Set(row.independentTargetKeys.filter(k=>typeof k==="string"))]:[]; row.reviewTargetKeys=Array.isArray(row.reviewTargetKeys)?[...new Set(row.reviewTargetKeys.filter(k=>typeof k==="string"))]:[]; row.completedRoundIds=Array.isArray(row.completedRoundIds)?[...new Set(row.completedRoundIds.filter(k=>typeof k==="string"||Number.isFinite(k)))]:[]; row.makeup=row.makeup===true;
+  row.completedGroups=row.completedRoundIds.length; activity.daily[key]=row; return row; }
 function markPracticeStamp(idx=null,outcome=""){ const key=today(), row=dailyActivity(key), targetKey=Number.isInteger(idx)?cardKey(idx):`legacy:${row.attempts}`; row.attempts++; if(!row.targetKeys.includes(targetKey)){ row.targetKeys.push(targetKey); row.stamps++; } if(outcome==="fast"&&!row.independentTargetKeys.includes(targetKey)) row.independentTargetKeys.push(targetKey); row.lastStampAt=Date.now();
   if(!activity.practiceDays.includes(key)) activity.practiceDays.push(key); activity.practiceDays.sort(); saveActivity();
   if(row.attempts===1) syncReminder(); }
@@ -1184,7 +1296,7 @@ function markRoundComplete(){ if(!roundIsComplete()) return false; const row=dai
 function todayStampCount(){ return dailyActivity().stamps; }
 function todayCompleted(){ return dailyActivity().completedGroups>0; }
 // 累计练习日：历史继承 + 完成过至少一整组的日子。加练不重复计，只增不减。
-function completedDayCount(){ return Object.keys(activity.daily).filter(k=>/^\d{4}-\d{2}-\d{2}$/.test(k) && Array.isArray((activity.daily[k]||{}).completedRoundIds) && activity.daily[k].completedRoundIds.length>0).length; }
+function completedDayCount(){ const archived=Object.values(activity.monthly||{}).reduce((sum,row)=>sum+Math.max(0,Number(row&&row.completedDays)||0),0); return archived+Object.keys(activity.daily).filter(k=>/^\d{4}-\d{2}-\d{2}$/.test(k) && Array.isArray((activity.daily[k]||{}).completedRoundIds) && activity.daily[k].completedRoundIds.length>0).length; }
 function totalPracticeDays(){ return activity.inheritedTotalDays+completedDayCount(); }
 function monthPracticeDays(key=today()){ const prefix=String(key).slice(0,7)+"-"; return activity.practiceDays.filter(day=>day.startsWith(prefix)).length; }
 // 习惯练习时刻：最近 14 个练习日 lastStampAt 的中位时刻，钳制 07:00–22:00；样本不足 3 天默认 20:00
@@ -1201,15 +1313,15 @@ function normalizeReminder(raw){ const r=raw && typeof raw==="object"?raw:{};
   r.milestonesShown=Array.isArray(r.milestonesShown)?r.milestonesShown.filter(n=>Number.isInteger(n)):[];
   r.characterMilestonesShown=Array.isArray(r.characterMilestonesShown)?r.characterMilestonesShown.filter(n=>Number.isInteger(n)):[];
   r.characterMilestoneDay=/^\d{4}-\d{2}-\d{2}$/.test(r.characterMilestoneDay||"")?r.characterMilestoneDay:""; return r; }
-let reminder=bootNormalize(REMINDER_KEY,bootLoad(REMINDER_KEY,null,v=>v===null||plainObject(v)),null,normalizeReminder); save(REMINDER_KEY,reminder);
+let reminder=bootNormalize(REMINDER_KEY,bootLoad(REMINDER_KEY,null),null,normalizeReminder); save(REMINDER_KEY,reminder);
 let reminderPendingEnable=false;
 const reminderDebug={lastSync:null};
 // ---- 纸墨声音与练字背景音：两个开关彼此独立，都尊重 iOS 静音键 ----
 const SOUNDSCAPE_SCENES=["off","rain","fire"];
 function normalizeSound(raw){ const value=raw&&typeof raw==="object"?raw:{}, scene=SOUNDSCAPE_SCENES.includes(value.scene)?value.scene:"off"; return {enabled:value.enabled!==false,tipShown:value.tipShown===true,scene}; }
-let sound=bootNormalize(SOUND_KEY,bootLoad(SOUND_KEY,null,v=>v===null||plainObject(v)),null,normalizeSound); save(SOUND_KEY,sound);
+let sound=bootNormalize(SOUND_KEY,bootLoad(SOUND_KEY,null),null,normalizeSound); save(SOUND_KEY,sound);
 function normalizeHandCardPref(raw){ const value=raw&&typeof raw==="object"?raw:{}; return {promptEnabled:value.promptEnabled!==false,lastPromptDay:/^\d{4}-\d{2}-\d{2}$/.test(String(value.lastPromptDay||""))?String(value.lastPromptDay):""}; }
-let handCardPref=bootNormalize(HAND_CARD_KEY,bootLoad(HAND_CARD_KEY,null,v=>v===null||plainObject(v)),null,normalizeHandCardPref); save(HAND_CARD_KEY,handCardPref);
+let handCardPref=bootNormalize(HAND_CARD_KEY,bootLoad(HAND_CARD_KEY,null),null,normalizeHandCardPref); save(HAND_CARD_KEY,handCardPref);
 const soundDebug={last:null,events:[],contextCreated:0};
 let webAudioContext=null, lastPaperSoundAt=0;
 let ambientAudioContext=null, ambientSource=null, ambientGain=null, ambientScene="off";
@@ -1350,10 +1462,10 @@ function milestoneText(milestone){ return milestone.kind==="characters"?`已经�
 const BATCH=15, DAILY_REVIEW_BUDGET=30;
 let sessionDone=new Set(), baseTargets=[], batch=[], pos=0, baseCursor=0, currentIndex=null, currentAttemptKind="base", currentAttemptId="";
 let manualQueue=[], reinforcementQueue=[], unresolved=new Set(), episodes={}, attemptSeq=0, practicePhase="recall", hintEverUsed=false, enteredTracingThisAttempt=false, submissionSnapshot=null, pendingSessionVisual=null, feedbackKind="";
-let missedThisRound=[], roundStats=[], focusQueue=[], hintsUsedThisCard=0, cardStartedAt=0, activeMode="new", makeupTargetDay="", sessionTarget=0, sessionFastStreak=0, sessionMissStreak=0, roundFeedbackGiven=false, roundId=0, calibrationFirstHoldUsed=false, calibrationComfortShown=false, calibrationTargets=[];
+let missedThisRound=[], roundStats=[], roundHandwriting={}, focusQueue=[], hintsUsedThisCard=0, cardStartedAt=0, activeMode="new", makeupTargetDay="", sessionTarget=0, sessionFastStreak=0, sessionMissStreak=0, roundFeedbackGiven=false, roundId=0, calibrationFirstHoldUsed=false, calibrationComfortShown=false, calibrationTargets=[];
 let summaryFocusIndexes=[], roundStartMemoryCount=0, summarySealTimer=0, summaryMilestoneActive=false, focusReturnView="home";
 let roundElapsedMs=0, roundActiveStartedAt=0, roundBudgetPrompted=false, roundTimerPaused=false;
-const ROUND_ATTEMPT_BUDGET=20, ROUND_TIME_BUDGET_MS=6*60*1000, ROUND_DURATION_CAP_MS=60*60*1000;
+const ROUND_ATTEMPT_BUDGET=20, ROUND_TIME_BUDGET_MS=6*60*1000, ROUND_DURATION_CAP_MS=FUNNEL_ROUND_CAP_MS;
 function currentCardIndex(){ return Number.isInteger(currentIndex)?currentIndex:(Number.isInteger(batch[pos])?batch[pos]:null); }
 function episodeFor(idx){ const key=String(idx); return episodes[key] || (episodes[key]={idx,firstOutcome:null,attempts:[],assistanceUsed:false,independentlyRecovered:false,excluded:false,teachingComplete:false}); }
 function enqueueReinforcement(idx){ unresolved.add(idx); reinforcementQueue=reinforcementQueue.filter(item=>item.idx!==idx); reinforcementQueue.push({idx,eligibleAfter:attemptSeq+2,order:attemptSeq}); const m=cardMemory(idx); m.pendingLearning=true; m.dueDay=null; m.due=0; }
@@ -1375,44 +1487,52 @@ function storedIndexedRow(row){ if(!plainObject(row)) return null; const ref=sto
 function storedIndexedRows(rows){ return (rows||[]).map(storedIndexedRow).filter(Boolean); }
 function storedQueue(rows){ return storedIndexedRows(rows); }
 function storedEpisodes(value){ return Object.values(value||{}).map(storedIndexedRow).filter(Boolean); }
-function storedSubmission(value){ return value?storedIndexedRow(value):null; }
+function storedSubmission(value){ const out=value?storedIndexedRow(value):null; return out?normalizedSubmissionSnapshot(out):null; }
 function storedVisual(value){ if(!value) return null; const out=cloneObj(value), ref=storedCardRef(out.currentIndex); if(!ref) return null; out.currentCardKey=ref; delete out.currentIndex;
   if(out.submissionSnapshot) out.submissionSnapshot=storedSubmission(out.submissionSnapshot); return out; }
-function storedStampSnapshot(value){ if(!value) return null; const out=cloneObj(value), ref=canonicalCardKey(out.key||storedCardRef(out.idx)), currentRef=storedCardRef(out.currentIndex); if(!ref||!currentRef) return null;
+function storedStampSnapshot(value){ if(!value) return null; const out=normalizedStampGeometry(value); if(!out) return null; const ref=canonicalCardKey(out.key||storedCardRef(out.idx)), currentRef=storedCardRef(out.currentIndex); if(!ref||!currentRef) return null;
   out.cardKey=ref; out.currentCardKey=currentRef; out.baseTargetKeys=storedCardRefs(out.baseTargetsValue); out.manualQueueValue=storedQueue(out.manualQueueValue); out.queueValue=storedQueue(out.queueValue);
-  out.unresolvedKeys=storedCardRefs(out.unresolvedValue); out.episodeRows=storedEpisodes(out.episodesValue); out.sessionDoneKeys=storedCardRefs(out.sessionDoneValue); out.roundStatsValue=storedIndexedRows(out.roundStatsValue); out.revealState=storedSubmission(out.revealState);
+  out.unresolvedKeys=storedCardRefs(out.unresolvedValue); out.episodeRows=storedEpisodes(out.episodesValue); out.sessionDoneKeys=storedCardRefs(out.sessionDoneValue); out.roundStatsValue=sessionRoundStats(out.roundStatsValue); out.revealState=storedSubmission(out.revealState);
   delete out.key; delete out.idx; delete out.currentIndex; delete out.baseTargetsValue; delete out.unresolvedValue; delete out.episodesValue; delete out.sessionDoneValue; return out; }
+function sessionRoundStats(rows){ return storedIndexedRows(rows||roundStats).map(row=>{ delete row.handwriting; return row; }); }
 function sessionPayload(){ return {version:3,startedDate:(load(SESSION_KEY,null)||{}).startedDate||today(),updatedAt:Date.now(),activeMode,makeupTargetDay,baseTargetKeys:storedCardRefs(baseTargets),baseCursor,currentCardKey:storedCardRef(currentIndex),currentAttemptKind,currentAttemptId,
   manualQueue:storedQueue(manualQueue),reinforcementQueue:storedQueue(reinforcementQueue),unresolvedKeys:storedCardRefs([...unresolved]),episodeRows:storedEpisodes(episodes),attemptSeq,practicePhase,visual:storedVisual(capturePracticeVisual()),
-  missedThisRound:missedThisRound.slice(),roundStats:storedIndexedRows(roundStats),focusKeys:storedCardRefs(focusQueue),sessionDoneKeys:storedCardRefs([...sessionDone]),sessionTarget,sessionFastStreak,sessionMissStreak,roundFeedbackGiven,roundId,calibrationFirstHoldUsed,calibrationComfortShown,calibrationTargetKeys:storedCardRefs(calibrationTargets),lastStampSnapshot:storedStampSnapshot(lastStampSnapshot),feedbackKind,
+  missedThisRound:missedThisRound.slice(),roundStats:sessionRoundStats(),focusKeys:storedCardRefs(focusQueue),sessionDoneKeys:storedCardRefs([...sessionDone]),sessionTarget,sessionFastStreak,sessionMissStreak,roundFeedbackGiven,roundId,calibrationFirstHoldUsed,calibrationComfortShown,calibrationTargetKeys:storedCardRefs(calibrationTargets),lastStampSnapshot:storedStampSnapshot(lastStampSnapshot),feedbackKind,
   roundElapsedMs:currentRoundElapsed(),roundBudgetPrompted,roundStartMemoryCount}; }
 function saveSessionSnapshot(){ if(!baseTargets.length || !Number.isInteger(currentCardIndex())) return false; if(activeMode==="focus"&&baseTargets.length===1){ clearSessionSnapshot(); return true; } return save(SESSION_KEY,sessionPayload()); }
 function clearSessionSnapshot(){ removeStored(SESSION_KEY); }
 function restoredIndex(ref){ const idx=indexForCardKey(ref); return idx>=0?idx:null; }
 function restoredRefs(refs){ if(!Array.isArray(refs)) return null; const out=refs.map(restoredIndex); return out.every(Number.isInteger)?out:null; }
 function restoredIndexedRow(row){ if(!plainObject(row)) return null; const idx=restoredIndex(row.cardKey); if(!Number.isInteger(idx)||(row.target&&row.target!==CARDS[idx].target)) return null; const out={}; Object.entries(cloneObj(row)).forEach(([key,value])=>{ if(key==="cardKey") out.idx=idx; else out[key]=value; }); return out; }
+function restoredSubmission(value){ const out=restoredIndexedRow(value); return out?normalizedSubmissionSnapshot(out):null; }
 function restoredIndexedRows(rows){ if(!Array.isArray(rows)) return null; const out=rows.map(restoredIndexedRow); return out.every(Boolean)?out:null; }
 function restoredEpisodes(rows){ const decoded=restoredIndexedRows(rows); if(!decoded) return null; return Object.fromEntries(decoded.map(row=>[String(row.idx),row])); }
 function restoredVisual(value){ if(!value) return null; if(!plainObject(value)) return false; const idx=restoredIndex(value.currentCardKey); if(!Number.isInteger(idx)) return false; const out={...cloneObj(value),currentIndex:idx}; delete out.currentCardKey;
-  if(out.submissionSnapshot){ out.submissionSnapshot=restoredIndexedRow(out.submissionSnapshot); if(!out.submissionSnapshot) return false; } return out; }
-function restoredStampSnapshot(value){ if(!value) return null; if(!plainObject(value)) return false; const idx=restoredIndex(value.cardKey), current=restoredIndex(value.currentCardKey), base=restoredRefs(value.baseTargetKeys), manual=restoredIndexedRows(value.manualQueueValue), queue=restoredIndexedRows(value.queueValue), unresolvedRows=restoredRefs(value.unresolvedKeys), episodeMap=restoredEpisodes(value.episodeRows), done=restoredRefs(value.sessionDoneKeys), stats=restoredIndexedRows(value.roundStatsValue);
+  if("inkStrokes" in out){ if(!Array.isArray(out.inkStrokes)) return false; out.inkStrokes=normalizedSessionInkStrokes(out.inkStrokes); }
+  if(out.submissionSnapshot){ out.submissionSnapshot=restoredSubmission(out.submissionSnapshot); if(!out.submissionSnapshot) return false; } return out; }
+function restoredStampSnapshot(value){ if(!value) return null; if(!plainObject(value)) return false; const source=normalizedStampGeometry(value), idx=restoredIndex(source.cardKey), current=restoredIndex(source.currentCardKey), base=restoredRefs(source.baseTargetKeys), manual=restoredIndexedRows(source.manualQueueValue), queue=restoredIndexedRows(source.queueValue), unresolvedRows=restoredRefs(source.unresolvedKeys), episodeMap=restoredEpisodes(source.episodeRows), done=restoredRefs(source.sessionDoneKeys), stats=restoredIndexedRows(source.roundStatsValue);
   if(!Number.isInteger(idx)||!Number.isInteger(current)||!base||!manual||!queue||!unresolvedRows||!episodeMap||!done||!stats) return false;
-  const out={...cloneObj(value),idx,key:cardKey(idx),currentIndex:current,baseTargetsValue:base,manualQueueValue:manual,queueValue:queue,unresolvedValue:unresolvedRows,episodesValue:episodeMap,sessionDoneValue:done,roundStatsValue:stats};
+  const out={...cloneObj(source),idx,key:cardKey(idx),currentIndex:current,baseTargetsValue:base,manualQueueValue:manual,queueValue:queue,unresolvedValue:unresolvedRows,episodesValue:episodeMap,sessionDoneValue:done,roundStatsValue:stats};
   delete out.cardKey; delete out.currentCardKey; delete out.baseTargetKeys; delete out.unresolvedKeys; delete out.episodeRows; delete out.sessionDoneKeys;
-  if(out.revealState){ out.revealState=restoredIndexedRow(out.revealState); if(!out.revealState) return false; } return out; }
+  if(out.revealState){ out.revealState=restoredSubmission(out.revealState); if(!out.revealState) return false; } return out; }
 function decodeSessionV3(s){ if(!plainObject(s)||s.version!==3) return null; const targets=restoredRefs(s.baseTargetKeys), current=restoredIndex(s.currentCardKey), manual=restoredIndexedRows(s.manualQueue), reinforcement=restoredIndexedRows(s.reinforcementQueue), open=restoredRefs(s.unresolvedKeys), episodeMap=restoredEpisodes(s.episodeRows), stats=restoredIndexedRows(s.roundStats), focus=restoredRefs(s.focusKeys), done=restoredRefs(s.sessionDoneKeys), calibration=restoredRefs(s.calibrationTargetKeys), visual=restoredVisual(s.visual), stamp=restoredStampSnapshot(s.lastStampSnapshot);
   if(!targets||!targets.length||!Number.isInteger(current)||!manual||!reinforcement||!open||!episodeMap||!stats||!focus||!done||!calibration||visual===false||stamp===false) return null;
   return {...s,baseTargets:targets,currentIndex:current,manualQueue:manual,reinforcementQueue:reinforcement,unresolved:open,episodes:episodeMap,roundStats:stats,focusQueue:focus,sessionDone:done,calibrationTargets:calibration,visual,lastStampSnapshot:stamp}; }
 function discardLegacySession(raw){ try{ localStorage.setItem(`shizi.corrupt.${SESSION_KEY}`,String(raw||"")); localStorage.removeItem(SESSION_KEY); legacySessionDiscarded=true; }catch(e){} }
-function resumableSession(){ const raw=localStorage.getItem(SESSION_KEY); const s=bootLoad(SESSION_KEY,null,v=>v===null||plainObject(v)); if(!s) return null; if(s.version===1||s.version===2){ discardLegacySession(raw); return null; }
-  const decoded=decodeSessionV3(s), valid=decoded && ["new","review","calibrate","focus","makeup"].includes(decoded.activeMode)
-    && (decoded.activeMode!=="makeup" || (/^\d{4}-\d{2}-\d{2}$/.test(decoded.makeupTargetDay||"") && decoded.makeupTargetDay<today()));
-  if(!valid){ quarantineStoredKey(SESSION_KEY,raw); return null; } return decoded; }
+function usableDecodedSession(decoded){ return !!decoded && ["new","review","calibrate","focus","makeup"].includes(decoded.activeMode)
+  && (decoded.activeMode!=="makeup" || (/^\d{4}-\d{2}-\d{2}$/.test(decoded.makeupTargetDay||"") && decoded.makeupTargetDay<today())); }
+// v1/v2 是明确的旧会话失效规则：允许存在，启动时安全结束并提示；v3 必须真的解得开。
+function storedSessionShape(v){ if(v===null) return true; if(!plainObject(v)) return false;
+  if(v.version===1||v.version===2) return true; return usableDecodedSession(decodeSessionV3(v)); }
+function resumableSession(){ const raw=readStoredRaw(SESSION_KEY); let s=bootLoad(SESSION_KEY,null); if(!s) return null; if(s.version===1||s.version===2){ discardLegacySession(raw); return null; }
+  const normalized=normalizeBackupSession(s); if(JSON.stringify(normalized)!==JSON.stringify(s)){ save(SESSION_KEY,normalized); s=normalized; }
+  const decoded=decodeSessionV3(s);
+  if(!usableDecodedSession(decoded)){ quarantineStoredKey(SESSION_KEY,raw); return null; } return decoded; }
 function restoreSession(s){ if(!s) return false; if(s.version===3&&!Array.isArray(s.baseTargets)) s=decodeSessionV3(s); if(!s) return false; activeMode=s.activeMode; makeupTargetDay=activeMode==="makeup"?s.makeupTargetDay:""; baseTargets=s.baseTargets.slice(); batch=baseTargets; baseCursor=Math.max(0,Math.min(baseTargets.length,Number(s.baseCursor)||0)); currentIndex=s.currentIndex;
   currentAttemptKind=s.currentAttemptKind||"base"; currentAttemptId=s.currentAttemptId||`${s.roundId}-a${(Number(s.attemptSeq)||0)+1}-${currentIndex}`; manualQueue=Array.isArray(s.manualQueue)?cloneObj(s.manualQueue):[]; reinforcementQueue=Array.isArray(s.reinforcementQueue)?cloneObj(s.reinforcementQueue):[]; unresolved=new Set(Array.isArray(s.unresolved)?s.unresolved:[]); episodes=cloneObj(s.episodes)||{}; attemptSeq=Number(s.attemptSeq)||0; practicePhase=s.practicePhase||"recall";
-  missedThisRound=Array.isArray(s.missedThisRound)?s.missedThisRound.slice():[]; roundStats=Array.isArray(s.roundStats)?cloneObj(s.roundStats):[]; focusQueue=Array.isArray(s.focusQueue)?s.focusQueue.slice():[]; sessionDone=new Set(Array.isArray(s.sessionDone)?s.sessionDone:[]);
+  missedThisRound=Array.isArray(s.missedThisRound)?s.missedThisRound.slice():[]; roundStats=Array.isArray(s.roundStats)?cloneObj(s.roundStats).map(row=>{ delete row.handwriting; return row; }):[]; roundHandwriting={}; focusQueue=Array.isArray(s.focusQueue)?s.focusQueue.slice():[]; sessionDone=new Set(Array.isArray(s.sessionDone)?s.sessionDone:[]);
   sessionTarget=Number(s.sessionTarget)||targetDifficulty(); sessionFastStreak=Number(s.sessionFastStreak)||0; sessionMissStreak=Number(s.sessionMissStreak)||0; roundFeedbackGiven=!!s.roundFeedbackGiven; roundId=s.roundId||Date.now()+"-resume"; calibrationFirstHoldUsed=!!s.calibrationFirstHoldUsed; calibrationComfortShown=!!s.calibrationComfortShown;
-  calibrationTargets=activeMode==="calibrate"?[...new Set(Array.isArray(s.calibrationTargets)?s.calibrationTargets:baseTargets.slice(0,BATCH))].filter(i=>Number.isInteger(i)&&baseTargets.includes(i)).slice(0,BATCH):[]; lastStampSnapshot=cloneObj(s.lastStampSnapshot); feedbackKind=s.feedbackKind||"";
+  calibrationTargets=activeMode==="calibrate"?[...new Set(Array.isArray(s.calibrationTargets)?s.calibrationTargets:baseTargets.slice(0,BATCH))].filter(i=>Number.isInteger(i)&&baseTargets.includes(i)).slice(0,BATCH):[]; lastStampSnapshot=null; feedbackKind=s.feedbackKind||"";
   roundElapsedMs=Math.max(0,Number(s.roundElapsedMs)||0); roundActiveStartedAt=Date.now(); roundBudgetPrompted=!!s.roundBudgetPrompted; roundTimerPaused=false; roundStartMemoryCount=Math.max(0,Number(s.roundStartMemoryCount)||memoryCount());
   if(baseCursor>=baseTargets.length && manualQueue.length===0 && unresolved.size===0){ practicePhase="between"; clearSessionSnapshot(); markRoundComplete(); roundSummary(); return true; }
   pendingSessionVisual=cloneObj(s.visual); pos=Math.min(baseCursor,Math.max(0,baseTargets.length-1)); render(); armPracticeHistory(); return true; }
@@ -1678,10 +1798,12 @@ function recordQuality(kind, idx=currentCardIndex()){ if(idx==null || idx<0) ret
   if(kind==="hide"){ if(q.hide){ sessionDone.add(idx); unresolved.delete(idx); reinforcementQueue=reinforcementQueue.filter(item=>item.idx!==idx); const ep=episodeFor(idx); ep.excluded=true; const m=cardMemory(idx); m.pendingLearning=false; m.dueDay=null; saveMemory(); }
     else sessionDone.delete(idx); saveSessionSnapshot(); }
   if(cur && idx===currentCardIndex()) renderQuality(); }
-function shareInkFromSnapshot(snapshot){ const source=snapshot&&Array.isArray(snapshot.inkStrokes)?snapshot.inkStrokes:[], size=Math.max(1,Number(snapshot&&snapshot.canvasSize)||S), maxPoints=48;
+function shareInkFromSnapshot(snapshot){ const safe=normalizedSubmissionSnapshot(snapshot), source=safe?safe.inkStrokes||[]:[], size=Math.max(1,Number(safe&&safe.canvasSize)||S), maxPoints=48;
   return source.slice(0,48).map(points=>{ const list=Array.isArray(points)?points:[], sampled=list.length<=maxPoints?list:Array.from({length:maxPoints},(_,i)=>list[Math.round(i*(list.length-1)/(maxPoints-1))]); return sampled.map(point=>{ const row={x:Math.round(clamp(Number(point.x)/size,0,1)*1000)/1000,y:Math.round(clamp(Number(point.y)/size,0,1)*1000)/1000};
       if(Number.isFinite(Number(point.w))) row.w=Math.round(clamp(Number(point.w),.35,1.7)*1000)/1000; if(Number.isFinite(Number(point.v))) row.v=Math.round(clamp(Number(point.v),0,6)*1000)/1000; return row; }).filter(point=>Number.isFinite(point.x)&&Number.isFinite(point.y)); }).filter(points=>points.length); }
 function compactHandCardStrokes(strokes){ return (strokes||[]).slice(0,36).map(points=>{ const list=Array.isArray(points)?points:[],max=24,sampled=list.length<=max?list:Array.from({length:max},(_,i)=>list[Math.round(i*(list.length-1)/(max-1))]); return sampled.map(point=>({x:Math.round(clamp(Number(point.x),0,1)*1000)/1000,y:Math.round(clamp(Number(point.y),0,1)*1000)/1000,w:Math.round(clamp(Number(point.w)||1,.35,1.7)*100)/100,v:Math.round(clamp(Number(point.v)||0,0,6)*100)/100})); }).filter(points=>points.length); }
+function setRoundHandwriting(idx,strokes){ const key=String(idx); if(Array.isArray(strokes)&&strokes.length) roundHandwriting[key]=cloneObj(strokes); else delete roundHandwriting[key]; }
+function roundHandwritingFor(stat){ const direct=roundHandwriting[String(stat&&stat.idx)]; if(Array.isArray(direct)&&direct.length) return direct; const recent=stat&&memory[cardKey(stat.idx)]&&memory[cardKey(stat.idx)].recentInk; return recent&&Array.isArray(recent.strokes)?recent.strokes:[]; }
 function persistRecentInk(m,strokes,at=Date.now()){ if(!m || !Array.isArray(strokes) || !strokes.some(points=>Array.isArray(points)&&points.length)) return false;
   try{ const canvas=document.createElement("canvas"); canvas.width=120; canvas.height=120; const ctx=canvas.getContext("2d"); if(!ctx) return false; ctx.fillStyle="#fdfbf4"; ctx.fillRect(0,0,120,120); drawShareHandwriting(ctx,strokes,6,6,108,0); const dataURL=canvas.toDataURL("image/webp",.68); if(!/^data:image\/(webp|png);base64,/.test(dataURL)||dataURL.length*2>32*1024) return false;
     m.recentInk={version:2,day:dayKey(new Date(Number(at)||Date.now())),at:Number(at)||Date.now(),dataURL,strokes:compactHandCardStrokes(strokes)}; trimRecentInk(); return true;
@@ -1707,9 +1829,9 @@ function recordOutcome(outcome,options={}){ const idx=currentCardIndex(), c=CARD
   ep.attempts.push(attempt); ep.firstOutcome=ep.firstOutcome||outcome; ep.assistanceUsed=ep.assistanceUsed||hintEverUsed||enteredTracingThisAttempt;
   if(activeMode==="calibrate" && firstOutcome && idx===calibrationTargets[0]) recordFunnelOnce("calib_card1_done");
   const handwriting=shareInkFromSnapshot(submissionSnapshot); if(!hard) persistRecentInk(m,handwriting,now);
-  if(firstOutcome){ roundStats.push({idx,target:c.target,word:c.word,outcome,uncertain,geometryStatus:lastVerdict&&lastVerdict.status||"none",geometryMode:lastVerdict&&lastVerdict.mode||"none",traced:!!enteredTracingThisAttempt,hintUsed:hintEverUsed,level:abilityLevel(idx),topic:c.topic,dueDay:m.dueDay||null,independentlyRecovered:!hard,handwriting});
+  if(firstOutcome){ setRoundHandwriting(idx,handwriting); roundStats.push({idx,target:c.target,word:c.word,outcome,uncertain,geometryStatus:lastVerdict&&lastVerdict.status||"none",geometryMode:lastVerdict&&lastVerdict.mode||"none",traced:!!enteredTracingThisAttempt,hintUsed:hintEverUsed,level:abilityLevel(idx),topic:c.topic,dueDay:m.dueDay||null,independentlyRecovered:!hard});
     if(hard) missedThisRound.push(c.target); adaptNextCard(outcome,idx); }
-  else { const stat=roundStats.find(row=>row.idx===idx); if(stat && !hard){ stat.independentlyRecovered=true; stat.dueDay=m.dueDay||null; stat.handwriting=handwriting; } }
+  else { const stat=roundStats.find(row=>row.idx===idx); if(stat && !hard){ stat.independentlyRecovered=true; stat.dueDay=m.dueDay||null; setRoundHandwriting(idx,handwriting); } }
   if(currentAttemptKind==="base"){ baseCursor=Math.min(baseTargets.length,baseCursor+1); sessionDone.add(idx); }
   attemptSeq++;
   if(hard && !qualityFor(idx).hide) enqueueReinforcement(idx); else if(hard){ ep.excluded=true; m.pendingLearning=false; m.dueDay=null; m.due=0; } else graduateReinforcement(idx);
@@ -1795,7 +1917,7 @@ function daysFromToday(key){ return Math.round((dayStartMs(today())-dayStartMs(k
 function canMakeupDay(key){ const gap=daysFromToday(key); return /^\d{4}-\d{2}-\d{2}$/.test(key) && gap>=1 && gap<=7 && !activity.practiceDays.includes(key); }
 function renderCalendar(){ const [year,month]=calendarMonthKey.split("-").map(Number), count=new Date(year,month,0).getDate(), first=(new Date(year,month-1,1).getDay()+6)%7, animate=!motionReduced()&&!calendarAnimatedMonths.has(calendarMonthKey), cells=[];
   for(let i=0;i<first;i++) cells.push('<span class="calendarDay calendarPad"></span>');
-  let stampOrder=0; for(let date=1;date<=count;date++){ const key=`${calendarMonthKey}-${String(date).padStart(2,"0")}`, practiced=activity.practiceDays.includes(key), row=activity.daily[key]&&typeof activity.daily[key]==="object"?activity.daily[key]:{}, future=key>today(), makeable=canMakeupDay(key), stamp=practiced?`<i class="calendarStamp ${key===today()?"todayStamp":""} ${row.makeup?"makeup":""} ${animate?"land":""}" style="--stamp-delay:${(stampOrder++*.035).toFixed(3)}s">${row.makeup?"补":"拾"}</i>`:"";
+  let stampOrder=0; for(let date=1;date<=count;date++){ const key=`${calendarMonthKey}-${String(date).padStart(2,"0")}`, practiced=activity.practiceDays.includes(key), row=activity.daily[key]&&typeof activity.daily[key]==="object"?activity.daily[key]:{}, archived=activity.monthly[calendarMonthKey]||{}, makeup=row.makeup===true||(archived.makeupDays||[]).includes(key), future=key>today(), makeable=canMakeupDay(key), stamp=practiced?`<i class="calendarStamp ${key===today()?"todayStamp":""} ${makeup?"makeup":""} ${animate?"land":""}" style="--stamp-delay:${(stampOrder++*.035).toFixed(3)}s">${makeup?"补":"拾"}</i>`:"";
     cells.push(`<button class="calendarDay ${future?"future":""} ${makeable?"makeable":""} ${key===today()?"today":""}" data-day="${key}" ${makeable?'data-makeup="1"':''} ${future?'disabled':''}><span class="dayNumber">${date}</span>${stamp}</button>`); }
   $("calendarGrid").innerHTML=cells.join(""); $("calendarMonthTitle").textContent=year===new Date().getFullYear()?`${numCn(month)}月`:monthCn(calendarMonthKey); const monthDays=monthPracticeDays(calendarMonthKey+"-01"), totalDays=totalPracticeDays(), monthStat=$("calendarMonthStat"); monthStat.textContent=`盖章 ${monthDays}天 · 累计 ${totalDays}天`; monthStat.setAttribute("aria-label",`盖章 ${monthDays} 天 · 累计练习 ${totalDays} 天`); $("calendarNext").disabled=calendarMonthKey>=today().slice(0,7);
   $("calendarHint").textContent=resumableSession()&&makeupInterestShown?"手上这组写完，就能补前几天的空。":"最近 7 天的留白日可以补写一帖。补帖要完整写完 5 个字，才会落印。";
@@ -1811,13 +1933,13 @@ function startMakeupDay(key=makeupPendingDay){ if(!canMakeupDay(key)) return fal
 
 // ---- 月帖：按月汇总活动记录，优先使用有容量上限的最近独立墨迹 ----
 function cardIndexForStoredKey(key){ for(let i=0;i<CARDS.length;i++) if(cardKey(i)===key) return i; return -1; }
-function monthReportData(month=today().slice(0,7)){ const prefix=String(month).slice(0,7)+"-", days=activity.practiceDays.filter(day=>day.startsWith(prefix)).sort(), keys=[], independent=[];
-  days.forEach(day=>{ const row=dailyActivity(day); row.targetKeys.forEach(key=>{ if(!keys.includes(key)) keys.push(key); }); row.independentTargetKeys.forEach(key=>{ if(!independent.includes(key)) independent.push(key); }); });
+function monthReportData(month=today().slice(0,7)){ const monthKey=String(month).slice(0,7),prefix=monthKey+"-", days=activity.practiceDays.filter(day=>day.startsWith(prefix)).sort(), archive=activity.monthly[monthKey]||{},keys=[...(archive.targetKeys||[])], independent=[...(archive.independentTargetKeys||[])];
+  days.forEach(day=>{ const row=activity.daily[day]; if(!row) return; (row.targetKeys||[]).forEach(key=>{ if(!keys.includes(key)) keys.push(key); }); (row.independentTargetKeys||[]).forEach(key=>{ if(!independent.includes(key)) independent.push(key); }); });
   fsrsReviewLog.filter(event=>event&&event.rating==="Good"&&String(event.localDay||"").startsWith(prefix)).forEach(event=>{ if(typeof event.cardKey==="string"&&!independent.includes(event.cardKey)) independent.push(event.cardKey); });
   independent.forEach(key=>{ if(!keys.includes(key)) keys.push(key); });
   const indexes=keys.map(cardIndexForStoredKey).filter(i=>i>=0), independentIndexes=independent.map(cardIndexForStoredKey).filter(i=>i>=0), hardest=independentIndexes.slice().sort((a,b)=>personalDifficulty(b)-personalDifficulty(a))[0], stable=indexes.filter(isStable).length;
   return {month:String(month).slice(0,7),days,keys,indexes,independentKeys:independent,independentIndexes,practiced:keys.length,stable,independentCount:independent.length,practiceDays:days.length,hardest:Number.isInteger(hardest)?hardest:null}; }
-function loadInkImage(dataURL){ return new Promise(resolve=>{ if(!dataURL){ resolve(null); return; } const img=new Image(); img.onload=()=>resolve(img); img.onerror=()=>resolve(null); img.src=dataURL; }); }
+function loadInkImage(dataURL){ return new Promise(resolve=>{ if(!isRecentInkDataURL(dataURL)){ resolve(null); return; } const img=new Image(); img.onload=()=>resolve(img); img.onerror=()=>resolve(null); img.src=dataURL; }); }
 async function renderMonthlyPostCanvas(month=today().slice(0,7)){ const data=monthReportData(month), canvas=document.createElement("canvas"); canvas.width=1080; canvas.height=1440; const ctx=canvas.getContext("2d"), paper="#f4efe2", card="#fdfbf4", ink="#29241d", muted="#665d4d", accent="#c2452c";
   ctx.fillStyle=paper; ctx.fillRect(0,0,1080,1440); ctx.strokeStyle="rgba(82,66,45,.07)"; ctx.lineWidth=1; for(let y=25;y<1440;y+=31){ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(1080,y+8); ctx.stroke(); }
   ctx.fillStyle=card; shareRoundRect(ctx,45,42,990,1350,14); ctx.fill(); ctx.strokeStyle="#d99b89"; ctx.lineWidth=4; ctx.stroke(); ctx.strokeStyle="#efd1c8"; ctx.lineWidth=2; ctx.strokeRect(67,64,946,1306);
@@ -1839,9 +1961,9 @@ async function shareMonthlyPost(opts={}){ const canvas=await renderMonthlyPostCa
   if(typeof opts.download==="function") opts.download(blob,name); else { const url=URL.createObjectURL(blob),a=document.createElement("a"); a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),4000); } toast("月帖已存成图片"); return {route:"download",name,size:blob.size}; }
 
 // ---- 年度报告：当前年度四屏本地汇总，不上传、不比较 ----
-function yearReportData(year=new Date().getFullYear()){ const prefix=String(year)+"-", days=activity.practiceDays.filter(day=>day.startsWith(prefix)).sort(), months={}; days.forEach(day=>{ const key=day.slice(0,7); months[key]=(months[key]||0)+1; }); const keys=[]; days.forEach(day=>dailyActivity(day).targetKeys.forEach(key=>{ if(!keys.includes(key)) keys.push(key); })); const indexes=keys.map(cardIndexForStoredKey).filter(i=>i>=0), busiest=Object.entries(months).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]))[0]||null, rarest=indexes.slice().sort((a,b)=>(Number(CARDS[b].rank)||0)-(Number(CARDS[a].rank)||0)||cardDifficulty(b)-cardDifficulty(a))[0], firstDay=days.find(day=>dailyActivity(day).targetKeys.length), firstKey=firstDay&&dailyActivity(firstDay).targetKeys[0], first=firstKey?cardIndexForStoredKey(firstKey):-1; return {year,days,keys,indexes,busiest,rarest:Number.isInteger(rarest)?rarest:null,first:first>=0?first:null,firstDay}; }
+function yearReportData(year=new Date().getFullYear()){ const prefix=String(year)+"-", days=activity.practiceDays.filter(day=>day.startsWith(prefix)).sort(), months={}; days.forEach(day=>{ const key=day.slice(0,7); months[key]=(months[key]||0)+1; }); const keys=[], archivedMonths=Object.entries(activity.monthly||{}).filter(([month])=>month.startsWith(prefix)); archivedMonths.forEach(([,row])=>(row.targetKeys||[]).forEach(key=>{ if(!keys.includes(key)) keys.push(key); })); days.forEach(day=>{ const row=activity.daily[day]; if(row) (row.targetKeys||[]).forEach(key=>{ if(!keys.includes(key)) keys.push(key); }); }); const indexes=keys.map(cardIndexForStoredKey).filter(i=>i>=0), busiest=Object.entries(months).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]))[0]||null, rarest=indexes.slice().sort((a,b)=>(Number(CARDS[b].rank)||0)-(Number(CARDS[a].rank)||0)||cardDifficulty(b)-cardDifficulty(a))[0], archivedFirst=archivedMonths.map(([,row])=>({day:row.firstDay,key:row.firstTargetKey})).filter(row=>row.day&&row.key).sort((a,b)=>a.day.localeCompare(b.day))[0], rawFirst=days.map(day=>({day,key:activity.daily[day]&&activity.daily[day].targetKeys&&activity.daily[day].targetKeys[0]})).find(row=>row.key), firstRow=[archivedFirst,rawFirst].filter(Boolean).sort((a,b)=>a.day.localeCompare(b.day))[0], first=firstRow?cardIndexForStoredKey(firstRow.key):-1; return {year,days,keys,indexes,busiest,rarest:Number.isInteger(rarest)?rarest:null,first:first>=0?first:null,firstDay:firstRow&&firstRow.day||""}; }
 function renderAnnualReport(year=new Date().getFullYear()){ const data=yearReportData(year); displayView("annual"); $("annualTitle").textContent=`${year} 年拾字报告`; if(!data.days.length){ $("annualSlides").innerHTML='<div class="annualSlide"><div class="annualEmpty">今年的第一枚章还没落下。<br>练过的字会在这里慢慢长成一卷。</div></div>'; return; }
-  const month=data.busiest?Number(data.busiest[0].slice(5)):0, firstChar=data.first!=null?CARDS[data.first].target:"", rareChar=data.rarest!=null?CARDS[data.rarest].target:""; $("annualSlides").innerHTML=`<section class="annualSlide"><span class="annualEyebrow">${year} · 练过的不同汉字</span><b>${data.keys.length} 字</b><p>这些是你今年练过的不同汉字。</p></section><section class="annualSlide"><span class="annualEyebrow">盖章天数最多的月份</span><b>${month} 月</b><p>这个月盖章 ${data.busiest[1]} 天。</p></section><section class="annualSlide"><span class="annualEyebrow">练过的字里最少见的一个</span><b class="annualChar">${esc(rareChar)}</b><p>${data.rarest!=null?esc(CARDS[data.rarest].word):""}</p></section><section class="annualSlide"><span class="annualEyebrow">这一年练的第一个字</span><b class="annualChar">${esc(firstChar)}</b><p>${data.firstDay||""}，从这个字开始。</p></section>`; $("annualSlides").scrollTop=0; }
+  const month=data.busiest?Number(data.busiest[0].slice(5)):0, firstChar=data.first!=null?CARDS[data.first].target:"", rareChar=data.rarest!=null?CARDS[data.rarest].target:""; $("annualSlides").innerHTML=`<section class="annualSlide"><span class="annualEyebrow">${year} · 练过的不同汉字</span><b>${data.keys.length} 字</b><p>这些是你今年练过的不同汉字。</p></section><section class="annualSlide"><span class="annualEyebrow">盖章天数最多的月份</span><b>${month} 月</b><p>这个月盖章 ${data.busiest[1]} 天。</p></section><section class="annualSlide"><span class="annualEyebrow">练过的字里最少见的一个</span><b class="annualChar">${esc(rareChar)}</b><p>${data.rarest!=null?esc(CARDS[data.rarest].word):""}</p></section><section class="annualSlide"><span class="annualEyebrow">这一年练的第一个字</span><b class="annualChar">${esc(firstChar)}</b><p>${esc(data.firstDay||"")}，从这个字开始。</p></section>`; $("annualSlides").scrollTop=0; }
 function startMode(mode){ const resume=resumableSession(); if(resume){ restoreSession(resume); return; }
   clearSessionSnapshot(); activeMode=(mode==="new" && needsCalibration())?"calibrate":mode; makeupTargetDay=""; focusQueue=[]; sessionDone=new Set(); roundOpeningPending=true; startRound(); }
 function startFocus(indexes,options={}){ focusQueue=[...new Set((indexes||highRiskIndexes()).filter(i=>i>=0 && i<CARDS.length))]; if(!focusQueue.length){ renderHome(); return; }
@@ -1863,13 +1985,14 @@ function loadEtymology(){ if(etymologyData) return Promise.resolve(etymologyData
     etymologyData=map; return map; }).catch(()=>{ etymologyData=new Map(); return etymologyData; }).finally(()=>{ etymologyLoading=null; }); return etymologyLoading; }
 function renderEtymLine(){ const line=$("etymLine"), card=CARDS[charDetailIndex], item=card&&etymologyData&&etymologyData.get(card.target);
   line.style.display=item?"block":"none"; $("etymGloss").textContent=item?item.gloss:""; $("etymSource").textContent=item?`——${item.source}`:""; }
-function openCharSheet(i){ if(!Number.isInteger(i)||i<0||i>=CARDS.length) return; charDetailIndex=i; const c=CARDS[i],m=memory[cardKey(i)]||{},recent=m.recentInk&&m.recentInk.dataURL,first=firstSeenDay(i),safeWord=suspiciousDictionaryWord(i)?c.target:(c.word||c.target);
-  $("charDetailGlyph").innerHTML=recent?`<img src="${recent}" alt="${esc(c.target)}的手写墨迹">`:esc(c.target);
+function renderRecentInkImage(container,dataURL,alt,fallback=""){ container.replaceChildren(); if(!isRecentInkDataURL(dataURL)){ container.textContent=fallback; return false; } const img=document.createElement("img"); img.src=dataURL; img.alt=alt; container.appendChild(img); return true; }
+function openCharSheet(i){ if(!Number.isInteger(i)||i<0||i>=CARDS.length) return; charDetailIndex=i; const c=CARDS[i],m=memory[cardKey(i)]||{},candidate=m.recentInk&&m.recentInk.dataURL,recent=isRecentInkDataURL(candidate)?candidate:"",first=firstSeenDay(i),safeWord=suspiciousDictionaryWord(i)?c.target:(c.word||c.target);
+  renderRecentInkImage($("charDetailGlyph"),recent,`${c.target}的手写墨迹`,c.target);
   $("charDetailWord").textContent=safeWord; $("charDetailPy").textContent=c.py||"";
   const wild=wildCaptureFor(c.target),wildDay=m.wildDay||(wild&&wild.day),wildStory=m.source==="wild"&&wildDay?`${collectedDateText(wildDay)} 拾于生活<br>`:"";
   $("charDetailStory").innerHTML=`${wildStory}${first&&!wildStory?`${collectedDateText(first)} 收进字库<br>`:""}练过 ${Number(m.seen)||0} 次${m.lastOutcome?` · ${OUTCOME_STORY[m.lastOutcome]||"上次练过"}`:""}`;
   $("charDetailWild").style.display=wild&&wild.dataURL?"grid":"none"; $("charDetailWildImage").src=wild&&wild.dataURL?wild.dataURL:""; $("charDetailWildCopy").textContent=wildDay?`${collectedDateText(wildDay)} 拾于生活`:"拾于生活";
-  $("charDetailInk").innerHTML=recent?`<img src="${recent}" alt="我上次写的${esc(c.target)}">`:"";
+  renderRecentInkImage($("charDetailInk"),recent,`我上次写的${c.target}`);
   $("charDetailEmpty").textContent=recent?"":"还没留下手写，写一遍就有了"; $("charDetailEmpty").style.display=recent?"none":"block";
   $("charDetailStandard").textContent=c.target; $("charDetailStandard").style.display="none"; $("charDetailCompareToggle").textContent="对范字"; $("charDetailCompareToggle").style.display=recent?"":"none"; $("charDetailOverlayToggle").style.display="none"; $("charDetailOverlayToggle").textContent="叠"; $("charDetailStandard").parentElement.classList.remove("overlay");
   const cardReady=!!handCardData(i),legacyInk=!!recent&&!cardReady;
@@ -1886,7 +2009,7 @@ function isStable(i){ return !isHighRisk(i) && ((memory[cardKey(i)]||{}).streak|
 function stableCount(){ return profileIndexes().filter(isStable).length; }
 function memoryInkLevel(i){ const m=memory[cardKey(i)]||{}, stability=Number(m.fsrsCard&&m.fsrsCard.stability)||0; if(stability>=7||(m.streak||0)>=3) return 1; if(stability>=2||(m.streak||0)>=1||m.pendingLearning) return 3; return 5; }
 function bookCuratorData(seen){ const due=seen.filter(reviewDue).sort(compareReviewPriority); if(due.length){ const indexes=due.slice(0,2),chars=indexes.map(i=>`「${CARDS[i].target}」`).join("和"); return {kind:"action",indexes,text:`${chars}的墨色淡了，写一遍就回来`,suffix:"›"}; }
-  const lastYear=`${new Date().getFullYear()-1}-${today().slice(5)}`, prior=fsrsReviewLog.filter(row=>row&&String(row.localDay||"")===lastYear).sort((a,b)=>String(b.reviewedAt||"").localeCompare(String(a.reviewedAt||"")))[0], priorIdx=prior?cardIndexForStoredKey(prior.cardKey):-1;
+  const lastYear=`${new Date().getFullYear()-1}-${today().slice(5)}`, archived=fsrsReviewMonthly[lastYear.slice(0,7)]&&fsrsReviewMonthly[lastYear.slice(0,7)].lastReviewByDay&&fsrsReviewMonthly[lastYear.slice(0,7)].lastReviewByDay[lastYear], prior=[...fsrsReviewLog.filter(row=>row&&String(row.localDay||"")===lastYear),...(archived?[archived]:[])].sort((a,b)=>String(b.reviewedAt||"").localeCompare(String(a.reviewedAt||"")))[0], priorIdx=prior?cardIndexForStoredKey(prior.cardKey):-1;
   const groups=profileGroups(seen,cardTopic), discovery=groups[datedSelectionIndex(today(),Math.max(1,groups.length),"book-curator")];
   if(priorIdx>=0) return {kind:"recall",indexes:[priorIdx],text:`去年今日，你拾回了「${CARDS[priorIdx].target}」`,suffix:"›"};
   if(discovery) return {kind:"discovery",indexes:discovery.items,text:`${discovery.label}的字，你已经收了${numCn(discovery.count)}个`,suffix:"›"};
@@ -1962,10 +2085,8 @@ function renderAudit(pref=auditPref){ auditPref=pref; displayView("audit"); cons
 function prefLabelFor(pref){ return ({balanced:"常用但老忘", practical:"偏实用", challenge:"偏挑战"})[pref] || "常用但老忘"; }
 
 // ---- 自定义加字（抓住现实里提笔忘的那个字；卡片追加在 SEED 之后，索引稳定）----
-const BASE_N=CARDS.length;
-let customWords = bootLoad(CUSTOM_KEY, [], v=>Array.isArray(v)&&v.every(row=>typeof row==="string"));
+let customWords = bootLoad(CUSTOM_KEY, []);
 const isCJK=c=>/[一-鿿]/.test(c);
-const BASE_BY_CHAR={}; for(let i=0;i<BASE_N;i++){ const t=CARDS[i].target; if(BASE_BY_CHAR[t]==null) BASE_BY_CHAR[t]=i; }
 const WILD_PHOTO_MAX=30, WILD_PHOTO_BUDGET=420*1024, WILD_PHOTO_MAX_BYTES=64*1024;
 function wildImageBytes(dataURL){ const raw=String(dataURL||"").split(",")[1]||"",padding=(raw.match(/=*$/)||[""])[0].length; return Math.max(0,Math.floor(raw.length*3/4)-padding); }
 function isWildPhotoDataURL(value){ return /^data:image\/(?:webp|jpeg);base64,/.test(String(value||"")); }
@@ -1994,7 +2115,7 @@ function migrateStableCardIdentity(){ const nextMemory={},nextQuality={},nextSta
   Object.values(activity.daily||{}).forEach(row=>{ if(!plainObject(row)) return; ["targetKeys","independentTargetKeys","reviewTargetKeys"].forEach(field=>{ if(Array.isArray(row[field])) row[field]=[...new Set(row[field].map(canonicalCardKey))]; }); });
   saveMemory(); saveQuality(); save(DECK_KEY,status); saveFSRSLog(); saveActivity(); }
 migrateStableCardIdentity();
-let addedChars = bootLoad(ADDED_KEY, null, v=>v===null||(Array.isArray(v)&&v.every(row=>typeof row==="string")));
+let addedChars = bootLoad(ADDED_KEY, null);
 if(!Array.isArray(addedChars)){ addedChars=[...new Set(customWords.flatMap(w=>Array.from(w).filter(isCJK)))]; save(ADDED_KEY,addedChars); }
 function customIndexOf(ch){ for(let i=BASE_N;i<CARDS.length;i++){ if(CARDS[i].target===ch) return i; } return -1; }
 function unblockQuality(i){ const k=cardKey(i); if(quality[k]){ delete quality[k]; saveQuality(); } }
@@ -2091,7 +2212,7 @@ function brushStrokeLayer(ctx){ const target=ctx&&ctx.canvas; if(!target || !tar
   if(!layer || layer.canvas.width!==target.width || layer.canvas.height!==target.height){ const canvas=document.createElement("canvas"); canvas.width=target.width; canvas.height=target.height; layer={canvas,ctx:canvas.getContext("2d")}; brushLayerCache.set(target,layer); }
   const layerCtx=layer.ctx; layerCtx.setTransform(1,0,0,1,0,0); layerCtx.clearRect(0,0,layer.canvas.width,layer.canvas.height); layerCtx.globalAlpha=1; layerCtx.globalCompositeOperation="source-over"; layerCtx.setLineDash([]); layerCtx.setTransform(ctx.getTransform()); return layer; }
 function compositeBrushLayer(ctx,layer){ if(!layer) return; ctx.save(); ctx.setTransform(1,0,0,1,0,0); ctx.globalAlpha=1; ctx.globalCompositeOperation="source-over"; ctx.drawImage(layer.canvas,0,0); ctx.restore(); }
-function paintBrushStroke(ctx,points,base,options={}){ if(!Array.isArray(points)||!points.length) return false; const layer=brushStrokeLayer(ctx), brushCtx=layer?layer.ctx:ctx, color=options.color||cssVar('--inkPen',"#29241d"), detail=options.detail!==false&&brushDetailEnabled(options.capabilities), geometry=brushStrokeGeometry(points,base), widths=geometry.widths;
+function paintBrushStroke(ctx,points,base,options={}){ if(!Array.isArray(points)||!points.length||points.some(point=>!plainObject(point)||typeof point.x!=="number"||!Number.isFinite(point.x)||typeof point.y!=="number"||!Number.isFinite(point.y))) return false; const layer=brushStrokeLayer(ctx), brushCtx=layer?layer.ctx:ctx, color=options.color||cssVar('--inkPen',"#29241d"), detail=options.detail!==false&&brushDetailEnabled(options.capabilities), geometry=brushStrokeGeometry(points,base), widths=geometry.widths;
   brushCtx.save(); brushCtx.fillStyle=color; if(detail) paintInkBloom(brushCtx,points[0],widths[0]/2,color);
   if(points.length===1){ brushCtx.beginPath(); brushCtx.arc(points[0].x,points[0].y,widths[0]/2,0,Math.PI*2); brushCtx.fill(); brushCtx.restore(); compositeBrushLayer(ctx,layer); return true; }
   brushCtx.beginPath(); brushCtx.arc(points[0].x,points[0].y,widths[0]/2,0,Math.PI*2); brushCtx.fill();
@@ -2119,6 +2240,7 @@ function initBox(){ const box=document.createElement('div'); box.className='box'
   hzEl=document.createElement('div'); hzEl.className='hz'; hzEl.style.width=S+'px'; hzEl.style.height=S+'px';
   peekEl=document.createElement('div'); peekEl.className='peekHz'; peekEl.style.width=S+'px'; peekEl.style.height=S+'px';
   inkCanvas=document.createElement('canvas'); inkCanvas.className='inkc';
+  inkCanvas.setAttribute('role','img'); inkCanvas.setAttribute('aria-label','手写区。可用手指或触控笔书写；无法手写时请选择不会写。');
   [gridCanvas,inkCanvas].forEach(c=>{ c.style.width=S+'px'; c.style.height=S+'px'; c.width=S*DPR; c.height=S*DPR; c.getContext('2d').scale(DPR,DPR); });
   box.appendChild(gridCanvas); box.appendChild(hzEl); box.appendChild(peekEl); box.appendChild(inkCanvas); $("boxwrap").appendChild(box);
   inkCtx=inkCanvas.getContext('2d'); drawGridOn(gridCanvas.getContext('2d')); inkCanvas.style.transition='opacity .2s'; hzEl.style.transition='opacity .2s';
@@ -2148,12 +2270,9 @@ async function undoInkStroke(){ if(!actionStack.length || drawing || animating) 
 
 function charLoader(char, onComplete){
   const local='data/'+encodeURIComponent(char)+'.json';
-  const cdn='https://cdn.jsdelivr.net/npm/hanzi-writer-data@2.0.1/'+encodeURIComponent(char)+'.json';
   return fetch(local).then(r=>{ if(!r.ok) throw new Error("local char data"); return r.json(); })
-    .catch(()=>fetch(cdn).then(r=>{ if(!r.ok) throw new Error("cdn char data"); return r.json(); }))
     .then(onComplete); }
-function strokeDataFailureCopy(kind="error"){ if(navigator.onLine===false) return "这个字的笔顺需要联网下载一次，仍可点「写好了」自行判断";
-  return kind==="slow"?"笔顺加载较慢，仍可自行判断或点「不会写」":"笔顺暂时不可用，仍可点「写好了」自行判断"; }
+function strokeDataFailureCopy(kind="error"){ return kind==="slow"?"笔顺加载较慢，仍可自行判断或点「不会写」":"这个字暂未收录笔顺，仍可点「写好了」自行判断"; }
 
 function warmStrokeCache(chars){ if(!navigator.onLine) return;
   [...new Set(chars||[])].forEach(ch=>fetch('data/'+encodeURIComponent(ch)+'.json').catch(()=>{})); }
@@ -2284,25 +2403,25 @@ function practiceProgress(){ const targets=new Set(baseTargets), practiced=new S
 function updateProgressLabel(){ const p=practiceProgress(); $("posLabel").textContent=p.total===1?"":(p.done>=p.total&&p.unresolved?`另有 ${p.unresolved} 个字要再练`:`已练 ${p.done} / ${p.total} 个${p.unresolved?` · 另有 ${p.unresolved} 个字要再练`:""}`); }
 let stamped=false, autoNextTimer=0, editStampTimer=0, undoFollowTimer=0, lastStampSnapshot=null, overlayOn=false, replaying=false;
 function cloneObj(v){ return v==null?null:JSON.parse(JSON.stringify(v)); }
-function drawSnapshotStrokes(ctx,strokes,color,width,brush=false){ if(brush){ (strokes||[]).forEach(points=>paintBrushStroke(ctx,points,width,{color,detail:true})); return; } ctx.strokeStyle=color; ctx.fillStyle=color; ctx.lineWidth=width; ctx.lineCap="round"; ctx.lineJoin="round";
-  (strokes||[]).forEach(pts=>{ if(!pts||!pts.length) return; if(pts.length<2){ ctx.beginPath(); ctx.arc(pts[0].x,pts[0].y,width/2,0,Math.PI*2); ctx.fill(); return; }
+function drawSnapshotStrokes(ctx,strokes,color,width,brush=false){ const safe=normalizedSessionInkStrokes(strokes); if(brush){ safe.forEach(points=>paintBrushStroke(ctx,points,width,{color,detail:true})); return; } ctx.strokeStyle=color; ctx.fillStyle=color; ctx.lineWidth=width; ctx.lineCap="round"; ctx.lineJoin="round";
+  safe.forEach(pts=>{ if(pts.length<2){ ctx.beginPath(); ctx.arc(pts[0].x,pts[0].y,width/2,0,Math.PI*2); ctx.fill(); return; }
     ctx.beginPath(); ctx.moveTo(pts[0].x,pts[0].y); for(let i=1;i<pts.length;i++) ctx.lineTo(pts[i].x,pts[i].y); ctx.stroke(); }); }
 function snapshotImage(hints,ink){ const canvas=document.createElement("canvas"); canvas.width=S; canvas.height=S; const ctx=canvas.getContext("2d");
   drawSnapshotStrokes(ctx,hints,hintStroke(),Math.max(3,S*.025)); drawSnapshotStrokes(ctx,ink,cssVar('--inkPen',"#29241d"),penBaseWidth(),true);
   try{ return canvas.toDataURL(); }catch(e){ return null; } }
-function failedUserStrokeIndexes(snapshot){ const verdict=snapshot&&snapshot.lastVerdict;
+function failedUserStrokeIndexes(snapshot){ snapshot=normalizedSubmissionSnapshot(snapshot); const verdict=snapshot&&snapshot.lastVerdict;
   if(!verdict || verdict.status!=="bad" || verdict.mode!=="exact") return [];
   const hintCount=(snapshot.hintStrokes||[]).length, inkCount=(snapshot.inkStrokes||[]).length;
   return [...new Set((verdict.failed||[]).map(i=>i-hintCount).filter(i=>i>=0&&i<inkCount))]; }
-function revealInkImage(snapshot){ const failed=failedUserStrokeIndexes(snapshot), canvas=document.createElement("canvas"); canvas.width=S; canvas.height=S; const ctx=canvas.getContext("2d");
+function revealInkImage(snapshot){ snapshot=normalizedSubmissionSnapshot(snapshot); const failed=failedUserStrokeIndexes(snapshot), canvas=document.createElement("canvas"); canvas.width=S; canvas.height=S; const ctx=canvas.getContext("2d");
   drawSnapshotStrokes(ctx,snapshot&&snapshot.hintStrokes,hintStroke(),Math.max(3,S*.025));
   drawSnapshotStrokes(ctx,snapshot&&snapshot.inkStrokes,cssVar('--inkPen',"#29241d"),penBaseWidth(),true);
   if(failed.length) drawSnapshotStrokes(ctx,failed.map(i=>snapshot.inkStrokes[i]),cssVar('--accent',"#c2452c"),Math.max(6,S*.052));
   try{ return canvas.toDataURL(); }catch(e){ return snapshot&&snapshot.compositeImage||null; } }
-function renderStrokeSkeleton(container,strokes){ container.innerHTML=""; if(!strokes||!strokes.length) return false;
+function renderStrokeSkeleton(container,strokes){ const safe=normalizedSessionInkStrokes(strokes); container.innerHTML=""; if(!safe.length) return false;
   const ns="http://www.w3.org/2000/svg", svg=document.createElementNS(ns,"svg"); svg.setAttribute("viewBox",`0 0 ${S} ${S}`); svg.setAttribute("aria-hidden","true");
   const color=cssVar('--accent',"#c2452c"), width=Math.max(5,S*.045);
-  strokes.forEach(points=>{ if(!points||!points.length) return; const path=document.createElementNS(ns,"path"); path.setAttribute("d",points.map((p,i)=>`${i?"L":"M"}${p.x.toFixed(2)} ${p.y.toFixed(2)}`).join(" ")); path.setAttribute("fill","none"); path.setAttribute("stroke",color); path.setAttribute("stroke-width",String(width)); path.setAttribute("stroke-linecap","round"); path.setAttribute("stroke-linejoin","round"); svg.appendChild(path); });
+  safe.forEach(points=>{ const path=document.createElementNS(ns,"path"); path.setAttribute("d",points.map((p,i)=>`${i?"L":"M"}${p.x.toFixed(2)} ${p.y.toFixed(2)}`).join(" ")); path.setAttribute("fill","none"); path.setAttribute("stroke",color); path.setAttribute("stroke-width",String(width)); path.setAttribute("stroke-linecap","round"); path.setAttribute("stroke-linejoin","round"); svg.appendChild(path); });
   container.appendChild(svg); return true; }
 function freezeSubmissionSnapshot(){ inkEnd(); const hintStrokeIds=curMedians?[...Array(Math.min(shownStrokes,curMedians.length)).keys()]:[], hintStrokes=curMedians?mediansToCanvas(curMedians.slice(0,hintStrokeIds.length)):[];
   const referenceStrokes=curMedians?mediansToCanvas(curMedians):[], userInk=cloneObj(inkStrokes)||[], compositeGeometry=[...cloneObj(hintStrokes)||[],...cloneObj(userInk)||[]]; let verdict=null;
@@ -2312,7 +2431,8 @@ function freezeSubmissionSnapshot(){ inkEnd(); const hintStrokeIds=curMedians?[.
   submissionSnapshot=Object.freeze(snap); lastVerdict=verdict; return submissionSnapshot; }
 function captureRevealState(){ return cloneObj(submissionSnapshot)||freezeSubmissionSnapshot(); }
 function takeStampSnapshot(){ const idx=currentCardIndex(), key=cardKey(idx);
-  return {position:pos,baseCursor,currentIndex,currentAttemptKind,currentAttemptId,practicePhase,attemptSeq,idx,key,target:CARDS[idx].target,statusValue:statusFor(idx),memoryValue:cloneObj(memory[key]),activityValue:cloneObj(activity),fsrsLogValue:cloneObj(fsrsReviewLog)||[],funnelValue:cloneObj(funnel),
+  const activityKey=today(), activityValue=activity.daily[activityKey]?cloneObj(activity.daily[activityKey]):null;
+  return {position:pos,baseCursor,currentIndex,currentAttemptKind,currentAttemptId,practicePhase,attemptSeq,idx,key,target:CARDS[idx].target,statusValue:statusFor(idx),memoryValue:cloneObj(memory[key]),fsrsEventId:fsrsEventId(currentAttemptId),activityKey,activityValue,activityHadPracticeDay:activity.practiceDays.includes(activityKey),funnelSeenLength:funnel.seen.length,funnelEventsLength:funnel.events.length,funnelCountsValue:cloneObj(funnel.counts),funnelEventCountsValue:cloneObj(funnel.eventCounts),roundHandwritingValue:cloneObj(roundHandwriting[String(idx)]),
     baseTargetsValue:baseTargets.slice(),manualQueueValue:cloneObj(manualQueue)||[],queueValue:cloneObj(reinforcementQueue)||[],unresolvedValue:[...unresolved],episodesValue:cloneObj(episodes)||{},sessionDoneValue:[...sessionDone],roundStatsValue:cloneObj(roundStats)||[],missedValue:missedThisRound.slice(),
     sessionTarget,sessionFastStreak,sessionMissStreak,calibrationFirstHoldUsed,calibrationComfortShown,revealState:captureRevealState()}; }
 function restoreStampSnapshot(snap){ if(!snap) return;
@@ -2320,9 +2440,10 @@ function restoreStampSnapshot(snap){ if(!snap) return;
   baseTargets=snap.baseTargetsValue.slice(); batch=baseTargets; manualQueue=cloneObj(snap.manualQueueValue)||[]; reinforcementQueue=cloneObj(snap.queueValue)||[]; unresolved=new Set(snap.unresolvedValue||[]); episodes=cloneObj(snap.episodesValue)||{}; sessionDone=new Set(snap.sessionDoneValue||[]);
   if(snap.statusValue==null) delete status[snap.key]; else status[snap.key]=snap.statusValue; save(DECK_KEY,status);
   if(snap.memoryValue==null) delete memory[snap.key]; else memory[snap.key]=snap.memoryValue; saveMemory();
-  fsrsReviewLog=cloneObj(snap.fsrsLogValue)||[]; saveFSRSLog();
-  if(snap.funnelValue){ funnel=cloneObj(snap.funnelValue)||funnel; saveFunnel(); }
-  activity=normalizeActivity(cloneObj(snap.activityValue)); saveActivity(); syncReminder();
+  fsrsReviewLog=fsrsReviewLog.filter(event=>!event||event.eventId!==snap.fsrsEventId); saveFSRSLog();
+  funnel.seen=funnel.seen.slice(0,Math.max(0,Number(snap.funnelSeenLength)||0)); funnel.events=funnel.events.slice(0,Math.max(0,Number(snap.funnelEventsLength)||0)); funnel.counts=cloneObj(snap.funnelCountsValue)||funnel.counts; funnel.eventCounts=cloneObj(snap.funnelEventCountsValue)||funnel.eventCounts; saveFunnel();
+  if(snap.activityValue==null) delete activity.daily[snap.activityKey]; else activity.daily[snap.activityKey]=cloneObj(snap.activityValue); if(!snap.activityHadPracticeDay) activity.practiceDays=activity.practiceDays.filter(day=>day!==snap.activityKey); saveActivity(); syncReminder();
+  if(snap.roundHandwritingValue==null) delete roundHandwriting[String(snap.idx)]; else roundHandwriting[String(snap.idx)]=cloneObj(snap.roundHandwritingValue);
   roundStats=cloneObj(snap.roundStatsValue)||[]; missedThisRound=(snap.missedValue||[]).slice();
   sessionTarget=snap.sessionTarget; sessionFastStreak=snap.sessionFastStreak; sessionMissStreak=snap.sessionMissStreak;
   calibrationFirstHoldUsed=!!snap.calibrationFirstHoldUsed; calibrationComfortShown=!!snap.calibrationComfortShown; saveSessionSnapshot(); }
@@ -2402,7 +2523,8 @@ async function restoreSessionVisual(){ const state=pendingSessionVisual; if(!sta
   const savedPhase=state.practicePhase||practicePhase;
   practicePhase=state.practicePhase||practicePhase; currentIndex=Number.isInteger(state.currentIndex)?state.currentIndex:currentIndex; currentAttemptKind=state.currentAttemptKind||currentAttemptKind; currentAttemptId=state.currentAttemptId||currentAttemptId;
   hintEverUsed=!!state.hintEverUsed; enteredTracingThisAttempt=!!state.enteredTracingThisAttempt; hintsUsedThisCard=Number(state.hintsUsedThisCard)||0; seenGroups=new Set(Array.isArray(state.seenGroups)?state.seenGroups:[]);
-  inkStrokes=cloneObj(state.inkStrokes)||[]; tracedThisCard=!!state.tracedThisCard; submissionSnapshot=cloneObj(state.submissionSnapshot); redrawInk();
+  // restoredVisual 已校验并规范化结构；这里仍做一次防御性规范化，避免未来内部调用把嵌套坏点送进画布。
+  inkStrokes=normalizedSessionInkStrokes(state.inkStrokes); tracedThisCard=!!state.tracedThisCard; submissionSnapshot=normalizedSubmissionSnapshot(state.submissionSnapshot); redrawInk();
   shownStrokes=Math.max(0,Number(state.shownStrokes)||0); groupIdx=Math.max(0,Number(state.groupIdx)||0); renderPhaseControls();
   if(practicePhase==="tracing") await showTraceOutline(); else if(practicePhase==="postTraceRecall"){ hzEl.innerHTML=""; hzEl.classList.remove("traceFallback"); }
   else if(shownStrokes&&practiceCharData) await rebuildHintLayer(shownStrokes);
@@ -2449,7 +2571,7 @@ $("tip").onclick=async ()=>{ if(tipHoldConsumed){ tipHoldConsumed=false; return 
     if(!hintVisualExhausted() && !tuning.peekHintUsed) $("hint").textContent="轻点看下一笔，按住「点拨」瞥一眼"; }
   saveSessionSnapshot(); return true;
 };
-function showRevealState(snapshot){ const verdict=snapshot&&snapshot.lastVerdict, inkUrl=snapshot&&revealInkImage(snapshot), reference=snapshot&&snapshot.referenceStrokes;
+function showRevealState(snapshot){ snapshot=normalizedSubmissionSnapshot(snapshot); const verdict=snapshot&&snapshot.lastVerdict, inkUrl=snapshot&&revealInkImage(snapshot), reference=snapshot&&snapshot.referenceStrokes;
   activePointers.clear(); peekReleasePending=false; exitPeekHint(true); revealed=true; clearTimeout(teachTimer);
   $("actions").classList.remove("tlock"); $("traceActions").classList.remove("tlock");
   $("practiceArea").style.display="none"; $("reveal").style.display="flex";
@@ -2485,8 +2607,8 @@ function declareDontKnow(){ if(practicePhase==="postTraceRecall"){ beginTracingP
   if(!["recall","reinforcement"].includes(practicePhase)) return;
   freezeSubmissionSnapshot(); const comfort=takeCalibrationComfort("miss"); recordOutcome("miss",{teaching:true}); updateProgressLabel(); openTracingTeaching();
   if(comfort){ $("traceIntro").textContent="一时想不起来很正常。先沿着轮廓写一遍，再自己写一次。"; $("traceIntro").style.display="block"; } }
-function restoreRevealFromSnapshot(state){ if(!state) return; loadToken++; submissionSnapshot=cloneObj(state); inkStrokes=cloneObj(state.inkStrokes)||[]; hintEverUsed=!!state.hintEverUsed; hintsUsedThisCard=Number(state.hintCount)||0;
-  lastVerdict=cloneObj(state.lastVerdict); enteredTracingThisAttempt=!!state.enteredTracing; tracedThisCard=!!state.enteredTracing; tracing=false; practicePhase="revealDecision"; showRevealState(submissionSnapshot); }
+function restoreRevealFromSnapshot(state){ const safe=normalizedSubmissionSnapshot(state); if(!safe) return; loadToken++; submissionSnapshot=Object.freeze(safe); inkStrokes=cloneObj(safe.inkStrokes)||[]; hintEverUsed=!!safe.hintEverUsed; hintsUsedThisCard=Number(safe.hintCount)||0;
+  lastVerdict=cloneObj(safe.lastVerdict); enteredTracingThisAttempt=!!safe.enteredTracing; tracedThisCard=!!safe.enteredTracing; tracing=false; practicePhase="revealDecision"; showRevealState(submissionSnapshot); }
 $("show").onclick=declareDontKnow;
 $("done").onclick=revealAnswer;
 $("traceDone").onclick=finishTracing;
@@ -2522,7 +2644,7 @@ function pickStamp(outcome,options={}){ if(stamped || !revealed) return; stamped
   updateProgressLabel(); saveSessionSnapshot();
   autoNextTimer=setTimeout(advanceFeedback,firstCalibrationHold?CALIBRATION_FIRST_HOLD_MS:STAMP_HOLD_MS); }
 function goNext(){ clearTimeout(autoNextTimer); clearTimeout(editStampTimer); $("editStamp").disabled=true; if(!stamped) return;
-  const outcome=lastStampSnapshot&&lastStampSnapshot.outcome; stamped=false;
+  const outcome=lastStampSnapshot&&lastStampSnapshot.outcome||feedbackKind; stamped=false;
   if(outcome==="miss"){ openTracingTeaching(); return; } next(); }
 function advanceFeedback(){ if(!stamped || practicePhase!=="feedback") return false; if(feedbackKind==="teachingComplete"){ clearTimeout(autoNextTimer); stamped=false; next(); return true; } goNext(); return true; }
 function decideSubmission(correct){ if(stamped||!revealed||!submissionSnapshot) return;
@@ -2569,7 +2691,7 @@ function startRound(){ if(activeMode==="review" && reviewBudgetRemaining()===0){
   if(activeMode==="review"){ baseTargets=baseTargets.slice(0,reviewBudgetRemaining()); reserveReviewTargets(baseTargets); }
   calibrationTargets=activeMode==="calibrate"?baseTargets.slice():[];
   batch=baseTargets; warmStrokeCache(baseTargets.map(i=>CARDS[i].target)); pos=0; baseCursor=0; currentIndex=null; pendingSessionVisual=null; manualQueue=[]; reinforcementQueue=[]; unresolved=new Set(); episodes={}; attemptSeq=0; practicePhase="recall";
-  missedThisRound=[]; roundStats=[]; roundFeedbackGiven=false; calibrationFirstHoldUsed=false; calibrationComfortShown=false; lastStampSnapshot=null; hideUndoBar(false); roundId=Date.now()+"-"+Math.random().toString(36).slice(2,7);
+  missedThisRound=[]; roundStats=[]; roundHandwriting={}; roundFeedbackGiven=false; calibrationFirstHoldUsed=false; calibrationComfortShown=false; lastStampSnapshot=null; hideUndoBar(false); roundId=Date.now()+"-"+Math.random().toString(36).slice(2,7);
   roundElapsedMs=0; roundActiveStartedAt=Date.now(); roundBudgetPrompted=false; roundTimerPaused=false;
   beginAttempt({idx:baseTargets[0],kind:"base"}); saveSessionSnapshot(); armPracticeHistory(); render(); }
 function sumTile(s,i,delayOffset=0){ const recovered=s.outcome!=="fast"&&s.independentlyRecovered, ui=GRADE_UI[s.outcome], mark=s.outcome==="fast"?"":`<span class="dot outcomeMark ${s.outcome}" style="background:${OUTCOME_DOT[s.outcome]}">${OUTCOME_MARK[s.outcome]}</span>`, firstCopy=s.outcome==="fast"?"第一次独立写对":(s.outcome==="hinted"?(s.uncertain?"第一次不太确定":"第一次看过提示后写出"):(s.outcome==="slow"?"第一次写错":"第一次没写出"));
@@ -2727,14 +2849,16 @@ $("charSheet").addEventListener("touchend",e=>{ const panel=e.target.closest&&e.
 
 function systemAgreementStats(){ const rows=Object.values(memory).filter(m=>m&&typeof m.lastSystemAgree==="boolean"), disagree=rows.filter(m=>m.lastSystemAgree===false).length;
   return {total:rows.length,disagree,rate:rows.length?Math.round(disagree/rows.length*100):0}; }
-function funnelEventCount(name){ return funnel.events.filter(e=>e.name===name).length; }
+function funnelEventCount(name){ return Math.max(0,Number(funnel.eventCounts&&funnel.eventCounts[name])||0); }
 $("dataLink").onclick=()=>{ const box=$("dataBox"); if(box.style.display==="block"){ box.style.display="none"; return; }
   const last7=activity.practiceDays.filter(d=>{ const diff=(new Date(today())-new Date(d))/86400000; return diff>=0 && diff<7; });
-  const agreement=systemAgreementStats(), compared=funnel.counts.revealCompared, funnelRate=compared?Math.round(funnel.counts.revealDisagree/compared*100):0, avgRound=funnel.rounds.length?Math.round(funnel.rounds.reduce((sum,row)=>sum+row.durationMs,0)/funnel.rounds.length/1000):0;
+  const agreement=systemAgreementStats(), compared=funnel.counts.revealCompared, funnelRate=compared?Math.round(funnel.counts.revealDisagree/compared*100):0, roundCount=Math.max(0,Number(funnel.roundTotals&&funnel.roundTotals.count)||0),avgRound=roundCount?Math.round((Number(funnel.roundTotals.durationMs)||0)/roundCount/1000):0;
   box.style.display="block"; box.innerHTML=`<b>实验用，别天天盯（盯 streak 会污染“光靠痒”这个变量）</b><br>`+
-    `最近 7 天里，你实际盖过章 <b>${last7.length}</b> 天 → 目标 ≥4 天<br>在学字库：<b>${currentLibrary().name}</b> · 内部排序档：<b>${prefLabel()}</b> · 难度校准：<b>${tuningLabel()} ${tuningShiftText()}</b> · 语境严格度：<b>${Number(tuning.contextStrict)||0}</b><br>本地漏斗：首启 <b>${funnelEventCount("welcome_shown")}</b> · 首卡 <b>${funnelEventCount("calib_card1_done")}</b> · 校准完成 <b>${funnelEventCount("calib_completed")}</b> · 次日回访 <b>${funnelEventCount("d2_return")}</b> · 备份 <b>${funnelEventCount("backup_exported")}</b><br>累计系统-用户分歧率：<b>${funnelRate}%</b>（${funnel.counts.revealDisagree}/${compared}） · 完整组：<b>${funnel.rounds.length}</b> 组${funnel.rounds.length?` · 平均 ${avgRound} 秒`:""}<br>当前字系统-用户分歧率：<b>${agreement.rate}%</b>（${agreement.disagree}/${agreement.total}）<br>题目反馈：<b>${qualityCount()}</b> 条 · 整组反馈：<b>${(tuning.rounds||[]).length}</b> 条<br>已记录：<b>${memoryCount()}</b> 个字 · 到期复习：<b>${reviewCount()}</b> 个 · 待拾回：<b>${highRiskCount()}</b> 个<br>你自己加的字：<b>${addedChars.length}</b> 个<br>累计练习日：${totalPracticeDays()} 天 · 历史打开：${opens.length} 天`; };
+    `最近 7 天里，你实际盖过章 <b>${last7.length}</b> 天 → 目标 ≥4 天<br>在学字库：<b>${currentLibrary().name}</b> · 内部排序档：<b>${prefLabel()}</b> · 难度校准：<b>${tuningLabel()} ${tuningShiftText()}</b> · 语境严格度：<b>${Number(tuning.contextStrict)||0}</b><br>本地漏斗：首启 <b>${funnelEventCount("welcome_shown")}</b> · 首卡 <b>${funnelEventCount("calib_card1_done")}</b> · 校准完成 <b>${funnelEventCount("calib_completed")}</b> · 次日回访 <b>${funnelEventCount("d2_return")}</b> · 备份 <b>${funnelEventCount("backup_exported")}</b><br>累计系统-用户分歧率：<b>${funnelRate}%</b>（${funnel.counts.revealDisagree}/${compared}） · 完整组：<b>${roundCount}</b> 组${roundCount?` · 平均 ${avgRound} 秒`:""}<br>当前字系统-用户分歧率：<b>${agreement.rate}%</b>（${agreement.disagree}/${agreement.total}）<br>题目反馈：<b>${qualityCount()}</b> 条 · 整组反馈：<b>${(tuning.rounds||[]).length}</b> 条<br>已记录：<b>${memoryCount()}</b> 个字 · 到期复习：<b>${reviewCount()}</b> 个 · 待拾回：<b>${highRiskCount()}</b> 个<br>你自己加的字：<b>${addedChars.length}</b> 个<br>累计练习日：${totalPracticeDays()} 天 · 历史打开：${opens.length} 天`; };
 let toastTimer=0;
 function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove("show"),2200); }
+function storagePressure(estimate){ const usage=Math.max(0,Number(estimate&&estimate.usage)||0),quota=Math.max(0,Number(estimate&&estimate.quota)||0),remaining=Math.max(0,quota-usage),ratio=quota?usage/quota:0; return {usage,quota,remaining,ratio,high:quota>0&&(ratio>=.85||remaining<5*1024*1024)}; }
+async function checkStoragePressure(){ if(!storageReadable||!navigator.storage||typeof navigator.storage.estimate!=="function") return {supported:false}; try{ const pressure=storagePressure(await navigator.storage.estimate()); if(pressure.high) showStorageNotice("本地空间快满了。请现在导出备份，避免后续练习无法保存。"); return {supported:true,...pressure}; }catch(e){ return {supported:false}; } }
 
 // ---- ＋加字面板（替代 window.prompt：输入即预览识别出的字，在库字直接带出拼音）----
 let wildDraft=null,wildOCRRequest=0;
@@ -2792,7 +2916,7 @@ $("addSheet").onclick=e=>{ if(e.target===$("addSheet")) closeAddSheet(); };
 const shareCardDebug={lastRoute:null,lastMessage:null};
 function shareRoundRect(ctx,x,y,w,h,r){ const q=Math.min(r,w/2,h/2); ctx.beginPath(); ctx.moveTo(x+q,y); ctx.lineTo(x+w-q,y); ctx.quadraticCurveTo(x+w,y,x+w,y+q); ctx.lineTo(x+w,y+h-q); ctx.quadraticCurveTo(x+w,y+h,x+w-q,y+h); ctx.lineTo(x+q,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-q); ctx.lineTo(x,y+q); ctx.quadraticCurveTo(x,y,x+q,y); ctx.closePath(); }
 function shareWrappedText(ctx,text,x,y,maxWidth,lineHeight,maxLines=3){ const chars=Array.from(String(text||"")); let line="", lines=[]; chars.forEach(ch=>{ const next=line+ch; if(line&&ctx.measureText(next).width>maxWidth){ lines.push(line); line=ch; }else line=next; }); if(line) lines.push(line); lines=lines.slice(0,maxLines); lines.forEach((row,i)=>ctx.fillText(row,x,y+i*lineHeight)); return y+lines.length*lineHeight; }
-function drawShareHandwriting(ctx,strokes,x,y,size,rotation=0){ const paths=Array.isArray(strokes)?strokes.filter(points=>Array.isArray(points)&&points.length):[]; ctx.save(); ctx.translate(x+size/2,y+size/2); ctx.rotate(Number(rotation||0)*Math.PI/180); ctx.translate(-x-size/2,-y-size/2);
+function drawShareHandwriting(ctx,strokes,x,y,size,rotation=0){ const paths=normalizedInkStrokes(strokes); ctx.save(); ctx.translate(x+size/2,y+size/2); ctx.rotate(Number(rotation||0)*Math.PI/180); ctx.translate(-x-size/2,-y-size/2);
   ctx.strokeStyle="#c2452c38"; ctx.lineWidth=2; ctx.setLineDash([7,7]); [[x+size/2,y,x+size/2,y+size],[x,y+size/2,x+size,y+size/2],[x,y,x+size,y+size],[x+size,y,x,y+size]].forEach(line=>{ ctx.beginPath(); ctx.moveTo(line[0],line[1]); ctx.lineTo(line[2],line[3]); ctx.stroke(); }); ctx.setLineDash([]);
   paths.forEach(points=>{ const scaled=points.map(point=>({x:x+clamp(Number(point.x),0,1)*size,y:y+clamp(Number(point.y),0,1)*size,w:Number(point.w),v:Number(point.v)})); paintBrushStroke(ctx,scaled,Math.max(8,size*.075),{color:"#29241d",detail:true}); }); ctx.restore(); return paths.length; }
 
@@ -2801,10 +2925,10 @@ const HAND_CARD_RATIOS={portrait:{width:1080,height:1440,label:"3:4"},square:{wi
 let handCardIndex=-1,handCardRatio="portrait",handCardResumeFeedback=false,handCardPromptIndex=-1,handCardPromptTimer=0,handCardRenderToken=0;
 function sexagenaryYear(year){ const stems="甲乙丙丁戊己庚辛壬癸",branches="子丑寅卯辰巳午未申酉戌亥",offset=((Number(year)-4)%60+60)%60; return stems[offset%10]+branches[offset%12]; }
 function handCardDateText(at=Date.now()){ const date=new Date(Number(at)||Date.now()); return `${sexagenaryYear(date.getFullYear())}年 ${numCn(date.getMonth()+1)}月${numCn(date.getDate())}`; }
-function handCardData(index){ const card=CARDS[index],m=memory[cardKey(index)]||{},recent=m.recentInk,strokes=recent&&recent.strokes; if(!card||!recent||Number(recent.version)<2||!Array.isArray(strokes)||!strokes.some(points=>Array.isArray(points)&&points.length)) return null; const word=suspiciousDictionaryWord(index)?card.target:(card.word||card.target); return {index,word,py:card.py||"",recent}; }
+function handCardData(index){ const card=CARDS[index],m=memory[cardKey(index)]||{},recent=m.recentInk,strokes=normalizedInkStrokes(recent&&recent.strokes); if(!card||!recent||Number(recent.version)<2||!strokes.length) return null; const word=suspiciousDictionaryWord(index)?card.target:(card.word||card.target); return {index,word,py:card.py||"",recent}; }
 function drawHandCardPaper(ctx,width,height){ ctx.fillStyle="#f4efe2"; ctx.fillRect(0,0,width,height); let seed=width*31+height*17;
   ctx.save(); ctx.lineWidth=1; for(let i=0;i<180;i++){ seed=(Math.imul(seed,1664525)+1013904223)>>>0; const x=seed%width; seed=(Math.imul(seed,1664525)+1013904223)>>>0; const y=seed%height, len=18+(seed%70); ctx.strokeStyle=i%4===0?"rgba(110,92,62,.032)":"rgba(255,255,255,.055)"; ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(Math.min(width,x+len),y+(i%3-1)*.7); ctx.stroke(); } ctx.restore(); }
-function drawHandCardInk(ctx,strokes,x,y,size){ const paths=Array.isArray(strokes)?strokes.filter(points=>Array.isArray(points)&&points.length):[]; paths.forEach(points=>{ const scaled=points.map(point=>({x:x+clamp(Number(point.x),0,1)*size,y:y+clamp(Number(point.y),0,1)*size,w:Number(point.w),v:Number(point.v)})); paintBrushStroke(ctx,scaled,Math.max(16,size*.075),{color:"#29241d",detail:true}); }); return paths.length; }
+function drawHandCardInk(ctx,strokes,x,y,size){ const paths=normalizedInkStrokes(strokes); paths.forEach(points=>{ const scaled=points.map(point=>({x:x+clamp(Number(point.x),0,1)*size,y:y+clamp(Number(point.y),0,1)*size,w:Number(point.w),v:Number(point.v)})); paintBrushStroke(ctx,scaled,Math.max(16,size*.075),{color:"#29241d",detail:true}); }); return paths.length; }
 async function renderHandCardCanvas(index,ratio="portrait",targetCanvas=null){ const data=handCardData(index),spec=HAND_CARD_RATIOS[ratio]||HAND_CARD_RATIOS.portrait; if(!data) return null;
   const canvas=targetCanvas||document.createElement("canvas"); canvas.width=spec.width; canvas.height=spec.height; const ctx=canvas.getContext("2d"); if(!ctx) return null; drawHandCardPaper(ctx,spec.width,spec.height);
   const square=ratio==="square",inkSize=square?650:720,inkX=(spec.width-inkSize)/2,inkY=square?90:150,strokes=data.recent.strokes;
@@ -2842,7 +2966,7 @@ function renderPracticeCardCanvas(){ const stats=(roundStats||[]).slice(); if(!s
   const startX=108, startY=cardY+235, colors={hinted:gold,slow:accent,miss:accent}; let inkStrokeCount=0;
   stats.forEach((stat,i)=>{ const col=i%cols,row=Math.floor(i/cols),x=startX+col*(tile+gap),y=startY+row*(tile+gap),ui=GRADE_UI[stat.outcome]||GRADE_UI.slow;
     ctx.fillStyle=stat.outcome==="miss"?"#f8e9e3":"#fdfbf4"; shareRoundRect(ctx,x,y,tile,tile,14); ctx.fill(); ctx.strokeStyle=stat.outcome==="miss"?accent:"#e5ddc9"; ctx.lineWidth=stat.outcome==="miss"?3:2; ctx.stroke();
-    inkStrokeCount+=drawShareHandwriting(ctx,stat.handwriting,x+18,y+8,124,ROTS[i%ROTS.length]);
+    inkStrokeCount+=drawShareHandwriting(ctx,roundHandwritingFor(stat),x+18,y+8,124,ROTS[i%ROTS.length]);
     ctx.fillStyle=stat.independentlyRecovered?green:muted; ctx.font='700 25px -apple-system,"PingFang SC",sans-serif'; ctx.fillText(stat.independentlyRecovered?"已独立":ui.short,x+tile/2,y+137);
     if(stat.outcome!=="fast"){ ctx.fillStyle=colors[stat.outcome]||accent; ctx.beginPath(); ctx.arc(x+tile-24,y+24,20,0,Math.PI*2); ctx.fill(); ctx.fillStyle="#fdfbf4"; ctx.font='700 21px -apple-system,"PingFang SC",sans-serif'; ctx.fillText(OUTCOME_MARK[stat.outcome]||"",x+tile-24,y+31); }
   });
@@ -2880,12 +3004,12 @@ function payloadProgress(payload){ const mem=parseStoredObject(payload&&payload.
 function dateLabel(value){ const d=value?new Date(value):null; return d&&!Number.isNaN(d.getTime())?dayKey(d):"无记录"; }
 function currentProgress(){ const latest=Object.values(memory).reduce((max,m)=>Math.max(max,Number(m&&m.last)||0),0); return {count:memoryCount(),last:latest}; }
 function captureSafetySnapshot(reason){ const record={version:1,createdAt:Date.now(),reason,pendingUndo:true,offeredAt:0,payload:JSON.parse(backupPayload({preserveMeta:true}))}; localStorage.setItem(SAFETY_KEY,JSON.stringify(record)); return record; }
-function safetySnapshot(){ const row=parseStoredObject(localStorage.getItem(SAFETY_KEY)); return row.version===1&&row.pendingUndo&&row.payload?row:null; }
+function safetySnapshot(){ const row=load(SAFETY_KEY,null); return row&&row.version===1&&row.pendingUndo&&row.payload?row:null; }
 let safetyUndoTimer=0;
 function hideSafetyUndo(){ clearTimeout(safetyUndoTimer); $("safetyUndo").style.display="none"; }
-function showSafetyUndo(){ const row=safetySnapshot(); if(!row || row.offeredAt) return false; row.offeredAt=Date.now(); localStorage.setItem(SAFETY_KEY,JSON.stringify(row));
+function showSafetyUndo(){ const row=safetySnapshot(); if(!row || row.offeredAt) return false; row.offeredAt=Date.now(); save(SAFETY_KEY,row);
   $("safetyUndoCopy").textContent=row.reason==="reset"?"当前数据已清空，操作前的数据仍留在本设备":"备份已恢复，覆盖前的数据仍留在本设备"; $("safetyUndoBtn").textContent=row.reason==="reset"?"撤销清空":"撤销恢复"; $("safetyUndo").style.display="flex"; safetyUndoTimer=setTimeout(hideSafetyUndo,10000); return true; }
-function undoSafetyRestore(opts){ const options=opts||{}, row=safetySnapshot(); if(!row) return {applied:false}; const result=restoreBackupPayload(row.payload,{skipConfirm:true,reload:false,skipSafety:true}); localStorage.removeItem(SAFETY_KEY); hideSafetyUndo(); if(options.reload!==false) location.reload(); return result; }
+function undoSafetyRestore(opts){ const options=opts||{}, row=safetySnapshot(); if(!row) return {applied:false}; const result=restoreBackupPayload(row.payload,{skipConfirm:true,reload:false,skipSafety:true}); removeStored(SAFETY_KEY); hideSafetyUndo(); if(options.reload!==false) location.reload(); return result; }
 async function exportBackup(){ const exportedAt=Date.now(), payload=backupPayload({exportedAt,funnelExportAt:exportedAt}), name=`shizi-backup-${today()}.json`;
   if(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.shiziNative){
     window.webkit.messageHandlers.shiziNative.postMessage({type:"shareBackup", name, payload});
@@ -2895,14 +3019,37 @@ async function exportBackup(){ const exportedAt=Date.now(), payload=backupPayloa
     if(navigator.canShare({files:[file]})){ await navigator.share({files:[file], title:"拾字备份"}); markBackupExported(exportedAt); toast("备份已导出"); return; } }catch(e){ if(e && e.name==="AbortError") return; } }
   const url=URL.createObjectURL(new Blob([payload],{type:"application/json"})), a=document.createElement("a");
   a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),4000); markBackupExported(exportedAt); toast("备份已下载"); }
-function restoreBackupPayload(payload, opts){ const options=opts||{}, obj=typeof payload==="string"?JSON.parse(payload):payload;
-  if(!obj || obj.app!=="shizi" || !obj.data || typeof obj.data!=="object") throw new Error("format");
-  const keys=Object.keys(obj.data).filter(k=>BACKUP_KEYS.includes(k)); if(!keys.length) throw new Error("empty");
+function normalizeBackupMemory(value){ if(!plainObject(value)) throw new Error("memory"); const out={}; Object.entries(value).forEach(([key,row])=>{ if(typeof key!=="string"||key.length>120||/[\u0000-\u001f<>]/.test(key)||!plainObject(row)) return; const normalizedKey=canonicalCardKey(key), clean={...row}; if("recentInk" in clean){ const ink=clean.recentInk; if(!plainObject(ink)||!isRecentInkDataURL(ink.dataURL)) delete clean.recentInk; else { const strokes=normalizedInkStrokes(ink.strokes); clean.recentInk={version:Math.max(1,Math.floor(Number(ink.version)||1)),day:validDayKey(ink.day)?String(ink.day):"",at:Math.max(0,Number(ink.at)||0),dataURL:ink.dataURL,strokes:strokes.length?strokes:undefined}; } } const current=out[normalizedKey], incomingLast=Math.max(0,Number(clean.last)||0), currentLast=Math.max(0,Number(current&&current.last)||0); if(!current||incomingLast>currentLast||(incomingLast===currentLast&&normalizedKey===key)) out[normalizedKey]=clean; }); return out; }
+function normalizeBackupSession(value){ const out=cloneObj(value); if(!out||out.version!==3) return out;
+  if(plainObject(out.visual)){ if(Array.isArray(out.visual.inkStrokes)) out.visual.inkStrokes=normalizedSessionInkStrokes(out.visual.inkStrokes); if(out.visual.submissionSnapshot) out.visual.submissionSnapshot=normalizedSubmissionSnapshot(out.visual.submissionSnapshot); }
+  if(out.lastStampSnapshot) out.lastStampSnapshot=normalizedStampGeometry(out.lastStampSnapshot);
+  if(Array.isArray(out.roundStats)) out.roundStats=withoutPersistedHandwriting(out.roundStats); return out; }
+function normalizeBackupValue(key,value){ if(key===MEMORY_KEY) return normalizeBackupMemory(value); if(key===SESSION_KEY) return normalizeBackupSession(value); if(key===ACTIVITY_KEY) return normalizeActivity(value); if(key===FSRS_LOG_KEY) return normalizeFSRSStored(value); if(key===FUNNEL_KEY) return normalizeFunnel(value); if(key===BACKUP_META_KEY) return normalizeBackupMeta(value); if(key===REMINDER_KEY) return normalizeReminder(value); if(key===SOUND_KEY) return normalizeSound(value); if(key===HAND_CARD_KEY) return normalizeHandCardPref(value); if(key===LIB_KEY) return normalizeLibrary(value); if(key===WILD_KEY) return normalizeWildState(value); return value; }
+function withBackupCustomContext(words,fn){ const previous=customWords; customWords=words.slice(); buildCustomCards();
+  try{ return fn(); } finally { customWords=previous; buildCustomCards(); } }
+function validatedBackupData(payload){ const obj=typeof payload==="string"?JSON.parse(payload):payload;
+  if(!obj || obj.app!=="shizi" || !plainObject(obj.data)) throw new Error("format");
+  const keys=Object.keys(obj.data).filter(k=>BACKUP_KEYS.includes(k)); if(!keys.length) throw new Error("empty"); const data={},parsed={};
+  // 形状检查必须在这里做完：一旦进了 replaceBackupData 就已经删掉本机数据，
+  // 而坏值要到下次启动才被 bootLoad 隔离——用户会先收到「恢复成功」，重启后数据才悄悄少一块。
+  keys.forEach(k=>{ const value=obj.data[k]; if(typeof value!=="string") throw new Error("value");
+    try{ parsed[k]=JSON.parse(value); }catch(e){ const error=new Error("shape"); error.backupKey=k; throw error; } });
+  // session 的稳定键要在「这份备份将要安装的自定义字」里解析，而不是在导入前设备的 CARDS 里解析。
+  // 候选上下文只存在于同步校验期间，finally 会恢复当前运行态；任何失败都还没有触碰 localStorage。
+  const incomingCustom=Object.prototype.hasOwnProperty.call(parsed,CUSTOM_KEY)?parsed[CUSTOM_KEY]:[];
+  if(!stringArray(incomingCustom)){ const error=new Error("shape"); error.backupKey=CUSTOM_KEY; throw error; }
+  withBackupCustomContext(incomingCustom,()=>keys.forEach(k=>{ const value=parsed[k];
+    if(!storedShape(k)(value)){ const error=new Error("shape"); error.backupKey=k; throw error; }
+    data[k]=JSON.stringify(normalizeBackupValue(k,value)); }));
+  return {obj,keys,data}; }
+function replaceBackupData(data){ BACKUP_KEYS.forEach(k=>localStorage.removeItem(k)); Object.entries(data).forEach(([k,value])=>localStorage.setItem(k,value));
+  if(Object.entries(data).some(([k,value])=>localStorage.getItem(k)!==value)) throw new Error("write"); }
+function restoreBackupPayload(payload, opts){ const options=opts||{}, validated=validatedBackupData(payload), obj=validated.obj, keys=validated.keys;
   const current=currentProgress(), incoming=payloadProgress(obj), incomingDate=dateLabel(obj.date||incoming.last);
   if(!options.skipConfirm && !confirm(`恢复备份会用其中的练习记录、拍字照片、自定义字和设置覆盖当前设备上的数据。\n\n当前：${current.count} 个字，最后练习 ${dateLabel(current.last)}\n备份：${incoming.count} 个字，备份时间 ${incomingDate}\n\n覆盖前的数据会作为一份安全副本留在当前设备，不会随撤销提示消失；下次恢复或清空会覆盖这份副本。\n\n页面底部会短暂显示「撤销恢复」。是否继续？`)) return {applied:false, keys};
-  if(!options.skipSafety) captureSafetySnapshot("restore");
-  BACKUP_KEYS.forEach(k=>localStorage.removeItem(k));
-  keys.forEach(k=>localStorage.setItem(k, String(obj.data[k])));
+  const rollbackPayload=JSON.parse(backupPayload({preserveMeta:true})); if(!options.skipSafety) captureSafetySnapshot("restore");
+  try{ replaceBackupData(validated.data); }
+  catch(error){ try{ replaceBackupData(validatedBackupData(rollbackPayload).data); }catch(rollbackError){ error.rollbackError=rollbackError; } throw error; }
   if(options.reload!==false) location.reload();
   return {applied:true, keys};
 }
@@ -2923,13 +3070,14 @@ $("importLink").onclick=requestBackupImport;
 $("welcomeRestore").onclick=requestBackupImport;
 $("importFile").onchange=e=>{ const f=e.target.files && e.target.files[0]; e.target.value=""; if(f) importBackup(f); };
 function resetAllData(opts){ const options=opts||{}; if(!options.skipConfirm && !confirm(`要清空应用当前使用的数据吗？\n\n这会清空 ${memoryCount()} 个字的练习记录、拍字照片、自定义字和各项设置。操作前的数据会作为一份安全副本留在当前设备，不会随撤销提示消失；下次恢复或清空会覆盖这份副本。\n\n页面底部会短暂显示「撤销清空」。`)) return false; captureSafetySnapshot("reset");
-  status={}; memory={}; fsrsReviewLog=[]; traceTutorialShown=false; quality={}; tuning={calibrated:false, offset:0, contextStrict:0, rounds:[]}; preference="balanced"; libraryState=normalizeLibrary(null); fontScaleLarge=false; applyFontScale(); opens=[today()]; customWords=[]; addedChars=[]; wildState=normalizeWildState(null); handCardPref=normalizeHandCardPref(null); activity=newActivity(); funnel=newFunnel(); backupMeta=normalizeBackupMeta(null); summaryBackupHintVisible=false; reminder=normalizeReminder(null); sound=normalizeSound(null); stopAmbient(true); saveSound(); save(LIB_KEY,libraryState); renderSoundUI(); renderHandCardPref(); hideHandCardPrompt(); save(HAND_CARD_KEY,handCardPref); saveReminder(); syncReminder(); save(DECK_KEY,status); save(MEMORY_KEY,memory); saveFSRSLog(); save(TRACE_TUTORIAL_KEY,false); save(QUALITY_KEY,quality); saveTuning(); save(PREF_KEY,preference); save(FONT_SCALE_KEY,false); save(OPEN_KEY,opens); save(CUSTOM_KEY,customWords); save(ADDED_KEY,addedChars); saveWildState(); saveActivity(); saveFunnel(); save(BACKUP_META_KEY,backupMeta); buildCustomCards(); removeStored(TOPIC_KEY); clearSessionSnapshot(); activeMode="new"; makeupTargetDay=""; sessionDone=new Set(); focusQueue=[]; renderHome(); $("dataBox").style.display="none"; showSafetyUndo(); return true; }
+  status={}; memory={}; fsrsReviewLog=[]; fsrsReviewMonthly={}; roundHandwriting={}; traceTutorialShown=false; quality={}; tuning={calibrated:false, offset:0, contextStrict:0, rounds:[]}; preference="balanced"; libraryState=normalizeLibrary(null); fontScaleLarge=false; applyFontScale(); opens=[today()]; customWords=[]; addedChars=[]; wildState=normalizeWildState(null); handCardPref=normalizeHandCardPref(null); activity=newActivity(); funnel=newFunnel(); backupMeta=normalizeBackupMeta(null); summaryBackupHintVisible=false; reminder=normalizeReminder(null); sound=normalizeSound(null); stopAmbient(true); saveSound(); save(LIB_KEY,libraryState); renderSoundUI(); renderHandCardPref(); hideHandCardPrompt(); save(HAND_CARD_KEY,handCardPref); saveReminder(); syncReminder(); save(DECK_KEY,status); save(MEMORY_KEY,memory); saveFSRSLog(); save(TRACE_TUTORIAL_KEY,false); save(QUALITY_KEY,quality); saveTuning(); save(PREF_KEY,preference); save(FONT_SCALE_KEY,false); save(OPEN_KEY,opens); save(CUSTOM_KEY,customWords); save(ADDED_KEY,addedChars); saveWildState(); saveActivity(); saveFunnel(); save(BACKUP_META_KEY,backupMeta); buildCustomCards(); removeStored(TOPIC_KEY); clearSessionSnapshot(); activeMode="new"; makeupTargetDay=""; sessionDone=new Set(); focusQueue=[]; renderHome(); $("dataBox").style.display="none"; showSafetyUndo(); return true; }
 $("resetLink").onclick=resetAllData;
 $("safetyUndoBtn").onclick=()=>undoSafetyRestore();
 
 initBox(); renderHome();
 showSafetyUndo();
 if(legacySessionDiscarded||bootCorruptKeys.length){ if(legacySessionDiscarded) $("bootNotice").textContent="应用更新后，未完成的旧练习已安全结束；已盖章记录不受影响"; $("bootNotice").style.display="block"; setTimeout(()=>$("bootNotice").style.display="none",5000); }
+$("storageReload").onclick=()=>location.reload(); if(!storageReadable) showStorageGate(); else checkStoragePressure();
 try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(()=>{}); }catch(e){}
 if(reminderBridgeAvailable()){ syncReminder(); queryReminderStatus(); }
 document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="hidden"){

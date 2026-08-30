@@ -3,6 +3,7 @@ const { execFileSync } = require("child_process");
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
+const vm = require("vm");
 
 const root = path.resolve(__dirname, "..");
 execFileSync("python3", [path.join(root, "scripts", "verify_ui_copy.py")], { stdio: "inherit" });
@@ -12,6 +13,8 @@ const wildPhotoFixturePath = path.join(root, "icon-192.png");
 const SESSION_STORAGE_KEY = "shizi.session.v1";
 const source = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const readme = fs.readFileSync(path.join(root, "README.md"), "utf8");
+const thirdPartyNotices = fs.readFileSync(path.join(root, "THIRD_PARTY_NOTICES.md"), "utf8");
+const legalChecklist = fs.readFileSync(path.join(root, "LEGAL_RELEASE_CHECKLIST.md"), "utf8");
 const swSource = fs.readFileSync(path.join(root, "sw.js"), "utf8");
 const deckSource = fs.readFileSync(path.join(root, "deck-data.js"), "utf8");
 const contextOverrideSource = fs.readFileSync(path.join(root, "data", "context-overrides.js"), "utf8");
@@ -22,6 +25,7 @@ const etymologyCoverage = JSON.parse(fs.readFileSync(path.join(root, "generated"
 const etymologyBuilderSource = fs.readFileSync(path.join(root, "scripts", "build_etymology.py"), "utf8");
 const appDelegateSource = fs.readFileSync(path.join(root, "ios", "ShiziApp", "ShiziApp", "AppDelegate.swift"), "utf8");
 const webViewSource = fs.readFileSync(path.join(root, "ios", "ShiziApp", "ShiziApp", "WebViewController.swift"), "utf8");
+const schemeHandlerSource = fs.readFileSync(path.join(root, "ios", "ShiziApp", "ShiziApp", "LocalWebSchemeHandler.swift"), "utf8");
 const mottoFixture = JSON.parse(fs.readFileSync(path.join(root, "scripts", "fixtures", "motto_classics.json"), "utf8"));
 const etymologyAccuracyFixture = JSON.parse(fs.readFileSync(path.join(root, "scripts", "fixtures", "etymology_accuracy.json"), "utf8"));
 const etymologyContextAudit = JSON.parse(fs.readFileSync(path.join(root, "scripts", "fixtures", "etymology_context_audit.json"), "utf8"));
@@ -90,8 +94,16 @@ assert(Object.keys(mottoFixture.references).every((sourceName) => readme.include
 assert(mottoFixture.entries.find((entry) => entry.text === "传不习乎")?.author === "曾子"
   && mottoFixture.entries.find((entry) => entry.text === "如切如磋，如琢如磨")?.source === "诗经·卫风·淇奥",
 "Expected the reviewed fixture to preserve the corrected Zengzi and Classic of Poetry attributions");
+assert(thirdPartyNotices.includes("Hanzi Writer 3.7.3") && thirdPartyNotices.includes("17b11a1e025b780cb518d49b30faacc770dfa7fbc387aa3876e3e5c1bd31e642")
+  && fs.existsSync(path.join(root, "sources", "LICENSE-MIT-HANZI-WRITER.txt")) && fs.existsSync(path.join(root, "sources", "LICENSE-ARPHIC-PUBLIC.txt")),
+  "Expected pinned Hanzi Writer code and data notices with complete local license texts");
+assert(legalChecklist.includes("Project-authored code and content") && legalChecklist.includes("MOE/stroke-order supplement")
+  && legalChecklist.includes("Human-generated supplement") && legalChecklist.includes("Stroke-order merged supplement") && legalChecklist.includes("BLOCKED"),
+  "Expected unresolved ownership and supplemental-data rights to remain explicit release gates");
 
-assert(swSource.includes("shizi-v13-") && swSource.includes("'data/etymology.json'") && swSource.includes("Promise.allSettled") && swSource.includes("INSTALL_BATCH_SIZE = 40") && swSource.includes("cacheFreshShell") && swSource.includes("cache.addAll(requests)") && swSource.includes("cache: 'reload'"), "Expected atomic, versioned and failure-tolerant offline installation");
+assert(swSource.includes("shizi-v13-") && swSource.includes("'data/etymology.json'") && swSource.includes("Promise.allSettled") && swSource.includes("INSTALL_BATCH_SIZE = 40") && swSource.includes("cacheFreshShell") && swSource.includes("cache.addAll(requests)") && swSource.includes("cache: 'reload'")
+  && swSource.includes("STROKE_CACHE_LIMIT = 800") && swSource.includes("trimStrokeCache") && swSource.includes("cacheResponseBestEffort") && swSource.includes("updateCacheFromNetwork"),
+"Expected atomic versioned offline installation plus a bounded stroke cache with background refresh");
 assert(swSource.includes("data/context-overrides.js?v=") && source.includes('<script src="data/context-overrides.js?v=') && source.includes('<script src="deck-data.js?v=') && contextOverrideSource.includes("CONTEXT_OVERRIDES"), "Expected fingerprinted corpus/context assets in both online and offline shells");
 assert(coreStrokeSource.includes("SHIZI_CORE_STROKES") && !coreStrokeSource.includes("SEED"), "Expected a self-contained generated core stroke list that the worker can load atomically");
 assert(Array.isArray(etymology) && etymology.length === etymologyCoverage.totals.entries && new Set(etymology.map((row) => row.char)).size === etymology.length
@@ -131,10 +143,30 @@ assert(etymologyCopyReview.entries.every((expected) => {
   return row?.gloss === expected.copy && detail?.gloss === expected.copy && detail?.matchKind.endsWith("+reviewed-copy");
 }), "Expected every approved plain-language copy or intentional omission to match its fixed candidate", etymologyCopyReview);
 assert(!source.includes("sendBeacon") && !/method\s*:\s*["']POST["']/.test(source), "Expected the local funnel to add no analytics beacon or POST request");
+assert(source.includes('http-equiv="Content-Security-Policy"') && source.includes("default-src 'self'") && source.includes("frame-src 'none'") && !source.includes("cdn.jsdelivr.net"),
+  "Expected a self-contained CSP with no remote stroke-data fallback");
+assert(schemeHandlerSource.includes('"Content-Security-Policy"') && schemeHandlerSource.includes('"X-Content-Type-Options": "nosniff"'),
+  "Expected the custom scheme to emit CSP and nosniff headers");
+assert(webViewSource.includes("message.frameInfo.isMainFrame") && webViewSource.includes('["http", "https", "mailto"].contains(scheme)')
+  && webViewSource.includes("url.host == ShiziWebResource.host") && !/targetFrame\?\.isMainFrame != false[\s\S]{0,180}else\s*\{\s*decisionHandler\(\.allow\)/.test(webViewSource),
+  "Expected the native bridge, local origin, external schemes, and subframe navigation to be explicitly constrained");
+assert(webViewSource.includes("WeakScriptMessageHandler(delegate: self)") && webViewSource.includes('removeScriptMessageHandler(forName: "shiziNative")')
+  && /#if DEBUG[\s\S]+__shizi_native_smoke_confirm__[\s\S]+#else[\s\S]+runNativeSmokeIfNeeded\(\) \{\}/.test(webViewSource)
+  && webViewSource.includes("cleanupTemporaryShareFiles()") && webViewSource.includes("completionWithItemsHandler")
+  && webViewSource.includes("shouldRemoveCopy") && webViewSource.includes("private func presentBackupPicker() {\n        guard presentedViewController == nil")
+  && webViewSource.includes("private func presentError(message: String) {\n        guard presentedViewController == nil"),
+"Expected a cycle-free bridge, Debug-only smoke, temporary-file cleanup, and consistent presentation guards");
+assert(source.includes(":focus-visible") && source.includes("手写区。可用手指或触控笔书写；无法手写时请选择不会写。"),
+  "Expected visible keyboard focus and a spoken alternative for the handwriting canvas");
 assert(!/rgba\(194,\s*69,\s*44/i.test(source) && source.includes("--accent-rgb:194,69,44") && source.includes("--accent-rgb:212,85,58"), "Expected every cinnabar alpha to follow the light/dark theme token");
 assert(source.includes(".card.undoActive .chdr{ visibility:hidden; }") && !source.includes('$("tip").title='), "Expected the undo bar to replace the header and touch guidance to avoid invisible title copy");
-assert(/funnelValue\s*:\s*cloneObj\(funnel\)/.test(source) && /funnel\s*=\s*cloneObj\(snap\.funnelValue\)/.test(source), "Expected the stamp undo snapshot to capture and restore the local funnel");
-assert(source.includes("ROUND_DURATION_CAP_MS") && /durationMs\s*:\s*Math\.min\(/.test(source), "Expected the round duration to be capped client-side against background/idle inflation");
+assert(/funnelSeenLength\s*:\s*funnel\.seen\.length/.test(source) && /funnelEventsLength\s*:\s*funnel\.events\.length/.test(source)
+  && /funnel\.seen\s*=\s*funnel\.seen\.slice/.test(source) && !/funnelValue\s*:\s*cloneObj\(funnel\)/.test(source),
+"Expected stamp undo to persist only bounded funnel deltas instead of the full history");
+assert(source.includes("FSRS_RAW_RETENTION_DAYS=120") && source.includes("ACTIVITY_RAW_RETENTION_DAYS=400")
+  && source.includes("roundStats:sessionRoundStats()") && !/sessionPayload\(\)[\s\S]{0,700}lastStampSnapshot/.test(source),
+"Expected bounded raw histories and a session payload without transient undo or handwriting data");
+assert(source.includes("ROUND_DURATION_CAP_MS") && /const bounded\s*=\s*Math\.min\(/.test(source) && /durationMs\s*:\s*bounded/.test(source), "Expected the round duration to be capped client-side against background/idle inflation");
 assert(source.includes("STAMP_HOLD_MS=1800") && source.includes("EDIT_STAMP_WINDOW_MS=1800") && source.includes("shortDueDay(m.dueDay)"), "Expected readable 1800ms stamp feedback and a compact due date");
 assert(source.includes('navigator.vibrate(10)') && source.includes('animation="cardSwapIn .18s ease-out both"') && source.includes('classList.add("revealing")'), "Expected Web haptics and staggered card/reveal transitions");
 assert(source.includes('OUTCOME_DOT={ fast:"transparent", hinted:"var(--gold)", slow:"var(--accent)"') && !/slow:\s*"var\(--blue\)"/.test(source), "Expected silent success, gold assistance, and cinnabar risk result semantics");
@@ -166,12 +198,54 @@ function verifyBackupSummaryScript() {
       && summary.calibration.card1_rate === 1 && summary.calibration.completion_rate === 0.5
       && summary.system_comparison.disagreement_rate === 0.2 && summary.rounds.completed === 3 && summary.rounds.average_duration_seconds === 70,
     "Expected backup summary D1/D7, calibration, disagreement, and duration metrics", summary);
+    const v2File = path.join(dir, "v2.json");
+    fs.writeFileSync(v2File, JSON.stringify(backup(["2026-07-01"], { version: 2, events: [], eventCounts: { welcome_shown: 1, calib_card1_done: 1, calib_completed: 1 }, counts: { revealCompared: 8, revealDisagree: 2 }, rounds: [{ completedAt: 4, mode: "calibrate", durationMs: 900000 }, { completedAt: 5, mode: "new", durationMs: 30000 }], roundTotals: { count: 11, durationMs: 1920000, byMode: { calibrate: { count: 5, durationMs: 1500000 }, new: { count: 4, durationMs: 240000 }, review: { count: 2, durationMs: 180000 } } } })));
+    const v2Summary = JSON.parse(execFileSync("python3", [path.join(root, "scripts", "summarize_backups.py"), "--json", v2File], { encoding: "utf8" }));
+    assert(v2Summary.files.with_funnel === 1 && v2Summary.calibration.completed === 1 && v2Summary.system_comparison.disagreement_rate === 0.25
+      && v2Summary.rounds.completed === 6 && v2Summary.rounds.average_duration_seconds === 70 && v2Summary.rounds.median_duration_seconds === 30,
+    "Expected bounded funnel v2 lifetime counters and mode totals to remain reportable without calibration inflation", v2Summary);
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }
 }
 
 verifyBackupSummaryScript();
+
+async function verifyServiceWorkerCacheFailureIsolation() {
+  const listeners = {};
+  const coreURL = "http://127.0.0.1:8000/data/%E6%B0%B4.json";
+  const stored = new Map([[coreURL, "cached-core"]]);
+  let deleteCalls = 0;
+  const requestURL = request => request && request.url ? request.url : String(request);
+  const cache = {
+    addAll: async () => {},
+    keys: async () => Array.from(stored.keys(), url => new Request(url)),
+    delete: async request => { deleteCalls += 1; return stored.delete(requestURL(request)); },
+    match: async request => stored.has(requestURL(request)) ? new Response(stored.get(requestURL(request))) : undefined,
+    put: async () => { throw new DOMException("quota", "QuotaExceededError"); },
+  };
+  const context = {
+    self: { SHIZI_CORE_STROKES: ["水"], location: { href: "http://127.0.0.1:8000/sw.js", origin: "http://127.0.0.1:8000" }, addEventListener: (name, handler) => { listeners[name] = handler; }, skipWaiting: async () => {}, clients: { claim: async () => {} } },
+    caches: { open: async () => cache, match: request => cache.match(request), keys: async () => [], delete: async () => true },
+    fetch: async request => new Response(`fresh:${new URL(request.url).pathname}`, { status: 200 }),
+    importScripts: () => {}, Request, Response, URL, DOMException, Promise, Set,
+  };
+  vm.runInNewContext(swSource, context, { filename: "sw.js" });
+  async function dispatch(pathname, accept = "application/javascript") {
+    let responsePromise; const waits = [];
+    listeners.fetch({ request: new Request(`http://127.0.0.1:8000${pathname}`, { headers: { accept } }), respondWith: promise => { responsePromise = Promise.resolve(promise); }, waitUntil: promise => waits.push(Promise.resolve(promise)) });
+    const response = await responsePromise; await Promise.all(waits); return response && response.text();
+  }
+  const results = {
+    html: await dispatch("/", "text/html"),
+    static: await dispatch("/deck-data.js"),
+    stroke: await dispatch("/data/%E7%81%AB.json", "application/json"),
+    core: await dispatch("/data/%E6%B0%B4.json", "application/json"),
+  };
+  assert(results.html === "fresh:/" && results.static === "fresh:/deck-data.js" && results.stroke === "fresh:/data/%E7%81%AB.json"
+    && results.core === "cached-core" && stored.get(coreURL) === "cached-core" && deleteCalls === 0,
+  "Expected cache quota failures to preserve successful responses and any existing offline core copy", { results, deleteCalls, stored: Array.from(stored.entries()) });
+}
 
 async function waitForWriter(page) {
   await page.waitForFunction(() => Array.isArray(curMedians) && curMedians.length > 0 && !animating);
@@ -200,13 +274,39 @@ async function chooseCorrect(page) {
 
 let browser;
 (async () => {
+  await verifyServiceWorkerCacheFailureIsolation();
   fs.mkdirSync(path.dirname(screenshotPath), { recursive: true });
-  browser = await chromium.launch({ headless: true, executablePath: chromeExecutable() });
+  const localChrome = chromeExecutable();
+  browser = await chromium.launch({ headless: true, ...(localChrome ? { executablePath: localChrome } : {}) });
   const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
   const pageErrors = [];
-  let offlineProbe = false;
   page.on("pageerror", (error) => pageErrors.push(error.message));
-  page.on("console", (message) => { const value = message.text(); if (message.type() === "error" && !(offlineProbe && /ERR_FAILED|ERR_INTERNET_DISCONNECTED/.test(value))) pageErrors.push(value); });
+  // 网络类错误只忽略「测试自己刻意制造的那个请求」，并且按完整 URL 精确匹配。
+  // 之前按「跨源」忽略是错的：应用里没有任何跨源资源（charLoader 只取同源 data/<字>.json），
+  // 那条规则只会永久吞掉真实故障；CI 那次红其实是离线探针的同源失败迟到到窗口之外。
+  const NETWORK_ERROR = /ERR_FAILED|ERR_INTERNET_DISCONNECTED|ERR_NAME_NOT_RESOLVED|ERR_CONNECTION|ERR_TIMED_OUT/;
+  const expectedNetworkFailures = new Map();
+  function removeExpectedNetworkFailure(token) {
+    const queue = expectedNetworkFailures.get(token.url) || [], next = queue.filter((row) => row !== token);
+    if (next.length) expectedNetworkFailures.set(token.url, next); else expectedNetworkFailures.delete(token.url);
+  }
+  function expectNetworkFailureOnce(url) {
+    let resolveSeen;
+    const token = { url, remaining: 1, seen: 0, messages: [], seenPromise: new Promise((resolve) => { resolveSeen = resolve; }), resolveSeen };
+    const queue = expectedNetworkFailures.get(url) || []; queue.push(token); expectedNetworkFailures.set(url, queue); return token;
+  }
+  function consumeExpectedNetworkFailure(text, url) {
+    if (!NETWORK_ERROR.test(text) || !url) return false;
+    const token = (expectedNetworkFailures.get(url) || []).find((row) => row.remaining > 0);
+    if (!token) return false;
+    token.remaining -= 1; token.seen += 1; token.messages.push(text); removeExpectedNetworkFailure(token); token.resolveSeen(token); return true;
+  }
+  page.on("console", (message) => {
+    if (message.type() !== "error") return;
+    const value = message.text(), url = (message.location() && message.location().url) || "";
+    if (consumeExpectedNetworkFailure(value, url)) return;
+    pageErrors.push(url ? `${value} @ ${url}` : value);
+  });
 
   await page.goto(appUrl, { waitUntil: "networkidle" });
   await page.evaluate(() => localStorage.clear());
@@ -298,7 +398,10 @@ let browser;
     const perfCanvas = document.createElement("canvas"); perfCanvas.width = 300; perfCanvas.height = 300; const perfCtx = perfCanvas.getContext("2d");
     const perfPoints = Array.from({ length: 96 }, (_, i) => ({ x: 15 + i * 2.75, y: 150 + Math.sin(i / 7) * 55, t: i * 3, w: .75 + (i % 9) / 18, v: 1.25 + (i % 5) * .12 }));
     const started = performance.now(); for (let i = 0; i < 90; i += 1) { perfCtx.clearRect(0, 0, 300, 300); paintBrushStroke(perfCtx, perfPoints, 14, { color: "#29241d", detail: true, capabilities: high }); } const averageMs = (performance.now() - started) / 90;
-    return { widths, detail: { fullDetail, lowDetail, reducedDetail }, taper, texture, recognition, legacyWidth, shared, layering: { crossingAlphaLoss, hintAlphaLoss, shareMismatch, shareMinAlpha }, averageMs };
+    const sinkCanvas=makeCanvas(),sinkCtx=sinkCanvas.getContext("2d"),sinkCases=[[null],[{}],[{x:null,y:null}],[{x:"",y:false}],[{x:Number.NaN,y:4}]],sinkResults=[]; let sinkThrew=false;
+    sinkCases.forEach(points=>{ try{ sinkResults.push(paintBrushStroke(sinkCtx,points,base,{detail:false})); }catch(error){ sinkThrew=true; } });
+    const validSingle=paintBrushStroke(sinkCtx,[{x:12,y:16,t:1,w:1,v:0}],base,{detail:false});
+    return { widths, detail: { fullDetail, lowDetail, reducedDetail }, taper, texture, recognition, legacyWidth, shared, layering: { crossingAlphaLoss, hintAlphaLoss, shareMismatch, shareMinAlpha }, sinkGuard:{sinkResults,sinkThrew,validSingle}, averageMs };
   });
   assert(brushEngine.widths.slow > brushEngine.widths.fast && brushEngine.widths.pressureHigh > brushEngine.widths.pressureLow && brushEngine.detail.fullDetail && !brushEngine.detail.lowDetail && !brushEngine.detail.reducedDetail,
     "Expected slower or harder Pencil input to draw wider and low-end/reduced-motion devices to simplify details", brushEngine);
@@ -308,6 +411,8 @@ let browser;
     "Expected brush metadata to leave recognition unchanged, preserve legacy ink width, survive sharing, and render within one 60fps frame", brushEngine);
   assert(brushEngine.layering.crossingAlphaLoss === 0 && brushEngine.layering.hintAlphaLoss === 0 && brushEngine.layering.shareMismatch === 0 && brushEngine.layering.shareMinAlpha === 255,
     "Expected each dry-brush stroke to preserve crossing ink and hints, match transparent-layer share composition, and keep PNG pixels opaque", brushEngine.layering);
+  assert(!brushEngine.sinkGuard.sinkThrew&&brushEngine.sinkGuard.sinkResults.length===5&&brushEngine.sinkGuard.sinkResults.every(value=>value===false)&&brushEngine.sinkGuard.validSingle,
+    "Expected the lowest brush sink to reject malformed points without throwing while retaining a legal single-point stroke",brushEngine.sinkGuard);
 
   const funnelBoundary = await page.evaluate(() => {
     const originalFunnel = JSON.parse(JSON.stringify(funnel)), originalOpens = opens.slice(), originalRound = { roundId, activeMode, baseTargets: baseTargets.slice(), attemptSeq };
@@ -330,10 +435,10 @@ let browser;
   const undoFunnel = await page.evaluate(() => {
     const original = JSON.parse(JSON.stringify(funnel));
     funnel = newFunnel(); saveFunnel();
-    const preStamp = JSON.parse(JSON.stringify(funnel));           // 盖章前的 funnel，正是 takeStampSnapshot 通过 funnelValue:cloneObj(funnel) 捕获的
+    const preStamp = { seen: funnel.seen.length, events: funnel.events.length, counts: { ...funnel.counts }, eventCounts: { ...funnel.eventCounts } };
     recordFunnelComparison("verify-undo", false, Date.now());       // 误盖“没写出”，与系统“判定 ok”分歧
     const afterDisagree = { ...funnel.counts };
-    funnel = JSON.parse(JSON.stringify(preStamp)); saveFunnel();    // 撤销：restoreStampSnapshot 用 funnelValue 回滚 funnel
+    funnel.seen = funnel.seen.slice(0, preStamp.seen); funnel.events = funnel.events.slice(0, preStamp.events); funnel.counts = preStamp.counts; funnel.eventCounts = preStamp.eventCounts; saveFunnel();
     const afterUndo = { ...funnel.counts, seenHasKey: funnel.seen.includes("reveal:verify-undo") };
     recordFunnelComparison("verify-undo", true, Date.now());        // 改盖“秒过”，与系统一致——修正后不应仍算分歧
     const afterAgree = { ...funnel.counts };
@@ -575,6 +680,16 @@ let browser;
   await page.waitForFunction(async () => { const name=(await caches.keys()).find(key=>key.startsWith("shizi-v13-")); if(!name) return false; const cache = await caches.open(name), keys = await cache.keys(); return keys.filter((request) => new URL(request.url).pathname.includes("/data/")).length >= 602; }, null, { timeout: 30000 });
   const coreCache = await page.evaluate(async () => { const name=(await caches.keys()).find(key=>key.startsWith("shizi-v13-")), cache = await caches.open(name), keys = await cache.keys(); return { name, core: keys.filter((request) => new URL(request.url).pathname.includes("/data/") && !new URL(request.url).pathname.endsWith("context-overrides.js") && !new URL(request.url).pathname.endsWith("etymology.json")).length, shell: keys.some(request=>new URL(request.url).pathname.endsWith("/core-strokes.js")&&new URL(request.url).search), etymology: keys.some(request=>new URL(request.url).pathname.endsWith("/data/etymology.json")), contexts: keys.some(request=>new URL(request.url).pathname.endsWith("/data/context-overrides.js")&&new URL(request.url).search) }; });
   assert(coreCache.core >= 600 && coreCache.shell && coreCache.etymology && coreCache.contexts, "Expected the service worker to install all core strokes, etymology, context overrides, and retain runtime-fetched extras", coreCache);
+  const boundedStrokeCache = await page.evaluate(async () => {
+    const name = (await caches.keys()).find(key => key.startsWith("shizi-v13-")), cache = await caches.open(name), core = new Set(self.SHIZI_CORE_STROKES), runtime = CARDS.find(card => !core.has(card.target) && !card.custom && card.target);
+    for (let index = 0; index < 230; index += 1) await cache.put(`data/__verify-cache-${index}.json`, new Response("{}", { headers: { "Content-Type": "application/json" } }));
+    await fetch(`data/${encodeURIComponent(runtime.target)}.json?verify-cache-limit=1`);
+    await new Promise(resolve => setTimeout(resolve, 150));
+    const keys = await cache.keys(), strokes = keys.filter(request => /\/data\/[^/]+\.json$/.test(new URL(request.url).pathname) && !new URL(request.url).pathname.endsWith("/data/etymology.json"));
+    const corePresent = await Promise.all(self.SHIZI_CORE_STROKES.map(char => cache.match(`data/${encodeURIComponent(char)}.json`)));
+    return { count: strokes.length, allCorePresent: corePresent.every(Boolean), runtime: runtime.target };
+  });
+  assert(boundedStrokeCache.count <= 800 && boundedStrokeCache.allCorePresent, "Expected stroke cache eviction to keep the core 600 while bounding runtime entries", boundedStrokeCache);
 
   const dailyRitual = await page.evaluate(() => {
     const original = { tuning: cloneObj(tuning), activity: cloneObj(activity), activeMode, focusQueue: focusQueue.slice(), sessionDone: [...sessionDone] };
@@ -642,18 +757,44 @@ let browser;
     "Expected a valid notification card key to open that exact focus card and reject stale keys", notificationDeepLink);
 
   await page.reload({ waitUntil: "networkidle" });
-  offlineProbe = true;
+  // 令牌必须在请求发出前按完整 URL 登记；它只消费一次，首条消息即使迟到到恢复联网后也能归因，
+  // 随后的同 URL 错误则必须重新进入 pageErrors，不能留下永久白名单。
+  const expectedOfflineFailure = new URL(`data/${encodeURIComponent("玃")}.json`, appUrl).href;
+  const expectedOfflineConsole = expectNetworkFailureOnce(expectedOfflineFailure);
+  const failedOfflineRequest = page.waitForEvent("requestfailed", {
+    predicate: (request) => request.url() === expectedOfflineFailure,
+    timeout: 10000,
+  });
   await page.context().setOffline(true);
   await page.evaluate(() => { tuning = { calibrated: true, offset: 0, contextStrict: 0, rounds: [] }; saveTuning(); const idx = CARDS.findIndex((card) => card.target === "玃"); startFocus([idx]); });
-  await page.waitForFunction(() => !done.disabled && hint.textContent.includes("需要联网下载一次"));
+  await page.waitForFunction(() => !done.disabled && hint.textContent.includes("暂未收录笔顺"));
   const honestOffline = await page.evaluate(() => ({ copy: hint.textContent, done: !done.disabled, show: !show.disabled, noWriter: !practiceCharData, offline: navigator.onLine === false }));
-  assert(honestOffline.copy.includes("这个字的笔顺需要联网下载一次") && honestOffline.done && honestOffline.show && honestOffline.noWriter && honestOffline.offline,
-  "Expected an uncached offline card to explain the one-time download and keep self-assessment usable", honestOffline);
+  assert(honestOffline.copy.includes("这个字暂未收录笔顺") && honestOffline.done && honestOffline.show && honestOffline.noWriter && honestOffline.offline,
+  "Expected a character without bundled stroke data to explain its limitation and keep self-assessment usable offline", honestOffline);
   await page.context().setOffline(false);
-  await page.waitForFunction(() => Array.isArray(curMedians) && curMedians.length > 0 && !strokeDataOffline);
-  offlineProbe = false;
-  const onlineRecovery = await page.evaluate(() => ({ target: cur.target, medians: curMedians.length, copy: hint.textContent }));
-  assert(onlineRecovery.target === "玃" && onlineRecovery.medians > 0 && !onlineRecovery.copy.includes("需要联网下载一次"), "Expected reconnection to restore the current untouched card automatically", onlineRecovery);
+  const failedRequest = await failedOfflineRequest;
+  // requestfailed 先证明真实请求已失败；再等 console 生命周期收束，专门覆盖「唯一消息恢复联网后才到」的 CI 路径。
+  const consoleSettled = await Promise.race([
+    expectedOfflineConsole.seenPromise.then(() => true),
+    new Promise((resolve) => setTimeout(() => resolve(false), 5000)),
+  ]);
+  removeExpectedNetworkFailure(expectedOfflineConsole);
+  assert(failedRequest.url() === expectedOfflineFailure && consoleSettled && expectedOfflineConsole.seen === 1
+    && expectedNetworkFailures.size === 0,
+    "Expected exactly one request-specific offline failure, including a late console message",
+    { expected: expectedOfflineFailure, request: failedRequest.url(), consoleSettled, seen: expectedOfflineConsole.seen });
+
+  // 负向反例：首条迟到消息仍可消费一次；同 URL 第二条以及任意未登记来源都必须红。
+  const delayedControlUrl = new URL("/__verify_delayed_network_failure__", appUrl).href;
+  const delayedControl = expectNetworkFailureOnce(delayedControlUrl);
+  await Promise.resolve();
+  const delayedAccepted = consumeExpectedNetworkFailure("Failed to load resource: net::ERR_FAILED", delayedControlUrl);
+  const repeatedRejected = !consumeExpectedNetworkFailure("Failed to load resource: net::ERR_FAILED", delayedControlUrl);
+  const crossOriginRejected = !consumeExpectedNetworkFailure("Failed to load resource: net::ERR_CONNECTION_REFUSED", "https://cdn.example.com/required.png");
+  const otherSameOriginRejected = !consumeExpectedNetworkFailure("Failed to load resource: net::ERR_FAILED", new URL("/required-api-resource.png", appUrl).href);
+  assert(delayedAccepted && delayedControl.seen === 1 && repeatedRejected && crossOriginRejected && otherSameOriginRejected
+    && expectedNetworkFailures.size === 0,
+    "Expected a delayed request token to be consumed once without hiding a later real failure");
   await page.evaluate(() => localStorage.clear());
   await page.reload({ waitUntil: "networkidle" });
 
@@ -1481,8 +1622,8 @@ let browser;
 
   await chooseCorrect(page);
   await page.waitForTimeout(450);
-  const hold = await page.evaluate(() => ({ sameTarget: cur.target, feedback: stampedToast.textContent, outcome: roundStats[0] && roundStats[0].outcome, ratings: fsrsReviewLog.map((event) => event.rating), unresolved: [...unresolved] }));
-  assert(hold.sameTarget === firstTarget && hold.feedback.includes("稍后不看提示再写一次") && hold.outcome === "hinted" && hold.ratings.join() === "Again" && hold.unresolved.length === 1, "Expected 1.4s hinted feedback with one Again", hold);
+  const hold = await page.evaluate(() => { const stored=load(SESSION_KEY,null); return { sameTarget: cur.target, feedback: stampedToast.textContent, outcome: roundStats[0] && roundStats[0].outcome, ratings: fsrsReviewLog.map((event) => event.rating), unresolved: [...unresolved], sessionHasUndo:Object.prototype.hasOwnProperty.call(stored||{},"lastStampSnapshot"),sessionHasHandwriting:(stored&&stored.roundStats||[]).some(row=>Object.prototype.hasOwnProperty.call(row,"handwriting")),stampSnapshotHasHandwriting:((stored&&stored.lastStampSnapshot&&stored.lastStampSnapshot.roundStatsValue)||[]).some(row=>Object.prototype.hasOwnProperty.call(row,"handwriting")) }; });
+  assert(hold.sameTarget === firstTarget && hold.feedback.includes("稍后不看提示再写一次") && hold.outcome === "hinted" && hold.ratings.join() === "Again" && hold.unresolved.length === 1 && hold.sessionHasUndo && !hold.sessionHasHandwriting && !hold.stampSnapshotHasHandwriting, "Expected hinted feedback with one Again, a restorable undo, and no handwriting in the session payload", hold);
 
   await page.click("#editStamp");
   const rollback = await page.evaluate(() => ({ phase: practicePhase, events: fsrsReviewLog.length, stats: roundStats.length, attempts: dailyActivity().attempts, stamps: dailyActivity().stamps, queue: reinforcementQueue.length, unresolved: unresolved.size, image: submissionSnapshot.compositeImage }));
@@ -1529,8 +1670,8 @@ let browser;
 
   await page.evaluate(() => { saveSessionSnapshot(); restoreSession(load(SESSION_KEY, null)); });
   await waitForWriter(page);
-  const restoredReinforcement = await page.evaluate(() => ({ target: cur.target, kind: currentAttemptKind, phase: practicePhase, unresolved: unresolved.size }));
-  assert(restoredReinforcement.target === firstTarget && restoredReinforcement.kind === "reinforcement" && restoredReinforcement.phase === "reinforcement" && restoredReinforcement.unresolved === 1, "Expected reinforcement state to survive session restore", restoredReinforcement);
+  const restoredReinforcement = await page.evaluate(() => ({ target: cur.target, kind: currentAttemptKind, phase: practicePhase, unresolved: unresolved.size, noUndo:lastStampSnapshot===null&&getComputedStyle(undoBar).display==="none" }));
+  assert(restoredReinforcement.target === firstTarget && restoredReinforcement.kind === "reinforcement" && restoredReinforcement.phase === "reinforcement" && restoredReinforcement.unresolved === 1 && restoredReinforcement.noUndo, "Expected reinforcement state, but not the five-second undo window, to survive session restore", restoredReinforcement);
 
   await submitStandard(page);
   await chooseCorrect(page);
@@ -1538,6 +1679,7 @@ let browser;
   const completed = await page.evaluate(() => ({
     summary: getComputedStyle(summary).display !== "none",
     stats: cloneObj(roundStats),
+    handwriting: cloneObj(roundHandwriting),
     log: cloneObj(fsrsReviewLog),
     activity: cloneObj(dailyActivity()),
     groups: dailyActivity().completedGroups,
@@ -1548,7 +1690,7 @@ let browser;
     restKnown: REST_LINES.includes(summaryRestLine.textContent),
     ambient: { scene: ambientScene, stops: ambientDebug.stops },
   }));
-  assert(completed.summary && completed.stats.length === 3 && completed.stats[0].outcome === "hinted" && completed.stats[0].independentlyRecovered && completed.stats.some((row) => row.handwriting && row.handwriting.length) && completed.stats.flatMap((row) => row.handwriting || []).every((stroke) => stroke.length <= 48), "Expected one summary tile per base target with compact captured user ink", completed.stats);
+  assert(completed.summary && completed.stats.length === 3 && completed.stats[0].outcome === "hinted" && completed.stats[0].independentlyRecovered && completed.stats.every((row) => !Object.prototype.hasOwnProperty.call(row,"handwriting")) && Object.values(completed.handwriting).some((strokes) => strokes.length) && Object.values(completed.handwriting).flat().every((stroke) => stroke.length <= 48), "Expected compact user ink to remain in memory without bloating persisted round stats", completed);
   assert(completed.log.map((event) => event.rating).join() === "Again,Good,Good,Good" && completed.log.every((event) => !["Hard", "Easy"].includes(event.rating)), "Expected Again/Good-only FSRS events", completed.log);
   assert(completed.activity.stamps === 3 && completed.activity.attempts === 4 && completed.groups === 1 && completed.session === null, "Expected unique-day counts, attempt counts, and true completion", completed.activity);
   assert(Object.values(completed.memory).every((item) => !item.pendingLearning && item.dueDay >= completed.tomorrow && item.schedulerVersion.includes("FSRS-6.0")), "Expected graduated cards to expose next-day-or-later dueDay", completed.memory);
@@ -1569,17 +1711,17 @@ let browser;
     && sharePaths.messageKeys.join() === "dataURL,name,type" && sharePaths.messageType === "sharePracticeCard" && sharePaths.messagePNG && sharePaths.shared === 1 && sharePaths.downloaded.size > 1000 && sharePaths.downloaded.name.endsWith(".png") && sharePaths.privateFree && sharePaths.printedTargetFree && sharePaths.shareVisible && sharePaths.shareLabel.includes("存为"),
   "Expected a private-free user-ink PNG card and native, Web Share, and download delivery paths", sharePaths);
   const expandedShareCard = await page.evaluate(() => {
-    const savedStats = cloneObj(roundStats), originalFillText = CanvasRenderingContext2D.prototype.fillText, labels = [];
+    const savedStats = cloneObj(roundStats), savedHandwriting=cloneObj(roundHandwriting), originalFillText = CanvasRenderingContext2D.prototype.fillText, labels = [];
     try {
       CanvasRenderingContext2D.prototype.fillText = function(text, ...args) { labels.push(String(text)); return originalFillText.call(this, text, ...args); };
-      roundStats = Array.from({ length: 16 }, (_, idx) => ({ idx, target: CARDS[idx].target, outcome: idx % 3 === 0 ? "hinted" : "fast", independentlyRecovered: false,
-        handwriting: [[{ x: .12 + idx * .002, y: .18 }, { x: .82, y: .78 - idx * .002 }]] }));
+      roundStats = Array.from({ length: 16 }, (_, idx) => ({ idx, target: CARDS[idx].target, outcome: idx % 3 === 0 ? "hinted" : "fast", independentlyRecovered: false }));
+      roundHandwriting=Object.fromEntries(roundStats.map(({idx})=>[String(idx),[[{ x: .12 + idx * .002, y: .18 }, { x: .82, y: .78 - idx * .002 }]]]));
       const canvas = renderPracticeCardCanvas(), rendererSource = `${renderPracticeCardCanvas}`;
       return { width: canvas.width, height: canvas.height, items: Number(canvas.dataset.itemCount), inkStrokes: Number(canvas.dataset.inkStrokeCount), labels,
         png: canvas.toDataURL("image/png").startsWith("data:image/png;base64,"), noFifteenItemCutoff: !/slice\(0,\s*15\)/.test(rendererSource) };
     } finally {
       CanvasRenderingContext2D.prototype.fillText = originalFillText;
-      roundStats = savedStats;
+      roundStats = savedStats; roundHandwriting=savedHandwriting;
     }
   });
   assert(expandedShareCard.width === 1080 && expandedShareCard.height === 1618 && expandedShareCard.items === 16 && expandedShareCard.inkStrokes === 16 && expandedShareCard.labels.includes("本组 16 个字") && expandedShareCard.png && expandedShareCard.noFifteenItemCutoff,
@@ -2209,16 +2351,370 @@ let browser;
     restoreBackupPayload(secondIncoming, { skipConfirm: true, reload: false }); const overwrittenSafety = safetySnapshot();
     undoSafetyRestore({ reload: false }); const latestRestored = String(localStorage.getItem(MEMORY_KEY)).includes("verify:before-second");
 
-    restoreBackupPayload(original, { skipConfirm: true, reload: false, skipSafety: true }); localStorage.removeItem(SAFETY_KEY); hideSafetyUndo(); memory = originalMemory;
+    const malicious = JSON.parse(JSON.stringify(original)), maliciousIndex = CARDS.findIndex(card => card.target === "水"), maliciousKey = cardKey(maliciousIndex);
+    malicious.data[MEMORY_KEY] = JSON.stringify({ [maliciousKey]: { seen: 1, recentInk: { version: 2, dataURL: `x\" onerror=\"window.__recentInkXss=1` } } });
+    restoreBackupPayload(malicious, { skipConfirm: true, reload: false, skipSafety: true }); memory = load(MEMORY_KEY, {}); window.__recentInkXss = 0; openCharSheet(maliciousIndex);
+    const maliciousInkRejected = window.__recentInkXss === 0 && charDetailGlyph.textContent === "水" && !charDetailGlyph.querySelector("img") && !charDetailInk.querySelector("img"); closeCharSheet();
+    const activityAttack = JSON.parse(JSON.stringify(original)), attackYear = new Date().getFullYear(), attackDay = `${attackYear}-01-01`, attackMonth = attackDay.slice(0, 7), attackMarkup = `<img src=x onerror="window.__activityXss=1">`;
+    const rawAttackActivity = { version: 2, migrationDate: attackDay, inheritedStreak: 0, inheritedTotalDays: 0, practiceDays: [attackDay], daily: {}, monthly: { [attackMonth]: { days: 1, completedDays: 1, stamps: 1, attempts: 1, completedGroups: 1, targetKeys: [maliciousKey], independentTargetKeys: [], reviewTargetKeys: [], makeupDays: [], firstDay: attackMarkup, firstTargetKey: maliciousKey, lastStampAt: 1 } } };
+    activityAttack.data[ACTIVITY_KEY] = JSON.stringify(rawAttackActivity); restoreBackupPayload(activityAttack, { skipConfirm: true, reload: false, skipSafety: true });
+    const storedAttackActivity = JSON.parse(localStorage.getItem(ACTIVITY_KEY)), maliciousActivitySanitized = storedAttackActivity.monthly[attackMonth].firstDay === "";
+    activity = rawAttackActivity; window.__activityXss = 0; renderAnnualReport(attackYear); const maliciousActivityEscaped = window.__activityXss === 0 && !annualSlides.querySelector("img") && annualSlides.textContent.includes("<img");
+    restoreBackupPayload(original, { skipConfirm: true, reload: false, skipSafety: true }); localStorage.removeItem(SAFETY_KEY); hideSafetyUndo(); memory = originalMemory; activity = normalizeActivity(JSON.parse(original.data[ACTIVITY_KEY]));
+    const customStart = CARDS.length; CARDS.push({ custom: true, target: "春" }); const customKeyBefore = cardKey(customStart);
+    CARDS.splice(BASE_N, 0, { custom: false, target: "验" }); const customKeyAfter = cardKey(customStart + 1); CARDS.splice(BASE_N, 1); CARDS.pop();
+    const legacyCustomKey = "custom:120:春", legacyCustomMemory = { [legacyCustomKey]: { seen: 1, last: 200, dueDay: "2026-09-01", fsrsCard: { stability: 3 } }, "custom:春": { seen: 1, last: 100, dueDay: "2026-08-01" } }, migratedCustom = migrateCustomKeyedRows(legacyCustomMemory), migratedAgain = migrateCustomKeyedRows(migratedCustom.value);
+    const migratedFSRS = normalizeFSRSStored([{ eventId: "legacy-custom", attemptId: "legacy", cardKey: legacyCustomKey, target: "春", reviewedAt: new Date().toISOString(), localDay: today(), rating: "Good" }]);
+    const migratedActivity = normalizeActivity({ version: 2, migrationDate: today(), inheritedStreak: 0, inheritedTotalDays: 0, practiceDays: [today()], daily: { [today()]: { stamps: 1, attempts: 1, targetKeys: [legacyCustomKey], independentTargetKeys: [legacyCustomKey], reviewTargetKeys: [legacyCustomKey], completedRoundIds: [] } }, monthly: {} });
+    const customMigration = { changed: migratedCustom.changed, keys: Object.keys(migratedCustom.value), memory: migratedCustom.value["base:春"], idempotent: !migratedAgain.changed && JSON.stringify(migratedAgain.value) === JSON.stringify(migratedCustom.value), fsrsKey: migratedFSRS.events[0] && migratedFSRS.events[0].cardKey, activityKeys: migratedActivity.daily[today()].targetKeys };
+    const beforeFailure = Object.fromEntries(BACKUP_KEYS.map(k => [k, localStorage.getItem(k)]));
+    const failingIncoming = JSON.parse(JSON.stringify(original)); failingIncoming.data[MEMORY_KEY] = JSON.stringify({ "verify:atomic-incoming": { seen: 1 } }); failingIncoming.data[QUALITY_KEY] = JSON.stringify({ "verify:atomic-quality": { easy: 1 } });
+    const nativeSetItem = Storage.prototype.setItem; let injectedFailure = false, atomicRejected = false;
+    Storage.prototype.setItem = function(key, value){ if(key===QUALITY_KEY && !injectedFailure){ injectedFailure=true; throw new DOMException("quota", "QuotaExceededError"); } return nativeSetItem.call(this,key,value); };
+    try{ restoreBackupPayload(failingIncoming,{skipConfirm:true,reload:false,skipSafety:true}); }catch(e){ atomicRejected=e&&e.name==="QuotaExceededError"; } finally{ Storage.prototype.setItem=nativeSetItem; }
+    const afterFailure = Object.fromEntries(BACKUP_KEYS.map(k => [k, localStorage.getItem(k)]));
     const result = { keys: Object.keys(original.data), sessionVersion: JSON.parse(original.data[SESSION_KEY]).version, fsrsLog: !!original.data[FSRS_LOG_KEY], tutorial: original.data[TRACE_TUTORIAL_KEY], funnelVersion: JSON.parse(original.data[FUNNEL_KEY]).version, sound: JSON.parse(original.data[SOUND_KEY]), restoredKeys: restoredResult.keys,
       unknown: localStorage.getItem("shizi.unknown.verify"), cancelled: !cancelled.applied, confirmCopy, incomingApplied, safetyReason: safetyAfterRestore && safetyAfterRestore.reason, undoOffered, undoApplied: undoResult.applied, currentRestored,
       restoreUndoCopy, resetCancelled, resetConfirmCopy, resetCancelledIntact, resetUndoCopy, resetAfterPromptReason: resetSafetyAfterPrompt && resetSafetyAfterPrompt.reason,
-      resetReason: resetSafety && resetSafety.reason, overwrittenReason: overwrittenSafety && overwrittenSafety.reason, latestRestored, safetyExcluded: !Object.prototype.hasOwnProperty.call(original.data, SAFETY_KEY) };
+      resetReason: resetSafety && resetSafety.reason, overwrittenReason: overwrittenSafety && overwrittenSafety.reason, latestRestored, safetyExcluded: !Object.prototype.hasOwnProperty.call(original.data, SAFETY_KEY),
+      customKeyBefore, customKeyAfter, customMigration, maliciousInkRejected, maliciousActivitySanitized, maliciousActivityEscaped, atomicRejected, atomicRestored: JSON.stringify(afterFailure)===JSON.stringify(beforeFailure) };
     localStorage.removeItem("shizi.unknown.verify"); return result;
   });
-  assert(backup.keys.includes(SESSION_STORAGE_KEY) && backup.keys.includes("shizi.library.v1") && backup.sessionVersion === 3 && backup.fsrsLog && backup.tutorial === "true" && backup.funnelVersion === 1 && backup.sound.enabled === true && backup.sound.scene === "rain" && backup.restoredKeys.includes(SESSION_STORAGE_KEY) && backup.unknown === "keep-local", "Expected session/FSRS/tutorial/funnel/soundscape/library backup round trip with allowlist isolation", backup);
+  assert(backup.keys.includes(SESSION_STORAGE_KEY) && backup.keys.includes("shizi.library.v1") && backup.sessionVersion === 3 && backup.fsrsLog && backup.tutorial === "true" && backup.funnelVersion === 2 && backup.sound.enabled === true && backup.sound.scene === "rain" && backup.restoredKeys.includes(SESSION_STORAGE_KEY) && backup.unknown === "keep-local", "Expected session/FSRS/tutorial/funnel/soundscape/library backup round trip with allowlist isolation", backup);
   assert(backup.cancelled && backup.confirmCopy.includes("当前：2 个字，最后练习 2026-07-11") && backup.confirmCopy.includes("备份：1 个字，备份时间 2026-06-01") && backup.confirmCopy.includes("覆盖前的数据会作为一份安全副本留在当前设备") && backup.confirmCopy.includes("下次恢复或清空会覆盖这份副本") && backup.incomingApplied && backup.safetyReason === "restore" && backup.undoOffered && backup.restoreUndoCopy.includes("覆盖前的数据仍留在本设备") && backup.undoApplied && backup.currentRestored, "Expected differential restore confirmation and one-tap safety undo", backup);
   assert(backup.resetCancelled && backup.resetCancelledIntact && backup.resetConfirmCopy.includes("要清空应用当前使用的数据吗") && backup.resetConfirmCopy.includes("操作前的数据会作为一份安全副本留在当前设备") && backup.resetConfirmCopy.includes("不会随撤销提示消失") && backup.resetUndoCopy.includes("操作前的数据仍留在本设备") && backup.resetReason === "reset" && backup.resetAfterPromptReason === "reset" && backup.overwrittenReason === "restore" && backup.latestRestored && backup.safetyExcluded, "Expected an honest reset warning, retained safety copy after the prompt, latest-operation replacement, and backup exclusion", backup);
+  assert(backup.customKeyBefore === "custom:春" && backup.customKeyAfter === backup.customKeyBefore, "Expected custom card keys to remain stable when the base deck size changes", backup);
+  assert(backup.customMigration.changed && backup.customMigration.keys.length === 1 && backup.customMigration.keys[0] === "base:春" && backup.customMigration.memory.last === 200 && backup.customMigration.memory.dueDay === "2026-09-01" && backup.customMigration.memory.fsrsCard.stability === 3
+    && backup.customMigration.idempotent && backup.customMigration.fsrsKey === "base:春" && backup.customMigration.activityKeys[0] === "base:春",
+    "Expected legacy indexed custom keys to migrate once across memory, FSRS history, and activity while keeping the newest schedule", backup.customMigration);
+  assert(backup.maliciousInkRejected, "Expected restored recent-ink markup to be rejected before DOM rendering", backup);
+  assert(backup.maliciousActivitySanitized && backup.maliciousActivityEscaped, "Expected restored activity fields to be schema-normalized and annual-report text to remain escaped", backup);
+  assert(backup.atomicRejected && backup.atomicRestored, "Expected a failed backup write to restore every previous allowlisted value", backup);
+
+  // 复核发现：只有部分键会经 normalizeBackupValue，其余键只要是合法 JSON 就原样写入，
+  // 于是恢复先报成功、下次启动才把坏键隔离掉。导入必须在动本机数据之前整单拒绝。
+  const backupShape = await page.evaluate(() => {
+    const before = Object.fromEntries(BACKUP_KEYS.map((k) => [k, localStorage.getItem(k)]));
+    const good = JSON.parse(backupPayload());
+    const cases = [
+      { key: QUALITY_KEY, value: JSON.stringify({ "base:的": "not-an-object" }) },
+      { key: PREF_KEY, value: JSON.stringify(42) },
+      { key: CUSTOM_KEY, value: JSON.stringify([{ not: "a word" }]) },
+      { key: DECK_KEY, value: JSON.stringify({ "base:的": { nested: true } }) },
+      { key: TRACE_TUTORIAL_KEY, value: JSON.stringify("yes") },
+      { key: OPEN_KEY, value: JSON.stringify({ notAn: "array" }) },
+      { key: TOPIC_KEY, value: JSON.stringify(7) },
+      { key: FSRS_LOG_KEY, value: JSON.stringify({ events: "nope" }) },
+    ];
+    const rows = cases.map(({ key, value }) => {
+      const payload = JSON.parse(JSON.stringify(good)); payload.data[key] = value;
+      let applied = null, rejectedKey = "";
+      try { applied = restoreBackupPayload(payload, { skipConfirm: true, reload: false, skipSafety: true }).applied; }
+      catch (error) { applied = false; rejectedKey = error.backupKey || ""; }
+      const after = Object.fromEntries(BACKUP_KEYS.map((k) => [k, localStorage.getItem(k)]));
+      return { key, applied, rejectedKey, untouched: JSON.stringify(after) === JSON.stringify(before) };
+    });
+    const healthy = restoreBackupPayload(good, { skipConfirm: true, reload: false, skipSafety: true }).applied;
+    return { rows, healthy };
+  });
+  assert(backupShape.rows.every((row) => row.applied === false && row.rejectedKey === row.key && row.untouched) && backupShape.healthy,
+    "Expected a malformed value in any backup key to reject the whole import before touching local data", backupShape);
+
+  // 上面那组是直接调函数 + reload:false。复核指出这绕开了真实文件导入与重启后的 resumableSession，
+  // 所以 session 语义坏值和 recentInk 嵌套坏值都能「先恢复成功、刷新后才丢」。这里走真实路径。
+  const goodBackupText = await page.evaluate(() => backupPayload());
+  const goodBackupPreflight = await page.evaluate((text) => { try{ const validated=validatedBackupData(text); return {valid:true,keys:validated.keys}; }
+    catch(error){ return {valid:false,key:error.backupKey||"",message:error.message}; } },goodBackupText);
+  assert(goodBackupPreflight.valid,"Expected the production backup fixture to remain valid before negative UI mutations",goodBackupPreflight);
+  let uiImportSequence=0;
+  const importThroughUI = async (mutate) => {
+    const marker=1700000000000+(++uiImportSequence);
+    const text = await page.evaluate(({ base, patch, marker }) => {
+      const payload = JSON.parse(base); new Function("payload", patch)(payload);
+      const meta=JSON.parse(payload.data["shizi.backupMeta.v1"]||"{}"); meta.lastExportAt=marker;
+      payload.data["shizi.backupMeta.v1"]=JSON.stringify(meta); return JSON.stringify(payload);
+    }, { base: goodBackupText, patch: mutate, marker });
+    const before = await page.evaluate(() => Object.fromEntries(BACKUP_KEYS.map((k) => [k, localStorage.getItem(k)])));
+    const dialogs = []; const onDialog = (dialog) => { dialogs.push(dialog.message()); dialog.accept(); };
+    page.on("dialog", onDialog);
+    const navigation = page.waitForNavigation({ timeout: 4000 }).then(() => true).catch(() => false);
+    await page.setInputFiles("#importFile", { name: "shizi-backup.json", mimeType: "application/json", buffer: Buffer.from(text, "utf8") });
+    const applied=page.waitForFunction((expected)=>{ try{return JSON.parse(localStorage.getItem("shizi.backupMeta.v1")||"{}").lastExportAt===expected
+      &&typeof backupMeta!=="undefined"&&backupMeta.lastExportAt===expected;}catch(error){return false;} },marker,{timeout:4000}).then(()=>true).catch(()=>false);
+    const [navigated,markerApplied]=await Promise.all([navigation,applied]),reloaded=navigated&&markerApplied;
+    page.off("dialog", onDialog);
+    const after = await page.evaluate(() => Object.fromEntries(BACKUP_KEYS.map((k) => [k, localStorage.getItem(k)])));
+    // 失败提示可能走原生弹窗，也可能走应用内 toast；两种都算「告诉了用户」。
+    const notice = await page.evaluate(() => (document.getElementById("toast") || {}).textContent || "");
+    return { reloaded, dialogs, notice, untouched: JSON.stringify(before) === JSON.stringify(after) };
+  };
+  const revealSessionPatch = (geometry, stampGeometry = null) => `
+    const key=cardKey(0), target=CARDS[0].target, geometry=${JSON.stringify(geometry)}, stampGeometry=${JSON.stringify(stampGeometry)};
+    const snapshot=Object.assign({ cardKey:key,target,attemptId:"verify-restored-reveal",createdAt:Date.now(),canvasSize:S,
+      hintStrokeIds:[],hintCount:0,hintStrokes:[],inkStrokes:[],referenceStrokes:[],compositeGeometry:[],compositeImage:null,
+      hintEverUsed:false,enteredTracing:false,practicePhase:"recall",lastVerdict:null,userCorrect:null },geometry);
+    const stamp=stampGeometry?{ position:0,baseCursor:0,currentAttemptKind:"base",currentAttemptId:"verify-stamp-reveal",practicePhase:"revealDecision",attemptSeq:0,
+      cardKey:key,currentCardKey:key,baseTargetKeys:[key],manualQueueValue:[],queueValue:[],unresolvedKeys:[],episodeRows:[],sessionDoneKeys:[],
+      roundStatsValue:[{cardKey:key,target,handwriting:[[null]]}],roundHandwritingValue:[[null],[{x:null,y:false}],[{x:.2,y:.3,t:1,w:1,v:0}]],
+      memoryValue:{recentInk:{strokes:[[null],[{x:null,y:false}],[{x:.1,y:.1,w:1,v:0},{x:.2,y:.2,w:1,v:0}]]}},
+      revealState:Object.assign({},snapshot,stampGeometry) }:null;
+    payload.data["shizi.session.v1"]=JSON.stringify({ version:3,startedDate:today(),updatedAt:Date.now(),activeMode:"new",makeupTargetDay:"",
+      baseTargetKeys:[key],baseCursor:0,currentCardKey:key,currentAttemptKind:"base",currentAttemptId:"verify-restored-reveal",
+      manualQueue:[],reinforcementQueue:[],unresolvedKeys:[],episodeRows:[],attemptSeq:0,practicePhase:"revealDecision",missedThisRound:[],roundStats:[],focusKeys:[],sessionDoneKeys:[],calibrationTargetKeys:[],
+      visual:{practicePhase:"revealDecision",currentCardKey:key,currentAttemptKind:"base",currentAttemptId:"verify-restored-reveal",inkStrokes:[],submissionSnapshot:snapshot,revealed:true,stamped:false},
+      lastStampSnapshot:stamp,roundId:"verify-restored-reveal",roundElapsedMs:10 });`;
+
+  // 语义上不可用的 v3 session：启动侧会隔离它，那导入侧就必须先拒绝，而不是报成功再让它消失。
+  const brokenSession = await importThroughUI('payload.data["shizi.session.v1"] = JSON.stringify({ version: 3 });');
+  const brokenSessionState = await page.evaluate(() => ({ quarantined: localStorage.getItem("shizi.corrupt.shizi.session.v1") }));
+  assert(!brokenSession.reloaded && brokenSession.untouched && brokenSessionState.quarantined === null
+    && (brokenSession.dialogs.some((message) => message.includes("无法恢复")) || /不是有效的拾字备份|无法恢复/.test(brokenSession.notice)),
+    "Expected a semantically unusable v3 session to be rejected at import instead of quarantined after the next start", { brokenSession, brokenSessionState });
+
+  // session.visual 也必须深查；[[null]] 在导入时规范成空墨迹并持久化，不能等到用户点「续」
+  // 后才在 redrawInk 里读 point.x 崩溃，也不能每次启动都从原始坏值重新复现。
+  const errorsBeforeBrokenSessionInk = pageErrors.length;
+  const brokenSessionInk = await importThroughUI(`
+    const key = cardKey(0);
+    payload.data["shizi.session.v1"] = JSON.stringify({ version: 3, startedDate: today(), updatedAt: Date.now(), activeMode: "new", makeupTargetDay: "",
+      baseTargetKeys: [key], baseCursor: 0, currentCardKey: key, manualQueue: [], reinforcementQueue: [], unresolvedKeys: [], episodeRows: [], roundStats: [], focusKeys: [], sessionDoneKeys: [], calibrationTargetKeys: [],
+      visual: { practicePhase: "recall", currentCardKey: key, inkStrokes: [[null]], submissionSnapshot: null }, lastStampSnapshot: null });`);
+  const brokenSessionInkResume = await page.evaluate(() => {
+    const stored=load(SESSION_KEY,null), decoded=resumableSession();
+    return { storedInk:stored&&stored.visual&&stored.visual.inkStrokes,decoded:!!decoded,homeResume:!!homeResumeSession,
+      continueLabel:document.querySelector("#startBtn").getAttribute("aria-label"),quarantined:localStorage.getItem(`shizi.corrupt.${SESSION_KEY}`) };
+  });
+  await page.click("#startBtn");
+  await page.waitForFunction(() => pendingSessionVisual===null&&!storageRuntimeFailed, null, {timeout:10000});
+  const brokenSessionInkAfter = await page.evaluate(() => ({ink:cloneObj(inkStrokes),runtimeFailed:storageRuntimeFailed,storedValid:storedSessionShape(load(SESSION_KEY,null)),quarantined:localStorage.getItem(`shizi.corrupt.${SESSION_KEY}`)}));
+  assert(brokenSessionInk.reloaded && !brokenSessionInk.untouched && Array.isArray(brokenSessionInkResume.storedInk)&&brokenSessionInkResume.storedInk.length===0
+    && brokenSessionInkResume.decoded&&brokenSessionInkResume.homeResume&&brokenSessionInkResume.continueLabel==="继续练习"&&brokenSessionInkResume.quarantined===null
+    && brokenSessionInkAfter.ink.length===0&&!brokenSessionInkAfter.runtimeFailed&&brokenSessionInkAfter.storedValid&&brokenSessionInkAfter.quarantined===null
+    && pageErrors.length===errorsBeforeBrokenSessionInk,
+    "Expected malformed session ink to be normalized during real file import and remain safe after refresh and resume", {brokenSessionInk,brokenSessionInkResume,brokenSessionInkAfter,pageErrors:pageErrors.slice(errorsBeforeBrokenSessionInk)});
+
+  // 揭晓快照有自己的一整套持久几何，不能只清 visual.inkStrokes。真实导入后从首页点「续」，
+  // 嵌套坏笔要在落盘前清掉，合法单点要留下，lastVerdict.failed 的坏容器也不能走到 .map。
+  await page.evaluate(() => localStorage.clear());
+  await page.reload({waitUntil:"networkidle"});
+  const errorsBeforeSubmissionInk = pageErrors.length;
+  const submissionInkImport = await importThroughUI(revealSessionPatch({
+    hintStrokeIds: [], hintStrokes: [],
+    inkStrokes: [[null], [{x:null,y:null}], [{x:"",y:false}], [{x:18,y:22,t:1,w:1,v:0}]],
+    referenceStrokes: [[{x:12,y:12},{x:80,y:86}]],
+    compositeGeometry: [[null], [{x:null,y:false}], [{x:18,y:22,t:1,w:1,v:0}]],
+    lastVerdict: {status:"bad",mode:"exact",failed:{not:"an array"},missing:0},
+  }));
+  const submissionInkStored = await page.evaluate(() => {
+    const session=load(SESSION_KEY,null),snapshot=session&&session.visual&&session.visual.submissionSnapshot,decoded=resumableSession();
+    return {snapshot,decoded:!!decoded,homeResume:!!homeResumeSession,continueLabel:startBtn.getAttribute("aria-label"),valid:storedSessionShape(session),corrupt:localStorage.getItem(`shizi.corrupt.${SESSION_KEY}`)};
+  });
+  await page.click("#startBtn");
+  await page.waitForFunction(() => pendingSessionVisual===null&&!storageRuntimeFailed&&getComputedStyle(reveal).display!=="none",null,{timeout:10000});
+  const submissionInkAfter = await page.evaluate(() => ({ snapshot:cloneObj(submissionSnapshot),ink:cloneObj(inkStrokes),runtimeFailed:storageRuntimeFailed,revealVisible:getComputedStyle(reveal).display!=="none" }));
+  assert(submissionInkImport.reloaded&&!submissionInkImport.untouched&&submissionInkStored.valid&&submissionInkStored.decoded&&submissionInkStored.homeResume
+    &&submissionInkStored.continueLabel==="继续练习"&&submissionInkStored.corrupt===null
+    &&submissionInkStored.snapshot.inkStrokes.length===1&&submissionInkStored.snapshot.inkStrokes[0].length===1
+    &&submissionInkStored.snapshot.compositeGeometry.length===1&&submissionInkStored.snapshot.compositeGeometry[0].length===1
+    &&JSON.stringify(submissionInkStored.snapshot.compositeGeometry)===JSON.stringify([...submissionInkStored.snapshot.hintStrokes,...submissionInkStored.snapshot.inkStrokes])
+    &&submissionInkStored.snapshot.lastVerdict===null
+    &&submissionInkAfter.snapshot.inkStrokes.length===1&&submissionInkAfter.snapshot.inkStrokes[0].length===1
+    &&submissionInkAfter.ink.length===1&&submissionInkAfter.ink[0].length===1&&submissionInkAfter.revealVisible&&!submissionInkAfter.runtimeFailed
+    &&pageErrors.length===errorsBeforeSubmissionInk,
+    "Expected nested submission ink, composite geometry, and verdict containers to normalize before a real resume",{submissionInkImport,submissionInkStored,submissionInkAfter,pageErrors:pageErrors.slice(errorsBeforeSubmissionInk)});
+
+  // hint/reference 由另一条渲染链消费；同时锁住持久化 undo 快照的同型 revealState、
+  // round handwriting、recentInk 副本以及旧 roundStats.handwriting 都被清理。
+  await page.evaluate(() => localStorage.clear());
+  await page.reload({waitUntil:"networkidle"});
+  const errorsBeforeSubmissionReference = pageErrors.length;
+  const single={x:26,y:32,t:2,w:1,v:0};
+  const submissionReferenceImport = await importThroughUI(revealSessionPatch({
+    hintStrokeIds: {not:"an array"}, hintStrokes: [[null],[single]], inkStrokes: [[single]],
+    referenceStrokes: [[null],[single]], compositeGeometry: "not-an-array",
+    lastVerdict: {status:"bad",mode:"exact",failed:"not-an-array",missing:1},
+  },{
+    hintStrokeIds: {not:"an array"}, hintStrokes: [[null],[single]], inkStrokes: [[null],[single]],
+    referenceStrokes: [[null],[single]], compositeGeometry: [[null],[single]],
+    lastVerdict: {status:"bad",mode:"exact",failed:{not:"an array"},missing:1},
+  }));
+  const submissionReferenceStored = await page.evaluate(() => {
+    const session=load(SESSION_KEY,null),snapshot=session.visual.submissionSnapshot,stamp=session.lastStampSnapshot;
+    return {snapshot,stamp,valid:storedSessionShape(session),decoded:!!resumableSession(),homeResume:!!homeResumeSession,continueLabel:startBtn.getAttribute("aria-label")};
+  });
+  await page.click("#startBtn");
+  await page.waitForFunction(() => pendingSessionVisual===null&&!storageRuntimeFailed&&getComputedStyle(reveal).display!=="none",null,{timeout:10000});
+  const submissionReferenceAfter = await page.evaluate(() => ({snapshot:cloneObj(submissionSnapshot),runtimeFailed:storageRuntimeFailed,revealVisible:getComputedStyle(reveal).display!=="none"}));
+  const stampReveal=submissionReferenceStored.stamp.revealState;
+  assert(submissionReferenceImport.reloaded&&!submissionReferenceImport.untouched&&submissionReferenceStored.valid&&submissionReferenceStored.decoded&&submissionReferenceStored.homeResume
+    &&submissionReferenceStored.continueLabel==="继续练习"&&submissionReferenceStored.snapshot.hintStrokeIds.length===0
+    &&submissionReferenceStored.snapshot.hintStrokes.length===1&&submissionReferenceStored.snapshot.hintStrokes[0].length===1
+    &&submissionReferenceStored.snapshot.referenceStrokes.length===1&&submissionReferenceStored.snapshot.referenceStrokes[0].length===1
+    &&submissionReferenceStored.snapshot.compositeGeometry.length===2
+    &&JSON.stringify(submissionReferenceStored.snapshot.compositeGeometry)===JSON.stringify([...submissionReferenceStored.snapshot.hintStrokes,...submissionReferenceStored.snapshot.inkStrokes])
+    &&submissionReferenceStored.snapshot.lastVerdict===null
+    &&stampReveal.hintStrokes.length===1&&stampReveal.hintStrokes[0].length===1&&stampReveal.inkStrokes.length===1&&stampReveal.inkStrokes[0].length===1
+    &&stampReveal.referenceStrokes.length===1&&stampReveal.referenceStrokes[0].length===1&&stampReveal.compositeGeometry.length===2
+    &&JSON.stringify(stampReveal.compositeGeometry)===JSON.stringify([...stampReveal.hintStrokes,...stampReveal.inkStrokes])
+    &&stampReveal.hintStrokeIds.length===0&&stampReveal.lastVerdict===null
+    &&submissionReferenceStored.stamp.roundHandwritingValue.length===1&&submissionReferenceStored.stamp.roundHandwritingValue[0].length===1
+    &&submissionReferenceStored.stamp.memoryValue.recentInk.strokes.length===1&&submissionReferenceStored.stamp.memoryValue.recentInk.strokes[0].length===2
+    &&!Object.prototype.hasOwnProperty.call(submissionReferenceStored.stamp.roundStatsValue[0],"handwriting")
+    &&submissionReferenceAfter.snapshot.hintStrokes.length===1&&submissionReferenceAfter.snapshot.referenceStrokes.length===1
+    &&submissionReferenceAfter.revealVisible&&!submissionReferenceAfter.runtimeFailed&&pageErrors.length===errorsBeforeSubmissionReference,
+    "Expected every persisted reveal geometry container, including stamp state, to normalize and preserve legal single points",{submissionReferenceImport,submissionReferenceStored,submissionReferenceAfter,pageErrors:pageErrors.slice(errorsBeforeSubmissionReference)});
+
+  // 旧版本已留在 localStorage 的坏会话不会重新走 import；启动时 resumableSession 也必须自愈并回写，
+  // 而不是只把一个安全解码副本留在内存、下次继续复现原坏值。
+  const errorsBeforeStartupHeal = pageErrors.length;
+  await page.evaluate(() => {
+    const session=load(SESSION_KEY,null),snapshot=session.visual.submissionSnapshot,single={x:48,y:52,t:3,w:1,v:0};
+    snapshot.inkStrokes=[[{x:null,y:null}],[single]]; snapshot.hintStrokes=[[{x:"",y:false}],[single]];
+    snapshot.referenceStrokes=[[{x:false,y:null}],[single]]; snapshot.compositeGeometry=[[]]; snapshot.hintStrokeIds={bad:true};
+    snapshot.lastVerdict={status:"bad",mode:"exact",failed:{bad:true}}; snapshot.compositeImage="data:text/html;base64,PGgxPmJhZDwvaDE+";
+    localStorage.setItem(SESSION_KEY,JSON.stringify(session)); baseTargets=[]; batch=[]; currentIndex=null;
+  });
+  await page.reload({waitUntil:"networkidle"});
+  const startupHealed = await page.evaluate(() => {
+    const session=load(SESSION_KEY,null),snapshot=session.visual.submissionSnapshot;
+    return {snapshot,valid:storedSessionShape(session),decoded:!!resumableSession(),homeResume:!!homeResumeSession,continueLabel:startBtn.getAttribute("aria-label"),runtimeFailed:storageRuntimeFailed};
+  });
+  await page.click("#startBtn");
+  await page.waitForFunction(() => pendingSessionVisual===null&&!storageRuntimeFailed&&getComputedStyle(reveal).display!=="none",null,{timeout:10000});
+  assert(startupHealed.valid&&startupHealed.decoded&&startupHealed.homeResume&&startupHealed.continueLabel==="继续练习"
+    &&startupHealed.snapshot.inkStrokes.length===1&&startupHealed.snapshot.inkStrokes[0].length===1
+    &&startupHealed.snapshot.hintStrokes.length===1&&startupHealed.snapshot.referenceStrokes.length===1
+    &&startupHealed.snapshot.compositeGeometry.length===2
+    &&JSON.stringify(startupHealed.snapshot.compositeGeometry)===JSON.stringify([...startupHealed.snapshot.hintStrokes,...startupHealed.snapshot.inkStrokes])
+    &&startupHealed.snapshot.hintStrokeIds.length===0&&startupHealed.snapshot.lastVerdict===null&&startupHealed.snapshot.compositeImage===null
+    &&!startupHealed.runtimeFailed&&pageErrors.length===errorsBeforeStartupHeal,
+    "Expected a directly seeded legacy session to self-heal on startup, persist the clean schema, and resume safely",{startupHealed,pageErrors:pageErrors.slice(errorsBeforeStartupHeal)});
+
+  // 两个恢复入口本身也要兜底，不能把安全性只押在备份导入上；这里绕过导入直接喂坏容器。
+  const defensiveReveal = await page.evaluate(() => {
+    const bad={...cloneObj(submissionSnapshot),inkStrokes:[[null],[{x:40,y:44,w:1}]],hintStrokes:{bad:true},referenceStrokes:"bad",compositeGeometry:null,hintStrokeIds:{bad:true},lastVerdict:{status:"bad",mode:"exact",failed:{bad:true}}};
+    try{ const image=revealInkImage(bad); showRevealState(bad); restoreRevealFromSnapshot(bad); return {threw:false,imageSafe:typeof image==="string"&&image.startsWith("data:image/png"),ink:submissionSnapshot.inkStrokes,hints:submissionSnapshot.hintStrokes,reference:submissionSnapshot.referenceStrokes,
+      composite:submissionSnapshot.compositeGeometry,hintIds:submissionSnapshot.hintStrokeIds,verdict:submissionSnapshot.lastVerdict,runtimeFailed:storageRuntimeFailed}; }
+    catch(error){ return {threw:true,message:error.message}; }
+  });
+  assert(!defensiveReveal.threw&&defensiveReveal.imageSafe&&defensiveReveal.ink.length===1&&defensiveReveal.ink[0].length===1&&defensiveReveal.hints.length===0
+    &&defensiveReveal.reference.length===0&&defensiveReveal.composite.length===1&&defensiveReveal.hintIds.length===0&&defensiveReveal.verdict===null&&!defensiveReveal.runtimeFailed,
+    "Expected showRevealState and restoreRevealFromSnapshot to defend independently of backup normalization",defensiveReveal);
+
+  // 真跨设备路径：目标设备当前没有这个自定义字，备份同时携带 custom + 未完成 session。
+  // 校验必须以候选 custom 为上下文，导入、刷新、点续写后仍能恢复同一张卡和合法墨迹。
+  // 上一例为验证续写停在卡片页；这里先真正清空并重启，不能让旧卡片的 visibilitychange 保存
+  // 干扰「干净目标设备」这个测试前提。
+  await page.evaluate(() => localStorage.clear());
+  await page.reload({waitUntil:"networkidle"});
+  const errorsBeforeCustomSession = pageErrors.length;
+  const customSession = await importThroughUI(`
+    let customChar = "";
+    for(let cp=0x9fff;cp>=0x4e00;cp--){ const ch=String.fromCodePoint(cp); if(BASE_BY_CHAR[ch]==null){ customChar=ch; break; } }
+    if(!customChar) throw new Error("no custom fixture character");
+    const key = "custom:" + customChar;
+    payload.data["shizi.custom.v1"] = JSON.stringify([customChar]);
+    payload.data["shizi.added.v1"] = JSON.stringify([customChar]);
+    payload.data["shizi.session.v1"] = JSON.stringify({ version: 3, startedDate: today(), updatedAt: Date.now(), activeMode: "new", makeupTargetDay: "",
+      baseTargetKeys: [key], baseCursor: 0, currentCardKey: key, currentAttemptKind: "base", currentAttemptId: "verify-custom-session",
+      manualQueue: [], reinforcementQueue: [], unresolvedKeys: [], episodeRows: [], attemptSeq: 0, practicePhase: "recall", missedThisRound: [], roundStats: [], focusKeys: [], sessionDoneKeys: [], calibrationTargetKeys: [],
+      visual: { practicePhase: "recall", currentCardKey: key, currentAttemptKind: "base", currentAttemptId: "verify-custom-session", inkStrokes: [[{x:16,y:20,t:0,w:1,v:0}],[{x:32,y:40,t:1,w:1,v:0},{x:92,y:110,t:2,w:1,v:0}]], submissionSnapshot: null },
+      lastStampSnapshot: null, roundId: "verify-custom-round", roundElapsedMs: 10 });`);
+  const importedCustomChar = await page.evaluate(() => (load(CUSTOM_KEY, [])[0] || ""));
+  const customResume = await page.evaluate(() => {
+    // 自定义字按产品定义可能没有自己的笔顺文件；走应用已有的 writer 不可用降级路径，
+    // 让本例只检验「导入→刷新→续写」和画布恢复，不制造无关的 404 console error。
+    window.__verifyHanziWriter = window.HanziWriter; window.HanziWriter = null;
+    const decoded = resumableSession();
+    return { decoded: !!decoded, homeResume:!!homeResumeSession, continueLabel:document.querySelector("#startBtn").getAttribute("aria-label"),
+      target: decoded && CARDS[decoded.currentIndex] && CARDS[decoded.currentIndex].target,
+      custom: !!(decoded && CARDS[decoded.currentIndex] && CARDS[decoded.currentIndex].custom), corrupt: localStorage.getItem(`shizi.corrupt.${SESSION_KEY}`),
+      writerDisabled:window.HanziWriter===null };
+  });
+  await page.click("#startBtn");
+  await page.waitForFunction(() => pendingSessionVisual===null&&!storageRuntimeFailed, null, {timeout:10000});
+  const customResumeAfter = await page.evaluate(() => ({ target: cur && cur.target, ink: cloneObj(inkStrokes), pending:!!pendingSessionVisual,runtimeFailed: storageRuntimeFailed,
+    storedInk:cloneObj((load(SESSION_KEY,null)||{}).visual&&load(SESSION_KEY,null).visual.inkStrokes),storedValid: storedSessionShape(load(SESSION_KEY, null)), corrupt: localStorage.getItem(`shizi.corrupt.${SESSION_KEY}`) }));
+  await page.evaluate(() => { if(window.__verifyHanziWriter){ window.HanziWriter=window.__verifyHanziWriter; delete window.__verifyHanziWriter; } });
+  assert(customSession.reloaded && !customSession.untouched && customResume.decoded && customResume.homeResume && customResume.continueLabel==="继续练习" && customResume.writerDisabled && customResume.custom
+    && customResume.target === importedCustomChar && customResumeAfter.target === importedCustomChar && customResumeAfter.ink.length === 2&&customResumeAfter.ink[0].length===1
+    && Array.isArray(customResumeAfter.storedInk)&&customResumeAfter.storedInk.length===2&&customResumeAfter.storedInk[0].length===1
+    && !customResumeAfter.runtimeFailed && customResumeAfter.storedValid && customResume.corrupt === null && customResumeAfter.corrupt === null
+    && pageErrors.length === errorsBeforeCustomSession,
+    "Expected a clean device to import and resume a backup-owned custom card session with valid ink", { customSession, customResume, customResumeAfter, pageErrors: pageErrors.slice(errorsBeforeCustomSession) });
+  await page.evaluate(() => localStorage.clear());
+  await page.reload({waitUntil:"networkidle"});
+
+  // recentInk 的嵌套坏点：导入后必须已经被规范掉，字卡不能再拿它去画。
+  const nestedInk = await importThroughUI(`
+    const key = Object.keys(JSON.parse(payload.data["shizi.memory.v1"]))[0];
+    const memory = JSON.parse(payload.data["shizi.memory.v1"]);
+    memory[key] = Object.assign({}, memory[key], { recentInk: { version: 2, day: "2026-08-01", at: 1, dataURL: ${JSON.stringify("data:image/png;base64,iVBORw0KGgo=")}, strokes: [[null]] } });
+    payload.data["shizi.memory.v1"] = JSON.stringify(memory);`);
+  const nestedInkState = await page.evaluate(() => {
+    const rows = Object.values(memory).filter((row) => row && row.recentInk);
+    const bad = rows.filter((row) => (row.recentInk.strokes || []).some((stroke) => !Array.isArray(stroke) || stroke.some((point) => !point || !Number.isFinite(Number(point.x)))));
+    const idx = CARDS.findIndex((card) => memory[cardKey(CARDS.indexOf(card))]);
+    let cardThrew = false;
+    try { for (let i = 0; i < CARDS.length && i < 400; i += 1) handCardData(i); } catch (error) { cardThrew = true; }
+    return { badRows: bad.length, cardThrew, idx };
+  });
+  assert(nestedInkState.badRows === 0 && !nestedInkState.cardThrew,
+    "Expected nested bad ink points to be normalized at import so the handwriting card cannot crash", nestedInkState);
+  const boundedPersistence = await page.evaluate(() => {
+    const saved = {
+      fsrsReviewLog: cloneObj(fsrsReviewLog), fsrsReviewMonthly: cloneObj(fsrsReviewMonthly),
+      activity: cloneObj(activity), funnel: cloneObj(funnel), storageWriteFailed,
+      storageNoticeDisplay: storageNotice.style.display, storageNoticeText: storageNotice.textContent,
+    };
+    try {
+      const oldReviewDay = `${new Date().getFullYear() - 1}-${today().slice(5)}`;
+      fsrsReviewLog = [{ eventId: "verify-old-review", cardKey: cardKey(0), localDay: oldReviewDay,
+        reviewedAt: new Date(dayStartMs(oldReviewDay) + 8 * 3600 * 1000).toISOString(), rating: "Good", hintCount: 1, traced: true },
+      { eventId: "verify-old-review-latest", cardKey: cardKey(1), localDay: oldReviewDay,
+        reviewedAt: new Date(dayStartMs(oldReviewDay) + 9 * 3600 * 1000).toISOString(), rating: "Again", hintCount: 0, traced: false }];
+      fsrsReviewMonthly = {}; saveFSRSLog();
+      const reviewMonth = oldReviewDay.slice(0, 7), reviewArchive = cloneObj(fsrsReviewMonthly[reviewMonth]), curatorArchive = bookCuratorData([]);
+      const oldActivityDay = shiftDay(today(), -(ACTIVITY_RAW_RETENTION_DAYS + 1)), activityMonth = oldActivityDay.slice(0, 7), targetKey = cardKey(0);
+      activity = normalizeActivity({ version: 2, migrationDate: today(), inheritedStreak: 0, inheritedTotalDays: 0,
+        practiceDays: [oldActivityDay], daily: { [oldActivityDay]: { stamps: 1, attempts: 2, targetKeys: [targetKey], independentTargetKeys: [targetKey], reviewTargetKeys: [], completedRoundIds: ["verify-old-round"], lastStampAt: dayStartMs(oldActivityDay) + 9 * 3600 * 1000 } }, monthly: {} });
+      saveActivity(); const activityArchive = cloneObj(activity.monthly[activityMonth]), monthlyReport = monthReportData(activityMonth);
+      funnel = newFunnel();
+      funnel.seen = Array.from({ length: 600 }, (_, index) => `verify-seen-${index}`);
+      funnel.events = Array.from({ length: 600 }, (_, index) => ({ name: "verify_event", at: Date.now() + index, day: today() }));
+      funnel.eventCounts = { verify_event: 600 };
+      funnel.rounds = Array.from({ length: 220 }, (_, index) => ({ completedAt: Date.now() + index, day: today(), mode: "new", durationMs: 1000, targetCount: 1, attemptCount: 1 }));
+      funnel.roundTotals = { count: 220, durationMs: 220000, byMode: { new: { count: 220, durationMs: 220000 } } }; saveFunnel(true);
+      const funnelState = { seen: funnel.seen.length, events: funnel.events.length, rounds: funnel.rounds.length, eventTotal: funnel.eventCounts.verify_event, roundTotal: cloneObj(funnel.roundTotals) };
+      storageNotice.style.display = "none"; storageWriteFailed = false;
+      const nativeSetItem = Storage.prototype.setItem;
+      Storage.prototype.setItem = function(key, value){ if(key === "shizi.verify.quota") throw new DOMException("quota", "QuotaExceededError"); return nativeSetItem.call(this, key, value); };
+      let quotaSaved;
+      try { quotaSaved = save("shizi.verify.quota", { value: 1 }); } finally { Storage.prototype.setItem = nativeSetItem; }
+      const quota = { saved: quotaSaved, flagged: storageWriteFailed, visible: getComputedStyle(storageNotice).display !== "none", copy: storageNotice.textContent };
+      const pressure = storagePressure({ usage: 90, quota: 100 });
+      return {
+        fsrs: { raw: fsrsReviewLog.length, archive: reviewArchive, curator: curatorArchive },
+        activity: { raw: Object.prototype.hasOwnProperty.call(activity.daily, oldActivityDay), archive: activityArchive, reportKeys: monthlyReport.keys, reportDays: monthlyReport.practiceDays },
+        funnel: funnelState, quota, pressure,
+      };
+    } finally {
+      fsrsReviewLog = saved.fsrsReviewLog; fsrsReviewMonthly = saved.fsrsReviewMonthly; save(FSRS_LOG_KEY, { version: 2, events: fsrsReviewLog, monthly: fsrsReviewMonthly });
+      activity = normalizeActivity(saved.activity); save(ACTIVITY_KEY, activity);
+      funnel = normalizeFunnel(saved.funnel); save(FUNNEL_KEY, funnel);
+      storageWriteFailed = saved.storageWriteFailed; storageNotice.style.display = saved.storageNoticeDisplay; storageNotice.textContent = saved.storageNoticeText;
+    }
+  });
+  assert(boundedPersistence.fsrs.raw === 0 && boundedPersistence.fsrs.archive.reviews === 2 && boundedPersistence.fsrs.archive.good === 1 && boundedPersistence.fsrs.archive.again === 1 && boundedPersistence.fsrs.archive.hinted === 1 && boundedPersistence.fsrs.archive.traced === 1
+    && Object.values(boundedPersistence.fsrs.archive.lastReviewByDay)[0]?.cardKey
+    && boundedPersistence.fsrs.curator.kind === "recall" && boundedPersistence.fsrs.curator.indexes[0] === 1,
+    "Expected old FSRS detail to compact into durable counters while preserving last-year-today recall", boundedPersistence.fsrs);
+  assert(!boundedPersistence.activity.raw && boundedPersistence.activity.archive.days === 1 && boundedPersistence.activity.archive.completedDays === 1 && boundedPersistence.activity.reportKeys.length === 1 && boundedPersistence.activity.reportDays === 1,
+    "Expected old activity detail to compact without disappearing from monthly reports", boundedPersistence.activity);
+  assert(boundedPersistence.funnel.seen === 512 && boundedPersistence.funnel.events === 256 && boundedPersistence.funnel.rounds === 180 && boundedPersistence.funnel.eventTotal === 600 && boundedPersistence.funnel.roundTotal.count === 220 && boundedPersistence.funnel.roundTotal.durationMs === 220000 && boundedPersistence.funnel.roundTotal.byMode.new.count === 220,
+    "Expected bounded funnel detail with lifetime counters preserved", boundedPersistence.funnel);
+  assert(!boundedPersistence.quota.saved && boundedPersistence.quota.flagged && boundedPersistence.quota.visible && boundedPersistence.quota.copy.includes("没有保存") && boundedPersistence.pressure.high,
+    "Expected quota failures and high storage pressure to be visible instead of silent", boundedPersistence);
 
   const backupCoverage = await page.evaluate(() => {
     const excluded = new Set(["shizi.nativeSmoke.v1", SAFETY_KEY]);
@@ -2238,6 +2734,23 @@ let browser;
   });
   assert(compact.widths.every((width) => width <= 138.5) && compact.within && compact.actions && compact.header.backSize.every((value) => value >= 44) && compact.header.noOverlap && compact.header.nowrap && compact.header.oneLine && compact.header.noGraphicProgress, "Expected dark small-screen comparison and text-only header to fit", compact);
   await page.screenshot({ path: screenshotPath, fullPage: true });
+
+  const blockedContext = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
+  await blockedContext.addInitScript(() => {
+    Storage.prototype.getItem = function(){ throw new DOMException("blocked", "SecurityError"); };
+    Storage.prototype.setItem = function(){ throw new DOMException("blocked", "SecurityError"); };
+  });
+  const blockedPage = await blockedContext.newPage(), blockedErrors = [];
+  blockedPage.on("pageerror", (error) => blockedErrors.push(error.message));
+  await blockedPage.goto(appUrl, { waitUntil: "networkidle" });
+  await blockedPage.waitForFunction(() => document.getElementById("storageGate")?.classList.contains("open"));
+  const blockedStorage = await blockedPage.evaluate(() => ({
+    open: storageGate.classList.contains("open"), title: storageGateTitle.textContent,
+    copy: storageGate.textContent.replace(/\s+/g, ""), reload: storageReload.textContent,
+  }));
+  await blockedContext.close();
+  assert(blockedErrors.length === 0 && blockedStorage.open && blockedStorage.title === "暂时无法保存练习" && blockedStorage.copy.includes("系统没有开放本地存储") && blockedStorage.reload === "重新检查",
+    "Expected a readable blocking page when storage access is disabled at boot", { blockedErrors, blockedStorage });
 
   assert(pageErrors.length === 0, "Browser console/page errors", pageErrors);
   await browser.close();

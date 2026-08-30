@@ -101,16 +101,81 @@ const DECK_SHA256 = fileSha256("deck-data.js");
 const CORE_STROKES_SHA256 = fileSha256("core-strokes.js");
 const OVERRIDES_SHA256 = fileSha256(path.join("data", "context-overrides.js"));
 
-function git(args, options = {}) {
-  return execFileSync("git", ["-C", ROOT, ...args], { maxBuffer: 64 * 1024 * 1024, ...options });
+function gitIn(repoRoot, args, options = {}) {
+  return execFileSync("git", ["-C", repoRoot, ...args], { maxBuffer: 64 * 1024 * 1024, ...options });
 }
 
-function hasLegacyCommit() {
+function git(args, options = {}) {
+  return gitIn(ROOT, args, options);
+}
+
+function nulTerminatedPaths(output, label) {
+  const bytes = Buffer.isBuffer(output) ? output : Buffer.from(output || "");
+  check(bytes.length === 0 || bytes[bytes.length - 1] === 0,
+    `${label} did not return NUL-terminated paths`);
+  return bytes.toString("utf8").split("\0").filter(Boolean);
+}
+
+function driftedLegacyDataPaths(repoRoot = ROOT) {
+  // 不得用默认的逐行输出：core.quotePath=true 会把中文路径变成带引号的 C 转义串，
+  // 这个显示串不能再交给 cat-file 当真实路径。-z 同时安全覆盖中文、空格和换行。
+  return nulTerminatedPaths(
+    gitIn(repoRoot, ["diff", "--name-only", "-z", LEGACY_COMMIT, "--", "data/"]),
+    "git diff --name-only -z",
+  );
+}
+
+function legacyDataPaths(repoRoot = ROOT) {
+  return new Set(nulTerminatedPaths(
+    gitIn(repoRoot, ["ls-tree", "-r", "--name-only", "-z", LEGACY_COMMIT, "--", "data/"]),
+    "git ls-tree --name-only -z",
+  ));
+}
+
+function refsSnapshot(repoRoot) {
+  return gitIn(repoRoot, ["for-each-ref", "--format=%(refname)%00%(objectname)%00"]);
+}
+
+function gitFileSnapshot(repoRoot, name) {
+  const rawPath = gitIn(repoRoot, ["rev-parse", "--git-path", name], { encoding: "utf8" }).trim();
+  const file = path.isAbsolute(rawPath) ? rawPath : path.resolve(repoRoot, rawPath);
+  return fs.existsSync(file) ? fs.readFileSync(file) : null;
+}
+
+function equalOptionalBuffers(left, right) {
+  return left === null ? right === null : right !== null && left.equals(right);
+}
+
+function hasLegacyCommit(repoRoot = ROOT) {
   try {
-    git(["cat-file", "-e", `${LEGACY_COMMIT}^{commit}`], { stdio: "ignore" });
+    gitIn(repoRoot, ["cat-file", "-e", `${LEGACY_COMMIT}^{commit}`], { stdio: "ignore" });
     return true;
   } catch (error) {
     return false;
+  }
+}
+
+function ensureLegacyCommit(repoRoot = ROOT) {
+  if (!hasLegacyCommit(repoRoot)) {
+    // 浅克隆（CI 默认 fetch-depth: 1）里没有这个 commit。先按 SHA 单独取一次，
+    // 取不到就直接失败——绝不把门禁降级成静默跳过。
+    note(`legacy commit not present locally, fetching ${LEGACY_COMMIT.slice(0, 12)}`);
+    const refsBefore = refsSnapshot(repoRoot);
+    const fetchHeadBefore = gitFileSnapshot(repoRoot, "FETCH_HEAD");
+    try {
+      // 只取对象，不写 FETCH_HEAD，也不为验证脚本制造持久 ref。
+      gitIn(repoRoot, ["fetch", "--no-write-fetch-head", "--no-tags", "--depth=1", "origin", LEGACY_COMMIT],
+        { stdio: "ignore" });
+    } catch (error) {
+      // 忽略：下面统一判定
+    }
+    check(refsSnapshot(repoRoot).equals(refsBefore), "Fetching the legacy object must not create or mutate repository refs");
+    check(equalOptionalBuffers(gitFileSnapshot(repoRoot, "FETCH_HEAD"), fetchHeadBefore),
+      "Fetching the legacy object must not overwrite FETCH_HEAD");
+  }
+  if (!hasLegacyCommit(repoRoot)) {
+    throw new Error(`This gate replays the real v10 generation and needs commit ${LEGACY_COMMIT}. `
+      + `Fetch it (git fetch --depth=1 origin ${LEGACY_COMMIT}) or check out with fetch-depth: 0.`);
   }
 }
 
@@ -119,39 +184,61 @@ function hasLegacyCommit() {
 // 只比 HEAD 会让未提交的改动在本机悄悄通过、到 CI 才红。
 // 真正漂移的那几个文件从 legacy commit 取回来单独提供，而不是直接判失败——
 // 分支往前走，data/ 出现合理差异是必然的。
-function materializeDriftedLegacyData(dir) {
-  const drifted = git(["diff", "--name-only", LEGACY_COMMIT, "--", "data/"], { encoding: "utf8" })
-    .split("\n").map(line => line.trim()).filter(Boolean);
-  const restored = [];
+function materializeDriftedLegacyData(dir, repoRoot = ROOT, emitNote = true) {
+  const drifted = driftedLegacyDataPaths(repoRoot);
+  const existedInLegacy = legacyDataPaths(repoRoot);
+  const restored = [], newOnly = [];
   for (const file of drifted) {
-    let bytes = null;
-    try { bytes = git(["cat-file", "blob", `${LEGACY_COMMIT}:${file}`]); }
-    catch (error) { continue; } // 旧一代里本就不存在的文件，旧 App 不会请求
+    if (!existedInLegacy.has(file)) { newOnly.push(file); continue; } // 旧 App 不会请求后来新增的文件
+    // 路径已由 ls-tree 证明在旧提交中存在；此后 cat-file 失败是仓库/对象错误，必须让门禁红，
+    // 不能再和「旧一代本就不存在」混为一谈后静默 continue。
+    const bytes = gitIn(repoRoot, ["cat-file", "blob", `${LEGACY_COMMIT}:${file}`]);
     const target = path.join(dir, file);
+    check(target.startsWith(dir + path.sep), "Refusing to materialize a data path outside the legacy tree", { file });
     fs.mkdirSync(path.dirname(target), { recursive: true });
     fs.writeFileSync(target, bytes);
+    check(fs.readFileSync(target).equals(bytes), "Legacy data replay was not written byte-for-byte", { file });
     restored.push(file);
   }
-  note(`legacy data/: ${restored.length} drifted file(s) replayed from ${LEGACY_COMMIT.slice(0, 12)}`
+  const expected = drifted.filter(file => existedInLegacy.has(file));
+  check(restored.length === expected.length && restored.every((file, index) => file === expected[index]),
+    "Not every drifted data file that existed in legacy was replayed", { expected: expected.length, restored: restored.length });
+  if (emitNote) note(`legacy data/: ${restored.length} drifted file(s) replayed from ${LEGACY_COMMIT.slice(0, 12)}`
     + (restored.length ? ` (${restored.slice(0, 5).join(", ")}${restored.length > 5 ? ", …" : ""})` : ""));
-  return restored;
+  return { drifted, restored, newOnly, existedInLegacy };
+}
+
+// 负向自测必须真的让一个旧提交中存在的中文文件发生工作区漂移。
+// 每次都主动建立真的 depth-1 仓库，避免本地全历史掩盖 CI 边界；隔离仓库
+// 必须再按 SHA 无 ref 取回 legacy 对象，不能假设它会被 clone 顺带过来。
+function verifyUnicodeLegacyReplay(repoRoot = ROOT) {
+  const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "shizi-pwa-unicode-replay-"));
+  const repo = path.join(sandbox, "repo"), replayDir = path.join(sandbox, "legacy");
+  const file = "data/水.json";
+  try {
+    gitIn(repoRoot, ["clone", "--no-local", "--depth=1", "--no-tags", "--origin=origin", "--quiet", repoRoot, repo]);
+    const shallow = gitIn(repo, ["rev-parse", "--is-shallow-repository"], { encoding: "utf8" }).trim();
+    check(shallow === "true", "Unicode replay control must use an actual depth-1 clone", { shallow });
+    check(!hasLegacyCommit(repo), "Depth-1 control unexpectedly inherited the pinned legacy commit");
+    ensureLegacyCommit(repo);
+    gitIn(repo, ["config", "core.quotePath", "true"]);
+    const current = fs.readFileSync(path.join(repo, file));
+    fs.writeFileSync(path.join(repo, file), Buffer.concat([current, Buffer.from("\n ")]));
+    const drifted = driftedLegacyDataPaths(repo);
+    check(drifted.includes(file), "Unicode mutation control was not discovered as its raw path", { file, drifted: drifted.slice(0, 10) });
+    const replay = materializeDriftedLegacyData(replayDir, repo, false);
+    const expected = gitIn(repo, ["cat-file", "blob", `${LEGACY_COMMIT}:${file}`]);
+    const actual = fs.readFileSync(path.join(replayDir, file));
+    check(replay.restored.includes(file) && actual.equals(expected) && !actual.equals(fs.readFileSync(path.join(repo, file))),
+      "Unicode mutation control did not replay the legacy blob", { file });
+    note(`unicode path control: ${file} mutation discovered and replayed byte-for-byte`);
+  } finally {
+    fs.rmSync(sandbox, { recursive: true, force: true });
+  }
 }
 
 function materializeLegacyTree() {
-  if (!hasLegacyCommit()) {
-    // 浅克隆（CI 默认 fetch-depth: 1）里没有这个 commit。先按 SHA 单独取一次，
-    // 取不到就直接失败——绝不把门禁降级成静默跳过。
-    note(`legacy commit not present locally, fetching ${LEGACY_COMMIT.slice(0, 12)}`);
-    try {
-      git(["fetch", "--no-tags", "--depth=1", "origin", LEGACY_COMMIT], { stdio: "ignore" });
-    } catch (error) {
-      // 忽略：下面统一判定
-    }
-  }
-  if (!hasLegacyCommit()) {
-    throw new Error(`This gate replays the real v10 generation and needs commit ${LEGACY_COMMIT}. `
-      + `Fetch it (git fetch --depth=1 origin ${LEGACY_COMMIT}) or check out with fetch-depth: 0.`);
-  }
+  ensureLegacyCommit();
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "shizi-pwa-legacy-"));
   for (const file of LEGACY_FILES) {
     const bytes = git(["cat-file", "blob", `${LEGACY_COMMIT}:${file}`]);
@@ -171,12 +258,14 @@ function materializeLegacyTree() {
   const legacyWorker = fs.readFileSync(path.join(dir, "sw.js"), "utf8");
   check(/网络优先/.test(legacyWorker) && legacyWorker.includes("const VERSION = 'shizi-v10'"),
     "Replayed legacy worker is not the network-first v10 this gate claims to exercise");
-  materializeDriftedLegacyData(dir);
+  const dataReplay = materializeDriftedLegacyData(dir);
   note(`replaying real v10 from ${LEGACY_COMMIT.slice(0, 12)} at ${dir}`);
-  return dir;
+  return { dir, dataReplay };
 }
 
-const legacyDir = materializeLegacyTree();
+ensureLegacyCommit();
+verifyUnicodeLegacyReplay();
+const legacyTree = materializeLegacyTree(), legacyDir = legacyTree.dir, legacyDataReplay = legacyTree.dataReplay;
 process.on("exit", () => { try { fs.rmSync(legacyDir, { recursive: true, force: true }); } catch (error) { /* best effort */ } });
 
 const MIME = {
@@ -523,6 +612,10 @@ async function main() {
     const strayFallbacks = [...legacyFallbacks].filter(file => !file.startsWith("data/"));
     check(strayFallbacks.length === 0,
       "The legacy generation served non-data assets from the current tree", { strayFallbacks });
+    const driftedDataFallbacks = [...legacyFallbacks].filter(file => legacyDataReplay.drifted.includes(file));
+    check(driftedDataFallbacks.length === 0,
+      "A drifted data file fell back to the current working tree",
+      { driftedDataFallbacks });
 
     report.status = "PASS";
     report.legacy = { commit: LEGACY_COMMIT, cache: LEGACY_CACHE, seed: legacy.seed, unique: legacy.unique };
@@ -531,7 +624,13 @@ async function main() {
     report.current = { build, deckSrc, deckSha256: DECK_SHA256, seed: upgraded.seed, unique: upgraded.unique, libraries: upgraded.libraries };
     report.critical_503 = criticalResults;
     report.control_missing_cache = { booted: controlBooted, seed: controlState.seed };
-    report.legacy_data_from_working_copy = [...legacyFallbacks].length;
+    report.legacy_data = {
+      drifted: legacyDataReplay.drifted.length,
+      replayed: legacyDataReplay.restored.length,
+      newOnly: legacyDataReplay.newOnly.length,
+      workingCopyFallbacks: [...legacyFallbacks].filter(file => file.startsWith("data/")).length,
+      driftedWorkingCopyFallbacks: [...legacyFallbacks].filter(file => legacyDataReplay.drifted.includes(file)).length,
+    };
     process.stdout.write(JSON.stringify(report, null, 2) + "\n");
   } finally {
     await browser.close();

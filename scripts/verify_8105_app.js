@@ -280,21 +280,31 @@ let browser;
   browser = await chromium.launch({ headless: true, ...(localChrome ? { executablePath: localChrome } : {}) });
   const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
   const pageErrors = [];
-  let offlineProbe = false;
   page.on("pageerror", (error) => pageErrors.push(error.message));
   // 网络类错误只忽略「测试自己刻意制造的那个请求」，并且按完整 URL 精确匹配。
   // 之前按「跨源」忽略是错的：应用里没有任何跨源资源（charLoader 只取同源 data/<字>.json），
   // 那条规则只会永久吞掉真实故障；CI 那次红其实是离线探针的同源失败迟到到窗口之外。
   const NETWORK_ERROR = /ERR_FAILED|ERR_INTERNET_DISCONNECTED|ERR_NAME_NOT_RESOLVED|ERR_CONNECTION|ERR_TIMED_OUT/;
-  const expectedNetworkFailures = new Set(), probeNetworkFailures = new Set();
-  function isExpectedNetworkFailure(text, url) { return NETWORK_ERROR.test(text) && !!url && expectedNetworkFailures.has(url); }
+  const expectedNetworkFailures = new Map();
+  function removeExpectedNetworkFailure(token) {
+    const queue = expectedNetworkFailures.get(token.url) || [], next = queue.filter((row) => row !== token);
+    if (next.length) expectedNetworkFailures.set(token.url, next); else expectedNetworkFailures.delete(token.url);
+  }
+  function expectNetworkFailureOnce(url) {
+    let resolveSeen;
+    const token = { url, remaining: 1, seen: 0, messages: [], seenPromise: new Promise((resolve) => { resolveSeen = resolve; }), resolveSeen };
+    const queue = expectedNetworkFailures.get(url) || []; queue.push(token); expectedNetworkFailures.set(url, queue); return token;
+  }
+  function consumeExpectedNetworkFailure(text, url) {
+    if (!NETWORK_ERROR.test(text) || !url) return false;
+    const token = (expectedNetworkFailures.get(url) || []).find((row) => row.remaining > 0);
+    if (!token) return false;
+    token.remaining -= 1; token.seen += 1; token.messages.push(text); removeExpectedNetworkFailure(token); token.resolveSeen(token); return true;
+  }
   page.on("console", (message) => {
     if (message.type() !== "error") return;
     const value = message.text(), url = (message.location() && message.location().url) || "";
-    if (isExpectedNetworkFailure(value, url)) return;
-    // 探针窗口内新出现的失败先登记下来，紧接着由断言核对它确实只有预期的那一个；
-    // 登记之后同一个 URL 的迟到消息也不会再被当成产品缺陷。
-    if (NETWORK_ERROR.test(value) && url && offlineProbe) { probeNetworkFailures.add(url); expectedNetworkFailures.add(url); return; }
+    if (consumeExpectedNetworkFailure(value, url)) return;
     pageErrors.push(url ? `${value} @ ${url}` : value);
   });
 
@@ -388,7 +398,10 @@ let browser;
     const perfCanvas = document.createElement("canvas"); perfCanvas.width = 300; perfCanvas.height = 300; const perfCtx = perfCanvas.getContext("2d");
     const perfPoints = Array.from({ length: 96 }, (_, i) => ({ x: 15 + i * 2.75, y: 150 + Math.sin(i / 7) * 55, t: i * 3, w: .75 + (i % 9) / 18, v: 1.25 + (i % 5) * .12 }));
     const started = performance.now(); for (let i = 0; i < 90; i += 1) { perfCtx.clearRect(0, 0, 300, 300); paintBrushStroke(perfCtx, perfPoints, 14, { color: "#29241d", detail: true, capabilities: high }); } const averageMs = (performance.now() - started) / 90;
-    return { widths, detail: { fullDetail, lowDetail, reducedDetail }, taper, texture, recognition, legacyWidth, shared, layering: { crossingAlphaLoss, hintAlphaLoss, shareMismatch, shareMinAlpha }, averageMs };
+    const sinkCanvas=makeCanvas(),sinkCtx=sinkCanvas.getContext("2d"),sinkCases=[[null],[{}],[{x:null,y:null}],[{x:"",y:false}],[{x:Number.NaN,y:4}]],sinkResults=[]; let sinkThrew=false;
+    sinkCases.forEach(points=>{ try{ sinkResults.push(paintBrushStroke(sinkCtx,points,base,{detail:false})); }catch(error){ sinkThrew=true; } });
+    const validSingle=paintBrushStroke(sinkCtx,[{x:12,y:16,t:1,w:1,v:0}],base,{detail:false});
+    return { widths, detail: { fullDetail, lowDetail, reducedDetail }, taper, texture, recognition, legacyWidth, shared, layering: { crossingAlphaLoss, hintAlphaLoss, shareMismatch, shareMinAlpha }, sinkGuard:{sinkResults,sinkThrew,validSingle}, averageMs };
   });
   assert(brushEngine.widths.slow > brushEngine.widths.fast && brushEngine.widths.pressureHigh > brushEngine.widths.pressureLow && brushEngine.detail.fullDetail && !brushEngine.detail.lowDetail && !brushEngine.detail.reducedDetail,
     "Expected slower or harder Pencil input to draw wider and low-end/reduced-motion devices to simplify details", brushEngine);
@@ -398,6 +411,8 @@ let browser;
     "Expected brush metadata to leave recognition unchanged, preserve legacy ink width, survive sharing, and render within one 60fps frame", brushEngine);
   assert(brushEngine.layering.crossingAlphaLoss === 0 && brushEngine.layering.hintAlphaLoss === 0 && brushEngine.layering.shareMismatch === 0 && brushEngine.layering.shareMinAlpha === 255,
     "Expected each dry-brush stroke to preserve crossing ink and hints, match transparent-layer share composition, and keep PNG pixels opaque", brushEngine.layering);
+  assert(!brushEngine.sinkGuard.sinkThrew&&brushEngine.sinkGuard.sinkResults.length===5&&brushEngine.sinkGuard.sinkResults.every(value=>value===false)&&brushEngine.sinkGuard.validSingle,
+    "Expected the lowest brush sink to reject malformed points without throwing while retaining a legal single-point stroke",brushEngine.sinkGuard);
 
   const funnelBoundary = await page.evaluate(() => {
     const originalFunnel = JSON.parse(JSON.stringify(funnel)), originalOpens = opens.slice(), originalRound = { roundId, activeMode, baseTargets: baseTargets.slice(), attemptSeq };
@@ -742,7 +757,14 @@ let browser;
     "Expected a valid notification card key to open that exact focus card and reject stale keys", notificationDeepLink);
 
   await page.reload({ waitUntil: "networkidle" });
-  offlineProbe = true;
+  // 令牌必须在请求发出前按完整 URL 登记；它只消费一次，首条消息即使迟到到恢复联网后也能归因，
+  // 随后的同 URL 错误则必须重新进入 pageErrors，不能留下永久白名单。
+  const expectedOfflineFailure = new URL(`data/${encodeURIComponent("玃")}.json`, appUrl).href;
+  const expectedOfflineConsole = expectNetworkFailureOnce(expectedOfflineFailure);
+  const failedOfflineRequest = page.waitForEvent("requestfailed", {
+    predicate: (request) => request.url() === expectedOfflineFailure,
+    timeout: 10000,
+  });
   await page.context().setOffline(true);
   await page.evaluate(() => { tuning = { calibrated: true, offset: 0, contextStrict: 0, rounds: [] }; saveTuning(); removeStored(SESSION_KEY); focusPreservedSession=null; activeMode="new"; const idx = CARDS.findIndex((card) => card.target === "玃"); startFocus([idx]); });
   await page.waitForTimeout(3500);
@@ -750,18 +772,29 @@ let browser;
   assert(honestOffline.copy.includes("这个字暂未收录笔顺") && honestOffline.blankDisabled && honestOffline.done && honestOffline.show && honestOffline.noWriter && honestOffline.offline,
   "Expected a character without bundled stroke data to explain its limitation, reject blank submission, and allow written self-assessment offline", honestOffline);
   await page.context().setOffline(false);
-  offlineProbe = false;
-  // 探针只应该打挂那一个同源笔顺请求。多出任何别的失败都说明探针范围失控，必须红。
-  const expectedOfflineFailure = new URL(`data/${encodeURIComponent("玃")}.json`, appUrl).href;
-  assert(probeNetworkFailures.size > 0 && [...probeNetworkFailures].every((url) => url === expectedOfflineFailure),
-    "Expected the offline probe to fail exactly the bundled stroke request it targets",
-    { expected: expectedOfflineFailure, saw: [...probeNetworkFailures] });
-  // 两个反例，锁住过滤器不会重新变成「按来源放行」：
-  // 未知跨源资源失败必须红；子路径部署时的同源资源失败也必须红。
-  assert(!isExpectedNetworkFailure("Failed to load resource: net::ERR_CONNECTION_REFUSED", "https://cdn.example.com/required.png")
-    && !isExpectedNetworkFailure("Failed to load resource: net::ERR_FAILED", new URL("/required-api-resource.png", appUrl).href)
-    && isExpectedNetworkFailure("Failed to load resource: net::ERR_FAILED", expectedOfflineFailure),
-    "Expected only the registered probe URL to be treated as an expected network failure");
+  const failedRequest = await failedOfflineRequest;
+  // requestfailed 先证明真实请求已失败；再等 console 生命周期收束，专门覆盖「唯一消息恢复联网后才到」的 CI 路径。
+  const consoleSettled = await Promise.race([
+    expectedOfflineConsole.seenPromise.then(() => true),
+    new Promise((resolve) => setTimeout(() => resolve(false), 5000)),
+  ]);
+  removeExpectedNetworkFailure(expectedOfflineConsole);
+  assert(failedRequest.url() === expectedOfflineFailure && consoleSettled && expectedOfflineConsole.seen === 1
+    && expectedNetworkFailures.size === 0,
+    "Expected exactly one request-specific offline failure, including a late console message",
+    { expected: expectedOfflineFailure, request: failedRequest.url(), consoleSettled, seen: expectedOfflineConsole.seen });
+
+  // 负向反例：首条迟到消息仍可消费一次；同 URL 第二条以及任意未登记来源都必须红。
+  const delayedControlUrl = new URL("/__verify_delayed_network_failure__", appUrl).href;
+  const delayedControl = expectNetworkFailureOnce(delayedControlUrl);
+  await Promise.resolve();
+  const delayedAccepted = consumeExpectedNetworkFailure("Failed to load resource: net::ERR_FAILED", delayedControlUrl);
+  const repeatedRejected = !consumeExpectedNetworkFailure("Failed to load resource: net::ERR_FAILED", delayedControlUrl);
+  const crossOriginRejected = !consumeExpectedNetworkFailure("Failed to load resource: net::ERR_CONNECTION_REFUSED", "https://cdn.example.com/required.png");
+  const otherSameOriginRejected = !consumeExpectedNetworkFailure("Failed to load resource: net::ERR_FAILED", new URL("/required-api-resource.png", appUrl).href);
+  assert(delayedAccepted && delayedControl.seen === 1 && repeatedRejected && crossOriginRejected && otherSameOriginRejected
+    && expectedNetworkFailures.size === 0,
+    "Expected a delayed request token to be consumed once without hiding a later real failure");
   await page.evaluate(() => localStorage.clear());
   await page.reload({ waitUntil: "networkidle" });
 
@@ -2403,22 +2436,51 @@ let browser;
   // 上面那组是直接调函数 + reload:false。复核指出这绕开了真实文件导入与重启后的 resumableSession，
   // 所以 session 语义坏值和 recentInk 嵌套坏值都能「先恢复成功、刷新后才丢」。这里走真实路径。
   const goodBackupText = await page.evaluate(() => backupPayload());
+  const goodBackupPreflight = await page.evaluate((text) => { try{ const validated=validatedBackupData(text); return {valid:true,keys:validated.keys}; }
+    catch(error){ return {valid:false,key:error.backupKey||"",message:error.message}; } },goodBackupText);
+  assert(goodBackupPreflight.valid,"Expected the production backup fixture to remain valid before negative UI mutations",goodBackupPreflight);
+  let uiImportSequence=0;
   const importThroughUI = async (mutate) => {
-    const text = await page.evaluate(({ base, patch }) => {
-      const payload = JSON.parse(base); new Function("payload", patch)(payload); return JSON.stringify(payload);
-    }, { base: goodBackupText, patch: mutate });
+    const marker=1700000000000+(++uiImportSequence);
+    const text = await page.evaluate(({ base, patch, marker }) => {
+      const payload = JSON.parse(base); new Function("payload", patch)(payload);
+      const meta=JSON.parse(payload.data["shizi.backupMeta.v1"]||"{}"); meta.lastExportAt=marker;
+      payload.data["shizi.backupMeta.v1"]=JSON.stringify(meta); return JSON.stringify(payload);
+    }, { base: goodBackupText, patch: mutate, marker });
     const before = await page.evaluate(() => Object.fromEntries(BACKUP_KEYS.map((k) => [k, localStorage.getItem(k)])));
     const dialogs = []; const onDialog = (dialog) => { dialogs.push(dialog.message()); dialog.accept(); };
     page.on("dialog", onDialog);
-    const navigation = page.waitForNavigation({ timeout: 4000 }).then(() => true).catch(() => false);
+    const navigation = page.waitForNavigation({ timeout: 8000 }).then(() => true).catch(() => false);
     await page.setInputFiles("#importFile", { name: "shizi-backup.json", mimeType: "application/json", buffer: Buffer.from(text, "utf8") });
-    const reloaded = await navigation;
+    // 恢复确认已由原生 confirm 换成应用内弹层：选完文件之后还要点「确认」，才会真正写入并刷新。
+    // 被拒绝的备份根本不会打开这个弹层，等不到就直接往下走，交给 reloaded 判定。
+    const confirmOpened = await page.waitForFunction(() => { const el=document.getElementById("restoreConfirmSheet"); return !!el&&el.classList.contains("open"); },
+      null, { timeout: 2000 }).then(() => true).catch(() => false);
+    const applied=page.waitForFunction((expected)=>{ try{return JSON.parse(localStorage.getItem("shizi.backupMeta.v1")||"{}").lastExportAt===expected
+      &&typeof backupMeta!=="undefined"&&backupMeta.lastExportAt===expected;}catch(error){return false;} },marker,{timeout:8000}).then(()=>true).catch(()=>false);
+    if(confirmOpened) await page.click("#restoreConfirmDo").catch(() => {});
+    const [navigated,markerApplied]=await Promise.all([navigation,applied]),reloaded=navigated&&markerApplied;
     page.off("dialog", onDialog);
     const after = await page.evaluate(() => Object.fromEntries(BACKUP_KEYS.map((k) => [k, localStorage.getItem(k)])));
     // 失败提示可能走原生弹窗，也可能走应用内 toast；两种都算「告诉了用户」。
     const notice = await page.evaluate(() => (document.getElementById("toast") || {}).textContent || "");
     return { reloaded, dialogs, notice, untouched: JSON.stringify(before) === JSON.stringify(after) };
   };
+  const revealSessionPatch = (geometry, stampGeometry = null) => `
+    const key=cardKey(0), target=CARDS[0].target, geometry=${JSON.stringify(geometry)}, stampGeometry=${JSON.stringify(stampGeometry)};
+    const snapshot=Object.assign({ cardKey:key,target,attemptId:"verify-restored-reveal",createdAt:Date.now(),canvasSize:S,
+      hintStrokeIds:[],hintCount:0,hintStrokes:[],inkStrokes:[],referenceStrokes:[],compositeGeometry:[],compositeImage:null,
+      hintEverUsed:false,enteredTracing:false,practicePhase:"recall",lastVerdict:null,userCorrect:null },geometry);
+    const stamp=stampGeometry?{ position:0,baseCursor:0,currentAttemptKind:"base",currentAttemptId:"verify-stamp-reveal",practicePhase:"revealDecision",attemptSeq:0,
+      cardKey:key,currentCardKey:key,baseTargetKeys:[key],manualQueueValue:[],queueValue:[],unresolvedKeys:[],episodeRows:[],sessionDoneKeys:[],
+      roundStatsValue:[{cardKey:key,target,handwriting:[[null]]}],roundHandwritingValue:[[null],[{x:null,y:false}],[{x:.2,y:.3,t:1,w:1,v:0}]],
+      memoryValue:{recentInk:{strokes:[[null],[{x:null,y:false}],[{x:.1,y:.1,w:1,v:0},{x:.2,y:.2,w:1,v:0}]]}},
+      revealState:Object.assign({},snapshot,stampGeometry) }:null;
+    payload.data["shizi.session.v1"]=JSON.stringify({ version:3,startedDate:today(),updatedAt:Date.now(),activeMode:"new",makeupTargetDay:"",
+      baseTargetKeys:[key],baseCursor:0,currentCardKey:key,currentAttemptKind:"base",currentAttemptId:"verify-restored-reveal",
+      manualQueue:[],reinforcementQueue:[],unresolvedKeys:[],episodeRows:[],attemptSeq:0,practicePhase:"revealDecision",missedThisRound:[],roundStats:[],focusKeys:[],sessionDoneKeys:[],calibrationTargetKeys:[],
+      visual:{practicePhase:"revealDecision",currentCardKey:key,currentAttemptKind:"base",currentAttemptId:"verify-restored-reveal",inkStrokes:[],submissionSnapshot:snapshot,revealed:true,stamped:false},
+      lastStampSnapshot:stamp,roundId:"verify-restored-reveal",roundElapsedMs:10 });`;
 
   // 语义上不可用的 v3 session：启动侧会隔离它，那导入侧就必须先拒绝，而不是报成功再让它消失。
   const brokenSession = await importThroughUI('payload.data["shizi.session.v1"] = JSON.stringify({ version: 3 });');
@@ -2426,6 +2488,180 @@ let browser;
   assert(!brokenSession.reloaded && brokenSession.untouched && brokenSessionState.quarantined === null
     && (brokenSession.dialogs.some((message) => message.includes("无法恢复")) || /不是有效的拾字备份|无法恢复/.test(brokenSession.notice)),
     "Expected a semantically unusable v3 session to be rejected at import instead of quarantined after the next start", { brokenSession, brokenSessionState });
+
+  // session.visual 也必须深查；[[null]] 在导入时规范成空墨迹并持久化，不能等到用户点「续」
+  // 后才在 redrawInk 里读 point.x 崩溃，也不能每次启动都从原始坏值重新复现。
+  const errorsBeforeBrokenSessionInk = pageErrors.length;
+  const brokenSessionInk = await importThroughUI(`
+    const key = cardKey(0);
+    payload.data["shizi.session.v1"] = JSON.stringify({ version: 3, startedDate: today(), updatedAt: Date.now(), activeMode: "new", makeupTargetDay: "",
+      baseTargetKeys: [key], baseCursor: 0, currentCardKey: key, manualQueue: [], reinforcementQueue: [], unresolvedKeys: [], episodeRows: [], roundStats: [], focusKeys: [], sessionDoneKeys: [], calibrationTargetKeys: [],
+      visual: { practicePhase: "recall", currentCardKey: key, inkStrokes: [[null]], submissionSnapshot: null }, lastStampSnapshot: null });`);
+  const brokenSessionInkResume = await page.evaluate(() => {
+    const stored=load(SESSION_KEY,null), decoded=resumableSession();
+    return { storedInk:stored&&stored.visual&&stored.visual.inkStrokes,decoded:!!decoded,homeResume:!!homeResumeSession,
+      continueLabel:document.querySelector("#startBtn").getAttribute("aria-label"),quarantined:localStorage.getItem(`shizi.corrupt.${SESSION_KEY}`) };
+  });
+  await page.click("#startBtn");
+  await page.waitForFunction(() => pendingSessionVisual===null&&!storageRuntimeFailed, null, {timeout:10000});
+  const brokenSessionInkAfter = await page.evaluate(() => ({ink:cloneObj(inkStrokes),runtimeFailed:storageRuntimeFailed,storedValid:storedSessionShape(load(SESSION_KEY,null)),quarantined:localStorage.getItem(`shizi.corrupt.${SESSION_KEY}`)}));
+  assert(brokenSessionInk.reloaded && !brokenSessionInk.untouched && Array.isArray(brokenSessionInkResume.storedInk)&&brokenSessionInkResume.storedInk.length===0
+    && brokenSessionInkResume.decoded&&brokenSessionInkResume.homeResume&&brokenSessionInkResume.continueLabel==="继续练习"&&brokenSessionInkResume.quarantined===null
+    && brokenSessionInkAfter.ink.length===0&&!brokenSessionInkAfter.runtimeFailed&&brokenSessionInkAfter.storedValid&&brokenSessionInkAfter.quarantined===null
+    && pageErrors.length===errorsBeforeBrokenSessionInk,
+    "Expected malformed session ink to be normalized during real file import and remain safe after refresh and resume", {brokenSessionInk,brokenSessionInkResume,brokenSessionInkAfter,pageErrors:pageErrors.slice(errorsBeforeBrokenSessionInk)});
+
+  // 揭晓快照有自己的一整套持久几何，不能只清 visual.inkStrokes。真实导入后从首页点「续」，
+  // 嵌套坏笔要在落盘前清掉，合法单点要留下，lastVerdict.failed 的坏容器也不能走到 .map。
+  await page.evaluate(() => localStorage.clear());
+  await page.reload({waitUntil:"networkidle"});
+  const errorsBeforeSubmissionInk = pageErrors.length;
+  const submissionInkImport = await importThroughUI(revealSessionPatch({
+    hintStrokeIds: [], hintStrokes: [],
+    inkStrokes: [[null], [{x:null,y:null}], [{x:"",y:false}], [{x:18,y:22,t:1,w:1,v:0}]],
+    referenceStrokes: [[{x:12,y:12},{x:80,y:86}]],
+    compositeGeometry: [[null], [{x:null,y:false}], [{x:18,y:22,t:1,w:1,v:0}]],
+    lastVerdict: {status:"bad",mode:"exact",failed:{not:"an array"},missing:0},
+  }));
+  const submissionInkStored = await page.evaluate(() => {
+    const session=load(SESSION_KEY,null),snapshot=session&&session.visual&&session.visual.submissionSnapshot,decoded=resumableSession();
+    return {snapshot,decoded:!!decoded,homeResume:!!homeResumeSession,continueLabel:startBtn.getAttribute("aria-label"),valid:storedSessionShape(session),corrupt:localStorage.getItem(`shizi.corrupt.${SESSION_KEY}`)};
+  });
+  await page.click("#startBtn");
+  await page.waitForFunction(() => pendingSessionVisual===null&&!storageRuntimeFailed&&getComputedStyle(reveal).display!=="none",null,{timeout:10000});
+  const submissionInkAfter = await page.evaluate(() => ({ snapshot:cloneObj(submissionSnapshot),ink:cloneObj(inkStrokes),runtimeFailed:storageRuntimeFailed,revealVisible:getComputedStyle(reveal).display!=="none" }));
+  assert(submissionInkImport.reloaded&&!submissionInkImport.untouched&&submissionInkStored.valid&&submissionInkStored.decoded&&submissionInkStored.homeResume
+    &&submissionInkStored.continueLabel==="继续练习"&&submissionInkStored.corrupt===null
+    &&submissionInkStored.snapshot.inkStrokes.length===1&&submissionInkStored.snapshot.inkStrokes[0].length===1
+    &&submissionInkStored.snapshot.compositeGeometry.length===1&&submissionInkStored.snapshot.compositeGeometry[0].length===1
+    &&JSON.stringify(submissionInkStored.snapshot.compositeGeometry)===JSON.stringify([...submissionInkStored.snapshot.hintStrokes,...submissionInkStored.snapshot.inkStrokes])
+    &&submissionInkStored.snapshot.lastVerdict===null
+    &&submissionInkAfter.snapshot.inkStrokes.length===1&&submissionInkAfter.snapshot.inkStrokes[0].length===1
+    &&submissionInkAfter.ink.length===1&&submissionInkAfter.ink[0].length===1&&submissionInkAfter.revealVisible&&!submissionInkAfter.runtimeFailed
+    &&pageErrors.length===errorsBeforeSubmissionInk,
+    "Expected nested submission ink, composite geometry, and verdict containers to normalize before a real resume",{submissionInkImport,submissionInkStored,submissionInkAfter,pageErrors:pageErrors.slice(errorsBeforeSubmissionInk)});
+
+  // hint/reference 由另一条渲染链消费；同时锁住持久化 undo 快照的同型 revealState、
+  // round handwriting、recentInk 副本以及旧 roundStats.handwriting 都被清理。
+  await page.evaluate(() => localStorage.clear());
+  await page.reload({waitUntil:"networkidle"});
+  const errorsBeforeSubmissionReference = pageErrors.length;
+  const single={x:26,y:32,t:2,w:1,v:0};
+  const submissionReferenceImport = await importThroughUI(revealSessionPatch({
+    hintStrokeIds: {not:"an array"}, hintStrokes: [[null],[single]], inkStrokes: [[single]],
+    referenceStrokes: [[null],[single]], compositeGeometry: "not-an-array",
+    lastVerdict: {status:"bad",mode:"exact",failed:"not-an-array",missing:1},
+  },{
+    hintStrokeIds: {not:"an array"}, hintStrokes: [[null],[single]], inkStrokes: [[null],[single]],
+    referenceStrokes: [[null],[single]], compositeGeometry: [[null],[single]],
+    lastVerdict: {status:"bad",mode:"exact",failed:{not:"an array"},missing:1},
+  }));
+  const submissionReferenceStored = await page.evaluate(() => {
+    const session=load(SESSION_KEY,null),snapshot=session.visual.submissionSnapshot,stamp=session.lastStampSnapshot;
+    return {snapshot,stamp,valid:storedSessionShape(session),decoded:!!resumableSession(),homeResume:!!homeResumeSession,continueLabel:startBtn.getAttribute("aria-label")};
+  });
+  await page.click("#startBtn");
+  await page.waitForFunction(() => pendingSessionVisual===null&&!storageRuntimeFailed&&getComputedStyle(reveal).display!=="none",null,{timeout:10000});
+  const submissionReferenceAfter = await page.evaluate(() => ({snapshot:cloneObj(submissionSnapshot),runtimeFailed:storageRuntimeFailed,revealVisible:getComputedStyle(reveal).display!=="none"}));
+  const stampReveal=submissionReferenceStored.stamp.revealState;
+  assert(submissionReferenceImport.reloaded&&!submissionReferenceImport.untouched&&submissionReferenceStored.valid&&submissionReferenceStored.decoded&&submissionReferenceStored.homeResume
+    &&submissionReferenceStored.continueLabel==="继续练习"&&submissionReferenceStored.snapshot.hintStrokeIds.length===0
+    &&submissionReferenceStored.snapshot.hintStrokes.length===1&&submissionReferenceStored.snapshot.hintStrokes[0].length===1
+    &&submissionReferenceStored.snapshot.referenceStrokes.length===1&&submissionReferenceStored.snapshot.referenceStrokes[0].length===1
+    &&submissionReferenceStored.snapshot.compositeGeometry.length===2
+    &&JSON.stringify(submissionReferenceStored.snapshot.compositeGeometry)===JSON.stringify([...submissionReferenceStored.snapshot.hintStrokes,...submissionReferenceStored.snapshot.inkStrokes])
+    &&submissionReferenceStored.snapshot.lastVerdict===null
+    &&stampReveal.hintStrokes.length===1&&stampReveal.hintStrokes[0].length===1&&stampReveal.inkStrokes.length===1&&stampReveal.inkStrokes[0].length===1
+    &&stampReveal.referenceStrokes.length===1&&stampReveal.referenceStrokes[0].length===1&&stampReveal.compositeGeometry.length===2
+    &&JSON.stringify(stampReveal.compositeGeometry)===JSON.stringify([...stampReveal.hintStrokes,...stampReveal.inkStrokes])
+    &&stampReveal.hintStrokeIds.length===0&&stampReveal.lastVerdict===null
+    &&submissionReferenceStored.stamp.roundHandwritingValue.length===1&&submissionReferenceStored.stamp.roundHandwritingValue[0].length===1
+    &&submissionReferenceStored.stamp.memoryValue.recentInk.strokes.length===1&&submissionReferenceStored.stamp.memoryValue.recentInk.strokes[0].length===2
+    &&!Object.prototype.hasOwnProperty.call(submissionReferenceStored.stamp.roundStatsValue[0],"handwriting")
+    &&submissionReferenceAfter.snapshot.hintStrokes.length===1&&submissionReferenceAfter.snapshot.referenceStrokes.length===1
+    &&submissionReferenceAfter.revealVisible&&!submissionReferenceAfter.runtimeFailed&&pageErrors.length===errorsBeforeSubmissionReference,
+    "Expected every persisted reveal geometry container, including stamp state, to normalize and preserve legal single points",{submissionReferenceImport,submissionReferenceStored,submissionReferenceAfter,pageErrors:pageErrors.slice(errorsBeforeSubmissionReference)});
+
+  // 旧版本已留在 localStorage 的坏会话不会重新走 import；启动时 resumableSession 也必须自愈并回写，
+  // 而不是只把一个安全解码副本留在内存、下次继续复现原坏值。
+  const errorsBeforeStartupHeal = pageErrors.length;
+  await page.evaluate(() => {
+    const session=load(SESSION_KEY,null),snapshot=session.visual.submissionSnapshot,single={x:48,y:52,t:3,w:1,v:0};
+    snapshot.inkStrokes=[[{x:null,y:null}],[single]]; snapshot.hintStrokes=[[{x:"",y:false}],[single]];
+    snapshot.referenceStrokes=[[{x:false,y:null}],[single]]; snapshot.compositeGeometry=[[]]; snapshot.hintStrokeIds={bad:true};
+    snapshot.lastVerdict={status:"bad",mode:"exact",failed:{bad:true}}; snapshot.compositeImage="data:text/html;base64,PGgxPmJhZDwvaDE+";
+    localStorage.setItem(SESSION_KEY,JSON.stringify(session)); baseTargets=[]; batch=[]; currentIndex=null;
+  });
+  await page.reload({waitUntil:"networkidle"});
+  const startupHealed = await page.evaluate(() => {
+    const session=load(SESSION_KEY,null),snapshot=session.visual.submissionSnapshot;
+    return {snapshot,valid:storedSessionShape(session),decoded:!!resumableSession(),homeResume:!!homeResumeSession,continueLabel:startBtn.getAttribute("aria-label"),runtimeFailed:storageRuntimeFailed};
+  });
+  await page.click("#startBtn");
+  await page.waitForFunction(() => pendingSessionVisual===null&&!storageRuntimeFailed&&getComputedStyle(reveal).display!=="none",null,{timeout:10000});
+  assert(startupHealed.valid&&startupHealed.decoded&&startupHealed.homeResume&&startupHealed.continueLabel==="继续练习"
+    &&startupHealed.snapshot.inkStrokes.length===1&&startupHealed.snapshot.inkStrokes[0].length===1
+    &&startupHealed.snapshot.hintStrokes.length===1&&startupHealed.snapshot.referenceStrokes.length===1
+    &&startupHealed.snapshot.compositeGeometry.length===2
+    &&JSON.stringify(startupHealed.snapshot.compositeGeometry)===JSON.stringify([...startupHealed.snapshot.hintStrokes,...startupHealed.snapshot.inkStrokes])
+    &&startupHealed.snapshot.hintStrokeIds.length===0&&startupHealed.snapshot.lastVerdict===null&&startupHealed.snapshot.compositeImage===null
+    &&!startupHealed.runtimeFailed&&pageErrors.length===errorsBeforeStartupHeal,
+    "Expected a directly seeded legacy session to self-heal on startup, persist the clean schema, and resume safely",{startupHealed,pageErrors:pageErrors.slice(errorsBeforeStartupHeal)});
+
+  // 两个恢复入口本身也要兜底，不能把安全性只押在备份导入上；这里绕过导入直接喂坏容器。
+  const defensiveReveal = await page.evaluate(() => {
+    const bad={...cloneObj(submissionSnapshot),inkStrokes:[[null],[{x:40,y:44,w:1}]],hintStrokes:{bad:true},referenceStrokes:"bad",compositeGeometry:null,hintStrokeIds:{bad:true},lastVerdict:{status:"bad",mode:"exact",failed:{bad:true}}};
+    try{ const image=revealInkImage(bad); showRevealState(bad); restoreRevealFromSnapshot(bad); return {threw:false,imageSafe:typeof image==="string"&&image.startsWith("data:image/png"),ink:submissionSnapshot.inkStrokes,hints:submissionSnapshot.hintStrokes,reference:submissionSnapshot.referenceStrokes,
+      composite:submissionSnapshot.compositeGeometry,hintIds:submissionSnapshot.hintStrokeIds,verdict:submissionSnapshot.lastVerdict,runtimeFailed:storageRuntimeFailed}; }
+    catch(error){ return {threw:true,message:error.message}; }
+  });
+  assert(!defensiveReveal.threw&&defensiveReveal.imageSafe&&defensiveReveal.ink.length===1&&defensiveReveal.ink[0].length===1&&defensiveReveal.hints.length===0
+    &&defensiveReveal.reference.length===0&&defensiveReveal.composite.length===1&&defensiveReveal.hintIds.length===0&&defensiveReveal.verdict===null&&!defensiveReveal.runtimeFailed,
+    "Expected showRevealState and restoreRevealFromSnapshot to defend independently of backup normalization",defensiveReveal);
+
+  // 真跨设备路径：目标设备当前没有这个自定义字，备份同时携带 custom + 未完成 session。
+  // 校验必须以候选 custom 为上下文，导入、刷新、点续写后仍能恢复同一张卡和合法墨迹。
+  // 上一例为验证续写停在卡片页；这里先真正清空并重启，不能让旧卡片的 visibilitychange 保存
+  // 干扰「干净目标设备」这个测试前提。
+  await page.evaluate(() => localStorage.clear());
+  await page.reload({waitUntil:"networkidle"});
+  const errorsBeforeCustomSession = pageErrors.length;
+  const customSession = await importThroughUI(`
+    let customChar = "";
+    for(let cp=0x9fff;cp>=0x4e00;cp--){ const ch=String.fromCodePoint(cp); if(BASE_BY_CHAR[ch]==null){ customChar=ch; break; } }
+    if(!customChar) throw new Error("no custom fixture character");
+    const key = "custom:" + customChar;
+    payload.data["shizi.custom.v1"] = JSON.stringify([customChar]);
+    payload.data["shizi.added.v1"] = JSON.stringify([customChar]);
+    payload.data["shizi.session.v1"] = JSON.stringify({ version: 3, startedDate: today(), updatedAt: Date.now(), activeMode: "new", makeupTargetDay: "",
+      baseTargetKeys: [key], baseCursor: 0, currentCardKey: key, currentAttemptKind: "base", currentAttemptId: "verify-custom-session",
+      manualQueue: [], reinforcementQueue: [], unresolvedKeys: [], episodeRows: [], attemptSeq: 0, practicePhase: "recall", missedThisRound: [], roundStats: [], focusKeys: [], sessionDoneKeys: [], calibrationTargetKeys: [],
+      visual: { practicePhase: "recall", currentCardKey: key, currentAttemptKind: "base", currentAttemptId: "verify-custom-session", inkStrokes: [[{x:16,y:20,t:0,w:1,v:0}],[{x:32,y:40,t:1,w:1,v:0},{x:92,y:110,t:2,w:1,v:0}]], submissionSnapshot: null },
+      lastStampSnapshot: null, roundId: "verify-custom-round", roundElapsedMs: 10 });`);
+  const importedCustomChar = await page.evaluate(() => (load(CUSTOM_KEY, [])[0] || ""));
+  const customResume = await page.evaluate(() => {
+    // 自定义字按产品定义可能没有自己的笔顺文件；走应用已有的 writer 不可用降级路径，
+    // 让本例只检验「导入→刷新→续写」和画布恢复，不制造无关的 404 console error。
+    window.__verifyHanziWriter = window.HanziWriter; window.HanziWriter = null;
+    const decoded = resumableSession();
+    return { decoded: !!decoded, homeResume:!!homeResumeSession, continueLabel:document.querySelector("#startBtn").getAttribute("aria-label"),
+      target: decoded && CARDS[decoded.currentIndex] && CARDS[decoded.currentIndex].target,
+      custom: !!(decoded && CARDS[decoded.currentIndex] && CARDS[decoded.currentIndex].custom), corrupt: localStorage.getItem(`shizi.corrupt.${SESSION_KEY}`),
+      writerDisabled:window.HanziWriter===null };
+  });
+  await page.click("#startBtn");
+  await page.waitForFunction(() => pendingSessionVisual===null&&!storageRuntimeFailed, null, {timeout:10000});
+  const customResumeAfter = await page.evaluate(() => ({ target: cur && cur.target, ink: cloneObj(inkStrokes), pending:!!pendingSessionVisual,runtimeFailed: storageRuntimeFailed,
+    storedInk:cloneObj((load(SESSION_KEY,null)||{}).visual&&load(SESSION_KEY,null).visual.inkStrokes),storedValid: storedSessionShape(load(SESSION_KEY, null)), corrupt: localStorage.getItem(`shizi.corrupt.${SESSION_KEY}`) }));
+  await page.evaluate(() => { if(window.__verifyHanziWriter){ window.HanziWriter=window.__verifyHanziWriter; delete window.__verifyHanziWriter; } });
+  assert(customSession.reloaded && !customSession.untouched && customResume.decoded && customResume.homeResume && customResume.continueLabel==="继续练习" && customResume.writerDisabled && customResume.custom
+    && customResume.target === importedCustomChar && customResumeAfter.target === importedCustomChar && customResumeAfter.ink.length === 2&&customResumeAfter.ink[0].length===1
+    && Array.isArray(customResumeAfter.storedInk)&&customResumeAfter.storedInk.length===2&&customResumeAfter.storedInk[0].length===1
+    && !customResumeAfter.runtimeFailed && customResumeAfter.storedValid && customResume.corrupt === null && customResumeAfter.corrupt === null
+    && pageErrors.length === errorsBeforeCustomSession,
+    "Expected a clean device to import and resume a backup-owned custom card session with valid ink", { customSession, customResume, customResumeAfter, pageErrors: pageErrors.slice(errorsBeforeCustomSession) });
+  await page.evaluate(() => localStorage.clear());
+  await page.reload({waitUntil:"networkidle"});
 
   // recentInk 的嵌套坏点：导入后必须已经被规范掉，字卡不能再拿它去画。
   const nestedInk = await importThroughUI(`

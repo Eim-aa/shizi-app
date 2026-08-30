@@ -171,7 +171,9 @@ assert(source.includes("STAMP_HOLD_MS=1800") && source.includes("EDIT_STAMP_WIND
 assert(source.includes('navigator.vibrate(10)') && source.includes('animation="cardSwapIn .18s ease-out both"') && source.includes('classList.add("revealing")'), "Expected Web haptics and staggered card/reveal transitions");
 assert(source.includes('OUTCOME_DOT={ fast:"transparent", hinted:"var(--gold)", slow:"var(--accent)"') && !/slow:\s*"var\(--blue\)"/.test(source), "Expected silent success, gold assistance, and cinnabar risk result semantics");
 assert(source.includes('if(!sound.enabled') && source.includes('{type:"sound",kind}') && source.includes('if(tracing) soundFeedback("paper")') && source.includes('soundFeedback("stamp")'), "Expected two-site, opt-out paper sound feedback with no disabled audio initialization");
-assert(source.includes("brushWidthFor") && source.includes("paintBrushStroke") && source.includes("brushStrokeLayer") && source.includes("compositeBrushLayer") && source.includes('pointer==="pen"') && source.includes('"destination-out"') && source.includes('"source-over"') && source.includes("paintInkBloom") && !source.includes("dryColor"), "Expected one shared pressure, taper, isolated dry-brush, and ink-bloom renderer");
+assert(source.includes("faithfulInkWidth") && source.includes("paintFaithfulInk") && source.includes("renderLiveInk") && source.includes('pointer==="pen"')
+  && !source.includes("brushWidthFor") && !source.includes("paintBrushStroke") && !source.includes("paintInkBloom") && !source.includes('"destination-out"'),
+"Expected one faithful live/replay renderer with real Pencil pressure and no speed width, taper, dry-brush, or ink bloom");
 assert(source.includes("SOUNDSCAPE_SCENES") && source.includes("ambientNoiseBuffer") && source.includes("syncAmbientForView") && !/function startAmbient[^{]*\{[^}]*sound\.enabled/.test(source), "Expected an independent, procedural, practice-only soundscape");
 assert(source.includes("enterWritingChrome") && source.includes("finishWritingChrome") && source.includes("setWritingChromeHidden") && source.includes("paperReveal") && source.includes("REST_LINES"), "Expected accessible stove-mode chrome, one-time paper reveal, and fixed closing microcopy");
 assert(source.includes("loadEtymology") && source.includes("renderEtymLine") && source.includes('fetch("data/etymology.json")') && !source.includes("暂无释义"), "Expected a lazy, silent-absence etymology row");
@@ -338,81 +340,66 @@ let browser;
     && p2Style.toastGlyph === 26 && p2Style.bodyNoise !== "none" && p2Style.sheetNoise !== "none" && p2Style.fontLoaded && p2Style.fontBytes > 0 && p2Style.fontBytes < 20000 && !p2Style.nonzeroLetterSpacing,
   "Expected converged type/spacing tokens, an offline Android-safe brand font, and paper texture", p2Style);
 
-  const brushEngine = await page.evaluate(() => {
-    const base = 20, previous = { x: 0, y: 0, t: 0 };
-    const width = (point) => brushWidthFor({ ...point }, previous, { ema: 0 }, base);
-    const widths = {
-      slow: width({ x: 5, y: 0, t: 20, p: 0 }),
-      fast: width({ x: 45, y: 0, t: 20, p: 0 }),
-      pressureLow: width({ x: 20, y: 0, t: 20, p: .15 }),
-      pressureHigh: width({ x: 20, y: 0, t: 20, p: .9 }),
+  const faithfulInk = await page.evaluate(() => {
+    const base = 20, widths = {
+      touchSlow: faithfulInkWidth({ p: 0, t: 80, w: .4, v: .1 }, base),
+      touchFast: faithfulInkWidth({ p: 0, t: 2, w: 1.7, v: 6 }, base),
+      pressureLow: faithfulInkWidth({ p: .15 }, base),
+      pressureHigh: faithfulInkWidth({ p: .9 }, base),
+      legacyThin: faithfulInkWidth({ p: 0, w: .35, v: 6 }, base),
+      legacyThick: faithfulInkWidth({ p: 0, w: 1.7, v: 0 }, base),
     };
-    const high = { hardwareConcurrency: 8, deviceMemory: 4 }, low = { hardwareConcurrency: 2, deviceMemory: 2 }, originalMatchMedia = window.matchMedia;
-    const fullDetail = brushDetailEnabled(high), lowDetail = brushDetailEnabled(low);
-    window.matchMedia = (query) => query.includes("prefers-reduced-motion") ? { matches: true } : originalMatchMedia(query);
-    const reducedDetail = brushDetailEnabled(high);
-    window.matchMedia = originalMatchMedia;
-
-    const makeCanvas = () => { const canvas = document.createElement("canvas"); canvas.width = 220; canvas.height = 100; return canvas; };
-    const points = Array.from({ length: 17 }, (_, i) => ({ x: 20 + i * 10, y: 50, t: i * 10, w: 1.2, v: i ? 1 : 0 }));
-    const simple = makeCanvas(), simpleCtx = simple.getContext("2d");
-    paintBrushStroke(simpleCtx, points, base, { color: "#000", detail: false });
-    const spanAt = (ctx, x) => { const data = ctx.getImageData(x, 0, 1, 100).data; let first = -1, last = -1; for (let y = 0; y < 100; y += 1) if (data[y * 4 + 3] > 12) { if (first < 0) first = y; last = y; } return last >= first ? last - first + 1 : 0; };
-    const taper = { head: spanAt(simpleCtx, 22), middle: spanAt(simpleCtx, 100), tail: spanAt(simpleCtx, 178) };
-
-    const detailed = makeCanvas(), detailedCtx = detailed.getContext("2d");
-    const fastPoints = points.map((point, i) => ({ ...point, v: i ? 1.7 : 0 }));
-    paintBrushStroke(detailedCtx, fastPoints, base, { color: "#000", detail: true, capabilities: high });
-    const alphaSum = (ctx, x1, x2) => { const data = ctx.getImageData(x1, 36, x2 - x1, 28).data; let sum = 0; for (let i = 3; i < data.length; i += 4) sum += data[i]; return sum; };
-    const texture = { simple: alphaSum(simpleCtx, 55, 165), detailed: alphaSum(detailedCtx, 55, 165), simpleHead: spanAt(simpleCtx, 20), detailedHead: spanAt(detailedCtx, 20) };
+    const makeCanvas = (height = 100) => { const canvas = document.createElement("canvas"); canvas.width = 220; canvas.height = height; return canvas; };
+    const pixels = canvas => canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height).data;
+    const mismatch = (left, right) => { let count = 0; for (let i = 0; i < left.length; i += 1) if (left[i] !== right[i]) count += 1; return count; };
+    const spanAt = (ctx, x, height = 100) => { const data = ctx.getImageData(x, 0, 1, height).data; let first = -1, last = -1; for (let y = 0; y < height; y += 1) if (data[y * 4 + 3] > 12) { if (first < 0) first = y; last = y; } return last >= first ? last - first + 1 : 0; };
+    const spanRegion = (ctx, x, y0, height) => { const data = ctx.getImageData(x, y0, 1, height).data; let first = -1, last = -1; for (let y = 0; y < height; y += 1) if (data[y * 4 + 3] > 12) { if (first < 0) first = y; last = y; } return last >= first ? last - first + 1 : 0; };
+    const points = Array.from({ length: 17 }, (_, i) => ({ x: 20 + i * 10, y: 50, t: i * 80, p: 0, w: i % 2 ? .35 : 1.7, v: i % 2 ? 6 : 0 }));
+    const plain = makeCanvas(), plainCtx = plain.getContext("2d"); paintFaithfulInk(plainCtx, points, base, { color: "#000" });
+    const noTaper = { head: spanAt(plainCtx, 20), middle: spanAt(plainCtx, 100), tail: spanAt(plainCtx, 180) };
+    const metadataVariant = makeCanvas(), metadataCtx = metadataVariant.getContext("2d"); paintFaithfulInk(metadataCtx, points.map((point, i) => ({ ...point, t: i, w: i ? 1.7 : .35, v: i ? 6 : 0 })), base, { color: "#000" });
+    const legacyMetadataMismatch = mismatch(pixels(plain), pixels(metadataVariant));
+    const pressureCanvas = makeCanvas(), pressureCtx = pressureCanvas.getContext("2d");
+    paintFaithfulInk(pressureCtx, [{ x: 20, y: 28, p: .15 }, { x: 180, y: 28, p: .15 }], base, { color: "#000" });
+    paintFaithfulInk(pressureCtx, [{ x: 20, y: 72, p: .9 }, { x: 180, y: 72, p: .9 }], base, { color: "#000" });
+    const pressureSpans = { low: spanRegion(pressureCtx, 100, 0, 50), high: spanRegion(pressureCtx, 100, 50, 50) };
 
     const target = [[{ x: 35, y: 35 }, { x: 100, y: 35 }, { x: 165, y: 35 }], [{ x: 100, y: 35 }, { x: 100, y: 100 }, { x: 100, y: 165 }]];
-    const enriched = target.map((stroke, row) => stroke.map((point, index) => ({ ...point, t: index * 14, w: .7 + index * .25, v: row + index * .4 })));
-    const recognition = { plain: checkInk(target, target), enriched: checkInk(enriched, target) }, legacyWidth = brushStrokeGeometry(target[0], base).widths[1];
-    const shared = shareInkFromSnapshot({ canvasSize: 200, inkStrokes: [enriched[0]] });
+    const enriched = target.map((stroke, row) => stroke.map((point, index) => ({ ...point, t: index * 14, p: row ? .8 : .25, w: .7 + index * .25, v: row + index * .4 })));
+    const recognition = { plain: checkInk(target, target), enriched: checkInk(enriched, target) };
+    const shared = shareInkFromSnapshot({ canvasSize: 200, inkStrokes: [enriched[0], [{ x: 90, y: 110, p: 0 }]] });
+    const compact = compactHandCardStrokes(shared);
 
-    const squareCanvas = () => { const canvas = document.createElement("canvas"); canvas.width = 220; canvas.height = 220; return canvas; };
-    const vertical = Array.from({ length: 13 }, (_, i) => ({ x: 110, y: 20 + i * 15, w: 1.45, v: 0 }));
-    const horizontal = Array.from({ length: 17 }, (_, i) => ({ x: 20 + i * 11.25, y: 110, w: 1.2, v: i ? 2.2 : 0 }));
-    const crossing = squareCanvas(), crossingCtx = crossing.getContext("2d");
-    paintBrushStroke(crossingCtx, vertical, base, { color: "#29241d", detail: false });
-    const crossingBefore = crossingCtx.getImageData(0, 0, 220, 220).data;
-    paintBrushStroke(crossingCtx, horizontal, base, { color: "#29241d", detail: true, capabilities: high });
-    const crossingAfter = crossingCtx.getImageData(0, 0, 220, 220).data; let crossingAlphaLoss = 0;
+    const squareCanvas = () => makeCanvas(220), vertical = Array.from({ length: 13 }, (_, i) => ({ x: 110, y: 20 + i * 15, p: .25 })), horizontal = Array.from({ length: 17 }, (_, i) => ({ x: 20 + i * 11.25, y: 110, p: .8 }));
+    const crossing = squareCanvas(), crossingCtx = crossing.getContext("2d"); paintFaithfulInk(crossingCtx, vertical, base, { color: "#29241d" }); const crossingBefore = pixels(crossing).slice(); paintFaithfulInk(crossingCtx, horizontal, base, { color: "#29241d" }); const crossingAfter = pixels(crossing); let crossingAlphaLoss = 0;
     for (let i = 3; i < crossingBefore.length; i += 4) if (crossingBefore[i] === 255 && crossingAfter[i] < 255) crossingAlphaLoss += 1;
-
-    const hint = squareCanvas(), hintCtx = hint.getContext("2d"); hintCtx.strokeStyle = "#d08b78"; hintCtx.lineWidth = 22; hintCtx.lineCap = "round"; hintCtx.beginPath(); hintCtx.moveTo(110, 20); hintCtx.lineTo(110, 200); hintCtx.stroke();
-    const hintBefore = hintCtx.getImageData(0, 0, 220, 220).data;
-    paintBrushStroke(hintCtx, horizontal, base, { color: "#29241d", detail: true, capabilities: high });
-    const hintAfter = hintCtx.getImageData(0, 0, 220, 220).data; let hintAlphaLoss = 0;
+    const hint = squareCanvas(), hintCtx = hint.getContext("2d"); hintCtx.strokeStyle = "#d08b78"; hintCtx.lineWidth = 22; hintCtx.lineCap = "round"; hintCtx.beginPath(); hintCtx.moveTo(110, 20); hintCtx.lineTo(110, 200); hintCtx.stroke(); const hintBefore = pixels(hint).slice(); paintFaithfulInk(hintCtx, horizontal, base, { color: "#29241d" }); const hintAfter = pixels(hint); let hintAlphaLoss = 0;
     for (let i = 3; i < hintBefore.length; i += 4) if (hintBefore[i] === 255 && hintAfter[i] < 255) hintAlphaLoss += 1;
 
-    const normalized = [vertical, horizontal].map(stroke => stroke.map(point => ({ x: point.x / 220, y: point.y / 220, w: point.w, v: point.v })));
+    const normalized = [vertical, horizontal, [{ x: 110, y: 160, p: 0 }]].map(stroke => stroke.map(point => ({ x: point.x / 220, y: point.y / 220, p: point.p })));
     const share = squareCanvas(), shareCtx = share.getContext("2d"); shareCtx.fillStyle = "#fdfbf4"; shareCtx.fillRect(0, 0, 220, 220); drawShareHandwriting(shareCtx, normalized, 10, 10, 200, 0);
     const expected = squareCanvas(), expectedCtx = expected.getContext("2d"); expectedCtx.fillStyle = "#fdfbf4"; expectedCtx.fillRect(0, 0, 220, 220); expectedCtx.strokeStyle = "#c2452c38"; expectedCtx.lineWidth = 2; expectedCtx.setLineDash([7, 7]);
     [[110, 10, 110, 210], [10, 110, 210, 110], [10, 10, 210, 210], [210, 10, 10, 210]].forEach(line => { expectedCtx.beginPath(); expectedCtx.moveTo(line[0], line[1]); expectedCtx.lineTo(line[2], line[3]); expectedCtx.stroke(); }); expectedCtx.setLineDash([]);
-    normalized.forEach(stroke => { const layerCanvas = squareCanvas(), layerCtx = layerCanvas.getContext("2d"), scaled = stroke.map(point => ({ x: 10 + point.x * 200, y: 10 + point.y * 200, w: point.w, v: point.v })); paintBrushStroke(layerCtx, scaled, 15, { color: "#29241d", detail: true }); expectedCtx.drawImage(layerCanvas, 0, 0); });
-    const sharePixels = shareCtx.getImageData(0, 0, 220, 220).data, expectedPixels = expectedCtx.getImageData(0, 0, 220, 220).data; let shareMismatch = 0, shareMinAlpha = 255;
-    for (let i = 0; i < sharePixels.length; i += 1) { if (sharePixels[i] !== expectedPixels[i]) shareMismatch += 1; if (i % 4 === 3) shareMinAlpha = Math.min(shareMinAlpha, sharePixels[i]); }
+    normalized.forEach(stroke => paintFaithfulInk(expectedCtx, stroke.map(point => ({ x: 10 + point.x * 200, y: 10 + point.y * 200, p: point.p })), 15, { color: "#29241d" }));
+    const sharePixels = pixels(share), expectedPixels = pixels(expected); let shareMismatch = 0, shareMinAlpha = 255; for (let i = 0; i < sharePixels.length; i += 1) { if (sharePixels[i] !== expectedPixels[i]) shareMismatch += 1; if (i % 4 === 3) shareMinAlpha = Math.min(shareMinAlpha, sharePixels[i]); }
 
-    const perfCanvas = document.createElement("canvas"); perfCanvas.width = 300; perfCanvas.height = 300; const perfCtx = perfCanvas.getContext("2d");
-    const perfPoints = Array.from({ length: 96 }, (_, i) => ({ x: 15 + i * 2.75, y: 150 + Math.sin(i / 7) * 55, t: i * 3, w: .75 + (i % 9) / 18, v: 1.25 + (i % 5) * .12 }));
-    const started = performance.now(); for (let i = 0; i < 90; i += 1) { perfCtx.clearRect(0, 0, 300, 300); paintBrushStroke(perfCtx, perfPoints, 14, { color: "#29241d", detail: true, capabilities: high }); } const averageMs = (performance.now() - started) / 90;
-    const sinkCanvas=makeCanvas(),sinkCtx=sinkCanvas.getContext("2d"),sinkCases=[[null],[{}],[{x:null,y:null}],[{x:"",y:false}],[{x:Number.NaN,y:4}]],sinkResults=[]; let sinkThrew=false;
-    sinkCases.forEach(points=>{ try{ sinkResults.push(paintBrushStroke(sinkCtx,points,base,{detail:false})); }catch(error){ sinkThrew=true; } });
-    const validSingle=paintBrushStroke(sinkCtx,[{x:12,y:16,t:1,w:1,v:0}],base,{detail:false});
-    return { widths, detail: { fullDetail, lowDetail, reducedDetail }, taper, texture, recognition, legacyWidth, shared, layering: { crossingAlphaLoss, hintAlphaLoss, shareMismatch, shareMinAlpha }, sinkGuard:{sinkResults,sinkThrew,validSingle}, averageMs };
+    const dot = makeCanvas(), dotCtx = dot.getContext("2d"), validSingle = paintFaithfulInk(dotCtx, [{ x: 12, y: 16, t: 1, p: 0 }], base), dotPixels = pixels(dot); let dotAlpha = 0; for (let i = 3; i < dotPixels.length; i += 4) if (dotPixels[i]) dotAlpha += 1;
+    const singleNormalization = { session: normalizedSessionInkStrokes([[{ x: 12, y: 16, p: .7 }]]), recent: normalizedInkStrokes([[{ x: .5, y: .5, p: .7 }]]) };
+    const perfCanvas = document.createElement("canvas"); perfCanvas.width = 300; perfCanvas.height = 300; const perfCtx = perfCanvas.getContext("2d"), perfPoints = Array.from({ length: 96 }, (_, i) => ({ x: 15 + i * 2.75, y: 150 + Math.sin(i / 7) * 55, t: i * 3, p: i % 4 ? .35 : .8 }));
+    const started = performance.now(); for (let i = 0; i < 90; i += 1) { perfCtx.clearRect(0, 0, 300, 300); paintFaithfulInk(perfCtx, perfPoints, 14, { color: "#29241d" }); } const averageMs = (performance.now() - started) / 90;
+    const sinkCases = [[null], [{}], [{ x: null, y: null }], [{ x: "", y: false }], [{ x: Number.NaN, y: 4 }]], sinkResults = []; let sinkThrew = false; sinkCases.forEach(points => { try { sinkResults.push(paintFaithfulInk(dotCtx, points, base)); } catch (error) { sinkThrew = true; } });
+    return { widths, noTaper, pressureSpans, legacyMetadataMismatch, recognition, shared, compact, layering: { crossingAlphaLoss, hintAlphaLoss, shareMismatch, shareMinAlpha }, dot: { validSingle, dotAlpha, singleNormalization }, sinkGuard: { sinkResults, sinkThrew }, averageMs };
   });
-  assert(brushEngine.widths.slow > brushEngine.widths.fast && brushEngine.widths.pressureHigh > brushEngine.widths.pressureLow && brushEngine.detail.fullDetail && !brushEngine.detail.lowDetail && !brushEngine.detail.reducedDetail,
-    "Expected slower or harder Pencil input to draw wider and low-end/reduced-motion devices to simplify details", brushEngine);
-  assert(brushEngine.taper.middle > brushEngine.taper.head && brushEngine.taper.head > brushEngine.taper.tail && brushEngine.texture.detailed < brushEngine.texture.simple && brushEngine.texture.detailedHead <= brushEngine.texture.simpleHead + 4,
-    "Expected tapered endpoints, restrained dry-brush texture, and at most a two-pixel ink bloom per edge", brushEngine);
-  assert(JSON.stringify(brushEngine.recognition.plain) === JSON.stringify(brushEngine.recognition.enriched) && brushEngine.legacyWidth === 20 && brushEngine.shared[0].every((point) => Number.isFinite(point.w) && Number.isFinite(point.v)) && brushEngine.averageMs < 16.7,
-    "Expected brush metadata to leave recognition unchanged, preserve legacy ink width, survive sharing, and render within one 60fps frame", brushEngine);
-  assert(brushEngine.layering.crossingAlphaLoss === 0 && brushEngine.layering.hintAlphaLoss === 0 && brushEngine.layering.shareMismatch === 0 && brushEngine.layering.shareMinAlpha === 255,
-    "Expected each dry-brush stroke to preserve crossing ink and hints, match transparent-layer share composition, and keep PNG pixels opaque", brushEngine.layering);
-  assert(!brushEngine.sinkGuard.sinkThrew&&brushEngine.sinkGuard.sinkResults.length===5&&brushEngine.sinkGuard.sinkResults.every(value=>value===false)&&brushEngine.sinkGuard.validSingle,
-    "Expected the lowest brush sink to reject malformed points without throwing while retaining a legal single-point stroke",brushEngine.sinkGuard);
+  assert(faithfulInk.widths.touchSlow === faithfulInk.widths.touchFast && faithfulInk.widths.legacyThin === faithfulInk.widths.legacyThick && faithfulInk.widths.pressureHigh > faithfulInk.widths.pressureLow && faithfulInk.pressureSpans.high > faithfulInk.pressureSpans.low,
+    "Expected stable finger width, ignored legacy speed/width metadata, and only real Pencil pressure to affect width", faithfulInk);
+  assert(Math.max(...Object.values(faithfulInk.noTaper)) - Math.min(...Object.values(faithfulInk.noTaper)) <= 1 && faithfulInk.legacyMetadataMismatch === 0,
+    "Expected no artificial endpoint taper, dry brush, ink bloom, or speed-dependent pixel change", faithfulInk);
+  assert(JSON.stringify(faithfulInk.recognition.plain) === JSON.stringify(faithfulInk.recognition.enriched) && faithfulInk.shared.length === 2 && faithfulInk.shared[0].every(point => Number.isFinite(point.p) && !("w" in point) && !("v" in point)) && faithfulInk.shared[1].length === 1 && faithfulInk.compact[1].length === 1 && faithfulInk.averageMs < 16.7,
+    "Expected pressure-only sharing, single-dot preservation, recognition invariance, and a 60fps render budget", faithfulInk);
+  assert(faithfulInk.layering.crossingAlphaLoss === 0 && faithfulInk.layering.hintAlphaLoss === 0 && faithfulInk.layering.shareMismatch === 0 && faithfulInk.layering.shareMinAlpha === 255,
+    "Expected later strokes to preserve existing ink/hints and share output to use the same faithful renderer", faithfulInk.layering);
+  assert(faithfulInk.dot.validSingle && faithfulInk.dot.dotAlpha > 0 && faithfulInk.dot.singleNormalization.session[0].length === 1 && faithfulInk.dot.singleNormalization.recent[0].length === 1 && !faithfulInk.sinkGuard.sinkThrew && faithfulInk.sinkGuard.sinkResults.every(value => value === false),
+    "Expected a legal zero-displacement dot across session/recent data while malformed points remain rejected", faithfulInk);
 
   const funnelBoundary = await page.evaluate(() => {
     const originalFunnel = JSON.parse(JSON.stringify(funnel)), originalOpens = opens.slice(), originalRound = { roundId, activeMode, baseTargets: baseTargets.slice(), attemptSeq };
@@ -1108,11 +1095,47 @@ let browser;
   const touchSession=await page.context().newCDPSession(page),touchStart=pointerHit.point,touchEnd={x:Math.min(writingRect.x+writingRect.width-12,pointerHit.point.x+66),y:Math.min(writingRect.y+writingRect.height-12,pointerHit.point.y+68)};
   await touchSession.send("Input.dispatchTouchEvent",{type:"touchStart",touchPoints:[touchStart]});
   const duringRealPointer=await page.evaluate(() => ({header:Number(getComputedStyle(document.querySelector(".chdr")).opacity),prompt:Number(getComputedStyle(document.getElementById("prompt")).opacity),actions:Number(getComputedStyle(actions).opacity),writing:card.classList.contains("writing"),locked:actions.classList.contains("inputLock")&&skipAction.classList.contains("inputLock")}));
-  await touchSession.send("Input.dispatchTouchEvent",{type:"touchMove",touchPoints:[touchEnd]}); await touchSession.send("Input.dispatchTouchEvent",{type:"touchEnd",touchPoints:[]}); await touchSession.detach();
-  const afterRealPointer=await page.evaluate(() => ({header:Number(getComputedStyle(document.querySelector(".chdr")).opacity),prompt:Number(getComputedStyle(document.getElementById("prompt")).opacity),actions:Number(getComputedStyle(actions).opacity),writing:card.classList.contains("writing"),cooldown:actionCooldownUntil,locked:actions.classList.contains("inputLock")||skipAction.classList.contains("inputLock"),inert:writingChromeNodes().some(node=>node.inert||node.getAttribute("aria-hidden")==="true"),ink:inkStrokes.length}));
+  await touchSession.send("Input.dispatchTouchEvent",{type:"touchMove",touchPoints:[touchEnd]}); await page.evaluate(()=>{ window.__inkBeforeRelease=inkCtx.getImageData(0,0,inkCanvas.width,inkCanvas.height).data.slice(); }); await touchSession.send("Input.dispatchTouchEvent",{type:"touchEnd",touchPoints:[]}); await touchSession.detach();
+  const afterRealPointer=await page.evaluate(() => { const pixels=inkCtx.getImageData(0,0,inkCanvas.width,inkCanvas.height).data, before=window.__inkBeforeRelease; let releaseMismatch=0; for(let i=0;i<pixels.length;i++) if(pixels[i]!==before[i]) releaseMismatch++; const committed=pixels.slice(),matrix=()=>{const m=inkCtx.getTransform();return [m.a,m.b,m.c,m.d,m.e,m.f];},beforeMatrix=matrix(),metrics=data=>{ let alpha=0,sum=0,x1=inkCanvas.width,y1=inkCanvas.height,x2=-1,y2=-1; for(let i=3;i<data.length;i+=4){ if(!data[i]) continue; alpha++; sum+=data[i]; const n=(i-3)/4,x=n%inkCanvas.width,y=Math.floor(n/inkCanvas.width); x1=Math.min(x1,x);y1=Math.min(y1,y);x2=Math.max(x2,x);y2=Math.max(y2,y); } return {alpha,sum,box:[x1,y1,x2,y2]}; }; redrawInk(); const rerendered=inkCtx.getImageData(0,0,inkCanvas.width,inkCanvas.height).data.slice(),afterMatrix=matrix(); redrawInk(); const repeated=inkCtx.getImageData(0,0,inkCanvas.width,inkCanvas.height).data; let rerenderMismatch=0,repeatMismatch=0; const samples=[]; for(let i=0;i<rerendered.length;i++){ if(rerendered[i]!==committed[i]){ rerenderMismatch++; if(samples.length<8) samples.push([i,committed[i],rerendered[i]]); } if(rerendered[i]!==repeated[i]) repeatMismatch++; } delete window.__inkBeforeRelease; return {header:Number(getComputedStyle(document.querySelector(".chdr")).opacity),prompt:Number(getComputedStyle(document.getElementById("prompt")).opacity),actions:Number(getComputedStyle(actions).opacity),writing:card.classList.contains("writing"),cooldown:actionCooldownUntil,locked:actions.classList.contains("inputLock")||skipAction.classList.contains("inputLock"),inert:writingChromeNodes().some(node=>node.inert||node.getAttribute("aria-hidden")==="true"),ink:inkStrokes.length,releaseMismatch,rerenderMismatch,repeatMismatch,beforeMatrix,afterMatrix,renderSource:String(renderLiveInk),committed:metrics(committed),rerendered:metrics(rerendered),samples,points:cloneObj(inkStrokes)}; });
+  const realReplayStable=JSON.stringify(afterRealPointer.committed.box)===JSON.stringify(afterRealPointer.rerendered.box)
+    &&Math.abs(afterRealPointer.committed.alpha-afterRealPointer.rerendered.alpha)/afterRealPointer.rerendered.alpha<.025
+    &&Math.abs(afterRealPointer.committed.sum-afterRealPointer.rerendered.sum)/afterRealPointer.rerendered.sum<.005
+    &&afterRealPointer.repeatMismatch===0;
   assert(duringRealPointer.header===1&&duringRealPointer.prompt===1&&duringRealPointer.actions===1&&!duringRealPointer.writing&&duringRealPointer.locked
-    &&afterRealPointer.header===1&&afterRealPointer.prompt===1&&afterRealPointer.actions===1&&!afterRealPointer.writing&&afterRealPointer.cooldown===0&&!afterRealPointer.locked&&!afterRealPointer.inert&&afterRealPointer.ink===1,
-    "Expected a real pointer stroke to keep layout stable and unlock grading immediately on release", {pointerHit,duringRealPointer,afterRealPointer});
+    &&afterRealPointer.header===1&&afterRealPointer.prompt===1&&afterRealPointer.actions===1&&!afterRealPointer.writing&&afterRealPointer.cooldown===0&&!afterRealPointer.locked&&!afterRealPointer.inert&&afterRealPointer.ink===1&&afterRealPointer.releaseMismatch===0&&realReplayStable,
+    "Expected a real pointer stroke to keep layout stable, remain exact on release and geometrically stable across antialiasing/replay, and unlock grading immediately", {pointerHit,duringRealPointer,afterRealPointer});
+  const liveStrokeFidelity=await page.evaluate(async()=>{ const rect=inkCanvas.getBoundingClientRect(), sharedLine=[[[.15,.5],[.3,.5],[.5,.5],[.7,.5],[.85,.5]]], patterns=[
+    {name:"zero-touch",strokes:[[[.46,.46]]]},
+    {name:"zero-pen",pointer:"pen",pressure:.72,strokes:[[[.54,.46]]]},
+    {name:"short",strokes:[[[.46,.46],[.49,.48]]]},
+    {name:"finger-fast",strokes:sharedLine},
+    {name:"finger-slow",delay:22,strokes:sharedLine},
+    {name:"corner",strokes:[[[.2,.25],[.5,.25],[.55,.3],[.55,.65],[.72,.72]]]},
+    {name:"curve",strokes:[[[.2,.65],[.27,.42],[.43,.28],[.62,.3],[.77,.48],[.68,.68]]]},
+    {name:"hook",strokes:[[[.35,.2],[.35,.4],[.37,.65],[.6,.7],[.7,.62],[.63,.55]]]},
+    {name:"pen-light",pointer:"pen",pressure:.2,strokes:[[[.2,.2],[.35,.35],[.52,.52],[.72,.72]]]},
+    {name:"pen-heavy",pointer:"pen",pressure:.85,strokes:[[[.2,.2],[.35,.35],[.52,.52],[.72,.72]]]},
+    {name:"multi-cross",strokes:[[[.5,.16],[.5,.35],[.5,.55],[.5,.82]],[[.16,.5],[.35,.5],[.58,.5],[.82,.5]]]},
+  ], results=[], rendered={}; let pointerId=9200;
+    const pixels=()=>inkCtx.getImageData(0,0,inkCanvas.width,inkCanvas.height).data.slice(), diff=(a,b)=>{ let n=0; for(let i=0;i<a.length;i++) if(a[i]!==b[i]) n++; return n; }, alphaCount=data=>{ let count=0; for(let i=3;i<data.length;i+=4) if(data[i]) count++; return count; };
+    const pointer=(type,id,point,buttons,options={})=>new PointerEvent(type,{bubbles:true,cancelable:true,pointerId:id,pointerType:options.pointer||"touch",isPrimary:options.primary!==false,button:0,buttons,pressure:buttons?(options.pressure||.5):0,clientX:rect.left+rect.width*point[0],clientY:rect.top+rect.height*point[1]});
+    for(const sample of patterns){ clearInk(); const releases=[];
+      for(const stroke of sample.strokes){ const id=pointerId++; inkCanvas.dispatchEvent(pointer("pointerdown",id,stroke[0],1,sample)); for(const point of stroke.slice(1)){ if(sample.delay) await new Promise(resolve=>setTimeout(resolve,sample.delay)); inkCanvas.dispatchEvent(pointer("pointermove",id,point,1,sample)); }
+        const before=pixels(); inkCanvas.dispatchEvent(pointer("pointerup",id,stroke.at(-1),0,sample)); const after=pixels(); releases.push(diff(before,after)); }
+      const committed=pixels(), geometry=JSON.stringify(inkStrokes.map(stroke=>stroke.map(point=>[point.x,point.y,point.p]))), metadataClean=inkStrokes.flat().every(point=>!("w" in point)&&!("v" in point)); redrawInk(); const rerender=pixels(); rendered[sample.name]=committed;
+      const shared=shareInkFromSnapshot({canvasSize:S,inkStrokes}),compact=compactHandCardStrokes(shared),session=normalizedSessionInkStrokes(inkStrokes);
+      results.push({name:sample.name,releases,rerender:diff(committed,rerender),strokes:inkStrokes.length,points:inkStrokes.map(stroke=>stroke.length),alpha:alphaCount(committed),metadataClean,fullChain:shared.length===inkStrokes.length&&compact.length===inkStrokes.length&&session.length===inkStrokes.length,geometryStable:geometry===JSON.stringify(inkStrokes.map(stroke=>stroke.map(point=>[point.x,point.y,point.p])))}); }
+    const speedMismatch=diff(rendered["finger-fast"],rendered["finger-slow"]),pressurePixels={light:results.find(row=>row.name==="pen-light").alpha,heavy:results.find(row=>row.name==="pen-heavy").alpha};
+    clearInk(); const cancelId=pointerId++,cancelPoint=[.34,.34]; inkCanvas.dispatchEvent(pointer("pointerdown",cancelId,cancelPoint,1)); inkCanvas.dispatchEvent(pointer("pointercancel",cancelId,cancelPoint,0)); const cancel={strokes:inkStrokes.length,alpha:alphaCount(pixels())};
+    clearInk(); const lostId=pointerId++,lostPoint=[.38,.38]; inkCanvas.dispatchEvent(pointer("pointerdown",lostId,lostPoint,1)); inkCanvas.dispatchEvent(pointer("lostpointercapture",lostId,lostPoint,0)); const lostCapture={strokes:inkStrokes.length,alpha:alphaCount(pixels())};
+    clearInk(); const primaryId=pointerId++,secondaryId=pointerId++,first=[.4,.4],second=[.6,.6]; inkCanvas.dispatchEvent(pointer("pointerdown",primaryId,first,1)); inkCanvas.dispatchEvent(pointer("pointerdown",secondaryId,second,1,{primary:false})); inkCanvas.dispatchEvent(pointer("pointerup",secondaryId,second,0,{primary:false})); inkCanvas.dispatchEvent(pointer("pointerup",primaryId,first,0)); const multiPointer={strokes:inkStrokes.length,alpha:alphaCount(pixels())};
+    clearInk(); inkStrokes=Array.from({length:20},(_,row)=>Array.from({length:20},(_,i)=>({x:20+i*10,y:25+row*13,p:row%3?.25:.7}))); curInkStroke=Array.from({length:96},(_,i)=>({x:15+i*2.75,y:S/2+Math.sin(i/7)*55,t:i*3,p:i%4?.3:.8})); const started=performance.now(); for(let i=0;i<30;i++) renderLiveInk(); const averageMs=(performance.now()-started)/30; curInkStroke=null; clearInk();
+    const final=sharedLine[0],id=pointerId++; inkCanvas.dispatchEvent(pointer("pointerdown",id,final[0],1)); final.slice(1).forEach(point=>inkCanvas.dispatchEvent(pointer("pointermove",id,point,1))); inkCanvas.dispatchEvent(pointer("pointerup",id,final.at(-1),0));
+    return {results,speedMismatch,pressurePixels,cancel,lostCapture,multiPointer,averageMs,finalStrokes:inkStrokes.length}; });
+  assert(liveStrokeFidelity.results.length===11&&liveStrokeFidelity.results.every(row=>row.releases.every(value=>value===0)&&row.rerender===0&&row.geometryStable&&row.metadataClean&&row.fullChain)&&liveStrokeFidelity.results.find(row=>row.name==="zero-touch").points[0]===1&&liveStrokeFidelity.results.find(row=>row.name==="zero-pen").points[0]===1&&liveStrokeFidelity.results.at(-1).strokes===2,
+    "Expected true zero-displacement, multi-stroke, touch, and Pencil input to stay pixel/geometrically identical across every data exit",liveStrokeFidelity);
+  assert(liveStrokeFidelity.speedMismatch===0&&liveStrokeFidelity.pressurePixels.heavy>liveStrokeFidelity.pressurePixels.light&&liveStrokeFidelity.cancel.strokes===0&&liveStrokeFidelity.cancel.alpha===0&&liveStrokeFidelity.lostCapture.strokes===0&&liveStrokeFidelity.lostCapture.alpha===0&&liveStrokeFidelity.multiPointer.strokes===0&&liveStrokeFidelity.multiPointer.alpha===0&&liveStrokeFidelity.averageMs<16.7&&liveStrokeFidelity.finalStrokes===1,
+    "Expected speed-independent finger ink, pressure-only Pencil width, interruption/multi-touch cancellation, and a 60fps live renderer",liveStrokeFidelity);
   const reducedOpening = await page.evaluate(() => { const original=window.matchMedia; window.matchMedia=()=>({matches:true}); roundOpeningPending=true; const played=playRoundOpening(),direct=!practiceArea.classList.contains("opening"); window.matchMedia=original; return {played,direct}; });
   assert(!reducedOpening.played&&reducedOpening.direct,"Expected reduced motion to keep the round opening direct",reducedOpening);
   await page.click("#done");
@@ -2116,8 +2139,9 @@ let browser;
     const index = CARDS.findIndex((card) => card.target === "水"), emptyIndex = CARDS.findIndex((card) => card.target === "火"), m = cardMemory(index);
     const strokes = [
       [{ x: .48, y: .1, w: 1.2, v: .2 }, { x: .48, y: .3, w: 1.15, v: .4 }, { x: .5, y: .55, w: 1, v: .8 }, { x: .48, y: .88, w: .75, v: 1.4 }],
-      [{ x: .18, y: .43, w: 1.1, v: .3 }, { x: .35, y: .5, w: 1, v: .6 }, { x: .2, y: .73, w: .7, v: 1.2 }],
-      [{ x: .82, y: .4, w: 1.1, v: .3 }, { x: .65, y: .52, w: 1, v: .7 }, { x: .83, y: .78, w: .7, v: 1.3 }],
+      [{ x: .18, y: .43, p: .25 }, { x: .35, y: .5, p: .45 }, { x: .2, y: .73, p: .75 }],
+      [{ x: .82, y: .4, p: .3 }, { x: .65, y: .52, p: .55 }, { x: .83, y: .78, p: .8 }],
+      [{ x: .5, y: .5, p: .7 }],
     ];
     m.seen = 1; m.firstSeenAt = new Date("2026-07-19T08:00:00Z").getTime(); m.target = "水"; m.word = CARDS[index].word;
     const stored = persistRecentInk(m, strokes, new Date("2026-07-19T08:00:00Z").getTime());
@@ -2162,7 +2186,7 @@ let browser;
     const nativeShare = await exportHandCard("share", { index, ratio: "square", nativeBridge });
     const downloads = [], webSave = await exportHandCard("save", { index, ratio: "square", nativeBridge: null, download: (blob, name) => downloads.push({ size: blob.size, name }) });
     const shares = [], webShare = await exportHandCard("share", { index, ratio: "portrait", nativeBridge: null, navigator: { canShare: () => true, share: async (payload) => shares.push(payload) } });
-    const backup = JSON.parse(backupPayload({ preserveMeta: true })), backupMemory = JSON.parse(backup.data[MEMORY_KEY]), backedUp = Object.prototype.hasOwnProperty.call(backup.data, HAND_CARD_KEY) && Array.isArray(backupMemory[cardKey(index)].recentInk.strokes);
+    const backup = JSON.parse(backupPayload({ preserveMeta: true })), backupMemory = JSON.parse(backup.data[MEMORY_KEY]), backedUp = Object.prototype.hasOwnProperty.call(backup.data, HAND_CARD_KEY) && Array.isArray(backupMemory[cardKey(index)].recentInk.strokes), singleDotBackedUp = backupMemory[cardKey(index)].recentInk.strokes.some(stroke => stroke.length === 1);
     const inkRow = recentInkRows().find((row) => row.key === cardKey(index));
 
     m.recentInk = { version: 1, day: m.recentInk.day, at: m.recentInk.at, dataURL: m.recentInk.dataURL };
@@ -2189,22 +2213,22 @@ let browser;
       noMarketing: !/二维码|下载引导|扫码|slogan/i.test(rendererSource),
       firstPrompt, promptVisible, secondPrompt, wrongPrompt, promptOpened, disabledPrompt, settingOff,
       nativeSave, nativeShare, nativeMessages: nativeMessages.map((message) => ({ type: message.type, kind: message.kind, png: message.dataURL.startsWith("data:image/png;base64,") })),
-      webSave, webShare, downloads, shares: shares.length, backedUp, inkBytes: inkRow && inkRow.bytes,
+      webSave, webShare, downloads, shares: shares.length, backedUp, singleDotBackedUp, inkBytes: inkRow && inkRow.bytes,
       legacy: { restored: legacyRestore && legacyRestore.applied, detail: legacyDetail, portraitBlocked: legacyPortrait === null, squareBlocked: legacySquare === null, exportRoute: legacyExport.route },
     };
   });
   assert(handCards.stored && handCards.detailEntry && handCards.emptyHidden && handCards.historicalHint === "用这份笔迹做一张字卡。" && handCards.cards.portrait.width === 1080 && handCards.cards.portrait.height === 1440 && handCards.cards.square.width === 1080 && handCards.cards.square.height === 1080,
     "Expected a recent-ink-only detail entry and clear 2x portrait/square canvases", handCards);
-  assert(handCards.cards.portrait.source === "vector" && handCards.cards.square.source === "vector" && handCards.cards.portrait.strokes === 3 && handCards.cards.portrait.dark > 100 && handCards.cards.square.dark > 100
+  assert(handCards.cards.portrait.source === "vector" && handCards.cards.square.source === "vector" && handCards.cards.portrait.strokes === 4 && handCards.cards.portrait.dark > 100 && handCards.cards.square.dark > 100
     && handCards.cards.portrait.redGrid === 0 && handCards.cards.square.redGrid === 0 && handCards.cards.portrait.legacyPaper === 0 && handCards.cards.square.legacyPaper === 0
     && handCards.cards.portrait.paper[0] === 244 && handCards.cards.portrait.paper[1] === 239 && handCards.cards.portrait.paper[2] === 226 && handCards.cards.portrait.signature < handCards.cards.portrait.date && handCards.noPrintedTargetFallback && handCards.noMarketing,
-  "Expected fixed raw-paper cards whose main glyph comes only from brush-engine handwriting with restrained attribution", handCards);
+  "Expected fixed raw-paper cards whose main glyph comes only from faithful vector handwriting, including a zero-displacement dot", handCards);
   assert(handCards.legacy.restored && handCards.legacy.detail.entryHidden && handCards.legacy.detail.promptVisible && handCards.legacy.portraitBlocked && handCards.legacy.squareBlocked && handCards.legacy.exportRoute === "empty",
     "Expected restored v1 raster-only handwriting to stay viewable but never become a gridded or printed handwriting card", handCards.legacy);
   assert(handCards.firstPrompt && handCards.promptVisible && !handCards.secondPrompt && !handCards.wrongPrompt && handCards.promptOpened && !handCards.disabledPrompt && handCards.settingOff,
     "Expected one non-blocking good-stroke prompt per day with a persistent off switch", handCards);
   assert(handCards.nativeSave.route === "native-save" && handCards.nativeShare.route === "native-share" && handCards.nativeMessages[0].type === "savePracticeCard" && handCards.nativeMessages[1].type === "sharePracticeCard" && handCards.nativeMessages.every((message) => message.kind === "character" && message.png)
-    && handCards.webSave.route === "download" && handCards.downloads.length === 1 && handCards.webShare.route === "share" && handCards.shares === 1 && handCards.backedUp && handCards.inkBytes > 0,
+    && handCards.webSave.route === "download" && handCards.downloads.length === 1 && handCards.webShare.route === "share" && handCards.shares === 1 && handCards.backedUp && handCards.singleDotBackedUp && handCards.inkBytes > 0,
   "Expected photo-library, system-share, Web Share/download, backup, and bounded recent-ink routes", handCards);
   const libraries = await page.evaluate(() => {
     const originalPayload = backupPayload({ preserveMeta: true });

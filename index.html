@@ -1163,15 +1163,14 @@ const DEV_TOOLS = (()=>{ try{ return new URLSearchParams(location.search).get("d
 function statusFor(i){ return status[cardKey(i)]; }
 function setStatus(i,s){ status[cardKey(i)]=s; return save(DECK_KEY,status); }
 const RECENT_INK_MAX=96, RECENT_INK_BUDGET=420*1024;
-// 一笔至少要有两个有效点，点必须是 {x,y} 有限数。备份里塞 [[null]] 这类嵌套坏值时，
+// 合法的零位移墨点只有一个 {x,y} 有限点。备份里塞 [[null]] 这类嵌套坏值时，
 // 只判外层 Array 会让它一路活到画布上，读 point.x 直接抛错并弹「页面发生异常」。
 // 导入侧和渲染侧共用这一份，避免只补一头。
 function normalizedInkStrokes(value){ if(!Array.isArray(value)) return [];
   return value.map(stroke=>Array.isArray(stroke)?stroke.filter(point=>plainObject(point)&&typeof point.x==="number"&&Number.isFinite(point.x)&&typeof point.y==="number"&&Number.isFinite(point.y))
-      .map(point=>{ const out={x:point.x,y:point.y}; if(typeof point.w==="number"&&Number.isFinite(point.w)) out.w=point.w; if(typeof point.v==="number"&&Number.isFinite(point.v)) out.v=point.v; return out; }):[])
-    .filter(stroke=>stroke.length>1); }
-// 会话画布允许合法单点：paintBrushStroke 会把它画成圆点。recentInk 字卡仍要求至少两点，
-// 两种持久化用途不能共用同一个最小点数，否则恢复备份会悄悄吃掉点按笔画。
+      .map(point=>{ const out={x:point.x,y:point.y}; ["p","w","v"].forEach(key=>{ if(typeof point[key]==="number"&&Number.isFinite(point[key])) out[key]=point[key]; }); return out; }):[])
+    .filter(stroke=>stroke.length>0); }
+// 会话额外保留时间与真实压力。旧 w/v 字段仅兼容读取，新渲染不再用它们推测笔锋。
 function normalizedSessionInkStrokes(value){ if(!Array.isArray(value)) return [];
   return value.map(stroke=>Array.isArray(stroke)?stroke.filter(point=>plainObject(point)&&typeof point.x==="number"&&Number.isFinite(point.x)&&typeof point.y==="number"&&Number.isFinite(point.y))
       .map(point=>{ const out={x:point.x,y:point.y}; ["t","p","w","v"].forEach(key=>{ if(typeof point[key]==="number"&&Number.isFinite(point[key])) out[key]=point[key]; }); return out; }):[])
@@ -1856,9 +1855,9 @@ function recordQuality(kind, idx=currentCardIndex()){ if(idx==null || idx<0) ret
     else sessionDone.delete(idx); saveSessionSnapshot(); }
   if(cur && idx===currentCardIndex()) renderQuality(); }
 function shareInkFromSnapshot(snapshot){ const safe=normalizedSubmissionSnapshot(snapshot), source=safe?safe.inkStrokes||[]:[], size=Math.max(1,Number(safe&&safe.canvasSize)||S), maxPoints=48;
-  return source.slice(0,48).map(points=>{ const list=Array.isArray(points)?points:[], sampled=list.length<=maxPoints?list:Array.from({length:maxPoints},(_,i)=>list[Math.round(i*(list.length-1)/(maxPoints-1))]); return sampled.map(point=>{ const row={x:Math.round(clamp(Number(point.x)/size,0,1)*1000)/1000,y:Math.round(clamp(Number(point.y)/size,0,1)*1000)/1000};
-      if(Number.isFinite(Number(point.w))) row.w=Math.round(clamp(Number(point.w),.35,1.7)*1000)/1000; if(Number.isFinite(Number(point.v))) row.v=Math.round(clamp(Number(point.v),0,6)*1000)/1000; return row; }).filter(point=>Number.isFinite(point.x)&&Number.isFinite(point.y)); }).filter(points=>points.length); }
-function compactHandCardStrokes(strokes){ return (strokes||[]).slice(0,36).map(points=>{ const list=Array.isArray(points)?points:[],max=24,sampled=list.length<=max?list:Array.from({length:max},(_,i)=>list[Math.round(i*(list.length-1)/(max-1))]); return sampled.map(point=>({x:Math.round(clamp(Number(point.x),0,1)*1000)/1000,y:Math.round(clamp(Number(point.y),0,1)*1000)/1000,w:Math.round(clamp(Number(point.w)||1,.35,1.7)*100)/100,v:Math.round(clamp(Number(point.v)||0,0,6)*100)/100})); }).filter(points=>points.length); }
+  return source.slice(0,48).map(points=>{ const list=Array.isArray(points)?points:[], sampled=list.length<=maxPoints?list:Array.from({length:maxPoints},(_,i)=>list[Math.round(i*(list.length-1)/(maxPoints-1))]); return sampled.map(point=>{ const row={x:Math.round(clamp(Number(point.x)/size,0,1)*1000)/1000,y:Math.round(clamp(Number(point.y)/size,0,1)*1000)/1000}, pressure=clamp(Number(point.p)||0,0,1);
+      if(pressure>0) row.p=Math.round(pressure*1000)/1000; return row; }).filter(point=>Number.isFinite(point.x)&&Number.isFinite(point.y)); }).filter(points=>points.length); }
+function compactHandCardStrokes(strokes){ return (strokes||[]).slice(0,36).map(points=>{ const list=Array.isArray(points)?points:[],max=24,sampled=list.length<=max?list:Array.from({length:max},(_,i)=>list[Math.round(i*(list.length-1)/(max-1))]); return sampled.map(point=>{ const row={x:Math.round(clamp(Number(point.x),0,1)*1000)/1000,y:Math.round(clamp(Number(point.y),0,1)*1000)/1000},pressure=clamp(Number(point.p)||0,0,1); if(pressure>0) row.p=Math.round(pressure*100)/100; return row; }); }).filter(points=>points.length); }
 function setRoundHandwriting(idx,strokes){ const key=String(idx); if(Array.isArray(strokes)&&strokes.length) roundHandwriting[key]=cloneObj(strokes); else delete roundHandwriting[key]; }
 function roundHandwritingFor(stat){ const direct=roundHandwriting[String(stat&&stat.idx)]; if(Array.isArray(direct)&&direct.length) return direct; const recent=stat&&memory[cardKey(stat.idx)]&&memory[cardKey(stat.idx)].recentInk; return recent&&Array.isArray(recent.strokes)?recent.strokes:[]; }
 function persistRecentInk(m,strokes,at=Date.now()){ if(!m || !Array.isArray(strokes) || !strokes.some(points=>Array.isArray(points)&&points.length)) return false;
@@ -2244,9 +2243,7 @@ function idealBoxSize(){ const w=window.innerWidth||document.documentElement.cli
 let S = idealBoxSize();
 let gridCanvas, inkCanvas, inkCtx, hzEl, peekEl, writer=null, peekWriter=null, practiceCharData=null, loadToken=0, shownStrokes=0, totalStrokes=0, groups=[], groupIdx=0, strokeDataOffline=false;
 const PEEK_INK_OPACITY=0.04;
-let drawing=false, last=null, cur=null, actionCooldownUntil=0, actionUnlockTimer=0, activePointers=new Set(), peeking=false, peekReleasePending=false, actionStack=[], seenGroups=new Set();
-let brushLiveState={ema:0};
-const brushLayerCache=new WeakMap();
+let drawing=false, cur=null, actionCooldownUntil=0, actionUnlockTimer=0, activePointers=new Set(), peeking=false, peekReleasePending=false, actionStack=[], seenGroups=new Set();
 let writingChromeTimer=0, roundOpeningPending=false, roundOpeningTimer=0;
 const WRITING_CHROME_SELECTOR=".chdr,#prompt,.hint,.phaseTitle,.traceIntro,#teachBubble,#practiceArea > .mascotRow,#actions,.traceActions";
 function writingChromeNodes(){ const card=document.getElementById("card"); return card?Array.from(card.querySelectorAll(WRITING_CHROME_SELECTOR)):[]; }
@@ -2268,33 +2265,23 @@ function drawGridOn(ctx){ ctx.clearRect(0,0,S,S); ctx.fillStyle=cssVar('--card',
   ctx.moveTo(4,4);ctx.lineTo(S-4,S-4); ctx.moveTo(S-4,4);ctx.lineTo(4,S-4); ctx.stroke(); ctx.restore(); }
 function P(e){ const r=inkCanvas.getBoundingClientRect(), pointer=String(e.pointerType||""); return {x:(e.clientX-r.left)*(S/r.width),y:(e.clientY-r.top)*(S/r.height),t:Number(e.timeStamp)||performance.now(),p:pointer==="pen"?clamp(Number(e.pressure)||0,0,1):0}; }
 function penBaseWidth(size=S){ return Math.max(5,size*.045); }
-function brushDetailEnabled(capabilities=navigator){ const cores=Number(capabilities&&capabilities.hardwareConcurrency)||4, memory=Number(capabilities&&capabilities.deviceMemory)||4; return !motionReduced()&&cores>2&&memory>2; }
-function brushWidthFor(point,previous,state={ema:0},base=penBaseWidth()){ const dt=Math.max(1,(Number(point.t)||0)-(Number(previous&&previous.t)||0)), distance=previous?Math.hypot(point.x-previous.x,point.y-previous.y):0, velocity=distance/dt;
-  const pressure=clamp(Number(point.p)||0,0,1), target=pressure>0?clamp(base*(.58+Math.sqrt(pressure)*.94),base*.58,base*1.52):clamp(base*(1.34-Math.min(1,velocity/1.8)*.74),base*.6,base*1.34);
-  state.ema=state.ema?state.ema*.62+target*.38:target; point.w=state.ema/base; point.v=velocity; return state.ema; }
-function brushStrokeGeometry(points,base){ const lengths=[0], widths=[], count=points.length; let total=0, state={ema:0};
-  for(let i=1;i<count;i++){ total+=Math.hypot(points[i].x-points[i-1].x,points[i].y-points[i-1].y); lengths.push(total); }
-  points.forEach((point,i)=>{ const hasWidth=Number(point.w)>0,hasTiming=Number.isFinite(Number(point.t)); let width=hasWidth?clamp(Number(point.w),.35,1.7)*base:(hasTiming?brushWidthFor({...point},points[Math.max(0,i-1)],state,base):base); const along=lengths[i], fromEnd=total-along, head=Math.min(total*.16,base*2), tail=Math.min(total*.3,base*3.8);
-    if(head>0&&along<head) width*=.62+.38*Math.pow(along/head,.7); if(tail>0&&fromEnd<tail) width*=Math.max(.16,Math.pow(fromEnd/tail,.72)); widths.push(Math.max(1,width)); });
-  return {lengths,widths,total}; }
-function paintBrushRibbon(ctx,a,b,ra,rb){ const dx=b.x-a.x,dy=b.y-a.y,length=Math.hypot(dx,dy); if(!length) return; const nx=-dy/length,ny=dx/length;
-  ctx.beginPath(); ctx.moveTo(a.x+nx*ra,a.y+ny*ra); ctx.lineTo(b.x+nx*rb,b.y+ny*rb); ctx.lineTo(b.x-nx*rb,b.y-ny*rb); ctx.lineTo(a.x-nx*ra,a.y-ny*ra); ctx.closePath(); ctx.fill();
-  ctx.beginPath(); ctx.arc(b.x,b.y,rb,0,Math.PI*2); ctx.fill(); }
-function paintInkBloom(ctx,point,radius,color){ const spread=Math.min(2,Math.max(.8,radius*.14)), gradient=ctx.createRadialGradient(point.x,point.y,Math.max(0,radius-spread),point.x,point.y,radius+spread);
-  gradient.addColorStop(0,color); gradient.addColorStop(.72,color); gradient.addColorStop(1,"rgba(0,0,0,0)"); ctx.save(); ctx.globalAlpha=.11; ctx.fillStyle=gradient; ctx.beginPath(); ctx.arc(point.x,point.y,radius+spread,0,Math.PI*2); ctx.fill(); ctx.restore(); }
-function brushStrokeLayer(ctx){ const target=ctx&&ctx.canvas; if(!target || !target.width || !target.height || typeof ctx.getTransform!=="function") return null; let layer=brushLayerCache.get(target);
-  if(!layer || layer.canvas.width!==target.width || layer.canvas.height!==target.height){ const canvas=document.createElement("canvas"); canvas.width=target.width; canvas.height=target.height; layer={canvas,ctx:canvas.getContext("2d")}; brushLayerCache.set(target,layer); }
-  const layerCtx=layer.ctx; layerCtx.setTransform(1,0,0,1,0,0); layerCtx.clearRect(0,0,layer.canvas.width,layer.canvas.height); layerCtx.globalAlpha=1; layerCtx.globalCompositeOperation="source-over"; layerCtx.setLineDash([]); layerCtx.setTransform(ctx.getTransform()); return layer; }
-function compositeBrushLayer(ctx,layer){ if(!layer) return; ctx.save(); ctx.setTransform(1,0,0,1,0,0); ctx.globalAlpha=1; ctx.globalCompositeOperation="source-over"; ctx.drawImage(layer.canvas,0,0); ctx.restore(); }
-function paintBrushStroke(ctx,points,base,options={}){ if(!Array.isArray(points)||!points.length||points.some(point=>!plainObject(point)||typeof point.x!=="number"||!Number.isFinite(point.x)||typeof point.y!=="number"||!Number.isFinite(point.y))) return false; const layer=brushStrokeLayer(ctx), brushCtx=layer?layer.ctx:ctx, color=options.color||cssVar('--inkPen',"#29241d"), detail=options.detail!==false&&brushDetailEnabled(options.capabilities), geometry=brushStrokeGeometry(points,base), widths=geometry.widths;
-  brushCtx.save(); brushCtx.fillStyle=color; if(detail) paintInkBloom(brushCtx,points[0],widths[0]/2,color);
-  if(points.length===1){ brushCtx.beginPath(); brushCtx.arc(points[0].x,points[0].y,widths[0]/2,0,Math.PI*2); brushCtx.fill(); brushCtx.restore(); compositeBrushLayer(ctx,layer); return true; }
-  brushCtx.beginPath(); brushCtx.arc(points[0].x,points[0].y,widths[0]/2,0,Math.PI*2); brushCtx.fill();
-  for(let i=1;i<points.length;i++){ const a=points[i-1],b=points[i],ra=widths[i-1]/2,rb=widths[i]/2; paintBrushRibbon(brushCtx,a,b,ra,rb);
-    const dt=(Number(b.t)||0)-(Number(a.t)||0); if(detail&&dt>52) paintInkBloom(brushCtx,b,rb,color);
-    const velocity=Number.isFinite(Number(b.v))?Number(b.v):(dt>0?Math.hypot(b.x-a.x,b.y-a.y)/dt:0); if(detail&&velocity>1.05&&Math.hypot(b.x-a.x,b.y-a.y)>base*.35){ brushCtx.save(); brushCtx.globalCompositeOperation="destination-out"; brushCtx.globalAlpha=Math.min(.2,.07+(velocity-1.05)*.05); brushCtx.strokeStyle="#000"; brushCtx.lineWidth=Math.max(.65,(ra+rb)*.12); brushCtx.lineCap="round"; brushCtx.setLineDash([Math.max(1,base*.42),Math.max(2,base*.72)]); brushCtx.lineDashOffset=-(i%3)*base*.23; brushCtx.beginPath(); brushCtx.moveTo(a.x,a.y); brushCtx.lineTo(b.x,b.y); brushCtx.stroke(); brushCtx.restore(); } }
-  brushCtx.restore(); compositeBrushLayer(ctx,layer); return true; }
-function strokeTo(point){ const width=brushWidthFor(point,last,brushLiveState), color=cssVar('--inkPen',"#29241d"); inkCtx.save(); inkCtx.fillStyle=color; paintBrushRibbon(inkCtx,last,point,Math.max(1,(Number(last.w)||1)*penBaseWidth()/2),width/2); inkCtx.restore(); last=point; }
+function faithfulInkWidth(point,base){ const pressure=clamp(Number(point&&point.p)||0,0,1); return pressure>0?clamp(base*(.65+.85*pressure),base*.65,base*1.5):base; }
+function fillInkDot(ctx,point,radius){ ctx.beginPath(); ctx.arc(point.x,point.y,radius,0,Math.PI*2); ctx.fill(); }
+function pressureInkOutline(ctx,points,widths){ const rows=[]; points.forEach((point,i)=>{ const previous=rows[rows.length-1]; if(!previous||Math.hypot(point.x-previous.point.x,point.y-previous.point.y)>.001) rows.push({point,width:widths[i]}); else previous.width=Math.max(previous.width,widths[i]); });
+  if(rows.length===1){ fillInkDot(ctx,rows[0].point,rows[0].width/2); return; }
+  const normals=[]; for(let i=1;i<rows.length;i++){ const a=rows[i-1].point,b=rows[i].point,length=Math.hypot(b.x-a.x,b.y-a.y)||1; normals.push({x:-(b.y-a.y)/length,y:(b.x-a.x)/length}); }
+  const sides=rows.map((row,i)=>{ const radius=row.width/2,prev=normals[Math.max(0,i-1)],next=normals[Math.min(normals.length-1,i)],sum={x:prev.x+next.x,y:prev.y+next.y},length=Math.hypot(sum.x,sum.y); let normal=length>.01?{x:sum.x/length,y:sum.y/length}:next;
+    const scale=Math.min(radius*1.8,radius/Math.max(.55,Math.abs(normal.x*next.x+normal.y*next.y))); return {left:{x:row.point.x+normal.x*scale,y:row.point.y+normal.y*scale},right:{x:row.point.x-normal.x*scale,y:row.point.y-normal.y*scale},point:row.point,radius,normal}; });
+  ctx.beginPath(); ctx.moveTo(sides[0].left.x,sides[0].left.y); for(let i=1;i<sides.length;i++) ctx.lineTo(sides[i].left.x,sides[i].left.y);
+  const end=sides[sides.length-1]; ctx.arc(end.point.x,end.point.y,end.radius,Math.atan2(end.left.y-end.point.y,end.left.x-end.point.x),Math.atan2(end.right.y-end.point.y,end.right.x-end.point.x),true);
+  for(let i=sides.length-2;i>=0;i--) ctx.lineTo(sides[i].right.x,sides[i].right.y); const start=sides[0]; ctx.arc(start.point.x,start.point.y,start.radius,Math.atan2(start.right.y-start.point.y,start.right.x-start.point.x),Math.atan2(start.left.y-start.point.y,start.left.x-start.point.x),true); ctx.closePath(); ctx.fill(); }
+function paintFaithfulInk(ctx,points,base,options={}){ if(!Array.isArray(points)||!points.length||points.some(point=>!plainObject(point)||typeof point.x!=="number"||!Number.isFinite(point.x)||typeof point.y!=="number"||!Number.isFinite(point.y))) return false;
+  const color=options.color||cssVar('--inkPen',"#29241d"), widths=points.map(point=>faithfulInkWidth(point,base)); ctx.save(); ctx.globalAlpha=1; ctx.globalCompositeOperation="source-over"; ctx.filter="none"; ctx.shadowColor="rgba(0,0,0,0)"; ctx.shadowBlur=0; ctx.shadowOffsetX=0; ctx.shadowOffsetY=0; ctx.setLineDash([]); ctx.lineDashOffset=0; ctx.fillStyle=color;
+  const moving=points.some((point,i)=>i&&Math.hypot(point.x-points[i-1].x,point.y-points[i-1].y)>.001),constant=widths.every(width=>Math.abs(width-widths[0])<.01); if(!moving) fillInkDot(ctx,points[0],Math.max(...widths)/2);
+  else if(constant){ ctx.strokeStyle=color; ctx.lineWidth=widths[0]; ctx.lineCap="round"; ctx.lineJoin="round"; ctx.beginPath(); ctx.moveTo(points[0].x,points[0].y); for(let i=1;i<points.length;i++) ctx.lineTo(points[i].x,points[i].y); ctx.stroke(); }
+  else pressureInkOutline(ctx,points,widths); ctx.restore(); return true; }
+function resetInkSurface(){ if(!inkCanvas) return false; inkCanvas.width=Math.max(1,Math.round(S*DPR)); inkCanvas.height=Math.max(1,Math.round(S*DPR)); inkCtx=inkCanvas.getContext('2d'); inkCtx.setTransform(DPR,0,0,DPR,0,0); return true; }
+function renderLiveInk(){ if(!curInkStroke) return false; resetInkSurface(); paintInkStrokes(inkStrokes.map((_,i)=>i),cssVar('--inkPen',"#29241d")); return paintFaithfulInk(inkCtx,curInkStroke,penBaseWidth(),{color:cssVar('--inkPen',"#29241d")}); }
 function unlockGradeActions(){ clearTimeout(actionUnlockTimer); actionCooldownUntil=0; ["actions","traceActions","skipAction"].forEach(id=>{ if(!$(id)) return; $(id).classList.remove("tlock","inputLock"); }); if($("skipCard")) $("skipCard").removeAttribute("aria-disabled"); }
 function cancelCurrentStroke(applyCooldown=true){ if(!drawing && !curInkStroke){ if(!applyCooldown) unlockGradeActions(); return; } drawing=false; curInkStroke=null; redrawInk(); updateInkControls();
   if(applyCooldown){ armGradeActions(); finishWritingChrome(false); } else { unlockGradeActions(); resetWritingChrome(true); } onTeachStrokeEnd(); }
@@ -2321,21 +2308,23 @@ function initBox(){ const box=document.createElement('div'); box.className='box'
   inkStrokes=[]; curInkStroke=null; activePointers.clear(); peeking=false; peekReleasePending=false; // 画布重建=墨迹清空，记录的笔画同步作废
   inkCanvas.addEventListener('pointerdown',e=>{ e.preventDefault(); activePointers.add(e.pointerId);
     if(activePointers.size>=2){ enterPeekHint(); return; } if(e.isPrimary===false || peeking) return; commitUndoWindow(); const p=P(e);
-    drawing=true; lockGradeActions(); brushLiveState={ema:0}; p.w=1.1; p.v=0; last=p; inkBegin(p); try{inkCanvas.setPointerCapture(e.pointerId);}catch(_){} });
+    drawing=true; lockGradeActions(); inkBegin(p); try{inkCanvas.setPointerCapture(e.pointerId);}catch(_){} });
   inkCanvas.addEventListener('pointermove',e=>{ e.preventDefault(); if(peeking || e.isPrimary===false || !drawing) return;
     let samples=typeof e.getCoalescedEvents==='function'?e.getCoalescedEvents():[e]; if(!samples.length) samples=[e];
-    samples.forEach(sample=>{ const p=P(sample); strokeTo(p); inkMove(p); }); });
-  ['pointerup','pointercancel','pointerleave'].forEach(ev=>inkCanvas.addEventListener(ev,e=>{ e.preventDefault(); const wasPeeking=peeking; activePointers.delete(e.pointerId);
+    samples.forEach(sample=>inkMove(P(sample))); renderLiveInk(); });
+  const finishPointer=(e,commit)=>{ e.preventDefault(); const wasPeeking=peeking; activePointers.delete(e.pointerId);
     if(wasPeeking){ exitPeekHint(true); peekReleasePending=activePointers.size>0; return; }
     if(peekReleasePending){ if(activePointers.size===0) peekReleasePending=false; return; }
-    if(e.isPrimary===false || !drawing) return; drawing=false; inkEnd(); redrawInk(); armGradeActions(); }));
+    if(e.isPrimary===false || !drawing) return; if(commit){ drawing=false; inkEnd(); armGradeActions(); } else cancelCurrentStroke(true); };
+  inkCanvas.addEventListener('pointerup',e=>finishPointer(e,true));
+  ['pointercancel','pointerleave','lostpointercapture'].forEach(ev=>inkCanvas.addEventListener(ev,e=>finishPointer(e,false)));
   ['touchstart','touchmove','touchend','touchcancel'].forEach(ev=>inkCanvas.addEventListener(ev,e=>e.preventDefault(), {passive:false})); }
 function lockGradeActions(){ clearTimeout(actionUnlockTimer); actionCooldownUntil=Number.POSITIVE_INFINITY; ["actions","traceActions","skipAction"].forEach(id=>$(id)&&$(id).classList.add("inputLock")); if($("skipCard")) $("skipCard").setAttribute("aria-disabled","true"); }
 function armGradeActions(){ unlockGradeActions(); }
-function redrawInk(){ inkCtx.clearRect(0,0,S,S); paintInkStrokes(inkStrokes.map((_,i)=>i),cssVar('--inkPen',"#29241d")); }
+function redrawInk(){ resetInkSurface(); paintInkStrokes(inkStrokes.map((_,i)=>i),cssVar('--inkPen',"#29241d")); }
 function updateInkControls(){ const hasInk=inkStrokes.length>0; if($("undoStroke")) $("undoStroke").disabled=!hasInk || drawing || animating; if($("clear")) $("clear").disabled=!hasInk || drawing || animating;
   if($("traceDone")) $("traceDone").disabled=!(tracing && tracedThisCard); }
-function clearInk(){ inkCtx.clearRect(0,0,S,S); inkStrokes=[]; curInkStroke=null; actionStack=actionStack.filter(a=>a.type!=="stroke"); if(tracing) tracedThisCard=false; updateInkControls(); if(inkCanvas && !revealed) inkCanvas.style.opacity=peeking?String(PEEK_INK_OPACITY):'1'; }
+function clearInk(){ resetInkSurface(); inkStrokes=[]; curInkStroke=null; actionStack=actionStack.filter(a=>a.type!=="stroke"); if(tracing) tracedThisCard=false; updateInkControls(); if(inkCanvas && !revealed) inkCanvas.style.opacity=peeking?String(PEEK_INK_OPACITY):'1'; }
 async function undoInkStroke(){ if(!actionStack.length || drawing || animating) return false; commitUndoWindow(); const action=actionStack.pop();
   if(action.type==="stroke"){ inkStrokes.pop(); if(tracing) tracedThisCard=inkStrokes.length>traceStrokeStartCount; redrawInk(); updateInkControls(); saveSessionSnapshot(); return true; }
   if(action.type==="hint"){ groupIdx=action.group; shownStrokes=action.start; await rebuildHintLayer(shownStrokes); updateTip(); saveSessionSnapshot(); return true; }
@@ -2359,12 +2348,11 @@ function warmUpcomingStrokeCache(){ if(!navigator.onLine) return; try{
 // 只在揭晓时判定，绝不在书写过程中反馈（写一半就提示对错=泄题，回忆练习会变成试错）。
 // 判定是近似（连笔/草书会被误判），所以结果只作为「建议」预圈印章，最终以用户盖章为准。
 let inkStrokes=[], curInkStroke=null, curMedians=null, lastVerdict=null, tracing=false, traceStrokeStartCount=0, tracedThisCard=false;
-function inkBegin(p){ enterWritingChrome(); curInkStroke=[{x:p.x,y:p.y,t:Number(p.t)||performance.now(),w:Number(p.w)||1.1,v:Number(p.v)||0}]; paintBrushStroke(inkCtx,curInkStroke,penBaseWidth(),{color:cssVar('--inkPen',"#29241d"),detail:true}); if(tracing) soundFeedback("paper"); onTeachStrokeStart(); }
-function inkMove(p){ if(curInkStroke) curInkStroke.push({x:p.x,y:p.y,t:Number(p.t)||performance.now(),w:Number(p.w)||1,v:Number(p.v)||0}); }
+function inkBegin(p){ enterWritingChrome(); curInkStroke=[{x:p.x,y:p.y,t:Number(p.t)||performance.now(),p:clamp(Number(p.p)||0,0,1)}]; renderLiveInk(); if(tracing) soundFeedback("paper"); onTeachStrokeStart(); }
+function inkMove(p){ if(!curInkStroke) return; curInkStroke.push({x:p.x,y:p.y,t:Number(p.t)||performance.now(),p:clamp(Number(p.p)||0,0,1)}); }
 function inkEnd(){ if(!curInkStroke) return;
-  // 无位移的点按没有留下墨迹，不算一笔
-  const strokeCompleted=curInkStroke.length>=2;
-  if(strokeCompleted){ inkStrokes.push(curInkStroke); actionStack.push({type:"stroke"}); if(tracing){ tracedThisCard=true; if(!traceTutorialShown){ traceTutorialShown=true; save(TRACE_TUTORIAL_KEY,true); $("traceIntro").style.display="none"; } } }
+  const strokeCompleted=curInkStroke.length>=1;
+  inkStrokes.push(curInkStroke); actionStack.push({type:"stroke"}); if(tracing){ tracedThisCard=true; if(!traceTutorialShown){ traceTutorialShown=true; save(TRACE_TUTORIAL_KEY,true); $("traceIntro").style.display="none"; } }
   curInkStroke=null; updateInkControls(); onTeachStrokeEnd(); finishWritingChrome(strokeCompleted); saveSessionSnapshot(); }
 function pathLen(pts){ let l=0; for(let i=1;i<pts.length;i++) l+=Math.hypot(pts[i].x-pts[i-1].x,pts[i].y-pts[i-1].y); return l; }
 function resamplePts(pts,n){ const src=pts.map(p=>({x:p.x,y:p.y})), out=[{x:src[0].x,y:src[0].y}];
@@ -2432,8 +2420,7 @@ function autoCheckInk(){ lastVerdict=null; inkEnd();
   if(!curMedians || !curMedians.length || !inkStrokes.length) return null;
   try{ lastVerdict=checkInk(inkStrokes, mediansToCanvas(curMedians)); }catch(e){ lastVerdict=null; }
   return lastVerdict; }
-function paintInkStrokes(idxs,color){ if(!idxs || !idxs.length) return; const detailed=color===cssVar('--inkPen',"#29241d");
-  idxs.forEach(i=>paintBrushStroke(inkCtx,inkStrokes[i],penBaseWidth(),{color,detail:detailed})); }
+function paintInkStrokes(idxs,color){ if(!idxs || !idxs.length) return; idxs.forEach(i=>paintFaithfulInk(inkCtx,inkStrokes[i],penBaseWidth(),{color})); }
 function suggestedOutcomeForVerdict(v){ if(!v) return ""; return v.status==="ok"?(hintsUsedThisCard>0?"hinted":"fast"):"slow"; }
 function wrapIdForOutcome(outcome){ return "wrap"+outcome[0].toUpperCase()+outcome.slice(1); }
 function verdictShort(v){ if(!v) return "暂时无法自动对比，请和范字核对。";
@@ -2477,7 +2464,7 @@ function practiceProgress(){ const targets=new Set(baseTargets), practiced=new S
 function updateProgressLabel(){ const p=practiceProgress(); $("posLabel").textContent=p.total===1?"":(p.done>=p.total&&p.unresolved?`另有 ${p.unresolved} 个字要再练`:`已练 ${p.done} / ${p.total} 个${p.unresolved?` · 另有 ${p.unresolved} 个字要再练`:""}`); }
 let stamped=false, autoNextTimer=0, editStampTimer=0, undoFollowTimer=0, lastStampSnapshot=null, overlayOn=false, replaying=false;
 function cloneObj(v){ return v==null?null:JSON.parse(JSON.stringify(v)); }
-function drawSnapshotStrokes(ctx,strokes,color,width,brush=false){ const safe=normalizedSessionInkStrokes(strokes); if(brush){ safe.forEach(points=>paintBrushStroke(ctx,points,width,{color,detail:true})); return; } ctx.strokeStyle=color; ctx.fillStyle=color; ctx.lineWidth=width; ctx.lineCap="round"; ctx.lineJoin="round";
+function drawSnapshotStrokes(ctx,strokes,color,width,faithful=false){ const safe=normalizedSessionInkStrokes(strokes); if(faithful){ safe.forEach(points=>paintFaithfulInk(ctx,points,width,{color})); return; } ctx.strokeStyle=color; ctx.fillStyle=color; ctx.lineWidth=width; ctx.lineCap="round"; ctx.lineJoin="round";
   safe.forEach(pts=>{ if(pts.length<2){ ctx.beginPath(); ctx.arc(pts[0].x,pts[0].y,width/2,0,Math.PI*2); ctx.fill(); return; }
     ctx.beginPath(); ctx.moveTo(pts[0].x,pts[0].y); for(let i=1;i<pts.length;i++) ctx.lineTo(pts[i].x,pts[i].y); ctx.stroke(); }); }
 function snapshotImage(hints,ink){ const canvas=document.createElement("canvas"); canvas.width=S; canvas.height=S; const ctx=canvas.getContext("2d");
@@ -3001,7 +2988,7 @@ function shareRoundRect(ctx,x,y,w,h,r){ const q=Math.min(r,w/2,h/2); ctx.beginPa
 function shareWrappedText(ctx,text,x,y,maxWidth,lineHeight,maxLines=3){ const chars=Array.from(String(text||"")); let line="", lines=[]; chars.forEach(ch=>{ const next=line+ch; if(line&&ctx.measureText(next).width>maxWidth){ lines.push(line); line=ch; }else line=next; }); if(line) lines.push(line); lines=lines.slice(0,maxLines); lines.forEach((row,i)=>ctx.fillText(row,x,y+i*lineHeight)); return y+lines.length*lineHeight; }
 function drawShareHandwriting(ctx,strokes,x,y,size,rotation=0){ const paths=normalizedInkStrokes(strokes); ctx.save(); ctx.translate(x+size/2,y+size/2); ctx.rotate(Number(rotation||0)*Math.PI/180); ctx.translate(-x-size/2,-y-size/2);
   ctx.strokeStyle="#c2452c38"; ctx.lineWidth=2; ctx.setLineDash([7,7]); [[x+size/2,y,x+size/2,y+size],[x,y+size/2,x+size,y+size/2],[x,y,x+size,y+size],[x+size,y,x,y+size]].forEach(line=>{ ctx.beginPath(); ctx.moveTo(line[0],line[1]); ctx.lineTo(line[2],line[3]); ctx.stroke(); }); ctx.setLineDash([]);
-  paths.forEach(points=>{ const scaled=points.map(point=>({x:x+clamp(Number(point.x),0,1)*size,y:y+clamp(Number(point.y),0,1)*size,w:Number(point.w),v:Number(point.v)})); paintBrushStroke(ctx,scaled,Math.max(8,size*.075),{color:"#29241d",detail:true}); }); ctx.restore(); return paths.length; }
+  paths.forEach(points=>{ const scaled=points.map(point=>({x:x+clamp(Number(point.x),0,1)*size,y:y+clamp(Number(point.y),0,1)*size,p:clamp(Number(point.p)||0,0,1)})); paintFaithfulInk(ctx,scaled,Math.max(8,size*.075),{color:"#29241d"}); }); ctx.restore(); return paths.length; }
 
 // ---- 手写字卡：主字只来自 recentInk 真迹，文字层不补印刷目标字 ----
 const HAND_CARD_RATIOS={portrait:{width:1080,height:1440,label:"3:4"},square:{width:1080,height:1080,label:"1:1"}};
@@ -3011,7 +2998,7 @@ function handCardDateText(at=Date.now()){ const date=new Date(Number(at)||Date.n
 function handCardData(index){ const card=CARDS[index],m=memory[cardKey(index)]||{},recent=m.recentInk,strokes=normalizedInkStrokes(recent&&recent.strokes); if(!card||!recent||Number(recent.version)<2||!strokes.length) return null; const word=suspiciousDictionaryWord(index)?card.target:(card.word||card.target); return {index,word,py:card.py||"",recent}; }
 function drawHandCardPaper(ctx,width,height){ ctx.fillStyle="#f4efe2"; ctx.fillRect(0,0,width,height); let seed=width*31+height*17;
   ctx.save(); ctx.lineWidth=1; for(let i=0;i<180;i++){ seed=(Math.imul(seed,1664525)+1013904223)>>>0; const x=seed%width; seed=(Math.imul(seed,1664525)+1013904223)>>>0; const y=seed%height, len=18+(seed%70); ctx.strokeStyle=i%4===0?"rgba(110,92,62,.032)":"rgba(255,255,255,.055)"; ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(Math.min(width,x+len),y+(i%3-1)*.7); ctx.stroke(); } ctx.restore(); }
-function drawHandCardInk(ctx,strokes,x,y,size){ const paths=normalizedInkStrokes(strokes); paths.forEach(points=>{ const scaled=points.map(point=>({x:x+clamp(Number(point.x),0,1)*size,y:y+clamp(Number(point.y),0,1)*size,w:Number(point.w),v:Number(point.v)})); paintBrushStroke(ctx,scaled,Math.max(16,size*.075),{color:"#29241d",detail:true}); }); return paths.length; }
+function drawHandCardInk(ctx,strokes,x,y,size){ const paths=normalizedInkStrokes(strokes); paths.forEach(points=>{ const scaled=points.map(point=>({x:x+clamp(Number(point.x),0,1)*size,y:y+clamp(Number(point.y),0,1)*size,p:clamp(Number(point.p)||0,0,1)})); paintFaithfulInk(ctx,scaled,Math.max(16,size*.075),{color:"#29241d"}); }); return paths.length; }
 async function renderHandCardCanvas(index,ratio="portrait",targetCanvas=null){ const data=handCardData(index),spec=HAND_CARD_RATIOS[ratio]||HAND_CARD_RATIOS.portrait; if(!data) return null;
   const canvas=targetCanvas||document.createElement("canvas"); canvas.width=spec.width; canvas.height=spec.height; const ctx=canvas.getContext("2d"); if(!ctx) return null; drawHandCardPaper(ctx,spec.width,spec.height);
   const square=ratio==="square",inkSize=square?650:720,inkX=(spec.width-inkSize)/2,inkY=square?90:150,strokes=data.recent.strokes;

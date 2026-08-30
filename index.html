@@ -207,7 +207,7 @@
   .softConfirm{ display:none; margin-top:12px; padding:12px; border:1px solid var(--line); border-radius:8px; background:var(--shade); text-align:center; }
   .softConfirm p{ margin:0 0 10px; color:var(--ink); font-size:calc(var(--fs-body) * var(--font-scale)); line-height:1.5; }
   .softConfirmActions{ display:flex; gap:8px; }
-  .softConfirmActions button{ flex:1; min-height:40px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--ink); font-size:calc(var(--fs-body) * var(--font-scale)); font-weight:700; }
+  .softConfirmActions button{ flex:1; min-height:44px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--ink); font-size:calc(var(--fs-body) * var(--font-scale)); font-weight:700; }
   .softConfirmActions .confirmCorrect{ background:var(--accent); color:var(--accent-ink); border-color:var(--accent); }
 
   /* ===== 揭晓 · 对照 + 盖章 ===== */
@@ -420,7 +420,7 @@
   .data{ display:none; margin-top:12px; background:var(--card); border:1px dashed var(--line); border-radius:14px; padding:14px; font-size:calc(var(--fs-body) * var(--font-scale)); color:var(--muted); line-height:1.7; }
   .meCalendar{ margin-top:18px; padding-bottom:14px; border-bottom:1px solid var(--line); touch-action:pan-y; }
   .meCalendarHead{ display:grid; grid-template-columns:36px auto 1fr 36px; align-items:center; gap:6px; }
-  .meCalendarHead button{ width:36px; min-height:36px; border-radius:50%; color:var(--muted); font-size:calc(20px * var(--font-scale)); }
+  .meCalendarHead button{ width:44px; min-height:44px; border-radius:50%; color:var(--muted); font-size:calc(20px * var(--font-scale)); }
   .meCalendarHead button:disabled{ opacity:.24; }
   .meCalendarHead b{ font:900 calc(19px * var(--font-scale))/1 var(--song); }
   .meCalendarHead span{ justify-self:end; color:var(--muted); font-size:calc(var(--fs-note) * var(--font-scale)); }
@@ -602,19 +602,19 @@
   .handCardSave{ border:1px solid var(--line); background:var(--card); color:var(--ink); }
   .handCardPrompt{ display:none; position:fixed; z-index:31; left:50%; bottom:calc(20px + env(safe-area-inset-bottom)); transform:translateX(-50%); width:min(calc(100% - 32px),360px); min-height:48px; padding:6px 7px 6px 14px; align-items:center; gap:10px; border-radius:999px; background:var(--ink); color:var(--card); box-shadow:0 10px 28px -10px var(--shadow-color); }
   .handCardPrompt span{ flex:1; min-width:0; font-size:calc(var(--fs-body) * var(--font-scale)); }
-  .handCardPrompt button{ flex:none; min-height:36px; padding:0 13px; border-radius:999px; background:var(--card); color:var(--ink); font-size:calc(var(--fs-body) * var(--font-scale)); font-weight:800; }
+  .handCardPrompt button{ flex:none; min-height:44px; padding:0 13px; border-radius:999px; background:var(--card); color:var(--ink); font-size:calc(var(--fs-body) * var(--font-scale)); font-weight:800; }
   .etymLine{ display:none; min-width:0; margin-top:8px; overflow:hidden; color:var(--faint); font:400 calc(var(--fs-note) * var(--font-scale))/1.5 var(--kai); white-space:nowrap; text-overflow:ellipsis; }
   .etymLine small{ margin-left:5px; color:var(--faint); font:400 calc(var(--fs-caption) * var(--font-scale))/1.5 var(--sans); }
   .charDetailCompare{ margin-top:20px; padding-top:16px; border-top:1px solid var(--line); }
   .charDetailCompareHead{ display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; color:var(--muted); font-size:calc(var(--fs-note) * var(--font-scale)); }
-  .charDetailCompareHead button{ min-height:36px; color:var(--accent); font-size:calc(var(--fs-note) * var(--font-scale)); font-weight:700; }
+  .charDetailCompareHead button{ min-height:44px; min-width:44px; color:var(--accent); font-size:calc(var(--fs-note) * var(--font-scale)); font-weight:700; }
   .charDetailCompareBody{ display:flex; align-items:center; gap:12px; }
   .charDetailInk{ position:relative; width:92px; height:92px; flex:none; display:flex; align-items:center; justify-content:center; border:1px dashed var(--dline); border-radius:8px; overflow:hidden; background:var(--card); color:var(--faint); font:400 calc(54px * var(--font-scale))/1 var(--kai); }
   .charDetailInk img,.charDetailInk canvas{ width:100%; height:100%; object-fit:cover; }
   .charDetailEmpty{ color:var(--muted); font-size:calc(var(--fs-body) * var(--font-scale)); line-height:1.65; }
   .charDetailStandard{ display:none; width:92px; height:92px; flex:none; align-items:center; justify-content:center; border:1px solid var(--accent-a35); border-radius:8px; background:var(--card); color:var(--accent); font:400 calc(62px * var(--font-scale))/1 var(--kai); }
   .charDetailCompareBody.overlay .charDetailStandard{ margin-left:-104px; background:transparent; border-color:transparent; opacity:.45; pointer-events:none; }
-  .charDetailOverlayToggle{ display:none; min-height:36px; margin-left:auto; padding:0 8px; color:var(--muted); font-weight:700; }
+  .charDetailOverlayToggle{ display:none; min-height:44px; min-width:44px; margin-left:auto; padding:0 8px; color:var(--muted); font-weight:700; }
   .charDetailStroke{ display:none; width:180px; height:180px; margin:16px auto 0; border:1px solid var(--accent-a35); border-radius:8px; background:var(--card); overflow:hidden; }
   .charDetailCard{ display:none; width:100%; min-height:48px; margin-top:16px; padding:0 2px; border-top:1px solid var(--line); border-bottom:1px solid var(--line); color:var(--ink); text-align:left; font-size:calc(var(--fs-body) * var(--font-scale)); font-weight:700; }
   .charDetailCard span{ float:right; color:var(--accent); }
@@ -968,8 +968,8 @@
   </div>
 </div>
 
-<div class="sheetMask" id="addSheet"><div class="sheet">
-  <h3>刚才哪个字不会写？</h3>
+<div class="sheetMask" id="addSheet" role="dialog" aria-modal="true" aria-labelledby="addSheetTitle"><div class="sheet">
+  <h3 id="addSheetTitle">刚才哪个字不会写？</h3>
   <p class="sheetHint">输入那个字，或它所在的词（如「蘸料」）。字库里有的字会带上拼音和语境词。</p>
   <input id="addInput" type="text" autocomplete="off" autocapitalize="off" maxlength="20" placeholder="蘸料" aria-label="输入不会写的字或它所在的词">
   <div class="sheetPreview" id="addPreview"></div>
@@ -987,8 +987,8 @@
   <div class="libList" id="libList"></div>
 </div></div>
 
-<div class="sheetMask" id="roundBudgetSheet"><div class="sheet">
-  <h3>今天先到这也很好</h3>
+<div class="sheetMask" id="roundBudgetSheet" role="dialog" aria-modal="true" aria-labelledby="roundBudgetTitle"><div class="sheet">
+  <h3 id="roundBudgetTitle">今天先到这也很好</h3>
   <p class="sheetHint" id="roundBudgetCopy">这一组已经练了一会儿，没写稳的字可以明天接着拾。</p>
   <div class="row">
     <button class="ghostAct" id="continueRound">继续这组</button>
@@ -1974,9 +1974,9 @@ function renderCalendar(){ const [year,month]=calendarMonthKey.split("-").map(Nu
   $("calendarHint").textContent=resumableSession()&&makeupInterestShown?"手上这组写完，就能补前几天的空。":"最近 7 天的留白日可以补写一帖。补帖要完整写完 5 个字，才会落印。";
   calendarAnimatedMonths.add(calendarMonthKey); }
 function openCalendar(month=calendarMonthKey){ calendarMonthKey=/^\d{4}-\d{2}$/.test(month)?month:today().slice(0,7); renderMe(); }
-function closeMakeupSheet(){ makeupPendingDay=""; $("makeupSheet").classList.remove("open"); }
+function closeMakeupSheet(){ makeupPendingDay=""; closeAccessibleModal($("makeupSheet")); }
 function openMakeupSheet(key){ if(!canMakeupDay(key)) return; makeupInterestShown=true; if(resumableSession()){ renderCalendar(); toast("手上这组写完，就能补前几天的空"); return; } makeupPendingDay=key; $("makeupTitle").textContent=`补写 ${Number(key.slice(5,7))}月${Number(key.slice(8))}日`;
-  $("makeupCopy").textContent="完整写完 5 个字后，这一天会落一枚浅色「补」印。中途返回不会落印。"; $("makeupSheet").classList.add("open"); }
+  $("makeupCopy").textContent="完整写完 5 个字后，这一天会落一枚浅色「补」印。中途返回不会落印。"; openAccessibleModal($("makeupSheet"),$("makeupCancel"),closeMakeupSheet); }
 function uniqueCardIndexes(indexes){ const seen=new Set(); return (indexes||[]).filter(idx=>{ if(!Number.isInteger(idx)||idx<0||idx>=CARDS.length||qualityBlocked(idx)) return false; const key=cardKey(idx); if(seen.has(key)) return false; seen.add(key); return true; }); }
 function makeupCandidates(){ // 刚收进来、还等着在下一组普通练习里置顶的字不能被补帖取走
   const reserved=new Set(queuedFrontPool()), keep=list=>list.filter(i=>!reserved.has(i));
@@ -2018,13 +2018,13 @@ function yearReportData(year=new Date().getFullYear()){ const prefix=String(year
 function annualEligibleYears(){ const years=new Set([new Date().getFullYear(),...activity.practiceDays.map(day=>Number(String(day).slice(0,4))),...Object.keys(activity.monthly||{}).map(month=>Number(String(month).slice(0,4)))]); return [...years].filter(Number.isInteger).filter(year=>yearReportData(year).days.length>=5).sort((a,b)=>b-a); }
 function renderAnnualPager(active=0){ const count=$("annualSlides").querySelectorAll(".annualSlide").length,dots=$("annualDots"); if(dots.children.length!==count) dots.innerHTML=Array.from({length:count},(_,i)=>`<button data-annual-page="${i}" aria-label="第 ${i+1} 页"></button>`).join(""); [...dots.children].forEach((dot,i)=>{ const current=i===active; dot.classList.toggle("active",current); dot.setAttribute("aria-current",current?"page":"false"); }); }
 function renderAnnualReport(year=new Date().getFullYear()){ const eligible=annualEligibleYears(), selected=eligible.includes(Number(year))?Number(year):eligible[0]; if(!selected){ toast(`练满 5 天后，这里会生成第一份拾字报告`); return false; } const data=yearReportData(selected); displayView("annual"); $("annualTitle").textContent=`${selected} 年拾字报告`; $("annualYearSelect").innerHTML=eligible.map(item=>`<option value="${item}" ${item===selected?"selected":""}>${item} 年</option>`).join("");
-  const month=data.busiest?Number(data.busiest[0].slice(5)):0, firstChar=data.first!=null?CARDS[data.first].target:"", rareChar=data.rarest!=null?CARDS[data.rarest].target:""; $("annualSlides").innerHTML=`<section class="annualSlide"><span class="annualEyebrow">${selected} · 练过的不同汉字</span><b>${data.keys.length} 字</b><p>这些是你今年练过的不同汉字。</p></section><section class="annualSlide"><span class="annualEyebrow">盖章天数最多的月份</span><b>${month} 月</b><p>这个月盖章 ${data.busiest[1]} 天。</p></section><section class="annualSlide"><span class="annualEyebrow">练过的字里最少见的一个</span><b class="annualChar">${esc(rareChar)}</b><p>${data.rarest!=null?esc(CARDS[data.rarest].word):""}</p></section><section class="annualSlide"><span class="annualEyebrow">这一年练的第一个字</span><b class="annualChar">${esc(firstChar)}</b><p>${esc(data.firstDay||"")}，从这个字开始。</p></section>`; $("annualSlides").scrollTop=0; renderAnnualPager(0); return true; }
+  const month=data.busiest?Number(data.busiest[0].slice(5)):0, firstChar=data.first!=null?CARDS[data.first].target:"", rareChar=data.rarest!=null?CARDS[data.rarest].target:""; $("annualSlides").innerHTML=`<section class="annualSlide"><span class="annualEyebrow">${selected} · 练过的不同汉字</span><b>${data.keys.length} 字</b><p>这些是你今年练过的不同汉字。</p></section><section class="annualSlide"><span class="annualEyebrow">盖章天数最多的月份</span><b>${month} 月</b><p>这个月盖章 ${data.busiest[1]} 天。</p></section><section class="annualSlide"><span class="annualEyebrow">练过的字里最少见的一个</span><b class="annualChar">${esc(rareChar)}</b><p>${data.rarest!=null?esc(CARDS[data.rarest].word):""}</p></section><section class="annualSlide"><span class="annualEyebrow">这一年练的第一个字</span><b class="annualChar">${esc(firstChar)}</b><p>${esc(formatDueDay(data.firstDay))}，从这个字开始。</p></section>`; $("annualSlides").scrollTop=0; renderAnnualPager(0); return true; }
 function startMode(mode){ const resume=resumableSession(); if(resume){ restoreSession(resume); return; }
   clearSessionSnapshot(); activeMode=(mode==="new" && needsCalibration())?"calibrate":mode; makeupTargetDay=""; focusQueue=[]; sessionDone=new Set(); roundOpeningPending=true; startRound(); }
 let pendingFocusRequest=null, focusPreservedSession=null;
-function closeFocusChoice(){ pendingFocusRequest=null; $("focusChoiceSheet").classList.remove("open"); }
+function closeFocusChoice(){ pendingFocusRequest=null; closeAccessibleModal($("focusChoiceSheet")); }
 function startFocus(indexes,options={}){ const requested=[...new Set((indexes||highRiskIndexes()).filter(i=>i>=0 && i<CARDS.length))]; if(!requested.length){ renderHome(); return false; }
-  const resume=options.skipSessionCheck?null:resumableSession(); if(resume){ pendingFocusRequest={indexes:requested,options:{...options},resume:cloneObj(resume),resumeRaw:load(SESSION_KEY,null)}; $("focusChoiceCopy").textContent=requested.length===1?`可以先单写「${CARDS[requested[0]].target}」，原来那组会留在首页。`:`可以先写这 ${requested.length} 个字，原来那组会留在首页。`; $("focusChoiceSheet").classList.add("open"); return false; }
+  const resume=options.skipSessionCheck?null:resumableSession(); if(resume){ pendingFocusRequest={indexes:requested,options:{...options},resume:cloneObj(resume),resumeRaw:load(SESSION_KEY,null)}; $("focusChoiceCopy").textContent=requested.length===1?`可以先单写「${CARDS[requested[0]].target}」，原来那组会留在首页。`:`可以先写这 ${requested.length} 个字，原来那组会留在首页。`; openAccessibleModal($("focusChoiceSheet"),$("focusChoiceResume"),closeFocusChoice); return false; }
   focusQueue=requested; focusReturnView=options.returnView||"home"; focusPreservedSession=options.preservedSession?cloneObj(options.preservedSession):null; if(!focusPreservedSession) clearSessionSnapshot(); activeMode="focus"; makeupTargetDay=""; sessionDone=new Set(); roundOpeningPending=true; startRound(); return true; }
 // ---- 单字详情：收藏先讲故事，再由用户决定是否重写 ----
 let charDetailIndex=-1, charDetailWriter=null, charDetailTouchY=null, charDetailSwipeEligible=false;
@@ -2083,8 +2083,8 @@ function libraryCounts(lib){ const seenTargets=new Set(),cutoff=Date.now()-30*86
 function libraryProgressText(lib,counts){ return counts.total===counts.officialTotal?`已练 ${counts.got} / 共 ${counts.total}`:`已练 ${counts.got} / 共 ${counts.total} 可练 · 官方 ${counts.officialTotal}`; }
 function renderLibCard(){ const lib=currentLibrary(),counts=libraryCounts(lib); $("libName").textContent=lib.name; $("libMeta").textContent=libraryProgressText(lib,counts); }
 function openLibSheet(){ const active=currentLibrary().id; $("libList").innerHTML=LIBRARIES.map(lib=>{ const counts=libraryCounts(lib);
-    return `<button class="libRow ${lib.id===active?"active":""}" data-lib="${lib.id}"><span class="libRowTop"><b>${esc(lib.name)}</b><span class="libCount">${esc(libraryProgressText(lib,counts))}</span></span><small>${esc(lib.desc)}</small></button>`; }).join(""); $("libSheet").classList.add("open"); }
-function closeLibSheet(){ $("libSheet").classList.remove("open"); }
+    return `<button class="libRow ${lib.id===active?"active":""}" data-lib="${lib.id}"><span class="libRowTop"><b>${esc(lib.name)}</b><span class="libCount">${esc(libraryProgressText(lib,counts))}</span></span><small>${esc(lib.desc)}</small></button>`; }).join(""); openAccessibleModal($("libSheet"),null,closeLibSheet); }
+function closeLibSheet(){ closeAccessibleModal($("libSheet")); }
 function collectionIndexes(){ return allIndexes().filter(isCollected); }
 function renderBook(){ displayView("book");
   const seen=collectionIndexes().sort((a,b)=>firstSeenAt(b)-firstSeenAt(a)||a-b);
@@ -2291,7 +2291,7 @@ function paintBrushStroke(ctx,points,base,options={}){ if(!Array.isArray(points)
   brushCtx.restore(); compositeBrushLayer(ctx,layer); return true; }
 function strokeTo(point){ const width=brushWidthFor(point,last,brushLiveState), color=cssVar('--inkPen',"#29241d"); inkCtx.save(); inkCtx.fillStyle=color; paintBrushRibbon(inkCtx,last,point,Math.max(1,(Number(last.w)||1)*penBaseWidth()/2),width/2); inkCtx.restore(); last=point; }
 function setInteractionLocked(element,locked){ if(!element) return; element.classList.toggle("tlock",locked); element.setAttribute("aria-disabled",locked?"true":"false"); const buttons=element.matches("button")?[element]:[...element.querySelectorAll("button")]; buttons.forEach(button=>button.setAttribute("aria-disabled",locked?"true":"false")); }
-function unlockGradeActions(){ clearTimeout(actionUnlockTimer); actionCooldownUntil=0; ["actions","traceActions"].forEach(id=>setInteractionLocked($(id),false)); }
+function unlockGradeActions(){ clearTimeout(actionUnlockTimer); actionCooldownUntil=0; GRADE_ACTION_LAYERS.forEach(id=>setInteractionLocked($(id),false)); }
 function cancelCurrentStroke(applyCooldown=true){ if(!drawing && !curInkStroke){ if(!applyCooldown) unlockGradeActions(); return; } drawing=false; curInkStroke=null; redrawInk(); updateInkControls();
   if(applyCooldown){ armGradeActions(); finishWritingChrome(false); } else { unlockGradeActions(); resetWritingChrome(true); } onTeachStrokeEnd(); }
 function enterPeekHint(force=false){ if(peeking || peekReleasePending || tracing || revealed || !inkCanvas || !peekWriter || (!force && activePointers.size<2)) return false;
@@ -2326,9 +2326,12 @@ function initBox(){ const box=document.createElement('div'); box.className='box'
     if(peekReleasePending){ if(activePointers.size===0) peekReleasePending=false; return; }
     if(e.isPrimary===false || !drawing) return; drawing=false; inkEnd(); redrawInk(); armGradeActions(); }));
   ['touchstart','touchmove','touchend','touchcancel'].forEach(ev=>inkCanvas.addEventListener(ev,e=>e.preventDefault(), {passive:false})); }
-function lockGradeActions(){ clearTimeout(actionUnlockTimer); actionCooldownUntil=Number.POSITIVE_INFINITY; ["actions","traceActions"].forEach(id=>setInteractionLocked($(id),true)); }
-function armGradeActions(){ actionCooldownUntil=Date.now()+300; clearTimeout(actionUnlockTimer); ["actions","traceActions"].forEach(id=>setInteractionLocked($(id),true)); actionUnlockTimer=setTimeout(()=>{
-  actionCooldownUntil=0; ["actions","traceActions"].forEach(id=>setInteractionLocked($(id),false)); },300); }
+// 软确认层是第一击之后才出现的，必须和评分区一起进冷却：否则第二击直接落在
+// 「再对一眼」上，刚弹出的确认层立刻被自己关掉（#146）。
+const GRADE_ACTION_LAYERS=["actions","traceActions","softConfirm"];
+function lockGradeActions(){ clearTimeout(actionUnlockTimer); actionCooldownUntil=Number.POSITIVE_INFINITY; GRADE_ACTION_LAYERS.forEach(id=>setInteractionLocked($(id),true)); }
+function armGradeActions(){ actionCooldownUntil=Date.now()+300; clearTimeout(actionUnlockTimer); GRADE_ACTION_LAYERS.forEach(id=>setInteractionLocked($(id),true)); actionUnlockTimer=setTimeout(()=>{
+  actionCooldownUntil=0; GRADE_ACTION_LAYERS.forEach(id=>setInteractionLocked($(id),false)); },300); }
 function redrawInk(){ inkCtx.clearRect(0,0,S,S); paintInkStrokes(inkStrokes.map((_,i)=>i),cssVar('--inkPen',"#29241d")); }
 function updateInkControls(){ const hasInk=inkStrokes.some(points=>Array.isArray(points)&&points.length>1); if($("undoStroke")) $("undoStroke").disabled=!hasInk || drawing || animating; if($("clear")) $("clear").disabled=!hasInk || drawing || animating;
   if($("done")&&!revealed) $("done").disabled=!hasInk || drawing || animating || tracing;
@@ -2728,14 +2731,17 @@ function goNext(){ clearTimeout(autoNextTimer); clearTimeout(editStampTimer); $(
   const outcome=lastStampSnapshot&&lastStampSnapshot.outcome||feedbackKind; stamped=false;
   if(outcome==="miss"){ openTracingTeaching(); return; } next(); }
 function advanceFeedback(){ if(!stamped || practicePhase!=="feedback" || Date.now()<actionCooldownUntil) return false; if(feedbackKind==="teachingComplete"){ clearTimeout(autoNextTimer); stamped=false; next(); return true; } goNext(); return true; }
-function decideSubmission(correct){ if(stamped||!revealed||!submissionSnapshot) return;
+function decideSubmission(correct){ if(stamped||!revealed||!submissionSnapshot||Date.now()<actionCooldownUntil) return;
   if(!correct){ overlayOn=true; $("mineOverlay").style.display="flex"; $("overlayToggle").textContent="分开看"; }
   if(submissionSnapshot.practicePhase==="postTraceRecall"){
-    if(!correct){ revealed=false; beginTracingPhase(); return; }
+    // 描红完成分支同样是状态切换，先锁住评分区，同步工作做完再起 300ms 冷却，
+    // 否则 100ms 间隔的第二击会穿透到下一状态（教学完成反馈被整个跳过）。
+    lockGradeActions();
+    if(!correct){ revealed=false; beginTracingPhase(); armGradeActions(); return; }
     const ep=episodeFor(currentCardIndex()); ep.teachingComplete=true; const stat=roundStats.find(row=>row.idx===currentCardIndex()); if(stat) stat.traced=true; const m=cardMemory(currentCardIndex()); if(m.lastEpisode) m.lastEpisode.teachingComplete=true; saveMemory(); practicePhase="feedback"; feedbackKind="teachingComplete"; $("decisionRow").style.display="none"; $("askRow").style.display="none"; $("qualityBox").style.display="none";
-    showTeachingCompleteFeedback(); stamped=true; saveSessionSnapshot(); autoNextTimer=setTimeout(advanceFeedback,STAMP_HOLD_MS); return; }
+    showTeachingCompleteFeedback(); stamped=true; saveSessionSnapshot(); autoNextTimer=setTimeout(advanceFeedback,STAMP_HOLD_MS); armGradeActions(); return; }
   if(correct && !submissionSnapshot.hintEverUsed && !submissionSnapshot.softConfirmHandled && submissionSnapshot.lastVerdict&&submissionSnapshot.lastVerdict.status==="bad"&&submissionSnapshot.lastVerdict.mode==="exact"){
-    submissionSnapshot=Object.freeze({...submissionSnapshot,softConfirmHandled:true}); $("decisionRow").style.display="none"; $("uncertainAction").style.display="none"; $("softConfirm").style.display="block"; saveSessionSnapshot(); return; }
+    lockGradeActions(); submissionSnapshot=Object.freeze({...submissionSnapshot,softConfirmHandled:true}); $("decisionRow").style.display="none"; $("uncertainAction").style.display="none"; $("softConfirm").style.display="block"; saveSessionSnapshot(); armGradeActions(); return; }
   pickStamp(correct?(submissionSnapshot.hintEverUsed?"hinted":"fast"):"slow"); }
 $("decisionCorrect").onclick=()=>decideSubmission(true);
 $("decisionWrong").onclick=()=>decideSubmission(false);
@@ -2748,8 +2754,8 @@ $("reveal").addEventListener("click",e=>{ if(practicePhase!=="feedback" || e.tar
 function roundHasPendingWork(){ return baseCursor<baseTargets.length || manualQueue.length>0 || unresolved.size>0; }
 function currentBudgetAttempts(){ ensureCurrentRoundBudgetDay(); return Math.max(0,attemptSeq-roundBudgetAttemptBase); }
 function roundBudgetReached(){ return activeMode!=="calibrate" && !roundBudgetPrompted && roundHasPendingWork() && (currentBudgetAttempts()>=ROUND_ATTEMPT_BUDGET || currentRoundElapsed()>=ROUND_TIME_BUDGET_MS); }
-function openRoundBudgetSheet(){ const progress=practiceProgress(); $("roundBudgetCopy").textContent=`这次已练 ${progress.done}/${progress.total} 个字。今天先到这里，没写稳的字会排到下次最前面。`; $("roundBudgetSheet").classList.add("open"); }
-function closeRoundBudgetSheet(){ $("roundBudgetSheet").classList.remove("open"); }
+function openRoundBudgetSheet(){ const progress=practiceProgress(); $("roundBudgetCopy").textContent=`这次已练 ${progress.done}/${progress.total} 个字。今天先到这里，没写稳的字会排到下次最前面。`; openAccessibleModal($("roundBudgetSheet"),$("continueRound"),closeRoundBudgetSheet); }
+function closeRoundBudgetSheet(){ closeAccessibleModal($("roundBudgetSheet")); }
 function continueAfterBudget(){ roundBudgetPrompted=true; closeRoundBudgetSheet(); saveSessionSnapshot(); advanceToNextTarget(); }
 function pendingTomorrowIndexes(){ const ordered=[], add=idx=>{ if(Number.isInteger(idx)&&!ordered.includes(idx)) ordered.push(idx); };
   manualQueue.forEach(item=>add(item.idx)); reinforcementQueue.filter(item=>item.eligibleAfter<=attemptSeq&&unresolved.has(item.idx)).forEach(item=>add(item.idx)); baseTargets.slice(baseCursor).forEach(add); reinforcementQueue.filter(item=>item.eligibleAfter>attemptSeq&&unresolved.has(item.idx)).forEach(item=>add(item.idx)); unresolved.forEach(add); return ordered; }
@@ -2853,8 +2859,7 @@ function exitCurrentRound(fromHistory=false){ if(exitingPractice || $("card").st
   if(activeMode==="focus"&&(baseTargets.length===1||focusPreservedSession)){ clearSessionSnapshot(); if(focusReturnView==="book") renderBook(); else if(focusReturnView==="profile") renderProfile(); else if(focusReturnView==="me") renderMe(); else renderHome(); }
   else renderHome(); exitingPractice=false; return true; }
 $("exitPractice").onclick=()=>exitCurrentRound(false);
-window.addEventListener("shizi-native-back",()=>{ if(closeTopAccessibleModal()) return; if($("handCardSheet").classList.contains("open")){ closeHandCard(); return; } if($("libSheet").classList.contains("open")){ closeLibSheet(); return; } if($("charSheet").classList.contains("open")){ closeCharSheet(); return; } if($("settingsPanel").style.display==="flex"||$("annualPanel").style.display==="flex"){ renderMe(); return; } if($("profilePanel").style.display==="flex"){ closeProfile(); return; } if($("auditPanel").style.display==="flex"){ renderSettings(false); return; } exitCurrentRound(false); });
-window.addEventListener("keydown",e=>{ if(e.key==="Escape"){ if($("libSheet").classList.contains("open")) closeLibSheet(); else if($("charSheet").classList.contains("open")) closeCharSheet(); } });
+window.addEventListener("shizi-native-back",()=>{ if(closeTopAccessibleModal()) return; if($("settingsPanel").style.display==="flex"||$("annualPanel").style.display==="flex"){ renderMe(); return; } if($("profilePanel").style.display==="flex"){ closeProfile(); return; } if($("auditPanel").style.display==="flex"){ renderSettings(false); return; } exitCurrentRound(false); });
 $("settingsLibRow").onclick=openLibSheet;
 $("fontScaleRow").onclick=()=>{ fontScaleLarge=!fontScaleLarge; save(FONT_SCALE_KEY,fontScaleLarge); applyFontScale(); fitBox(); };
 $("qualityBox").onclick=e=>{ const b=e.target.closest("[data-quality]"); if(!b) return; recordQuality(b.dataset.quality); };
@@ -2976,9 +2981,9 @@ function renderAddPreview(){ const raw=[...new Set(Array.from($("addInput").valu
   $("wildCandidates").querySelectorAll("[data-wild-candidate]").forEach(btn=>{ const selected=btn.dataset.wildCandidate===chars[0]; btn.classList.toggle("selected",selected); btn.setAttribute("aria-pressed",selected?"true":"false"); }); }
 let feedbackPausedForAdd=false;
 function openAddSheet(){ commitUndoWindow(); if(stamped){ clearTimeout(autoNextTimer); feedbackPausedForAdd=true; lastStampSnapshot=null; $("editStamp").disabled=true; hideUndoBar(false); }
-  clearWildDraft(); $("addInput").value=""; renderAddPreview(); $("addSheet").classList.add("open"); updateKeyboardInset(); $("addInput").focus();
+  clearWildDraft(); $("addInput").value=""; renderAddPreview(); openAccessibleModal($("addSheet"),$("addInput"),closeAddSheet); updateKeyboardInset(); $("addInput").focus();
   requestAnimationFrame(()=>{ try{ $("addInput").scrollIntoView({block:"center", inline:"nearest"}); }catch(e){} }); }
-function closeAddSheet(){ $("addSheet").classList.remove("open"); $("addInput").blur(); clearWildDraft(); updateKeyboardInset(); if(feedbackPausedForAdd){ feedbackPausedForAdd=false; autoNextTimer=setTimeout(advanceFeedback,200); } }
+function closeAddSheet(){ closeAccessibleModal($("addSheet")); $("addInput").blur(); clearWildDraft(); updateKeyboardInset(); if(feedbackPausedForAdd){ feedbackPausedForAdd=false; autoNextTimer=setTimeout(advanceFeedback,200); } }
 function confirmAdd(){ if(wildDraft){ const ch=Array.from($("addInput").value).find(isCJK),capture=wildDraft,result=collectWildCharacter(ch,capture); if(!result.char) return; const insertion=insertIntoCurrentBatch([result.idx]); closeAddSheet();
     if(insertion.queued.length) toast(`已加入本组，下一题写「${result.char}」`); else toast(`已拾下「${result.char}」 · 下次开练先写它`);
     if($("summary").style.display==="flex") roundSummary(); if($("mePanel").style.display==="flex") renderMe(); if($("studybook").style.display==="flex") renderBook(); return; }

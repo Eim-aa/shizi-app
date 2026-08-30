@@ -584,6 +584,172 @@ let browser;
     && legacyWebKitModal.closed && legacyWebKitModal.stack.length === 0 && !legacyWebKitModal.backgroundHidden && Number(legacyWebKitModal.activeIndex) === modalIndex,
     "#149 dialogs must isolate background, close only the top keyboard/native-back layer, preserve iOS 15.0 compatibility, match visual keyboard order, and restore focus", { charModal, handCardModal, afterNestedEscape, afterNativeBack, modalClosed, legacyWebKitOpen, legacyWebKitModal });
 
+  // ── 五个此前只改 class 的弹层：逐个用真实入口验证模态语义 ──────────────────
+  // 上面那句总括断言只覆盖了 char/handCard/wildPhoto/restore/reset，却声称
+  // "dialogs 均已隔离"，于是 makeup / focus / lib / budget / add 一直假绿——
+  // 其中 focusChoiceSheet 正是 #144 的核心新流程。这里逐个弹层从真实入口打开，
+  // 各验五件事：焦点进入、Tab 闭环、背景隔离、Esc / 原生返回、关闭后回焦。
+  const FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+  // 触发器用 data 标记而不是 id 认领：字库行、印历日格都是没有 id 的按钮，
+  // 比 id 会两边都是空串，断言等于没写。
+  const probeSheet = (sheetId) => page.evaluate(({ id, selector }) => {
+    const sheet = document.getElementById(id), wrap = document.querySelector(".wrap"), nodes = [...sheet.querySelectorAll(selector)];
+    return { open: sheet.classList.contains("open"), role: sheet.getAttribute("role"), ariaModal: sheet.getAttribute("aria-modal"),
+      labelled: !!sheet.getAttribute("aria-labelledby") && !!document.getElementById(sheet.getAttribute("aria-labelledby")),
+      stackTop: accessibleModalStack.length ? accessibleModalStack[accessibleModalStack.length - 1].id : null,
+      wrapInert: wrap.inert, wrapHidden: wrap.getAttribute("aria-hidden"),
+      focusInside: sheet.contains(document.activeElement), focusableCount: nodes.length,
+      activeIsTrigger: document.activeElement instanceof HTMLElement && document.activeElement.hasAttribute("data-verify-trigger") };
+  }, { id: sheetId, selector: FOCUSABLE });
+
+  const sheetCases = [
+    { id: "addSheet", trigger: "#homeAdd", dismiss: "escape",
+      setup: () => page.evaluate(() => { clearSessionSnapshot(); renderHome(); displayView("home"); }) },
+    { id: "libSheet", trigger: "#settingsLibRow", dismiss: "native",
+      setup: () => page.evaluate(() => { renderMe(); renderSettings(false); }) },
+    { id: "makeupSheet", trigger: "#calendarGrid [data-makeup]", dismiss: "escape",
+      setup: () => page.evaluate(() => { clearSessionSnapshot(); activity.practiceDays = []; saveActivity(); renderMe(); renderCalendar(); }) },
+    // #144 的核心流程：手上已有普通组时从「待拾回」发起专项，弹层问原组还是专项。
+    // 入口选画像页而不是字详情——字详情那条会先 closeCharSheet()，触发器随之进入
+    // inert 的已关闭弹层，App 正确地不会把焦点还回去，那样就测不出回焦这一项。
+    { id: "focusChoiceSheet", trigger: "#profilePractice", dismiss: "native",
+      setup: () => page.evaluate(() => { clearSessionSnapshot();
+        ["水", "永", "的", "一", "人"].forEach((ch) => { const m = cardMemory(BASE_BY_CHAR[ch]); m.seen = 3; m.misses = 2; m.target = ch; });
+        saveMemory(); startRound("new"); saveSessionSnapshot(); openProfile(); }) },
+    // 出题预算由 attemptSeq - roundBudgetAttemptBase 决定；推到阈值后由 next() 真实唤起，
+    // 不直接调 openRoundBudgetSheet，否则测的就不是真实入口。
+    { id: "roundBudgetSheet", trigger: "#exitPractice", dismiss: "escape", viaNext: true,
+      setup: () => page.evaluate(() => { startRound("new"); roundBudgetPrompted = false; attemptSeq = roundBudgetAttemptBase + ROUND_ATTEMPT_BUDGET; }) },
+  ];
+
+  const sheetResults = [];
+  for (const item of sheetCases) {
+    await item.setup();
+    await page.evaluate((sel) => { document.querySelectorAll("[data-verify-trigger]").forEach((n) => n.removeAttribute("data-verify-trigger"));
+      document.querySelector(sel).setAttribute("data-verify-trigger", "1"); }, item.trigger);
+    if (item.viaNext) await page.evaluate((sel) => { document.querySelector(sel).focus(); next(); }, item.trigger);
+    else await page.click(item.trigger);
+    await page.waitForFunction((id) => document.getElementById(id).classList.contains("open") && document.getElementById(id).contains(document.activeElement), item.id, { timeout: 4000 });
+    const opened = await probeSheet(item.id);
+    // Tab 闭环：停在最后一个可聚焦元素上按 Tab，应回到第一个（按序号比，不按 id）
+    await page.evaluate(({ id, selector }) => { const nodes = [...document.getElementById(id).querySelectorAll(selector)]; nodes[nodes.length - 1].focus(); }, { id: item.id, selector: FOCUSABLE });
+    await page.keyboard.press("Tab");
+    const wrapped = await page.evaluate(({ id, selector }) => {
+      const nodes = [...document.getElementById(id).querySelectorAll(selector)];
+      return { activeIndex: nodes.indexOf(document.activeElement), count: nodes.length };
+    }, { id: item.id, selector: FOCUSABLE });
+    if (item.dismiss === "escape") await page.keyboard.press("Escape");
+    else await page.evaluate(() => window.dispatchEvent(new Event("shizi-native-back")));
+    await page.waitForFunction((id) => !document.getElementById(id).classList.contains("open"), item.id, { timeout: 4000 });
+    // 回焦发生在 requestAnimationFrame 里，而 closeAddSheet 之类会先 blur()，
+    // 焦点会短暂落在 body 上——只等"离开弹层"会在回焦之前就把状态读走。
+    // 这里等触发器真的拿回焦点；超时不抛，留给下面的断言报出可读的失败。
+    await page.waitForFunction(() => document.activeElement instanceof HTMLElement && document.activeElement.hasAttribute("data-verify-trigger"),
+      null, { timeout: 3000 }).catch(() => {});
+    const closed = await probeSheet(item.id);
+    sheetResults.push({ id: item.id, dismiss: item.dismiss, trigger: item.trigger, opened, wrapped, closed });
+  }
+
+  for (const row of sheetResults) {
+    assert(row.opened.open && row.opened.role === "dialog" && row.opened.ariaModal === "true" && row.opened.labelled,
+      `#144/#149 ${row.id} must declare itself a labelled modal dialog`, row);
+    assert(row.opened.stackTop === row.id && row.opened.wrapInert && row.opened.wrapHidden === "true",
+      `#144/#149 ${row.id} must sit on the accessible modal stack and isolate the background`, row);
+    assert(row.opened.focusInside && row.opened.focusableCount > 0,
+      `#144/#149 ${row.id} must move focus into the dialog on open`, row);
+    assert(row.wrapped.count > 1 && row.wrapped.activeIndex === 0,
+      `#144/#149 ${row.id} must trap Tab inside the dialog`, row);
+    assert(!row.closed.open && !row.closed.wrapInert && row.closed.wrapHidden === null && row.closed.stackTop === null,
+      `#144/#149 ${row.id} must release the background after ${row.dismiss}`, row);
+    assert(!row.closed.focusInside && row.closed.activeIsTrigger,
+      `#144/#149 ${row.id} must return focus to its real trigger after ${row.dismiss}`, row);
+  }
+
+  // ── #146 双击防重：两条替代决策分支的真实坐标 hit-test ────────────────────
+  // 之前只有普通 pickStamp 一条覆盖，所以 postTrace 与 softConfirm 稳定全绿。
+  const doubleTapBranch = async (patch) => {
+    await resetState(page);
+    await page.evaluate(() => startFocus([BASE_BY_CHAR["器"]]));
+    await page.waitForFunction(() => Array.isArray(curMedians) && curMedians.length > 0);
+    await page.evaluate(() => { inkStrokes = mediansToCanvas(curMedians); redrawInk(); actionCooldownUntil = 0; stamped = false; revealAnswer(); });
+    await page.waitForFunction(() => practicePhase === "revealDecision" && getComputedStyle(decisionCorrect).display !== "none");
+    const box = await page.evaluate((extra) => {
+      submissionSnapshot = Object.freeze({ ...submissionSnapshot, ...extra });
+      // 这个探针会被调用多次，监听器必须先摘再挂，否则每次点击会被记多条，
+      // 「第二击」的下标就不再稳定。
+      if (window.__branchListener) document.removeEventListener("click", window.__branchListener, true);
+      window.__branchHits = [];
+      window.__branchListener = (e) => { const node = e.target.closest("[id]");
+        window.__branchHits.push({ id: node ? node.id : "(none)", cooldownLeft: Math.round(actionCooldownUntil - Date.now()) }); };
+      document.addEventListener("click", window.__branchListener, true);
+      window.__origSave = saveSessionSnapshot;
+      saveSessionSnapshot = () => { const until = performance.now() + 360; while (performance.now() < until) {} return true; };
+      const r = decisionCorrect.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+    }, patch);
+    const first = page.mouse.click(box.x, box.y);
+    await page.waitForTimeout(100);
+    await page.mouse.click(box.x, box.y);
+    await first;
+    // 只证明第二击被挡住是不够的：lockGradeActions() 单独就能挡（冷却是 Infinity），
+    // 那样按钮会永远锁死。等冷却窗口过去，再确认评分区真的重新可用，
+    // armGradeActions() 才算被这条回归钉住。
+    await page.waitForTimeout(400);
+    return page.evaluate(() => { saveSessionSnapshot = window.__origSave;
+      return { phase: practicePhase, feedbackKind, stamped, softConfirmShown: getComputedStyle(softConfirm).display !== "none",
+        cooldownAfterSettle: Math.round(actionCooldownUntil - Date.now()),
+        layersUnlocked: GRADE_ACTION_LAYERS.every((id) => { const node = document.getElementById(id); return !node || getComputedStyle(node).pointerEvents !== "none"; }),
+        softConfirmBox: (() => { const node = document.querySelector(".softConfirmActions button"); if (!node) return null;
+          const box = node.getBoundingClientRect(); return { w: Math.round(box.width), h: Math.round(box.height) }; })(),
+        decisionShown: getComputedStyle(decisionRow).display !== "none", hits: window.__branchHits.slice(0, 4) }; });
+  };
+
+  const postTraceDouble = await doubleTapBranch({ practicePhase: "postTraceRecall" });
+  assert(postTraceDouble.stamped && postTraceDouble.phase === "feedback" && postTraceDouble.feedbackKind === "teachingComplete"
+    && postTraceDouble.hits.length >= 2 && postTraceDouble.hits[1].cooldownLeft > 0
+    && postTraceDouble.cooldownAfterSettle <= 0 && postTraceDouble.layersUnlocked,
+    "#146 the post-trace branch must lock before switching state so a 100ms second tap cannot skip the teaching-complete feedback", postTraceDouble);
+
+  const softConfirmDouble = await doubleTapBranch({ hintEverUsed: false, softConfirmHandled: false,
+    lastVerdict: { status: "bad", mode: "exact", failed: [0], u: 0, t: 0, missing: 0 } });
+  assert(!softConfirmDouble.stamped && softConfirmDouble.softConfirmShown && !softConfirmDouble.decisionShown
+    && softConfirmDouble.hits.length >= 2 && softConfirmDouble.hits[1].cooldownLeft > 0
+    && softConfirmDouble.cooldownAfterSettle <= 0 && softConfirmDouble.layersUnlocked,
+    "#146 the soft-confirm branch must lock before switching state so a 100ms second tap cannot dismiss the confirmation layer", softConfirmDouble);
+  // 软确认按钮只在这一刻真正可见，尺寸就在这里量，不去别处造一个假的可见态。
+  assert(softConfirmDouble.softConfirmBox && softConfirmDouble.softConfirmBox.h >= 44 && softConfirmDouble.softConfirmBox.w >= 44,
+    '#149 touch target "软确认按钮" must be at least 44x44pt', softConfirmDouble.softConfirmBox);
+
+  // ── #149 年报第四屏日期用中文口径（DEVICE_QA：年度报告日期使用中文） ──────
+  await resetState(page);
+  const annualDate = await page.evaluate(() => {
+    const day = `${new Date().getFullYear()}-01-01`;
+    activity.practiceDays = [day]; activity.daily[day] = normalizeActivityDay({ stamps: 1, targetKeys: [cardKey(BASE_BY_CHAR["水"])], completedRoundIds: ["verify"] });
+    saveActivity(); renderAnnualReport();
+    const slides = document.getElementById("annualSlides");
+    return { text: slides.textContent, hasISO: /\d{4}-\d{2}-\d{2}/.test(slides.textContent) };
+  });
+  assert(!annualDate.hasISO && /\d+年\d+月\d+日/.test(annualDate.text),
+    "#149 the annual report must render its first-character date in Chinese, not ISO", annualDate);
+
+  // ── #149 关键触控区不小于 44×44pt（DEVICE_QA 验收项） ────────────────────
+  const touchTargets = await page.evaluate(() => {
+    const out = [];
+    const measure = (selector, label) => { const node = document.querySelector(selector);
+      if (!node) { out.push({ label, missing: true }); return; }
+      const box = node.getBoundingClientRect(); out.push({ label, w: Math.round(box.width), h: Math.round(box.height) }); };
+    renderMe(); measure(".meCalendarHead button", "印历前后月");
+    const idx = BASE_BY_CHAR["水"], m = cardMemory(idx); m.seen = 1; m.target = "水";
+    persistRecentInk(m, [[{ x: .2, y: .2, w: 1 }, { x: .8, y: .8, w: 1 }]], Date.now()); saveMemory();
+    openCharSheet(idx); measure(".charDetailCompareHead button", "字详情 对范字");
+    toggleCharDetailCompare(); measure(".charDetailOverlayToggle", "字详情 叠"); closeCharSheet();
+    document.getElementById("handCardPrompt").style.display = "flex"; measure(".handCardPrompt button", "字卡 制作"); hideHandCardPrompt();
+    return out;
+  });
+  for (const target of touchTargets) {
+    assert(!target.missing && target.h >= 44 && target.w >= 44,
+      `#149 touch target "${target.label}" must be at least 44x44pt`, { target, all: touchTargets });
+  }
+
   const restoreSeed = await page.evaluate(() => {
     const current = { "verify:restore-current": { seen: 1, last: Date.now() } }; memory = current; saveMemory();
     const payload = JSON.parse(backupPayload({ preserveMeta: true })); payload.data[MEMORY_KEY] = JSON.stringify({ "verify:restore-incoming": { seen: 1, last: Date.now() - 1000 } });

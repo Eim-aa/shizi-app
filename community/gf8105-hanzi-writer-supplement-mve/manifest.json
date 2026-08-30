@@ -1,0 +1,112 @@
+{
+  "schema_version": 1,
+  "artifact": "gf8105-hanzi-writer-supplement-mve",
+  "version": "0.0.0-mve.1",
+  "status": "TECHNICAL_MVE_PENDING_UPSTREAM_ROUTE_CONFIRMATION",
+  "baseline": {
+    "project": "hanzi-writer-data",
+    "version": "2.0.1",
+    "repository": "https://github.com/chanind/hanzi-writer-data"
+  },
+  "scope": {
+    "characters": [
+      "抔",
+      "拃",
+      "馃"
+    ],
+    "character_count": 3,
+    "issue_character_count": 10,
+    "included_character_count": 3,
+    "remaining_characters_not_included": 7,
+    "claims_issue_resolution": false,
+    "generated_json_pr_payload": false,
+    "characters_sha256": "9833e470b05f101e23760b7b07799f29b90b7aa2daa7814abca87565df587226",
+    "stroke_count": 26,
+    "partial_response_to": "https://github.com/chanind/hanzi-writer-data/issues/15"
+  },
+  "source": {
+    "project": "AnimCJK",
+    "repository": "https://github.com/parsimonhi/animCJK",
+    "commit": "ec5e17cca76c87587790bcbce5ea0b4d4fb753d6",
+    "file": "graphicsZhHans.txt",
+    "locale": "zh_hans",
+    "license": "Arphic Public License",
+    "license_file": "LICENSE-ARPHIC.txt"
+  },
+  "transformation": {
+    "method": "remove_character_key_and_serialize",
+    "strokes_semantically_unchanged": true,
+    "medians_semantically_unchanged": true,
+    "local_geometry_repairs": 0,
+    "rad_strokes_added": false
+  },
+  "quality": {
+    "normative_reference": "Common Standard Chinese Characters Table (2013)",
+    "machine_structure": "PASS",
+    "svg_path_parse": "PASS",
+    "hanzi_writer_render_and_animation": "PASS",
+    "same_character_human_review": "PASS_IN_SOURCE_PROJECT",
+    "human_review_transcript_included": false,
+    "runtime_dependency": {
+      "name": "hanzi-writer",
+      "version": "3.7.3",
+      "path": "vendor/hanzi-writer-3.7.3.min.js",
+      "byte_size": 36968,
+      "sha256": "17b11a1e025b780cb518d49b30faacc770dfa7fbc387aa3876e3e5c1bd31e642",
+      "sri_sha384": "sha384-xd6VpwMU5AxPFzG/nyhXrW70SSR2usiUNV8RrA0wlOjYlCrZyzZC6JiR/mT51pm2",
+      "source_url": "https://cdn.jsdelivr.net/npm/hanzi-writer@3.7.3/dist/hanzi-writer.min.js",
+      "license_file": "LICENSE-HANZI-WRITER.txt"
+    }
+  },
+  "provenance": {
+    "snapshot_path": "provenance/graphicsZhHans.mve.jsonl",
+    "record_count": 3,
+    "byte_size": 8054,
+    "sha256": "9d88898da24b3a22b5f9ba32f92c570a0ac3e65cad872a8f1b486241a0773629",
+    "line_hash_includes_trailing_newline": true
+  },
+  "records": [
+    {
+      "character": "抔",
+      "codepoint": "U+6294",
+      "gf8105_level": 2,
+      "stroke_count": 7,
+      "median_count": 7,
+      "data_path": "data/抔.json",
+      "byte_size": 2275,
+      "sha256": "903a967742c3f7ad6f0dad4e482851a64a1a191922e85f26a09c9b1a6e55e63a",
+      "source_line": 2404,
+      "source_line_sha256": "34506f7b73b8d0d4e23244228f914f088ceec5fe37a433482587ed7431108c30"
+    },
+    {
+      "character": "拃",
+      "codepoint": "U+62C3",
+      "gf8105_level": 2,
+      "stroke_count": 8,
+      "median_count": 8,
+      "data_path": "data/拃.json",
+      "byte_size": 2147,
+      "sha256": "99aabe7f01162c8c7fe0c9f4e57b3d5c65587b6a1bcafc08769289c2caa32ebd",
+      "source_line": 2428,
+      "source_line_sha256": "a9d7c1caaf5a5a10bc644fc9b9a1ac66dafaaa9835d06549834ca3a91d3beb8a"
+    },
+    {
+      "character": "馃",
+      "codepoint": "U+9983",
+      "gf8105_level": 2,
+      "stroke_count": 11,
+      "median_count": 11,
+      "data_path": "data/馃.json",
+      "byte_size": 3578,
+      "sha256": "28cbc99d1df9b274dcd56f50148f3045158bfb17ccdab9f7c93e61c16e8c3a46",
+      "source_line": 7441,
+      "source_line_sha256": "2b0f73c44dfdcf7e5a38f7105c1071ba128183a489ec71f2354645c8e7e15369"
+    }
+  ],
+  "public_boundary": {
+    "app_source_included": false,
+    "internal_review_transcripts_included": false,
+    "local_paths_included": false,
+    "chaifen_data_included": false
+  }
+}

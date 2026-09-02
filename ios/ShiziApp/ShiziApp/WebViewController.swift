@@ -223,10 +223,17 @@ final class WebViewController: UIViewController {
               touchMovePrevented: false,
               strokeRecorded: false,
               strokePointCount: 0,
-              brushRendererAvailable: false,
-              brushMetadataRecorded: false,
-              brushShareMetadata: false,
+              faithfulRendererAvailable: false,
+              faithfulPointMetadata: false,
+              faithfulShareMetadata: false,
+              fingerWidthStable: false,
+              pencilPressureVisible: false,
+              zeroTouchDot: false,
+              zeroPencilDot: false,
+              cancelledDotAbsent: false,
               inkPixelsChanged: false,
+              strokeShapeStable: false,
+              strokeRerenderStable: false,
               pageScrollStable: false,
               clearWorked: false,
               undoStrokeWorked: false,
@@ -1055,11 +1062,21 @@ final class WebViewController: UIViewController {
                     skipBlocked: skipControl.getAttribute('aria-disabled') === 'true' && currentCardIndex() === skipBefore.index && baseCursor === skipBefore.cursor && JSON.stringify(manualQueue) === skipBefore.queue && drawing && curInkStroke && curInkStroke.length === skipBefore.points
                   };
                   for (let i = 2; i < points.length; i++) movesPrevented = !inkCanvas.dispatchEvent(pointer('pointermove', points[i], 1)) && movesPrevented;
+                  const beforeRelease = inkCtx.getImageData(0, 0, inkCanvas.width, inkCanvas.height).data.slice();
                   inkCanvas.dispatchEvent(pointer('pointerup', points[points.length - 1], 0));
+                  const afterRelease = inkCtx.getImageData(0, 0, inkCanvas.width, inkCanvas.height).data.slice();
+                  let releaseMismatch = 0;
+                  for (let i = 0; i < beforeRelease.length; i++) if (beforeRelease[i] !== afterRelease[i]) releaseMismatch++;
+                  redrawInk();
+                  const afterRerender = inkCtx.getImageData(0, 0, inkCanvas.width, inkCanvas.height).data;
+                  let rerenderMismatch = 0;
+                  for (let i = 0; i < afterRelease.length; i++) if (afterRelease[i] !== afterRerender[i]) rerenderMismatch++;
                   const after = {
                     stable: ['.chdr', '#prompt', '#actions'].every(selector => Number(getComputedStyle(document.querySelector(selector)).opacity) === 1),
                     unlocked: !document.getElementById('actions').classList.contains('inputLock') && !document.getElementById('skipAction').classList.contains('inputLock'),
-                    cooldown: Number(actionCooldownUntil) || 0
+                    cooldown: Number(actionCooldownUntil) || 0,
+                    releaseMismatch,
+                    rerenderMismatch
                   };
                   return { downPrevented, movesPrevented, during, after };
                 };
@@ -1080,15 +1097,34 @@ final class WebViewController: UIViewController {
                 result.handwritingFlow.touchMovePrevented = touchProbe.defaultPrevented;
                 result.handwritingFlow.strokeRecorded = inkStrokes.length === 1;
                 result.handwritingFlow.strokePointCount = inkStrokes.length ? inkStrokes[0].length : 0;
-                result.handwritingFlow.brushRendererAvailable = typeof paintBrushStroke === 'function' && typeof brushWidthFor === 'function';
-                result.handwritingFlow.brushMetadataRecorded = inkStrokes.length === 1 && inkStrokes[0].every(point => Number.isFinite(point.w) && Number.isFinite(point.v));
+                result.handwritingFlow.faithfulRendererAvailable = typeof paintFaithfulInk === 'function' && typeof faithfulInkWidth === 'function';
+                result.handwritingFlow.faithfulPointMetadata = inkStrokes.length === 1 && inkStrokes[0].every(point => Number.isFinite(point.p) && !('w' in point) && !('v' in point));
                 const sharedBrush = shareInkFromSnapshot({ canvasSize: S, inkStrokes });
-                result.handwritingFlow.brushShareMetadata = sharedBrush.length === 1 && sharedBrush[0].every(point => Number.isFinite(point.w) && Number.isFinite(point.v));
+                result.handwritingFlow.faithfulShareMetadata = sharedBrush.length === 1 && sharedBrush[0].every(point => !('w' in point) && !('v' in point));
+                result.handwritingFlow.fingerWidthStable = faithfulInkWidth({ p: 0, w: .35, v: 6 }, 20) === faithfulInkWidth({ p: 0, w: 1.7, v: 0 }, 20);
+                result.handwritingFlow.pencilPressureVisible = faithfulInkWidth({ p: .9 }, 20) > faithfulInkWidth({ p: .15 }, 20);
                 result.handwritingFlow.inkPixelsChanged = pixelCount() > pixelsBefore;
+                result.handwritingFlow.strokeShapeStable = dispatched.after.releaseMismatch === 0;
+                result.handwritingFlow.strokeRerenderStable = dispatched.after.rerenderMismatch === 0;
                 const scrollAfter = document.scrollingElement ? document.scrollingElement.scrollTop : window.scrollY;
                 result.handwritingFlow.pageScrollStable = scrollAfter === scrollBefore;
                 undoInkStroke();
                 result.handwritingFlow.undoStrokeWorked = inkStrokes.length === 0 && pixelCount() === 0;
+                const dispatchDot = (pointerType, pressure, finishType = 'pointerup') => {
+                  clearInk();
+                  const rect = inkCanvas.getBoundingClientRect(), point = { x: rect.left + rect.width * .5, y: rect.top + rect.height * .5 }, id = pointerID++;
+                  const event = (type, buttons) => new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: id, pointerType, isPrimary: true, button: 0, buttons, pressure: buttons ? pressure : 0, clientX: point.x, clientY: point.y });
+                  inkCanvas.dispatchEvent(event('pointerdown', 1));
+                  inkCanvas.dispatchEvent(event(finishType, 0));
+                  const shared = shareInkFromSnapshot({ canvasSize: S, inkStrokes });
+                  return { strokes: inkStrokes.length, points: inkStrokes[0] ? inkStrokes[0].length : 0, pressure: inkStrokes[0] && inkStrokes[0][0] ? inkStrokes[0][0].p : 0, pixels: pixelCount(), shared: shared.length === 1 && shared[0].length === 1 };
+                };
+                const touchDot = dispatchDot('touch', .5);
+                result.handwritingFlow.zeroTouchDot = touchDot.strokes === 1 && touchDot.points === 1 && touchDot.pressure === 0 && touchDot.pixels > 0 && touchDot.shared;
+                const pencilDot = dispatchDot('pen', .72);
+                result.handwritingFlow.zeroPencilDot = pencilDot.strokes === 1 && pencilDot.points === 1 && pencilDot.pressure > .7 && pencilDot.pixels > touchDot.pixels && pencilDot.shared;
+                const cancelledDot = dispatchDot('touch', .5, 'pointercancel');
+                result.handwritingFlow.cancelledDotAbsent = cancelledDot.strokes === 0 && cancelledDot.pixels === 0 && !cancelledDot.shared;
                 dispatchStroke();
                 await new Promise(resolve => setTimeout(resolve, 340));
                 clearInk();

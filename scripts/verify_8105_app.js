@@ -179,6 +179,10 @@ assert(source.includes("faithfulInkWidth") && source.includes("paintFaithfulInk"
   && !source.includes("brushWidthFor") && !source.includes("paintBrushStroke") && !source.includes("paintInkBloom") && !source.includes('"destination-out"'),
 "Expected one faithful live/replay renderer with real Pencil pressure and no speed width, taper, dry-brush, or ink bloom");
 assert(source.includes("SOUNDSCAPE_SCENES") && source.includes("ambientNoiseBuffer") && source.includes("syncAmbientForView") && !/function startAmbient[^{]*\{[^}]*sound\.enabled/.test(source), "Expected an independent, procedural, practice-only soundscape");
+assert(source.includes('const ROUND_FEEDBACK={easy:"太简单",ok:"正合适",hard:"太难"}') && source.includes('role="radiogroup" aria-label="这组难度怎么样？"')
+  && source.includes('id="charDetailBadContext"') && source.includes("migrateLegacyQualitySemantics") && !source.includes('data-audit-quality=')
+  && source.includes('id="reminderRow" role="switch" aria-checked="false"') && !source.includes('id="reminderState"'),
+"Expected one-dimensional round feedback, scoped context reporting, legacy-quality migration, and a semantic reminder switch");
 assert(source.includes("enterWritingChrome") && source.includes("finishWritingChrome") && source.includes("setWritingChromeHidden") && source.includes("paperReveal") && source.includes("REST_LINES"), "Expected accessible stove-mode chrome, one-time paper reveal, and fixed closing microcopy");
 assert(source.includes("loadEtymology") && source.includes("renderEtymLine") && source.includes('fetch("data/etymology.json")') && !source.includes("暂无释义"), "Expected a lazy, silent-absence etymology row");
 assert(webViewSource.includes("AVAudioSession.sharedInstance().setCategory(.ambient") && webViewSource.includes('case "sound"') && webViewSource.includes('case "soundscape"') && webViewSource.includes('content.userInfo = ["targetCardKey": question.targetCardKey]'), "Expected native ambient audio-session setup, paper sounds, and notification target metadata");
@@ -523,7 +527,7 @@ let browser;
   "Expected penalty-free monthly rhythm, one-time day-14 celebration, silent inherited catch-up, and every-100 continuation", rhythmAndMilestones);
 
   const reminderBoundary = await page.evaluate(() => {
-    const original = { memory: cloneObj(memory), status: cloneObj(status), reminder: cloneObj(reminder) };
+    const original = { memory: cloneObj(memory), status: cloneObj(status), reminder: cloneObj(reminder), permissionConfirmed: reminderPermissionConfirmed };
     activity = newActivity(); activity.inheritedStreak = 0; activity.inheritedTotalDays = 0; activity.daily = {}; activity.practiceDays = [];
     const at = (hour, minute) => { const date = new Date(); date.setHours(hour, minute, 0, 0); return date.getTime(); };
     for (let i = 0; i < 5; i += 1) {
@@ -536,10 +540,10 @@ let browser;
     activity.practiceDays.forEach((key) => { activity.daily[key].lastStampAt = at(23, 30); }); const late = medianPracticeTime();
     const missIdx = CARDS.findIndex((card) => card.target === "蘸"), otherIdx = CARDS.findIndex((card) => card.target === "器");
     memory = {}; status = {}; [missIdx, otherIdx].forEach((idx, order) => { memory[cardKey(idx)] = { seen: 1, dueDay: today(), pendingLearning: false, lastOutcome: order === 0 ? "miss" : "fast", misses: order === 0 ? 2 : 0, ease: order === 0 ? 25 : 70, last: Date.now() - order }; status[cardKey(idx)] = "rest"; });
-    reminder = normalizeReminder({ enabled: true, permission: "granted" }); renderMe(); syncReminder(); const sync = cloneObj(reminderDebug.lastSync);
+    reminder = normalizeReminder({ enabled: true, permission: "granted" }); reminderPermissionConfirmed = true; renderMe(); syncReminder(); const sync = cloneObj(reminderDebug.lastSync);
     const fallbackIdx = CARDS.findIndex((card) => card.target === "品"), fallbackKey = cardKey(fallbackIdx); memory = { [fallbackKey]: { seen: 1, dueDay: shiftDay(today(), 30), pendingLearning: false, lastOutcome: "slow", slow: 1, ease: 35, last: Date.now() } }; status = { [fallbackKey]: "rest" }; syncReminder(); const fallback = cloneObj(reminderDebug.lastSync);
     memory = {}; status = {}; syncReminder(); const noTarget = cloneObj(reminderDebug.lastSync);
-    memory = original.memory; status = original.status; reminder = normalizeReminder(original.reminder); saveMemory(); save(DECK_KEY, status); saveReminder();
+    memory = original.memory; status = original.status; reminder = normalizeReminder(original.reminder); reminderPermissionConfirmed = original.permissionConfirmed; saveMemory(); save(DECK_KEY, status); saveReminder();
     return {
       median, few, late,
       hiddenInBrowser: getComputedStyle(reminderSection).display === "none" && getComputedStyle(reminderInvite).display === "none",
@@ -551,6 +555,68 @@ let browser;
     && reminderBoundary.sync.title === `${reminderBoundary.missWord}（${reminderBoundary.missPy}）` && reminderBoundary.sync.body === "还记得这个字怎么写吗？点开试试。"
     && reminderBoundary.sync.questions.every((question) => question.title && question.body && question.targetCardKey && /^\d{4}-\d{2}-\d{2}$/.test(question.day)) && reminderBoundary.fallback.enabled && reminderBoundary.fallback.targetCardKey === reminderBoundary.fallbackKey && !reminderBoundary.noTarget.enabled && reminderBoundary.noTarget.questions.length === 0,
   "Expected missed-due-first payloads, a later high-risk fallback, stable card keys, fixed copy, and no notification without a target", reminderBoundary);
+
+  const reminderAuthorization = await page.evaluate(() => {
+    const saved = { descriptor: Object.getOwnPropertyDescriptor(window, "webkit"), memory: cloneObj(memory), status: cloneObj(status), reminder: cloneObj(reminder), pending: reminderPendingEnable, confirmed: reminderPermissionConfirmed };
+    const bridgeMessages = []; Object.defineProperty(window, "webkit", { configurable: true, value: { messageHandlers: { shiziNative: { postMessage: (message) => bridgeMessages.push(cloneObj(message)) } } } });
+    document.dispatchEvent(new Event("visibilitychange")); const foregroundQueries = bridgeMessages.filter((message) => message.type === "queryReminderStatus").length;
+    const idx = CARDS.findIndex((card) => card.target === "器"), key = cardKey(idx); memory = { [key]: { seen: 1, dueDay: today(), pendingLearning: false, lastOutcome: "miss", misses: 1, last: Date.now() } }; status = { [key]: "rest" };
+    reminder = normalizeReminder({ enabled: true, permission: "granted", promptDismissed: true }); reminderPendingEnable = false; reminderPermissionConfirmed = false; renderReminderUI(); syncReminder();
+    const forged = { checked: reminderRow.getAttribute("aria-checked"), disabled: reminderRow.getAttribute("aria-disabled"), payload: reminderDebug.lastSync.enabled, copy: reminderStatus.textContent };
+    shiziReminderStatus({ permission: "denied" }); const denied = { checked: reminderRow.getAttribute("aria-checked"), disabled: reminderRow.getAttribute("aria-disabled"), copy: reminderStatus.textContent, enabled: reminder.enabled };
+    const originalRequest = requestReminderPermission; let permissionRequests = 0; requestReminderPermission = () => { permissionRequests += 1; };
+    toggleReminder(); const deniedRequests = permissionRequests;
+    shiziReminderStatus({ permission: "unknown" }); toggleReminder(); const unknown = { checked: reminderRow.getAttribute("aria-checked"), pending: reminderPendingEnable, requests: permissionRequests };
+    shiziReminderStatus({ permission: "granted" }); const granted = { checked: reminderRow.getAttribute("aria-checked"), disabled: reminderRow.getAttribute("aria-disabled"), enabled: reminder.enabled, payload: reminderDebug.lastSync.enabled, copy: reminderStatus.textContent };
+    const beforeOffRequests = permissionRequests; toggleReminder(); const off = { checked: reminderRow.getAttribute("aria-checked"), enabled: reminder.enabled, payload: reminderDebug.lastSync.enabled, requests: permissionRequests - beforeOffRequests };
+    const semantics = { role: reminderRow.getAttribute("role"), describedBy: reminderRow.getAttribute("aria-describedby"), trackText: reminderRow.querySelector(".settingSwitch").textContent.trim() };
+    requestReminderPermission = originalRequest; memory = saved.memory; status = saved.status; reminder = normalizeReminder(saved.reminder); reminderPendingEnable = saved.pending; reminderPermissionConfirmed = saved.confirmed;
+    if(saved.descriptor) Object.defineProperty(window, "webkit", saved.descriptor); else delete window.webkit; renderReminderUI(); saveMemory(); save(DECK_KEY, status); saveReminder();
+    return { forged, denied, deniedRequests, unknown, granted, off, semantics, foregroundQueries, bridgeMessages };
+  });
+  assert(reminderAuthorization.forged.checked === "false" && !reminderAuthorization.forged.payload && reminderAuthorization.forged.copy === "关"
+    && reminderAuthorization.denied.checked === "false" && reminderAuthorization.denied.disabled === "true" && !reminderAuthorization.denied.enabled && reminderAuthorization.denied.copy === "通知权限已关闭，请前往系统设置开启" && reminderAuthorization.deniedRequests === 0,
+  "Expected restored reminder data to stay off until the current device confirms permission, and denied permission to remain explicit", reminderAuthorization);
+  assert(reminderAuthorization.unknown.checked === "false" && reminderAuthorization.unknown.pending && reminderAuthorization.unknown.requests === 1
+    && reminderAuthorization.granted.checked === "true" && reminderAuthorization.granted.disabled === "false" && reminderAuthorization.granted.enabled && reminderAuthorization.granted.payload && reminderAuthorization.granted.copy.includes("每天")
+    && reminderAuthorization.off.checked === "false" && !reminderAuthorization.off.enabled && !reminderAuthorization.off.payload && reminderAuthorization.off.requests === 0
+    && reminderAuthorization.semantics.role === "switch" && reminderAuthorization.semantics.describedBy === "reminderStatus" && reminderAuthorization.semantics.trackText === "" && reminderAuthorization.foregroundQueries === 1,
+  "Expected permission requests only on off-to-on, a true switch state, foreground permission refresh, and direct disable after authorization", reminderAuthorization);
+
+  const interactionSemantics = await page.evaluate(() => {
+    const saved = { memory: cloneObj(memory), status: cloneObj(status), quality: cloneObj(quality), skipped: cloneObj(skippedState), tuning: cloneObj(tuning), preference, activeMode, roundStats: cloneObj(roundStats), roundId, roundFeedbackGiven, lastContextUndo: cloneObj(lastContextUndo) };
+    const idx = CARDS.findIndex((card) => card.target === "器"), key = cardKey(idx), originalMemory = { seen: 3, misses: 1, lastOutcome: "miss", dueDay: today(), last: Date.now(), recentInk: { version: 2, day: today(), at: Date.now(), dataURL: "data:image/png;base64,", strokes: [[[0.1, 0.1]]] } };
+    memory = { [key]: cloneObj(originalMemory) }; status = { [key]: "rest" }; quality = { [key]: { easy: true, rare: true, badWord: true, hide: true, word: CARDS[idx].word, target: CARDS[idx].target, last: Date.now() } }; skippedState = normalizeSkippedState(null);
+    const migration = migrateLegacyQualitySemantics(), migrated = cloneObj(quality[key]), memoryPreserved = JSON.stringify(memory[key]) === JSON.stringify(originalMemory), skipped = isCardSkipped(idx);
+    setCardSkipped(idx, false, { syncReminder: false }); const fallback = practiceCard(idx), fallbackCopy = `${promptHTML(fallback)} ${fallback.hint}`;
+    const legacy = { migration, migrated, memoryPreserved, skipped, unblocked: !isCardSkipped(idx) && qualityAvailable(idx) && !qualityBlocked(idx), stillReviewable: reviewReady(idx), fallback: { source: fallback.ctx, word: fallback.word, copy: fallbackCopy, leaksTarget: fallbackCopy.includes(CARDS[idx].target) } };
+
+    quality = {}; lastContextUndo = null; const beforeReportMemory = JSON.stringify(memory[key]); openCharSheet(idx); const detailBefore = { visible: getComputedStyle(charDetailBadContext).display !== "none", help: charDetailContextHelp.textContent, aria: charDetailBadContext.getAttribute("aria-label") };
+    const marked = markContextUnavailable(idx); openCharSheet(idx); const reportedCard = practiceCard(idx), detailAfter = { status: charDetailContextCopy.textContent, undo: getComputedStyle(charDetailContextUndo).display !== "none", reportHidden: getComputedStyle(charDetailBadContext).display === "none", source: reportedCard.ctx, leaksTarget: `${promptHTML(reportedCard)} ${reportedCard.hint}`.includes(CARDS[idx].target), skipped: isCardSkipped(idx), memoryPreserved: JSON.stringify(memory[key]) === beforeReportMemory, reviewable: reviewReady(idx) };
+    const undone = undoLastContextUnavailable(); openCharSheet(idx); const detailUndo = { originalContext: practiceCard(idx).word === CARDS[idx].word, reportVisible: getComputedStyle(charDetailBadContext).display !== "none", qualityEmpty: !quality[key] };
+    closeCharSheet();
+
+    tuning = { calibrated: true, offset: 0, contextStrict: 3, rounds: [{ id: "legacy-round", kind: "bad_context", contextStrict: 3 }] }; preference = "balanced"; activeMode = "new"; roundStats = [{ idx, outcome: "fast" }]; roundId = "verify-semantic-round"; roundFeedbackGiven = false; renderRoundTune();
+    const roundBefore = { labels: [...roundTune.querySelectorAll("[data-round-feedback]")].map((button) => button.textContent), roles: [...roundTune.querySelectorAll("[data-round-feedback]")].map((button) => button.getAttribute("role")), group: roundTune.querySelector("[role=radiogroup]")?.getAttribute("aria-label"), rows: tuning.rounds.length };
+    recordRoundFeedback("bad_context"); const rejectedMixedDimension = !roundFeedbackGiven && tuning.rounds.length === roundBefore.rows; recordRoundFeedback("ok");
+    const roundAfter = { picked: [...roundTune.querySelectorAll('[aria-checked="true"]')].map((button) => button.textContent), disabled: [...roundTune.querySelectorAll("[data-round-feedback]")].every((button) => button.disabled), contextStrict: tuning.contextStrict, history: tuning.rounds.map((row) => row.kind), last: tuning.lastRoundFeedback };
+
+    memory = saved.memory; status = saved.status; quality = saved.quality; skippedState = normalizeSkippedState(saved.skipped); tuning = saved.tuning; preference = saved.preference; activeMode = saved.activeMode; roundStats = saved.roundStats; roundId = saved.roundId; roundFeedbackGiven = saved.roundFeedbackGiven; lastContextUndo = saved.lastContextUndo;
+    saveMemory(); save(DECK_KEY, status); saveQuality(); saveSkippedState(); saveTuning(); save(PREF_KEY, preference); renderHome();
+    return { legacy, detail: { before: detailBefore, marked, after: detailAfter, undone, undo: detailUndo }, round: { before: roundBefore, rejectedMixedDimension, after: roundAfter } };
+  });
+  assert(interactionSemantics.legacy.migration.qualityChanged && interactionSemantics.legacy.migration.skippedChanged && interactionSemantics.legacy.memoryPreserved && interactionSemantics.legacy.skipped
+    && interactionSemantics.legacy.migrated.legacyFlags.easy && interactionSemantics.legacy.migrated.legacyFlags.rare && interactionSemantics.legacy.migrated.legacyFlags.badWord && interactionSemantics.legacy.migrated.legacyFlags.hide
+    && !Object.prototype.hasOwnProperty.call(interactionSemantics.legacy.migrated, "easy") && !Object.prototype.hasOwnProperty.call(interactionSemantics.legacy.migrated, "rare") && !Object.prototype.hasOwnProperty.call(interactionSemantics.legacy.migrated, "badWord") && !Object.prototype.hasOwnProperty.call(interactionSemantics.legacy.migrated, "hide")
+    && interactionSemantics.legacy.migrated.unavailableContexts.length === 1 && interactionSemantics.legacy.unblocked && interactionSemantics.legacy.stillReviewable && interactionSemantics.legacy.fallback.source === "audit" && interactionSemantics.legacy.fallback.word === "" && !interactionSemantics.legacy.fallback.leaksTarget,
+  "Expected legacy quality flags to preserve memory, migrate hide to stable skipping, and scope badWord to one non-leaking context", interactionSemantics.legacy);
+  assert(interactionSemantics.detail.before.visible && interactionSemantics.detail.before.help.includes("不影响这个字") && interactionSemantics.detail.before.aria.includes("只停用这一条语境")
+    && interactionSemantics.detail.marked && interactionSemantics.detail.after.status.includes("仍会继续练这个字") && interactionSemantics.detail.after.undo && interactionSemantics.detail.after.reportHidden && interactionSemantics.detail.after.source === "audit" && !interactionSemantics.detail.after.leaksTarget
+    && !interactionSemantics.detail.after.skipped && interactionSemantics.detail.after.memoryPreserved && interactionSemantics.detail.after.reviewable && interactionSemantics.detail.undone && interactionSemantics.detail.undo.originalContext && interactionSemantics.detail.undo.reportVisible && interactionSemantics.detail.undo.qualityEmpty,
+  "Expected detail feedback to stop only the current context, keep the card reviewable, and provide one undo", interactionSemantics.detail);
+  assert(interactionSemantics.round.before.labels.join() === "太简单,正合适,太难" && interactionSemantics.round.before.roles.every((role) => role === "radio") && interactionSemantics.round.before.group === "这组难度怎么样？" && interactionSemantics.round.rejectedMixedDimension
+    && interactionSemantics.round.after.picked.join() === "正合适" && interactionSemantics.round.after.disabled && interactionSemantics.round.after.contextStrict === 3 && interactionSemantics.round.after.history.join() === "bad_context,ok" && interactionSemantics.round.after.last === "ok",
+  "Expected mutually exclusive difficulty-only round feedback while retaining legacy bad_context history", interactionSemantics.round);
 
   const backupReminderBoundary = await page.evaluate(() => {
     const completed = (count) => {
@@ -849,7 +915,7 @@ let browser;
     const saved = {
       activeMode, baseTargets: baseTargets.slice(), batch: batch.slice(), baseCursor, currentIndex,
       manualQueue: cloneObj(manualQueue), reinforcementQueue: cloneObj(reinforcementQueue), unresolved: [...unresolved], episodes: cloneObj(episodes),
-      attemptSeq, practicePhase, memory: cloneObj(memory), quality: cloneObj(quality), activity: cloneObj(activity), sessionDone: [...sessionDone],
+      attemptSeq, practicePhase, memory: cloneObj(memory), quality: cloneObj(quality), skipped: cloneObj(skippedState), activity: cloneObj(activity), sessionDone: [...sessionDone],
     };
     const indexes = ["器", "疑", "强", "赢", "衡", "辩", "警", "藏", "骤", "疆", "戴", "覆", "醒", "耀", "攀"].map((target) => CARDS.findIndex((card) => card.target === target));
     const resetQueue = (total, cursor) => {
@@ -873,9 +939,8 @@ let browser;
     const onlyFirst = nextQueuedTarget(); attemptSeq = 2; enqueueReinforcement(indexes[0]);
     const onlySecond = nextQueuedTarget();
 
-    resetQueue(1, 1); unresolved.add(indexes[0]); reinforcementQueue.push({ idx: indexes[0], eligibleAfter: 3, order: 1 });
-    currentIndex = indexes[0]; quality = {}; recordQuality("hide", indexes[0]);
-    const exclusion = { unresolved: unresolved.size, queued: reinforcementQueue.length, excluded: episodeFor(indexes[0]).excluded, pending: cardMemory(indexes[0]).pendingLearning };
+    resetQueue(1, 1); currentIndex = indexes[0]; quality = {}; const memoryBeforeSkip = cloneObj(cardMemory(indexes[0])); setCardSkipped(indexes[0], true, { syncReminder: false });
+    const exclusion = { stopped: isCardSkipped(indexes[0]), available: baseAvailable(indexes[0], false), memorySame: JSON.stringify(cardMemory(indexes[0])) === JSON.stringify(memoryBeforeSkip) }; setCardSkipped(indexes[0], false, { syncReminder: false });
 
     const modeCompletion = ["new", "review", "focus", "calibrate"].map((mode) => {
       activeMode = mode; baseTargets = indexes.slice(0, 1); batch = baseTargets; baseCursor = 1; currentIndex = indexes[0]; currentAttemptId = `verify-${mode}-complete`; manualQueue = []; reinforcementQueue = []; unresolved = new Set(); practicePhase = "between";
@@ -889,14 +954,14 @@ let browser;
 
     activeMode = saved.activeMode; baseTargets = saved.baseTargets; batch = saved.batch; baseCursor = saved.baseCursor; currentIndex = saved.currentIndex;
     manualQueue = saved.manualQueue; reinforcementQueue = saved.reinforcementQueue; unresolved = new Set(saved.unresolved); episodes = saved.episodes; attemptSeq = saved.attemptSeq; practicePhase = saved.practicePhase;
-    memory = saved.memory; quality = saved.quality; activity = normalizeActivity(saved.activity); sessionDone = new Set(saved.sessionDone); saveMemory(); saveQuality(); saveActivity();
+    memory = saved.memory; quality = saved.quality; skippedState = normalizeSkippedState(saved.skipped); activity = normalizeActivity(saved.activity); sessionDone = new Set(saved.sessionDone); saveMemory(); saveQuality(); saveSkippedState(); saveActivity();
 
     return { firstNext, firstSecond, firstReturn, fourteenthNext, fourteenthReturn, fifteenthReturn, onlyFirst, onlySecond, exclusion, modeCompletion, repeatedCount, indexes };
   });
   assert(queueEdges.firstNext.idx === queueEdges.indexes[1] && queueEdges.firstSecond.idx === queueEdges.indexes[2] && queueEdges.firstReturn.idx === queueEdges.indexes[0], "Expected first-position difficulty to wait behind two other attempts", queueEdges);
   assert(queueEdges.fourteenthNext.idx === queueEdges.indexes[14] && queueEdges.fourteenthReturn.idx === queueEdges.indexes[13] && queueEdges.fifteenthReturn.idx === queueEdges.indexes[14], "Expected positions 14 and 15 to fall back without deadlock", queueEdges);
   assert(queueEdges.onlyFirst.idx === queueEdges.indexes[0] && queueEdges.onlySecond.idx === queueEdges.indexes[0], "Expected one repeatedly difficult target to keep rotating", queueEdges);
-  assert(queueEdges.exclusion.unresolved === 0 && queueEdges.exclusion.queued === 0 && queueEdges.exclusion.excluded && !queueEdges.exclusion.pending, "Expected explicit content exclusion to release the group without claiming mastery", queueEdges.exclusion);
+  assert(queueEdges.exclusion.stopped && !queueEdges.exclusion.available && queueEdges.exclusion.memorySame, "Expected the stable skip state to exclude a card without changing its memory", queueEdges.exclusion);
   assert(queueEdges.modeCompletion.every((row) => row.complete && row.blocked) && queueEdges.repeatedCount.stamps === 1 && queueEdges.repeatedCount.attempts === 10 && queueEdges.repeatedCount.targets === 1, "Expected all modes to share completion rules and repeated attempts to count one target", queueEdges);
 
   const rhythmGuard = await page.evaluate(() => {

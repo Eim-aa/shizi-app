@@ -231,6 +231,11 @@ final class WebViewController: UIViewController {
               clearWorked: false,
               undoStrokeWorked: false,
               actionCooldownActive: false,
+              chromeStableDuringStroke: false,
+              actionsLockedDuringStroke: false,
+              skipBlockedDuringStroke: false,
+              chromeAccessibleDuringStroke: false,
+              actionsImmediateAfterStroke: false,
               peekEntered: false,
               peekCancelledPartialStroke: false,
               peekActionsUnlocked: false,
@@ -250,7 +255,7 @@ final class WebViewController: UIViewController {
               addedCharStored: false,
               customWordStored: false,
               customCardIndexed: false,
-              memoryHasAddedChar: false,
+              practiceStartHasNoAbilityRecord: false,
               recentInkStored: false,
               wildPhotoInputProcessed: false,
               wildVisionRequestCompleted: false,
@@ -280,6 +285,7 @@ final class WebViewController: UIViewController {
               backupHasSound: false,
               backupHasLibrary: false,
               backupHasFunnel: false,
+              backupHasSkipped: false,
               backupExcludesSmokeKey: false,
               backupHasMeta: false,
               backupRestoreApplied: false,
@@ -290,6 +296,7 @@ final class WebViewController: UIViewController {
               backupRestoreRecentInk: false,
               backupRestoreLibrary: false,
               backupRestoreFunnel: false,
+              backupRestoreSkipped: false,
               backupRestorePreservesSmokeKey: false,
               backupRestoreRejectsInvalid: false,
               nativeBridgeAvailable: false,
@@ -322,7 +329,7 @@ final class WebViewController: UIViewController {
               bookTabActive: false,
               footVisibleOnBook: false,
               bookAchievementVisible: false,
-              stampGuideAvailable: false,
+              libraryInputUnified: false,
               meVisible: false,
               meTabActive: false,
               footVisibleOnMe: false,
@@ -333,7 +340,7 @@ final class WebViewController: UIViewController {
               meActionsDisclosed: false,
               metricLanguageConsistent: false,
               monthlyRhythmVisible: false,
-              homeCaptureVisible: false,
+              homeAddAbsent: false,
               auditVisible: false,
               auditReturnedToSettings: false
             },
@@ -347,6 +354,9 @@ final class WebViewController: UIViewController {
               comparisonGridComplete: false,
               comparisonSkeletonVisible: false,
               comparisonCoordinatesAligned: false,
+              comparisonDefaultsSeparated: false,
+              comparisonToggleAccessible: false,
+              neutralSkipAvailable: false,
               noNextButton: false,
               immediateAdvanced: false,
               undoBarFollowed: false,
@@ -469,10 +479,16 @@ final class WebViewController: UIViewController {
               result.navigationFlow.footVisibleOnBook = visible('foot');
               const wall = document.getElementById('memoryWall');
               const wallChars = Array.from(wall.querySelectorAll('.memoryChar'));
-              result.navigationFlow.bookAchievementVisible = document.getElementById('boxCount').textContent.includes('字') && document.getElementById('bookCurator').textContent.length > 0;
+              result.navigationFlow.bookAchievementVisible = document.getElementById('boxCount').textContent.includes('字') && !document.getElementById('bookCurator');
               result.layoutFlow.readableOutcomeLegend = wallChars.every(node => parseFloat(getComputedStyle(node).fontSize) >= 21);
               result.layoutFlow.outcomeMarksRedundant = wall.querySelectorAll('.dot,.outcomeMark').length === 0 && getComputedStyle(wall).gridTemplateColumns.split(' ').length === 6;
-              result.navigationFlow.stampGuideAvailable = document.getElementById('bookSearchInput').placeholder.includes('找一个字') && !!document.getElementById('bookSaveMonth');
+              result.navigationFlow.libraryInputUnified = document.getElementById('bookSearchLabel').textContent.trim() === '输入想练的字'
+                && document.getElementById('bookSearchInput').placeholder === '输入一个或多个汉字'
+                && document.getElementById('bookSearchInput').getAttribute('aria-label') === '输入想练的字'
+                && !!document.getElementById('bookSearchClear')
+                && document.getElementById('bookPhoto').textContent.trim() === '拍字'
+                && !document.getElementById('bookCollect')
+                && !document.getElementById('bookCurator');
               if (typeof loadEtymology === 'function' && typeof openCharSheet === 'function') {
                 await loadEtymology();
                 openCharSheet(CARDS.findIndex(card => card.target === '水'));
@@ -491,7 +507,9 @@ final class WebViewController: UIViewController {
                 const calibrationTargetsBeforeLibrary = calibrationTargets.slice();
                 const roundStatsBeforeLibrary = cloneObj(roundStats);
                 const funnelBeforeLibrary = cloneObj(funnel);
+                const skippedBeforeLibrary = cloneObj(skippedState);
                 memory = {}; status = {}; quality = {}; sessionDone = new Set();
+                skippedState = normalizeSkippedState(null);
                 const libraryRows = LIBRARIES.map(lib => {
                   setLibrary(lib.id);
                   tuning.contextStrict = 4;
@@ -543,7 +561,7 @@ final class WebViewController: UIViewController {
                   && new Set(legacyLibraries.map(row => row.id)).size === 3 && legacyLibraries.every(row => row.userSelected);
                 memory = memoryBeforeLibrary; status = statusBeforeLibrary; quality = qualityBeforeLibrary; sessionDone = new Set(sessionDoneBeforeLibrary);
                 tuning = tuningBefore; libraryState = normalizeLibrary(libraryBefore); preference = preferenceBeforeLibrary; activeMode = activeModeBeforeLibrary;
-                calibrationTargets = calibrationTargetsBeforeLibrary; roundStats = roundStatsBeforeLibrary; funnel = funnelBeforeLibrary;
+                calibrationTargets = calibrationTargetsBeforeLibrary; roundStats = roundStatsBeforeLibrary; funnel = funnelBeforeLibrary; skippedState = normalizeSkippedState(skippedBeforeLibrary);
                 saveMemory(); save(DECK_KEY, status); saveQuality(); saveTuning(); save(PREF_KEY, preference); save(LIB_KEY, libraryState); saveFunnel();
                 renderBook();
               }
@@ -596,12 +614,14 @@ final class WebViewController: UIViewController {
               await waitFor(() => visible('home') || visible('welcome'));
               result.navigationFlow.practiceEntryVisible = visible('home') || visible('welcome');
               result.navigationFlow.practiceTabActive = activeTab('tabPractice');
-              result.navigationFlow.homeCaptureVisible = !!document.getElementById('homeAdd') && document.getElementById('homeAdd').textContent.includes('收字');
+              result.navigationFlow.homeAddAbsent = !document.getElementById('homeAdd');
               result.navigationFlow.monthlyRhythmVisible = !document.getElementById('monthSignal') && !!document.getElementById('calendarMonthStat');
             }
 
             if (typeof openAddSheet === 'function' && typeof confirmAdd === 'function' && typeof backupPayload === 'function') {
               const smokeChar = '龘';
+              delete memory[canonicalCardKey(`custom:${smokeChar}`)];
+              saveMemory();
               openAddSheet();
               await waitFor(() => document.getElementById('addSheet').classList.contains('open'));
               await waitFor(() => document.activeElement === document.getElementById('addInput'));
@@ -637,13 +657,20 @@ final class WebViewController: UIViewController {
               const added = JSON.parse(localStorage.getItem(ADDED_KEY) || '[]');
               const custom = JSON.parse(localStorage.getItem(CUSTOM_KEY) || '[]');
               const indexForSmokeChar = indexesForChars([smokeChar])[0];
-              const memoryForSmokeChar = Number.isInteger(indexForSmokeChar) ? memory[cardKey(indexForSmokeChar)] : null;
+              let memoryForSmokeChar = Number.isInteger(indexForSmokeChar) ? memory[cardKey(indexForSmokeChar)] : null;
               result.dataFlow.addedCharStored = Array.isArray(added) && added.includes(smokeChar);
               result.dataFlow.customWordStored = BASE_BY_CHAR[smokeChar] != null || (Array.isArray(custom) && custom.includes(smokeChar));
               result.dataFlow.customCardIndexed = Number.isInteger(indexForSmokeChar) && indexForSmokeChar >= 0;
-              result.dataFlow.memoryHasAddedChar = !!memoryForSmokeChar && memoryForSmokeChar.target === smokeChar && memoryForSmokeChar.lastOutcome === 'miss' && Number(memoryForSmokeChar.seen || 0) > 0;
+              result.dataFlow.practiceStartHasNoAbilityRecord = !memoryForSmokeChar;
+              memoryForSmokeChar = cardMemory(indexForSmokeChar);
+              memoryForSmokeChar.target = smokeChar;
+              memoryForSmokeChar.word = CARDS[indexForSmokeChar].word;
+              memoryForSmokeChar.seen = 1;
+              memoryForSmokeChar.lastOutcome = 'fast';
+              markFirstSeen(memoryForSmokeChar);
               result.dataFlow.recentInkStored = !!memoryForSmokeChar && persistRecentInk(memoryForSmokeChar, [[{ x: 0.2, y: 0.2 }, { x: 0.5, y: 0.75 }, { x: 0.8, y: 0.25 }]], Date.now()) && !!memoryForSmokeChar.recentInk;
               saveMemory();
+              if (visible('card')) exitCurrentRound(false);
 
               const handCardCanvas = await renderHandCardCanvas(indexForSmokeChar, 'portrait');
               const handCardSquare = await renderHandCardCanvas(indexForSmokeChar, 'square');
@@ -741,11 +768,16 @@ final class WebViewController: UIViewController {
                 && document.getElementById('wildCaptureNote').textContent.includes('手动输入')
                 && !document.getElementById('addInput').disabled;
               closeAddSheet();
+              if (visible('card')) exitCurrentRound(false);
               result.dataFlow.wildSmokeStage = 'complete';
 
               // 备份门禁会按真实 v3 schema 校验 session；smoke 也必须生成一份可续写的真实会话，
               // 不能用 {version:3, smoke:true} 这种产品启动时必然隔离的假 fixture。
               const smokeSessionKey = cardKey(indexForSmokeChar);
+              const skippedSmokeKey = cardKey(BASE_BY_CHAR['一']);
+              setCardSkipped(BASE_BY_CHAR['一'], true);
+              skippedState.undo = null;
+              saveSkippedState();
               localStorage.setItem(SESSION_KEY, JSON.stringify({
                 version: 3, startedDate: today(), updatedAt: Date.now(), activeMode: 'new', makeupTargetDay: '',
                 baseTargetKeys: [smokeSessionKey], baseCursor: 0, currentCardKey: smokeSessionKey,
@@ -770,6 +802,8 @@ final class WebViewController: UIViewController {
               result.dataFlow.backupHasLibrary = Object.prototype.hasOwnProperty.call(backupData, LIB_KEY);
               const backupFunnel = Object.prototype.hasOwnProperty.call(backupData, FUNNEL_KEY) ? JSON.parse(backupData[FUNNEL_KEY]) : null;
               result.dataFlow.backupHasFunnel = !!backupFunnel && backupFunnel.version === 2 && backupFunnel.events.filter(row => row.name === 'backup_exported').length === 1;
+              const backupSkipped = Object.prototype.hasOwnProperty.call(backupData, SKIPPED_KEY) ? JSON.parse(backupData[SKIPPED_KEY]) : null;
+              result.dataFlow.backupHasSkipped = !!backupSkipped && backupSkipped.stopped.includes(skippedSmokeKey) && backupSkipped.undo === null;
               result.dataFlow.backupHasSessionV3 = Object.prototype.hasOwnProperty.call(backupData, SESSION_KEY) && JSON.parse(backupData[SESSION_KEY]).version === 3;
               result.dataFlow.backupHasFSRSLog = Object.prototype.hasOwnProperty.call(backupData, FSRS_LOG_KEY);
               result.dataFlow.backupHasTraceTutorial = Object.prototype.hasOwnProperty.call(backupData, TRACE_TUTORIAL_KEY);
@@ -782,6 +816,8 @@ final class WebViewController: UIViewController {
                 localStorage.setItem(MEMORY_KEY, JSON.stringify({}));
                 localStorage.setItem(HAND_CARD_KEY, JSON.stringify({ promptEnabled: true, lastPromptDay: '' }));
                 localStorage.setItem(WILD_KEY, JSON.stringify({ version: 1, captures: {}, wishes: {} }));
+                skippedState = normalizeSkippedState(null);
+                saveSkippedState();
                 localStorage.setItem(SESSION_KEY, JSON.stringify({ current: true }));
                 const smokeValueBeforeRestore = localStorage.getItem('shizi.nativeSmoke.v1');
                 const restoreResult = restoreBackupPayload(JSON.stringify(backup), { skipConfirm: true, reload: false });
@@ -799,6 +835,8 @@ final class WebViewController: UIViewController {
                 result.dataFlow.backupRestoreLibrary = localStorage.getItem(LIB_KEY) === backupData[LIB_KEY];
                 const restoredFunnel = JSON.parse(localStorage.getItem(FUNNEL_KEY) || '{}');
                 result.dataFlow.backupRestoreFunnel = restoredFunnel.version === 2 && restoredFunnel.events.filter(row => row.name === 'backup_exported').length === 1;
+                const restoredSkipped = JSON.parse(localStorage.getItem(SKIPPED_KEY) || '{}');
+                result.dataFlow.backupRestoreSkipped = Array.isArray(restoredSkipped.stopped) && restoredSkipped.stopped.includes(skippedSmokeKey) && restoredSkipped.undo == null;
                 result.dataFlow.backupRestorePreservesSessionV3 = JSON.parse(localStorage.getItem(SESSION_KEY) || '{}').version === 3;
                 result.dataFlow.backupRestorePreservesSmokeKey = localStorage.getItem('shizi.nativeSmoke.v1') === smokeValueBeforeRestore;
                 const safetyCopy = JSON.parse(localStorage.getItem(SAFETY_KEY) || 'null');
@@ -856,6 +894,7 @@ final class WebViewController: UIViewController {
               const completionState = {
                 activity: cloneObj(activity), reminder: cloneObj(reminder), tuning: cloneObj(tuning), activeMode,
                 baseTargets: baseTargets.slice(), batch: batch.slice(), baseCursor, roundStats: cloneObj(roundStats),
+                currentIndex, currentAttemptKind, currentAttemptId, manualQueue: cloneObj(manualQueue), reinforcementQueue: cloneObj(reinforcementQueue), episodes: cloneObj(episodes),
                 roundId, practicePhase, unresolved: [...unresolved]
               };
               const completionTargets = indexesForChars(['强', '器', '疑']);
@@ -872,6 +911,12 @@ final class WebViewController: UIViewController {
               baseTargets = completionTargets.slice(0, 2);
               batch = baseTargets;
               baseCursor = baseTargets.length;
+              currentIndex = baseTargets[baseTargets.length - 1];
+              currentAttemptKind = 'base';
+              currentAttemptId = 'native-smoke-milestone-attempt';
+              manualQueue = [];
+              reinforcementQueue = [];
+              episodes = { [currentIndex]: { idx: currentIndex, attempts: [{ attemptId: currentAttemptId, outcome: 'fast' }] } };
               unresolved = new Set();
               practicePhase = 'between';
               roundStats = baseTargets.map((idx, position) => ({ idx, target: CARDS[idx].target, outcome: position === 0 ? 'hinted' : 'fast', independentlyRecovered: position === 0 }));
@@ -897,6 +942,12 @@ final class WebViewController: UIViewController {
               baseTargets = completionTargets.slice(2);
               batch = baseTargets;
               baseCursor = baseTargets.length;
+              currentIndex = baseTargets[baseTargets.length - 1];
+              currentAttemptKind = 'base';
+              currentAttemptId = 'native-smoke-ordinary-attempt';
+              manualQueue = [];
+              reinforcementQueue = [];
+              episodes = { [currentIndex]: { idx: currentIndex, attempts: [{ attemptId: currentAttemptId, outcome: 'fast' }] } };
               unresolved = new Set();
               practicePhase = 'between';
               roundStats = baseTargets.map(idx => ({ idx, target: CARDS[idx].target, outcome: 'fast', independentlyRecovered: false }));
@@ -915,6 +966,12 @@ final class WebViewController: UIViewController {
               baseTargets = completionState.baseTargets;
               batch = completionState.batch;
               baseCursor = completionState.baseCursor;
+              currentIndex = completionState.currentIndex;
+              currentAttemptKind = completionState.currentAttemptKind;
+              currentAttemptId = completionState.currentAttemptId;
+              manualQueue = completionState.manualQueue;
+              reinforcementQueue = completionState.reinforcementQueue;
+              episodes = completionState.episodes;
               roundStats = completionState.roundStats;
               roundId = completionState.roundId;
               practicePhase = completionState.practicePhase;
@@ -986,10 +1043,25 @@ final class WebViewController: UIViewController {
                     button: 0, buttons, clientX: point.x, clientY: point.y
                   });
                   const downPrevented = !inkCanvas.dispatchEvent(pointer('pointerdown', points[0], 1));
-                  let movesPrevented = true;
-                  for (let i = 1; i < points.length; i++) movesPrevented = !inkCanvas.dispatchEvent(pointer('pointermove', points[i], 1)) && movesPrevented;
+                  let movesPrevented = !inkCanvas.dispatchEvent(pointer('pointermove', points[1], 1));
+                  const chromeNodes = typeof writingChromeNodes === 'function' ? writingChromeNodes() : [];
+                  const skipControl = document.getElementById('skipCard');
+                  const skipBefore = { index: currentCardIndex(), cursor: baseCursor, queue: JSON.stringify(manualQueue), points: curInkStroke ? curInkStroke.length : 0 };
+                  skipControl.click();
+                  const during = {
+                    stable: ['.chdr', '#prompt', '#actions'].every(selector => Number(getComputedStyle(document.querySelector(selector)).opacity) === 1),
+                    locked: document.getElementById('actions').classList.contains('inputLock') && document.getElementById('skipAction').classList.contains('inputLock'),
+                    accessible: chromeNodes.every(node => !node.inert && node.getAttribute('aria-hidden') !== 'true'),
+                    skipBlocked: skipControl.getAttribute('aria-disabled') === 'true' && currentCardIndex() === skipBefore.index && baseCursor === skipBefore.cursor && JSON.stringify(manualQueue) === skipBefore.queue && drawing && curInkStroke && curInkStroke.length === skipBefore.points
+                  };
+                  for (let i = 2; i < points.length; i++) movesPrevented = !inkCanvas.dispatchEvent(pointer('pointermove', points[i], 1)) && movesPrevented;
                   inkCanvas.dispatchEvent(pointer('pointerup', points[points.length - 1], 0));
-                  return { downPrevented, movesPrevented };
+                  const after = {
+                    stable: ['.chdr', '#prompt', '#actions'].every(selector => Number(getComputedStyle(document.querySelector(selector)).opacity) === 1),
+                    unlocked: !document.getElementById('actions').classList.contains('inputLock') && !document.getElementById('skipAction').classList.contains('inputLock'),
+                    cooldown: Number(actionCooldownUntil) || 0
+                  };
+                  return { downPrevented, movesPrevented, during, after };
                 };
                 const scrollBefore = document.scrollingElement ? document.scrollingElement.scrollTop : window.scrollY;
                 const pixelsBefore = pixelCount();
@@ -998,6 +1070,11 @@ final class WebViewController: UIViewController {
                 result.handwritingFlow.pointerDownPrevented = dispatched.downPrevented;
                 result.handwritingFlow.pointerMovePrevented = dispatched.movesPrevented;
                 result.handwritingFlow.actionCooldownActive = document.getElementById('actions').classList.contains('tlock');
+                result.handwritingFlow.chromeStableDuringStroke = dispatched.during.stable && dispatched.after.stable;
+                result.handwritingFlow.actionsLockedDuringStroke = dispatched.during.locked;
+                result.handwritingFlow.skipBlockedDuringStroke = dispatched.during.skipBlocked;
+                result.handwritingFlow.chromeAccessibleDuringStroke = dispatched.during.accessible;
+                result.handwritingFlow.actionsImmediateAfterStroke = dispatched.after.unlocked && dispatched.after.cooldown === 0;
                 const touchProbe = new Event('touchmove', { bubbles: true, cancelable: true });
                 inkCanvas.dispatchEvent(touchProbe);
                 result.handwritingFlow.touchMovePrevented = touchProbe.defaultPrevented;
@@ -1026,6 +1103,11 @@ final class WebViewController: UIViewController {
                   && showControl.getAttribute('aria-label').startsWith('不会写：')
                   && doneControl.textContent.trim() === '写好了'
                   && doneControl.getAttribute('aria-label') === '写好了';
+                const skipControl = document.getElementById('skipCard');
+                result.practiceFlow.neutralSkipAvailable = visible('skipAction') && skipControl.textContent.trim() === '跳过'
+                  && skipControl.getAttribute('aria-label').includes('以后不再自动安排')
+                  && skipControl.getAttribute('aria-label').includes('可以在字库恢复')
+                  && parseFloat(getComputedStyle(skipControl).minHeight) >= 44;
                 const hintBeforePeek = { ever: hintEverUsed, used: hintsUsedThisCard, group: groupIdx, shown: shownStrokes };
                 const controlRect = peekControl.getBoundingClientRect();
                 const controlPointer = (type, buttons) => new PointerEvent(type, {
@@ -1052,7 +1134,7 @@ final class WebViewController: UIViewController {
                 inkCanvas.dispatchEvent(peekPointer('pointerdown', 7002, false, 0.72, 0.68, 1));
                 result.handwritingFlow.peekEntered = peeking === true && Number(inkCanvas.style.opacity) <= 0.06 && hzEl.classList.contains('peekHint');
                 result.handwritingFlow.peekCancelledPartialStroke = partialPixels > 0 && drawing === false && curInkStroke === null && pixelCount() === 0;
-                result.handwritingFlow.peekActionsUnlocked = !document.getElementById('actions').classList.contains('tlock') && Number(getComputedStyle(document.getElementById('actions')).opacity) === 1;
+                result.handwritingFlow.peekActionsUnlocked = !document.getElementById('actions').classList.contains('tlock') && !document.getElementById('skipCard').hasAttribute('aria-disabled') && Number(getComputedStyle(document.getElementById('actions')).opacity) === 1;
                 inkCanvas.dispatchEvent(peekPointer('pointermove', 7001, true, 0.62, 0.62, 1));
                 inkCanvas.dispatchEvent(peekPointer('pointermove', 7002, false, 0.78, 0.74, 1));
                 result.handwritingFlow.peekBlockedInk = inkStrokes.length === 0 && curInkStroke === null && pixelCount() === 0;
@@ -1095,6 +1177,15 @@ final class WebViewController: UIViewController {
               const overlaySkeleton = document.querySelector('#mineOverlay svg');
               result.practiceFlow.comparisonSkeletonVisible = !!standardSkeleton && document.querySelectorAll('#rightHz svg path').length === curMedians.length;
               result.practiceFlow.comparisonCoordinatesAligned = !!standardSkeleton && !!overlaySkeleton && standardSkeleton.getAttribute('viewBox') === overlaySkeleton.getAttribute('viewBox');
+              const overlayControl = document.getElementById('overlayToggle');
+              result.practiceFlow.comparisonDefaultsSeparated = overlayOn === false && getComputedStyle(document.getElementById('mineOverlay')).display === 'none'
+                && overlayControl.textContent.trim() === '叠起来对比' && overlayControl.getAttribute('aria-pressed') === 'false'
+                && document.querySelector('.cmpRow').getAttribute('aria-label').includes('左侧是你的字迹');
+              overlayControl.click();
+              const overlayActive = overlayOn === true && overlayControl.textContent.trim() === '分开看' && overlayControl.getAttribute('aria-pressed') === 'true';
+              overlayControl.click();
+              result.practiceFlow.comparisonToggleAccessible = overlayActive && overlayOn === false && overlayControl.textContent.trim() === '叠起来对比'
+                && overlayControl.getAttribute('aria-pressed') === 'false' && getComputedStyle(document.getElementById('mineOverlay')).display === 'none';
               result.practiceFlow.decisionVisible = visible('decisionRow');
               result.practiceFlow.functionalDecisionLabels = document.getElementById('decisionCorrect').textContent.includes('写对了') && document.getElementById('decisionWrong').textContent.includes('写错了');
               result.practiceFlow.selfAssessmentControls = visible('uncertainAction') && document.getElementById('decisionUncertain').textContent.includes('不太确定') && !visible('softConfirm');

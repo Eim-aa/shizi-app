@@ -553,7 +553,7 @@ final class WebViewController: UIViewController {
                   libraryState = normalizeLibrary(null); save(LIB_KEY, libraryState);
                   if (manualLibrary) setLibrary(manualLibrary);
                   activeMode = 'calibrate'; calibrationTargets = calibrationIndexes.slice();
-                  roundStats = calibrationIndexes.map(idx => ({ idx, outcome: 'fast', geometryStatus: 'ok' }));
+                  roundStats = calibrationIndexes.map((idx, order) => ({ idx, outcome: 'fast', geometryStatus: order % 2 ? 'bad' : 'ok' }));
                   const before = cloneObj(libraryState); maybeFinishCalibration();
                   return { before, preference, after: cloneObj(libraryState), stored: load(LIB_KEY, null) };
                 };
@@ -592,8 +592,7 @@ final class WebViewController: UIViewController {
               const largeType = parseFloat(getComputedStyle(document.querySelector('.settingsPanel h2')).fontSize);
               fontScaleLarge = oldFontScale; applyFontScale();
               result.layoutFlow.largeTypeScaled = largeType >= normalType * 1.1 && document.getElementById('fontScaleRow').getAttribute('aria-pressed') === (oldFontScale ? 'true' : 'false');
-              result.layoutFlow.criticalTargets44 = ['exitPractice','tip','undoStroke','clear','show','done','fontScaleRow','overlayToggle','replayBtn'].every(id => parseFloat(getComputedStyle(document.getElementById(id)).minHeight) >= 44)
-                && Array.from(document.querySelectorAll('#qualityBox button')).every(node => parseFloat(getComputedStyle(node).minHeight) >= 44);
+              result.layoutFlow.criticalTargets44 = ['exitPractice','tip','undoStroke','clear','show','done','fontScaleRow','overlayToggle','replayBtn','decisionCorrect','decisionWrong'].every(id => parseFloat(getComputedStyle(document.getElementById(id)).minHeight) >= 44);
 
               document.getElementById('closeSettings').click();
               await waitFor(() => visible('mePanel'));
@@ -1223,14 +1222,31 @@ final class WebViewController: UIViewController {
               result.practiceFlow.comparisonToggleAccessible = overlayActive && overlayOn === false && overlayControl.textContent.trim() === '叠起来对比'
                 && overlayControl.getAttribute('aria-pressed') === 'false' && getComputedStyle(document.getElementById('mineOverlay')).display === 'none';
               result.practiceFlow.decisionVisible = visible('decisionRow');
-              result.practiceFlow.functionalDecisionLabels = document.getElementById('decisionCorrect').textContent.includes('写对了') && document.getElementById('decisionWrong').textContent.includes('写错了');
-              result.practiceFlow.selfAssessmentControls = visible('uncertainAction') && document.getElementById('decisionUncertain').textContent.includes('不太确定') && !visible('softConfirm');
-              result.practiceFlow.submissionSnapshotComplete = submissionSnapshot.hintStrokeIds.length > 0 && submissionSnapshot.compositeGeometry.length === submissionSnapshot.hintStrokes.length + submissionSnapshot.inkStrokes.length && submissionSnapshot.lastVerdict.status === 'ok';
+              const correctControl = document.getElementById('decisionCorrect');
+              const wrongControl = document.getElementById('decisionWrong');
+              const decisionStyle = node => { const style = getComputedStyle(node); return [style.backgroundColor, style.border, style.boxShadow].join('|'); };
+              result.practiceFlow.functionalDecisionLabels = correctControl.textContent.trim() === '写对了' && wrongControl.textContent.trim() === '写错了'
+                && correctControl.getAttribute('aria-label') === '写对了' && wrongControl.getAttribute('aria-label') === '写错了';
+              result.practiceFlow.selfAssessmentControls = document.getElementById('askLine').textContent.trim() === '这次写对了吗？'
+                && document.getElementById('askRow').getAttribute('role') === 'heading'
+                && document.querySelectorAll('#decisionRow button').length === 2
+                && decisionStyle(correctControl) === decisionStyle(wrongControl)
+                && !document.getElementById('decisionUncertain') && !document.getElementById('softConfirm') && !document.getElementById('qualityBox');
+              const expectedGeometry = DEV_TOOLS ? !!(submissionSnapshot.lastVerdict && ['ok','bad'].includes(submissionSnapshot.lastVerdict.status)) : submissionSnapshot.lastVerdict === null;
+              result.practiceFlow.submissionSnapshotComplete = submissionSnapshot.hintStrokeIds.length > 0
+                && submissionSnapshot.compositeGeometry.length === submissionSnapshot.hintStrokes.length + submissionSnapshot.inkStrokes.length
+                && expectedGeometry;
+              result.practiceFlow.geometryDevOnly = expectedGeometry;
+              result.practiceFlow.revealInkFaithful = revealInkImage(submissionSnapshot) === revealInkImage({ ...submissionSnapshot, hintStrokes: [], lastVerdict: null });
 
               soundDebug.events = [];
               soundDebug.last = null;
               decideSubmission(true);
               await waitFor(() => stamped && visible('stampedToast'));
+              const recordedAttempt = episodeFor(firstIndex).attempts.find(item => item.attemptId === firstAttempt);
+              result.practiceFlow.selfAssessmentRecorded = !!recordedAttempt && recordedAttempt.userCorrect === true
+                && !Object.prototype.hasOwnProperty.call(recordedAttempt, 'uncertain')
+                && getComputedStyle(document.getElementById('cmpLinks')).display === 'none';
               result.practiceFlow.feedbackHeld = currentAttemptId === firstAttempt && document.getElementById('stampedToast').textContent.includes('稍后不看提示再写一次');
               result.practiceFlow.reminderSyncAfterStamp = !!(reminderDebug.lastSync && reminderDebug.lastSync.type === 'syncReminder' && reminderDebug.lastSync.practicedToday === true);
               result.practiceFlow.hapticStampRecorded = hapticDebug.last === 'stamp';

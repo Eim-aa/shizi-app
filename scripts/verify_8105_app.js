@@ -42,6 +42,10 @@ assert(wildPhotoFixture.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x4
 if (/退出本组？|进度已保存，随时可继续这组|描一遍也算拾回|小时后再见|已收|拾到手|教学检查|本组通过|待巩固|差点|回炉|改一下|已稳/.test(source)) {
   throw new Error("Deprecated practice vocabulary remains in index.html");
 }
+if (/id="(?:decisionUncertain|softConfirm|qualityBox)"|系统建议|暂时无法自动对比|这几笔可以再和范字对照一下|不太确定/.test(source)) {
+  throw new Error("Retired reveal judgement or miscellaneous feedback remains in index.html");
+}
+assert(source.includes('id="askLine"') && source.includes("这次写对了吗？"), "Expected the reveal question to remain explicit in markup");
 
 function chromeExecutable() {
   return [
@@ -1046,9 +1050,14 @@ let browser;
     && compactRecall.tools.every((item) => item.height >= 43.9 && item.scrollWidth <= item.width + 1) && compactRecall.tip === "点拨" && compactRecall.promptSize >= 35,
   "Expected large type and 44pt compact tools to preserve the writing area and guidance on a 320x568 screen", compactRecall);
   await page.evaluate(() => { inkStrokes = mediansToCanvas(curMedians); redrawInk(); revealAnswer(); });
-  const compactReveal = await page.evaluate(() => ({ ask: getComputedStyle(askRow).display, askCopy: askLine.textContent, askBottom: askRow.getBoundingClientRect().bottom, client: reveal.clientHeight, scroll: reveal.scrollHeight, qualityTargets: Array.from(qualityBox.querySelectorAll("button")).map((node) => node.getBoundingClientRect().height) }));
-  assert(compactReveal.ask === "flex" && compactReveal.askCopy.length > 0 && compactReveal.askBottom <= 568 && compactReveal.scroll > compactReveal.client && compactReveal.qualityTargets.every((height) => height >= 44),
-  "Expected short-screen reveal advice to remain visible and lower 44pt actions to stay reachable by internal scrolling", compactReveal);
+  const compactReveal = await page.evaluate(() => { reveal.scrollTop = reveal.scrollHeight; return {
+    ask: getComputedStyle(askRow).display, askCopy: askLine.textContent, askBottom: askRow.getBoundingClientRect().bottom,
+    decisionBottom: decisionRow.getBoundingClientRect().bottom, viewportBottom: innerHeight,
+    choices: Array.from(decisionRow.querySelectorAll("button")).map((node) => ({ text: node.textContent.trim(), height: node.getBoundingClientRect().height })),
+  }; });
+  assert(compactReveal.ask === "flex" && compactReveal.askCopy === "这次写对了吗？" && compactReveal.askBottom <= 568
+    && compactReveal.decisionBottom <= compactReveal.viewportBottom + 1 && compactReveal.choices.map((row) => row.text).join() === "写对了,写错了" && compactReveal.choices.every((row) => row.height >= 44),
+  "Expected the short-screen reveal question and two 44pt decisions to remain reachable", compactReveal);
   await page.evaluate(() => { exitCurrentRound(); clearSessionSnapshot(); fontScaleLarge = false; save(FONT_SCALE_KEY, false); applyFontScale(); });
   await page.setViewportSize({ width: 390, height: 844 });
 
@@ -1228,18 +1237,22 @@ let browser;
   await page.evaluate(() => { inkStrokes = mediansToCanvas(curMedians); redrawInk(); revealAnswer(); });
   const firstCalibrationReveal = await page.evaluate(async () => {
     const snapshot = submissionSnapshot, baseStyle = (node) => { const style = getComputedStyle(node); return { background: style.backgroundColor, border: style.border, shadow: style.boxShadow }; };
-    const first = { bubble: getComputedStyle(teachBubbleGrade).display, ask: getComputedStyle(askRow).display, decisionBottom: decisionRow.getBoundingClientRect().bottom, viewportBottom: innerHeight };
-    showRevealState({ ...snapshot, lastVerdict: null }); await new Promise((resolve) => setTimeout(resolve, 160)); const neutral = { correct: baseStyle(decisionCorrect), wrong: baseStyle(decisionWrong), suggested: decisionCorrect.classList.contains("suggest") || decisionWrong.classList.contains("suggest") };
-    showRevealState({ ...snapshot, lastVerdict: { status: "bad", mode: "exact", failed: [0], missing: 0 } }); await new Promise((resolve) => setTimeout(resolve, 160)); const wrongSuggested = { correct: baseStyle(decisionCorrect), wrong: baseStyle(decisionWrong), suggested: decisionWrong.classList.contains("suggest") && !decisionCorrect.classList.contains("suggest") };
+    const first = { bubble: getComputedStyle(teachBubbleGrade).display, ask: getComputedStyle(askRow).display, question: askLine.textContent, role: askRow.getAttribute("role"), level: askRow.getAttribute("aria-level"), decisionBottom: decisionRow.getBoundingClientRect().bottom, viewportBottom: innerHeight };
+    const neutral = { correct: baseStyle(decisionCorrect), wrong: baseStyle(decisionWrong) };
+    showRevealState({ ...snapshot, lastVerdict: { status: "bad", mode: "exact", failed: [0], missing: 0 } }); await new Promise((resolve) => setTimeout(resolve, 160));
+    const injected = { correct: baseStyle(decisionCorrect), wrong: baseStyle(decisionWrong), question: askLine.textContent };
     showRevealState(snapshot);
-    return { first, neutral, wrongSuggested };
+    return { first, neutral, injected, choices: Array.from(decisionRow.querySelectorAll("button")).map((node) => node.textContent.trim()), retired: ["decisionUncertain", "softConfirm", "qualityBox"].every((id) => !document.getElementById(id)), verdict: snapshot.lastVerdict };
   });
-  assert(firstCalibrationReveal.first.bubble === "block" && firstCalibrationReveal.first.ask === "none" && firstCalibrationReveal.first.decisionBottom <= firstCalibrationReveal.first.viewportBottom,
-    "Expected the first calibration reveal to explain honest self-assessment without duplicate mascot copy", firstCalibrationReveal.first);
-  assert(!firstCalibrationReveal.neutral.suggested && firstCalibrationReveal.neutral.correct.background === firstCalibrationReveal.neutral.wrong.background
+  assert(firstCalibrationReveal.first.bubble === "block" && firstCalibrationReveal.first.ask === "flex" && firstCalibrationReveal.first.question === "这次写对了吗？"
+    && firstCalibrationReveal.first.role === "heading" && firstCalibrationReveal.first.level === "2" && firstCalibrationReveal.first.decisionBottom <= firstCalibrationReveal.first.viewportBottom,
+    "Expected the first calibration reveal to keep the explicit self-assessment question alongside its one-time explanation", firstCalibrationReveal.first);
+  assert(firstCalibrationReveal.neutral.correct.background === firstCalibrationReveal.neutral.wrong.background
     && firstCalibrationReveal.neutral.correct.border === firstCalibrationReveal.neutral.wrong.border && firstCalibrationReveal.neutral.correct.shadow === firstCalibrationReveal.neutral.wrong.shadow
-    && firstCalibrationReveal.wrongSuggested.suggested && firstCalibrationReveal.wrongSuggested.wrong.background !== firstCalibrationReveal.wrongSuggested.correct.background,
-  "Expected neutral decisions to carry equal weight and an exact assistant suggestion to dominate on either side", firstCalibrationReveal);
+    && JSON.stringify(firstCalibrationReveal.neutral.correct) === JSON.stringify(firstCalibrationReveal.injected.correct)
+    && JSON.stringify(firstCalibrationReveal.neutral.wrong) === JSON.stringify(firstCalibrationReveal.injected.wrong) && firstCalibrationReveal.injected.question === "这次写对了吗？"
+    && firstCalibrationReveal.choices.join() === "写对了,写错了" && firstCalibrationReveal.retired && firstCalibrationReveal.verdict === null,
+  "Expected exactly two equal decisions with no visible or stored normal-mode geometry judgement", firstCalibrationReveal);
   await page.click("#replayBtn"); await page.waitForTimeout(80);
   const compactReplay = await page.evaluate(() => { const box = document.querySelector(".cmpBox.std").getBoundingClientRect(), svg = rightHz.querySelector("svg").getBoundingClientRect(); return { box: [box.width, box.height], svg: [svg.width, svg.height], right: svg.right - box.right, bottom: svg.bottom - box.bottom }; });
   assert(compactReplay.box.join() === "138,138" && compactReplay.svg.join() === compactReplay.box.join() && compactReplay.right <= 0.5 && compactReplay.bottom <= 0.5, "Expected 375px reveal playback to use the rendered comparison-box size without clipping", compactReplay);
@@ -1275,9 +1288,9 @@ let browser;
     maybeFinishCalibration();
     return { calibration: cloneObj(tuning.calibration), preference, offset: tuning.offset };
   });
-  assert(calibrationConsistency.calibration.counts.fast === 12 && calibrationConsistency.calibration.consistentFast === 10
-    && calibrationConsistency.preference === "balanced" && calibrationConsistency.offset === 2,
-  "Expected geometry disagreement to keep twelve self-rated fast cards out of challenge calibration", calibrationConsistency);
+  assert(calibrationConsistency.calibration.counts.fast === 12 && calibrationConsistency.calibration.consistentFast === 12
+    && calibrationConsistency.preference === "challenge" && calibrationConsistency.offset === 10,
+  "Expected geometry disagreement to have no influence on twelve user-confirmed calibration results", calibrationConsistency);
 
   const calibrationWebReturn = await page.evaluate(() => {
     summary.style.display = "flex"; calibCard.style.display = "flex"; renderCalibrationReturnHook();
@@ -1286,7 +1299,7 @@ let browser;
   assert(calibrationWebReturn.visible && calibrationWebReturn.title.includes("明天继续") && calibrationWebReturn.date === calibrationWebReturn.tomorrow && calibrationWebReturn.buttonHidden,
   "Expected Web calibration result to show a concrete next-day return expectation", calibrationWebReturn);
 
-  await page.evaluate(() => { clearSessionSnapshot(); activeMode = "focus"; startFocus([CARDS.findIndex((card) => card.target === "器")]); });
+  await page.evaluate(() => { clearSessionSnapshot(); const idx=CARDS.findIndex((card) => card.target === "器"); delete memory[cardKey(idx)]; saveMemory(); activeMode = "focus"; startFocus([idx]); });
   await waitForWriter(page);
   await page.evaluate(() => {
     inkStrokes = mediansToCanvas(curMedians); redrawInk(); revealAnswer();
@@ -1294,14 +1307,17 @@ let browser;
   });
   const revealFidelity = await page.evaluate(() => {
     const exactSnapshot = submissionSnapshot, mineBox = document.querySelector(".cmpBox.mine"), stdBox = document.querySelector(".cmpBox.std");
+    const baseStyle = (node) => { const style=getComputedStyle(node); return {background:style.backgroundColor,border:style.border,shadow:style.boxShadow}; };
     const result = {
       grids: [mineBox, stdBox].map((box) => ["cx", "cy", "d1", "d2"].every((cls) => !!box.querySelector(`.${cls}`))),
       standardPaths: rightHz.querySelectorAll("svg path").length,
       overlayPaths: mineOverlay.querySelectorAll("svg path").length,
       sameViewBox: rightHz.querySelector("svg")?.getAttribute("viewBox") === mineOverlay.querySelector("svg")?.getAttribute("viewBox"),
-      failedCount: Number(mineInk.dataset.failedCount),
       copy: askLine.textContent,
-      exactSuggest: decisionWrong.classList.contains("suggest") && !decisionCorrect.classList.contains("suggest"),
+      equal: JSON.stringify(baseStyle(decisionCorrect))===JSON.stringify(baseStyle(decisionWrong)),
+      verdictInvisible: revealInkImage(exactSnapshot)===revealInkImage({...exactSnapshot,lastVerdict:null}),
+      hintsExcluded: revealInkImage(exactSnapshot)===revealInkImage({...exactSnapshot,hintStrokes:[]}),
+      onlyTwo: decisionRow.querySelectorAll("button").length===2 && !document.getElementById("decisionUncertain") && !document.getElementById("softConfirm") && !document.getElementById("qualityBox"),
     };
     showRevealState({ ...exactSnapshot, referenceStrokes: [] });
     result.fallback = rightGlyph.style.opacity === "1" && rightHz.querySelectorAll("svg path").length === 0 && mineOverlay.textContent === cur.target;
@@ -1309,34 +1325,23 @@ let browser;
     return result;
   });
   assert(revealFidelity.grids.every(Boolean) && revealFidelity.standardPaths > 0 && revealFidelity.standardPaths === revealFidelity.overlayPaths && revealFidelity.sameViewBox
-    && revealFidelity.failedCount === 1 && revealFidelity.copy.includes("这几笔可以再和范字对照一下") && revealFidelity.exactSuggest && revealFidelity.fallback,
-  "Expected coordinate-aligned skeleton comparison, exact-stroke highlighting, soft suggestion tint, and font fallback", revealFidelity);
+    && revealFidelity.copy === "这次写对了吗？" && revealFidelity.equal && revealFidelity.verdictInvisible && revealFidelity.hintsExcluded && revealFidelity.onlyTwo && revealFidelity.fallback,
+  "Expected a faithful two-way comparison whose ink and decisions ignore injected geometry results", revealFidelity);
+  const comparisonBefore = await page.evaluate(() => funnel.counts.revealCompared);
   await page.click("#decisionCorrect");
-  const softConfirmFirst = await page.evaluate(() => ({ shown: getComputedStyle(softConfirm).display !== "none", stamped, attempts: episodeFor(currentCardIndex()).attempts.length }));
-  assert(softConfirmFirst.shown && !softConfirmFirst.stamped && softConfirmFirst.attempts === 0, "Expected exact-bad correct choice to pause before accounting", softConfirmFirst);
-  await page.click("#compareAgain");
-  await page.click("#decisionCorrect");
-  const softConfirmOnce = await page.evaluate(() => ({ hidden: getComputedStyle(softConfirm).display === "none", stamped, outcome: roundStats[0] && roundStats[0].outcome }));
-  assert(softConfirmOnce.hidden && softConfirmOnce.stamped && softConfirmOnce.outcome === "fast", "Expected compare-again to avoid repeating the soft confirmation on the same reveal", softConfirmOnce);
+  const directCorrect = await page.evaluate((before) => { const idx=currentCardIndex(), attempt=episodeFor(idx).attempts[0], m=memory[cardKey(idx)]||{}; return {
+    stamped, attempts:episodeFor(idx).attempts.length, outcome:roundStats[0]&&roundStats[0].outcome, rating:fsrsReviewLog.slice(-1)[0]?.rating,
+    userCorrect:attempt&&attempt.userCorrect, noUncertain:attempt&&!Object.prototype.hasOwnProperty.call(attempt,"uncertain")&&!Object.prototype.hasOwnProperty.call(roundStats[0]||{},"uncertain"),
+    noGeometryWrite:!["lastSystemSuggestion","lastSystemStatus","lastSystemAgree"].some((key)=>Object.prototype.hasOwnProperty.call(m,key))&&funnel.counts.revealCompared===before,
+    comparisonHidden:getComputedStyle(cmpLinks).display==="none"&&!overlayOn,
+  }; }, comparisonBefore);
+  assert(directCorrect.stamped && directCorrect.attempts===1 && directCorrect.outcome==="fast" && directCorrect.rating==="Good" && directCorrect.userCorrect
+    && directCorrect.noUncertain && directCorrect.noGeometryWrite && directCorrect.comparisonHidden,
+  "Expected a user-confirmed correct result to record immediately without geometry, confirmation, or post-decision overlay", directCorrect);
   await page.click("#editStamp");
   await page.click("#decisionCorrect");
-  const softConfirmAfterUndo = await page.evaluate(() => ({ shown: getComputedStyle(softConfirm).display !== "none", stamped, attempts: episodeFor(currentCardIndex()).attempts.length }));
-  assert(softConfirmAfterUndo.shown && !softConfirmAfterUndo.stamped && softConfirmAfterUndo.attempts === 0, "Expected edit rollback to reset the soft-confirm decision", softConfirmAfterUndo);
-  await page.click("#confirmCorrect");
-  const confirmedCorrect = await page.evaluate(() => ({ stamped, rating: fsrsReviewLog.slice(-1)[0] && fsrsReviewLog.slice(-1)[0].rating, outcome: roundStats[0] && roundStats[0].outcome }));
-  assert(confirmedCorrect.stamped && confirmedCorrect.rating === "Good" && confirmedCorrect.outcome === "fast", "Expected explicit confirmation to keep the existing graduation path", confirmedCorrect);
-
-  await page.evaluate(() => { clearTimeout(autoNextTimer); stamped = false; clearSessionSnapshot(); activeMode = "focus"; startFocus([CARDS.findIndex((card) => card.target === "疑")]); });
-  await waitForWriter(page);
-  await page.evaluate(() => {
-    inkStrokes = mediansToCanvas(curMedians); redrawInk(); revealAnswer();
-    lastVerdict = { status: "bad", mode: "holistic", failed: [0], missing: 1 }; submissionSnapshot = Object.freeze({ ...submissionSnapshot, lastVerdict: cloneObj(lastVerdict) }); showRevealState(submissionSnapshot);
-  });
-  const holisticRendering = await page.evaluate(() => ({ failedCount: Number(mineInk.dataset.failedCount), suggested: decisionCorrect.classList.contains("suggest") || decisionWrong.classList.contains("suggest") }));
-  assert(holisticRendering.failedCount === 0 && !holisticRendering.suggested, "Expected holistic verdicts to avoid stroke coloring and preselection", holisticRendering);
-  await page.click("#decisionCorrect");
-  const holisticNoConfirm = await page.evaluate(() => ({ stamped, softHidden: getComputedStyle(softConfirm).display === "none", outcome: roundStats[0] && roundStats[0].outcome }));
-  assert(holisticNoConfirm.stamped && holisticNoConfirm.softHidden && holisticNoConfirm.outcome === "fast", "Expected holistic disagreement to remain advisory without soft confirmation", holisticNoConfirm);
+  const directAfterUndo = await page.evaluate(() => ({ stamped, attempts:episodeFor(currentCardIndex()).attempts.length, outcome:roundStats[0]&&roundStats[0].outcome }));
+  assert(directAfterUndo.stamped && directAfterUndo.attempts===1 && directAfterUndo.outcome==="fast", "Expected undo to restore the same direct two-choice decision without a confirmation layer", directAfterUndo);
 
   const disagreementRate = await page.evaluate(() => {
     const original = memory;
@@ -1345,20 +1350,23 @@ let browser;
   });
   assert(disagreementRate.total === 2 && disagreementRate.disagree === 1 && disagreementRate.rate === 50, "Expected dev disagreement rate to ignore unavailable assistant verdicts", disagreementRate);
 
-  await page.evaluate(() => { clearTimeout(autoNextTimer); stamped = false; clearSessionSnapshot(); activeMode = "focus"; startFocus([CARDS.findIndex((card) => card.target === "衡")]); });
+  await page.evaluate(() => { clearTimeout(autoNextTimer); stamped = false; clearSessionSnapshot(); const idx=CARDS.findIndex((card) => card.target === "衡"); delete memory[cardKey(idx)]; saveMemory(); activeMode = "focus"; startFocus([idx]); });
   await waitForWriter(page);
   await submitStandard(page);
-  const uncertainBefore = await page.evaluate(() => dailyActivity().attempts);
-  await page.click("#decisionUncertain");
-  const uncertain = await page.evaluate((before) => {
+  await page.evaluate(() => { lastVerdict={status:"ok",mode:"exact",failed:[],missing:0}; submissionSnapshot=Object.freeze({...submissionSnapshot,lastVerdict:cloneObj(lastVerdict)}); showRevealState(submissionSnapshot); });
+  const wrongBefore = await page.evaluate(() => dailyActivity().attempts);
+  await page.click("#decisionWrong");
+  const wrong = await page.evaluate((before) => {
     const idx = currentCardIndex(), ep = episodeFor(idx), event = fsrsReviewLog.slice(-1)[0], stat = roundStats[0];
     const row = dailyActivity();
-    return { before, after: row.attempts, targetOccurrences: row.targetKeys.filter((key) => key === cardKey(idx)).length, outcome: stat && stat.outcome, uncertain: stat && stat.uncertain, rating: event && event.rating, reason: event && event.reason,
-      queued: unresolved.has(idx) && reinforcementQueue.some((item) => item.idx === idx), pendingLearning: !!(memory[cardKey(idx)] || {}).pendingLearning, attempts: ep.attempts.length, userCorrect: ep.attempts[0] && ep.attempts[0].userCorrect };
-  }, uncertainBefore);
-  assert(uncertain.outcome === "hinted" && uncertain.uncertain && uncertain.rating === "Again" && uncertain.reason === "hinted"
-    && uncertain.queued && uncertain.pendingLearning && uncertain.attempts === 1 && !uncertain.userCorrect && uncertain.after === uncertain.before + 1 && uncertain.targetOccurrences === 1,
-  "Expected uncertain self-assessment to use the hinted reinforcement path without graduation", uncertain);
+    const attempt=ep.attempts[0]||{};
+    return { before, after: row.attempts, targetOccurrences: row.targetKeys.filter((key) => key === cardKey(idx)).length, outcome: stat && stat.outcome, rating: event && event.rating, reason: event && event.reason,
+      queued: unresolved.has(idx) && reinforcementQueue.some((item) => item.idx === idx), pendingLearning: !!(memory[cardKey(idx)] || {}).pendingLearning, attempts: ep.attempts.length, userCorrect: attempt.userCorrect,
+      hintUsed:attempt.hintUsed,hintCount:attempt.hintCount,noUncertain:!Object.prototype.hasOwnProperty.call(attempt,"uncertain")&&!Object.prototype.hasOwnProperty.call(stat||{},"uncertain") };
+  }, wrongBefore);
+  assert(wrong.outcome === "slow" && wrong.rating === "Again" && wrong.reason === "wrong" && wrong.queued && wrong.pendingLearning && wrong.attempts === 1
+    && !wrong.userCorrect && !wrong.hintUsed && wrong.hintCount===0 && wrong.noUncertain && wrong.after === wrong.before + 1 && wrong.targetOccurrences === 1,
+  "Expected user-confirmed wrong to requeue without forging hint or uncertain facts even when geometry says correct", wrong);
 
   const inRoundAdd = await page.evaluate(() => {
     const pool = allIndexes().filter((idx) => qualityAvailable(idx)).slice(100, 120), original = pool.slice(0, 15), extras = pool.slice(15, 17);
@@ -1452,7 +1460,7 @@ let browser;
     ariaProbe.innerHTML = sumTile({ idx: indexes[1], target: CARDS[indexes[1]].target, outcome: "hinted", uncertain: false, independentlyRecovered: false }, 0);
     const before = {
       calibration: getComputedStyle(calibCard).display, sheet: getComputedStyle(sumSheet).display, tiles: tiles.length, date: calibDateSeal.textContent,
-      sealDelay, hint: getComputedStyle(calibPracticeHint).display, legend: calibCard.textContent.includes("首次结果：无标记 独立写对") && calibCard.textContent.includes("金菱 看过提示 / 不确定"),
+      sealDelay, hint: getComputedStyle(calibPracticeHint).display, legend: calibCard.textContent.includes("首次结果：无标记 独立写对") && calibCard.textContent.includes("金菱 看过提示 / 需要再练"),
       marks: tiles.map((tile) => tile.querySelector(".outcomeMark")?.textContent || ""), recovered: tiles.map((tile) => tile.querySelector(".recover")?.textContent || ""),
       arias: tiles.map((tile) => tile.getAttribute("aria-label")), hintedAria: ariaProbe.firstElementChild?.getAttribute("aria-label") || "",
       slowBorder: getComputedStyle(tiles[2]).borderColor, blue: getComputedStyle(document.documentElement).getPropertyValue("--blue").trim(), immediate,
@@ -1479,7 +1487,7 @@ let browser;
   assert(p1Ceremony.before.calibration === "flex" && p1Ceremony.before.sheet === "none" && p1Ceremony.before.tiles === 4 && p1Ceremony.before.date.length > 0
     && p1Ceremony.before.sealDelay >= 690 && p1Ceremony.before.hint === "block" && p1Ceremony.before.legend && p1Ceremony.before.marks.join("") === "补待再"
     && p1Ceremony.before.recovered.filter(Boolean).every((copy) => copy === "已独立")
-    && p1Ceremony.before.arias[0].includes("第一次独立写对") && p1Ceremony.before.arias[1].includes("第一次不太确定，之后已独立写出")
+    && p1Ceremony.before.arias[0].includes("第一次独立写对") && p1Ceremony.before.arias[1].includes("第一次需要再练，之后已独立写出")
     && p1Ceremony.before.arias[2].includes("第一次写错") && p1Ceremony.before.arias[3].includes("第一次没写出") && p1Ceremony.before.hintedAria.includes("第一次看过提示后写出")
     && p1Ceremony.before.slowBorder !== p1Ceremony.before.blue && p1Ceremony.before.immediate.length === 0 && p1Ceremony.after.join() === "action",
   "Expected the first calibration result to play the full, risk-readable tile/date/final-seal ceremony", p1Ceremony);
@@ -1498,12 +1506,12 @@ let browser;
     memory[cardKey(idx)] = { seen: 1, last: Date.now(), streak: 2, lastOutcome: "fast", dueDay: today(), due: dayStartMs(today()) }; status = { [idx]: "rest" }; saveMemory(); save(DECK_KEY, status); activity = newActivity(); saveActivity(); renderHome(); const breathes = startBtn.classList.contains("dueBreathe");
     activeMode = "focus"; baseTargets = [idx]; batch = baseTargets; baseCursor = 0; currentIndex = idx; currentAttemptKind = "base"; currentAttemptId = "verify-auto-overlay"; episodes = {}; roundStats = []; unresolved = new Set(); manualQueue = []; practicePhase = "recall"; cur = CARDS[idx]; stamped = false; revealed = false; lastVerdict = null; hintEverUsed = false; hintsUsedThisCard = 0;
     submissionSnapshot = Object.freeze({ target: cur.target, idx, attemptId: currentAttemptId, createdAt: Date.now(), hintStrokeIds: [], hintCount: 0, hintStrokes: [], inkStrokes: [], referenceStrokes: [], compositeGeometry: [], compositeImage: null, hintEverUsed: false, enteredTracing: false, practicePhase: "recall", lastVerdict: null, userCorrect: null });
-    showRevealState(submissionSnapshot); decideSubmission(false); const autoOverlay = { on: overlayOn, display: getComputedStyle(mineOverlay).display, toggle: overlayToggle.textContent, pressed:overlayToggle.getAttribute("aria-pressed"),group:document.querySelector(".cmpRow").getAttribute("aria-label") }; clearTimeout(autoNextTimer); clearTimeout(editStampTimer);
-    return { me, bars, wallEmpty, breathes, autoOverlay, homeAddAbsent: !document.getElementById("homeAdd"), qualityTargets: Array.from(qualityBox.querySelectorAll("button")).map((node) => parseFloat(getComputedStyle(node).minHeight)), compareTargets: Array.from(document.querySelectorAll(".cmpLinks button")).map((node) => parseFloat(getComputedStyle(node).minHeight)) };
+    showRevealState(submissionSnapshot); const compareTargets=Array.from(document.querySelectorAll(".cmpLinks button")).map((node) => parseFloat(getComputedStyle(node).minHeight)); decideSubmission(false); const autoOverlay = { on: overlayOn, display: getComputedStyle(mineOverlay).display, controls:getComputedStyle(cmpLinks).display, toggle: overlayToggle.textContent, pressed:overlayToggle.getAttribute("aria-pressed"),group:document.querySelector(".cmpRow").getAttribute("aria-label") }; clearTimeout(autoNextTimer); clearTimeout(editStampTimer);
+    return { me, bars, wallEmpty, breathes, autoOverlay, homeAddAbsent: !document.getElementById("homeAdd"), compareTargets };
   });
   assert(p1Discovery.me.calendar && p1Discovery.me.stat.includes("累计") && !p1Discovery.me.ready && p1Discovery.me.advice === "这些字在练习中没写出来过" && p1Discovery.me.weak.includes("器") && p1Discovery.bars === 0
-    && p1Discovery.wallEmpty && p1Discovery.breathes && !p1Discovery.autoOverlay.on && p1Discovery.autoOverlay.display === "none" && p1Discovery.autoOverlay.toggle === "叠起来对比" && p1Discovery.autoOverlay.pressed === "false" && p1Discovery.autoOverlay.group.includes("左侧是你的字迹")
-    && p1Discovery.homeAddAbsent && p1Discovery.qualityTargets.every((height) => height >= 44) && p1Discovery.compareTargets.every((height) => height >= 44),
+    && p1Discovery.wallEmpty && p1Discovery.breathes && !p1Discovery.autoOverlay.on && p1Discovery.autoOverlay.display === "none" && p1Discovery.autoOverlay.controls === "none" && p1Discovery.autoOverlay.toggle === "叠起来对比" && p1Discovery.autoOverlay.pressed === "false" && p1Discovery.autoOverlay.group.includes("左侧是你的字迹")
+    && p1Discovery.homeAddAbsent && p1Discovery.compareTargets.every((height) => height >= 44),
   "Expected contextual My states, discoverable controls, an empty memory wall, and a due-card breathe cue", p1Discovery);
 
   await page.evaluate(() => {
@@ -1629,10 +1637,12 @@ let browser;
     verdict: submissionSnapshot.lastVerdict && submissionSnapshot.lastVerdict.status,
     hintEverUsed: submissionSnapshot.hintEverUsed,
     image: submissionSnapshot.compositeImage && submissionSnapshot.compositeImage.startsWith("data:image/png"),
-    effect: correctEffect.textContent,
+    revealIgnoresHints: revealInkImage(submissionSnapshot) === revealInkImage({ ...submissionSnapshot, hintStrokes: [], lastVerdict: null }),
+    question: askLine.textContent,
   }));
-  assert(snapshot.label === "你写的" && snapshot.hintIds === 1 && snapshot.hintGeometry === 1 && snapshot.composite === snapshot.hintGeometry + snapshot.ink && snapshot.verdict === "ok" && snapshot.hintEverUsed && snapshot.image, "Expected one immutable complete-grid submission snapshot", snapshot);
-  assert(snapshot.effect.includes("已用提示"), "Expected correct action to explain reinforcement consequence", snapshot.effect);
+  assert(snapshot.label === "你写的" && snapshot.hintIds === 1 && snapshot.hintGeometry === 1 && snapshot.composite === snapshot.hintGeometry + snapshot.ink && snapshot.verdict === null
+    && snapshot.hintEverUsed && snapshot.image && snapshot.revealIgnoresHints && snapshot.question === "这次写对了吗？",
+  "Expected one immutable complete-grid snapshot while the user-facing reveal shows only user ink and no normal-mode verdict", snapshot);
 
   await chooseCorrect(page);
   await page.waitForTimeout(450);
@@ -1824,24 +1834,18 @@ let browser;
   await page.evaluate(() => { hapticDebug.events = []; hapticDebug.last = null; });
   await submitStandard(page);
   await page.click("#decisionWrong");
-  await page.waitForFunction(() => practicePhase === "tracing");
-  const teachingWrong = await page.evaluate(() => ({ events: fsrsReviewLog.filter((event) => event.attemptId === currentAttemptId).length, attempts: episodeFor(currentCardIndex()).attempts.length, haptics: hapticDebug.events.slice() }));
-  assert(teachingWrong.events === 1 && teachingWrong.attempts === 1 && teachingWrong.haptics.join() === "action", "Expected teaching retry not to create another review or stamp haptic", teachingWrong);
-  await page.evaluate(() => { inkStrokes = [mediansToCanvas(curMedians)[0]]; tracedThisCard = true; redrawInk(); updateInkControls(); });
-  await page.click("#traceDone");
-  await page.evaluate(() => { hapticDebug.events = []; hapticDebug.last = null; });
-  await submitStandard(page);
-  await page.click("#decisionCorrect");
-  const teachingDecisionHaptics = await page.evaluate(() => hapticDebug.events.slice());
-  assert(teachingDecisionHaptics.join() === "action", "Expected post-trace success to emit action only, never action plus stamp", teachingDecisionHaptics);
+  const teachingWrong = await page.evaluate(() => { const stat=roundStats.find((row)=>row.idx===currentCardIndex()); return ({ phase:practicePhase, feedback:feedbackKind, toast:toastTitle.textContent, events: fsrsReviewLog.filter((event) => event.attemptId === currentAttemptId).length, attempts: episodeFor(currentCardIndex()).attempts.length, teachingComplete:episodeFor(currentCardIndex()).teachingComplete, postTraceCorrect:stat&&stat.postTraceCorrect, haptics: hapticDebug.events.slice() }); });
+  assert(teachingWrong.phase === "feedback" && teachingWrong.feedback === "teachingComplete" && teachingWrong.toast.includes("还没写对") && teachingWrong.events === 1 && teachingWrong.attempts === 1
+    && teachingWrong.teachingComplete && teachingWrong.postTraceCorrect === false && teachingWrong.haptics.join() === "action",
+  "Expected post-trace wrong to finish this teaching pass without another review, stamp, or forced tracing loop", teachingWrong);
   await page.waitForTimeout(1900);
   const afterTeaching = await page.evaluate(() => ({ kind: currentAttemptKind, phase: practicePhase, ratings: fsrsReviewLog.slice(-1).map((event) => event.rating), teachingComplete: Object.values(episodes)[0].teachingComplete, unresolved: unresolved.size }));
-  assert(afterTeaching.kind === "reinforcement" && afterTeaching.phase === "reinforcement" && afterTeaching.ratings.join() === "Again" && afterTeaching.teachingComplete && afterTeaching.unresolved === 1, "Expected post-trace success to remain unresolved without Good", afterTeaching);
+  assert(afterTeaching.kind === "reinforcement" && afterTeaching.phase === "reinforcement" && afterTeaching.ratings.join() === "Again" && afterTeaching.teachingComplete && afterTeaching.unresolved === 1, "Expected post-trace wrong to continue to the existing reinforcement queue", afterTeaching);
   await submitStandard(page);
   await chooseCorrect(page);
   await page.waitForTimeout(1900);
   const teachingDone = await page.evaluate(() => ({ ratings: fsrsReviewLog.slice(-2).map((event) => event.rating), stat: roundStats[0], tutorialStored: load(TRACE_TUTORIAL_KEY, false), summary: getComputedStyle(summary).display !== "none" }));
-  assert(teachingDone.ratings.join() === "Again,Good" && teachingDone.stat.outcome === "miss" && teachingDone.stat.traced && teachingDone.stat.independentlyRecovered && teachingDone.tutorialStored && teachingDone.summary, "Expected later independent recovery to graduate the don't-know episode", teachingDone);
+  assert(teachingDone.ratings.join() === "Again,Good" && teachingDone.stat.outcome === "miss" && teachingDone.stat.traced && teachingDone.stat.postTraceCorrect === false && teachingDone.stat.independentlyRecovered && teachingDone.tutorialStored && teachingDone.summary, "Expected later independent recovery to graduate the don't-know episode without rewriting its post-trace self-assessment", teachingDone);
 
   await page.evaluate(() => { clearSessionSnapshot(); startFocus([CARDS.findIndex((card) => card.target === "疑"), CARDS.findIndex((card) => card.target === "衡")]); });
   await waitForWriter(page);

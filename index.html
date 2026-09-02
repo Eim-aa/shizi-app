@@ -201,20 +201,8 @@
   .decisionRow{ display:flex; gap:10px; margin-top:16px; }
   .decisionRow button{ flex:1; min-height:58px; border-radius:14px; padding:10px 8px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; }
   .decisionRow button span{ font-size:calc(16px * var(--font-scale)); font-weight:800; }
-  .decisionRow button small{ font-size:calc(var(--fs-body) * var(--font-scale)); line-height:1.25; color:var(--muted); }
   .decisionRow .decisionCorrect,.decisionRow .decisionWrong{ background:var(--card); border:1px solid var(--line); box-shadow:none; }
-  .decisionRow .decisionCorrect{ color:var(--accent); }
-  .decisionRow .decisionWrong{ color:var(--ink); }
-  .decisionRow .decisionCorrect.suggest{ background:var(--accent); border-color:var(--accent); color:var(--paperInk); box-shadow:0 12px 24px -14px var(--accent-a60); }
-  .decisionRow .decisionWrong.suggest{ background:var(--shade); border-color:var(--ink); color:var(--ink); box-shadow:0 12px 24px -14px rgba(20,18,14,.35); }
-  .decisionRow button.suggest small{ color:inherit; opacity:.82; }
-  .uncertainAction{ display:flex; justify-content:center; margin-top:10px; }
-  .uncertainAction button{ padding:5px 9px; color:var(--muted); font-size:calc(var(--fs-emph) * var(--font-scale)); text-decoration:underline; text-underline-offset:3px; }
-  .softConfirm{ display:none; margin-top:12px; padding:12px; border:1px solid var(--line); border-radius:8px; background:var(--shade); text-align:center; }
-  .softConfirm p{ margin:0 0 10px; color:var(--ink); font-size:calc(var(--fs-body) * var(--font-scale)); line-height:1.5; }
-  .softConfirmActions{ display:flex; gap:8px; }
-  .softConfirmActions button{ flex:1; min-height:40px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--ink); font-size:calc(var(--fs-body) * var(--font-scale)); font-weight:700; }
-  .softConfirmActions .confirmCorrect{ background:var(--accent); color:var(--paperInk); border-color:var(--accent); }
+  .decisionRow .decisionCorrect,.decisionRow .decisionWrong{ color:var(--ink); }
 
   /* ===== 揭晓 · 对照 + 盖章 ===== */
   #reveal{ display:none; min-height:0; flex:1; flex-direction:column; overflow-y:auto; overscroll-behavior:contain; padding-bottom:4px; animation:screenIn .3s ease; }
@@ -245,7 +233,6 @@
   .cmpLinks{ display:flex; justify-content:center; gap:10px; margin-top:10px; }
   .cmpLinks button{ min-height:44px; padding:9px 14px; border:1px solid var(--line); border-radius:999px; background:var(--shade); font-size:calc(var(--fs-emph) * var(--font-scale)); color:var(--muted); }
   #askRow{ margin-top:18px; }
-  #stampNote{ text-align:center; margin-top:12px; font-size:calc(var(--fs-body) * var(--font-scale)); color:var(--muted); }
   #stampOnMine{ position:absolute; right:6px; top:6px; width:56px; height:56px; display:none; pointer-events:none; isolation:isolate; }
   #stampOnMine::before{ content:""; position:absolute; inset:-18px; z-index:0; border-radius:50%; background:radial-gradient(circle,var(--accent-a35) 0,var(--accent-a18) 38%,transparent 70%); animation:inkBloom .72s ease-out both; }
   #stampOnMine .ring{ position:absolute; inset:0; z-index:1; border:3px solid var(--accent); border-radius:22% 18% 24% 20%; animation:ringOut .55s ease-out .2s both; }
@@ -261,10 +248,6 @@
   .toastCard .ttxt span{ color:var(--muted); font-size:calc(var(--fs-body) * var(--font-scale)); }
   .editStampBtn{ margin-left:auto; flex:none; border:1px solid var(--line); background:var(--shade); color:var(--muted); border-radius:999px; padding:8px 10px; font:700 calc(var(--fs-note) * var(--font-scale))/1 var(--sans); }
   .editStampBtn:disabled{ display:none; }
-  .quality{ display:flex; align-items:center; justify-content:center; gap:5px 12px; flex-wrap:wrap; margin-top:auto; padding-top:8px; font-size:calc(var(--fs-body) * var(--font-scale)); color:var(--muted); }
-  .quality button{ min-height:44px; padding:7px 2px; font-size:calc(var(--fs-emph) * var(--font-scale)); color:var(--muted); text-decoration:underline; text-underline-offset:3px; }
-  .quality button.active{ color:var(--accent); font-weight:700; }
-  .quality .note{ flex-basis:100%; text-align:center; min-height:14px; }
 
   /* ===== 结果 ===== */
   .summary{ display:none; flex:1; flex-direction:column; padding:18px var(--space-4) calc(var(--space-4) + env(safe-area-inset-bottom)); animation:screenIn .35s ease; }
@@ -754,31 +737,21 @@
           <div class="cmpLbl red">范字</div>
         </div>
       </div>
-      <div class="cmpLinks"><button id="overlayToggle" aria-pressed="false" aria-label="把范字叠加到我的字迹上对比">叠起来对比</button><button id="replayBtn">看笔顺</button></div>
+      <div class="cmpLinks" id="cmpLinks"><button id="overlayToggle" aria-pressed="false" aria-label="把范字叠加到我的字迹上对比">叠起来对比</button><button id="replayBtn">看笔顺</button></div>
 
-      <div class="tbubble" id="teachBubbleGrade" style="display:none; max-width:320px;"><b>对错由你判断，没有考试</b><br>按实际情况选择。写错或不确定的字，<br>本组稍后会再写一次</div>
-      <div class="mascotRow" id="askRow"><span class="blob"></span><span id="askLine" style="font-weight:600; color:var(--ink);"></span></div>
+      <div class="tbubble" id="teachBubbleGrade" style="display:none; max-width:320px;"><b>范字提供事实，你来判断</b><br>写错不会受罚，本组稍后会再写一次</div>
+      <div class="mascotRow" id="askRow" role="heading" aria-level="2"><span class="blob" aria-hidden="true"></span><span id="askLine" style="font-weight:600; color:var(--ink);">这次写对了吗？</span></div>
 
       <div class="decisionRow" id="decisionRow">
-        <button class="decisionCorrect" id="decisionCorrect" aria-label="写对了"><span>写对了</span><small id="correctEffect">这次独立写对</small></button>
-        <button class="ghostAct decisionWrong" id="decisionWrong" aria-label="写错了"><span>写错了</span><small>本组稍后再写</small></button>
+        <button class="decisionCorrect" id="decisionCorrect" aria-label="写对了"><span>写对了</span></button>
+        <button class="decisionWrong" id="decisionWrong" aria-label="写错了"><span>写错了</span></button>
       </div>
-      <div class="uncertainAction" id="uncertainAction"><button id="decisionUncertain" aria-label="不太确定">不太确定</button></div>
-      <div class="softConfirm" id="softConfirm" role="dialog" aria-live="polite">
-        <p>这几笔和范字差得比较多，确定算写对？</p>
-        <div class="softConfirmActions"><button id="compareAgain">再对一眼</button><button class="confirmCorrect" id="confirmCorrect">确定写对了</button></div>
-      </div>
-      <div id="stampNote"></div>
 
       <div class="toastCard" id="stampedToast">
         <div class="tchar" id="toastChar"></div>
         <span class="blob feedbackBlob" id="feedbackBlob" aria-hidden="true"></span>
         <div class="ttxt"><b id="toastTitle"></b><br><span id="toastSubEl"></span></div>
         <button class="editStampBtn" id="editStamp" disabled>重盖</button>
-      </div>
-      <div class="quality" id="qualityBox">
-        <button data-quality="easy">太简单</button><button data-quality="rare">太生僻</button><button data-quality="badWord">词不自然</button><button data-quality="hide">不想练</button>
-        <span class="note" id="qualityNote"></span>
       </div>
     </div>
   </div>
@@ -801,7 +774,7 @@
         <h2>今日拾得</h2>
         <div class="dateSeal" id="calibDateSeal"></div>
         <div class="sumGrid" id="calibSumTiles"></div>
-        <div class="summaryLegend">首次结果：无标记 独立写对 · <b style="color:var(--gold)">金菱 看过提示 / 不确定</b> · <b style="color:var(--accent)">朱砂 写错 / 没写出</b></div>
+        <div class="summaryLegend">首次结果：无标记 独立写对 · <b style="color:var(--gold)">金菱 看过提示 / 需要再练</b> · <b style="color:var(--accent)">朱砂 写错 / 没写出</b></div>
         <div class="summaryPracticeHint" id="calibPracticeHint">点任意字块，可单独再练</div>
         <div class="bigSeal" id="calibBigSeal"><span>拾字</span></div>
         <div class="restLine" id="calibRestLine"></div>
@@ -827,7 +800,7 @@
         <div class="sumLead" id="sumLead"></div>
         <div class="dateSeal" id="dateSeal"></div>
         <div class="sumGrid" id="sumTiles"></div>
-        <div class="summaryLegend" id="sumLegend">首次结果：无标记 独立写对 · <b style="color:var(--gold)">金菱 看过提示 / 不确定</b> · <b style="color:var(--accent)">朱砂 写错 / 没写出</b></div>
+        <div class="summaryLegend" id="sumLegend">首次结果：无标记 独立写对 · <b style="color:var(--gold)">金菱 看过提示 / 需要再练</b> · <b style="color:var(--accent)">朱砂 写错 / 没写出</b></div>
         <div class="summaryPracticeHint" id="sumPracticeHint">点任意字块，可单独再练</div>
         <div class="bigSeal" id="summaryBigSeal"><span>拾字</span></div>
         <div class="restLine" id="summaryRestLine"></div>
@@ -1794,7 +1767,7 @@ function roundMasteryScore(counts=roundCounts(),total=roundStats.length){ return
 function calibrationRoundStats(){ const sample=new Set(calibrationTargets); return roundStats.filter(row=>sample.has(row.idx)); }
 function maybeFinishCalibration(){ if(activeMode!=="calibrate" || tuning.calibrated || roundCompletionSuppressed) return "";
   const stats=calibrationRoundStats(), counts=roundCounts(stats), hard=(counts.hinted||0)+(counts.miss||0)+(counts.slow||0), score=roundMasteryScore(counts,stats.length);
-  const consistentFast=stats.reduce((sum,row)=>sum+(row.outcome==="fast"?(row.geometryStatus==="ok"?1:.5):0),0); let why;
+  const consistentFast=stats.reduce((sum,row)=>sum+(row.outcome==="fast"?1:0),0); let why;
   if(consistentFast>=12 && hard<=2){ tuning.offset=10; preference="challenge"; why="刚才这组你基本都写得出来，所以接下来会自动加难，多挑些你不太熟的字。"; }
   else if(hard>=6 || (counts.miss||0)>=3){ tuning.offset=-6; preference="practical"; why="刚才有几个卡住了，所以先把难度调稳一点，从你能写出来的字开始，再慢慢加。"; }
   else { tuning.offset=2; preference="balanced"; why="刚才的难度大致合适，就先按这个节奏来，之后会按你实际写的情况再微调。"; }
@@ -1844,16 +1817,12 @@ function displayView(view){ Object.entries(VIEW_IDS).forEach(([k,id])=>{ $(id).s
   document.querySelectorAll(".foot .tab").forEach(el=>el.classList.toggle("active",el.id===active));
   requestAnimationFrame(scrollTopNow); }
 function qualityCount(){ return Object.values(quality).filter(q=>q && (q.easy || q.rare || q.badWord || q.hide)).length; }
-function renderQuality(){ if(!cur) return; const q=qualityFor(currentCardIndex()); document.querySelectorAll("#qualityBox button[data-quality]").forEach(btn=>btn.classList.toggle("active", !!q[btn.dataset.quality]));
-  const notes=[]; if(q.easy) notes.push("已降难"); if(q.rare) notes.push("少出"); if(q.badWord) notes.push("避开词"); if(q.hide) notes.push("已隐藏");
-  $("qualityNote").textContent=notes.length?`${notes.join(" · ")} · 再点可取消`:""; }
 function recordQuality(kind, idx=currentCardIndex()){ if(idx==null || idx<0) return; const c=CARDS[idx], k=cardKey(idx), q=quality[k] || {};
   if(kind==="hide") q.hide=!q.hide; else q[kind]=q[kind]?0:1;
   q.last=Date.now(); q.target=c.target; q.word=c.word; q.topic=c.topic; q.band=c.band; quality[k]=q; saveQuality();
   if(kind==="easy" && q.easy) setStatus(idx,"rest"); if(kind==="badWord" && q.badWord) sessionDone.add(idx);
   if(kind==="hide"){ if(q.hide){ sessionDone.add(idx); unresolved.delete(idx); reinforcementQueue=reinforcementQueue.filter(item=>item.idx!==idx); const ep=episodeFor(idx); ep.excluded=true; const m=cardMemory(idx); m.pendingLearning=false; m.dueDay=null; saveMemory(); }
-    else sessionDone.delete(idx); saveSessionSnapshot(); }
-  if(cur && idx===currentCardIndex()) renderQuality(); }
+    else sessionDone.delete(idx); saveSessionSnapshot(); } }
 function shareInkFromSnapshot(snapshot){ const safe=normalizedSubmissionSnapshot(snapshot), source=safe?safe.inkStrokes||[]:[], size=Math.max(1,Number(safe&&safe.canvasSize)||S), maxPoints=48;
   return source.slice(0,48).map(points=>{ const list=Array.isArray(points)?points:[], sampled=list.length<=maxPoints?list:Array.from({length:maxPoints},(_,i)=>list[Math.round(i*(list.length-1)/(maxPoints-1))]); return sampled.map(point=>{ const row={x:Math.round(clamp(Number(point.x)/size,0,1)*1000)/1000,y:Math.round(clamp(Number(point.y)/size,0,1)*1000)/1000}, pressure=clamp(Number(point.p)||0,0,1);
       if(pressure>0) row.p=Math.round(pressure*1000)/1000; return row; }).filter(point=>Number.isFinite(point.x)&&Number.isFinite(point.y)); }).filter(points=>points.length); }
@@ -1867,13 +1836,13 @@ function persistRecentInk(m,strokes,at=Date.now()){ if(!m || !Array.isArray(stro
 // 每个真实回忆回合只记一次结果；本组队列与 FSRS 跨天调度分别处理。
 function recordOutcome(outcome,options={}){ const idx=currentCardIndex(), c=CARDS[idx], m=cardMemory(idx), now=Number(options.now)||Date.now(), ep=episodeFor(idx);
   if(ep.attempts.some(a=>a.attemptId===currentAttemptId)) return ep.attempts.find(a=>a.attemptId===currentAttemptId);
-  const hard=outcome!=="fast", firstOutcome=!ep.firstOutcome, uncertain=!!options.uncertain, userCorrect=outcome==="fast"||(outcome==="hinted"&&!uncertain);
+  const hard=outcome!=="fast", firstOutcome=!ep.firstOutcome, userCorrect=outcome==="fast"||outcome==="hinted";
   markFirstSeen(m,now); m.seen=(m.seen||0)+1; m.last=now; m.lastOutcome=outcome; m.lastHints=hintsUsedThisCard;
   m.traced=!!enteredTracingThisAttempt;
   delete m.queuedFront; delete m.queuedFrontAt;
-  const sys=lastVerdict?(lastVerdict.status==="ok"):null;
-  m.lastSystemSuggestion=sys===null?"":(sys?"correct":"wrong"); m.lastSystemStatus=lastVerdict?lastVerdict.status:"none"; m.lastSystemAgree=sys===null?null:sys===userCorrect;
-  recordFunnelComparison(currentAttemptId,m.lastSystemAgree,now);
+  if(DEV_TOOLS && lastVerdict){ const sys=lastVerdict.status==="ok";
+    m.lastSystemSuggestion=sys?"correct":"wrong"; m.lastSystemStatus=lastVerdict.status; m.lastSystemAgree=sys===userCorrect;
+    recordFunnelComparison(currentAttemptId,m.lastSystemAgree,now); }
   m.topic=c.topic; m.band=c.band; m.word=c.word; m.target=c.target;
   if(outcome==="fast"){ m.fast=(m.fast||0)+1; m.streak=(m.streak||0)+1; m.ease=clamp((m.ease||50)+12,0,100); setStatus(idx,"rest"); }
   if(outcome==="slow"){ m.slow=(m.slow||0)+1; m.streak=0; m.ease=clamp((m.ease||50)-6,0,100); setStatus(idx,"indeck"); }
@@ -1881,11 +1850,13 @@ function recordOutcome(outcome,options={}){ const idx=currentCardIndex(), c=CARD
   if(outcome==="miss"){ m.misses=(m.misses||0)+1; m.streak=0; m.ease=clamp((m.ease||50)-16,0,100); m.missedOn=today(); setStatus(idx,"indeck"); }
   const reason=outcome==="hinted"?"hinted":outcome==="slow"?"wrong":outcome==="miss"?"dontKnow":"independent";
   const event=applyFSRSReview(idx,hard?"Again":"Good",reason,currentAttemptId,{now,graduate:!hard,hintCount:hintsUsedThisCard,traced:enteredTracingThisAttempt,teaching:!!options.teaching});
-  const attempt={attemptId:currentAttemptId,seq:attemptSeq+1,outcome,userCorrect,uncertain,hintUsed:hintEverUsed,hintCount:hintsUsedThisCard,enteredTracing:enteredTracingThisAttempt,teaching:!!options.teaching,eventId:event&&event.eventId,at:now};
+  const attempt={attemptId:currentAttemptId,seq:attemptSeq+1,outcome,userCorrect,hintUsed:hintEverUsed,hintCount:hintsUsedThisCard,enteredTracing:enteredTracingThisAttempt,teaching:!!options.teaching,eventId:event&&event.eventId,at:now};
   ep.attempts.push(attempt); ep.firstOutcome=ep.firstOutcome||outcome; ep.assistanceUsed=ep.assistanceUsed||hintEverUsed||enteredTracingThisAttempt;
   if(activeMode==="calibrate" && firstOutcome && idx===calibrationTargets[0]) recordFunnelOnce("calib_card1_done");
   const handwriting=shareInkFromSnapshot(submissionSnapshot); if(!hard) persistRecentInk(m,handwriting,now);
-  if(firstOutcome){ setRoundHandwriting(idx,handwriting); roundStats.push({idx,target:c.target,word:c.word,outcome,uncertain,geometryStatus:lastVerdict&&lastVerdict.status||"none",geometryMode:lastVerdict&&lastVerdict.mode||"none",traced:!!enteredTracingThisAttempt,hintUsed:hintEverUsed,level:abilityLevel(idx),topic:c.topic,dueDay:m.dueDay||null,independentlyRecovered:!hard});
+  if(firstOutcome){ const stat={idx,target:c.target,word:c.word,outcome,traced:!!enteredTracingThisAttempt,hintUsed:hintEverUsed,level:abilityLevel(idx),topic:c.topic,dueDay:m.dueDay||null,independentlyRecovered:!hard};
+    if(DEV_TOOLS){ stat.geometryStatus=lastVerdict&&lastVerdict.status||"none"; stat.geometryMode=lastVerdict&&lastVerdict.mode||"none"; }
+    setRoundHandwriting(idx,handwriting); roundStats.push(stat);
     if(hard) missedThisRound.push(c.target); adaptNextCard(outcome,idx); }
   else { const stat=roundStats.find(row=>row.idx===idx); if(stat && !hard){ stat.independentlyRecovered=true; stat.dueDay=m.dueDay||null; setRoundHandwriting(idx,handwriting); } }
   if(currentAttemptKind==="base"){ baseCursor=Math.min(baseTargets.length,baseCursor+1); sessionDone.add(idx); }
@@ -2417,16 +2388,11 @@ function checkHolistic(u,t){
   const ok=missing===0 && failed.length===0 && chamfer<=S*0.065;
   return {status:ok?"ok":"bad", mode:"holistic", u:u.length, t:t.length, failed, missing}; }
 function autoCheckInk(){ lastVerdict=null; inkEnd();
-  if(!curMedians || !curMedians.length || !inkStrokes.length) return null;
+  if(!DEV_TOOLS || !curMedians || !curMedians.length || !inkStrokes.length) return null;
   try{ lastVerdict=checkInk(inkStrokes, mediansToCanvas(curMedians)); }catch(e){ lastVerdict=null; }
   return lastVerdict; }
 function paintInkStrokes(idxs,color){ if(!idxs || !idxs.length) return; idxs.forEach(i=>paintFaithfulInk(inkCtx,inkStrokes[i],penBaseWidth(),{color})); }
-function suggestedOutcomeForVerdict(v){ if(!v) return ""; return v.status==="ok"?(hintsUsedThisCard>0?"hinted":"fast"):"slow"; }
 function wrapIdForOutcome(outcome){ return "wrap"+outcome[0].toUpperCase()+outcome.slice(1); }
-function verdictShort(v){ if(!v) return "暂时无法自动对比，请和范字核对。";
-  if(v.status==="ok") return v.mode==="holistic"?"看起来写对了，连笔不影响；请再和范字确认。":"看起来写对了，请再和范字确认。";
-  if(v.status==="bad") return v.mode==="exact"&&v.failed&&v.failed.length?"这几笔可以再和范字对照一下。":"看起来有些差异，请和范字对照后选择。";
-  return "请和范字对照后选择。"; }
 
 const EXHAUSTED_HINT_COPY="点拨看完了——继续补完这个字，或点「不会写」先描后写";
 function hintVisualExhausted(){ return !animating && groups.length>0 && groupIdx>=groups.length; }
@@ -2470,15 +2436,9 @@ function drawSnapshotStrokes(ctx,strokes,color,width,faithful=false){ const safe
 function snapshotImage(hints,ink){ const canvas=document.createElement("canvas"); canvas.width=S; canvas.height=S; const ctx=canvas.getContext("2d");
   drawSnapshotStrokes(ctx,hints,hintStroke(),Math.max(3,S*.025)); drawSnapshotStrokes(ctx,ink,cssVar('--inkPen',"#29241d"),penBaseWidth(),true);
   try{ return canvas.toDataURL(); }catch(e){ return null; } }
-function failedUserStrokeIndexes(snapshot){ snapshot=normalizedSubmissionSnapshot(snapshot); const verdict=snapshot&&snapshot.lastVerdict;
-  if(!verdict || verdict.status!=="bad" || verdict.mode!=="exact") return [];
-  const hintCount=(snapshot.hintStrokes||[]).length, inkCount=(snapshot.inkStrokes||[]).length;
-  return [...new Set((verdict.failed||[]).map(i=>i-hintCount).filter(i=>i>=0&&i<inkCount))]; }
-function revealInkImage(snapshot){ snapshot=normalizedSubmissionSnapshot(snapshot); const failed=failedUserStrokeIndexes(snapshot), canvas=document.createElement("canvas"); canvas.width=S; canvas.height=S; const ctx=canvas.getContext("2d");
-  drawSnapshotStrokes(ctx,snapshot&&snapshot.hintStrokes,hintStroke(),Math.max(3,S*.025));
+function revealInkImage(snapshot){ snapshot=normalizedSubmissionSnapshot(snapshot); const canvas=document.createElement("canvas"); canvas.width=S; canvas.height=S; const ctx=canvas.getContext("2d");
   drawSnapshotStrokes(ctx,snapshot&&snapshot.inkStrokes,cssVar('--inkPen',"#29241d"),penBaseWidth(),true);
-  if(failed.length) drawSnapshotStrokes(ctx,failed.map(i=>snapshot.inkStrokes[i]),cssVar('--accent',"#c2452c"),Math.max(6,S*.052));
-  try{ return canvas.toDataURL(); }catch(e){ return snapshot&&snapshot.compositeImage||null; } }
+  try{ return snapshot&&snapshot.inkStrokes&&snapshot.inkStrokes.length?canvas.toDataURL():null; }catch(e){ return null; } }
 function renderStrokeSkeleton(container,strokes){ const safe=normalizedSessionInkStrokes(strokes); container.innerHTML=""; if(!safe.length) return false;
   const ns="http://www.w3.org/2000/svg", svg=document.createElementNS(ns,"svg"); svg.setAttribute("viewBox",`0 0 ${S} ${S}`); svg.setAttribute("aria-hidden","true");
   const color=cssVar('--accent',"#c2452c"), width=Math.max(5,S*.045);
@@ -2486,7 +2446,7 @@ function renderStrokeSkeleton(container,strokes){ const safe=normalizedSessionIn
   container.appendChild(svg); return true; }
 function freezeSubmissionSnapshot(){ inkEnd(); const hintStrokeIds=curMedians?[...Array(Math.min(shownStrokes,curMedians.length)).keys()]:[], hintStrokes=curMedians?mediansToCanvas(curMedians.slice(0,hintStrokeIds.length)):[];
   const referenceStrokes=curMedians?mediansToCanvas(curMedians):[], userInk=cloneObj(inkStrokes)||[], compositeGeometry=[...cloneObj(hintStrokes)||[],...cloneObj(userInk)||[]]; let verdict=null;
-  if(referenceStrokes.length&&compositeGeometry.length){ try{ verdict=checkInk(compositeGeometry,referenceStrokes); }catch(e){} }
+  if(DEV_TOOLS&&referenceStrokes.length&&compositeGeometry.length){ try{ verdict=checkInk(compositeGeometry,referenceStrokes); }catch(e){} }
   const snap={target:cur.target,idx:currentCardIndex(),attemptId:currentAttemptId,createdAt:Date.now(),canvasSize:S,hintStrokeIds,hintCount:hintsUsedThisCard,hintStrokes:cloneObj(hintStrokes)||[],inkStrokes:userInk,
     referenceStrokes:cloneObj(referenceStrokes)||[],compositeGeometry,compositeImage:snapshotImage(hintStrokes,userInk),hintEverUsed,enteredTracing:enteredTracingThisAttempt,practicePhase,lastVerdict:cloneObj(verdict),userCorrect:null};
   submissionSnapshot=Object.freeze(snap); lastVerdict=verdict; return submissionSnapshot; }
@@ -2633,27 +2593,22 @@ $("tip").onclick=async ()=>{ if(tipHoldConsumed){ tipHoldConsumed=false; return 
   saveSessionSnapshot(); return true;
 };
 function setOverlayComparison(active){ overlayOn=!!active; $("mineOverlay").style.display=overlayOn?"flex":"none"; $("overlayToggle").textContent=overlayOn?"分开看":"叠起来对比"; $("overlayToggle").setAttribute("aria-pressed",String(overlayOn)); $("overlayToggle").setAttribute("aria-label",overlayOn?"关闭范字与我的字迹叠加，改为分开看":"把范字叠加到我的字迹上对比"); }
-function showRevealState(snapshot){ snapshot=normalizedSubmissionSnapshot(snapshot); const verdict=snapshot&&snapshot.lastVerdict, inkUrl=snapshot&&revealInkImage(snapshot), reference=snapshot&&snapshot.referenceStrokes;
+function showRevealState(snapshot){ snapshot=normalizedSubmissionSnapshot(snapshot); const inkUrl=snapshot&&revealInkImage(snapshot), reference=snapshot&&snapshot.referenceStrokes;
   activePointers.clear(); peekReleasePending=false; exitPeekHint(true); revealed=true; clearTimeout(teachTimer);
   $("actions").classList.remove("tlock"); $("traceActions").classList.remove("tlock");
   $("practiceArea").style.display="none"; $("reveal").style.display="flex";
   $("reveal").classList.remove("revealing"); void $("reveal").offsetWidth; $("reveal").classList.add("revealing");
   $("revealWord").textContent=cur.word; $("revealPy").textContent=cur.py||"";
-  if(inkUrl){ $("mineInk").style.backgroundImage=`url(${inkUrl})`; $("mineInk").style.display=""; $("mineInk").dataset.failedCount=String(failedUserStrokeIndexes(snapshot).length); $("mineEmpty").style.display="none"; }
-  else { $("mineInk").style.backgroundImage="none"; $("mineInk").dataset.failedCount="0"; $("mineEmpty").style.display="flex"; }
+  if(inkUrl){ $("mineInk").style.backgroundImage=`url(${inkUrl})`; $("mineInk").style.display=""; $("mineEmpty").style.display="none"; }
+  else { $("mineInk").style.backgroundImage="none"; $("mineEmpty").style.display="flex"; }
   $("mineOverlay").textContent=""; setOverlayComparison(false);
   const hasSkeleton=renderStrokeSkeleton($("rightHz"),reference); $("rightGlyph").textContent=cur.target; $("rightGlyph").style.opacity=hasSkeleton?"0":"1";
   if(!renderStrokeSkeleton($("mineOverlay"),reference)) $("mineOverlay").textContent=cur.target; replaying=false;
   $("stampOnMine").style.display="none";
-  $("decisionRow").style.display="flex"; $("uncertainAction").style.display="flex"; $("softConfirm").style.display="none"; $("stampNote").style.display="";
+  $("cmpLinks").style.display="flex"; $("decisionRow").style.display="flex";
   $("stampedToast").style.display="none"; $("editStamp").disabled=true;
-  const postTrace=snapshot&&snapshot.practicePhase==="postTraceRecall", used=!!(snapshot&&snapshot.hintEverUsed), firstCalibrationReveal=activeMode==="calibrate"&&roundStats.length===0;
-  $("teachBubbleGrade").style.display=firstCalibrationReveal?"":"none"; $("askRow").style.display=firstCalibrationReveal?"none":"flex"; $("qualityBox").style.display=postTrace?"none":"flex"; $("uncertainAction").style.display=postTrace?"none":"flex";
-  $("askLine").textContent=verdictShort(verdict);
-  const exact=!!(verdict&&verdict.mode==="exact"); $("decisionCorrect").classList.toggle("suggest",exact&&verdict.status==="ok"); $("decisionWrong").classList.toggle("suggest",exact&&verdict.status==="bad");
-  $("correctEffect").textContent=postTrace?"写对后，稍后还会再写":used?"已用提示，本组稍后再写":"这次独立写对";
-  $("stampNote").textContent=postTrace?"写错会重新描红；写对后，稍后还会不看提示再写一次":used?"这次看过提示，写对后本组还会再写一次":"请按现在写下的字判断";
-  renderQuality();
+  const firstCalibrationReveal=activeMode==="calibrate"&&roundStats.length===0;
+  $("teachBubbleGrade").style.display=firstCalibrationReveal?"":"none"; $("askRow").style.display="flex"; $("askLine").textContent="这次写对了吗？";
 }
 function revealAnswer(){
   if(revealed || animating || Date.now()<actionCooldownUntil) return false; commitUndoWindow();
@@ -2683,13 +2638,13 @@ $("replayBtn").onclick=()=>{ if(replaying || !window.HanziWriter) return; replay
   try{ w.animateCharacter({ onComplete:()=>{ replaying=false; } }); }catch(e){ replaying=false; if(!renderStrokeSkeleton($("rightHz"),submissionSnapshot&&submissionSnapshot.referenceStrokes)) $("rightGlyph").style.opacity="1"; } };
 function reopenStampChoices(){ if(!lastStampSnapshot) return;
   const snap=lastStampSnapshot; clearTimeout(autoNextTimer); clearTimeout(editStampTimer); hideUndoBar(false); lastStampSnapshot=null;
-  restoreStampSnapshot(snap); stamped=false; render(); restoreRevealFromSnapshot({...snap.revealState,softConfirmHandled:false}); updateProgressLabel(); hapticFeedback("undo"); }
+  restoreStampSnapshot(snap); stamped=false; render(); restoreRevealFromSnapshot(snap.revealState); updateProgressLabel(); hapticFeedback("undo"); }
 const STAMP_HOLD_MS=1800, CALIBRATION_FIRST_HOLD_MS=1800, EDIT_STAMP_WINDOW_MS=1800;
 function showStampedFeedback(outcome,options={}){ const ui=GRADE_UI[outcome], m=memory[cardKey(currentCardIndex())]||{}, st=$("stampOnMine"), face=st.querySelector(".face"), ring=st.querySelector(".ring"), solid={fast:"var(--accent)",hinted:"var(--gold)",slow:"var(--accent)"}[outcome], ep=episodeFor(currentCardIndex()), recovered=outcome==="fast"&&ep.firstOutcome&&ep.firstOutcome!=="fast";
   st.classList.toggle("recovered",!!recovered);
   face.style.background=solid||"var(--card)"; face.style.border=solid?"0":"2px solid var(--grey)"; face.querySelector("span").textContent=ui.seal; face.querySelector("span").style.color=solid?"var(--paperInk)":"var(--muted)"; ring.style.borderColor=solid||"var(--grey)"; st.style.display="block";
   face.style.animation="none"; ring.style.animation="none"; void face.offsetWidth; face.style.animation=""; ring.style.animation="";
-  $("decisionRow").style.display="none"; $("uncertainAction").style.display="none"; $("softConfirm").style.display="none"; $("stampNote").style.display="none"; $("askRow").style.display="none"; $("teachBubbleGrade").style.display="none"; $("qualityBox").style.display="none";
+  $("cmpLinks").style.display="none"; $("decisionRow").style.display="none"; $("askRow").style.display="none"; $("teachBubbleGrade").style.display="none";
   $("toastChar").textContent=cur.target; const feedbackBlob=$("feedbackBlob"); feedbackBlob.classList.remove("pleased","concerned"); if(outcome==="fast"||recovered) feedbackBlob.classList.add("pleased"); else if(outcome==="slow"||outcome==="miss") feedbackBlob.classList.add("concerned");
   const copy=stampToastCopy(outcome,m); $("toastTitle").textContent=copy.title; $("toastSubEl").textContent=copy.sub; $("stampedToast").style.display="flex"; $("editStamp").disabled=false; }
 function showTeachingCompleteFeedback(){ showStampedFeedback("miss"); $("toastTitle").textContent="描红后已经写出"; $("toastSubEl").textContent="本组稍后还会不看提示再写一次"; $("editStamp").disabled=true; }
@@ -2699,7 +2654,7 @@ function pickStamp(outcome,options={}){ if(stamped || !revealed) return; stamped
   const firstCalibrationHold=activeMode==="calibrate" && baseCursor===0 && !calibrationFirstHoldUsed;
   if(firstCalibrationHold) calibrationFirstHoldUsed=true;
   const comfort=takeCalibrationComfort(outcome); recordOutcome(outcome,options); lastStampSnapshot.outcome=outcome; practicePhase="feedback"; feedbackKind=outcome; hapticFeedback("stamp"); soundFeedback("stamp"); noteSoundTip();
-  showStampedFeedback(outcome,options); if(options.uncertain){ $("toastTitle").textContent="先记下来"; $("toastSubEl").textContent="这个字稍后再写一次"; }
+  showStampedFeedback(outcome,options);
   maybeOfferHandCard(currentCardIndex(),outcome);
   if(comfort){ $("toastTitle").textContent="一时想不起来很正常"; $("toastSubEl").textContent="先描红，稍后再写一次"; }
   clearTimeout(editStampTimer); editStampTimer=setTimeout(()=>{ $("editStamp").disabled=true; },EDIT_STAMP_WINDOW_MS);
@@ -2711,17 +2666,14 @@ function goNext(){ clearTimeout(autoNextTimer); clearTimeout(editStampTimer); $(
 function advanceFeedback(){ if(!stamped || practicePhase!=="feedback") return false; if(feedbackKind==="teachingComplete"){ clearTimeout(autoNextTimer); stamped=false; next(); return true; } goNext(); return true; }
 function decideSubmission(correct){ if(stamped||!revealed||!submissionSnapshot) return;
   if(submissionSnapshot.practicePhase==="postTraceRecall"){
-    if(!correct){ revealed=false; beginTracingPhase(); return; }
-    const ep=episodeFor(currentCardIndex()); ep.teachingComplete=true; const stat=roundStats.find(row=>row.idx===currentCardIndex()); if(stat) stat.traced=true; const m=cardMemory(currentCardIndex()); if(m.lastEpisode) m.lastEpisode.teachingComplete=true; saveMemory(); practicePhase="feedback"; feedbackKind="teachingComplete"; $("decisionRow").style.display="none"; $("askRow").style.display="none"; $("qualityBox").style.display="none";
-    showTeachingCompleteFeedback(); stamped=true; saveSessionSnapshot(); autoNextTimer=setTimeout(advanceFeedback,STAMP_HOLD_MS); return; }
-  if(correct && !submissionSnapshot.hintEverUsed && !submissionSnapshot.softConfirmHandled && submissionSnapshot.lastVerdict&&submissionSnapshot.lastVerdict.status==="bad"&&submissionSnapshot.lastVerdict.mode==="exact"){
-    submissionSnapshot=Object.freeze({...submissionSnapshot,softConfirmHandled:true}); $("decisionRow").style.display="none"; $("uncertainAction").style.display="none"; $("softConfirm").style.display="block"; saveSessionSnapshot(); return; }
+    const ep=episodeFor(currentCardIndex()); ep.teachingComplete=true; const stat=roundStats.find(row=>row.idx===currentCardIndex()); if(stat){ stat.traced=true; stat.postTraceCorrect=!!correct; }
+    const m=cardMemory(currentCardIndex()); if(m.lastEpisode){ m.lastEpisode.teachingComplete=true; m.lastEpisode.postTraceCorrect=!!correct; } saveMemory(); practicePhase="feedback"; feedbackKind="teachingComplete";
+    $("cmpLinks").style.display="none"; $("decisionRow").style.display="none"; $("askRow").style.display="none"; $("teachBubbleGrade").style.display="none";
+    if(correct) showTeachingCompleteFeedback(); else { showStampedFeedback("miss"); $("toastTitle").textContent="这次还没写对"; $("toastSubEl").textContent="本组稍后再写一次"; $("editStamp").disabled=true; }
+    stamped=true; saveSessionSnapshot(); autoNextTimer=setTimeout(advanceFeedback,STAMP_HOLD_MS); return; }
   pickStamp(correct?(submissionSnapshot.hintEverUsed?"hinted":"fast"):"slow"); }
 $("decisionCorrect").onclick=()=>decideSubmission(true);
 $("decisionWrong").onclick=()=>decideSubmission(false);
-$("decisionUncertain").onclick=()=>pickStamp("hinted",{uncertain:true});
-$("compareAgain").onclick=()=>{ $("softConfirm").style.display="none"; $("decisionRow").style.display="flex"; $("uncertainAction").style.display="flex"; };
-$("confirmCorrect").onclick=()=>decideSubmission(true);
 $("editStamp").onclick=reopenStampChoices;
 $("undoLast").onclick=reopenStampChoices;
 $("reveal").addEventListener("click",e=>{ if(practicePhase!=="feedback" || e.target.closest("#editStamp")) return; e.preventDefault(); e.stopPropagation(); advanceFeedback(); },true);
@@ -2774,7 +2726,7 @@ function startRound(){ if(activeMode==="review" && reviewBudgetRemaining()===0){
   missedThisRound=[]; roundStats=[]; roundHandwriting={}; roundFeedbackGiven=false; calibrationFirstHoldUsed=false; calibrationComfortShown=false; roundCompletionSuppressed=false; lastStampSnapshot=null; hideUndoBar(false); roundId=Date.now()+"-"+Math.random().toString(36).slice(2,7);
   roundElapsedMs=0; roundActiveStartedAt=Date.now(); roundBudgetPrompted=false; roundTimerPaused=false;
   beginAttempt({idx:baseTargets[0],kind:"base"}); saveSessionSnapshot(); armPracticeHistory(); render(); }
-function sumTile(s,i,delayOffset=0){ const recovered=s.outcome!=="fast"&&s.independentlyRecovered, ui=GRADE_UI[s.outcome], mark=s.outcome==="fast"?"":`<span class="dot outcomeMark ${s.outcome}" style="background:${OUTCOME_DOT[s.outcome]}">${OUTCOME_MARK[s.outcome]}</span>`, firstCopy=s.outcome==="fast"?"第一次独立写对":(s.outcome==="hinted"?(s.uncertain?"第一次不太确定":"第一次看过提示后写出"):(s.outcome==="slow"?"第一次写错":"第一次没写出"));
+function sumTile(s,i,delayOffset=0){ const recovered=s.outcome!=="fast"&&s.independentlyRecovered, ui=GRADE_UI[s.outcome], mark=s.outcome==="fast"?"":`<span class="dot outcomeMark ${s.outcome}" style="background:${OUTCOME_DOT[s.outcome]}">${OUTCOME_MARK[s.outcome]}</span>`, firstCopy=s.outcome==="fast"?"第一次独立写对":(s.outcome==="hinted"?(s.uncertain?"第一次需要再练":"第一次看过提示后写出"):(s.outcome==="slow"?"第一次写错":"第一次没写出"));
   return `<button class="sumTile ${s.outcome}" data-idx="${s.idx}" aria-label="${esc(s.target)}，${firstCopy}${recovered?"，之后已独立写出":""}" style="transform:rotate(${ROTS[i%ROTS.length]}deg); animation-delay:${(delayOffset+i*0.05).toFixed(2)}s"><span class="glyphText">${s.target}</span>${mark}<small class="meaning${recovered?" recover":""}">${recovered?"已独立":ui.short}</small></button>`; }
 function motionReduced(){ return !!(window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches); }
 const REST_LINES=[
@@ -2855,7 +2807,6 @@ window.addEventListener("shizi-native-back",()=>{ if($("handCardSheet").classLis
 window.addEventListener("keydown",e=>{ if(e.key==="Escape"){ if($("libSheet").classList.contains("open")) closeLibSheet(); else if($("charSheet").classList.contains("open")) closeCharSheet(); } });
 $("settingsLibRow").onclick=openLibSheet;
 $("fontScaleRow").onclick=()=>{ fontScaleLarge=!fontScaleLarge; save(FONT_SCALE_KEY,fontScaleLarge); applyFontScale(); fitBox(); };
-$("qualityBox").onclick=e=>{ const b=e.target.closest("[data-quality]"); if(!b) return; recordQuality(b.dataset.quality); };
 $("sumTiles").onclick=e=>{ const b=e.target.closest("[data-idx]"); if(b) openCharSheet(Number(b.dataset.idx)); };
 $("calibSumTiles").onclick=e=>{ const b=e.target.closest("[data-idx]"); if(b) openCharSheet(Number(b.dataset.idx)); };
 $("roundTune").onclick=e=>{ const b=e.target.closest("[data-round-feedback]"); if(b) recordRoundFeedback(b.dataset.roundFeedback); };

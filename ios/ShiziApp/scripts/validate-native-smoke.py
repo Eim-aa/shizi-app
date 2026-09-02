@@ -189,7 +189,11 @@ checks = {
     "nativeConfirm": data_flow.get("nativeConfirmAvailable") is True,
     "reminderState": data_flow.get("reminderStateAvailable") is True
     and data_flow.get("reminderSettingsRowVisible") is True
-    and data_flow.get("reminderQuestionPayload") is True,
+    and data_flow.get("reminderQuestionPayload") is True
+    and data_flow.get("reminderSwitchSemantics") is True
+    and data_flow.get("reminderPermissionAuthority") is True,
+    "interactionSemantics": data_flow.get("contextFeedbackScoped") is True
+    and data_flow.get("roundDifficultySemantics") is True,
     "soundState": data_flow.get("soundStateAvailable") is True
     and data_flow.get("soundSettingsRowVisible") is True,
     "soundscapeState": data_flow.get("soundscapeStateAvailable") is True

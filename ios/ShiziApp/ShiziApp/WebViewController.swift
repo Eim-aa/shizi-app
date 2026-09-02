@@ -316,6 +316,10 @@ final class WebViewController: UIViewController {
               etymologyDetailAvailable: false,
               funnelStateAvailable: false,
               reminderSettingsRowVisible: false,
+              reminderSwitchSemantics: false,
+              reminderPermissionAuthority: false,
+              contextFeedbackScoped: false,
+              roundDifficultySemantics: false,
               soundSettingsRowVisible: false,
               soundscapeSettingsRowVisible: false,
               reminderQuestionPayload: false,
@@ -874,8 +878,141 @@ final class WebViewController: UIViewController {
               syncReminder();
               result.dataFlow.reminderQuestionPayload = reminderProbe.length === 2 && reminderProbe[0].targetCardKey === reminderProbeKey && reminderDebug.lastSync.targetCardKey === reminderProbeKey && reminderDebug.lastSync.body.includes('点开试试');
               memory = reminderProbeMemory;
+              const reminderAuthorityBefore = cloneObj(reminder);
+              const reminderPendingBefore = reminderPendingEnable;
+              const reminderConfirmedBefore = reminderPermissionConfirmed;
+              const requestReminderPermissionBeforeAuthority = requestReminderPermission;
+              const queryReminderStatusBeforeAuthority = queryReminderStatus;
+              const reminderAuthorityMemory = cloneObj(memory);
+              let reminderPermissionRequests = 0;
+              let reminderForegroundQueries = 0;
+              requestReminderPermission = () => { reminderPermissionRequests++; };
+              queryReminderStatus = () => { reminderForegroundQueries++; };
+              document.dispatchEvent(new Event('visibilitychange'));
+              memory = { [reminderProbeKey]: { seen: 1, dueDay: today(), pendingLearning: false, lastOutcome: 'miss', misses: 2, ease: 24, last: Date.now() } };
+              reminder = { ...normalizeReminder(null), enabled: true, permission: 'granted' };
+              reminderPermissionConfirmed = false;
+              reminderPendingEnable = false;
+              renderReminderUI();
+              syncReminder();
+              const backupPermissionStayedOff = document.getElementById('reminderRow').getAttribute('aria-checked') === 'false' && reminderDebug.lastSync.enabled === false;
+              shiziReminderStatus({ permission: 'denied' });
+              const deniedStayedOff = reminder.enabled === false
+                && document.getElementById('reminderRow').getAttribute('aria-checked') === 'false'
+                && document.getElementById('reminderRow').getAttribute('aria-disabled') === 'true'
+                && document.getElementById('reminderStatus').textContent === '通知权限已关闭，请前往系统设置开启';
+              toggleReminder();
+              const deniedDidNotRequest = reminderPermissionRequests === 0 && reminder.enabled === false;
+              shiziReminderStatus({ permission: 'unknown' });
+              toggleReminder();
+              const unknownRequestedOnce = reminderPermissionRequests === 1 && reminderPendingEnable === true && reminder.enabled === false;
+              shiziReminderStatus({ permission: 'granted' });
+              const grantedEnabled = reminderPermissionConfirmed === true
+                && reminder.enabled === true
+                && document.getElementById('reminderRow').getAttribute('aria-checked') === 'true'
+                && reminderDebug.lastSync.enabled === true;
+              result.dataFlow.reminderSwitchSemantics = document.getElementById('reminderRow').getAttribute('role') === 'switch'
+                && document.getElementById('reminderRow').getAttribute('aria-describedby') === 'reminderStatus'
+                && document.querySelector('#reminderRow .settingSwitch').textContent.trim() === '';
+              toggleReminder();
+              const directOff = reminder.enabled === false
+                && document.getElementById('reminderRow').getAttribute('aria-checked') === 'false'
+                && reminderPermissionRequests === 1;
+              result.dataFlow.reminderPermissionAuthority = reminderForegroundQueries === 1 && backupPermissionStayedOff && deniedStayedOff && deniedDidNotRequest && unknownRequestedOnce && grantedEnabled && directOff;
+              requestReminderPermission = requestReminderPermissionBeforeAuthority;
+              queryReminderStatus = queryReminderStatusBeforeAuthority;
+              reminder = normalizeReminder(reminderAuthorityBefore);
+              reminderPendingEnable = reminderPendingBefore;
+              reminderPermissionConfirmed = reminderConfirmedBefore;
+              memory = reminderAuthorityMemory;
+              saveReminder();
+              syncReminder();
+
+              const contextQualityBefore = cloneObj(quality);
+              const contextSkippedBefore = cloneObj(skippedState);
+              const contextMemoryBefore = cloneObj(memory);
+              const contextUndoBefore = cloneObj(lastContextUndo);
+              const contextProbeIndex = CARDS.findIndex((card, index) => !card.custom && !!card.word && approvedAlternateContexts(index).length === 0);
+              const contextProbeKey = cardKey(contextProbeIndex);
+              memory = { [contextProbeKey]: { seen: 4, lastOutcome: 'fast', dueDay: today(), ease: 61, last: Date.now() - 86400000 } };
+              const contextMemoryStable = JSON.stringify(memory);
+              quality = { [contextProbeKey]: { easy: true, rare: true, badWord: true, hide: true, word: CARDS[contextProbeIndex].word } };
+              skippedState = normalizeSkippedState(null);
+              migrateLegacyQualitySemantics();
+              const migratedQuality = quality[contextProbeKey] || {};
+              const migratedContext = practiceCard(contextProbeIndex);
+              const legacyMigrated = migratedQuality.legacyFlags && migratedQuality.legacyFlags.easy === true
+                && migratedQuality.legacyFlags.rare === true
+                && migratedQuality.legacyFlags.badWord === true
+                && migratedQuality.legacyFlags.hide === true
+                && !('easy' in migratedQuality) && !('rare' in migratedQuality) && !('badWord' in migratedQuality) && !('hide' in migratedQuality)
+                && isCardSkipped(contextProbeIndex) && migratedContext.ctx === 'audit';
+              setCardSkipped(contextProbeIndex, false, { syncReminder: false });
+              quality = {};
+              saveQuality();
+              const originalContextId = contextIdForCard(practiceCard(contextProbeIndex));
+              const contextMarked = markContextUnavailable(contextProbeIndex);
+              const fallbackContext = practiceCard(contextProbeIndex);
+              openCharSheet(contextProbeIndex);
+              const detailCopyScoped = document.getElementById('charDetailContextCopy').textContent.includes('仍会继续练这个字')
+                && document.getElementById('charDetailContextUndo').style.display !== 'none'
+                && document.getElementById('charDetailBadContext').getAttribute('aria-label').includes('只停用这一条语境');
+              const contextScoped = contextMarked
+                && (quality[contextProbeKey].unavailableContexts || []).includes(originalContextId)
+                && fallbackContext.ctx === 'audit'
+                && !fallbackContext.hint.includes(CARDS[contextProbeIndex].target)
+                && JSON.stringify(memory) === contextMemoryStable
+                && qualityAvailable(contextProbeIndex) && !qualityBlocked(contextProbeIndex) && !isCardSkipped(contextProbeIndex);
+              const contextUndone = undoLastContextUnavailable()
+                && contextIdForCard(practiceCard(contextProbeIndex)) === originalContextId
+                && JSON.stringify(memory) === contextMemoryStable;
+              result.dataFlow.contextFeedbackScoped = contextProbeIndex >= 0 && legacyMigrated && contextScoped && detailCopyScoped && contextUndone;
+              closeCharSheet();
+              quality = contextQualityBefore;
+              skippedState = normalizeSkippedState(contextSkippedBefore);
+              memory = contextMemoryBefore;
+              lastContextUndo = contextUndoBefore;
+              saveQuality();
+              saveSkippedState();
+
+              const roundTuningBefore = cloneObj(tuning);
+              const roundPreferenceBefore = preference;
+              const roundModeBefore = activeMode;
+              const roundStatsBefore = cloneObj(roundStats);
+              const roundIdBefore = roundId;
+              const roundFeedbackBefore = roundFeedbackGiven;
+              tuning = { calibrated: true, offset: 0, contextStrict: 3, rounds: [{ id: 'legacy-context', kind: 'bad_context', contextStrict: 3 }] };
+              preference = 'balanced';
+              activeMode = 'new';
+              roundStats = [{ idx: contextProbeIndex, target: CARDS[contextProbeIndex].target, outcome: 'fast' }];
+              roundId = 'native-smoke-round-difficulty';
+              roundFeedbackGiven = false;
+              renderRoundTune();
+              const roundButtons = Array.from(document.querySelectorAll('#roundTune [data-round-feedback]'));
+              const roundLabels = roundButtons.map(button => button.textContent.trim());
+              recordRoundFeedback('bad_context');
+              const obsoleteRejected = roundFeedbackGiven === false && tuning.rounds.length === 1;
+              recordRoundFeedback('ok');
+              result.dataFlow.roundDifficultySemantics = document.querySelector('#roundTune [role="radiogroup"]') !== null
+                && JSON.stringify(roundLabels) === JSON.stringify(['太简单', '正合适', '太难'])
+                && roundButtons.every(button => button.getAttribute('role') === 'radio')
+                && obsoleteRejected
+                && tuning.rounds.length === 2
+                && tuning.rounds[0].kind === 'bad_context'
+                && tuning.rounds[1].kind === 'ok'
+                && tuning.contextStrict === 3
+                && document.querySelectorAll('#roundTune [aria-checked="true"]').length === 1;
+              tuning = roundTuningBefore;
+              preference = roundPreferenceBefore;
+              activeMode = roundModeBefore;
+              roundStats = roundStatsBefore;
+              roundId = roundIdBefore;
+              roundFeedbackGiven = roundFeedbackBefore;
+              saveTuning();
+              save(PREF_KEY, preference);
               const reminderBeforeCalibrationInvite = cloneObj(reminder);
               const pendingBeforeCalibrationInvite = reminderPendingEnable;
+              const confirmedBeforeCalibrationInvite = reminderPermissionConfirmed;
               const requestReminderPermissionBeforeSmoke = requestReminderPermission;
               const summaryDisplayBeforeCalibrationInvite = document.getElementById('summary').style.display;
               const calibrationDisplayBeforeInvite = document.getElementById('calibCard').style.display;
@@ -893,6 +1030,7 @@ final class WebViewController: UIViewController {
               requestReminderPermission = requestReminderPermissionBeforeSmoke;
               reminder = normalizeReminder(reminderBeforeCalibrationInvite);
               reminderPendingEnable = pendingBeforeCalibrationInvite;
+              reminderPermissionConfirmed = confirmedBeforeCalibrationInvite;
               saveReminder();
             }
 

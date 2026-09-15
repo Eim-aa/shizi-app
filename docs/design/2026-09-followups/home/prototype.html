@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="拾字首页增量优化原版与修改版对照">
+  <title>拾字首页增量优化 · 纠偏轮</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-annotations="true">
+  <header class="review-header">
+    <div class="review-title">
+      <span>拾字 · 首页设计复核</span>
+      <h1>增量优化纠偏轮</h1>
+      <p>一套方案，只比较实际改动；产品页骨架保持原样。</p>
+    </div>
+    <div class="review-controls">
+      <div class="state-tabs" role="group" aria-label="选择首页状态">
+        <button type="button" class="active" data-state="start" aria-pressed="true">当天尚未开始</button>
+        <button type="button" data-state="resume" aria-pressed="false">存在未完成组</button>
+        <button type="button" data-state="done" aria-pressed="false">今天完成一组</button>
+      </div>
+      <button class="annotation-toggle" type="button" id="annotation-toggle" aria-pressed="true">
+        <span aria-hidden="true"></span>显示改动标注
+      </button>
+    </div>
+  </header>
+
+  <main class="review-main">
+    <div class="state-context">
+      <div>
+        <span class="context-kicker">当前对照</span>
+        <h2 id="state-title">当天尚未开始 · 到期复习 6 个字</h2>
+      </div>
+      <p id="state-note">用真实短复习组验证：原版只说“一组”，修改版显示真实数量。</p>
+    </div>
+
+    <div class="comparison-grid">
+      <section class="version-panel" aria-labelledby="before-label">
+        <div class="version-heading">
+          <div><span class="version-dot before-dot" aria-hidden="true"></span><b id="before-label">原版</b></div>
+          <small>PR172 固定快照还原</small>
+        </div>
+        <div class="phone-frame">
+          <article class="app-home before-home" id="before-home" aria-label="原版首页，当天尚未开始"></article>
+        </div>
+      </section>
+
+      <section class="version-panel" aria-labelledby="after-label">
+        <div class="version-heading">
+          <div><span class="version-dot after-dot" aria-hidden="true"></span><b id="after-label">增量优化</b></div>
+          <small>编号仅用于评审，可关闭</small>
+        </div>
+        <div class="phone-frame after-frame">
+          <article class="app-home after-home" id="after-home" aria-label="增量优化首页，当天尚未开始"></article>
+        </div>
+      </section>
+    </div>
+
+    <section class="change-summary" aria-labelledby="change-title">
+      <div class="summary-heading">
+        <span>本状态修改清单</span>
+        <h2 id="change-title">只改三处</h2>
+      </div>
+      <ol id="change-list"></ol>
+    </section>
+
+    <section class="locked-summary" aria-labelledby="locked-title">
+      <div>
+        <span>完全未动</span>
+        <h2 id="locked-title">原版视觉骨架</h2>
+      </div>
+      <ul>
+        <li>全屏无卡片宣纸页面与大面积留白</li>
+        <li>左上日期、右上竖题记、左侧宋体标题</li>
+        <li>中央 165px 朱砂印及“拾 / 续 / 再”</li>
+        <li>米白、墨色、朱砂色与宋楷字体关系</li>
+        <li>底部纯文字“习字 / 字库 / 我的”三栏</li>
+      </ul>
+    </section>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>

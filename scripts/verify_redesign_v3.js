@@ -3,11 +3,13 @@ const fs = require("fs");
 const path = require("path");
 
 const root = path.resolve(__dirname, "..");
+const { reviewedOverrides } = require("./content-corpus.cjs");
+const contentApprovalFixture = require("./fixtures/content-quality-approved.json");
 const source = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const changelog = fs.readFileSync(path.join(root, "CHANGELOG.md"), "utf8");
 const approvedContexts = JSON.parse(fs.readFileSync(path.join(root, "scripts", "fixtures", "context-overrides-approved.json"), "utf8"));
 const appUrl = process.env.SHIZI_APP_URL || "http://127.0.0.1:8000/";
-const generatedDir = path.join(root, "generated", "redesign-v4");
+const generatedDir = process.env.SHIZI_UI_OUTPUT_DIR || path.join(root, "generated", "redesign-v4");
 fs.mkdirSync(generatedDir, { recursive: true });
 
 function assert(condition, message, details) {
@@ -384,12 +386,12 @@ let browser;
   const idiomContext = await page.evaluate(() => { const node=$("prompt"); return { copy: node.textContent, targetVisible: node.textContent.includes("毓"), fits: node.scrollWidth <= node.clientWidth + 1 }; });
   assert(idiomContext.copy.includes("钟") && idiomContext.copy.includes("灵") && idiomContext.copy.includes("秀") && idiomContext.copy.includes("yù") && !idiomContext.targetVisible && idiomContext.fits, "Expected a four-character idiom to fit while blanking only the target", idiomContext);
   await page.click("#exitPractice");
-  const glossCases = Object.entries(approvedContexts.approvedGlosses);
+  const glossCases = Object.entries(reviewedOverrides(approvedContexts,contentApprovalFixture)).filter(([,row])=>row.gloss).map(([target,row])=>[target,row.gloss]);
   const glossCombinations = [
     { width: 375, height: 667 },
     { width: 375, height: 812 },
   ].flatMap((size) => ["light", "dark"].flatMap((colorScheme) => [false, true].map((largeText) => ({ size, colorScheme, largeText }))));
-  assert(glossCases.length === 45 && glossCombinations.length === 8, "Expected the persistent gloss matrix to cover 45 entries across eight display combinations", { glosses: glossCases.length, combinations: glossCombinations.length });
+  assert(glossCases.length === 87 && glossCombinations.length === 8, "Expected the persistent gloss matrix to cover 87 entries across eight display combinations", { glosses: glossCases.length, combinations: glossCombinations.length });
   let glossMatrixChecks = 0;
   for (const combination of glossCombinations) {
     await page.setViewportSize(combination.size);
@@ -426,7 +428,7 @@ let browser;
       glossMatrixChecks++;
     }
   }
-  assert(glossMatrixChecks === 360, "Expected all 360 gloss display combinations to run as a persistent regression gate", glossMatrixChecks);
+  assert(glossMatrixChecks === glossCases.length * glossCombinations.length, "Expected all approved gloss display combinations to run as a persistent regression gate", glossMatrixChecks);
   await page.setViewportSize({ width: 375, height: 667 }); await page.emulateMedia({ colorScheme: "light" });
   await page.evaluate(() => { fontScaleLarge = false; applyFontScale(); startFocus([BASE_BY_CHAR["谔"]], { returnView: "book" }); });
   await page.screenshot({ path: path.join(generatedDir, "context-gloss-light-375x667.png"), fullPage: true });
@@ -434,7 +436,7 @@ let browser;
 
   assert(errors.length === 0, "Browser errors", errors);
   await browser.close(); browser = null;
-  console.log("Verified interface redesign v4 and all 360 gloss layout/accessibility combinations.");
+  console.log(`Verified interface redesign v4 and all ${glossMatrixChecks} gloss layout/accessibility combinations.`);
 })().catch(async (error) => {
   console.error(error);
   if (browser) await browser.close();

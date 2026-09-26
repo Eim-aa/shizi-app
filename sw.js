@@ -8,10 +8,10 @@
 */
 importScripts('./core-strokes.js?v=13f7db4fa836');
 
-const BUILD = '8105-3ac0637e30ec';
+const BUILD = '8105-3ac0637e30ec-content-368205b7c784';
 const VERSION = `shizi-v13-${BUILD}`;
 const SHELL = ['./', 'index.html', 'deck-data.js?v=3ac0637e30ec', 'hanzi-writer.min.js', 'fsrs6.min.js', 'manifest.webmanifest',
-  'core-strokes.js?v=13f7db4fa836', 'data/etymology.json', 'data/context-overrides.js?v=11516601699b', 'icon-180.png', 'icon-192.png', 'icon-512.png'];
+  'core-strokes.js?v=13f7db4fa836', 'data/etymology.json', 'data/context-overrides.js?v=368205b7c784', 'icon-180.png', 'icon-192.png', 'icon-512.png'];
 const CORE_STROKE_PATHS = (self.SHIZI_CORE_STROKES || []).map(ch => `./data/${encodeURIComponent(ch)}.json`);
 const CORE_STROKE_URLS = new Set(CORE_STROKE_PATHS.map(path => new URL(path, self.location.href).href));
 const INSTALL_BATCH_SIZE = 40;

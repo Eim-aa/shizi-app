@@ -8,7 +8,7 @@
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f4efe2">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1d1a15">
 <meta name="description" content="每天练几个容易提笔忘掉的汉字，把这些字重新写熟。">
-<meta name="shizi-asset-build" content="8105-3ac0637e30ec">
+<meta name="shizi-asset-build" content="8105-3ac0637e30ec-content-368205b7c784">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -131,6 +131,7 @@
   #prompt{ margin-top:14px; min-height:58px; display:flex; justify-content:center; align-items:center; gap:9px; flex-wrap:wrap; text-align:center; font:400 calc(40px * var(--font-scale))/1.1 var(--kai); }
   #prompt .blank{ display:inline-flex; align-items:center; justify-content:center; min-width:60px; height:60px; border:2.5px dashed var(--accent); border-radius:14px;
     color:var(--accent); font:700 calc(18px * var(--font-scale))/1 var(--sans); letter-spacing:var(--ls-label); padding:0 8px; background:var(--card); }
+  #prompt .repeatBlank{ color:var(--muted); border-color:var(--line); }
   .hint{ margin:9px auto 0; max-width:350px; text-align:center; font-size:calc(var(--fs-note) * var(--font-scale)); color:var(--muted); line-height:1.6; min-height:19px; }
   .tbubble{ margin:8px auto 0; position:relative; max-width:300px; background:var(--ink); color:var(--card); border-radius:14px; padding:12px 16px;
     font-size:calc(var(--fs-body) * var(--font-scale)); line-height:1.7; text-align:center; animation:toastIn .35s ease both; }
@@ -696,8 +697,8 @@
     <div class="undoBar" id="undoBar" aria-live="polite"><span id="undoCopy"></span><button id="undoLast">重盖</button></div>
 
     <div id="practiceArea" role="group" aria-labelledby="prompt" aria-describedby="hint" style="display:flex; flex:1; flex-direction:column;">
-      <div id="prompt"></div>
-      <div class="hint" id="hint"></div>
+      <div id="prompt" role="group" aria-label="题目" aria-describedby="hint"></div>
+      <div class="hint" id="hint" aria-live="polite"></div>
       <div class="phaseTitle" id="phaseTitle"></div>
       <div class="traceIntro" id="traceIntro">先沿着轮廓写一遍；轮廓隐藏后，再自己写一次。</div>
       <div class="tbubble" id="teachBubble" style="display:none"><b>格子里缺的字，直接用手指写</b><br>写得不好看也没关系，连笔、断笔都可以</div>
@@ -1033,7 +1034,7 @@
 <script src="hanzi-writer.min.js"></script>
 <script src="fsrs6.min.js"></script>
 <script src="deck-data.js?v=3ac0637e30ec"></script>
-<script src="data/context-overrides.js?v=11516601699b"></script>
+<script src="data/context-overrides.js?v=368205b7c784"></script>
 <script>
 // ---- 词表 → 按“字”拆成卡片（一个格子只考一个字；另一个字给出来当语境）----
 // SEED 与 GROUPS 数据在 deck-data.js（1.9MB 题库独立缓存，改界面不用重下数据）
@@ -1042,11 +1043,13 @@ const OVERRIDES=typeof CONTEXT_OVERRIDES==="object"&&CONTEXT_OVERRIDES?CONTEXT_O
 function applyContextOverride(source){ const target=source.target||Array.from(source.ans)[Number(source.ci)||0],override=OVERRIDES[target]; if(!override) return source;
   const row={...source};
   if(override.boost) row.common=Math.max(Number(row.common)||0,1.2);
-  if(override.w){ const chars=Array.from(override.w),ci=Number(override.ci); if(!Number.isInteger(ci)||chars[ci]!==target) return source; row.ans=override.w; row.ci=ci; row.target=target; row.ctx="override"; }
-  else if(override.gloss){ row.ans=target; row.ci=0; row.target=target; row.ctx="gloss"; row.hint=override.gloss; row.common=Math.max(Number(row.common)||0,1); }
+  if(override.w){ const chars=Array.from(override.w),ci=Number(override.ci); if(!Number.isInteger(ci)||chars[ci]!==target) return source; const sameContext=source.ans===override.w&&source.ci===ci; row.ans=override.w; row.ci=ci; row.target=target; if(!sameContext) row.ctx="override"; }
+  else if(override.gloss){ row.ans=target; row.ci=0; row.target=target; row.ctx="gloss"; row.hint=override.gloss; if(override.preserveCommon!==true) row.common=Math.max(Number(row.common)||0,1); }
+  if(typeof override.py==="string"&&override.py.trim()) row.py=override.py.trim();
+  if(typeof override.promptHint==="string") row.promptHint=override.promptHint.trim();
   return row; }
 SEED.forEach(raw=>{ const w=applyContextOverride(raw), chars=Array.from(w.ans), pys=w.py.split(/\s+/);
-  const meta={rank:w.rank||999999, strokes:w.strokes||0, parts:w.parts||1, topic:w.topic||"综合", d:w.d||50, band:w.band||"进阶", edu:w.edu||null, common:w.common||0, norm:w.norm||"一级", std:w.std||0, ctx:w.ctx||"dict"};
+  const meta={rank:w.rank||999999, strokes:w.strokes||0, parts:w.parts||1, topic:w.topic||"综合", d:w.d||50, band:w.band||"进阶", edu:w.edu||null, common:w.common||0, norm:w.norm||"一级", std:w.std||0, ctx:w.ctx||"dict", ...(w.promptHint?{promptHint:w.promptHint}:{})};
   if(Number.isInteger(w.ci)){ const ci=w.ci; CARDS.push({ word:w.ans, chars, ci, target:w.target||chars[ci], py:w.py, hint:w.hint, ...meta }); return; }
   chars.forEach((ch,ci)=>CARDS.push({ word:w.ans, chars, ci, target:ch, py:pys[ci]||w.py, hint:w.hint, ...meta })); });
 
@@ -2398,7 +2401,7 @@ function onTeachStrokeStart(){
 function onTeachStrokeEnd(){}
 
 // ---- 流程 ----
-function promptHTML(c){ return c.chars.map((ch,i)=> i===c.ci ? `<span class="blank">${c.py||"？"}</span>` : `<span class="given">${ch}</span>`).join(""); }
+function promptHTML(c){ return c.chars.map((ch,i)=> i===c.ci ? `<span class="blank">${c.py||"？"}</span>` : ch===c.target ? `<span class="blank repeatBlank" role="img" aria-label="同一目标字的另一处空格">□</span>` : `<span class="given">${ch}</span>`).join(""); }
 function practiceProgress(){ const targets=new Set(baseTargets), practiced=new Set(roundStats.filter(row=>targets.has(row.idx)).map(row=>row.idx)); return {done:practiced.size,total:targets.size,unresolved:new Set([...unresolved].filter(idx=>targets.has(idx))).size}; }
 function updateProgressLabel(){ const p=practiceProgress(); $("posLabel").textContent=p.total===1?"":(p.done>=p.total&&p.unresolved?`另有 ${p.unresolved} 个字要再练`:`已练 ${p.done} / ${p.total} 个${p.unresolved?` · 另有 ${p.unresolved} 个字要再练`:""}`); }
 let stamped=false, autoNextTimer=0, editStampTimer=0, undoFollowTimer=0, lastStampSnapshot=null, overlayOn=false, replaying=false;
@@ -2493,9 +2496,9 @@ function render(){ fitBox(); cur=CARDS[currentCardIndex()]; const token=++loadTo
   $("editStamp").disabled=true;
   tracing=practicePhase==="tracing"; traceStrokeStartCount=0; tracedThisCard=false; resetPeekHint(); renderUndoBar();
   updateProgressLabel();
-  // 练习时只留题面本身（挖空词＋拼音就是「词语＋语境」，别再用文字复述——复述会把答案印出来）
+  // 题面遮住所有目标字；只显示已审语义/字形提示与重复字说明，避免复述答案。
   $("prompt").innerHTML=promptHTML(cur);
-  $("hint").textContent=cur.custom?cur.hint:(cur.ctx==="gloss"&&cur.hint?cur.hint:(cur.ctx==="fallback"?"这个字暂时没有常用词，按拼音写就好":(activeMode==="calibrate"?"先写一组，之后会按你的情况调整难度":"")));
+  $("hint").textContent=[cur.custom?cur.hint:(cur.ctx==="gloss"&&cur.hint?cur.hint:(cur.promptHint||(cur.ctx==="fallback"?"这个字暂时没有常用词，按拼音写就好":(activeMode==="calibrate"?"先写一组，之后会按你的情况调整难度":"")))),cur.chars.filter(ch=>ch===cur.target).length>1?"空格里是同一个字，只写一次。":""].filter(Boolean).join(" ");
   clearInk(); drawing=false; inkCanvas.style.opacity='1'; hzEl.style.opacity='1'; hzEl.classList.remove("traceFallback");
   shownStrokes=0; totalStrokes=0; groups=[]; groupIdx=0; $("tip").disabled=true; $("show").disabled=false; $("done").disabled=true; $("tip").textContent="点拨"; updateActionLabels();
   hzEl.innerHTML=""; peekEl.innerHTML=""; peekEl.classList.remove("active"); hzEl.classList.remove("traceFallback"); writer=null; revealed=false;

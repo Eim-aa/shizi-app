@@ -1,0 +1,39 @@
+name: Verify R8 Handoff
+
+on:
+  pull_request:
+    paths:
+      - 'handoff/r8-foundation/**'
+      - '.github/workflows/verify-r8-handoff.yml'
+  push:
+    paths:
+      - 'handoff/r8-foundation/**'
+      - '.github/workflows/verify-r8-handoff.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-r8-handoff-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  handoff-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify selection and layout
+        run: node handoff/r8-foundation/tests/verify.mjs
+      - name: Verify pending and canvas factory contracts
+        run: node handoff/r8-foundation/tests/r2-contract.mjs
+      - name: Verify font loading contracts
+        run: node handoff/r8-foundation/tests/fonts.mjs
+      - name: Verify package membership and provenance
+        run: python3 handoff/r8-foundation/tests/package.py

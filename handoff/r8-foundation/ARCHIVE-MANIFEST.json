@@ -1,0 +1,259 @@
+{
+  "role": "archive",
+  "purpose": "Complete source handoff only; never an application payload list",
+  "selfExcluded": true,
+  "count": 50,
+  "totalBytes": 7819397,
+  "files": [
+    {
+      "path": "README.md",
+      "bytes": 4013,
+      "sha256": "64cb5c04b6c4670b39277606d8b8e632e0a88aa8eb6a8b7f8a4bd7b4d79145e0"
+    },
+    {
+      "path": "SOURCE-MANIFEST.json",
+      "bytes": 12810,
+      "sha256": "5fd5235c06388c1af2165178e367f244dbbcd69ebb9dccbc35f936fdd60047fe"
+    },
+    {
+      "path": "assets/zi-seal-sheet.svg",
+      "bytes": 9528,
+      "sha256": "1abe4bf1ded5e222b17cd6a677054315bbf2695bd09500e003043e35a4e2705f"
+    },
+    {
+      "path": "docs/api.md",
+      "bytes": 2734,
+      "sha256": "ce0f53a3df5fc6660fc6000857a484475cc2d13e41180ac529ee200b7cae33f3"
+    },
+    {
+      "path": "docs/data-audit.md",
+      "bytes": 10578,
+      "sha256": "88c1ff8215d5622adf000945aa1afe694739ae5e58ff48ae5c7f7bae005a9f44"
+    },
+    {
+      "path": "docs/future-ink-storage-proposal.md",
+      "bytes": 6643,
+      "sha256": "bb70b3b2a7ace0008be11a77e602665d45416183e658568148abdecf878a9457"
+    },
+    {
+      "path": "docs/ink-comparison.md",
+      "bytes": 10169,
+      "sha256": "4e3a2f33455723329c1ac37e549cf1b7367874bc941ea369274ad10c6f0b20ba"
+    },
+    {
+      "path": "docs/replay-field-gaps.md",
+      "bytes": 4095,
+      "sha256": "54f8f5e8df7eb5d4996e4da0e019775238c725b6cdd5649d7226b9986bca7b1f"
+    },
+    {
+      "path": "docs/status.md",
+      "bytes": 1514,
+      "sha256": "f9c38aad9e90e5b48cf1bfff96f86392032c016574ab98a036551ed4d18c5204"
+    },
+    {
+      "path": "fixtures/artificial.json",
+      "bytes": 27196,
+      "sha256": "ff4abe3db6fc0570b64c9a576d4988a24fa64a23429e7e32800cf32fb3f3d4ad"
+    },
+    {
+      "path": "fixtures/layout-r1.mjs",
+      "bytes": 1664,
+      "sha256": "d2c94375a63b62df84ac115c9603dccc1785d20e740f2f1953d94fd6d33f5a41"
+    },
+    {
+      "path": "fonts/README.md",
+      "bytes": 3409,
+      "sha256": "6f4a9bc47a2341bb15cff3578cf9854d20ebddfad8893847da57389e659ae908"
+    },
+    {
+      "path": "fonts/RUNTIME-MANIFEST.json",
+      "bytes": 3853,
+      "sha256": "17e794348bb0eb279d492b1facf02daa7c7df00892840ce2482045b9e150dbb8"
+    },
+    {
+      "path": "fonts/assets/ShiziKai-Regular.ttf",
+      "bytes": 4059112,
+      "sha256": "70e8cd23c06d4a72829e4ce9503acfd21cfbb7d8291bbfee86104c1e32c1e01f"
+    },
+    {
+      "path": "fonts/assets/ShiziKai-Regular.woff2",
+      "bytes": 1782120,
+      "sha256": "e98fc925340dc9077e350eab77d84ee14970162ccdbdf915c150b10177469c02"
+    },
+    {
+      "path": "fonts/assets/ShiziSerifSC-Medium.ttf",
+      "bytes": 404020,
+      "sha256": "da152cb697d1bcc1fe6761811391377e382df5f03cc004f69047257fe66e18f6"
+    },
+    {
+      "path": "fonts/assets/ShiziSerifSC-Medium.woff2",
+      "bytes": 181100,
+      "sha256": "d33c8e38d61b636bc335f8cd94b3bf6c153fed939e24649a86423557f7c58ccf"
+    },
+    {
+      "path": "fonts/assets/ShiziSerifSC-Regular.ttf",
+      "bytes": 403988,
+      "sha256": "f8443427727368ee9a87013c948da85f18fead37e085a4d817b1e9c2e0f70b5e"
+    },
+    {
+      "path": "fonts/assets/ShiziSerifSC-Regular.woff2",
+      "bytes": 179840,
+      "sha256": "f6f4e0486323c9d351d0b33a568d6991a6bebb04672bccfa4b894b64198f3d1c"
+    },
+    {
+      "path": "fonts/assets/font-loader.mjs",
+      "bytes": 1960,
+      "sha256": "41806b33f3cb4f0ce66c317d3fd1c3cf47f498ae27b461f3d87f4ec30c70af73"
+    },
+    {
+      "path": "fonts/assets/fonts.css",
+      "bytes": 561,
+      "sha256": "43318eb4f3c4d09028725378b5cc862fb497a96cecacdb1b60eeb4ea9599cf61"
+    },
+    {
+      "path": "fonts/corpus/coverage-manifest.json",
+      "bytes": 123488,
+      "sha256": "fc36c0d5e9d8f359991630498b4dfaa39ae71ca6510abbb57e08e4e69a2c740c"
+    },
+    {
+      "path": "fonts/corpus/kai-unicodes.txt",
+      "bytes": 53686,
+      "sha256": "9f6e6405358b642a8ee0293b00a07c89dc3a1599c02f2fb75df71ab857d03545"
+    },
+    {
+      "path": "fonts/corpus/serif-unicodes.txt",
+      "bytes": 6475,
+      "sha256": "db063aebe61b538b9b013f156a0c6be3ed8b065d82a442ec72a411234cb340fa"
+    },
+    {
+      "path": "fonts/licenses/COPYRIGHT-NOTICES.md",
+      "bytes": 2897,
+      "sha256": "a908013a23bcbc6b3a97acc5639c010b052f921b371832a37621124c061b6bcb"
+    },
+    {
+      "path": "fonts/licenses/LXGW-WenKai-GB-OFL.txt",
+      "bytes": 4450,
+      "sha256": "66e75815b1bb90bdaede3649abf5ea029d0dc7d5e61b0534d3245db61a510b93"
+    },
+    {
+      "path": "fonts/licenses/Noto-Serif-SC-OFL.txt",
+      "bytes": 4350,
+      "sha256": "5e0da210fb04058a8c0087985d2d456b931c2579811a49655721d3cf0c36b6d6"
+    },
+    {
+      "path": "fonts/provenance/download-lock.json",
+      "bytes": 1666,
+      "sha256": "5189c5e9d9d233dcfd7066182d6695c46160b89d82a85dc613e4ae901f8040c0"
+    },
+    {
+      "path": "fonts/reports/build-manifest.json",
+      "bytes": 3790,
+      "sha256": "8f54f7cf1e3af7121a8d9d7ee2eae9c114403ede0d342912b6f7a2e65bdb0b34"
+    },
+    {
+      "path": "fonts/reports/coverage.json",
+      "bytes": 1994,
+      "sha256": "b43444d5b9c0f2464dcd1b1f749a3efd02ec4919bc9963e122389dd8683d65a9"
+    },
+    {
+      "path": "fonts/reports/gpos-diagnosis-r2.json",
+      "bytes": 390038,
+      "sha256": "c50ad99dcdf11c2110dcd00cc530e3d332585936a79d0ea05c0d0a19e9919524"
+    },
+    {
+      "path": "fonts/reports/gpos-diagnosis-r2.md",
+      "bytes": 6146,
+      "sha256": "125b7a9dc667cce9f477348d866d59db7d17842d3f8393865194b2ed798ed62f"
+    },
+    {
+      "path": "fonts/reports/names.json",
+      "bytes": 27015,
+      "sha256": "e31ddde6a387d329fef4bb033b1a1e160696f152dbf17fb85b49614f2d0dbe46"
+    },
+    {
+      "path": "fonts/reports/source-fonts.json",
+      "bytes": 11821,
+      "sha256": "7f422eb2d2d687e69f05b2bbd0c43e298e43406b076fd04df818bd3bda796fc9"
+    },
+    {
+      "path": "fonts/requirements.txt",
+      "bytes": 115,
+      "sha256": "6b0cafd5a44895fd58344e761c1f2654d8d4112c6218f3778f6be58cc53fe34e"
+    },
+    {
+      "path": "fonts/scripts/build-fonts.py",
+      "bytes": 5600,
+      "sha256": "9e7d6f17ec94e6944570824c92eb0a0a0e3a3b90e506806cbbe0506dce1be98e"
+    },
+    {
+      "path": "fonts/scripts/diagnose-gpos.py",
+      "bytes": 12268,
+      "sha256": "6674515b3c3d74f1ee223719d196d189226d7ea5df7bb780a0e9087e2035ee91"
+    },
+    {
+      "path": "fonts/scripts/font_options.py",
+      "bytes": 457,
+      "sha256": "3a06ed75a634670f109274a775cf7bb55583b20399301d3f1bd276d286e62bec"
+    },
+    {
+      "path": "fonts/scripts/font_package.py",
+      "bytes": 3835,
+      "sha256": "24c32bf074f55e8cc5157895a7f6108c1c971031b49a5806500486191be5b92f"
+    },
+    {
+      "path": "fonts/scripts/pack-runtime.py",
+      "bytes": 1687,
+      "sha256": "82d5a7d2d71ae4c03cbaa365bb9b86c867017c19f36bcb615de02f0d708ce04f"
+    },
+    {
+      "path": "fonts/scripts/reproduce.py",
+      "bytes": 3197,
+      "sha256": "f200b2ecb4f86fa072fcc72165cbef56d262278a97db0bf63c697aa273de709e"
+    },
+    {
+      "path": "module/font-adapter.mjs",
+      "bytes": 1235,
+      "sha256": "9aada4aa976d02401191448952f71a08ecb8cc7198efe13c2a7018cadc55f8ca"
+    },
+    {
+      "path": "module/layout.mjs",
+      "bytes": 1760,
+      "sha256": "bddd3d5de3bb00a1de3ef843bac86e6a5bdd1aadf36db95e306528ff535532f0"
+    },
+    {
+      "path": "module/legacy-brush.mjs",
+      "bytes": 5544,
+      "sha256": "7dd1dda9742e510213eb9bc38396d4e934adce1b2257140d5ecbb12a1839edfc"
+    },
+    {
+      "path": "module/render.mjs",
+      "bytes": 6099,
+      "sha256": "37a30a03aba76028463e3aebd0dc992643ba0680a252bc1c87d9d426fa0af549"
+    },
+    {
+      "path": "module/selectors.mjs",
+      "bytes": 3962,
+      "sha256": "0a1f0258b59cf9c133801f6ce6d599786433a58317def47581848d7d5e4ec4df"
+    },
+    {
+      "path": "tests/fonts.mjs",
+      "bytes": 3201,
+      "sha256": "f3761655cf3a3bace1145ebc73fefde8bf70cf9bfed165781ca685847ca65d81"
+    },
+    {
+      "path": "tests/package.py",
+      "bytes": 4630,
+      "sha256": "e7b259bb94419b7e9cc2d7a1e0338cc6c005d03522e365f09f1cdc343db66e26"
+    },
+    {
+      "path": "tests/r2-contract.mjs",
+      "bytes": 9640,
+      "sha256": "276515b781a1e362b6b8b1f96e81b563f42fb4501ed35f8659ddd11ba75e3890"
+    },
+    {
+      "path": "tests/verify.mjs",
+      "bytes": 7444,
+      "sha256": "9614636b4e393125a4f4163d0e7bc92423b547771f4436d05eeb76e2dcadafb0"
+    }
+  ]
+}

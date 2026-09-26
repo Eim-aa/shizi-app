@@ -1,0 +1,111 @@
+{
+  "schema_version": 1,
+  "version": "F8-2026-09-26-r2",
+  "role": "runtime",
+  "paths_relative_to": "fonts/",
+  "default_profile": "woff2-web",
+  "selection": "Choose exactly one profile; never union both profiles.",
+  "exclusions": [
+    "upstream/**",
+    "reports/**",
+    "evidence/**",
+    "work/**",
+    "scripts/**",
+    "specimen/**",
+    "all unlisted files"
+  ],
+  "size_definition": "Exact sum of listed payload files, including license notices; manifest transport file itself is not in payload bytes.",
+  "profiles": {
+    "woff2-web": {
+      "font_format": "woff2",
+      "usage": "Default web payload; local CSS + r1 helper + caller-supplied coverage manifest; all three static faces.",
+      "count": 9,
+      "total_bytes": 2280766,
+      "files": [
+        {
+          "path": "assets/ShiziKai-Regular.woff2",
+          "bytes": 1782120,
+          "sha256": "e98fc925340dc9077e350eab77d84ee14970162ccdbdf915c150b10177469c02"
+        },
+        {
+          "path": "assets/ShiziSerifSC-Medium.woff2",
+          "bytes": 181100,
+          "sha256": "d33c8e38d61b636bc335f8cd94b3bf6c153fed939e24649a86423557f7c58ccf"
+        },
+        {
+          "path": "assets/ShiziSerifSC-Regular.woff2",
+          "bytes": 179840,
+          "sha256": "f6f4e0486323c9d351d0b33a568d6991a6bebb04672bccfa4b894b64198f3d1c"
+        },
+        {
+          "path": "assets/font-loader.mjs",
+          "bytes": 1960,
+          "sha256": "41806b33f3cb4f0ce66c317d3fd1c3cf47f498ae27b461f3d87f4ec30c70af73"
+        },
+        {
+          "path": "assets/fonts.css",
+          "bytes": 561,
+          "sha256": "43318eb4f3c4d09028725378b5cc862fb497a96cecacdb1b60eeb4ea9599cf61"
+        },
+        {
+          "path": "corpus/coverage-manifest.json",
+          "bytes": 123488,
+          "sha256": "fc36c0d5e9d8f359991630498b4dfaa39ae71ca6510abbb57e08e4e69a2c740c"
+        },
+        {
+          "path": "licenses/COPYRIGHT-NOTICES.md",
+          "bytes": 2897,
+          "sha256": "a908013a23bcbc6b3a97acc5639c010b052f921b371832a37621124c061b6bcb"
+        },
+        {
+          "path": "licenses/LXGW-WenKai-GB-OFL.txt",
+          "bytes": 4450,
+          "sha256": "66e75815b1bb90bdaede3649abf5ea029d0dc7d5e61b0534d3245db61a510b93"
+        },
+        {
+          "path": "licenses/Noto-Serif-SC-OFL.txt",
+          "bytes": 4350,
+          "sha256": "5e0da210fb04058a8c0087985d2d456b931c2579811a49655721d3cf0c36b6d6"
+        }
+      ]
+    },
+    "ttf-native": {
+      "font_format": "ttf",
+      "usage": "Optional alternative for a native/custom loader; caller implements loading/coverage policy. Does not include WOFF2 CSS/helper or claim their behavior.",
+      "count": 6,
+      "total_bytes": 4878817,
+      "files": [
+        {
+          "path": "assets/ShiziKai-Regular.ttf",
+          "bytes": 4059112,
+          "sha256": "70e8cd23c06d4a72829e4ce9503acfd21cfbb7d8291bbfee86104c1e32c1e01f"
+        },
+        {
+          "path": "assets/ShiziSerifSC-Medium.ttf",
+          "bytes": 404020,
+          "sha256": "da152cb697d1bcc1fe6761811391377e382df5f03cc004f69047257fe66e18f6"
+        },
+        {
+          "path": "assets/ShiziSerifSC-Regular.ttf",
+          "bytes": 403988,
+          "sha256": "f8443427727368ee9a87013c948da85f18fead37e085a4d817b1e9c2e0f70b5e"
+        },
+        {
+          "path": "licenses/COPYRIGHT-NOTICES.md",
+          "bytes": 2897,
+          "sha256": "a908013a23bcbc6b3a97acc5639c010b052f921b371832a37621124c061b6bcb"
+        },
+        {
+          "path": "licenses/LXGW-WenKai-GB-OFL.txt",
+          "bytes": 4450,
+          "sha256": "66e75815b1bb90bdaede3649abf5ea029d0dc7d5e61b0534d3245db61a510b93"
+        },
+        {
+          "path": "licenses/Noto-Serif-SC-OFL.txt",
+          "bytes": 4350,
+          "sha256": "5e0da210fb04058a8c0087985d2d456b931c2579811a49655721d3cf0c36b6d6"
+        }
+      ]
+    }
+  }
+}

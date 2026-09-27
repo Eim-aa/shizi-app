@@ -1,0 +1,21 @@
+{
+  "CHANGELOG.md": "23ae7bb13c8e7a747aa5a7d54153cb1216bf433a9b0523631e2f0208cd3ee4e8",
+  "README.md": "7633a3fda9917b57e8add7fa98e36edf5a46f30361dad1557bfc8f60d1fad250",
+  "core-strokes.js": "13f7db4fa836bbee9876537e003247d35e8a7dd4a33ceb4e16b14b954572abcf",
+  "data/context-overrides.js": "368205b7c784e73d46357634ade7147c6311f5d3d6e2ff4b63d3e7b646f43862",
+  "deck-data.js": "3ac0637e30ecf187e5a979b6e5f3212760b23aabed03928ee33b31a8d82c1b81",
+  "generated/library-governance.json": "4bac4dbcd83d8fe58db9f063f07040e34aad4df86ec1038d3dfd8e5e7c01890a",
+  "index.html": "20b1c93fc45b44c67d882d23d9f2ee2100c2f4b1b7f247968373fdd10414402b",
+  "package.json": "8ef90aabb86e8d8bde6cf7d3a106eb47f75fdc7dfe5278b6085070c301318132",
+  "scripts/content-corpus.cjs": "60b64ee6357856fb9656a0c083dc35955c695d99e5c986a51f0ae4773a7d2d02",
+  "scripts/fixtures/content-quality-approved.json": "ec4049b544dd98874228f67893b55ec6ccc790e409cad245926d3cb399f35c9a",
+  "scripts/fixtures/content-quality-baseline.json": "dae01c6c1bda068e4e7d4d2ad96962f0afda75f2138da57714527ae9b9ead470",
+  "scripts/verify_8105_app.js": "3e529b810841308d278b9eafd271f9f3eda602c66d7ead9068ca16a7848713cf",
+  "scripts/verify_content_corpus.cjs": "ff3b2b1ea0308eb32f71e5e96e135009b907175f6e8dc2c010f96b78f9860e4a",
+  "scripts/verify_content_ui.cjs": "78388321ef112dd16b67200ce1bf1075b5468a8d5fc0f1f6aa21cb08e1910da2",
+  "scripts/verify_library_governance.py": "69b2261a49ea0ff0fad2d27eadde203d6b9fd97a9a9538a0f88c022b5031dbb9",
+  "scripts/verify_pwa_upgrade.js": "56b7e8772f46300e2dc5a4108b6cde709767446987f3ea2ac6b26b2d20a731c3",
+  "scripts/verify_redesign_v3.js": "b1d01c774e8503a6a3067c293e8d4c8839f09bcf00ce9597a8049d50d69a5230",
+  "scripts/verify_vector_data_440.js": "55823c1e5c3bebe5c1260a73657acb5eb594142b65250e6c11c85e059bdfc079",
+  "sw.js": "daac0dcf1500c38e217a9e220b1871f2d7e146a503a66499d6898a01d2590ece"
+}

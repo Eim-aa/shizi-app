@@ -177,6 +177,9 @@ export const remindDefault = '20:00';
 export const reminderOpens = 'picked-s02';
 // P48 提醒内容取字：写错过优先，其次到期最久
 export const reminderPick = 'wrong-then-overdue';
+// P48 通知里的词语怎么给（M5-5 过渡）：'blank' = 目标字位换成 □（与写字页题面同样不露答案，决定-D16；
+// R-S01「让你想想是哪个字」）；'word' = 旧版整词（639f592 reminderQuestion）。src/platform/reminder.js 读取。
+export const reminderWord = 'blank';
 
 // ---- 容量 ----
 // P57 占用预警阈值：估算占用 > 该比例 × assumedQuotaBytes 时在备份页与首页状态句预警（01 §4）。store/budget.js 读取（可注入）。

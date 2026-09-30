@@ -29,6 +29,8 @@ async function mountApp() {
   await import('./platform/appearance.js').then(m => m.bootAppearance()).catch(error => console.warn('[shizi] appearance failed:', error)); // M4-3：按 settings 应用 data-theme / data-large（挂 UI 前）
   const { mountRoot } = await import('./ui/root.js');
   await mountRoot(container);
+  await import('./platform/reminder.js').then(m => m.startReminder()).catch(error => console.warn('[shizi] reminder setup failed:', error)); // M5-5：注册提醒桥实现 → bridge.markReady(store) 回放积压调用（冷启动深链）→ 提醒同步（01 §8.1）
+  await import('./platform/bridge.js').then(async b => { try { b.markReady((await import('./store/store.js')).getStore()); } finally { b.postNative('pageReady', {}); } }).catch(error => console.warn('[shizi] native pageReady failed:', error)); // M5-3：markReady（幂等，回放积压的原生调用）之后 postMessage pageReady，原生这时才派发提醒深链（01 §2、§8.2）
   await import('./platform/sw.js').then(m => m.startServiceWorker()).catch(error => console.warn('[shizi] service worker setup failed:', error)); // M5-1：BUILD 比对、就绪标记、注册 SW（01 §8.3）
 }
 

@@ -10,6 +10,15 @@
 //
 // JS→iOS：postNative(type, payload) → window.webkit.messageHandlers.shiziNative.postMessage({type, ...payload})；
 //   不在原生壳内时静默返回 false。setBackGestureEnabled(bool) 只在值变化时发送。
+//
+// M5-5 扩展：
+//   - 各全局的实现由所属模块注册（registerNativeHandler），本文件只做分发与排队：
+//       shiziOpenReminderTarget(cardKey)、shiziReminderStatus({permission}) → platform/reminder.js（startReminder 注册）；
+//       markBackupExported()、shiziBackupPicked(text)、shiziBackupRejected({reason}) → ui/screens/mine/backup.js（M4-4）；
+//       shiziCardSaved({success}) → ui/components/image-preview.js（M4-5）。
+//   - markReady(store) 幂等：第一次把桥置为就绪并按到达顺序回放积压调用；再次调用只更新 store 并回放仍积压的调用
+//     （app.js 启动序列与 M5-3 的 pageReady 接线都可能调用，谁先谁后都行）。
+//   - 全局函数返回 true = 页面已接收（交付或入队）；Swift 的深链只在 evaluate 返回 true 后清 key（M5-3）。
 
 export const NATIVE_GLOBALS = Object.freeze([
   'shiziOpenReminderTarget',
@@ -76,11 +85,25 @@ export function createBridge(win) {
       handlers[name] = fn;
       if (ready) flush(name);
     },
-    /** store 建好、UI 挂好之后调用一次；回放积压调用。 */
+    /**
+     * store 建好、UI 挂好之后调用；回放积压调用。幂等：返回 true 表示这一次把桥从未就绪变为就绪；
+     * 再次调用时 readyStore 给出才更新 store（undefined 保留原值），并回放仍积压的调用。
+     */
     markReady(readyStore) {
-      store = readyStore === undefined ? null : readyStore;
+      const first = !ready;
+      if (readyStore !== undefined) store = readyStore;
+      else if (first) store = null;
       ready = true;
       flush();
+      return first;
+    },
+    /** 某个全局是否已有实现（测试 / 诊断用）。 */
+    hasHandler(name) {
+      return typeof handlers[name] === 'function';
+    },
+    /** 是否在原生壳内（shiziNative 消息通道存在）。 */
+    isNative() {
+      return !!nativeChannel(win);
     },
     isReady() {
       return ready;
@@ -148,3 +171,5 @@ const browserWin = typeof window !== 'undefined' ? window : null;
 /** 页面内唯一的桥实例（node 下为不挂全局的空桥）。 */
 export const bridge = createBridge(browserWin);
 export const { registerNativeHandler, markReady, postNative, setBackGestureEnabled } = bridge;
+/** 当前页面是否在原生壳内（bridge.isNative 的独立导出）。 */
+export const isNative = () => bridge.isNative();

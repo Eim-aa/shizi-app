@@ -76,7 +76,12 @@
     "P87": "备份页细节（恢复后 backupMeta 保留本机上次备份时间与签名并加结论、结论句随替换/清空同一次写入、丢失范围写完整日期、R-B06 分类口径、X-BACKUP 键）：现值在 src/core/backup.js 与 src/ui/screens/mine/backup.js，文案在本文件 extra；不是 policy 开关；请文案确认（M6）",
     "P88": "图片细节（落款「二」vs「两」、月字帖角标重算、格内无虚线十字、浏览器保存=下载、文件名 ASCII）：现值在 src/core/images/ 与 src/ui/components/image-preview.js；结果页「这次的图片」入口口径已改为与格子一致（有页面内笔迹或存下的墨迹任一即算，src/ui/screens/result/index.js resultModel 的 hasInk）；不是 policy 开关；请设计确认（M6）",
     "P89": "我的 / 练习记录 / 年报细节（legacy.days 不上日历、「今天的记录」落点、日子面板样式、字帖只留最后 3 行、较少见的字口径、「今年」按日历年等）：现值在 src/ui/screens/mine/，不是 policy 开关；请设计确认（M6）",
-    "P90": "关于页（隐私四段、致谢分组名、版本行、许可原文英文展示、写信地址）：现值在 src/ui/screens/mine/about.js 与 src/config/credits.js，文案待产品给定（M6）；不是 policy 开关"
+    "P90": "关于页（隐私四段、致谢分组名、版本行、许可原文英文展示、写信地址）：现值在 src/ui/screens/mine/about.js 与 src/config/credits.js，文案待产品给定（M6）；不是 policy 开关",
+    "P91": "「有新版本」在非写字页立即 reload：实现在 src/platform/sw.js（onActivated），不是 policy 开关；待产品确认是否改为等下一次导航",
+    "P92": "旧代页面不强刷、deck 属尽力批次：实现在 sw.js（activate 不 client.navigate；sw-manifest bestEffort），产品知悉项",
+    "P93": "迁移口径补充（加字残留、无 judged 不迁 sched、corrupt 删法、v1 备份 due 取备份日期、legacy.days 不上日历）：实现在 src/store/migrate.js，产品知悉项",
+    "P94": "阻断页细节（提示常驻、再试一次策略、导出入口条件、迁移变体说明句 X-SYS.blockMigration 待文案）：实现在 src/ui/screens/block/index.js 与 corrupt-notice.js",
+    "P95": "字体：requireFont 失败只警告用回退栈（src/data/font-loader.js requireCanvasFont）；工具在 scripts/fonts/；子集语料加 ‹ —— 设计确认项"
   },
   "noCopy": [
     "R-H08",
@@ -3847,6 +3852,27 @@
           "origin": "extra",
           "note": "M4-2：读屏名——第四节那一次没有笔迹时（格子画标准字 + R-D07.noInkLabel）；待文案（P76 同类工程补读屏名）",
           "decision": "P76"
+        }
+      }
+    },
+    "X-REMIND": {
+      "screen": "settings",
+      "milestone": "M5",
+      "source": "M5-5 提醒通知内容（src/platform/reminder.js → 原生 syncReminder questions[].title/body）：04 R-S01 只给了设置页说明「通知会给一个词语和拼音，让你想想是哪个字。」，没有通知本身的字样；按 03 P48 取字，标题沿旧版 639f592 index.html L1383 reminderQuestion「{词语}（{拼音}）」，正文沿同处旧句",
+      "slots": {
+        "title": {
+          "raw": null,
+          "text": "{word}（{pinyin}）",
+          "origin": "旧版 639f592 index.html L1383 reminderQuestion title",
+          "note": "通知标题；{word} 为题面词语（policy.reminderWord='blank' 时目标字位换成 □，与写字页题面同样不露答案），{pinyin} 为目标字拼音（SEED py）；待文案确认",
+          "decision": "P48"
+        },
+        "body": {
+          "raw": null,
+          "text": "还记得这个字怎么写吗？点开试试。",
+          "origin": "旧版 639f592 index.html L1383 reminderQuestion body",
+          "note": "通知正文；第十稿没有给通知正文，沿旧句，待文案确认",
+          "decision": "P48"
         }
       }
     }

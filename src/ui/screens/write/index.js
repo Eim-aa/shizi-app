@@ -35,6 +35,8 @@ import { InkGrid, STD_SIZE } from '../../canvas/ink-canvas.js';
 import { currentCardKey, isComplete, PHASES } from '../../../core/sessions.js';
 import { getStore, isReplacement } from '../../../store/store.js';
 import { setBackGestureEnabled } from '../../../platform/bridge.js';
+import { installCommitFeedback } from '../../../platform/haptics.js'; // M5-5 触觉 / 按键音（按 commit label）
+import { keySound } from '../../../platform/sound.js'; // M5-5 描一遍落笔的纸声（P24）
 import { t } from '../../../config/copy/index.js';
 import { charOfCardKey } from '../../../core/records.js';
 import { useHint, useStrokeData, HintNote } from './hint-layer.js';
@@ -182,6 +184,7 @@ function WriteScreen({ params, entry }) {
   const storedPhase = PHASES.includes(rawPhase) ? rawPhase : 'recall';
 
   const isTop = useBackGestureGate(entry);
+  useEffect(() => { installCommitFeedback(getStore); }, []); // M5-5：判断 / 提示 / 看答案 / 撤销等 commit 成功后发触觉与按键音（platform/haptics.js）
   // M2-2：被压在下面期间本页不写回现场；重新成为顶层时，若这期间存下的现场被别处改过（上面那页写过同一槽），
   // 按存下的现场重取本地笔画，不把旧笔画写回去；没被改过就保留本地笔画（下一次写回照常）。
   const topGenRef = useRef({ was: isTop, gen: 0, current: null });
@@ -305,6 +308,7 @@ function WriteScreen({ params, entry }) {
     hint.onStrokeStart();
     row.onStrokeStart(); // 落笔：上一字的结果行收起（决定-D19）
     skip.dismiss(); // 落笔：跳过的撤销机会结束（G3）
+    if (phase === 'trace') keySound('trace-stroke', { state }); // M5-5：描一遍每次落笔的纸声（P24，settings.sound 关时不响）
   };
 
   const onStrokeEnd = raw => update(prev => ({ ...prev, strokes: prev.strokes.concat([raw]), cleared: null }));

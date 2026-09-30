@@ -92,3 +92,101 @@ test('postNative and setBackGestureEnabled send only inside the native shell and
   assert.equal(b2.setBackGestureEnabled(false), false);
   assert.equal(b2.postNative('pageReady'), false);
 });
+
+// ---------------------------------------------------------------- M5-5：就绪幂等、import 即有全局、消息体形状（haptic / sound / syncReminder）
+
+test('markReady is idempotent: first call returns true, later calls keep / update the store and replay what is still queued', () => {
+  const { win } = fakeWin();
+  const b = createBridge(win);
+  const s1 = { id: 1 };
+  assert.equal(b.isReady(), false);
+  assert.equal(b.markReady(s1), true);
+  assert.equal(b.markReady(), false, 'second call is not a fresh ready');
+  assert.equal(b.getStore(), s1, 'undefined keeps the store');
+  const s2 = { id: 2 };
+  assert.equal(b.markReady(s2), false);
+  assert.equal(b.getStore(), s2);
+  win.shiziCardSaved({ success: true });
+  assert.equal(b.hasHandler('shiziCardSaved'), false);
+  assert.equal(b.pending().length, 1, 'no handler yet → stays queued even after ready');
+  const got = [];
+  b.registerNativeHandler('shiziCardSaved', r => got.push(r.success));
+  assert.deepEqual(got, [true]);
+  assert.equal(b.hasHandler('shiziCardSaved'), true);
+  assert.equal(b.isNative(), true);
+  assert.equal(createBridge({}).isNative(), false);
+});
+
+test('importing bridge.js in a page defines every global immediately (before any app code) and queues calls', async () => {
+  const { win, sent } = fakeWin();
+  const prev = globalThis.window;
+  globalThis.window = win;
+  try {
+    const mod = await import('../../src/platform/bridge.js?page-instance');
+    for (const name of NATIVE_GLOBALS) assert.equal(typeof win[name], 'function', `${name} defined at import`);
+    assert.equal(win.__shiziBridge, mod.bridge);
+    assert.equal(win.shiziOpenReminderTarget('base:习'), true, 'Swift sees true (received)');
+    assert.deepEqual(mod.bridge.pending(), [{ name: 'shiziOpenReminderTarget', args: ['base:习'] }]);
+    assert.equal(mod.isNative(), true);
+    assert.equal(mod.postNative('pageReady'), true);
+    assert.deepEqual(sent, [{ type: 'pageReady' }]);
+  } finally {
+    if (prev === undefined) delete globalThis.window;
+    else globalThis.window = prev;
+  }
+});
+
+test('haptic and sound messages: {type:"haptic", kind} for the five old kinds, {type:"sound", kind:"stamp"|"paper"}; settings.sound gates sound', async () => {
+  const { haptic, applyFeedback, feedbackFor, installCommitFeedback, resetCommitFeedback, COMMIT_FEEDBACK, HAPTIC_KINDS } = await import('../../src/platform/haptics.js');
+  const { keySound, synthesize, resetSound, SOUND_OF_EVENT } = await import('../../src/platform/sound.js');
+  const { win, sent } = fakeWin();
+  const b = createBridge(win);
+  assert.deepEqual([...HAPTIC_KINDS], ['stamp', 'undo', 'action', 'select', 'milestone']);
+  assert.equal(haptic('stamp', { bridge: b }), 'native');
+  assert.equal(haptic('nope', { bridge: b }), false);
+  assert.deepEqual(sent, [{ kind: 'stamp', type: 'haptic' }]);
+
+  const vib = [];
+  const web = createBridge({});
+  assert.equal(haptic('stamp', { bridge: web, win: { navigator: { vibrate: ms => vib.push(ms) } } }), 'vibrate', 'browser: stamp vibrates 10ms (old)');
+  assert.equal(haptic('select', { bridge: web, win: { navigator: { vibrate: ms => vib.push(ms) } } }), false);
+  assert.deepEqual(vib, [10]);
+
+  resetSound();
+  sent.length = 0;
+  assert.deepEqual(SOUND_OF_EVENT, { judge: 'stamp', 'trace-stroke': 'paper' });
+  assert.equal(keySound('judge', { bridge: b, settings: null }), 'native', 'default on');
+  assert.equal(keySound('judge', { bridge: b, settings: { sound: false } }), false, 'settings.sound=false');
+  assert.equal(keySound('trace-stroke', { bridge: b, now: 1000 }), 'native');
+  assert.equal(keySound('trace-stroke', { bridge: b, now: 1050 }), false, 'paper throttled to 100ms (old)');
+  assert.equal(keySound('trace-stroke', { bridge: b, now: 1100 }), 'native');
+  assert.equal(keySound('tap', { bridge: b }), false, 'not a P24 event');
+  assert.equal(keySound('judge', { bridge: b, policy: { keySoundEvents: ['trace-stroke'] } }), false, 'policy.keySoundEvents gates');
+  assert.deepEqual(sent, [{ kind: 'stamp', type: 'sound' }, { kind: 'paper', type: 'sound' }, { kind: 'paper', type: 'sound' }]);
+  const stamp = synthesize('stamp', 8000);
+  assert.equal(stamp.length, Math.round(8000 * 0.22));
+  assert.ok(stamp.every(x => Number.isFinite(x) && Math.abs(x) <= 1));
+  assert.equal(synthesize('paper', 8000).length, Math.round(8000 * 0.11));
+  assert.throws(() => synthesize('rain', 8000), /unknown sound kind/);
+
+  // commit label → 反馈
+  assert.deepEqual(feedbackFor({ type: 'commit', label: 'write:judge' }), { haptic: 'stamp', sound: 'judge' });
+  assert.equal(feedbackFor({ type: 'status' }), null);
+  assert.equal(feedbackFor({ type: 'commit', label: 'write:strokes' }), null);
+  for (const fb of Object.values(COMMIT_FEEDBACK)) assert.ok(HAPTIC_KINDS.includes(fb.haptic));
+  const calls = [];
+  const deps = { haptic: k => calls.push(['h', k]) && 'native', keySound: (e, o) => calls.push(['s', e, o.state.settings.sound]) && 'native' };
+  applyFeedback({ type: 'commit', label: 'write:judge' }, { settings: { sound: true } }, deps);
+  applyFeedback({ type: 'commit', label: 'write:skip-undo' }, { settings: { sound: true } }, deps);
+  assert.deepEqual(calls, [['h', 'stamp'], ['s', 'judge', true], ['h', 'undo']]);
+
+  // installCommitFeedback：同一个 store 只订阅一次
+  const subs = [];
+  const store = { subscribe: fn => { subs.push(fn); return () => subs.splice(subs.indexOf(fn), 1); } };
+  assert.equal(installCommitFeedback(() => store), true);
+  assert.equal(installCommitFeedback(() => store), true);
+  assert.equal(subs.length, 1);
+  assert.equal(installCommitFeedback(() => { throw new Error('not booted'); }), false);
+  resetCommitFeedback();
+  assert.equal(subs.length, 0);
+});

@@ -45,6 +45,7 @@ import { t } from '../../../config/copy/index.js';
 import * as defaultPolicy from '../../../config/policy.js';
 import { getStore } from '../../../store/store.js';
 import { now as envNow } from '../../../platform/env.js';
+import { installCommitFeedback } from '../../../platform/haptics.js'; // M5-5 触觉 / 按键音（按 commit label）
 import { deckAdapter } from '../../../data/deck.js';
 import { localDay, monthDayParts } from '../../../core/dates.js';
 import { charOfCardKey, compareRecordIds, correctRecord, isJudged, sortById } from '../../../core/records.js';
@@ -688,6 +689,7 @@ function ResultScreen({ params, entry }) {
   const store = storeOrNull();
   // 「这次的图片」入口与格子同一取法（存下的墨迹 → 本页面会话里的笔画，I6）
   const model = resultModel(state, { slot, sessionId, hasInk: record => inkPresent(inkOf(store, record)) });
+  useEffect(() => { installCommitFeedback(getStore); }, []); // M5-5：结果页的改判断 / 撤销跳过 / 补写结束也发触觉（刷新后直接停在本页时写字页没挂过）
 
   // 写完但还在槽里（结束写入失败 / 刷新打断）→ 补写结束（幂等）。
   useEffect(() => {

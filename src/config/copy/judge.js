@@ -13,4 +13,9 @@ export default Object.freeze({
   'R-W09.labelReference': '参考字形',
   // R-W17（已定）
   'R-W17.noInk': '这次没写',
+  // X-JUDGE（M1-5 修改判断弹层标题 / 主按钮 / 取消；原型 ShiziWriteScreen L240、L637、L639）
+  'X-JUDGE.changeTitle': '修改「{char}」的判断',
+  'X-JUDGE.changeToWrong': '改为写错',
+  'X-JUDGE.changeToCorrect': '改为写对',
+  'X-JUDGE.changeCancel': '取消',
 });

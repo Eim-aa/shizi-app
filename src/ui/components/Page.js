@@ -44,13 +44,14 @@ const CLOSE_ICON = html`<svg width="20" height="20" viewBox="0 0 20 20" fill="no
  * @param {string} [props.title]
  * @param {'back'|'close'|'none'} [props.leading]  页头左侧：返回箭头 / 关闭 X / 空
  * @param {() => void} [props.onBack]  默认 nav.back()；写字页等要先保存现场的页面自己传
+ * @param {any} [props.lead]  页头左侧自定义内容（给了就替换返回 / 关闭键，例如判断页的「接着写」，M1-5）
  * @param {any} [props.trailing]  页头右侧槽
  * @param {any} [props.footer]  底栏（主按钮等）
  * @param {string} [props.testid]
  */
-export function Page({ title = '', leading = 'back', onBack, trailing = null, footer = null, testid, children }) {
+export function Page({ title = '', leading = 'back', onBack, lead: customLead = null, trailing = null, footer = null, testid, children }) {
   const goBack = () => (onBack ? onBack() : nav.back());
-  const lead = leading === 'none'
+  const lead = customLead ? customLead : leading === 'none'
     ? null
     : html`<${Button} variant="icon" data-testid="page-back" aria-label=${leading === 'close' ? PAGE_COPY.close : PAGE_COPY.back}
         onClick=${goBack}>${leading === 'close' ? CLOSE_ICON : BACK_ICON}</${Button}>`;

@@ -35,12 +35,14 @@ import { Button } from '../../components/Button.js';
 import { injectStyles, T } from '../../components/styles.js';
 import { NoHintLabel } from './glyph-fallback.js';
 
-// ---------------------------------------------------------------- 常量（原型 L505–L510 / 01 §6.4；工程常量，不是待定过渡值）
+// ---------------------------------------------------------------- 常量（原型 L505–L510 / 01 §6.4）
+// 节奏里的过渡值（单笔时长上限、错开系数、减少动态效果的淡化时长）在 policy.motion（P70，待设计走查）；
+// strokeDrawMs / hintTimeline 可传 motion 覆盖。其余是原型 / 01 §6.4 的工程常量。
 
 export const HINT_DRAW = Object.freeze({
   minMs: 110,
-  maxMs: 240,
-  stagger: 0.7,
+  maxMs: defaultPolicy.motion.hintStrokeMs,
+  stagger: defaultPolicy.motion.hintStagger,
   easing: 'cubic-bezier(.4,0,.2,1)',
   opacity: 0.92,
 });
@@ -49,23 +51,25 @@ export const HINT_FADE_OUT_MS = 260;
 /** 本人笔迹淡到 35% / 恢复的时长（原型 ink 组 transition .2s）。 */
 export const INK_DIM_MS = 200;
 export const INK_DIM_OPACITY = 0.35;
-/** 减少动态效果时的淡入淡出（02 §3 M1-3 / R-G01）。 */
-export const REDUCED_FADE_MS = 120;
+/** 减少动态效果时的淡入淡出（02 §3 M1-3 / R-G01；policy.motion.reducedFadeMs，P70）。 */
+export const REDUCED_FADE_MS = defaultPolicy.motion.reducedFadeMs;
 
 // ---------------------------------------------------------------- 纯逻辑
 
 /** 单笔描画时长（ms）：round(min(max(1100/n,110), 240, 1200/(.3+.7n)))，n = 这次给的笔数。 */
-export function strokeDrawMs(count) {
+export function strokeDrawMs(count, motion) {
   const n = Math.max(1, Math.trunc(Number(count) || 1));
-  return Math.round(Math.min(Math.max(1100 / n, HINT_DRAW.minMs), HINT_DRAW.maxMs, 1200 / (0.3 + 0.7 * n)));
+  const maxMs = motion && Number.isFinite(motion.hintStrokeMs) ? motion.hintStrokeMs : HINT_DRAW.maxMs;
+  return Math.round(Math.min(Math.max(1100 / n, HINT_DRAW.minMs), maxMs, 1200 / (0.3 + 0.7 * n)));
 }
 
 /** 这次提示每笔的 {delay, dur}（ms）与总时长。 */
-export function hintTimeline(count) {
+export function hintTimeline(count, motion) {
   const n = Math.max(0, Math.trunc(Number(count) || 0));
-  const dur = strokeDrawMs(n || 1);
+  const dur = strokeDrawMs(n || 1, motion);
+  const stagger = motion && Number.isFinite(motion.hintStagger) ? motion.hintStagger : HINT_DRAW.stagger;
   const items = [];
-  for (let j = 0; j < n; j += 1) items.push({ delay: Math.round(j * dur * HINT_DRAW.stagger), dur });
+  for (let j = 0; j < n; j += 1) items.push({ delay: Math.round(j * dur * stagger), dur });
   const total = n ? items[n - 1].delay + dur : 0;
   return { dur, items, total };
 }

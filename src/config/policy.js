@@ -130,6 +130,21 @@ export const ink = Object.freeze({
   euroDCutoff: 1, // P65 1€ 滤波 dCutoff；来源：原型 SZInk.build（文字规格未写）
 });
 
+// ---- 写字页版式与动画节奏（M1 验收后登记，M2-H 迁入）----
+// P69 紧凑版触发：视口高度 ≤ 此值（px）或 :root[data-large] 时写字页用紧凑版。src/ui/screens/write/compact.js 读取
+// （COMPACT_MAX_HEIGHT / COMPACT_QUERY，CSS media 与 JS 同一条件）。原型只按大字切换，高度阈值是工程取值，待设计确认。
+export const compactMaxHeight = 760;
+// P70 动画节奏（工程取值，原型没有；待设计走查）。各模块默认从这里读，仍可经参数覆盖。
+export const motion = Object.freeze({
+  answerSpeed: 1.6, // P70 看答案 / 先播一遍笔顺动画速度（hanzi-writer strokeAnimationSpeed）；src/ui/canvas/glyph.js ANIMATION
+  answerStrokeGapMs: 180, // P70 看答案笔间隔（hanzi-writer delayBetweenStrokes，ms）；glyph.js ANIMATION
+  answerFadeMs: 240, // P70 看答案淡入淡出（hanzi-writer strokeFadeDuration，ms）；glyph.js ANIMATION
+  hintStrokeMs: 240, // P70 提示单笔描画时长上限（ms，下限 110 为原型值）；src/ui/screens/write/hint-layer.js HINT_DRAW.maxMs
+  hintStagger: 0.7, // P70 提示第 j 笔延迟 = j × 单笔时长 × 此系数；hint-layer.js HINT_DRAW.stagger
+  reducedFadeMs: 120, // P70 减少动态效果时提示与笔迹的淡入淡出（ms，R-G01）；hint-layer.js REDUCED_FADE_MS
+  persistNoticeMs: 5000, // P70 P52 抬笔写失败的一次性顶部提示显示时长（ms）；src/ui/screens/write/persist.js NOTICE_MS
+});
+
 // ---- 查字 / 字库 ----
 // P56 字库墨墙墨色四档的天数阈值（R-L03；原型硬编码 7/30/90）：≤7 天 / ≤30 天 / ≤90 天 / 更久
 export const inkToneDays = Object.freeze([7, 30, 90]);

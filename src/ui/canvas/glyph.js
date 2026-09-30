@@ -14,6 +14,8 @@
 //   glyphColor(name, fallback)                       → 读设计令牌（--ref / --tl / --tf / --ar），给 canvas 与 hanzi-writer 用
 // 本模块不取数据（src/data/strokes.js 负责），不写存储，不含文案。
 
+import * as policy from '../../config/policy.js';
+
 export const GLYPH_UNITS = 1024;
 export const GLYPH_BASELINE = 900;
 export const GLYPH_PAD_RATIO = 0.06;
@@ -21,11 +23,12 @@ export const GLYPH_PAD_RATIO = 0.06;
 export const MEDIAN_WIDTH_UNITS = 18;
 
 // 动画节奏（工程取值；原型没有看答案播放与「先播一遍」，旧版提示用 speed 5 / 间隔 60ms 太快，
-// hanzi-writer 默认 speed 1 / 间隔 1000ms 太慢）。待设计走查，见 M1-2 报告 newPendingDecisions。
+// hanzi-writer 默认 speed 1 / 间隔 1000ms 太慢）。过渡值在 policy.motion（P70，待设计走查）；
+// animate() 可经 opts.speed / opts.delay / opts.fade 覆盖。
 export const ANIMATION = Object.freeze({
-  strokeAnimationSpeed: 1.6,
-  delayBetweenStrokes: 180,
-  strokeFadeDuration: 240,
+  strokeAnimationSpeed: policy.motion.answerSpeed,
+  delayBetweenStrokes: policy.motion.answerStrokeGapMs,
+  strokeFadeDuration: policy.motion.answerFadeMs,
 });
 
 // 令牌回退值：原型 TH.light（与 src/config/tokens.css 同源）。
@@ -229,6 +232,7 @@ export function animate(container, data, opts = {}) {
   const size = Number.isFinite(opts.size) && opts.size > 0 ? opts.size : (container && container.clientWidth) || 345;
   const padding = Number.isFinite(opts.padding) ? opts.padding : size * GLYPH_PAD_RATIO;
   const color = normalizeColor(opts.color) || glyphColor('--ref');
+  const fadeMs = Number.isFinite(opts.fade) ? opts.fade : ANIMATION.strokeFadeDuration;
   const doc = container && container.ownerDocument;
 
   let state = 'running';
@@ -300,7 +304,7 @@ export function animate(container, data, opts = {}) {
       radicalColor: null,
       strokeAnimationSpeed: Number.isFinite(opts.speed) ? opts.speed : ANIMATION.strokeAnimationSpeed,
       delayBetweenStrokes: Number.isFinite(opts.delay) ? opts.delay : ANIMATION.delayBetweenStrokes,
-      strokeFadeDuration: reduced ? 0 : ANIMATION.strokeFadeDuration,
+      strokeFadeDuration: reduced ? 0 : fadeMs,
       charDataLoader: (_char, onLoad) => onLoad(data),
       onLoadCharDataError: () => {
         staticFallback();
@@ -334,7 +338,7 @@ export function animate(container, data, opts = {}) {
       res => {
         if (state !== 'running' || (res && res.canceled)) return;
         if (mode === 'preview') {
-          safe(() => writer.hideCharacter({ duration: ANIMATION.strokeFadeDuration }));
+          safe(() => writer.hideCharacter({ duration: fadeMs }));
         }
         settle('completed');
       },

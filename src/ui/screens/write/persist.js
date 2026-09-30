@@ -22,6 +22,7 @@
 import { html, useEffect, useRef, useState } from '../../../../vendor/ui.js';
 import { injectStyles, T } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
+import * as policy from '../../../config/policy.js';
 import { getStore } from '../../../store/store.js';
 import { currentCardKey, recoverSession, withCurrent } from '../../../core/sessions.js';
 import { decodeRawStrokes, encodeRawStrokes } from '../../../core/ink-math.js';
@@ -31,8 +32,8 @@ import { allRecords, answerInkKey } from './answer.js';
 export const STROKES_LABEL = 'write:strokes';
 /** 恢复幂等 commit 的标签。 */
 export const RECOVER_LABEL = 'write:recover';
-/** 一次性提示的显示时长（两行长句，比轻提示 3.2s 长；过渡值，见报告待定项）。 */
-export const NOTICE_MS = 5000;
+/** 一次性提示的显示时长（两行长句，比轻提示 3.2s 长；policy.motion.persistNoticeMs，P70）。 */
+export const NOTICE_MS = policy.motion.persistNoticeMs;
 
 const EMPTY = Object.freeze([]);
 const SYNC_PHASES = Object.freeze(['recall', 'compare']);
@@ -191,7 +192,7 @@ function storeOrNull() {
  * @param {string} o.phase           有效阶段
  * @returns {{notice: vnode|null, dirty: boolean, flush: (reason?:string) => object|null}}
  */
-export function usePersist({ slot, session, state, cardKey, inkKey, strokes, phase }) {
+export function usePersist({ slot, session, state, cardKey, inkKey, strokes, phase, noticeMs = NOTICE_MS }) {
   const [notice, setNotice] = useState(null); // {kind, text}
   const [dirty, setDirty] = useState(false);
   const live = useRef(null);
@@ -213,7 +214,7 @@ export function usePersist({ slot, session, state, cardKey, inkKey, strokes, pha
       hideTimer.current = setTimeout(() => {
         hideTimer.current = null;
         if (mounted.current) setNotice(null);
-      }, NOTICE_MS);
+      }, noticeMs);
     }
   };
 

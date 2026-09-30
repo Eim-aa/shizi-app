@@ -89,6 +89,13 @@ test('policy: transitional defaults match 03 / the M0-6 card', () => {
   assert.equal(policy.largeTextScale, 1.3, 'P59');
   assert.equal(policy.dailyCapCountsPicked, true, 'P60');
   assert.deepEqual({ ...policy.sessionExpiry }, { first: 'never', picked: 'never' }, 'P61');
+  // M2-H：P69 / P70 迁入 policy（值不变）
+  assert.equal(policy.compactMaxHeight, 760, 'P69');
+  assert.deepEqual(
+    { ...policy.motion },
+    { answerSpeed: 1.6, answerStrokeGapMs: 180, answerFadeMs: 240, hintStrokeMs: 240, hintStagger: 0.7, reducedFadeMs: 120, persistNoticeMs: 5000 },
+    'P70',
+  );
 });
 
 test('policy: P58/P59 mirror the CSS tokens they document (tokens.css cannot import JS)', () => {
@@ -113,5 +120,31 @@ test('policy: core modules do not hard-code transitional values that live in pol
     const text = fs.readFileSync(path.join(core, file), 'utf8');
     assert.equal(/['"]尴['"]/.test(text), false, file + ' repeats firstQueue');
     assert.equal(/\b(?:dailyReviewCap|groupSize|hintMax|forgetCap)\s*=\s*\d/.test(text), false, file + ' re-declares a policy number');
+  }
+});
+
+test('policy: P69 / P70 modules read their defaults from policy.js (M2-H)', async () => {
+  const glyph = await import('../../src/ui/canvas/glyph.js');
+  const hint = await import('../../src/ui/screens/write/hint-layer.js');
+  const compact = await import('../../src/ui/screens/write/compact.js');
+  const persist = await import('../../src/ui/screens/write/persist.js');
+  assert.equal(compact.COMPACT_MAX_HEIGHT, policy.compactMaxHeight);
+  assert.equal(compact.COMPACT_QUERY, `(max-height: ${policy.compactMaxHeight}px)`);
+  assert.deepEqual({ ...glyph.ANIMATION }, {
+    strokeAnimationSpeed: policy.motion.answerSpeed,
+    delayBetweenStrokes: policy.motion.answerStrokeGapMs,
+    strokeFadeDuration: policy.motion.answerFadeMs,
+  });
+  assert.equal(hint.HINT_DRAW.maxMs, policy.motion.hintStrokeMs);
+  assert.equal(hint.HINT_DRAW.stagger, policy.motion.hintStagger);
+  assert.equal(hint.REDUCED_FADE_MS, policy.motion.reducedFadeMs);
+  assert.equal(persist.NOTICE_MS, policy.motion.persistNoticeMs);
+  // 仍可覆盖
+  assert.equal(hint.strokeDrawMs(1, { hintStrokeMs: 150 }), 150);
+  assert.equal(hint.hintTimeline(2, { hintStagger: 1 }).items[1].delay, hint.strokeDrawMs(2));
+  for (const file of ['src/ui/canvas/glyph.js', 'src/ui/screens/write/hint-layer.js', 'src/ui/screens/write/compact.js', 'src/ui/screens/write/persist.js']) {
+    const text = fs.readFileSync(path.join(ROOT, file), 'utf8');
+    assert.equal(/\b(?:COMPACT_MAX_HEIGHT|REDUCED_FADE_MS|NOTICE_MS)\s*=\s*\d/.test(text), false, file + ' re-declares a P69/P70 number');
+    assert.equal(/\b(?:strokeAnimationSpeed|delayBetweenStrokes|strokeFadeDuration|maxMs|stagger):\s*\d/.test(text), false, file + ' hard-codes a P70 number');
   }
 });

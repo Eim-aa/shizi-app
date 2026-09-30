@@ -18,14 +18,15 @@
 
 import { useEffect, useLayoutEffect, useState } from '../../../../vendor/ui.js';
 import { injectStyles, T } from '../../components/styles.js';
+import * as policy from '../../../config/policy.js';
 
 /** 紧凑版书写格边长（X08：recall / trace / retrace 固定 258pt）。 */
 export const COMPACT_GRID = 258;
 /** 看答案页卡片边长下限 / 上限（V02：200–345）。 */
 export const ANSWER_MIN = 200;
 export const ANSWER_MAX = 345;
-/** 视口高度不超过此值时用紧凑版（工程取值，待产品确认；见本文件头）。 */
-export const COMPACT_MAX_HEIGHT = 760;
+/** 视口高度不超过此值时用紧凑版（policy.compactMaxHeight，P69，待设计确认；见本文件头）。 */
+export const COMPACT_MAX_HEIGHT = policy.compactMaxHeight;
 export const COMPACT_QUERY = `(max-height: ${COMPACT_MAX_HEIGHT}px)`;
 
 /** 写字页 Page 根（components/Page 把 testid 放在 .sz-page 上）。 */

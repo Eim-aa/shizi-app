@@ -1,0 +1,104 @@
+[
+  {
+    "id": "J01-01",
+    "observation": "- banner:\n  - link \"全套静态评审\":\n    - /url: review.html\n  - strong: v4 核心路径 · 独立演示\n  - generic \"评审工具与范围\"\n- main \"拾字核心路径\":\n  - generic: 九月十八日 · 演示日\n  - paragraph: 给自己一小段留白\n  - heading \"慢慢写， 慢慢想起。\" [level=1]:\n    - text: 慢慢写，\n    - text: 慢慢想起。\n  - generic: 心不厌精，手不忘熟\n  - button \"拾 开始写字\":\n    - generic: 拾\n    - generic: 开始写字\n  - button \"选字练习\"\n  - paragraph: 第一次来，试试这些字还记得怎么写。\n  - navigation \"主导航\":\n    - button \"习字\"\n    - button \"字库\"\n    - button \"我的\""
+  },
+  {
+    "id": "J01-02",
+    "observation": "- banner:\n  - link \"全套静态评审\":\n    - /url: review.html\n  - strong: v4 核心路径 · 独立演示\n  - generic \"评审工具与范围\"\n- main \"拾字核心路径\":\n  - button \"返回\"\n  - heading \"开始之前\" [level=1]\n  - heading \"有些字，认识， 却一时写不出来。\" [level=2]:\n    - text: 有些字，认识，\n    - text: 却一时写不出来。\n  - paragraph: 第一次来，试试这些字还记得怎么写。\n  - paragraph: 写完后由你自己判断写对还是写错，应用不自动打分。\n  - paragraph: 第一次练习安排15个字，可以分几次写。\n  - button \"开始第一次练习\"\n  - link \"练过了？恢复备份（查看静态稿）\":\n    - /url: data.html#W18\n  - paragraph: 可以随时保存并返回，不要求一次做完。"
+  },
+  {
+    "id": "J01-03",
+    "observation": "- banner:\n  - link \"全套静态评审\":\n    - /url: review.html\n  - strong: v4 核心路径 · 独立演示\n  - generic \"评审工具与范围\"\n- main \"拾字核心路径\":\n  - button \"返回\"\n  - heading \"回忆这个字\" [level=1]\n  - paragraph: 第一次练习 · 第 1 个\n  - text: yǒng\n  - strong: □远\n  - img \"手写画布\":\n  - button \"提示\"\n  - button \"撤销\"\n  - button \"清空\"\n  - generic: 轻点提示看部分笔画；按住看完整答案。\n  - button \"查看完整答案\"\n  - paragraph: 撤销会移除上一笔。\n  - button \"不会写\"\n  - button \"写好了\" [disabled]\n  - button \"先写其他字\"\n  - button \"保存并返回\""
+  },
+  {
+    "id": "J01-04",
+    "observation": "- banner:\n  - link \"全套静态评审\":\n    - /url: review.html\n  - strong: v4 核心路径 · 独立演示\n  - generic \"评审工具与范围\"\n- main \"拾字核心路径\":\n  - button \"返回\"\n  - heading \"回忆这个字\" [level=1]\n  - paragraph: 第一次练习 · 第 1 个\n  - text: yǒng\n  - strong: □远\n  - img \"手写画布\":\n  - button \"提示\"\n  - button \"撤销\"\n  - button \"清空\"\n  - generic: 轻点提示看部分笔画；按住看完整答案。\n  - button \"查看完整答案\"\n  - paragraph: 撤销会移除上一笔。\n  - button \"不会写\"\n  - button \"写好了\"\n  - button \"先写其他字\"\n  - button \"保存并返回\""
+  },
+  {
+    "id": "J01-05",
+    "observation": "- banner:\n  - link \"全套静态评审\":\n    - /url: review.html\n  - strong: v4 核心路径 · 独立演示\n  - generic \"评审工具与范围\"\n- main \"拾字核心路径\":\n  - button \"返回\"\n  - heading \"这次写对了吗？\" [level=1]\n  - paragraph: 第一次练习 · 第 1 个\n  - text: yǒng\n  - strong: 永远\n  - text: 你的书写\n  - img \"你的书写\"\n  - text: 参考字形\n  - img \"参考字形\"\n  - paragraph: 由你判断，不自动打分。\n  - button \"写对了，继续\"\n  - button \"写错了，继续\"\n  - button \"保存并返回\""
+  },
+  {
+    "id": "J01-06",
+    "observation": "- banner:\n  - link \"全套静态评审\":\n    - /url: review.html\n  - strong: v4 核心路径 · 独立演示\n  - generic \"评审工具与范围\"\n- main \"拾字核心路径\":\n  - button \"返回\"\n  - heading \"回忆这个字\" [level=1]\n  - status:\n    - generic: 上一字已记录\n    - button \"修改判断\"\n  - paragraph: 第一次练习 · 第 2 个\n  - text: mù\n  - strong: 树□\n  - img \"手写画布\":\n  - button \"提示\"\n  - button \"撤销\"\n  - button \"清空\"\n  - generic: 轻点提示看部分笔画；按住看完整答案。\n  - button \"查看完整答案\"\n  - paragraph: 撤销会移除上一笔。\n  - button \"不会写\"\n  - button \"写好了\" [disabled]\n  - button \"先写其他字\"\n  - button \"保存并返回\""
+  },
+  {
+    "id": "J01-07",
+    "observation": "- banner:\n  - link \"全套静态评审\":\n    - /url: review.html\n  - strong: v4 核心路径 · 独立演示\n  - generic \"评审工具与范围\"\n- main \"拾字核心路径\":\n  - generic: 九月十八日 · 演示日\n  - paragraph: 给自己一小段留白\n  - heading \"慢慢写， 慢慢想起。\" [level=1]:\n    - text: 慢慢写，\n    - text: 慢慢想起。\n  - generic: 心不厌精，手不忘熟\n  - button \"拾 继续写字\":\n    - generic: 拾\n    - generic: 继续写字\n  - button \"选字练习\"\n  - paragraph: 今天记录了 1 个字\n  - navigation \"主导航\":\n    - button \"习字\"\n    - button \"字库\"\n    - button \"我的\""
+  },
+  {
+    "id": "J02-01",
+    "observation": "- banner:\n  - link \"全套静态评审\":\n    - /url: review.html\n  - strong: v4 核心路径 · 独立演示\n  - generic \"评审工具与范围\"\n- main \"拾字核心路径\":\n  - button \"返回\"\n  - heading \"回忆这个字\" [level=1]\n  - status:\n    - generic: 上一字已记录\n    - button \"修改判断\"\n  - paragraph: 第一次练习 · 第 2 个\n  - text: mù\n  - strong: 树□\n  - img \"手写画布\":\n  - button \"提示\"\n  - button \"撤销\"\n  - button \"清空\"\n  - generic: 已显示 1 笔提示，不是完整答案。\n  - button \"查看完整答案\"\n  - paragraph: 撤销会移除上一笔。\n  - button \"不会写\"\n  - button \"写好了\" [disabled]\n  - button \"先写其他字\"\n  - button \"保存并返回\""
+  },
+  {
+    "id": "J02-02",
+    "observation": "- banner:\n  - link \"全套静态评审\":\n    - /url: review.html\n  - strong: v4 核心路径 · 独立演示\n  - generic \"评审工具与范围\"\n- main \"拾字核心路径\":\n  - button \"返回\"\n  - heading \"回忆这个字\" [level=1]\n  - status:\n    - generic: 上一字已记录\n    - button \"修改判断\"\n  - paragraph: 第一次练习 · 第 2 个\n  - text: mù\n  - strong: 树木\n  - heading \"先看看这个字\" [level=2]\n  - img \"参考字形\"\n  - paragraph: 看答案本身不记为写对或练过。\n  - button \"描一遍\"\n  - button \"自己再试\"\n  - button \"先写其他字\"\n  - button \"保存并返回\""
+  },
+  {
+    "id": "J02-03",
+    "observation": "- banner:\n  - link \"全套静态评审\":\n    - /url: review.html\n  - strong: v4 核心路径 · 独立演示\n  - generic \"评审工具与范围\"\n- main \"拾字核心路径\":\n  - button \"返回\"\n  - heading \"回忆这个字\" [level=1]\n  - status:\n    - generic: 上一字已记录\n    - button \"修改判断\"\n  - paragraph: 第一次练习 · 第 2 个\n  - text: mù\n  - strong: 树□\n  - paragraph: 收起参考字形，自己再试一次。\n  - img \"手写画布\":\n  - button \"提示\"\n  - button \"撤销\"\n  - button \"清空\"\n  - generic: 轻点提示看部分笔画；按住看完整答案。\n  - button \"查看完整答案\"\n  - paragraph: 撤销会移除上一笔。这次已看过完整答案。\n  - button \"不会写\"\n  - button \"写好了\" [disabled]\n  - button \"先写其他字\"\n  - button \"保存并返回\""
+  },
+  {
+    "id": "J02-04",
+    "observation": "- banner:\n  - link \"全套静态评审\":\n    - /url: review.html\n  - strong: v4 核心路径 · 独立演示\n  - generic \"评审工具与范围\"\n- main \"拾字核心路径\":\n  - button \"返回\"\n  - heading \"这次写对了吗？\" [level=1]\n  - status:\n    - generic: 上一字已记录\n    - button \"修改判断\"\n  - paragraph: 第一次练习 · 第 2 个\n  - text: mù\n  - strong: 树木\n  - text: 你的书写\n  - img \"你的书写\"\n  - text: 参考字形\n  - img \"参考字形\"\n  - paragraph: 由你判断，不自动打分。这次看过完整答案。\n  - button \"写对了，继续\"\n  - button \"写错了，继续\"\n  - button \"保存并返回\""
+  },
+  {
+    "id": "J02-05",
+    "observation": "- banner:\n  - link \"全套静态评审\":\n    - /url: review.html\n  - strong: v4 核心路径 · 独立演示\n  - generic \"评审工具与范围\"\n- main \"拾字核心路径\":\n  - heading \"本次练习\" [level=1]\n  - status:\n    - generic: 最后一字已记录\n    - button \"修改判断\"\n  - paragraph: 这次写了 2 个字。\n  - generic: 永 · 你判断写错\n  - generic: 木 · 你判断写对 · 看过答案\n  - paragraph: 想不起来的字，以后再试也可以。\n  - link \"查看练习记录与图片保存（静态稿）\":\n    - /url: records.html#W14\n  - button \"返回首页\""
+  },
+  {
+    "id": "J03-A-before-pause",
+    "observation": "- banner:\n  - link \"全套静态评审\":\n    - /url: review.html\n  - strong: v4 核心路径 · 独立演示\n  - generic \"评审工具与范围\"\n- main \"拾字核心路径\":\n  - button \"返回\"\n  - heading \"回忆这个字\" [level=1]\n  - paragraph: 第 1 个\n  - text: yǒng\n  - strong: □远\n  - img \"手写画布\":\n  - button \"提示\"\n  - button \"撤销\"\n  - button \"清空\"\n  - generic: 已显示 1 笔提示，不是完整答案。\n  - button \"查看完整答案\"\n  - paragraph: 撤销会移除上一笔。\n  - button \"不会写\"\n  - button \"写好了\"\n  - button \"先写其他字\"\n  - button \"保存并返回\"",
+    "ink": "<svg viewBox=\"0 0 100 100\"><g id=\"reference-layer\"><path class=\"sample-path\" d=\"M46 14 L58 23\"></path></g><g id=\"ink-layer\"><polyline class=\"ink-path\" points=\"21.18,24.19 35.59,38.6 54.32,53.01\"></polyline></g></svg>"
+  },
+  {
+    "id": "J04-search-input",
+    "observation": "- banner:\n  - link \"全套静态评审\":\n    - /url: review.html\n  - strong: v4 核心路径 · 独立演示\n  - generic \"评审工具与范围\"\n- main \"拾字核心路径\":\n  - heading \"字库\" [level=1]\n  - button \"查字\"\n  - button \"添加想练的字\"\n  - paragraph: 输入一个或多个汉字，选择后开始练习。\n  - text: 书写，\n  - text: 让心慢下来。\n  - heading \"选择字库\" [level=2]\n  - button \"规范常用字 当前\":\n    - text: 规范常用字\n    - generic: 当前\n  - button \"规范次常用字 选择\":\n    - text: 规范次常用字\n    - generic: 选择\n  - button \"规范专门用字 选择\":\n    - text: 规范专门用字\n    - generic: 选择\n  - button \"义教基础字 选择\":\n    - text: 义教基础字\n    - generic: 选择\n  - heading \"我添加的字\" [level=2]\n  - paragraph: 还没有明确开始添加的字。输入或取消不会添加。\n  - heading \"练过的字\" [level=2]\n  - button \"永 练过\":\n    - text: 永\n    - generic: 练过\n  - button \"木 练过\":\n    - text: 木\n    - generic: 练过\n  - navigation \"主导航\":\n    - button \"习字\"\n    - button \"字库\"\n    - button \"我的\"\n- dialog \"查字\":\n  - banner:\n    - heading \"查字\" [level=2]\n    - button \"取消\"\n  - text: 输入一个或多个汉字\n  - textbox \"输入一个或多个汉字\" [active]: 山\n  - paragraph: 输入后选择想练的字，再开始。\n  - checkbox \"山\"\n  - text: 山\n  - button \"查看“山”的记录\"\n  - paragraph: 原来的练习会保留。结束这次选字后可接着写。\n  - paragraph: 请先勾选要练的字。\n  - button \"开始练习\" [disabled]"
+  },
+  {
+    "id": "J04-search-detail",
+    "observation": "- banner:\n  - link \"全套静态评审\":\n    - /url: review.html\n  - strong: v4 核心路径 · 独立演示\n  - generic \"评审工具与范围\"\n- main \"拾字核心路径\":\n  - heading \"字库\" [level=1]\n  - button \"查字\"\n  - button \"添加想练的字\"\n  - paragraph: 输入一个或多个汉字，选择后开始练习。\n  - text: 书写，\n  - text: 让心慢下来。\n  - heading \"选择字库\" [level=2]\n  - button \"规范常用字 当前\":\n    - text: 规范常用字\n    - generic: 当前\n  - button \"规范次常用字 选择\":\n    - text: 规范次常用字\n    - generic: 选择\n  - button \"规范专门用字 选择\":\n    - text: 规范专门用字\n    - generic: 选择\n  - button \"义教基础字 选择\":\n    - text: 义教基础字\n    - generic: 选择\n  - heading \"我添加的字\" [level=2]\n  - paragraph: 还没有明确开始添加的字。输入或取消不会添加。\n  - heading \"练过的字\" [level=2]\n  - button \"永 练过\":\n    - text: 永\n    - generic: 练过\n  - button \"木 练过\":\n    - text: 木\n    - generic: 练过\n  - navigation \"主导航\":\n    - button \"习字\"\n    - button \"字库\"\n    - button \"我的\"\n- dialog \"山的记录\":\n  - banner:\n    - heading \"山的记录\" [level=2]\n    - button \"返回查字\" [active]\n  - img \"参考字形\"\n  - paragraph: 还没有有效练习记录。\n  - paragraph: 仅查看不会新增记录或添加这个字。\n  - link \"完整详情能力见静态稿\":\n    - /url: lookup.html#W08\n  - button \"选择这个字练习\""
+  },
+  {
+    "id": "J04-add-selected",
+    "observation": "- banner:\n  - link \"全套静态评审\":\n    - /url: review.html\n  - strong: v4 核心路径 · 独立演示\n  - generic \"评审工具与范围\"\n- main \"拾字核心路径\":\n  - heading \"字库\" [level=1]\n  - button \"查字\"\n  - button \"添加想练的字\"\n  - paragraph: 输入一个或多个汉字，选择后开始练习。\n  - text: 书写，\n  - text: 让心慢下来。\n  - heading \"选择字库\" [level=2]\n  - button \"规范常用字 当前\":\n    - text: 规范常用字\n    - generic: 当前\n  - button \"规范次常用字 选择\":\n    - text: 规范次常用字\n    - generic: 选择\n  - button \"规范专门用字 选择\":\n    - text: 规范专门用字\n    - generic: 选择\n  - button \"义教基础字 选择\":\n    - text: 义教基础字\n    - generic: 选择\n  - heading \"我添加的字\" [level=2]\n  - paragraph: 还没有明确开始添加的字。输入或取消不会添加。\n  - heading \"练过的字\" [level=2]\n  - button \"永 练过\":\n    - text: 永\n    - generic: 练过\n  - button \"木 练过\":\n    - text: 木\n    - generic: 练过\n  - navigation \"主导航\":\n    - button \"习字\"\n    - button \"字库\"\n    - button \"我的\"\n- dialog \"添加想练的字\":\n  - banner:\n    - heading \"添加想练的字\" [level=2]\n    - button \"取消\"\n  - text: 输入一个或多个汉字\n  - textbox \"输入一个或多个汉字\" [active]: 山木\n  - paragraph: 输入后选择想练的字，再开始。\n  - checkbox \"山\" [checked]\n  - text: 山\n  - checkbox \"木\" [checked]\n  - text: 木\n  - paragraph: 原来的练习会保留。结束这次选字后可接着写。\n  - paragraph: 已选：山、木。\n  - button \"开始练：山、木\""
+  },
+  {
+    "id": "J04-add-cancel",
+    "observation": "- banner:\n  - link \"全套静态评审\":\n    - /url: review.html\n  - strong: v4 核心路径 · 独立演示\n  - generic \"评审工具与范围\"\n- main \"拾字核心路径\":\n  - heading \"字库\" [level=1]\n  - button \"查字\"\n  - button \"添加想练的字\" [active]\n  - paragraph: 输入一个或多个汉字，选择后开始练习。\n  - text: 书写，\n  - text: 让心慢下来。\n  - heading \"选择字库\" [level=2]\n  - button \"规范常用字 当前\":\n    - text: 规范常用字\n    - generic: 当前\n  - button \"规范次常用字 选择\":\n    - text: 规范次常用字\n    - generic: 选择\n  - button \"规范专门用字 选择\":\n    - text: 规范专门用字\n    - generic: 选择\n  - button \"义教基础字 选择\":\n    - text: 义教基础字\n    - generic: 选择\n  - heading \"我添加的字\" [level=2]\n  - paragraph: 还没有明确开始添加的字。输入或取消不会添加。\n  - heading \"练过的字\" [level=2]\n  - button \"永 练过\":\n    - text: 永\n    - generic: 练过\n  - button \"木 练过\":\n    - text: 木\n    - generic: 练过\n  - navigation \"主导航\":\n    - button \"习字\"\n    - button \"字库\"\n    - button \"我的\""
+  },
+  {
+    "id": "J03-B-start",
+    "observation": "- banner:\n  - link \"全套静态评审\":\n    - /url: review.html\n  - strong: v4 核心路径 · 独立演示\n  - generic \"评审工具与范围\"\n- main \"拾字核心路径\":\n  - button \"返回\"\n  - heading \"回忆这个字\" [level=1]\n  - paragraph: 选字练习 · 第 1 / 1 个\n  - text: shān\n  - strong: 高□\n  - img \"手写画布\":\n  - button \"提示\"\n  - button \"撤销\"\n  - button \"清空\"\n  - generic: 轻点提示看部分笔画；按住看完整答案。\n  - button \"查看完整答案\"\n  - paragraph: 撤销会移除上一笔。\n  - button \"不会写\"\n  - button \"写好了\" [disabled]\n  - button \"先写其他字\"\n  - button \"保存并返回\""
+  },
+  {
+    "id": "J03-B-paused",
+    "observation": "- banner:\n  - link \"全套静态评审\":\n    - /url: review.html\n  - strong: v4 核心路径 · 独立演示\n  - generic \"评审工具与范围\"\n- main \"拾字核心路径\":\n  - heading \"字库\" [level=1]\n  - button \"查字\"\n  - button \"添加想练的字\"\n  - paragraph: 输入一个或多个汉字，选择后开始练习。\n  - text: 书写，\n  - text: 让心慢下来。\n  - heading \"选择字库\" [level=2]\n  - button \"规范常用字 当前\":\n    - text: 规范常用字\n    - generic: 当前\n  - button \"规范次常用字 选择\":\n    - text: 规范次常用字\n    - generic: 选择\n  - button \"规范专门用字 选择\":\n    - text: 规范专门用字\n    - generic: 选择\n  - button \"义教基础字 选择\":\n    - text: 义教基础字\n    - generic: 选择\n  - heading \"我添加的字\" [level=2]\n  - button \"山 未练过\":\n    - text: 山\n    - generic: 未练过\n  - heading \"练过的字\" [level=2]\n  - button \"永 练过\":\n    - text: 永\n    - generic: 练过\n  - button \"木 练过\":\n    - text: 木\n    - generic: 练过\n  - paragraph: 选字练习已保存，可从习字的“继续写字”接着写。\n  - navigation \"主导航\":\n    - button \"习字\"\n    - button \"字库\"\n    - button \"我的\""
+  },
+  {
+    "id": "J03-B-guard",
+    "observation": "- banner:\n  - link \"全套静态评审\":\n    - /url: review.html\n  - strong: v4 核心路径 · 独立演示\n  - generic \"评审工具与范围\"\n- main \"拾字核心路径\":\n  - heading \"字库\" [level=1]\n  - button \"查字\"\n  - button \"添加想练的字\"\n  - paragraph: 输入一个或多个汉字，选择后开始练习。\n  - text: 书写，\n  - text: 让心慢下来。\n  - heading \"选择字库\" [level=2]\n  - button \"规范常用字 当前\":\n    - text: 规范常用字\n    - generic: 当前\n  - button \"规范次常用字 选择\":\n    - text: 规范次常用字\n    - generic: 选择\n  - button \"规范专门用字 选择\":\n    - text: 规范专门用字\n    - generic: 选择\n  - button \"义教基础字 选择\":\n    - text: 义教基础字\n    - generic: 选择\n  - heading \"我添加的字\" [level=2]\n  - button \"山 未练过\":\n    - text: 山\n    - generic: 未练过\n  - heading \"练过的字\" [level=2]\n  - button \"永 练过\":\n    - text: 永\n    - generic: 练过\n  - button \"木 练过\":\n    - text: 木\n    - generic: 练过\n  - paragraph: 选字练习已保存，可从习字的“继续写字”接着写。\n  - navigation \"主导航\":\n    - button \"习字\"\n    - button \"字库\"\n    - button \"我的\"\n- dialog \"已有未结束的选字练习\":\n  - banner:\n    - heading \"已有未结束的选字练习\" [level=2]\n    - button \"取消\" [active]\n  - paragraph: 先继续这次选字练习，新输入不会覆盖它或原来的普通练习。\n  - button \"继续已有选字练习\""
+  },
+  {
+    "id": "J03-B-resume",
+    "observation": "- banner:\n  - link \"全套静态评审\":\n    - /url: review.html\n  - strong: v4 核心路径 · 独立演示\n  - generic \"评审工具与范围\"\n- main \"拾字核心路径\":\n  - button \"返回\"\n  - heading \"回忆这个字\" [level=1]\n  - paragraph: 选字练习 · 第 1 / 1 个\n  - text: shān\n  - strong: 高□\n  - img \"手写画布\":\n  - button \"提示\"\n  - button \"撤销\"\n  - button \"清空\"\n  - generic: 轻点提示看部分笔画；按住看完整答案。\n  - button \"查看完整答案\"\n  - paragraph: 撤销会移除上一笔。\n  - button \"不会写\"\n  - button \"写好了\" [disabled]\n  - button \"先写其他字\"\n  - button \"保存并返回\""
+  },
+  {
+    "id": "J03-B-result",
+    "observation": "- banner:\n  - link \"全套静态评审\":\n    - /url: review.html\n  - strong: v4 核心路径 · 独立演示\n  - generic \"评审工具与范围\"\n- main \"拾字核心路径\":\n  - heading \"本次练习\" [level=1]\n  - status:\n    - generic: 最后一字已记录\n    - button \"修改判断\"\n  - paragraph: 这次写了 1 个字。\n  - generic: 山 · 你判断写错\n  - link \"查看练习记录与图片保存（静态稿）\":\n    - /url: records.html#W14\n  - button \"返回字库\""
+  },
+  {
+    "id": "J03-B-return-source",
+    "observation": "- banner:\n  - link \"全套静态评审\":\n    - /url: review.html\n  - strong: v4 核心路径 · 独立演示\n  - generic \"评审工具与范围\"\n- main \"拾字核心路径\":\n  - heading \"字库\" [level=1]\n  - button \"查字\"\n  - button \"添加想练的字\"\n  - paragraph: 输入一个或多个汉字，选择后开始练习。\n  - text: 书写，\n  - text: 让心慢下来。\n  - heading \"选择字库\" [level=2]\n  - button \"规范常用字 当前\":\n    - text: 规范常用字\n    - generic: 当前\n  - button \"规范次常用字 选择\":\n    - text: 规范次常用字\n    - generic: 选择\n  - button \"规范专门用字 选择\":\n    - text: 规范专门用字\n    - generic: 选择\n  - button \"义教基础字 选择\":\n    - text: 义教基础字\n    - generic: 选择\n  - heading \"我添加的字\" [level=2]\n  - button \"山 练过\":\n    - text: 山\n    - generic: 练过\n  - heading \"练过的字\" [level=2]\n  - button \"永 练过\":\n    - text: 永\n    - generic: 练过\n  - button \"木 练过\":\n    - text: 木\n    - generic: 练过\n  - button \"山 练过\":\n    - text: 山\n    - generic: 练过\n  - navigation \"主导航\":\n    - button \"习字\"\n    - button \"字库\"\n    - button \"我的\""
+  },
+  {
+    "id": "J03-A-after-resume",
+    "observation": "- banner:\n  - link \"全套静态评审\":\n    - /url: review.html\n  - strong: v4 核心路径 · 独立演示\n  - generic \"评审工具与范围\"\n- main \"拾字核心路径\":\n  - button \"返回\"\n  - heading \"回忆这个字\" [level=1]\n  - paragraph: 第 1 个\n  - text: yǒng\n  - strong: □远\n  - img \"手写画布\":\n  - button \"提示\"\n  - button \"撤销\"\n  - button \"清空\"\n  - generic: 已显示 1 笔提示，不是完整答案。\n  - button \"查看完整答案\"\n  - paragraph: 撤销会移除上一笔。\n  - button \"不会写\"\n  - button \"写好了\"\n  - button \"先写其他字\"\n  - button \"保存并返回\"",
+    "ink": "<svg viewBox=\"0 0 100 100\"><g id=\"reference-layer\"><path class=\"sample-path\" d=\"M46 14 L58 23\"></path></g><g id=\"ink-layer\"><polyline class=\"ink-path\" points=\"21.18,24.19 35.59,38.6 54.32,53.01\"></polyline></g></svg>"
+  },
+  {
+    "id": "J05-J06-old-prototype-boundary",
+    "observation": "- banner:\n  - link \"全套静态评审\":\n    - /url: review.html\n  - strong: v4 核心路径 · 独立演示\n  - generic \"评审工具与范围\"\n- main \"拾字核心路径\":\n  - heading \"我的\" [level=1]\n  - paragraph: 这里的其他功能仍在全套静态稿中评审，不制作假操作。\n  - link \"练习记录与保存本次 / 本月练习图片\":\n    - /url: records.html#W14\n  - link \"备份与恢复\":\n    - /url: data.html#W18\n  - link \"练习设置\":\n    - /url: data.html#W17\n  - link \"单字手写图片\":\n    - /url: records.html#W16\n  - paragraph: 本次没有记录，不妨碍查看本月图片保存状态；演示不生成图片。\n  - navigation \"主导航\":\n    - button \"习字\"\n    - button \"字库\"\n    - button \"我的\""
+  }
+]

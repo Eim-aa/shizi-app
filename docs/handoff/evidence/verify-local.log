@@ -1,0 +1,21 @@
+== Lint plist and shell scripts ==
+<repo>/ios/ShiziApp/ShiziApp/Info.plist: OK
+<repo>/ios/ShiziApp/ShiziApp/PrivacyInfo.xcprivacy: OK
+library governance: 8105 normative characters classified; 3500 curriculum characters verified; 7294 practice-ready; 811 explicitly unavailable
+== Verify 440 vector-data approvals ==
+OK (<repo>/ios/ShiziApp/build/verify/logs/verify-vector-data-440.log)
+== Verify PWA corpus upgrade ==
+OK (<repo>/ios/ShiziApp/build/verify/logs/verify-pwa-upgrade.log)
+== Check Xcode project ==
+OK (<repo>/ios/ShiziApp/build/verify/logs/xcode-list.log)
+== Build Debug simulator ==
+OK (<repo>/ios/ShiziApp/build/verify/logs/build-debug-simulator.log)
+OK: <evidence>/test-output/native/DerivedData/Build/Products/Debug-iphonesimulator/Shizi.app
+Web assets present; data JSON count = 7295
+== Archive Release iPhoneOS without signing ==
+OK (<repo>/ios/ShiziApp/build/verify/logs/archive-release-iphoneos.log)
+OK: <evidence>/test-output/native/Shizi.xcarchive/Products/Applications/Shizi.app
+Web assets present; data JSON count = 7295
+Archive metadata OK: com.eimaa.shizi 0.1.0 (1), arm64, iOS 15.0+
+Archive signing check skipped (REQUIRE_SIGNING=0)
+Local iOS verification OK

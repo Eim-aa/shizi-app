@@ -1,0 +1,280 @@
+{
+  "status": "passed",
+  "baseCommit": "06e141b677f6c2ae2c5cfce8ecccd44cce4cfac6",
+  "approvedTargets": 340,
+  "activeCards": 7294,
+  "missingApprovedTargets": [],
+  "removedTargetsNotReintroduced": [
+    "婼",
+    "嶅",
+    "嶲",
+    "梴",
+    "欂",
+    "漋",
+    "濩",
+    "烻",
+    "璥",
+    "茋",
+    "菉",
+    "菍",
+    "薁",
+    "鄀",
+    "鄅",
+    "鄑",
+    "鄚",
+    "隩",
+    "鞳",
+    "髎"
+  ],
+  "before": {
+    "leaks": 109,
+    "wordCollisionGroups": 34,
+    "wordCollisionCards": 69,
+    "allCollisionGroups": 260,
+    "fallback": 954
+  },
+  "after": {
+    "leaks": 0,
+    "wordCollisionGroups": 0,
+    "allCollisionGroups": 226,
+    "fallback": 954
+  },
+  "approvalProvenance": [
+    {
+      "round": 1,
+      "approvedCount": 114,
+      "derivedFixtureSha256": "b36a420c504c044de7c9e70099b302b3eaec1bc1ad056caea3cbe195b2fb140b",
+      "sourceFileSha256": "232eb0db7e5f2882b9e39baeae74044611f37baea1fff8b42b739a2596ea30dc"
+    },
+    {
+      "round": 2,
+      "approvedCount": 7,
+      "derivedFixtureSha256": "77a742a60cdff928f66b5db9e0927d011004afb4d6e55e5c72fc00a2ea4f6a73",
+      "sourceFileSha256": "e5ce0d441747d54aff2ab3b535662cc740078a9585f79ef60da35be39f934c3b"
+    },
+    {
+      "round": 3,
+      "approvedCount": 219,
+      "derivedFixtureSha256": "d536c2f0081bd864e0b3cf5211a8cc7face5e249fa07e9410c030e1a3b383053",
+      "sourceFileSha256": "a838a8d652c2abe06928e017d884491d5b4d619bfe88554473a0aa6010b64584"
+    }
+  ],
+  "runtimeSnapshotSha256": "2f69e4df4f5b0b16f109d4cdda71524edf8fddd6d627181bd40afc5d2a98ef75",
+  "testPortingFailure": {
+    "cause": "Old custom-word test assumed one card per occurrence; latest main deduplicates base/custom targets. Updated only the test to use a non-base BMP target repeated three times and assert one card."
+  },
+  "notes": [
+    "No changes to generated deck, stroke/vector data, data governance or storage/migration logic.",
+    "Current main fingerprinted PWA strategy retained; only BUILD and context resource fingerprint updated.",
+    "Public fixture includes approved values and source notes; no private absolute paths or private review files required."
+  ],
+  "testedWorkingTreeSourceHashes": "tested-source-hashes.json",
+  "testedSourcesUnchanged": true,
+  "tests": [
+    {
+      "command": "pnpm test",
+      "exitCode": 0,
+      "log": "pnpm-test.log",
+      "originalLogSha256": "4cc8b61eaed07900e695850d5b8992121f067fd6799dc504fe5255651830da3e",
+      "publishedLogSha256": "4cc8b61eaed07900e695850d5b8992121f067fd6799dc504fe5255651830da3e"
+    },
+    {
+      "command": "ios/ShiziApp/scripts/verify-local.sh",
+      "exitCode": 0,
+      "log": "verify-local.log",
+      "originalLogSha256": "f8fcc0d69a493a22a9bbcc205002cee11901a22a83b51e4d7df5e7fa256769cb",
+      "publishedLogSha256": "99ff5be1271f0457d636141d7872abf1e56d5bbe878b6ac3330744d86a468f40"
+    }
+  ],
+  "browser": {
+    "status": "passed",
+    "originalRepeatedCards": 109,
+    "currentRepeatedCards": 58,
+    "actualCardsRendered": 340,
+    "approvedCards": 340,
+    "customRepeatedCard": true,
+    "supplementaryCodePoint": true,
+    "promptHintTextContentSafe": true,
+    "narrowLargeText": {
+      "target": "姥",
+      "hint": "北方口语中对外祖母的称呼。（女字旁，右边是“老”） 空格里是同一个字，只写一次。",
+      "hintLines": 2,
+      "viewport": {
+        "width": 320,
+        "height": 568
+      },
+      "large": true,
+      "bounds": {
+        "prompt": {
+          "left": 22,
+          "top": 52,
+          "right": 298,
+          "bottom": 98,
+          "width": 276,
+          "height": 46
+        },
+        "hint": {
+          "left": 22,
+          "top": 101,
+          "right": 298,
+          "bottom": 144,
+          "width": 276,
+          "height": 43
+        },
+        "boxwrap": {
+          "left": 22,
+          "top": 180,
+          "right": 298,
+          "bottom": 456,
+          "width": 276,
+          "height": 276
+        },
+        "tip": {
+          "left": 29,
+          "top": 182,
+          "right": 81.890625,
+          "bottom": 226,
+          "width": 52.890625,
+          "height": 44
+        },
+        "undoStroke": {
+          "left": 198,
+          "top": 182,
+          "right": 242,
+          "bottom": 226,
+          "width": 44,
+          "height": 44
+        },
+        "clear": {
+          "left": 247,
+          "top": 182,
+          "right": 291,
+          "bottom": 226,
+          "width": 44,
+          "height": 44
+        },
+        "show": {
+          "left": 22,
+          "top": 462,
+          "right": 137.0625,
+          "bottom": 508,
+          "width": 115.0625,
+          "height": 46
+        },
+        "done": {
+          "left": 145.0625,
+          "top": 462,
+          "right": 298,
+          "bottom": 508,
+          "width": 152.9375,
+          "height": 46
+        },
+        "exitPractice": {
+          "left": 22,
+          "top": 8,
+          "right": 66,
+          "bottom": 52,
+          "width": 44,
+          "height": 44
+        }
+      },
+      "scrollWidth": 320
+    },
+    "fourLineLargeText": {
+      "target": "𠮷",
+      "hint": "这是一条用来核验窄屏显示的较长题意提示，包含含义说明和字形线索，所有文字都应清楚显示，书写区域和操作按钮仍需完整可见。 空格里是同一个字，只写一次。",
+      "hintLines": 4,
+      "viewport": {
+        "width": 320,
+        "height": 568
+      },
+      "large": true,
+      "bounds": {
+        "prompt": {
+          "left": 22,
+          "top": 52,
+          "right": 298,
+          "bottom": 98,
+          "width": 276,
+          "height": 46
+        },
+        "hint": {
+          "left": 22,
+          "top": 101,
+          "right": 298,
+          "bottom": 187,
+          "width": 276,
+          "height": 86
+        },
+        "boxwrap": {
+          "left": 22,
+          "top": 223,
+          "right": 298,
+          "bottom": 499,
+          "width": 276,
+          "height": 276
+        },
+        "tip": {
+          "left": 29,
+          "top": 225,
+          "right": 81.890625,
+          "bottom": 269,
+          "width": 52.890625,
+          "height": 44
+        },
+        "undoStroke": {
+          "left": 198,
+          "top": 225,
+          "right": 242,
+          "bottom": 269,
+          "width": 44,
+          "height": 44
+        },
+        "clear": {
+          "left": 247,
+          "top": 225,
+          "right": 291,
+          "bottom": 269,
+          "width": 44,
+          "height": 44
+        },
+        "show": {
+          "left": 22,
+          "top": 505,
+          "right": 137.0625,
+          "bottom": 551,
+          "width": 115.0625,
+          "height": 46
+        },
+        "done": {
+          "left": 145.0625,
+          "top": 505,
+          "right": 298,
+          "bottom": 551,
+          "width": 152.9375,
+          "height": 46
+        },
+        "exitPractice": {
+          "left": 22,
+          "top": 8,
+          "right": 66,
+          "bottom": 52,
+          "width": 44,
+          "height": 44
+        }
+      },
+      "scrollWidth": 320
+    }
+  },
+  "native": {
+    "debugSimulatorBuild": "passed",
+    "unsignedIPhoneOSArchive": "passed",
+    "bundleAssets": "passed",
+    "archiveMetadata": "passed",
+    "deviceOrVoiceOverManualChecks": "not_run"
+  },
+  "followup": {
+    "existingMainHintReplacement": "allowNoStrokeData replaces #hint with stroke-loading failure text, temporarily removing gloss/promptHint/instruction. Unchanged in this PR; sent to owner for follow-up issue."
+  },
+  "publicationNote": "从已完成验收记录整理；移除本机运行路径，日志的原件SHA与公开副本SHA分开登记；不是本次重新运行。绑定 PR175 fe85323 的被测文件，见 tested-source-hashes.json。"
+}

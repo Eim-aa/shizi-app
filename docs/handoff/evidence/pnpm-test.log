@@ -1,0 +1,231 @@
+$ pnpm run verify:data && pnpm run verify:web
+$ python3 scripts/verify_library_governance.py && node scripts/verify_vector_data_440.js && node scripts/verify_content_corpus.cjs
+library governance: 8105 normative characters classified; 3500 curriculum characters verified; 7294 practice-ready; 811 explicitly unavailable
+{
+  "status": "TECHNICAL_AND_HUMAN_REVIEW_PASS_440",
+  "manifest": "audit/vector-data-460-manifest.json",
+  "manifest_sha256": "c5add68779f17fd433672ef1ed063bcec6ae4b4ac632fd1e4aa858d02873d5ff",
+  "evidence_index_sha256": "1b0b5a20695f23091dd03c7b2d4a9ffb2a91ff299c71b13780eddd4c67f3f6a8",
+  "technically_verified_characters": 440,
+  "human_accepted_characters": 440,
+  "human_review_pending_characters": 0,
+  "product_scope_excluded_characters": 20,
+  "accepted_replacements": 29,
+  "production_import_approval_gate": "PASS",
+  "approval_locator_mutation_guards_verified": 10,
+  "semantic_acceptance_records_verified": 440,
+  "semantic_acceptance_files_verified": 11,
+  "production_payload_bindings_verified": 440,
+  "replayed_accepted_source_bindings_verified": 381,
+  "directly_accepted_target_bindings_verified": 59,
+  "semantic_mutation_guards_verified": 6,
+  "receipt_mutation_guards_verified": 3,
+  "route_counts": {
+    "animcjk_363": 363,
+    "moe_stroke_svg_10": 10,
+    "human_generated_8": 8,
+    "strokeorder_merge_79": 59
+  },
+  "evidence_files_verified": 20,
+  "static_and_evidence_gates": "PASS",
+  "browser_svg_render_gate": "PASS_440_CHARACTERS_5391_STROKES",
+  "expected_stroke_total": 5391
+}
+{
+  "status": "passed",
+  "cards": 7294,
+  "approvedTargets": 340,
+  "before": {
+    "leaks": 109,
+    "wordCollisionGroups": 34,
+    "wordCollisionCards": 69,
+    "allCollisionGroups": 260,
+    "fallback": 954
+  },
+  "remaining": {
+    "leaks": 0,
+    "wordCollisionGroups": 0,
+    "allCollisionGroups": 226,
+    "fallback": 954
+  },
+  "governedMembershipUnchanged": true,
+  "protectedCardDataUnchanged": true,
+  "generatedDeckUnchanged": true,
+  "scope": "Exact visible-prompt regression; unchanged fallback collisions do not constitute language approval"
+}
+$ pnpm run verify:e2e && pnpm run verify:ui && pnpm run verify:pwa
+$ node scripts/verify_8105_app.js
+UI copy verification OK: 7 files, 102 retired phrases, 90 required phrases.
+Verified 109 original repeated-target cards, 58 currently repeated cards, and 340 content cards with real render/reveal, accessible masking, and narrow large-text controls.
+Verified FSRS-6 dual-loop practice, migration, persistence, backup, history, and 7294 cards.
+$ node scripts/verify_redesign_v3.js
+Verified interface redesign v4 and all 696 gloss layout/accessibility combinations.
+$ node scripts/verify_pwa_upgrade.js
+[pwa-upgrade] legacy commit not present locally, fetching 4d6e8e59d499
+[pwa-upgrade] unicode path control: data/水.json mutation discovered and replayed byte-for-byte
+[pwa-upgrade] legacy data/: 1 drifted file(s) replayed from 4d6e8e59d499 (data/context-overrides.js)
+[pwa-upgrade] replaying real v10 from 4d6e8e59d499 at /var/folders/rw/dvdcvbmj4pzg90p601zpgyjr0000gn/T/shizi-pwa-legacy-gkuMsA
+[pwa-upgrade] real v10 active: 6854 seed rows / 6854 unique characters
+[pwa-upgrade] upgraded to shizi-v13-8105-3ac0637e30ec-content-368205b7c784: 7294 seed rows, deck sha256 3ac0637e30ec
+{
+  "status": "PASS",
+  "legacy": {
+    "commit": "4d6e8e59d499e968c398ce662aff69eaff714f9d",
+    "cache": "shizi-v10",
+    "seed": 6854,
+    "unique": 6854
+  },
+  "failed_upgrade": {
+    "terminal": "redundant",
+    "cacheState": {
+      "names": [
+        "shizi-v10",
+        "shizi-v13-8105-3ac0637e30ec-content-368205b7c784"
+      ],
+      "entries": {
+        "shizi-v10": 622,
+        "shizi-v13-8105-3ac0637e30ec-content-368205b7c784": 0
+      },
+      "legacy": 622,
+      "current": 0
+    },
+    "offline": {
+      "seed": 6854,
+      "unique": 6854,
+      "cards": 6854,
+      "overrides": 56,
+      "build": "",
+      "libraries": [
+        {
+          "id": "core3500",
+          "total": 3500
+        },
+        {
+          "id": "adv3000",
+          "total": 2868
+        },
+        {
+          "id": "rare",
+          "total": 486
+        },
+        {
+          "id": "primary",
+          "total": 283
+        },
+        {
+          "id": "junior",
+          "total": 911
+        },
+        {
+          "id": "senior",
+          "total": 2097
+        }
+      ],
+      "cacheNames": [
+        "shizi-v10",
+        "shizi-v13-8105-3ac0637e30ec-content-368205b7c784"
+      ],
+      "controlled": true,
+      "startBound": true
+    }
+  },
+  "upgrade": "shizi-v10 -> shizi-v13-8105-3ac0637e30ec-content-368205b7c784",
+  "current": {
+    "build": "8105-3ac0637e30ec-content-368205b7c784",
+    "deckSrc": "deck-data.js?v=3ac0637e30ec",
+    "deckSha256": "3ac0637e30ecf187e5a979b6e5f3212760b23aabed03928ee33b31a8d82c1b81",
+    "seed": 7294,
+    "unique": 7294,
+    "libraries": [
+      {
+        "id": "core3500",
+        "total": 3500,
+        "officialTotal": 3500
+      },
+      {
+        "id": "adv3000",
+        "total": 2976,
+        "officialTotal": 3000
+      },
+      {
+        "id": "rare",
+        "total": 818,
+        "officialTotal": 1605
+      },
+      {
+        "id": "curriculum2500",
+        "total": 2500,
+        "officialTotal": 2500
+      }
+    ]
+  },
+  "critical_503": [
+    {
+      "round": "critical-503-deck",
+      "servedDuringLoad": [
+        503
+      ],
+      "served": [
+        503,
+        503
+      ],
+      "seed": 7294,
+      "direct": {
+        "ok": true,
+        "status": 200,
+        "sha256": "3ac0637e30ecf187e5a979b6e5f3212760b23aabed03928ee33b31a8d82c1b81"
+      }
+    },
+    {
+      "round": "critical-503-overrides",
+      "servedDuringLoad": [
+        503
+      ],
+      "served": [
+        503,
+        503
+      ],
+      "seed": 7294,
+      "direct": {
+        "ok": true,
+        "status": 200,
+        "sha256": "368205b7c784e73d46357634ade7147c6311f5d3d6e2ff4b63d3e7b646f43862"
+      }
+    },
+    {
+      "round": "critical-503-core-strokes",
+      "servedDuringLoad": [],
+      "served": [
+        503
+      ],
+      "seed": 7294,
+      "direct": {
+        "ok": true,
+        "status": 200,
+        "sha256": "13f7db4fa836bbee9876537e003247d35e8a7dd4a33ceb4e16b14b954572abcf"
+      }
+    },
+    {
+      "round": "critical-503-html",
+      "servedDuringLoad": [
+        503
+      ],
+      "served": [
+        503
+      ],
+      "seed": 7294,
+      "direct": null
+    }
+  ],
+  "control_missing_cache": {
+    "booted": false,
+    "seed": -1
+  },
+  "legacy_data": {
+    "drifted": 441,
+    "replayed": 1,
+    "newOnly": 440,
+    "workingCopyFallbacks": 611,
+    "driftedWorkingCopyFallbacks": 0
+  }
+}

@@ -81,7 +81,12 @@
     "P92": "旧代页面不强刷、deck 属尽力批次：实现在 sw.js（activate 不 client.navigate；sw-manifest bestEffort），产品知悉项",
     "P93": "迁移口径补充（加字残留、无 judged 不迁 sched、corrupt 删法、v1 备份 due 取备份日期、legacy.days 不上日历）：实现在 src/store/migrate.js，产品知悉项",
     "P94": "阻断页细节（提示常驻、再试一次策略、导出入口条件、迁移变体说明句 X-SYS.blockMigration 待文案）：实现在 src/ui/screens/block/index.js 与 corrupt-notice.js",
-    "P95": "字体：requireFont 失败只警告用回退栈（src/data/font-loader.js requireCanvasFont）；工具在 scripts/fonts/；子集语料加 ‹ —— 设计确认项"
+    "P95": "字体：requireFont 失败只警告用回退栈（src/data/font-loader.js requireCanvasFont）；工具在 scripts/fonts/；子集语料加 ‹ —— 设计确认项",
+    "P96": "原生分享/保存失败静默（M5-3 删除原生 alert）：实现在 ios/ShiziApp/ShiziApp/WebViewController.swift，待产品定是否加错误回调",
+    "P97": "触觉点位与按键音：实现在 src/platform/haptics.js / sound.js 与 write/result 接线，设计确认项",
+    "P98": "第一次结果页提醒邀请未做：src/ui/screens/result/index.js 的 setRemindInvite 槽留空，待产品给定",
+    "P99": "提醒内容细则：实现在 src/platform/reminder.js（policy.reminderWord 为运行时键）",
+    "P100": "iOS 相册用途串文案：ios/ShiziApp/ShiziApp/Info.plist，产品确认项"
   },
   "noCopy": [
     "R-H08",

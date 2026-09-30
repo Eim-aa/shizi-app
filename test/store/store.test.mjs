@@ -1,7 +1,7 @@
 // store/store.js：commit 事务语义、写失败不发布、中断矩阵、坏值隔离提示一次、配额回收重试、seed、备份整单拒绝。
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createStore, deleteInk, deriveSerial, getInk, setInk } from '../../src/store/store.js';
+import { createStore, deleteInk, deriveSerial, getInk, isReplacement, setInk } from '../../src/store/store.js';
 import { createStorage } from '../../src/store/storage.js';
 import { KEYS, inkKey, recordsKey } from '../../src/core/schema.js';
 import {
@@ -507,3 +507,19 @@ function sortKeys(value) {
   }
   return value;
 }
+
+test('replacement notifications (G1): load / seed are tagged as whole-state replacements, commit is not', () => {
+  const { store } = freshStore();
+  const seen = [];
+  store.subscribe((state, info) => seen.push(info));
+  assert.equal(store.seed(baselineState()).ok, true);
+  assert.equal(store.commit('judge', judgeMutation('大')).ok, true);
+  store.reload();
+  assert.deepEqual(seen.map(info => [info.type, info.label || null, isReplacement(info)]), [
+    ['commit', 'test-seed', true],
+    ['commit', 'judge', false],
+    ['load', null, true],
+  ]);
+  assert.equal(isReplacement(null), false);
+  assert.equal(isReplacement({ type: 'recover', label: 'x' }), false);
+});

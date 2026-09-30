@@ -339,10 +339,11 @@ function useReducedMotion() {
  * @param {number} o.written            当前书写格已完成的本人笔数（P01 按已写笔数）
  * @param {{status, data}} o.strokes    useStrokeData(char) 的结果
  * @param {() => object} [o.getStore]   store 访问（缺省 store/store.js getStore，注入给测试）
+ * @param {() => void} [o.onHinted]      给出了一次提示之后（写字页用来结束跳过的撤销机会，G3）
  * @returns {{used, source, button, layer, note, inkOpacity, inkTransition, onStrokeStart, onHint, lastCommit}}
  *   used = max(本地次数, 已存次数)，M1-4 / M1-5 记 help.hints 用它兜底。
  */
-export function useHint({ slot, session, cardKey, char, phase, written, strokes, getStore }) {
+export function useHint({ slot, session, cardKey, char, phase, written, strokes, getStore, onHinted }) {
   const current = session && session.current ? session.current : null;
   const stored = current ? { hints: current.hints, hintRange: current.hintRange } : null;
   const [view, dispatch] = useReducer(reduceHintView, null, () => initialHintView(cardKey, stored));
@@ -402,6 +403,7 @@ export function useHint({ slot, session, cardKey, char, phase, written, strokes,
     clearTimeout(timerRef.current);
     timerRef.current = 0;
     dispatch({ type: 'hint', range });
+    if (typeof onHinted === 'function') onHinted(); // 写字页：跳过的撤销机会到此结束（G3）
     // 写入失败不阻断（P52 同口径）：提示照常显示，本地 used 已 +1，下次写入带上。
     doCommit('hint', { hints: used + 1, hintRange: { from: range.from, to: range.to } });
   }

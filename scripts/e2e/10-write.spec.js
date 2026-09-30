@@ -5,7 +5,7 @@
 
 import {
   bootTestHost, canvasInk, drawStroke, HORIZONTAL, installNativeStub, makeSession, nativeMessages, openWrite,
-  PRESS_SETTLE_MS, seedSession, tid, topSel, VERTICAL, waitNavIdle, writeSnapshot,
+  seedSession, tid, topSel, VERTICAL, waitNavIdle, writeSnapshot,
 } from './helpers.mjs';
 
 const CHARS = ['永', '和', '春'];
@@ -69,13 +69,11 @@ export default async function write(page, ctx) {
   assert.deepEqual(s.done, { disabled: true, ariaDisabled: 'true' }, '「写好了」 disabled after clear');
   assert.equal(s.undo.disabled, false, 'undo still available right after clear');
   assert.equal(s.clear.disabled, true, 'clear disabled on an empty grid');
-  await page.waitForTimeout(PRESS_SETTLE_MS); // 同一按钮 0.4s 防连点
-  await page.click(topSel('write-undo'));
+  await page.click(topSel('write-undo')); // 撤销 / 清空不受「同一按钮 0.4s」节流（G2），不用等
   s = await writeSnapshot(page);
   assert.equal(s.strokes, 2, 'one undo after clear restores both strokes');
   assert.deepEqual(s.done, { disabled: false, ariaDisabled: null }, '「写好了」 enabled again');
   assert.equal(await canvasInk(page, 'write-grid-ink'), inkTwo, 'restored strokes repaint identically');
-  await page.waitForTimeout(PRESS_SETTLE_MS);
   await page.click(topSel('write-undo'));
   s = await writeSnapshot(page);
   assert.equal(s.strokes, 1, 'after the restore, undo removes strokes one by one again');
@@ -102,6 +100,28 @@ export default async function write(page, ctx) {
   s = await writeSnapshot(page);
   assert.equal(s.strokes, 1, 'pointercancel drops the current stroke, solid strokes untouched');
   assert.equal(s.done.disabled, false, '「写好了」 still enabled (one committed stroke remains)');
+
+  ctx.step('G2: two strokes, then 撤销 twice within 150ms → 0 strokes (no same-button 0.4s throttle on undo)');
+  await drawStroke(page, HORIZONTAL);
+  s = await writeSnapshot(page);
+  assert.equal(s.strokes, 2, 'two strokes before the rapid undo');
+  const undoBox = await page.locator(topSel('write-undo')).boundingBox();
+  const rapid = await page.evaluate(() => {
+    const b = document.querySelector('.sz-layer[data-top="true"] [data-testid="write-undo"]');
+    window.__undoClicks = [];
+    b.addEventListener('click', e => window.__undoClicks.push(e.timeStamp), { capture: true });
+    return true;
+  });
+  assert.ok(rapid, 'undo click probe installed');
+  await page.mouse.click(undoBox.x + undoBox.width / 2, undoBox.y + undoBox.height / 2);
+  await page.waitForTimeout(100);
+  await page.mouse.click(undoBox.x + undoBox.width / 2, undoBox.y + undoBox.height / 2);
+  const gap = await page.evaluate(() => window.__undoClicks[1] - window.__undoClicks[0]);
+  assert.ok(gap > 0 && gap < 150, `the two undo presses were ${Math.round(gap)}ms apart (< 150ms)`);
+  s = await writeSnapshot(page);
+  assert.equal(s.strokes, 0, 'both presses counted: 0 strokes left');
+  assert.deepEqual(s.done, { disabled: true, ariaDisabled: 'true' }, '「写好了」 disabled again');
+  assert.equal(await canvasInk(page, 'write-grid-ink'), 0, 'solid layer repainted empty');
 
   ctx.step('changing the character: pen-down within 0.3s is ignored, after 0.3s it counts (走查-V01)');
   const next = makeSession({ slot: 'A', kind: 'daily', chars: CHARS, cursor: 1 });

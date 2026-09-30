@@ -452,3 +452,16 @@ test('Button press guard: 0.4s after a state change and between presses, by even
   assert.equal(accept(1990), false, 'an event stamped before the state change is dropped too');
   assert.equal(accept(2400), true);
 });
+
+test('Button press guard, rapid (G2 撤销 / 清空): no same-button 0.4s throttle, the 0.4s-after-new-state guard stays', () => {
+  let stateChange = 1000;
+  const accept = createPressGuard(PRESS_GUARD_MS, () => stateChange);
+  assert.equal(accept(1200, { rapid: true }), false, 'still dropped within 0.4s of a new page / state');
+  assert.equal(accept(1400, { rapid: true }), true);
+  assert.equal(accept(1550, { rapid: true }), true, 'second press 150ms later is accepted');
+  assert.equal(accept(1600, { rapid: true }), true);
+  assert.equal(accept(1700), false, 'a non-rapid press right after is still throttled');
+  stateChange = 2000;
+  assert.equal(accept(2100, { rapid: true }), false, 'rapid presses inside 0.4s of a state change are dropped');
+  assert.equal(accept(2400, { rapid: true }), true);
+});

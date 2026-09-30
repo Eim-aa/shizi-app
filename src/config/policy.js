@@ -108,6 +108,28 @@ export const strokeSaveFailure = 'non-blocking';
 // P24 按键音触发点：判断落定与描红落笔（沿旧）
 export const keySoundEvents = Object.freeze(['judge', 'trace-stroke']);
 
+// ---- 笔迹渲染（手感参数，待真机）----
+// P65 笔迹渲染常量：core/ink-math.js 默认从这里读（buildStroke / catmullRom / resampleForReplay / encodeInk 的 base），
+// 仍可经 opts 注入（opts.policy 整表或 opts.base / lo / hi 等单键）。全是「待真机」起始值（交接备注一、八.3；
+// L-proto-model-ink §4.2），Pencil / ProMotion 真机看过再定。已定规格（speedCap 1.5、tau 35ms、window 30ms、
+// dotLen 24、single .9，交接备注八.1 / D09）不在此表，留在 ink-math 的 INK_SPEC。
+export const ink = Object.freeze({
+  base: 11.5, // P65 本体宽 BASE（345 单位）；来源：原型 SZInk.build / 交接备注八.1
+  lo: 0.25, // P65 收笔阈值 LO：抬笔前 30ms 均速 ≤ lo 不收尖（单位/ms）；来源：交接备注八.1
+  hi: 0.9, // P65 收笔阈值 HI：均速 ≥ hi 收到最尖（单位/ms）；来源：交接备注八.1
+  pressureLo: 0.58, // P65 压力因子 .58 + √p·gain 的截距兼下限（pen 且 p>0，D10）；来源：旧版 index.html:2198（639f592）
+  pressureGain: 0.94, // P65 压力因子增益 √p 系数；来源：旧版 index.html:2198
+  pressureHi: 1.52, // P65 压力因子上限；来源：旧版 index.html:2198
+  step: 3, // P65 Catmull-Rom 重采样步长（约 3 单位一点，03 P65「抽点步长」）；来源：交接备注八.1 / 原型
+  tapMax: 28, // P65 收尖段长度上限 min(tapMax, tapRatio·len)；来源：原型 SZInk.build（文字规格未写）
+  tapRatio: 0.3, // P65 收尖段占全长比例；来源：原型 SZInk.build（文字规格未写）
+  endMinSlow: 0.9, // P65 收尖末端倍数（k=0，慢收笔，实际不收尖）；来源：原型 SZInk.build（文字规格未写）
+  endMinFast: 0.12, // P65 收尖末端倍数（k=1，快收笔最尖）；来源：原型 SZInk.build（文字规格未写）
+  euroMinCutoff: 1, // P65 1€ 滤波 minCutoff；来源：原型 SZInk.build（文字规格未写）
+  euroBeta: 0.02, // P65 1€ 滤波 beta；来源：原型 SZInk.build（文字规格未写）
+  euroDCutoff: 1, // P65 1€ 滤波 dCutoff；来源：原型 SZInk.build（文字规格未写）
+});
+
 // ---- 查字 / 字库 ----
 // P56 字库墨墙墨色四档的天数阈值（R-L03；原型硬编码 7/30/90）：≤7 天 / ≤30 天 / ≤90 天 / 更久
 export const inkToneDays = Object.freeze([7, 30, 90]);

@@ -3,7 +3,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  INK, GRID, buildStroke, speedFactor, pressureFactor, mergeSameTime, liftSpeed, catmullRom, thinStroke,
+  INK, INK_SPEC, INK_TUNABLE_KEYS, inkParams, GRID, buildStroke, speedFactor, pressureFactor, mergeSameTime, liftSpeed, catmullRom, thinStroke,
   strokeLength, encodeInk, decodeInk, isInkV2, resampleForReplay, encodeRawStrokes, decodeRawStrokes,
 } from '../../src/core/ink-math.js';
 import * as policy from '../../src/config/policy.js';
@@ -260,4 +260,41 @@ test('ink-math: raw session strokes encode losslessly enough to rebuild the same
   close(a[a.length - 1].w, b[b.length - 1].w, 0.05, 'rebuilt end width matches');
   close(meanWidthBetween(a, 30, 60), meanWidthBetween(b, 30, 60), 0.05, 'rebuilt body width matches');
   assert.deepEqual(decodeRawStrokes([[5, 1, 2, 3], 'x', [3, 1, 2]]), [], 'bad rows skipped');
+});
+
+test('ink-math: hand-feel constants come from policy.ink (P65); decided spec stays in INK_SPEC', () => {
+  assert.deepEqual(
+    { base: policy.ink.base, lo: policy.ink.lo, hi: policy.ink.hi, pLo: policy.ink.pressureLo, pGain: policy.ink.pressureGain, pHi: policy.ink.pressureHi },
+    { base: 11.5, lo: 0.25, hi: 0.9, pLo: 0.58, pGain: 0.94, pHi: 1.52 },
+    'P65 transitional values (沿旧版 / 原型)',
+  );
+  for (const key of INK_TUNABLE_KEYS) assert.equal(INK[key], policy.ink[key], `INK.${key} reads policy.ink.${key}`);
+  assert.deepEqual(Object.keys(policy.ink).sort(), [...INK_TUNABLE_KEYS].sort(), 'policy.ink holds exactly the tunable keys');
+  assert.deepEqual(INK_SPEC, { speedCap: 1.5, tau: 35, window: 30, dotLen: 24, single: 0.9 });
+  for (const key of Object.keys(INK_SPEC)) assert.equal(key in policy.ink, false, `${key} is decided spec, not a policy key`);
+  assert.equal(pressureFactor(1), 1.52);
+  assert.equal(pressureFactor(0), 0.58);
+});
+
+test('ink-math: policy.ink can be injected (opts.policy) and single keys overridden (opts.base / lo / hi …)', () => {
+  const raw = line({ v: 0.3 });
+  const def = buildStroke(raw, { final: true });
+  const wide = { ...policy, ink: { ...policy.ink, base: 23 } };
+  const injected = buildStroke(raw, { final: true, policy: wide });
+  const overridden = buildStroke(raw, { final: true, base: 23 });
+  const mid = pts => pts[Math.floor(pts.length / 2)].w;
+  assert.ok(Math.abs(mid(injected) / mid(def) - 2) < 0.01, 'injected base 23 doubles the body width');
+  assert.ok(Math.abs(mid(overridden) - mid(injected)) < 1e-9, 'opts.base overrides the same way');
+  const sparse = line({ v: 0.3, step: 50 }); // 采样相距 15 单位：step 3 → 每段 5 点，step 9 → 每段 2 点
+  const fine = buildStroke(sparse, { final: true });
+  const coarse = buildStroke(sparse, { final: true, step: 9 });
+  assert.ok(coarse.length < fine.length * 0.6, `opts.step (P65) coarsens the resampling (${coarse.length} vs ${fine.length})`);
+  const slowTaper = buildStroke(line({ v: 0.6 }), { final: true, hi: 5 });
+  const fastTaper = buildStroke(line({ v: 0.6 }), { final: true });
+  assert.ok(slowTaper[slowTaper.length - 1].w > fastTaper[fastTaper.length - 1].w, 'opts.hi changes the lift taper');
+  assert.equal(inkParams(wide).base, 23);
+  assert.throws(() => inkParams({ ...policy, ink: { ...policy.ink, lo: undefined } }), /policy\.ink\.lo/);
+  assert.throws(() => inkParams({}), /policy\.ink/);
+  const ink = encodeInk([def], { policy: wide });
+  assert.ok(Math.abs(decodeInk(ink, { policy: wide })[0][0].w - def[0].w) < 0.2, 'encode / decode use the injected base for w');
 });

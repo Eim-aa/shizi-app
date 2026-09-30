@@ -429,12 +429,13 @@ export function openAnswerConfirm({ slot, cardKey }) {
  * @param {string} o.phase
  * @param {number} o.strokeCount  当前阶段书写格笔数
  * @param {number} [o.size=345]
+ * @param {() => void} [o.onShowAnswer]  点了「看答案」（确认框打开前；写字页用来结束跳过的撤销机会，G3）
  * @returns {{active:boolean, link:any, stage:any, glyphLayer:any, note:string, footer:any}}
  *   active：本流程接管底栏（answer / trace / retrace，或看过答案后的 recall）；
  *   link：回忆阶段「看答案」按钮（放 write-answer-slot）；stage：answer 阶段替代书写格的看答案卡片；
  *   glyphLayer：trace 阶段书写格参考字形层内容；note：书写格下说明（write-note）；footer：接管时的底栏。
  */
-export function useAnswerFlow({ slot, session, cardKey, phase, strokeCount = 0, size = 345 }) {
+export function useAnswerFlow({ slot, session, cardKey, phase, strokeCount = 0, size = 345, onShowAnswer }) {
   const char = cardKey ? charOfCardKey(cardKey) : null;
   const answerSeen = !!(session && session.current && session.current.answerSeen);
   const inFlow = ANSWER_PHASES.includes(phase);
@@ -459,7 +460,10 @@ export function useAnswerFlow({ slot, session, cardKey, phase, strokeCount = 0, 
 
   const link = cardKey && phase === 'recall' && !answerSeen
     ? html`<${Button} variant="text" class="sz-answer__link" data-testid="write-show-answer"
-        onClick=${() => openAnswerConfirm({ slot, cardKey })}>${t('R-W07.btnShowAnswer')}</${Button}>`
+        onClick=${() => {
+          if (typeof onShowAnswer === 'function') onShowAnswer(); // 写字页：跳过的撤销机会到此结束（G3）
+          openAnswerConfirm({ slot, cardKey });
+        }}>${t('R-W07.btnShowAnswer')}</${Button}>`
     : null;
 
   if (!active) return { active: false, link, stage: null, glyphLayer: null, note: '', footer: null };

@@ -11,9 +11,10 @@
 //
 // 单位：坐标为书写格内部 345×345 单位（01 §6.1，与显示尺寸无关）；时间 ms；输出 {x, y, w, t, p?}，w 为绝对笔宽（单位同坐标）。
 //
-// 常量（BASE、收笔阈值 LO/HI、压力映射）是「待真机」起始值（交接备注一、八.3；L-proto-model-ink §4.2）。
-// 03-待产品决定 目前没有对应 P 编号，所以暂放在本模块的 INK 常量表里、全部可经 opts 注入；
-// 已在 M1-1 报告登记待定项（登记 P 编号后迁入 src/config/policy.js）。
+// 常量：手感参数（BASE、收笔阈值 LO/HI、压力映射、重采样步长、收尖段与 1€ 滤波等原型细节）是「待真机」起始值，
+// 登记为 03-待产品决定 P65，默认读 src/config/policy.js 的 policy.ink；已定规格（INK_SPEC：speedCap / tau / window /
+// dotLen / single，交接备注八.1、D09）留在本模块。两者合成 INK（默认表）；opts.policy 注入整张 policy，
+// opts 上的同名数值键（base / lo / hi / step / pressureLo …）覆盖单项。
 // 抽点上限读 policy.inkMaxPointsPerStroke / inkMaxStrokes（P05）。
 
 import * as defaultPolicy from '../config/policy.js';
@@ -21,30 +22,20 @@ import * as defaultPolicy from '../config/policy.js';
 /** 书写格内部边长（01 §6.1）。 */
 export const GRID = 345;
 
-export const INK = Object.freeze({
-  base: 11.5, // 本体宽 BASE（pt / 345 单位）——待真机（交接备注八.1）
-  lo: 0.25, // 收笔阈值：抬笔前 30ms 均速 ≤ lo 不收尖（pt/ms）——待真机
-  hi: 0.9, // 收笔阈值：≥ hi 收到最尖（pt/ms）——待真机
-  // 以下为已定规格（交接备注八.1、D09）
+/** 已定规格（交接备注八.1、D09）：不是待定项，不进 policy。 */
+export const INK_SPEC = Object.freeze({
   speedCap: 1.5, // 本体宽公式里 v 的上限：BASE × (1.06 − 0.12·min(v, 1.5))
   tau: 35, // 宽度按时间平滑：α = 1 − e^(−Δt/35ms)
   window: 30, // 收笔看抬笔前 30ms 平均速度
   dotLen: 24, // 点画：抬笔后总长 < 24
-  step: 3, // Catmull-Rom 重采样约 3 单位一点
-  tapMax: 28, // 收尖段长度 min(28, 30%·len)（原型细节）
-  tapRatio: 0.3,
-  endMinSlow: 0.9, // 收尖末端倍数：k=0 → .9（原型细节；k=0 时实际不收尖）
-  endMinFast: 0.12, // k=1 → .12
   single: 0.9, // 单点直径 = 0.9 × 本体宽
-  // 1€ 滤波参数（原型；文字规格未写）
-  euroMinCutoff: 1,
-  euroBeta: 0.02,
-  euroDCutoff: 1,
-  // 压力因子（D10；旧版 index.html:2198）——待真机
-  pressureLo: 0.58,
-  pressureGain: 0.94,
-  pressureHi: 1.52,
 });
+
+/** policy.ink（P65 手感参数）里的键；opts 上同名的有限数值覆盖单项。 */
+export const INK_TUNABLE_KEYS = Object.freeze([
+  'base', 'lo', 'hi', 'pressureLo', 'pressureGain', 'pressureHi', 'step',
+  'tapMax', 'tapRatio', 'endMinSlow', 'endMinFast', 'euroMinCutoff', 'euroBeta', 'euroDCutoff',
+]);
 
 function num(value, fallback) {
   return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
@@ -54,14 +45,33 @@ function clamp(x, lo, hi) {
   return x < lo ? lo : x > hi ? hi : x;
 }
 
+/** 笔迹参数表：policy.ink（P65，缺键时报错而不是悄悄补值）+ 已定规格 INK_SPEC。 */
+export function inkParams(policy = defaultPolicy) {
+  const tunable = policy && policy.ink;
+  if (!tunable || typeof tunable !== 'object') throw new TypeError('policy.ink (P65) is missing');
+  const out = {};
+  for (const key of INK_TUNABLE_KEYS) {
+    if (!(typeof tunable[key] === 'number' && Number.isFinite(tunable[key]))) throw new TypeError(`policy.ink.${key} (P65) is not a finite number`);
+    out[key] = tunable[key];
+  }
+  return Object.freeze({ ...out, ...INK_SPEC });
+}
+
+/** 默认参数表（policy.ink + INK_SPEC）。 */
+export const INK = inkParams(defaultPolicy);
+
 function params(opts) {
   if (!opts) return INK;
-  return {
-    ...INK,
-    base: num(opts.base, INK.base),
-    lo: num(opts.lo, INK.lo),
-    hi: num(opts.hi, INK.hi),
-  };
+  const table = opts.policy ? inkParams(opts.policy) : INK;
+  let out = null;
+  for (const key of INK_TUNABLE_KEYS) {
+    const v = opts[key];
+    if (typeof v === 'number' && Number.isFinite(v) && v !== table[key]) {
+      if (!out) out = { ...table };
+      out[key] = v;
+    }
+  }
+  return out || table;
 }
 
 /** 速度因子（本体宽 / BASE）：1.06 − 0.12·min(v, 1.5)。 */
@@ -189,8 +199,9 @@ export function liftSpeed(merged, windowMs = INK.window) {
  * @param {Array<{x:number,y:number,t:number,p?:number}>} raw  345 空间、ms；p 仅 pen（>0 才算有压力）
  * @param {object} [opts]
  * @param {boolean} [opts.final=false]  已抬笔：锁尾、收笔、点画判定
- * @param {number} [opts.base]  本体宽（默认 INK.base）
- * @param {number} [opts.lo] [opts.hi]  收笔阈值
+ * @param {number} [opts.base]  本体宽（默认 policy.ink.base，P65）
+ * @param {number} [opts.lo] [opts.hi]  收笔阈值（默认 policy.ink.lo / hi，P65）；其它 INK_TUNABLE_KEYS 同样可覆盖
+ * @param {object} [opts.policy]  注入整张 policy（读其 ink 表）
  * @returns {Array<{x,y,w,t,p?}>} 附属性 v30 / dot / single / endK / pressure（数组上的属性，不进 JSON）
  */
 export function buildStroke(raw, opts = {}) {
@@ -336,7 +347,7 @@ export function thinStroke(points, max = defaultPolicy.inkMaxPointsPerStroke) {
  */
 export function encodeInk(strokes, opts = {}) {
   const policy = opts.policy || defaultPolicy;
-  const base = num(opts.base, INK.base);
+  const base = num(opts.base, opts.policy ? inkParams(policy).base : INK.base);
   const maxPoints = num(opts.maxPoints, policy.inkMaxPointsPerStroke);
   const maxStrokes = num(opts.maxStrokes, policy.inkMaxStrokes);
   const kept = (strokes || []).filter(s => Array.isArray(s) && s.length > 0).slice(0, Math.max(0, Math.floor(maxStrokes)));
@@ -391,7 +402,7 @@ export function isInkV2(ink) {
  */
 export function decodeInk(ink, opts = {}) {
   if (!isInkV2(ink)) return null;
-  const base = num(opts.base, INK.base);
+  const base = num(opts.base, opts.policy ? inkParams(opts.policy).base : INK.base);
   const scale = GRID / 1000;
   let t = 0;
   return ink.s.map((row, si) => {

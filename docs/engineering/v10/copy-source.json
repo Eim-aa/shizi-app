@@ -48,7 +48,11 @@
     "P22": "字体子集重建范围：构建期（M5-2 用 #180 reproduce.py），不是运行时开关",
     "P62": "结果页说明句单独「看过答案」/「跳过」的措辞：待设计给文案，M2-3 落槽（R-R01）；落槽前不占 copy 键",
     "P63": "字库首页「从 X 开始记录」的 X：待设计裁定日期/月份，M3-1 落槽（R-L10）",
-    "P64": "文案槽位占位符归一（{date}的、{month} 月）：抽取阶段规则，见 normalization；请产品确认"
+    "P64": "文案槽位占位符归一（{date}的、{month} 月）：抽取阶段规则，见 normalization；请产品确认",
+    "P67": "看答案流程细则（描一遍每次先播、落笔即跳过；阶段切换与「下一个」等保存成功才推进；卡片读屏读答案字）：流程行为，按 03 过渡默认实现在 src/ui/screens/write/answer.js，不是 policy 开关；请产品确认（M2-3）",
+    "P68": "题面区可见提示行与窄屏词语行的位置 / 样式：CSS 与布局（src/ui/screens/write/prompt.js），不是运行时开关；请设计确认（M6）",
+    "P69": "紧凑版触发条件（data-large 或视口高 ≤ 760px）：现值在 src/ui/screens/write/compact.js COMPACT_MAX_HEIGHT / COMPACT_QUERY（CSS media 与 JS 同一条件），尚未迁入 policy.js——待设计确认后再定是否迁（M6）",
+    "P70": "提示层 / 看答案动画节奏与 P52 提示时长（看答案 speed 1.6、笔间隔 180ms、淡入淡出 240ms；提示逐笔 ≤240ms、错开 ×0.7；抬笔写失败提示 5s、每次加载最多一次）：现值为各模块常量（src/ui/canvas/glyph.js ANIMATION、src/ui/screens/write/hint-layer.js HINT_DRAW、persist.js NOTICE_MS），尚未迁入 policy.js——设计走查后再定（M6）"
   },
   "noCopy": [
     "R-H08",
@@ -2520,7 +2524,8 @@
           "raw": null,
           "text": "书写格",
           "origin": "extra",
-          "note": "书写格容器 role=img 的 aria-label（读屏文案）；取 01 §6.1 的名称，不含答案字（决定-D16）"
+          "note": "书写格容器 role=img 的 aria-label（读屏文案）；取 01 §6.1 的名称，不含答案字（决定-D16）",
+          "decision": "P66"
         }
       }
     },
@@ -2533,19 +2538,22 @@
           "raw": null,
           "text": "描一遍",
           "origin": "extra",
-          "note": "描一遍阶段页头标题；原型 titles.trace（ShiziWriteScreen L553）；reference/I-proto-write.md 文案表「标题 trace」"
+          "note": "描一遍阶段页头标题；原型 titles.trace（ShiziWriteScreen L553）；reference/I-proto-write.md 文案表「标题 trace」",
+          "decision": "P66"
         },
         "btnTraceDone": {
           "raw": null,
           "text": "描好了，自己写",
           "origin": "extra",
-          "note": "描一遍阶段主按钮（没写时 disabled）；原型 L551；reference/I-proto-write.md 文案表「主按钮 trace」"
+          "note": "描一遍阶段主按钮（没写时 disabled）；原型 L551；reference/I-proto-write.md 文案表「主按钮 trace」",
+          "decision": "P66"
         },
         "btnRetrace": {
           "raw": null,
           "text": "再描一遍",
           "origin": "extra",
-          "note": "自己写一遍阶段左按钮（回到描一遍）；原型 L553；04 R-W07「进『自己写一遍』：再描一遍 / 下一个」"
+          "note": "自己写一遍阶段左按钮（回到描一遍）；原型 L553；04 R-W07「进『自己写一遍』：再描一遍 / 下一个」",
+          "decision": "P66"
         }
       }
     },
@@ -2591,25 +2599,29 @@
           "raw": null,
           "text": "修改「{char}」的判断",
           "origin": "extra",
-          "note": "修改判断弹层标题；原型 sheetTitle（ShiziWriteScreen L637）；reference/I-proto-write.md 文案表「修改判断弹层标题」"
+          "note": "修改判断弹层标题；原型 sheetTitle（ShiziWriteScreen L637）；reference/I-proto-write.md 文案表「修改判断弹层标题」",
+          "decision": "P66"
         },
         "changeToWrong": {
           "raw": null,
           "text": "改为写错",
           "origin": "extra",
-          "note": "修改判断弹层主按钮（当前记为写对时）；原型 flipLabel（L639）；reference/I-proto-write.md「弹层主按钮」"
+          "note": "修改判断弹层主按钮（当前记为写对时）；原型 flipLabel（L639）；reference/I-proto-write.md「弹层主按钮」",
+          "decision": "P66"
         },
         "changeToCorrect": {
           "raw": null,
           "text": "改为写对",
           "origin": "extra",
-          "note": "修改判断弹层主按钮（当前记为写错时）；原型 flipLabel（L639）"
+          "note": "修改判断弹层主按钮（当前记为写错时）；原型 flipLabel（L639）",
+          "decision": "P66"
         },
         "changeCancel": {
           "raw": null,
           "text": "取消",
           "origin": "extra",
-          "note": "修改判断弹层右上关闭；原型 L240；reference/I-proto-write.md「弹层取消」"
+          "note": "修改判断弹层右上关闭；原型 L240；reference/I-proto-write.md「弹层取消」",
+          "decision": "P66"
         }
       }
     },
@@ -2622,13 +2634,15 @@
           "raw": null,
           "text": "这次进度没有保存。请立即导出备份后重新打开 App。",
           "origin": "extra",
-          "note": "抬笔写会话现场失败（非配额）的顶部一次性提示；旧 index.html L1067 通用句逐字；P52"
+          "note": "抬笔写会话现场失败（非配额）的顶部一次性提示；旧 index.html L1067 通用句逐字；P52",
+          "decision": "P66"
         },
         "quotaFailed": {
           "raw": null,
           "text": "本地空间已满，这次进度没有保存。请立即导出备份并清理空间。",
           "origin": "extra",
-          "note": "抬笔写会话现场撞配额（QuotaExceededError）的顶部一次性提示；旧 index.html L1067 配额句逐字；P52"
+          "note": "抬笔写会话现场撞配额（QuotaExceededError）的顶部一次性提示；旧 index.html L1067 配额句逐字；P52",
+          "decision": "P66"
         }
       }
     }

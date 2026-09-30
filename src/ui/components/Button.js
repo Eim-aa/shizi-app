@@ -1,6 +1,7 @@
 // 按钮：所有可点控件都是 <button>（01-架构设计 §7、R-G09）。
 // 防连点（01 §6.6、走查-W08）：新页面或新状态后 0.4s 内、以及同一按钮两次按下间隔 < 0.4s 时不响应；
 // 一律按事件 timeStamp 比较（与 performance.now() 同一时钟）。
+// rapid：本来就要连点的按钮（书写格的撤销 / 清空：连撤几笔）不做「同一按钮 0.4s」节流，只保留「新状态后 0.4s」（M1 验收 G2）。
 // 禁用：disabled + aria-disabled（R-G08）。
 import { html, useRef } from '../../../vendor/ui.js';
 import { injectStyles, T } from './styles.js';
@@ -30,12 +31,13 @@ export function eventTime(event) {
   return ts;
 }
 
-// 纯函数版本，单测可直接用：返回 accept(ts) → 是否响应这次按下。
+// 纯函数版本，单测可直接用：返回 accept(ts, {rapid}) → 是否响应这次按下。
+// rapid=true 时只看「新状态后 ms」，不看同一按钮上一次按下。
 export function createPressGuard(ms = PRESS_GUARD_MS, getStateChange = () => lastStateChange) {
   let last = -Infinity;
-  return function accept(ts) {
+  return function accept(ts, { rapid = false } = {}) {
     if (ts < getStateChange() + ms) return false;
-    if (ts < last + ms) return false;
+    if (!rapid && ts < last + ms) return false;
     last = ts;
     return true;
   };
@@ -63,12 +65,14 @@ injectStyles('button', `
  * @param {'primary'|'secondary'|'text'|'icon'|'plain'} [props.variant]
  * @param {boolean} [props.disabled]
  * @param {boolean} [props.guard]  false 时不做防连点（例如书写格工具条以外的纯展示切换）
+ * @param {boolean} [props.rapid]  true 时不做「同一按钮 0.4s」节流，只保留「新页面 / 新状态后 0.4s」（撤销 / 清空连点）
  */
 export function Button(props) {
   const {
     variant = 'primary',
     disabled = false,
     guard = true,
+    rapid = false,
     onClick,
     children,
     class: cls,
@@ -83,7 +87,7 @@ export function Button(props) {
       event.preventDefault();
       return;
     }
-    if (guard && !guardRef.current(eventTime(event))) {
+    if (guard && !guardRef.current(eventTime(event), { rapid })) {
       event.preventDefault();
       event.stopPropagation();
       return;

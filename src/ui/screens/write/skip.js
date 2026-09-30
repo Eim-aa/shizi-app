@@ -9,6 +9,9 @@
 //   记录（id 允许空洞，01 §3.1）、字放回 cursor、current 回到 recall，并把这条记录里的提示次数放回 current.hints
 //   （帮助事实不因撤销丢失，决定-D07）。撤销写失败：轻提示换「没保存上，你写的字还在。」+ [先不保存 / 再试一次]，
 //   不自动消失，直到重试成功或点「先不保存」。3 秒后 / 会话已经变了（不是最后一条 skipped）则不能撤销。
+// 撤销机会的寿命（M1 验收 G3）：3 秒，或者下一字一开始操作就结束——第一次落笔（书写格接受了 pointerdown）、
+//   点提示、点看答案时写字页调用 dismiss() 立即收起底栏（失败态同样收起：用户已经往下写了，不再把字拉回来）。
+//   底栏由写字页挂在页面根上：最后一字跳过后写字页显示空页（M2-3 换成结果页），底栏照样显示、可撤销回到那个字。
 //
 // 规则：只经 store.commit 写存储；记录用 core/records.makeRecord / removeRecord，会话用 core/sessions.advance / undoSkip。
 //
@@ -179,9 +182,10 @@ export function SkipUndoDock(props) {
  * @param {string|null} o.cardKey
  * @param {string} o.phase       有效阶段
  * @param {number} o.hints       本地提示次数（useHint().used）
- * @returns {{shown, button, failed, note, failButtons, bar}}
+ * @returns {{shown, button, failed, note, failButtons, bar, undoOpen, dismiss}}
  *   shown：回忆阶段、没看过答案时显示「跳过」；failed：跳过写失败（调用方把主按钮行换成 failButtons、格下说明换 note）；
- *   bar：3 秒撤销轻提示（放在页面里，absolute 贴底）。
+ *   bar：3 秒撤销轻提示（放在页面根上，absolute 贴底；空页 / 结果页也要渲染）；undoOpen：撤销底栏是否在；
+ *   dismiss()：撤销机会结束（下一字落笔 / 点提示 / 点看答案），立即收起底栏。
  */
 export function useSkip({ slot, session, cardKey, phase, hints = 0 }) {
   const key = session && cardKey ? `${session.id}|${session.cursor}|${cardKey}` : null;
@@ -234,6 +238,12 @@ export function useSkip({ slot, session, cardKey, phase, hints = 0 }) {
     markStateChange();
   };
 
+  const dismiss = () => {
+    clearTimeout(timerRef.current);
+    timerRef.current = 0;
+    setUndo(u => (u ? null : u));
+  };
+
   const failed = !!(fail && fail.key === key);
   const answerSeen = !!(session && session.current && session.current.answerSeen);
   const shown = !!cardKey && phase === 'recall' && !answerSeen;
@@ -254,5 +264,7 @@ export function useSkip({ slot, session, cardKey, phase, hints = 0 }) {
       ? html`<${SkipUndoDock} char=${undo.char} failed=${undo.failed} onUndo=${doUndo}
           onCancelFail=${() => { setUndo(null); markStateChange(); }} />`
       : null,
+    undoOpen: !!undo,
+    dismiss,
   };
 }

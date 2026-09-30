@@ -7,7 +7,8 @@
 // 393×852 标准版不回归由 10 / 11 / 13 / 14 spec 复跑保证。
 
 import {
-  bootTestHost, drawStroke, HORIZONTAL, PRESS_SETTLE_MS, seedSession, tid, topSel, VERTICAL, waitNavIdle, openWrite,
+  bootTestHost, canvasInk, drawStroke, HORIZONTAL, PRESS_SETTLE_MS, seedSession, tid, topSel, VERTICAL, waitNavIdle, openWrite,
+  writeSnapshot,
 } from './helpers.mjs';
 
 const SHOTS = process.env.SHIZI_E2E_SHOTS || '';
@@ -316,10 +317,83 @@ async function compactWalk(page, ctx, { large }) {
   common(assert, g, `${tag} retrace`, ['write-retrace-trace', 'write-answer-next']);
 }
 
+/** 顶层写字页「刚打开、没有任何输入」的状态：写好了禁用、固化层 0 像素、本地 0 笔、撤销 / 清空不可见。 */
+async function blankState(page) {
+  const snap = await writeSnapshot(page);
+  const ink = await canvasInk(page);
+  const toolsVisible = await page.evaluate(() => {
+    const el = document.querySelector('.sz-layer[data-top="true"] [data-testid="write-undo"]');
+    if (!el) return false;
+    const r = el.getBoundingClientRect();
+    return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== 'hidden';
+  });
+  return { phase: snap.phase, done: snap.done, strokes: snap.strokes, toolsShown: snap.toolsShown, toolsVisible, ink };
+}
+
+function assertBlank(assert, b, label) {
+  assert.equal(b.phase, 'recall', `${label}: recall`);
+  assert.ok(b.done && b.done.disabled === true && b.done.ariaDisabled === 'true', `${label}: 写好了 disabled + aria-disabled="true" ${JSON.stringify(b.done)}`);
+  assert.equal(b.ink, 0, `${label}: committed ink layer has 0 painted pixels`);
+  assert.equal(b.strokes, 0, `${label}: 0 local strokes`);
+  assert.ok(b.toolsShown === false && b.toolsVisible === false, `${label}: 撤销 / 清空 row not visible`);
+}
+
+/**
+ * G1 回归（M1 验收）：打开写字页、不做任何输入 → 空白状态（标准 375×812 与紧凑 360×640 各一次）；
+ * 再覆盖根因：写字页挂着时 store 被整体替换（reset + seed 同一个字），本地那一笔不能留下 / 画回来，也不能写回新会话；
+ * 之后再 push 一个写字页，所有图层都是空白。
+ */
+async function openBlank(page, ctx, view) {
+  const { assert } = ctx;
+  const tag = `${view.width}×${view.height}`;
+  await setMode(page, ctx, { view, large: false });
+  const seeded = await seedSession(page, { slot: 'A', kind: 'daily', chars: CHARS, cursor: 0 });
+  assert.ok(seeded.ok, `${tag}: seed A session (cursor 0, no strokes)`);
+  await page.evaluate(async () => {
+    const { nav } = await import('/src/ui/router.js');
+    nav.push('write', { slot: 'A' });
+  });
+  await page.waitForSelector(topSel('write-screen'));
+  await page.waitForTimeout(900);
+  assertBlank(assert, await blankState(page), `${tag} open, no input`);
+
+  ctx.step(`${tag}: a stroke on the mounted screen does not survive a store replacement (reset + seed)`);
+  await waitNavIdle(page);
+  const g = await page.locator(topSel('write-grid-live')).boundingBox();
+  await page.mouse.click(g.x + g.width / 2, g.y + 6); // 单点「点画」（书写格顶部正中）
+  await waitStrokes(page, 1);
+  await page.waitForFunction(() => window.__shiziTest.getState().sessions.A.current.strokes.length === 1);
+  await page.evaluate(() => window.__shiziTest.reset());
+  await page.waitForTimeout(100); // 让写字页先按「没有会话」渲染一帧（旧实现此时的本地笔会在 seed 后写回新会话）
+  const again = await seedSession(page, { reset: false, slot: 'A', kind: 'daily', chars: CHARS, cursor: 0 });
+  assert.ok(again.ok, `${tag}: re-seed the same first character`);
+  await page.waitForTimeout(600);
+  assertBlank(assert, await blankState(page), `${tag} after re-seed`);
+  const stored = await page.evaluate(() => window.__shiziTest.getState().sessions.A.current.strokes.length);
+  assert.equal(stored, 0, `${tag}: the new session's current.strokes stays empty (old local stroke not written back)`);
+
+  await page.evaluate(async () => {
+    const { nav } = await import('/src/ui/router.js');
+    nav.push('write', { slot: 'A' });
+  });
+  await page.waitForTimeout(900);
+  const layers = await page.evaluate(() => [...document.querySelectorAll('[data-testid="write-grid"]')].map(el => ({
+    strokes: Number(el.dataset.strokeCount),
+    done: el.closest('.sz-page').querySelector('[data-testid="write-done"]').disabled,
+  })));
+  assert.ok(layers.length === 2 && layers.every(l => l.strokes === 0 && l.done === true),
+    `${tag}: both stacked write screens are blank ${JSON.stringify(layers)}`);
+  assertBlank(assert, await blankState(page), `${tag} pushed on top`);
+}
+
 export default async function compact(page, ctx) {
   const { assert } = ctx;
   // 走查：SHIZI_E2E_SCHEME=dark 时整条 spec 在深色下跑（配合 SHIZI_E2E_SHOTS 截图）。
   if (process.env.SHIZI_E2E_SCHEME) await page.emulateMedia({ colorScheme: process.env.SHIZI_E2E_SCHEME });
+
+  ctx.step('G1: open the write screen without any input → blank (375×812 standard, 360×640 compact)');
+  await openBlank(page, ctx, { width: 375, height: 812 });
+  await openBlank(page, ctx, COMPACT_VIEW);
 
   await compactWalk(page, ctx, { large: false });
   await compactWalk(page, ctx, { large: true });

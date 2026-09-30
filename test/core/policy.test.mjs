@@ -56,6 +56,12 @@ test('policy: transitional defaults match 03 / the M0-6 card', () => {
   assert.equal(policy.dailyReviewCap, 30);
   assert.deepEqual([...policy.firstQueue], ['尴', '嚏', '狩', '晤', '飓']);
   assert.equal(policy.hintMax, 2);
+  assert.deepEqual(
+    [policy.ink.base, policy.ink.lo, policy.ink.hi, policy.ink.pressureLo, policy.ink.pressureGain, policy.ink.pressureHi],
+    [11.5, 0.25, 0.9, 0.58, 0.94, 1.52],
+    'P65 ink hand-feel constants (沿旧版)',
+  );
+  assert.ok(Object.isFrozen(policy.ink));
   assert.equal(policy.hintStartRule, 'written-count');
   assert.equal(policy.hintUseGroups, false);
   assert.equal(policy.forgetRule, 'due');

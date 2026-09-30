@@ -36,6 +36,14 @@ export function deepFreeze(value) {
   return value;
 }
 
+/**
+ * 订阅通知是不是「整体替换」：load（启动 / 测试钩子 reset 后重读）或 seed / replaceWithBackup（info.replace）。
+ * 页面里按旧状态取的本地现场（写字页笔画）遇到替换要丢弃、按新状态重取。
+ */
+export function isReplacement(info) {
+  return !!info && (info.type === 'load' || info.replace === true);
+}
+
 export function emptyState() {
   const state = {};
   for (const domain of DOMAINS) state[domain] = isMonthlyDomain(domain) ? {} : null;
@@ -428,14 +436,19 @@ export function createStore({ storage = createStorage(), now = envNow, budgets =
     notify(info);
   }
 
-  /** 写草稿（commit/seed/replace 共用）。allowRecover=false 时不做预算回收。 */
-  function persist(draft, label, nextSerial, { allowRecover = true } = {}) {
+  /**
+   * 写草稿（commit/seed/replace 共用）。allowRecover=false 时不做预算回收。
+   * replace=true（seed / replaceWithBackup：整体替换，不是某一页自己的一步写入）时通知里带 replace:true，
+   * 让持有本地现场的页面（写字页笔画）丢弃本地副本、按新状态重取（load 通知同理）。
+   */
+  function persist(draft, label, nextSerial, { allowRecover = true, replace = false } = {}) {
+    const tag = replace ? { replace: true } : null;
     const nowMs = now();
     syncMonths(draft);
     let p = plan(draft);
     if (p.error) return errorResult(p.error.kind, label, { key: p.error.key, reason: p.error.reason });
     if (!p.entries.length) {
-      publish(draft, p.raws, nextSerial, { type: 'commit', label, keys: [] });
+      publish(draft, p.raws, nextSerial, { type: 'commit', label, keys: [], ...tag });
       return { ok: true, keys: [], recovered: [] };
     }
     const recovered = [];
@@ -473,7 +486,7 @@ export function createStore({ storage = createStorage(), now = envNow, budgets =
       return errorResult(failure.kind, label, { key: failure.key, reason: failure.reason, recoveredAttempted: recovered.length > 0 });
     }
     const keys = p.entries.map(([key]) => key);
-    publish(draft, p.raws, nextSerial, { type: 'commit', label, keys, recovered });
+    publish(draft, p.raws, nextSerial, { type: 'commit', label, keys, recovered, ...tag });
     return { ok: true, keys, recovered };
   }
 
@@ -552,7 +565,7 @@ export function createStore({ storage = createStorage(), now = envNow, budgets =
     const n = normalizeInput(input);
     if (n.error) return errorResult('shape', label, { reason: n.error });
     // meta.months 按给定 records 同步，让种子不必手写
-    return persist(n.draft, label, deriveSerial(n.draft), { allowRecover: false });
+    return persist(n.draft, label, deriveSerial(n.draft), { allowRecover: false, replace: true });
   }
 
   /**
@@ -573,7 +586,7 @@ export function createStore({ storage = createStorage(), now = envNow, budgets =
       else draft[spec.domain] = value;
     }
     const nextSerial = deriveSerial(draft);
-    const result = persist(draft, label, Math.max(nextSerial, serial), { allowRecover: false });
+    const result = persist(draft, label, Math.max(nextSerial, serial), { allowRecover: false, replace: true });
     if (result.ok) {
       try {
         storage.removeKeys(storage.listKeys(CORRUPT_PREFIX));

@@ -28,7 +28,7 @@ import { Button, markStateChange } from '../../components/Button.js';
 import { injectStyles, T } from '../../components/styles.js';
 import { InkGrid, STD_SIZE } from '../../canvas/ink-canvas.js';
 import { currentCardKey, PHASES } from '../../../core/sessions.js';
-import { getStore } from '../../../store/store.js';
+import { getStore, isReplacement } from '../../../store/store.js';
 import { setBackGestureEnabled } from '../../../platform/bridge.js';
 import { t } from '../../../config/copy/index.js';
 import { charOfCardKey } from '../../../core/records.js';
@@ -88,16 +88,20 @@ function clockNow() {
   return typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now();
 }
 
-/** 订阅 store，返回已发布状态（store 未启动时为 null）。 */
+/**
+ * 订阅 store，返回 {state, epoch}：state 是已发布状态（store 未启动时为 null）；epoch 在本页挂载期间每遇到一次
+ * 整体替换（store.isReplacement：load / seed / 恢复备份）加一——本地笔画现场以它为键的一部分，替换后按新状态重取，
+ * 不把旧状态下的本地笔画（例如被替换掉的会话上写的一笔）带进新会话（M1 验收 G1）。
+ */
 function useStoreState() {
   const read = () => {
     try {
-      return getStore().getState();
+      return { state: getStore().getState(), epoch: 0 };
     } catch (error) {
-      return null;
+      return { state: null, epoch: 0 };
     }
   };
-  const [state, setState] = useState(read);
+  const [snap, setSnap] = useState(read);
   useEffect(() => {
     let store = null;
     try {
@@ -105,10 +109,10 @@ function useStoreState() {
     } catch (error) {
       return undefined;
     }
-    setState(store.getState());
-    return store.subscribe(next => setState(next));
+    setSnap(prev => (prev.state === store.getState() ? prev : { state: store.getState(), epoch: prev.epoch }));
+    return store.subscribe((next, info) => setSnap(prev => ({ state: next, epoch: prev.epoch + (isReplacement(info) ? 1 : 0) })));
   }, []);
-  return state;
+  return snap;
 }
 
 /** 本页是顶层页面期间关掉原生左缘返回手势（01 §7），离开顶层 / 卸载时恢复。 */
@@ -141,7 +145,7 @@ function StepDots({ phase }) {
 
 function WriteScreen({ params, entry }) {
   const slot = params && params.slot === 'B' ? 'B' : 'A';
-  const state = useStoreState();
+  const { state, epoch } = useStoreState();
   const session = state && state.sessions ? state.sessions[slot] || null : null;
   const cardKey = currentCardKey(session);
   const rawPhase = session && session.current ? session.current.phase : 'recall';
@@ -156,15 +160,21 @@ function WriteScreen({ params, entry }) {
   // 当前字的笔画现场：{key, strokes, cleared}；cleared = 清空前的笔画（给一次撤销，W17）。
   // M1-4：answer / trace / retrace 各阶段各自一份（进描一遍 / 自己写都是空格子），recall ⇄ compare 共用一份。
   const inkKey = answerInkKey(cardKey, storedPhase); // recall 与 compare 同一份，用存下的阶段即可
-  const keyRef = useRef(inkKey);
-  keyRef.current = inkKey;
+  // 本地现场的键 = store 替换代数 + inkKey：store 被整体替换（seed / 恢复备份 / reset 重读）后，即使还是同一个字、
+  // 同一阶段，也按新状态重取，不沿用替换前的本地笔画（G1：下层写字页留着旧会话上的一笔，重新 seed 后又画回来）。
+  const localKey = `${epoch}#${inkKey}`;
+  const keyRef = useRef({ localKey, inkKey });
+  keyRef.current = { localKey, inkKey };
   // M1-6：每一份现场的初值取存下的 session.current.strokes（刷新恢复）；之后以本地为准，由 usePersist 写回。
   const sessionRef = useRef(session);
   sessionRef.current = session;
-  const hydrate = key => ({ key, strokes: storedStrokes(sessionRef.current, currentCardKey(sessionRef.current), key), cleared: null });
-  const [ink, setInk] = useState(() => hydrate(inkKey));
-  const view = ink.key === inkKey ? ink : hydrate(inkKey);
-  const update = fn => setInk(prev => fn(prev.key === keyRef.current ? prev : hydrate(keyRef.current)));
+  const hydrate = ({ localKey: key, inkKey: ik }) => {
+    const s = sessionRef.current;
+    return { key, strokes: storedStrokes(s, currentCardKey(s), ik), cleared: null };
+  };
+  const [ink, setInk] = useState(() => hydrate(keyRef.current));
+  const view = ink.key === localKey ? ink : hydrate(keyRef.current);
+  const update = fn => setInk(prev => fn(prev.key === keyRef.current.localKey ? prev : hydrate(keyRef.current)));
 
   // M1-5：有效阶段 = 存下的阶段 + 进 / 出判断页的本地覆盖（写入不阻断，P52）；compare 且没有本人笔画按 recall（01 §3.3）。
   const cmpPhase = useComparePhase({ slot, session, cardKey, storedPhase, strokeCount: view.strokes.length });
@@ -177,10 +187,16 @@ function WriteScreen({ params, entry }) {
     markStateChange();
   }, [cardKey, phase]);
 
+  // 跳过的 3 秒撤销：下一字一开始操作（落笔 / 提示 / 看答案）就结束（G3）。skip 在后面创建，这里经 ref 调用。
+  const endSkipUndoRef = useRef(null);
+  const endSkipUndo = () => {
+    if (endSkipUndoRef.current) endSkipUndoRef.current();
+  };
   // M1-3 提示：当前字的笔顺数据（M1-4 看答案 / 描一遍共用 strokeData）与提示控制器（hint-layer.js）。
   const strokeData = useStrokeData(charOfCardKey(cardKey));
   const hint = useHint({
     slot, session, cardKey, char: charOfCardKey(cardKey), phase, written: view.strokes.length, strokes: strokeData, getStore,
+    onHinted: endSkipUndo,
   });
   // M1-7 紧凑版（compact.js）：书写格 258、看答案卡片按屏高 200–345、撤销 / 清空在格上方、底栏两行。
   const compact = useCompact();
@@ -190,6 +206,7 @@ function WriteScreen({ params, entry }) {
   // M1-4 看答案 / 描一遍 / 自己写（answer.js）：回忆阶段「看答案」按钮、answer 阶段卡片、描红层、格下说明、接管底栏。
   const answer = useAnswerFlow({
     slot, session, cardKey, phase, strokeCount: view.strokes.length, size: compact ? answerSize : STD_SIZE,
+    onShowAnswer: endSkipUndo,
   });
   // M1-5 判断页、结果行、跳过。
   const compare = useCompareFlow({
@@ -198,9 +215,11 @@ function WriteScreen({ params, entry }) {
   });
   const row = useResultRow({ slot, session, state, phase, strokeCount: view.strokes.length });
   const skip = useSkip({ slot, session, cardKey, phase, hints: hint.used });
+  endSkipUndoRef.current = skip.dismiss;
   const onStrokeStart = () => {
     hint.onStrokeStart();
     row.onStrokeStart(); // 落笔：上一字的结果行收起（决定-D19）
+    skip.dismiss(); // 落笔：跳过的撤销机会结束（G3）
   };
 
   const onStrokeEnd = raw => update(prev => ({ ...prev, strokes: prev.strokes.concat([raw]), cleared: null }));
@@ -216,9 +235,11 @@ function WriteScreen({ params, entry }) {
     cmpPhase.enter(view.strokes);
   };
 
+  // 撤销底栏挂在页面根上（G3）：最后一字跳过后是空页（M2-3 换成结果页），底栏照样在、可撤销回到那个字。
   if (!cardKey) {
     return html`<${Page} title=${titleFor('recall')} testid="write-screen">
       <div data-testid="write-empty"></div>
+      ${skip.bar}
     </${Page}>`;
   }
 
@@ -248,9 +269,9 @@ function WriteScreen({ params, entry }) {
     ${skipSlot}
   </div>`;
   const tools = html`<span class="sz-write__tools" data-testid="write-tools" data-shown=${canUndo && drawable ? 'true' : 'false'}>
-          <${Button} variant="plain" class="sz-write__tool" data-testid="write-undo" disabled=${!canUndo}
+          <${Button} variant="plain" class="sz-write__tool" data-testid="write-undo" disabled=${!canUndo} rapid
             onClick=${onUndo}>${t('R-W18.btnUndo')}</${Button}>
-          <${Button} variant="plain" class="sz-write__tool" data-testid="write-clear" disabled=${!hasStrokes}
+          <${Button} variant="plain" class="sz-write__tool" data-testid="write-clear" disabled=${!hasStrokes} rapid
             onClick=${onClear}>${t('R-W18.btnClear')}</${Button}>
         </span>`;
 

@@ -87,7 +87,12 @@ checks = {
     and handwriting.get("inkPixelsChanged") is True
     and handwriting.get("undoStrokeWorked") is True
     and handwriting.get("clearWorked") is True
-    and handwriting.get("actionCooldownActive") is True,
+    and handwriting.get("actionCooldownActive") is False,
+    "handwritingStableChrome": handwriting.get("chromeStableDuringStroke") is True
+    and handwriting.get("actionsLockedDuringStroke") is True
+    and handwriting.get("skipBlockedDuringStroke") is True
+    and handwriting.get("chromeAccessibleDuringStroke") is True
+    and handwriting.get("actionsImmediateAfterStroke") is True,
     "handwritingPeek": handwriting.get("peekEntered") is True
     and handwriting.get("peekCancelledPartialStroke") is True
     and handwriting.get("peekActionsUnlocked") is True
@@ -105,7 +110,7 @@ checks = {
     "addStored": data_flow.get("addedCharStored") is True
     and data_flow.get("customWordStored") is True
     and data_flow.get("customCardIndexed") is True
-    and data_flow.get("memoryHasAddedChar") is True
+    and data_flow.get("practiceStartHasNoAbilityRecord") is True
     and data_flow.get("recentInkStored") is True,
     "wildCapture": data_flow.get("wildPhotoInputProcessed") is True
     and data_flow.get("wildVisionRequestCompleted") is True
@@ -141,6 +146,7 @@ checks = {
     and data_flow.get("backupHasSound") is True
     and data_flow.get("backupHasLibrary") is True
     and data_flow.get("backupHasFunnel") is True
+    and data_flow.get("backupHasSkipped") is True
     and data_flow.get("backupHasSessionV3") is True
     and data_flow.get("backupHasFSRSLog") is True
     and data_flow.get("backupHasTraceTutorial") is True
@@ -157,6 +163,7 @@ checks = {
     and data_flow.get("backupRestoreWild") is True
     and data_flow.get("backupRestoreLibrary") is True
     and data_flow.get("backupRestoreFunnel") is True
+    and data_flow.get("backupRestoreSkipped") is True
     and data_flow.get("backupRestorePreservesSessionV3") is True
     and data_flow.get("backupRestorePreservesSmokeKey") is True
     and data_flow.get("backupSafetyCreated") is True
@@ -192,7 +199,7 @@ checks = {
     and navigation.get("bookTabActive") is True
     and navigation.get("footVisibleOnBook") is True
     and navigation.get("bookAchievementVisible") is True
-    and navigation.get("stampGuideAvailable") is True,
+    and navigation.get("libraryInputUnified") is True,
     "navMe": navigation.get("meVisible") is True
     and navigation.get("meTabActive") is True
     and navigation.get("footVisibleOnMe") is True
@@ -202,14 +209,15 @@ checks = {
     and navigation.get("profileFootHidden") is True
     and navigation.get("profileReturnedToMe") is True
     and navigation.get("profileHasNoDuplicateChars") is True,
-    "homeCapture": navigation.get("homeCaptureVisible") is True,
+    "homeAddAbsent": navigation.get("homeAddAbsent") is True,
     "navAudit": navigation.get("auditVisible") is dev_mode
     and navigation.get("auditReturnedToSettings") is dev_mode,
     "practiceStarted": practice.get("started") is True,
     "practiceBatch": int(practice.get("batchSize") or 0) >= 2,
     "practiceCardVisible": practice.get("cardVisible") is True,
     "practiceActionsEnabled": practice.get("showEnabled") is True
-    and practice.get("doneEnabled") is True,
+    and practice.get("doneEnabled") is True
+    and practice.get("neutralSkipAvailable") is True,
     "practiceReveal": practice.get("revealVisible") is True
     and practice.get("decisionVisible") is True
     and practice.get("functionalDecisionLabels") is True
@@ -217,7 +225,9 @@ checks = {
     and practice.get("submissionSnapshotComplete") is True
     and practice.get("comparisonGridComplete") is True
     and practice.get("comparisonSkeletonVisible") is True
-    and practice.get("comparisonCoordinatesAligned") is True,
+    and practice.get("comparisonCoordinatesAligned") is True
+    and practice.get("comparisonDefaultsSeparated") is True
+    and practice.get("comparisonToggleAccessible") is True,
     "practiceStamp": practice.get("outcome") == "hinted"
     and practice.get("immediateAdvanced") is True
     and practice.get("noNextButton") is True

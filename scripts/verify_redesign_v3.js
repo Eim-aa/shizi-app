@@ -68,17 +68,31 @@ let browser;
     const greeting = homeGreeting.getBoundingClientRect(), title = homeTitle.getBoundingClientRect(), recent = yesterBlock.getBoundingClientRect(), stamp = startBtn.getBoundingClientRect();
     const accent=getComputedStyle(startBtn).backgroundColor, solid=Array.from(home.querySelectorAll("*")).filter(node=>{ const r=node.getBoundingClientRect(); return r.width&&r.height&&getComputedStyle(node).backgroundColor===accent; }).length;
     const tabs=Array.from(document.querySelectorAll(".foot .tab"));
-    return { groups: children.length, removed: !!document.querySelector(".brandRow,.streakChip,.monthSignal,.homeSub,.quickAdd"), stamp: [stamp.width, stamp.height], axes: [greeting.left, title.left, recent.left], titleText: homeTitle.textContent.replace(/\s+/g, ""), greeting:homeGreeting.textContent.trim(), add: homeAdd.textContent.trim(), tabs:tabs.map(node=>node.textContent.trim()), tabLayers:tabs.reduce((sum,node)=>sum+node.children.length,0), solid };
+    const greetingFont=getComputedStyle(homeGreeting).fontFamily, tabFonts=tabs.map(node=>getComputedStyle(node).fontFamily);
+    return { groups: children.length, removed: !!document.querySelector(".brandRow,.streakChip,.monthSignal,.homeSub,.quickAdd"), stamp: [stamp.width, stamp.height], axes: [greeting.left, title.left, recent.left], titleText: homeTitle.textContent.replace(/\s+/g, ""), greeting:homeGreeting.textContent.trim(), homeAddAbsent:!document.getElementById("homeAdd"), tabs:tabs.map(node=>node.textContent.trim()), tabLayers:tabs.reduce((sum,node)=>sum+node.children.length,0), greetingFont, tabFonts, solid };
   });
-  assert(home.groups === 4 && !home.removed && home.stamp.every((value) => value >= 164) && Math.max(...home.axes) - Math.min(...home.axes) < 1 && home.add === "收字" && home.tabs.join() === "习字,字库,我的" && home.tabLayers === 0 && /· (晨|午|暮|夜)$/.test(home.greeting) && home.solid <= 1 && !/\d/.test(home.titleText), "Expected the reduced, aligned home with final single-layer navigation, one solid red, and Chinese title numerals", home);
-  const mottoBreak = await page.evaluate(() => { setDailyMotto(homeMotto,{text:"翰不虚动，下必有由",author:"孙过庭",source:"书谱"}); const result=Array.from(homeMotto.children).map(node=>node.textContent); applyDailyMotto(); return result; });
-  assert(mottoBreak.join("/") === "翰不虚动，/下必有由/——孙过庭《书谱》", "Expected the sourced vertical motto to break at punctuation", mottoBreak);
+  assert(home.groups === 4 && !home.removed && home.stamp.every((value) => value >= 164) && Math.max(...home.axes) - Math.min(...home.axes) < 1 && home.homeAddAbsent && home.tabs.join() === "习字,字库,我的" && home.tabLayers === 0 && home.tabFonts.every(font=>font===home.greetingFont) && /· (晨|午|暮|夜)$/.test(home.greeting) && home.solid <= 1 && !/\d/.test(home.titleText), "Expected an aligned Home with one system practice entry and no duplicate character-add control", home);
+  const mottoBreak = await page.evaluate(() => { setDailyMotto(homeMotto,{text:"翰不虚动，下必有由",author:"孙过庭",source:"书谱"}); const result={lines:Array.from(homeMotto.querySelectorAll(".mLine")).map(node=>node.textContent),source:homeMotto.querySelector(".mSrc").textContent}; applyDailyMotto(); return result; });
+  assert(mottoBreak.lines.join("/") === "翰不虚动，/下必有由" && mottoBreak.source === "——孙过庭《书谱》", "Expected the sourced vertical motto to break at punctuation", mottoBreak);
+  const mottoLayouts=[];
+  for(const width of [320,375,390,430]) for(const colorScheme of ["light","dark"]) for(const large of [false,true]){
+    await page.setViewportSize({width,height:667}); await page.emulateMedia({colorScheme});
+    const rows=await page.evaluate(({large})=>{ document.documentElement.classList.toggle("largeText",large); const samples=[...DAILY_MOTTOS,{text:"天地玄黄",author:"周兴嗣",source:"千字文"},{text:"心不厌精手不忘熟",author:"孙过庭",source:"书谱"},{text:"一字乃终篇之准",author:"王羲之",source:"题卫夫人笔阵图后"},{text:"既知平正务追险绝",author:"孙过庭",source:"书谱"},{text:"察之者尚精拟之者贵似",author:"赵孟頫",source:"兰亭十三跋"}];
+      return samples.map(row=>{ setDailyMotto(homeMotto,row); const box=homeMotto.getBoundingClientRect(), nodes=Array.from(homeMotto.querySelectorAll(".mLine,.mSrc")).map(node=>{ const r=node.getBoundingClientRect(); return {text:node.textContent,left:r.left,right:r.right,top:r.top,bottom:r.bottom,width:r.width,height:r.height}; });
+        const lines=nodes.filter(row=>!row.text.startsWith("——")), overlap=nodes.some((a,i)=>nodes.slice(i+1).some(b=>Math.min(a.right,b.right)-Math.max(a.left,b.left)>.5&&Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top)>.5));
+        const neighbors=[homeGreeting,homeTitle,startBtn,yesterBlock].filter(node=>getComputedStyle(node).display!=="none").map(node=>{ const r=node.getBoundingClientRect(); return {left:r.left,right:r.right,top:r.top,bottom:r.bottom}; });
+        const neighborOverlap=nodes.some(a=>neighbors.some(b=>Math.min(a.right,b.right)-Math.max(a.left,b.left)>.5&&Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top)>.5));
+        return {text:row.text,source:`${row.author}《${row.source}》`,parts:lines.map(item=>Array.from(item.text).length),inside:box.left>=-1&&box.right<=innerWidth+1&&nodes.every(item=>item.left>=box.left-1&&item.right<=box.right+1&&item.top>=box.top-1&&item.bottom<=box.bottom+1),overlap,neighborOverlap}; }); },{large});
+    mottoLayouts.push({width,colorScheme,large,rows});
+  }
+  assert(mottoLayouts.every(group=>group.rows.every(row=>row.inside&&!row.overlap&&!row.neighborOverlap&&row.parts.every(size=>size!==1))), "Expected every production motto plus 4/6/7/8/10-character fixtures to avoid orphan columns, clipping, internal overlap, and adjacent home-content collisions", mottoLayouts);
+  await page.setViewportSize({width:375,height:667}); await page.emulateMedia({colorScheme:"light"}); await page.evaluate(()=>{ document.documentElement.classList.remove("largeText"); applyDailyMotto(); });
   await page.screenshot({ path: path.join(generatedDir, "home-light-375x667.png"), fullPage: true });
 
   await page.click("#tabBook");
   await page.waitForTimeout(300);
-  const wall43 = await page.evaluate(() => ({ count: memoryWall.querySelectorAll(".memoryChar").length, columns: getComputedStyle(memoryWall).gridTemplateColumns.split(" ").length, labels: memoryWall.querySelectorAll(".dot,.outcomeMark").length, curator: bookCuratorData(profileIndexes()).kind, countText: boxCount.textContent.trim(), library: libName.textContent, libraryMeta: libMeta.textContent }));
-  assert(wall43.count === 43 && wall43.columns === 6 && wall43.labels === 0 && wall43.curator === "action" && wall43.countText === "43 字" && wall43.library === "规范常用字" && /已练 \d+ \/ 共 3500/.test(wall43.libraryMeta), "Expected a 43-character six-column memory wall with honest library progress and action curation", wall43);
+  const wall43 = await page.evaluate(() => ({ count: memoryWall.querySelectorAll(".memoryChar").length, columns: getComputedStyle(memoryWall).gridTemplateColumns.split(" ").length, labels: memoryWall.querySelectorAll(".dot,.outcomeMark").length, curatorAbsent:!document.getElementById("bookCurator"), countText: boxCount.textContent.trim(), library: libName.textContent, libraryMeta: libMeta.textContent, input:bookSearchInput.placeholder, photo:bookPhoto.textContent.trim() }));
+  assert(wall43.count === 43 && wall43.columns === 6 && wall43.labels === 0 && wall43.curatorAbsent && wall43.countText === "43 字" && wall43.library === "规范常用字" && /已练 \d+ \/ 共 3500/.test(wall43.libraryMeta) && wall43.input === "输入一个或多个汉字" && wall43.photo === "拍字", "Expected a 43-character wall with honest library progress and one unified practice input", wall43);
   await page.screenshot({ path: path.join(generatedDir, "book-light-375x667.png"), fullPage: true });
 
   const etymologyDetail = await page.evaluate(async () => {
@@ -194,7 +208,7 @@ let browser;
 
   await page.click("#memoryWall .memoryChar");
   const detail = await page.evaluate(() => ({ open: charSheet.classList.contains("open"), story: charDetailStory.textContent, noInk: charDetailEmpty.textContent, ink: charDetailInk.textContent, compare: getComputedStyle(charDetailCompareToggle).display, practice: charDetailPractice.textContent }));
-  assert(detail.open && detail.story.includes("收进字库") && detail.story.includes("练过") && detail.noInk.includes("写一遍") && detail.ink === "" && detail.compare === "none" && detail.practice === "再写一遍", "Expected an honest empty character detail with the final library language and no printed handwriting or comparison", detail);
+  assert(detail.open && detail.story.includes("第一次练习") && detail.story.includes("练过") && detail.noInk.includes("写一遍") && detail.ink === "" && detail.compare === "none" && detail.practice === "练这个字", "Expected an honest empty character detail with direct language and no printed handwriting or comparison", detail);
   const swipe = await page.evaluate(() => {
     const panel = document.querySelector("#charSheet .charSheet"), handle = panel.querySelector(".sheetHandle"), head = panel.querySelector(".charDetailHead"), ink = panel.querySelector(".charDetailInk");
     const fire = (target, type, y) => { const event = new Event(type, { bubbles: true, cancelable: true }); Object.defineProperty(event, type === "touchstart" ? "touches" : "changedTouches", { value: [{ clientY: y }] }); target.dispatchEvent(event); };
@@ -210,34 +224,36 @@ let browser;
   const searchTargets = await page.evaluate(() => [CARDS[0].target, CARDS[100].target]);
   await page.fill("#bookSearchInput", searchTargets[0]);
   assert(await page.evaluate(() => memoryWall.querySelectorAll(".searchHit").length === 1 && memoryWall.querySelectorAll(".searchDim").length > 0), "Expected a collected search result to highlight immediately");
-  await page.waitForTimeout(850);
-  assert(await page.evaluate(() => charSheet.classList.contains("open")), "Expected a collected search result to open its detail sheet");
+  assert(await page.evaluate(() => !charSheet.classList.contains("open") && bookSearchInput.getAttribute("role")==="searchbox" && getComputedStyle(bookSearchClear).display!=="none"), "Expected search to remain an explicit, clearable lookup rather than auto-opening");
+  await page.click("#bookSearchResult [data-book-open]");
+  assert(await page.evaluate(() => charSheet.classList.contains("open")), "Expected an explicit collected-result action to open its detail sheet");
   await page.evaluate(() => closeCharSheet());
   await page.fill("#bookSearchInput", searchTargets[1]);
-  await page.click("#bookSearchResult [data-book-add]");
-  assert(await page.evaluate(() => addSheet.classList.contains("open") && addInput.value.length > 0 && addConfirm.textContent.trim() === "收进字库"), "Expected an unseen library character to enter the final collection flow");
-  await page.evaluate(() => closeAddSheet());
-  await page.fill("#bookSearchInput", "龘");
-  assert(await page.evaluate(() => bookSearchResult.textContent === "字库里暂时找不到「龘」"), "Expected an unknown character to show an immediate no-match response");
+  const unseenBefore=await page.evaluate(()=>({memory:JSON.stringify(memory),custom:customWords.length,copy:bookSearchResult.textContent}));
+  await page.click("#bookSearchResult [data-book-practice]");
+  const unseenFocus=await page.evaluate(()=>({mode:activeMode,target:CARDS[currentCardIndex()].target,memory:JSON.stringify(memory),custom:customWords.length}));
+  assert(unseenBefore.copy.includes("练这个字")&&unseenFocus.mode==="focus"&&unseenFocus.target===searchTargets[1]&&unseenFocus.memory===unseenBefore.memory&&unseenFocus.custom===unseenBefore.custom,"Expected an unseen system character to start focus directly without creating or scoring a card",{unseenBefore,unseenFocus});
+  await page.evaluate(()=>exitCurrentRound(false));
+  const unknown=await page.evaluate(()=>{ let ch=""; for(let cp=0x4e00;cp<=0x9fff;cp++){ const value=String.fromCodePoint(cp); if(BASE_BY_CHAR[value]==null&&customIndexOf(value)<0){ ch=value; break; } } bookSearchInput.value=ch; handleBookSearchInput(); return {ch,custom:customWords.length,cards:CARDS.length,copy:bookSearchResult.textContent}; });
+  assert(unknown.copy.includes("开始时会建立个人字卡")&&await page.evaluate(()=>customWords.length)===unknown.custom,"Expected unknown-character lookup to remain read-only before the explicit practice action",unknown);
+  await page.click("#bookSearchResult [data-book-practice]");
+  const unknownFocus=await page.evaluate(()=>({mode:activeMode,target:CARDS[currentCardIndex()].target,custom:customWords.length,cards:CARDS.length}));
+  assert(unknownFocus.mode==="focus"&&unknownFocus.target===unknown.ch&&unknownFocus.custom===unknown.custom+1&&unknownFocus.cards===unknown.cards+1,"Expected the explicit practice action to create exactly one personal card",{unknown,unknownFocus});
+  await page.evaluate(()=>exitCurrentRound(false));
 
-  await page.evaluate(() => { renderBook(); openCharSheet(profileIndexes()[0]); });
+  const ordinary=await page.evaluate(() => { const targets=allIndexes().filter(idx=>!hasMemory(idx)&&!isCardSkipped(idx)).slice(0,3),completed=todayCompleted(); activeMode="new"; suspendedSessionPayload=null; roundCompletionSuppressed=false; baseTargets=targets.slice(); batch=baseTargets; baseCursor=0; currentIndex=null; currentAttemptKind="base"; manualQueue=[]; reinforcementQueue=[]; unresolved=new Set(); episodes={}; attemptSeq=0; roundStats=[]; sessionDone=new Set(); roundId="redesign-preserved-session"; practicePhase="recall"; beginAttempt({idx:targets[0],kind:"base"}); saveSessionSnapshot(); const stored=load(SESSION_KEY,null); renderBook(); openCharSheet(profileIndexes()[0]); return {current:stored.currentCardKey,targets:stored.baseTargetKeys,completed}; });
   await page.click("#charDetailPractice");
   await page.waitForFunction(() => getComputedStyle(card).display !== "none");
-  const singleFocus = await page.evaluate(() => ({ progress:posLabel.textContent, session:localStorage.getItem(SESSION_KEY), add:!!document.getElementById("addInPractice"), tools:Array.from(inkTools.querySelectorAll("button")).filter(node=>getComputedStyle(node).display!=="none").map(node=>node.id) }));
-  assert(singleFocus.progress === "" && singleFocus.session === null && !singleFocus.add && singleFocus.tools.join() === "tip,undoStroke,clear", "Expected a transient single-character session with no numeric progress or in-practice add entry", singleFocus);
+  const singleFocus = await page.evaluate(() => { const stored=load(SESSION_KEY,null); return { progress:posLabel.textContent, mode:stored&&stored.activeMode, suspended:stored&&stored.suspendedSession, add:!!document.getElementById("addInPractice"), tools:Array.from(inkTools.querySelectorAll("button")).filter(node=>getComputedStyle(node).display!=="none").map(node=>node.id),completed:todayCompleted() }; });
+  assert(singleFocus.progress === "" && singleFocus.mode === "focus" && singleFocus.suspended.currentCardKey === ordinary.current && singleFocus.suspended.baseTargetKeys.join() === ordinary.targets.join() && !singleFocus.add && singleFocus.tools.join() === "tip,undoStroke,clear" && singleFocus.completed === ordinary.completed, "Expected single-character focus to preserve the ordinary group without changing daily completion", {ordinary,singleFocus});
   await page.click("#exitPractice");
   await page.waitForFunction(() => getComputedStyle(studybook).display !== "none");
-  assert(await page.evaluate(() => localStorage.getItem(SESSION_KEY) === null), "Expected a single-character session to disperse and return to the book without hijacking Home resume");
+  const restoredOrdinary=await page.evaluate(()=>load(SESSION_KEY,null));
+  assert(restoredOrdinary.currentCardKey===ordinary.current&&restoredOrdinary.baseTargetKeys.join()===ordinary.targets.join(),"Expected leaving focus to restore the untouched ordinary group",{ordinary,restoredOrdinary});
 
-  const curators = await page.evaluate(() => {
-    const seen = profileIndexes();
-    seen.forEach((idx) => { memory[cardKey(idx)].dueDay = shiftDay(today(), 5); });
-    fsrsReviewLog = [{ cardKey: cardKey(seen[3]), localDay: `${Number(today().slice(0, 4)) - 1}-${today().slice(5)}`, reviewedAt: `${Number(today().slice(0, 4)) - 1}-${today().slice(5)}T08:00:00.000Z` }];
-    const recall = bookCuratorData(seen); fsrsReviewLog = []; const discovery = bookCuratorData(seen);
-    memory[cardKey(seen[0])].dueDay = today(); const action = bookCuratorData(seen);
-    return [recall.kind, discovery.kind, action.kind];
-  });
-  assert(curators.join() === "recall,discovery,action", "Expected recall, discovery, and action curator rules", curators);
+  const scheduleStatus = await page.evaluate(() => { const seen=profileIndexes(),idx=seen[0]; memory[cardKey(idx)].dueDay=today(); renderBook(); openCharSheet(idx); return {curatorAbsent:!document.getElementById("bookCurator"),status:charDetailSchedule.textContent,display:getComputedStyle(charDetailSchedule).display}; });
+  assert(scheduleStatus.curatorAbsent&&scheduleStatus.status==="已排入今天的练习"&&scheduleStatus.display==="block","Expected due status only in character context, without a second aggregate review-group entry",scheduleStatus);
+  await page.evaluate(()=>closeCharSheet());
 
   const wall300 = await page.evaluate(() => {
     memory = {}; status = {}; const started = performance.now();
@@ -364,7 +380,7 @@ let browser;
         const sheet = document.querySelector("#addSheet .sheet"), candidates = [...wildCandidates.querySelectorAll("button")];
         return { candidates: candidates.length, inputEmpty: addInput.value === "", confirmDisabled: addConfirm.disabled, sheetFits: sheet.scrollWidth <= sheet.clientWidth + 1, pageFits: document.documentElement.scrollWidth <= innerWidth + 1, photoNote: wildCaptureNote.textContent };
       }, realWildPhoto.dataURL);
-      assert(captureLayout.candidates === 3 && captureLayout.inputEmpty && captureLayout.confirmDisabled && captureLayout.sheetFits && captureLayout.pageFits && captureLayout.photoNote.includes("不会自动收字"),
+      assert(captureLayout.candidates === 3 && captureLayout.inputEmpty && captureLayout.confirmDisabled && captureLayout.sheetFits && captureLayout.pageFits && captureLayout.photoNote.includes("不会自动开始练习"),
         "Expected the photo candidate picker to remain explicit and overflow-free in both target viewports and themes", { size, colorScheme, captureLayout });
       await page.screenshot({ path: path.join(generatedDir, `capture-${colorScheme}-${size.width}x${size.height}.png`), fullPage: true });
       await page.evaluate(() => closeAddSheet());

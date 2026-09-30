@@ -70,23 +70,11 @@ function onCardSaved(result) {
   if (p) p.resolve(!!(result && result.success));
 }
 
-/**
- * 接 iOS 的 shiziCardSaved。正路是 bridge.registerNativeHandler（01 §8.1）；但 bridge.markReady 要到 M5-3 才在 app.js 调用，
- * 就绪前到达的回调只进队列、不交付，保存会一直等。本地绕过：桥未就绪时把 window.shiziCardSaved 包一层直接交给这里
- * （仍返回 true = 页面已接收）；桥就绪后照常走 bridge。已登记待定（M5-3 接上 markReady 后可删）。
- */
-function installSaveHandler(bridge, w) {
+/** 接 iOS 的 shiziCardSaved（01 §8.1：bridge.registerNativeHandler；app.js 启动时 bridge.markReady，M5-3）。 */
+function installSaveHandler(bridge) {
   if (saveHandlerInstalled || !bridge || typeof bridge.registerNativeHandler !== 'function') return;
   saveHandlerInstalled = true;
   bridge.registerNativeHandler('shiziCardSaved', onCardSaved);
-  if (w && typeof bridge.isReady === 'function') {
-    const viaBridge = w.shiziCardSaved;
-    w.shiziCardSaved = (...args) => {
-      if (bridge.isReady()) return typeof viaBridge === 'function' ? viaBridge(...args) : true;
-      onCardSaved(args[0]);
-      return true;
-    };
-  }
 }
 
 /**
@@ -111,7 +99,7 @@ export async function saveImageFile({ dataURL, name, kind }, {
   win = typeof window !== 'undefined' ? window : null, bridge = nativeBridge, timeoutMs = NATIVE_SAVE_TIMEOUT_MS,
 } = {}) {
   if (isNativeShell(win)) {
-    installSaveHandler(bridge, win);
+    installSaveHandler(bridge);
     if (pendingSave) pendingSave.resolve(false); // 上一次还没回来：作废
     const done = new Promise(resolve => {
       const timer = setTimeout(() => {

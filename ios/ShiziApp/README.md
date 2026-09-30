@@ -61,27 +61,20 @@ ios/ShiziApp/scripts/verify-archive.sh /path/to/Shizi.xcarchive
 ios/ShiziApp/scripts/smoke-simulator.sh
 ```
 
-它会构建模拟器包、安装启动 App、截图、检查 bundle 资源，并确认 WKWebView 的 `localStorage` 已写入 `shizi.*` 键；随后会终止并重启 App，验证 smoke 写入的 `shizi.nativeSmoke.v1` 仍然存在。
-同时它会让 WKWebView 在 App 内执行一次原生 smoke：验证 7294 个可练字、开发入口隔离、本地笔画与 1100+ 条离线字源读取、页面导航、手写、防滚动、回笔、双指透视、收字和备份恢复。拍字断言会把一张真实可解码 PNG 送入裁剪压缩流程，确认不超过 64KiB 的 WebP/JPEG 缩略图与大图可读、Vision 请求实际完成、候选必须点选、失败可回退手输、生活来源落盘、单张/总量预算以及备份恢复；这只验证技术链路，不替代真机相机、照片方向和 OCR 质量验收。PointerEvent 手写还会强制检查笔锋渲染器可用、每个触点保留宽度/速度、分享归一化不丢笔锋数据。习字链会真实提交「点拨笔画＋用户墨迹」完整字格，验证二选一判断、1.8 秒反馈、Again 事件、原子“重盖”、两步不会写教学、稳定字键 session v3、再练队列、五类触觉以及退出后原位续练；结算断言覆盖月度节奏、第一次没写稳的字再练入口和本地分享图片的尺寸、桥接与隐私边界。字卡断言覆盖 v2 真迹矢量重绘、3:4 / 1:1 尺寸、每日一次提示、关闭偏好、相册保存与系统分享消息，并确认旧版 v1 栅格墨迹不会带着字格进入字卡；备份断言覆盖 session v3、FSRS review log、教学说明标记、本地漏斗、补帖活动、拍字记录、字卡偏好和限量最近墨迹。
+它会构建 Debug 模拟器包、检查 bundle 资源、**卸载后全新安装**（预先授权「添加照片」），然后分三次启动跑 DEBUG 原生冒烟（02 M5-3；脚本在 `ShiziApp/NativeSmoke.swift`，只在 Debug 编译）。冒烟时 Swift 给 URL 追加 `?test=1`、在 documentStart 注入 `window.__shiziNativeDev = true`，页面挂上公开测试钩子 `window.__shiziTest`；页面每次 postMessage `pageReady` 后原生注入冒烟脚本，结果写到 App 的 `Documents/shizi-native-smoke.json`，由 `validate-native-smoke.py <json> <stage>` 按阶段核对：
 
-开发入口也可以用同一个 smoke 脚本验证：
+- `main`：ES 模块在 `shizi-resource://` 下加载、经典脚本全局（SEED/GROUPS/语境覆盖/600 核心笔顺）、`fetch` 笔顺 JSON、ShiziKai 字体、BUILD 就绪标记；`localStorage` 可写；合成 PointerEvent 写一字 → 写好了 → 写对了（judged 记录）；写下一字一笔后整页刷新，写字页同一阶段、笔画恢复；边缘返回在写字页被原生门控拒绝、在子页派发 `shizi-native-back` 返回一层；备份导出（原生 `shareBackup` 替身写文件并回 `markBackupExported`，文件不含 `shizi.nativeSmoke.v1`）；再写一字判断后从导出的文件恢复（原生预检 → `shiziBackupPicked` → 页内确认 → 替换 → 撤销，全程不 reload）；非备份文件、不是拾字的 JSON、超过 10 MB、取消选择分别显示 R-B06 文案；`syncReminder` 下发内容经 Swift 同一个排期函数核对；`openAppSettings`；图片存相册（`savePracticeCard` → `shiziCardSaved`）；所有写入经 storage.js。
+- `relaunch`：结束进程后再启动，冒烟键、两条记录、会话与上次备份时间都在；脚本另外直接读 WKWebView 的 LocalStorage 数据库核对。
+- `deeplink`：结束进程后带 `-shizi-reminder-target base:春` 冷启动（等同点开提醒通知）：原生等页面 `pageReady` 才派发，`shiziOpenReminderTarget` 返回 true 才清 key，页面以「这次选的字」开这个字。
 
-```bash
-DEV_MODE=1 ios/ShiziApp/scripts/smoke-simulator.sh
-```
+系统面板（分享、文件选择、系统设置）在冒烟里由 Debug 替身代替，其余走正式代码路径；真实面板与真机手感见 `DEVICE_QA.md`。Release 产物里没有这些替身：`verify-archive.sh` 检查可执行文件不含 `__shiziNativeDev` / `nativeSmokeResult` 等标记。
 
-它会用 `-shizi-dev` 启动 App，并验证 `?dev=1` 生效后「我的」页开发工具可见。
+`-shizi-dev` 仍会打开色板 / 指针统计页（`?dev=1&test=1`），它不发 `pageReady`，不跑冒烟；旧的 `DEV_MODE=1` / `RUN_DEV_SMOKE=1` 已停用。
 
 或者把 smoke 串进本地校验：
 
 ```bash
 RUN_SMOKE=1 ios/ShiziApp/scripts/verify-local.sh
-```
-
-需要同时跑开发入口 smoke 时：
-
-```bash
-RUN_SMOKE=1 RUN_DEV_SMOKE=1 ios/ShiziApp/scripts/verify-local.sh
 ```
 
 ## 真机运行
@@ -128,7 +121,7 @@ DEVICE_ID='你的 iPhone 名称或 UUID' \
 ios/ShiziApp/scripts/smoke-device.sh
 ```
 
-脚本会构建、安装、运行两次 App，从真机 app data container 拉回 smoke JSON，并验证页面导航、离线笔画、收字、备份/恢复、习字/退出流程、软件键盘触发后的 viewport/inset/按钮可达性，以及 `localStorage` 跨进程重启持久化。开发入口加 `DEV_MODE=1`。真机书写手感、旋转、Files/iCloud 选择器和飞行模式仍需按 `DEVICE_QA.md` 人工检查。
+脚本会构建、安装，按 `main` / `relaunch` / `deeplink` 三个阶段启动 App，从真机 app data container 拉回 smoke JSON 并用同一个 `validate-native-smoke.py` 核对（真机上相册权限由系统弹窗决定，拒绝时允许图片保存走失败分支）。真机书写手感、旋转、Files/iCloud 选择器和飞行模式仍需按 `DEVICE_QA.md` 人工检查。
 
 第一次真机安装后重点测：
 

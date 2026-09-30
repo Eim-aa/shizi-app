@@ -10,6 +10,7 @@
 		1A0000000000000000000021 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000020 /* AppDelegate.swift */; };
 		1A0000000000000000000023 /* WebViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000022 /* WebViewController.swift */; };
 		1A0000000000000000000025 /* LocalWebSchemeHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000024 /* LocalWebSchemeHandler.swift */; };
+		1A00000000000000000000B1 /* NativeSmoke.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000000B0 /* NativeSmoke.swift */; };
 		1A0000000000000000000027 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000026 /* Assets.xcassets */; };
 		1A000000000000000000002B /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 1A000000000000000000002A /* PrivacyInfo.xcprivacy */; };
 /* End PBXBuildFile section */
@@ -19,6 +20,7 @@
 		1A0000000000000000000020 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		1A0000000000000000000022 /* WebViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebViewController.swift; sourceTree = "<group>"; };
 		1A0000000000000000000024 /* LocalWebSchemeHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalWebSchemeHandler.swift; sourceTree = "<group>"; };
+		1A00000000000000000000B0 /* NativeSmoke.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeSmoke.swift; sourceTree = "<group>"; };
 		1A0000000000000000000026 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		1A0000000000000000000028 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		1A0000000000000000000029 /* sync-web-assets.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = "sync-web-assets.sh"; sourceTree = "<group>"; };
@@ -62,6 +64,7 @@
 				1A0000000000000000000020 /* AppDelegate.swift */,
 				1A0000000000000000000022 /* WebViewController.swift */,
 				1A0000000000000000000024 /* LocalWebSchemeHandler.swift */,
+				1A00000000000000000000B0 /* NativeSmoke.swift */,
 				1A0000000000000000000026 /* Assets.xcassets */,
 				1A0000000000000000000028 /* Info.plist */,
 				1A000000000000000000002A /* PrivacyInfo.xcprivacy */,
@@ -182,6 +185,7 @@
 				1A0000000000000000000021 /* AppDelegate.swift in Sources */,
 				1A0000000000000000000023 /* WebViewController.swift in Sources */,
 				1A0000000000000000000025 /* LocalWebSchemeHandler.swift in Sources */,
+				1A00000000000000000000B1 /* NativeSmoke.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

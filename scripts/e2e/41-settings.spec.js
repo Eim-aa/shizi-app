@@ -409,7 +409,7 @@ export default async function settingsSpec(page, ctx) {
   await clickSettle(page, 'settings-remind');
   assert.deepEqual((await state(page)).settings.remind, { enabled: true, hour: 20, minute: 0 }, 'enabled at 20:00');
   let msgs = await nativeMessages(page);
-  const types = msgs.map(m => m.type).filter(x => x !== 'backGestureEnabled');
+  const types = msgs.map(m => m.type).filter(x => x !== 'backGestureEnabled' && x !== 'pageReady'); // pageReady：每次页面加载一条（M5-3）
   assert.deepEqual(types, ['requestReminderPermission', 'syncReminder'], 'permission requested, then synced');
   const sync0 = msgs.filter(m => m.type === 'syncReminder').pop();
   assert.deepEqual({ enabled: sync0.enabled, hour: sync0.hour, minute: sync0.minute }, { enabled: true, hour: 20, minute: 0 }, 'sync payload');

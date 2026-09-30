@@ -13,7 +13,6 @@ import {
   listTabs,
   nav,
   NATIVE_PROGRESS_EVENT,
-  NATIVE_PROGRESS_EVENT_ALIAS,
   setActiveRouter,
 } from './router.js';
 import { isStandalone, isTestHost } from '../platform/env.js';
@@ -282,11 +281,9 @@ function Root({ router, win }) {
       }
     };
     win.addEventListener(NATIVE_PROGRESS_EVENT, onProgress);
-    win.addEventListener(NATIVE_PROGRESS_EVENT_ALIAS, onProgress);
     return () => {
       clearTimeout(dragRef.current.timer);
       win.removeEventListener(NATIVE_PROGRESS_EVENT, onProgress);
-      win.removeEventListener(NATIVE_PROGRESS_EVENT_ALIAS, onProgress);
     };
   }, [router, win]);
 

@@ -90,12 +90,13 @@ run_logged "Archive Release iPhoneOS without signing" "${LOG_DIR}/archive-releas
 
 if [ "${RUN_SMOKE:-0}" = "1" ]; then
   echo "== Run simulator smoke test =="
-  OUT_DIR="${IOS_ROOT}/build/verify/smoke" "${SCRIPT_DIR}/smoke-simulator.sh"
+  OUT_DIR="${IOS_ROOT}/build/verify/smoke" DERIVED_DATA_PATH="$DERIVED_DATA_PATH" SKIP_BUILD=1 "${SCRIPT_DIR}/smoke-simulator.sh"
 fi
 
 if [ "${RUN_DEV_SMOKE:-0}" = "1" ]; then
-  echo "== Run simulator dev smoke test =="
-  DEV_MODE=1 OUT_DIR="${IOS_ROOT}/build/verify/smoke" "${SCRIPT_DIR}/smoke-simulator.sh"
+  # M5-3：-shizi-dev 打开的是色板页，不发 pageReady、不跑冒烟；dev 冒烟已并入 RUN_SMOKE 的三个阶段。
+  echo "RUN_DEV_SMOKE is no longer supported; use RUN_SMOKE=1" >&2
+  exit 64
 fi
 
 echo "Local iOS verification OK"

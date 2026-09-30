@@ -15,11 +15,9 @@
 export const STATE_TAG = 'shizi-router';
 export const STATE_VERSION = 1;
 
-// 原生壳事件（01-架构设计 §7、§8.1）。M0-4 任务卡写的是 'shizi-native-progress'，
-// 架构文档写的是 'shizi-native-back-progress'：两个都监听，以架构文档为准（见报告待定项）。
+// 原生壳事件（01-架构设计 §7、§8.1）。M0-4 期间兼容的别名 'shizi-native-progress' 已在 M5-3 删除（Swift 只派发下面两个）。
 export const NATIVE_BACK_EVENT = 'shizi-native-back';
 export const NATIVE_PROGRESS_EVENT = 'shizi-native-back-progress';
-export const NATIVE_PROGRESS_EVENT_ALIAS = 'shizi-native-progress';
 
 // history.back()/go() 发出后等 popstate 的上限；超时则放弃等待、继续执行排队的操作。
 export const PENDING_TIMEOUT_MS = 1000;

@@ -227,20 +227,33 @@ const swiftDir = join('ios', 'ShiziApp', 'ShiziApp');
   const iosCsp = cspDirectives(iosPolicy);
   check("iOS CSP default-src 'self' and frame-src 'none'",
     iosCsp['default-src']?.[0] === "'self'" && iosCsp['frame-src']?.[0] === "'none'", iosPolicy);
-  // warn（M5-3 收尾）：Web 壳已是 script-src 'self'；原生头仍放行内联脚本。
-  if (JSON.stringify(iosCsp['script-src']) !== JSON.stringify(["'self'"])) {
-    warn("iOS scheme CSP script-src is not exactly 'self' (M5-3)", iosCsp['script-src']);
-  }
+  // M5-3 起硬检查：原生头与 Web 壳同为 script-src 'self'，且两处 CSP 逐字相同（01 §8.2「CSP 两处同步」）。
+  check("iOS scheme CSP script-src is exactly 'self'",
+    JSON.stringify(iosCsp['script-src']) === JSON.stringify(["'self'"]), iosCsp['script-src']);
+  const webPolicy = html.match(/<meta http-equiv="Content-Security-Policy" content="([^"]+)">/)?.[1] || '';
+  check('iOS scheme CSP is identical to the index.html CSP meta', iosPolicy === webPolicy, { ios: iosPolicy, web: webPolicy });
   check('native bridge, local origin, external schemes and subframe navigation are constrained',
     webView.includes('message.frameInfo.isMainFrame') && webView.includes('["http", "https", "mailto"].contains(scheme)')
     && webView.includes('url.host == ShiziWebResource.host')
     && !/targetFrame\?\.isMainFrame != false[\s\S]{0,180}else\s*\{\s*decisionHandler\(\.allow\)/.test(webView));
-  check('bridge handler is cycle-free and removed on teardown; smoke runner is Debug-only',
-    webView.includes('WeakScriptMessageHandler(delegate: self)') && webView.includes('removeScriptMessageHandler(forName: "shiziNative")')
-    && /#if DEBUG[\s\S]+__shizi_native_smoke_confirm__[\s\S]+#else[\s\S]+runNativeSmokeIfNeeded\(\) \{\}/.test(webView));
+  check('bridge handler is cycle-free and removed on teardown',
+    webView.includes('WeakScriptMessageHandler(delegate: self)') && webView.includes('removeScriptMessageHandler(forName: "shiziNative")'));
+  // M5-3：冒烟与测试宿主注入（__shiziNativeDev、?test=1、nativeSmoke*）只在 #if DEBUG 里（Release 不编译；产物另由 verify-archive.sh 查）。
+  const debugOnly = /__shiziNativeDev|nativeSmoke|shizi-native-smoke|"test", value: "1"/;
+  const leaks = [];
+  for (const file of listFiles(swiftDir, f => f.endsWith('.swift'))) {
+    const stack = [];
+    readFileSync(file, 'utf8').split('\n').forEach((line, index) => {
+      const directive = line.trim();
+      if (/^#if\b/.test(directive)) stack.push(/^#if\s+DEBUG\b/.test(directive));
+      else if (/^#else\b/.test(directive) && stack.length) stack[stack.length - 1] = false; // #if DEBUG 的 #else 分支 = Release
+      else if (/^#endif\b/.test(directive)) stack.pop();
+      else if (debugOnly.test(line.replace(/\/\/.*$/, '')) && !stack.some(Boolean)) leaks.push(`${relative(ROOT, file)}:${index + 1}`);
+    });
+  }
+  check('native smoke / test-host injection is compiled only under #if DEBUG', leaks.length === 0, leaks);
 
-  // Swift 源码不得含面向用户的中文 alert 文案（文案应由 Web 侧 copy/ 经桥传入）。
-  // 现状不满足 → warn，由 M5-3 收尾后改为 check。
+  // Swift 源码不得含面向用户的中文 alert 文案（文案应由 Web 侧 copy/ 经桥传入）。M5-3 起硬检查。
   const cjk = /[㐀-鿿豈-﫿]/;
   const alertLines = [];
   for (const file of listFiles(swiftDir, f => f.endsWith('.swift'))) {
@@ -252,8 +265,9 @@ const swiftDir = join('ios', 'ShiziApp', 'ShiziApp');
       }
     });
   }
-  if (alertLines.length) warn(`Swift sources contain ${alertLines.length} user-facing Chinese alert string(s) (M5-3)`, alertLines);
-  else passed.push('Swift sources contain no user-facing Chinese alert copy');
+  check('Swift sources contain no user-facing Chinese alert copy', alertLines.length === 0, alertLines);
+  check('native shell presents no UIAlertController', !listFiles(swiftDir, f => f.endsWith('.swift'))
+    .some(file => /UIAlertController\(/.test(readFileSync(file, 'utf8').replace(/\/\/.*$/gm, ''))));
 }
 
 // ---- audit/vector-data-381-* 回放包 ------------------------------------------

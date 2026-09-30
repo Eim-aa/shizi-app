@@ -23,7 +23,7 @@ import { buildStroke, GRID, INK } from '../../core/ink-math.js';
 import { brushDetailEnabled, createLayerCache, paintBrushStroke } from './brush.js';
 import { eventTime } from '../components/Button.js';
 import { injectStyles, T } from '../components/styles.js';
-import { NATIVE_PROGRESS_EVENT, NATIVE_PROGRESS_EVENT_ALIAS } from '../router.js';
+import { NATIVE_PROGRESS_EVENT } from '../router.js';
 
 export { GRID };
 
@@ -289,7 +289,6 @@ export function createInkSurface({ box, inkCanvas, liveCanvas, win = window, get
     liveCanvas.addEventListener(type, stopTouch, { passive: false });
   }
   win.addEventListener(NATIVE_PROGRESS_EVENT, onNativeProgress);
-  win.addEventListener(NATIVE_PROGRESS_EVENT_ALIAS, onNativeProgress);
   const listen = (mq, fn) => {
     if (!mq) return () => {};
     if (typeof mq.addEventListener === 'function') {
@@ -341,7 +340,6 @@ export function createInkSurface({ box, inkCanvas, liveCanvas, win = window, get
         liveCanvas.removeEventListener(type, stopTouch, { passive: false });
       }
       win.removeEventListener(NATIVE_PROGRESS_EVENT, onNativeProgress);
-      win.removeEventListener(NATIVE_PROGRESS_EVENT_ALIAS, onNativeProgress);
       offDark();
       offReduce();
       if (themeObserver) themeObserver.disconnect();

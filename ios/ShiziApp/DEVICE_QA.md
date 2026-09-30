@@ -17,10 +17,8 @@
 
 - [ ] `signing-preflight.sh` 通过，设备状态为 available。
 - [ ] 运行 `DEVICE_ID='设备名称或 UUID' SIGNING_XCCONFIG=ios/ShiziApp/Config/Signing.local.xcconfig ios/ShiziApp/scripts/smoke-device.sh`。
-- [ ] 普通模式两次 native smoke 均通过，第二次确认 `localStorage` 跨进程重启保留。
-- [ ] Smoke 的 `handwritingFlow` 全部通过，确认 pointer 轨迹能落墨且触摸滚动被阻止。
-- [ ] Smoke 的软件键盘严格检查通过，`keyboardInsetActive` 为 true，输入框和确认按钮均可达。
-- [ ] 加 `DEV_MODE=1` 再跑一次，确认题库质检入口可见且流程通过。
+- [ ] `main` / `relaunch` / `deeplink` 三个阶段的 native smoke 均通过（字段表见 `scripts/validate-native-smoke.py`），`relaunch` 确认 `localStorage` 跨进程重启保留。
+- [ ] 冒烟里的书写是合成 PointerEvent：真机手指 / Apple Pencil 书写、边缘返回识别区与「落指即拖」门控时序仍按下文人工检查。
 - [ ] 将 `ios/ShiziApp/build/device-smoke/` 下的 JSON 结果随验收记录保留。
 
 ## 普通用户版

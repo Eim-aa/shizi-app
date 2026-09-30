@@ -1,283 +1,182 @@
 #!/usr/bin/env python3
+"""Validate one stage of the DEBUG native WKWebView smoke (02 M5-3; 01 §8.2, §11).
+
+The smoke script lives in ShiziApp/NativeSmoke.swift (Debug only). It drives the v10 page through the
+public test hooks (window.__shiziTest, data-testid, bridge) and writes Documents/shizi-native-smoke.json.
+
+Stages (smoke-simulator.sh / smoke-device.sh run them in this order):
+  main      module load + fetch, localStorage, write one character and judge it, reload restore,
+            edge back (refused on the write page, allowed on a sub page), backup export / restore / undo
+            without reload, R-B06 for non-backup / >10 MB / cancelled picks, syncReminder, image save.
+  relaunch  a second process launch still sees the smoke key and the records from `main`.
+  deeplink  cold start with a reminder target: native dispatches after pageReady, clears the key only
+            when the page returned true, and the page opens that character.
+Release artifacts without __shiziNativeDev are checked by verify-archive.sh (not by this file).
+
+Usage: validate-native-smoke.py RESULT.json STAGE [--allow-photos-denied]
+"""
 
 import json
 import sys
 
-
-def fail(message: str, data: dict) -> None:
-    print(message, file=sys.stderr)
-    print(json.dumps(data, ensure_ascii=False, indent=2), file=sys.stderr)
-    raise SystemExit(65)
+STAGES = ("main", "relaunch", "deeplink")
+NOT_BACKUP = "notBackup"
 
 
-if len(sys.argv) not in (3, 4, 5):
-    print(
-        "Usage: validate-native-smoke.py /path/to/result.json <0|1 dev mode> "
-        "[0|1 require persisted] [0|1 require software keyboard]",
-        file=sys.stderr,
-    )
-    raise SystemExit(64)
+def main() -> int:
+    args = [a for a in sys.argv[1:] if not a.startswith("--")]
+    flags = {a for a in sys.argv[1:] if a.startswith("--")}
+    if len(args) != 2 or args[1] not in STAGES or flags - {"--allow-photos-denied"}:
+        print(__doc__.strip().splitlines()[-1], file=sys.stderr)
+        return 64
+    path, stage = args
+    with open(path, "r", encoding="utf-8") as handle:
+        data = json.load(handle)
 
-if any(value not in ("0", "1") for value in sys.argv[2:]):
-    print("Dev mode, persisted, and keyboard flags must be 0 or 1.", file=sys.stderr)
-    raise SystemExit(64)
+    checks = {"noError": not data.get("error"), "stage": data.get("stage") == stage}
+    if stage == "main":
+        checks.update(main_checks(data, "--allow-photos-denied" in flags))
+    elif stage == "relaunch":
+        checks.update(relaunch_checks(data))
+    else:
+        checks.update(deeplink_checks(data))
 
-path = sys.argv[1]
-dev_mode = sys.argv[2] == "1"
-require_persisted = len(sys.argv) == 4 and sys.argv[3] == "1"
-if len(sys.argv) == 5:
-    require_persisted = sys.argv[3] == "1"
-require_keyboard = len(sys.argv) == 5 and sys.argv[4] == "1"
+    failed = [name for name, ok in checks.items() if not ok]
+    if failed:
+        print(f"Native WKWebView smoke ({stage}) failed: " + ", ".join(failed), file=sys.stderr)
+        print(json.dumps(data, ensure_ascii=False, indent=2), file=sys.stderr)
+        return 65
+    print(f"Native WKWebView smoke ({stage}): {len(checks)} checks passed")
+    print(json.dumps(data, ensure_ascii=False, indent=2))
+    return 0
 
-with open(path, "r", encoding="utf-8") as file:
-    data = json.load(file)
 
-expected_dev_display = "block" if dev_mode else "none"
-layout = data.get("layoutFlow") or {}
-handwriting = data.get("handwritingFlow") or {}
-data_flow = data.get("dataFlow") or {}
-navigation = data.get("navigationFlow") or {}
-practice = data.get("practiceFlow") or {}
-exit_flow = data.get("exitFlow") or {}
-checks = {
-    "seed": data.get("seed") == 7294,
-    "cards": int(data.get("cards") or 0) >= 7294
-    and int(data.get("cards") or 0) >= int(data.get("seed") or 0),
-    "groups": data.get("groups") == 7294,
-    "devQuery": data.get("devQuery") is dev_mode,
-    "devToolsDisplay": data.get("devToolsDisplay") == expected_dev_display,
-    "localStorageWritable": data.get("localStorageWritable") is True,
-    "localStoragePersisted": not require_persisted
-    or data.get("localStoragePersistedFromPreviousLaunch") is True,
-    "fetchOk": data.get("fetchOk") is True,
-    "strokeCount": int(data.get("strokeCount") or 0) > 0,
-    "safeAreaViewport": layout.get("viewportFitCover") is True
-    and layout.get("viewportZoomAllowed") is True,
-    "keyboardInset": layout.get("keyboardInsetVar") is True
-    and layout.get("visualViewportAvailable") is True,
-    "sheetKeyboardLayout": layout.get("sheetScrollable") is True
-    and layout.get("sheetBottomPadding") is True
-    and layout.get("addInputFocused") is True
-    and layout.get("keyboardInsetMatchesViewport") is True
-    and layout.get("inputVisibleAboveKeyboard") is True
-    and layout.get("addConfirmReachableAboveKeyboard") is True,
-    "softwareKeyboard": not require_keyboard
-    or (
-        layout.get("keyboardInsetActive") is True
-        and float(layout.get("keyboardInsetPixels") or 0) > 0
-    ),
-    "practiceLayout": layout.get("practiceFixed") is True
-    and layout.get("practiceActionsInViewport") is True
-    and layout.get("toastAriaLive") is True,
-    "accessibilityLayout": layout.get("largeTypeScaled") is True
-    and layout.get("criticalTargets44") is True
-    and layout.get("readableOutcomeLegend") is True
-    and layout.get("outcomeMarksRedundant") is True,
-    "handwritingPointerEvents": handwriting.get("pointerEventsSupported") is True
-    and handwriting.get("touchActionNone") is True,
-    "handwritingPreventsScroll": handwriting.get("pointerDownPrevented") is True
-    and handwriting.get("pointerMovePrevented") is True
-    and handwriting.get("touchMovePrevented") is True
-    and handwriting.get("pageScrollStable") is True,
-    "handwritingRecordsInk": handwriting.get("strokeRecorded") is True
-    and int(handwriting.get("strokePointCount") or 0) >= 4
-    and handwriting.get("brushRendererAvailable") is True
-    and handwriting.get("brushMetadataRecorded") is True
-    and handwriting.get("brushShareMetadata") is True
-    and handwriting.get("inkPixelsChanged") is True
-    and handwriting.get("undoStrokeWorked") is True
-    and handwriting.get("clearWorked") is True
-    and handwriting.get("actionCooldownActive") is True,
-    "handwritingPeek": handwriting.get("peekEntered") is True
-    and handwriting.get("peekCancelledPartialStroke") is True
-    and handwriting.get("peekActionsUnlocked") is True
-    and handwriting.get("peekBlockedInk") is True
-    and handwriting.get("peekRestored") is True
-    and handwriting.get("peekControlVisible") is True
-    and handwriting.get("actionLabelsDirect") is True
-    and handwriting.get("peekControlEntered") is True
-    and handwriting.get("peekControlGlyphVisible") is True
-    and handwriting.get("peekControlUncounted") is True,
-    "addSheet": data_flow.get("addSheetOpened") is True
-    and data_flow.get("addPreviewRendered") is True
-    and data_flow.get("addConfirmEnabled") is True
-    and data_flow.get("addSheetClosed") is True,
-    "addStored": data_flow.get("addedCharStored") is True
-    and data_flow.get("customWordStored") is True
-    and data_flow.get("customCardIndexed") is True
-    and data_flow.get("memoryHasAddedChar") is True
-    and data_flow.get("recentInkStored") is True,
-    "wildCapture": data_flow.get("wildPhotoInputProcessed") is True
-    and data_flow.get("wildVisionRequestCompleted") is True
-    and data_flow.get("wildOCRRequiresSelection") is True
-    and data_flow.get("wildCaptureStored") is True
-    and data_flow.get("wildPhotoBounded") is True
-    and data_flow.get("wildPhotoViewsDecode") is True
-    and data_flow.get("wildFailureFallback") is True
-    and data_flow.get("wildPhotoMime") in {"image/webp", "image/jpeg"}
-    and int(data_flow.get("wildVisionCandidateCount") or 0) >= 0,
-    "handCard": data_flow.get("handCardDetailEntry") is True
-    and data_flow.get("handCardGenerated") is True
-    and data_flow.get("handCardNativeRoutes") is True
-    and data_flow.get("handCardPromptBounded") is True
-    and data_flow.get("handCardLegacyBlocked") is True,
-    "library": data_flow.get("libraryAvailable") is True
-    and data_flow.get("libraryReachable") is True
-    and data_flow.get("libraryUI") is True
-    and data_flow.get("libraryCalibrationLifecycle") is True,
-    "contextOverrides": data_flow.get("contextAvailable") is True
-    and data_flow.get("contextOverridesApplied") is True
-    and data_flow.get("contextMemoryStable") is True
-    and data_flow.get("contextOfflineResource") is True,
-    "backupPayload": data_flow.get("backupParses") is True
-    and data_flow.get("backupHasAppMarker") is True
-    and data_flow.get("backupHasAdded") is True
-    and data_flow.get("backupHasCustom") is True
-    and data_flow.get("backupHasMemory") is True
-    and data_flow.get("backupHasRecentInk") is True
-    and data_flow.get("backupHasHandCard") is True
-    and data_flow.get("backupHasWild") is True
-    and data_flow.get("backupHasReminder") is True
-    and data_flow.get("backupHasSound") is True
-    and data_flow.get("backupHasLibrary") is True
-    and data_flow.get("backupHasFunnel") is True
-    and data_flow.get("backupHasSessionV3") is True
-    and data_flow.get("backupHasFSRSLog") is True
-    and data_flow.get("backupHasTraceTutorial") is True
-    and data_flow.get("backupExcludesSmokeKey") is True
-    and data_flow.get("backupExcludesSafetyKey") is True
-    and data_flow.get("backupHasMeta") is True,
-    "backupRestore": data_flow.get("backupRestoreApplied") is True
-    and int(data_flow.get("backupRestoreKeyCount") or 0) > 0
-    and data_flow.get("backupRestoreAdded") is True
-    and data_flow.get("backupRestoreCustom") is True
-    and data_flow.get("backupRestoreMemory") is True
-    and data_flow.get("backupRestoreRecentInk") is True
-    and data_flow.get("backupRestoreHandCard") is True
-    and data_flow.get("backupRestoreWild") is True
-    and data_flow.get("backupRestoreLibrary") is True
-    and data_flow.get("backupRestoreFunnel") is True
-    and data_flow.get("backupRestorePreservesSessionV3") is True
-    and data_flow.get("backupRestorePreservesSmokeKey") is True
-    and data_flow.get("backupSafetyCreated") is True
-    and data_flow.get("backupRestoreRejectsInvalid") is True,
-    "nativeBridge": data_flow.get("nativeBridgeAvailable") is True
-    and data_flow.get("shareCardBridgeAvailable") is True
-    and data_flow.get("nativeOCRBridgeAvailable") is True,
-    "nativeCardSave": data_flow.get("nativeCardSaveBridgeAvailable") is True,
-    "shareCard": data_flow.get("shareCardGenerated") is True
-    and data_flow.get("shareCardPrivate") is True,
-    "collections": data_flow.get("calendarAvailable") is True
-    and data_flow.get("monthlyPostGenerated") is True
-    and data_flow.get("annualReportAvailable") is True
-    and data_flow.get("recentInkBounded") is True,
-    "nativeImport": data_flow.get("nativeImportAvailable") is True,
-    "nativeConfirm": data_flow.get("nativeConfirmAvailable") is True,
-    "reminderState": data_flow.get("reminderStateAvailable") is True
-    and data_flow.get("reminderSettingsRowVisible") is True
-    and data_flow.get("reminderQuestionPayload") is True,
-    "soundState": data_flow.get("soundStateAvailable") is True
-    and data_flow.get("soundSettingsRowVisible") is True,
-    "soundscapeState": data_flow.get("soundscapeStateAvailable") is True
-    and data_flow.get("soundscapeSettingsRowVisible") is True,
-    "etymology": data_flow.get("etymologyResourceAvailable") is True
-    and data_flow.get("etymologyDetailAvailable") is True,
-    "funnelState": data_flow.get("funnelStateAvailable") is True,
-    "calibrationReturn": data_flow.get("calibrationReturnInviteVisible") is True
-    and data_flow.get("calibrationReturnPermissionRequested") is True,
-    "navPractice": navigation.get("practiceEntryVisible") is True
-    and navigation.get("practiceTabActive") is True
-    and navigation.get("monthlyRhythmVisible") is True,
-    "navBook": navigation.get("bookVisible") is True
-    and navigation.get("bookTabActive") is True
-    and navigation.get("footVisibleOnBook") is True
-    and navigation.get("bookAchievementVisible") is True
-    and navigation.get("stampGuideAvailable") is True,
-    "navMe": navigation.get("meVisible") is True
-    and navigation.get("meTabActive") is True
-    and navigation.get("footVisibleOnMe") is True
-    and navigation.get("meActionsDisclosed") is True
-    and navigation.get("metricLanguageConsistent") is True,
-    "navProfile": navigation.get("profileVisible") is True
-    and navigation.get("profileFootHidden") is True
-    and navigation.get("profileReturnedToMe") is True
-    and navigation.get("profileHasNoDuplicateChars") is True,
-    "homeCapture": navigation.get("homeCaptureVisible") is True,
-    "navAudit": navigation.get("auditVisible") is dev_mode
-    and navigation.get("auditReturnedToSettings") is dev_mode,
-    "practiceStarted": practice.get("started") is True,
-    "practiceBatch": int(practice.get("batchSize") or 0) >= 2,
-    "practiceCardVisible": practice.get("cardVisible") is True,
-    "practiceActionsEnabled": practice.get("showEnabled") is True
-    and practice.get("doneEnabled") is True,
-    "practiceReveal": practice.get("revealVisible") is True
-    and practice.get("decisionVisible") is True
-    and practice.get("functionalDecisionLabels") is True
-    and practice.get("selfAssessmentControls") is True
-    and practice.get("submissionSnapshotComplete") is True
-    and practice.get("comparisonGridComplete") is True
-    and practice.get("comparisonSkeletonVisible") is True
-    and practice.get("comparisonCoordinatesAligned") is True,
-    "practiceStamp": practice.get("outcome") == "hinted"
-    and practice.get("immediateAdvanced") is True
-    and practice.get("noNextButton") is True
-    and practice.get("feedbackHeld") is True
-    and practice.get("fsrsAgainOnly") is True
-    and practice.get("summaryPocketVisible") is True,
-    "practiceUndo": practice.get("undoBarFollowed") is True
-    and practice.get("undoRollback") is True
-    and practice.get("undoActivityRollback") is True
-    and practice.get("nextCardUntouched") is True,
-    "practiceTrace": practice.get("traceModeVisible") is True
-    and practice.get("traceTutorialVisible") is True
-    and practice.get("traceOutlineVisible") is True
-    and practice.get("traceRequiresInk") is True
-    and practice.get("traceReadyAfterInk") is True
-    and practice.get("postTraceRecall") is True
-    and practice.get("hapticTraceNoReview") is True
-    and practice.get("soundPaperRecorded") is True,
-    "practicePersistence": practice.get("activityRecorded") is True
-    and practice.get("sessionSnapshotStored") is True
-    and practice.get("resumeHomeState") is True
-    and practice.get("resumeRestored") is True
-    and practice.get("historyGuardArmed") is True,
-    "reminderSync": practice.get("reminderSyncAfterStamp") is True,
-    "haptics": practice.get("hapticSelectTipRecorded") is True
-    and practice.get("hapticActionRevealRecorded") is True
-    and practice.get("hapticStampRecorded") is True
-    and practice.get("hapticUndoRecorded") is True
-    and practice.get("hapticSelectTracingRecorded") is True,
-    "paperSounds": practice.get("soundStampRecorded") is True
-    and practice.get("soundPaperRecorded") is True,
-    "hapticSequences": practice.get("hapticHintedSequence")
-    == ["select", "action", "stamp"]
-    and practice.get("hapticUndoSequence") == ["undo"]
-    and practice.get("hapticDontKnowSequence") == ["select"]
-    and practice.get("hapticTraceCompletionSequence") == []
-    and practice.get("hapticMilestoneSequence") == ["milestone"]
-    and practice.get("hapticOrdinaryCompletionSequence") == ["action"],
-    "practiceNext": practice.get("posLabelAfter") != practice.get("posLabelBefore"),
-    "exitSheetRemoved": exit_flow.get("noExitSheet") is True,
-    "exitHome": exit_flow.get("returnedHome") is True
-    and exit_flow.get("practiceHidden") is True
-    and exit_flow.get("footVisible") is True,
-    "exitUnrecordedCard": exit_flow.get("roundStatsUnchanged") is True
-    and int(exit_flow.get("positionBeforeExit") or -1) >= 2,
-    "historySwipeState": int(exit_flow.get("historyInitialLength") or 0) >= 2
-    and int(exit_flow.get("directReturnCount") or 0) == 3
-    and exit_flow.get("nativeEdgeBackEvent") is True
-    and exit_flow.get("backForwardSnapshotsDisabled") is True
-    and exit_flow.get("nativeEdgeGestureInstalled") is True
-    and exit_flow.get("historyLengthStable") is True
-    and exit_flow.get("directReturnStatePreserved") is True
-    and exit_flow.get("directReturnSaved") is True
-    and exit_flow.get("homeBackNoop") is True,
-    "noError": not data.get("error"),
-}
+def main_checks(data: dict, allow_photos_denied: bool) -> dict:
+    boot = data.get("boot") or {}
+    storage = data.get("storage") or {}
+    write = data.get("write") or {}
+    reload = data.get("reload") or {}
+    edge = data.get("edgeBack") or {}
+    backup = data.get("backup") or {}
+    restore = data.get("restore") or {}
+    reject = data.get("reject") or {}
+    copy = reject.get("copy") or {}
+    reminder = data.get("reminder") or {}
+    image = data.get("image") or {}
+    native = data.get("native") or {}
 
-failed = [key for key, passed in checks.items() if not passed]
-if failed:
-    fail("Native WKWebView smoke failed: " + ", ".join(failed), data)
+    def rejected(name: str, reason: str, kind: str) -> bool:
+        row = reject.get(name) or {}
+        expected = copy.get(kind)
+        return row.get("reason") == reason and row.get("kind") == kind and bool(expected) and row.get("text") == expected
 
-print("Native WKWebView smoke:")
-print(json.dumps(data, ensure_ascii=False, indent=2))
+    planned = reminder.get("plannedDays")
+    return {
+        # 模块加载 / fetchOk（shizi-resource:// 下的 ES 模块、经典脚本全局、笔顺 JSON、字体）
+        "moduleLoad": boot.get("bridgeReady") is True
+        and boot.get("nativeGlobals") is True
+        and isinstance(boot.get("topScreen"), str)
+        and bool(boot.get("topScreen")),
+        "testHost": boot.get("testQuery") is True and boot.get("nativeDev") is True and boot.get("testHooks") is True,
+        "deckGlobals": int(boot.get("seed") or 0) >= 7294
+        and int(boot.get("groups") or 0) >= 7294
+        and int(boot.get("contextOverrides") or 0) > 0
+        and int(boot.get("coreStrokes") or 0) >= 600
+        and boot.get("hanziWriter") is True,
+        "fetchOk": boot.get("fetchOk") is True and int(boot.get("strokeCount") or 0) > 0,
+        "fontLoaded": int(boot.get("fontFaces") or 0) > 0,
+        "buildReady": bool(boot.get("buildReady")) and boot.get("buildReady") == boot.get("buildMeta"),
+        "noServiceWorker": boot.get("serviceWorkerController") is False,
+        # localStorage
+        "localStorageWritable": storage.get("writable") is True and storage.get("storeAvailable") is True,
+        # 写一字判断（合成指针事件 → 写好了 → 写对了 → judged 记录；第二字写错）
+        "writeJudge": write.get("seeded") is True
+        and write.get("judgedChar") == "永"
+        and write.get("judgment") == "correct"
+        and write.get("cardKey") == "base:永"
+        and write.get("advanced") is True,
+        "writeJudgeSecond": write.get("secondJudged") == ["和:wrong", "永:correct"],
+        # 刷新恢复（W10）
+        "reloadRestore": reload.get("topScreen") == "write"
+        and reload.get("cursor") == "1"
+        and reload.get("phase") == "recall"
+        and reload.get("strokes") == 1,
+        # 边缘返回：写字页整页门控 false → 原生拒绝；子页 → 派发 shizi-native-back → 页面返回一层
+        "edgeBackGateOnWrite": edge.get("writeAllowed") is False
+        and edge.get("writeStayed") is True
+        and edge.get("writeGateSent") is False,
+        "edgeBackOnSubpage": edge.get("subpageAllowed") is True
+        and edge.get("subpageFired") is True
+        and edge.get("poppedTo") not in (None, "backup", "write"),
+        "edgeGestureInstalled": native.get("edgeGestureInstalled") is True
+        and native.get("edgeGestureDelegate") is True
+        and native.get("edgeGestureLeft") is True
+        and native.get("backForwardGesturesDisabled") is True,
+        # 备份导出（原生 shareBackup → markBackupExported）
+        "backupExport": backup.get("written") is True
+        and backup.get("app") == "shizi"
+        and backup.get("version") == 2
+        and backup.get("hasRecords") is True
+        and backup.get("markedExported") is True,
+        "backupExcludesSmokeKey": backup.get("excludesSmokeKey") is True and backup.get("excludesSafety") is True,
+        # 备份导入：原生选文件（预检）→ shiziBackupPicked → 页内确认 → 替换 → 撤销，全程不 reload
+        "backupImport": restore.get("delivered") is True
+        and restore.get("confirmMode") == "replace"
+        and restore.get("replacedMatchesBackup") is True
+        and restore.get("judgedAfterReplace") == ["永"]
+        and restore.get("undone") is True
+        and restore.get("noReload") is True
+        and restore.get("stayedOnBackup") is True,
+        # R-B06：非备份文件 / 不是拾字的 JSON / 超过 10MB / 取消
+        "backupRejectInvalid": rejected("invalid", "invalid", NOT_BACKUP),
+        "backupRejectNotShizi": rejected("notShizi", "invalid", NOT_BACKUP),
+        "backupRejectTooLarge": rejected("tooLarge", "tooLarge", NOT_BACKUP),
+        "backupRejectCancelled": rejected("cancel", "cancelled", "cancelled"),
+        "backupRejectNoReload": reject.get("noReload") is True,
+        # syncReminder：页面下发 → Swift 解析与排期（同一个纯函数）
+        "syncReminder": reminder.get("sent") is True
+        and reminder.get("enabled") is True
+        and isinstance(reminder.get("hour"), int)
+        and 0 <= reminder.get("hour") <= 23
+        and isinstance(reminder.get("minute"), int)
+        and 0 <= reminder.get("minute") <= 59
+        and reminder.get("validQuestions") == reminder.get("rawQuestions")
+        and isinstance(planned, list)
+        and len(planned) <= 7
+        and (reminder.get("validQuestions", 0) == 0 or len(planned) > 0),
+        "openAppSettings": reminder.get("openAppSettings") is True,
+        # 图片保存：savePracticeCard → 相册 → shiziCardSaved（bridge.markReady 之后正常交付）
+        "imageSave": image.get("via") == "native"
+        and (
+            (image.get("ok") is True and image.get("nativeSuccess") is True)
+            or (allow_photos_denied and image.get("ok") is False and image.get("nativeSuccess") is False)
+        ),
+        # 所有写入经 storage.js（冒烟自己的 nativeSmoke 键除外）
+        "noDirectWrites": data.get("directWrites") == [],
+    }
+
+
+def relaunch_checks(data: dict) -> dict:
+    persist = data.get("persist") or {}
+    return {
+        "localStoragePersisted": isinstance(persist.get("smokeKey"), str) and bool(persist.get("smokeKey")),
+        "recordsPersisted": persist.get("judged") == ["和:wrong", "永:correct"],
+        "sessionPersisted": persist.get("sessionA") is True,
+        "backupMetaPersisted": int(persist.get("lastExportAt") or 0) > 0,
+    }
+
+
+def deeplink_checks(data: dict) -> dict:
+    link = data.get("deeplink") or {}
+    session = link.get("sessionB") or {}
+    queue = session.get("queue") or []
+    return {
+        "reminderDispatched": link.get("cardKey") == "base:春" and link.get("accepted") is True,
+        "reminderKeyCleared": link.get("cleared") is True,
+        "reminderHandled": link.get("handlerRegistered") is True and link.get("pendingInBridge") == [],
+        "reminderOpensTarget": "base:春" in queue,
+    }
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

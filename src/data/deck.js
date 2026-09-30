@@ -109,6 +109,23 @@ export function isPracticable(key) {
   return typeof key === 'string' && key.startsWith('base:') && !!cardForKey(key);
 }
 
+/** 卡片有没有可换掉的语境词（多字词；仅拼音题 fallback「X字」与释义题 gloss 不算）。M3-6 单字详情「换掉这个词语」。 */
+export function hasContextWord(card) {
+  return !!card && Array.isArray(card.chars) && card.chars.length > 1 && card.ctx !== 'fallback' && card.ctx !== 'gloss';
+}
+
+/**
+ * 「换掉这个词语」生效后的卡片（R-D05；01 §3.5 wordOff `{[cardKey]: at}`；M3-6）：停用当前语境词，题面改为只按拼音写
+ * （过渡口径，M3-6 报告登记待定：与 #175 仅拼音题同一题面——词语只剩目标字、ctx='fallback'、去掉 promptHint；
+ * 提示行即 X-PROMPT.fallbackHint）。wordOff 里没有这张卡或卡没有语境词时原样返回；不改动入参。
+ */
+export function withWordOff(card, wordOff) {
+  if (!card || !wordOff || typeof wordOff !== 'object') return card;
+  if (!Object.prototype.hasOwnProperty.call(wordOff, keyOfCard(card)) || !hasContextWord(card)) return card;
+  const { promptHint, ...rest } = card; // eslint-disable-line no-unused-vars
+  return { ...rest, word: card.target, chars: [card.target], ci: 0, ctx: 'fallback' };
+}
+
 /** settings.library 若是已知字库则用它，否则默认库。 */
 export function currentLibraryId(settings) {
   const id = settings && typeof settings.library === 'string' ? settings.library : null;

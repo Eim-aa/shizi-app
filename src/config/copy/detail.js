@@ -36,4 +36,19 @@ export default Object.freeze({
   // R-D10（已定）
   'R-D10.title': '「{char}」的旧记录',
   'R-D10.body': ['旧版本拍照留下的记录，只能看，不能做成图片。', '备份时会一起存下。'],
+  // X-DETAIL（M3-6 单字详情：原型 ShiziScreen L32–L61 / L128–L132 / L389–L413 的其余字样与三段式，origin: extra）
+  'X-DETAIL.strokes': '{n} 画',
+  'X-DETAIL.wordLabel': '词语',
+  'X-DETAIL.glossLabel': '释义',
+  'X-DETAIL.firstRecord': '首次记录 {date}',
+  'X-DETAIL.emptyNote': '判断过的每一次书写都会留在这里',
+  'X-DETAIL.cellCaption': '{month}·{day} {caption}',
+  'X-DETAIL.cellTitle': '{date} · {caption}',
+  'X-DETAIL.sourceLabel': '字源',
+  'X-DETAIL.legacyEntry': '旧版本的记录',
+  'X-DETAIL.photoAlt': '旧版本拍下的照片',
+  'X-DETAIL.saveFailed': '没保存上，原来的内容都还在。',
+  'X-DETAIL.retry': '再试一次',
+  'X-DETAIL.cancel': '先不保存',
+  'X-DETAIL.undoFailedL2': '可以再点一次撤销',
 });

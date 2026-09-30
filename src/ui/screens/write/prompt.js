@@ -21,7 +21,8 @@
 
 import { html, useRef } from '../../../../vendor/ui.js';
 import { promptModel } from '../../../core/cards.js';
-import { cardForKey } from '../../../data/deck.js';
+import { cardForKey, withWordOff } from '../../../data/deck.js';
+import { getStore } from '../../../store/store.js';
 import { injectStyles, T } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
 
@@ -134,6 +135,15 @@ export function PromptView({ model, hintId, groupLabel, testid = 'write-prompt' 
 
 let hintSeq = 0;
 
+function wordOffTable() {
+  try {
+    const state = getStore().getState();
+    return state ? state.wordOff : null;
+  } catch (error) {
+    return null; // store 未启动（node:test / 演示）：没有换掉的词语
+  }
+}
+
 /**
  * 写字页题面。
  * @param {{cardKey?: string, card?: object, phase?: string, testid?: string}} props
@@ -145,7 +155,8 @@ export function Prompt({ cardKey, card, phase = 'recall', testid = 'write-prompt
     hintSeq += 1;
     idRef.current = `sz-prompt-hint-${hintSeq}`;
   }
-  const resolved = card || cardForKey(cardKey);
+  // M3-6：单字详情「换掉这个词语」（wordOff）生效后题面改只按拼音写（data/deck.js withWordOff）。
+  const resolved = card || withWordOff(cardForKey(cardKey), wordOffTable());
   const model = promptCells(resolved, { revealed: REVEAL_PHASES.includes(phase) });
   return html`<${PromptView} model=${model} hintId=${idRef.current} groupLabel=${t('X-PROMPT.groupLabel')} testid=${testid} />`;
 }

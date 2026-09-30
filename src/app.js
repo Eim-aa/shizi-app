@@ -25,6 +25,7 @@ async function mountApp() {
   } catch (error) {
     console.error('[shizi] store boot failed:', error);
   }
+  await import('./platform/appearance.js').then(m => m.bootAppearance()).catch(error => console.warn('[shizi] appearance failed:', error)); // M4-3：按 settings 应用 data-theme / data-large（挂 UI 前）
   const { mountRoot } = await import('./ui/root.js');
   await mountRoot(container);
 }

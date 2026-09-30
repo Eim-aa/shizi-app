@@ -1,0 +1,362 @@
+// 记录（Record）的构造、校验与查询。纯函数；输入输出都是 01-架构设计 §3.2 的普通对象，不访问存储。
+//
+// Record {
+//   id: 'r<序号>', cardKey, char, sessionId,
+//   kind: 'judged' | 'answer-seen' | 'skipped',   // 只有 judged 是「有效记录」（决定-D18/D23）
+//   judgment?: 'correct' | 'wrong',               // kind==='judged' 必填
+//   at, localDay,
+//   help: { hints, answerSeen, traced },          // 帮助事实，永不因更正删除（决定-D07）
+//   corrections?: [{ from, at }],                 // 更正历史；更正不新增记录（决定-D19）
+//   inkId?, legacy?
+// }
+//
+// 口径：
+// - 「最近一次」以 id 序号为准（§3.1），at/localDay 只做展示与月归属。
+// - 「写错过」= 某字最近一次 judged 为 wrong（K15）；「快忘了」= 最近一次 judged 为 correct 且 FSRS 到期（§5），
+//   两单互斥（K16）。更正为对同样离开写错过（I02）。
+// - 「今天记录了 N 个字」= 今天 judged 按字去重；墨迹行取最近 8 条（按 id，同字留最近一次，决定-D12）。
+
+import * as defaultPolicy from '../config/policy.js';
+import { localDay, isValidDay, monthOf, diffDays } from './dates.js';
+
+export const RECORD_KINDS = Object.freeze(['judged', 'answer-seen', 'skipped']);
+export const JUDGMENTS = Object.freeze(['correct', 'wrong']);
+
+const RECORD_ID_RE = /^r([1-9]\d*)$/;
+const SESSION_ID_RE = /^s([1-9]\d*)$/;
+const CARD_KEY_RE = /^(base|custom):(.+)$/u;
+
+// ---- id 与序号（§3.1）----
+
+/** 'r12' → 12；不合法返回 NaN。 */
+export function recordSerial(id) {
+  const m = typeof id === 'string' ? RECORD_ID_RE.exec(id) : null;
+  return m ? Number(m[1]) : NaN;
+}
+
+/** 's7' → 7；不合法返回 NaN。 */
+export function sessionSerial(id) {
+  const m = typeof id === 'string' ? SESSION_ID_RE.exec(id) : null;
+  return m ? Number(m[1]) : NaN;
+}
+
+export function recordId(serial) {
+  if (!Number.isInteger(serial) || serial < 1) throw new RangeError('serial must be a positive integer');
+  return 'r' + serial;
+}
+
+export function sessionId(serial) {
+  if (!Number.isInteger(serial) || serial < 1) throw new RangeError('serial must be a positive integer');
+  return 's' + serial;
+}
+
+/** 按 id 序号升序比较（不合法 id 排最前）。 */
+export function compareRecordIds(a, b) {
+  const sa = recordSerial(a);
+  const sb = recordSerial(b);
+  return (Number.isNaN(sa) ? -1 : sa) - (Number.isNaN(sb) ? -1 : sb);
+}
+
+export function sortById(records) {
+  return [...(records || [])].sort((x, y) => compareRecordIds(x.id, y.id));
+}
+
+/**
+ * 下一个可用序号 = max(records、sessions 中已用序号, meta.serial) + 1（§3.1；允许空洞）。
+ * sessions 形如 {A, B, lastEnded:{A?, B?}}；会话 id 与 items[].recordId 都计入。
+ */
+export function nextSerial({ records = [], sessions = null, metaSerial = 0 } = {}) {
+  let max = Number.isInteger(metaSerial) && metaSerial > 0 ? metaSerial : 0;
+  for (const r of records) {
+    const s = recordSerial(r && r.id);
+    if (s > max) max = s;
+  }
+  const visit = (session) => {
+    if (!session) return;
+    const s = sessionSerial(session.id);
+    if (s > max) max = s;
+    for (const item of session.items || []) {
+      const rs = recordSerial(item && item.recordId);
+      if (rs > max) max = rs;
+    }
+  };
+  if (sessions) {
+    visit(sessions.A);
+    visit(sessions.B);
+    if (sessions.lastEnded) {
+      visit(sessions.lastEnded.A);
+      visit(sessions.lastEnded.B);
+    }
+  }
+  return max + 1;
+}
+
+// ---- 卡键 ----
+
+/** 'base:静' → '静'；不合法返回 null。 */
+export function charOfCardKey(cardKey) {
+  const m = typeof cardKey === 'string' ? CARD_KEY_RE.exec(cardKey) : null;
+  if (!m) return null;
+  return Array.from(m[2]).length === 1 ? m[2] : null;
+}
+
+// ---- 构造与校验 ----
+
+function normalizeHelp(help) {
+  const h = help || {};
+  const hints = Number(h.hints) || 0;
+  return {
+    hints: Math.max(0, Math.min(2, Math.trunc(hints))),
+    answerSeen: h.answerSeen === true,
+    traced: h.traced === true,
+  };
+}
+
+/** 记录形状校验；返回错误列表（空 = 合法）。 */
+export function validateRecord(r) {
+  const errors = [];
+  if (!r || typeof r !== 'object' || Array.isArray(r)) return ['record must be an object'];
+  if (Number.isNaN(recordSerial(r.id))) errors.push('id must look like r<serial>');
+  const ch = charOfCardKey(r.cardKey);
+  if (!ch) errors.push('cardKey must be base:<字> or custom:<字>');
+  else if (r.char !== ch) errors.push('char must match cardKey');
+  if (!RECORD_KINDS.includes(r.kind)) errors.push('kind must be judged | answer-seen | skipped');
+  if (r.kind === 'judged') {
+    if (!JUDGMENTS.includes(r.judgment)) errors.push('judged record needs judgment correct | wrong');
+  } else if (r.judgment !== undefined) {
+    errors.push('only judged records carry a judgment');
+  }
+  if (!r.legacy && Number.isNaN(sessionSerial(r.sessionId))) errors.push('sessionId must look like s<serial>');
+  if (typeof r.at !== 'number' || !Number.isFinite(r.at)) errors.push('at must be a finite ms timestamp');
+  if (!isValidDay(r.localDay)) errors.push('localDay must be YYYY-MM-DD');
+  const help = r.help;
+  if (!help || typeof help !== 'object') errors.push('help must be an object');
+  else {
+    if (![0, 1, 2].includes(help.hints)) errors.push('help.hints must be 0, 1 or 2');
+    if (typeof help.answerSeen !== 'boolean') errors.push('help.answerSeen must be boolean');
+    if (typeof help.traced !== 'boolean') errors.push('help.traced must be boolean');
+  }
+  if (r.corrections !== undefined) {
+    if (!Array.isArray(r.corrections)) errors.push('corrections must be an array');
+    else if (r.kind !== 'judged') errors.push('only judged records can be corrected');
+    else if (r.corrections.some((c) => !c || !JUDGMENTS.includes(c.from) || typeof c.at !== 'number')) {
+      errors.push('corrections entries must be {from, at}');
+    }
+  }
+  if (r.inkId !== undefined && typeof r.inkId !== 'string') errors.push('inkId must be a string');
+  if (r.legacy !== undefined && r.legacy !== true) errors.push('legacy must be true when present');
+  return errors;
+}
+
+/**
+ * 构造一条记录。localDay 由 at 按本地日推出；help 规整为 {hints, answerSeen, traced}。
+ * 形状不合法时抛错（调用方在 commit 前构造，错误属于编程错误）。
+ */
+export function makeRecord({ id, cardKey, sessionId: sid, kind, judgment, at, help, inkId }) {
+  const record = {
+    id,
+    cardKey,
+    char: charOfCardKey(cardKey),
+    sessionId: sid,
+    kind,
+    at,
+    localDay: typeof at === 'number' && Number.isFinite(at) ? localDay(at) : undefined,
+    help: normalizeHelp(help),
+  };
+  // 非 judged 带 judgment 视为编程错误：放进对象让校验报出来，而不是静默丢掉。
+  if (kind === 'judged' || judgment !== undefined) record.judgment = judgment;
+  if (kind === 'answer-seen') record.help.answerSeen = true;
+  if (inkId !== undefined) record.inkId = inkId;
+  const errors = validateRecord(record);
+  if (errors.length) throw new RangeError('invalid record: ' + errors.join('; '));
+  return record;
+}
+
+export function isJudged(r) {
+  return !!r && r.kind === 'judged';
+}
+
+/**
+ * 更正（决定-D19）：只改 judgment、追加 corrections；id/at/localDay 不变、帮助事实不变。
+ * 同判断视为无变化（返回原对象）。legacy 记录与非 judged 记录不可更正（K25）。
+ */
+export function correctRecord(record, judgment, at) {
+  if (!isJudged(record)) throw new RangeError('only judged records can be corrected');
+  if (record.legacy) throw new RangeError('legacy records cannot be corrected');
+  if (!JUDGMENTS.includes(judgment)) throw new RangeError('judgment must be correct or wrong');
+  if (record.judgment === judgment) return record;
+  return {
+    ...record,
+    judgment,
+    corrections: [...(record.corrections || []), { from: record.judgment, at }],
+  };
+}
+
+/** 用同 id 的新记录替换（保持数组顺序）。 */
+export function replaceRecord(records, next) {
+  let found = false;
+  const out = records.map((r) => {
+    if (r.id === next.id) {
+      found = true;
+      return next;
+    }
+    return r;
+  });
+  if (!found) throw new RangeError('record not found: ' + String(next && next.id));
+  return out;
+}
+
+/** 删除一条记录（跳过撤销，走查-W16）。 */
+export function removeRecord(records, id) {
+  const out = records.filter((r) => r.id !== id);
+  if (out.length === records.length) throw new RangeError('record not found: ' + String(id));
+  return out;
+}
+
+// ---- 查询 ----
+
+/** 每个 cardKey 最近一次 judged 记录（按 id 序号，决定-D23）。 */
+export function latestJudgedByCard(records) {
+  const latest = new Map();
+  for (const r of records || []) {
+    if (!isJudged(r)) continue;
+    const prev = latest.get(r.cardKey);
+    if (!prev || compareRecordIds(prev.id, r.id) < 0) latest.set(r.cardKey, r);
+  }
+  return latest;
+}
+
+export function latestJudged(records, cardKey) {
+  return latestJudgedByCard((records || []).filter((r) => r.cardKey === cardKey)).get(cardKey) || null;
+}
+
+/** 某字的全部记录（按 id 升序）。 */
+export function recordsOfCard(records, cardKey) {
+  return sortById((records || []).filter((r) => r.cardKey === cardKey));
+}
+
+/** 「记录了 N 次」= 该字 judged 条数。 */
+export function judgedCountOfCard(records, cardKey) {
+  return (records || []).filter((r) => isJudged(r) && r.cardKey === cardKey).length;
+}
+
+/** 「一共写错 N 次」= 该字当前判断为 wrong 的 judged 条数（更正后按新判断）。 */
+export function wrongCountOfCard(records, cardKey) {
+  return (records || []).filter((r) => isJudged(r) && r.cardKey === cardKey && r.judgment === 'wrong').length;
+}
+
+/** 该字第一条 judged 记录（年报/「从 X 开始记录」）。 */
+export function firstJudgedOfCard(records, cardKey) {
+  return sortById((records || []).filter((r) => isJudged(r) && r.cardKey === cardKey))[0] || null;
+}
+
+/** 有 judged 记录的 cardKey 集合。 */
+export function writtenCardKeys(records) {
+  return new Set(latestJudgedByCard(records).keys());
+}
+
+export function hasAnyJudged(records) {
+  return (records || []).some(isJudged);
+}
+
+/** 写错过（K15）：最近一次 judged 为 wrong 的字，最近写错的排前。返回这些最近记录。 */
+export function wrongList(records) {
+  return [...latestJudgedByCard(records).values()]
+    .filter((r) => r.judgment === 'wrong')
+    .sort((a, b) => compareRecordIds(b.id, a.id));
+}
+
+export function isInWrongList(records, cardKey) {
+  const r = latestJudged(records, cardKey);
+  return !!r && r.judgment === 'wrong';
+}
+
+/**
+ * 快忘了（K16，P04）：最近一次 judged 为 correct 且 sched 到期（due ≤ today，无 stoppedAt）。
+ * 排序：逾期天数降序 → 稳定度升序 → 最近记录 id 升序；最多 policy.forgetCap 个。
+ * @returns {{items: Array<{cardKey, record, due, overdue}>, total: number}}
+ */
+export function forgetList({ records, sched, today, policy = defaultPolicy }) {
+  if (policy.forgetRule !== 'due') throw new RangeError('unsupported policy.forgetRule: ' + String(policy.forgetRule));
+  const all = [];
+  for (const [cardKey, record] of latestJudgedByCard(records)) {
+    if (record.judgment !== 'correct') continue;
+    const entry = sched ? sched[cardKey] : undefined;
+    if (!entry || entry.stoppedAt !== undefined || !isValidDay(entry.due)) continue;
+    const overdue = diffDays(entry.due, today);
+    if (overdue < 0) continue;
+    all.push({ cardKey, record, due: entry.due, overdue, stability: entry.fsrs ? Number(entry.fsrs.stability) || 0 : 0 });
+  }
+  all.sort((a, b) => b.overdue - a.overdue || a.stability - b.stability || compareRecordIds(a.record.id, b.record.id));
+  const cap = Number.isInteger(policy.forgetCap) && policy.forgetCap >= 0 ? policy.forgetCap : all.length;
+  return {
+    items: all.slice(0, cap).map(({ cardKey, record, due, overdue }) => ({ cardKey, record, due, overdue })),
+    total: all.length,
+  };
+}
+
+/** 某天有 judged 记录的 cardKey 集合。 */
+export function judgedCardKeysOn(records, day) {
+  const out = new Set();
+  for (const r of records || []) if (isJudged(r) && r.localDay === day) out.add(r.cardKey);
+  return out;
+}
+
+/** 某天有「看过答案」记录的 cardKey 集合。 */
+export function answerSeenCardKeysOn(records, day) {
+  const out = new Set();
+  for (const r of records || []) if (r && r.kind === 'answer-seen' && r.localDay === day) out.add(r.cardKey);
+  return out;
+}
+
+/** 「今天记录了 N 个字」：今天 judged 按字去重的个数。 */
+export function todayCount(records, today) {
+  return judgedCardKeysOn(records, today).size;
+}
+
+/**
+ * 首页墨迹行（决定-D12）：今天 judged，同字只留最近一次，按 id 先后；取最后 limit 条。
+ * N ≤ limit 时显示 N 项；N > limit 时显示最近 limit 项（数字仍为 N）。
+ */
+export function todayInkRow(records, today, limit = 8) {
+  const byChar = new Map();
+  for (const r of sortById(records)) {
+    if (!isJudged(r) || r.localDay !== today) continue;
+    byChar.delete(r.cardKey);
+    byChar.set(r.cardKey, r);
+  }
+  const list = [...byChar.values()];
+  return list.slice(Math.max(0, list.length - limit));
+}
+
+/** 本日 judged 的「复习字」个数：今天有 judged、且在今天以前已有 judged（每日上限记账，§5「练完记账」）。 */
+export function reviewsDoneOn(records, day) {
+  const firstDay = new Map();
+  for (const r of records || []) {
+    if (!isJudged(r)) continue;
+    const prev = firstDay.get(r.cardKey);
+    if (!prev || r.localDay < prev) firstDay.set(r.cardKey, r.localDay);
+  }
+  let count = 0;
+  for (const key of judgedCardKeysOn(records, day)) {
+    if (firstDay.get(key) < day) count += 1;
+  }
+  return count;
+}
+
+/** 按月索引：{ 'YYYY-MM': Record[]（按 id 升序） }（对应 shizi.v2.records.<YYYY-MM> 分键）。 */
+export function recordsByMonth(records) {
+  const out = {};
+  for (const r of sortById(records)) {
+    const month = monthOf(r.localDay);
+    (out[month] || (out[month] = [])).push(r);
+  }
+  return out;
+}
+
+/** 某月有 judged 记录的日子（升序），练习记录日历用（R-P01：只标当天写过的日子）。 */
+export function judgedDaysInMonth(records, month) {
+  const days = new Set();
+  for (const r of records || []) if (isJudged(r) && r.localDay.startsWith(month + '-')) days.add(r.localDay);
+  return [...days].sort();
+}

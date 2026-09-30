@@ -1,0 +1,380 @@
+// 会话（Session）状态与选字。纯函数；输入输出都是 01-架构设计 §3.3 的普通对象，不访问存储。
+//
+// sessions = { A: Session|null, B: Session|null, lastEnded: { A?: Session, B?: Session } }
+//   A = first / daily（第一次练习 / 今天的练习）；B = picked（这次选的字）。两槽互不覆盖（决定-D05）。
+//   lastEnded[slot] 保留最近结束的会话，供结果页、来源行、离开按钮只读；下次开同槽时清掉。
+//
+// Session {
+//   id, slot, kind: 'first'|'daily'|'picked', source: {view, char?},
+//   queue: [cardKey], cursor,
+//   items: [{cardKey, recordId?, kind, fsrsBefore?}],   // fsrsBefore 只活在会话里，供本会话更正重放
+//   current: {phase, strokes, hints, answerSeen, hintRange, referenceReady},
+//   lastLine: {recordId, kind:'record'|'changed'|'saw'} | null,
+//   startedAt, startedDay, updatedAt, endedAt?, endedEarly?
+// }
+//
+// 选字（§5）：
+// - 第一次练习：固定 policy.firstQueue（P09）。
+// - 今天的练习：① 到期字（due ≤ 今天）按逾期天数降序、稳定度升序，受每日上限 policy.dailyReviewCap（P03，练完记账）；
+//   ② 新字按调用方给的顺序（当前练习范围、SEED 字频序）。排除今天已有 judged 的字；skipped 不影响；
+//   answer-seen 按 policy.answerSeenScope（P36）；自选未写按 policy.customIntoDaily（P33）。组大小 policy.groupSize（P03）。
+
+import * as defaultPolicy from '../config/policy.js';
+import { localDay } from './dates.js';
+import { charOfCardKey, isJudged, judgedCardKeysOn, answerSeenCardKeysOn, reviewsDoneOn, hasAnyJudged } from './records.js';
+import { overdueDays } from './fsrs.js';
+
+export const SESSION_KINDS = Object.freeze(['first', 'daily', 'picked']);
+export const PHASES = Object.freeze(['recall', 'compare', 'answer', 'trace', 'retrace']);
+const SLOT_OF_KIND = Object.freeze({ first: 'A', daily: 'A', picked: 'B' });
+
+export function slotOfKind(kind) {
+  const slot = SLOT_OF_KIND[kind];
+  if (!slot) throw new RangeError('unknown session kind: ' + String(kind));
+  return slot;
+}
+
+export function emptySessions() {
+  return { A: null, B: null, lastEnded: {} };
+}
+
+export function freshCurrent() {
+  return { phase: 'recall', strokes: [], hints: 0, answerSeen: false, hintRange: null, referenceReady: false };
+}
+
+/** 新建会话。queue 必须是不重复的 cardKey 列表。 */
+export function createSession({ id, kind, source, queue, at }) {
+  const slot = slotOfKind(kind);
+  if (typeof id !== 'string' || !/^s[1-9]\d*$/.test(id)) throw new RangeError('session id must look like s<serial>');
+  if (!Array.isArray(queue) || queue.length === 0) throw new RangeError('queue must be a non-empty array');
+  if (new Set(queue).size !== queue.length) throw new RangeError('queue must not repeat a card');
+  if (queue.some((k) => !charOfCardKey(k))) throw new RangeError('queue entries must be card keys');
+  if (typeof at !== 'number' || !Number.isFinite(at)) throw new RangeError('at must be a finite ms timestamp');
+  return {
+    id,
+    slot,
+    kind,
+    source: source ? { ...source } : { view: 'home' },
+    queue: [...queue],
+    cursor: 0,
+    items: [],
+    current: freshCurrent(),
+    lastLine: null,
+    startedAt: at,
+    startedDay: localDay(at),
+    updatedAt: at,
+  };
+}
+
+export function currentCardKey(session) {
+  if (!session || session.cursor >= session.queue.length) return null;
+  return session.queue[session.cursor];
+}
+
+/** 还没写的字（含当前字）。 */
+export function remainingKeys(session) {
+  return session ? session.queue.slice(session.cursor) : [];
+}
+
+export function remainingCount(session) {
+  return session ? Math.max(0, session.queue.length - session.cursor) : 0;
+}
+
+export function isComplete(session) {
+  return !!session && session.cursor >= session.queue.length;
+}
+
+/** 本会话有判断的条目。 */
+export function judgedItems(session) {
+  return session ? session.items.filter((it) => it.kind === 'judged') : [];
+}
+
+/** 更新当前字的现场（笔画、提示、阶段…）。 */
+export function withCurrent(session, patch, at) {
+  if (patch && patch.phase !== undefined && !PHASES.includes(patch.phase)) {
+    throw new RangeError('unknown phase: ' + String(patch.phase));
+  }
+  return { ...session, current: { ...session.current, ...patch }, updatedAt: at ?? session.updatedAt };
+}
+
+/**
+ * 当前字处理完（judged / answer-seen / skipped）→ 追加 item、推进 cursor、重置现场、更新结果行。
+ * 结果行（决定-D19 / 走查-X02）：判断 → 'record'；看过答案 → 'saw'；跳过 → 清空。
+ */
+export function advance(session, { cardKey, recordId, kind, fsrsBefore, at }) {
+  if (currentCardKey(session) !== cardKey) throw new RangeError('advance: not the current card');
+  if (!['judged', 'answer-seen', 'skipped'].includes(kind)) throw new RangeError('advance: unknown item kind');
+  const item = { cardKey, kind };
+  if (recordId !== undefined) item.recordId = recordId;
+  if (kind === 'judged' && fsrsBefore !== undefined) item.fsrsBefore = fsrsBefore;
+  let lastLine = null;
+  if (kind === 'judged' && recordId) lastLine = { recordId, kind: 'record' };
+  else if (kind === 'answer-seen' && recordId) lastLine = { recordId, kind: 'saw' };
+  return {
+    ...session,
+    items: [...session.items, item],
+    cursor: session.cursor + 1,
+    current: freshCurrent(),
+    lastLine,
+    updatedAt: at ?? session.updatedAt,
+  };
+}
+
+/** 结果行上的「修改」完成后：同一记录的行改为「已改为…」。 */
+export function markLineChanged(session, recordId) {
+  if (!session.lastLine || session.lastLine.recordId !== recordId) return session;
+  return { ...session, lastLine: { recordId, kind: 'changed' } };
+}
+
+/** 结果行收起（落笔 / 跳过 / 确认看答案，决定-D19）。 */
+export function clearLine(session) {
+  return session.lastLine ? { ...session, lastLine: null } : session;
+}
+
+/** 跳过撤销（走查-W16）：最后一个 item 必须是这条 skipped；字放回 cursor，current 回到 recall。 */
+export function undoSkip(session, recordId, at) {
+  const last = session.items[session.items.length - 1];
+  if (!last || last.kind !== 'skipped' || last.recordId !== recordId) throw new RangeError('undoSkip: last item is not this skip');
+  return {
+    ...session,
+    items: session.items.slice(0, -1),
+    cursor: session.cursor - 1,
+    current: freshCurrent(),
+    lastLine: null,
+    updatedAt: at ?? session.updatedAt,
+  };
+}
+
+/** 本会话某字判断前的卡（更正重放用）；没有返回 undefined（会话已结束或不是本会话判断）。 */
+export function fsrsBeforeOf(session, recordId) {
+  const item = session ? session.items.find((it) => it.recordId === recordId && it.kind === 'judged') : null;
+  return item ? item.fsrsBefore : undefined;
+}
+
+/** 本会话结果页仍可见的判断记录才可更正（决定-D19，§3.2）。 */
+export function canCorrect(session, recordId) {
+  return !!session && !!session.items.find((it) => it.recordId === recordId && it.kind === 'judged' && 'fsrsBefore' in it);
+}
+
+// ---- 槽位 ----
+
+/**
+ * 在对应槽位开新会话。槽位必须为空（B 有未完成会话走 S02 的 endAndStartPicked）；清掉同槽 lastEnded。
+ * 另一槽不动（决定-D05）。
+ */
+export function startInSlot(sessions, session) {
+  const slot = session.slot;
+  if (sessions[slot]) throw new RangeError('slot ' + slot + ' is occupied');
+  const lastEnded = { ...(sessions.lastEnded || {}) };
+  delete lastEnded[slot];
+  return { ...sessions, [slot]: session, lastEnded };
+}
+
+/** 结束槽位里的会话 → 移入 lastEnded[slot]。early = 中途结束（决定-D22）。 */
+export function endSlot(sessions, slot, { at, early = false } = {}) {
+  const session = sessions[slot];
+  if (!session) throw new RangeError('slot ' + slot + ' is empty');
+  const ended = { ...session, endedAt: at };
+  if (early) ended.endedEarly = true;
+  return { ...sessions, [slot]: null, lastEnded: { ...(sessions.lastEnded || {}), [slot]: ended } };
+}
+
+/** 离开结果页后清掉 lastEnded[slot]。 */
+export function clearLastEnded(sessions, slot) {
+  if (!sessions.lastEnded || !sessions.lastEnded[slot]) return sessions;
+  const lastEnded = { ...sessions.lastEnded };
+  delete lastEnded[slot];
+  return { ...sessions, lastEnded };
+}
+
+/**
+ * 首页「继续写字」两行（S01 / R-H04）：B 优先续写，A 保留；只列未完成的会话。
+ * @returns {Array<{slot, kind, remaining}>}
+ */
+export function resumeLines(sessions) {
+  const out = [];
+  for (const slot of ['B', 'A']) {
+    const s = sessions[slot];
+    if (s && !isComplete(s)) out.push({ slot, kind: s.kind, remaining: remainingCount(s) });
+  }
+  return out;
+}
+
+/**
+ * S02 开新组确认框的数据（R-H05 / T08）：旧 B 未完成时返回没写的字与已判断数，否则 null。
+ * 「上一组还有「鲜」「境」没写。」
+ */
+export function s02Prompt(sessions) {
+  const b = sessions.B;
+  if (!b || isComplete(b)) return null;
+  const unwrittenKeys = remainingKeys(b);
+  return {
+    sessionId: b.id,
+    unwrittenKeys,
+    unwrittenChars: unwrittenKeys.map(charOfCardKey),
+    judgedCount: judgedItems(b).length,
+  };
+}
+
+/**
+ * S02「结束那组，开新的」= 一次 commit 的数据变换（§3.3）：旧 B 置 endedEarly/endedAt 移入 lastEnded.B，建新 B。
+ * P38 过渡默认（policy.s02EndOld='toast'）：不进旧 B 结果页；旧 B 有判断时给轻提示（M 个字已经记下）。
+ * @returns {{sessions, notice: null | {kind:'oldGroupSaved', judgedCount}, showOldResult: boolean}}
+ */
+export function endAndStartPicked(sessions, newSession, { at, policy = defaultPolicy } = {}) {
+  if (newSession.slot !== 'B') throw new RangeError('endAndStartPicked: new session must be picked');
+  const old = sessions.B;
+  if (!old) return { sessions: { ...sessions, B: newSession }, notice: null, showOldResult: false };
+  const judgedCount = judgedItems(old).length;
+  const ended = { ...old, endedAt: at, endedEarly: true };
+  const next = { ...sessions, B: newSession, lastEnded: { ...(sessions.lastEnded || {}), B: ended } };
+  const showOldResult = policy.s02EndOld === 'result' && judgedCount > 0;
+  const notice = policy.s02EndOld === 'toast' && judgedCount > 0 ? { kind: 'oldGroupSaved', judgedCount } : null;
+  return { sessions: next, notice, showOldResult };
+}
+
+/**
+ * 跨天未完成的「今天的练习」（P37）：startedDay !== today 即过期。已判断的记录保留在 records 里，
+ * 没写的按决定-D22 口径不算记录也不算跳过。
+ * - policy.dailyExpiry='discard'（A，过渡默认）：直接清空 A，不进结果页。
+ * - 'result'（B）：移入 lastEnded.A 供次日先显示昨天结果页。
+ * first / picked 不在此规则内。
+ * @returns {{sessions, expired: Session|null}}
+ */
+export function expireDaily(sessions, today, policy = defaultPolicy) {
+  const a = sessions.A;
+  if (!a || a.kind !== 'daily' || a.startedDay === today) return { sessions, expired: null };
+  if (policy.dailyExpiry === 'discard') return { sessions: { ...sessions, A: null }, expired: a };
+  if (policy.dailyExpiry === 'result') {
+    const ended = { ...a, endedAt: a.updatedAt, endedEarly: true };
+    return { sessions: { ...sessions, A: null, lastEnded: { ...(sessions.lastEnded || {}), A: ended } }, expired: a };
+  }
+  throw new RangeError('unsupported policy.dailyExpiry: ' + String(policy.dailyExpiry));
+}
+
+/**
+ * 恢复幂等（§3.3，决定-D07 不重复计数）：
+ * - records 里已有 sessionId===会话 && cardKey===当前字 的 judged 记录（items 里还没有）→ 补写 item、推进 cursor；
+ * - phase==='compare' 且笔画为空 → 回退 recall。
+ * @returns {{session, recovered: boolean}}
+ */
+export function recoverSession(session, records) {
+  if (!session) return { session, recovered: false };
+  let s = session;
+  let recovered = false;
+  const key = currentCardKey(s);
+  if (key) {
+    const already = s.items.some((it) => it.cardKey === key);
+    const committed = (records || []).find((r) => isJudged(r) && r.sessionId === s.id && r.cardKey === key);
+    if (committed && !already) {
+      s = advance(s, { cardKey: key, recordId: committed.id, kind: 'judged', at: s.updatedAt });
+      recovered = true;
+    }
+  }
+  if (s.current && s.current.phase === 'compare' && (!s.current.strokes || s.current.strokes.length === 0)) {
+    s = { ...s, current: { ...s.current, phase: 'recall' } };
+    recovered = true;
+  }
+  return { session: s, recovered };
+}
+
+// ---- 选字 ----
+
+/**
+ * 开 A 槽新组时是第一次练习还是今天的练习（决定-D17；P46 清空所有记录后重回首练）。
+ * @param {boolean} everPracticed 是否曾有过记录（清空前）；policy.afterClearRestartFirst=false 时才用到
+ */
+export function nextAKind(records, { policy = defaultPolicy, everPracticed = false } = {}) {
+  if (hasAnyJudged(records)) return 'daily';
+  if (everPracticed && !policy.afterClearRestartFirst) return 'daily';
+  return 'first';
+}
+
+/** 第一次练习的 5 个字（P09）→ cardKey 队列。 */
+export function selectFirst(policy = defaultPolicy) {
+  return policy.firstQueue.map((c) => 'base:' + c);
+}
+
+function customUnwrittenKeys(custom, sched, practicable) {
+  const out = [];
+  for (const row of (custom && custom.added) || []) {
+    const key = 'base:' + row.char;
+    if (!practicable(key)) continue;
+    if (sched && sched[key]) continue; // 有 judged 记录的字已在调度里，不再算「还没写」
+    if (!out.includes(key)) out.push(key);
+  }
+  return out;
+}
+
+/**
+ * 今天的练习选字（§5）。
+ * @param {object} args
+ * @param {object} args.sched         {[cardKey]: {fsrs, due, lastJudgedAt, stoppedAt?}}
+ * @param {Array}  args.records       全部记录
+ * @param {string} args.today         YYYY-MM-DD
+ * @param {Array}  args.newCandidates 当前练习范围内的新字 cardKey（已按 SEED 字频序）
+ * @param {object} [args.custom]      {added:[{char, at}]}
+ * @param {function} [args.practicable] cardKey → 是否可练（默认 base: 前缀）
+ * @returns {{queue: string[], dueKeys: string[], newKeys: string[], customKeys: string[], reviewBudgetLeft: number}}
+ */
+export function selectDaily({
+  sched = {},
+  records = [],
+  today,
+  newCandidates = [],
+  custom = null,
+  practicable = (key) => typeof key === 'string' && key.startsWith('base:'),
+  policy = defaultPolicy,
+}) {
+  const size = policy.groupSize;
+  const excluded = new Set(judgedCardKeysOn(records, today)); // 刚写过的字当天不再出（交接备注十.5）
+  if (policy.answerSeenScope === 'today') {
+    for (const key of answerSeenCardKeysOn(records, today)) excluded.add(key);
+  } else if (policy.answerSeenScope !== 'none') {
+    throw new RangeError('unsupported policy.answerSeenScope: ' + String(policy.answerSeenScope));
+  }
+  if (!['none', 'after-due', 'first'].includes(policy.customIntoDaily)) {
+    throw new RangeError('unsupported policy.customIntoDaily: ' + String(policy.customIntoDaily));
+  }
+  const customUnwritten = customUnwrittenKeys(custom, sched, practicable);
+  const customSet = new Set(customUnwritten);
+
+  // ① 到期字
+  const due = [];
+  for (const [key, entry] of Object.entries(sched || {})) {
+    if (excluded.has(key) || !practicable(key)) continue;
+    if (!entry || entry.stoppedAt !== undefined) continue;
+    const od = overdueDays(entry, today);
+    if (od === null || od < 0) continue;
+    due.push({ key, od, stability: entry.fsrs ? Number(entry.fsrs.stability) || 0 : 0 });
+  }
+  due.sort((a, b) => b.od - a.od || a.stability - b.stability || (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
+  const reviewBudgetLeft = Math.max(0, policy.dailyReviewCap - reviewsDoneOn(records, today));
+  const dueKeys = due.slice(0, Math.min(reviewBudgetLeft, size)).map((d) => d.key);
+
+  // 自选未写（P33）
+  const customPick = policy.customIntoDaily === 'none' ? [] : customUnwritten.filter((k) => !excluded.has(k));
+
+  // ② 新字：不在调度里（从没有 judged）、没被排除；自选未写的字在 'none' 下不进 daily
+  const taken = new Set([...dueKeys, ...customPick]);
+  const newKeys = [];
+  for (const key of newCandidates) {
+    if (taken.has(key) || excluded.has(key) || !practicable(key)) continue;
+    if (sched && sched[key]) continue;
+    if (customSet.has(key)) continue;
+    newKeys.push(key);
+    taken.add(key);
+  }
+
+  let ordered;
+  if (policy.customIntoDaily === 'first') ordered = [...customPick, ...dueKeys, ...newKeys];
+  else ordered = [...dueKeys, ...customPick, ...newKeys];
+  const queue = ordered.slice(0, size);
+  return {
+    queue,
+    dueKeys: queue.filter((k) => dueKeys.includes(k)),
+    newKeys: queue.filter((k) => newKeys.includes(k)),
+    customKeys: queue.filter((k) => customPick.includes(k)),
+    reviewBudgetLeft,
+  };
+}

@@ -1,0 +1,2496 @@
+{
+  "description": "第十稿界面文案单一来源。由 04-需求清单 §4.1「文案」列的「」片段机械抽取：R 编号 → 槽名 → 模板。raw = 04 原文片段（part = 按 split 拆开后的第几段，split 缺省「 / 」）；text = 规整后的值（占位符统一、<br> 换成数组）。text 与规整结果不同时必须写 decision（03 的 P 编号）或 note。raw 为 null 的槽取自 04 规则列、§3.2 或 03 过渡默认，origin 写明出处。src/config/copy/<screen>.js 的键 = 条目 id + \".\" + 槽名，值与 text 逐字一致；scripts/verify_copy.mjs 核对。",
+  "source": "docs/engineering/v10/04-需求清单-第十稿.md §4.1（2026-09-30 v2）；03-待产品决定 v2",
+  "extractedBy": "M0-6",
+  "gate": {
+    "defaultScope": "all",
+    "note": "--scope=M<n> 只核对 milestone ≤ n 的条目的值（按里程碑逐步生效）；键齐全与抽取源一致两项始终全量检查。"
+  },
+  "placeholders": {
+    "{n}": "数量（04 的 {N}、N）",
+    "{m}": "第二个数量（04 的 {M}）",
+    "{total}": "总数（04 的 {总数}）",
+    "{date}": "日期；界面按 R-H02.dateFormat「{month} 月 {day} 日」，落款按 R-I01.signatureDate（汉字数字）",
+    "{month}": "月份数字（落款模板里为 R-I01.signatureMonth 格式）",
+    "{day}": "日（R-H02.dateFormat / R-I01.signatureDate 内部）",
+    "{year}": "年（R-I01.signatureDate / signatureMonth 内部，汉字数字）",
+    "{char}": "一个字（04 的 X、{字}）；外面的「」写在模板里",
+    "{chars}": "多个字，调用方拼成「鲜」「境」",
+    "{seen}": "看过答案的字（带「」的列表）",
+    "{skipped}": "跳过的字（带「」的列表）",
+    "{word}": "词语（04 的 {词}）",
+    "{period}": "时段词（R-H02.period.*）",
+    "{pinyin}": "拼音"
+  },
+  "normalization": [
+    "{M} 月 {D} 日、{9 月 24 日} 这类日期、裸「M 月 D 日」、{日期} → {date}",
+    "{N} → {n}，{M} → {m}，{总数} → {total}，{字} / {X} / 「X」 → {char}，{词} → {word}，{月} → {month}，{时段} → {period}，裸「N 个」→「{n} 个」",
+    "<br> → 数组（每行一项）",
+    "例字、例数（「鲜」「境」、9 月 1 日、23）→ 占位符：逐条写 note"
+  ],
+  "bannedWords": [
+    "点拨",
+    "收字",
+    "需要再练",
+    "月帖",
+    "补帖",
+    "盖章",
+    "拾到",
+    "校准",
+    "义教基础字",
+    "日常读写九成五"
+  ],
+  "todo": [
+    "R-I01.overLimit",
+    "X-SYS.corruptNotice"
+  ],
+  "nonRuntimeDecisions": {
+    "P22": "字体子集重建范围：构建期（M5-2 用 #180 reproduce.py），不是运行时开关"
+  },
+  "noCopy": [
+    "R-H08",
+    "R-H09",
+    "R-H12",
+    "R-H13",
+    "R-W11",
+    "R-W12",
+    "R-W13",
+    "R-W19",
+    "R-W21",
+    "R-W22",
+    "R-W23",
+    "R-W24",
+    "R-W25",
+    "R-W26",
+    "R-W27",
+    "R-R08",
+    "R-R09",
+    "R-L08",
+    "R-L09",
+    "R-A04",
+    "R-Q07",
+    "R-Q08",
+    "R-Q09",
+    "R-D09",
+    "R-E01",
+    "R-M02",
+    "R-P05",
+    "R-B07",
+    "R-B08",
+    "R-S05",
+    "R-S06",
+    "R-AB02",
+    "R-I03",
+    "R-I04",
+    "R-I05",
+    "R-I06",
+    "R-G01",
+    "R-G02",
+    "R-G03",
+    "R-G04",
+    "R-G05",
+    "R-G06",
+    "R-G07",
+    "R-G08",
+    "R-G09",
+    "R-G10"
+  ],
+  "entries": {
+    "R-H01": {
+      "screen": "home",
+      "milestone": "M2",
+      "status": "已定",
+      "source": "C001/C002/C004（文案 D1）",
+      "slots": {
+        "title": {
+          "raw": "今天写几个字",
+          "text": "今天写几个字"
+        }
+      },
+      "dropped": [
+        {
+          "raw": "慢慢写，/慢慢想起。",
+          "why": "规则列：删副标题（文案-D1）"
+        },
+        {
+          "raw": "给自己一小段留白",
+          "why": "规则列：删副标题（文案-D1）"
+        }
+      ]
+    },
+    "R-H02": {
+      "screen": "home",
+      "milestone": "M2",
+      "status": "已定",
+      "source": "C003、C005–C008；备注 L134",
+      "slots": {
+        "line": {
+          "raw": "{M} 月 {D} 日 · {时段}",
+          "text": "{date} · {period}"
+        },
+        "dateFormat": {
+          "raw": null,
+          "text": "{month} 月 {day} 日",
+          "origin": "04 R-H02 文案列「{M} 月 {D} 日」的日期格式本身（全 App 界面日期，阿拉伯数字，T10）",
+          "note": "{date} 占位符按此格式展开"
+        },
+        "period.dawn": {
+          "raw": null,
+          "text": "早上",
+          "origin": "04 R-H02 文案列：时段 = 早上 / 中午 / 傍晚 / 晚上（5–10）",
+          "note": "时段词，边界见 core/dates.js periodOfHour"
+        },
+        "period.noon": {
+          "raw": null,
+          "text": "中午",
+          "origin": "04 R-H02 文案列（10–15）",
+          "note": "时段词"
+        },
+        "period.dusk": {
+          "raw": null,
+          "text": "傍晚",
+          "origin": "04 R-H02 文案列（15–19）",
+          "note": "时段词"
+        },
+        "period.night": {
+          "raw": null,
+          "text": "晚上",
+          "origin": "04 R-H02 文案列（19–5）",
+          "note": "时段词"
+        }
+      }
+    },
+    "R-H03": {
+      "screen": "home",
+      "milestone": "M2",
+      "status": "已定",
+      "source": "C009；D17；交接 L19",
+      "slots": {
+        "firstVisit": {
+          "raw": "第一次来，先写 5 个字试试。",
+          "text": "第一次来，先写 5 个字试试。"
+        }
+      }
+    },
+    "R-H04": {
+      "screen": "home",
+      "milestone": "M2",
+      "status": "已定",
+      "source": "S01；N51；改动 L93、L78",
+      "slots": {
+        "resumePicked": {
+          "raw": "这次选的字 · 还有 {N} 个字没写",
+          "text": "这次选的字 · 还有 {n} 个字没写"
+        },
+        "resumeDaily": {
+          "raw": "今天的练习 · 还有 {N} 个字没写",
+          "text": "今天的练习 · 还有 {n} 个字没写"
+        },
+        "resumeFirst": {
+          "raw": "第一次练习 · 还有 {N} 个字没写",
+          "text": "第一次练习 · 还有 {n} 个字没写"
+        }
+      }
+    },
+    "R-H05": {
+      "screen": "home",
+      "milestone": "M2",
+      "status": "已定",
+      "source": "S02；T08；N50；C201；改动 L94",
+      "slots": {
+        "body": {
+          "raw": "上一组还有「鲜」「境」没写。",
+          "text": "上一组还有{chars}没写。",
+          "note": "例字 → {chars}（每个字带「」，由调用方拼接）",
+          "override": true
+        },
+        "continueOld": {
+          "raw": "接着写那组 / 结束那组，开新的 / 取消",
+          "part": 0,
+          "text": "接着写那组"
+        },
+        "endOldStartNew": {
+          "raw": "接着写那组 / 结束那组，开新的 / 取消",
+          "part": 1,
+          "text": "结束那组，开新的"
+        },
+        "cancel": {
+          "raw": "接着写那组 / 结束那组，开新的 / 取消",
+          "part": 2,
+          "text": "取消"
+        },
+        "oldGroupSavedToast": {
+          "raw": null,
+          "text": "上一组判断过的 {m} 个字已经记下。",
+          "origin": "03 P38 过渡默认的轻提示（文案待定，请设计给）",
+          "decision": "P38",
+          "note": "待文案（P55）；旧 B 有判断时才显示"
+        }
+      }
+    },
+    "R-H06": {
+      "screen": "home",
+      "milestone": "M2",
+      "status": "已定",
+      "source": "K29/L01–L03；C222；C193–C195",
+      "slots": {
+        "title": {
+          "raw": "自己选字",
+          "text": "自己选字"
+        },
+        "hint": {
+          "raw": "输入一个字或一个词，再点你要的那个字。",
+          "text": "输入一个字或一个词，再点你要的那个字。"
+        },
+        "saveFailed": {
+          "raw": "没保存上，输入的字还在。",
+          "text": "没保存上，输入的字还在。"
+        },
+        "cancel": {
+          "raw": "先不保存 / 再试一次",
+          "part": 0,
+          "text": "先不保存"
+        },
+        "retry": {
+          "raw": "先不保存 / 再试一次",
+          "part": 1,
+          "text": "再试一次"
+        }
+      }
+    },
+    "R-H07": {
+      "screen": "home",
+      "milestone": "M2",
+      "status": "已定（契约）",
+      "source": "D12；备注 L82",
+      "slots": {
+        "todayCount": {
+          "raw": null,
+          "text": "今天记录了 {n} 个字",
+          "origin": "04 R-H07 规则列 \"今天记录了 N 个字\"（决定-D12）",
+          "note": "规则列引号内原文，N → {n}"
+        }
+      }
+    },
+    "R-H10": {
+      "screen": "home",
+      "milestone": "M2",
+      "status": "边开发边改",
+      "source": "边改 W18",
+      "slots": {
+        "savedToast": {
+          "raw": "已保存，下次接着写",
+          "text": "已保存，下次接着写"
+        }
+      }
+    },
+    "R-H11": {
+      "screen": "home",
+      "milestone": "M2",
+      "status": "已定（两态是否同一页见 §6.2）",
+      "source": "C188–C191；10.7；C067",
+      "slots": {
+        "title": {
+          "raw": "现在没有要写的字",
+          "text": "现在没有要写的字"
+        },
+        "body": {
+          "raw": "想接着写，可以自己选几个字。",
+          "text": "想接着写，可以自己选几个字。"
+        },
+        "backHome": {
+          "raw": "回到首页 ›",
+          "text": "回到首页 ›"
+        },
+        "noCharsBody": {
+          "raw": "可以换一个字库，或者先练写错过的字。",
+          "text": "可以换一个字库，或者先练写错过的字。"
+        },
+        "noCharsLink": {
+          "raw": "看写错过的字 ›",
+          "text": "看写错过的字 ›"
+        }
+      }
+    },
+    "R-W01": {
+      "screen": "write",
+      "milestone": "M1",
+      "status": "已定",
+      "source": "W01/W12/K26；C032/C033；D17",
+      "slots": {
+        "progress": {
+          "raw": "{n} / {总数}",
+          "text": "{n} / {total}"
+        }
+      }
+    },
+    "R-W02": {
+      "screen": "write",
+      "milestone": "M1",
+      "status": "已定（显示位置/持续几字见 §6.2）",
+      "source": "X11；改动 L77 `first-tip`；C192（已改写）",
+      "slots": {
+        "firstTip": {
+          "raw": "看拼音和提示，把这个字写在格子里。",
+          "text": "看拼音和提示，把这个字写在格子里。",
+          "decision": "P39",
+          "note": "显示位置与持续范围按 P39 过渡默认（policy.firstTip）"
+        }
+      }
+    },
+    "R-W03": {
+      "screen": "write",
+      "milestone": "M1",
+      "status": "已定",
+      "source": "C025–C028",
+      "slots": {
+        "titleRecall": {
+          "raw": "凭记忆写出这个字",
+          "text": "凭记忆写出这个字"
+        },
+        "titleCompare": {
+          "raw": "对照一下，写对了吗？",
+          "text": "对照一下，写对了吗？"
+        },
+        "titleAnswer": {
+          "raw": "这个字这样写",
+          "text": "这个字这样写"
+        },
+        "titleSelf": {
+          "raw": "自己写一遍",
+          "text": "自己写一遍"
+        }
+      }
+    },
+    "R-W04": {
+      "screen": "write",
+      "milestone": "M1",
+      "status": "已定",
+      "source": "C010/C011",
+      "slots": {
+        "stepTrace": {
+          "raw": "第 1 步，共 2 步：描一遍",
+          "text": "第 1 步，共 2 步：描一遍"
+        },
+        "stepSelf": {
+          "raw": "第 2 步，共 2 步：自己写",
+          "text": "第 2 步，共 2 步：自己写"
+        }
+      }
+    },
+    "R-W05": {
+      "screen": "write",
+      "milestone": "M1",
+      "status": "文案已定；\"已写对哪几笔\"算法 **待定-工程确认**（做不到退回按已写笔数）",
+      "source": "W03/W04；C021/C022；N04；C018；备注 L159",
+      "slots": {
+        "hintRemaining": {
+          "raw": "提示 · 还有 {N} 次",
+          "text": "提示 · 还有 {n} 次"
+        },
+        "hintUsedUp": {
+          "raw": "提示已用完",
+          "text": "提示已用完"
+        },
+        "hintUnavailable": {
+          "raw": "暂时没有提示",
+          "text": "暂时没有提示"
+        },
+        "noHintNote": {
+          "raw": "这个字暂时没有提示，可以直接看答案。",
+          "text": "这个字暂时没有提示，可以直接看答案。"
+        }
+      }
+    },
+    "R-W06": {
+      "screen": "write",
+      "milestone": "M1",
+      "status": "已定（说明句二选一见 §6.2）；方案②/N07 原型专用-不做",
+      "source": "K24/D25；改动 L86；C030（已改写）；X08",
+      "slots": {
+        "hintExplain": {
+          "raw": "浅红色是提示，只给一部分。接着写下一笔，提示就收起。",
+          "text": "浅红色是提示，只给一部分。接着写下一笔，提示就收起。",
+          "decision": "P41",
+          "note": "两版说明句取改动 L86（P41 过渡默认）"
+        }
+      },
+      "dropped": [
+        {
+          "raw": "看答案",
+          "why": "P41：C030 的另一版本「提示只给一部分。想看整个字，点「看答案」。」未采用"
+        }
+      ]
+    },
+    "R-W07": {
+      "screen": "write",
+      "milestone": "M1",
+      "status": "已定（N01 的「」与 X10 关系见 §5.1-2）",
+      "source": "K25/D18；W05/W06；N01；T04；C023/C024；X01；N08；改动 L87–89",
+      "slots": {
+        "confirmBody": {
+          "raw": "看了答案，这个字就记为「看过答案」。",
+          "text": "看了答案，这个字就记为看过答案。",
+          "decision": "P40",
+          "note": "按 X10 去掉结果词的「」",
+          "override": true
+        },
+        "confirmKeepThinking": {
+          "raw": "接着想 / 看答案",
+          "part": 0,
+          "text": "接着想"
+        },
+        "confirmShow": {
+          "raw": "接着想 / 看答案",
+          "part": 1,
+          "text": "看答案"
+        },
+        "answerNote": {
+          "raw": "这个字记为看过答案，后面再写只算练习。",
+          "text": "这个字记为看过答案，后面再写只算练习。"
+        },
+        "btnSelf": {
+          "raw": "自己写",
+          "text": "自己写"
+        },
+        "btnTrace": {
+          "raw": "描一遍",
+          "text": "描一遍"
+        },
+        "btnNext": {
+          "raw": "下一个",
+          "text": "下一个"
+        },
+        "selfNote": {
+          "raw": "这个字看过答案了，再写只算练习。",
+          "text": "这个字看过答案了，再写只算练习。"
+        },
+        "btnShowAnswer": {
+          "raw": null,
+          "text": "看答案",
+          "origin": "04 R-W07 规则列「看答案先确认」：写字页上的「看答案」按钮",
+          "note": "与确认框按钮同字"
+        }
+      }
+    },
+    "R-W08": {
+      "screen": "write",
+      "milestone": "M1",
+      "status": "已定（接入时实测，决定 L51）",
+      "source": "10.13/K22/I04；C018–C020；N02",
+      "slots": {
+        "answerNote": {
+          "raw": "这个字记为看过答案，后面再写只算练习。",
+          "text": "这个字记为看过答案，后面再写只算练习。"
+        },
+        "traceNote": {
+          "raw": "浅色是参考字形。",
+          "text": "浅色是参考字形。"
+        }
+      }
+    },
+    "R-W09": {
+      "screen": "judge",
+      "milestone": "M1",
+      "status": "已定",
+      "source": "K31/W09/D20；C013；N09",
+      "slots": {
+        "prompt": {
+          "raw": "你来判断，点一下就记下。",
+          "text": "你来判断，点一下就记下。"
+        },
+        "continueWriting": {
+          "raw": "接着写",
+          "text": "接着写"
+        },
+        "continueWritingAria": {
+          "raw": "回到格子里接着写",
+          "text": "回到格子里接着写"
+        },
+        "btnWrong": {
+          "raw": null,
+          "text": "写错了",
+          "origin": "04 R-W09 规则列 \"写错了\"左",
+          "note": "判断页按钮（决定-D20）"
+        },
+        "btnCorrect": {
+          "raw": null,
+          "text": "写对了",
+          "origin": "04 R-W09 规则列 \"写对了\"右",
+          "note": "判断页按钮（决定-D20）"
+        },
+        "labelMine": {
+          "raw": null,
+          "text": "你的书写",
+          "origin": "04 §4.1 判断页补充：对照方向 \"你的书写\" 左",
+          "note": "对照卡标签"
+        },
+        "labelReference": {
+          "raw": null,
+          "text": "参考字形",
+          "origin": "04 §4.1 判断页补充：\"参考字形\" 右",
+          "note": "对照卡标签"
+        }
+      }
+    },
+    "R-W10": {
+      "screen": "write",
+      "milestone": "M1",
+      "status": "已定",
+      "source": "W11/W14/D19；V03；X01/X02；T05；N05/N06/N10；C034–C036；X10",
+      "slots": {
+        "lineRecordedCorrect": {
+          "raw": "「X」记为写对 · 修改 ›",
+          "text": "「{char}」记为写对 · 修改 ›"
+        },
+        "lineRecordedWrong": {
+          "raw": null,
+          "text": "「{char}」记为写错 · 修改 ›",
+          "origin": "04 R-W10 / T05「「X」记为写对 · 修改 ›」的写错同构",
+          "note": "T05 只给写对例句，写错按同一句式"
+        },
+        "lineChangedCorrect": {
+          "raw": "「X」已改为写对 · 修改 ›",
+          "text": "「{char}」已改为写对 · 修改 ›"
+        },
+        "lineChangedWrong": {
+          "raw": null,
+          "text": "「{char}」已改为写错 · 修改 ›",
+          "origin": "04 R-W10 / T05 的写错同构",
+          "note": "T05 只给写对例句，写错按同一句式"
+        },
+        "lineSaw": {
+          "raw": "「X」记为看过答案",
+          "text": "「{char}」记为看过答案"
+        },
+        "changeBodyCorrect": {
+          "raw": "刚才记的是写对。改了只换掉这一次，不会多算一次。",
+          "text": "刚才记的是写对。改了只换掉这一次，不会多算一次。"
+        },
+        "changeBodyWrong": {
+          "raw": null,
+          "text": "刚才记的是写错。改了只换掉这一次，不会多算一次。",
+          "origin": "04 R-W10「刚才记的是写对。…」的写错同构",
+          "note": "原文只给写对例句"
+        },
+        "changeFailed": {
+          "raw": "没改成，还是原来的判断。",
+          "text": "没改成，还是原来的判断。"
+        },
+        "retry": {
+          "raw": "再试一次 / 先不改",
+          "part": 0,
+          "text": "再试一次"
+        },
+        "cancel": {
+          "raw": "再试一次 / 先不改",
+          "part": 1,
+          "text": "先不改"
+        }
+      }
+    },
+    "R-W14": {
+      "screen": "write",
+      "milestone": "M1",
+      "status": "已定",
+      "source": "备注 L76；改动 L64",
+      "slots": {
+        "btnSkip": {
+          "raw": null,
+          "text": "跳过",
+          "origin": "04 R-W14 规则列 \"跳过\"是下划线文字",
+          "note": "写字页操作"
+        }
+      }
+    },
+    "R-W15": {
+      "screen": "write",
+      "milestone": "M2",
+      "status": "已定；S04 边开发边改（原型仍以\"结束这组\"为主按钮，已核）",
+      "source": "10.10/K21/D22；C014（文案 D2）；C208/C212/C213；C209；边改 S04",
+      "slots": {
+        "confirmBody": {
+          "raw": "还有 {N} 个字没写，结束后就不写了。判断过的 {M} 个字已经记下。",
+          "text": "还有 {n} 个字没写，结束后就不写了。判断过的 {m} 个字已经记下。"
+        },
+        "continue": {
+          "raw": "接着写",
+          "text": "接着写"
+        },
+        "end": {
+          "raw": "结束这组",
+          "text": "结束这组"
+        },
+        "zeroToast": {
+          "raw": "这组结束了，没有记下字。",
+          "text": "这组结束了，没有记下字。"
+        }
+      }
+    },
+    "R-W16": {
+      "screen": "write",
+      "milestone": "M1",
+      "status": "已定",
+      "source": "C016/C017/C029；T01",
+      "slots": {
+        "saveFailed": {
+          "raw": "没保存上，你写的字还在。",
+          "text": "没保存上，你写的字还在。"
+        },
+        "retry": {
+          "raw": "再试一次 / 先不保存",
+          "part": 0,
+          "text": "再试一次"
+        },
+        "cancel": {
+          "raw": "再试一次 / 先不保存",
+          "part": 1,
+          "text": "先不保存"
+        },
+        "saved": {
+          "raw": "保存好了。",
+          "text": "保存好了。"
+        }
+      }
+    },
+    "R-W17": {
+      "screen": "judge",
+      "milestone": "M1",
+      "status": "已定",
+      "source": "C012/C015",
+      "slots": {
+        "noInk": {
+          "raw": "这次没写",
+          "text": "这次没写"
+        }
+      }
+    },
+    "R-W18": {
+      "screen": "write",
+      "milestone": "M1",
+      "status": "已定",
+      "source": "W15/V02/X08/Y01/Z03/Z04；交接 L28；备注 L39",
+      "slots": {
+        "btnUndo": {
+          "raw": null,
+          "text": "撤销",
+          "origin": "04 R-W18 规则列「撤销/清空挪到书写格上方」",
+          "note": "书写格操作"
+        },
+        "btnClear": {
+          "raw": null,
+          "text": "清空",
+          "origin": "04 R-W18 规则列「撤销/清空挪到书写格上方」",
+          "note": "书写格操作"
+        }
+      }
+    },
+    "R-W20": {
+      "screen": "write",
+      "milestone": "M1",
+      "status": "边开发边改",
+      "source": "边改 W16",
+      "slots": {
+        "skippedToast": {
+          "raw": "已跳过「警」 · 撤销",
+          "part": 0,
+          "split": " · ",
+          "text": "已跳过「{char}」",
+          "note": "例字 → 「{char}」",
+          "override": true
+        },
+        "undo": {
+          "raw": "已跳过「警」 · 撤销",
+          "part": 1,
+          "split": " · ",
+          "text": "撤销"
+        }
+      }
+    },
+    "R-W28": {
+      "screen": "write",
+      "milestone": "M1",
+      "status": "已定",
+      "source": "D16（决定 L24）；备注 L99/L166",
+      "slots": {
+        "repeatBlankNote": {
+          "raw": "空格里是同一个字，只写一次。",
+          "text": "空格里是同一个字，只写一次。"
+        }
+      }
+    },
+    "R-W29": {
+      "screen": "write",
+      "milestone": "M1",
+      "status": "已定",
+      "source": "D03 / R03 / I 报告 L38",
+      "slots": {
+        "btnDone": {
+          "raw": null,
+          "text": "写好了",
+          "origin": "04 R-W29 规则列「写好了」",
+          "note": "书写格无笔画时真禁用"
+        }
+      }
+    },
+    "R-R01": {
+      "screen": "result",
+      "milestone": "M2",
+      "status": "已定",
+      "source": "C114–C117；N18/N19；T04",
+      "slots": {
+        "titleCount": {
+          "raw": "这次记录了 {N} 个字",
+          "text": "这次记录了 {n} 个字"
+        },
+        "titleZero": {
+          "raw": "这次没有记下字",
+          "text": "这次没有记下字"
+        },
+        "noteDefault": {
+          "raw": "跳过和看过答案的字不算在内。",
+          "text": "跳过和看过答案的字不算在内。"
+        },
+        "noteSeenSkipped": {
+          "raw": "「主」看过答案，「性」跳过了，没算在内。",
+          "text": "{seen}看过答案，{skipped}跳过了，没算在内。",
+          "note": "例字 → {seen}/{skipped}（各为带「」的字列表）；只有一类时的句式未给，M2-3 定",
+          "override": true
+        },
+        "noteSeenCount": {
+          "raw": "另有 {N} 个字看过答案，没算在内。",
+          "text": "另有 {n} 个字看过答案，没算在内。"
+        }
+      }
+    },
+    "R-R02": {
+      "screen": "result",
+      "milestone": "M2",
+      "status": "已定（\"这次没有书写\"与 C012\"这次没写\"不一致，§5.1-12）",
+      "source": "D19；改动 L92；N23–N25；C106；改动 L141",
+      "slots": {
+        "sheetTitleCorrect": {
+          "raw": "「X」这次记为写对 / 写错",
+          "part": 0,
+          "text": "「{char}」这次记为写对"
+        },
+        "sheetTitleWrong": {
+          "raw": "「X」这次记为写对 / 写错",
+          "part": 1,
+          "text": "「{char}」这次记为写错",
+          "note": "「写对 / 写错」二选一的写错版",
+          "override": true
+        },
+        "sheetTitleSaw": {
+          "raw": "「X」看过答案",
+          "text": "「{char}」看过答案"
+        },
+        "sheetTitleSkipped": {
+          "raw": "「X」跳过了",
+          "text": "「{char}」跳过了"
+        },
+        "sheetNoteChange": {
+          "raw": "改了只换掉这一次，不会多算一次。",
+          "text": "改了只换掉这一次，不会多算一次。"
+        },
+        "sheetNoteSaw": {
+          "raw": "看过答案的字不判断对错，没算在内。",
+          "text": "看过答案的字不判断对错，没算在内。"
+        },
+        "sheetNoteSkipped": {
+          "raw": "跳过的字没算在内。",
+          "text": "跳过的字没算在内。"
+        },
+        "sheetNoInk": {
+          "raw": "这次没有书写",
+          "text": "这次没写",
+          "decision": "P15",
+          "note": "与 C012 统一为「这次没写」",
+          "override": true
+        },
+        "sheetCancel": {
+          "raw": "取消 / 关闭",
+          "part": 0,
+          "text": "取消"
+        },
+        "sheetClose": {
+          "raw": "取消 / 关闭",
+          "part": 1,
+          "text": "关闭"
+        },
+        "cellSaw": {
+          "raw": "看过答案",
+          "text": "看过答案"
+        },
+        "gridHint": {
+          "raw": "点一个格子，可以对照参考字形、修改判断。",
+          "text": "点一个格子，可以对照参考字形、修改判断。"
+        }
+      }
+    },
+    "R-R03": {
+      "screen": "result",
+      "milestone": "M2",
+      "status": "已定（见 §5.1-7）",
+      "source": "X14；N22；C118/C119",
+      "slots": {},
+      "dropped": [
+        {
+          "raw": "{日期} · 第一次练习",
+          "why": "X14：第一次结果页日期行只写日期（用 R-H02.dateFormat）"
+        }
+      ]
+    },
+    "R-R04": {
+      "screen": "result",
+      "milestone": "M2",
+      "status": "**待定-工程确认**（不影响选字就整块删）",
+      "source": "文案 D6；C061–C065；N20/N21；T12",
+      "slots": {
+        "title": {
+          "raw": "这组字难不难",
+          "text": "这组字难不难",
+          "decision": "P11",
+          "note": "features.difficultyFeedback=false 时整块不显示"
+        },
+        "side": {
+          "raw": "下次会照这个调整",
+          "text": "下次会照这个调整",
+          "decision": "P11",
+          "note": "同上"
+        },
+        "firstNote": {
+          "raw": "以后写哪些字，会参考这次的结果。",
+          "text": "以后写哪些字，会参考这次的结果。",
+          "decision": "P11",
+          "note": "同上"
+        },
+        "saveFailed": {
+          "raw": "没保存上，刚才的选择没记下。",
+          "text": "没保存上，刚才的选择没记下。"
+        },
+        "retry": {
+          "raw": "再试一次 / 先不选",
+          "part": 0,
+          "text": "再试一次"
+        },
+        "cancel": {
+          "raw": "再试一次 / 先不选",
+          "part": 1,
+          "text": "先不选"
+        }
+      }
+    },
+    "R-R05": {
+      "screen": "result",
+      "milestone": "M2",
+      "status": "已定；标题字样 §5.1-3",
+      "source": "10.10；C066（已改写）；C120–C124",
+      "slots": {
+        "bodyAll": {
+          "raw": "「额」「鲜」都记下了。",
+          "text": "{chars}都记下了。",
+          "note": "例字 → {chars}（每个字带「」，由调用方拼接）",
+          "override": true
+        },
+        "bodyOne": {
+          "raw": "「额」记下了。",
+          "text": "「{char}」记下了。",
+          "note": "例字 → 「{char}」",
+          "override": true
+        },
+        "bodyEarly": {
+          "raw": "还有 {N} 个字没写，没有记下。",
+          "text": "还有 {n} 个字没写，没有记下。"
+        },
+        "kicker": {
+          "raw": "这次选的字 / 先写到这里",
+          "part": 0,
+          "text": "这次选的字"
+        },
+        "earlyTitle": {
+          "raw": "这次选的字 / 先写到这里",
+          "part": 1,
+          "text": "先写到这里",
+          "decision": "P14",
+          "note": "中途结束标题取 C066「先写到这里」"
+        }
+      },
+      "dropped": [
+        {
+          "raw": "结束了",
+          "why": "P14：改动 L43 的「结束了」未采用"
+        }
+      ]
+    },
+    "R-R06": {
+      "screen": "result",
+      "milestone": "M2",
+      "status": "已定；S05 边开发边改",
+      "source": "10.4/10.8；C197–C200；边改 S05",
+      "slots": {
+        "leaveWrong": {
+          "raw": "回到写错过",
+          "text": "回到写错过"
+        },
+        "leaveForget": {
+          "raw": "回到快忘了",
+          "text": "回到快忘了"
+        },
+        "leaveAll": {
+          "raw": "回到有记录的字",
+          "text": "回到有记录的字"
+        },
+        "leaveMine": {
+          "raw": "回到我的",
+          "text": "回到我的"
+        },
+        "leaveDetail": {
+          "raw": "回到「{字}」",
+          "text": "回到「{char}」"
+        },
+        "leaveLibrary": {
+          "raw": null,
+          "text": "回到字库",
+          "origin": "04 §3.2 结果页离开按钮映射 LEAVE.library",
+          "note": "§4.1 未列，取 §3.2 原型映射"
+        },
+        "fromWrong": {
+          "raw": "从写错过 / 从快忘了 / 自己选的",
+          "part": 0,
+          "text": "从写错过"
+        },
+        "fromForget": {
+          "raw": "从写错过 / 从快忘了 / 自己选的",
+          "part": 1,
+          "text": "从快忘了"
+        },
+        "fromPicked": {
+          "raw": "从写错过 / 从快忘了 / 自己选的",
+          "part": 2,
+          "text": "自己选的"
+        }
+      }
+    },
+    "R-R07": {
+      "screen": "result",
+      "milestone": "M2",
+      "status": "已定",
+      "source": "10.12；改动 L44；C054/C215–C217；Y03；D11",
+      "slots": {
+        "title": {
+          "raw": "这次的图片",
+          "text": "这次的图片"
+        },
+        "missingInk": {
+          "raw": "「X」这一次没有留下笔迹，不在图里。",
+          "text": "「{char}」这一次没有留下笔迹，不在图里。",
+          "decision": "P50",
+          "note": "缺墨字不画进图并说明（10.12）"
+        },
+        "imageNote": {
+          "raw": "存下来的是图片，不能用来恢复记录。",
+          "text": "存下来的是图片，不能用来恢复记录。"
+        },
+        "allMissing": {
+          "raw": "这次记下的字都没有留下笔迹，不能保存本次练习图片；本月图片仍可到练习记录保存。",
+          "text": "这次记下的字都没有留下笔迹，不能保存本次练习图片；本月图片仍可到练习记录保存。"
+        }
+      }
+    },
+    "R-L01": {
+      "screen": "library",
+      "milestone": "M3",
+      "status": "已定",
+      "source": "10.1；C154–C158；T06；文案 D4",
+      "slots": {
+        "curriculumName": {
+          "raw": "小学初中常用字",
+          "text": "小学初中常用字"
+        }
+      }
+    },
+    "R-L02": {
+      "screen": "library",
+      "milestone": "M3",
+      "status": "已定；L09 边开发边改",
+      "source": "10.1；边改 L09",
+      "slots": {
+        "more": {
+          "raw": "还有 N 个字 ›",
+          "text": "还有 {n} 个字 ›",
+          "decision": "P27",
+          "note": "分母与墙成员一致（含自选未写）"
+        }
+      }
+    },
+    "R-L03": {
+      "screen": "library",
+      "milestone": "M3",
+      "status": "已定；四档天数写死待正式；L14 边开发边改",
+      "source": "C144；C153；边改 L14；改动 L56",
+      "slots": {
+        "legend": {
+          "raw": "墨色越浅，越久没写。点一个字，看它每次的笔迹。",
+          "text": "墨色越浅，越久没写。点一个字，看它每次的笔迹。"
+        },
+        "toneOldest": {
+          "raw": "三个月以上",
+          "text": "三个月以上"
+        },
+        "legendDark": {
+          "raw": "颜色越暗，越久没写",
+          "text": "颜色越暗，越久没写"
+        }
+      }
+    },
+    "R-L04": {
+      "screen": "library",
+      "milestone": "M3",
+      "status": "已定",
+      "source": "改动 L133（异议 2）；C142",
+      "slots": {
+        "queryNote": {
+          "raw": "查到的字可以直接练，也可以加入自选的字。",
+          "text": "查到的字可以直接练，也可以加入自选的字。"
+        }
+      }
+    },
+    "R-L05": {
+      "screen": "library",
+      "milestone": "M3",
+      "status": "已定",
+      "source": "C143；C145",
+      "slots": {
+        "noRecordNote": {
+          "raw": "每天写的新字，从这个字库里挑。",
+          "text": "每天写的新字，从这个字库里挑。"
+        },
+        "empty": {
+          "raw": "去「习字」写几个字，判断过对错，就会出现在这里。",
+          "text": "去「习字」写几个字，判断过对错，就会出现在这里。"
+        }
+      }
+    },
+    "R-L06": {
+      "screen": "library",
+      "milestone": "M3",
+      "status": "已定；轻提示边开发边改",
+      "source": "10.1；L10；X05；C093–C101/C128–C131/C182–C187；T06；边改 L10",
+      "slots": {
+        "entry": {
+          "raw": null,
+          "text": "更换字库 ›",
+          "origin": "04 R-L06 规则列「更换字库 › → 列表」",
+          "note": "入口行"
+        },
+        "countLine": {
+          "raw": "可以练 {N} 个字 · 有记录 {M} 个",
+          "text": "可以练 {n} 个字 · 有记录 {m} 个"
+        },
+        "confirmBody": {
+          "raw": "以后的新字从这个字库里来。<br>已有的记录、自选的字和写错过的字都不变。",
+          "text": [
+            "以后的新字从这个字库里来。",
+            "已有的记录、自选的字和写错过的字都不变。"
+          ]
+        },
+        "saveFailed": {
+          "raw": "没保存上，刚才的选择没记下。",
+          "text": "没保存上，刚才的选择没记下。"
+        },
+        "retry": {
+          "raw": "再试一次 / 先不换",
+          "part": 0,
+          "text": "再试一次"
+        },
+        "cancel": {
+          "raw": "再试一次 / 先不换",
+          "part": 1,
+          "text": "先不换"
+        },
+        "lib.core3500.name": {
+          "raw": null,
+          "text": "规范常用字",
+          "origin": "04 §3.2 字库表",
+          "note": "库 id 沿旧值 core3500（B 报告 §2）"
+        },
+        "lib.core3500.desc": {
+          "raw": null,
+          "text": "日常最常用的字。大多数人从这里开始。",
+          "origin": "04 §3.2 字库表",
+          "note": "一句说明"
+        },
+        "lib.adv3000.name": {
+          "raw": null,
+          "text": "规范次常用字",
+          "origin": "04 §3.2 字库表",
+          "note": "库 id 沿旧值 adv3000"
+        },
+        "lib.adv3000.desc": {
+          "raw": null,
+          "text": "看书看报会碰到的字。常用字写熟了，可以换这个。",
+          "origin": "04 §3.2 字库表",
+          "note": "一句说明"
+        },
+        "lib.rare.name": {
+          "raw": null,
+          "text": "规范专门用字",
+          "origin": "04 §3.2 字库表",
+          "note": "库 id 沿旧值 rare"
+        },
+        "lib.rare.desc": {
+          "raw": null,
+          "text": "人名、地名和古文里的少见字。目前能练的大约一半。",
+          "origin": "04 §3.2 字库表",
+          "note": "一句说明（文案-D5）"
+        },
+        "lib.curriculum2500.name": {
+          "raw": null,
+          "text": "小学初中常用字",
+          "origin": "04 §3.2 字库表（原义教基础字，文案-D4）",
+          "note": "库 id 沿旧值 curriculum2500"
+        },
+        "lib.curriculum2500.desc": {
+          "raw": null,
+          "text": "小学到初中语文课要求会写的字。适合陪孩子一起练。",
+          "origin": "04 §3.2 字库表",
+          "note": "一句说明"
+        },
+        "sourceNote": {
+          "raw": null,
+          "text": "字表参考教育部《通用规范汉字表》。有些字拾字还没收进来，暂时不能练，所以能练的字比原表少。",
+          "origin": "04 §3.2 字库表底部来源说明（C098/C183）",
+          "note": "换库列表底部"
+        }
+      }
+    },
+    "R-L07": {
+      "screen": "library",
+      "milestone": "M3",
+      "status": "已定",
+      "source": "C159/C160；T03",
+      "slots": {
+        "forgetCardNote": {
+          "raw": "有一阵没写、可能快忘了的字。",
+          "text": "有一阵没写、可能快忘了的字。"
+        },
+        "forgetCardEmpty": {
+          "raw": "可能快忘了的字会放在这里。",
+          "text": "可能快忘了的字会放在这里。"
+        }
+      }
+    },
+    "R-L10": {
+      "screen": "library",
+      "milestone": "M3",
+      "status": "已定",
+      "source": "备注 L83",
+      "slots": {
+        "customUnwritten": {
+          "raw": null,
+          "text": "另有 {n} 个自选的字还没写",
+          "origin": "04 R-L10 规则列 \"另有 N 个自选的字还没写\"",
+          "note": "规则列引号原文，N → {n}；同格「从 X 开始记录」的 X 含义未给，留给 M3-1"
+        }
+      }
+    },
+    "R-A01": {
+      "screen": "library",
+      "milestone": "M3",
+      "status": "已定",
+      "source": "10.3；C163/C164",
+      "slots": {
+        "sortRecentNote": {
+          "raw": "按最近一次写的月份排。每格是你最近一次的笔迹。",
+          "text": "按最近一次写的月份排。每格是你最近一次的笔迹。"
+        },
+        "sortPinyinNote": {
+          "raw": "按拼音首字母排。多音字按第一个读音。",
+          "text": "按拼音首字母排。多音字按第一个读音。"
+        },
+        "sortRecent": {
+          "raw": null,
+          "text": "最近写的",
+          "origin": "04 R-A01 规则列：排序「最近写的」",
+          "note": "排序项"
+        },
+        "sortPinyin": {
+          "raw": null,
+          "text": "拼音",
+          "origin": "04 R-A01 规则列：排序「拼音」",
+          "note": "排序项"
+        },
+        "sortAge": {
+          "raw": null,
+          "text": "多久没写",
+          "origin": "04 R-A01 规则列：排序「多久没写」",
+          "note": "排序项"
+        }
+      }
+    },
+    "R-A02": {
+      "screen": "library",
+      "milestone": "M3",
+      "status": "已定",
+      "source": "10.3（K19）；10.8；C161/C162",
+      "slots": {
+        "filterCustom": {
+          "raw": "自选的字 {N}",
+          "text": "自选的字 {n}"
+        },
+        "customNote": {
+          "raw": "你自己挑来常练的字。还没写的排在前面。",
+          "text": "你自己挑来常练的字。还没写的排在前面。"
+        },
+        "customUnwrittenNote": {
+          "raw": "加入了自选的字，还没有记录。",
+          "text": "加入了自选的字，还没有记录。"
+        },
+        "filterWrong": {
+          "raw": null,
+          "text": "写错过",
+          "origin": "04 R-A02 规则列：筛选「写错过」",
+          "note": "筛选项"
+        },
+        "filterForget": {
+          "raw": null,
+          "text": "快忘了",
+          "origin": "04 R-A02 规则列：筛选「快忘了」",
+          "note": "筛选项"
+        },
+        "filterCustomUnwritten": {
+          "raw": null,
+          "text": "自选了还没写",
+          "origin": "04 R-A02 规则列：筛选「自选了还没写」",
+          "note": "筛选项"
+        },
+        "practiceThese": {
+          "raw": null,
+          "text": "练这些字 →",
+          "origin": "04 R-A02 规则列「练这些字 →」",
+          "note": "筛选后按钮"
+        }
+      }
+    },
+    "R-A03": {
+      "screen": "library",
+      "milestone": "M3",
+      "status": "已定",
+      "source": "10.3；C146",
+      "slots": {
+        "foundIn": {
+          "raw": "在 {X} 月",
+          "text": "在 {month} 月",
+          "note": "此处 {X} 是月份数字",
+          "override": true
+        },
+        "notFound": {
+          "raw": "「X」还没有记录。",
+          "text": "「{char}」还没有记录。"
+        },
+        "searchAria": {
+          "raw": "在有记录的字里查字",
+          "text": "在有记录的字里查字"
+        }
+      }
+    },
+    "R-Q01": {
+      "screen": "query",
+      "milestone": "M2",
+      "status": "已定",
+      "source": "K29/L01–L03/D21；改动 L95；C172/C220",
+      "slots": {
+        "titleLookup": {
+          "raw": "查字 / 自己选字 / 添加自选的字",
+          "part": 0,
+          "text": "查字"
+        },
+        "titlePick": {
+          "raw": "查字 / 自己选字 / 添加自选的字",
+          "part": 1,
+          "text": "自己选字"
+        },
+        "placeholder": {
+          "raw": "输入一个字或一个词",
+          "text": "输入一个字或一个词"
+        }
+      },
+      "dropped": [
+        {
+          "raw": "查字 / 自己选字 / 添加自选的字",
+          "part": 2,
+          "why": "P42：不做 add 模式，「添加自选的字」标题无入口"
+        }
+      ]
+    },
+    "R-Q02": {
+      "screen": "query",
+      "milestone": "M2",
+      "status": "已定",
+      "source": "N42/C147/C222；改动 L95",
+      "slots": {
+        "pickNote": {
+          "raw": "输入一个字或一个词，再点你要的那个字。",
+          "text": "输入一个字或一个词，再点你要的那个字。"
+        },
+        "lookupNote": {
+          "raw": "点一个字，看参考字形、练这个字或加入自选的字。",
+          "text": "点一个字，看参考字形、练这个字或加入自选的字。"
+        }
+      }
+    },
+    "R-Q03": {
+      "screen": "query",
+      "milestone": "M2",
+      "status": "已定",
+      "source": "N39–N41；C173/C174/C223/C224；改动 L95",
+      "slots": {
+        "onlyHanzi": {
+          "raw": "只能输入汉字。",
+          "text": "只能输入汉字。"
+        },
+        "removed": {
+          "raw": "只能输入汉字，已去掉 {N} 个字母或符号。",
+          "text": "只能输入汉字，已去掉 {n} 个字母或符号。"
+        },
+        "duplicate": {
+          "raw": "重复的「X」只算一次。",
+          "text": "重复的「{char}」只算一次。"
+        }
+      }
+    },
+    "R-Q04": {
+      "screen": "query",
+      "milestone": "M2",
+      "status": "已定（\"自选的字 · …\"完整字样未给）",
+      "source": "C175/C176/C226；改动 L95",
+      "slots": {
+        "rowCount": {
+          "raw": "记录了 {N} 次 / 还没有记录 / 暂时不能练 / 自选的字 · …",
+          "part": 0,
+          "text": "记录了 {n} 次"
+        },
+        "rowNone": {
+          "raw": "记录了 {N} 次 / 还没有记录 / 暂时不能练 / 自选的字 · …",
+          "part": 1,
+          "text": "还没有记录"
+        },
+        "rowUnavailable": {
+          "raw": "记录了 {N} 次 / 还没有记录 / 暂时不能练 / 自选的字 · …",
+          "part": 2,
+          "text": "暂时不能练"
+        },
+        "rowCustomNone": {
+          "raw": "记录了 {N} 次 / 还没有记录 / 暂时不能练 / 自选的字 · …",
+          "part": 3,
+          "text": "自选的字 · 还没有记录",
+          "decision": "P43",
+          "note": "「自选的字 · …」完整字样按 P43 过渡默认",
+          "override": true
+        },
+        "rowCustomCount": {
+          "raw": "记录了 {N} 次 / 还没有记录 / 暂时不能练 / 自选的字 · …",
+          "part": 3,
+          "text": "自选的字 · 记录了 {n} 次",
+          "decision": "P43",
+          "note": "同上",
+          "override": true
+        }
+      }
+    },
+    "R-Q05": {
+      "screen": "query",
+      "milestone": "M2",
+      "status": "已定",
+      "source": "10.2；C179–C181；L08；改动 L135；C148/C149/N44；C150–C152；N43",
+      "slots": {
+        "cardStat": {
+          "raw": "记录了 {N} 次 · 最近一次 {日期}",
+          "text": "记录了 {n} 次 · 最近一次 {date}"
+        },
+        "btnPractice": {
+          "raw": "练这个字 / 加入自选的字",
+          "part": 0,
+          "text": "练这个字"
+        },
+        "btnAdd": {
+          "raw": "练这个字 / 加入自选的字",
+          "part": 1,
+          "text": "加入自选的字"
+        },
+        "alreadyAdded": {
+          "raw": "已在自选的字里",
+          "text": "已在自选的字里"
+        },
+        "added": {
+          "raw": "「X」已加入自选的字。",
+          "text": "「{char}」已加入自选的字。"
+        },
+        "addFailed": {
+          "raw": "没加进自选的字，输入的字还在。",
+          "text": "没加进自选的字，输入的字还在。"
+        },
+        "retry": {
+          "raw": "再试一次 / 先不加",
+          "part": 0,
+          "text": "再试一次"
+        },
+        "cancel": {
+          "raw": "再试一次 / 先不加",
+          "part": 1,
+          "text": "先不加"
+        },
+        "backToList": {
+          "raw": "‹ 回到这 {N} 个字",
+          "text": "‹ 回到这 {n} 个字"
+        },
+        "unavailableTitle": {
+          "raw": "「{字}」暂时不能练。",
+          "text": "「{char}」暂时不能练。"
+        },
+        "unavailableReason": {
+          "raw": "拾字还没有这个字的参考字形。",
+          "text": "拾字还没有这个字的参考字形。"
+        },
+        "unavailableSource": {
+          "raw": "能练的字参考教育部《通用规范汉字表》，个别字暂时还不能练。",
+          "text": "能练的字参考教育部《通用规范汉字表》，个别字暂时还不能练。"
+        },
+        "viewRecords": {
+          "raw": null,
+          "text": "查看记录",
+          "origin": "04 R-Q05 规则列：有记录多「查看记录」",
+          "note": "卡片按钮"
+        }
+      }
+    },
+    "R-Q06": {
+      "screen": "query",
+      "milestone": "M2",
+      "status": "已定；Z02 边开发边改",
+      "source": "N45/N46；C177/C178；边改 Z02",
+      "slots": {
+        "btnPracticeN": {
+          "raw": "练这 {N} 个字",
+          "text": "练这 {n} 个字"
+        },
+        "btnNone": {
+          "raw": "先选一个字",
+          "text": "先选一个字"
+        }
+      }
+    },
+    "R-D01": {
+      "screen": "detail",
+      "milestone": "M3",
+      "status": "已定",
+      "source": "10.5；C108/C109；T03",
+      "slots": {
+        "wrongLine": {
+          "raw": "上次你判断写错了",
+          "text": "上次你判断写错了"
+        },
+        "forgetLine": {
+          "raw": "有一阵没写，可能快忘了",
+          "text": "有一阵没写，可能快忘了"
+        }
+      }
+    },
+    "R-D02": {
+      "screen": "detail",
+      "milestone": "M3",
+      "status": "**待定-工程确认**（算不出就删行）",
+      "source": "文案 D7；C041/C042/C048；T12",
+      "slots": {
+        "nextReview": {
+          "raw": "下次练习 · 大约 {10 月 3 日} 再练到",
+          "text": "下次练习 · 大约 {date} 再练到",
+          "decision": "P12",
+          "note": "features.nextReviewLine=true，仅有 judged 记录时显示"
+        }
+      }
+    },
+    "R-D03": {
+      "screen": "detail",
+      "milestone": "M3",
+      "status": "已定；L12/L13 边开发边改",
+      "source": "C110–C113；X09；边改 L12/L13",
+      "slots": {
+        "count": {
+          "raw": "记录了 {N} 次",
+          "text": "记录了 {n} 次"
+        },
+        "none": {
+          "raw": "还没有记录",
+          "text": "还没有记录"
+        }
+      }
+    },
+    "R-D04": {
+      "screen": "detail",
+      "milestone": "M3",
+      "status": "已定",
+      "source": "C043–C045/C047；10.12；T09",
+      "slots": {
+        "makeImage": {
+          "raw": "把这个字做成图片",
+          "text": "把这个字做成图片"
+        },
+        "noInkNote": {
+          "raw": "最近一次没有笔迹，再写一次就能做图片。",
+          "text": "最近一次没有笔迹，再写一次就能做图片。"
+        },
+        "noRecordNote": {
+          "raw": "先写一次这个字，才能做成图片。",
+          "text": "先写一次这个字，才能做成图片。"
+        }
+      }
+    },
+    "R-D05": {
+      "screen": "detail",
+      "milestone": "M3",
+      "status": "已定",
+      "source": "文案 D8；C046；C196；C219",
+      "slots": {
+        "swapWord": {
+          "raw": "换掉这个词语",
+          "text": "换掉这个词语"
+        },
+        "banner": {
+          "raw": "「{词}」以后不会再出现",
+          "text": "「{word}」以后不会再出现"
+        },
+        "undo": {
+          "raw": "撤销",
+          "text": "撤销"
+        }
+      }
+    },
+    "R-D06": {
+      "screen": "detail",
+      "milestone": "M3",
+      "status": "已定；Z03 边开发边改",
+      "source": "L07/D21；改动 L97；N52；V08；X04；边改 Z03",
+      "slots": {
+        "rowTitle": {
+          "raw": "从自选的字移除 / 记录不会删掉，只是不再算自选的字。",
+          "part": 0,
+          "text": "从自选的字移除"
+        },
+        "rowSub": {
+          "raw": "从自选的字移除 / 记录不会删掉，只是不再算自选的字。",
+          "part": 1,
+          "text": "记录不会删掉，只是不再算自选的字。"
+        },
+        "confirmBody": {
+          "raw": "把「X」从自选的字移除？这个字的记录不会删掉。",
+          "text": "把「{char}」从自选的字移除？这个字的记录不会删掉。"
+        },
+        "confirmRemove": {
+          "raw": "移除 / 取消",
+          "part": 0,
+          "text": "移除"
+        },
+        "confirmCancel": {
+          "raw": "移除 / 取消",
+          "part": 1,
+          "text": "取消"
+        },
+        "undoL1": {
+          "raw": "「X」已从自选的字移除 / 离开这一页前可以撤销",
+          "part": 0,
+          "text": "「{char}」已从自选的字移除"
+        },
+        "undoL2": {
+          "raw": "「X」已从自选的字移除 / 离开这一页前可以撤销",
+          "part": 1,
+          "text": "离开这一页前可以撤销"
+        },
+        "undone": {
+          "raw": "已撤销",
+          "text": "已撤销"
+        }
+      }
+    },
+    "R-D07": {
+      "screen": "detail",
+      "milestone": "M3",
+      "status": "已定",
+      "source": "10.12",
+      "slots": {
+        "noInkLabel": {
+          "raw": null,
+          "text": "没有笔迹",
+          "origin": "04 R-D07 规则列：黑体字 +「没有笔迹」（10.12）",
+          "note": "有记录无笔迹的格子标签"
+        },
+        "noInkLarge": {
+          "raw": null,
+          "text": "这一次没有留下笔迹",
+          "origin": "04 R-D07 规则列：大格「这一次没有留下笔迹」",
+          "note": "大格说明"
+        }
+      }
+    },
+    "R-D08": {
+      "screen": "detail",
+      "milestone": "M3",
+      "status": "已定",
+      "source": "V08；改动 L94",
+      "slots": {
+        "btnPractice": {
+          "raw": null,
+          "text": "练这个字",
+          "origin": "04 R-D08 规则列：底部「练这个字」",
+          "note": "走 S02 开新组确认"
+        }
+      }
+    },
+    "R-D10": {
+      "screen": "detail",
+      "milestone": "M3",
+      "status": "已定",
+      "source": "C068/C069；备注 L104；需求 R11",
+      "slots": {
+        "title": {
+          "raw": "「{字}」的旧记录",
+          "text": "「{char}」的旧记录",
+          "decision": "P10b",
+          "note": "旧照片默认不算有记录"
+        },
+        "body": {
+          "raw": "旧版本拍照留下的记录，只能看，不能做成图片。<br>备份时会一起存下。",
+          "text": [
+            "旧版本拍照留下的记录，只能看，不能做成图片。",
+            "备份时会一起存下。"
+          ]
+        }
+      }
+    },
+    "R-E02": {
+      "screen": "library",
+      "milestone": "M3",
+      "status": "已定；S06（返回保留勾选 + 全选/全不选）边开发边改",
+      "source": "10.4；X06；Y05；C171；Z02；边改 S06",
+      "slots": {
+        "selected": {
+          "raw": "选了 {N} 个字 · 写完会回到这里。",
+          "text": "选了 {n} 个字 · 写完会回到这里。"
+        },
+        "selectedZero": {
+          "raw": "写完会回到这里。",
+          "text": "写完会回到这里。"
+        },
+        "btnMany": {
+          "raw": "练这些字",
+          "text": "练这些字"
+        },
+        "btnOne": {
+          "raw": "练这个字",
+          "text": "练这个字"
+        },
+        "btnNone": {
+          "raw": "先选一个字",
+          "text": "先选一个字"
+        },
+        "leaveWrong": {
+          "raw": "回到写错过 / 回到快忘了",
+          "part": 0,
+          "text": "回到写错过"
+        },
+        "leaveForget": {
+          "raw": "回到写错过 / 回到快忘了",
+          "part": 1,
+          "text": "回到快忘了"
+        }
+      }
+    },
+    "R-E03": {
+      "screen": "library",
+      "milestone": "M3",
+      "status": "已定",
+      "source": "K28/L05；改动 L96、L134；N35–N38；X13；Y01",
+      "slots": {
+        "wrongThumb": {
+          "raw": "写错那次",
+          "text": "写错那次"
+        },
+        "wrongMeta": {
+          "raw": "{日期}写错 · 一共写错 {N} 次",
+          "text": "{date}写错 · 一共写错 {n} 次"
+        },
+        "wrongNote": {
+          "raw": "右边小图是你写错的那一次。点圆圈选字，点这一行看记录。",
+          "text": "右边小图是你写错的那一次。点圆圈选字，点这一行看记录。"
+        },
+        "forgetMeta": {
+          "raw": "最近一次 {日期} · 记录了 {N} 次",
+          "text": "最近一次 {date} · 记录了 {n} 次"
+        },
+        "forgetNote": {
+          "raw": "格子里是你最近一次的笔迹。点圆圈选字，点这一行看记录。",
+          "text": "格子里是你最近一次的笔迹。点圆圈选字，点这一行看记录。"
+        }
+      }
+    },
+    "R-E04": {
+      "screen": "library",
+      "milestone": "M3",
+      "status": "已定（画布 09 节 K18 其余 1–12 条原文不在仓库，§6.2）",
+      "source": "C165–C167；改动 L42（K18）",
+      "slots": {
+        "wrongEmpty": {
+          "raw": "现在没有写错过的字",
+          "text": "现在没有写错过的字"
+        },
+        "forgetEmpty": {
+          "raw": "可能快忘了的字会放在这里。",
+          "text": "可能快忘了的字会放在这里。"
+        },
+        "forgetTop": {
+          "raw": "有一阵没写、可能快忘了的字。写一遍，就会从这里移走。",
+          "text": "有一阵没写、可能快忘了的字。写一遍，就会从这里移走。"
+        },
+        "wrongTop": {
+          "raw": "下次写对了，就会从这里移走",
+          "text": "下次写对了，就会从这里移走"
+        },
+        "titleWrong": {
+          "raw": null,
+          "text": "写错过",
+          "origin": "04 §4.1「写错过 · 快忘了（清单）」小节标题；决定-D23 叫法",
+          "note": "清单页标题"
+        },
+        "titleForget": {
+          "raw": null,
+          "text": "快忘了",
+          "origin": "04 §4.1「写错过 · 快忘了（清单）」小节标题；T03",
+          "note": "清单页标题"
+        }
+      }
+    },
+    "R-M01": {
+      "screen": "mine",
+      "milestone": "M4",
+      "status": "已定",
+      "source": "10.6（M3）；V05",
+      "slots": {
+        "week": {
+          "raw": null,
+          "text": "这一周",
+          "origin": "04 R-M01 规则列：顺序「这一周 → {月}字帖 → 菜单」",
+          "note": "我的首页块标题"
+        },
+        "saveImage": {
+          "raw": null,
+          "text": "保存图片 ›",
+          "origin": "04 R-M01 规则列 \"保存图片 ›\"",
+          "note": "与练习记录同一入口"
+        },
+        "practiceLog": {
+          "raw": null,
+          "text": "练习记录",
+          "origin": "04 R-M01 规则列「练习记录」",
+          "note": "菜单项"
+        }
+      }
+    },
+    "R-M03": {
+      "screen": "mine",
+      "milestone": "M4",
+      "status": "已定",
+      "source": "C037/C038；C107/N16；T07；文案 D9",
+      "slots": {
+        "settings": {
+          "raw": "设置",
+          "text": "设置"
+        },
+        "backup": {
+          "raw": "备份与恢复",
+          "text": "备份与恢复"
+        },
+        "backupSub": {
+          "raw": "记录只存在这台手机上",
+          "text": "记录只存在这台手机上"
+        },
+        "lastBackup": {
+          "raw": "上次备份 {日期} ›",
+          "text": "上次备份 {date} ›"
+        },
+        "noBackup": {
+          "raw": "还没有备份",
+          "text": "还没有备份"
+        }
+      }
+    },
+    "R-M04": {
+      "screen": "mine",
+      "milestone": "M4",
+      "status": "已定",
+      "source": "C039/C040",
+      "slots": {
+        "emptyTitle": {
+          "raw": "还没有记录",
+          "text": "还没有记录"
+        },
+        "emptyBody": {
+          "raw": "写一个字并判断对错，这里就会有记录。",
+          "text": "写一个字并判断对错，这里就会有记录。"
+        }
+      }
+    },
+    "R-M05": {
+      "screen": "mine",
+      "milestone": "M4",
+      "status": "边开发边改",
+      "source": "边改 M03",
+      "slots": {
+        "sheetAll": {
+          "raw": null,
+          "text": "全部 ›",
+          "origin": "04 R-M05 规则列：字帖只放最近 3 行 + 「全部 ›」",
+          "note": "边开发边改（走查-M03）"
+        }
+      }
+    },
+    "R-M06": {
+      "screen": "mine",
+      "milestone": "M4",
+      "status": "已定；导出放以后版本",
+      "source": "M01；C070–C076；N14/N33/N34；改动 L99；边改 M07",
+      "slots": {
+        "section1": {
+          "raw": "一 · 今年有记录的字",
+          "text": "一 · 今年有记录的字"
+        },
+        "charCount": {
+          "raw": "{N} 个字",
+          "text": "{n} 个字"
+        },
+        "section1Note": {
+          "raw": "写完并判断过对错的字，写对写错都算。",
+          "text": "写完并判断过对错的字，写对写错都算。"
+        },
+        "monthDays": {
+          "raw": "{月}月有记录 {N} 天",
+          "text": "{month} 月有记录 {n} 天",
+          "note": "{month} 为月份数字；数字与「月」之间按 R-P01 例「9 月有记录 6 天」空一格（T10）",
+          "override": true
+        },
+        "monthNote": {
+          "raw": "只看哪天有记录，不分对错。",
+          "text": "只看哪天有记录，不分对错。"
+        },
+        "monthNone": {
+          "raw": "还没有记录",
+          "text": "还没有记录"
+        },
+        "rareNote": {
+          "raw": "今年有记录的字里，它最不常用。",
+          "text": "今年有记录的字里，它最不常用。"
+        },
+        "inkDate": {
+          "raw": "M 月 D 日 · 你当时的笔迹",
+          "text": "{date} · 你当时的笔迹"
+        },
+        "footer": {
+          "raw": "只算今年的记录。这一页不能保存成图片。",
+          "text": "只算今年的记录。这一页不能保存成图片。"
+        },
+        "emptyTitle": {
+          "raw": "今年还没有记录",
+          "text": "今年还没有记录"
+        },
+        "emptyBody": {
+          "raw": "写字并判断对错后，这里会汇总你今年的记录。",
+          "text": "写字并判断对错后，这里会汇总你今年的记录。"
+        }
+      }
+    },
+    "R-P01": {
+      "screen": "mine",
+      "milestone": "M4",
+      "status": "已定",
+      "source": "K27/D24；C049–C051/C055/C056/C058/C059；N11/N12/N17；X12",
+      "slots": {
+        "monthDays": {
+          "raw": "{月}有记录 {N} 天",
+          "text": "{month} 月有记录 {n} 天",
+          "note": "{月} 按例「9 月有记录 6 天」拆为 {month} 月",
+          "override": true
+        },
+        "legend": {
+          "raw": "墨点表示这天有记录，不分对错。",
+          "text": "墨点表示这天有记录，不分对错。"
+        }
+      },
+      "dropped": [
+        {
+          "raw": "9 月有记录 6 天",
+          "why": "上一句的例子"
+        }
+      ]
+    },
+    "R-P02": {
+      "screen": "mine",
+      "milestone": "M4",
+      "status": "已定",
+      "source": "C052/C057；X12；C140",
+      "slots": {
+        "sheetTitle": {
+          "raw": "9 月字帖",
+          "text": "{month} 月字帖",
+          "note": "例 → {month}",
+          "override": true
+        },
+        "sheetNote": {
+          "raw": "点一个字看详情，红色小字是那天的日期。",
+          "text": "点一个字看详情，红色小字是那天的日期。"
+        },
+        "historyNote": {
+          "raw": "这里只能保存本月的字帖。",
+          "text": "这里只能保存本月的字帖。"
+        }
+      }
+    },
+    "R-P03": {
+      "screen": "mine",
+      "milestone": "M4",
+      "status": "已定",
+      "source": "C053/C054；V06；Y03；Z01",
+      "slots": {
+        "todayChars": {
+          "raw": "{9 月 24 日}写的字 / 这次的图片 · 保存图片 ›",
+          "part": 0,
+          "text": "{date}写的字"
+        },
+        "todayImage": {
+          "raw": "{9 月 24 日}写的字 / 这次的图片 · 保存图片 ›",
+          "part": 1,
+          "text": "这次的图片 · 保存图片 ›"
+        },
+        "signature": {
+          "raw": "二〇二六年九月二十四日 · {N}个字",
+          "text": "{date} · {n}个字",
+          "note": "落款：{date} 用 R-I01.signatureDate 格式、{n} 用汉字数字（core/dates.js cnNumber），T10 / 文案-D3",
+          "override": true
+        }
+      }
+    },
+    "R-P04": {
+      "screen": "mine",
+      "milestone": "M4",
+      "status": "已定",
+      "source": "C060",
+      "slots": {
+        "empty": {
+          "raw": "写一个字并判断对错，这天就会有一个墨点。",
+          "text": "写一个字并判断对错，这天就会有一个墨点。"
+        }
+      }
+    },
+    "R-B01": {
+      "screen": "backup",
+      "milestone": "M4",
+      "status": "已定",
+      "source": "K30/K01/D24；C134/C202/C203/N30/N47；N48/N49；V07；X03；Y02",
+      "slots": {
+        "undoL1": {
+          "raw": "已换成备份里的记录 / 离开这一页前可以撤销",
+          "part": 0,
+          "text": "已换成备份里的记录"
+        },
+        "undoL2": {
+          "raw": "已换成备份里的记录 / 离开这一页前可以撤销",
+          "part": 1,
+          "text": "离开这一页前可以撤销"
+        },
+        "conclusionRestore": {
+          "raw": "已换成 {日期}备份里的记录，一共 {N} 个字。",
+          "text": "已换成 {date}备份里的记录，一共 {n} 个字。"
+        },
+        "conclusionClear": {
+          "raw": "记录已清空。现在没有记录。",
+          "text": "记录已清空。现在没有记录。"
+        },
+        "clearUndoL1": {
+          "raw": null,
+          "text": "记录已清空",
+          "origin": "03 P44 过渡默认：清空后撤销底栏第一行",
+          "decision": "P44"
+        },
+        "clearUndoL2": {
+          "raw": null,
+          "text": "离开这一页前可以撤销",
+          "origin": "03 P44 过渡默认：清空后撤销底栏第二行（T02）",
+          "decision": "P44"
+        }
+      }
+    },
+    "R-B02": {
+      "screen": "backup",
+      "milestone": "M4",
+      "status": "已定",
+      "source": "K02/V07/X07/Y06；T07；N15/N26–N29；C132",
+      "slots": {
+        "lastBackupLabel": {
+          "raw": "上次备份",
+          "text": "上次备份"
+        },
+        "noBackup": {
+          "raw": "还没有备份",
+          "text": "还没有备份"
+        },
+        "noRecords": {
+          "raw": "现在没有记录。",
+          "text": "现在没有记录。"
+        },
+        "allBackedUp": {
+          "raw": "现在的记录都已经备份了。",
+          "text": "现在的记录都已经备份了。"
+        },
+        "changedSince": {
+          "raw": "上次备份以后记录有改动，还没有备份。",
+          "text": "上次备份以后记录有改动，还没有备份。"
+        },
+        "export": {
+          "raw": "导出备份文件",
+          "text": "导出备份文件"
+        }
+      }
+    },
+    "R-B03": {
+      "screen": "backup",
+      "milestone": "M4",
+      "status": "已定；K04（写明会丢哪段、危险操作不用主按钮、导出成功反馈、错误样式）边开发边改",
+      "source": "C136–C139；N31/N32；Y04；C090/X07；边改 K04",
+      "slots": {
+        "replaceBody": {
+          "raw": "这份备份是 {日期} 的，里面有 {N} 个字的记录。现在 {M} 个字的记录会被替换。离开这一页前可以撤销。",
+          "text": "这份备份是 {date}的，里面有 {n} 个字的记录。现在 {m} 个字的记录会被替换。离开这一页前可以撤销。",
+          "note": "「{日期} 的」去掉空格：{date} 展开为「9 月 1 日」，按同格下例「9 月 1 日的」与 R-B01「{日期}备份」不留空",
+          "override": true
+        },
+        "restoreTitle": {
+          "raw": "用这份备份恢复记录？",
+          "text": "用这份备份恢复记录？"
+        },
+        "restoreBody": {
+          "raw": "这份备份是 9 月 1 日的，里面有 23 个字的记录。",
+          "text": "这份备份是 {date}的，里面有 {n} 个字的记录。",
+          "note": "例 → {date}/{n}（无记录时的恢复措辞）",
+          "override": true
+        },
+        "restoreBtn": {
+          "raw": "恢复",
+          "text": "恢复"
+        },
+        "clearBody": {
+          "raw": "{N} 个字的记录都会被删掉。离开这一页前可以撤销。",
+          "text": "{n} 个字的记录都会被删掉。离开这一页前可以撤销。"
+        },
+        "restoreRowSub": {
+          "raw": "离开这一页前可以撤销",
+          "text": "离开这一页前可以撤销"
+        }
+      }
+    },
+    "R-B04": {
+      "screen": "backup",
+      "milestone": "M4",
+      "status": "已定",
+      "source": "10.14；C205；C133",
+      "slots": {
+        "protectFailed": {
+          "raw": "没能换成备份，你现在的记录没有变。可以再试一次。",
+          "text": "没能换成备份，你现在的记录没有变。可以再试一次。"
+        }
+      }
+    },
+    "R-B05": {
+      "screen": "backup",
+      "milestone": "M4",
+      "status": "已定",
+      "source": "10.15；C206/C207",
+      "slots": {
+        "undoFailedRestore": {
+          "raw": "没能撤销，现在还是备份里的记录",
+          "text": "没能撤销，现在还是备份里的记录"
+        },
+        "undoFailedClear": {
+          "raw": "没能撤销，记录还是空的",
+          "text": "没能撤销，记录还是空的"
+        },
+        "undoAgain": {
+          "raw": "可以再点一次撤销",
+          "text": "可以再点一次撤销"
+        }
+      }
+    },
+    "R-B06": {
+      "screen": "backup",
+      "milestone": "M4",
+      "status": "已定",
+      "source": "C204/C210/C211",
+      "slots": {
+        "cancelled": {
+          "raw": "没有选文件，你的记录没有变。",
+          "text": "没有选文件，你的记录没有变。"
+        },
+        "notBackup": {
+          "raw": "这个文件不是拾字的备份，没法恢复。你的记录没有变。",
+          "text": "这个文件不是拾字的备份，没法恢复。你的记录没有变。"
+        },
+        "restoreFailed": {
+          "raw": "没能恢复，你的记录还是原来的。",
+          "text": "没能恢复，你的记录还是原来的。"
+        }
+      }
+    },
+    "R-B09": {
+      "screen": "backup",
+      "milestone": "M5",
+      "status": "已定（\"怎么解决 ›\"那句为原型专用）",
+      "source": "C091/C092；备注 L48",
+      "slots": {
+        "title": {
+          "raw": "现在存不了记录",
+          "text": "现在存不了记录"
+        },
+        "body": {
+          "raw": "可能是存储空间不够，或者浏览器不允许保存。<br>解决之前先不能写字，免得写了存不下。",
+          "text": [
+            "可能是存储空间不够，或者浏览器不允许保存。",
+            "解决之前先不能写字，免得写了存不下。"
+          ]
+        },
+        "retry": {
+          "raw": "再试一次",
+          "text": "再试一次"
+        }
+      }
+    },
+    "R-B10": {
+      "screen": "backup",
+      "milestone": "M4",
+      "status": "已定",
+      "source": "C214；C141；C102",
+      "slots": {
+        "savedToAlbum": {
+          "raw": "已保存到相册。",
+          "text": "已保存到相册。"
+        },
+        "albumDenied": {
+          "raw": "没能存进相册。请到手机设置里允许拾字添加照片。",
+          "text": "没能存进相册。请到手机设置里允许拾字添加照片。"
+        },
+        "share": {
+          "raw": "分享",
+          "text": "分享"
+        }
+      }
+    },
+    "R-S01": {
+      "screen": "settings",
+      "milestone": "M4",
+      "status": "已定",
+      "source": "C077–C080；T11",
+      "slots": {
+        "title": {
+          "raw": "设置",
+          "text": "设置"
+        },
+        "library": {
+          "raw": "练习范围",
+          "text": "练习范围"
+        },
+        "keySound": {
+          "raw": "按键音",
+          "text": "按键音",
+          "decision": "P24",
+          "note": "触发点沿旧（policy.keySoundEvents）"
+        },
+        "remindNote": {
+          "raw": "通知会给一个词语和拼音，让你想想是哪个字。",
+          "text": "通知会给一个词语和拼音，让你想想是哪个字。"
+        }
+      }
+    },
+    "R-S02": {
+      "screen": "settings",
+      "milestone": "M4",
+      "status": "已定",
+      "source": "C084–C086",
+      "slots": {
+        "title": {
+          "raw": "手机关了拾字的通知，收不到提醒",
+          "text": "手机关了拾字的通知，收不到提醒"
+        },
+        "body": {
+          "raw": "想收到提醒，请到手机设置里打开拾字的通知。",
+          "text": "想收到提醒，请到手机设置里打开拾字的通知。"
+        },
+        "link": {
+          "raw": "去手机设置 ›",
+          "text": "去手机设置 ›"
+        }
+      }
+    },
+    "R-S03": {
+      "screen": "settings",
+      "milestone": "M4",
+      "status": "已定 + 边开发边改",
+      "source": "C082；边改 V01（B 类）",
+      "slots": {
+        "appearance": {
+          "raw": "外观",
+          "text": "外观",
+          "decision": "P51",
+          "note": "三选开关按冻结设计实现（features.appearanceSwitch）"
+        },
+        "appearance.light": {
+          "raw": null,
+          "text": "浅色",
+          "origin": "04 R-S03 规则列：点开选浅色 / 深色 / 跟随系统",
+          "decision": "P51"
+        },
+        "appearance.dark": {
+          "raw": null,
+          "text": "深色",
+          "origin": "04 R-S03 规则列",
+          "decision": "P51"
+        },
+        "appearance.auto": {
+          "raw": null,
+          "text": "跟随系统",
+          "origin": "04 R-S03 规则列",
+          "decision": "P51"
+        }
+      }
+    },
+    "R-S04": {
+      "screen": "settings",
+      "milestone": "M4",
+      "status": "已定",
+      "source": "C083；X15",
+      "slots": {
+        "largeNote": {
+          "raw": "打开后，文字和写字格都放大一号。<br>手机字号调大时，这里也会跟着变大。",
+          "text": [
+            "打开后，文字和写字格都放大一号。",
+            "手机字号调大时，这里也会跟着变大。"
+          ]
+        },
+        "largeLabel": {
+          "raw": null,
+          "text": "更大字体",
+          "origin": "04 §4.1「更大字体」小节 / R-S04 规则列「更大字体说明挪到开关行标题下」",
+          "note": "开关行标题"
+        }
+      }
+    },
+    "R-AB01": {
+      "screen": "about",
+      "milestone": "M4",
+      "status": "已定（子页内容未给）",
+      "source": "C087–C089；备注 L166；文案 D9",
+      "slots": {
+        "privacyRow": {
+          "raw": "记录只存在这台手机上 ›",
+          "text": "记录只存在这台手机上 ›"
+        },
+        "openSourceRow": {
+          "raw": "开源资料 · 致谢 ›",
+          "text": "开源资料 · 致谢 ›"
+        },
+        "letterTitle": {
+          "raw": null,
+          "text": "给我们写信",
+          "origin": "04 R-AB01 规则列：隐私、开源资料·致谢、给我们写信三个子页",
+          "note": "子页标题；行尾是否带 › 待设计"
+        },
+        "letterAddressPending": {
+          "raw": null,
+          "text": "地址待补",
+          "origin": "03 P21 过渡默认：写信页占位「地址待补」",
+          "decision": "P21",
+          "note": "待文案（P55）"
+        }
+      },
+      "dropped": [
+        {
+          "raw": "字形和字源的出处",
+          "why": "文案列「字形和字源的出处」→「开源资料 · 致谢 ›」：旧字样被替换"
+        }
+      ]
+    },
+    "R-I01": {
+      "screen": "images",
+      "milestone": "M4",
+      "status": "已定",
+      "source": "T09；C140/C215；C216/C218；C103–C105（文案 D3）",
+      "slots": {
+        "kindSession": {
+          "raw": "这次的图片",
+          "text": "这次的图片"
+        },
+        "kindMonth": {
+          "raw": "{月}字帖",
+          "text": "{month} 月字帖",
+          "note": "{月} 按 R-P02 例「9 月字帖」拆为 {month} 月",
+          "override": true
+        },
+        "kindGlyph": {
+          "raw": "手写字图片",
+          "text": "手写字图片"
+        },
+        "imageNote": {
+          "raw": "存下来的是图片，不能用来恢复记录。",
+          "text": "存下来的是图片，不能用来恢复记录。"
+        },
+        "glyphNote": {
+          "raw": "用的是你最近一次写的这个字。存下来的是图片，不能用来恢复记录。",
+          "text": "用的是你最近一次写的这个字。存下来的是图片，不能用来恢复记录。"
+        },
+        "monthSignature": {
+          "raw": "二〇二六年九月 · 有记录二十二天 · 八十个字",
+          "text": "{month} · 有记录{n}天 · {m}个字",
+          "note": "落款（汉字数字，文案-D3）：{month} 用 signatureMonth 格式，{n}/{m} 用 cnNumber",
+          "override": true
+        },
+        "signatureDate": {
+          "raw": null,
+          "text": "{year}年{month}月{day}日",
+          "origin": "04 R-P03 落款例「二〇二六年九月二十四日」的格式",
+          "note": "各段由 core/dates.js signatureDateParts 给汉字数字"
+        },
+        "signatureMonth": {
+          "raw": null,
+          "text": "{year}年{month}月",
+          "origin": "04 R-I01 落款例「二〇二六年九月」的格式",
+          "note": "各段由 core/dates.js signatureMonthParts 给汉字数字"
+        },
+        "glyphEntry": {
+          "raw": null,
+          "text": "把这个字做成图片",
+          "origin": "04 T09：入口「把这个字做成图片」（同 R-D04.makeImage）",
+          "note": "图片弹层入口"
+        },
+        "overLimit": {
+          "raw": null,
+          "text": "TODO: 超过 80 个字的图片说明（P25）",
+          "origin": "03 P25 / P55：>80 字 pending + 待文案说明",
+          "decision": "P25",
+          "note": "待文案"
+        }
+      }
+    },
+    "R-I02": {
+      "screen": "images",
+      "milestone": "M4",
+      "status": "已定（导出模块要补）",
+      "source": "备注 L146（A05）",
+      "slots": {
+        "glyphCaption": {
+          "raw": "jìng · 9 月 22 日",
+          "text": "{pinyin} · {date}",
+          "note": "例 → {pinyin}/{date}",
+          "override": true
+        }
+      }
+    }
+  },
+  "extra": {
+    "X-APP": {
+      "screen": "common",
+      "milestone": "M0",
+      "source": "M0-1 src/app.js SKELETON_TEXT（骨架期临时文案，M0-4 router 接手后删除）",
+      "slots": {
+        "skeleton": {
+          "raw": null,
+          "text": "拾字 v10 骨架",
+          "origin": "src/app.js（M0-1）",
+          "note": "临时文案，app.js 由后续卡改为从 copy 读取"
+        }
+      }
+    },
+    "X-TABS": {
+      "screen": "common",
+      "milestone": "M0",
+      "source": "01-架构设计 §1「习字 / 字库 / 我的」三个 tab；04 R-L05「去「习字」…」",
+      "slots": {
+        "write": {
+          "raw": null,
+          "text": "习字",
+          "origin": "01 §1",
+          "note": "tab 名"
+        },
+        "library": {
+          "raw": null,
+          "text": "字库",
+          "origin": "01 §1",
+          "note": "tab 名"
+        },
+        "mine": {
+          "raw": null,
+          "text": "我的",
+          "origin": "01 §1",
+          "note": "tab 名"
+        }
+      }
+    },
+    "X-PROMPT": {
+      "screen": "write",
+      "milestone": "M1",
+      "source": "src/core/cards.js PROMPT_COPY（#175 原文，M0-2 占位常量；M1-8 题面接入时由 UI 从 copy 传入）",
+      "slots": {
+        "fallbackHint": {
+          "raw": null,
+          "text": "这个字暂时没有常用词，按拼音写就好",
+          "origin": "cards.js PROMPT_COPY.fallbackHint（#175 沿旧版，仅拼音题的可见提示）",
+          "note": "内容门禁断言原文，改动须同步 cards.js 默认值"
+        },
+        "repeatBlankLabel": {
+          "raw": null,
+          "text": "同一目标字的另一处空格",
+          "origin": "cards.js PROMPT_COPY.repeatBlankLabel（□ 的读屏标签，决定-D16）",
+          "note": "读屏文案"
+        }
+      }
+    },
+    "X-HOME": {
+      "screen": "home",
+      "milestone": "M2",
+      "source": "原型首页壳 L217 ctaLabel（K 报告 §1-3）；01 M2-3「继续写字 · 今天的练习」",
+      "slots": {
+        "start": {
+          "raw": null,
+          "text": "开始写字",
+          "origin": "首页壳-v3 L217",
+          "note": "主入口"
+        },
+        "continue": {
+          "raw": null,
+          "text": "继续写字",
+          "origin": "首页壳-v3 L217",
+          "note": "主入口（有未完成组）"
+        }
+      }
+    },
+    "X-SYS": {
+      "screen": "common",
+      "milestone": "M5",
+      "source": "03 P55 待文案：坏值顶部提示",
+      "slots": {
+        "corruptNotice": {
+          "raw": null,
+          "text": "TODO: 启动时发现坏数据的顶部提示（P55）",
+          "origin": "03 P55",
+          "decision": "P55",
+          "note": "待文案"
+        }
+      }
+    }
+  }
+}

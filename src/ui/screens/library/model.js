@@ -1,0 +1,177 @@
+// 字库首页（墨墙）数据模型（纯函数，无 DOM；02 M3-1；R-L01–R-L04、R-L07–R-L10；test/ui/library.test.mjs 直接调用）。
+//
+//   libraryHomeModel(state, today, {policy, compact}) → {
+//     today, libraryId,
+//     recorded,                       // 顶部大数字：有 judged 记录的字数（R-L10：从记录算；P10b 旧照片不算）
+//     hollow: [char],                 // 自选了还没写（custom.added 顺序；没有任何 judged 记录的字）
+//     firstDay,                       // 「从 X 开始记录」的 X：第一条有效记录的日期（P63 过渡：日期；折叠月份的 byDay 也算）
+//     facts: [{kind:'customUnwritten', n} | {kind:'since', day}],   // 两条事实（原型字库墨墙屏 L357 factA/factB）
+//     wrong:  {chars, items:[{char, record}]},                      // 写错过卡片（K15；最近写错的排前）
+//     forget: {chars, items:[{char, record, tone}], total},          // 快忘了卡片（K16 / P04 policy.forgetRule / forgetCap）
+//     wall: {cols, rows, cells:[{char, kind:'hollow'|'wrong'|'ink', tone, record}], members, more},
+//     empty,                          // 没有任何有效记录 → 空态（R-L05 两句 + 「你写下的字会留在这里」）
+//   }
+//
+// 口径（原型 字库墨墙屏-第十稿交接版.dc.html L324–L363，reference/K-proto-home-lib.md §2 / 附录 B）：
+// - 「记录」只看 judged（01 §3.2、决定-D18/D23）；「最近一次」按 id 序号（01 §3.1），墙上按最近一次新 → 旧。
+// - 墙：自选了还没写（空心）排最前 → 其余按最近一次判断新 → 旧；最多 8 行（cols × 8 格，R-L02）；写错过（最近一次 judged 为
+//   wrong）画标准字 + 红点，不画那一次写错的笔迹（K28 / R-L08）；其余按最近一次记录距今天数分四档（P56 policy.inkToneDays，
+//   ≤7 / ≤30 / ≤90 / 更久）。
+// - 列数：墙成员（有记录 + 自选未写）≥ 60 时 8 列，否则 5 列；紧凑版（更大字体 / 短屏）6 / 4 列（原型 L339 base）。
+// - 墙底「还有 N 个字 ›」：N = 墙成员 − 已画格数（P27 policy.wallMoreScope='wall-members'，含自选未写）；
+//   'records' 口径时只数有记录的字。没截断时 N = 0，不显示（R-L02 / 走查-L09：大数字才是进完整页的常设入口）。
+// - 空态：没有 judged 记录（原型 noRec = nRec===0；只有自选未写时也是空态，原型 hasWall = nRec>0）。
+
+import * as defaultPolicy from '../../../config/policy.js';
+import { diffDays, isValidDay } from '../../../core/dates.js';
+import { compareRecordIds, forgetList, isJudged } from '../../../core/records.js';
+
+/** 墙最多几行（R-L02 / 原型 L363 cols*8）。 */
+export const WALL_MAX_ROWS = 8;
+/** 卡片预览格数（原型 L358 mini：前 4 个）。 */
+export const CARD_MINI_MAX = 4;
+/** 列数（原型 L339：标准 5 / 墙成员 ≥ 60 时 8；紧凑 4 / 6）。 */
+export const WALL_COLS = Object.freeze({ standard: 5, standardDense: 8, compact: 4, compactDense: 6, denseFrom: 60 });
+
+/** store 状态 → {records（平铺）, foldedDays（折叠月份的练习日）}。 */
+export function recordsOfState(state) {
+  const records = [];
+  const foldedDays = [];
+  const months = (state && state.records) || {};
+  for (const month of Object.keys(months).sort()) {
+    const value = months[month];
+    if (Array.isArray(value)) {
+      for (const r of value) records.push(r);
+    } else if (value && typeof value === 'object') {
+      if (Array.isArray(value.kept)) for (const r of value.kept) records.push(r);
+      if (value.byDay && typeof value.byDay === 'object') {
+        for (const [day, chars] of Object.entries(value.byDay)) if (Array.isArray(chars) && chars.length) foldedDays.push(day);
+      }
+    }
+  }
+  return { records, foldedDays };
+}
+
+/** 每个字最近一次 judged 记录（按 id 序号；一字一卡，按 char 聚合）。 */
+export function latestJudgedByChar(records) {
+  const latest = new Map();
+  for (const r of records || []) {
+    if (!isJudged(r) || typeof r.char !== 'string') continue;
+    const prev = latest.get(r.char);
+    if (!prev || compareRecordIds(prev.id, r.id) < 0) latest.set(r.char, r);
+  }
+  return latest;
+}
+
+/**
+ * 墨色档位（P56）：最近一次记录距今天 ≤ days[0] → 0，≤ days[1] → 1，≤ days[2] → 2，更久 → 3。
+ * 日期不合法（不该出现）按最淡一档。
+ */
+export function toneOf(day, today, days = defaultPolicy.inkToneDays) {
+  if (!isValidDay(day) || !isValidDay(today)) return 3;
+  const ago = diffDays(day, today);
+  const d = Array.isArray(days) && days.length >= 3 ? days : [7, 30, 90];
+  if (ago <= d[0]) return 0;
+  if (ago <= d[1]) return 1;
+  if (ago <= d[2]) return 2;
+  return 3;
+}
+
+/** 墙列数（原型 L339）。 */
+export function wallColumns(members, compact = false) {
+  const dense = members >= WALL_COLS.denseFrom;
+  if (compact) return dense ? WALL_COLS.compactDense : WALL_COLS.compact;
+  return dense ? WALL_COLS.standardDense : WALL_COLS.standard;
+}
+
+/** 自选的字（custom.added 顺序，去重、只留单个字）。 */
+export function customCharsOf(custom) {
+  const added = custom && Array.isArray(custom.added) ? custom.added : [];
+  const out = [];
+  for (const e of added) {
+    const c = e && typeof e.char === 'string' ? e.char : null;
+    if (c && Array.from(c).length === 1 && !out.includes(c)) out.push(c);
+  }
+  return out;
+}
+
+/** 第一条有效记录的日期（P63）：judged 记录与折叠月份练习日里最早的一天；没有返回 null。 */
+export function firstRecordDay(records, foldedDays = []) {
+  let first = null;
+  for (const r of records || []) {
+    if (!isJudged(r) || !isValidDay(r.localDay)) continue;
+    if (!first || r.localDay < first) first = r.localDay;
+  }
+  for (const day of foldedDays || []) if (isValidDay(day) && (!first || day < first)) first = day;
+  return first;
+}
+
+/**
+ * 字库首页全部派生数据。
+ * @param {object|null} state  store 状态（未启动时 null → 按空状态算）
+ * @param {string} today       本地日 YYYY-MM-DD（应用时钟）
+ * @param {{policy?:object, compact?:boolean}} [opts]
+ */
+export function libraryHomeModel(state, today, { policy = defaultPolicy, compact = false } = {}) {
+  const { records, foldedDays } = recordsOfState(state);
+  const latest = latestJudgedByChar(records);
+  const recorded = latest.size;
+  const hollow = customCharsOf(state && state.custom).filter(c => !latest.has(c));
+  const firstDay = recorded ? firstRecordDay(records, foldedDays) : null;
+
+  const facts = [];
+  if (recorded) {
+    if (hollow.length) facts.push({ kind: 'customUnwritten', n: hollow.length });
+    if (firstDay) facts.push({ kind: 'since', day: firstDay });
+  }
+
+  // 最近一次 judged，新 → 旧（按 id）。
+  const byNew = [...latest.values()].sort((a, b) => compareRecordIds(b.id, a.id));
+  const wrongItems = byNew.filter(r => r.judgment === 'wrong').map(record => ({ char: record.char, record }));
+  const wrongSet = new Set(wrongItems.map(w => w.char));
+
+  const fl = forgetList({ records, sched: state && state.sched, today, policy });
+  const forgetItems = fl.items
+    .map(({ record }) => ({ char: record.char, record, tone: toneOf(record.localDay, today, policy.inkToneDays) }))
+    .filter(item => !wrongSet.has(item.char)); // K16 互斥（forgetList 已只取写对的；防御）
+
+  const members = hollow.length + recorded;
+  const cols = wallColumns(members, compact);
+  const cap = cols * WALL_MAX_ROWS;
+  const ordered = hollow.map(char => ({ char, kind: 'hollow', tone: null, record: null }))
+    .concat(byNew.map(record => ({
+      char: record.char,
+      kind: wrongSet.has(record.char) ? 'wrong' : 'ink',
+      tone: toneOf(record.localDay, today, policy.inkToneDays),
+      record,
+    })));
+  const cells = recorded ? ordered.slice(0, cap) : [];
+  let more = 0;
+  if (recorded) {
+    if (policy.wallMoreScope === 'records') more = Math.max(0, recorded - cells.filter(c => c.kind !== 'hollow').length);
+    else more = Math.max(0, members - cells.length);
+  }
+
+  return {
+    today,
+    libraryId: state && state.settings && typeof state.settings.library === 'string' ? state.settings.library : null,
+    recorded,
+    hollow,
+    firstDay,
+    facts,
+    wrong: { chars: wrongItems.map(w => w.char), items: wrongItems },
+    forget: { chars: forgetItems.map(f => f.char), items: forgetItems, total: fl.total },
+    wall: { cols, rows: Math.ceil(cells.length / cols), cells, members, more },
+    empty: recorded === 0,
+  };
+}
+
+/** 卡片预览（前 4 个；写错过画标准字 + 红点，快忘了画最近一次笔迹 / 标准字占位，原型 L358 mini）。 */
+export function cardMini(items, kind) {
+  return (items || []).slice(0, CARD_MINI_MAX).map(item => ({
+    char: item.char,
+    kind: kind === 'wrong' ? 'wrong' : 'ink',
+    tone: kind === 'wrong' ? null : item.tone,
+    record: item.record || null,
+  }));
+}

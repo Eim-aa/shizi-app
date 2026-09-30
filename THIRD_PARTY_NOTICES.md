@@ -139,118 +139,46 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-## LXGW WenKai 1.522
+## LXGW WenKai GB 1.522 (renamed ShiziKai)
 
-The legacy (pre-v10) `index.html`, still available in git history, embeds a
-WOFF2 web-delivery subset of
-[`LXGW WenKai`](https://github.com/lxgw/LxgwWenKai) 1.522 for fixed brand
-glyphs. The 4,264-byte subset was produced without hinting and is not offered
-as an installable desktop font.
+`fonts/ShiziKai-Regular.woff2` is a Modified Version of
+[`LXGW WenKai GB`](https://github.com/lxgw/LxgwWenkaiGB) version 1.522
+(`LXGWWenKaiGB-Regular.ttf`, release tag commit
+`44cb0573002712c7d5c96f1b2aeea4420153f790`, upstream SHA-256
+`295568c131648062107543aa159c97dd49564be791136c2abf74cad83eba3f7f`). It was
+subset to the characters the app displays and renamed ShiziKai (all family,
+full, PostScript and typographic name records rebuilt), then compressed to
+WOFF2. The subset is used as a web font inside the app only and is not offered
+as an installable desktop font. It replaces the 4,264-byte LXGW WenKai 1.522
+brand-glyph subset that the legacy (pre-v10) `index.html` embedded; the v10
+shell no longer ships that subset.
 
-Subset SHA-256: `b095f06b8dba589e7ad65da7283530b69b134624d43ec4e6879f55c85a764215`
+Copyright 2022-2026 LXGW (https://github.com/lxgw/LxgwWenkaiGB)
+Copyright 2020 The Klee Project Authors (https://github.com/fontworks-fonts/Klee)
 
-The v10 shell introduced in M0-1 no longer embeds this subset; the notice is
-kept until the v10 fonts under `fonts/` (M5) replace it.
+The font is licensed under the SIL Open Font License 1.1. The complete,
+unmodified license text is included at `licenses/LXGW-WenKai-GB-OFL.txt`. The
+modifications and renaming are documented at
+`licenses/Shizi-fonts-COPYRIGHT-NOTICES.md`; the build inputs and scripts are in
+`scripts/fonts/`.
 
-Copyright 2021-2026 LXGW (https://github.com/lxgw/LxgwWenKai), with Reserved
-Font Name '霞鹜', '霞鶩', '落霞孤鹜', '落霞孤鶩' and 'LXGW'.
+## Noto Serif SC 2.003 (renamed ShiziSerifSC)
 
-[ADDITIONAL PERMISSION] The Reserved Font Names '霞鹜', '霞鶩', '落霞孤鹜',
-'落霞孤鶩' and 'LXGW' may continue to be used in Modified Versions recompiled
-from the Original Version, without modifications to the font source code; or
-in Modified Versions subsetted or converted to other formats (e.g.,
-WOFF/WOFF2) solely for web font delivery, provided such Modified Versions are
-not made available as installable desktop fonts (e.g., on mainstream
-platforms like Google Fonts, or third-party non-commercial platforms
-recognized by the author @lxgw; other web font platforms please contact the
-author @lxgw for confirmation).
+`fonts/ShiziSerifSC-Regular.woff2` (weight 400) and
+`fonts/ShiziSerifSC-Medium.woff2` (weight 500) are Modified Versions of
+[`Noto Serif SC`](https://github.com/google/fonts/tree/8b0a1d0f5983c89bc2b93f1b5fb55f9e252744b5/ofl/notoserifsc)
+version 2.003 (`NotoSerifSC[wght].ttf` from google/fonts commit
+`8b0a1d0f5983c89bc2b93f1b5fb55f9e252744b5`, upstream SHA-256
+`050080d9255a86808f2945bffac582b31ef32bc36411ce29563b4961670c66f9`). The
+variable font was instantiated at wght 400 and 500, subset to the characters
+the app displays, renamed ShiziSerifSC, and compressed to WOFF2. The renaming
+distinguishes this Modified Version and does not imply endorsement by the
+upstream authors.
 
-Copyright 2020 The Klee Project Authors
-(https://github.com/fontworks-fonts/Klee)
+Copyright 2012 Google Inc. All Rights Reserved.
+(c) 2017-2024 Adobe (http://www.adobe.com/).
 
-SIL OPEN FONT LICENSE Version 1.1 - 26 February 2007
-
-PREAMBLE
-
-The goals of the Open Font License (OFL) are to stimulate worldwide
-development of collaborative font projects, to support the font creation
-efforts of academic and linguistic communities, and to provide a free and
-open framework in which fonts may be shared and improved in partnership with
-others.
-
-The OFL allows the licensed fonts to be used, studied, modified and
-redistributed freely as long as they are not sold by themselves. The fonts,
-including any derivative works, can be bundled, embedded, redistributed
-and/or sold with any software provided that any reserved names are not used
-by derivative works. The fonts and derivatives, however, cannot be released
-under any other type of license. The requirement for fonts to remain under
-this license does not apply to any document created using the fonts or their
-derivatives.
-
-DEFINITIONS
-
-"Font Software" refers to the set of files released by the Copyright
-Holder(s) under this license and clearly marked as such. This may include
-source files, build scripts and documentation.
-
-"Reserved Font Name" refers to any names specified as such after the
-copyright statement(s).
-
-"Original Version" refers to the collection of Font Software components as
-distributed by the Copyright Holder(s).
-
-"Modified Version" refers to any derivative made by adding to, deleting, or
-substituting -- in part or in whole -- any of the components of the Original
-Version, by changing formats or by porting the Font Software to a new
-environment.
-
-"Author" refers to any designer, engineer, programmer, technical writer or
-other person who contributed to the Font Software.
-
-PERMISSION & CONDITIONS
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of the Font Software, to use, study, copy, merge, embed, modify, redistribute,
-and sell modified and unmodified copies of the Font Software, subject to the
-following conditions:
-
-1) Neither the Font Software nor any of its individual components, in
-Original or Modified Versions, may be sold by itself.
-
-2) Original or Modified Versions of the Font Software may be bundled,
-redistributed and/or sold with any software, provided that each copy contains
-the above copyright notice and this license. These can be included either as
-stand-alone text files, human-readable headers or in the appropriate
-machine-readable metadata fields within text or binary files as long as those
-fields can be easily viewed by the user.
-
-3) No Modified Version of the Font Software may use the Reserved Font Name(s)
-unless explicit written permission is granted by the corresponding Copyright
-Holder. This restriction only applies to the primary font name as presented
-to the users.
-
-4) The name(s) of the Copyright Holder(s) or the Author(s) of the Font
-Software shall not be used to promote, endorse or advertise any Modified
-Version, except to acknowledge the contribution(s) of the Copyright Holder(s)
-and the Author(s) or with their explicit written permission.
-
-5) The Font Software, modified or unmodified, in part or in whole, must be
-distributed entirely under this license, and must not be distributed under
-any other license. The requirement for fonts to remain under this license
-does not apply to any document created using the Font Software.
-
-TERMINATION
-
-This license becomes null and void if any of the above conditions are not
-met.
-
-DISCLAIMER
-
-THE FONT SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
-OR IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT OF COPYRIGHT, PATENT,
-TRADEMARK, OR OTHER RIGHT. IN NO EVENT SHALL THE COPYRIGHT HOLDER BE LIABLE FOR
-ANY CLAIM, DAMAGES OR OTHER LIABILITY, INCLUDING ANY GENERAL, SPECIAL,
-INDIRECT, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, WHETHER IN AN ACTION OF
-CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF THE USE OR INABILITY TO USE
-THE FONT SOFTWARE OR FROM OTHER DEALINGS IN THE FONT SOFTWARE.
+The font is licensed under the SIL Open Font License 1.1. The complete,
+unmodified license text is included at `licenses/Noto-Serif-SC-OFL.txt`. The
+modifications and renaming are documented at
+`licenses/Shizi-fonts-COPYRIGHT-NOTICES.md`.

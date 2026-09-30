@@ -1,0 +1,123 @@
+{
+  "ShiziKai-Regular": {
+    "required": 7672,
+    "source_missing": [],
+    "supported": 7672,
+    "missing": [],
+    "GSUB": [
+      "afrc",
+      "calt",
+      "ccmp",
+      "dlig",
+      "frac",
+      "salt",
+      "subs",
+      "sups",
+      "vert"
+    ],
+    "GPOS": [
+      "chws",
+      "halt",
+      "vchw",
+      "vhal"
+    ]
+  },
+  "ShiziSerifSC-Regular": {
+    "required": 956,
+    "source_missing": [
+      {
+        "cp": "U+0302",
+        "char": "̂",
+        "name": "COMBINING CIRCUMFLEX ACCENT"
+      },
+      {
+        "cp": "U+0308",
+        "char": "̈",
+        "name": "COMBINING DIAERESIS"
+      }
+    ],
+    "supported": 954,
+    "missing": [
+      {
+        "cp": "U+0302",
+        "char": "̂",
+        "name": "COMBINING CIRCUMFLEX ACCENT"
+      },
+      {
+        "cp": "U+0308",
+        "char": "̈",
+        "name": "COMBINING DIAERESIS"
+      }
+    ],
+    "GSUB": [
+      "aalt",
+      "ccmp",
+      "dlig",
+      "fwid",
+      "hwid",
+      "liga",
+      "locl",
+      "pwid",
+      "vert",
+      "vrt2"
+    ],
+    "GPOS": [
+      "chws",
+      "halt",
+      "kern",
+      "palt",
+      "vchw",
+      "vhal",
+      "vpal"
+    ]
+  },
+  "ShiziSerifSC-Medium": {
+    "required": 956,
+    "source_missing": [
+      {
+        "cp": "U+0302",
+        "char": "̂",
+        "name": "COMBINING CIRCUMFLEX ACCENT"
+      },
+      {
+        "cp": "U+0308",
+        "char": "̈",
+        "name": "COMBINING DIAERESIS"
+      }
+    ],
+    "supported": 954,
+    "missing": [
+      {
+        "cp": "U+0302",
+        "char": "̂",
+        "name": "COMBINING CIRCUMFLEX ACCENT"
+      },
+      {
+        "cp": "U+0308",
+        "char": "̈",
+        "name": "COMBINING DIAERESIS"
+      }
+    ],
+    "GSUB": [
+      "aalt",
+      "ccmp",
+      "dlig",
+      "fwid",
+      "hwid",
+      "liga",
+      "locl",
+      "pwid",
+      "vert",
+      "vrt2"
+    ],
+    "GPOS": [
+      "chws",
+      "halt",
+      "kern",
+      "palt",
+      "vchw",
+      "vhal",
+      "vpal"
+    ]
+  }
+}

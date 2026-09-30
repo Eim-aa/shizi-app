@@ -8,8 +8,8 @@
 /* ---- 字体栈与布局变量（与主题无关） ---- */
 :root {
   --sans: -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; /* 界面文字：系统黑体 · 来源：ShiziWriteScreen-第十稿交接版.dc.html L585；首页壳-v3-第十稿交接版.dc.html L221 */
-  --serif: "ShiziSerifSC", "Noto Serif SC", "Songti SC", serif; /* 首页标题、题记、大数字（D13：ShiziSerifSC，字体文件 M5 接入）· 来源：ShiziScreen-第十稿交接版.dc.html L25；01-架构设计 §8.4 */
-  --kai: "ShiziKai", "LXGW WenKai GB", "Kaiti SC", "STKaiti", "KaiTi", serif; /* 题面词语、参考字形回退（D13：ShiziKai，字体文件 M5 接入）· 来源：ShiziWriteScreen-第十稿交接版.dc.html L179；01-架构设计 §8.4 */
+  --serif: "ShiziSerifSC", "Noto Serif SC", "Songti SC", serif; /* 首页标题、题记、大数字（D13：ShiziSerifSC 400 / 500，fonts/fonts.css，M5-2 接入）· 来源：ShiziScreen-第十稿交接版.dc.html L25；01-架构设计 §8.4 */
+  --kai: "ShiziKai", "LXGW WenKai GB", "Kaiti SC", "STKaiti", "KaiTi", serif; /* 题面词语、参考字形回退（D13：ShiziKai 400，fonts/fonts.css，M5-2 接入）· 来源：ShiziWriteScreen-第十稿交接版.dc.html L179；01-架构设计 §8.4 */
   --tap: 44px; /* 最小可点尺寸 · 来源：ShiziWriteScreen-第十稿交接版.dc.html L163；04 需求清单 R-W27 / R-G09 */
   --safe-top: env(safe-area-inset-top, 0px); /* 顶部安全区 · 来源：拾字-可点原型-第十稿交接版.template.html L401；04 需求清单 R-B08 */
   --safe-right: env(safe-area-inset-right, 0px); /* 右侧安全区 · 来源：04 需求清单 R-B08 */

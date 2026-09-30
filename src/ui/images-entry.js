@@ -20,6 +20,7 @@ import { imagePlan } from '../core/images/pick.js';
 import { renderSheet, renderSingleGlyph } from '../core/images/render.js';
 import { cardForKey } from '../data/deck.js';
 import { paintBrushStroke } from './canvas/brush.js';
+import { requireCanvasFont } from '../data/font-loader.js';
 import { ImagePreview, IMAGE_OVERLAY } from './components/image-preview.js';
 import { builtFromRaw, recalledInk } from './screens/write/compare.js';
 import { setResultImageAction } from './screens/result/index.js';
@@ -145,6 +146,7 @@ export function buildImageJob(scope, { state = null, store = storeOrNull(), inkO
         sealText,
         ratio,
         paintStroke: paintBrushStroke,
+        requireFont: requireCanvasFont,
         meta: { ...meta, members: cell.char, recordIds: cell.record.id, day: cell.record.localDay },
       });
     }
@@ -156,6 +158,7 @@ export function buildImageJob(scope, { state = null, store = storeOrNull(), inkO
       sealText,
       maxChars: plan.maxChars,
       paintStroke: paintBrushStroke,
+      requireFont: requireCanvasFont,
       meta,
     });
   };

@@ -1,0 +1,38 @@
+[
+  {
+    "path": "upstream/LXGWWenKaiGB-Regular.ttf",
+    "url": "https://github.com/lxgw/LxgwWenkaiGB/releases/download/v1.522/LXGWWenKaiGB-Regular.ttf",
+    "bytes": 25819540,
+    "sha256": "295568c131648062107543aa159c97dd49564be791136c2abf74cad83eba3f7f"
+  },
+  {
+    "path": "licenses/LXGW-WenKai-GB-OFL.txt",
+    "url": "https://raw.githubusercontent.com/lxgw/LxgwWenkaiGB/44cb0573002712c7d5c96f1b2aeea4420153f790/OFL.txt",
+    "bytes": 4450,
+    "sha256": "66e75815b1bb90bdaede3649abf5ea029d0dc7d5e61b0534d3245db61a510b93"
+  },
+  {
+    "path": "upstream/LXGW-README.md",
+    "url": "https://raw.githubusercontent.com/lxgw/LxgwWenkaiGB/44cb0573002712c7d5c96f1b2aeea4420153f790/README.md",
+    "bytes": 15373,
+    "sha256": "0f222c64ebd9921fa9053d6abf120e7da6fec313767cda9e3b2cc637cc2a350c"
+  },
+  {
+    "path": "upstream/NotoSerifSC-wght.ttf",
+    "url": "https://raw.githubusercontent.com/google/fonts/8b0a1d0f5983c89bc2b93f1b5fb55f9e252744b5/ofl/notoserifsc/NotoSerifSC%5Bwght%5D.ttf",
+    "bytes": 25125512,
+    "sha256": "050080d9255a86808f2945bffac582b31ef32bc36411ce29563b4961670c66f9"
+  },
+  {
+    "path": "licenses/Noto-Serif-SC-OFL.txt",
+    "url": "https://raw.githubusercontent.com/google/fonts/8b0a1d0f5983c89bc2b93f1b5fb55f9e252744b5/ofl/notoserifsc/OFL.txt",
+    "bytes": 4350,
+    "sha256": "5e0da210fb04058a8c0087985d2d456b931c2579811a49655721d3cf0c36b6d6"
+  },
+  {
+    "path": "upstream/Noto-METADATA.pb",
+    "url": "https://raw.githubusercontent.com/google/fonts/8b0a1d0f5983c89bc2b93f1b5fb55f9e252744b5/ofl/notoserifsc/METADATA.pb",
+    "bytes": 1373,
+    "sha256": "e0c253c6f850fc3ef6e7fc398361133dd55acc408c931822a3f69cfac08554c2"
+  }
+]

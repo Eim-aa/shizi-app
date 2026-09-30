@@ -1,0 +1,551 @@
+{
+  "LXGWWenKaiGB-Regular.ttf": {
+    "path": "upstream/LXGWWenKaiGB-Regular.ttf",
+    "bytes": 25819540,
+    "KiB": 25214.395,
+    "MiB": 24.623432,
+    "sha256": "295568c131648062107543aa159c97dd49564be791136c2abf74cad83eba3f7f",
+    "cmap_count": 46490,
+    "names": [
+      {
+        "id": 0,
+        "platform": 3,
+        "encoding": 1,
+        "language": 1033,
+        "text": "Copyright 2022-2026 LXGW (https://github.com/lxgw/LxgwWenkaiGB)\nCopyright 2020 The Klee Project Authors (https://github.com/fontworks-fonts/Klee)"
+      },
+      {
+        "id": 1,
+        "platform": 3,
+        "encoding": 1,
+        "language": 1033,
+        "text": "LXGW WenKai GB"
+      },
+      {
+        "id": 2,
+        "platform": 3,
+        "encoding": 1,
+        "language": 1033,
+        "text": "Regular"
+      },
+      {
+        "id": 3,
+        "platform": 3,
+        "encoding": 1,
+        "language": 1033,
+        "text": "LXGW WenKai GB:Version 1.522"
+      },
+      {
+        "id": 4,
+        "platform": 3,
+        "encoding": 1,
+        "language": 1033,
+        "text": "LXGW WenKai GB"
+      },
+      {
+        "id": 5,
+        "platform": 3,
+        "encoding": 1,
+        "language": 1033,
+        "text": "Version 1.522; March 17, 2026"
+      },
+      {
+        "id": 6,
+        "platform": 3,
+        "encoding": 1,
+        "language": 1033,
+        "text": "LXGWWenKaiGB-Regular"
+      },
+      {
+        "id": 8,
+        "platform": 3,
+        "encoding": 1,
+        "language": 1033,
+        "text": "LXGW / Fontworks Inc."
+      },
+      {
+        "id": 9,
+        "platform": 3,
+        "encoding": 1,
+        "language": 1033,
+        "text": "LXGW / Fontworks Inc."
+      },
+      {
+        "id": 11,
+        "platform": 3,
+        "encoding": 1,
+        "language": 1033,
+        "text": "https://github.com/lxgw"
+      },
+      {
+        "id": 12,
+        "platform": 3,
+        "encoding": 1,
+        "language": 1033,
+        "text": "https://github.com/lxgw"
+      },
+      {
+        "id": 13,
+        "platform": 3,
+        "encoding": 1,
+        "language": 1033,
+        "text": "This Font Software is licensed under the SIL Open Font License, Version 1.1. This license is available with a FAQ at: https://openfontlicense.org"
+      },
+      {
+        "id": 14,
+        "platform": 3,
+        "encoding": 1,
+        "language": 1033,
+        "text": "https://openfontlicense.org"
+      },
+      {
+        "id": 1,
+        "platform": 3,
+        "encoding": 1,
+        "language": 2052,
+        "text": "霞鹜文楷 GB"
+      },
+      {
+        "id": 2,
+        "platform": 3,
+        "encoding": 1,
+        "language": 2052,
+        "text": "Regular"
+      },
+      {
+        "id": 19,
+        "platform": 3,
+        "encoding": 1,
+        "language": 2052,
+        "text": "襟三江而带五湖，控蛮荆而引瓯越。"
+      }
+    ],
+    "GSUB": [
+      "afrc",
+      "calt",
+      "ccmp",
+      "dlig",
+      "frac",
+      "salt",
+      "subs",
+      "sups",
+      "vert"
+    ],
+    "GPOS": [
+      "chws",
+      "halt",
+      "vchw",
+      "vert",
+      "vhal"
+    ],
+    "axes": []
+  },
+  "NotoSerifSC-wght.ttf": {
+    "path": "upstream/NotoSerifSC-wght.ttf",
+    "bytes": 25125512,
+    "KiB": 24536.633,
+    "MiB": 23.961555,
+    "sha256": "050080d9255a86808f2945bffac582b31ef32bc36411ce29563b4961670c66f9",
+    "cmap_count": 30928,
+    "names": [
+      {
+        "id": 266,
+        "platform": 1,
+        "encoding": 0,
+        "language": 0,
+        "text": "ExtraLight"
+      },
+      {
+        "id": 267,
+        "platform": 1,
+        "encoding": 0,
+        "language": 0,
+        "text": "NotoSerifSC-ExtraLight"
+      },
+      {
+        "id": 268,
+        "platform": 1,
+        "encoding": 0,
+        "language": 0,
+        "text": "Light"
+      },
+      {
+        "id": 269,
+        "platform": 1,
+        "encoding": 0,
+        "language": 0,
+        "text": "NotoSerifSC-Light"
+      },
+      {
+        "id": 270,
+        "platform": 1,
+        "encoding": 0,
+        "language": 0,
+        "text": "Regular"
+      },
+      {
+        "id": 271,
+        "platform": 1,
+        "encoding": 0,
+        "language": 0,
+        "text": "NotoSerifSC-Regular"
+      },
+      {
+        "id": 272,
+        "platform": 1,
+        "encoding": 0,
+        "language": 0,
+        "text": "Medium"
+      },
+      {
+        "id": 273,
+        "platform": 1,
+        "encoding": 0,
+        "language": 0,
+        "text": "NotoSerifSC-Medium"
+      },
+      {
+        "id": 274,
+        "platform": 1,
+        "encoding": 0,
+        "language": 0,
+        "text": "SemiBold"
+      },
+      {
+        "id": 275,
+        "platform": 1,
+        "encoding": 0,
+        "language": 0,
+        "text": "NotoSerifSC-SemiBold"
+      },
+      {
+        "id": 276,
+        "platform": 1,
+        "encoding": 0,
+        "language": 0,
+        "text": "Bold"
+      },
+      {
+        "id": 277,
+        "platform": 1,
+        "encoding": 0,
+        "language": 0,
+        "text": "NotoSerifSC-Bold"
+      },
+      {
+        "id": 278,
+        "platform": 1,
+        "encoding": 0,
+        "language": 0,
+        "text": "ExtraBold"
+      },
+      {
+        "id": 279,
+        "platform": 1,
+        "encoding": 0,
+        "language": 0,
+        "text": "NotoSerifSC-ExtraBold"
+      },
+      {
+        "id": 280,
+        "platform": 1,
+        "encoding": 0,
+        "language": 0,
+        "text": "Black"
+      },
+      {
+        "id": 281,
+        "platform": 1,
+        "encoding": 0,
+        "language": 0,
+        "text": "NotoSerifSC-Black"
+      },
+      {
+        "id": 0,
+        "platform": 3,
+        "encoding": 1,
+        "language": 1033,
+        "text": "(c) 2017-2024 Adobe (http://www.adobe.com/)."
+      },
+      {
+        "id": 1,
+        "platform": 3,
+        "encoding": 1,
+        "language": 1033,
+        "text": "Noto Serif SC ExtraLight"
+      },
+      {
+        "id": 2,
+        "platform": 3,
+        "encoding": 1,
+        "language": 1033,
+        "text": "Regular"
+      },
+      {
+        "id": 3,
+        "platform": 3,
+        "encoding": 1,
+        "language": 1033,
+        "text": "2.003;GOOG;NotoSerifSC-ExtraLight;ADOBE"
+      },
+      {
+        "id": 4,
+        "platform": 3,
+        "encoding": 1,
+        "language": 1033,
+        "text": "Noto Serif SC ExtraLight"
+      },
+      {
+        "id": 5,
+        "platform": 3,
+        "encoding": 1,
+        "language": 1033,
+        "text": "Version 2.003-H1;hotconv 1.1.1;makeotfexe 2.6.0"
+      },
+      {
+        "id": 6,
+        "platform": 3,
+        "encoding": 1,
+        "language": 1033,
+        "text": "NotoSerifSC-ExtraLight"
+      },
+      {
+        "id": 7,
+        "platform": 3,
+        "encoding": 1,
+        "language": 1033,
+        "text": "Noto is a trademark of Google Inc."
+      },
+      {
+        "id": 8,
+        "platform": 3,
+        "encoding": 1,
+        "language": 1033,
+        "text": "Adobe"
+      },
+      {
+        "id": 9,
+        "platform": 3,
+        "encoding": 1,
+        "language": 1033,
+        "text": "Ryoko NISHIZUKA 西塚涼子 (kana & ideographs); Frank Grießhammer (Latin, Greek & Cyrillic); Wenlong ZHANG 张文龙 (bopomofo); Sandoll Communications 산돌커뮤니케이션, Soohyun PARK 박수현, Yejin WE 위예진 & Donghoon HAN 한동훈 (hangul elements, letters & syllables)"
+      },
+      {
+        "id": 10,
+        "platform": 3,
+        "encoding": 1,
+        "language": 1033,
+        "text": "Dr. Ken Lunde (project architect, glyph set definition & overall production); Masataka HATTORI 服部正貴 (production & ideograph elements); Zachary Quinn Scheuren (variable font & overall production)"
+      },
+      {
+        "id": 11,
+        "platform": 3,
+        "encoding": 1,
+        "language": 1033,
+        "text": "https://fonts.google.com/noto"
+      },
+      {
+        "id": 12,
+        "platform": 3,
+        "encoding": 1,
+        "language": 1033,
+        "text": "http://www.adobe.com/type/"
+      },
+      {
+        "id": 13,
+        "platform": 3,
+        "encoding": 1,
+        "language": 1033,
+        "text": "This Font Software is licensed under the SIL Open Font License, Version 1.1. This license is available with a FAQ at: https://openfontlicense.org"
+      },
+      {
+        "id": 14,
+        "platform": 3,
+        "encoding": 1,
+        "language": 1033,
+        "text": "https://openfontlicense.org"
+      },
+      {
+        "id": 16,
+        "platform": 3,
+        "encoding": 1,
+        "language": 1033,
+        "text": "Noto Serif SC"
+      },
+      {
+        "id": 17,
+        "platform": 3,
+        "encoding": 1,
+        "language": 1033,
+        "text": "ExtraLight"
+      },
+      {
+        "id": 25,
+        "platform": 3,
+        "encoding": 1,
+        "language": 1033,
+        "text": "NotoSerifSC"
+      },
+      {
+        "id": 257,
+        "platform": 3,
+        "encoding": 1,
+        "language": 1033,
+        "text": "Weight"
+      },
+      {
+        "id": 265,
+        "platform": 3,
+        "encoding": 1,
+        "language": 1033,
+        "text": "Weight"
+      },
+      {
+        "id": 266,
+        "platform": 3,
+        "encoding": 1,
+        "language": 1033,
+        "text": "ExtraLight"
+      },
+      {
+        "id": 267,
+        "platform": 3,
+        "encoding": 1,
+        "language": 1033,
+        "text": "NotoSerifSC-ExtraLight"
+      },
+      {
+        "id": 268,
+        "platform": 3,
+        "encoding": 1,
+        "language": 1033,
+        "text": "Light"
+      },
+      {
+        "id": 269,
+        "platform": 3,
+        "encoding": 1,
+        "language": 1033,
+        "text": "NotoSerifSC-Light"
+      },
+      {
+        "id": 270,
+        "platform": 3,
+        "encoding": 1,
+        "language": 1033,
+        "text": "Regular"
+      },
+      {
+        "id": 271,
+        "platform": 3,
+        "encoding": 1,
+        "language": 1033,
+        "text": "NotoSerifSC-Regular"
+      },
+      {
+        "id": 272,
+        "platform": 3,
+        "encoding": 1,
+        "language": 1033,
+        "text": "Medium"
+      },
+      {
+        "id": 273,
+        "platform": 3,
+        "encoding": 1,
+        "language": 1033,
+        "text": "NotoSerifSC-Medium"
+      },
+      {
+        "id": 274,
+        "platform": 3,
+        "encoding": 1,
+        "language": 1033,
+        "text": "SemiBold"
+      },
+      {
+        "id": 275,
+        "platform": 3,
+        "encoding": 1,
+        "language": 1033,
+        "text": "NotoSerifSC-SemiBold"
+      },
+      {
+        "id": 276,
+        "platform": 3,
+        "encoding": 1,
+        "language": 1033,
+        "text": "Bold"
+      },
+      {
+        "id": 277,
+        "platform": 3,
+        "encoding": 1,
+        "language": 1033,
+        "text": "NotoSerifSC-Bold"
+      },
+      {
+        "id": 278,
+        "platform": 3,
+        "encoding": 1,
+        "language": 1033,
+        "text": "ExtraBold"
+      },
+      {
+        "id": 279,
+        "platform": 3,
+        "encoding": 1,
+        "language": 1033,
+        "text": "NotoSerifSC-ExtraBold"
+      },
+      {
+        "id": 280,
+        "platform": 3,
+        "encoding": 1,
+        "language": 1033,
+        "text": "Black"
+      },
+      {
+        "id": 281,
+        "platform": 3,
+        "encoding": 1,
+        "language": 1033,
+        "text": "NotoSerifSC-Black"
+      }
+    ],
+    "GSUB": [
+      "aalt",
+      "ccmp",
+      "dlig",
+      "fwid",
+      "hist",
+      "hwid",
+      "liga",
+      "locl",
+      "pwid",
+      "ruby",
+      "vert",
+      "vrt2"
+    ],
+    "GPOS": [
+      "chws",
+      "halt",
+      "kern",
+      "mark",
+      "palt",
+      "vchw",
+      "vert",
+      "vhal",
+      "vkrn",
+      "vpal"
+    ],
+    "axes": [
+      {
+        "tag": "wght",
+        "min": 200.0,
+        "default": 200.0,
+        "max": 900.0
+      }
+    ]
+  }
+}

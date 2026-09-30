@@ -8,7 +8,10 @@
 //   - 落款单行（放不下报错，不偷偷截断）+ −3° 小印（原型 26pt 红印白字「字」，导出 78px）；
 //   - 新增 renderSingleGlyph（A05）：不画格子，墨迹外框约占画面宽 60%，字下「拼音 · 日期」，右下「拾字」+ 印。
 // 画布一律浅色纸面（原型 imgEl / charEl 永远 TH.light）；不读存储、不写存储。
-// 字体：界面字体文件在 M5-2 接入（01 §8.4 canvas 绘制前 requireFont）；这里接受 requireFont 注入，缺省不等待（系统回退字体）。
+// 字体（01 §8.4 canvas 绘制前 requireFont；M5-2）：core 不依赖浏览器字体 API，由调用方注入 requireFont(fontStack, text)——
+//   ui/images-entry.js 传 src/data/font-loader.js 的 requireCanvasFont（本包字体精确字重加载 + 覆盖检查，系统字体栈直接放行，
+//   字体失败只 warn、按字体栈回退绘制）；绘制前对落款 / 角标（fonts.label）与印字（fonts.kai = ShiziKai 400）各 await 一次。
+//   未注入时不等待（单测与 node 下用）。
 // 渲染结果把审计信息写进 canvas.dataset（e2e 断言 PNG 尺寸与成员 / 落款 / recordId）。
 
 import { cellInkTransform, glyphLayout, inkBounds, sheetLayout } from './layout.js';
@@ -155,7 +158,7 @@ function setDataset(canvas, meta) {
  * @param {number} [o.maxChars]  policy.imageMaxChars（P25）
  * @param {Function} [o.canvasFactory]  (w, h) => canvas
  * @param {Function} [o.paintStroke]    ui/canvas/brush.js paintBrushStroke
- * @param {Function} [o.requireFont]    async (font, text) => void（M5-2 字体接入后传入）
+ * @param {Function} [o.requireFont]    async (fontStack, text) => any；页面传 data/font-loader.js requireCanvasFont（M5-2）
  * @param {object} [o.meta]  额外写进 canvas.dataset 的审计字段
  * @returns {Promise<{status:'ready'|'empty'|'pending', canvas:HTMLCanvasElement|null, layout, cells}>}
  */

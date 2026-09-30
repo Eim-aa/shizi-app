@@ -1,0 +1,194 @@
+{
+  "fonttools": "4.66.0",
+  "python": "3.12.13",
+  "files": [
+    {
+      "path": "assets/ShiziKai-Regular.ttf",
+      "bytes": 4059380,
+      "KiB": 3964.238,
+      "MiB": 3.871326,
+      "sha256": "c410692df1c519c468532f5e2908c9a40d3d94621ae2c0f3aa6bbab00ad1f108",
+      "family": "ShiziKai",
+      "weight": 400,
+      "glyphs": 7928,
+      "cmap_count": 7672,
+      "GSUB": [
+        "afrc",
+        "calt",
+        "ccmp",
+        "dlig",
+        "frac",
+        "salt",
+        "subs",
+        "sups",
+        "vert"
+      ],
+      "GPOS": [
+        "chws",
+        "halt",
+        "vchw",
+        "vhal"
+      ]
+    },
+    {
+      "path": "assets/ShiziKai-Regular.woff2",
+      "bytes": 1781748,
+      "KiB": 1739.988,
+      "MiB": 1.699207,
+      "sha256": "57e44c4c95d8fe6b737b1ae5ba71b8f3d8e1d4972eed9acb3bdcc172742b3f6d",
+      "family": "ShiziKai",
+      "weight": 400,
+      "glyphs": 7928,
+      "cmap_count": 7672,
+      "GSUB": [
+        "afrc",
+        "calt",
+        "ccmp",
+        "dlig",
+        "frac",
+        "salt",
+        "subs",
+        "sups",
+        "vert"
+      ],
+      "GPOS": [
+        "chws",
+        "halt",
+        "vchw",
+        "vhal"
+      ]
+    },
+    {
+      "path": "assets/ShiziSerifSC-Regular.ttf",
+      "bytes": 415116,
+      "KiB": 405.387,
+      "MiB": 0.395885,
+      "sha256": "59db3d73c0c80f93a6f4a6f220d7b21afd81d2b459a2fda0c9a0aa67870cdff7",
+      "family": "ShiziSerifSC",
+      "weight": 400,
+      "glyphs": 1377,
+      "cmap_count": 954,
+      "GSUB": [
+        "aalt",
+        "ccmp",
+        "dlig",
+        "fwid",
+        "hwid",
+        "liga",
+        "locl",
+        "pwid",
+        "vert",
+        "vrt2"
+      ],
+      "GPOS": [
+        "chws",
+        "halt",
+        "kern",
+        "palt",
+        "vchw",
+        "vhal",
+        "vpal"
+      ]
+    },
+    {
+      "path": "assets/ShiziSerifSC-Regular.woff2",
+      "bytes": 185024,
+      "KiB": 180.688,
+      "MiB": 0.176453,
+      "sha256": "ecc6f448447b6ff581c398055e4f2e49f9eeceb2f0eadfa249c2354608e33d9f",
+      "family": "ShiziSerifSC",
+      "weight": 400,
+      "glyphs": 1377,
+      "cmap_count": 954,
+      "GSUB": [
+        "aalt",
+        "ccmp",
+        "dlig",
+        "fwid",
+        "hwid",
+        "liga",
+        "locl",
+        "pwid",
+        "vert",
+        "vrt2"
+      ],
+      "GPOS": [
+        "chws",
+        "halt",
+        "kern",
+        "palt",
+        "vchw",
+        "vhal",
+        "vpal"
+      ]
+    },
+    {
+      "path": "assets/ShiziSerifSC-Medium.ttf",
+      "bytes": 415152,
+      "KiB": 405.422,
+      "MiB": 0.39592,
+      "sha256": "f7d3d6d00a18c639ba1072447e692f215494ea1476936faa061f0199d9bcd7a6",
+      "family": "ShiziSerifSC",
+      "weight": 500,
+      "glyphs": 1377,
+      "cmap_count": 954,
+      "GSUB": [
+        "aalt",
+        "ccmp",
+        "dlig",
+        "fwid",
+        "hwid",
+        "liga",
+        "locl",
+        "pwid",
+        "vert",
+        "vrt2"
+      ],
+      "GPOS": [
+        "chws",
+        "halt",
+        "kern",
+        "palt",
+        "vchw",
+        "vhal",
+        "vpal"
+      ]
+    },
+    {
+      "path": "assets/ShiziSerifSC-Medium.woff2",
+      "bytes": 186324,
+      "KiB": 181.957,
+      "MiB": 0.177692,
+      "sha256": "786a41182475aaafaaf17a1ad47a8de6020d0778bcfefa1561fbc51cb4aef982",
+      "family": "ShiziSerifSC",
+      "weight": 500,
+      "glyphs": 1377,
+      "cmap_count": 954,
+      "GSUB": [
+        "aalt",
+        "ccmp",
+        "dlig",
+        "fwid",
+        "hwid",
+        "liga",
+        "locl",
+        "pwid",
+        "vert",
+        "vrt2"
+      ],
+      "GPOS": [
+        "chws",
+        "halt",
+        "kern",
+        "palt",
+        "vchw",
+        "vhal",
+        "vpal"
+      ]
+    }
+  ],
+  "totals": {
+    "ttf": 4889648,
+    "woff2": 2153096
+  }
+}

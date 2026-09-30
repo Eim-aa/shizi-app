@@ -78,6 +78,8 @@ test('policy: transitional defaults match 03 / the M0-6 card', () => {
   assert.equal(policy.migration.legacyHintedAs, 'none');
   assert.equal(policy.features.perRecordInk, false, 'card M0-6: off until D14 is lifted (P31)');
   assert.equal(policy.features.soundscape, false);
+  assert.equal(policy.defaultLibrary, 'core3500', 'P73 default library');
+  assert.equal(policy.inkRowCompactMax, 4, 'P75 compact home ink row');
   assert.equal(policy.features.difficultyFeedback, false);
   assert.equal(policy.features.nextReviewLine, true);
   // M0 验收修复 F4：P56–P61

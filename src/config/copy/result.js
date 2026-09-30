@@ -60,6 +60,7 @@ export default Object.freeze({
   'X-RESULT.cellCorrect': '写对',
   'X-RESULT.cellWrong': '写错',
   'X-RESULT.cellSkipped': '跳过',
+  'X-RESULT.cellAria': '{char} · {caption}',
   'X-RESULT.again': '再写一组',
   'X-RESULT.leaveHome': '回到首页',
   'X-RESULT.dateSource': '{date} · {source}',

@@ -20,13 +20,14 @@
 // M2-3（end.js / result/index.js）：「结束这组」（picked 会话，跳过那一行右边；紧凑版在 write-end-slot）；
 // 最后一字处理完（判断 / 看答案后「下一个」/ 跳过，任一阶段）→ 会话移入 lastEnded（commitFinish）→ 本页就地换成结果页
 // （nav.replace('result')，决定-D20 无中间页）；跳过最后一字的 3 秒撤销机会交给结果页（handoffSkipUndo）。
+// M2 验收 H1：槽里没有会话（且不是刚交给结果页）→ 回本 tab 根，不留空页（刷新从 history 恢复 / reset / 跨天作废）。
 //
 // data-testid：write-screen、write-progress、write-steps、write-line-slot、write-prompt、write-grid（及
 // write-grid-ink / write-grid-live / write-glyph-layer）、write-tools、write-undo、write-clear、write-note、
 // write-answer-slot、write-hint-slot、write-done、write-skip-slot、write-end-slot、write-empty。
 
 import { html, useEffect, useLayoutEffect, useRef, useState } from '../../../../vendor/ui.js';
-import { registerScreen, getRouter } from '../../router.js';
+import { registerScreen, getRouter, nav } from '../../router.js';
 import { Page } from '../../components/Page.js';
 import { Button, markStateChange } from '../../components/Button.js';
 import { injectStyles, T } from '../../components/styles.js';
@@ -240,11 +241,6 @@ function WriteScreen({ params, entry }) {
   const writeRef = useRef(null);
   const answerSize = useAnswerFit(writeRef, { enabled: compact && phase === 'answer', key: cardKey || '' });
   const gridSize = compact ? COMPACT_GRID : STD_SIZE;
-  // M1-4 看答案 / 描一遍 / 自己写（answer.js）：回忆阶段「看答案」按钮、answer 阶段卡片、描红层、格下说明、接管底栏。
-  const answer = useAnswerFlow({
-    slot, session, cardKey, phase, strokeCount: view.strokes.length, size: compact ? answerSize : STD_SIZE,
-    onShowAnswer: endSkipUndo,
-  });
   // M1-5 判断页、结果行、跳过。
   const compare = useCompareFlow({
     slot, session, cardKey, char: charOfCardKey(cardKey), phase, strokes: view.strokes, hints: hint.used, strokeData,
@@ -253,8 +249,14 @@ function WriteScreen({ params, entry }) {
   const row = useResultRow({ slot, session, state, phase, strokeCount: view.strokes.length });
   const skip = useSkip({ slot, session, cardKey, phase, hints: hint.used, strokes: view.strokes });
   endSkipUndoRef.current = skip.dismiss;
-  // M2-3「结束这组」（picked 会话；打开确认框即结束跳过的撤销机会）。
+  // M2-3「结束这组」（picked 会话；打开确认框即结束跳过的撤销机会）。除判断页外各阶段都显示（H4）。
   const end = useEndGroup({ slot, session, phase, blocked: skip.failed, onOpen: endSkipUndo });
+  // M1-4 看答案 / 描一遍 / 自己写（answer.js）：回忆阶段「看答案」按钮、answer 阶段卡片、描红层、格下说明、接管底栏
+  // （接管时「结束这组」放在它底栏「下一个」那一行右端，H4）。
+  const answer = useAnswerFlow({
+    slot, session, cardKey, phase, strokeCount: view.strokes.length, size: compact ? answerSize : STD_SIZE,
+    onShowAnswer: endSkipUndo, endButton: end.button,
+  });
 
   // M2-3：最后一字处理完（任一阶段推进，cursor 到队尾）→ 会话移入 lastEnded → 就地换成结果页（D20，无中间页）。
   // 跳过最后一字的撤销机会交给结果页；结束写入失败时结果页照样按槽里的会话显示并补写（commitFinish 幂等）。
@@ -274,6 +276,31 @@ function WriteScreen({ params, entry }) {
     }
     openResult(slot, session.id);
   }, [complete, topFree, session && session.id]);
+
+  // M2 验收 H1：槽里没有会话（测试 reset / 跨天作废 / 别处结束了这组，或刷新时 router 从 history.state 恢复出一个已经没有
+  // 会话的写字页）→ 回到本 tab 的根（首页），不显示只有标题的空页。最后一字已交给结果页（finishedRef）时不算。
+  // 只在本页是空着的顶层时做，并按 router / store 的即时状态再判一次：结束这组等流程在 commit 之后紧接着 closeOverlay +
+  // back / replace，那时 router 已有 pending 或顶层已换，这里不插手。router.replace 只能换成子页面，回 tab 根用 switchTab
+  // （同一 tab：退回 depth 0，不换 tab）。
+  const orphan = !session && !finishedRef.current;
+  const leftRef = useRef(false);
+  useEffect(() => {
+    if (!orphan || !topFree || leftRef.current) return;
+    const router = getRouter();
+    const snap = router ? router.getState() : null;
+    const id = entry && entry.id;
+    if (!snap || !id || !snap.top || snap.top.id !== id || snap.topIsOverlay || snap.pending || snap.depth === 0) return;
+    let live = null;
+    try {
+      const st = getStore().getState();
+      live = st && st.sessions ? st.sessions[slot] || null : null;
+    } catch (error) {
+      live = null;
+    }
+    if (live) return;
+    leftRef.current = true;
+    nav.switchTab(snap.tab);
+  }, [orphan, topFree]);
   const onStrokeStart = () => {
     hint.onStrokeStart();
     row.onStrokeStart(); // 落笔：上一字的结果行收起（决定-D19）

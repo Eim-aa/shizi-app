@@ -81,13 +81,23 @@ test('test host: hooks seed/getState/failNextWrite/interruptAfterWrite/setClock/
   const { win, backend, store } = boot('http://127.0.0.1:8765/?test=1');
   const t = win.__shiziTest;
   assert.ok(t, 'mounted');
+  // 固定应用时钟到 fixture 所在的月份（baselineState 的记录在 2026-09、judgeMutation 写 2026-10）：store 的回收口径按
+  // 「现在」算，不固定时钟时下面的配额断言会随真实日期变红（M2 验收 H2）。后面的 setClock / reset 断言照旧改写 / 复原时钟。
+  t.setClock('2026-09-30T04:00:00.000Z');
   assert.deepEqual(t.seed(baselineState()).ok, true);
   assert.equal(t.getState().records['2026-09'].length, 2);
   assert.equal(t.seed({ bogus: true }).ok, false, 'seed goes through shape validation');
 
-  // failNextWrite → commit 失败、状态不变
+  // failNextWrite(generic) → commit 失败（storage 归为 unknown）、状态不变
   const before = t.getState();
-  t.failNextWrite(1, { kind: 'quota', matchKey: 'shizi.v2.records.*' });
+  t.failNextWrite(1, { kind: 'generic', matchKey: 'shizi.v2.records.*' });
+  const g = store.commit('judge', judgeMutation('大'));
+  assert.equal(g.ok, false);
+  assert.equal(g.error.kind, 'unknown');
+  assert.deepEqual(t.getState(), before);
+
+  // failNextWrite(quota)：store 在配额失败后回收并重试一次（01 §9），稳定制造配额失败要 n ≥ 2
+  t.failNextWrite(2, { kind: 'quota', matchKey: 'shizi.v2.records.*' });
   const r = store.commit('judge', judgeMutation('大'));
   assert.equal(r.ok, false);
   assert.equal(r.error.kind, 'quota');

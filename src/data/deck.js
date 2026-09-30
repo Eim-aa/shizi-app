@@ -9,9 +9,13 @@
 // 测试：setDeckSource({seed, overrides}) 注入数据（node:test 无全局）；setCardResolver(fn) 覆盖单卡查找（e2e 合成卡）。
 
 import { buildCards, cardKey as keyOfCard, LIBRARIES, libraryById } from '../core/cards.js';
+import * as policy from '../config/policy.js';
 
-/** 没有选过字库时的练习范围（沿旧版：默认库固定 core3500，B-scheduling §7；换库属 M3-5）。 */
-export const DEFAULT_LIBRARY_ID = LIBRARIES[0].id;
+/**
+ * 没有选过字库时的练习范围：policy.defaultLibrary（P73 过渡默认 core3500，沿旧版 B-scheduling §7；换库属 M3-5）。
+ * policy 里写了未知 id 时退回第一个字库。
+ */
+export const DEFAULT_LIBRARY_ID = libraryById(policy.defaultLibrary) ? policy.defaultLibrary : LIBRARIES[0].id;
 
 let deck = null; // {cards, index: Map<cardKey, card>, keys: string[]}
 let injected = null; // {seed, overrides}

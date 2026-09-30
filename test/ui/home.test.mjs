@@ -64,6 +64,7 @@ test('N and ink row: judged today deduped by char, latest 8 by id (D12)', () => 
   const c = homeModel(state({ records }), at(DAY), { inkRowMax: INK_ROW_COMPACT_MAX });
   assert.deepEqual(c.inkRow.map(r => r.char), [...'七八九一']);
   assert.equal(c.count, 9, 'number stays N');
+  assert.equal(INK_ROW_COMPACT_MAX, 4, 'compact ink row = policy.inkRowCompactMax (P75)');
 });
 
 test('P16: N row shown together with an unfinished group; false hides it', () => {

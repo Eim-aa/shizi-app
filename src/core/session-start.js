@@ -82,7 +82,11 @@ export function aStartInfo(state, { policy = defaultPolicy } = {}) {
  *   libraryExhausted：当前练习范围里已没有可当新字出的字（R-H11「字库都写过」的次入口）。
  */
 export function planDaily(state, { today, deck, policy = defaultPolicy }) {
-  const libraryId = deck.currentLibraryId ? deck.currentLibraryId(state && state.settings) : null;
+  // deck 没有 currentLibraryId（测试替身）时：settings.library → 否则 policy.defaultLibrary（P73）。
+  const settingsLib = state && state.settings && typeof state.settings.library === 'string' ? state.settings.library : null;
+  const libraryId = deck.currentLibraryId
+    ? deck.currentLibraryId(state && state.settings)
+    : settingsLib || policy.defaultLibrary || null;
   const newCandidates = deck.newCandidates(libraryId);
   const sched = (state && state.sched) || {};
   const plan = selectDaily({

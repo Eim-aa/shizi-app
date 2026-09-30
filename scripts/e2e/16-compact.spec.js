@@ -22,7 +22,7 @@ const CONTROL_IDS = [
   'page-back', 'write-continue', 'write-undo', 'write-clear', 'write-hint', 'write-done', 'write-show-answer', 'write-skip',
   'write-line-change', 'write-judge-wrong', 'write-judge-correct', 'write-answer-self', 'write-answer-trace',
   'write-answer-next', 'write-trace-done', 'write-retrace-trace', 'write-answer-show', 'write-change-cancel',
-  'write-change-flip', 'confirm-ok', 'confirm-cancel',
+  'write-change-flip', 'confirm-ok', 'confirm-cancel', 'write-end',
 ];
 
 async function waitPhase(page, phase) {
@@ -317,6 +317,49 @@ async function compactWalk(page, ctx, { large }) {
   common(assert, g, `${tag} retrace`, ['write-retrace-trace', 'write-answer-next']);
 }
 
+function overlaps(a, b) {
+  return !!a && !!b && a.left < b.right - 0.5 && b.left < a.right - 0.5 && a.top < b.bottom - 0.5 && b.top < a.bottom - 0.5;
+}
+
+/**
+ * M2 验收 H4：这次选的字（B）在紧凑版各阶段都有「结束这组」（判断页除外），在首屏、是按钮、不压住同一行的其他按钮。
+ */
+async function compactEnd(page, ctx, { large }) {
+  const { assert } = ctx;
+  const tag = `360×640${large ? ' large' : ''} picked`;
+  await setMode(page, ctx, { view: COMPACT_VIEW, large });
+  const seeded = await seedSession(page, { slot: 'B', kind: 'picked', chars: CHARS, cursor: 0 });
+  assert.ok(seeded.ok, `${tag}: seed B session`);
+  await openWrite(page, { slot: 'B' });
+  await page.mouse.move(1, 1);
+  const check = async (label, others) => {
+    const g = await geometry(page, `${large ? 'L' : 'N'}-end-${label}`);
+    common(assert, g, `${tag} ${label}`, ['write-end', ...others]);
+    const end = g.controls['write-end'].rect;
+    const hit = others.filter(id => g.controls[id] && overlaps(end, g.controls[id].rect));
+    assert.deepEqual(hit, [], `${tag} ${label}: 结束这组 does not cover ${others.join(' / ')}`);
+    assert.ok(end.top >= g.foot.top - 0.5, `${tag} ${label}: 结束这组 sits in the footer`);
+  };
+  ctx.step(`${tag}: recall / answer / trace / retrace all show 结束这组 on the first screen without covering other buttons`);
+  await check('recall', ['write-hint', 'write-done', 'write-show-answer', 'write-skip']);
+  await page.click(topSel('write-show-answer'));
+  await page.waitForSelector(tid('write-answer-confirm'));
+  await waitNavIdle(page);
+  await page.click(tid('confirm-ok'));
+  await page.waitForFunction(() => !document.querySelector('[data-testid="write-answer-confirm"]'));
+  await waitPhase(page, 'answer');
+  await check('answer', ['write-answer-self', 'write-answer-trace', 'write-answer-next']);
+  await page.click(topSel('write-answer-trace'));
+  await waitPhase(page, 'trace');
+  await check('trace', ['write-trace-done', 'write-answer-next']);
+  await drawStroke(page, HORIZONTAL);
+  await waitStrokes(page, 1);
+  await page.waitForTimeout(PRESS_SETTLE_MS);
+  await page.click(topSel('write-trace-done'));
+  await waitPhase(page, 'retrace');
+  await check('retrace', ['write-retrace-trace', 'write-answer-next']);
+}
+
 /** 顶层写字页「刚打开、没有任何输入」的状态：写好了禁用、固化层 0 像素、本地 0 笔、撤销 / 清空不可见。 */
 async function blankState(page) {
   const snap = await writeSnapshot(page);
@@ -363,10 +406,10 @@ async function openBlank(page, ctx, view) {
   await page.mouse.click(g.x + g.width / 2, g.y + 6); // 单点「点画」（书写格顶部正中）
   await waitStrokes(page, 1);
   await page.waitForFunction(() => window.__shiziTest.getState().sessions.A.current.strokes.length === 1);
-  await page.evaluate(() => window.__shiziTest.reset());
-  await page.waitForTimeout(100); // 让写字页先按「没有会话」渲染一帧（旧实现此时的本地笔会在 seed 后写回新会话）
-  const again = await seedSession(page, { reset: false, slot: 'A', kind: 'daily', chars: CHARS, cursor: 0 });
-  assert.ok(again.ok, `${tag}: re-seed the same first character`);
+  // M2 验收 H1 起：写字页一旦按「没有会话」渲染就回到 tab 根（15-recover 覆盖），所以这里的整体替换改为 reset + seed
+  // 在同一个任务里完成（store 仍发布两次替换，写字页的本地现场键按替换代数重取；旧实现会把本地那一笔写回新会话）。
+  const again = await seedSession(page, { reset: true, slot: 'A', kind: 'daily', chars: CHARS, cursor: 0 });
+  assert.ok(again.ok, `${tag}: reset + re-seed the same first character`);
   await page.waitForTimeout(600);
   assertBlank(assert, await blankState(page), `${tag} after re-seed`);
   const stored = await page.evaluate(() => window.__shiziTest.getState().sessions.A.current.strokes.length);
@@ -397,6 +440,8 @@ export default async function compact(page, ctx) {
 
   await compactWalk(page, ctx, { large: false });
   await compactWalk(page, ctx, { large: true });
+  await compactEnd(page, ctx, { large: false });
+  await compactEnd(page, ctx, { large: true });
 
   ctx.step('393×852 (no data-large): standard layout');
   await setMode(page, ctx, { view: STD_VIEW, large: false });

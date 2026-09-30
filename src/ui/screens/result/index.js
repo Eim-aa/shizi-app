@@ -531,6 +531,7 @@ function ResultCell({ cell, record, ink, onOpen }) {
   }
   return html`<button type="button" class="sz-rcell" data-testid="result-cell" data-index=${cell.index} data-kind=${cell.kind}
     data-judgment=${cell.judgment || ''} data-changeable=${cell.canChange ? 'true' : 'false'} data-record=${record ? record.id : ''}
+    aria-label=${t('X-RESULT.cellAria', { char: cell.char, caption: cell.caption })}
     onClick=${() => onOpen(cell)}>
     <span class="sz-rcell__sq">${sq}</span>
     <span class="sz-rcell__cap">

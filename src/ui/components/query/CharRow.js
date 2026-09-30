@@ -56,7 +56,8 @@ export function CharRow({ summary, pinyin = '', word = '', selectable = false, s
   return html`<li class="sz-qrow" data-testid="query-row" data-char=${c} data-practicable=${summary.practicable ? 'true' : 'false'}
     data-selected=${selectable ? (selected ? 'true' : 'false') : undefined}>
     ${sel}
-    <${Button} variant="plain" class="sz-qrow__open" data-testid="query-row-open" onClick=${() => onOpen && onOpen(c)}>
+    <${Button} variant="plain" class="sz-qrow__open" data-testid="query-row-open" onClick=${() => onOpen && onOpen(c)}
+      aria-label=${pinyin ? t('X-QUERY.rowAria', { char: c, pinyin, status: statusText }) : t('X-QUERY.rowAriaNoPinyin', { char: c, status: statusText })}>
       <span class="sz-qrow__main">
         <span class="sz-qrow__head"><span class="sz-qrow__char">${c}</span>${pinyin ? html`<span class="sz-qrow__py">${pinyin}</span>` : null}</span>
         ${showWord ? html`<span class="sz-qrow__word">${word}</span>` : null}

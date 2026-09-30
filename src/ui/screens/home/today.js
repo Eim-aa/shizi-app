@@ -29,10 +29,10 @@ import { aStartInfo, recordsOf, resumableSession } from '../../../core/session-s
 /** 墨迹行最多几项（决定-D12：N ≤ 8 显示 N 项，N > 8 显示最近判断的 8 项，数字仍为 N）。 */
 export const INK_ROW_MAX = 8;
 /**
- * 紧凑版（360×640 / 更大字体）墨迹行与计数合成一行、只放最近 4 个字（原型首页壳 L233 审美返修 A09；03 P16「紧凑版按 A09
- * 合成一行、最近 4 字」）。数字仍为 N。是否算 D12 的「沿现有定义」待产品确认（K 报告 §6-4），见 M2-1 报告待定项。
+ * 紧凑版（360×640 / 更大字体）墨迹行与计数合成一行、只放最近几个字（原型首页壳 L233 审美返修 A09）。数字仍为 N。
+ * 过渡值在 policy.inkRowCompactMax（P75，过渡 4；D12 只写了 N ≤ 8，待产品确认）。
  */
-export const INK_ROW_COMPACT_MAX = 4;
+export const INK_ROW_COMPACT_MAX = defaultPolicy.inkRowCompactMax;
 
 function lineOf(session, slot) {
   return session ? { slot, kind: session.kind, remaining: remainingCount(session) } : null;

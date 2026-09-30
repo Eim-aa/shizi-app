@@ -430,12 +430,14 @@ export function openAnswerConfirm({ slot, cardKey }) {
  * @param {number} o.strokeCount  当前阶段书写格笔数
  * @param {number} [o.size=345]
  * @param {() => void} [o.onShowAnswer]  点了「看答案」（确认框打开前；写字页用来结束跳过的撤销机会，G3）
+ * @param {any} [o.endButton]  「结束这组」按钮（write/end.js useEndGroup().button；picked 会话才有）：放在底栏「下一个」那一行的
+ *   右端（与回忆阶段「跳过」那一行同一位置，M2 验收 H4）；保存失败两键占住底栏时不显示。
  * @returns {{active:boolean, link:any, stage:any, glyphLayer:any, note:string, footer:any}}
  *   active：本流程接管底栏（answer / trace / retrace，或看过答案后的 recall）；
  *   link：回忆阶段「看答案」按钮（放 write-answer-slot）；stage：answer 阶段替代书写格的看答案卡片；
  *   glyphLayer：trace 阶段书写格参考字形层内容；note：书写格下说明（write-note）；footer：接管时的底栏。
  */
-export function useAnswerFlow({ slot, session, cardKey, phase, strokeCount = 0, size = 345, onShowAnswer }) {
+export function useAnswerFlow({ slot, session, cardKey, phase, strokeCount = 0, size = 345, onShowAnswer, endButton = null }) {
   const char = cardKey ? charOfCardKey(cardKey) : null;
   const answerSeen = !!(session && session.current && session.current.answerSeen);
   const inFlow = ANSWER_PHASES.includes(phase);
@@ -526,7 +528,7 @@ export function useAnswerFlow({ slot, session, cardKey, phase, strokeCount = 0, 
     <div class=${one ? 'sz-answer__btns sz-answer__btns--one' : 'sz-answer__btns'}>${buttons}</div>
     <div class="sz-write__skiprow">${skipRow && !failed
       ? html`<${Button} variant="text" class="sz-answer__next" data-testid="write-answer-next" onClick=${next}>${t('R-W07.btnNext')}</${Button}>`
-      : null}</div>
+      : null}${endButton && !failed ? html`<span class="sz-write__endslot" data-testid="write-end-slot">${endButton}</span>` : null}</div>
   </div>`;
 
   return { active: true, link, stage, glyphLayer, note, footer };

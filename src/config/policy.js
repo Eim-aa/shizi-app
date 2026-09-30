@@ -83,12 +83,18 @@ export const dailyCapCountsPicked = true;
 export const s02EndOld = 'toast';
 // P46 清空所有记录后下一组重回「第一次练习 5 个字」
 export const afterClearRestartFirst = true;
+// P73 没有设置练习范围（settings.library 缺省 / 未知）时的默认字库：沿旧版 core3500（B-scheduling §7；M2-2 报告）。
+// 换库 / 首次启动让用户选属 M3-5。src/data/deck.js DEFAULT_LIBRARY_ID 与 src/core/session-start.js planDaily 读取。
+export const defaultLibrary = 'core3500';
 
 // ---- 首页 ----
 // P16 有未完成组时首页仍显示「今天记录了 N 个字」+ 墨迹行
 export const homeShowRecordWhileResume = true;
 // P23 题记：三条按日轮换（一年中第几天 mod 3）
 export const epigraphRotation = 'day-of-year';
+// P75 紧凑版首页墨迹行与计数合成一行、只放最近几个字（原型首页壳 L233 审美返修 A09；D12 只写了 N ≤ 8；M2-1 报告）。
+// 数字仍为 N。src/ui/screens/home/today.js INK_ROW_COMPACT_MAX 读取。
+export const inkRowCompactMax = 4;
 
 // ---- 写字页与提示 ----
 // P17 每字提示上限

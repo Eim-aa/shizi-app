@@ -151,6 +151,7 @@ async function resultView(page) {
       cells: top ? [...top.querySelectorAll('[data-testid="result-cell"]')].map(c => ({
         kind: c.dataset.kind, judgment: c.dataset.judgment, changeable: c.dataset.changeable,
         char: c.querySelector('[data-testid="result-cell-char"]').textContent, caption: c.querySelector('[data-testid="result-cell-caption"]').textContent,
+        aria: c.getAttribute('aria-label'),
       })) : [],
     };
   });
@@ -215,6 +216,7 @@ export default async function resultSpec(page, ctx) {
     assert.ok(!st.sessions.A && st.sessions.lastEnded.A && st.sessions.lastEnded.A.id === 's40', 'session moved to lastEnded.A');
     const v = await resultView(page);
     assert.deepEqual(v.cells.map(c => c.kind), ['judged', p.kind], `cells [judged, ${p.kind}]`);
+    assert.deepEqual(v.cells.map(c => c.aria), ['永 · 写对', `和 · ${{ judged: '写对', skipped: '跳过', 'answer-seen': '看过答案' }[p.kind]}`], 'H3: cell accessible names');
     assert.equal(v.header, '这次练习', 'daily header 这次练习');
   }
 
@@ -312,6 +314,56 @@ export default async function resultSpec(page, ctx) {
   assert.ok(!st.sessions.B && st.sessions.lastEnded.B.endedEarly, 'B ended');
   await waitNavIdle(page);
 
+  step('H4: 结束这组 shown in answer / trace / retrace, hidden on the judge page; ending from the answer page with 0 judged → back + toast');
+  await seedGroup(page, { kind: 'picked', chars: ['额', '鲜', '境'], steps: [] });
+  await openWriteSlot(page, 'B');
+  const endVisible = async () => {
+    const el = page.locator(topSel('write-end'));
+    return (await el.count()) === 1 && el.isVisible();
+  };
+  const endInAnswerFoot = async () => evalIn(page, () => {
+    const b = document.querySelector('.sz-layer[data-top="true"] [data-testid="write-end"]');
+    return !!b && !!b.closest('[data-testid="write-answer-foot"]');
+  });
+  await openAnswer(page);
+  assert.ok(await endVisible(), 'answer: 结束这组 visible');
+  assert.ok(await endInAnswerFoot(), 'answer: 结束这组 lives in the answer footer (下一个 row)');
+  await page.click(topSel('write-answer-trace'));
+  await waitPhase(page, 'trace');
+  assert.ok(await endVisible(), 'trace: 结束这组 visible');
+  await drawStroke(page, HORIZONTAL);
+  await page.waitForTimeout(PRESS_SETTLE_MS);
+  await page.click(topSel('write-trace-done'));
+  await waitPhase(page, 'retrace');
+  assert.ok(await endVisible(), 'retrace: 结束这组 visible');
+  await page.click(topSel('write-answer-next'));
+  await page.waitForFunction(() => {
+    const w = document.querySelector('.sz-layer[data-top="true"] .sz-write');
+    return !!w && w.dataset.cursor === '1' && w.dataset.phase === 'recall';
+  });
+  await waitNavIdle(page);
+  assert.ok(await endVisible(), 'recall (next char): 结束这组 visible');
+  await drawStroke(page, HORIZONTAL);
+  await page.click(topSel('write-done'));
+  await page.waitForSelector(topSel('write-judge-correct'));
+  await waitPhase(page, 'compare');
+  assert.equal(await page.locator(topSel('write-end')).count(), 0, 'compare (judge page): no 结束这组');
+  await page.click(topSel('write-continue'));
+  await waitPhase(page, 'recall');
+  await openAnswer(page);
+  await page.click(topSel('write-end'));
+  await page.waitForSelector(tid('write-end-dialog'));
+  await waitNavIdle(page);
+  assert.equal(await page.locator(tid('write-end-body')).textContent(), '还有 2 个字没写，结束后就不写了。判断过的 0 个字已经记下。',
+    'S04 body from the answer page: n = 2 (current included), m = 0 (看过答案不算判断)');
+  await page.click(tid('write-end-confirm'));
+  await page.waitForFunction(() => document.querySelector('.sz-app').dataset.topScreen === 'home');
+  assert.equal(await toastText(page), '这组结束了，没有记下字。', 'H4: zero-judged toast after ending from the answer page');
+  st = await state(page);
+  assert.ok(!st.sessions.B && st.sessions.lastEnded.B && st.sessions.lastEnded.B.endedEarly, 'B ended early');
+  assert.equal(st.records.filter(r => r.kind === 'judged').length, 0, 'no judged record written by ending');
+  await waitNavIdle(page);
+
   step('结束 write fails → stays in the dialog (三段式), B untouched; 再试一次 → ends');
   await seedGroup(page, { kind: 'picked', chars: ['额', '鲜', '境'], steps: ['correct'] });
   await openWriteSlot(page, 'B');
@@ -366,6 +418,7 @@ export default async function resultSpec(page, ctx) {
   assert.equal(v.title, '这次记录了 2 个字', 'R-R01 title by records');
   assert.equal(v.sub, '「和」看过答案，没算在内。点一个格子，可以对照参考字形、修改判断。', 'P62 only-seen sentence + grid hint');
   assert.deepEqual(v.cells.map(c => [c.char, c.caption, c.changeable]), [['永', '写对', 'true'], ['和', '看过答案', 'false'], ['春', '写对', 'true']], 'cells');
+  assert.deepEqual(v.cells.map(c => c.aria), ['永 · 写对', '和 · 看过答案', '春 · 写对'], 'H3: every cell button has an accessible name 「字 · 标签」');
   assert.equal(v.imageNote, '这次记下的字都没有留下笔迹，不能保存本次练习图片；本月图片仍可到练习记录保存。', 'R-R07 all-missing note (perRecordInk off)');
   assert.deepEqual([v.again, v.leave], ['再写一组', '回到首页'], 'daily footer 再写一组 + 回到首页');
   const inkCells = await evalIn(page, () => [...document.querySelectorAll('.sz-layer[data-top="true"] [data-testid="result-cell"]')].map(c => {
@@ -399,6 +452,7 @@ export default async function resultSpec(page, ctx) {
   assert.ok(st.sched['base:永'].due !== before.sched['base:永'].due, `sched replayed (due ${before.sched['base:永'].due} → ${st.sched['base:永'].due})`);
   v = await resultView(page);
   assert.deepEqual([v.cells[0].caption, v.cells[0].judgment, v.title], ['写错', 'wrong', '这次记录了 2 个字'], 'cell shows 写错; count unchanged');
+  assert.equal(v.cells[0].aria, '永 · 写错', 'H3: the accessible name follows the corrected judgment');
 
   step('seen cell → sheet without 改为…, 关闭; correction failure → 没改成 + retry');
   await page.click(`${topSel('result-cell')}[data-index="1"]`);

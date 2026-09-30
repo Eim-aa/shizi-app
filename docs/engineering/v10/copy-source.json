@@ -21,7 +21,9 @@
     "{word}": "词语（04 的 {词}）",
     "{period}": "时段词（R-H02.period.*）",
     "{pinyin}": "拼音",
-    "{source}": "来源说明（R-R06.fromWrong / fromForget / fromPicked，边改 S05）"
+    "{source}": "来源说明（R-R06.fromWrong / fromForget / fromPicked，边改 S05）",
+    "{status}": "记录情况（查字逐字行行尾那句，R-Q04 / P43，读屏标签里复用）",
+    "{caption}": "结果页格下标签（X-RESULT.cellCorrect / cellWrong / cellSkipped / R-R02.cellSaw，读屏标签里复用）"
   },
   "normalization": [
     "{M} 月 {D} 日、{9 月 24 日} 这类日期、裸「M 月 D 日」、{日期} → {date}",
@@ -53,7 +55,11 @@
     "P67": "看答案流程细则（描一遍每次先播、落笔即跳过；阶段切换与「下一个」等保存成功才推进；卡片读屏读答案字）：流程行为，按 03 过渡默认实现在 src/ui/screens/write/answer.js，不是 policy 开关；请产品确认（M2-3）",
     "P68": "题面区可见提示行与窄屏词语行的位置 / 样式：CSS 与布局（src/ui/screens/write/prompt.js），不是运行时开关；请设计确认（M6）",
     "P69": "紧凑版触发条件（data-large 或视口高 ≤ 760px）：过渡值在 policy.compactMaxHeight（M2-H 迁入）；src/ui/screens/write/compact.js 的 COMPACT_MAX_HEIGHT / COMPACT_QUERY 从它派生（CSS media 与 JS 同一条件）。待设计确认（M6）",
-    "P70": "提示层 / 看答案动画节奏与 P52 提示时长：过渡值在 policy.motion（M2-H 迁入）——answerSpeed 1.6、answerStrokeGapMs 180、answerFadeMs 240（src/ui/canvas/glyph.js ANIMATION）；hintStrokeMs 240、hintStagger 0.7、reducedFadeMs 120（src/ui/screens/write/hint-layer.js HINT_DRAW / REDUCED_FADE_MS）；persistNoticeMs 5000（persist.js NOTICE_MS；「每次加载最多一次」是行为，不是数值）。设计走查后再定（M6）"
+    "P70": "提示层 / 看答案动画节奏与 P52 提示时长：过渡值在 policy.motion（M2-H 迁入）——answerSpeed 1.6、answerStrokeGapMs 180、answerFadeMs 240（src/ui/canvas/glyph.js ANIMATION）；hintStrokeMs 240、hintStagger 0.7、reducedFadeMs 120（src/ui/screens/write/hint-layer.js HINT_DRAW / REDUCED_FADE_MS）；persistNoticeMs 5000（persist.js NOTICE_MS；「每次加载最多一次」是行为，不是数值）。设计走查后再定（M6）",
+    "P71": "自己选字 pick 模式输入后不预选（用户逐个点圈，依 D21 / R-H06）：交互行为，实现在 src/ui/components/query/（M2-0），不是 policy 开关；请产品确认（冻结原型字库墨墙屏 L444 是全预选）",
+    "P72": "清空所有记录后首页「没有记录」的说法（R-H09 noCopy）与首练组未写完时不显示「第一次来，先写 5 个字试试。」：首页派生规则在 src/ui/screens/home/today.js（records='empty' / showFirstTip），文案待给定（M4-3 清空）；不是 policy 开关",
+    "P74": "每日选字新字顺序 = SEED 字频序（01 §5 字面口径）：数据顺序，src/data/deck.js libraryOf(...).keys 按 SEED 顺序、core/sessions.selectDaily 按序取，不是 policy 开关；请产品确认高频字排最前是本意（M2-2）",
+    "P76": "结果页 / 结束这组 / 开组失败等文案空缺（R-W15 零判断零态句、首练结果页标题、零判断「没法做这次的图片」、S02/开组失败三段式、R-R01 只有看过答案的用法、X-RESULT/X-HOME/X-QUERY/X-SESSION extra 键）：copy 现值在 src/config/copy/ 与本文件 extra（origin: extra），待文案给定（与 P55/P66 一并，M6 文案审计）"
   },
   "noCopy": [
     "R-H08",
@@ -2754,6 +2760,18 @@
           "text": "重复的{chars}只算一次。",
           "origin": "extra",
           "note": "R-Q03.duplicate 的多字形态：两个以上的字重复时一句列出（{chars} 拼成「X」「Y」）；原型 L428 dups.map(c=>'「'+c+'」').join('')"
+        },
+        "rowAria": {
+          "raw": null,
+          "text": "{char} {pinyin}，{status}",
+          "origin": "extra",
+          "note": "查字 / 自己选字逐字行「看这个字」按钮的 aria-label（M2 验收 H3）：{status} = 行尾记录情况（R-Q04 / P43）；原型没有读屏标签"
+        },
+        "rowAriaNoPinyin": {
+          "raw": null,
+          "text": "{char}，{status}",
+          "origin": "extra",
+          "note": "同 rowAria，题库里没有拼音的字（M2 验收 H3）"
         }
       }
     },
@@ -2859,6 +2877,12 @@
           "origin": "extra",
           "note": "「再写一组」失败次按钮（收起失败说明，留在结果页）；取 R-W16 / X-SESSION.s02Cancel 同字，待文案确认",
           "decision": "P55"
+        },
+        "cellAria": {
+          "raw": null,
+          "text": "{char} · {caption}",
+          "origin": "extra",
+          "note": "结果页格子（button）的 aria-label（M2 验收 H3）：{caption} 取同格格下标签 X-RESULT.cellCorrect / cellWrong / cellSkipped / R-R02.cellSaw；原型没有读屏标签，按格下「字 + 标签」拼成"
         }
       }
     }

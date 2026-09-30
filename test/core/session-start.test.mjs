@@ -81,6 +81,16 @@ function fakeDeck(keys = LIB, extra = []) {
   return { newCandidates: () => keys, practicable: k => known.has(k), currentLibraryId: () => 'core3500' };
 }
 
+test('planDaily: a deck without currentLibraryId falls back to settings.library, then policy.defaultLibrary (P73)', async () => {
+  const asked = [];
+  const deck = { newCandidates: id => { asked.push(id); return LIB; }, practicable: k => LIB.includes(k) };
+  const empty = { records: {}, sched: {}, sessions: { A: null, B: null, lastEnded: {} } };
+  assert.equal(planDaily(empty, { today: TODAY, deck }).libraryId, 'core3500');
+  assert.equal(planDaily({ ...empty, settings: { library: 'adv3000' } }, { today: TODAY, deck }).libraryId, 'adv3000');
+  assert.equal(planDaily(empty, { today: TODAY, deck, policy: await policyWith({ defaultLibrary: 'rare' }) }).libraryId, 'rare');
+  assert.deepEqual(asked, ['core3500', 'adv3000', 'rare']);
+});
+
 // ---------------------------------------------------------------- 第一次练习
 
 test('first practice: fixed 5 characters from policy.firstQueue (P09), slot A, one commit', () => {
@@ -409,6 +419,7 @@ test('deck.js: cards from the injected SEED, library membership, SEED order as n
     assert.equal(cardForKey('custom:嚏'), null);
     assert.equal(cardForKey('base:鲜'), null);
     assert.equal(DEFAULT_LIBRARY_ID, 'core3500');
+    assert.equal(DEFAULT_LIBRARY_ID, policy.defaultLibrary, 'DEFAULT_LIBRARY_ID comes from policy.defaultLibrary (P73)');
     assert.equal(currentLibraryId(null), 'core3500');
     assert.equal(currentLibraryId({ library: 'nope' }), 'core3500');
     assert.equal(currentLibraryId({ library: 'adv3000' }), 'adv3000');

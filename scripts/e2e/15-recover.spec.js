@@ -400,5 +400,47 @@ export default async function recover(page, ctx) {
   ctx.step('every localStorage write went through storage.js');
   const direct = await page.evaluate(() => window.__shiziTest.getWriteLog().filter(e => e.via !== 'storage').length);
   assert.equal(direct, 0, 'no direct localStorage writes');
+
+  // ------------------------------------------------------------------ 7. 没有会话的写字页（M2 验收 H1）
+  ctx.step('H1: reset() while the write page is open → back to the home tab root; refresh stays there');
+  await fresh(page, ctx);
+  assert.equal(await routerDepth(page), 1, 'write page at depth 1');
+  await page.evaluate(() => window.__shiziTest.reset());
+  await waitHome(page);
+  assert.equal(await routerDepth(page), 0, 'reset → home, depth 0');
+  await page.reload();
+  await page.waitForSelector('.sz-app');
+  await page.waitForFunction(() => typeof window.__shiziTest === 'object');
+  await waitHome(page);
+  assert.equal(await routerDepth(page), 0, 'refresh after reset → home, depth 0');
+  assert.equal(await present(page, 'write-screen'), false, 'no write page on top');
+
+  ctx.step('H1: refresh restores a write page from history.state whose session is gone → home, depth 0');
+  await fresh(page, ctx);
+  // 绕过 store 直接删存储（live 页面不知道），刷新时 router 从 history.state 恢复写字页、store 读到空会话。
+  await page.evaluate(() => {
+    for (const k of Object.keys(localStorage)) if (k.startsWith('shizi.v2.')) localStorage.removeItem(k);
+  });
+  assert.equal(await routerDepth(page), 1, 'still on the write page before refresh');
+  await page.reload();
+  await page.waitForSelector('.sz-app');
+  await page.waitForFunction(() => typeof window.__shiziTest === 'object');
+  await waitHome(page);
+  assert.equal(await routerDepth(page), 0, 'restored write page without a session → home, depth 0');
+  assert.equal(await present(page, 'write-screen'), false, 'no empty write page left on top');
+  assert.equal(await page.evaluate(() => window.__shiziTest.getState().sessions), null, 'no session was created by leaving');
   console.log(`    (15-recover took ${Date.now() - t0} ms)`);
+}
+
+async function routerDepth(page) {
+  return page.evaluate(async () => (await import('/src/ui/router.js')).getRouter().getState().depth);
+}
+
+/** 等首页成为顶层页面（转场结束）。 */
+async function waitHome(page) {
+  await page.waitForFunction(() => {
+    const top = document.querySelector('.sz-layer[data-top="true"]');
+    return !!top && !!top.querySelector('[data-testid="screen-home"]') && !top.querySelector('[data-testid="write-screen"]');
+  }, null, { timeout: 5000 });
+  await waitNavIdle(page);
 }

@@ -108,6 +108,8 @@ async function sheetInfo(page) {
         practicable: r.dataset.practicable,
         selected: r.dataset.selected || null,
         status: r.querySelector('[data-testid="query-row-status"]').textContent,
+        py: r.querySelector('.sz-qrow__py') ? r.querySelector('.sz-qrow__py').textContent : '',
+        openAria: r.querySelector('[data-testid="query-row-open"]').getAttribute('aria-label'),
         select: r.querySelector('[data-testid="query-row-select"]')
           ? { checked: r.querySelector('[data-testid="query-row-select"]').getAttribute('aria-checked'),
               label: r.querySelector('[data-testid="query-row-select"]').getAttribute('aria-label'),
@@ -234,6 +236,10 @@ export default async function run(page, { baseURL, assert, step }) {
     'typing selects nothing: every checkbox aria-checked=false (a <button role=checkbox>)');
   assert.deepEqual(info.rows.map(r => r.select.label), [COPY.select('永'), COPY.select('和')], 'checkbox aria-labels');
   assert.deepEqual(info.rows.map(r => r.status), [COPY.rowCount(2), COPY.rowNone], 'row tail: 记录了 2 次 / 还没有记录');
+  assert.ok(info.rows.every(r => r.py), 'rows show pinyin');
+  assert.deepEqual(info.rows.map(r => r.openAria), info.rows.map(r => `${r.char} ${r.py}，${r.status}`),
+    'H3: row open buttons are named 「字 拼音，记录情况」');
+  assert.equal(info.rows[0].openAria, `永 ${info.rows[0].py}，${COPY.rowCount(2)}`, 'H3: 永 row name');
   assert.equal(info.bar, 0, 'still 0 selected after typing');
   assert.equal(info.go.disabled, true, 'bottom still disabled');
 
@@ -266,6 +272,7 @@ export default async function run(page, { baseURL, assert, step }) {
   info = await sheetInfo(page);
   const bad = info.rows.find(r => r.char === '龘');
   assert.ok(bad && bad.practicable === 'false' && bad.select === null && bad.status === COPY.rowBad, '龘: no checkbox, 「暂时不能练」');
+  assert.equal(bad.openAria, bad.py ? `龘 ${bad.py}，${COPY.rowBad}` : `龘，${COPY.rowBad}`, 'H3: unpracticable row still named');
   assert.equal(info.bar, 1, 'selection kept for chars still in the input (永)');
   await page.locator(`${SHEET} [data-testid="query-row"][data-char="龘"] [data-testid="query-row-open"]`).click();
   info = await sheetInfo(page);

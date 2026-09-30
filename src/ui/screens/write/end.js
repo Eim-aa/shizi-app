@@ -1,7 +1,8 @@
 // 结束这组（M2-3；决定-D22；01 §3.3 / §6.7；04 R-W15 / R-W16；边改 S04；原型 ShiziWriteScreen L152–L156、L216、L352、L628–L629）。
 //
 // 「结束这组」只在这次选的字（picked，B 槽）里有，写字页「跳过」那一行的右边（紧凑版在「看答案 · 跳过 · 结束这组」一行的右端）。
-// 回忆阶段、底栏没被保存失败两键占住时显示（判断页 / 看答案流程接管底栏时不显示——原型「写完、保存失败、修改判断弹层开着时不显示」）。
+// 除判断页（compare，没有底栏）之外的各阶段都显示：回忆、看答案、描一遍、自己写一遍（看答案流程的底栏里「下一个」那一行右端，
+// answer.js endButton）；底栏被保存失败两键占住时不显示（原型「写完、保存失败、修改判断弹层开着时不显示」；M2 验收 H4）。
 // 流程：
 //   1. 点「结束这组」→ 居中确认（S04：主按钮「接着写」、「结束这组」普通按钮）：
 //      「还有 {n} 个字没写，结束后就不写了。判断过的 {m} 个字已经记下。」——n = 没写的字（含当前字），m = 本组已判断的字（按记录算）。
@@ -181,14 +182,13 @@ export function openEndConfirm({ slot, sessionId }) {
  * @param {object} o
  * @param {'A'|'B'} o.slot
  * @param {object|null} o.session
- * @param {string} o.phase        有效阶段
- * @param {boolean} [o.blocked]   底栏被保存失败两键占住（跳过失败）
+ * @param {string} o.phase        有效阶段（compare 判断页不显示；其余阶段都显示，H4）
+ * @param {boolean} [o.blocked]   底栏被保存失败两键占住（跳过失败；看答案流程的保存失败由 answer.js 自己隐藏）
  * @param {() => void} [o.onOpen] 打开确认框前（写字页用来结束跳过的撤销机会）
  * @returns {{shown:boolean, button:any}}
  */
 export function useEndGroup({ slot, session, phase, blocked = false, onOpen }) {
-  const answerSeen = !!(session && session.current && session.current.answerSeen);
-  const shown = canEndGroup(session) && phase === 'recall' && !answerSeen && !blocked;
+  const shown = canEndGroup(session) && phase !== 'compare' && !blocked;
   if (!shown) return { shown: false, button: null };
   const sessionId = session.id;
   const button = html`<${Button} variant="text" class="sz-end__btn" data-testid="write-end" onClick=${() => {

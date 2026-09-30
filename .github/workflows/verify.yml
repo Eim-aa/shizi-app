@@ -15,9 +15,9 @@ concurrency:
 # Three independent jobs run in parallel (02-实现计划 §0 门禁):
 #   data       — syntax checks + verify:data (governance, vector440, content, assets, sw-unit)
 #   unit-copy  — verify:unit (node:test) + verify:copy
-#   web        — verify:web (Playwright e2e against a local static server)
-# verify:pwa (scripts/verify_pwa_upgrade.js) is a manual gate from M0 until M5-1 rewrites sw.js
-# and puts it back into verify:web; it is intentionally not run here.
+#   web        — verify:web = Playwright e2e (scripts/e2e/run.mjs) + PWA upgrade gate
+#                (scripts/verify_pwa_upgrade.js: real v10 / v13 replayed to the v14 worker, BUILD A→B, 503 fallback).
+#                The PWA gate fetches its two pinned legacy commits by SHA when the checkout is shallow.
 # scripts/legacy/ holds retired v8/v9 gates; it is neither syntax-checked nor run.
 
 jobs:
@@ -96,7 +96,7 @@ jobs:
           done
           cat /tmp/shizi-server.log
           exit 1
-      - name: Run browser regressions
+      - name: Run browser regressions and the PWA upgrade gate
         run: pnpm run verify:web
       - name: Stop local app
         if: always()

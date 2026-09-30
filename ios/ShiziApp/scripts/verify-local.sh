@@ -49,14 +49,9 @@ run_logged "Verify static assets" "${LOG_DIR}/verify-assets.log" \
   node "${REPO_ROOT}/scripts/verify_assets.mjs"
 run_logged "Verify service worker unit" "${LOG_DIR}/verify-sw-unit.log" \
   node "${REPO_ROOT}/scripts/verify_sw_unit.mjs"
-# verify_pwa_upgrade.js is a manual gate from M0 until M5-1 rewrites sw.js; until then run this
-# script with SKIP_PWA=1. It still runs by default.
-if [ "${SKIP_PWA:-0}" = "1" ]; then
-  echo "== Verify PWA corpus upgrade == SKIPPED (SKIP_PWA=1)"
-else
-  run_logged "Verify PWA corpus upgrade" "${LOG_DIR}/verify-pwa-upgrade.log" \
-    node "${REPO_ROOT}/scripts/verify_pwa_upgrade.js"
-fi
+# M5-1: v10 / v13 replayed to the v14 worker, BUILD A→B, 503 fallback (same gate as verify:web / CI).
+run_logged "Verify PWA upgrade" "${LOG_DIR}/verify-pwa-upgrade.log" \
+  node "${REPO_ROOT}/scripts/verify_pwa_upgrade.js"
 
 if git -C "$REPO_ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   git -C "$REPO_ROOT" diff --check

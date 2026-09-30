@@ -16,7 +16,7 @@
     "verify:unit": "node --test \"test/**/*.test.mjs\"",
     "verify:copy": "node scripts/verify_copy.mjs",
     "verify:pwa": "node scripts/verify_pwa_upgrade.js",
-    "verify:web": "node scripts/e2e/run.mjs",
+    "verify:web": "node scripts/e2e/run.mjs && node scripts/verify_pwa_upgrade.js",
     "verify:native-smoke": "python3 ios/ShiziApp/scripts/validate-native-smoke.py",
     "test": "pnpm run verify:data && pnpm run verify:unit && pnpm run verify:copy && pnpm run verify:web"
   },

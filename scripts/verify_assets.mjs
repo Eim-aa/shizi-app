@@ -106,45 +106,52 @@ function cspDirectives(policy) {
   check('no telemetry, beacon or POST request in shipped sources', offenders.length === 0, offenders);
 }
 
-// ---- sw.js 常量与资产指纹 ---------------------------------------------------
+// ---- sw.js 常量与资产指纹（M5-1：v14 + 生成的 sw-manifest.js） ------------------
 {
   const prefix12 = file => sha256(readFileSync(rel(file))).slice(0, 12);
-  // sw.js 归 M5-1（v14 重写）。版本前缀接受 v13（现行）或 v14（M5-1 之后）。
-  check('sw.js keeps a versioned cache name', /shizi-v1[34]-/.test(swSource));
+  const manifestSource = read('sw-manifest.js');
+  check('sw.js is the v14 worker and reads the generated sw-manifest.js',
+    swSource.includes("importScripts('./sw-manifest.js')") && swSource.includes('const VERSION = `shizi-v14-${BUILD}`')
+    && !/const (SHELL|BUILD) = \[?'/.test(swSource));
   check('sw.js keeps atomic installation and a bounded stroke cache',
-    ["'data/etymology.json'", 'Promise.allSettled', 'INSTALL_BATCH_SIZE = 40', 'cacheFreshShell', 'cache.addAll(requests)',
+    ['Promise.allSettled', 'INSTALL_BATCH_SIZE = 40', 'cacheFreshShell', 'cache.addAll(requests)',
       "cache: 'reload'", 'STROKE_CACHE_LIMIT = 800', 'trimStrokeCache', 'cacheResponseBestEffort', 'updateCacheFromNetwork']
       .every(text => swSource.includes(text)));
-  const coreV = swSource.match(/importScripts\('\.\/core-strokes\.js\?v=([0-9a-f]+)'\)/)?.[1];
-  check('sw.js core-strokes.js ?v= matches file content', coreV === prefix12('core-strokes.js'), { coreV, file: prefix12('core-strokes.js') });
+  check('sw.js never force-navigates clients and announces new versions by postMessage',
+    !/\.navigate\(/.test(swSource) && swSource.includes("'shizi-sw-activated'") && swSource.includes('clients.claim()'));
 
-  const deckV = html.match(/<script\b[^>]*\bsrc="deck-data\.js\?v=([0-9a-f]+)"/)?.[1];
-  const overridesV = html.match(/<script\b[^>]*\bsrc="data\/context-overrides\.js\?v=([0-9a-f]+)"/)?.[1];
-  check('index.html deck-data.js ?v= matches file content', deckV === prefix12('deck-data.js'), { deckV, file: prefix12('deck-data.js') });
-  check('index.html context-overrides.js ?v= matches file content', overridesV === prefix12('data/context-overrides.js'),
-    { overridesV, file: prefix12('data/context-overrides.js') });
+  const htmlMeta = html.match(/<meta name="shizi-asset-build" content="([^"]+)">/)?.[1];
+  const buildInfo = read('src', 'build-info.js').match(/export const BUILD = '([^']+)'/)?.[1];
+  const swBuild = manifestSource.match(/^\s*build: "([^"]+)",$/m)?.[1];
+  check('BUILD is <yyyymmdd>-<12 hex> and identical in index.html meta, src/build-info.js and sw-manifest.js',
+    /^\d{8}-[0-9a-f]{12}$/.test(htmlMeta || '') && htmlMeta === buildInfo && buildInfo === swBuild, { htmlMeta, buildInfo, swBuild });
+
+  const deferScripts = [...html.matchAll(/<script defer src="([^"?]+)\?v=([0-9a-f]+)"><\/script>/g)].map(m => ({ file: m[1], v: m[2] }));
+  for (const file of ['core-strokes.js', 'deck-data.js', 'data/context-overrides.js']) {
+    const tag = deferScripts.find(s => s.file === file);
+    check(`index.html <script defer> ${file} ?v= matches file content`, !!tag && tag.v === prefix12(file), { tag, file: prefix12(file) });
+    check(`sw-manifest.js lists ${file} with the same ?v=`, !!tag && manifestSource.includes(`"${file}?v=${tag.v}"`), { file });
+  }
+  const deckV = deferScripts.find(s => s.file === 'deck-data.js')?.v;
   check('data/context-overrides.js defines CONTEXT_OVERRIDES', read('data', 'context-overrides.js').includes('const CONTEXT_OVERRIDES'));
   const deckMeta = read('src', 'config', 'deck-meta.js').match(/DECK_FINGERPRINT = "([0-9a-f]{12})"/)?.[1];
   check('src/config/deck-meta.js fingerprint matches index.html deck ?v=', deckMeta === deckV, { deckMeta, deckV });
-
-  // warn（M5-1 收尾）：sw.js SHELL 由 M5 改为生成物；在那之前它仍是 v13 手写清单。
-  const shell = swSource.match(/const SHELL = \[([\s\S]*?)\];/)?.[1] || '';
-  const shellPaths = [...shell.matchAll(/'([^']+)'/g)].map(m => m[1]);
-  const swDeck = shellPaths.find(p => p.startsWith('deck-data.js?v='))?.split('=')[1];
-  const swOverrides = shellPaths.find(p => p.startsWith('data/context-overrides.js?v='))?.split('=')[1];
-  if (swDeck !== deckV) warn('sw.js SHELL deck-data.js ?v= differs from index.html (M5-1)', { sw: swDeck, html: deckV });
-  if (swOverrides !== overridesV) warn('sw.js SHELL context-overrides.js ?v= differs from index.html (M5-1)', { sw: swOverrides, html: overridesV });
-  const missingShell = shellPaths.map(p => p.split('?')[0]).filter(p => p !== './' && !existsSync(rel(p)));
-  if (missingShell.length) warn('sw.js SHELL lists files that no longer exist (M5-1)', missingShell);
-  const swMeta = swSource.match(/const BUILD = '([^']+)'/)?.[1];
-  const htmlMeta = html.match(/<meta name="shizi-asset-build" content="([^"]+)">/)?.[1];
-  if (swMeta !== htmlMeta) warn('sw.js BUILD differs from index.html shizi-asset-build meta (M5-1)', { sw: swMeta, html: htmlMeta });
+  const listed = [...manifestSource.matchAll(/^\s*"([^"]+)",$/gm)].map(m => m[1].split('?')[0]);
+  const missingShell = listed.filter(p => !existsSync(rel(p)));
+  check('every sw-manifest.js entry exists on disk', missingShell.length === 0, missingShell);
 }
 
 // ---- core-strokes 自包含 ----------------------------------------------------
 {
   const core = read('core-strokes.js');
   check('core-strokes.js is self-contained for the worker', core.includes('SHIZI_CORE_STROKES') && !core.includes('SEED'));
+  // M5-1：首练 5 字（policy.firstQueue，P09）笔顺内嵌，且与 data/<字>.json 逐字段相同。
+  const { firstQueue } = await import('../src/config/policy.js');
+  const scope = {};
+  new Function('self', core)(scope);
+  const embeddedOk = firstQueue.every(ch => JSON.stringify(scope.SHIZI_STROKE_DATA?.[ch]) === JSON.stringify(readJSON('data', `${ch}.json`)));
+  check('core-strokes.js embeds first-practice stroke data identical to data/<字>.json (P09)', embeddedOk
+    && firstQueue.every((ch, i) => scope.SHIZI_CORE_STROKES?.[i] === ch), firstQueue);
 }
 
 // ---- 字源 fixture（旧 L109–144 原样） ---------------------------------------

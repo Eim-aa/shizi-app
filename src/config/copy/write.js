@@ -71,4 +71,16 @@ export default Object.freeze({
   // X-PROMPT（src/core/cards.js PROMPT_COPY（#175 原文，M0-2 占位常量；M1-8 题面接入时由 UI 从 copy 传入））
   'X-PROMPT.fallbackHint': '这个字暂时没有常用词，按拼音写就好',
   'X-PROMPT.repeatBlankLabel': '同一目标字的另一处空格',
+  'X-PROMPT.missingPinyin': '？',
+  'X-PROMPT.repeatBlankGlyph': '□',
+  'X-PROMPT.groupLabel': '题目',
+  // X-WRITE（M1-1 书写格组件的读屏名称）
+  'X-WRITE.gridLabel': '书写格',
+  // X-ANSWER（M1-4 描一遍阶段标题与按钮；原型 ShiziWriteScreen L551–L553）
+  'X-ANSWER.titleTrace': '描一遍',
+  'X-ANSWER.btnTraceDone': '描好了，自己写',
+  'X-ANSWER.btnRetrace': '再描一遍',
+  // X-PERSIST（M1-6 抬笔写会话现场失败的顶部一次性提示；01 §4 表「沿旧两句」，旧 index.html L1067）
+  'X-PERSIST.saveFailed': '这次进度没有保存。请立即导出备份后重新打开 App。',
+  'X-PERSIST.quotaFailed': '本地空间已满，这次进度没有保存。请立即导出备份并清理空间。',
 });

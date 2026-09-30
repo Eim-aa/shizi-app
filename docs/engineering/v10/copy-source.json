@@ -2490,6 +2490,62 @@
           "text": "同一目标字的另一处空格",
           "origin": "cards.js PROMPT_COPY.repeatBlankLabel（□ 的读屏标签，决定-D16）",
           "note": "读屏文案"
+        },
+        "missingPinyin": {
+          "raw": null,
+          "text": "？",
+          "origin": "extra",
+          "note": "M1-8：cards.js PROMPT_COPY.missingPinyin（#175 / 旧 promptHTML `py||\"？\"`）；原目标位缺拼音时的占位；内容门禁 promptHTML 同值，改动须同步 cards.js 默认值"
+        },
+        "repeatBlankGlyph": {
+          "raw": null,
+          "text": "□",
+          "origin": "extra",
+          "note": "M1-8：cards.js PROMPT_COPY.repeatBlankGlyph（决定-D16：重复目标字其余位置用 □，U+25A1）；改动须同步 cards.js 默认值"
+        },
+        "groupLabel": {
+          "raw": null,
+          "text": "题目",
+          "origin": "extra",
+          "note": "M1-8：题面容器 role=group 的 aria-label（读屏文案，沿 #175 index.html #prompt aria-label）；不含答案字（决定-D16）"
+        }
+      }
+    },
+    "X-WRITE": {
+      "screen": "write",
+      "milestone": "M1",
+      "source": "M1-1 书写格组件 src/ui/canvas/ink-canvas.js 的读屏名称（01 §6.1「书写格」；旧版 index.html inkCanvas aria-label 的对应物）",
+      "slots": {
+        "gridLabel": {
+          "raw": null,
+          "text": "书写格",
+          "origin": "extra",
+          "note": "书写格容器 role=img 的 aria-label（读屏文案）；取 01 §6.1 的名称，不含答案字（决定-D16）"
+        }
+      }
+    },
+    "X-ANSWER": {
+      "screen": "write",
+      "milestone": "M1",
+      "source": "M1-4 看答案 / 描一遍 / 自己写流程（src/ui/screens/write/answer.js）；原型 ShiziWriteScreen-第十稿交接版 L551–L553 的阶段标题与按钮字串（04 §4.1 R-W03 没有描一遍标题槽、R-W07 没有描一遍阶段按钮）",
+      "slots": {
+        "titleTrace": {
+          "raw": null,
+          "text": "描一遍",
+          "origin": "extra",
+          "note": "描一遍阶段页头标题；原型 titles.trace（ShiziWriteScreen L553）；reference/I-proto-write.md 文案表「标题 trace」"
+        },
+        "btnTraceDone": {
+          "raw": null,
+          "text": "描好了，自己写",
+          "origin": "extra",
+          "note": "描一遍阶段主按钮（没写时 disabled）；原型 L551；reference/I-proto-write.md 文案表「主按钮 trace」"
+        },
+        "btnRetrace": {
+          "raw": null,
+          "text": "再描一遍",
+          "origin": "extra",
+          "note": "自己写一遍阶段左按钮（回到描一遍）；原型 L553；04 R-W07「进『自己写一遍』：再描一遍 / 下一个」"
         }
       }
     },
@@ -2523,6 +2579,56 @@
           "origin": "03 P55",
           "decision": "P55",
           "note": "待文案"
+        }
+      }
+    },
+    "X-JUDGE": {
+      "screen": "judge",
+      "milestone": "M1",
+      "source": "M1-5 修改判断弹层（src/ui/screens/write/result-row.js）；原型 ShiziWriteScreen-第十稿交接版 L240、L637、L639 的弹层标题、取消与主按钮字串（04 §4.1 R-W10 只给了说明句、失败句与失败两键）",
+      "slots": {
+        "changeTitle": {
+          "raw": null,
+          "text": "修改「{char}」的判断",
+          "origin": "extra",
+          "note": "修改判断弹层标题；原型 sheetTitle（ShiziWriteScreen L637）；reference/I-proto-write.md 文案表「修改判断弹层标题」"
+        },
+        "changeToWrong": {
+          "raw": null,
+          "text": "改为写错",
+          "origin": "extra",
+          "note": "修改判断弹层主按钮（当前记为写对时）；原型 flipLabel（L639）；reference/I-proto-write.md「弹层主按钮」"
+        },
+        "changeToCorrect": {
+          "raw": null,
+          "text": "改为写对",
+          "origin": "extra",
+          "note": "修改判断弹层主按钮（当前记为写错时）；原型 flipLabel（L639）"
+        },
+        "changeCancel": {
+          "raw": null,
+          "text": "取消",
+          "origin": "extra",
+          "note": "修改判断弹层右上关闭；原型 L240；reference/I-proto-write.md「弹层取消」"
+        }
+      }
+    },
+    "X-PERSIST": {
+      "screen": "write",
+      "milestone": "M1",
+      "source": "M1-6 会话现场（src/ui/screens/write/persist.js）：抬笔写 sessions 失败按 P52 不阻断，顶部一次性提示；01 §4 写入点表「抬笔写 sessions」行文案列「沿旧两句」＝旧 index.html L1067 reportStorageWriteFailure 的两句（配额 / 通用）",
+      "slots": {
+        "saveFailed": {
+          "raw": null,
+          "text": "这次进度没有保存。请立即导出备份后重新打开 App。",
+          "origin": "extra",
+          "note": "抬笔写会话现场失败（非配额）的顶部一次性提示；旧 index.html L1067 通用句逐字；P52"
+        },
+        "quotaFailed": {
+          "raw": null,
+          "text": "本地空间已满，这次进度没有保存。请立即导出备份并清理空间。",
+          "origin": "extra",
+          "note": "抬笔写会话现场撞配额（QuotaExceededError）的顶部一次性提示；旧 index.html L1067 配额句逐字；P52"
         }
       }
     }

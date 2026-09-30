@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<script>(function(){['https://cdn.jsdelivr.net/npm/lxgw-wenkai-gb-web@1.522.0/lxgwwenkaigb-regular/'+'result.css','https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500&display=swap'].forEach(function(h){if(!document.querySelector('link[data-szf="'+h+'"]')){var l=document.createElement('link');l.rel='stylesheet';l.href=h;l.setAttribute('data-szf',h);document.head.appendChild(l);}});})();</script>
+<style>body{margin:0}a{color:#A6533F}a:hover{color:#8E4534}</style>
+</helmet>
+<div style="{{ frame }}" onClick="{{ onRootClick }}">
+ <sc-if value="{{ paperOn }}" hint-placeholder-val="{{ true }}"><div style="position:absolute;inset:0;pointer-events:none;background-image:radial-gradient(rgba(140,125,105,.028) 1px,transparent 1.2px),radial-gradient(rgba(140,125,105,.022) 1px,transparent 1.2px);background-size:7px 7px,11px 11px;background-position:0 0,3px 5px"></div></sc-if>
+ <sc-if value="{{ bareSp }}" hint-placeholder-val="{{ false }}"><div style="position:relative;flex:none;height:var(--sbh)"></div></sc-if>
+ <sc-if value="{{ hasStatus }}" hint-placeholder-val="{{ true }}">
+ <div style="position:relative;flex:none;height:var(--sbh);padding:0 28px 0 32px;display:flex;align-items:center;justify-content:space-between;font-size:15px;font-weight:600;color:var(--i1)">
+  <span>9:41</span>
+  <span style="display:flex;gap:6px;align-items:center"><svg width="17" height="11" viewBox="0 0 17 11" style="fill:var(--i1)"><rect x="0" y="7" width="3" height="4" rx=".7"></rect><rect x="4.7" y="5" width="3" height="6" rx=".7"></rect><rect x="9.4" y="2.5" width="3" height="8.5" rx=".7"></rect><rect x="14" y="0" width="3" height="11" rx=".7"></rect></svg><svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x=".5" y=".5" width="21" height="11" rx="3" style="stroke:var(--i4)"></rect><rect x="2" y="2" width="18" height="8" rx="1.8" style="fill:var(--i1)"></rect><rect x="23" y="4" width="1.5" height="4" rx=".75" style="fill:var(--i4)"></rect></svg></span>
+ </div>
+ </sc-if>
+
+ <sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+  <div style="position:relative;flex:1;min-height:0;overflow:var(--ovh);overscroll-behavior:var(--osb);display:flex;flex-direction:column;padding:12px 24px 22px">
+   <span style="font-family:'Noto Serif SC',serif;font-size:calc(26px*var(--k));line-height:calc(34px*var(--k));font-weight:500;letter-spacing:.04em;color:var(--i1)">字库</span>
+   <div style="display:flex;flex-direction:column;gap:2px;margin-top:calc(46px - 26px*var(--k))">
+    <div data-nav="lookup" aria-label="查字" style="min-height:calc(44px + 6px*var(--k));box-sizing:border-box;border-radius:14px;background:var(--off);box-shadow:inset 0 1px 2px rgba(48,38,26,.08),inset 0 0 0 .5px var(--i5);display:flex;align-items:center;gap:10px;padding:0 16px;cursor:pointer"><svg width="18" height="18" viewBox="0 0 22 22" fill="none" stroke="var(--i2)" stroke-width="1.6" stroke-linecap="round"><circle cx="10" cy="10" r="6"></circle><path d="m14.5 14.5 4 4"></path></svg><span style="font-size:calc(17px*var(--k));letter-spacing:.04em;color:var(--i3)">查字</span></div>
+    <span style="padding:6px 2px 4px;font-size:calc(13px*var(--k));line-height:calc(18px*var(--k));color:var(--i3);text-wrap:pretty">查到的字可以直接练，也可以加入自选的字。</span>
+   </div>
+   <div data-nav="libSwitch" aria-label="更换字库" style="margin-top:calc(16px - 6px*var(--k));min-height:48px;box-sizing:border-box;padding:6px 0;border-top:.5px solid var(--i5);border-bottom:.5px solid var(--i5);display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:2px 12px;cursor:pointer">
+    <span style="display:flex;flex-wrap:wrap;align-items:baseline;gap:0 10px;min-width:0"><span style="font-size:calc(13px*var(--k));line-height:calc(18px*var(--k));letter-spacing:.14em;color:var(--i3);white-space:nowrap">练习范围</span><span style="font-size:calc(15px*var(--k));line-height:calc(22px*var(--k));color:var(--i1);white-space:nowrap">{{ libLine }}</span></span>
+    <span style="flex:none;margin-left:auto;font-size:calc(15px*var(--k));line-height:calc(22px*var(--k));letter-spacing:.02em;color:var(--i2);white-space:nowrap">更换字库 ›</span>
+   </div>
+   <sc-if value="{{ noRec }}" hint-placeholder-val="{{ false }}"><span style="margin-top:8px;font-size:calc(13px*var(--k));line-height:calc(18px*var(--k));color:var(--i3)">每天写的新字，从这个字库里挑。</span></sc-if>
+   <sc-if value="{{ hasCards }}" hint-placeholder-val="{{ true }}"><div style="display:flex;flex-direction:column;gap:4px;margin-top:calc(42px - 20px*var(--k))">
+    <span style="font-size:calc(13px*var(--k));line-height:calc(18px*var(--k));letter-spacing:.14em;color:var(--i3)">有记录的字</span>
+    <span style="display:flex;align-items:baseline;flex-wrap:wrap;gap:6px"><span style="font-family:'Noto Serif SC',serif;font-size:calc(34px*var(--k));line-height:calc(42px*var(--k));font-weight:500;color:var(--i1);font-variant-numeric:tabular-nums">{{ nBig }}</span><span style="font-family:'Noto Serif SC',serif;font-size:calc(20px*var(--k));line-height:calc(28px*var(--k));font-weight:500;color:var(--i2)">个字</span></span>
+    <span style="display:block;overflow:hidden;font-size:calc(15px*var(--k));line-height:calc(22px*var(--k));color:var(--i2)"><span style="display:flex;flex-wrap:wrap;margin-left:calc(-18px*var(--k))"><span style="white-space:nowrap"><span aria-hidden="true" style="display:inline-block;width:calc(18px*var(--k));text-align:center">·</span>{{ factA }}</span><sc-if value="{{ factBOn }}" hint-placeholder-val="{{ false }}"><span style="white-space:nowrap"><span aria-hidden="true" style="display:inline-block;width:calc(18px*var(--k));text-align:center">·</span>{{ factB }}</span></sc-if></span></span>
+   </div></sc-if>
+   <sc-if value="{{ hasCards }}" hint-placeholder-val="{{ true }}">
+    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:calc(24px - 10px*var(--k))">
+     <sc-for list="{{ cards }}" as="cd" hint-placeholder-count="2">
+      <div data-card="1" data-nav="{{ cd.nav }}" style="box-sizing:border-box;border-radius:18px;background:var(--c);border:.5px solid var(--i5);box-shadow:0 10px 24px rgba(59,47,40,.07);padding:14px 14px 8px;display:flex;flex-direction:column;gap:6px;min-width:0">
+       <div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px">
+        <span style="display:flex;align-items:center;gap:7px;font-family:'Noto Serif SC',serif;font-size:calc(20px*var(--k));line-height:calc(28px*var(--k));font-weight:500;color:var(--i1);white-space:nowrap"><sc-if value="{{ cd.dotA }}" hint-placeholder-val="{{ false }}"><span style="flex:none;width:6px;height:6px;border-radius:50%;background:var(--ar)"></span></sc-if><sc-if value="{{ cd.dotB }}" hint-placeholder-val="{{ false }}"><span style="flex:none;display:block;width:9px;height:9px">{{ cd.bEl }}</span></sc-if>{{ cd.title }}</span>
+        <span style="font-family:'Noto Serif SC',serif;font-size:calc(20px*var(--k));line-height:calc(28px*var(--k));font-weight:500;color:var(--i1);font-variant-numeric:tabular-nums">{{ cd.n }}</span>
+       </div>
+       <span style="font-size:calc(15px*var(--k));line-height:calc(22px*var(--k));color:var(--i2);text-wrap:pretty">{{ cd.why }}</span>
+       <sc-if value="{{ cd.has }}" hint-placeholder-val="{{ true }}">
+        <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));margin:auto -3px 0;padding-top:4px"><sc-for list="{{ cd.mini }}" as="m" hint-placeholder-count="4"><span style="display:block;aspect-ratio:1">{{ m.el }}</span></sc-for></div>
+        <span style="min-height:40px;display:flex;align-items:center;gap:6px;font-size:calc(15px*var(--k));letter-spacing:.04em;color:var(--i1)">{{ cd.act }}<span>→</span></span>
+       </sc-if>
+      </div>
+     </sc-for>
+    </div>
+   </sc-if>
+   <sc-if value="{{ hasWall }}" hint-placeholder-val="{{ true }}">
+    <div style="display:flex;flex-direction:column;gap:12px;margin-top:26px">
+     <div style="display:flex;flex-wrap:wrap;align-items:center;gap:7px 14px;font-size:calc(11px*var(--k));line-height:calc(13px*var(--k));color:var(--i2)">
+      <sc-for list="{{ legend }}" as="lg" hint-placeholder-count="4"><span style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap"><span style="flex:none;display:block;width:20px;height:7px">{{ lg.el }}</span>{{ lg.t }}</span></sc-for>
+      <span style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap"><sc-if value="{{ markDot }}" hint-placeholder-val="{{ true }}"><span style="flex:none;width:6px;height:6px;border-radius:50%;background:var(--ar)"></span></sc-if><sc-if value="{{ markBrush }}" hint-placeholder-val="{{ false }}"><span style="flex:none;display:block;width:9px;height:9px">{{ brushEl }}</span></sc-if>写错过</span>
+      <span style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap"><span style="flex:none;width:9px;height:9px;box-sizing:border-box;border-radius:2px;border:1px solid var(--i3)"></span>自选了还没写</span>
+     </div>
+     <div data-wall="home" style="display:grid;grid-template-columns:repeat(var(--cols),minmax(0,1fr));margin:0 -4px"><sc-for list="{{ wall }}" as="c" hint-placeholder-count="20"><div data-nav="{{ c.nav }}" style="aspect-ratio:1">{{ c.el }}</div></sc-for></div>
+     <div style="display:flex;align-items:center;justify-content:space-between;gap:12px"><span style="flex:1;min-width:0;font-size:calc(13px*var(--k));line-height:calc(18px*var(--k));color:var(--i3);text-wrap:pretty">墨色越浅，越久没写。点一个字，看它每次的笔迹。</span><span data-nav="allWritten" style="flex:none;min-height:44px;display:flex;align-items:center;font-size:calc(15px*var(--k));color:var(--i2);white-space:nowrap;cursor:pointer">全部 ›</span></div>
+    </div>
+   </sc-if>
+   <sc-if value="{{ noRec }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;padding:36px 16px 28px">
+     <span style="display:block;width:calc(48px*var(--k));height:calc(48px*var(--k));margin-bottom:6px">{{ shiEl }}</span>
+     <span style="font-family:'Noto Serif SC',serif;font-size:calc(20px*var(--k));line-height:calc(28px*var(--k));font-weight:500;color:var(--i1)">你写下的字会留在这里</span>
+     <span style="max-width:calc(250px*var(--k));font-size:calc(15px*var(--k));line-height:calc(22px*var(--k));color:var(--i2);text-wrap:pretty">去「习字」写几个字，判断过对错，就会出现在这里。</span>
+    </div>
+   </sc-if>
+  </div>
+ </sc-if>
+
+ <sc-if value="{{ pushed }}" hint-placeholder-val="{{ false }}">
+  <div style="position:relative;flex:none;min-height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 8px;color:var(--i1)"><span data-nav="back" style="width:44px;height:44px;display:grid;place-items:center;cursor:pointer"><svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 5 7.5 11l6 6"></path></svg></span><span style="position:absolute;left:56px;right:56px;text-align:center;font-size:calc(17px*var(--k));font-weight:500;letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none">{{ navTitle }}</span><span style="min-width:44px"></span></div>
+ </sc-if>
+
+ <sc-if value="{{ isAll }}" hint-placeholder-val="{{ false }}">
+  <div style="position:relative;flex:1;min-height:0;overflow:var(--ov);overscroll-behavior:var(--osb);display:flex;flex-direction:column;gap:14px;padding:6px 24px 40px">
+   <sc-if value="{{ findOff }}" hint-placeholder-val="{{ true }}"><div style="min-height:calc(50px*var(--k));box-sizing:border-box;border-radius:14px;background:var(--off);box-shadow:inset 0 1px 2px rgba(48,38,26,.08),inset 0 0 0 .5px var(--i5);display:flex;align-items:center;gap:10px;padding:0 16px"><svg width="18" height="18" viewBox="0 0 22 22" fill="none" stroke="var(--i2)" stroke-width="1.6" stroke-linecap="round"><circle cx="10" cy="10" r="6"></circle><path d="m14.5 14.5 4 4"></path></svg><span style="font-size:calc(17px*var(--k));letter-spacing:.04em;color:var(--i3)">查字</span></div></sc-if>
+   <sc-if value="{{ findOn }}" hint-placeholder-val="{{ false }}"><div style="min-height:calc(50px*var(--k));box-sizing:border-box;border-radius:14px;background:var(--c);box-shadow:inset 0 0 0 1px var(--i2);display:flex;align-items:center;gap:10px;padding:0 16px"><svg width="18" height="18" viewBox="0 0 22 22" fill="none" stroke="var(--i2)" stroke-width="1.6" stroke-linecap="round"><circle cx="10" cy="10" r="6"></circle><path d="m14.5 14.5 4 4"></path></svg><span style="display:flex;align-items:center;gap:2px;font-family:'LXGW WenKai GB',serif;font-size:calc(22px*var(--k));line-height:1;color:var(--i1)">{{ findCh }}<span style="width:1.5px;height:22px;background:var(--i1)"></span></span><span style="margin-left:auto;font-size:calc(15px*var(--k));color:var(--i2);white-space:nowrap">{{ findWhere }}</span></div></sc-if>
+   <sc-if value="{{ findLive }}" hint-placeholder-val="{{ false }}">
+    <div style="position:sticky;top:-6px;z-index:2;margin:-6px -24px 0;padding:6px 24px 4px;background:var(--p);display:flex;flex-direction:column;gap:8px">
+     <div style="position:relative;min-height:calc(50px*var(--k));box-sizing:border-box;border-radius:14px;background:var(--off);box-shadow:inset 0 1px 2px rgba(48,38,26,.08),inset 0 0 0 .5px var(--i5);display:flex;align-items:center;gap:10px;padding:0 16px"><svg style="flex:none" width="18" height="18" viewBox="0 0 22 22" fill="none" stroke="var(--i2)" stroke-width="1.6" stroke-linecap="round"><circle cx="10" cy="10" r="6"></circle><path d="m14.5 14.5 4 4"></path></svg><span style="position:relative;flex:1;min-width:0;align-self:stretch;display:flex;align-items:center"><sc-if value="{{ findEmpty }}" hint-placeholder-val="{{ true }}"><span style="position:absolute;left:0;font-size:calc(17px*var(--k));letter-spacing:.04em;color:var(--i3);pointer-events:none">查字</span></sc-if><input value="{{ findText }}" onChange="{{ onFindChange }}" aria-label="在有记录的字里查字" autocomplete="off" autocorrect="off" spellcheck="{{ false }}" enterkeyhint="search" style="position:relative;width:100%;min-width:0;border:0;background:transparent;outline:none;padding:0;font-family:'LXGW WenKai GB',serif;font-size:calc(22px*var(--k));line-height:1.4;color:var(--i1)"></span><sc-if value="{{ findWhereOn }}" hint-placeholder-val="{{ false }}"><span style="flex:none;font-size:calc(15px*var(--k));color:var(--i2);white-space:nowrap">{{ findWhere }}</span></sc-if></div>
+     <sc-if value="{{ findMiss }}" hint-placeholder-val="{{ false }}"><span style="font-size:calc(13px*var(--k));line-height:calc(18px*var(--k));color:var(--i3)">{{ findMissText }}</span></sc-if>
+    </div>
+   </sc-if>
+   <sc-if value="{{ ctlOn }}" hint-placeholder-val="{{ true }}">
+    <div style="display:flex;padding:3px;border-radius:12px;background:var(--off)"><sc-for list="{{ sorts }}" as="s" hint-placeholder-count="3"><sc-if value="{{ s.on }}" hint-placeholder-val="{{ false }}"><span data-nav="{{ s.nav }}" style="flex:1;min-height:38px;box-sizing:border-box;border-radius:9px;display:grid;place-items:center;font-size:calc(15px*var(--k));background:var(--c);color:var(--i1);box-shadow:inset 0 0 0 .5px var(--i4),0 1px 3px rgba(48,38,26,.12)">{{ s.t }}</span></sc-if><sc-if value="{{ s.off }}" hint-placeholder-val="{{ true }}"><span data-nav="{{ s.nav }}" style="flex:1;min-height:38px;box-sizing:border-box;border-radius:9px;display:grid;place-items:center;font-size:calc(15px*var(--k));color:var(--i2);cursor:pointer">{{ s.t }}</span></sc-if></sc-for></div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px"><sc-for list="{{ chips }}" as="f" hint-placeholder-count="3"><sc-if value="{{ f.on }}" hint-placeholder-val="{{ false }}"><span data-nav="{{ f.nav }}" style="min-height:40px;box-sizing:border-box;padding:0 14px;border-radius:20px;background:var(--off);box-shadow:inset 0 0 0 1px var(--i1);display:inline-flex;align-items:center;gap:7px;font-size:calc(15px*var(--k));color:var(--i1);white-space:nowrap;cursor:pointer"><sc-if value="{{ f.dA }}" hint-placeholder-val="{{ false }}"><span style="flex:none;width:6px;height:6px;border-radius:50%;background:var(--ar)"></span></sc-if><sc-if value="{{ f.dB }}" hint-placeholder-val="{{ false }}"><span style="flex:none;display:block;width:9px;height:9px">{{ f.bEl }}</span></sc-if>{{ f.t }}</span></sc-if><sc-if value="{{ f.off }}" hint-placeholder-val="{{ true }}"><span data-nav="{{ f.nav }}" style="min-height:40px;box-sizing:border-box;padding:0 14px;border-radius:20px;box-shadow:inset 0 0 0 .5px var(--i4);display:inline-flex;align-items:center;gap:7px;font-size:calc(15px*var(--k));color:var(--i2);white-space:nowrap;cursor:pointer"><sc-if value="{{ f.dA }}" hint-placeholder-val="{{ false }}"><span style="flex:none;width:6px;height:6px;border-radius:50%;background:var(--ar)"></span></sc-if><sc-if value="{{ f.dB }}" hint-placeholder-val="{{ false }}"><span style="flex:none;display:block;width:9px;height:9px">{{ f.bEl }}</span></sc-if>{{ f.t }}</span></sc-if></sc-for></div>
+    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:7px 14px;font-size:calc(11px*var(--k));line-height:calc(13px*var(--k));color:var(--i2)">
+     <sc-for list="{{ legend }}" as="lg" hint-placeholder-count="4"><span style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap"><span style="flex:none;display:block;width:20px;height:7px">{{ lg.el }}</span>{{ lg.t }}</span></sc-for>
+     <span style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap"><sc-if value="{{ markDot }}" hint-placeholder-val="{{ true }}"><span style="flex:none;width:6px;height:6px;border-radius:50%;background:var(--ar)"></span></sc-if><sc-if value="{{ markBrush }}" hint-placeholder-val="{{ false }}"><span style="flex:none;display:block;width:9px;height:9px">{{ brushEl }}</span></sc-if>写错过</span>
+     <span style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap"><span style="flex:none;width:9px;height:9px;box-sizing:border-box;border-radius:2px;border:1px solid var(--i3)"></span>自选了还没写</span>
+    </div>
+   </sc-if>
+   <sc-if value="{{ noteOn }}" hint-placeholder-val="{{ true }}"><span style="font-size:calc(13px*var(--k));line-height:calc(18px*var(--k));color:var(--i3);text-wrap:pretty">{{ allNote }}</span></sc-if>
+   <sc-for list="{{ groups }}" as="g" hint-placeholder-count="2">
+    <div style="display:flex;flex-direction:column;gap:6px;margin-top:4px">
+     <sc-if value="{{ g.head }}" hint-placeholder-val="{{ true }}"><div data-nav="{{ g.nav }}" style="display:flex;justify-content:space-between;align-items:baseline;gap:12px"><span style="display:flex;align-items:center;gap:8px;font-family:'Noto Serif SC',serif;font-size:calc(20px*var(--k));line-height:calc(28px*var(--k));font-weight:500;letter-spacing:.04em;color:var(--i2)"><sc-if value="{{ g.swOn }}" hint-placeholder-val="{{ false }}"><span style="flex:none;display:block;width:20px;height:7px">{{ g.sw }}</span></sc-if>{{ g.name }}</span><span style="font-size:calc(15px*var(--k));color:var(--i2);font-variant-numeric:tabular-nums;white-space:nowrap">{{ g.count }}</span></div></sc-if>
+     <div style="display:grid;grid-template-columns:repeat(var(--cols),minmax(0,1fr));margin:0 -4px"><sc-for list="{{ g.cells }}" as="c" hint-placeholder-count="16"><div data-nav="{{ c.nav }}" style="position:relative;aspect-ratio:1">{{ c.el }}<sc-if value="{{ c.hit }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;inset:1px;border-radius:10px;box-shadow:inset 0 0 0 2px var(--i1);pointer-events:none"></span></sc-if></div></sc-for></div>
+    </div>
+   </sc-for>
+   <sc-if value="{{ hasClosed }}" hint-placeholder-val="{{ false }}"><div style="display:flex;flex-direction:column;border-top:.5px solid var(--i5);margin-top:6px"><sc-for list="{{ closed }}" as="m" hint-placeholder-count="4"><div data-nav="{{ m.nav }}" style="min-height:52px;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:.5px solid var(--i5)"><span style="font-size:calc(17px*var(--k));color:var(--i1)">{{ m.name }}</span><span style="font-size:calc(15px*var(--k));color:var(--i2);white-space:nowrap;font-variant-numeric:tabular-nums">{{ m.count }} ›</span></div></sc-for></div></sc-if>
+   <sc-if value="{{ filterOn }}" hint-placeholder-val="{{ false }}"><span data-nav="filterGo" style="align-self:flex-start;min-height:44px;display:flex;align-items:center;gap:6px;font-size:calc(15px*var(--k));letter-spacing:.04em;color:var(--i1);cursor:pointer">练这些字<span>→</span></span></sc-if>
+  </div>
+ </sc-if>
+
+ <sc-if value="{{ isList }}" hint-placeholder-val="{{ false }}">
+  <div style="flex:1;min-height:0;display:flex;flex-direction:column">
+   <div style="flex:1;min-height:0;overflow:var(--ovl);overscroll-behavior:var(--osb);display:flex;flex-direction:column;gap:22px;padding:14px 24px 16px">
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-family:'Noto Serif SC',serif;font-size:calc(26px*var(--k));line-height:calc(34px*var(--k));font-weight:500;letter-spacing:.04em;color:var(--i1)">{{ lsHead }}</span><span style="font-size:calc(15px*var(--k));line-height:1.7;color:var(--i2);text-wrap:pretty">{{ lsWhy }}</span></div>
+    <div style="display:flex;flex-direction:column;border-top:1px solid var(--i5)"><sc-for list="{{ lsRows }}" as="r" hint-placeholder-count="5"><div data-nav="{{ r.go }}" style="min-height:84px;box-sizing:border-box;padding:10px 0;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--i5);cursor:pointer"><sc-if value="{{ r.on }}" hint-placeholder-val="{{ true }}"><span data-nav="{{ r.nav }}" role="checkbox" aria-checked="true" aria-label="{{ r.selLabel }}" style="flex:none;width:44px;height:44px;margin:0 -8px 0 -9px;display:grid;place-items:center"><span style="width:26px;height:26px;border-radius:50%;background:var(--i1);display:grid;place-items:center"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="var(--p)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 7.2 2.6 2.6L11 4.4"></path></svg></span></span></sc-if><sc-if value="{{ r.off }}" hint-placeholder-val="{{ false }}"><span data-nav="{{ r.nav }}" role="checkbox" aria-checked="false" aria-label="{{ r.selLabel }}" style="flex:none;width:44px;height:44px;margin:0 -8px 0 -9px;display:grid;place-items:center"><span style="width:26px;height:26px;box-sizing:border-box;border-radius:50%;border:1.5px solid var(--i4)"></span></span></sc-if><sc-if value="{{ r.stdOn }}" hint-placeholder-val="{{ false }}"><span style="flex:none;width:calc(44px*var(--k));text-align:center;font-family:'LXGW WenKai GB',serif;font-size:calc(36px*var(--k));line-height:calc(48px*var(--k));color:var(--i1)">{{ r.c }}</span></sc-if><sc-if value="{{ r.inkOn }}" hint-placeholder-val="{{ true }}"><div style="flex:none;width:60px;height:60px;box-sizing:border-box;border:1px solid var(--g);background:var(--c)">{{ r.el }}</div></sc-if><div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:5px"><span style="font-family:'LXGW WenKai GB',serif;font-size:calc(20px*var(--k));line-height:calc(28px*var(--k));color:var(--i2)">{{ r.pre }}<b style="font-weight:700;color:var(--i1)">{{ r.tg }}</b>{{ r.post }}</span><span style="display:block;overflow:hidden;font-size:calc(14px*var(--k));line-height:calc(20px*var(--k));color:var(--i2);font-variant-numeric:tabular-nums"><span style="display:flex;flex-wrap:wrap;margin-left:calc(-16px*var(--k))"><sc-for list="{{ r.ms }}" as="m" hint-placeholder-count="2"><span style="position:relative;max-width:100%;box-sizing:border-box;padding-left:calc(16px*var(--k));display:flex;flex-wrap:wrap;column-gap:.3em"><span aria-hidden="true" style="position:absolute;left:0;top:0;width:calc(16px*var(--k));text-align:center">·</span><sc-for list="{{ m.w }}" as="w" hint-placeholder-count="1"><span style="white-space:nowrap">{{ w.t }}</span></sc-for></span></sc-for></span></span></div><sc-if value="{{ r.stdOn }}" hint-placeholder-val="{{ false }}"><div style="flex:none;display:flex;flex-direction:column;align-items:center;gap:2px"><div style="width:44px;height:44px;box-sizing:border-box;border:1px solid var(--g);background:var(--c)">{{ r.el }}</div><sc-if value="{{ r.capOn }}" hint-placeholder-val="{{ true }}"><span style="font-size:11px;line-height:13px;color:var(--i3);white-space:nowrap">{{ r.cap }}</span></sc-if></div></sc-if><span style="flex:none;font-size:calc(15px*var(--k));color:var(--i3)">›</span></div></sc-for></div>
+    <span style="font-size:calc(15px*var(--k));line-height:1.7;color:var(--i2);text-wrap:pretty">{{ lsNote }}</span>
+   </div>
+   <div style="position:relative;flex:none;display:flex;flex-direction:column;gap:10px;padding:12px 24px var(--fb);background:var(--p);box-shadow:0 -1px 0 var(--i5)">
+    <span style="text-align:center;font-size:calc(13px*var(--k));line-height:calc(18px*var(--k));color:var(--i3)">{{ lsHint }}</span>
+    <button data-nav="listGo" style="width:100%;min-height:52px;border:0;border-radius:16px;background:{{ lsBg }};color:{{ lsFg }};font-family:inherit;font-size:calc(17px*var(--k));letter-spacing:.08em;cursor:pointer">{{ lsGo }}</button>
+   </div>
+  </div>
+ </sc-if>
+
+ <sc-if value="{{ isListEmpty }}" hint-placeholder-val="{{ false }}">
+  <div style="flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:24px 24px 120px">
+   <span style="width:88px;height:88px;box-sizing:border-box;border:1px dashed var(--g);display:grid;place-items:center;font-family:'LXGW WenKai GB',serif;font-size:52px;color:var(--i4)">{{ leGlyph }}</span>
+   <span style="font-family:'Noto Serif SC',serif;font-size:calc(20px*var(--k));line-height:calc(28px*var(--k));font-weight:500;color:var(--i1)">{{ leTitle }}</span>
+   <span style="max-width:290px;font-size:calc(13px*var(--k));line-height:1.75;color:var(--i3);text-wrap:pretty">{{ leWhy }}</span>
+  </div>
+ </sc-if>
+
+ <sc-if value="{{ hasTabs }}" hint-placeholder-val="{{ true }}">
+  <div style="position:relative;flex:none;margin:0 12px calc(22px*var(--k));height:calc(64px*var(--k));border-radius:32px;background:var(--c);border:.5px solid var(--i5);box-sizing:border-box;display:flex;align-items:center">
+   <span data-nav="home" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;color:var(--i3);font-size:calc(11px*var(--k));letter-spacing:.06em;cursor:pointer"><svg style="width:calc(22px*var(--k));height:calc(22px*var(--k))" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.4 11 3l8 6.4V19H3V9.4M8.4 19v-6.6h5.2V19"></path></svg><span>习字</span></span>
+   <span data-nav="library" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;color:var(--ar);font-size:calc(11px*var(--k));letter-spacing:.06em;cursor:pointer"><svg style="width:calc(22px*var(--k));height:calc(22px*var(--k))" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5.4C7.8 3 4.6 3.8 3 4.6v13.2c2.4-.8 5.4-.4 8 1.2 2.6-1.6 5.6-2 8-1.2V4.6c-1.6-.8-4.8-1.6-8 .8ZM11 5.4v13.6"></path></svg><span>字库</span></span>
+   <span data-nav="mine" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;color:var(--i3);font-size:calc(11px*var(--k));letter-spacing:.06em;cursor:pointer"><svg style="width:calc(22px*var(--k));height:calc(22px*var(--k))" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="7" r="3.6"></circle><path d="M4.2 19.4v-3a6.8 6.8 0 0 1 13.6 0v3"></path></svg><span>我的</span></span>
+  </div>
+ </sc-if>
+
+ <sc-if value="{{ shOn }}" hint-placeholder-val="{{ false }}">
+  <div data-nav="lkClose" style="position:absolute;inset:0;z-index:4;background:var(--scrim)"></div>
+  <div data-lksheet="1" style="{{ shStyle }}">
+   <span style="align-self:center;flex:none;width:36px;height:5px;border-radius:3px;background:var(--i5)"></span>
+   <span style="font-family:'Noto Serif SC',serif;font-size:calc(20px*var(--k));line-height:calc(28px*var(--k));font-weight:500">{{ shTitle }}</span>
+   <sc-if value="{{ shLive }}" hint-placeholder-val="{{ false }}"><input ref="{{ lkInRef }}" value="{{ lkText }}" placeholder="输入一个字或一个词" onChange="{{ onLkChange }}" aria-label="{{ shTitle }}" autocomplete="off" autocorrect="off" spellcheck="{{ false }}" enterkeyhint="done" style="width:100%;min-height:52px;box-sizing:border-box;border:1px solid var(--i2);border-radius:16px;background:var(--c);padding:0 16px;font-family:'LXGW WenKai GB',serif;font-size:calc(24px*var(--k));color:var(--i1);outline:none"></sc-if>
+   <sc-if value="{{ shFocus }}" hint-placeholder-val="{{ true }}"><div style="min-height:52px;box-sizing:border-box;border:1px solid var(--i2);border-radius:16px;background:var(--c);display:flex;align-items:center;gap:2px;padding:0 16px;font-family:'LXGW WenKai GB',serif;font-size:calc(24px*var(--k));color:var(--i1)">{{ lkText }}<span style="width:1.5px;height:24px;background:var(--i1)"></span></div></sc-if>
+   <sc-if value="{{ shBlur }}" hint-placeholder-val="{{ false }}"><div style="min-height:52px;box-sizing:border-box;border:.5px solid var(--i4);border-radius:16px;background:var(--c);display:flex;align-items:center;padding:0 16px;font-family:'LXGW WenKai GB',serif;font-size:calc(24px*var(--k));color:var(--i1)">{{ lkText }}</div></sc-if>
+
+   <sc-if value="{{ lkNoteOn }}" hint-placeholder-val="{{ false }}"><div style="display:flex;gap:10px;align-items:flex-start;padding:12px 16px;border-radius:14px;background:var(--off)"><span style="flex:none;width:6px;height:6px;margin-top:8px;border-radius:50%;background:var(--i2)"></span><span style="flex:1;font-size:calc(13px*var(--k));line-height:1.7;color:var(--i2);text-wrap:pretty">{{ lkNote }}</span></div></sc-if>
+   <sc-if value="{{ lkRowsOn }}" hint-placeholder-val="{{ false }}"><div style="display:flex;flex-direction:column;border-top:.5px solid var(--i5)"><sc-for list="{{ lkRows }}" as="r" hint-placeholder-count="2"><div data-nav="{{ r.nav }}" style="min-height:calc(64px*var(--k));box-sizing:border-box;padding:6px 0;display:flex;align-items:center;gap:12px;border-bottom:.5px solid var(--i5);cursor:pointer"><sc-if value="{{ r.selOn }}" hint-placeholder-val="{{ true }}"><span data-nav="{{ r.sel }}" role="checkbox" aria-checked="true" aria-label="{{ r.selLabel }}" style="flex:none;width:44px;height:44px;margin:0 -8px 0 -10px;display:grid;place-items:center"><span style="width:24px;height:24px;border-radius:50%;background:var(--i1);display:grid;place-items:center"><svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="var(--p)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 7.2 2.6 2.6L11 4.4"></path></svg></span></span></sc-if><sc-if value="{{ r.selOff }}" hint-placeholder-val="{{ false }}"><span data-nav="{{ r.sel }}" role="checkbox" aria-checked="false" aria-label="{{ r.selLabel }}" style="flex:none;width:44px;height:44px;margin:0 -8px 0 -10px;display:grid;place-items:center"><span style="width:24px;height:24px;box-sizing:border-box;border-radius:50%;border:1.5px solid var(--i4)"></span></span></sc-if><sc-if value="{{ r.selNo }}" hint-placeholder-val="{{ false }}"><span style="flex:none;width:26px"></span></sc-if><div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px"><span style="display:flex;align-items:baseline;gap:10px"><span style="font-family:'LXGW WenKai GB',serif;font-size:calc(28px*var(--k));line-height:calc(34px*var(--k));color:{{ r.fg }}">{{ r.c }}</span><span style="font-size:calc(15px*var(--k));line-height:calc(22px*var(--k));color:var(--i2)">{{ r.py }}</span></span><sc-if value="{{ r.wdOn }}" hint-placeholder-val="{{ true }}"><span style="font-family:'LXGW WenKai GB',serif;font-size:calc(17px*var(--k));line-height:calc(24px*var(--k));color:var(--i2)">{{ r.wd }}</span></sc-if></div><span style="flex:none;max-width:40%;text-align:right;font-size:calc(13px*var(--k));line-height:calc(18px*var(--k));color:var(--i3)">{{ r.st }}</span><span style="flex:none;font-size:calc(15px*var(--k));color:var(--i3)">›</span></div></sc-for></div></sc-if>
+   <sc-if value="{{ lkHintOn }}" hint-placeholder-val="{{ false }}"><span style="font-size:calc(13px*var(--k));line-height:calc(18px*var(--k));color:var(--i3);text-wrap:pretty">{{ lkHint }}</span></sc-if>
+   <sc-if value="{{ lkBackOn }}" hint-placeholder-val="{{ false }}"><span data-nav="lkList" style="align-self:flex-start;min-height:36px;margin:-6px 0;display:flex;align-items:center;font-size:calc(15px*var(--k));color:var(--i2);cursor:pointer">‹ {{ lkBackText }}</span></sc-if>
+   <sc-if value="{{ lkChipsOn }}" hint-placeholder-val="{{ false }}"><div style="display:flex;flex-wrap:wrap;gap:8px"><sc-for list="{{ lkChips }}" as="k" hint-placeholder-count="2"><sc-if value="{{ k.on }}" hint-placeholder-val="{{ false }}"><span data-nav="{{ k.nav }}" style="width:48px;height:48px;box-sizing:border-box;border-radius:12px;background:var(--off);box-shadow:inset 0 0 0 1px var(--i1);display:grid;place-items:center;font-family:'LXGW WenKai GB',serif;font-size:26px;color:var(--i1)">{{ k.t }}</span></sc-if><sc-if value="{{ k.off }}" hint-placeholder-val="{{ true }}"><span data-nav="{{ k.nav }}" style="width:48px;height:48px;box-sizing:border-box;border-radius:12px;box-shadow:inset 0 0 0 .5px var(--i4);display:grid;place-items:center;font-family:'LXGW WenKai GB',serif;font-size:26px;color:var(--i2);cursor:pointer">{{ k.t }}</span></sc-if></sc-for></div></sc-if>
+   <sc-if value="{{ lkCardOn }}" hint-placeholder-val="{{ false }}">
+    <div style="box-sizing:border-box;padding:16px;border-radius:18px;background:var(--c);border:.5px solid var(--i5);display:flex;flex-direction:column;gap:14px">
+     <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px">
+      <!-- 走查核对异议 8：和结果页统一，你的书写在左、参考字形在右 -->
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px"><sc-if value="{{ lkHas }}" hint-placeholder-val="{{ true }}"><div style="width:100%;max-width:124px;aspect-ratio:1;box-sizing:border-box;border:1px solid var(--g);border-radius:4px;overflow:hidden">{{ lkInk }}</div></sc-if><sc-if value="{{ lkNone }}" hint-placeholder-val="{{ false }}"><div style="width:100%;max-width:124px;aspect-ratio:1;box-sizing:border-box;border:1px dashed var(--g);border-radius:4px"></div></sc-if><span style="font-size:calc(13px*var(--k));line-height:calc(18px*var(--k));color:var(--i3)">你的书写</span></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px"><div style="width:100%;max-width:124px;aspect-ratio:1;box-sizing:border-box;border:1px solid var(--g);border-radius:4px;overflow:hidden">{{ lkRef }}</div><span style="font-size:calc(13px*var(--k));line-height:calc(18px*var(--k));color:var(--i3)">参考字形</span></div>
+     </div>
+     <div style="display:flex;flex-direction:column;gap:4px"><span style="display:flex;align-items:baseline;gap:10px"><span style="font-family:'LXGW WenKai GB',serif;font-size:calc(28px*var(--k));line-height:calc(34px*var(--k));color:var(--i1)">{{ lkCur }}</span><span style="font-size:calc(15px*var(--k));line-height:calc(22px*var(--k));color:var(--i2)">{{ lkMeta }}</span></span><sc-if value="{{ lkWordOn }}" hint-placeholder-val="{{ true }}"><span style="font-family:'LXGW WenKai GB',serif;font-size:calc(20px*var(--k));line-height:calc(28px*var(--k));color:var(--i1)">{{ lkWord }}</span></sc-if><span style="font-size:calc(15px*var(--k));line-height:calc(22px*var(--k));color:var(--i2)">{{ lkRecLine }}</span></div>
+    </div>
+    <sc-if value="{{ lkCanOn }}" hint-placeholder-val="{{ true }}"><div style="display:flex;flex-direction:column;gap:10px"><button data-nav="lkPractice" style="width:100%;min-height:52px;border:0;border-radius:16px;background:var(--a);color:#FFF9F1;font-family:inherit;font-size:calc(17px*var(--k));letter-spacing:.08em;cursor:pointer">练这个字</button><div style="display:grid;grid-template-columns:{{ lkCols }};gap:12px"><sc-if value="{{ lkAddOn }}" hint-placeholder-val="{{ true }}"><button data-nav="lkAdd" style="width:100%;min-height:52px;border:.5px solid var(--i5);border-radius:16px;background:var(--c);color:var(--i1);font-family:inherit;font-size:calc(17px*var(--k));letter-spacing:.04em;cursor:pointer">加入自选的字</button></sc-if><sc-if value="{{ lkInOn }}" hint-placeholder-val="{{ false }}"><button disabled style="width:100%;min-height:52px;border:0;border-radius:16px;background:var(--off);color:var(--i3);font-family:inherit;font-size:calc(17px*var(--k));letter-spacing:.04em">已在自选的字里</button></sc-if><sc-if value="{{ lkHas }}" hint-placeholder-val="{{ true }}"><button data-nav="lkDetail" style="width:100%;min-height:52px;border:.5px solid var(--i5);border-radius:16px;background:var(--c);color:var(--i1);font-family:inherit;font-size:calc(17px*var(--k));letter-spacing:.04em;cursor:pointer">查看记录</button></sc-if></div></div></sc-if>
+    <sc-if value="{{ lkAddFail }}" hint-placeholder-val="{{ false }}"><div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:calc(15px*var(--k));line-height:1.6;color:var(--i2)">没加进自选的字，输入的字还在。</span><div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px"><button data-nav="lkAddStay" style="width:100%;min-height:52px;border:.5px solid var(--i5);border-radius:16px;background:var(--c);color:var(--i1);font-family:inherit;font-size:calc(17px*var(--k));letter-spacing:.06em;cursor:pointer">先不加</button><button data-nav="lkAdd" style="width:100%;min-height:52px;border:0;border-radius:16px;background:var(--a);color:#FFF9F1;font-family:inherit;font-size:calc(17px*var(--k));letter-spacing:.06em;cursor:pointer">再试一次</button></div></div></sc-if>
+    <sc-if value="{{ lkCantOn }}" hint-placeholder-val="{{ false }}"><div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:calc(13px*var(--k));line-height:1.7;color:var(--i3);text-wrap:pretty">原型里没有收这个字的拼音和词语，只能看参考字形；真机上，字库里的字都能练、能加入自选的字。</span><sc-if value="{{ lkHas }}" hint-placeholder-val="{{ false }}"><button data-nav="lkDetail" style="width:100%;min-height:52px;border:.5px solid var(--i5);border-radius:16px;background:var(--c);color:var(--i1);font-family:inherit;font-size:calc(17px*var(--k));letter-spacing:.04em;cursor:pointer">查看记录</button></sc-if></div></sc-if>
+   </sc-if>
+   <sc-if value="{{ lkBadOn }}" hint-placeholder-val="{{ false }}"><div style="display:flex;padding:14px 16px;border-radius:14px;background:var(--off)"><span style="flex:1;display:flex;flex-direction:column;gap:4px"><span style="font-size:calc(15px*var(--k));line-height:calc(22px*var(--k));color:var(--i1)">{{ lkBadHead }}</span><span style="font-size:calc(13px*var(--k));line-height:1.7;color:var(--i3);text-wrap:pretty">拾字还没有这个字的参考字形。</span><span style="font-size:calc(13px*var(--k));line-height:1.7;color:var(--i3);text-wrap:pretty">{{ lkRange }}</span></span></div></sc-if>
+   <sc-if value="{{ lkGoOn }}" hint-placeholder-val="{{ false }}"><div style="position:sticky;bottom:calc(-1 * var(--lkpb,34px));margin:auto -24px calc(-1 * var(--lkpb,34px));padding:12px 24px var(--lkpb,34px);display:flex;flex-direction:column;gap:8px;background:var(--sh)"><button data-nav="lkGo" style="width:100%;min-height:52px;border:0;border-radius:16px;background:{{ lkGoBg }};color:{{ lkGoFg }};font-family:inherit;font-size:calc(17px*var(--k));letter-spacing:.08em;cursor:pointer">{{ lkGoLabel }}</button></div></sc-if>
+
+  </div>
+  <sc-if value="{{ kbDemo }}" hint-placeholder-val="{{ false }}">
+   <div style="position:absolute;left:0;right:0;bottom:0;height:326px;z-index:6;background:var(--sy0);display:flex;flex-direction:column">
+    <div style="flex:none;height:46px;box-sizing:border-box;display:flex;align-items:center;gap:24px;padding:0 20px;border-bottom:.5px solid var(--syl);font-size:17px;color:var(--syt);white-space:nowrap;overflow:hidden"><span>万千</span><span>良多</span><span>不已</span><span>之余</span><span>颇深</span></div>
+    <div style="flex:1;display:grid;place-items:center;font-size:12px;color:var(--sys)">系统键盘 · 由系统提供，不仿制</div>
+   </div>
+  </sc-if>
+ </sc-if>
+
+ <sc-if value="{{ hasHi }}" hint-placeholder-val="{{ true }}"><div style="position:absolute;left:50%;bottom:8px;width:134px;height:5px;margin-left:-67px;border-radius:3px;background:var(--hi);z-index:7;pointer-events:none"></div></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:393,&quot;height&quot;:852},&quot;screen&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;home&quot;,&quot;lkType&quot;,&quot;lkRec&quot;,&quot;lkNew&quot;,&quot;lkBad&quot;,&quot;add&quot;,&quot;all&quot;,&quot;wrong&quot;,&quot;forget&quot;],&quot;default&quot;:&quot;home&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;n&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;0&quot;,&quot;5&quot;,&quot;30&quot;,&quot;300&quot;],&quot;default&quot;:&quot;30&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;data&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;&quot;,&quot;proto&quot;,&quot;proto300&quot;],&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;dark&quot;],&quot;default&quot;:&quot;light&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;size&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;std&quot;,&quot;compact&quot;],&quot;default&quot;:&quot;std&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;tall&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;sort&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;recent&quot;,&quot;py&quot;,&quot;age&quot;],&quot;default&quot;:&quot;recent&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;filter&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;&quot;,&quot;wrong&quot;,&quot;forget&quot;,&quot;unw&quot;,&quot;custom&quot;],&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;find&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;empty&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;tone&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;soft&quot;,&quot;std&quot;,&quot;strong&quot;],&quot;default&quot;:&quot;std&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;墙&quot;},&quot;mark&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dot&quot;,&quot;brush&quot;],&quot;default&quot;:&quot;dot&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;墙&quot;},&quot;dens&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;-1&quot;,&quot;0&quot;,&quot;1&quot;],&quot;default&quot;:&quot;0&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;墙&quot;},&quot;records&quot;:{&quot;editor&quot;:null,&quot;default&quot;:null,&quot;tsType&quot;:&quot;Array&lt;{c,d,v,i,strokes?}&gt;|null&quot;},&quot;added&quot;:{&quot;editor&quot;:null,&quot;default&quot;:null,&quot;tsType&quot;:&quot;string[]|null&quot;},&quot;today&quot;:{&quot;editor&quot;:null,&quot;default&quot;:&quot;9-24&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;library&quot;:{&quot;editor&quot;:null,&quot;default&quot;:&quot;规范常用字&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;libCount&quot;:{&quot;editor&quot;:null,&quot;default&quot;:null,&quot;tsType&quot;:&quot;string|null&quot;},&quot;lamp&quot;:{&quot;editor&quot;:null,&quot;default&quot;:0.05,&quot;tsType&quot;:&quot;number&quot;},&quot;bare&quot;:{&quot;editor&quot;:null,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;fixed&quot;:{&quot;editor&quot;:null,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;fold&quot;:{&quot;editor&quot;:null,&quot;default&quot;:null,&quot;tsType&quot;:&quot;Record&lt;number,boolean&gt;|null&quot;},&quot;off&quot;:{&quot;editor&quot;:null,&quot;default&quot;:null,&quot;tsType&quot;:&quot;string[]|null&quot;},&quot;lk&quot;:{&quot;editor&quot;:null,&quot;default&quot;:null,&quot;tsType&quot;:&quot;{mode,text,cur?,unsel?,fail?}|null&quot;},&quot;kb&quot;:{&quot;editor&quot;:null,&quot;default&quot;:0,&quot;tsType&quot;:&quot;number&quot;},&quot;onNavigate&quot;:{&quot;editor&quot;:null,&quot;default&quot;:null,&quot;tsType&quot;:&quot;(key:string)=&gt;void&quot;},&quot;onLkInput&quot;:{&quot;editor&quot;:null,&quot;default&quot;:null,&quot;tsType&quot;:&quot;(text:string)=&gt;void&quot;},&quot;onFindInput&quot;:{&quot;editor&quot;:null,&quot;default&quot;:null,&quot;tsType&quot;:&quot;(text:string)=&gt;void&quot;}}">
+const S=345, PAD=.06, KK=S*(1-2*PAD)/1024, OFF=S*PAD, C2=S/2, GT='translate('+OFF+' '+(OFF+900*KK)+') scale('+KK+' '+(-KK)+')';
+const ST=window.__szStore||(window.__szStore={data:{},pend:{}});
+function load(c){
+  if(ST.data[c]!==undefined) return Promise.resolve(ST.data[c]);
+  if(!ST.pend[c]) ST.pend[c]=fetch('https://cdn.jsdelivr.net/npm/hanzi-writer-data@2.0/'+encodeURIComponent(c)+'.json').then(r=>{if(!r.ok) throw Error(r.status); return r.json();}).then(d=>(ST.data[c]=d)).catch(()=>(ST.data[c]=null));
+  return ST.pend[c];
+}
+// 同一页上所有实例共用一个取数队列：一次取完再一起重画一次（画布上有二十多屏，逐屏重画会卡）
+const Q=window.__mqQ||(window.__mqQ={pend:new Set(),timer:0,subs:new Set()});
+function request(cs){cs.forEach(c=>{if(ST.data[c]===undefined)Q.pend.add(c);}); if(Q.pend.size&&!Q.timer) Q.timer=setTimeout(()=>{Q.timer=0; const a=[...Q.pend]; Q.pend.clear(); Promise.all(a.map(load)).then(()=>Q.subs.forEach(f=>f()));},40);}
+const PC=window.__mqPaths||(window.__mqPaths=new Map()), SC=window.__mqStrokes||(window.__mqStrokes=new Map());
+// ——— 第十稿：正式组件。三种数据来源——
+//  1) records（可点原型传入，实时）；2) data="proto" / "proto300"（画布静态预设：用 proto-model 的“今天有记录”/ 300 个字，和原型同一套计算）；
+//  3) n="0|5|30|300"（《字库-方向一结合-第十稿交接版》探索画布原来的演示数据，快忘了是指定的）。
+// 探索数据：30 个字照 ShiziScreen 原样复制（今天 = 2026-09-24）；笔迹种子同 ShiziScreen.hand()
+const DAYS=[
+ ['8-12',[['部','R'],['主','R'],['性','R'],['体','R'],['次','R'],['教','R'],['女','R'],['数','R'],['感','R'],['期','R'],['境','W'],['整','R'],['越','R'],['虽','S'],['惊','A']]],
+ ['8-20',[['虽','R'],['惊','W']]],
+ ['8-28',[['整','R'],['越','R']]],
+ ['9-1',[['静','R'],['谁','R'],['份','R'],['户','R'],['题','W']]],
+ ['9-8',[['静','W'],['慢','R'],['亦','R']]],
+ ['9-14',[['额','W'],['鲜','R'],['境','R']]],
+ ['9-16',[['惊','R'],['俄','R'],['既','R']]],
+ ['9-22',[['您','R'],['斯','R'],['豕','W'],['期','R'],['次','R'],['静','R'],['题','W'],['整','W'],['体','R']]],
+ ['9-24',[['数','R'],['感','R'],['警','W'],['部','R'],['户','S'],['主','R'],['虽','R']]]
+];
+const FIX={'警@9-24':{drop:[13],tilt:{from:12,dx:6,dy:10,a:5}},'题@9-22':{drop:[10],tilt:{from:9,dx:-22,dy:22,a:10}},'题@9-1':{drop:[4]},'整@9-22':{drop:[5,6],tilt:{from:11,dx:12,dy:8,a:-9}},'豕@9-22':{drop:[3]},'额@9-14':{drop:[11],tilt:{from:9,dx:-8,dy:8,a:-6}},'静@9-8':{drop:[9],tilt:{from:8,dx:22,dy:-16,a:12}},'静@8-20':{drop:[5],tilt:{from:4,to:7,dx:-20,dy:18,a:-8}},'静@9-16':{drop:[13],tilt:{from:8,dx:14,dy:12,a:8}},'境@8-12':{drop:[5]},'惊@8-20':{drop:[4]}};
+const ML=[31,28,31,30,31,30,31,31,30,31,30,31], CUM=[0]; ML.forEach((l,i)=>CUM.push(CUM[i]+l));
+const doy=d=>{const a=d.split('-');return CUM[a[0]-1]+(+a[1]);};
+const CNUM='零一二三四五六七八九', MN=['','一','二','三','四','五','六','七','八','九','十','十一','十二'];
+const cn=n=>n===2?'两':n<10?CNUM[n]:n<20?'十'+(n%10?CNUM[n%10]:''):n<100?CNUM[Math.floor(n/10)]+'十'+(n%10?CNUM[n%10]:''):String(n);
+const md=d=>{const a=d.split('-');return a[0]+' 月 '+(+a[1])+' 日';};
+// 核对意见一.2：最淡一档不低于 .4（多久没写、快忘了整屏都是这一档）
+const TONES={soft:[1,.86,.7,.55],std:[1,.78,.58,.4],strong:[1,.7,.52,.4]};
+const TL=['一周内写过','一个月内','三个月内','三个月以上'];
+const byNew=(a,b)=>doy(b.d)-doy(a.d)||(b.i||0)-(a.i||0);
+function latestOf(rec){const L={};rec.forEach(r=>{const p=L[r.c];if(!p||doy(r.d)>doy(p.d)||(doy(r.d)===doy(p.d)&&(r.i||0)>=(p.i||0)))L[r.c]=r;});return L;}
+const A30=[];DAYS.forEach(([d,cs])=>cs.forEach(([c,v],i)=>A30.push({c,d,v,i})));
+const R30=A30.filter(r=>r.v==='R'||r.v==='W'), L30=latestOf(R30), IN30=new Set(Object.keys(L30));
+const R5=[['静','9-22','R',0],['谁','9-22','R',1],['份','9-22','R',2],['户','9-24','R',0],['题','9-24','W',1]].map(([c,d,v,i])=>({c,d,v,i})), L5=latestOf(R5);
+const wrOf=L=>Object.values(L).filter(r=>r.v==='W').sort(byNew);
+const W30=wrOf(L30), W5=wrOf(L5);
+// 探索画布的快忘了是指定的：30 个字取只写对过一次、隔得最久的 5 个；300 个字按简化间隔取过期最久的 12 个
+const F30=['性','教','女','谁','份'].map(c=>L30[c]);
+const H30=['馨','鼎'], H300=['馨','鼎','瓷'];
+// 300 个字：生成规则在 proto-model-第十稿交接版.js（extra300），原型的“300 个字”开关用同一套
+let X300=null;
+function get300(){ if(X300) return X300; const Z=window.SZProto; if(!Z||!Z.extra300) return null; const ex=Z.extra300([...IN30]), R300=R30.concat(ex.records), L=latestOf(R300), T=doy('9-24');
+  const F=ex.EX.map(c=>L[c]).filter(r=>r.v!=='W').map(r=>({r,x:(T-doy(r.d))/ex.IV[Math.min(ex.NR[r.c]-1,ex.IV.length-1)]})).sort((a,b)=>b.x-a.x).slice(0,12).map(o=>o.r);
+  X300={recs:R300,L,wr:wrOf(L),fg:F,hol:H300,first:R300.reduce((m,r)=>!m||doy(r.d)<doy(m)?r.d:m,''),find:ex.EX.find(c=>L[c].d.startsWith('6-'))||ex.EX[0]}; return X300; }
+const cntOf=(rec,c,v)=>rec.filter(r=>r.c===c&&(!v||r.v===v)).length;
+// 词语、释义、读音：取 proto-model-第十稿交接版.js 的 SAMPLES（没加载时用下面几条）
+const WORDS={警:'军警',题:'问题',整:'整个',豕:'三豕涉河',额:'总额',静:'平静',感:'感到',户:'用户',慨:'慷慨'};
+const GLOSS={性:'本质；脾气',教:'传授；指导',女:'与男相对',谁:'哪个人',份:'整体中的一部分',越:'跨过；超出'};
+const PY0={题:'tí',性:'xìng',感:'gǎn',慨:'kǎi'};
+const wordOf=c=>{const Z=window.SZProto,s=Z&&Z.SAMPLES[c]; return s?(s.word.length?s.word.join(''):s.gloss||''):(WORDS[c]||GLOSS[c]||'');};
+const wordParts=c=>{const Z=window.SZProto,s=Z&&Z.SAMPLES[c]; if(s&&s.word.length) return {pre:s.word.slice(0,s.blank).join(''),tg:s.word[s.blank]||c,post:s.word.slice(s.blank+1).join('')};
+  const w=WORDS[c]||''; const i=w.indexOf(c); return i>=0?{pre:w.slice(0,i),tg:c,post:w.slice(i+1)}:{pre:'',tg:c,post:w?'　'+w:''};};
+const pyOf=c=>{const Z=window.SZProto; return (Z&&Z.pyOf(c))||PY0[c]||'';};
+const pyKey=c=>(pyOf(c)||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+const HAN=/\p{Script=Han}/u;
+const LIBN={'规范常用字':'可以练 3500 个字','规范次常用字':'可以练 2976 个字','规范专门用字':'可以练 818 个字','小学初中常用字':'可以练 2482 个字'};
+// 探索画布的静态弹层（L1–L5）：同一套模板，数据写死
+const LKS={lkType:{mode:'lookup',text:'感慨'},lkRec:{mode:'lookup',text:'感慨',cur:'感'},lkNew:{mode:'lookup',text:'感慨',cur:'慨'},lkBad:{mode:'lookup',text:'龘'},add:{mode:'add',text:'馨鼎性',unsel:['性']},addErr:{mode:'add',text:'hello 性性 ☆'},addFail:{mode:'add',text:'馨鼎',fail:true}};
+const TH={
+ light:{'--p':'#F4F0E7','--c':'#FBF8F2','--sh':'#F7F3EB','--off':'#EFE8DC','--i1':'#3B2F28','--i2':'#5D5952','--i3':'#6A645B','--i4':'#B3AC9F','--i5':'#DED8CD','--a':'#A6533F','--ar':'#A6533F','--g':'#A6533F47','--scrim':'rgba(60,42,28,.22)','--hi':'rgba(59,47,40,.5)','--sy0':'#E9E9EB','--syt':'#1C1C1E','--sys':'#6C6C70','--syl':'#D1D1D6'},
+ dark:{'--p':'#221E1A','--c':'#2D2823','--sh':'#28231E','--off':'#36302A','--i1':'#DCCFB8','--i2':'#B4AC9E','--i3':'#A09A8E','--i4':'#6B645A','--i5':'#413A33','--a':'#AE5A44','--ar':'#D47A5D','--g':'rgba(200,110,85,.34)','--scrim':'rgba(0,0,0,.55)','--hi':'rgba(234,228,216,.45)','--sy0':'#1C1C1E','--syt':'#F2F2F7','--sys':'#8E8E93','--syl':'#38383A'}
+};
+
+class Component extends DCLogic {
+  lkRef=React.createRef();
+  componentDidMount(){ this.onInk=()=>{if(!this._gone)this.forceUpdate();}; window.addEventListener('szink',this.onInk); Q.subs.add(this.onInk);
+    const wait=()=>{if(this._gone)return;if(window.SZInk&&window.SZProto)this.forceUpdate();else setTimeout(wait,60);};wait(); this.fetchWants(); if(this.props.lk) this.focusLk(); }
+  componentDidUpdate(pp){ this.fetchWants(); const a=pp.lk, b=this.props.lk; if(b&&(!a||a.mode!==b.mode)) this.focusLk(); }
+  componentWillUnmount(){ this._gone=true; window.removeEventListener('szink',this.onInk); Q.subs.delete(this.onInk); }
+  focusLk(){ if(!this.props.onLkInput) return; setTimeout(()=>{ const el=this.lkRef.current; if(el&&!this._gone) try{ el.focus({preventScroll:true}); }catch(e){} },80); }
+  fetchWants(){ const asked=this._asked||(this._asked=new Set()); const w=[...(this._want||[])].filter(c=>ST.data[c]===undefined&&!asked.has(c)); if(!w.length) return; w.forEach(c=>asked.add(c)); request(w); }
+  want(c){(this._want||(this._want=new Set())).add(c);}
+  guides(){const h=React.createElement, st={stroke:'var(--g)',strokeWidth:1,strokeDasharray:'4 5'};return [h('line',{key:'ga',x1:C2,y1:0,x2:C2,y2:S,style:st}),h('line',{key:'gb',x1:0,y1:C2,x2:S,y2:C2,style:st})];}
+  svg(kids,guide){return React.createElement('svg',{viewBox:'0 0 '+S+' '+S,width:'100%',height:'100%',style:{display:'block',overflow:'visible'}},guide?this.guides():null,kids);}
+  // 演示笔迹：和 ShiziScreen.hand() 同一套（中线合成时间戳 → ink-第十稿交接版.js 管线）；写错的记录按 FIX 删笔、错位
+  strokesOf(c,d,v){const D=ST.data[c]; if(!D||!window.SZInk) return null;
+    let seed=0;for(const ch of (c+d)) seed=(seed*31+ch.charCodeAt(0))%233280;
+    const rnd=()=>{seed=(seed*9301+49297)%233280;return seed/233280-.5;};
+    const a=(rnd()*6)*Math.PI/180, sc=.84+rnd()*.06, cc=S/2, W=v==='W'?FIX[c+'@'+d]||{drop:[Math.floor(D.medians.length*.6)],tilt:{from:Math.floor(D.medians.length*.5),dx:-20,dy:18,a:-10}}:{};
+    const RR=SZInk.pick(c,v==='W'?'wrong':'normal'), strokes=RR?SZInk.fromRecord(RR):[];
+    if(!RR) D.medians.forEach((m,idx)=>{ if(W.drop&&W.drop.includes(idx)) return;
+      const t=W.tilt&&idx>=W.tilt.from&&(W.tilt.to==null||idx<=W.tilt.to)?W.tilt:null, ta=t?t.a*Math.PI/180:0;
+      strokes.push(SZInk.synth(m.map(([x,y])=>{let px=x*KK+OFF-cc,py=(900-y)*KK+OFF-cc;
+        if(t){const qx=px*Math.cos(ta)-py*Math.sin(ta),qy=px*Math.sin(ta)+py*Math.cos(ta);px=qx+t.dx;py=qy+t.dy;}
+        return {x:cc+(px*Math.cos(a)-py*Math.sin(a))*sc+3+rnd()*5,y:cc+(px*Math.sin(a)+py*Math.cos(a))*sc-1+rnd()*5};})));});
+    return strokes;}
+  // 笔宽下限 1.1pt（345 空间里 = 1.1 × 345 ÷ 格子边长）；合成的笔画按“字 + 日期 + 判断”缓存，轮廓再按笔宽下限缓存
+  paths(c,d,v,fl){const k=c+'|'+d+'|'+v+'|'+fl; if(PC.has(k)) return PC.get(k); const sk=c+'|'+d+'|'+v; let st=SC.get(sk); if(!st){st=this.strokesOf(c,d,v); if(!st) return null; SC.set(sk,st);} const ps=st.map(p=>p&&p.length?SZInk.outline(p,fl):null); PC.set(k,ps); return ps;}
+  // 原型里实时写下的记录带 strokes（345 空间的 {x,y,w} 点）：直接画本人笔迹
+  livePaths(r,fl){const s=r.strokes, p0=s[0]&&s[0][0], k='L|'+(r.id||'')+'|'+r.c+'|'+r.d+'|'+s.length+'|'+(p0?p0.x+','+p0.y:'')+'|'+fl; if(PC.has(k)) return PC.get(k); if(!window.SZInk) return null; const ps=s.map(p=>p&&p.length?SZInk.outline(p,fl):null); PC.set(k,ps); return ps;}
+  // 第十稿 10.12：有记录但那一次没有留下笔迹（ink==='none'）：黑体的字 + “没有笔迹”，不画参考字形、不拿更早一次或别的月份的笔迹补位；格子小于 36pt 时只画字
+  noInk(r,o){const h=React.createElement, P=o.px||60, k=S/P, F="-apple-system,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif", ls=Math.max(9,Math.min(13,P*.16)), op=o.tone?this.tones[this.toneOf(r.d)]:1;
+    const kids=[h('text',{key:'c',x:C2,y:P<36?C2:S*.42,textAnchor:'middle',dominantBaseline:'central',opacity:op,style:{font:(P<36?P*.5:P*.34)*k+'px '+F,fill:'var(--i3)'}},r.c)];
+    if(P>=36) kids.push(h('text',{key:'l',x:C2,y:S*.8,textAnchor:'middle',dominantBaseline:'central',style:{font:ls*k+'px '+F,fill:'var(--i3)'}},P>=110?'这一次没有留下笔迹':'没有笔迹'));
+    if(o.mark) kids.push(this.markEl(P));
+    return this.svg(kids,o.guide);}
+  ink(r,o){o=o||{}; if(r.ink==='none') return this.noInk(r,o); const h=React.createElement; const px=o.px||60, fl=Math.max(2,Math.round(2.2*S/px)/2); let ps=null;
+    if(r.strokes&&r.strokes.length) ps=this.livePaths(r,fl); else { this.want(r.c); ps=this.paths(r.c,r.d,r.v,fl); }
+    const kids=[];
+    if(ps){ const s=o.sc||1, tr=s!==1?'translate('+C2+' '+C2+') scale('+s+') translate('+(-C2)+' '+(-C2)+')':undefined;
+      kids.push(h('g',{key:'g',opacity:o.tone?this.tones[this.toneOf(r.d)]:1,transform:tr},ps.map((d,i)=>d?h('path',{key:i,d,fill:'var(--i1)'}):null))); }
+    if(o.mark) kids.push(this.markEl(px));
+    return this.svg(kids,o.guide);}
+  toneOf(d){const a=this.T-doy(d);return a<=7?0:a<=30?1:a<=90?2:3;}
+  // 写错过的小标记：暖墨红圆点（默认）或一笔朱点
+  markEl(px){const h=React.createElement; if(this.markDot) return h('circle',{key:'m',cx:S*.875,cy:S*.125,r:Math.min(3,2.4+px/120)*S/px,fill:'var(--ar)'});
+    const k='bm|'+Math.round(px); let d=PC.get(k); if(!d&&window.SZInk){d=SZInk.outline(SZInk.synth([{x:S*.875,y:S*.075},{x:S*.9,y:S*.115}],5.4*S/px));PC.set(k,d);} return d?h('path',{key:'m',d,fill:'var(--ar)'}):null;}
+  // 自选了还没写：标准字形（hanzi-writer 笔画）的外轮廓——先描边、再用纸色填一遍，只剩外圈
+  hollow(c,px,bg){const h=React.createElement; this.want(c); const D=ST.data[c]; if(!D) return this.svg(null);
+    const sw=px>100?3:2.2, A=D.strokes.map((p,i)=>h('path',{key:'a'+i,d:p,fill:'none',stroke:'var(--i3)',strokeWidth:sw,strokeLinejoin:'round',vectorEffect:'non-scaling-stroke'})), B=D.strokes.map((p,i)=>h('path',{key:'b'+i,d:p,fill:bg||'var(--p)'}));
+    return this.svg(h('g',{transform:'translate('+C2+' '+C2+') scale(.84) translate('+(-C2)+' '+(-C2)+')'},h('g',{transform:GT},A,B)));}
+  // s：和笔迹并排时缩到 .87，免得参考字形比你的书写大一圈
+  ref(c,col,guide,s){const h=React.createElement; this.want(c); const D=ST.data[c]; if(!D) return this.svg(null,guide);
+    const g=h('g',{transform:GT},D.strokes.map((p,i)=>h('path',{key:i,d:p,fill:col||'var(--i1)'})));
+    return this.svg(s?h('g',{transform:'translate('+C2+' '+C2+') scale('+s+') translate('+(-C2)+' '+(-C2)+')'},g):g,guide);}
+  // 第十稿走查 K28：最近一次写错的字（还在写错过里）在墙和卡片预览里显示标准楷体加红点，不显示那一次写错的笔迹
+  wrongStd(c,px,guide){const h=React.createElement; this.want(c); const D=ST.data[c]; if(!D) return this.svg(null,guide);
+    const g=h('g',{key:'g',transform:'translate('+C2+' '+C2+') scale(.9) translate('+(-C2)+' '+(-C2)+')'},h('g',{transform:GT},D.strokes.map((p,i)=>h('path',{key:i,d:p,fill:'var(--i2)'}))));
+    return this.svg([g,this.markEl(px)],guide);}
+  // 图例：一笔短横，四档透明度
+  swatch(op){const h=React.createElement; let d=PC.get('sw'); if(!d&&window.SZInk){d=SZInk.outline(SZInk.synth([{x:52,y:180},{x:130,y:175},{x:210,y:172},{x:292,y:169}],46));PC.set('sw',d);}
+    return h('svg',{viewBox:'34 136 276 76',width:20,height:7,style:{display:'block',overflow:'visible'}},d?h('path',{d,fill:'var(--i1)',opacity:op}):null);}
+  brushMini(){const h=React.createElement; let d=PC.get('bmini'); if(!d&&window.SZInk){d=SZInk.outline(SZInk.synth([{x:160,y:138},{x:176,y:156}],118));PC.set('bmini',d);}
+    return h('svg',{viewBox:'98 84 150 150',width:9,height:9,style:{display:'block',overflow:'visible'}},d?h('path',{d,fill:'var(--ar)'}):null);}
+  // 数据：records / data / n 三种来源，统一成 {recs, L（每个字最近一次有效记录）, wr 写错过, fg 快忘了, hol 自选了还没写, added, first}
+  dataset(P,N){ const Z=window.SZProto;
+    if(P.records||P.data==='proto'||P.data==='proto300'){ if(!Z||!Z.lists) return null; let recs,added;
+      if(P.records){ recs=P.records; added=P.added||[]; }
+      else { if(!this._pd||this._pdk!==P.data){ this._pd=Z.build('today',P.data==='proto300'?{big:true}:null); this._pdk=P.data; } recs=this._pd.records; added=this._pd.added; }
+      const valid=recs.filter(r=>r.v==='R'||r.v==='W'), li=Z.lists(valid,P.today||Z.TODAY);
+      return {calc:true,recs:valid,L:li.latest,wr:li.wrong,fg:li.forget,hol:added.filter(c=>!li.latest[c]),added,first:valid.reduce((m,r)=>!m||doy(r.d)<doy(m)?r.d:m,'')}; }
+    if(N>=300){ const X=get300(); return X?Object.assign({added:X.hol},X):null; }
+    if(N>=30) return {recs:R30,L:L30,wr:W30,fg:F30,hol:H30,added:H30,first:'8-12'};
+    if(N>=5) return {recs:R5,L:L5,wr:W5,fg:[],hol:[],added:[],first:'9-22'};
+    return {recs:[],L:{},wr:[],fg:[],hol:[],added:[],first:''}; }
+  renderVals(){
+    const P=this.props, dark=P.theme==='dark', compact=P.size==='compact', tall=P.tall===true||P.tall==='true', live=!!P.onNavigate, fixed=live||P.fixed===true||P.fixed==='true', bare=!!P.bare;
+    const yes=v=>v===true||v==='true'||v==='1';
+    const lk=P.lk||LKS[P.screen]||null, sc=LKS[P.screen]?'home':(P.screen||'home');
+    this._want=new Set(); this.tones=TONES[P.tone]||TONES.std; this.markDot=P.mark!=='brush'; this.T=doy(P.today||'9-24');
+    const home=sc==='home', N=LKS[P.screen]?30:sc==='all'&&!P.records&&!P.data?300:(P.n==null||P.n===''?30:+P.n);
+    const D=this.dataset(P,N)||{recs:[],L:{},wr:[],fg:[],hol:[],added:[],first:'',wait:true};
+    const nAll=Object.keys(D.L).length+D.hol.length;
+    const W=compact?360:393, H=compact?640:852, dens=+(P.dens||0);
+    const base=sc==='all'||(D.calc?nAll>=60:N>=300)?(compact?6:8):(compact?4:5), cols=Math.max(3,base+dens), px=((compact?312:345)+8)/cols;
+    const ov=tall?'visible':fixed?'auto':'hidden';
+    const rootClick=live?e=>{ let el=e.target; while(el&&el!==e.currentTarget){ const k=el.getAttribute&&el.getAttribute('data-nav'); if(k){ P.onNavigate(k); return; } el=el.parentNode; } }:undefined;
+    const out={
+      frame:Object.assign({position:'relative',width:W,height:tall?'auto':H,minHeight:H,borderRadius:bare?0:compact?28:42,overflow:'hidden',display:'flex',flexDirection:'column',boxSizing:'border-box',background:'var(--p)',backgroundImage:dark?(compact?'radial-gradient(252px 288px at 317px -32px,rgba(255,214,170,'+(P.lamp??.05)+'),transparent 70%)':'radial-gradient(275px 383px at 346px -43px,rgba(255,214,170,'+(P.lamp??.05)+'),transparent 70%)'):'none',backgroundRepeat:'no-repeat',boxShadow:bare?'none':'0 26px 64px rgba(48,38,26,.18),0 2px 8px rgba(48,38,26,.10)',fontFamily:"-apple-system,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif",color:'var(--i1)',WebkitFontSmoothing:'antialiased','--k':compact?1.3:1,'--sbh':compact?'40px':'54px','--ov':ov,'--ovh':ov,'--ovl':fixed?'auto':'hidden','--osb':fixed?'contain':'auto','--fb':compact?'20px':'34px','--cols':cols},TH[dark?'dark':'light']),
+      onRootClick:rootClick, paperOn:true, hasStatus:!bare, bareSp:bare, hasHi:!bare,
+      isHome:home, pushed:['all','wrong','forget'].includes(sc), navTitle:{all:'有记录的字',wrong:'写错过',forget:'快忘了'}[sc]||'',
+      isAll:sc==='all', isList:false, isListEmpty:false, hasTabs:home,
+      markDot:this.markDot, markBrush:!this.markDot, brushEl:this.brushMini(),
+      legend:TL.map((t,i)=>({t,el:this.swatch(this.tones[i])})), shOn:false, kbDemo:false
+    };
+    const wrSet=new Set(D.wr.map(r=>r.c));
+    const cellOf=(o,find)=>({el:o.hol?this.hollow(o.c,px):wrSet.has(o.c)?this.wrongStd(o.c,px):this.ink(o,{px,tone:true,mark:o.wr,sc:.96}),hit:!!find&&o.c===find,nav:'detail:'+o.c});
+    // 字库首页，各状态同一个顶部：字库 → 查字（走查核对异议 2：“＋ 添加自选的字”入口删掉）→ 练习范围（更换字库）→ 有记录的字 → 写错过、快忘了 → 墙（最多 8 行）→ 全部 ›
+    if(home){
+      const nRec=Object.keys(D.L).length, wrS=new Set(D.wr.map(r=>r.c)), lib=P.library||'规范常用字';
+      out.libLine=lib;
+      out.nBig=String(nRec); out.noRec=nRec===0&&!D.wait; out.hasCards=nRec>0; out.hasWall=nRec>0;
+      out.factA=nRec?(D.hol.length?'另有 '+D.hol.length+' 个自选的字还没写':'从 '+md(D.first)+'开始记录'):'写过并判断过对错的字。'; out.factB=nRec&&D.hol.length?'从 '+md(D.first)+'开始记录':''; out.factBOn=!!out.factB;
+      const mpx=(((compact?312:345)-12)/2-28+6)/4;
+      const mini=list=>{const a=list.slice(0,4).map(r=>({el:wrSet.has(r.c)?this.wrongStd(r.c,mpx):this.ink(r,{px:mpx,tone:true})}));while(a.length<4)a.push({el:null});return a;};
+      const card=(nav,title,list,why,whyE,dot)=>({nav:list.length?nav:'',title,n:list.length?String(list.length):'',why:list.length?why:whyE,has:list.length>0,dotA:dot&&this.markDot,dotB:dot&&!this.markDot,bEl:dot?out.brushEl:null,act:list.length===1?'练这个字':'练这些字',mini:mini(list)});
+      out.cards=[card('wrongList','写错过',D.wr,'你判断写错的字。','你判断写错的字会放在这里。',true),card('forgetList','快忘了',D.fg,'有一阵没写、可能快忘了的字。','可能快忘了的字会放在这里。',false)];
+      const ord=D.hol.map(c=>({c,hol:true})).concat(Object.values(D.L).sort(byNew).map(r=>Object.assign({wr:wrS.has(r.c)},r)));
+      out.wall=ord.slice(0,cols*8).map(o=>cellOf(o));
+      out.shiEl=nRec?null:this.hollow('拾',48*(compact?1.3:1));
+    }
+    // 有记录的字（完整页）：排序三种、筛选三个（另有待定的“自选的字”）、按月折叠、查字定位
+    if(sc==='all'){
+      const L=D.L, wrS=new Set(D.wr.map(r=>r.c)), sort=P.sort||'recent', filter=P.filter||'', fold=P.fold||{};
+      const fText=P.find==='auto'?(D.find||''):(P.find||''), fch=[...fText].find(ch=>HAN.test(ch))||'', found=!!fch&&!!L[fch];
+      const rec=o=>Object.assign({wr:wrS.has(o.c)},o);
+      out.findLive=live; out.findOn=!live&&!!fch; out.findOff=!live&&!fch; out.ctlOn=!found;
+      out.findText=P.find==='auto'?fch:(P.find||''); out.findEmpty=!out.findText; out.onFindChange=e=>P.onFindInput&&P.onFindInput(e.target.value);
+      out.findMiss=live&&!!fch&&!found; out.findMissText='「'+fch+'」还没有记录。';
+      out.sorts=[['recent','最近写的'],['py','拼音'],['age','多久没写']].map(([k,t])=>({t,on:k===sort,off:k!==sort,nav:'sort:'+k}));
+      // K19：第四个筛选“自选的字”是正式方案，写过的自选的字在这里看（原来的自选的字完整页不保留）
+      const chipDefs=[['wrong','写错过',D.wr.length,true],['forget','快忘了',D.fg.length,false],['unw','自选了还没写',D.hol.length,false],['custom','自选的字',D.added.length,false]];
+      out.chips=chipDefs.map(([k,t,n,d])=>({t:t+' '+n,on:k===filter,off:k!==filter,nav:'filter:'+k,dA:d&&this.markDot,dB:d&&!this.markDot,bEl:d?out.brushEl:null}));
+      const recs=Object.values(L).sort(byNew); let groups=[], closed=[], budget=tall||live?1e9:72;
+      const take=a=>{const r=a.slice(0,Math.max(0,budget));budget-=r.length;return r;};
+      const holG=()=>({head:true,name:'自选了还没写',count:D.hol.length+' 个字',swOn:false,nav:'',cells:take(D.hol.map(c=>({c,hol:true}))).map(o=>cellOf(o))});
+      if(filter&&!found){
+        if(filter==='custom'){ const done=D.added.filter(c=>L[c]).map(c=>L[c]).sort(byNew);
+          groups=[holG(),{head:true,name:'有记录',count:done.length+' 个字',swOn:false,nav:'',cells:take(done.map(rec)).map(o=>cellOf(o))}].filter(g=>g.cells.length);
+          out.allNote='你自己挑来常练的字。还没写的排在前面。'; }
+        else { const list=filter==='forget'?D.fg:filter==='wrong'?D.wr:D.hol.map(c=>({c,hol:true})); groups=[{head:false,nav:'',cells:list.map(o=>cellOf(o.hol?o:rec(o)))}];
+          out.allNote=filter==='forget'?'有一阵没写、可能快忘了的字。':filter==='wrong'?'你判断写错的字。':'加入了自选的字，还没有记录。'; } }
+      else if(sort==='age'&&!found){ groups=[holG()].concat([3,2,1,0].map(t=>{const a=recs.filter(r=>this.toneOf(r.d)===t).reverse();return {head:true,name:TL[t],count:a.length+' 个字',swOn:true,sw:this.swatch(this.tones[t]),nav:'',cells:take(a.map(rec)).map(o=>cellOf(o))};}).filter(g=>g.cells.length));
+        out.allNote='离上次写越久，排得越前。'; }
+      else if(sort==='py'&&!found){ const G={}; recs.slice().sort((a,b)=>pyKey(a.c).localeCompare(pyKey(b.c))||a.c.localeCompare(b.c)).forEach(r=>{const k=(pyKey(r.c)[0]||'#').toUpperCase();(G[k]=G[k]||[]).push(r);});
+        groups=[holG()].concat(Object.keys(G).sort().map(k=>({head:true,name:k==='#'?'其他':k,count:G[k].length+' 个字',swOn:false,nav:'',cells:take(G[k].map(rec)).map(o=>cellOf(o))})));
+        out.allNote='按拼音首字母排。多音字按第一个读音。'; }
+      else { const M={}; recs.forEach(r=>{const m=+r.d.split('-')[0];(M[m]=M[m]||[]).push(r);}); const ms=Object.keys(M).map(Number).sort((a,b)=>b-a);
+        let open, rest;
+        if(found){ const fm=+L[fch].d.split('-')[0]; open=[fm]; rest=ms.filter(m=>m<fm); out.findCh=fch; out.findWhere='在 '+fm+' 月'; }
+        else { const def=ms.slice(0,2); open=ms.filter(m=>fold[m]!=null?!!fold[m]:def.includes(m)); rest=ms.filter(m=>!open.includes(m)); }
+        groups=(found?[]:[holG()]).concat(open.map(m=>({head:true,name:m+' 月',count:M[m].length+' 个字',swOn:false,nav:live&&!found?'fold:'+m:'',cells:take(M[m].map(rec)).map(o=>cellOf(o,found?fch:''))})));
+        closed=rest.map(m=>({name:m+' 月',count:M[m].length+' 个字',nav:'fold:'+m}));
+        out.allNote=found?'':'按最近一次写的月份排。每格是你最近一次的笔迹。'; }
+      groups=groups.filter(g=>g.cells.length||!g.head);
+      out.findWhereOn=found; if(!found) out.findWhere='';
+      out.groups=groups; out.closed=closed; out.hasClosed=closed.length>0; out.noteOn=!!out.allNote; out.filterOn=!!filter&&!found&&filter!=='custom'&&(filter!=='unw'||D.hol.length>0);
+    }
+    // 写错过 / 快忘了清单：默认全选，点一行取消或再选上；底部“选了 N 个”和“练这些字”
+    if(sc==='wrong'||sc==='forget'){ const isW=sc==='wrong';
+      let list, off, empty;
+      if(D.calc){ list=isW?D.wr:D.fg; off=P.off||[]; empty=!list.length; } else { empty=yes(P.empty); list=isW?W30:F30; off=P.off||(isW?[]:['份']); }
+      out.isList=!empty; out.isListEmpty=empty;
+      if(empty){ out.leGlyph=isW?'错':'忘'; out.leTitle=isW?'现在没有写错过的字':'现在没有快忘了的字'; out.leWhy=isW?'你判断写错的字会放在这里。':'可能快忘了的字会放在这里。'; }
+      else { const R=D.calc?D.recs:R30, nSel=list.filter(r=>!off.includes(r.c)).length;
+        out.lsHead=list.length+' 个字'; out.lsWhy=isW?'你判断写错的字。下次写对了，就会从这里移走。':'有一阵没写、可能快忘了的字。写一遍，就会从这里移走。';
+        // 第十稿走查 L05：写错过每行 = 标准字大字、词语（目标字加粗）、写错那次笔迹的小图、日期和次数；走查核对异议 7：快忘了清单同样（小图是最近一次）；L06：左边圆圈勾选，点行的其余部分进单字详情
+        out.lsRows=list.map(r=>{ const w=wordParts(r.c), on=!off.includes(r.c); return {el:this.ink(r,{px:44,guide:true}),stdOn:true,inkOn:false,cap:isW?'写错那次':'',capOn:isW,c:r.c,pre:w.pre,tg:w.tg,post:w.post,ms:(isW?[md(r.d)+'写错','一共写错 '+cntOf(R,r.c,'W')+' 次']:['最近一次 '+md(r.d),'记录了 '+cntOf(R,r.c)+' 次']).map(x=>{ const m=x.match(/^([^\d\s]+) (.+)$/); return {t:x,w:(m?[m[1],m[2]]:[x]).map(s=>({t:s}))}; }),on,off:!on,nav:'sel:'+r.c,go:'detail:'+r.c,selLabel:(on?'取消选择':'选择')+'「'+r.c+'」'}; });
+        out.lsNote=isW?'右边小图是你写错的那一次。点圆圈选字，点这一行看记录。':'右边小图是你最近一次写的。点圆圈选字，点这一行看记录。';
+        out.lsHint=(nSel?'选了 '+nSel+' 个字 · ':'')+'写完会回到这里。'; /* 收尾核对 Y05 */ out.lsGo=nSel>1?'练这些字':nSel===1?'练这个字':'先选一个字'; out.lsBg=nSel?'var(--a)':'var(--i5)'; out.lsFg=nSel?'#FFF9F1':'var(--i3)'; } }
+    // 第十稿走查 L01（K29）：查字、首页“自己选字”是同一个弹层（add 模式只剩画布静态预设用，标题也写“查字”）。lk = {mode:'lookup'|'add'|'pick', text, cur, unsel, addFail}；原型传 lk、kb（键盘高度）和 onLkInput；sheetOnly 时只画弹层（盖在首页上）
+    if(lk&&home){ const liveLk=!!P.lk&&!!P.onLkInput, text=lk.text||'', chars=[...text], hanAll=chars.filter(ch=>HAN.test(ch)), han=[...new Set(hanAll)], Z=window.SZProto;
+      const st=c=>{ const d=ST.data[c]; if(d===undefined){ this.want(c); return 'wait'; } if(d===null) return 'bad'; return D.L[c]?'rec':'new'; };
+      const can=c=>(!Z||Z.canPractice(c))&&ST.data[c]!==null&&ST.data[c]!==undefined, added=new Set(D.addedAll||D.added||[]);
+      out.shOn=true; out.lkText=text; out.shLive=liveLk; out.onLkChange=e=>P.onLkInput&&P.onLkInput(e.target.value);
+      // L02：弹层打开时输入框直接获得焦点
+      out.lkInRef=el=>{ if(el&&this._lkEl!==el){ this._lkEl=el; setTimeout(()=>{ try{ el.focus({preventScroll:true}); }catch(e){} },30); } };
+      const kb=+P.kb||0; let gap=16, pb=kb?'16px':'var(--fb)', bottom=kb;
+      out.shTitle=lk.mode==='pick'?'自己选字':'查字';
+      const cur=lk.cur&&han.includes(lk.cur)?lk.cur:han.length===1?han[0]:'', cs=cur?st(cur):'', view=cur?(cs==='bad'?'bad':'card'):han.length?'rows':'hint';
+      out.shFocus=!liveLk&&view!=='card'; out.shBlur=!liveLk&&view==='card';
+      const other=chars.length-hanAll.length, dups=[...new Set(hanAll.filter((c,i)=>hanAll.indexOf(c)!==i))], notes=[];
+      if(other&&!han.length) notes.push('只能输入汉字。'); else if(other) notes.push('只能输入汉字，已去掉 '+other+' 个字母或符号。');
+      if(dups.length&&view==='rows') notes.push('重复的'+dups.map(c=>'「'+c+'」').join('')+'只算一次。');
+      out.lkNoteOn=notes.length>0; out.lkNote=notes.join('');
+      const unsel=lk.unsel||[], multi=han.length>1, okC=han.filter(can), sel=okC.filter(c=>!unsel.includes(c));
+      out.lkRowsOn=view==='rows'; out.lkHintOn=view==='hint'||view==='rows'; out.lkChipsOn=false;
+      out.lkHint=view==='hint'?'输入一个字或一个词，再点你要的那个字。':'点一个字，看参考字形、练这个字或加入自选的字。';
+      out.lkRows=view==='rows'?han.map(c=>{ const s=st(c), n=cntOf(D.recs,c), ok=can(c), on=ok&&!unsel.includes(c), wd=wordOf(c);
+        return {nav:'lkPick:'+c,c,py:pyOf(c),wd,wdOn:!!wd&&wd!==c,fg:s==='bad'?'var(--i4)':'var(--i1)',
+          st:s==='bad'?'暂时不能练':!ok&&s!=='wait'?'原型里只能看':(added.has(c)?'自选的字 · ':'')+(n?'记录了 '+n+' 次':'还没有记录'),
+          selOn:multi&&on,selOff:multi&&ok&&!on,selNo:!multi||!ok,sel:'lkSel:'+c,selLabel:(on?'取消选择':'选择')+'「'+c+'」'}; }):[];
+      out.lkBackOn=multi&&(view==='card'||view==='bad'); out.lkBackText='回到这 '+han.length+' 个字';
+      out.lkCardOn=view==='card'; out.lkBadOn=view==='bad'; out.lkBadHead='「'+cur+'」暂时不能练。';
+      out.lkRange='能练的字参考教育部《通用规范汉字表》，个别字暂时还不能练。';
+      if(view==='card'){ const r=D.L[cur], gd=ST.data[cur], py=pyOf(cur), wd=wordOf(cur), ok=can(cur);
+        out.lkHas=!!r; out.lkNone=!r; out.lkCur=cur; out.lkRef=this.ref(cur,'var(--i2)',true,.87); out.lkInk=r?this.ink(r,{px:124,guide:true}):null;
+        out.lkMeta=[py,gd?gd.strokes.length+' 画':''].filter(Boolean).join(' · '); out.lkWord=wd; out.lkWordOn=!!wd&&wd!==cur;
+        out.lkRecLine=r?'记录了 '+cntOf(D.recs,cur)+' 次 · 最近一次 '+md(r.d):'还没有记录';
+        out.lkCanOn=ok&&!lk.addFail; out.lkAddFail=ok&&!!lk.addFail; out.lkCantOn=!ok; out.lkAddOn=!added.has(cur); out.lkInOn=added.has(cur);
+        out.lkCols=r?'minmax(0,1fr) minmax(0,1fr)':'minmax(0,1fr)'; }
+      out.lkGoOn=view==='rows'&&okC.length>1; out.lkGoLabel=sel.length>1?'练这 '+sel.length+' 个字':sel.length?'练这个字':'先选一个字';
+      out.lkGoBg=sel.length?'var(--a)':'var(--i5)'; out.lkGoFg=sel.length?'#FFF9F1':'var(--i3)';
+      out.lkRef=out.lkRef||null;
+      if(!liveLk&&P.screen==='lkType'){ out.kbDemo=true; bottom=326; pb='14px'; }
+      if(out.lkGoOn) out.lkpb=pb;
+      out.shStyle={position:'absolute',left:0,right:0,bottom,zIndex:5,maxHeight:liveLk?'88%':'none',overflowY:liveLk?'auto':'visible',boxSizing:'border-box',borderRadius:'28px 28px 0 0',background:'var(--sh)',boxShadow:'0 -10px 30px rgba(48,38,26,.12)',padding:'10px 24px '+pb,display:'flex',flexDirection:'column',gap,color:'var(--i1)','--lkpb':pb,minHeight:liveLk?'64%':'none'};
+      out.lkRef=out.lkRef||null; }
+    // sheetOnly：只画查字弹层（首页“自己选字”用同一个组件，盖在首页上）
+    if(P.sheetOnly){ Object.assign(out.frame,{background:'transparent',backgroundImage:'none',boxShadow:'none'}); Object.assign(out,{paperOn:false,hasStatus:false,bareSp:false,isHome:false,hasTabs:false,hasHi:false}); }
+    return out;
+  }
+}
+</script>
+</body>
+</html>

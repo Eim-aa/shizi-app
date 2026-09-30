@@ -18,6 +18,7 @@ rsync -a --delete \
   "${REPO_ROOT}/icon-180.png" \
   "${REPO_ROOT}/icon-192.png" \
   "${REPO_ROOT}/icon-512.png" \
+  "${REPO_ROOT}/icon-512-maskable.png" \
   "${DEST}/"
 
 rsync -a --delete "${REPO_ROOT}/data/" "${DEST}/data/"

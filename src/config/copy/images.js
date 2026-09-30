@@ -16,4 +16,15 @@ export default Object.freeze({
   'R-I01.overLimit': 'TODO: 超过 80 个字的图片说明（P25）',
   // R-I02（已定（导出模块要补））
   'R-I02.glyphCaption': '{pinyin} · {date}',
+  // X-IMAGES（M4-5 图片预览弹层：原型 ShiziScreen L192–L201 / L486–L487 / charEl；04 §3.2 图片规格；P50）
+  'X-IMAGES.save': '保存图片',
+  'X-IMAGES.retry': '再试一次',
+  'X-IMAGES.ratioPortrait': '3:4',
+  'X-IMAGES.ratioSquare': '1:1',
+  'X-IMAGES.missingSession': '{chars}这一次没有留下笔迹，不在图里。',
+  'X-IMAGES.missingMonth': '{chars}最近一次没有留下笔迹，不在图里。',
+  'X-IMAGES.emptyMonth': '这个月还没有可以放进图片的字',
+  'X-IMAGES.brand': '拾字',
+  'X-IMAGES.seal': '字',
+  'X-IMAGES.renderFailed': '图片暂时无法生成，请稍后再试。',
 });

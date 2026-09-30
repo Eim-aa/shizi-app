@@ -4,11 +4,14 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 const vm = require("vm");
+const { reviewedOverrides } = require("./content-corpus.cjs");
+const { verifyContentUI } = require("./verify_content_ui.cjs");
+const contentApprovalFixture = require("./fixtures/content-quality-approved.json");
 
 const root = path.resolve(__dirname, "..");
 execFileSync("python3", [path.join(root, "scripts", "verify_ui_copy.py")], { stdio: "inherit" });
 const appUrl = process.env.SHIZI_APP_URL || "http://127.0.0.1:8000/";
-const screenshotPath = path.join(root, "generated", "verify_8105_app.png");
+const screenshotPath = process.env.SHIZI_SCREENSHOT_PATH || path.join(root, "generated", "verify_8105_app.png");
 const wildPhotoFixturePath = path.join(root, "icon-192.png");
 const SESSION_STORAGE_KEY = "shizi.session.v1";
 const source = fs.readFileSync(path.join(root, "index.html"), "utf8");
@@ -45,9 +48,10 @@ if (/退出本组？|进度已保存，随时可继续这组|描一遍也算拾�
 
 function chromeExecutable() {
   return [
+    process.env.CHROME_PATH,
     "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
     "/Applications/Chromium.app/Contents/MacOS/Chromium",
-  ].find((candidate) => fs.existsSync(candidate));
+  ].find((candidate) => candidate && fs.existsSync(candidate));
 }
 
 function assert(condition, message, details) {
@@ -616,8 +620,10 @@ let browser;
       return {
         target, index, originalWord: original && original.ans, word: card && card.word, py: card && card.py, originalPy: original && original.py,
         ctx: card && card.ctx, hint: card && card.hint, common: Number(card && card.common) || 0,
+        expectedPy: override.py || (original && original.py),
+        expectedCtx: override.w ? (original.ans === override.w && original.ci === override.ci ? original.ctx : "override") : override.gloss ? "gloss" : original.ctx,
         key: Number.isInteger(index) ? cardKey(index) : "", targetAtIndex: override.w ? Array.from(override.w)[override.ci] : target,
-        visible: card ? `${promptHTML(card).replace(/<[^>]+>/g, "")} ${card.hint || ""}` : "",
+        visible: card ? `${promptHTML(card).replace(/<[^>]+>/g, "")} ${card.ctx === "gloss" ? card.hint || "" : card.promptHint || ""} ${card.chars.filter(ch=>ch===card.target).length>1?"空格里是同一个字，只写一次。":""}` : "",
         kind: override.w ? "word" : override.gloss ? "gloss" : "boost",
         boosted: !!override.boost,
       };
@@ -635,29 +641,27 @@ let browser;
       compatibleMemory,
     };
   });
-  const approvedOverrides = {
-    ...Object.fromEntries(approvedContextFixture.boostOnly.map((target) => [target, { boost: true }])),
-    ...approvedContextFixture.approvedWords,
-    ...Object.fromEntries(Object.entries(approvedContextFixture.approvedGlosses).map(([target, gloss]) => [target, {
-      gloss, ...(approvedContextFixture.boostedGlosses.includes(target) ? { boost: true } : {}),
-    }])),
-  };
+  const approvedOverrides = reviewedOverrides(approvedContextFixture,contentApprovalFixture);
   const contextKinds = Object.fromEntries(["word", "gloss", "boost"].map((kind) => [kind, contextOverrides.rows.filter((row) => row.kind === kind).length]));
   const sortedJSON = (value) => JSON.stringify(Object.fromEntries(Object.entries(value).sort(([a], [b]) => a.localeCompare(b, "zh-CN"))));
   const leaks = contextOverrides.rows.filter((row) => row.visible.includes(row.target));
   const rejectedPromptWords = contextOverrides.rows.filter((row) => approvedContextFixture.rejectedPromptWords.some((word) => row.word === word || row.hint?.includes(word)));
-  assert(contextOverrides.rows.length === 56 && contextKinds.word === 1 && contextKinds.gloss === 45 && contextKinds.boost === 10 && contextOverrides.rows.filter((row) => row.boosted).length === 14,
-    "Expected one manually approved common-word prompt, forty-five plain-language prompts, and ten boost-only corrections", { contextKinds });
+  const expectedKinds = Object.fromEntries(["word", "gloss", "boost"].map((kind) => [kind, Object.values(approvedOverrides).filter((row) => (row.w ? "word" : row.gloss ? "gloss" : "boost") === kind).length]));
+  assert(contextOverrides.rows.length === Object.keys(approvedOverrides).length && sortedJSON(contextKinds) === sortedJSON(expectedKinds) && contextOverrides.rows.filter((row) => row.boosted).length === Object.values(approvedOverrides).filter((row) => row.boost).length,
+    "Expected all original approvals and all independently reviewed additions, with exact type and boost counts", { contextKinds, expectedKinds });
   assert(sortedJSON(contextOverrides.raw) === sortedJSON(approvedOverrides),
     "Expected runtime context overrides to match the independent manually approved fixture", { actual: contextOverrides.raw, approved: approvedOverrides });
   assert(leaks.length === 0, "Expected no rendered context or gloss to contain its target character", leaks);
   assert(rejectedPromptWords.length === 0, "Expected rejected niche or answer-repeating expressions to remain absent from every practice prompt", rejectedPromptWords);
-  assert(contextOverrides.rows.every((row) => Number.isInteger(row.index) && row.index >= 0 && row.py === row.originalPy && row.key === `base:${row.target}` && row.targetAtIndex === row.target && (row.kind !== "word" || row.ctx === "override") && (row.kind !== "gloss" || (row.ctx === "gloss" && row.word === row.target && row.hint)) && (!row.boosted || row.common >= 1.2)),
-    "Expected every approved override to preserve target, pronunciation, memory key, and valid context metadata", contextOverrides.rows.filter((row) => !(Number.isInteger(row.index) && row.index >= 0 && row.py === row.originalPy && row.key === `base:${row.target}` && row.targetAtIndex === row.target)));
+  assert(contextOverrides.rows.every((row) => Number.isInteger(row.index) && row.index >= 0 && row.py === row.expectedPy && row.key === `base:${row.target}` && row.targetAtIndex === row.target && row.ctx === row.expectedCtx && (row.kind !== "gloss" || (row.ctx === "gloss" && row.word === row.target && row.hint)) && (!row.boosted || row.common >= 1.2)),
+    "Expected every approved override to preserve target and memory key, apply the reviewed pronunciation, and retain valid context metadata", contextOverrides.rows.filter((row) => !(Number.isInteger(row.index) && row.index >= 0 && row.py === row.expectedPy && row.key === `base:${row.target}` && row.targetAtIndex === row.target)));
   assert(contextOverrides.idiom.word === "钟灵毓秀" && contextOverrides.idiom.visible.includes("钟灵") && contextOverrides.idiom.visible.includes("秀") && !contextOverrides.idiom.visible.includes("毓") && contextOverrides.idiom.visible.includes(contextOverrides.idiom.py),
     "Expected four-character idiom context to blank only the target while retaining its original pronunciation", contextOverrides.idiom);
   assert(contextOverrides.gloss.word === "谔" && contextOverrides.gloss.prompt.includes(contextOverrides.gloss.word) === false && contextOverrides.gloss.hint.includes("直言争辩") && contextOverrides.gloss.label === "释义模式" && contextOverrides.compatibleMemory,
     "Expected gloss mode to show pronunciation plus plain-language meaning without breaking legacy memory", contextOverrides.gloss);
+
+  const contentUI=await verifyContentUI(browser,{appUrl,outputDir:process.env.SHIZI_CONTENT_OUTPUT_DIR});
+  console.log(`Verified ${contentUI.originalRepeatedCards} original repeated-target cards, ${contentUI.currentRepeatedCards} currently repeated cards, and ${contentUI.actualCardsRendered} content cards with real render/reveal, accessible masking, and narrow large-text controls.`);
 
   await page.emulateMedia({ colorScheme: "dark" });
   const darkTheme = await page.evaluate(() => {

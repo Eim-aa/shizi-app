@@ -20,7 +20,8 @@
 // write-prompt-py（原目标位拼音）、write-prompt-hint（提示行）。
 
 import { html, useRef } from '../../../../vendor/ui.js';
-import { buildCards, cardKey as keyOfCard, promptModel } from '../../../core/cards.js';
+import { promptModel } from '../../../core/cards.js';
+import { cardForKey } from '../../../data/deck.js';
 import { injectStyles, T } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
 
@@ -43,68 +44,10 @@ export function promptCopy() {
 }
 
 // ---- 卡片查找 ----------------------------------------------------------------------------------------------
-// deck-data.js / data/context-overrides.js 是 defer 经典脚本，全局词法名 SEED / CONTEXT_OVERRIDES（不是 window 属性），
-// 文档顺序在 app.js 之前执行（01 §8.5）。首次查找时 buildCards 一次并按 cardKey 建索引。
-// 过渡实现：01 §2 的 data/ 层 loadDeck() 尚无卡片负责；有了之后 cardForKey 改为读它（见 M1-8 报告）。
+// M2-2：题库访问收回到 src/data/deck.js（loadDeck / cardForKey）；这里只转出，保持 M1-8 的导入路径可用
+// （e2e m1-prompt-mask 经本模块 setCardResolver 注入合成卡，与 deck.js 共用同一个 resolver）。
 
-let deckIndex = null;
-let resolver = null;
-
-function readDeckGlobals() {
-  let seed;
-  let overrides;
-  try {
-    // eslint-disable-next-line no-undef
-    seed = typeof SEED !== 'undefined' ? SEED : undefined;
-  } catch (error) {
-    seed = undefined;
-  }
-  try {
-    // eslint-disable-next-line no-undef
-    overrides = typeof CONTEXT_OVERRIDES !== 'undefined' ? CONTEXT_OVERRIDES : undefined;
-  } catch (error) {
-    overrides = undefined;
-  }
-  return { seed, overrides };
-}
-
-/** 由 cards[] 建 cardKey → card 索引（同键取第一张，与旧 CARDS 查找一致）。 */
-export function indexCards(cards) {
-  const map = new Map();
-  for (const card of cards || []) {
-    const key = keyOfCard(card);
-    if (!map.has(key)) map.set(key, card);
-  }
-  return map;
-}
-
-function deck() {
-  if (deckIndex) return deckIndex;
-  const { seed, overrides } = readDeckGlobals();
-  if (!Array.isArray(seed)) return null; // deck 未加载：不缓存，下次再试
-  deckIndex = indexCards(buildCards({ seed, overrides: overrides && typeof overrides === 'object' ? overrides : {} }));
-  return deckIndex;
-}
-
-/**
- * cardKey → 卡片（base:<字> 查题库；custom:<字> 本轮不在写字页出现，返回 null）。
- * 测试可用 setCardResolver 注入：resolver(key) 返回卡片即采用，返回 undefined 则回落到题库。
- */
-export function cardForKey(key) {
-  if (typeof key !== 'string' || !key) return null;
-  if (resolver) {
-    const hit = resolver(key);
-    if (hit !== undefined) return hit;
-  }
-  if (!key.startsWith('base:')) return null;
-  const index = deck();
-  return (index && index.get(key)) || null;
-}
-
-/** 测试 / 演示用：替换卡片查找（null 复原）。 */
-export function setCardResolver(fn) {
-  resolver = typeof fn === 'function' ? fn : null;
-}
+export { cardForKey, setCardResolver, indexCards } from '../../../data/deck.js';
 
 // ---- 纯模型 ------------------------------------------------------------------------------------------------
 

@@ -1,0 +1,6 @@
+beautifulsoup4==4.15.0
+brotli==1.2.0
+fonttools==4.66.0
+soupsieve==2.10
+typing_extensions==4.16.0
+uharfbuzz==0.56.2

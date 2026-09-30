@@ -1,0 +1,4 @@
+/* Modified OFL fonts. Distribute both original OFL files and COPYRIGHT-NOTICES.md. */
+@font-face { font-family: "ShiziKai"; src: url("./ShiziKai-Regular.woff2") format("woff2"); font-style: normal; font-weight: 400; font-display: block; }
+@font-face { font-family: "ShiziSerifSC"; src: url("./ShiziSerifSC-Regular.woff2") format("woff2"); font-style: normal; font-weight: 400; font-display: block; }
+@font-face { font-family: "ShiziSerifSC"; src: url("./ShiziSerifSC-Medium.woff2") format("woff2"); font-style: normal; font-weight: 500; font-display: block; }

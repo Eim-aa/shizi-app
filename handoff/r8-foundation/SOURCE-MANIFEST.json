@@ -1,0 +1,294 @@
+{
+  "schemaVersion": 1,
+  "sourceVersion": "F8/E8-2026-09-26-r2",
+  "candidateCommit": "c7c8fc2ffbc80241802f1f1743e845dfc8e2160c",
+  "files": [
+    {
+      "source": "engineering/module/font-adapter.mjs",
+      "path": "module/font-adapter.mjs",
+      "sourceSha256": "9aada4aa976d02401191448952f71a08ecb8cc7198efe13c2a7018cadc55f8ca",
+      "sha256": "9aada4aa976d02401191448952f71a08ecb8cc7198efe13c2a7018cadc55f8ca",
+      "adapted": false
+    },
+    {
+      "source": "engineering/module/layout.mjs",
+      "path": "module/layout.mjs",
+      "sourceSha256": "bddd3d5de3bb00a1de3ef843bac86e6a5bdd1aadf36db95e306528ff535532f0",
+      "sha256": "bddd3d5de3bb00a1de3ef843bac86e6a5bdd1aadf36db95e306528ff535532f0",
+      "adapted": false
+    },
+    {
+      "source": "engineering/module/legacy-brush.mjs",
+      "path": "module/legacy-brush.mjs",
+      "sourceSha256": "7dd1dda9742e510213eb9bc38396d4e934adce1b2257140d5ecbb12a1839edfc",
+      "sha256": "7dd1dda9742e510213eb9bc38396d4e934adce1b2257140d5ecbb12a1839edfc",
+      "adapted": false
+    },
+    {
+      "source": "engineering/module/render.mjs",
+      "path": "module/render.mjs",
+      "sourceSha256": "37a30a03aba76028463e3aebd0dc992643ba0680a252bc1c87d9d426fa0af549",
+      "sha256": "37a30a03aba76028463e3aebd0dc992643ba0680a252bc1c87d9d426fa0af549",
+      "adapted": false
+    },
+    {
+      "source": "engineering/module/selectors.mjs",
+      "path": "module/selectors.mjs",
+      "sourceSha256": "0a1f0258b59cf9c133801f6ce6d599786433a58317def47581848d7d5e4ec4df",
+      "sha256": "0a1f0258b59cf9c133801f6ce6d599786433a58317def47581848d7d5e4ec4df",
+      "adapted": false
+    },
+    {
+      "source": "engineering/fixtures/artificial.json",
+      "path": "fixtures/artificial.json",
+      "sourceSha256": "ff4abe3db6fc0570b64c9a576d4988a24fa64a23429e7e32800cf32fb3f3d4ad",
+      "sha256": "ff4abe3db6fc0570b64c9a576d4988a24fa64a23429e7e32800cf32fb3f3d4ad",
+      "adapted": false
+    },
+    {
+      "source": "engineering/assets/zi-seal-sheet.svg",
+      "path": "assets/zi-seal-sheet.svg",
+      "sourceSha256": "1abe4bf1ded5e222b17cd6a677054315bbf2695bd09500e003043e35a4e2705f",
+      "sha256": "1abe4bf1ded5e222b17cd6a677054315bbf2695bd09500e003043e35a4e2705f",
+      "adapted": false
+    },
+    {
+      "source": "repairs/r2-engineering/before/engineering/module/layout.mjs",
+      "path": "fixtures/layout-r1.mjs",
+      "sourceSha256": "d2c94375a63b62df84ac115c9603dccc1785d20e740f2f1953d94fd6d33f5a41",
+      "sha256": "d2c94375a63b62df84ac115c9603dccc1785d20e740f2f1953d94fd6d33f5a41",
+      "adapted": false
+    },
+    {
+      "source": "engineering/ink-comparison.md",
+      "path": "docs/ink-comparison.md",
+      "sourceSha256": "2eacf41610bdaf7754009be24e722811efe6875840dbf7d42a2cb4a1a9b38b4f",
+      "sha256": "4e3a2f33455723329c1ac37e549cf1b7367874bc941ea369274ad10c6f0b20ba",
+      "adapted": true
+    },
+    {
+      "source": "engineering/data-audit.md",
+      "path": "docs/data-audit.md",
+      "sourceSha256": "328d0ab5094d26ff9d7b8292cd9a536cbf7d010b4ed8b28ef75e42fee3407038",
+      "sha256": "88c1ff8215d5622adf000945aa1afe694739ae5e58ff48ae5c7f7bae005a9f44",
+      "adapted": true
+    },
+    {
+      "source": "engineering/replay-field-gaps.md",
+      "path": "docs/replay-field-gaps.md",
+      "sourceSha256": "124b561289e76465a5363b66201e2de31db515631a239ab063f8d5e48f5aaa32",
+      "sha256": "54f8f5e8df7eb5d4996e4da0e019775238c725b6cdd5649d7226b9986bca7b1f",
+      "adapted": true
+    },
+    {
+      "source": "engineering/future-ink-storage-proposal.md",
+      "path": "docs/future-ink-storage-proposal.md",
+      "sourceSha256": "e5410688173db8180de9bf52ef3c01b020c14e85a9d25814b1b9b5bb825da3f6",
+      "sha256": "bb70b3b2a7ace0008be11a77e602665d45416183e658568148abdecf878a9457",
+      "adapted": true
+    },
+    {
+      "source": "fonts/assets/ShiziKai-Regular.ttf",
+      "path": "fonts/assets/ShiziKai-Regular.ttf",
+      "sourceSha256": "70e8cd23c06d4a72829e4ce9503acfd21cfbb7d8291bbfee86104c1e32c1e01f",
+      "sha256": "70e8cd23c06d4a72829e4ce9503acfd21cfbb7d8291bbfee86104c1e32c1e01f",
+      "adapted": false
+    },
+    {
+      "source": "fonts/assets/ShiziKai-Regular.woff2",
+      "path": "fonts/assets/ShiziKai-Regular.woff2",
+      "sourceSha256": "e98fc925340dc9077e350eab77d84ee14970162ccdbdf915c150b10177469c02",
+      "sha256": "e98fc925340dc9077e350eab77d84ee14970162ccdbdf915c150b10177469c02",
+      "adapted": false
+    },
+    {
+      "source": "fonts/assets/ShiziSerifSC-Medium.ttf",
+      "path": "fonts/assets/ShiziSerifSC-Medium.ttf",
+      "sourceSha256": "da152cb697d1bcc1fe6761811391377e382df5f03cc004f69047257fe66e18f6",
+      "sha256": "da152cb697d1bcc1fe6761811391377e382df5f03cc004f69047257fe66e18f6",
+      "adapted": false
+    },
+    {
+      "source": "fonts/assets/ShiziSerifSC-Medium.woff2",
+      "path": "fonts/assets/ShiziSerifSC-Medium.woff2",
+      "sourceSha256": "d33c8e38d61b636bc335f8cd94b3bf6c153fed939e24649a86423557f7c58ccf",
+      "sha256": "d33c8e38d61b636bc335f8cd94b3bf6c153fed939e24649a86423557f7c58ccf",
+      "adapted": false
+    },
+    {
+      "source": "fonts/assets/ShiziSerifSC-Regular.ttf",
+      "path": "fonts/assets/ShiziSerifSC-Regular.ttf",
+      "sourceSha256": "f8443427727368ee9a87013c948da85f18fead37e085a4d817b1e9c2e0f70b5e",
+      "sha256": "f8443427727368ee9a87013c948da85f18fead37e085a4d817b1e9c2e0f70b5e",
+      "adapted": false
+    },
+    {
+      "source": "fonts/assets/ShiziSerifSC-Regular.woff2",
+      "path": "fonts/assets/ShiziSerifSC-Regular.woff2",
+      "sourceSha256": "f6f4e0486323c9d351d0b33a568d6991a6bebb04672bccfa4b894b64198f3d1c",
+      "sha256": "f6f4e0486323c9d351d0b33a568d6991a6bebb04672bccfa4b894b64198f3d1c",
+      "adapted": false
+    },
+    {
+      "source": "fonts/assets/font-loader.mjs",
+      "path": "fonts/assets/font-loader.mjs",
+      "sourceSha256": "41806b33f3cb4f0ce66c317d3fd1c3cf47f498ae27b461f3d87f4ec30c70af73",
+      "sha256": "41806b33f3cb4f0ce66c317d3fd1c3cf47f498ae27b461f3d87f4ec30c70af73",
+      "adapted": false
+    },
+    {
+      "source": "fonts/assets/fonts.css",
+      "path": "fonts/assets/fonts.css",
+      "sourceSha256": "43318eb4f3c4d09028725378b5cc862fb497a96cecacdb1b60eeb4ea9599cf61",
+      "sha256": "43318eb4f3c4d09028725378b5cc862fb497a96cecacdb1b60eeb4ea9599cf61",
+      "adapted": false
+    },
+    {
+      "source": "fonts/licenses/LXGW-WenKai-GB-OFL.txt",
+      "path": "fonts/licenses/LXGW-WenKai-GB-OFL.txt",
+      "sourceSha256": "66e75815b1bb90bdaede3649abf5ea029d0dc7d5e61b0534d3245db61a510b93",
+      "sha256": "66e75815b1bb90bdaede3649abf5ea029d0dc7d5e61b0534d3245db61a510b93",
+      "adapted": false
+    },
+    {
+      "source": "fonts/licenses/Noto-Serif-SC-OFL.txt",
+      "path": "fonts/licenses/Noto-Serif-SC-OFL.txt",
+      "sourceSha256": "5e0da210fb04058a8c0087985d2d456b931c2579811a49655721d3cf0c36b6d6",
+      "sha256": "5e0da210fb04058a8c0087985d2d456b931c2579811a49655721d3cf0c36b6d6",
+      "adapted": false
+    },
+    {
+      "source": "fonts/licenses/COPYRIGHT-NOTICES.md",
+      "path": "fonts/licenses/COPYRIGHT-NOTICES.md",
+      "sourceSha256": "a6669c29a1b019c0bd678cc039c1633bcd30fb264d658ff835b2f910fe1cd026",
+      "sha256": "a908013a23bcbc6b3a97acc5639c010b052f921b371832a37621124c061b6bcb",
+      "adapted": true
+    },
+    {
+      "source": "fonts/corpus/coverage-manifest.json",
+      "path": "fonts/corpus/coverage-manifest.json",
+      "sourceSha256": "fc36c0d5e9d8f359991630498b4dfaa39ae71ca6510abbb57e08e4e69a2c740c",
+      "sha256": "fc36c0d5e9d8f359991630498b4dfaa39ae71ca6510abbb57e08e4e69a2c740c",
+      "adapted": false
+    },
+    {
+      "source": "fonts/corpus/kai-unicodes.txt",
+      "path": "fonts/corpus/kai-unicodes.txt",
+      "sourceSha256": "9f6e6405358b642a8ee0293b00a07c89dc3a1599c02f2fb75df71ab857d03545",
+      "sha256": "9f6e6405358b642a8ee0293b00a07c89dc3a1599c02f2fb75df71ab857d03545",
+      "adapted": false
+    },
+    {
+      "source": "fonts/corpus/serif-unicodes.txt",
+      "path": "fonts/corpus/serif-unicodes.txt",
+      "sourceSha256": "db063aebe61b538b9b013f156a0c6be3ed8b065d82a442ec72a411234cb340fa",
+      "sha256": "db063aebe61b538b9b013f156a0c6be3ed8b065d82a442ec72a411234cb340fa",
+      "adapted": false
+    },
+    {
+      "source": "fonts/reports/names.json",
+      "path": "fonts/reports/names.json",
+      "sourceSha256": "e31ddde6a387d329fef4bb033b1a1e160696f152dbf17fb85b49614f2d0dbe46",
+      "sha256": "e31ddde6a387d329fef4bb033b1a1e160696f152dbf17fb85b49614f2d0dbe46",
+      "adapted": false
+    },
+    {
+      "source": "fonts/reports/source-fonts.json",
+      "path": "fonts/reports/source-fonts.json",
+      "sourceSha256": "7f422eb2d2d687e69f05b2bbd0c43e298e43406b076fd04df818bd3bda796fc9",
+      "sha256": "7f422eb2d2d687e69f05b2bbd0c43e298e43406b076fd04df818bd3bda796fc9",
+      "adapted": false
+    },
+    {
+      "source": "fonts/reports/build-manifest.json",
+      "path": "fonts/reports/build-manifest.json",
+      "sourceSha256": "8f54f7cf1e3af7121a8d9d7ee2eae9c114403ede0d342912b6f7a2e65bdb0b34",
+      "sha256": "8f54f7cf1e3af7121a8d9d7ee2eae9c114403ede0d342912b6f7a2e65bdb0b34",
+      "adapted": false
+    },
+    {
+      "source": "fonts/reports/coverage.json",
+      "path": "fonts/reports/coverage.json",
+      "sourceSha256": "b43444d5b9c0f2464dcd1b1f749a3efd02ec4919bc9963e122389dd8683d65a9",
+      "sha256": "b43444d5b9c0f2464dcd1b1f749a3efd02ec4919bc9963e122389dd8683d65a9",
+      "adapted": false
+    },
+    {
+      "source": "fonts/upstream/download-lock.json",
+      "path": "fonts/provenance/download-lock.json",
+      "sourceSha256": "5189c5e9d9d233dcfd7066182d6695c46160b89d82a85dc613e4ae901f8040c0",
+      "sha256": "5189c5e9d9d233dcfd7066182d6695c46160b89d82a85dc613e4ae901f8040c0",
+      "adapted": false
+    },
+    {
+      "source": "fonts/requirements.txt",
+      "path": "fonts/requirements.txt",
+      "sourceSha256": "6b0cafd5a44895fd58344e761c1f2654d8d4112c6218f3778f6be58cc53fe34e",
+      "sha256": "6b0cafd5a44895fd58344e761c1f2654d8d4112c6218f3778f6be58cc53fe34e",
+      "adapted": false
+    },
+    {
+      "source": "fonts/scripts/build-fonts.py",
+      "path": "fonts/scripts/build-fonts.py",
+      "sourceSha256": "9e7d6f17ec94e6944570824c92eb0a0a0e3a3b90e506806cbbe0506dce1be98e",
+      "sha256": "9e7d6f17ec94e6944570824c92eb0a0a0e3a3b90e506806cbbe0506dce1be98e",
+      "adapted": false
+    },
+    {
+      "source": "fonts/scripts/font_options.py",
+      "path": "fonts/scripts/font_options.py",
+      "sourceSha256": "3a06ed75a634670f109274a775cf7bb55583b20399301d3f1bd276d286e62bec",
+      "sha256": "3a06ed75a634670f109274a775cf7bb55583b20399301d3f1bd276d286e62bec",
+      "adapted": false
+    },
+    {
+      "source": "fonts/scripts/font_package.py",
+      "path": "fonts/scripts/font_package.py",
+      "sourceSha256": "24c32bf074f55e8cc5157895a7f6108c1c971031b49a5806500486191be5b92f",
+      "sha256": "24c32bf074f55e8cc5157895a7f6108c1c971031b49a5806500486191be5b92f",
+      "adapted": false
+    },
+    {
+      "source": "fonts/scripts/pack-runtime.py",
+      "path": "fonts/scripts/pack-runtime.py",
+      "sourceSha256": "82d5a7d2d71ae4c03cbaa365bb9b86c867017c19f36bcb615de02f0d708ce04f",
+      "sha256": "82d5a7d2d71ae4c03cbaa365bb9b86c867017c19f36bcb615de02f0d708ce04f",
+      "adapted": false
+    },
+    {
+      "source": "fonts/scripts/diagnose-gpos.py",
+      "path": "fonts/scripts/diagnose-gpos.py",
+      "sourceSha256": "6674515b3c3d74f1ee223719d196d189226d7ea5df7bb780a0e9087e2035ee91",
+      "sha256": "6674515b3c3d74f1ee223719d196d189226d7ea5df7bb780a0e9087e2035ee91",
+      "adapted": false
+    },
+    {
+      "source": "fonts/reports/gpos-diagnosis-r2.md",
+      "path": "fonts/reports/gpos-diagnosis-r2.md",
+      "sourceSha256": "3d0afa46c230fe17bf3aa266077fbc86c2a06464b3067f09b06b75481717a3cd",
+      "sha256": "125b7a9dc667cce9f477348d866d59db7d17842d3f8393865194b2ed798ed62f",
+      "adapted": true
+    },
+    {
+      "source": "fonts/reports/gpos-diagnosis-r2.json",
+      "path": "fonts/reports/gpos-diagnosis-r2.json",
+      "sourceSha256": "c50ad99dcdf11c2110dcd00cc530e3d332585936a79d0ea05c0d0a19e9919524",
+      "sha256": "c50ad99dcdf11c2110dcd00cc530e3d332585936a79d0ea05c0d0a19e9919524",
+      "adapted": false
+    },
+    {
+      "source": "engineering/tests/verify.mjs",
+      "path": "tests/verify.mjs",
+      "sourceSha256": "9c4bd2c857a772529b4bf88221d1e0deed4d68b27d3195b35760fe753f11e99a",
+      "sha256": "9614636b4e393125a4f4163d0e7bc92423b547771f4436d05eeb76e2dcadafb0",
+      "adapted": true
+    },
+    {
+      "source": "engineering/tests/r2-contract.mjs",
+      "path": "tests/r2-contract.mjs",
+      "sourceSha256": "64fc9167fb1cc66482127ab2867b2ca8f29e8c7ce34ac55c0562463654917662",
+      "sha256": "276515b781a1e362b6b8b1f96e81b563f42fb4501ed35f8659ddd11ba75e3890",
+      "adapted": true
+    }
+  ]
+}

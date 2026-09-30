@@ -1,0 +1,1316 @@
+{
+  "provenance": "All judgments/dates/counts are artificial. Only five hand-authored coordinate glyphs; all other last judgments deliberately have no ink. No personal data or backups read.",
+  "cards": [
+    {
+      "target": "一"
+    },
+    {
+      "target": "二"
+    },
+    {
+      "target": "三"
+    },
+    {
+      "target": "十"
+    },
+    {
+      "target": "木"
+    },
+    {
+      "target": "水"
+    },
+    {
+      "target": "山"
+    },
+    {
+      "target": "日"
+    },
+    {
+      "target": "口"
+    },
+    {
+      "target": "大"
+    },
+    {
+      "target": "人"
+    },
+    {
+      "target": "天"
+    },
+    {
+      "target": "上"
+    },
+    {
+      "target": "下"
+    },
+    {
+      "target": "中"
+    },
+    {
+      "target": "左"
+    },
+    {
+      "target": "右"
+    },
+    {
+      "target": "土"
+    },
+    {
+      "target": "工"
+    },
+    {
+      "target": "王"
+    },
+    {
+      "target": "玉"
+    },
+    {
+      "target": "田"
+    },
+    {
+      "target": "目"
+    },
+    {
+      "target": "月"
+    },
+    {
+      "target": "白"
+    },
+    {
+      "target": "百"
+    },
+    {
+      "target": "千"
+    },
+    {
+      "target": "万"
+    },
+    {
+      "target": "火"
+    },
+    {
+      "target": "金"
+    },
+    {
+      "target": "石"
+    },
+    {
+      "target": "禾"
+    },
+    {
+      "target": "竹"
+    },
+    {
+      "target": "米"
+    },
+    {
+      "target": "手"
+    },
+    {
+      "target": "足"
+    },
+    {
+      "target": "耳"
+    },
+    {
+      "target": "心"
+    },
+    {
+      "target": "文"
+    },
+    {
+      "target": "子"
+    },
+    {
+      "target": "女"
+    },
+    {
+      "target": "母"
+    },
+    {
+      "target": "父"
+    },
+    {
+      "target": "兄"
+    },
+    {
+      "target": "弟"
+    },
+    {
+      "target": "地"
+    },
+    {
+      "target": "玄"
+    },
+    {
+      "target": "黄"
+    },
+    {
+      "target": "宇"
+    },
+    {
+      "target": "宙"
+    },
+    {
+      "target": "洪"
+    },
+    {
+      "target": "荒"
+    },
+    {
+      "target": "春"
+    },
+    {
+      "target": "夏"
+    },
+    {
+      "target": "秋"
+    },
+    {
+      "target": "冬"
+    },
+    {
+      "target": "东"
+    },
+    {
+      "target": "南"
+    },
+    {
+      "target": "西"
+    },
+    {
+      "target": "北"
+    },
+    {
+      "target": "江"
+    },
+    {
+      "target": "河"
+    },
+    {
+      "target": "湖"
+    },
+    {
+      "target": "海"
+    },
+    {
+      "target": "风"
+    },
+    {
+      "target": "雨"
+    },
+    {
+      "target": "雷"
+    },
+    {
+      "target": "电"
+    },
+    {
+      "target": "云"
+    },
+    {
+      "target": "雪"
+    },
+    {
+      "target": "花"
+    },
+    {
+      "target": "草"
+    },
+    {
+      "target": "树"
+    },
+    {
+      "target": "叶"
+    },
+    {
+      "target": "鸟"
+    },
+    {
+      "target": "鱼"
+    },
+    {
+      "target": "虫"
+    },
+    {
+      "target": "牛"
+    },
+    {
+      "target": "马"
+    },
+    {
+      "target": "羊"
+    }
+  ],
+  "judgments": [
+    {
+      "id": "artificial-0",
+      "sessionId": "E8-artificial-session",
+      "char": "一",
+      "localDay": "2026-09-01",
+      "at": 10000,
+      "sequence": 0,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": {
+        "attemptId": "artificial-0",
+        "coordinateSpace": "normalized-0-1",
+        "strokes": [
+          [
+            {
+              "x": 0.17,
+              "y": 0.49,
+              "w": 0.85
+            },
+            {
+              "x": 0.45,
+              "y": 0.46,
+              "w": 0.9299999999999999
+            },
+            {
+              "x": 0.81,
+              "y": 0.5,
+              "w": 1.01
+            }
+          ]
+        ],
+        "provenance": "artificial hand-authored fixture"
+      }
+    },
+    {
+      "id": "artificial-1",
+      "sessionId": "E8-artificial-session",
+      "char": "二",
+      "localDay": "2026-09-01",
+      "at": 10001,
+      "sequence": 1,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": {
+        "attemptId": "artificial-1",
+        "coordinateSpace": "normalized-0-1",
+        "strokes": [
+          [
+            {
+              "x": 0.25,
+              "y": 0.33,
+              "w": 0.85
+            },
+            {
+              "x": 0.7,
+              "y": 0.35,
+              "w": 0.9299999999999999
+            }
+          ],
+          [
+            {
+              "x": 0.15,
+              "y": 0.66,
+              "w": 0.85
+            },
+            {
+              "x": 0.85,
+              "y": 0.64,
+              "w": 0.9299999999999999
+            }
+          ]
+        ],
+        "provenance": "artificial hand-authored fixture"
+      }
+    },
+    {
+      "id": "artificial-2",
+      "sessionId": "E8-artificial-session",
+      "char": "三",
+      "localDay": "2026-09-01",
+      "at": 10002,
+      "sequence": 2,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": {
+        "attemptId": "artificial-2",
+        "coordinateSpace": "normalized-0-1",
+        "strokes": [
+          [
+            {
+              "x": 0.25,
+              "y": 0.25,
+              "w": 0.85
+            },
+            {
+              "x": 0.7,
+              "y": 0.26,
+              "w": 0.9299999999999999
+            }
+          ],
+          [
+            {
+              "x": 0.3,
+              "y": 0.48,
+              "w": 0.85
+            },
+            {
+              "x": 0.65,
+              "y": 0.47,
+              "w": 0.9299999999999999
+            }
+          ],
+          [
+            {
+              "x": 0.15,
+              "y": 0.72,
+              "w": 0.85
+            },
+            {
+              "x": 0.86,
+              "y": 0.71,
+              "w": 0.9299999999999999
+            }
+          ]
+        ],
+        "provenance": "artificial hand-authored fixture"
+      }
+    },
+    {
+      "id": "artificial-3",
+      "sessionId": "E8-artificial-session",
+      "char": "十",
+      "localDay": "2026-09-01",
+      "at": 10003,
+      "sequence": 3,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": {
+        "attemptId": "artificial-3",
+        "coordinateSpace": "normalized-0-1",
+        "strokes": [
+          [
+            {
+              "x": 0.15,
+              "y": 0.44,
+              "w": 0.85
+            },
+            {
+              "x": 0.82,
+              "y": 0.45,
+              "w": 0.9299999999999999
+            }
+          ],
+          [
+            {
+              "x": 0.52,
+              "y": 0.15,
+              "w": 0.85
+            },
+            {
+              "x": 0.49,
+              "y": 0.84,
+              "w": 0.9299999999999999
+            }
+          ]
+        ],
+        "provenance": "artificial hand-authored fixture"
+      }
+    },
+    {
+      "id": "artificial-4",
+      "sessionId": "E8-artificial-session",
+      "char": "木",
+      "localDay": "2026-09-02",
+      "at": 10004,
+      "sequence": 4,
+      "explicit": true,
+      "judgment": "wrong",
+      "ink": {
+        "attemptId": "artificial-4",
+        "coordinateSpace": "normalized-0-1",
+        "strokes": [
+          [
+            {
+              "x": 0.19,
+              "y": 0.39,
+              "w": 0.85
+            },
+            {
+              "x": 0.81,
+              "y": 0.4,
+              "w": 0.9299999999999999
+            }
+          ],
+          [
+            {
+              "x": 0.51,
+              "y": 0.15,
+              "w": 0.85
+            },
+            {
+              "x": 0.49,
+              "y": 0.86,
+              "w": 0.9299999999999999
+            }
+          ],
+          [
+            {
+              "x": 0.49,
+              "y": 0.44,
+              "w": 0.85
+            },
+            {
+              "x": 0.35,
+              "y": 0.63,
+              "w": 0.9299999999999999
+            },
+            {
+              "x": 0.16,
+              "y": 0.78,
+              "w": 1.01
+            }
+          ],
+          [
+            {
+              "x": 0.52,
+              "y": 0.46,
+              "w": 0.85
+            },
+            {
+              "x": 0.69,
+              "y": 0.66,
+              "w": 0.9299999999999999
+            },
+            {
+              "x": 0.85,
+              "y": 0.78,
+              "w": 1.01
+            }
+          ]
+        ],
+        "provenance": "artificial hand-authored fixture"
+      }
+    },
+    {
+      "id": "artificial-5",
+      "sessionId": "E8-artificial-session",
+      "char": "水",
+      "localDay": "2026-09-02",
+      "at": 10005,
+      "sequence": 5,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-6",
+      "sessionId": "E8-artificial-session",
+      "char": "山",
+      "localDay": "2026-09-02",
+      "at": 10006,
+      "sequence": 6,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-7",
+      "sessionId": "E8-artificial-session",
+      "char": "日",
+      "localDay": "2026-09-02",
+      "at": 10007,
+      "sequence": 7,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-8",
+      "sessionId": "E8-artificial-session",
+      "char": "口",
+      "localDay": "2026-09-03",
+      "at": 10008,
+      "sequence": 8,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-9",
+      "sessionId": "E8-artificial-session",
+      "char": "大",
+      "localDay": "2026-09-03",
+      "at": 10009,
+      "sequence": 9,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-10",
+      "sessionId": "E8-artificial-session",
+      "char": "人",
+      "localDay": "2026-09-03",
+      "at": 10010,
+      "sequence": 10,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-11",
+      "sessionId": "E8-artificial-session",
+      "char": "天",
+      "localDay": "2026-09-03",
+      "at": 10011,
+      "sequence": 11,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-12",
+      "sessionId": "E8-artificial-session",
+      "char": "上",
+      "localDay": "2026-09-04",
+      "at": 10012,
+      "sequence": 12,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-13",
+      "sessionId": "E8-artificial-session",
+      "char": "下",
+      "localDay": "2026-09-04",
+      "at": 10013,
+      "sequence": 13,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-14",
+      "sessionId": "E8-artificial-session",
+      "char": "中",
+      "localDay": "2026-09-04",
+      "at": 10014,
+      "sequence": 14,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-15",
+      "sessionId": "E8-artificial-session",
+      "char": "左",
+      "localDay": "2026-09-04",
+      "at": 10015,
+      "sequence": 15,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-16",
+      "sessionId": "E8-artificial-session",
+      "char": "右",
+      "localDay": "2026-09-05",
+      "at": 10016,
+      "sequence": 16,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-17",
+      "sessionId": "E8-artificial-session",
+      "char": "土",
+      "localDay": "2026-09-05",
+      "at": 10017,
+      "sequence": 17,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-18",
+      "sessionId": "E8-artificial-session",
+      "char": "工",
+      "localDay": "2026-09-05",
+      "at": 10018,
+      "sequence": 18,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-19",
+      "sessionId": "E8-artificial-session",
+      "char": "王",
+      "localDay": "2026-09-05",
+      "at": 10019,
+      "sequence": 19,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-20",
+      "sessionId": "E8-artificial-session",
+      "char": "玉",
+      "localDay": "2026-09-06",
+      "at": 10020,
+      "sequence": 20,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-21",
+      "sessionId": "E8-artificial-session",
+      "char": "田",
+      "localDay": "2026-09-06",
+      "at": 10021,
+      "sequence": 21,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-22",
+      "sessionId": "E8-artificial-session",
+      "char": "目",
+      "localDay": "2026-09-06",
+      "at": 10022,
+      "sequence": 22,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-23",
+      "sessionId": "E8-artificial-session",
+      "char": "月",
+      "localDay": "2026-09-06",
+      "at": 10023,
+      "sequence": 23,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-24",
+      "sessionId": "E8-artificial-session",
+      "char": "白",
+      "localDay": "2026-09-07",
+      "at": 10024,
+      "sequence": 24,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-25",
+      "sessionId": "E8-artificial-session",
+      "char": "百",
+      "localDay": "2026-09-07",
+      "at": 10025,
+      "sequence": 25,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-26",
+      "sessionId": "E8-artificial-session",
+      "char": "千",
+      "localDay": "2026-09-07",
+      "at": 10026,
+      "sequence": 26,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-27",
+      "sessionId": "E8-artificial-session",
+      "char": "万",
+      "localDay": "2026-09-07",
+      "at": 10027,
+      "sequence": 27,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-28",
+      "sessionId": "E8-artificial-session",
+      "char": "火",
+      "localDay": "2026-09-08",
+      "at": 10028,
+      "sequence": 28,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-29",
+      "sessionId": "E8-artificial-session",
+      "char": "金",
+      "localDay": "2026-09-08",
+      "at": 10029,
+      "sequence": 29,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-30",
+      "sessionId": "E8-artificial-session",
+      "char": "石",
+      "localDay": "2026-09-08",
+      "at": 10030,
+      "sequence": 30,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-31",
+      "sessionId": "E8-artificial-session",
+      "char": "禾",
+      "localDay": "2026-09-08",
+      "at": 10031,
+      "sequence": 31,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-32",
+      "sessionId": "E8-artificial-session",
+      "char": "竹",
+      "localDay": "2026-09-09",
+      "at": 10032,
+      "sequence": 32,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-33",
+      "sessionId": "E8-artificial-session",
+      "char": "米",
+      "localDay": "2026-09-09",
+      "at": 10033,
+      "sequence": 33,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-34",
+      "sessionId": "E8-artificial-session",
+      "char": "手",
+      "localDay": "2026-09-09",
+      "at": 10034,
+      "sequence": 34,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-35",
+      "sessionId": "E8-artificial-session",
+      "char": "足",
+      "localDay": "2026-09-09",
+      "at": 10035,
+      "sequence": 35,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-36",
+      "sessionId": "E8-artificial-session",
+      "char": "耳",
+      "localDay": "2026-09-10",
+      "at": 10036,
+      "sequence": 36,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-37",
+      "sessionId": "E8-artificial-session",
+      "char": "心",
+      "localDay": "2026-09-10",
+      "at": 10037,
+      "sequence": 37,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-38",
+      "sessionId": "E8-artificial-session",
+      "char": "文",
+      "localDay": "2026-09-10",
+      "at": 10038,
+      "sequence": 38,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-39",
+      "sessionId": "E8-artificial-session",
+      "char": "子",
+      "localDay": "2026-09-10",
+      "at": 10039,
+      "sequence": 39,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-40",
+      "sessionId": "E8-artificial-session",
+      "char": "女",
+      "localDay": "2026-09-11",
+      "at": 10040,
+      "sequence": 40,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-41",
+      "sessionId": "E8-artificial-session",
+      "char": "母",
+      "localDay": "2026-09-11",
+      "at": 10041,
+      "sequence": 41,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-42",
+      "sessionId": "E8-artificial-session",
+      "char": "父",
+      "localDay": "2026-09-11",
+      "at": 10042,
+      "sequence": 42,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-43",
+      "sessionId": "E8-artificial-session",
+      "char": "兄",
+      "localDay": "2026-09-11",
+      "at": 10043,
+      "sequence": 43,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-44",
+      "sessionId": "E8-artificial-session",
+      "char": "弟",
+      "localDay": "2026-09-12",
+      "at": 10044,
+      "sequence": 44,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-45",
+      "sessionId": "E8-artificial-session",
+      "char": "地",
+      "localDay": "2026-09-12",
+      "at": 10045,
+      "sequence": 45,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-46",
+      "sessionId": "E8-artificial-session",
+      "char": "玄",
+      "localDay": "2026-09-12",
+      "at": 10046,
+      "sequence": 46,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-47",
+      "sessionId": "E8-artificial-session",
+      "char": "黄",
+      "localDay": "2026-09-12",
+      "at": 10047,
+      "sequence": 47,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-48",
+      "sessionId": "E8-artificial-session",
+      "char": "宇",
+      "localDay": "2026-09-13",
+      "at": 10048,
+      "sequence": 48,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-49",
+      "sessionId": "E8-artificial-session",
+      "char": "宙",
+      "localDay": "2026-09-13",
+      "at": 10049,
+      "sequence": 49,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-50",
+      "sessionId": "E8-artificial-session",
+      "char": "洪",
+      "localDay": "2026-09-13",
+      "at": 10050,
+      "sequence": 50,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-51",
+      "sessionId": "E8-artificial-session",
+      "char": "荒",
+      "localDay": "2026-09-13",
+      "at": 10051,
+      "sequence": 51,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-52",
+      "sessionId": "E8-artificial-session",
+      "char": "春",
+      "localDay": "2026-09-14",
+      "at": 10052,
+      "sequence": 52,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-53",
+      "sessionId": "E8-artificial-session",
+      "char": "夏",
+      "localDay": "2026-09-14",
+      "at": 10053,
+      "sequence": 53,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-54",
+      "sessionId": "E8-artificial-session",
+      "char": "秋",
+      "localDay": "2026-09-14",
+      "at": 10054,
+      "sequence": 54,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-55",
+      "sessionId": "E8-artificial-session",
+      "char": "冬",
+      "localDay": "2026-09-14",
+      "at": 10055,
+      "sequence": 55,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-56",
+      "sessionId": "E8-artificial-session",
+      "char": "东",
+      "localDay": "2026-09-15",
+      "at": 10056,
+      "sequence": 56,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-57",
+      "sessionId": "E8-artificial-session",
+      "char": "南",
+      "localDay": "2026-09-15",
+      "at": 10057,
+      "sequence": 57,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-58",
+      "sessionId": "E8-artificial-session",
+      "char": "西",
+      "localDay": "2026-09-15",
+      "at": 10058,
+      "sequence": 58,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-59",
+      "sessionId": "E8-artificial-session",
+      "char": "北",
+      "localDay": "2026-09-15",
+      "at": 10059,
+      "sequence": 59,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-60",
+      "sessionId": "E8-artificial-session",
+      "char": "江",
+      "localDay": "2026-09-16",
+      "at": 10060,
+      "sequence": 60,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-61",
+      "sessionId": "E8-artificial-session",
+      "char": "河",
+      "localDay": "2026-09-16",
+      "at": 10061,
+      "sequence": 61,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-62",
+      "sessionId": "E8-artificial-session",
+      "char": "湖",
+      "localDay": "2026-09-16",
+      "at": 10062,
+      "sequence": 62,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-63",
+      "sessionId": "E8-artificial-session",
+      "char": "海",
+      "localDay": "2026-09-16",
+      "at": 10063,
+      "sequence": 63,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-64",
+      "sessionId": "E8-artificial-session",
+      "char": "风",
+      "localDay": "2026-09-17",
+      "at": 10064,
+      "sequence": 64,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-65",
+      "sessionId": "E8-artificial-session",
+      "char": "雨",
+      "localDay": "2026-09-17",
+      "at": 10065,
+      "sequence": 65,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-66",
+      "sessionId": "E8-artificial-session",
+      "char": "雷",
+      "localDay": "2026-09-17",
+      "at": 10066,
+      "sequence": 66,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-67",
+      "sessionId": "E8-artificial-session",
+      "char": "电",
+      "localDay": "2026-09-17",
+      "at": 10067,
+      "sequence": 67,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-68",
+      "sessionId": "E8-artificial-session",
+      "char": "云",
+      "localDay": "2026-09-18",
+      "at": 10068,
+      "sequence": 68,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-69",
+      "sessionId": "E8-artificial-session",
+      "char": "雪",
+      "localDay": "2026-09-18",
+      "at": 10069,
+      "sequence": 69,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-70",
+      "sessionId": "E8-artificial-session",
+      "char": "花",
+      "localDay": "2026-09-18",
+      "at": 10070,
+      "sequence": 70,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-71",
+      "sessionId": "E8-artificial-session",
+      "char": "草",
+      "localDay": "2026-09-18",
+      "at": 10071,
+      "sequence": 71,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-72",
+      "sessionId": "E8-artificial-session",
+      "char": "树",
+      "localDay": "2026-09-19",
+      "at": 10072,
+      "sequence": 72,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-73",
+      "sessionId": "E8-artificial-session",
+      "char": "叶",
+      "localDay": "2026-09-19",
+      "at": 10073,
+      "sequence": 73,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-74",
+      "sessionId": "E8-artificial-session",
+      "char": "鸟",
+      "localDay": "2026-09-19",
+      "at": 10074,
+      "sequence": 74,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-75",
+      "sessionId": "E8-artificial-session",
+      "char": "鱼",
+      "localDay": "2026-09-19",
+      "at": 10075,
+      "sequence": 75,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-76",
+      "sessionId": "E8-artificial-session",
+      "char": "虫",
+      "localDay": "2026-09-20",
+      "at": 10076,
+      "sequence": 76,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-77",
+      "sessionId": "E8-artificial-session",
+      "char": "牛",
+      "localDay": "2026-09-20",
+      "at": 10077,
+      "sequence": 77,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-78",
+      "sessionId": "E8-artificial-session",
+      "char": "马",
+      "localDay": "2026-09-20",
+      "at": 10078,
+      "sequence": 78,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    },
+    {
+      "id": "artificial-79",
+      "sessionId": "E8-artificial-session",
+      "char": "羊",
+      "localDay": "2026-09-20",
+      "at": 10079,
+      "sequence": 79,
+      "explicit": true,
+      "judgment": "correct",
+      "ink": null
+    }
+  ]
+}

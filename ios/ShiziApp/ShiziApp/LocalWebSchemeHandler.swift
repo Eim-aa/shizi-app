@@ -94,16 +94,30 @@ final class LocalWebSchemeHandler: NSObject, WKURLSchemeHandler {
         switch fileURL.pathExtension.lowercased() {
         case "html":
             return "text/html"
-        case "js":
+        case "js", "mjs":
             return "text/javascript"
-        case "json", "webmanifest":
+        case "json", "webmanifest", "map":
             return "application/json"
         case "png":
             return "image/png"
+        case "jpg", "jpeg":
+            return "image/jpeg"
+        case "webp":
+            return "image/webp"
         case "css":
             return "text/css"
         case "svg":
             return "image/svg+xml"
+        case "woff2":
+            return "font/woff2"
+        case "woff":
+            return "font/woff"
+        case "ttf":
+            return "font/ttf"
+        case "txt":
+            return "text/plain"
+        case "md":
+            return "text/markdown"
         default:
             return "application/octet-stream"
         }
@@ -111,7 +125,7 @@ final class LocalWebSchemeHandler: NSObject, WKURLSchemeHandler {
 
     private func textEncoding(for fileURL: URL) -> String? {
         switch fileURL.pathExtension.lowercased() {
-        case "html", "js", "json", "webmanifest", "css", "svg":
+        case "html", "js", "mjs", "json", "webmanifest", "map", "css", "svg", "txt", "md":
             return "utf-8"
         default:
             return nil

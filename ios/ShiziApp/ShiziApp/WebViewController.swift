@@ -28,6 +28,8 @@ final class WebViewController: UIViewController {
     private let schemeHandler: LocalWebSchemeHandler
     private var webView: WKWebView!
     private var practiceBackGesture: UIScreenEdgePanGestureRecognizer!
+    // 01 §7：页面通过 postMessage({type:'backGestureEnabled', value}) 实时告知能否开始边缘返回（书写格有活动指针、tab 根页、阻断页时为 false）。
+    private var backGestureEnabled = true
     private var nativeSmokeDidRun = false
     private var reminderSyncGeneration = 0
     private var pageReady = false
@@ -89,6 +91,7 @@ final class WebViewController: UIViewController {
         let practiceBackGesture = UIScreenEdgePanGestureRecognizer(target: self, action: #selector(handlePracticeBackGesture(_:)))
         practiceBackGesture.edges = .left
         practiceBackGesture.maximumNumberOfTouches = 1
+        practiceBackGesture.delegate = self
         webView.addGestureRecognizer(practiceBackGesture)
 
         self.webView = webView
@@ -107,15 +110,38 @@ final class WebViewController: UIViewController {
     }
 
     @objc private func handlePracticeBackGesture(_ gesture: UIScreenEdgePanGestureRecognizer) {
-        guard gesture.state == .ended else { return }
-        let distance = gesture.translation(in: webView).x
+        // 01 §7：Swift 是边缘返回手势的唯一所有者；每个阶段派发 shizi-native-back-progress，达阈值时派发 shizi-native-back。
+        let phase: String
+        switch gesture.state {
+        case .began: phase = "began"
+        case .changed: phase = "changed"
+        case .ended: phase = "ended"
+        case .cancelled, .failed: phase = "cancelled"
+        default: return
+        }
+        let width = max(webView.bounds.width, 1)
+        let distance = max(0, gesture.translation(in: webView).x)
         let velocity = gesture.velocity(in: webView).x
-        guard distance > webView.bounds.width * 0.24 || velocity > 650 else { return }
-        webView.evaluateJavaScript("window.dispatchEvent(new Event('shizi-native-back')); void 0;")
+        let progress = min(1, distance / width)
+        let detail = String(
+            format: "{phase:'%@',translationX:%.2f,progress:%.4f,velocityX:%.2f}",
+            phase, Double(distance), Double(progress), Double(velocity)
+        )
+        #if DEBUG
+        if phase != "changed" {
+            NSLog("[shizi] native back gesture %@ %@", phase, detail)
+        }
+        #endif
+        var script = "window.dispatchEvent(new CustomEvent('shizi-native-back-progress',{detail:\(detail)}));"
+        if phase == "ended", distance > width * 0.24 || velocity > 650 {
+            script += " window.dispatchEvent(new CustomEvent('shizi-native-back',{detail:\(detail)}));"
+        }
+        webView.evaluateJavaScript(script + " void 0;")
     }
 
     private func loadApp() {
         pageReady = false
+        backGestureEnabled = true
         var components = URLComponents()
         components.scheme = ShiziWebResource.scheme
         components.host = ShiziWebResource.host
@@ -1575,6 +1601,11 @@ extension WebViewController: WKScriptMessageHandler {
             requestReminderPermission()
         case "queryReminderStatus":
             sendReminderStatus()
+        case "backGestureEnabled":
+            backGestureEnabled = (body["value"] as? Bool) ?? true
+            #if DEBUG
+            NSLog("[shizi] backGestureEnabled=%@", backGestureEnabled ? "true" : "false")
+            #endif
         case "recognizeChars":
             let dataURL = body["dataURL"] as? String ?? ""
             let requestID = (body["requestId"] as? NSNumber)?.intValue ?? 0
@@ -1582,6 +1613,18 @@ extension WebViewController: WKScriptMessageHandler {
         default:
             break
         }
+    }
+}
+
+extension WebViewController: UIGestureRecognizerDelegate {
+    func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+        guard gestureRecognizer === practiceBackGesture else { return true }
+        #if DEBUG
+        if !backGestureEnabled {
+            NSLog("[shizi] native back gesture refused: backGestureEnabled=false")
+        }
+        #endif
+        return backGestureEnabled
     }
 }
 

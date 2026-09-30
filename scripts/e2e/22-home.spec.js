@@ -281,7 +281,7 @@ export default async function run(page, ctx) {
   assert.equal(h.inkRow.count, 1, 'ink row data-count=1');
   assert.deepEqual(h.inkRow.ink, ['none'], 'perRecordInk=false → no ink (10.12)');
   assert.deepEqual(h.inkRow.glyphs, ['永'], '10.12 small cell: the character only');
-  assert.equal(h.inkRow.tag, 'DIV', 'ink row is not a button until 今天的记录 is registered (R-H08)');
+  assert.equal(h.inkRow.tag, 'BUTTON', 'ink row is a button: M4-1 registered 今天的记录 (R-H08; 40-mine covers the target)');
   assert.equal(h.inkRow.label, '今天有记录的字：「永」', 'ink row reader label');
 
   const nine = ['一', '二', '三', '四', '五', '六', '七', '八', '九'];

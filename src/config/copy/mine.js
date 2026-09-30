@@ -43,4 +43,27 @@ export default Object.freeze({
   'R-P03.signature': '{date} · {n}个字',
   // R-P04（已定）
   'R-P04.empty': '写一个字并判断对错，这天就会有一个墨点。',
+  // X-MINE（extra：M4-1 我的首页与练习记录里 04 没有收录的原型字样与读屏名，见 copy-source.json extra.X-MINE）
+  'X-MINE.annual': '年度报告',
+  'X-MINE.about': '关于拾字',
+  'X-MINE.chevron': '›',
+  'X-MINE.weekdays': ['一', '二', '三', '四', '五', '六', '日'],
+  'X-MINE.dayRecorded': '{date}，有记录',
+  'X-MINE.monthHead': '{month} 月',
+  'X-MINE.monthNone': '{month} 月还没有记录',
+  'X-MINE.prevMonth': '上个月',
+  'X-MINE.nextMonth': '下个月',
+  'X-MINE.cellTag': '{month}·{day}',
+  'X-MINE.cellLabel': '{char} · {date}',
+  'X-MINE.sheetOrder': '按第一次写下的先后排列',
+  'X-MINE.sheetEmpty': '这个月还没有可以放进图片的字',
+  'X-MINE.seal': '字',
+  // X-ANNUAL（extra：M4-2 年度报告里 04 R-M06 没有收录的原型字样与读屏名，见 copy-source.json extra.X-ANNUAL）
+  'X-ANNUAL.section2': '二 · 有记录天数最多的月份',
+  'X-ANNUAL.section3': '三 · 较少见的字',
+  'X-ANNUAL.section4': '四 · 这一年第一个有记录的字',
+  'X-ANNUAL.emptyGlyph': '年',
+  'X-ANNUAL.rareGlyph': '「{char}」的标准字形',
+  'X-ANNUAL.firstInk': '「{char}」当时的笔迹',
+  'X-ANNUAL.firstNoInk': '「{char}」，没有笔迹',
 });

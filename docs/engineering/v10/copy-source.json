@@ -23,7 +23,10 @@
     "{pinyin}": "拼音",
     "{source}": "来源说明（R-R06.fromWrong / fromForget / fromPicked，边改 S05）",
     "{status}": "记录情况（查字逐字行行尾那句，R-Q04 / P43，读屏标签里复用）",
-    "{caption}": "结果页格下标签（X-RESULT.cellCorrect / cellWrong / cellSkipped / R-R02.cellSaw，读屏标签里复用）"
+    "{caption}": "结果页格下标签（X-RESULT.cellCorrect / cellWrong / cellSkipped / R-R02.cellSaw，读屏标签里复用）",
+    "{library}": "字库名（R-L06.lib.*.name，M3-5 换库确认框标题与换完轻提示）",
+    "{from}": "起始日期（界面按 R-H02.dateFormat；M4-4 替换确认的丢失日期范围）",
+    "{to}": "结束日期（同 {from}）"
   },
   "normalization": [
     "{M} 月 {D} 日、{9 月 24 日} 这类日期、裸「M 月 D 日」、{日期} → {date}",
@@ -59,7 +62,8 @@
     "P71": "自己选字 pick 模式输入后不预选（用户逐个点圈，依 D21 / R-H06）：交互行为，实现在 src/ui/components/query/（M2-0），不是 policy 开关；请产品确认（冻结原型字库墨墙屏 L444 是全预选）",
     "P72": "清空所有记录后首页「没有记录」的说法（R-H09 noCopy）与首练组未写完时不显示「第一次来，先写 5 个字试试。」：首页派生规则在 src/ui/screens/home/today.js（records='empty' / showFirstTip），文案待给定（M4-3 清空）；不是 policy 开关",
     "P74": "每日选字新字顺序 = SEED 字频序（01 §5 字面口径）：数据顺序，src/data/deck.js libraryOf(...).keys 按 SEED 顺序、core/sessions.selectDaily 按序取，不是 policy 开关；请产品确认高频字排最前是本意（M2-2）",
-    "P76": "结果页 / 结束这组 / 开组失败等文案空缺（R-W15 零判断零态句、首练结果页标题、零判断「没法做这次的图片」、S02/开组失败三段式、R-R01 只有看过答案的用法、X-RESULT/X-HOME/X-QUERY/X-SESSION extra 键）：copy 现值在 src/config/copy/ 与本文件 extra（origin: extra），待文案给定（与 P55/P66 一并，M6 文案审计）"
+    "P76": "结果页 / 结束这组 / 开组失败等文案空缺（R-W15 零判断零态句、首练结果页标题、零判断「没法做这次的图片」、S02/开组失败三段式、R-R01 只有看过答案的用法、X-RESULT/X-HOME/X-QUERY/X-SESSION extra 键）：copy 现值在 src/config/copy/ 与本文件 extra（origin: extra），待文案给定（与 P55/P66 一并，M6 文案审计）",
+    "P77": "从看答案阶段结束且本组已有判断时，当前字的 answer-seen 记录是否补进结果页格子：过渡「补进」，实现在 src/ui/screens/result/index.js 的 resultModel（M3/M4 后修复回合落地）；不是 policy 开关"
   },
   "noCopy": [
     "R-H08",
@@ -2775,6 +2779,221 @@
         }
       }
     },
+    "X-LIBSWITCH": {
+      "screen": "library",
+      "milestone": "M3",
+      "source": "M3-5 换库（src/ui/screens/library/switch.js）：页头、正在用、确认框标题与两键取原型 ShiziScreen-第十稿交接版 L186–L191 / L465 / L489（reference/J-proto-screen.md §2.3.23–2.3.24）；04 R-L06 只给了数量行、确认正文、失败句与失败两键；换完轻提示 04 写「边开发边改」未给字样",
+      "slots": {
+        "title": {
+          "raw": null,
+          "text": "更换字库",
+          "origin": "extra",
+          "note": "换库页页头；原型 ShiziScreen L186 libSwitch 标题（J §2.3.23）",
+          "decision": "P55"
+        },
+        "current": {
+          "raw": null,
+          "text": "正在用",
+          "origin": "extra",
+          "note": "当前字库行右侧标记；原型 ShiziScreen L465 lib{i}T",
+          "decision": "P55"
+        },
+        "more": {
+          "raw": null,
+          "text": "›",
+          "origin": "extra",
+          "note": "非当前字库行右侧箭头（装饰，aria-hidden）；原型 ShiziScreen L465 lib{i}T"
+        },
+        "confirmTitle": {
+          "raw": null,
+          "text": "换成「{library}」？",
+          "origin": "extra",
+          "note": "换库确认框标题；原型 ShiziScreen L489 libConfirmTitle（J §2.3.24）",
+          "decision": "P55"
+        },
+        "confirmCancel": {
+          "raw": null,
+          "text": "取消",
+          "origin": "extra",
+          "note": "换库确认框次按钮；原型 ShiziScreen L190",
+          "decision": "P55"
+        },
+        "confirmOk": {
+          "raw": null,
+          "text": "换成这个库",
+          "origin": "extra",
+          "note": "换库确认框主按钮；原型 ShiziScreen L190",
+          "decision": "P55"
+        },
+        "switchedToast": {
+          "raw": null,
+          "text": "已换成「{library}」。",
+          "origin": "extra",
+          "note": "换完轻提示（04 R-L06「换完轻提示」、清单 L10 边开发边改，未给字样；原型成功后只关弹层；旧版 toast「在学：X」叫法已废）。工程暂拟，待文案确认",
+          "decision": "P55"
+        }
+      }
+    },
+    "X-LIST": {
+      "screen": "library",
+      "milestone": "M3",
+      "source": "M3-2 写错过 / 快忘了清单（src/ui/screens/library/list.js）：清单标题行、空态第二句与装饰字取原型 字库墨墙屏-第十稿交接版 L408–L410（reference/K-proto-home-lib.md「写错过 / 快忘了清单」）；全选 / 全不选按边改 S06；04 R-E02–R-E04 没给这些槽",
+      "slots": {
+        "countHead": {
+          "raw": null,
+          "text": "{n} 个字",
+          "origin": "extra",
+          "note": "清单正文标题行；原型 L410 lsHead「{N} 个字」（页头标题用 R-E04.titleWrong / titleForget）",
+          "decision": "P76"
+        },
+        "selectAll": {
+          "raw": null,
+          "text": "全选",
+          "origin": "extra",
+          "note": "页头右侧勾选切换（未全选时）；边改 S06「加\"全选 / 全不选\"」（04 §4.3 L40），原型没有此控件",
+          "decision": "P76"
+        },
+        "selectNone": {
+          "raw": null,
+          "text": "全不选",
+          "origin": "extra",
+          "note": "页头右侧勾选切换（已全选时）；边改 S06",
+          "decision": "P76"
+        },
+        "emptyGlyphWrong": {
+          "raw": null,
+          "text": "错",
+          "origin": "extra",
+          "note": "写错过空态 88×88 虚框里的装饰字（aria-hidden）；原型 L408 leGlyph",
+          "decision": "P76"
+        },
+        "emptyGlyphForget": {
+          "raw": null,
+          "text": "忘",
+          "origin": "extra",
+          "note": "快忘了空态 88×88 虚框里的装饰字（aria-hidden）；原型 L408 leGlyph",
+          "decision": "P76"
+        },
+        "wrongEmptyBody": {
+          "raw": null,
+          "text": "你判断写错的字会放在这里。",
+          "origin": "extra",
+          "note": "写错过空态第二句；原型 L408 leWhy（R-E04 只给了标题「现在没有写错过的字」）",
+          "decision": "P76"
+        },
+        "forgetEmptyTitle": {
+          "raw": null,
+          "text": "现在没有快忘了的字",
+          "origin": "extra",
+          "note": "快忘了空态标题；原型 L408 leTitle（R-E04 只给了第二句「可能快忘了的字会放在这里。」）",
+          "decision": "P76"
+        },
+        "startFailed": {
+          "raw": null,
+          "text": "没保存上，刚才的选择没记下。",
+          "origin": "extra",
+          "note": "「练这些字」开组写入失败（R-G04 三段式，留在清单页、勾选不变）；套用 X-HOME.startFailed / X-SESSION.s02SaveFailed 同句，待文案确认",
+          "decision": "P76"
+        }
+      }
+    },
+    "X-DETAIL": {
+      "screen": "detail",
+      "milestone": "M3",
+      "source": "M3-6 单字详情（src/ui/screens/detail/）：字卡笔画数 / 词语与释义标签、首次记录、无记录说明、格下标签、字源标签、旧记录入口与照片替代文字取原型 ShiziScreen-第十稿交接版 L32–L61、L128–L132、L389–L413（reference/J-proto-screen.md §2.3.3–§2.3.5、§2.3.15）；保存失败三段式按 01 §4 写入点表「加入自选 / 移除撤销、wordOff → C125」；04 R-D01–R-D10 没给这些槽",
+      "slots": {
+        "strokes": {
+          "raw": null,
+          "text": "{n} 画",
+          "origin": "extra",
+          "note": "字卡拼音下的笔画数；原型 L400 dStrokes「{N} 画」"
+        },
+        "wordLabel": {
+          "raw": null,
+          "text": "词语",
+          "origin": "extra",
+          "note": "字卡词块上方标签；原型 L400 dWordLabel"
+        },
+        "glossLabel": {
+          "raw": null,
+          "text": "释义",
+          "origin": "extra",
+          "note": "字卡没有语境词（释义题 / 仅拼音题 / 换掉了词语）时的标签；原型 L400 dWordLabel「释义」"
+        },
+        "firstRecord": {
+          "raw": null,
+          "text": "首次记录 {date}",
+          "origin": "extra",
+          "note": "记录块右侧；原型 L409 dFirst「首次记录 9 月 1 日」（C110–C113 的第二半，04 R-D03 只写了「记录了 {N} 次」）"
+        },
+        "emptyNote": {
+          "raw": null,
+          "text": "判断过的每一次书写都会留在这里",
+          "origin": "extra",
+          "note": "没有记录时记录块右侧说明；原型 detailEmpty L57"
+        },
+        "cellCaption": {
+          "raw": null,
+          "text": "{month}·{day} {caption}",
+          "origin": "extra",
+          "note": "历次格子格下标签；原型 L413 fmt(r.d)+' '+vd(r.v)「9·8 写对」；{caption} = X-RESULT.cellCorrect / cellWrong",
+          "decision": "P76"
+        },
+        "cellTitle": {
+          "raw": null,
+          "text": "{date} · {caption}",
+          "origin": "extra",
+          "note": "历次格子按钮的读屏名与放大弹层标题（R-D03「点格子放大」，原型没有放大后的样子）",
+          "decision": "P76"
+        },
+        "sourceLabel": {
+          "raw": null,
+          "text": "字源",
+          "origin": "extra",
+          "note": "字源行标签；原型 L46；出处一行用 data/etymology.json 的 source 字段（《说文解字》/ Make Me a Hanzi）"
+        },
+        "legacyEntry": {
+          "raw": null,
+          "text": "旧版本的记录",
+          "origin": "extra",
+          "note": "有旧版本照片（photos[字]）时单字详情里进入 R-D10 旧记录页的行，也是旧记录页照片下的小标题；原型 photo 页 L128–L132 底部「旧版本的记录」（单字详情里原型没有单独入口，data-nav=\"photo\" 双义，J 报告 §5-5）",
+          "decision": "P76"
+        },
+        "photoAlt": {
+          "raw": null,
+          "text": "旧版本拍下的照片",
+          "origin": "extra",
+          "note": "旧记录页照片的替代文字；原型 photo 页 3:4 条纹占位文字"
+        },
+        "saveFailed": {
+          "raw": null,
+          "text": "没保存上，原来的内容都还在。",
+          "origin": "extra",
+          "note": "换掉这个词语 / 撤销、从自选移除 / 撤销、练这个字开组失败的说明（R-G04 三段式）；04 §3 C125 通用弹层句，01 §4 写入点表「加入自选 / 移除撤销、wordOff → C125」",
+          "decision": "P76"
+        },
+        "retry": {
+          "raw": null,
+          "text": "再试一次",
+          "origin": "extra",
+          "note": "三段式主按钮（T01）"
+        },
+        "cancel": {
+          "raw": null,
+          "text": "先不保存",
+          "origin": "extra",
+          "note": "三段式次按钮；沿 R-H06.cancel / X-SESSION.s02Cancel 同句",
+          "decision": "P76"
+        },
+        "undoFailedL2": {
+          "raw": null,
+          "text": "可以再点一次撤销",
+          "origin": "extra",
+          "note": "从自选移除的撤销写入失败时撤销底栏第二行（第一行用 X-DETAIL.saveFailed，按钮保留，10.15 / UndoBar.js 约定）",
+          "decision": "P76"
+        }
+      }
+    },
     "X-RESULT": {
       "screen": "result",
       "milestone": "M2",
@@ -2883,6 +3102,724 @@
           "text": "{char} · {caption}",
           "origin": "extra",
           "note": "结果页格子（button）的 aria-label（M2 验收 H3）：{caption} 取同格格下标签 X-RESULT.cellCorrect / cellWrong / cellSkipped / R-R02.cellSaw；原型没有读屏标签，按格下「字 + 标签」拼成"
+        }
+      }
+    },
+    "X-LIBHOME": {
+      "screen": "library",
+      "milestone": "M3",
+      "source": "M3-1 字库首页（墨墙）src/ui/screens/library/：原型 字库墨墙屏-第十稿交接版 L26–L79、L353–L365 里 04 §4.1 R-L01–R-L10 没有收录的界面字样（reference/K-proto-home-lib.md 附录 A）",
+      "slots": {
+        "recordedLabel": {
+          "raw": null,
+          "text": "有记录的字",
+          "origin": "原型 字库墨墙屏-第十稿交接版.dc.html L39",
+          "note": "M3-1：大数字上方的小标签（整块是进「有记录的字」完整页的按钮，R-L02）；也用作墙的读屏分组名"
+        },
+        "countUnit": {
+          "raw": null,
+          "text": "个字",
+          "origin": "原型 字库墨墙屏-第十稿交接版.dc.html L40",
+          "note": "M3-1：大数字后的单位"
+        },
+        "since": {
+          "raw": null,
+          "text": "从 {date}开始记录",
+          "origin": "原型 字库墨墙屏-第十稿交接版.dc.html L357 factB",
+          "note": "M3-1：第二条事实（R-L10）；原型「从 '+md(D.first)+'开始记录」，日期后无空格；{date} = R-H02.dateFormat",
+          "decision": "P63"
+        },
+        "factSep": {
+          "raw": null,
+          "text": "·",
+          "origin": "原型 字库墨墙屏-第十稿交接版.dc.html L41",
+          "note": "M3-1：两条事实前的间隔点（装饰，aria-hidden；第一条前的点被负边距藏起，同原型）"
+        },
+        "wrongCardNote": {
+          "raw": null,
+          "text": "你判断写错的字。",
+          "origin": "原型 字库墨墙屏-第十稿交接版.dc.html L360 card()",
+          "note": "M3-1：写错过卡片说明（快忘了卡片的对应句在 R-L07）"
+        },
+        "wrongCardEmpty": {
+          "raw": null,
+          "text": "你判断写错的字会放在这里。",
+          "origin": "原型 字库墨墙屏-第十稿交接版.dc.html L360 card()",
+          "note": "M3-1：写错过卡片空态（空卡去卡片样式、不可点，R-L02）；同 X-LIST.wrongEmptyBody 字样"
+        },
+        "cardActOne": {
+          "raw": null,
+          "text": "练这个字 →",
+          "origin": "原型 字库墨墙屏-第十稿交接版.dc.html L67、L361 act",
+          "note": "M3-1：卡片底部动作行（列表只有 1 个字时）；原型 act + 「→」；整张卡是进清单的按钮"
+        },
+        "cardActMany": {
+          "raw": null,
+          "text": "练这些字 →",
+          "origin": "原型 字库墨墙屏-第十稿交接版.dc.html L67、L361 act",
+          "note": "M3-1：卡片底部动作行（2 个字以上）；同 R-A02.practiceThese 字样"
+        },
+        "tone0": {
+          "raw": null,
+          "text": "一周内写过",
+          "origin": "原型 字库墨墙屏-第十稿交接版.dc.html L223 TL[0]",
+          "note": "M3-1：图例第一档（≤ policy.inkToneDays[0] 天，P56）；第四档见 R-L03.toneOldest",
+          "decision": "P56"
+        },
+        "tone1": {
+          "raw": null,
+          "text": "一个月内",
+          "origin": "原型 字库墨墙屏-第十稿交接版.dc.html L223 TL[1]",
+          "note": "M3-1：图例第二档（≤ inkToneDays[1] 天）",
+          "decision": "P56"
+        },
+        "tone2": {
+          "raw": null,
+          "text": "三个月内",
+          "origin": "原型 字库墨墙屏-第十稿交接版.dc.html L223 TL[2]",
+          "note": "M3-1：图例第三档（≤ inkToneDays[2] 天）",
+          "decision": "P56"
+        },
+        "legendDarkNote": {
+          "raw": null,
+          "text": "颜色越暗，越久没写。点一个字，看它每次的笔迹。",
+          "origin": "04 R-L03 深色「颜色越暗，越久没写」+ R-L03.legend 后半句",
+          "note": "M3-1：深色主题下墙底说明（边改 L14：把 R-L03.legend 的前半句换成 R-L03.legendDark，后半句不变）；浅色用 R-L03.legend"
+        },
+        "emptyTitle": {
+          "raw": null,
+          "text": "你写下的字会留在这里",
+          "origin": "原型 字库墨墙屏-第十稿交接版.dc.html L74",
+          "note": "M3-1：没有记录时的空态标题；下面一句用 R-L05.empty"
+        },
+        "emptyGlyph": {
+          "raw": null,
+          "text": "拾",
+          "origin": "原型 字库墨墙屏-第十稿交接版.dc.html L73 shiEl",
+          "note": "M3-1：空态上方空心「拾」字（装饰，aria-hidden）"
+        },
+        "cellAria": {
+          "raw": null,
+          "text": "{char}，{status}",
+          "origin": "extra",
+          "note": "M3-1：墙上每格按钮的读屏名；{status} = 墨色档位图例字样 / 写错过 / 自选了还没写（原型格子只有 data-nav，没有读屏名）"
+        }
+      }
+    },
+    "X-ALL": {
+      "screen": "library",
+      "milestone": "M3",
+      "source": "M3-4「有记录的字」完整页（src/ui/screens/library/all.js / all-model.js）：原型 字库墨墙屏-第十稿交接版 L85–L114、L367–L402 里 04 R-A01–R-A04 没有收录的字样（筛选项带数、多久没写说明、分组名与计数、收起月份行）；跨年月份名与开组失败说明为工程补（reference/K-proto-home-lib.md「有记录的字完整页」、附录 A）",
+      "slots": {
+        "chipWrong": {
+          "raw": null,
+          "text": "写错过 {n}",
+          "origin": "原型 字库墨墙屏-第十稿交接版.dc.html L376 chipDefs",
+          "note": "M3-4：筛选项「写错过 {N}」（R-A02 规则列只写了「写错过」，带数的写法同 R-A02.filterCustom「自选的字 {n}」）"
+        },
+        "chipForget": {
+          "raw": null,
+          "text": "快忘了 {n}",
+          "origin": "原型 字库墨墙屏-第十稿交接版.dc.html L376 chipDefs",
+          "note": "M3-4：筛选项「快忘了 {N}」（N = 快忘了清单同一口径，policy.forgetCap）"
+        },
+        "chipUnwritten": {
+          "raw": null,
+          "text": "自选了还没写 {n}",
+          "origin": "原型 字库墨墙屏-第十稿交接版.dc.html L376 chipDefs",
+          "note": "M3-4：筛选项「自选了还没写 {N}」"
+        },
+        "ageNote": {
+          "raw": null,
+          "text": "离上次写越久，排得越前。",
+          "origin": "原型 字库墨墙屏-第十稿交接版.dc.html L398 allNote（age）",
+          "note": "M3-4：排序「多久没写」的说明句（R-A01 只给了最近写的 / 拼音两句）"
+        },
+        "groupRecorded": {
+          "raw": null,
+          "text": "有记录",
+          "origin": "原型 字库墨墙屏-第十稿交接版.dc.html L383 custom 第二组",
+          "note": "M3-4：筛选「自选的字」下第二组（已写过的自选的字）组名"
+        },
+        "groupMonth": {
+          "raw": null,
+          "text": "{month} 月",
+          "origin": "原型 字库墨墙屏-第十稿交接版.dc.html L380 m+' 月'",
+          "note": "M3-4：按月分组的组名 / 收起的月份行（今年的月份）"
+        },
+        "groupMonthYear": {
+          "raw": null,
+          "text": "{year} 年 {month} 月",
+          "origin": "extra",
+          "note": "M3-4：不是今年的月份的组名（一年量级的记录会有两个同名月份；原型月份不带年）。工程补，待文案确认",
+          "decision": "P55"
+        },
+        "foundInYear": {
+          "raw": null,
+          "text": "在 {year} 年 {month} 月",
+          "origin": "extra",
+          "note": "M3-4：查字定位命中的月份不是今年时输入框右侧的说法（R-A03.foundIn 的跨年形态）。工程补，待文案确认",
+          "decision": "P55"
+        },
+        "groupOther": {
+          "raw": null,
+          "text": "其他",
+          "origin": "原型 字库墨墙屏-第十稿交接版.dc.html L174 k==='#'?'其他'",
+          "note": "M3-4：排序「拼音」时没有拼音的字（题库外的字）的组名"
+        },
+        "groupCount": {
+          "raw": null,
+          "text": "{n} 个字",
+          "origin": "原型 字库墨墙屏-第十稿交接版.dc.html L380 count",
+          "note": "M3-4：分组标题右侧的字数"
+        },
+        "closedCount": {
+          "raw": null,
+          "text": "{n} 个字 ›",
+          "origin": "原型 字库墨墙屏-第十稿交接版.dc.html L41 closed 行「{{ m.count }} ›」",
+          "note": "M3-4：按月排时收起的月份行右侧（点开这个月）"
+        },
+        "startFailed": {
+          "raw": null,
+          "text": "没保存上，刚才的选择没记下。",
+          "origin": "extra",
+          "note": "M3-4：筛选「自选了还没写」后「练这些字 →」开组写入失败（R-G04，留在本页、筛选不变，按钮可再点）；同 X-LIST.startFailed 字样，待文案确认",
+          "decision": "P76"
+        }
+      }
+    },
+    "X-ABOUT": {
+      "screen": "about",
+      "milestone": "M4",
+      "source": "M4-6 关于（src/ui/screens/mine/about.js）：页头、印、题句、行标签取原型 ShiziScreen-第十稿交接版 L161–L163（reference/J-proto-screen.md §2.3.19）；三个子页原型没做（R-AB01），隐私 / 开源资料按 03 P21 过渡「由现有文档生成」，待文案",
+      "slots": {
+        "title": {
+          "raw": null,
+          "text": "关于拾字",
+          "origin": "extra",
+          "note": "关于页页头；原型 ShiziScreen-第十稿交接版 L161 about 页头与我的菜单 L28「关于拾字」（reference/J-proto-screen.md §2.3.19）",
+          "decision": "P55"
+        },
+        "appName": {
+          "raw": null,
+          "text": "拾字",
+          "origin": "extra",
+          "note": "关于页印章下的应用名；原型 ShiziScreen L161",
+          "decision": "P55"
+        },
+        "seal": {
+          "raw": null,
+          "text": "字",
+          "origin": "extra",
+          "note": "关于页 64px 红印里的字（装饰，aria-hidden）；原型 ShiziScreen L161",
+          "decision": "P55"
+        },
+        "motto": {
+          "raw": null,
+          "text": [
+            "提笔忘字，不是忘了，",
+            "只是很久没写。"
+          ],
+          "origin": "extra",
+          "note": "关于页楷体题句；原型 ShiziScreen L162（原文 <br> 两行）",
+          "decision": "P55"
+        },
+        "privacy": {
+          "raw": null,
+          "text": "隐私",
+          "origin": "extra",
+          "note": "隐私行左侧标签与隐私子页页头；原型 ShiziScreen L163 行标签「隐私」",
+          "decision": "P21"
+        },
+        "privacy1": {
+          "raw": null,
+          "text": "你写的字、笔迹和对错，只存在这台手机上。",
+          "origin": "extra",
+          "note": "隐私子页第 1 段：由 ADR 0001「核心记忆、手写、照片和练习事件只保存在本机」+ 文案 D9「这台手机」整理；03 P21 过渡「隐私页由现有文档生成」，待文案",
+          "decision": "P21"
+        },
+        "privacy2": {
+          "raw": null,
+          "text": "拾字没有账号，不会把你的记录发到网上。",
+          "origin": "extra",
+          "note": "隐私子页第 2 段：01 §0「不做账号/云同步」；待文案",
+          "decision": "P21"
+        },
+        "privacy3": {
+          "raw": null,
+          "text": "联网只用来更新拾字和取字的笔顺，不会带上你的记录。",
+          "origin": "extra",
+          "note": "隐私子页第 3 段：01 §8.3 Service Worker 更新与 §8.4 笔顺按需下载；待文案",
+          "decision": "P21"
+        },
+        "privacy4": {
+          "raw": null,
+          "text": "记录不会自己备份。换手机之前，先在「备份与恢复」里导出备份文件，自己存好。",
+          "origin": "extra",
+          "note": "隐私子页第 4 段：R-M03「记录只存在这台手机上」+ R-B02「导出备份文件」；待文案",
+          "decision": "P21"
+        },
+        "creditsTitle": {
+          "raw": null,
+          "text": "开源资料 · 致谢",
+          "origin": "extra",
+          "note": "开源资料子页页头（R-AB01.openSourceRow 去掉行尾 ›）",
+          "decision": "P21"
+        },
+        "creditsIntro": {
+          "raw": null,
+          "text": "拾字用到了下面这些开源的程序、数据和字体。谢谢它们的作者。",
+          "origin": "extra",
+          "note": "开源资料子页开头一句；内容由 scripts/build_credits.mjs 从 THIRD_PARTY_NOTICES.md 与 licenses/ 生成（03 P21 过渡）；待文案",
+          "decision": "P21"
+        },
+        "groupCode": {
+          "raw": null,
+          "text": "程序",
+          "origin": "extra",
+          "note": "开源资料分组：vendor/ 下随包的程序库（Preact / htm / Hanzi Writer / ts-fsrs）",
+          "decision": "P21"
+        },
+        "groupData": {
+          "raw": null,
+          "text": "字形和字源",
+          "origin": "extra",
+          "note": "开源资料分组：笔顺字形与字源数据（原型行标签「字形和字源的出处」）",
+          "decision": "P21"
+        },
+        "groupFont": {
+          "raw": null,
+          "text": "字体",
+          "origin": "extra",
+          "note": "开源资料分组：字体（ShiziKai / ShiziSerifSC 在 M5-2 落位后由 NOTICES 生成）",
+          "decision": "P21"
+        },
+        "licenseMore": {
+          "raw": null,
+          "text": "许可全文",
+          "origin": "extra",
+          "note": "每项的展开钮：展开后显示 NOTICES 原文与许可全文（英文原文，不翻译）",
+          "decision": "P21"
+        },
+        "more": {
+          "raw": null,
+          "text": "›",
+          "origin": "extra",
+          "note": "关于页行尾箭头（装饰，aria-hidden）；原型 ShiziScreen L163「给我们写信」行尾"
+        }
+      }
+    },
+    "X-SETTINGS": {
+      "screen": "settings",
+      "milestone": "M4",
+      "source": "M4-3 设置（src/ui/screens/mine/settings.js）：组标题「练习 / 提醒 / 显示 / 数据」与开关行「练习提醒」取原型 ShiziScreen-第十稿交接版 L145–L152（reference/J-proto-screen.md §2.3.17）；提醒时间行按 03 P18（用户选）补槽；保存失败三段式按 04 §3 T01 / C063；04 R-S01–R-S04 没给这些槽",
+      "slots": {
+        "groupPractice": {
+          "raw": null,
+          "text": "练习",
+          "origin": "extra",
+          "note": "设置页第一组标题；原型 ShiziScreen L146"
+        },
+        "groupRemind": {
+          "raw": null,
+          "text": "提醒",
+          "origin": "extra",
+          "note": "设置页第二组标题；原型 ShiziScreen L147"
+        },
+        "groupDisplay": {
+          "raw": null,
+          "text": "显示",
+          "origin": "extra",
+          "note": "设置页第三组标题；原型 ShiziScreen L148"
+        },
+        "groupData": {
+          "raw": null,
+          "text": "数据",
+          "origin": "extra",
+          "note": "设置页第四组标题；原型 ShiziScreen L149"
+        },
+        "remindLabel": {
+          "raw": null,
+          "text": "练习提醒",
+          "origin": "extra",
+          "note": "提醒开关行标题（小字 R-S01.remindNote / 通知被关时 R-S02.title）；原型 ShiziScreen L147 / L156"
+        },
+        "remindTime": {
+          "raw": null,
+          "text": "提醒时间",
+          "origin": "extra",
+          "note": "提醒开着时的时间行标题（<input type=time>）；原型设置页没有这一行，按 03 P18「用户选」、走查-M05「开提醒时选时间」补槽，字样待文案",
+          "decision": "P18"
+        },
+        "more": {
+          "raw": null,
+          "text": "›",
+          "origin": "extra",
+          "note": "值行右侧箭头（装饰，aria-hidden）；原型 ShiziScreen L146 / L149「… ›」"
+        },
+        "saveFailed": {
+          "raw": null,
+          "text": "没保存上，刚才的选择没记下。",
+          "origin": "extra",
+          "note": "设置写入失败（按键音 / 提醒 / 提醒时间 / 更大字体 / 外观）的说明句（R-G04 三段式）；04 §3 T01 模板、C063「刚才的选择」同句（换库 / 难度同一说法），原型没有这一态，待文案确认",
+          "decision": "P55"
+        },
+        "cancel": {
+          "raw": null,
+          "text": "先不保存",
+          "origin": "extra",
+          "note": "三段式次按钮；沿 R-H06.cancel / X-DETAIL.cancel 同句（T01「先不 + 动作」）"
+        },
+        "retry": {
+          "raw": null,
+          "text": "再试一次",
+          "origin": "extra",
+          "note": "三段式主按钮（T01）"
+        }
+      }
+    },
+    "X-MINE": {
+      "screen": "mine",
+      "milestone": "M4",
+      "source": "M4-1 我的首页与练习记录（src/ui/screens/mine/index.js / records.js）：原型 ShiziScreen-第十稿交接版 L24–L31、L88–L110、L266、L320–L324、L382–L388、L408–L429 里 04 R-M01–R-M05、R-P01–R-P05 没有收录的界面字样（reference/J-proto-screen.md §2.3.1–§2.3.2、§2.3.6–§2.3.9）；读屏名为工程补",
+      "slots": {
+        "annual": {
+          "raw": null,
+          "text": "年度报告",
+          "origin": "原型 ShiziScreen-第十稿交接版.dc.html L28 菜单「年度报告」",
+          "note": "M4-1：我的菜单行（进年度报告页由 M4-2 注册）；行内小字是今年的年份数字（数据，不进 copy）"
+        },
+        "about": {
+          "raw": null,
+          "text": "关于拾字",
+          "origin": "原型 ShiziScreen-第十稿交接版.dc.html L28 菜单「关于拾字」",
+          "note": "M4-1：我的菜单行（与 X-ABOUT.title 同字样；菜单只用本键，关于页页头归 M4-6）"
+        },
+        "chevron": {
+          "raw": null,
+          "text": "›",
+          "origin": "原型 ShiziScreen-第十稿交接版.dc.html L26「练习记录 ›」、L28 菜单行尾",
+          "note": "M4-1：行尾 / 链接后的箭头（装饰，aria-hidden）"
+        },
+        "weekdays": {
+          "raw": null,
+          "text": [
+            "一",
+            "二",
+            "三",
+            "四",
+            "五",
+            "六",
+            "日"
+          ],
+          "origin": "原型 ShiziScreen-第十稿交接版.dc.html L386 / L425 weekdays",
+          "note": "M4-1：这一周与月历的星期（周一开头）；数组每项一格，不是多行"
+        },
+        "dayRecorded": {
+          "raw": null,
+          "text": "{date}，有记录",
+          "origin": "extra",
+          "note": "M4-1：读屏名——这一周 / 月历里有墨点的日子（墨点本身 aria-hidden）；{date} = R-H02.dateFormat；待文案（P76 同类工程补读屏名）",
+          "decision": "P76"
+        },
+        "monthHead": {
+          "raw": null,
+          "text": "{month} 月",
+          "origin": "原型 ShiziScreen-第十稿交接版.dc.html L89「9 月」",
+          "note": "M4-1：练习记录月份行（后接年份数字，数据）；{month} 月的写法同 P64 归一",
+          "decision": "P64"
+        },
+        "monthNone": {
+          "raw": null,
+          "text": "{month} 月还没有记录",
+          "origin": "原型 ShiziScreen-第十稿交接版.dc.html L107 recordsEmpty「9 月还没有记录」",
+          "note": "M4-1：练习记录这个月没有有记录的日子时的标题（下面接 R-P04.empty）；{month} 月的写法同 P64 归一",
+          "decision": "P64"
+        },
+        "prevMonth": {
+          "raw": null,
+          "text": "上个月",
+          "origin": "extra",
+          "note": "M4-1：读屏名——练习记录「‹」（原型 L89 data-nav=prevMonth，无文字）；待文案",
+          "decision": "P76"
+        },
+        "nextMonth": {
+          "raw": null,
+          "text": "下个月",
+          "origin": "extra",
+          "note": "M4-1：读屏名——练习记录「›」（原型 L89 data-nav=nextMonth，无文字）；待文案",
+          "decision": "P76"
+        },
+        "cellTag": {
+          "raw": null,
+          "text": "{month}·{day}",
+          "origin": "原型 ShiziScreen-第十稿交接版.dc.html L266 fmt()「9·1」",
+          "note": "M4-1：字帖格子左上角红色小日期（R-P02「红色小字是那天的日期」）"
+        },
+        "cellLabel": {
+          "raw": null,
+          "text": "{char} · {date}",
+          "origin": "extra",
+          "note": "M4-1：读屏名——字帖 / 某天的字格子（点进单字详情）；{date} = R-H02.dateFormat，同结果页格子「{字} · 写对」的写法；待文案",
+          "decision": "P76"
+        },
+        "sheetOrder": {
+          "raw": null,
+          "text": "按第一次写下的先后排列",
+          "origin": "原型 ShiziScreen-第十稿交接版.dc.html L91 落款下小字",
+          "note": "M4-1：练习记录字帖落款下一行（P02 过渡 monthSheetPick='first'）"
+        },
+        "sheetEmpty": {
+          "raw": null,
+          "text": "这个月还没有可以放进图片的字",
+          "origin": "原型 ShiziScreen-第十稿交接版.dc.html L109 recordsEmpty 虚线框",
+          "note": "M4-1：练习记录这个月没有字时字帖块的虚线框"
+        },
+        "seal": {
+          "raw": null,
+          "text": "字",
+          "origin": "原型 ShiziScreen-第十稿交接版.dc.html L26 / L91 红印",
+          "note": "M4-1：字帖落款旁的红印（装饰，aria-hidden）"
+        }
+      }
+    },
+    "X-IMAGES": {
+      "screen": "images",
+      "milestone": "M4",
+      "source": "M4-5 图片预览弹层（src/ui/components/image-preview.js、src/ui/images-entry.js）：原型 ShiziScreen-第十稿交接版 L192–L201 图片预览 image34 / image11（reference/J-proto-screen.md §2.3.25）、L486–L487 imgNote、charEl L352–L362（A05）；04 §3.2「图片规格」缺笔迹说明；04 R-I01–R-I04 没给这些槽",
+      "slots": {
+        "save": {
+          "raw": null,
+          "text": "保存图片",
+          "origin": "extra",
+          "note": "预览弹层主按钮；原型 L195 imgSave「保存图片」（R-M01.saveImage 是带 › 的入口行，不是按钮）"
+        },
+        "retry": {
+          "raw": null,
+          "text": "再试一次",
+          "origin": "extra",
+          "note": "保存失败后主按钮；原型 L195 imgFail「分享 / 再试一次」"
+        },
+        "ratioPortrait": {
+          "raw": null,
+          "text": "3:4",
+          "origin": "extra",
+          "note": "比例分段按钮；原型 L193 image34「3:4」"
+        },
+        "ratioSquare": {
+          "raw": null,
+          "text": "1:1",
+          "origin": "extra",
+          "note": "比例分段按钮；原型 L193 image11「1:1」"
+        },
+        "missingSession": {
+          "raw": null,
+          "text": "{chars}这一次没有留下笔迹，不在图里。",
+          "origin": "extra",
+          "decision": "P50",
+          "note": "这次的图片 / 这天写的字里缺墨的字（可能不止一个）；04 §3.2「图片里缺笔迹说明：「X」最近一次 / 这一次没有留下笔迹，不在图里。」与 R-R07.missingInk 同句，{chars} 拼成「鲜」「境」（原型 L487 missM.join('')）"
+        },
+        "missingMonth": {
+          "raw": null,
+          "text": "{chars}最近一次没有留下笔迹，不在图里。",
+          "origin": "extra",
+          "decision": "P50",
+          "note": "月字帖里缺墨的字；04 §3.2 同上「最近一次」一式（原型 L487「最近一次没有笔迹，不在图里。」）。注意 P02 过渡取本月第一次，「最近一次」措辞与之不符，待文案确认"
+        },
+        "emptyMonth": {
+          "raw": null,
+          "text": "这个月还没有可以放进图片的字",
+          "origin": "extra",
+          "note": "月字帖一个能画的字都没有时预览区的说明；原型 ShiziScreen recordsEmpty 纸卡虚线框（reference/J-proto-screen.md §2.3.8，L158）"
+        },
+        "brand": {
+          "raw": null,
+          "text": "拾字",
+          "origin": "extra",
+          "note": "单字手写图片右下落款（A05，备注 L146 右下「拾字」落款 26px；原型 charEl L360）"
+        },
+        "seal": {
+          "raw": null,
+          "text": "字",
+          "origin": "extra",
+          "note": "图片右下小印里的字（原型 imgEl / charEl 红印白字「字」，L338 / L360）"
+        },
+        "renderFailed": {
+          "raw": null,
+          "text": "图片暂时无法生成，请稍后再试。",
+          "origin": "extra",
+          "note": "画布生成失败（极少见：canvas 不可用 / 落款放不下）；沿现有 iOS 壳 WebViewController.swift sharePracticeCard 的同句，原型没有这一态，待文案确认"
+        }
+      }
+    },
+    "X-BACKUP": {
+      "screen": "backup",
+      "milestone": "M4",
+      "source": "M4-4 备份与恢复（src/ui/screens/mine/backup.js）：页面段落、恢复 / 清空两行、替换确认标题与两键、清空底部弹层（标题、两键、失败句与失败两键）取原型 ShiziScreen-第十稿交接版 L166–L171 / L205–L210（reference/J-proto-screen.md §2.3.20、§2.3.27、§2.3.28）；丢失日期范围句按边改 K04（04 §4.3 L436）与 03 P26；导出成功反馈按 K04「导出成功给反馈」，字样工程暂拟",
+      "slots": {
+        "intro": {
+          "raw": null,
+          "text": "记录只存在这台手机上。换手机、清理浏览器或删掉拾字之前，先导出一份备份文件。",
+          "origin": "extra",
+          "note": "有记录时状态块下的段落；原型 ShiziScreen L166 bkCanExp 段（J §2.3.20）；替换 / 清空后（撤销底栏在时）不显示（L169 backupDone 无此段）",
+          "decision": "P55"
+        },
+        "introEmpty": {
+          "raw": null,
+          "text": "记录只存在这台手机上。",
+          "origin": "extra",
+          "note": "没有记录时的段落；原型 L166 bkNoExp 段",
+          "decision": "P55"
+        },
+        "restoreRow": {
+          "raw": null,
+          "text": "从备份文件恢复",
+          "origin": "extra",
+          "note": "恢复行标题；原型 L166 data-nav=restore 行",
+          "decision": "P55"
+        },
+        "restoreRowSub": {
+          "raw": null,
+          "text": "会替换现在的记录，离开这一页前可以撤销",
+          "origin": "extra",
+          "note": "有记录时恢复行副标题；原型 L166 bkCanExp 分支（无记录时用 R-B03.restoreRowSub「离开这一页前可以撤销」，X07）；撤销底栏在时不显示（L169）",
+          "decision": "P55"
+        },
+        "clearRow": {
+          "raw": null,
+          "text": "清空所有记录",
+          "origin": "extra",
+          "note": "清空行（红字；无记录时灰、disabled + aria-disabled）；原型 L166 data-nav=clearAll",
+          "decision": "P55"
+        },
+        "retry": {
+          "raw": null,
+          "text": "再试一次",
+          "origin": "extra",
+          "note": "R-B04 说明框后的下划线链接（10.14：回到换成备份的确认）；原型 L166 bkRetryOn / restoreRetry",
+          "decision": "P55"
+        },
+        "replaceTitle": {
+          "raw": null,
+          "text": "用备份替换现在的记录？",
+          "origin": "extra",
+          "note": "有记录时替换确认框标题；原型 L205 rcHas（J §2.3.27）；无记录时用 R-B03.restoreTitle（Y04）",
+          "decision": "P55"
+        },
+        "confirmCancel": {
+          "raw": null,
+          "text": "取消",
+          "origin": "extra",
+          "note": "替换 / 恢复确认框与清空弹层的次按钮；原型 L205 / L208",
+          "decision": "P55"
+        },
+        "replaceOk": {
+          "raw": null,
+          "text": "替换",
+          "origin": "extra",
+          "note": "有记录时替换确认框的确认键；原型 L205 rcHas。按边改 K04「危险操作不用主按钮样式」画成红边框次级样式（无记录时的「恢复」R-B03.restoreBtn 仍是主按钮）",
+          "decision": "P55"
+        },
+        "lossRange": {
+          "raw": null,
+          "text": "{from}到 {to}的记录会丢失，建议先导出备份文件。",
+          "origin": "extra",
+          "note": "替换确认正文后的丢失日期范围（03 P26 / policy.replaceConfirmShowsLostRange；边改 K04 例句「9 月 2 日到 24 日的记录会丢失，建议先导出」）：{from}/{to} = 现在的记录里晚于备份日期的第一天 / 最后一天，按 R-H02.dateFormat（「到」后留空格：{to} 以数字开头，与 R-B01「已换成 {date}」同一排法）。「导出」→「导出备份文件」（按钮名；T07「导出」改说「备份」、按钮除外）",
+          "decision": "P26"
+        },
+        "lossDay": {
+          "raw": null,
+          "text": "{date}的记录会丢失，建议先导出备份文件。",
+          "origin": "extra",
+          "note": "同 lossRange，备份日期以后只有一天有记录时",
+          "decision": "P26"
+        },
+        "clearTitle": {
+          "raw": null,
+          "text": "清空所有记录？",
+          "origin": "extra",
+          "note": "清空确认底部弹层标题；原型 L208（J §2.3.28）",
+          "decision": "P55"
+        },
+        "clearOk": {
+          "raw": null,
+          "text": "清空",
+          "origin": "extra",
+          "note": "清空确认键（红边框，原型 L208）",
+          "decision": "P55"
+        },
+        "clearFailed": {
+          "raw": null,
+          "text": "没保存上，记录都还在。",
+          "origin": "extra",
+          "note": "清空失败（保护副本或清空本身没写进去）时弹层正文；原型 L208 clearFail",
+          "decision": "P55"
+        },
+        "clearStay": {
+          "raw": null,
+          "text": "先不清空",
+          "origin": "extra",
+          "note": "清空失败时的次按钮（关弹层，不清空）；原型 L208",
+          "decision": "P55"
+        },
+        "exported": {
+          "raw": null,
+          "text": "已导出备份文件。",
+          "origin": "extra",
+          "note": "导出完成的轻提示（边改 K04「导出成功给反馈」，原型没有字样；原生壳在系统分享面板完成后 markBackupExported 时显示，取消分享不显示）。工程暂拟，待文案",
+          "decision": "P55"
+        }
+      }
+    },
+    "X-ANNUAL": {
+      "screen": "mine",
+      "milestone": "M4",
+      "source": "M4-2 年度报告（src/ui/screens/mine/annual.js）：原型 ShiziScreen-第十稿交接版 L133–L144 里 04 R-M06 没有收录的界面字样（第二至四节标题、空态字）（reference/J-proto-screen.md §2.3.16）；读屏名为工程补",
+      "slots": {
+        "section2": {
+          "raw": null,
+          "text": "二 · 有记录天数最多的月份",
+          "origin": "原型 ShiziScreen-第十稿交接版.dc.html L136 第二节标题",
+          "note": "M4-2：年度报告第二节标题（R-M06 只收了第一节「一 · 今年有记录的字」）"
+        },
+        "section3": {
+          "raw": null,
+          "text": "三 · 较少见的字",
+          "origin": "原型 ShiziScreen-第十稿交接版.dc.html L137 第三节标题",
+          "note": "M4-2：年度报告第三节标题；这一节按题库字频序 rank 取今年有记录的字里最不常用的一个（原型写死「豕」），没有字频可比时整节不画"
+        },
+        "section4": {
+          "raw": null,
+          "text": "四 · 这一年第一个有记录的字",
+          "origin": "原型 ShiziScreen-第十稿交接版.dc.html L138 第四节标题",
+          "note": "M4-2：年度报告第四节标题"
+        },
+        "emptyGlyph": {
+          "raw": null,
+          "text": "年",
+          "origin": "原型 ShiziScreen-第十稿交接版.dc.html L142 annualEmpty 虚线框里的字",
+          "note": "M4-2：空态装饰字（aria-hidden）"
+        },
+        "rareGlyph": {
+          "raw": null,
+          "text": "「{char}」的标准字形",
+          "origin": "extra",
+          "note": "M4-2：读屏名——第三节 96px 格子里的标准字形（原型 ref()）；待文案（P76 同类工程补读屏名）",
+          "decision": "P76"
+        },
+        "firstInk": {
+          "raw": null,
+          "text": "「{char}」当时的笔迹",
+          "origin": "extra",
+          "note": "M4-2：读屏名——第四节格子里那一次的真实笔迹；待文案（P76 同类工程补读屏名）",
+          "decision": "P76"
+        },
+        "firstNoInk": {
+          "raw": null,
+          "text": "「{char}」，没有笔迹",
+          "origin": "extra",
+          "note": "M4-2：读屏名——第四节那一次没有笔迹时（格子画标准字 + R-D07.noInkLabel）；待文案（P76 同类工程补读屏名）",
+          "decision": "P76"
         }
       }
     }

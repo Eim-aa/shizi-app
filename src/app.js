@@ -25,9 +25,11 @@ async function mountApp() {
   } catch (error) {
     console.error('[shizi] store boot failed:', error);
   }
+  await import('./store/migrate.js').then(m => m.bootMigration()).then(r => (r && r.ok === false ? import('./ui/screens/block/index.js').then(b => b.reportMigrationFailure({ reason: r.error && r.error.kind })) : null)).catch(error => console.warn('[shizi] migration failed:', error)); // M5-4：v1 → v2 迁移（01 §12；失败 → R-B09 迁移变体，M5-6）
   await import('./platform/appearance.js').then(m => m.bootAppearance()).catch(error => console.warn('[shizi] appearance failed:', error)); // M4-3：按 settings 应用 data-theme / data-large（挂 UI 前）
   const { mountRoot } = await import('./ui/root.js');
   await mountRoot(container);
+  await import('./platform/sw.js').then(m => m.startServiceWorker()).catch(error => console.warn('[shizi] service worker setup failed:', error)); // M5-1：BUILD 比对、就绪标记、注册 SW（01 §8.3）
 }
 
 async function mountDevPalette() {

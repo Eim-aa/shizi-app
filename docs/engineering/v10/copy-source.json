@@ -48,7 +48,8 @@
   ],
   "todo": [
     "R-I01.overLimit",
-    "X-SYS.corruptNotice"
+    "X-SYS.corruptNotice",
+    "X-SYS.blockMigration"
   ],
   "nonRuntimeDecisions": {
     "P22": "字体子集重建范围：构建期（M5-2 用 #180 reproduce.py），不是运行时开关",
@@ -2696,6 +2697,13 @@
           "origin": "03 P55",
           "decision": "P55",
           "note": "待文案"
+        },
+        "blockMigration": {
+          "raw": null,
+          "text": "TODO: 旧数据没能导入时阻断页补充说明（P55，M5-6 迁移变体）",
+          "origin": "03 P55；02 M5-6 迁移变体",
+          "decision": "P55",
+          "note": "待文案；R-B09 三槽照用，这句只在迁移失败变体里出现"
         }
       }
     },

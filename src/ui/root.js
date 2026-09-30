@@ -30,6 +30,9 @@ import './screens/mine/about.js'; // M4-6 关于（'about' 与三个子页）：
 import './screens/mine/settings.js'; // M4-3 设置（'settings'）：「我的」菜单按屏名 push，刷新时也要能恢复
 import './screens/mine/backup.js'; // M4-4 备份与恢复（'backup'）：菜单 / 设置按屏名 push；刷新后仍在本页要能恢复撤销（P32）；原生备份桥注册
 import './screens/mine/annual.js'; // M4-2 年度报告（'annual'）：「我的」菜单按屏名 push，刷新时也要能恢复
+import { BlockScreen, useBlockReason } from './screens/block/index.js'; // M5-6 R-B09：存储不可用 / 阻断 / 迁移失败时只画阻断页
+import { CorruptNotice } from './components/corrupt-notice.js'; // M5-6 坏值一次性顶部提示（01 §4，P55）
+import { getStore } from '../store/store.js';
 
 export const PUSH_MS = 300;
 export const PUSH_EASING = 'cubic-bezier(.2,.7,.2,1)';
@@ -121,6 +124,7 @@ function Root({ router, win }) {
   const [snap, setSnap] = useState(() => router.getState());
   const [drag, setDrag] = useState(null); // {x, snapping?}
   const [, force] = useState(0);
+  const block = useBlockReason(getStore); // M5-6
   const appRef = useRef(null);
   const animRef = useRef({ handledSeq: snap.transition ? snap.transition.seq : 0, current: null, running: null });
   const dragRef = useRef({ active: false, x: 0, at: -Infinity, timer: null });
@@ -286,6 +290,15 @@ function Root({ router, win }) {
     };
   }, [router, win]);
 
+  // M5-6 R-B09：不画 tab 与页面栈（写字入口不可达），只画阻断页。
+  if (block.reason) {
+    return html`<div class="sz-app" ref=${appRef} data-nav-anim="idle" data-depth=${snap.depth} data-top-screen="block"
+      data-tab=${snap.tab} data-blocked=${block.reason.kind}>
+      <div class="sz-layer" data-top="true" data-screen="block"><${BlockScreen} reason=${block.reason} store=${block.store} win=${win} /></div>
+      <${ToastHost} />
+    </div>`;
+  }
+
   const groups = groupStack(snap.stack);
   if (anim && anim.kind === 'pop' && !groups.some(g => g.screen.id === anim.from.id)) {
     groups.push({ screen: anim.from, overlays: [], leaving: true });
@@ -312,6 +325,7 @@ function Root({ router, win }) {
       dragX=${dragging && g.screen.id === topId ? drag.x : null}
       snapping=${dragging && g.screen.id === topId && !!drag.snapping}
     />`)}
+    <${CorruptNotice} getStore=${getStore} />
     <${ToastHost} />
   </div>`;
 }

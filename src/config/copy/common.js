@@ -16,4 +16,5 @@ export default Object.freeze({
   'X-COMMON.undone': '已撤销',
   // X-SYS（03 P55 待文案：坏值顶部提示）
   'X-SYS.corruptNotice': 'TODO: 启动时发现坏数据的顶部提示（P55）',
+  'X-SYS.blockMigration': 'TODO: 旧数据没能导入时阻断页补充说明（P55，M5-6 迁移变体）',
 });

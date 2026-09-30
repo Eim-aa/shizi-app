@@ -10,7 +10,7 @@ import {
 import { KEYS, parseBackupV2, validateValue } from '../../src/core/schema.js';
 import { createStore } from '../../src/store/store.js';
 import { createStorage } from '../../src/store/storage.js';
-import { MemoryStorage } from '../store/helpers.mjs';
+import { MemoryStorage, session } from '../store/helpers.mjs';
 
 const NOW = new Date(2026, 8, 24, 20).getTime();
 
@@ -197,12 +197,81 @@ test('backupStatus：T07 状态机（无记录 / 从没备份 / 一致 / 有改�
   assert.deepEqual(keys({ ...s, backupMeta: cleared.backupMeta }), []);
 });
 
-test('makeSafety：形状合 schema（只含白名单键原始字串，无 sessions）', () => {
+test('makeSafety：形状合 schema（白名单键原始字串 + 现在的 sessions，P79）', () => {
   const { store } = makeStore(currentState());
   const safety = makeSafety(store.getState(), { kind: 'restore', now: NOW, backupDate: '2026-09-01', count: 2 });
   assert.equal(validateValue(KEYS.safety, safety), null);
-  assert.ok(!Object.keys(safety.payload).some(k => k === KEYS.sessions));
-  assert.deepEqual(Object.keys(safety.payload).sort(), backupEntries(store.getState()).map(([k]) => k).sort());
+  assert.equal(safety.payload[KEYS.sessions], JSON.stringify(store.getState().sessions), 'sessions carried along');
+  assert.deepEqual(Object.keys(safety.payload).filter(k => k !== KEYS.sessions).sort(), backupEntries(store.getState()).map(([k]) => k).sort());
+  assert.equal(safetyMatchesCurrent(store.getState()), false, 'no safety in state yet');
+  const noSessions = makeSafety({ ...store.getState(), sessions: null }, { kind: 'clear', now: NOW });
+  assert.ok(!(KEYS.sessions in noSessions.payload), 'no sessions domain → no sessions key');
+  assert.equal(validateValue(KEYS.safety, noSessions), null);
+  // schema：payload 里的 sessions 必须是合法的 shizi.v2.sessions
+  assert.match(validateValue(KEYS.safety, { ...safety, payload: { ...safety.payload, [KEYS.sessions]: '{"A":1}' } }), /sessions/);
+  assert.match(validateValue(KEYS.safety, { ...safety, payload: { ...safety.payload, [KEYS.sessions]: 'nope' } }), /not JSON/);
+  assert.match(validateValue(KEYS.safety, { ...safety, payload: { ...safety.payload, [KEYS.funnel]: '{}' } }), /bad key/, 'other excluded keys still rejected');
+});
+
+/** 有一组没写完的 A 组（今天的练习）与已结束的 B 组。 */
+function withActiveSessions() {
+  const A = session(8, { queue: ['base:永', 'base:字', 'base:和'], cursor: 1, items: [{ cardKey: 'base:永', recordId: 'r3', kind: 'judged' }] });
+  const B = session(6, { slot: 'B', kind: 'picked', queue: ['base:字'], cursor: 1, items: [{ cardKey: 'base:字', recordId: 'r4', kind: 'judged' }] });
+  return { ...currentState(), sessions: { A, B: null, lastEnded: { B: { ...B, endedAt: ms('2026-09-20', 10) } } } };
+}
+
+test('P79：替换备份结束进行中的组（A/B 置 null、lastEnded 保留），撤销后会话与全部 v2 键逐字还原', () => {
+  const { store, backend } = makeStore(withActiveSessions());
+  const before = v2Raw(backend);
+  const sessionsBefore = JSON.parse(JSON.stringify(store.getState().sessions));
+  const report = inspectBackup(serializeBackup(buildBackupV2(oldBackupState(), { now: ms('2026-09-01', 20) })));
+  assert.equal(restoreFromBackup(store, report, { now: NOW }).ok, true);
+  const st = store.getState();
+  assert.equal(st.sessions.A, null, 'A ended');
+  assert.equal(st.sessions.B, null);
+  assert.deepEqual(JSON.parse(JSON.stringify(st.sessions.lastEnded)), sessionsBefore.lastEnded, 'lastEnded kept');
+  assert.deepEqual(JSON.parse(safetyOf(st).payload[KEYS.sessions]), sessionsBefore, 'original sessions in the safety copy');
+  assert.equal(JSON.parse(backend.getItem(KEYS.sessions)).A, null, 'on disk too');
+  assert.equal(undoFromSafety(store).ok, true);
+  assert.deepEqual(JSON.parse(JSON.stringify(store.getState().sessions)), sessionsBefore, 'A back, current deep-equal');
+  assert.deepEqual(v2Raw(backend), before, 'K03: every v2 key (incl. sessions) byte-equal after undo');
+});
+
+test('P79：清空所有记录同样结束进行中的组；撤销还原会话；清空失败时会话不动', () => {
+  const { store, backend } = makeStore(withActiveSessions());
+  const before = v2Raw(backend);
+  const sessionsBefore = JSON.parse(JSON.stringify(store.getState().sessions));
+  assert.equal(clearAllRecords(store, { now: NOW }).ok, true);
+  assert.equal(store.getState().sessions.A, null);
+  assert.ok(store.getState().sessions.lastEnded.B, 'lastEnded kept');
+  assert.equal(undoFromSafety(store).ok, true);
+  assert.deepEqual(JSON.parse(JSON.stringify(store.getState().sessions)), sessionsBefore);
+  assert.deepEqual(v2Raw(backend), before);
+  const b = makeStore(withActiveSessions());
+  const beforeB = v2Raw(b.backend);
+  b.storage.failNextWrite(1, { kind: 'generic', matchKey: KEYS.sessions });
+  const r = clearAllRecords(b.store, { now: NOW });
+  assert.equal(r.stage, STAGES.clear);
+  assert.deepEqual(v2Raw(b.backend), beforeB, 'clear rolled back incl. sessions; safety dropped');
+  assert.ok(b.store.getState().sessions.A, 'A still there');
+});
+
+test('I2：保护副本 / 清空 / 撤销走 store.commit 的 reclaim:false——撞配额不回收、全部键不变；通知是整体替换', () => {
+  const { store, backend, storage } = makeStore(currentState());
+  const before = v2Raw(backend);
+  const seen = [];
+  store.subscribe((state, info) => seen.push(info));
+  // 配额只注入一次：默认 commit 会「回收后重试一次」吸收它（01 §9），reclaim:false 不重试
+  storage.failNextWrite(1, { kind: 'quota', matchKey: KEYS.safety });
+  const r = clearAllRecords(store, { now: NOW });
+  assert.equal(r.ok, false);
+  assert.equal(r.stage, STAGES.safety);
+  assert.equal(r.error.kind, 'quota');
+  assert.deepEqual(v2Raw(backend), before, 'nothing changed; July not folded');
+  assert.ok(!seen.some(info => info.type === 'recover'), 'no side recovery');
+  storage.clearFaults();
+  assert.equal(clearAllRecords(store, { now: NOW }).ok, true);
+  assert.ok(seen.filter(info => info.type === 'commit').every(info => info.replace === true), 'safety / clear notifications are replacements');
 });
 
 test('恢复 → 撤销：替换采用备份（backupMeta 换成本机日期 + 结论、sessions 不动、清 corrupt），撤销后全部 v2 键逐字相等', () => {

@@ -3,6 +3,8 @@
 // 估算口径：localStorage 按 UTF-16 计，每个条目 ≈ (键长 + 值长) × 2 字节。
 // 回收只动两个域：
 //   ink      按月分键（shizi.v2.ink.<YYYY-MM>），预算按全部月键合计；跨月键统一排序淘汰。
+//            估算按实际 JSON 串长，与编码无关：新写入为 v3 打包编码（每点 4 字节 base64，14 笔 × 24 点 ≈ 3.7KB/条，
+//            300 条 ≈ 1.07MiB，test/core/ink-math.test.mjs P78 容量测量），旧 v2 数据按其原长计。
 //            按优先级从低到高淘汰：孤儿墨迹 → 其他月份的其余 → 本月其余 → 每月每字首/末条（P02）
 //            → 每字第一条 judged（年报）；「每字最近一次 judged」永不淘汰。同一层内先淘汰最旧（id 序号小）。
 //   records  最旧月份折叠为 {folded, month, byDay, chars, kept}（schema.validateRecordsMonth）；

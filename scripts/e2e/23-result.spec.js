@@ -7,6 +7,7 @@
 //   3. 从首页「自己选字」开 B → 写一字 → 结束这组（S04 主按钮「接着写」、无预选；接着写不动会话）→ 先写到这里 → 回到首页。
 //   4. 零判断结束 → 回来源 + 轻提示「这组结束了，没有记下字。」；结束写入失败留在确认框，重试成功后结束。
 //   5. 钩子 seed 来源 wrongList / forgetList / detail 的 B：离开按钮文案（R-R06）与来源说明（S05）；离开回到下面的来源页。
+//   5b. P77：本组已有判断、从看答案阶段结束 → 当前字补进格子作「看过答案」（不可改判），数字不变。
 //   6. 结果页修改判断：不增加记录、corrections 追加、格子与数字按记录更新；看过答案 / 跳过的格子只看不改；修改失败可重试。
 //   7. 停在结果页刷新 → 由 lastEnded 恢复；「再写一组」→ 新的今天的练习（结果页出栈，不叠页）；第一次练习结果页。
 
@@ -146,6 +147,8 @@ async function resultView(page) {
       again: txt('result-again'),
       leave: txt('result-leave'),
       imageNote: txt('result-image-note'),
+      imageEntry: !!q('result-image'),
+      inkCells: top ? [...top.querySelectorAll('[data-testid="result-cell"]')].map(c => !!c.querySelector('[data-testid="result-cell-ink"]')) : [],
       remindSlot: !!q('result-remind-slot'),
       footButtons: top ? [...top.querySelectorAll('.sz-page__foot button')].map(b => b.dataset.testid) : [],
       cells: top ? [...top.querySelectorAll('[data-testid="result-cell"]')].map(c => ({
@@ -218,6 +221,22 @@ export default async function resultSpec(page, ctx) {
     assert.deepEqual(v.cells.map(c => c.kind), ['judged', p.kind], `cells [judged, ${p.kind}]`);
     assert.deepEqual(v.cells.map(c => c.aria), ['永 · 写对', `和 · ${{ judged: '写对', skipped: '跳过', 'answer-seen': '看过答案' }[p.kind]}`], 'H3: cell accessible names');
     assert.equal(v.header, '这次练习', 'daily header 这次练习');
+    if (p.kind === 'judged') {
+      // I6 / P88：「这次的图片」入口与格子同一口径——和 刚在本页面写过（页面内笔画，perRecordInk 关）→ 格子画笔迹、入口显示
+      assert.deepEqual(v.inkCells, [false, true], 'I6: 和 cell draws the page-memory strokes, 永 (seeded) has none');
+      assert.deepEqual([v.imageEntry, v.imageNote], [true, null], 'I6: image entry shown because a cell has ink (not the all-missing note)');
+      await page.reload();
+      await page.waitForSelector('.sz-app');
+      await page.waitForFunction(() => typeof window.__shiziTest === 'object');
+      await waitResult(page);
+      await waitNavIdle(page);
+      const r = await resultView(page);
+      assert.deepEqual(r.inkCells, [false, false], 'I6: after reload the page-memory strokes are gone (perRecordInk off)');
+      assert.deepEqual([r.imageEntry, r.imageNote], [false, '这次记下的字都没有留下笔迹，不能保存本次练习图片；本月图片仍可到练习记录保存。'],
+        'I6: after reload → R-R07.allMissing, consistent with the grid');
+    } else {
+      assert.deepEqual([v.imageEntry, v.inkCells], [false, [false, false]], 'I6: no ink anywhere → no entry');
+    }
   }
 
   step('last character skipped → the undo bar is still usable on the result page; 撤销 → back to that character');
@@ -364,6 +383,32 @@ export default async function resultSpec(page, ctx) {
   assert.equal(st.records.filter(r => r.kind === 'judged').length, 0, 'no judged record written by ending');
   await waitNavIdle(page);
 
+  step('P77: judged 1, then 结束这组 from the answer page → result grid adds the current char as 看过答案 (not changeable); count unchanged');
+  await seedGroup(page, { kind: 'picked', chars: ['额', '鲜', '境'], steps: ['correct'] });
+  await openWriteSlot(page, 'B');
+  await openAnswer(page);
+  st = await state(page);
+  const seenRec = st.records.find(r => r.kind === 'answer-seen' && r.char === '鲜');
+  assert.ok(seenRec && st.sessions.B.current.answerSeen === true && st.sessions.B.cursor === 1, 'answer confirmed: answer-seen record written, session not advanced');
+  await page.click(topSel('write-end'));
+  await page.waitForSelector(tid('write-end-dialog'));
+  await waitNavIdle(page);
+  await page.click(tid('write-end-confirm'));
+  await waitResult(page);
+  await waitNavIdle(page);
+  v = await resultView(page);
+  assert.deepEqual(v.cells.map(c => [c.char, c.kind, c.caption, c.changeable]), [['额', 'judged', '写对', 'true'], ['鲜', 'answer-seen', '看过答案', 'false']],
+    'P77: 鲜 added as 看过答案, not changeable');
+  const seenCellRecord = await evalIn(page, () => document.querySelectorAll('.sz-layer[data-top="true"] [data-testid="result-cell"]')[1].dataset.record);
+  assert.equal(seenCellRecord, seenRec.id, 'the added cell points at the answer-seen record of this session');
+  assert.ok(v.sub.startsWith('「额」记下了。') && v.sub.includes('「鲜」看过答案'), `note lists 鲜 as seen: ${v.sub}`);
+  assert.ok(v.sub.includes('还有 2 个字没写'), 'unwritten count unchanged (queue − cursor)');
+  st = await state(page);
+  assert.equal(st.records.filter(r => r.kind === 'judged').length, 1, 'still one judged record');
+  await page.click(topSel('result-leave'));
+  await page.waitForFunction(() => document.querySelector('.sz-app').dataset.topScreen === 'home');
+  await waitNavIdle(page);
+
   step('结束 write fails → stays in the dialog (三段式), B untouched; 再试一次 → ends');
   await seedGroup(page, { kind: 'picked', chars: ['额', '鲜', '境'], steps: ['correct'] });
   await openWriteSlot(page, 'B');
@@ -419,7 +464,8 @@ export default async function resultSpec(page, ctx) {
   assert.equal(v.sub, '「和」看过答案，没算在内。点一个格子，可以对照参考字形、修改判断。', 'P62 only-seen sentence + grid hint');
   assert.deepEqual(v.cells.map(c => [c.char, c.caption, c.changeable]), [['永', '写对', 'true'], ['和', '看过答案', 'false'], ['春', '写对', 'true']], 'cells');
   assert.deepEqual(v.cells.map(c => c.aria), ['永 · 写对', '和 · 看过答案', '春 · 写对'], 'H3: every cell button has an accessible name 「字 · 标签」');
-  assert.equal(v.imageNote, '这次记下的字都没有留下笔迹，不能保存本次练习图片；本月图片仍可到练习记录保存。', 'R-R07 all-missing note (perRecordInk off)');
+  // I6 / P88：春 刚在本页面写过（格子画页面内笔迹）→ 入口与格子一致，显示「这次的图片」；刷新后见下方 reload 步骤
+  assert.deepEqual([v.imageEntry, v.imageNote], [true, null], 'I6: image entry follows the grid (春 has page-memory ink; perRecordInk off)');
   assert.deepEqual([v.again, v.leave], ['再写一组', '回到首页'], 'daily footer 再写一组 + 回到首页');
   const inkCells = await evalIn(page, () => [...document.querySelectorAll('.sz-layer[data-top="true"] [data-testid="result-cell"]')].map(c => {
     const cv = c.querySelector('[data-testid="result-cell-ink"] canvas');
@@ -493,6 +539,8 @@ export default async function resultSpec(page, ctx) {
   await waitNavIdle(page);
   v = await resultView(page);
   assert.deepEqual([v.title, v.cells.length, v.cells[2].caption], ['这次记录了 2 个字', 3, '写错'], 'same result after reload');
+  assert.deepEqual([v.imageEntry, v.imageNote, v.inkCells], [false, '这次记下的字都没有留下笔迹，不能保存本次练习图片；本月图片仍可到练习记录保存。', [false, false, false]],
+    'I6: after reload page-memory strokes are gone → R-R07.allMissing (perRecordInk off), grid has no ink either');
 
   step('再写一组 → a new 今天的练习 on the write page; the result page left the stack (no stacking)');
   await page.click(topSel('result-again'));

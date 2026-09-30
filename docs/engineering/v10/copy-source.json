@@ -63,7 +63,19 @@
     "P72": "清空所有记录后首页「没有记录」的说法（R-H09 noCopy）与首练组未写完时不显示「第一次来，先写 5 个字试试。」：首页派生规则在 src/ui/screens/home/today.js（records='empty' / showFirstTip），文案待给定（M4-3 清空）；不是 policy 开关",
     "P74": "每日选字新字顺序 = SEED 字频序（01 §5 字面口径）：数据顺序，src/data/deck.js libraryOf(...).keys 按 SEED 顺序、core/sessions.selectDaily 按序取，不是 policy 开关；请产品确认高频字排最前是本意（M2-2）",
     "P76": "结果页 / 结束这组 / 开组失败等文案空缺（R-W15 零判断零态句、首练结果页标题、零判断「没法做这次的图片」、S02/开组失败三段式、R-R01 只有看过答案的用法、X-RESULT/X-HOME/X-QUERY/X-SESSION extra 键）：copy 现值在 src/config/copy/ 与本文件 extra（origin: extra），待文案给定（与 P55/P66 一并，M6 文案审计）",
-    "P77": "从看答案阶段结束且本组已有判断时，当前字的 answer-seen 记录是否补进结果页格子：过渡「补进」，实现在 src/ui/screens/result/index.js 的 resultModel（M3/M4 后修复回合落地）；不是 policy 开关"
+    "P77": "从看答案阶段结束且本组已有判断时，当前字的 answer-seen 记录是否补进结果页格子：过渡「补进」，已实现——src/ui/screens/result/index.js 的 seenCurrentItem（resultModel 在 session.current.answerSeen 为真、当前字不在 items 里时，按本会话该字最近一条 answer-seen 记录补一格「看过答案」，不可改判；标题数字只按 judged 算，说明句的看过答案列举含它）；test/ui/result.test.mjs、scripts/e2e/23-result.spec.js「P77」步骤覆盖；不是 policy 开关",
+    "P79": "替换备份 / 清空所有记录时结束正在进行的组：过渡「结束并随保护副本一起可撤销」，已实现——src/core/backup.js 的 endActiveSessions（sessions.A / B 置 null、lastEnded 保留）+ makeSafety 把原 sessions 存进 payload['shizi.v2.sessions']（src/core/schema.js validateSafety 允许该键、形状同 shizi.v2.sessions）+ undoFromSafety 一并还原；不是 policy 开关",
+    "P80": "清空所有记录的范围（records、ink、sched、custom、wordOff、photos、legacy 全清；保留 settings、meta、backupMeta）：行为在 src/core/backup.js clearAllRecords，不是 policy 开关；请产品确认",
+    "P81": "字库墨墙细节（深色最淡一档透明度、四档透明度、无笔迹格子画楷体标准字、快忘了卡片截断数、「从 X 开始记录」不带年份等）：现值在 src/ui/screens/library/（wall.js / index.js / model.js）的样式与派生规则，不是 policy 开关；请设计确认（M6）",
+    "P82": "清单页细节（全选开关、S06 勾选保留边界、无笔迹小图、wordOff 后词语、不能练的字无勾选）：现值在 src/ui/screens/library/list.js / list-model.js，不是 policy 开关；请设计确认（M6）",
+    "P83": "换库页细节（换完轻提示、M=0 仍显示「有记录 0 个」、失败后「先不换」、推入页而非弹层）：现值在 src/ui/screens/library/switch.js；「现在没有要写的字」页（字库写完时）主按钮「更换字库」已补——src/ui/screens/session/none.js setNoneActions({libSwitch}) 槽，switch.js 注册 → nav.push('library-switch')，文案 X-SESSION.noneLibSwitch；不是 policy 开关；请设计/文案确认（M6）",
+    "P84": "单字详情细节（换掉词语后仅拼音题、是否补确认弹层、下次练习行、快忘了行口径、旧记录行位置、格子放大层、X-DETAIL 文案）：现值在 src/ui/screens/detail/ 与本文件 X-DETAIL extra，不是 policy 开关；请产品/设计确认（M6）",
+    "P85": "有记录的字页细节（筛选下「练这些字 →」、找到只显示那个月、拼音查规则、跨年月份带年份、每帧 72 格分批）：现值在 src/ui/screens/library/all.js / all-model.js，不是 policy 开关；请设计确认（M6）",
+    "P86": "设置页细节（「去手机设置 ›」需原生 openAppSettings、提醒被拒时开关保持、非原生壳也显示提醒行、按键音默认开）：现值在 src/ui/screens/mine/settings.js，原生部分随 M5-3 / M5-5；不是 policy 开关；请产品确认",
+    "P87": "备份页细节（恢复后 backupMeta 保留本机上次备份时间与签名并加结论、结论句随替换/清空同一次写入、丢失范围写完整日期、R-B06 分类口径、X-BACKUP 键）：现值在 src/core/backup.js 与 src/ui/screens/mine/backup.js，文案在本文件 extra；不是 policy 开关；请文案确认（M6）",
+    "P88": "图片细节（落款「二」vs「两」、月字帖角标重算、格内无虚线十字、浏览器保存=下载、文件名 ASCII）：现值在 src/core/images/ 与 src/ui/components/image-preview.js；结果页「这次的图片」入口口径已改为与格子一致（有页面内笔迹或存下的墨迹任一即算，src/ui/screens/result/index.js resultModel 的 hasInk）；不是 policy 开关；请设计确认（M6）",
+    "P89": "我的 / 练习记录 / 年报细节（legacy.days 不上日历、「今天的记录」落点、日子面板样式、字帖只留最后 3 行、较少见的字口径、「今年」按日历年等）：现值在 src/ui/screens/mine/，不是 policy 开关；请设计确认（M6）",
+    "P90": "关于页（隐私四段、致谢分组名、版本行、许可原文英文展示、写信地址）：现值在 src/ui/screens/mine/about.js 与 src/config/credits.js，文案待产品给定（M6）；不是 policy 开关"
   },
   "noCopy": [
     "R-H08",
@@ -2571,7 +2583,7 @@
     "X-SESSION": {
       "screen": "home",
       "milestone": "M2",
-      "source": "M2-2 会话开始（src/ui/screens/session/s02.js S02 保存失败、none.js「现在没有要写的字」页主按钮）；04 §4.1 R-H05 / R-H11 没给这些槽",
+      "source": "M2-2 会话开始（src/ui/screens/session/s02.js S02 保存失败、none.js「现在没有要写的字」页主按钮 / 字库写完时的「更换字库」）；04 §4.1 R-H05 / R-H11 没给这些槽",
       "slots": {
         "s02SaveFailed": {
           "raw": null,
@@ -2598,8 +2610,15 @@
           "raw": null,
           "text": "自己选字",
           "origin": "extra",
-          "note": "「现在没有要写的字」页主按钮；原型可点原型模板 L63 w12fPick 按钮字样（同 R-H06.title）",
+          "note": "「现在没有要写的字」页主按钮；原型可点原型模板 L63 w12fPick 按钮字样（同 R-H06.title）；字库写完（exhausted）且注册了「更换字库」时降为次按钮",
           "decision": "P55"
+        },
+        "noneLibSwitch": {
+          "raw": null,
+          "text": "更换字库",
+          "origin": "extra",
+          "note": "「现在没有要写的字」页字库写完（exhausted）时的主按钮，推入换库页（M3/M4 修复回合 I5）；原型 ShiziScreen-第十稿交接版 L125–L127 noChars 主按钮「更换字库」→ libSwitch（reference/J-proto-screen.md §2.3.14）；R-L06.entry「更换字库 ›」是字库页的行内链接样式，主按钮不带 ›",
+          "decision": "P83"
         }
       }
     },

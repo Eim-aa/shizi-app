@@ -1,6 +1,7 @@
 // test/store 共用：内存 Storage（带故障注入）与 v2 状态夹具。
 // 不以 .test.mjs 结尾，node --test 不会把它当测试文件跑。
 import { setInk } from '../../src/store/store.js';
+import { encodeInk, GRID, INK } from '../../src/core/ink-math.js';
 
 /**
  * 与 Web Storage 接口一致的内存实现。
@@ -156,7 +157,19 @@ export function record(serial, char, { kind = 'judged', judgment = 'correct', da
   return Object.assign(rec, extra);
 }
 
+/** 一条 Ink v3（打包编码，P78）：strokes 笔 × points 点，内容确定。 */
 export function inkEntry(points = 8, strokes = 3) {
+  const raw = [];
+  for (let i = 0; i < strokes; i += 1) {
+    const pts = [];
+    for (let j = 0; j < points; j += 1) pts.push({ x: ((100 + i * 10 + j) * GRID) / 1000, y: ((200 + j) * GRID) / 1000, w: INK.base, t: i * 1000 + j * 16 });
+    raw.push(pts);
+  }
+  return encodeInk(raw, { maxPoints: points, maxStrokes: strokes });
+}
+
+/** 旧 InkV2（JSON 数字编码，M4-5 前写入的数据；读取兼容）。 */
+export function inkEntryV2(points = 8, strokes = 3) {
   const s = [];
   for (let i = 0; i < strokes; i += 1) {
     const row = [];

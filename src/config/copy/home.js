@@ -56,4 +56,5 @@ export default Object.freeze({
   'X-SESSION.s02Retry': '再试一次',
   'X-SESSION.s02Cancel': '先不保存',
   'X-SESSION.nonePick': '自己选字',
+  'X-SESSION.noneLibSwitch': '更换字库',
 });

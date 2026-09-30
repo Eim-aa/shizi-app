@@ -616,15 +616,15 @@ export default async function judgeCorrect(page, ctx) {
   const inkRes = await page.evaluate(async () => {
     const { getStore } = await import('/src/store/store.js');
     const { commitJudgment } = await import('/src/ui/screens/write/compare.js');
-    const { isInkV2 } = await import('/src/core/ink-math.js');
+    const { isInkV3 } = await import('/src/core/ink-math.js');
     const strokes = [[{ x: 60, y: 170, t: 0 }, { x: 170, y: 171, t: 60 }, { x: 280, y: 172, t: 120 }]];
     const r = commitJudgment(getStore(), { slot: 'A', cardKey: 'base:大', judgment: 'correct', strokes, perRecordInk: true });
     const rec = r.record;
     const ink = window.__shiziTest.getInk(rec);
     const month = rec.localDay.slice(0, 7);
-    return { ok: r.ok, id: rec.id, month, ink: isInkV2(ink), keys: Object.keys(window.__shiziTest.getRawKeys('shizi.v2.ink.')), inTable: !!(window.__shiziTest.getState().ink[month] || {})[rec.id] };
+    return { ok: r.ok, id: rec.id, month, ink: isInkV3(ink), keys: Object.keys(window.__shiziTest.getRawKeys('shizi.v2.ink.')), inTable: !!(window.__shiziTest.getState().ink[month] || {})[rec.id] };
   });
-  assert.ok(inkRes.ok && inkRes.ink && inkRes.inTable, 'ink stored as InkV2 for the record');
+  assert.ok(inkRes.ok && inkRes.ink && inkRes.inTable, 'ink stored as packed Ink v3 for the record (P78)');
   assert.deepEqual(inkRes.keys, [`shizi.v2.ink.${inkRes.month}`], 'ink lives under shizi.v2.ink.<record month>');
   await waitCursor(page, 4);
 

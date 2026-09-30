@@ -5,8 +5,9 @@ import { createStore, deleteInk, deriveSerial, getInk, isReplacement, setInk } f
 import { createStorage } from '../../src/store/storage.js';
 import { KEYS, inkKey, recordsKey } from '../../src/core/schema.js';
 import {
-  MemoryStorage, T0, allRecordIds, baselineState, flatInk, inkEntry, judgeMutation, plain, record,
+  MemoryStorage, T0, allRecordIds, baselineState, flatInk, inkEntry, inkEntryV2, judgeMutation, plain, record,
 } from './helpers.mjs';
+import { decodeInk, isInkV2, isInkV3 } from '../../src/core/ink-math.js';
 
 const NOW = Date.parse('2026-10-02T10:00:00+08:00');
 const clock = () => NOW;
@@ -59,6 +60,26 @@ test('commit success: publishes new frozen state, notifies subscribers, allocate
   assert.equal(backend.getItem('shizi.v2.ink'), null, 'no single ink key any more');
   assert.deepEqual(Object.keys(JSON.parse(backend.getItem(inkKey('2026-10')))), ['r4']);
   assert.deepEqual(store.getInk(after.records['2026-10'][0]), inkEntry());
+});
+
+test('ink v3 (P78): legacy v2 ink on disk still loads and decodes; new writes are v3; both live in one month key', () => {
+  const backend = new MemoryStorage();
+  const base = baselineState();
+  base.ink = { '2026-09': { r2: inkEntryV2() } };
+  const { store } = seeded({ backend });
+  assert.equal(store.commit('legacy ink', draft => { draft.ink = base.ink; }).ok, true);
+  const env = freshStore(backend); // 重新 load：启动形状校验接受 v2
+  const r2 = env.store.getState().records['2026-09'][0];
+  const legacy = env.store.getInk(r2);
+  assert.ok(isInkV2(legacy), 'v2 survives load (not quarantined)');
+  assert.equal(backend.getItem('shizi.corrupt.' + inkKey('2026-09')), null);
+  assert.equal(decodeInk(legacy)[0].length, 8, 'v2 decodes');
+  const r3 = env.store.getState().records['2026-09'][1];
+  const r = env.store.commit('v3 ink', draft => { setInk(draft, r3, inkEntry()); });
+  assert.equal(r.ok, true, JSON.stringify(r));
+  const table = JSON.parse(backend.getItem(inkKey('2026-09')));
+  assert.ok(isInkV2(table.r2) && isInkV3(table.r3), 'mixed month table: r2 v2, r3 v3');
+  assert.deepEqual(decodeInk(env.store.getInk(r3)).map(s => s.length), [8, 8, 8]);
 });
 
 test('ink helpers: getInk / setInk / deleteInk address shizi.v2.ink.<record month>; txn only carries touched months', () => {
@@ -364,6 +385,60 @@ test('quota side recovery: evicted old ink months are persisted even if the retr
   assert.equal(store.getState().settings.library, 'common', 'the failed commit itself is not published');
   const reloaded = freshStore(backend.clone());
   assert.deepEqual(plain(reloaded.store.getState()), plain(store.getState()), 'disk == memory');
+});
+
+test('commit {reclaim:false} (I2): quota hit → {ok:false, kind:quota}, no side recovery, every key unchanged, nothing published', () => {
+  const state = inkHeavyState(24);
+  const backend = new MemoryStorage();
+  const { store } = freshStore(backend);
+  assert.equal(store.seed(state).ok, true);
+  const keysBefore = {};
+  for (let i = 0; i < backend.length; i += 1) { const k = backend.key(i); keysBefore[k] = backend.getItem(k); }
+  const before = store.getState();
+  backend.quotaBytes = backend.usedBytes() + 2000; // 与上一条相同：默认 commit 会旁路回收旧墨迹
+  const seen = [];
+  store.subscribe((s2, info) => seen.push(info));
+  let writes = 0;
+  backend.failWhen(({ op, key }) => {
+    if (op === 'set' && key !== KEYS.txn) writes += 1;
+    return null;
+  });
+  const r = store.commit('huge', draft => {
+    draft.settings = Object.assign({}, draft.settings, { library: 'x'.repeat(200000) });
+  }, { reclaim: false });
+  backend.failWhen(null);
+  assert.equal(r.ok, false);
+  assert.equal(r.error.kind, 'quota');
+  assert.equal(r.error.recoveredAttempted, false, 'no recovery attempted');
+  assert.deepEqual(seen, [], 'no recover / commit notification');
+  assert.equal(store.getState(), before, 'nothing published');
+  const keysAfter = {};
+  for (let i = 0; i < backend.length; i += 1) { const k = backend.key(i); keysAfter[k] = backend.getItem(k); }
+  assert.deepEqual(keysAfter, keysBefore, 'every key byte-equal (txn rolled back and removed; old ink months untouched)');
+  assert.ok(writes >= 1, 'the write was really attempted');
+});
+
+test('commit {reclaim:false} (I2): pre-write over-budget estimate does not recover; the commit writes as-is', () => {
+  const state = inkHeavyState(24);
+  const { store } = freshStore(new MemoryStorage(), { budgets: { inkBudgetBytes: 20000 } });
+  assert.equal(store.seed(state).ok, true);
+  const inkBefore = store.getState().ink;
+  const r = store.commit('safety-like', draft => {
+    draft.settings = Object.assign({}, draft.settings, { sound: false });
+  }, { reclaim: false });
+  assert.equal(r.ok, true);
+  assert.deepEqual(r.recovered, []);
+  assert.deepEqual(plain(store.getState().ink), plain(inkBefore), 'ink untouched although over budget');
+  const d = store.commit('judge', judgeMutation('大'));
+  assert.ok(d.ok && d.recovered.length > 0, 'the default commit still recovers');
+});
+
+test('commit {replace:true} tags the notification as a whole-state replacement', () => {
+  const { store } = seeded();
+  const seen = [];
+  store.subscribe((state, info) => seen.push(isReplacement(info)));
+  assert.equal(store.commit('x', draft => { draft.settings = { sound: false }; }, { reclaim: false, replace: true }).ok, true);
+  assert.deepEqual(seen, [true]);
 });
 
 test('quota hit with nothing recoverable → {ok:false, kind:quota}, nothing published', () => {

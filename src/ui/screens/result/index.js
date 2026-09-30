@@ -213,7 +213,10 @@ function captionOf(kind, judgment) {
  * 结果页模型（纯函数；单测直接调用）。
  * @param {object} state   store 状态
  * @param {{slot:'A'|'B', sessionId:string, hasInk?:(record)=>boolean}} o
- *   hasInk：这条 judged 记录有没有存下的墨迹（「这次的图片」只画有墨迹的字，R-R07 / 10.12）；缺省看 state.ink。
+ *   hasInk：这条 judged 记录有没有本人笔迹（「这次的图片」只画有笔迹的字，R-R07 / 10.12）。口径与格子一致（I6 / P88）：
+ *   存下的墨迹（perRecordInk）或本页面会话里刚判断时记下的笔画（write/compare.js recalledInk）任一即算——图片取墨
+ *   （images-entry.js inkPointsOf）也是这两处。页面内笔画刷新即失：perRecordInk 关时刷新后入口按 R-R07.allMissing。
+ *   缺省看 state.ink + recalledInk；页面传入与格子同一个取法（inkOf）。
  */
 export function resultModel(state, { slot, sessionId, hasInk = null }) {
   const found = findResultSession(state, { slot, sessionId });
@@ -221,7 +224,7 @@ export function resultModel(state, { slot, sessionId, hasInk = null }) {
   const records = recordsOfSession(state, sessionId);
   const byId = new Map(records.map(r => [r.id, r]));
   const items = session
-    ? session.items
+    ? session.items.concat(seenCurrentItem(session, records))
     : records.map(r => ({ cardKey: r.cardKey, recordId: r.id, kind: r.kind }));
   const cells = items.map((it, index) => {
     const record = it.recordId ? byId.get(it.recordId) || null : null;
@@ -275,7 +278,7 @@ export function resultModel(state, { slot, sessionId, hasInk = null }) {
   else if (variant === 'picked') dateLine = day ? t('X-RESULT.dateSource', { date: dateText(day), source: fromOf(source) }) : null;
 
   // R-R07「这次的图片」（daily / first；picked 没有图片行）：只画有墨迹的字；都没有 → 说明句。
-  const inkTest = typeof hasInk === 'function' ? hasInk : record => !!inkEntryOf(state, record);
+  const inkTest = typeof hasInk === 'function' ? hasInk : record => !!inkEntryOf(state, record) || hasStrokes(recalledInk(record.id));
   const inkChars = judgedCells.filter(c => {
     const record = c.recordId ? byId.get(c.recordId) : null;
     return !!record && inkTest(record);
@@ -309,6 +312,33 @@ export function resultModel(state, { slot, sessionId, hasInk = null }) {
     again: variant === 'daily',
     source,
   };
+}
+
+/**
+ * P77（过渡「补进」）：从看答案阶段（answer / trace / retrace，或看过答案后恢复到的 recall）「结束这组」时，当前字已写了
+ * answer-seen 记录但会话没推进（items 里没有它）——结果页补一格「看过答案」（不可改判，K25）。
+ * 只认本会话（sessionId 已由 records 过滤）、当前字的最近一条 answer-seen 记录；没有记录就不补（D22：没写完的字不算）。
+ * 标题数字只按 judged 算，不受影响；说明句里的看过答案列举含它。
+ * @returns {Array<{cardKey, recordId, kind:'answer-seen'}>} 0 或 1 项
+ */
+export function seenCurrentItem(session, records) {
+  const cur = session && session.current;
+  if (!cur || cur.answerSeen !== true) return [];
+  if (!(session.cursor >= 0 && session.cursor < session.queue.length)) return [];
+  const key = session.queue[session.cursor];
+  if (session.items.some(it => it && it.cardKey === key)) return [];
+  let rec = null;
+  for (const r of records) if (r && r.kind === 'answer-seen' && r.cardKey === key && r.sessionId === session.id) rec = r; // 按 id 升序，取最后
+  return rec ? [{ cardKey: key, recordId: rec.id, kind: 'answer-seen' }] : [];
+}
+
+function hasStrokes(strokes) {
+  return Array.isArray(strokes) && strokes.some(st => Array.isArray(st) && st.length > 0);
+}
+
+/** 格子上的本人笔迹是否有东西可画（inkOf 的结果；「这次的图片」入口与格子同一判据，I6）。 */
+export function inkPresent(ink) {
+  return !!(ink && ((ink.points && ink.points.length) || (ink.strokes && ink.strokes.length)));
 }
 
 function inkEntryOf(state, record) {
@@ -518,7 +548,7 @@ function findRecord(state, recordId) {
 }
 
 function ResultCell({ cell, record, ink, onOpen }) {
-  const hasInk = !!(ink && ((ink.points && ink.points.length) || (ink.strokes && ink.strokes.length)));
+  const hasInk = inkPresent(ink);
   let sq;
   if (cell.kind === 'judged' && hasInk) {
     sq = html`<${InkMini} points=${ink.points} strokes=${ink.strokes} testid="result-cell-ink" label=${cell.char} />`;
@@ -656,7 +686,8 @@ function ResultScreen({ params, entry }) {
   const sessionId = params && typeof params.sessionId === 'string' ? params.sessionId : '';
   const state = useStoreState();
   const store = storeOrNull();
-  const model = resultModel(state, { slot, sessionId, hasInk: record => !!(store && safeInk(store, record)) });
+  // 「这次的图片」入口与格子同一取法（存下的墨迹 → 本页面会话里的笔画，I6）
+  const model = resultModel(state, { slot, sessionId, hasInk: record => inkPresent(inkOf(store, record)) });
 
   // 写完但还在槽里（结束写入失败 / 刷新打断）→ 补写结束（幂等）。
   useEffect(() => {
@@ -770,14 +801,6 @@ function ResultScreen({ params, entry }) {
     ${undo ? html`<${SkipUndoDock} char=${undo.char} failed=${!!undo.failed} onUndo=${doUndo}
       onCancelFail=${() => { setUndo(null); markStateChange(); }} />` : null}
   </${Page}>`;
-}
-
-function safeInk(store, record) {
-  try {
-    return store.getInk(record);
-  } catch (error) {
-    return null;
-  }
 }
 
 registerScreen(RESULT_SCREEN, ResultScreen, { label: t('X-RESULT.headerDaily') });

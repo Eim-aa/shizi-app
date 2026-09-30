@@ -8,13 +8,14 @@
 //   5. R-B04：failNextWrite(2,{kind:'quota', matchKey:safety}) 与 failNextWrite(1,{kind:'generic'}) 让保护副本写失败 → 10.14 说明框 +
 //      「再试一次」回到确认框；全部 v2 键深相等（没有预算回收）。
 //   6. 覆盖失败已回滚：替换中途写失败 → 已回滚、副本删掉、R-B06「没能恢复」、全部键深相等。
-//   7. K03（R-B07）：300 字 → 导出 → 用 9 月 1 日备份替换（sessions 不动、shizi.corrupt.* 清掉、结论句、日期不变、撤销底栏在页底栏区）
-//      → 撤销 →「已撤销」→ 全部 v2 键与 getState 深相等。
+//   7. K03（R-B07）：300 字 → 导出 → 用 9 月 1 日备份替换（进行中的组结束、原会话进保护副本（P79）、shizi.corrupt.* 清掉、结论句、
+//      日期不变、撤销底栏在页底栏区）→ 撤销 →「已撤销」→ 全部 v2 键（含 sessions）与 getState 深相等。
 //   8. R-B05：撤销失败 → 底栏换字、副本保留、可再点；再点成功 → 深相等。
 //   9. P32：替换后刷新，仍在备份页 → 撤销底栏恢复 → 撤销 → 深相等。
 //  10. 离开本页 → 副本删除、撤销失效；再进来只剩结论句（backupMeta.lastConclusion）。
 //  11. 清空所有记录：弹层正文、取消不写；副本失败 → 「没保存上，记录都还在。」+ 先不清空 / 再试一次；成功 → 撤销底栏（P44）+
 //      「记录已清空。现在没有记录。」、导出与清空变灰；撤销失败「没能撤销，记录还是空的」；撤销 → 深相等。
+//  11b. P79：有未写完的 A 组时替换 → A/B 置空、首页无续练；撤销 → A 组回来且 current 深相等、全部 v2 键深相等。
 //  12. 没有记录时恢复：「用这份备份恢复记录？」+ 只有第一句 +「恢复」（主按钮）。
 //  13. 分发第二级 Web Share：files 分享完成才记导出；AbortError（取消）不记。
 //  14. 原生壳（假 shiziNative）：导出发 shareBackup {name, payload}，markBackupExported() 之后才记；恢复发 pickBackup，
@@ -482,7 +483,10 @@ export default async function run(page, { baseURL, assert, step }) {
   assert.equal(v.restoreSub, null, 'no restore sub while undo is on');
   assert.equal(v.records, 23, '23 chars now');
   st = await state(page);
-  assert.equal(S(st.sessions), S(S0.sessions), 'sessions untouched by the import (01 §3.6)');
+  // P79：替换结束进行中的组（A/B 置 null、lastEnded 保留），原会话随保护副本保存、撤销时还原
+  assert.deepEqual([st.sessions.A, st.sessions.B], [null, null], 'P79: the unfinished B group ended by the replace');
+  assert.equal(S(st.sessions.lastEnded), S(S0.sessions.lastEnded), 'P79: lastEnded kept');
+  assert.equal(S(JSON.parse(st.safety.payload['shizi.v2.sessions'])), S(S0.sessions), 'P79: original sessions saved in the protection copy');
   assert.equal(st.safety && st.safety.kind, 'restore', 'protection copy present');
   assert.deepEqual(st.backupMeta.lastConclusion, { kind: 'restore', date: '2026-09-01', count: 23 }, 'conclusion persisted with the replace');
   assert.equal(st.backupMeta.lastExportAt, S0.backupMeta.lastExportAt, 'device lastExportAt kept');
@@ -628,7 +632,8 @@ export default async function run(page, { baseURL, assert, step }) {
   st = await state(page);
   assert.deepEqual([Object.keys(st.records).length, st.sched, st.custom, st.wordOff, st.photos], [0, null, null, null, null], 'record domains cleared');
   assert.equal(S(st.settings), S(S0.settings), 'settings kept');
-  assert.equal(S(st.sessions), S(S0.sessions), 'sessions untouched');
+  assert.deepEqual([st.sessions.A, st.sessions.B], [null, null], 'P79: clear ends the unfinished group');
+  assert.equal(S(JSON.parse(st.safety.payload['shizi.v2.sessions'])), S(S0.sessions), 'P79: original sessions in the protection copy');
   await page.evaluate(() => window.__shiziTest.failNextWrite(1, { kind: 'generic' }));
   await page.click(topSel('undo-button'));
   await page.waitForFunction(() => {
@@ -648,6 +653,66 @@ export default async function run(page, { baseURL, assert, step }) {
   assert.equal(S(await state(page)), S(S0), 'clear undo: getState deep-equal');
   await page.waitForFunction(() => !document.querySelector('[data-testid="backup-undo"]'), null, { timeout: 5000 });
   await settle(page);
+
+  // ------------------------------------------------------------ 11b
+  step('P79: an unfinished A group is ended by the replace (home shows no resume); undo brings it back deep-equal');
+  const A0 = {
+    id: 's950', slot: 'A', kind: 'daily', source: { view: 'home' }, queue: ['base:永', 'base:字', 'base:和'], cursor: 1,
+    items: [{ cardKey: 'base:永', recordId: 'r1', kind: 'judged' }],
+    current: { phase: 'recall', strokes: [[3, 600, 1700, 0, 1700, 1710, 60, 2800, 1720, 60]], hints: 1, answerSeen: false, hintRange: null, referenceReady: false },
+    lastLine: null, startedAt: ms('2026-09-24', 19), startedDay: '2026-09-24', updatedAt: ms('2026-09-24', 19),
+  };
+  const SA = { ...S0, sessions: { A: A0, B: null, lastEnded: { B: { ...S0.sessions.B, endedAt: ms('2026-09-23'), endedEarly: true } } } };
+  await seed(page, SA);
+  await waitNavIdle(page);
+  const SAraw = await raw(page);
+  const resumeNow = () => page.evaluate(async () => {
+    const { resumeOf } = await import('/src/ui/screens/home/today.js');
+    const { now } = await import('/src/platform/env.js');
+    const home = document.querySelector('[data-testid="screen-home"]');
+    return { resume: resumeOf(window.__shiziTest.getState(), now()).resume, dom: home ? home.dataset.resume : null };
+  });
+  let rs = await resumeNow();
+  assert.ok(rs.resume === 'A' && (rs.dom === null || rs.dom === 'A'), `before: home would resume A (${JSON.stringify(rs)})`);
+  await pickFile(page, { name: fileA.name, text: fileA.text });
+  await waitConfirm(page);
+  await confirmOk(page);
+  await page.waitForSelector(topSel('backup-undo'));
+  st = await state(page);
+  assert.deepEqual([st.sessions.A, st.sessions.B], [null, null], 'P79: A ended by the replace');
+  assert.equal(S(st.sessions.lastEnded), S(SA.sessions.lastEnded), 'lastEnded kept');
+  rs = await resumeNow();
+  assert.ok(rs.resume === 'none' && (rs.dom === null || rs.dom === 'none'), `after replace: no resume on home (${JSON.stringify(rs)})`);
+  await settle(page);
+  await page.click(topSel('undo-button'));
+  await page.waitForFunction(() => {
+    const el = document.querySelector('[data-testid="backup-undo"]');
+    return el && el.dataset.state === 'done';
+  });
+  st = await state(page);
+  assert.equal(S(st.sessions.A), S(A0), 'undo: A back, current (strokes / hints) deep-equal');
+  assert.equal(S(await raw(page)), S(SAraw), 'undo: all v2 keys (incl. sessions) deep-equal');
+  rs = await resumeNow();
+  assert.equal(rs.resume, 'A', 'undo: home would resume A again');
+  await page.waitForFunction(() => !document.querySelector('[data-testid="backup-undo"]'), null, { timeout: 5000 });
+  await settle(page);
+  // 再替换一次并离开：真实首页不显示续写
+  await pickFile(page, { name: fileA.name, text: fileA.text });
+  await waitConfirm(page);
+  await confirmOk(page);
+  await page.waitForSelector(topSel('backup-undo'));
+  await back(page);
+  await page.evaluate(async () => (await import('/src/ui/router.js')).nav.switchTab('home'));
+  await page.waitForSelector(topSel('screen-home'));
+  await waitNavIdle(page);
+  const homeAfter = await page.evaluate(() => {
+    const el = document.querySelector('.sz-layer[data-top="true"] [data-testid="screen-home"]');
+    return { resume: el.dataset.resume, line: !!el.querySelector('[data-testid="resume-line"]') };
+  });
+  assert.deepEqual(homeAfter, { resume: 'none', line: false }, 'home after the replace: data-resume=none, no resume line');
+  await page.evaluate(async () => (await import('/src/ui/router.js')).nav.switchTab('mine'));
+  await waitNavIdle(page);
+  await openBackup(page);
 
   // ------------------------------------------------------------ 12
   step('no records: restore wording (Y04)');

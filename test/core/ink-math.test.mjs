@@ -4,8 +4,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   INK, INK_SPEC, INK_TUNABLE_KEYS, inkParams, GRID, buildStroke, speedFactor, pressureFactor, mergeSameTime, liftSpeed, catmullRom, thinStroke,
-  strokeLength, encodeInk, decodeInk, isInkV2, resampleForReplay, encodeRawStrokes, decodeRawStrokes,
+  strokeLength, encodeInk, decodeInk, isInkV2, isInkV3, isInk, resampleForReplay, encodeRawStrokes, decodeRawStrokes,
+  INK_DT_LEVELS, quantizeDt, bytesToBase64, base64ToBytes,
 } from '../../src/core/ink-math.js';
+import { inkBytes } from '../../src/store/budget.js';
 import * as policy from '../../src/config/policy.js';
 import { validateValue } from '../../src/core/schema.js';
 
@@ -165,12 +167,12 @@ test('ink-math: Catmull-Rom resamples about every 3 units and keeps the end poin
 });
 
 test('ink-math: thinning keeps ≤ inkMaxPointsPerStroke points by arc length, first and last kept', () => {
-  assert.equal(policy.inkMaxPointsPerStroke, 32);
+  assert.equal(policy.inkMaxPointsPerStroke, 24, 'P05 / P78: 24 points per stroke');
   assert.equal(policy.inkMaxStrokes, 36);
   const pts = buildStroke(line({ len: 300, v: 0.05 }), { final: true });
-  assert.ok(pts.length > 32, `fixture is long (${pts.length})`);
+  assert.ok(pts.length > 24, `fixture is long (${pts.length})`);
   const thin = thinStroke(pts);
-  assert.ok(thin.length <= 32 && thin.length >= 30, `≤ 32 points (${thin.length})`);
+  assert.ok(thin.length <= 24 && thin.length >= 22, `≤ 24 points (${thin.length})`);
   assert.deepEqual(thin[0], pts[0]);
   assert.deepEqual(thin[thin.length - 1], pts[pts.length - 1]);
   close(strokeLength(thin), strokeLength(pts), 0.5, 'straight line keeps its length');
@@ -178,51 +180,108 @@ test('ink-math: thinning keeps ≤ inkMaxPointsPerStroke points by arc length, f
   assert.equal(thinStroke(pts, 8).length, 8, 'custom cap');
 });
 
-test('ink-math: encodeInk → InkV2 → decodeInk round trip (345 space, ints, schema-valid)', () => {
+/** v3 一笔的点数（每点 4 字节）。 */
+const pointsOf = str => base64ToBytes(str).length / 4;
+
+test('ink-math: base64 helpers round-trip bytes; dt quantizes to 16 log-spaced levels', () => {
+  for (const n of [0, 1, 2, 3, 4, 5, 96]) {
+    const bytes = Uint8Array.from({ length: n }, (_, i) => (i * 37 + 11) & 255);
+    const str = bytesToBase64(bytes);
+    assert.equal(str.length % 4, 0);
+    if (typeof Buffer !== 'undefined') assert.equal(str, Buffer.from(bytes).toString('base64'), `matches standard base64 (${n} B)`);
+    assert.deepEqual([...base64ToBytes(str)], [...bytes]);
+  }
+  assert.equal(base64ToBytes('abc'), null, 'length not a multiple of 4 → null');
+  assert.equal(base64ToBytes('ab=c'), null, 'bad padding → null');
+  assert.equal(INK_DT_LEVELS.length, 16, '4 bits');
+  for (let i = 1; i < 16; i += 1) assert.ok(INK_DT_LEVELS[i] > INK_DT_LEVELS[i - 1], 'levels ascend');
+  INK_DT_LEVELS.forEach((ms, i) => assert.equal(quantizeDt(ms), i, `level ${ms} is a fixed point`));
+  assert.equal(quantizeDt(-5), 0);
+  assert.equal(quantizeDt(9), 2, '9 ms → 8');
+  assert.equal(quantizeDt(60000), 15, 'long pauses saturate at the top level');
+});
+
+test('ink-math: encodeInk → Ink v3 → decodeInk round trip (4 bytes per point, schema-valid)', () => {
   const strokes = [
     buildStroke(line({ x0: 30, y: 60, len: 120, v: 0.4 }), { final: true }),
     buildStroke(line({ x0: 60, y: 200, len: 80, v: 0.9, t0: 3000 }), { final: true }),
     buildStroke([{ x: 172.5, y: 300, t: 5000 }], { final: true }),
   ];
   const ink = encodeInk(strokes);
-  assert.equal(ink.v, 2);
+  assert.equal(ink.v, 3);
   assert.equal(ink.c, GRID);
   assert.equal(ink.s.length, 3);
+  assert.equal(ink.dt, undefined, 'dt packed into each point');
   assert.equal(ink.p, undefined, 'no p row without pen pressure');
-  assert.ok(isInkV2(ink));
-  assert.ok(ink.s.every(row => row.every(Number.isInteger)) && ink.dt.every(row => row.every(Number.isInteger)));
+  assert.ok(ink.s.every(str => typeof str === 'string'), 'one base64 string per stroke');
+  assert.ok(isInkV3(ink) && isInk(ink) && !isInkV2(ink));
   assert.equal(validateValue('shizi.v2.ink.2026-09', { r12: ink }), null, 'passes core/schema.js ink shape');
-  assert.equal(ink.dt[0][0], 0, 'first point dt = 0');
-  assert.ok(ink.dt[1][0] > 1000, 'second stroke starts with the gap since the first stroke ended');
   const back = decodeInk(ink);
   assert.equal(back.length, 3);
+  assert.equal(back[0][0].t, 0, 'first point t = 0');
+  const gap = back[1][0].t - back[0][back[0].length - 1].t;
+  assert.ok(gap >= 1024, `second stroke starts after the (quantized) pause since the first stroke ended (${gap} ms)`);
   for (let si = 0; si < 3; si += 1) {
     const thin = thinStroke(strokes[si]);
     assert.equal(back[si].length, thin.length);
+    assert.equal(pointsOf(ink.s[si]), thin.length);
     back[si].forEach((pt, i) => {
       close(pt.x, thin[i].x, (GRID / 1000) / 2 + 1e-9, `x s${si}p${i}`);
       close(pt.y, thin[i].y, (GRID / 1000) / 2 + 1e-9, `y s${si}p${i}`);
       close(pt.w, thin[i].w, B * 0.005 + 1e-9, `w s${si}p${i}`);
-      close(pt.t - back[0][0].t, thin[i].t - strokes[0][0].t, 1, `t s${si}p${i}`);
+      assert.ok(i === 0 || pt.t >= back[si][i - 1].t, 't is monotone');
     });
+    // 回放只需大致速度：笔内时长误差补偿后与原始时长相近
+    const dur = back[si][back[si].length - 1].t - back[si][0].t;
+    const want = thin[thin.length - 1].t - thin[0].t;
+    assert.ok(Math.abs(dur - want) <= Math.max(16, want * 0.2), `stroke ${si} duration ≈ original (${dur} vs ${Math.round(want)} ms)`);
   }
-  // 再编码稳定（整数网格上的不动点）
+  // 再编码稳定（量化网格上的不动点）
   assert.deepEqual(encodeInk(back), ink);
   // 回放：再走一次 Catmull-Rom，端点不变
   const replay = resampleForReplay(back);
   assert.deepEqual([replay[0][0].x, replay[0][0].y], [back[0][0].x, back[0][0].y]);
   assert.ok(replay[0].every(pt => Number.isFinite(pt.w)), 'w interpolated for replay');
   assert.equal(decodeInk({ v: 1, c: 345, s: [] }), null, 'wrong version → null');
+  assert.equal(decodeInk({ v: 3, c: 345, s: ['AAA='] }), null, '3 bytes is not a whole point → null');
+  assert.equal(decodeInk({ v: 3, c: 345, s: ['AAAAAA=='], dt: [[0]] }), null, 'v3 has no dt field');
+  assert.equal(decodeInk({ v: 3, c: 345, s: ['AAAAAA=='], p: ['AAA='] }), null, 'p byte count must match points');
+});
+
+test('ink-math: packing clamps x / y to 10 bits and w to 8 bits', () => {
+  const ink = encodeInk([[{ x: -20, y: 400, w: B * 3, t: 0 }, { x: 353, y: 10, w: 0, t: 10 }]]);
+  const back = decodeInk(ink);
+  close(back[0][0].x, 0, 1e-9, 'x < 0 clamps to 0');
+  close(back[0][0].y, 1023 * GRID / 1000, 1e-9, 'y beyond 1023 clamps to 1023');
+  close(back[0][0].w, 2.55 * B, 1e-9, 'w multiple clamps to 2.55');
+  close(back[0][1].x, 1023 * GRID / 1000, 1e-9, 'x just outside the grid still fits 10 bits (1023)');
+  assert.equal(back[0][1].w, 0);
+});
+
+test('ink-math: decodeInk still reads legacy InkV2 (P78 read compatibility)', () => {
+  const v2 = { v: 2, c: 345, s: [[100, 200, 100, 110, 210, 90]], dt: [[0, 16]], p: [[0, 50]] };
+  assert.ok(isInkV2(v2) && isInk(v2));
+  assert.equal(validateValue('shizi.v2.ink.2026-09', { r1: v2 }), null, 'schema still accepts v2');
+  const back = decodeInk(v2);
+  assert.equal(back[0].length, 2);
+  close(back[0][0].x, 34.5, 1e-9);
+  close(back[0][1].w, 0.9 * B, 1e-9);
+  assert.equal(back[0][1].t, 16);
+  assert.equal(back[0][1].p, 0.5);
+  assert.equal(back[0][0].p, undefined);
   assert.equal(decodeInk({ v: 2, c: 345, s: [[1, 2]] }), null, 'row not a multiple of 3 → null');
 });
 
-test('ink-math: pen pressure survives encoding (p row ×100, only when present)', () => {
+test('ink-math: pen pressure survives encoding (p = 1 byte per point, only when present)', () => {
   const pen = buildStroke(line({ len: 100, v: 0.5, p: 0.42 }), { final: true });
   const ink = encodeInk([pen]);
-  assert.ok(Array.isArray(ink.p) && ink.p[0].every(x => x === 42));
+  assert.ok(Array.isArray(ink.p) && ink.p.length === 1);
+  const pb = base64ToBytes(ink.p[0]);
+  assert.equal(pb.length, pointsOf(ink.s[0]), 'one pressure byte per point');
+  assert.ok([...pb].every(x => x === Math.round(0.42 * 255)));
   assert.equal(validateValue('shizi.v2.ink.2026-09', { r3: ink }), null);
   const back = decodeInk(ink);
-  assert.ok(back[0].every(pt => pt.p === 0.42));
+  assert.ok(back[0].every(pt => Math.abs(pt.p - 0.42) <= 0.5 / 255 + 1e-9));
 });
 
 test('ink-math: encodeInk caps strokes at inkMaxStrokes and points at inkMaxPointsPerStroke', () => {
@@ -230,13 +289,56 @@ test('ink-math: encodeInk caps strokes at inkMaxStrokes and points at inkMaxPoin
   for (let i = 0; i < 50; i += 1) many.push(buildStroke(line({ y: 5 + i * 6, len: 250, v: 0.05, t0: i * 10000 }), { final: true }));
   const ink = encodeInk(many);
   assert.equal(ink.s.length, policy.inkMaxStrokes, '≤ 36 strokes (first 36 kept)');
-  assert.ok(ink.s.every(row => row.length / 3 <= policy.inkMaxPointsPerStroke), '≤ 32 points per stroke');
-  assert.equal(ink.s[0][1], Math.round((5 / GRID) * 1000), 'first stroke kept first');
+  assert.ok(ink.s.every(str => pointsOf(str) <= policy.inkMaxPointsPerStroke), '≤ 24 points per stroke');
+  close(decodeInk(ink)[0][0].y, Math.round((5 / GRID) * 1000) * GRID / 1000, 1e-9, 'first stroke kept first');
   const custom = encodeInk(many, { maxStrokes: 4, maxPoints: 10 });
   assert.equal(custom.s.length, 4);
-  assert.ok(custom.s.every(row => row.length / 3 <= 10));
+  assert.ok(custom.s.every(str => pointsOf(str) <= 10));
   const bytes = JSON.stringify(ink).length * 2;
-  assert.ok(bytes < 64 * 1024, `36×32 ink stays compact (${bytes} B)`);
+  assert.ok(bytes < 12 * 1024, `36×24 ink stays compact (${bytes} B)`);
+});
+
+/** 14 笔、每笔抽到 24 点的「大字」（横竖撇捺混合，每笔 ~300ms，笔间 ~400ms）。 */
+function bigChar(seed = 0, opts = {}) {
+  const strokes = [];
+  let t0 = 1000;
+  for (let i = 0; i < 14; i += 1) {
+    const x0 = 20 + ((i * 53 + seed * 7) % 200);
+    const y = 20 + ((i * 37 + seed * 11) % 300);
+    const raw = line({ x0, y, len: 60 + ((i * 29 + seed) % 90), v: 0.3 + (i % 4) * 0.15, t0, p: opts.p });
+    strokes.push(buildStroke(raw, { final: true }));
+    t0 = raw[raw.length - 1].t + 380 + ((i * 17) % 120);
+  }
+  return strokes;
+}
+
+test('ink-math: P78 capacity — 14 strokes × 24 points ≤ 4KB per record; 300 records ≤ 1.2MiB', () => {
+  const strokes = bigChar();
+  assert.ok(strokes.every(s => s.length > policy.inkMaxPointsPerStroke), 'every stroke is long enough to be thinned to the cap');
+  const ink = encodeInk(strokes);
+  assert.equal(ink.s.length, 14);
+  assert.ok(ink.s.every(str => pointsOf(str) === 24), '14 × 24 points');
+  const one = JSON.stringify({ r12345: ink }).length * 2;
+  assert.ok(one <= 4 * 1024, `one record's ink (JSON × 2) = ${one} B ≤ 4096 B`);
+  // 300 字只存最近一次：按月分键合计（budget.inkBytes 同一估算口径）
+  const table = {};
+  for (let i = 0; i < 300; i += 1) {
+    const month = `2026-${String(1 + (i % 10)).padStart(2, '0')}`;
+    (table[month] = table[month] || {})[`r${10000 + i}`] = encodeInk(bigChar(i));
+  }
+  const total = inkBytes(table);
+  assert.ok(total <= 1.2 * 1024 * 1024, `300 records' ink = ${total} B (${(total / 1024 / 1024).toFixed(3)} MiB) ≤ 1.2MiB`);
+  assert.ok(total <= policy.inkBudgetBytes, 'fits the P05 ink budget');
+  // v2 对照（旧编码的同一份笔迹）：打包后应当至少小 3 倍
+  const v2 = { v: 2, c: 345, s: [], dt: [] };
+  for (const st of strokes) {
+    const th = thinStroke(st, 32);
+    v2.s.push(th.flatMap(pt => [Math.round(pt.x / GRID * 1000), Math.round(pt.y / GRID * 1000), Math.round(pt.w / B * 100)]));
+    v2.dt.push(th.map((pt, i) => (i ? Math.round(pt.t - th[i - 1].t) : 0)));
+  }
+  const v2Bytes = JSON.stringify({ r12345: v2 }).length * 2;
+  assert.ok(v2Bytes > one * 3, `v2 (32 pts) ${v2Bytes} B vs v3 ${one} B`);
+  console.log(`# P78 ink v3: one 14×24 record = ${one} B; 300 records = ${total} B; v2@32 = ${v2Bytes} B; pen 14×24 = ${JSON.stringify({ r12345: encodeInk(bigChar(0, { p: 0.5 })) }).length * 2} B`);
 });
 
 test('ink-math: raw session strokes encode losslessly enough to rebuild the same ink', () => {

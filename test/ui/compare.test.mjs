@@ -12,7 +12,7 @@ import { skipInDraft, undoSkipInDraft, commitSkip, commitUndoSkip, canUndoSkip, 
 import { Button } from '../../src/ui/components/Button.js';
 import { createSession } from '../../src/core/sessions.js';
 import { replay } from '../../src/core/fsrs.js';
-import { isInkV2, decodeRawStrokes } from '../../src/core/ink-math.js';
+import { isInkV3, decodeRawStrokes } from '../../src/core/ink-math.js';
 import { validateValue, KEYS } from '../../src/core/schema.js';
 import { t } from '../../src/config/copy/index.js';
 
@@ -103,12 +103,12 @@ test('judgeInDraft: local hint count wins when larger; clamps to 2; wrong → Ag
   assert.equal(d.sched['base:永'].due, '2026-09-25', 'Again → at least tomorrow');
 });
 
-test('judgeInDraft: perRecordInk on writes InkV2 under the record month (P31 / 01 §3.5)', () => {
+test('judgeInDraft: perRecordInk on writes Ink v3 under the record month (P31 / P78 / 01 §3.5)', () => {
   const d = draftWith();
   const out = judgeInDraft(d, { slot: 'A', cardKey: 'base:永', judgment: 'correct', strokes: [STROKE, STROKE], at: T0, nextId: idGen(), perRecordInk: true });
   assert.equal(out.inkWritten, true);
   const ink = d.ink[MONTH].r1;
-  assert.ok(isInkV2(ink));
+  assert.ok(isInkV3(ink), 'packed v3 encoding (P78)');
   assert.equal(ink.s.length, 2);
   assert.equal(validateValue(`shizi.v2.ink.${MONTH}`, d.ink[MONTH]), null, 'ink month shape valid');
 });

@@ -35,7 +35,7 @@ test('key coverage invariant: every store domain maps to a schema key, and 01 §
   assert.equal(specForKey('shizi.v2.ink.2026-13'), null, 'bad month is not an ink key');
 });
 
-test('ink is split by record month: shizi.v2.ink.<YYYY-MM> = {recordId: InkV2} (F3)', () => {
+test('ink is split by record month: shizi.v2.ink.<YYYY-MM> = {recordId: Ink v3 | legacy v2} (F3 / P78)', () => {
   assert.equal(inkKey('2026-09'), 'shizi.v2.ink.2026-09');
   assert.equal(keyForDomain('ink', '2026-09'), 'shizi.v2.ink.2026-09');
   assert.equal(isInkKey('shizi.v2.ink.2026-09'), true);
@@ -50,9 +50,16 @@ test('ink is split by record month: shizi.v2.ink.<YYYY-MM> = {recordId: InkV2} (
   assert.equal(inkIdOf(rec), 'r5');
   assert.equal(inkIdOf(Object.assign({}, rec, { inkId: 'r4' })), 'r4', 'inkId wins');
   const ink = { r5: { v: 2, c: 345, s: [[1, 2, 100]] } };
-  assert.equal(validateValue(inkKey('2026-09'), ink), null);
+  assert.equal(validateValue(inkKey('2026-09'), ink), null, 'legacy v2 still valid (P78 read compatibility)');
   assert.match(validateValue(inkKey('2026-09'), { s5: ink.r5 }), /bad key/);
   assert.match(validateValue(inkKey('2026-09'), { r5: { v: 1, c: 345, s: [] } }), /must be 2/);
+  // v3 打包编码（P78）：s / p 为 base64 串，没有 dt
+  assert.equal(validateValue(inkKey('2026-09'), { r5: { v: 3, c: 345, s: ['AAAAAA==', ''], p: ['AA==', ''] } }), null, 'v3 valid');
+  assert.match(validateValue(inkKey('2026-09'), { r5: { v: 3, c: 345, s: [[1, 2, 100]] } }), /base64/, 'v3 rows must be base64 strings');
+  assert.match(validateValue(inkKey('2026-09'), { r5: { v: 3, c: 345, s: ['AA=A'] } }), /base64/, 'bad padding rejected');
+  assert.match(validateValue(inkKey('2026-09'), { r5: { v: 3, c: 345, s: ['AAAAAA=='], dt: [[0]] } }), /unknown field/, 'v3 has no dt');
+  assert.match(validateValue(inkKey('2026-09'), { r5: { v: 3, c: 345 } }), /missing/);
+  assert.match(validateValue(inkKey('2026-09'), { r5: { v: 2, c: 345, s: ['AAAAAA=='] } }), /integer|array/, 'v2 rows must be int arrays');
 });
 
 test('baseline fixture passes every key shape', () => {

@@ -4,13 +4,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { loadFSRSGlobal } from '../core/helpers.mjs';
-import { judgeInDraft } from '../../src/ui/screens/write/compare.js';
+import { judgeInDraft, rememberInk } from '../../src/ui/screens/write/compare.js';
 import { skipInDraft, undoSkipInDraft } from '../../src/ui/screens/write/skip.js';
 import { appendRecordToDraft } from '../../src/ui/screens/write/answer.js';
 import {
   resultModel, findResultSession, finishInDraft, commitFinish, commitLeave, correctResultInDraft, commitResultCorrection,
   undoSkipFromResultInDraft, commitResultSkipUndo, canUndoSkipFromResult, handoffSkipUndo, takeSkipUndo, leaveOf, fromOf,
-  seenSkippedNote, GRID_COLS,
+  seenSkippedNote, seenCurrentItem, inkPresent, GRID_COLS,
 } from '../../src/ui/screens/result/index.js';
 import { endInDraft, commitEndGroup, endConfirmCounts, canEndGroup, judgedCountOf, EndDialogContent } from '../../src/ui/screens/write/end.js';
 import { advance, createSession, endSlot } from '../../src/core/sessions.js';
@@ -183,6 +183,55 @@ test('resultModel: session still in the slot (finish write failed) is shown; mis
   assert.equal(m.found, false);
   assert.deepEqual(m.cells.map(c => [c.char, c.kind, c.canChange]), [['永', 'judged', false]], 'records only, no correction without the session');
   assert.equal(m.title, t('R-R01.titleCount', { n: 1 }));
+});
+
+test('resultModel P77: ended from the answer phase with judged chars → current char added as 看过答案 (not changeable); count unchanged', () => {
+  const { d, id } = group({ kind: 'picked', chars: ['额', '鲜', '境'], steps: ['correct'] });
+  // 鲜：看答案确认（写了 answer-seen 记录、current.answerSeen=true），没推进就结束这组
+  const cur = d.sessions.B;
+  appendRecordToDraft(d, makeRecord({ id: 'r90', cardKey: 'base:鲜', sessionId: id, kind: 'answer-seen', at: T0 + 5000, help: { hints: 0, answerSeen: true, traced: false } }));
+  d.sessions.B = { ...cur, current: { ...cur.current, phase: 'trace', answerSeen: true } };
+  assert.equal(endInDraft(d, { slot: 'B', sessionId: id, at: T0 + 6000 }).judgedCount, 1);
+  const m = resultModel(d, { slot: 'B', sessionId: id });
+  assert.deepEqual(m.cells.map(c => [c.char, c.kind, c.recordId, c.canChange]), [['额', 'judged', 'r10', true], ['鲜', 'answer-seen', 'r90', false]]);
+  assert.equal(m.cells[1].caption, t('R-R02.cellSaw'));
+  assert.equal(m.count, 1, 'title count by judged records only');
+  assert.deepEqual(m.seen, ['鲜'], 'seen list (note) includes it');
+  assert.equal(m.unwritten, 2, 'unwritten count unchanged (queue − cursor)');
+  assert.ok(m.sub.includes(seenSkippedNote(['鲜'], [])), 'P62 only-seen sentence');
+  // 没有 answer-seen 记录（只打开了确认框）→ 不补
+  const g2 = group({ kind: 'picked', chars: ['额', '鲜'], steps: ['correct'] });
+  g2.d.sessions.B = { ...g2.d.sessions.B, current: { ...g2.d.sessions.B.current, answerSeen: true } };
+  assert.deepEqual(seenCurrentItem(g2.d.sessions.B, recs(g2.d)), [], 'no record → nothing added');
+  // answerSeen 为假 → 不补；当前字已在 items 里 → 不重复
+  const g3 = group({ kind: 'picked', chars: ['额', '鲜'], steps: ['correct'] });
+  appendRecordToDraft(g3.d, makeRecord({ id: 'r91', cardKey: 'base:鲜', sessionId: g3.id, kind: 'answer-seen', at: T0 + 5000, help: { hints: 0, answerSeen: true, traced: false } }));
+  assert.deepEqual(seenCurrentItem(g3.d.sessions.B, recs(g3.d)), [], 'answerSeen false → nothing added');
+  const g4 = group({ kind: 'picked', chars: ['额', '鲜'], steps: ['correct', 'seen'] });
+  assert.equal(resultModel(g4.d, { slot: 'B', sessionId: g4.id }).cells.length, 2, 'already advanced → no duplicate');
+  // 别的会话的 answer-seen 记录不算
+  const g5 = group({ kind: 'picked', chars: ['额', '鲜'], steps: ['correct'] });
+  appendRecordToDraft(g5.d, makeRecord({ id: 'r92', cardKey: 'base:鲜', sessionId: 's999', kind: 'answer-seen', at: T0 + 5000, help: { hints: 0, answerSeen: true, traced: false } }));
+  g5.d.sessions.B = { ...g5.d.sessions.B, current: { ...g5.d.sessions.B.current, answerSeen: true } };
+  assert.deepEqual(seenCurrentItem(g5.d.sessions.B, recs(g5.d)), [], 'other session record ignored');
+});
+
+test('resultModel I6: 「这次的图片」 entry counts page-memory strokes like the grid does (stored ink OR recalledInk)', () => {
+  const { d, slot, id } = group({ chars: ['永', '和'], steps: ['correct', 'correct'], id: 's77' });
+  ended(d, slot);
+  const ids = recs(d).map(r => r.id);
+  assert.equal(resultModel(d, { slot, sessionId: id }).image, 'allMissing', 'no stored ink, nothing in page memory → allMissing');
+  rememberInk(ids[1], [STROKE]); // 本页面会话里刚判断时记下的笔画（格子会画它）
+  let m = resultModel(d, { slot, sessionId: id });
+  assert.equal(m.image, 'entry', 'page-memory strokes count → entry');
+  assert.deepEqual(m.inkChars, ['和']);
+  assert.deepEqual(m.missingInkChars, ['永']);
+  // 页面传入的判据（与格子同一个 inkOf）：刷新后页面内笔画没了 → allMissing
+  m = resultModel(d, { slot, sessionId: id, hasInk: () => inkPresent({ points: null, strokes: null }) });
+  assert.equal(m.image, 'allMissing', 'after reload (no page strokes, perRecordInk off) → R-R07.allMissing');
+  assert.equal(inkPresent({ points: [[{ x: 1, y: 1 }]], strokes: null }), true);
+  assert.equal(inkPresent({ points: null, strokes: [[{ x: 1, y: 1, t: 0 }]] }), true);
+  assert.equal(inkPresent(null), false);
 });
 
 // ---------------------------------------------------------------- 结束 / 离开

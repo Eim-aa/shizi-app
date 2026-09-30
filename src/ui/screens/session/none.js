@@ -5,11 +5,13 @@
 // 与「回到首页 ›」。当前练习范围的字都有记录了（params.exhausted）时加次入口：「可以换一个字库，或者先练写错过的字。」
 // 「看写错过的字 ›」（R-H11 noChars；两态是否同一页见 04 §6.2——过渡：同一页，次入口按 exhausted 显示）。
 //
-// 「自己选字」（M2-0 查字组件 pick 模式）与「看写错过的字」（M3-2）由拥有它们的卡注册：setNoneActions({pick, wrongList})；
-// 没注册的入口不显示（不放点了没反应的按钮）。
+// 「自己选字」（M2-0 查字组件 pick 模式）、「看写错过的字」（M3-2）与「更换字库」（M3-5）由拥有它们的卡注册：
+// setNoneActions({pick, wrongList, libSwitch})；没注册的入口不显示（不放点了没反应的按钮）。
+// 字库写完（exhausted）时主按钮是「更换字库」（原型 noChars L125–L127：主按钮 更换字库 → libSwitch、链接 看写错过的字 ›；
+// P83），「自己选字」降为次按钮；其余情形主按钮仍是「自己选字」。
 //
 // data-testid：session-none、session-none-cell、session-none-title、session-none-body、session-none-nochars、
-//              session-none-pick、session-none-wrong、session-none-home。
+//              session-none-libswitch、session-none-pick、session-none-wrong、session-none-home。
 
 import { html } from '../../../../vendor/ui.js';
 import { registerScreen, nav } from '../../router.js';
@@ -20,13 +22,14 @@ import { t } from '../../../config/copy/index.js';
 
 export const NONE_SCREEN = 'session-none';
 
-const actions = { pick: null, wrongList: null };
+const actions = { pick: null, wrongList: null, libSwitch: null };
 
-/** 注册「自己选字」「看写错过的字」的去处（M2-1 / M2-0 / M3-2 调用）；传 null 取消。 */
+/** 注册「自己选字」「看写错过的字」「更换字库」的去处（M2-1 / M2-0 / M3-2 / M3-5 调用）；传 null 取消。 */
 export function setNoneActions(next) {
   if (!next || typeof next !== 'object') return;
   if ('pick' in next) actions.pick = typeof next.pick === 'function' ? next.pick : null;
   if ('wrongList' in next) actions.wrongList = typeof next.wrongList === 'function' ? next.wrongList : null;
+  if ('libSwitch' in next) actions.libSwitch = typeof next.libSwitch === 'function' ? next.libSwitch : null;
 }
 
 injectStyles('session-none', `
@@ -42,8 +45,10 @@ function NoneScreen({ params }) {
   const exhausted = !!(params && params.exhausted);
   const pick = actions.pick;
   const wrongList = actions.wrongList;
+  const libSwitch = exhausted ? actions.libSwitch : null;
   const footer = html`
-    ${pick ? html`<${Button} variant="primary" data-testid="session-none-pick" onClick=${() => pick()}>${t('X-SESSION.nonePick')}</${Button}>` : null}
+    ${libSwitch ? html`<${Button} variant="primary" data-testid="session-none-libswitch" onClick=${() => libSwitch()}>${t('X-SESSION.noneLibSwitch')}</${Button}>` : null}
+    ${pick ? html`<${Button} variant=${libSwitch ? 'secondary' : 'primary'} data-testid="session-none-pick" onClick=${() => pick()}>${t('X-SESSION.nonePick')}</${Button}>` : null}
     <${Button} variant="text" class="sz-none__home" data-testid="session-none-home"
       onClick=${() => nav.switchTab('home')}>${t('R-H11.backHome')}</${Button}>`;
   return html`<${Page} title=${t('X-TABS.write')} leading="close" footer=${footer} testid="session-none">

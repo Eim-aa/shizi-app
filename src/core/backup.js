@@ -2,18 +2,16 @@
 // 03 P26 / P32 / P53）。
 //
 // 本模块不碰 DOM / window / localStorage；需要写入的函数把 store 当参数传进来（依赖方向 ui → store → core，
-// core 不 import store）。所有写入都走 store 的公开原语：
-//   - 替换：store.replaceWithBackup（整单校验、失败回滚、成功后清 shizi.corrupt.*，01 §3.6）；
-//   - 清空 / 导出记账：store.commit；
-//   - 保护副本的写入与删除、撤销：writeDomains()——本地包装，见下。
+// core 不 import store）。所有写入都走 store 的公开原语，且一律**不做预算回收**：
+//   - 替换：store.replaceWithBackup（整单校验、不回收、失败回滚、成功后清 shizi.corrupt.*，01 §3.6）；
+//   - 保护副本的写入与删除、撤销、清空：store.commit(label, mutate, {reclaim:false})（M3/M4 修复回合 I2）；
+//   - 导出记账：普通 store.commit。
+// 为什么不回收：store.commit 撞配额默认「先回收再重试」（01 §4 / §9）——强制回收会折叠旧月份、淘汰墨迹并用 writeOne
+// 旁路写回。保护副本本身很大（一整份白名单数据），它撞配额时若回收，会在「没能换成备份」的同时悄悄折掉用户的旧记录，
+// 与 R-B04「你现在的记录没有变」和 K03「全部 v2 键深相等」相违。reclaim:false 撞配额直接 {ok:false, kind:'quota'}。
 //
-// writeDomains（M4 冻结期的最小本地包装，报告已登记待定项）：
-//   store.commit 撞配额会「先回收再重试」（01 §4 / §9）：强制回收会折叠旧月份、淘汰墨迹，并用 writeOne 旁路写回——
-//   保护副本本身很大（一整份白名单数据），它撞配额时若走 commit，会在「没能换成备份」的同时悄悄折掉用户的旧记录，
-//   与 R-B04「你现在的记录没有变」和 K03「全部 v2 键深相等」相违。store 当前没有「不回收的单域提交」原语，
-//   这里借用 store.seed（整体替换全部 v2 域、形状校验、单次 writeAll、不做预算回收）：传入「当前状态 + 要改的域」，
-//   未改的键序列化后与已落盘字串相同，不会被写——实际只写改动的键（外加 txn）。撤销也用它：一次 writeAll 同时
-//   写回 payload 并删掉保护副本（原子）。架构侧若补上 commit(label, fn, {recover:false}) 之类原语，只需改这一个函数。
+// 进行中的组（P79）：替换备份 / 清空所有记录时结束正在进行的组——sessions.A / B 置 null（lastEnded 保留），
+// 原 sessions 随保护副本存进 payload['shizi.v2.sessions']，撤销时连同会话一起原样还原（K03 全部 v2 键深相等含 sessions）。
 //
 // 备份文件（01 §3.6）：{app:'shizi', version:2, date:ISO, data:{'shizi.v2.<键>': JSON 字串}}，只含白名单键；
 //   state.meta 缺失（迁移 M5-4 之前没人建 meta）时导出前补一份，保证 parseBackupV2 认得自己导出的文件。
@@ -384,13 +382,15 @@ function restoreConclusion(conclusion) {
 // ---------------------------------------------------------------- 保护副本（01 §9；R12 / 10.14 / O04；P32）
 
 /**
- * 保护副本对象（schema validateSafety）：只含 v2 白名单键的原始字串，不含 sessions / v1 键。
+ * 保护副本对象（schema validateSafety）：v2 白名单键的原始字串；state.sessions 存在时另带 payload['shizi.v2.sessions']
+ * （替换 / 清空会结束进行中的组，撤销时还原，P79）。不含 v1 键、funnel、txn。
  * @param {object} state
  * @param {{kind:'restore'|'clear', now:number, backupDate?:string|null, count?:number}} o
  */
 export function makeSafety(state, { kind, now, backupDate = null, count = 0 }) {
   const payload = {};
   for (const [key, raw] of backupEntries(state)) payload[key] = raw;
+  if (state && isPlainObject(state.sessions)) payload[KEYS.sessions] = JSON.stringify(state.sessions);
   return {
     version: SAFETY_VERSION,
     kind,
@@ -399,6 +399,16 @@ export function makeSafety(state, { kind, now, backupDate = null, count = 0 }) {
     count: Number.isInteger(count) && count >= 0 ? count : 0,
     payload,
   };
+}
+
+/**
+ * 结束进行中的组（P79）：在 commit / replaceWithBackup 的草稿里把 sessions.A / B 置 null，lastEnded 保留。
+ * sessions 域不存在时不建。
+ */
+export function endActiveSessions(draft) {
+  if (!isPlainObject(draft.sessions)) return;
+  if (draft.sessions.A === null && draft.sessions.B === null) return;
+  draft.sessions = Object.assign({}, draft.sessions, { A: null, B: null });
 }
 
 /** 状态里的保护副本（没有返回 null）。 */
@@ -411,7 +421,7 @@ export function safetyMatchesCurrent(state) {
   const safety = safetyOf(state);
   if (!safety) return false;
   const now = backupEntries(state);
-  const keys = Object.keys(safety.payload);
+  const keys = Object.keys(safety.payload).filter(key => key !== KEYS.sessions);
   if (keys.length !== now.length) return false;
   for (const [key, raw] of now) if (safety.payload[key] !== raw) return false;
   return true;
@@ -426,23 +436,21 @@ export function conclusionOfSafety(safety, state) {
   return stored || { kind: 'restore', date: safety.backupDate || null, count: safety.count || 0 };
 }
 
-function plainState(store) {
-  return JSON.parse(JSON.stringify(store.getState()));
-}
-
 /**
- * 写若干域且不做预算回收（见文件头「writeDomains」）。patch 里的域整体替换；其余域保持当前值（序列化相同的键不会被写）。
+ * 写若干域且不做预算回收（store.commit 的 reclaim:false，见文件头）。patch 里的域整体替换；其余域不动（未变的键不会被写）。
+ * 通知带 replace:true（整体替换口径：持有本地现场的页面按新状态重取，与原先借 store.seed 时相同）。
  * @returns store 结果 {ok, keys} | {ok:false, error}
  */
 export function writeDomains(store, patch, label) {
-  const next = plainState(store);
   for (const domain of Object.keys(patch)) {
     if (DOMAINS.indexOf(domain) < 0) throw new Error(`writeDomains: unknown domain ${domain}`);
-    next[domain] = patch[domain] === undefined ? null : patch[domain];
   }
-  if (!isPlainObject(next.records)) next.records = {};
-  if (!isPlainObject(next.ink)) next.ink = {};
-  return store.seed(next, { label });
+  return store.commit(label, draft => {
+    for (const domain of Object.keys(patch)) {
+      const value = patch[domain] === undefined ? null : patch[domain];
+      draft[domain] = isMonthlyDomain(domain) && !isPlainObject(value) ? {} : value;
+    }
+  }, { reclaim: false, replace: true });
 }
 
 /** 写保护副本（写后 writeAll 逐键读回核对，storage.js 保证）。 */
@@ -467,7 +475,8 @@ function errorOf(result) {
  *   ③ 成功 → {ok:true, conclusion}。
  * 备份文件里的 backupMeta 不采用：换成本机的上次备份时间与签名（K02「替换、撤销不改上次备份的日期」）+ 本次结论
  * （R-B01 结论句，离开备份页后仍显示；与替换同一次写入，不另等离开时再写）。
- * sessions / funnel 不动（01 §3.6：导入时忽略会话）。
+ * 备份文件里没有会话（01 §3.6：导入时忽略会话）；本机进行中的组随替换结束（A/B 置 null，lastEnded 保留，P79），
+ * 原会话在保护副本里，撤销时还原。funnel 不动。
  * @param {object} store
  * @param {object} report  inspectBackup 的成功结果
  * @param {{now:number}} o
@@ -488,7 +497,7 @@ export function restoreFromBackup(store, report, { now }) {
   for (const [key, raw] of report.entries) data[key] = raw;
   data[KEYS.backupMeta] = JSON.stringify(backupMeta);
   const file = { app: APP_ID, version: BACKUP_VERSION, date: report.backup && report.backup.date, data };
-  const r = store.replaceWithBackup(file, { label: LABELS.restore });
+  const r = store.replaceWithBackup(file, { label: LABELS.restore, mutate: endActiveSessions });
   if (!r.ok) {
     const drop = dropSafety(store);
     return { ok: false, stage: STAGES.replace, error: errorOf(r), safetyDropped: !!drop.ok };
@@ -497,9 +506,10 @@ export function restoreFromBackup(store, report, { now }) {
 }
 
 /**
- * 清空所有记录（R-B03 清空确认之后）：① 保护副本（失败 → stage 'safety'）；② 一次 commit 清掉
- * records / ink / sched / custom / wordOff / photos / legacy，保留 meta（序号）、settings、backupMeta（写入结论）；
- * 失败 → 删副本 → stage 'clear'。sessions 不动（与替换同口径，副本不含会话，撤销无法还原会话）。
+ * 清空所有记录（R-B03 清空确认之后）：① 保护副本（失败 → stage 'safety'）；② 一次不回收的 commit 清掉
+ * records / ink / sched / custom / wordOff / photos / legacy，保留 meta（序号）、settings、backupMeta（写入结论），
+ * 并结束进行中的组（A/B 置 null，lastEnded 保留，P79；原会话在保护副本里，撤销时还原）；
+ * 失败 → 删副本 → stage 'clear'。
  */
 export function clearAllRecords(store, { now }) {
   const state = store.getState();
@@ -521,7 +531,8 @@ export function clearAllRecords(store, { now }) {
       lastExportSig: typeof cur.lastExportSig === 'string' ? cur.lastExportSig : null,
       lastConclusion: conclusion,
     };
-  });
+    endActiveSessions(draft);
+  }, { reclaim: false, replace: true });
   if (!r.ok) {
     const drop = dropSafety(store);
     return { ok: false, stage: STAGES.clear, error: errorOf(r), safetyDropped: !!drop.ok };
@@ -530,7 +541,8 @@ export function clearAllRecords(store, { now }) {
 }
 
 /**
- * 撤销（R-B01 / R-B05）：用副本 payload 原样写回全部白名单域并删副本——一次 writeAll（原子）。
+ * 撤销（R-B01 / R-B05）：用副本 payload 原样写回全部白名单域（及副本里的 sessions，P79）并删副本——一次 writeAll（原子）。
+ * 副本里没有 sessions（替换前本来就没有会话域）时会话不动。
  * 失败 → {ok:false}，副本保留，可以再点。没有副本 → {ok:false, error:{kind:'no-safety'}}。
  */
 export function undoFromSafety(store) {
@@ -546,6 +558,7 @@ export function undoFromSafety(store) {
     if (isMonthlyDomain(spec.domain)) patch[spec.domain][monthOfKey(key)] = value;
     else patch[spec.domain] = value;
   }
+  if (hasOwn(safety.payload, KEYS.sessions)) patch.sessions = JSON.parse(safety.payload[KEYS.sessions]);
   const r = writeDomains(store, patch, LABELS.undo);
   return r.ok ? { ok: true, kind: safety.kind } : { ok: false, error: errorOf(r) };
 }

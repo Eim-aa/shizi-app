@@ -295,10 +295,42 @@ export default async function sessionStart(page, ctx) {
   assert.equal((await page.locator(topSel('session-none-home')).textContent()).trim(), '回到首页 ›', 'R-H11 back home link');
   assert.equal(await page.evaluate(() => window.__shiziTest.getWriteLog().length), logBefore, 'no storage write');
   assert.equal(((await state(page)).sessions || {}).A || null, null, 'no session opened');
+  const noneBtns = await page.evaluate(() => {
+    const top = document.querySelector('.sz-layer[data-top="true"]');
+    const b = id => {
+      const el = top.querySelector(`[data-testid="${id}"]`);
+      return el ? { text: el.textContent.trim(), primary: el.classList.contains('sz-btn--primary') } : null;
+    };
+    return { lib: b('session-none-libswitch'), pick: b('session-none-pick') };
+  });
+  assert.deepEqual(noneBtns.lib, { text: '更换字库', primary: true }, 'I5 / P83: exhausted → primary 更换字库 (原型 noChars)');
+  assert.equal(noneBtns.pick && noneBtns.pick.primary, false, '自己选字 becomes a secondary button when 更换字库 is the primary');
   await page.evaluate(async () => {
     const deck = await import('/src/data/deck.js');
     deck.setDeckSource(null);
   });
+  await page.click(topSel('session-none-libswitch'));
+  await page.waitForFunction(() => document.querySelector('.sz-app').dataset.topScreen === 'library-switch');
+  await page.waitForSelector(topSel('libswitch-screen'));
+  await waitNavIdle(page);
+  assert.ok(true, '更换字库 pushes the library-switch page');
+  await page.click(topSel('page-back'));
+  await page.waitForFunction(() => document.querySelector('.sz-app').dataset.topScreen === 'session-none');
+  await waitNavIdle(page);
+  assert.equal(await page.evaluate(() => window.__shiziTest.getWriteLog().length), logBefore, 'opening / leaving the switch page writes nothing');
+  // 没写完的范围（非 exhausted）：没有「更换字库」，自己选字仍是主按钮
+  await page.evaluate(async () => (await import('/src/ui/screens/session/none.js')).openNonePage({ exhausted: false }));
+  await page.waitForFunction(() => {
+    const top = document.querySelector('.sz-layer[data-top="true"] [data-testid="session-none"]');
+    return !!top && !top.querySelector('[data-testid="session-none-nochars"]');
+  });
+  await waitNavIdle(page);
+  const plainNone = await page.evaluate(() => {
+    const top = document.querySelector('.sz-layer[data-top="true"]');
+    const pick = top.querySelector('[data-testid="session-none-pick"]');
+    return { lib: !!top.querySelector('[data-testid="session-none-libswitch"]'), pickPrimary: !!pick && pick.classList.contains('sz-btn--primary') };
+  });
+  assert.deepEqual(plainNone, { lib: false, pickPrimary: true }, 'not exhausted: no 更换字库, 自己选字 is the primary button');
   await page.click(topSel('session-none-home'));
   await page.waitForFunction(() => document.querySelector('.sz-app').dataset.topScreen === 'home');
   await waitNavIdle(page);

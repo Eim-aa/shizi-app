@@ -15,7 +15,7 @@
 // 登记为 03-待产品决定 P65，默认读 src/config/policy.js 的 policy.ink；已定规格（INK_SPEC：speedCap / tau / window /
 // dotLen / single，交接备注八.1、D09）留在本模块。两者合成 INK（默认表）；opts.policy 注入整张 policy，
 // opts 上的同名数值键（base / lo / hi / step / pressureLo …）覆盖单项。
-// 抽点上限读 policy.inkMaxPointsPerStroke / inkMaxStrokes（P05）。
+// 抽点上限读 policy.inkMaxPointsPerStroke / inkMaxStrokes（P05）；存储编码为 v3 打包（P78），读取兼容 v2。
 
 import * as defaultPolicy from '../config/policy.js';
 
@@ -333,15 +333,85 @@ export function thinStroke(points, max = defaultPolicy.inkMaxPointsPerStroke) {
   return picked.map(k => ({ ...points[k] }));
 }
 
-// ---------------------------------------------------------------- 存储编码 InkV2（01 §3.5）
+// ---------------------------------------------------------------- 存储编码 Ink v3（01 §3.5，P78）
+
+/** v3 的 dt 量化档（ms，16 档，近似对数）：回放只需大致速度（P78）。编码取对数距离最近的档。 */
+export const INK_DT_LEVELS = Object.freeze([0, 4, 8, 12, 16, 24, 32, 48, 64, 96, 128, 192, 256, 512, 1024, 2048]);
+
+const B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+const B64_INDEX = (() => {
+  const m = new Int16Array(128).fill(-1);
+  for (let i = 0; i < B64.length; i += 1) m[B64.charCodeAt(i)] = i;
+  return m;
+})();
+const B64_RE = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
+
+/** 字节数组 → 标准 base64（带 = 补位）。纯 JS，不依赖 btoa / Buffer。 */
+export function bytesToBase64(bytes) {
+  let out = '';
+  const n = bytes.length;
+  for (let i = 0; i < n; i += 3) {
+    const a = bytes[i];
+    const b = i + 1 < n ? bytes[i + 1] : 0;
+    const c = i + 2 < n ? bytes[i + 2] : 0;
+    out += B64[a >> 2] + B64[((a & 3) << 4) | (b >> 4)]
+      + (i + 1 < n ? B64[((b & 15) << 2) | (c >> 6)] : '=')
+      + (i + 2 < n ? B64[c & 63] : '=');
+  }
+  return out;
+}
+
+/** 是否是合法的标准 base64 串（长度 4 的倍数、补位正确）。 */
+export function isBase64(str) {
+  return typeof str === 'string' && str.length % 4 === 0 && B64_RE.test(str);
+}
+
+/** 标准 base64 → Uint8Array；不合法返回 null。 */
+export function base64ToBytes(str) {
+  if (!isBase64(str)) return null;
+  const pad = str.endsWith('==') ? 2 : str.endsWith('=') ? 1 : 0;
+  const len = (str.length / 4) * 3 - pad;
+  const out = new Uint8Array(len);
+  let o = 0;
+  for (let i = 0; i < str.length; i += 4) {
+    const a = B64_INDEX[str.charCodeAt(i)];
+    const b = B64_INDEX[str.charCodeAt(i + 1)];
+    const c = str[i + 2] === '=' ? 0 : B64_INDEX[str.charCodeAt(i + 2)];
+    const d = str[i + 3] === '=' ? 0 : B64_INDEX[str.charCodeAt(i + 3)];
+    const v = (a << 18) | (b << 12) | (c << 6) | d;
+    if (o < len) out[o++] = (v >> 16) & 255;
+    if (o < len) out[o++] = (v >> 8) & 255;
+    if (o < len) out[o++] = v & 255;
+  }
+  return out;
+}
+
+/** ms 差 → 0–15 档（对数距离最近；负数按 0）。 */
+export function quantizeDt(ms) {
+  const want = Math.max(0, num(ms, 0));
+  const lw = Math.log1p(want);
+  let best = 0;
+  let bestD = Infinity;
+  for (let i = 0; i < INK_DT_LEVELS.length; i += 1) {
+    const d = Math.abs(Math.log1p(INK_DT_LEVELS[i]) - lw);
+    if (d < bestD) {
+      bestD = d;
+      best = i;
+    }
+  }
+  return best;
+}
 
 /**
- * 管线输出（每笔 {x,y,w,t,p?}，345 空间）→ InkV2 紧凑编码：
- *   { v:2, c:345, s:[[x,y,w, x,y,w, …]], dt:[[…]], p?:[[…]] }
- *   x / y：0–1000 整数（= 坐标 / 345 × 1000，落在格外的点不截断）；w：本体宽倍数 ×100（w / base × 100）；
- *   dt：相邻点 ms 差（每笔第一个点 = 距上一笔最后一点的间隔，第一笔为 0；按累计取整，无漂移）；
- *   p：仅当有 pen 压力时出现，压力 ×100（无压力的点为 0）。
- * 存储前每笔按弧长抽点到 ≤ inkMaxPointsPerStroke；超过 inkMaxStrokes 笔只留前 inkMaxStrokes 笔（P05）。
+ * 管线输出（每笔 {x,y,w,t,p?}，345 空间）→ Ink v3 打包编码（P78）：
+ *   { v:3, c:345, s:['<base64>', …], p?:['<base64>', …] }
+ *   s 每笔一个 base64 串，每点 4 字节（大端 32 位）：x 10 位 | y 10 位 | w 8 位 | dt 4 位
+ *     x / y：坐标 / 345 × 1000 取整，夹到 0–1023（落在格外稍远的点被夹到边上）；
+ *     w：本体宽倍数 ×100（w / base × 100），夹到 0–255；
+ *     dt：相邻点 ms 差量化到 INK_DT_LEVELS 的 16 档（每笔第一个点 = 距上一笔最后一点的间隔，第一笔为 0；
+ *         笔内按累计时间做误差补偿，笔间间隔单独量化、不把长停顿的误差带进下一笔）。
+ *   p：仅当有 pen 压力时出现，每点 1 字节（压力 ×255，有压力的点至少 1；无压力的点为 0）。
+ * 存储前每笔按弧长抽点到 ≤ inkMaxPointsPerStroke（过渡 24）；超过 inkMaxStrokes 笔只留前 inkMaxStrokes 笔（P05）。
  * @param {Array<Array<{x,y,w,t?,p?}>>} strokes
  * @param {{base?:number, maxPoints?:number, maxStrokes?:number, policy?:object}} [opts]
  */
@@ -354,36 +424,50 @@ export function encodeInk(strokes, opts = {}) {
   const thinned = kept.map(s => thinStroke(s, maxPoints));
   const withPressure = thinned.some(s => s.some(hasPressure));
   const s = [];
-  const dt = [];
   const p = [];
   let t0 = null; // 整份墨迹第一个点的时间
-  let lastRel = 0;
+  let lastRel = 0; // 上一个点的真实相对时间（取整、单调）
   for (const stroke of thinned) {
-    const row = [];
-    const drow = [];
-    const prow = [];
-    for (const pt of stroke) {
-      row.push(Math.round((pt.x / GRID) * 1000), Math.round((pt.y / GRID) * 1000), Math.max(0, Math.round((num(pt.w, base) / base) * 100)));
+    const bytes = new Uint8Array(stroke.length * 4);
+    const pbytes = withPressure ? new Uint8Array(stroke.length) : null;
+    let strokeRel0 = 0; // 本笔第一个点的真实相对时间
+    let decWithin = 0; // 本笔内已编码的量化时间累计
+    stroke.forEach((pt, j) => {
+      const x = clamp(Math.round((num(pt.x, 0) / GRID) * 1000), 0, 1023);
+      const y = clamp(Math.round((num(pt.y, 0) / GRID) * 1000), 0, 1023);
+      const w = clamp(Math.round((num(pt.w, base) / base) * 100), 0, 255);
       const t = num(pt.t, null);
       let rel = lastRel;
       if (t !== null) {
         if (t0 === null) t0 = t;
         rel = Math.max(lastRel, Math.round(t - t0));
       }
-      drow.push(rel - lastRel);
+      let q;
+      if (j === 0) {
+        q = quantizeDt(rel - lastRel);
+        strokeRel0 = rel;
+        decWithin = 0;
+      } else {
+        q = quantizeDt(rel - strokeRel0 - decWithin);
+        decWithin += INK_DT_LEVELS[q];
+      }
       lastRel = rel;
-      if (withPressure) prow.push(hasPressure(pt) ? Math.round(clamp(pt.p, 0, 1) * 100) : 0);
-    }
-    s.push(row);
-    dt.push(drow);
-    if (withPressure) p.push(prow);
+      const o = j * 4;
+      bytes[o] = x >> 2;
+      bytes[o + 1] = ((x & 3) << 6) | (y >> 4);
+      bytes[o + 2] = ((y & 15) << 4) | (w >> 4);
+      bytes[o + 3] = ((w & 15) << 4) | q;
+      if (pbytes) pbytes[j] = hasPressure(pt) ? Math.max(1, Math.round(clamp(pt.p, 0, 1) * 255)) : 0;
+    });
+    s.push(bytesToBase64(bytes));
+    if (pbytes) p.push(bytesToBase64(pbytes));
   }
-  const ink = { v: 2, c: GRID, s, dt };
+  const ink = { v: 3, c: GRID, s };
   if (withPressure) ink.p = p;
   return ink;
 }
 
-/** InkV2 形状是否合法（与 core/schema.js inkFields 同口径，再加行长度一致）。 */
+/** 旧 InkV2（JSON 数字编码，M4-5 前写入的数据）形状是否合法（与 core/schema.js 同口径，再加行长度一致）。 */
 export function isInkV2(ink) {
   if (!ink || typeof ink !== 'object' || ink.v !== 2 || !Number.isFinite(ink.c) || ink.c <= 0) return false;
   if (!Array.isArray(ink.s)) return false;
@@ -396,14 +480,57 @@ export function isInkV2(ink) {
   return true;
 }
 
+/** Ink v3 形状是否合法：s / p 为 base64 串，s 每串字节数是 4 的倍数，p 与 s 逐笔点数一致。 */
+export function isInkV3(ink) {
+  if (!ink || typeof ink !== 'object' || ink.v !== 3 || !Number.isFinite(ink.c) || ink.c <= 0) return false;
+  if (!Array.isArray(ink.s) || ink.dt !== undefined) return false;
+  const counts = [];
+  for (const str of ink.s) {
+    const bytes = base64ToBytes(str);
+    if (!bytes || bytes.length % 4 !== 0) return false;
+    counts.push(bytes.length / 4);
+  }
+  if (ink.p !== undefined) {
+    if (!Array.isArray(ink.p) || ink.p.length !== ink.s.length) return false;
+    for (let i = 0; i < ink.p.length; i += 1) {
+      const bytes = base64ToBytes(ink.p[i]);
+      if (!bytes || bytes.length !== counts[i]) return false;
+    }
+  }
+  return true;
+}
+
+/** 可读的墨迹（v2 或 v3）。 */
+export function isInk(ink) {
+  return isInkV3(ink) || isInkV2(ink);
+}
+
 /**
- * InkV2 → 每笔 {x, y, w, t, p?}（345 空间，w 为绝对宽；t 从 0 起的累计 ms）。形状不合法返回 null。
+ * Ink（v3 打包 / 旧 v2）→ 每笔 {x, y, w, t, p?}（345 空间，w 为绝对宽；t 从 0 起的累计 ms）。形状不合法返回 null。
  * 回放 / 缩略图渲染前再走 catmullRom（resampleForReplay）保证外观与书写时一致（01 §3.5）。
  */
 export function decodeInk(ink, opts = {}) {
-  if (!isInkV2(ink)) return null;
   const base = num(opts.base, opts.policy ? inkParams(opts.policy).base : INK.base);
   const scale = GRID / 1000;
+  if (isInkV3(ink)) {
+    let t = 0;
+    return ink.s.map((str, si) => {
+      const bytes = base64ToBytes(str);
+      const pbytes = ink.p ? base64ToBytes(ink.p[si]) : null;
+      const pts = [];
+      for (let o = 0; o < bytes.length; o += 4) {
+        const x = (bytes[o] << 2) | (bytes[o + 1] >> 6);
+        const y = ((bytes[o + 1] & 63) << 4) | (bytes[o + 2] >> 4);
+        const w = ((bytes[o + 2] & 15) << 4) | (bytes[o + 3] >> 4);
+        t += INK_DT_LEVELS[bytes[o + 3] & 15];
+        const q = { x: x * scale, y: y * scale, w: (w / 100) * base, t };
+        if (pbytes && pbytes[o / 4] > 0) q.p = pbytes[o / 4] / 255;
+        pts.push(q);
+      }
+      return pts;
+    });
+  }
+  if (!isInkV2(ink)) return null;
   let t = 0;
   return ink.s.map((row, si) => {
     const pts = [];

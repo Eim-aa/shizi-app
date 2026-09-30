@@ -14,7 +14,7 @@ export const BACKUP_VERSION = 2;
 export const V2_PREFIX = 'shizi.v2.';
 export const RECORDS_PREFIX = 'shizi.v2.records.';
 /**
- * 墨迹按记录所属月份分键（架构裁定，M0 验收修复 F3）：`shizi.v2.ink.<YYYY-MM>` = `{ [recordId]: InkV2 }`。
+ * 墨迹按记录所属月份分键（架构裁定，M0 验收修复 F3）：`shizi.v2.ink.<YYYY-MM>` = `{ [recordId]: Ink }`（v3 打包编码，读取兼容 v2，P78）。
  * 月份与 records.<YYYY-MM> 同规则（记录的 localDay 所在月 = 其 at 的本地月，01 §3.1）。
  * 原因：01 §4 的事务日志把每个被改键的旧值整份写进 shizi.v2.txn，单键 ink（预算 1.5MiB）会让每次判断的峰值占用翻倍；
  * 按月分键后一次判断只重写当月 ink 键。
@@ -345,13 +345,29 @@ const schedEntryFields = {
 };
 
 const intRow = v.arrayOf((x, p) => (Number.isInteger(x) ? null : fail(p, 'not an integer')));
-const inkFields = {
+/** 旧 InkV2（JSON 数字编码）：读取兼容（P78）。 */
+const inkV2Fields = {
   v: (x, p) => (x === 2 ? null : fail(p, 'must be 2')),
   c: v.num,
   s: v.arrayOf(intRow),
   dt: v.arrayOf(intRow),
   p: v.arrayOf(intRow),
 };
+// 标准 base64（长度 4 的倍数、补位正确）；逐点字节数等细节由 core/ink-math.isInkV3 解码时再核。
+const BASE64_RE = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
+const b64 = (x, p) => (isString(x) && BASE64_RE.test(x) ? null : fail(p, 'not a base64 string'));
+/** Ink v3 打包编码（01 §3.5，P78）：{v:3, c:345, s:['<base64>'], p?:['<base64>']}。 */
+const inkV3Fields = {
+  v: (x, p) => (x === 3 ? null : fail(p, 'must be 3')),
+  c: v.num,
+  s: v.arrayOf(b64),
+  p: v.arrayOf(b64),
+};
+/** 一条墨迹：v3（写入口径）或 v2（旧数据，读取兼容）。 */
+function checkInk(x, p) {
+  if (x && typeof x === 'object' && x.v === 3) return checkFields(x, p, inkV3Fields, ['v', 'c', 's']);
+  return checkFields(x, p, inkV2Fields, ['v', 'c', 's']);
+}
 
 const customFields = {
   added: v.arrayOf((x, p) => checkFields(x, p, { char: v.char, at: v.num }, ['char', 'at'])),
@@ -471,7 +487,18 @@ function validateSafety(value, path) {
     createdAt: v.num,
     backupDate: v.strOrNull,
     count: v.int,
-    payload: (x, p) => checkMap(x, p, key => isBackupKey(key), v.str),
+    // 白名单键的原始字串；另可带 shizi.v2.sessions（替换 / 清空前的会话，形状同 shizi.v2.sessions，撤销时还原，P79）。
+    payload: (x, p) => checkMap(x, p, key => isBackupKey(key) || key === KEYS.sessions, (raw, q, key) => {
+      const err = v.str(raw, q);
+      if (err || key !== KEYS.sessions) return err;
+      let parsed;
+      try {
+        parsed = JSON.parse(raw);
+      } catch (error) {
+        return fail(q, 'not JSON');
+      }
+      return validateSessions(parsed, q);
+    }),
   };
   return checkFields(value, path, fields, ['version', 'kind', 'createdAt', 'payload']);
 }
@@ -511,8 +538,8 @@ export const KEY_SPECS = Object.freeze([
     pattern: `${INK_PREFIX}<YYYY-MM>`,
     domain: 'ink',
     match: isInkKey,
-    // 形状层只校验「recordId → InkV2」；墨迹与记录的月份归属由 store 的读写 helper 保证（inkMonthOf）。
-    validate: (x, key) => checkMap(x, key || 'ink', isRecordId, (e, p) => checkFields(e, p, inkFields, ['v', 'c', 's'])),
+    // 形状层只校验「recordId → Ink（v3，或旧 v2）」；墨迹与记录的月份归属由 store 的读写 helper 保证（inkMonthOf）。
+    validate: (x, key) => checkMap(x, key || 'ink', isRecordId, checkInk),
   },
   { id: 'custom', key: KEYS.custom, domain: 'custom', validate: x => checkFields(x, 'custom', customFields, ['added']) },
   { id: 'wordOff', key: KEYS.wordOff, domain: 'wordOff', validate: x => checkMap(x, 'wordOff', isCardKey, v.num) },

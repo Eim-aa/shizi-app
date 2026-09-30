@@ -1,6 +1,7 @@
 // 单例状态 + commit() 事务 + 订阅（01-架构设计 §4）。
 //
-// commit(label, mutate) → {ok:true, keys, recovered} | {ok:false, error:{kind, key?, reason?, label}}
+// commit(label, mutate, {reclaim?, replace?}) → {ok:true, keys, recovered} | {ok:false, error:{kind, key?, reason?, label}}
+//   reclaim:false 跳过第 4、5 步的回收（撞配额直接 {ok:false, kind:'quota'}）——备份编排用，见 commit 注释。
 //   1. 按域浅拷贝出草稿（copy-on-write）：每个域的顶层容器是新的，里面的值与已发布状态共享且已冻结——
 //      mutate 要改某条记录/会话就整体替换它（draft.sessions.A = {...draft.sessions.A, cursor: 3}），
 //      就地改已冻结对象会抛 TypeError，commit 返回 {ok:false, error:{kind:'mutator'}}。
@@ -13,7 +14,7 @@
 //      若并进本次提交，txn 要多存一份它的原值，峰值反而更高；本次要写的键上的回收直接并进重试。
 //   6. 只有写成功才替换内存状态（冻结）并通知订阅者。写失败不发布（D07）。
 //
-// 状态形状：{meta, records:{'YYYY-MM': Record[] | folded}, sched, ink:{'YYYY-MM': {[recordId]: InkV2}}, custom, wordOff,
+// 状态形状：{meta, records:{'YYYY-MM': Record[] | folded}, sched, ink:{'YYYY-MM': {[recordId]: Ink}}（Ink v3，读兼容 v2）, custom, wordOff,
 //            settings, photos, legacy, backupMeta, sessions, funnel, safety}；缺的域为 null，records / ink 至少是 {}。
 // ink 按记录所属月份分键（shizi.v2.ink.<YYYY-MM>，M0 验收 F3 裁定）；读写一律走 getInk / setInk / deleteInk，
 // 不要自己拼月份——月份口径见 schema.inkMonthOf。
@@ -496,7 +497,16 @@ export function createStore({ storage = createStorage(), now = envNow, budgets =
     return null;
   }
 
-  function commit(label, mutate) {
+  /**
+   * @param {string} label
+   * @param {(draft, ctx) => void} mutate
+   * @param {{reclaim?: boolean, replace?: boolean}} [options]
+   *   reclaim:false —— 不做预算回收：不做写前估算回收、撞配额直接返回 {ok:false, error:{kind:'quota'}}、不做旁路回收
+   *     （保护副本写/删、替换、撤销、清空用：它们失败时必须「你现在的记录没有变」，R-B04 / K03，不能顺手折叠旧月份）。
+   *     其余（txn、逐键核对、回滚、发布）与默认相同。
+   *   replace:true —— 通知里带 replace:true（整体替换：撤销 / 清空后持有本地现场的页面要按新状态重取，同 seed）。
+   */
+  function commit(label, mutate, { reclaim = true, replace = false } = {}) {
     const blockedResult = guard(label);
     if (blockedResult) return blockedResult;
     if (typeof mutate !== 'function') throw new TypeError('commit(label, mutate) needs a function');
@@ -530,7 +540,7 @@ export function createStore({ storage = createStorage(), now = envNow, budgets =
     if (nextSerial !== serial && isPlainObject(draft.meta) && draft.meta.serial !== nextSerial) {
       draft.meta = Object.assign({}, draft.meta, { serial: nextSerial });
     }
-    return persist(draft, label, nextSerial);
+    return persist(draft, label, nextSerial, { allowRecover: reclaim !== false, replace: replace === true });
   }
 
   function normalizeInput(input) {
@@ -569,10 +579,12 @@ export function createStore({ storage = createStorage(), now = envNow, budgets =
   }
 
   /**
-   * 用 v2 备份替换全部白名单域（sessions/funnel/safety 保持不动）。任一键坏 → 整单拒绝，不调用 writeAll。
-   * 成功后清理 shizi.corrupt.*（01 §3.6）。保护副本、确认、撤销底栏属于 M4-4 backup.js 的编排。
+   * 用 v2 备份替换全部白名单域（funnel/safety 保持不动；sessions 默认不动）。任一键坏 → 整单拒绝，不调用 writeAll。
+   * 不做预算回收（同 commit 的 reclaim:false）。成功后清理 shizi.corrupt.*（01 §3.6）。
+   * mutate(draft)：可选，白名单域填好之后、落盘之前再改草稿（同一次 writeAll）——backup.js 用它结束进行中的组（P79）。
+   * 保护副本、确认、撤销底栏属于 M4-4 backup.js 的编排。
    */
-  function replaceWithBackup(obj, { label = 'restore-backup' } = {}) {
+  function replaceWithBackup(obj, { label = 'restore-backup', mutate = null } = {}) {
     const blockedResult = guard(label);
     if (blockedResult) return blockedResult;
     const parsed = parseBackupV2(obj);
@@ -584,6 +596,13 @@ export function createStore({ storage = createStorage(), now = envNow, budgets =
       const value = JSON.parse(raw);
       if (isMonthlyDomain(spec.domain)) draft[spec.domain][monthOfKey(key)] = value;
       else draft[spec.domain] = value;
+    }
+    if (typeof mutate === 'function') {
+      try {
+        mutate(draft);
+      } catch (error) {
+        return errorResult('mutator', label, { reason: error && error.message ? error.message : String(error) });
+      }
     }
     const nextSerial = deriveSerial(draft);
     const result = persist(draft, label, Math.max(nextSerial, serial), { allowRecover: false, replace: true });

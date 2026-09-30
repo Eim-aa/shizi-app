@@ -26,8 +26,9 @@ export const features = Object.freeze({
 // ---- 墨迹容量（P05，P31 解除后才生效）----
 // P05 墨迹总预算（字节，UTF-16 估算）
 export const inkBudgetBytes = 1.5 * 1024 * 1024;
-// P05 存储前每笔最多点数（按弧长抽点）
-export const inkMaxPointsPerStroke = 32;
+// P05 / P78 存储前每笔最多点数（按弧长抽点）：v3 打包编码每点 4 字节，24 点/笔使 14 笔的字 ≈ 3.7KB（UTF-16）、
+// 300 字只存最近一次 ≈ 1.1MiB，落在 inkBudgetBytes 内（M4-5 实测 v2 + 32 点为 11.8–14.4KB/条，见 01 §3.5）
+export const inkMaxPointsPerStroke = 24;
 // P05 每条墨迹最多笔数
 export const inkMaxStrokes = 36;
 

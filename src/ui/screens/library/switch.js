@@ -21,6 +21,7 @@
 
 import { html, useEffect, useRef, useState } from '../../../../vendor/ui.js';
 import { registerScreen, nav } from '../../router.js';
+import { setNoneActions } from '../session/none.js';
 import { Page } from '../../components/Page.js';
 import { Button } from '../../components/Button.js';
 import { useDialogFocus } from '../../components/Sheet.js';
@@ -271,3 +272,6 @@ registerScreen(LIBRARY_SWITCH_SCREEN, LibrarySwitchScreen, { label: t('X-LIBSWIT
 export function openLibrarySwitch() {
   nav.push(LIBRARY_SWITCH_SCREEN, {});
 }
+
+// 「现在没有要写的字」页（字库写完时）的主按钮「更换字库」推入本页（P83 / 原型 noChars → libSwitch）。
+setNoneActions({ libSwitch: () => openLibrarySwitch() });

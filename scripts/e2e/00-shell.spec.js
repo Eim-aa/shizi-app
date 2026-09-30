@@ -53,6 +53,27 @@ export default async function shell(page, ctx) {
   const { assert } = ctx;
   const url = `${ctx.baseURL}/?test=1`;
 
+  ctx.step('production URL (no test=1): native bridge globals are defined at module top level (01 §8.1)');
+  await page.goto(`${ctx.baseURL}/`);
+  await page.waitForSelector('.sz-app');
+  const bridgeGlobals = await page.evaluate(() => [
+    'shiziOpenReminderTarget',
+    'shiziBackupPicked',
+    'shiziBackupRejected',
+    'markBackupExported',
+    'shiziCardSaved',
+    'shiziReminderStatus',
+  ].map(name => `${name}:${typeof window[name]}`));
+  assert.deepEqual(bridgeGlobals, [
+    'shiziOpenReminderTarget:function',
+    'shiziBackupPicked:function',
+    'shiziBackupRejected:function',
+    'markBackupExported:function',
+    'shiziCardSaved:function',
+    'shiziReminderStatus:function',
+  ], 'all six iOS→JS globals are functions on the production URL');
+  assert.equal(await page.evaluate(() => typeof window.__shiziTest), 'undefined', 'production URL does not mount test hooks');
+
   ctx.step('boot');
   await page.goto(url);
   await page.waitForSelector('.sz-app');

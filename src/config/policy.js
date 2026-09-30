@@ -70,6 +70,15 @@ export const forgetRule = 'due';
 export const forgetCap = 12;
 // P37 跨天未完成的「今天的练习」：直接作废（已判断的保留，未写的不算）
 export const dailyExpiry = 'discard';
+// P61 首练（first）与自选组（picked）是否跨天过期：都不过期（'never'）；'daily' = 与今天的练习同口径（P37）。
+// daily 本身仍按 P37 dailyExpiry。core/sessions.js expireDaily 读此表。
+export const sessionExpiry = Object.freeze({
+  first: 'never', // P61 首练不跨天过期
+  picked: 'never', // P61 自选组（B）不跨天过期
+});
+// P60 自选组（B）里的复习是否计入每日复习上限 dailyReviewCap（P03）：过渡计入。
+// 现行记账 records.reviewsDoneOn 按当天全部 judged 计，即 true 的口径；false 需记录能区分会话类型，见 M0 验收修复报告。
+export const dailyCapCountsPicked = true;
 // P38 S02「结束那组，开新的」时旧 B 有判断：不进结果页，给轻提示
 export const s02EndOld = 'toast';
 // P46 清空所有记录后下一组重回「第一次练习 5 个字」
@@ -100,6 +109,8 @@ export const strokeSaveFailure = 'non-blocking';
 export const keySoundEvents = Object.freeze(['judge', 'trace-stroke']);
 
 // ---- 查字 / 字库 ----
+// P56 字库墨墙墨色四档的天数阈值（R-L03；原型硬编码 7/30/90）：≤7 天 / ≤30 天 / ≤90 天 / 更久
+export const inkToneDays = Object.freeze([7, 30, 90]);
 // P42 查字组件模式：只保留 lookup / pick（不做 add 模式）
 export const queryModes = Object.freeze(['lookup', 'pick']);
 // P45 查字/选字输入上限：不设硬上限，只过滤不截断
@@ -124,6 +135,10 @@ export const reminderOpens = 'picked-s02';
 export const reminderPick = 'wrong-then-overdue';
 
 // ---- 容量 ----
+// P57 占用预警阈值：估算占用 > 该比例 × assumedQuotaBytes 时在备份页与首页状态句预警（01 §4）。store/budget.js 读取（可注入）。
+export const storageWarnRatio = 0.8;
+// P57 假定的 localStorage 配额（字节）；真机实际配额未测，真机回填。store/budget.js 读取（可注入）。
+export const assumedQuotaBytes = 5 * 1024 * 1024;
 // P28 records 总预算（字节）；超预算或超 400 天先到者折叠最旧月份
 export const recordsBudgetBytes = 1.5 * 1024 * 1024;
 // P28 records 折叠的天数阈值
@@ -138,6 +153,14 @@ export const migration = Object.freeze({
   legacyKeyRetentionDays: 30, // P53 旧 v1 键回退窗口（天）
   legacyKeyReleaseOnExport: true, // P53 用户完成一次 v2 导出即可提前回收（先到者）
 });
+
+// ---- 外观 ----
+// P58 深色暖灯透明度（原型可调 .04–.06）。只登记：CSS 读不到 JS，现行值在 src/config/tokens.css 的 --lamp，改这里须同步那里。
+export const darkLampLevel = 0.05;
+// P58 W23 / R-W24 深色下提示笔、描摹轮廓、禁用按钮是否提亮一档：待真机看过再定（过渡不提亮）。
+export const darkBrightenStep = false;
+// P59 data-large 时的字号倍率 --k（原型紧凑版 1.3）；不跟随系统 Dynamic Type（映射待定）。现行值在 tokens.css :root[data-large] 的 --k。
+export const largeTextScale = 1.3;
 
 // ---- 平台与开发 ----
 // P54 返回手势实现层：单 WebView + 原生识别器驱动跟手转场（工程近似）

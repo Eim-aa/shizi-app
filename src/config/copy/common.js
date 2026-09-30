@@ -9,6 +9,11 @@ export default Object.freeze({
   'X-TABS.write': '习字',
   'X-TABS.library': '字库',
   'X-TABS.mine': '我的',
+  // X-COMMON（通用组件：Page.js 页头 aria-label、UndoBar.js 撤销底栏（R-G05））
+  'X-COMMON.back': '返回',
+  'X-COMMON.close': '关闭',
+  'X-COMMON.undo': '撤销',
+  'X-COMMON.undone': '已撤销',
   // X-SYS（03 P55 待文案：坏值顶部提示）
   'X-SYS.corruptNotice': 'TODO: 启动时发现坏数据的顶部提示（P55）',
 });

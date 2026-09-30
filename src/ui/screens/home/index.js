@@ -3,9 +3,10 @@ import { html } from '../../../../vendor/ui.js';
 import { registerScreen, getScreen, nav } from '../../router.js';
 import { Button } from '../../components/Button.js';
 import { TabPage } from '../../components/Page.js';
+import { t } from '../../../config/copy/index.js';
 
-// 占位文案：M0-6 建立 src/config/copy/ 后迁入（tab 名见原型 ShiziScreen tabs）。
-export const HOME_LABEL = '习字';
+// tab 名取自文案表（copy/common.js X-TABS）。
+export const HOME_LABEL = t('X-TABS.write');
 
 // 演示子页只在测试主机上加载（ui/root.js），生产形态里 getScreen 为 null，入口不出现。
 const DEMO_SCREEN = '_demo/sub';

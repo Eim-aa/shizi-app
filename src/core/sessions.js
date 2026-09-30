@@ -234,22 +234,43 @@ export function endAndStartPicked(sessions, newSession, { at, policy = defaultPo
 }
 
 /**
- * 跨天未完成的「今天的练习」（P37）：startedDay !== today 即过期。已判断的记录保留在 records 里，
+ * 跨天未完成的会话：startedDay !== today 即过期。已判断的记录保留在 records 里，
  * 没写的按决定-D22 口径不算记录也不算跳过。
- * - policy.dailyExpiry='discard'（A，过渡默认）：直接清空 A，不进结果页。
- * - 'result'（B）：移入 lastEnded.A 供次日先显示昨天结果页。
- * first / picked 不在此规则内。
- * @returns {{sessions, expired: Session|null}}
+ * 哪些会话会过期：daily 总是（P37）；first / picked 按 policy.sessionExpiry（P61，过渡都 'never' 不过期；
+ * 'daily' = 与今天的练习同口径）。
+ * 过期后怎么处理按 policy.dailyExpiry（P37）：
+ * - 'discard'（A，过渡默认）：直接清空该槽，不进结果页。
+ * - 'result'（B）：移入 lastEnded[slot] 供次日先显示昨天结果页。
+ * 没有会话过期时原样返回同一个 sessions 对象。
+ * @returns {{sessions, expired: Session|null, expiredAll: Session[]}}  expired = 最先过期的那个（A 优先）
  */
 export function expireDaily(sessions, today, policy = defaultPolicy) {
-  const a = sessions.A;
-  if (!a || a.kind !== 'daily' || a.startedDay === today) return { sessions, expired: null };
-  if (policy.dailyExpiry === 'discard') return { sessions: { ...sessions, A: null }, expired: a };
-  if (policy.dailyExpiry === 'result') {
-    const ended = { ...a, endedAt: a.updatedAt, endedEarly: true };
-    return { sessions: { ...sessions, A: null, lastEnded: { ...(sessions.lastEnded || {}), A: ended } }, expired: a };
+  let next = sessions;
+  const expiredAll = [];
+  for (const slot of ['A', 'B']) {
+    const s = next[slot];
+    if (!s || s.startedDay === today) continue;
+    if (expiryRuleOf(s.kind, policy) !== 'daily') continue;
+    if (policy.dailyExpiry === 'discard') {
+      next = { ...next, [slot]: null };
+    } else if (policy.dailyExpiry === 'result') {
+      const ended = { ...s, endedAt: s.updatedAt, endedEarly: true };
+      next = { ...next, [slot]: null, lastEnded: { ...(next.lastEnded || {}), [slot]: ended } };
+    } else {
+      throw new RangeError('unsupported policy.dailyExpiry: ' + String(policy.dailyExpiry));
+    }
+    expiredAll.push(s);
   }
-  throw new RangeError('unsupported policy.dailyExpiry: ' + String(policy.dailyExpiry));
+  return { sessions: next, expired: expiredAll.length ? expiredAll[0] : null, expiredAll };
+}
+
+/** 某类会话的跨天规则：'daily'（按 P37 过期）| 'never'。daily 恒为 'daily'；first / picked 读 policy.sessionExpiry（P61）。 */
+function expiryRuleOf(kind, policy) {
+  if (kind === 'daily') return 'daily';
+  const table = policy.sessionExpiry;
+  const rule = table ? table[kind] : undefined;
+  if (rule === 'never' || rule === 'daily') return rule;
+  throw new RangeError('unsupported policy.sessionExpiry.' + String(kind) + ': ' + String(rule));
 }
 
 /**
@@ -335,6 +356,10 @@ export function selectDaily({
   }
   if (!['none', 'after-due', 'first'].includes(policy.customIntoDaily)) {
     throw new RangeError('unsupported policy.customIntoDaily: ' + String(policy.customIntoDaily));
+  }
+  // P60：自选组里的复习计入每日上限（reviewsDoneOn 按当天全部 judged 记账）。不计入需要记录能区分会话类型，未实现。
+  if (policy.dailyCapCountsPicked !== true) {
+    throw new RangeError('unsupported policy.dailyCapCountsPicked: ' + String(policy.dailyCapCountsPicked));
   }
   const customUnwritten = customUnwrittenKeys(custom, sched, practicable);
   const customSet = new Set(customUnwritten);

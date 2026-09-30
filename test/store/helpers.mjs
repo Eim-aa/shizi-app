@@ -1,5 +1,6 @@
 // test/store 共用：内存 Storage（带故障注入）与 v2 状态夹具。
 // 不以 .test.mjs 结尾，node --test 不会把它当测试文件跑。
+import { setInk } from '../../src/store/store.js';
 
 /**
  * 与 Web Storage 接口一致的内存实现。
@@ -191,7 +192,7 @@ export function baselineState() {
       'base:人': { fsrs: { s: 1, d: 5 }, due: '2026-09-18', lastJudgedAt: T0 },
       'base:口': { fsrs: { s: 1, d: 5 }, due: '2026-09-16', lastJudgedAt: T0 },
     },
-    ink: { r2: inkEntry() },
+    ink: { '2026-09': { r2: inkEntry() } }, // 按月分键：shizi.v2.ink.2026-09
     custom: { added: [{ char: '哈', at: T0 }] },
     wordOff: {},
     settings: { library: 'common', sound: true, large: false, appearance: 'auto' },
@@ -212,7 +213,7 @@ export function judgeMutation(char = '大') {
     const month = draft.records['2026-10'] || [];
     draft.records['2026-10'] = month.concat([rec]);
     draft.sched[`base:${char}`] = { fsrs: { s: 2, d: 4 }, due: '2026-10-05', lastJudgedAt: ctx.now };
-    draft.ink[id] = inkEntry();
+    setInk(draft, rec, inkEntry());
     const A = draft.sessions.A;
     draft.sessions.A = Object.assign({}, A, {
       queue: A.queue.concat([`base:${char}`]),
@@ -231,6 +232,13 @@ export function allRecordIds(state) {
     for (const rec of list) ids.push(rec.id);
   }
   return ids;
+}
+
+/** ink 域（{月: {id: Ink}}）摊平成 {id: Ink}，方便断言。 */
+export function flatInk(ink) {
+  const out = {};
+  for (const month of Object.keys(ink || {})) Object.assign(out, ink[month]);
+  return out;
 }
 
 export function plain(value) {

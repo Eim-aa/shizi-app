@@ -6,12 +6,13 @@ import { html } from '../../../vendor/ui.js';
 import { nav } from '../router.js';
 import { Button } from './Button.js';
 import { injectStyles, T } from './styles.js';
+import { t } from '../../config/copy/index.js';
 
-// 占位文案：M0-6 建立 src/config/copy/ 后迁入。
-export const PAGE_COPY = {
-  back: '返回',
-  close: '关闭',
-};
+// 页头按钮的读屏文案（copy/common.js X-COMMON）。
+export const PAGE_COPY = Object.freeze({
+  back: t('X-COMMON.back'),
+  close: t('X-COMMON.close'),
+});
 
 injectStyles('page', `
 .sz-page{position:relative;display:flex;flex-direction:column;height:100%;min-height:0;color:${T.i1}}

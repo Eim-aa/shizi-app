@@ -17,8 +17,8 @@
 
 - `index.html`
 - `deck-data.js`
-- `hanzi-writer.min.js`
-- `fsrs6.min.js`
+- `vendor/hanzi-writer.min.js`
+- `vendor/fsrs6.min.js`
 - `sw.js`
 - `manifest.webmanifest`
 - `icon-*.png`

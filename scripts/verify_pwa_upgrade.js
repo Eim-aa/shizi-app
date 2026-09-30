@@ -1,6 +1,11 @@
 #!/usr/bin/env node
 "use strict";
 
+// 门禁状态（M0 验收修复起）：本脚本暂为**手动门禁**（`pnpm run verify:pwa`），不在 verify:web 与 CI 中运行；
+// iOS verify-local.sh 默认仍跑，M5-1 之前本地用 SKIP_PWA=1 跳过。
+// 原因：sw.js 仍是 v13 手写版，M0 起资源已迁到 vendor/ 等新路径，升级断言要随 SW 一起重写。
+// M5-1 重写 sw.js（v14）时同步重写本脚本，并把它恢复进 verify:web。
+
 // 真实 main v10 → 本分支 v13 的 PWA 升级门禁。
 //
 // 这里刻意不再用手写的"迷你 v10"：真 v10 对 HTML 是网络优先、对同源静态资源是缓存优先、

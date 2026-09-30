@@ -13,6 +13,13 @@ export const BACKUP_VERSION = 2;
 
 export const V2_PREFIX = 'shizi.v2.';
 export const RECORDS_PREFIX = 'shizi.v2.records.';
+/**
+ * 墨迹按记录所属月份分键（架构裁定，M0 验收修复 F3）：`shizi.v2.ink.<YYYY-MM>` = `{ [recordId]: InkV2 }`。
+ * 月份与 records.<YYYY-MM> 同规则（记录的 localDay 所在月 = 其 at 的本地月，01 §3.1）。
+ * 原因：01 §4 的事务日志把每个被改键的旧值整份写进 shizi.v2.txn，单键 ink（预算 1.5MiB）会让每次判断的峰值占用翻倍；
+ * 按月分键后一次判断只重写当月 ink 键。
+ */
+export const INK_PREFIX = 'shizi.v2.ink.';
 export const CORRUPT_PREFIX = 'shizi.corrupt.';
 /** iOS DEBUG 冒烟键：不属于 v2，reset() 不删，备份不含。 */
 export const NATIVE_SMOKE_KEY = 'shizi.nativeSmoke.v1';
@@ -20,7 +27,6 @@ export const NATIVE_SMOKE_KEY = 'shizi.nativeSmoke.v1';
 export const KEYS = Object.freeze({
   meta: 'shizi.v2.meta',
   sched: 'shizi.v2.sched',
-  ink: 'shizi.v2.ink',
   custom: 'shizi.v2.custom',
   wordOff: 'shizi.v2.wordOff',
   settings: 'shizi.v2.settings',
@@ -35,7 +41,7 @@ export const KEYS = Object.freeze({
   probe: 'shizi.v2.probe',
 });
 
-/** store 状态里的域（与键一一对应；records 是按月分键的一族）。txn/probe 不是域。 */
+/** store 状态里的域（与键一一对应；records 与 ink 是按月分键的两族）。txn/probe 不是域。 */
 export const DOMAINS = Object.freeze([
   'meta', 'records', 'sched', 'ink', 'custom', 'wordOff', 'settings', 'photos', 'legacy', 'backupMeta',
   'sessions', 'funnel', 'safety',
@@ -123,6 +129,55 @@ export function isRecordsKey(key) {
 
 export function monthOfRecordsKey(key) {
   return isRecordsKey(key) ? key.slice(RECORDS_PREFIX.length) : null;
+}
+
+export function inkKey(month) {
+  return INK_PREFIX + month;
+}
+
+export function isInkKey(key) {
+  return isString(key) && key.indexOf(INK_PREFIX) === 0 && isMonthKey(key.slice(INK_PREFIX.length));
+}
+
+export function monthOfInkKey(key) {
+  return isInkKey(key) ? key.slice(INK_PREFIX.length) : null;
+}
+
+/** 按月分键的域（records / ink）。 */
+export const MONTHLY_DOMAINS = Object.freeze(['records', 'ink']);
+
+export function isMonthlyDomain(domain) {
+  return MONTHLY_DOMAINS.indexOf(domain) >= 0;
+}
+
+/** 按月分键的键 → 月份（records.<月> / ink.<月>）；其余返回 null。 */
+export function monthOfKey(key) {
+  return monthOfRecordsKey(key) || monthOfInkKey(key);
+}
+
+function pad2(n) {
+  return n < 10 ? `0${n}` : String(n);
+}
+
+/**
+ * 一条记录的墨迹归哪个月键：与它所在的 records.<月> 相同（localDay 的月份；localDay 按定义是 at 的本地日）。
+ * localDay 缺失或不合法时退回 at 的本地月。都没有返回 null。
+ */
+export function inkMonthOf(record) {
+  if (!record || typeof record !== 'object') return null;
+  if (isLocalDay(record.localDay)) return monthOfDay(record.localDay);
+  if (isFiniteNumber(record.at)) {
+    const d = new Date(record.at);
+    return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`;
+  }
+  return null;
+}
+
+/** 一条记录的墨迹在月键里的 id：inkId（01 §3.2）优先，否则记录自身 id。 */
+export function inkIdOf(record) {
+  if (!record || typeof record !== 'object') return null;
+  if (isRecordId(record.inkId)) return record.inkId;
+  return isRecordId(record.id) ? record.id : null;
 }
 
 export function corruptKeyFor(key) {
@@ -438,7 +493,7 @@ function validateTxn(value, path) {
 // ---------------------------------------------------------------- 键表
 
 /**
- * 全部 v2 键。pattern 键（records）用 match()，其余用 key 精确匹配。
+ * 全部 v2 键。pattern 键（records、ink 按月分键）用 match()，其余用 key 精确匹配。
  * validate(value, key) 接收 JSON.parse 后的值。
  */
 export const KEY_SPECS = Object.freeze([
@@ -451,7 +506,14 @@ export const KEY_SPECS = Object.freeze([
     validate: (x, key) => validateRecordsMonth(x, monthOfRecordsKey(key), key),
   },
   { id: 'sched', key: KEYS.sched, domain: 'sched', validate: x => checkMap(x, 'sched', isCardKey, (e, p) => checkFields(e, p, schedEntryFields, ['fsrs', 'due', 'lastJudgedAt'])) },
-  { id: 'ink', key: KEYS.ink, domain: 'ink', validate: x => checkMap(x, 'ink', isRecordId, (e, p) => checkFields(e, p, inkFields, ['v', 'c', 's'])) },
+  {
+    id: 'ink',
+    pattern: `${INK_PREFIX}<YYYY-MM>`,
+    domain: 'ink',
+    match: isInkKey,
+    // 形状层只校验「recordId → InkV2」；墨迹与记录的月份归属由 store 的读写 helper 保证（inkMonthOf）。
+    validate: (x, key) => checkMap(x, key || 'ink', isRecordId, (e, p) => checkFields(e, p, inkFields, ['v', 'c', 's'])),
+  },
   { id: 'custom', key: KEYS.custom, domain: 'custom', validate: x => checkFields(x, 'custom', customFields, ['added']) },
   { id: 'wordOff', key: KEYS.wordOff, domain: 'wordOff', validate: x => checkMap(x, 'wordOff', isCardKey, v.num) },
   { id: 'settings', key: KEYS.settings, domain: 'settings', validate: x => checkFields(x, 'settings', settingsFields, []) },
@@ -479,6 +541,7 @@ const SPEC_BY_ID = new Map(KEY_SPECS.map(spec => [spec.id, spec]));
 export function specForKey(key) {
   if (!isString(key)) return null;
   if (isRecordsKey(key)) return SPEC_BY_ID.get('records');
+  if (isInkKey(key)) return SPEC_BY_ID.get('ink');
   for (const spec of KEY_SPECS) if (spec.key === key) return spec;
   return null;
 }
@@ -508,9 +571,10 @@ export function parseAndValidate(key, raw) {
   return err ? { ok: false, reason: err } : { ok: true, value };
 }
 
-/** 域 → 键（records 需给 month）。 */
+/** 域 → 键（records / ink 需给 month）。 */
 export function keyForDomain(domain, month) {
   if (domain === 'records') return recordsKey(month);
+  if (domain === 'ink') return inkKey(month);
   const key = KEYS[domain];
   if (!key || DOMAINS.indexOf(domain) < 0) throw new Error(`unknown domain ${domain}`);
   return key;

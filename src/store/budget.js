@@ -2,31 +2,33 @@
 //
 // 估算口径：localStorage 按 UTF-16 计，每个条目 ≈ (键长 + 值长) × 2 字节。
 // 回收只动两个域：
-//   ink      按优先级从低到高淘汰：孤儿墨迹 → 其他月份的其余 → 本月其余 → 每月每字首/末条（P02）
+//   ink      按月分键（shizi.v2.ink.<YYYY-MM>），预算按全部月键合计；跨月键统一排序淘汰。
+//            按优先级从低到高淘汰：孤儿墨迹 → 其他月份的其余 → 本月其余 → 每月每字首/末条（P02）
 //            → 每字第一条 judged（年报）；「每字最近一次 judged」永不淘汰。同一层内先淘汰最旧（id 序号小）。
 //   records  最旧月份折叠为 {folded, month, byDay, chars, kept}（schema.validateRecordsMonth）；
 //            当月（及时钟回拨后的未来月份）不折叠；kept 保留该月中仍是「某字最近一次 judged」的记录。被折掉的记录，其墨迹一并删除。
 // 回收函数只改传入的 draft（store 的写时拷贝草稿），不碰存储、不碰已发布状态。
 //
-// 预算数值是过渡默认值，与 policy.js（M0-6）同名键一致；store 可用 policy 覆盖（resolveBudgets）。
+// 预算数值取自 src/config/policy.js（P05/P28/P57 过渡默认值）；store/测试可用 budgets 覆盖注入（resolveBudgets）。
 
-import { CORRUPT_PREFIX, KEYS, isPlainObject, recordsKey, serialOf, specForKey } from '../core/schema.js';
+import { CORRUPT_PREFIX, inkKey, isPlainObject, recordsKey, serialOf, specForKey } from '../core/schema.js';
+import * as policy from '../config/policy.js';
 
 const MiB = 1024 * 1024;
 
 export const BUDGET_DEFAULTS = Object.freeze({
-  /** 假定的 localStorage 配额（01 §9「对 5MiB 留 35% 余量」）。真机实际配额未测（A-storage 未解问题 1）。 */
-  quotaBytes: 5 * MiB,
-  /** 占用预警阈值：> 80% 配额在备份页与首页状态句预警（01 §4）。 */
-  warnRatio: 0.8,
-  /** 目标合计（01 §9）。 */
+  /** P57 假定的 localStorage 配额：policy.assumedQuotaBytes（过渡 5MiB；真机实际配额未测，A-storage 未解问题 1）。 */
+  quotaBytes: policy.assumedQuotaBytes,
+  /** P57 占用预警阈值：policy.storageWarnRatio（> 80% 配额在备份页与首页状态句预警，01 §4）。 */
+  warnRatio: policy.storageWarnRatio,
+  /** 目标合计（01 §9；不是 P 项）。 */
   totalTargetBytes: 3.2 * MiB,
   /** P28 records 保留与折叠：policy.recordsBudgetBytes（过渡 1.5MiB）。 */
-  recordsBudgetBytes: 1.5 * MiB,
-  /** P28：超 400 天的月份折叠（与预算先到者）。 */
-  recordsFoldAfterDays: 400,
-  /** P05 墨迹预算：policy.inkBudgetBytes（过渡 1.5MiB）。 */
-  inkBudgetBytes: 1.5 * MiB,
+  recordsBudgetBytes: policy.recordsBudgetBytes,
+  /** P28：超 400 天的月份折叠（与预算先到者）：policy.recordsFoldAfterDays。 */
+  recordsFoldAfterDays: policy.recordsFoldAfterDays,
+  /** P05 墨迹预算（全部 ink 月键合计）：policy.inkBudgetBytes（过渡 1.5MiB）。 */
+  inkBudgetBytes: policy.inkBudgetBytes,
 });
 
 export function resolveBudgets(overrides) {
@@ -152,8 +154,21 @@ export function recordsBytes(records) {
   return total;
 }
 
+/** ink 域（{month: {id: Ink}}）全部月键的估算字节合计；空月表不落盘，不计。 */
 export function inkBytes(ink) {
-  return ink ? entryBytes(KEYS.ink, JSON.stringify(ink)) : 0;
+  if (!isPlainObject(ink)) return 0;
+  let total = 0;
+  for (const month of Object.keys(ink)) {
+    const table = ink[month];
+    if (!isPlainObject(table) || Object.keys(table).length === 0) continue;
+    total += entryBytes(inkKey(month), JSON.stringify(table));
+  }
+  return total;
+}
+
+/** 单个月表的估算字节（空表 = 键会被删除 = 0）。 */
+function inkMonthBytes(month, table) {
+  return isPlainObject(table) && Object.keys(table).length ? entryBytes(inkKey(month), JSON.stringify(table)) : 0;
 }
 
 /**
@@ -216,8 +231,9 @@ function foldMonth(month, list, latestIds) {
 /**
  * 按 §9 优先级回收，直接修改 draft.records / draft.ink（替换为新对象，不就地改已冻结的值）。
  * opts.force=true：撞配额后调用，按 needBytes 至少腾出这么多（仍不动「每字最近一次」与当月记录）。
- * opts.limit = {ink: bool, months: [YYYY-MM]}：只允许动这些键。撞配额时 store 只让回收本次已经要写的键——
- *   多动一个键就要在 txn 里多存一份它的原值，峰值占用反而更高。
+ * opts.limit = {inkMonths: [YYYY-MM], months: [YYYY-MM]}：只允许动这些 ink 月键 / records 月键。
+ *   撞配额时 store 只让回收本次已经要写的键——多动一个键就要在 txn 里多存一份它的原值，峰值占用反而更高。
+ *   （兼容旧写法 limit.ink === true：允许动全部 ink 月键。）
  * 返回 {actions:[{type:'evictInk', id, tier}|{type:'fold', month, kept, dropped}|{type:'dropFoldedInk'}], freedBytes}。
  */
 export function recover(draft, { now, budgets, force = false, needBytes = 0, limit = null } = {}) {
@@ -232,30 +248,49 @@ export function recover(draft, { now, budgets, force = false, needBytes = 0, lim
   let records = draft.records || {};
   const index = indexRecords(records);
 
-  // ---- 1. 墨迹
-  const inkAllowed = !limit || limit.ink === true;
+  // ---- 1. 墨迹（跨全部月键按层级排序；只改有淘汰的月表）
+  const inkMonthAllowed = month => !limit || limit.ink === true || (Array.isArray(limit.inkMonths) && limit.inkMonths.indexOf(month) >= 0);
   const monthAllowed = month => !limit || (Array.isArray(limit.months) && limit.months.indexOf(month) >= 0);
+  const hasInk = isPlainObject(draft.ink);
+  let inkPatched = false;
 
-  if (inkAllowed && draft.ink && isPlainObject(draft.ink)) {
+  /** 从 draft.ink[month] 删掉 ids（copy-on-write）；返回实际省下的字节（按整键重算）。 */
+  const dropInk = (month, ids) => {
+    const table = draft.ink[month];
+    const before = inkMonthBytes(month, table);
+    const next = {};
+    for (const id of Object.keys(table)) if (!ids.has(id)) next[id] = table[id];
+    if (!inkPatched) {
+      draft.ink = Object.assign({}, draft.ink);
+      inkPatched = true;
+    }
+    draft.ink[month] = next;
+    return before - inkMonthBytes(month, next);
+  };
+
+  if (hasInk) {
     let bytes = inkBytes(draft.ink);
     if (bytes > b.inkBudgetBytes || wantMore()) {
-      const candidates = Object.keys(draft.ink)
-        .map(id => ({ id, tier: inkTier(id, index, currentMonth), serial: serialOf(id), size: inkEntryBytes(id, draft.ink[id]) }))
-        .filter(c => c.tier !== Infinity)
-        .sort((x, y) => x.tier - y.tier || x.serial - y.serial || (x.id < y.id ? -1 : 1));
-      const evicted = new Set();
+      const candidates = [];
+      for (const month of Object.keys(draft.ink)) {
+        const table = draft.ink[month];
+        if (!inkMonthAllowed(month) || !isPlainObject(table)) continue;
+        for (const id of Object.keys(table)) {
+          candidates.push({ month, id, tier: inkTier(id, index, currentMonth), serial: serialOf(id), size: inkEntryBytes(id, table[id]) });
+        }
+      }
+      candidates.sort((x, y) => x.tier - y.tier || x.serial - y.serial || (x.id < y.id ? -1 : x.id > y.id ? 1 : 0) || (x.month < y.month ? -1 : 1));
+      const evicted = new Map(); // month → Set(id)
       for (const c of candidates) {
+        if (c.tier === Infinity) break; // 排序后 Infinity 全在末尾
         if (!(bytes > b.inkBudgetBytes || wantMore())) break;
-        evicted.add(c.id);
+        if (!evicted.has(c.month)) evicted.set(c.month, new Set());
+        evicted.get(c.month).add(c.id);
         bytes -= c.size;
         freed += c.size;
-        actions.push({ type: 'evictInk', id: c.id, tier: c.tier });
+        actions.push({ type: 'evictInk', id: c.id, month: c.month, tier: c.tier });
       }
-      if (evicted.size) {
-        const next = {};
-        for (const id of Object.keys(draft.ink)) if (!evicted.has(id)) next[id] = draft.ink[id];
-        draft.ink = next;
-      }
+      for (const [month, ids] of evicted) dropInk(month, ids);
     }
   }
 
@@ -279,8 +314,9 @@ export function recover(draft, { now, budgets, force = false, needBytes = 0, lim
     rBytes += after - before;
     freed += Math.max(0, before - after);
     actions.push({ type: 'fold', month, kept: value.kept.length, dropped: list.length - value.kept.length });
-    // 被折掉的记录的墨迹一并删除（记录已不存在，墨迹成孤儿）。
-    if (inkAllowed && draft.ink && isPlainObject(draft.ink)) {
+    // 被折掉的记录的墨迹一并删除（记录已不存在，墨迹成孤儿）。墨迹通常就在同月的 ink 月键里，
+    // 但按 id 在全部允许的月键里找（防御月份口径不一致的旧数据）。
+    if (hasInk) {
       const keptIds = new Set(value.kept.map(rec => rec.id));
       const gone = new Set();
       for (const rec of list) {
@@ -289,13 +325,13 @@ export function recover(draft, { now, budgets, force = false, needBytes = 0, lim
         if (rec.inkId) gone.add(rec.inkId);
       }
       let removed = 0;
-      const next = {};
-      for (const id of Object.keys(draft.ink)) {
-        if (gone.has(id)) removed += inkEntryBytes(id, draft.ink[id]);
-        else next[id] = draft.ink[id];
+      for (const inkMonth of Object.keys(draft.ink)) {
+        const table = draft.ink[inkMonth];
+        if (!inkMonthAllowed(inkMonth) || !isPlainObject(table)) continue;
+        const hit = new Set(Object.keys(table).filter(id => gone.has(id)));
+        if (hit.size) removed += dropInk(inkMonth, hit);
       }
       if (removed) {
-        draft.ink = next;
         freed += removed;
         actions.push({ type: 'dropFoldedInk', month, bytes: removed });
       }

@@ -286,7 +286,7 @@ function enclosingBlockStart(code, index) {
 }
 {
   const files = listFiles('src', file => /\.m?js$/.test(file));
-  const assignRe = /(?:window|globalThis|self)\s*\.\s*__shiziTest\s*=(?!=)|(?:window|globalThis|self)\s*\[\s*['"]__shiziTest['"]\s*\]\s*=(?!=)|Object\.defineProperty\(\s*(?:window|globalThis|self)\s*,\s*['"]__shiziTest['"]/g;
+  const assignRe = /(?:window|globalThis|self|win)\s*\.\s*__shiziTest\s*=(?!=)|(?:window|globalThis|self|win)\s*\[\s*['"]__shiziTest['"]\s*\]\s*=(?!=)|Object\.defineProperty\(\s*(?:window|globalThis|self)\s*,\s*['"]__shiziTest['"]/g;
   const sites = [];
   for (const file of files) {
     const source = readFileSync(file, 'utf8');
@@ -295,11 +295,11 @@ function enclosingBlockStart(code, index) {
     const code = stripCommentsAndStrings(source);
     for (const match of source.matchAll(assignRe)) {
       if (code.slice(match.index, match.index + 6).trim() === '') continue; // 位于注释/字符串内
-      const guardedBlocks = [...code.matchAll(/if\s*\(\s*isTestHost\s*\(\s*\)\s*\)\s*\{/g)]
+      const guardedBlocks = [...code.matchAll(/if\s*\(\s*isTestHost\s*\([^)]*\)\s*\)\s*\{/g)]
         .map(m => [m.index, blockEnd(code, m.index + m[0].length - 1)]);
       const inGuardBlock = guardedBlocks.some(([start, end]) => match.index > start && match.index < end);
       const scopeStart = enclosingBlockStart(code, match.index);
-      const earlyReturn = /if\s*\(\s*!\s*isTestHost\s*\(\s*\)\s*\)\s*(?:\{\s*)?return\b/.test(code.slice(scopeStart + 1, match.index));
+      const earlyReturn = /if\s*\(\s*!\s*isTestHost\s*\([^)]*\)\s*\)\s*(?:\{\s*)?return\b/.test(code.slice(scopeStart + 1, match.index));
       const line = source.slice(0, match.index).split('\n').length;
       sites.push({ file: `${relative(ROOT, file)}:${line}`, guarded: inGuardBlock || earlyReturn });
     }

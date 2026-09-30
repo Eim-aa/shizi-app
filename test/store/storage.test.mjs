@@ -4,13 +4,14 @@ import assert from 'node:assert/strict';
 import {
   BlockingStorageError, StorageWriteError, classifyStorageError, createStorage, writeRank,
 } from '../../src/store/storage.js';
-import { KEYS, recordsKey } from '../../src/core/schema.js';
+import { KEYS, inkKey, recordsKey } from '../../src/core/schema.js';
 import { MemoryStorage, makeError, baselineState, plain } from './helpers.mjs';
 
 function seedBackend(state = baselineState()) {
   const initial = {};
   for (const domain of Object.keys(state)) {
     if (domain === 'records') for (const m of Object.keys(state.records)) initial[recordsKey(m)] = JSON.stringify(state.records[m]);
+    else if (domain === 'ink') for (const m of Object.keys(state.ink)) initial[inkKey(m)] = JSON.stringify(state.ink[m]);
     else if (state[domain] !== null) initial[KEYS[domain]] = JSON.stringify(state[domain]);
   }
   return new MemoryStorage({ initial });
@@ -25,7 +26,7 @@ function traceWrites(backend) {
   return order;
 }
 
-test('writeAll: txn first, fixed data order (ink → records → sched → … → meta → sessions last), txn removed', () => {
+test('writeAll: txn first, fixed data order (ink.<月> → records.<月> → sched → … → meta → sessions last), txn removed', () => {
   const backend = seedBackend();
   const storage = createStorage(backend, { now: () => 42 });
   const order = traceWrites(backend);
@@ -37,13 +38,15 @@ test('writeAll: txn first, fixed data order (ink → records → sched → … �
     [recordsKey('2026-10'), JSON.stringify([])],
     [recordsKey('2026-08'), JSON.stringify([])],
     [KEYS.settings, JSON.stringify({ sound: false })],
-    [KEYS.ink, JSON.stringify({})],
+    [inkKey('2026-10'), JSON.stringify({})],
+    [inkKey('2026-09'), JSON.stringify({})],
   ];
   // sessions 值不变 → 跳过；其余按固定顺序
   const result = storage.writeAll(entries, { label: 'order' });
   assert.deepEqual(order, [
     `set:${KEYS.txn}`,
-    `set:${KEYS.ink}`,
+    `set:${inkKey('2026-09')}`,
+    `set:${inkKey('2026-10')}`,
     `set:${recordsKey('2026-08')}`,
     `set:${recordsKey('2026-10')}`,
     `set:${KEYS.sched}`,
@@ -79,7 +82,7 @@ test('read-back verification mismatch triggers rollback', () => {
   let hits = 0;
   backend.failWhen(({ op, key }) => (op === 'set' && key === KEYS.sched && (hits += 1) === 1 ? { corrupt: '{"silently":"different"}' } : null));
   assert.throws(
-    () => storage.writeAll([[KEYS.ink, '{}'], [KEYS.sched, '{}'], [KEYS.sessions, '{"A":null,"B":null,"lastEnded":{}}']]),
+    () => storage.writeAll([[inkKey('2026-09'), '{}'], [KEYS.sched, '{}'], [KEYS.sessions, '{"A":null,"B":null,"lastEnded":{}}']]),
     error => error instanceof StorageWriteError && error.kind === 'verify' && error.key === KEYS.sched,
   );
   backend.failWhen(null);
@@ -132,10 +135,10 @@ test('quota classification', () => {
 
   const backend = seedBackend();
   const storage = createStorage(backend);
-  backend.failWhen(({ op, key }) => (op === 'set' && key === KEYS.ink ? 'quota' : null));
-  assert.throws(() => storage.writeAll([[KEYS.ink, '{}']]), error => error.kind === 'quota');
-  backend.failWhen(({ op, key }) => (op === 'set' && key === KEYS.ink ? 'security' : null));
-  assert.throws(() => storage.writeAll([[KEYS.ink, '{}']]), error => error.kind === 'security');
+  backend.failWhen(({ op, key }) => (op === 'set' && key === inkKey('2026-09') ? 'quota' : null));
+  assert.throws(() => storage.writeAll([[inkKey('2026-09'), '{}']]), error => error.kind === 'quota');
+  backend.failWhen(({ op, key }) => (op === 'set' && key === inkKey('2026-09') ? 'security' : null));
+  assert.throws(() => storage.writeAll([[inkKey('2026-09'), '{}']]), error => error.kind === 'security');
   backend.failWhen(null);
   // 真实配额上限
   const tiny = new MemoryStorage({ quotaBytes: 200 });
@@ -148,7 +151,7 @@ test('storage-level failNextWrite (test hook path): kinds and matchKey prefix', 
   const backend = seedBackend();
   const storage = createStorage(backend);
   storage.failNextWrite(1, { kind: 'quota', matchKey: 'shizi.v2.records.*' });
-  assert.throws(() => storage.writeAll([[KEYS.ink, '{}'], [recordsKey('2026-11'), '[]']]), error => error.kind === 'quota' && error.key === recordsKey('2026-11'));
+  assert.throws(() => storage.writeAll([[inkKey('2026-09'), '{}'], [recordsKey('2026-11'), '[]']]), error => error.kind === 'quota' && error.key === recordsKey('2026-11'));
   assert.equal(backend.getItem(recordsKey('2026-11')), null);
   storage.writeAll([[recordsKey('2026-11'), '[]']]); // 注入已用完
   assert.equal(backend.getItem(recordsKey('2026-11')), '[]');
@@ -203,4 +206,25 @@ test('writeAll refuses to touch txn/probe keys and non-string values', () => {
   assert.throws(() => storage.writeAll([[KEYS.txn, '{}']]), TypeError);
   assert.throws(() => storage.writeAll([[KEYS.meta, { a: 1 }]]), TypeError);
   assert.deepEqual(plain(storage.writeAll({})), { written: [], label: 'write' });
+});
+
+test('writeOne: single-key atomic write without txn (budget side recovery); verify mismatch restores the old value', () => {
+  const backend = seedBackend();
+  const storage = createStorage(backend);
+  const order = traceWrites(backend);
+  const key = inkKey('2026-09');
+  assert.deepEqual(storage.writeOne(key, '{}', { label: 'shrink' }).written, [key]);
+  assert.deepEqual(order, [`set:${key}`], 'no txn written');
+  assert.equal(backend.getItem(key), '{}');
+  assert.deepEqual(storage.writeOne(key, '{}').written, [], 'unchanged value is skipped');
+  storage.writeOne(key, null);
+  assert.equal(backend.getItem(key), null, 'null removes the key');
+  backend.setItem(key, '{"a":1}');
+  let hits = 0;
+  backend.failWhen(({ op, key: k }) => (op === 'set' && k === key && (hits += 1) === 1 ? { corrupt: '{"b":2}' } : null));
+  assert.throws(() => storage.writeOne(key, '{}'), error => error instanceof StorageWriteError && error.kind === 'verify');
+  backend.failWhen(null);
+  assert.equal(backend.getItem(key), '{"a":1}', 'old value restored');
+  assert.equal(backend.getItem(KEYS.txn), null);
+  assert.throws(() => storage.writeOne(KEYS.txn, '{}'), TypeError);
 });

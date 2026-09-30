@@ -45,7 +45,10 @@
     "X-SYS.corruptNotice"
   ],
   "nonRuntimeDecisions": {
-    "P22": "字体子集重建范围：构建期（M5-2 用 #180 reproduce.py），不是运行时开关"
+    "P22": "字体子集重建范围：构建期（M5-2 用 #180 reproduce.py），不是运行时开关",
+    "P62": "结果页说明句单独「看过答案」/「跳过」的措辞：待设计给文案，M2-3 落槽（R-R01）；落槽前不占 copy 键",
+    "P63": "字库首页「从 X 开始记录」的 X：待设计裁定日期/月份，M3-1 落槽（R-L10）",
+    "P64": "文案槽位占位符归一（{date}的、{month} 月）：抽取阶段规则，见 normalization；请产品确认"
   },
   "noCopy": [
     "R-H08",
@@ -2437,6 +2440,37 @@
           "text": "我的",
           "origin": "01 §1",
           "note": "tab 名"
+        }
+      }
+    },
+    "X-COMMON": {
+      "screen": "common",
+      "milestone": "M0",
+      "source": "通用组件的界面文案（M0 验收修复 F5）：src/ui/components/Page.js 页头返回/关闭的 aria-label、UndoBar.js 撤销底栏按钮与撤销后状态（R-G05）",
+      "slots": {
+        "back": {
+          "raw": null,
+          "text": "返回",
+          "origin": "extra",
+          "note": "Page.js 页头返回按钮的 aria-label（读屏文案）"
+        },
+        "close": {
+          "raw": null,
+          "text": "关闭",
+          "origin": "extra",
+          "note": "Page.js 页头关闭按钮的 aria-label（读屏文案）；与 R-R02.sheetClose 同字"
+        },
+        "undo": {
+          "raw": null,
+          "text": "撤销",
+          "origin": "extra",
+          "note": "UndoBar.js 撤销按钮（R-G05）；与 R-D05.undo / R-W20.undo 同字"
+        },
+        "undone": {
+          "raw": null,
+          "text": "已撤销",
+          "origin": "extra",
+          "note": "UndoBar.js 撤销成功后 2.4s 的状态（R-G05）；与 R-D06.undone 同字"
         }
       }
     },

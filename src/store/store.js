@@ -8,14 +8,20 @@
 //   3. 计算脏键（序列化后与上次落盘的字串比较）→ 对脏键做形状校验（core/schema.js）。
 //   4. 写前估算：超预算（records/ink/400 天）先按 budget.js 回收一次。
 //   5. storage.writeAll；撞配额 → 按 budget.js 强制回收一次再重试；仍失败返回 {ok:false}。
+//      撞配额的回收分两路（ink 按月分键后，被淘汰的墨迹多半在本次没动的旧月键里）：
+//      本次没动的键（旧 ink 月、旧 records 月）逐键用 storage.writeOne 单键原子写（不写 txn，小键先写）并立即发布——
+//      若并进本次提交，txn 要多存一份它的原值，峰值反而更高；本次要写的键上的回收直接并进重试。
 //   6. 只有写成功才替换内存状态（冻结）并通知订阅者。写失败不发布（D07）。
 //
-// 状态形状：{meta, records:{'YYYY-MM': Record[] | folded}, sched, ink, custom, wordOff, settings, photos,
-//            legacy, backupMeta, sessions, funnel, safety}；缺的域为 null，records 至少是 {}。
+// 状态形状：{meta, records:{'YYYY-MM': Record[] | folded}, sched, ink:{'YYYY-MM': {[recordId]: InkV2}}, custom, wordOff,
+//            settings, photos, legacy, backupMeta, sessions, funnel, safety}；缺的域为 null，records / ink 至少是 {}。
+// ink 按记录所属月份分键（shizi.v2.ink.<YYYY-MM>，M0 验收 F3 裁定）；读写一律走 getInk / setInk / deleteInk，
+// 不要自己拼月份——月份口径见 schema.inkMonthOf。
 
 import {
   BACKUP_WHITELIST, DOMAINS, KEYS, V2_PREFIX, CORRUPT_PREFIX,
-  isPlainObject, isRecordsKey, keyForDomain, monthOfRecordsKey, parseAndValidate, parseBackupV2, serialOf, specForKey, validateValue,
+  inkIdOf, inkMonthOf, isInkKey, isMonthKey, isMonthlyDomain, isPlainObject, isRecordsKey, keyForDomain, monthOfKey,
+  parseAndValidate, parseBackupV2, serialOf, specForKey, validateValue,
 } from '../core/schema.js';
 import { BlockingStorageError, createStorage } from './storage.js';
 import { entryBytes, needsRecovery, recover, resolveBudgets } from './budget.js';
@@ -32,7 +38,7 @@ export function deepFreeze(value) {
 
 export function emptyState() {
   const state = {};
-  for (const domain of DOMAINS) state[domain] = domain === 'records' ? {} : null;
+  for (const domain of DOMAINS) state[domain] = isMonthlyDomain(domain) ? {} : null;
   return state;
 }
 
@@ -42,15 +48,15 @@ function shallowCopy(value) {
   return value;
 }
 
-/** 按域浅拷贝；records 再下一层（每月数组/折叠对象）也拷贝，方便 push。 */
+/** 按域浅拷贝；records / ink 再下一层（每月数组/折叠对象/墨迹表）也拷贝，方便 push 与赋值。 */
 function buildDraft(state) {
   const draft = {};
   for (const domain of DOMAINS) {
     const value = state[domain];
-    if (domain === 'records') {
+    if (isMonthlyDomain(domain)) {
       const map = {};
       for (const month of Object.keys(value || {})) map[month] = shallowCopy(value[month]);
-      draft.records = map;
+      draft[domain] = map;
     } else {
       draft[domain] = value === undefined ? null : shallowCopy(value);
     }
@@ -74,8 +80,11 @@ function shallowEqual(a, b) {
   return false;
 }
 
+/** 空月份：records 的空数组、ink 的空表、null/undefined。空月份不落盘（键删除）。 */
 function isEmptyMonth(value) {
-  return Array.isArray(value) && value.length === 0;
+  if (value === null || value === undefined) return true;
+  if (Array.isArray(value)) return value.length === 0;
+  return isPlainObject(value) && value.folded !== true && Object.keys(value).length === 0;
 }
 
 /** 状态 → Map<key, value>（空月份、null 域不出现）。 */
@@ -83,10 +92,10 @@ function stateToEntries(state) {
   const map = new Map();
   for (const domain of DOMAINS) {
     const value = state[domain];
-    if (domain === 'records') {
+    if (isMonthlyDomain(domain)) {
       for (const month of Object.keys(value || {})) {
-        if (value[month] === null || value[month] === undefined || isEmptyMonth(value[month])) continue;
-        map.set(keyForDomain('records', month), value[month]);
+        if (isEmptyMonth(value[month])) continue;
+        map.set(keyForDomain(domain, month), value[month]);
       }
     } else if (value !== null && value !== undefined) {
       map.set(keyForDomain(domain), value);
@@ -117,14 +126,18 @@ export function deriveSerial(state) {
       if (s.lastLine && s.lastLine.recordId) bump(s.lastLine.recordId);
     }
   }
-  for (const id of Object.keys(state.ink || {})) bump(id);
+  const ink = state.ink || {};
+  for (const month of Object.keys(ink)) for (const id of Object.keys(ink[month] || {})) bump(id);
   return max;
 }
 
-/** meta.months 与 records 的非空月份保持一致；空月份从草稿里删掉。 */
+/** meta.months 与 records 的非空月份保持一致（ink 月份不进 meta.months）；空月份从草稿里删掉。 */
 function syncMonths(draft) {
   for (const month of Object.keys(draft.records)) {
-    if (draft.records[month] === null || draft.records[month] === undefined || isEmptyMonth(draft.records[month])) delete draft.records[month];
+    if (isEmptyMonth(draft.records[month])) delete draft.records[month];
+  }
+  if (isPlainObject(draft.ink)) {
+    for (const month of Object.keys(draft.ink)) if (isEmptyMonth(draft.ink[month])) delete draft.ink[month];
   }
   if (!isPlainObject(draft.meta)) return;
   const months = Object.keys(draft.records).sort();
@@ -135,6 +148,49 @@ function syncMonths(draft) {
 
 function errorResult(kind, label, extra) {
   return { ok: false, error: Object.assign({ kind, label }, extra || {}) };
+}
+
+// ---------------------------------------------------------------- 墨迹读写 helper（M1 起写字页/详情/图片用）
+
+/**
+ * 读一条记录的墨迹：state.ink[inkMonthOf(record)][inkIdOf(record)]；没有返回 null（10.12「没有笔迹」）。
+ * state 可以是已发布状态或 commit 草稿。
+ */
+export function getInk(state, record) {
+  const month = inkMonthOf(record);
+  const id = inkIdOf(record);
+  if (!month || !id || !state || !isPlainObject(state.ink)) return null;
+  const table = state.ink[month];
+  if (!isPlainObject(table) || !Object.prototype.hasOwnProperty.call(table, id)) return null;
+  return table[id];
+}
+
+/**
+ * 在 commit 草稿里写一条记录的墨迹（copy-on-write：替换月表，不就地改已冻结对象）。ink 为 null 等于 deleteInk。
+ * 返回写入的月键 {month, id}；记录缺月份或 id 时抛错（commit 会返回 {ok:false, kind:'mutator'}）。
+ */
+export function setInk(draft, record, ink) {
+  if (ink === null || ink === undefined) return deleteInk(draft, record);
+  const month = inkMonthOf(record);
+  const id = inkIdOf(record);
+  if (!month || !id) throw new Error('setInk: record has no month or id');
+  if (!isPlainObject(draft.ink)) draft.ink = {};
+  const next = Object.assign({}, draft.ink[month] || {});
+  next[id] = ink;
+  draft.ink[month] = next;
+  return { month, id };
+}
+
+/** 在 commit 草稿里删一条记录的墨迹；月表删空后该月键在落盘时移除。返回是否删到了。 */
+export function deleteInk(draft, record) {
+  const month = inkMonthOf(record);
+  const id = inkIdOf(record);
+  if (!month || !id || !isPlainObject(draft.ink) || !isPlainObject(draft.ink[month])) return false;
+  if (!Object.prototype.hasOwnProperty.call(draft.ink[month], id)) return false;
+  const next = Object.assign({}, draft.ink[month]);
+  delete next[id];
+  draft.ink[month] = next;
+  return true;
 }
 
 // ---------------------------------------------------------------- store
@@ -188,7 +244,7 @@ export function createStore({ storage = createStorage(), now = envNow, budgets =
       if (!spec || !spec.domain || raw === null) continue;
       const parsed = parseAndValidate(key, raw);
       if (!parsed.ok) continue; // repair() 已隔离；这里只防御
-      if (spec.domain === 'records') next.records[monthOfRecordsKey(key)] = parsed.value;
+      if (isMonthlyDomain(spec.domain)) next[spec.domain][monthOfKey(key)] = parsed.value;
       else next[spec.domain] = parsed.value;
       raws.set(key, raw);
     }
@@ -273,7 +329,7 @@ export function createStore({ storage = createStorage(), now = envNow, budgets =
 
   /**
    * 撞配额后要腾出的量 = 本次提交的净增长（新值比原值多出的字节）+ 1KiB 余量。
-   * 写入顺序里 ink 最先写：把 ink 缩掉这么多，之后每一步的累计占用都不超过「写 txn 之后」那一刻。
+   * 写入顺序里 ink 月键最先写：把 ink 缩掉这么多，之后每一步的累计占用都不超过「写 txn 之后」那一刻。
    */
   function quotaNeedBytes(entries) {
     let total = 1024;
@@ -281,15 +337,61 @@ export function createStore({ storage = createStorage(), now = envNow, budgets =
     return total;
   }
 
-  /** 撞配额时只允许回收本次已经要写的键（见 budget.recover 的 limit）。 */
-  function dirtyLimit(entries) {
-    const months = [];
-    let ink = false;
-    for (const [key] of entries) {
-      if (key === KEYS.ink) ink = true;
-      else if (isRecordsKey(key)) months.push(monthOfRecordsKey(key));
+  /** 本次提交在 txn 里要存的原值字节（撞配额时这部分也要腾出来）。 */
+  function txnBytes(entries) {
+    let total = 0;
+    for (const [key] of entries) total += entryBytes(key, lastRaw.get(key));
+    return total;
+  }
+
+  /**
+   * 撞配额后的「旁路回收」：recover 已改了草稿；其中本次提交**没有**要写的键（dirty 之外），
+   * 各自用 storage.writeOne 单键写（小的先写，不写 txn）并立即发布到内存状态；写不进去的键在草稿里还原成已发布的值。
+   * 这些写只会缩小或删除键（淘汰墨迹 / 折叠月份），单键原子，断电后要么旧值要么新值。
+   * 返回 {written:[key], blocked: error|null}。
+   */
+  function persistSideRecovery(draft, dirty, label) {
+    const next = stateToEntries(draft);
+    const side = [];
+    for (const [key, oldRaw] of lastRaw) {
+      if (dirty.has(key)) continue;
+      const spec = specForKey(key);
+      if (!spec || !isMonthlyDomain(spec.domain)) continue; // recover 只动 records / ink 月键
+      if (!next.has(key)) side.push({ key, raw: null, size: entryBytes(key, oldRaw) });
+      else if (!shallowEqual(lastValues.get(key), next.get(key))) {
+        const value = next.get(key);
+        if (validateValue(key, value)) continue; // 形状不对就不写（不应发生）
+        side.push({ key, raw: JSON.stringify(value), size: entryBytes(key, oldRaw) });
+      }
     }
-    return { ink, months };
+    side.sort((x, y) => x.size - y.size || (x.key < y.key ? -1 : 1));
+    const written = [];
+    for (const { key, raw } of side) {
+      const spec = specForKey(key);
+      const month = monthOfKey(key);
+      const failure = write([[key, raw]], `${label}:recover`, { single: true });
+      if (failure && failure.kind === 'blocked') return { written, blocked: failure };
+      const published = state[spec.domain] || {};
+      if (failure) {
+        // 没写进去：草稿里还原成已发布的值，重试提交不带它。
+        if (!isPlainObject(draft[spec.domain])) draft[spec.domain] = {};
+        if (Object.prototype.hasOwnProperty.call(published, month)) draft[spec.domain][month] = published[month];
+        continue;
+      }
+      const domainNext = Object.assign({}, published);
+      if (raw === null) delete domainNext[month];
+      else domainNext[month] = next.get(key);
+      state = publishFreeze(Object.assign({}, state, { [spec.domain]: domainNext }));
+      if (raw === null) lastRaw.delete(key);
+      else lastRaw.set(key, raw);
+      lastValues = stateToEntries(state);
+      written.push(key);
+    }
+    if (written.length) {
+      refreshUsage();
+      notify({ type: 'recover', label, keys: written });
+    }
+    return { written, blocked: null };
   }
 
   function sizesOf(raws) {
@@ -297,14 +399,15 @@ export function createStore({ storage = createStorage(), now = envNow, budgets =
     let ink = 0;
     for (const [key, raw] of raws) {
       if (isRecordsKey(key)) records += entryBytes(key, raw);
-      else if (key === KEYS.ink) ink = entryBytes(key, raw);
+      else if (isInkKey(key)) ink += entryBytes(key, raw);
     }
     return { records, ink };
   }
 
-  function write(entries, label) {
+  function write(entries, label, { single = false } = {}) {
     try {
-      storage.writeAll(entries, { label });
+      if (single) storage.writeOne(entries[0][0], entries[0][1], { label });
+      else storage.writeAll(entries, { label });
       return null;
     } catch (error) {
       if (error instanceof BlockingStorageError) {
@@ -351,9 +454,14 @@ export function createStore({ storage = createStorage(), now = envNow, budgets =
     let failure = write(p.entries, label);
     // txn 本身都写不下时回收帮不上忙（txn 里是原值副本，回收不会让它变小）。
     if (failure && failure.kind === 'quota' && allowRecover && failure.key !== KEYS.txn) {
-      const r = recover(draft, { now: nowMs, budgets: budgetConfig, force: true, needBytes: quotaNeedBytes(p.entries), limit: dirtyLimit(p.entries) });
+      // 要腾出的量：本次净增长 + txn 里的原值副本（按 §9 优先级跨全部月键淘汰）。
+      const dirty = new Set(p.entries.map(([key]) => key));
+      const r = recover(draft, { now: nowMs, budgets: budgetConfig, force: true, needBytes: quotaNeedBytes(p.entries) + txnBytes(p.entries) });
       if (r.actions.length) {
         recovered.push(...r.actions);
+        syncMonths(draft);
+        const side = persistSideRecovery(draft, dirty, label);
+        if (side.blocked) return errorResult('blocked', label, { key: side.blocked.key, reason: side.blocked.reason, recoveredAttempted: true });
         syncMonths(draft);
         p = plan(draft);
         if (p.error) return errorResult(p.error.kind, label, { key: p.error.key, reason: p.error.reason });
@@ -399,6 +507,13 @@ export function createStore({ storage = createStorage(), now = envNow, budgets =
       if (DOMAINS.indexOf(domain) < 0) return errorResult('shape', label, { reason: `unknown domain ${domain}` });
     }
     if (!isPlainObject(draft.records)) return errorResult('shape', label, { reason: 'records must be an object' });
+    if (draft.ink === null || draft.ink === undefined) draft.ink = {}; // 墨迹全删 = 空表（开关关闭时同样没有 ink 键）
+    if (!isPlainObject(draft.ink)) return errorResult('shape', label, { reason: 'ink must be an object of months' });
+    for (const domain of ['records', 'ink']) {
+      for (const month of Object.keys(draft[domain])) {
+        if (!isMonthKey(month)) return errorResult('shape', label, { reason: `${domain} month ${month} is not YYYY-MM` });
+      }
+    }
     if (nextSerial !== serial && isPlainObject(draft.meta) && draft.meta.serial !== nextSerial) {
       draft.meta = Object.assign({}, draft.meta, { serial: nextSerial });
     }
@@ -419,7 +534,12 @@ export function createStore({ storage = createStorage(), now = envNow, budgets =
       if (!Object.prototype.hasOwnProperty.call(copy, domain) || copy[domain] === null) continue;
       draft[domain] = copy[domain];
     }
-    if (!isPlainObject(draft.records)) return { error: 'records must be an object of months' };
+    for (const domain of ['records', 'ink']) {
+      if (!isPlainObject(draft[domain])) return { error: `${domain} must be an object of months` };
+      for (const month of Object.keys(draft[domain])) {
+        if (!isMonthKey(month)) return { error: `${domain} month ${month} is not YYYY-MM` };
+      }
+    }
     return { draft };
   }
 
@@ -445,11 +565,11 @@ export function createStore({ storage = createStorage(), now = envNow, budgets =
     const parsed = parseBackupV2(obj);
     if (!parsed.ok) return errorResult('invalid', label, { reason: parsed.reason, key: parsed.key || null, detail: parsed.detail || null });
     const draft = buildDraft(state);
-    for (const domain of BACKUP_WHITELIST) draft[domain] = domain === 'records' ? {} : null;
+    for (const domain of BACKUP_WHITELIST) draft[domain] = isMonthlyDomain(domain) ? {} : null;
     for (const [key, raw] of parsed.entries) {
       const spec = specForKey(key);
       const value = JSON.parse(raw);
-      if (spec.domain === 'records') draft.records[monthOfRecordsKey(key)] = value;
+      if (isMonthlyDomain(spec.domain)) draft[spec.domain][monthOfKey(key)] = value;
       else draft[spec.domain] = value;
     }
     const nextSerial = deriveSerial(draft);
@@ -471,6 +591,8 @@ export function createStore({ storage = createStorage(), now = envNow, budgets =
     /** 重新从存储读（测试钩子 reset 之后等）。 */
     reload: load,
     getState: () => state,
+    /** 当前已发布状态里某条记录的墨迹（见 getInk）。 */
+    getInk: record => getInk(state, record),
     commit,
     seed,
     replaceWithBackup,

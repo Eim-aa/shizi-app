@@ -16,9 +16,13 @@ test('policy: `node -e "import(\'./src/config/policy.js\')"` loads', () => {
   assert.equal(r.status, 0, String(r.stderr));
 });
 
-test('policy: 03 registers P01–P55 (incl. P10b)', () => {
-  assert.ok(registered.has('P01') && registered.has('P55') && registered.has('P10b'));
-  assert.equal(registered.size, 56);
+test('policy: 03 registers P01–P61 (incl. P10b); the table only grows', () => {
+  for (let n = 1; n <= 61; n += 1) {
+    const p = 'P' + String(n).padStart(2, '0');
+    assert.ok(registered.has(p), p + ' registered in 03');
+  }
+  assert.ok(registered.has('P10b'));
+  assert.ok(registered.size >= 62, 'P01–P61 + P10b at least');
 });
 
 test('policy: every export and every nested key carries a registered P number', () => {
@@ -70,6 +74,21 @@ test('policy: transitional defaults match 03 / the M0-6 card', () => {
   assert.equal(policy.features.soundscape, false);
   assert.equal(policy.features.difficultyFeedback, false);
   assert.equal(policy.features.nextReviewLine, true);
+  // M0 验收修复 F4：P56–P61
+  assert.deepEqual([...policy.inkToneDays], [7, 30, 90], 'P56');
+  assert.equal(policy.storageWarnRatio, 0.8, 'P57');
+  assert.equal(policy.assumedQuotaBytes, 5 * 1024 * 1024, 'P57');
+  assert.equal(policy.darkLampLevel, 0.05, 'P58');
+  assert.equal(policy.darkBrightenStep, false, 'P58');
+  assert.equal(policy.largeTextScale, 1.3, 'P59');
+  assert.equal(policy.dailyCapCountsPicked, true, 'P60');
+  assert.deepEqual({ ...policy.sessionExpiry }, { first: 'never', picked: 'never' }, 'P61');
+});
+
+test('policy: P58/P59 mirror the CSS tokens they document (tokens.css cannot import JS)', () => {
+  const css = fs.readFileSync(path.join(ROOT, 'src/config/tokens.css'), 'utf8');
+  assert.match(css, new RegExp('--lamp:\\s*' + String(policy.darkLampLevel).replace(/^0/, '0?').replace('.', '\\.') + '\\b'), '--lamp equals policy.darkLampLevel');
+  assert.match(css, new RegExp('--k:\\s*' + String(policy.largeTextScale).replace('.', '\\.') + '\\b'), 'data-large --k equals policy.largeTextScale');
 });
 
 test('policy: exported objects and arrays are frozen', () => {

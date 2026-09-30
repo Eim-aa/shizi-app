@@ -1,11 +1,11 @@
 // store/store.js：commit 事务语义、写失败不发布、中断矩阵、坏值隔离提示一次、配额回收重试、seed、备份整单拒绝。
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createStore, deriveSerial } from '../../src/store/store.js';
+import { createStore, deleteInk, deriveSerial, getInk, setInk } from '../../src/store/store.js';
 import { createStorage } from '../../src/store/storage.js';
-import { KEYS, recordsKey } from '../../src/core/schema.js';
+import { KEYS, inkKey, recordsKey } from '../../src/core/schema.js';
 import {
-  MemoryStorage, T0, allRecordIds, baselineState, inkEntry, judgeMutation, plain, record,
+  MemoryStorage, T0, allRecordIds, baselineState, flatInk, inkEntry, judgeMutation, plain, record,
 } from './helpers.mjs';
 
 const NOW = Date.parse('2026-10-02T10:00:00+08:00');
@@ -31,7 +31,13 @@ test('commit success: publishes new frozen state, notifies subscribers, allocate
   const seen = [];
   store.subscribe((state, info) => seen.push(info));
   const before = store.getState();
+  const order = [];
+  backend.failWhen(({ op, key }) => {
+    if (op === 'set' && key !== KEYS.txn) order.push(key);
+    return null;
+  });
   const r = store.commit('judge', judgeMutation('大'));
+  backend.failWhen(null);
   assert.equal(r.ok, true, JSON.stringify(r));
   const after = store.getState();
   assert.notEqual(after, before);
@@ -45,6 +51,53 @@ test('commit success: publishes new frozen state, notifies subscribers, allocate
   assert.ok(r.keys.indexOf(KEYS.sessions) === r.keys.length - 1, 'sessions written last');
   assert.equal(backend.getItem(KEYS.txn), null);
   assert.deepEqual(JSON.parse(backend.getItem(recordsKey('2026-10'))), plain(after.records['2026-10']));
+  // 墨迹按记录月份分键（F3）：本次只新写 ink.2026-10，ink.2026-09 不动也不进 txn。
+  assert.ok(r.keys.includes(inkKey('2026-10')), 'new record ink goes to its own month key');
+  assert.ok(!r.keys.includes(inkKey('2026-09')), 'other ink months untouched');
+  assert.ok(order.indexOf(inkKey('2026-10')) >= 0 && order.indexOf(inkKey('2026-10')) < order.indexOf(recordsKey('2026-10')), 'ink month written before records month');
+  assert.equal(order[order.length - 1], KEYS.sessions, 'sessions is the last data key written');
+  assert.equal(backend.getItem('shizi.v2.ink'), null, 'no single ink key any more');
+  assert.deepEqual(Object.keys(JSON.parse(backend.getItem(inkKey('2026-10')))), ['r4']);
+  assert.deepEqual(store.getInk(after.records['2026-10'][0]), inkEntry());
+});
+
+test('ink helpers: getInk / setInk / deleteInk address shizi.v2.ink.<record month>; txn only carries touched months', () => {
+  const { store, storage, backend } = seeded();
+  const r2 = store.getState().records['2026-09'][0];
+  assert.deepEqual(getInk(store.getState(), r2), inkEntry(), 'baseline r2 ink lives in 2026-09');
+  assert.equal(getInk(store.getState(), store.getState().records['2026-09'][1]), null, 'r3 has no ink (10.12)');
+  assert.equal(getInk(store.getState(), Object.assign({}, r2, { inkId: 'r3' })), null, 'inkId wins over id');
+  // 抓 txn：它只应包含本次动到的月键
+  let txnSeen = null;
+  const origWriteAll = storage.writeAll;
+  storage.writeAll = (entries, opts) => {
+    txnSeen = entries.map(([key]) => key);
+    return origWriteAll(entries, opts);
+  };
+  const r3 = store.getState().records['2026-09'][1];
+  const r = store.commit('ink r3', draft => {
+    assert.deepEqual(setInk(draft, r3, inkEntry(4, 2)), { month: '2026-09', id: 'r3' });
+  });
+  storage.writeAll = origWriteAll;
+  assert.equal(r.ok, true, JSON.stringify(r));
+  assert.deepEqual(txnSeen, [inkKey('2026-09')]);
+  assert.deepEqual(Object.keys(JSON.parse(backend.getItem(inkKey('2026-09')))).sort(), ['r2', 'r3']);
+  assert.ok(Object.isFrozen(store.getState().ink['2026-09']));
+  // 删光一个月 → 月键移除
+  const del = store.commit('drop ink', draft => {
+    assert.equal(deleteInk(draft, r2), true);
+    assert.equal(deleteInk(draft, r2), false, 'already gone');
+    setInk(draft, r3, null);
+  });
+  assert.equal(del.ok, true);
+  assert.equal(backend.getItem(inkKey('2026-09')), null, 'empty month key removed');
+  assert.deepEqual(store.getState().ink, {});
+  const bad = store.commit('no month', draft => setInk(draft, { id: 'r9' }, inkEntry()));
+  assert.equal(bad.error.kind, 'mutator');
+  const badMonth = store.commit('bad month', draft => {
+    draft.ink['2026-9'] = { r2: inkEntry() };
+  });
+  assert.equal(badMonth.error.kind, 'shape');
 });
 
 test('write failure does not publish: in-memory state and storage stay as before; retry succeeds without double count', () => {
@@ -72,7 +125,7 @@ test('verify mismatch → rollback → not published', () => {
   const beforeDisk = backend.snapshot();
   const beforeState = store.getState();
   let hits = 0;
-  backend.failWhen(({ op, key }) => (op === 'set' && key === KEYS.ink && (hits += 1) === 1 ? { corrupt: '{}' } : null));
+  backend.failWhen(({ op, key }) => (op === 'set' && key === inkKey('2026-10') && (hits += 1) === 1 ? { corrupt: '{}' } : null));
   const r = store.commit('judge', judgeMutation('大'));
   backend.failWhen(null);
   assert.equal(r.ok, false);
@@ -166,9 +219,10 @@ test('mock-level interruption (backend dies mid-write) is repaired the same way'
 
 test('rollback failure → keys quarantined, store blocked (R-B09), commits refused', () => {
   const { store, backend } = seeded();
-  let inkSets = 0;
+  // sched 在写前已存在，回滚要 set 回原值——让这次 set 也失败。
+  let schedSets = 0;
   backend.failWhen(({ op, key }) => {
-    if (op === 'set' && key === KEYS.ink) return (inkSets += 1) >= 2 ? 'quota' : null;
+    if (op === 'set' && key === KEYS.sched) return (schedSets += 1) >= 2 ? 'quota' : null;
     if (op === 'set' && key === KEYS.sessions) return 'quota';
     return null;
   });
@@ -177,7 +231,7 @@ test('rollback failure → keys quarantined, store blocked (R-B09), commits refu
   assert.equal(r.ok, false);
   assert.equal(r.error.kind, 'blocked');
   assert.ok(store.status.blocked);
-  assert.ok(backend.getItem(`shizi.corrupt.${KEYS.ink}`) !== null);
+  assert.ok(backend.getItem(`shizi.corrupt.${KEYS.sched}`) !== null);
   const again = store.commit('settings', draft => {
     draft.settings = Object.assign({}, draft.settings, { sound: false });
   });
@@ -229,7 +283,7 @@ function inkHeavyState(count) {
     serial += 1;
     const rec = record(serial, '水', { day, at: T0 - (count - i) * 86400000 });
     (months[month] = months[month] || []).push(rec);
-    ink[rec.id] = inkEntry(30, 6);
+    (ink[month] = ink[month] || {})[rec.id] = inkEntry(30, 6);
   }
   for (const m of Object.keys(months)) months[m].sort((a, b) => Number(a.id.slice(1)) - Number(b.id.slice(1)));
   s.records = Object.assign({}, s.records, months);
@@ -274,7 +328,7 @@ test('quota hit → budget recovery (ink by §9 priority) → one retry succeeds
   assert.equal(r.ok, true, JSON.stringify(r.error));
   assert.ok(quotaErrors >= 1, 'first attempt really hit the quota');
   assert.ok(r.recovered.some(a => a.type === 'evictInk'), 'recovery evicted ink');
-  const ink = store.getState().ink;
+  const ink = flatInk(store.getState().ink);
   assert.ok(ink[latestWater], 'latest judged ink of 水 is never evicted');
   const newId = store.getState().records['2026-10'][0].id;
   assert.equal(newId, 'r35');
@@ -282,6 +336,34 @@ test('quota hit → budget recovery (ink by §9 priority) → one retry succeeds
   assert.ok(Object.keys(ink).length < 26, 'older ink was evicted');
   assert.ok(ink.r2, 'latest ink of 人 kept');
   assert.ok(backend.usedBytes() <= quota);
+  // 被淘汰的墨迹在旧月键里：它们以单独的小事务先写（不进本次 txn），内存与磁盘一致。
+  const reloaded = freshStore(backend.clone());
+  assert.deepEqual(plain(reloaded.store.getState()), plain(store.getState()), 'disk == memory after side recovery');
+});
+
+test('quota side recovery: evicted old ink months are persisted even if the retried commit still fails', () => {
+  const state = inkHeavyState(24);
+  const backend = new MemoryStorage();
+  const { store } = freshStore(backend);
+  assert.equal(store.seed(state).ok, true);
+  const before = flatInk(store.getState().ink);
+  backend.quotaBytes = backend.usedBytes() + 2000; // txn 写得下，本次提交的大值写不下：旁路回收能写，重试仍失败
+  let seen = null;
+  store.subscribe((s, info) => {
+    if (info.type === 'recover') seen = info;
+  });
+  const r = store.commit('huge', draft => {
+    draft.settings = Object.assign({}, draft.settings, { library: 'x'.repeat(200000) });
+  });
+  assert.equal(r.ok, false);
+  assert.equal(r.error.kind, 'quota');
+  const after = flatInk(store.getState().ink);
+  assert.ok(Object.keys(after).length < Object.keys(before).length, 'some old ink evicted');
+  assert.ok(seen && seen.keys.every(key => key.indexOf('shizi.v2.ink.') === 0 || key.indexOf('shizi.v2.records.') === 0), 'recover notice lists month keys');
+  assert.ok(after.r34 && after.r2, 'latest-per-char kept');
+  assert.equal(store.getState().settings.library, 'common', 'the failed commit itself is not published');
+  const reloaded = freshStore(backend.clone());
+  assert.deepEqual(plain(reloaded.store.getState()), plain(store.getState()), 'disk == memory');
 });
 
 test('quota hit with nothing recoverable → {ok:false, kind:quota}, nothing published', () => {
@@ -305,9 +387,10 @@ test('pre-write estimate over budget → recover first (ink budget), then write'
   const r = store.commit('judge', judgeMutation('大'));
   assert.equal(r.ok, true);
   assert.ok(r.recovered.length > 0);
-  const inkRaw = JSON.stringify(store.getState().ink);
-  assert.ok((KEYS.ink.length + inkRaw.length) * 2 <= 20000 || Object.keys(store.getState().ink).length <= 3, 'ink within budget or only protected entries left');
-  assert.ok(store.getState().ink.r34, 'latest 水 kept');
+  const inkState = store.getState().ink;
+  const inkTotal = Object.keys(inkState).reduce((n, m) => n + (inkKey(m).length + JSON.stringify(inkState[m]).length) * 2, 0);
+  assert.ok(inkTotal <= 20000 || Object.keys(flatInk(inkState)).length <= 3, 'ink within budget (all month keys) or only protected entries left');
+  assert.ok(flatInk(inkState).r34, 'latest 水 kept');
 });
 
 test('pre-write: months older than 400 days are folded (P28); current month never folded', () => {
@@ -353,10 +436,11 @@ test('seed replaces every v2 domain (missing domains deleted) and validates shap
 
 function backupFrom(state) {
   const data = {};
-  for (const [domain, key] of [['meta', KEYS.meta], ['sched', KEYS.sched], ['ink', KEYS.ink], ['custom', KEYS.custom], ['settings', KEYS.settings], ['backupMeta', KEYS.backupMeta]]) {
+  for (const [domain, key] of [['meta', KEYS.meta], ['sched', KEYS.sched], ['custom', KEYS.custom], ['settings', KEYS.settings], ['backupMeta', KEYS.backupMeta]]) {
     if (state[domain] !== null) data[key] = JSON.stringify(state[domain]);
   }
   for (const m of Object.keys(state.records)) data[recordsKey(m)] = JSON.stringify(state.records[m]);
+  for (const m of Object.keys(state.ink || {})) data[inkKey(m)] = JSON.stringify(state.ink[m]);
   return { app: 'shizi', version: 2, date: '2026-09-01T00:00:00.000Z', data };
 }
 
@@ -389,11 +473,14 @@ test('backup v2: good file replaces whitelisted keys, leaves sessions alone, cle
   const other = baselineState();
   other.records = { '2026-08': [record(7, '火', { day: '2026-08-02' })] };
   other.meta = Object.assign({}, other.meta, { serial: 7, months: ['2026-08'] });
-  other.ink = {};
+  other.ink = { '2026-08': { r7: inkEntry() } };
   const sessionsBefore = backend.getItem(KEYS.sessions);
   const r = store.replaceWithBackup(backupFrom(other));
   assert.equal(r.ok, true, JSON.stringify(r));
   assert.equal(backend.getItem(recordsKey('2026-09')), null, 'month absent from backup removed');
+  assert.equal(backend.getItem(inkKey('2026-09')), null, 'ink month absent from backup removed');
+  assert.ok(backend.getItem(inkKey('2026-08')), 'ink month from backup written');
+  assert.deepEqual(store.getInk(store.getState().records['2026-08'][0]), inkEntry());
   assert.ok(backend.getItem(recordsKey('2026-08')));
   assert.equal(backend.getItem(KEYS.sessions), sessionsBefore);
   assert.equal(backend.getItem('shizi.corrupt.shizi.v2.sched'), null);
@@ -405,7 +492,7 @@ test('deriveSerial takes the max over meta.serial, records (incl. folded kept), 
   s.meta.serial = 1;
   s.records['2025-01'] = { folded: true, month: '2025-01', byDay: {}, chars: [], kept: [record(40, '山', { day: '2025-01-02' })] };
   assert.equal(deriveSerial(s), 40);
-  s.ink.r77 = inkEntry();
+  s.ink['2026-09'].r77 = inkEntry();
   assert.equal(deriveSerial(s), 77);
   s.sessions.lastEnded = { B: Object.assign(plain(s.sessions.A), { id: 's90', slot: 'B', kind: 'picked' }) };
   assert.equal(deriveSerial(s), 90);

@@ -2,9 +2,10 @@
 import { html } from '../../../../vendor/ui.js';
 import { registerScreen } from '../../router.js';
 import { TabPage } from '../../components/Page.js';
+import { t } from '../../../config/copy/index.js';
 
-// 占位文案：M0-6 建立 src/config/copy/ 后迁入（tab 名见原型 ShiziScreen tabs）。
-export const MINE_LABEL = '我的';
+// tab 名取自文案表（copy/common.js X-TABS）。
+export const MINE_LABEL = t('X-TABS.mine');
 
 const ICON = html`<svg viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
   stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="11" cy="7" r="3.6"></circle><path d="M4.2 19.4v-3a6.8 6.8 0 0 1 13.6 0v3"></path></svg>`;

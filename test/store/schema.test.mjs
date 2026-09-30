@@ -3,7 +3,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   BACKUP_EXCLUDED, BACKUP_WHITELIST, DOMAINS, KEYS, KEY_SPECS,
-  isBackupKey, isLocalDay, parseAndValidate, parseBackupV2, recordsKey, specForKey, validateRecord, validateValue,
+  inkIdOf, inkKey, inkMonthOf, isBackupKey, isInkKey, isLocalDay, keyForDomain, monthOfKey, parseAndValidate, parseBackupV2,
+  recordsKey, specForKey, validateRecord, validateValue,
 } from '../../src/core/schema.js';
 import { baselineState, record, plain } from './helpers.mjs';
 
@@ -29,6 +30,29 @@ test('key coverage invariant: every store domain maps to a schema key, and 01 §
   assert.equal(isBackupKey('shizi.nativeSmoke.v1'), false);
   assert.equal(specForKey('shizi.v2.records.2026-13'), null, 'bad month is not a records key');
   assert.equal(specForKey('shizi.v2.whatever'), null);
+  assert.equal(isBackupKey(inkKey('2026-09')), true, 'ink month keys are backed up');
+  assert.equal(specForKey('shizi.v2.ink'), null, 'the old single ink key is gone');
+  assert.equal(specForKey('shizi.v2.ink.2026-13'), null, 'bad month is not an ink key');
+});
+
+test('ink is split by record month: shizi.v2.ink.<YYYY-MM> = {recordId: InkV2} (F3)', () => {
+  assert.equal(inkKey('2026-09'), 'shizi.v2.ink.2026-09');
+  assert.equal(keyForDomain('ink', '2026-09'), 'shizi.v2.ink.2026-09');
+  assert.equal(isInkKey('shizi.v2.ink.2026-09'), true);
+  assert.equal(isInkKey('shizi.v2.records.2026-09'), false);
+  assert.equal(monthOfKey('shizi.v2.ink.2026-09'), '2026-09');
+  assert.equal(monthOfKey(recordsKey('2026-08')), '2026-08');
+  assert.equal(specForKey(inkKey('2026-09')).id, 'ink');
+  const rec = record(5, '人', { day: '2026-09-30', at: Date.parse('2026-09-30T23:30:00+08:00') });
+  assert.equal(inkMonthOf(rec), '2026-09', 'same month rule as records (localDay)');
+  assert.equal(inkMonthOf({ id: 'r1', at: new Date(2026, 6, 4, 12).getTime() }), '2026-07', 'falls back to local month of at');
+  assert.equal(inkMonthOf({ id: 'r1' }), null);
+  assert.equal(inkIdOf(rec), 'r5');
+  assert.equal(inkIdOf(Object.assign({}, rec, { inkId: 'r4' })), 'r4', 'inkId wins');
+  const ink = { r5: { v: 2, c: 345, s: [[1, 2, 100]] } };
+  assert.equal(validateValue(inkKey('2026-09'), ink), null);
+  assert.match(validateValue(inkKey('2026-09'), { s5: ink.r5 }), /bad key/);
+  assert.match(validateValue(inkKey('2026-09'), { r5: { v: 1, c: 345, s: [] } }), /must be 2/);
 });
 
 test('baseline fixture passes every key shape', () => {
@@ -36,6 +60,8 @@ test('baseline fixture passes every key shape', () => {
   for (const domain of DOMAINS) {
     if (domain === 'records') {
       for (const month of Object.keys(state.records)) assert.equal(validateValue(recordsKey(month), state.records[month]), null);
+    } else if (domain === 'ink') {
+      for (const month of Object.keys(state.ink)) assert.equal(validateValue(inkKey(month), state.ink[month]), null);
     } else if (state[domain] !== null) {
       assert.equal(validateValue(KEYS[domain], state[domain]), null, domain);
     }
@@ -89,6 +115,7 @@ function backupOf(state) {
   const data = {};
   for (const domain of BACKUP_WHITELIST) {
     if (domain === 'records') for (const m of Object.keys(state.records)) data[recordsKey(m)] = JSON.stringify(state.records[m]);
+    else if (domain === 'ink') for (const m of Object.keys(state.ink)) data[inkKey(m)] = JSON.stringify(state.ink[m]);
     else if (state[domain] !== null) data[KEYS[domain]] = JSON.stringify(state[domain]);
   }
   data[KEYS.sessions] = JSON.stringify(state.sessions);

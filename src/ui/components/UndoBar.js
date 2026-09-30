@@ -5,14 +5,15 @@
 import { html, useEffect, useState } from '../../../vendor/ui.js';
 import { Button } from './Button.js';
 import { injectStyles } from './styles.js';
+import { t } from '../../config/copy/index.js';
 
 export const UNDONE_MS = 2400;
 
-// 占位文案：M0-6 建立 src/config/copy/ 后迁入。
-export const UNDO_COPY = {
-  undo: '撤销',
-  undone: '已撤销',
-};
+// 按钮与撤销后状态的文案（copy/common.js X-COMMON）；两行说明由调用方从各屏文案表传入。
+export const UNDO_COPY = Object.freeze({
+  undo: t('X-COMMON.undo'),
+  undone: t('X-COMMON.undone'),
+});
 
 injectStyles('undobar', `
 .sz-undobar{position:absolute;left:16px;right:16px;bottom:var(--ubb, max(34px, env(safe-area-inset-bottom, 0px)));z-index:15;

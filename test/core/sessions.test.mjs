@@ -196,6 +196,26 @@ test('sessions: an unfinished daily from yesterday expires; today, first and pic
   assert.throws(() => expireDaily({ A: yesterday, B: null, lastEnded: {} }, TODAY, { dailyExpiry: 'x' }), /dailyExpiry/);
 });
 
+test('sessions: first / picked cross-day expiry follows policy.sessionExpiry (P61)', async () => {
+  const first = createSession({ id: 's3', kind: 'first', queue: K('尴'), at: at('2026-09-20') });
+  const oldPicked = createSession({ id: 's4', kind: 'picked', source: { view: 'home' }, queue: K('额'), at: at('2026-09-20', 9) });
+  const both = { A: first, B: oldPicked, lastEnded: {} };
+  const kept = expireDaily(both, TODAY);
+  assert.equal(kept.sessions, both, "default 'never': nothing expires, same object back");
+  assert.deepEqual(kept.expiredAll, []);
+  const same = await policyWith({ sessionExpiry: { first: 'daily', picked: 'daily' } });
+  const gone = expireDaily(both, TODAY, same);
+  assert.equal(gone.sessions.A, null);
+  assert.equal(gone.sessions.B, null);
+  assert.equal(gone.expired, first, 'A first');
+  assert.deepEqual(gone.expiredAll.map((s) => s.id), ['s3', 's4']);
+  const asResult = expireDaily(both, TODAY, await policyWith({ sessionExpiry: { first: 'never', picked: 'daily' }, dailyExpiry: 'result' }));
+  assert.equal(asResult.sessions.A, first, 'first still never expires');
+  assert.equal(asResult.sessions.lastEnded.B.id, 's4');
+  const badPolicy = await policyWith({ sessionExpiry: { first: 'x', picked: 'never' } });
+  assert.throws(() => expireDaily(both, TODAY, badPolicy), /sessionExpiry\.first/);
+});
+
 test('sessions: recovery is idempotent — a committed judgment is not counted twice (D07)', () => {
   const s = withCurrent(daily('s1', '静亦'), { phase: 'compare', strokes: [[1]] });
   const records = [rec(4, '静', 'judged', 'correct', TODAY, { sessionId: 's1' })];

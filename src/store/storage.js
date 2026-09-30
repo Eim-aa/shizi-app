@@ -3,13 +3,17 @@
 // writeAll(entries, {label})：
 //   0. 读每个键的原值 prev；与新值相同的条目跳过；
 //   1. 先写提交日志 shizi.v2.txn = {label, at, keys, prev, phase:'writing'} 并读回核对；
-//   2. 按固定顺序写数据键：ink → records.<月>（升序）→ sched → custom → wordOff → settings → photos → legacy
+//   2. 按固定顺序写数据键：ink.<月>（升序）→ records.<月>（升序）→ sched → custom → wordOff → settings → photos → legacy
 //      → backupMeta → funnel → safety → （其他）→ meta → sessions（最后：它决定恢复阶段）；null = removeItem；
 //   3. 逐键 getItem 读回比对；
 //   4. 删除 txn（删不掉就改写 phase:'done'，启动修复时按「已完成」处理）。
 //   任一步失败：按逆序用 prev 回滚（prev 为 null 的键 removeItem）并逐键核对，再删 txn；
 //   回滚失败：把没能恢复的键搬到 shizi.corrupt.<key>、txn 复制一份到 shizi.corrupt.shizi.v2.txn（live txn 保留，
 //   下次启动 repair() 会再按 prev 回滚），进入阻断状态并抛 BlockingStorageError（R-B09 阻断页由 UI 负责）。
+//
+// writeOne(key, raw|null, {label})：**只供预算回收的单键缩小写**（store 撞配额后的旁路回收）。
+//   单个 setItem/removeItem 本身原子（断电后键要么是原值要么是新值，两者都合法），因此不写 txn——
+//   写 txn 要多占一份原值，正是配额吃紧时拿不出的空间。原值留在内存：读回不一致就用它恢复；恢复失败按 rollback 隔离并阻断。
 //
 // repair()（启动时调用一次）：未完成的 txn 回滚到写前（phase:'done' 视为写后，只删 txn）；
 //   然后逐个 shizi.v2.* 键做 JSON + 形状校验，坏值搬到 shizi.corrupt.<key>、原键移除。
@@ -381,6 +385,46 @@ export function createStorage(backend = null, { now = () => Date.now() } = {}) {
   }
 
   /**
+   * 单键原子写（不写 txn），见文件头。成功返回 {written:[key]|[], label}；失败抛 StorageWriteError（已恢复原值）
+   * 或 BlockingStorageError（恢复失败）。
+   */
+  function writeOne(key, raw, { label = 'write-one' } = {}) {
+    if (halted) throw new StorageWriteError('interrupted', 'storage halted by interruptAfterWrite', { phase: 'halted' });
+    if (blocked) throw new BlockingStorageError('storage is blocked after a failed rollback', { keys: blocked.keys });
+    const [[k, value]] = normalizeEntries([[key, raw]]);
+    let before;
+    try {
+      before = rawGet(k);
+    } catch (error) {
+      throw toWriteError(error, k, 'read-prev');
+    }
+    if (before === value) return { written: [], label };
+    let failure = null;
+    try {
+      try {
+        if (value === null) rawRemove(k);
+        else rawSet(k, value);
+      } catch (error) {
+        throw toWriteError(error, k, 'write');
+      }
+      let back;
+      try {
+        back = rawGet(k);
+      } catch (error) {
+        throw toWriteError(error, k, 'verify');
+      }
+      if (back !== value) throw new StorageWriteError('verify', `read-back mismatch at ${k}`, { key: k, phase: 'verify' });
+    } catch (error) {
+      if (isInterrupted(error)) throw error;
+      failure = toWriteError(error, k, 'write');
+    }
+    if (!failure) return { written: [k], label };
+    const rb = rollback({ label: String(label), at: now(), keys: [k], prev: { [k]: before }, phase: 'writing' }, [k], failure);
+    if (!rb.ok) throw new BlockingStorageError(`rollback failed for ${rb.keys.join(', ')}`, { keys: rb.keys, cause: failure });
+    throw failure;
+  }
+
+  /**
    * 启动修复。返回报告：
    *   txn: 'none' | 'rolled-back' | 'completed' | 'corrupt' | 'blocked'
    *   quarantined: [{key, reason}]   本次新隔离的坏值（提示标记据此只置一次）
@@ -471,6 +515,7 @@ export function createStorage(backend = null, { now = () => Date.now() } = {}) {
     readAll,
     listKeys,
     writeAll,
+    writeOne,
     repair,
     probe,
     removeKeys,

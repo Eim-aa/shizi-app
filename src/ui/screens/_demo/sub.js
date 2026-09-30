@@ -1,7 +1,8 @@
 // 演示子页：只给 e2e（scripts/e2e/00-shell.spec.js）与开发走查用，不是产品页面。
 // 只有测试主机（?test=1 且 localhost/127.0.0.1）才由 ui/root.js 动态加载；生产形态不 import 本文件。
 // 覆盖：连续推入子页、遮罩栈（确认框 / 底部弹层、弹层上再推入一页）、轻提示、撤销底栏。
-// 本文件字串是开发演示用，不进 copy/（M0-6 的 verify_copy 若扫描 src/ 需排除 src/ui/screens/_demo/）。
+// 本文件字串是开发演示用，不进 copy/（M0 验收修复 F5 明确允许保留下面的 DEV 常量：它们不是用户文案，
+// 生产形态不加载本文件；verify_copy 若将来扫描 src/ 需排除 src/ui/screens/_demo/）。
 import { html, useState } from '../../../../vendor/ui.js';
 import { registerScreen, nav } from '../../router.js';
 import { Button } from '../../components/Button.js';

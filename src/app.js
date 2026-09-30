@@ -1,5 +1,8 @@
+// 原生桥必须是第一条语句：模块顶层同步定义 iOS→JS 全局（01 §8.1），store 就绪前的调用进队列。
+import './platform/bridge.js';
+
 // 拾字 v10 启动入口。完整启动顺序见 01-架构设计 §2：
-//   import './platform/bridge.js'（M5-5）→ 加载数据 → 迁移（M5-4）→ 建 store（M0-5）→ 挂载 UI（本卡）
+//   import './platform/bridge.js'（M0 验收修复起静态导入，M5-5 扩展）→ 加载数据 → 迁移（M5-4）→ 建 store（M0-5）→ 挂载 UI（本卡）
 //   → bridge.markReady → postMessage pageReady（M5-3）→ 注册 SW（M5-1）。
 // 当前（M0-4）：?dev=1 → 色板页（M0-3）；否则挂根组件（router + 三 tab）。
 

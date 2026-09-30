@@ -15,7 +15,9 @@ concurrency:
 # Three independent jobs run in parallel (02-实现计划 §0 门禁):
 #   data       — syntax checks + verify:data (governance, vector440, content, assets, sw-unit)
 #   unit-copy  — verify:unit (node:test) + verify:copy
-#   web        — verify:web (Playwright against a local static server)
+#   web        — verify:web (Playwright e2e against a local static server)
+# verify:pwa (scripts/verify_pwa_upgrade.js) is a manual gate from M0 until M5-1 rewrites sw.js
+# and puts it back into verify:web; it is intentionally not run here.
 # scripts/legacy/ holds retired v8/v9 gates; it is neither syntax-checked nor run.
 
 jobs:

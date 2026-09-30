@@ -4,7 +4,10 @@
 //
 // 钩子：
 //   seed(state)                     整体替换全部 v2 域，走形状校验 + writeAll；返回 {ok, keys?|error?}
-//   getState()                      当前 store 状态（JSON 深拷贝）
+//                                   state 形状同 store：records / ink 都是 {'YYYY-MM': …} 按月分组
+//                                   （ink: {'2026-09': {r2: InkV2}}，落到 shizi.v2.ink.2026-09）；月份不是 YYYY-MM → {ok:false, kind:'shape'}
+//   getState()                      当前 store 状态（JSON 深拷贝；ink 同上按月分组）
+//   getInk(record)                  某条记录的墨迹（按 inkMonthOf/inkIdOf 定位），没有返回 null
 //   getRawKeys(prefix='shizi.')     localStorage 原始键值（K03 等「全部 v2 键深相等」断言用）
 //   getStatus()                     store.status（available/blocked/corruptNotice/usage/lastRepair）
 //   failNextWrite(n, {kind:'quota'|'generic'|'security', matchKey?})  接下来 n 次匹配的 setItem 抛错
@@ -101,6 +104,10 @@ function createTestApi({ storage, getStore }) {
     },
     getState() {
       return plain(store().getState());
+    },
+    getInk(record) {
+      const ink = store().getInk(record);
+      return ink === null || ink === undefined ? null : plain(ink);
     },
     getRawKeys(prefix = 'shizi.') {
       const out = {};

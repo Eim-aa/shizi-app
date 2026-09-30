@@ -5,7 +5,8 @@ from pathlib import Path
 import sys
 
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
+# Legacy (v9) copy gate kept for reference only; not run by pnpm test or CI (M0-2).
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 FORBIDDEN_BY_FILE = {
     "index.html": (

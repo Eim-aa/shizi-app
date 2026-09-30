@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 import hashlib
 import json
+import re
+import subprocess
 from collections import Counter
 from pathlib import Path
 
@@ -69,6 +71,86 @@ def load_groups():
     start = source.index(prefix) + len(prefix)
     end = source.index(";\n", start)
     return json.loads(source[start:end])
+
+
+# v10: the four libraries live in the pure module src/core/cards.js (LIBRARIES: id, label,
+# officialTotal, test). Labels are asserted there, not in index.html or src/config/copy/.
+CARDS_MODULE = ROOT / "src" / "core" / "cards.js"
+EXPECTED_LIBRARIES = [
+    # (id, label, officialTotal, practice-ready count)
+    ("core3500", "规范常用字", 3500, 3500),
+    ("adv3000", "规范次常用字", 3000, 2976),
+    ("rare", "规范专门用字", 1605, 818),
+    ("curriculum2500", "小学初中常用字", 2500, 2500),
+]
+RETIRED_LIBRARY_LABEL = "义教基础字"
+SCHOOL_STAGE_NAMES = ("小学", "初中", "高中")
+SCHOOL_STAGE_IDS = ("primary", "junior", "senior")
+TEXT_SUFFIXES = {".js", ".mjs", ".cjs", ".css", ".html", ".json", ".txt", ".md", ".svg"}
+# Evaluates deck-data.js + data/context-overrides.js like the page does, builds cards with
+# src/core/cards.js and prints each library's id/label/officialTotal/count as JSON.
+LIBRARY_COUNT_SCRIPT = r"""
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
+import vm from 'node:vm';
+const root = process.argv[1];
+const { LIBRARIES, buildCards } = await import(pathToFileURL(join(root, 'src', 'core', 'cards.js')).href);
+const context = vm.createContext(Object.create(null), { codeGeneration: { strings: false, wasm: false } });
+const run = (file) => new vm.Script(readFileSync(join(root, file), 'utf8'), { filename: file }).runInContext(context);
+run('deck-data.js');
+run('data/context-overrides.js');
+const seed = JSON.parse(new vm.Script('JSON.stringify(SEED)').runInContext(context));
+const overrides = JSON.parse(new vm.Script('JSON.stringify(CONTEXT_OVERRIDES)').runInContext(context));
+const cards = buildCards({ seed, overrides });
+process.stdout.write(JSON.stringify({ cards: cards.length, libraries: LIBRARIES.map(lib => ({
+  id: lib.id, label: lib.label, officialTotal: lib.officialTotal, count: cards.filter(lib.test).length })) }));
+"""
+
+
+def scanned_sources():
+    files = [ROOT / "index.html"]
+    files += sorted(path for path in (ROOT / "src").rglob("*") if path.is_file() and path.suffix in TEXT_SUFFIXES)
+    return [(path, path.read_text(encoding="utf-8")) for path in files]
+
+
+def verify_library_table(seed):
+    source = CARDS_MODULE.read_text(encoding="utf-8")
+    # Static view of the table: every entry declares its id, label and officialTotal literally.
+    declared = re.findall(r"id:\s*'([a-z0-9]+)',\s*label:\s*'([^']+)',\s*officialTotal:\s*(\d+)", source)
+    require([(lib_id, label, int(total)) for lib_id, label, total in declared] == [row[:3] for row in EXPECTED_LIBRARIES],
+            f"src/core/cards.js LIBRARIES must declare exactly the four governed libraries: {declared}")
+
+    # Runtime view: the module's own predicates over the real deck.
+    result = subprocess.run(["node", "--input-type=module", "-e", LIBRARY_COUNT_SCRIPT, str(ROOT)],
+                            cwd=ROOT, capture_output=True, text=True, check=False)
+    require(result.returncode == 0, f"library count probe failed: {result.stderr.strip()}")
+    probe = json.loads(result.stdout)
+    require(probe["cards"] == EXPECTED_PRACTICE_READY, "src/core/cards.js buildCards must yield one card per practice-ready character")
+    runtime = [(row["id"], row["label"], row["officialTotal"], row["count"]) for row in probe["libraries"]]
+    require(runtime == EXPECTED_LIBRARIES, f"LIBRARIES ids/labels/totals/counts disagree with governance: {runtime}")
+    # Cross-check the module predicates against the governed SEED fields independently.
+    independent = {
+        "core3500": sum(row.get("norm") == "一级" for row in seed),
+        "adv3000": sum(row.get("norm") == "二级" for row in seed),
+        "rare": sum(row.get("norm") == "三级" for row in seed),
+        "curriculum2500": sum(row.get("edu") == "表一" for row in seed),
+    }
+    require(independent == {row[0]: row[3] for row in EXPECTED_LIBRARIES}, f"SEED library membership changed: {independent}")
+    require(independent["core3500"] == EXPECTED_AVAILABLE["一级"] and independent["adv3000"] == EXPECTED_AVAILABLE["二级"]
+            and independent["rare"] == EXPECTED_AVAILABLE["三级"], "library counts disagree with practice availability")
+
+    # Negative checks over everything the page ships from src/ plus index.html.
+    for path, text in scanned_sources():
+        rel = path.relative_to(ROOT).as_posix()
+        require("日常读写九成五" not in text, f"unsupported 95% claim is still visible: {rel}")
+        require("LEVEL_RANK" not in text and "cardLevel(" not in text, f"education terminology is still used for writing difficulty: {rel}")
+        require(not re.search(r"(?:name|label)\s*:\s*['\"](?:%s)['\"]" % "|".join(SCHOOL_STAGE_NAMES), text),
+                f"unsupported school-stage library is still declared: {rel}")
+        require(not re.search(r"\bid\s*:\s*['\"](?:%s)['\"]" % "|".join(SCHOOL_STAGE_IDS), text),
+                f"retired school-stage library id is still declared: {rel}")
+        if rel.startswith("src/"):
+            require(RETIRED_LIBRARY_LABEL not in text, f"retired library label {RETIRED_LIBRARY_LABEL} still appears in {rel}")
 
 
 def main():
@@ -165,11 +247,7 @@ def main():
     require(audit["curriculum_source"]["document_sha256"] == EXPECTED_CURRICULUM_PDF_SHA256, "audit curriculum PDF version is not independently pinned")
     require(all(audit["invariants"].values()), "a library-governance invariant is false")
 
-    html = (ROOT / "index.html").read_text(encoding="utf-8")
-    require("日常读写九成五" not in html, "unsupported 95% claim is still visible")
-    require(all(f'name:"{name}"' not in html for name in ("小学", "初中", "高中")), "unsupported school-stage libraries are still visible")
-    require("LEVEL_RANK" not in html and "cardLevel(" not in html, "education terminology is still used for writing difficulty")
-    require(all(name in html for name in ("规范常用字", "规范次常用字", "规范专门用字", "义教基础字")), "source-backed library labels are incomplete")
+    verify_library_table(seed)
 
     print("library governance: 8105 normative characters classified; 3500 curriculum characters verified; 7294 practice-ready; 811 explicitly unavailable")
 

@@ -39,10 +39,16 @@ for script in "${SCRIPT_DIR}"/*.sh; do
   sh -n "$script"
 done
 PYTHONPYCACHEPREFIX="${IOS_ROOT}/build/verify/pycache" \
-  python3 -m py_compile "${SCRIPT_DIR}/validate-native-smoke.py" "${REPO_ROOT}/scripts/summarize_backups.py" "${REPO_ROOT}/scripts/verify_library_governance.py"
+  python3 -m py_compile "${SCRIPT_DIR}/validate-native-smoke.py" "${REPO_ROOT}/scripts/verify_library_governance.py"
 python3 "${REPO_ROOT}/scripts/verify_library_governance.py"
 run_logged "Verify 440 vector-data approvals" "${LOG_DIR}/verify-vector-data-440.log" \
   node "${REPO_ROOT}/scripts/verify_vector_data_440.js"
+run_logged "Verify content corpus" "${LOG_DIR}/verify-content-corpus.log" \
+  node "${REPO_ROOT}/scripts/verify_content_corpus.cjs"
+run_logged "Verify static assets" "${LOG_DIR}/verify-assets.log" \
+  node "${REPO_ROOT}/scripts/verify_assets.mjs"
+run_logged "Verify service worker unit" "${LOG_DIR}/verify-sw-unit.log" \
+  node "${REPO_ROOT}/scripts/verify_sw_unit.mjs"
 run_logged "Verify PWA corpus upgrade" "${LOG_DIR}/verify-pwa-upgrade.log" \
   node "${REPO_ROOT}/scripts/verify_pwa_upgrade.js"
 

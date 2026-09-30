@@ -5,8 +5,9 @@ const os = require("os");
 const path = require("path");
 const vm = require("vm");
 
-const root = path.resolve(__dirname, "..");
-execFileSync("python3", [path.join(root, "scripts", "verify_ui_copy.py")], { stdio: "inherit" });
+// Legacy (v9) regression kept for reference only; not run by pnpm test or CI (M0-2).
+const root = path.resolve(__dirname, "..", "..");
+execFileSync("python3", [path.join(root, "scripts", "legacy", "verify_ui_copy.py")], { stdio: "inherit" });
 const appUrl = process.env.SHIZI_APP_URL || "http://127.0.0.1:8000/";
 const screenshotPath = path.join(root, "generated", "verify_8105_app.png");
 const wildPhotoFixturePath = path.join(root, "icon-192.png");
@@ -26,7 +27,7 @@ const etymologyBuilderSource = fs.readFileSync(path.join(root, "scripts", "build
 const appDelegateSource = fs.readFileSync(path.join(root, "ios", "ShiziApp", "ShiziApp", "AppDelegate.swift"), "utf8");
 const webViewSource = fs.readFileSync(path.join(root, "ios", "ShiziApp", "ShiziApp", "WebViewController.swift"), "utf8");
 const schemeHandlerSource = fs.readFileSync(path.join(root, "ios", "ShiziApp", "ShiziApp", "LocalWebSchemeHandler.swift"), "utf8");
-const mottoFixture = JSON.parse(fs.readFileSync(path.join(root, "scripts", "fixtures", "motto_classics.json"), "utf8"));
+const mottoFixture = JSON.parse(fs.readFileSync(path.join(root, "scripts", "legacy", "motto_classics.json"), "utf8"));
 const etymologyAccuracyFixture = JSON.parse(fs.readFileSync(path.join(root, "scripts", "fixtures", "etymology_accuracy.json"), "utf8"));
 const etymologyContextAudit = JSON.parse(fs.readFileSync(path.join(root, "scripts", "fixtures", "etymology_context_audit.json"), "utf8"));
 const etymologyCopyReview = JSON.parse(fs.readFileSync(path.join(root, "scripts", "fixtures", "etymology_copy_review.json"), "utf8"));
@@ -192,7 +193,7 @@ function verifyBackupSummaryScript() {
   ];
   const files = rows.map((row, index) => { const file = path.join(dir, `${index}.json`); fs.writeFileSync(file, JSON.stringify(row)); return file; });
   try {
-    const output = execFileSync("python3", [path.join(root, "scripts", "summarize_backups.py"), "--json", ...files], { encoding: "utf8" });
+    const output = execFileSync("python3", [path.join(root, "scripts", "legacy", "summarize_backups.py"), "--json", ...files], { encoding: "utf8" });
     const summary = JSON.parse(output);
     assert(summary.retention.d1.returned === 1 && summary.retention.d1.eligible === 2 && summary.retention.d7.returned === 2 && summary.retention.d7.eligible === 2
       && summary.calibration.card1_rate === 1 && summary.calibration.completion_rate === 0.5
@@ -200,7 +201,7 @@ function verifyBackupSummaryScript() {
     "Expected backup summary D1/D7, calibration, disagreement, and duration metrics", summary);
     const v2File = path.join(dir, "v2.json");
     fs.writeFileSync(v2File, JSON.stringify(backup(["2026-07-01"], { version: 2, events: [], eventCounts: { welcome_shown: 1, calib_card1_done: 1, calib_completed: 1 }, counts: { revealCompared: 8, revealDisagree: 2 }, rounds: [{ completedAt: 4, mode: "calibrate", durationMs: 900000 }, { completedAt: 5, mode: "new", durationMs: 30000 }], roundTotals: { count: 11, durationMs: 1920000, byMode: { calibrate: { count: 5, durationMs: 1500000 }, new: { count: 4, durationMs: 240000 }, review: { count: 2, durationMs: 180000 } } } })));
-    const v2Summary = JSON.parse(execFileSync("python3", [path.join(root, "scripts", "summarize_backups.py"), "--json", v2File], { encoding: "utf8" }));
+    const v2Summary = JSON.parse(execFileSync("python3", [path.join(root, "scripts", "legacy", "summarize_backups.py"), "--json", v2File], { encoding: "utf8" }));
     assert(v2Summary.files.with_funnel === 1 && v2Summary.calibration.completed === 1 && v2Summary.system_comparison.disagreement_rate === 0.25
       && v2Summary.rounds.completed === 6 && v2Summary.rounds.average_duration_seconds === 70 && v2Summary.rounds.median_duration_seconds === 30,
     "Expected bounded funnel v2 lifetime counters and mode totals to remain reportable without calibration inflation", v2Summary);

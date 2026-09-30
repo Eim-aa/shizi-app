@@ -2,7 +2,8 @@ const { chromium } = require("playwright");
 const fs = require("fs");
 const path = require("path");
 
-const root = path.resolve(__dirname, "..");
+// Legacy (v8 visual) regression kept for reference only; not run by pnpm test or CI (M0-2).
+const root = path.resolve(__dirname, "..", "..");
 const source = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const changelog = fs.readFileSync(path.join(root, "CHANGELOG.md"), "utf8");
 const approvedContexts = JSON.parse(fs.readFileSync(path.join(root, "scripts", "fixtures", "context-overrides-approved.json"), "utf8"));

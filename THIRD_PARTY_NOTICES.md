@@ -2,7 +2,8 @@
 
 ## Hanzi Writer 3.7.3
 
-`hanzi-writer.min.js` vendors the browser distribution of
+`vendor/hanzi-writer.min.js` (moved from the repository root in v10 M0-1,
+bytes unchanged) vendors the browser distribution of
 [`chanind/hanzi-writer`](https://github.com/chanind/hanzi-writer) version
 3.7.3.
 
@@ -11,6 +12,51 @@ Vendored SHA-256: `17b11a1e025b780cb518d49b30faacc770dfa7fbc387aa3876e3e5c1bd31e
 Hanzi Writer is licensed under the MIT License, Copyright (c) 2014 David
 Chanin. The complete notice is included at
 `sources/LICENSE-MIT-HANZI-WRITER.txt`.
+
+## Preact 10.29.8 (core and hooks)
+
+`vendor/preact.module.js` and `vendor/preact-hooks.module.js` are the ES module
+builds of [`preactjs/preact`](https://github.com/preactjs/preact) version
+10.29.8, taken from the official npm tarball by `scripts/vendor_preact.mjs`.
+
+- Tarball: `https://registry.npmjs.org/preact/-/preact-10.29.8.tgz`
+  (SHA-256 `b18cb0a457f3d43c7bb30391a74ade7d13e03bc6e77915e061c70c0fe1123299`,
+  npm integrity `sha512-ej2aVZ+vZ8WO7tvlQWRM9N63A0KzF9q4mWJfDUHgYaIofWY9hu74QdnQrjoPMmZi2/nZ5gN0bJCQF49xQqx09Q==`)
+- `package/dist/preact.module.js` (upstream SHA-256
+  `c30e721ebfdc6e2ad4c18c14d2dfb82667829c8aec27de1207774e3fc16858a8`)
+  → `vendor/preact.module.js`, vendored SHA-256
+  `25a5df7e9f628a587743c4641a368737a3b218f28ef738ba0376a2d5bdfc948c`
+- `package/hooks/dist/hooks.module.js` (upstream SHA-256
+  `a6ee626f2d01570592dd569a792e3f050154aa02890eead8c223fa3ed5aa3d5a`)
+  → `vendor/preact-hooks.module.js`, vendored SHA-256
+  `9e7eff58e0ae604583461eba1344da69a6894eab575eb591c635cc0d3f9ec57d`
+- Modifications (mechanical, applied by the script): the bare import
+  `from"preact"` in the hooks build is rewritten to `from"./preact.module.js"`
+  so browsers can resolve it without an import map or bundler; the trailing
+  `//# sourceMappingURL=…` comment is removed from both files because source
+  maps are not shipped.
+
+Preact is licensed under the MIT License, Copyright (c) 2015-present Jason
+Miller. The complete license text is included at `licenses/preact-LICENSE.txt`.
+
+## htm 3.1.1
+
+`vendor/htm.module.js` is the ES module build of
+[`developit/htm`](https://github.com/developit/htm) version 3.1.1, taken from
+the official npm tarball by `scripts/vendor_preact.mjs` without modification.
+
+- Tarball: `https://registry.npmjs.org/htm/-/htm-3.1.1.tgz`
+  (SHA-256 `2425b9bee11409177bcabc7f32e319926fc6690c1701c0b257c88bdff2d5ba90`,
+  npm integrity `sha512-983Vyg8NwUE7JkZ6NmOqpCZ+sh1bKv2iYTlUkzlWmA5JD2acKoxd4KVxbMmxX/85mtfdnDmTFoNKcg5DGAvxNQ==`)
+- `package/dist/htm.module.js` → `vendor/htm.module.js`, SHA-256
+  `ab33dd3f38059b9be4d5f5350128eefb2356639c4e0bbe9d9e8b3ba75847e9e4`
+  (identical to upstream)
+
+htm is licensed under the Apache License 2.0, Copyright 2018 Google Inc. The
+complete license text is included at `licenses/htm-LICENSE.txt`.
+
+`vendor/ui.js` is project code that re-exports the Preact, hooks and
+`html = htm.bind(h)` API used by `src/`.
 
 ## Hanzi Writer Data 2.0.1
 
@@ -63,7 +109,8 @@ modified and condensed. A copy of the license is included at
 
 ## ts-fsrs 5.2.0
 
-`fsrs6.min.js` vendors the UMD distribution of
+`vendor/fsrs6.min.js` (moved from the repository root in v10 M0-1, bytes
+unchanged) vendors the UMD distribution of
 [`ts-fsrs`](https://github.com/open-spaced-repetition/ts-fsrs) version 5.2.0.
 The bundled library identifies its scheduler as `FSRS-6.0` and is used fully
 offline.
@@ -94,12 +141,16 @@ SOFTWARE.
 
 ## LXGW WenKai 1.522
 
-`index.html` embeds a WOFF2 web-delivery subset of
+The legacy (pre-v10) `index.html`, still available in git history, embeds a
+WOFF2 web-delivery subset of
 [`LXGW WenKai`](https://github.com/lxgw/LxgwWenKai) 1.522 for fixed brand
 glyphs. The 4,264-byte subset was produced without hinting and is not offered
 as an installable desktop font.
 
 Subset SHA-256: `b095f06b8dba589e7ad65da7283530b69b134624d43ec4e6879f55c85a764215`
+
+The v10 shell introduced in M0-1 no longer embeds this subset; the notice is
+kept until the v10 fonts under `fonts/` (M5) replace it.
 
 Copyright 2021-2026 LXGW (https://github.com/lxgw/LxgwWenKai), with Reserved
 Font Name '霞鹜', '霞鶩', '落霞孤鹜', '落霞孤鶩' and 'LXGW'.

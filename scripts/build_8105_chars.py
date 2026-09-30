@@ -27,6 +27,7 @@ JIEBA_DICT_PATH = SRC_DIR / "jieba_dict.txt"
 CURRICULUM_PATH = SRC_DIR / "curriculum-common-2500.txt"
 PY_DEPS = ROOT / ".python-deps"
 DECK_KEY = "shizi.deck.v8105.context2"
+DECK_META_PATH = ROOT / "src" / "config" / "deck-meta.js"
 GENERATED_JSON = "selected_8105_candidates.json"
 COVERAGE_JSON = "hanzi_writer_coverage.json"
 LIBRARY_AUDIT_JSON = "library-governance.json"
@@ -833,16 +834,16 @@ def js_string(value):
 
 
 def patch_index(chosen, word_index):
-    """生成 deck-data.js（SEED/GROUPS 题库数据），并同步 index.html 里的 DECK_KEY。
+    """生成 deck-data.js（SEED/GROUPS 题库数据）、core-strokes.js，并写出 src/config/deck-meta.js。
 
-    题库数据独立成文件后，index.html 只含界面与逻辑（~90KB）；
-    数据更新后必须同步 index.html/sw.js 的内容指纹与 BUILD；
-    verify_pwa_upgrade.js 会在标准门禁中阻止指纹不一致的提交。
+    第十稿起不再读写 index.html：DECK_KEY 与 deck 指纹（deck-data.js 内容 SHA-256 前 12 位，
+    与 ?v= 指纹同源）写进 ES 模块 src/config/deck-meta.js，由 src/ 代码 import；内容不变时不重写，
+    保证重复运行 git diff 为空。index.html / sw.js 里的 ?v= 指纹与 BUILD 仍须与文件内容一致，
+    由 scripts/verify_pwa_upgrade.js（M5 起改由 scripts/build_shell_manifest.mjs 生成）把关。
+    函数名沿用 patch_index 以保持历史可追溯。
     """
-    index_path = ROOT / "index.html"
     data_path = ROOT / "deck-data.js"
     core_path = ROOT / CORE_STROKE_SCRIPT
-    html = index_path.read_text(encoding="utf-8")
 
     seed = []
     for item in chosen:
@@ -898,15 +899,22 @@ def patch_index(chosen, word_index):
         encoding="utf-8",
     )
 
-    html, key_count = re.subn(
-        r'const DECK_KEY="[^"]+"',
-        f'const DECK_KEY="{DECK_KEY}"',
-        html,
-        count=1,
+    write_deck_meta(data_path)
+
+
+def write_deck_meta(data_path):
+    """写 src/config/deck-meta.js（ES 模块）；内容相同则不动文件。"""
+    fingerprint = file_sha256(data_path)[:12]
+    meta = (
+        "// 由 scripts/build_8105_chars.py 生成，勿手改。\n"
+        "// DECK_KEY：题库身份键；DECK_FINGERPRINT：deck-data.js 内容 SHA-256 前 12 位（与 ?v= 指纹同源）。\n"
+        f"export const DECK_KEY = {js_string(DECK_KEY)};\n"
+        f"export const DECK_FINGERPRINT = {js_string(fingerprint)};\n"
     )
-    if key_count != 1:
-        raise RuntimeError("Could not update DECK_KEY in index.html")
-    index_path.write_text(html, encoding="utf-8")
+    DECK_META_PATH.parent.mkdir(parents=True, exist_ok=True)
+    if DECK_META_PATH.is_file() and DECK_META_PATH.read_text(encoding="utf-8") == meta:
+        return
+    DECK_META_PATH.write_text(meta, encoding="utf-8")
 
 
 def library_governance_report(standard_rows, curriculum_table_one, chosen, skipped, source_inventory):

@@ -6,10 +6,15 @@
 
 ## 主要文件
 
-- `index.html`：产品主页面（界面与逻辑，约 120KB）。
-- `deck-data.js`：内置题库数据（SEED 词卡 + GROUPS 部件分组，约 1.9MB，由生成脚本产出，勿手改）。
-- `hanzi-writer.min.js`：汉字笔顺渲染库。
-- `fsrs6.min.js`：固定版本、完全离线的 FSRS-6 跨天调度器。
+> 第十稿重建进行中（`v10/integration` 分支，规划见 `docs/engineering/v10/`）：`index.html` 已换成精简壳，界面由 `src/` 下的 ES 模块逐里程碑重写；下文描述的界面行为属于旧版（见 git 历史），在重写完成前仅供对照。
+
+- `index.html`：精简壳（meta/CSP、manifest、根容器 `#app`、经典脚本 deck/vendor、`<script type="module" src="src/app.js">`），无内联脚本。
+- `src/`：第十稿 ES 模块源码（无打包器，相对路径 import）。`src/app.js` 启动入口；`src/build-info.js`（BUILD，由 `scripts/build_shell_manifest.mjs` 生成）；`src/config/deck-meta.js`（`DECK_KEY` 与 deck 指纹，由 `scripts/build_8105_chars.py` 生成）。
+- `vendor/`：固定版本的第三方运行时——`preact.module.js`、`preact-hooks.module.js`、`htm.module.js`（由 `scripts/vendor_preact.mjs` 从 npm 官方 tarball 取出并校验）、聚合出口 `ui.js`，以及经典脚本 `hanzi-writer.min.js`（汉字笔顺渲染库）、`fsrs6.min.js`（固定版本、完全离线的 FSRS-6 跨天调度器）。
+- `deck-data.js`：内置题库数据（SEED 词卡 + GROUPS 部件分组，约 2.1MB，由生成脚本产出，勿手改）。
+- `fonts/`、`assets/`、`licenses/`：随包字体（M5 接入）、图形资源、第三方许可全文。
+- `test/`：`node:test` 单测（`pnpm run verify:unit`）。
+- `scripts/shell-manifest.txt`：随包/离线壳文件清单（`pnpm run build:manifest` 生成），iOS 同步与包内校验都按它逐行执行。
 - `THIRD_PARTY_NOTICES.md`：第三方库版本与许可证。
 - `LEGAL_RELEASE_CHECKLIST.md`：发布前必须关闭的授权与许可证门槛。
 - `CONTRIBUTING.md`：分支、验证、提交、PR 与合并后清理约定。
@@ -88,7 +93,7 @@ PWA 已配置 manifest、iOS 主屏幕图标、standalone 显示模式和 servic
 - 地址：<https://eim-aa.github.io/shizi-app/>
 - 发布方式：GitHub Pages 从 `main` 分支根目录自动构建——`git push` 到 main 就是发布，一两分钟后生效。页面走「网络优先」缓存策略，用户下次打开会自动拿到新版。
 - 手机安装：iPhone 上用 Safari 打开 → 分享按钮 → 「添加到主屏幕」，之后从主屏幕图标进入即全屏、可离线。
-- 提醒测试的朋友：练一阵后去「我的 → 设置 → 导出备份」发回 JSON。每位测试者只保留最新一份，然后用 `python3 scripts/summarize_backups.py 备份目录/` 汇总 D1/D7、校准完成率、系统分歧率和平均组时长。
+- 提醒测试的朋友：练一阵后去「我的 → 设置 → 导出备份」发回 JSON。每位测试者只保留最新一份，然后用 `python3 scripts/legacy/summarize_backups.py 备份目录/` 汇总 D1/D7、校准完成率、系统分歧率和平均组时长。
 
 ## 本地预览
 
@@ -136,7 +141,7 @@ Pull Request 和 `main` 推送会自动运行 `.github/workflows/verify.yml` 的
 
 ## iOS App / TestFlight
 
-第一阶段 iOS 工程在 `ios/ShiziApp/ShiziApp.xcodeproj`，用 WKWebView 加载现有静态前端，不改写业务逻辑。每次 Xcode Build 会把 `index.html`、题库、`hanzi-writer.min.js`、`fsrs6.min.js` 和整个 `data/` 笔画目录同步进 App 包；普通 scheme 不显示开发工具，`Shizi Dev` scheme 会等价打开 `?dev=1`。
+iOS 工程在 `ios/ShiziApp/ShiziApp.xcodeproj`（scheme `Shizi` / `Shizi Dev`），用 WKWebView 加载与 PWA 同一套静态文件。每次 Xcode Build 的「Sync Web Assets」阶段按 `scripts/shell-manifest.txt` 用 `rsync -a --files-from=` 把 `index.html`、题库、`core-strokes.js`、`src/`、`vendor/`、`fonts/`、`assets/`、`licenses/`、图标、`manifest.webmanifest` 与整个 `data/` 笔画目录逐文件同步进 App 包的 `Web/`；`verify-bundle-assets.sh` 断言关键文件（含 `Web/vendor/hanzi-writer.min.js`、`Web/vendor/fsrs6.min.js`、`Web/src/app.js`）并逐行核对清单。**新增或删除任何 Web 文件后先运行 `pnpm run build:manifest`**，否则新文件不会进包（`pnpm run verify:unit` 会报清单过期）。普通 scheme 不显示开发工具，`Shizi Dev` scheme 会等价打开 `?dev=1`。
 
 构建、真机运行、Safari Web Inspector 和 TestFlight 上传步骤见 `ios/ShiziApp/README.md`。
 
@@ -148,29 +153,26 @@ Pull Request 和 `main` 推送会自动运行 `.github/workflows/verify.yml` 的
 python3 -m pip install -r requirements.txt
 ```
 
-重新生成 `index.html` 的题库接线、`deck-data.js`、`core-strokes.js`、`generated/selected_8105_candidates.json`、`generated/hanzi_writer_coverage.json` 和 `generated/library-governance.json`：
+重新生成 `src/config/deck-meta.js`（`DECK_KEY` 与 deck 指纹；不再改写 `index.html`）、`deck-data.js`、`core-strokes.js`、`generated/selected_8105_candidates.json`、`generated/hanzi_writer_coverage.json` 和 `generated/library-governance.json`：
 
 ```bash
 python3 scripts/build_8105_chars.py
 ```
 
-运行浏览器验证（会先执行 UI 文案门禁）：
+注意：现有 `deck-data.js` 是在未安装 `jieba`/`wordfreq` 的环境下生成的（只需 `pypinyin`）；装了这两个可选依赖会让 `common`/`d`/`band` 整体漂移并触发数据门禁。数据未变时重跑应 `git diff` 为空。
+
+运行数据门禁（治理、440 矢量、内容语料、静态资产、SW 单测）：
 
 ```bash
-node scripts/verify_8105_app.js
-python3 scripts/verify_library_governance.py
+pnpm run verify:data
 ```
 
-只做快速文案检查：
-
-```bash
-python3 scripts/verify_ui_copy.py
-```
+旧版浏览器回归（`verify_8105_app.js`、`verify_redesign_v3.js`）、旧文案门禁（`verify_ui_copy.py`）与题记语料已移入 `scripts/legacy/`，只作参考，不再运行。
 
 汇总测试者主动回传的备份（目录中每人只放最新一份；加 `--json` 可输出机器可读结果）：
 
 ```bash
-python3 scripts/summarize_backups.py /path/to/backups/
+python3 scripts/legacy/summarize_backups.py /path/to/backups/
 ```
 
 ## 参与开发

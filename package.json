@@ -5,13 +5,19 @@
   "packageManager": "pnpm@11.16.0",
   "scripts": {
     "start": "python3 -m http.server 8000 --bind 127.0.0.1",
-    "verify:data": "python3 scripts/verify_library_governance.py && node scripts/verify_vector_data_440.js",
-    "verify:e2e": "node scripts/verify_8105_app.js",
-    "verify:ui": "node scripts/verify_redesign_v3.js",
-    "verify:web": "pnpm run verify:e2e && pnpm run verify:ui && pnpm run verify:pwa",
+    "build:manifest": "node scripts/build_shell_manifest.mjs",
+    "verify:governance": "python3 scripts/verify_library_governance.py",
+    "verify:vector440": "node scripts/verify_vector_data_440.js",
+    "verify:content": "node scripts/verify_content_corpus.cjs",
+    "verify:assets": "node scripts/verify_assets.mjs",
+    "verify:sw-unit": "node scripts/verify_sw_unit.mjs",
+    "verify:data": "pnpm run verify:governance && pnpm run verify:vector440 && pnpm run verify:content && pnpm run verify:assets && pnpm run verify:sw-unit",
+    "verify:unit": "node --test \"test/**/*.test.mjs\"",
+    "verify:copy": "node scripts/verify_copy.mjs",
+    "verify:pwa": "node scripts/verify_pwa_upgrade.js",
+    "verify:web": "node scripts/verify_pwa_upgrade.js && node scripts/e2e/run.mjs",
     "verify:native-smoke": "python3 ios/ShiziApp/scripts/validate-native-smoke.py",
-    "test": "pnpm run verify:data && pnpm run verify:web",
-    "verify:pwa": "node scripts/verify_pwa_upgrade.js"
+    "test": "pnpm run verify:data && pnpm run verify:unit && pnpm run verify:copy && pnpm run verify:web"
   },
   "devDependencies": {
     "playwright": "1.62.0"

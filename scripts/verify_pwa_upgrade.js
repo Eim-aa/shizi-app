@@ -45,8 +45,8 @@ const EXPECTED_LIBRARIES = [
 const htmlSource = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
 const workerSource = fs.readFileSync(path.join(ROOT, "sw.js"), "utf8");
 const build = htmlSource.match(/<meta name="shizi-asset-build" content="([^"]+)">/)?.[1];
-const deckSrc = htmlSource.match(/<script src="(deck-data\.js\?v=[^"]+)"><\/script>/)?.[1];
-const overrideSrc = htmlSource.match(/<script src="(data\/context-overrides\.js\?v=[^"]+)"><\/script>/)?.[1];
+const deckSrc = htmlSource.match(/<script\b[^>]*\bsrc="(deck-data\.js\?v=[^"]+)"[^>]*>/)?.[1];
+const overrideSrc = htmlSource.match(/<script\b[^>]*\bsrc="(data\/context-overrides\.js\?v=[^"]+)"[^>]*>/)?.[1];
 const coreStrokeSrc = workerSource.match(/importScripts\('\.\/(core-strokes\.js\?v=[^']+)'\)/)?.[1];
 const CURRENT_CACHE = `shizi-v13-${build}`;
 
@@ -90,9 +90,9 @@ check(build && deckSrc && overrideSrc && coreStrokeSrc, "Production HTML and wor
   { build, deckSrc, overrideSrc, coreStrokeSrc });
 check(workerSource.includes(`const BUILD = '${build}'`) && workerSource.includes(`'${deckSrc}'`),
   "Production HTML and service worker must pin the same corpus build", { build, deckSrc });
-check(fingerprintedPath(htmlSource, /<script src="(deck-data\.js)\?v=([a-f0-9]+)"><\/script>/, "deck-data") === deckSrc,
+check(fingerprintedPath(htmlSource, /<script\b[^>]*\bsrc="(deck-data\.js)\?v=([a-f0-9]+)"[^>]*>/, "deck-data") === deckSrc,
   "Production HTML deck fingerprint disagrees with its parsed script source");
-check(fingerprintedPath(htmlSource, /<script src="(data\/context-overrides\.js)\?v=([a-f0-9]+)"><\/script>/, "context overrides") === overrideSrc,
+check(fingerprintedPath(htmlSource, /<script\b[^>]*\bsrc="(data\/context-overrides\.js)\?v=([a-f0-9]+)"[^>]*>/, "context overrides") === overrideSrc,
   "Production HTML context-override fingerprint disagrees with its parsed script source");
 check(fingerprintedPath(workerSource, /importScripts\('\.\/(core-strokes\.js)\?v=([a-f0-9]+)'\)/, "core strokes") === coreStrokeSrc,
   "Service worker core-stroke fingerprint disagrees with its parsed import");

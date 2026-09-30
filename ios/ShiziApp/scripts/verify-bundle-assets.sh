@@ -24,16 +24,35 @@ case "$INPUT" in
 esac
 
 WEB="${APP}/Web"
+MANIFEST="${REPO_ROOT}/scripts/shell-manifest.txt"
 EXPECTED_COUNT="$(find "${REPO_ROOT}/data" -name '*.json' | wc -l | tr -d ' ')"
 
 test -d "$APP" || { echo "App bundle not found: $APP" >&2; exit 66; }
+test -f "$MANIFEST" || { echo "Missing ${MANIFEST}; run: pnpm run build:manifest" >&2; exit 65; }
 test -f "${WEB}/index.html" || { echo "Missing Web/index.html" >&2; exit 65; }
 test -f "${WEB}/deck-data.js" || { echo "Missing Web/deck-data.js" >&2; exit 65; }
 test -f "${WEB}/core-strokes.js" || { echo "Missing Web/core-strokes.js" >&2; exit 65; }
-test -f "${WEB}/hanzi-writer.min.js" || { echo "Missing Web/hanzi-writer.min.js" >&2; exit 65; }
-test -f "${WEB}/fsrs6.min.js" || { echo "Missing Web/fsrs6.min.js" >&2; exit 65; }
+test -f "${WEB}/vendor/hanzi-writer.min.js" || { echo "Missing Web/vendor/hanzi-writer.min.js" >&2; exit 65; }
+test -f "${WEB}/vendor/fsrs6.min.js" || { echo "Missing Web/vendor/fsrs6.min.js" >&2; exit 65; }
+test -f "${WEB}/src/app.js" || { echo "Missing Web/src/app.js" >&2; exit 65; }
 test -f "${WEB}/manifest.webmanifest" || { echo "Missing Web/manifest.webmanifest" >&2; exit 65; }
 test -d "${WEB}/data" || { echo "Missing Web/data" >&2; exit 65; }
+
+# 壳清单逐行核对：清单里的每个文件都必须在包内。
+MANIFEST_COUNT=0
+MISSING_COUNT=0
+while IFS= read -r rel || [ -n "$rel" ]; do
+  case "$rel" in ''|'#'*) continue ;; esac
+  MANIFEST_COUNT=$((MANIFEST_COUNT + 1))
+  if [ ! -f "${WEB}/${rel}" ]; then
+    MISSING_COUNT=$((MISSING_COUNT + 1))
+    [ "$MISSING_COUNT" -le 20 ] && echo "Missing Web/${rel} (listed in shell-manifest.txt)" >&2
+  fi
+done < "$MANIFEST"
+if [ "$MISSING_COUNT" != 0 ]; then
+  echo "${MISSING_COUNT} shell-manifest file(s) missing from bundle" >&2
+  exit 65
+fi
 test -f "${APP}/PrivacyInfo.xcprivacy" || { echo "Missing PrivacyInfo.xcprivacy" >&2; exit 65; }
 plutil -lint "${APP}/PrivacyInfo.xcprivacy" >/dev/null
 
@@ -44,4 +63,4 @@ if [ "$ACTUAL_COUNT" != "$EXPECTED_COUNT" ]; then
 fi
 
 echo "OK: ${APP}"
-echo "Web assets present; data JSON count = ${ACTUAL_COUNT}"
+echo "Web assets present; shell-manifest files = ${MANIFEST_COUNT}; data JSON count = ${ACTUAL_COUNT}"

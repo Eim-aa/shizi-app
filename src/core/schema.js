@@ -328,6 +328,8 @@ const metaFields = {
   schema: (x, p) => (x === SCHEMA_VERSION ? null : fail(p, `must be ${SCHEMA_VERSION}`)),
   serial: v.int,
   createdAt: v.num,
+  // v1 → v2 设备迁移完成的时刻（M5-4，store/migrate.js；01 §12）；P53 回退窗口从这里算。可缺省（新用户 / 备份导入）。
+  migratedAt: v.num,
   months: (x, p) => {
     const err = checkArray(x, p, (m, q) => (isMonthKey(m) ? null : fail(q, 'not a YYYY-MM month')));
     if (err) return err;

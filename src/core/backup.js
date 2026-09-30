@@ -15,8 +15,9 @@
 //
 // 备份文件（01 §3.6）：{app:'shizi', version:2, date:ISO, data:{'shizi.v2.<键>': JSON 字串}}，只含白名单键；
 //   state.meta 缺失（迁移 M5-4 之前没人建 meta）时导出前补一份，保证 parseBackupV2 认得自己导出的文件。
-// v1 备份文件（{app:'shizi', version:1, …}）：转换器属于 M5-4 迁移，本卡只留接口 setLegacyBackupImporter(fn)，
-//   未注册时 importLegacyBackup 返回 {ok:false, reason:'v1-unsupported'}，界面按「没能恢复」处理。
+// v1 备份文件（{app:'shizi', version:1, …}）：转换用 M5-4 迁移的同一套 convertV1（store/migrate.js legacyBackupToV2，严格模式），
+//   由 store/migrate.js 在模块加载时经 setLegacyBackupImporter(fn) 注册（app.js 启动时已 import 它；依赖方向 ui → store → core，
+//   本模块不反向 import store）。只加载 core 而没加载迁移模块时 importLegacyBackup 返回 {ok:false, reason:'v1-unsupported'}。
 
 import {
   APP_ID, BACKUP_VERSION, BACKUP_WHITELIST, DOMAINS, KEYS, SCHEMA_VERSION,
@@ -178,18 +179,21 @@ export function backupFileName(now) {
 let legacyImporter = null;
 
 /**
- * M5-4 注册 v1 → v2 的备份转换器：fn(obj) → {ok:true, backup:{app:'shizi', version:2, date, data}} | {ok:false, reason}。
- * 传 null 取消。
+ * v1 → v2 的备份转换器（store/migrate.js 注册 legacyBackupToV2）：fn(obj, opts) → {ok:true, backup:{app:'shizi', version:2, date, data},
+ * report} | {ok:false, reason, key?}。传 null 取消。
  */
 export function setLegacyBackupImporter(fn) {
   legacyImporter = typeof fn === 'function' ? fn : null;
 }
 
 /**
- * v1 备份（{app:'shizi', version:1, date, data}）→ v2 备份对象。转换器未注册时 {ok:false, reason:'v1-unsupported'}（桩）。
+ * v1 备份（{app:'shizi', version:1, date, data}）→ v2 备份对象 + 导入报告（M5-4；01 §12，转换规则见 store/migrate.js）。
+ * 失败原因：json / format / shape（key：哪个 v1 键坏了）/ value / empty / v1-failed；转换器未注册 → v1-unsupported。
  * @param {string|object} input  文件文本或已解析对象
+ * @param {{now?:number}} [opts]  导入时刻（legacy.importedAt；缺省 Date.now()）
+ * @returns {{ok:true, backup:object, report:object|null} | {ok:false, reason:string, key?:string, detail?:string}}
  */
-export function importLegacyBackup(input) {
+export function importLegacyBackup(input, opts = {}) {
   let obj = input;
   if (typeof input === 'string') {
     try {
@@ -202,14 +206,16 @@ export function importLegacyBackup(input) {
   if (!legacyImporter) return { ok: false, reason: 'v1-unsupported' };
   let result;
   try {
-    result = legacyImporter(obj);
+    result = legacyImporter(obj, opts || {});
   } catch (error) {
     return { ok: false, reason: 'v1-failed', detail: error && error.message ? error.message : String(error) };
   }
   if (!result || result.ok !== true || !isPlainObject(result.backup)) {
-    return { ok: false, reason: (result && result.reason) || 'v1-failed' };
+    const out = { ok: false, reason: (result && result.reason) || 'v1-failed' };
+    if (result && typeof result.key === 'string') out.key = result.key;
+    return out;
   }
-  return { ok: true, backup: result.backup };
+  return { ok: true, backup: result.backup, report: isPlainObject(result.report) ? result.report : null };
 }
 
 // ---------------------------------------------------------------- 导入校验报告

@@ -3,7 +3,8 @@
 //   1. 入口与空态：「我的」菜单 → 备份与恢复；没有记录：还没有备份 /「现在没有记录。」/ 导出与清空都真禁用、不催导出。
 //   2. 导出（下载一级）：9 月 1 日那份旧备份（23 个字）→ 文件名、外壳、只含 v2 白名单键；导出后「现在的记录都已经备份了。」+ 轻提示。
 //      300 字状态：「上次备份以后记录有改动…」→ 导出 → 文件 data 与落盘字串逐键相等（meta 缺失时补）。
-//   3. R-B06：非备份文件 / 半坏备份 / 截断文件 / v1 文件（转换器未接入）/ 取消选文件 → 说明框文案，全部 v2 键与 getState 深相等。
+//   3. R-B06：非备份文件 / 半坏备份 / 截断文件 / 坏了的 v1 文件（M5-4 转换器整单拒绝）/ 取消选文件 → 说明框文案，全部 v2 键与 getState 深相等。
+//      好的 v1 文件经本页导入见 52-migrate。
 //   4. 替换确认（R-B03 / K04）：标题、正文（9 月 1 日、23、300）、丢失日期范围、「替换」不是主按钮；取消不写。
 //   5. R-B04：failNextWrite(2,{kind:'quota', matchKey:safety}) 与 failNextWrite(1,{kind:'generic'}) 让保护副本写失败 → 10.14 说明框 +
 //      「再试一次」回到确认框；全部 v2 键深相等（没有预算回收）。
@@ -377,7 +378,7 @@ export default async function run(page, { baseURL, assert, step }) {
     [{ name: 'notes.json', text: '{"hello":"world"}' }, 'notBackup', T.notBackup, 'other JSON → not a backup'],
     [{ name: 'half.json', text: JSON.stringify(bad) }, 'restoreFailed', T.restoreFailed, 'half-broken backup (bad records key) → 没能恢复'],
     [{ name: 'cut.json', text: fileB.text.slice(0, 600) }, 'restoreFailed', T.restoreFailed, 'truncated 拾字 file → 没能恢复'],
-    [{ name: 'v1.json', text: JSON.stringify({ app: 'shizi', version: 1, date: '2026-08-01T00:00:00Z', data: { 'shizi.memory.v1': '{}' } }) }, 'restoreFailed', T.restoreFailed, 'v1 file (importer stub) → 没能恢复'],
+    [{ name: 'v1.json', text: JSON.stringify({ app: 'shizi', version: 1, date: '2026-08-01T00:00:00Z', data: { 'shizi.memory.v1': '[1,2]' } }) }, 'restoreFailed', T.restoreFailed, 'broken v1 file (memory not an object) → 没能恢复'],
   ];
   for (const [file, kind, text, msg] of cases) {
     const before = await writeLogLen(page);

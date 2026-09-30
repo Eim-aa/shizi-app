@@ -5,6 +5,7 @@
   "packageManager": "pnpm@11.16.0",
   "scripts": {
     "start": "python3 -m http.server 8000 --bind 127.0.0.1",
+    "build:credits": "node scripts/build_credits.mjs",
     "build:manifest": "node scripts/build_shell_manifest.mjs",
     "verify:governance": "python3 scripts/verify_library_governance.py",
     "verify:vector440": "node scripts/verify_vector_data_440.js",

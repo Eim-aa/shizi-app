@@ -1,9 +1,19 @@
 #!/usr/bin/env python3
+"""生成 8105 字库：deck-data.js（SEED/GROUPS）、core-strokes.js、src/config/deck-meta.js 与 generated/ 下的审计 JSON。
+
+用法：python3 scripts/build_8105_chars.py（需 requirements.txt 里的 pypinyin / jieba / wordfreq）。
+
+deck-data.js、core-strokes.js 都是壳文件（scripts/shell-manifest.txt 逐文件列出），内容一变 BUILD、sw-manifest 的
+SHELL、index.html 的 meta 与 ?v= 都必须跟着变（01 §8.3）。所以 main() 在写完这些文件之后，最后一步用 subprocess
+调用 `node scripts/build_shell_manifest.mjs` 重跑壳清单生成器；生成器失败（或找不到 node）时本脚本以非零退出，
+不留下「数据已变、清单未变」的工作区。
+"""
 import json
 import hashlib
 import logging
 import math
 import re
+import subprocess
 import sys
 import time
 import urllib.parse
@@ -33,6 +43,7 @@ COVERAGE_JSON = "hanzi_writer_coverage.json"
 LIBRARY_AUDIT_JSON = "library-governance.json"
 CORE_STROKE_SCRIPT = "core-strokes.js"
 CORE_STROKE_COUNT = 600
+SHELL_MANIFEST_SCRIPT = ROOT / "scripts" / "build_shell_manifest.mjs"
 CALIBRATION_CORE_CHARS = ["尴", "嚏", "狩", "晤", "飓", "痿", "俾", "跻", "徵", "瞰", "裘", "娩", "邃", "暧", "煲"]
 HANZI_WRITER_FLAT_URL = "https://data.jsdelivr.com/v1/package/npm/hanzi-writer-data@2.0.1/flat"
 HANZI_WRITER_VERSION = "2.0.1"
@@ -839,7 +850,7 @@ def patch_index(chosen, word_index):
     第十稿起不再读写 index.html：DECK_KEY 与 deck 指纹（deck-data.js 内容 SHA-256 前 12 位，
     与 ?v= 指纹同源）写进 ES 模块 src/config/deck-meta.js，由 src/ 代码 import；内容不变时不重写，
     保证重复运行 git diff 为空。index.html / sw.js 里的 ?v= 指纹与 BUILD 仍须与文件内容一致，
-    由 scripts/verify_pwa_upgrade.js（M5 起改由 scripts/build_shell_manifest.mjs 生成）把关。
+    由 scripts/build_shell_manifest.mjs 生成——main() 写完本函数的输出后最后一步调用它（regenerate_shell_manifest）。
     函数名沿用 patch_index 以保持历史可追溯。
     """
     data_path = ROOT / "deck-data.js"
@@ -982,6 +993,20 @@ def library_governance_report(standard_rows, curriculum_table_one, chosen, skipp
             "difficulty_is_not_an_education_stage": True,
         },
     }
+def regenerate_shell_manifest():
+    """重跑壳清单生成器（01 §8.3）：core-strokes.js / deck-data.js / deck-meta.js 变了，BUILD、SHELL、meta、?v= 要跟着变。
+
+    用 subprocess 调 `node scripts/build_shell_manifest.mjs`（cwd=仓库根）；非零退出或找不到 node 都以 SystemExit 非零退出。
+    """
+    command = ["node", str(SHELL_MANIFEST_SCRIPT)]
+    try:
+        result = subprocess.run(command, cwd=str(ROOT), check=False)
+    except OSError as error:
+        raise SystemExit(f"build_shell_manifest.mjs could not start ({' '.join(command)}): {error}") from error
+    if result.returncode != 0:
+        raise SystemExit(f"build_shell_manifest.mjs failed with exit code {result.returncode}")
+
+
 def main():
     DATA_DIR.mkdir(exist_ok=True)
     GENERATED_DIR.mkdir(exist_ok=True)
@@ -1030,6 +1055,8 @@ def main():
     print("group_count_range=", min(len(x["groups"]) for x in chosen), max(len(x["groups"]) for x in chosen))
     print("norm_counts=", {level: sum(1 for x in chosen if x["norm_level"] == level) for level, _ in LEVEL_PATHS})
     print("sample=", "".join(x["character"] for x in chosen[:50]))
+    # 最后一步：core-strokes.js / deck-data.js 已写出，重跑壳清单生成器（失败即非零退出）。
+    regenerate_shell_manifest()
 
 
 if __name__ == "__main__":

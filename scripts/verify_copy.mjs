@@ -330,7 +330,7 @@ export function checkCopy(source, copyModules, { scope = 'all' } = {}) {
 /** 读 03 表里登记的 P 编号。 */
 export function registeredPNumbers(pendingMarkdown) {
   const set = new Set();
-  for (const m of pendingMarkdown.matchAll(/^\| (P\d{2}b?) \|/gm)) set.add(m[1]);
+  for (const m of pendingMarkdown.matchAll(/^\| (P\d{2,3}b?) \|/gm)) set.add(m[1]);
   return set;
 }
 
@@ -344,7 +344,7 @@ export function checkPolicySource(policySource, registered) {
   const exportsFound = [];
   const referenced = new Set();
   const lines = policySource.split('\n');
-  const P_RE = /\bP\d{2}b?\b/g;
+  const P_RE = /\bP\d{2,3}b?\b/g;
   const noteRefs = (text, where) => {
     const refs = text.match(P_RE) || [];
     for (const r of refs) {
@@ -421,10 +421,10 @@ export async function checkPolicy(source) {
   }
   const covered = new Set(result.referenced);
   for (const s of flattenSource(source)) {
-    for (const m of String(s.spec.decision || '').matchAll(/\bP\d{2}b?\b/g)) covered.add(m[0]);
+    for (const m of String(s.spec.decision || '').matchAll(/\bP\d{2,3}b?\b/g)) covered.add(m[0]);
   }
   for (const entry of Object.values({ ...(source.entries || {}), ...(source.extra || {}) })) {
-    for (const d of entry.dropped || []) for (const m of String(d.why || '').matchAll(/\bP\d{2}b?\b/g)) covered.add(m[0]);
+    for (const d of entry.dropped || []) for (const m of String(d.why || '').matchAll(/\bP\d{2,3}b?\b/g)) covered.add(m[0]);
   }
   for (const p of Object.keys(source.nonRuntimeDecisions || {})) covered.add(p);
   for (const p of registered) if (!covered.has(p)) errors.push(p + ': registered in 03 but not covered by policy.js / copy-source decisions / nonRuntimeDecisions');

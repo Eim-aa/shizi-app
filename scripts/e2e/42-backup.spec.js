@@ -775,8 +775,10 @@ export default async function run(page, { baseURL, assert, step }) {
   await setClock(page, '2026-09-25T09:00:00');
   await page.waitForSelector(topSel('backup-screen'));
   await waitNavIdle(page);
-  // M5 前 app.js 还没调 bridge.markReady：这里模拟「store 就绪」（队列回放）
-  await page.evaluate(() => window.__shiziBridge.markReady(null));
+  // M5-5 起 app.js 启动序列自己调 bridge.markReady(store)（幂等）；这里只核对桥已就绪且持有 store，不再手动 markReady
+  // （旧的 markReady(null) 会把桥的 store 置 null）。
+  await page.waitForFunction(() => window.__shiziBridge.isReady());
+  assert.ok(await page.evaluate(() => window.__shiziBridge.getStore() !== null), 'bridge is ready with the store (app.js markReady)');
   await seed(page, S0);
   await waitNavIdle(page);
   const metaBeforeNative = (await state(page)).backupMeta;

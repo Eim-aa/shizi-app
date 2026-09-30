@@ -11,7 +11,11 @@ import {
   attachWindow,
   NATIVE_BACK_EVENT,
   PENDING_TIMEOUT_MS,
+  pageDepth,
+  backGestureAllowed,
+  createBackGestureSync,
 } from '../../src/ui/router.js';
+import { createBridge } from '../../src/platform/bridge.js';
 import { createPressGuard, PRESS_GUARD_MS } from '../../src/ui/components/Button.js';
 
 const Noop = () => null;
@@ -464,4 +468,101 @@ test('Button press guard, rapid (G2 撤销 / 清空): no same-button 0.4s thrott
   stateChange = 2000;
   assert.equal(accept(2100, { rapid: true }), false, 'rapid presses inside 0.4s of a state change are dropped');
   assert.equal(accept(2400, { rapid: true }), true);
+});
+
+// ---------------------------------------------------------------------------
+// K1 / 01 §7：tab 根页与阻断页 backGestureEnabled(false)，有子页 true；写字页（ownsBackGesture）为顶层时根组件不发。
+
+registerScreen('t-owner', Noop, { ownsBackGesture: true });
+
+function gateHarness() {
+  const sent = [];
+  const win = { webkit: { messageHandlers: { shiziNative: { postMessage: m => sent.push(m) } } } };
+  const bridge = createBridge(win); // 真 bridge：值变化才发
+  const env = setup();
+  env.router.start({ defaultTab: 't-home' });
+  const sync = createBackGestureSync({ send: v => bridge.setBackGestureEnabled(v) });
+  let blocked = false;
+  // 模拟 root 的 effect：每次路由状态变化后按 (depth, blocked) 同步。
+  const rootEffect = () => sync.update(env.router.getState(), blocked);
+  env.router.subscribe(rootEffect);
+  rootEffect(); // 挂载
+  return {
+    ...env,
+    bridge,
+    values: () => sent.filter(m => m.type === 'backGestureEnabled').map(m => m.value),
+    setBlocked(v) {
+      blocked = v;
+      rootEffect();
+    },
+  };
+}
+
+test('pageDepth / backGestureAllowed: overlays do not count; tab root and block page are false', () => {
+  const s = k => ({ k, id: 'x', n: 't-home' });
+  assert.equal(pageDepth({ stack: [s('s')] }), 0);
+  assert.equal(pageDepth({ stack: [s('s'), s('o')] }), 0, 'overlay over the tab root is still depth 0');
+  assert.equal(pageDepth({ stack: [s('s'), s('s'), s('o')] }), 1);
+  assert.equal(pageDepth(null), 0);
+  assert.equal(backGestureAllowed({ stack: [s('s')] }), false);
+  assert.equal(backGestureAllowed({ stack: [s('s'), s('s')] }), true);
+  assert.equal(backGestureAllowed({ stack: [s('s'), s('s')] }, true), false, 'blocked wins');
+});
+
+test('back gesture gate: root → sub → root sends [false, true, false]; tab switch / overlay at root send nothing', () => {
+  const h = gateHarness();
+  assert.deepEqual(h.values(), [false], 'tab root at mount → false');
+  h.router.switchTab('t-lib');
+  h.history.flush();
+  h.router.openOverlay(Noop, {});
+  h.history.flush();
+  assert.deepEqual(h.values(), [false], 'tab switch and an overlay over the tab root do not re-send');
+  h.router.back();
+  h.history.flush();
+  h.router.push('t-sub');
+  h.history.flush();
+  assert.deepEqual(h.values(), [false, true], 'sub page → true');
+  h.router.push('t-sub2');
+  h.history.flush();
+  assert.deepEqual(h.values(), [false, true], 'deeper sub page: value unchanged, not re-sent');
+  h.router.back();
+  h.history.flush();
+  h.router.back();
+  h.history.flush();
+  assert.equal(h.router.getState().depth, 0);
+  assert.deepEqual(h.values(), [false, true, false], 'back to the tab root → false');
+});
+
+test('back gesture gate: block page forces false; unblocking re-syncs from the stack', () => {
+  const h = gateHarness();
+  h.router.push('t-sub');
+  h.history.flush();
+  assert.deepEqual(h.values(), [false, true]);
+  h.setBlocked(true);
+  assert.deepEqual(h.values(), [false, true, false], 'block page → false even with a sub page underneath');
+  h.setBlocked(false);
+  assert.deepEqual(h.values(), [false, true, false, true], 'unblocked with a sub page → true again');
+});
+
+test('back gesture gate: the owning screen (write) decides while on top; root does not override it', () => {
+  const h = gateHarness();
+  // 写字页的 useBackGestureGate：顶层 false，否则按栈（子组件 effect 先于根组件执行）。
+  const ownerApply = () => {
+    const st = h.router.getState();
+    const isTop = st.top && st.top.n === 't-owner';
+    h.bridge.setBackGestureEnabled(isTop ? false : backGestureAllowed(st));
+  };
+  h.router.subscribe(ownerApply);
+  h.router.push('t-owner');
+  h.history.flush();
+  assert.deepEqual(h.values(), [false], 'write page on top: stays false (root skipped depth 0 → 1)');
+  h.router.push('t-sub');
+  h.history.flush();
+  assert.deepEqual(h.values(), [false, true], 'sub page pushed over the write page → true');
+  h.router.back();
+  h.history.flush();
+  assert.deepEqual(h.values(), [false, true, false], 'back to the write page → false again, root did not send true');
+  h.router.back();
+  h.history.flush();
+  assert.deepEqual(h.values(), [false, true, false], 'write page → tab root: false, no transient true');
 });

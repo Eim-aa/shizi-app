@@ -8,7 +8,8 @@
 // 规则：
 // - 换字后 0.3s 书写格不接受落笔（01 §6.6 / 走查-V01，按事件 timeStamp）；进页面也算一次换字。
 // - 换字 / 换阶段算「新状态」：按钮 0.4s 不响应（components/Button.js markStateChange，走查-W08）。
-// - 写字页是顶层页面期间 backGestureEnabled=false（01 §7：整页期间，不是只在落笔期间——M0-7），离开顶层 / 卸载恢复 true。
+// - 写字页是顶层页面期间 backGestureEnabled=false（01 §7：整页期间，不是只在落笔期间——M0-7）；离开顶层 / 卸载时交还
+//   按栈的值（tab 根页 false、子页 true，router.backGestureAllowed），根组件在写字页为顶层时不发（ownsBackGesture）。
 // - 笔画现场（M1-6 persist.js）：本地现场从 session.current.strokes 取初值（刷新后回到同一阶段，笔迹都在）；
 //   抬笔 / 撤销 / 清空后写回 sessions（失败不阻断，P52）；打开时做恢复幂等（已有 judged → 补推进，不再进 compare）。
 // - 回忆阶段不把答案字写进任何属性 / 文本（决定-D16）：本页只暴露 cursor 序号，不暴露字。
@@ -27,7 +28,7 @@
 // write-answer-slot、write-hint-slot、write-done、write-skip-slot、write-end-slot、write-empty。
 
 import { html, useEffect, useLayoutEffect, useRef, useState } from '../../../../vendor/ui.js';
-import { registerScreen, getRouter, nav } from '../../router.js';
+import { backGestureAllowed, registerScreen, getRouter, nav } from '../../router.js';
 import { Page } from '../../components/Page.js';
 import { Button, markStateChange } from '../../components/Button.js';
 import { injectStyles, T } from '../../components/styles.js';
@@ -136,14 +137,16 @@ function useBackGestureGate(entry) {
     const id = entry && entry.id;
     const apply = snap => {
       const isTop = !router || !id || !snap || !snap.top || snap.top.id === id;
-      setBackGestureEnabled(!isTop);
+      // 不在顶层时按根组件同一规则（tab 根页 false、有子页 true），免得返回 tab 根时先发一个 true。
+      setBackGestureEnabled(isTop ? false : backGestureAllowed(snap));
       setTop(isTop);
     };
     apply(router ? router.getState() : null);
     const off = router ? router.subscribe(apply) : () => {};
     return () => {
       off();
-      setBackGestureEnabled(true);
+      // 卸载（返回动画结束后才发生）时交还给当前栈：tab 根页仍是 false，子页 true。阻断页自己再置 false。
+      setBackGestureEnabled(router ? backGestureAllowed(router.getState()) : true);
     };
   }, [entry && entry.id]);
   return top;
@@ -398,4 +401,4 @@ function WriteScreen({ params, entry }) {
   </${Page}>`;
 }
 
-registerScreen(WRITE_SCREEN, WriteScreen, { label: titleFor('recall') });
+registerScreen(WRITE_SCREEN, WriteScreen, { label: titleFor('recall'), ownsBackGesture: true });

@@ -23,6 +23,8 @@ test('policy: 03 registers P01–P61 (incl. P10b); the table only grows', () => 
   }
   assert.ok(registered.has('P10b'));
   assert.ok(registered.size >= 62, 'P01–P61 + P10b at least');
+  // 三位编号（P100 起）也要被登记表解析到，否则不进覆盖检查。
+  assert.deepEqual([...registeredPNumbers('| P100 | x |\n| P09 | y |\n| P10b | z |\n')].sort(), ['P09', 'P100', 'P10b']);
 });
 
 test('policy: every export and every nested key carries a registered P number', () => {
@@ -42,8 +44,12 @@ test('policy: the check catches an export without a P number', () => {
 test('policy: the check catches a nested key without a P number and an unregistered P', () => {
   const noKey = source.replace('milestones: false, // P08 里程碑庆祝：删除', 'milestones: false,');
   assert.ok(checkPolicySource(noKey, registered).errors.some((e) => e.includes('features.milestones')));
-  const unknown = source.replace('// P17 每字提示上限', '// P99 每字提示上限');
-  assert.ok(checkPolicySource(unknown, registered).errors.some((e) => e.includes('P99')));
+  // 哨兵编号取 03 里还没登记的（P99 已在 M5 登记，不能再当「未登记」用）。
+  let n = 99;
+  while (registered.has('P' + n)) n += 1;
+  const sentinel = 'P' + n;
+  const unknown = source.replace('// P17 每字提示上限', '// ' + sentinel + ' 每字提示上限');
+  assert.ok(checkPolicySource(unknown, registered).errors.some((e) => e.includes(sentinel)), sentinel);
 });
 
 test('policy: every P in 03 is covered by policy.js, a copy decision or a non-runtime note', async () => {

@@ -1,6 +1,9 @@
 // M0-4 完成定义：三 tab 切换；三次推入子页 → 三次系统返回（page.goBack）→ 回到 tab 根且不离开页面；
 // 键盘 Tab 可达三 tab；遮罩栈、原生返回事件、防连点、减少动态效果、刷新恢复。控制台零错误由 run.mjs 统一断言。
 // 演示子页（src/ui/screens/_demo/sub.js）只在 ?test=1 的 localhost 主机加载。
+// K1（01 §7）：假原生桥记录 backGestureEnabled —— tab 根页 false、子页 true，根→子页→根 为 [false,true,false]。
+
+import { installNativeStub, nativeMessages } from './helpers.mjs';
 
 const TABS = ['home', 'library', 'mine'];
 const tid = id => `[data-testid="${id}"]`;
@@ -28,6 +31,10 @@ async function nav(page) {
       alive: window.__e2eAlive === true,
     };
   });
+}
+
+async function gateValues(page) {
+  return (await nativeMessages(page, 'backGestureEnabled')).map(m => m.value);
 }
 
 async function topHas(page, testid) {
@@ -75,6 +82,7 @@ export default async function shell(page, ctx) {
   assert.equal(await page.evaluate(() => typeof window.__shiziTest), 'undefined', 'production URL does not mount test hooks');
 
   ctx.step('boot');
+  await installNativeStub(page);
   await page.goto(url);
   await page.waitForSelector('.sz-app');
   await idle(page);
@@ -89,6 +97,7 @@ export default async function shell(page, ctx) {
   assert.equal(await page.locator(`${tid('tab-home')}[aria-selected="true"]`).count(), 1, 'tab-home is aria-selected');
   assert.equal(await page.locator('[role="tablist"] [role="tab"]').count(), 3, 'tablist has three role=tab buttons');
   assert.equal(await page.locator(`.sz-layer[data-top="true"] ${tid('page-back')}`).count(), 0, 'tab root has no back button');
+  assert.deepEqual(await gateValues(page), [false], 'tab root → backGestureEnabled(false) (01 §7)');
 
   ctx.step('switch tabs by click');
   for (const name of ['library', 'mine', 'home']) {
@@ -139,6 +148,7 @@ export default async function shell(page, ctx) {
     assert.equal(s.domDepth, level, `root reports depth ${level}`);
     assert.ok(await topHas(page, `screen-demo-${level}`), `demo sub page ${level} is visible on top`);
     assert.equal(s.length, baseLength + level, `push #${level} added one history entry`);
+    assert.deepEqual(await gateValues(page), [false, true], `sub page ${level} → backGestureEnabled(true), sent once`);
   }
   assert.equal(await page.locator(`.sz-layer[data-top="true"] ${tid('page-back')}`).count(), 1, 'sub page has a back button');
   const headerBox = await page.locator('.sz-layer[data-top="true"] .sz-page__head').boundingBox();
@@ -157,6 +167,7 @@ export default async function shell(page, ctx) {
   }
   assert.ok(s.alive, 'same document (no reload / no navigation away)');
   assert.equal(s.href, baseHref, 'URL unchanged');
+  assert.deepEqual(await gateValues(page), [false, true, false], 'root → sub pages → root: backGestureEnabled [false, true, false]');
   assert.ok(await topHas(page, 'screen-home'), '习字 tab root is visible');
   assert.equal(await page.locator(`${tid('tab-home')}[aria-selected="true"]`).count(), 1, 'tab-home still selected');
   assert.ok((await animLog(page)).includes('pop-slide'), 'system back runs the pop transition (not standalone)');

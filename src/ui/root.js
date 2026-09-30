@@ -3,18 +3,23 @@
 // - 推入 300ms cubic-bezier(.2,.7,.2,1) 带左投影，返回反向；
 // - 减少动态效果：120ms 交叉淡化（R-G01；任务卡写「直接切换」，两者不一致，见报告待定项）；
 // - iOS 主屏 PWA（display-mode: standalone）下由系统返回（popstate）引发的返回跳过转场；
-// - 原生 shizi-native-back-progress 事件驱动跟手位移（M0 最小实现，完整跟手在 M6）。
+// - 原生 shizi-native-back-progress 事件驱动跟手位移（M0 最小实现，完整跟手在 M6）；
+// - 原生左缘返回门控：tab 根页 / 阻断页 backGestureEnabled(false)，有子页 true；只在页面栈深度或阻断变化时发，
+//   写字页为顶层时由写字页自己管（router.createBackGestureSync）。
 // 每个页面图层一直挂着（下面的页面 visibility:hidden），返回时页面内状态与滚动位置都在。
 import { html, render, useEffect, useLayoutEffect, useRef, useState } from '../../vendor/ui.js';
 import {
   attachWindow,
+  createBackGestureSync,
   createRouter,
   getScreen,
   listTabs,
   nav,
   NATIVE_PROGRESS_EVENT,
+  pageDepth,
   setActiveRouter,
 } from './router.js';
+import { setBackGestureEnabled } from '../platform/bridge.js';
 import { isStandalone, isTestHost } from '../platform/env.js';
 import { markStateChange } from './components/Button.js';
 import { Tabs } from './components/Tabs.js';
@@ -208,6 +213,16 @@ function Root({ router, win }) {
     }
     timer = setTimeout(finish, opts.duration + 150);
   });
+
+  // 原生左缘返回门控（01 §7）：页面栈深度 / 阻断变化时同步一次。effect 在子组件之后执行，
+  // 所以写字页（ownsBackGesture）为顶层时 createBackGestureSync 不发，免得盖掉写字页的 false。
+  const gateRef = useRef(null);
+  if (!gateRef.current) gateRef.current = createBackGestureSync({ send: setBackGestureEnabled });
+  const gateDepth = pageDepth(snap);
+  const blocked = !!block.reason;
+  useEffect(() => {
+    gateRef.current.update(snap, blocked);
+  }, [gateDepth, blocked]);
 
   // 防连点时钟：页面或遮罩结构每变一次，按钮 0.4s 不响应（01-架构设计 §6.6）。
   useEffect(() => {

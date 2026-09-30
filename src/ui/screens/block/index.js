@@ -16,6 +16,7 @@ import { Button } from '../../components/Button.js';
 import { showToast } from '../../components/Toast.js';
 import { injectStyles, T } from '../../components/styles.js';
 import { setBackGestureEnabled } from '../../../platform/bridge.js';
+import { backGestureAllowed, getRouter } from '../../router.js';
 import { now as envNow } from '../../../platform/env.js';
 import { backupFileName, buildBackupV2, judgedCharsOf, serializeBackup } from '../../../core/backup.js';
 
@@ -124,10 +125,13 @@ export function BlockScreen({ reason, store, win = typeof window !== 'undefined'
   const kind = reason ? reason.kind : 'unavailable';
   const canExport = kind === 'blocked' && !!store && store.status.available && hasJudged(store);
 
-  // 阻断页不可返回（01 §7）；离开时恢复（写字页等会再自己设）。
+  // 阻断页不可返回（01 §7）；离开时交还按栈的值（tab 根页 false、子页 true；写字页会再自己设，根组件也会再同步一次）。
   useEffect(() => {
     setBackGestureEnabled(false);
-    return () => setBackGestureEnabled(true);
+    return () => {
+      const router = getRouter();
+      setBackGestureEnabled(router ? backGestureAllowed(router.getState()) : true);
+    };
   }, []);
 
   // 读屏与键盘：焦点落到标题。

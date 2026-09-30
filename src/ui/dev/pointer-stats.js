@@ -1,7 +1,7 @@
 // ?dev=1 面板里的「指针与手势 spike」块（M0-7）。由 palette.js 挂载。
 // 内容：
 //   1. 运行环境自检：type=module 已执行、localStorage 可写、deck 全局（SEED/GROUPS/CONTEXT_OVERRIDES）可读、
-//      原生壳下 fonts/_spike.woff2 与 .js/.css 的 Content-Type（验证 LocalWebSchemeHandler MIME 表）。
+//      原生壳下 fonts/ShiziSerifSC-Regular.woff2 与 .js/.css 的 Content-Type（验证 LocalWebSchemeHandler MIME 表）。
 //   2. 345pt 书写格（与原型 393 宽机型上的格一致：左缘 x=24pt），统计 2 秒 pointermove 频率、
 //      getCoalescedEvents 是否可用/是否真的合并、pressure 非零比例，以及 pointercancel / lostpointercapture。
 //   3. 原生手势观测：shizi-native-back-progress 各阶段计数、shizi-native-back 计数；
@@ -13,7 +13,7 @@ import { isNativeShell } from '../../platform/env.js';
 
 const GRID = 345;
 const WINDOW_MS = 2000;
-const FONT_PROBE = 'fonts/_spike.woff2';
+const FONT_PROBE = 'fonts/ShiziSerifSC-Regular.woff2'; // M5 删除了 spike 字体，改探正式字体
 
 const LABELS = {
   title: 'M0-7 指针与手势 spike',

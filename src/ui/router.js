@@ -37,6 +37,8 @@ export function registerScreen(name, component, opts = {}) {
     order: Number.isFinite(opts.order) ? opts.order : 0,
     label: typeof opts.label === 'string' ? opts.label : name,
     icon: opts.icon || null,
+    // 01 §7：本屏在顶层期间自己管原生左缘返回手势门控（写字页整页 false）；根组件此时不发 backGestureEnabled。
+    ownsBackGesture: opts.ownsBackGesture === true,
   };
   registry.set(name, def);
   return def;
@@ -460,6 +462,45 @@ export function createRouter(options) {
   };
 
   return router;
+}
+
+// ---------------------------------------------------------------------------
+// 原生左缘返回手势门控（01 §7）：tab 根页与阻断页不可返回 → backGestureEnabled(false)；有子页 → true。
+// 写字页（ownsBackGesture）为顶层时由它自己置 false，根组件不插手；bridge.setBackGestureEnabled 只在值变化时发。
+
+/** 页面栈深度：页面条目数 − 1（遮罩不算）。0 = tab 根页。 */
+export function pageDepth(snap) {
+  if (!snap || !Array.isArray(snap.stack)) return 0;
+  let n = 0;
+  for (const e of snap.stack) if (e && e.k === 's') n += 1;
+  return Math.max(0, n - 1);
+}
+
+/** 按路由快照（与是否阻断）算原生左缘返回手势该不该开：阻断页 / tab 根页 false，有子页 true。 */
+export function backGestureAllowed(snap, blocked = false) {
+  return !blocked && pageDepth(snap) > 0;
+}
+
+/**
+ * 根组件用的门控同步器（纯逻辑，可注入 send 与屏幕查询，单测用）。
+ * update(snap, blocked) 只在「页面栈深度 / 阻断」变化时发一次；顶层页面 ownsBackGesture 时只记下深度、不发。
+ * @param {{send: (value:boolean) => any, screenOf?: (name:string) => any}} deps
+ */
+export function createBackGestureSync({ send, screenOf = getScreen }) {
+  let lastKey;
+  return {
+    update(snap, blocked = false) {
+      const key = blocked ? 'blocked' : pageDepth(snap);
+      if (key === lastKey) return false;
+      lastKey = key;
+      if (!blocked) {
+        const top = snap && snap.top ? screenOf(snap.top.n) : null;
+        if (top && top.ownsBackGesture) return false;
+      }
+      send(backGestureAllowed(snap, blocked));
+      return true;
+    },
+  };
 }
 
 // ---------------------------------------------------------------------------

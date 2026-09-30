@@ -7,7 +7,8 @@
 //   写失败不推进：格下说明换「没保存上，你写的字还在。」、主按钮行换 [先不保存 / 再试一次]（R-W16 三段式，01 §4 表）。
 // 撤销（走查-W16 / R-W20）：跳过成功后底部轻提示「已跳过「X」 · 撤销」3 秒；撤销 = 第二次 commit：删掉这条 skipped
 //   记录（id 允许空洞，01 §3.1）、字放回 cursor、current 回到 recall，并把这条记录里的提示次数放回 current.hints
-//   （帮助事实不因撤销丢失，决定-D07）。撤销写失败：轻提示换「没保存上，你写的字还在。」+ [先不保存 / 再试一次]，
+//   （帮助事实不因撤销丢失，决定-D07）；跳过时格子里的本人笔画（紧凑行）随撤销显式写回 current.strokes（M2-3：
+//   不靠写字页残留的本地状态——最后一字跳过后写字页已换成结果页，撤销回来的是一个新写字页）。撤销写失败：轻提示换「没保存上，你写的字还在。」+ [先不保存 / 再试一次]，
 //   不自动消失，直到重试成功或点「先不保存」。3 秒后 / 会话已经变了（不是最后一条 skipped）则不能撤销。
 // 撤销机会的寿命（M1 验收 G3）：3 秒，或者下一字一开始操作就结束——第一次落笔（书写格接受了 pointerdown）、
 //   点提示、点看答案时写字页调用 dismiss() 立即收起底栏（失败态同样收起：用户已经往下写了，不再把字拉回来）。
@@ -28,6 +29,7 @@ import * as defaultPolicy from '../../../config/policy.js';
 import { getStore } from '../../../store/store.js';
 import { makeRecord, removeRecord } from '../../../core/records.js';
 import { advance, currentCardKey, undoSkip, withCurrent } from '../../../core/sessions.js';
+import { encodeRawStrokes } from '../../../core/ink-math.js';
 import { allRecords, appendRecordToDraft } from './answer.js';
 
 /** 跳过后可撤销的时长（走查-W16：3 秒；04 §4 撤销寿命四种之一）。 */
@@ -87,10 +89,10 @@ function removeRecordFromDraft(draft, record) {
 
 /**
  * 跳过撤销的 mutator 主体：最后一个 item 必须是这条 skipped；删记录、字放回 cursor、current 回 recall，
- * 提示次数放回 current.hints。
+ * 提示次数放回 current.hints；strokes（跳过时格子里的本人笔画，encodeRawStrokes 紧凑行）写回 current.strokes（M2-3）。
  * @returns {{record}}  被删掉的记录
  */
-export function undoSkipInDraft(draft, { slot, sessionId, recordId, at }) {
+export function undoSkipInDraft(draft, { slot, sessionId, recordId, at, strokes }) {
   const s = sessionOf(draft, slot);
   if (!s || (sessionId && s.id !== sessionId)) throw new Error('undo skip: session changed');
   const record = allRecords(draft).find(r => r && r.id === recordId) || null;
@@ -98,7 +100,10 @@ export function undoSkipInDraft(draft, { slot, sessionId, recordId, at }) {
   const back = undoSkip(s, recordId, at); // 最后一个 item 不是这条 skipped 时抛错
   removeRecordFromDraft(draft, record);
   const hints = record.help && Number.isInteger(record.help.hints) ? record.help.hints : 0;
-  setSession(draft, slot, hints ? withCurrent(back, { hints }, at) : back);
+  const patch = {};
+  if (hints) patch.hints = hints;
+  if (Array.isArray(strokes) && strokes.length) patch.strokes = strokes;
+  setSession(draft, slot, Object.keys(patch).length ? withCurrent(back, patch, at) : back);
   return { record };
 }
 
@@ -123,11 +128,11 @@ export function canUndoSkip(state, { slot, sessionId, recordId }) {
   return !!last && last.kind === 'skipped' && last.recordId === recordId;
 }
 
-/** 跳过撤销 commit；已不能撤销时 stale。 */
-export function commitUndoSkip(store, { slot, sessionId, recordId } = {}) {
+/** 跳过撤销 commit；已不能撤销时 stale。strokes：跳过时的本人笔画（紧凑行），写回 current.strokes。 */
+export function commitUndoSkip(store, { slot, sessionId, recordId, strokes } = {}) {
   if (!canUndoSkip(store.getState(), { slot, sessionId, recordId })) return STALE;
   return store.commit('write:skip-undo', (draft, ctx) => {
-    undoSkipInDraft(draft, { slot, sessionId, recordId, at: ctx.now });
+    undoSkipInDraft(draft, { slot, sessionId, recordId, at: ctx.now, strokes });
   });
 }
 
@@ -139,6 +144,10 @@ function storeOrNull() {
   } catch (error) {
     return null;
   }
+}
+
+function clockNow() {
+  return typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now();
 }
 
 /** 底部轻提示（撤销底栏同一视觉）。纯视图。 */
@@ -182,12 +191,15 @@ export function SkipUndoDock(props) {
  * @param {string|null} o.cardKey
  * @param {string} o.phase       有效阶段
  * @param {number} o.hints       本地提示次数（useHint().used）
- * @returns {{shown, button, failed, note, failButtons, bar, undoOpen, dismiss}}
+ * @param {Array} [o.strokes]    书写格本人原始笔画（跳过时记下，撤销时写回 current.strokes，M2-3）
+ * @returns {{shown, button, failed, note, failButtons, bar, undoOpen, undo, dismiss}}
  *   shown：回忆阶段、没看过答案时显示「跳过」；failed：跳过写失败（调用方把主按钮行换成 failButtons、格下说明换 note）；
  *   bar：3 秒撤销轻提示（放在页面根上，absolute 贴底；空页 / 结果页也要渲染）；undoOpen：撤销底栏是否在；
  *   dismiss()：撤销机会结束（下一字落笔 / 点提示 / 点看答案），立即收起底栏。
+ *   undo：撤销机会 {sessionId, recordId, char, strokes, until, failed} | null（until = performance.now() 时刻；
+ *   最后一字跳过后写字页把它交给结果页，M2-3）。
  */
-export function useSkip({ slot, session, cardKey, phase, hints = 0 }) {
+export function useSkip({ slot, session, cardKey, phase, hints = 0, strokes = null }) {
   const key = session && cardKey ? `${session.id}|${session.cursor}|${cardKey}` : null;
   const [fail, setFail] = useState(null); // 跳过写失败 {key}
   const [undo, setUndo] = useState(null); // {sessionId, recordId, char, failed}
@@ -204,11 +216,15 @@ export function useSkip({ slot, session, cardKey, phase, hints = 0 }) {
 
   const skip = () => {
     const store = storeOrNull();
+    const rows = Array.isArray(strokes) && strokes.length ? encodeRawStrokes(strokes) : null;
     const result = store ? commitSkip(store, { slot, cardKey, hints }) : { ok: false, error: { kind: 'unavailable' } };
     if (result.ok) {
       setFail(null);
       if (result.record) {
-        setUndo({ sessionId: result.record.sessionId, recordId: result.record.id, char: result.record.char, failed: false });
+        setUndo({
+          sessionId: result.record.sessionId, recordId: result.record.id, char: result.record.char, failed: false,
+          strokes: rows, until: clockNow() + SKIP_UNDO_MS,
+        });
         arm();
       }
       return;
@@ -225,7 +241,9 @@ export function useSkip({ slot, session, cardKey, phase, hints = 0 }) {
     const u = undo;
     if (!u) return;
     const store = storeOrNull();
-    const result = store ? commitUndoSkip(store, { slot, sessionId: u.sessionId, recordId: u.recordId }) : { ok: false, error: { kind: 'unavailable' } };
+    const result = store
+      ? commitUndoSkip(store, { slot, sessionId: u.sessionId, recordId: u.recordId, strokes: u.strokes })
+      : { ok: false, error: { kind: 'unavailable' } };
     if (result.ok || (result.error && result.error.kind === 'stale')) {
       clearTimeout(timerRef.current);
       timerRef.current = 0;
@@ -265,6 +283,7 @@ export function useSkip({ slot, session, cardKey, phase, hints = 0 }) {
           onCancelFail=${() => { setUndo(null); markStateChange(); }} />`
       : null,
     undoOpen: !!undo,
+    undo,
     dismiss,
   };
 }

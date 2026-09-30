@@ -11,7 +11,7 @@
 //   跳过：skipped 记录不算有效记录、结果行清空、3 秒撤销轻提示；撤销 = 记录数不变、字回原位、提示次数放回；
 //   跳过写失败不推进、可重试；撤销写失败可重试；3 秒后轻提示消失 →
 //   钩子：空笔画判断 commit 被拒；seed 的 compare + 空笔画按 recall 显示；perRecordInk=true 时写 ink 月键 →
-//   最后一个字判断后会话走完（write-empty；结果页属 M2-3）→ 全部写入经 storage.js。
+//   最后一个字判断后会话走完 → 直接换成结果页（M2-3，会话移入 lastEnded）→ 全部写入经 storage.js。
 
 import {
   bootTestHost, drawStroke, HORIZONTAL, VERTICAL, PRESS_SETTLE_MS, seedSession, tid, topSel, waitNavIdle, writeSnapshot,
@@ -67,7 +67,7 @@ async function facts(page) {
     return {
       records,
       judged: records.filter(r => r.kind === 'judged'),
-      session: st.sessions ? st.sessions.A : null,
+      session: st.sessions ? st.sessions.A || (st.sessions.lastEnded || {}).A || null : null, // 写完后移入 lastEnded（M2-3）
       todayN: todayCount(records, today),
       sched: st.sched || {},
       inkKeys: Object.keys(raw).filter(k => k.startsWith('shizi.v2.ink.')),
@@ -629,11 +629,11 @@ export default async function judgeCorrect(page, ctx) {
   await waitCursor(page, 4);
 
   // ------------------------------------------------------------------ 最后一个字
-  ctx.step('last character 中: judge → session complete (write-empty; result page is M2-3)');
+  ctx.step('last character 中: judge → session complete → result page (M2-3)');
   await write(page, HORIZONTAL, 1);
   await toCompare(page);
   await page.click(topSel('write-judge-correct'));
-  await page.waitForSelector(topSel('write-empty'), { state: 'attached' });
+  await page.waitForSelector(topSel('result-screen'));
   f = await facts(page);
   assert.equal(f.session.cursor, CHARS.length, 'cursor at the end of the queue');
   assert.equal(f.judged.length, 4, '4 judged records (永 和 大 中)');

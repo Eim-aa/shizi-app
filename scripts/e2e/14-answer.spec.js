@@ -53,7 +53,7 @@ async function facts(page) {
     const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     return {
       records,
-      session: st.sessions ? st.sessions.A : null,
+      session: st.sessions ? st.sessions.A || (st.sessions.lastEnded || {}).A || null : null, // 写完后移入 lastEnded（M2-3）
       todayN: todayCount(records, today),
       judgedToday: [...judgedCardKeysOn(records, today)],
       answerSeenToday: [...answerSeenCardKeysOn(records, today)],
@@ -338,7 +338,8 @@ export default async function answer(page, ctx) {
   await page.click(topSel('write-answer-next'));
   await page.waitForFunction(() => {
     const st = window.__shiziTest.getState();
-    return st.sessions.A && st.sessions.A.cursor === 3;
+    const s = st.sessions.A || (st.sessions.lastEnded || {}).A; // 写完后移入 lastEnded、换成结果页（M2-3）
+    return !!s && s.cursor === 3;
   });
   f = await facts(page);
   assert.equal(f.records.filter(r => r.kind === 'answer-seen').length, 3, 'three answer-seen records');

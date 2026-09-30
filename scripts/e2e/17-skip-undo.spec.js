@@ -2,8 +2,8 @@
 // 撤销机会 = 3 秒，或者下一字一开始操作就结束：
 //   跳过 → 下一字落笔 → 底栏立即收起、撤销入口不在了，3 秒后也不会把字拉回来（下一字的笔画保留）；
 //   跳过 → 点提示 → 底栏收起；跳过 → 点看答案 → 底栏收起（确认框取消后也不回来）；
-//   最后一字跳过 → 写字页是空页（write-empty；结果页属 M2-3），底栏照样在（挂在页面根上），3 秒内点撤销回到那个字；
-//   最后一字再跳过、不操作 → 空页上底栏约 3 秒后收起，跳过记录保留。
+//   最后一字跳过 → 直接换成结果页（M2-3，无空页），撤销机会交给结果页，3 秒内点撤销回到写字页那个字（跳过前的笔画写回）；
+//   最后一字再跳过、不操作 → 结果页上底栏约 3 秒后收起，跳过记录保留。
 
 import {
   bootTestHost, drawStroke, HORIZONTAL, PRESS_SETTLE_MS, seedSession, tid, topSel, waitNavIdle, writeSnapshot, openWrite,
@@ -100,33 +100,43 @@ export default async function skipUndo(page, ctx) {
   assert.equal(await present(page, 'write-skip-undo'), false, 'bar stays gone after 再想想');
   assert.equal((await writeSnapshot(page)).cursor, 1, 'still on 和');
 
-  ctx.step('last character: 跳过 春 → empty page, undo bar still there; 撤销 → back to 春');
+  ctx.step('last character (M2-3): write one stroke on 春, 跳过 → result page straight away (no empty page), undo bar carried over; 撤销 → back to 春 with its stroke');
   await fresh(page, ctx, 2);
+  await drawStroke(page, HORIZONTAL);
+  assert.equal((await writeSnapshot(page)).strokes, 1, 'one stroke on 春 before the skip');
   await page.click(topSel('write-skip'));
-  await waitCursor(page, 3);
-  assert.equal(await present(page, 'write-empty'), true, 'session done → write-empty placeholder');
-  assert.equal(await present(page, 'write-skip-undo'), true, 'undo bar rendered on the empty page');
+  await page.waitForSelector(topSel('result-screen'));
+  assert.equal(await present(page, 'write-empty'), false, 'no write-empty placeholder on top: the write page was replaced by the result page');
+  assert.equal(await present(page, 'write-skip-undo'), true, 'undo bar rendered on the result page');
   const barText = (await page.locator(topSel('write-skip-undo-text')).textContent()).trim();
   assert.equal(barText, `已跳过「${CHARS[2]}」`, 'bar text 已跳过「春」');
   const barBox = await page.locator(topSel('write-skip-undo')).boundingBox();
   const vp = page.viewportSize();
   assert.ok(!!barBox && barBox.y >= 0 && barBox.y + barBox.height <= vp.height, `bar inside the viewport ${JSON.stringify(barBox)}`);
+  await waitNavIdle(page); // 新页面 0.4s 按钮不响应（走查-W08）
   await page.click(topSel('write-skip-undo-btn'));
+  await page.waitForSelector(topSel('write-screen'));
   await waitCursor(page, 2);
   s = await writeSnapshot(page);
-  assert.deepEqual([s.cursor, s.phase], [2, 'recall'], '春 back at the cursor in recall');
-  assert.equal(await present(page, 'write-empty'), false, 'the empty page is gone');
+  assert.deepEqual([s.screen, s.cursor, s.phase], ['write', 2, 'recall'], '春 back at the cursor in recall on a write page');
+  assert.equal(s.strokes, 1, 'the stroke written on 春 before the skip is back (written back to current.strokes)');
   assert.equal(await present(page, 'write-skip-undo'), false, 'bar gone after the undo');
   assert.equal(await skippedCount(page), 0, 'the skipped record was removed');
+  const back = await page.evaluate(() => {
+    const st = window.__shiziTest.getState();
+    return { a: !!st.sessions.A, ended: !!(st.sessions.lastEnded || {}).A, rows: st.sessions.A ? st.sessions.A.current.strokes.length : -1 };
+  });
+  assert.deepEqual(back, { a: true, ended: false, rows: 1 }, 'session back in slot A (not in lastEnded), current.strokes has the stroke');
 
-  ctx.step('last character again, no action → the bar on the empty page leaves after ~3s, the skip stays');
+  ctx.step('last character again, no action → the bar on the result page leaves after ~3s, the skip stays');
+  await waitNavIdle(page);
   await page.click(topSel('write-skip'));
   const t0 = Date.now();
-  await waitCursor(page, 3);
+  await page.waitForSelector(topSel('result-screen'));
   await page.waitForTimeout(Math.max(0, 2500 - (Date.now() - t0)));
   assert.equal(await present(page, 'write-skip-undo'), true, 'bar still there at 2.5s');
   await page.waitForTimeout(900);
   assert.equal(await present(page, 'write-skip-undo'), false, 'bar gone after 3s');
-  assert.equal(await present(page, 'write-empty'), true, 'still the empty page');
+  assert.equal(await present(page, 'result-screen'), true, 'still the result page');
   assert.equal(await skippedCount(page), 1, 'the skipped record stays');
 }

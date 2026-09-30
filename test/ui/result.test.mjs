@@ -1,0 +1,360 @@
+// M2-3 结束这组与结果页的纯逻辑单测（决定-D19 / D20 / D22；01 §3.2 / §3.3；04 R-R01–R-R07、R-W15；03 P14 / P62；边改 S04 / S05）。
+// 结果页模型（三态、按记录算的数字、说明句、离开按钮与来源说明、图片说明）、结束写入、修改判断、结果页上的跳过撤销、
+// 撤销机会交接；「结束这组」的草稿变换与确认框数字；跳过撤销写回笔画。
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { loadFSRSGlobal } from '../core/helpers.mjs';
+import { judgeInDraft } from '../../src/ui/screens/write/compare.js';
+import { skipInDraft, undoSkipInDraft } from '../../src/ui/screens/write/skip.js';
+import { appendRecordToDraft } from '../../src/ui/screens/write/answer.js';
+import {
+  resultModel, findResultSession, finishInDraft, commitFinish, commitLeave, correctResultInDraft, commitResultCorrection,
+  undoSkipFromResultInDraft, commitResultSkipUndo, canUndoSkipFromResult, handoffSkipUndo, takeSkipUndo, leaveOf, fromOf,
+  seenSkippedNote, GRID_COLS,
+} from '../../src/ui/screens/result/index.js';
+import { endInDraft, commitEndGroup, endConfirmCounts, canEndGroup, judgedCountOf, EndDialogContent } from '../../src/ui/screens/write/end.js';
+import { advance, createSession, endSlot } from '../../src/core/sessions.js';
+import { makeRecord } from '../../src/core/records.js';
+import { encodeRawStrokes } from '../../src/core/ink-math.js';
+import { validateValue, KEYS } from '../../src/core/schema.js';
+import { t } from '../../src/config/copy/index.js';
+
+loadFSRSGlobal();
+
+const T0 = new Date(2026, 8, 24, 12, 0).getTime();
+const STROKE = [{ x: 60, y: 170, t: 0 }, { x: 170, y: 171, t: 60 }, { x: 280, y: 172, t: 120 }];
+
+function idGen(start = 1) {
+  let n = start - 1;
+  return prefix => `${prefix}${(n += 1)}`;
+}
+
+function recs(d) {
+  return Object.values(d.records).flat();
+}
+
+/**
+ * 造一组：steps 依次为 'correct' | 'wrong' | 'seen' | 'skip'，走真实 mutator（judgeInDraft / skipInDraft / advance）。
+ */
+function group({ kind = 'daily', chars = ['永', '和', '春', '大'], steps = [], source, id = 's1' } = {}) {
+  const s = createSession({ id, kind, source, queue: chars.map(c => 'base:' + c), at: T0 });
+  const slot = s.slot;
+  const d = { records: {}, sched: {}, ink: {}, sessions: { A: null, B: null, lastEnded: {} }, meta: null };
+  d.sessions[slot] = s;
+  const nextId = idGen(10);
+  steps.forEach((step, i) => {
+    const cur = d.sessions[slot];
+    const key = cur.queue[cur.cursor];
+    const at = T0 + (i + 1) * 1000;
+    if (step === 'correct' || step === 'wrong') {
+      judgeInDraft(d, { slot, cardKey: key, judgment: step, strokes: [STROKE], at, nextId, perRecordInk: false });
+    } else if (step === 'skip') {
+      skipInDraft(d, { slot, cardKey: key, at, nextId });
+    } else {
+      const r = makeRecord({ id: nextId('r'), cardKey: key, sessionId: cur.id, kind: 'answer-seen', at, help: { hints: 0, answerSeen: true, traced: false } });
+      appendRecordToDraft(d, r);
+      d.sessions[slot] = advance(cur, { cardKey: key, recordId: r.id, kind: 'answer-seen', at });
+    }
+  });
+  return { d, slot, id };
+}
+
+function ended(d, slot, early = false) {
+  d.sessions = endSlot(d.sessions, slot, { at: T0 + 60_000, early });
+  return d;
+}
+
+function fakeStore(state, { fail = 0 } = {}) {
+  let cur = state;
+  let failures = fail;
+  let now = T0 + 120_000;
+  let serial = 500;
+  const calls = [];
+  return {
+    calls,
+    getState: () => cur,
+    getInk: () => null,
+    commit(label, fn) {
+      calls.push(label);
+      const draft = JSON.parse(JSON.stringify(cur));
+      try {
+        fn(draft, { now: (now += 1000), label, nextId: p => `${p}${(serial += 1)}` });
+      } catch (error) {
+        return { ok: false, error: { kind: 'mutator', reason: error.message } };
+      }
+      if (failures > 0) {
+        failures -= 1;
+        return { ok: false, error: { kind: 'generic' } };
+      }
+      cur = draft;
+      return { ok: true, keys: [] };
+    },
+  };
+}
+
+// ---------------------------------------------------------------- 模型
+
+test('resultModel daily: count by judged records, cells in order with captions, seen+skipped note + grid hint, 再写一组', () => {
+  const { d, slot, id } = group({ steps: ['correct', 'seen', 'wrong', 'skip'] });
+  ended(d, slot);
+  const m = resultModel(d, { slot, sessionId: id });
+  assert.equal(m.found, true);
+  assert.equal(m.where, 'ended');
+  assert.equal(m.variant, 'daily');
+  assert.equal(m.header, t('X-RESULT.headerDaily'));
+  assert.equal(m.title, t('R-R01.titleCount', { n: 2 }), '2 judged characters (永 春)');
+  assert.equal(m.count, 2);
+  assert.deepEqual(m.cells.map(c => [c.char, c.kind, c.caption]), [
+    ['永', 'judged', '写对'], ['和', 'answer-seen', '看过答案'], ['春', 'judged', '写错'], ['大', 'skipped', '跳过'],
+  ]);
+  assert.deepEqual(m.cells.map(c => c.canChange), [true, false, true, false], 'only judged cells with fsrsBefore can change (K25)');
+  assert.deepEqual(m.sub, [t('R-R01.noteSeenSkipped', { seen: '「和」', skipped: '「大」' }), t('R-R02.gridHint')]);
+  assert.equal(m.sub[0], '「和」看过答案，「大」跳过了，没算在内。');
+  assert.equal(m.cols, GRID_COLS.daily);
+  assert.equal(m.again, true);
+  assert.equal(m.leave.label, t('X-RESULT.leaveHome'));
+  assert.equal(m.dateLine, null, 'daily has no date line');
+  assert.equal(m.image, 'allMissing', 'no stored ink (perRecordInk off) → R-R07 all-missing note');
+});
+
+test('resultModel: P62 only-seen / only-skipped sentences; none → default note; zero judged → 这次没有记下字', () => {
+  let { d, slot, id } = group({ chars: ['永', '和'], steps: ['seen', 'seen'] });
+  let m = resultModel(ended(d, slot), { slot, sessionId: id });
+  assert.equal(m.title, t('R-R01.titleZero'));
+  assert.equal(m.sub[0], '「永」「和」看过答案，没算在内。');
+  assert.equal(m.image, 'none', 'nothing recorded → no image block');
+  ({ d, slot, id } = group({ chars: ['永', '和'], steps: ['correct', 'skip'] }));
+  m = resultModel(ended(d, slot), { slot, sessionId: id });
+  assert.equal(m.sub[0], '「和」跳过了，没算在内。');
+  ({ d, slot, id } = group({ chars: ['永'], steps: ['correct'] }));
+  m = resultModel(ended(d, slot), { slot, sessionId: id });
+  assert.equal(m.sub[0], t('R-R01.noteDefault'));
+  assert.equal(seenSkippedNote([], []), '');
+});
+
+test('resultModel first: header 第一次练习, 5 columns, date-only line (R-R03), no 再写一组', () => {
+  const { d, slot, id } = group({ kind: 'first', chars: ['尴', '嚏'], steps: ['correct', 'wrong'] });
+  const m = resultModel(ended(d, slot), { slot, sessionId: id });
+  assert.equal(m.variant, 'first');
+  assert.equal(m.header, t('X-RESULT.headerFirst'));
+  assert.equal(m.cols, 5);
+  assert.equal(m.dateLine, '9 月 24 日');
+  assert.equal(m.again, false);
+});
+
+test('resultModel picked: 写完了 / 先写到这里 (P14), bodyAll / bodyOne, early rest, S05 source line, leave by source (R-R06)', () => {
+  let { d, slot, id } = group({ kind: 'picked', chars: ['额', '鲜', '境'], steps: ['correct', 'wrong', 'skip'], source: { view: 'wrongList' } });
+  let m = resultModel(ended(d, slot), { slot, sessionId: id });
+  assert.equal(m.variant, 'picked');
+  assert.equal(m.header, t('R-R05.kicker'));
+  assert.deepEqual([m.kicker, m.title], ['这次选的字', '写完了']);
+  assert.deepEqual(m.sub, ['「额」「鲜」都记下了。', '「境」跳过了，没算在内。', t('R-R02.gridHint')]);
+  assert.equal(m.dateLine, '9 月 24 日 · 从写错过');
+  assert.equal(m.leave.label, '回到写错过');
+  assert.equal(m.again, false);
+  assert.equal(m.image, 'none', 'picked has no image row');
+  ({ d, slot, id } = group({ kind: 'picked', chars: ['额', '鲜', '境', '静'], steps: ['correct'], source: { view: 'detail', char: '额' } }));
+  m = resultModel(ended(d, slot, true), { slot, sessionId: id });
+  assert.equal(m.early, true);
+  assert.equal(m.title, '先写到这里');
+  assert.deepEqual(m.sub, ['「额」记下了。', '还有 3 个字没写，没有记下。', t('R-R02.gridHint')]);
+  assert.equal(m.leave.label, '回到「额」');
+  assert.equal(m.dateLine, '9 月 24 日 · 自己选的');
+});
+
+test('leaveOf / fromOf: every source view (R-R06 / S05); unknown and detail without char fall back to 回到首页', () => {
+  assert.deepEqual(['wrongList', 'forgetList', 'allWritten', 'mine', 'library', 'home'].map(view => leaveOf({ view }).label),
+    ['回到写错过', '回到快忘了', '回到有记录的字', '回到我的', '回到字库', '回到首页']);
+  assert.equal(leaveOf({ view: 'againList' }).view, 'wrongList', 'old key againList → wrongList');
+  assert.equal(leaveOf({ view: 'detail', char: '静' }).label, '回到「静」');
+  assert.equal(leaveOf({ view: 'detail' }).label, '回到首页');
+  assert.equal(leaveOf({ view: 'nowhere' }).label, '回到首页');
+  assert.equal(leaveOf(null).label, '回到首页');
+  assert.deepEqual(['wrongList', 'forgetList', 'home', 'detail'].map(view => fromOf({ view })), ['从写错过', '从快忘了', '自己选的', '自己选的']);
+});
+
+test('resultModel: session still in the slot (finish write failed) is shown; missing session falls back to records', () => {
+  const { d, slot, id } = group({ chars: ['永'], steps: ['correct'] });
+  let m = resultModel(d, { slot, sessionId: id });
+  assert.equal(m.where, 'slot');
+  assert.equal(m.count, 1);
+  const noSession = { ...d, sessions: { A: null, B: null, lastEnded: {} } };
+  m = resultModel(noSession, { slot, sessionId: id });
+  assert.equal(m.found, false);
+  assert.deepEqual(m.cells.map(c => [c.char, c.kind, c.canChange]), [['永', 'judged', false]], 'records only, no correction without the session');
+  assert.equal(m.title, t('R-R01.titleCount', { n: 1 }));
+});
+
+// ---------------------------------------------------------------- 结束 / 离开
+
+test('finishInDraft / commitFinish: complete session moves to lastEnded (not early); idempotent; incomplete is stale', () => {
+  const { d, slot, id } = group({ chars: ['永', '和'], steps: ['correct', 'skip'] });
+  const store = fakeStore(d);
+  const r1 = commitFinish(store, { slot, sessionId: id });
+  assert.equal(r1.ok, true);
+  const st = store.getState().sessions;
+  assert.equal(st.A, null);
+  assert.equal(st.lastEnded.A.id, id);
+  assert.equal(st.lastEnded.A.endedEarly, undefined);
+  assert.equal(typeof st.lastEnded.A.endedAt, 'number');
+  assert.equal(validateValue(KEYS.sessions, st), null);
+  const r2 = commitFinish(store, { slot, sessionId: id });
+  assert.equal(r2.noop, true, 'already ended → no write');
+  assert.deepEqual(store.calls, ['result:finish']);
+  const half = group({ chars: ['永', '和'], steps: ['correct'] });
+  assert.equal(commitFinish(fakeStore(half.d), { slot: 'A', sessionId: half.id }).error.kind, 'stale');
+  assert.throws(() => finishInDraft(half.d, { slot: 'A', sessionId: half.id, at: T0 }), /not complete/);
+});
+
+test('commitLeave clears only this lastEnded[slot]', () => {
+  const { d, slot, id } = group({ chars: ['永'], steps: ['correct'] });
+  ended(d, slot);
+  const store = fakeStore(d);
+  assert.equal(commitLeave(store, { slot, sessionId: 's999' }).noop, true);
+  assert.equal(commitLeave(store, { slot, sessionId: id }).ok, true);
+  assert.equal(store.getState().sessions.lastEnded.A, undefined);
+  assert.equal(findResultSession(store.getState(), { slot, sessionId: id }), null);
+});
+
+// ---------------------------------------------------------------- 修改判断
+
+test('correctResultInDraft: same record, judgment flipped, corrections appended, sched replayed, no new record (D19)', () => {
+  const { d, slot, id } = group({ steps: ['correct', 'wrong', 'skip', 'correct'] });
+  ended(d, slot);
+  const before = recs(d).length;
+  const dueBefore = d.sched['base:永'].due;
+  const store = fakeStore(d);
+  const r = commitResultCorrection(store, { slot, sessionId: id, recordId: 'r10' });
+  assert.equal(r.ok, true);
+  const after = store.getState();
+  const rec = recs(after).find(x => x.id === 'r10');
+  assert.equal(recs(after).length, before, 'no record added');
+  assert.equal(rec.judgment, 'wrong');
+  assert.equal(rec.corrections.length, 1);
+  assert.equal(rec.corrections[0].from, 'correct');
+  assert.equal(rec.at, recs(d).find(x => x.id === 'r10').at, 'at unchanged');
+  assert.notEqual(after.sched['base:永'].due, dueBefore, 'due replayed (wrong → Again, earlier)');
+  assert.deepEqual(after.sessions.lastEnded.A, d.sessions.lastEnded.A, 'session untouched');
+  const m = resultModel(after, { slot, sessionId: id });
+  assert.equal(m.cells[0].caption, '写错');
+  assert.equal(m.title, t('R-R01.titleCount', { n: 3 }), 'count unchanged by a correction');
+});
+
+test('commitResultCorrection: skipped / answer-seen are not correctable; failure leaves records as they were', () => {
+  const { d, slot, id } = group({ steps: ['seen', 'skip', 'correct', 'wrong'] });
+  ended(d, slot);
+  const store = fakeStore(d, { fail: 1 });
+  assert.equal(commitResultCorrection(store, { slot, sessionId: id, recordId: 'r10' }).error.kind, 'stale', 'answer-seen');
+  assert.equal(commitResultCorrection(store, { slot, sessionId: id, recordId: 'r11' }).error.kind, 'stale', 'skipped');
+  const failed = commitResultCorrection(store, { slot, sessionId: id, recordId: 'r12' });
+  assert.equal(failed.ok, false);
+  assert.equal(recs(store.getState()).find(x => x.id === 'r12').judgment, 'correct', 'unchanged after failure');
+  assert.equal(commitResultCorrection(store, { slot, sessionId: id, recordId: 'r12' }).ok, true, 'retry succeeds');
+  assert.throws(() => correctResultInDraft(store.getState(), { slot, sessionId: 's404', recordId: 'r12', at: T0 }), /not found/);
+});
+
+// ---------------------------------------------------------------- 跳过撤销（结果页）
+
+test('undoSkipFromResultInDraft: ended session goes back to the slot, skipped record removed, cursor back, strokes written back', () => {
+  const { d, slot, id } = group({ chars: ['永', '和'], steps: ['correct', 'skip'] });
+  ended(d, slot);
+  const rows = encodeRawStrokes([STROKE]);
+  assert.equal(canUndoSkipFromResult(d, { slot, sessionId: id, recordId: 'r11' }), true);
+  const store = fakeStore(d);
+  const r = commitResultSkipUndo(store, { slot, sessionId: id, recordId: 'r11', strokes: rows });
+  assert.equal(r.ok, true);
+  const st = store.getState();
+  assert.equal(st.sessions.lastEnded.A, undefined, 'no longer ended');
+  assert.equal(st.sessions.A.id, id);
+  assert.equal(st.sessions.A.cursor, 1);
+  assert.equal('endedAt' in st.sessions.A, false);
+  assert.equal('endedEarly' in st.sessions.A, false);
+  assert.deepEqual(st.sessions.A.current.strokes, rows, 'strokes written back to current.strokes');
+  assert.equal(recs(st).some(x => x.kind === 'skipped'), false);
+  assert.equal(validateValue(KEYS.sessions, st.sessions), null);
+});
+
+test('result skip undo is stale when the slot holds a newer group or the skip is not the last item', () => {
+  const { d, slot, id } = group({ chars: ['永', '和'], steps: ['skip', 'correct'] });
+  ended(d, slot);
+  assert.equal(canUndoSkipFromResult(d, { slot, sessionId: id, recordId: 'r10' }), false, 'skip is not the last item');
+  const g = group({ chars: ['永'], steps: ['skip'] });
+  ended(g.d, 'A');
+  g.d.sessions.A = createSession({ id: 's2', kind: 'daily', queue: ['base:春'], at: T0 });
+  assert.equal(canUndoSkipFromResult(g.d, { slot: 'A', sessionId: g.id, recordId: 'r10' }), false, 'slot occupied');
+  assert.equal(commitResultSkipUndo(fakeStore(g.d), { slot: 'A', sessionId: g.id, recordId: 'r10' }).error.kind, 'stale');
+  assert.throws(() => undoSkipFromResultInDraft(g.d, { slot: 'A', sessionId: g.id, recordId: 'r10', at: T0 }), /occupied/);
+});
+
+test('undoSkipInDraft (write page) writes strokes back when given (M2-3), keeps hints', () => {
+  const { d, slot, id } = group({ chars: ['永', '和'], steps: ['skip'] });
+  const rows = encodeRawStrokes([STROKE, STROKE]);
+  undoSkipInDraft(d, { slot, sessionId: id, recordId: 'r10', at: T0, strokes: rows });
+  assert.equal(d.sessions.A.cursor, 0);
+  assert.deepEqual(d.sessions.A.current.strokes, rows);
+});
+
+test('handoffSkipUndo / takeSkipUndo: taken once, only by the same group, dropped when expired', () => {
+  handoffSkipUndo({ slot: 'A', sessionId: 's1', recordId: 'r3', char: '永', strokes: null, until: 5000 });
+  assert.equal(takeSkipUndo('B', 's1', 1000), null, 'other slot');
+  assert.equal(takeSkipUndo('A', 's1', 1000), null, 'already taken (cleared by the first take)');
+  handoffSkipUndo({ slot: 'A', sessionId: 's1', recordId: 'r3', char: '永', until: 5000 });
+  assert.equal(takeSkipUndo('A', 's1', 1000).recordId, 'r3');
+  handoffSkipUndo({ slot: 'A', sessionId: 's1', recordId: 'r3', char: '永', until: 5000 });
+  assert.equal(takeSkipUndo('A', 's1', 6000), null, 'expired');
+  handoffSkipUndo(null);
+  assert.equal(takeSkipUndo('A', 's1', 0), null);
+});
+
+// ---------------------------------------------------------------- 结束这组
+
+test('endInDraft: picked group → lastEnded.B with endedEarly; judged count by records; daily cannot be ended', () => {
+  const { d, id } = group({ kind: 'picked', chars: ['额', '鲜', '境'], steps: ['correct', 'skip'] });
+  assert.deepEqual(endConfirmCounts(d, 'B'), { n: 1, m: 1 }, '1 unwritten (境), 1 judged (额)');
+  assert.equal(canEndGroup(d.sessions.B), true);
+  const out = endInDraft(d, { slot: 'B', sessionId: id, at: T0 + 5000 });
+  assert.equal(out.judgedCount, 1);
+  assert.equal(d.sessions.B, null);
+  assert.equal(d.sessions.lastEnded.B.endedEarly, true);
+  assert.equal(d.sessions.lastEnded.B.endedAt, T0 + 5000);
+  assert.equal(validateValue(KEYS.sessions, d.sessions), null);
+  const daily = group({ steps: ['correct'] });
+  assert.equal(canEndGroup(daily.d.sessions.A), false);
+  assert.throws(() => endInDraft(daily.d, { slot: 'A', sessionId: daily.id, at: T0 }), /only a picked group/);
+});
+
+test('commitEndGroup: zero judged returns judgedCount 0; failure keeps the group; stale when the group changed', () => {
+  const { d, id } = group({ kind: 'picked', chars: ['额', '鲜'], steps: ['skip'] });
+  assert.equal(judgedCountOf(d, id), 0);
+  const store = fakeStore(d, { fail: 1 });
+  const failed = commitEndGroup(store, { slot: 'B', sessionId: id });
+  assert.equal(failed.ok, false);
+  assert.equal(store.getState().sessions.B.id, id, 'group untouched after failure');
+  const ok = commitEndGroup(store, { slot: 'B', sessionId: id });
+  assert.equal(ok.ok, true);
+  assert.equal(ok.judgedCount, 0);
+  assert.equal(commitEndGroup(store, { slot: 'B', sessionId: id }).error.kind, 'stale');
+});
+
+test('EndDialogContent: S04 primary 接着写, 结束这组 secondary, no preselection; failed state R-W16 three-part', () => {
+  const find = (node, pred, out = []) => {
+    if (!node || typeof node !== 'object') return out;
+    if (Array.isArray(node)) {
+      node.forEach(n => find(n, pred, out));
+      return out;
+    }
+    if (pred(node)) out.push(node);
+    find(node.props && node.props.children, pred, out);
+    return out;
+  };
+  const ask = EndDialogContent({ n: 2, m: 1, onEnd: () => {}, onCancel: () => {} });
+  const btns = find(ask, n => n.props && n.props['data-testid'] && /^write-end-/.test(n.props['data-testid']) && n.props.variant);
+  assert.deepEqual(btns.map(b => [b.props['data-testid'], b.props.variant]), [['write-end-confirm', 'secondary'], ['write-end-continue', 'primary']]);
+  assert.ok(btns.every(b => !b.props.autofocus && !('aria-pressed' in b.props)));
+  const body = find(ask, n => n.props && n.props['data-testid'] === 'write-end-body')[0];
+  assert.equal(body.props.children, '还有 2 个字没写，结束后就不写了。判断过的 1 个字已经记下。');
+  const failed = EndDialogContent({ n: 2, m: 1, failed: true, onEnd: () => {}, onCancel: () => {} });
+  const fb = find(failed, n => n.props && n.props.variant && n.props['data-testid']);
+  assert.deepEqual(fb.map(b => b.props['data-testid']), ['write-end-fail-cancel', 'write-end-retry']);
+  assert.equal(find(failed, n => n.props && n.props['data-testid'] === 'write-end-body')[0].props.children, t('R-W16.saveFailed'));
+});

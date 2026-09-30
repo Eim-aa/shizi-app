@@ -20,7 +20,8 @@
     "{skipped}": "跳过的字（带「」的列表）",
     "{word}": "词语（04 的 {词}）",
     "{period}": "时段词（R-H02.period.*）",
-    "{pinyin}": "拼音"
+    "{pinyin}": "拼音",
+    "{source}": "来源说明（R-R06.fromWrong / fromForget / fromPicked，边改 S05）"
   },
   "normalization": [
     "{M} 月 {D} 日、{9 月 24 日} 这类日期、裸「M 月 D 日」、{日期} → {date}",
@@ -51,8 +52,8 @@
     "P64": "文案槽位占位符归一（{date}的、{month} 月）：抽取阶段规则，见 normalization；请产品确认",
     "P67": "看答案流程细则（描一遍每次先播、落笔即跳过；阶段切换与「下一个」等保存成功才推进；卡片读屏读答案字）：流程行为，按 03 过渡默认实现在 src/ui/screens/write/answer.js，不是 policy 开关；请产品确认（M2-3）",
     "P68": "题面区可见提示行与窄屏词语行的位置 / 样式：CSS 与布局（src/ui/screens/write/prompt.js），不是运行时开关；请设计确认（M6）",
-    "P69": "紧凑版触发条件（data-large 或视口高 ≤ 760px）：现值在 src/ui/screens/write/compact.js COMPACT_MAX_HEIGHT / COMPACT_QUERY（CSS media 与 JS 同一条件），尚未迁入 policy.js——待设计确认后再定是否迁（M6）",
-    "P70": "提示层 / 看答案动画节奏与 P52 提示时长（看答案 speed 1.6、笔间隔 180ms、淡入淡出 240ms；提示逐笔 ≤240ms、错开 ×0.7；抬笔写失败提示 5s、每次加载最多一次）：现值为各模块常量（src/ui/canvas/glyph.js ANIMATION、src/ui/screens/write/hint-layer.js HINT_DRAW、persist.js NOTICE_MS），尚未迁入 policy.js——设计走查后再定（M6）"
+    "P69": "紧凑版触发条件（data-large 或视口高 ≤ 760px）：过渡值在 policy.compactMaxHeight（M2-H 迁入）；src/ui/screens/write/compact.js 的 COMPACT_MAX_HEIGHT / COMPACT_QUERY 从它派生（CSS media 与 JS 同一条件）。待设计确认（M6）",
+    "P70": "提示层 / 看答案动画节奏与 P52 提示时长：过渡值在 policy.motion（M2-H 迁入）——answerSpeed 1.6、answerStrokeGapMs 180、answerFadeMs 240（src/ui/canvas/glyph.js ANIMATION）；hintStrokeMs 240、hintStagger 0.7、reducedFadeMs 120（src/ui/screens/write/hint-layer.js HINT_DRAW / REDUCED_FADE_MS）；persistNoticeMs 5000（persist.js NOTICE_MS；「每次加载最多一次」是行为，不是数值）。设计走查后再定（M6）"
   },
   "noCopy": [
     "R-H08",
@@ -2557,6 +2558,41 @@
         }
       }
     },
+    "X-SESSION": {
+      "screen": "home",
+      "milestone": "M2",
+      "source": "M2-2 会话开始（src/ui/screens/session/s02.js S02 保存失败、none.js「现在没有要写的字」页主按钮）；04 §4.1 R-H05 / R-H11 没给这些槽",
+      "slots": {
+        "s02SaveFailed": {
+          "raw": null,
+          "text": "没保存上，刚才的选择没记下。",
+          "origin": "extra",
+          "note": "S02「结束那组，开新的」一次 commit 失败时确认框换成的说明句（留在确认框，R-G04 三段式）；套用 T01「没保存上，{什么}还在。」同族的现成句 R-L06.saveFailed / R-R04.saveFailed，待文案确认",
+          "decision": "P55"
+        },
+        "s02Retry": {
+          "raw": null,
+          "text": "再试一次",
+          "origin": "extra",
+          "note": "S02 保存失败主按钮；T01「主按钮一律再试一次」",
+          "decision": "P55"
+        },
+        "s02Cancel": {
+          "raw": null,
+          "text": "先不保存",
+          "origin": "extra",
+          "note": "S02 保存失败次按钮（关掉确认框，旧组不动）；T01「先不 + 动作」，取 R-W16 / R-H06 的「先不保存」，待文案确认",
+          "decision": "P55"
+        },
+        "nonePick": {
+          "raw": null,
+          "text": "自己选字",
+          "origin": "extra",
+          "note": "「现在没有要写的字」页主按钮；原型可点原型模板 L63 w12fPick 按钮字样（同 R-H06.title）",
+          "decision": "P55"
+        }
+      }
+    },
     "X-HOME": {
       "screen": "home",
       "milestone": "M2",
@@ -2573,6 +2609,50 @@
           "text": "继续写字",
           "origin": "首页壳-v3 L217",
           "note": "主入口（有未完成组）"
+        },
+        "ctaGlyph": {
+          "raw": null,
+          "text": "拾",
+          "origin": "首页壳-v3 L56",
+          "note": "M2-1：「拾」主入口红块上的大字（装饰，aria-hidden；按钮读屏名为 start / continue）"
+        },
+        "arrow": {
+          "raw": null,
+          "text": "→",
+          "origin": "首页壳-v3 L57",
+          "note": "M2-1：主入口文字后的箭头（装饰，aria-hidden）"
+        },
+        "sealGlyph": {
+          "raw": null,
+          "text": "字",
+          "origin": "首页壳-v3 L44",
+          "note": "M2-1：题记出处下的闲章（原型 title「闲章 · 字」；装饰，aria-hidden）"
+        },
+        "more": {
+          "raw": null,
+          "text": "›",
+          "origin": "首页壳-v3 L71",
+          "note": "M2-1：S01 第二行（另一组）末尾的「 ›」（04 R-H04「另一组在下一行加 ›」）；前面的组说明用 R-H04 各槽"
+        },
+        "pick": {
+          "raw": null,
+          "text": "自己选字 →",
+          "origin": "首页壳-v3 L81",
+          "note": "M2-1：首页辅助入口，打开查字组件 pick 模式（R-H06；弹层标题用 R-H06.title）"
+        },
+        "inkRowLabel": {
+          "raw": null,
+          "text": "今天有记录的字：{chars}",
+          "origin": "extra",
+          "note": "M2-1：墨迹行的读屏名称；取原型首页壳 L74 aria-label 前半「今天有记录的字」，去掉「打开练习记录」（走查-M07：应点进今天的记录，去处未接入前墨迹行不是按钮），加上字表便于读屏",
+          "decision": "P55"
+        },
+        "startFailed": {
+          "raw": null,
+          "text": "没保存上，刚才的选择没记下。",
+          "origin": "extra",
+          "note": "M2-1：主入口 / 另一组续写开组写入失败时主入口下方的说明句（R-G04 三段式；按钮用 R-H06.cancel / R-H06.retry）；套用 R-R04 / R-L06 / X-SESSION.s02SaveFailed 同句，原型没有这一态，待文案确认",
+          "decision": "P55"
         }
       }
     },
@@ -2643,6 +2723,142 @@
           "origin": "extra",
           "note": "抬笔写会话现场撞配额（QuotaExceededError）的顶部一次性提示；旧 index.html L1067 配额句逐字；P52",
           "decision": "P66"
+        }
+      }
+    },
+    "X-QUERY": {
+      "screen": "query",
+      "milestone": "M2",
+      "source": "M2-0 查字 / 自己选字组件（src/ui/components/query/）：原型 字库墨墙屏-第十稿交接版 L427–L446 的勾选圈读屏标签、卡片拼音 · 笔画行、多个重复字的过滤提示（04 §4.1 R-Q03–R-Q05 只给了单字形态）",
+      "slots": {
+        "selectAria": {
+          "raw": null,
+          "text": "选择「{char}」",
+          "origin": "extra",
+          "note": "pick 模式逐字行勾选圈（未选）的 aria-label；原型 L434 selLabel「选择「X」」；同清单页 L412 的同名读屏文案"
+        },
+        "unselectAria": {
+          "raw": null,
+          "text": "取消选择「{char}」",
+          "origin": "extra",
+          "note": "pick 模式逐字行勾选圈（已选）的 aria-label；原型 L434 selLabel「取消选择「X」」"
+        },
+        "cardMeta": {
+          "raw": null,
+          "text": "{pinyin} · {n} 画",
+          "origin": "extra",
+          "note": "查字卡片字旁的拼音与笔画数；原型 L442 lkMeta = [拼音, N + ' 画'].join(' · ')；没有笔画数时只显示拼音"
+        },
+        "duplicateMany": {
+          "raw": null,
+          "text": "重复的{chars}只算一次。",
+          "origin": "extra",
+          "note": "R-Q03.duplicate 的多字形态：两个以上的字重复时一句列出（{chars} 拼成「X」「Y」）；原型 L428 dups.map(c=>'「'+c+'」').join('')"
+        }
+      }
+    },
+    "X-RESULT": {
+      "screen": "result",
+      "milestone": "M2",
+      "source": "M2-3 结果页（src/ui/screens/result/index.js）：页头、picked 完成标题、格下标签、底栏与日期来源行取原型 ShiziScreen L116–L124 / vd()；04 §4.1 R-R01–R-R07 没给这些槽；P62 只有一类时的说明句",
+      "slots": {
+        "headerDaily": {
+          "raw": null,
+          "text": "这次练习",
+          "origin": "extra",
+          "note": "原型 ShiziScreen-第十稿交接版 L116 result 页头；reference/J-proto-screen.md §2.3.11 文案表「页头」",
+          "decision": "P55"
+        },
+        "headerFirst": {
+          "raw": null,
+          "text": "第一次练习",
+          "origin": "extra",
+          "note": "原型 ShiziScreen-第十稿交接版 L119 firstResult 页头；reference/J-proto-screen.md §2.3.12",
+          "decision": "P55"
+        },
+        "pickedDoneTitle": {
+          "raw": null,
+          "text": "写完了",
+          "origin": "extra",
+          "note": "原型 ShiziScreen-第十稿交接版 L122 pickDoneT「这次选的字<br>写完了」的第二行（R-R05 只给了中途结束的「先写到这里」）",
+          "decision": "P55"
+        },
+        "noteSeenOnly": {
+          "raw": null,
+          "text": "{seen}看过答案，没算在内。",
+          "origin": "extra",
+          "note": "R-R01 混合示例「「主」看过答案，「性」跳过了，没算在内。」按 03 P62 过渡拆出的「只有看过答案」一句",
+          "decision": "P62"
+        },
+        "noteSkippedOnly": {
+          "raw": null,
+          "text": "{skipped}跳过了，没算在内。",
+          "origin": "extra",
+          "note": "R-R01 混合示例按 03 P62 过渡拆出的「只有跳过」一句",
+          "decision": "P62"
+        },
+        "cellCorrect": {
+          "raw": null,
+          "text": "写对",
+          "origin": "extra",
+          "note": "原型 ShiziScreen-第十稿交接版 vd()「写对」：结果页格下标签（R-R02 只给了「看过答案」）",
+          "decision": "P55"
+        },
+        "cellWrong": {
+          "raw": null,
+          "text": "写错",
+          "origin": "extra",
+          "note": "原型 ShiziScreen-第十稿交接版 vd()「写错」（红，--ar）",
+          "decision": "P55"
+        },
+        "cellSkipped": {
+          "raw": null,
+          "text": "跳过",
+          "origin": "extra",
+          "note": "原型 ShiziScreen-第十稿交接版 vd()「跳过」",
+          "decision": "P55"
+        },
+        "again": {
+          "raw": null,
+          "text": "再写一组",
+          "origin": "extra",
+          "note": "原型 ShiziScreen-第十稿交接版 L118 resStd 主按钮（今天的练习结果页）",
+          "decision": "P55"
+        },
+        "leaveHome": {
+          "raw": null,
+          "text": "回到首页",
+          "origin": "extra",
+          "note": "原型 ShiziScreen-第十稿交接版 L118 onHome 链接 / L124 pickLeave 缺省；R-R06 映射里没有 home 来源",
+          "decision": "P55"
+        },
+        "dateSource": {
+          "raw": null,
+          "text": "{date} · {source}",
+          "origin": "extra",
+          "note": "原型 ShiziScreen-第十稿交接版 L124 pickDateLine「{日期} · 自己选字」；来源说明按边改 S05 换成 R-R06.from*",
+          "decision": "P55"
+        },
+        "againFailed": {
+          "raw": null,
+          "text": "没保存上，刚才的选择没记下。",
+          "origin": "extra",
+          "note": "「再写一组」开新组写入失败时的说明（R-G04 三段式，留在结果页）；套用 R-R04.saveFailed / X-SESSION.s02SaveFailed 同句，待文案确认",
+          "decision": "P55"
+        },
+        "againRetry": {
+          "raw": null,
+          "text": "再试一次",
+          "origin": "extra",
+          "note": "「再写一组」失败主按钮；T01「主按钮一律再试一次」",
+          "decision": "P55"
+        },
+        "againCancel": {
+          "raw": null,
+          "text": "先不保存",
+          "origin": "extra",
+          "note": "「再写一组」失败次按钮（收起失败说明，留在结果页）；取 R-W16 / X-SESSION.s02Cancel 同字，待文案确认",
+          "decision": "P55"
         }
       }
     }

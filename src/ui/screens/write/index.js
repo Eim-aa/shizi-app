@@ -17,9 +17,13 @@
 // （记录 + fsrsBefore + FSRS + 会话推进 + 按 perRecordInk 写墨迹）成功才翻下一字，失败三段式留在判断页；结果行（上一字
 // judged / saw / skipped 三态，落笔后本字收起）与修改判断弹层；「跳过」（skipped 记录 + 3 秒撤销 = 第二次 commit）。
 //
+// M2-3（end.js / result/index.js）：「结束这组」（picked 会话，跳过那一行右边；紧凑版在 write-end-slot）；
+// 最后一字处理完（判断 / 看答案后「下一个」/ 跳过，任一阶段）→ 会话移入 lastEnded（commitFinish）→ 本页就地换成结果页
+// （nav.replace('result')，决定-D20 无中间页）；跳过最后一字的 3 秒撤销机会交给结果页（handoffSkipUndo）。
+//
 // data-testid：write-screen、write-progress、write-steps、write-line-slot、write-prompt、write-grid（及
 // write-grid-ink / write-grid-live / write-glyph-layer）、write-tools、write-undo、write-clear、write-note、
-// write-answer-slot、write-hint-slot、write-done、write-skip-slot、write-empty。
+// write-answer-slot、write-hint-slot、write-done、write-skip-slot、write-end-slot、write-empty。
 
 import { html, useEffect, useLayoutEffect, useRef, useState } from '../../../../vendor/ui.js';
 import { registerScreen, getRouter } from '../../router.js';
@@ -27,7 +31,7 @@ import { Page } from '../../components/Page.js';
 import { Button, markStateChange } from '../../components/Button.js';
 import { injectStyles, T } from '../../components/styles.js';
 import { InkGrid, STD_SIZE } from '../../canvas/ink-canvas.js';
-import { currentCardKey, PHASES } from '../../../core/sessions.js';
+import { currentCardKey, isComplete, PHASES } from '../../../core/sessions.js';
 import { getStore, isReplacement } from '../../../store/store.js';
 import { setBackGestureEnabled } from '../../../platform/bridge.js';
 import { t } from '../../../config/copy/index.js';
@@ -40,6 +44,8 @@ import { useResultRow } from './result-row.js';
 import { useSkip } from './skip.js';
 import { COMPACT_GRID, useAnswerFit, useCompact } from './compact.js';
 import { storedStrokes, usePersist } from './persist.js';
+import { useEndGroup } from './end.js';
+import { commitFinish, handoffSkipUndo, openResult } from '../result/index.js';
 
 export const WRITE_SCREEN = 'write';
 /** 换字后书写格不接受落笔的时长（01 §6.6 / 走查-V01，已定）。 */
@@ -79,7 +85,8 @@ injectStyles('write', `
 .sz-write__linkrow{min-height:36px;display:flex;align-items:center}
 .sz-write__main{display:grid;grid-template-columns:148px 1fr;gap:12px;align-items:stretch}
 .sz-write__hint{min-height:52px}
-.sz-write__skiprow{min-height:40px;display:flex;align-items:center;justify-content:center}
+.sz-write__skiprow{min-height:40px;display:flex;align-items:center;justify-content:center;position:relative}
+.sz-write__skiprow>.sz-write__endslot{position:absolute;right:-8px;top:0;bottom:0;display:flex;align-items:center}
 `);
 
 const EMPTY = Object.freeze([]);
@@ -115,14 +122,19 @@ function useStoreState() {
   return snap;
 }
 
-/** 本页是顶层页面期间关掉原生左缘返回手势（01 §7），离开顶层 / 卸载时恢复。 */
+/**
+ * 本页是顶层页面期间关掉原生左缘返回手势（01 §7），离开顶层 / 卸载时恢复。
+ * 返回本页是不是顶层页面（M2-2：只有顶层写字页写回会话现场）。
+ */
 function useBackGestureGate(entry) {
+  const [top, setTop] = useState(true);
   useEffect(() => {
     const router = getRouter();
     const id = entry && entry.id;
     const apply = snap => {
       const isTop = !router || !id || !snap || !snap.top || snap.top.id === id;
       setBackGestureEnabled(!isTop);
+      setTop(isTop);
     };
     apply(router ? router.getState() : null);
     const off = router ? router.subscribe(apply) : () => {};
@@ -131,6 +143,23 @@ function useBackGestureGate(entry) {
       setBackGestureEnabled(true);
     };
   }, [entry && entry.id]);
+  return top;
+}
+
+/**
+ * 本页是不是「空着的」顶层：顶层页面就是本页、上面没有遮罩、router 没有正在等的返回。
+ * 最后一字推进后只在这时换成结果页（nav.replace 只能换顶层页面，M2-3）。
+ */
+function useTopFree(entry) {
+  const [free, setFree] = useState(false);
+  useEffect(() => {
+    const router = getRouter();
+    const id = entry && entry.id;
+    const apply = snap => setFree(!!id && !!snap && !!snap.top && snap.top.id === id && !snap.topIsOverlay && !snap.pending);
+    apply(router ? router.getState() : null);
+    return router ? router.subscribe(apply) : undefined;
+  }, [entry && entry.id]);
+  return free;
 }
 
 function StepDots({ phase }) {
@@ -151,7 +180,14 @@ function WriteScreen({ params, entry }) {
   const rawPhase = session && session.current ? session.current.phase : 'recall';
   const storedPhase = PHASES.includes(rawPhase) ? rawPhase : 'recall';
 
-  useBackGestureGate(entry);
+  const isTop = useBackGestureGate(entry);
+  // M2-2：被压在下面期间本页不写回现场；重新成为顶层时，若这期间存下的现场被别处改过（上面那页写过同一槽），
+  // 按存下的现场重取本地笔画，不把旧笔画写回去；没被改过就保留本地笔画（下一次写回照常）。
+  const topGenRef = useRef({ was: isTop, gen: 0, current: null });
+  const storedCurrent = session ? session.current : null;
+  if (!isTop && topGenRef.current.was) topGenRef.current.current = storedCurrent;
+  if (isTop && !topGenRef.current.was && storedCurrent !== topGenRef.current.current) topGenRef.current.gen += 1;
+  topGenRef.current.was = isTop;
 
   // 换字（含进页面）→ 0.3s 不接受落笔。在渲染期定下时刻（与原型 penArm 同法，Math.max 幂等），保证新字第一帧就生效。
   const armRef = useRef({ key: undefined, until: 0 });
@@ -162,7 +198,7 @@ function WriteScreen({ params, entry }) {
   const inkKey = answerInkKey(cardKey, storedPhase); // recall 与 compare 同一份，用存下的阶段即可
   // 本地现场的键 = store 替换代数 + inkKey：store 被整体替换（seed / 恢复备份 / reset 重读）后，即使还是同一个字、
   // 同一阶段，也按新状态重取，不沿用替换前的本地笔画（G1：下层写字页留着旧会话上的一笔，重新 seed 后又画回来）。
-  const localKey = `${epoch}#${inkKey}`;
+  const localKey = `${epoch}.${topGenRef.current.gen}#${inkKey}`;
   const keyRef = useRef({ localKey, inkKey });
   keyRef.current = { localKey, inkKey };
   // M1-6：每一份现场的初值取存下的 session.current.strokes（刷新恢复）；之后以本地为准，由 usePersist 写回。
@@ -180,7 +216,8 @@ function WriteScreen({ params, entry }) {
   const cmpPhase = useComparePhase({ slot, session, cardKey, storedPhase, strokeCount: view.strokes.length });
   const phase = cmpPhase.phase;
   // M1-6 会话现场：本地笔画一变就写回 sessions（P52 不阻断 + 一次性提示）、visibilitychange 重写、打开时恢复幂等。
-  const persist = usePersist({ slot, session, state, cardKey, inkKey, strokes: view.strokes, phase });
+  // M2-2：只有顶层写字页写回现场（抬笔 / visibilitychange / pagehide / 离开）；被压在下面时不写（cardKey 传 null = 不写）。
+  const persist = usePersist({ slot, session, state, cardKey: isTop ? cardKey : null, inkKey, strokes: view.strokes, phase });
 
   // 换字 / 换阶段 = 新状态：按钮 0.4s 不响应。
   useLayoutEffect(() => {
@@ -214,8 +251,29 @@ function WriteScreen({ params, entry }) {
     onLeave: cmpPhase.leave, size: STD_SIZE,
   });
   const row = useResultRow({ slot, session, state, phase, strokeCount: view.strokes.length });
-  const skip = useSkip({ slot, session, cardKey, phase, hints: hint.used });
+  const skip = useSkip({ slot, session, cardKey, phase, hints: hint.used, strokes: view.strokes });
   endSkipUndoRef.current = skip.dismiss;
+  // M2-3「结束这组」（picked 会话；打开确认框即结束跳过的撤销机会）。
+  const end = useEndGroup({ slot, session, phase, blocked: skip.failed, onOpen: endSkipUndo });
+
+  // M2-3：最后一字处理完（任一阶段推进，cursor 到队尾）→ 会话移入 lastEnded → 就地换成结果页（D20，无中间页）。
+  // 跳过最后一字的撤销机会交给结果页；结束写入失败时结果页照样按槽里的会话显示并补写（commitFinish 幂等）。
+  const topFree = useTopFree(entry);
+  const complete = !!session && isComplete(session);
+  const finishedRef = useRef(null);
+  // layout effect：在浏览器画出这一帧之前换页（写字页的空占位不会被画出来；router 重渲染走微任务）。
+  useLayoutEffect(() => {
+    if (!complete || !topFree || finishedRef.current === session.id) return;
+    finishedRef.current = session.id;
+    const u = skip.undo;
+    handoffSkipUndo(u && !u.failed && u.sessionId === session.id ? { ...u, slot } : null);
+    try {
+      commitFinish(getStore(), { slot, sessionId: session.id });
+    } catch (error) {
+      // store 不可用：结果页按槽里的会话显示，挂载时再补写
+    }
+    openResult(slot, session.id);
+  }, [complete, topFree, session && session.id]);
   const onStrokeStart = () => {
     hint.onStrokeStart();
     row.onStrokeStart(); // 落笔：上一字的结果行收起（决定-D19）
@@ -256,12 +314,13 @@ function WriteScreen({ params, entry }) {
       <div class="sz-write__hint" data-testid="write-hint-slot">${hint.button}</div>
       <${Button} variant="primary" data-testid="write-done" disabled=${!hasStrokes} onClick=${onDone}>${t('R-W29.btnDone')}</${Button}>
     </div>`;
-  const skipSlot = html`<div class="sz-write__skiprow" data-testid="write-skip-slot">${skip.button}</div>`;
+  const skipSlot = html`<div class="sz-write__skiprow" data-testid="write-skip-slot">${skip.button}${!compact && end.button
+    ? html`<span class="sz-write__endslot" data-testid="write-end-slot">${end.button}</span>` : null}</div>`;
   // 紧凑版（R-W18）：「提示 · 写好了」一行，「看答案 · 跳过 · 结束这组」一行（结束这组的槽位留给 M2）。
   const footer = compact
     ? html`<div class="sz-write__foot" data-compact="true">
       ${mainRow}
-      <div class="sz-write__links" data-testid="write-links">${answerSlot}${skipSlot}<div class="sz-write__endslot" data-testid="write-end-slot"></div></div>
+      <div class="sz-write__links" data-testid="write-links">${answerSlot}${skipSlot}<div class="sz-write__endslot" data-testid="write-end-slot">${end.button}</div></div>
     </div>`
     : html`<div class="sz-write__foot">
     ${answerSlot}

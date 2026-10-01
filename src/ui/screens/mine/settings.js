@@ -274,7 +274,8 @@ button.sz-set__row:focus-visible{outline:2px solid ${T.ar};outline-offset:2px}
 .sz-set__opt[aria-checked="true"]{font-weight:500}
 `);
 
-const CHECK_ICON = html`<svg class="sz-set__check" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.6"
+// 每次渲染现取新 vnode，不复用模块级常量（vendor/ui.js 注释，M6-3）。
+const CHECK_ICON = () => html`<svg class="sz-set__check" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.6"
   stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 11.5 9.2 15.5 17 7"></path></svg>`;
 
 // ---------------------------------------------------------------- 视图零件
@@ -389,7 +390,7 @@ export function AppearanceSheetView({ current, failed = false, pending = null, o
       data-state=${failed ? 'failed' : 'pick'}>
       ${APPEARANCE_ORDER.map(value => html`<${Button} key=${value} variant="plain" class="sz-set__opt" role="radio"
         aria-checked=${value === current ? 'true' : 'false'} data-testid="settings-appearance-option" data-value=${value}
-        onClick=${() => onPick(value)}><span>${appearanceLabel(value)}</span>${CHECK_ICON}</${Button}>`)}
+        onClick=${() => onPick(value)}><span>${appearanceLabel(value)}</span>${CHECK_ICON()}</${Button}>`)}
     </div>
     ${failed ? html`<${FailBlock} testid="settings-appearance-fail" group="display" field=${`appearance:${pending}`}
       onCancel=${onCancel} onRetry=${onRetry} />` : null}

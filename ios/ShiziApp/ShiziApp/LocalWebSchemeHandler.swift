@@ -33,7 +33,7 @@ final class LocalWebSchemeHandler: NSObject, WKURLSchemeHandler {
                     "Content-Length": String(data.count),
                     "Cache-Control": "no-cache",
                     // 与 index.html 的 CSP meta 逐字相同（01 §8.2；verify_assets.mjs 硬检查两处一致且 script-src 只有 'self'）。
-                    "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; media-src 'self' data:; worker-src 'self'; object-src 'none'; base-uri 'none'; frame-src 'none'; form-action 'none'",
+                    "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; media-src 'self' data:; worker-src 'self'; object-src 'none'; base-uri 'none'; frame-src 'none'; form-action 'none'",
                     "X-Content-Type-Options": "nosniff"
                 ]
             ) ?? URLResponse(

@@ -1,5 +1,5 @@
 // M0-4 完成定义：三 tab 切换；三次推入子页 → 三次系统返回（page.goBack）→ 回到 tab 根且不离开页面；
-// 键盘 Tab 可达三 tab；遮罩栈、原生返回事件、防连点、减少动态效果、刷新恢复。控制台零错误由 run.mjs 统一断言。
+// 键盘：tab 条漫游 tabindex（M6-1：只有选中项在 Tab 顺序里，方向键移动、Enter/Space 切换）；遮罩栈、原生返回事件、防连点、减少动态效果、刷新恢复。控制台零错误由 run.mjs 统一断言。
 // 演示子页（src/ui/screens/_demo/sub.js）只在 ?test=1 的 localhost 主机加载。
 // K1（01 §7）：假原生桥记录 backGestureEnabled —— tab 根页 false、子页 true，根→子页→根 为 [false,true,false]。
 
@@ -114,26 +114,75 @@ export default async function shell(page, ctx) {
     assert.equal(s.length, baseLength, 'tab switch uses replaceState (history.length unchanged)');
   }
 
-  ctx.step('keyboard: Tab reaches all three tabs; Enter/arrow keys switch');
-  await page.evaluate(() => document.activeElement && document.activeElement.blur());
-  const reached = new Set();
-  for (let i = 0; i < 12 && reached.size < 3; i += 1) {
-    await page.keyboard.press('Tab');
-    const id = await page.evaluate(() => document.activeElement && document.activeElement.getAttribute('data-testid'));
-    if (id && id.startsWith('tab-')) reached.add(id);
-  }
-  assert.deepEqual([...reached].sort(), ['tab-home', 'tab-library', 'tab-mine'], 'Tab key focuses tab-home, tab-library and tab-mine');
+  ctx.step('keyboard: roving tabindex (WAI-ARIA Tabs, manual activation) — M6-1');
+  const tabindexes = () => page.evaluate(() => [...document.querySelectorAll('[role="tablist"] [role="tab"]')]
+    .map(el => `${el.getAttribute('data-testid')}:${el.getAttribute('tabindex')}`));
+  const focusedId = () => page.evaluate(() => document.activeElement && document.activeElement.getAttribute('data-testid'));
+  const selectedId = () => page.evaluate(() => {
+    const el = document.querySelector('[role="tablist"] [role="tab"][aria-selected="true"]');
+    return el && el.getAttribute('data-testid');
+  });
+  const tabStops = async () => {
+    // 从页首起按 Tab 走一整圈，记下停过的 tab（每个可聚焦元素最多一次；回到起点即停）。
+    await page.evaluate(() => document.activeElement && document.activeElement.blur());
+    const seen = [];
+    let first = null;
+    for (let i = 0; i < 60; i += 1) {
+      await page.keyboard.press('Tab');
+      const key = await page.evaluate(() => {
+        const el = document.activeElement;
+        if (!el || el === document.body) return null;
+        if (!el.__e2eStop) el.__e2eStop = Math.random().toString(36).slice(2);
+        return `${el.__e2eStop}|${el.getAttribute('data-testid') || ''}`;
+      });
+      if (!key) continue;
+      if (key === first) break;
+      if (!first) first = key;
+      const id = key.split('|')[1];
+      if (id.startsWith('tab-')) seen.push(id);
+    }
+    return seen;
+  };
+  assert.deepEqual(await tabindexes(), ['tab-home:0', 'tab-library:-1', 'tab-mine:-1'], 'only the selected tab (习字) has tabindex=0');
+  assert.deepEqual(await tabStops(), ['tab-home'], 'a full Tab cycle stops on the tablist once, at the selected tab');
   await page.focus(tid('tab-home'));
   await page.keyboard.press('ArrowRight');
-  assert.equal(await page.evaluate(() => document.activeElement.getAttribute('data-testid')), 'tab-library', 'ArrowRight moves focus to tab-library');
+  assert.equal(await focusedId(), 'tab-library', 'ArrowRight moves focus to tab-library');
+  assert.equal(await selectedId(), 'tab-home', 'arrow keys do not switch (manual activation)');
+  assert.equal((await nav(page)).top, 'home', 'still on 习字 after ArrowRight');
+  await page.keyboard.press('ArrowRight');
+  assert.equal(await focusedId(), 'tab-mine', 'ArrowRight again → tab-mine');
+  await page.keyboard.press('ArrowRight');
+  assert.equal(await focusedId(), 'tab-home', 'ArrowRight wraps from the last tab to the first');
+  await page.keyboard.press('ArrowLeft');
+  assert.equal(await focusedId(), 'tab-mine', 'ArrowLeft wraps from the first tab to the last');
+  await page.keyboard.press('Home');
+  assert.equal(await focusedId(), 'tab-home', 'Home → first tab');
+  await page.keyboard.press('End');
+  assert.equal(await focusedId(), 'tab-mine', 'End → last tab');
+  await page.keyboard.press('ArrowLeft');
+  assert.equal(await focusedId(), 'tab-library', 'ArrowLeft → tab-library');
   await page.keyboard.press('Enter');
   await idle(page);
   assert.equal((await nav(page)).top, 'library', 'Enter on tab-library switches tab');
-  assert.equal(await page.evaluate(() => document.activeElement.getAttribute('data-testid')), 'tab-library', 'focus stays on the selected tab');
-  await page.keyboard.press('ArrowLeft');
+  assert.equal(await focusedId(), 'tab-library', 'focus stays on the selected tab');
+  assert.deepEqual(await tabindexes(), ['tab-home:-1', 'tab-library:0', 'tab-mine:-1'], 'tabindex=0 follows the selection');
+  assert.deepEqual(await tabStops(), ['tab-library'], 'Tab cycle now stops only at tab-library');
+  await page.focus(tid('tab-library'));
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('Space');
+  await idle(page);
+  assert.equal((await nav(page)).top, 'mine', 'Space on tab-mine switches tab');
+  assert.deepEqual(await tabindexes(), ['tab-home:-1', 'tab-library:-1', 'tab-mine:0'], 'tabindex=0 on 我的');
+  await page.keyboard.press('Home');
   await page.keyboard.press('Enter');
   await idle(page);
-  assert.equal((await nav(page)).top, 'home', 'ArrowLeft + Enter goes back to 习字');
+  assert.equal((await nav(page)).top, 'home', 'Home + Enter goes back to 习字');
+  assert.deepEqual(await tabindexes(), ['tab-home:0', 'tab-library:-1', 'tab-mine:-1'], 'tabindex=0 back on 习字');
+  await page.keyboard.press('Tab');
+  assert.ok(!String(await focusedId()).startsWith('tab-'), 'Tab from the selected tab leaves the tablist (does not visit the other tabs)');
+  await page.keyboard.press('Shift+Tab');
+  assert.equal(await focusedId(), 'tab-home', 'Shift+Tab back into the tablist lands on the selected tab');
 
   ctx.step('push three sub pages');
   await page.click(tid('demo-push'));

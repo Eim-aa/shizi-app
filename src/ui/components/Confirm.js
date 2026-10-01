@@ -3,6 +3,7 @@
 // 标题宋体 20/1.45；正文 15/1.75 --i2；两键 1fr 1fr、gap 12。
 // 失败三段式（R-G04）由调用方用 nav.updateOverlay(id, {body, cancelLabel, confirmLabel}) 换文案实现，
 // 确认框自身不关闭；成功后调用方 close()。不预选任何按钮（焦点落在对话框本身）。
+// 读屏名字：有标题取标题（正文作描述）；没有标题（如看答案确认 R-W07）取正文（M6-1 走查：alertdialog 必须有名字）。
 import { html, useRef } from '../../../vendor/ui.js';
 import { Button } from './Button.js';
 import { useDialogFocus } from './Sheet.js';
@@ -52,7 +53,7 @@ export function Confirm({ title, body, cancelLabel, confirmLabel, onCancel, onCo
   return html`<div class="sz-overlay" data-overlay="confirm">
     <div class="sz-scrim" aria-hidden="true" onClick=${cancel}></div>
     <div class="sz-confirm" role="alertdialog" aria-modal="true" tabindex="-1" ref=${panelRef} data-testid=${testid}
-      aria-labelledby=${title ? ids.title : undefined} aria-describedby=${body ? ids.body : undefined}>
+      aria-labelledby=${title ? ids.title : body ? ids.body : undefined} aria-describedby=${title && body ? ids.body : undefined}>
       ${title ? html`<h2 class="sz-confirm__title" id=${ids.title}>${title}</h2>` : null}
       ${body ? html`<p class="sz-confirm__body" id=${ids.body}>${body}</p>` : null}
       <div class=${cancelLabel ? 'sz-confirm__actions' : 'sz-confirm__actions sz-confirm__actions--one'}>

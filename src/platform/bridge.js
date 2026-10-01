@@ -15,7 +15,9 @@
 //   - 各全局的实现由所属模块注册（registerNativeHandler），本文件只做分发与排队：
 //       shiziOpenReminderTarget(cardKey)、shiziReminderStatus({permission}) → platform/reminder.js（startReminder 注册）；
 //       markBackupExported()、shiziBackupPicked(text)、shiziBackupRejected({reason}) → ui/screens/mine/backup.js（M4-4）；
-//       shiziCardSaved({success}) → ui/components/image-preview.js（M4-5）。
+//       shiziCardSaved({success}) → ui/components/image-preview.js（M4-5）；
+//       shiziShareFailed({kind, reason}) → ui/components/share-failed.js（P96 过渡，M6-6：原生分享面板 / 外链打不开时页面轻提示；
+//         kind = backup | card | link，reason 只作诊断；用户取消不回调）。
 //   - markReady(store) 幂等：第一次把桥置为就绪并按到达顺序回放积压调用；再次调用只更新 store 并回放仍积压的调用
 //     （app.js 启动序列与 M5-3 的 pageReady 接线都可能调用，谁先谁后都行）。
 //   - 全局函数返回 true = 页面已接收（交付或入队）；Swift 的深链只在 evaluate 返回 true 后清 key（M5-3）。
@@ -27,6 +29,7 @@ export const NATIVE_GLOBALS = Object.freeze([
   'markBackupExported',
   'shiziCardSaved',
   'shiziReminderStatus',
+  'shiziShareFailed',
 ]);
 
 // 同名全局在队列里只保留最后一次调用（01 §8.1：提醒深链只保留最后一个 cardKey）。

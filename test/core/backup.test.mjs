@@ -3,7 +3,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  backupEntries, backupFileName, backupStatus, buildBackupV2, clearAllRecords, confirmModel, dropSafety, importLegacyBackup,
+  backupEntries, backupFileName, backupStatus, buildBackupV2, clearAllRecords, confirmModel, dropSafety, endActiveSessions, importLegacyBackup,
   inspectBackup, judgedCharsOf, lossRange, makeSafety, markExported, recordsSignature, restoreFromBackup, safetyMatchesCurrent,
   safetyOf, serializeBackup, setLegacyBackupImporter, undoFromSafety, BACKUP_MAX_BYTES, STAGES,
 } from '../../src/core/backup.js';
@@ -220,7 +220,7 @@ function withActiveSessions() {
   return { ...currentState(), sessions: { A, B: null, lastEnded: { B: { ...B, endedAt: ms('2026-09-20', 10) } } } };
 }
 
-test('P79：替换备份结束进行中的组（A/B 置 null、lastEnded 保留），撤销后会话与全部 v2 键逐字还原', () => {
+test('P79 / M6-6：替换备份结束进行中的组（A/B 置 null、lastEnded 清空），撤销后会话与全部 v2 键逐字还原', () => {
   const { store, backend } = makeStore(withActiveSessions());
   const before = v2Raw(backend);
   const sessionsBefore = JSON.parse(JSON.stringify(store.getState().sessions));
@@ -229,7 +229,9 @@ test('P79：替换备份结束进行中的组（A/B 置 null、lastEnded 保留�
   const st = store.getState();
   assert.equal(st.sessions.A, null, 'A ended');
   assert.equal(st.sessions.B, null);
-  assert.deepEqual(JSON.parse(JSON.stringify(st.sessions.lastEnded)), sessionsBefore.lastEnded, 'lastEnded kept');
+  assert.ok(Object.keys(sessionsBefore.lastEnded).length > 0, 'fixture had a lastEnded group');
+  assert.deepEqual(JSON.parse(JSON.stringify(st.sessions.lastEnded)), {}, 'M6-6: lastEnded cleared with the replace');
+  assert.deepEqual(JSON.parse(backend.getItem(KEYS.sessions)).lastEnded, {}, 'lastEnded cleared on disk too');
   assert.deepEqual(JSON.parse(safetyOf(st).payload[KEYS.sessions]), sessionsBefore, 'original sessions in the safety copy');
   assert.equal(JSON.parse(backend.getItem(KEYS.sessions)).A, null, 'on disk too');
   assert.equal(undoFromSafety(store).ok, true);
@@ -243,7 +245,7 @@ test('P79：清空所有记录同样结束进行中的组；撤销还原会话�
   const sessionsBefore = JSON.parse(JSON.stringify(store.getState().sessions));
   assert.equal(clearAllRecords(store, { now: NOW }).ok, true);
   assert.equal(store.getState().sessions.A, null);
-  assert.ok(store.getState().sessions.lastEnded.B, 'lastEnded kept');
+  assert.deepEqual(JSON.parse(JSON.stringify(store.getState().sessions.lastEnded)), {}, 'M6-6: lastEnded cleared with the clear');
   assert.equal(undoFromSafety(store).ok, true);
   assert.deepEqual(JSON.parse(JSON.stringify(store.getState().sessions)), sessionsBefore);
   assert.deepEqual(v2Raw(backend), before);
@@ -254,6 +256,19 @@ test('P79：清空所有记录同样结束进行中的组；撤销还原会话�
   assert.equal(r.stage, STAGES.clear);
   assert.deepEqual(v2Raw(b.backend), beforeB, 'clear rolled back incl. sessions; safety dropped');
   assert.ok(b.store.getState().sessions.A, 'A still there');
+});
+
+test('M6-6：endActiveSessions——只有 lastEnded 时也清；什么都没有时不写；没有 sessions 域时不建', () => {
+  const onlyEnded = { sessions: { A: null, B: null, lastEnded: { A: { id: 's1' } } } };
+  endActiveSessions(onlyEnded);
+  assert.deepEqual(onlyEnded.sessions, { A: null, B: null, lastEnded: {} }, 'lastEnded-only → cleared');
+  const empty = { sessions: { A: null, B: null, lastEnded: {} } };
+  const ref = empty.sessions;
+  endActiveSessions(empty);
+  assert.equal(empty.sessions, ref, 'nothing to end → draft untouched (no write)');
+  const none = { sessions: null };
+  endActiveSessions(none);
+  assert.equal(none.sessions, null, 'no sessions domain → not created');
 });
 
 test('I2：保护副本 / 清空 / 撤销走 store.commit 的 reclaim:false——撞配额不回收、全部键不变；通知是整体替换', () => {

@@ -264,6 +264,55 @@ function useBoxSize(ref, fallback) {
   return size;
 }
 
+// M6-3（61-perf）：视口附近才画。练习记录 300 格、完整页、墙都是一屏几十格的长网格，一次画完全部 canvas 使首屏超 200ms；
+// 离视口一屏以内的格子挂载当帧就画（与原来相同），更远的先登记到全页共用的一个 IntersectionObserver，滚到附近再画。
+// 隐藏图层（下层页面）里的格子尺寸为 0，同样等露出时再画。
+const NEAR_SCREENS = 1;
+let nearObserver = null;
+const nearCallbacks = new WeakMap();
+
+function isNearViewport(el) {
+  const r = el.getBoundingClientRect();
+  if (!r.width && !r.height) return false;
+  const h = window.innerHeight || document.documentElement.clientHeight || 0;
+  return r.bottom > -h * NEAR_SCREENS && r.top < h * (1 + NEAR_SCREENS);
+}
+
+function observeNear(el, onNear) {
+  if (!nearObserver) {
+    nearObserver = new IntersectionObserver(entries => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue;
+        const fn = nearCallbacks.get(entry.target);
+        nearCallbacks.delete(entry.target);
+        nearObserver.unobserve(entry.target);
+        if (fn) fn();
+      }
+    }, { rootMargin: `${NEAR_SCREENS * 100}% 100%` }); // 横向放宽一屏：推入转场中的图层还在右侧屏外
+  }
+  nearCallbacks.set(el, onNear);
+  nearObserver.observe(el);
+  return () => {
+    nearCallbacks.delete(el);
+    if (nearObserver) nearObserver.unobserve(el);
+  };
+}
+
+/** 元素是否已到视口附近（一旦为真不再变回）。没有 IntersectionObserver 时恒为真。 */
+function useNearViewport(ref) {
+  const [near, setNear] = useState(false);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return undefined;
+    if (typeof IntersectionObserver !== 'function' || isNearViewport(el)) {
+      setNear(true);
+      return undefined;
+    }
+    return observeNear(el, () => setNear(true));
+  }, []);
+  return near;
+}
+
 function prepareCanvas(canvas, cssSize) {
   const dpr = Math.max(1, Math.min(4, (typeof window !== 'undefined' && window.devicePixelRatio) || 1));
   const px = Math.max(1, Math.round(cssSize * dpr));
@@ -317,15 +366,17 @@ export function InkMini({ strokes = null, points = null, testid, emptyText, empt
   const cardRef = useRef(null);
   const canvasRef = useRef(null);
   const size = useBoxSize(cardRef, 0);
+  const near = useNearViewport(cardRef);
   const theme = useThemeVersion();
   const built = useMemo(() => points || builtFromRaw(strokes), [points, strokes]);
   const has = built.some(p => Array.isArray(p) && p.length);
   useLayoutEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || !has || !(size > 0)) return;
+    if (!canvas || !has || !(size > 0) || !near) return;
     const ctx = prepareCanvas(canvas, size);
     paintMini(ctx, built, { color: inkColor(cardRef.current) });
-  }, [size, theme, has, points, strokes]);
+    canvas.dataset.painted = 'true'; // M6-3：61-perf 首屏计时的就绪标记
+  }, [size, theme, has, points, strokes, near]);
   if (!has) {
     return html`<div class="sz-compare__empty" data-testid=${emptyTestid || 'write-compare-noink'}>${emptyText || t('R-W17.noInk')}</div>`;
   }
@@ -418,6 +469,13 @@ export function rememberInk(recordId, strokes) {
 
 export function recalledInk(recordId) {
   return recentInk.get(recordId) || null;
+}
+
+/** 测试清理接口（M6-6）：清掉本页面会话里记住的笔画（单测之间不共享缓存）；返回清掉的条数。 */
+export function forgetRecentInk() {
+  const n = recentInk.size;
+  recentInk.clear();
+  return n;
 }
 
 /**

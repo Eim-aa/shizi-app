@@ -7388,6 +7388,7 @@ src/ui/components/query/QuerySheet.js
 src/ui/components/query/demo.js
 src/ui/components/query/index.js
 src/ui/components/query/input.js
+src/ui/components/share-failed.js
 src/ui/components/styles.js
 src/ui/dev/glyph-demo.js
 src/ui/dev/palette.js

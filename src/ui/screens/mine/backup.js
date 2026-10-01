@@ -49,6 +49,7 @@ import { getStore } from '../../../store/store.js';
 import { now as envNow, isNativeShell } from '../../../platform/env.js';
 import { postNative, registerNativeHandler } from '../../../platform/bridge.js';
 import { shareBackupFile } from '../../../platform/share.js';
+import { onShareFailed } from '../../components/share-failed.js'; // P96（M6-6）：注册 shiziShareFailed；备份分享没打开 → 不记导出
 import { monthDayParts, isValidDay } from '../../../core/dates.js';
 import {
   BACKUP_MAX_BYTES, backupFileName, backupStatus, buildBackupV2, clearAllRecords, conclusionOfSafety, confirmModel,
@@ -229,6 +230,10 @@ export function receiveExported() {
 registerNativeHandler('shiziBackupPicked', receivePickedText);
 registerNativeHandler('shiziBackupRejected', receivePickRejected);
 registerNativeHandler('markBackupExported', receiveExported);
+// P96（M6-6）：原生分享面板没打开（shiziShareFailed kind=backup）→ 这次导出作废，轻提示由 share-failed.js 发。
+onShareFailed(kind => {
+  if (kind === 'backup') pendingExport = null;
+});
 
 // ---------------------------------------------------------------- 确认框与清空弹层
 

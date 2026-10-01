@@ -68,8 +68,8 @@ injectStyles('detail', `
 .sz-dcard__tile + .sz-dcard__tile{border-left:1px solid var(--g, rgba(166,83,63,.28))}
 .sz-dcard__tile[data-blank="true"]{box-shadow:inset 0 0 0 1.5px ${T.ar}}
 .sz-dcard__gloss{font-family:var(--kai, serif);font-size:calc(19px * ${T.k});line-height:1.6;letter-spacing:.06em;color:${T.i1}}
-.sz-detail__undo{--ubb:calc(96px + env(safe-area-inset-bottom, 0px))}
-.sz-detail__spacer{flex:none;height:72px}
+.sz-detail__undo{position:relative;margin:0 -8px}
+.sz-detail__undo .sz-undobar{position:relative;left:auto;right:auto;bottom:auto}
 `);
 
 // ---------------------------------------------------------------- 入口桩与打开
@@ -254,11 +254,20 @@ function DetailScreen({ params, entry }) {
   };
 
   const onList = model.list ? listOpener(model.list) : null;
-  const footer = practiceFailed
+  const main = practiceFailed
     ? html`<${FailBlock} testid="detail-practice-fail" note=${t('X-DETAIL.saveFailed')} onCancel=${() => setPracticeFailed(false)}
         onRetry=${practice} />`
     : html`<${Button} variant="primary" data-testid="detail-practice" disabled=${!model.practicable}
         onClick=${practice}>${t('R-D08.btnPractice')}</${Button}>`;
+  // 边改 Z03（M6-6）：撤销底栏放在页面底栏区、「练这个字」上方（与备份页 R-B08 / Z04 同法），正文在它上方滚动——
+  // 紧凑版里「已撤销」不再盖住「从自选的字移除」的副标题，也不靠自动上滚让位。
+  const undoBlock = undo ? html`<div class="sz-detail__undo" data-testid="detail-undo" data-state=${undo.state}>
+      <${UndoBar}
+        line1=${undo.state === 'failed' ? t('X-DETAIL.saveFailed') : t('R-D06.undoL1', { char })}
+        line2=${undo.state === 'failed' ? t('X-DETAIL.undoFailedL2') : t('R-D06.undoL2')}
+        done=${undo.state === 'done'} onUndo=${undoRemove} onDoneEnd=${() => setUndo(null)} />
+    </div>` : null;
+  const footer = undoBlock ? [undoBlock, main] : main;
 
   return html`<div class="sz-detail" style=${{ height: '100%' }} data-testid="detail-screen" data-char=${char}
     data-count=${model.count} data-list=${model.list || ''} data-custom=${model.custom ? 'true' : 'false'}
@@ -271,13 +280,6 @@ function DetailScreen({ params, entry }) {
       <${DetailRows} model=${model} onList=${onList} onImage=${hooks.image} swapFailed=${swapFailed}
         onLegacy=${() => nav.push(PHOTO_SCREEN, { char })} onSwap=${swap} onSwapCancel=${() => setSwapFailed(false)}
         onRemove=${openRemove} />
-      ${undo ? html`<div class="sz-detail__spacer" aria-hidden="true"></div>
-        <div class="sz-detail__undo" data-testid="detail-undo" data-state=${undo.state}>
-          <${UndoBar}
-            line1=${undo.state === 'failed' ? t('X-DETAIL.saveFailed') : t('R-D06.undoL1', { char })}
-            line2=${undo.state === 'failed' ? t('X-DETAIL.undoFailedL2') : t('R-D06.undoL2')}
-            done=${undo.state === 'done'} onUndo=${undoRemove} onDoneEnd=${() => setUndo(null)} />
-        </div>` : null}
     </${Page}>
   </div>`;
 }

@@ -44,13 +44,54 @@
     "拾到",
     "校准",
     "义教基础字",
-    "日常读写九成五"
+    "日常读写九成五",
+    "拍字",
+    "字卡",
+    "补记",
+    "里程碑",
+    "背景音",
+    "义教",
+    "练习设置",
+    "待巩固",
+    "回炉",
+    "描红",
+    "印章",
+    "退出本组",
+    "掌握感",
+    "易忘度"
   ],
+  "bannedWordsSource": "旧词表：M0-6 首批 + M6-4 补（04 §3.1 T11 叫法、§4.2 D23/D24 删除项与 §4.3 边改 V03「背景音」→「按键音」、reference/G-tests 旧门禁禁用词）。scripts/verify_copy.mjs 同时扫 copy 值与 src/ 源码字面量（不含注释）。",
   "todo": [
     "R-I01.overLimit",
     "X-SYS.corruptNotice",
     "X-SYS.blockMigration"
   ],
+  "todoDecisions": [
+    "P55",
+    "P66",
+    "P76",
+    "P90"
+  ],
+  "todoRegistry": {
+    "R-I01.overLimit": "P55",
+    "X-SYS.corruptNotice": "P55",
+    "X-SYS.blockMigration": "P55"
+  },
+  "todoNote": "todo 里的键值为「TODO: …」待文案占位；todoRegistry 写它归哪个 03 待文案项（只许 todoDecisions）。R-I01.overLimit 的 decision 是 P25（>80 字 pending），说明句本身属 P55「>80 字说明」待文案。",
+  "numeralAllow": {
+    "R-M06.*": "年度报告节号「一 · 」（R-M06 原文汉字节号）",
+    "X-ANNUAL.section*": "年度报告第二至四节节号，与 R-M06.section1 同式",
+    "R-I01.signature*": "纸面落款保留汉字数字（04 §3.1 T10 / 文案-D3）；汉字由 core/dates.js 落款函数填入",
+    "R-P03.signature": "这次的图片 / 这天写的字落款（04 §3.2 Y03，汉字数字）",
+    "R-L03.toneOldest": "墨色第四档「三个月以上」04 §3.2 逐字（C153）",
+    "X-LIBHOME.tone2": "墨色第三档「三个月内」，与 R-L03.toneOldest（C153）同一口径（P56）",
+    "R-I01.monthSignature": "月字帖落款「二〇二六年九月 · 有记录二十二天 · 八十个字」（C103，汉字数字，文案-D3）"
+  },
+  "exportWordAllow": {
+    "X-BACKUP.intro": "P55 原型 ShiziScreen L166 bkCanExp 段逐字「先导出一份备份文件」；指的是按钮「导出备份文件」这一动作",
+    "X-PERSIST.saveFailed": "P66 旧 index.html L1067 通用句逐字；03 P66 已登记「建议改写」，待文案",
+    "X-PERSIST.quotaFailed": "P66 旧 index.html L1067 配额句逐字；03 P66 已登记「建议改写」，待文案"
+  },
   "nonRuntimeDecisions": {
     "P22": "字体子集重建范围：构建期（M5-2 用 #180 reproduce.py），不是运行时开关",
     "P62": "结果页说明句单独「看过答案」/「跳过」的措辞：待设计给文案，M2-3 落槽（R-R01）；落槽前不占 copy 键",
@@ -3878,6 +3919,41 @@
           "origin": "旧版 639f592 index.html L1383 reminderQuestion body",
           "note": "通知正文；第十稿没有给通知正文，沿旧句，待文案确认",
           "decision": "P48"
+        }
+      }
+    },
+    "X-SHARE": {
+      "screen": "common",
+      "milestone": "M6",
+      "source": "M6-6 桥错误回调 shiziShareFailed（03 P96 过渡：加回调、页面轻提示；src/ui/components/share-failed.js）：iOS 壳里分享面板没打开或外链打不开时，原生不再弹 alert（M5-3），由页面按 kind 发轻提示；04 无此槽，字样工程暂拟、待文案",
+      "slots": {
+        "backupFailed": {
+          "raw": null,
+          "text": "备份文件没有分享出去，可以再试一次。",
+          "origin": "extra",
+          "decision": "P96",
+          "note": "kind=backup：备份文件的系统分享面板没打开（临时文件写不进 / 分享面板报错）；这次不记导出；用户取消不提示"
+        },
+        "cardFailed": {
+          "raw": null,
+          "text": "图片没有分享出去，可以再试一次。",
+          "origin": "extra",
+          "decision": "P96",
+          "note": "kind=card：图片的系统分享面板没打开（图片数据不对 / 临时文件写不进 / 分享面板报错）；保存到相册失败另有 R-B10"
+        },
+        "linkFailed": {
+          "raw": null,
+          "text": "这个地址没能打开。",
+          "origin": "extra",
+          "decision": "P96",
+          "note": "kind=link：外链（http / https / mailto 以外的被拒，或系统打不开）；用「地址」不用「链接」：字体子集不含「链」（M5-2，重建字体不在本卡）"
+        },
+        "failed": {
+          "raw": null,
+          "text": "没能打开分享，可以再试一次。",
+          "origin": "extra",
+          "decision": "P96",
+          "note": "kind 不认识时的通用句"
         }
       }
     }

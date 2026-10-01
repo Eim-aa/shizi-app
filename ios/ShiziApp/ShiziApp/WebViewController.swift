@@ -11,7 +11,8 @@ import WebKit
 //           pageReady、haptic、sound、shareBackup、pickBackup、sharePracticeCard、savePracticeCard、syncReminder、
 //           requestReminderPermission、openAppSettings、queryReminderStatus、backGestureEnabled；soundscape 是 no-op（P07）。
 //   iOS→JS  bridge.js 在模块顶层同步定义的全局：shiziOpenReminderTarget、shiziBackupPicked、shiziBackupRejected、
-//           markBackupExported、shiziCardSaved、shiziReminderStatus；事件 shizi-native-back / shizi-native-back-progress。
+//           markBackupExported、shiziCardSaved、shiziReminderStatus、shiziShareFailed（P96 过渡，M6-6）；
+//           事件 shizi-native-back / shizi-native-back-progress。
 // 面向用户的文字一律在 Web 侧（src/config/copy/）：原生不弹 alert、不 reload（导入桥只交付文本或拒绝原因）。
 
 private final class WeakScriptMessageHandler: NSObject, WKScriptMessageHandler {
@@ -293,15 +294,21 @@ final class WebViewController: UIViewController {
         do {
             try Data(payload.utf8).write(to: fileURL, options: .atomic)
         } catch {
-            // 不弹原生提示（文案在 Web 侧）：页面收不到 markBackupExported，就不会记成已导出，可以再点一次。
+            // 不弹原生提示（文案在 Web 侧）：页面收不到 markBackupExported，就不会记成已导出，可以再点一次；
+            // P96：告诉页面分享没打开，由页面轻提示。
             logNative("shareBackup could not write temporary file: \(error.localizedDescription)")
+            notifyShareFailed(kind: "backup", reason: "write")
             return
         }
 
         let activity = UIActivityViewController(activityItems: [fileURL], applicationActivities: nil)
-        activity.completionWithItemsHandler = { [weak self] _, completed, _, _ in
+        activity.completionWithItemsHandler = { [weak self] _, completed, _, activityError in
             defer { try? FileManager.default.removeItem(at: fileURL) }
-            guard completed else { return }
+            if activityError != nil {
+                self?.notifyShareFailed(kind: "backup", reason: "activity")
+                return
+            }
+            guard completed else { return } // 用户取消：不记导出、不提示
             self?.notifyBackupExported()
         }
         presentCentered(activity)
@@ -311,10 +318,25 @@ final class WebViewController: UIViewController {
         webView.evaluateJavaScript("if (typeof markBackupExported === 'function') markBackupExported(); void 0;")
     }
 
+    /// P96（M6-6 过渡）：原生分享 / 打开外链失败时交给页面 shiziShareFailed({kind, reason})，由页面轻提示
+    /// （文案在 Web 侧 X-SHARE，Swift 不含面向用户的文字）。kind: backup / card / link；
+    /// reason: write / payload / activity / refused / open（只作诊断，页面按 kind 取文案）。用户取消不算失败。
+    func notifyShareFailed(kind: String, reason: String) {
+        DispatchQueue.main.async { [weak self] in
+            #if DEBUG
+            self?.recordSmokeEvent("shareFailed", ["kind": kind, "reason": reason])
+            #endif
+            self?.webView.evaluateJavaScript(
+                "if (typeof window.shiziShareFailed === 'function') window.shiziShareFailed({kind:'\(kind)',reason:'\(reason)'}); void 0;"
+            )
+        }
+    }
+
     private func sharePracticeCard(filename: String, dataURL: String) {
         guard presentedViewController == nil else { return }
         guard let data = Self.pngData(fromDataURL: dataURL) else {
             logNative("sharePracticeCard rejected a payload that is not a PNG data URL")
+            notifyShareFailed(kind: "card", reason: "payload")
             return
         }
 
@@ -328,12 +350,16 @@ final class WebViewController: UIViewController {
             try data.write(to: fileURL, options: .atomic)
         } catch {
             logNative("sharePracticeCard could not write temporary file: \(error.localizedDescription)")
+            notifyShareFailed(kind: "card", reason: "write")
             return
         }
 
         let activity = UIActivityViewController(activityItems: [fileURL], applicationActivities: nil)
-        activity.completionWithItemsHandler = { _, _, _, _ in
+        activity.completionWithItemsHandler = { [weak self] _, _, _, activityError in
             try? FileManager.default.removeItem(at: fileURL)
+            if activityError != nil {
+                self?.notifyShareFailed(kind: "card", reason: "activity")
+            }
         }
         presentCentered(activity)
     }
@@ -440,11 +466,13 @@ final class WebViewController: UIViewController {
     private func openExternally(_ url: URL) {
         guard let scheme = url.scheme?.lowercased(), ["http", "https", "mailto"].contains(scheme) else {
             logNative("refused to open external URL with scheme \(url.scheme ?? "nil")")
+            notifyShareFailed(kind: "link", reason: "refused")
             return
         }
         UIApplication.shared.open(url, options: [:]) { [weak self] opened in
             if !opened {
                 self?.logNative("system could not open \(scheme) link")
+                self?.notifyShareFailed(kind: "link", reason: "open")
             }
         }
     }

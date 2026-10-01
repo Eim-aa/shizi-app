@@ -126,9 +126,12 @@ export default async function write(page, ctx) {
   ctx.step('changing the character: pen-down within 0.3s is ignored, after 0.3s it counts (走查-V01)');
   const next = makeSession({ slot: 'A', kind: 'daily', chars: CHARS, cursor: 1 });
   const timing = await page.evaluate(sess => {
-    const c = document.querySelector('.sz-layer[data-top="true"] [data-testid="write-grid-live"]');
+    // seed 是整体替换：写字页本体按 store 替换代数重挂（M6-6），书写格 canvas 会换新，监听挂在 document 上（捕获阶段）。
     window.__penDowns = [];
-    c.addEventListener('pointerdown', e => window.__penDowns.push(e.timeStamp));
+    document.addEventListener('pointerdown', e => {
+      const hit = e.target && e.target.closest && e.target.closest('.sz-layer[data-top="true"] [data-testid="write-grid-live"]');
+      if (hit) window.__penDowns.push(e.timeStamp);
+    }, true);
     window.__seedAt = performance.now();
     const r = window.__shiziTest.seed({ sessions: { A: sess, B: null, lastEnded: {} } });
     return { ok: !!r.ok, at: window.__seedAt };

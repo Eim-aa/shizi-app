@@ -17,4 +17,9 @@ export default Object.freeze({
   // X-SYS（03 P55 待文案：坏值顶部提示）
   'X-SYS.corruptNotice': 'TODO: 启动时发现坏数据的顶部提示（P55）',
   'X-SYS.blockMigration': 'TODO: 旧数据没能导入时阻断页补充说明（P55，M5-6 迁移变体）',
+  // X-SHARE（M6-6 桥错误回调 shiziShareFailed，03 P96 过渡：原生分享面板没打开 / 外链打不开时的页内轻提示；待文案）
+  'X-SHARE.backupFailed': '备份文件没有分享出去，可以再试一次。',
+  'X-SHARE.cardFailed': '图片没有分享出去，可以再试一次。',
+  'X-SHARE.linkFailed': '这个地址没能打开。',
+  'X-SHARE.failed': '没能打开分享，可以再试一次。',
 });

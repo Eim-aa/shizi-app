@@ -484,9 +484,9 @@ export default async function run(page, { baseURL, assert, step }) {
   assert.equal(v.restoreSub, null, 'no restore sub while undo is on');
   assert.equal(v.records, 23, '23 chars now');
   st = await state(page);
-  // P79：替换结束进行中的组（A/B 置 null、lastEnded 保留），原会话随保护副本保存、撤销时还原
+  // P79：替换结束进行中的组（A/B 置 null；M6-6 lastEnded 一并清空），原会话随保护副本保存、撤销时还原
   assert.deepEqual([st.sessions.A, st.sessions.B], [null, null], 'P79: the unfinished B group ended by the replace');
-  assert.equal(S(st.sessions.lastEnded), S(S0.sessions.lastEnded), 'P79: lastEnded kept');
+  assert.equal(S(st.sessions.lastEnded), S({}), 'M6-6: lastEnded cleared by the replace');
   assert.equal(S(JSON.parse(st.safety.payload['shizi.v2.sessions'])), S(S0.sessions), 'P79: original sessions saved in the protection copy');
   assert.equal(st.safety && st.safety.kind, 'restore', 'protection copy present');
   assert.deepEqual(st.backupMeta.lastConclusion, { kind: 'restore', date: '2026-09-01', count: 23 }, 'conclusion persisted with the replace');
@@ -681,7 +681,7 @@ export default async function run(page, { baseURL, assert, step }) {
   await page.waitForSelector(topSel('backup-undo'));
   st = await state(page);
   assert.deepEqual([st.sessions.A, st.sessions.B], [null, null], 'P79: A ended by the replace');
-  assert.equal(S(st.sessions.lastEnded), S(SA.sessions.lastEnded), 'lastEnded kept');
+  assert.equal(S(st.sessions.lastEnded), S({}), 'M6-6: lastEnded (B ended yesterday) cleared by the replace');
   rs = await resumeNow();
   assert.ok(rs.resume === 'none' && (rs.dom === null || rs.dom === 'none'), `after replace: no resume on home (${JSON.stringify(rs)})`);
   await settle(page);

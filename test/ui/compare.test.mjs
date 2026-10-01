@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { loadFSRSGlobal } from '../core/helpers.mjs';
 import {
   judgeInDraft, commitJudgment, commitComparePhase, hasInk, findJudged, JudgeButtons, JudgeFooter, JUDGE_ORDER, paintMini,
-  rememberInk, recalledInk,
+  rememberInk, recalledInk, forgetRecentInk,
 } from '../../src/ui/screens/write/compare.js';
 import { correctInDraft, commitCorrection, resultRowModel, lineVisible, ResultRowView } from '../../src/ui/screens/write/result-row.js';
 import { skipInDraft, undoSkipInDraft, commitSkip, commitUndoSkip, canUndoSkip, SKIP_UNDO_MS, SkipUndoBar } from '../../src/ui/screens/write/skip.js';
@@ -352,7 +352,9 @@ test('copy: M1-5 slots exist (R-W09 / R-W10 / R-W16 / R-W17 / R-W20 / X-JUDGE)',
   assert.equal(t('R-W16.saveFailed'), '没保存上，你写的字还在。');
 });
 
-test('rememberInk / paintMini helpers', () => {
+test('rememberInk / paintMini helpers', t0 => {
+  forgetRecentInk(); // M6-6 测试清理接口：用例之间不共享本页面笔画缓存
+  t0.after(() => forgetRecentInk());
   rememberInk('r77', [STROKE]);
   assert.deepEqual(recalledInk('r77'), [STROKE]);
   rememberInk('r78', [[]]);

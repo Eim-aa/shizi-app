@@ -190,13 +190,14 @@ function storeOrNull() {
  * @param {string} o.inkKey          本地笔画那一份的键
  * @param {Array} o.strokes          本地原始笔画（index.js 的 view.strokes）
  * @param {string} o.phase           有效阶段
+ * @param {() => boolean} [o.isStale] 为真时不再写回（写字页本体因 store 整体替换而重挂，M6-6）
  * @returns {{notice: vnode|null, dirty: boolean, flush: (reason?:string) => object|null}}
  */
-export function usePersist({ slot, session, state, cardKey, inkKey, strokes, phase, noticeMs = NOTICE_MS }) {
+export function usePersist({ slot, session, state, cardKey, inkKey, strokes, phase, noticeMs = NOTICE_MS, isStale = null }) {
   const [notice, setNotice] = useState(null); // {kind, text}
   const [dirty, setDirty] = useState(false);
   const live = useRef(null);
-  live.current = { slot, cardKey, inkKey, strokes, phase };
+  live.current = { slot, cardKey, inkKey, strokes, phase, isStale };
   const hideTimer = useRef(null);
   const mounted = useRef(true);
 
@@ -222,6 +223,8 @@ export function usePersist({ slot, session, state, cardKey, inkKey, strokes, pha
     const store = storeOrNull();
     const cur = live.current;
     if (!store || !cur || !cur.cardKey) return null;
+    // M6-6：store 已被整体替换、本体正在按新状态重挂——这份现场属于替换前，不写（卸载时的「离开即写回」也在内）。
+    if (typeof cur.isStale === 'function' && cur.isStale()) return null;
     const result = commitStrokes(store, cur);
     onResult(result);
     return result;

@@ -4,7 +4,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { loadFSRSGlobal } from '../core/helpers.mjs';
-import { judgeInDraft, rememberInk } from '../../src/ui/screens/write/compare.js';
+import { judgeInDraft, rememberInk, recalledInk, forgetRecentInk } from '../../src/ui/screens/write/compare.js';
 import { skipInDraft, undoSkipInDraft } from '../../src/ui/screens/write/skip.js';
 import { appendRecordToDraft } from '../../src/ui/screens/write/answer.js';
 import {
@@ -216,7 +216,9 @@ test('resultModel P77: ended from the answer phase with judged chars → current
   assert.deepEqual(seenCurrentItem(g5.d.sessions.B, recs(g5.d)), [], 'other session record ignored');
 });
 
-test('resultModel I6: 「这次的图片」 entry counts page-memory strokes like the grid does (stored ink OR recalledInk)', () => {
+test('resultModel I6: 「这次的图片」 entry counts page-memory strokes like the grid does (stored ink OR recalledInk)', t0 => {
+  forgetRecentInk(); // M6-6：不继承别的用例记下的笔画
+  t0.after(() => forgetRecentInk()); // 也不留给后面的用例（记录 id 在各用例里会重复）
   const { d, slot, id } = group({ chars: ['永', '和'], steps: ['correct', 'correct'], id: 's77' });
   ended(d, slot);
   const ids = recs(d).map(r => r.id);
@@ -406,4 +408,15 @@ test('EndDialogContent: S04 primary 接着写, 结束这组 secondary, no presel
   const fb = find(failed, n => n.props && n.props.variant && n.props['data-testid']);
   assert.deepEqual(fb.map(b => b.props['data-testid']), ['write-end-fail-cancel', 'write-end-retry']);
   assert.equal(find(failed, n => n.props && n.props['data-testid'] === 'write-end-body')[0].props.children, t('R-W16.saveFailed'));
+});
+
+test('M6-6 forgetRecentInk: test cleanup for the page-memory ink cache (rememberInk)', () => {
+  forgetRecentInk();
+  rememberInk('r901', [STROKE]);
+  rememberInk('r902', [STROKE]);
+  assert.deepEqual(recalledInk('r901'), [STROKE]);
+  assert.equal(forgetRecentInk(), 2, 'returns how many were dropped');
+  assert.equal(recalledInk('r901'), null, 'cleared');
+  assert.equal(recalledInk('r902'), null, 'cleared');
+  assert.equal(forgetRecentInk(), 0, 'idempotent');
 });

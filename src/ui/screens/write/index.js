@@ -178,16 +178,29 @@ function StepDots({ phase }) {
   </span>`;
 }
 
+/**
+ * 写字页外壳：store 订阅、原生返回手势门控与触觉接线留在这一层（整页期间不变）；页面本体按 store 替换代数 epoch 作 key
+ * 挂载——store 被整体替换（seed / 恢复备份 / 撤销 / 清空 / 迁移 / 重读）后，本体的全部本地状态（笔画现场、判断页本地阶段
+ * 与失败态、跳过撤销机会与失败态、提示、看答案失败态、结果行收起、换字落笔门限、最后一字交接与回根标记）一起按新状态重来，
+ * 不把替换前的现场带进新状态（M1 验收 G1 只接了笔画现场；M6-6 补齐「写字页其它本地状态接 epoch」）。
+ * 旧本体卸载时 usePersist 的「离开即写回」不写：它记下的是替换前的现场（isStale）。
+ */
 function WriteScreen({ params, entry }) {
   const slot = params && params.slot === 'B' ? 'B' : 'A';
   const { state, epoch } = useStoreState();
+  const isTop = useBackGestureGate(entry);
+  useEffect(() => { installCommitFeedback(getStore); }, []); // M5-5：判断 / 提示 / 看答案 / 撤销等 commit 成功后发触觉与按键音（platform/haptics.js）
+  const epochRef = useRef(epoch);
+  epochRef.current = epoch;
+  return html`<${WriteBody} key=${`e${epoch}`} slot=${slot} state=${state} epoch=${epoch} isTop=${isTop} entry=${entry}
+    isStale=${() => epochRef.current !== epoch} />`;
+}
+
+function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
   const session = state && state.sessions ? state.sessions[slot] || null : null;
   const cardKey = currentCardKey(session);
   const rawPhase = session && session.current ? session.current.phase : 'recall';
   const storedPhase = PHASES.includes(rawPhase) ? rawPhase : 'recall';
-
-  const isTop = useBackGestureGate(entry);
-  useEffect(() => { installCommitFeedback(getStore); }, []); // M5-5：判断 / 提示 / 看答案 / 撤销等 commit 成功后发触觉与按键音（platform/haptics.js）
   // M2-2：被压在下面期间本页不写回现场；重新成为顶层时，若这期间存下的现场被别处改过（上面那页写过同一槽），
   // 按存下的现场重取本地笔画，不把旧笔画写回去；没被改过就保留本地笔画（下一次写回照常）。
   const topGenRef = useRef({ was: isTop, gen: 0, current: null });
@@ -224,7 +237,7 @@ function WriteScreen({ params, entry }) {
   const phase = cmpPhase.phase;
   // M1-6 会话现场：本地笔画一变就写回 sessions（P52 不阻断 + 一次性提示）、visibilitychange 重写、打开时恢复幂等。
   // M2-2：只有顶层写字页写回现场（抬笔 / visibilitychange / pagehide / 离开）；被压在下面时不写（cardKey 传 null = 不写）。
-  const persist = usePersist({ slot, session, state, cardKey: isTop ? cardKey : null, inkKey, strokes: view.strokes, phase });
+  const persist = usePersist({ slot, session, state, cardKey: isTop ? cardKey : null, inkKey, strokes: view.strokes, phase, isStale });
 
   // 换字 / 换阶段 = 新状态：按钮 0.4s 不响应。
   useLayoutEffect(() => {

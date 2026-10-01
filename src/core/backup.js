@@ -10,7 +10,8 @@
 // 旁路写回。保护副本本身很大（一整份白名单数据），它撞配额时若回收，会在「没能换成备份」的同时悄悄折掉用户的旧记录，
 // 与 R-B04「你现在的记录没有变」和 K03「全部 v2 键深相等」相违。reclaim:false 撞配额直接 {ok:false, kind:'quota'}。
 //
-// 进行中的组（P79）：替换备份 / 清空所有记录时结束正在进行的组——sessions.A / B 置 null（lastEnded 保留），
+// 进行中的组（P79）：替换备份 / 清空所有记录时结束正在进行的组——sessions.A / B 置 null，并一并清掉 lastEnded
+// （M6-6：lastEnded 指向的记录可能已被替换 / 清掉，结果页不能再按它恢复；02 §8「M3/M4 遗留」），
 // 原 sessions 随保护副本存进 payload['shizi.v2.sessions']，撤销时连同会话一起原样还原（K03 全部 v2 键深相等含 sessions）。
 //
 // 备份文件（01 §3.6）：{app:'shizi', version:2, date:ISO, data:{'shizi.v2.<键>': JSON 字串}}，只含白名单键；
@@ -408,13 +409,15 @@ export function makeSafety(state, { kind, now, backupDate = null, count = 0 }) {
 }
 
 /**
- * 结束进行中的组（P79）：在 commit / replaceWithBackup 的草稿里把 sessions.A / B 置 null，lastEnded 保留。
- * sessions 域不存在时不建。
+ * 结束进行中的组（P79）：在 commit / replaceWithBackup 的草稿里把 sessions.A / B 置 null，lastEnded 一并清空
+ * （M6-6：替换 / 清空后 lastEnded 指向的会话与记录已不在，结果页不再按它恢复）。sessions 域不存在时不建。
  */
 export function endActiveSessions(draft) {
   if (!isPlainObject(draft.sessions)) return;
-  if (draft.sessions.A === null && draft.sessions.B === null) return;
-  draft.sessions = Object.assign({}, draft.sessions, { A: null, B: null });
+  const ended = draft.sessions.lastEnded;
+  const noEnded = !isPlainObject(ended) || Object.keys(ended).length === 0;
+  if (draft.sessions.A === null && draft.sessions.B === null && noEnded) return;
+  draft.sessions = Object.assign({}, draft.sessions, { A: null, B: null, lastEnded: {} });
 }
 
 /** 状态里的保护副本（没有返回 null）。 */
@@ -481,7 +484,7 @@ function errorOf(result) {
  *   ③ 成功 → {ok:true, conclusion}。
  * 备份文件里的 backupMeta 不采用：换成本机的上次备份时间与签名（K02「替换、撤销不改上次备份的日期」）+ 本次结论
  * （R-B01 结论句，离开备份页后仍显示；与替换同一次写入，不另等离开时再写）。
- * 备份文件里没有会话（01 §3.6：导入时忽略会话）；本机进行中的组随替换结束（A/B 置 null，lastEnded 保留，P79），
+ * 备份文件里没有会话（01 §3.6：导入时忽略会话）；本机进行中的组随替换结束（A/B 置 null、lastEnded 清空，P79 / M6-6），
  * 原会话在保护副本里，撤销时还原。funnel 不动。
  * @param {object} store
  * @param {object} report  inspectBackup 的成功结果
@@ -514,7 +517,7 @@ export function restoreFromBackup(store, report, { now }) {
 /**
  * 清空所有记录（R-B03 清空确认之后）：① 保护副本（失败 → stage 'safety'）；② 一次不回收的 commit 清掉
  * records / ink / sched / custom / wordOff / photos / legacy，保留 meta（序号）、settings、backupMeta（写入结论），
- * 并结束进行中的组（A/B 置 null，lastEnded 保留，P79；原会话在保护副本里，撤销时还原）；
+ * 并结束进行中的组（A/B 置 null、lastEnded 清空，P79 / M6-6；原会话在保护副本里，撤销时还原）；
  * 失败 → 删副本 → stage 'clear'。
  */
 export function clearAllRecords(store, { now }) {

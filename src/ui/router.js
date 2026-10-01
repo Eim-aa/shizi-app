@@ -122,6 +122,7 @@ export function createRouter(options) {
   let pending = null; // {expectDepth, cause, silent, then, timer}
   let started = false;
   let defaultTabName = null;
+  let nativeBackFilter = null; // M6-5：跟手手势已处理过的 shizi-native-back 由它吞掉（见 createBackGestureController）
   const queue = [];
   const overlays = new Map(); // id -> {component, props, name}
   const listeners = new Set();
@@ -382,8 +383,24 @@ export function createRouter(options) {
       return true;
     },
 
+    // 原生 shizi-native-back。跟手手势在 ended 时已按同一阈值自行提交 / 回弹（或在 began 时关了遮罩），
+    // 紧随其后的这次事件由 filter 吞掉，免得多退一层；没有跟手过程（旧壳、冒烟、事件丢失）时照常返回一层。
     handleNativeBack() {
+      if (nativeBackFilter) {
+        let absorbed = false;
+        try {
+          absorbed = nativeBackFilter() === true;
+        } catch (error) {
+          onError(error);
+        }
+        if (absorbed) return false;
+      }
       return router.back({ cause: 'native' });
+    },
+
+    /** M6-5：注册 / 清除 shizi-native-back 过滤器（返回 true 表示已被跟手手势处理，本次不返回）。 */
+    setNativeBackFilter(fn) {
+      nativeBackFilter = typeof fn === 'function' ? fn : null;
     },
 
     switchTab(name) {
@@ -500,6 +517,211 @@ export function createBackGestureSync({ send, screenOf = getScreen }) {
       send(backGestureAllowed(snap, blocked));
       return true;
     },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// 跟手交互式返回（M6-5，01 §7：Swift 的 UIScreenEdgePanGestureRecognizer 是手势唯一所有者，
+// 每个阶段派发 shizi-native-back-progress {phase, translationX, progress, velocityX}；JS 只按事件渲染）。
+//
+// - began：遮罩栈非空（顶层是遮罩）→ 直接关顶层遮罩，页面不动，本次手势余下的事件都不跟随；
+//          否则有子页 → 冻结底层页（露出、不可点），开始跟随；tab 根 / 阻断 / 转场或导航进行中 → 不理会。
+// - changed：顶层页 translateX 跟手，底层页视差（从 -BACK_PARALLAX × 宽 滑到 0），顶层页带左投影。
+// - ended：位移 > BACK_COMMIT_RATIO × 宽 或 速度 > BACK_COMMIT_VELOCITY → 提交 back（转场从当前位置接着走）；否则回弹。
+// - cancelled：回弹。
+// - 减少动态效果：不跟随（页面不动），ended 仍按阈值提交（转场走交叉淡化）。
+// - Swift 在 ended 越过同一阈值时紧接着派发 shizi-native-back：本次手势已处理，由 absorbNativeBack() 吞掉。
+// 纯逻辑（状态、计时器、宽度都可注入），渲染由 onView(view) 交给 ui/root.js；单测 test/ui/gesture.test.mjs。
+
+// 与 ios/ShiziApp/ShiziApp/WebViewController.swift dispatchBackGesture 的阈值一致（改一处必须改另一处）。
+export const BACK_COMMIT_RATIO = 0.24;
+export const BACK_COMMIT_VELOCITY = 650; // pt/s（= CSS px/s）
+export const BACK_PARALLAX = 0.3;
+export const GESTURE_SNAP_MS = 200;
+// ended 之后多久内到达的 shizi-native-back 算「同一次手势」（Swift 在同一段脚本里紧接着派发，实际是同步的）。
+export const GESTURE_ABSORB_MS = 600;
+// 提交后等不到返回转场（history 卡住）就回弹，不让页面停在半路。
+export const GESTURE_COMMIT_TIMEOUT_MS = PENDING_TIMEOUT_MS + 200;
+
+function clampNum(value, lo, hi) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return lo;
+  return Math.min(hi, Math.max(lo, n));
+}
+
+/** ended 时是否提交返回：位移过阈值或向右速度过阈值。 */
+export function backGestureCommits(detail, width) {
+  const w = Math.max(1, Number(width) || 1);
+  const x = clampNum(detail && detail.translationX, 0, w);
+  const v = Number(detail && detail.velocityX) || 0;
+  return x > w * BACK_COMMIT_RATIO || v > BACK_COMMIT_VELOCITY;
+}
+
+/** 顶层页位移 x 时两层的 translateX：顶层 = x；底层视差 = -(宽 − x) × BACK_PARALLAX（x=0 时 -0.3 宽，x=宽 时 0）。 */
+export function gestureLayerX(x, width) {
+  const w = Math.max(1, Number(width) || 1);
+  const top = clampNum(x, 0, w);
+  const under = -(w - top) * BACK_PARALLAX;
+  return { top, under: Math.round(under * 100) / 100 || 0 };
+}
+
+/**
+ * @param {object} deps
+ * @param {() => object} deps.getState         路由快照（router.getState）
+ * @param {() => any} deps.back                返回一层 / 关顶层遮罩（router.back({cause:'native'})）
+ * @param {() => number} [deps.width]          视口宽（CSS px）
+ * @param {() => boolean} [deps.reducedMotion]
+ * @param {() => boolean} [deps.blocked]       阻断页（R-B09）
+ * @param {() => boolean} [deps.busy]          页面转场进行中
+ * @param {(view: null | {phase:'follow'|'snap'|'commit', x:number, under:number, width:number}) => void} [deps.onView]
+ */
+export function createBackGestureController(deps) {
+  const getState = deps.getState;
+  const back = deps.back;
+  const widthOf = deps.width || (() => 1);
+  const reducedMotion = deps.reducedMotion || (() => false);
+  const blocked = deps.blocked || (() => false);
+  const busy = deps.busy || (() => false);
+  const onView = deps.onView || (() => {});
+  const now = deps.now || (() => Date.now());
+  const setTimer = deps.setTimeout || ((fn, ms) => setTimeout(fn, ms));
+  const clearTimer = deps.clearTimeout || (id => clearTimeout(id));
+  const snapMs = Number.isFinite(deps.snapMs) ? deps.snapMs : GESTURE_SNAP_MS;
+
+  let session = null; // {mode:'page'|'overlay'|'ignored', follow, width, x, ended, endedAt, committed, absorbed}
+  let view = null;
+  let timer = null;
+
+  function stopTimer() {
+    if (timer !== null) clearTimer(timer);
+    timer = null;
+  }
+
+  function show(next) {
+    view = next;
+    onView(next);
+  }
+
+  function frame(phase, x, width) {
+    const { top, under } = gestureLayerX(x, width);
+    return { phase, x: top, under, width };
+  }
+
+  function snapBack() {
+    stopTimer();
+    if (!view) return;
+    show(frame('snap', 0, view.width));
+    timer = setTimer(() => {
+      timer = null;
+      if (view && view.phase === 'snap') show(null);
+    }, snapMs + 20);
+  }
+
+  function begin(x, width) {
+    stopTimer();
+    const s = getState() || {};
+    if (blocked()) {
+      session = { mode: 'ignored', ended: false };
+      if (view) show(null);
+      return;
+    }
+    if (s.topIsOverlay) {
+      // 弹层开着：左缘右滑先关遮罩（02 §8），页面不动。
+      session = { mode: 'overlay', ended: false };
+      if (view) show(null);
+      back();
+      return;
+    }
+    if (pageDepth(s) === 0 || s.pending || busy()) {
+      session = { mode: 'ignored', ended: false };
+      return;
+    }
+    const follow = !reducedMotion();
+    session = { mode: 'page', follow, width, x, ended: false };
+    if (follow) show(frame('follow', x, width));
+    else if (view) show(null);
+  }
+
+  function end(committed) {
+    session.ended = true;
+    session.endedAt = now();
+    session.committed = committed;
+  }
+
+  return {
+    /** 处理一条 shizi-native-back-progress 的 detail。 */
+    handle(detail) {
+      const d = detail || {};
+      const phase = d.phase;
+      const live = session && !session.ended;
+      const width = live && session.width ? session.width : Math.max(1, Number(widthOf()) || 1);
+      const x = clampNum(d.translationX, 0, width);
+      if (phase === 'began' || (phase === 'changed' && !live)) {
+        begin(x, width);
+        return;
+      }
+      if (!live) return; // 没见过 began 的 ended / cancelled：不理会（shizi-native-back 照常返回）
+      if (phase === 'changed') {
+        if (session.mode !== 'page') return;
+        session.x = x;
+        if (session.follow) show(frame('follow', x, width));
+        return;
+      }
+      if (phase === 'ended') {
+        if (session.mode !== 'page') {
+          end(false);
+          return;
+        }
+        session.x = x;
+        const commit = backGestureCommits({ translationX: x, velocityX: d.velocityX }, width);
+        end(commit);
+        if (!commit) {
+          snapBack();
+          return;
+        }
+        if (session.follow) {
+          show(frame('commit', x, width));
+          stopTimer();
+          timer = setTimer(() => {
+            timer = null;
+            if (view && view.phase === 'commit') snapBack();
+          }, GESTURE_COMMIT_TIMEOUT_MS);
+        }
+        back();
+        return;
+      }
+      if (phase === 'cancelled') {
+        end(false);
+        if (session.mode === 'page') snapBack();
+      }
+    },
+
+    /** shizi-native-back 到达时调用：属于刚结束、已由本控制器处理的那次手势 → true（吞掉），每次手势只吞一次。 */
+    absorbNativeBack() {
+      if (!session || !session.ended || session.absorbed || session.mode === 'ignored') return false;
+      if (now() - session.endedAt > GESTURE_ABSORB_MS) return false;
+      session.absorbed = true;
+      return true;
+    },
+
+    /** 返回转场接手（从当前位置继续滑出）：交出位置并清掉跟手画面。没有在提交中则返回 null。 */
+    handoff() {
+      if (!view || view.phase !== 'commit') return null;
+      const v = view;
+      stopTimer();
+      show(null);
+      return v;
+    },
+
+    /** 页面结构另有变化（非本次提交的转场）：立即清掉跟手画面。 */
+    reset() {
+      stopTimer();
+      if (session && !session.ended) end(false);
+      if (view) show(null);
+    },
+
+    getView: () => view,
+    getSession: () => (session ? { ...session } : null),
   };
 }
 

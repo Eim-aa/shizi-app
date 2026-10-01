@@ -3,13 +3,17 @@
 // - 推入 300ms cubic-bezier(.2,.7,.2,1) 带左投影，返回反向；
 // - 减少动态效果：120ms 交叉淡化（R-G01；任务卡写「直接切换」，两者不一致，见报告待定项）；
 // - iOS 主屏 PWA（display-mode: standalone）下由系统返回（popstate）引发的返回跳过转场；
-// - 原生 shizi-native-back-progress 事件驱动跟手位移（M0 最小实现，完整跟手在 M6）；
+// - 原生 shizi-native-back-progress 事件驱动跟手交互式返回（M6-5，逻辑在 router.createBackGestureController）：
+//   began 冻结底层页（露出、不可点、跟手期间不重画——位移直接写 style.transform，不走 setState），changed 顶层页跟手、
+//   底层页视差、顶层页左投影；ended 过阈值提交 back（转场从手指位置接着滑出），否则回弹；cancelled 回弹；
+//   顶层是遮罩时 began 只关遮罩、页面不动；减少动态效果时不跟随，只按阈值提交；
 // - 原生左缘返回门控：tab 根页 / 阻断页 backGestureEnabled(false)，有子页 true；只在页面栈深度或阻断变化时发，
 //   写字页为顶层时由写字页自己管（router.createBackGestureSync）。
 // 每个页面图层一直挂着（下面的页面 visibility:hidden），返回时页面内状态与滚动位置都在。
 import { html, render, useEffect, useLayoutEffect, useRef, useState } from '../../vendor/ui.js';
 import {
   attachWindow,
+  createBackGestureController,
   createBackGestureSync,
   createRouter,
   getScreen,
@@ -42,8 +46,8 @@ export const PUSH_MS = 300;
 export const PUSH_EASING = 'cubic-bezier(.2,.7,.2,1)';
 export const FADE_MS = 120;
 export const SNAP_MS = 200;
-// 原生手势 ended 之后等 shizi-native-back 的时间；超过就回弹。
-const NATIVE_END_GRACE_MS = 250;
+// 跟手提交后的返回转场按剩余距离缩短，但不短于这个值。
+const GESTURE_POP_MIN_MS = 150;
 
 injectStyles('root', `
 .sz-app{position:fixed;inset:0;overflow:hidden;background:${T.p};color:${T.i1};font-family:${T.sans};
@@ -51,6 +55,7 @@ injectStyles('root', `
 .sz-layer{position:absolute;inset:0;overflow:hidden;background:${T.p};display:flex;flex-direction:column}
 .sz-layer--moving{box-shadow:-12px 0 24px rgba(48,38,26,.12)}
 .sz-layer--snap{transition:transform ${SNAP_MS}ms ${PUSH_EASING}}
+.sz-layer--under{pointer-events:none}
 .sz-layer__screen{flex:1;min-height:0;display:flex;flex-direction:column}
 .sz-layer__screen>.sz-page{flex:1;height:auto}
 .sz-tabroot{flex:1;min-height:0;display:flex;flex-direction:column}
@@ -101,7 +106,7 @@ function TabRoot({ entry }) {
   </div>`;
 }
 
-function Layer({ router, group, isRoot, visible, isTop, dragX, snapping }) {
+function Layer({ router, group, isRoot, visible, isTop }) {
   const e = group.screen;
   const def = getScreen(e.n);
   const Comp = def ? def.component : null;
@@ -109,10 +114,10 @@ function Layer({ router, group, isRoot, visible, isTop, dragX, snapping }) {
   const content = isRoot
     ? html`<${TabRoot} entry=${e} />`
     : Comp ? html`<${Comp} params=${e.p} entry=${e} />` : null;
+  // transform 与 sz-layer--moving/--snap/--under 由转场与跟手手势直接写 DOM（style 里不带 transform，Preact 不会覆盖）。
   const style = { visibility: visible ? 'visible' : 'hidden' };
-  if (dragX != null) style.transform = `translateX(${dragX}px)`;
   return html`<div
-    class=${snapping ? 'sz-layer sz-layer--snap' : 'sz-layer'}
+    class="sz-layer"
     data-entry=${e.id}
     data-screen=${e.n}
     data-top=${isTop ? 'true' : undefined}
@@ -126,12 +131,13 @@ function Layer({ router, group, isRoot, visible, isTop, dragX, snapping }) {
 
 function Root({ router, win }) {
   const [snap, setSnap] = useState(() => router.getState());
-  const [drag, setDrag] = useState(null); // {x, snapping?}
+  const [gestureOn, setGestureOn] = useState(false); // 跟手中（含回弹、提交后等转场）：底层页露出
   const [, force] = useState(0);
   const block = useBlockReason(getStore); // M5-6
   const appRef = useRef(null);
   const animRef = useRef({ handledSeq: snap.transition ? snap.transition.seq : 0, current: null, running: null });
-  const dragRef = useRef({ active: false, x: 0, at: -Infinity, timer: null });
+  const gestureRef = useRef({ ctrl: null, els: null });
+  const blockedRef = useRef(false);
   const focusRef = useRef({ handledSeq: snap.transition ? snap.transition.seq : 0, saved: new Map() });
 
   useEffect(() => {
@@ -144,20 +150,27 @@ function Root({ router, win }) {
   const t = snap.transition;
   if (t && t.seq !== animRef.current.handledSeq) {
     animRef.current.handledSeq = t.seq;
+    const ctrl = gestureRef.current.ctrl;
+    const gv = ctrl ? ctrl.getView() : null;
+    const fromGesture = !!(t.kind === 'pop' && t.cause === 'native' && gv && gv.phase === 'commit' &&
+      t.from && gestureRef.current.els && gestureRef.current.els.topId === t.from.id);
     if (t.animate && (t.kind === 'push' || t.kind === 'pop') && t.from && t.to) {
-      const d = dragRef.current;
-      const fromDrag = t.kind === 'pop' && t.cause === 'native' && (d.active || nowMs() - d.at < 600) ? d.x : 0;
       animRef.current.current = {
         seq: t.seq,
         kind: t.kind,
         mode: prefersReducedMotion(win) ? 'fade' : 'slide',
         from: t.from,
         to: t.to,
-        startX: fromDrag,
+        startX: fromGesture ? gv.x : 0,
+        underX: fromGesture ? gv.under : 0,
+        width: fromGesture ? gv.width : 0,
+        fromGesture,
       };
     } else {
       animRef.current.current = null;
     }
+    // 跟手画面只由它自己的提交转场接手；其它结构变化（replace、tab、另一处返回）立即清掉。
+    if (ctrl && gv && !fromGesture) animRef.current.resetGesture = true;
   }
   const anim = animRef.current.current;
 
@@ -166,40 +179,54 @@ function Root({ router, win }) {
     const a = animRef.current.current;
     const running = animRef.current.running;
     if (running && running !== a && running.cancel) running.cancel();
+    if (animRef.current.resetGesture) {
+      animRef.current.resetGesture = false;
+      if (gestureRef.current.ctrl) gestureRef.current.ctrl.reset();
+    }
     if (!a || a.started) return;
     a.started = true;
     animRef.current.running = a;
-    if (dragRef.current.active || drag) {
-      clearTimeout(dragRef.current.timer);
-      dragRef.current = { active: false, x: 0, at: -Infinity, timer: null };
-      setDrag(null);
-    }
+    // 跟手提交的返回：先清跟手写下的 transform / 类名，下面的动画从同一位置接着走（都在绘制前，不闪）。
+    if (a.fromGesture && gestureRef.current.ctrl) gestureRef.current.ctrl.handoff();
     const rootEl = appRef.current;
     const pick = id => (rootEl ? rootEl.querySelector(`.sz-layer[data-entry="${id}"]`) : null);
     const fade = a.mode === 'fade';
     const moving = a.kind === 'push' ? pick(a.to.id) : pick(a.from.id);
+    // 跟手提交：顶层页从手指位置滑出、底层页从视差位置归位，时长按剩余距离缩短。
+    const under = a.fromGesture && !fade ? pick(a.to.id) : null;
+    const rest = a.fromGesture && a.width ? Math.max(0, 1 - a.startX / a.width) : 1;
     const frames = a.kind === 'push'
       ? (fade ? [{ opacity: 0 }, { opacity: 1 }] : [{ transform: 'translateX(100%)' }, { transform: 'translateX(0)' }])
       : (fade ? [{ opacity: 1 }, { opacity: 0 }] : [{ transform: `translateX(${a.startX}px)` }, { transform: 'translateX(100%)' }]);
     const opts = fade
       ? { duration: FADE_MS, easing: 'linear', fill: 'both' }
-      : { duration: PUSH_MS, easing: PUSH_EASING, fill: 'both' };
+      : { duration: a.fromGesture ? Math.max(GESTURE_POP_MIN_MS, Math.round(PUSH_MS * rest)) : PUSH_MS, easing: PUSH_EASING, fill: 'both' };
     if (moving && !fade) moving.classList.add('sz-layer--moving');
     let animation = null;
+    let underAnimation = null;
+    if (moving && typeof moving.animate === 'function') {
+      animation = moving.animate(frames, opts);
+    }
+    if (under && typeof under.animate === 'function') {
+      underAnimation = under.animate([{ transform: `translateX(${a.underX}px)` }, { transform: 'translateX(0)' }], opts);
+    }
     let done = false;
     let timer = null;
     const finish = () => {
       if (done) return;
       done = true;
       clearTimeout(timer);
-      if (animation) {
+      for (const anm of [animation, underAnimation]) {
+        if (!anm) continue;
         try {
-          animation.cancel();
+          anm.cancel();
         } catch (error) {
           // 已结束
         }
       }
       if (moving) moving.classList.remove('sz-layer--moving');
+      // 渲染期闭包还抓着 a（hook 里留存的上一轮 effect）；断开 a → finish → moving，出栈的图层 DOM 才能回收（M6-3）。
+      a.cancel = null;
       if (animRef.current.running === a) animRef.current.running = null;
       if (animRef.current.current === a) {
         animRef.current.current = null;
@@ -207,10 +234,7 @@ function Root({ router, win }) {
       }
     };
     a.cancel = finish;
-    if (moving && typeof moving.animate === 'function') {
-      animation = moving.animate(frames, opts);
-      animation.onfinish = finish;
-    }
+    if (animation) animation.onfinish = finish;
     timer = setTimeout(finish, opts.duration + 150);
   });
 
@@ -220,6 +244,7 @@ function Root({ router, win }) {
   if (!gateRef.current) gateRef.current = createBackGestureSync({ send: setBackGestureEnabled });
   const gateDepth = pageDepth(snap);
   const blocked = !!block.reason;
+  blockedRef.current = blocked;
   useEffect(() => {
     gateRef.current.update(snap, blocked);
   }, [gateDepth, blocked]);
@@ -266,39 +291,72 @@ function Root({ router, win }) {
     return () => win.removeEventListener('keydown', onKey);
   }, [router, win]);
 
-  // 原生左缘手势进度（Swift 唯一所有者；JS 只按事件渲染）。
+  // 原生左缘手势进度（Swift 唯一所有者；JS 只按事件渲染）。M6-5 跟手交互式返回，见文件头与 router.createBackGestureController。
   useEffect(() => {
-    const snapBack = () => {
-      clearTimeout(dragRef.current.timer);
-      const timer = setTimeout(() => setDrag(cur => (cur && cur.snapping ? null : cur)), SNAP_MS + 20);
-      dragRef.current = { active: false, x: 0, at: -Infinity, timer };
-      setDrag({ x: 0, snapping: true });
-    };
-    const onProgress = event => {
-      const detail = (event && event.detail) || {};
-      const s = router.getState();
-      if (s.depth === 0 || s.topIsOverlay || animRef.current.current) return;
-      const width = win.innerWidth || 1;
-      const x = Math.min(width, Math.max(0, Number(detail.translationX) || 0));
-      const d = dragRef.current;
-      if (detail.phase === 'began' || detail.phase === 'changed') {
-        clearTimeout(d.timer);
-        dragRef.current = { active: true, x, at: nowMs(), timer: null };
-        setDrag({ x });
-      } else if (detail.phase === 'ended') {
-        clearTimeout(d.timer);
-        dragRef.current = { active: false, x, at: nowMs(), timer: null };
-        dragRef.current.timer = setTimeout(() => {
-          if (!animRef.current.current) snapBack();
-        }, NATIVE_END_GRACE_MS);
-      } else if (detail.phase === 'cancelled') {
-        snapBack();
+    const g = gestureRef.current;
+    const pickLayer = id => (appRef.current ? appRef.current.querySelector(`.sz-layer[data-entry="${id}"]`) : null);
+    const clearEls = () => {
+      const els = g.els;
+      g.els = null;
+      if (!els) return;
+      for (const el of [els.top, els.under]) {
+        if (!el) continue;
+        el.style.transform = '';
+        el.classList.remove('sz-layer--moving', 'sz-layer--snap', 'sz-layer--under');
       }
     };
+    // 画面只写 DOM：跟手期间页面组件不重画（冻结），只在开始 / 结束各 setState 一次（露出 / 收起底层页）。
+    const onView = view => {
+      if (!view) {
+        clearEls();
+        setGestureOn(false);
+        return;
+      }
+      if (!g.els) {
+        const pages = router.getState().stack.filter(e => e.k === 's');
+        const topE = pages[pages.length - 1];
+        const underE = pages[pages.length - 2];
+        g.els = {
+          topId: topE ? topE.id : null,
+          top: topE ? pickLayer(topE.id) : null,
+          under: underE ? pickLayer(underE.id) : null,
+        };
+        if (g.els.top) g.els.top.classList.add('sz-layer--moving');
+        if (g.els.under) g.els.under.classList.add('sz-layer--under');
+        setGestureOn(true);
+      }
+      const snapping = view.phase === 'snap';
+      const { top, under } = g.els;
+      if (top) {
+        top.classList.toggle('sz-layer--snap', snapping);
+        top.style.transform = `translateX(${view.x}px)`;
+      }
+      if (under) {
+        under.classList.toggle('sz-layer--snap', snapping);
+        under.style.transform = `translateX(${view.under}px)`;
+      }
+    };
+    const ctrl = createBackGestureController({
+      getState: () => router.getState(),
+      back: () => router.back({ cause: 'native' }),
+      width: () => win.innerWidth || 1,
+      reducedMotion: () => prefersReducedMotion(win),
+      blocked: () => blockedRef.current,
+      busy: () => !!animRef.current.current,
+      now: nowMs,
+      snapMs: SNAP_MS,
+      onView,
+    });
+    g.ctrl = ctrl;
+    router.setNativeBackFilter(() => ctrl.absorbNativeBack());
+    const onProgress = event => ctrl.handle((event && event.detail) || {});
     win.addEventListener(NATIVE_PROGRESS_EVENT, onProgress);
     return () => {
-      clearTimeout(dragRef.current.timer);
       win.removeEventListener(NATIVE_PROGRESS_EVENT, onProgress);
+      router.setNativeBackFilter(null);
+      ctrl.reset();
+      clearEls();
+      g.ctrl = null;
     };
   }, [router, win]);
 
@@ -321,7 +379,7 @@ function Root({ router, win }) {
     visible.add(anim.from.id);
     visible.add(anim.to.id);
   }
-  const dragging = !anim && drag && groups.length >= 2;
+  const dragging = !anim && gestureOn && groups.length >= 2;
   if (dragging) visible.add(groups[groups.length - 2].screen.id);
   const navAnim = anim ? `${anim.kind}-${anim.mode}` : dragging ? 'drag' : 'idle';
 
@@ -334,8 +392,6 @@ function Root({ router, win }) {
       isRoot=${i === 0}
       visible=${visible.has(g.screen.id)}
       isTop=${g.screen.id === topId}
-      dragX=${dragging && g.screen.id === topId ? drag.x : null}
-      snapping=${dragging && g.screen.id === topId && !!drag.snapping}
     />`)}
     <${CorruptNotice} getStore=${getStore} />
     <${ToastHost} />

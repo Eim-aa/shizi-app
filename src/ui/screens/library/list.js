@@ -99,7 +99,8 @@ injectStyles('library-list', `
 .sz-lrow__word b{font-weight:700;color:${T.i1}}
 .sz-lrow__meta{display:block;font-size:calc(14px * ${T.k});line-height:calc(20px * ${T.k});
   color:${T.i2};font-variant-numeric:tabular-nums}
-.sz-lrow__meta span{white-space:nowrap}
+/* 每段整段换行；M6-2：一段比这一栏还宽时（320 宽 + 大字）段内再换行，不越出这一栏压到右边的小图说明 */
+.sz-lrow__meta span{display:inline-block;max-width:100%}
 .sz-lrow__thumbcol{flex:none;display:flex;flex-direction:column;align-items:center;gap:2px}
 .sz-lrow__thumb{position:relative;width:44px;height:44px;box-sizing:border-box;border:1px solid var(--g, rgba(166,83,63,.28));
   background:${T.c};display:grid;place-items:center;overflow:hidden}
@@ -120,7 +121,8 @@ injectStyles('library-list', `
 .sz-list-empty__body{margin:0;max-width:290px;font-size:calc(13px * ${T.k});line-height:1.75;color:${T.i3};text-wrap:pretty}
 `);
 
-const CHECK = html`<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="var(--p, #F4F0E7)" stroke-width="1.8"
+// 每次渲染现取新 vnode，不复用模块级常量（vendor/ui.js 注释，M6-3）。
+const CHECK = () => html`<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="var(--p, #F4F0E7)" stroke-width="1.8"
   stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m3 7.2 2.6 2.6L11 4.4"></path></svg>`;
 
 // ---------------------------------------------------------------- 状态
@@ -192,7 +194,7 @@ function Row({ row, ink, onToggle, onDetail }) {
     ? html`<${Button} variant="plain" class="sz-lrow__sel" role="checkbox" aria-checked=${row.selected ? 'true' : 'false'}
         rapid=${true} aria-label=${t(row.selected ? 'X-QUERY.unselectAria' : 'X-QUERY.selectAria', { char: row.char })}
         data-testid="list-row-select" onClick=${() => onToggle(row.char)}>
-        <span class="sz-lrow__dot" aria-hidden="true">${row.selected ? CHECK : null}</span>
+        <span class="sz-lrow__dot" aria-hidden="true">${row.selected ? CHECK() : null}</span>
       </${Button}>`
     : html`<span class="sz-lrow__gap" aria-hidden="true"></span>`;
   const w = row.word;

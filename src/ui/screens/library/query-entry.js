@@ -37,7 +37,8 @@ injectStyles('library-query', `
 .sz-libq__text{min-width:0;font-size:calc(17px * ${T.k});line-height:calc(24px * ${T.k});letter-spacing:.04em;color:${T.i3}}
 `);
 
-const SEARCH_ICON = html`<svg class="sz-libq__icon" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.6"
+// 每次渲染现取新 vnode，不复用模块级常量（vendor/ui.js 注释，M6-3）。
+const SEARCH_ICON = () => html`<svg class="sz-libq__icon" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.6"
   stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="10" cy="10" r="6"></circle><path d="m14.5 14.5 4 4"></path></svg>`;
 
 /**
@@ -65,6 +66,6 @@ export function LibraryQueryBox() {
   const label = t('R-Q01.titleLookup');
   return html`<${Button} variant="plain" class="sz-libq" data-testid="library-query-open" data-mode="lookup"
     aria-haspopup="dialog" onClick=${() => { openLibraryQuery(); }}>
-    ${SEARCH_ICON}<span class="sz-libq__text">${label}</span>
+    ${SEARCH_ICON()}<span class="sz-libq__text">${label}</span>
   </${Button}>`;
 }

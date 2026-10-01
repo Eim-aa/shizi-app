@@ -314,9 +314,10 @@ function isTopEntry(entryId) {
   return !!(snap && snap.top && snap.top.id === entryId);
 }
 
-const PREV_ICON = html`<svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5"
+// 每次渲染现取新 vnode，不复用模块级常量（vendor/ui.js 注释，M6-3）。
+const PREV_ICON = () => html`<svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5"
   stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M11 4 6 9l5 5"></path></svg>`;
-const NEXT_ICON = html`<svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5"
+const NEXT_ICON = () => html`<svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5"
   stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m7 4 5 5-5 5"></path></svg>`;
 
 function Calendar({ model, selected, onPick }) {
@@ -437,9 +438,9 @@ function RecordsScreen({ params, entry }) {
         </span>
         <span class="sz-rec__arrows">
           <${Button} variant="plain" class="sz-rec__arrow" data-testid="records-prev" disabled=${!model.prev}
-            aria-label=${t('X-MINE.prevMonth')} onClick=${() => toMonth(model.prev)}><span class="sz-rec__arrowbg">${PREV_ICON}</span></${Button}>
+            aria-label=${t('X-MINE.prevMonth')} onClick=${() => toMonth(model.prev)}><span class="sz-rec__arrowbg">${PREV_ICON()}</span></${Button}>
           <${Button} variant="plain" class="sz-rec__arrow" data-testid="records-next" disabled=${!model.next}
-            aria-label=${t('X-MINE.nextMonth')} onClick=${() => toMonth(model.next)}><span class="sz-rec__arrowbg">${NEXT_ICON}</span></${Button}>
+            aria-label=${t('X-MINE.nextMonth')} onClick=${() => toMonth(model.next)}><span class="sz-rec__arrowbg">${NEXT_ICON()}</span></${Button}>
         </span>
       </div>
       <div class="sz-rec__head">

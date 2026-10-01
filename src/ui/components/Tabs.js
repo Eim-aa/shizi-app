@@ -1,5 +1,7 @@
-// 底部三导航（决定-D02）：role=tablist，每项 role=tab + aria-selected；三项都在 Tab 键顺序里
-// （任务卡「键盘 Tab 可达三 tab」），另支持左右方向键 / Home / End 在项间移动焦点。
+// 底部三导航（决定-D02）：role=tablist，每项 role=tab + aria-selected。
+// 键盘按 WAI-ARIA Tabs「漫游 tabindex、手动激活」（02 §8 M6-1；M0-4 三项都可 Tab 是过渡实现）：
+// 只有选中项 tabindex=0（Tab 键进出 tablist 只停一次，落在选中项上），其余 tabindex=-1；
+// 在 tablist 里左右方向键 / Home / End 移动焦点（首尾循环），不切换；Enter / Space（按钮原生点击）才切换。
 // 规格取原型 ShiziScreen hasTabs：左右 12px 外边距、64px 高（×--k）、32px 圆角、--c 底、.5px --i5 边，
 // 图标 22px、字 11px；选中 --ar、未选 --i3。
 import { html, useRef } from '../../../vendor/ui.js';
@@ -47,8 +49,9 @@ export function Tabs({ items, selected, onSelect, label }) {
       id=${`sz-tab-${item.id}`}
       data-testid=${`tab-${item.id}`}
       aria-selected=${item.id === selected ? 'true' : 'false'}
+      tabindex=${item.id === selected ? '0' : '-1'}
       aria-controls=${item.panelId}
       onClick=${() => { if (item.id !== selected) onSelect(item.id); }}
-    >${item.icon}<span>${item.label}</span></${Button}>`)}
+    >${typeof item.icon === 'function' ? item.icon() : item.icon}<span>${item.label}</span></${Button}>`)}
   </div>`;
 }

@@ -39,7 +39,8 @@ export { MINE_ROUTES, openRecords, openTodayRecords, setMineImageActions, RECORD
 export const MINE_LABEL = t('X-TABS.mine');
 export const MINE_TAB = 'mine';
 
-const ICON = html`<svg viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+// 每次渲染现取新 vnode，不复用模块级常量（vendor/ui.js 注释，M6-3）。
+const ICON = () => html`<svg viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
   stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="11" cy="7" r="3.6"></circle><path d="M4.2 19.4v-3a6.8 6.8 0 0 1 13.6 0v3"></path></svg>`;
 
 injectStyles('mine', `
@@ -125,14 +126,20 @@ function Sheet({ model }) {
   </section>`;
 }
 
+// 读屏（M6-1；M3/M4 验收遗留「菜单行无障碍名含副标题」）：按钮的名字只读标题（aria-label），
+// 副标题与右侧值作为描述（aria-describedby）读在名字之后，不并进名字。
 function MenuRow({ to, testid, title, sub = null, value = null, valueTestid, subTestid }) {
-  return html`<${Button} variant="plain" class="sz-mine__row" data-testid=${testid} data-to=${to} onClick=${() => go(to)}>
+  const subId = `sz-${testid}-sub`;
+  const valueId = `sz-${testid}-value`;
+  const described = [sub !== null ? subId : null, value !== null ? valueId : null].filter(Boolean).join(' ') || undefined;
+  return html`<${Button} variant="plain" class="sz-mine__row" data-testid=${testid} data-to=${to} onClick=${() => go(to)}
+    aria-label=${title} aria-describedby=${described}>
     <span class="sz-mine__rowl">
       <span class="sz-mine__rowt">${title}</span>
-      ${sub !== null ? html`<span class="sz-mine__rows" data-testid=${subTestid}>${sub}</span>` : null}
+      ${sub !== null ? html`<span class="sz-mine__rows" id=${subId} data-testid=${subTestid}>${sub}</span>` : null}
     </span>
     ${value !== null
-      ? html`<span class="sz-mine__rowr sz-mine__rowr--value" data-testid=${valueTestid}>${value}</span>`
+      ? html`<span class="sz-mine__rowr sz-mine__rowr--value" id=${valueId} data-testid=${valueTestid}>${value}</span>`
       : html`<span class="sz-mine__rowr" aria-hidden="true">${t('X-MINE.chevron')}</span>`}
   </${Button}>`;
 }

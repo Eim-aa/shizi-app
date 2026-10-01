@@ -59,7 +59,8 @@ export const CLOCK_TICK_MS = 30000;
 // 演示子页只在测试主机上加载（ui/root.js），生产形态里 getScreen 为 null，入口不出现。
 const DEMO_SCREEN = '_demo/sub';
 
-const ICON = html`<svg viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+// 每次渲染现取新 vnode，不复用模块级常量（vendor/ui.js 注释，M6-3）。
+const ICON = () => html`<svg viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
   stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 9.4 11 3l8 6.4V19H3V9.4M8.4 19v-6.6h5.2V19"></path></svg>`;
 
 // 纸纹点（原型「拾」红块 L55 background-image）；颜色是装饰值，不作令牌。
@@ -105,7 +106,7 @@ injectStyles('home', `
 .sz-home__line{margin:0;min-height:22px;text-align:center;font-size:15px;line-height:22px;letter-spacing:.02em;color:var(--tb, #6A645B)}
 .sz-home__other.sz-btn{min-height:44px;padding:0 12px;font-size:15px;line-height:22px;letter-spacing:.02em;color:var(--tb, #6A645B);
   text-decoration:underline;text-underline-offset:4px;text-decoration-color:var(--i4, #B3AC9F)}
-.sz-home__record{display:flex;align-items:center;justify-content:center;gap:12px;min-height:44px}
+.sz-home__record{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:0 12px;min-height:44px} /* M6-2：放不下一行（320 宽 + 大字）时计数换到下一行，不越出屏幕 */
 .sz-home__pick.sz-btn{margin-top:14px;width:196px;min-height:44px;justify-content:center;font-size:15px;line-height:22px;
   letter-spacing:.04em;color:var(--tb, #6A645B)}
 .sz-home__fail{margin-top:12px;width:100%;max-width:345px;display:flex;flex-direction:column;gap:10px}

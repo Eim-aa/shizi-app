@@ -349,7 +349,8 @@ export function createInkSurface({ box, inkCanvas, liveCanvas, win = window, get
   };
 }
 
-const GUIDES = html`<svg class="sz-inkgrid__layer sz-inkgrid__guides" viewBox="0 0 ${GRID} ${GRID}" aria-hidden="true" focusable="false">
+// 每次渲染现取新 vnode，不复用模块级常量（vendor/ui.js 注释，M6-3）。
+const GUIDES = () => html`<svg class="sz-inkgrid__layer sz-inkgrid__guides" viewBox="0 0 ${GRID} ${GRID}" aria-hidden="true" focusable="false">
   <line x1=${GRID / 2} y1="0" x2=${GRID / 2} y2=${GRID} stroke="var(--g)" stroke-width="1" stroke-dasharray="4 5"></line>
   <line x1="0" y1=${GRID / 2} x2=${GRID} y2=${GRID / 2} stroke="var(--g)" stroke-width="1" stroke-dasharray="4 5"></line>
 </svg>`;
@@ -439,7 +440,7 @@ export function InkGrid(props) {
     data-drawable=${drawable ? 'true' : 'false'}
     data-stroke-count=${count}
   >
-    ${GUIDES}
+    ${GUIDES()}
     <div class="sz-inkgrid__layer sz-inkgrid__glyph" ref=${glyphRef} data-testid="write-glyph-layer" aria-hidden="true">${glyph}</div>
     <canvas class="sz-inkgrid__layer sz-inkgrid__ink" ref=${inkRef} style=${inkStyle} data-testid="write-grid-ink" aria-hidden="true"></canvas>
     <canvas class="sz-inkgrid__layer sz-inkgrid__live" ref=${liveRef} data-testid="write-grid-live" aria-hidden="true"></canvas>

@@ -15,7 +15,8 @@ injectStyles('corrupt-notice', `
 .sz-corrupt__text{flex:1;margin:0;padding-top:2px;font-size:calc(15px * ${T.k});line-height:1.7;color:${T.i2}}
 `);
 
-const CLOSE_ICON = html`<svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor"
+// 每次渲染现取新 vnode，不复用模块级常量（vendor/ui.js 注释，M6-3）。
+const CLOSE_ICON = () => html`<svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor"
   stroke-width="1.5" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M5 5l10 10M15 5 5 15"></path></svg>`;
 
 /**
@@ -47,6 +48,6 @@ export function CorruptNotice({ getStore }) {
     data-keys=${notice.keys.join(',')}>
     <p class="sz-corrupt__text">${t('X-SYS.corruptNotice')}</p>
     <${Button} variant="icon" data-testid="corrupt-notice-close" aria-label=${t('X-COMMON.close')}
-      onClick=${() => setNotice(null)}>${CLOSE_ICON}</${Button}>
+      onClick=${() => setNotice(null)}>${CLOSE_ICON()}</${Button}>
   </div>`;
 }

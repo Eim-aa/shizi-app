@@ -34,9 +34,10 @@ injectStyles('page', `
 .sz-tabpage__title:focus{outline:none}
 `);
 
-const BACK_ICON = html`<svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor"
+// 每次渲染现取新 vnode，不复用模块级常量（vendor/ui.js 注释，M6-3）。
+const BACK_ICON = () => html`<svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor"
   stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M13.5 5 7.5 11l6 6"></path></svg>`;
-const CLOSE_ICON = html`<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor"
+const CLOSE_ICON = () => html`<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor"
   stroke-width="1.5" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M5 5l10 10M15 5 5 15"></path></svg>`;
 
 /**
@@ -54,7 +55,7 @@ export function Page({ title = '', leading = 'back', onBack, lead: customLead = 
   const lead = customLead ? customLead : leading === 'none'
     ? null
     : html`<${Button} variant="icon" data-testid="page-back" aria-label=${leading === 'close' ? PAGE_COPY.close : PAGE_COPY.back}
-        onClick=${goBack}>${leading === 'close' ? CLOSE_ICON : BACK_ICON}</${Button}>`;
+        onClick=${goBack}>${leading === 'close' ? CLOSE_ICON() : BACK_ICON()}</${Button}>`;
   return html`<div class="sz-page" data-testid=${testid}>
     <header class="sz-page__head">
       <span class="sz-page__lead">${lead}</span>

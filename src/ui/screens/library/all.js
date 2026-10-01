@@ -66,11 +66,11 @@ injectStyles('library-all', `
 .sz-all__where{flex:none;font-size:calc(15px * ${T.k});color:${T.i2};white-space:nowrap}
 .sz-all__miss{margin:0;font-size:calc(13px * ${T.k});line-height:calc(18px * ${T.k});color:${T.i3}}
 .sz-all__sorts{display:flex;padding:3px;border-radius:12px;background:${T.off}}
-.sz-all__sort.sz-btn{flex:1;min-height:38px;box-sizing:border-box;border-radius:9px;display:grid;place-items:center;
+.sz-all__sort.sz-btn{flex:1;min-height:44px;box-sizing:border-box;border-radius:9px;display:grid;place-items:center;
   font-size:calc(15px * ${T.k});color:${T.i2}}
 .sz-all__sort.sz-btn[aria-pressed="true"]{background:${T.c};color:${T.i1};box-shadow:inset 0 0 0 .5px ${T.i4},0 1px 3px rgba(48,38,26,.12)}
 .sz-all__chips{display:flex;flex-wrap:wrap;gap:8px}
-.sz-all__chip.sz-btn{min-height:40px;box-sizing:border-box;padding:0 14px;border-radius:20px;box-shadow:inset 0 0 0 .5px ${T.i4};
+.sz-all__chip.sz-btn{min-height:44px;box-sizing:border-box;padding:0 14px;border-radius:22px;box-shadow:inset 0 0 0 .5px ${T.i4};
   display:inline-flex;align-items:center;gap:7px;font-size:calc(15px * ${T.k});color:${T.i2};white-space:nowrap}
 .sz-all__chip.sz-btn[aria-pressed="true"]{background:${T.off};box-shadow:inset 0 0 0 1px ${T.i1};color:${T.i1}}
 .sz-all__chip.sz-btn[disabled]{color:${T.i4};box-shadow:inset 0 0 0 .5px ${T.i5}}
@@ -108,7 +108,8 @@ injectStyles('library-all', `
   color:${T.i2};text-wrap:pretty}
 `);
 
-const SEARCH_ICON = html`<svg width="18" height="18" viewBox="0 0 22 22" fill="none" stroke="var(--i2, #5D5952)" stroke-width="1.6"
+// 每次渲染现取新 vnode，不复用模块级常量（vendor/ui.js 注释，M6-3）。
+const SEARCH_ICON = () => html`<svg width="18" height="18" viewBox="0 0 22 22" fill="none" stroke="var(--i2, #5D5952)" stroke-width="1.6"
   stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="10" cy="10" r="6"></circle><path d="m14.5 14.5 4 4"></path></svg>`;
 
 // ---------------------------------------------------------------- 状态
@@ -289,7 +290,7 @@ function AllScreen({ params, entry }) {
       data-cols=${model.cols}>
       <div class="sz-all__findbar">
         <label class=${`sz-all__find${f.found ? ' sz-all__find--hit' : ''}`}>
-          ${SEARCH_ICON}
+          ${SEARCH_ICON()}
           <input class="sz-all__input" type="search" data-testid="all-find" value=${find} aria-label=${t('R-A03.searchAria')}
             placeholder=${t('R-Q01.titleLookup')} autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck=${false}
             enterkeyhint="search" onInput=${e => { setFailed(false); setFind(e.currentTarget.value); }} />

@@ -134,13 +134,18 @@ export function catmullRom(points, step = INK.step) {
       const u = j / n;
       const u2 = u * u;
       const u3 = u2 * u;
-      const q = {
-        x: 0.5 * (2 * b.x + (-a.x + c.x) * u + (2 * a.x - 5 * b.x + 4 * c.x - d.x) * u2 + (-a.x + 3 * b.x - 3 * c.x + d.x) * u3),
-        y: 0.5 * (2 * b.y + (-a.y + c.y) * u + (2 * a.y - 5 * b.y + 4 * c.y - d.y) * u2 + (-a.y + 3 * b.y - 3 * c.y + d.y) * u3),
-        t: lerp(num(b.t, 0), num(c.t, 0), u),
-      };
-      if (hasPressure(b) || hasPressure(c)) q.p = lerp(num(b.p, 0), num(c.p, 0), u);
-      if (typeof b.w === 'number' && typeof c.w === 'number') q.w = lerp(b.w, c.w, u);
+      const x = 0.5 * (2 * b.x + (-a.x + c.x) * u + (2 * a.x - 5 * b.x + 4 * c.x - d.x) * u2 + (-a.x + 3 * b.x - 3 * c.x + d.x) * u3);
+      const y = 0.5 * (2 * b.y + (-a.y + c.y) * u + (2 * a.y - 5 * b.y + 4 * c.y - d.y) * u2 + (-a.y + 3 * b.y - 3 * c.y + d.y) * u3);
+      const t = lerp(num(b.t, 0), num(c.t, 0), u);
+      // 一次字面量建好全部字段（键序同前：x, y, t, p?, w?）：事后再加 p / w 会让每个点多挂一个 PropertyArray
+      // （M6-3 61-perf：缩略图保持挂载时点列占 JS 堆的大头）。
+      const hasP = hasPressure(b) || hasPressure(c);
+      const hasW = typeof b.w === 'number' && typeof c.w === 'number';
+      let q;
+      if (hasP && hasW) q = { x, y, t, p: lerp(num(b.p, 0), num(c.p, 0), u), w: lerp(b.w, c.w, u) };
+      else if (hasP) q = { x, y, t, p: lerp(num(b.p, 0), num(c.p, 0), u) };
+      else if (hasW) q = { x, y, t, w: lerp(b.w, c.w, u) };
+      else q = { x, y, t };
       out.push(q);
     }
   }

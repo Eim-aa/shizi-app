@@ -30,7 +30,8 @@ injectStyles('query-row', `
 .sz-qrow__chev{flex:none;font-size:calc(15px * ${T.k});color:${T.i3}}
 `);
 
-const CHECK = html`<svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="var(--p, #F4F0E7)" stroke-width="1.8"
+// 每次渲染现取新 vnode，不复用模块级常量（vendor/ui.js 注释，M6-3）。
+const CHECK = () => html`<svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="var(--p, #F4F0E7)" stroke-width="1.8"
   stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m3 7.2 2.6 2.6L11 4.4"></path></svg>`;
 
 /**
@@ -50,7 +51,7 @@ export function CharRow({ summary, pinyin = '', word = '', selectable = false, s
     ? html`<${Button} variant="plain" class="sz-qrow__sel" role="checkbox" aria-checked=${selected ? 'true' : 'false'}
         rapid=${true} aria-label=${t(selected ? 'X-QUERY.unselectAria' : 'X-QUERY.selectAria', { char: c })}
         data-testid="query-row-select" onClick=${() => onToggle && onToggle(c)}>
-        <span class="sz-qrow__dot" aria-hidden="true">${selected ? CHECK : null}</span>
+        <span class="sz-qrow__dot" aria-hidden="true">${selected ? CHECK() : null}</span>
       </${Button}>`
     : null;
   return html`<li class="sz-qrow" data-testid="query-row" data-char=${c} data-practicable=${summary.practicable ? 'true' : 'false'}

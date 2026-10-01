@@ -8,8 +8,10 @@
 //      关闭提示后消失；刷新后不再出现，仍正常进首页。
 //   3. 写失败且回滚也失败（页面内包一层 Storage.prototype.setItem 注入）→ 阻断变体：有判断过的字时给导出入口；「再试一次」整页重启 → repair 回滚、回到首页。
 //   4. 迁移变体（reportMigrationFailure，供 M5-4 调用）：阻断页多一句迁移说明、无导出入口；清除后回到 tab。
+//   5. 原生左缘返回门控（01 §7；M5 修复回合遗留、M6 问题 L6）：装假原生桥（installNativeStub）——
+//      场景 1 的阻断页显示时 backGestureEnabled 最后一次为 false；子页上触发阻断 → 由 true 变 false，解除后交还 true。
 
-import { bootTestHost, resetStore, tid, waitNavIdle } from './helpers.mjs';
+import { bootTestHost, installNativeStub, nativeMessages, resetStore, tid, waitNavIdle } from './helpers.mjs';
 
 const COPY_MOD = '/src/config/copy/index.js';
 
@@ -25,6 +27,10 @@ const DENY_STORAGE = () => {
     };
   }
 };
+
+async function gateValues(page) {
+  return (await nativeMessages(page, 'backGestureEnabled')).map(m => m.value);
+}
 
 async function copyOf(page, key) {
   return page.evaluate(async ({ mod, k }) => (await import(mod)).t(k), { mod: COPY_MOD, k: key });
@@ -63,8 +69,13 @@ async function scenarioDenied(page, ctx) {
     p.on('console', msg => {
       if (msg.type() === 'error') errors.push(`console.error: ${msg.text()}`);
     });
+    await installNativeStub(p);
     await p.goto(`${baseURL}/`);
     await p.waitForSelector(tid('block-screen'));
+    await p.waitForTimeout(200);
+    const gate = await gateValues(p);
+    assert.ok(gate.length > 0, 'native stub received backGestureEnabled while the block page is shown');
+    assert.equal(gate[gate.length - 1], false, 'block page shown → last backGestureEnabled is false (01 §7)');
 
     const denied = await p.evaluate(() => {
       try {
@@ -109,6 +120,8 @@ async function scenarioDenied(page, ctx) {
     const afterPush = await blockSnapshot(p);
     assert.equal(afterPush.writeScreen, false, 'write screen stays unreachable after nav.push');
     assert.ok(afterPush.block, 'block page still shown after nav.push');
+    const gateAfterPush = await gateValues(p);
+    assert.equal(gateAfterPush[gateAfterPush.length - 1], false, 'nav.push while blocked does not re-enable backGestureEnabled');
     const commit = await p.evaluate(async () => {
       const { getStore } = await import('/src/store/store.js');
       const r = getStore().commit('e2e-probe', d => {
@@ -287,8 +300,53 @@ async function scenarioBlockedAndMigration(page, ctx) {
   await resetStore(page);
 }
 
+async function scenarioGestureGateFromSubPage(page, ctx) {
+  const { assert, baseURL } = ctx;
+  ctx.step('假原生桥：子页上触发阻断 → backGestureEnabled true→false；解除后交还 true');
+  const context = await page.context().browser().newContext({ viewport: ctx.viewport, deviceScaleFactor: 2, locale: 'zh-CN' });
+  const errors = [];
+  try {
+    const p = await context.newPage();
+    p.on('pageerror', error => errors.push(`pageerror: ${error && error.message}`));
+    p.on('console', msg => {
+      if (msg.type() === 'error') errors.push(`console.error: ${msg.text()}`);
+    });
+    await installNativeStub(p);
+    await bootTestHost(p, baseURL);
+    await resetStore(p);
+    let gate = await gateValues(p);
+    assert.equal(gate[gate.length - 1], false, 'tab root → last backGestureEnabled is false');
+
+    await p.evaluate(async () => {
+      const { nav } = await import('/src/ui/router.js');
+      nav.push('backup');
+    });
+    await waitNavIdle(p);
+    gate = await gateValues(p);
+    assert.equal(gate[gate.length - 1], true, 'sub page (backup) → last backGestureEnabled is true');
+
+    await p.evaluate(async () => (await import('/src/ui/screens/block/index.js')).reportMigrationFailure({ reason: 'quota' }));
+    await p.waitForSelector(tid('block-screen'));
+    await p.waitForTimeout(200);
+    gate = await gateValues(p);
+    assert.equal(gate[gate.length - 1], false, 'block page over a sub page → last backGestureEnabled is false');
+
+    await p.evaluate(async () => (await import('/src/ui/screens/block/index.js')).clearMigrationFailure());
+    await p.waitForSelector(tid('block-screen'), { state: 'detached' });
+    await waitNavIdle(p);
+    gate = await gateValues(p);
+    assert.equal(gate[gate.length - 1], true, 'block cleared back on the sub page → backGestureEnabled handed back as true');
+    await resetStore(p);
+    await p.close();
+  } finally {
+    await context.close();
+  }
+  assert.deepEqual(errors, [], 'gesture-gate context: zero pageerror / console.error');
+}
+
 export default async function run(page, ctx) {
   await scenarioDenied(page, ctx);
   await scenarioCorrupt(page, ctx);
   await scenarioBlockedAndMigration(page, ctx);
+  await scenarioGestureGateFromSubPage(page, ctx);
 }

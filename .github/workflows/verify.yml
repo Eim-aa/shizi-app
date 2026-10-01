@@ -13,7 +13,7 @@ concurrency:
   cancel-in-progress: true
 
 # Three independent jobs run in parallel (02-实现计划 §0 门禁):
-#   data       — syntax checks + verify:data (governance, vector440, content, assets, sw-unit)
+#   data       — syntax checks + API floor (iOS >= 15) + verify:data (governance, vector440, content, assets, sw-unit, api)
 #   unit-copy  — verify:unit (node:test) + verify:copy
 #   web        — verify:web = Playwright e2e (scripts/e2e/run.mjs) + PWA upgrade gate
 #                (scripts/verify_pwa_upgrade.js: real v10 / v13 replayed to the v14 worker, BUILD A→B, 503 fallback).
@@ -48,6 +48,10 @@ jobs:
           python3 -m py_compile scripts/*.py ios/ShiziApp/scripts/validate-native-smoke.py
           for script in ios/ShiziApp/scripts/*.sh; do bash -n "$script"; done
           git diff --check
+      - name: API floor (iOS >= 15 WKWebView)
+        # scripts/verify_api_floor.mjs: banned APIs / syntax per 01-架构设计 §13; container-query units are listed as warnings.
+        # Also part of verify:data; run first here so an API-floor failure shows up before the slow browser checks.
+        run: pnpm run verify:api
       - name: Verify data integrity
         run: pnpm run verify:data
 

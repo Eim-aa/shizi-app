@@ -127,7 +127,14 @@
     "P97": "触觉点位与按键音：实现在 src/platform/haptics.js / sound.js 与 write/result 接线，设计确认项",
     "P98": "第一次结果页提醒邀请未做：src/ui/screens/result/index.js 的 setRemindInvite 槽留空，待产品给定",
     "P99": "提醒内容细则：实现在 src/platform/reminder.js（policy.reminderWord 为运行时键）",
-    "P100": "iOS 相册用途串文案：ios/ShiziApp/ShiziApp/Info.plist，产品确认项"
+    "P100": "iOS 相册用途串文案：ios/ShiziApp/ShiziApp/Info.plist，产品确认项",
+    "P101": "深色对比度豁免（印章、墨墙墨色、结果格浅字）：登记在 scripts/e2e/60-matrix.spec.js 的豁免表，设计确认项",
+    "P102": "矩阵发现的版式修正：home/index.js、library/all.js、library/list.js、detail/records.js 的样式，设计过目项",
+    "P103": "跟手返回常量：src/ui/router.js（BACK_COMMIT_RATIO/VELOCITY/PARALLAX）与 root.js，设计确认项",
+    "P104": "性能工程值：scripts/perf/README.md 与 compare.js NEAR_SCREENS，知悉项",
+    "P105": "API 下限告警（cq 单位、:focus-visible）：scripts/verify_api_floor.mjs 的 warn 清单，产品定最低版本",
+    "P106": "文案审计豁免：scripts/verify_copy.mjs 的 exportWordAllow / numeralAllow / HARDCODE_ALLOW，文案裁定项",
+    "P107": "边开发边改清单未完成项：docs/engineering/v10/acceptance/checklist-M6.md 标「未做」的条目，产品给定"
   },
   "noCopy": [
     "R-H08",

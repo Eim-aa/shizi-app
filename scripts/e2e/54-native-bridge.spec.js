@@ -18,7 +18,7 @@ import { tid, topSel, waitNavIdle } from './helpers.mjs';
 const COPY_MOD = '/src/config/copy/index.js';
 const NATIVE_GLOBALS = [
   'shiziOpenReminderTarget', 'shiziBackupPicked', 'shiziBackupRejected', 'markBackupExported', 'shiziCardSaved', 'shiziReminderStatus',
-  'shiziAccessibilityStatus',
+  'shiziAccessibilityStatus', 'shiziContentSize',
 ];
 
 // 页面加载前：假原生通道（记录每条消息；pageReady 那一刻给桥拍快照），并在 bridge.js 定义最后一个全局时安排「就绪前」的原生调用。
@@ -26,7 +26,7 @@ const NATIVE_GLOBALS = [
 function installFakeNative() {
   const globals = [
     'shiziOpenReminderTarget', 'shiziBackupPicked', 'shiziBackupRejected', 'markBackupExported', 'shiziCardSaved', 'shiziReminderStatus',
-    'shiziAccessibilityStatus',
+    'shiziAccessibilityStatus', 'shiziContentSize',
   ];
   window.__nativeMsgs = [];
   window.__early = null;
@@ -75,6 +75,11 @@ function installFakeNative() {
           // P116：读屏状态在就绪前到达两次，队列只留最后一次
           out.returns.push(window.shiziAccessibilityStatus({ voiceOver: false, switchControl: false }));
           out.returns.push(window.shiziAccessibilityStatus({ voiceOver: true, switchControl: false }));
+        } else if (early === 'contentSize') {
+          // P130：系统字号在就绪前到达两次，队列只留最后一次
+          out.returns.push(window.shiziContentSize({ category: 'XXXL', scale: 1.3529 }));
+          out.returns.push(window.shiziContentSize({ category: 'AX3', scale: 2.3529 }));
+          out.kBefore = getComputedStyle(document.documentElement).getPropertyValue('--k').trim();
         }
         out.pending = b ? b.pending().map(p => ({ name: p.name, args: p.args })) : null;
         window.__early = out;
@@ -183,6 +188,24 @@ export default async function nativeBridge(page, ctx) {
     return { status: m.getAccessibilityStatus(), active: m.assistiveTechActive() };
   });
   assert.deepEqual(status, { status: { voiceOver: true, switchControl: false }, active: true }, 'the page sees VoiceOver on');
+
+  ctx.step('system text size before ready (P130 / D29): only the last one is kept, replayed before pageReady → --k and data-ax applied');
+  await page.evaluate(() => window.__shiziTest.reset());
+  await boot(page, baseURL, 'contentSize');
+  early = await page.evaluate(() => window.__early);
+  assert.equal(early.readyBefore, false, 'the size arrived before bridge.markReady');
+  assert.deepEqual(early.returns, [true, true], 'global returns true (= page accepted) even before ready');
+  assert.deepEqual(early.pending, [{ name: 'shiziContentSize', args: [{ category: 'AX3', scale: 2.3529 }] }], 'queue keeps only the last size');
+  assert.equal(early.kBefore, '1', '--k is still the tokens.css default before ready');
+  ready = await msgs(page, 'pageReady');
+  assert.deepEqual(ready[0].at.pending, [], 'size replayed before pageReady');
+  assert.ok(ready[0].at.handlers.includes('shiziContentSize'), 'implementation registered before pageReady');
+  const sized = await page.evaluate(() => {
+    const root = document.documentElement;
+    return { k: getComputedStyle(root).getPropertyValue('--k').trim(), ax: root.getAttribute('data-ax'), size: root.getAttribute('data-text-size') };
+  });
+  assert.deepEqual(sized, { k: '2', ax: '3', size: 'AX3' }, 'AX3 → --k 2 (policy.contentSizeScale.AX3), data-ax="3"');
+  await page.evaluate(() => window.shiziContentSize({ category: 'L', scale: 1 }));
 
   // ------------------------------------------------------------ 3
   ctx.step('backup rejection before ready (tooLarge) → replayed → backup page shows R-B06');

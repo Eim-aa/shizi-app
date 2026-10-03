@@ -26,7 +26,8 @@ async function mountApp() {
     console.error('[shizi] store boot failed:', error);
   }
   await import('./store/migrate.js').then(m => m.bootMigration()).then(r => (r && r.ok === false ? import('./ui/screens/block/index.js').then(b => b.reportMigrationFailure({ reason: r.error && r.error.kind })) : null)).catch(error => console.warn('[shizi] migration failed:', error)); // M5-4：v1 → v2 迁移（01 §12；失败 → R-B09 迁移变体，M5-6）
-  await import('./platform/appearance.js').then(m => m.bootAppearance()).catch(error => console.warn('[shizi] appearance failed:', error)); // M4-3：按 settings 应用 data-theme / data-large（挂 UI 前）
+  await import('./platform/appearance.js').then(m => m.bootAppearance()).catch(error => console.warn('[shizi] appearance failed:', error)); // M4-3：按 settings 应用 data-theme（挂 UI 前）
+  await import('./platform/text-size.js').catch(error => console.warn('[shizi] text size setup failed:', error)); // P1-E6 / D29 / P130：注册系统字号的桥实现（markReady 之前；pageReady 时原生才发档位 → --k / data-ax）
   const { mountRoot } = await import('./ui/root.js');
   await mountRoot(container);
   await import('./platform/accessibility.js').catch(error => console.warn('[shizi] accessibility status setup failed:', error)); // 阶段 0 B2 / P116：注册读屏状态的桥实现（markReady 之前，pageReady 时原生才发状态）

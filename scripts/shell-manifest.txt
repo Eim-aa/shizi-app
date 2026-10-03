@@ -7367,6 +7367,7 @@ src/platform/share.js
 src/platform/sound.js
 src/platform/sw.js
 src/platform/test-hooks.js
+src/platform/text-size.js
 src/store/budget.js
 src/store/migrate.js
 src/store/storage.js

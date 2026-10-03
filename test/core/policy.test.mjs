@@ -94,7 +94,11 @@ test('policy: transitional defaults match 03 / the M0-6 card', () => {
   assert.equal(policy.assumedQuotaBytes, 5 * 1024 * 1024, 'P57');
   assert.equal(policy.darkLampLevel, 0.05, 'P58');
   assert.equal(policy.darkBrightenStep, false, 'P58');
-  assert.equal(policy.largeTextScale, 1.3, 'P59');
+  assert.equal(policy.largeTextScale, undefined, 'P59 decided D29: no fixed in-app large scale any more');
+  assert.deepEqual({ ...policy.contentSizeScale }, {
+    xS: 0.82, S: 0.88, M: 0.94, L: 1, XL: 1.12, XXL: 1.24, XXXL: 1.35, AX1: 1.6, AX2: 1.8, AX3: 2, AX4: 2.2, AX5: 2.4,
+  }, 'P130 Dynamic Type mapping (D29)');
+  assert.equal(policy.compactTextScale, 1.3, 'P131');
   assert.equal(policy.dailyCapCountsPicked, true, 'P60');
   assert.deepEqual({ ...policy.sessionExpiry }, { first: 'never', picked: 'never' }, 'P61');
   // M2-H：P69 / P70 迁入 policy（值不变）
@@ -107,10 +111,11 @@ test('policy: transitional defaults match 03 / the M0-6 card', () => {
   );
 });
 
-test('policy: P58/P59 mirror the CSS tokens they document (tokens.css cannot import JS)', () => {
+test('policy: P58 mirrors the CSS token it documents (tokens.css cannot import JS); --k defaults to 1 = contentSizeScale.L (P130)', () => {
   const css = fs.readFileSync(path.join(ROOT, 'src/config/tokens.css'), 'utf8');
   assert.match(css, new RegExp('--lamp:\\s*' + String(policy.darkLampLevel).replace(/^0/, '0?').replace('.', '\\.') + '\\b'), '--lamp equals policy.darkLampLevel');
-  assert.match(css, new RegExp('--k:\\s*' + String(policy.largeTextScale).replace('.', '\\.') + '\\b'), 'data-large --k equals policy.largeTextScale');
+  assert.match(css, /--k:\s*1;/, 'tokens.css --k default 1');
+  assert.equal(policy.contentSizeScale.L, 1, 'system default size maps to the same 1');
 });
 
 test('policy: exported objects and arrays are frozen', () => {

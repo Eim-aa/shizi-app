@@ -144,13 +144,13 @@ export const ink = Object.freeze({
 export const brushDetail = true;
 
 // ---- 写字页版式与动画节奏（M1 验收后登记，M2-H 迁入）----
-// P69 紧凑版触发（已决定 D36：只改控件排布，不再缩书写格）：视口高度 ≤ 此值（px）或 :root[data-large] 时写字页用紧凑版。
+// P69 紧凑版触发（已决定 D36：只改控件排布，不再缩书写格）：视口高度 ≤ 此值（px）或 :root[data-text-large]（系统字号 --k ≥ compactTextScale，P131）时写字页用紧凑版。
 // src/ui/screens/write/compact.js 读取（COMPACT_MAX_HEIGHT / COMPACT_QUERY，CSS media 与 JS 同一条件）。
 export const compactMaxHeight = 760;
 // P118 书写格显示边长（D36，覆盖 X08「紧凑版固定 258」与 P69 的缩格）：边长 = min(屏宽 − 2·sideMargin, 视口高 − reserve)，夹在 [min, max]；
 // 内部坐标仍是 345 单位，只缩放显示（src/ui/screens/write/compact.js writeGridSize）。reserve 是页头 / 页边 / 行 / 题面 / 格下一行 / 底栏
 // 的高度预算：视口高 ≤ compactMaxHeight 用 reserveCompact（紧凑版排布，按大字 1.3 校准），否则用 reserveStd（标准排布）；
-// 两者都与 :root[data-large] 无关，所以同一视口开关大字前后格子边长不变。题面提示行比预算多时页面正文可滚动，格子不缩。
+// 两者都与字号（--k、:root[data-text-large]）无关，所以同一视口换系统字号前后格子边长不变。题面提示行比预算多时页面正文可滚动，格子不缩。
 export const writeGrid = Object.freeze({
   min: 258, // P118 书写格边长下限（pt）
   max: 400, // P118 书写格边长上限（pt）
@@ -223,8 +223,32 @@ export const migration = Object.freeze({
 export const darkLampLevel = 0.05;
 // P58 W23 / R-W24 深色下提示笔、描摹轮廓、禁用按钮是否提亮一档：待真机看过再定（过渡不提亮）。
 export const darkBrightenStep = false;
-// P59 data-large 时的字号倍率 --k（原型紧凑版 1.3）；不跟随系统 Dynamic Type（映射待定）。现行值在 tokens.css :root[data-large] 的 --k。
-export const largeTextScale = 1.3;
+
+// ---- 字号（阶段 1 P1-E6；已决定 D29：字号跟随系统 Dynamic Type，覆盖 X08 与 P59 的固定 1.3 / App 内「更大字体」开关）----
+// P130 系统字号档位 → 连续倍率 --k（L = 系统默认 = 1）。原生（WebViewController.swift）读 traitCollection.preferredContentSizeCategory，
+// 在 pageReady 与 UIContentSizeCategory.didChangeNotification 时经桥全局 shiziContentSize({category, scale}) 传给页面；
+// src/platform/text-size.js 按本表取值写进 :root 的 --k（全站字号 = calc(Npx * var(--k))）。表以外的档位（将来 iOS 新增）
+// 退回原生量到的正文倍率 scale（UIFont body 字号 / 17），夹在 xS–AX5 之间。
+// xS–XXXL 取 iOS 正文（body）字号与默认 17pt 之比（14/15/16/17/19/21/23 pt）。AX1–AX5 继续增大但比 iOS 正文（28–53pt，×1.65–3.12）收一些：
+// --k 是全站同一个倍率，标题 / 题面这些大字也乘它，而 iOS 自己在 AX 档里大字放大得少得多（Large Title 只到 ×1.76）；
+// 取正文与大标题之间的值，完整 AX 版式（逐级字阶）待设计稿给出后再细分。须经 T5 系统字号矩阵（DEVICE_QA Q24）真机截图确认。
+export const contentSizeScale = Object.freeze({
+  xS: 0.82, // P130 extraSmall（14pt）
+  S: 0.88, // P130 small（15pt）
+  M: 0.94, // P130 medium（16pt）
+  L: 1, // P130 large（17pt，系统默认）
+  XL: 1.12, // P130 extraLarge（19pt）
+  XXL: 1.24, // P130 extraExtraLarge（21pt）
+  XXXL: 1.35, // P130 extraExtraExtraLarge（23pt）
+  AX1: 1.6, // P130 accessibilityMedium（iOS 正文 28pt ≈ ×1.65）
+  AX2: 1.8, // P130 accessibilityLarge（33pt ≈ ×1.94）
+  AX3: 2, // P130 accessibilityExtraLarge（40pt ≈ ×2.35）
+  AX4: 2.2, // P130 accessibilityExtraExtraLarge（47pt ≈ ×2.76）
+  AX5: 2.4, // P130 accessibilityExtraExtraExtraLarge（53pt ≈ ×3.12）
+});
+// P131 字号到多大时改用紧凑排布（:root[data-text-large]；写字页底栏两行、首页字大一档等，与视口高 ≤ compactMaxHeight 同一套排布，P69 / D36）。
+// 原型紧凑尺寸 ⇔ --k 1.3，取 1.3：XXXL 与 AX 档用紧凑排布，XXL（1.24）及以下仍是标准排布。只改控件排布，不改书写格（P118）。
+export const compactTextScale = 1.3;
 
 // ---- 冷启动恢复（审查整改 F1）----
 // P108 进程被杀 / 冷启动后恢复离开时的页面栈（R-W13 写字页阶段、P32 备份页撤销）：离开多久以内才恢复。

@@ -19,7 +19,10 @@
 //       shiziShareFailed({kind, reason}) → ui/components/share-failed.js（P96 过渡，M6-6：原生分享面板 / 外链打不开时页面轻提示；
 //         kind = backup | card | link，reason 只作诊断；用户取消不回调）；
 //       shiziAccessibilityStatus({voiceOver, switchControl}) → platform/accessibility.js（P116，阶段 0 B2：原生在 pageReady 和
-//         VoiceOver / 切换控制状态变化时传布尔值；就绪前只留最后一次；页面用它决定跳过撤销条要不要自动收起）。
+//         VoiceOver / 切换控制状态变化时传布尔值；就绪前只留最后一次；页面用它决定跳过撤销条要不要自动收起）；
+//       shiziContentSize({category, scale}) → platform/text-size.js（P130，阶段 1 P1-E6 / D29：原生在 pageReady 和
+//         UIContentSizeCategory.didChangeNotification 时传系统字号档位 xS…XXXL / AX1…AX5 与正文倍率；就绪前只留最后一次；
+//         页面据此设 :root 的 --k、data-ax、data-text-large）。
 //   - markReady(store) 幂等：第一次把桥置为就绪并按到达顺序回放积压调用；再次调用只更新 store 并回放仍积压的调用
 //     （app.js 启动序列与 M5-3 的 pageReady 接线都可能调用，谁先谁后都行）。
 //   - 全局函数返回 true = 页面已接收（交付或入队）；Swift 的深链只在 evaluate 返回 true 后清 key（M5-3）。
@@ -33,10 +36,11 @@ export const NATIVE_GLOBALS = Object.freeze([
   'shiziReminderStatus',
   'shiziShareFailed',
   'shiziAccessibilityStatus',
+  'shiziContentSize',
 ]);
 
-// 同名全局在队列里只保留最后一次调用（01 §8.1：提醒深链只保留最后一个 cardKey；P116：读屏状态只有最新的有意义）。
-const LAST_ONLY = new Set(['shiziOpenReminderTarget', 'shiziAccessibilityStatus']);
+// 同名全局在队列里只保留最后一次调用（01 §8.1：提醒深链只保留最后一个 cardKey；P116：读屏状态、P130：系统字号只有最新的有意义）。
+const LAST_ONLY = new Set(['shiziOpenReminderTarget', 'shiziAccessibilityStatus', 'shiziContentSize']);
 
 function nativeChannel(win) {
   try {

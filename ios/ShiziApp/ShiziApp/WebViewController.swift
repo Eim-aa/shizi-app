@@ -12,7 +12,8 @@ import WebKit
 //           requestReminderPermission、openAppSettings、queryReminderStatus、backGestureEnabled；soundscape 是 no-op（P07）。
 //   iOS→JS  bridge.js 在模块顶层同步定义的全局：shiziOpenReminderTarget、shiziBackupPicked、shiziBackupRejected、
 //           markBackupExported、shiziCardSaved、shiziReminderStatus、shiziShareFailed（P96 过渡，M6-6）、
-//           shiziAccessibilityStatus（P116：读屏 / 切换控制状态，pageReady 与状态变化时）；
+//           shiziAccessibilityStatus（P116：读屏 / 切换控制状态，pageReady 与状态变化时）、
+//           shiziContentSize（P130 / D29：系统字号档位与正文倍率，pageReady 与系统字号变化时）；
 //           事件 shizi-native-back / shizi-native-back-progress。
 // 面向用户的文字一律在 Web 侧（src/config/copy/）：原生不弹 alert、不 reload（导入桥只交付文本或拒绝原因）。
 
@@ -123,6 +124,7 @@ final class WebViewController: UIViewController {
         applySmokeLaunchArguments()
         #endif
         observeAccessibilityStatus()
+        observeContentSize()
         loadApp()
     }
 
@@ -209,6 +211,7 @@ final class WebViewController: UIViewController {
         #endif
         dispatchPendingReminderTargetIfReady()
         sendAccessibilityStatus()
+        sendContentSize(view.traitCollection.preferredContentSizeCategory)
         #if DEBUG
         runNativeSmokeIfNeeded()
         #endif
@@ -238,6 +241,62 @@ final class WebViewController: UIViewController {
         let switchControl = UIAccessibility.isSwitchControlRunning ? "true" : "false"
         webView.evaluateJavaScript(
             "if (typeof shiziAccessibilityStatus === 'function') shiziAccessibilityStatus({voiceOver:\(voiceOver),switchControl:\(switchControl)}); void 0;"
+        )
+    }
+
+    // MARK: - 系统字号（阶段 1 P1-E6 / D29 / P130）
+
+    // 页面字号跟随系统 Dynamic Type（含控制中心「单个 App 文字大小」，它改的也是本 App 的 preferredContentSizeCategory）：
+    // pageReady 时发一次当前档位，系统字号变化时再发；页面（src/platform/text-size.js）按 policy.contentSizeScale 换成 --k。
+    // 不会双重放大：WKWebView 只对 CSS 里写了 `font: -apple-system-body` 这类系统文字样式的元素按 Dynamic Type 缩放，
+    // 页面字号一律是 px × --k（test/platform/text-size.test.mjs 扫源码保证不出现 -apple-system-<样式>）；pageZoom 保持 1、
+    // 也不改 WKPreferences.minimumFontSize，所以放大只经这一条桥。
+    private func observeContentSize() {
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(contentSizeDidChange(_:)), name: UIContentSizeCategory.didChangeNotification, object: nil
+        )
+    }
+
+    @objc private func contentSizeDidChange(_ notification: Notification) {
+        guard pageReady else { return }
+        // 通知到达时 traitCollection 可能还没更新，优先用通知里的新值。
+        let category = notification.userInfo?[UIContentSizeCategory.newValueUserInfoKey] as? UIContentSizeCategory
+        sendContentSize(category ?? view.traitCollection.preferredContentSizeCategory)
+    }
+
+    /// 档位 → 页面认的短名（与 src/platform/text-size.js CONTENT_SIZE_CATEGORIES 一致）；未知档位（将来 iOS 新增）原样传 rawValue。
+    static func contentSizeName(_ category: UIContentSizeCategory) -> String {
+        switch category {
+        case .extraSmall: return "xS"
+        case .small: return "S"
+        case .medium: return "M"
+        case .large: return "L"
+        case .extraLarge: return "XL"
+        case .extraExtraLarge: return "XXL"
+        case .extraExtraExtraLarge: return "XXXL"
+        case .accessibilityMedium: return "AX1"
+        case .accessibilityLarge: return "AX2"
+        case .accessibilityExtraLarge: return "AX3"
+        case .accessibilityExtraExtraLarge: return "AX4"
+        case .accessibilityExtraExtraExtraLarge: return "AX5"
+        case .unspecified: return "L"
+        default: return category.rawValue
+        }
+    }
+
+    /// 该档位下 iOS 正文字号与默认 17pt 之比（连续值；页面只在表里没有该档位时用它）。
+    static func contentSizeScale(_ category: UIContentSizeCategory) -> Double {
+        let traits = UITraitCollection(preferredContentSizeCategory: category == .unspecified ? .large : category)
+        let body = UIFont.preferredFont(forTextStyle: .body, compatibleWith: traits).pointSize
+        return Double(body / 17)
+    }
+
+    func sendContentSize(_ category: UIContentSizeCategory) {
+        let name = Self.contentSizeName(category)
+        guard let literal = Self.jsonLiteral(name) else { return }
+        let scale = String(format: "%.4f", Self.contentSizeScale(category))
+        webView.evaluateJavaScript(
+            "if (typeof shiziContentSize === 'function') shiziContentSize({category:\(literal),scale:\(scale)}); void 0;"
         )
     }
 

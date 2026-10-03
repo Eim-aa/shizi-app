@@ -3,13 +3,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  INK, INK_SPEC, INK_TUNABLE_KEYS, inkParams, GRID, buildStroke, speedFactor, pressureFactor, mergeSameTime, liftSpeed, catmullRom, thinStroke,
+  INK, INK_SPEC, INK_TUNABLE_KEYS, inkParams, GRID, buildStroke, speedFactor, pressureFactor, mergeSameTime, liftSpeed, catmullRom, thinStroke, simplifyStroke,
   strokeLength, encodeInk, decodeInk, isInkV2, isInkV3, isInk, resampleForReplay, encodeRawStrokes, decodeRawStrokes,
   INK_DT_LEVELS, quantizeDt, bytesToBase64, base64ToBytes,
 } from '../../src/core/ink-math.js';
 import { inkBytes } from '../../src/store/budget.js';
 import * as policy from '../../src/config/policy.js';
 import { validateValue } from '../../src/core/schema.js';
+import fs from 'node:fs';
+import path from 'node:path';
+import vm from 'node:vm';
+import { ROOT } from './helpers.mjs';
 
 const HZ120 = 1000 / 120;
 const B = INK.base;
@@ -222,7 +226,7 @@ test('ink-math: encodeInk → Ink v3 → decodeInk round trip (4 bytes per point
   const gap = back[1][0].t - back[0][back[0].length - 1].t;
   assert.ok(gap >= 1024, `second stroke starts after the (quantized) pause since the first stroke ended (${gap} ms)`);
   for (let si = 0; si < 3; si += 1) {
-    const thin = thinStroke(strokes[si]);
+    const thin = simplifyStroke(strokes[si]); // 存储时实际留下的点（P121 自适应抽点）
     assert.equal(back[si].length, thin.length);
     assert.equal(pointsOf(ink.s[si]), thin.length);
     back[si].forEach((pt, i) => {
@@ -313,9 +317,11 @@ function bigChar(seed = 0, opts = {}) {
 }
 
 test('ink-math: P78 capacity — 14 strokes × 24 points ≤ 4KB per record; 300 records ≤ 1.2MiB', () => {
+  // P78 的上限口径：每笔都抽满 24 点（均匀抽点，tolerance:null）。P121 的自适应抽点只会更少，见下方 D27 容量测试。
+  const UNIFORM = { tolerance: null };
   const strokes = bigChar();
   assert.ok(strokes.every(s => s.length > policy.inkMaxPointsPerStroke), 'every stroke is long enough to be thinned to the cap');
-  const ink = encodeInk(strokes);
+  const ink = encodeInk(strokes, UNIFORM);
   assert.equal(ink.s.length, 14);
   assert.ok(ink.s.every(str => pointsOf(str) === 24), '14 × 24 points');
   const one = JSON.stringify({ r12345: ink }).length * 2;
@@ -324,7 +330,7 @@ test('ink-math: P78 capacity — 14 strokes × 24 points ≤ 4KB per record; 300
   const table = {};
   for (let i = 0; i < 300; i += 1) {
     const month = `2026-${String(1 + (i % 10)).padStart(2, '0')}`;
-    (table[month] = table[month] || {})[`r${10000 + i}`] = encodeInk(bigChar(i));
+    (table[month] = table[month] || {})[`r${10000 + i}`] = encodeInk(bigChar(i), UNIFORM);
   }
   const total = inkBytes(table);
   assert.ok(total <= 1.2 * 1024 * 1024, `300 records' ink = ${total} B (${(total / 1024 / 1024).toFixed(3)} MiB) ≤ 1.2MiB`);
@@ -338,7 +344,166 @@ test('ink-math: P78 capacity — 14 strokes × 24 points ≤ 4KB per record; 300
   }
   const v2Bytes = JSON.stringify({ r12345: v2 }).length * 2;
   assert.ok(v2Bytes > one * 3, `v2 (32 pts) ${v2Bytes} B vs v3 ${one} B`);
-  console.log(`# P78 ink v3: one 14×24 record = ${one} B; 300 records = ${total} B; v2@32 = ${v2Bytes} B; pen 14×24 = ${JSON.stringify({ r12345: encodeInk(bigChar(0, { p: 0.5 })) }).length * 2} B`);
+  console.log(`# P78 ink v3: one 14×24 record = ${one} B; 300 records = ${total} B; v2@32 = ${v2Bytes} B; pen 14×24 = ${JSON.stringify({ r12345: encodeInk(bigChar(0, { p: 0.5 }), UNIFORM) }).length * 2} B`);
+  // 同一个「大字」按 P121 自适应抽点（直线匀速笔画只需少数点）：每笔 ≤ 24 点，整条更小
+  const adaptive = encodeInk(strokes);
+  assert.ok(adaptive.s.every(str => pointsOf(str) <= 24) && JSON.stringify({ r12345: adaptive }).length * 2 < one, 'adaptive ≤ uniform');
+});
+
+// ---------------------------------------------------------------- D27 容量（阶段 1 P1-E3）
+// 每字两份（第一次 + 最近一次）。实测口径：题库真实字的笔顺中线（data/<字>.json medians）按 120Hz、起收慢中段快的手速
+// 模拟书写 → buildStroke（与写字页同一管线）→ encodeInk（ink v3 打包）→ budget.inkBytes（UTF-16，按月分键合计）。
+
+const MEDIAN_CACHE = new Map();
+function deckChars() {
+  if (MEDIAN_CACHE.has('*')) return MEDIAN_CACHE.get('*');
+  const ctx = vm.createContext({});
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'deck-data.js'), 'utf8') + '\n;globalThis.__SEED = SEED;', ctx);
+  const out = [];
+  const seen = new Set();
+  for (const card of ctx.__SEED) {
+    const ch = card.target;
+    if (!ch || seen.has(ch) || !fs.existsSync(path.join(ROOT, 'data', ch + '.json'))) continue;
+    seen.add(ch);
+    out.push({ ch, strokes: card.strokes });
+  }
+  MEDIAN_CACHE.set('*', out);
+  return out;
+}
+
+/** 按笔顺中线模拟一个字的书写（每笔起收慢、中段快 0.15–0.7 单位/ms，±0.4 单位手抖，笔间 350ms）→ buildStroke。 */
+function writeChar(ch) {
+  const data = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', ch + '.json'), 'utf8'));
+  const out = [];
+  let t = 1000;
+  for (const median of data.medians) {
+    const pts = median.map(([x, y]) => ({ x: (x / 1024) * GRID, y: ((900 - y) / 1024) * GRID }));
+    const cum = [0];
+    for (let i = 1; i < pts.length; i += 1) cum.push(cum[i - 1] + Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y));
+    const L = cum[cum.length - 1];
+    const raw = [];
+    let s = 0;
+    let k = 0;
+    while (s < L) {
+      let i = 1;
+      while (i < cum.length - 1 && cum[i] < s) i += 1;
+      const f = cum[i] > cum[i - 1] ? (s - cum[i - 1]) / (cum[i] - cum[i - 1]) : 0;
+      raw.push({ x: pts[i - 1].x + (pts[i].x - pts[i - 1].x) * f + Math.sin(k * 1.7) * 0.4, y: pts[i - 1].y + (pts[i].y - pts[i - 1].y) * f + Math.cos(k * 2.3) * 0.4, t: t + k * HZ120 });
+      s += (0.15 + 0.55 * Math.sin(Math.PI * Math.min(1, (s / L) * 1.1))) * HZ120;
+      k += 1;
+    }
+    const end = pts[pts.length - 1];
+    raw.push({ x: end.x, y: end.y, t: t + k * HZ120 });
+    t += k * HZ120 + 350;
+    out.push(buildStroke(raw, { final: true }));
+  }
+  return out;
+}
+
+/** 300 个字各两份墨迹（第一次 + 最近一次，各自的月键）→ budget.inkBytes。 */
+function twoCopies(chars) {
+  const table = {};
+  let strokes = 0;
+  chars.forEach((ch, i) => {
+    const built = writeChar(ch);
+    strokes += built.length;
+    const first = `2026-${String(1 + (i % 6)).padStart(2, '0')}`;
+    const latest = `2026-${String(7 + (i % 4)).padStart(2, '0')}`;
+    (table[first] = table[first] || {})[`r${10000 + i * 2}`] = encodeInk(built);
+    (table[latest] = table[latest] || {})[`r${10001 + i * 2}`] = encodeInk(writeChar(ch).map(st => st.map(p => ({ ...p, x: p.x + 1.3 }))));
+  });
+  return { bytes: inkBytes(table), avgStrokes: strokes / chars.length };
+}
+
+test('ink-math (P121): simplifyStroke keeps corners, width changes and pauses; straight steady strokes need few points; cap holds', () => {
+  const straight = buildStroke(line({ len: 240, v: 0.4 }), { final: true });
+  const s1 = simplifyStroke(straight);
+  assert.ok(s1.length < 12 && s1.length >= 2, `steady straight stroke → few points (${s1.length})`);
+  assert.deepEqual([s1[0], s1[s1.length - 1]], [straight[0], straight[straight.length - 1]], 'first and last kept as-is');
+  // 折笔：横到 (200,100) 再竖下 —— 拐角点要在
+  const raw = [];
+  for (let k = 0; k <= 40; k += 1) raw.push({ x: 40 + k * 4, y: 100, t: 1000 + k * HZ120 });
+  for (let k = 1; k <= 30; k += 1) raw.push({ x: 200, y: 100 + k * 4, t: 1000 + (40 + k) * HZ120 });
+  const corner = simplifyStroke(buildStroke(raw, { final: true }));
+  assert.ok(corner.some(p => Math.hypot(p.x - 200, p.y - 100) < 6), 'the corner survives');
+  // 停顿：中途停 200ms（同一位置），时间误差逼出停顿点
+  const pause = [];
+  for (let k = 0; k <= 30; k += 1) pause.push({ x: 40 + k * 4, y: 200, t: 1000 + k * HZ120 + (k > 15 ? 200 : 0) });
+  const built = buildStroke(pause, { final: true });
+  const sp = simplifyStroke(built);
+  const lerpT = (pts, x) => {
+    for (let i = 1; i < pts.length; i += 1) if (pts[i].x >= x) return pts[i - 1].t + (pts[i].t - pts[i - 1].t) * ((x - pts[i - 1].x) / (pts[i].x - pts[i - 1].x || 1));
+    return pts[pts.length - 1].t;
+  };
+  for (const p of built) assert.ok(Math.abs(lerpT(sp, p.x) - p.t) <= 24 * 1.5 + 1, `timing kept around the pause (x=${p.x.toFixed(1)})`);
+  // 上限与回退
+  const wiggle = [];
+  for (let k = 0; k <= 200; k += 1) wiggle.push({ x: 20 + k * 1.5, y: 170 + Math.sin(k / 2) * 30, t: 1000 + k * HZ120 });
+  const w = buildStroke(wiggle, { final: true });
+  assert.equal(simplifyStroke(w).length, policy.inkMaxPointsPerStroke, 'a very wiggly stroke is capped at inkMaxPointsPerStroke');
+  assert.equal(simplifyStroke(w, { max: 10 }).length, 10);
+  assert.deepEqual(simplifyStroke(w, { tolerance: null }), thinStroke(w), 'tolerance:null → uniform thinning (P78)');
+});
+
+test('ink-math (D27 / P1-E3): 300 real characters × 2 copies (first + latest) ≤ 1.2MiB with ink v3', () => {
+  const all = deckChars();
+  const common = all.slice(0, 300).map(c => c.ch); // 练习顺序（core3500 按字频）的前 300 字
+  const heavy = all.filter(c => c.strokes >= 12).slice(0, 300).map(c => c.ch); // 12 画以上的 300 字（偏难的上限）
+  assert.equal(common.length, 300);
+  assert.equal(heavy.length, 300);
+  const a = twoCopies(common);
+  const b = twoCopies(heavy);
+  const MiB = 1024 * 1024;
+  console.log(`# P1-E3 ink v3 × 2 copies: common 300 = ${(a.bytes / MiB).toFixed(3)} MiB (avg ${a.avgStrokes.toFixed(1)} strokes); ` +
+    `≥12-stroke 300 = ${(b.bytes / MiB).toFixed(3)} MiB (avg ${b.avgStrokes.toFixed(1)} strokes)`);
+  assert.ok(a.bytes <= 1.2 * MiB, `common 300 × 2 = ${a.bytes} B ≤ 1.2MiB`);
+  assert.ok(b.bytes <= 1.2 * MiB, `≥12-stroke 300 × 2 = ${b.bytes} B ≤ 1.2MiB`);
+  assert.ok(b.bytes <= policy.inkBudgetBytes, 'fits the P05 ink budget (so routine commits never need to recycle first / latest)');
+});
+
+test('ink-math (P121): store-time simplification keeps the shape — replay stays within 2 units / width within 0.75 units of the written stroke', () => {
+  const segDist = (p, a, b) => {
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const L2 = dx * dx + dy * dy;
+    const s = L2 > 0 ? Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / L2)) : 0;
+    return { d: Math.hypot(a.x + dx * s - p.x, a.y + dy * s - p.y), w: Math.abs(a.w + (b.w - a.w) * s - p.w) };
+  };
+  const deviation = (A, Bs) => {
+    let xy = 0;
+    let w = 0;
+    for (const p of A) {
+      let best = { d: Infinity, w: 0 };
+      for (let i = 1; i < Bs.length; i += 1) {
+        const r = segDist(p, Bs[i - 1], Bs[i]);
+        if (r.d < best.d) best = r;
+      }
+      xy = Math.max(xy, best.d);
+      w = Math.max(w, best.w);
+    }
+    return { xy, w };
+  };
+  const chars = deckChars().filter(c => c.strokes >= 12).slice(0, 300).filter((_, i) => i % 15 === 0).map(c => c.ch);
+  let worst = { xy: 0, w: 0 };
+  let worstUniform = { xy: 0, w: 0 };
+  for (const ch of chars) {
+    const built = writeChar(ch);
+    const truth = built.map(st => catmullRom(st));
+    const replay = resampleForReplay(decodeInk(encodeInk(built)));
+    const uniform = resampleForReplay(decodeInk(encodeInk(built, { tolerance: null })));
+    truth.forEach((st, k) => {
+      for (const [A, Bs] of [[st, replay[k]], [replay[k], st]]) {
+        const d = deviation(A, Bs);
+        worst = { xy: Math.max(worst.xy, d.xy), w: Math.max(worst.w, d.w) };
+      }
+      const u = deviation(st, uniform[k]);
+      worstUniform = { xy: Math.max(worstUniform.xy, u.xy), w: Math.max(worstUniform.w, u.w) };
+    });
+  }
+  console.log(`# P121 replay deviation: adaptive xy ${worst.xy.toFixed(2)} / w ${worst.w.toFixed(2)}; uniform 24-pt xy ${worstUniform.xy.toFixed(2)} / w ${worstUniform.w.toFixed(2)} (units of 345)`);
+  assert.ok(worst.xy <= 2, `max position deviation ${worst.xy.toFixed(2)} ≤ 2 units`);
+  assert.ok(worst.w <= 0.75, `max width deviation ${worst.w.toFixed(2)} ≤ 0.75 units`);
+  assert.ok(worst.xy <= worstUniform.xy && worst.w <= worstUniform.w, 'no worse than the old uniform 24-point thinning');
 });
 
 test('ink-math: raw session strokes encode losslessly enough to rebuild the same ink', () => {

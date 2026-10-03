@@ -31,6 +31,14 @@ export const inkBudgetBytes = 1.5 * 1024 * 1024;
 export const inkMaxPointsPerStroke = 24;
 // P05 每条墨迹最多笔数
 export const inkMaxStrokes = 36;
+// P121 存储前按误差自适应抽点（阶段 1 P1-E3，D27 每字两份）：只留回放误差超出容差处的点（贪心插点，首末必留），
+// 仍受 inkMaxPointsPerStroke 封顶；编码仍是 ink v3，解码不变。core/ink-math.js simplifyStroke / encodeInk 读取。
+// 实测（test/core/ink-math.test.mjs）：12 画以上 300 字 × 2 份 ≈ 1.0MiB（均匀抽 24 点为 ≈ 2.0MiB），回放偏差不大于均匀抽点。
+export const inkStoreTolerance = Object.freeze({
+  xy: 0.3, // P121 位置容差（345 单位；v3 量化步长 0.345）
+  w: 0.3, // P121 笔宽容差（345 单位；本体宽 11.5）
+  t: 24, // P121 时间容差（ms；回放速度 / 停顿洇墨只需大致时间，v3 dt 量化档 16–32ms）
+});
 
 // ---- 备份与保护副本 ----
 // P32 保护副本寿命：跟随备份页生命周期

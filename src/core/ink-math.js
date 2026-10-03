@@ -338,6 +338,127 @@ export function thinStroke(points, max = defaultPolicy.inkMaxPointsPerStroke) {
   return picked.map(k => ({ ...points[k] }));
 }
 
+/**
+ * 存储前按误差自适应抽点（P121，阶段 1 P1-E3）：从首末两点起，反复在「回放误差最大」的位置插回一个原始点，
+ * 直到每段误差都在容差内或点数到 max（不新造点，w / t / p 保持原值）。误差 = 下面三项各除以容差后的最大值：
+ *   位置：点到所在段首末连线的距离；笔宽 / 时间：与段内按弧长线性插值的差（回放时 Catmull-Rom 对 w / t 也是线性插值）。
+ * 直的、匀速的笔画只留很少的点；弯、钩、收笔变细、停顿处点多。tolerance 为 null 时退回 thinStroke（按弧长均匀抽点）。
+ * @param {Array<{x,y,w,t?}>} points
+ * @param {{max?:number, tolerance?:{xy:number, w:number, t:number}|null}} [opts]
+ */
+export function simplifyStroke(points, opts = {}) {
+  const max = num(opts.max, defaultPolicy.inkMaxPointsPerStroke);
+  const tol = opts.tolerance === undefined ? defaultPolicy.inkStoreTolerance : opts.tolerance;
+  if (!tol) return thinStroke(points, max);
+  const pts = points || [];
+  const n = pts.length;
+  const cap = Math.max(2, Math.floor(max));
+  if (n <= 2) return pts.map(p => ({ ...p }));
+  const txy = num(tol.xy, 0.3) > 0 ? num(tol.xy, 0.3) : 0.3;
+  const tw = num(tol.w, 0.3) > 0 ? num(tol.w, 0.3) : 0.3;
+  const tt = num(tol.t, 24) > 0 ? num(tol.t, 24) : 24;
+  const L = [0];
+  for (let i = 1; i < n; i += 1) L.push(L[i - 1] + Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y));
+  const worst = (a, b) => {
+    const A = pts[a];
+    const B = pts[b];
+    const dx = B.x - A.x;
+    const dy = B.y - A.y;
+    const L2 = dx * dx + dy * dy;
+    const span = L[b] - L[a];
+    const wa = num(A.w, 0);
+    const wb = num(B.w, 0);
+    const ta = num(A.t, null);
+    const tb = num(B.t, null);
+    let err = 0;
+    let at = -1;
+    for (let i = a + 1; i < b; i += 1) {
+      const P = pts[i];
+      const s = L2 > 0 ? clamp(((P.x - A.x) * dx + (P.y - A.y) * dy) / L2, 0, 1) : 0;
+      const u = span > 0 ? (L[i] - L[a]) / span : (i - a) / (b - a);
+      let e = Math.hypot(A.x + dx * s - P.x, A.y + dy * s - P.y) / txy;
+      e = Math.max(e, Math.abs(wa + (wb - wa) * u - num(P.w, 0)) / tw);
+      const tp = num(P.t, null);
+      if (ta !== null && tb !== null && tp !== null) e = Math.max(e, Math.abs(ta + (tb - ta) * u - tp) / tt);
+      if (e > err) {
+        err = e;
+        at = i;
+      }
+    }
+    return { a, b, at, err };
+  };
+  // 回放核对：均匀 Catmull-Rom 在相邻段长悬殊处（长直段接短钩）会冲出去，连线误差看不到——
+  // 按回放公式（与 catmullRom 同一组系数、同一步长）逐段取样，量到原始折线的距离，超过 REPLAY_FACTOR × 位置容差也要再插点。
+  const replayLimit = txy * REPLAY_FACTOR;
+  const step = INK.step;
+  const distToRange = (x, y, a, b) => {
+    let best = Infinity;
+    for (let i = Math.max(0, a - 1); i < Math.min(n - 1, b + 1); i += 1) {
+      const P = pts[i];
+      const Q = pts[i + 1];
+      const dx = Q.x - P.x;
+      const dy = Q.y - P.y;
+      const L2 = dx * dx + dy * dy;
+      const s = L2 > 0 ? clamp(((x - P.x) * dx + (y - P.y) * dy) / L2, 0, 1) : 0;
+      const d = Math.hypot(P.x + dx * s - x, P.y + dy * s - y);
+      if (d < best) best = d;
+    }
+    return best;
+  };
+  const replayErr = (segs, j) => {
+    const g = segs[j];
+    const A = pts[j > 0 ? segs[j - 1].a : g.a];
+    const B = pts[g.a];
+    const C = pts[g.b];
+    const D = pts[j + 1 < segs.length ? segs[j + 1].b : g.b];
+    const m = Math.max(1, Math.ceil(Math.hypot(C.x - B.x, C.y - B.y) / step));
+    let err = 0;
+    for (let k = 1; k < m; k += 1) {
+      const u = k / m;
+      const u2 = u * u;
+      const u3 = u2 * u;
+      const x = 0.5 * (2 * B.x + (-A.x + C.x) * u + (2 * A.x - 5 * B.x + 4 * C.x - D.x) * u2 + (-A.x + 3 * B.x - 3 * C.x + D.x) * u3);
+      const y = 0.5 * (2 * B.y + (-A.y + C.y) * u + (2 * A.y - 5 * B.y + 4 * C.y - D.y) * u2 + (-A.y + 3 * B.y - 3 * C.y + D.y) * u3);
+      err = Math.max(err, distToRange(x, y, g.a, g.b) / replayLimit);
+    }
+    return err;
+  };
+  const midIndex = (a, b) => {
+    const half = (L[a] + L[b]) / 2;
+    let i = a + 1;
+    while (i < b - 1 && L[i] < half) i += 1;
+    return i;
+  };
+  const segs = [worst(0, n - 1)];
+  segs[0].rep = replayErr(segs, 0);
+  let count = 2;
+  while (count < cap) {
+    let k = -1;
+    let score = 1;
+    for (let j = 0; j < segs.length; j += 1) {
+      const g = segs[j];
+      if (g.b - g.a < 2) continue; // 没有内部点可插
+      const e = Math.max(g.err, g.rep);
+      if (e > score) {
+        score = e;
+        k = j;
+      }
+    }
+    if (k < 0) break;
+    const g = segs[k];
+    const at = g.err > 1 && g.at > g.a ? g.at : midIndex(g.a, g.b);
+    segs.splice(k, 1, worst(g.a, at), worst(at, g.b));
+    for (let j = Math.max(0, k - 1); j <= Math.min(segs.length - 1, k + 2); j += 1) segs[j].rep = replayErr(segs, j);
+    count += 1;
+  }
+  const keep = [0];
+  for (const g of segs) keep.push(g.b); // segs 按位置有序（每次原地拆成相邻两段）
+  return keep.map(i => ({ ...pts[i] }));
+}
+
+/** 回放核对的位置容差倍数（simplifyStroke）：回放曲线离原始折线超过 3 × 位置容差（过渡 0.9 单位）就再插点。 */
+const REPLAY_FACTOR = 3;
+
 // ---------------------------------------------------------------- 存储编码 Ink v3（01 §3.5，P78）
 
 /** v3 的 dt 量化档（ms，16 档，近似对数）：回放只需大致速度（P78）。编码取对数距离最近的档。 */
@@ -416,9 +537,10 @@ export function quantizeDt(ms) {
  *     dt：相邻点 ms 差量化到 INK_DT_LEVELS 的 16 档（每笔第一个点 = 距上一笔最后一点的间隔，第一笔为 0；
  *         笔内按累计时间做误差补偿，笔间间隔单独量化、不把长停顿的误差带进下一笔）。
  *   p：仅当有 pen 压力时出现，每点 1 字节（压力 ×255，有压力的点至少 1；无压力的点为 0）。
- * 存储前每笔按弧长抽点到 ≤ inkMaxPointsPerStroke（过渡 24）；超过 inkMaxStrokes 笔只留前 inkMaxStrokes 笔（P05）。
+ * 存储前每笔按误差自适应抽点（simplifyStroke，容差 policy.inkStoreTolerance，P121），点数 ≤ inkMaxPointsPerStroke（过渡 24）；
+ * opts.tolerance=null 时按弧长均匀抽点（thinStroke，P78 原口径）。超过 inkMaxStrokes 笔只留前 inkMaxStrokes 笔（P05）。
  * @param {Array<Array<{x,y,w,t?,p?}>>} strokes
- * @param {{base?:number, maxPoints?:number, maxStrokes?:number, policy?:object}} [opts]
+ * @param {{base?:number, maxPoints?:number, maxStrokes?:number, tolerance?:object|null, policy?:object}} [opts]
  */
 export function encodeInk(strokes, opts = {}) {
   const policy = opts.policy || defaultPolicy;
@@ -426,7 +548,8 @@ export function encodeInk(strokes, opts = {}) {
   const maxPoints = num(opts.maxPoints, policy.inkMaxPointsPerStroke);
   const maxStrokes = num(opts.maxStrokes, policy.inkMaxStrokes);
   const kept = (strokes || []).filter(s => Array.isArray(s) && s.length > 0).slice(0, Math.max(0, Math.floor(maxStrokes)));
-  const thinned = kept.map(s => thinStroke(s, maxPoints));
+  const tolerance = opts.tolerance !== undefined ? opts.tolerance : policy.inkStoreTolerance || null;
+  const thinned = kept.map(s => simplifyStroke(s, { max: maxPoints, tolerance }));
   const withPressure = thinned.some(s => s.some(hasPressure));
   const s = [];
   const p = [];

@@ -7,8 +7,8 @@
 // 造数（页面里用真实 mutator judgeInDraft 逐条判断，id 顺序 = 时间顺序；时钟 2026-09-24 20:00）：
 //   一年量级 300 字：2025-10 … 2026-08 每月 150 条（300 字轮转，每字约 5.5 次）+ 本月（2026-09）200 条（200 个不同的字）；
 //   每条都带 ink v3（8–15 笔、每笔 30–46 个原始点，判断时按 policy 抽点到 ≤24 点/笔）；约 15% 写错。
-//   种子之前在草稿上跑一次 store/budget.js recover()（与每次 commit 写前回收同一函数：墨迹超 P05 预算按 §9 优先级淘汰），
-//   否则 1850 条 × ~3.5KB 的墨迹一次写不进 5MiB 配额——真实使用里它是逐次提交时回收掉的。
+//   judgeInDraft 每次判断按 D27 回收这个字中间那次的墨迹（阶段 1 P1-E3），种子里每字至多两份（第一次 + 最近一次）；
+//   种子之前仍在草稿上跑一次 store/budget.js recover()（与每次 commit 写前回收同一函数），断言它不必再淘汰任何墨迹。
 //   sessions.A = 今天的练习，当前字「德」（15 画）。
 // 量（每项都打印成数字表，报告与 README 引用）：
 //   1. 容量：localStorage 全部键 (键长 + 值长) × 2 < 3.2MiB（01 §9 / §13）；各桶字节数；种子后与写字页判断 commit 后各量一次。
@@ -282,6 +282,12 @@ export default async function run(page, ctx) {
   console.log(`    storage after seed: ${fmtMiB(u0.total)} ${JSON.stringify(Object.fromEntries(Object.entries(u0.byBucket).map(([k, v]) => [k, fmtMiB(v)])))}`);
   row('localStorage 总占用（种子后）', fmtMiB(u0.total), '< 3.2MiB', u0.total < LIMITS.totalBytes);
   row('  其中 records / ink / sched', `${fmtMiB(u0.byBucket.records || 0)} / ${fmtMiB(u0.byBucket.ink || 0)} / ${fmtMiB(u0.byBucket.sched || 0)}`, 'P28 1.5MiB / P05 1.5MiB / —', true);
+  // D27（阶段 1 P1-E3）：每字只留第一次 + 最近一次的墨迹（判断时回收中间那次），300 字两份 ≤ 1.2MiB，不必再靠预算回收
+  const inkBytes0 = u0.byBucket.ink || 0;
+  row('  ink：300 字 × 第一次 + 最近一次（D27）', fmtMiB(inkBytes0), '≤ 1.2MiB', inkBytes0 <= 1.2 * MiB);
+  assert.ok(seeded.inks <= 2 * seeded.chars, `D27: at most first + latest ink per char (${seeded.inks} inks over ${seeded.chars} chars)`);
+  assert.equal(seeded.evicted, 0, 'D27 retention alone keeps ink under the P05 budget: budget recovery evicts nothing');
+  assert.ok(inkBytes0 <= 1.2 * MiB, `300 chars × (first + latest) ink = ${fmtMiB(inkBytes0)} ≤ 1.2MiB (ink v3 + P121)`);
   const status0 = await page.evaluate(() => window.__shiziTest.getStatus().usage);
   assert.ok(status0 && Math.abs(status0.total - u0.total) < 1024, `store usage estimate agrees (${status0 && status0.total} vs ${u0.total})`);
 

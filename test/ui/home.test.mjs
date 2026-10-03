@@ -3,9 +3,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as policy from '../../src/config/policy.js';
 import {
-  homeModel, recordsStateOf, resumeOf, resumeKeyOf, epigraphColumnHeight, INK_ROW_MAX, INK_ROW_COMPACT_MAX,
+  homeModel, recordsStateOf, resumeOf, resumeKeyOf, resumeLineText, epigraphColumnHeight, INK_ROW_MAX, INK_ROW_COMPACT_MAX,
 } from '../../src/ui/screens/home/today.js';
 import { EPIGRAPHS } from '../../src/config/epigraphs.js';
+import { t } from '../../src/config/copy/index.js';
 
 const DAY = '2026-09-24';
 const YDAY = '2026-09-23';
@@ -94,4 +95,34 @@ test('R-H04 keys and epigraph column heights', () => {
   assert.equal(resumeKeyOf('first'), 'R-H04.resumeFirst');
   assert.equal(resumeKeyOf('daily'), 'R-H04.resumeDaily');
   assert.deepEqual(EPIGRAPHS.map(epigraphColumnHeight), [96, 114, 150]);
+});
+
+test('B6 (G45, D36): a current char that has seen its answer (still tracing / writing it) is not counted in 「还有 N 个字没写」', () => {
+  const now = at(DAY);
+  const withCurrent = (session, current) => ({ ...session, current: { phase: 'answer', strokes: [], ...current } });
+  // 5 个字，写到第 3 个（cursor 2）：没看过答案 → 还有 3 个没写
+  const plain = resumeOf(state({ A: sess('A', 'daily', 5, 2) }), now).primary;
+  assert.deepEqual(plain, { slot: 'A', kind: 'daily', remaining: 3 });
+  assert.equal(resumeLineText(plain, t), '今天的练习 · 还有 3 个字没写');
+  // 第 3 个字看过答案：正在写第 3 个字 · 还有 2 个
+  for (const phase of ['answer', 'trace', 'retrace']) {
+    const seen = resumeOf(state({ A: withCurrent(sess('A', 'daily', 5, 2), { phase, answerSeen: true }) }), now).primary;
+    assert.deepEqual(seen, { slot: 'A', kind: 'daily', remaining: 2, position: 3 }, phase);
+    assert.equal(resumeLineText(seen, t), '今天的练习 · 正在写第 3 个字 · 还有 2 个', phase);
+  }
+  // 三种来源
+  const first = resumeOf(state({ A: withCurrent(sess('A', 'first', 5, 0), { answerSeen: true }) }), now).primary;
+  assert.equal(resumeLineText(first, t), '第一次练习 · 正在写第 1 个字 · 还有 4 个');
+  const picked = resumeOf(state({ B: withCurrent(sess('B', 'picked', 3, 1), { answerSeen: true }) }), now).primary;
+  assert.equal(resumeLineText(picked, t), '这次选的字 · 正在写第 2 个字 · 还有 1 个');
+  // 最后一个字：不写「还有 0 个」
+  const last = resumeOf(state({ B: withCurrent(sess('B', 'picked', 2, 1), { answerSeen: true }) }), now).primary;
+  assert.deepEqual(last, { slot: 'B', kind: 'picked', remaining: 0, position: 2 });
+  assert.equal(resumeLineText(last, t), '这次选的字 · 正在写第 2 个字 · 这是最后一个');
+  // 两组都没写完：other 行同口径
+  const both = resumeOf(state({ A: withCurrent(sess('A', 'daily', 5, 1), { answerSeen: true }), B: sess('B', 'picked', 2, 0) }), now);
+  assert.deepEqual(both.primary, { slot: 'B', kind: 'picked', remaining: 2 });
+  assert.deepEqual(both.other, { slot: 'A', kind: 'daily', remaining: 3, position: 2 });
+  assert.equal(resumeLineText(both.other, t), '今天的练习 · 正在写第 2 个字 · 还有 3 个');
+  assert.equal(resumeLineText(null, t), '');
 });

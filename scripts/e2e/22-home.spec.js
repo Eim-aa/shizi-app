@@ -62,12 +62,12 @@ function byMonth(records) {
   return out;
 }
 
-function sess({ id, slot, kind, chars, cursor = 0, day = DAY }) {
+function sess({ id, slot, kind, chars, cursor = 0, day = DAY, current = {} }) {
   const at = msOf(day, '07:30:00');
   return {
     id, slot, kind: kind || (slot === 'B' ? 'picked' : 'daily'), source: { view: 'home' },
     queue: chars.map(c => `base:${c}`), cursor, items: [],
-    current: { phase: 'recall', strokes: [], hints: 0, answerSeen: false, hintRange: null, referenceReady: false },
+    current: { phase: 'recall', strokes: [], hints: 0, answerSeen: false, hintRange: null, referenceReady: false, ...current },
     lastLine: null, startedAt: at, startedDay: day, updatedAt: at,
   };
 }
@@ -253,6 +253,15 @@ export default async function run(page, ctx) {
   assert.equal(h.resume, 'A', 'resume=A');
   assert.deepEqual(h.resumeLine, { text: COPY.first(4), slot: 'A' }, '「第一次练习 · 还有 4 个字没写」');
   assert.equal(h.firstTip, null, 'first-visit tip hidden while the group is unfinished');
+
+  step('B6 (G45, D36): current char has seen its answer (tracing) → 「正在写第 2 个字 · 还有 3 个」, not 「还有 4 个字没写」; last char → 「这是最后一个」');
+  await setup(page, { seed: { sessions: { A: sess({ id: 's804', slot: 'A', kind: 'first', chars: FIRST, cursor: 1, current: { phase: 'trace', answerSeen: true } }), B: null, lastEnded: {} } } });
+  h = await home(page);
+  assert.deepEqual(h.resumeLine, { text: '第一次练习 · 正在写第 2 个字 · 还有 3 个', slot: 'A' }, 'seen the answer: current char leaves the 「还有 N 个字没写」 count');
+  assert.ok(!h.resumeLine.text.includes('没写'), 'no double count wording');
+  await setup(page, { seed: { sessions: { A: null, B: sess({ id: 's805', slot: 'B', kind: 'picked', chars: ['永', '和'], cursor: 1, current: { phase: 'retrace', answerSeen: true } }), lastEnded: {} } } });
+  h = await home(page);
+  assert.deepEqual(h.resumeLine, { text: '这次选的字 · 正在写第 2 个字 · 这是最后一个', slot: 'B' }, 'last char: no 「还有 0 个」');
 
   step('records cleared (R-H09 / P46): no 第一次来 wording, empty state');
   await setup(page, { seed: { backupMeta: { lastExportAt: null, lastExportSig: null, lastConclusion: { kind: 'clear', date: YDAY, count: 12 } } } });

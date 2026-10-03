@@ -41,7 +41,7 @@ import { openQuery } from '../../components/query/index.js';
 import { useCompact } from '../write/compact.js';
 import { ensureNavHooks, expireStale, openWrite, resumeSlot, startA, startPicked } from '../session/index.js';
 import { setNoneActions } from '../session/none.js';
-import { homeModel, resumeKeyOf, epigraphColumnHeight, INK_ROW_MAX, INK_ROW_COMPACT_MAX } from './today.js';
+import { homeModel, resumeLineText, epigraphColumnHeight, INK_ROW_MAX, INK_ROW_COMPACT_MAX } from './today.js';
 import { LightLayer, LIGHT_CSS } from './light.js';
 import { InkRow, INK_ROW_CSS } from './ink-row.js';
 // 写字页自注册（M1-1）：首页是它的入口页，随首页一起加载。
@@ -358,10 +358,10 @@ function HomeScreen() {
       <div class="sz-home__rows">
         ${model.showFirstTip ? html`<p class="sz-home__line" data-testid="home-first-tip">${t('R-H03.firstVisit')}</p>` : null}
         ${model.primary ? html`<p class="sz-home__line" data-testid="resume-line" data-slot=${model.primary.slot}
-          data-kind=${model.primary.kind}>${t(resumeKeyOf(model.primary.kind), { n: model.primary.remaining })}</p>` : null}
+          data-kind=${model.primary.kind}>${resumeLineText(model.primary, t)}</p>` : null}
         ${model.other ? html`<${Button} variant="text" class="sz-home__other" data-testid="other-line" data-slot=${model.other.slot}
           data-kind=${model.other.kind} onClick=${() => run(resumeOther)}
-          >${t(resumeKeyOf(model.other.kind), { n: model.other.remaining })} ${t('X-HOME.more')}</${Button}>` : null}
+          >${resumeLineText(model.other, t)} ${t('X-HOME.more')}</${Button}>` : null}
         ${recordBlock}
       </div>
       <${Button} variant="text" class="sz-home__pick" data-testid="home-pick" onClick=${() => openPick()}>${t('X-HOME.pick')}</${Button}>

@@ -34,8 +34,19 @@ export const INK_ROW_MAX = 8;
  */
 export const INK_ROW_COMPACT_MAX = defaultPolicy.inkRowCompactMax;
 
+/**
+ * S01 行的数据。remaining = 还没开始写的字数；当前字已经看过答案、正在描或自己写（current.answerSeen）时不再算进去，
+ * 另给 position = 正在写的是第几个字（已决定 D36 / P77：「正在写第 k 个字 · 还有 m 个」，不再数两次）。
+ */
 function lineOf(session, slot) {
-  return session ? { slot, kind: session.kind, remaining: remainingCount(session) } : null;
+  if (!session) return null;
+  const total = remainingCount(session);
+  const line = { slot, kind: session.kind, remaining: total };
+  if (total > 0 && session.current && session.current.answerSeen === true) {
+    line.remaining = total - 1;
+    line.position = session.cursor + 1;
+  }
+  return line;
 }
 
 /** 维度二：resume。 */
@@ -91,6 +102,17 @@ export function resumeKeyOf(kind) {
   if (kind === 'picked') return 'R-H04.resumePicked';
   if (kind === 'first') return 'R-H04.resumeFirst';
   return 'R-H04.resumeDaily';
+}
+
+/**
+ * S01 行的文案与占位符：普通 = 「… · 还有 {n} 个字没写」；当前字看过答案仍在写 =「… · 正在写第 {k} 个字 · 还有 {n} 个」，
+ * 它是最后一个字时「… · 正在写第 {k} 个字 · 这是最后一个」。
+ */
+export function resumeLineText(line, translate) {
+  if (!line) return '';
+  const base = resumeKeyOf(line.kind);
+  if (line.position === undefined) return translate(base, { n: line.remaining });
+  return translate(line.remaining > 0 ? `${base}Now` : `${base}NowLast`, { k: line.position, n: line.remaining });
 }
 
 /** 题记每列的高度（原型首页壳 QH：上句去掉句末标点后 4 / 5 / 7 字 → 96 / 114 / 150）。 */

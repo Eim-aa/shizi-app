@@ -2,7 +2,7 @@
 //
 // 从 store 读 sessions[slot] 的当前字（core/sessions.currentCardKey）；页头（标题按阶段 R-W03、右侧「n / 总数」R-W01、
 // 描一遍 / 自己写两步圆点 R-W04）、结果行占位（M1-5）、题面占位（M1-8 换成 prompt.js）、书写格（标准 345；紧凑版
-// 258 由 M1-7 传 size）、撤销 / 清空（R-W18；清空后给一次撤销，走查-W17）、按钮区：看答案占位（M1-4）、
+// 258 由 M1-7 传 size）、撤销 / 清空（R-W18；格下一行右端，标准版与紧凑版同一位置，G32；清空后给一次撤销，走查-W17）、按钮区：看答案占位（M1-4）、
 // 提示占位（M1-3）、「写好了」（R-W29；空笔画时 disabled + aria-disabled，M1-5 接判断页）、跳过 / 结束这组占位（M1-5 / M2）。
 //
 // 规则：
@@ -75,11 +75,11 @@ injectStyles('write', `
 .sz-write__prompt{min-height:96px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
   padding-bottom:8px}
 .sz-write__gridwrap{display:flex;justify-content:center}
-.sz-write__below{min-height:44px;display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:4px}
+.sz-write__below{min-height:44px;display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:8px}
 .sz-write__note{flex:1;min-width:0;font-size:calc(13px * ${T.k});line-height:1.55;letter-spacing:.02em;color:${T.i3}}
 .sz-write__tools{flex:none;display:flex;gap:4px;margin-right:-10px}
 .sz-write__tools[data-shown="false"]{visibility:hidden}
-.sz-write__tool{height:44px;padding:0 10px;font-size:calc(15px * ${T.k});letter-spacing:.08em;color:${T.i2}}
+.sz-write__tool{height:44px;min-width:44px;padding:0 10px;font-size:calc(15px * ${T.k});letter-spacing:.08em;color:${T.i2}}
 .sz-write__progress{font-size:calc(13px * ${T.k});color:${T.i3};font-variant-numeric:tabular-nums;letter-spacing:.04em;
   padding-right:16px}
 .sz-write__steps{height:5px;margin:-8px 0 3px;display:flex;justify-content:center;gap:5px;pointer-events:none}
@@ -386,7 +386,7 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
     <div class="sz-write" ref=${writeRef} data-cursor=${session.cursor} data-phase=${phase} data-slot=${slot}
       data-compact=${compact ? 'true' : 'false'}>
       <${StepDots} phase=${phase} />
-      <div class="sz-write__line" data-testid="write-line-slot">${row.node}${compact ? tools : null}</div>
+      <div class="sz-write__line" data-testid="write-line-slot">${row.node}</div>
       <${Prompt} cardKey=${cardKey} phase=${phase} />
       <div class="sz-write__gridwrap">
         ${answer.stage || compare.stage || html`<${InkGrid}
@@ -406,7 +406,7 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
       <div class="sz-write__below">
         <span class="sz-write__note" data-testid="write-note">${answer.active ? answer.note
           : skip.failed ? skip.note : html`<${HintNote} note=${hint.note} />`}</span>
-        ${compact ? null : tools}
+        ${tools}
       </div>
     </div>
     ${skip.bar}

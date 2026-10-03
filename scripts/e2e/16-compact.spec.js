@@ -1,7 +1,7 @@
 // M1-7 紧凑版写字页（02 §3 M1-7；R-W18 / R-W26 / R-G09；走查-W15 / 核对-V02 / X08；reference/I-proto-write.md §3.7）。
 // 完成定义：360×640（标准字号与 data-large 各走一遍）书写格 ≥258（recall / trace / retrace 固定 258，点提示前后不变）、
 // 按钮区首屏、无横向溢出（scrollWidth ≤ clientWidth）、可点控件全是 <button>、看答案页字形 200–345；
-// 另：撤销 / 清空在书写格上方、「提示 · 写好了」一行 +「看答案 · 跳过 · 结束这组」一行、判断页标题可换行不裁切、
+// 另：撤销 / 清空在书写格右下（G32 / D36：标准版与紧凑版同一位置，不再挪到格子上方）、「提示 · 写好了」一行 +「看答案 · 跳过 · 结束这组」一行、判断页标题可换行不裁切、
 // 提示说明与格子 / 按钮留出间距（R-W26）；视口从 360×640 切到 393×852 时回到标准版（345、三行底栏），
 // 393×852 + data-large 仍是紧凑版（原型：更大字体 ⇔ 紧凑尺寸）；320×568 + data-large 抽查无横向溢出、按钮首屏。
 // 393×852 标准版不回归由 10 / 11 / 13 / 14 spec 复跑保证。
@@ -95,7 +95,9 @@ async function geometry(page, name = 'view') {
       'write-compare', 'write-links', 'write-answer-slot', 'write-skip-slot', 'write-trace-layer', 'write-change-sheet',
       'write-answer-confirm', 'write-hint-unavailable']) r[id] = rect(q(id));
     const note = q('write-note');
+    const toolsEl = q('write-tools');
     return {
+      toolsVisible: !!toolsEl && getComputedStyle(toolsEl).visibility !== 'hidden',
       vw: document.documentElement.clientWidth,
       vh: window.innerHeight,
       docScrollWidth: document.documentElement.scrollWidth,
@@ -190,7 +192,7 @@ async function compactWalk(page, ctx, { large }) {
   const grid0 = g.r['write-grid'];
   assert.ok(grid0.top >= g.head.bottom && grid0.bottom <= g.foot.top + 0.5, `${tag}: whole grid visible between header and footer`);
   assert.ok(g.r['write-prompt'] && g.r['write-prompt'].bottom <= grid0.top + 0.5, `${tag}: prompt above the grid`);
-  assert.ok(!g.r['write-tools'], `${tag}: 撤销 / 清空 hidden before the first stroke`);
+  assert.ok(!g.toolsVisible, `${tag}: 撤销 / 清空 hidden before the first stroke`);
 
   // ---------------------------------------------------------------- hint
   ctx.step(`${tag}: 提示 — grid size unchanged, note has breathing room (R-W26), buttons still first screen`);
@@ -203,11 +205,12 @@ async function compactWalk(page, ctx, { large }) {
   const note = g.r['write-note'];
   assert.ok(note && note.top - g.r['write-grid'].bottom >= 6, `${tag}: note ≥ 6px below the grid (${note && (note.top - g.r['write-grid'].bottom).toFixed(1)})`);
   assert.ok(note && g.foot.top - note.bottom >= 6, `${tag}: note ≥ 6px above the footer (${note && (g.foot.top - note.bottom).toFixed(1)})`);
-  assert.ok(note && note.width >= g.bodyRect.width - 40 - 1, `${tag}: note spans the full content row (tools moved above the grid)`);
+  assert.ok(note && g.r['write-tools'] && note.right <= g.r['write-tools'].left + 0.5,
+    `${tag}: note shares the row under the grid with 撤销 / 清空 (G32) and does not run under them`);
   common(assert, g, `${tag} hint`, ['write-hint', 'write-done', 'write-show-answer', 'write-skip']);
 
-  // ---------------------------------------------------------------- tools above the grid
-  ctx.step(`${tag}: first stroke — 撤销 / 清空 appear above the grid, grid still 258`);
+  // ---------------------------------------------------------------- tools at the grid's bottom right
+  ctx.step(`${tag}: first stroke — 撤销 / 清空 appear at the bottom right of the grid (G32), grid unchanged`);
   await drawStroke(page, HORIZONTAL);
   await waitStrokes(page, 1);
   await page.waitForTimeout(300);
@@ -215,14 +218,16 @@ async function compactWalk(page, ctx, { large }) {
   g = await geometry(page, `${large ? 'L' : 'N'}-written`);
   const undo = g.controls['write-undo'] && g.controls['write-undo'].rect;
   const clear = g.controls['write-clear'] && g.controls['write-clear'].rect;
-  assert.ok(!!undo && !!clear, `${tag}: 撤销 / 清空 visible after a stroke`);
-  assert.ok(undo.bottom <= g.r['write-grid'].top + 0.5 && clear.bottom <= g.r['write-grid'].top + 0.5,
-    `${tag}: 撤销 / 清空 sit above the grid (R-W18)`);
-  assert.ok(undo.top >= g.head.bottom - 0.5, `${tag}: 撤销 / 清空 below the header`);
-  const lineSlot = g.r['write-line-slot'];
-  assert.ok(lineSlot && undo.top >= lineSlot.top - 4 && undo.bottom <= lineSlot.bottom + 4, `${tag}: tools live in the fixed row above the prompt`);
-  assert.ok(Math.abs(undo.top - clear.top) < 1 && undo.right <= clear.left, `${tag}: 撤销 then 清空 on one line`);
-  assert.ok(Math.min(undo.height, clear.height) >= 44 - 0.5, `${tag}: tool buttons keep a 44px touch target`);
+  assert.ok(g.toolsVisible && !!undo && !!clear, `${tag}: 撤销 / 清空 visible after a stroke`);
+  assert.ok(undo.top >= g.r['write-grid'].bottom - 0.5 && clear.top >= g.r['write-grid'].bottom - 0.5,
+    `${tag}: 撤销 / 清空 sit below the grid (G32)`);
+  // 工具在格下一行的右端：不在格子右缘以左（格子比一行窄时落在行的右端，也就是格子的右下方）。
+  assert.ok(clear.right >= g.r['write-grid'].right - 1 && clear.left >= g.r['write-grid'].left + g.r['write-grid'].width / 2,
+    `${tag}: 清空 sits at the right end of the row under the grid (${clear.left}–${clear.right} vs grid ${g.r['write-grid'].left}–${g.r['write-grid'].right})`);
+  assert.ok(clear.right <= g.vw + 0.5 && undo.right <= clear.left + 0.5, `${tag}: 撤销 then 清空, inside the viewport`);
+  assert.ok(Math.abs(undo.top - clear.top) < 1, `${tag}: 撤销 / 清空 on one line`);
+  assert.ok(Math.min(undo.height, clear.height, undo.width, clear.width) >= 44 - 0.5, `${tag}: tool buttons keep a ≥44pt touch target (${undo.width}×${undo.height}, ${clear.width}×${clear.height})`);
+  assert.ok(g.foot.top - Math.max(undo.bottom, clear.bottom) >= -0.5, `${tag}: tools above the footer`);
   assert.ok(square(g.r['write-grid'], GRID), `${tag}: grid still ${GRID} after writing`);
   assert.ok(Math.abs(g.r['write-grid'].top - grid0.top) < 1, `${tag}: grid did not move when the tools appeared`);
   common(assert, g, `${tag} written`, ['write-undo', 'write-clear', 'write-hint', 'write-done', 'write-show-answer', 'write-skip']);
@@ -457,6 +462,25 @@ export default async function compact(page, ctx) {
   assert.ok(c['write-skip'].rect.top >= c['write-done'].rect.bottom - 0.5, '393×852: 跳过 row below 写好了');
   common(assert, g, '393×852', ['write-hint', 'write-done', 'write-show-answer', 'write-skip']);
 
+  ctx.step('393×852 standard layout: after a stroke 撤销 / 清空 sit at the grid\'s bottom right (reference for the compact layout, G32)');
+  await drawStroke(page, HORIZONTAL);
+  await waitStrokes(page, 1);
+  await page.waitForTimeout(300);
+  await page.mouse.move(1, 1);
+  g = await geometry(page, 'std393-written');
+  const toolsRel = gm => ({
+    dRight: gm.r['write-grid'].right - gm.controls['write-clear'].rect.right,
+    dTop: gm.controls['write-undo'].rect.top - gm.r['write-grid'].bottom,
+    fromEdge: gm.vw - gm.controls['write-clear'].rect.right,
+    uw: gm.controls['write-undo'].rect.width, cw: gm.controls['write-clear'].rect.width,
+    uh: gm.controls['write-undo'].rect.height, ch: gm.controls['write-clear'].rect.height,
+  });
+  const stdTools = toolsRel(g);
+  assert.ok(stdTools.dRight <= 1 && stdTools.dTop >= -0.5, `393×852: tools at the grid's bottom right ${JSON.stringify(stdTools)}`);
+  assert.ok(Math.min(stdTools.uw, stdTools.cw, stdTools.uh, stdTools.ch) >= 44 - 0.5, '393×852: tool buttons ≥44pt');
+  await page.click(topSel('write-undo'));
+  await waitStrokes(page, 0);
+
   ctx.step('same page, shrink to 360×640 → compact without reload (matchMedia); grow back → standard');
   await page.setViewportSize(COMPACT_VIEW);
   await page.waitForFunction(() => document.querySelector('.sz-layer[data-top="true"] .sz-write').dataset.compact === 'true');
@@ -477,6 +501,15 @@ export default async function compact(page, ctx) {
   g = await geometry(page, 'std393large');
   assert.ok(square(g.r['write-grid'], GRID), `393×852 large: grid ${GRID}`);
   common(assert, g, '393×852 large', ['write-hint', 'write-done', 'write-show-answer', 'write-skip']);
+  await drawStroke(page, HORIZONTAL);
+  await waitStrokes(page, 1);
+  await page.waitForTimeout(300);
+  await page.mouse.move(1, 1);
+  g = await geometry(page, 'std393large-written');
+  const largeTools = toolsRel(g);
+  assert.ok(Math.abs(largeTools.fromEdge - stdTools.fromEdge) <= 6 && largeTools.dTop >= -0.5 && Math.abs(largeTools.dTop - stdTools.dTop) <= 6
+    && Math.abs(largeTools.uh - stdTools.uh) <= 1, `393×852: 撤销 / 清空 sit below the grid at the right end of the row in both layouts (G32) ${JSON.stringify({ stdTools, largeTools })}`);
+  assert.ok(Math.min(largeTools.uw, largeTools.cw, largeTools.uh, largeTools.ch) >= 44 - 0.5, '393×852 large: tool buttons ≥44pt');
 
   ctx.step('320×568 + data-large spot check: no horizontal overflow, buttons on the first screen');
   await page.setViewportSize({ width: 320, height: 568 });

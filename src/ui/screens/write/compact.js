@@ -7,9 +7,9 @@
 // 紧凑版布局（原型 ShiziWriteScreen L158–L224）：
 // - 书写格 recall / trace / retrace 固定 258（X08：点提示前后不变）；看答案页卡片按屏高在 200–345 之间取（fitC，
 //   原型 L382–L384；另不超过正文内容宽）。
-// - 页头标题可换行（R-W18「判断页标题可换行」）；正文左右 20、上下收紧；固定 36px 的一行放结果行或撤销 / 清空
-//   （「撤销 / 清空挪到书写格上方」，V02；按钮触控高 44，上下各伸出 4px）；书写格下说明独占一行并留出间距
-//   （R-W26：别贴着格子和按钮）。
+// - 页头标题可换行（R-W18「判断页标题可换行」）；正文左右 20、上下收紧；固定 36px 的一行放结果行
+//   （撤销 / 清空不再挪到格子上方：G32 / D36，标准版与紧凑版都在格下一行的右端，触控 ≥44pt）；格下一行（说明 + 撤销 / 清空）
+//   与格子留出间距（R-W26：别贴着格子和按钮）。紧凑版靠收紧页边 / 题面 / 底栏的间距腾地方。
 // - 底栏两行：「提示 · 写好了」一行（提示按钮不折行，列宽 auto / minmax(0,1fr)），「看答案 · 跳过 · 结束这组」一行
 //   （三栏 minmax(0,1fr) auto minmax(0,1fr)；结束这组的槽位留给 M2）；按钮最小高 56。
 // - 所有可点控件仍是 components/Button（<button>，R-G09）——原型紧凑版的 span/div 不照搬。
@@ -39,18 +39,15 @@ ${P} .sz-page__head{padding-left:4px;padding-right:4px}
 ${P} .sz-page__title{position:relative;left:auto;right:auto;flex:1;min-width:0;padding:6px 8px;white-space:normal;
   overflow:visible;text-overflow:clip;line-height:1.3;text-wrap:balance}
 ${P} .sz-page__lead,${P} .sz-page__trail{flex:none}
-${P} .sz-page__body{padding:6px 20px 6px;gap:12px}
-${P} .sz-page__foot{padding:4px 20px max(8px, env(safe-area-inset-bottom, 0px));gap:6px}
+${P} .sz-page__body{padding:2px 20px 2px;gap:12px}
+${P} .sz-page__foot{padding:1px 20px max(6px, env(safe-area-inset-bottom, 0px));gap:6px}
 ${P} .sz-write__steps{margin:-4px 0 1px}
 ${P} .sz-write__line{min-height:36px;justify-content:center}
 ${P} .sz-write__line .sz-line{min-height:36px}
 ${P} .sz-write__line .sz-line__change{min-height:44px;margin:-4px 0}
-${P} .sz-write__line .sz-write__tools{margin:0 -8px 0 auto}
-${P} .sz-write__line .sz-write__tools[data-shown="false"]{display:none}
-${P} .sz-write__line .sz-write__tool{height:44px;margin:-4px 0;padding:0 8px}
-${P} .sz-write__prompt{min-height:0;gap:2px;padding:0 0 4px}
-${P} .sz-write__below{min-height:28px;margin-top:8px}
-${P} .sz-write__note{line-height:1.45}
+${P} .sz-write__prompt{min-height:0;gap:2px;padding:0 0 2px}
+${P} .sz-write__below{min-height:44px;margin-top:6px}
+${P} .sz-write__note{line-height:1.4}
 ${P} .sz-write__foot .sz-btn--primary,${P} .sz-write__foot .sz-btn--secondary{min-height:56px;padding:0 12px;
   letter-spacing:.02em;white-space:nowrap}
 ${P} .sz-write__main{grid-template-columns:auto minmax(0,1fr);gap:10px}

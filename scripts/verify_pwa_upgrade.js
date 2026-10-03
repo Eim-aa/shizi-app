@@ -41,6 +41,11 @@ const { chromium } = require("playwright");
 
 const ROOT = path.resolve(__dirname, "..");
 const FIXTURES = path.join(ROOT, "scripts", "fixtures");
+// 内嵌笔顺的首练字个数 = policy.firstQueue 的长度（D38：尴 赢 拾 共 3 个；原 5 个），不在这里写死。
+const FIRST_PRACTICE_COUNT = (() => {
+  const m = /export const firstQueue = Object\.freeze\(\[([^\]]*)\]\)/.exec(fs.readFileSync(path.join(ROOT, "src", "config", "policy.js"), "utf8"));
+  return m ? m[1].split(",").filter(part => part.trim()).length : -1;
+})();
 
 const GENERATIONS = {
   // main 上真实的 v10 一代（PR #153 合并后的 main）。
@@ -630,7 +635,7 @@ async function replayLegacy(browser, origin, tree, report) {
     check(upgraded.meta === BUILD && upgraded.buildInfo === BUILD && upgraded.ready === BUILD && !upgraded.mismatch,
       "After reload the page must be one coherent v14 build (meta, build-info.js, ready marker)", upgraded);
     check(upgraded.seed === CURRENT_SEED_CHARS && upgraded.unique === CURRENT_SEED_CHARS && upgraded.overrides > 0
-      && upgraded.coreStrokes === 600 && upgraded.embedded === 5,
+      && upgraded.coreStrokes === 600 && upgraded.embedded === FIRST_PRACTICE_COUNT,
     "The upgraded page must expose the classic-script globals (deck, overrides, core strokes + embedded first practice)", upgraded);
     check(JSON.stringify(upgraded.libraries) === JSON.stringify(EXPECTED_LIBRARIES),
       "The upgraded app must expose the four governed libraries", { got: upgraded.libraries, want: EXPECTED_LIBRARIES });

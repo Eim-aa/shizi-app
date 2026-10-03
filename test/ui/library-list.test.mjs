@@ -94,7 +94,9 @@ test('R-E03 rows: word with the target bold, meta line, 写错那次 caption onl
   assert.equal(row.meta, t('R-E03.wrongMeta', { date: dateText('2026-09-24'), n: 2 }));
   assert.deepEqual(row.metaParts, ['9 月 24 日写错', '一共写错 2 次']);
   assert.equal(row.thumbCaption, t('R-E03.wrongThumb'));
-  assert.equal(m.note, t('R-E03.wrongNoteGlyph'));
+  assert.equal(m.note, t('R-E03.wrongNote'), 'D27: default perRecordInk=true → 右边小图是你写错的那一次 (the latest is always kept)');
+  const OFF = { ...policy, features: { ...policy.features, perRecordInk: false } };
+  assert.equal(listModel(st, { kind: 'wrong', today: TODAY, cardFor, practicable, policy: OFF }).note, t('R-E03.wrongNoteGlyph'), 'F4: off → Glyph variant');
   assert.equal(m.top, t('R-E04.wrongTop'));
   assert.equal(m.title, t('R-E04.titleWrong'));
   assert.equal(m.head, '先练这 1 个');
@@ -104,7 +106,8 @@ test('R-E03 rows: word with the target bold, meta line, 写错那次 caption onl
   const f = listModel(st2, { kind: 'forget', today: TODAY, cardFor, practicable });
   assert.equal(f.rows[0].meta, '最近一次 9 月 6 日 · 记录了 2 次');
   assert.equal(f.rows[0].thumbCaption, '', '快忘了小图下不写');
-  assert.equal(f.note, t('R-E03.forgetNoteGlyph'));
+  assert.equal(f.note, t('R-E03.forgetNote'), 'D27: default on → 格子里是你最近一次的笔迹');
+  assert.equal(listModel(st2, { kind: 'forget', today: TODAY, cardFor, practicable, policy: OFF }).note, t('R-E03.forgetNoteGlyph'), 'F4: off → Glyph variant');
   assert.equal(f.top, t('R-E04.forgetTop'));
   assert.equal(f.title, t('R-E04.titleForget'));
 

@@ -222,9 +222,11 @@ test('resultModel I6: 「这次的图片」 entry counts page-memory strokes lik
   const { d, slot, id } = group({ chars: ['永', '和'], steps: ['correct', 'correct'], id: 's77' });
   ended(d, slot);
   const ids = recs(d).map(r => r.id);
-  assert.equal(resultModel(d, { slot, sessionId: id }).image, 'allMissing', 'no stored ink, nothing in page memory → allMissing');
+  const OFF = { features: { perRecordInk: false } }; // 页面内笔画只在关闭时（10.12 兜底）才算
+  assert.equal(resultModel(d, { slot, sessionId: id, policy: OFF }).image, 'allMissing', 'no stored ink, nothing in page memory → allMissing');
   rememberInk(ids[1], [STROKE]); // 本页面会话里刚判断时记下的笔画（格子会画它）
-  let m = resultModel(d, { slot, sessionId: id });
+  assert.equal(resultModel(d, { slot, sessionId: id }).image, 'allMissing', 'D27 (default on): only stored ink counts — page memory does not stand in');
+  let m = resultModel(d, { slot, sessionId: id, policy: OFF });
   assert.equal(m.image, 'entry', 'page-memory strokes count → entry');
   assert.deepEqual(m.inkChars, ['和']);
   assert.deepEqual(m.missingInkChars, ['永']);
@@ -414,9 +416,10 @@ test('M6-6 forgetRecentInk: test cleanup for the page-memory ink cache (remember
   forgetRecentInk();
   rememberInk('r901', [STROKE]);
   rememberInk('r902', [STROKE]);
-  assert.deepEqual(recalledInk('r901'), [STROKE]);
+  const OFF = { features: { perRecordInk: false } };
+  assert.deepEqual(recalledInk('r901', OFF), [STROKE]);
   assert.equal(forgetRecentInk(), 2, 'returns how many were dropped');
-  assert.equal(recalledInk('r901'), null, 'cleared');
-  assert.equal(recalledInk('r902'), null, 'cleared');
+  assert.equal(recalledInk('r901', OFF), null, 'cleared');
+  assert.equal(recalledInk('r902', OFF), null, 'cleared');
   assert.equal(forgetRecentInk(), 0, 'idempotent');
 });

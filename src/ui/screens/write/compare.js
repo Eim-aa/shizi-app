@@ -494,7 +494,11 @@ export function ContinueButton({ onClick }) {
 const recentInk = new Map(); // recordId → 原始笔画（本页面会话内；修改判断弹层「你的书写」用，刷新即失）
 const RECENT_INK_CAP = 8;
 
-/** 记住刚判断那一字的原始笔画（perRecordInk=false 时弹层只能从这里取，01 §3.5 / 10.12）。 */
+/**
+ * 记住刚判断那一字的原始笔画（perRecordInk=false 时弹层 / 格子 / 图片只能从这里取，01 §3.5 / 10.12）。
+ * perRecordInk=true（D27）时存下的墨迹是唯一来源：recalledInk 一律返回 null——被回收的那次如实「没有笔迹」，
+ * 不拿本页面记下的笔画补（刷新前后一个样）。
+ */
 export function rememberInk(recordId, strokes) {
   if (!recordId || !hasInk(strokes)) return;
   recentInk.delete(recordId);
@@ -502,7 +506,8 @@ export function rememberInk(recordId, strokes) {
   while (recentInk.size > RECENT_INK_CAP) recentInk.delete(recentInk.keys().next().value);
 }
 
-export function recalledInk(recordId) {
+export function recalledInk(recordId, policy = defaultPolicy) {
+  if (policy && policy.features && policy.features.perRecordInk === true) return null;
   return recentInk.get(recordId) || null;
 }
 

@@ -376,10 +376,14 @@ test('copy: M1-5 slots exist (R-W09 / R-W10 / R-W16 / R-W17 / R-W20 / X-JUDGE)',
 test('rememberInk / paintMini helpers', t0 => {
   forgetRecentInk(); // M6-6 测试清理接口：用例之间不共享本页面笔画缓存
   t0.after(() => forgetRecentInk());
+  const OFF = { features: { perRecordInk: false } };
   rememberInk('r77', [STROKE]);
-  assert.deepEqual(recalledInk('r77'), [STROKE]);
+  assert.deepEqual(recalledInk('r77', OFF), [STROKE], 'perRecordInk off: page memory is the only ink');
   rememberInk('r78', [[]]);
-  assert.equal(recalledInk('r78'), null, 'empty strokes are not remembered');
+  assert.equal(recalledInk('r78', OFF), null, 'empty strokes are not remembered');
+  // D27（P1-E3）：开启时存下的墨迹是唯一来源——被回收的那次如实「没有笔迹」，不拿本页面记下的笔画补
+  assert.equal(recalledInk('r77'), null, 'default (on): page memory never stands in for stored / recycled ink');
+  assert.equal(recalledInk('r77', { features: { perRecordInk: true } }), null);
   const calls = [];
   const ctx = new Proxy({}, { get: (o, k) => (k in o ? o[k] : (...a) => calls.push(k)), set: (o, k, v) => { o[k] = v; return true; } });
   assert.equal(paintMini(ctx, [[{ x: 1, y: 1, w: 10, t: 0 }, { x: 20, y: 20, w: 10, t: 10 }]]), 1);

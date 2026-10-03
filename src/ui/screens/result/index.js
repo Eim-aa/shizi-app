@@ -213,13 +213,14 @@ function captionOf(kind, judgment) {
 /**
  * 结果页模型（纯函数；单测直接调用）。
  * @param {object} state   store 状态
- * @param {{slot:'A'|'B', sessionId:string, hasInk?:(record)=>boolean}} o
+ * @param {{slot:'A'|'B', sessionId:string, hasInk?:(record)=>boolean, policy?:object}} o
  *   hasInk：这条 judged 记录有没有本人笔迹（「这次的图片」只画有笔迹的字，R-R07 / 10.12）。口径与格子一致（I6 / P88）：
  *   存下的墨迹（perRecordInk）或本页面会话里刚判断时记下的笔画（write/compare.js recalledInk）任一即算——图片取墨
  *   （images-entry.js inkPointsOf）也是这两处。页面内笔画刷新即失：perRecordInk 关时刷新后入口按 R-R07.allMissing。
- *   缺省看 state.ink + recalledInk；页面传入与格子同一个取法（inkOf）。
+ *   缺省看 state.ink + recalledInk；页面传入与格子同一个取法（inkOf）。perRecordInk=true（D27）时 recalledInk 不再补位，
+ *   只看存下的墨迹。
  */
-export function resultModel(state, { slot, sessionId, hasInk = null }) {
+export function resultModel(state, { slot, sessionId, hasInk = null, policy = defaultPolicy }) {
   const found = findResultSession(state, { slot, sessionId });
   const session = found ? found.session : null;
   const records = recordsOfSession(state, sessionId);
@@ -279,7 +280,7 @@ export function resultModel(state, { slot, sessionId, hasInk = null }) {
   else if (variant === 'picked') dateLine = day ? t('X-RESULT.dateSource', { date: dateText(day), source: fromOf(source) }) : null;
 
   // R-R07「这次的图片」（daily / first；picked 没有图片行）：只画有墨迹的字；都没有 → 说明句。
-  const inkTest = typeof hasInk === 'function' ? hasInk : record => !!inkEntryOf(state, record) || hasStrokes(recalledInk(record.id));
+  const inkTest = typeof hasInk === 'function' ? hasInk : record => !!inkEntryOf(state, record) || hasStrokes(recalledInk(record.id, policy));
   const inkChars = judgedCells.filter(c => {
     const record = c.recordId ? byId.get(c.recordId) : null;
     return !!record && inkTest(record);

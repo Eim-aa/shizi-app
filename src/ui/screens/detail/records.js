@@ -6,6 +6,8 @@
 //   RecordsBlock                                               「记录了 N 次 / 首次记录 {date}」+ 历次格子（按记录先后，没有空的
 //                                                             「下一次」格，R-D03 / L12）；点格子放大（ZoomSheet，R-D03）；
 //                                                             没有笔迹的记录：标准字 +「没有笔迹」，放大「这一次没有留下笔迹」（R-D07 / 10.12）。
+//                                                             D27（P1-E3）：只有第一次与最近一次留墨，中间被回收的历次照实是「没有笔迹」；
+//                                                             model.first / model.latest 即对照用的两条（设计稿出对照入口前只保证数据可取）。
 //   SourceRow + useEtymology                                   字源行（data/etymology.json：{char, gloss, source}）；没有字源的字整块不显示（R-D09）。
 //
 // 口径（01 §3.2）：记录 = kind==='judged'；看过答案 / 跳过不算、不进格子。旧版本照片（photos[字]）不算有记录（P10b，
@@ -16,7 +18,8 @@
 // 「做成图片」（R-D04）：没有记录 → noRecord；最近一次 judged 没有笔迹 → noInk；否则 ok（入口本身由 M4-5 注册后才显示）。
 //
 // data-testid：detail-records（data-count）、detail-records-count、detail-records-first、detail-records-empty、detail-cells、
-//   detail-cell（data-record / data-judgment / data-ink=true|false）、detail-cell-ink、detail-cell-glyph、detail-cell-noink、
+//   detail-cell（data-record / data-judgment / data-ink=true|false / data-first / data-latest：D27 留墨的第一次与最近一次，
+//   供以后「第一次 vs 最近一次」对照入口取数，阶段 1 P1-E3）、detail-cell-ink、detail-cell-glyph、detail-cell-noink、
 //   detail-cell-caption、detail-zoom（放大弹层）、detail-zoom-ink、detail-zoom-noink、detail-zoom-close、detail-source、
 //   detail-source-text、detail-source-from。
 
@@ -287,7 +290,7 @@ export function SourceRow({ char }) {
 
 // ---------------------------------------------------------------- 记录块
 
-function Cell({ record, ink, onOpen }) {
+function Cell({ record, ink, onOpen, first = false, latest = false }) {
   const has = hasInkPoints(ink);
   const { caption, title } = cellCopy(record);
   const sq = has
@@ -295,7 +298,8 @@ function Cell({ record, ink, onOpen }) {
     : html`<span class="sz-dcell__glyph" aria-hidden="true" data-testid="detail-cell-glyph">${record.char}</span>
       <span class="sz-dcell__noink" data-testid="detail-cell-noink">${t('R-D07.noInkLabel')}</span>`;
   return html`<button type="button" class="sz-dcell" data-testid="detail-cell" data-record=${record.id}
-    data-judgment=${record.judgment} data-ink=${has ? 'true' : 'false'} aria-label=${title} onClick=${() => onOpen(record)}>
+    data-judgment=${record.judgment} data-ink=${has ? 'true' : 'false'} data-first=${first ? 'true' : null} data-latest=${latest ? 'true' : null}
+    aria-label=${title} onClick=${() => onOpen(record)}>
     <span class="sz-dcell__sq">${sq}</span>
     <span class="sz-dcell__cap" data-testid="detail-cell-caption" data-wrong=${record.judgment === 'wrong' ? 'true' : 'false'}>${caption}</span>
   </button>`;
@@ -343,7 +347,8 @@ export function RecordsBlock({ model, store }) {
         : null}
     </div>
     <div class="sz-drec__grid" data-testid="detail-cells">
-      ${cells.map(c => html`<${Cell} key=${c.record.id} record=${c.record} ink=${c.ink} onOpen=${() => openZoom(c.record, c.ink)} />`)}
+      ${cells.map(c => html`<${Cell} key=${c.record.id} record=${c.record} ink=${c.ink} onOpen=${() => openZoom(c.record, c.ink)}
+        first=${model.first === c.record} latest=${model.latest === c.record} />`)}
     </div>
   </div>`;
 }

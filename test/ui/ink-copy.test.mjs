@@ -61,14 +61,17 @@ test('F4: each …Glyph variant exists and makes no handwriting promise', () => 
   }
 });
 
-test('F4: tInk / inkKey follow policy.features.perRecordInk (live value; default off)', () => {
-  assert.equal(policy.features.perRecordInk, false);
+test('F4: tInk / inkKey follow policy.features.perRecordInk (live value; default on since D27)', () => {
+  assert.equal(policy.features.perRecordInk, true, 'P31 decided D27 (stage 1 P1-E3)');
+  const off = { features: { perRecordInk: false } };
+  const on = { features: { perRecordInk: true } };
   for (const base of VARIANTS) {
-    assert.equal(inkKey(base), base + 'Glyph');
-    assert.equal(tInk(base), t(base + 'Glyph'));
-    const on = { features: { perRecordInk: true } };
+    assert.equal(inkKey(base), base, 'default (on) → original slot');
+    assert.equal(tInk(base), t(base));
     assert.equal(inkKey(base, on), base);
     assert.equal(tInk(base, undefined, on), t(base));
+    assert.equal(inkKey(base, off), base + 'Glyph', 'off → Glyph variant (10.12 fallback kept)');
+    assert.equal(tInk(base, undefined, off), t(base + 'Glyph'));
   }
   // features 缺失 / 非 true 一律按关闭
   assert.equal(inkKey('R-A01.sortRecentNote', {}), 'R-A01.sortRecentNoteGlyph');
@@ -76,10 +79,22 @@ test('F4: tInk / inkKey follow policy.features.perRecordInk (live value; default
 });
 
 test('A5 (G17): detail / image no-ink note does not promise that writing again makes the image when perRecordInk is off', () => {
-  assert.equal(policy.features.perRecordInk, false);
-  const off = tInk('R-D04.noInkNote');
+  const off = tInk('R-D04.noInkNote', undefined, { features: { perRecordInk: false } });
   assert.equal(off, '这一次的笔迹没有存下来。在结果页可以把刚写完的字做成图片。');
   assert.ok(!/再写一次就能做图片/.test(off));
   // perRecordInk=true：笔迹落盘，「再写一次」成立，取原槽
   assert.equal(tInk('R-D04.noInkNote', undefined, { features: { perRecordInk: true } }), '最近一次没有笔迹，再写一次就能做图片。');
+});
+
+test('D27 (P1-E3): with perRecordInk on, the shown slots only promise what is kept — first + latest ink per char, nothing about every time', () => {
+  // D27 只留每字第一次与最近一次判断的墨迹，中间那次回收后显示「没有笔迹」：任何开启时出货的槽都不得承诺「每次 / 历次的笔迹」。
+  const EVERY = /每次的笔迹|每一次的笔迹|历次的笔迹|所有的笔迹/;
+  const shown = Object.keys(COPY).filter(key => !key.endsWith('Glyph'));
+  const bad = shown.filter(key => EVERY.test([].concat(COPY[key]).join('')));
+  assert.deepEqual(bad, [], 'slots promising every judgment\'s ink');
+  // 字库墙说明（浅 / 深）改说第一次与最近一次，且仍是承诺笔迹的原槽（只在开启时取）
+  for (const key of ['R-L03.legend', 'X-LIBHOME.legendDarkNote']) assert.match(t(key), /第一次和最近一次的笔迹/, key);
+  // 月字帖按 P02 取「本月第一次」，缺墨说明不得说成「最近一次」
+  assert.equal(policy.monthSheetPick, 'first');
+  assert.doesNotMatch(t('X-IMAGES.missingMonth', { chars: '「水」' }), /最近一次/, 'month sheet picks the month\'s first record (P02)');
 });

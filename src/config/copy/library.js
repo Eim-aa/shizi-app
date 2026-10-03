@@ -8,8 +8,8 @@ export default Object.freeze({
   // R-L02（已定；L09 边开发边改）
   'R-L02.more': '还有 {n} 个字 ›',
   // R-L03（已定；四档天数写死待正式；L14 边开发边改）
-  'R-L03.legend': '墨色越浅，越久没写。点一个字，看它每次的笔迹。',
-  // perRecordInk=false（P31）时墙上画的是标准字形，不承诺笔迹（F4）
+  'R-L03.legend': '墨色越浅，越久没写。点一个字，看它第一次和最近一次的笔迹。',
+  // perRecordInk=false（P31）时墙上画的是标准字形，不承诺笔迹（F4）；开启时只留第一次与最近一次的笔迹（D27），原槽据此改写
   'R-L03.legendGlyph': '墨色越浅，越久没写。点一个字，看它的记录。',
   'R-L03.toneOldest': '三个月以上',
   'R-L03.legendDark': '颜色越暗，越久没写',
@@ -127,7 +127,7 @@ export default Object.freeze({
   'X-LIBHOME.tone0': '一周内写过',
   'X-LIBHOME.tone1': '一个月内',
   'X-LIBHOME.tone2': '三个月内',
-  'X-LIBHOME.legendDarkNote': '颜色越暗，越久没写。点一个字，看它每次的笔迹。',
+  'X-LIBHOME.legendDarkNote': '颜色越暗，越久没写。点一个字，看它第一次和最近一次的笔迹。',
   'X-LIBHOME.legendDarkNoteGlyph': '颜色越暗，越久没写。点一个字，看它的记录。',
   'X-LIBHOME.emptyTitle': '你写下的字会留在这里',
   'X-LIBHOME.emptyGlyph': '拾',

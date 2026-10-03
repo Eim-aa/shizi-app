@@ -256,3 +256,27 @@ test('commitRemoveCustom / commitRestoreCustom: records untouched; undo restores
   assert.equal(commitRestoreCustom(store, ok.removed).ok, true, 'already back → no-op');
   assert.equal(store.getState().custom.added.length, 3);
 });
+
+// ---------------------------------------------------------------- D27 本人笔迹（阶段 1 P1-E3）
+
+test('D27: detail cells — first and latest judgments draw their stored ink, a recycled middle one is honestly 没有笔迹 (no page-memory stand-in)', async () => {
+  const { inkOf, hasInkPoints } = await import('../../src/ui/screens/detail/records.js');
+  const { rememberInk, forgetRecentInk } = await import('../../src/ui/screens/write/compare.js');
+  const { setInk, getInk } = await import('../../src/store/store.js');
+  const { encodeInk, buildStroke } = await import('../../src/core/ink-math.js');
+  const ink = encodeInk([buildStroke([{ x: 60, y: 170, t: 0 }, { x: 170, y: 171, t: 60 }, { x: 280, y: 172, t: 120 }], { final: true })]);
+  const first = rec('永', 'wrong', '2026-03-03');
+  const middle = rec('永', 'correct', '2026-07-08');
+  const latest = rec('永', 'correct', '2026-09-20');
+  const state = stateWith([first, middle, latest], { ink: {} });
+  setInk(state, first, ink);
+  setInk(state, latest, ink); // middle 的墨迹已按 D27 回收
+  const store = { getInk: r => getInk(state, r) };
+  forgetRecentInk();
+  rememberInk(middle.id, [[{ x: 1, y: 1, t: 0 }, { x: 9, y: 9, t: 9 }]]); // 本页面刚写过也不补位
+  const m = detailModel(state, '永', { today: TODAY, lookup, hasInk: r => !!getInk(state, r) });
+  assert.deepEqual([m.first.id, m.latest.id], [first.id, latest.id], 'first / latest available for a later 对照 entry');
+  assert.equal(m.image, 'ok', 'latest has ink → image entry ok');
+  assert.deepEqual(m.judged.map(r => hasInkPoints(inkOf(store, r))), [true, false, true]);
+  forgetRecentInk();
+});

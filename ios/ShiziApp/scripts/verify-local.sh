@@ -36,6 +36,8 @@ plutil -lint \
   "${IOS_ROOT}/ShiziApp/Info.plist" \
   "${IOS_ROOT}/ShiziApp/PrivacyInfo.xcprivacy" \
   "${IOS_ROOT}/ShiziApp/zh-Hans.lproj/InfoPlist.strings"
+# A7：Paper 颜色集必须与 src/config/tokens.css 的 --p 一致（启动屏 / WebView 底色同源）
+node "${SCRIPT_DIR}/generate-paper-colorset.mjs" --check
 for script in "${SCRIPT_DIR}"/*.sh; do
   sh -n "$script"
 done

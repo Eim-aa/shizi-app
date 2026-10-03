@@ -95,11 +95,9 @@ final class WebViewController: UIViewController {
         webView.uiDelegate = self
         webView.allowsBackForwardNavigationGestures = false
         webView.isOpaque = false
-        let paper = UIColor { trait in
-            trait.userInterfaceStyle == .dark
-                ? UIColor(red: 0.106, green: 0.094, blue: 0.075, alpha: 1)
-                : UIColor(red: 0.937, green: 0.906, blue: 0.827, alpha: 1)
-        }
+        // 纸色取 Assets 的 Paper 颜色集（浅 #F4F0E7 / 深 #221E1A，由 scripts/generate-paper-colorset.mjs 从 tokens.css 的 --p 生成），
+        // 与启动屏 UILaunchScreen.UIColorName 同源，冷启动到页面首帧没有底色跳变（A7 / G19）。
+        let paper = UIColor(named: "Paper") ?? .systemBackground
         webView.backgroundColor = paper
         webView.scrollView.backgroundColor = paper
         webView.scrollView.bounces = false

@@ -69,6 +69,16 @@ if plutil -extract CFBundleLocalizations.1 raw -o - "${APP}/Info.plist" >/dev/nu
   exit 65
 fi
 
+# A7（G19）启动底色：UILaunchScreen.UIColorName = Paper，且 Paper 颜色集已编进 Assets.car，并与 tokens.css 的 --p 同源。
+test "$(plutil -extract UILaunchScreen.UIColorName raw -o - "${APP}/Info.plist")" = "Paper" \
+  || { echo "Info.plist UILaunchScreen.UIColorName is not Paper" >&2; exit 65; }
+test -f "${APP}/Assets.car" || { echo "Missing Assets.car" >&2; exit 65; }
+if command -v xcrun >/dev/null 2>&1 && xcrun --find assetutil >/dev/null 2>&1; then
+  xcrun assetutil --info "${APP}/Assets.car" 2>/dev/null | grep -q '"Name" : "Paper"' \
+    || { echo "Assets.car has no Paper color" >&2; exit 65; }
+fi
+node "${SCRIPT_DIR}/generate-paper-colorset.mjs" --check
+
 ACTUAL_COUNT="$(find "${WEB}/data" -name '*.json' | wc -l | tr -d ' ')"
 if [ "$ACTUAL_COUNT" != "$EXPECTED_COUNT" ]; then
   echo "data/*.json count mismatch: expected ${EXPECTED_COUNT}, got ${ACTUAL_COUNT}" >&2

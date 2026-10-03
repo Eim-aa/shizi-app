@@ -31,7 +31,10 @@
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>用于把你保存的练字图片存进系统相册。</string>
 	<key>UILaunchScreen</key>
-	<dict/>
+	<dict>
+		<key>UIColorName</key>
+		<string>Paper</string>
+	</dict>
 	<key>UIRequiresFullScreen</key>
 	<false/>
 	<key>UISupportedInterfaceOrientations</key>

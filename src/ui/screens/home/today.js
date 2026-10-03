@@ -7,6 +7,7 @@
 //     primary, other,                             // S01 两行：{slot, kind, remaining}；primary = B 优先，other 只在 A、B 都没写完时 = A
 //     count, inkRow,                              // 今天记录了 N 个字（D12：今天 judged 按字去重）；墨迹行最近 8 条 judged（按 id，同字留最近一次）
 //     showRecord, showFirstTip,
+//     capital,                                    // D40：下一次练习是大写数字特别组时 = 'capital1' | 'capital2'（首页给一句提示，P129），否则 null
 //   }
 //
 // 口径：
@@ -16,7 +17,7 @@
 // - resume：按「现在」看各槽有没有没写完、且不会因跨天作废的组（resumableSession 已含 P37 / P61 过期口径），不写入；
 //   写入（expireStale）由首页在挂载 / 回前台时做。
 // - P16（policy.homeShowRecordWhileResume）：有没写完的组时是否仍显示「今天记录了 N 个字」+ 墨迹行；过渡 true = 显示。
-// - 「第一次来，先写 5 个字试试。」（R-H03）只在 records==='first' 且没有没写完的组时显示（原型 noResume 才显示计数行位置的
+// - 「第一次来，先写 3 个字试试。」（R-H03，D38 首练 3 字）只在 records==='first' 且没有没写完的组时显示（原型 noResume 才显示计数行位置的
 //   文字，H:83；有组时 S01 行已写明「第一次练习 · 还有 N 个字没写」）。
 
 import * as defaultPolicy from '../../../config/policy.js';
@@ -24,7 +25,7 @@ import { epigraphFor } from '../../../config/epigraphs.js';
 import { localDay, monthDayParts, periodOf } from '../../../core/dates.js';
 import { hasAnyJudged, todayCount, todayInkRow } from '../../../core/records.js';
 import { remainingCount } from '../../../core/sessions.js';
-import { aStartInfo, recordsOf, resumableSession } from '../../../core/session-start.js';
+import { aStartInfo, planSpecial, recordsOf, resumableSession } from '../../../core/session-start.js';
 
 /** 墨迹行最多几项（决定-D12：N ≤ 8 显示 N 项，N > 8 显示最近判断的 8 项，数字仍为 N）。 */
 export const INK_ROW_MAX = 8;
@@ -72,8 +73,9 @@ export function recordsStateOf(state, today, { policy = defaultPolicy } = {}) {
  * 首页全部派生数据。
  * @param {object|null} state  store 状态（未启动时 null → 按空状态算）
  * @param {number} nowMs       应用时钟（platform/env.js now()，测试钩子 setClock 可平移）
+ * @param {{deck?: object}} [o] deck = 选字用的题库适配器（data/deck.js deckAdapter）；缺省不算大写数字特别组（capital 恒为 null）
  */
-export function homeModel(state, nowMs, { policy = defaultPolicy, inkRowMax = INK_ROW_MAX } = {}) {
+export function homeModel(state, nowMs, { policy = defaultPolicy, inkRowMax = INK_ROW_MAX, deck = null } = {}) {
   const today = localDay(nowMs);
   const records = recordsOf(state);
   const count = todayCount(records, today);
@@ -81,6 +83,7 @@ export function homeModel(state, nowMs, { policy = defaultPolicy, inkRowMax = IN
   const { resume, primary, other } = resumeOf(state, nowMs, { policy });
   const resumeOn = resume !== 'none';
   const showRecord = recordsState === 'record' && (!resumeOn || policy.homeShowRecordWhileResume !== false);
+  const special = deck && !resumeOn && recordsState !== 'first' ? planSpecial(state, { today, deck, policy }) : null;
   return {
     today,
     period: periodOf(nowMs),
@@ -94,6 +97,7 @@ export function homeModel(state, nowMs, { policy = defaultPolicy, inkRowMax = IN
     inkRow: showRecord ? todayInkRow(records, today, inkRowMax) : [],
     showRecord,
     showFirstTip: recordsState === 'first' && !resumeOn,
+    capital: special ? special.kind : null,
   };
 }
 

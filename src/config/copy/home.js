@@ -58,6 +58,8 @@ export default Object.freeze({
   'X-HOME.pick': '自己选字 →',
   'X-HOME.inkRowLabel': '今天有记录的字：{chars}',
   'X-HOME.startFailed': '没保存上，刚才的选择没记下。',
+  // X-HOME（阶段 1 P1-E4，D40 大写数字特别组的首页提示；过渡文案，阶段 1 文案统一时定稿，P129）
+  'X-HOME.capitalHint': '今天来写写大写数字，借条、报销单上都用得到。',
   // X-SESSION（M2-2 会话开始：S02 保存失败三段式、「现在没有要写的字」页主按钮；04 R-H05 / R-H11 没给这些槽，P55 待文案）
   'X-SESSION.s02SaveFailed': '没保存上，刚才的选择没记下。',
   'X-SESSION.s02Retry': '再试一次',

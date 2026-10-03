@@ -95,6 +95,13 @@ export const warmup = Object.freeze({
 });
 // P127 新字第一次判断就写对（无提示）的 FSRS 评级（已决定 D41：Easy，初始稳定度约 8 天；带提示写对仍按 P34 ratingWithHint）
 export const ratingFirstCorrect = 'Easy';
+// P128 D40「写写大写数字」特别组：累计写满 afterGroups 组后、且积压天数 p < belowDays 的下一次练习，日常组换成两组特别组
+// （壹贰叁肆伍、陆柒捌玖拾，各一组；佰仟在两组特别组之后进入普通新字队列的最前）。每组各只出现一次（以记录为准），之后按普通 FSRS 回来。
+export const capitalNumerals = Object.freeze({
+  enabled: true, // P128 总开关
+  afterGroups: 10, // P128 累计写满几组之后（首练算一组；有判断的组才算）
+  belowDays: 1.5, // P128 触发时积压天数 p 须小于此值（与「2 个新字」同一档）
+});
 // P09 第一次练习的字（已决定 D38：尴 → 赢 → 拾，共 3 个，三字都在默认库「规范常用字」；首练组大小 = 此队列长度，只影响首练，之后每组仍是 groupSize）
 export const firstQueue = Object.freeze(['尴', '赢', '拾']);
 // P33 「自选了还没写」是否进入今天的练习：不进（只走 B 路径）

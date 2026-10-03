@@ -392,7 +392,7 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
       <span class="sz-write__safe" aria-hidden="true"></span>
       <${StepDots} phase=${phase} />
       <div class="sz-write__line" data-testid="write-line-slot">${row.node}</div>
-      <${Prompt} cardKey=${cardKey} phase=${phase} />
+      <${Prompt} cardKey=${cardKey} queue=${session.queue} phase=${phase} />
       <div class="sz-write__gridwrap">
         ${answer.stage || compare.stage || html`<${InkGrid}
           strokes=${view.strokes}

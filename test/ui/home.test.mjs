@@ -126,3 +126,21 @@ test('B6 (G45, D36): a current char that has seen its answer (still tracing / wr
   assert.equal(resumeLineText(both.other, t), '今天的练习 · 正在写第 2 个字 · 还有 3 个');
   assert.equal(resumeLineText(null, t), '');
 });
+
+test('D40 (P129): the home model says which special group is next — only with a deck, no unfinished group, and the conditions met', () => {
+  // 10 组历史：每天一组（昨天起往前 10 天），每组一个字
+  const records = Array.from({ length: 10 }, (_, i) => ({ ...rec(i + 1, String.fromCodePoint(0x6100 + i), { day: `2026-09-${String(23 - i).padStart(2, '0')}` }), sessionId: `s${i + 1}` }));
+  const deck = { newCandidates: () => [], practicable: key => key.startsWith('base:') };
+  const base = state({ records });
+  assert.equal(homeModel(base, at(DAY), { deck }).capital, 'capital1');
+  assert.equal(homeModel(base, at(DAY)).capital, null, 'no deck → never');
+  assert.equal(homeModel(state({ records: records.slice(0, 9) }), at(DAY), { deck }).capital, null, 'fewer than 10 groups');
+  assert.equal(homeModel(state({ records, A: sess('A', 'daily', 5, 1) }), at(DAY), { deck }).capital, null, 'an unfinished group is on the home page instead');
+  assert.equal(homeModel(state(), at(DAY), { deck }).capital, null, 'first visit');
+  const after = [...records, ...[...'壹贰叁肆伍'].map((c, i) => ({ ...rec(50 + i, c, { day: YDAY }), sessionId: 's20' }))];
+  assert.equal(homeModel(state({ records: after }), at(DAY), { deck }).capital, 'capital2');
+  const done = [...after, ...[...'陆柒捌玖'].map((c, i) => ({ ...rec(60 + i, c, { day: YDAY }), sessionId: 's21' }))];
+  assert.equal(homeModel(state({ records: done }), at(DAY), { deck }).capital, null, 'both groups have appeared');
+  assert.equal(t('X-HOME.capitalHint'), '今天来写写大写数字，借条、报销单上都用得到。');
+  assert.equal(t('R-H03.firstVisit'), '第一次来，先写 3 个字试试。', 'D38: first practice is 3 chars');
+});

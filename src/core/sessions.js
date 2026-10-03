@@ -28,6 +28,7 @@ import { charOfCardKey, isJudged, judgedCardKeysOn, answerSeenCardKeysOn, hasAny
 import { overdueDays } from './fsrs.js';
 import { arrangeGroup, dueReviewsDoneOn, planGroup, practiceStats, pressureOf, warmupAllowed } from './mix.js';
 import { isWarmupKey } from './new-order.js';
+import { capitalAfterKeysFor, capitalSpecial } from './special.js';
 
 export const SESSION_KINDS = Object.freeze(['first', 'daily', 'picked']);
 export const PHASES = Object.freeze(['recall', 'compare', 'answer', 'trace', 'retrace']);
@@ -398,12 +399,18 @@ export function selectDaily({
   const pressure = pressureOf(backlog, stats.groupsPerDay, mix);
   const base = { dueKeys: [], earlyKeys: [], newKeys: [], warmKeys: [], customKeys: [], reviewBudgetLeft, backlog, pressure };
 
+  // D40 大写数字特别组：整组换掉日常配比
+  const special = capitalSpecial({ records, stats, pressure, practicable, excluded, policy });
+  if (special) {
+    return { ...base, queue: special.keys.slice(0, size), newTarget: 0, special: { kind: special.kind, keys: special.keys } };
+  }
+
   // ② 新字池：不在调度里（从没有 judged）、没被排除；自选未写的字在 'none' 下不进 daily；特别组之后佰仟排最前
   const customPick = policy.customIntoDaily === 'none' ? [] : customUnwritten.filter((k) => !excluded.has(k));
   const dueSet = new Set(due.map((d) => d.key));
   const taken = new Set(dueSet);
   const pool = [];
-  for (const key of [...customPick, ...newCandidates]) {
+  for (const key of [...customPick, ...capitalAfterKeysFor(records, policy), ...newCandidates]) {
     if (taken.has(key) || excluded.has(key) || !practicable(key)) continue;
     if (sched && sched[key]) continue;
     if (customSet.has(key) && !customPick.includes(key)) continue;
@@ -447,4 +454,21 @@ export function selectDaily({
     newTarget: plan.newTarget,
     special: null,
   };
+}
+
+/** 下一次日常组是不是大写数字特别组（首页提示用，不选字）；返回 {kind, keys} 或 null。参数同 selectDaily 的子集。 */
+export function specialPlan({ sched = {}, records = [], today, practicable = (key) => typeof key === 'string' && key.startsWith('base:'), policy = defaultPolicy, isWarm = (key) => isWarmupKey(key) }) {
+  const cfg = policy.capitalNumerals;
+  if (!cfg || cfg.enabled === false) return null;
+  const stats = practiceStats(records, today, { policy, isWarm });
+  if (stats.groupsTotal < cfg.afterGroups) return null; // 还没满：不用算积压
+  const excluded = new Set(judgedCardKeysOn(records, today));
+  let backlog = 0;
+  for (const [key, entry] of Object.entries(sched || {})) {
+    if (excluded.has(key) || !practicable(key) || !entry || entry.stoppedAt !== undefined) continue;
+    const od = overdueDays(entry, today);
+    if (od !== null && od >= 0) backlog += 1;
+  }
+  const pressure = pressureOf(backlog, stats.groupsPerDay, policy.groupMix);
+  return capitalSpecial({ records, stats, pressure, practicable, excluded, policy });
 }

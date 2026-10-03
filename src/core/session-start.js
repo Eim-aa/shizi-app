@@ -20,10 +20,10 @@
 
 import * as defaultPolicy from '../config/policy.js';
 import { localDay } from './dates.js';
-import { charOfCardKey } from './records.js';
+import { charOfCardKey, hasAnyJudged } from './records.js';
 import {
   createSession, endAndStartPicked, endSlot, expireDaily, isComplete, nextAKind, s02Prompt, selectDaily, selectFirst,
-  startInSlot,
+  specialPlan, startInSlot,
 } from './sessions.js';
 
 export const LABELS = Object.freeze({
@@ -78,8 +78,8 @@ export function aStartInfo(state, { policy = defaultPolicy } = {}) {
  * 今天的练习会选出哪些字（不写入）。
  * @param {object} state  store 状态
  * @param {{today:string, deck:{newCandidates:Function, practicable:Function, currentLibraryId?:Function}, policy?}} o
- * @returns {{queue, dueKeys, earlyKeys, newKeys, warmKeys, customKeys, reviewBudgetLeft, backlog, pressure, newTarget, libraryId, libraryExhausted:boolean}}
- *   各字段见 sessions.selectDaily。
+ * @returns {{queue, dueKeys, earlyKeys, newKeys, warmKeys, customKeys, reviewBudgetLeft, backlog, pressure, newTarget, special, libraryId, libraryExhausted:boolean}}
+ *   special = 大写数字特别组（D40）{kind, keys} 或 null；其余字段见 sessions.selectDaily。
  *   libraryExhausted：当前练习范围里已没有可当新字出的字（R-H11「字库都写过」的次入口）。
  */
 export function planDaily(state, { today, deck, policy = defaultPolicy }) {
@@ -103,6 +103,16 @@ export function planDaily(state, { today, deck, policy = defaultPolicy }) {
   });
   const libraryExhausted = !newCandidates.some(key => deck.practicable(key) && !sched[key]);
   return { ...plan, libraryId, libraryExhausted };
+}
+
+/**
+ * 下一次「今天的练习」是不是大写数字特别组（D40，首页提示用；不写入）：返回 {kind:'capital1'|'capital2', keys} 或 null。
+ * 第一次练习（还没有任何判断）、特别组条件不满足（累计未满 10 组 / 积压 p ≥ 1.5 / 两组都出现过）都是 null。
+ */
+export function planSpecial(state, { today, deck, policy = defaultPolicy }) {
+  const records = recordsOf(state);
+  if (!hasAnyJudged(records)) return null;
+  return specialPlan({ sched: (state && state.sched) || {}, records, today, practicable: deck.practicable, policy });
 }
 
 /** S02 确认框数据（R-H05）：旧 B 没写完 → {sessionId, unwrittenKeys, unwrittenChars, judgedCount}；否则 null。 */

@@ -488,3 +488,20 @@ test('after the first practice (尴 赢 拾) the first daily group is 1 warm-up 
   assert.equal(plan2.queue.length, 5);
   assert.equal(plan2.queue.slice(0, 1)[0], 'base:春', 'the warm-up char is still allowed within 7 days');
 });
+
+test('startDaily opens the D40 special group as an ordinary daily session: one commit, queue 壹贰叁肆伍, then 陆柒捌玖拾 next', () => {
+  const env = makeEnv();
+  const records = [];
+  for (let g = 1; g <= 10; g += 1) {
+    records.push(rec(g, String.fromCodePoint(0x6200 + g), 'judged', 'correct', `2026-09-${String(13 + g).padStart(2, '0')}`, { sessionId: 's' + g }));
+  }
+  seed(env, { records });
+  const deck = { newCandidates: () => ['base:亦', 'base:鲜'], practicable: () => true, currentLibraryId: () => 'core3500' };
+  const r = startDaily(env.store, { now: env.now, deck });
+  assert.equal(r.started, true);
+  assert.equal(r.plan.special.kind, 'capital1');
+  const s = env.store.getState().sessions.A;
+  assert.equal(s.kind, 'daily');
+  assert.deepEqual(s.queue, ['base:壹', 'base:贰', 'base:叁', 'base:肆', 'base:伍']);
+  assert.deepEqual(env.commits, ['session:start-daily']);
+});

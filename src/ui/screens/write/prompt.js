@@ -21,7 +21,7 @@
 
 import { html, useRef } from '../../../../vendor/ui.js';
 import { promptModel } from '../../../core/cards.js';
-import { cardForKey, withWordOff } from '../../../data/deck.js';
+import { capitalCard, cardForKey, withWordOff } from '../../../data/deck.js';
 import { getStore } from '../../../store/store.js';
 import { injectStyles, T } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
@@ -170,17 +170,18 @@ function wordOffTable() {
 
 /**
  * 写字页题面。
- * @param {{cardKey?: string, card?: object, phase?: string, testid?: string}} props
- *   card 直接给卡片时不查题库（紧凑版 / 演示）；phase ∈ REVEAL_PHASES 时把目标字填回空格。
+ * @param {{cardKey?: string, card?: object, queue?: string[], phase?: string, testid?: string}} props
+ *   card 直接给卡片时不查题库（紧凑版 / 演示）；phase ∈ REVEAL_PHASES 时把目标字填回空格；
+ *   queue = 当前会话队列：整组都是大写数字字（D40 特别组）时题面用借条 / 报销单语境（data/deck.js capitalCard）。
  */
-export function Prompt({ cardKey, card, phase = 'recall', testid = 'write-prompt' }) {
+export function Prompt({ cardKey, card, queue, phase = 'recall', testid = 'write-prompt' }) {
   const idRef = useRef(null);
   if (!idRef.current) {
     hintSeq += 1;
     idRef.current = `sz-prompt-hint-${hintSeq}`;
   }
   // M3-6：单字详情「换掉这个词语」（wordOff）生效后题面改只按拼音写（data/deck.js withWordOff）。
-  const resolved = card || withWordOff(cardForKey(cardKey), wordOffTable());
+  const resolved = card || withWordOff(capitalCard(cardForKey(cardKey), queue), wordOffTable());
   const model = promptCells(resolved, { revealed: REVEAL_PHASES.includes(phase) });
   return html`<${PromptView} model=${model} hintId=${idRef.current} groupLabel=${t('X-PROMPT.groupLabel')} testid=${testid} />`;
 }

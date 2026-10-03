@@ -7,7 +7,8 @@ export default Object.freeze({
   'R-AB01.privacyRow': '记录只存在这台手机上 ›',
   'R-AB01.openSourceRow': '开源资料 · 致谢 ›',
   'R-AB01.letterTitle': '给我们写信',
-  'R-AB01.letterAddressPending': '地址待补',
+  // 写信地址未定（P21）：过渡文案，待产品定稿
+  'R-AB01.letterAddressPending': '写信的地址还没有定下来，暂时收不到来信。',
   // X-ABOUT（M4-6 关于页：原型 ShiziScreen L161–L163；三个子页原型没做，隐私 / 开源资料按 03 P21 过渡，待文案）
   'X-ABOUT.title': '关于拾字',
   'X-ABOUT.appName': '拾字',

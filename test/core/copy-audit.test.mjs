@@ -15,12 +15,15 @@ import {
   checkExportWord,
   checkPlaceholders,
   checkTodo,
+  checkNoPlaceholderText,
+  PLACEHOLDER_TEXT_RE,
   checkMirrors,
   collectSourceLiterals,
   registeredPNumbers,
   HARDCODE_ALLOW,
 } from '../../scripts/verify_copy.mjs';
-import { SCREENS } from '../../src/config/copy/index.js';
+import { SCREENS, t } from '../../src/config/copy/index.js';
+import { imageMaxChars } from '../../src/config/policy.js';
 
 const source = JSON.parse(fs.readFileSync(PATHS.source, 'utf8'));
 const clone = (x) => JSON.parse(JSON.stringify(x));
@@ -130,14 +133,46 @@ test('audit: placeholders must be registered and well-formed', () => {
 test('audit: TODO keys must be registered under P55/P66/P76/P90', () => {
   const registered = registeredPNumbers(fs.readFileSync(PATHS.pending, 'utf8'));
   assert.deepEqual(checkTodo(SCREENS, source, registered).errors, []);
+  // F2 之后 json.todo 为空；用合成的 TODO 槽验证登记规则本身仍然生效
+  assert.deepEqual(source.todo, []);
+  const withTodo = { ...SCREENS, images: { ...SCREENS.images, 'R-I01.overLimit': 'TODO: 说明' } };
   const s = clone(source);
-  s.todoRegistry['R-I01.overLimit'] = 'P25';
-  assert.ok(checkTodo(SCREENS, s, registered).errors.some((e) => /R-I01\.overLimit: TODO registered under P25/.test(e)));
-  const s2 = clone(source);
-  delete s2.todoRegistry['X-SYS.corruptNotice'];
-  assert.ok(checkTodo(SCREENS, s2, registered).errors.some((e) => /X-SYS\.corruptNotice: TODO key has no P number/.test(e)));
-  const { warnings } = checkTodo(SCREENS, source, registered);
-  assert.ok(warnings.some((w) => /P55 →/.test(w)));
+  s.todo = ['R-I01.overLimit'];
+  s.todoRegistry = { 'R-I01.overLimit': 'P25' };
+  assert.ok(checkTodo(withTodo, s, registered).errors.some((e) => /R-I01\.overLimit: TODO registered under P25/.test(e)));
+  s.todoRegistry = {};
+  assert.ok(checkTodo(withTodo, s, registered).errors.some((e) => /R-I01\.overLimit: TODO key has no P number/.test(e)));
+  s.todoRegistry = { 'R-I01.overLimit': 'P55' };
+  const ok = checkTodo(withTodo, s, registered);
+  assert.deepEqual(ok.errors, []);
+  assert.ok(ok.warnings.some((w) => /P55 →/.test(w)));
+});
+
+test('audit F2: runtime copy must not contain TODO / TBD / FIXME / 待补 / 占位 (fails on the old TODO values, green now)', () => {
+  assert.deepEqual(checkNoPlaceholderText(SCREENS), [], 'current copy is placeholder-free');
+  // 修复前的三个槽原值：门禁必须能抓到
+  const oldValues = {
+    common: { 'X-SYS.corruptNotice': 'TODO: 启动时发现坏数据的顶部提示（P55）', 'X-SYS.blockMigration': 'TODO: 旧数据没能导入时阻断页补充说明（P55，M5-6 迁移变体）' },
+    images: { 'R-I01.overLimit': 'TODO: 超过 80 个字的图片说明（P25）' },
+  };
+  assert.equal(checkNoPlaceholderText(oldValues).length, 3);
+  const words = { x: { a: 'todo later', b: '内容 TBD', c: 'fixme', d: '地址待补', e: '这里是占位', f: ['第一行', '第二行 Todo'], g: '一切正常' } };
+  const errors = checkNoPlaceholderText(words);
+  assert.equal(errors.length, 6, errors.join('\n'));
+  assert.ok(!errors.some((e) => e.startsWith('g ')));
+  assert.ok(PLACEHOLDER_TEXT_RE.test('FixMe'));
+});
+
+test('audit F2: the three former TODO slots say something concrete and 80 matches policy.imageMaxChars', () => {
+  for (const key of ['X-SYS.corruptNotice', 'X-SYS.blockMigration', 'R-I01.overLimit']) {
+    const v = t(key);
+    assert.equal(typeof v, 'string');
+    assert.ok(v.length >= 20, key + ' is a real sentence');
+    assert.ok(!/P\d{2}|M\d|TODO/.test(v), key + ' exposes no engineering ids');
+  }
+  assert.ok(t('R-I01.overLimit').includes(String(imageMaxChars)), 'overLimit names the real cap');
+  assert.match(t('X-SYS.blockMigration'), /没有丢/);
+  assert.match(t('X-SYS.corruptNotice'), /备份文件/);
 });
 
 test('audit: core mirror constants equal their copy keys', async () => {

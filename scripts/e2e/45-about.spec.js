@@ -7,7 +7,7 @@
 //      系统返回（history.back）同样回到关于页；关于页再返回 → 「我的」tab 根。
 //   3. 开源资料 · 致谢：程序 / 字形和字源 / 字体 三组，条目与 src/config/credits.js 一致（含 Preact / htm / Hanzi Writer / ts-fsrs），
 //      「许可全文」展开 / 收起（aria-expanded），展开后是 NOTICES 原文 + licenses/ 全文。
-//   4. 给我们写信：「地址待补」（P21 占位）。
+//   4. 给我们写信：过渡文案（P21，R-AB01.letterAddressPending）。
 //   5. 刷新停在子页 → 仍是该子页，返回回到关于页。
 //   6. 全程不写入（写日志长度不变、v2 状态深相等）；393×852 与 360×640 无横向滚动（展开最长的许可全文后）。
 
@@ -256,7 +256,7 @@ export default async function about(page, ctx) {
   assert.equal((await route(page)).top, 'mine', 'about back → mine tab root');
 
   // ------------------------------------------------------------ 6. 给我们写信 + 不写入
-  ctx.step('letter page: 地址待补 placeholder (P21); nothing written anywhere');
+  ctx.step('letter page: transitional note (P21); nothing written anywhere');
   await openAbout(page);
   await page.click(topSel('about-row-letter'));
   await waitTop(page, 'about-letter');
@@ -264,7 +264,9 @@ export default async function about(page, ctx) {
     const el = document.querySelector('.sz-layer[data-top="true"] [data-testid="about-letter-address"]');
     return { text: el.textContent, pending: el.dataset.pending };
   });
-  assert.deepEqual(addr, { text: '地址待补', pending: 'P21' }, 'letter page shows the P21 placeholder');
+  const letterCopy = await page.evaluate(async () => (await import('/src/config/copy/index.js')).t('R-AB01.letterAddressPending'));
+  assert.deepEqual(addr, { text: letterCopy, pending: 'P21' }, 'letter page shows the P21 transitional note');
+  assert.ok(!/待补|TODO/i.test(addr.text), 'letter note is not a placeholder');
   const log = await page.evaluate(() => window.__shiziTest.getWriteLog());
   assert.deepEqual(log.slice(writesAfterReload).map(w => w.key), [], 'no storage writes while browsing about pages after reload');
   assert.deepEqual(await page.evaluate(() => window.__shiziTest.getState()), stateBefore, 'v2 state deep-equal');

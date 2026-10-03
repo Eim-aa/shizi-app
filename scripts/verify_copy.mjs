@@ -8,7 +8,7 @@
 //      槽的值 = 片段按统一规则规整后的结果（占位符统一、<br> 换成数组），否则必须有 decision/note。
 //   3. copy/ 与 json 逐字一致：已声明范围内每个槽在 src/config/copy/<screen>.js 里存在且值完全相同；
 //      copy/ 里不能有 json 未登记的键；键必须落在 json 指定的屏文件里。
-//   4. 旧词表禁用、引号只用「」；值以 TODO: 开头的必须在 json.todo 允许表里（P55），只报警不失败。
+//   4. 旧词表禁用、引号只用「」；值以 TODO: 开头的必须在 json.todo 允许表里，只报警（但第 13 项一律报错，所以 json.todo 现为空）。
 //   5. policy.js：能被加载；每个导出项与嵌套键的注释含 P 编号，且编号在 03-待产品决定 有登记；
 //      03 的每个 P 编号都被 policy.js、copy-source.json 的 decision 或 json.nonRuntimeDecisions 覆盖。
 //   M6-4 文案审计（02 §8）：
@@ -22,6 +22,8 @@
 //  11. TODO：json.todo 的键须在 json.todoRegistry 登记 P 编号且属于 json.todoDecisions（P55/P66/P76/P90）；
 //      汇总为 warning 按 P 编号列出。
 //  12. 镜像常量：core/cards.js 的 PROMPT_COPY / LIBRARIES.label 与 copy 逐字一致。
+//  13. 占位文案（F2）：运行时文案值不得含 TODO / TBD / FIXME / 待补 / 占位（大小写不敏感）——会原样渲染给用户；
+//      待产品定稿的槽写过渡文案并在 copy-source.json 的 note / 03 里标明，不再用 TODO 占位。
 //
 // 用法：node scripts/verify_copy.mjs [--scope=all|M<n>|R-H,R-W|screen:home] [--quiet]
 //   --scope 缺省取 copy-source.json 的 gate.defaultScope。M<n> = milestone ≤ n 的条目（按里程碑逐步生效）。
@@ -849,6 +851,22 @@ export function checkTodo(copyModules, source, registeredP) {
   return { errors, warnings };
 }
 
+/** 13. 运行时文案不得含占位词（F2）。copyModules = {screen: {key: string|string[]}}。 */
+export const PLACEHOLDER_TEXT_RE = /TODO|TBD|FIXME|待补|占位/i;
+export function checkNoPlaceholderText(copyModules) {
+  const errors = [];
+  for (const [screen, table] of Object.entries(copyModules)) {
+    for (const [key, value] of Object.entries(table)) {
+      for (const text of Array.isArray(value) ? value : [value]) {
+        if (typeof text !== 'string') continue;
+        const m = PLACEHOLDER_TEXT_RE.exec(text);
+        if (m) errors.push(key + ' (' + screen + '): runtime copy contains placeholder word 「' + m[0] + '」 — write the transitional wording instead of a TODO');
+      }
+    }
+  }
+  return errors;
+}
+
 /** 12. 留在 core 的镜像常量与 copy 逐字一致（HARDCODE_ALLOW 里 cards.js 两条的前提）。 */
 export async function checkMirrors(copyModules) {
   const errors = [];
@@ -893,6 +911,7 @@ export async function checkAudit(source, copyModules, { root = ROOT } = {}) {
   const todo = checkTodo(copyModules, source, registered);
   errors.push(...todo.errors);
   errors.push(...(await checkMirrors(copyModules)));
+  errors.push(...checkNoPlaceholderText(copyModules));
   return { errors, warnings: todo.warnings, allowedLiterals: hard.allowed };
 }
 

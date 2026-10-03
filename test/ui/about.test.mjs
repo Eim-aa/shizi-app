@@ -171,7 +171,7 @@ test('about page: three rows (隐私 / 开源资料 · 致谢 / 给我们写信)
   assert.deepEqual(opened, [ABOUT_PRIVACY_SCREEN, ABOUT_CREDITS_SCREEN, ABOUT_LETTER_SCREEN]);
 });
 
-test('sub-pages: privacy paragraphs, credits groups (code → data → font), letter placeholder 地址待补 (P21)', () => {
+test('sub-pages: privacy paragraphs, credits groups (code → data → font), letter transitional note (P21)', () => {
   const priv = PrivacyView();
   assert.equal(priv.props.title, '隐私');
   assert.deepEqual(allByTestid(priv, 'about-privacy-p').map(textOf), privacyParagraphs());
@@ -189,7 +189,7 @@ test('sub-pages: privacy paragraphs, credits groups (code → data → font), le
   const letter = LetterView();
   assert.equal(letter.props.title, '给我们写信');
   const [addr] = allByTestid(letter, 'about-letter-address');
-  assert.equal(textOf(addr), '地址待补');
+  assert.equal(textOf(addr), t('R-AB01.letterAddressPending'));
   assert.equal(addr.props['data-pending'], 'P21');
 });
 

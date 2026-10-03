@@ -13,7 +13,8 @@ export default Object.freeze({
   'R-I01.signatureDate': '{year}年{month}月{day}日',
   'R-I01.signatureMonth': '{year}年{month}月',
   'R-I01.glyphEntry': '把这个字做成图片',
-  'R-I01.overLimit': 'TODO: 超过 80 个字的图片说明（P25）',
+  // 超 80 字（P25 pending）：已写过渡文案，待产品定稿；80 与 policy.imageMaxChars 同值（单测核对）
+  'R-I01.overLimit': '一张图最多放 80 个字，现在的字超过了，暂时做不成图片。记录都还在，没有受影响。',
   // R-I02（已定（导出模块要补））
   'R-I02.glyphCaption': '{pinyin} · {date}',
   // X-IMAGES（M4-5 图片预览弹层：原型 ShiziScreen L192–L201 / L486–L487 / charEl；04 §3.2 图片规格；P50）

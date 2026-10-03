@@ -12,7 +12,7 @@
 //                    licenses/、sources/LICENSE-* 生成）按 程序 / 字形和字源 / 字体 分组；每项 名称 + 版本、许可名、出处网址
 //                    （纯文本，不做外链，避免在壳里跳出应用），「许可全文」按钮展开 NOTICES 原文与许可全文（英文原文）。
 //                    ShiziKai / ShiziSerifSC 在 M5-2 写进 NOTICES 后重跑生成器即出现。
-//   'about-letter'   给我们写信：R-AB01.letterAddressPending「地址待补」（03 P21 待文案 / 地址）。
+//   'about-letter'   给我们写信：R-AB01.letterAddressPending（03 P21 过渡文案，待产品给地址）。
 //
 // data-testid（前缀 about-）：
 //   about-screen、about-head、about-seal、about-name、about-build、about-motto、about-rows、

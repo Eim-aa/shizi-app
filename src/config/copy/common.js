@@ -14,9 +14,9 @@ export default Object.freeze({
   'X-COMMON.close': '关闭',
   'X-COMMON.undo': '撤销',
   'X-COMMON.undone': '已撤销',
-  // X-SYS（03 P55 待文案：坏值顶部提示）
-  'X-SYS.corruptNotice': 'TODO: 启动时发现坏数据的顶部提示（P55）',
-  'X-SYS.blockMigration': 'TODO: 旧数据没能导入时阻断页补充说明（P55，M5-6 迁移变体）',
+  // X-SYS（03 P55：坏值顶部提示、迁移失败阻断页补充说明；已写过渡文案，待产品定稿）
+  'X-SYS.corruptNotice': '有一部分存下来的内容坏了，读不出来，已经另外收好，其他记录没有受影响。如果发现设置或记录和以前不一样，可以重新设置，或用备份文件恢复。',
+  'X-SYS.blockMigration': '之前的记录没能导入这一版，旧记录还原样留在这台手机上，没有丢。如果是存储空间不充足，先空出一些再点下面的按钮重新导入；一直不行的话，不要清理浏览器，也不要删掉拾字。',
   // X-SHARE（M6-6 桥错误回调 shiziShareFailed，03 P96 过渡：原生分享面板没打开 / 外链打不开时的页内轻提示；待文案）
   'X-SHARE.backupFailed': '备份文件没有分享出去，可以再试一次。',
   'X-SHARE.cardFailed': '图片没有分享出去，可以再试一次。',

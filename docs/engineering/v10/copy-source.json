@@ -61,23 +61,15 @@
     "易忘度"
   ],
   "bannedWordsSource": "旧词表：M0-6 首批 + M6-4 补（04 §3.1 T11 叫法、§4.2 D23/D24 删除项与 §4.3 边改 V03「背景音」→「按键音」、reference/G-tests 旧门禁禁用词）。scripts/verify_copy.mjs 同时扫 copy 值与 src/ 源码字面量（不含注释）。",
-  "todo": [
-    "R-I01.overLimit",
-    "X-SYS.corruptNotice",
-    "X-SYS.blockMigration"
-  ],
+  "todo": [],
   "todoDecisions": [
     "P55",
     "P66",
     "P76",
     "P90"
   ],
-  "todoRegistry": {
-    "R-I01.overLimit": "P55",
-    "X-SYS.corruptNotice": "P55",
-    "X-SYS.blockMigration": "P55"
-  },
-  "todoNote": "todo 里的键值为「TODO: …」待文案占位；todoRegistry 写它归哪个 03 待文案项（只许 todoDecisions）。R-I01.overLimit 的 decision 是 P25（>80 字 pending），说明句本身属 P55「>80 字说明」待文案。",
+  "todoRegistry": {},
+  "todoNote": "todo 里的键值为「TODO: …」待文案占位；todoRegistry 写它归哪个 03 待文案项（只许 todoDecisions）。F2 起运行时文案不许含 TODO/TBD/FIXME/待补/占位（verify_copy checkNoPlaceholderText），原有 3 个 TODO 槽（R-I01.overLimit、X-SYS.corruptNotice、X-SYS.blockMigration）已写过渡文案，待产品定稿，故 todo 为空。",
   "numeralAllow": {
     "R-M06.*": "年度报告节号「一 · 」（R-M06 原文汉字节号）",
     "X-ANNUAL.section*": "年度报告第二至四节节号，与 R-M06.section1 同式",
@@ -2401,10 +2393,10 @@
         },
         "letterAddressPending": {
           "raw": null,
-          "text": "地址待补",
-          "origin": "03 P21 过渡默认：写信页占位「地址待补」",
+          "text": "写信的地址还没有定下来，暂时收不到来信。",
+          "origin": "03 P21 过渡默认：写信页过渡文案（原占位「地址待补」会原样渲染给用户，F2 改写）",
           "decision": "P21",
-          "note": "待文案（P55）"
+          "note": "过渡文案，待产品定稿（P21 / P90）"
         }
       },
       "dropped": [
@@ -2468,10 +2460,10 @@
         },
         "overLimit": {
           "raw": null,
-          "text": "TODO: 超过 80 个字的图片说明（P25）",
-          "origin": "03 P25 / P55：>80 字 pending + 待文案说明",
+          "text": "一张图最多放 80 个字，现在的字超过了，暂时做不成图片。记录都还在，没有受影响。",
+          "origin": "03 P25 / P55：>80 字 pending + 说明句",
           "decision": "P25",
-          "note": "待文案"
+          "note": "过渡文案，待产品定稿（P55）；80 与 policy.imageMaxChars 同值"
         }
       }
     },
@@ -2751,17 +2743,17 @@
       "slots": {
         "corruptNotice": {
           "raw": null,
-          "text": "TODO: 启动时发现坏数据的顶部提示（P55）",
+          "text": "有一部分存下来的内容坏了，读不出来，已经另外收好，其他记录没有受影响。如果发现设置或记录和以前不一样，可以重新设置，或用备份文件恢复。",
           "origin": "03 P55",
           "decision": "P55",
-          "note": "待文案"
+          "note": "过渡文案，待产品定稿"
         },
         "blockMigration": {
           "raw": null,
-          "text": "TODO: 旧数据没能导入时阻断页补充说明（P55，M5-6 迁移变体）",
+          "text": "之前的记录没能导入这一版，旧记录还原样留在这台手机上，没有丢。如果是存储空间不充足，先空出一些再点下面的按钮重新导入；一直不行的话，不要清理浏览器，也不要删掉拾字。",
           "origin": "03 P55；02 M5-6 迁移变体",
           "decision": "P55",
-          "note": "待文案；R-B09 三槽照用，这句只在迁移失败变体里出现"
+          "note": "过渡文案，待产品定稿；R-B09 三槽照用，这句只在迁移失败变体里出现"
         }
       }
     },

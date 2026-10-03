@@ -10,6 +10,8 @@
 // - 原生左缘返回门控：tab 根页 / 阻断页 backGestureEnabled(false)，有子页 true；只在页面栈深度或阻断变化时发，
 //   写字页为顶层时由写字页自己管（router.createBackGestureSync）。
 // 每个页面图层一直挂着（下面的页面 visibility:hidden），返回时页面内状态与滚动位置都在。
+// 每层 isolation:isolate 自成层叠上下文（P0-A1 / G13）：页内 z-index（页头按钮 z1、sticky 条 z2/z3）不能越过图层，
+// 否则推入 / 返回转场里下层页的「全选」「‹」会压在新页上。
 import { html, render, useEffect, useLayoutEffect, useRef, useState } from '../../vendor/ui.js';
 import {
   attachWindow,
@@ -53,7 +55,7 @@ const GESTURE_POP_MIN_MS = 150;
 injectStyles('root', `
 .sz-app{position:fixed;inset:0;overflow:hidden;background:${T.p};color:${T.i1};font-family:${T.sans};
   -webkit-font-smoothing:antialiased;-webkit-text-size-adjust:100%}
-.sz-layer{position:absolute;inset:0;overflow:hidden;background:${T.p};display:flex;flex-direction:column}
+.sz-layer{position:absolute;inset:0;overflow:hidden;isolation:isolate;background:${T.p};display:flex;flex-direction:column}
 .sz-layer--moving{box-shadow:-12px 0 24px rgba(48,38,26,.12)}
 .sz-layer--snap{transition:transform ${SNAP_MS}ms ${PUSH_EASING}}
 .sz-layer--under{pointer-events:none}

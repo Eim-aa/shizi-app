@@ -9,7 +9,7 @@ live in `licenses/` (shipped in the app bundle) and `sources/LICENSE-*`.
 
 | Component | Repository evidence | Current state | Release action |
 | --- | --- | --- | --- |
-| Project-authored code and content | No root `LICENSE` has been selected | BLOCKED | Owner chooses the project license and confirms ownership/contributor permissions. |
+| Project-authored code and content | Root `LICENSE`: all rights reserved (owner decision D39, 2026-10-03) | RECORDED | Confirm contributor permissions before release; third-party rows below keep their own terms. |
 | Preact 10.29.8 (`vendor/preact.module.js`, `vendor/preact-hooks.module.js`) | Official npm tarball ESM builds, tarball and file SHA-256 in `THIRD_PARTY_NOTICES.md`; mechanical import rewrite and source-map comment removal recorded; `node scripts/vendor_preact.mjs --check` verifies the bytes | RECORDED | Ship the notice and `licenses/preact-LICENSE.txt` (MIT). |
 | htm 3.1.1 (`vendor/htm.module.js`) | Official npm tarball ESM build, unmodified, SHA-256 in `THIRD_PARTY_NOTICES.md`; checked by `vendor_preact.mjs --check` | RECORDED | Ship the notice and `licenses/htm-LICENSE.txt` (Apache-2.0). |
 | `vendor/ui.js` | Project-authored re-export of the Preact, hooks and htm API | Covered by the project row | Licensed with the project once the root `LICENSE` is chosen. |

@@ -12,8 +12,8 @@ export default Object.freeze({
   'R-H02.period.noon': '中午',
   'R-H02.period.dusk': '傍晚',
   'R-H02.period.night': '晚上',
-  // R-H03（已定）
-  'R-H03.firstVisit': '第一次来，先写 5 个字试试。',
+  // R-H03（已定；D38 首练改为 3 个字，字数随之改）
+  'R-H03.firstVisit': '第一次来，先写 3 个字试试。',
   // R-H04（已定）
   'R-H04.resumePicked': '这次选的字 · 还有 {n} 个字没写',
   'R-H04.resumeDaily': '今天的练习 · 还有 {n} 个字没写',

@@ -60,7 +60,7 @@ test('policy: every P in 03 is covered by policy.js, a copy decision or a non-ru
 test('policy: transitional defaults match 03 / the M0-6 card', () => {
   assert.equal(policy.groupSize, 5);
   assert.equal(policy.dailyReviewCap, 30);
-  assert.deepEqual([...policy.firstQueue], ['尴', '嚏', '狩', '晤', '飓']);
+  assert.deepEqual([...policy.firstQueue], ['尴', '赢', '拾'], 'P09 已决定 D38：首练 3 字（原旧校准组前 5：尴 嚏 狩 晤 飓）');
   assert.equal(policy.hintMax, 2);
   assert.deepEqual(
     [policy.ink.base, policy.ink.lo, policy.ink.hi, policy.ink.pressureLo, policy.ink.pressureGain, policy.ink.pressureHi],

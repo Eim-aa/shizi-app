@@ -1,4 +1,4 @@
-// core/session-start.js（M2-2）：开组的 store.commit 包装——首练 5 字（P09）、今天的练习选字（01 §5）、S02（R-H05 / P38）、
+// core/session-start.js（M2-2）：开组的 store.commit 包装——首练 3 字（P09 / D38）、今天的练习选字（01 §5，D41 配比）、S02（R-H05 / P38）、
 // 跨天过期（P37 / P61）、失败不发布（D07）。另测 data/deck.js 的题库访问与 S02 正文拼字。
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -93,7 +93,7 @@ test('planDaily: a deck without currentLibraryId falls back to settings.library,
 
 // ---------------------------------------------------------------- 第一次练习
 
-test('first practice: fixed 5 characters from policy.firstQueue (P09), slot A, one commit', () => {
+test('first practice: fixed 3 characters from policy.firstQueue (P09 / D38), slot A, one commit', () => {
   const env = makeEnv();
   seed(env);
   assert.deepEqual(aStartInfo(env.store.getState()), { kind: 'first', firstVisit: true });
@@ -103,7 +103,8 @@ test('first practice: fixed 5 characters from policy.firstQueue (P09), slot A, o
   assert.equal(r.kind, 'first');
   const s = env.store.getState().sessions.A;
   assert.deepEqual(s.queue, policy.firstQueue.map(c => 'base:' + c));
-  assert.equal(s.queue.length, 5);
+  assert.equal(s.queue.length, 3, 'D38: 首练 3 字（原 D17 / P09 的 5 字）');
+  assert.deepEqual(s.queue, ['base:尴', 'base:赢', 'base:拾']);
   assert.equal(s.kind, 'first');
   assert.equal(s.slot, 'A');
   assert.equal(s.startedDay, TODAY);

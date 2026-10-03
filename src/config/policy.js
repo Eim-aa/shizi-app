@@ -95,8 +95,8 @@ export const warmup = Object.freeze({
 });
 // P127 新字第一次判断就写对（无提示）的 FSRS 评级（已决定 D41：Easy，初始稳定度约 8 天；带提示写对仍按 P34 ratingWithHint）
 export const ratingFirstCorrect = 'Easy';
-// P09 第一次练习的 5 个字（旧校准组前 5）
-export const firstQueue = Object.freeze(['尴', '嚏', '狩', '晤', '飓']);
+// P09 第一次练习的字（已决定 D38：尴 → 赢 → 拾，共 3 个，三字都在默认库「规范常用字」；首练组大小 = 此队列长度，只影响首练，之后每组仍是 groupSize）
+export const firstQueue = Object.freeze(['尴', '赢', '拾']);
 // P33 「自选了还没写」是否进入今天的练习：不进（只走 B 路径）
 export const customIntoDaily = 'none';
 // P34 带提示且判写对的 FSRS 评级（D41 之后：无提示且是新字第一次判断才记 Easy，见 ratingFirstCorrect P127；带提示的第一次写对仍按本项）
@@ -124,7 +124,7 @@ export const sessionExpiry = Object.freeze({
 export const dailyCapCountsPicked = true;
 // P38 S02「结束那组，开新的」时旧 B 有判断：不进结果页，给轻提示
 export const s02EndOld = 'toast';
-// P46 清空所有记录后下一组重回「第一次练习 5 个字」
+// P46 清空所有记录后下一组重回「第一次练习」
 export const afterClearRestartFirst = true;
 // P73 没有设置练习范围（settings.library 缺省 / 未知）时的默认字库：沿旧版 core3500（B-scheduling §7；M2-2 报告）。
 // 换库 / 首次启动让用户选属 M3-5。src/data/deck.js DEFAULT_LIBRARY_ID 与 src/core/session-start.js planDaily 读取。

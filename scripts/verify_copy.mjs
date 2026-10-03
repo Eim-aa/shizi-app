@@ -639,7 +639,7 @@ export function isQuoteJoiner(text) {
 export const HARDCODE_ALLOW = Object.freeze([
   { file: 'src/config/credits.js', any: true, why: 'scripts/build_credits.mjs 生成：THIRD_PARTY_NOTICES 与许可全文逐字（法律文本，P90 原文展示），不是界面文案' },
   { file: 'src/config/epigraphs.js', any: true, why: '首页题记三条（决定-D13 / R-H13）逐字取自原型首页壳 L141，test/core/epigraphs.test.mjs 逐字核对；是引文不是界面文案' },
-  { file: 'src/config/policy.js', texts: ['尴', '嚏', '狩', '晤', '飓'], why: 'P09 firstQueue：第一次练习的 5 个字（数据）' },
+  { file: 'src/config/policy.js', texts: ['尴', '赢', '拾'], why: 'P09 firstQueue：第一次练习的 3 个字（D38，数据）' },
   {
     file: 'src/config/char-order.js',
     any: true,

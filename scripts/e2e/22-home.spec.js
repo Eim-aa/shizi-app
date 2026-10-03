@@ -8,7 +8,7 @@
 //      数字为去重 N；逐判断笔迹关闭时按 10.12 只画字；紧凑版（360×640）墨迹与计数合成一行、只放最近 4 个（A09）。
 //   3. 日期行与时段词（R-H02）：setClock 四段与边界 04:59 / 05:00 / 09:59 / 10:00 / 14:59 / 15:00 / 18:59 / 19:00，
 //      回前台（visibilitychange）重算；题记按日 doy % 3（P23）；光影层随时段切换，淡入 600ms，减少动态效果时直接切。
-//   4. 主入口：第一次 → 第一次练习 5 字（policy.firstQueue）；返回首页 → 轻提示（R-H10）+「第一次练习 · 还有 5 个字没写」；
+//   4. 主入口：第一次 → 第一次练习 3 字（policy.firstQueue，D38）；返回首页 → 轻提示（R-H10）+「第一次练习 · 还有 3 个字没写」；
 //      A+B → 续写 B（D05 B 优先）；另一行 › → 续写 A；有记录无组 → 今天的练习；写入失败 → 主入口下三段式，再试一次成功。
 //   5. 自己选字 →（R-H06）：打开查字组件 pick 模式，选两个字 → 开 B（一次 commit）、弹层关、写字页 B；返回首页 resume-line 为 B；
 //      开组写入失败 → 弹层就地三段式、输入还在，再试一次成功；旧 B 没写完 → 弹层关、S02。
@@ -19,7 +19,7 @@ import { bootTestHost, tid, topSel, waitNavIdle } from './helpers.mjs';
 
 const DAY = '2026-09-24'; // 年内第 267 天 → 267 % 3 = 0 → 第一条题记（原型写死的 267）
 const YDAY = '2026-09-23';
-const FIRST = ['尴', '嚏', '狩', '晤', '飓'];
+const FIRST = ['尴', '赢', '拾']; // D38：首练 3 字（原 5 字：尴 嚏 狩 晤 飓）
 const SHEET = '[data-testid="query-sheet"]';
 const inSheet = id => `${SHEET} ${tid(id)}`;
 
@@ -27,7 +27,7 @@ const COPY = {
   title: '今天写几个字',
   start: '开始写字',
   continue: '继续写字',
-  firstVisit: '第一次来，先写 5 个字试试。',
+  firstVisit: '第一次来，先写 3 个字试试。',
   picked: n => `这次选的字 · 还有 ${n} 个字没写`,
   daily: n => `今天的练习 · 还有 ${n} 个字没写`,
   first: n => `第一次练习 · 还有 ${n} 个字没写`,
@@ -206,7 +206,7 @@ export default async function run(page, ctx) {
   assert.equal(h.title, COPY.title, 'R-H01 title 「今天写几个字」');
   assert.equal(h.cta, COPY.start, 'main entry reads 开始写字');
   assert.ok(h.ctaText.includes('拾') && h.ctaText.includes(COPY.start), 'red block shows 拾 + 开始写字 →');
-  assert.equal(h.firstTip, COPY.firstVisit, 'R-H03 「第一次来，先写 5 个字试试。」');
+  assert.equal(h.firstTip, COPY.firstVisit, 'R-H03 「第一次来，先写 3 个字试试。」');
   assert.equal(h.resumeLine, null, 'no resume-line');
   assert.equal(h.otherLine, null, 'no other-line');
   assert.equal(h.count, null, 'no 今天记录了 0 个字 (R-H12: first / no records → no zero stat)');
@@ -251,13 +251,13 @@ export default async function run(page, ctx) {
   h = await home(page);
   assert.equal(h.records, 'first', 'records=first (no judged record yet)');
   assert.equal(h.resume, 'A', 'resume=A');
-  assert.deepEqual(h.resumeLine, { text: COPY.first(4), slot: 'A' }, '「第一次练习 · 还有 4 个字没写」');
+  assert.deepEqual(h.resumeLine, { text: COPY.first(2), slot: 'A' }, '「第一次练习 · 还有 2 个字没写」（3 字首练，写到第 2 个）');
   assert.equal(h.firstTip, null, 'first-visit tip hidden while the group is unfinished');
 
-  step('B6 (G45, D36): current char has seen its answer (tracing) → 「正在写第 2 个字 · 还有 3 个」, not 「还有 4 个字没写」; last char → 「这是最后一个」');
+  step('B6 (G45, D36): current char has seen its answer (tracing) → 「正在写第 2 个字 · 还有 1 个」, not 「还有 2 个字没写」; last char → 「这是最后一个」');
   await setup(page, { seed: { sessions: { A: sess({ id: 's804', slot: 'A', kind: 'first', chars: FIRST, cursor: 1, current: { phase: 'trace', answerSeen: true } }), B: null, lastEnded: {} } } });
   h = await home(page);
-  assert.deepEqual(h.resumeLine, { text: '第一次练习 · 正在写第 2 个字 · 还有 3 个', slot: 'A' }, 'seen the answer: current char leaves the 「还有 N 个字没写」 count');
+  assert.deepEqual(h.resumeLine, { text: '第一次练习 · 正在写第 2 个字 · 还有 1 个', slot: 'A' }, 'seen the answer: current char leaves the 「还有 N 个字没写」 count');
   assert.ok(!h.resumeLine.text.includes('没写'), 'no double count wording');
   await setup(page, { seed: { sessions: { A: null, B: sess({ id: 's805', slot: 'B', kind: 'picked', chars: ['永', '和'], cursor: 1, current: { phase: 'retrace', answerSeen: true } }), lastEnded: {} } } });
   h = await home(page);
@@ -378,13 +378,13 @@ export default async function run(page, ctx) {
   await page.emulateMedia({ reducedMotion: 'no-preference' });
 
   // ------------------------------------------------------------------ 4. 主入口
-  step('first visit: 拾 → first group of 5 (policy.firstQueue) → back → toast + 第一次练习 · 还有 5 个字没写 (R-H03/R-H10)');
+  step('first visit: 拾 → first group of 3 (policy.firstQueue, D38) → back → toast + 第一次练习 · 还有 3 个字没写 (R-H03/R-H10)');
   await setup(page);
   await page.click(tid('home-start'));
   await waitWrite(page, 'A');
   let st = await state(page);
   assert.equal(st.sessions.A.kind, 'first', 'A is the first group');
-  assert.deepEqual(st.sessions.A.queue, FIRST.map(c => `base:${c}`), 'queue = 尴 嚏 狩 晤 飓');
+  assert.deepEqual(st.sessions.A.queue, FIRST.map(c => `base:${c}`), 'queue = 尴 赢 拾');
   // 跟手返回露出下层首页时，首页内容不能盖到写字页上（.sz-home 自成层叠上下文；去掉 isolation 时 10-write 的 G2 会丢笔）。
   const covered = await page.evaluate(() => {
     window.dispatchEvent(new CustomEvent('shizi-native-back-progress', { detail: { phase: 'began', translationX: 4, progress: 0.01, velocityX: 50 } }));
@@ -403,7 +403,7 @@ export default async function run(page, ctx) {
   h = await home(page);
   assert.equal(h.resume, 'A', 'resume=A');
   assert.equal(h.cta, COPY.continue, '继续写字');
-  assert.deepEqual(h.resumeLine, { text: COPY.first(5), slot: 'A' }, '「第一次练习 · 还有 5 个字没写」');
+  assert.deepEqual(h.resumeLine, { text: COPY.first(3), slot: 'A' }, '「第一次练习 · 还有 3 个字没写」');
   assert.equal(h.firstTip, null, 'tip gone');
   await page.click(tid('home-start'));
   await waitWrite(page, 'A');

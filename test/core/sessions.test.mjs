@@ -237,13 +237,15 @@ test('sessions: compare with no strokes falls back to recall on restore', () => 
   assert.equal(session.current.phase, 'recall');
 });
 
-test('sessions: first practice is the fixed 5 chars (D17 / P09)', () => {
+test('sessions: first practice is the fixed 3 chars 尴 赢 拾 (D38 / P09; was 5 chars in D17)', () => {
   const q = selectFirst();
-  assert.equal(q.length, 5);
+  assert.equal(q.length, 3);
   assert.deepEqual(q, policy.firstQueue.map((c) => 'base:' + c));
+  assert.deepEqual(q, ['base:尴', 'base:赢', 'base:拾']);
   const s = createSession({ id: 's1', kind: 'first', queue: q, at: at(TODAY) });
-  assert.equal(t('R-W01.progress', { n: s.cursor + 1, total: s.queue.length }), '1 / 5');
-  assert.equal(t('R-H03.firstVisit'), '第一次来，先写 5 个字试试。');
+  assert.equal(t('R-W01.progress', { n: s.cursor + 1, total: s.queue.length }), '1 / 3');
+  assert.equal(t('R-H03.firstVisit'), '第一次来，先写 3 个字试试。');
+  assert.equal(policy.groupSize, 5, 'D38 只影响首练，日常组仍是 5');
 });
 
 test('sessions: next A group is first until any judged record exists (P46)', async () => {

@@ -3,12 +3,12 @@
 // 用 window.__shiziTest 造数（seed / setClock / failNextWrite）。
 //
 // 场景：
-//   1. 第一次练习：startA → 写字页 A，first，固定 5 字 policy.firstQueue；返回首页 → 轻提示「已保存，下次接着写」（R-H10）；
+//   1. 第一次练习：startA → 写字页 A，first，固定 3 字 policy.firstQueue（D38：尴 赢 拾）；返回首页 → 轻提示「已保存，下次接着写」（R-H10）；
 //      再 startA → 续写同一组。
 //   2. 写字页去重：openWrite('A') 两次 → 只有一层写字页（replace），depth 不变。
 //   3. 只有顶层写字页写回现场：A 上一笔写入失败（本地 1 笔、存下 0 笔）→ 开 B 压在上面 → visibilitychange / pagehide →
 //      下层 A 不写（存下仍 0 笔）；退回 A → A 重新成为顶层、把那一笔写回（存下 1 笔）。
-//   4. 今天的练习选字（真实题库，规范常用字 SEED 序）：到期优先（逾期降序）、今天 judged 的字不再出、今天跳过 / 看过答案的字
+//   4. 今天的练习选字（真实题库，规范常用字，新字按易忘度顺序 D28 / D41 配比）：到期字（逾期降序）、今天 judged 的字不再出、今天跳过 / 看过答案的字
 //      可以再出（answerSeenScope none）、自选未写不进；上限 30：今天已复习 29 字 → 只出 1 个到期字。
 //   5. 「现在没有要写的字」（R-H11）：小题库全写过 → 推入 session-none 页（exhausted 次入口），不写入。
 //   6. S02：旧 B 有判断 → 正文列出没写的字、三键、无预选；接着写那组 → 旧 B；结束那组，开新的 → 一次 commit、新 B、
@@ -18,7 +18,7 @@
 import { bootTestHost, drawStroke, HORIZONTAL, tid, topSel, waitNavIdle } from './helpers.mjs';
 
 const SESSION_MOD = '/src/ui/screens/session/index.js';
-const FIRST = ['尴', '嚏', '狩', '晤', '飓'];
+const FIRST = ['尴', '赢', '拾']; // D38：首练 3 字（原 5 字：尴 嚏 狩 晤 飓）
 
 function dayOf(ms) {
   const d = new Date(ms);
@@ -129,7 +129,7 @@ export default async function sessionStart(page, ctx) {
   const LA = now - 30 * DAY;
 
   // ------------------------------------------------------------ 1. 第一次练习
-  ctx.step('first practice: startA → write page A, kind first, the fixed 5 characters (P09)');
+  ctx.step('first practice: startA → write page A, kind first, the fixed 3 characters (P09 / D38)');
   await resetSeed(page, {});
   const info = await call(page, 'aStartInfo');
   assert.deepEqual(info, { kind: 'first', firstVisit: true }, 'aStartInfo on an empty store');
@@ -139,8 +139,8 @@ export default async function sessionStart(page, ctx) {
   await waitWrite(page, 'A');
   let st = await state(page);
   assert.equal(st.sessions.A.kind, 'first', 'kind first');
-  assert.deepEqual(st.sessions.A.queue, FIRST.map(c => `base:${c}`), 'queue = 尴 嚏 狩 晤 飓');
-  assert.equal((await page.locator(topSel('write-progress')).textContent()).trim(), '1 / 5', 'progress 1 / 5');
+  assert.deepEqual(st.sessions.A.queue, FIRST.map(c => `base:${c}`), 'queue = 尴 赢 拾');
+  assert.equal((await page.locator(topSel('write-progress')).textContent()).trim(), '1 / 3', 'progress 1 / 3');
   const firstId = st.sessions.A.id;
 
   ctx.step('back to home mid-group → toast 已保存，下次接着写 (R-H10); startA again resumes the same group');
@@ -202,23 +202,23 @@ export default async function sessionStart(page, ctx) {
   assert.equal(await page.locator(`${topSel('write-grid')}`).getAttribute('data-stroke-count'), '1', 'A still shows its stroke');
 
   // ------------------------------------------------------------ 4. 今天的练习选字
-  ctx.step('daily: due first, judged-today excluded, skipped / answer-seen today can return, custom unwritten excluded');
-  // 规范常用字 SEED 序：的 一 是 不 了 在 人 有 …
+  ctx.step('daily: due reviews (most overdue first) mixed with new chars (D41), judged-today excluded, skipped / answer-seen today can return, custom unwritten excluded');
+  // 新字顺序（D28 易忘度，规范常用字库）：酱 酝 尴 嚷 痒 酿 罐 …（不再是 SEED 字频序的 的 一 是 不 了 在 人）
   const recs = [
     record(1, '了', 'judged', 'correct', LONG_AGO, LA),
     record(2, '在', 'judged', 'correct', LONG_AGO, LA + 1),
-    record(3, '的', 'judged', 'correct', TODAY, now - 60000),
-    record(4, '一', 'skipped', undefined, TODAY, now - 50000),
-    record(5, '是', 'answer-seen', undefined, TODAY, now - 40000),
+    record(3, '尴', 'judged', 'correct', TODAY, now - 60000),
+    record(4, '酱', 'skipped', undefined, TODAY, now - 50000),
+    record(5, '酝', 'answer-seen', undefined, TODAY, now - 40000),
   ];
   await resetSeed(page, {
     records: byMonth(recs),
     sched: {
       'base:了': { fsrs: FSRS, due: dayOf(now - 1 * DAY), lastJudgedAt: LA },
       'base:在': { fsrs: FSRS, due: dayOf(now - 3 * DAY), lastJudgedAt: LA },
-      'base:的': { fsrs: FSRS, due: dayOf(now - 5 * DAY), lastJudgedAt: now - 60000 },
+      'base:尴': { fsrs: FSRS, due: dayOf(now - 5 * DAY), lastJudgedAt: now - 60000 },
     },
-    custom: { added: [{ char: '不', at: now - 70000 }] },
+    custom: { added: [{ char: '嚷', at: now - 70000 }] },
   });
   assert.deepEqual(await call(page, 'aStartInfo'), { kind: 'daily', firstVisit: false }, 'aStartInfo daily');
   r = await call(page, 'startA');
@@ -226,8 +226,10 @@ export default async function sessionStart(page, ctx) {
   await waitWrite(page, 'A');
   st = await state(page);
   assert.equal(st.sessions.A.kind, 'daily', 'kind daily');
-  assert.deepEqual(st.sessions.A.queue, ['base:在', 'base:了', 'base:一', 'base:是', 'base:人'],
-    '在 (3 days overdue) · 了 (1 day) · 一 (skipped today) · 是 (answer-seen today) · 人; not 的 (judged today) nor 不 (custom)');
+  // D41：2 个到期、p = 2 / 4 = 0.5 → 2 复习 + 3 新字；组内复、新交错，末位若是新字就换成复习字（组尾放好写的字）
+  assert.deepEqual(st.sessions.A.queue, ['base:在', 'base:酱', 'base:酝', 'base:痒', 'base:了'],
+    '在 (3 days overdue, first) · 酱 (skipped today) · 酝 (answer-seen today) · 痒 · 了 (1 day, moved to the tail); not 尴 (judged today) nor 嚷 (custom)');
+  for (const c of ['的', '一', '是']) assert.equal(st.sessions.A.queue.includes(`base:${c}`), false, `${c} is not a new character any more (D28)`);
 
   ctx.step('daily cap: 29 reviews done today → only 1 due character in the group (dailyReviewCap 30)');
   const capState = await page.evaluate(({ now: n, today, longAgo, la }) => {
@@ -266,7 +268,7 @@ export default async function sessionStart(page, ctx) {
   const dueInQueue = st.sessions.A.queue.filter(k => capState.due.includes(k.slice(5)));
   assert.equal(dueInQueue.length, 1, `only 1 of the 3 due characters (29 reviews already today): ${st.sessions.A.queue.join(' ')}`);
   assert.equal(st.sessions.A.queue.length, 5, 'group of 5');
-  assert.equal(st.sessions.A.queue[0], dueInQueue[0], 'the due character comes first');
+  assert.equal(st.sessions.A.queue[st.sessions.A.queue.length - 1], dueInQueue[0], 'the lone review sits at the tail of the group (D41: the group ends on a char that is easy to write)');
 
   // ------------------------------------------------------------ 5. 现在没有要写的字
   ctx.step('nothing to write (tiny deck, all written) → session-none page, no write (R-H11)');
@@ -473,7 +475,10 @@ export default async function sessionStart(page, ctx) {
   assert.equal(st.sessions.A.kind, 'daily', 'kind daily');
   assert.equal(st.sessions.A.startedDay, TOMORROW, 'new daily started on the new day');
   assert.ok(st.sessions.A.id !== 's903', 'a new session id');
-  assert.equal(st.sessions.A.queue.includes('base:了'), false, '了 not due yet');
+  // 了 的 due 在 3 天后：不是到期复习。D41 的提前复习补位（到期不够时用快到期的字凑组）会把它放在组尾，所以只断言「不当到期字排在前面」。
+  assert.equal(st.sessions.A.queue.length, 5, 'a full group: 4 new chars + the not-yet-due 了 as an early-review filler');
+  assert.equal(st.sessions.A.queue[st.sessions.A.queue.length - 1], 'base:了', '了 (not due yet) can only be an early-review filler, at the tail of the group');
+  assert.equal(st.sessions.A.queue.indexOf('base:了'), 4, '了 is not among the leading (due) chars');
 
   ctx.step('same flow when startA runs first on the new day: expiry + new group in one commit');
   await page.evaluate(() => window.__shiziTest.setClock(null));

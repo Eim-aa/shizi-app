@@ -260,7 +260,7 @@ export default async function run(page, ctx) {
   assert.equal(await toastText(page), await copy(page, 'R-H10.savedToast'), 'toast 已保存，下次接着写 (R-H10)');
   h = await homeView(page);
   assert.deepEqual([h.records, h.resume], ['first', 'A'], 'home: still first-visit records state, resume A');
-  assert.equal(h.resumeLine, await copy(page, 'R-H04.resumeFirst', { n: 5 }), 'resume line 第一次练习 · 还有 5 个字没写');
+  assert.equal(h.resumeLine, await copy(page, 'R-H04.resumeFirst', { n: 3 }), 'resume line 第一次练习 · 还有 3 个字没写');
 
   step('场景 1: resume → same char with its stroke → judge → back: one judged record, 今天记录了 1 个字, group stays open');
   await page.click(topSel('home-start'));
@@ -277,7 +277,7 @@ export default async function run(page, ctx) {
   assert.ok(f.sessions.A && f.sessions.A.cursor === 1, 'the group is still open at cursor 1 (not forced to finish)');
   h = await homeView(page);
   assert.equal(h.count, await copy(page, 'R-H07.todayCount', { n: 1 }), 'home 今天记录了 1 个字 (R-H07)');
-  assert.equal(h.resumeLine, await copy(page, 'R-H04.resumeFirst', { n: 4 }), 'resume line 第一次练习 · 还有 4 个字没写');
+  assert.equal(h.resumeLine, await copy(page, 'R-H04.resumeFirst', { n: 2 }), 'resume line 第一次练习 · 还有 2 个字没写');
   assert.equal(await topScreen(page), 'home', 'no result page, no forced next step');
 
   // --------------------------------------------------------------- 2. 场景 2 + 反例 2

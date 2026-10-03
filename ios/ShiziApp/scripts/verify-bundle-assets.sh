@@ -56,6 +56,19 @@ fi
 test -f "${APP}/PrivacyInfo.xcprivacy" || { echo "Missing PrivacyInfo.xcprivacy" >&2; exit 65; }
 plutil -lint "${APP}/PrivacyInfo.xcprivacy" >/dev/null
 
+# A6（G18）中文本地化：包内必须有 zh-Hans.lproj/InfoPlist.strings，Info.plist 声明 zh-Hans 为开发区域与唯一本地化，
+# 系统组件（分享面板、存到文件、时间选择器、文本菜单）才会用中文。
+test -f "${APP}/zh-Hans.lproj/InfoPlist.strings" || { echo "Missing zh-Hans.lproj/InfoPlist.strings" >&2; exit 65; }
+plutil -lint "${APP}/zh-Hans.lproj/InfoPlist.strings" >/dev/null
+test "$(plutil -extract CFBundleDevelopmentRegion raw -o - "${APP}/Info.plist")" = "zh-Hans" \
+  || { echo "Info.plist CFBundleDevelopmentRegion is not zh-Hans" >&2; exit 65; }
+test "$(plutil -extract CFBundleLocalizations.0 raw -o - "${APP}/Info.plist")" = "zh-Hans" \
+  || { echo "Info.plist CFBundleLocalizations does not start with zh-Hans" >&2; exit 65; }
+if plutil -extract CFBundleLocalizations.1 raw -o - "${APP}/Info.plist" >/dev/null 2>&1; then
+  echo "Info.plist CFBundleLocalizations has more than zh-Hans" >&2
+  exit 65
+fi
+
 ACTUAL_COUNT="$(find "${WEB}/data" -name '*.json' | wc -l | tr -d ' ')"
 if [ "$ACTUAL_COUNT" != "$EXPECTED_COUNT" ]; then
   echo "data/*.json count mismatch: expected ${EXPECTED_COUNT}, got ${ACTUAL_COUNT}" >&2

@@ -34,7 +34,8 @@ run_logged() {
 echo "== Lint plist and shell scripts =="
 plutil -lint \
   "${IOS_ROOT}/ShiziApp/Info.plist" \
-  "${IOS_ROOT}/ShiziApp/PrivacyInfo.xcprivacy"
+  "${IOS_ROOT}/ShiziApp/PrivacyInfo.xcprivacy" \
+  "${IOS_ROOT}/ShiziApp/zh-Hans.lproj/InfoPlist.strings"
 for script in "${SCRIPT_DIR}"/*.sh; do
   sh -n "$script"
 done

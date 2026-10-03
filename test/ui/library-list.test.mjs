@@ -94,7 +94,7 @@ test('R-E03 rows: word with the target bold, meta line, 写错那次 caption onl
   assert.equal(row.meta, t('R-E03.wrongMeta', { date: dateText('2026-09-24'), n: 2 }));
   assert.deepEqual(row.metaParts, ['9 月 24 日写错', '一共写错 2 次']);
   assert.equal(row.thumbCaption, t('R-E03.wrongThumb'));
-  assert.equal(m.note, t('R-E03.wrongNote'));
+  assert.equal(m.note, t('R-E03.wrongNoteGlyph'));
   assert.equal(m.top, t('R-E04.wrongTop'));
   assert.equal(m.title, t('R-E04.titleWrong'));
   assert.equal(m.head, '1 个字');
@@ -104,7 +104,7 @@ test('R-E03 rows: word with the target bold, meta line, 写错那次 caption onl
   const f = listModel(st2, { kind: 'forget', today: TODAY, cardFor, practicable });
   assert.equal(f.rows[0].meta, '最近一次 9 月 6 日 · 记录了 2 次');
   assert.equal(f.rows[0].thumbCaption, '', '快忘了小图下不写');
-  assert.equal(f.note, t('R-E03.forgetNote'));
+  assert.equal(f.note, t('R-E03.forgetNoteGlyph'));
   assert.equal(f.top, t('R-E04.forgetTop'));
   assert.equal(f.title, t('R-E04.titleForget'));
 

@@ -10,7 +10,7 @@
 // 纯函数：不访问 store / DOM；题库查找与可练谓词由调用方注入（页面传 data/deck.js，单测传假卡）。
 
 import * as defaultPolicy from '../../../config/policy.js';
-import { t } from '../../../config/copy/index.js';
+import { t, tInk } from '../../../config/copy/index.js';
 import { monthDayParts } from '../../../core/dates.js';
 import { forgetList, judgedCountOfCard, wrongCountOfCard, wrongList } from '../../../core/records.js';
 
@@ -168,7 +168,7 @@ export function listModel(state, { kind: rawKind, off = [], today, policy = defa
     emptyBody: isWrong ? t('X-LIST.wrongEmptyBody') : t('R-E04.forgetEmpty'),
     head: t('X-LIST.countHead', { n: rows.length }),
     top: isWrong ? t('R-E04.wrongTop') : t('R-E04.forgetTop'),
-    note: isWrong ? t('R-E03.wrongNote') : t('R-E03.forgetNote'),
+    note: isWrong ? tInk('R-E03.wrongNote', undefined, policy) : tInk('R-E03.forgetNote', undefined, policy),
     rows,
     selectedKeys,
     selectedCount: n,

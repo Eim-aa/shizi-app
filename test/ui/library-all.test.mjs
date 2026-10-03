@@ -66,7 +66,9 @@ test('counts match the library home (recorded, custom unwritten) and judged-only
 test('recent (default): hollow first, months new → old, two open by default, rest closed; fold overrides; cross-year label', () => {
   const m = allModel(S, opts());
   assert.equal(m.sort, 'recent');
-  assert.equal(m.note, '按最近一次写的月份排。每格是你最近一次的笔迹。');
+  assert.equal(m.note, '按最近一次写的月份排。点一个字，看它的记录。', 'F4: perRecordInk=false → no promise of 你的笔迹');
+  const on = allModel(S, opts({ policy: { ...policy, features: { ...policy.features, perRecordInk: true } } }));
+  assert.equal(on.note, '按最近一次写的月份排。每格是你最近一次的笔迹。', 'perRecordInk=true → original slot')
   assert.deepEqual(m.groups.map(g => [g.key, g.name, g.count]), [
     ['hollow', '自选了还没写', '2 个字'],
     ['m:2026-09', '9 月', '3 个字'],

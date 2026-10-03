@@ -9,6 +9,8 @@ export default Object.freeze({
   'R-L02.more': '还有 {n} 个字 ›',
   // R-L03（已定；四档天数写死待正式；L14 边开发边改）
   'R-L03.legend': '墨色越浅，越久没写。点一个字，看它每次的笔迹。',
+  // perRecordInk=false（P31）时墙上画的是标准字形，不承诺笔迹（F4）
+  'R-L03.legendGlyph': '墨色越浅，越久没写。点一个字，看它的记录。',
   'R-L03.toneOldest': '三个月以上',
   'R-L03.legendDark': '颜色越暗，越久没写',
   // R-L04（已定）
@@ -47,6 +49,7 @@ export default Object.freeze({
   'R-L10.customUnwritten': '另有 {n} 个自选的字还没写',
   // R-A01（已定）
   'R-A01.sortRecentNote': '按最近一次写的月份排。每格是你最近一次的笔迹。',
+  'R-A01.sortRecentNoteGlyph': '按最近一次写的月份排。点一个字，看它的记录。',
   'R-A01.sortPinyinNote': '按拼音首字母排。多音字按第一个读音。',
   'R-A01.sortRecent': '最近写的',
   'R-A01.sortPinyin': '拼音',
@@ -75,8 +78,10 @@ export default Object.freeze({
   'R-E03.wrongThumb': '写错那次',
   'R-E03.wrongMeta': '{date}写错 · 一共写错 {n} 次',
   'R-E03.wrongNote': '右边小图是你写错的那一次。点圆圈选字，点这一行看记录。',
+  'R-E03.wrongNoteGlyph': '点圆圈选字，点这一行看记录。',
   'R-E03.forgetMeta': '最近一次 {date} · 记录了 {n} 次',
   'R-E03.forgetNote': '格子里是你最近一次的笔迹。点圆圈选字，点这一行看记录。',
+  'R-E03.forgetNoteGlyph': '点圆圈选字，点这一行看记录。',
   // R-E04（已定（画布 09 节 K18 其余 1–12 条原文不在仓库，§6.2））
   'R-E04.wrongEmpty': '现在没有写错过的字',
   'R-E04.forgetEmpty': '可能快忘了的字会放在这里。',
@@ -120,6 +125,7 @@ export default Object.freeze({
   'X-LIBHOME.tone1': '一个月内',
   'X-LIBHOME.tone2': '三个月内',
   'X-LIBHOME.legendDarkNote': '颜色越暗，越久没写。点一个字，看它每次的笔迹。',
+  'X-LIBHOME.legendDarkNoteGlyph': '颜色越暗，越久没写。点一个字，看它的记录。',
   'X-LIBHOME.emptyTitle': '你写下的字会留在这里',
   'X-LIBHOME.emptyGlyph': '拾',
   'X-LIBHOME.cellAria': '{char}，{status}',

@@ -1115,6 +1115,13 @@
           "raw": "墨色越浅，越久没写。点一个字，看它每次的笔迹。",
           "text": "墨色越浅，越久没写。点一个字，看它每次的笔迹。"
         },
+        "legendGlyph": {
+          "raw": null,
+          "text": "墨色越浅，越久没写。点一个字，看它的记录。",
+          "origin": "R-L03.legend 的 perRecordInk=false 变体",
+          "decision": "P31",
+          "note": "F4：perRecordInk=false（P31 阻塞）时这里画标准字形，原句承诺「笔迹」不成立；默认出货取此变体，perRecordInk=true 才取原槽（调用处 tInk 选择）"
+        },
         "toneOldest": {
           "raw": "三个月以上",
           "text": "三个月以上"
@@ -1285,6 +1292,13 @@
         "sortRecentNote": {
           "raw": "按最近一次写的月份排。每格是你最近一次的笔迹。",
           "text": "按最近一次写的月份排。每格是你最近一次的笔迹。"
+        },
+        "sortRecentNoteGlyph": {
+          "raw": null,
+          "text": "按最近一次写的月份排。点一个字，看它的记录。",
+          "origin": "R-A01.sortRecentNote 的 perRecordInk=false 变体",
+          "decision": "P31",
+          "note": "F4：perRecordInk=false（P31 阻塞）时这里画标准字形，原句承诺「笔迹」不成立；默认出货取此变体，perRecordInk=true 才取原槽（调用处 tInk 选择）"
         },
         "sortPinyinNote": {
           "raw": "按拼音首字母排。多音字按第一个读音。",
@@ -1805,6 +1819,13 @@
           "raw": "右边小图是你写错的那一次。点圆圈选字，点这一行看记录。",
           "text": "右边小图是你写错的那一次。点圆圈选字，点这一行看记录。"
         },
+        "wrongNoteGlyph": {
+          "raw": null,
+          "text": "点圆圈选字，点这一行看记录。",
+          "origin": "R-E03.wrongNote 的 perRecordInk=false 变体（页面内刚写的笔画仍会画在小图里，没有就写「没有笔迹」，故不再说「小图是…那一次」）",
+          "decision": "P31",
+          "note": "F4：perRecordInk=false（P31 阻塞）时这里画标准字形，原句承诺「笔迹」不成立；默认出货取此变体，perRecordInk=true 才取原槽（调用处 tInk 选择）"
+        },
         "forgetMeta": {
           "raw": "最近一次 {日期} · 记录了 {N} 次",
           "text": "最近一次 {date} · 记录了 {n} 次"
@@ -1812,6 +1833,13 @@
         "forgetNote": {
           "raw": "格子里是你最近一次的笔迹。点圆圈选字，点这一行看记录。",
           "text": "格子里是你最近一次的笔迹。点圆圈选字，点这一行看记录。"
+        },
+        "forgetNoteGlyph": {
+          "raw": null,
+          "text": "点圆圈选字，点这一行看记录。",
+          "origin": "R-E03.forgetNote 的 perRecordInk=false 变体",
+          "decision": "P31",
+          "note": "F4：perRecordInk=false（P31 阻塞）时这里画标准字形，原句承诺「笔迹」不成立；默认出货取此变体，perRecordInk=true 才取原槽（调用处 tInk 选择）"
         }
       }
     },
@@ -3265,6 +3293,13 @@
           "text": "颜色越暗，越久没写。点一个字，看它每次的笔迹。",
           "origin": "04 R-L03 深色「颜色越暗，越久没写」+ R-L03.legend 后半句",
           "note": "M3-1：深色主题下墙底说明（边改 L14：把 R-L03.legend 的前半句换成 R-L03.legendDark，后半句不变）；浅色用 R-L03.legend"
+        },
+        "legendDarkNoteGlyph": {
+          "raw": null,
+          "text": "颜色越暗，越久没写。点一个字，看它的记录。",
+          "origin": "X-LIBHOME.legendDarkNote 的 perRecordInk=false 变体",
+          "decision": "P31",
+          "note": "F4：perRecordInk=false（P31 阻塞）时这里画标准字形，原句承诺「笔迹」不成立；默认出货取此变体，perRecordInk=true 才取原槽（调用处 tInk 选择）"
         },
         "emptyTitle": {
           "raw": null,

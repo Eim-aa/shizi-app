@@ -15,6 +15,7 @@ import backup from './backup.js';
 import settings from './settings.js';
 import about from './about.js';
 import images from './images.js';
+import * as defaultPolicy from '../policy.js';
 
 export const SCREENS = Object.freeze({
   common,
@@ -62,6 +63,20 @@ export function format(template, vars) {
 export function t(key, vars) {
   if (!Object.prototype.hasOwnProperty.call(COPY, key)) throw new Error('unknown copy key: ' + key);
   return format(COPY[key], vars);
+}
+
+/**
+ * 涉及「笔迹」承诺的文案：policy.features.perRecordInk（P31）为 true 时取 base 槽；为 false（现行默认）时格子 / 小图
+ * 实际画的是标准字形（或本页面会话里刚写的笔画），取 base + 'Glyph' 变体，不承诺「你最近一次的笔迹」。
+ * 读的是 policy 的实时值（e2e 会在页面里把它改成 true）。
+ */
+export function inkKey(base, policy = defaultPolicy) {
+  return policy && policy.features && policy.features.perRecordInk === true ? base : base + 'Glyph';
+}
+
+/** t(inkKey(base))：按 perRecordInk 选文案槽。 */
+export function tInk(base, vars, policy = defaultPolicy) {
+  return t(inkKey(base, policy), vars);
 }
 
 /** 是否有这个键。 */

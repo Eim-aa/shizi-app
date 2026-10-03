@@ -36,7 +36,7 @@
 //   写错过 / 快忘了 → 推入对应清单页（原型 filterGo：wrong/forget 推清单页，在那里勾选再练）；自选的字不显示（原型 L401）。
 
 import * as defaultPolicy from '../../../config/policy.js';
-import { t } from '../../../config/copy/index.js';
+import { t, tInk } from '../../../config/copy/index.js';
 import { isValidDay, monthOf } from '../../../core/dates.js';
 import { compareRecordIds, forgetList } from '../../../core/records.js';
 import { customCharsOf, latestJudgedByChar, recordsOfState, toneOf, wallColumns } from './model.js';
@@ -265,7 +265,7 @@ export function allModel(state, {
       month: m, cells: months.get(m).map(r => ink(r)),
     })));
     closed = ms.filter(m => !isOpen(m)).map(m => ({ month: m, name: monthName(m, today), count: months.get(m).length }));
-    note = t('R-A01.sortRecentNote');
+    note = tInk('R-A01.sortRecentNote', undefined, policy);
   }
   groups = groups.filter(g => g.cells.length || !g.head);
 

@@ -20,7 +20,7 @@ import { html, useMemo } from '../../../../vendor/ui.js';
 import { Button } from '../../components/Button.js';
 import { T } from '../../components/styles.js';
 import * as defaultPolicy from '../../../config/policy.js';
-import { t } from '../../../config/copy/index.js';
+import { t, tInk } from '../../../config/copy/index.js';
 import { InkMini } from '../write/compare.js';
 import { recordInkPoints } from '../home/ink-row.js';
 
@@ -121,8 +121,8 @@ export function Legend() {
 /** 墙下说明（R-L03；深色反向说法，边改 L14）。 */
 export function LegendNote() {
   return html`<span data-testid="library-legend-note">
-    <span class="sz-lib__note-light" data-theme-variant="light">${t('R-L03.legend')}</span>
-    <span class="sz-lib__note-dark" data-theme-variant="dark">${t('X-LIBHOME.legendDarkNote')}</span>
+    <span class="sz-lib__note-light" data-theme-variant="light">${tInk('R-L03.legend')}</span>
+    <span class="sz-lib__note-dark" data-theme-variant="dark">${tInk('X-LIBHOME.legendDarkNote')}</span>
   </span>`;
 }
 

@@ -1,4 +1,4 @@
-// M4-3 设置（02 M4-3；04 R-S01–R-S04；03 P07 / P13 删、P18、P51、P59；01 §3 settings、§8.1 原生桥）。
+// M4-3 设置（02 M4-3；04 R-S01–R-S03；03 P07 / P13 删、P18、P51、P59（D29 删）、P132；01 §3 settings、§8.1 原生桥）。
 //
 // 场景：
 //   1. 版式：四组「练习 / 提醒 / 显示 / 数据」、原型行序；没有「练字背景音」（P07）与「写完提示做成图片」（P13）；
@@ -6,7 +6,9 @@
 //   2. 练习范围 → 推入 library-switch，返回回到设置。
 //   3. 按键音：点一下 → settings.sound=false，只写 txn + settings；failNextWrite → 开关不动 + 组下三段式；先不保存 / 再试一次；
 //      刷新后仍是关（持久化）。
-//   4. 更大字体：点开 → <html data-large>，--k = 1.3（policy.largeTextScale），页头字号 17 → 22.1；刷新后启动即有 data-large；关掉复原。
+//   4. 字号跟随系统（P1-E6 / D29，覆盖 P59）：没有「更大字体」开关（旧断言「点开 → data-large、--k 1.3」随开关删除，改测替代行为）；
+//      模拟原生 shiziContentSize XXXL → --k 1.35、页头 17 → 22.95、data-text-large，L 复原；
+//      v1 迁移带来的 settings.large=true → 启动后轻提示「文字大小跟随手机设置…」一次、settings 去掉 large，再启动不再显示（P132）。
 //   5. 外观：点开底部弹层三选（浅色 / 深色 / 跟随系统，当前项打勾）；选深色 → data-theme=dark、底色变深；刷新后启动即 dark；
 //      跟随系统 → 去掉属性，随 prefers-color-scheme；浅色在系统深色下强制浅；弹层里 failNextWrite → 就地三段式、data-theme 不变，
 //      再试一次成功关弹层；点当前项直接关、不写；系统返回关弹层。
@@ -16,7 +18,7 @@
 //      原生回报 denied（applyReminderStatus）→ 小字换 R-S02.title、组下 R-S02.body +「去手机设置 ›」→ postNative openAppSettings；
 //      关掉 → syncReminder enabled:false。没有原生通道时照常可开关（前半段）。
 
-import { bootTestHost, installNativeStub, nativeMessages, tid, topSel, waitNavIdle } from './helpers.mjs';
+import { bootTestHost, installNativeStub, nativeMessages, setTextSize, tid, topSel, waitNavIdle } from './helpers.mjs';
 
 const SETTINGS_MOD = '/src/ui/screens/mine/settings.js';
 const FAILED = '没保存上，刚才的选择没记下。';
@@ -93,7 +95,8 @@ async function html(page) {
     const title = document.querySelector('.sz-layer[data-top="true"] [data-page-title]');
     return {
       theme: root.getAttribute('data-theme'),
-      large: root.hasAttribute('data-large'),
+      large: root.hasAttribute('data-text-large'),
+      oldLarge: root.hasAttribute('data-large'),
       k: cs.getPropertyValue('--k').trim(),
       p: cs.getPropertyValue('--p').trim(),
       bg: getComputedStyle(document.querySelector('.sz-app')).backgroundColor,
@@ -178,8 +181,9 @@ export default async function settingsSpec(page, ctx) {
   assert.equal(s.remindSub, '通知会给一个词语和拼音，让你想想是哪个字。', 'R-S01.remindNote');
   assert.equal(s.time, null, 'no time row while off');
   assert.equal(s.denied, null, 'no denied note');
-  assert.deepEqual(s.large, { checked: 'false', role: 'switch', tag: 'BUTTON' }, '更大字体 off');
-  assert.deepEqual(s.largeNote, ['打开后，拾字里的文字会放大一些。', '这个设置和手机系统的字号设置是分开的，在手机里调字号，这里不会跟着变。'], 'R-S04 two lines under the title');
+  assert.equal(s.large, null, 'no 更大字体 switch (D29: text size follows the phone, P130)');
+  assert.equal(s.largeNote, null, 'no R-S04 note');
+  assert.ok(!s.text.includes('更大字体'), 'no 更大字体 text anywhere on the page');
   assert.equal(s.appearance, 'auto', 'appearance auto');
   assert.equal(s.appearanceValue, '跟随系统', 'R-S03 value');
   assert.equal(s.backupValue, '还没有备份', 'R-M03.noBackup');
@@ -198,16 +202,16 @@ export default async function settingsSpec(page, ctx) {
     return {
       unnamed: buttons.filter(b => !nameOf(b)).map(b => b.outerHTML.slice(0, 80)),
       noTestid: buttons.filter(b => !b.dataset.testid).map(b => b.outerHTML.slice(0, 80)),
-      names: Object.fromEntries(['settings-sound', 'settings-remind', 'settings-large'].map(id => [id, nameOf(top.querySelector(`[data-testid="${id}"]`))])),
-      described: top.querySelector('[data-testid="settings-large"]').getAttribute('aria-describedby'),
+      names: Object.fromEntries(['settings-sound', 'settings-remind'].map(id => [id, nameOf(top.querySelector(`[data-testid="${id}"]`))])),
+      described: top.querySelector('[data-testid="settings-remind"]').getAttribute('aria-describedby'),
       minRow: Math.min(...rows.map(r => r.getBoundingClientRect().height)),
       hScroll: document.documentElement.scrollWidth > window.innerWidth,
     };
   });
   assert.deepEqual(a11y.unnamed, [], 'every button has an accessible name');
   assert.deepEqual(a11y.noTestid, [], 'every button has a data-testid');
-  assert.deepEqual(a11y.names, { 'settings-sound': '按键音', 'settings-remind': '练习提醒', 'settings-large': '更大字体' }, 'switch names = row titles');
-  assert.ok(a11y.described, 'large switch is described by its note');
+  assert.deepEqual(a11y.names, { 'settings-sound': '按键音', 'settings-remind': '练习提醒' }, 'switch names = row titles');
+  assert.ok(a11y.described, 'remind switch is described by its note (the large switch it used to check is gone, D29)');
   assert.ok(a11y.minRow >= 44, `rows ≥ 44px (min ${a11y.minRow})`);
   assert.equal(a11y.hScroll, false, 'no horizontal scroll at 393');
   await page.setViewportSize({ width: 320, height: 568 });
@@ -258,29 +262,41 @@ export default async function settingsSpec(page, ctx) {
   await reloadToSettings(page);
   assert.equal((await snapshot(page)).sound.checked, 'false', 'key sound off after reload');
 
-  // ------------------------------------------------------------ 4. 更大字体
-  step('larger text: data-large, --k 1.3, title 17 → 22.1px; applied at startup after reload; off restores');
+  // ------------------------------------------------------------ 4. 字号跟随系统（D29）
+  step('text size follows the system (D29): XXXL → --k 1.35, title 17 → 22.95px, data-text-large; L restores; nothing written');
   let h = await html(page);
-  assert.equal(h.large, false, 'no data-large');
+  assert.equal(h.large, false, 'no data-text-large at the system default');
   assert.equal(h.k, '1', '--k = 1');
   assert.equal(h.titleSize, 17, 'title 17px');
-  await clickSettle(page, 'settings-large');
+  const logSize = (await writeLog(page)).length;
+  await setTextSize(page, 'XXXL');
   h = await html(page);
-  assert.equal(h.large, true, 'data-large set');
-  assert.equal(h.k, '1.3', '--k = 1.3 (policy.largeTextScale, P59)');
-  assert.ok(Math.abs(h.titleSize - 22.1) < 0.05, `title 17 × 1.3 = 22.1px (got ${h.titleSize})`);
-  assert.equal((await snapshot(page)).large.checked, 'true', 'switch on');
-  assert.deepEqual((await state(page)).settings, { sound: false, large: true }, 'settings.large = true');
+  assert.equal(h.large, true, 'data-text-large set (--k ≥ policy.compactTextScale, P131)');
+  assert.equal(h.oldLarge, false, 'no data-large any more');
+  assert.equal(h.k, '1.35', '--k = 1.35 (policy.contentSizeScale.XXXL, P130)');
+  assert.ok(Math.abs(h.titleSize - 22.95) < 0.05, `title 17 × 1.35 = 22.95px (got ${h.titleSize})`);
+  await setTextSize(page, 'L');
+  h = await html(page);
+  assert.equal(h.large, false, 'data-text-large removed');
+  assert.equal(h.k, '1', '--k back to 1');
+  assert.equal((await writeLog(page)).length, logSize, 'a system text size change writes nothing');
+
+  step('P132: v1 large=true → one notice after start, large dropped from settings; the next start shows nothing');
+  await page.evaluate(() => window.__shiziTest.seed({ settings: { sound: false, large: true } }));
   await page.reload();
   await page.waitForSelector('.sz-app');
-  assert.equal(await page.evaluate(() => document.documentElement.hasAttribute('data-large')), true, 'data-large applied at startup');
-  await page.waitForSelector(topSel('settings-screen'));
-  await waitNavIdle(page);
-  assert.equal((await snapshot(page)).large.checked, 'true', 'switch still on after reload');
-  await clickSettle(page, 'settings-large');
-  h = await html(page);
-  assert.equal(h.large, false, 'data-large removed');
-  assert.equal(h.k, '1', '--k back to 1');
+  await page.waitForFunction(() => {
+    const el = document.querySelector('[data-testid="toast"]');
+    return !!el && el.textContent.includes('文字大小跟随手机设置');
+  });
+  assert.equal(await page.locator(tid('toast')).textContent(), '文字大小跟随手机设置，可以在手机的设置里调整。', 'X-SETTINGS.textSizeNotice shown');
+  assert.equal(await page.evaluate(() => document.documentElement.hasAttribute('data-large')), false, 'large=true no longer enlarges anything');
+  await page.waitForFunction(() => !('large' in (window.__shiziTest.getState().settings || {})));
+  assert.deepEqual((await state(page)).settings, { sound: false }, 'large removed (= recorded as shown); sound kept');
+  await reloadToSettings(page);
+  await page.waitForTimeout(400);
+  assert.equal(await page.locator(tid('toast')).count(), 0, 'not shown again on the next start');
+  assert.equal((await snapshot(page)).large, null, 'still no 更大字体 switch');
 
   // ------------------------------------------------------------ 5. 外观
   step('appearance: sheet with three choices; 深色 → data-theme=dark; persists; 跟随系统 follows the system; 浅色 forces light');
@@ -462,7 +478,7 @@ export default async function settingsSpec(page, ctx) {
   assert.equal(msgs[msgs.length - 1].enabled, false, 'sync enabled:false');
   assert.equal((await nativeMessages(page, 'requestReminderPermission')).length, 0, 'no permission request when turning off');
   const final = (await state(page)).settings;
-  assert.deepEqual(final, { sound: false, large: false, appearance: 'auto', remind: { enabled: false, hour: 9, minute: 15, permission: 'denied' } }, 'final settings');
+  assert.deepEqual(final, { sound: false, appearance: 'auto', remind: { enabled: false, hour: 9, minute: 15, permission: 'denied' } }, 'final settings (no large: the switch is gone and the v1 flag was dropped after its notice, D29)');
   await reloadToSettings(page);
   s = await snapshot(page);
   assert.equal(s.remind.checked, 'false', 'remind off after reload');

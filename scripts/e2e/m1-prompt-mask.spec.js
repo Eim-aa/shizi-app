@@ -1,7 +1,7 @@
 // M1-8 题面遮字与无泄漏（决定-D16 / R-W28；01 §6.8；02 §3 M1-8）。
 // 移植 PR #175 scripts/verify_content_ui.cjs 的 verifyMask / assertLayout 与三条规则：
 //   ① 答案不进 aria / title / data 等任何属性；② 题面与提示都走 textContent（`<img onerror>` 字面量不注入）；
-//   ③ 320×568 + 大字（data-large）下最长题面与四行提示不裁切。
+//   ③ 320×568 + 大字（P1-E6 / D29 起 = 系统字号 XXXL，--k 1.35，模拟原生 shiziContentSize；原 data-large 1.3 已删）下最长题面与四行提示不裁切。
 // 取样：内容门禁 340 条批准项里原本含重复目标字的子集（baseline.originalRepeatedTargets，含「越来越」「慢慢」改写前的
 // 越 / 慢）∪ 当前题库仍含重复目标字的卡；另用 setCardResolver 注入合成卡：越来越、慢慢、自定义「哈哈哈」、补充平面字 𠮷、
 // `<img onerror>` 字面量、四行长提示。期望值由内容门禁 loadCorpus（scripts/content-corpus.cjs，与 UI 同一 cards.js）
@@ -11,7 +11,7 @@
 import { createRequire } from 'node:module';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { bootTestHost, openWrite, seedSession, tid, topSel } from './helpers.mjs';
+import { bootTestHost, LARGE_TEXT, openWrite, seedSession, setTextSize, tid, topSel } from './helpers.mjs';
 
 const require = createRequire(import.meta.url);
 
@@ -191,7 +191,7 @@ async function layoutOf(page) {
     const body = top.querySelector('.sz-page__body');
     return {
       viewport: { width: innerWidth, height: innerHeight },
-      large: document.documentElement.hasAttribute('data-large'),
+      large: document.documentElement.hasAttribute('data-text-large'),
       k: getComputedStyle(document.documentElement).getPropertyValue('--k').trim(),
       hint: hint.textContent,
       hintLines: Math.round(hint.getBoundingClientRect().height / parseFloat(cs.lineHeight)),
@@ -210,7 +210,7 @@ async function layoutOf(page) {
 function assertLayout(assert, L, label) {
   const W = L.viewport.width;
   const H = L.viewport.height;
-  assert.ok(L.large && L.k === '1.3', `${label}: data-large on, --k = 1.3`);
+  assert.ok(L.large && L.k === '1.35', `${label}: system text XXXL → data-text-large on, --k = 1.35 (policy.contentSizeScale.XXXL, P130)`);
   assert.ok(L.scrollWidth <= W, `${label}: no horizontal page overflow (scrollWidth ${L.scrollWidth} ≤ ${W})`);
   assert.ok(L.bodyScroll && L.bodyScroll.scrollWidth <= L.bodyScroll.clientWidth, `${label}: page body has no horizontal overflow`);
   const outX = Object.entries(L.bounds).filter(([, b]) => b.left < -0.5 || b.right > W + 0.5).map(([k]) => k);
@@ -324,11 +324,11 @@ export default async function promptMask(page, ctx) {
   assert.equal(await page.locator('#content-injection').count(), 0, 'no <img id=content-injection> element created');
   assert.equal(await page.evaluate(() => window.__contentInjected), undefined, 'onerror never ran');
 
-  ctx.step('320×568 + data-large: the longest real hint and a four-line hint are not clipped');
+  ctx.step('320×568 + system text XXXL: the longest real hint and a four-line hint are not clipped');
   const longest = [...corpus.cards].filter(c => c.visibleHint).sort((a, b) => b.visibleHint.length - a.visibleHint.length)[0];
   await setResolver(page, null);
   await page.setViewportSize({ width: 320, height: 568 });
-  await page.evaluate(() => document.documentElement.setAttribute('data-large', ''));
+  await setTextSize(page, LARGE_TEXT);
   await seedAt(page, [longest.cardKey], 0);
   await page.waitForTimeout(100);
   let L = await layoutOf(page);
@@ -336,7 +336,7 @@ export default async function promptMask(page, ctx) {
   if (process.env.SHIZI_E2E_SHOTS) await page.screenshot({ path: join(process.env.SHIZI_E2E_SHOTS, 'm1-8-longest-320-large.png') });
   assertLayout(assert, L, `longest (${longest.target})`);
   row = await inspect(page, longest.target);
-  assert.deepEqual([...verifyMask(row, longest), ...verifyGeometry(row, longest)], [], 'longest: still masked at 320×568 large; cells 56×1.3 wide, blank centred');
+  assert.deepEqual([...verifyMask(row, longest), ...verifyGeometry(row, longest)], [], 'longest: still masked at 320×568 large; cells 56×--k wide, blank centred');
 
   const longCard = { ...synth[`base:${SUPP}`], promptHint: LONG_HINT };
   await setResolver(page, { [`base:${SUPP}`]: longCard });
@@ -351,7 +351,7 @@ export default async function promptMask(page, ctx) {
 
   ctx.step('restore');
   await setResolver(page, null);
-  await page.evaluate(() => document.documentElement.removeAttribute('data-large'));
+  await setTextSize(page, 'L');
   await page.setViewportSize(ctx.viewport);
   assert.ok(await page.isVisible(topSel('write-prompt')), 'prompt still mounted');
   assert.ok(await page.isVisible(tid('write-screen')), 'write screen still on top');

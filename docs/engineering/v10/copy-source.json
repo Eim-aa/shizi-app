@@ -96,7 +96,7 @@
     "P64": "文案槽位占位符归一（{date}的、{month} 月）：抽取阶段规则，见 normalization；请产品确认",
     "P67": "看答案流程细则（描一遍每次先播、落笔即跳过；阶段切换与「下一个」等保存成功才推进；卡片读屏读答案字）：流程行为，按 03 过渡默认实现在 src/ui/screens/write/answer.js，不是 policy 开关；请产品确认（M2-3）",
     "P68": "题面区可见提示行与窄屏词语行的位置 / 样式：CSS 与布局（src/ui/screens/write/prompt.js），不是运行时开关；请设计确认（M6）",
-    "P69": "紧凑版触发条件（data-large 或视口高 ≤ 760px）：已决定 D36——紧凑版只改控件排布，不再缩书写格；值在 policy.compactMaxHeight（M2-H 迁入）；src/ui/screens/write/compact.js 的 COMPACT_MAX_HEIGHT / COMPACT_QUERY 从它派生（CSS media 与 JS 同一条件）",
+    "P69": "紧凑版触发条件（系统字号 --k ≥ 1.3 即 :root[data-text-large]（P131，阶段 1 P1-E6 起替代 data-large）或视口高 ≤ 760px）：已决定 D36——紧凑版只改控件排布，不再缩书写格；值在 policy.compactMaxHeight（M2-H 迁入）；src/ui/screens/write/compact.js 的 COMPACT_MAX_HEIGHT / COMPACT_QUERY 从它派生（CSS media 与 JS 同一条件）",
     "P70": "提示层 / 看答案动画节奏与 P52 提示时长：过渡值在 policy.motion（M2-H 迁入）——answerSpeed 1.6、answerStrokeGapMs 180、answerFadeMs 240（src/ui/canvas/glyph.js ANIMATION）；hintStrokeMs 240、hintStagger 0.7、reducedFadeMs 120（src/ui/screens/write/hint-layer.js HINT_DRAW / REDUCED_FADE_MS）；persistNoticeMs 5000（persist.js NOTICE_MS；「每次加载最多一次」是行为，不是数值）。设计走查后再定（M6）",
     "P71": "自己选字 pick 模式输入后不预选（用户逐个点圈，依 D21 / R-H06）：交互行为，实现在 src/ui/components/query/（M2-0），不是 policy 开关；请产品确认（冻结原型字库墨墙屏 L444 是全预选）",
     "P72": "清空所有记录后首页「没有记录」的说法（R-H09 noCopy）与首练组未写完时不显示「第一次来，先写 5 个字试试。」：首页派生规则在 src/ui/screens/home/today.js（records='empty' / showFirstTip），文案待给定（M4-3 清空）；不是 policy 开关",
@@ -139,7 +139,8 @@
     "P110": "输入框光标色（阶段 0 P0-A11）：src/config/base.css 的 caret-color:var(--i1)（主墨，不用朱色，D33），无界面文案，设计知悉项",
     "P111": "笔锋细节（飞白 / 洇墨）门控（阶段 0 P0-A3）：运行时键 policy.brushDetail，实现在 src/ui/canvas/brush.js brushDetailEnabled 与 ink-canvas.js，只看减少动态效果与该开关，无界面文案",
     "P119": "撤销 / 清空的位置（D36 / G32）：版式行为——标准版与紧凑版都在格下一行右端，触控 ≥44pt；实现在 src/ui/screens/write/index.js 与 compact.js 的 CSS，不是 policy 开关；无界面文案",
-    "P120": "首页主按钮「拾」不随字号缩小（D36 / G05）：版式行为——大字与紧凑版都保持 196×190；实现在 src/ui/screens/home/index.js 的 CSS，不是 policy 开关；无界面文案"
+    "P120": "首页主按钮「拾」不随字号缩小（D36 / G05）：版式行为——大字（系统字号，P130）与紧凑版都保持 196×190；实现在 src/ui/screens/home/index.js 的 CSS，不是 policy 开关；无界面文案",
+    "P133": "网页（PWA / 浏览器，没有原生桥）的字号倍率：--k 保持 1，不读浏览器默认字号或 -apple-system-body 推算系统字号；行为在 src/platform/text-size.js（只响应原生 shiziContentSize），不是 policy 开关（D29 / 阶段 1 P1-E6）"
   },
   "noCopy": [
     "R-H08",
@@ -2473,24 +2474,13 @@
       "milestone": "M4",
       "status": "已定",
       "source": "C083；X15",
-      "slots": {
-        "largeNote": {
+      "slots": {},
+      "dropped": [
+        {
           "raw": "打开后，文字和写字格都放大一号。<br>手机字号调大时，这里也会跟着变大。",
-          "text": [
-            "打开后，拾字里的文字会放大一些。",
-            "这个设置和手机系统的字号设置是分开的，在手机里调字号，这里不会跟着变。"
-          ],
-          "decision": "P59",
-          "note": "F3 按现行行为改写：原句称写字格也放大、且跟随手机字号，与实现不符（largeTextScale=1.3 独立、不跟随 Dynamic Type；写字格行为另案）。过渡文案，待产品定稿",
-          "override": true
-        },
-        "largeLabel": {
-          "raw": null,
-          "text": "更大字体",
-          "origin": "04 §4.1「更大字体」小节 / R-S04 规则列「更大字体说明挪到开关行标题下」",
-          "note": "开关行标题"
+          "why": "D29（覆盖 P59）：字号跟随手机系统字号（P130），App 内「更大字体」开关与说明删除；旧开关打开过的用户改为启动后一次说明 X-SETTINGS.textSizeNotice（P132）"
         }
-      }
+      ]
     },
     "R-AB01": {
       "screen": "about",
@@ -3757,7 +3747,7 @@
           "raw": null,
           "text": "没保存上，刚才的选择没记下。",
           "origin": "extra",
-          "note": "设置写入失败（按键音 / 提醒 / 提醒时间 / 更大字体 / 外观）的说明句（R-G04 三段式）；04 §3 T01 模板、C063「刚才的选择」同句（换库 / 难度同一说法），原型没有这一态，待文案确认",
+          "note": "设置写入失败（按键音 / 提醒 / 提醒时间 / 外观）的说明句（R-G04 三段式）；04 §3 T01 模板、C063「刚才的选择」同句（换库 / 难度同一说法），原型没有这一态，待文案确认",
           "decision": "P55"
         },
         "cancel": {
@@ -3771,6 +3761,13 @@
           "text": "再试一次",
           "origin": "extra",
           "note": "三段式主按钮（T01）"
+        },
+        "textSizeNotice": {
+          "raw": null,
+          "text": "文字大小跟随手机设置，可以在手机的设置里调整。",
+          "origin": "extra",
+          "decision": "P132",
+          "note": "D29：v1 迁移带来 settings.large=true（旧「更大字体」打开过）时，启动后显示一次的轻提示（6 秒），显示后从 settings 去掉 large、不再显示；句子取 06 阶段 1 P1-E6 卡面，过渡文案，阶段 1 文案统一时定稿"
         }
       }
     },

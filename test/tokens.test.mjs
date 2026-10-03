@@ -52,12 +52,11 @@ function normValue(v) {
 }
 
 function declsByContext(cssText) {
-  const ctx = { base: {}, large: {}, light: {}, dark: {}, darkMedia: {} };
+  const ctx = { base: {}, light: {}, dark: {}, darkMedia: {} };
   for (const d of parseTokenDecls(cssText)) {
     const s = d.selectors;
     let key = null;
     if (s.length === 1 && s[0] === ':root') key = 'base';
-    else if (s.length === 1 && s[0] === ':root[data-large]') key = 'large';
     else if (s.length === 1 && s[0] === ':root, :root[data-theme="light"]') key = 'light';
     else if (s.length === 1 && s[0] === ':root[data-theme="dark"]') key = 'dark';
     else if (s.length === 2 && /prefers-color-scheme: dark/.test(s[0]) && s[1] === ':root:not([data-theme="light"])') key = 'darkMedia';
@@ -100,11 +99,11 @@ test('dark block is written twice identically (prefers-color-scheme and data-the
   assert.deepEqual(Object.keys(ctx.light).sort(), Object.keys(ctx.dark).sort(), 'light and dark define the same keys');
 });
 
-test('--hint follows --ar, --k is 1 / 1.3 (data-large), lamp default .05', () => {
+test('--hint follows --ar, --k defaults to 1 with no fixed large override (D29: system text size drives it, P130), lamp default .05', () => {
   const ctx = declsByContext(tokensCss);
   assert.equal(ctx.base['--hint'].value, 'var(--ar)');
   assert.equal(ctx.base['--k'].value, '1');
-  assert.equal(ctx.large['--k'].value, '1.3');
+  assert.ok(!/data-large/.test(tokensCss.replace(/\/\*[\s\S]*?\*\//g, '')), 'no :root[data-large] rule any more (D29 removes the in-app switch)');
   assert.equal(ctx.base['--lamp'].value, '.05');
 });
 

@@ -1,32 +1,33 @@
-// 外观与大字（M4-3；03 P51 / P59；M0-3 tokens.css 的 data-theme / data-large 语义）。
+// 外观（M4-3；03 P51；M0-3 tokens.css 的 data-theme 语义）。
 //
 // settings.appearance：'auto'（缺省）| 'light' | 'dark' → document.documentElement 的 data-theme：
 //   'auto' 去掉属性（tokens.css 按 prefers-color-scheme 跟随系统），'light' / 'dark' 写属性强制。
 //   policy.features.appearanceSwitch 关闭时一律按 'auto'（不读存下的值）。
-// settings.large：true → :root[data-large]（tokens.css 的 --k = 1.3，policy.largeTextScale P59；写字页紧凑版同一条件 P69）。
+// 字号不在这里：D29（覆盖 P59）起字号跟随系统 Dynamic Type，由 platform/text-size.js 按原生 shiziContentSize 写 --k；
+// settings.large（v1 迁移带来的旧「更大字体」）只保留读取兼容，不再生效，也不再写 :root[data-large]
+// （迁移来的 large=true 由设置页 showTextSizeNoticeOnce 显示一次说明，P132）。
 //
 // 启动：app.js 在 store 建好、挂 UI 之前调用 startAppearance()（一行接入），先按存下的设置应用一次，
-// 再订阅 store：只有 appearance / large 的值真变了才改属性——seed / reset 等不涉及这两项的通知不碰 <html>
-// （测试里手动设的 data-theme / data-large 不会被冲掉）。设置页（ui/screens/mine/settings.js）只写 store，不碰 DOM。
+// 再订阅 store：只有 appearance 的值真变了才改属性——seed / reset 等不涉及它的通知不碰 <html>
+// （测试里手动设的 data-theme 不会被冲掉）。设置页（ui/screens/mine/settings.js）只写 store，不碰 DOM。
 import * as policy from '../config/policy.js';
 
 export const APPEARANCES = Object.freeze(['light', 'dark', 'auto']);
 export const DEFAULT_APPEARANCE = 'auto';
 
-/** settings → {theme:'auto'|'light'|'dark', large:boolean}（缺省与非法值按 'auto' / false）。 */
+/** settings → {theme:'auto'|'light'|'dark'}（缺省与非法值按 'auto'）。 */
 export function appearanceOf(settings, { features = policy.features } = {}) {
   const raw = settings && typeof settings.appearance === 'string' ? settings.appearance : DEFAULT_APPEARANCE;
   const allowed = !features || features.appearanceSwitch !== false;
   const theme = allowed && APPEARANCES.indexOf(raw) >= 0 ? raw : DEFAULT_APPEARANCE;
-  const large = !!(settings && settings.large === true);
-  return { theme, large };
+  return { theme };
 }
 
 function rootOf(doc) {
   return doc && doc.documentElement ? doc.documentElement : null;
 }
 
-/** 把 {theme, large} 写到 <html>。返回写入后的 {theme, large}；没有 document 时返回 null。 */
+/** 把 {theme} 写到 <html>。返回写入后的 {theme}；没有 document 时返回 null。 */
 export function applyAppearance(settings, { doc = globalDoc(), features = policy.features } = {}) {
   const root = rootOf(doc);
   if (!root) return null;
@@ -36,11 +37,6 @@ export function applyAppearance(settings, { doc = globalDoc(), features = policy
   } else if (root.getAttribute('data-theme') !== view.theme) {
     root.setAttribute('data-theme', view.theme);
   }
-  if (view.large) {
-    if (!root.hasAttribute('data-large')) root.setAttribute('data-large', '');
-  } else if (root.hasAttribute('data-large')) {
-    root.removeAttribute('data-large');
-  }
   return view;
 }
 
@@ -49,7 +45,7 @@ function globalDoc() {
 }
 
 function sameView(a, b) {
-  return !!a && !!b && a.theme === b.theme && a.large === b.large;
+  return !!a && !!b && a.theme === b.theme;
 }
 
 /**

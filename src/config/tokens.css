@@ -11,7 +11,9 @@
  *
  * 主题：无 data-theme 时跟随系统（prefers-color-scheme）；:root[data-theme="light"|"dark"] 强制。深色块写两遍
  * （媒体查询一遍、data-theme 一遍），两遍必须逐字一致（单测核对）。
- * 大字：:root[data-large] 时 --k = 1.3（原型紧凑版 --k:1.3，ShiziWriteScreen L585 / J 报告 L338）；字号一律写 calc(Npx * var(--k))。
+ * 字号：--k 是全站字号倍率，字号一律写 calc(Npx * var(--k))。缺省 1；在 iOS 壳里跟随系统 Dynamic Type（D29，覆盖 P59 的 data-large 1.3）：
+ * src/platform/text-size.js 收到原生 shiziContentSize 后把连续倍率写成 :root 的行内 --k（policy.contentSizeScale，P130），AX 档加
+ * data-ax、--k ≥ 1.3 加 data-text-large（P131）。网页（无原生桥）保持 1（P133）。
  *
  * 对比度（04 需求清单「对比度」，交接备注 L106）：深色按钮 #AE5A44 上白字 4.62:1；文字红 #D47A5D 在纸 5.31:1 /
  * 浮纸 4.68:1 / 弹层 5.00:1 / 暖灯 .05 灯心 4.73:1。
@@ -25,13 +27,9 @@
 
 /* ---- 与主题无关 ---- */
 :root {
-  --k: 1; /* 字号倍率 · 来源：ShiziWriteScreen-第十稿交接版.dc.html L585（标准版 1） */
+  --k: 1; /* 字号倍率（系统默认字号；iOS 壳按系统字号覆盖为行内值，P130）· 来源：ShiziWriteScreen-第十稿交接版.dc.html L585（标准版 1） */
   --hint: var(--ar); /* 提示笔画色 = 文字红（方案①）· 来源：ShiziWriteScreen-第十稿交接版.dc.html L507；W23 深色提亮待真机 */
   --lamp: .05; /* 深色暖灯透明度（.04–.06 待真机）· 来源：ShiziWriteScreen-第十稿交接版.dc.html L570；首页壳-v3-第十稿交接版.dc.html L212 */
-}
-
-:root[data-large] {
-  --k: 1.3; /* 大字倍率 · 来源：ShiziWriteScreen-第十稿交接版.dc.html L585（紧凑版 1.3） */
 }
 
 /* ---- 浅色（默认；data-theme="light" 强制） ---- */

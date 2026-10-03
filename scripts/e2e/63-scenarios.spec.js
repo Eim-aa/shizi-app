@@ -20,7 +20,7 @@
 
 import {
   bootTestHost, drawStroke, HORIZONTAL, installNativeStub, makeSession, nativeMessages, PRESS_SETTLE_MS, tid, topSel,
-  VERTICAL, waitNavIdle, writeSnapshot,
+  VERTICAL, waitNavIdle, writeSnapshot, setTextSize, LARGE_TEXT,
 } from './helpers.mjs';
 
 const CLOCK = '2026-09-24T20:00:00';
@@ -652,16 +652,15 @@ export default async function run(page, ctx) {
 
   // --------------------------------------------------------------- 10. 边改 Z03（04 §4.3，checklist-M6）
   for (const large of [false, true]) {
-    const tag = `360×640${large ? ' + data-large' : ''}`;
+    const tag = `360×640${large ? ' + system text XXXL' : ''}`; // P1-E6 / D29：大字 = 系统字号（模拟原生 shiziContentSize），不再是 data-large
     step(`边改 Z03 (${tag}): compact detail — 「已撤销」 does not cover the 「从自选的字移除」 sub line`);
     await page.setViewportSize({ width: 360, height: 640 });
     await resetAt(page);
-    await page.evaluate(async on => {
+    await page.evaluate(async () => {
       const nowMs = window.__shiziTest.now();
       window.__shiziTest.seed({ custom: { added: ['山', '木', '日'].map((c, i) => ({ char: c, at: nowMs - (10 - i) * 1000 })) } });
-      if (on) document.documentElement.setAttribute('data-large', '');
-      else document.documentElement.removeAttribute('data-large');
-    }, large);
+    });
+    await setTextSize(page, large ? LARGE_TEXT : 'L');
     await toHome(page);
     await page.evaluate(async () => (await import('/src/ui/screens/detail/index.js')).openDetail('木'));
     await page.waitForSelector(topSel('detail-remove'));
@@ -705,7 +704,7 @@ export default async function run(page, ctx) {
     await page.click(topSel('page-back'));
     await waitTop(page, 'home');
   }
-  await page.evaluate(() => document.documentElement.removeAttribute('data-large'));
+  await setTextSize(page, 'L');
   await page.setViewportSize(ctx.viewport);
 
   const direct = await page.evaluate(() => window.__shiziTest.getWriteLog().filter(e => e.via === 'direct'));

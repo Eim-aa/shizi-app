@@ -1,7 +1,8 @@
 // P0-D / D36（G05，覆盖 X08）：书写格边长与字号脱钩，只缩放显示，内部坐标仍是 345 单位、存储不变。
 //
 // 公式（policy.writeGrid，P118）：边长 = min(屏宽 − 32, 视口高 − 预算) 夹在 [258, 400]；视口高 ≤ 760 用紧凑排布那份预算（384），否则 446；
-// 预算与 :root[data-large] 无关。本文件用**写死的期望值**（不引用实现里的函数）：
+// 预算与字号无关（P1-E6 / D29 起「大字」= 系统字号 XXXL，经模拟的原生 shiziContentSize 设 --k 1.35 与 :root[data-text-large]，
+// 原来手动设的 :root[data-large] 已删除）。本文件用**写死的期望值**（不引用实现里的函数）：
 //   393×852 → 361（屏宽 − 32 先到）    375×812 → 343（屏宽 − 32）    375×667 → 283（667 − 384）
 //   360×640 → 258（预算不够，取下限）  320×568 → 258（下限）         440×956 → 400（上限）
 //
@@ -14,6 +15,7 @@
 
 import {
   bootTestHost, canvasInk, drawStroke, HORIZONTAL, PRESS_SETTLE_MS, seedSession, tid, topSel, VERTICAL, waitNavIdle, openWrite,
+  setTextSize, LARGE_TEXT,
 } from './helpers.mjs';
 
 const CHARS = ['越', '大', '永'];
@@ -29,10 +31,7 @@ const CASES = [
 ];
 
 async function setLarge(page, on) {
-  await page.evaluate(v => {
-    if (v) document.documentElement.setAttribute('data-large', '');
-    else document.documentElement.removeAttribute('data-large');
-  }, on);
+  await setTextSize(page, on ? LARGE_TEXT : 'L');
   await page.waitForTimeout(250);
 }
 
@@ -80,7 +79,7 @@ async function geo(page, ids = FIRST_SCREEN) {
       return !r || r.top < -0.5 || r.bottom > vh + 0.5 || r.left < -0.5 || r.right > window.innerWidth + 0.5;
     });
     return {
-      vw: document.documentElement.clientWidth, vh, large: document.documentElement.hasAttribute('data-large'),
+      vw: document.documentElement.clientWidth, vh, large: document.documentElement.hasAttribute('data-text-large'),
       compact: top.querySelector('.sz-write').dataset.compact, phase: top.querySelector('.sz-write').dataset.phase,
       grid: rect(q('write-grid')), card: rect(q('write-answer-card')), trace: rect(q('write-trace-layer')),
       hint: rect(q('write-hint-layer')), head: rect(top.querySelector('.sz-page__head')), foot, off,
@@ -132,14 +131,14 @@ export default async function grid(page, ctx) {
   // ------------------------------------------------------------------ ① 各视口 × 大字开 / 关
   for (const c of CASES) {
     const tag = `${c.view.width}×${c.view.height}`;
-    ctx.step(`${tag}: grid ${c.grid} with 更大字体 off and on — same size before and after the switch (D36)`);
+    ctx.step(`${tag}: grid ${c.grid} with system text L and XXXL — same size before and after the change (D36 / D29)`);
     await boot(page, ctx, c.view, { large: false });
     const sizes = [];
     for (const large of [false, true]) {
       await setLarge(page, large);
       const g = await geo(page);
       const t = `${tag}${large ? ' large' : ''}`;
-      assert.equal(g.large, large, `${t}: data-large ${large ? 'on' : 'off'}`);
+      assert.equal(g.large, large, `${t}: data-text-large ${large ? 'on' : 'off'} (system text ${large ? LARGE_TEXT : 'L'})`);
       assert.equal(g.compact, large || c.view.height <= 760 ? 'true' : 'false', `${t}: compact layout only changes the arrangement`);
       assert.ok(square(g.grid, c.grid), `${t}: grid is ${c.grid}×${c.grid} ${JSON.stringify(g.grid)}`);
       assert.ok(g.grid.width >= 258 - 0.5 && g.grid.width <= 400 + 0.5, `${t}: grid within [258, 400]`);
@@ -149,7 +148,7 @@ export default async function grid(page, ctx) {
       if (c.grid > 258) assert.ok(g.grid.top >= g.head.bottom - 0.5 && g.grid.bottom <= g.foot.top + 0.5, `${t}: whole grid between header and footer`);
       sizes.push(g.grid.width);
     }
-    assert.equal(sizes[0], sizes[1], `${tag}: grid edge unchanged by switching 更大字体 (${sizes[0]} → ${sizes[1]})`);
+    assert.equal(sizes[0], sizes[1], `${tag}: grid edge unchanged by the system text size (${sizes[0]} → ${sizes[1]})`);
   }
 
   // ------------------------------------------------------------------ ② 各阶段同一边长
@@ -225,7 +224,7 @@ export default async function grid(page, ctx) {
     `painted stroke sits at the same relative place on the 283 grid ${JSON.stringify(box)}`);
   const stored0 = st.rows;
 
-  ctx.step('same page: shrink to 360×640 (grid 258), switch 更大字体 on and off, grow to 440×956 (grid 400) — stored strokes byte-identical, ink repainted at the same relative place');
+  ctx.step('same page: shrink to 360×640 (grid 258), system text XXXL and back, grow to 440×956 (grid 400) — stored strokes byte-identical, ink repainted at the same relative place');
   for (const [view, large, size] of [[{ width: 360, height: 640 }, false, 258], [{ width: 360, height: 640 }, true, 258], [{ width: 440, height: 956 }, true, 400],
     [{ width: 440, height: 956 }, false, 400], [{ width: 393, height: 852 }, false, 361]]) {
     await page.setViewportSize(view);

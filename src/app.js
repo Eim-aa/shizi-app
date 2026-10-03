@@ -30,6 +30,7 @@ async function mountApp() {
   await import('./platform/text-size.js').catch(error => console.warn('[shizi] text size setup failed:', error)); // P1-E6 / D29 / P130：注册系统字号的桥实现（markReady 之前；pageReady 时原生才发档位 → --k / data-ax）
   const { mountRoot } = await import('./ui/root.js');
   await mountRoot(container);
+  await import('./ui/screens/mine/settings.js').then(m => m.showTextSizeNoticeOnce()).catch(error => console.warn('[shizi] text size notice failed:', error)); // P1-E6 / D29 / P132：v1 迁移带来 large=true 时显示一次「文字大小跟随手机设置」并记下
   await import('./platform/accessibility.js').catch(error => console.warn('[shizi] accessibility status setup failed:', error)); // 阶段 0 B2 / P116：注册读屏状态的桥实现（markReady 之前，pageReady 时原生才发状态）
   await import('./platform/reminder.js').then(m => m.startReminder()).catch(error => console.warn('[shizi] reminder setup failed:', error)); // M5-5：注册提醒桥实现 → bridge.markReady(store) 回放积压调用（冷启动深链）→ 提醒同步（01 §8.1）
   await import('./platform/bridge.js').then(async b => { try { b.markReady((await import('./store/store.js')).getStore()); } finally { b.postNative('pageReady', {}); } }).catch(error => console.warn('[shizi] native pageReady failed:', error)); // M5-3：markReady（幂等，回放积压的原生调用）之后 postMessage pageReady，原生这时才派发提醒深链（01 §2、§8.2）

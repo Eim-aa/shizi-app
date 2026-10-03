@@ -6,18 +6,15 @@
 // Chromium 模拟不了 iOS 真实键盘，这里用两种近似，断言输入框与「练这个字」的包围盒整块在可见区内、不需要滚动：
 //   A 缩小布局视口：393×448、320×300（等价于键盘占掉下半屏的可见区）；
 //   B 假的 visualViewport：布局视口不变（393×852 / 320×640），visualViewport.height 缩到 448 / 300 并派发 resize（同 20-query / 34）。
-// 每种都跑普通字号与 data-large，入口两处：首页「自己选字 →」（pick）与字库查字框（lookup）。
+// 每种都跑普通字号与大字（P1-E6 / D29 起 = 系统字号 XXXL，模拟原生 shiziContentSize），入口两处：首页「自己选字 →」（pick）与字库查字框（lookup）。
 // 另验：卡片内容超高时滚动区自己滚动（弹层不滚）、输入框不随之移动；pick 逐字行的底栏同样钉在底部。
 // 真实 iOS 键盘 / 候选栏的高度只能真机复测（见 DEVICE_QA）。
-import { bootTestHost, tid, topSel, waitNavIdle } from './helpers.mjs';
+import { bootTestHost, LARGE_TEXT, setTextSize, tid, topSel, waitNavIdle } from './helpers.mjs';
 
 const CHAR = '春';
 
 async function setLarge(page, on) {
-  await page.evaluate(v => {
-    if (v) document.documentElement.setAttribute('data-large', '');
-    else document.documentElement.removeAttribute('data-large');
-  }, on);
+  await setTextSize(page, on ? LARGE_TEXT : 'L');
 }
 
 async function installFakeViewport(page) {
@@ -103,7 +100,7 @@ async function geometry(page) {
       panelScrolls: panel.scrollHeight > panel.clientHeight + 1,
       panelScrollTop: panel.scrollTop,
       scrollerClient: scroller ? scroller.clientHeight : 0,
-      large: document.documentElement.hasAttribute('data-large'),
+      large: document.documentElement.hasAttribute('data-text-large'),
       hscroll: document.documentElement.scrollWidth > window.innerWidth,
     };
   });
@@ -126,7 +123,7 @@ function checkVisible(assert, g, label) {
 
 async function scenario(page, ctx, { label, open, large }) {
   const { assert, step } = ctx;
-  step(`${label}${large ? ' · data-large' : ''}: type 「${CHAR}」 → input and 「练这个字」 fully inside the visible area, no scrolling`);
+  step(`${label}${large ? ' · system text XXXL' : ''}: type 「${CHAR}」 → input and 「练这个字」 fully inside the visible area, no scrolling`);
   await page.evaluate(() => window.__shiziTest.reset());
   await setLarge(page, large);
   await open(page);
@@ -152,7 +149,7 @@ export default async function queryKeyboardSpec(page, ctx) {
         await waitNavIdle(page);
         await scenario(page, ctx, { label, open, large });
         const g = await geometry(page);
-        assert.equal(g.large, large, `${label}: data-large ${large}`);
+        assert.equal(g.large, large, `${label}: data-text-large ${large}`);
         assert.equal(g.hscroll, false, `${label}: no horizontal scroll`);
         checkVisible(assert, g, `${label}${large ? ' large' : ''}`);
         await closeSheet(page);
@@ -188,7 +185,7 @@ export default async function queryKeyboardSpec(page, ctx) {
   }
 
   // ---------------------------------------------------------------- C 滚动区自己滚动，输入框与主按钮不动
-  step('content scrolls inside its own region: the sheet, input and 「练这个字」 do not move (393×448, data-large)');
+  step('content scrolls inside its own region: the sheet, input and 「练这个字」 do not move (393×448, system text XXXL)');
   await page.setViewportSize({ width: 393, height: 448 });
   await page.reload();
   await page.waitForFunction(() => typeof window.__shiziTest === 'object');
@@ -213,7 +210,7 @@ export default async function queryKeyboardSpec(page, ctx) {
   checkVisible(assert, after, 'C after scrolling the content');
   await closeSheet(page);
 
-  step('pick mode with several chars: the 「练这 N 个字」 bar is pinned at the bottom, rows scroll above it (393×448, data-large)');
+  step('pick mode with several chars: the 「练这 N 个字」 bar is pinned at the bottom, rows scroll above it (393×448, system text XXXL)');
   await page.evaluate(() => window.__shiziTest.reset());
   await setLarge(page, true);
   await openFromHome(page);

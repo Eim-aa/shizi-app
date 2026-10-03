@@ -1,11 +1,12 @@
 // M4-3 设置：显示值补缺省（P18 / P51 / P73 / 原型 SD）、一次 commit 只改 settings 且保留其余字段（真 store + 内存 Storage + 故障注入）、
-// 提醒开关补缺省时间与权限回报、外观 / 大字应用到 <html>（platform/appearance.js，假 document）、页面视图（P07 / P13 删行、R-S02 被拒态）。
+// 提醒开关补缺省时间与权限回报、外观应用到 <html>（platform/appearance.js，假 document）、页面视图（P07 / P13 删行、R-S02 被拒态）。
+// P1-E6（D29，覆盖 P59）：「更大字体」开关删除，settings.large 不再生效；v1 迁移带来的 large=true 显示一次说明（P132）后去掉。
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  settingsView, backupValue, parseTime, timeText, defaultRemindTime, commitSettings, commitSound, commitLarge, commitAppearance,
+  settingsView, backupValue, parseTime, timeText, defaultRemindTime, commitSettings, commitSound, commitAppearance,
   commitRemindEnabled, commitRemindTime, applyReminderStatus, setReminderSync, SettingsBody, AppearanceSheetView, LABELS,
-  SETTINGS_SCREEN, APPEARANCE_ORDER,
+  SETTINGS_SCREEN, APPEARANCE_ORDER, textSizeNoticeDue, commitTextSizeNoticeShown, showTextSizeNoticeOnce, TEXT_SIZE_NOTICE_MS,
 } from '../../src/ui/screens/mine/settings.js';
 import { appearanceOf, applyAppearance, startAppearance } from '../../src/platform/appearance.js';
 import { getScreen } from '../../src/ui/router.js';
@@ -77,14 +78,14 @@ const fakeDoc = () => ({ documentElement: new FakeRoot() });
 
 // ---------------------------------------------------------------- 纯函数
 
-test('settingsView: defaults — P73 library, sound on (prototype SD), remind off at policy.remindDefault (P18), auto, not large', () => {
+test('settingsView: defaults — P73 library, sound on (prototype SD), remind off at policy.remindDefault (P18), auto; no large field (D29)', () => {
   const v = settingsView(null);
   assert.equal(v.library, policy.defaultLibrary);
   assert.equal(v.libraryName, '规范常用字');
   assert.equal(v.sound, true);
   assert.deepEqual(v.remind, { enabled: false, hour: 20, minute: 0, permission: 'unknown' });
   assert.equal(v.denied, false);
-  assert.equal(v.large, false);
+  assert.ok(!('large' in v), 'D29: the view no longer carries the in-app large switch');
   assert.equal(v.appearance, 'auto');
   assert.equal(v.appearanceSwitch, true, 'P51 features.appearanceSwitch');
 
@@ -93,7 +94,7 @@ test('settingsView: defaults — P73 library, sound on (prototype SD), remind of
   assert.equal(w.sound, false);
   assert.deepEqual(w.remind, { enabled: true, hour: 7, minute: 5, permission: 'denied' });
   assert.equal(w.denied, true);
-  assert.equal(w.large, true);
+  assert.ok(!('large' in w), 'a stored large=true is read without error but has no effect (D29)');
   assert.equal(w.appearance, 'dark');
   assert.equal(settingsView({ library: 'nope' }).library, policy.defaultLibrary, 'unknown library → P73 default');
   const off = settingsView({ appearance: 'dark' }, { p: { ...policy, features: { ...policy.features, appearanceSwitch: false } } });
@@ -140,9 +141,8 @@ test('commitSettings: one commit writes only settings; keeps other fields; failu
   assert.equal(same.skipped, true);
   assert.equal(backend.writeCount, w, 'unchanged value → no storage write');
 
-  assert.equal(commitLarge(store, true).ok, true);
   assert.equal(commitAppearance(store, 'dark').ok, true);
-  assert.deepEqual(store.getState().settings, { library: 'adv3000', sound: false, large: true, appearance: 'dark' });
+  assert.deepEqual(store.getState().settings, { library: 'adv3000', sound: false, appearance: 'dark' });
   assert.throws(() => commitAppearance(store, 'sepia'), RangeError);
   assert.equal(LABELS.appearance, 'settings:appearance');
 });
@@ -150,9 +150,9 @@ test('commitSettings: one commit writes only settings; keeps other fields; failu
 test('commitSettings on an empty store creates settings with the one field (schema-valid)', () => {
   const { store } = freshStore();
   assert.equal(store.getState().settings, null);
-  const r = commitLarge(store, false);
+  const r = commitSound(store, true);
   assert.equal(r.ok, true, 'writes even when the value equals the default (settings was null)');
-  assert.deepEqual(store.getState().settings, { large: false });
+  assert.deepEqual(store.getState().settings, { sound: true });
 });
 
 test('remind: enabling fills the P18 default time once; time change and permission keep the other remind fields; sync hook called', () => {
@@ -184,29 +184,28 @@ test('remind: enabling fills the P18 default time once; time change and permissi
 
 // ---------------------------------------------------------------- 外观（platform/appearance.js）
 
-test('appearance: auto removes data-theme, light / dark force it; large toggles data-large; switch off → auto', () => {
+test('appearance: auto removes data-theme, light / dark force it; large=true no longer sets data-large (D29); switch off → auto', () => {
   const doc = fakeDoc();
   const root = doc.documentElement;
   applyAppearance({ appearance: 'dark', large: true }, { doc });
   assert.equal(root.getAttribute('data-theme'), 'dark');
-  assert.equal(root.hasAttribute('data-large'), true);
+  assert.equal(root.hasAttribute('data-large'), false, 'settings.large has no effect: text size follows the system (P130)');
   applyAppearance({ appearance: 'light' }, { doc });
   assert.equal(root.getAttribute('data-theme'), 'light');
-  assert.equal(root.hasAttribute('data-large'), false);
   applyAppearance(null, { doc });
   assert.equal(root.hasAttribute('data-theme'), false, 'auto → attribute removed (tokens.css follows prefers-color-scheme)');
-  assert.deepEqual(appearanceOf({ appearance: 'dark' }, { features: { appearanceSwitch: false } }), { theme: 'auto', large: false });
-  assert.deepEqual(appearanceOf({ appearance: 'bogus', large: 'yes' }), { theme: 'auto', large: false });
+  assert.deepEqual(appearanceOf({ appearance: 'dark' }, { features: { appearanceSwitch: false } }), { theme: 'auto' });
+  assert.deepEqual(appearanceOf({ appearance: 'bogus', large: true }), { theme: 'auto' });
 });
 
-test('startAppearance: applies stored settings at start; re-applies only when appearance / large change', () => {
+test('startAppearance: applies stored settings at start; re-applies only when appearance changes', () => {
   const { store } = freshStore();
   assert.equal(store.seed({ settings: { appearance: 'dark', large: true } }).ok, true);
   const doc = fakeDoc();
   const root = doc.documentElement;
   const off = startAppearance(store, { doc });
   assert.equal(root.getAttribute('data-theme'), 'dark');
-  assert.equal(root.hasAttribute('data-large'), true);
+  assert.equal(root.hasAttribute('data-large'), false, 'a stored large=true is not applied (D29)');
 
   // 别处手动改的属性：不相关的写入不碰 <html>
   root.setAttribute('data-theme', 'light');
@@ -217,11 +216,9 @@ test('startAppearance: applies stored settings at start; re-applies only when ap
 
   assert.equal(commitAppearance(store, 'auto').ok, true);
   assert.equal(root.hasAttribute('data-theme'), false, 'appearance change applied');
-  assert.equal(commitLarge(store, false).ok, true);
-  assert.equal(root.hasAttribute('data-large'), false, 'large change applied');
   off();
-  assert.equal(commitLarge(store, true).ok, true);
-  assert.equal(root.hasAttribute('data-large'), false, 'unsubscribed');
+  assert.equal(commitAppearance(store, 'dark').ok, true);
+  assert.equal(root.hasAttribute('data-theme'), false, 'unsubscribed');
   assert.doesNotThrow(() => startAppearance(null, { doc, getStore: () => { throw new Error('not booted'); } })());
 });
 
@@ -233,7 +230,7 @@ function body(view, extra = {}) {
   return expand(SettingsBody({ view, backup: backupValue(null), on, ...extra }));
 }
 
-test('SettingsBody: four groups, rows in prototype order; no 背景音 (P07) / 写完提示做成图片 (P13); copy R-S01–R-S04', () => {
+test('SettingsBody: four groups, rows in prototype order; no 背景音 (P07) / 写完提示做成图片 (P13) / 更大字体 (D29); copy R-S01–R-S03', () => {
   const vnode = body(settingsView(null));
   const ids = allByTestid(vnode);
   assert.deepEqual(ids['settings-group'].map(g => g.props['data-group']), ['practice', 'remind', 'display', 'data']);
@@ -249,22 +246,54 @@ test('SettingsBody: four groups, rows in prototype order; no 背景音 (P07) / �
   assert.equal(textOf(ids['settings-remind-sub'][0]), t('R-S01.remindNote'));
   assert.ok(!ids['settings-remind-time'], 'no time row while reminders are off');
   assert.ok(!ids['settings-remind-denied']);
-  assert.equal(textOf(ids['settings-large-note'][0]), t('R-S04.largeNote').join(''));
-  assert.equal(ids['settings-large'][0].props['aria-checked'], 'false');
+  assert.ok(!ids['settings-large'] && !ids['settings-large-note'], 'D29: no 更大字体 switch');
+  assert.ok(!all.includes('更大字体'), 'D29: the row title is gone too');
+  assert.equal(allByTestid(ids['settings-group'][2])['settings-appearance'].length, 1, 'the 显示 group holds 外观');
   assert.equal(textOf(ids['settings-appearance-value'][0]), '跟随系统');
   assert.equal(ids['settings-appearance'][0].props['aria-haspopup'], 'dialog');
   assert.equal(textOf(ids['settings-backup'][0]), '备份与恢复还没有备份›');
   assert.ok(!ids['settings-fail']);
 });
 
-test('F3: 更大字体说明只承诺真实行为——文字放大、与手机字号分开；不提写字格，也不说跟着手机字号变', () => {
-  const lines = t('R-S04.largeNote');
-  const all = lines.join('');
-  assert.ok(!all.includes('写字格'), 'the write grid shrinks to compact in large mode (P59 / 另案), so the note must not mention it');
-  assert.match(all, /文字/, 'promises text enlargement');
-  assert.match(all, /分开/, 'says it is separate from the phone font size');
-  assert.ok(!/跟着手机|手机字号调大/.test(all), 'does not claim to follow Dynamic Type (largeTextScale is independent, P59)');
-  assert.equal(policy.largeTextScale, 1.3);
+test('D29: the R-S04 large-text copy is gone; the one-time notice says text size follows the phone settings (P132)', () => {
+  assert.throws(() => t('R-S04.largeNote'), 'slot removed');
+  assert.throws(() => t('R-S04.largeLabel'), 'slot removed');
+  assert.equal(t('X-SETTINGS.textSizeNotice'), '文字大小跟随手机设置，可以在手机的设置里调整。');
+  assert.equal(policy.largeTextScale, undefined);
+});
+
+test('P132: v1 large=true → notice shown once, then large is removed from settings; nothing else changes; no large → nothing', () => {
+  assert.equal(textSizeNoticeDue(null), false);
+  assert.equal(textSizeNoticeDue({ large: false }), false);
+  assert.equal(textSizeNoticeDue({ large: true }), true);
+
+  const { store } = freshStore();
+  assert.equal(store.seed({ settings: { library: 'adv3000', sound: false, large: true } }).ok, true);
+  const shown = [];
+  const show = (text, opts) => shown.push({ text, opts });
+  assert.equal(showTextSizeNoticeOnce({ getStore: () => store, show }), true);
+  assert.deepEqual(shown, [{ text: t('X-SETTINGS.textSizeNotice'), opts: { duration: TEXT_SIZE_NOTICE_MS } }]);
+  assert.deepEqual(store.getState().settings, { library: 'adv3000', sound: false }, 'large removed = recorded as shown; other fields kept');
+  assert.equal(showTextSizeNoticeOnce({ getStore: () => store, show }), false, 'second start: not shown again');
+  assert.equal(shown.length, 1);
+
+  const fresh = freshStore().store;
+  assert.equal(showTextSizeNoticeOnce({ getStore: () => fresh, show }), false, 'no settings → nothing');
+  assert.equal(showTextSizeNoticeOnce({ getStore: () => { throw new Error('not booted'); }, show }), false);
+  assert.equal(shown.length, 1);
+});
+
+test('P132: if recording fails the notice comes back once more next start (shown, not lost)', () => {
+  const { store, storage } = freshStore();
+  assert.equal(store.seed({ settings: { large: true } }).ok, true);
+  storage.failNextWrite(1, { kind: 'generic', matchKey: KEYS.settings });
+  const shown = [];
+  assert.equal(showTextSizeNoticeOnce({ getStore: () => store, show: text => shown.push(text) }), true);
+  assert.deepEqual(store.getState().settings, { large: true }, 'write failed → still due');
+  assert.equal(showTextSizeNoticeOnce({ getStore: () => store, show: text => shown.push(text) }), true);
+  assert.equal(shown.length, 2);
+  assert.equal(textSizeNoticeDue(store.getState().settings), false, 'the second start recorded it');
+  assert.equal(commitTextSizeNoticeShown(store).ok, true, 'recording again is harmless');
 });
 
 test('SettingsBody: reminders on → time row; denied → R-S02 subtext, body and 去手机设置; failure block under its group', () => {
@@ -281,9 +310,11 @@ test('SettingsBody: reminders on → time row; denied → R-S02 subtext, body an
   assert.equal(textOf(ids['settings-fail-cancel'][0]), '先不保存');
   assert.equal(textOf(ids['settings-fail-retry'][0]), '再试一次');
   assert.equal(textOf(ids['settings-appearance-value'][0]), '深色');
-  assert.equal(ids['settings-large'][0].props['aria-checked'], 'true');
+  assert.ok(!ids['settings-large'], 'large=true in storage draws no switch (D29)');
   const noSwitch = settingsView(null, { p: { ...policy, features: { ...policy.features, appearanceSwitch: false } } });
-  assert.ok(!allByTestid(body(noSwitch))['settings-appearance'], 'P51 switch off → no 外观 row');
+  const noIds = allByTestid(body(noSwitch));
+  assert.ok(!noIds['settings-appearance'], 'P51 switch off → no 外观 row');
+  assert.deepEqual(noIds['settings-group'].map(g => g.props['data-group']), ['practice', 'remind', 'data'], 'empty 显示 group is not drawn');
 });
 
 test('AppearanceSheetView: three radios in R-S03 order, current checked; failed state shows the three-part block', () => {

@@ -1,6 +1,11 @@
 // ?dev=1 色板页（M0-3）：逐键列出 tokens.css / base.css 的令牌名、当前值、各主题取值与来源（原型文件 + 行号）。
 // 来源直接解析 CSS 行尾注释（「用途 · 来源：…」），不另维护一份表，改令牌只改 CSS。
 // 仅开发工具（03 待产品决定 P30：仅 ?dev=1），不进产品界面；下列标签是开发者看的，不走 src/config/copy/。
+// 字号：D29 起没有 data-large，按钮轮换模拟原生系统字号（platform/text-size.js receiveContentSize，P130）。
+
+import { receiveContentSize } from '../../platform/text-size.js';
+
+const SIZE_CYCLE = ['L', 'XXXL', 'AX3', 'AX5'];
 
 const SOURCES = [
   { file: 'tokens.css', url: new URL('../../config/tokens.css', import.meta.url) },
@@ -9,14 +14,12 @@ const SOURCES = [
 
 const LABELS = {
   title: 'Design tokens · 设计令牌',
-  intro: '逐键列出令牌名、当前计算值、各上下文取值与来源（原型文件 L 行号）。切换 data-theme / data-large 后「当前值」随之刷新。',
+  intro: '逐键列出令牌名、当前计算值、各上下文取值与来源（原型文件 L 行号）。切换 data-theme / 系统字号后「当前值」随之刷新。',
   theme: '主题',
   themeSystem: '跟随系统',
   themeLight: '浅色',
   themeDark: '深色',
-  large: '大字 data-large',
-  on: '开',
-  off: '关',
+  size: '系统字号',
   sample: '字号 calc(15px*var(--k)) · 楷体 --kai：提笔忘字 · 宋体 --serif：拾字 · 黑体 --sans：今天写几个字',
   colName: '令牌',
   colNow: '当前值',
@@ -27,7 +30,6 @@ const LABELS = {
 // 上下文：由选择器栈归类。
 const CONTEXTS = [
   { id: 'base', label: ':root', match: s => s.length === 1 && s[0] === ':root' },
-  { id: 'large', label: 'data-large', match: s => s.length === 1 && s[0] === ':root[data-large]' },
   { id: 'light', label: '浅色', match: s => s.length === 1 && /data-theme="light"/.test(s[0]) },
   { id: 'dark', label: '深色', match: s => s.length === 1 && /data-theme="dark"/.test(s[0]) },
   { id: 'darkMedia', label: '深色（跟随系统）', match: s => s.length === 2 && /prefers-color-scheme:\s*dark/.test(s[0]) },
@@ -124,7 +126,7 @@ function themeState() {
   const root = document.documentElement;
   return {
     theme: root.getAttribute('data-theme') || 'system',
-    large: root.hasAttribute('data-large'),
+    size: root.getAttribute('data-text-size') || 'L',
   };
 }
 
@@ -170,13 +172,12 @@ export function mountPalette(root) {
     themeButtons.push(b);
     bar.appendChild(b);
   }
-  const largeBtn = mkBtn(LABELS.large, 'large-toggle', () => {
-    const r = document.documentElement;
-    if (r.hasAttribute('data-large')) r.removeAttribute('data-large');
-    else r.setAttribute('data-large', '');
+  const sizeBtn = mkBtn(LABELS.size, 'size-cycle', () => {
+    const now = SIZE_CYCLE.indexOf(themeState().size);
+    receiveContentSize({ category: SIZE_CYCLE[(now + 1) % SIZE_CYCLE.length] });
     refresh();
   });
-  bar.appendChild(largeBtn);
+  bar.appendChild(sizeBtn);
   page.appendChild(bar);
   page.appendChild(status);
   page.appendChild(el('p', { margin: '0 0 16px', fontSize: 'calc(15px * var(--k))', lineHeight: '1.6', color: 'var(--i2)' }, LABELS.sample));
@@ -237,10 +238,8 @@ export function mountPalette(root) {
       b.setAttribute('aria-pressed', on ? 'true' : 'false');
       b.style.boxShadow = on ? 'inset 0 0 0 1.5px var(--i1)' : 'inset 0 0 0 .5px var(--i5)';
     }
-    largeBtn.setAttribute('aria-pressed', st.large ? 'true' : 'false');
-    largeBtn.textContent = `${LABELS.large}：${st.large ? LABELS.on : LABELS.off}`;
-    largeBtn.style.boxShadow = st.large ? 'inset 0 0 0 1.5px var(--i1)' : 'inset 0 0 0 .5px var(--i5)';
-    status.textContent = `data-theme=${st.theme}  data-large=${st.large}  --p=${currentValue('--p')}  --k=${currentValue('--k')}`;
+    sizeBtn.textContent = `${LABELS.size}：${st.size}`;
+    status.textContent = `data-theme=${st.theme}  data-text-size=${st.size}  --p=${currentValue('--p')}  --k=${currentValue('--k')}`;
     for (const c of cells) {
       const v = currentValue(c.name);
       c.now.textContent = v;

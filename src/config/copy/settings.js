@@ -17,9 +17,7 @@ export default Object.freeze({
   'R-S03.appearance.light': '浅色',
   'R-S03.appearance.dark': '深色',
   'R-S03.appearance.auto': '跟随系统',
-  // R-S04（已定；F3 按现行行为改写过渡文案——只说文字放大、与手机字号分开（P59），待产品定稿）
-  'R-S04.largeNote': ['打开后，拾字里的文字会放大一些。', '这个设置和手机系统的字号设置是分开的，在手机里调字号，这里不会跟着变。'],
-  'R-S04.largeLabel': '更大字体',
+  // R-S04「更大字体」开关与说明：D29（覆盖 P59）删除——字号跟随手机系统字号（见 copy-source.json R-S04 dropped）
   // X-SETTINGS（M4-3 设置页：组标题与「练习提醒」取原型 ShiziScreen L145–L152；提醒时间、保存失败三段式为工程补槽，见 copy-source.json extra）
   'X-SETTINGS.groupPractice': '练习',
   'X-SETTINGS.groupRemind': '提醒',
@@ -31,6 +29,8 @@ export default Object.freeze({
   'X-SETTINGS.saveFailed': '没保存上，刚才的选择没记下。',
   'X-SETTINGS.cancel': '先不保存',
   'X-SETTINGS.retry': '再试一次',
+  // P132（D29）：旧「更大字体」打开过的用户（v1 迁移带来 large=true），启动后显示一次的轻提示；过渡文案
+  'X-SETTINGS.textSizeNotice': '文字大小跟随手机设置，可以在手机的设置里调整。',
   // X-REMIND（M5-5 提醒通知的标题与正文，P48；R-S01 只给了设置页说明，通知字样沿旧版，见 copy-source.json extra）
   'X-REMIND.title': '{word}（{pinyin}）',
   'X-REMIND.body': '还记得这个字怎么写吗？点开试试。',

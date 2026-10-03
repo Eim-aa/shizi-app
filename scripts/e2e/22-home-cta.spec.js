@@ -1,9 +1,9 @@
-// P0-D / D36（G05）：首页主按钮「拾」不随字号缩小——大字（:root[data-large]）与短屏紧凑版都保持约 196×190。
+// P0-D / D36（G05）：首页主按钮「拾」不随字号缩小——大字（P1-E6 / D29 起 = 系统字号 XXXL，模拟原生 shiziContentSize）与短屏紧凑版都保持约 196×190。
 // 只量主按钮尺寸与它在首屏里的位置；首页其余内容的断言在 22-home.spec.js。
 //
-// 视口：393×852、375×667、360×640、320×568，各自 data-large 关 / 开；同一视口开关大字前后尺寸不变。
+// 视口：393×852、375×667、360×640、320×568，各自系统字号 L / XXXL；同一视口换字号前后尺寸不变。
 
-import { bootTestHost, tid, waitNavIdle } from './helpers.mjs';
+import { bootTestHost, LARGE_TEXT, setTextSize, tid, waitNavIdle } from './helpers.mjs';
 
 const VIEWS = [
   { width: 393, height: 852 },
@@ -24,7 +24,7 @@ async function cta(page) {
       w: r.width, h: r.height, left: r.left, right: r.right, vw: document.documentElement.clientWidth,
       startInPanel: r.top >= panel.top && r.bottom <= panel.bottom, pickInPanel: pick.top >= panel.top && pick.bottom <= panel.bottom,
       compact: document.querySelector('[data-testid="screen-home"]').dataset.compact,
-      large: document.documentElement.hasAttribute('data-large'),
+      large: document.documentElement.hasAttribute('data-text-large'),
       glyph: parseFloat(getComputedStyle(el.querySelector('.sz-home__glyph')).fontSize),
     };
   });
@@ -42,13 +42,10 @@ export default async function homeCta(page, ctx) {
     step(`${tag}: 主按钮在标准字号与大字下都是 ${CTA_W}×${CTA_H}（D36 / G05），开关大字前后不变`);
     const sizes = [];
     for (const large of [false, true]) {
-      await page.evaluate(on => {
-        if (on) document.documentElement.setAttribute('data-large', '');
-        else document.documentElement.removeAttribute('data-large');
-      }, large);
+      await setTextSize(page, large ? LARGE_TEXT : 'L');
       await page.waitForTimeout(250);
       const c = await cta(page);
-      assert.equal(c.large, large, `${tag}: data-large ${large ? 'on' : 'off'}`);
+      assert.equal(c.large, large, `${tag}: data-text-large ${large ? 'on' : 'off'}`);
       assert.ok(Math.abs(c.w - CTA_W) < 1 && Math.abs(c.h - CTA_H) < 1,
         `${tag} ${large ? 'large' : 'normal'} (compact=${c.compact}): main button ${CTA_W}×${CTA_H}, got ${c.w.toFixed(1)}×${c.h.toFixed(1)}`);
       assert.equal(c.glyph, 64, `${tag} ${large ? 'large' : 'normal'}: 「拾」 glyph stays 64px`);
@@ -60,5 +57,5 @@ export default async function homeCta(page, ctx) {
     }
     assert.deepEqual(sizes[0], sizes[1], `${tag}: same size before and after switching 更大字体`);
   }
-  await page.evaluate(() => document.documentElement.removeAttribute('data-large'));
+  await setTextSize(page, 'L');
 }

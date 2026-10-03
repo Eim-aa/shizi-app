@@ -68,16 +68,16 @@ function sizedWin({ width, height, large }) {
   return {
     innerWidth: width,
     innerHeight: height,
-    document: { documentElement: { hasAttribute: name => name === 'data-large' && large, clientWidth: width, clientHeight: height } },
+    document: { documentElement: { hasAttribute: name => name === 'data-text-large' && large, clientWidth: width, clientHeight: height } },
   };
 }
 
-test('gridSizeOfWindow ignores data-large: same viewport, same grid (D36 / G05)', () => {
+test('gridSizeOfWindow ignores the system text size (data-text-large): same viewport, same grid (D36 / G05, P131)', () => {
   for (const [width, height, expected] of GRID_CASES.slice(0, 6)) {
     const normal = gridSizeOfWindow(sizedWin({ width, height, large: false }));
     const large = gridSizeOfWindow(sizedWin({ width, height, large: true }));
     assert.equal(normal, expected, `${width}×${height} normal`);
-    assert.equal(large, expected, `${width}×${height} data-large`);
+    assert.equal(large, expected, `${width}×${height} data-text-large`);
   }
   assert.equal(gridSizeOfWindow(), 345, 'no window (node) → 345');
 });
@@ -104,7 +104,7 @@ test('fitAnswerSize never exceeds the content width', () => {
 
 function fakeWin({ large = false, matches = false, throws = false } = {}) {
   return {
-    document: { documentElement: { hasAttribute: name => name === 'data-large' && large } },
+    document: { documentElement: { hasAttribute: name => name === 'data-text-large' && large } },
     matchMedia(q) {
       if (throws) throw new Error('no matchMedia');
       assert.equal(q, COMPACT_QUERY);
@@ -113,12 +113,14 @@ function fakeWin({ large = false, matches = false, throws = false } = {}) {
   };
 }
 
-test('isCompact: data-large or a short viewport', () => {
+test('isCompact: data-text-large (system text --k ≥ 1.3, P131) or a short viewport; the old data-large no longer counts (D29)', () => {
   assert.equal(isCompact(fakeWin()), false);
   assert.equal(isCompact(fakeWin({ matches: true })), true);
   assert.equal(isCompact(fakeWin({ large: true })), true);
   assert.equal(isCompact(fakeWin({ throws: true })), false);
   assert.equal(isCompact(fakeWin({ large: true, throws: true })), true);
+  const oldLarge = { document: { documentElement: { hasAttribute: name => name === 'data-large' } }, matchMedia: () => ({ matches: false }) };
+  assert.equal(isCompact(oldLarge), false, 'a stray data-large (old in-app switch) no longer selects the compact layout');
 });
 
 test('isCompact without window (node) is false', () => {

@@ -115,9 +115,16 @@ export default async function run(page, { baseURL, assert, step, root }) {
   const log = await page.evaluate(() => window.__shiziTest.getWriteLog());
   assert.deepEqual(log.filter(e => e.via !== 'storage').map(e => `${e.op}:${e.key}`), [], 'no writes bypassing storage.js');
   const txns = log.filter(e => e.op === 'set' && e.key === 'shizi.v2.txn');
-  assert.equal(txns.length, 1, 'all v2 keys in a single writeAll (one txn)');
   const metaSeq = log.find(e => e.op === 'set' && e.key === 'shizi.v2.meta').seq;
-  assert.ok(log.filter(e => e.op === 'set' && /^shizi\.v2\.(records|sched|photos|legacy|custom|settings)/.test(e.key)).every(e => e.seq < metaSeq), 'meta written after the data keys');
+  assert.equal(txns.filter(e => e.seq < metaSeq).length, 1, 'all v2 keys in a single writeAll (one txn)');
+  // P1-E6 / D29 / P132：v1 fontScale=true 迁成 settings.large=true，启动后（迁移之后）显示一次「文字大小跟随手机设置」并提交一次
+  // 只改 settings 的事务去掉 large——这是迁移之后唯一的数据提交（旧断言「整个启动只有一个 txn」因此改为「迁移只有一个 txn」）。
+  const laterData = [...new Set(log.filter(e => e.op === 'set' && e.seq > metaSeq && /^shizi\.v2\.(records|sched|photos|legacy|custom|settings|ink|wordOff)/.test(e.key)).map(e => e.key))];
+  assert.deepEqual(laterData, ['shizi.v2.settings'], 'after the migration only settings is written (the P132 notice record)');
+  // 迁移事务里的数据键都在 meta 之前；meta 之后只有下面那条 P132 的 settings 提交（它自己另起一个 txn）。
+  const noticeTxn = txns.find(e => e.seq > metaSeq);
+  assert.ok(log.filter(e => e.op === 'set' && /^shizi\.v2\.(records|sched|photos|legacy|custom|settings)/.test(e.key))
+    .every(e => e.seq < metaSeq || (noticeTxn && e.seq > noticeTxn.seq && e.key === 'shizi.v2.settings')), 'meta written after the data keys');
   let s = await state(page);
   const recs = recordsOf(s);
   assert.equal(recs.length, expRecords.length, `records: ${recs.length}`);
@@ -125,7 +132,11 @@ export default async function run(page, { baseURL, assert, step, root }) {
   const judgedKeys = new Set(recs.filter(r => r.kind === 'judged').map(r => r.cardKey));
   assert.ok(Object.keys(s.sched).every(k => judgedKeys.has(k)), 'invariant: sched exists ⇒ judged record');
   assert.equal(s.legacy.report.source, 'device', 'import report stored in legacy.report');
-  assert.equal(s.settings.large, true, 'fontScale → settings.large');
+  // 旧断言 settings.large === true：迁移照旧把 fontScale 映射成 large（test/store/migrate.test.mjs 覆盖），但 D29 起 large 不再生效，
+  // 启动后显示一次说明即从 settings 去掉（P132），所以这里看说明与去掉后的结果。
+  assert.equal('large' in s.settings, false, 'fontScale → settings.large → one notice → large dropped (P132)');
+  assert.ok((await page.evaluate(() => (document.querySelector('[data-testid="toast"]') || {}).textContent || '')).includes('文字大小跟随手机设置'),
+    'X-SETTINGS.textSizeNotice shown after the migration');
   assert.equal('scene' in s.settings, false, 'sound.scene dropped (P07)');
   const status = await page.evaluate(() => window.__shiziTest.getStatus());
   assert.ok(status.usage.total < TARGET_BYTES, `total usage ${status.usage.total} < 3.2MiB target`);

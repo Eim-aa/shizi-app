@@ -53,9 +53,9 @@ injectStyles('detail-records', `
 .sz-dcell__sq .sz-compare__card{position:absolute;inset:0;width:100%;border:0;border-radius:0;background:transparent}
 .sz-dcell__glyph{font-family:${T.sans};font-size:calc(30px * ${T.k});line-height:1;color:${T.i3}}
 .sz-dcell__noink{position:absolute;left:0;right:0;bottom:4px;font-size:calc(11px * ${T.k});color:${T.i3}}
-/* M6-2：大字时格子放不下「字 + 没有笔迹」叠放（320 宽 + 大字里说明压在字上），改成上下排、整组居中 */
-:root[data-large] .sz-dcell__sq{align-content:center;gap:2px}
-:root[data-large] .sz-dcell__noink{position:static}
+/* M6-2：大字时格子放不下「字 + 没有笔迹」叠放（320 宽 + 大字里说明压在字上），改成上下排、整组居中（P1-E6：大字 = 系统字号 --k ≥ 1.3，P131） */
+:root[data-text-large] .sz-dcell__sq{align-content:center;gap:2px}
+:root[data-text-large] .sz-dcell__noink{position:static}
 .sz-dcell__cap{min-height:32px;box-sizing:border-box;padding:0 4px;display:flex;align-items:center;justify-content:center;gap:4px;
   border-top:1px solid var(--g, rgba(166,83,63,.28));font-size:calc(11px * ${T.k});line-height:calc(13px * ${T.k});letter-spacing:.02em;
   color:${T.i2};font-variant-numeric:tabular-nums;text-align:center}

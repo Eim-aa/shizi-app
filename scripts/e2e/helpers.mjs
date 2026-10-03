@@ -201,3 +201,14 @@ export async function installNativeStub(page) {
 export async function nativeMessages(page, type) {
   return page.evaluate(t => (window.__nativeMsgs || []).filter(m => !t || m.type === t), type || null);
 }
+
+/**
+ * 阶段 1 P1-E6（D29 / P130）：模拟原生调用 window.shiziContentSize({category})——系统字号档位 'xS'…'XXXL'、'AX1'…'AX5'。
+ * 等 <html data-text-size> 换成该档位再返回（桥已就绪时同步生效）。D29 起没有 App 内「更大字体」与 :root[data-large]，
+ * 旧用例里的「大字」改用 LARGE_TEXT（XXXL，--k 1.35 ≥ policy.compactTextScale 1.3 → :root[data-text-large] 紧凑排布）。
+ */
+export const LARGE_TEXT = 'XXXL';
+export async function setTextSize(page, category = 'L') {
+  await page.evaluate(c => window.shiziContentSize({ category: c }), category);
+  await page.waitForFunction(c => document.documentElement.getAttribute('data-text-size') === c, category);
+}

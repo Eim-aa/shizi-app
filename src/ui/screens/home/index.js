@@ -5,7 +5,7 @@
 //   纸纹层 + 光影层（light.js）→ 日期行「{M} 月 {D} 日 · {时段}」（R-H02）+ 右上竖排题记（R-H13，epigraphs.js 按日 doy % 3，P23）
 //   → 大标题「今天写几个字」（R-H01）→「拾」主入口（开始写字 / 继续写字）→ 第一次来说明（R-H03）或 S01 两行（R-H04）
 //   → 墨迹行 +「今天记录了 N 个字」（R-H07 / D12；P16 有未完成组时仍显示）→「自己选字 →」（R-H06）；三 tab 由 ui/root.js 画。
-//   紧凑版（更大字体或视口高 ≤ policy.compactMaxHeight，P69，与写字页同一条件）：字大一档、墨迹与计数合成一行只放
+//   紧凑版（系统字号 --k ≥ 1.3 即 :root[data-text-large]（P131，D29 起替代 App 内更大字体）或视口高 ≤ policy.compactMaxHeight，P69，与写字页同一条件）：字大一档、墨迹与计数合成一行只放
 //   最近 4 个字（A09，today.js INK_ROW_COMPACT_MAX）；「拾」主按钮不随字号缩小，始终 196×190（D36，覆盖旧「紧凑版 141×120」）。
 //
 // 状态 = 两个正交维度（01 §2；today.js homeModel）：records first|empty|record × resume none|A|B|A+B。

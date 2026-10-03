@@ -1,16 +1,17 @@
 // M1-7 紧凑版写字页（02 §3 M1-7；R-W18 / R-W26 / R-G09；走查-W15 / 核对-V02 / X08；reference/I-proto-write.md §3.7）。
 // D36（覆盖 X08）：紧凑版只改排布，不再缩格。书写格边长按公式取（屏宽 − 32 与视口高 − 预算取小，夹在 258–400）；360×640 的预算
 // 不够，落在下限 258（所以本文件 360×640 的各阶段仍是 258）。其他视口的格子边长与阶段 / 大字的关系见 16-grid.spec.js。
-// 完成定义：360×640（标准字号与 data-large 各走一遍）书写格 258（recall / trace / retrace 同一边长，点提示前后不变）、
+// 「大字」= 系统字号 XXXL（P1-E6 / D29：模拟原生 shiziContentSize → --k 1.35 + :root[data-text-large]；原 App 内 data-large 1.3 已删）。
+// 完成定义：360×640（标准字号与大字各走一遍）书写格 258（recall / trace / retrace 同一边长，点提示前后不变）、
 // 按钮区首屏、无横向溢出（scrollWidth ≤ clientWidth）、可点控件全是 <button>、看答案页字形 200–345；
 // 另：撤销 / 清空在书写格右下（G32 / D36：标准版与紧凑版同一位置，不再挪到格子上方）、「提示 · 写好了」一行 +「看答案 · 跳过 · 结束这组」一行、判断页标题可换行不裁切、
 // 提示说明与格子 / 按钮留出间距（R-W26）；视口从 360×640 切到 393×852 时回到标准版（361、三行底栏），
-// 393×852 + data-large 仍是紧凑版排布，但格子仍是 361（D36：不随大字缩格）；320×568 + data-large 抽查无横向溢出、按钮首屏。
+// 393×852 + 大字仍是紧凑版排布，但格子仍是 361（D36：不随大字缩格）；320×568 + 大字抽查无横向溢出、按钮首屏。
 // 393×852 标准版不回归由 10 / 11 / 13 / 14 spec 复跑保证。
 
 import {
   bootTestHost, canvasInk, drawStroke, HORIZONTAL, PRESS_SETTLE_MS, seedSession, tid, topSel, VERTICAL, waitNavIdle, openWrite,
-  writeSnapshot,
+  writeSnapshot, setTextSize, LARGE_TEXT,
 } from './helpers.mjs';
 
 const SHOTS = process.env.SHIZI_E2E_SHOTS || '';
@@ -118,7 +119,7 @@ async function geometry(page, name = 'view') {
       } : null,
       compact: write ? write.dataset.compact : null,
       phase: write ? write.dataset.phase : null,
-      large: document.documentElement.hasAttribute('data-large'),
+      large: document.documentElement.hasAttribute('data-text-large'),
       noteText: note ? note.textContent.trim() : null,
       nonButtons,
       controls,
@@ -156,10 +157,7 @@ async function setMode(page, ctx, { view, large }) {
   await page.setViewportSize(view);
   await page.goto('about:blank');
   await bootTestHost(page, ctx.baseURL);
-  await page.evaluate(on => {
-    if (on) document.documentElement.setAttribute('data-large', '');
-    else document.documentElement.removeAttribute('data-large');
-  }, large);
+  await setTextSize(page, large ? LARGE_TEXT : 'L');
 }
 
 async function compactWalk(page, ctx, { large }) {
@@ -176,7 +174,7 @@ async function compactWalk(page, ctx, { large }) {
   ctx.step(`${tag}: recall — grid 258, two footer rows, buttons on the first screen`);
   let g = await geometry(page, `${large ? 'L' : 'N'}-recall`);
   assert.equal(g.compact, 'true', `${tag}: write screen is in compact mode`);
-  assert.equal(g.large, large, `${tag}: data-large ${large ? 'on' : 'off'}`);
+  assert.equal(g.large, large, `${tag}: data-text-large ${large ? 'on' : 'off'}`);
   assert.ok(square(g.r['write-grid'], GRID), `${tag}: recall grid is ${GRID}×${GRID} (floor of the D36 formula) ${JSON.stringify(g.r['write-grid'])}`);
   common(assert, g, `${tag} recall`, ['page-back', 'write-hint', 'write-done', 'write-show-answer', 'write-skip']);
   const c = g.controls;
@@ -451,7 +449,7 @@ export default async function compact(page, ctx) {
   await compactEnd(page, ctx, { large: false });
   await compactEnd(page, ctx, { large: true });
 
-  ctx.step('393×852 (no data-large): standard layout');
+  ctx.step('393×852 (system text L): standard layout');
   await setMode(page, ctx, { view: STD_VIEW, large: false });
   const seeded = await seedSession(page, { slot: 'A', kind: 'daily', chars: CHARS, cursor: 0 });
   assert.ok(seeded.ok, 'std: seed');
@@ -497,8 +495,8 @@ export default async function compact(page, ctx) {
   g = await geometry(page, 'resized393');
   assert.ok(square(g.r['write-grid'], GRID_393), `resized back to 393×852: grid ${GRID_393}`);
 
-  ctx.step('393×852 + data-large → compact layout, but the grid keeps its size (D36 overrides X08: larger text no longer shrinks the grid)');
-  await page.evaluate(() => document.documentElement.setAttribute('data-large', ''));
+  ctx.step('393×852 + system text XXXL → compact layout, but the grid keeps its size (D36 overrides X08: larger text no longer shrinks the grid)');
+  await setTextSize(page, LARGE_TEXT);
   await page.waitForFunction(() => document.querySelector('.sz-layer[data-top="true"] .sz-write').dataset.compact === 'true');
   await page.waitForTimeout(200);
   g = await geometry(page, 'std393large');
@@ -514,7 +512,7 @@ export default async function compact(page, ctx) {
     && Math.abs(largeTools.uh - stdTools.uh) <= 1, `393×852: 撤销 / 清空 sit in the same place relative to the grid in both layouts (G32) ${JSON.stringify({ stdTools, largeTools })}`);
   assert.ok(Math.min(largeTools.uw, largeTools.cw, largeTools.uh, largeTools.ch) >= 44 - 0.5, '393×852 large: tool buttons ≥44pt');
 
-  ctx.step('320×568 + data-large spot check: no horizontal overflow, buttons on the first screen');
+  ctx.step('320×568 + system text XXXL spot check: no horizontal overflow, buttons on the first screen');
   await page.setViewportSize({ width: 320, height: 568 });
   await page.waitForTimeout(300);
   g = await geometry(page, '320large');
@@ -523,6 +521,6 @@ export default async function compact(page, ctx) {
   common(assert, g, '320×568 large', ['write-hint', 'write-done', 'write-show-answer', 'write-skip']);
   const doneText = await page.$eval(topSel('write-done'), el => ({ sw: el.scrollWidth, cw: el.clientWidth }));
   assert.ok(doneText.sw <= doneText.cw + 0.5, `320×568 large: 写好了 text fits its button (${doneText.sw} ≤ ${doneText.cw})`);
-  await page.evaluate(() => document.documentElement.removeAttribute('data-large'));
+  await setTextSize(page, 'L');
   await page.setViewportSize(STD_VIEW);
 }

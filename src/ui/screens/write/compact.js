@@ -1,10 +1,11 @@
 // 紧凑版写字页（M1-7；02 §3 M1-7；R-W18 / R-W26 / R-G09；走查-W15 / 核对-V02；reference/I-proto-write.md §3.7）。
 //
-// 何时用紧凑版：:root[data-large]（原型 size==='compact' ⇔ 更大字体，--k 1.3），或视口高度 ≤ COMPACT_MAX_HEIGHT
+// 何时用紧凑版：:root[data-text-large]（系统字号 --k ≥ policy.compactTextScale 1.3，P131 / D29，由 platform/text-size.js 设；
+// 原型 size==='compact' ⇔ --k 1.3），或视口高度 ≤ COMPACT_MAX_HEIGHT
 // （标准版 393×852 的整页需要约 790px 才能让书写格与底栏同屏；360×640 这类短屏在标准字号下也走紧凑版）。
-// 高度阈值是工程取值（原型只按 large 切换）；CSS 与 JS 用同一个条件（COMPACT_QUERY + data-large）。
+// 高度阈值是工程取值（原型只按字号切换）；CSS 与 JS 用同一个条件（COMPACT_QUERY + data-text-large）。
 //
-// D36（覆盖 X08 / P69 的缩格）：紧凑版**只改控件排布**（间距、题面高度、底栏两行），不再改书写格大小，data-large 也不触发缩格。
+// D36（覆盖 X08 / P69 的缩格）：紧凑版**只改控件排布**（间距、题面高度、底栏两行），不再改书写格大小，字号也不触发缩格。
 // 书写格边长由 writeGridSize 按「屏宽 − 32」与「视口高 − 预算」取小、夹在 [258, 400]（policy.writeGrid，P118），与字号无关；
 // recall / trace / retrace 各阶段、点提示前后都是同一个边长。内部坐标仍是 345 单位（ink-canvas.js），这里只决定显示尺寸。
 //
@@ -32,6 +33,8 @@ export const ANSWER_MAX = 345;
 /** 视口高度不超过此值时用紧凑版（policy.compactMaxHeight，P69，D36；见本文件头）。 */
 export const COMPACT_MAX_HEIGHT = policy.compactMaxHeight;
 export const COMPACT_QUERY = `(max-height: ${COMPACT_MAX_HEIGHT}px)`;
+/** 系统字号够大（--k ≥ policy.compactTextScale）时 platform/text-size.js 给 <html> 加的属性（P131）。 */
+export const TEXT_LARGE_ATTR = 'data-text-large';
 
 /** 写字页 Page 根（components/Page 把 testid 放在 .sz-page 上）。 */
 const S = '.sz-page[data-testid="write-screen"]';
@@ -68,9 +71,18 @@ ${P} .sz-answer__note,${P} .sz-write__note,${P} .sz-judge__note{text-wrap:pretty
 `;
 }
 
+// 系统字号 XXXL（--k 1.35，P130）比原型紧凑版的 1.3 大一点：最矮的 360×640 上格子已在下限 258，题面与格下说明多出约 7px，
+// 说明会被底栏压住。只在大字号下收紧：格下说明行高 1.4 → 1.3（字号不变）、题面区去掉 2px 间距与 2px 下边距（提示行自带 10px 上边距），
+// 说明与底栏仍留 ≥6px（R-W26），格子不缩（D36）。
+const TEXT_LARGE_TIGHTEN = `
+:root[data-text-large] ${S} .sz-write__note{line-height:1.3}
+:root[data-text-large] ${S} .sz-write__prompt{gap:0;padding-bottom:0}
+`;
+
 injectStyles('write-compact', `
 @media ${COMPACT_QUERY}{${compactRules('')}}
-${compactRules(':root[data-large]')}
+${compactRules(':root[data-text-large]')}
+${TEXT_LARGE_TIGHTEN}
 `);
 
 function winOf(win) {
@@ -83,7 +95,7 @@ export function isCompact(win) {
   const w = winOf(win);
   if (!w) return false;
   const root = w.document && w.document.documentElement;
-  if (root && root.hasAttribute && root.hasAttribute('data-large')) return true;
+  if (root && root.hasAttribute && root.hasAttribute(TEXT_LARGE_ATTR)) return true;
   try {
     return !!(w.matchMedia && w.matchMedia(COMPACT_QUERY).matches);
   } catch (error) {
@@ -91,7 +103,7 @@ export function isCompact(win) {
   }
 }
 
-/** 订阅紧凑版条件：视口高度变化（matchMedia change）与 :root[data-large] 切换。 */
+/** 订阅紧凑版条件：视口高度变化（matchMedia change）与 :root[data-text-large] 切换（系统字号变化）。 */
 export function useCompact(win) {
   const [compact, setCompact] = useState(() => isCompact(win));
   useEffect(() => {
@@ -113,7 +125,7 @@ export function useCompact(win) {
     const root = w.document && w.document.documentElement;
     if (root && typeof w.MutationObserver === 'function') {
       mo = new w.MutationObserver(sync);
-      mo.observe(root, { attributes: true, attributeFilter: ['data-large'] });
+      mo.observe(root, { attributes: true, attributeFilter: [TEXT_LARGE_ATTR] });
     }
     return () => {
       if (mql) {
@@ -130,7 +142,7 @@ export function useCompact(win) {
  * 书写格显示边长（D36，P118；纯函数）。
  * 边长 = min(屏宽 − 2·sideMargin, 视口高 − 预算)，夹在 [min, max] 并取整；预算是页头 / 页边 / 行 / 题面 / 格下一行 / 底栏的高度
  * （policy.writeGrid.reserveStd / reserveCompact，视口高 ≤ compactMaxHeight 时用紧凑排布那份），再加安全区（顶部全算，底部只算
- * 超出底栏基线内边距的部分）。**与 :root[data-large] 无关**：同一视口开关大字前后边长不变，只有控件排布变。
+ * 超出底栏基线内边距的部分）。**与字号（--k、:root[data-text-large]）无关**：同一视口换系统字号前后边长不变，只有控件排布变。
  * @param {{width:number, height:number, safeTop?:number, safeBottom?:number}} o  width / height：页面（视口）的宽高，pt
  * @returns {number}
  */
@@ -155,7 +167,7 @@ const STD_GRID = 345;
 const STD_FOOT_PAD = 20;
 const SHORT_FOOT_PAD = 6;
 
-/** 按窗口尺寸算书写格边长（首帧用；不读 data-large，D36）。无 window（node:test）时为缺省 345。 */
+/** 按窗口尺寸算书写格边长（首帧用；不读字号，D36）。无 window（node:test）时为缺省 345。 */
 export function gridSizeOfWindow(win) {
   const w = winOf(win);
   if (!w) return STD_GRID;

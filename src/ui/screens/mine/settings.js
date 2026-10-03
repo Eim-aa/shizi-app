@@ -1,4 +1,4 @@
-// 设置（02 M4-3；04 R-S01–R-S04；03 P07 / P13（删）、P18、P24、P51、P59；01 §3 settings 形状、§8.1 原生桥；
+// 设置（02 M4-3；04 R-S01–R-S03；03 P07 / P13（删）、P18、P24、P51、P59（D29 删）、P132；01 §3 settings 形状、§8.1 原生桥；
 // 原型 ShiziScreen-第十稿交接版 L145–L160、逻辑 L463–L467，reference/J-proto-screen.md §2.3.17–2.3.18）。
 //
 // 页面 'settings'（「我的」菜单「设置」推入，M4-1 拥有入口，调用 openSettings() 或 nav.push('settings')）：
@@ -9,14 +9,16 @@
 //   提醒：练习提醒（开关 + 小字 R-S01.remindNote；通知被关时小字换 R-S02.title，组下 R-S02.body +「去手机设置 ›」）、
 //         开着时多一行「提醒时间」（<input type=time>，P18 用户选、缺省 policy.remindDefault）。
 //         「写完提示做成图片」按 P13（features.photoHint=false）删除，不画。
-//   显示：更大字体（开关 + R-S04 两行说明；settings.large → :root[data-large]，--k = policy.largeTextScale，P59）、
-//         外观（右侧「{浅色|深色|跟随系统} ›」；点开底部弹层三选，R-S03 / 边改 V01；P51 features.appearanceSwitch）。
+//   显示：外观（右侧「{浅色|深色|跟随系统} ›」；点开底部弹层三选，R-S03 / 边改 V01；P51 features.appearanceSwitch；开关关掉时整组不画）。
+//         「更大字体」开关与 R-S04 说明按 D29（覆盖 P59）删除：字号跟随手机的系统字号（platform/text-size.js，P130）。
+//         settings.large 只保留读取兼容、不再生效；v1 迁移带来的 large=true 在启动后由 showTextSizeNoticeOnce 显示一次
+//         「文字大小跟随手机设置…」（X-SETTINGS.textSizeNotice，P132 过渡文案），显示后从 settings 去掉 large（= 记下不再显示）。
 //   数据：备份与恢复（右侧「上次备份 {date} ›」/「还没有备份 ›」，R-M03；→ 已注册的 'backup' 屏，M4-4）。
 //
 // 写入：一律 store.commit（01 §4），每次只改 settings 一个键、保留其余字段；值没变不写。
 //   失败不发布（D07）：该组下方三段式（R-G04 / T01：「没保存上，刚才的选择没记下。」+ 先不保存 / 再试一次），开关与时间留在原值；
 //   再试一次 = 同一目标值再 commit 一次。外观弹层里失败时弹层不关，就地换成三段式。
-// 外观与大字只写 store；<html> 的 data-theme / data-large 由 src/platform/appearance.js 订阅 store 后应用（启动时也由它应用）。
+// 外观只写 store；<html> 的 data-theme 由 src/platform/appearance.js 订阅 store 后应用（启动时也由它应用）。
 // 提醒（原生执行，M5-5 接完整链路）：本页只经 platform/bridge.js postNative 发消息，不在原生壳内时 postNative 返回 false，页面照常：
 //   打开 → 写 enabled（首开补 hour/minute 缺省）→ 权限不是 granted 时 postNative('requestReminderPermission') → syncReminder；
 //   关闭 / 改时间 → syncReminder。syncReminder 缺省发 {type:'syncReminder', enabled, hour, minute, practicedToday:false, questions:[]}；
@@ -27,7 +29,7 @@
 // data-testid（前缀 settings-）：settings-screen、settings-group（data-group=practice|remind|display|data）、settings-group-title、
 //   settings-library（data-library）、settings-library-value、settings-sound（role=switch，aria-checked）、
 //   settings-remind（role=switch）、settings-remind-sub、settings-remind-time（input，data-value）、settings-remind-denied、
-//   settings-open-system、settings-large（role=switch）、settings-large-note、settings-appearance（data-value）、
+//   settings-open-system、settings-appearance（data-value）、
 //   settings-appearance-value、settings-backup（data-last-export）、settings-backup-value、
 //   settings-fail（data-group / data-field）、settings-fail-note、settings-fail-cancel、settings-fail-retry；
 //   外观弹层：settings-appearance-sheet（data-state=pick|failed）、settings-appearance-options（role=radiogroup）、
@@ -47,6 +49,7 @@ import { localDay, monthDayParts } from '../../../core/dates.js';
 import { libraryName } from '../library/index.js';
 import * as policy from '../../../config/policy.js';
 import { t } from '../../../config/copy/index.js';
+import { showToast } from '../../components/Toast.js';
 
 export const SETTINGS_SCREEN = 'settings';
 export const BACKUP_SCREEN = 'backup';
@@ -58,8 +61,8 @@ export const LABELS = Object.freeze({
   remind: 'settings:remind',
   remindTime: 'settings:remind-time',
   permission: 'settings:remind-permission',
-  large: 'settings:large',
   appearance: 'settings:appearance',
+  textSizeNotice: 'settings:text-size-notice',
 });
 
 // 按键音缺省开：原型 ShiziScreen L463 SD.sound=true（旧版 shizi.sound.v1 也缺省开）。
@@ -95,7 +98,7 @@ export function defaultRemindTime(p = policy) {
 /**
  * settings（可为 null）→ 页面要显示的值（补缺省）。
  * @returns {{library:string, libraryName:string, sound:boolean, remind:{enabled:boolean, hour:number, minute:number, permission:string},
- *   denied:boolean, large:boolean, appearance:'auto'|'light'|'dark', appearanceSwitch:boolean}}
+ *   denied:boolean, appearance:'auto'|'light'|'dark', appearanceSwitch:boolean}}
  */
 export function settingsView(settings, { p = policy } = {}) {
   const s = settings || {};
@@ -117,7 +120,6 @@ export function settingsView(settings, { p = policy } = {}) {
     remind,
     // 原型 settingsDenied：只要手机关了通知就显示 R-S02（开关照旧表示用户的选择）。
     denied: permission === 'denied',
-    large: s.large === true,
     appearance: appearanceOf(settings, { features }).theme,
     appearanceSwitch: features.appearanceSwitch !== false,
   };
@@ -160,10 +162,6 @@ export function commitSettings(store, label, fields) {
 
 export function commitSound(store, on) {
   return commitSettings(store, LABELS.sound, { sound: !!on });
-}
-
-export function commitLarge(store, on) {
-  return commitSettings(store, LABELS.large, { large: !!on });
 }
 
 export function commitAppearance(store, value) {
@@ -343,7 +341,7 @@ function appearanceLabel(value) {
  * @param {ReturnType<typeof settingsView>} p.view
  * @param {{text:string, arrow:boolean, day:string|null}} p.backup
  * @param {{group:string, field:string}|null} [p.fail]
- * @param {object} p.on  回调：library / sound / remind / time / openSystem / large / appearance / backup / failCancel / failRetry
+ * @param {object} p.on  回调：library / sound / remind / time / openSystem / appearance / backup / failCancel / failRetry
  */
 export function SettingsBody({ view, backup, fail = null, on }) {
   const failFor = group => (fail && fail.group === group
@@ -367,13 +365,11 @@ export function SettingsBody({ view, backup, fail = null, on }) {
         sub=${view.denied ? t('R-S02.title') : t('R-S01.remindNote')} on=${remind.enabled} onToggle=${on.remind} />
       ${remind.enabled ? html`<${TimeRow} hour=${remind.hour} minute=${remind.minute} onTime=${on.time} />` : null}
     </${Group}>
-    <${Group} id="display" title=${t('X-SETTINGS.groupDisplay')} note=${failFor('display')}>
-      <${SwitchRow} testid="settings-large" title=${t('R-S04.largeLabel')} sub=${t('R-S04.largeNote')} subTestid="settings-large-note"
-        on=${view.large} onToggle=${on.large} />
-      ${view.appearanceSwitch ? html`<${ValueRow} testid="settings-appearance" title=${t('R-S03.appearance')}
+    ${view.appearanceSwitch ? html`<${Group} id="display" title=${t('X-SETTINGS.groupDisplay')} note=${failFor('display')}>
+      <${ValueRow} testid="settings-appearance" title=${t('R-S03.appearance')}
         value=${appearanceLabel(view.appearance)} valueTestid="settings-appearance-value" onClick=${on.appearance}
-        extra=${{ 'data-value': view.appearance, 'aria-haspopup': 'dialog' }} />` : null}
-    </${Group}>
+        extra=${{ 'data-value': view.appearance, 'aria-haspopup': 'dialog' }} />
+    </${Group}>` : null}
     <${Group} id="data" title=${t('X-SETTINGS.groupData')} note=${failFor('data')}>
       <${ValueRow} testid="settings-backup" title=${t('R-M03.backup')} value=${backup.text} valueTestid="settings-backup-value"
         arrow=${backup.arrow} onClick=${on.backup} extra=${{ 'data-last-export': backup.day || '' }} />
@@ -529,10 +525,6 @@ function SettingsScreen() {
       if (!ok) input.value = old;
     },
     openSystem: () => postNative('openAppSettings', {}),
-    large: () => {
-      const next = !view.large;
-      run('display', 'large', () => commitLarge(store(), next));
-    },
     appearance: () => openAppearanceSheet(),
     backup: () => go(BACKUP_SCREEN, {}),
     failCancel: () => setFail(null),
@@ -544,6 +536,46 @@ function SettingsScreen() {
   return html`<${Page} title=${t('R-S01.title')} testid="settings-screen">
     <${SettingsBody} view=${view} backup=${backup} fail=${fail} on=${on} />
   </${Page}>`;
+}
+
+// ---------------------------------------------------------------- 旧「更大字体」的一次说明（D29 / P132）
+
+/** 说明显示时长（ms）：比普通轻提示（3.2s）长，句子有两段（P132 过渡值）。 */
+export const TEXT_SIZE_NOTICE_MS = 6000;
+
+/** 要不要显示「文字大小跟随手机设置」：settings.large 仍为 true（v1 迁移带来、或旧版 App 内开关打开过，还没显示过）。 */
+export function textSizeNoticeDue(settings) {
+  return !!settings && settings.large === true;
+}
+
+/** 记下已显示：从 settings 去掉不再生效的 large（其余字段不动）。 */
+export function commitTextSizeNoticeShown(store) {
+  return store.commit(LABELS.textSizeNotice, draft => {
+    const next = { ...(draft.settings || {}) };
+    delete next.large;
+    draft.settings = next;
+  });
+}
+
+/**
+ * 启动后（app.js，迁移与挂 UI 之后）调用一次：需要时显示说明并记下，下次启动不再显示。
+ * 写入失败只是下次再显示一次。返回是否显示了。
+ */
+export function showTextSizeNoticeOnce({ getStore: storeOf = getStore, show = showToast } = {}) {
+  let store = null;
+  try {
+    store = storeOf();
+  } catch (error) {
+    return false;
+  }
+  if (!store || !textSizeNoticeDue(store.getState().settings)) return false;
+  show(t('X-SETTINGS.textSizeNotice'), { duration: TEXT_SIZE_NOTICE_MS });
+  try {
+    commitTextSizeNoticeShown(store);
+  } catch (error) {
+    if (typeof console !== 'undefined') console.warn('[shizi] text size notice not recorded:', error);
+  }
+  return true;
 }
 
 /** 从「我的」菜单进入设置（M4-1）。 */

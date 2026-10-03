@@ -1,14 +1,15 @@
 // M6-2 显示矩阵（02 §8 M6「矩阵 e2e」；§8.1 反例 8「短屏、大字、长文本、键盘」；需求 R13「393×852、360×640、130% 文字、
 // 长内容与键盘场景，允许滚动，关键操作不被遮挡」；acceptance M1 / M2 / M3-M4「未覆盖」里的 320×568 / 130% / 深色断言）。
 //
-// 矩阵：主组 2 视口（393×852、360×640）× 2 主题（prefers-color-scheme light / dark）× 2 大字（:root[data-large] 关 / 开）
+// 矩阵：主组 2 视口（393×852、360×640）× 2 主题（prefers-color-scheme light / dark）× 2 字号（系统字号 L / XXXL：P1-E6 / D29 起
+//       模拟原生 shiziContentSize，--k 1 / 1.35 + :root[data-text-large]；原 App 内大字 :root[data-large] 1.3 已删）
 //       × 2 减少动态效果（prefers-reduced-motion no-preference / reduce）× PAGES（16 页）= 256 格；
 //       附加组 A：320×568 × 2 主题 × 2 大字 × 2 减动 × 16 页 = 128 格；
 //       附加组 B：浏览器基础字号 130%（CDP Page.setFontSizes standard 16 → 21px，整数最接近 20.8）× 393×852 浅色 /
 //       360×640 深色 × 2 大字 × 16 页 = 64 格。
 // 每页先用长文本 fixture（fixtures/long-text.mjs：题面最长的卡、最长词、300 字一年量级种子、说明句最长的结果页）造数，
 // 再在同一页上逐格切大字 / 减动（视口与主题按 worker 固定），等有限时长动画跑完后，每格断言：
-//   0. 条件生效：视口宽高、prefers-color-scheme、--k（1 / 1.3）、prefers-reduced-motion 与这一格一致；130% 组根字号 = 21px。
+//   0. 条件生效：视口宽高、prefers-color-scheme、--k（1 / 1.35）、prefers-reduced-motion 与这一格一致；130% 组根字号 = 21px。
 //   1. 无横向溢出 / 截断 / 互压：documentElement 与顶层图层（有模态弹层时只查弹层）里每个滚动容器 scrollWidth ≤ clientWidth；
 //      每段文字（Range 矩形）不越出 0–视口宽，也不被 overflow:hidden / clip 的祖先截掉一截（读屏隐藏且整段在框外的有意隐藏
 //      除外）；两段文字的字面（逐行中心 ±0.45em）不互相压住超过 2×2px（sticky 条与从它下面滚过的内容不比）。
@@ -22,8 +23,8 @@
 //      option|menuitem / 可 Tab 聚焦元素；输入框按包着它的 <label> 量；R-W27 / R-G09，base.css --tap）。
 //   6. 截图：每格一张 jpeg，落 SHIZI_E2E_SHOTS（缺省 <系统临时目录>/shizi-e2e-matrix），命名
 //      <组>-<宽>x<高>-<主题>-<N|L>-<M|R>-<页>.jpg；不进仓库、不做像素比对（reference/G-tests.md 第 7 条）。
-// 130% 组说明：全站字号是 px × --k（P59 大字 1.3 不跟随系统），浏览器基础字号不改变版式；「130% 文字」在产品里由 data-large
-// 实现，已在每组的 L 格覆盖。iOS 系统字号（Dynamic Type）仍是 M7 真机项。
+// 130% 组说明：全站字号是 px × --k，浏览器基础字号不改变版式（P133：网页不读浏览器默认字号）；「约 130% 文字」在产品里由
+// 系统字号 XXXL（--k 1.35，P130）实现，已在每组的 L 格覆盖；AX 档见 66-text-size.spec.js。iOS 真机系统字号矩阵是 DEVICE_QA Q24。
 // 断言按格汇总：每格一条 ok（失败时列出该格全部问题），外加每组一条「全部格子通过」与零 console error。
 //
 // 实现：spec 拿 runner 给的 page 所在的 browser 另开 context（视口 / 主题 / dsf 1），各 worker 并行（MATRIX_CONCURRENCY，
@@ -205,7 +206,7 @@ function measureInPage({ minContrast, minTap, exempt, expect }) {
     k: getComputedStyle(document.documentElement).getPropertyValue('--k').trim(),
     reduce: matchMedia('(prefers-reduced-motion: reduce)').matches,
   };
-  const want = { w: expect.w, h: expect.h, dark: expect.dark, k: expect.large ? '1.3' : '1', reduce: expect.reduce };
+  const want = { w: expect.w, h: expect.h, dark: expect.dark, k: expect.large ? '1.35' : '1', reduce: expect.reduce };
   const envProblems = Object.keys(want).filter(key => env[key] !== want[key]).map(key => `env ${key}=${env[key]} (want ${want[key]})`);
   const vv = window.__fakeVV && window.__fakeVV.height < vh ? window.__fakeVV : null;
   const visBottom = vv ? vv.offsetTop + vv.height : vh;
@@ -536,12 +537,9 @@ function reachInPage({ primary, deep }) {
 
 async function applyCell(page, { large, motion, theme }) {
   await page.emulateMedia({ colorScheme: theme, reducedMotion: motion ? 'reduce' : 'no-preference' });
-  await page.evaluate(on => {
-    const root = document.documentElement;
-    if (on) root.setAttribute('data-large', '');
-    else root.removeAttribute('data-large');
-  }, large);
-  // 两帧 + 一点时间：让 Preact（useCompact 的 MutationObserver 重渲染）与布局稳定。切大字 / 减动不触发页面转场。
+  // 模拟原生 shiziContentSize（P130）：XXXL → --k 1.35、:root[data-text-large]；L → 系统默认。
+  await page.evaluate(on => window.shiziContentSize({ category: on ? 'XXXL' : 'L' }), large);
+  // 两帧 + 一点时间：让 Preact（useCompact 的 MutationObserver 重渲染）与布局稳定。切字号 / 减动不触发页面转场。
   await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
   await page.waitForTimeout(80);
   // 等正在跑的有限时长动画 / 过渡（参考字形淡入、弹层随键盘上移…）跑完再量，最多 2s。

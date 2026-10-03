@@ -78,7 +78,7 @@ injectStyles('write-compare', `
   place-items:center;font-size:calc(13px * ${T.k});color:${T.i3};letter-spacing:.04em;text-align:center;padding:8px}
 .sz-compare__label{text-align:center;font-size:calc(13px * ${T.k});letter-spacing:.12em;color:${T.i3}}
 .sz-write[data-phase="compare"] .sz-prompt__fill{animation:szCmpFade .2s ease-out .12s both}
-.sz-judge__note{margin:0;width:100%;text-align:center;font-size:calc(13px * ${T.k});line-height:18px;letter-spacing:.06em;
+.sz-judge__note{margin:0;width:100%;text-align:center;font-size:calc(13px * ${T.k});line-height:1.4;letter-spacing:.06em;
   color:${T.i3}}
 .sz-judge__btns{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
 .sz-judge__btn{width:100%;min-height:72px;border:.5px solid ${T.i5};border-radius:20px;background:${T.c};color:${T.i1};
@@ -86,7 +86,7 @@ injectStyles('write-compare', `
 .sz-judge__btn:active{transform:scale(.98);background:var(--off, #EFE8DC)}
 .sz-judge__fail{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
 .sz-cmpstage{display:flex;flex-direction:column;align-items:stretch;max-width:100%}
-.sz-write__foot--judge{gap:14px;margin-top:24px}
+.sz-write__foot.sz-write__foot--judge{gap:14px;margin-top:24px} /* 说明与两键之间 ≥12px：双类名提高优先级，否则被 write/index.js 后注入的 .sz-write__foot{gap:0} 盖掉（A10） */
 .sz-continue{height:44px;padding:0 8px;font-size:calc(15px * ${T.k});letter-spacing:.04em;color:${T.i1}}
 @media (prefers-reduced-motion: reduce){
   .sz-compare__col--ref{animation:szCmpFade .12s linear both}

@@ -244,6 +244,10 @@ export default async function listsSpec(page, ctx) {
   assert.ok(v.rows.every(r => r.word && r.word.includes(r.char) && r.bold === r.char), `word shown with the target bold: ${v.rows.map(r => r.word).join(' / ')}`);
   assert.deepEqual(v.rows.map(r => r.caption), [COPY.wrongThumb, COPY.wrongThumb], '写错那次 under each thumb');
   assert.deepEqual(v.rows.map(r => r.noink), [COPY.noInk, COPY.noInk], 'no stored ink (P31 off) → 没有笔迹 (10.12)');
+  // A10：行内小图下的「没有笔迹」「写错了」说明 ≥11px，且「没有笔迹」不被小图裁掉
+  const small = await page.evaluate(() => [...document.querySelectorAll('.sz-layer[data-top="true"] [data-testid="list-row-thumb-noink"], .sz-layer[data-top="true"] [data-testid="list-row-thumb-caption"]')]
+    .map(el => ({ id: el.dataset.testid, fs: parseFloat(getComputedStyle(el).fontSize), clipped: el.scrollWidth > el.clientWidth + 1 })));
+  assert.ok(small.length >= 4 && small.every(x => x.fs >= 11 && !x.clipped), `A10: thumb notes >= 11px and unclipped (${JSON.stringify(small)})`);
   assert.deepEqual(v.rows.map(r => [r.selected, r.checked]), [[true, 'true'], [true, 'true']], 'default all selected (R-E02)');
   assert.equal(v.rows[0].selLabel, '取消选择「和」', 'checkbox accessible name');
   assert.equal(v.note, COPY.wrongNote, 'R-E03 note');

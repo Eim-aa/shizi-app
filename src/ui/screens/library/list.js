@@ -105,8 +105,8 @@ injectStyles('library-list', `
 .sz-lrow__thumb{position:relative;width:44px;height:44px;box-sizing:border-box;border:1px solid var(--g, rgba(166,83,63,.28));
   background:${T.c};display:grid;place-items:center;overflow:hidden}
 .sz-lrow__thumb .sz-compare__card{position:absolute;inset:0;border:0;border-radius:0;background:transparent;aspect-ratio:auto}
-.sz-lrow__noink{font-size:9px;line-height:1.2;color:${T.i3};text-align:center;white-space:nowrap}
-.sz-lrow__cap{font-size:11px;line-height:13px;color:${T.i3};white-space:nowrap}
+.sz-lrow__noink{max-width:2.4em;font-size:calc(11px * ${T.k});line-height:1.2;color:${T.i3};text-align:center;overflow-wrap:anywhere}
+.sz-lrow__cap{font-size:calc(11px * ${T.k});line-height:1.2;color:${T.i3};white-space:nowrap}
 .sz-lrow__chev{flex:none;font-size:calc(15px * ${T.k});color:${T.i3}}
 .sz-list__note{margin:0;font-size:calc(15px * ${T.k});line-height:1.7;color:${T.i2};text-wrap:pretty}
 .sz-list__hint{margin:0;text-align:center;font-size:calc(13px * ${T.k});line-height:calc(18px * ${T.k});color:${T.i3}}

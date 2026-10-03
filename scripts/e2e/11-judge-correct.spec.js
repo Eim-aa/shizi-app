@@ -274,6 +274,15 @@ export default async function judgeCorrect(page, ctx) {
   assert.equal(VERDICT_CLASS.test(cmp.classes), false, `compare area has no verdict class names (${cmp.classes})`);
   assert.equal(cmp.attrs.some(a => VERDICT_CLASS.test(a.split('=')[1] || '')), false, 'compare area has no verdict data / aria values');
   assert.ok(cmp.mineLeft, '你的书写 on the left, 参考字形 on the right');
+  // A10：说明行高随字号（不再写死 18px），与两键之间 ≥12px
+  const note = await page.evaluate(() => {
+    const n = document.querySelector('.sz-layer[data-top="true"] [data-testid="write-judge-note"]');
+    const b = document.querySelector('.sz-layer[data-top="true"] [data-testid="write-judge-wrong"]');
+    const cs = getComputedStyle(n);
+    return { fs: parseFloat(cs.fontSize), lh: parseFloat(cs.lineHeight), gap: b.getBoundingClientRect().top - n.getBoundingClientRect().bottom };
+  });
+  assert.ok(note.lh / note.fs >= 1.35, `A10: judge note line-height is relative to the font size (${note.lh}/${note.fs})`);
+  assert.ok(note.gap >= 12, `A10: judge note → buttons gap >= 12px (${note.gap})`);
   assert.deepEqual(cmp.labels, [COPY.mine, COPY.ref], 'card labels 你的书写 / 参考字形 (R-W09)');
   // A9：读屏名称带上信息——本人卡「你的书写，N 笔」，参考卡「参考字形：字，拼音，N 画」（视觉标签不变）
   assert.equal(cmp.mineAria, `${COPY.mine}，1 笔`, 'my card is role=img: 「你的书写，1 笔」 (one stroke drawn)');

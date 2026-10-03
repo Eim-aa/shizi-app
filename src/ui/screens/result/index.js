@@ -114,7 +114,7 @@ injectStyles('result', `
 /* 格内字形是图，不随大字倍率放大（格子宽度不变，放大会压到「没有笔迹」） */
 .sz-rcell__glyph{font-family:var(--kai, "Kaiti SC", "STKaiti", "KaiTi", serif);font-size:40px;line-height:1;color:${T.i4}}
 .sz-rcell__glyph--shape{font-family:${T.sans};font-weight:300;color:${T.i3};transform:translateY(-6px)}
-.sz-rcell__noink{position:absolute;left:0;right:0;bottom:4px;font-size:calc(10px * ${T.k});line-height:1.2;color:${T.i3}}
+.sz-rcell__noink{position:absolute;left:0;right:0;bottom:4px;font-size:calc(11px * ${T.k});line-height:1.2;color:${T.i3}}
 .sz-rcell__cap{min-height:34px;box-sizing:border-box;padding:3px 2px;display:flex;flex-wrap:wrap;align-items:center;
   justify-content:center;gap:2px 4px;border-top:1px solid var(--g, rgba(166,83,63,.28));font-size:calc(11px * ${T.k});
   line-height:calc(13px * ${T.k});letter-spacing:.02em;color:${T.i2}}

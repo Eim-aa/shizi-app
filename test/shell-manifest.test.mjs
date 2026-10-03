@@ -5,7 +5,9 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { ROOT, MANIFEST_PATH, BUILD_INFO_PATH, plan, parseBuild } from '../scripts/build_shell_manifest.mjs';
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { ROOT, MANIFEST_PATH, BUILD_INFO_PATH, plan, parseBuild, buildInfoText, readVersion } from '../scripts/build_shell_manifest.mjs';
 
 test('shell manifest and build-info are up to date', () => {
   for (const { rel, text } of plan().outputs) {
@@ -36,4 +38,28 @@ test('deck-meta.js fingerprint matches deck-data.js', async () => {
   assert.equal(DECK_KEY, 'shizi.deck.v8105.context2');
   const sha = createHash('sha256').update(readFileSync(join(ROOT, 'deck-data.js'))).digest('hex');
   assert.equal(DECK_FINGERPRINT, sha.slice(0, 12));
+});
+
+test('B7: build-info.js carries VERSION (MARKETING_VERSION → package.json fallback → 0.0.0) next to BUILD', () => {
+  const info = readFileSync(join(ROOT, BUILD_INFO_PATH), 'utf8');
+  assert.match(info, /^export const VERSION = '\d+\.\d+\.\d+';$/m, 'VERSION line is written');
+  assert.equal(parseBuild(info).fingerprint.length, 12, 'BUILD still parses');
+  assert.equal(info.match(/^export const VERSION = '([^']+)';$/m)[1], readVersion(ROOT));
+  assert.equal(buildInfoText('20261001', 'abcdef123456', '1.0').split('\n').slice(-3).join('\n'), "export const BUILD = '20261001-abcdef123456';\nexport const VERSION = '1.0';\n");
+  assert.match(buildInfoText('20261001', 'abcdef123456', 'x"; evil'), /VERSION = '0\.0\.0';/, 'an unsafe version string is not written');
+
+  const dir = mkdtempSync(join(tmpdir(), 'shizi-version-'));
+  try {
+    assert.equal(readVersion(dir), '0.0.0', 'nothing to read');
+    writeFileSync(join(dir, 'package.json'), JSON.stringify({ version: '2.3.4' }));
+    assert.equal(readVersion(dir), '2.3.4', 'package.json fallback');
+    mkdirSync(join(dir, 'ios/ShiziApp/Config'), { recursive: true });
+    writeFileSync(join(dir, 'ios/ShiziApp/Config/Shared.xcconfig'), 'CURRENT_PROJECT_VERSION = 1\nMARKETING_VERSION = 1.5.0\n');
+    assert.equal(readVersion(dir), '1.5.0', 'xcconfig beats package.json');
+    mkdirSync(join(dir, 'ios/ShiziApp/ShiziApp.xcodeproj'), { recursive: true });
+    writeFileSync(join(dir, 'ios/ShiziApp/ShiziApp.xcodeproj/project.pbxproj'), '\t\t\t\tMARKETING_VERSION = 1.0;\n\t\t\t\tMARKETING_VERSION = 1.0;\n');
+    assert.equal(readVersion(dir), '1.0', 'pbxproj beats xcconfig');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });

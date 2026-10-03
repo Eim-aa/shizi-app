@@ -12,6 +12,10 @@ export default Object.freeze({
   // X-ABOUT（M4-6 关于页：原型 ShiziScreen L161–L163；三个子页原型没做，隐私 / 开源资料按 03 P21 过渡，待文案）
   'X-ABOUT.title': '关于拾字',
   'X-ABOUT.appName': '拾字',
+  // 版本行（阶段 0 B7，已决定 D36 / P90）：版本号 + 构建日期，点按展开完整构建号
+  'X-ABOUT.version': '版本 {version}（{day}）',
+  'X-ABOUT.versionAria': '版本 {version}，构建日期 {day}，点按显示完整构建号',
+  'X-ABOUT.buildFull': '构建号 {build}',
   'X-ABOUT.seal': '字',
   'X-ABOUT.motto': ['提笔忘字，不是忘了，', '只是很久没写。'],
   'X-ABOUT.privacy': '隐私',

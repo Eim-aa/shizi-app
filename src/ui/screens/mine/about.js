@@ -1,8 +1,8 @@
 // 关于（02 M4-6；04 R-AB01 / R-AB02；03 P21；原型 ShiziScreen-第十稿交接版 L161–L163，reference/J-proto-screen.md §2.3.19）。
 //
 // 页面 'about'（「我的」菜单「关于拾字 ›」推入；入口行归 M4-1，调用 openAbout()）：
-//   页头「关于拾字」+ 返回；64px 红印「字」+「拾字」+ 版本行（src/build-info.js 的 BUILD，原型写死的「1.0 · 2026 年 9 月」
-//   没有数据来源，待定）；楷体两行题句；三行（每行一个 button）：
+//   页头「关于拾字」+ 返回；64px 红印「字」+「拾字」+ 版本行「版本 1.0（20261001）」（src/build-info.js 的 VERSION + BUILD 的日期部分；
+//   已决定 D36 / P90；点按展开完整 BUILD，文字可选中、长按可复制）；楷体两行题句；三行（每行一个 button）：
 //     隐私 / 「记录只存在这台手机上 ›」 → 'about-privacy'
 //     「开源资料 · 致谢」 / › → 'about-credits'（原型左侧「字形和字源的出处」已被 R-AB01 替换掉，行标签取 R-AB01.openSourceRow 去掉行尾 ›）
 //     「给我们写信」 / › → 'about-letter'
@@ -15,7 +15,7 @@
 //   'about-letter'   给我们写信：R-AB01.letterAddressPending（03 P21 过渡文案，待产品给地址）。
 //
 // data-testid（前缀 about-）：
-//   about-screen、about-head、about-seal、about-name、about-build、about-motto、about-rows、
+//   about-screen、about-head、about-seal、about-name、about-build（版本行，是按钮，aria-expanded）、about-build-full（展开后的完整 BUILD）、about-motto、about-rows、
 //   about-row-privacy / about-row-credits / about-row-letter（data-to=目标屏）；
 //   about-privacy-screen、about-privacy-p（×4）；
 //   about-credits-screen、about-credits-intro、about-credits-group（data-kind）、about-credit（data-id / data-kind / data-open）、
@@ -28,7 +28,7 @@ import { Page } from '../../components/Page.js';
 import { Button } from '../../components/Button.js';
 import { injectStyles, T } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
-import { BUILD } from '../../../build-info.js';
+import { BUILD, VERSION } from '../../../build-info.js';
 import { CREDITS, LICENSE_TEXTS } from '../../../config/credits.js';
 
 export const ABOUT_SCREEN = 'about';
@@ -40,6 +40,18 @@ export const CREDIT_KINDS = Object.freeze(['code', 'data', 'font']);
 const GROUP_KEY = Object.freeze({ code: 'X-ABOUT.groupCode', data: 'X-ABOUT.groupData', font: 'X-ABOUT.groupFont' });
 
 // ---------------------------------------------------------------- 纯函数（test/ui/about.test.mjs）
+
+/** BUILD「20261001-abcdef123456」的日期部分；形状不对就原样返回。 */
+export function buildDay(build = BUILD) {
+  const m = /^(\d{8})-/.exec(String(build));
+  return m ? m[1] : String(build);
+}
+
+/** 版本行文案与读屏名：「版本 1.0（20261001）」（D36 / P90；完整 BUILD 点按展开）。 */
+export function versionTexts(version = VERSION, build = BUILD) {
+  const vars = { version, day: buildDay(build) };
+  return { line: t('X-ABOUT.version', vars), aria: t('X-ABOUT.versionAria', vars), full: t('X-ABOUT.buildFull', { build }) };
+}
 
 /** 行尾的「 ›」只是视觉箭头：行标签 / 读屏名里去掉。 */
 export function stripArrow(text) {
@@ -98,7 +110,9 @@ injectStyles('about', `
 .sz-about__seal{width:64px;height:64px;border-radius:6px;background:${T.a};display:grid;place-items:center;
   font-family:var(--kai, serif);font-size:42px;line-height:1;color:#FFF9F1;transform:rotate(-3deg)}
 .sz-about__name{margin:0;font-family:${T.serif};font-size:calc(20px * ${T.k});font-weight:500;color:${T.i1}}
-.sz-about__build{margin:0;font-size:calc(15px * ${T.k});color:${T.i2};font-variant-numeric:tabular-nums;overflow-wrap:anywhere;text-align:center}
+.sz-about__build{margin:0;min-height:44px;padding:0 8px;font-size:calc(15px * ${T.k});color:${T.i2};font-variant-numeric:tabular-nums;overflow-wrap:anywhere;text-align:center}
+.sz-about__buildfull{margin:-8px 0 0;max-width:100%;font-size:calc(13px * ${T.k});line-height:1.6;color:${T.i2};font-variant-numeric:tabular-nums;
+  overflow-wrap:anywhere;text-align:center;-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
 .sz-about__motto{margin:0;text-align:center;font-family:var(--kai, serif);font-size:calc(17px * ${T.k});line-height:1.9;color:${T.i1}}
 .sz-about__rows{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;border-top:1px solid ${T.i5}}
 .sz-about__row{width:100%;min-height:52px;padding:8px 0;box-sizing:border-box;display:flex;align-items:center;
@@ -124,13 +138,26 @@ injectStyles('about', `
 
 // ---------------------------------------------------------------- 视图
 
-export function AboutView({ onOpen = to => nav.push(to) } = {}) {
+/** 版本行（纯视图，无 hooks）：按钮显示「版本 1.0（20261001）」，展开后多一行完整 BUILD（可选中、长按复制）。 */
+export function BuildLineView({ open, onToggle, version = VERSION, build = BUILD }) {
+  const v = versionTexts(version, build);
+  return html`<${Button} variant="plain" class="sz-about__build" data-testid="about-build" aria-label=${v.aria}
+      aria-expanded=${open ? 'true' : 'false'} onClick=${onToggle}>${v.line}</${Button}>
+    ${open ? html`<p class="sz-about__buildfull" data-testid="about-build-full">${v.full}</p>` : null}`;
+}
+
+function BuildLine(props) {
+  const [open, setOpen] = useState(false);
+  return html`<${BuildLineView} ...${props} open=${open} onToggle=${() => setOpen(v => !v)} />`;
+}
+
+export function AboutView({ onOpen = to => nav.push(to), version = VERSION, build = BUILD } = {}) {
   const rows = aboutRows();
   return html`<${Page} title=${t('X-ABOUT.title')} testid="about-screen">
     <div class="sz-about__head" data-testid="about-head">
       <span class="sz-about__seal" aria-hidden="true" data-testid="about-seal">${t('X-ABOUT.seal')}</span>
       <p class="sz-about__name" data-testid="about-name">${t('X-ABOUT.appName')}</p>
-      <p class="sz-about__build" data-testid="about-build">${BUILD}</p>
+      <${BuildLine} version=${version} build=${build} />
     </div>
     <p class="sz-about__motto" data-testid="about-motto">${t('X-ABOUT.motto').map((line, i) => html`${i ? html`<br />` : null}${line}`)}</p>
     <ul class="sz-about__rows" data-testid="about-rows">

@@ -10,7 +10,8 @@
 //                               <script defer src="…?v=…"> 的 ?v= = 该文件内容 SHA-256 前 12 位（deck / 语境覆盖 / core-strokes）。
 //   scripts/shell-manifest.txt  随包/离线壳的全部文件，逐行一个相对仓库根的路径，按 UTF-8 字节序排序。
 //                               data/ 下 7000+ 个笔顺 JSON 也逐个列出（iOS `rsync --files-from=` 与 verify-bundle-assets.sh 用）。
-//   src/build-info.js           export const BUILD = '<yyyymmdd>-<壳内容指纹 12 hex>'。
+//   src/build-info.js           export const BUILD = '<yyyymmdd>-<壳内容指纹 12 hex>'；export const VERSION = '<营销版本号>'
+//                               （关于页「版本 1.0（20261001）」；读 ios 工程的 MARKETING_VERSION，读不到用 package.json version，B7）。
 //   sw-manifest.js              self.SHIZI_SW_MANIFEST = {build, shell, bestEffort, coreStrokes}，sw.js importScripts 它：
 //                                 shell       核心壳（Cache.addAll 原子预缓存；任何一项失败 = 安装失败，旧 worker 继续）
 //                                 bestEffort  题库 deck / 字源 / 字体文件 / 图形资源（逐项尽力，失败不阻断安装）
@@ -137,11 +138,34 @@ export function parseBuild(source) {
   return m ? { day: m[1], fingerprint: m[2] } : null;
 }
 
-export function buildInfoText(day, fingerprint) {
+export function buildInfoText(day, fingerprint, version = '0.0.0') {
   return '// 由 scripts/build_shell_manifest.mjs 生成，勿手改。\n'
     + '// BUILD = <首次出现该壳内容的本地日期>-<壳内容指纹（shell-manifest.txt 所列文件，除 build-info.js / sw-manifest.js；\n'
     + '// index.html 按 meta 置空计）>。与 index.html meta[shizi-asset-build]、sw-manifest.js 同源（01 §8.3）。\n'
-    + `export const BUILD = '${day}-${fingerprint}';\n`;
+    + '// VERSION = 营销版本号（ios 工程的 MARKETING_VERSION，读不到用 package.json version），不参与壳指纹。\n'
+    + `export const BUILD = '${day}-${fingerprint}';\n`
+    + `export const VERSION = '${/^[0-9][0-9A-Za-z.+-]*$/.test(version) ? version : '0.0.0'}';\n`;
+}
+
+const VERSION_SOURCES = [
+  { rel: 'ios/ShiziApp/ShiziApp.xcodeproj/project.pbxproj', re: /MARKETING_VERSION\s*=\s*"?([0-9][^";\s]*)"?\s*;/ },
+  { rel: 'ios/ShiziApp/Config/Shared.xcconfig', re: /^\s*MARKETING_VERSION\s*=\s*([0-9]\S*)/m },
+];
+
+/** 营销版本号：pbxproj / Shared.xcconfig 的 MARKETING_VERSION，都读不到用 package.json 的 version，再没有就 0.0.0。 */
+export function readVersion(root = ROOT) {
+  for (const { rel, re } of VERSION_SOURCES) {
+    const text = readIfExists(join(root, rel));
+    const m = text ? re.exec(text) : null;
+    if (m) return m[1];
+  }
+  try {
+    const pkg = JSON.parse(readIfExists(join(root, 'package.json')) || '{}');
+    if (typeof pkg.version === 'string' && pkg.version) return pkg.version;
+  } catch (error) {
+    // package.json 坏了：落到默认值
+  }
+  return '0.0.0';
 }
 
 function readIfExists(abs) {
@@ -293,7 +317,7 @@ export function plan(root = ROOT, now = new Date()) {
       { rel: CORE_STROKES_PATH, text: coreText },
       { rel: INDEX_PATH, text: patchIndexBuild(htmlWithV, build) },
       { rel: MANIFEST_PATH, text: manifestText(files) },
-      { rel: BUILD_INFO_PATH, text: buildInfoText(day, fingerprint) },
+      { rel: BUILD_INFO_PATH, text: buildInfoText(day, fingerprint, readVersion(root)) },
       { rel: SW_MANIFEST_PATH, text: swManifestText({ build, shell, bestEffort, coreStrokes: coreList }) },
     ],
   };

@@ -13,7 +13,9 @@
     "{total}": "总数（04 的 {总数}）",
     "{date}": "日期；界面按 R-H02.dateFormat「{month} 月 {day} 日」，落款按 R-I01.signatureDate（汉字数字）",
     "{month}": "月份数字（落款模板里为 R-I01.signatureMonth 格式）",
-    "{day}": "日（R-H02.dateFormat / R-I01.signatureDate 内部）",
+    "{day}": "日（R-H02.dateFormat / R-I01.signatureDate 内部；关于页版本行里是 BUILD 的日期部分 yyyymmdd）",
+    "{version}": "营销版本号（关于页版本行，src/build-info.js VERSION）",
+    "{build}": "完整构建号（关于页展开行，src/build-info.js BUILD）",
     "{year}": "年（R-I01.signatureDate / signatureMonth 内部，汉字数字）",
     "{char}": "一个字（04 的 X、{字}）；外面的「」写在模板里",
     "{chars}": "多个字，调用方拼成「鲜」「境」",
@@ -3572,6 +3574,27 @@
           "origin": "extra",
           "note": "关于页页头；原型 ShiziScreen-第十稿交接版 L161 about 页头与我的菜单 L28「关于拾字」（reference/J-proto-screen.md §2.3.19）",
           "decision": "P55"
+        },
+        "version": {
+          "raw": null,
+          "text": "版本 {version}（{day}）",
+          "origin": "extra",
+          "note": "阶段 0 B7（G43，D36）：关于页版本行，{version} = 营销版本号（MARKETING_VERSION），{day} = BUILD 的日期部分（yyyymmdd，阿拉伯数字）",
+          "decision": "P90"
+        },
+        "versionAria": {
+          "raw": null,
+          "text": "版本 {version}，构建日期 {day}，点按显示完整构建号",
+          "origin": "extra",
+          "note": "阶段 0 B7：版本行按钮的读屏名称",
+          "decision": "P90"
+        },
+        "buildFull": {
+          "raw": null,
+          "text": "构建号 {build}",
+          "origin": "extra",
+          "note": "阶段 0 B7：点按版本行后展开的完整 BUILD，文字可选中、长按可复制",
+          "decision": "P90"
         },
         "appName": {
           "raw": null,

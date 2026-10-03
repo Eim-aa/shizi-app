@@ -13,7 +13,7 @@ import { CREDITS, LICENSE_TEXTS } from '../../src/config/credits.js';
 import {
   ABOUT_SCREEN, ABOUT_PRIVACY_SCREEN, ABOUT_CREDITS_SCREEN, ABOUT_LETTER_SCREEN,
   aboutRows, privacyParagraphs, creditGroups, creditFullText, creditName, stripArrow,
-  AboutView, PrivacyView, CreditsView, LetterView,
+  AboutView, PrivacyView, CreditsView, LetterView, BuildLineView, buildDay, versionTexts,
 } from '../../src/ui/screens/mine/about.js';
 import { getScreen } from '../../src/ui/router.js';
 import { t } from '../../src/config/copy/index.js';
@@ -199,4 +199,31 @@ test('screens registered: about + three sub-pages', () => {
     assert.ok(def, name);
     assert.equal(def.tab, false);
   }
+});
+
+test('B7 (G43, D36): version line 「版本 1.0（20261001）」 from VERSION + the date part of BUILD; full BUILD on tap, selectable', () => {
+  assert.equal(buildDay('20261001-abcdef123456'), '20261001');
+  assert.equal(buildDay('weird'), 'weird');
+  const v = versionTexts('1.0', '20261001-abcdef123456');
+  assert.equal(v.line, '版本 1.0（20261001）');
+  assert.equal(v.full, '构建号 20261001-abcdef123456');
+  assert.equal(v.aria, '版本 1.0，构建日期 20261001，点按显示完整构建号');
+  // 折叠：只有版本行按钮，没有完整 BUILD
+  const closed = BuildLineView({ open: false, onToggle: () => {}, version: '1.0', build: '20261001-abcdef123456' });
+  const [btn] = allByTestid(closed, 'about-build');
+  assert.equal(btn.props['aria-expanded'], 'false');
+  assert.equal(textOf(btn), '版本 1.0（20261001）');
+  assert.equal(allByTestid(closed, 'about-build-full').length, 0);
+  // 展开：完整 BUILD 一行
+  const open = BuildLineView({ open: true, onToggle: () => {}, version: '1.0', build: '20261001-abcdef123456' });
+  assert.equal(allByTestid(open, 'about-build')[0].props['aria-expanded'], 'true');
+  assert.equal(textOf(allByTestid(open, 'about-build-full')[0]), '构建号 20261001-abcdef123456');
+  // 点按触发 onToggle
+  let n = 0;
+  allByTestid(BuildLineView({ open: false, onToggle: () => { n += 1; } }), 'about-build')[0].props.onClick({ timeStamp: 1e9 });
+  assert.equal(n, 1);
+  // 默认值取 build-info.js 的 VERSION / BUILD
+  const live = versionTexts();
+  assert.match(live.line, /^版本 \d+\.\d+\.\d+（\d{8}）$/);
+  assert.ok(live.full.startsWith('构建号 ') && /\d{8}-[0-9a-f]{12}$/.test(live.full));
 });

@@ -11,7 +11,7 @@
 //   5. 刷新停在子页 → 仍是该子页，返回回到关于页。
 //   6. 全程不写入（写日志长度不变、v2 状态深相等）；393×852 与 360×640 无横向滚动（展开最长的许可全文后）。
 
-import { bootTestHost, tid, topSel, waitNavIdle } from './helpers.mjs';
+import { bootTestHost, PRESS_SETTLE_MS, tid, topSel, waitNavIdle } from './helpers.mjs';
 
 const ABOUT_MOD = '/src/ui/screens/mine/about.js';
 
@@ -108,11 +108,29 @@ export default async function about(page, ctx) {
       })),
     };
   });
-  const build = await page.evaluate(async () => (await import('/src/build-info.js')).BUILD);
+  const { build, version } = await page.evaluate(async () => {
+    const m = await import('/src/build-info.js');
+    return { build: m.BUILD, version: m.VERSION };
+  });
   assert.equal(head.seal, '字', 'seal 字');
   assert.equal(head.sealHidden, 'true', 'seal is decorative (aria-hidden)');
   assert.equal(head.name, '拾字', 'app name');
-  assert.equal(head.build, build, 'build line = src/build-info.js BUILD');
+  // B7（D36）：版本行「版本 1.0（20261001）」= VERSION + BUILD 的日期部分；完整 BUILD 点按展开、可选中
+  assert.equal(head.build, `版本 ${version}（${build.slice(0, 8)}）`, 'version line = 版本 {VERSION}（BUILD date）');
+  assert.ok(/^版本 \d+\.\d+\.\d+（\d{8}）$/.test(head.build), 'version line shape');
+  assert.equal(await page.locator(topSel('about-build-full')).count(), 0, 'full BUILD is folded by default');
+  await page.click(topSel('about-build'));
+  const full = await page.evaluate(() => {
+    const top = document.querySelector('.sz-layer[data-top="true"]');
+    const btn = top.querySelector('[data-testid="about-build"]');
+    const el = top.querySelector('[data-testid="about-build-full"]');
+    return el ? { text: el.textContent, expanded: btn.getAttribute('aria-expanded'), userSelect: getComputedStyle(el).userSelect || getComputedStyle(el).webkitUserSelect } : null;
+  });
+  assert.deepEqual(full && { text: full.text, expanded: full.expanded }, { text: `构建号 ${build}`, expanded: 'true' }, 'tap → full BUILD shown, aria-expanded=true');
+  assert.equal(full.userSelect, 'text', 'full BUILD is selectable (long-press → copy)');
+  await page.waitForTimeout(PRESS_SETTLE_MS);
+  await page.click(topSel('about-build'));
+  assert.equal(await page.locator(topSel('about-build-full')).count(), 0, 'tap again → folded');
   assert.equal(head.motto, '提笔忘字，不是忘了，|只是很久没写。', 'motto in two lines');
   assert.equal(head.back, '返回', 'back button has a name');
   assert.deepEqual(head.rows.map(x => x.id), ['about-row-privacy', 'about-row-credits', 'about-row-letter'], 'three rows in order');

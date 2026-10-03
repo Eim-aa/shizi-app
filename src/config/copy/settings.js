@@ -17,8 +17,8 @@ export default Object.freeze({
   'R-S03.appearance.light': '浅色',
   'R-S03.appearance.dark': '深色',
   'R-S03.appearance.auto': '跟随系统',
-  // R-S04（已定）
-  'R-S04.largeNote': ['打开后，文字和写字格都放大一号。', '手机字号调大时，这里也会跟着变大。'],
+  // R-S04（已定；F3 按现行行为改写过渡文案——只说文字放大、与手机字号分开（P59），待产品定稿）
+  'R-S04.largeNote': ['打开后，拾字里的文字会放大一些。', '这个设置和手机系统的字号设置是分开的，在手机里调字号，这里不会跟着变。'],
   'R-S04.largeLabel': '更大字体',
   // X-SETTINGS（M4-3 设置页：组标题与「练习提醒」取原型 ShiziScreen L145–L152；提醒时间、保存失败三段式为工程补槽，见 copy-source.json extra）
   'X-SETTINGS.groupPractice': '练习',

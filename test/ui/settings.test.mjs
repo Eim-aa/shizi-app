@@ -257,6 +257,16 @@ test('SettingsBody: four groups, rows in prototype order; no 背景音 (P07) / �
   assert.ok(!ids['settings-fail']);
 });
 
+test('F3: 更大字体说明只承诺真实行为——文字放大、与手机字号分开；不提写字格，也不说跟着手机字号变', () => {
+  const lines = t('R-S04.largeNote');
+  const all = lines.join('');
+  assert.ok(!all.includes('写字格'), 'the write grid shrinks to compact in large mode (P59 / 另案), so the note must not mention it');
+  assert.match(all, /文字/, 'promises text enlargement');
+  assert.match(all, /分开/, 'says it is separate from the phone font size');
+  assert.ok(!/跟着手机|手机字号调大/.test(all), 'does not claim to follow Dynamic Type (largeTextScale is independent, P59)');
+  assert.equal(policy.largeTextScale, 1.3);
+});
+
 test('SettingsBody: reminders on → time row; denied → R-S02 subtext, body and 去手机设置; failure block under its group', () => {
   const v = settingsView({ remind: { enabled: true, hour: 7, minute: 5, permission: 'denied' }, appearance: 'dark', large: true });
   const ids = allByTestid(body(v, { fail: { group: 'remind', field: 'time' } }));

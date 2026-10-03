@@ -179,7 +179,7 @@ export default async function settingsSpec(page, ctx) {
   assert.equal(s.time, null, 'no time row while off');
   assert.equal(s.denied, null, 'no denied note');
   assert.deepEqual(s.large, { checked: 'false', role: 'switch', tag: 'BUTTON' }, '更大字体 off');
-  assert.deepEqual(s.largeNote, ['打开后，文字和写字格都放大一号。', '手机字号调大时，这里也会跟着变大。'], 'R-S04 two lines under the title');
+  assert.deepEqual(s.largeNote, ['打开后，拾字里的文字会放大一些。', '这个设置和手机系统的字号设置是分开的，在手机里调字号，这里不会跟着变。'], 'R-S04 two lines under the title');
   assert.equal(s.appearance, 'auto', 'appearance auto');
   assert.equal(s.appearanceValue, '跟随系统', 'R-S03 value');
   assert.equal(s.backupValue, '还没有备份', 'R-M03.noBackup');

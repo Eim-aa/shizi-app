@@ -44,6 +44,7 @@ import './screens/mine/backup.js'; // M4-4 备份与恢复（'backup'）：菜�
 import './screens/mine/annual.js'; // M4-2 年度报告（'annual'）：「我的」菜单按屏名 push，刷新时也要能恢复
 import { BlockScreen, useBlockReason } from './screens/block/index.js'; // M5-6 R-B09：存储不可用 / 阻断 / 迁移失败时只画阻断页
 import { CorruptNotice } from './components/corrupt-notice.js'; // M5-6 坏值一次性顶部提示（01 §4，P55）
+import './components/ax.js'; // P1-E6 / D29 / P131：系统字号 AX 档的防溢出规则（:root[data-ax]，各屏样式之后注入）
 import { getStore } from '../store/store.js';
 import { createRouteMemory, setRouteMemory } from './route-memory.js'; // 审查整改 F1：冷启动恢复离开时的页面栈
 

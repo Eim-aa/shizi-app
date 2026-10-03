@@ -301,9 +301,9 @@ function SwitchRow({ testid, title, sub = null, subTestid, on, onToggle }) {
   </${Button}>`;
 }
 
-/** 右侧带值的行（点了去别处 / 开弹层）。 */
+/** 右侧带值的行（点了去别处 / 开弹层）。AX 档标题与值改上下排（sz-set__row--value，ui/components/ax.js）。 */
 function ValueRow({ testid, title, value, valueTestid, arrow = true, onClick, extra = {} }) {
-  return html`<${Button} variant="plain" class="sz-set__row" data-testid=${testid} onClick=${onClick} ...${extra}>
+  return html`<${Button} variant="plain" class="sz-set__row sz-set__row--value" data-testid=${testid} onClick=${onClick} ...${extra}>
     <span class="sz-set__main"><span class="sz-set__title">${title}</span></span>
     <span class="sz-set__value"><span data-testid=${valueTestid}>${value}</span>${arrow
       ? html`<span class="sz-set__arrow" aria-hidden="true">${t('X-SETTINGS.more')}</span>` : null}</span>

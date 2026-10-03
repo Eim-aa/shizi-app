@@ -7,7 +7,7 @@
 //   - wrong（最近一次判断为写错，K28 / R-L08）：标准楷体（--i2，缩 .9）+ 右上红点（--ar），不画那一次写错的笔迹。
 //   - ink：逐判断笔迹打开（P31 policy.features.perRecordInk）且这条记录有墨迹 → 画最近一次的笔迹（write/compare.js InkMini）；
 //     否则按 10.12「有记录无笔迹」不拿别次笔迹补位，用标准楷体占位（任务卡 M3-1）。两者都按墨色档位取透明度。
-// 墨色四档透明度（原型 TONES.std = 1 / .78 / .58 / .4，核对意见一.2 最淡 ≥ .4）写成 CSS 变量 --lib-t0…--lib-t3；
+// 墨色四档透明度（原型 TONES.std = 1 / .78 / .58 / .4；最淡档按 D36 / P101 改为 .55，浅色下与纸色 ≥ 3:1）写成 CSS 变量 --lib-t0…--lib-t3；
 // 深色「最淡一档提亮」（R-L03 / 边改 L14）：--lib-t3 在深色下取 DARK_OLDEST_TONE（工程取值，P 待登记，见本卡报告）。
 // 图例说明句按主题二选一（浅色 R-L03.legend；深色「颜色越暗，越久没写。…」），两句都在 DOM 里、用与 tokens.css 同一套
 // 主题选择器切换 display，跟随系统与 data-theme 强制两种都对。
@@ -24,8 +24,8 @@ import { t, tInk } from '../../../config/copy/index.js';
 import { InkMini } from '../write/compare.js';
 import { recordInkPoints } from '../home/ink-row.js';
 
-/** 墨色四档透明度（原型 字库墨墙屏 L222 TONES.std）。 */
-export const TONE_OPACITY = Object.freeze([1, 0.78, 0.58, 0.4]);
+/** 墨色四档透明度（原型 字库墨墙屏 L222 TONES.std；最淡档 .4 → .55，D36 / P101：.4 时浅色只有 2.2:1，.55 约 3.2:1）。 */
+export const TONE_OPACITY = Object.freeze([1, 0.78, 0.58, 0.55]);
 /**
  * 深色下最淡一档提亮后的透明度（R-L03「最淡一档提亮」/ 边改 L14 没给数值）。工程取值：原型 TONES.soft 的最淡档 .55
  * 与 std .4 之间取 .5。P 待登记（policy.js 本里程碑冻结，登记后改读 policy）。

@@ -309,8 +309,8 @@ export default async function run(page, ctx) {
       return Number(c.tone) === r.i % 4;
     });
     assert.ok(toneOk, 'ink cells carry the tone of their last record (7/30/90, P56)');
-    const LIGHT = ['1', '0.78', '0.58', '0.4'];
-    assert.ok(inkCells.every(c => c.opacity === LIGHT[Number(c.tone)]), 'tone opacities 1 / .78 / .58 / .4 (light)');
+    const LIGHT = ['1', '0.78', '0.58', '0.55'];
+    assert.ok(inkCells.every(c => c.opacity === LIGHT[Number(c.tone)]), 'tone opacities 1 / .78 / .58 / .55 (light, D36)');
     assert.ok(inkCells.every(c => c.ink === 'none' && c.glyph === c.char), 'perRecordInk off → standard glyph placeholder (10.12)');
     const hollowCell = v.cells[0];
     assert.equal(hollowCell.label, `${HOLLOW[0]}，${COPY.hollowLegend}`, 'cell accessible name 「字，状态」');

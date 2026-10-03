@@ -10,6 +10,8 @@
 
 import { buildCards, cardKey as keyOfCard, LIBRARIES, libraryById } from '../core/cards.js';
 import * as policy from '../config/policy.js';
+import { CHAR_ORDER } from '../config/char-order.js';
+import { isCapitalQueue, orderNewKeys, warmupKeys } from '../core/new-order.js';
 
 /**
  * 没有选过字库时的练习范围：policy.defaultLibrary（P73 过渡默认 core3500，沿旧版 B-scheduling §7；换库属 M3-5）。
@@ -156,12 +158,44 @@ export function libraryIdsOfKey(key) {
   return card ? LIBRARIES.filter(lib => lib.test(card)).map(lib => lib.id) : [];
 }
 
-/** 选字用的题库适配器（core/session-start 的 deck 参数）：新字来源 = 当前练习范围（SEED 字频序），可练谓词。 */
+/**
+ * 大写数字特别组（D40）里的题面：整组都是大写数字字时（src/core/new-order.js isCapitalQueue）用借条 / 报销单 / 红包的语境，
+ * 词与提示来自 CHAR_ORDER.capital.contexts（工程起草，待顾问审读）。不改全库语境词：肆 / 伍 / 陆 / 拾 在别处仍是原来的词。
+ * 不是特别组、没有这个字的语境、卡片没有目标字时原样返回；不改动入参。
+ */
+export function capitalCard(card, queue, data = CHAR_ORDER) {
+  if (!card || !isCapitalQueue(queue, data)) return card;
+  const ctx = data.capital.contexts[card.target];
+  if (!ctx) return card;
+  return { ...card, word: ctx.word, chars: Array.from(ctx.word), ci: ctx.ci, target: card.target, py: ctx.py, ctx: 'override', promptHint: ctx.promptHint };
+}
+
+/**
+ * 某字库的新字顺序（D28 易忘度清单在前、清单外的字频序在后；姓氏 / 地名 / 大写数字剔除，D39 / D40）。按库缓存。
+ * 数据来自 src/config/char-order.js（scripts/build_char_order.mjs 生成），这里只做取用。
+ */
+const orderCache = new Map();
+export function newOrderOf(id) {
+  const lib = libraryOf(id);
+  if (!lib) return [];
+  const d = build();
+  const hit = orderCache.get(id);
+  if (hit && hit.deck === d && hit.lib === lib) return hit.value;
+  const value = Object.freeze(orderNewKeys(lib.keys));
+  orderCache.set(id, { deck: d, lib, value });
+  return value;
+}
+
+/** 某字库里的热身字（D28，按热身清单顺序）。 */
+export function warmupOf(id) {
+  const lib = libraryOf(id);
+  return lib ? warmupKeys(lib.keys) : [];
+}
+
+/** 选字用的题库适配器（core/session-start 的 deck 参数）：新字来源 = 当前练习范围（D28 易忘度顺序），热身字，可练谓词。 */
 export const deckAdapter = Object.freeze({
-  newCandidates: libraryId => {
-    const lib = libraryOf(libraryId) || libraryOf(DEFAULT_LIBRARY_ID);
-    return lib ? lib.keys : [];
-  },
+  newCandidates: libraryId => newOrderOf(libraryOf(libraryId) ? libraryId : DEFAULT_LIBRARY_ID),
+  warmupCandidates: libraryId => warmupOf(libraryOf(libraryId) ? libraryId : DEFAULT_LIBRARY_ID),
   practicable: isPracticable,
   currentLibraryId,
 });

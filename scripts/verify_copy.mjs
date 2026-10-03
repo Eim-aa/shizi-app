@@ -641,6 +641,11 @@ export const HARDCODE_ALLOW = Object.freeze([
   { file: 'src/config/epigraphs.js', any: true, why: '首页题记三条（决定-D13 / R-H13）逐字取自原型首页壳 L141，test/core/epigraphs.test.mjs 逐字核对；是引文不是界面文案' },
   { file: 'src/config/policy.js', texts: ['尴', '嚏', '狩', '晤', '飓'], why: 'P09 firstQueue：第一次练习的 5 个字（数据）' },
   {
+    file: 'src/config/char-order.js',
+    any: true,
+    why: 'scripts/build_char_order.mjs 从易忘度字表初稿生成的新字顺序数据（D28 / D39 / D40：字表、热身字、保留字、大写数字特别组词语与提示句，待顾问审读），数据不是界面文案',
+  },
+  {
     file: 'src/core/cards.js',
     texts: ['空格里是同一个字，只写一次。', '这个字暂时没有常用词，按拼音写就好', '同一目标字的另一处空格', '？'],
     why: 'PROMPT_COPY 默认值：内容门禁（verify_content_corpus）要求与 #175 逐字一致；UI 一律从 copy 传入同值，本脚本 checkMirrors 核对与 R-W28 / X-PROMPT 逐字相等',

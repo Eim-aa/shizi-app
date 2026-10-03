@@ -218,6 +218,14 @@ export const routeRestore = Object.freeze({
   crossDay: false, // P108 离开时与现在不是同一本地日（跨过 0 点）时是否仍恢复：过渡不恢复
 });
 
+// ---- 跳过撤销（阶段 0 B2，D36）----
+// P115 跳过后底部撤销条的寿命与读屏行为（已决定 D36）。src/ui/screens/write/skip.js 读取（SKIP_UNDO_MS 由它派生）。
+export const skipUndo = Object.freeze({
+  ms: 5000, // P115 撤销条显示多久（毫秒）；原 3000
+  pauseWhileHeld: true, // P115 手指按在撤销条上时暂停计时，松开后接着走（剩余时间不重置）
+  keepOpenWithAssistiveTech: true, // P115 VoiceOver / 切换控制运行时不自动收起，到下一次操作才收起（P116 读屏状态由原生传入）
+});
+
 // ---- 平台与开发 ----
 // P54 返回手势实现层：单 WebView + 原生识别器驱动跟手转场（工程近似）
 export const backGesture = 'single-webview';

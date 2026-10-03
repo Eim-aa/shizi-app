@@ -1,9 +1,10 @@
 // 跳过撤销底栏的寿命（M1 验收 G3；走查-W16 / R-W20；skip.js 文件头）。
-// 撤销机会 = 3 秒，或者下一字一开始操作就结束：
-//   跳过 → 下一字落笔 → 底栏立即收起、撤销入口不在了，3 秒后也不会把字拉回来（下一字的笔画保留）；
+// 撤销机会 = 5 秒（D36 / P115；原 3 秒），或者下一字一开始操作就结束；手指按在撤销条上时暂停计时、松开继续；
+// 读屏 / 切换控制运行时（原生经 shiziAccessibilityStatus 告知）不自动收起，到下一次操作才收起：
+//   跳过 → 下一字落笔 → 底栏立即收起、撤销入口不在了，5 秒后也不会把字拉回来（下一字的笔画保留）；
 //   跳过 → 点提示 → 底栏收起；跳过 → 点看答案 → 底栏收起（确认框取消后也不回来）；
-//   最后一字跳过 → 直接换成结果页（M2-3，无空页），撤销机会交给结果页，3 秒内点撤销回到写字页那个字（跳过前的笔画写回）；
-//   最后一字再跳过、不操作 → 结果页上底栏约 3 秒后收起，跳过记录保留。
+//   最后一字跳过 → 直接换成结果页（M2-3，无空页），撤销机会交给结果页，5 秒内点撤销回到写字页那个字（跳过前的笔画写回）；
+//   最后一字再跳过、不操作 → 结果页上底栏约 5 秒后收起，跳过记录保留。
 
 import {
   bootTestHost, drawStroke, HORIZONTAL, PRESS_SETTLE_MS, seedSession, tid, topSel, waitNavIdle, writeSnapshot, openWrite,
@@ -65,10 +66,10 @@ export default async function skipUndo(page, ctx) {
   let s = await writeSnapshot(page);
   assert.equal(s.strokes, 1, 'the stroke on 和 counts');
   assert.equal(s.cursor, 1, 'still on 和');
-  await page.waitForTimeout(3300);
+  await page.waitForTimeout(5300);
   s = await writeSnapshot(page);
   assert.equal(await present(page, 'write-skip-undo'), false, 'bar does not come back');
-  assert.deepEqual([s.cursor, s.strokes], [1, 1], '3s later: still on 和 with its stroke (nothing undone)');
+  assert.deepEqual([s.cursor, s.strokes], [1, 1], '5s later: still on 和 with its stroke (nothing undone)');
   assert.equal(await skippedCount(page), 1, 'the skipped record stays');
   const stored = await page.evaluate(() => window.__shiziTest.getState().sessions.A.current.strokes.length);
   assert.equal(stored, 1, 'the stroke on 和 is saved to the session (not lost to an undo)');
@@ -100,6 +101,44 @@ export default async function skipUndo(page, ctx) {
   assert.equal(await present(page, 'write-skip-undo'), false, 'bar stays gone after 再想想');
   assert.equal((await writeSnapshot(page)).cursor, 1, 'still on 和');
 
+  ctx.step('D36 / P115: a finger held on the bar pauses the clock, releasing lets the rest run out');
+  await fresh(page, ctx, 0);
+  await page.click(topSel('write-skip'));
+  await waitCursor(page, 1);
+  assert.equal(await present(page, 'write-skip-undo'), true, 'undo bar shown');
+  const textBox = await page.locator(topSel('write-skip-undo-text')).boundingBox();
+  const px = textBox.x + textBox.width / 2;
+  const py = textBox.y + textBox.height / 2;
+  await page.mouse.move(px, py);
+  await page.mouse.down();
+  await page.waitForTimeout(5600); // 远超 5 秒：按住期间不收起
+  assert.equal(await present(page, 'write-skip-undo'), true, 'bar is still up after 5.6s of holding it');
+  await page.mouse.up();
+  await page.waitForTimeout(800);
+  assert.equal(await present(page, 'write-skip-undo'), true, 'released: the time that was left (about 4s) keeps running, the bar is still up');
+  await page.waitForFunction(() => !document.querySelector('.sz-layer[data-top="true"] [data-testid="write-skip-undo"]'), null, { timeout: 6000 });
+  assert.equal((await writeSnapshot(page)).cursor, 1, 'the bar left on its own; still on 和, skip kept');
+
+  ctx.step('D36 / P115: VoiceOver on (shiziAccessibilityStatus) → the bar does not collapse by itself; the next pen-down collapses it');
+  await page.evaluate(() => window.shiziAccessibilityStatus({ voiceOver: true, switchControl: false }));
+  await fresh(page, ctx, 0);
+  await page.click(topSel('write-skip'));
+  await waitCursor(page, 1);
+  assert.equal(await present(page, 'write-skip-undo'), true, 'undo bar shown');
+  await page.waitForTimeout(5800);
+  assert.equal(await present(page, 'write-skip-undo'), true, 'still there after 5.8s with VoiceOver running');
+  await drawStroke(page, HORIZONTAL);
+  assert.equal(await present(page, 'write-skip-undo'), false, 'the next action (pen-down) collapses it');
+  await page.evaluate(() => window.shiziAccessibilityStatus({ voiceOver: false, switchControl: true }));
+  await fresh(page, ctx, 0);
+  await page.click(topSel('write-skip'));
+  await waitCursor(page, 1);
+  await page.waitForTimeout(5800);
+  assert.equal(await present(page, 'write-skip-undo'), true, 'Switch Control alone keeps it up as well');
+  await page.click(topSel('write-skip-undo-btn'));
+  await page.waitForFunction(() => window.__shiziTest.getState().sessions.A.cursor === 0);
+  await page.evaluate(() => window.shiziAccessibilityStatus({ voiceOver: false, switchControl: false }));
+
   ctx.step('last character (M2-3): write one stroke on 春, 跳过 → result page straight away (no empty page), undo bar carried over; 撤销 → back to 春 with its stroke');
   await fresh(page, ctx, 2);
   await drawStroke(page, HORIZONTAL);
@@ -128,15 +167,15 @@ export default async function skipUndo(page, ctx) {
   });
   assert.deepEqual(back, { a: true, ended: false, rows: 1 }, 'session back in slot A (not in lastEnded), current.strokes has the stroke');
 
-  ctx.step('last character again, no action → the bar on the result page leaves after ~3s, the skip stays');
+  ctx.step('last character again, no action → the bar on the result page leaves after ~5s, the skip stays');
   await waitNavIdle(page);
   await page.click(topSel('write-skip'));
   const t0 = Date.now();
   await page.waitForSelector(topSel('result-screen'));
-  await page.waitForTimeout(Math.max(0, 2500 - (Date.now() - t0)));
-  assert.equal(await present(page, 'write-skip-undo'), true, 'bar still there at 2.5s');
-  await page.waitForTimeout(900);
-  assert.equal(await present(page, 'write-skip-undo'), false, 'bar gone after 3s');
+  await page.waitForTimeout(Math.max(0, 4300 - (Date.now() - t0)));
+  assert.equal(await present(page, 'write-skip-undo'), true, 'bar still there at 4.3s (it used to be gone after 3s)');
+  await page.waitForTimeout(1500);
+  assert.equal(await present(page, 'write-skip-undo'), false, 'bar gone after 5s');
   assert.equal(await present(page, 'result-screen'), true, 'still the result page');
   assert.equal(await skippedCount(page), 1, 'the skipped record stays');
 }

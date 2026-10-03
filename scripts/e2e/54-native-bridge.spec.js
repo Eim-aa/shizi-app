@@ -18,6 +18,7 @@ import { tid, topSel, waitNavIdle } from './helpers.mjs';
 const COPY_MOD = '/src/config/copy/index.js';
 const NATIVE_GLOBALS = [
   'shiziOpenReminderTarget', 'shiziBackupPicked', 'shiziBackupRejected', 'markBackupExported', 'shiziCardSaved', 'shiziReminderStatus',
+  'shiziAccessibilityStatus',
 ];
 
 // 页面加载前：假原生通道（记录每条消息；pageReady 那一刻给桥拍快照），并在 bridge.js 定义最后一个全局时安排「就绪前」的原生调用。
@@ -25,6 +26,7 @@ const NATIVE_GLOBALS = [
 function installFakeNative() {
   const globals = [
     'shiziOpenReminderTarget', 'shiziBackupPicked', 'shiziBackupRejected', 'markBackupExported', 'shiziCardSaved', 'shiziReminderStatus',
+    'shiziAccessibilityStatus',
   ];
   window.__nativeMsgs = [];
   window.__early = null;
@@ -69,6 +71,10 @@ function installFakeNative() {
           out.returns.push(window.shiziOpenReminderTarget('base:和'));
         } else if (early === 'tooLarge' || early === 'invalid') {
           out.returns.push(window.shiziBackupRejected({ reason: early }));
+        } else if (early === 'a11y') {
+          // P116：读屏状态在就绪前到达两次，队列只留最后一次
+          out.returns.push(window.shiziAccessibilityStatus({ voiceOver: false, switchControl: false }));
+          out.returns.push(window.shiziAccessibilityStatus({ voiceOver: true, switchControl: false }));
         }
         out.pending = b ? b.pending().map(p => ({ name: p.name, args: p.args })) : null;
         window.__early = out;
@@ -126,7 +132,7 @@ export default async function nativeBridge(page, ctx) {
   assert.ok(typeof at.topScreen === 'string' && at.topScreen.length > 0, `a screen is on top at pageReady (${at.topScreen})`);
   assert.equal(at.testHooks, true, 'store booted (test hooks mounted) before pageReady');
   // shiziCardSaved 由图片预览在第一次「保存图片」时注册（之前到达的调用照常排队）；其余五个在 pageReady 前已有实现。
-  assert.deepEqual(at.handlers, NATIVE_GLOBALS.filter(n => n !== 'shiziCardSaved'), 'the other five native globals have an implementation at pageReady');
+  assert.deepEqual(at.handlers, NATIVE_GLOBALS.filter(n => n !== 'shiziCardSaved'), 'every other native global has an implementation at pageReady');
   const order = await page.evaluate(() => window.__nativeMsgs.map(m => m.type));
   assert.equal(order.filter(t => t === 'pageReady').length, 1, `message order: ${order.join(', ')}`);
   await page.waitForTimeout(600);
@@ -161,6 +167,22 @@ export default async function nativeBridge(page, ctx) {
   const b = await page.evaluate(() => window.__shiziTest.getState().sessions.B);
   assert.deepEqual(b.queue, ['base:和'], 'B group opened with the last target only');
   assert.equal(b.queue.indexOf('base:永'), -1, 'the superseded target was dropped');
+
+  ctx.step('accessibility status before ready (P116): only the last one is kept, replayed before pageReady → the page reads it');
+  await page.evaluate(() => window.__shiziTest.reset());
+  await boot(page, baseURL, 'a11y');
+  early = await page.evaluate(() => window.__early);
+  assert.equal(early.readyBefore, false, 'the status arrived before bridge.markReady');
+  assert.deepEqual(early.returns, [true, true], 'global returns true (= page accepted) even before ready');
+  assert.deepEqual(early.pending, [{ name: 'shiziAccessibilityStatus', args: [{ voiceOver: true, switchControl: false }] }], 'queue keeps only the last status');
+  ready = await msgs(page, 'pageReady');
+  assert.deepEqual(ready[0].at.pending, [], 'status replayed before pageReady');
+  assert.ok(ready[0].at.handlers.includes('shiziAccessibilityStatus'), 'implementation registered before pageReady');
+  const status = await page.evaluate(async () => {
+    const m = await import('/src/platform/accessibility.js');
+    return { status: m.getAccessibilityStatus(), active: m.assistiveTechActive() };
+  });
+  assert.deepEqual(status, { status: { voiceOver: true, switchControl: false }, active: true }, 'the page sees VoiceOver on');
 
   // ------------------------------------------------------------ 3
   ctx.step('backup rejection before ready (tooLarge) → replayed → backup page shows R-B06');

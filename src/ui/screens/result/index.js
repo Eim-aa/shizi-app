@@ -19,7 +19,7 @@
 //   看过答案、跳过为浅色楷体字；格下「字 + 写对 / 写错（红）/ 看过答案 / 跳过」。点格子 → 底部对照弹层：
 //   判断过的字可「改为…」（同一记录只改 judgment、追加 corrections、以 fsrsBefore 重放更新 sched，不增加记录，决定-D19）；
 //   看过答案 / 跳过的字只看不改（K25）。失败「没改成，还是原来的判断。」[先不改 / 再试一次]。
-// 跳过的 3 秒撤销（走查-W16）：最后一字跳过后写字页把撤销机会交给本页（handoffSkipUndo），底栏照样显示到 3 秒；
+// 跳过的 5 秒撤销（走查-W16；D36）：最后一字跳过后写字页把撤销机会交给本页（handoffSkipUndo），底栏照样显示到 5 秒（计时在 SkipUndoDock 里）；
 //   撤销 = 一次 commit：会话从 lastEnded 放回槽里、删掉 skipped 记录、字放回 cursor、笔画写回 current.strokes；
 //   成功后本页就地换回写字页（回到那个字）。
 // 离开：「回到首页 / 字库 / 我的」回对应 tab 根；其余来源（写错过 / 快忘了 / 有记录的字 / 某个字）按页面栈返回到下面的来源页。
@@ -706,13 +706,8 @@ function ResultScreen({ params, entry }) {
   }, [entryId]);
 
   // 跳过的撤销机会（写字页交过来的，剩余时长照旧）。
+  // 计时在 SkipUndoDock 里（D36 / P115：5 秒、按住暂停、读屏不自动收起；until 是写字页给的绝对时刻）。
   const [undo, setUndo] = useState(() => takeSkipUndo(slot, sessionId));
-  useEffect(() => {
-    if (!undo || undo.failed) return undefined;
-    const left = Number.isFinite(undo.until) ? Math.max(0, undo.until - clockNow()) : 0;
-    const timer = setTimeout(() => setUndo(u => (u === undo ? null : u)), left);
-    return () => clearTimeout(timer);
-  }, [undo]);
   const dismissUndo = () => setUndo(null);
   const doUndo = () => {
     const u = undo;
@@ -800,7 +795,8 @@ function ResultScreen({ params, entry }) {
         ? html`<div class="sz-result__remind" data-testid="result-remind-slot">${Remind ? html`<${Remind} session=${model.session} />` : null}</div>`
         : null}
     </div>
-    ${undo ? html`<${SkipUndoDock} char=${undo.char} failed=${!!undo.failed} onUndo=${doUndo}
+    ${undo ? html`<${SkipUndoDock} char=${undo.char} failed=${!!undo.failed} onUndo=${doUndo} until=${undo.until}
+      onExpire=${() => setUndo(u => (u === undo ? null : u))}
       onCancelFail=${() => { setUndo(null); markStateChange(); }} />` : null}
   </${Page}>`;
 }

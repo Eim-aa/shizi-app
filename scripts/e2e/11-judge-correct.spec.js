@@ -8,7 +8,7 @@
 //   第二字用提示后「修改」上一判断：失败可重试、同一记录追加 corrections、due 重放更新、session.current 深相等；
 //   再改回来 due 回到原值（重放确定）→ 落笔后入口收起 → 判断第二字后上一字的行消失 →
 //   第三字用提示写了几笔时（钩子）修改上一判断，current 深相等、入口保持收起 →
-//   跳过：skipped 记录不算有效记录、结果行清空、3 秒撤销轻提示；撤销 = 记录数不变、字回原位、提示次数放回；
+//   跳过：skipped 记录不算有效记录、结果行清空、5 秒撤销轻提示；撤销 = 记录数不变、字回原位、提示次数放回；
 //   跳过写失败不推进、可重试；撤销写失败可重试；3 秒后轻提示消失 →
 //   钩子：空笔画判断 commit 被拒；seed 的 compare + 空笔画按 recall 显示；perRecordInk=true 时写 ink 月键 →
 //   最后一个字判断后会话走完 → 直接换成结果页（M2-3，会话移入 lastEnded）→ 全部写入经 storage.js。
@@ -505,7 +505,7 @@ export default async function judgeCorrect(page, ctx) {
   assert.equal(s.strokes, 2, 'the learner strokes on the grid are untouched');
 
   // ------------------------------------------------------------------ 跳过
-  ctx.step('跳过 春 → skipped record (not a valid record), line cleared, 3s undo hint (W16 / R-W20)');
+  ctx.step('跳过 春 → skipped record (not a valid record), line cleared, 5s undo hint (W16 / R-W20; D36)');
   const beforeSkip = await facts(page);
   await page.click(topSel('write-skip'));
   await waitCursor(page, 3);
@@ -563,19 +563,19 @@ export default async function judgeCorrect(page, ctx) {
   f = await facts(page);
   assert.equal(f.session.cursor, 3, 'undo failed: still advanced');
   assert.equal(f.records.filter(r => r.kind === 'skipped').length, 1, 'skipped record still there');
-  await page.waitForTimeout(3300);
+  await page.waitForTimeout(5300);
   assert.equal(await present(page, 'write-skip-undo'), true, 'failed undo hint does not auto-hide');
   await page.click(topSel('write-skip-undo-retry'));
   await waitCursor(page, 2);
   f = await facts(page);
   assert.equal(f.records.filter(r => r.kind === 'skipped').length, 0, 'retry undid the skip');
 
-  ctx.step('skip again and wait 3s → the undo hint disappears; the skip stays');
+  ctx.step('skip again and wait 5s → the undo hint disappears; the skip stays');
   await page.click(topSel('write-skip'));
   await waitCursor(page, 3);
   assert.equal(await present(page, 'write-skip-undo'), true, 'undo hint shown');
-  await page.waitForTimeout(3100);
-  assert.equal(await present(page, 'write-skip-undo'), false, 'undo hint gone after 3s');
+  await page.waitForTimeout(5100);
+  assert.equal(await present(page, 'write-skip-undo'), false, 'undo hint gone after 5s');
   f = await facts(page);
   assert.equal(f.records.filter(r => r.kind === 'skipped').length, 1, 'skipped record kept');
   assert.equal(f.todayN, 2, 'today N still 2');

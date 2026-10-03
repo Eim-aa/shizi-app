@@ -293,7 +293,7 @@ test('commitSkip / commitUndoSkip: failure does not advance; undo only while the
   assert.equal(commitUndoSkip(store, { slot: 'A', sessionId: 's1', recordId: id }).error.kind, 'stale');
   assert.equal(commitUndoSkip(store, { slot: 'A', sessionId: 's1', recordId: ok2.record.id }).ok, true);
   assert.equal(store.getState().sessions.A.cursor, 1);
-  assert.equal(SKIP_UNDO_MS, 3000);
+  assert.equal(SKIP_UNDO_MS, 5000); // D36 / P115（原 3000）
 });
 
 // ---------------------------------------------------------------- 视图

@@ -11,7 +11,8 @@ import WebKit
 //           pageReady、haptic、sound、shareBackup、pickBackup、sharePracticeCard、savePracticeCard、syncReminder、
 //           requestReminderPermission、openAppSettings、queryReminderStatus、backGestureEnabled；soundscape 是 no-op（P07）。
 //   iOS→JS  bridge.js 在模块顶层同步定义的全局：shiziOpenReminderTarget、shiziBackupPicked、shiziBackupRejected、
-//           markBackupExported、shiziCardSaved、shiziReminderStatus、shiziShareFailed（P96 过渡，M6-6）；
+//           markBackupExported、shiziCardSaved、shiziReminderStatus、shiziShareFailed（P96 过渡，M6-6）、
+//           shiziAccessibilityStatus（P116：读屏 / 切换控制状态，pageReady 与状态变化时）；
 //           事件 shizi-native-back / shizi-native-back-progress。
 // 面向用户的文字一律在 Web 侧（src/config/copy/）：原生不弹 alert、不 reload（导入桥只交付文本或拒绝原因）。
 
@@ -121,6 +122,7 @@ final class WebViewController: UIViewController {
         #if DEBUG
         applySmokeLaunchArguments()
         #endif
+        observeAccessibilityStatus()
         loadApp()
     }
 
@@ -206,9 +208,37 @@ final class WebViewController: UIViewController {
         recordSmokeEvent("pageReady", ["href": webView.url?.absoluteString ?? ""])
         #endif
         dispatchPendingReminderTargetIfReady()
+        sendAccessibilityStatus()
         #if DEBUG
         runNativeSmokeIfNeeded()
         #endif
+    }
+
+    // MARK: - 读屏状态（阶段 0 B2 / D36 / P116）
+
+    // 页面据此决定跳过撤销条要不要自动收起：VoiceOver 或切换控制运行时不自动收起（src/platform/accessibility.js）。
+    // pageReady 时发一次当前状态，之后系统状态变化时再发；只传布尔值，没有面向用户的文字。
+    private func observeAccessibilityStatus() {
+        let names: [Notification.Name] = [
+            UIAccessibility.voiceOverStatusDidChangeNotification,
+            UIAccessibility.switchControlStatusDidChangeNotification,
+        ]
+        for name in names {
+            NotificationCenter.default.addObserver(self, selector: #selector(accessibilityStatusDidChange), name: name, object: nil)
+        }
+    }
+
+    @objc private func accessibilityStatusDidChange() {
+        guard pageReady else { return }
+        sendAccessibilityStatus()
+    }
+
+    func sendAccessibilityStatus() {
+        let voiceOver = UIAccessibility.isVoiceOverRunning ? "true" : "false"
+        let switchControl = UIAccessibility.isSwitchControlRunning ? "true" : "false"
+        webView.evaluateJavaScript(
+            "if (typeof shiziAccessibilityStatus === 'function') shiziAccessibilityStatus({voiceOver:\(voiceOver),switchControl:\(switchControl)}); void 0;"
+        )
     }
 
     private static var devModeEnabled: Bool {

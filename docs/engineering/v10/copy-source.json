@@ -127,7 +127,8 @@
     "P105": "API 下限告警（cq 单位、:focus-visible）：scripts/verify_api_floor.mjs 的 warn 清单，产品定最低版本",
     "P106": "文案审计豁免：scripts/verify_copy.mjs 的 exportWordAllow / numeralAllow / HARDCODE_ALLOW，文案裁定项",
     "P107": "边开发边改清单未完成项：docs/engineering/v10/acceptance/checklist-M6.md 标「未做」的条目，产品给定",
-    "P108": "冷启动恢复离开时的页面（审查整改 F1）：运行时键 policy.routeRestore（enabled / maxAgeMinutes / crossDay），实现在 src/ui/route-memory.js 与 router.js coldStart；无界面文案"
+    "P108": "冷启动恢复离开时的页面（审查整改 F1）：运行时键 policy.routeRestore（enabled / maxAgeMinutes / crossDay），实现在 src/ui/route-memory.js 与 router.js coldStart；无界面文案",
+    "P116": "读屏状态桥（阶段 0 B2）：原生全局 shiziAccessibilityStatus({voiceOver, switchControl})，实现在 src/platform/accessibility.js（bridge.js NATIVE_GLOBALS / LAST_ONLY）与 WebViewController.swift sendAccessibilityStatus；无界面文案。P115（跳过撤销时长等）是运行时键 policy.skipUndo，由 policy.js 覆盖"
   },
   "noCopy": [
     "R-H08",

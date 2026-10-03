@@ -7357,6 +7357,7 @@ src/core/sessions.js
 src/data/deck.js
 src/data/font-loader.js
 src/data/strokes.js
+src/platform/accessibility.js
 src/platform/appearance.js
 src/platform/bridge.js
 src/platform/env.js

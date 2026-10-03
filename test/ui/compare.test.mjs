@@ -113,6 +113,27 @@ test('judgeInDraft: perRecordInk on writes Ink v3 under the record month (P31 / 
   assert.equal(validateValue(`shizi.v2.ink.${MONTH}`, d.ink[MONTH]), null, 'ink month shape valid');
 });
 
+test('judgeInDraft (D27 / P1-E3): a new judgment recycles the previous latest ink unless it is the first; first + latest stay', () => {
+  const judgeOnce = (d, at, nextId) => {
+    d.sessions.A = { ...createSession({ id: 's' + at, kind: 'daily', queue: ['base:永'], at }), slot: 'A' };
+    return judgeInDraft(d, { slot: 'A', cardKey: 'base:永', judgment: 'correct', strokes: [STROKE], at, nextId, perRecordInk: true });
+  };
+  const d = draftWith();
+  let n = 0;
+  const nextId = p => p + (n += 1);
+  const march = new Date(2026, 2, 3, 9).getTime();
+  const july = new Date(2026, 6, 8, 9).getTime();
+  const sept = new Date(2026, 8, 20, 9).getTime();
+  const first = judgeOnce(d, march, nextId).record;
+  const middle = judgeOnce(d, july, nextId).record;
+  assert.ok(d.ink['2026-03'][first.id] && d.ink['2026-07'][middle.id], 'two judgments: first and latest both kept');
+  const out = judgeOnce(d, sept, nextId);
+  assert.ok(d.ink['2026-03'][first.id], 'first judgment ink kept');
+  assert.ok(d.ink['2026-09'][out.record.id], 'latest judgment ink kept');
+  assert.equal(Object.keys(d.ink['2026-07'] || {}).length, 0, 'the middle (July) ink is recycled in the same commit');
+  assert.deepEqual(out.inkRecycled.map(x => x.id), [middle.id]);
+});
+
 test('judgeInDraft: rejects empty strokes, stale card and bad judgment', () => {
   for (const strokes of [[], [[]], null, undefined]) {
     assert.throws(() => judgeInDraft(draftWith(), { slot: 'A', cardKey: 'base:永', judgment: 'correct', strokes, at: T0, nextId: idGen() }), /no strokes/);

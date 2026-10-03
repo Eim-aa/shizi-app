@@ -7,6 +7,7 @@ import {
 import { KEYS, inkKey, recordsKey } from '../../src/core/schema.js';
 import * as policy from '../../src/config/policy.js';
 import { flatInk, inkEntry, record } from './helpers.mjs';
+import * as budgetModule from '../../src/store/budget.js';
 
 const MiB = 1024 * 1024;
 const NOW = new Date(2026, 9, 2, 10).getTime(); // 本地 2026-10-02
@@ -57,7 +58,7 @@ function tierFixture() {
   return { records, ink };
 }
 
-test('ink tiers follow 01 §9: orphan < other-month rest < this-month rest < monthly first/last < first per char < latest (never)', () => {
+test('ink tiers follow 01 §9 as amended by D27: orphan < other-month rest < this-month rest < monthly first/last < first + latest per char (never)', () => {
   const { records } = tierFixture();
   const index = indexRecords(records);
   const tiers = {};
@@ -67,7 +68,7 @@ test('ink tiers follow 01 §9: orphan < other-month rest < this-month rest < mon
   assert.equal(tiers.r7, 2, 'this month, non-judged rest');
   assert.equal(tiers.r3, 3, 'monthly last of 人 in July');
   assert.equal(tiers.r4, 3, 'monthly first of 人 in October');
-  assert.equal(tiers.r1, 4, 'first judged of 人');
+  assert.equal(tiers.r1, Infinity, 'first judged of 人 (D27: never recycled; was tier 4 before P1-E3)');
   assert.equal(tiers.r5, Infinity, 'latest judged of 人');
   assert.equal(tiers.r6, Infinity, 'latest (and only) judged of 口');
 });
@@ -90,18 +91,22 @@ test('recover (ink over budget): evicts lowest tier first, oldest first within a
   assert.equal(draft.records['2026-07'].length, 3, 'records untouched when under records budget');
 });
 
-test('recover (force, quota): evicts down to but never including latest-per-char', () => {
+test('recover (force, quota): evicts down to but never including first / latest per char (D27)', () => {
   const draft = tierFixture();
   const { actions } = recover(draft, { now: NOW, force: true, needBytes: 10 * MiB, limit: { inkMonths: ['2026-07', '2026-08', '2026-10'], months: [] } });
-  assert.deepEqual(Object.keys(flatInk(draft.ink)).sort(), ['r5', 'r6']);
-  assert.deepEqual(draft.ink['2026-07'], {}, 'emptied month table (store drops the key)');
+  assert.deepEqual(Object.keys(flatInk(draft.ink)).sort(), ['r1', 'r5', 'r6'], 'D27: r1 (first of 人) now survives too');
+  assert.deepEqual(Object.keys(draft.ink['2026-07']), ['r1'], 'July keeps only the first judgment of 人');
+  const emptied = { records: { '2026-07': [record(1, '人', { day: '2026-07-01' }), record(2, '人', { day: '2026-07-02' })], '2026-10': [record(5, '人', { day: '2026-10-02' })] },
+    ink: { '2026-07': { r2: inkEntry(20, 4) }, '2026-10': { r5: inkEntry(20, 4) } } };
+  recover(emptied, { now: NOW, force: true, needBytes: 10 * MiB, limit: { inkMonths: ['2026-07', '2026-10'], months: [] } });
+  assert.deepEqual(emptied.ink['2026-07'], {}, 'emptied month table (store drops the key)');
   assert.ok(actions.every(a => a.type === 'evictInk'), 'limit keeps records untouched');
   const onlyJuly = tierFixture();
   recover(onlyJuly, { now: NOW, force: true, needBytes: 10 * MiB, limit: { inkMonths: ['2026-07'], months: [] } });
-  assert.deepEqual(Object.keys(flatInk(onlyJuly.ink)).sort(), ['r4', 'r5', 'r6', 'r7', 'r99'], 'limit.inkMonths restricts eviction to those month keys');
+  assert.deepEqual(Object.keys(flatInk(onlyJuly.ink)).sort(), ['r1', 'r4', 'r5', 'r6', 'r7', 'r99'], 'limit.inkMonths restricts eviction to those month keys (July keeps r1, the first judgment, D27)');
 });
 
-test('recover (records over budget): folds oldest month first, keeps latest-per-char, drops folded ink; current month never folded', () => {
+test('recover (records over budget): folds oldest month first, keeps first + latest per char (D27), drops folded ink; current month never folded', () => {
   const draft = tierFixture();
   const { actions } = recover(draft, { now: NOW, budgets: { recordsBudgetBytes: 10 } });
   const folds = actions.filter(a => a.type === 'fold').map(a => a.month);
@@ -109,10 +114,11 @@ test('recover (records over budget): folds oldest month first, keeps latest-per-
   const july = draft.records['2026-07'];
   assert.equal(july.folded, true);
   assert.deepEqual(july.byDay, { '2026-07-01': ['人'], '2026-07-02': ['人'], '2026-07-03': ['人'] });
-  assert.deepEqual(july.kept, [], '人 has a later record in October');
+  assert.deepEqual(july.kept.map(r => r.id), ['r1'], '人 has a later record in October; D27 keeps its first-ever judgment r1 (was [] before P1-E3)');
   assert.deepEqual(draft.records['2026-08'].kept.map(r => r.id), ['r6'], '口 only record kept');
   const ink = flatInk(draft.ink);
-  assert.ok(!ink.r1 && !ink.r2 && !ink.r3, 'ink of folded-away records dropped');
+  assert.ok(!ink.r2 && !ink.r3, 'ink of folded-away records dropped');
+  assert.ok(ink.r1, 'D27: ink of the kept first judgment stays');
   assert.ok(ink.r6, 'ink of kept record stays');
   assert.ok(ink.r4 && ink.r5, 'current-month ink untouched by folding');
   assert.ok(Array.isArray(draft.records['2026-10']));
@@ -126,4 +132,78 @@ test('needsRecovery: aged months (> 400 days) trigger even under budget', () => 
   const fresh = needsRecovery({ records: { '2025-09': [record(1, '人', { day: '2025-09-01' })] }, ink: {} }, { now: NOW });
   assert.equal(fresh.aged, false, '2025-09 ends 366 days before 2026-10-02');
   assert.equal(fresh.any, false);
+});
+
+// ---------------------------------------------------------------- D27 本人笔迹留存（阶段 1 P1-E3）
+// 每字只留「第一次判断」+「最近一次判断」的墨迹（同一条则一份），其余回收；首次与最近永不回收（含撞配额）。
+
+test('D27 retention: pruneInkOfCards keeps first + latest judged ink of each card, recycles the middle ones', () => {
+  const { pruneInkOfCards } = budgetModule;
+  const draft = tierFixture(); // 人：r1 首 r2 r3 r4 中 r5 最近（r7 跳过）；口：r6 唯一
+  const before = draft.ink;
+  const dropped = pruneInkOfCards(draft, ['base:人']);
+  assert.deepEqual(dropped.map(d => d.id).sort(), ['r2', 'r3', 'r4', 'r7'], 'middle judged + non-judged ink of 人 recycled');
+  const ink = flatInk(draft.ink);
+  assert.ok(ink.r1, 'first judged ink of 人 kept');
+  assert.ok(ink.r5, 'latest judged ink of 人 kept');
+  assert.ok(ink.r6, 'other cards untouched');
+  assert.ok(ink.r99, 'orphans are left to budget recovery');
+  assert.equal(draft.ink['2026-08'], before['2026-08'], 'untouched month table keeps its identity');
+  assert.notEqual(draft.ink, before, 'copy-on-write');
+  assert.deepEqual(pruneInkOfCards(draft, ['base:人']), [], 'idempotent');
+});
+
+test('D27 retention: first === latest (only one judgment) keeps one copy; history without first ink stays without (no borrowing)', () => {
+  const { pruneInkOfCards } = budgetModule;
+  // 口：只有一条 → 首次即最近，一份
+  const one = { records: { '2026-08': [record(6, '口', { day: '2026-08-01' })] }, ink: { '2026-08': { r6: inkEntry(8, 2) } } };
+  assert.deepEqual(pruneInkOfCards(one, ['base:口']), []);
+  assert.deepEqual(Object.keys(flatInk(one.ink)), ['r6']);
+  // 历史：开启前的第一次没有墨迹（r1 无 ink），中间 r2 有，最近 r3 有 → 回收 r2，第一次如实为无，不拿 r2 顶替
+  const hist = {
+    records: { '2026-07': [record(1, '人', { day: '2026-07-01' }), record(2, '人', { day: '2026-07-02' })], '2026-10': [record(3, '人', { day: '2026-10-01' })] },
+    ink: { '2026-07': { r2: inkEntry(8, 2) }, '2026-10': { r3: inkEntry(8, 2) } },
+  };
+  assert.deepEqual(pruneInkOfCards(hist, ['base:人']).map(d => d.id), ['r2']);
+  assert.deepEqual(Object.keys(flatInk(hist.ink)), ['r3'], 'first (r1) stays inkless; nothing is moved onto it');
+});
+
+test('D27 retention: answer-seen / skipped are not judgments — they never become first or latest', () => {
+  const { pruneInkOfCards } = budgetModule;
+  const draft = {
+    records: { '2026-10': [
+      record(1, '永', { day: '2026-10-01', kind: 'answer-seen' }),
+      record(2, '永', { day: '2026-10-01' }),
+      record(3, '永', { day: '2026-10-02' }),
+      record(4, '永', { day: '2026-10-02', kind: 'skipped' }),
+    ] },
+    ink: { '2026-10': { r2: inkEntry(8, 2), r3: inkEntry(8, 2) } },
+  };
+  assert.deepEqual(pruneInkOfCards(draft, ['base:永']), [], 'r2 is the first judgment, r3 the latest: both kept');
+  assert.deepEqual(Object.keys(flatInk(draft.ink)).sort(), ['r2', 'r3']);
+});
+
+test('D27 retention: under quota pressure, middle ink goes first; first and latest of each card are never recycled', () => {
+  const { records } = tierFixture();
+  const index = indexRecords(records);
+  assert.equal(inkTier('r1', index, '2026-10'), Infinity, 'first judged of 人 is never recycled (D27)');
+  assert.equal(inkTier('r5', index, '2026-10'), Infinity, 'latest judged of 人');
+  const draft = tierFixture();
+  recover(draft, { now: NOW, force: true, needBytes: 10 * MiB, limit: { inkMonths: ['2026-07', '2026-08', '2026-10'], months: [] } });
+  assert.deepEqual(Object.keys(flatInk(draft.ink)).sort(), ['r1', 'r5', 'r6'], 'only first + latest of every card survive a forced recovery');
+  // 顺序：先回收既非首次也非最近的（孤儿 → 其他月份 → 本月 → 每月首末），最后也不碰首次 / 最近
+  const order = tierFixture();
+  const one = entryBytes('r1', JSON.stringify(inkEntry(20, 4))) + 8;
+  const { actions } = recover(order, { now: NOW, budgets: { inkBudgetBytes: inkBytes(order.ink) - one * 4.5 } });
+  assert.deepEqual(actions.filter(a => a.type === 'evictInk').map(a => a.id), ['r99', 'r2', 'r7', 'r3', 'r4']);
+  assert.ok(flatInk(order.ink).r1 && flatInk(order.ink).r5);
+});
+
+test('D27 retention: folding an old month keeps the first-ever judgment too (with its ink), not only the latest', () => {
+  const draft = tierFixture();
+  recover(draft, { now: NOW, budgets: { recordsBudgetBytes: 10 } });
+  assert.deepEqual(draft.records['2026-07'].kept.map(r => r.id), ['r1'], '人 first-ever judgment kept in the folded July');
+  const ink = flatInk(draft.ink);
+  assert.ok(ink.r1, 'its ink survives the fold');
+  assert.ok(!ink.r2 && !ink.r3, 'middle ink of the folded month dropped');
 });

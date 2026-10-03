@@ -14,7 +14,8 @@
 //   3. 判断 = 一次 store.commit（D07：成功才推进）：judged 记录（help 照实：hints = max(本地, 已存)）+ FSRS
 //      （core/fsrs.applyJudgment，评级按 policy.ratingWithHint，P34）+ 会话推进（items[].fsrsBefore 供本会话更正重放，
 //      结果行 {kind:'record'}）+ 墨迹（policy.features.perRecordInk 为 true 时按记录月份写 shizi.v2.ink.<月>；
-//      false 时不写 ink 键，记录即「有记录无笔迹」，10.12）。commit 前再断言有本人笔画：空笔画直接拒绝，不调用 commit。
+//      false 时不写 ink 键，记录即「有记录无笔迹」，10.12）+ 墨迹留存（决定-D27：这个字只留第一次与最近一次判断的墨迹，
+//      上一次的「最近一次」若不是第一次，其墨迹在同一次提交里回收，store/budget.js pruneInkOfCards）。commit 前再断言有本人笔画：空笔画直接拒绝，不调用 commit。
 //      失败留在判断页：说明换成「没保存上，你写的字还在。」、两键换成 [先不保存 / 再试一次]（R-W16 三段式）；
 //      重试成功才推进；commit 是原子事务，失败不留半条记录，重试不重复计数。
 //   同一会话同一字已有 judged 记录（中断恢复路径）时不再新增记录、不再评级，只补推进（D07 不重复计数）。
@@ -32,6 +33,7 @@ import { injectStyles, T } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
 import * as defaultPolicy from '../../../config/policy.js';
 import { getStore, setInk } from '../../../store/store.js';
+import { pruneInkOfCards } from '../../../store/budget.js';
 import { makeRecord, isJudged, JUDGMENTS } from '../../../core/records.js';
 import { advance, currentCardKey, withCurrent } from '../../../core/sessions.js';
 import { applyJudgment } from '../../../core/fsrs.js';
@@ -144,7 +146,7 @@ function inkEnabled(opts) {
  * @param {(prefix:string) => string} o.nextId
  * @param {boolean} [o.perRecordInk]  缺省读 policy.features.perRecordInk
  * @param {object} [o.policy]
- * @returns {{record, reused:boolean, inkWritten:boolean}}
+ * @returns {{record, reused:boolean, inkWritten:boolean, inkRecycled:Array<{id, month, recordId}>}}
  */
 export function judgeInDraft(draft, o) {
   const { slot, cardKey, judgment, strokes, at, nextId } = o;
@@ -157,7 +159,7 @@ export function judgeInDraft(draft, o) {
   if (existing) {
     // 中断恢复：记录已写过 → 只补推进，不再新增 / 不再评级（D07 不重复计数）。
     setSession(draft, slot, advance(s, { cardKey, recordId: existing.id, kind: 'judged', at }));
-    return { record: existing, reused: true, inkWritten: false };
+    return { record: existing, reused: true, inkWritten: false, inkRecycled: [] };
   }
   const stored = s.current && Number.isInteger(s.current.hints) ? s.current.hints : 0;
   const record = makeRecord({
@@ -176,11 +178,13 @@ export function judgeInDraft(draft, o) {
     setInk(draft, record, encodeInk(built, { policy }));
     inkWritten = true;
   }
+  // D27：新判断成了「最近一次」，上一次的最近一次（不是第一次时）墨迹回收；第一次与这一次留下。
+  const inkRecycled = pruneInkOfCards(draft, [cardKey]);
   const entry = draft.sched ? draft.sched[cardKey] : undefined;
   const { entry: nextEntry, fsrsBefore } = applyJudgment(entry, record, { policy });
   draft.sched = { ...(draft.sched || {}), [cardKey]: nextEntry };
   setSession(draft, slot, advance(s, { cardKey, recordId: record.id, kind: 'judged', fsrsBefore, at }));
-  return { record, reused: false, inkWritten };
+  return { record, reused: false, inkWritten, inkRecycled };
 }
 
 const STALE = Object.freeze({ ok: false, error: Object.freeze({ kind: 'stale' }) });

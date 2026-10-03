@@ -5,15 +5,22 @@
 //   ink      按月分键（shizi.v2.ink.<YYYY-MM>），预算按全部月键合计；跨月键统一排序淘汰。
 //            估算按实际 JSON 串长，与编码无关：新写入为 v3 打包编码（每点 4 字节 base64，14 笔 × 24 点 ≈ 3.7KB/条，
 //            300 条 ≈ 1.07MiB，test/core/ink-math.test.mjs P78 容量测量），旧 v2 数据按其原长计。
-//            按优先级从低到高淘汰：孤儿墨迹 → 其他月份的其余 → 本月其余 → 每月每字首/末条（P02）
-//            → 每字第一条 judged（年报）；「每字最近一次 judged」永不淘汰。同一层内先淘汰最旧（id 序号小）。
+//            保留规则（决定-D27，阶段 1 P1-E3）：每字只留「第一次判断」与「最近一次判断」的墨迹（同一条则一份），其余回收。
+//            「判断」= kind==='judged'（写对 / 写错）；看过答案、跳过不是判断，本来也不存墨迹。回收有两个时机：
+//              ① 写入新判断时（write/compare.js judgeInDraft → pruneInkOfCards，同一次 store.commit）：上一次的「最近一次」
+//                 若不是第一次，就成了中间那次，墨迹随这次提交删除；
+//              ② 预算回收时（下面的 recover）：撞配额 / 超预算按层级淘汰，先回收既非首次也非最近的——
+//                 孤儿墨迹 → 其他月份的其余 → 本月其余 → 每月每字首/末条（P02）；「每字第一次」与「每字最近一次」永不回收
+//                 （D27 覆盖 01 §9 原「每字第一条可淘汰」）。同一层内先淘汰最旧（id 序号小）。
+//            第一次判断在开启前就没有墨迹（历史数据）时如实为无，不拿别次墨迹顶替（I03）。
 //   records  最旧月份折叠为 {folded, month, byDay, chars, kept}（schema.validateRecordsMonth）；
-//            当月（及时钟回拨后的未来月份）不折叠；kept 保留该月中仍是「某字最近一次 judged」的记录。被折掉的记录，其墨迹一并删除。
+//            当月（及时钟回拨后的未来月份）不折叠；kept 保留该月中仍是「某字最近一次 judged」或「某字第一次 judged」（D27）的记录。
+//            被折掉的记录，其墨迹一并删除。
 // 回收函数只改传入的 draft（store 的写时拷贝草稿），不碰存储、不碰已发布状态。
 //
 // 预算数值取自 src/config/policy.js（P05/P28/P57 过渡默认值）；store/测试可用 budgets 覆盖注入（resolveBudgets）。
 
-import { CORRUPT_PREFIX, inkKey, isPlainObject, recordsKey, serialOf, specForKey } from '../core/schema.js';
+import { CORRUPT_PREFIX, inkIdOf, inkKey, inkMonthOf, isPlainObject, recordsKey, serialOf, specForKey } from '../core/schema.js';
 import * as policy from '../config/policy.js';
 
 const MiB = 1024 * 1024;
@@ -145,6 +152,62 @@ export function indexRecords(records) {
   return { byId, latestIds, firstIds, edges };
 }
 
+/** D27 留存的记录 id：每字第一次 judged ∪ 每字最近一次 judged。 */
+export function retainedIds(index) {
+  return new Set([...index.firstIds, ...index.latestIds]);
+}
+
+/**
+ * D27 写入新判断时的回收：cardKeys 这些字里，既不是第一次也不是最近一次判断的记录，其墨迹从 draft.ink 删除
+ * （copy-on-write：只替换有删除的月表）。只看这些字——新判断让上一次的「最近一次」变成中间那次。
+ * 同一份墨迹（inkId 相同）被留存的记录引用时不删。返回被回收的 [{id, month, recordId}]。
+ * 只改传入的草稿，不碰存储；在 store.commit 的 mutate 里调用。
+ */
+export function pruneInkOfCards(draft, cardKeys) {
+  if (!draft || !isPlainObject(draft.ink) || !draft.records) return [];
+  const want = new Set(cardKeys || []);
+  if (!want.size) return [];
+  const mine = [];
+  for (const month of Object.keys(draft.records)) {
+    for (const rec of monthRecords(draft.records[month])) if (rec && want.has(rec.cardKey)) mine.push(rec);
+  }
+  const index = indexRecords({ all: mine });
+  const keep = retainedIds(index);
+  const slot = rec => {
+    const month = inkMonthOf(rec);
+    const id = inkIdOf(rec);
+    return month && id ? { month, id } : null;
+  };
+  const kept = new Set();
+  for (const rec of mine) {
+    if (!keep.has(rec.id)) continue;
+    const s = slot(rec);
+    if (s) kept.add(`${s.month}|${s.id}`);
+  }
+  const drops = new Map(); // month → Map(inkId → recordId)
+  for (const rec of mine) {
+    if (keep.has(rec.id)) continue;
+    const s = slot(rec);
+    if (!s || kept.has(`${s.month}|${s.id}`)) continue;
+    const table = draft.ink[s.month];
+    if (!isPlainObject(table) || !Object.prototype.hasOwnProperty.call(table, s.id)) continue;
+    if (!drops.has(s.month)) drops.set(s.month, new Map());
+    drops.get(s.month).set(s.id, rec.id);
+  }
+  if (!drops.size) return [];
+  const out = [];
+  draft.ink = Object.assign({}, draft.ink);
+  for (const [month, ids] of drops) {
+    const next = Object.assign({}, draft.ink[month]);
+    for (const [id, recordId] of ids) {
+      delete next[id];
+      out.push({ id, month, recordId });
+    }
+    draft.ink[month] = next;
+  }
+  return out;
+}
+
 function inkEntryBytes(id, entry) {
   // 在 {"id":{…},…} 里的份额：引号 + 冒号 + 逗号 ≈ 4 个字符。
   return (id.length + JSON.stringify(entry).length + 4) * 2;
@@ -175,14 +238,14 @@ function inkMonthBytes(month, table) {
 
 /**
  * 墨迹淘汰层级（数字越小越先淘汰）；Infinity = 永不淘汰。
- *   0 孤儿（找不到对应记录）  1 其他月份的其余  2 本月其余  3 每月每字首/末条  4 每字第一条  ∞ 每字最近一次
+ *   0 孤儿（找不到对应记录）  1 其他月份的其余  2 本月其余  3 每月每字首/末条
+ *   ∞ 每字第一次 judged、每字最近一次 judged（决定-D27：绝不回收；原 01 §9 的「4 每字第一条」不再可淘汰）
  */
 export function inkTier(id, index, currentMonth) {
   const hit = index.byId.get(id);
   if (!hit) return 0;
   const recId = hit.rec.id;
-  if (index.latestIds.has(recId)) return Infinity;
-  if (index.firstIds.has(recId)) return 4;
+  if (index.latestIds.has(recId) || index.firstIds.has(recId)) return Infinity;
   if (index.edges.has(recId)) return 3;
   return hit.month === currentMonth ? 2 : 1;
 }
@@ -213,7 +276,7 @@ export function needsRecovery(state, { now, budgets, totalBytes, sizes } = {}) {
   return out;
 }
 
-function foldMonth(month, list, latestIds) {
+function foldMonth(month, list, keepIds) {
   const byDay = {};
   const chars = [];
   const seen = new Set();
@@ -226,13 +289,13 @@ function foldMonth(month, list, latestIds) {
       chars.push(rec.char);
     }
   }
-  const kept = list.filter(rec => latestIds.has(rec.id));
+  const kept = list.filter(rec => keepIds.has(rec.id));
   return { folded: true, month, byDay, chars, kept };
 }
 
 /**
  * 按 §9 优先级回收，直接修改 draft.records / draft.ink（替换为新对象，不就地改已冻结的值）。
- * opts.force=true：撞配额后调用，按 needBytes 至少腾出这么多（仍不动「每字最近一次」与当月记录）。
+ * opts.force=true：撞配额后调用，按 needBytes 至少腾出这么多（仍不动「每字第一次 / 最近一次」的墨迹与当月记录，D27）。
  * opts.limit = {inkMonths: [YYYY-MM], months: [YYYY-MM]}：只允许动这些 ink 月键 / records 月键。
  *   撞配额时 store 只让回收本次已经要写的键——多动一个键就要在 txn 里多存一份它的原值，峰值占用反而更高。
  *   （兼容旧写法 limit.ink === true：允许动全部 ink 月键。）
@@ -306,7 +369,7 @@ export function recover(draft, { now, budgets, force = false, needBytes = 0, lim
     if (!(aged || rBytes > b.recordsBudgetBytes || wantMore())) break;
     const list = records[month];
     const before = entryBytes(recordsKey(month), JSON.stringify(list));
-    const value = foldMonth(month, list, index.latestIds);
+    const value = foldMonth(month, list, retainedIds(index));
     const after = entryBytes(recordsKey(month), JSON.stringify(value));
     if (!folded) {
       records = Object.assign({}, records);

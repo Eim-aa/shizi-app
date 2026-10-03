@@ -239,6 +239,22 @@ export default async function p0aShell(page, ctx) {
   assert.equal(cv.caret, rgbOf(cv.ink), `dark: caret-color = --i1 (${cv.ink}); got ${cv.caret}`);
   await page.emulateMedia({ colorScheme: 'light' });
 
+  // ------------------------------------------------------------------ A12 去掉不能拖动的弹层把手（G12 部分）
+  step('A12: the bottom sheet has no fake drag handle (DOM and CSS rule gone)');
+  const handle = await page.evaluate(() => {
+    let rule = false;
+    for (const sheet of document.styleSheets) {
+      let rules;
+      try { rules = sheet.cssRules; } catch (error) { continue; }
+      for (const r of rules) if (r.cssText && r.cssText.includes('sz-sheet__handle')) rule = true;
+    }
+    const sheet = document.querySelector('[data-testid="query-sheet"]');
+    return { dom: document.querySelectorAll('.sz-sheet__handle').length, rule, firstTag: sheet.firstElementChild.tagName, aria: sheet.firstElementChild.getAttribute('aria-hidden') };
+  });
+  assert.equal(handle.dom, 0, 'no .sz-sheet__handle element');
+  assert.equal(handle.rule, false, 'no .sz-sheet__handle style rule');
+  assert.ok(handle.firstTag === 'H2' || handle.aria !== 'true', `sheet starts with real content (${handle.firstTag})`);
+
   await page.keyboard.press('Escape');
   await page.waitForFunction(() => !document.querySelector('[data-testid="query-sheet"]'));
   await waitNavIdle(page);

@@ -1,6 +1,7 @@
 // 底部弹层（遮罩栈里的一层）：role=dialog aria-modal、焦点陷阱、关闭后焦点归还（01-架构设计 §7）。
 // 规格取原型「底部弹层通用」：遮罩 --scrim；面板贴底、max-height 88%、28px 上圆角、--sh 底、
-// 顶部 36×5 把手、padding 10 24 底部安全区、gap 18。进场上滑，减少动态效果时直接显示。
+// padding 28 24 底部安全区、gap 18；没有顶部把手（网页里不能跟手下拉，把手是假的，P0-A12 / G12，阶段 3 由原生 Sheet 取代）。
+// 进场上滑，减少动态效果时直接显示。
 // 打开方式：nav.openOverlay(内容组件, props)；内容组件里用 <Sheet onClose=${close}>…</Sheet>。
 // 点遮罩 / 系统返回 / Esc 都经 router 走 history.back()。
 import { html, useEffect, useRef } from '../../../vendor/ui.js';
@@ -11,10 +12,9 @@ injectStyles('sheet', `
 .sz-scrim{position:absolute;inset:0;background:${T.scrim};animation:sz-fade-in .2s ease-out both}
 .sz-sheet{position:absolute;left:0;right:0;bottom:0;max-height:88%;overflow:auto;box-sizing:border-box;
   border-radius:28px 28px 0 0;background:${T.sh};box-shadow:0 -10px 30px rgba(48,38,26,.12);
-  padding:10px 24px max(34px, env(safe-area-inset-bottom, 0px));display:flex;flex-direction:column;gap:18px;color:${T.i1};
+  padding:28px 24px max(34px, env(safe-area-inset-bottom, 0px));display:flex;flex-direction:column;gap:18px;color:${T.i1};
   animation:sz-sheet-in .28s cubic-bezier(.2,.7,.2,1) both}
 .sz-sheet:focus{outline:none}
-.sz-sheet__handle{align-self:center;flex:none;width:36px;height:5px;border-radius:3px;background:${T.i5}}
 .sz-sheet__title{margin:0;font-family:${T.serif};font-size:calc(20px * ${T.k});font-weight:500;line-height:1.45}
 @keyframes sz-fade-in{from{opacity:0}to{opacity:1}}
 @keyframes sz-sheet-in{from{transform:translateY(100%)}to{transform:none}}
@@ -90,7 +90,6 @@ export function Sheet({ title, onClose, active = true, testid, children }) {
     <div class="sz-scrim" aria-hidden="true" onClick=${() => onClose && onClose()}></div>
     <div class="sz-sheet" role="dialog" aria-modal="true" tabindex="-1" ref=${panelRef} data-testid=${testid}
       aria-labelledby=${title ? titleIdRef.current : undefined}>
-      <span class="sz-sheet__handle" aria-hidden="true"></span>
       ${title ? html`<h2 class="sz-sheet__title" id=${titleIdRef.current}>${title}</h2>` : null}
       ${children}
     </div>

@@ -6,7 +6,7 @@ import { sheetModel, commitAdd, isFailure, deckPredicates, ADD_LABEL, PickBar } 
 import { pickBar as pickBarOf } from '../../src/core/query.js';
 import { CharRow } from '../../src/ui/components/query/CharRow.js';
 import { CharCard, CardActions, CardFooter, CardSecondary, cardActionParts, BadCard, cardStatText, cardMetaText, cardInkPoints, formatDay } from '../../src/ui/components/query/CharCard.js';
-import { keyboardInset, sheetFrameStyle, handOffFocus, focusProxyInput } from '../../src/ui/components/query/input.js';
+import { keyboardInset, sheetFrameStyle, handOffFocus, focusProxyInput, createTextGate } from '../../src/ui/components/query/input.js';
 import { openQuery, QUERY_OVERLAY } from '../../src/ui/components/query/index.js';
 import { Button } from '../../src/ui/components/Button.js';
 import { createStore } from '../../src/store/store.js';
@@ -15,6 +15,7 @@ import { KEYS } from '../../src/core/schema.js';
 import { encodeInk, buildStroke } from '../../src/core/ink-math.js';
 import { t } from '../../src/config/copy/index.js';
 import { MemoryStorage } from '../store/helpers.mjs';
+import { readFileSync } from 'node:fs';
 
 const NOW = new Date(2026, 8, 24, 12).getTime();
 const AT = new Date(2026, 8, 24, 10).getTime();
@@ -162,6 +163,88 @@ test('focus proxy: no DOM → no-op; openQuery rejects unknown modes before touc
   assert.equal(handOffFocus(null, null), false);
   assert.throws(() => openQuery({ mode: 'add' }), RangeError);
   assert.equal(QUERY_OVERLAY, 'query');
+});
+
+// ---------------------------------------------------------------- F6 输入法选字后立即出结果
+
+function gateRun(initial = '') {
+  const got = [];
+  const gate = createTextGate(v => got.push(v), initial);
+  const el = { value: '' };
+  const ev = (isComposing = false) => ({ target: el, currentTarget: el, isComposing });
+  return { got, gate, el, ev };
+}
+
+test('F6 createTextGate, WebKit order: input(isComposing=true) then only compositionend → reports the final value once at compositionend', () => {
+  const { got, gate, el, ev } = gateRun();
+  gate.onCompositionStart(ev());
+  el.value = 'c';
+  gate.onInput(ev(true));
+  el.value = 'chun';
+  gate.onInput(ev(true));
+  assert.deepEqual(got, [], 'pinyin letters are not reported while composing');
+  el.value = '春';
+  gate.onInput(ev(true));
+  assert.deepEqual(got, [], 'still composing at the picking input');
+  gate.onCompositionEnd(ev());
+  assert.deepEqual(got, ['春'], 'compositionend reports the final value');
+});
+
+test('F6 createTextGate, Chromium order: compositionend then input(isComposing=false) → reported once (deduped)', () => {
+  const { got, gate, el, ev } = gateRun();
+  gate.onCompositionStart(ev());
+  el.value = 'xia';
+  gate.onInput(ev(true));
+  el.value = '夏';
+  gate.onInput(ev(true));
+  gate.onCompositionEnd(ev());
+  gate.onInput(ev(false));
+  assert.deepEqual(got, ['夏'], 'the trailing input with the same value does not report again');
+});
+
+test('F6 createTextGate: input before compositionend (WebKit, isComposing=false) and compositionend-before-value orders report each distinct value', () => {
+  const a = gateRun();
+  a.gate.onCompositionStart(a.ev());
+  a.el.value = '春';
+  a.gate.onInput(a.ev(false)); // isComposing 已经是 false 但 compositionend 还没来：仍在组字中，不报
+  assert.deepEqual(a.got, []);
+  a.gate.onCompositionEnd(a.ev());
+  assert.deepEqual(a.got, ['春']);
+  // compositionend 先于最终值落地（值还是旧的）→ 随后的 input 补上
+  const b = gateRun();
+  b.gate.onCompositionStart(b.ev());
+  b.el.value = 'chun';
+  b.gate.onInput(b.ev(true));
+  b.gate.onCompositionEnd(b.ev()); // 此刻值仍是 'chun'：照原文上报（不按拼音字母过滤，由弹层的 filterInput 决定）
+  b.el.value = '春';
+  b.gate.onInput(b.ev(true)); // WebKit 个别版本 compositionend 之后的 input 仍带 isComposing=true：已见过 compositionstart，按标志判断，不再过滤
+  assert.deepEqual(b.got, ['chun', '春']);
+});
+
+test('F6 createTextGate: plain typing reports each change, ignores same value, honours isComposing when no compositionstart was ever seen', () => {
+  const { got, gate, el, ev } = gateRun('春');
+  el.value = '春';
+  gate.onInput(ev());
+  assert.deepEqual(got, [], 'same as the initial value → nothing');
+  el.value = '春夏';
+  gate.onInput(ev());
+  el.value = '春夏';
+  gate.onInput(ev());
+  el.value = '';
+  gate.onInput(ev());
+  assert.deepEqual(got, ['春夏', '']);
+  const solo = gateRun();
+  solo.el.value = 'ni';
+  solo.gate.onInput(solo.ev(true));
+  assert.deepEqual(solo.got, [], 'isComposing=true without compositionstart is still composing');
+});
+
+test('F6 QueryInput wires composition events in lowercase (Preact would listen for a case-sensitive "CompositionEnd" that never fires)', () => {
+  const src = readFileSync(new URL('../../src/ui/components/query/input.js', import.meta.url), 'utf8');
+  const code = src.split('\n').filter(l => !l.trim().startsWith('//')).join('\n');
+  assert.doesNotMatch(code, /onComposition(Start|End|Update)=/, 'camelCase composition props are never delivered by Preact');
+  assert.match(code, /oncompositionstart=/);
+  assert.match(code, /oncompositionend=/);
 });
 
 // ---------------------------------------------------------------- 视图

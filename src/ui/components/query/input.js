@@ -11,6 +11,11 @@
 //
 // 输入法：中文输入法组字期间（compositionstart…compositionend）框里是拼音字母，不能按「只能输入汉字」过滤——
 //   组字结束才把文字交给弹层。输入框不受控（value 只在挂载时给初值），原文保留、不截断（P45）。
+//   F6：事件顺序因引擎而异——WebKit（iOS）选字时 input(isComposing=true) 之后只有 compositionend，没有 isComposing=false
+//   的 input；Chromium 在 compositionend 之后还会补一个 isComposing=false 的 input。所以必须在 compositionend 时用输入框
+//   的最终值更新一次（createTextGate），同值去重。另外 Preact 对 onCompositionStart / onCompositionEnd 这种驼峰名挂的是
+//   区分大小写的 'CompositionStart'（元素上没有 oncompositionstart 属性，不会被转成小写），事件永远不触发——所以这里用全小写的
+//   oncompositionstart / oncompositionend。
 
 import { html, useEffect, useLayoutEffect, useRef, useState } from '../../../../vendor/ui.js';
 import { injectStyles, T } from '../styles.js';
@@ -133,22 +138,57 @@ export function sheetFrameStyle(viewport) {
 }
 
 /**
+ * 输入 → onText 的闸门（纯函数，test/ui/query.test.mjs）。返回 {onInput, onCompositionStart, onCompositionEnd}，
+ * 参数是事件（只读 target / currentTarget 的 value 与 isComposing）。
+ *   组字中（compositionstart…compositionend）的 input 不上报（框里是拼音字母）；
+ *   compositionend 用输入框此刻的值上报一次（WebKit：input(isComposing=true) 之后只有 compositionend）；
+ *   组字外的 input 照常上报（Chromium：compositionend 之后补来的 isComposing=false 的 input）；
+ *   和上一次上报同值时不重复上报。没见过 compositionstart 的环境里，仍按 event.isComposing 判断组字中。
+ */
+export function createTextGate(onText, initial = '') {
+  let composing = false;
+  let seenStart = false;
+  let last = initial;
+  const valueOf = e => {
+    const el = e && (e.currentTarget || e.target);
+    return el && typeof el.value === 'string' ? el.value : null;
+  };
+  const emit = e => {
+    const v = valueOf(e);
+    if (v === null || v === last) return;
+    last = v;
+    if (onText) onText(v);
+  };
+  return {
+    onCompositionStart: () => { composing = true; seenStart = true; },
+    onCompositionEnd: e => { composing = false; emit(e); },
+    onInput: e => {
+      if (composing || (!seenStart && e && e.isComposing)) return;
+      emit(e);
+    },
+  };
+}
+
+/**
  * 查字输入框。不受控：初值 initial；组字结束或普通输入时 onText(原文)。
  * inputRef 交给弹层做焦点转移。
  */
 export function QueryInput({ initial = '', label, placeholder, onText, inputRef, testid = 'query-input' }) {
-  const composing = useRef(false);
   const ownRef = useRef(null);
   const ref = inputRef || ownRef;
+  const onTextRef = useRef(onText);
+  onTextRef.current = onText;
+  const gate = useRef(null);
+  if (!gate.current) gate.current = createTextGate(v => onTextRef.current && onTextRef.current(v), initial);
   useLayoutEffect(() => {
     if (ref.current && initial && !ref.current.value) ref.current.value = initial;
   }, []);
-  const emit = el => onText && onText(el.value);
+  // 事件名全小写：Preact 把 onCompositionEnd 挂成区分大小写的 'CompositionEnd'，永远收不到（见文件头 F6）。
   return html`<input class="sz-query__input" ref=${ref} type="text" data-testid=${testid}
     aria-label=${label} placeholder=${placeholder} autocomplete="off" autocorrect="off" autocapitalize="off"
     spellcheck=${false} enterkeyhint="done" lang="zh-CN"
-    onCompositionStart=${() => { composing.current = true; }}
-    onCompositionEnd=${e => { composing.current = false; emit(e.currentTarget); }}
-    onInput=${e => { if (!composing.current && !e.isComposing) emit(e.currentTarget); }}
+    oncompositionstart=${gate.current.onCompositionStart}
+    oncompositionend=${gate.current.onCompositionEnd}
+    onInput=${gate.current.onInput}
     onKeyDown=${e => { if (e.key === 'Enter' && !e.isComposing) e.currentTarget.blur(); }} />`;
 }

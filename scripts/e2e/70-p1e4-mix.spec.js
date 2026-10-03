@@ -188,7 +188,12 @@ export default async function run(page, ctx) {
   const newOnes = q2.filter(c => c !== '尴' && c !== q2[0]);
   const fromOrder = newOnes.filter(c => lib.order.includes(c));
   assert.ok(fromOrder.length >= 2, `new chars come from the order list (易忘度): ${S(q2)}`);
-  for (const c of q2) assert.equal(lib.reserved.includes(c), false, `${c} (surname / place / capital numeral) is not a default new char`);
+  // 只查新字：首练写过的字（尴赢拾）可以作为复习 / 提前复习补位出现（D41），拾同时是大写数字，不能算「默认新字」；
+  // 是否被提前复习选中取决于 FSRS fuzz，原先对整组断言会随机失败。
+  const firstChars = ['尴', '赢', '拾'];
+  for (const c of q2.filter(c => !firstChars.includes(c) && c !== q2[0])) {
+    assert.equal(lib.reserved.includes(c), false, `${c} (surname / place / capital numeral) is not a default new char`);
+  }
   assert.deepEqual(lib.candidates.slice(0, 2), ['酱', '酝'], 'the default order starts 酱 酝 尴 …');
   assert.ok(q2.includes('酱') && q2.includes('酝'), 'new chars are the first of the list: ' + S(q2));
   assert.equal(q2[q2.length - 1] !== '酱' && q2[q2.length - 1] !== '酝', true, 'the group does not end on a new char');

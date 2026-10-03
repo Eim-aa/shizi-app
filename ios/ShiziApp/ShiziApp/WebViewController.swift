@@ -13,7 +13,8 @@ import WebKit
 //   iOS→JS  bridge.js 在模块顶层同步定义的全局：shiziOpenReminderTarget、shiziBackupPicked、shiziBackupRejected、
 //           markBackupExported、shiziCardSaved、shiziReminderStatus、shiziShareFailed（P96 过渡，M6-6）、
 //           shiziAccessibilityStatus（P116：读屏 / 切换控制状态，pageReady 与状态变化时）、
-//           shiziContentSize（P130 / D29：系统字号档位与正文倍率，pageReady 与系统字号变化时）；
+//           shiziContentSize（P130 / D29：系统字号档位与正文倍率，pageReady 与系统字号变化时；P1-E6b：文档开始时另有
+//           WKUserScript 注入 window.__shiziInitialContentSize，冷启动首帧即目标字号）；
 //           事件 shizi-native-back / shizi-native-back-progress。
 // 面向用户的文字一律在 Web 侧（src/config/copy/）：原生不弹 alert、不 reload（导入桥只交付文本或拒绝原因）。
 
@@ -36,6 +37,8 @@ final class WebViewController: UIViewController {
 
     private let schemeHandler: LocalWebSchemeHandler
     var webView: WKWebView!
+    // 用户脚本（文档开始时注入的系统字号；DEBUG 冒烟标记）挂在这个控制器上；每次加载前重建（见「系统字号」一节）。
+    private var scriptController: WKUserContentController!
     var practiceBackGesture: UIScreenEdgePanGestureRecognizer!
     // 01 §7：页面通过 postMessage({type:'backGestureEnabled', value}) 告知能否开始边缘返回
     // （写字页整页期间、阻断页为 false）。每次新文档提交时复位为 true，由新页面重新告知。
@@ -85,9 +88,8 @@ final class WebViewController: UIViewController {
 
         let userContentController = WKUserContentController()
         userContentController.add(WeakScriptMessageHandler(delegate: self), name: "shiziNative")
-        #if DEBUG
-        installNativeDevUserScriptIfNeeded(userContentController)
-        #endif
+        installUserScripts(on: userContentController)
+        scriptController = userContentController
         configuration.userContentController = userContentController
 
         configuration.defaultWebpagePreferences.allowsContentJavaScript = true
@@ -179,6 +181,8 @@ final class WebViewController: UIViewController {
         pageReady = false
         reminderDispatchInFlight = false
         backGestureEnabled = true
+        // 首次加载、WebContent 进程被回收后的重载、阻断页「再试一次」都经这里：脚本按此刻的系统字号重建，不会重放旧档位。
+        refreshUserScripts()
         var components = URLComponents()
         components.scheme = ShiziWebResource.scheme
         components.host = ShiziWebResource.host
@@ -211,7 +215,7 @@ final class WebViewController: UIViewController {
         #endif
         dispatchPendingReminderTargetIfReady()
         sendAccessibilityStatus()
-        sendContentSize(view.traitCollection.preferredContentSizeCategory)
+        sendContentSize(currentContentSizeCategory)
         #if DEBUG
         runNativeSmokeIfNeeded()
         #endif
@@ -258,10 +262,45 @@ final class WebViewController: UIViewController {
     }
 
     @objc private func contentSizeDidChange(_ notification: Notification) {
-        guard pageReady else { return }
         // 通知到达时 traitCollection 可能还没更新，优先用通知里的新值。
-        let category = notification.userInfo?[UIContentSizeCategory.newValueUserInfoKey] as? UIContentSizeCategory
-        sendContentSize(category ?? view.traitCollection.preferredContentSizeCategory)
+        let category = (notification.userInfo?[UIContentSizeCategory.newValueUserInfoKey] as? UIContentSizeCategory) ?? currentContentSizeCategory
+        // 页面还没就绪（正在加载 / 重载）时也要更新注入脚本：这次加载的文档开始脚本已按旧档位跑过的话，pageReady 会再发一次当前档位。
+        refreshUserScripts(category: category)
+        guard pageReady else { return }
+        sendContentSize(category)
+    }
+
+    /// 此刻的系统字号档位。视图还没进窗口时（冷启动 loadView / viewDidLoad、进程回收后的重载）traitCollection 不可靠，改读 UIApplication
+    /// （它也反映控制中心「单个 App 文字大小」）。
+    var currentContentSizeCategory: UIContentSizeCategory {
+        let category = isViewLoaded && view.window != nil
+            ? view.traitCollection.preferredContentSizeCategory
+            : UIApplication.shared.preferredContentSizeCategory
+        return category == .unspecified ? .large : category
+    }
+
+    /// 文档开始时注入的脚本：只写一个 window 变量（载荷与 shiziContentSize 同形），页面 src/platform/text-size.js 在模块求值时读到就立即写 <html>。
+    /// 档位 → --k 的换算只在页面的 policy 里（原生不抄表）；脚本不碰 DOM，所以也不涉及页面 CSP 的 style-src。
+    static func initialContentSizeScript(_ category: UIContentSizeCategory) -> String? {
+        guard let literal = jsonLiteral(contentSizeName(category)) else { return nil }
+        let scale = String(format: "%.4f", contentSizeScale(category))
+        return "window.__shiziInitialContentSize = {category:\(literal),scale:\(scale)};"
+    }
+
+    /// 重建全部用户脚本（WKUserContentController 不能单独删一条）：先清空，再装 DEBUG 冒烟标记与当前字号。
+    private func installUserScripts(on controller: WKUserContentController, category: UIContentSizeCategory? = nil) {
+        controller.removeAllUserScripts()
+        #if DEBUG
+        installNativeDevUserScriptIfNeeded(controller)
+        #endif
+        if let source = Self.initialContentSizeScript(category ?? currentContentSizeCategory) {
+            controller.addUserScript(WKUserScript(source: source, injectionTime: .atDocumentStart, forMainFrameOnly: true))
+        }
+    }
+
+    private func refreshUserScripts(category: UIContentSizeCategory? = nil) {
+        guard let controller = scriptController else { return }
+        installUserScripts(on: controller, category: category)
     }
 
     /// 档位 → 页面认的短名（与 src/platform/text-size.js CONTENT_SIZE_CATEGORIES 一致）；未知档位（将来 iOS 新增）原样传 rawValue。

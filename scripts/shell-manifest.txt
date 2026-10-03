@@ -7321,6 +7321,7 @@ manifest.webmanifest
 src/app.js
 src/build-info.js
 src/config/base.css
+src/config/char-order.js
 src/config/copy/about.js
 src/config/copy/backup.js
 src/config/copy/common.js
@@ -7349,11 +7350,14 @@ src/core/images/layout.js
 src/core/images/pick.js
 src/core/images/render.js
 src/core/ink-math.js
+src/core/mix.js
+src/core/new-order.js
 src/core/query.js
 src/core/records.js
 src/core/schema.js
 src/core/session-start.js
 src/core/sessions.js
+src/core/special.js
 src/data/deck.js
 src/data/font-loader.js
 src/data/strokes.js

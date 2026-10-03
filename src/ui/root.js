@@ -41,6 +41,7 @@ import './screens/mine/annual.js'; // M4-2 年度报告（'annual'）：「我�
 import { BlockScreen, useBlockReason } from './screens/block/index.js'; // M5-6 R-B09：存储不可用 / 阻断 / 迁移失败时只画阻断页
 import { CorruptNotice } from './components/corrupt-notice.js'; // M5-6 坏值一次性顶部提示（01 §4，P55）
 import { getStore } from '../store/store.js';
+import { createRouteMemory, setRouteMemory } from './route-memory.js'; // 审查整改 F1：冷启动恢复离开时的页面栈
 
 export const PUSH_MS = 300;
 export const PUSH_EASING = 'cubic-bezier(.2,.7,.2,1)';
@@ -404,14 +405,21 @@ function Root({ router, win }) {
  */
 export async function mountRoot(container, { win = window, defaultTab = 'home' } = {}) {
   if (isTestHost(win)) await import('./screens/_demo/sub.js');
-  const router = createRouter({ history: win.history, isStandalone: () => isStandalone(win) });
+  // 审查整改 F1：history.state 为空（进程被杀后的全新会话）时由路由记忆给出离开时的页面栈（P108 过期、各页有效性、
+  // 阻断 / 坏数据 / 提醒深链优先，见 route-memory.js）；启动后订阅页面栈变化写回 shizi.v2.route。
+  const memory = createRouteMemory({ getStore, win, defaultTab });
+  const router = createRouter({ history: win.history, isStandalone: () => isStandalone(win), coldStart: () => memory.coldStart() });
   setActiveRouter(router);
   const detach = attachWindow(router, win);
   router.start({ defaultTab });
+  memory.attach(router);
+  setRouteMemory(memory);
   render(html`<${Root} router=${router} win=${win} />`, container);
   return {
     router,
     unmount() {
+      memory.detach();
+      setRouteMemory(null);
       detach();
       render(null, container);
       setActiveRouter(null);

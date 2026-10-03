@@ -15,8 +15,17 @@
 //   单个 setItem/removeItem 本身原子（断电后键要么是原值要么是新值，两者都合法），因此不写 txn——
 //   写 txn 要多占一份原值，正是配额吃紧时拿不出的空间。原值留在内存：读回不一致就用它恢复；恢复失败按 rollback 隔离并阻断。
 //
+// writeRoute(raw|null)（审查整改 F1）：**只供路由提示键 shizi.v2.route** 的单键写（冷启动恢复页面，ui/route-memory.js）。
+//   它不是业务数据、不是 store 域、不进备份：值丢了 / 旧了 / 坏了都只是「不恢复、落首页」，所以不写 txn、不读回核对、
+//   不回滚、不阻断、不预算回收；失败返回 {ok:false, kind} 且不抛错（静默）。单个 setItem 本身原子。
+//   不经 writeAll（writeAll 拒绝这个键），因此不改变「sessions 最后写」的提交顺序，也不会出现在 txn.keys 里——启动 repair()
+//   的回滚只动 txn 记下的键，路由提示保持离开时的值，由 route-memory 按修复后的状态再判能不能恢复。
+//   故障注入：不计入 interruptAfterWrite 的次数（中断后 halted 时照样拒写——进程已「死」）；failNextWrite 只有 matchKey
+//   明确指向它时才命中（免得一次导航把别的用例给 commit 准备的失败吃掉）。
+//
 // repair()（启动时调用一次）：未完成的 txn 回滚到写前（phase:'done' 视为写后，只删 txn）；
 //   然后逐个 shizi.v2.* 键做 JSON + 形状校验，坏值搬到 shizi.corrupt.<key>、原键移除。
+//   例外：路由提示 shizi.v2.route 坏了直接删（report.dropped），不隔离、不触发坏值提示——它不是用户数据。
 //
 // 故障注入（failNextWrite / interruptAfterWrite）只由 platform/test-hooks.js 在 isTestHost() 下调用；
 // 生产路径里它们永远是空配置。
@@ -143,9 +152,10 @@ export function createStorage(backend = null, { now = () => Date.now() } = {}) {
     return key === matchKey;
   }
 
-  function takeInjectedFailure(key) {
+  function takeInjectedFailure(key, { explicitOnly = false } = {}) {
     for (let i = 0; i < failQueue.length; i += 1) {
       const rule = failQueue[i];
+      if (explicitOnly && !rule.matchKey) continue;
       if (rule.remaining > 0 && matches(rule.matchKey, key)) {
         rule.remaining -= 1;
         if (rule.remaining <= 0) failQueue.splice(i, 1);
@@ -293,7 +303,7 @@ export function createStorage(backend = null, { now = () => Date.now() } = {}) {
       if (!Array.isArray(pair) || pair.length !== 2) throw new TypeError('writeAll entries must be [key, raw|null] pairs');
       const [key, raw] = pair;
       if (typeof key !== 'string' || !key) throw new TypeError('writeAll key must be a non-empty string');
-      if (key === KEYS.txn || key === KEYS.probe) throw new TypeError(`writeAll must not touch ${key}`);
+      if (key === KEYS.txn || key === KEYS.probe || key === KEYS.route) throw new TypeError(`writeAll must not touch ${key}`);
       if (raw !== null && typeof raw !== 'string') throw new TypeError(`writeAll value for ${key} must be a string or null`);
       byKey.set(key, raw);
     }
@@ -425,6 +435,32 @@ export function createStorage(backend = null, { now = () => Date.now() } = {}) {
   }
 
   /**
+   * 路由提示单键写（见文件头）。raw: JSON 字串或 null（删除）。永不抛错（参数类型错除外）：
+   * 返回 {ok:true, written:boolean} | {ok:false, kind:'quota'|'security'|'unknown'|'blocked'|'interrupted'}。
+   */
+  function writeRoute(raw) {
+    if (raw !== null && typeof raw !== 'string') throw new TypeError('writeRoute value must be a string or null');
+    if (halted) return { ok: false, kind: 'interrupted' };
+    if (blocked) return { ok: false, kind: 'blocked' };
+    const key = KEYS.route;
+    try {
+      if (rawGet(key) === raw) return { ok: true, written: false };
+      const injected = raw === null ? null : takeInjectedFailure(key, { explicitOnly: true });
+      if (injected) throw injected;
+      driverDepth += 1;
+      try {
+        if (raw === null) be().removeItem(key);
+        else be().setItem(key, raw);
+      } finally {
+        driverDepth -= 1;
+      }
+      return { ok: true, written: true };
+    } catch (error) {
+      return { ok: false, kind: classifyStorageError(error) };
+    }
+  }
+
+  /**
    * 启动修复。返回报告：
    *   txn: 'none' | 'rolled-back' | 'completed' | 'corrupt' | 'blocked'
    *   quarantined: [{key, reason}]   本次新隔离的坏值（提示标记据此只置一次）
@@ -432,7 +468,7 @@ export function createStorage(backend = null, { now = () => Date.now() } = {}) {
    *   unknown: [key]                 v2 命名空间里不认识的键（不动）
    */
   function repair() {
-    const report = { txn: 'none', quarantined: [], quarantineFailed: [], unknown: [], blocked: false };
+    const report = { txn: 'none', quarantined: [], quarantineFailed: [], unknown: [], dropped: [], blocked: false };
     const txnRaw = read(KEYS.txn);
     if (txnRaw !== null) {
       const parsed = parseAndValidate(KEYS.txn, txnRaw);
@@ -469,6 +505,16 @@ export function createStorage(backend = null, { now = () => Date.now() } = {}) {
       if (raw === null) continue;
       const parsed = parseAndValidate(key, raw);
       if (parsed.ok) continue;
+      if (key === KEYS.route) {
+        // 路由提示坏了：直接删，不隔离、不提示（审查整改 F1）。
+        try {
+          rawRemove(key);
+          report.dropped.push(key);
+        } catch (error) {
+          if (isInterrupted(error)) throw error;
+        }
+        continue;
+      }
       if (quarantine(key, raw)) report.quarantined.push({ key, reason: parsed.reason });
       else report.quarantineFailed.push({ key, reason: parsed.reason });
     }
@@ -516,6 +562,7 @@ export function createStorage(backend = null, { now = () => Date.now() } = {}) {
     listKeys,
     writeAll,
     writeOne,
+    writeRoute,
     repair,
     probe,
     removeKeys,

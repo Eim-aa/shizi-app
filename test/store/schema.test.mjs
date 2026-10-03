@@ -22,7 +22,7 @@ test('key coverage invariant: every store domain maps to a schema key, and 01 §
     assert.ok(spec, `domain ${domain} has no schema entry`);
   }
   // 01 §3.6：sessions/funnel/safety/txn 不进备份；其余 v2 键进备份。
-  assert.deepEqual([...BACKUP_EXCLUDED].sort(), ['funnel', 'safety', 'sessions', 'txn']);
+  assert.deepEqual([...BACKUP_EXCLUDED].sort(), ['funnel', 'route', 'safety', 'sessions', 'txn']);
   assert.equal(isBackupKey(KEYS.sessions), false);
   assert.equal(isBackupKey(KEYS.meta), true);
   assert.equal(isBackupKey(recordsKey('2026-09')), true);

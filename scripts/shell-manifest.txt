@@ -7395,6 +7395,7 @@ src/ui/dev/palette.js
 src/ui/dev/pointer-stats.js
 src/ui/images-entry.js
 src/ui/root.js
+src/ui/route-memory.js
 src/ui/router.js
 src/ui/screens/_demo/sub.js
 src/ui/screens/block/index.js

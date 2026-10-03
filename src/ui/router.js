@@ -9,6 +9,10 @@
 // - tab 根页用 replaceState 切换，不新增条目；tab 根上 back() 不调用 history.back()（不退出页面）。
 // - 遮罩（底部弹层、确认框）也占 history 条目，所以系统返回先关最上层遮罩；遮罩的组件与 props 只活在内存里，
 //   刷新或「前进」到一个已关闭的遮罩条目时，静默退回到它下面的条目。
+// - 冷启动（审查整改 F1）：进程被杀后 WKWebView / 新标签页是全新会话，history.state 为空。此时 start() 向注入的
+//   coldStart() 要一份存下的页面栈（ui/route-memory.js 从 shizi.v2.route 读、判过期与各页有效性），经同一 sanitize 后
+//   用 replaceState + pushState 逐层重建 history 条目（返回键照常按层退回），转场 {kind:'none', cause:'restore', cold:true}。
+//   遮罩只活在内存里，不进存下的栈。
 // - 本模块不碰 DOM：history 与计时器可注入，node:test 直接跑（test/ui/router.test.mjs）；
 //   浏览器接线见 attachWindow()，渲染与转场见 ui/root.js。
 
@@ -223,9 +227,28 @@ export function createRouter(options) {
     return [{ k: 's', id: nextId(), n: tabName, p: {} }];
   }
 
-  function setTransition(kind, { animate, cause, from, to }) {
+  function setTransition(kind, { animate, cause, from, to, cold = false }) {
     seq += 1;
-    transition = { seq, kind, animate, cause, from, to };
+    transition = cold ? { seq, kind, animate, cause, from, to, cold: true } : { seq, kind, animate, cause, from, to };
+  }
+
+  /**
+   * 冷启动：coldStart() 给出的 [{n, p}]（只含页面）→ 可渲染的栈。第一项必须是 tab 根，其余必须是已注册的子页面；
+   * 不认识的页面及其以上全部截掉（与 sanitize 同口径）。不合格返回 null。
+   */
+  function coldEntries(list) {
+    if (!Array.isArray(list) || !list.length) return null;
+    const first = list[0];
+    const firstDef = first && typeof first.n === 'string' ? getScreen(first.n) : null;
+    if (!firstDef || !firstDef.tab) return null;
+    const entries = [];
+    for (let i = 0; i < list.length; i += 1) {
+      const e = list[i];
+      const def = e && typeof e.n === 'string' ? getScreen(e.n) : null;
+      if (!def || (i > 0 && def.tab)) break;
+      entries.push({ k: 's', id: nextId(), n: e.n, p: e.p && typeof e.p === 'object' && !Array.isArray(e.p) ? e.p : {} });
+    }
+    return entries;
   }
 
   function applyState(st, { cause, silent }) {
@@ -299,6 +322,26 @@ export function createRouter(options) {
           return router;
         }
       }
+      // 冷启动（history.state 为空或不是本模块写的）：按存下的栈重建 history 条目。
+      let cold = null;
+      if (!restored && typeof options.coldStart === 'function') {
+        try {
+          cold = coldEntries(options.coldStart());
+        } catch (error) {
+          onError(error);
+          cold = null;
+        }
+      }
+      if (cold && cold.length) {
+        history.replaceState(makeState(cold.slice(0, 1), 0), '');
+        for (let i = 1; i < cold.length; i += 1) history.pushState(makeState(cold.slice(0, i + 1), i), '');
+        stack = cold;
+        depth = cold.length - 1;
+        navSeq += 1;
+        setTransition('none', { animate: false, cause: 'restore', from: null, to: topScreenOf(stack), cold: true });
+        emit();
+        return router;
+      }
       stack = freshRoot(defaultTab);
       depth = 0;
       history.replaceState(makeState(stack, 0), '');
@@ -321,6 +364,12 @@ export function createRouter(options) {
 
     canGoBack() {
       return depth > 0;
+    },
+
+    /** 等正在进行的 history 返回（popstate）落定后执行 fn；没有在等时立即执行（与 push 等操作同一队列）。 */
+    whenIdle(fn) {
+      if (typeof fn !== 'function') throw new TypeError('router.whenIdle: fn must be a function');
+      run(fn);
     },
 
     push(name, params = {}) {
@@ -762,6 +811,7 @@ export const nav = {
   replace: (name, params) => need().replace(name, params),
   back: opts => need().back(opts),
   switchTab: name => need().switchTab(name),
+  whenIdle: fn => need().whenIdle(fn),
   setParams: patch => need().setParams(patch),
   openOverlay: (component, props, opts) => need().openOverlay(component, props, opts),
   updateOverlay: (id, props) => need().updateOverlay(id, props),

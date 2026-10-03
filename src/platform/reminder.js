@@ -22,6 +22,8 @@
 //                                        旧 B 没写完时走 S02（session/index.js startPicked，与查字 / 单字详情同一入口）。
 //                                        冷启动时原生在页面加载完就调用：桥在 store / 界面就绪前把调用排队（只留最后一个 cardKey），
 //                                        startReminder 注册实现并 markReady 后回放。
+//                                        深链优先于冷启动恢复（审查整改 F1）：排着队时不恢复；就绪后才到（iOS 等 pageReady 再派发）
+//                                        且恢复后还没动过 → 先静默回首页再开组（ui/route-memory.js runDeepLink）。
 
 import { bridge as defaultBridge } from './bridge.js';
 import { now as envNow } from './env.js';
@@ -303,10 +305,11 @@ let running = null; // {controller, off, store}
  */
 export async function startReminder({ win = globalWin(), bridge: b = defaultBridge } = {}) {
   if (running) return running.controller;
-  const [{ getStore }, settings, session] = await Promise.all([
+  const [{ getStore }, settings, session, routeMemory] = await Promise.all([
     import('../store/store.js'),
     import('../ui/screens/mine/settings.js'),
     import('../ui/screens/session/index.js'),
+    import('../ui/route-memory.js'),
   ]);
   if (running) return running.controller;
   const controller = createReminder({
@@ -318,7 +321,8 @@ export async function startReminder({ win = globalWin(), bridge: b = defaultBrid
     controller.sync({ remind, force: true });
   });
   b.registerNativeHandler('shiziReminderStatus', payload => controller.receiveStatus(payload));
-  b.registerNativeHandler('shiziOpenReminderTarget', key => controller.openTarget(key));
+  // 审查整改 F1：深链压过冷启动恢复的页面栈（恢复后还没动过 → 先静默回首页再开组，见 ui/route-memory.js）。
+  b.registerNativeHandler('shiziOpenReminderTarget', key => routeMemory.runDeepLink(() => controller.openTarget(key)));
 
   let store = null;
   try {

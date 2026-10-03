@@ -8,7 +8,8 @@
 //                                   （ink: {'2026-09': {r2: Ink}}，落到 shizi.v2.ink.2026-09）；月份不是 YYYY-MM → {ok:false, kind:'shape'}
 //   getState()                      当前 store 状态（JSON 深拷贝；ink 同上按月分组）
 //   getInk(record)                  某条记录的墨迹（按 inkMonthOf/inkIdOf 定位），没有返回 null
-//   getRawKeys(prefix='shizi.')     localStorage 原始键值（K03 等「全部 v2 键深相等」断言用）
+//   getRawKeys(prefix='shizi.', {includeRoute?})  localStorage 原始键值（K03 等「全部 v2 键深相等」断言用）；
+//                                   默认不含路由提示 shizi.v2.route（审查整改 F1：它随导航而变，不是数据），includeRoute:true 才给
 //   getStatus()                     store.status（available/blocked/corruptNotice/usage/lastRepair）
 //   failNextWrite(n, {kind:'quota'|'generic'|'security', matchKey?})  接下来 n 次匹配的 setItem 抛错
 //   interruptAfterWrite(k)          第 k 次写后模拟进程中断（之后写全部失败且不回滚；刷新页面后 repair）
@@ -16,10 +17,14 @@
 //   reset()                         清故障、复原时钟、删除全部 shizi.* 键（保留 shizi.nativeSmoke.v1）、重载 store、清写日志
 //   getWriteLog()                   本页面对 localStorage 的每次写：{seq, op, key, bytes, via:'storage'|'direct', ok}
 //                                   via==='direct' 即绕过 storage.js 的写入（验收断言应为空）。
+//                                   不含路由提示键 shizi.v2.route（审查整改 F1：页面栈一变就写，不是业务数据；各 spec「这一步
+//                                   不写存储」的断言针对业务数据）——它的写入单独记在 getRouteWriteLog()，同样带 via。
+//   getRouteWriteLog()              shizi.v2.route 的写入（同上格式）。
+//   getRoutePlan()                  本次启动的冷启动判定 {reason, restored}（ui/route-memory.js；不是冷启动时 reason 照样给出）
 
 import { isTestHost, now, setClockOverride } from './env.js';
 import { isDriverActive } from '../store/storage.js';
-import { NATIVE_SMOKE_KEY } from '../core/schema.js';
+import { KEYS, NATIVE_SMOKE_KEY } from '../core/schema.js';
 
 const LOG_CAP = 2000;
 const PATCHED = typeof Symbol === 'function' ? Symbol.for('shizi.testHooks.patched') : '__shiziTestPatched';
@@ -32,21 +37,22 @@ function plain(value) {
  * 在 backend 的原型上包一层 setItem/removeItem/clear，记录只针对 backend 这个实例的写。
  * 同一原型只包一次；日志写进 sink（数组，超过上限丢最旧）。
  */
-function installWriteLog(backend, sink) {
+function installWriteLog(backend, sink, routeSink = []) {
   const proto = Object.getPrototypeOf(backend);
   if (!proto) return;
   const state = { seq: 0 };
   if (proto[PATCHED]) {
-    proto[PATCHED].sinks.set(backend, { sink, state });
+    proto[PATCHED].sinks.set(backend, { sink, routeSink, state });
     return;
   }
-  const sinks = new Map([[backend, { sink, state }]]);
+  const sinks = new Map([[backend, { sink, routeSink, state }]]);
   const record = (target, op, key, bytes, ok) => {
     const entry = sinks.get(target);
     if (!entry) return;
     entry.state.seq += 1;
-    entry.sink.push({ seq: entry.state.seq, op, key, bytes, via: isDriverActive() ? 'storage' : 'direct', ok });
-    if (entry.sink.length > LOG_CAP) entry.sink.splice(0, entry.sink.length - LOG_CAP);
+    const out = key === KEYS.route ? entry.routeSink : entry.sink;
+    out.push({ seq: entry.state.seq, op, key, bytes, via: isDriverActive() ? 'storage' : 'direct', ok });
+    if (out.length > LOG_CAP) out.splice(0, out.length - LOG_CAP);
   };
   const origSet = proto.setItem;
   const origRemove = proto.removeItem;
@@ -88,13 +94,14 @@ function installWriteLog(backend, sink) {
 
 function createTestApi({ storage, getStore }) {
   const log = [];
+  const routeLog = [];
   let backend = null;
   try {
     backend = storage.backend;
   } catch (error) {
     backend = null;
   }
-  if (backend) installWriteLog(backend, log);
+  if (backend) installWriteLog(backend, log, routeLog);
 
   const store = () => getStore();
 
@@ -109,9 +116,9 @@ function createTestApi({ storage, getStore }) {
       const ink = store().getInk(record);
       return ink === null || ink === undefined ? null : plain(ink);
     },
-    getRawKeys(prefix = 'shizi.') {
+    getRawKeys(prefix = 'shizi.', { includeRoute = false } = {}) {
       const out = {};
-      for (const [key, raw] of storage.readAll(prefix)) out[key] = raw;
+      for (const [key, raw] of storage.readAll(prefix)) if (includeRoute || key !== KEYS.route) out[key] = raw;
       return out;
     },
     getStatus() {
@@ -139,10 +146,19 @@ function createTestApi({ storage, getStore }) {
       storage.removeKeys(keys);
       const report = store().reload();
       log.length = 0;
+      routeLog.length = 0;
       return { ok: true, removed: keys.length, available: report.available };
     },
     getWriteLog() {
       return log.map(entry => Object.assign({}, entry));
+    },
+    getRouteWriteLog() {
+      return routeLog.map(entry => Object.assign({}, entry));
+    },
+    async getRoutePlan() {
+      const { getRouteMemory } = await import('../ui/route-memory.js');
+      const memory = getRouteMemory();
+      return memory ? memory.lastPlan() : null;
     },
   };
 }

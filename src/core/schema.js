@@ -37,6 +37,11 @@ export const KEYS = Object.freeze({
   funnel: 'shizi.v2.funnel',
   safety: 'shizi.v2.safety',
   txn: 'shizi.v2.txn',
+  /**
+   * 审查整改 F1：冷启动恢复用的路由提示 {v, at, stack:[{n, p}]}（与 history.state 同一份栈、同样经 router sanitize）。
+   * 不是业务数据、不是 store 域：只经 storage.writeRoute 单键写（不进 txn、不进备份），读回由 ui/route-memory.js 严格校验。
+   */
+  route: 'shizi.v2.route',
   /** storage.probe() 的探针键；repair() 顺手清掉残留。 */
   probe: 'shizi.v2.probe',
 });
@@ -554,6 +559,8 @@ export const KEY_SPECS = Object.freeze([
   { id: 'funnel', key: KEYS.funnel, domain: 'funnel', validate: x => (isPlainObject(x) ? null : fail('funnel', 'not an object')) },
   { id: 'safety', key: KEYS.safety, domain: 'safety', validate: x => validateSafety(x, 'safety') },
   { id: 'txn', key: KEYS.txn, domain: null, validate: x => validateTxn(x, 'txn') },
+  // 审查整改 F1：路由提示。形状层只要求对象（坏 JSON 才隔离）；内容由 ui/route-memory.parseRoute 严格校验，不合格只是不恢复。
+  { id: 'route', key: KEYS.route, domain: null, validate: x => (isPlainObject(x) ? null : fail('route', 'not an object')) },
 ]);
 
 /** 进备份的键（显式清单，01 §3.6「进备份：是」）。 */
@@ -562,7 +569,7 @@ export const BACKUP_WHITELIST = Object.freeze([
 ]);
 
 /** 不进备份的键（显式清单，01 §3.6「进备份：否」）。shizi.corrupt.* 与 nativeSmoke 不在 v2 命名空间，另行排除。 */
-export const BACKUP_EXCLUDED = Object.freeze(['sessions', 'funnel', 'safety', 'txn']);
+export const BACKUP_EXCLUDED = Object.freeze(['sessions', 'funnel', 'safety', 'txn', 'route']);
 
 const SPEC_BY_ID = new Map(KEY_SPECS.map(spec => [spec.id, spec]));
 

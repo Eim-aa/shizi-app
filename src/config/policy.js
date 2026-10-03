@@ -209,6 +209,15 @@ export const darkBrightenStep = false;
 // P59 data-large 时的字号倍率 --k（原型紧凑版 1.3）；不跟随系统 Dynamic Type（映射待定）。现行值在 tokens.css :root[data-large] 的 --k。
 export const largeTextScale = 1.3;
 
+// ---- 冷启动恢复（审查整改 F1）----
+// P108 进程被杀 / 冷启动后恢复离开时的页面栈（R-W13 写字页阶段、P32 备份页撤销）：离开多久以内才恢复。
+// 离开时刻 = 最后一次页面变化或切到后台（visibilitychange hidden / pagehide）。src/ui/route-memory.js 读取（可注入）。
+export const routeRestore = Object.freeze({
+  enabled: true, // P108 冷启动是否恢复离开时的页面（false = 一律落首页，旧行为）
+  maxAgeMinutes: 360, // P108 离开超过这么久（分钟）不恢复，落首页
+  crossDay: false, // P108 离开时与现在不是同一本地日（跨过 0 点）时是否仍恢复：过渡不恢复
+});
+
 // ---- 平台与开发 ----
 // P54 返回手势实现层：单 WebView + 原生识别器驱动跟手转场（工程近似）
 export const backGesture = 'single-webview';

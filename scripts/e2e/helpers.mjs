@@ -1,7 +1,11 @@
 // e2e 共用辅助（不是 spec：run.mjs 只加载 *.spec.js）。M1-1 起所有写字页相关 spec 用这里的等待与造数。
 //
 //   waitNavIdle(page)              等 .sz-app[data-nav-anim=idle] 再等 450ms（新页面 / 新状态后 0.4s 按钮不响应，01 §6.6）
-//   bootTestHost(page, baseURL)    打开 /?test=1（测试钩子 window.__shiziTest 只在测试宿主挂载，01 §11）
+//   bootTestHost(page, baseURL)    打开 /?test=1（测试钩子 window.__shiziTest 只在测试宿主挂载，01 §11）；
+//                                  默认先 freshRoute(page)（{coldRoute:true} 不装），见下
+//   freshRoute(page)               审查整改 F1：给这个 page 装一次 init script——新导航（history.state 为空）前删掉路由提示
+//                                  shizi.v2.route，于是 goto 照旧落首页（各 spec 写于冷启动恢复之前，「新开页面 = 首页」是前提）；
+//                                  刷新（history.state 在）不受影响。冷启动恢复本身由 64-cold-start 用全新 context 覆盖。
 //   resetStore(page)               __shiziTest.reset()：清全部 shizi.* 键、复原时钟、清写日志
 //   makeSession({...})             造一个 01 §3.3 形状的会话对象（纯函数）
 //   seedSession(page, {...})       reset（可选）+ seed 一个会话到 sessions[slot]；返回 {ok, state}
@@ -26,7 +30,23 @@ export async function waitNavIdle(page, { settleMs = PRESS_SETTLE_MS } = {}) {
   await page.waitForTimeout(settleMs);
 }
 
-export async function bootTestHost(page, baseURL, { query = '' } = {}) {
+export const ROUTE_KEY = 'shizi.v2.route';
+const freshRoutePages = new WeakSet();
+
+export async function freshRoute(page) {
+  if (freshRoutePages.has(page)) return;
+  freshRoutePages.add(page);
+  await page.addInitScript(key => {
+    try {
+      if (!window.history.state) window.localStorage.removeItem(key);
+    } catch (error) {
+      // about:blank 等无存储的页面
+    }
+  }, ROUTE_KEY);
+}
+
+export async function bootTestHost(page, baseURL, { query = '', coldRoute = false } = {}) {
+  if (!coldRoute) await freshRoute(page);
   await page.goto(`${baseURL}/?test=1${query ? `&${query}` : ''}`);
   await page.waitForSelector('.sz-app');
   await page.waitForFunction(() => typeof window.__shiziTest === 'object');

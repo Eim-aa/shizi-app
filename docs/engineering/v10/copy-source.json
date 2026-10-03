@@ -126,7 +126,8 @@
     "P104": "性能工程值：scripts/perf/README.md 与 compare.js NEAR_SCREENS，知悉项",
     "P105": "API 下限告警（cq 单位、:focus-visible）：scripts/verify_api_floor.mjs 的 warn 清单，产品定最低版本",
     "P106": "文案审计豁免：scripts/verify_copy.mjs 的 exportWordAllow / numeralAllow / HARDCODE_ALLOW，文案裁定项",
-    "P107": "边开发边改清单未完成项：docs/engineering/v10/acceptance/checklist-M6.md 标「未做」的条目，产品给定"
+    "P107": "边开发边改清单未完成项：docs/engineering/v10/acceptance/checklist-M6.md 标「未做」的条目，产品给定",
+    "P108": "冷启动恢复离开时的页面（审查整改 F1）：运行时键 policy.routeRestore（enabled / maxAgeMinutes / crossDay），实现在 src/ui/route-memory.js 与 router.js coldStart；无界面文案"
   },
   "noCopy": [
     "R-H08",

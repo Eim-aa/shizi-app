@@ -428,3 +428,39 @@ test('备份页文案小工具（mine/backup.js）：撤销底栏两行、丢失
     { kind: 'day', day: '2026-09-01', text: '上次备份 9 月 1 日 ›' });
   assert.deepEqual(Object.values(ui.NOTE_KEYS), ['R-B04.protectFailed', 'R-B06.cancelled', 'R-B06.notBackup', 'R-B06.restoreFailed']);
 });
+
+// ---------------------------------------------------------------- D27 本人笔迹（阶段 1 P1-E3）
+
+test('D27：备份信封含墨迹（每字第一次 + 最近一次，跨月键）；导出 → 新机恢复逐字相等；恢复旧备份 → 撤销，墨迹往返不丢', async () => {
+  const { encodeInk, buildStroke, decodeInk } = await import('../../src/core/ink-math.js');
+  const { flatInk } = await import('../store/helpers.mjs');
+  const stroke = (y, t0) => buildStroke([{ x: 60, y, t: t0 }, { x: 170, y: y + 2, t: t0 + 60 }, { x: 280, y: y + 9, t: t0 + 120 }], { final: true });
+  const inkA = encodeInk([stroke(120, 0), stroke(200, 500)]);
+  const inkB = encodeInk([stroke(90, 0)]);
+  // 永：r1（7 月，第一次）+ r3（9 月，最近一次）；和 r2、字 r4 各一次
+  const withInk = { ...currentState(), ink: { '2026-07': { r1: inkA, r2: inkB }, '2026-09': { r3: inkB, r4: inkA } } };
+  const { store, backend } = makeStore(withInk);
+  // 1. 导出文件里有每个 ink 月键，值 = 落盘字串
+  const file = buildBackupV2(store.getState(), { now: NOW });
+  for (const month of ['2026-07', '2026-09']) {
+    assert.equal(file.data[`shizi.v2.ink.${month}`], backend.getItem(`shizi.v2.ink.${month}`), `ink ${month} in the envelope`);
+  }
+  const report = inspectBackup(serializeBackup(file));
+  assert.equal(report.ok, true);
+  // 2. 换到一台空的机器上恢复：墨迹逐字相等、可解码
+  const fresh = makeStore();
+  assert.equal(restoreFromBackup(fresh.store, report, { now: NOW }).ok, true);
+  for (const month of ['2026-07', '2026-09']) {
+    assert.equal(fresh.backend.getItem(`shizi.v2.ink.${month}`), backend.getItem(`shizi.v2.ink.${month}`), `ink ${month} restored byte-equal`);
+  }
+  assert.deepEqual(decodeInk(fresh.store.getInk(rec(1, '永', '2026-07-03'))), decodeInk(inkA), 'first-time ink of 永 decodes after restore');
+  assert.deepEqual(decodeInk(fresh.store.getInk(rec(3, '永', '2026-09-02'))), decodeInk(inkB), 'latest ink of 永 decodes after restore');
+  // 3. 在原机上恢复一份没有墨迹的旧备份 → 墨迹随替换清掉；撤销 → 全部墨迹键逐字回来
+  const before = v2Raw(backend);
+  const old = inspectBackup(serializeBackup(buildBackupV2(oldBackupState(), { now: ms('2026-09-01', 20) })));
+  assert.equal(restoreFromBackup(store, old, { now: NOW }).ok, true);
+  assert.deepEqual(flatInk(store.getState().ink), {}, 'backup had no ink → none after replace');
+  assert.ok(Object.keys(safetyOf(store.getState()).payload).some(k => k.startsWith('shizi.v2.ink.')), 'safety copy carries the ink keys');
+  assert.equal(undoFromSafety(store).ok, true);
+  assert.deepEqual(v2Raw(backend), before, 'undo restores every key, ink included, byte-equal');
+});

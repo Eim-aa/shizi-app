@@ -163,3 +163,56 @@ test('fsrs: overdueDays / isDue / retrievability', () => {
   const r = retrievability(entry, at(TODAY));
   assert.ok(r > 0 && r < 1, String(r));
 });
+
+// ---------------------------------------------------------------- 阶段 1 P1-E4：D41 首见写对 / 热身字写对记 Easy（P126 / P127），带提示仍按 P34
+
+function policy0() {
+  return { ratingWithHint: 'Good', ratingFirstCorrect: 'Easy', warmup: { easyOnCorrect: true } };
+}
+
+test('fsrs D41: a new char judged correct on its first judgment is rated Easy; hinted correct still follows P34', async () => {
+  const first = reviewCard(null, { judgment: 'correct', at: at(TODAY, 20), cardKey: 'base:亦' });
+  assert.equal(first.rating, 'Easy', 'P127: first judgment, no hint → Easy');
+  const hinted = reviewCard(null, { judgment: 'correct', at: at(TODAY, 20), help: { hints: 1 }, cardKey: 'base:亦' });
+  assert.equal(hinted.rating, 'Good', 'P34 wins when a hint was used');
+  const hintedHard = reviewCard(null, { judgment: 'correct', at: at(TODAY, 20), help: { hints: 2 }, cardKey: 'base:亦' }, { policy: await policyWith({ ratingWithHint: 'Hard' }) });
+  assert.equal(hintedHard.rating, 'Hard');
+  assert.equal(reviewCard(null, { judgment: 'wrong', at: at(TODAY, 20), cardKey: 'base:亦' }).rating, 'Again');
+  // 第二次判断不再是「第一次」：写对记 Good
+  const second = reviewCard(first.card, { judgment: 'correct', at: at(addDays(TODAY, 8), 20), cardKey: 'base:亦' });
+  assert.equal(second.rating, 'Good');
+  // Easy 的初始稳定度远大于 Good：首次写对的 due 更晚
+  const asGood = reviewCard(null, { judgment: 'correct', at: at(TODAY, 20) }, { policy: await policyWith({ ratingFirstCorrect: 'Good' }) });
+  assert.equal(asGood.rating, 'Good');
+  assert.ok(first.card.stability > asGood.card.stability * 2, `${first.card.stability} vs ${asGood.card.stability}`);
+  assert.ok(first.due > asGood.due, `${first.due} vs ${asGood.due}`);
+  assert.throws(() => ratingFor('correct', { hints: 0 }, { ...policy0(), ratingFirstCorrect: 'Hard' }, { first: true }), /ratingFirstCorrect/);
+});
+
+test('fsrs D41: first-time-wrong then later correct is Good (the first judgment was the wrong one); a correction replays the Easy rule', () => {
+  const r1 = rec(1, '亦', 'judged', 'wrong', '2026-09-01', { at: at('2026-09-01', 20) });
+  const r2 = rec(2, '亦', 'judged', 'correct', '2026-09-03', { at: at('2026-09-03', 20) });
+  const e1 = applyJudgment(undefined, r1);
+  assert.equal(reviewCard(e1.entry.fsrs, r2).rating, 'Good');
+  // 结果页「改为写对」：重放从 fsrsBefore（空卡）起，第一条判断现在是写对 → Easy，且与「一开始就判写对」同一结果
+  const corrected = correctRecord(r1, 'correct', at('2026-09-01', 21));
+  const replayed = replay(e1.fsrsBefore, [corrected]);
+  const direct = applyJudgment(undefined, { ...r1, judgment: 'correct' }).entry;
+  assert.deepEqual(replayed, direct);
+  assert.equal(reviewCard(e1.fsrsBefore, corrected).rating, 'Easy');
+});
+
+test('fsrs D41: warm-up characters are rated Easy when correct without a hint (P126), on first and later reviews; hints fall back to P34', () => {
+  // 春：热身字（src/config/char-order.js warmup）；亦：普通字
+  const warmFirst = applyJudgment(undefined, rec(1, '春', 'judged', 'correct', '2026-09-01', { at: at('2026-09-01', 20) }));
+  const warmSecond = reviewCard(warmFirst.entry.fsrs, rec(2, '春', 'judged', 'correct', '2026-09-20', { at: at('2026-09-20', 20) }));
+  assert.equal(warmSecond.rating, 'Easy', 'later correct reviews of a warm-up char are Easy too');
+  const plainFirst = applyJudgment(undefined, rec(3, '亦', 'judged', 'correct', '2026-09-01', { at: at('2026-09-01', 20) }));
+  const plainSecond = reviewCard(plainFirst.entry.fsrs, rec(4, '亦', 'judged', 'correct', '2026-09-20', { at: at('2026-09-20', 20) }));
+  assert.equal(plainSecond.rating, 'Good');
+  const warmHinted = reviewCard(warmFirst.entry.fsrs, rec(5, '春', 'judged', 'correct', '2026-09-20', { at: at('2026-09-20', 20), hints: 1 }));
+  assert.equal(warmHinted.rating, 'Good', 'a hint means it was not easy');
+  const warmWrong = reviewCard(warmFirst.entry.fsrs, rec(6, '春', 'judged', 'wrong', '2026-09-20', { at: at('2026-09-20', 20) }));
+  assert.equal(warmWrong.rating, 'Again');
+  assert.equal(reviewCard(warmFirst.entry.fsrs, { judgment: 'correct', at: at('2026-09-20', 20), cardKey: 'base:春' }, { warmup: false }).rating, 'Good', 'opts.warmup overrides');
+});

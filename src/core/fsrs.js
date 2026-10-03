@@ -1,6 +1,8 @@
 // FSRS 封装（ts-fsrs 5.2.0 / FSRS-6，vendor/fsrs6.min.js 的 UMD 全局 `FSRS`）。
-// 01-架构设计 §5：request_retention 0.90、maximum_interval 365、enable_fuzz true；写对 → Good，写错 → Again；
-// 带提示写对评什么级读 policy.ratingWithHint（P34）；看过答案、跳过不评级、不改 due。
+// 01-架构设计 §5：request_retention 0.90、maximum_interval 365、enable_fuzz true；写错 → Again；写对 → Good，但有两处记 Easy（D41）：
+//   ① 新字第一次判断就写对（无提示）→ policy.ratingFirstCorrect（P127，Easy）；② 热身字写对（无提示）→ Easy（policy.warmup.easyOnCorrect，P126）。
+// 带提示写对一律读 policy.ratingWithHint（P34，Good）——提示说明不是「一下子就写出来」，所以首次写对带提示时不升 Easy。
+// 看过答案、跳过不评级、不改 due。
 // Again 后直接采用 FSRS 返回的 due（至少次日），不再悬置。
 //
 // 确定性：ts-fsrs 的 fuzz 种子由 review 时间与卡状态决定，同一 records 序列重放得到同一 due。
@@ -9,7 +11,9 @@
 // 库的获取：默认读 `globalThis.FSRS`；测试可用 setFSRSLibrary(lib) 注入，或在各函数 opts.lib 传入。
 
 import * as defaultPolicy from '../config/policy.js';
+import { CHAR_ORDER } from '../config/char-order.js';
 import { addDays, localDay, diffDays, isValidDay } from './dates.js';
+import { charOfCardKey } from './records.js';
 
 export const FSRS_CONFIG = Object.freeze({
   schedulerVersion: 'ts-fsrs 5.2.0 / FSRS-6.0',
@@ -20,6 +24,14 @@ export const FSRS_CONFIG = Object.freeze({
 });
 
 const RATINGS = Object.freeze(['Again', 'Hard', 'Good']);
+const FIRST_RATINGS = Object.freeze(['Good', 'Easy']);
+
+let warmupSet = null;
+function isWarmupKey(cardKey) {
+  if (!warmupSet) warmupSet = new Set(CHAR_ORDER.warmup);
+  const ch = charOfCardKey(cardKey);
+  return !!ch && warmupSet.has(ch);
+}
 
 let injectedLibrary = null;
 const engineCache = new WeakMap();
@@ -122,29 +134,46 @@ export function emptyCard(at, opts = {}) {
 }
 
 /**
- * 一次判断的评级（P34）。judgment: 'correct' | 'wrong'；help.hints > 0 且写对时用 policy.ratingWithHint。
+ * 一次判断的评级。judgment: 'correct' | 'wrong'；help.hints > 0 且写对时用 policy.ratingWithHint（P34）。
+ * 无提示写对时（D41）：ctx.warmup（热身字，P126 easyOnCorrect）或 ctx.first（新字第一次判断，P127 ratingFirstCorrect）→ Easy，否则 Good。
+ * @param {{first?:boolean, warmup?:boolean}} [ctx]
  */
-export function ratingFor(judgment, help, policy = defaultPolicy) {
+export function ratingFor(judgment, help, policy = defaultPolicy, ctx = null) {
   if (judgment === 'wrong') return 'Again';
   if (judgment !== 'correct') throw new RangeError('judgment must be correct or wrong');
   const hints = help && Number(help.hints) > 0 ? Number(help.hints) : 0;
-  if (hints === 0) return 'Good';
+  if (hints === 0) {
+    if (ctx && ctx.warmup && policy.warmup && policy.warmup.easyOnCorrect) return 'Easy';
+    if (ctx && ctx.first) {
+      const first = policy.ratingFirstCorrect === undefined ? 'Good' : policy.ratingFirstCorrect;
+      if (!FIRST_RATINGS.includes(first)) throw new RangeError('unsupported policy.ratingFirstCorrect: ' + String(first));
+      return first;
+    }
+    return 'Good';
+  }
   const rating = policy.ratingWithHint;
   if (!RATINGS.includes(rating)) throw new RangeError('unsupported policy.ratingWithHint: ' + String(rating));
   return rating;
 }
 
+/** 这张卡是不是「第一次判断」：没有卡，或卡还没有被评过级（reps 0、新卡状态）。 */
+function isFirstReview(before) {
+  return !before || (Number(before.reps) || 0) === 0;
+}
+
 /**
  * 对一张卡做一次 review。
  * @param {object|null} before CompactCard；null = 新卡（在 at 时刻创建）
- * @param {{judgment:'correct'|'wrong', at:number, help?:object}} review
+ * @param {{judgment:'correct'|'wrong', at:number, help?:object, cardKey?:string}} review
+ *   cardKey 给了才能判断是不是热身字（热身字清单是数据，src/config/char-order.js）；opts.warmup 可显式覆盖（测试 / 注入）。
  * @returns {{card: object, due: string, rating: string}} due = max(明天, FSRS due 的本地日)
  */
 export function reviewCard(before, review, opts = {}) {
   const lib = getFSRSLibrary(opts.lib);
   const policy = opts.policy || defaultPolicy;
   const at = toMs(review.at);
-  const rating = ratingFor(review.judgment, review.help, policy);
+  const warmup = opts.warmup !== undefined ? !!opts.warmup : !!review.cardKey && isWarmupKey(review.cardKey);
+  const rating = ratingFor(review.judgment, review.help, policy, { first: isFirstReview(before), warmup });
   const start = before ? toLibraryCard(before) : lib.createEmptyCard(at);
   const result = engineFor(lib).next(start, at, lib.Rating[rating]);
   const card = serializeCard(result.card);

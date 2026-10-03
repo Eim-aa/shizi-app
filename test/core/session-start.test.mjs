@@ -135,7 +135,7 @@ test('startFirst ignores the deck and does not expire a first session across day
 
 // ---------------------------------------------------------------- 今天的练习
 
-test('daily: due first (overdue desc, stability asc), then new characters in library order; group size 5', () => {
+test('daily: due ordered overdue desc / stability asc, new characters in library order, interleaved review-new (D41); group size 5', () => {
   const env = makeEnv();
   seed(env, {
     records: [
@@ -157,8 +157,11 @@ test('daily: due first (overdue desc, stability asc), then new characters in lib
   assert.equal(r.started, true);
   const s = env.store.getState().sessions.A;
   assert.equal(s.kind, 'daily');
-  assert.deepEqual(s.queue, ['base:子', 'base:丑', 'base:寅', 'base:甲', 'base:乙']);
+  // D41：3 个到期 → 积压天数 p = 3 / 4 = 0.75，落在「2 新」档；组内复、新交错（复 新 复 新 复），组尾是好写的复习字。
+  // 旧断言 [子 丑 寅 甲 乙]（到期字全排在新字前）不再成立：到期字内部顺序（逾期降序、稳定度升序）与新字顺序不变，只是交错了。
+  assert.deepEqual(s.queue, ['base:子', 'base:甲', 'base:丑', 'base:乙', 'base:寅']);
   assert.deepEqual(r.plan.dueKeys, ['base:子', 'base:丑', 'base:寅']);
+  assert.deepEqual(r.plan.newKeys, ['base:甲', 'base:乙']);
   assert.equal(s.queue.length, policy.groupSize);
   assert.deepEqual(env.commits, ['session:start-daily']);
 });
@@ -454,4 +457,33 @@ test('S02 body names the unwritten characters (R-H05)', async () => {
   assert.equal(quoteChars(['鲜', '境']), '「鲜」「境」');
   assert.equal(s02Body(['鲜', '境']), '上一组还有「鲜」「境」没写。');
   assert.equal(s02Body(['鲜']), '上一组还有「鲜」没写。');
+});
+
+// ---------------------------------------------------------------- 阶段 1 P1-E4：D38 首练之后的第一组、D41 热身字、D40 特别组
+
+test('after the first practice (尴 赢 拾) the first daily group is 1 warm-up char at the head + 4 new chars, nothing to review yet (D28 / D41)', () => {
+  const env = makeEnv();
+  const day0 = TODAY;
+  const records = ['尴', '赢', '拾'].map((c, i) => rec(i + 1, c, 'judged', i === 0 ? 'wrong' : 'correct', day0, { sessionId: 's1' }));
+  seed(env, { records, schedTable: Object.fromEntries(['尴', '赢', '拾'].map(c => ['base:' + c, sched('2026-09-25')])) });
+  const deck = {
+    newCandidates: () => ['base:酱', 'base:酝', 'base:尴', 'base:嚷', 'base:痒', 'base:酿', 'base:罐'],
+    warmupCandidates: () => ['base:春', 'base:窗'],
+    practicable: () => true,
+    currentLibraryId: () => 'core3500',
+  };
+  const plan = planDaily(env.store.getState(), { today: TODAY, deck });
+  assert.deepEqual(plan.queue, ['base:春', 'base:酱', 'base:酝', 'base:嚷', 'base:痒'], 'warm-up first; 尴 is already written so it is not new');
+  assert.deepEqual(plan.warmKeys, ['base:春']);
+  assert.equal(plan.dueKeys.length, 0);
+  assert.equal(plan.special, null);
+  // 第 2 天：三个首练字到期（尴写错、赢拾写对 Good/Easy 都是明天起）→ 复习 + 新字混合，没有「的 一 是」
+  const day2 = '2026-09-25';
+  const env2 = makeEnv(at(day2, 20));
+  seed(env2, { records, schedTable: Object.fromEntries(['尴', '赢', '拾'].map(c => ['base:' + c, sched('2026-09-25')])) });
+  const plan2 = planDaily(env2.store.getState(), { today: day2, deck });
+  assert.equal(plan2.dueKeys.length, 3);
+  assert.ok(plan2.newKeys.length >= 1 && plan2.newKeys.length <= 3);
+  assert.equal(plan2.queue.length, 5);
+  assert.equal(plan2.queue.slice(0, 1)[0], 'base:春', 'the warm-up char is still allowed within 7 days');
 });

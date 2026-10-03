@@ -61,13 +61,45 @@ export const imageOverflow = 'pending';
 // ---- 调度与选字 ----
 // P03 第二次起每组字数
 export const groupSize = 5;
-// P03 每日到期复习上限（练完记账）
+// P03 每日到期复习上限（练完记账；D41 之后只作「一天写很多组」时的保险：每组复习最多 groupSize 个，要写 7 组以上才会碰到；
+// 到期不够时的「提前复习」补位不计入此上限，见 groupMix.earlyCountsTowardCap）
 export const dailyReviewCap = 30;
+// P125 每组复习与新字的配比（已决定 D41「保底一新 + 积压阀」，规则 D；依据 docs/engineering/v10/phase1/复习新字配比-研究与推荐.md §4.3 / §6.1，
+// 参考实现 docs/engineering/v10/phase1/tools/simulate-mix.mjs RULES.D；阈值以 groupSize=5 为前提，改组大小须重跑模拟）。
+// 积压天数 p = 到期未写数 ÷（reviewsPerGroupForPressure × 近 pressureWindowDays 天平均每天组数，至少 1）；全部输入从现有 records / sched 推出，不新增存储。
+export const groupMix = Object.freeze({
+  newMax: 3, // P125 每组新字最多 3 个（到期与提前复习都不够补位时才补到第 4、5 个，例如首练后的第一组）
+  threeNewBelowDays: 0.5, // P125 p < 0.5 且最近新字写对率 ≥ threeNewMinAccuracy → 3 个新字
+  threeNewMinAccuracy: 0.6, // P125 给第 3 个新字所需的最近新字写对率
+  twoNewBelowDays: 1.5, // P125 p < 1.5 → 2 个新字
+  valveDays: 4, // P125 p < 4 → 1 个新字；p ≥ 4（积压阀）→ 上一组有新字则本组全复习、否则 1 个新字（不会连续两组全复习）
+  reviewsPerGroupForPressure: 4, // P125 积压折算：每组按 4 个复习算几天能清掉
+  pressureWindowDays: 7, // P125 「近几天平均每天组数」的窗口（不含今天），至少按 1 组算
+  recentNewWindow: 10, // P125 「最近新字写对率」取最近几个新字的首次判断
+  newAccuracyPrior: 0.5, // P125 新字写对率的先验（缺数据时平滑）
+  allAccuracyPrior: 0.7, // P125 全部判断写对率的先验（热身字门控用）
+  accuracyPriorWeight: 2, // P125 先验按几个判断的权重平滑
+  returnAfterDays: 7, // P125 离开 ≥ 此天数后回来的第一组，积压阀不判「全复习」，照常给 1 个新字
+  earlyReviewFill: true, // P125 到期不够时用最快到期的字提前复习补位，再不足才补新字
+  earlyCountsTowardCap: false, // P125 提前复习是否计入 dailyReviewCap（P03）：不计入
+});
+// P126 热身字（D28 的细化，已决定 D41）：每组至多 1 个高频字、放组首；只在首练后 firstDays 天内，或最近 window 次判断写对率 < accuracyBelow 时放，
+// 占一个新字位（新字位 ≥ 2 时）；热身字写对（无提示）一律记 Easy（easyOnCorrect）。热身字清单是数据（src/config/char-order.js，由脚本生成）。
+export const warmup = Object.freeze({
+  mode: 'gated', // P126 门控：只在 firstDays 天内或最近写得吃力时放
+  firstDays: 7, // P126 首练当天算第 1 天，到第 7 天为止
+  accuracyBelow: 0.6, // P126 最近 window 次判断写对率低于此值时也放（写得吃力的时候，用好写的字托一下）
+  window: 10, // P126 看最近几次判断
+  perGroupMax: 1, // P126 每组至多 1 个热身字（新热身字或热身字的复习二选一）
+  easyOnCorrect: true, // P126 热身字写对（无提示）记 Easy
+});
+// P127 新字第一次判断就写对（无提示）的 FSRS 评级（已决定 D41：Easy，初始稳定度约 8 天；带提示写对仍按 P34 ratingWithHint）
+export const ratingFirstCorrect = 'Easy';
 // P09 第一次练习的 5 个字（旧校准组前 5）
 export const firstQueue = Object.freeze(['尴', '嚏', '狩', '晤', '飓']);
 // P33 「自选了还没写」是否进入今天的练习：不进（只走 B 路径）
 export const customIntoDaily = 'none';
-// P34 带提示且判写对的 FSRS 评级
+// P34 带提示且判写对的 FSRS 评级（D41 之后：无提示且是新字第一次判断才记 Easy，见 ratingFirstCorrect P127；带提示的第一次写对仍按本项）
 export const ratingWithHint = 'Good';
 // P36 看过答案（无判断）的字当天是否排除出 daily：不排除
 export const answerSeenScope = 'none';

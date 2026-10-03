@@ -9,6 +9,10 @@
 // 读：../易忘度字表-初稿.json、vendor/fsrs6.min.js、src/core/fsrs.js（FSRS_CONFIG 与 --verify 对照）。
 // 写：tools/simulate-mix.out.json。
 //
+// 阶段 1 P1-E4：本文件现在也可以被 import（test/core/mix.test.mjs 用它对照 src/core/mix.js）：导出 RULES、planGroup、groupOrder；
+// 命令行直接运行的行为不变（只有被当作入口脚本时才跑下面的主程序）。--verify 里的 App 侧 reviewCard 调用关掉了 D41 的
+// 「首见写对记 Easy / 热身字写对记 Easy」，因为本文件的本地引擎一律「写对 = Good」（--easy 开关单独模拟 Easy）。
+//
 // 调度：与 App 同一份 ts-fsrs（FSRS-6 默认参数、保留率 0.9、最长间隔 365、fuzz 开、无学习步）。为了速度，模拟直接
 // 用库的卡对象和「从开始日起的第几天」做 due（due = max(明天, FSRS due 所在日)，与 src/core/fsrs.js reviewCard 同口径），
 // --verify 会把同一串判断分别喂给本地引擎和 src/core/fsrs.js reviewCard，核对 due 日一致。时间一律按 UTC 计日。
@@ -106,6 +110,9 @@ function step(eng, card, at, rating) {
   return { card: c, dueDay: Math.max(today + 1, fd) };
 }
 
+// App 现行评级含 D41 的 Easy 规则；--verify 要对照「写对 = Good」的本地引擎，所以用关掉 Easy 的 policy。
+const GOOD_ONLY = { ...policy, ratingFirstCorrect: 'Good', warmup: { ...policy.warmup, easyOnCorrect: false } };
+
 function verify() {
   // 同一串判断：本地 step vs App reviewCard（CompactCard 往返），比较 due 日。时区：两边都用 UTC 中午，避开日界。
   let mismatches = 0, n = 0;
@@ -118,7 +125,7 @@ function verify() {
       const at = START_UTC + day * DAY_MS + 12 * 3600000;
       const ok = rnd() < 0.7;
       const s = step(eng, local, at, ok ? L.Rating.Good : L.Rating.Again);
-      const a = appFsrs.reviewCard(app, { judgment: ok ? 'correct' : 'wrong', at });
+      const a = appFsrs.reviewCard(app, { judgment: ok ? 'correct' : 'wrong', at }, { policy: GOOD_ONLY });
       local = s.card; app = a.card;
       const appDay = Math.round((Date.parse(a.due + 'T00:00:00Z') - START_UTC) / DAY_MS);
       n++; if (appDay !== s.dueDay && Math.abs(appDay - s.dueDay) > 1) mismatches++; // 本地日 vs UTC 日最多差 1
@@ -154,7 +161,7 @@ function groupsOn(pattern, d, rnd) {
 }
 
 // ---------------------------------------------------------------- 规则
-const RULES = {
+export const RULES = {
   R0: { label: '现行：复习可占满', revMax: 5, newTarget: () => 0, newMax: 5, early: false, warm: 'legacy' },
   F32: { label: '固定 3 旧 2 新', revMax: 3, newTarget: () => 2, newMax: 5, early: false, warm: 'legacy' },
   A: { label: '保底一新', revMax: 4, newTarget: () => 1, newMax: 5, early: false, warm: 'legacy' },
@@ -184,6 +191,43 @@ const RULES = {
     },
   },
 };
+
+// ---------------------------------------------------------------- 一组怎么配（纯函数；runOnce 的 selectGroup 与 App 的对照测试共用）
+/**
+ * 一组里各类字的人选与数量（不含组内排序）。
+ * @param {object} a
+ * @param {string} a.ruleName   RULES 的键
+ * @param {{backlog:number,newAcc:number,allAcc:number,groupsPerDayEma:number,day:number,lastHadNew:boolean}} a.state
+ * @param {{brake?:number,valve?:number}} [a.opts]
+ * @param {number} a.budget     今日还能做几个到期复习
+ * @param {Array<{ch:string}>} a.due   到期字，已排好序
+ * @param {string[]} a.early    提前复习候选（R.early 才用），已排好序
+ * @param {string|null} a.warmPeek 下一个新热身字（没有 = null）
+ * @param {number} a.day        第几天（1 起，热身字门控用）
+ * @returns {{newTarget:number, revKeys:string[], earlyKeys:string[], newSlots:number, newCount:number, warmNew:string|null, warmRev:number}}
+ *   newSlots = 新字位总数（含热身新字）；newCount = 其中不是热身新字的个数。
+ */
+export function planGroup({ ruleName, state, opts = {}, budget, due, early, warmPeek, day }) {
+  const R = RULES[ruleName];
+  const newT = Math.min(SIZE, R.newTarget(state, opts));
+  const revSlots = Math.min(R.revMax, SIZE - newT, budget);
+  // 热身字复习每组最多 1 个
+  const revKeys = [];
+  let warmRev = 0;
+  for (const d of due) {
+    if (revKeys.length >= revSlots) break;
+    if (WARM_SET.has(d.ch)) { if (warmRev >= 1) continue; warmRev++; }
+    revKeys.push(d.ch);
+  }
+  let newSlots = Math.min(R.newMax, SIZE - revKeys.length);
+  let earlyKeys = [];
+  if (R.early && revKeys.length + newSlots < SIZE) earlyKeys = early.slice(0, SIZE - revKeys.length - newSlots);
+  newSlots = SIZE - revKeys.length - earlyKeys.length; // 仍不足就再补新字
+  const warmAllowed = R.warm === 'legacy' || (R.warm === 'gated' && (day <= 7 || state.allAcc < 0.6));
+  let warmNew = null;
+  if (newSlots >= 2 && warmRev === 0 && warmAllowed && warmPeek) warmNew = warmPeek;
+  return { newTarget: newT, revKeys, earlyKeys, newSlots, newCount: newSlots - (warmNew ? 1 : 0), warmNew, warmRev };
+}
 
 // ---------------------------------------------------------------- 一次运行
 function runOnce({ rule, pattern, profile, days, seed, retention = 0.9, firstCorrectEasy = false, brake, valve, keepGroups = false }) {
@@ -246,43 +290,29 @@ function runOnce({ rule, pattern, profile, days, seed, retention = 0.9, firstCor
     due.sort((a, b) => b.od - a.od || a.st - b.st || (a.ch < b.ch ? -1 : 1));
     const budget = Math.max(0, DAILY_REVIEW_CAP - reviewsDoneToday);
     const state = { backlog: due.length, newAcc: accOf(recentNew, 0.5), allAcc: accOf(recentAll, 0.7), groupsPerDayEma, day, lastHadNew };
-    const newT = Math.min(SIZE, R.newTarget(state, { brake, valve }));
-    const revSlots = Math.min(R.revMax, SIZE - newT, budget);
-    // 热身字复习每组最多 1 个
-    const revKeys = [];
-    let warmRev = 0;
-    for (const d of due) {
-      if (revKeys.length >= revSlots) break;
-      if (WARM_SET.has(d.ch)) { if (warmRev >= 1) continue; warmRev++; }
-      revKeys.push(d.ch);
-    }
-    let newSlots = Math.min(R.newMax, SIZE - revKeys.length);
-    let earlyKeys = [];
-    if (R.early && revKeys.length + newSlots < SIZE) {
-      // 提前复习补位：未到期、今天没写过、最快到期（同日按稳定度升序）；热身字不提前
+    const early = [];
+    if (R.early) {
+      // 提前复习补位候选：未到期、今天没写过、最快到期（同日按稳定度升序）；热身字不提前
       const cand = [];
       for (const [ch, e] of sched) {
         if (e.doneDay === day || e.dueDay <= day || WARM_SET.has(ch)) continue;
         cand.push({ ch, dd: e.dueDay, st: e.card.stability });
       }
       cand.sort((a, b) => a.dd - b.dd || a.st - b.st);
-      earlyKeys = cand.slice(0, SIZE - revKeys.length - newSlots).map((c) => c.ch);
+      for (const c of cand) early.push(c.ch);
     }
-    newSlots = SIZE - revKeys.length - earlyKeys.length; // 仍不足就再补新字
+    const warmPeeked = peekWarm();
+    const g = planGroup({ ruleName: rule, state, opts: { brake, valve }, budget, due, early, warmPeek: warmPeeked, day });
+    if (g.warmNew) cursor.w++;
     const items = [];
-    const warmAllowed = R.warm === 'legacy' || (R.warm === 'gated' && (day <= 7 || state.allAcc < 0.6));
-    if (newSlots >= 2 && warmRev === 0 && warmAllowed) {
-      const w = peekWarm();
-      if (w) { cursor.w++; items.push({ ch: w, kind: 'warm' }); newSlots--; }
-    }
-    revKeys.sort((a, b) => (WARM_SET.has(b) ? 1 : 0) - (WARM_SET.has(a) ? 1 : 0));
+    if (g.warmNew) items.push({ ch: g.warmNew, kind: 'warm' });
     // 组内顺序：热身（新或复习）在组首；其余「复习、新、复习、新…」交错，提前复习放在最后
-    const revs = revKeys.map((ch) => ({ ch, kind: 'rev' }));
+    const revs = [...g.revKeys].sort((a, b) => (WARM_SET.has(b) ? 1 : 0) - (WARM_SET.has(a) ? 1 : 0)).map((ch) => ({ ch, kind: 'rev' }));
     const news = [];
-    for (let i = 0; i < newSlots; i++) news.push({ ch: nextCurated(), kind: 'new' });
+    for (let i = 0; i < g.newCount; i++) news.push({ ch: nextCurated(), kind: 'new' });
     if (revs.length && WARM_SET.has(revs[0].ch)) items.push(revs.shift());
     while (revs.length || news.length) { if (revs.length) items.push(revs.shift()); if (news.length) items.push(news.shift()); }
-    for (const ch of earlyKeys) items.push({ ch, kind: 'early' });
+    for (const ch of g.earlyKeys) items.push({ ch, kind: 'early' });
     return items;
   }
 
@@ -410,55 +440,60 @@ function runConfig(cfg, nRuns, seed0) {
   return { runs, summary: summarize(runs, cfg.days) };
 }
 
-// ---------------------------------------------------------------- 主程序
-if (flag('verify')) { console.log(JSON.stringify(verify())); process.exit(0); }
-const RUNS = Number(args.runs || 200);
-const SEED = Number(args.seed || 1);
-const DAYS = Number(args.days || 90);
-const t0 = Date.now();
-const results = [];
-const add = (name, cfg, n = RUNS) => {
-  const full = { days: DAYS, ...cfg };
-  const { runs, summary } = runConfig(full, n, SEED);
-  const rep = runOnce({ ...full, seed: SEED, keepGroups: true });
-  const sample = rep.groupsLog.filter((g) => [1, 2, 3, 4, 5, 6, 7, 14, 30, 60, 90].includes(g.d)).map((g) => ({ d: g.d, g: g.g, items: g.items.join(' ') }));
-  results.push({ name, cfg: full, summary, sample });
-  process.stderr.write(`${name} done ${((Date.now() - t0) / 1000).toFixed(1)}s\n`);
-};
+const IS_MAIN = !!process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 
-if (args.only) {
-  add(`${args.only}/${args.groups || 1}/${args.profile || 'mid'}`, {
-    rule: args.only, pattern: /^\d+$/.test(args.groups || '1') ? Number(args.groups || 1) : args.groups, profile: args.profile || 'mid',
-    retention: Number(args.retention || 0.9), firstCorrectEasy: flag('easy'), brake: args.brake ? Number(args.brake) : undefined, valve: args.valve ? Number(args.valve) : undefined,
-  });
-} else {
-  for (const rule of Object.keys(RULES)) for (const g of [1, 2, 4]) for (const profile of ['low', 'mid', 'high']) {
-    add(`grid/${rule}/${g}/${profile}`, { rule, pattern: g, profile });
+if (IS_MAIN) {
+  // ---------------------------------------------------------------- 主程序
+  if (flag('verify')) { console.log(JSON.stringify(verify())); process.exit(0); }
+  const RUNS = Number(args.runs || 200);
+  const SEED = Number(args.seed || 1);
+  const DAYS = Number(args.days || 90);
+  const t0 = Date.now();
+  const results = [];
+  const add = (name, cfg, n = RUNS) => {
+    const full = { days: DAYS, ...cfg };
+    const { runs, summary } = runConfig(full, n, SEED);
+    const rep = runOnce({ ...full, seed: SEED, keepGroups: true });
+    const sample = rep.groupsLog.filter((g) => [1, 2, 3, 4, 5, 6, 7, 14, 30, 60, 90].includes(g.d)).map((g) => ({ d: g.d, g: g.g, items: g.items.join(' ') }));
+    results.push({ name, cfg: full, summary, sample });
+    process.stderr.write(`${name} done ${((Date.now() - t0) / 1000).toFixed(1)}s\n`);
+  };
+
+  if (args.only) {
+    add(`${args.only}/${args.groups || 1}/${args.profile || 'mid'}`, {
+      rule: args.only, pattern: /^\d+$/.test(args.groups || '1') ? Number(args.groups || 1) : args.groups, profile: args.profile || 'mid',
+      retention: Number(args.retention || 0.9), firstCorrectEasy: flag('easy'), brake: args.brake ? Number(args.brake) : undefined, valve: args.valve ? Number(args.valve) : undefined,
+    });
+  } else {
+    for (const rule of Object.keys(RULES)) for (const g of [1, 2, 4]) for (const profile of ['low', 'mid', 'high']) {
+      add(`grid/${rule}/${g}/${profile}`, { rule, pattern: g, profile });
+    }
+    // 敏感性
+    for (const rule of ['R0', 'B', 'C', 'D']) for (const pattern of ['irregular', 'break1', 'break2', 'weekend4']) add(`usage/${rule}/${pattern}/mid`, { rule, pattern, profile: 'mid' });
+    for (const brake of [5, 12]) for (const g of [1, 4]) add(`brake/B${brake}/${g}/mid`, { rule: 'B', pattern: g, profile: 'mid', brake });
+    for (const rule of ['R0', 'B']) for (const g of [1, 2]) {
+      add(`easy/${rule}/${g}/mid`, { rule, pattern: g, profile: 'mid', firstCorrectEasy: true });
+      add(`ret85/${rule}/${g}/mid`, { rule, pattern: g, profile: 'mid', retention: 0.85 });
+    }
+    // 180 天：积压是否有界、阀门阈值、两个与配比正交的杠杆（首见写对记 Easy、保留率 0.85）
+    for (const g of [1, 2]) {
+      for (const valve of [6, 8]) add(`long180/D-valve${valve}/${g}/mid`, { rule: 'D', pattern: g, profile: 'mid', days: 180, valve }, 100);
+      add(`long180/D+easy/${g}/mid`, { rule: 'D', pattern: g, profile: 'mid', days: 180, firstCorrectEasy: true }, 100);
+      add(`long180/D+ret85/${g}/mid`, { rule: 'D', pattern: g, profile: 'mid', days: 180, retention: 0.85 }, 100);
+      add(`long180/D+easy+ret85/${g}/mid`, { rule: 'D', pattern: g, profile: 'mid', days: 180, firstCorrectEasy: true, retention: 0.85 }, 100);
+    }
+    for (const rule of ['R0', 'B', 'D']) for (const g of [1, 2]) add(`long180/${rule}/${g}/mid`, { rule, pattern: g, profile: 'mid', days: 180 }, 100);
   }
-  // 敏感性
-  for (const rule of ['R0', 'B', 'C', 'D']) for (const pattern of ['irregular', 'break1', 'break2', 'weekend4']) add(`usage/${rule}/${pattern}/mid`, { rule, pattern, profile: 'mid' });
-  for (const brake of [5, 12]) for (const g of [1, 4]) add(`brake/B${brake}/${g}/mid`, { rule: 'B', pattern: g, profile: 'mid', brake });
-  for (const rule of ['R0', 'B']) for (const g of [1, 2]) {
-    add(`easy/${rule}/${g}/mid`, { rule, pattern: g, profile: 'mid', firstCorrectEasy: true });
-    add(`ret85/${rule}/${g}/mid`, { rule, pattern: g, profile: 'mid', retention: 0.85 });
-  }
-  // 180 天：积压是否有界、阀门阈值、两个与配比正交的杠杆（首见写对记 Easy、保留率 0.85）
-  for (const g of [1, 2]) {
-    for (const valve of [6, 8]) add(`long180/D-valve${valve}/${g}/mid`, { rule: 'D', pattern: g, profile: 'mid', days: 180, valve }, 100);
-    add(`long180/D+easy/${g}/mid`, { rule: 'D', pattern: g, profile: 'mid', days: 180, firstCorrectEasy: true }, 100);
-    add(`long180/D+ret85/${g}/mid`, { rule: 'D', pattern: g, profile: 'mid', days: 180, retention: 0.85 }, 100);
-    add(`long180/D+easy+ret85/${g}/mid`, { rule: 'D', pattern: g, profile: 'mid', days: 180, firstCorrectEasy: true, retention: 0.85 }, 100);
-  }
-  for (const rule of ['R0', 'B', 'D']) for (const g of [1, 2]) add(`long180/${rule}/${g}/mid`, { rule, pattern: g, profile: 'mid', days: 180 }, 100);
+
+  const out = {
+    generatedBy: 'docs/engineering/v10/phase1/tools/simulate-mix.mjs',
+    params: { runs: RUNS, seed: SEED, days: DAYS, groupSize: SIZE, dailyReviewCap: DAILY_REVIEW_CAP, combo: COMBO.id, start: addDays('2026-10-05', 0), profiles: PROFILES, fsrs: appFsrs.FSRS_CONFIG },
+    verify: verify(),
+    rules: Object.fromEntries(Object.entries(RULES).map(([k, v]) => [k, v.label])),
+    results,
+  };
+  if (!flag('no-write')) fs.writeFileSync(OUT_PATH, JSON.stringify(out, null, 1) + '\n');
+  if (flag('print')) console.log(JSON.stringify(out.results.map((r) => ({ name: r.name, summary: r.summary })), null, 1));
+  process.stderr.write(`total ${((Date.now() - t0) / 1000).toFixed(1)}s\n`);
+
 }
-
-const out = {
-  generatedBy: 'docs/engineering/v10/phase1/tools/simulate-mix.mjs',
-  params: { runs: RUNS, seed: SEED, days: DAYS, groupSize: SIZE, dailyReviewCap: DAILY_REVIEW_CAP, combo: COMBO.id, start: addDays('2026-10-05', 0), profiles: PROFILES, fsrs: appFsrs.FSRS_CONFIG },
-  verify: verify(),
-  rules: Object.fromEntries(Object.entries(RULES).map(([k, v]) => [k, v.label])),
-  results,
-};
-if (!flag('no-write')) fs.writeFileSync(OUT_PATH, JSON.stringify(out, null, 1) + '\n');
-if (flag('print')) console.log(JSON.stringify(out.results.map((r) => ({ name: r.name, summary: r.summary })), null, 1));
-process.stderr.write(`total ${((Date.now() - t0) / 1000).toFixed(1)}s\n`);

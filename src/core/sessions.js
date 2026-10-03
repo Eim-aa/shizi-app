@@ -14,15 +14,20 @@
 // }
 //
 // 选字（§5）：
-// - 第一次练习：固定 policy.firstQueue（P09）。
-// - 今天的练习：① 到期字（due ≤ 今天）按逾期天数降序、稳定度升序，受每日上限 policy.dailyReviewCap（P03，练完记账）；
-//   ② 新字按调用方给的顺序（当前练习范围、SEED 字频序）。排除今天已有 judged 的字；skipped 不影响；
+// - 第一次练习：固定 policy.firstQueue（P09，已决定 D38：尴 → 赢 → 拾，3 个字；首练组大小 = 队列长度，之后每组仍是 policy.groupSize）。
+// - 今天的练习（已决定 D41「保底一新 + 积压阀」，src/core/mix.js）：到期字按逾期天数降序、稳定度升序取，
+//   与新字按积压天数 p 配比（p<0.5 且最近新字写对率 ≥0.6 → 3 新，p<1.5 → 2 新，p<4 → 1 新，p≥4 → 上一组有新字则全复习）；
+//   到期不够时用最快到期的字提前复习补位（不计入每日复习上限 policy.dailyReviewCap，P03，练完记账）；
+//   组内复、新交错，组尾放好写的字；热身字（D28 / P126）每组至多 1 个、放组首。排除今天已有 judged 的字；skipped 不影响；
 //   answer-seen 按 policy.answerSeenScope（P36）；自选未写按 policy.customIntoDaily（P33）。组大小 policy.groupSize（P03）。
+// - 新字顺序由调用方给（src/core/new-order.js：易忘度清单，D28）；累计满 10 组且 p<1.5 时日常组换成大写数字特别组（D40，src/core/special.js）。
 
 import * as defaultPolicy from '../config/policy.js';
 import { localDay } from './dates.js';
-import { charOfCardKey, isJudged, judgedCardKeysOn, answerSeenCardKeysOn, reviewsDoneOn, hasAnyJudged } from './records.js';
+import { charOfCardKey, isJudged, judgedCardKeysOn, answerSeenCardKeysOn, hasAnyJudged } from './records.js';
 import { overdueDays } from './fsrs.js';
+import { arrangeGroup, dueReviewsDoneOn, planGroup, practiceStats, pressureOf, warmupAllowed } from './mix.js';
+import { isWarmupKey } from './new-order.js';
 
 export const SESSION_KINDS = Object.freeze(['first', 'daily', 'picked']);
 export const PHASES = Object.freeze(['recall', 'compare', 'answer', 'trace', 'retrace']);
@@ -311,7 +316,7 @@ export function nextAKind(records, { policy = defaultPolicy, everPracticed = fal
   return 'first';
 }
 
-/** 第一次练习的 5 个字（P09）→ cardKey 队列。 */
+/** 第一次练习的字（P09，D38：尴 赢 拾）→ cardKey 队列。 */
 export function selectFirst(policy = defaultPolicy) {
   return policy.firstQueue.map((c) => 'base:' + c);
 }
@@ -328,26 +333,33 @@ function customUnwrittenKeys(custom, sched, practicable) {
 }
 
 /**
- * 今天的练习选字（§5）。
+ * 今天的练习选字（§5，D41 规则 D；D40 特别组）。
  * @param {object} args
  * @param {object} args.sched         {[cardKey]: {fsrs, due, lastJudgedAt, stoppedAt?}}
  * @param {Array}  args.records       全部记录
  * @param {string} args.today         YYYY-MM-DD
- * @param {Array}  args.newCandidates 当前练习范围内的新字 cardKey（已按 SEED 字频序）
+ * @param {Array}  args.newCandidates 当前练习范围内的新字 cardKey（已按新字顺序排好：易忘度清单在前、其余字频序，见 new-order.orderNewKeys）
+ * @param {Array}  [args.warmupCandidates] 当前练习范围内的热身字 cardKey（按热身清单顺序，见 new-order.warmupKeys）；缺省没有热身字
  * @param {object} [args.custom]      {added:[{char, at}]}
  * @param {function} [args.practicable] cardKey → 是否可练（默认 base: 前缀）
- * @returns {{queue: string[], dueKeys: string[], newKeys: string[], customKeys: string[], reviewBudgetLeft: number}}
+ * @param {function} [args.isWarm]    cardKey → 是否热身字（默认读 CHAR_ORDER.warmup）
+ * @returns {{queue: string[], dueKeys: string[], earlyKeys: string[], newKeys: string[], warmKeys: string[], customKeys: string[],
+ *   reviewBudgetLeft: number, backlog: number, pressure: number, newTarget: number, special: null|{kind:string, keys:string[]}}}
+ *   dueKeys = 到期复习；earlyKeys = 提前复习补位；newKeys = 新字（含热身新字，warmKeys 是其中的热身字）；special = 大写数字特别组。
  */
 export function selectDaily({
   sched = {},
   records = [],
   today,
   newCandidates = [],
+  warmupCandidates = [],
   custom = null,
   practicable = (key) => typeof key === 'string' && key.startsWith('base:'),
   policy = defaultPolicy,
+  isWarm = (key) => isWarmupKey(key),
 }) {
   const size = policy.groupSize;
+  const mix = policy.groupMix;
   const excluded = new Set(judgedCardKeysOn(records, today)); // 刚写过的字当天不再出（交接备注十.5）
   if (policy.answerSeenScope === 'today') {
     for (const key of answerSeenCardKeysOn(records, today)) excluded.add(key);
@@ -364,42 +376,75 @@ export function selectDaily({
   const customUnwritten = customUnwrittenKeys(custom, sched, practicable);
   const customSet = new Set(customUnwritten);
 
-  // ① 到期字
+  // ① 到期字（逾期天数降序、稳定度升序）与可提前复习的字（未到期，快到期的在前）
   const due = [];
+  const early = [];
   for (const [key, entry] of Object.entries(sched || {})) {
     if (excluded.has(key) || !practicable(key)) continue;
     if (!entry || entry.stoppedAt !== undefined) continue;
     const od = overdueDays(entry, today);
-    if (od === null || od < 0) continue;
-    due.push({ key, od, stability: entry.fsrs ? Number(entry.fsrs.stability) || 0 : 0 });
+    if (od === null) continue;
+    const stability = entry.fsrs ? Number(entry.fsrs.stability) || 0 : 0;
+    if (od >= 0) due.push({ key, od, stability });
+    else if (!isWarm(key)) early.push({ key, dueDay: entry.due, stability });
   }
-  due.sort((a, b) => b.od - a.od || a.stability - b.stability || (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
-  const reviewBudgetLeft = Math.max(0, policy.dailyReviewCap - reviewsDoneOn(records, today));
-  const dueKeys = due.slice(0, Math.min(reviewBudgetLeft, size)).map((d) => d.key);
+  const byKey = (a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0);
+  due.sort((a, b) => b.od - a.od || a.stability - b.stability || byKey(a, b));
+  early.sort((a, b) => (a.dueDay < b.dueDay ? -1 : a.dueDay > b.dueDay ? 1 : 0) || a.stability - b.stability || byKey(a, b));
+  const reviewBudgetLeft = Math.max(0, policy.dailyReviewCap - dueReviewsDoneOn(records, today, { sched, policy }));
 
-  // 自选未写（P33）
+  const stats = practiceStats(records, today, { policy, isWarm });
+  const backlog = due.length;
+  const pressure = pressureOf(backlog, stats.groupsPerDay, mix);
+  const base = { dueKeys: [], earlyKeys: [], newKeys: [], warmKeys: [], customKeys: [], reviewBudgetLeft, backlog, pressure };
+
+  // ② 新字池：不在调度里（从没有 judged）、没被排除；自选未写的字在 'none' 下不进 daily；特别组之后佰仟排最前
   const customPick = policy.customIntoDaily === 'none' ? [] : customUnwritten.filter((k) => !excluded.has(k));
-
-  // ② 新字：不在调度里（从没有 judged）、没被排除；自选未写的字在 'none' 下不进 daily
-  const taken = new Set([...dueKeys, ...customPick]);
-  const newKeys = [];
-  for (const key of newCandidates) {
+  const dueSet = new Set(due.map((d) => d.key));
+  const taken = new Set(dueSet);
+  const pool = [];
+  for (const key of [...customPick, ...newCandidates]) {
     if (taken.has(key) || excluded.has(key) || !practicable(key)) continue;
     if (sched && sched[key]) continue;
-    if (customSet.has(key)) continue;
-    newKeys.push(key);
+    if (customSet.has(key) && !customPick.includes(key)) continue;
+    pool.push(key);
     taken.add(key);
   }
+  // 热身字：下一个还没写过的（热身字也在字频序里，所以这里不看 taken——它可能已经被新字池收走；放进组里时再从新字池去重）
+  let warmNext = null;
+  for (const key of warmupCandidates || []) {
+    if (dueSet.has(key) || excluded.has(key) || !practicable(key) || (sched && sched[key])) continue;
+    warmNext = key;
+    break;
+  }
 
-  let ordered;
-  if (policy.customIntoDaily === 'first') ordered = [...customPick, ...dueKeys, ...newKeys];
-  else ordered = [...dueKeys, ...customPick, ...newKeys];
-  const queue = ordered.slice(0, size);
+  // 没有到期字、也没有新字可出（字库写完）时，不用提前复习凑一组：保持 R-H11「现在没有要写的字」（想接着写，可以自己选字）。
+  const earlyPool = due.length || pool.length || warmNext ? early.map((e) => e.key) : [];
+  const plan = planGroup({
+    size,
+    budget: reviewBudgetLeft,
+    due,
+    early: earlyPool,
+    isWarm,
+    warmNext,
+    warmOk: warmupAllowed(stats, policy.warmup),
+    state: { backlog, groupsPerDay: stats.groupsPerDay, newAccuracy: stats.newAccuracy, lastHadNew: stats.lastHadNew },
+    mix,
+    newAvailable: pool.length + (warmNext && !pool.includes(warmNext) ? 1 : 0),
+  });
+  const ordinaryNew = pool.filter((k) => k !== plan.warmNew).slice(0, plan.newSlots - (plan.warmNew ? 1 : 0)); // 热身字也可能在字频尾部：不重复出
+  let queue = arrangeGroup({ warmNew: plan.warmNew, revKeys: plan.revKeys, earlyKeys: plan.earlyKeys, newKeys: ordinaryNew, isWarm });
+  const customKeys = queue.filter((k) => customPick.includes(k));
+  if (policy.customIntoDaily === 'first') queue = [...customKeys, ...queue.filter((k) => !customKeys.includes(k))];
   return {
+    ...base,
     queue,
-    dueKeys: queue.filter((k) => dueKeys.includes(k)),
-    newKeys: queue.filter((k) => newKeys.includes(k)),
-    customKeys: queue.filter((k) => customPick.includes(k)),
-    reviewBudgetLeft,
+    dueKeys: queue.filter((k) => plan.revKeys.includes(k)),
+    earlyKeys: queue.filter((k) => plan.earlyKeys.includes(k)),
+    newKeys: [...(plan.warmNew ? [plan.warmNew] : []), ...ordinaryNew], // 新字按候选顺序（热身新字在前），不随组内排列变
+    warmKeys: plan.warmNew ? [plan.warmNew] : [],
+    customKeys,
+    newTarget: plan.newTarget,
+    special: null,
   };
 }

@@ -289,16 +289,19 @@ test('daily: custom chars not yet written stay out of daily (P33 customIntoDaily
   assert.deepEqual(first.queue, K('鲜馨静亦慢'));
 });
 
-test('daily: due chars come first, most overdue then least stable', () => {
+test('daily: due chars are taken most overdue first then least stable; new chars in candidate order, interleaved (D41)', () => {
   const s = {
     'base:静': sched('2026-09-22', 10),
     'base:亦': sched('2026-09-10', 30),
     'base:慢': sched('2026-09-22', 2),
     'base:额': sched('2026-09-30', 1), // 未到期
   };
-  const res = selectDaily({ sched: s, records: [], today: TODAY, newCandidates: K('鲜境额') });
+  // 这些字里有热身字（静、慢）；热身字复习每组至多 1 个另有测试，这里用 isWarm=false 只看到期排序与配比。
+  const res = selectDaily({ sched: s, records: [], today: TODAY, newCandidates: K('鲜境额'), isWarm: () => false });
   assert.deepEqual(res.dueKeys, K('亦慢静'));
-  assert.deepEqual(res.queue, K('亦慢静鲜境'), 'then new chars in candidate order; seen chars are not new');
+  // 旧断言 queue = 亦慢静鲜境（到期字全在新字前）；D41：3 个到期 → p = 0.75 → 2 新，复、新交错（复 新 复 新 复），已写过的额不算新字
+  assert.deepEqual(res.queue, K('亦鲜慢境静'), 'new chars in candidate order; seen chars are not new');
+  assert.deepEqual(res.newKeys, K('鲜境'));
 });
 
 test('daily: at most dailyReviewCap (30) due reviews per day, counted as they are done', () => {

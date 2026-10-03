@@ -78,7 +78,8 @@ export function aStartInfo(state, { policy = defaultPolicy } = {}) {
  * 今天的练习会选出哪些字（不写入）。
  * @param {object} state  store 状态
  * @param {{today:string, deck:{newCandidates:Function, practicable:Function, currentLibraryId?:Function}, policy?}} o
- * @returns {{queue, dueKeys, newKeys, customKeys, reviewBudgetLeft, libraryId, libraryExhausted:boolean}}
+ * @returns {{queue, dueKeys, earlyKeys, newKeys, warmKeys, customKeys, reviewBudgetLeft, backlog, pressure, newTarget, libraryId, libraryExhausted:boolean}}
+ *   各字段见 sessions.selectDaily。
  *   libraryExhausted：当前练习范围里已没有可当新字出的字（R-H11「字库都写过」的次入口）。
  */
 export function planDaily(state, { today, deck, policy = defaultPolicy }) {
@@ -88,12 +89,14 @@ export function planDaily(state, { today, deck, policy = defaultPolicy }) {
     ? deck.currentLibraryId(state && state.settings)
     : settingsLib || policy.defaultLibrary || null;
   const newCandidates = deck.newCandidates(libraryId);
+  const warmupCandidates = typeof deck.warmupCandidates === 'function' ? deck.warmupCandidates(libraryId) : [];
   const sched = (state && state.sched) || {};
   const plan = selectDaily({
     sched,
     records: recordsOf(state),
     today,
     newCandidates,
+    warmupCandidates,
     custom: (state && state.custom) || null,
     practicable: deck.practicable,
     policy,

@@ -33,6 +33,9 @@ const OUT_PATH = path.join(HERE, 'simulate-30d.out.json');
 vm.runInThisContext(fs.readFileSync(path.join(ROOT, 'vendor/fsrs6.min.js'), 'utf8'), { filename: 'fsrs6.min.js' });
 const { reviewCard, retrievability, overdueDays } = await import(path.join(ROOT, 'src/core/fsrs.js'));
 const { addDays } = await import(path.join(ROOT, 'src/core/dates.js'));
+// 阶段 1 P1-E4：App 现行评级含 D41「首见写对 / 热身字写对记 Easy」；本脚本沿旧口径「写对 = Good」，所以关掉这两条，输出不变。
+const appPolicy = await import(path.join(ROOT, 'src/config/policy.js'));
+const GOOD_ONLY = { ...appPolicy, ratingFirstCorrect: 'Good', warmup: { ...appPolicy.warmup, easyOnCorrect: false } };
 
 const args = Object.fromEntries(process.argv.slice(2).filter((a) => a.includes('=')).map((a) => a.replace(/^--/, '').split('=')));
 const DATA = JSON.parse(fs.readFileSync(JSON_PATH, 'utf8'));
@@ -124,7 +127,7 @@ function runOnce(seed, keepLog) {
       p = typeof r === 'number' && Number.isFinite(r) ? r : 0.8;
     } else p = pNew(ch);
     const correct = rnd() < p;
-    const step = reviewCard(e ? e.fsrs : null, { judgment: correct ? 'correct' : 'wrong', at });
+    const step = reviewCard(e ? e.fsrs : null, { judgment: correct ? 'correct' : 'wrong', at }, { policy: GOOD_ONLY });
     sched[ch] = { fsrs: step.card, due: step.due, doneToday: day };
     return correct;
   };

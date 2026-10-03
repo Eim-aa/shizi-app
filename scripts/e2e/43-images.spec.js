@@ -22,7 +22,7 @@ const COPY = {
   imageNote: '存下来的是图片，不能用来恢复记录。',
   glyphNote: '用的是你最近一次写的这个字。存下来的是图片，不能用来恢复记录。',
   missingSession: '「和」这一次没有留下笔迹，不在图里。',
-  missingMonth: '「水」「和」最近一次没有留下笔迹，不在图里。',
+  missingMonth: '「水」「和」那一次没有留下笔迹，不在图里。', // D27：月字帖按 P02 取本月第一次，不说「最近一次」
   sessionSign: '二〇二六年九月二十四日 · 两个字',
   monthSign: '二〇二六年九月 · 有记录四天 · 三个字',
   share: '分享',
@@ -30,7 +30,7 @@ const COPY = {
   retry: '再试一次',
   denied: '没能存进相册。请到手机设置里允许拾字添加照片。',
   saved: '已保存到相册。',
-  noInk: '这一次的笔迹没有存下来。在结果页可以把刚写完的字做成图片。', // R-D04.noInkNoteGlyph（perRecordInk 关闭，A5）
+  noInk: '最近一次没有笔迹，再写一次就能做图片。', // R-D04.noInkNote（D27 起 perRecordInk 默认开启：再写一次就存下墨迹；关闭态 A5 见 ink-copy 单测）
   overLimit: '一张图最多放 80 个字，现在的字超过了，暂时做不成图片。记录都还在，没有受影响。',
   brand: '拾字',
 };
@@ -286,8 +286,9 @@ export default async function run(page, ctx) {
   });
   assert.equal(row && row.state, 'noInk', '和: latest judged has no ink → greyed');
   assert.ok(row.tag !== 'BUTTON' || row.aria === 'true', 'greyed row is not an active button');
-  assert.ok(row.text.includes(COPY.noInk), 'R-D04.noInkNoteGlyph');
-  assert.ok(!row.text.includes('再写一次就能做图片'), 'A5: no promise that writing again makes the image');
+  assert.ok(row.text.includes(COPY.noInk), 'R-D04.noInkNote (perRecordInk on, D27)');
+  // A5 只针对关闭态（笔迹不落盘时不承诺「再写一次」，ink-copy 单测覆盖）；D27 开启后再写一次就存下墨迹，承诺成立
+  assert.ok(row.text.includes('再写一次就能做图片'), 'D27: writing again stores the ink, so the promise holds');
   const noInkPlan = await page.evaluate(async () => {
     const { buildImageJob } = await import('/src/ui/images-entry.js');
     const job = buildImageJob({ kind: 'glyph', char: '和' });

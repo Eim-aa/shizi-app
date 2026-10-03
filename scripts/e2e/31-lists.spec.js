@@ -28,8 +28,9 @@ const COPY = {
   forgetMeta: (m, d, n) => `最近一次 ${m} 月 ${d} 日 · 记录了 ${n} 次`,
   wrongThumb: '写错那次',
   noInk: '没有笔迹',
-  wrongNote: '点圆圈选字，点这一行看记录。',
-  forgetNote: '点圆圈选字，点这一行看记录。',
+  // D27（阶段 1 P1-E3）：perRecordInk 默认开启 → 原槽（最近一次的墨迹永不回收，承诺成立）；关闭态的 …Glyph 见 47-ink-promises
+  wrongNote: '右边小图是你写错的那一次。点圆圈选字，点这一行看记录。',
+  forgetNote: '格子里是你最近一次的笔迹。点圆圈选字，点这一行看记录。',
   selected: n => `选了 ${n} 个字 · 写完会回到这里。`,
   selectedZero: '写完会回到这里。',
   btnMany: '练这些字',

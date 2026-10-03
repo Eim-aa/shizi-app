@@ -10,9 +10,13 @@
 //   5b. P77：本组已有判断、从看答案阶段结束 → 当前字补进格子作「看过答案」（不可改判），数字不变。
 //   6. 结果页修改判断：不增加记录、corrections 追加、格子与数字按记录更新；看过答案 / 跳过的格子只看不改；修改失败可重试。
 //   7. 停在结果页刷新 → 由 lastEnded 恢复；「再写一组」→ 新的今天的练习（结果页出栈，不叠页）；第一次练习结果页。
+//
+// 开关：本 spec 用 page.route 把 policy.features.perRecordInk 改成 false（D27 起默认 true）。理由：I6 / P88 断言的是关闭态的
+// 「页面内笔画」口径（刚写的字格子有墨、刷新后没有 → R-R07.allMissing），这条路径只在关闭时存在；开启时墨迹存下、刷新后仍在，
+// 由 66-ink-retention（结果页刷新、详情、墙、冷启动）覆盖。其余结果页行为与开关无关。
 
 import {
-  bootTestHost, drawStroke, HORIZONTAL, PRESS_SETTLE_MS, tid, topSel, waitNavIdle,
+  bootTestHost, drawStroke, HORIZONTAL, PRESS_SETTLE_MS, routePerRecordInk, tid, topSel, waitNavIdle,
 } from './helpers.mjs';
 
 const SHEET = '[data-testid="query-sheet"]';
@@ -184,7 +188,9 @@ async function toastText(page) {
 
 export default async function resultSpec(page, ctx) {
   const { assert, step } = ctx;
+  const inkRouted = await routePerRecordInk(page, false); // 关闭态的 I6 页面内笔画口径，见文件头
   await bootTestHost(page, ctx.baseURL);
+  assert.ok(inkRouted() >= 1, 'policy.js served with perRecordInk=false (I6 page-memory path)');
 
   // ------------------------------------------------------------------ 1. 最后一字 → 结果页（各阶段）
   const lastPaths = [

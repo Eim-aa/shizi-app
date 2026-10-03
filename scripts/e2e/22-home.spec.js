@@ -288,7 +288,7 @@ export default async function run(page, ctx) {
   assert.deepEqual(h.inkRow.chars, ['永'], 'one ink item');
   assert.deepEqual(h.inkRow.ids, ['r3'], 'the latest judgment of 永 (r3)');
   assert.equal(h.inkRow.count, 1, 'ink row data-count=1');
-  assert.deepEqual(h.inkRow.ink, ['none'], 'perRecordInk=false → no ink (10.12)');
+  assert.deepEqual(h.inkRow.ink, ['none'], 'seeded record has no stored ink → standard glyph (10.12; perRecordInk is on since D27, the ink path is 66-ink-retention / 47)');
   assert.deepEqual(h.inkRow.glyphs, ['永'], '10.12 small cell: the character only');
   assert.equal(h.inkRow.tag, 'BUTTON', 'ink row is a button: M4-1 registered 今天的记录 (R-H08; 40-mine covers the target)');
   assert.equal(h.inkRow.label, '今天有记录的字：「永」', 'ink row reader label');

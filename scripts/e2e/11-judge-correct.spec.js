@@ -4,13 +4,13 @@
 // seed 一个 A 会话（永 / 和 / 春 / 大 / 中）：
 //   空格子「写好了」disabled 且强点不进 compare → 写一笔 → 判断页（两键同样式、无 aria-pressed、焦点不在判断键、
 //   对照区无判定类名、「接着写」回书写格不记录）→ failNextWrite 判断失败留在判断页、三段式、不记录 → 再试一次成功推进
-//   （一条 judged、fsrsBefore、sched、结果行 record；perRecordInk=false 不写 ink 月键）→
+//   （一条 judged、fsrsBefore、sched、结果行 record；D27 起 perRecordInk 默认开启，同一次提交写记录月份的 ink 月键）→
 //   第二字用提示后「修改」上一判断：失败可重试、同一记录追加 corrections、due 重放更新、session.current 深相等；
 //   再改回来 due 回到原值（重放确定）→ 落笔后入口收起 → 判断第二字后上一字的行消失 →
 //   第三字用提示写了几笔时（钩子）修改上一判断，current 深相等、入口保持收起 →
 //   跳过：skipped 记录不算有效记录、结果行清空、5 秒撤销轻提示；撤销 = 记录数不变、字回原位、提示次数放回；
 //   跳过写失败不推进、可重试；撤销写失败可重试；3 秒后轻提示消失 →
-//   钩子：空笔画判断 commit 被拒；seed 的 compare + 空笔画按 recall 显示；perRecordInk=true 时写 ink 月键 →
+//   钩子：空笔画判断 commit 被拒；seed 的 compare + 空笔画按 recall 显示；显式 perRecordInk:true 写 ink 月键 →
 //   最后一个字判断后会话走完 → 直接换成结果页（M2-3，会话移入 lastEnded）→ 全部写入经 storage.js。
 
 import {
@@ -353,8 +353,9 @@ export default async function judgeCorrect(page, ctx) {
   assert.equal(r1.judgment, 'correct', 'judgment correct');
   assert.deepEqual(r1.help, { hints: 0, answerSeen: false, traced: false }, 'help facts as they happened');
   assert.equal(r1.sessionId, f.session.id, 'record carries the session id');
-  assert.equal('inkId' in r1, false, 'no inkId (perRecordInk=false → 有记录无笔迹, 10.12)');
-  assert.deepEqual(f.inkKeys, [], 'perRecordInk=false: no shizi.v2.ink.<month> key written');
+  assert.equal('inkId' in r1, false, 'no inkId (ink is keyed by the record id itself, 01 §3.6)');
+  // D27（阶段 1 P1-E3）：perRecordInk 默认开启——判断 commit 同时写这条记录月份的 ink 月键（关闭时不写，见 47-ink-promises 的关闭态）
+  assert.deepEqual(f.inkKeys, [`shizi.v2.ink.${r1.localDay.slice(0, 7)}`], 'perRecordInk on (D27 default): ink month key written with the record');
   assert.equal(f.todayN, 1, 'today N = 1');
   assert.equal(f.session.cursor, 1, 'session advanced');
   assert.equal(f.session.items.length, 1, 'one item');
@@ -623,7 +624,7 @@ export default async function judgeCorrect(page, ctx) {
   assert.equal(await present(page, 'write-judge-correct'), false, 'no judge buttons');
   assert.equal(await present(page, 'write-compare'), false, 'no compare area');
 
-  ctx.step('perRecordInk=true (injected) → ink written under the record month key; default stays off');
+  ctx.step('explicit perRecordInk:true → ink written under the record month key (same as the D27 default)');
   const inkRes = await page.evaluate(async () => {
     const { getStore } = await import('/src/store/store.js');
     const { commitJudgment } = await import('/src/ui/screens/write/compare.js');

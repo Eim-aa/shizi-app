@@ -461,7 +461,11 @@ export default async function run(page, ctx) {
   }, TOP);
   await page.waitForTimeout(100);
   const o9 = await oracle(page, '2026-09');
-  assert.ok(o9.inkIds.length >= 4, 'seed stored ink for the ink:true records');
+  // D27（阶段 1 P1-E3）：judgeInDraft 每次判断回收这个字中间那次的墨迹——静 的 9-1、9-8 既非第一次（8-20，没存墨迹）也非最近一次（9-22），
+  // 写 9-22 时已回收；留下的是 静 9-22（最近一次）与 感 9-24（唯一一次）。
+  const jingRecs = (await page.evaluate(() => window.__shiziTest.getState().records['2026-09'])).filter(r => r.char === '静');
+  const ganRec = (await page.evaluate(() => window.__shiziTest.getState().records['2026-09'])).find(r => r.char === '感');
+  assert.deepEqual(o9.inkIds.slice().sort(), [jingRecs[2].id, ganRec.id].sort(), 'D27: only first / latest judged ink survives (静 9-22, 感)');
   v = await mineView(page);
   assert.equal(v.empty, null, 'no empty block');
   assert.deepEqual(v.week.filter(d => d.dot).map(d => d.day), v.week.map(d => d.day).filter(d => o9.days.includes(d)),
@@ -478,7 +482,9 @@ export default async function run(page, ctx) {
   assert.deepEqual(v.cells.map(c => c.char).join(''), '静谁题慢额您数感', 'first-appearance order');
   const jing = v.cells.find(c => c.char === '静');
   assert.equal(jing.day, '2026-09-01', '静 uses the first record this month (M02), not 9-22');
-  assert.equal(jing.ink, 'true', '静 cell draws that record\'s own ink');
+  // 9-1 那条的墨迹已按 D27 回收（中间那次）：如实「没有笔迹」，不借 9-22 的笔迹（I03）；月字帖取本月第一次与 D27 的冲突见 03 P122
+  assert.equal(jing.ink, 'false', '静 9-1 ink was recycled by D27 → 没有笔迹, not borrowed from 9-22');
+  assert.equal(v.cells.find(c => c.char === '感').ink, 'true', '感 cell draws that record\'s own ink (its first and latest judgment)');
   assert.equal(jing.tagText, '9·1', 'red date tag');
   assert.equal(v.cells.find(c => c.char === '数').ink, 'false', 'no ink → 没有笔迹 (10.12, no borrowing)');
   assert.equal(v.cells.find(c => c.char === '感').tagText, null, 'same date as previous cell → no tag');

@@ -1,13 +1,15 @@
-// F4：policy.features.perRecordInk=false（P31 阻塞）时，字库 / 清单 / 详情 / 首页不得承诺「你的笔迹」。
-//   此时格子、小图画的是标准字形（页面会话内刚写的笔画除外，刷新即失），文案按 tInk 取 …Glyph 变体。
-//   逐页取整页文字，断言没有「最近一次的笔迹 / 每次的笔迹 / 你写错的那一次」这类承诺，且说明句等于 …Glyph 槽。
-//   同时核对 policy 默认关闭，格子确实是标准字形（data-ink=none）。
-import { bootTestHost, topSel, waitNavIdle } from './helpers.mjs';
+// F4 / D27：「笔迹」承诺两种开关各测一遍。
+//   开启（D27 起的默认，阶段 1 P1-E3）：格子 / 小图画本人笔迹，说明句取原槽（tInk）；但 D27 只留每字第一次 + 最近一次，
+//     任何页面都不得承诺「每次的笔迹」——墙说明是改写后的「第一次和最近一次的笔迹」。
+//   关闭（policy.features.perRecordInk=false，经 page.route 改写，全新 browser context；10.12「有记录无笔迹」兜底仍要成立）：
+//     字库 / 清单 / 详情 / 首页不得承诺「你的笔迹」，格子画标准字形（data-ink=none），说明句等于 …Glyph 槽。
+import { bootTestHost, routePerRecordInk, topSel, waitNavIdle } from './helpers.mjs';
 
 const PROMISE = /最近一次的笔迹|每次的笔迹|你写错的那一次|你当时的笔迹/;
+const EVERY = /每次的笔迹|每一次的笔迹|历次的笔迹/;
 
-async function seed(page) {
-  const res = await page.evaluate(async () => {
+async function seed(page, withInk) {
+  const res = await page.evaluate(async ink => {
     const { judgeInDraft } = await import('/src/ui/screens/write/compare.js');
     const { createSession } = await import('/src/core/sessions.js');
     const { localDay, addDays } = await import('/src/core/dates.js');
@@ -21,13 +23,13 @@ async function seed(page) {
     steps.forEach((st, i) => {
       const at = now - st.daysAgo * 86400000 + i;
       draft.sessions.A = createSession({ id: nextId('s'), kind: 'daily', source: { view: 'home' }, queue: ['base:' + st.char], at });
-      judgeInDraft(draft, { slot: 'A', cardKey: 'base:' + st.char, judgment: st.judgment, strokes: stroke, at, nextId, perRecordInk: false });
+      judgeInDraft(draft, { slot: 'A', cardKey: 'base:' + st.char, judgment: st.judgment, strokes: stroke, at, nextId, perRecordInk: ink });
       draft.sessions.A = null;
     });
     draft.sched['base:和'] = { ...draft.sched['base:和'], due: addDays(localDay(now), -5) };
     const r = window.__shiziTest.seed(draft);
     return { ok: !!(r && r.ok), r };
-  });
+  }, withInk);
   if (!res.ok) throw new Error('seed failed: ' + JSON.stringify(res.r));
 }
 
@@ -54,65 +56,115 @@ async function goBack(page) {
   await waitNavIdle(page);
 }
 
+/**
+ * 逐页走一遍。on=true：说明句取原槽、格子有墨、不承诺「每次的笔迹」；on=false：说明句取 …Glyph、格子标准字形、不承诺笔迹。
+ */
+async function walk(page, { assert, step }, on) {
+  const tag = on ? 'on' : 'off';
+  const slot = base => (on ? base : base + 'Glyph');
+  const banned = on ? EVERY : PROMISE;
+
+  step(`[${tag}] library home: wall cells ${on ? 'draw the learner\'s ink' : 'are standard glyphs'}; legend notes = ${on ? 'original slots (D27 wording)' : '…Glyph'}`);
+  await page.evaluate(async () => (await import('/src/ui/router.js')).nav.switchTab('library'));
+  await topScreen(page, 'library');
+  const home = await page.evaluate(() => ({
+    cells: [...document.querySelectorAll('[data-testid="library-wall-cell"]')].map(c => ({
+      kind: c.dataset.kind,
+      ink: c.querySelector('[data-ink]') ? c.querySelector('[data-ink]').dataset.ink : null,
+    })),
+    noteLight: document.querySelector('[data-theme-variant="light"]').textContent.trim(),
+    noteDark: document.querySelector('[data-theme-variant="dark"]').textContent.trim(),
+  }));
+  assert.ok(home.cells.length >= 3, 'three recorded chars on the wall');
+  if (on) {
+    // 写错过的格子画标准字 + 红点（wall.js：只有 kind=ink 才画笔迹），其余画最近一次的笔迹
+    assert.ok(home.cells.filter(c => c.kind === 'ink').every(c => c.ink === 'ink'), 'every ink-kind wall cell draws persisted ink');
+    assert.ok(home.cells.some(c => c.ink === 'ink'), 'at least one cell draws ink');
+  } else {
+    assert.ok(home.cells.every(c => c.ink === 'none'), 'every wall cell is a standard glyph (no persisted ink)');
+  }
+  assert.equal(home.noteLight, await copy(page, slot('R-L03.legend')), `light note = ${slot('R-L03.legend')}`);
+  assert.equal(home.noteDark, await copy(page, slot('X-LIBHOME.legendDarkNote')), `dark note = ${slot('X-LIBHOME.legendDarkNote')}`);
+  if (on) assert.ok(/第一次和最近一次的笔迹/.test(home.noteLight), 'D27: only first + latest are kept');
+  assert.ok(!banned.test(await pageText(page)), `library home text has no ${on ? '每次的笔迹' : '笔迹'} promise`);
+
+  step(`[${tag}] 全部字: sort note = ${slot('R-A01.sortRecentNote')}`);
+  await page.evaluate(async () => (await import('/src/ui/router.js')).nav.push('library-all', {}));
+  await page.waitForSelector(topSel('all-body'));
+  await waitNavIdle(page);
+  const allText = await pageText(page);
+  assert.ok(allText.includes(await copy(page, slot('R-A01.sortRecentNote'))), `R-A01 note = ${slot('R-A01.sortRecentNote')}`);
+  assert.ok(!banned.test(allText), 'all page text: no unkept promise');
+  await goBack(page);
+
+  for (const [kind, base] of [['wrong', 'R-E03.wrongNote'], ['forget', 'R-E03.forgetNote']]) {
+    step(`[${tag}] ${kind} list: note = ${slot(base)}`);
+    await page.evaluate(async k => (await import('/src/ui/screens/library/list.js')).openList(k), kind);
+    await page.waitForSelector(topSel('list-screen'));
+    await waitNavIdle(page);
+    const note = await page.evaluate(() => document.querySelector('.sz-layer[data-top="true"] [data-testid="list-note"]').textContent.trim());
+    assert.equal(note, await copy(page, slot(base)), `${kind} note = ${slot(base)}`);
+    assert.ok(!banned.test(await pageText(page)), `${kind} list text: no unkept promise`);
+    await goBack(page);
+  }
+
+  step(`[${tag}] single-char detail page: cell ${on ? 'draws ink' : 'has no ink'}, no unkept promise`);
+  await page.evaluate(async () => (await import('/src/ui/screens/detail/index.js')).openDetail('永'));
+  await page.waitForSelector(topSel('detail-screen'));
+  await waitNavIdle(page);
+  const cells = await page.evaluate(() => [...document.querySelectorAll('.sz-layer[data-top="true"] [data-testid="detail-cell"]')].map(c => c.dataset.ink));
+  assert.deepEqual(cells, [on ? 'true' : 'false'], 'detail cell ink state');
+  assert.ok(!banned.test(await pageText(page)), 'detail text: no unkept promise');
+  await goBack(page);
+
+  step(`[${tag}] home ink row: ${on ? 'stored ink' : 'standard glyph only (data-ink=none)'}`);
+  await page.evaluate(async () => (await import('/src/ui/router.js')).nav.switchTab('home'));
+  await topScreen(page, 'home');
+  const inkRow = await page.evaluate(() => [...document.querySelectorAll('[data-testid="home-ink-item"]')].map(i => i.dataset.ink));
+  assert.ok(inkRow.length >= 1 && inkRow.every(k => k === (on ? 'ink' : 'none')), `home ink row data-ink = ${on ? 'ink' : 'none'}`);
+  assert.ok(!banned.test(await pageText(page)), 'home text: no unkept promise');
+}
+
 export default async function inkPromisesSpec(page, ctx) {
   const { assert, step } = ctx;
-  await bootTestHost(page, ctx.baseURL);
 
-  step('policy: perRecordInk is off by default (P31), and tInk picks the …Glyph variants');
+  // ------------------------------------------------------------------ 开启（默认，D27）
+  await bootTestHost(page, ctx.baseURL);
+  step('policy: perRecordInk is on by default (P31 decided D27), tInk picks the original slots');
   const flags = await page.evaluate(async () => {
     const policy = await import('/src/config/policy.js');
     const { inkKey } = await import('/src/config/copy/index.js');
     return { on: policy.features.perRecordInk, key: inkKey('R-A01.sortRecentNote') };
   });
-  assert.equal(flags.on, false, 'perRecordInk default false');
-  assert.equal(flags.key, 'R-A01.sortRecentNoteGlyph', 'off → Glyph variant');
+  assert.equal(flags.on, true, 'perRecordInk default true (D27)');
+  assert.equal(flags.key, 'R-A01.sortRecentNote', 'on → original slot');
+  await seed(page, true);
+  await walk(page, ctx, true);
 
-  await seed(page);
-
-  step('library home: wall cells are standard glyphs; both legend notes (light / dark) say 看它的记录, no handwriting promise');
-  await page.evaluate(async () => (await import('/src/ui/router.js')).nav.switchTab('library'));
-  await topScreen(page, 'library');
-  const home = await page.evaluate(() => ({
-    cells: [...document.querySelectorAll('[data-testid="library-wall-cell"]')].map(c => (c.querySelector('[data-ink]') ? c.querySelector('[data-ink]').dataset.ink : null)),
-    noteLight: document.querySelector('[data-theme-variant="light"]').textContent.trim(),
-    noteDark: document.querySelector('[data-theme-variant="dark"]').textContent.trim(),
-  }));
-  assert.ok(home.cells.length >= 3 && home.cells.every(k => k === 'none'), 'every wall cell is a standard glyph (no persisted ink)');
-  assert.equal(home.noteLight, await copy(page, 'R-L03.legendGlyph'), 'light note = R-L03.legendGlyph');
-  assert.equal(home.noteDark, await copy(page, 'X-LIBHOME.legendDarkNoteGlyph'), 'dark note = X-LIBHOME.legendDarkNoteGlyph');
-  assert.ok(!PROMISE.test(await pageText(page)), 'library home text has no 笔迹 promise');
-
-  step('全部字: sort note = R-A01.sortRecentNoteGlyph, no promise');
-  await page.evaluate(async () => (await import('/src/ui/router.js')).nav.push('library-all', {}));
-  await page.waitForSelector(topSel('all-body'));
-  await waitNavIdle(page);
-  const allText = await pageText(page);
-  assert.ok(allText.includes(await copy(page, 'R-A01.sortRecentNoteGlyph')), 'R-A01 note = Glyph variant');
-  assert.ok(!PROMISE.test(allText), 'all page text has no 笔迹 promise');
-  await goBack(page);
-
-  for (const [kind, key] of [['wrong', 'R-E03.wrongNoteGlyph'], ['forget', 'R-E03.forgetNoteGlyph']]) {
-    step(`${kind} list: note = ${key}, no promise`);
-    await page.evaluate(async k => (await import('/src/ui/screens/library/list.js')).openList(k), kind);
-    await page.waitForSelector(topSel('list-screen'));
-    await waitNavIdle(page);
-    const note = await page.evaluate(() => document.querySelector('.sz-layer[data-top="true"] [data-testid="list-note"]').textContent.trim());
-    assert.equal(note, await copy(page, key), `${kind} note = Glyph variant`);
-    assert.ok(!PROMISE.test(await pageText(page)), `${kind} list text has no 笔迹 promise`);
-    await goBack(page);
+  // ------------------------------------------------------------------ 关闭（10.12 兜底仍成立）
+  const context = await page.context().browser().newContext({ viewport: ctx.viewport, deviceScaleFactor: 2, locale: 'zh-CN' });
+  const off = await context.newPage();
+  const errors = [];
+  off.on('pageerror', e => errors.push(`pageerror: ${e && e.message}`));
+  off.on('console', m => {
+    if (m.type() === 'error') errors.push(`console.error: ${m.text()}`);
+  });
+  try {
+    const hits = await routePerRecordInk(off, false);
+    await bootTestHost(off, ctx.baseURL);
+    step('policy (off context): perRecordInk forced false via page.route; tInk picks the …Glyph variants');
+    assert.ok(hits() >= 1, 'policy.js served with perRecordInk=false');
+    const offFlags = await off.evaluate(async () => {
+      const policy = await import('/src/config/policy.js');
+      const { inkKey } = await import('/src/config/copy/index.js');
+      return { on: policy.features.perRecordInk, key: inkKey('R-A01.sortRecentNote') };
+    });
+    assert.equal(offFlags.on, false, 'perRecordInk false in this context');
+    assert.equal(offFlags.key, 'R-A01.sortRecentNoteGlyph', 'off → Glyph variant');
+    await seed(off, false);
+    await walk(off, ctx, false);
+  } finally {
+    await context.close();
   }
-
-  step('single-char detail page: no promise');
-  await page.evaluate(async () => (await import('/src/ui/screens/detail/index.js')).openDetail('永'));
-  await page.waitForSelector(topSel('detail-screen'));
-  await waitNavIdle(page);
-  assert.ok(!PROMISE.test(await pageText(page)), 'detail text has no 笔迹 promise');
-  await goBack(page);
-
-  step('home ink row: standard glyph only (data-ink=none), no promise on the home page');
-  await page.evaluate(async () => (await import('/src/ui/router.js')).nav.switchTab('home'));
-  await topScreen(page, 'home');
-  const inkRow = await page.evaluate(() => [...document.querySelectorAll('[data-testid="home-ink-item"]')].map(i => i.dataset.ink));
-  assert.ok(inkRow.length >= 1 && inkRow.every(k => k === 'none'), 'home ink row shows standard glyphs');
-  assert.ok(!PROMISE.test(await pageText(page)), 'home text has no 笔迹 promise');
+  assert.deepEqual(errors, [], 'no errors in the off context');
 }

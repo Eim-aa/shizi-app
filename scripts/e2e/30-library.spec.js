@@ -34,8 +34,9 @@ const COPY = {
   customUnwritten: n => `另有 ${n} 个自选的字还没写`,
   since: (m, d) => `从 ${m} 月 ${d} 日开始记录`,
   more: n => `还有 ${n} 个字 ›`,
-  legend: '墨色越浅，越久没写。点一个字，看它的记录。',
-  legendDark: '颜色越暗，越久没写。点一个字，看它的记录。',
+  // D27（阶段 1 P1-E3）：perRecordInk 默认开启 → tInk 取原槽（D27 改写为「第一次和最近一次的笔迹」）；关闭态的 …Glyph 见 47-ink-promises
+  legend: '墨色越浅，越久没写。点一个字，看它第一次和最近一次的笔迹。',
+  legendDark: '颜色越暗，越久没写。点一个字，看它第一次和最近一次的笔迹。',
   tones: ['一周内写过', '一个月内', '三个月内', '三个月以上'],
   wrongTitle: '写错过',
   forgetTitle: '快忘了',
@@ -311,7 +312,7 @@ export default async function run(page, ctx) {
     assert.ok(toneOk, 'ink cells carry the tone of their last record (7/30/90, P56)');
     const LIGHT = ['1', '0.78', '0.58', '0.55'];
     assert.ok(inkCells.every(c => c.opacity === LIGHT[Number(c.tone)]), 'tone opacities 1 / .78 / .58 / .55 (light, D36)');
-    assert.ok(inkCells.every(c => c.ink === 'none' && c.glyph === c.char), 'perRecordInk off → standard glyph placeholder (10.12)');
+    assert.ok(inkCells.every(c => c.ink === 'none' && c.glyph === c.char), 'records seeded without ink → standard glyph placeholder (10.12; with stored ink the wall draws it, D27: 66-ink-retention / 47)');
     const hollowCell = v.cells[0];
     assert.equal(hollowCell.label, `${HOLLOW[0]}，${COPY.hollowLegend}`, 'cell accessible name 「字，状态」');
     const wrongList = byNew.filter(r => r.judgment === 'wrong').map(r => r.c);

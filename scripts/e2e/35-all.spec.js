@@ -22,7 +22,7 @@ const HOLLOW = ['馨', '鼎'];
 
 const COPY = {
   title: '有记录的字',
-  recentNote: '按最近一次写的月份排。点一个字，看它的记录。',
+  recentNote: '按最近一次写的月份排。每格是你最近一次的笔迹。', // D27：perRecordInk 默认开启 → 原槽；关闭态见 47-ink-promises
   pyNote: '按拼音首字母排。多音字按第一个读音。',
   ageNote: '离上次写越久，排得越前。',
   sorts: ['最近写的', '拼音', '多久没写'],

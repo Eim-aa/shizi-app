@@ -15,6 +15,8 @@
 //   writeSnapshot(page)            写字页当前状态（笔数、按钮可用性、进度文字、cursor…）
 //   canvasInk(page, testid)        某层 canvas 的非透明像素数
 //   installNativeStub(page)        在页面加载前装一个假的 webkit.messageHandlers.shiziNative，记录 postMessage
+//   routePerRecordInk(page, on)    本 page 加载的 src/config/policy.js 里 features.perRecordInk 改成 on（源码不动；D27 起默认 true，
+//                                  F4 的关闭态 / 10.12 兜底用 false 测）；要在 goto 之前装。返回命中次数计数器
 
 export const tid = id => `[data-testid="${id}"]`;
 /** 顶层图层里的元素（下层页面保持挂载，选择器要限定在顶层）。 */
@@ -211,4 +213,20 @@ export const LARGE_TEXT = 'XXXL';
 export async function setTextSize(page, category = 'L') {
   await page.evaluate(c => window.shiziContentSize({ category: c }), category);
   await page.waitForFunction(c => document.documentElement.getAttribute('data-text-size') === c, category);
+}
+
+/**
+ * 把本 page 加载的 src/config/policy.js 的 features.perRecordInk 改写成 on（P31 / D27；源码不动）。测试宿主不注册
+ * Service Worker，page.route 能拦到模块请求。要在 goto 之前调用。返回 () => 命中次数。
+ */
+export async function routePerRecordInk(page, on) {
+  let hits = 0;
+  await page.route(/\/src\/config\/policy\.js(\?.*)?$/, async route => {
+    const res = await route.fetch();
+    const body = await res.text();
+    if (/perRecordInk: (true|false),/.test(body)) hits += 1;
+    const next = body.replace(/perRecordInk: (true|false),/, `perRecordInk: ${on ? 'true' : 'false'},`);
+    await route.fulfill({ response: res, body: next, headers: { ...res.headers(), 'content-type': 'text/javascript; charset=utf-8' } });
+  });
+  return () => hits;
 }

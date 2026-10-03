@@ -137,6 +137,10 @@ export const ink = Object.freeze({
   euroDCutoff: 1, // P65 1€ 滤波 dCutoff；来源：原型 SZInk.build（文字规格未写）
 });
 
+// P111 笔锋细节（飞白 / 洇墨）总开关：true = 只由「减少动态效果」决定；false = 一律关。不再按 hardwareConcurrency / deviceMemory 关
+// （iOS WebKit 会钳低这两个值，ADA G15）。src/ui/canvas/brush.js brushDetailEnabled、ink-canvas.js 读取。
+export const brushDetail = true;
+
 // ---- 写字页版式与动画节奏（M1 验收后登记，M2-H 迁入）----
 // P69 紧凑版触发：视口高度 ≤ 此值（px）或 :root[data-large] 时写字页用紧凑版。src/ui/screens/write/compact.js 读取
 // （COMPACT_MAX_HEIGHT / COMPACT_QUERY，CSS media 与 JS 同一条件）。原型只按大字切换，高度阈值是工程取值，待设计确认。

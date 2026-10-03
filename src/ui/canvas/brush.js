@@ -2,7 +2,7 @@
 //
 // 保留（决定-D10「沿现有处理」）：两点间色带 + 末端圆（paintBrushRibbon）、洇墨径向渐变（paintInkBloom）、
 //   快笔飞白（destination-out 虚线擦）、停顿洇墨、每笔先画到独立层再合成（飞白不擦到已有墨）、
-//   细节开关（减少动态效果 / 低端设备只保留首尾锥形，C-ink.md §2 brushDetailEnabled）。
+//   细节开关（减少动态效果或 policy.brushDetail 关闭时只保留首尾锥形；不再按核数 / 内存关，P0-A3 / G15，见 brushDetailEnabled）。
 // 改动：
 //   - 宽度不再在这里算：旧 brushWidthFor / brushStrokeGeometry 的速度→宽度、EMA、首尾锥形被新管线
 //     core/ink-math.js buildStroke 取代（决定-D09，交接备注八.1）；本模块直接用点上的绝对宽 w。
@@ -10,11 +10,14 @@
 //   - 坏点（非有限坐标）返回 false 不抛（旧版 paintBrushStroke 的输入校验）。
 // 坐标 / 宽度单位与调用方 ctx 的当前变换一致（写字页用 345 单位空间 + DPR 缩放变换）。
 
-/** 细节（飞白 / 洇墨）是否开启：非减少动态效果、核数 > 2、内存 > 2GB（旧 brushDetailEnabled）。 */
-export function brushDetailEnabled({ reducedMotion = false, hardwareConcurrency, deviceMemory } = {}) {
-  const cores = Number(hardwareConcurrency) || 4;
-  const memory = Number(deviceMemory) || 4;
-  return !reducedMotion && cores > 2 && memory > 2;
+/**
+ * 细节（飞白 / 洇墨）是否开启：只看「减少动态效果」与显式开关 enabled（policy.brushDetail，P111）。
+ * 旧版还看 navigator.hardwareConcurrency 与 deviceMemory（核数 ≤ 2 或内存 ≤ 2GB 就关）——iOS WebKit 为防指纹会钳低这两个值，
+ * 真机可能把细节全部关掉（ADA G15），所以不再读它们；传进来也忽略。
+ * 性能保护：现不做；若 T1 真机测量发现低端机掉帧，改为运行时测帧时间自适应（连续 N 帧 > 24ms 就关），不再猜硬件。
+ */
+export function brushDetailEnabled({ reducedMotion = false, enabled = true } = {}) {
+  return enabled !== false && !reducedMotion;
 }
 
 function finitePoint(p) {

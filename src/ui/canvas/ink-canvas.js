@@ -16,10 +16,11 @@
 // pointerdown 一律 preventDefault（M0-7：让原生边缘识别器不开始，作为 backGestureEnabled 门控之外的第二道保护）。
 // 防连点（01 §6.6 / 走查-V01）：acceptFrom 之前（按事件 timeStamp）落下的笔不接受——换字后 0.3s 由写字页给出。
 // 渲染：同一条管线（core/ink-math buildStroke）实时出点、抬笔用 final=true 结果固化；笔锋基元见 brush.js；
-//   减少动态效果或低端设备关闭飞白 / 洇墨，只保留管线本身的首尾锥形（01 §6.3）。
+//   减少动态效果或 policy.brushDetail 关闭时不画飞白 / 洇墨，只保留管线本身的首尾锥形（01 §6.3）；不再按核数 / 内存关（P0-A3）。
 
 import { html, useEffect, useLayoutEffect, useRef } from '../../../vendor/ui.js';
 import { buildStroke, GRID, INK } from '../../core/ink-math.js';
+import { brushDetail } from '../../config/policy.js';
 import { brushDetailEnabled, createLayerCache, paintBrushStroke } from './brush.js';
 import { eventTime } from '../components/Button.js';
 import { injectStyles, T } from '../components/styles.js';
@@ -88,11 +89,9 @@ export function createInkSurface({ box, inkCanvas, liveCanvas, win = window, get
   let detail = computeDetail();
 
   function computeDetail() {
-    const nav = win.navigator || {};
     return brushDetailEnabled({
       reducedMotion: !!(reduceMq && reduceMq.matches),
-      hardwareConcurrency: nav.hardwareConcurrency,
-      deviceMemory: nav.deviceMemory,
+      enabled: brushDetail,
     });
   }
 

@@ -3,7 +3,7 @@
 //   A1 推入转场叠层：每个 .sz-layer 自成层叠上下文；写错过清单 → 写字页的推入转场里（暂停动画逐点采样），
 //      被新页盖住的位置 elementFromPoint 命中新页，不命中下层页的「全选」「‹」。
 
-import { bootTestHost, topSel, waitNavIdle } from './helpers.mjs';
+import { bootTestHost, canvasInk, drawStroke, HORIZONTAL, openWrite, seedSession, topSel, waitNavIdle } from './helpers.mjs';
 
 const CLOCK = '2026-09-30T10:00:00';
 
@@ -280,4 +280,42 @@ export default async function p0aShell(page, ctx) {
   step('A1: every .sz-layer is its own stacking context (isolation:isolate)');
   const iso = await page.evaluate(() => [...document.querySelectorAll('.sz-layer')].map(el => getComputedStyle(el).isolation));
   assert.ok(iso.length >= 2 && iso.every(v => v === 'isolate'), `layers isolate: ${JSON.stringify(iso)}`);
+
+  // ------------------------------------------------------------------ A3 笔锋门控（G15）
+  // iOS WebKit 把 hardwareConcurrency / deviceMemory 钳低；细节（飞白 / 洇墨）开着时，抬笔固化会借一张离屏层
+  // （brush.js layerCache.take → document.createElement('canvas')），关着时不借。用「画一笔后新建的 canvas 数」观察开关。
+  step('A3: hardwareConcurrency=2 / deviceMemory=2 → brush detail still on; reduced motion → off');
+  await page.addInitScript(() => {
+    Object.defineProperty(Navigator.prototype, 'hardwareConcurrency', { get: () => 2, configurable: true });
+    Object.defineProperty(Navigator.prototype, 'deviceMemory', { get: () => 2, configurable: true });
+    window.__canvasMade = 0;
+    const orig = Document.prototype.createElement;
+    Document.prototype.createElement = function (name, ...rest) {
+      if (String(name).toLowerCase() === 'canvas') window.__canvasMade += 1;
+      return orig.call(this, name, ...rest);
+    };
+  });
+  const strokeCanvases = async () => {
+    await page.goto('about:blank'); // 同一地址再 goto 会当刷新、保留 history.state（页面栈），先离开
+    await bootTestHost(page, ctx.baseURL);
+    const seeded = await seedSession(page, { slot: 'A', kind: 'daily', chars: ['永', '和', '春'], cursor: 0 });
+    if (!seeded.ok) throw new Error('seed failed');
+    await openWrite(page, { slot: 'A' });
+    const before = await page.evaluate(() => window.__canvasMade);
+    await drawStroke(page, HORIZONTAL);
+    await page.waitForTimeout(200);
+    const after = await page.evaluate(() => window.__canvasMade);
+    const reported = await page.evaluate(() => [navigator.hardwareConcurrency, navigator.deviceMemory]);
+    return { made: after - before, ink: await canvasInk(page, 'write-grid-ink'), reported };
+  };
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  const on = await strokeCanvases();
+  assert.deepEqual(on.reported, [2, 2], 'the page really sees hardwareConcurrency=2, deviceMemory=2');
+  assert.ok(on.ink > 500, 'the stroke is painted');
+  assert.ok(on.made > 0, `detail on despite 2 cores / 2 GB: the stroke used an offscreen layer (${on.made} canvas created)`);
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const off = await strokeCanvases();
+  assert.ok(off.ink > 500, 'reduced motion: the stroke is still painted');
+  assert.equal(off.made, 0, 'reduced motion: detail off, no offscreen layer');
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
 }

@@ -1,13 +1,15 @@
 // 图片入口（02 M4-5；01 §10；04 R-I01–R-I04、R-R07、R-P03、R-D04、R-M01 / R-P02、A05；03 P02 / P25 / P50）。
 // 由 ui/root.js 加载一次：把「做图片」的去处注册给各页（各页没注册时入口不显示）——
-//   结果页「这次的图片」        setResultImageAction(fn({slot, sessionId, chars}))        → 这次的图片（本组每字最后一次判断，D11）
+//   结果页「这次的图片」        setResultImageAction(fn({slot, sessionId, chars}))        → 这次的图片（本组每字从晚到早找留有墨迹的那次判断，D11 + D42）
 //   单字详情「把这个字做成图片」 setDetailImageAction(fn({char, cardKey, record}))         → 手写字图片（最近一次，A05）
-//   我的 / 练习记录「保存图片 ›」 setMineImageActions({month({month}), today({day})})       → {月}字帖（P02 本月第一次）/ 这天写的字
+//   我的 / 练习记录「保存图片 ›」 setMineImageActions({month({month}), today({day})})       → {月}字帖（P02 本月第一次起从早到晚找留有墨迹的那次，D42）/ 这天写的字（那天从晚到早找留有墨迹的那次）
 // 然后打开预览弹层（components/image-preview.js），分享 / 保存走 platform/share.js。
 // 选字与取墨口径在 core/images/pick.js（纯函数），版式在 core/images/layout.js，绘制在 core/images/render.js。
 //
 // 取墨：这条记录存下的墨迹（shizi.v2.ink.<月>，perRecordInk）→ 本页面会话里刚判断时记下的笔画（write/compare.js recalledInk，
 //   与结果页格子、单字详情、清单小图同一取法）→ 没有 = 缺墨（P50 不画进图并说明，落款字数跟着减，I03 不借别次）。
+// D42（解 P122）：这次 / 这天 / 这个月按时间段取「某一次」，每字先在该时间段内按偏好顺序找留有墨迹的那一次（core/ink-pick.js），
+//   段内一份都没有才算缺墨；说明句里的「缺墨」因此是「这一段里都没有留下笔迹」（X-IMAGES.missing*）。
 // 所有函数只读 store，不写任何东西。
 import { nav } from './router.js';
 import { getStore } from '../store/store.js';
@@ -26,6 +28,7 @@ import { builtFromRaw, recalledInk } from './screens/write/compare.js';
 import { setResultImageAction } from './screens/result/index.js';
 import { setDetailImageAction } from './screens/detail/index.js';
 import * as mineRecords from './screens/mine/records.js';
+import { recordHasInk } from './screens/detail/records.js';
 
 function storeOrNull() {
   try {
@@ -92,7 +95,7 @@ function titleOf(plan) {
 function noteOf(plan) {
   if (plan.kind === 'glyph') return t('R-I01.glyphNote');
   const miss = plan.missing.length
-    ? t(plan.kind === 'month' ? 'X-IMAGES.missingMonth' : 'X-IMAGES.missingSession', { chars: quote(plan.missing) })
+    ? t(plan.kind === 'month' ? 'X-IMAGES.missingMonth' : plan.kind === 'day' ? 'X-IMAGES.missingDay' : 'X-IMAGES.missingSession', { chars: quote(plan.missing) })
     : '';
   return miss + t('R-I01.imageNote');
 }
@@ -123,7 +126,12 @@ function fileName(plan, ratio) {
  */
 export function buildImageJob(scope, { state = null, store = storeOrNull(), inkOf = null, policy = defaultPolicy, lookup = cardForKey } = {}) {
   const st = state || (store ? store.getState() : null);
-  const plan = imagePlan(st, scope, { inkOf: inkOf || (record => inkPointsOf(store, record)), policy });
+  // D42：每字在时间段内挑「留有墨迹的那一次」——注入 inkOf（单测）时按它的结果判断，界面缺省走廉价的存在性判据（不解码）。
+  const plan = imagePlan(st, scope, {
+    inkOf: inkOf || (record => inkPointsOf(store, record)),
+    hasInk: inkOf ? null : record => recordHasInk(store, record),
+    policy,
+  });
   const meta = {
     kind: plan.kind,
     key: plan.key,

@@ -9,15 +9,19 @@
 //   与 R-P01 / K27 冲突，过渡不显示，报告登记待定。
 // - 月字帖（R-P02 / R-M01）：该月每个字按「这个月第一次判断」的先后排；格子取墨按 P02 policy.monthSheetPick
 //   （'first' = 这个月第一次写这个字那次，M02；'last' = 月内最后一次判断，D11）；角标 = 与前一格日期不同时标那格的日期（原型 L321）。
-//   折叠月份只剩 byDay / chars：字按 chars 顺序、日期取该字最早出现的那天，格子没有记录可取（record=null → 10.12「没有笔迹」，
-//   不拿别次笔迹补位，I03）。
+//   D42（解 P122；D27 起中间几次的墨迹已回收）：每字在本月内按这个偏好顺序（first 从早到晚、last 从晚到早）找**留有墨迹**的那一次
+//   （core/ink-pick.js pickRecordInPeriod），本月里一份都没有才取偏好方向上的那一条、如实「没有笔迹」；不拿别月的墨迹冒充（I03）；
+//   角标日期跟着挑出来的那条记录走（M02）。「有没有墨迹」由 hasInk 判断，缺省按 state.ink 的存下的墨迹。
+//   折叠月份只剩 byDay / chars 与 kept：字按 chars 顺序、日期取该字最早出现的那天；记录只能从 kept 里找（同样按 D42 挑有墨迹的），
+//   kept 里没有这个字（或一份墨迹都没有）时 record=null（10.12「没有笔迹」，不借别次笔迹，I03）。
 // - 我的首页字帖（R-M05，边改 M03）：7 列，最多放最近 3 行（按整张字帖 7 列排好后的最后 3 行），多了给「全部 ›」。
-// - 某一天的字（R-P05「点有记录的日子列出那天的字」）：那天 judged，同字只留最近一次，按最近一次的先后（与首页墨迹行同一口径，
-//   core/records todayInkRow）；折叠日子只有字，没有记录。
+// - 某一天的字（R-P05「点有记录的日子列出那天的字」）：那天 judged，同字只留一条，按最近一次的先后（与首页墨迹行同一口径，
+//   core/records todayInkRow）；D42：留的这一条 = 那天内从晚到早第一条留有墨迹的，那天里都没有才留最近一次；折叠日子只有字，没有记录。
 
 import * as defaultPolicy from '../../../config/policy.js';
 import { addDays, addMonths, daysInMonth, isValidDay, isValidMonth, localDay, monthOf, parseDay } from '../../../core/dates.js';
 import { isJudged, sortById } from '../../../core/records.js';
+import { pickRecordInPeriod, storedInkPresent } from '../../../core/ink-pick.js';
 
 /** 我的首页字帖列数、最多行数（原型 L26 7 列；R-M05「最近 3 行」）。 */
 export const MINE_SHEET_COLS = 7;
@@ -34,6 +38,7 @@ export const WEEK_LENGTH = 7;
  *   judged: 全部 judged 记录（含折叠月份 kept；按 id 升序）
  *   folded: {'YYYY-MM': {byDay, chars}}（折叠月份的日子与字）
  *   days:   Set<localDay>（有记录的日子）
+ *   ink:    state.ink（按月分键的墨迹表，D42 挑留有墨迹的那一次时只查在不在）；没有为 null
  */
 export function recordIndex(state) {
   const judged = [];
@@ -59,7 +64,15 @@ export function recordIndex(state) {
   }
   const sorted = sortById(judged);
   for (const r of sorted) if (isValidDay(r.localDay)) days.add(r.localDay);
-  return { judged: sorted, folded, days };
+  const ink = state && state.ink && typeof state.ink === 'object' ? state.ink : null;
+  return { judged: sorted, folded, days, ink };
+}
+
+/** D42：这条记录有没有存下的墨迹（按 index.ink 一次查找，不解码）。界面可另传含页面内笔画的 hasInk。 */
+function inkChecker(index, hasInk) {
+  if (typeof hasInk === 'function') return hasInk;
+  const state = { ink: index && index.ink };
+  return record => storedInkPresent(state, record);
 }
 
 /** 有没有任何有效记录（R-M04 空态的反面）。 */
@@ -129,14 +142,19 @@ function retag(cells) {
 }
 
 /**
- * 某月字帖（R-P02 / R-M01 / P02）。
+ * 某月字帖（R-P02 / R-M01 / P02 / D42）。
+ * @param {object} index  recordIndex
+ * @param {string} month
+ * @param {{policy?:object, hasInk?:(record)=>boolean}} [o]  hasInk 缺省按 index.ink 存下的墨迹
  * @returns {{month, cells:[{char, day, record|null, tag:localDay|null}], days:number, chars:number, folded:boolean, pick}}
  *   days = 这个月有记录的天数（落款「有记录 N 天」，K27），chars = 字数（落款「N 个字」）。
  */
-export function monthSheet(index, month, { policy = defaultPolicy } = {}) {
+export function monthSheet(index, month, { policy = defaultPolicy, hasInk = null } = {}) {
   const pick = policy.monthSheetPick === 'last' ? 'last' : 'first';
+  const has = inkChecker(index, hasInk);
   const days = recordDaysInMonth(index, month).length;
   const fold = index.folded[month];
+  const inMonth = index.judged.filter(r => typeof r.localDay === 'string' && r.localDay.startsWith(month + '-'));
   if (fold) {
     const firstDay = new Map();
     for (const day of Object.keys(fold.byDay).sort()) {
@@ -145,20 +163,28 @@ export function monthSheet(index, month, { policy = defaultPolicy } = {}) {
     const order = fold.chars.filter(c => firstDay.has(c));
     for (const c of firstDay.keys()) if (!order.includes(c)) order.push(c);
     order.sort((a, b) => (firstDay.get(a) < firstDay.get(b) ? -1 : firstDay.get(a) > firstDay.get(b) ? 1 : 0));
-    const cells = retag(order.map(char => ({ char, day: firstDay.get(char), record: null })));
+    // 折叠月份只剩 kept：只在 kept 里找（D42），找不到的字 record=null、日期取 byDay 里最早出现的那天。
+    const keptOf = new Map();
+    for (const r of inMonth) {
+      if (!keptOf.has(r.char)) keptOf.set(r.char, []);
+      keptOf.get(r.char).push(r);
+    }
+    const cells = retag(order.map(char => {
+      const { record } = pickRecordInPeriod(keptOf.get(char), { prefer: pick, hasInk: has });
+      return { char, day: record ? record.localDay : firstDay.get(char), record };
+    }));
     return { month, cells, days, chars: cells.length, folded: true, pick };
   }
-  const inMonth = index.judged.filter(r => typeof r.localDay === 'string' && r.localDay.startsWith(month + '-'));
-  const firstOf = new Map();
-  const lastOf = new Map();
+  const byChar = new Map(); // char → 本月该字的记录（id 升序）；插入顺序 = 本月第一次出现的先后
   for (const r of inMonth) {
-    if (!firstOf.has(r.char)) firstOf.set(r.char, r);
-    lastOf.set(r.char, r);
+    if (!byChar.has(r.char)) byChar.set(r.char, []);
+    byChar.get(r.char).push(r);
   }
-  const cells = retag([...firstOf.values()].map(first => {
-    const record = pick === 'last' ? lastOf.get(first.char) : first;
+  const cells = retag([...byChar.values()].map(list => {
+    // D42：本月内按偏好顺序找留有墨迹的那一次；一份都没有才取偏好方向上的那一条（如实没有笔迹）。
+    const { record } = pickRecordInPeriod(list, { prefer: pick, hasInk: has });
     // 角标日期跟格子里的笔迹走（M02「格子里的笔迹和格子上标的日期对应」）。
-    return { char: first.char, day: record.localDay, record };
+    return { char: list[0].char, day: record.localDay, record };
   }));
   return { month, cells, days, chars: cells.length, folded: false, pick };
 }
@@ -178,21 +204,24 @@ export function sheetPreview(sheet, { cols = MINE_SHEET_COLS, rows = MINE_SHEET_
 // ---------------------------------------------------------------- 某一天的字
 
 /**
- * 某天写的字（R-P05；首页墨迹行「今天的记录」同一口径）：那天 judged，同字只留最近一次，按最近一次的先后。
- * 折叠日子：byDay 的字，record=null。
+ * 某天写的字（R-P05；首页墨迹行「今天的记录」同一口径）：那天 judged，同字只留一条，按最近一次的先后。
+ * 留的这一条 = 那天内从晚到早第一条留有墨迹的（D42），那天里都没有才留最近一次。折叠日子：byDay 的字，record=null。
  * @returns {[{char, record|null}]}
  */
-export function dayItems(index, day) {
+export function dayItems(index, day, { hasInk = null } = {}) {
   if (!isValidDay(day)) return [];
   const fold = index.folded[monthOf(day)];
   if (fold) return (fold.byDay[day] || []).map(char => ({ char, record: null }));
+  const has = inkChecker(index, hasInk);
   const byChar = new Map();
   for (const r of index.judged) {
     if (r.localDay !== day) continue;
-    byChar.delete(r.char);
-    byChar.set(r.char, r);
+    const list = byChar.get(r.char) || [];
+    list.push(r);
+    byChar.delete(r.char); // 顺序按最近一次的先后
+    byChar.set(r.char, list);
   }
-  return [...byChar.values()].map(record => ({ char: record.char, record }));
+  return [...byChar.values()].map(list => ({ char: list[0].char, record: pickRecordInPeriod(list, { prefer: 'last', hasInk: has }).record }));
 }
 
 // ---------------------------------------------------------------- 页面模型
@@ -208,11 +237,11 @@ export function lastBackupDay(backupMeta) {
  * 我的首页（R-M01–R-M05）。
  * @returns {{today, empty, week, month, sheet, preview, sheetOn, lastBackup, year}}
  */
-export function mineModel(state, today, { policy = defaultPolicy } = {}) {
+export function mineModel(state, today, { policy = defaultPolicy, hasInk = null } = {}) {
   const index = recordIndex(state);
   const empty = !hasRecords(index);
   const month = monthOf(today);
-  const sheet = monthSheet(index, month, { policy });
+  const sheet = monthSheet(index, month, { policy, hasInk });
   return {
     today,
     empty,
@@ -240,11 +269,12 @@ export function clampMonth(month, index, today) {
 
 /**
  * 练习记录（R-P01–R-P05）。
- * @param {{month?:string, day?:string, policy?:object}} opts  month / day 来自页面参数（nav.setParams 写回）
+ * @param {{month?:string, day?:string, policy?:object, hasInk?:(record)=>boolean}} opts  month / day 来自页面参数（nav.setParams 写回）；
+ *   hasInk（D42 挑留有墨迹的那一次）缺省按 state.ink
  * @returns {{today, month, year, monthNum, current:boolean, prev:string|null, next:string|null, calendar, recordDays:number,
  *   sheet, selected:{day, items}|null, todayRow:{day, n}|null, empty:boolean}}
  */
-export function recordsModel(state, today, { month, day, policy = defaultPolicy } = {}) {
+export function recordsModel(state, today, { month, day, policy = defaultPolicy, hasInk = null } = {}) {
   const index = recordIndex(state);
   const currentMonth = monthOf(today);
   const m = clampMonth(month, index, today);
@@ -252,8 +282,8 @@ export function recordsModel(state, today, { month, day, policy = defaultPolicy 
   const { year, month: monthNum } = parseDay(`${m}-01`);
   const days = recordDaysInMonth(index, m);
   let selected = null;
-  if (isValidDay(day) && day.startsWith(m + '-') && index.days.has(day)) selected = { day, items: dayItems(index, day) };
-  const todayItems = index.days.has(today) ? dayItems(index, today) : [];
+  if (isValidDay(day) && day.startsWith(m + '-') && index.days.has(day)) selected = { day, items: dayItems(index, day, { hasInk }) };
+  const todayItems = index.days.has(today) ? dayItems(index, today, { hasInk }) : [];
   return {
     today,
     month: m,
@@ -264,7 +294,7 @@ export function recordsModel(state, today, { month, day, policy = defaultPolicy 
     next: m < currentMonth ? addMonths(m, 1) : null,
     calendar: calendarModel(index, m, today),
     recordDays: days.length,
-    sheet: monthSheet(index, m, { policy }),
+    sheet: monthSheet(index, m, { policy, hasInk }),
     selected,
     // 页底「{今天}写的字 / 这次的图片」（R-P03）：只在本月、今天有记录时；历史月份没有这一行（原型 recordsHistory）。
     todayRow: m === currentMonth && todayItems.length ? { day: today, n: todayItems.length, items: todayItems } : null,

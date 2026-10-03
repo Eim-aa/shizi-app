@@ -11,6 +11,8 @@
 //     卡下说明：本月 R-P02.sheetNote / 历史月 R-P02.historyNote；这个月没有字：虚线框「这个月还没有可以放进图片的字」
 //   → 本月且今天有记录：「{今天}写的字 / 这次的图片 · 保存图片 ›」（R-P03；同样由 M4-5 注册后才显示）。
 // 数字全部按记录算（model.js recordsModel，R-M01 / K27）；格子只画那一次真实笔迹，没有就「没有笔迹」（10.12，不借别次，I03）。
+// D42（解 P122）：月字帖 / 那天写的字每字先在该时间段内找留有墨迹的那一次（月字帖从本月第一次起从早到晚，那天从晚到早），
+//   时间段内一份都没有才「没有笔迹」；角标日期跟着挑出来的那一次走。
 //
 // 本模块另外给我的首页（index.js）用的共用件：useStoreState / useToday / go / MINE_ROUTES / SheetGrid / Signature / Seal /
 //   setMineImageActions；并在加载时给首页墨迹行注册「今天的记录」去处（R-H08 / 走查-M07：home setTodayRecordsAction）。
@@ -36,7 +38,7 @@ import { now as envNow } from '../../../platform/env.js';
 import { cnCount, localDay, monthDayParts, monthOf, signatureMonthParts } from '../../../core/dates.js';
 import { setTodayRecordsAction } from '../home/ink-row.js';
 import { openDetail } from '../detail/index.js';
-import { hasInkPoints, inkOf } from '../detail/records.js';
+import { hasInkPoints, inkOf, recordHasInk } from '../detail/records.js';
 import { InkMini } from '../write/compare.js';
 import { RECORDS_SHEET_COLS, recordsModel } from './model.js';
 
@@ -177,6 +179,15 @@ function currentStore() {
   } catch (error) {
     return null;
   }
+}
+
+/**
+ * D42：时间段视图（月字帖 / 这天写的字 / 年报首字）挑「留有墨迹的那一次」用的判据——只查记录的墨迹在不在（存下的墨迹按月表一次查找，
+ * 其次本页面会话里记下的笔画），不解码；挑出来的那一条再由格子各解码一次。
+ */
+export function hasInkOfStore() {
+  const store = currentStore();
+  return record => recordHasInk(store, record);
 }
 
 // ---------------------------------------------------------------- 去处
@@ -397,7 +408,7 @@ function RecordsScreen({ params, entry }) {
   const state = useStoreState();
   const today = useToday();
   const [view, setView] = useState(() => ({ month: typeof p.month === 'string' ? p.month : '', day: typeof p.day === 'string' ? p.day : '' }));
-  const model = useMemo(() => recordsModel(state, today, { month: view.month, day: view.day, policy: defaultPolicy }),
+  const model = useMemo(() => recordsModel(state, today, { month: view.month, day: view.day, policy: defaultPolicy, hasInk: hasInkOfStore() }),
     [state, today, view.month, view.day]);
   const selected = model.selected;
   const listRef = useRef(null);

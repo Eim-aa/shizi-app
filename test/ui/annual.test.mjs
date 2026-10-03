@@ -123,6 +123,33 @@ test('folded months: byDay chars and days count; an earlier folded day is the fi
   assert.equal(firstOfYear(sl).record, kept);
 });
 
+test('D42 section 4: the ink comes from the earliest of this year\'s records of that char that still has ink (date = that record\'s day); none this year → earliest record, no ink; last year\'s ink never stands in', () => {
+  serial = 0;
+  const INK = { s: ['AAAAAAAA'] };
+  const rs = [rec('静', '2025-12-30'), rec('静', '2026-01-02'), rec('静', '2026-03-05'), rec('静', '2026-05-09'), rec('谁', '2026-01-03')];
+  const base = { '2025-12': { r1: INK }, '2026-05': { r4: INK } };
+  const m = annualModel(state(rs, { ink: base }), TODAY, { cardOf });
+  assert.equal(m.first.char, '静');
+  assert.equal(m.first.record.id, 'r4', '1-02 and 3-05 recycled → the 5-09 one');
+  assert.equal(m.first.day, '2026-05-09', 'the date shown is the ink record\'s day');
+  // 今年一份都没有（去年 12-30 那份不冒充）：最早那条、没有笔迹
+  const none = annualModel(state(rs, { ink: { '2025-12': { r1: INK } } }), TODAY, { cardOf });
+  assert.deepEqual([none.first.char, none.first.day, none.first.record.id], ['静', '2026-01-02', 'r2']);
+  // 最早那条自己有墨：照旧
+  const own = annualModel(state(rs, { ink: { '2026-01': { r2: INK } } }), TODAY, { cardOf });
+  assert.deepEqual([own.first.day, own.first.record.id], ['2026-01-02', 'r2']);
+  // 折叠月份里更早的日子只剩字：今年内 kept 里有墨的那次接上；都没有则 record=null
+  const kept = rec('和', '2026-02-10');
+  const s = state([rec('静', '2026-03-01')], { ink: { '2026-02': { [kept.id]: INK } } });
+  s.records['2026-02'] = { folded: true, month: '2026-02', byDay: { '2026-02-03': ['和'], '2026-02-10': ['和'] }, chars: ['和'], kept: [kept] };
+  const f = annualModel(s, TODAY, { cardOf });
+  assert.deepEqual([f.first.char, f.first.day, f.first.record.id], ['和', '2026-02-10', kept.id]);
+  s.ink = {};
+  assert.deepEqual(annualModel(s, TODAY, { cardOf }).first, { char: '和', day: '2026-02-03', record: null });
+  // 注入的 hasInk 优先
+  assert.equal(annualModel(state(rs, { ink: base }), TODAY, { cardOf, hasInk: r => r.id === 'r3' }).first.record.id, 'r3');
+});
+
 test('year boundary: on 2027-01-01 the 2026 records do not count', () => {
   serial = 0;
   const s = state([rec('静', '2026-12-31'), rec('谁', '2027-01-01')]);

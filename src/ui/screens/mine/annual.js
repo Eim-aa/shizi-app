@@ -6,9 +6,10 @@
 //   二 · 有记录天数最多的月份 「{month} 月有记录 {n} 天」+「只看哪天有记录，不分对错。」
 //   三 · 较少见的字          96px 格子里标准字形（原型 ref()，RefMini）+ 字 + 拼音 +「今年有记录的字里，它最不常用。」；
 //                            没有字频可比时整节不画（原型 annRareOn）。
-//   四 · 这一年第一个有记录的字 96px 格子里那一次的真实笔迹（InkMini）+ 字 +「{date} · 你当时的笔迹」；
-//                            那一次没有笔迹（P31 perRecordInk 关 / 折叠月份）：格子画标准字 +「没有笔迹」（R-D07 / 10.12，不借别次笔迹，I03），
-//                            说明行只写日期（不说「你当时的笔迹」——过渡口径，报告登记待定）。
+//   四 · 这一年第一个有记录的字 96px 格子里的真实笔迹（InkMini）+ 字 +「{date} · 你当时的笔迹」；D42（解 P122）：笔迹取今年这个字
+//                            从早到晚第一份留有墨迹的那一次，{date} 是那一次的日子；
+//                            今年里一份笔迹都没有（P31 perRecordInk 关 / 折叠月份 / 都被回收）：格子画标准字 +「没有笔迹」（R-D07 / 10.12，
+//                            不拿去年的笔迹冒充，I03），说明行只写日期（最早那条记录的日子；不说「你当时的笔迹」——过渡口径，报告登记待定）。
 //   页底「只算今年的记录。这一页不能保存成图片。」——本页没有保存 / 分享入口（R-M06 不导出，P21-04 放以后版本）。
 // 空态（原型 annualEmpty）：虚线框「年」+「今年还没有记录」+「写字并判断对错后，这里会汇总你今年的记录。」。
 // 数字全部按记录算（annual-model.js，与 M4-1 recordIndex 同一索引）；界面一律阿拉伯数字（T10）。本页不写任何东西、没有可点的格子。
@@ -32,7 +33,7 @@ import { monthDayParts } from '../../../core/dates.js';
 import { hasInkPoints, inkOf } from '../detail/records.js';
 import { InkMini, RefMini } from '../write/compare.js';
 import { useStrokeData } from '../write/hint-layer.js';
-import { useStoreState, useToday } from './records.js';
+import { hasInkOfStore, useStoreState, useToday } from './records.js';
 import { annualModel } from './annual-model.js';
 
 export const ANNUAL_SCREEN = 'annual';
@@ -193,7 +194,7 @@ function Report({ model }) {
 function AnnualScreen() {
   const state = useStoreState();
   const today = useToday();
-  const model = useMemo(() => annualModel(state, today), [state, today]);
+  const model = useMemo(() => annualModel(state, today, { hasInk: hasInkOfStore() }), [state, today]);
   return html`<${Page} title=${t('X-MINE.annual')} testid="annual-screen">
     <div class="sz-ann" data-testid="annual-body" data-state=${model.empty ? 'empty' : 'report'} data-year=${model.year}
       data-today=${today} data-count=${model.count} data-days=${model.days} style=${model.empty ? { flex: '1' } : null}>

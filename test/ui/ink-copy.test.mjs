@@ -18,6 +18,7 @@ const BOTH_TRUE = {
   'R-D07.noInkLarge': '没有笔迹时的说明',
   'R-I01.glyphNote': '手写字图片只有最近一次有笔迹（持久或本页面会话）才能生成，否则入口置灰（R-D04）',
   'X-IMAGES.missingSession': '说明缺墨的字不在图里',
+  'X-IMAGES.missingDay': '说明缺墨的字不在图里',
   'X-IMAGES.missingMonth': '说明缺墨的字不在图里',
   'R-R07.missingInk': '说明缺墨的字不在图里',
   'R-R07.allMissing': '说明没有笔迹，不能保存',
@@ -97,4 +98,13 @@ test('D27 (P1-E3): with perRecordInk on, the shown slots only promise what is ke
   // 月字帖按 P02 取「本月第一次」，缺墨说明不得说成「最近一次」
   assert.equal(policy.monthSheetPick, 'first');
   assert.doesNotMatch(t('X-IMAGES.missingMonth', { chars: '「水」' }), /最近一次/, 'month sheet picks the month\'s first record (P02)');
+});
+
+test('D42 (P122): month / day missing-ink sentences say the whole period has none — not "那一次" (a single record)', () => {
+  assert.equal(t('X-IMAGES.missingMonth', { chars: '「水」' }), '「水」这个月没有留下笔迹，不在图里。');
+  assert.equal(t('X-IMAGES.missingDay', { chars: '「水」' }), '「水」这天没有留下笔迹，不在图里。');
+  assert.doesNotMatch(t('X-IMAGES.missingMonth', { chars: '「水」' }), /那一次|这一次/);
+  assert.doesNotMatch(t('X-IMAGES.missingDay', { chars: '「水」' }), /那一次|这一次/);
+  // 这次的图片（一次练习）仍是「这一次」：一次练习里同一个字的记录都没有墨迹
+  assert.match(t('X-IMAGES.missingSession', { chars: '「水」' }), /这一次/);
 });

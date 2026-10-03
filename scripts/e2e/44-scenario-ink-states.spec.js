@@ -6,7 +6,7 @@
 //   306 个字：i = 0..299 每字一条「最近」记录（9-23 起每 3 个字往前一天，i%10==3 写错），i = 0..9 另有 5 天前、i = 10..29 另有
 //   40 天前的一条更早的写对；T0..T5 = 今天一组 daily（结束后在 lastEnded.A）。然后删掉部分墨迹：
 //     A 最近一次缺墨、更早一次有墨：i ∈ {0, 1, 3(写错), 4, 6}      → 各处必须「没有笔迹」，不能借更早那次
-//     C 最近一次有墨、更早一次缺墨：i ∈ {2, 5}                    → 最近一次的笔迹；月字帖取本月第一次（P02）= 缺墨 → 不画进图
+//     C 最近一次有墨、更早一次缺墨：i ∈ {2, 5}                    → 最近一次的笔迹；月字帖按 D42（解 P122）本月内从早到晚找留有墨迹的那次 → 取最近一次，画进图
 //     B 只有一条且缺墨：i ∈ {40, 41, 43, 45}
 //     今天一组缺墨：T1、T4
 // 七处（逐格断言「这一格用的是哪条记录、有没有笔迹」与口径一致）：
@@ -14,8 +14,8 @@
 //   2 查字卡片「你的书写」           最近一次 judged（P19）；缺墨「没有笔迹」
 //   3 清单小图（写错过）             该行记录 = 最近一次（写错）；缺墨「没有笔迹」
 //   4 单字详情                       历次格子各用各的；做图片行按最近一次置灰（R-D04）
-//   5 字帖（我的 / 练习记录，M4-1）  本月第一次（P02）；落款天数与图片一致
-//   6 这次的图片（结果页）           本组每字最后一次；缺墨不画、落款字数跟着减（P50 / R-I04）
+//   5 字帖（我的 / 练习记录，M4-1）  本月第一次起从早到晚找留有墨迹的那次（P02 + D42）；落款天数与图片一致
+//   6 这次的图片（结果页）           本组每字从晚到早找留有墨迹的那次（D11 + D42）；缺墨不画、落款字数跟着减（P50 / R-I04）
 //   7 单字图片（详情）               最近一次；缺墨不生成
 // 其余页面由并行卡实现：未注册的屏（getScreen 为空）记 NOT-RUN 并跳过该项，不算通过。
 
@@ -295,11 +295,18 @@ export default async function run(page, ctx) {
     assert.equal(m.record, ids[chars[i]].older.id, `P02 first: ${chars[i]} (i=${i}) uses its first September record (the older one, which has ink)`);
   }
   assert.ok(job.drawn.includes(chars[0]) && job.recordIds.includes(ids[chars[0]].older.id), 'A i=0 drawn from its first-of-month record, not the missing latest');
-  assert.ok(C.every(i => job.missing.includes(chars[i])), 'C: first-of-month record missing → omitted (no borrowing of the later ink)');
-  assert.ok(B.filter(i => i <= 68).every(i => job.missing.includes(chars[i])), 'B: missing → omitted');
+  // D42（解 P122）：C 的本月第一次（缺墨）不再让这个字缺墨——本月内往后找到的最近一次有墨，画进图，角标跟着换成那次的日子
+  for (const i of C) {
+    const m = job.members.find(x => x.char === chars[i]);
+    assert.equal(m.record, ids[chars[i]].latest.id, `D42: ${chars[i]} (i=${i}) first-of-month has no ink → the month's latest (has ink)`);
+    assert.ok(job.drawn.includes(chars[i]) && job.recordIds.includes(ids[chars[i]].latest.id), `C ${chars[i]} drawn from its later record`);
+    assert.ok(!job.missing.includes(chars[i]), `C ${chars[i]} no longer missing`);
+  }
+  assert.ok(job.drawn.includes(chars[0]) && job.recordIds.includes(ids[chars[0]].older.id), 'A i=0 drawn from its first-of-month record, not the missing latest');
+  assert.ok(B.filter(i => i <= 68).every(i => job.missing.includes(chars[i])), 'B: no ink anywhere in the month → omitted (nothing borrowed)');
   assert.equal(job.days, 24, 'judged days in September (9-01 … 9-24)');
-  assert.equal(job.drawn.length, 75 - 2 - 4 - 2, 'drawn = 75 members − C(2) − B(4) − today missing(2)');
-  assert.equal(job.signature, '二〇二六年九月 · 有记录二十四天 · 六十七个字', 'signature: 24 days · drawn count 67 (R-I04)');
+  assert.equal(job.drawn.length, 75 - 4 - 2, 'drawn = 75 members − B(4) − today missing(2)');
+  assert.equal(job.signature, '二〇二六年九月 · 有记录二十四天 · 六十九个字', 'signature: 24 days · drawn count 69 (R-I04)');
   if (await screenRegistered(page, 'records')) {
     await nav(page, 'push', 'records', { month: '2026-09' });
     await page.waitForSelector(topSel('records-sheet'));
@@ -309,7 +316,7 @@ export default async function run(page, ctx) {
       const el = top.querySelector('[data-testid="records-sheet"]');
       return { days: el.dataset.days, cells: [...top.querySelectorAll('[data-testid="records-sheet-cell"]')].map(c => ({ char: c.dataset.char, record: c.dataset.record || null, ink: c.dataset.ink === 'true' })) };
     });
-    assert.deepEqual(sheet.cells.map(c => ({ char: c.char, record: c.record })), job.members, '字帖 cells = image members, same record per char (P02 first)');
+    assert.deepEqual(sheet.cells.map(c => ({ char: c.char, record: c.record })), job.members, '字帖 cells = image members, same record per char (P02 first + D42)');
     assert.deepEqual(sheet.cells.filter(c => !c.ink).map(c => c.char), job.missing, '字帖 没有笔迹 cells = chars left out of the image');
     assert.equal(Number(sheet.days), job.days, '字帖 day count = image day count');
   } else {

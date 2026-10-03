@@ -70,6 +70,50 @@ test('month sheet: first-appearance order, date tags on day change, P02 pick fir
   assert.deepEqual(last.cells.map(c => c.char), ['静', '谁', '题', '慢', '数'], 'order stays first-appearance');
 });
 
+const INK_ENTRY = { s: ['AAAAAAAA'] }; // 存下的墨迹（只看有没有笔画；不解码）
+
+test('D42 month sheet: 静 written in August then 9-01 / 9-08 / 9-22 — September shows 9-22 (tag 9-22), August shows its own; ink never borrowed across months', () => {
+  serial = 0;
+  const rs = [rec('静', '2026-08-05'), rec('静', '2026-09-01'), rec('谁', '2026-09-01'), rec('静', '2026-09-08'), rec('静', '2026-09-22', { judgment: 'wrong' })];
+  // D27：只留首次（r1）与最近一次（r5）的墨迹；谁 只有一次、墨迹还在
+  const ink = { '2026-08': { r1: INK_ENTRY }, '2026-09': { r5: INK_ENTRY, r3: INK_ENTRY } };
+  const idx = recordIndex(state(rs, { ink }));
+  const sep = monthSheet(idx, '2026-09', { policy });
+  assert.deepEqual(sep.cells.map(c => [c.char, c.record.id, c.day, c.tag]), [['静', 'r5', '2026-09-22', '2026-09-22'], ['谁', 'r3', '2026-09-01', '2026-09-01']],
+    '9-01 recycled: 静 takes 9-22 and the tag follows it; 谁 keeps its 9-01');
+  assert.equal(sep.cells[0].record.localDay, '2026-09-22');
+  const aug = monthSheet(idx, '2026-08', { policy });
+  assert.deepEqual(aug.cells.map(c => [c.char, c.record.id]), [['静', 'r1']]);
+  // 'last' 偏好从晚到早找
+  const last = monthSheet(idx, '2026-09', { policy: { ...policy, monthSheetPick: 'last' } });
+  assert.equal(last.cells[0].record.id, 'r5');
+  // 九月里一份墨迹都没有（八月那份不冒充）：取本月第一次、如实没有笔迹
+  const noSep = monthSheet(recordIndex(state(rs, { ink: { '2026-08': { r1: INK_ENTRY } } })), '2026-09', { policy });
+  assert.deepEqual(noSep.cells.map(c => [c.char, c.record.id, c.day]), [['静', 'r2', '2026-09-01'], ['谁', 'r3', '2026-09-01']]);
+  // 注入的 hasInk 优先于 state.ink（界面把页面内笔画也算上）
+  const injected = monthSheet(idx, '2026-09', { policy, hasInk: r => r.id === 'r4' });
+  assert.equal(injected.cells[0].record.id, 'r4');
+});
+
+test('D42 month sheet on a folded month: only kept records are candidates; kept with ink wins, otherwise the preferred kept one / null', () => {
+  serial = 0;
+  const k1 = rec('和', '2026-06-03');
+  const k2 = rec('和', '2026-06-10');
+  const s = state([], { ink: { '2026-06': { [k2.id]: INK_ENTRY } } });
+  s.records['2026-06'] = { folded: true, month: '2026-06', byDay: { '2026-06-03': ['和', '永'], '2026-06-10': ['和'] }, chars: ['和', '永'], kept: [k1, k2] };
+  const fs = monthSheet(recordIndex(s), '2026-06');
+  assert.deepEqual(fs.cells.map(c => [c.char, c.record ? c.record.id : null, c.day]), [['和', k2.id, '2026-06-10'], ['永', null, '2026-06-03']]);
+});
+
+test('D42 day items: the char keeps the latest record OF THAT DAY that has ink; order stays by latest; none that day keeps the latest', () => {
+  serial = 0;
+  const rs = [rec('数', TODAY), rec('感', TODAY), rec('数', TODAY, { judgment: 'wrong' }), rec('静', TODAY), rec('静', '2026-09-25')];
+  // r1（数 的第一次）有墨、r3（数 最近一次）没有；感 没有墨；静 只有 9-25 有墨
+  const idx = recordIndex(state(rs, { ink: { '2026-09': { r1: INK_ENTRY, r5: INK_ENTRY } } }));
+  assert.deepEqual(dayItems(idx, TODAY).map(i => [i.char, i.record.id]), [['感', 'r2'], ['数', 'r1'], ['静', 'r4']],
+    '数 falls back to its older same-day ink; 感 / 静 have none that day: latest of the day, no borrowing');
+});
+
 test('record days: judged + folded byDay; answer-seen / skipped / legacy.days excluded', () => {
   serial = 0;
   const s = state([rec('静', '2026-09-01'), rec('户', '2026-09-02', { kind: 'answer-seen' }), rec('虽', '2026-09-03', { kind: 'skipped' })], {

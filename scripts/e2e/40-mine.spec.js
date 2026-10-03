@@ -123,8 +123,14 @@ async function oracle(page, month) {
     judged.sort((a, b) => Number(a.id.slice(1)) - Number(b.id.slice(1)));
     for (const r of judged) days.add(r.localDay);
     const inMonth = judged.filter(r => r.localDay.startsWith(m + '-'));
-    const first = new Map();
-    for (const r of inMonth) if (!first.has(r.char)) first.set(r.char, r);
+    // D42（解 P122）：每字在本月内从早到晚找留有墨迹的那一次（存下的墨迹表里有这条），一份都没有才取本月第一次。
+    const hasInk = r => !!((st.ink || {})[r.localDay.slice(0, 7)] || {})[r.id];
+    const byChar = new Map();
+    for (const r of inMonth) {
+      if (!byChar.has(r.char)) byChar.set(r.char, []);
+      byChar.get(r.char).push(r);
+    }
+    const first = new Map([...byChar.entries()].map(([char, list]) => [char, list.find(hasInk) || list[0]]));
     let sheet;
     if (folded[m]) {
       const fd = new Map();
@@ -140,9 +146,16 @@ async function oracle(page, month) {
       return { ...c, tag };
     });
     const dayChars = day => {
+      // 那天每字：按最近一次的先后排；留的这条 = 那天内从晚到早第一条留有墨迹的（D42），都没有才是最近一次
       const map = new Map();
-      for (const r of judged) if (r.localDay === day) { map.delete(r.char); map.set(r.char, r); }
-      return [...map.values()].map(r => ({ char: r.char, record: r.id }));
+      for (const r of judged) {
+        if (r.localDay !== day) continue;
+        const list = map.get(r.char) || [];
+        list.push(r);
+        map.delete(r.char);
+        map.set(r.char, list);
+      }
+      return [...map.values()].map(list => ({ char: list[0].char, record: (list.slice().reverse().find(hasInk) || list[list.length - 1]).id }));
     };
     const monthDays = [...days].filter(d => d.startsWith(m + '-')).sort();
     return {
@@ -478,17 +491,18 @@ export default async function run(page, ctx) {
   assert.equal(v.sheetTitle, COPY.sheetTitle(9), 'R-P02 「9 月字帖」');
   assert.equal(v.gridInPaper, true, 'sheet grid laid out inside the paper card');
   assert.deepEqual(v.cells.map(c => [c.char, c.day, c.tag, c.record]), o9.sheet.map(c => [c.char, c.day, c.tag, c.record]),
-    'sheet order / dates / tags / picked record = oracle (first time this month, P02)');
+    'sheet order / dates / tags / picked record = oracle (P02 first, D42: first one this month that still has ink)');
   assert.deepEqual(v.cells.map(c => c.char).join(''), '静谁题慢额您数感', 'first-appearance order');
   const jing = v.cells.find(c => c.char === '静');
-  assert.equal(jing.day, '2026-09-01', '静 uses the first record this month (M02), not 9-22');
-  // 9-1 那条的墨迹已按 D27 回收（中间那次）：如实「没有笔迹」，不借 9-22 的笔迹（I03）；月字帖取本月第一次与 D27 的冲突见 03 P122
-  assert.equal(jing.ink, 'false', '静 9-1 ink was recycled by D27 → 没有笔迹, not borrowed from 9-22');
+  // D42（解 P122）：9-1、9-8 两次的墨迹已按 D27 回收（中间那次）；月字帖在本月内从早到晚找留有墨迹的那一次 → 9-22（笔迹与角标对应，M02），
+  // 不再是「9-1 没有笔迹」。8 月那次（8-20，种子没存墨迹）在时间段外，不进候选。
+  assert.equal(jing.day, '2026-09-22', '静 uses the first record this month that still has ink (D42): 9-22, not the recycled 9-1');
+  assert.equal(jing.ink, 'true', '静 cell draws 9-22\'s own ink (D42 解 P122)');
   assert.equal(v.cells.find(c => c.char === '感').ink, 'true', '感 cell draws that record\'s own ink (its first and latest judgment)');
-  assert.equal(jing.tagText, '9·1', 'red date tag');
+  assert.equal(jing.tagText, '9·22', 'red date tag follows the picked record (M02)');
   assert.equal(v.cells.find(c => c.char === '数').ink, 'false', 'no ink → 没有笔迹 (10.12, no borrowing)');
   assert.equal(v.cells.find(c => c.char === '感').tagText, null, 'same date as previous cell → no tag');
-  assert.equal(jing.label, '静 · 9 月 1 日', 'cell accessible name');
+  assert.equal(jing.label, '静 · 9 月 22 日', 'cell accessible name follows the picked record');
   assert.equal(v.sign, `二〇二六年九月 · 有记录${cn(o9.monthDays.length)}天 · ${cn(o9.sheet.length)}个字`, 'signature in Chinese numerals');
   assert.equal(v.sign, '二〇二六年九月 · 有记录五天 · 八个字', 'signature literal');
   assert.equal(v.seal, '字', 'seal');

@@ -10,13 +10,15 @@
 //   SEED 的 rank =「字频#N」）。没有字频的字（自造字 / 题库外）不参与；一个都没有时整节不显示（原型 annRareOn）。
 //   并列（同 rank）取今年先写到的那个。原型写死「豕」，这里改为按 rank 算——过渡口径，报告登记待定（P23-04「需字频表」）。
 //   字形是标准字形（原型 ref()，不是笔迹）；拼音取题库卡的 py。
-// - 四 · 这一年第一个有记录的字：今年最早的一条 judged 记录（按 id 先后，01 §3.1）；折叠月份里更早的日子只剩字，
-//   record=null（格子「没有笔迹」，不借别次笔迹，I03）。
+// - 四 · 这一年第一个有记录的字：字 = 今年最早的一条 judged 记录的字（按 id 先后，01 §3.1）；折叠月份里更早的日子只剩字。
+//   笔迹按 D42（解 P122；D27 起中间几次的墨迹已回收）：在今年这个字的记录里从早到晚找留有墨迹的那一次，说明行的日期是那一次的日子；
+//   今年里一份都没有才 record = 最早那条（折叠更早的为 null）、格子「没有笔迹」、说明行只写日期；不拿去年的笔迹冒充（I03）。
 // - 空态：今年没有任何记录（R-M06 空「今年还没有记录」）。去年有记录、今年没有也是空态。
 
 import { isValidDay, monthOf, parseDay } from '../../../core/dates.js';
 import { cardForKey } from '../../../data/deck.js';
 import { recordIndex } from './model.js';
+import { pickInkRecord, storedInkPresent } from '../../../core/ink-pick.js';
 
 /** 没有字频的卡（cards.js buildCards 的缺省 rank）。 */
 export const NO_RANK = 999999;
@@ -56,7 +58,7 @@ export function yearSlice(state, year) {
   for (const r of judged) events.push({ day: r.localDay, char: r.char, seq: order++ });
   events.sort((a, b) => (a.day < b.day ? -1 : a.day > b.day ? 1 : a.seq - b.seq));
   for (const ev of events) if (!firstSeen.has(ev.char)) firstSeen.set(ev.char, ev.day);
-  return { year, judged, days, chars: [...firstSeen.keys()], firstSeen, folded };
+  return { year, judged, days, chars: [...firstSeen.keys()], firstSeen, folded, ink: index.ink };
 }
 
 /** 二 · 有记录天数最多的月份：{month:'YYYY-MM', monthNum, days} 或 null。并列取月份大的。 */
@@ -87,10 +89,13 @@ export function rarestChar(chars, cardOf = defaultCardOf) {
 
 /**
  * 四 · 这一年第一个有记录的字：{char, day, record|null}。
- * 今年最早的 judged（id 先后）；折叠月份有更早的日子时取那天 byDay 的第一个字（record=null）；
- * 同一天且字相同，用 judged 记录（可能有笔迹）。
+ * 字 = 今年最早的 judged 的字（id 先后）；折叠月份有更早的日子时取那天 byDay 的第一个字；同一天且字相同，用 judged 记录。
+ * 笔迹（D42）：在今年这个字的 judged 记录里从早到晚找留有墨迹的那一次，找到了 record / day 就是那一次；
+ * 今年里都没有墨迹时 record / day 是原来的取法（最早那条；折叠更早的 record=null），格子「没有笔迹」。
+ * @param {object} slice  yearSlice
+ * @param {{hasInk?:(record)=>boolean}} [o]  缺省按 slice.ink（state.ink）存下的墨迹
  */
-export function firstOfYear(slice) {
+export function firstOfYear(slice, { hasInk = null } = {}) {
   const r0 = slice.judged.length ? slice.judged[0] : null;
   let fold = null;
   for (const f of Object.values(slice.folded)) {
@@ -100,22 +105,27 @@ export function firstOfYear(slice) {
       break;
     }
   }
+  let base = null;
   if (r0 && (!fold || r0.localDay < fold.day || (r0.localDay === fold.day && r0.char === fold.char))) {
-    return { char: r0.char, day: r0.localDay, record: r0 };
+    base = { char: r0.char, day: r0.localDay, record: r0 };
+  } else if (fold) {
+    base = { char: fold.char, day: fold.day, record: null };
   }
-  if (fold) return { char: fold.char, day: fold.day, record: null };
-  return null;
+  if (!base) return null;
+  const has = typeof hasInk === 'function' ? hasInk : record => storedInkPresent({ ink: slice.ink }, record);
+  const found = pickInkRecord(slice.judged.filter(r => r.char === base.char), { prefer: 'first', hasInk: has });
+  return found ? { char: base.char, day: found.localDay, record: found } : base;
 }
 
 /**
  * 年度报告页面模型（R-M06）。
  * @param {object|null} state  store 状态
  * @param {string} today       YYYY-MM-DD（应用时钟）
- * @param {{cardOf?: (char:string) => ({py?:string, rank?:number}|null)}} [opts]
+ * @param {{cardOf?: (char:string) => ({py?:string, rank?:number}|null), hasInk?:(record)=>boolean}} [opts]  hasInk：D42 挑第四节笔迹用，缺省按 state.ink
  * @returns {{today, year, empty:boolean, count:number, chars:string[], days:number,
  *   month: {month, monthNum, days}|null, rare: {char, py, rank}|null, first: {char, day, record|null}|null}}
  */
-export function annualModel(state, today, { cardOf = defaultCardOf } = {}) {
+export function annualModel(state, today, { cardOf = defaultCardOf, hasInk = null } = {}) {
   const year = yearOfDay(today);
   const slice = yearSlice(state, year);
   const empty = slice.days.length === 0 && slice.chars.length === 0;
@@ -128,6 +138,6 @@ export function annualModel(state, today, { cardOf = defaultCardOf } = {}) {
     days: slice.days.length,
     month: empty ? null : busiestMonth(slice.days),
     rare: empty ? null : rarestChar(slice.chars, cardOf),
-    first: empty ? null : firstOfYear(slice),
+    first: empty ? null : firstOfYear(slice, { hasInk }),
   };
 }

@@ -35,6 +35,7 @@ import { compareRecordIds, forgetList, isJudged, sortById } from '../../../core/
 import { flattenRecords } from '../../../core/query.js';
 import { promptModel } from '../../../core/cards.js';
 import { decodeInk, resampleForReplay } from '../../../core/ink-math.js';
+import { inkHasStrokes } from '../../../core/ink-pick.js';
 import { cardForKey, hasContextWord, withWordOff } from '../../../data/deck.js';
 import { InkMini, recalledInk } from '../write/compare.js';
 import { promptCopy } from '../write/prompt.js';
@@ -215,6 +216,23 @@ export function inkOf(store, record) {
   }
   const raw = recalledInk(record.id);
   return raw && raw.length ? { points: null, strokes: raw } : { points: null, strokes: null };
+}
+
+/**
+ * 这条记录有没有本人笔迹（只查在不在、不解码）：存下的墨迹（按月表一次查找）→ 本页面会话里记下的笔画。
+ * D42 时间段视图（月字帖 / 图片 / 年报首字）挑「留有墨迹的那一次」时逐条问它，挑出来的那条再由格子 / 渲染各自解码一次。
+ */
+export function recordHasInk(store, record) {
+  if (!record) return false;
+  if (store) {
+    try {
+      if (inkHasStrokes(store.getInk(record))) return true;
+    } catch (error) {
+      // 读不到按没有
+    }
+  }
+  const raw = recalledInk(record.id);
+  return !!(raw && raw.length);
 }
 
 export function hasInkPoints(ink) {

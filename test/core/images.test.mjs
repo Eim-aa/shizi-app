@@ -218,11 +218,18 @@ test('month sheet: first-appearance order, ink = FIRST judgment in the month (P0
   assert.equal(plan.days, 3);
   const last = monthMembers(st, '2026-09', { pick: 'last' });
   assert.deepEqual(last.members.map(x => x.record.id), ['r6', 'r3', 'r5', 'r7']);
-  // 缺墨去掉后角标重算：那天的第一格仍带日期
+  // D42（解 P122）：第一次那条缺墨 → 本月内从早到晚找下一条有墨的（永 r6，9-5），角标跟着那一条走
   const gap = imagePlan(st, { kind: 'month', month: '2026-09' }, { inkOf: r => (r.id === 'r2' ? null : INK) });
-  assert.deepEqual(gap.drawn.map(c => [c.char, c.tag]), [['和', '9·2'], ['静', '9·5'], ['山', '9·7']]);
-  assert.deepEqual(gap.missing, ['永']);
-  assert.equal(gap.n, 3);
+  assert.deepEqual(gap.drawn.map(c => [c.char, c.record.id, c.tag]), [['永', 'r6', '9·5'], ['和', 'r3', '9·2'], ['静', 'r5', '9·5'], ['山', 'r7', '9·7']]);
+  assert.deepEqual(gap.missing, []);
+  // 本月内一份都没有才缺墨（8-30 那条有墨也不算：时间段外不冒充）；缺墨去掉后角标重算——那天的第一格仍带日期
+  const none = imagePlan(st, { kind: 'month', month: '2026-09' }, { inkOf: r => (r.id === 'r2' || r.id === 'r6' ? null : INK) });
+  assert.deepEqual(none.drawn.map(c => [c.char, c.tag]), [['和', '9·2'], ['静', '9·5'], ['山', '9·7']]);
+  assert.deepEqual(none.missing, ['永']);
+  assert.equal(none.n, 3);
+  // 'last' 偏好：从晚到早找
+  const lastGap = imagePlan(st, { kind: 'month', month: '2026-09' }, { inkOf: r => (r.id === 'r6' ? null : INK), policy: { ...policy, monthSheetPick: 'last' } });
+  assert.deepEqual(lastGap.drawn.map(c => [c.char, c.record.id]), [['永', 'r2'], ['和', 'r3'], ['静', 'r5'], ['山', 'r7']]);
 });
 
 test('month sheet on a folded month: members from byDay, only kept records can carry ink', () => {
@@ -248,6 +255,88 @@ test('day image (R-P03): that day judged chars, each char = latest that day', ()
   const m = dayMembers(stateOf(recs), '2026-09-24');
   assert.deepEqual(m.members.map(x => [x.char, x.record.id]), [['永', 'r3'], ['山', 'r4']]);
   assert.throws(() => dayMembers(stateOf(recs), '2026-9-1'), /INVALID_DAY/);
+});
+
+// ---------------------------------------------------------------- D42（解 P122）：时间段内找留有墨迹的那一次
+
+const INK_ENTRY = { s: ['AAAAAAAA'] }; // 存下的墨迹（只看有没有笔画；不解码）
+
+/** 「静」：8-05 首次、9-01、9-08、9-22（D27 只留首次与最近一次的墨迹：r1 与 r4 有墨，中间 r2 r3 已回收）。 */
+function jingState(extra = {}) {
+  const recs = [
+    rec(1, '静', 'judged', 'correct', '2026-08-05'),
+    rec(2, '静', 'judged', 'correct', '2026-09-01', { sessionId: 's2' }),
+    rec(3, '静', 'judged', 'correct', '2026-09-08', { sessionId: 's3' }),
+    rec(4, '静', 'judged', 'wrong', '2026-09-22', { sessionId: 's4' }),
+  ];
+  return { ...stateOf(recs), ink: { '2026-08': { r1: INK_ENTRY }, '2026-09': { r4: INK_ENTRY } }, ...extra };
+}
+const hasStored = st => r => !!(st.ink[r.localDay.slice(0, 7)] || {})[r.id];
+
+test('D42 month sheet: September picks 9-22 (the month\'s ink-bearing one), August keeps its own — no ink borrowed across months', () => {
+  const st = jingState();
+  const sep = monthMembers(st, '2026-09', { hasInk: hasStored(st) });
+  assert.deepEqual(sep.members.map(m => [m.char, m.record.id]), [['静', 'r4']], '9-01 recycled → 9-22 (not the August ink)');
+  const aug = monthMembers(st, '2026-08', { hasInk: hasStored(st) });
+  assert.deepEqual(aug.members.map(m => [m.char, m.record.id]), [['静', 'r1']]);
+  const plan = imagePlan(st, { kind: 'month', month: '2026-09' }, { inkOf: r => (hasStored(st)(r) ? INK : null) });
+  assert.deepEqual(plan.drawn.map(c => [c.char, c.record.id, c.tag]), [['静', 'r4', '9·22']], 'tag follows the picked record');
+  assert.deepEqual(plan.missing, []);
+  // 没传 hasInk 的旧调用保持原取法（本月第一次）
+  assert.equal(monthMembers(st, '2026-09').members[0].record.id, 'r2');
+});
+
+test('D42 month sheet: nothing with ink inside the month → honestly missing (preferred record kept for the tag); ink outside the month does not stand in', () => {
+  const st = jingState({ ink: { '2026-08': { r1: INK_ENTRY } } });
+  const plan = imagePlan(st, { kind: 'month', month: '2026-09' }, { inkOf: r => (hasStored(st)(r) ? INK : null) });
+  assert.equal(plan.status, 'empty');
+  assert.deepEqual(plan.missing, ['静']);
+  assert.deepEqual(plan.members.map(m => m.record.id), ['r2'], 'fallback = first of month, shown as 没有笔迹');
+});
+
+test('D42 month sheet: preference direction — first scans early→late, last scans late→early', () => {
+  const st = jingState({ ink: { '2026-09': { r2: INK_ENTRY, r3: INK_ENTRY } } });
+  const has = hasStored(st);
+  assert.equal(monthMembers(st, '2026-09', { pick: 'first', hasInk: has }).members[0].record.id, 'r2');
+  assert.equal(monthMembers(st, '2026-09', { pick: 'last', hasInk: has }).members[0].record.id, 'r3', 'last: r4 has none → r3, not r2');
+});
+
+test('D42 month sheet on a folded month: only kept records are candidates; the one with ink wins', () => {
+  const k1 = rec(8, '和', 'judged', 'correct', '2025-01-03');
+  const k2 = rec(9, '和', 'judged', 'correct', '2025-01-10');
+  const st = { records: { '2025-01': { folded: true, month: '2025-01', byDay: { '2025-01-03': ['和'], '2025-01-10': ['和', '山'] },
+    chars: ['和', '山'], kept: [k1, k2] } }, sessions: { A: null, B: null, lastEnded: {} }, ink: { '2025-01': { r9: INK_ENTRY } } };
+  const m = monthMembers(st, '2025-01', { hasInk: hasStored(st) });
+  assert.deepEqual(m.members.map(x => [x.char, x.record ? x.record.id : null]), [['和', 'r9'], ['山', null]]);
+});
+
+test('D42 day image: each char = the latest record of THAT day that has ink (older same-day one), none that day → missing', () => {
+  const recs = [
+    rec(1, '静', 'judged', 'correct', '2026-09-24'),
+    rec(2, '静', 'judged', 'wrong', '2026-09-24'),
+    rec(3, '山', 'judged', 'correct', '2026-09-24'),
+    rec(4, '山', 'judged', 'correct', '2026-09-25'),
+  ];
+  const st = { ...stateOf(recs), ink: { '2026-09': { r1: INK_ENTRY, r4: INK_ENTRY } } };
+  const has = hasStored(st);
+  const d = dayMembers(st, '2026-09-24', { hasInk: has });
+  assert.deepEqual(d.members.map(x => [x.char, x.record.id]), [['静', 'r1'], ['山', 'r3']], '静: r2 has none → r1; 山: only the 9-25 ink exists → not borrowed');
+  const plan = imagePlan(st, { kind: 'day', day: '2026-09-24' }, { inkOf: r => (has(r) ? INK : null) });
+  assert.deepEqual(plan.drawn.map(c => c.char), ['静']);
+  assert.deepEqual(plan.missing, ['山']);
+});
+
+test('D42 session image: a char judged twice in the session picks the latest of the two that has ink', () => {
+  const recs = [
+    rec(1, '永', 'judged', 'wrong', '2026-09-24', { sessionId: 's5' }),
+    rec(2, '永', 'judged', 'correct', '2026-09-24', { sessionId: 's5' }),
+    rec(3, '永', 'judged', 'correct', '2026-09-25', { sessionId: 's6' }),
+  ];
+  const session = { id: 's5', slot: 'A', kind: 'daily', items: [{ cardKey: 'base:永', recordId: 'r1' }, { cardKey: 'base:永', recordId: 'r2' }],
+    endedAt: at('2026-09-24', 21), startedDay: '2026-09-24' };
+  const st = { ...stateOf(recs, { A: null, B: null, lastEnded: { A: session } }), ink: { '2026-09': { r1: INK_ENTRY, r3: INK_ENTRY } } };
+  const m = sessionMembers(st, { slot: 'A', sessionId: 's5', hasInk: hasStored(st) });
+  assert.deepEqual(m.members.map(x => x.record.id), ['r1'], 'r2 has none → r1 (same session); r3 is another session → not borrowed');
 });
 
 test('glyph image (A05): latest judged of the char; that record without ink → noInk (no fallback to an older one, I03)', () => {

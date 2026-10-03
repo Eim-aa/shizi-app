@@ -30,7 +30,7 @@ import { t } from '../../../config/copy/index.js';
 import * as defaultPolicy from '../../../config/policy.js';
 import { mineModel, MINE_SHEET_COLS } from './model.js';
 import {
-  dayText, getMineImageActions, go, MINE_ROUTES, openRecords, Seal, SheetGrid, signatureText, useStoreState, useToday,
+  dayText, getMineImageActions, go, hasInkOfStore, MINE_ROUTES, openRecords, Seal, SheetGrid, signatureText, useStoreState, useToday,
 } from './records.js'; // 练习记录页自注册（records）；首页墨迹行「今天的记录」也在那里注册
 
 export { MINE_ROUTES, openRecords, openTodayRecords, setMineImageActions, RECORDS_SCREEN } from './records.js';
@@ -162,7 +162,7 @@ function Menu({ model }) {
 function MineScreen() {
   const state = useStoreState();
   const today = useToday();
-  const model = useMemo(() => mineModel(state, today, { policy: defaultPolicy }), [state, today]);
+  const model = useMemo(() => mineModel(state, today, { policy: defaultPolicy, hasInk: hasInkOfStore() }), [state, today]);
   return html`<${TabPage} title=${MINE_LABEL} testid="screen-mine">
     <div class="sz-mine" data-testid="mine-home" data-state=${model.empty ? 'empty' : 'records'} data-today=${today} data-month=${model.month}>
       ${model.empty

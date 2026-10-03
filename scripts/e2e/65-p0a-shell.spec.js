@@ -103,6 +103,74 @@ export default async function p0aShell(page, ctx) {
   const { assert, step } = ctx;
   await bootTestHost(page, ctx.baseURL);
   await seedWrong(page);
+
+  // ------------------------------------------------------------------ A4 按压反馈（G16）
+  // 不靠 :active（iOS WebKit 没有 touchstart 监听时 :active 不生效），改 pointerdown / up / cancel / leave 切 data-pressed。
+  // 对象：Tab 条（Tabs 组件）与一个列表行（字库页的「字库」切换行），它们都是 Button variant=plain。
+  step('A4: pointerdown on a Tab sets data-pressed; it scales to .97 and darkens in ~80ms, release clears it');
+  const tab = topSel('tab-home');
+  const pressState = async sel => page.evaluate(s => {
+    const el = document.querySelector(s);
+    const cs = getComputedStyle(el);
+    return { attr: el.getAttribute('data-pressed'), transform: cs.transform, filter: cs.filter };
+  }, sel);
+  const box = await page.locator(tab).boundingBox();
+  const cx = box.x + box.width / 2;
+  const cy = box.y + box.height / 2;
+  await page.mouse.move(cx, cy);
+  assert.equal((await pressState(tab)).attr, null, 'not pressed before pointerdown');
+  await page.mouse.down();
+  await page.waitForTimeout(140); // > 80ms 过渡
+  let ps = await pressState(tab);
+  assert.equal(ps.attr, 'true', 'data-pressed=true while the pointer is down');
+  assert.equal(ps.transform, 'matrix(0.97, 0, 0, 0.97, 0, 0)', `pressed scale .97 (${ps.transform})`);
+  assert.equal(ps.filter, 'brightness(0.94)', `pressed darkens ~6% (${ps.filter})`);
+  // 移出控件：pointerleave 清掉（也不会触发点击）
+  await page.mouse.move(cx, cy - 400);
+  await page.waitForTimeout(40);
+  assert.equal((await pressState(tab)).attr, null, 'pointerleave clears data-pressed');
+  await page.mouse.up();
+  await page.waitForTimeout(220); // 160ms 回弹
+  ps = await pressState(tab);
+  assert.equal(ps.transform, 'none', 'released back to rest');
+  assert.equal(ps.filter, 'none', 'released filter cleared');
+
+  step('A4: pointercancel clears data-pressed on a list row; a disabled button never shows the pressed look');
+  const lib = topSel('library-switch');
+  const lbox = await page.locator(lib).boundingBox();
+  await page.mouse.move(lbox.x + lbox.width / 2, lbox.y + lbox.height / 2);
+  await page.mouse.down();
+  assert.equal((await pressState(lib)).attr, 'true', 'row: data-pressed set on pointerdown');
+  await page.evaluate(s => document.querySelector(s).dispatchEvent(new PointerEvent('pointercancel', { bubbles: true, pointerId: 1 })), lib);
+  assert.equal((await pressState(lib)).attr, null, 'pointercancel clears data-pressed');
+  await page.mouse.move(cx, cy - 400);
+  await page.mouse.up();
+  const disabledPressed = await page.evaluate(() => {
+    const b = document.createElement('button');
+    b.className = 'sz-btn sz-btn--primary';
+    b.disabled = true;
+    document.body.appendChild(b);
+    b.setAttribute('data-pressed', 'true');
+    const cs = getComputedStyle(b);
+    const out = { transform: cs.transform, filter: cs.filter };
+    b.remove();
+    return out;
+  });
+  assert.deepEqual(disabledPressed, { transform: 'none', filter: 'none' }, 'CSS: disabled never shows the pressed look');
+
+  step('A4: prefers-reduced-motion → colour change only, no scale');
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.mouse.move(cx, cy);
+  await page.mouse.down();
+  await page.waitForTimeout(140);
+  ps = await pressState(tab);
+  assert.equal(ps.attr, 'true', 'reduced motion: data-pressed still set');
+  assert.equal(ps.transform, 'none', `reduced motion: no scale (${ps.transform})`);
+  assert.equal(ps.filter, 'brightness(0.94)', 'reduced motion: still darkens');
+  await page.mouse.move(cx, cy - 400);
+  await page.mouse.up();
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+
   await openWrongList(page);
 
   // ------------------------------------------------------------------ A1 推入转场叠层（G13）

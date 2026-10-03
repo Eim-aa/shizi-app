@@ -9,12 +9,11 @@ import { COPY, inkKey, tInk, t } from '../../src/config/copy/index.js';
 const INK_WORDS = /笔迹|你写的|你的字|你的书写/;
 
 /** 有 …Glyph 变体的槽：perRecordInk=true 才取基础槽，关闭（现行）取变体。 */
-const VARIANTS = ['R-L03.legend', 'X-LIBHOME.legendDarkNote', 'R-A01.sortRecentNote', 'R-E03.wrongNote', 'R-E03.forgetNote'];
+const VARIANTS = ['R-L03.legend', 'X-LIBHOME.legendDarkNote', 'R-A01.sortRecentNote', 'R-E03.wrongNote', 'R-E03.forgetNote', 'R-D04.noInkNote'];
 
 /** 两种情况都成立的槽（只在「有笔迹」或「说的是记录 / 文字」时才出现，或根本不涉及格子画什么）。 */
 const BOTH_TRUE = {
   'X-ABOUT.privacy1': '隐私说明：写下的内容只存在本机，与格子画什么无关',
-  'R-D04.noInkNote': '只在最近一次没有笔迹时出现，说的就是「没有」',
   'R-D07.noInkLabel': '没有笔迹时的标签',
   'R-D07.noInkLarge': '没有笔迹时的说明',
   'R-I01.glyphNote': '手写字图片只有最近一次有笔迹（持久或本页面会话）才能生成，否则入口置灰（R-D04）',
@@ -46,7 +45,7 @@ test('F4: every copy slot that mentions 笔迹 / 你写的字 is a variant pair 
 });
 
 test('F4: each …Glyph variant exists and makes no handwriting promise', () => {
-  const PROMISE = /最近一次的笔迹|每次的笔迹|你写错的那一次|你当时的笔迹|你的笔迹/;
+  const PROMISE = /最近一次的笔迹|每次的笔迹|你写错的那一次|你当时的笔迹|你的笔迹|再写一次就能做图片/;
   for (const base of VARIANTS) {
     assert.ok(Object.prototype.hasOwnProperty.call(COPY, base), base + ' exists');
     const glyphKey = base + 'Glyph';
@@ -73,4 +72,13 @@ test('F4: tInk / inkKey follow policy.features.perRecordInk (live value; default
   // features 缺失 / 非 true 一律按关闭
   assert.equal(inkKey('R-A01.sortRecentNote', {}), 'R-A01.sortRecentNoteGlyph');
   assert.equal(inkKey('R-A01.sortRecentNote', { features: { perRecordInk: 'yes' } }), 'R-A01.sortRecentNoteGlyph');
+});
+
+test('A5 (G17): detail / image no-ink note does not promise that writing again makes the image when perRecordInk is off', () => {
+  assert.equal(policy.features.perRecordInk, false);
+  const off = tInk('R-D04.noInkNote');
+  assert.equal(off, '这一次的笔迹没有存下来。在结果页可以把刚写完的字做成图片。');
+  assert.ok(!/再写一次就能做图片/.test(off));
+  // perRecordInk=true：笔迹落盘，「再写一次」成立，取原槽
+  assert.equal(tInk('R-D04.noInkNote', undefined, { features: { perRecordInk: true } }), '最近一次没有笔迹，再写一次就能做图片。');
 });

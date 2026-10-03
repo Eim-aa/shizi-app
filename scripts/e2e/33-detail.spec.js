@@ -250,7 +250,8 @@ export default async function detailSpec(page, ctx) {
   assert.equal(v.next, `下次练习 · 大约 ${await dateText(page, st.sched['base:和'].due)} 再练到`, 'R-D02 next review = sched.due');
   assert.equal(v.list, null, 'latest correct, not due → no list row');
   assert.equal(v.image && v.image.state, 'noInk', 'latest record has no ink → image entry greyed');
-  assert.ok(v.image.text.includes(await copy(page, 'R-D04.noInkNote')), 'R-D04 no-ink note');
+  assert.ok(v.image.text.includes(await copy(page, 'R-D04.noInkNoteGlyph')), 'R-D04 no-ink note (perRecordInk off → Glyph variant)');
+  assert.ok(!v.image.text.includes('再写一次就能做图片'), 'A5: no promise that writing again makes the image');
   await page.click(`${topSel('detail-cell')}[data-record="${heRecs[0].id}"]`);
   await page.waitForSelector(tid('detail-zoom'));
   await waitNavIdle(page);

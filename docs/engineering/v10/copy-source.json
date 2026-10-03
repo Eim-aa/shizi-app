@@ -1644,6 +1644,13 @@
           "raw": "最近一次没有笔迹，再写一次就能做图片。",
           "text": "最近一次没有笔迹，再写一次就能做图片。"
         },
+        "noInkNoteGlyph": {
+          "raw": null,
+          "text": "这一次的笔迹没有存下来。在结果页可以把刚写完的字做成图片。",
+          "origin": "R-D04.noInkNote 的 perRecordInk=false 变体（笔迹不落盘，只在写完的当次进程内可用，故不再承诺「再写一次就能做图片」）",
+          "decision": "P31",
+          "note": "阶段 0 A5（G17）：沿用 F4 的 tInk 机制；perRecordInk=false（现行默认）取此变体，perRecordInk=true 才取原槽"
+        },
         "noRecordNote": {
           "raw": "先写一次这个字，才能做成图片。",
           "text": "先写一次这个字，才能做成图片。"

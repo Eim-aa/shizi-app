@@ -14,6 +14,7 @@ export default Object.freeze({
   // R-D04（已定）
   'R-D04.makeImage': '把这个字做成图片',
   'R-D04.noInkNote': '最近一次没有笔迹，再写一次就能做图片。',
+  'R-D04.noInkNoteGlyph': '这一次的笔迹没有存下来。在结果页可以把刚写完的字做成图片。',
   'R-D04.noRecordNote': '先写一次这个字，才能做成图片。',
   // R-D05（已定）
   'R-D05.swapWord': '换掉这个词语',

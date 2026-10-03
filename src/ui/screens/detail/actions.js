@@ -23,7 +23,7 @@
 import { html } from '../../../../vendor/ui.js';
 import { Button } from '../../components/Button.js';
 import { injectStyles, T } from '../../components/styles.js';
-import { t } from '../../../config/copy/index.js';
+import { t, tInk } from '../../../config/copy/index.js';
 import { dayText } from './records.js';
 
 export const LABELS = Object.freeze({
@@ -159,7 +159,7 @@ export function DetailRows({ model, onList = null, onImage = null, onLegacy, onS
       rows.push(html`<${Row} key="image" testid="detail-image" title=${t('R-D04.makeImage')} arrow=${true}
         onClick=${() => onImage({ char: model.char, cardKey: model.cardKey, record: model.latest })} extra=${{ 'data-state': 'ok' }} />`);
     } else {
-      const note = model.image === 'noInk' ? t('R-D04.noInkNote') : t('R-D04.noRecordNote');
+      const note = model.image === 'noInk' ? tInk('R-D04.noInkNote') : t('R-D04.noRecordNote');
       rows.push(html`<${Row} key="image" testid="detail-image" title=${t('R-D04.makeImage')} off=${true} sub=${note}
         extra=${{ 'data-state': model.image, 'aria-disabled': 'true' }} />`);
     }

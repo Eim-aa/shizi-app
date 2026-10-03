@@ -651,7 +651,7 @@ export const HARDCODE_ALLOW = Object.freeze([
     why: 'LIBRARIES.label：库身份标签（内容门禁 identitySha256 依赖），界面库名一律取 R-L06.lib.*.name；checkMirrors 核对逐字相等',
   },
   { file: 'src/core/cards.js', texts: ['一级', '二级', '三级', '表一', '综合', '进阶'], why: 'SEED 题库字段取值（norm / edu / topic / band），数据不是文案' },
-  { file: 'src/core/dates.js', texts: ['〇', '一', '二', '三', '四', '五', '六', '七', '八', '九', '零', '十', '百', '千'], why: '落款汉字数字（04 §3.1 T10 / 文案-D3，纸面落款专用）' },
+  { file: 'src/core/dates.js', texts: ['〇', '一', '二', '三', '四', '五', '六', '七', '八', '九', '零', '两', '十', '百', '千'], why: '落款汉字数字与数量词「两」（D36；04 §3.1 T10 / 文案-D3，纸面落款专用）' },
   { file: 'src/core/records.js', texts: ['cardKey must be base:<字> or custom:<字>'], why: '记录形状校验的开发者错误信息，不上界面' },
   { file: 'src/ui/canvas/glyph.js', texts: ['字'], why: 'HanziWriter.create 缺字时的占位字形参数，不是文字' },
   { file: 'src/ui/components/query/demo.js', any: true, why: '查字组件开发演示页（?dev=1），开发标签不是用户文案（同 _demo / dev 目录）' },

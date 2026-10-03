@@ -11,7 +11,7 @@
 // 所有函数只读 store，不写任何东西。
 import { nav } from './router.js';
 import { getStore } from '../store/store.js';
-import { t } from '../config/copy/index.js';
+import { t, tInk } from '../config/copy/index.js';
 import * as defaultPolicy from '../config/policy.js';
 import { now as envNow } from '../platform/env.js';
 import { cnCount, localDay, monthDayParts, signatureDateParts, signatureMonthParts } from '../core/dates.js';
@@ -98,7 +98,7 @@ function noteOf(plan) {
 }
 
 function emptyNoteOf(plan) {
-  if (plan.kind === 'glyph') return t('R-D04.noInkNote');
+  if (plan.kind === 'glyph') return tInk('R-D04.noInkNote');
   if (plan.kind === 'month') return t('X-IMAGES.emptyMonth');
   return t('R-R07.allMissing');
 }

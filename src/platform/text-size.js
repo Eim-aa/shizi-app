@@ -13,7 +13,14 @@
 // 书写格边长与字号无关（P118 / D36，write/compact.js writeGridSize 不读这些属性）。
 //
 // 网页（PWA / 浏览器，无原生桥）：没有人调用 shiziContentSize，--k 保持 1（P133：不读浏览器默认字号，理由见 03 P133）。
-// 启动：app.js 在挂 UI 之前导入本模块（注册实现；pageReady 时原生才发当前档位，冷启动首帧按 1 排、收到后立即换）。
+//
+// 冷启动无字号跳动（P1-E6b）：原生在创建 WKWebView 时用 WKUserScript(.atDocumentStart) 把**当前**档位注入成
+//   window.__shiziInitialContentSize = {category, scale}（载荷同 shiziContentSize；每次加载 / 重载前都按当前档位重建脚本）。
+//   本模块在**模块求值时**（app.js 顶部静态导入，早于 DOMContentLoaded 与任何 UI 挂载）读到它就立即写 <html>，之后 pageReady 时
+//   原生再发同一档位 → publish 的 same() 为真，不重复写、不通知订阅者、不重排。档位 → --k 的换算仍只有 policy 一份（原生不抄表）。
+//   注入脚本只写一个 window 变量，不碰 DOM；页面这边写 --k 用 CSSOM（style.setProperty）+ setAttribute('data-…')，
+//   CSP 的 style-src 只拦 style 属性字符串与 <style>，不拦这两种（与 components/styles.js 同一依据）；WKUserScript 本身也不受页面 CSP 约束。
+//   网页没有注入变量 → 行为不变（--k 保持 1）。
 
 import { registerNativeHandler } from './bridge.js';
 import * as policy from '../config/policy.js';
@@ -123,4 +130,23 @@ export function resetTextSize() {
   publish({ ...DEFAULT_VIEW });
 }
 
+/** 原生在文档开始时注入的档位（window.__shiziInitialContentSize = {category, scale}）；没有注入或载荷不是对象 → null。 */
+export function readInjectedContentSize(win = typeof window !== 'undefined' ? window : null) {
+  try {
+    const info = win ? win.__shiziInitialContentSize : null;
+    return info && typeof info === 'object' ? info : null;
+  } catch (error) {
+    return null;
+  }
+}
+
+/** 有注入值就立即应用（返回 true），没有就什么都不做（返回 false）。同值的桥调用随后到达时不会再触发重排。 */
+export function applyInjectedContentSize({ win, doc } = {}) {
+  const info = readInjectedContentSize(win);
+  if (!info) return false;
+  publish(textSizeOf(info), { doc });
+  return true;
+}
+
 registerNativeHandler('shiziContentSize', receiveContentSize);
+applyInjectedContentSize();

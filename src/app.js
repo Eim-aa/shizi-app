@@ -1,5 +1,7 @@
 // 原生桥必须是第一条语句：模块顶层同步定义 iOS→JS 全局（01 §8.1），store 就绪前的调用进队列。
 import './platform/bridge.js';
+// P1-E6b：系统字号在模块求值时就应用原生注入的档位（早于 DOMContentLoaded 与 UI 挂载），冷启动首帧即目标字号；网页无注入则无事发生。
+import './platform/text-size.js';
 
 // 拾字 v10 启动入口。完整启动顺序见 01-架构设计 §2：
 //   import './platform/bridge.js'（M0 验收修复起静态导入，M5-5 扩展）→ 加载数据 → 迁移（M5-4）→ 建 store（M0-5）→ 挂载 UI（本卡）
@@ -27,7 +29,6 @@ async function mountApp() {
   }
   await import('./store/migrate.js').then(m => m.bootMigration()).then(r => (r && r.ok === false ? import('./ui/screens/block/index.js').then(b => b.reportMigrationFailure({ reason: r.error && r.error.kind })) : null)).catch(error => console.warn('[shizi] migration failed:', error)); // M5-4：v1 → v2 迁移（01 §12；失败 → R-B09 迁移变体，M5-6）
   await import('./platform/appearance.js').then(m => m.bootAppearance()).catch(error => console.warn('[shizi] appearance failed:', error)); // M4-3：按 settings 应用 data-theme（挂 UI 前）
-  await import('./platform/text-size.js').catch(error => console.warn('[shizi] text size setup failed:', error)); // P1-E6 / D29 / P130：注册系统字号的桥实现（markReady 之前；pageReady 时原生才发档位 → --k / data-ax）
   const { mountRoot } = await import('./ui/root.js');
   await mountRoot(container);
   await import('./ui/screens/mine/settings.js').then(m => m.showTextSizeNoticeOnce()).catch(error => console.warn('[shizi] text size notice failed:', error)); // P1-E6 / D29 / P132：v1 迁移带来 large=true 时显示一次「文字大小跟随手机设置」并记下

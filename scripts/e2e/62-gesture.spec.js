@@ -9,8 +9,9 @@
 import { bootTestHost, tid, topSel, waitNavIdle } from './helpers.mjs';
 
 // 与 src/ui/router.js 一致（BACK_COMMIT_RATIO / BACK_COMMIT_VELOCITY / BACK_PARALLAX），也与 Swift 阈值一致。
-const RATIO = 0.24;
-const VELOCITY = 650;
+const RATIO = 0.5; // P103 / D36：v > 500 || (x > 50% 宽 && v > -200)
+const VELOCITY = 500;
+const RETURN_VELOCITY = -200;
 const PARALLAX = 0.3;
 
 const tx = px => `translateX(${px}px)`;
@@ -18,14 +19,14 @@ const underAt = (x, w) => Math.round(-(w - x) * PARALLAX * 100) / 100 || 0;
 
 /** 仿 WebViewController.dispatchBackGesture：派发 progress；ended 越过阈值时紧跟 shizi-native-back。返回是否派发了 back。 */
 function swift(page, phase, x, v = 0) {
-  return page.evaluate(([phase, x, v, ratio, velocity]) => {
+  return page.evaluate(([phase, x, v, ratio, velocity, back]) => {
     const w = Math.max(window.innerWidth, 1);
     const detail = { phase, translationX: x, progress: Math.min(1, x / w), velocityX: v };
     window.dispatchEvent(new CustomEvent('shizi-native-back-progress', { detail }));
-    const fired = phase === 'ended' && (x > w * ratio || v > velocity);
+    const fired = phase === 'ended' && (v > velocity || (x > w * ratio && v > back));
     if (fired) window.dispatchEvent(new CustomEvent('shizi-native-back', { detail }));
     return fired;
-  }, [phase, x, v, RATIO, VELOCITY]);
+  }, [phase, x, v, RATIO, VELOCITY, RETURN_VELOCITY]);
 }
 
 async function layers(page) {
@@ -95,6 +96,7 @@ async function pushDemo(page, times) {
 export default async function gesture(page, ctx) {
   const { assert, step } = ctx;
   const W = ctx.viewport.width;
+  const farX = Math.ceil(W * RATIO) + 20; // 过半个宽
 
   step('boot (test host)');
   await bootTestHost(page, ctx.baseURL);
@@ -176,6 +178,20 @@ export default async function gesture(page, ctx) {
   assert.equal(L.top.cls, '', 'top page classes cleaned up');
   assert.equal(L.under.vis, 'hidden', 'page underneath hidden again');
 
+  step('ended: a moderate flick short of half (v 450) and a pull-back past half (v -300) both snap back');
+  await swift(page, 'began', 0);
+  await swift(page, 'changed', 30, 450);
+  assert.equal(await swift(page, 'ended', 30, 450), false, 'v 450 <= 500 and x < half: Swift does not fire');
+  await waitNavIdle(page);
+  assert.equal((await layers(page)).depth, 2, 'v 450 from a short distance: page kept');
+  await swift(page, 'began', 0);
+  await swift(page, 'changed', farX);
+  assert.equal(await swift(page, 'ended', farX, RETURN_VELOCITY - 100), false, 'past half but pulling back: Swift does not fire');
+  await waitNavIdle(page);
+  L = await layers(page);
+  assert.equal(L.depth, 2, 'pull-back past half: page kept');
+  assert.deepEqual(L.inline, [], 'no transform left');
+
   step('cancelled: snap back, stack unchanged');
   await swift(page, 'began', 3);
   await swift(page, 'changed', 180);
@@ -190,18 +206,18 @@ export default async function gesture(page, ctx) {
 
   step('ended past the distance threshold: commits one back, the pop continues from the finger position');
   await swift(page, 'began', 0);
-  await swift(page, 'changed', 200);
+  await swift(page, 'changed', farX);
   await armPopProbe(page);
   await page.evaluate(() => { window.__animLog.length = 0; });
-  assert.equal(await swift(page, 'ended', 200, 300), true, 'Swift fires shizi-native-back right after ended');
+  assert.equal(await swift(page, 'ended', farX, 300), true, 'Swift fires shizi-native-back right after ended');
   await page.waitForFunction(() => window.__popStart !== null);
   const start = await page.evaluate(() => window.__popStart);
   const leaving = start[start.length - 1];
   const revealed = start[start.length - 2];
-  assert.deepEqual(leaving.anims.map(a => [a.from, a.to]), [[tx(200), 'translateX(100%)']], 'leaving page slides out from translateX(200px)');
+  assert.deepEqual(leaving.anims.map(a => [a.from, a.to]), [[tx(farX), 'translateX(100%)']], `leaving page slides out from translateX(${farX}px)`);
   assert.ok(leaving.anims[0].duration < 300 && leaving.anims[0].duration >= 150, `remaining-distance duration (${leaving.anims[0].duration}ms, 150–300)`);
   assert.ok(leaving.moving, 'leaving page keeps the shadow during the pop');
-  assert.deepEqual(revealed.anims.map(a => [a.from, a.to]), [[tx(underAt(200, W)), 'translateX(0px)']], 'page underneath settles from its parallax position');
+  assert.deepEqual(revealed.anims.map(a => [a.from, a.to]), [[tx(underAt(farX, W)), 'translateX(0px)']], 'page underneath settles from its parallax position');
   assert.deepEqual(start.map(l => l.inline), ['', '', ''], 'the gesture\'s inline transforms were handed over to the animation');
   await waitNavIdle(page);
   L = await layers(page);
@@ -213,7 +229,7 @@ export default async function gesture(page, ctx) {
   await page.waitForTimeout(700); // 吸收窗口过后不会有迟到的第二次返回
   assert.equal((await layers(page)).depth, 1, 'still depth 1 afterwards');
 
-  step('ended with a fast flick (velocity > 650) commits from a short distance');
+  step('ended with a fast flick (velocity > 500) commits from a short distance');
   await pushDemo(page, 1);
   await swift(page, 'began', 0);
   await swift(page, 'changed', 30, 900);
@@ -266,8 +282,8 @@ export default async function gesture(page, ctx) {
   assert.equal((await layers(page)).depth, 2, 'below threshold: nothing happens');
   await page.evaluate(() => { window.__animLog.length = 0; });
   await swift(page, 'began', 0);
-  await swift(page, 'changed', 200);
-  assert.equal(await swift(page, 'ended', 200), true, 'past threshold');
+  await swift(page, 'changed', farX);
+  assert.equal(await swift(page, 'ended', farX), true, 'past threshold');
   await waitNavIdle(page);
   L = await layers(page);
   assert.equal(L.depth, 1, 'committed one back');

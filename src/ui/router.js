@@ -576,15 +576,17 @@ export function createBackGestureSync({ send, screenOf = getScreen }) {
 // - began：遮罩栈非空（顶层是遮罩）→ 直接关顶层遮罩，页面不动，本次手势余下的事件都不跟随；
 //          否则有子页 → 冻结底层页（露出、不可点），开始跟随；tab 根 / 阻断 / 转场或导航进行中 → 不理会。
 // - changed：顶层页 translateX 跟手，底层页视差（从 -BACK_PARALLAX × 宽 滑到 0），顶层页带左投影。
-// - ended：位移 > BACK_COMMIT_RATIO × 宽 或 速度 > BACK_COMMIT_VELOCITY → 提交 back（转场从当前位置接着走）；否则回弹。
+// - ended：速度 > BACK_COMMIT_VELOCITY，或（位移 > BACK_COMMIT_RATIO × 宽 且 速度 > BACK_RETURN_VELOCITY，即没有明显往回拉）
+//          → 提交 back（转场从当前位置接着走）；否则回弹（P103 / D36，与系统返回手势对齐）。
 // - cancelled：回弹。
 // - 减少动态效果：不跟随（页面不动），ended 仍按阈值提交（转场走交叉淡化）。
 // - Swift 在 ended 越过同一阈值时紧接着派发 shizi-native-back：本次手势已处理，由 absorbNativeBack() 吞掉。
 // 纯逻辑（状态、计时器、宽度都可注入），渲染由 onView(view) 交给 ui/root.js；单测 test/ui/gesture.test.mjs。
 
 // 与 ios/ShiziApp/ShiziApp/WebViewController.swift dispatchBackGesture 的阈值一致（改一处必须改另一处）。
-export const BACK_COMMIT_RATIO = 0.24;
-export const BACK_COMMIT_VELOCITY = 650; // pt/s（= CSS px/s）
+export const BACK_COMMIT_RATIO = 0.5; // 位移过半个宽才算（D36：原 24%）
+export const BACK_COMMIT_VELOCITY = 500; // pt/s（= CSS px/s）：向右甩过这个速度，不看位移（D36：原 650）
+export const BACK_RETURN_VELOCITY = -200; // pt/s：位移过半后若向左回拉快过这个速度，视为取消（D36）
 export const BACK_PARALLAX = 0.3;
 export const GESTURE_SNAP_MS = 200;
 // ended 之后多久内到达的 shizi-native-back 算「同一次手势」（Swift 在同一段脚本里紧接着派发，实际是同步的）。
@@ -598,12 +600,12 @@ function clampNum(value, lo, hi) {
   return Math.min(hi, Math.max(lo, n));
 }
 
-/** ended 时是否提交返回：位移过阈值或向右速度过阈值。 */
+/** ended 时是否提交返回：v > 500 || (x > 50% 宽 && v > -200)。 */
 export function backGestureCommits(detail, width) {
   const w = Math.max(1, Number(width) || 1);
   const x = clampNum(detail && detail.translationX, 0, w);
   const v = Number(detail && detail.velocityX) || 0;
-  return x > w * BACK_COMMIT_RATIO || v > BACK_COMMIT_VELOCITY;
+  return v > BACK_COMMIT_VELOCITY || (x > w * BACK_COMMIT_RATIO && v > BACK_RETURN_VELOCITY);
 }
 
 /** 顶层页位移 x 时两层的 translateX：顶层 = x；底层视差 = -(宽 − x) × BACK_PARALLAX（x=0 时 -0.3 宽，x=宽 时 0）。 */

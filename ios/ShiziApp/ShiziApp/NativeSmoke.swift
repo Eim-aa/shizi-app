@@ -186,7 +186,7 @@ extension WebViewController {
                 let width = max(webView.bounds.width, 1)
                 dispatchBackGesture(phase: "began", distance: 0, velocity: 0)
                 dispatchBackGesture(phase: "changed", distance: width * 0.15, velocity: 300)
-                fired = dispatchBackGesture(phase: "ended", distance: width * 0.4, velocity: 300)
+                fired = dispatchBackGesture(phase: "ended", distance: width * 0.6, velocity: 300)
             }
             recordSmokeEvent("edgeBack", ["allowed": allowed, "fired": fired, "gate": backGestureEnabled])
         case "state":

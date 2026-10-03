@@ -147,7 +147,8 @@ final class WebViewController: UIViewController {
     }
 
     /// 每个阶段派发 shizi-native-back-progress {phase, translationX, progress, velocityX}；
-    /// ended 且位移超过 24% 宽或速度超过 650pt/s 时再派发 shizi-native-back。返回是否派发了 shizi-native-back。
+    /// ended 且满足 `velocity > 500 || (distance > 50% 宽 && velocity > -200)`（P103 / D36，与 src/ui/router.js
+    /// backGestureCommits 一致）时再派发 shizi-native-back。返回是否派发了 shizi-native-back。
     @discardableResult
     func dispatchBackGesture(phase: String, distance: CGFloat, velocity: CGFloat) -> Bool {
         let width = max(webView.bounds.width, 1)
@@ -162,7 +163,7 @@ final class WebViewController: UIViewController {
         }
         #endif
         var script = "window.dispatchEvent(new CustomEvent('shizi-native-back-progress',{detail:\(detail)}));"
-        let fired = phase == "ended" && (distance > width * 0.24 || velocity > 650)
+        let fired = phase == "ended" && (velocity > 500 || (distance > width * 0.5 && velocity > -200))
         if fired {
             script += " window.dispatchEvent(new CustomEvent('shizi-native-back',{detail:\(detail)}));"
         }

@@ -6,6 +6,7 @@ import {
   attachWindow,
   BACK_COMMIT_RATIO,
   BACK_COMMIT_VELOCITY,
+  BACK_RETURN_VELOCITY,
   BACK_PARALLAX,
   backGestureCommits,
   createBackGestureController,
@@ -88,13 +89,19 @@ function setup(opts = {}) {
   };
 }
 
-test('thresholds mirror the Swift recognizer: > 24% width or > 650 pt/s', () => {
-  assert.equal(BACK_COMMIT_RATIO, 0.24);
-  assert.equal(BACK_COMMIT_VELOCITY, 650);
-  assert.equal(backGestureCommits({ translationX: W * 0.24, velocityX: 0 }, W), false, 'exactly 24% does not commit (strict >)');
-  assert.equal(backGestureCommits({ translationX: W * 0.24 + 0.5, velocityX: 0 }, W), true);
-  assert.equal(backGestureCommits({ translationX: 10, velocityX: 650 }, W), false, 'exactly 650 does not commit');
-  assert.equal(backGestureCommits({ translationX: 10, velocityX: 651 }, W), true, 'a fast flick commits from a short distance');
+test('thresholds mirror the Swift recognizer (P103 / D36): v > 500 || (x > 50% width && v > -200)', () => {
+  assert.equal(BACK_COMMIT_RATIO, 0.5);
+  assert.equal(BACK_COMMIT_VELOCITY, 500);
+  assert.equal(BACK_RETURN_VELOCITY, -200);
+  assert.equal(backGestureCommits({ translationX: W * 0.5, velocityX: 0 }, W), false, 'exactly 50% does not commit (strict >)');
+  assert.equal(backGestureCommits({ translationX: W * 0.5 + 0.5, velocityX: 0 }, W), true, 'past half the width, at rest: commits');
+  assert.equal(backGestureCommits({ translationX: W * 0.3, velocityX: 0 }, W), false, 'a slow drag to 30% springs back');
+  assert.equal(backGestureCommits({ translationX: W * 0.3, velocityX: 400 }, W), false, 'a moderate flick short of half does not commit');
+  assert.equal(backGestureCommits({ translationX: 10, velocityX: 500 }, W), false, 'exactly 500 does not commit');
+  assert.equal(backGestureCommits({ translationX: 10, velocityX: 501 }, W), true, 'a fast flick commits from a short distance');
+  assert.equal(backGestureCommits({ translationX: W * 0.8, velocityX: -199 }, W), true, 'a slight drift back past half still commits');
+  assert.equal(backGestureCommits({ translationX: W * 0.8, velocityX: -200 }, W), false, 'exactly -200 does not commit (strict >)');
+  assert.equal(backGestureCommits({ translationX: W * 0.8, velocityX: -400 }, W), false, 'a clear leftward pull-back past half cancels');
   assert.equal(backGestureCommits({ translationX: 10, velocityX: -2000 }, W), false, 'leftward velocity never commits');
   assert.equal(backGestureCommits({ translationX: 'x', velocityX: undefined }, W), false, 'garbage detail is a no');
   assert.equal(backGestureCommits({ translationX: 10 * W, velocityX: 0 }, W), true, 'translation is clamped to the width');
@@ -129,14 +136,14 @@ test('ended past the distance threshold commits back once and holds the position
   const g = setup();
   g.ev('began', 0);
   g.ev('changed', 150);
-  g.ev('ended', 150, 100);
+  g.ev('ended', 250, 100);
   assert.equal(g.backs(), 1, 'back committed');
-  assert.deepEqual(g.ctrl.getView(), { phase: 'commit', x: 150, under: -75, width: W }, 'page stays where the finger left it');
+  assert.deepEqual(g.ctrl.getView(), { phase: 'commit', x: 250, under: -45, width: W }, 'page stays where the finger left it');
   assert.deepEqual(g.timers.pending(), [GESTURE_COMMIT_TIMEOUT_MS], 'fallback timer armed');
   assert.equal(g.ctrl.absorbNativeBack(), true, 'the shizi-native-back that follows is absorbed');
   assert.equal(g.ctrl.absorbNativeBack(), false, 'only once per gesture');
   const handed = g.ctrl.handoff();
-  assert.deepEqual(handed, { phase: 'commit', x: 150, under: -75, width: W }, 'transition takes over from the same position');
+  assert.deepEqual(handed, { phase: 'commit', x: 250, under: -45, width: W }, 'transition takes over from the same position');
   assert.equal(g.ctrl.getView(), null);
   assert.deepEqual(g.timers.pending(), [], 'fallback timer cleared by the handoff');
   assert.equal(g.ctrl.handoff(), null, 'nothing to hand off twice');
@@ -210,7 +217,7 @@ test('reduced motion: no following, commit only by threshold', () => {
   g.ev('began', 0);
   g.ev('changed', 200);
   assert.equal(g.views.length, 0, 'no frame while dragging');
-  g.ev('ended', 200);
+  g.ev('ended', 250);
   assert.equal(g.backs(), 1, 'commit past the threshold');
   assert.equal(g.ctrl.getView(), null);
   assert.equal(g.ctrl.handoff(), null, 'nothing to hand off: the pop uses the plain fade');
@@ -334,7 +341,7 @@ function wired() {
   // Swift 在同一段脚本里依次派发 progress(ended) 与 shizi-native-back
   const swift = (phase, x, v = 0) => {
     ctrl.handle({ phase, translationX: x, velocityX: v });
-    if (phase === 'ended' && (x > W * 0.24 || v > 650)) handlers.get(NATIVE_BACK_EVENT)();
+    if (phase === 'ended' && (v > 500 || (x > W * 0.5 && v > -200))) handlers.get(NATIVE_BACK_EVENT)();
   };
   return { history, router, ctrl, swift, nativeBack: () => handlers.get(NATIVE_BACK_EVENT)() };
 }
@@ -347,7 +354,7 @@ test('wired: a committed gesture pops exactly one page even though Swift also fi
   assert.equal(w.router.getState().depth, 2);
   w.swift('began', 0);
   w.swift('changed', 200);
-  w.swift('ended', 200, 300);
+  w.swift('ended', 250, 300);
   w.history.flush();
   const s = w.router.getState();
   assert.equal(w.history.calls.back, 1, 'one history.back');

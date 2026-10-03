@@ -171,6 +171,47 @@ export default async function p0aShell(page, ctx) {
   await page.mouse.up();
   await page.emulateMedia({ reducedMotion: 'no-preference' });
 
+  // ------------------------------------------------------------------ A8 内容滚进状态栏 / 灵动岛（G20）
+  step('A8: the tab panel has a sticky paper-gradient mask at the top that never intercepts clicks (light + dark)');
+  const readMask = async () => page.evaluate(() => {
+    const panel = document.querySelector('.sz-layer[data-top="true"] .sz-tabroot__panel');
+    const cs = getComputedStyle(panel, '::before');
+    const rootCs = getComputedStyle(document.documentElement);
+    let ruleText = null;
+    for (const sheet of document.styleSheets) {
+      let rules;
+      try { rules = sheet.cssRules; } catch (error) { continue; }
+      for (const r of rules) if (r.selectorText === '.sz-tabroot__panel::before') ruleText = r.cssText;
+    }
+    return {
+      content: cs.content, position: cs.position, top: cs.top, zIndex: cs.zIndex, pointerEvents: cs.pointerEvents, display: cs.display,
+      bg: cs.backgroundImage, paper: rootCs.getPropertyValue('--p').trim(), ruleText,
+    };
+  });
+  const rgbOf = hex => {
+    const m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex);
+    return m ? `rgb(${parseInt(m[1], 16)}, ${parseInt(m[2], 16)}, ${parseInt(m[3], 16)})` : hex;
+  };
+  await page.emulateMedia({ colorScheme: 'light' });
+  const maskLight = await readMask();
+  assert.equal(maskLight.content, '""', 'mask pseudo-element exists (content "")');
+  assert.deepEqual([maskLight.position, maskLight.top, maskLight.zIndex, maskLight.display], ['sticky', '0px', '2', 'block'], 'sticky top:0, z-index 2');
+  assert.equal(maskLight.pointerEvents, 'none', 'mask has pointer-events:none (never intercepts taps)');
+  assert.ok(/safe-area-inset-top/.test(maskLight.ruleText || ''), 'mask height / pull-up use env(safe-area-inset-top)');
+  assert.ok(maskLight.bg.startsWith('linear-gradient(') && maskLight.bg.includes(rgbOf(maskLight.paper)), `light: gradient starts from the paper token (${maskLight.paper})`);
+  await page.emulateMedia({ colorScheme: 'dark' });
+  const maskDark = await readMask();
+  assert.ok(maskDark.paper && maskDark.paper !== maskLight.paper, `dark paper token differs (${maskLight.paper} → ${maskDark.paper})`);
+  assert.ok(maskDark.bg.includes(rgbOf(maskDark.paper)), 'dark: gradient follows the dark paper token');
+  await page.emulateMedia({ colorScheme: 'light' });
+  const hitTop = await page.evaluate(() => {
+    const panel = document.querySelector('.sz-layer[data-top="true"] .sz-tabroot__panel');
+    const r = panel.getBoundingClientRect();
+    const el = document.elementFromPoint(r.left + r.width / 2, r.top + 1);
+    return !!el && panel.contains(el);
+  });
+  assert.ok(hitTop, 'a point at the very top of the panel still lands in the page content / panel');
+
   await openWrongList(page);
 
   // ------------------------------------------------------------------ A1 推入转场叠层（G13）

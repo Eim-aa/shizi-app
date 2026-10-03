@@ -9,6 +9,8 @@
 //   顶层是遮罩时 began 只关遮罩、页面不动；减少动态效果时不跟随，只按阈值提交；
 // - 原生左缘返回门控：tab 根页 / 阻断页 backGestureEnabled(false)，有子页 true；只在页面栈深度或阻断变化时发，
 //   写字页为顶层时由写字页自己管（router.createBackGestureSync）。
+// Tab 页滚动容器顶部有一条吸附的纸色渐变遮罩（::before，P0-A8 / G20）：内容滚进状态栏 / 灵动岛时淡出，不与时间、电池重叠；
+// 不拦截点击（pointer-events:none），浅深色都走 --p。阶段 3 由系统的滚动边缘效果取代。
 // 每个页面图层一直挂着（下面的页面 visibility:hidden），返回时页面内状态与滚动位置都在。
 // 每层 isolation:isolate 自成层叠上下文（P0-A1 / G13）：页内 z-index（页头按钮 z1、sticky 条 z2/z3）不能越过图层，
 // 否则推入 / 返回转场里下层页的「全选」「‹」会压在新页上。
@@ -63,6 +65,8 @@ injectStyles('root', `
 .sz-layer__screen>.sz-page{flex:1;height:auto}
 .sz-tabroot{flex:1;min-height:0;display:flex;flex-direction:column}
 .sz-tabroot__panel{flex:1;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.sz-tabroot__panel::before{content:"";position:sticky;top:0;display:block;height:env(safe-area-inset-top, 0px);
+  margin-bottom:calc(-1 * env(safe-area-inset-top, 0px));background:linear-gradient(${T.p} 70%, transparent);z-index:2;pointer-events:none}
 `);
 
 function matches(win, query) {

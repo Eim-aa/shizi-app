@@ -129,7 +129,9 @@
     "P107": "边开发边改清单未完成项：docs/engineering/v10/acceptance/checklist-M6.md 标「未做」的条目，产品给定",
     "P108": "冷启动恢复离开时的页面（审查整改 F1）：运行时键 policy.routeRestore（enabled / maxAgeMinutes / crossDay），实现在 src/ui/route-memory.js 与 router.js coldStart；无界面文案",
     "P116": "读屏状态桥（阶段 0 B2）：原生全局 shiziAccessibilityStatus({voiceOver, switchControl})，实现在 src/platform/accessibility.js（bridge.js NATIVE_GLOBALS / LAST_ONLY）与 WebViewController.swift sendAccessibilityStatus；无界面文案。P115（跳过撤销时长等）是运行时键 policy.skipUndo，由 policy.js 覆盖",
-    "P109": "按压反馈参数（阶段 0 P0-A4）：src/ui/components/Button.js 的 PRESS_IN_MS / PRESS_OUT_MS / PRESS_SCALE / PRESS_DARKEN，无界面文案，设计知悉项"
+    "P109": "按压反馈参数（阶段 0 P0-A4）：src/ui/components/Button.js 的 PRESS_IN_MS / PRESS_OUT_MS / PRESS_SCALE / PRESS_DARKEN，无界面文案，设计知悉项",
+    "P109": "按压反馈参数（阶段 0 P0-A4）：src/ui/components/Button.js 的 PRESS_IN_MS / PRESS_OUT_MS / PRESS_SCALE / PRESS_DARKEN，无界面文案，设计知悉项",
+    "P110": "输入框光标色（阶段 0 P0-A11）：src/config/base.css 的 caret-color:var(--i1)（主墨，不用朱色，D33），无界面文案，设计知悉项"
   },
   "noCopy": [
     "R-H08",

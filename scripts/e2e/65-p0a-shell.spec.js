@@ -212,6 +212,37 @@ export default async function p0aShell(page, ctx) {
   });
   assert.ok(hitTop, 'a point at the very top of the panel still lands in the page content / panel');
 
+  // ------------------------------------------------------------------ 查字弹层：A11 输入框与说明段落、A12 弹层把手
+  await page.click(topSel('library-query-open'));
+  await page.waitForSelector('[data-testid="query-sheet"]');
+  await waitNavIdle(page);
+
+  // ------------------------------------------------------------------ A11 输入框光标色、说明段落断行（G44 部分）
+  // 光标用主墨 --i1（浅 #3B2F28 / 深 #DCCFB8），不用朱色 --a：D33「朱色只用于批改与印章」。
+  step('A11: input caret is ink (--i1), not the system blue; explanatory paragraphs use text-wrap:pretty');
+  const caretOf = () => page.evaluate(() => {
+    const input = document.querySelector('[data-testid="query-input"]');
+    // 文字色换成红：caret-color:auto 会跟着文字色走（桌面）或用系统蓝（iOS），显式令牌则不变。
+    input.style.color = 'rgb(255, 0, 0)';
+    const ink = getComputedStyle(document.documentElement).getPropertyValue('--i1').trim();
+    const p = document.querySelector('[data-testid="query-sheet"] p');
+    const caret = getComputedStyle(input).caretColor;
+    input.style.color = '';
+    return { caret, ink, wrap: p ? getComputedStyle(p).textWrapStyle || getComputedStyle(p).textWrap : null };
+  });
+  await page.emulateMedia({ colorScheme: 'light' });
+  let cv = await caretOf();
+  assert.equal(cv.caret, rgbOf(cv.ink), `light: caret-color = --i1 (${cv.ink}); got ${cv.caret}`);
+  assert.ok(/pretty/.test(cv.wrap || ''), `paragraph text-wrap is pretty (got ${cv.wrap})`);
+  await page.emulateMedia({ colorScheme: 'dark' });
+  cv = await caretOf();
+  assert.equal(cv.caret, rgbOf(cv.ink), `dark: caret-color = --i1 (${cv.ink}); got ${cv.caret}`);
+  await page.emulateMedia({ colorScheme: 'light' });
+
+  await page.keyboard.press('Escape');
+  await page.waitForFunction(() => !document.querySelector('[data-testid="query-sheet"]'));
+  await waitNavIdle(page);
+
   await openWrongList(page);
 
   // ------------------------------------------------------------------ A1 推入转场叠层（G13）

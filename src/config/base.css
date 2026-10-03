@@ -103,6 +103,16 @@ input, textarea, [contenteditable="true"] {
   user-select: text;
 }
 
+/* 光标用主墨 --i1（P110）：不用系统蓝，也不用朱色 --a（D33：朱色只用于批改与印章）。 */
+input, textarea, [contenteditable="true"] {
+  caret-color: var(--i1);
+}
+
+/* 说明类段落避免孤字成行（WebKit 17.4+ / Chromium 117+；不认的浏览器忽略）。 */
+p {
+  text-wrap: pretty;
+}
+
 [hidden] {
   display: none !important;
 }

@@ -1,9 +1,11 @@
 // M1-7 紧凑版写字页（02 §3 M1-7；R-W18 / R-W26 / R-G09；走查-W15 / 核对-V02 / X08；reference/I-proto-write.md §3.7）。
-// 完成定义：360×640（标准字号与 data-large 各走一遍）书写格 ≥258（recall / trace / retrace 固定 258，点提示前后不变）、
+// D36（覆盖 X08）：紧凑版只改排布，不再缩格。书写格边长按公式取（屏宽 − 32 与视口高 − 预算取小，夹在 258–400）；360×640 的预算
+// 不够，落在下限 258（所以本文件 360×640 的各阶段仍是 258）。其他视口的格子边长与阶段 / 大字的关系见 16-grid.spec.js。
+// 完成定义：360×640（标准字号与 data-large 各走一遍）书写格 258（recall / trace / retrace 同一边长，点提示前后不变）、
 // 按钮区首屏、无横向溢出（scrollWidth ≤ clientWidth）、可点控件全是 <button>、看答案页字形 200–345；
 // 另：撤销 / 清空在书写格右下（G32 / D36：标准版与紧凑版同一位置，不再挪到格子上方）、「提示 · 写好了」一行 +「看答案 · 跳过 · 结束这组」一行、判断页标题可换行不裁切、
-// 提示说明与格子 / 按钮留出间距（R-W26）；视口从 360×640 切到 393×852 时回到标准版（345、三行底栏），
-// 393×852 + data-large 仍是紧凑版（原型：更大字体 ⇔ 紧凑尺寸）；320×568 + data-large 抽查无横向溢出、按钮首屏。
+// 提示说明与格子 / 按钮留出间距（R-W26）；视口从 360×640 切到 393×852 时回到标准版（361、三行底栏），
+// 393×852 + data-large 仍是紧凑版排布，但格子仍是 361（D36：不随大字缩格）；320×568 + data-large 抽查无横向溢出、按钮首屏。
 // 393×852 标准版不回归由 10 / 11 / 13 / 14 spec 复跑保证。
 
 import {
@@ -15,7 +17,8 @@ const SHOTS = process.env.SHIZI_E2E_SHOTS || '';
 const COMPACT_VIEW = { width: 360, height: 640 };
 const STD_VIEW = { width: 393, height: 852 };
 const CHARS = ['越', '大', '永'];
-const GRID = 258;
+const GRID = 258; // 360×640 / 320×568 的格子边长：预算不够，取下限（policy.writeGrid.min）
+const GRID_393 = 361; // 393×852：屏宽 393 − 32，预算够（policy.writeGrid.reserveStd）
 
 /** 每个 testid 若出现就必须是 <button>（原型紧凑版这些是 span / div，R-G09 要求真按钮）。 */
 const CONTROL_IDS = [
@@ -174,7 +177,7 @@ async function compactWalk(page, ctx, { large }) {
   let g = await geometry(page, `${large ? 'L' : 'N'}-recall`);
   assert.equal(g.compact, 'true', `${tag}: write screen is in compact mode`);
   assert.equal(g.large, large, `${tag}: data-large ${large ? 'on' : 'off'}`);
-  assert.ok(square(g.r['write-grid'], GRID), `${tag}: recall grid is ${GRID}×${GRID} (≥258, X08) ${JSON.stringify(g.r['write-grid'])}`);
+  assert.ok(square(g.r['write-grid'], GRID), `${tag}: recall grid is ${GRID}×${GRID} (floor of the D36 formula) ${JSON.stringify(g.r['write-grid'])}`);
   common(assert, g, `${tag} recall`, ['page-back', 'write-hint', 'write-done', 'write-show-answer', 'write-skip']);
   const c = g.controls;
   assert.ok(Math.abs(c['write-hint'].rect.top - c['write-done'].rect.top) < 1, `${tag}: 提示 and 写好了 share one row`);
@@ -200,7 +203,7 @@ async function compactWalk(page, ctx, { large }) {
   await page.waitForSelector(`${topSel('write-hint-layer')}[data-state="shown"]`);
   await page.waitForTimeout(300);
   g = await geometry(page, `${large ? 'L' : 'N'}-hint`);
-  assert.ok(square(g.r['write-grid'], GRID), `${tag}: grid still ${GRID} after 提示 (X08)`);
+  assert.ok(square(g.r['write-grid'], GRID), `${tag}: grid still ${GRID} after 提示`);
   assert.ok(g.noteText && g.noteText.length > 0, `${tag}: hint note shown under the grid`);
   const note = g.r['write-note'];
   assert.ok(note && note.top - g.r['write-grid'].bottom >= 6, `${tag}: note ≥ 6px below the grid (${note && (note.top - g.r['write-grid'].bottom).toFixed(1)})`);
@@ -455,7 +458,7 @@ export default async function compact(page, ctx) {
   await openWrite(page, { slot: 'A' });
   let g = await geometry(page, 'std393');
   assert.equal(g.compact, 'false', '393×852: standard layout (not compact)');
-  assert.ok(square(g.r['write-grid'], 345), `393×852: grid 345 ${JSON.stringify(g.r['write-grid'])}`);
+  assert.ok(square(g.r['write-grid'], GRID_393), `393×852: grid ${GRID_393} = screen width − 32 (D36) ${JSON.stringify(g.r['write-grid'])}`);
   assert.ok(!g.r['write-links'], '393×852: no combined link row');
   const c = g.controls;
   assert.ok(c['write-show-answer'].rect.bottom <= c['write-done'].rect.top + 0.5, '393×852: 看答案 row above 提示 · 写好了 (standard order)');
@@ -492,14 +495,14 @@ export default async function compact(page, ctx) {
   await page.waitForFunction(() => document.querySelector('.sz-layer[data-top="true"] .sz-write').dataset.compact === 'false');
   await page.waitForTimeout(200);
   g = await geometry(page, 'resized393');
-  assert.ok(square(g.r['write-grid'], 345), 'resized back to 393×852: grid 345');
+  assert.ok(square(g.r['write-grid'], GRID_393), `resized back to 393×852: grid ${GRID_393}`);
 
-  ctx.step('393×852 + data-large → compact (larger text ⇒ compact size, prototype L369 / R-W18)');
+  ctx.step('393×852 + data-large → compact layout, but the grid keeps its size (D36 overrides X08: larger text no longer shrinks the grid)');
   await page.evaluate(() => document.documentElement.setAttribute('data-large', ''));
   await page.waitForFunction(() => document.querySelector('.sz-layer[data-top="true"] .sz-write').dataset.compact === 'true');
   await page.waitForTimeout(200);
   g = await geometry(page, 'std393large');
-  assert.ok(square(g.r['write-grid'], GRID), `393×852 large: grid ${GRID}`);
+  assert.ok(square(g.r['write-grid'], GRID_393), `393×852 large: grid still ${GRID_393}, not ${GRID} (D36) ${JSON.stringify(g.r['write-grid'])}`);
   common(assert, g, '393×852 large', ['write-hint', 'write-done', 'write-show-answer', 'write-skip']);
   await drawStroke(page, HORIZONTAL);
   await waitStrokes(page, 1);
@@ -507,8 +510,8 @@ export default async function compact(page, ctx) {
   await page.mouse.move(1, 1);
   g = await geometry(page, 'std393large-written');
   const largeTools = toolsRel(g);
-  assert.ok(Math.abs(largeTools.fromEdge - stdTools.fromEdge) <= 6 && largeTools.dTop >= -0.5 && Math.abs(largeTools.dTop - stdTools.dTop) <= 6
-    && Math.abs(largeTools.uh - stdTools.uh) <= 1, `393×852: 撤销 / 清空 sit below the grid at the right end of the row in both layouts (G32) ${JSON.stringify({ stdTools, largeTools })}`);
+  assert.ok(Math.abs(largeTools.dRight - stdTools.dRight) <= 1 && Math.abs(largeTools.dTop - stdTools.dTop) <= 1
+    && Math.abs(largeTools.uh - stdTools.uh) <= 1, `393×852: 撤销 / 清空 sit in the same place relative to the grid in both layouts (G32) ${JSON.stringify({ stdTools, largeTools })}`);
   assert.ok(Math.min(largeTools.uw, largeTools.cw, largeTools.uh, largeTools.ch) >= 44 - 0.5, '393×852 large: tool buttons ≥44pt');
 
   ctx.step('320×568 + data-large spot check: no horizontal overflow, buttons on the first screen');

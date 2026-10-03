@@ -91,7 +91,7 @@
     "P64": "文案槽位占位符归一（{date}的、{month} 月）：抽取阶段规则，见 normalization；请产品确认",
     "P67": "看答案流程细则（描一遍每次先播、落笔即跳过；阶段切换与「下一个」等保存成功才推进；卡片读屏读答案字）：流程行为，按 03 过渡默认实现在 src/ui/screens/write/answer.js，不是 policy 开关；请产品确认（M2-3）",
     "P68": "题面区可见提示行与窄屏词语行的位置 / 样式：CSS 与布局（src/ui/screens/write/prompt.js），不是运行时开关；请设计确认（M6）",
-    "P69": "紧凑版触发条件（data-large 或视口高 ≤ 760px）：过渡值在 policy.compactMaxHeight（M2-H 迁入）；src/ui/screens/write/compact.js 的 COMPACT_MAX_HEIGHT / COMPACT_QUERY 从它派生（CSS media 与 JS 同一条件）。待设计确认（M6）",
+    "P69": "紧凑版触发条件（data-large 或视口高 ≤ 760px）：已决定 D36——紧凑版只改控件排布，不再缩书写格；值在 policy.compactMaxHeight（M2-H 迁入）；src/ui/screens/write/compact.js 的 COMPACT_MAX_HEIGHT / COMPACT_QUERY 从它派生（CSS media 与 JS 同一条件）",
     "P70": "提示层 / 看答案动画节奏与 P52 提示时长：过渡值在 policy.motion（M2-H 迁入）——answerSpeed 1.6、answerStrokeGapMs 180、answerFadeMs 240（src/ui/canvas/glyph.js ANIMATION）；hintStrokeMs 240、hintStagger 0.7、reducedFadeMs 120（src/ui/screens/write/hint-layer.js HINT_DRAW / REDUCED_FADE_MS）；persistNoticeMs 5000（persist.js NOTICE_MS；「每次加载最多一次」是行为，不是数值）。设计走查后再定（M6）",
     "P71": "自己选字 pick 模式输入后不预选（用户逐个点圈，依 D21 / R-H06）：交互行为，实现在 src/ui/components/query/（M2-0），不是 policy 开关；请产品确认（冻结原型字库墨墙屏 L444 是全预选）",
     "P72": "清空所有记录后首页「没有记录」的说法（R-H09 noCopy）与首练组未写完时不显示「第一次来，先写 5 个字试试。」：首页派生规则在 src/ui/screens/home/today.js（records='empty' / showFirstTip），文案待给定（M4-3 清空）；不是 policy 开关",
@@ -132,7 +132,9 @@
     "P109": "按压反馈参数（阶段 0 P0-A4）：src/ui/components/Button.js 的 PRESS_IN_MS / PRESS_OUT_MS / PRESS_SCALE / PRESS_DARKEN，无界面文案，设计知悉项",
     "P109": "按压反馈参数（阶段 0 P0-A4）：src/ui/components/Button.js 的 PRESS_IN_MS / PRESS_OUT_MS / PRESS_SCALE / PRESS_DARKEN，无界面文案，设计知悉项",
     "P110": "输入框光标色（阶段 0 P0-A11）：src/config/base.css 的 caret-color:var(--i1)（主墨，不用朱色，D33），无界面文案，设计知悉项",
-    "P111": "笔锋细节（飞白 / 洇墨）门控（阶段 0 P0-A3）：运行时键 policy.brushDetail，实现在 src/ui/canvas/brush.js brushDetailEnabled 与 ink-canvas.js，只看减少动态效果与该开关，无界面文案"
+    "P111": "笔锋细节（飞白 / 洇墨）门控（阶段 0 P0-A3）：运行时键 policy.brushDetail，实现在 src/ui/canvas/brush.js brushDetailEnabled 与 ink-canvas.js，只看减少动态效果与该开关，无界面文案",
+    "P119": "撤销 / 清空的位置（D36 / G32）：版式行为——标准版与紧凑版都在格下一行右端，触控 ≥44pt；实现在 src/ui/screens/write/index.js 与 compact.js 的 CSS，不是 policy 开关；无界面文案",
+    "P120": "首页主按钮「拾」不随字号缩小（D36 / G05）：版式行为——大字与紧凑版都保持 196×190；实现在 src/ui/screens/home/index.js 的 CSS，不是 policy 开关；无界面文案"
   },
   "noCopy": [
     "R-H08",

@@ -28,7 +28,7 @@ import { NATIVE_PROGRESS_EVENT } from '../router.js';
 
 export { GRID };
 
-/** 标准书写格显示尺寸（01 §6.1；紧凑版 258 由 M1-7 传 size）。 */
+/** 书写格缺省显示尺寸（01 §6.1）；写字页按屏宽 / 视口高算边长后经 size 传入（D36，P118，258–400），内部坐标恒为 GRID=345。 */
 export const STD_SIZE = 345;
 
 injectStyles('inkgrid', `

@@ -28,8 +28,9 @@ export default async function write(page, ctx) {
   assert.deepEqual(s.done, { disabled: true, ariaDisabled: 'true' }, '「写好了」 disabled + aria-disabled with an empty grid');
   assert.equal(s.toolsShown, false, 'undo / clear hidden while there is nothing to undo');
   const grid = await page.locator(topSel('write-grid')).boundingBox();
-  assert.equal(Math.round(grid.width), 345, 'standard grid is 345 wide');
-  assert.equal(Math.round(grid.height), 345, 'standard grid is square');
+  // D36（覆盖 X08）：书写格 = min(屏宽 − 32, 视口高 − 预算) 夹在 258–400；393×852 取 361（内部坐标仍是 345 单位，见 16-grid.spec.js）。
+  assert.equal(Math.round(grid.width), 361, 'grid at 393×852 is 361 wide (screen width − 32)');
+  assert.equal(Math.round(grid.height), 361, 'grid is square');
   const leak = await page.evaluate(chars => {
     const top = document.querySelector('.sz-layer[data-top="true"]');
     return chars.filter(c => top.outerHTML.includes(c));

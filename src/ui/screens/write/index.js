@@ -1,8 +1,8 @@
 // 写字页骨架（M1-1）：registerScreen('write')，params {slot:'A'|'B'}。
 //
 // 从 store 读 sessions[slot] 的当前字（core/sessions.currentCardKey）；页头（标题按阶段 R-W03、右侧「n / 总数」R-W01、
-// 描一遍 / 自己写两步圆点 R-W04）、结果行占位（M1-5）、题面占位（M1-8 换成 prompt.js）、书写格（标准 345；紧凑版
-// 258 由 M1-7 传 size）、撤销 / 清空（R-W18；格下一行右端，标准版与紧凑版同一位置，G32；清空后给一次撤销，走查-W17）、按钮区：看答案占位（M1-4）、
+// 描一遍 / 自己写两步圆点 R-W04）、结果行占位（M1-5）、题面占位（M1-8 换成 prompt.js）、书写格（边长按屏宽 / 视口高算，258–400，
+// D36 / P118，与字号无关；内部坐标恒为 345 单位）、撤销 / 清空（R-W18；格下一行右端，标准版与紧凑版同一位置，G32；清空后给一次撤销，走查-W17）、按钮区：看答案占位（M1-4）、
 // 提示占位（M1-3）、「写好了」（R-W29；空笔画时 disabled + aria-disabled，M1-5 接判断页）、跳过 / 结束这组占位（M1-5 / M2）。
 //
 // 规则：
@@ -46,7 +46,7 @@ import { answerInkKey, useAnswerFlow } from './answer.js';
 import { useCompareFlow, useComparePhase } from './compare.js';
 import { useResultRow } from './result-row.js';
 import { useSkip } from './skip.js';
-import { COMPACT_GRID, useAnswerFit, useCompact } from './compact.js';
+import { useAnswerFit, useCompact, useWriteGridSize } from './compact.js';
 import { storedStrokes, usePersist } from './persist.js';
 import { useEndGroup } from './end.js';
 import { commitFinish, handoffSkipUndo, openResult } from '../result/index.js';
@@ -70,12 +70,14 @@ export function titleFor(phase) {
 }
 
 injectStyles('write', `
-.sz-write{display:flex;flex-direction:column;align-items:stretch;gap:0}
+.sz-write{--bleed:8px;display:flex;flex-direction:column;align-items:stretch;gap:0}
+.sz-write__safe{position:absolute;width:0;height:0;overflow:hidden;visibility:hidden;pointer-events:none;
+  padding:env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px)}
 .sz-write__line{min-height:40px;display:flex;align-items:center;justify-content:center}
 .sz-write__prompt{min-height:96px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
   padding-bottom:8px}
-.sz-write__gridwrap{display:flex;justify-content:center}
-.sz-write__below{min-height:44px;display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:8px}
+.sz-write__gridwrap{display:flex;justify-content:center;margin:0 calc(-1 * var(--bleed))}
+.sz-write__below{min-height:44px;display:flex;align-items:center;justify-content:space-between;gap:12px;margin:6px calc(-1 * var(--bleed)) 0}
 .sz-write__note{flex:1;min-width:0;font-size:calc(13px * ${T.k});line-height:1.55;letter-spacing:.02em;color:${T.i3}}
 .sz-write__tools{flex:none;display:flex;gap:4px;margin-right:-10px}
 .sz-write__tools[data-shown="false"]{visibility:hidden}
@@ -255,15 +257,17 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
     slot, session, cardKey, char: charOfCardKey(cardKey), phase, written: view.strokes.length, strokes: strokeData, getStore,
     onHinted: endSkipUndo,
   });
-  // M1-7 紧凑版（compact.js）：书写格 258、看答案卡片按屏高 200–345、撤销 / 清空在格上方、底栏两行。
+  // M1-7 紧凑版（compact.js）：只改控件排布（底栏两行、间距），不改格子大小（D36）。书写格边长按屏宽与视口高算（P118），
+  // 与字号、阶段、提示无关；看答案卡片紧凑版按剩余高度取、不超过书写格边长。内部坐标恒为 345 单位，这里只是显示尺寸。
   const compact = useCompact();
   const writeRef = useRef(null);
-  const answerSize = useAnswerFit(writeRef, { enabled: compact && phase === 'answer', key: cardKey || '' });
-  const gridSize = compact ? COMPACT_GRID : STD_SIZE;
+  const gridSize = useWriteGridSize(writeRef);
+  const answerFit = useAnswerFit(writeRef, { enabled: compact && phase === 'answer', key: cardKey || '', max: gridSize });
+  const answerSize = Math.min(answerFit, gridSize);
   // M1-5 判断页、结果行、跳过。
   const compare = useCompareFlow({
     slot, session, cardKey, char: charOfCardKey(cardKey), phase, strokes: view.strokes, hints: hint.used, strokeData,
-    onLeave: cmpPhase.leave, size: STD_SIZE,
+    onLeave: cmpPhase.leave, size: Math.max(gridSize, STD_SIZE), // 对照卡不比书写格窄（紧凑短屏仍按容器宽收）
   });
   const row = useResultRow({ slot, session, state, phase, strokeCount: view.strokes.length });
   const skip = useSkip({ slot, session, cardKey, phase, hints: hint.used, strokes: view.strokes });
@@ -273,7 +277,7 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
   // M1-4 看答案 / 描一遍 / 自己写（answer.js）：回忆阶段「看答案」按钮、answer 阶段卡片、描红层、格下说明、接管底栏
   // （接管时「结束这组」放在它底栏「下一个」那一行右端，H4）。
   const answer = useAnswerFlow({
-    slot, session, cardKey, phase, strokeCount: view.strokes.length, size: compact ? answerSize : STD_SIZE,
+    slot, session, cardKey, phase, strokeCount: view.strokes.length, size: compact ? answerSize : gridSize,
     onShowAnswer: endSkipUndo, endButton: end.button,
   });
 
@@ -385,6 +389,7 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
     footer=${answer.footer || (compare.active ? null : footer)} testid="write-screen">
     <div class="sz-write" ref=${writeRef} data-cursor=${session.cursor} data-phase=${phase} data-slot=${slot}
       data-compact=${compact ? 'true' : 'false'}>
+      <span class="sz-write__safe" aria-hidden="true"></span>
       <${StepDots} phase=${phase} />
       <div class="sz-write__line" data-testid="write-line-slot">${row.node}</div>
       <${Prompt} cardKey=${cardKey} phase=${phase} />

@@ -142,9 +142,20 @@ export const ink = Object.freeze({
 export const brushDetail = true;
 
 // ---- 写字页版式与动画节奏（M1 验收后登记，M2-H 迁入）----
-// P69 紧凑版触发：视口高度 ≤ 此值（px）或 :root[data-large] 时写字页用紧凑版。src/ui/screens/write/compact.js 读取
-// （COMPACT_MAX_HEIGHT / COMPACT_QUERY，CSS media 与 JS 同一条件）。原型只按大字切换，高度阈值是工程取值，待设计确认。
+// P69 紧凑版触发（已决定 D36：只改控件排布，不再缩书写格）：视口高度 ≤ 此值（px）或 :root[data-large] 时写字页用紧凑版。
+// src/ui/screens/write/compact.js 读取（COMPACT_MAX_HEIGHT / COMPACT_QUERY，CSS media 与 JS 同一条件）。
 export const compactMaxHeight = 760;
+// P118 书写格显示边长（D36，覆盖 X08「紧凑版固定 258」与 P69 的缩格）：边长 = min(屏宽 − 2·sideMargin, 视口高 − reserve)，夹在 [min, max]；
+// 内部坐标仍是 345 单位，只缩放显示（src/ui/screens/write/compact.js writeGridSize）。reserve 是页头 / 页边 / 行 / 题面 / 格下一行 / 底栏
+// 的高度预算：视口高 ≤ compactMaxHeight 用 reserveCompact（紧凑版排布，按大字 1.3 校准），否则用 reserveStd（标准排布）；
+// 两者都与 :root[data-large] 无关，所以同一视口开关大字前后格子边长不变。题面提示行比预算多时页面正文可滚动，格子不缩。
+export const writeGrid = Object.freeze({
+  min: 258, // P118 书写格边长下限（pt）
+  max: 400, // P118 书写格边长上限（pt）
+  sideMargin: 16, // P118 格子距屏幕左右边缘至少 16pt（屏宽 − 32）
+  reserveStd: 446, // P118 标准排布（视口高 > compactMaxHeight）下，格子以外的高度预算（pt，不含安全区）：页头 44 + 页边 14 + 行 40 + 题面 96 + 2 行提示 22 + 格下一行 50 + 底栏 172 + 余量 8
+  reserveCompact: 384, // P118 紧凑排布（视口高 ≤ compactMaxHeight）下，格子以外的高度预算（pt，不含安全区）：按大字 1.3 + 3 行格下说明校准（页头 44 + 页边 4 + 行 36 + 题面 110 + 格下一行 77 + 底栏 107 + 余量 6）
+});
 // P70 动画节奏（工程取值，原型没有；待设计走查）。各模块默认从这里读，仍可经参数覆盖。
 export const motion = Object.freeze({
   answerSpeed: 1.6, // P70 看答案 / 先播一遍笔顺动画速度（hanzi-writer strokeAnimationSpeed）；src/ui/canvas/glyph.js ANIMATION

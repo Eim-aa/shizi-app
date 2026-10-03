@@ -99,6 +99,7 @@ test('policy: transitional defaults match 03 / the M0-6 card', () => {
   assert.deepEqual({ ...policy.sessionExpiry }, { first: 'never', picked: 'never' }, 'P61');
   // M2-H：P69 / P70 迁入 policy（值不变）
   assert.equal(policy.compactMaxHeight, 760, 'P69');
+  assert.deepEqual({ ...policy.writeGrid }, { min: 258, max: 400, sideMargin: 16, reserveStd: 446, reserveCompact: 384 }, 'P118 D36');
   assert.deepEqual(
     { ...policy.motion },
     { answerSpeed: 1.6, answerStrokeGapMs: 180, answerFadeMs: 240, hintStrokeMs: 240, hintStagger: 0.7, reducedFadeMs: 120, persistNoticeMs: 5000 },
@@ -138,6 +139,8 @@ test('policy: P69 / P70 modules read their defaults from policy.js (M2-H)', asyn
   const persist = await import('../../src/ui/screens/write/persist.js');
   assert.equal(compact.COMPACT_MAX_HEIGHT, policy.compactMaxHeight);
   assert.equal(compact.COMPACT_QUERY, `(max-height: ${policy.compactMaxHeight}px)`);
+  assert.equal(compact.GRID_MIN, policy.writeGrid.min);
+  assert.equal(compact.GRID_MAX, policy.writeGrid.max);
   assert.deepEqual({ ...glyph.ANIMATION }, {
     strokeAnimationSpeed: policy.motion.answerSpeed,
     delayBetweenStrokes: policy.motion.answerStrokeGapMs,
@@ -152,7 +155,7 @@ test('policy: P69 / P70 modules read their defaults from policy.js (M2-H)', asyn
   assert.equal(hint.hintTimeline(2, { hintStagger: 1 }).items[1].delay, hint.strokeDrawMs(2));
   for (const file of ['src/ui/canvas/glyph.js', 'src/ui/screens/write/hint-layer.js', 'src/ui/screens/write/compact.js', 'src/ui/screens/write/persist.js']) {
     const text = fs.readFileSync(path.join(ROOT, file), 'utf8');
-    assert.equal(/\b(?:COMPACT_MAX_HEIGHT|REDUCED_FADE_MS|NOTICE_MS)\s*=\s*\d/.test(text), false, file + ' re-declares a P69/P70 number');
+    assert.equal(/\b(?:COMPACT_MAX_HEIGHT|GRID_MIN|GRID_MAX|REDUCED_FADE_MS|NOTICE_MS)\s*=\s*\d/.test(text), false, file + ' re-declares a P69/P70/P118 number');
     assert.equal(/\b(?:strokeAnimationSpeed|delayBetweenStrokes|strokeFadeDuration|maxMs|stagger):\s*\d/.test(text), false, file + ' hard-codes a P70 number');
   }
 });

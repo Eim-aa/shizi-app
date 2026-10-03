@@ -334,12 +334,16 @@ export default async function librarySwitch(page, ctx) {
   const st = await state(page);
   const queue = st.sessions.A.queue;
   assert.equal(st.sessions.A.kind, 'daily', 'daily group');
-  const expected = members.adv3000.filter(k => !before.sched[k]).slice(0, queue.length);
-  assert.ok(queue.length > 0, 'queue not empty');
-  assert.ok(queue.every(k => members.adv3000.includes(k)), 'every new char is in 规范次常用字');
-  assert.ok(queue.every(k => !members.core3500.includes(k)), 'none from 规范常用字');
-  assert.deepEqual(queue, expected, 'adv3000 order (SEED), skipping chars already scheduled (耶)');
-  assert.ok(!queue.includes('base:耶'), '耶 already has a schedule → not a new char');
+  // D41：组里除了新字，到期不够时还有「提前复习」补位的已写过的字（它们是复习，不是新字，可以来自任何字库）；这里只看新字。
+  const newInQueue = queue.filter(k => !before.sched[k]);
+  // 新字顺序 = 易忘度清单里属于该库的字在前、其余按 SEED 字频序（D28；src/data/deck.js deckAdapter.newCandidates）
+  const adv = await page.evaluate(async () => (await import('/src/data/deck.js')).deckAdapter.newCandidates('adv3000'));
+  const expected = adv.filter(k => !before.sched[k]).slice(0, newInQueue.length);
+  assert.ok(queue.length > 0 && newInQueue.length > 0, 'queue not empty, has new chars');
+  assert.ok(newInQueue.every(k => members.adv3000.includes(k)), 'every new char is in 规范次常用字');
+  assert.ok(newInQueue.every(k => !members.core3500.includes(k)), 'no new char from 规范常用字');
+  assert.deepEqual(newInQueue, expected, 'new chars follow the adv3000 order (易忘度 list first, then SEED), skipping chars already scheduled (耶)');
+  assert.ok(!queue.includes('base:耶') || before.sched['base:耶'], '耶 already has a schedule → never counted as a new char');
   assert.deepEqual(pick(st, ['records', 'sched', 'custom']), pick(before, ['records', 'sched', 'custom']), 'records / sched / custom unchanged after startA');
   assert.deepEqual(st.sessions.B, before.sessions.B, 'the picked group B is untouched');
 

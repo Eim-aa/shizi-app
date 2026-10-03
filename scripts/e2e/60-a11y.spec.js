@@ -391,6 +391,19 @@ export default async function a11y(page, realCtx) {
     'ariaSnapshot: tablist with 习字 [selected] / 字库 / 我的');
   assert.deepEqual(await page.evaluate(() => [...document.querySelectorAll('[role="tab"]')].map(el => el.getAttribute('tabindex'))),
     ['0', '-1', '-1'], 'roving tabindex: only the selected tab is in the Tab order');
+  {
+    // A9：题记 figure 读整句 + 出处（取 EPIGRAPHS 现有文案拼接），竖排子节点不进无障碍树
+    const epi = await page.evaluate(async () => {
+      const { EPIGRAPHS } = await import('/src/config/epigraphs.js');
+      const fig = document.querySelector('[data-testid="home-epigraph"]');
+      const e = EPIGRAPHS[Number(fig.dataset.index)];
+      return { expected: e.lines.join('') + e.source, hidden: [...fig.children].map(c => c.getAttribute('aria-hidden')) };
+    });
+    const epiAx = await axOf(cdp, tid('home-epigraph'));
+    assert.equal(epiAx && epiAx.name, epi.expected, 'A9: epigraph figure is read as one sentence + source');
+    assert.ok(/^.+。.+《.+》$|^.+，.+。.+$/.test(epi.expected), 'epigraph label has the quote and its source');
+    assert.deepEqual(epi.hidden, ['true', 'true'], 'A9: epigraph columns / caption are aria-hidden');
+  }
   await audit(page, cdp, ctx, 'home');
 
   ctx.step('checker self-test: an unnamed button and a disabled button without aria-disabled are caught');
@@ -422,6 +435,26 @@ export default async function a11y(page, realCtx) {
   assert.deepEqual(done0, { disabled: true, aria: 'true' }, '写好了 is disabled + aria-disabled before any stroke (R-W29)');
   const hintLive = await page.getAttribute(topSel('write-prompt-hint'), 'aria-live');
   assert.equal(hintLive, 'polite', 'prompt hint is aria-live=polite (R-W20)');
+  {
+    // A9：题面空格读「要写的字，第 k 个，读 py，N 声」（不含答案字）；其余格保持
+    const cell = await page.evaluate(() => {
+      const el = document.querySelector('.sz-layer[data-top="true"] [data-testid="write-prompt-cell"][data-kind="blank"]');
+      const cells = [...document.querySelectorAll('.sz-layer[data-top="true"] [data-testid="write-prompt-cell"]')];
+      return { py: el.querySelector('[data-testid="write-prompt-py"]').textContent, index: cells.indexOf(el), count: cells.length,
+        role: el.getAttribute('role'), others: cells.filter(c => c !== el).map(c => c.getAttribute('aria-label')) };
+    });
+    const tone = py => {
+      const d = py.normalize('NFD');
+      return d.includes('\u0304') ? '一声' : d.includes('\u0301') ? '二声' : d.includes('\u030c') ? '三声' : d.includes('\u0300') ? '四声' : '轻声';
+    };
+    const expected = cell.count > 1
+      ? `要写的字，第 ${cell.index + 1} 个，读 ${cell.py}，${tone(cell.py)}`
+      : `要写的字，读 ${cell.py}，${tone(cell.py)}`;
+    const cellAx = await axOf(cdp, '.sz-layer[data-top="true"] [data-testid="write-prompt-cell"][data-kind="blank"]');
+    assert.equal(cell.role, 'img', 'A9: blank cell role=img');
+    assert.deepEqual(cellAx && { role: cellAx.role, name: cellAx.name }, { role: 'image', name: expected }, `A9: blank cell name is "${expected}"`);
+    assert.ok(cell.others.every(l => l === null || l === '同一目标字的另一处空格'), 'A9: other cells keep their names');
+  }
   await audit(page, cdp, ctx, 'write/recall');
 
   ctx.step('write page: 看答案 confirm (alertdialog, focus trap, focus return)');
@@ -444,6 +477,14 @@ export default async function a11y(page, realCtx) {
       .map(b => ({ id: b.dataset.testid, pressed: b.getAttribute('aria-pressed') }));
   });
   assert.deepEqual(judge.map(j => j.pressed), judge.map(() => null), 'judge buttons carry no aria-pressed (D03)');
+  {
+    // A9：对照卡读「参考字形：字，拼音，N 画」「你的书写，N 笔」
+    const refAx = await axOf(cdp, topSel('write-compare-ref'));
+    const mineAx = await axOf(cdp, topSel('write-compare-mine'));
+    assert.ok(refAx && /^参考字形：永，yǒng，\d+ 画$/.test(refAx.name), `A9: reference card name "${refAx && refAx.name}"`);
+    assert.equal(refAx.role, 'image', 'A9: reference card is an image');
+    assert.deepEqual(mineAx && { role: mineAx.role, name: mineAx.name }, { role: 'image', name: '你的书写，1 笔' }, 'A9: my card reads the stroke count (one stroke drawn)');
+  }
   await audit(page, cdp, ctx, 'write/compare');
   await page.click(topSel('write-judge-correct'));
   await page.waitForFunction(() => {

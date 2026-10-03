@@ -11,6 +11,11 @@ export default Object.freeze({
   'R-W09.btnCorrect': '写对了',
   'R-W09.labelMine': '你的书写',
   'R-W09.labelReference': '参考字形',
+  // 对照卡的读屏名称（阶段 0 A9，03 P112）：判断页已揭晓答案，读出字、拼音、笔画数不算泄露。
+  'R-W09.mineCardLabel': '你的书写，{n} 笔',
+  'R-W09.refCardLabel': '参考字形：{char}，{pinyin}，{n} 画',
+  'R-W09.refCardLabelNoCount': '参考字形：{char}，{pinyin}',
+  'R-W09.refCardLabelChar': '参考字形：{char}',
   // R-W17（已定）
   'R-W17.noInk': '这次没写',
   // X-JUDGE（M1-5 修改判断弹层标题 / 主按钮 / 取消；原型 ShiziWriteScreen L240、L637、L639）

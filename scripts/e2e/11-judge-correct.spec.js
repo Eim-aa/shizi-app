@@ -275,7 +275,9 @@ export default async function judgeCorrect(page, ctx) {
   assert.equal(cmp.attrs.some(a => VERDICT_CLASS.test(a.split('=')[1] || '')), false, 'compare area has no verdict data / aria values');
   assert.ok(cmp.mineLeft, '你的书写 on the left, 参考字形 on the right');
   assert.deepEqual(cmp.labels, [COPY.mine, COPY.ref], 'card labels 你的书写 / 参考字形 (R-W09)');
-  assert.deepEqual([cmp.mineAria, cmp.refAria], [COPY.mine, COPY.ref], 'cards are role=img with the labels');
+  // A9：读屏名称带上信息——本人卡「你的书写，N 笔」，参考卡「参考字形：字，拼音，N 画」（视觉标签不变）
+  assert.equal(cmp.mineAria, `${COPY.mine}，1 笔`, 'my card is role=img: 「你的书写，1 笔」 (one stroke drawn)');
+  assert.ok(new RegExp(`^${COPY.ref}：${CHARS[0]}，[^，]+，\\d+ 画$`).test(cmp.refAria), `reference card is role=img: 「参考字形：字，拼音，N 画」 (${cmp.refAria})`);
   assert.deepEqual(cmp.cont, { text: COPY.cont, aria: COPY.contAria }, 'top-left 接着写 with aria 回到格子里接着写 (R-W09)');
   assert.equal(cmp.pageBack, false, 'the back arrow is replaced by 接着写 on the judge page');
   assert.equal(cmp.toolsShown, 'false', 'undo / clear hidden on the judge page');

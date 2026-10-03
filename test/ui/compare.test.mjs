@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { loadFSRSGlobal } from '../core/helpers.mjs';
 import {
   judgeInDraft, commitJudgment, commitComparePhase, hasInk, findJudged, JudgeButtons, JudgeFooter, JUDGE_ORDER, paintMini,
-  rememberInk, recalledInk, forgetRecentInk,
+  rememberInk, recalledInk, forgetRecentInk, mineCardLabel, refCardLabel, CompareStage,
 } from '../../src/ui/screens/write/compare.js';
 import { correctInDraft, commitCorrection, resultRowModel, lineVisible, ResultRowView } from '../../src/ui/screens/write/result-row.js';
 import { skipInDraft, undoSkipInDraft, commitSkip, commitUndoSkip, canUndoSkip, SKIP_UNDO_MS, SkipUndoBar } from '../../src/ui/screens/write/skip.js';
@@ -363,4 +363,29 @@ test('rememberInk / paintMini helpers', t0 => {
   const ctx = new Proxy({}, { get: (o, k) => (k in o ? o[k] : (...a) => calls.push(k)), set: (o, k, v) => { o[k] = v; return true; } });
   assert.equal(paintMini(ctx, [[{ x: 1, y: 1, w: 10, t: 0 }, { x: 20, y: 20, w: 10, t: 10 }]]), 1);
   assert.equal(paintMini(ctx, []), 0);
+});
+
+test('A9: compare cards read 「参考字形：嚏，tì，17 画」「你的书写，5 笔」; missing data degrades gracefully', () => {
+  const ready = { status: 'ready', data: { strokes: Array.from({ length: 17 }, () => 'M0 0') } };
+  assert.equal(refCardLabel({ char: '嚏', py: 'tì', strokeData: ready }), '参考字形：嚏，tì，17 画');
+  assert.equal(refCardLabel({ char: '嚏', py: 'tì', strokeData: { status: 'loading', data: null } }), '参考字形：嚏，tì');
+  assert.equal(refCardLabel({ char: '嚏', py: 'tì', strokeData: { status: 'missing', data: null } }), '参考字形：嚏，tì');
+  assert.equal(refCardLabel({ char: '嚏', py: 'tì', strokeData: null }), '参考字形：嚏，tì');
+  assert.equal(refCardLabel({ char: '嚏', py: '', strokeData: ready }), '参考字形：嚏');
+  const stroke = [{ x: 1, y: 1, t: 0 }, { x: 2, y: 2, t: 10 }];
+  assert.equal(mineCardLabel([stroke, stroke, stroke, stroke, stroke]), '你的书写，5 笔');
+  assert.equal(mineCardLabel([stroke, [], stroke]), '你的书写，2 笔', 'empty strokes are not counted');
+  assert.equal(mineCardLabel([]), t('R-W09.labelMine'));
+  assert.equal(mineCardLabel(null), t('R-W09.labelMine'));
+  // 渲染：两张卡收到的 label 就是这两个名称
+  const stage = CompareStage({ char: '嚏', py: 'tì', strokes: [stroke, stroke], strokeData: ready });
+  const labels = [];
+  (function walk(n) {
+    if (!n || typeof n !== 'object') return;
+    if (Array.isArray(n)) { n.forEach(walk); return; }
+    const p = n.props || {};
+    if (typeof p.label === 'string') labels.push(p.label);
+    walk(p.children);
+  })(stage);
+  assert.deepEqual(labels, ['你的书写，2 笔', '参考字形：嚏，tì，17 画']);
 });

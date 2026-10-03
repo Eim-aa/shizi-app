@@ -21,6 +21,7 @@
     "{word}": "词语（04 的 {词}）",
     "{period}": "时段词（R-H02.period.*）",
     "{pinyin}": "拼音",
+    "{tone}": "声调读法（X-PROMPT.tone1–tone5：一声 … 轻声），读屏名称里用",
     "{source}": "来源说明（R-R06.fromWrong / fromForget / fromPicked，边改 S05）",
     "{status}": "记录情况（查字逐字行行尾那句，R-Q04 / P43，读屏标签里复用）",
     "{caption}": "结果页格下标签（X-RESULT.cellCorrect / cellWrong / cellSkipped / R-R02.cellSaw，读屏标签里复用）",
@@ -77,6 +78,7 @@
     "R-P03.signature": "这次的图片 / 这天写的字落款（04 §3.2 Y03，汉字数字）",
     "R-L03.toneOldest": "墨色第四档「三个月以上」04 §3.2 逐字（C153）",
     "X-LIBHOME.tone2": "墨色第三档「三个月内」，与 R-L03.toneOldest（C153）同一口径（P56）",
+    "X-PROMPT.tone*": "声调读法「一声…四声」读屏名称（阶段 0 A9，03 P112）；声调是序数名称，不是数量，不改阿拉伯数字",
     "R-I01.monthSignature": "月字帖落款「二〇二六年九月 · 有记录二十二天 · 八十个字」（C103，汉字数字，文案-D3）"
   },
   "exportWordAllow": {
@@ -619,6 +621,34 @@
           "text": "参考字形",
           "origin": "04 §4.1 判断页补充：\"参考字形\" 右",
           "note": "对照卡标签"
+        },
+        "mineCardLabel": {
+          "raw": null,
+          "text": "你的书写，{n} 笔",
+          "origin": "extra",
+          "note": "阶段 0 A9（G21）：本人对照卡的读屏名称，{n} = 本次笔画数；视觉标签仍是 labelMine",
+          "decision": "P112"
+        },
+        "refCardLabel": {
+          "raw": null,
+          "text": "参考字形：{char}，{pinyin}，{n} 画",
+          "origin": "extra",
+          "note": "阶段 0 A9（G21）：参考卡的读屏名称；判断页已揭晓答案，读出字 / 拼音 / 笔画数不泄露；{n} = 参考字形笔画数",
+          "decision": "P112"
+        },
+        "refCardLabelNoCount": {
+          "raw": null,
+          "text": "参考字形：{char}，{pinyin}",
+          "origin": "extra",
+          "note": "阶段 0 A9：笔顺数据还没取到（加载中 / 缺失）时没有笔画数，不报数",
+          "decision": "P112"
+        },
+        "refCardLabelChar": {
+          "raw": null,
+          "text": "参考字形：{char}",
+          "origin": "extra",
+          "note": "阶段 0 A9：题库里没有这个字的拼音时只读字",
+          "decision": "P112"
         }
       }
     },
@@ -2632,6 +2662,55 @@
           "text": "题目",
           "origin": "extra",
           "note": "M1-8：题面容器 role=group 的 aria-label（读屏文案，沿 #175 index.html #prompt aria-label）；不含答案字（决定-D16）"
+        },
+        "blankLabel": {
+          "raw": null,
+          "text": "要写的字，第 {n} 个，读 {pinyin}，{tone}",
+          "origin": "extra",
+          "note": "阶段 0 A9（G21）：题面「要写的字」空格的读屏名称（role=img），多字词按位置；回忆阶段不含答案字（决定-D16）",
+          "decision": "P112"
+        },
+        "blankLabelSingle": {
+          "raw": null,
+          "text": "要写的字，读 {pinyin}，{tone}",
+          "origin": "extra",
+          "note": "阶段 0 A9：单字题（只有一格）不报位置",
+          "decision": "P112"
+        },
+        "tone1": {
+          "raw": null,
+          "text": "一声",
+          "origin": "extra",
+          "note": "阶段 0 A9：声调读法（拼音声调符号 → 读屏用汉字，1）",
+          "decision": "P112"
+        },
+        "tone2": {
+          "raw": null,
+          "text": "二声",
+          "origin": "extra",
+          "note": "阶段 0 A9：声调读法（拼音声调符号 → 读屏用汉字，2）",
+          "decision": "P112"
+        },
+        "tone3": {
+          "raw": null,
+          "text": "三声",
+          "origin": "extra",
+          "note": "阶段 0 A9：声调读法（拼音声调符号 → 读屏用汉字，3）",
+          "decision": "P112"
+        },
+        "tone4": {
+          "raw": null,
+          "text": "四声",
+          "origin": "extra",
+          "note": "阶段 0 A9：声调读法（拼音声调符号 → 读屏用汉字，4）",
+          "decision": "P112"
+        },
+        "tone5": {
+          "raw": null,
+          "text": "轻声",
+          "origin": "extra",
+          "note": "阶段 0 A9：声调读法（拼音声调符号 → 读屏用汉字，无符号）",
+          "decision": "P112"
         }
       }
     },

@@ -52,6 +52,27 @@ export { cardForKey, setCardResolver, indexCards } from '../../../data/deck.js';
 
 // ---- 纯模型 ------------------------------------------------------------------------------------------------
 
+const TONE_MARKS = Object.freeze({ '\u0304': 1, '\u0301': 2, '\u030c': 3, '\u0300': 4 });
+
+/** 拼音声调（1–4；没有声调符号 = 5 轻声）：zhāng → 1，gān → 1，tì → 4，ma → 5。 */
+export function toneOfPinyin(py) {
+  for (const ch of String(py || '').normalize('NFD')) {
+    if (Object.prototype.hasOwnProperty.call(TONE_MARKS, ch)) return TONE_MARKS[ch];
+  }
+  return 5;
+}
+
+/**
+ * 回忆阶段空格（要写的字）的读屏名称：「要写的字，第 1 个，读 gān，一声」（A9；单字题不报位置）。
+ * 只由位置、拼音、声调决定，不含答案字（D16）。揭示阶段（判断 / 看答案 / 描一遍）格里是答案字的文本，
+ * 不设 role=img / 名称（会把字藏起来），读屏顺着文本读「拼音、字」。拼音缺失（占位「？」）时也不给名称。
+ */
+export function blankLabel({ py, index, count }) {
+  const pinyin = String(py || '').trim();
+  if (!pinyin) return null;
+  return t(count > 1 ? 'X-PROMPT.blankLabel' : 'X-PROMPT.blankLabelSingle', { n: index + 1, pinyin, tone: t(`X-PROMPT.tone${toneOfPinyin(pinyin)}`) });
+}
+
 /**
  * 题面格与提示行（纯函数，node:test 可测）。
  * @returns {{cells: Array<{kind:'text'|'blank'|'repeatBlank', text:string, label:string|null, fill:string|null}>,
@@ -61,8 +82,10 @@ export { cardForKey, setCardResolver, indexCards } from '../../../data/deck.js';
 export function promptCells(card, { revealed = false, copy = promptCopy() } = {}) {
   if (!card || !Array.isArray(card.chars)) return { cells: [], hint: '', blankIndex: -1, count: 0 };
   const model = promptModel(card, copy);
-  const cells = model.segments.map(seg => {
-    if (seg.kind === 'blank') return { kind: 'blank', text: seg.text, label: null, fill: revealed ? card.target : null };
+  const cells = model.segments.map((seg, i) => {
+    if (seg.kind === 'blank') {
+      return { kind: 'blank', text: seg.text, label: revealed ? null : blankLabel({ py: card.py, index: i, count: card.chars.length }), fill: revealed ? card.target : null };
+    }
     if (seg.kind === 'repeatBlank') {
       return revealed
         ? { kind: 'repeatBlank', text: card.target, label: null, fill: null }
@@ -103,7 +126,8 @@ injectStyles('write-prompt', `
 
 function Cell({ cell }) {
   if (cell.kind === 'blank') {
-    return html`<span class="sz-prompt__cell" data-kind="blank" data-testid="write-prompt-cell"><span
+    return html`<span class="sz-prompt__cell" data-kind="blank" data-testid="write-prompt-cell"
+      role=${cell.label ? 'img' : undefined} aria-label=${cell.label || undefined}><span
       class="sz-prompt__py" data-testid="write-prompt-py">${cell.text}</span>${cell.fill
       ? html`<span class="sz-prompt__fill">${cell.fill}</span>`
       : html`<span class="sz-prompt__cross" aria-hidden="true"></span>`}</span>`;

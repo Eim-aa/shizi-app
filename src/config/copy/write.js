@@ -74,6 +74,14 @@ export default Object.freeze({
   'X-PROMPT.missingPinyin': '？',
   'X-PROMPT.repeatBlankGlyph': '□',
   'X-PROMPT.groupLabel': '题目',
+  // 回忆阶段题面「要写的字」空格的读屏名称（阶段 0 A9，03 P112）：只读位置、拼音和声调，不含答案字（D16）；揭示阶段不设名称，读屏顺着文本读。
+  'X-PROMPT.blankLabel': '要写的字，第 {n} 个，读 {pinyin}，{tone}',
+  'X-PROMPT.blankLabelSingle': '要写的字，读 {pinyin}，{tone}',
+  'X-PROMPT.tone1': '一声',
+  'X-PROMPT.tone2': '二声',
+  'X-PROMPT.tone3': '三声',
+  'X-PROMPT.tone4': '四声',
+  'X-PROMPT.tone5': '轻声',
   // X-WRITE（M1-1 书写格组件的读屏名称）
   'X-WRITE.gridLabel': '书写格',
   // X-ANSWER（M1-4 描一遍阶段标题与按钮；原型 ShiziWriteScreen L551–L553）

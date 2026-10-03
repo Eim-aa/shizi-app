@@ -10,7 +10,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { PROMPT_COPY, promptHTML, promptModel } from '../../src/core/cards.js';
 import {
-  promptCopy, promptCells, PromptView, REVEAL_PHASES, cardForKey, setCardResolver, indexCards,
+  promptCopy, promptCells, blankLabel, toneOfPinyin, PromptView, REVEAL_PHASES, cardForKey, setCardResolver, indexCards,
 } from '../../src/ui/screens/write/prompt.js';
 import { t } from '../../src/config/copy/index.js';
 
@@ -98,9 +98,15 @@ test('all cards: cells per code point, blank shows pinyin, other targets □, no
     if (model.hint !== card.visibleHint) failures.push([card.cardKey, 'hint']);
     if (tree.texts.some(s => s.includes(card.target))) failures.push([card.cardKey, 'text leak']);
     // 属性与卡片无关：只能是固定集合里的值（界面常量）或 --n/--bi 版式变量——卡片内容（字、词、拼音、提示）从不进属性。
-    const dynamic = tree.attrs.filter(a => !STATIC_ATTRS.has(a) && !/^style=--n:\d+;--bi:\d+$/.test(a) && !/^key=\d+$/.test(a));
+    // 例外：空格的读屏名称（A9）只由位置 + 拼音 + 声调决定（不含答案字）——下面单独断言。
+    const blankName = model.cells.filter(c => c.kind === 'blank' && c.label).map(c => `aria-label=${c.label}`);
+    const dynamic = tree.attrs.filter(a => !STATIC_ATTRS.has(a) && !blankName.includes(a) && !/^style=--n:\d+;--bi:\d+$/.test(a) && !/^key=\d+$/.test(a));
     if (dynamic.length) failures.push([card.cardKey, 'card-dependent attribute', dynamic]);
-    const staticWithTarget = tree.attrs.filter(a => a.includes(card.target));
+    const blankCell = model.cells.find(c => c.kind === 'blank');
+    const idx = model.cells.indexOf(blankCell);
+    if (card.py && blankCell.label !== blankLabel({ py: card.py, index: idx, count: model.cells.length })) failures.push([card.cardKey, 'blank label shape', blankCell.label]);
+    if (card.py && !tree.attrs.includes(`aria-label=${blankCell.label}`)) failures.push([card.cardKey, 'blank label not rendered']);
+    const staticWithTarget = tree.attrs.filter(a => !blankName.includes(a) && a.includes(card.target));
     if (staticWithTarget.length) staticCollisions.push([card.cardKey, staticWithTarget]);
     if (tree.props.includes('dangerouslySetInnerHTML')) failures.push([card.cardKey, 'innerHTML']);
     if (failures.length > 5) break;
@@ -109,6 +115,31 @@ test('all cards: cells per code point, blank shows pinyin, other targets □, no
   // 界面常量里的字（「题目」「同一目标字的另一处空格」）与目标字同形只是巧合，不随卡片变化、不是泄漏；
   // 记下来以免将来有人把它当成新增问题（e2e 的全页检查对这些字另行豁免界面常量）。
   assert.deepEqual(staticCollisions.map(([k]) => k).sort(), ['base:目', 'base:题'], 'only 题 / 目 collide with the group label');
+});
+
+test('A9: blank cell reads 「要写的字，第 k 个，读 py，N 声」; single-char omits the position; revealed phases set no name', () => {
+  const gan = { word: '干净', chars: ['干', '净'], ci: 0, target: '干', py: 'gān', hint: '', ctx: 'override' };
+  assert.equal(promptCells(gan).cells[0].label, '要写的字，第 1 个，读 gān，一声');
+  const jing = { word: '干净', chars: ['干', '净'], ci: 1, target: '净', py: 'jìng', hint: '', ctx: 'override' };
+  assert.equal(promptCells(jing).cells[1].label, '要写的字，第 2 个，读 jìng，四声');
+  const single = { word: '嚏', chars: ['嚏'], ci: 0, target: '嚏', py: 'tì', hint: '', ctx: 'gloss' };
+  assert.equal(promptCells(single).cells[0].label, '要写的字，读 tì，四声');
+  assert.ok(!promptCells(single).cells[0].label.includes('嚏'), 'recall label never carries the answer (D16)');
+  // 揭示阶段格里是答案字的文本：不设 role=img / 名称（否则会把字藏起来，也不把答案放进属性）
+  assert.equal(promptCells(single, { revealed: true }).cells[0].label, null);
+  assert.equal(promptCells(gan, { revealed: true }).cells[0].label, null);
+  // 其余格保持：普通字无 role / label，□ 保持原标签
+  assert.equal(promptCells(gan).cells[1].label, null);
+  const repeat = { word: '越来越', chars: Array.from('越来越'), ci: 0, target: '越', py: 'yuè', hint: '', ctx: 'override' };
+  assert.equal(promptCells(repeat).cells[2].label, PROMPT_COPY.repeatBlankLabel);
+  // 渲染：role=img + aria-label
+  const { tree } = renderTree(gan);
+  assert.ok(tree.attrs.includes('role=img') && tree.attrs.includes('aria-label=要写的字，第 1 个，读 gān，一声'));
+  // 声调：符号 → 1–4，无符号 → 轻声；ü、nasal 音节
+  const tones = { mā: 1, má: 2, mǎ: 3, mà: 4, ma: 5, lǖ: 1, lǘ: 2, lǚ: 3, lǜ: 4, nǚ: 3, ń: 2, ň: 3, ǹ: 4, '': 5 };
+  for (const [py, tone] of Object.entries(tones)) assert.equal(toneOfPinyin(py), tone, py || '(empty)');
+  // 缺拼音（占位「？」）：不给名称
+  assert.equal(promptCells({ ...gan, py: '' }).cells[0].label, null);
 });
 
 test('view: role=group + aria-describedby → hint id; hint aria-live=polite; □ cells role=img with label', () => {

@@ -40,6 +40,17 @@ import { paintBrushStroke } from '../../canvas/brush.js';
 import { drawGlyph, glyphColor } from '../../canvas/glyph.js';
 import { GlyphFallback } from './glyph-fallback.js';
 import { allRecords, appendRecordToDraft } from './answer.js';
+import { cardForKey } from '../../../data/deck.js';
+
+/** 题库里这张卡的读音（读屏名称用）；查不到给空串。 */
+function pyOf(cardKey) {
+  try {
+    const card = cardKey ? cardForKey(cardKey) : null;
+    return card && card.py ? String(card.py) : '';
+  } catch (error) {
+    return '';
+  }
+}
 
 /** 判断两键的顺序：写错了左、写对了右（决定-D20 / R-W09）。 */
 export const JUDGE_ORDER = Object.freeze(['wrong', 'correct']);
@@ -408,17 +419,37 @@ export function RefMini({ char, strokeData, testid, label }) {
   </div>`;
 }
 
-/** 对照区：左「你的书写」、右「参考字形」（04 §4.1）。没有任何判定着色 / 判定类名（决定-D03）。 */
-export function CompareStage({ char, strokes, strokeData, size = 345 }) {
+/** 本人卡的读屏名称「你的书写，5 笔」（A9）；没有笔画时退回「你的书写」。 */
+export function mineCardLabel(strokes) {
+  const n = (Array.isArray(strokes) ? strokes : []).filter(s => Array.isArray(s) && s.length).length;
+  return n > 0 ? t('R-W09.mineCardLabel', { n }) : t('R-W09.labelMine');
+}
+
+/**
+ * 参考卡的读屏名称「参考字形：嚏，tì，17 画」（A9）。判断页已揭晓答案，读出字、拼音、笔画数不算泄露。
+ * 笔顺数据没取到时不报笔画数；没有拼音时只读字。
+ */
+export function refCardLabel({ char, py, strokeData }) {
+  const pinyin = String(py || '').trim();
+  if (!pinyin) return t('R-W09.refCardLabelChar', { char });
+  const data = strokeData && strokeData.status === 'ready' ? strokeData.data : null;
+  const n = data && Array.isArray(data.strokes) ? data.strokes.length : 0;
+  return n > 0
+    ? t('R-W09.refCardLabel', { char, pinyin, n })
+    : t('R-W09.refCardLabelNoCount', { char, pinyin });
+}
+
+/** 对照区：左「你的书写」、右「参考字形」（04 §4.1）。没有任何判定着色 / 判定类名（决定-D03）。py = 本题读音（读屏名称用）。 */
+export function CompareStage({ char, py = '', strokes, strokeData, size = 345 }) {
   const mine = t('R-W09.labelMine');
   const ref = t('R-W09.labelReference');
   return html`<div class="sz-compare" data-testid="write-compare" style=${{ width: '100%', maxWidth: `${size}px` }}>
     <div class="sz-compare__col">
-      <${InkMini} strokes=${strokes} testid="write-compare-mine" label=${mine} />
+      <${InkMini} strokes=${strokes} testid="write-compare-mine" label=${mineCardLabel(strokes)} />
       <span class="sz-compare__label" aria-hidden="true">${mine}</span>
     </div>
     <div class="sz-compare__col sz-compare__col--ref">
-      <${RefMini} char=${char} strokeData=${strokeData} testid="write-compare-ref" label=${ref} />
+      <${RefMini} char=${char} strokeData=${strokeData} testid="write-compare-ref" label=${refCardLabel({ char, py, strokeData })} />
       <span class="sz-compare__label" aria-hidden="true">${ref}</span>
     </div>
   </div>`;
@@ -565,7 +596,7 @@ export function useCompareFlow({ slot, session, cardKey, char, phase, strokes, h
 
   // 原型 L128–L134：说明与两键紧跟在对照卡下面（不在页底），判断页没有底栏。
   const stage = html`<div class="sz-cmpstage" style=${{ width: `${size}px` }}>
-    <${CompareStage} char=${char} strokes=${strokes} strokeData=${strokeData} size=${size} />
+    <${CompareStage} char=${char} py=${pyOf(cardKey)} strokes=${strokes} strokeData=${strokeData} size=${size} />
     <${JudgeFooter} failed=${!!failNow} onJudge=${judge}
       onRetry=${() => failNow && judge(failNow.judgment)} onCancelFail=${() => { setFail(null); markStateChange(); }} />
   </div>`;

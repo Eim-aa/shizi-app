@@ -262,13 +262,15 @@ function Epigraph({ epigraph, compact }) {
   const colH = epigraphColumnHeight(epigraph);
   const padTop = (compact ? 56 : 70) + (colH - 96) / 2;
   const index = EPIGRAPHS.indexOf(epigraph);
-  return html`<figure class="sz-home__epi" data-testid="home-epigraph" data-index=${index} style=${{ margin: 0 }}>
-    <figcaption class="sz-home__src" style=${{ paddingTop: `${padTop}px` }}>
+  // 读屏：竖排两列按视觉顺序是右列先读，整句读序会错；整张 figure 给一句话的名称，子节点 aria-hidden（A9）。
+  const label = `${epigraph.lines.join('')}${epigraph.source}`;
+  return html`<figure class="sz-home__epi" data-testid="home-epigraph" data-index=${index} style=${{ margin: 0 }} aria-label=${label}>
+    <figcaption class="sz-home__src" aria-hidden="true" style=${{ paddingTop: `${padTop}px` }}>
       <span class="sz-home__srcline" aria-hidden="true"></span>
       <span class="sz-home__srctext">${epigraph.source}</span>
       <span class="sz-home__seal" aria-hidden="true"><span>${t('X-HOME.sealGlyph')}</span></span>
     </figcaption>
-    <blockquote class="sz-home__quote">
+    <blockquote class="sz-home__quote" aria-hidden="true">
       ${epigraph.lines.map((line, i) => html`<span key=${i} class="sz-home__col" style=${{ height: `${colH}px` }}>${line}</span>`)}
     </blockquote>
   </figure>`;

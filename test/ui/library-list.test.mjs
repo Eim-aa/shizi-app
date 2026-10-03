@@ -6,8 +6,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { loadFSRSGlobal, rec } from '../core/helpers.mjs';
 import {
-  LIST_KINDS, VIEW_OF_KIND, normalizeKind, recordsOfState, dateText, wordParts, listEntries, listModel, normalizeOff, sameOff,
-  toggleOff, selectAllOff, selectNoneOff, buttonLabel, hintText, groupFromHereActive,
+  LIST_KINDS, VIEW_OF_KIND, normalizeKind, recordsOfState, dateText, wordParts, listEntries, listModel, normalizeSel, sameSel,
+  toggleSel, selectAllSel, selectNoneSel, buttonLabel, hintText, groupFromHereActive,
 } from '../../src/ui/screens/library/list-model.js';
 import { judgeInDraft } from '../../src/ui/screens/write/compare.js';
 import { correctResultInDraft } from '../../src/ui/screens/result/index.js';
@@ -97,7 +97,7 @@ test('R-E03 rows: word with the target bold, meta line, 写错那次 caption onl
   assert.equal(m.note, t('R-E03.wrongNoteGlyph'));
   assert.equal(m.top, t('R-E04.wrongTop'));
   assert.equal(m.title, t('R-E04.titleWrong'));
-  assert.equal(m.head, '1 个字');
+  assert.equal(m.head, '先练这 1 个');
 
   const st2 = stateOf([rec(3, '和', 'judged', 'correct', '2026-09-02'), rec(4, '和', 'judged', 'correct', '2026-09-06')],
     { 'base:和': due('2026-09-20') });
@@ -114,16 +114,18 @@ test('R-E03 rows: word with the target bold, meta line, 写错那次 caption onl
   assert.deepEqual(wordParts('越来越', '越'), { pre: '', tg: '越', post: '来越', has: true }, 'first occurrence bold');
 });
 
-test('R-E02 / S06 / Z02: default all selected, toggle, select none / all, three bottom states', () => {
+test('R-E02 / S06 / Z02: ≤5 rows → default all selected; toggle, select none / all, three bottom states', () => {
   const records = [
     rec(1, '永', 'judged', 'wrong', '2026-09-20'),
     rec(2, '和', 'judged', 'wrong', '2026-09-21'),
     rec(3, '春', 'judged', 'wrong', '2026-09-22'),
   ];
   const st = stateOf(records);
-  let off = [];
-  let m = listModel(st, { kind: 'wrong', off, today: TODAY, cardFor, practicable });
-  assert.equal(m.selectedCount, 3, '默认全选');
+  let sel = null;
+  let m = listModel(st, { kind: 'wrong', sel, today: TODAY, cardFor, practicable });
+  assert.equal(m.selectedCount, 3, '不足 5 个：默认全选');
+  assert.equal(m.head, '先练这 3 个', '不足 5 个按实际数');
+  assert.equal(m.restCount, 0);
   assert.equal(m.allSelected, true);
   assert.equal(m.toggleAllLabel, t('X-LIST.selectNone'));
   assert.equal(m.hint, '选了 3 个字 · 写完会回到这里。');
@@ -131,35 +133,101 @@ test('R-E02 / S06 / Z02: default all selected, toggle, select none / all, three 
   assert.equal(m.button.disabled, false);
   assert.deepEqual(m.selectedKeys, ['base:春', 'base:和', 'base:永'], 'display order');
 
-  off = toggleOff(toggleOff(off, '春'), '和');
-  m = listModel(st, { kind: 'wrong', off, today: TODAY, cardFor, practicable });
+  const defaults = m.rows.map(r => r.char);
+  sel = toggleSel(toggleSel(defaults, '春'), '和');
+  m = listModel(st, { kind: 'wrong', sel, today: TODAY, cardFor, practicable });
   assert.equal(m.selectedCount, 1);
+  assert.equal(m.allSelected, false);
   assert.equal(m.hint, '选了 1 个字 · 写完会回到这里。');
   assert.equal(m.button.label, '练这个字');
   assert.equal(m.toggleAllLabel, t('X-LIST.selectAll'));
-  assert.deepEqual(m.selectedKeys, ['base:永']);
+  assert.equal(m.customSel, true);
 
-  off = selectNoneOff(m);
-  m = listModel(st, { kind: 'wrong', off, today: TODAY, cardFor, practicable });
+  sel = selectNoneSel();
+  m = listModel(st, { kind: 'wrong', sel, today: TODAY, cardFor, practicable });
   assert.equal(m.selectedCount, 0);
-  assert.equal(m.hint, '写完会回到这里。', 'Y05: zero → only the tail sentence');
-  assert.equal(m.button.label, '先选一个字');
-  assert.equal(m.button.disabled, true, 'Z02: really disabled');
+  assert.equal(m.hint, t('R-E02.selectedZero'));
+  assert.deepEqual(m.button, { label: '先选一个字', disabled: true });
 
-  off = selectAllOff();
-  m = listModel(st, { kind: 'wrong', off, today: TODAY, cardFor, practicable });
+  sel = selectAllSel(m);
+  m = listModel(st, { kind: 'wrong', sel, today: TODAY, cardFor, practicable });
   assert.equal(m.selectedCount, 3);
 
-  off = toggleOff(toggleOff([], '永'), '永');
-  assert.deepEqual(off, [], 'toggle twice → back to selected');
+  assert.deepEqual(toggleSel(toggleSel([], '永'), '永'), [], 'toggle twice → back to unselected');
   assert.equal(buttonLabel(2), t('R-E02.btnMany'));
   assert.equal(buttonLabel(1), t('R-E02.btnOne'));
   assert.equal(buttonLabel(0), t('R-E02.btnNone'));
   assert.equal(hintText(0), t('R-E02.selectedZero'));
   assert.equal(hintText(4), t('R-E02.selected', { n: 4 }));
-  assert.equal(sameOff(['永', '和'], ['和', '永', '永']), true);
-  assert.equal(sameOff(['永'], []), false);
-  assert.deepEqual(normalizeOff(null), []);
+  assert.equal(sameSel(['永', '和'], ['和', '永', '永']), true);
+  assert.equal(sameSel(['永'], []), false);
+  assert.equal(sameSel(null, []), false, 'default is not the same as an explicit empty choice');
+  assert.equal(sameSel(null, undefined), true);
+  assert.equal(normalizeSel(null), null);
+  assert.equal(normalizeSel(undefined), null);
+  assert.deepEqual(normalizeSel(['永', '永', '', 3]), ['永']);
+});
+
+// 8 个写错过的字（id 越大越新）：最近写错的排前。8 个字取自 CARDS 之外也行——cardFor / practicable 对未知字返回 null / false，
+// 这里单独造一张含 8 个字的假卡表。
+const MANY = ['一', '二', '三', '四', '五', '六', '七', '八'];
+const manyCardFor = key => ({ word: key.slice(5) + '字' });
+const manyPracticable = key => key.startsWith('base:');
+
+test('B4 (G38, D36): 写错过 with 8 rows → default selects only the 5 most recently wrong; head 先练这 5 个; the rest fold under 其余 N 个字', () => {
+  const records = MANY.map((c, i) => rec(i + 1, c, 'judged', 'wrong', `2026-09-${String(10 + i).padStart(2, '0')}`));
+  const st = stateOf(records);
+  const m = listModel(st, { kind: 'wrong', today: TODAY, cardFor: manyCardFor, practicable: manyPracticable });
+  assert.deepEqual(m.rows.map(r => r.char), ['八', '七', '六', '五', '四', '三', '二', '一'], 'most recently wrong first');
+  assert.deepEqual(m.rows.filter(r => r.selected).map(r => r.char), ['八', '七', '六', '五', '四'], 'default = the 5 most recent');
+  assert.deepEqual(m.rows.map(r => r.group), ['top', 'top', 'top', 'top', 'top', 'rest', 'rest', 'rest']);
+  assert.equal(m.selectedCount, 5);
+  assert.equal(m.head, '先练这 5 个');
+  assert.equal(m.topCount, 5);
+  assert.equal(m.restCount, 3);
+  assert.equal(m.restLabel, '其余 3 个字 ›');
+  assert.equal(m.restHideLabel, '收起其余 3 个字');
+  assert.equal(m.allSelected, false);
+  assert.equal(m.toggleAllLabel, t('X-LIST.selectAll'));
+  assert.equal(m.hint, '选了 5 个字 · 写完会回到这里。');
+  assert.equal(m.customSel, false);
+  assert.equal(policy.listDefaultSelect, 5);
+  // 从默认展开成数组再点：取消最该练的一个、选上其余的一个
+  const defaults = m.rows.filter(r => r.selected).map(r => r.char);
+  const sel = toggleSel(toggleSel(defaults, '八'), '二');
+  const m2 = listModel(st, { kind: 'wrong', sel, today: TODAY, cardFor: manyCardFor, practicable: manyPracticable });
+  assert.deepEqual(m2.rows.filter(r => r.selected).map(r => r.char), ['七', '六', '五', '四', '二']);
+  assert.equal(m2.head, '先练这 5 个', 'the head labels the group, not the current selection');
+  // 全选 → 8 个
+  const all = listModel(st, { kind: 'wrong', sel: selectAllSel(m), today: TODAY, cardFor: manyCardFor, practicable: manyPracticable });
+  assert.equal(all.selectedCount, 8);
+  assert.equal(all.allSelected, true);
+  // 自定义 limit
+  const three = listModel(st, { kind: 'wrong', today: TODAY, cardFor: manyCardFor, practicable: manyPracticable, policy: { ...policy, listDefaultSelect: 3 } });
+  assert.equal(three.selectedCount, 3);
+  assert.equal(three.head, '先练这 3 个');
+});
+
+test('B4: 快忘了 default = the 5 longest overdue (list order); rows that cannot be practised do not take a slot', () => {
+  const days = ['2026-09-10', '2026-09-12', '2026-09-14', '2026-09-16', '2026-09-18', '2026-09-20', '2026-09-22'];
+  const records = [];
+  const sched = {};
+  MANY.slice(0, 7).forEach((c, i) => {
+    records.push(rec(i + 1, c, 'judged', 'correct', '2026-09-01'));
+    sched[`base:${c}`] = due(days[i]);
+  });
+  const st = stateOf(records, sched);
+  const m = listModel(st, { kind: 'forget', today: TODAY, cardFor: manyCardFor, practicable: manyPracticable });
+  assert.deepEqual(m.rows.map(r => r.char), ['一', '二', '三', '四', '五', '六', '七'], 'longest overdue first');
+  assert.deepEqual(m.rows.filter(r => r.selected).map(r => r.char), ['一', '二', '三', '四', '五']);
+  assert.equal(m.head, '先练这 5 个');
+  assert.equal(m.restCount, 2);
+  // 排在最前面的一行练不了：不占名额（第 6 个能练的字顶上）
+  const noFirst = listModel(st, { kind: 'forget', today: TODAY, cardFor: manyCardFor, practicable: key => key !== 'base:一' });
+  assert.deepEqual(noFirst.rows.map(r => [r.char, r.group, r.selected]).slice(0, 7), [
+    ['一', 'top', false], ['二', 'top', true], ['三', 'top', true], ['四', 'top', true], ['五', 'top', true], ['六', 'top', true], ['七', 'rest', false],
+  ]);
+  assert.equal(noFirst.head, '先练这 5 个');
 });
 
 test('rows that cannot be practised (custom: / not in deck) show but are not selectable and never go into the group', () => {
@@ -169,7 +237,7 @@ test('rows that cannot be practised (custom: / not in deck) show but are not sel
   assert.deepEqual(m.rows.map(r => [r.char, r.selectable, r.selected]), [['永', true, true], ['犇', false, false]]);
   assert.deepEqual(m.selectedKeys, ['base:永']);
   assert.equal(m.selectableCount, 1);
-  assert.deepEqual(selectNoneOff(m), ['永']);
+  assert.deepEqual(selectAllSel(m), ['永']);
 });
 
 test('R-E04 empty states', () => {

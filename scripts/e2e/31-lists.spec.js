@@ -21,7 +21,9 @@ const COPY = {
   titleForget: '快忘了',
   wrongTop: '下次写对了，就会从这里移走',
   forgetTop: '有一阵没写、可能快忘了的字。写一遍，就会从这里移走。',
-  head: n => `${n} 个字`,
+  head: n => `先练这 ${n} 个`, // B4（D36）：默认只选最该练的 5 个，不足 5 个按实际数
+  restShow: n => `其余 ${n} 个字 ›`,
+  restHide: n => `收起其余 ${n} 个字`,
   wrongMeta: (m, d, n) => `${m} 月 ${d} 日写错 · 一共写错 ${n} 次`,
   forgetMeta: (m, d, n) => `最近一次 ${m} 月 ${d} 日 · 记录了 ${n} 次`,
   wrongThumb: '写错那次',
@@ -109,6 +111,8 @@ async function listView(page) {
       fail: txt('list-start-fail'),
       go: go ? { text: go.textContent.trim(), disabled: go.disabled, aria: go.getAttribute('aria-disabled') } : null,
       toggle: toggle ? toggle.textContent.trim() : null,
+      rest: q('list-rest-toggle') ? { text: txt('list-rest-toggle'), open: q('list-rest-toggle').dataset.open, expanded: q('list-rest-toggle').getAttribute('aria-expanded') } : null,
+      groups: top ? [...top.querySelectorAll('[data-testid="list-row"]')].map(r => r.dataset.group) : [],
       empty: q('list-empty') ? { title: txt('list-empty-title'), body: txt('list-empty-body'), glyph: txt('list-empty-glyph') } : null,
       rows: top ? [...top.querySelectorAll('[data-testid="list-row"]')].map(r => {
         const sel = r.querySelector('[data-testid="list-row-select"]');
@@ -237,7 +241,7 @@ export default async function listsSpec(page, ctx) {
   await openList(page, 'wrong');
   let v = await listView(page);
   assert.equal(v.title, COPY.titleWrong, 'page title 写错过');
-  assert.equal(v.head, COPY.head(2), 'head 2 个字');
+  assert.equal(v.head, COPY.head(2), 'head 先练这 2 个');
   assert.equal(v.top, COPY.wrongTop, 'R-E04 top line');
   assert.deepEqual(v.rows.map(r => r.char), ['和', '永'], 'latest wrong first (和 r5 > 永 r4)');
   assert.deepEqual(v.rows.map(r => r.meta), [COPY.wrongMeta(9, 21, 2), COPY.wrongMeta(9, 20, 1)], 'R-E03 meta');
@@ -308,6 +312,43 @@ export default async function listsSpec(page, ctx) {
   v = await listView(page);
   assert.deepEqual(v.empty, { title: COPY.forgetEmptyTitle, body: COPY.forgetEmpty, glyph: '忘' }, 'R-E04 forget empty');
 
+  // ------------------------------------------------------------------ 1b. 多于 5 个：默认只选最该练的 5 个（B4，D36）
+  step('B4: 8 wrong chars → default selects only the 5 most recent, head 先练这 5 个, the rest fold; expand, pick one more, 全选, start with exactly the selection');
+  const EIGHT = ['永', '和', '春', '大', '中', '水', '山', '人'];
+  await setup(page, { records: EIGHT.map((c, i) => rec(i + 1, c, 'wrong', `2026-09-${String(10 + i).padStart(2, '0')}`)) });
+  await openList(page, 'wrong');
+  v = await listView(page);
+  assert.equal(v.head, COPY.head(5), 'head 先练这 5 个');
+  assert.deepEqual(v.rows.map(r => r.char), ['人', '山', '水', '中', '大'], 'only the 5 most recently wrong rows are shown; the rest are folded');
+  assert.deepEqual(v.rows.map(r => r.selected), [true, true, true, true, true], 'all 5 shown rows selected');
+  assert.deepEqual(v.rest, { text: COPY.restShow(3), open: 'false', expanded: 'false' }, 'fold button 其余 3 个字 ›');
+  assert.equal(v.hint, COPY.selected(5), 'hint 选了 5 个字, not 8');
+  assert.equal(v.toggle, COPY.selectAll, '全选 offered (not all selected)');
+  await page.click(topSel('list-rest-toggle'));
+  v = await listView(page);
+  assert.deepEqual(v.rows.map(r => [r.char, r.selected]), [['人', true], ['山', true], ['水', true], ['中', true], ['大', true], ['春', false], ['和', false], ['永', false]],
+    'expanded: the other 3 rows are unselected');
+  assert.deepEqual(v.groups, ['top', 'top', 'top', 'top', 'top', 'rest', 'rest', 'rest'], 'rows carry their group');
+  assert.deepEqual(v.rest, { text: COPY.restHide(3), open: 'true', expanded: 'true' }, 'button turns into 收起其余 3 个字');
+  await page.waitForTimeout(PRESS_SETTLE_MS);
+  await clickRowSelect(page, '春');
+  await clickRowSelect(page, '人');
+  v = await listView(page);
+  assert.equal(v.hint, COPY.selected(5), 'one more picked, one dropped → still 5');
+  assert.deepEqual(v.rows.filter(r => r.selected).map(r => r.char), ['山', '水', '中', '大', '春']);
+  await page.click(topSel('list-toggle-all'));
+  v = await listView(page);
+  assert.equal(v.hint, COPY.selected(8), '全选 → all 8');
+  assert.equal(v.toggle, COPY.selectNone, '全不选 offered when everything is selected');
+  await page.click(topSel('list-rest-toggle'));
+  v = await listView(page);
+  assert.equal(v.rows.length, 5, 'collapsed again');
+  await setup(page, { records: EIGHT.map((c, i) => rec(i + 1, c, 'wrong', `2026-09-${String(10 + i).padStart(2, '0')}`)) });
+  await openList(page, 'wrong');
+  await startFromList(page);
+  n = await numbers(page);
+  assert.deepEqual(n.B.queue, ['base:人', 'base:山', 'base:水', 'base:中', 'base:大'], 'default start = exactly the 5 most recently wrong, in list order');
+
   // ------------------------------------------------------------------ 2. S06
   step('S06: select only 永 → 练这个字 → write (B from wrongList) → back unfinished → selection kept; reload keeps it');
   await setup(page, { records: BASE, due: BASE_DUE });
@@ -368,7 +409,7 @@ export default async function listsSpec(page, ctx) {
   assert.deepEqual(v.rows.map(r2 => r2.char), ['和'], '永 left 写错过 (recomputed on return)');
   assert.deepEqual(v.rows.map(r2 => r2.selected), [true], 'group finished → re-selected all (和 was unselected before)');
   assert.equal(v.hint, COPY.selected(1), 'hint 选了 1 个字');
-  assert.equal(v.head, COPY.head(1), 'head 1 个字');
+  assert.equal(v.head, COPY.head(1), 'head 先练这 1 个');
   n = await numbers(page);
   assert.deepEqual(n.wrong, ['和'], 'getState: wrongList = [和]');
   assert.ok(!n.forget.includes('永'), 'getState: 永 not in 快忘了');

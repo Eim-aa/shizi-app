@@ -4,13 +4,14 @@
 // registerScreen('library-list')，params {kind:'wrong'|'forget', off?:string[]}。进入：openList(kind)（字库首页卡片、
 // 「现在没有要写的字」页的「看写错过的字 ›」）。
 //
-// 版式：页头「写错过 / 快忘了」+ 右侧「全选 / 全不选」（S06）；正文标题「{N} 个字」+ 顶部说明（R-E04）；逐行
+// 版式：页头「写错过 / 快忘了」+ 右侧「全选 / 全不选」（S06）；正文标题「先练这 {N} 个」+ 顶部说明（R-E04）；逐行
 // [圆圈勾选 44×44] [标准字大字] [词语（目标字加粗）/ 小字] [那一次的笔迹小图（写错过下标「写错那次」）] [›]（R-E03）；
 // 列表下说明（R-E03）；底栏「选了 N 个字 · 写完会回到这里。」+ 主按钮（R-E02：≥2「练这些字」/ 1「练这个字」/
 // 0「先选一个字」disabled + aria-disabled，Z02）。空态：虚框装饰字 + 标题 + 一句（R-E04）。
 //
-// 勾选（S06、04 §5.1-13）：默认全选；点圆圈选 / 取消；勾选状态存在本页（同时写进 params.off，刷新后恢复）。
-//   从写字页返回（组没写完）→ 保留勾选；从本页开的组结束了（写完 / 结束这组 / S02 结束那组）→ 回来重新全选。
+// 勾选（S06、04 §5.1-13；已决定 D36 / P113）：默认只选最该练的前 5 个字（标题「先练这 5 个」），其余收在
+//   「其余 N 个字 ›」下展开；点圆圈选 / 取消；勾选状态存在本页（自己选过才写进 params.sel，刷新后恢复；null = 默认）。
+//   从写字页返回（组没写完）→ 保留勾选；从本页开的组结束了（写完 / 结束这组 / S02 结束那组）→ 回来回到默认。
 //   清单本身由记录实时算（R-E01），写完回来自动重算。
 // 开组：一律走 session/index.js 的 startPicked(chars, {source:{view:'wrongList'|'forgetList'}})（旧 B 没写完时由它弹 S02）；
 //   失败（写入失败）留在本页、勾选不变，底栏上方说明 X-LIST.startFailed，主按钮可再点（R-G04）。
@@ -27,8 +28,8 @@
 // data-testid：list-screen（页面）、list-body（data-kind、data-selected-count）、list-toggle-all、list-head、list-top、list-rows、
 //   list-row（data-char、data-selectable、data-selected、data-record）、list-row-select、list-row-open（可点时）/
 //   list-row-main（不可点时）、list-row-char、list-row-word、list-row-meta、list-row-thumb、list-row-thumb-ink、
-//   list-row-thumb-noink、list-row-thumb-caption、list-note、list-hint、list-go、list-start-fail、
-//   list-empty、list-empty-glyph、list-empty-title、list-empty-body。
+//   list-row-thumb-noink、list-row-thumb-caption、list-rest-toggle（其余行的展开 / 收起，data-open）、list-note、list-hint、list-go、list-start-fail、
+//   list-empty、list-empty-glyph、list-empty-title、list-empty-body；list-row 另有 data-group（top / rest）。
 
 import { html, useEffect, useRef, useState } from '../../../../vendor/ui.js';
 import { registerScreen, getRouter, getScreen, nav } from '../../router.js';
@@ -46,7 +47,7 @@ import { InkMini, recalledInk } from '../write/compare.js';
 import { startPicked } from '../session/index.js';
 import { setNoneActions } from '../session/none.js';
 import {
-  groupFromHereActive, listModel, normalizeKind, normalizeOff, sameOff, selectAllOff, selectNoneOff, toggleOff,
+  groupFromHereActive, listModel, normalizeKind, normalizeSel, sameSel, selectAllSel, selectNoneSel, toggleSel,
 } from './list-model.js';
 
 export const LIST_SCREEN = 'library-list';
@@ -112,6 +113,7 @@ injectStyles('library-list', `
 .sz-list__hint{margin:0;text-align:center;font-size:calc(13px * ${T.k});line-height:calc(18px * ${T.k});color:${T.i3}}
 .sz-list__fail{margin:0;text-align:center;font-size:calc(13px * ${T.k});line-height:1.6;color:${T.ar}}
 .sz-list__toggle{min-height:44px;padding:0 4px;font-size:calc(15px * ${T.k});color:${T.i2}}
+.sz-list__rest{align-self:flex-start;min-height:44px;padding:0 4px;margin-top:-12px;font-size:calc(15px * ${T.k});color:${T.i2}}
 .sz-list-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;
   padding:24px 0 96px}
 .sz-list-empty__glyph{width:88px;height:88px;box-sizing:border-box;border:1px dashed var(--g, rgba(166,83,63,.28));display:grid;
@@ -206,7 +208,7 @@ function Row({ row, ink, onToggle, onDetail }) {
     </span>
     <${Thumb} row=${row} ink=${ink} />`;
   return html`<li class="sz-lrow" data-testid="list-row" data-char=${row.char} data-selectable=${row.selectable ? 'true' : 'false'}
-    data-selected=${row.selected ? 'true' : 'false'} data-record=${row.recordId}>
+    data-selected=${row.selected ? 'true' : 'false'} data-group=${row.group} data-record=${row.recordId}>
     ${sel}
     ${onDetail
       ? html`<${Button} variant="plain" class="sz-lrow__open" data-testid="list-row-open" onClick=${() => onDetail(row)}>
@@ -221,35 +223,46 @@ function ListScreen({ params, entry }) {
   const entryId = entry && entry.id;
   const state = useStoreState();
   const store = storeOrNull();
-  const [off, setOff] = useState(() => normalizeOff(params && params.off));
+  const [sel, setSel] = useState(() => normalizeSel(params && params.sel)); // null = 默认（最该练的前 5 个）
   const [failed, setFailed] = useState(false);
 
   const today = localDay(envNow());
   const model = listModel(state, {
-    kind, off, today, policy: defaultPolicy, cardFor: cardForKey, practicable: isPracticable,
+    kind, sel, today, policy: defaultPolicy, cardFor: cardForKey, practicable: isPracticable,
   });
+  // 其余行默认折叠；已经有被选中的「其余」行时（刷新恢复 / 全选）直接展开，免得选了看不见。
+  const [restOpen, setRestOpen] = useState(() => model.rows.some(r => r.group === 'rest' && r.selected));
 
   // 从本页开的组结束了 → 重新全选（R-E02「写完回来重新全选」；没写完返回保留勾选，S06）。
   const mine = groupFromHereActive(state, model.view);
   const prevMine = useRef(mine);
   useEffect(() => {
-    if (prevMine.current && !mine) setOff(selectAllOff());
+    if (prevMine.current && !mine) {
+      setSel(null);
+      setRestOpen(false);
+    }
     prevMine.current = mine;
   }, [mine]);
 
-  // 勾选写进 params（本页在顶层时），刷新 / 从写字页刷新后返回都能恢复。
+  // 自己选过的勾选写进 params（本页在顶层时），刷新 / 从写字页刷新后返回都能恢复；默认不写（params.sel 缺省）。
   useEffect(() => {
     if (!isTopEntry(entryId)) return;
-    if (!sameOff(params && params.off, off)) nav.setParams({ off });
+    if (!sameSel(params && params.sel, sel)) nav.setParams({ sel });
   });
 
+  const defaultChars = model.rows.filter(r => r.group === 'top' && r.selectable).map(r => r.char);
   const toggle = char => {
     setFailed(false);
-    setOff(cur => toggleOff(cur, char));
+    setSel(cur => toggleSel(cur === null ? defaultChars : cur, char));
   };
   const toggleAll = () => {
     setFailed(false);
-    setOff(model.allSelected ? selectNoneOff(model) : selectAllOff());
+    if (model.allSelected) {
+      setSel(selectNoneSel());
+    } else {
+      setSel(selectAllSel(model));
+      setRestOpen(true);
+    }
   };
   const start = () => {
     const keys = model.selectedKeys;
@@ -275,6 +288,7 @@ function ListScreen({ params, entry }) {
     </${Page}>`;
   }
 
+  const shown = restOpen ? model.rows : model.rows.filter(r => r.group === 'top');
   const trailing = model.selectableCount > 0
     ? html`<${Button} variant="plain" class="sz-list__toggle" data-testid="list-toggle-all" rapid=${true}
         onClick=${toggleAll}>${model.toggleAllLabel}</${Button}>`
@@ -290,9 +304,13 @@ function ListScreen({ params, entry }) {
         <p class="sz-list__top" data-testid="list-top">${model.top}</p>
       </div>
       <ul class="sz-list__rows" data-testid="list-rows">
-        ${model.rows.map(row => html`<${Row} key=${row.char} row=${row} ink=${inkOf(store, row.record)}
+        ${shown.map(row => html`<${Row} key=${row.char} row=${row} ink=${inkOf(store, row.record)}
           onToggle=${toggle} onDetail=${onDetail} />`)}
       </ul>
+      ${model.restCount > 0
+        ? html`<${Button} variant="plain" class="sz-list__rest" data-testid="list-rest-toggle" data-open=${restOpen ? 'true' : 'false'}
+            aria-expanded=${restOpen ? 'true' : 'false'} onClick=${() => setRestOpen(open => !open)}>${restOpen ? model.restHideLabel : model.restLabel}</${Button}>`
+        : null}
       <p class="sz-list__note" data-testid="list-note">${model.note}</p>
     </div>
   </${Page}>`;

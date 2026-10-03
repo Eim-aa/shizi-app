@@ -204,6 +204,7 @@ export default async function run(page, ctx) {
   ctx.step('3 wrong list thumbnails: row record = latest (wrong); missing → 没有笔迹');
   await nav(page, 'push', 'library-list', { kind: 'wrong' });
   await page.waitForSelector(topSel('list-rows'));
+  await page.click(topSel('list-rest-toggle')); // B4：默认只露最该练的 5 行，其余折叠；展开后核对全部行
   await page.waitForTimeout(200);
   const rows = await page.evaluate(() => [...document.querySelectorAll('.sz-layer[data-top="true"] [data-testid="list-row"]')].map(el => ({
     char: el.dataset.char, record: el.dataset.record,

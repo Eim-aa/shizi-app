@@ -69,6 +69,8 @@ export const skipScope = 'session';
 export const forgetRule = 'due';
 // P04 快忘了最多几个
 export const forgetCap = 12;
+// P113 写错过 / 快忘了清单默认勾选几个「最该练」的字（已决定 D36）；其余收在「其余 N 个字」下，展开后可逐个选
+export const listDefaultSelect = 5;
 // P37 跨天未完成的「今天的练习」：直接作废（已判断的保留，未写的不算）
 export const dailyExpiry = 'discard';
 // P61 首练（first）与自选组（picked）是否跨天过期：都不过期（'never'）；'daily' = 与今天的练习同口径（P37）。

@@ -3045,8 +3045,29 @@
           "raw": null,
           "text": "{n} 个字",
           "origin": "extra",
-          "note": "清单正文标题行；原型 L410 lsHead「{N} 个字」（页头标题用 R-E04.titleWrong / titleForget）",
+          "note": "清单正文标题行；阶段 0 B4 起只在一个字都练不了时用（平常是 firstHead）；原型 L410 lsHead「{N} 个字」（页头标题用 R-E04.titleWrong / titleForget）",
           "decision": "P76"
+        },
+        "firstHead": {
+          "raw": null,
+          "text": "先练这 {n} 个",
+          "origin": "extra",
+          "note": "阶段 0 B4（G38，D36）：清单正文标题行，默认只选最该练的前 5 个字（不足 5 个按实际数）；覆盖原型 L410 lsHead「{N} 个字」",
+          "decision": "P113"
+        },
+        "restShow": {
+          "raw": null,
+          "text": "其余 {n} 个字 ›",
+          "origin": "extra",
+          "note": "阶段 0 B4：默认折叠的其余清单行的展开按钮",
+          "decision": "P113"
+        },
+        "restHide": {
+          "raw": null,
+          "text": "收起其余 {n} 个字",
+          "origin": "extra",
+          "note": "阶段 0 B4：已展开时的收起按钮",
+          "decision": "P113"
         },
         "selectAll": {
           "raw": null,

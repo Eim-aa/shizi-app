@@ -25,6 +25,7 @@ const BOTH_TRUE = {
   'X-ANNUAL.firstInk': '只在有笔迹时用的读屏名称',
   'X-ANNUAL.firstNoInk': '没有笔迹时的读屏名称',
   'R-W09.labelMine': '对照页「你的书写」是刚写的笔画，perRecordInk 无关',
+  'R-W09.mineCardLabel': '对照卡读屏名称「你的书写，N 笔」，同样是刚写的笔画（A9），perRecordInk 无关',
   'R-P03.todayChars': '「这天写的字」指记录里的字，不指笔迹',
   'R-W16.saveFailed': '写字页保存失败：刚写的笔画还在页面上',
   'X-LIBHOME.emptyTitle': '空态：写过的字会留在这里（字，不是笔迹）',

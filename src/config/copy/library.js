@@ -91,6 +91,9 @@ export default Object.freeze({
   'R-E04.titleForget': '快忘了',
   // X-LIST（extra，M3-2 清单页：原型 字库墨墙屏 L408–L410 的标题行与空态缺句、边改 S06 全选 / 全不选、开组失败；P76 待文案）
   'X-LIST.countHead': '{n} 个字',
+  'X-LIST.firstHead': '先练这 {n} 个',
+  'X-LIST.restShow': '其余 {n} 个字 ›',
+  'X-LIST.restHide': '收起其余 {n} 个字',
   'X-LIST.selectAll': '全选',
   'X-LIST.selectNone': '全不选',
   'X-LIST.emptyGlyphWrong': '错',

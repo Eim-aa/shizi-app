@@ -2,8 +2,10 @@
 //
 // 口径（R-E01 / D23）：只看每个字最近一次有效记录（judged，按 id 序号）；由记录实时算（core/records.wrongList / forgetList），
 // 两单不重叠（最近一次为 wrong → 写错过；为 correct 且 sched 到期 → 快忘了，policy.forgetRule / forgetCap，P04）。
-// 勾选（R-E02 / S06）：默认全选，用「取消了哪些字」off 表示（新出现的字默认选上）；写完回来重新全选由页面在
-// 「从本页开的组结束」时把 off 清空（04 §5.1-13：未写完返回保留勾选，写完回到清单重新全选）。
+// 勾选（R-E02 / S06；已决定 D36 / P113）：默认只选「最该练」的前 policy.listDefaultSelect（5）个——写错过 = 最近写错的，
+// 快忘了 = 到期最久的（两单本来就按这个序排），不足 5 个按实际数；其余的收在「其余 N 个字」下，展开后可逐个选。
+// 勾选状态 sel：null = 默认；数组 = 用户自己选定的字（点圆圈 / 全选 / 全不选后）。写完回来恢复默认由页面在
+// 「从本页开的组结束」时把 sel 清成 null（04 §5.1-13：未写完返回保留勾选，写完回到清单回到默认）。
 // 行（R-E03）：标准字 + 词语（目标字加粗）+ 小字（写错过「{日期}写错 · 一共写错 {N} 次」/ 快忘了「最近一次 {日期} · 记录了 {N} 次」）
 // + 右边那一次的笔迹小图（写错过小图下「写错那次」，快忘了不写）。
 //
@@ -81,34 +83,35 @@ export function listEntries(state, { kind, today, policy = defaultPolicy }) {
   }));
 }
 
-/** off 表规整：去重、只留字符串。 */
-export function normalizeOff(off) {
-  if (!Array.isArray(off)) return [];
-  return [...new Set(off.filter(c => typeof c === 'string' && c))];
+/** sel 规整：不是数组 → null（默认）；数组去重、只留字符串。 */
+export function normalizeSel(sel) {
+  if (!Array.isArray(sel)) return null;
+  return [...new Set(sel.filter(c => typeof c === 'string' && c))];
 }
 
-export function sameOff(a, b) {
-  const x = normalizeOff(a);
-  const y = normalizeOff(b);
+export function sameSel(a, b) {
+  const x = normalizeSel(a);
+  const y = normalizeSel(b);
+  if (x === null || y === null) return x === y;
   if (x.length !== y.length) return false;
   const set = new Set(x);
   return y.every(c => set.has(c));
 }
 
-/** 点圆圈：选上 ↔ 取消。 */
-export function toggleOff(off, char) {
-  const cur = normalizeOff(off);
-  return cur.includes(char) ? cur.filter(c => c !== char) : [...cur, char];
+/** 点圆圈：选上 ↔ 取消。cur = 当前已选的字（调用方先把默认展开成数组）。 */
+export function toggleSel(cur, char) {
+  const list = normalizeSel(cur) || [];
+  return list.includes(char) ? list.filter(c => c !== char) : [...list, char];
 }
 
-/** 全选（S06）。 */
-export function selectAllOff() {
-  return [];
-}
-
-/** 全不选（S06）：把能选的字全部放进 off。 */
-export function selectNoneOff(model) {
+/** 全选（S06）：把能选的字全部选上。 */
+export function selectAllSel(model) {
   return model.rows.filter(r => r.selectable).map(r => r.char);
+}
+
+/** 全不选（S06）。 */
+export function selectNoneSel() {
+  return [];
 }
 
 /** 底部按钮文案（R-E02：≥2「练这些字」、1「练这个字」、0「先选一个字」真禁用）。 */
@@ -126,18 +129,30 @@ export function hintText(n) {
 /**
  * 清单页模型。
  * @param {object} state  store 状态
- * @param {{kind:string, off?:string[], today:string, policy?:object,
+ * @param {{kind:string, sel?:string[]|null, today:string, policy?:object,
  *          cardFor?:(cardKey:string)=>({word?:string}|null), practicable?:(cardKey:string)=>boolean}} o
  */
-export function listModel(state, { kind: rawKind, off = [], today, policy = defaultPolicy, cardFor = () => null, practicable = () => true }) {
+export function listModel(state, { kind: rawKind, sel = null, today, policy = defaultPolicy, cardFor = () => null, practicable = () => true }) {
   const kind = normalizeKind(rawKind);
   const isWrong = kind === 'wrong';
-  const offSet = new Set(normalizeOff(off));
+  const chosen = normalizeSel(sel);
+  const chosenSet = new Set(chosen || []);
+  const limit = Number.isInteger(policy.listDefaultSelect) && policy.listDefaultSelect > 0 ? policy.listDefaultSelect : Infinity;
   const entries = listEntries(state, { kind, today, policy });
-  const rows = entries.map(e => {
+  // 「最该练」= 清单顺序里前 limit 个能练的字；它们之前夹着的不能练的行也算在这一组里。
+  let seen = 0;
+  let topEnd = 0;
+  entries.forEach((e, i) => {
+    if (seen < limit && practicable(e.cardKey)) {
+      seen += 1;
+      topEnd = i + 1;
+    }
+  });
+  const rows = entries.map((e, i) => {
     const card = cardFor(e.cardKey);
     const selectable = !!practicable(e.cardKey);
-    const selected = selectable && !offSet.has(e.char);
+    const inTop = i < topEnd;
+    const selected = selectable && (chosen ? chosenSet.has(e.char) : inTop);
     const date = dateText(e.day);
     const meta = isWrong ? t('R-E03.wrongMeta', { date, n: e.count }) : t('R-E03.forgetMeta', { date, n: e.count });
     return {
@@ -153,8 +168,12 @@ export function listModel(state, { kind: rawKind, off = [], today, policy = defa
       thumbCaption: isWrong ? t('R-E03.wrongThumb') : '',
       selectable,
       selected,
+      group: inTop ? 'top' : 'rest',
     };
   });
+  const topRows = rows.filter(r => r.group === 'top');
+  const topSelectable = topRows.filter(r => r.selectable).length;
+  const restCount = rows.length - topRows.length;
   const selectedKeys = rows.filter(r => r.selected).map(r => r.cardKey);
   const n = selectedKeys.length;
   const selectableCount = rows.filter(r => r.selectable).length;
@@ -166,7 +185,13 @@ export function listModel(state, { kind: rawKind, off = [], today, policy = defa
     emptyGlyph: isWrong ? t('X-LIST.emptyGlyphWrong') : t('X-LIST.emptyGlyphForget'),
     emptyTitle: isWrong ? t('R-E04.wrongEmpty') : t('X-LIST.forgetEmptyTitle'),
     emptyBody: isWrong ? t('X-LIST.wrongEmptyBody') : t('R-E04.forgetEmpty'),
-    head: t('X-LIST.countHead', { n: rows.length }),
+    // 「先练这 N 个」= 最该练的那一组（不足 5 个按实际数）；一个都练不了时退回总数。与当前勾选无关，勾选看底栏。
+    head: topSelectable > 0 ? t('X-LIST.firstHead', { n: topSelectable }) : t('X-LIST.countHead', { n: rows.length }),
+    topCount: topRows.length,
+    restCount,
+    restLabel: restCount > 0 ? t('X-LIST.restShow', { n: restCount }) : '',
+    restHideLabel: restCount > 0 ? t('X-LIST.restHide', { n: restCount }) : '',
+    customSel: chosen !== null,
     top: isWrong ? t('R-E04.wrongTop') : t('R-E04.forgetTop'),
     note: isWrong ? tInk('R-E03.wrongNote', undefined, policy) : tInk('R-E03.forgetNote', undefined, policy),
     rows,

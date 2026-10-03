@@ -144,6 +144,7 @@ export default async function run(page, { baseURL, assert, step, root }) {
   assert.equal(lib.wrong, expWrong.length, `写错过 card: ${lib.wrong}`);
   await push(page, '/src/ui/screens/library/list.js', 'openList', 'wrong');
   await page.waitForSelector(topSel('list-screen'));
+  await page.click(topSel('list-rest-toggle')); // B4：默认只露最该练的 5 行，其余折叠
   const wrongChars = await page.evaluate(() => [...document.querySelectorAll('.sz-layer[data-top="true"] [data-testid="list-row"]')].map(el => el.dataset.char).sort());
   assert.deepEqual(wrongChars, expWrong, 'wrong list = chars whose latest judged record is wrong');
 

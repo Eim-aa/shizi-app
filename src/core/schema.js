@@ -314,7 +314,7 @@ function validateRecordList(list, path, month) {
 /**
  * 按月记录键的值：当月 Record[]（按 id 升序），或预算回收折叠后的月汇总（01 §9）：
  *   { folded: true, month, byDay: {[localDay]: [char…]}, chars: [char…], kept: Record[] }
- * byDay/chars 供日历与「练习记录」显示；kept 保留该月里仍是「某字最近一次 judged」的记录，
+ * byDay/chars 供日历与「练习记录」显示；kept 保留该月里仍是「某字最近一次 judged」或「某字第一次 judged」（D27，阶段 1 P1-E3）的记录，
  * 以维持「sched 存在 ⇒ 有 judged 记录」与写错过/快忘了查询（折叠细节见报告里的待定项）。
  */
 export function validateRecordsMonth(value, month, path = 'records') {

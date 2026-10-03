@@ -140,7 +140,9 @@
     "P111": "笔锋细节（飞白 / 洇墨）门控（阶段 0 P0-A3）：运行时键 policy.brushDetail，实现在 src/ui/canvas/brush.js brushDetailEnabled 与 ink-canvas.js，只看减少动态效果与该开关，无界面文案",
     "P119": "撤销 / 清空的位置（D36 / G32）：版式行为——标准版与紧凑版都在格下一行右端，触控 ≥44pt；实现在 src/ui/screens/write/index.js 与 compact.js 的 CSS，不是 policy 开关；无界面文案",
     "P120": "首页主按钮「拾」不随字号缩小（D36 / G05）：版式行为——大字（系统字号，P130）与紧凑版都保持 196×190；实现在 src/ui/screens/home/index.js 的 CSS，不是 policy 开关；无界面文案",
-    "P133": "网页（PWA / 浏览器，没有原生桥）的字号倍率：--k 保持 1，不读浏览器默认字号或 -apple-system-body 推算系统字号；行为在 src/platform/text-size.js（只响应原生 shiziContentSize），不是 policy 开关（D29 / 阶段 1 P1-E6）"
+    "P133": "网页（PWA / 浏览器，没有原生桥）的字号倍率：--k 保持 1，不读浏览器默认字号或 -apple-system-body 推算系统字号；行为在 src/platform/text-size.js（只响应原生 shiziContentSize），不是 policy 开关（D29 / 阶段 1 P1-E6）",
+    "P120": "首页主按钮「拾」不随字号缩小（D36 / G05）：版式行为——大字与紧凑版都保持 196×190；实现在 src/ui/screens/home/index.js 的 CSS，不是 policy 开关；无界面文案",
+    "P122": "D27 留存（每字只留第一次 + 最近一次）与按「某一次」取墨的月字帖（P02）/ 这天图片 / 年报首字冲突：过渡维持现有取法、缺墨如实（阶段 1 P1-E3）；取法仍由 policy.monthSheetPick（P02）决定，不新增开关；文案沿用 X-IMAGES.missingMonth / R-D07"
   },
   "noCopy": [
     "R-H08",

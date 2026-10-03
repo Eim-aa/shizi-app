@@ -165,7 +165,8 @@ export function inkEntry(points = 8, strokes = 3) {
     for (let j = 0; j < points; j += 1) pts.push({ x: ((100 + i * 10 + j) * GRID) / 1000, y: ((200 + j) * GRID) / 1000, w: INK.base, t: i * 1000 + j * 16 });
     raw.push(pts);
   }
-  return encodeInk(raw, { maxPoints: points, maxStrokes: strokes });
+  // tolerance:null：夹具要的是确定的点数 / 体积（P121 自适应抽点会把这些直线压成两点）
+  return encodeInk(raw, { maxPoints: points, maxStrokes: strokes, tolerance: null });
 }
 
 /** 旧 InkV2（JSON 数字编码，M4-5 前写入的数据；读取兼容）。 */

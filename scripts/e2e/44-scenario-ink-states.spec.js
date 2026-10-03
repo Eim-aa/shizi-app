@@ -32,8 +32,9 @@ async function injectPerRecordInk(page) {
   await page.route(/\/src\/config\/policy\.js(\?.*)?$/, async route => {
     const res = await route.fetch();
     const body = await res.text();
-    const next = body.replace('perRecordInk: false,', 'perRecordInk: true,');
-    if (next !== body) hits += 1;
+    // D27 起源码默认已是 true；仍按值改写，保证这个 spec 不随默认值漂移
+    const next = body.replace(/perRecordInk: (true|false),/, 'perRecordInk: true,');
+    if (/perRecordInk: (true|false),/.test(body)) hits += 1;
     await route.fulfill({ response: res, body: next, headers: { ...res.headers(), 'content-type': 'text/javascript; charset=utf-8' } });
   });
   return () => hits;

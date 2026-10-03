@@ -82,7 +82,7 @@ test('policy: transitional defaults match 03 / the M0-6 card', () => {
   assert.equal(policy.inkBudgetBytes, 1.5 * 1024 * 1024);
   assert.equal(policy.recordsBudgetBytes, 1.5 * 1024 * 1024);
   assert.equal(policy.migration.legacyHintedAs, 'none');
-  assert.equal(policy.features.perRecordInk, false, 'card M0-6: off until D14 is lifted (P31)');
+  assert.equal(policy.features.perRecordInk, true, 'P31 decided D27 (stage 1 P1-E3): per-judgment ink on (was false until D14 was lifted, card M0-6)');
   assert.equal(policy.features.soundscape, false);
   assert.equal(policy.defaultLibrary, 'core3500', 'P73 default library');
   assert.equal(policy.inkRowCompactMax, 4, 'P75 compact home ink row');

@@ -217,10 +217,14 @@ test('convertV1: 照片（沿旧预算）、自选、wordOff、设置（scene �
 });
 
 test('convertV1: perRecordInk 开启时 recentInk → 最近一次 correct 记录的 v3 墨迹（P31）；关闭时跳过', () => {
-  const off = convertV1(smallV1(), { now: NOW });
+  const off = convertV1(smallV1(), { now: NOW, policy: policyWith({}, { perRecordInk: false }) });
   assert.deepEqual(off.state.ink, {});
   assert.equal(off.report.ink.skipped, 1);
+  // D27（阶段 1 P1-E3）起默认开启：不传 policy 与显式开启同一结果
+  const byDefault = convertV1(smallV1(), { now: NOW });
+  assert.equal(byDefault.report.ink.migrated, 1, 'default policy (D27) migrates the v1 recent ink');
   const on = convertV1(smallV1(), { now: NOW, policy: policyWith({}, { perRecordInk: true }) });
+  assert.deepEqual(byDefault.state.ink, on.state.ink);
   const target = flatRecords(on.state.records).find(r => r.char === '拍');
   const month = target.localDay.slice(0, 7);
   const ink = on.state.ink[month][target.id];

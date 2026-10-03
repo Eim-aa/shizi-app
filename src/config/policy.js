@@ -10,9 +10,9 @@
 // ---- 功能开关 ----
 // P31 / P07 / P08 / P11 / P12 / P13 / P49 / P51 / P30：features.* 开关，每个键的来源见行尾。
 export const features = Object.freeze({
-  // P31 逐判断笔迹存储。决定-D14「另案暂停」。任务卡 M0-6 指定 false（关闭时按 10.12「有记录无笔迹」出货）；
-  // 注意 03 表 P31 过渡默认写的是 true 且「未解除前不得以此上线」——两处不一致，已在 M0-6 报告登记待裁决。
-  perRecordInk: false,
+  // P31 逐判断笔迹存储：已决定 D27（覆盖 D14「另案暂停」）——立即开启，保留每字第一次 + 最近一次判断的墨迹，其余回收
+  // （store/budget.js pruneInkOfCards / recover）；阶段 2 原生数据层后再升级为全部历次。关闭时按 10.12「有记录无笔迹」出货（F4 …Glyph 文案）。
+  perRecordInk: true,
   soundscape: false, // P07 练字背景音：按 Issue #166 删除
   milestones: false, // P08 里程碑庆祝：删除
   difficultyFeedback: false, // P11 文案-D6「这组字难不难」：不影响选字 → 整块不显示
@@ -23,7 +23,7 @@ export const features = Object.freeze({
   devTools: true, // P30 题库质检等开发工具：保留，仅 ?dev=1 可见（见 devToolsParam）
 });
 
-// ---- 墨迹容量（P05，P31 解除后才生效）----
+// ---- 墨迹容量（P05；P31 已决定 D27 开启后生效）----
 // P05 墨迹总预算（字节，UTF-16 估算）
 export const inkBudgetBytes = 1.5 * 1024 * 1024;
 // P05 / P78 存储前每笔最多点数（按弧长抽点）：v3 打包编码每点 4 字节，24 点/笔使 14 笔的字 ≈ 3.7KB（UTF-16）、

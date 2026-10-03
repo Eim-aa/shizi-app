@@ -127,6 +127,15 @@ export function CardActions({ summary, addFailed = false, practiceFailed = false
     return html`<${FailBlock} testid="query-card-practice-fail" note=${t('R-H06.saveFailed')} cancelLabel=${t('R-H06.cancel')}
       retryLabel=${t('R-H06.retry')} onCancel=${onPracticeCancel} onRetry=${onPracticeRetry} />`;
   }
+  const parts = cardActionParts({ summary, busy, canDetail, onPractice, onAdd, onDetail });
+  return html`<div class="sz-qcard__acts">${parts.primary}${parts.rest}</div>`;
+}
+
+/**
+ * 正常状态的按钮拆成两块（F5）：primary =「练这个字」（弹层里固定在底部，永远可见）、rest =「加入自选的字 / 已在自选的字里」+「查看记录」
+ * （跟卡片一起在中间滚动区里）。失败三段式不在这里（CardActions / QuerySheet 另处理）。
+ */
+export function cardActionParts({ summary, busy = false, canDetail = false, onPractice, onAdd, onDetail }) {
   const addBtn = summary.custom
     ? html`<${Button} variant="secondary" disabled=${true} data-testid="query-card-in-custom">${t('R-Q05.alreadyAdded')}</${Button}>`
     : html`<${Button} variant="secondary" data-testid="query-card-add" disabled=${busy} onClick=${onAdd}>${t('R-Q05.btnAdd')}</${Button}>`;
@@ -134,10 +143,25 @@ export function CardActions({ summary, addFailed = false, practiceFailed = false
     ? html`<${Button} variant="secondary" data-testid="query-card-detail" disabled=${!canDetail}
         onClick=${onDetail}>${t('R-Q05.viewRecords')}</${Button}>`
     : null;
-  return html`<div class="sz-qcard__acts">
-    <${Button} variant="primary" data-testid="query-card-practice" disabled=${busy} onClick=${onPractice}>${t('R-Q05.btnPractice')}</${Button}>
-    <div class=${detailBtn ? 'sz-qcard__two' : 'sz-qcard__one'}>${addBtn}${detailBtn}</div>
-  </div>`;
+  return {
+    primary: html`<${Button} variant="primary" data-testid="query-card-practice" disabled=${busy} onClick=${onPractice}>${t('R-Q05.btnPractice')}</${Button}>`,
+    rest: html`<div class=${detailBtn ? 'sz-qcard__two' : 'sz-qcard__one'}>${addBtn}${detailBtn}</div>`,
+  };
+}
+
+/** 弹层底部固定的主操作区（F5）：加入失败 / 开始练失败时换成三段式，否则是「练这个字」。 */
+export function CardFooter({ summary, addFailed = false, practiceFailed = false, busy = false, onPractice, onAdd, onAddCancel,
+  onPracticeCancel, onPracticeRetry }) {
+  if (addFailed || practiceFailed) {
+    return CardActions({ summary, addFailed, practiceFailed, onAdd, onAddCancel, onPracticeCancel, onPracticeRetry });
+  }
+  return cardActionParts({ summary, busy, onPractice }).primary;
+}
+
+/** 弹层里卡片下面的次要按钮（滚动区内）：失败三段式时不画（失败块在固定底部）。 */
+export function CardSecondary({ summary, addFailed = false, practiceFailed = false, busy = false, canDetail = false, onAdd, onDetail }) {
+  if (addFailed || practiceFailed) return null;
+  return cardActionParts({ summary, busy, canDetail, onAdd, onDetail }).rest;
 }
 
 /**
@@ -152,11 +176,12 @@ export function CardActions({ summary, addFailed = false, practiceFailed = false
  */
 export function CharCard(p) {
   const { summary, pinyin = '', word = '', strokeCount = 0, strokeData, getInk, addFailed = false, practiceFailed = false,
-    busy = false, canDetail = false, onPractice, onAdd, onAddCancel, onDetail, onPracticeCancel, onPracticeRetry } = p;
+    busy = false, canDetail = false, onPractice, onAdd, onAddCancel, onDetail, onPracticeCancel, onPracticeRetry,
+    withActions = true } = p;
   const c = summary.char;
   const points = useMemo(() => cardInkPoints(summary, getInk), [summary.latest && summary.latest.id, getInk]);
   const meta = cardMetaText(pinyin, strokeCount || (strokeData && strokeData.data ? strokeData.data.strokes.length : 0));
-  const actions = html`<${CardActions} summary=${summary} addFailed=${addFailed} practiceFailed=${practiceFailed} busy=${busy}
+  const actions = !withActions ? null : html`<${CardActions} summary=${summary} addFailed=${addFailed} practiceFailed=${practiceFailed} busy=${busy}
     canDetail=${canDetail} onPractice=${onPractice} onAdd=${onAdd} onAddCancel=${onAddCancel} onDetail=${onDetail}
     onPracticeCancel=${onPracticeCancel} onPracticeRetry=${onPracticeRetry} />`;
   return html`<div class="sz-qcard-wrap">

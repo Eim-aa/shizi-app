@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { sheetModel, commitAdd, isFailure, deckPredicates, ADD_LABEL, PickBar } from '../../src/ui/components/query/QuerySheet.js';
 import { pickBar as pickBarOf } from '../../src/core/query.js';
 import { CharRow } from '../../src/ui/components/query/CharRow.js';
-import { CharCard, CardActions, BadCard, cardStatText, cardMetaText, cardInkPoints, formatDay } from '../../src/ui/components/query/CharCard.js';
+import { CharCard, CardActions, CardFooter, CardSecondary, cardActionParts, BadCard, cardStatText, cardMetaText, cardInkPoints, formatDay } from '../../src/ui/components/query/CharCard.js';
 import { keyboardInset, sheetFrameStyle, handOffFocus, focusProxyInput } from '../../src/ui/components/query/input.js';
 import { openQuery, QUERY_OVERLAY } from '../../src/ui/components/query/index.js';
 import { Button } from '../../src/ui/components/Button.js';
@@ -257,6 +257,28 @@ test('CardActions: add / already added / detail greyed without onDetail; add fai
   assert.equal(cardMetaText('yǒng', 0), 'yǒng');
   assert.equal(formatDay('2026-09-24'), '9 月 24 日');
   assert.equal(typeof CharCard, 'function');
+});
+
+test('F5: card actions split — primary 「练这个字」 goes to the pinned footer, add / detail stay with the scrolling content; failures take over the footer', () => {
+  const summary = { char: '春', practicable: true, custom: false, count: 1, latest: rec('r1', '春'), latestDay: '2026-09-24' };
+  const parts = cardActionParts({ summary, canDetail: true });
+  const primary = byTestid(parts.primary);
+  assert.equal(text(primary['query-card-practice'][0]), '练这个字');
+  assert.equal(primary['query-card-add'], undefined, 'primary part has only the main action');
+  const rest = byTestid(parts.rest);
+  assert.equal(text(rest['query-card-add'][0]), '加入自选的字');
+  assert.equal(text(rest['query-card-detail'][0]), '查看记录');
+  assert.equal(rest['query-card-practice'], undefined);
+  // CardActions 仍是两块的合并（结构不变）
+  const both = byTestid(CardActions({ summary, canDetail: true }));
+  assert.ok(both['query-card-practice'] && both['query-card-add'] && both['query-card-detail']);
+  // 底部固定区：正常是主按钮；失败三段式替换它；次要区在失败时不画
+  assert.ok(byTestid(CardFooter({ summary }))['query-card-practice']);
+  const addFail = CardFooter({ summary, addFailed: true });
+  assert.equal(byTestid(addFail)['query-card-practice'], undefined);
+  assert.equal(CardSecondary({ summary, addFailed: true }), null);
+  assert.equal(CardSecondary({ summary, practiceFailed: true }), null);
+  assert.ok(byTestid(CardSecondary({ summary }))['query-card-add']);
 });
 
 test('cardInkPoints: latest judged record ink (P19 latest); none when getInk has nothing or policy says otherwise', () => {

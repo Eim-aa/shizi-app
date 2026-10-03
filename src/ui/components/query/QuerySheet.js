@@ -20,6 +20,9 @@
 // 焦点（R-Q08）：openQuery 已在点击事件里同步聚焦代理输入框（input.js）；本组件挂上后把焦点转给查字框，之后才让 Sheet
 //   进入 active（Sheet 在 active 为假时不抢焦点），关闭时焦点回到打开弹层的控件。
 // 键盘避让：visualViewport 缩小时弹层底边抬到可见区底边、高度按可见区算（input.js）。
+// 版面（F5）：弹层本身不滚动——标题与输入框钉在顶部、主操作（pick 底栏 / 卡片「练这个字」/ 失败三段式）钉在底部，
+//   中间（过滤提示、逐字行、卡片、「加入自选的字 / 查看记录」）是单独的滚动区 query-scroll。键盘 / 候选栏占掉可见区时，
+//   输入框与主按钮始终在可见区里，不需要先滚动。
 //
 // data-testid：query-sheet（面板）、query-body（data-mode / data-view / data-cur）、query-input、query-note（每条过滤提示，data-key）、query-hint、
 //   query-rows、query-back（‹ 回到这 N 个字）、query-bar（pick 底栏，data-count）、query-go、query-go-fail（+ -cancel / -retry）；
@@ -40,20 +43,24 @@ import { cardForKey, currentLibraryId } from '../../../data/deck.js';
 import { getStore } from '../../../store/store.js';
 import { useStrokeData } from '../../screens/write/hint-layer.js';
 import { CharRow } from './CharRow.js';
-import { CharCard, BadCard } from './CharCard.js';
+import { CharCard, BadCard, CardFooter, CardSecondary } from './CharCard.js';
 import { QueryInput, handOffFocus, sheetFrameStyle, useVisualViewport } from './input.js';
 
 export const ADD_LABEL = 'query:add';
 
 injectStyles('query-sheet', `
-.sz-query{display:flex;flex-direction:column;gap:16px}
+.sz-sheet[data-testid="query-sheet"]{overflow:hidden}
+.sz-query{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;gap:16px}
+.sz-query__input-wrap{flex:none}
+.sz-query__scroll{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
+  display:flex;flex-direction:column;gap:16px}
 .sz-query__notes{display:flex;flex-direction:column;gap:6px}
 .sz-query__note{display:flex;gap:10px;align-items:flex-start;padding:12px 16px;border-radius:14px;background:${T.off}}
 .sz-query__notedot{flex:none;width:6px;height:6px;margin-top:8px;border-radius:50%;background:${T.i2}}
 .sz-query__notetext{flex:1;font-size:calc(13px * ${T.k});line-height:1.7;color:${T.i2}}
 .sz-query__hint{margin:0;font-size:calc(13px * ${T.k});line-height:calc(18px * ${T.k});color:${T.i3}}
 .sz-query__back{align-self:flex-start;min-height:36px;margin:-6px 0;font-size:calc(15px * ${T.k});color:${T.i2};letter-spacing:.02em}
-.sz-query__bar{position:sticky;bottom:calc(-1 * var(--qpb, 34px));margin:auto -24px calc(-1 * var(--qpb, 34px));
+.sz-query__foot{flex:none;max-height:56%;overflow-y:auto;margin:0 -24px calc(-1 * var(--qpb, 34px));
   padding:12px 24px var(--qpb, 34px);display:flex;flex-direction:column;gap:8px;background:${T.sh};z-index:1}
 .sz-query__barfail{margin:0;font-size:calc(15px * ${T.k});line-height:1.6;color:${T.i2}}
 .sz-query__bartwo{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
@@ -121,7 +128,7 @@ export function sheetModel({ mode, text, cur, selected, state, predicates, polic
  */
 export function PickBar({ bar, count = 0, failed = false, onGo, onCancel, onRetry }) {
   if (!bar) return null;
-  return html`<div class="sz-query__bar" data-testid="query-bar" data-count=${count}>
+  return html`<div class="sz-query__bar sz-query__foot" data-testid="query-bar" data-count=${count}>
     ${failed
       ? html`<div data-testid="query-go-fail">
           <p class="sz-query__barfail" aria-live="polite">${t('R-H06.saveFailed')}</p>
@@ -222,8 +229,8 @@ export function QuerySheet(p) {
 
   // 看卡片 / 回到逐字行：面板滚回顶部（输入框与卡片的开头都在视野里）。
   useLayoutEffect(() => {
-    const panel = rootRef.current && rootRef.current.closest('.sz-sheet');
-    if (panel && panel.scrollTop) panel.scrollTop = 0;
+    const scroller = rootRef.current && rootRef.current.querySelector('.sz-query__scroll');
+    if (scroller && scroller.scrollTop) scroller.scrollTop = 0;
   }, [model.cur]);
 
   // 换字 / 改输入后，上一次的失败状态不再适用。
@@ -263,6 +270,8 @@ export function QuerySheet(p) {
 
   let rows = null;
   let body = null;
+  let secondary = null; // 卡片下面的次要按钮（滚动区内）
+  let footer = null; // 钉在弹层底部的主操作（F5）
   if (view === 'rows') {
     rows = html`<ul class="sz-qrows" data-testid="query-rows">${model.summaries.map(s => {
       const card = predicates.card(s.char);
@@ -273,12 +282,16 @@ export function QuerySheet(p) {
   } else if (view === 'card' && model.summary) {
     const card = predicates.card(model.cur);
     const failedHere = goFailed && goFailed.from === 'card' && goFailed.chars[0] === model.cur;
+    const addFailedHere = addFailed === model.cur;
     body = html`<${CharCard} summary=${model.summary} pinyin=${card ? card.py : ''} word=${card ? card.word : ''}
-      strokeCount=${card ? card.strokes : 0} strokeData=${strokeData} getInk=${store ? store.getInk : null}
-      addFailed=${addFailed === model.cur} practiceFailed=${!!failedHere} canDetail=${typeof onDetail === 'function'}
-      onPractice=${() => runGo([model.cur], 'card')} onAdd=${add} onAddCancel=${() => setAddFailed('')}
-      onDetail=${() => onDetail && onDetail(model.cur, api)}
-      onPracticeCancel=${() => setGoFailed(null)} onPracticeRetry=${() => runGo([model.cur], 'card')} />`;
+      strokeCount=${card ? card.strokes : 0} strokeData=${strokeData} getInk=${store ? store.getInk : null} withActions=${false} />`;
+    secondary = html`<${CardSecondary} summary=${model.summary} addFailed=${addFailedHere} practiceFailed=${!!failedHere}
+      canDetail=${typeof onDetail === 'function'} onAdd=${add} onDetail=${() => onDetail && onDetail(model.cur, api)} />`;
+    footer = html`<div class="sz-query__foot" data-testid="query-card-foot">
+      <${CardFooter} summary=${model.summary} addFailed=${addFailedHere} practiceFailed=${!!failedHere}
+        onPractice=${() => runGo([model.cur], 'card')} onAdd=${add} onAddCancel=${() => setAddFailed('')}
+        onPracticeCancel=${() => setGoFailed(null)} onPracticeRetry=${() => runGo([model.cur], 'card')} />
+    </div>`;
   } else if (view === 'bad' && model.summary) {
     body = html`<${BadCard} summary=${model.summary} canDetail=${typeof onDetail === 'function'}
       onDetail=${() => onDetail && onDetail(model.cur, api)} />`;
@@ -290,20 +303,23 @@ export function QuerySheet(p) {
         onClick=${() => { setCur(''); setGoFailed(null); }}>${t('R-Q05.backToList', { n: model.filtered.chars.length })}</${Button}>`
     : null;
 
-  const bar = html`<${PickBar} bar=${model.bar} count=${model.chosen.length} failed=${!!(goFailed && goFailed.from === 'bar')}
+  const bar = footer || html`<${PickBar} bar=${model.bar} count=${model.chosen.length} failed=${!!(goFailed && goFailed.from === 'bar')}
     onGo=${() => runGo(model.chosen, 'bar')} onCancel=${() => setGoFailed(null)} onRetry=${() => goFailed && runGo(goFailed.chars, 'bar')} />`;
 
   return html`<${Sheet} title=${title} onClose=${close} active=${active && armed} testid="query-sheet">
     <div class="sz-query" ref=${rootRef} data-testid="query-body" data-mode=${mode} data-view=${view} data-cur=${model.cur || undefined}>
       <${QueryInput} inputRef=${inputRef} initial=${initialText} label=${title} placeholder=${t('R-Q01.placeholder')}
         onText=${v => { setText(v); setGoFailed(null); }} />
-      ${model.notes.length ? html`<div class="sz-query__notes" aria-live="polite">${model.notes.map(n => html`<div class="sz-query__note"
-        data-testid="query-note" data-key=${n.key}><span class="sz-query__notedot" aria-hidden="true"></span>
-        <span class="sz-query__notetext">${t(n.key, n.vars)}</span></div>`)}</div>` : null}
-      ${rows}
-      ${hint ? html`<p class="sz-query__hint" data-testid="query-hint">${hint}</p>` : null}
-      ${back}
-      ${body}
+      <div class="sz-query__scroll" data-testid="query-scroll">
+        ${model.notes.length ? html`<div class="sz-query__notes" aria-live="polite">${model.notes.map(n => html`<div class="sz-query__note"
+          data-testid="query-note" data-key=${n.key}><span class="sz-query__notedot" aria-hidden="true"></span>
+          <span class="sz-query__notetext">${t(n.key, n.vars)}</span></div>`)}</div>` : null}
+        ${rows}
+        ${hint ? html`<p class="sz-query__hint" data-testid="query-hint">${hint}</p>` : null}
+        ${back}
+        ${body}
+        ${secondary}
+      </div>
     </div>
     ${bar}
   </${Sheet}>`;

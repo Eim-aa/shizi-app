@@ -53,6 +53,7 @@ const COPY = {
 
 const CN = ['〇', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
 function cn(n) {
+  if (n === 2) return '两'; // D36：数量 2 写「两」（core/dates.js cnCount）
   if (n < 10) return CN[n];
   if (n < 20) return '十' + (n % 10 ? CN[n % 10] : '');
   if (n < 100) return CN[Math.floor(n / 10)] + '十' + (n % 10 ? CN[n % 10] : '');

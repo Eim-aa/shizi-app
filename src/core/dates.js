@@ -167,6 +167,17 @@ export function cnNumber(n) {
   return out;
 }
 
+/**
+ * 数量词（落款「两个字」「有记录两天」）：口语里 2 读「两」，开头的 200 / 2000 读「两百」「两千」；
+ * 12、22、2026 等其余数字同 cnNumber（十二、二十二、两千零二十六 里的十位 / 个位 / 非开头仍是「二」）。年份不走这里（用 cnDigits）。
+ */
+export function cnCount(n) {
+  const v = Number(n);
+  if (v === 2) return '两';
+  const out = cnNumber(v);
+  return /^二[百千]/.test(out) ? `两${out.slice(1)}` : out;
+}
+
 /** 日键 → 落款日期各段（汉字数字），配合 copy 的落款模板拼接。 */
 export function signatureDateParts(day) {
   const p = parseDay(day);

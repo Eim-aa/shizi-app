@@ -751,7 +751,7 @@ export function checkNumerals(copyModules, source) {
   return { errors, hitPatterns };
 }
 
-/** 汉字数字转换函数（core/dates.js cnNumber / cnDigits / signature*Parts）只许落款代码用。 */
+/** 汉字数字转换函数（core/dates.js cnNumber / cnCount / cnDigits / signature*Parts）只许落款代码用。 */
 export const CN_HELPER_FILES = Object.freeze(['src/core/dates.js', 'src/ui/images-entry.js', 'src/ui/screens/mine/records.js']);
 
 export function checkNumeralHelpers(root = ROOT) {
@@ -760,7 +760,7 @@ export function checkNumeralHelpers(root = ROOT) {
     const rel = path.relative(root, f).split(path.sep).join('/');
     if (CN_HELPER_FILES.includes(rel) || hardcodeExcluded(rel)) continue;
     const text = fs.readFileSync(f, 'utf8');
-    if (/\b(?:cnNumber|cnDigits|signatureDateParts|signatureMonthParts)\b/.test(text.replace(/\/\/.*$|\/\*[\s\S]*?\*\//gm, ''))) {
+    if (/\b(?:cnNumber|cnCount|cnDigits|signatureDateParts|signatureMonthParts)\b/.test(text.replace(/\/\/.*$|\/\*[\s\S]*?\*\//gm, ''))) {
       errors.push(rel + ': uses a Chinese-numeral helper outside the 落款 code paths (04 §3.1 T10; CN_HELPER_FILES)');
     }
   }

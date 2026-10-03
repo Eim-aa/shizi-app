@@ -33,7 +33,7 @@ import { t } from '../../../config/copy/index.js';
 import * as defaultPolicy from '../../../config/policy.js';
 import { getStore } from '../../../store/store.js';
 import { now as envNow } from '../../../platform/env.js';
-import { cnNumber, localDay, monthDayParts, monthOf, signatureMonthParts } from '../../../core/dates.js';
+import { cnCount, localDay, monthDayParts, monthOf, signatureMonthParts } from '../../../core/dates.js';
 import { setTodayRecordsAction } from '../home/ink-row.js';
 import { openDetail } from '../detail/index.js';
 import { hasInkPoints, inkOf } from '../detail/records.js';
@@ -260,8 +260,8 @@ export function tagText(day) {
 export function signatureText(sheet) {
   return t('R-I01.monthSignature', {
     month: t('R-I01.signatureMonth', signatureMonthParts(sheet.month)),
-    n: cnNumber(sheet.days),
-    m: cnNumber(sheet.chars),
+    n: cnCount(sheet.days),
+    m: cnCount(sheet.chars),
   });
 }
 

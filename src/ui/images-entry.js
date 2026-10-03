@@ -14,7 +14,7 @@ import { getStore } from '../store/store.js';
 import { t } from '../config/copy/index.js';
 import * as defaultPolicy from '../config/policy.js';
 import { now as envNow } from '../platform/env.js';
-import { cnNumber, localDay, monthDayParts, signatureDateParts, signatureMonthParts } from '../core/dates.js';
+import { cnCount, localDay, monthDayParts, signatureDateParts, signatureMonthParts } from '../core/dates.js';
 import { decodeInk, resampleForReplay } from '../core/ink-math.js';
 import { imagePlan } from '../core/images/pick.js';
 import { renderSheet, renderSingleGlyph } from '../core/images/render.js';
@@ -59,11 +59,11 @@ export function inkPointsOf(store, record) {
 const quote = chars => chars.map(c => `「${c}」`).join('');
 
 /**
- * 落款计数：汉字数字（文案-D3），与我的页字帖落款（mine/records.js signatureText）同用 core/dates.js cnNumber（2 → 「二」）。
- * 原型 ShiziScreen cn() 把 2 写成「两」（reference/J-proto-screen.md L45）——两处不一致，已登记待定，改时两处一起改。
+ * 落款计数：汉字数字（文案-D3），与我的页字帖落款（mine/records.js signatureText）同用 core/dates.js cnCount
+ * （2 → 「两」，200 → 「两百」，12 → 「十二」；已决定 D36，与原型 ShiziScreen cn() 一致；年份仍是 cnDigits）。
  */
 export function countCn(n) {
-  return cnNumber(n);
+  return cnCount(n);
 }
 
 function dateText(day) {

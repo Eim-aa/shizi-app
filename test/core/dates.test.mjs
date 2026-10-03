@@ -16,6 +16,7 @@ import {
   PERIODS,
   monthDayParts,
   cnDigits,
+  cnCount,
   cnNumber,
   signatureDateParts,
   signatureMonthParts,
@@ -100,6 +101,17 @@ test('dates: cnNumber counts in Chinese numerals (signature only)', () => {
   for (const [n, s] of Object.entries(cases)) assert.equal(cnNumber(Number(n)), s, String(n));
   assert.throws(() => cnNumber(-1), RangeError);
   assert.throws(() => cnNumber(1.5), RangeError);
+});
+
+test('dates: cnCount reads 2 as 两 for quantities (D36), other numbers as cnNumber', () => {
+  const cases = { 0: '〇', 1: '一', 2: '两', 3: '三', 12: '十二', 22: '二十二', 102: '一百零二', 200: '两百', 202: '两百零二', 220: '两百二十', 2000: '两千', 2200: '两千二百', 2026: '两千零二十六' };
+  for (const [n, s] of Object.entries(cases)) assert.equal(cnCount(Number(n)), s, String(n));
+  assert.throws(() => cnCount(-1), RangeError);
+  const month = t('R-I01.signatureMonth', signatureMonthParts('2026-09'));
+  assert.equal(t('R-I01.monthSignature', { month, n: cnCount(2), m: cnCount(12) }), '二〇二六年九月 · 有记录两天 · 十二个字');
+  assert.equal(t('R-I01.monthSignature', { month, n: cnCount(22), m: cnCount(200) }), '二〇二六年九月 · 有记录二十二天 · 两百个字');
+  const date = t('R-I01.signatureDate', signatureDateParts('2026-09-24'));
+  assert.equal(t('R-P03.signature', { date, n: cnCount(2) }), '二〇二六年九月二十四日 · 两个字');
 });
 
 test('dates: signature parts produce the paper-seal date with copy templates', () => {

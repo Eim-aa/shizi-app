@@ -192,12 +192,20 @@ export function resumeKeyOf(kind) {
 }
 
 /**
- * S01 行的文案与占位符：普通 = 「… · 还有 {n} 个字没写」；当前字看过答案仍在写 =「… · 正在写第 {k} 个字 · 还有 {n} 个」，
- * 它是最后一个字时「… · 正在写第 {k} 个字 · 这是最后一个」。
+ * S01 行的可见文字（P196，D49 ⑦）：只有「… · 接着写」，不显示剩余字数（计数只进读屏名称，见 resumeLineAria）。
  */
 export function resumeLineText(line, translate) {
   if (!line) return '';
+  return translate(resumeKeyOf(line.kind));
+}
+
+/**
+ * S01 行的读屏名称：含可见文字「… · 接着写」，再加剩余字数——普通 = 「… · 接着写，还有 {n} 个字没写」；当前字看过答案仍在写 =
+ * 「… · 接着写，正在写第 {k} 个字，还有 {n} 个」，它是最后一个字时「…，正在写第 {k} 个字，这是最后一个」。
+ */
+export function resumeLineAria(line, translate) {
+  if (!line) return '';
   const base = resumeKeyOf(line.kind);
-  if (line.position === undefined) return translate(base, { n: line.remaining });
+  if (line.position === undefined) return translate(`${base}Aria`, { n: line.remaining });
   return translate(line.remaining > 0 ? `${base}Now` : `${base}NowLast`, { k: line.position, n: line.remaining });
 }

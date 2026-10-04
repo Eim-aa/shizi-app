@@ -4,7 +4,7 @@
 // 五态各自的版式、朱点、位置不动等断言在 72-p1e5-home-first.spec.js。
 // 阶段 1 E9a（D49-7，实现交接 §1.1）：首页不再画「这一组还有 N 个字」「今天写了 N 个字」（n ≤ 8）「字库里有 N 个字了 ›」，计数只进读屏标签；
 // 续写信息（槽 / 种类 / 剩余字数）改读进行中格子块上的 data-slot / data-kind / data-remaining 与它的读屏名称（旧断言读的 resume-line 文字行已删），
-// 「今天的练习 · 还有 N 个字没写」一行去掉 ›（带箭头的文字链接已取消，减法修稿 §1-5）。
+// 「今天的练习 · 还有 N 个字没写」一行去掉 ›（E9d，P196：可见文字再减成「今天的练习 · 接着写」，计数只进读屏名称）（带箭头的文字链接已取消，减法修稿 §1-5）。
 //
 // 场景：
 //   1. 状态矩阵（需求 §6 反例 1：今天记录 0 / 有 × 未完成会话 无 / A / B / A+B，加首次）：data-records / data-resume、主入口字样、
@@ -36,7 +36,8 @@ const COPY = {
   firstVisit: '先写三个大家常忘的字。',
   picked: n => `这一组还有 ${n} 个字`,
   daily: n => `这一组还有 ${n} 个字`,
-  dailyOther: n => `今天的练习 · 还有 ${n} 个字没写`,
+  dailyOther: '今天的练习 · 接着写', // E9d（P196，D49 ⑦）：可见文字不带计数
+  dailyOtherAria: n => `今天的练习 · 接着写，还有 ${n} 个字没写`, // 计数只在读屏名称里
   first: n => `这一组还有 ${n} 个字`,
   count: n => `今天写了 ${n} 个字`,
   pick: '自己选字',
@@ -141,9 +142,9 @@ async function home(page) {
       firstTip: txt('home-first-tip'),
       // D49-7：可见的「这一组还有 N 个字」行已删；同一个数在进行中格子块的读屏名称第一句（旧 resume-line 的位置）
       resumeLine: q('home-progress') ? { text: q('home-progress').getAttribute('aria-label').split('。')[0], slot: q('home-progress').dataset.slot } : null,
-      noVisibleCount: !/这一组还有|字库里有|今天写了 \d+ 个字|还有 \d+ 个字没写/.test([...root.querySelectorAll('*')].filter(e => e.children.length === 0 && !e.closest('[aria-hidden="true"], [data-testid="other-line"]') && e.checkVisibility()).map(e => e.textContent).join(' ')),
+      noVisibleCount: !/这一组还有|字库里有|今天写了 \d+ 个字|还有 \d+ 个字没写/.test([...root.querySelectorAll('*')].filter(e => e.children.length === 0 && !e.closest('[aria-hidden="true"]') && e.checkVisibility()).map(e => e.textContent).join(' ')),
       libraryLabel: q('home-zone') ? q('home-zone').getAttribute('aria-label') : null,
-      otherLine: q('other-line') ? { text: txt('other-line'), slot: q('other-line').dataset.slot, tag: q('other-line').tagName } : null,
+      otherLine: q('other-line') ? { text: txt('other-line'), aria: q('other-line').getAttribute('aria-label'), slot: q('other-line').dataset.slot, tag: q('other-line').tagName } : null,
       count: txt('home-today-count'),
       inkRow: inkRow ? {
         count: Number(inkRow.dataset.count),
@@ -246,8 +247,8 @@ export default async function run(page, ctx) {
     const expectPrimary = resumeCase === 'none' ? null
       : resumeCase === 'A' ? { text: COPY.daily(3), slot: 'A' } : { text: COPY.picked(2), slot: 'B' };
     assert.deepEqual(h.resumeLine, expectPrimary, `resume-line ${expectPrimary ? expectPrimary.text : 'absent'} (B first, D05)`);
-    const expectOther = resumeCase === 'A+B' ? { text: COPY.dailyOther(3), slot: 'A', tag: 'BUTTON' } : null;
-    assert.deepEqual(h.otherLine, expectOther, `other-line ${expectOther ? expectOther.text : 'absent'}`);
+    const expectOther = resumeCase === 'A+B' ? { text: COPY.dailyOther, aria: COPY.dailyOtherAria(3), slot: 'A', tag: 'BUTTON' } : null;
+    assert.deepEqual(h.otherLine, expectOther, `other-line ${expectOther ? `「${expectOther.text}」, count only in the name: ${expectOther.aria}` : 'absent'}`);
     if (recordsCase === 'record' && resumeCase === 'none') {
       assert.equal(h.count, null, 'D49-7: today written (3 ≤ 8), nothing in progress: no visible 「今天写了 3 个字」 line');
       assert.ok(h.inkRow.label.startsWith(COPY.count(3)), `…the count is in the ink row’s screen-reader name: ${h.inkRow.label}`);

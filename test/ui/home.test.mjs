@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import * as policy from '../../src/config/policy.js';
 import {
   BACK_AFTER_DAYS, PROGRESS_MAX, homeModel, homeViewOf, heroOf, libraryCountOf, progressCells, recordsStateOf,
-  resumeOf, resumeKeyOf, resumeLineText, INK_ROW_MAX,
+  resumeOf, resumeKeyOf, resumeLineText, resumeLineAria, INK_ROW_MAX,
 } from '../../src/ui/screens/home/today.js';
 import { AX_TIE_MIN, axTieCellSize, firstShiSize, shiCellSize, tieCellSize, tieCols } from '../../src/ui/screens/home/copybook.js';
 import { EPIGRAPHS, epigraphAuthor } from '../../src/config/epigraphs.js';
@@ -104,28 +104,34 @@ test('B6 (G45, D36): a current char that has seen its answer (still tracing / wr
   // 5 个字，写到第 3 个（cursor 2）：没看过答案 → 还有 3 个没写
   const plain = resumeOf(state({ A: sess('A', 'daily', 5, 2) }), now).primary;
   assert.deepEqual(plain, { slot: 'A', kind: 'daily', remaining: 3 });
-  assert.equal(resumeLineText(plain, t), '今天的练习 · 还有 3 个字没写');
+  assert.equal(resumeLineText(plain, t), '今天的练习 · 接着写', 'E9d / P196: the visible line carries no count');
+  assert.equal(resumeLineAria(plain, t), '今天的练习 · 接着写，还有 3 个字没写', 'the count is only in the screen-reader name (D49 ⑦)');
   // 第 3 个字看过答案：正在写第 3 个字 · 还有 2 个
   for (const phase of ['answer', 'trace', 'retrace']) {
     const seen = resumeOf(state({ A: withCurrent(sess('A', 'daily', 5, 2), { phase, answerSeen: true }) }), now).primary;
     assert.deepEqual(seen, { slot: 'A', kind: 'daily', remaining: 2, position: 3 }, phase);
-    assert.equal(resumeLineText(seen, t), '今天的练习 · 正在写第 3 个字 · 还有 2 个', phase);
+    assert.equal(resumeLineText(seen, t), '今天的练习 · 接着写', phase);
+    assert.equal(resumeLineAria(seen, t), '今天的练习 · 接着写，正在写第 3 个字，还有 2 个', phase);
   }
   // 三种来源
   const first = resumeOf(state({ A: withCurrent(sess('A', 'first', 5, 0), { answerSeen: true }) }), now).primary;
-  assert.equal(resumeLineText(first, t), '第一次练习 · 正在写第 1 个字 · 还有 4 个');
+  assert.equal(resumeLineText(first, t), '第一次练习 · 接着写');
+  assert.equal(resumeLineAria(first, t), '第一次练习 · 接着写，正在写第 1 个字，还有 4 个');
   const picked = resumeOf(state({ B: withCurrent(sess('B', 'picked', 3, 1), { answerSeen: true }) }), now).primary;
-  assert.equal(resumeLineText(picked, t), '这次选的字 · 正在写第 2 个字 · 还有 1 个');
+  assert.equal(resumeLineText(picked, t), '这次选的字 · 接着写');
+  assert.equal(resumeLineAria(picked, t), '这次选的字 · 接着写，正在写第 2 个字，还有 1 个');
   // 最后一个字：不写「还有 0 个」
   const last = resumeOf(state({ B: withCurrent(sess('B', 'picked', 2, 1), { answerSeen: true }) }), now).primary;
   assert.deepEqual(last, { slot: 'B', kind: 'picked', remaining: 0, position: 2 });
-  assert.equal(resumeLineText(last, t), '这次选的字 · 正在写第 2 个字 · 这是最后一个');
+  assert.equal(resumeLineAria(last, t), '这次选的字 · 接着写，正在写第 2 个字，这是最后一个');
   // 两组都没写完：other 行同口径
   const both = resumeOf(state({ A: withCurrent(sess('A', 'daily', 5, 1), { answerSeen: true }), B: sess('B', 'picked', 2, 0) }), now);
   assert.deepEqual(both.primary, { slot: 'B', kind: 'picked', remaining: 2 });
   assert.deepEqual(both.other, { slot: 'A', kind: 'daily', remaining: 3, position: 2 });
-  assert.equal(resumeLineText(both.other, t), '今天的练习 · 正在写第 2 个字 · 还有 3 个');
+  assert.equal(resumeLineText(both.other, t), '今天的练习 · 接着写');
+  assert.equal(resumeLineAria(both.other, t), '今天的练习 · 接着写，正在写第 2 个字，还有 3 个');
   assert.equal(resumeLineText(null, t), '');
+  assert.equal(resumeLineAria(null, t), '');
 });
 
 test('D40 (P129): the home model says which special group is next — only with a deck, no unfinished group, and the conditions met', () => {

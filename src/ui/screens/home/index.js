@@ -23,7 +23,7 @@
 // 行为：
 //   主按钮：B 有没写完的组 → 续写 B（D05 B 优先）；否则 session.startA（A 有没写完 → 续写；否则第一次练习 / 今天的练习；
 //     选不出字 →「现在没有要写的字」页，R-H11）。
-//   A+B 两组都没写完：格子是 B 的，下面一行文字按钮是 A 的「今天的练习 · 还有 N 个字没写」（无箭头，D49），点它续写 A（R-H04）。
+//   A+B 两组都没写完：格子是 B 的，下面一行文字按钮是 A 的「今天的练习 · 接着写」（无箭头；剩余字数只进读屏名称，D49 ⑦ / P196），点它续写 A（R-H04）。
 //   「自己选字」：在点击处理里同步打开查字组件 pick 模式（R-Q08）；选好后开「这次选的字」（B）：旧 B 没写完 → 关弹层、S02（R-H05）；
 //     否则一次 commit 开 B，成功才关弹层、打开写字页；失败（{ok:false}）弹层就地显示 R-H06 三段式、输入还在。
 //   开组 / 续写写入失败：主按钮下方就地三段式「没保存上，刚才的选择没记下。」［先不保存 / 再试一次］（R-G04；文案待定 P55）。
@@ -52,7 +52,7 @@ import { openQuery } from '../../components/query/index.js';
 import { useCompact } from '../write/compact.js';
 import { ensureNavHooks, expireStale, openWrite, resumeSlot, startA, startPicked } from '../session/index.js';
 import { setNoneActions } from '../session/none.js';
-import { homeModel, resumeLineText, INK_ROW_MAX } from './today.js';
+import { homeModel, resumeLineText, resumeLineAria, INK_ROW_MAX } from './today.js';
 import { BrandShi, HomeTie, axTieCellSize, firstShiSize, shiCellSize, tieCellSize, tieCols, useElementWidth } from './copybook.js';
 import { useAxLevel } from '../../components/ax.js';
 // 写字页自注册（M1-1）：首页是它的入口页，随首页一起加载。
@@ -484,8 +484,8 @@ function HomeScreen() {
       <${HomeTie} cells=${cells} size=${size} kind="progress" getInk=${getInk} label=${label}
         attrs=${{ 'data-slot': p ? p.slot : '', 'data-kind': p ? p.kind : '', 'data-remaining': p ? String(p.remaining) : '' }} />
       ${model.other ? html`<${Button} variant="text" class="sz-home__other" data-testid="other-line" data-slot=${model.other.slot}
-        data-kind=${model.other.kind} onClick=${() => run(resumeOther)}
-        >${resumeLineText(model.other, t)}</${Button}>` : null}
+        data-kind=${model.other.kind} data-remaining=${String(model.other.remaining)} aria-label=${resumeLineAria(model.other, t)}
+        onClick=${() => run(resumeOther)}>${resumeLineText(model.other, t)}</${Button}>` : null}
     </div>`;
   } else if (model.hero === 'today') {
     const cells = model.inkRow.map((r, i) => ({ index: i, state: 'ink', record: r }));

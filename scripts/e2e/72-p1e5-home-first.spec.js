@@ -512,7 +512,7 @@ export default async function run(page, ctx) {
     groups: [{ at: `${D(5)}T12:00:00`, slot: 'B', kind: 'picked', chars: [...'鲜境'], steps: [] }, { at: `${D(5)}T12:00:00`, slot: 'A', kind: 'daily', chars: [...'一二三四五'], steps: ['correct'] }],
   });
   h = await homeView(page);
-  assert.deepEqual([h.view, h.resumeLine, h.otherLine, h.cells.length], ['progress', '这一组还有 2 个字', '今天的练习 · 还有 4 个字没写', 2]);
+  assert.deepEqual([h.view, h.resumeLine, h.otherLine, h.cells.length], ['progress', '这一组还有 2 个字', '今天的练习 · 接着写', 2]);
   step('③c 首练写到一半: 仍没有「自己选字」');
   await seedWorld(page, { entries: [], groups: [{ at: `${D(5)}T12:00:00`, kind: 'first', chars: [...'尴赢拾'], steps: ['correct'] }], clock: `${D(5)}T12:30:00` });
   h = await homeView(page);

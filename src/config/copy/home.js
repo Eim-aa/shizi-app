@@ -14,17 +14,21 @@ export default Object.freeze({
   'R-H02.period.night': '晚上',
   // R-H03（已定；阶段 1 P1-E5：首次打开按钮下一行，设计稿「首练与首页」§一，替换「第一次来，先写 3 个字试试。」）
   'R-H03.firstVisit': '先写三个大家常忘的字。',
-  // R-H04（已定）
-  'R-H04.resumePicked': '这次选的字 · 还有 {n} 个字没写',
-  'R-H04.resumeDaily': '今天的练习 · 还有 {n} 个字没写',
-  'R-H04.resumeFirst': '第一次练习 · 还有 {n} 个字没写',
-  // 当前字已看过答案、正在描或自己写：不再算进「还有 N 个字没写」（阶段 0 B6，已决定 D36 / P77）
-  'R-H04.resumePickedNow': '这次选的字 · 正在写第 {k} 个字 · 还有 {n} 个',
-  'R-H04.resumeDailyNow': '今天的练习 · 正在写第 {k} 个字 · 还有 {n} 个',
-  'R-H04.resumeFirstNow': '第一次练习 · 正在写第 {k} 个字 · 还有 {n} 个',
-  'R-H04.resumePickedNowLast': '这次选的字 · 正在写第 {k} 个字 · 这是最后一个',
-  'R-H04.resumeDailyNowLast': '今天的练习 · 正在写第 {k} 个字 · 这是最后一个',
-  'R-H04.resumeFirstNowLast': '第一次练习 · 正在写第 {k} 个字 · 这是最后一个',
+  // R-H04（已定；阶段 1 E9d，P196 / D49 ⑦：A、B 两组都没写完时 A 那一行可见文字只剩「… · 接着写」，计数只放进读屏名称，过渡文案）
+  'R-H04.resumePicked': '这次选的字 · 接着写',
+  'R-H04.resumeDaily': '今天的练习 · 接着写',
+  'R-H04.resumeFirst': '第一次练习 · 接着写',
+  // 读屏名称（含可见文字「… · 接着写」，再加剩余字数；Voice Control 报可见文字能点到）
+  'R-H04.resumePickedAria': '这次选的字 · 接着写，还有 {n} 个字没写',
+  'R-H04.resumeDailyAria': '今天的练习 · 接着写，还有 {n} 个字没写',
+  'R-H04.resumeFirstAria': '第一次练习 · 接着写，还有 {n} 个字没写',
+  // 当前字已看过答案、正在描或自己写：不再算进「还有 N 个字没写」（阶段 0 B6，已决定 D36 / P77）；只进读屏名称
+  'R-H04.resumePickedNow': '这次选的字 · 接着写，正在写第 {k} 个字，还有 {n} 个',
+  'R-H04.resumeDailyNow': '今天的练习 · 接着写，正在写第 {k} 个字，还有 {n} 个',
+  'R-H04.resumeFirstNow': '第一次练习 · 接着写，正在写第 {k} 个字，还有 {n} 个',
+  'R-H04.resumePickedNowLast': '这次选的字 · 接着写，正在写第 {k} 个字，这是最后一个',
+  'R-H04.resumeDailyNowLast': '今天的练习 · 接着写，正在写第 {k} 个字，这是最后一个',
+  'R-H04.resumeFirstNowLast': '第一次练习 · 接着写，正在写第 {k} 个字，这是最后一个',
   // R-H05（已定）
   'R-H05.body': '上一组还有{chars}没写。',
   'R-H05.continueOld': '接着写那组',

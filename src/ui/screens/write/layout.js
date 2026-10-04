@@ -1,12 +1,12 @@
-// 写字页 / 判断页的竖向位置与格子边长（阶段 1 E9b；D49 减法修稿；实现交接 §13.2、§9.1、§9.4；P118 / P151 / P190）。
+// 写字页 / 判断页的竖向位置与格子边长（阶段 1 E9b；D49 减法修稿；实现交接 §13.2、§9.1、§9.4；P118 / P151 / P190；E9d P195）。
 //
 // 主区 = 页头底 → 按钮行顶 − 12（正文区 .sz-page__body，上下内边距 0）。题面（高 P）、16、书写格（边长 g）、格下工具行（高 T）作为一组放在主区里：
-//   g    = clamp(258, min(屏宽 − 40, 400, 主区高 − P' − 16 − T − 16), 400)       D36：不随字号、不随题面提示行变，只随可用高度
-//   组高 = P + 16 + g + T
-//   组顶 = max(12, round((主区高 − 组高) × 0.4))                                 空余 40% 在上、60% 在下（空余不足 12 时取空余本身，不把整组顶出主区）
+//   g    = clamp(258, min(屏宽 − 40, 400, 名义主区高 − 80 − 16 − 40 − 16), 400)    D29 / D36 / P195：只由视口决定——名义主区高 = 页面高 − 名义页头 − 名义按钮行（标准字号 L 档的尺寸 + 量到的安全区），
+//                                                                                   名义题面高 80、名义工具行高 40；与系统字号（含 AX 档）、题面提示行无关。AX 档放不下时整页滚动，不缩格子
+//   组高 = P + 16 + g + T                                                           P、T 取实际（AX 档的词语行、52 高工具行更高）
+//   组顶 = max(12, round((主区高 − 组高) × 0.4))                                    主区高取实际量到的；空余 40% 在上、60% 在下（空余不足 12 时取空余本身，不足 0 时取 0）
 //   书写格顶（主区内）= 组顶 + P + 16
-// P = 量到的整个题面高（含有内容时才出现的提示行）；P' = 算 g 用的题面高：标准字号（含 xS–XXXL）取题面标称高 80（拼音行 24 + 间 4 + 题面格 52），
-// 所以同一视口换系统字号、换到有提示行的字，书写格边长不变（D36）；只有 AX 档按量到的词语行高（不含提示行）算（AX 档整个版式本来就单独排）。
+// P = 量到的整个题面高（含有内容时才出现的提示行）。
 // 判断页（标准字号）：上格与书写格同一顶边、同一中线，两格共用一条 1pt 线：
 //   S = min(屏宽 − 40, ⌊(主区高 − 书写格顶 − 16) ÷ 2⌋)                          无旁注，宽度只受页边限制
 // （实现交接 §9.1 把公式写成「A − 16 − gy」，A = 主操作区顶 = 主区底 + 12；设计稿数值——402：231、SE：177、Pro Max：261——只有按「主区底 − 16 − gy」才对得上，这里取数值。）
@@ -33,13 +33,17 @@ export const COMPARE_GAP = 12;
 export const JUDGE_MIN = 120;
 /** 页边（space.gutter）。 */
 export const JUDGE_GUTTER = 20;
-/** 题面高度（标准字号 402：拼音行 24 + 间距 4 + 题面格 52），首帧估算用。 */
-export const PROMPT_H_STD = 80;
+/** 名义题面高度（标准字号 402：拼音行 24 + 间距 4 + 题面格 52）：算书写格边长 g 与首帧估算用（policy.writeGrid.nominalPrompt，P195）。 */
+export const PROMPT_H_STD = policy.writeGrid.nominalPrompt;
+/** 名义页头高 / 名义按钮行高（L 档，不含安全区与下内边距）、按钮行下内边距下限（P195）。 */
+export const NOMINAL_HEAD_H = policy.writeGrid.nominalHead;
+export const NOMINAL_FOOT_H = policy.writeGrid.nominalFoot;
+export const FOOT_BOTTOM_MIN = policy.writeGrid.footBottomMin;
 /** 取不到页面尺寸时的缺省边长（旧标准格 345）。 */
 const STD_GRID = 345;
 /** 估算首帧主区高用的固定部分（页头 44 + 按钮行：上 12 + 主按钮 54 + 间 6 + 文字行 44 + 下 8）。 */
-const HEAD_H = 44;
-const FOOT_H = 12 + 54 + 6 + 44 + 8;
+const HEAD_H = NOMINAL_HEAD_H;
+const FOOT_H = NOMINAL_FOOT_H + FOOT_BOTTOM_MIN;
 
 const finite = n => Number.isFinite(n);
 
@@ -76,13 +80,26 @@ export function groupTop({ mainHeight, groupHeight }) {
 }
 
 /**
- * 写字页的整组位置：{g, top, gridTop}（gridTop = 书写格顶，主区内的偏移）。
- * @param {{width:number, mainHeight:number, promptHeight?:number, sizingHeight?:number, ax?:boolean}} o
- *   promptHeight：量到的整个题面高 P；sizingHeight：算 g 用的题面高 P'（缺省 = P；写字页标准字号传 80，AX 档传词语行高）
+ * 名义主区高（P195；纯函数）：标准字号（L 档）下主区应有的高度 = 页面高 − 名义页头（44 + 上安全区）− 名义按钮行（116 + max(8, 下安全区)）− 正文区上下内边距。
+ * 与当前系统字号无关：AX 档的页头 / 按钮行更高、实际主区更矮，但书写格边长仍按这个值算（D29 / D36），放不下时整页滚动。
+ * 冷启动直接处于 AX 档也对——不依赖「先在 L 档量一次」。
+ * @param {{pageHeight:number, safeTop?:number, footBottom?:number, bodyPad?:number}} o
+ *   safeTop：页头上内边距（= 上安全区）；footBottom：按钮行下内边距（= max(8, 下安全区)，缺省 8）；bodyPad：正文区上下内边距之和（写字页 0）
  */
-export function writeLayout({ width, mainHeight, promptHeight = PROMPT_H_STD, sizingHeight = promptHeight, ax = false } = {}) {
+export function nominalMainHeight({ pageHeight, safeTop = 0, footBottom = FOOT_BOTTOM_MIN, bodyPad = 0 } = {}) {
+  if (!finite(pageHeight)) return NaN;
+  return pageHeight - (NOMINAL_HEAD_H + (finite(safeTop) ? safeTop : 0)) - (NOMINAL_FOOT_H + (finite(footBottom) ? footBottom : FOOT_BOTTOM_MIN)) - (finite(bodyPad) ? bodyPad : 0);
+}
+
+/**
+ * 写字页的整组位置：{g, top, gridTop}（gridTop = 书写格顶，主区内的偏移）。
+ * g 只按名义版式算（见文件头）；位置按实际量到的主区高、题面高与工具行高排。
+ * @param {{width:number, mainHeight:number, nominalHeight?:number, promptHeight?:number, ax?:boolean}} o
+ *   mainHeight：实际主区高；nominalHeight：名义主区高（缺省 = mainHeight，即标准字号下两者相等）；promptHeight：量到的整个题面高 P；ax：AX 档（格下工具行 52 高，只影响位置）
+ */
+export function writeLayout({ width, mainHeight, nominalHeight = mainHeight, promptHeight = PROMPT_H_STD, ax = false } = {}) {
   const toolsHeight = ax ? TOOLS_H_AX : TOOLS_H;
-  const g = writeGridSize({ width, mainHeight, promptHeight: sizingHeight, toolsHeight });
+  const g = writeGridSize({ width, mainHeight: nominalHeight, promptHeight: PROMPT_H_STD, toolsHeight: TOOLS_H });
   const top = groupTop({ mainHeight, groupHeight: promptHeight + PROMPT_GAP + g + toolsHeight });
   return { g, top, gridTop: top + promptHeight + PROMPT_GAP, toolsHeight };
 }

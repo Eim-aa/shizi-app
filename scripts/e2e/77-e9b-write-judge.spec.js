@@ -3,7 +3,7 @@
 //   A 写字页：回忆阶段页头没有可见标题（读屏页名保留）、只有「‹」与计数；题面整词居中、已给的字不装框、要写的格只画空框；题面 + 书写格 + 格下工具行作为一组
 //     在页头与按钮行之间居中（空余 40% 在上，书写格边长 = clamp(258, min(W − 40, 400, 主区高 − 80 − 16 − 40 − 16), 400)）；按钮行只有一个主按钮「写好了」，
 //     其下一行文字按钮左「提示」「看答案」、右「跳过」；可点样式 ≤ 2 种（主按钮 / 文字按钮，另有格下图标）；「提示」可见文字只有「提示」、次数在读屏名称里；
-//     撤销 / 清空是设计系统图标按钮（可见 36、热区 44）；浅 / 深色；402 / SE / Pro Max 实测值写进断言；AX5 书写格按剩余高度算、放不下整页可滚、按钮行上沿出现 hairline。
+//     撤销 / 清空是设计系统图标按钮（可见 36、热区 44）；浅 / 深色；402 / SE / Pro Max 实测值写进断言；AX5 书写格与 L 档相同（D29 / D36，含冷启动直接在 AX5）、放不下整页可滚、按钮行上沿出现 hairline。
 //   B 判断页：页头问题「写对了吗？」、左上与写字页同一个「‹」（读屏名「接着写」）；没有旁注与说明句但读屏名称都在；题面目标格不显示答案（答案只在参考格出现一次）；
 //     两格与书写格同一顶边、同一中线，边长按 §9.1 的新公式（402 / SE / Pro Max 实测值写进断言）；AX5：页头问题只留读屏、两格取「上下排 / 并排」格子更大的一种、
 //     同屏可比、按钮纵排；纸上那一字：参考字形放到书写格大小，格下说明位「和你纸上的字对照」。
@@ -18,12 +18,27 @@ import {
 const CHARS = ['根', '据', '永', '和', '春'];
 
 /** 打开写字页（A 槽，第二个字「据」：词语「根据」，要写的是第 2 格）。 */
-async function boot(page, ctx, { view, scheme = 'light', size = 'L', chars = CHARS, cursor = 1, extraState = {} }) {
+/* eslint-disable no-undef */
+// 冷启动直接处于某系统字号档：与原生壳的 WKUserScript 同一做法，文档开始时写 window.__shiziInitialContentSize（?e2eInject=AX5:2.4）。
+function installInitialContentSize() {
+  const raw = new URLSearchParams(location.search).get('e2eInject');
+  if (!raw) return;
+  const [category, scale] = raw.split(':');
+  window.__shiziInitialContentSize = { category, scale: Number(scale) };
+}
+/* eslint-enable no-undef */
+const COLD_SCALE = { AX5: 2.4, AX3: 2 };
+
+async function boot(page, ctx, { view, scheme = 'light', size = 'L', cold = false, chars = CHARS, cursor = 1, extraState = {} }) {
   await page.setViewportSize(view);
   await page.emulateMedia({ colorScheme: scheme });
   await page.goto('about:blank');
-  await bootTestHost(page, ctx.baseURL);
-  if (size !== 'L') await setTextSize(page, size);
+  if (cold && !ctx.coldInit) {
+    await page.addInitScript(installInitialContentSize);
+    ctx.coldInit = true;
+  }
+  await bootTestHost(page, ctx.baseURL, cold ? { query: `e2eInject=${size}:${COLD_SCALE[size]}` } : {});
+  if (size !== 'L' && !cold) await setTextSize(page, size);
   const seeded = await seedSession(page, { slot: 'A', kind: 'daily', chars, cursor, extraState });
   ctx.assert.ok(seeded.ok, `${view.width}×${view.height} ${scheme} ${size}: seed A session`);
   await openWrite(page, { slot: 'A' });
@@ -60,6 +75,7 @@ async function geo(page) {
     return {
       vw: document.documentElement.clientWidth,
       vh: window.innerHeight,
+      ax: document.documentElement.getAttribute('data-ax'),
       head: rect(top.querySelector('.sz-page__head')),
       body: rect(body),
       bodyPad: [bs.paddingTop, bs.paddingBottom, bs.paddingLeft, bs.paddingRight],
@@ -368,15 +384,23 @@ export default async function e9bWriteJudge(page, ctx) {
   // ------------------------------------------------------------------ AX5
   for (const [W, H, wantLayout] of [[402, 874, 'stack'], [375, 667, 'side']]) {
     const tag = `${W}×${H} AX5`;
-    step(`AX: ${tag} write page — grid sized from the remaining height, the page scrolls when it does not fit, hairline above the button row`);
+    step(`AX: ${tag} write page — grid = the L-size grid (D29 / D36, also on a cold start), the page scrolls when it does not fit, hairline above the button row`);
     await boot(page, ctx, { view: { width: W, height: H }, size: 'AX5' });
     const a = await geo(page);
     const eW = expectWrite({ W, mainH: a.body.height, P: a.wordwrap.height });
     const toolsH = 52;
-    const gAx = Math.max(258, Math.min(400, Math.floor(Math.min(W - 40, 400, a.body.height - a.wordwrap.height - 16 - toolsH - 16))));
-    assert.ok(near(a.grid.width, gAx, 1), `${tag}: grid = clamp(258, min(W − 40, 400, main ${a.body.height.toFixed(0)} − word row ${a.wordwrap.height.toFixed(0)} − 16 − 52 − 16), 400) = ${gAx} (${a.grid.width})`);
+    // D29 / D36 / P195：书写格边长只由视口决定，与系统字号（含 AX5）无关——按 L 档的名义主区高（屏高 − 168，测试浏览器无安全区）算，AX5 实际主区更矮也不缩格子
+    const gL = expectWrite({ W, mainH: H - 44 - 124, P: 80 }).g;
+    assert.ok(a.body.height < H - 44 - 124 - 20, `${tag}: the real main area is shorter than the nominal one (${a.body.height.toFixed(0)} < ${H - 168}) — the button row / header are taller in AX5`);
+    assert.ok(near(a.grid.width, gL, 0.5), `${tag}: grid = the L-size grid ${gL} (nominal main ${H - 168}; real main ${a.body.height.toFixed(0)}, word row ${a.wordwrap.height.toFixed(0)}, tools ${toolsH}) (${a.grid.width})`);
     assert.ok(a.grid.width >= 258 - 0.5, `${tag}: never below the 258 floor`);
     assert.ok(eW.g >= 258, 'formula sanity');
+    // 冷启动直接在 AX5（原生注入 __shiziInitialContentSize）：同一视口、同一个 g
+    await boot(page, ctx, { view: { width: W, height: H }, size: 'AX5', cold: true });
+    const cold = await geo(page);
+    assert.equal(cold.ax, '5', `${tag} cold start: data-ax 5 from the first frame`);
+    assert.ok(near(cold.grid.width, gL, 0.5), `${tag} cold start straight into AX5: grid ${cold.grid.width} = the L-size grid ${gL}`);
+    await boot(page, ctx, { view: { width: W, height: H }, size: 'AX5' });
     const cell = await page.$eval(topSel('write-prompt-cell') + '[data-kind="blank"]', el => el.getBoundingClientRect().width);
     assert.ok(near(cell, 64, 1), `${tag}: prompt cells are 64 (52 → 64 in AX)`);
     const title = await page.evaluate(() => {

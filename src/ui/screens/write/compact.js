@@ -3,7 +3,7 @@
 // 何时算「紧凑」：:root[data-text-large]（系统字号 --k ≥ policy.compactTextScale 1.3，P131 / D29，由 platform/text-size.js 设）或视口高度 ≤ COMPACT_MAX_HEIGHT
 // （CSS 与 JS 同一个条件）。D49 起写字页 / 判断页的版式不再分「标准 / 紧凑」两套：页头、题面、书写格、格下工具行、按钮行是同一个结构，只由
 // 可用高度（layout.js）与 AX 档（:root[data-ax]，本文件 useAxLevel）决定尺寸；紧凑条件只剩看答案页的卡片按剩余高度取（useAnswerFit）与页头标题可换行。
-// 书写格边长 g、组顶、判断页两格边长全部是 layout.js 的纯函数，本文件的 useWriteLayout 只负责量出主区高与题面高后调用（与字号、阶段、提示无关，D36）。
+// 书写格边长 g、组顶、判断页两格边长全部是 layout.js 的纯函数，本文件的 useWriteLayout 只负责量出页面高 / 安全区 / 主区高与题面高后调用（g 与字号、阶段、提示无关，D29 / D36 / P195）。
 //
 // 本模块只放样式、量测 hook 与尺寸计算；写字页 index.js 读 useCompact() / useWriteLayout() 决定结构与尺寸。
 
@@ -11,7 +11,7 @@ import { useEffect, useLayoutEffect, useState } from '../../../../vendor/ui.js';
 import { injectStyles, T } from '../../components/styles.js';
 import * as policy from '../../../config/policy.js';
 import {
-  GRID_MIN, GRID_MAX, writeLayout, judgePairSize, judgeAxLayout, estimateLayout, PROMPT_H_STD,
+  GRID_MIN, GRID_MAX, writeLayout, judgePairSize, judgeAxLayout, estimateLayout, nominalMainHeight, PROMPT_H_STD, FOOT_BOTTOM_MIN,
 } from './layout.js';
 
 export { GRID_MIN, GRID_MAX };
@@ -131,15 +131,16 @@ export function useAxLevel(win) {
 const MEASURED_PHASES = Object.freeze(['recall', 'compare']);
 
 /**
- * 写字页 / 判断页的版式：量出主区高（.sz-page__body 的内高）与题面高 P，交给 layout.js 的纯函数（D49，实现交接 §13.2 / §9.1 / §9.4）。
- * 随页面尺寸（ResizeObserver）重算；不随字号、阶段、提示变化（D36：非回忆 / 判断阶段沿用最近一次量到的主区高）。
+ * 写字页 / 判断页的版式：量出页面高、安全区、实际主区高（.sz-page__body 的内高）与题面高 P，交给 layout.js 的纯函数（D49，实现交接 §13.2 / §9.1 / §9.4）。
+ * 书写格边长 g 只用「名义主区高」（标准字号下的版式 + 量到的安全区，layout.js nominalMainHeight；P195）——不随系统字号（含 AX 档）、阶段、提示变化（D29 / D36）；
+ * 组的位置（top）与判断页两格按实际量到的主区高排。随页面尺寸（ResizeObserver）重算；非回忆 / 判断阶段沿用最近一次量到的值。
  * @param {{current: HTMLElement|null}} writeRef  .sz-write 元素
  * @param {{phase:string, ax:number}} o
- * @returns {{g:number, top:number, gridTop:number, toolsHeight:number, mainHeight:number, promptHeight:number, wordHeight:number,
+ * @returns {{g:number, top:number, gridTop:number, toolsHeight:number, mainHeight:number, nominalHeight:number, promptHeight:number,
  *            pair:{s:number, layout:'stack'|'side', top:number}}}
  */
 export function useWriteLayout(writeRef, { phase = 'recall', ax = 0 } = {}, win) {
-  const [measured, setMeasured] = useState(() => ({ ...estimateLayout(win), width: NaN, mainHeight: NaN, promptHeight: PROMPT_H_STD, wordHeight: PROMPT_H_STD }));
+  const [measured, setMeasured] = useState(() => ({ ...estimateLayout(win), width: NaN, mainHeight: NaN, nominalHeight: NaN, promptHeight: PROMPT_H_STD }));
   useLayoutEffect(() => {
     const w = winOf(win);
     const el = writeRef.current;
@@ -149,19 +150,27 @@ export function useWriteLayout(writeRef, { phase = 'recall', ax = 0 } = {}, win)
     const measure = () => {
       const width = page.clientWidth;
       const cs = w.getComputedStyle(body);
-      const mainHeight = body.clientHeight - px(cs.paddingTop) - px(cs.paddingBottom);
+      const bodyPad = px(cs.paddingTop) + px(cs.paddingBottom);
+      const mainHeight = body.clientHeight - bodyPad;
       if (!(width > 0) || !(mainHeight > 0)) return; // 被藏在别的页下面或还没排版
+      // 名义主区高：页面高、上安全区（页头上内边距）、按钮行下内边距（= max(8, 下安全区)）都与系统字号无关，页头 / 按钮行的内容高取 L 档名义值。
+      const head = page.querySelector('.sz-page__head');
+      const foot = page.querySelector('.sz-page__foot');
+      const nominalHeight = nominalMainHeight({
+        pageHeight: page.clientHeight,
+        safeTop: head ? px(w.getComputedStyle(head).paddingTop) : 0,
+        footBottom: foot ? px(w.getComputedStyle(foot).paddingBottom) : FOOT_BOTTOM_MIN,
+        bodyPad,
+      });
       const prompt = el.querySelector('.sz-write__prompt');
-      const word = el.querySelector('.sz-prompt__wordwrap');
       const promptHeight = prompt ? prompt.offsetHeight : PROMPT_H_STD;
-      const wordHeight = word ? word.offsetHeight : PROMPT_H_STD;
       setMeasured(prev => {
         const keep = !MEASURED_PHASES.includes(phase) && Number.isFinite(prev.mainHeight);
         const mh = keep ? prev.mainHeight : mainHeight;
+        const nh = keep ? prev.nominalHeight : nominalHeight;
         const ph = keep ? prev.promptHeight : promptHeight;
-        const wh = keep ? prev.wordHeight : wordHeight;
-        if (prev.width === width && prev.mainHeight === mh && prev.promptHeight === ph && prev.wordHeight === wh) return prev;
-        return { width, mainHeight: mh, promptHeight: ph, wordHeight: wh };
+        if (prev.width === width && prev.mainHeight === mh && prev.nominalHeight === nh && prev.promptHeight === ph) return prev;
+        return { width, mainHeight: mh, nominalHeight: nh, promptHeight: ph };
       });
     };
     measure();
@@ -178,9 +187,9 @@ export function useWriteLayout(writeRef, { phase = 'recall', ax = 0 } = {}, win)
       else w.removeEventListener('resize', measure);
     };
   }, [phase, win]);
-  const { width, mainHeight, promptHeight, wordHeight } = measured;
+  const { width, mainHeight, nominalHeight, promptHeight } = measured;
   const base = Number.isFinite(mainHeight)
-    ? writeLayout({ width, mainHeight, promptHeight, sizingHeight: ax > 0 ? wordHeight : PROMPT_H_STD, ax: ax > 0 })
+    ? writeLayout({ width, mainHeight, nominalHeight, promptHeight, ax: ax > 0 })
     : { g: measured.g, top: measured.top, gridTop: measured.gridTop, toolsHeight: measured.toolsHeight };
   let pair = { s: 0, layout: 'stack', top: base.top };
   if (phase === 'compare' && Number.isFinite(mainHeight)) {
@@ -191,7 +200,7 @@ export function useWriteLayout(writeRef, { phase = 'recall', ax = 0 } = {}, win)
       pair = { s: judgePairSize({ width, mainHeight, gridTop: base.gridTop }), layout: 'stack', top: base.top };
     }
   }
-  return { ...base, mainHeight, promptHeight, wordHeight, pair };
+  return { ...base, mainHeight, nominalHeight, promptHeight, pair };
 }
 
 /**

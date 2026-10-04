@@ -4,7 +4,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  writeGridSize, writeLayout, groupTop, judgePairSize, judgeAxLayout, estimateLayout, GRID_MIN, GRID_MAX, JUDGE_MIN, COMPARE_GAP,
+  writeGridSize, writeLayout, nominalMainHeight, groupTop, judgePairSize, judgeAxLayout, estimateLayout, GRID_MIN, GRID_MAX, JUDGE_MIN, COMPARE_GAP,
 } from '../../src/ui/screens/write/layout.js';
 
 const mainOf = (h, sb, bot) => h - sb - 44 - (12 + 54 + 6 + 44 + bot);
@@ -32,15 +32,44 @@ test('writeLayout follows §13.2: 402 → prompt top 149 / grid top 245 / g 362;
 });
 
 test('writeLayout: g is sized from the nominal prompt (80), the position from the measured prompt (hint line, big text) — the grid never shrinks for either (D36)', () => {
-  const plain = writeLayout({ width: 402, mainHeight: 626, promptHeight: 80, sizingHeight: 80 });
-  const hinted = writeLayout({ width: 402, mainHeight: 626, promptHeight: 80 + 10 + 22, sizingHeight: 80 });
-  const big = writeLayout({ width: 402, mainHeight: 626, promptHeight: 86, sizingHeight: 80 });
+  const plain = writeLayout({ width: 402, mainHeight: 626, promptHeight: 80 });
+  const hinted = writeLayout({ width: 402, mainHeight: 626, promptHeight: 80 + 10 + 22 });
+  const big = writeLayout({ width: 402, mainHeight: 626, promptHeight: 86 });
   assert.equal(hinted.g, plain.g, 'a prompt hint line does not shrink the grid');
   assert.equal(big.g, plain.g, 'neither does a bigger system text size');
   assert.ok(hinted.top < plain.top, 'the group sits higher instead (centered with the taller prompt)');
   assert.equal(hinted.gridTop, hinted.top + 112 + 16);
-  const ax = writeLayout({ width: 402, mainHeight: 500, promptHeight: 126, sizingHeight: 126, ax: true });
-  assert.equal(ax.g, Math.max(258, 500 - 126 - 16 - 52 - 16), 'AX: sized from the measured word row and the 52-high tools row');
+});
+
+test('writeLayout (E9d, P195, D29 / D36): AX levels never shrink the grid — g is sized from the nominal (L) main area, only the position follows the real one', () => {
+  // 402×874（状态栏 54、下 34）：L 档主区 626；AX5 按钮行 88（主按钮）、页头 / 工具行更高 → 实际主区只剩 500 左右，题面 126
+  const L = writeLayout({ width: 402, mainHeight: 626, nominalHeight: 626, promptHeight: 80 });
+  for (const [real, prompt] of [[560, 106], [532, 126], [500, 126], [420, 126], [300, 126]]) {
+    const ax = writeLayout({ width: 402, mainHeight: real, nominalHeight: 626, promptHeight: prompt, ax: true });
+    assert.equal(ax.g, L.g, `real main ${real}: AX g = L g (${L.g})`);
+    assert.equal(ax.toolsHeight, 52, 'AX tools row is 52 high (position only)');
+    assert.ok(ax.top >= 0 && ax.top <= 12 + Math.max(0, real), 'the top gap never pushes the group out of the main area');
+  }
+  // 放不下：组顶取 0，页面整体滚动（不缩格子）
+  const tight = writeLayout({ width: 402, mainHeight: 300, nominalHeight: 626, promptHeight: 126, ax: true });
+  assert.equal(tight.top, 0);
+  assert.equal(tight.g, 362);
+  // 同样适用于 SE：AX 档 g = L 档 g（327）
+  const seL = writeLayout({ width: 375, mainHeight: 479, nominalHeight: 479, promptHeight: 80 });
+  const seAx = writeLayout({ width: 375, mainHeight: 330, nominalHeight: 479, promptHeight: 126, ax: true });
+  assert.equal(seAx.g, seL.g);
+  assert.equal(seL.g, 327);
+});
+
+test('nominalMainHeight: page − (44 + status bar) − (116 + max(8, bottom inset)); equals the standard-size main area of the design sheet', () => {
+  assert.equal(nominalMainHeight({ pageHeight: 874, safeTop: 54, footBottom: 34 }), 626, '402×874');
+  assert.equal(nominalMainHeight({ pageHeight: 667, safeTop: 20, footBottom: 8 }), 479, 'SE');
+  assert.equal(nominalMainHeight({ pageHeight: 956, safeTop: 62, footBottom: 34 }), 700, 'Pro Max');
+  assert.equal(nominalMainHeight({ pageHeight: 852 }), 852 - 44 - 116 - 8, 'no safe area (browser)');
+  assert.equal(nominalMainHeight({ pageHeight: 852, bodyPad: 4 }), 852 - 44 - 116 - 8 - 4);
+  assert.ok(Number.isNaN(nominalMainHeight({})));
+  // 与字号无关：函数不收字号参数，同一视口恒定
+  assert.equal(nominalMainHeight({ pageHeight: 874, safeTop: 54, footBottom: 34 }), mainOf(874, 54, 34));
 });
 
 test('writeGridSize: min(W − 40, 400, main − P − 16 − T − 16) clamped to [258, 400]; independent of the text size', () => {

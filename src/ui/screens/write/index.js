@@ -57,7 +57,8 @@ import { useAnswerFit, useCompact, useWriteGridSize } from './compact.js';
 import { storedStrokes, usePersist } from './persist.js';
 import { useEndGroup } from './end.js';
 import { commitFinish, handoffSkipUndo, openResult } from '../result/index.js';
-import { PaperNote, PaperStage, ToPaperButton, usePaperMode } from './paper.js';
+import { PaperNote, PaperStage, ToPaperButton, usePaperMode, usePaperSuggest } from './paper.js';
+import { assistiveTechActive } from '../../../platform/accessibility.js';
 
 export const WRITE_SCREEN = 'write';
 /** 换字后书写格不接受落笔的时长（01 §6.6 / 走查-V01，已定）。 */
@@ -246,6 +247,8 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
   const cmpPhase = useComparePhase({ slot, session, cardKey, storedPhase, strokeCount: view.strokes.length, paper: paperMode.paper });
   const phase = cmpPhase.phase;
   const paper = paperMode.paper && (phase === 'recall' || phase === 'compare');
+  // P1-E8（P168）：读屏开启后第一次进写字页，格下一条「改为在纸上写」的非阻断建议（只出现一次）。
+  const suggest = usePaperSuggest({ settings: state ? state.settings : null, phase, paper, assistive: assistiveTechActive, getStore });
   // M1-6 会话现场：本地笔画一变就写回 sessions（P52 不阻断 + 一次性提示）、visibilitychange 重写、打开时恢复幂等。
   // M2-2：只有顶层写字页写回现场（抬笔 / visibilitychange / pagehide / 离开）；被压在下面时不写（cardKey 传 null = 不写）。
   const persist = usePersist({ slot, session, state, cardKey: isTop ? cardKey : null, inkKey, strokes: view.strokes, phase, isStale });
@@ -418,7 +421,7 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
         />`}
       </div>
       ${compare.active ? null : html`<div class="sz-write__below">
-        <span class="sz-write__note" data-testid="write-note"><span class="sz-write__lineslot" data-testid="write-line-slot">${row.node}</span>${answer.active ? answer.note
+        <span class="sz-write__note" data-testid="write-note"><span class="sz-write__lineslot" data-testid="write-line-slot">${row.node}</span>${suggest.node}${answer.active ? answer.note
           : skip.failed ? skip.note : paper ? html`<${PaperNote} />` : html`<${HintNote} note=${hint.note} />`}</span>
         ${tools}${toPaperSlot}
       </div>`}

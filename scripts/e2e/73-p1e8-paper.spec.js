@@ -266,6 +266,53 @@ export default async function paperSpec(page, ctx) {
   assert.equal(f.session.current.paper, true);
 
   ctx.step('all writes through storage.js');
-  const direct = await page.evaluate(() => window.__shiziTest.getWriteLog().filter(e => e.via === 'direct'));
+  let direct = await page.evaluate(() => window.__shiziTest.getWriteLog().filter(e => e.via === 'direct'));
+  assert.deepEqual(direct, []);
+
+  // ------------------------------------------------------------------ 5. 读屏开启时的建议
+  ctx.step('P168: no screen reader → no suggestion on the write page');
+  await goTab(page, 'home');
+  await seedAll(page);
+  await openWriteA(page);
+  await waitWrite(page, { cursor: 0, phase: 'recall' });
+  assert.equal(await present(page, 'write-paper-suggest'), false);
+  f = await facts(page);
+  assert.ok(!('paperSuggested' in f.settings));
+
+  ctx.step('P168: VoiceOver on (shiziAccessibilityStatus) → first visit to the write page shows the non-blocking suggestion, recorded once');
+  await goTab(page, 'home');
+  await page.evaluate(() => window.shiziAccessibilityStatus({ voiceOver: true, switchControl: false }));
+  await openWriteA(page);
+  await waitWrite(page, { cursor: 0, phase: 'recall' });
+  assert.equal(await text(page, 'write-paper-suggest-text'), '读屏开启时，可以在纸上写好，回来自己对照。');
+  assert.equal(await text(page, 'write-paper-suggest-no'), '不用');
+  assert.equal(await text(page, 'write-paper-suggest-yes'), '改为在纸上写');
+  assert.equal(await page.locator(topSel('write-paper-suggest')).getAttribute('role'), 'status', 'announced without taking focus');
+  assert.equal(await present(page, 'write-grid'), true, 'still writing on screen (non-blocking)');
+  f = await facts(page);
+  assert.equal(f.settings.paperSuggested, true, 'shown → recorded in settings');
+
+  ctx.step('不用 → folds away; next visit (still VoiceOver) → never again');
+  await page.click(topSel('write-paper-suggest-no'));
+  await page.waitForSelector(topSel('write-paper-suggest'), { state: 'detached' });
+  await goTab(page, 'home');
+  await openWriteA(page);
+  await waitWrite(page, { cursor: 0, phase: 'recall' });
+  assert.equal(await present(page, 'write-paper-suggest'), false, 'only once');
+
+  ctx.step('改为在纸上写 (fresh settings) → settings.writeMode = paper, the paper box appears at once');
+  await goTab(page, 'home');
+  await seedAll(page);
+  await openWriteA(page);
+  await waitWrite(page, { cursor: 0, phase: 'recall' });
+  await page.click(topSel('write-paper-suggest-yes'));
+  await page.waitForSelector(topSel('write-paper'));
+  assert.equal(await present(page, 'write-paper-suggest'), false);
+  f = await facts(page);
+  assert.equal(f.settings.writeMode, 'paper');
+  assert.equal(f.settings.paperSuggested, true);
+  await page.evaluate(() => window.shiziAccessibilityStatus({ voiceOver: false, switchControl: false }));
+
+  direct = await page.evaluate(() => window.__shiziTest.getWriteLog().filter(e => e.via === 'direct'));
   assert.deepEqual(direct, []);
 }

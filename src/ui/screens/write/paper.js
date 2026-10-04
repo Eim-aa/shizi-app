@@ -7,17 +7,20 @@
 // - 屏幕（recall，还没落笔）：格下一行右端（撤销 / 清空的位置）是「在纸上写」，只把这一个字改到纸上；落笔后换回撤销 / 清空。
 // - 判断页（compare.js PaperCompareStage）、判断 commit（source:'paper'，不写墨迹）见 compare.js。
 // 切换是会话现场写入（withCurrent {paper}），按 P52 不阻断：本地先切换，写失败也照样显示，下一次写入时由进判断页的 commit 带上。
+// - 读屏开启时的建议（P168）：读屏 / 切换控制开启后第一次进写字页（platform/accessibility.js assistiveTechActive，阶段 0 桥），
+//   格下说明位一条非阻断建议「读屏开启时，可以在纸上写好，回来自己对照。」+「不用」/「改为在纸上写」；出现即记 settings.paperSuggested，
+//   只出现一次；「改为在纸上写」把设置改为纸上。
 //
 // data-testid：write-paper（纸面格，data-hinted）、write-paper-title、write-paper-body、write-paper-back（改回在屏幕上写）、
-//   write-paper-note（格下说明）、write-to-paper（屏幕模式格下「在纸上写」）。
+//   write-paper-note（格下说明）、write-to-paper（屏幕模式格下「在纸上写」）、write-paper-suggest（+ -text / -no / -yes）。
 
-import { html, useState } from '../../../../vendor/ui.js';
+import { html, useEffect, useRef, useState } from '../../../../vendor/ui.js';
 import { Button } from '../../components/Button.js';
 import { injectStyles, T } from '../../components/styles.js';
 import { InkGrid } from '../../canvas/ink-canvas.js';
 import { t } from '../../../config/copy/index.js';
 import { currentCardKey, withCurrent } from '../../../core/sessions.js';
-import { paperOf } from '../../../core/paper.js';
+import { paperOf, paperSuggestDue } from '../../../core/paper.js';
 
 injectStyles('write-paper', `
 .sz-paper{position:relative;flex:none;margin:0 auto;max-width:100%}
@@ -30,6 +33,9 @@ injectStyles('write-paper', `
 .sz-paper[data-hinted="true"] .sz-paper__body{justify-content:flex-end;padding-bottom:0}
 .sz-paper[data-hinted="true"] .sz-paper__title,.sz-paper[data-hinted="true"] .sz-paper__text{display:none}
 .sz-paper__note{display:block}
+.sz-paper__suggest{display:flex;flex-direction:column;align-items:flex-start;gap:0;color:${T.ink2};font-size:${T.fs13};line-height:${T.lh13}}
+.sz-paper__suggestbtns{display:flex;flex-wrap:wrap;gap:${T.s4};margin-left:-2px}
+.sz-paper__sbtn{min-height:44px;padding:0 2px;font-size:${T.fs15};color:${T.ink1}}
 .sz-write__topaperslot{position:absolute;right:-10px;top:0;bottom:0;display:flex;align-items:center}
 .sz-write__topaper{height:44px;min-width:44px;padding:0 10px;font-size:${T.fs15};color:${T.ink2}}
 `);
@@ -95,6 +101,62 @@ export function PaperStage({ size, glyphLayer = null, hinted = false, onBack }) 
 /** 纸上那一字的格下说明。 */
 export function PaperNote() {
   return html`<span class="sz-paper__note" data-testid="write-paper-note">${t('X-PAPER.note')}</span>`;
+}
+
+// ---------------------------------------------------------------- 读屏开启时的建议（P168；求助与判断 ⑤「读屏开启时的第一次」）
+
+/** 记下建议已出现过（settings.paperSuggested = true，只出现一次）。已记过不写。 */
+export function commitPaperSuggested(store) {
+  const cur = store.getState().settings;
+  if (cur && cur.paperSuggested === true) return { ok: true, keys: [], skipped: true };
+  return store.commit('write:paper-suggest', draft => {
+    draft.settings = { ...(draft.settings || {}), paperSuggested: true };
+  });
+}
+
+/** 接受建议：写字方式设置改为纸上（settings.writeMode = 'paper'，同时记下已出现过）。 */
+export function commitPaperAccept(store) {
+  return store.commit('write:paper-accept', draft => {
+    draft.settings = { ...(draft.settings || {}), writeMode: 'paper', paperSuggested: true };
+  });
+}
+
+/**
+ * 读屏 / 切换控制开启后第一次进写字页时，格下一条非阻断建议（只出现一次）：进页时判定一次（paperSuggestDue），
+ * 出现即记 settings.paperSuggested（写失败不阻断，下次进页可能再出现一次）；点「改为在纸上写」改设置、点「不用」收起；离开本页即不再显示。
+ * @param {{settings:object|null, phase:string, paper:boolean, assistive:()=>boolean, getStore:()=>object}} o
+ * @returns {{node:*}}
+ */
+export function usePaperSuggest({ settings, phase, paper, assistive, getStore }) {
+  const [shown, setShown] = useState(() => paperSuggestDue({ settings, assistive: !!assistive() }));
+  const recorded = useRef(false);
+  useEffect(() => {
+    if (!shown || recorded.current) return;
+    recorded.current = true;
+    try {
+      commitPaperSuggested(getStore()); // 失败不阻断
+    } catch (error) {
+      // store 不可用：照样显示
+    }
+  }, [shown]);
+  if (!shown || paper || phase !== 'recall') return { node: null };
+  const accept = () => {
+    setShown(false);
+    try {
+      commitPaperAccept(getStore());
+    } catch (error) {
+      // 写不进去：这一次照旧在屏幕上写
+    }
+  };
+  return {
+    node: html`<span class="sz-paper__suggest" role="status" data-testid="write-paper-suggest">
+      <span data-testid="write-paper-suggest-text">${t('X-PAPER.suggest')}</span>
+      <span class="sz-paper__suggestbtns">
+        <${Button} variant="text" class="sz-paper__sbtn" data-testid="write-paper-suggest-no" onClick=${() => setShown(false)}>${t('X-PAPER.suggestNo')}</${Button}>
+        <${Button} variant="text" class="sz-paper__sbtn" data-testid="write-paper-suggest-yes" onClick=${accept}>${t('X-PAPER.suggestYes')}</${Button}>
+      </span>
+    </span>`,
+  };
 }
 
 /** 屏幕模式格下一行右端「在纸上写」（还没落笔时占撤销 / 清空的位置）。 */

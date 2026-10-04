@@ -135,6 +135,22 @@ test('P167: 纸面格——格内「在纸上写」/ 说明 /「改回在屏幕�
   assert.equal(byTestid(PaperStage({ size: 320, hinted: true }))['write-paper'][0].props['data-hinted'], 'true');
 });
 
+test('P168: 读屏建议——读屏在运行、设置仍是屏幕、还没出现过才出现；出现即记 paperSuggested，接受即改设置为纸上', async () => {
+  const { paperSuggestDue } = await import('../../src/core/paper.js');
+  const { commitPaperSuggested, commitPaperAccept } = await import('../../src/ui/screens/write/paper.js');
+  assert.equal(paperSuggestDue({ settings: null, assistive: true }), true);
+  assert.equal(paperSuggestDue({ settings: null, assistive: false }), false, 'no screen reader → never');
+  assert.equal(paperSuggestDue({ settings: { paperSuggested: true }, assistive: true }), false, 'only once');
+  assert.equal(paperSuggestDue({ settings: { writeMode: 'paper' }, assistive: true }), false, 'already on paper');
+  const store = fakeStore({ ...draftWith(), settings: { sound: false } });
+  assert.equal(commitPaperSuggested(store).ok, true);
+  assert.deepEqual(store.getState().settings, { sound: false, paperSuggested: true });
+  assert.equal(commitPaperSuggested(store).skipped, true, 'recorded once');
+  assert.equal(commitPaperAccept(store).ok, true);
+  assert.deepEqual(store.getState().settings, { sound: false, paperSuggested: true, writeMode: 'paper' });
+  assert.equal(validateValue(KEYS.settings, store.getState().settings), null);
+});
+
 test('P167: 纸上判断页只有参考字形（书写格大小）+ 旁注「参考字形 · 和你纸上的字对照」，读屏「你的书写：写在纸上」', () => {
   const v = PaperCompareStage({ char: '永', py: 'yǒng', strokeData: { status: 'loading' }, size: 330 });
   const ids = byTestid(v);

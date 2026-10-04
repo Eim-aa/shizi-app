@@ -6,7 +6,7 @@
 //      320 宽时数量行两段各自不折断（折行整段换行）。
 //   2. 确认框：点别的库 → 「换成「规范次常用字」？」+ 两行正文 + 取消 / 换成这个库；取消 → 不写入。
 //   3. 失败就地重试：failNextWrite(settings) → 确认框换成「没保存上，刚才的选择没记下。」+ 先不换 / 再试一次，settings 不变；
-//      先不换 → 关框、仍是原来的库；再来一次失败 → 再试一次 → 成功：关框、回到字库页、轻提示，settings.library = adv3000；
+//      先不换 → 关框、仍是原来的库；再来一次失败 → 再试一次 → 成功：关框、回到设置页（E9c / D49 ④：入口在「我的 › 设置 › 练习范围」，字库页没有了）、轻提示，settings.library = adv3000；
 //      整个过程只写 txn 与 settings 两个键，没有绕过 storage.js 的写。
 //   4. 只影响新字来源：换库前后 records / sched / custom / sessions 深相等；换库后 startA 开的今天的练习，新字全部来自规范次常用字
 //      （换库前同样的状态算出来的新字全部来自规范常用字）；换库后 records / sched 仍不变。
@@ -97,6 +97,17 @@ async function goTab(page, name) {
     const s = getRouter().getState();
     return s.depth === 0 && s.top && s.top.n === n;
   }, name);
+  await waitNavIdle(page);
+}
+
+/** 真实入口（D49 ④）：我的 › 设置 › 练习 › 练习范围。回到「我的」tab 根，推设置，点「练习范围」行，等换库页。 */
+async function openSwitchFromSettings(page) {
+  await goTab(page, 'mine');
+  await page.click(topSel('mine-menu-settings'));
+  await page.waitForSelector(topSel('settings-screen'));
+  await waitNavIdle(page);
+  await page.click(topSel('settings-library'));
+  await page.waitForSelector(topSel('libswitch-screen'));
   await waitNavIdle(page);
 }
 
@@ -193,14 +204,19 @@ export default async function librarySwitch(page, ctx) {
 
   // ------------------------------------------------------------ 1. 列表
   ctx.step('list: four libraries, counts from data, M from judged records, P73 default is current, source note');
-  // 真实入口：字库首页「练习范围 … 更换字库 ›」（M3-1 的 library-switch 按钮）
-  const entry = `.sz-layer[data-top="true"] [data-testid="screen-library"] ${tid('library-switch')}`;
-  await page.waitForSelector(entry);
-  assert.equal(await page.getAttribute(entry, 'data-library'), 'core3500', 'library home shows the P73 default range');
+  // 真实入口（D49 ④）：我的 › 设置 › 练习 › 练习范围（字库首页不再有「练习范围 / 更换字库 ›」，30-library 断言）
+  assert.equal(await page.locator(tid('library-switch')).count(), 0, 'the library home has no practice-range entry any more');
+  await goTab(page, 'mine');
+  await page.click(topSel('mine-menu-settings'));
+  await page.waitForSelector(topSel('settings-screen'));
+  await waitNavIdle(page);
+  const entry = topSel('settings-library');
+  assert.equal(await page.getAttribute(entry, 'data-library'), 'core3500', 'settings shows the P73 default range');
+  assert.equal(await page.textContent(topSel('settings-library-value')), '规范常用字', 'with its library name');
   await page.click(entry);
   await page.waitForSelector(topSel('libswitch-screen'));
   await waitNavIdle(page);
-  assert.equal((await routerTop(page)).top, 'library-switch', 'the library home entry pushes library-switch');
+  assert.equal((await routerTop(page)).top, 'library-switch', 'the settings row pushes library-switch');
   const title = await page.locator(`${topSel('libswitch-screen')} [data-page-title]`).textContent();
   assert.equal(title, '更换字库', 'page title');
   let list = await rows(page);
@@ -295,14 +311,14 @@ export default async function librarySwitch(page, ctx) {
   await page.waitForFunction(async () => {
     const { getRouter } = await import('/src/ui/router.js');
     const s = getRouter().getState();
-    return s.depth === 0 && s.top && s.top.n === 'library';
+    return s.top && s.top.n === 'settings';
   });
   assert.equal(await toastText(page), TOAST, 'toast after switching');
   await page.waitForFunction(sel => {
     const el = document.querySelector(sel);
     return !!el && el.dataset.library === 'adv3000';
   }, entry);
-  assert.ok(true, 'library home range line follows settings.library');
+  assert.equal(await page.textContent(topSel('settings-library-value')), '规范次常用字', 'the settings row follows settings.library');
   await waitNavIdle(page);
   const after = await state(page);
   assert.deepEqual(after.settings, { library: 'adv3000' }, 'settings.library = adv3000');
@@ -349,8 +365,8 @@ export default async function librarySwitch(page, ctx) {
 
   // ------------------------------------------------------------ 5. 再打开
   ctx.step('reopen: 规范次常用字 is current, M unchanged; tapping the current library goes back');
-  await goTab(page, 'library');
-  await openSwitch(page);
+  await goTab(page, 'home');
+  await openSwitchFromSettings(page);
   list = await rows(page);
   assert.deepEqual(list.map(r => r.current), ['false', 'true', 'false', 'false'], 'adv3000 current');
   assert.deepEqual(list.map(r => r.mark), ['›', '正在用', '›', '›'], 'marks after the switch');
@@ -359,10 +375,11 @@ export default async function librarySwitch(page, ctx) {
   await page.click(row('adv3000'));
   await page.waitForFunction(async () => {
     const { getRouter } = await import('/src/ui/router.js');
-    return getRouter().getState().depth === 0;
+    const s = getRouter().getState();
+    return s.top && s.top.n === 'settings';
   });
   await waitNavIdle(page);
-  assert.equal((await routerTop(page)).top, 'library', 'current library → back');
+  assert.equal((await routerTop(page)).top, 'settings', 'current library → back to settings');
   assert.equal((await writeLog(page)).length, logBefore, 'no write');
   assert.equal(await page.$(DIALOG), null, 'no dialog');
 

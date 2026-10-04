@@ -1,7 +1,7 @@
 // 换库（02 M3-5；04 R-L06；01 §3 settings.library、§4 写入点「换库 · 就地重试」；03 P73；原型 ShiziScreen L186–L191、
 // 逻辑 L459–L465 / L485–L489 / 可点原型模板 L702–L705，reference/J-proto-screen.md §2.3.23–2.3.24）。
 //
-// 页面 'library-switch'（字库页「更换字库 ›」推入；M3-1 拥有入口，调用 openLibrarySwitch()）：
+// 页面 'library-switch'（「我的 › 设置 › 练习 › 练习范围」推入——D49 ④ 起字库页不再有入口；设置页 settings.js 按屏名 push，openLibrarySwitch() 同一去处）：
 //   页头「更换字库」+ 返回；四行（core/cards.js LIBRARIES 顺序）：库名（当前 500）/ 一句说明 / 数量行
 //   「可以练 {n} 个字 · 有记录 {m} 个」（n = 题库里属于该库的卡数，从数据算：3500 / 2976 / 818 / 2500；
 //   m = 该库里有 judged 记录的字数，D23 口径只算写对 / 写错，按记录算，不用原型写死值）/ 右侧「正在用」或「›」；
@@ -12,9 +12,9 @@
 //   已开的组照旧，只影响之后选新字的来源，session-start 读 settings.library）。
 //   失败 → 就地重试（01 §4「换库 · 就地重试」、R-G04 三段式）：确认框留着，正文换成 R-L06.saveFailed，
 //   两键「先不换」（关框，仍是原来的库）/「再试一次」（同一 commit）。
-//   成功 → 关框、返回上一页，轻提示「已换成「{库名}」。」（R-L06「换完轻提示」边开发边改，字样待文案 P55）。
+//   成功 → 关框、返回上一页（设置页），轻提示「已换成「{库名}」。」（R-L06「换完轻提示」边开发边改，字样待文案 P55）。
 //
-// data-testid：libswitch-screen（页面；字库首页的入口按钮 library-switch 归 M3-1）、libswitch-list（data-current）、libswitch-row（data-lib / data-current，每行一个 button）、
+// data-testid：libswitch-screen（页面；入口是设置页的 settings-library 行）、libswitch-list（data-current）、libswitch-row（data-lib / data-current，每行一个 button）、
 //   libswitch-row-name / -desc / -count / -mark、libswitch-source、
 //   libswitch-confirm（data-state=ask|failed / data-lib）、libswitch-confirm-title / -body、
 //   libswitch-cancel、libswitch-ok、libswitch-stay、libswitch-retry。

@@ -246,17 +246,17 @@ export default async function paperSpec(page, ctx) {
   f = await facts(page);
   assert.equal(f.session.current.paper, false, 'current.paper = false for this character only');
   assert.equal(f.settings.writeMode, 'paper', 'the setting is unchanged');
-  // R2-X1（P226 / I2-06）：「在纸上写」在格下说明位左侧，只在没有别的说明时出现——上一字的结果行（D19）在时让位
-  assert.equal(await present(page, 'write-to-paper'), false, 'the previous character\'s result line (D19) holds the note slot: 在纸上写 yields');
+  // R2-X1（P226）：「在纸上写」是底部文字行里的常驻文字按钮——上一字的结果行（D19）在也不收起
+  assert.equal(await text(page, 'write-to-paper'), '在纸上写', 'the permanent 在纸上写 text button is in the bottom text row, with the result line showing');
   assert.equal(await page.locator(topSel('write-tools')).getAttribute('data-shown'), 'true', 'undo / clear are already in place');
 
-  ctx.step('pen down → the result line collapses; undo / clear turn live');
+  ctx.step('pen down → the result line collapses, undo / clear turn live, 在纸上写 stays');
   await drawStroke(page, HORIZONTAL);
   await page.waitForFunction(() => {
     const g = document.querySelector('.sz-layer[data-top="true"] [data-testid="write-grid"]');
     return !!g && Number(g.dataset.strokeCount) === 1;
   });
-  assert.equal(await present(page, 'write-to-paper'), false, 'no 在纸上写 once there is ink');
+  assert.equal(await present(page, 'write-to-paper'), true, '在纸上写 does not go away once there is ink');
   assert.equal(await page.locator(topSel('write-undo')).isDisabled(), false, 'undo is live');
 
   ctx.step('judge 和 on screen → a normal record (no source) with ink');
@@ -273,13 +273,8 @@ export default async function paperSpec(page, ctx) {
   ctx.step('春 back on paper (setting); 改回 then 在纸上写 again — per-character toggle both ways');
   assert.equal(await present(page, 'write-paper'), true);
   await page.click(topSel('write-paper-back'));
-  await page.waitForSelector(topSel('write-grid'));
-  await page.waitForTimeout(PRESS_SETTLE_MS);
-  // 结果行（D19）占着说明位：落一笔收起它、再撤销回到空格，「在纸上写」才出现（P226）
-  await drawStroke(page, HORIZONTAL);
-  await page.waitForFunction(() => Number(document.querySelector('.sz-layer[data-top="true"] [data-testid="write-grid"]').dataset.strokeCount) === 1);
-  await page.click(topSel('write-undo'));
   await page.waitForSelector(topSel('write-to-paper'));
+  await page.waitForTimeout(PRESS_SETTLE_MS);
   await page.click(topSel('write-to-paper'));
   await page.waitForSelector(topSel('write-paper'));
   f = await facts(page);

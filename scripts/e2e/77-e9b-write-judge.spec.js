@@ -212,9 +212,10 @@ export default async function e9bWriteJudge(page, ctx) {
     return { btns, kinds: [...new Set(page)] };
   });
   const byId = Object.fromEntries(foot.btns.map(b => [b.id, b]));
-  assert.deepEqual(foot.btns.map(b => b.id), ['write-done', 'write-hint', 'write-show-answer', 'write-skip'], 'the footer holds exactly these four buttons, in reading order');
+  assert.deepEqual(foot.btns.map(b => b.id), ['write-done', 'write-hint', 'write-show-answer', 'write-to-paper', 'write-skip'], 'the footer holds exactly these five buttons, in reading order (在纸上写 is the permanent text button after 看答案, P226)');
   assert.equal(foot.btns.filter(b => b.cls === 'sz-btn--primary').length, 1, 'one primary button (写好了)');
   assert.deepEqual([byId['write-hint'].cls, byId['write-show-answer'].cls, byId['write-skip'].cls], ['sz-btn--text', 'sz-btn--text', 'sz-btn--text'], 'hint / answer / skip are all the same text button');
+  assert.equal(byId['write-to-paper'].cls, 'sz-btn--text', '在纸上写 is the same text button too');
   assert.ok(foot.btns.every(b => b.cls !== 'sz-btn--secondary'), 'no outlined secondary button in the recall footer');
   assert.deepEqual(foot.kinds.filter(k => k !== 'sz-btn--icon' && k !== 'sz-btn--plain').sort(), ['sz-btn--primary', 'sz-btn--text'], 'clickable styles on the page: primary + text (the icon buttons are the tools / the back icon)');
   assert.ok(foot.kinds.length <= 4, 'icon-like buttons (back, undo, clear) are glyphs, not extra button styles');

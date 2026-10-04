@@ -44,8 +44,7 @@ function hintState(page) {
       anim: l ? l.dataset.anim || null : null,
       strokes: l && l.dataset.from !== undefined ? Array.from({ length: Number(l.dataset.to) - Number(l.dataset.from) }, (_, i) => Number(l.dataset.from) + i) : [], // 画出的是 [from, to) 这几笔
       timing: l ? [...l.querySelectorAll('canvas')].map(c => ({ name: getComputedStyle(c).animationName })) : [], // 逐笔动画已没有：画布上都没有动画
-      // 格下说明位空着时左边可能是「在纸上写」按钮（R2-X1 / P226）：它不是说明，不计
-      note: note ? [...note.childNodes].filter(n => !(n.nodeType === 1 && n.matches('.sz-write__topaper'))).map(n => n.textContent).join('').trim() : null,
+      note: note ? note.textContent.trim() : null,
       noteKind: note && note.querySelector('[data-hint-note]') ? note.querySelector('[data-hint-note]').dataset.hintNote : null,
       noteDot: !!(note && note.querySelector('.sz-hintnote__dot')),
       inkOpacity: ink ? Number(getComputedStyle(ink).opacity) : null,

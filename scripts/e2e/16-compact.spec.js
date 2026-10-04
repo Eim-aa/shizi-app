@@ -215,7 +215,7 @@ async function compactWalk(page, ctx, { large }) {
   await page.waitForTimeout(300);
   g = await geometry(page, `${large ? 'L' : 'N'}-hint`);
   assert.ok(square(g.r['write-grid'], GRID), `${tag}: grid still ${GRID} after 提示`);
-  assert.ok(!g.noteText || g.noteText === '在纸上写', `${tag}: no legend note under the grid after a hint (D51 ⑧: 「浅红色是提示……」 deleted) — only the free slot's 「在纸上写」 may be there (P226) (${g.noteText})`);
+  assert.ok(!g.noteText, `${tag}: no legend note under the grid after a hint (D51 ⑧: 「浅红色是提示……」 deleted)`);
   assert.equal(await page.locator('.sz-layer[data-top="true"] [data-hint-note]').count(), 0, `${tag}: no hint note element`);
   common(assert, g, `${tag} hint`, ['write-hint', 'write-done', 'write-show-answer', 'write-skip']);
 

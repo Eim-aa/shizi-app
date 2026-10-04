@@ -41,16 +41,16 @@ test('墨墙四档透明度：最淡档 .55（D36），档位仍单调递减', (
 });
 
 test('浅色：最淡档墨色叠在纸色上 ≥ 3:1（旧值 .4 不到 3:1）', () => {
-  const ink = hexOf(lightBlock, '--i1');
-  const paper = hexOf(lightBlock, '--p');
+  const ink = hexOf(lightBlock, '--ink1');
+  const paper = hexOf(lightBlock, '--paper');
   const oldest = ratio(blend(ink, paper, TONE_OPACITY[3]), paper);
   assert.ok(oldest >= 3, `light oldest tone contrast ${oldest.toFixed(2)}`);
   assert.ok(ratio(blend(ink, paper, 0.4), paper) < 3, 'the old .4 was below 3:1');
 });
 
 test('深色：最淡档（DARK_OLDEST_TONE）叠在深纸色上 ≥ 3:1', () => {
-  const ink = hexOf(darkBlock, '--i1');
-  const paper = hexOf(darkBlock, '--p');
+  const ink = hexOf(darkBlock, '--ink1');
+  const paper = hexOf(darkBlock, '--paper');
   const oldest = ratio(blend(ink, paper, DARK_OLDEST_TONE), paper);
   assert.ok(oldest >= 3, `dark oldest tone contrast ${oldest.toFixed(2)}`);
 });

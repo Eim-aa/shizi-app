@@ -1,21 +1,16 @@
-/* 拾字 v10 · 全局样式（M0-3）
+/* 拾字 · 全局样式（M0-3；P1-E1a 起令牌取自设计系统 v1，D43）
  *
- * 依赖 src/config/tokens.css（颜色、--k、--hint、纸纹/暖灯变量），index.html 里先链 tokens.css 再链本文件。
- * 本文件只放：字体栈变量、触控/安全区/动效变量、重置、减少动态效果、纸纹/暖灯层类。组件样式不放这里。
+ * 依赖 src/config/tokens.css（颜色、字阶、字体栈、圆角、线、触控、动效、--k、纸纹），index.html 里先链 tokens.css 再链本文件。
+ * 本文件只放：安全区 / 页面推入时长等与主题无关的布局变量、重置、减少动态效果、笺面纸纹类 .tex。组件样式不放这里。
  * 行尾注释格式与 tokens.css 相同（「用途 · 来源：…」），?dev=1 色板页一并解析显示。
  */
 
-/* ---- 字体栈与布局变量（与主题无关） ---- */
+/* ---- 布局变量（与主题无关；字体栈、触控尺寸、动效曲线在 tokens.css） ---- */
 :root {
-  --sans: -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; /* 界面文字：系统黑体 · 来源：ShiziWriteScreen-第十稿交接版.dc.html L585；首页壳-v3-第十稿交接版.dc.html L221 */
-  --serif: "ShiziSerifSC", "Noto Serif SC", "Songti SC", serif; /* 首页标题、题记、大数字（D13：ShiziSerifSC 400 / 500，fonts/fonts.css，M5-2 接入）· 来源：ShiziScreen-第十稿交接版.dc.html L25；01-架构设计 §8.4 */
-  --kai: "ShiziKai", "LXGW WenKai GB", "Kaiti SC", "STKaiti", "KaiTi", serif; /* 题面词语、参考字形回退（D13：ShiziKai 400，fonts/fonts.css，M5-2 接入）· 来源：ShiziWriteScreen-第十稿交接版.dc.html L179；01-架构设计 §8.4 */
-  --tap: 44px; /* 最小可点尺寸 · 来源：ShiziWriteScreen-第十稿交接版.dc.html L163；04 需求清单 R-W27 / R-G09 */
   --safe-top: env(safe-area-inset-top, 0px); /* 顶部安全区 · 来源：拾字-可点原型-第十稿交接版.template.html L401；04 需求清单 R-B08 */
   --safe-right: env(safe-area-inset-right, 0px); /* 右侧安全区 · 来源：04 需求清单 R-B08 */
   --safe-bottom: env(safe-area-inset-bottom, 0px); /* 底部安全区 · 来源：拾字-可点原型-第十稿交接版.template.html L250；04 需求清单 R-B08 */
   --safe-left: env(safe-area-inset-left, 0px); /* 左侧安全区 · 来源：04 需求清单 R-B08 */
-  --ease: cubic-bezier(.2,.7,.2,1); /* 页面推入曲线 · 来源：ShiziWriteScreen-第十稿交接版.dc.html L282；04 需求清单「时间常量」 */
   --motion-page: 300ms; /* 页面推入时长（原型近似；减少动态效果时为 120ms 交叉淡化）· 来源：04 需求清单「时间常量」（交接备注 L143） */
   --motion-light: 600ms; /* 首页光影淡入（减少动态效果时直接切）· 来源：首页壳-v3-第十稿交接版.dc.html L174；04 需求清单「时间常量」（交接备注 L134） */
   --reduce-motion: 0; /* 减少动态效果标记，JS 可读（1 = 开） · 来源：首页壳-v3-第十稿交接版.dc.html L167 */
@@ -45,18 +40,18 @@ html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
   -webkit-tap-highlight-color: transparent;
-  background-color: var(--p);
+  background-color: var(--paper);
 }
 
 body {
   margin: 0;
   min-height: 100vh;
   min-height: 100dvh;
-  background-color: var(--p);
-  color: var(--i1);
-  font-family: var(--sans);
-  font-size: calc(15px * var(--k));
-  line-height: 1.5;
+  background-color: var(--paper);
+  color: var(--ink1);
+  font-family: var(--hei);
+  font-size: var(--fs15);
+  line-height: var(--lh15);
   -webkit-font-smoothing: antialiased;
   /* 原型整框 userSelect:none（ShiziWriteScreen L585）；输入框另行放开。 */
   -webkit-user-select: none;
@@ -103,9 +98,9 @@ input, textarea, [contenteditable="true"] {
   user-select: text;
 }
 
-/* 光标用主墨 --i1（P110）：不用系统蓝，也不用朱色 --a（D33：朱色只用于批改与印章）。 */
+/* 光标用主墨 --ink1（P110）：不用系统蓝，也不用朱色（D33：朱色只用于写错的朱点与印章）。 */
 input, textarea, [contenteditable="true"] {
-  caret-color: var(--i1);
+  caret-color: var(--ink1);
 }
 
 /* 说明类段落避免孤字成行（WebKit 17.4+ / Chromium 117+；不认的浏览器忽略）。 */
@@ -118,7 +113,7 @@ p {
 }
 
 :focus-visible {
-  outline: 2px solid var(--ar);
+  outline: 2px solid var(--ink1);
   outline-offset: 2px;
 }
 
@@ -136,8 +131,8 @@ button,
 summary,
 select,
 .tap {
-  min-height: var(--tap);
-  min-width: var(--tap);
+  min-height: var(--hit);
+  min-width: var(--hit);
 }
 
 /* ---- 安全区 ---- */
@@ -148,22 +143,26 @@ select,
   padding-right: var(--safe-right);
 }
 
-/* ---- 纸纹 / 暖灯 ----
- * .paper       元素自身铺纸：纸色 + 浅色两层细点 / 深色右上暖灯（变量见 tokens.css --paper-*）。
- * .paper-layer 绝对定位的叠层版本（首页壳 L17 的做法），放在内容下面，不接收点击。 */
+/* ---- 纸 / 笺面纸纹 ----
+ * .paper / .paper-layer  页面底：纯纸色，没有纹理（D43：页面底的点阵纸纹与深色暖灯取消）。
+ * .tex                   笺面（书写格、对照卡、字帖、月帖、图片）的纸纹：笺色 + --tex-img（占位强度见 tokens.css；真实扫描纸纹以后换资产）。
+ *                        按钮、弹层、列表、页面底从不加纹理。组件样式里要用同一套纹理时引 styles.js 的 TEX。
+ * .paper-layer           绝对定位的叠层版本（首页壳的做法），放在内容下面，不接收点击。 */
 .paper,
 .paper-layer {
-  background-color: var(--p);
-  background-image: var(--paper-image);
-  background-size: var(--paper-size);
-  background-position: var(--paper-position);
-  background-repeat: var(--paper-repeat);
+  background-color: var(--paper);
 }
 
 .paper-layer {
   position: absolute;
   inset: 0;
   pointer-events: none;
+}
+
+.tex {
+  background-color: var(--sheet);
+  background-image: var(--tex-img);
+  background-size: var(--tex-size);
 }
 
 /* ---- 读屏专用文字 ---- */

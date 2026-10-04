@@ -2,8 +2,7 @@
 // M6-1 CSP 收紧后 style-src 只有 'self'：<style> 元素与 style="" 属性都会被拦，CSSOM（insertRule、el.style.x、
 // style.cssText）不受 CSP 约束（CSP3 §6.1.3 只管 <style>/<link>/style 属性）。插在 base.css 末尾 = 原先「追加 <style> 到 head」
 // 在层叠里的位置（其后只有 fonts.css 的 @font-face）。浏览器不认的单条规则丢弃（与样式表解析时丢弃无效规则一致）。
-// 颜色、字号一律引用 src/config/tokens.css（M0-3）的令牌；var() 的回退值只为令牌文件未加载时不至于全透明，
-// 取自原型 ShiziScreen TH.light（与 tokens.css 同源），不是新的设计值。
+// 颜色、字号、圆角、线宽一律引用 src/config/tokens.css 的令牌（P1-E1a，D43）；下方 T 是令牌名的 var() 引用，不带回退值。
 // 在 node:test 下（无 document）什么都不做。
 
 const injected = new Set();
@@ -96,21 +95,34 @@ export function injectStyles(id, cssText) {
   flush();
 }
 
-// 常用回退（令牌名沿原型）。
+// 令牌引用（取值在 src/config/tokens.css，唯一来源 docs/design/design-system-v1/tokens.json，D43）。组件样式只写 ${T.xxx} 或 var(--xxx)，
+// 不写颜色 / 字号 / 圆角字面量（scripts/verify_tokens.mjs 检查）；var() 不带回退值，令牌文件一定先于组件样式加载。
+const v = name => `var(--${name})`;
 export const T = {
-  p: 'var(--p, #F4F0E7)',
-  c: 'var(--c, #FBF8F2)',
-  sh: 'var(--sh, #F7F3EB)',
-  off: 'var(--off, #EFE8DC)',
-  i1: 'var(--i1, #3B2F28)',
-  i2: 'var(--i2, #5D5952)',
-  i3: 'var(--i3, #6A645B)',
-  i4: 'var(--i4, #B3AC9F)',
-  i5: 'var(--i5, #DED8CD)',
-  a: 'var(--a, #A6533F)',
-  ar: 'var(--ar, #A6533F)',
-  scrim: 'var(--scrim, rgba(60,42,28,.22))',
-  k: 'var(--k, 1)',
-  serif: "var(--serif, 'Noto Serif SC', serif)",
-  sans: "var(--sans, -apple-system, 'PingFang SC', 'Hiragino Sans GB', sans-serif)",
+  // 颜色（浅 / 深两套在 tokens.css）
+  paper: v('paper'), sheet: v('sheet'), field: v('field'), elev: v('elev'), line: v('line'), frame: v('frame'), guide: v('guide'),
+  ink1: v('ink1'), ink2: v('ink2'), ink3: v('ink3'), ink4: v('ink4'),
+  hand: v('hand'), ref: v('ref'), under: v('under'),
+  zhu: v('zhu'), seal: v('seal'), onSeal: v('on-seal'), danzhu: v('danzhu'),
+  wall1: v('wall1'), wall2: v('wall2'), wall3: v('wall3'), wall4: v('wall4'),
+  btnBg: v('btn-bg'), btnFg: v('btn-fg'), btnDown: v('btn-down'), toastBg: v('toast-bg'), toastFg: v('toast-fg'),
+  scrim: v('scrim'), elevShadow: v('elev-shadow'),
+  // 字阶：七级，已乘 --k
+  k: v('k'),
+  fs11: v('fs11'), fs13: v('fs13'), fs15: v('fs15'), fs17: v('fs17'), fs22: v('fs22'), fs28: v('fs28'), fs34: v('fs34'),
+  lh11: v('lh11'), lh13: v('lh13'), lh15: v('lh15'), lh17: v('lh17'), lh17s: v('lh17s'), lh22: v('lh22'), lh28: v('lh28'), lh34: v('lh34'),
+  // 字体栈
+  kai: v('kai'), song: v('song'), hei: v('hei'),
+  // 圆角三档、线、触控、动效
+  rWork: v('r-work'), rCtl: v('r-ctl'), rBox: v('r-box'),
+  hair: v('hair'), frameW: v('frame-w'), guideW: v('guide-w'), targetW: v('target-w'),
+  hit: v('hit'), btnH: v('btn-h'),
+  pressScale: v('press-scale'), tPress: v('t-press'), tRelease: v('t-release'), easeOut: v('ease-out'),
+  // 过渡别名（P1-E1a 第一步；全局替换提交里删除）
+  p: v('paper'), c: v('sheet'), sh: v('elev'), off: v('field'),
+  i1: v('ink1'), i2: v('ink2'), i3: v('ink3'), i4: v('ink4'), i5: v('line'),
+  a: v('btn-bg'), ar: v('zhu'), serif: v('song'), sans: v('hei'),
 };
+
+/** 笺面纸纹（只给书写格、对照卡、字帖、月帖、图片等笺面；按钮、弹层、列表、页面底不用）：笺色 + --tex-img。 */
+export const TEX = `background-color:${T.sheet};background-image:var(--tex-img);background-size:var(--tex-size)`;

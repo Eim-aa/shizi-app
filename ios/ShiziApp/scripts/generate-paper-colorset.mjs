@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// A7（G19）：Assets.xcassets/Paper.colorset 从 src/config/tokens.css 的 --p（纸色）生成，浅 / 深各一份。
+// A7（G19）：Assets.xcassets/Paper.colorset 从 src/config/tokens.css 的 --paper（纸色；P1-E1a 起令牌取自设计系统 v1，原名 --p）生成，浅 / 深各一份。
 // 启动屏（Info.plist UILaunchScreen.UIColorName = Paper）与 WebViewController 的底色都读这个颜色集，
 // 所以网页纸色改了，只要重跑本脚本（或 --check 报不一致）就能让原生底色跟上，冷启动不会出现底色跳变。
 //   node ios/ShiziApp/scripts/generate-paper-colorset.mjs          写 Contents.json
@@ -36,11 +36,11 @@ function blockValue(css, needle, name) {
 
 /** tokens.css → { light, dark }（#RRGGBB）。深色取 prefers-color-scheme 那一份，并要求 data-theme="dark" 那份一致。 */
 export function paperFromTokens(css) {
-  const light = blockValue(css, ':root[data-theme="light"]', '--p');
-  const dark = blockValue(css, '@media (prefers-color-scheme: dark)', '--p');
-  const darkForced = blockValue(css, ':root[data-theme="dark"]', '--p');
-  if (dark !== darkForced) throw new Error(`tokens.css: dark --p differs (${dark} vs ${darkForced})`);
-  for (const v of [light, dark]) if (!HEX.test(v)) throw new Error(`tokens.css: --p is not #RRGGBB: ${v}`);
+  const light = blockValue(css, ':root[data-theme="light"]', '--paper');
+  const dark = blockValue(css, '@media (prefers-color-scheme: dark)', '--paper');
+  const darkForced = blockValue(css, ':root[data-theme="dark"]', '--paper');
+  if (dark !== darkForced) throw new Error(`tokens.css: dark --paper differs (${dark} vs ${darkForced})`);
+  for (const v of [light, dark]) if (!HEX.test(v)) throw new Error(`tokens.css: --paper is not #RRGGBB: ${v}`);
   return { light, dark };
 }
 
@@ -73,7 +73,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
       console.error('Paper.colorset is out of date with src/config/tokens.css; run: node ios/ShiziApp/scripts/generate-paper-colorset.mjs');
       process.exit(1);
     }
-    console.log('Paper.colorset matches tokens.css --p');
+    console.log('Paper.colorset matches tokens.css --paper');
   } else {
     mkdirSync(dirname(OUT), { recursive: true });
     writeFileSync(OUT, text);

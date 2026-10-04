@@ -1,4 +1,4 @@
-// 审查整改 P0-C / A7（G19）：iOS 启动底色。Assets 里的 Paper 颜色集与 src/config/tokens.css 的 --p（浅 / 深）同源；
+// 审查整改 P0-C / A7（G19）：iOS 启动底色。Assets 里的 Paper 颜色集与 src/config/tokens.css 的 --paper（浅 / 深；P1-E1a 前叫 --p）同源；
 // UILaunchScreen.UIColorName = Paper；WebViewController 用 UIColor(named: "Paper")，不再写死 RGB。
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -18,17 +18,17 @@ function plistDict(xml, name) {
   return m[1];
 }
 
-test('A7: Paper colorset equals the --p token (light #F4F0E7 / dark #221E1A)', () => {
+test('A7: Paper colorset equals the --paper token (light #F4EFE6 / dark #1B1814; P1-E1a, design system v1)', () => {
   const tokens = readFileSync(join(ROOT, 'src/config/tokens.css'), 'utf8');
   const paper = paperFromTokens(tokens);
-  assert.deepEqual(paper, { light: '#F4F0E7', dark: '#221E1A' }, 'tokens.css --p');
+  assert.deepEqual(paper, { light: '#F4EFE6', dark: '#1B1814' }, 'tokens.css --paper');
   const file = JSON.parse(read('ShiziApp/Assets.xcassets/Paper.colorset/Contents.json'));
   assert.deepEqual(file, colorsetContents(paper), 'Paper.colorset/Contents.json is exactly what the generator emits from tokens.css');
   const [light, dark] = file.colors;
   assert.equal(light.appearances, undefined);
-  assert.deepEqual(light.color.components, { alpha: '1.000', red: '0xF4', green: '0xF0', blue: '0xE7' });
+  assert.deepEqual(light.color.components, { alpha: '1.000', red: '0xF4', green: '0xEF', blue: '0xE6' });
   assert.deepEqual(dark.appearances, [{ appearance: 'luminosity', value: 'dark' }]);
-  assert.deepEqual(dark.color.components, { alpha: '1.000', red: '0x22', green: '0x1E', blue: '0x1A' });
+  assert.deepEqual(dark.color.components, { alpha: '1.000', red: '0x1B', green: '0x18', blue: '0x14' });
 });
 
 test('A7: launch screen uses the Paper colour; the web view background reads the same colour set', () => {

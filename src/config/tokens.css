@@ -1,167 +1,206 @@
-/* 拾字 v10 · 设计令牌（M0-3）
+/* 拾字 · 设计令牌（阶段 1 P1-E1a；D33 视觉系统重建、D43 设计系统 v1 定稿）
  *
- * 颜色 = 原型四张 TH 表的并集（docs/design/v10/extracted/）：
- *   首页壳-v3-第十稿交接版.dc.html      L133–L138（键名带 --；另有 btn/down 两个裸键，由 L217 注入为 --btn/--down）
- *   ShiziScreen-第十稿交接版.dc.html     L275–L278
- *   字库墨墙屏-第十稿交接版.dc.html      L253–L256
- *   ShiziWriteScreen-第十稿交接版.dc.html L268–L271（键名不带 --，由 L566 注入为 --x）
- * 四表同名键取值完全一致（逐键核对见 test/tokens.test.mjs），无冲突。模板里 var(--x,#hex) 的内联回退色是旧稿值
- * （如 --i1 回退 #2B2824、写字页 L566 的 --off 回退 #EAE4D9），一律忽略，以表值为准。
- * 每个声明行尾注释格式固定为「用途 · 来源：<文件> L<n>；…」，?dev=1 色板页（src/ui/dev/palette.js）直接解析本文件显示。
+ * 取值唯一来源：docs/design/design-system-v1/tokens.json（可运行镜像 shizi.css，理由 设计说明.md）。改值先改 tokens.json 再同步这里；
+ * test/tokens.test.mjs 逐键核对本文件与 tokens.json（颜色浅 / 深、字阶、字体栈、间距、圆角、线、触控、动效、纸纹强度），对不上就失败。
+ * 每个声明独占一行，行尾注释格式固定为「用途 · 来源：<文件> <键路径>」，?dev=1 色板页（src/ui/dev/palette.js）直接解析本文件显示。
  *
  * 主题：无 data-theme 时跟随系统（prefers-color-scheme）；:root[data-theme="light"|"dark"] 强制。深色块写两遍
- * （媒体查询一遍、data-theme 一遍），两遍必须逐字一致（单测核对）。
- * 字号：--k 是全站字号倍率，字号一律写 calc(Npx * var(--k))。缺省 1；在 iOS 壳里跟随系统 Dynamic Type（D29，覆盖 P59 的 data-large 1.3）：
- * src/platform/text-size.js 收到原生 shiziContentSize 后把连续倍率写成 :root 的行内 --k（policy.contentSizeScale，P130），AX 档加
- * data-ax、--k ≥ 1.3 加 data-text-large（P131）。网页（无原生桥）保持 1（P133）。
+ * （媒体查询一遍、data-theme 一遍），两遍必须逐字一致（单测核对）。.t-light / .t-dark 是局部强制：一块子树里不随主题
+ * （例如图片预览的画布永远是浅色纸面、旧记录照片页永远是深色）时给它们加这个类，令牌在子树内换成对应主题的取值。
+ * 字号：字阶 7 级（11 / 13 / 15 / 17 / 22 / 28 / 34），--fsN 与 --lhN 已乘 --k；--k 是字号倍率，缺省 1；在 iOS 壳里跟随系统
+ * Dynamic Type（D29，覆盖 P59 的 data-large 1.3）：src/platform/text-size.js 收到原生 shiziContentSize 后把连续倍率写成 :root 的行内
+ * --k（policy.contentSizeScale，P130），AX 档加 data-ax、--k ≥ 1.3 加 data-text-large（P131）。网页（无原生桥）保持 1（P133）。
+ * 颜色字面量只允许出现在本文件（scripts/verify_tokens.mjs 检查）；朱色 --zhu / --seal 只许出现在白名单组件（同脚本）。
  *
- * 对比度（04 需求清单「对比度」，交接备注 L106）：深色按钮 #AE5A44 上白字 4.62:1；文字红 #D47A5D 在纸 5.31:1 /
- * 浮纸 4.68:1 / 弹层 5.00:1 / 暖灯 .05 灯心 4.73:1。
- *
- * 待真机（不在此裁决）：
- *   - 暖灯档 --lamp：原型可调 .04–.06，默认 .05（ShiziWriteScreen L570、首页壳 L212）。04 §6.1 原编号 P11「真机阈值…暖灯档」，
- *     03 待产品决定表未收录，policy 键待 M0-6 登记。
- *   - 边改 W23 / R-W24：深色下提示笔画（--hint）、描一遍轮廓（--tl）、禁用按钮（--i4 字 / --off 底）各提亮一档，
- *     与深色真机检查一起定；在定之前沿用表值，不自行提亮。
+ * 对比度（tokens.json color.contrast，test/ui/contrast.test.mjs 逐对实算，低于阈值即失败）：ink3 在 field 上浅色只有 4.2:1，
+ * 输入框占位文字因此用 ink2；line 与 guide 是装饰 / 参照层，不要求 3:1。
  */
 
 /* ---- 与主题无关 ---- */
 :root {
-  --k: 1; /* 字号倍率（系统默认字号；iOS 壳按系统字号覆盖为行内值，P130）· 来源：ShiziWriteScreen-第十稿交接版.dc.html L585（标准版 1） */
-  --hint: var(--ar); /* 提示笔画色 = 文字红（方案①）· 来源：ShiziWriteScreen-第十稿交接版.dc.html L507；W23 深色提亮待真机 */
-  --lamp: .05; /* 深色暖灯透明度（.04–.06 待真机）· 来源：ShiziWriteScreen-第十稿交接版.dc.html L570；首页壳-v3-第十稿交接版.dc.html L212 */
+  --k: 1; /* 字号倍率（系统默认字号；iOS 壳按系统字号覆盖为行内值，P130）· 来源：tokens.json typography.dynamicType.k.L */
+  --kai: "ShiziKai", "LXGW WenKai GB", "Kaiti SC", "STKaiti", "KaiTi", serif; /* 楷：只用于「字」本身；ShiziKai 只是轮廓缺失时的回退（D13）· 来源：tokens.json typography.family.kai */
+  --song: "ShiziSerifSC", "Noto Serif SC", "Songti SC", "STSong", serif; /* 宋：标题、大数字、落款、题记（D13：ShiziSerifSC 400 / 500）· 来源：tokens.json typography.family.song */
+  --hei: -apple-system, "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "Microsoft YaHei", sans-serif; /* 黑：一切操作与说明、拼音、统计数字（系统字体）· 来源：tokens.json typography.family.hei */
+  --fs34: calc(34px * var(--k)); /* 字阶 34：大数字 · 来源：tokens.json typography.scale[34].size */
+  --lh34: calc(42px * var(--k)); /* 字阶 34 行高 · 来源：tokens.json typography.scale[34].lineHeight */
+  --fs28: calc(28px * var(--k)); /* 字阶 28：页面大标题、结果页标题 · 来源：tokens.json typography.scale[28].size */
+  --lh28: calc(36px * var(--k)); /* 字阶 28 行高 · 来源：tokens.json typography.scale[28].lineHeight */
+  --fs22: calc(22px * var(--k)); /* 字阶 22：节标题 · 来源：tokens.json typography.scale[22].size */
+  --lh22: calc(30px * var(--k)); /* 字阶 22 行高 · 来源：tokens.json typography.scale[22].lineHeight */
+  --fs17: calc(17px * var(--k)); /* 字阶 17：正文、列表主文字；按钮与页头标题 500 · 来源：tokens.json typography.scale[17].size */
+  --lh17: calc(26px * var(--k)); /* 字阶 17 行高 · 来源：tokens.json typography.scale[17].lineHeight */
+  --lh17s: calc(22px * var(--k)); /* 字阶 17 单行行高（按钮、页头标题、列表主文字）· 来源：tokens.json typography.scale[17].lineHeightSingle */
+  --fs15: calc(15px * var(--k)); /* 字阶 15：说明句、列表次文字、题面拼音、Toast · 来源：tokens.json typography.scale[15].size */
+  --lh15: calc(22px * var(--k)); /* 字阶 15 行高 · 来源：tokens.json typography.scale[15].lineHeight */
+  --fs13: calc(13px * var(--k)); /* 字阶 13：注释、对照卡标签、字格状态、日期 · 来源：tokens.json typography.scale[13].size */
+  --lh13: calc(20px * var(--k)); /* 字阶 13 行高 · 来源：tokens.json typography.scale[13].lineHeight */
+  --fs11: calc(11px * var(--k)); /* 字阶 11：下限：图例、角标 · 来源：tokens.json typography.scale[11].size */
+  --lh11: calc(16px * var(--k)); /* 字阶 11 行高 · 来源：tokens.json typography.scale[11].lineHeight */
+  --s1: 4px; /* 间距尺度（4 的倍数）· 来源：tokens.json space.scale */
+  --s2: 8px; /* 间距尺度（4 的倍数）· 来源：tokens.json space.scale */
+  --s3: 12px; /* 间距尺度（4 的倍数）· 来源：tokens.json space.scale */
+  --s4: 16px; /* 间距尺度（4 的倍数）· 来源：tokens.json space.scale */
+  --s5: 20px; /* 间距尺度（4 的倍数）· 来源：tokens.json space.scale */
+  --s6: 24px; /* 间距尺度（4 的倍数）· 来源：tokens.json space.scale */
+  --s8: 32px; /* 间距尺度（4 的倍数）· 来源：tokens.json space.scale */
+  --s12: 48px; /* 间距尺度（4 的倍数）· 来源：tokens.json space.scale */
+  --s16: 64px; /* 间距尺度（4 的倍数）· 来源：tokens.json space.scale */
+  --gutter: 20px; /* 页边距：文字、格子、按钮共用一条边 · 来源：tokens.json space.gutter */
+  --group-gap: 32px; /* 分组之间的留白（用留白与发丝线分组，不用卡片）· 来源：tokens.json space.groupGap */
+  --r-work: 0px; /* 圆角·作品：书写格、对照卡、字帖、字墙格、图片、印章 · 来源：tokens.json radius.work */
+  --r-ctl: 12px; /* 圆角·控件：按钮、输入框、分段控件、Toast · 来源：tokens.json radius.control */
+  --r-box: 24px; /* 圆角·容器：弹层（上两角）、浮层 · 来源：tokens.json radius.container */
+  --hair: 0.5px; /* 分隔发丝线（真机 1 物理像素）· 来源：tokens.json line.hairline */
+  --frame-w: 1px; /* 格框线宽 · 来源：tokens.json line.frame */
+  --guide-w: 0.75px; /* 格内十字虚线线宽 · 来源：tokens.json line.guide */
+  --target-w: 1.5px; /* 题面目标格外框线宽 · 来源：tokens.json line.targetCellFrame */
+  --hit: 44px; /* 最小可点尺寸 · 来源：tokens.json touch.minHit */
+  --btn-h: 54px; /* 主 / 次按钮高 · 来源：tokens.json touch.buttonHeight */
+  --press-scale: 0.97; /* 按下缩放 · 来源：tokens.json motion.pressScale */
+  --t-press: 120ms; /* 按下时长 · 来源：tokens.json motion.pressIn */
+  --t-release: 220ms; /* 松手回弹时长 · 来源：tokens.json motion.release */
+  --ease-out: cubic-bezier(.2,.7,.2,1); /* 缓出曲线 · 来源：tokens.json motion.easeOut */
+  --tex-size: 240px 240px, 600px 600px; /* 纸纹两层的平铺尺寸（细颗粒 + 低频云絮）· 来源：tokens.json texture.asset */
+  --tex-light: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .42  0 0 0 0 .36  0 0 0 0 .28  0 0 0 .055 0'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)'/%3E%3C/svg%3E"), url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='600'%3E%3Cfilter id='c'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.016' numOctaves='3' seed='11' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .42  0 0 0 0 .36  0 0 0 0 .28  0 0 0 .16 -.06'/%3E%3C/filter%3E%3Crect width='600' height='600' filter='url(%23c)'/%3E%3C/svg%3E"); /* 纸纹占位（浅）：细颗粒 .055 + 低频云絮 .10；真实扫描纸纹资产以后再换 · 来源：tokens.json texture.placeholderStrength.light */
+  --tex-dark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .96  0 0 0 0 .9  0 0 0 0 .8  0 0 0 .035 0'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)'/%3E%3C/svg%3E"), url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='600'%3E%3Cfilter id='c'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.016' numOctaves='3' seed='11' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .96  0 0 0 0 .9  0 0 0 0 .8  0 0 0 .07 -.03'/%3E%3C/filter%3E%3Crect width='600' height='600' filter='url(%23c)'/%3E%3C/svg%3E"); /* 纸纹占位（深）：细颗粒 .035 + 低频云絮 .04 · 来源：tokens.json texture.placeholderStrength.dark */
 }
 
-/* ---- 浅色（默认；data-theme="light" 强制） ---- */
+/* ---- 浅色（默认；data-theme="light" 强制；.t-light 局部强制） ---- */
 :root,
-:root[data-theme="light"] {
+:root[data-theme="light"],
+.t-light {
   color-scheme: light;
-  --p: #F4F0E7; /* 纸色：页面底 · 来源：首页壳-v3-第十稿交接版.dc.html L134；ShiziScreen-第十稿交接版.dc.html L276；字库墨墙屏-第十稿交接版.dc.html L254；ShiziWriteScreen-第十稿交接版.dc.html L269 */
-  --c: #FBF8F2; /* 浮纸：卡片、格子、次按钮底 · 来源：首页壳-v3-第十稿交接版.dc.html L134；ShiziScreen-第十稿交接版.dc.html L276；字库墨墙屏-第十稿交接版.dc.html L254；ShiziWriteScreen-第十稿交接版.dc.html L269 */
-  --sh: #F7F3EB; /* 弹层 / 抽屉底 · 来源：ShiziScreen-第十稿交接版.dc.html L276；字库墨墙屏-第十稿交接版.dc.html L254 */
-  --off: #EFE8DC; /* 凹槽：输入框、分段控件、禁用按钮底 · 来源：ShiziScreen-第十稿交接版.dc.html L276；字库墨墙屏-第十稿交接版.dc.html L254；ShiziWriteScreen-第十稿交接版.dc.html L269 */
-  --i1: #3B2F28; /* 主墨：正文与标题 · 来源：首页壳-v3-第十稿交接版.dc.html L134；ShiziScreen-第十稿交接版.dc.html L276；字库墨墙屏-第十稿交接版.dc.html L254；ShiziWriteScreen-第十稿交接版.dc.html L269 */
-  --i2: #5D5952; /* 次文字 · 来源：首页壳-v3-第十稿交接版.dc.html L134；ShiziScreen-第十稿交接版.dc.html L276；字库墨墙屏-第十稿交接版.dc.html L254；ShiziWriteScreen-第十稿交接版.dc.html L269 */
-  --i3: #6A645B; /* 辅助小字、标签 · 来源：首页壳-v3-第十稿交接版.dc.html L134；ShiziScreen-第十稿交接版.dc.html L276；字库墨墙屏-第十稿交接版.dc.html L254；ShiziWriteScreen-第十稿交接版.dc.html L269 */
-  --i4: #B3AC9F; /* 禁用按钮文字、提示框内已写过的笔画 · 来源：ShiziScreen-第十稿交接版.dc.html L276；字库墨墙屏-第十稿交接版.dc.html L254；ShiziWriteScreen-第十稿交接版.dc.html L269 */
-  --i5: #DED8CD; /* 分隔线、细边框 · 来源：首页壳-v3-第十稿交接版.dc.html L134；ShiziScreen-第十稿交接版.dc.html L276；字库墨墙屏-第十稿交接版.dc.html L254；ShiziWriteScreen-第十稿交接版.dc.html L269 */
-  --a: #A6533F; /* 主按钮底（配白字） · 来源：ShiziScreen-第十稿交接版.dc.html L276；字库墨墙屏-第十稿交接版.dc.html L254；ShiziWriteScreen-第十稿交接版.dc.html L269 */
-  --ar: #A6533F; /* 文字红：红点、强调字、提示笔画 · 来源：首页壳-v3-第十稿交接版.dc.html L134；ShiziScreen-第十稿交接版.dc.html L276；字库墨墙屏-第十稿交接版.dc.html L254；ShiziWriteScreen-第十稿交接版.dc.html L269 */
-  --g: #A6533F47; /* 田字格格线 · 来源：ShiziScreen-第十稿交接版.dc.html L276；字库墨墙屏-第十稿交接版.dc.html L254；ShiziWriteScreen-第十稿交接版.dc.html L269 */
-  --st1: #F3EEE5; /* ShiziScreen 表内色阶 1（模板未直接引用） · 来源：ShiziScreen-第十稿交接版.dc.html L276 */
-  --st2: #EAE3D7; /* ShiziScreen 表内色阶 2（模板未直接引用） · 来源：ShiziScreen-第十稿交接版.dc.html L276 */
-  --scrim: rgba(60,42,28,.22); /* 遮罩 · 来源：ShiziScreen-第十稿交接版.dc.html L276；字库墨墙屏-第十稿交接版.dc.html L254；ShiziWriteScreen-第十稿交接版.dc.html L269 */
-  --hi: rgba(59,47,40,.5); /* 原型仿系统 Home 指示条（示意） · 来源：首页壳-v3-第十稿交接版.dc.html L135；ShiziScreen-第十稿交接版.dc.html L276；字库墨墙屏-第十稿交接版.dc.html L254 */
-  --ref: #5D5952; /* 参考字形 · 来源：ShiziWriteScreen-第十稿交接版.dc.html L269 */
-  --tf: #EBE6DE; /* 描一遍：字形填充 · 来源：ShiziWriteScreen-第十稿交接版.dc.html L269 */
-  --tl: #948D81; /* 描一遍：字形轮廓 · 来源：ShiziWriteScreen-第十稿交接版.dc.html L269 */
-  --o: #9A5B33; /* 提示说明前的小圆点、提示框内当前笔画 · 来源：ShiziWriteScreen-第十稿交接版.dc.html L269 */
-  --ln: #CFC7B9; /* 首页题记两侧短线 · 来源：首页壳-v3-第十稿交接版.dc.html L134 */
-  --seal: #A6533F; /* 印章底 · 来源：首页壳-v3-第十稿交接版.dc.html L134 */
-  --tt: #5D5952; /* 首页「今天写几个字」大标题 · 来源：首页壳-v3-第十稿交接版.dc.html L135 */
-  --tb: #6A645B; /* 首页 S01 两行 / 计数行文字 · 来源：首页壳-v3-第十稿交接版.dc.html L135 */
-  --tm: #5D5952; /* 首页日期、题记 · 来源：首页壳-v3-第十稿交接版.dc.html L135 */
-  --tn: #6A645B; /* 首页三 tab 图标与字 · 来源：首页壳-v3-第十稿交接版.dc.html L135 */
-  --btn: #A6533F; /* 首页「拾」红块底（表内键名 btn，由 L217 注入为 --btn） · 来源：首页壳-v3-第十稿交接版.dc.html L135 */
-  --down: #984B39; /* 首页「拾」红块按下（表内键名 down，由 L217 注入为 --down） · 来源：首页壳-v3-第十稿交接版.dc.html L135 */
-  --ho: .6; /* 表内键名 ho；原型全文未引用（I 报告 L52），保留以示并集 · 来源：ShiziWriteScreen-第十稿交接版.dc.html L269 */
-  --sy0: #E9E9EB; /* 原型示意用 iOS 系统面板底；正式版由系统提供，产品界面不要引用 · 来源：字库墨墙屏-第十稿交接版.dc.html L254 */
-  --syt: #1C1C1E; /* 原型示意用 iOS 系统面板主文字；产品界面不要引用 · 来源：字库墨墙屏-第十稿交接版.dc.html L254 */
-  --sys: #6C6C70; /* 原型示意用 iOS 系统面板次文字；产品界面不要引用 · 来源：字库墨墙屏-第十稿交接版.dc.html L254 */
-  --syl: #D1D1D6; /* 原型示意用 iOS 系统面板分隔线；产品界面不要引用 · 来源：字库墨墙屏-第十稿交接版.dc.html L254 */
-  /* 纸纹（浅色）：两层细点 · 来源：ShiziWriteScreen-第十稿交接版.dc.html L585；首页壳-v3-第十稿交接版.dc.html L17 */
-  --paper-image: radial-gradient(rgba(140,125,105,.028) 1px,transparent 1.2px),radial-gradient(rgba(140,125,105,.022) 1px,transparent 1.2px); /* 纸纹：两层细点 · 来源：ShiziWriteScreen-第十稿交接版.dc.html L585；首页壳-v3-第十稿交接版.dc.html L17 */
-  --paper-size: 7px 7px,11px 11px; /* 纸纹点距 · 来源：ShiziWriteScreen-第十稿交接版.dc.html L585；首页壳-v3-第十稿交接版.dc.html L17 */
-  --paper-position: 0 0,3px 5px; /* 纸纹错位 · 来源：ShiziWriteScreen-第十稿交接版.dc.html L585；首页壳-v3-第十稿交接版.dc.html L17 */
-  --paper-repeat: repeat; /* 纸纹平铺 · 来源：ShiziWriteScreen-第十稿交接版.dc.html L585 */
+  --paper: #F4EFE6; /* 页面底。纸负责秩序 · 来源：tokens.json color.light.paper */
+  --sheet: #FBF8F2; /* 笺：书写格、对照卡、字帖、图片；对纸只有 1.08，边界靠 frame · 来源：tokens.json color.light.sheet */
+  --field: #E4DDD0; /* 凹：输入框、分段控件、按下底、必须有面时的分组面 · 来源：tokens.json color.light.field */
+  --elev: #FBF8F2; /* 弹层面 · 来源：tokens.json color.light.elev */
+  --line: #DDD5C7; /* 0.5pt 分隔线（装饰） · 来源：tokens.json color.light.line */
+  --frame: #9C8A74; /* 格框，按控件边界算（≥ 3:1） · 来源：tokens.json color.light.frame */
+  --guide: #D3C6B3; /* 格内十字虚线、字帖格间线（参照层） · 来源：tokens.json color.light.guide */
+  --ink1: #26211D; /* 字、标题、正文、主按钮底、选中、今天、焦点环 · 来源：tokens.json color.light.ink1 */
+  --ink2: #564E46; /* 次文字、文字按钮、拼音、输入框占位 · 来源：tokens.json color.light.ink2 */
+  --ink3: #6E655B; /* 辅助说明、标签、日期 · 来源：tokens.json color.light.ink3 */
+  --ink4: #8E8477; /* 禁用、chevron、次按钮边；不用于需要阅读的文字 · 来源：tokens.json color.light.ink4 */
+  --hand: #221D19; /* 本人笔迹 · 来源：tokens.json color.light.hand */
+  --ref: #4E4741; /* 参考字形（印刷墨） · 来源：tokens.json color.light.ref */
+  --under: #93897D; /* 答案衬底、没有本人墨的字格 · 来源：tokens.json color.light.under */
+  --zhu: #B03A27; /* 朱：只用于写错的朱点；一屏朱色（含印）不超过两处 · 来源：tokens.json color.light.zhu */
+  --seal: #B03A27; /* 印章底：只用于落款与品牌 · 来源：tokens.json color.light.seal */
+  --on-seal: #FBF8F2; /* 印章上的字（白文） · 来源：tokens.json color.light.onSeal */
+  --danzhu: #C06D57; /* 淡朱：提示笔画、描一遍、自选未写的双钩；与朱在明度上分开 · 来源：tokens.json color.light.danzhu */
+  --wall1: #26211D; /* 字墙新旧一档：一周内 · 来源：tokens.json color.light.wall1 */
+  --wall2: #4B4641; /* 字墙新旧二档：一月内 · 来源：tokens.json color.light.wall2 */
+  --wall3: #68635D; /* 字墙新旧三档：三月内 · 来源：tokens.json color.light.wall3 */
+  --wall4: #837E77; /* 字墙新旧四档：更久 · 来源：tokens.json color.light.wall4 */
+  --btn-bg: #26211D; /* 主按钮底（墨） · 来源：tokens.json color.light.btnBg */
+  --btn-fg: #F4EFE6; /* 主按钮字 · 来源：tokens.json color.light.btnFg */
+  --btn-down: #0F0C0A; /* 主按钮按下底 · 来源：tokens.json color.light.btnDown */
+  --toast-bg: #26211D; /* Toast / 撤销条底 · 来源：tokens.json color.light.toastBg */
+  --toast-fg: #F4EFE6; /* Toast / 撤销条字 · 来源：tokens.json color.light.toastFg */
+  --scrim: rgba(38,33,29,0.32); /* 遮罩 · 来源：tokens.json color.light.scrim */
+  --elev-shadow: 0px -0.5px 0px rgba(38,33,29,.10), 0px -10px 30px rgba(38,33,29,.10); /* 弹层阴影（只有弹层有阴影）· 来源：tokens.json shadow.light.sheet */
+  --tex-img: var(--tex-light); /* 笺面纸纹（只用于 .tex 笺面，占位强度见 texture.placeholderStrength）· 来源：tokens.json texture.placeholderStrength.light */
 }
 
 /* ---- 深色：跟随系统（无 data-theme 或 data-theme 非 light） ---- */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --p: #221E1A; /* 纸色：页面底 · 来源：首页壳-v3-第十稿交接版.dc.html L136；ShiziScreen-第十稿交接版.dc.html L277；字库墨墙屏-第十稿交接版.dc.html L255；ShiziWriteScreen-第十稿交接版.dc.html L270 */
-    --c: #2D2823; /* 浮纸：卡片、格子、次按钮底 · 来源：首页壳-v3-第十稿交接版.dc.html L136；ShiziScreen-第十稿交接版.dc.html L277；字库墨墙屏-第十稿交接版.dc.html L255；ShiziWriteScreen-第十稿交接版.dc.html L270 */
-    --sh: #28231E; /* 弹层 / 抽屉底 · 来源：ShiziScreen-第十稿交接版.dc.html L277；字库墨墙屏-第十稿交接版.dc.html L255 */
-    --off: #36302A; /* 凹槽：输入框、分段控件、禁用按钮底 · 来源：ShiziScreen-第十稿交接版.dc.html L277；字库墨墙屏-第十稿交接版.dc.html L255；ShiziWriteScreen-第十稿交接版.dc.html L270 */
-    --i1: #DCCFB8; /* 主墨：正文与标题 · 来源：首页壳-v3-第十稿交接版.dc.html L136；ShiziScreen-第十稿交接版.dc.html L277；字库墨墙屏-第十稿交接版.dc.html L255；ShiziWriteScreen-第十稿交接版.dc.html L270 */
-    --i2: #B4AC9E; /* 次文字 · 来源：首页壳-v3-第十稿交接版.dc.html L136；ShiziScreen-第十稿交接版.dc.html L277；字库墨墙屏-第十稿交接版.dc.html L255；ShiziWriteScreen-第十稿交接版.dc.html L270 */
-    --i3: #A09A8E; /* 辅助小字、标签 · 来源：首页壳-v3-第十稿交接版.dc.html L136；ShiziScreen-第十稿交接版.dc.html L277；字库墨墙屏-第十稿交接版.dc.html L255；ShiziWriteScreen-第十稿交接版.dc.html L270 */
-    --i4: #6B645A; /* 禁用按钮文字、提示框内已写过的笔画 · 来源：ShiziScreen-第十稿交接版.dc.html L277；字库墨墙屏-第十稿交接版.dc.html L255；ShiziWriteScreen-第十稿交接版.dc.html L270 */
-    --i5: #413A33; /* 分隔线、细边框 · 来源：首页壳-v3-第十稿交接版.dc.html L136；ShiziScreen-第十稿交接版.dc.html L277；字库墨墙屏-第十稿交接版.dc.html L255；ShiziWriteScreen-第十稿交接版.dc.html L270 */
-    --a: #AE5A44; /* 主按钮底（配白字） · 来源：ShiziScreen-第十稿交接版.dc.html L277；字库墨墙屏-第十稿交接版.dc.html L255；ShiziWriteScreen-第十稿交接版.dc.html L270 */
-    --ar: #D47A5D; /* 文字红：红点、强调字、提示笔画 · 来源：首页壳-v3-第十稿交接版.dc.html L136；ShiziScreen-第十稿交接版.dc.html L277；字库墨墙屏-第十稿交接版.dc.html L255；ShiziWriteScreen-第十稿交接版.dc.html L270 */
-    --g: rgba(200,110,85,.34); /* 田字格格线 · 来源：ShiziScreen-第十稿交接版.dc.html L277；字库墨墙屏-第十稿交接版.dc.html L255；ShiziWriteScreen-第十稿交接版.dc.html L270 */
-    --st1: #29251F; /* ShiziScreen 表内色阶 1（模板未直接引用） · 来源：ShiziScreen-第十稿交接版.dc.html L277 */
-    --st2: #25211C; /* ShiziScreen 表内色阶 2（模板未直接引用） · 来源：ShiziScreen-第十稿交接版.dc.html L277 */
-    --scrim: rgba(0,0,0,.55); /* 遮罩 · 来源：ShiziScreen-第十稿交接版.dc.html L277；字库墨墙屏-第十稿交接版.dc.html L255；ShiziWriteScreen-第十稿交接版.dc.html L270 */
-    --hi: rgba(234,228,216,.45); /* 原型仿系统 Home 指示条（示意） · 来源：首页壳-v3-第十稿交接版.dc.html L137；ShiziScreen-第十稿交接版.dc.html L277；字库墨墙屏-第十稿交接版.dc.html L255 */
-    --ref: #A09A8E; /* 参考字形 · 来源：ShiziWriteScreen-第十稿交接版.dc.html L270 */
-    --tf: #38322C; /* 描一遍：字形填充 · 来源：ShiziWriteScreen-第十稿交接版.dc.html L270 */
-    --tl: #7C766C; /* 描一遍：字形轮廓 · 来源：ShiziWriteScreen-第十稿交接版.dc.html L270 */
-    --o: #C08256; /* 提示说明前的小圆点、提示框内当前笔画 · 来源：ShiziWriteScreen-第十稿交接版.dc.html L270 */
-    --ln: #413A33; /* 首页题记两侧短线 · 来源：首页壳-v3-第十稿交接版.dc.html L136 */
-    --seal: #D07558; /* 印章底 · 来源：首页壳-v3-第十稿交接版.dc.html L136 */
-    --tt: #DCCFB8; /* 首页「今天写几个字」大标题 · 来源：首页壳-v3-第十稿交接版.dc.html L137 */
-    --tb: #B4AC9E; /* 首页 S01 两行 / 计数行文字 · 来源：首页壳-v3-第十稿交接版.dc.html L137 */
-    --tm: #B4AC9E; /* 首页日期、题记 · 来源：首页壳-v3-第十稿交接版.dc.html L137 */
-    --tn: #A09A8E; /* 首页三 tab 图标与字 · 来源：首页壳-v3-第十稿交接版.dc.html L137 */
-    --btn: #AE5A44; /* 首页「拾」红块底（表内键名 btn，由 L217 注入为 --btn） · 来源：首页壳-v3-第十稿交接版.dc.html L137 */
-    --down: #A0523E; /* 首页「拾」红块按下（表内键名 down，由 L217 注入为 --down） · 来源：首页壳-v3-第十稿交接版.dc.html L137 */
-    --ho: .45; /* 表内键名 ho；原型全文未引用（I 报告 L52），保留以示并集 · 来源：ShiziWriteScreen-第十稿交接版.dc.html L270 */
-    --sy0: #1C1C1E; /* 原型示意用 iOS 系统面板底；正式版由系统提供，产品界面不要引用 · 来源：字库墨墙屏-第十稿交接版.dc.html L255 */
-    --syt: #F2F2F7; /* 原型示意用 iOS 系统面板主文字；产品界面不要引用 · 来源：字库墨墙屏-第十稿交接版.dc.html L255 */
-    --sys: #8E8E93; /* 原型示意用 iOS 系统面板次文字；产品界面不要引用 · 来源：字库墨墙屏-第十稿交接版.dc.html L255 */
-    --syl: #38383A; /* 原型示意用 iOS 系统面板分隔线；产品界面不要引用 · 来源：字库墨墙屏-第十稿交接版.dc.html L255 */
-    /* 暖灯（深色）：右上角一盏灯，透明度取 --lamp · 来源：ShiziWriteScreen-第十稿交接版.dc.html L570；首页壳-v3-第十稿交接版.dc.html L221
-       原型在 393pt 宽的框里画在 346px -43px；页面级改为贴右缘 calc(100% - 47px)，尺寸 275×383 不变（紧凑版 L570 的 252×288 未单列）。 */
-    --paper-image: radial-gradient(275px 383px at calc(100% - 47px) -43px,rgba(255,214,170,var(--lamp)),transparent 70%); /* 暖灯：右上一盏灯 · 来源：ShiziWriteScreen-第十稿交接版.dc.html L570；首页壳-v3-第十稿交接版.dc.html L221 */
-    --paper-size: auto; /* 暖灯不平铺 · 来源：ShiziWriteScreen-第十稿交接版.dc.html L585 */
-    --paper-position: 0 0; /* 暖灯定位 · 来源：ShiziWriteScreen-第十稿交接版.dc.html L585 */
-    --paper-repeat: no-repeat; /* 暖灯只画一次 · 来源：ShiziWriteScreen-第十稿交接版.dc.html L585 */
+    --paper: #1B1814; /* 页面底。纸负责秩序 · 来源：tokens.json color.dark.paper */
+    --sheet: #24201B; /* 笺：书写格、对照卡、字帖、图片；对纸只有 1.08，边界靠 frame · 来源：tokens.json color.dark.sheet */
+    --field: #302B25; /* 凹：输入框、分段控件、按下底、必须有面时的分组面 · 来源：tokens.json color.dark.field */
+    --elev: #2A2520; /* 弹层面 · 来源：tokens.json color.dark.elev */
+    --line: #38322B; /* 0.5pt 分隔线（装饰） · 来源：tokens.json color.dark.line */
+    --frame: #806E5A; /* 格框，按控件边界算（≥ 3:1） · 来源：tokens.json color.dark.frame */
+    --guide: #40372E; /* 格内十字虚线、字帖格间线（参照层） · 来源：tokens.json color.dark.guide */
+    --ink1: #ECE4D6; /* 字、标题、正文、主按钮底、选中、今天、焦点环 · 来源：tokens.json color.dark.ink1 */
+    --ink2: #C2B8A8; /* 次文字、文字按钮、拼音、输入框占位 · 来源：tokens.json color.dark.ink2 */
+    --ink3: #A0968A; /* 辅助说明、标签、日期 · 来源：tokens.json color.dark.ink3 */
+    --ink4: #6F675D; /* 禁用、chevron、次按钮边；不用于需要阅读的文字 · 来源：tokens.json color.dark.ink4 */
+    --hand: #E6DAC4; /* 本人笔迹 · 来源：tokens.json color.dark.hand */
+    --ref: #B8AE9F; /* 参考字形（印刷墨） · 来源：tokens.json color.dark.ref */
+    --under: #7A7064; /* 答案衬底、没有本人墨的字格 · 来源：tokens.json color.dark.under */
+    --zhu: #EA6E50; /* 朱：只用于写错的朱点；一屏朱色（含印）不超过两处 · 来源：tokens.json color.dark.zhu */
+    --seal: #C4553C; /* 印章底：只用于落款与品牌 · 来源：tokens.json color.dark.seal */
+    --on-seal: #F4EAD9; /* 印章上的字（白文） · 来源：tokens.json color.dark.onSeal */
+    --danzhu: #A85C48; /* 淡朱：提示笔画、描一遍、自选未写的双钩；与朱在明度上分开 · 来源：tokens.json color.dark.danzhu */
+    --wall1: #E6DAC4; /* 字墙新旧一档：一周内 · 来源：tokens.json color.dark.wall1 */
+    --wall2: #C1B7A4; /* 字墙新旧二档：一月内 · 来源：tokens.json color.dark.wall2 */
+    --wall3: #A59C8C; /* 字墙新旧三档：三月内 · 来源：tokens.json color.dark.wall3 */
+    --wall4: #8B8375; /* 字墙新旧四档：更久 · 来源：tokens.json color.dark.wall4 */
+    --btn-bg: #E2D9C9; /* 主按钮底（墨） · 来源：tokens.json color.dark.btnBg */
+    --btn-fg: #1B1814; /* 主按钮字 · 来源：tokens.json color.dark.btnFg */
+    --btn-down: #CBC1B0; /* 主按钮按下底 · 来源：tokens.json color.dark.btnDown */
+    --toast-bg: #3A332C; /* Toast / 撤销条底 · 来源：tokens.json color.dark.toastBg */
+    --toast-fg: #ECE4D6; /* Toast / 撤销条字 · 来源：tokens.json color.dark.toastFg */
+    --scrim: rgba(0,0,0,0.52); /* 遮罩 · 来源：tokens.json color.dark.scrim */
+    --elev-shadow: 0px -0.5px 0px rgba(255,240,220,.06); /* 弹层阴影（只有弹层有阴影）· 来源：tokens.json shadow.dark.sheet */
+    --tex-img: var(--tex-dark); /* 笺面纸纹（只用于 .tex 笺面，占位强度见 texture.placeholderStrength）· 来源：tokens.json texture.placeholderStrength.dark */
   }
 }
 
-/* ---- 深色：data-theme="dark" 强制（与上面媒体查询块逐字一致） ---- */
-:root[data-theme="dark"] {
+/* ---- 深色：data-theme="dark" 强制；.t-dark 局部强制（与上面媒体查询块逐字一致） ---- */
+:root[data-theme="dark"],
+.t-dark {
   color-scheme: dark;
-  --p: #221E1A; /* 纸色：页面底 · 来源：首页壳-v3-第十稿交接版.dc.html L136；ShiziScreen-第十稿交接版.dc.html L277；字库墨墙屏-第十稿交接版.dc.html L255；ShiziWriteScreen-第十稿交接版.dc.html L270 */
-  --c: #2D2823; /* 浮纸：卡片、格子、次按钮底 · 来源：首页壳-v3-第十稿交接版.dc.html L136；ShiziScreen-第十稿交接版.dc.html L277；字库墨墙屏-第十稿交接版.dc.html L255；ShiziWriteScreen-第十稿交接版.dc.html L270 */
-  --sh: #28231E; /* 弹层 / 抽屉底 · 来源：ShiziScreen-第十稿交接版.dc.html L277；字库墨墙屏-第十稿交接版.dc.html L255 */
-  --off: #36302A; /* 凹槽：输入框、分段控件、禁用按钮底 · 来源：ShiziScreen-第十稿交接版.dc.html L277；字库墨墙屏-第十稿交接版.dc.html L255；ShiziWriteScreen-第十稿交接版.dc.html L270 */
-  --i1: #DCCFB8; /* 主墨：正文与标题 · 来源：首页壳-v3-第十稿交接版.dc.html L136；ShiziScreen-第十稿交接版.dc.html L277；字库墨墙屏-第十稿交接版.dc.html L255；ShiziWriteScreen-第十稿交接版.dc.html L270 */
-  --i2: #B4AC9E; /* 次文字 · 来源：首页壳-v3-第十稿交接版.dc.html L136；ShiziScreen-第十稿交接版.dc.html L277；字库墨墙屏-第十稿交接版.dc.html L255；ShiziWriteScreen-第十稿交接版.dc.html L270 */
-  --i3: #A09A8E; /* 辅助小字、标签 · 来源：首页壳-v3-第十稿交接版.dc.html L136；ShiziScreen-第十稿交接版.dc.html L277；字库墨墙屏-第十稿交接版.dc.html L255；ShiziWriteScreen-第十稿交接版.dc.html L270 */
-  --i4: #6B645A; /* 禁用按钮文字、提示框内已写过的笔画 · 来源：ShiziScreen-第十稿交接版.dc.html L277；字库墨墙屏-第十稿交接版.dc.html L255；ShiziWriteScreen-第十稿交接版.dc.html L270 */
-  --i5: #413A33; /* 分隔线、细边框 · 来源：首页壳-v3-第十稿交接版.dc.html L136；ShiziScreen-第十稿交接版.dc.html L277；字库墨墙屏-第十稿交接版.dc.html L255；ShiziWriteScreen-第十稿交接版.dc.html L270 */
-  --a: #AE5A44; /* 主按钮底（配白字） · 来源：ShiziScreen-第十稿交接版.dc.html L277；字库墨墙屏-第十稿交接版.dc.html L255；ShiziWriteScreen-第十稿交接版.dc.html L270 */
-  --ar: #D47A5D; /* 文字红：红点、强调字、提示笔画 · 来源：首页壳-v3-第十稿交接版.dc.html L136；ShiziScreen-第十稿交接版.dc.html L277；字库墨墙屏-第十稿交接版.dc.html L255；ShiziWriteScreen-第十稿交接版.dc.html L270 */
-  --g: rgba(200,110,85,.34); /* 田字格格线 · 来源：ShiziScreen-第十稿交接版.dc.html L277；字库墨墙屏-第十稿交接版.dc.html L255；ShiziWriteScreen-第十稿交接版.dc.html L270 */
-  --st1: #29251F; /* ShiziScreen 表内色阶 1（模板未直接引用） · 来源：ShiziScreen-第十稿交接版.dc.html L277 */
-  --st2: #25211C; /* ShiziScreen 表内色阶 2（模板未直接引用） · 来源：ShiziScreen-第十稿交接版.dc.html L277 */
-  --scrim: rgba(0,0,0,.55); /* 遮罩 · 来源：ShiziScreen-第十稿交接版.dc.html L277；字库墨墙屏-第十稿交接版.dc.html L255；ShiziWriteScreen-第十稿交接版.dc.html L270 */
-  --hi: rgba(234,228,216,.45); /* 原型仿系统 Home 指示条（示意） · 来源：首页壳-v3-第十稿交接版.dc.html L137；ShiziScreen-第十稿交接版.dc.html L277；字库墨墙屏-第十稿交接版.dc.html L255 */
-  --ref: #A09A8E; /* 参考字形 · 来源：ShiziWriteScreen-第十稿交接版.dc.html L270 */
-  --tf: #38322C; /* 描一遍：字形填充 · 来源：ShiziWriteScreen-第十稿交接版.dc.html L270 */
-  --tl: #7C766C; /* 描一遍：字形轮廓 · 来源：ShiziWriteScreen-第十稿交接版.dc.html L270 */
-  --o: #C08256; /* 提示说明前的小圆点、提示框内当前笔画 · 来源：ShiziWriteScreen-第十稿交接版.dc.html L270 */
-  --ln: #413A33; /* 首页题记两侧短线 · 来源：首页壳-v3-第十稿交接版.dc.html L136 */
-  --seal: #D07558; /* 印章底 · 来源：首页壳-v3-第十稿交接版.dc.html L136 */
-  --tt: #DCCFB8; /* 首页「今天写几个字」大标题 · 来源：首页壳-v3-第十稿交接版.dc.html L137 */
-  --tb: #B4AC9E; /* 首页 S01 两行 / 计数行文字 · 来源：首页壳-v3-第十稿交接版.dc.html L137 */
-  --tm: #B4AC9E; /* 首页日期、题记 · 来源：首页壳-v3-第十稿交接版.dc.html L137 */
-  --tn: #A09A8E; /* 首页三 tab 图标与字 · 来源：首页壳-v3-第十稿交接版.dc.html L137 */
-  --btn: #AE5A44; /* 首页「拾」红块底（表内键名 btn，由 L217 注入为 --btn） · 来源：首页壳-v3-第十稿交接版.dc.html L137 */
-  --down: #A0523E; /* 首页「拾」红块按下（表内键名 down，由 L217 注入为 --down） · 来源：首页壳-v3-第十稿交接版.dc.html L137 */
-  --ho: .45; /* 表内键名 ho；原型全文未引用（I 报告 L52），保留以示并集 · 来源：ShiziWriteScreen-第十稿交接版.dc.html L270 */
-  --sy0: #1C1C1E; /* 原型示意用 iOS 系统面板底；正式版由系统提供，产品界面不要引用 · 来源：字库墨墙屏-第十稿交接版.dc.html L255 */
-  --syt: #F2F2F7; /* 原型示意用 iOS 系统面板主文字；产品界面不要引用 · 来源：字库墨墙屏-第十稿交接版.dc.html L255 */
-  --sys: #8E8E93; /* 原型示意用 iOS 系统面板次文字；产品界面不要引用 · 来源：字库墨墙屏-第十稿交接版.dc.html L255 */
-  --syl: #38383A; /* 原型示意用 iOS 系统面板分隔线；产品界面不要引用 · 来源：字库墨墙屏-第十稿交接版.dc.html L255 */
-  /* 暖灯（深色）：右上角一盏灯，透明度取 --lamp · 来源：ShiziWriteScreen-第十稿交接版.dc.html L570；首页壳-v3-第十稿交接版.dc.html L221
-     原型在 393pt 宽的框里画在 346px -43px；页面级改为贴右缘 calc(100% - 47px)，尺寸 275×383 不变（紧凑版 L570 的 252×288 未单列）。 */
-  --paper-image: radial-gradient(275px 383px at calc(100% - 47px) -43px,rgba(255,214,170,var(--lamp)),transparent 70%); /* 暖灯：右上一盏灯 · 来源：ShiziWriteScreen-第十稿交接版.dc.html L570；首页壳-v3-第十稿交接版.dc.html L221 */
-  --paper-size: auto; /* 暖灯不平铺 · 来源：ShiziWriteScreen-第十稿交接版.dc.html L585 */
-  --paper-position: 0 0; /* 暖灯定位 · 来源：ShiziWriteScreen-第十稿交接版.dc.html L585 */
-  --paper-repeat: no-repeat; /* 暖灯只画一次 · 来源：ShiziWriteScreen-第十稿交接版.dc.html L585 */
+  --paper: #1B1814; /* 页面底。纸负责秩序 · 来源：tokens.json color.dark.paper */
+  --sheet: #24201B; /* 笺：书写格、对照卡、字帖、图片；对纸只有 1.08，边界靠 frame · 来源：tokens.json color.dark.sheet */
+  --field: #302B25; /* 凹：输入框、分段控件、按下底、必须有面时的分组面 · 来源：tokens.json color.dark.field */
+  --elev: #2A2520; /* 弹层面 · 来源：tokens.json color.dark.elev */
+  --line: #38322B; /* 0.5pt 分隔线（装饰） · 来源：tokens.json color.dark.line */
+  --frame: #806E5A; /* 格框，按控件边界算（≥ 3:1） · 来源：tokens.json color.dark.frame */
+  --guide: #40372E; /* 格内十字虚线、字帖格间线（参照层） · 来源：tokens.json color.dark.guide */
+  --ink1: #ECE4D6; /* 字、标题、正文、主按钮底、选中、今天、焦点环 · 来源：tokens.json color.dark.ink1 */
+  --ink2: #C2B8A8; /* 次文字、文字按钮、拼音、输入框占位 · 来源：tokens.json color.dark.ink2 */
+  --ink3: #A0968A; /* 辅助说明、标签、日期 · 来源：tokens.json color.dark.ink3 */
+  --ink4: #6F675D; /* 禁用、chevron、次按钮边；不用于需要阅读的文字 · 来源：tokens.json color.dark.ink4 */
+  --hand: #E6DAC4; /* 本人笔迹 · 来源：tokens.json color.dark.hand */
+  --ref: #B8AE9F; /* 参考字形（印刷墨） · 来源：tokens.json color.dark.ref */
+  --under: #7A7064; /* 答案衬底、没有本人墨的字格 · 来源：tokens.json color.dark.under */
+  --zhu: #EA6E50; /* 朱：只用于写错的朱点；一屏朱色（含印）不超过两处 · 来源：tokens.json color.dark.zhu */
+  --seal: #C4553C; /* 印章底：只用于落款与品牌 · 来源：tokens.json color.dark.seal */
+  --on-seal: #F4EAD9; /* 印章上的字（白文） · 来源：tokens.json color.dark.onSeal */
+  --danzhu: #A85C48; /* 淡朱：提示笔画、描一遍、自选未写的双钩；与朱在明度上分开 · 来源：tokens.json color.dark.danzhu */
+  --wall1: #E6DAC4; /* 字墙新旧一档：一周内 · 来源：tokens.json color.dark.wall1 */
+  --wall2: #C1B7A4; /* 字墙新旧二档：一月内 · 来源：tokens.json color.dark.wall2 */
+  --wall3: #A59C8C; /* 字墙新旧三档：三月内 · 来源：tokens.json color.dark.wall3 */
+  --wall4: #8B8375; /* 字墙新旧四档：更久 · 来源：tokens.json color.dark.wall4 */
+  --btn-bg: #E2D9C9; /* 主按钮底（墨） · 来源：tokens.json color.dark.btnBg */
+  --btn-fg: #1B1814; /* 主按钮字 · 来源：tokens.json color.dark.btnFg */
+  --btn-down: #CBC1B0; /* 主按钮按下底 · 来源：tokens.json color.dark.btnDown */
+  --toast-bg: #3A332C; /* Toast / 撤销条底 · 来源：tokens.json color.dark.toastBg */
+  --toast-fg: #ECE4D6; /* Toast / 撤销条字 · 来源：tokens.json color.dark.toastFg */
+  --scrim: rgba(0,0,0,0.52); /* 遮罩 · 来源：tokens.json color.dark.scrim */
+  --elev-shadow: 0px -0.5px 0px rgba(255,240,220,.06); /* 弹层阴影（只有弹层有阴影）· 来源：tokens.json shadow.dark.sheet */
+  --tex-img: var(--tex-dark); /* 笺面纸纹（只用于 .tex 笺面，占位强度见 texture.placeholderStrength）· 来源：tokens.json texture.placeholderStrength.dark */
+}
+
+/* ---- 过渡别名（P1-E1a 第一步，仅为让还没迁完的引用继续生效；同卡的「全局替换」提交里随引用一起删除） ---- */
+:root {
+  --p: var(--paper); /* 旧纸色 · 来源：过渡别名 → --paper */
+  --c: var(--sheet); /* 旧浮纸 · 来源：过渡别名 → --sheet */
+  --sh: var(--elev); /* 旧弹层底 · 来源：过渡别名 → --elev */
+  --off: var(--field); /* 旧凹槽 · 来源：过渡别名 → --field */
+  --i1: var(--ink1); /* 旧主墨 · 来源：过渡别名 → --ink1 */
+  --i2: var(--ink2); /* 旧次文字 · 来源：过渡别名 → --ink2 */
+  --i3: var(--ink3); /* 旧辅助 · 来源：过渡别名 → --ink3 */
+  --i4: var(--ink4); /* 旧禁用 · 来源：过渡别名 → --ink4 */
+  --i5: var(--line); /* 旧分隔线 · 来源：过渡别名 → --line */
+  --a: var(--btn-bg); /* 旧主按钮底 · 来源：过渡别名 → --btn-bg */
+  --ar: var(--zhu); /* 旧文字红 · 来源：过渡别名 → --zhu（待逐处拆分） */
+  --g: var(--frame); /* 旧格线 · 来源：过渡别名 → --frame */
+  --hint: var(--danzhu); /* 旧提示笔画色 · 来源：过渡别名 → --danzhu */
+  --tf: var(--danzhu); /* 旧描一遍填充 · 来源：过渡别名 → --danzhu */
+  --tl: var(--danzhu); /* 旧描一遍轮廓 · 来源：过渡别名 → --danzhu */
+  --o: var(--danzhu); /* 旧提示小圆点 · 来源：过渡别名 → --danzhu */
+  --ln: var(--line); /* 旧题记短线 · 来源：过渡别名 → --line */
+  --tt: var(--ink1); /* 旧首页大标题 · 来源：过渡别名 → --ink1 */
+  --tb: var(--ink2); /* 旧首页正文 · 来源：过渡别名 → --ink2 */
+  --tm: var(--ink2); /* 旧首页日期题记 · 来源：过渡别名 → --ink2 */
+  --tn: var(--ink3); /* 旧 tab 字 · 来源：过渡别名 → --ink3 */
+  --btn: var(--btn-bg); /* 旧首页主按钮底 · 来源：过渡别名 → --btn-bg */
+  --down: var(--btn-down); /* 旧首页主按钮按下 · 来源：过渡别名 → --btn-down */
+  --serif: var(--song); /* 旧宋体 · 来源：过渡别名 → --song */
+  --sans: var(--hei); /* 旧黑体 · 来源：过渡别名 → --hei */
 }

@@ -91,6 +91,7 @@
   },
   "nonRuntimeDecisions": {
     "P22": "字体子集重建范围：构建期（M5-2 用 #180 reproduce.py），不是运行时开关",
+    "P58": "深色暖灯与深色提亮一档：已决定 D43（设计系统 v1）——暖灯取消、深色提示 / 描一遍 / 禁用颜色在 docs/design/design-system-v1/tokens.json 单独定值；原 policy.darkLampLevel / darkBrightenStep 随阶段 1 P1-E1a 删除，不再是运行时开关",
     "P62": "结果页说明句单独「看过答案」/「跳过」的措辞：待设计给文案，M2-3 落槽（R-R01）；落槽前不占 copy 键",
     "P63": "字库首页「从 X 开始记录」的 X：待设计裁定日期/月份，M3-1 落槽（R-L10）",
     "P64": "文案槽位占位符归一（{date}的、{month} 月）：抽取阶段规则，见 normalization；请产品确认",

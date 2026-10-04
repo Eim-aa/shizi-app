@@ -266,10 +266,8 @@ export const migration = Object.freeze({
 });
 
 // ---- 外观 ----
-// P58 深色暖灯透明度（原型可调 .04–.06）。只登记：CSS 读不到 JS，现行值在 src/config/tokens.css 的 --lamp，改这里须同步那里。
-export const darkLampLevel = 0.05;
-// P58 W23 / R-W24 深色下提示笔、描摹轮廓、禁用按钮是否提亮一档：待真机看过再定（过渡不提亮）。
-export const darkBrightenStep = false;
+// P58 已决定 D43（设计系统 v1，阶段 1 P1-E1a）：深色暖灯取消、深色下提示 / 描一遍 / 禁用的颜色在 tokens.json 里单独定值，不再有运行时开关；
+// 原 darkLampLevel / darkBrightenStep 删除（docs/engineering/v10/copy-source.json nonRuntimeDecisions 登记 P58）。
 
 // ---- 字号（阶段 1 P1-E6；已决定 D29：字号跟随系统 Dynamic Type，覆盖 X08 与 P59 的固定 1.3 / App 内「更大字体」开关）----
 // P130 系统字号档位 → 连续倍率 --k（L = 系统默认 = 1）。原生（WebViewController.swift）读 traitCollection.preferredContentSizeCategory，

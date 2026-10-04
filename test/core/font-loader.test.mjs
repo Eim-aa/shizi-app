@@ -62,11 +62,11 @@ test('index.html links fonts/fonts.css after base.css and before any script', ()
   assert.equal(html.split('fonts/fonts.css').length, 2, 'linked once');
 });
 
-test('base.css font stacks lead with the shipped families; --sans stays system', () => {
-  const css = read('src/config/base.css');
+test('tokens.css font stacks (P1-E1a: --kai / --song / --hei, moved from base.css) lead with the shipped families; --hei stays system', () => {
+  const css = read('src/config/tokens.css');
   assert.match(css, /--kai:\s*"ShiziKai",/);
-  assert.match(css, /--serif:\s*"ShiziSerifSC",/);
-  assert.doesNotMatch(/--sans:[^;]*;/.exec(css)[0], /Shizi/);
+  assert.match(css, /--song:\s*"ShiziSerifSC",/);
+  assert.doesNotMatch(/--hei:[^;]*;/.exec(css)[0], /Shizi/);
   assert.equal(firstFamily(FONTS.kai), 'ShiziKai', 'canvas kai stack (core/images/render.js) leads with ShiziKai');
 });
 

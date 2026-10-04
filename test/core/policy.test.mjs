@@ -92,8 +92,8 @@ test('policy: transitional defaults match 03 / the M0-6 card', () => {
   assert.deepEqual([...policy.inkToneDays], [7, 30, 90], 'P56');
   assert.equal(policy.storageWarnRatio, 0.8, 'P57');
   assert.equal(policy.assumedQuotaBytes, 5 * 1024 * 1024, 'P57');
-  assert.equal(policy.darkLampLevel, 0.05, 'P58');
-  assert.equal(policy.darkBrightenStep, false, 'P58');
+  assert.equal(policy.darkLampLevel, undefined, 'P58 decided D43: the dark warm lamp is cancelled');
+  assert.equal(policy.darkBrightenStep, undefined, 'P58 decided D43: dark hint / trace / disabled colours are fixed in tokens.json, no brighten switch');
   assert.equal(policy.largeTextScale, undefined, 'P59 decided D29: no fixed in-app large scale any more');
   assert.deepEqual({ ...policy.contentSizeScale }, {
     xS: 0.82, S: 0.88, M: 0.94, L: 1, XL: 1.12, XXL: 1.24, XXXL: 1.35, AX1: 1.6, AX2: 1.8, AX3: 2, AX4: 2.2, AX5: 2.4,
@@ -111,9 +111,9 @@ test('policy: transitional defaults match 03 / the M0-6 card', () => {
   );
 });
 
-test('policy: P58 mirrors the CSS token it documents (tokens.css cannot import JS); --k defaults to 1 = contentSizeScale.L (P130)', () => {
+test('policy: --k defaults to 1 = contentSizeScale.L (P130); the P58 lamp token is gone (D43)', () => {
   const css = fs.readFileSync(path.join(ROOT, 'src/config/tokens.css'), 'utf8');
-  assert.match(css, new RegExp('--lamp:\\s*' + String(policy.darkLampLevel).replace(/^0/, '0?').replace('.', '\\.') + '\\b'), '--lamp equals policy.darkLampLevel');
+  assert.ok(!/--lamp/.test(css), 'no --lamp token');
   assert.match(css, /--k:\s*1;/, 'tokens.css --k default 1');
   assert.equal(policy.contentSizeScale.L, 1, 'system default size maps to the same 1');
 });

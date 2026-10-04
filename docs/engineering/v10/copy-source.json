@@ -4654,17 +4654,38 @@
         },
         "rowPaperCorrect": {
           "raw": null,
-          "text": "「{char}」写对 · 纸上",
+          "text": "「{char}」写对",
           "origin": "extra",
-          "note": "作品下的行：没放进作品的字（无墨 / 看过答案 / 跳过 / 纸上只有说明，没有「放进去」；交接 §4.4）",
-          "decision": "P160"
+          "note": "纸上那一字的行（D46 ⑬ / D47，P1-E78；交接 §4.2 / §10.2）：「「{char}」写对」，后面接墨三的「· 纸上」（X-DETAIL.paperTag），没有「放进去」",
+          "decision": "D47"
         },
         "rowPaperWrong": {
           "raw": null,
-          "text": "「{char}」写错 · 纸上",
+          "text": "「{char}」写错",
           "origin": "extra",
-          "note": "作品下的行：没放进作品的字（无墨 / 看过答案 / 跳过 / 纸上只有说明，没有「放进去」；交接 §4.4）",
-          "decision": "P160"
+          "note": "纸上那一字的行（D46 ⑬ / D47，P1-E78；交接 §4.2 / §10.2）：「「{char}」写对」，后面接墨三的「· 纸上」（X-DETAIL.paperTag），没有「放进去」",
+          "decision": "D47"
+        },
+        "rowPaperAria": {
+          "raw": null,
+          "text": "{char}，{state}，纸上",
+          "origin": "extra",
+          "note": "纸上行的读屏名称（交接 §5.5；念法 D45 文案统一时定稿）",
+          "decision": "D47"
+        },
+        "paperState": {
+          "raw": null,
+          "text": "{state}，纸上",
+          "origin": "extra",
+          "note": "整组都在纸上时衬底格的读屏状态（交接 §5.5；念法 D45 文案统一时定稿）",
+          "decision": "D47"
+        },
+        "statusPaper": {
+          "raw": null,
+          "text": "纸上",
+          "origin": "extra",
+          "note": "整组都在纸上时衬底一行的格下状态字（交接 §4.2 变体、§10.2）",
+          "decision": "D47"
         },
         "statusCorrect": {
           "raw": null,

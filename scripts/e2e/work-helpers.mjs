@@ -2,7 +2,8 @@
 //
 //   seedWork(page, {kind, chars, steps, ...})   造一组（真实 mutator）并 seed 成「已结束、停在 lastEnded」的会话；返回 {sessionId, slot, records}
 //        steps[i] 对应 chars[i]：'correct' | 'wrong'（有墨）、'correct-noink' | 'wrong-noink'（判断了但没墨）、'skip'、
-//        'seen'（看过答案没写）、'seen-ink'（看过答案后自己写了一遍，墨存在 answer-seen 记录上）
+//        'seen'（看过答案没写）、'seen-ink'（看过答案后自己写了一遍，墨存在 answer-seen 记录上）、
+//        'paper-correct' | 'paper-wrong'（在纸上写、回来自判：记录 source:'paper'、没有墨，P1-E78）
 //   openResultPage(page, {slot, sessionId})     push 结果页并等 idle
 //   resultSnapshot(page)                        作品 / 行 / 页头分享的现状
 //   seedMonthRecords(page, {month, entries})    往某月塞若干天的有墨 / 无墨记录（月字帖、年报用）
@@ -38,6 +39,8 @@ export async function seedWork(page, { id = 's40', kind = 'daily', slot = 'A', c
         ids.push(judgeInDraft(draft, { slot: o.slot, cardKey: key, judgment: step, strokes, at, nextId, perRecordInk: true }).record.id);
       } else if (step === 'correct-noink' || step === 'wrong-noink') {
         ids.push(judgeInDraft(draft, { slot: o.slot, cardKey: key, judgment: step.split('-')[0], strokes, at, nextId, perRecordInk: false }).record.id);
+      } else if (step === 'paper-correct' || step === 'paper-wrong') {
+        ids.push(judgeInDraft(draft, { slot: o.slot, cardKey: key, judgment: step.split('-')[1], strokes: [], at, nextId, perRecordInk: true, paper: true }).record.id);
       } else if (step === 'skip') {
         ids.push(skipInDraft(draft, { slot: o.slot, cardKey: key, at, nextId }).record.id);
       } else {

@@ -1,7 +1,7 @@
 // 结果页即作品（阶段 1 P1-E7；交接 §4 / §5；D31 / D46 ⑥ ⑩；首练结果页与日常结果页共用这一作品构图）。
 //
 //   WorkSection   作品（纸 + 作品格 + 落款与印 + 格下「看后写的」标注）；没有任何墨时换成衬底参考字一行 + 格下状态字（§4.2 变体）。
-//   WorkRows      作品下「没放进图里」的行：写错有墨「放进去」、无墨 / 看过答案 / 跳过 / 纸上（只有说明，没有「放进去」）；点行 → 对照与修改（D19）。
+//   WorkRows      作品下「没放进图里」的行：写错有墨「放进去」、无墨 / 看过答案 / 跳过 / 纸上（「「字」写对 · 纸上」，「· 纸上」墨三；只有说明，没有「放进去」，D47）；点行 → 对照与修改（D19）。
 //   commitAdded   「放进去」/「拿出来」：写进本组会话的 added（经 store.commit，刷新后仍在；核心规则在 core/images/work.js）。
 //
 // data-testid：work（作品；data-n / data-cols / data-rows / data-cell）、work-cell（data-index / data-char / data-mode / data-dot / data-state）、
@@ -29,6 +29,7 @@ injectStyles('result-work', `
 .sz-exrow__cell{position:relative;flex:none;width:48px;height:48px;box-sizing:border-box;${TEX};box-shadow:inset 0 0 0 ${T.frameW} ${T.frame}}
 .sz-exrow__cell canvas{position:absolute;left:1px;top:1px}
 .sz-exrow__t{flex:1;min-width:0;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2}}
+.sz-exrow__tag{color:${T.ink3}}
 .sz-exrow .sz-btn--text{flex:none}
 :root[data-ax] .sz-exrow{flex-wrap:wrap}
 :root[data-ax] .sz-exrow__open{flex:1 1 100%}
@@ -81,10 +82,21 @@ function stateWord(entry) {
   return t(entry.judgment === 'wrong' ? 'X-WORK.cellStateWrong' : 'X-WORK.cellStateCorrect');
 }
 
+function judgmentWord(entry) {
+  return t(entry.judgment === 'wrong' ? 'X-WORK.statusWrong' : 'X-WORK.statusCorrect');
+}
+
+/** 衬底一行（整组没有墨）格下的状态字：纸上那一字写「纸上」（D47，交接 §4.2 / §10.2）。 */
 function statusWord(entry) {
+  if (entry.state === 'paper') return t('X-WORK.statusPaper');
   if (entry.kind === 'skipped') return t('X-WORK.statusSkipped');
   if (entry.kind === 'answer-seen') return t('X-WORK.statusSeen');
-  return t(entry.judgment === 'wrong' ? 'X-WORK.statusWrong' : 'X-WORK.statusCorrect');
+  return judgmentWord(entry);
+}
+
+/** 衬底一行里一格的读屏状态：纸上「写对，纸上」（交接 §5.5），其余同格下状态字。 */
+function cellStateOf(entry) {
+  return entry.state === 'paper' ? t('X-WORK.paperState', { state: judgmentWord(entry) }) : statusWord(entry);
 }
 
 /** 整体读屏名称：「作品：疆、酱、酝，3 个字，10月5日」。 */
@@ -105,8 +117,8 @@ export function WorkSection({ work, day, dateText, inkOf, onOpen }) {
     if (!entries.length) return null;
     const grid = resultGrid(entries.length, sw);
     const cells = entries.map(e => ({
-      key: e.index, index: e.index, ch: e.char, status: statusWord(e), wrong: e.judgment === 'wrong' && e.kind === 'judged',
-      label: t('X-WORK.cellAria', { char: e.char, state: statusWord(e) }),
+      key: e.index, index: e.index, ch: e.char, status: statusWord(e), wrong: e.judgment === 'wrong' && e.kind === 'judged' && e.state !== 'paper',
+      label: t('X-WORK.cellAria', { char: e.char, state: cellStateOf(e) }),
     }));
     return html`<${PlainRow} cells=${cells} grid=${grid} onOpen=${cell => onOpen(entries[cell.index])}
       label=${workAria(entries.map(e => e.char), entries.length, dateText)} />`;
@@ -134,8 +146,14 @@ function rowText(entry) {
     case 'skipped':
       return t('X-WORK.rowSkipped', { char: entry.char });
     default:
+      // 纸上：「「{字}」写对」，后面单独接墨三的「· 纸上」（rowTag）
       return t(entry.judgment === 'wrong' ? 'X-WORK.rowPaperWrong' : 'X-WORK.rowPaperCorrect', { char: entry.char });
   }
+}
+
+/** 纸上行的读屏名称：「{字}，写对，纸上」（交接 §5.5）。 */
+function rowAria(entry) {
+  return entry.state === 'paper' ? t('X-WORK.rowPaperAria', { char: entry.char, state: judgmentWord(entry) }) : null;
 }
 
 /**
@@ -151,11 +169,13 @@ export function WorkRows({ rows, inkOf, onOpen, onToggle }) {
     const actable = inked;
     return html`<div key=${row.index} class="sz-exrow" data-testid="result-exrow" data-index=${row.index} data-char=${row.char} data-record=${row.recordId || ''}
       data-state=${row.state} data-added=${on ? 'true' : 'false'}>
-      <button type="button" class="sz-exrow__open" data-testid="result-exrow-open" onClick=${() => onOpen(row)}>
+      <button type="button" class="sz-exrow__open" data-testid="result-exrow-open" aria-label=${rowAria(row)} onClick=${() => onOpen(row)}>
         <span class="sz-exrow__cell" aria-hidden="true">
           <${CellCanvas} ch=${row.char} ink=${inked ? inkOf(row.record) : null} mode=${inked ? 'hand' : 'under'} size=${46} testid="result-exrow-canvas" />
         </span>
-        <span class="sz-exrow__t" data-wrong=${wrongRow ? 'true' : 'false'}>${rowText(row)}</span>
+        <span class="sz-exrow__t" data-wrong=${wrongRow ? 'true' : 'false'}>${rowText(row)}${row.state === 'paper'
+          ? html` <span class="sz-exrow__tag" data-testid="result-exrow-tag">${t('X-DETAIL.paperTag')}</span>`
+          : null}</span>
       </button>
       ${actable
         ? html`<${Button} variant="text" data-testid="result-add" aria-pressed=${on ? 'true' : 'false'}

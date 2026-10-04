@@ -7335,6 +7335,7 @@ src/config/copy/mine.js
 src/config/copy/query.js
 src/config/copy/result.js
 src/config/copy/settings.js
+src/config/copy/work.js
 src/config/copy/write.js
 src/config/credits.js
 src/config/deck-meta.js
@@ -7347,9 +7348,14 @@ src/core/dates.js
 src/core/first-result.js
 src/core/fsrs.js
 src/core/hints.js
+src/core/images/annual-render.js
+src/core/images/glyph-layout.js
 src/core/images/layout.js
+src/core/images/paginate.js
+src/core/images/palette.js
 src/core/images/pick.js
 src/core/images/render.js
+src/core/images/work.js
 src/core/ink-math.js
 src/core/ink-pick.js
 src/core/mix.js
@@ -7401,9 +7407,11 @@ src/ui/components/query/index.js
 src/ui/components/query/input.js
 src/ui/components/share-failed.js
 src/ui/components/styles.js
+src/ui/components/work.js
 src/ui/dev/glyph-demo.js
 src/ui/dev/palette.js
 src/ui/dev/pointer-stats.js
+src/ui/images-annual.js
 src/ui/images-entry.js
 src/ui/root.js
 src/ui/route-memory.js
@@ -7433,10 +7441,12 @@ src/ui/screens/mine/annual.js
 src/ui/screens/mine/backup.js
 src/ui/screens/mine/index.js
 src/ui/screens/mine/model.js
+src/ui/screens/mine/month.js
 src/ui/screens/mine/records.js
 src/ui/screens/mine/settings.js
 src/ui/screens/result/first.js
 src/ui/screens/result/index.js
+src/ui/screens/result/work.js
 src/ui/screens/session/index.js
 src/ui/screens/session/none.js
 src/ui/screens/session/s02.js
@@ -7451,6 +7461,7 @@ src/ui/screens/write/persist.js
 src/ui/screens/write/prompt.js
 src/ui/screens/write/result-row.js
 src/ui/screens/write/skip.js
+src/ui/work-text.js
 sw-manifest.js
 sw.js
 vendor/fsrs6.min.js

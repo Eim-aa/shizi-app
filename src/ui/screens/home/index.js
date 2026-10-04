@@ -17,7 +17,7 @@
 //   「拾」的交接（D51 ④，03 P221，handoff.js）：首练写下「拾」后第一次回到首页（today 态），字帖位先是一个大格——品牌「拾」淡出、本人写的「拾」淡入
 //     （≤ 300ms，减少动态效果直接换），一直画到离开首页，只一次（settings.shiHandoffDone）；之后按日常状态。home-shi-handoff。
 //   首次打开（first，品牌「拾」只在这里与没有可显示的墨时出现）：品牌「拾」+ 竖排题跋三列 + 一枚印，没有日期和标题；主按钮「开始写字」，下面「先写三个大家常忘的字。」；
-//     不显示「自己选字」，首练完成后出现（D46 ②）。品牌时刻 ≤1.8s：题跋逐字淡入 → 印 → 按钮；点任意处立即静帧，「减少动态效果」直接静帧。
+//     不显示「自己选字」，首练完成后出现（D46 ②）。品牌时刻 ≤1.2s：题跋逐字淡入 → 印，主按钮与说明句从第一帧起可见可点（不参与动画，H1 / I2-05）；点任意处立即静帧，「减少动态效果」直接静帧。
 //     （印的触觉与动效编排属阶段 2；测试宿主默认不放动画，URL 加 brand=1 才放。）AX1–AX5：题跋改横排三行（一行一句，宋 13 档，
 //     「拾」缩到 120，印跟在末句后，主按钮满宽，说明句在按钮下 4），不放品牌动画（静帧）。
 //   首页光影层（叶影 / 日光 / 夜灯）取消（D43，03 P143）：设计稿首页没有光影层，light.js 已删除。
@@ -70,8 +70,8 @@ export const HOME_LABEL = t('X-TABS.write');
 export const HOME_TAB = 'home';
 /** 时段 / 日期重算间隔（ms）：只在时段或日期真的变了时重画。 */
 export const CLOCK_TICK_MS = 30000;
-/** 首次打开品牌时刻的总长（ms，设计稿 §一：≤1.8s）：题跋逐字淡入 0.15–1.35s，印 1.35–1.65s，按钮 1.65–1.85s。 */
-export const BRAND_TOTAL_MS = 1850;
+/** 首次打开品牌时刻的总长（ms；I2-05 建议 ≤ 1.2s）：题跋逐字淡入 0.08–0.94s，印 0.9–1.2s。主按钮不参与动画，第一帧起可见可点（H1）。 */
+export const BRAND_TOTAL_MS = 1200;
 
 // 演示子页只在测试主机上加载（ui/root.js），生产形态里 getScreen 为 null，入口不出现。
 const DEMO_SCREEN = '_demo/sub';
@@ -125,11 +125,10 @@ injectStyles('home', `
 .sz-first__hline .sz-home__seal{display:inline-grid;margin-left:8px;vertical-align:middle}
 @keyframes szBrandIn{from{opacity:0}to{opacity:1}}
 @keyframes szBrandSeal{0%{opacity:0;transform:scale(1.25)}60%{opacity:1;transform:scale(.92)}100%{opacity:1;transform:scale(1)}}
-.sz-home--brand .sz-first__ch{opacity:0;animation:szBrandIn 200ms ease-out both;animation-delay:calc(150ms + var(--i) * 62ms)}
-.sz-home--brand .sz-first__seal{opacity:0;animation:szBrandSeal 300ms ease-out 1350ms both}
-.sz-home--brand .sz-home__foot{opacity:0;animation:szBrandIn 200ms ease-out 1650ms both}
+.sz-home--brand .sz-first__ch{opacity:0;animation:szBrandIn 160ms ease-out both;animation-delay:calc(80ms + var(--i) * 44ms)} /* 17 个字 80–944ms 逐字淡入 */
+.sz-home--brand .sz-first__seal{opacity:0;animation:szBrandSeal 300ms ease-out 900ms both} /* 印 0.9–1.2s；主按钮与说明句不参与动画：第一帧起可见可点（H1 / I2-05） */
 @media (prefers-reduced-motion: reduce){
-  .sz-home--brand .sz-first__ch,.sz-home--brand .sz-first__seal,.sz-home--brand .sz-home__foot{animation:none;opacity:1}
+  .sz-home--brand .sz-first__ch,.sz-home--brand .sz-first__seal{animation:none;opacity:1}
 }
 :root[data-ax] .sz-home__epi{display:none} /* AX1–AX5：题记隐藏（读屏经标题的 aria-describedby 读到，D49） */
 :root[data-ax] .sz-home__cta.sz-btn{width:100%}

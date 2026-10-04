@@ -170,16 +170,17 @@ export default async function about(page, ctx) {
   assert.equal((await route(page)).depth, 1, 'system back from 给我们写信 → about');
 
   // ------------------------------------------------------------ 3. 隐私
-  ctx.step('privacy: four paragraphs from copy X-ABOUT.privacy1–4 (P21)');
+  ctx.step('privacy: four paragraphs from copy X-ABOUT.privacy1, 2, 3Web, 4 (P21; P197 per platform)');
   await page.click(topSel('about-row-privacy'));
   await waitTop(page, 'about-privacy');
   const priv = await page.$$eval(topSel('about-privacy-p'), els => els.map(e => e.textContent));
   const privCopy = await page.evaluate(async () => {
     const { t } = await import('/src/config/copy/index.js');
-    return [1, 2, 3, 4].map(i => t(`X-ABOUT.privacy${i}`));
+    return ['privacy1', 'privacy2', 'privacy3Web', 'privacy4'].map(k => t(`X-ABOUT.${k}`));
   });
   assert.deepEqual(priv, privCopy, 'privacy paragraphs = copy');
   assert.ok(priv[0].includes('这台手机'), 'first paragraph says 这台手机 (D9)');
+  assert.ok(priv[2].startsWith('网页版联网'), 'web build: the network sentence is the web one (P197; the iOS shell never goes online)');
   await page.click(topSel('page-back'));
   await waitTop(page, 'about');
 

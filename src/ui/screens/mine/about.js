@@ -7,7 +7,7 @@
 //     「开源资料 · 致谢」 / › → 'about-credits'（原型左侧「字形和字源的出处」已被 R-AB01 替换掉，行标签取 R-AB01.openSourceRow 去掉行尾 ›）
 //     「给我们写信」 / › → 'about-letter'
 // 子页都是只读页，不写任何东西；返回一律 nav.back()（Page 默认），回到关于页。
-//   'about-privacy'  隐私：X-ABOUT.privacy1–4（03 P21 过渡：由现有文档整理，待文案）。
+//   'about-privacy'  隐私：X-ABOUT.privacy1、2、3Native / 3Web（按平台，P197）、4（03 P21 过渡：由现有文档整理，待文案）。
 //   'about-credits'  开源资料 · 致谢：src/config/credits.js（scripts/build_credits.mjs 由 THIRD_PARTY_NOTICES.md 与
 //                    licenses/、sources/LICENSE-* 生成）按 程序 / 字形和字源 / 字体 分组；每项 名称 + 版本、许可名、出处网址
 //                    （纯文本，不做外链，避免在壳里跳出应用），「许可全文」按钮展开 NOTICES 原文与许可全文（英文原文）。
@@ -29,6 +29,7 @@ import { Button } from '../../components/Button.js';
 import { Chevron } from '../../components/Chevron.js';
 import { injectStyles, T } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
+import { isNativeShell } from '../../../platform/env.js';
 import { BUILD, VERSION } from '../../../build-info.js';
 import { CREDITS, LICENSE_TEXTS } from '../../../config/credits.js';
 
@@ -72,9 +73,12 @@ export function aboutRows() {
   ];
 }
 
-/** 隐私子页段落。 */
-export function privacyParagraphs() {
-  return [1, 2, 3, 4].map(i => t(`X-ABOUT.privacy${i}`));
+/**
+ * 隐私子页段落。第 3 段按平台（C1，P197；合规说明 §4.4）：iOS 壳（platform/env.js isNativeShell）资源全在包内、完全不联网；
+ * 网页 / 主屏 PWA 联网只用来取更新与笔顺。native 可注入（测试）。
+ */
+export function privacyParagraphs({ native = isNativeShell() } = {}) {
+  return [t('X-ABOUT.privacy1'), t('X-ABOUT.privacy2'), t(native ? 'X-ABOUT.privacy3Native' : 'X-ABOUT.privacy3Web'), t('X-ABOUT.privacy4')];
 }
 
 /**

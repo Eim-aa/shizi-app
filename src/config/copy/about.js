@@ -21,7 +21,9 @@ export default Object.freeze({
   'X-ABOUT.privacy': '隐私',
   'X-ABOUT.privacy1': '你写的字、笔迹和对错，只存在这台手机上。',
   'X-ABOUT.privacy2': '拾字没有账号，不会把你的记录发到网上。',
-  'X-ABOUT.privacy3': '联网只用来更新拾字和取字的笔顺，不会带上你的记录。',
+  // 第 3 段按平台（C1，P197；合规说明 §4.4）：iOS 壳完全不联网；网页 / 主屏 PWA 联网只取更新与笔顺
+  'X-ABOUT.privacy3Native': '拾字不联网，你的记录不会离开这台手机。',
+  'X-ABOUT.privacy3Web': '网页版联网只用来更新拾字和取字的笔顺，不会带上你的记录。',
   'X-ABOUT.privacy4': '记录不会自己备份。换手机之前，先在「备份与恢复」里导出备份文件，自己存好。',
   'X-ABOUT.creditsTitle': '开源资料 · 致谢',
   'X-ABOUT.creditsIntro': '拾字用到了下面这些开源的程序、数据和字体。谢谢它们的作者。',

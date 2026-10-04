@@ -188,6 +188,8 @@
     "P180": "e2e 冷启动首帧阈值（Q3，Chromium 口径）：scripts/e2e/68-q3-boot.spec.js LIMITS.firstFrameMs = 400ms（全新 context 打开到首页 FCP，3 次里最快一次，首次安装与约 300 字两种数据量）；测试取值，不是运行时开关",
     "P183": "备份页重进时的状态句与撤销措辞（阶段 1 Q2-8，复测 simA S3；D24；E9c 改写）：撤销失效后留结论句（backupMeta.lastConclusion，保留到下次导出）、不再有已失效的「离开这一页前可以撤销」，没有结论句时才按现在的记录与上次导出时间算；行为在 src/core/backup.js backupStatus 与 src/ui/screens/mine/backup.js，不是 policy 开关",
     "P184": "离开 ≥ 7 天回来的第一组缩短为 3 字（阶段 1 Q2-15，已决定 D48 ⑧）：调度规则，值在 policy.groupMix.returnGroupSize（P184），实现在 src/core/sessions.js selectDaily；首页「离开一周后回来」态文案没有提组大小，无新文案",
+    "P198": "「字义沉重」不进默认排序的字表（D50 ⑥，卡 C1）：数据取值，docs/engineering/v10/phase1/tools/curation.mjs RESERVED_HEAVY → src/config/char-order.js reserved.heavy（scripts/build_char_order.mjs 生成）；不是运行时开关",
+    "P199": "Make Me a Hanzi 字源 79 条先按 LGPL-3.0-or-later 提供（合规说明 §1.15 方案 b，卡 C1）：data/LICENSE.md 与 THIRD_PARTY_NOTICES.md 的许可说明；不是运行时开关",
     "P215": "首练结果页标题按这一页上实际写出的字数取（R2-R1 / V2-05）：作品里有几格就写「这两个字 / 这三个字…」，没有墨时按这一页列出的字数；行为在 src/ui/work-text.js firstTitle 与 src/ui/screens/result/index.js resultModel，不是 policy 开关",
     "P216": "结果页作品显现与落印的时序（R2-R1 / D51 ②，I2-03 / N2-01）：格依次淡入（每格错开 ≤ 50ms，字多时收紧）→ 落款淡入 → 印落下，印到位那一帧发 s1 与一次触觉，总时长 ≤ 750ms（src/ui/screens/result/work.js revealPlan）；点一下直接到终态；减少动态效果只显示终态并立即发 s1；同一组只响一次；结果页不再在进入时发 result:finish 触觉；提醒邀请的 600ms 从落印后算起。时长是工程取值，不是 policy 开关",
     "P217": "首练结果页吸底栏分两步（R2-R1 / N2-04 / N2-05 / I2-07）：提醒邀请没回答前底栏就是「好」（主按钮）+「不用了」（文字按钮），回答以后底栏是「完成」（主按钮，离开）+「再写一组」（文字按钮）；日常结果页第二次邀请同样先显示「好 / 不用了」，回答后仍是「再写一组」；行为在 src/ui/screens/result/index.js 与 first.js useReminderInvite，不是 policy 开关",
@@ -3802,12 +3804,19 @@
           "note": "隐私子页第 2 段：01 §0「不做账号/云同步」；待文案",
           "decision": "P21"
         },
-        "privacy3": {
+        "privacy3Native": {
           "raw": null,
-          "text": "联网只用来更新拾字和取字的笔顺，不会带上你的记录。",
+          "text": "拾字不联网，你的记录不会离开这台手机。",
           "origin": "extra",
-          "note": "隐私子页第 3 段：01 §8.3 Service Worker 更新与 §8.4 笔顺按需下载；待文案",
-          "decision": "P21"
+          "note": "隐私子页第 3 段（iOS 壳，C1）：iOS 版资源全部从包内读取、CSP connect-src 'self'，完全不联网；合规说明 §4.4 指出旧句「联网只用来更新拾字和取字的笔顺」对 iOS 不成立，按平台分写；待文案",
+          "decision": "P21 / P197"
+        },
+        "privacy3Web": {
+          "raw": null,
+          "text": "网页版联网只用来更新拾字和取字的笔顺，不会带上你的记录。",
+          "origin": "extra",
+          "note": "隐私子页第 3 段（网页 / 主屏 PWA，C1）：01 §8.3 Service Worker 更新与 §8.4 笔顺按需下载，如实描述；待文案",
+          "decision": "P21 / P197"
         },
         "privacy4": {
           "raw": null,

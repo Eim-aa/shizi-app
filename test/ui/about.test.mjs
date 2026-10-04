@@ -227,3 +227,23 @@ test('B7 (G43, D36): version line 「版本 1.0（20261001）」 from VERSION + 
   assert.match(live.line, /^版本 \d+\.\d+\.\d+（\d{8}）$/);
   assert.ok(live.full.startsWith('构建号 ') && /\d{8}-[0-9a-f]{12}$/.test(live.full));
 });
+
+test('C1 / P197: the privacy network sentence depends on the platform (iOS shell never goes online; web says what it fetches)', () => {
+  const ios = privacyParagraphs({ native: true });
+  const web = privacyParagraphs({ native: false });
+  assert.equal(ios.length, 4);
+  assert.equal(ios[2], '拾字不联网，你的记录不会离开这台手机。');
+  assert.equal(web[2], '网页版联网只用来更新拾字和取字的笔顺，不会带上你的记录。');
+  assert.ok(!ios.some(p => p.includes('联网只用来')), 'the iOS page never claims it goes online');
+  assert.deepEqual(ios.filter((_, i) => i !== 2), web.filter((_, i) => i !== 2), 'the other three paragraphs are the same');
+  assert.deepEqual(privacyParagraphs(), web, 'node / browser without the native bridge = web');
+  const prev = globalThis.webkit;
+  globalThis.webkit = { messageHandlers: { shiziNative: {} } };
+  try {
+    assert.equal(privacyParagraphs()[2], ios[2], 'the native bridge selects the iOS sentence');
+    assert.equal(textOf(allByTestid(PrivacyView(), 'about-privacy-p')[2]), ios[2]);
+  } finally {
+    if (prev === undefined) delete globalThis.webkit;
+    else globalThis.webkit = prev;
+  }
+});

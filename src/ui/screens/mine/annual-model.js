@@ -5,8 +5,8 @@
 //
 // 口径（与 M4-1 mine/model.js recordIndex 同一索引）：
 // - 「今年」= 应用时钟今天所在的公历年；只算 localDay 在这一年的记录。
-// - 「记录」只看 judged（看过答案 / 跳过不算）；折叠月份（01 §9）的 byDay 字与日子也算。**纸上记录不进、不计入年字数**（D46-13，isPaperRecord，
-//   本卡只留判定接口）。
+// - 「记录」只看 judged（看过答案 / 跳过不算）；折叠月份（01 §9）的 byDay 字与日子也算。**纸上记录不进、不计入年字数、月字数、今年第一个字**
+//   （D46-13 / D47，isWorkRecord；折叠月份用折叠时记下的 paperOnly 去掉只在纸上写过的字，foldWorkByDay）。日历「写过的日子」不在这里，仍算纸上那天。
 // - 年字数 count = 今年有记录的字去重（写对写错都算；整月没留下笔迹的字也算——它们在月段里画 under 衬底）。
 // - 今年第一个字：字 = 今年最早的一条 judged 记录的字；笔迹按 D42（解 P122）：在今年这个字的记录里从早到晚找留有墨迹的那一次，日期是那一次的日子
 //   （说明行写「{M月D日} 的笔迹」，D45：不说「今年第一次」）；今年里一份墨迹都没有才 record = 最早那条、格子画 under 衬底；不拿去年的墨冒充（I03）。
@@ -15,7 +15,7 @@
 // - 空态：今年没有任何记录。去年有记录、今年没有也是空态。
 
 import { diffDays, isValidDay, monthOf, parseDay } from '../../../core/dates.js';
-import { isPaperRecord } from '../../../core/images/work.js';
+import { foldWorkByDay, isWorkRecord } from '../../../core/records.js';
 import * as defaultPolicy from '../../../config/policy.js';
 import { monthCells, monthMembers } from '../../../core/images/pick.js';
 import { paginate, retagPages } from '../../../core/images/paginate.js';
@@ -35,10 +35,15 @@ function yearOfDay(day) {
 export function yearSlice(state, year) {
   const index = recordIndex(state);
   const prefix = String(year) + '-';
-  const judged = index.judged.filter(r => typeof r.localDay === 'string' && r.localDay.startsWith(prefix) && isValidDay(r.localDay) && !isPaperRecord(r));
+  const judged = index.judged.filter(r => isWorkRecord(r) && typeof r.localDay === 'string' && r.localDay.startsWith(prefix) && isValidDay(r.localDay));
   const folded = {};
-  for (const [month, fold] of Object.entries(index.folded)) if (month.startsWith(prefix)) folded[month] = fold;
-  // 有记录的日子：非纸上的 judged 记录的日子 + 折叠月份 byDay 的日子（index.days 里含纸上记录的日子，这里不用）
+  const rawMonths = state && state.records && typeof state.records === 'object' ? state.records : {};
+  for (const [month, fold] of Object.entries(index.folded)) {
+    if (!month.startsWith(prefix)) continue;
+    // byDay 换成「作品」口径（去掉折叠时记下的只在纸上写过的字）；chars 只用来排序，不单独计数
+    folded[month] = { ...fold, byDay: foldWorkByDay(rawMonths[month]) };
+  }
+  // 有记录的日子：作品记录的日子 + 折叠月份（作品口径）byDay 的日子（index.days 里含纸上记录的日子，这里不用）
   const daySet = new Set(judged.map(r => r.localDay));
   for (const fold of Object.values(folded)) for (const day of Object.keys(fold.byDay)) daySet.add(day);
   const days = [...daySet].sort();

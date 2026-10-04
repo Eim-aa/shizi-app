@@ -353,6 +353,8 @@ function Calendar({ model, selected, onPick }) {
 }
 
 function DayList({ selected, listRef }) {
+  // 那天只在纸上写过：日历上仍有点（写过的日子），但没有笔迹可列，不画空字帖（D47，P1-E78）
+  if (!selected.items.length) return null;
   return html`<section class="sz-rec__daylist" data-testid="records-daylist" data-day=${selected.day} data-count=${selected.items.length}
     ref=${listRef}>
     <h3 class="sz-rec__subtitle" data-testid="records-daylist-title">${t('R-P03.todayChars', { date: dayText(selected.day) })}</h3>

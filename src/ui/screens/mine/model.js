@@ -14,13 +14,16 @@
 //   角标日期跟着挑出来的那条记录走（M02）。「有没有墨迹」由 hasInk 判断，缺省按 state.ink 的存下的墨迹。
 //   折叠月份只剩 byDay / chars 与 kept：字按 chars 顺序、日期取该字最早出现的那天；记录只能从 kept 里找（同样按 D42 挑有墨迹的），
 //   kept 里没有这个字（或一份墨迹都没有）时 record=null（10.12「没有笔迹」，不借别次笔迹，I03）。
+// - 纸上记录（D46 ⑬ / D47，P1-E78）：recordIndex 的 judged / days **不**过滤——纸上那天仍算「写过的日子」（日历、本周、签名里的天数）；
+//   月字帖（monthSheet）与某一天的字（dayItems）画的是本人笔迹，只收 isWorkRecord，折叠月份用 foldWorkByDay 去掉只在纸上写过的字；
+//   所以字数（chars）不计纸上字，只在纸上写过的字不出现在我的首页字帖，也不占 pickRecordInPeriod 的兜底。
 // - 我的首页字帖（R-M05，边改 M03）：7 列，最多放最近 3 行（按整张字帖 7 列排好后的最后 3 行），多了给「全部 ›」。
 // - 某一天的字（R-P05「点有记录的日子列出那天的字」）：那天 judged，同字只留一条，按最近一次的先后（与首页墨迹行同一口径，
 //   core/records todayInkRow）；D42：留的这一条 = 那天内从晚到早第一条留有墨迹的，那天里都没有才留最近一次；折叠日子只有字，没有记录。
 
 import * as defaultPolicy from '../../../config/policy.js';
 import { addDays, addMonths, daysInMonth, isValidDay, isValidMonth, localDay, monthOf, parseDay } from '../../../core/dates.js';
-import { isJudged, sortById } from '../../../core/records.js';
+import { foldWorkByDay, isJudged, isWorkRecord, sortById } from '../../../core/records.js';
 import { pickRecordInPeriod, storedInkPresent } from '../../../core/ink-pick.js';
 
 /** 我的首页字帖列数、最多行数（原型 L26 7 列；R-M05「最近 3 行」）。 */
@@ -59,6 +62,8 @@ export function recordIndex(state) {
           days.add(day);
         }
         folded[month] = { byDay, chars: Array.isArray(value.chars) ? value.chars.slice() : [] };
+        // 折叠时记下的「只在纸上写过」的字（D47，P1-E78）：只带过来，index.days / 日历不受影响；字帖与日子的字表用 foldWorkByDay 去掉它们。
+        if (value.paperOnly && typeof value.paperOnly === 'object') folded[month].paperOnly = value.paperOnly;
       }
     }
   }
@@ -154,11 +159,12 @@ export function monthSheet(index, month, { policy = defaultPolicy, hasInk = null
   const has = inkChecker(index, hasInk);
   const days = recordDaysInMonth(index, month).length;
   const fold = index.folded[month];
-  const inMonth = index.judged.filter(r => typeof r.localDay === 'string' && r.localDay.startsWith(month + '-'));
+  const inMonth = index.judged.filter(r => isWorkRecord(r) && typeof r.localDay === 'string' && r.localDay.startsWith(month + '-'));
   if (fold) {
     const firstDay = new Map();
-    for (const day of Object.keys(fold.byDay).sort()) {
-      for (const c of fold.byDay[day]) if (!firstDay.has(c)) firstDay.set(c, day);
+    const workByDay = foldWorkByDay(fold);
+    for (const day of Object.keys(workByDay).sort()) {
+      for (const c of workByDay[day]) if (!firstDay.has(c)) firstDay.set(c, day);
     }
     const order = fold.chars.filter(c => firstDay.has(c));
     for (const c of firstDay.keys()) if (!order.includes(c)) order.push(c);
@@ -211,11 +217,11 @@ export function sheetPreview(sheet, { cols = MINE_SHEET_COLS, rows = MINE_SHEET_
 export function dayItems(index, day, { hasInk = null } = {}) {
   if (!isValidDay(day)) return [];
   const fold = index.folded[monthOf(day)];
-  if (fold) return (fold.byDay[day] || []).map(char => ({ char, record: null }));
+  if (fold) return (foldWorkByDay(fold)[day] || []).map(char => ({ char, record: null }));
   const has = inkChecker(index, hasInk);
   const byChar = new Map();
   for (const r of index.judged) {
-    if (r.localDay !== day) continue;
+    if (!isWorkRecord(r) || r.localDay !== day) continue;
     const list = byChar.get(r.char) || [];
     list.push(r);
     byChar.delete(r.char); // 顺序按最近一次的先后

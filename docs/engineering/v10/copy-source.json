@@ -178,7 +178,9 @@
     "P173": "练习字字形组件的实现取舍（阶段 1 P1-E2，D33 8a 方案 B / D43 / D44）：SVG 组件 src/ui/components/PracticeGlyph.js + 视口附近懒取（并发 ≤ 6）+ 笔顺 LRU 512 + 回退 ShiziKai；图片导出 core/images/render.js paintOutline；scripts/verify_tokens.mjs 的 glyph 规则登记楷体用法；无界面文案",
     "P153": "增强对比度下的提示与描红描边（D46 ⑯，P1-E1b）：CSS 媒体查询 prefers-contrast: more 与 canvas 的 matchMedia 判断，实现在 src/ui/screens/write/hint-layer.js、src/ui/canvas/glyph.js、src/ui/screens/write/answer.js；原生壳桥接（UIAccessibility.isDarkerSystemColorsEnabled）只在报告里说明；无界面文案",
     "P154": "写字页静态版式（D46 ⑭，P1-E1b）：版式行为——结果行进格下说明位、页底栏两行；实现在 src/ui/screens/write/{index,result-row,compact}.js 的 CSS 与结构，不是 policy 开关；无新文案",
-    "P166": "记录的书写方式 source（缺省 screen、纸上 paper）、纸上记录没有墨迹且不占 D27「第一次 / 最近一次」留墨位、恢复幂等不把纸上的判断页退回 recall：阶段 1 P1-E8，实现在 src/core/{records,schema,sessions}.js 与 src/store/budget.js indexRecords；无界面文案，见 03 P166"
+    "P166": "记录的书写方式 source（缺省 screen、纸上 paper）、纸上记录没有墨迹且不占 D27「第一次 / 最近一次」留墨位、恢复幂等不把纸上的判断页退回 recall：阶段 1 P1-E8，实现在 src/core/{records,schema,sessions}.js 与 src/store/budget.js indexRecords；无界面文案，见 03 P166",
+    "P179": "冷启动到首页首帧的目标（Q3）：模拟器口径 iPhone 17 / iOS 26.5、Release、约 300 字 + 墨迹，进程启动 → 首页首个内容帧 ≤ 800ms（中位数）；量测方法与分段表见 01 §8.8，不是运行时开关",
+    "P180": "e2e 冷启动首帧阈值（Q3，Chromium 口径）：scripts/e2e/68-q3-boot.spec.js LIMITS.firstFrameMs = 400ms（全新 context 打开到首页 FCP，3 次里最快一次，首次安装与约 300 字两种数据量）；测试取值，不是运行时开关"
   },
   "noCopy": [
     "R-H08",

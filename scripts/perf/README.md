@@ -58,3 +58,16 @@ node scripts/e2e/run.mjs 61-perf          # 只跑这一个 spec（约 45 秒）
 
 未修（记录）：浏览器 / PWA 下第一次判断里同步 `new AudioContext()`（headless Chromium 实测 30–140ms 不等，之后的判断 5–11ms）。
 iOS Safari 要求在用户手势里解锁音频，挪出手势会有不响的风险；原生壳走 `postNative('sound')` 不受影响。真机时长见 M7。
+
+## 冷启动首帧（Q3，`scripts/e2e/68-q3-boot.spec.js`）
+
+```sh
+node scripts/e2e/run.mjs 68-q3            # 约 30 秒
+```
+
+- 全新 browser context（无 HTTP 缓存 / 内存）+ 存储快照打开 `/?test=1`，装假原生桥（App 路径）；首次安装（空存储）与
+  61-perf 的 `seedPerf('year')`（300 字 + 墨迹）各 3 次。读 `src/app.js` 的 `shizi:*` 打点与 FCP，打印分段表。
+- 阈值：3 次里最快一次首帧 ≤ 400ms（03 P180；并行负载只会变慢，最快一次最接近固有耗时，中位数一并打印）。
+  另断言首屏模块全部在 app.js 求值前发出请求（modulepreload）、原生壳字体在 UI 渲染前开始取、网页不预热字体、html 底色是纸色。
+- 模拟器 / 原生分段（进程启动 → WebContent → 页面各段）的量法与数字见 01 §8.8；那部分需要临时原生插桩，不入库。
+

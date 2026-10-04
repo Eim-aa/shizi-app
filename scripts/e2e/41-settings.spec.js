@@ -18,7 +18,7 @@
 //      原生回报 denied（applyReminderStatus）→ 小字换 R-S02.title、组下 R-S02.body +「去手机设置 ›」→ postNative openAppSettings；
 //      关掉 → syncReminder enabled:false。没有原生通道时照常可开关（前半段）。
 
-import { bootTestHost, installNativeStub, nativeMessages, setTextSize, tid, topSel, waitNavIdle } from './helpers.mjs';
+import { bootTestHost, installNativeStub, nativeMessages, setTextSize, tid, tokenHex, topSel, waitNavIdle } from './helpers.mjs';
 
 const SETTINGS_MOD = '/src/ui/screens/mine/settings.js';
 const FAILED = '没保存上，刚才的选择没记下。';
@@ -98,7 +98,7 @@ async function html(page) {
       large: root.hasAttribute('data-text-large'),
       oldLarge: root.hasAttribute('data-large'),
       k: cs.getPropertyValue('--k').trim(),
-      p: cs.getPropertyValue('--p').trim(),
+      p: cs.getPropertyValue('--paper').trim(),
       bg: getComputedStyle(document.querySelector('.sz-app')).backgroundColor,
       titleSize: title ? parseFloat(getComputedStyle(title).fontSize) : null,
     };
@@ -147,7 +147,7 @@ async function pickAppearance(page, value) {
   await page.click(`${topSel('settings-appearance-option')}[data-value="${value}"]`);
 }
 
-const DARK_P = '#221E1A'; // tokens.css 深色 --p
+const DARK_P = tokenHex('dark', 'paper'); // 设计令牌：深色 --paper（D43，原 --p #221E1A）
 
 export default async function settingsSpec(page, ctx) {
   const { assert, step } = ctx;

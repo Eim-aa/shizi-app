@@ -119,13 +119,13 @@ export default async function hint(page, ctx) {
   const hintColor = await page.evaluate(sel => {
     const p = document.querySelector(sel + ' path');
     const probe = document.createElement('span');
-    probe.style.color = 'var(--ar)';
+    probe.style.color = 'var(--danzhu)';
     document.body.appendChild(probe);
-    const ar = getComputedStyle(probe).color;
+    const ar = getComputedStyle(probe).color; // 变量名沿用 ar，值是 --danzhu
     probe.remove();
     return { stroke: getComputedStyle(p).stroke, ar, width: Number(p.getAttribute('stroke-width')) };
   }, LAYER);
-  assert.equal(hintColor.stroke, hintColor.ar, 'hint stroke uses --hint (= --ar)');
+  assert.equal(hintColor.stroke, hintColor.ar, 'hint stroke uses --danzhu (D43: 淡朱实心，不再等于文字红 --ar)');
   assert.ok(Math.abs(hintColor.width - 18 * (345 - 2 * 345 * 0.06) / 1024) < 0.02, `stroke width 18/1024 units (${hintColor.width})`);
 
   ctx.step('write the next stroke → hint fades out (260ms), ink restores (200ms), range cleared');

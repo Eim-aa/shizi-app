@@ -19,7 +19,7 @@
 //      我的（菜单行名字只读标题，副标题进描述）、设置（含外观弹层）、备份与恢复（含清空弹层）、存储不可用阻断页。
 
 import {
-  bootTestHost, drawStroke, HORIZONTAL, openWrite, PRESS_SETTLE_MS, seedSession, tid, topSel, waitNavIdle,
+  bootTestHost, drawStroke, HORIZONTAL, openWrite, PRESS_SETTLE_MS, seedSession, tid, tokenRgb, topSel, waitNavIdle,
 } from './helpers.mjs';
 
 const TODAY = '2026-09-30';
@@ -379,12 +379,15 @@ export default async function a11y(page, realCtx) {
       dropped: droppedRules.slice(),
       styleElements: document.querySelectorAll('style').length,
       tabsRadius: tabs ? getComputedStyle(tabs).borderTopLeftRadius : null,
+      tabsBg: tabs ? getComputedStyle(tabs).backgroundColor : null,
+      tabsBorder: tabs ? [getComputedStyle(tabs).borderTopStyle, getComputedStyle(tabs).borderTopWidth] : null,
       btnCursor: getComputedStyle(document.querySelector('.sz-btn')).cursor,
     };
   });
   assert.deepEqual(styleState.dropped, [], 'every component CSS rule was accepted by CSSOM insertRule (none dropped)');
   assert.equal(styleState.styleElements, 0, 'no <style> elements in the document');
-  assert.equal(styleState.tabsRadius, '32px', 'component styles are live (tab bar radius 32px)');
+  // D43（P1-E1a）：Tab 栏由悬浮药丸（圆角 32）改为设计系统的通栏：直角、纸色底、顶部发丝线
+  assert.deepEqual([styleState.tabsRadius, styleState.tabsBg, styleState.tabsBorder[0]], ['0px', tokenRgb('light', 'paper'), 'solid'], 'component styles are live (tab bar: flat, paper, hairline top)');
   assert.equal(styleState.btnCursor, 'pointer', 'component styles are live (.sz-btn cursor)');
   const homeAria = await page.locator('[role="tablist"]').ariaSnapshot();
   assert.ok(/- tab "习字" \[selected\]/.test(homeAria) && /- tab "字库"/.test(homeAria) && /- tab "我的"/.test(homeAria),

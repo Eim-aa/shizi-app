@@ -18,6 +18,19 @@
 //   routePerRecordInk(page, on)    本 page 加载的 src/config/policy.js 里 features.perRecordInk 改成 on（源码不动；D27 起默认 true，
 //                                  F4 的关闭态 / 10.12 兜底用 false 测）；要在 goto 之前装。返回命中次数计数器
 
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+
+// D43（P1-E1a）：e2e 里要比颜色的断言读设计令牌（docs/design/design-system-v1/tokens.json，与 src/config/tokens.css 由 test/tokens.test.mjs 逐键核对），
+// 不在断言里写死十六进制。tokenHex('dark', 'paper') → '#1B1814'；tokenRgb → 'rgb(27, 24, 20)'（getComputedStyle 的写法）。
+export const TOKENS = JSON.parse(readFileSync(fileURLToPath(new URL('../../docs/design/design-system-v1/tokens.json', import.meta.url)), 'utf8'));
+export const tokenHex = (theme, key) => TOKENS.color[theme][key];
+export function tokenRgb(theme, key) {
+  const m = /^#([0-9a-fA-F]{6})$/.exec(tokenHex(theme, key));
+  if (!m) throw new Error(`token ${theme}.${key} is not #RRGGBB`);
+  return `rgb(${[0, 2, 4].map(i => parseInt(m[1].slice(i, i + 2), 16)).join(', ')})`;
+}
+
 export const tid = id => `[data-testid="${id}"]`;
 /** 顶层图层里的元素（下层页面保持挂载，选择器要限定在顶层）。 */
 export const topSel = id => `.sz-layer[data-top="true"] ${tid(id)}`;

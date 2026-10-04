@@ -10,7 +10,7 @@
 //   5. 不写任何东西（写日志不变、shizi.* 原始键逐字节相等）；刷新后停在年度报告；跨年（2027-01-02）变空态。
 //   6. 300 字计时；深色（系统 / data-theme）与 360×640 无横向滚动；每个 button 有无障碍名。
 
-import { bootTestHost, tid, waitNavIdle } from './helpers.mjs';
+import { bootTestHost, tid, tokenRgb, waitNavIdle } from './helpers.mjs';
 
 const TODAY = '2026-09-24';
 const CLOCK = `${TODAY}T09:00:00`;
@@ -398,14 +398,14 @@ export default async function run(page, ctx) {
   await page.waitForTimeout(200);
   v = await view(page);
   const darkBox = await page.evaluate(sel => getComputedStyle(document.querySelector(`${sel} .sz-ann__box`)).backgroundColor, TOP);
-  assert.equal(darkBox, 'rgb(45, 40, 35)', 'glyph box uses dark --c');
+  assert.equal(darkBox, tokenRgb('dark', 'sheet'), 'glyph box uses dark --sheet (D43: was --c #2D2823)');
   assert.equal(v.hScroll, false, '360 dark: no horizontal overflow');
   assert.deepEqual(v.unnamedButtons, [], 'names in dark / compact');
   await page.emulateMedia({ colorScheme: 'light' });
   await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'dark'));
   await page.waitForTimeout(100);
   const forced = await page.evaluate(sel => getComputedStyle(document.querySelector(`${sel} .sz-ann__box`)).backgroundColor, TOP);
-  assert.equal(forced, 'rgb(45, 40, 35)', 'data-theme=dark forced');
+  assert.equal(forced, tokenRgb('dark', 'sheet'), 'data-theme=dark forced');
   await page.evaluate(() => document.documentElement.removeAttribute('data-theme'));
   await page.setViewportSize({ width: 320, height: 568 });
   await page.waitForTimeout(100);

@@ -53,13 +53,16 @@ const KEYBOARD_RATIO = 0.4;
 //   glyph-wall   字库墨墙 / 小墙的字形（wall.js Glyph）：墨色四档透明度即信息（R-L03「墨色越浅，越久没写」、P81；最淡档 .55，
 //                D36：非文字对比度 ≥ 3:1 由 test/ui/wall-tone.test.mjs 按令牌实算保证，这里仍按字形当图形豁免 4.5:1 文字线），自选未写是
 //                透明填充 + 描边；格子按钮有无障碍名「{字}，{状态}」，图例有文字。
-//   glyph-result 结果页看过答案 / 跳过格子的浅色楷体字（R-R02 / 10.12，色 --i4）：格下文字说明「看过答案 / 跳过」另有。
-//   seal         首页题记印章、字帖落款印章（「字」字印，--seal 底 #FFF9F1 字）：印章 / 标识类装饰（WCAG 1.4.3 logotype 例外）。
+//   glyph-result 没有本人笔迹的格子里的衬底字面（结果页看过答案 / 跳过格、详情与记录页的无笔迹格、年报与空态的占位字、首页墨迹行的占位字；
+//                R-R02 / 10.12，色 --under = tokens.json「答案衬底 / 没有本人墨的字格」，对笺 ≥ 3:1 由 test/ui/contrast.test.mjs 实算；D43 起 P101
+//                不再按旧 --i4 逐项豁免，这里只是 4.5:1 文字线对大字面 / 图形的豁免）：字面都在 aria-hidden 里，格子的无障碍名与格下文字说明另有。
+//   seal         首页题记印章、关于页印章、字帖落款印章（「字」字印，--seal 底 --on-seal 字；深色 3.7:1，tokens.json contrast onSeal/seal）：
+//                印章 / 标识类装饰（WCAG 1.4.3 logotype 例外，P101 已决定 D43）。
 export const EXEMPT = Object.freeze([
   { id: 'disabled', sel: 'button:disabled, [aria-disabled="true"], input:disabled, fieldset:disabled', hidden: false },
   { id: 'glyph-wall', sel: '.sz-lib__g', hidden: true },
-  { id: 'glyph-result', sel: '.sz-rcell__glyph', hidden: true },
-  { id: 'seal', sel: '.sz-home__seal, .sz-mseal', hidden: true },
+  { id: 'glyph-result', sel: '.sz-rcell__glyph, .sz-dcell__glyph, .sz-scell__glyph, .sz-ann__glyph, .sz-ann__eglyph, .sz-list-empty__glyph, .sz-inkrow__glyph', hidden: true },
+  { id: 'seal', sel: '.sz-home__seal, .sz-mseal, .sz-about__seal', hidden: true },
 ]);
 
 // ---------------------------------------------------------------------------------------------- 页面清单
@@ -520,9 +523,12 @@ function reachInPage({ primary, deep }) {
     if (!last) continue;
     const { el, r } = last;
     if (r.bottom > viewBottom + 0.5) {
-      problems.push(`scroll-end ${desc(sc)}: last text ${desc(el)} bottom ${Math.round(r.bottom)} > visible bottom ${Math.round(viewBottom)}`);
+      problems.push(`scroll-end ${desc(sc)}: last text ${desc(el)} bottom ${Math.round(r.bottom)} > visible bottom ${Math.round(viewBottom)} (exact ${r.bottom.toFixed(2)} vs ${viewBottom.toFixed(2)}; scrollTop ${sc.scrollTop.toFixed(2)} / ${sc.scrollHeight} / ${sc.clientHeight})`);
     } else if (!hits(el, Math.min(Math.max(r.left + 2, 0), vw - 1), r.top + r.height / 2)
-      && !hits(el, r.left + r.width / 2, r.top + r.height / 2)) {
+      && !hits(el, r.left + r.width / 2, r.top + r.height / 2)
+      // 折成多行的行内文字，整体外框的中心可能落在两行之间的空隙里（命中的是它的父元素，不是别的东西盖住了它）：
+      // 逐行外框各取中心点再试一次，只有每一行都被别的元素盖着才算被盖住（P1-E1a：字阶行高变了，折行位置跟着变）。
+      && ![...el.getClientRects()].some(q => q.width > 1 && q.height > 1 && hits(el, q.left + q.width / 2, q.top + q.height / 2))) {
       const h = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
       problems.push(`scroll-end ${desc(sc)}: last text ${desc(el)} covered by ${h ? desc(h) : 'nothing'}`);
     }

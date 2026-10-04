@@ -16,7 +16,7 @@
 //      「{今天}写的字 / 这次的图片 · 保存图片 ›」传 {day, items}。
 //   7. 浏览这些页面不写任何东西（写日志为空、getState 深相等）；深色 / 紧凑版 360×640 无横向滚动；每个 button 有无障碍名。
 
-import { bootTestHost, tid, waitNavIdle } from './helpers.mjs';
+import { bootTestHost, tid, tokenRgb, waitNavIdle } from './helpers.mjs';
 
 const TODAY = '2026-09-24';
 const CLOCK = `${TODAY}T09:00:00`;
@@ -754,7 +754,7 @@ export default async function run(page, ctx) {
   await page.waitForTimeout(200);
   v = await mineView(page);
   const darkBg = await page.evaluate(sel => getComputedStyle(document.querySelector(`${sel} .sz-mine__paper`)).backgroundColor, TOP);
-  assert.equal(darkBg, 'rgb(45, 40, 35)', 'paper card uses dark --c');
+  assert.equal(darkBg, tokenRgb('dark', 'sheet'), 'paper card uses dark --sheet (D43: was --c #2D2823)');
   assert.equal(v.hScroll, false, 'mine 360: no horizontal overflow');
   await openRecordsFromMine(page);
   r = await recordsView(page);
@@ -765,7 +765,7 @@ export default async function run(page, ctx) {
   await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'dark'));
   await page.waitForTimeout(100);
   const forced = await page.evaluate(sel => getComputedStyle(document.querySelector(`${sel} .sz-mine__paper`)).backgroundColor, TOP);
-  assert.equal(forced, 'rgb(45, 40, 35)', 'data-theme=dark forced');
+  assert.equal(forced, tokenRgb('dark', 'sheet'), 'data-theme=dark forced');
   await page.evaluate(() => document.documentElement.removeAttribute('data-theme'));
   await page.setViewportSize({ width: 393, height: 852 });
 }

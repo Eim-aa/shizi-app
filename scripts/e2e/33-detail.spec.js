@@ -12,7 +12,7 @@
 //      promptCells 同一口径断言）；从本页开 B → 写完 → 结果页「回到「静」」→ 回到本页（横幅已失效）。
 //   7. B 没写完时打开详情不弹 S02、sessions.B 不变；点「练这个字」才弹 S02，取消后 B 深相等；开组写入失败三段式。
 
-import { bootTestHost, drawStroke, HORIZONTAL, PRESS_SETTLE_MS, tid, topSel, waitNavIdle } from './helpers.mjs';
+import { bootTestHost, drawStroke, HORIZONTAL, PRESS_SETTLE_MS, tid, tokenRgb, topSel, waitNavIdle } from './helpers.mjs';
 
 const DAY = 86400000;
 const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
@@ -479,7 +479,8 @@ export default async function detailSpec(page, ctx) {
   assert.equal(photo.caption, '旧版本的记录', 'caption');
   assert.equal(photo.body, '旧版本拍照留下的记录，只能看，不能做成图片。<br>备份时会一起存下。', 'R-D10 body (two lines)');
   assert.deepEqual(photo.buttons, ['关闭'], 'read-only: only the close button, no make-image');
-  assert.equal(photo.bg, 'rgb(31, 27, 24)', 'dark page #1F1B18');
+  // D43：旧记录照片页永远是深色，页上加 .t-dark，底色 = 深色 --paper（原来写死 #1F1B18，读设计令牌）
+  assert.equal(photo.bg, tokenRgb('dark', 'paper'), 'dark page = dark --paper (.t-dark)');
   await page.click(topSel('page-back'));
   await waitTop(page, 'detail');
 

@@ -107,7 +107,7 @@ export default async function p0aShell(page, ctx) {
   // ------------------------------------------------------------------ A4 按压反馈（G16）
   // 不靠 :active（iOS WebKit 没有 touchstart 监听时 :active 不生效），改 pointerdown / up / cancel / leave 切 data-pressed。
   // 对象：Tab 条（Tabs 组件）与一个列表行（字库页的「字库」切换行），它们都是 Button variant=plain。
-  step('A4: pointerdown on a Tab sets data-pressed; it scales to .97 and darkens in ~80ms, release clears it');
+  step('A4: pointerdown on a Tab sets data-pressed; it scales to .97 and darkens in 120ms (D43 motion tokens), release clears it');
   const tab = topSel('tab-home');
   const pressState = async sel => page.evaluate(s => {
     const el = document.querySelector(s);
@@ -120,7 +120,7 @@ export default async function p0aShell(page, ctx) {
   await page.mouse.move(cx, cy);
   assert.equal((await pressState(tab)).attr, null, 'not pressed before pointerdown');
   await page.mouse.down();
-  await page.waitForTimeout(140); // > 80ms 过渡
+  await page.waitForTimeout(180); // > 120ms（--t-press）过渡
   let ps = await pressState(tab);
   assert.equal(ps.attr, 'true', 'data-pressed=true while the pointer is down');
   assert.equal(ps.transform, 'matrix(0.97, 0, 0, 0.97, 0, 0)', `pressed scale .97 (${ps.transform})`);
@@ -130,7 +130,7 @@ export default async function p0aShell(page, ctx) {
   await page.waitForTimeout(40);
   assert.equal((await pressState(tab)).attr, null, 'pointerleave clears data-pressed');
   await page.mouse.up();
-  await page.waitForTimeout(220); // 160ms 回弹
+  await page.waitForTimeout(280); // 220ms（--t-release）回弹
   ps = await pressState(tab);
   assert.equal(ps.transform, 'none', 'released back to rest');
   assert.equal(ps.filter, 'none', 'released filter cleared');
@@ -158,15 +158,21 @@ export default async function p0aShell(page, ctx) {
   });
   assert.deepEqual(disabledPressed, { transform: 'none', filter: 'none' }, 'CSS: disabled never shows the pressed look');
 
-  step('A4: prefers-reduced-motion → colour change only, no scale');
+  // D43（tokens.json motion.reduceMotion）：按下缩放保留，其余过渡改 120ms 线性（阶段 0 的「减少动态效果只变色不缩放」随 P109 改为已决定 D43）
+  step('A4: prefers-reduced-motion → the press scale stays, easing is flattened to 120ms linear (D43)');
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.mouse.move(cx, cy);
   await page.mouse.down();
-  await page.waitForTimeout(140);
+  await page.waitForTimeout(180);
   ps = await pressState(tab);
   assert.equal(ps.attr, 'true', 'reduced motion: data-pressed still set');
-  assert.equal(ps.transform, 'none', `reduced motion: no scale (${ps.transform})`);
+  assert.equal(ps.transform, 'matrix(0.97, 0, 0, 0.97, 0, 0)', `reduced motion: scale kept (${ps.transform})`);
   assert.equal(ps.filter, 'brightness(0.94)', 'reduced motion: still darkens');
+  const reducedTiming = await page.evaluate(s => {
+    const cs = getComputedStyle(document.querySelector(s));
+    return { dur: cs.transitionDuration.split(',')[0].trim(), ease: cs.transitionTimingFunction.split(',')[0].trim() };
+  }, tab);
+  assert.deepEqual(reducedTiming, { dur: '0.12s', ease: 'linear' }, 'reduced motion: 120ms linear cross-fade');
   await page.mouse.move(cx, cy - 400);
   await page.mouse.up();
   await page.emulateMedia({ reducedMotion: 'no-preference' });
@@ -185,7 +191,7 @@ export default async function p0aShell(page, ctx) {
     }
     return {
       content: cs.content, position: cs.position, top: cs.top, zIndex: cs.zIndex, pointerEvents: cs.pointerEvents, display: cs.display,
-      bg: cs.backgroundImage, paper: rootCs.getPropertyValue('--p').trim(), ruleText,
+      bg: cs.backgroundImage, paper: rootCs.getPropertyValue('--paper').trim(), ruleText,
     };
   });
   const rgbOf = hex => {
@@ -218,13 +224,13 @@ export default async function p0aShell(page, ctx) {
   await waitNavIdle(page);
 
   // ------------------------------------------------------------------ A11 输入框光标色、说明段落断行（G44 部分）
-  // 光标用主墨 --i1（浅 #3B2F28 / 深 #DCCFB8），不用朱色 --a：D33「朱色只用于批改与印章」。
-  step('A11: input caret is ink (--i1), not the system blue; explanatory paragraphs use text-wrap:pretty');
+  // 光标用主墨 --ink1（浅 / 深取设计令牌），不用朱色：D33「朱色只用于写错的朱点与印章」。
+  step('A11: input caret is ink (--ink1), not the system blue; explanatory paragraphs use text-wrap:pretty');
   const caretOf = () => page.evaluate(() => {
     const input = document.querySelector('[data-testid="query-input"]');
     // 文字色换成红：caret-color:auto 会跟着文字色走（桌面）或用系统蓝（iOS），显式令牌则不变。
     input.style.color = 'rgb(255, 0, 0)';
-    const ink = getComputedStyle(document.documentElement).getPropertyValue('--i1').trim();
+    const ink = getComputedStyle(document.documentElement).getPropertyValue('--ink1').trim();
     const p = document.querySelector('[data-testid="query-sheet"] p');
     const caret = getComputedStyle(input).caretColor;
     input.style.color = '';
@@ -232,11 +238,11 @@ export default async function p0aShell(page, ctx) {
   });
   await page.emulateMedia({ colorScheme: 'light' });
   let cv = await caretOf();
-  assert.equal(cv.caret, rgbOf(cv.ink), `light: caret-color = --i1 (${cv.ink}); got ${cv.caret}`);
+  assert.equal(cv.caret, rgbOf(cv.ink), `light: caret-color = --ink1 (${cv.ink}); got ${cv.caret}`);
   assert.ok(/pretty/.test(cv.wrap || ''), `paragraph text-wrap is pretty (got ${cv.wrap})`);
   await page.emulateMedia({ colorScheme: 'dark' });
   cv = await caretOf();
-  assert.equal(cv.caret, rgbOf(cv.ink), `dark: caret-color = --i1 (${cv.ink}); got ${cv.caret}`);
+  assert.equal(cv.caret, rgbOf(cv.ink), `dark: caret-color = --ink1 (${cv.ink}); got ${cv.caret}`);
   await page.emulateMedia({ colorScheme: 'light' });
 
   // ------------------------------------------------------------------ A12 去掉不能拖动的弹层把手（G12 部分）

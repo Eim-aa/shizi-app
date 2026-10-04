@@ -89,7 +89,7 @@ injectStyles('home', `
 .sz-home__srctext{writing-mode:vertical-rl;font-family:${T.song};font-size:${T.fs13};line-height:${T.lh13};letter-spacing:.12em;
   color:${T.ink3}}
 .sz-home__seal{width:16px;height:16px;box-sizing:border-box;border-radius:${T.rWork};display:grid;place-items:center;flex:none}
-.sz-home__seal>span{display:grid;place-items:center;font-family:${T.kai};font-size:${T.fs11};line-height:1}
+.sz-home__seal>span{display:grid;place-items:center;font-family:${T.kai};font-size:calc(11px * 1);line-height:1} /* 印是图形：字形固定 11px（seal16），不随 --k（Q2-10） */
 .sz-home__quote{margin:0;display:flex;flex-direction:row-reverse;gap:4px;font-family:${T.song};font-weight:400;font-size:${T.fs15};
   color:${T.ink2}}
 .sz-home__col{writing-mode:vertical-rl;line-height:26px;letter-spacing:.2em}

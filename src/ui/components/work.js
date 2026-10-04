@@ -40,9 +40,9 @@ injectStyles('work', `
 .sz-work__dot{position:absolute;border-radius:50%;pointer-events:none}
 .sz-work__sign{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:14px}
 .sz-work__kuan{font-family:${T.song};font-size:${T.fs13};line-height:${T.lh13};font-weight:400;color:${T.ink2};white-space:nowrap}
-.sz-wseal{width:24px;height:24px;flex:none;border-radius:${T.rWork};display:grid;place-items:center;font-family:${T.kai};font-size:${T.fs17};line-height:1;
-  transform:rotate(-2deg)}
-.sz-wseal--big{width:40px;height:40px;font-size:${T.fs28}}
+.sz-wseal{width:24px;height:24px;flex:none;border-radius:${T.rWork};display:grid;place-items:center;font-family:${T.kai};font-size:calc(17px * 1);line-height:1;
+  transform:rotate(-2deg)} /* 印是图形：固定 seal24 / 40，字形 17 / 28px，不随 --k（Q2-10） */
+.sz-wseal--big{width:40px;height:40px;font-size:calc(28px * 1)}
 .sz-work__caps{display:grid;margin:6px auto 0;justify-items:center;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3}}
 .sz-work__cap{text-align:center}
 .sz-work__plain{display:flex;flex-wrap:wrap;gap:0 0;justify-content:center}

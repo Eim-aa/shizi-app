@@ -124,8 +124,8 @@ injectStyles('mine-records', `
 .sz-msign__line{font-size:${T.fs11};line-height:${T.lh11};color:${T.ink2}}
 .sz-msign__order{font-size:${T.fs11};color:${T.ink3}}
 .sz-mseal{width:24px;height:24px;flex:none;border-radius:${T.rWork};display:grid;place-items:center;
-  font-family:${T.kai};font-size:${T.fs17};line-height:1;transform:rotate(-2deg)}
-.sz-mseal--small{width:16px;height:16px;font-size:${T.fs11}}
+  font-family:${T.kai};font-size:calc(17px * 1);line-height:1;transform:rotate(-2deg)} /* 印是图形：固定 seal24 / 字形 17px，不随 --k（Q2-10） */
+.sz-mseal--small{width:16px;height:16px;font-size:calc(11px * 1)}
 `);
 
 // ---------------------------------------------------------------- 状态订阅

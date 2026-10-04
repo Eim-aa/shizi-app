@@ -109,7 +109,7 @@ export function openAbout() {
 injectStyles('about', `
 .sz-about__head{display:flex;flex-direction:column;align-items:center;gap:${T.s4};padding:${T.s6} 0 ${T.s2}}
 .sz-about__seal{width:40px;height:40px;border-radius:${T.rWork};display:grid;place-items:center;
-  font-family:${T.kai};font-size:${T.fs28};line-height:1}
+  font-family:${T.kai};font-size:calc(28px * 1);line-height:1} /* 印是图形：固定 seal40 / 字形 28px，不随 --k（Q2-10） */
 .sz-about__name{margin:0;font-family:${T.song};font-size:${T.fs22};font-weight:500;color:${T.ink1}}
 .sz-about__build{margin:0;min-height:44px;padding:0 8px;font-size:${T.fs15};color:${T.ink2};font-variant-numeric:tabular-nums;overflow-wrap:anywhere;text-align:center}
 .sz-about__buildfull{margin:-8px 0 0;max-width:100%;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink2};font-variant-numeric:tabular-nums;

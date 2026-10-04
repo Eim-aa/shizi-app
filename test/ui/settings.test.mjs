@@ -342,3 +342,54 @@ test('screen registered as settings', () => {
   assert.ok(getScreen('settings'));
   assert.equal(getScreen('settings').label, '设置');
 });
+
+// ---------------------------------------------------------------- 写字方式（阶段 1 P1-E8，D46 ⑬；03 P165）
+
+test('P165: settingsView.writeMode 缺省 screen；commitWriteMode 一次 commit 只改 settings.writeMode（其余字段保留）', async () => {
+  const { commitWriteMode, WRITE_MODE_ORDER } = await import('../../src/ui/screens/mine/settings.js');
+  assert.deepEqual(WRITE_MODE_ORDER, ['screen', 'paper']);
+  assert.equal(settingsView(null).writeMode, 'screen');
+  assert.equal(settingsView({ writeMode: 'paper' }).writeMode, 'paper');
+  assert.equal(settingsView({ writeMode: 'x' }).writeMode, 'screen');
+  const { store, backend } = freshStore();
+  assert.equal(commitSound(store, false).ok, true);
+  const res = commitWriteMode(store, 'paper');
+  assert.equal(res.ok, true);
+  assert.deepEqual(res.keys, [KEYS.settings]);
+  assert.deepEqual(JSON.parse(backend.getItem(KEYS.settings)), { sound: false, writeMode: 'paper' });
+  assert.equal(commitWriteMode(store, 'paper').skipped, true, 'same value → no write');
+  assert.throws(() => commitWriteMode(store, 'pencil'), /write mode/);
+});
+
+test('P165: SettingsBody 练习组「练习范围 · 写字方式 · 按键音」，写字方式行右侧显示当前方式、点开弹层', () => {
+  const ids = allByTestid(body(settingsView({ writeMode: 'paper' })));
+  const practice = allByTestid(ids['settings-group'][0]);
+  assert.ok(practice['settings-writemode'], 'the 练习 group holds 写字方式');
+  const order = [];
+  walk(ids['settings-group'][0], n => { const id = n.props && n.props['data-testid']; if (['settings-library', 'settings-writemode', 'settings-sound'].includes(id)) order.push(id); });
+  assert.deepEqual(order, ['settings-library', 'settings-writemode', 'settings-sound']);
+  const row = ids['settings-writemode'][0];
+  assert.equal(row.props['data-value'], 'paper');
+  assert.equal(row.props['aria-haspopup'], 'dialog');
+  assert.equal(textOf(row), '写字方式在纸上写');
+  assert.equal(textOf(allByTestid(body(settingsView(null)))['settings-writemode-value'][0]), '在屏幕上写');
+});
+
+test('P165: WriteModeSheetView——两个单选（在屏幕上写 / 在纸上写，各带说明），当前项勾上，下面一段说明（§10.3）', async () => {
+  const { WriteModeSheetView, WRITE_MODE_ORDER } = await import('../../src/ui/screens/mine/settings.js');
+  const picked = [];
+  const vnode = WriteModeSheetView({ current: 'screen', onPick: v => picked.push(v), close: () => {} });
+  assert.equal(vnode.props.title, '写字方式');
+  assert.equal(vnode.props.testid, 'settings-writemode-sheet');
+  const ids = allByTestid(vnode);
+  const opts = ids['settings-writemode-option'];
+  assert.deepEqual(opts.map(o => o.props['data-value']), WRITE_MODE_ORDER);
+  assert.deepEqual(opts.map(o => o.props['aria-checked']), ['true', 'false']);
+  assert.ok(opts.every(o => o.props.role === 'radio'));
+  assert.deepEqual(opts.map(textOf), [t('X-SETTINGS.writeScreen') + t('X-SETTINGS.writeScreenSub'), t('X-SETTINGS.writePaper') + t('X-SETTINGS.writePaperSub')]);
+  assert.equal(textOf(ids['settings-writemode-note'][0]), t('X-SETTINGS.writeModeNote'));
+  opts[1].props.onClick({ timeStamp: 1e9 });
+  assert.deepEqual(picked, ['paper']);
+  const failed = allByTestid(expand(WriteModeSheetView({ current: 'screen', failed: true, pending: 'paper', onPick: () => {}, close: () => {} })));
+  assert.equal(failed['settings-writemode-fail'].length, 1);
+});

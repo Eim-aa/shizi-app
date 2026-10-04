@@ -4,6 +4,8 @@
 // 页面 'settings'（「我的」菜单「设置」推入，M4-1 拥有入口，调用 openSettings() 或 nav.push('settings')）：
 //   页头「设置」+ 返回；四组（组标题 20px 宋体 + 列表，原型顺序）：
 //   练习：练习范围（右侧「{库名} ›」→ nav.push('library-switch')，M3-5 换库页；换完它自己 nav.back() 回到这里）、
+//         写字方式（阶段 1 P1-E8，D46 ⑬ / 03 P165：右侧「在屏幕上写 | 在纸上写 ›」，点开底部弹层二选 + 说明，写 settings.writeMode；
+//         弹层流程与外观同一套 openPickSheet）、
 //         按键音（开关，settings.sound，缺省开 = 原型 SD；P24 触发点沿旧，由 M5 sound.js 读）。
 //         「练字背景音」一行与「背景音只在写字的时候响。」按 P07（features.soundscape=false）删除，不画。
 //   提醒：练习提醒（开关 + 小字 R-S01.remindNote；通知被关时小字换 R-S02.title，组下 R-S02.body +「去手机设置 ›」）、
@@ -33,7 +35,9 @@
 //   settings-appearance-value、settings-backup（data-last-export）、settings-backup-value、
 //   settings-fail（data-group / data-field）、settings-fail-note、settings-fail-cancel、settings-fail-retry；
 //   外观弹层：settings-appearance-sheet（data-state=pick|failed）、settings-appearance-options（role=radiogroup）、
-//   settings-appearance-option（role=radio，data-value，aria-checked）、settings-appearance-fail（+ -cancel / -retry）。
+//   settings-appearance-option（role=radio，data-value，aria-checked）、settings-appearance-fail（+ -cancel / -retry）；
+//   写字方式（P1-E8）：settings-writemode（data-value）、settings-writemode-value、settings-writemode-sheet、settings-writemode-options、
+//   settings-writemode-option（role=radio，data-value，aria-checked）、settings-writemode-note、settings-writemode-fail。
 
 import { html, useEffect, useState } from '../../../../vendor/ui.js';
 import { registerScreen, getScreen, nav } from '../../router.js';
@@ -51,6 +55,7 @@ import { libraryName } from '../library/index.js';
 import * as policy from '../../../config/policy.js';
 import { t } from '../../../config/copy/index.js';
 import { showToast } from '../../components/Toast.js';
+import { WRITE_MODES, writeModeOf } from '../../../core/paper.js';
 
 export const SETTINGS_SCREEN = 'settings';
 export const BACKUP_SCREEN = 'backup';
@@ -63,6 +68,7 @@ export const LABELS = Object.freeze({
   remindTime: 'settings:remind-time',
   permission: 'settings:remind-permission',
   appearance: 'settings:appearance',
+  writeMode: 'settings:write-mode',
   textSizeNotice: 'settings:text-size-notice',
 });
 
@@ -71,6 +77,9 @@ export const DEFAULT_SOUND = true;
 export const PERMISSIONS = Object.freeze(['granted', 'denied', 'unknown']);
 /** 外观弹层里选项的顺序（R-S03「浅色 / 深色 / 跟随系统」）。 */
 export const APPEARANCE_ORDER = Object.freeze(['light', 'dark', 'auto']);
+/** 写字方式弹层的选项顺序（实现交接 §10.3「在屏幕上写 / 在纸上写」；阶段 1 P1-E8，P165）。 */
+export const WRITE_MODE_ORDER = WRITE_MODES;
+export const WRITE_MODE_OVERLAY = 'settings-writemode';
 
 // ---------------------------------------------------------------- 纯函数（test/ui/settings.test.mjs）
 
@@ -123,6 +132,7 @@ export function settingsView(settings, { p = policy } = {}) {
     denied: permission === 'denied',
     appearance: appearanceOf(settings, { features }).theme,
     appearanceSwitch: features.appearanceSwitch !== false,
+    writeMode: writeModeOf(settings), // P1-E8（P165）：缺省 screen
   };
 }
 
@@ -163,6 +173,12 @@ export function commitSettings(store, label, fields) {
 
 export function commitSound(store, on) {
   return commitSettings(store, LABELS.sound, { sound: !!on });
+}
+
+/** 写字方式（P1-E8，P165）：settings.writeMode = 'screen' | 'paper'。 */
+export function commitWriteMode(store, value) {
+  if (WRITE_MODES.indexOf(value) < 0) throw new RangeError(`unknown write mode: ${value}`);
+  return commitSettings(store, LABELS.writeMode, { writeMode: value });
 }
 
 export function commitAppearance(store, value) {
@@ -272,6 +288,8 @@ button.sz-set__row:focus-visible{outline:2px solid ${T.ink1};outline-offset:2px}
 .sz-set__check{flex:none;width:22px;height:22px;color:${T.ink1};visibility:hidden}
 .sz-set__opt[aria-checked="true"] .sz-set__check{visibility:visible}
 .sz-set__opt[aria-checked="true"]{font-weight:500}
+.sz-set__opt .sz-set__sub{font-weight:400}
+.sz-set__mnote{margin:${T.s3} 0 0;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3};text-wrap:pretty}
 `);
 
 // 每次渲染现取新 vnode，不复用模块级常量（vendor/ui.js 注释，M6-3）。
@@ -360,6 +378,8 @@ export function SettingsBody({ view, backup, fail = null, on }) {
     <${Group} id="practice" title=${t('X-SETTINGS.groupPractice')} note=${failFor('practice')}>
       <${ValueRow} testid="settings-library" title=${t('R-S01.library')} value=${view.libraryName} valueTestid="settings-library-value"
         onClick=${on.library} extra=${{ 'data-library': view.library }} />
+      <${ValueRow} testid="settings-writemode" title=${t('X-SETTINGS.writeMode')} value=${writeModeLabel(view.writeMode)}
+        valueTestid="settings-writemode-value" onClick=${on.writeMode} extra=${{ 'data-value': view.writeMode, 'aria-haspopup': 'dialog' }} />
       <${SwitchRow} testid="settings-sound" title=${t('R-S01.keySound')} on=${view.sound} onToggle=${on.sound} />
     </${Group}>
     <${Group} id="remind" title=${t('X-SETTINGS.groupRemind')} note=${html`${remindNote}${failFor('remind')}`}>
@@ -407,6 +427,24 @@ function AppearanceSheet({ failed = false, pending = null, onPick, onRetry, clos
  * @returns overlay id
  */
 export function openAppearanceSheet({ getStore: storeOf = getStore } = {}) {
+  return openPickSheet({
+    Component: AppearanceSheet, name: APPEARANCE_OVERLAY, storeOf,
+    currentOf: settings => settingsView(settings).appearance,
+    commit: (store, value) => commitAppearance(store, value),
+  });
+}
+
+/** 打开写字方式二选弹层（P1-E8，P165）：规则同外观弹层。 */
+export function openWriteModeSheet({ getStore: storeOf = getStore } = {}) {
+  return openPickSheet({
+    Component: WriteModeSheet, name: WRITE_MODE_OVERLAY, storeOf,
+    currentOf: settings => settingsView(settings).writeMode,
+    commit: (store, value) => commitWriteMode(store, value),
+  });
+}
+
+/** 单选弹层的共用流程：点当前项 → 关；点别的 → commit，成功关，失败就地换成三段式（再试一次 = 同一选择）。 */
+function openPickSheet({ Component, name, storeOf, currentOf, commit }) {
   let overlayId = null;
   let done = false;
   let pending = null;
@@ -414,7 +452,7 @@ export function openAppearanceSheet({ getStore: storeOf = getStore } = {}) {
     if (done) return;
     let result;
     try {
-      result = commitAppearance(storeOf(), value);
+      result = commit(storeOf(), value);
     } catch (error) {
       result = { ok: false, error: { kind: 'unknown', reason: error && error.message ? error.message : String(error) } };
     }
@@ -428,7 +466,7 @@ export function openAppearanceSheet({ getStore: storeOf = getStore } = {}) {
   const pick = value => {
     if (done) return;
     pending = value;
-    if (value === settingsView(storeOf().getState().settings).appearance) {
+    if (value === currentOf(storeOf().getState().settings)) {
       done = true;
       nav.closeOverlay(overlayId);
       return;
@@ -438,9 +476,42 @@ export function openAppearanceSheet({ getStore: storeOf = getStore } = {}) {
   const retry = () => {
     if (pending) attempt(pending);
   };
-  overlayId = nav.openOverlay(AppearanceSheet, { failed: false, pending: null, onPick: pick, onRetry: retry },
-    { name: APPEARANCE_OVERLAY });
+  overlayId = nav.openOverlay(Component, { failed: false, pending: null, onPick: pick, onRetry: retry }, { name });
   return overlayId;
+}
+
+// ---------------------------------------------------------------- 写字方式弹层（阶段 1 P1-E8，D46 ⑬；03 P165）
+
+const WRITE_MODE_COPY = Object.freeze({
+  screen: { title: 'X-SETTINGS.writeScreen', sub: 'X-SETTINGS.writeScreenSub' },
+  paper: { title: 'X-SETTINGS.writePaper', sub: 'X-SETTINGS.writePaperSub' },
+});
+
+/** 写字方式弹层视图（纯函数）：两个单选（标题 + 说明）+ 下面一段说明（实现交接 §10.3、求助与判断 ⑤）。 */
+export function WriteModeSheetView({ current, failed = false, pending = null, onPick, onCancel, onRetry, close, active = true }) {
+  return html`<${Sheet} title=${t('X-SETTINGS.writeMode')} onClose=${close} active=${active} testid="settings-writemode-sheet">
+    <div class="sz-set__opts" role="radiogroup" aria-label=${t('X-SETTINGS.writeMode')} data-testid="settings-writemode-options"
+      data-state=${failed ? 'failed' : 'pick'}>
+      ${WRITE_MODE_ORDER.map(value => html`<${Button} key=${value} variant="plain" class="sz-set__opt" role="radio"
+        aria-checked=${value === current ? 'true' : 'false'} data-testid="settings-writemode-option" data-value=${value}
+        onClick=${() => onPick(value)}><span class="sz-set__main"><span class="sz-set__title">${t(WRITE_MODE_COPY[value].title)}</span><span
+        class="sz-set__sub">${t(WRITE_MODE_COPY[value].sub)}</span></span>${CHECK_ICON()}</${Button}>`)}
+    </div>
+    <p class="sz-set__mnote" data-testid="settings-writemode-note">${t('X-SETTINGS.writeModeNote')}</p>
+    ${failed ? html`<${FailBlock} testid="settings-writemode-fail" group="practice" field=${`writeMode:${pending}`}
+      onCancel=${onCancel} onRetry=${onRetry} />` : null}
+  </${Sheet}>`;
+}
+
+function WriteModeSheet({ failed = false, pending = null, onPick, onRetry, close, active = true }) {
+  const view = useSettingsState();
+  return WriteModeSheetView({
+    current: settingsView(view.settings).writeMode, failed, pending, onPick, onCancel: close, onRetry, close, active,
+  });
+}
+
+function writeModeLabel(value) {
+  return t(WRITE_MODE_COPY[value === 'paper' ? 'paper' : 'screen'].title);
 }
 
 // ---------------------------------------------------------------- 页面
@@ -528,6 +599,7 @@ function SettingsScreen() {
     },
     openSystem: () => postNative('openAppSettings', {}),
     appearance: () => openAppearanceSheet(),
+    writeMode: () => openWriteModeSheet(),
     backup: () => go(BACKUP_SCREEN, {}),
     failCancel: () => setFail(null),
     failRetry: () => {

@@ -88,6 +88,15 @@ export default Object.freeze({
   'X-ANSWER.titleTrace': '描一遍',
   'X-ANSWER.btnTraceDone': '描好了，自己写',
   'X-ANSWER.btnRetrace': '再描一遍',
+  // X-PAPER（阶段 1 P1-E8「在纸上写，回来自判」写字页；实现交接 §10.2 / §10.3，过渡文案；03 P165 / P167 / P168）
+  'X-PAPER.title': '在纸上写',
+  'X-PAPER.body': '写好了点「写好了」，再自己对照。',
+  'X-PAPER.backToScreen': '改回在屏幕上写',
+  'X-PAPER.toPaper': '在纸上写',
+  'X-PAPER.note': '这个字记下时会标注「纸上」，不留笔迹。',
+  'X-PAPER.suggest': '读屏开启时，可以在纸上写好，回来自己对照。',
+  'X-PAPER.suggestYes': '改为在纸上写',
+  'X-PAPER.suggestNo': '不用',
   // X-PERSIST（M1-6 抬笔写会话现场失败的顶部一次性提示；01 §4 表「沿旧两句」，旧 index.html L1067）
   'X-PERSIST.saveFailed': '这次进度没有保存。请立即导出备份后重新打开 App。',
   'X-PERSIST.quotaFailed': '本地空间已满，这次进度没有保存。请立即导出备份并清理空间。',

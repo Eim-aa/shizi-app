@@ -166,7 +166,8 @@
     "P151": "判断页上下两格（D46 ⑪，P1-E1b）：版式行为——S = min(屏宽 − 168, (书写格顶到页底栏的可用高 + 1) ÷ 2)，实现在 src/ui/screens/write/compare.js judgePairSize / useJudgePairSize；旁注沿用 R-W09 的「你的书写 / 参考字形」，读屏名称不变；长按叠看（D46 ⑫）本卡不做；无新文案",
     "P152": "字库与字墙（设计系统 v1，P1-E1b）：墙格四档取令牌 --wall1…--wall4（取代透明度四档），8 列 / Pro Max 9 列 / 大字最多 6 列（一格不窄于 44pt，按屏宽取 ⌊(屏宽 − 40) ÷ 44⌋），写错只加朱点；实现在 src/ui/screens/library/{wall,model}.js；自选未写的淡朱双钩留给 P1-E2；无界面文案",
     "P153": "增强对比度下的提示与描红描边（D46 ⑯，P1-E1b）：CSS 媒体查询 prefers-contrast: more 与 canvas 的 matchMedia 判断，实现在 src/ui/screens/write/hint-layer.js、src/ui/canvas/glyph.js、src/ui/screens/write/answer.js；原生壳桥接（UIAccessibility.isDarkerSystemColorsEnabled）只在报告里说明；无界面文案",
-    "P154": "写字页静态版式（D46 ⑭，P1-E1b）：版式行为——结果行进格下说明位、页底栏两行；实现在 src/ui/screens/write/{index,result-row,compact}.js 的 CSS 与结构，不是 policy 开关；无新文案"
+    "P154": "写字页静态版式（D46 ⑭，P1-E1b）：版式行为——结果行进格下说明位、页底栏两行；实现在 src/ui/screens/write/{index,result-row,compact}.js 的 CSS 与结构，不是 policy 开关；无新文案",
+    "P166": "记录的书写方式 source（缺省 screen、纸上 paper）、纸上记录没有墨迹且不占 D27「第一次 / 最近一次」留墨位、恢复幂等不把纸上的判断页退回 recall：阶段 1 P1-E8，实现在 src/core/{records,schema,sessions}.js 与 src/store/budget.js indexRecords；无界面文案，见 03 P166"
   },
   "noCopy": [
     "R-H08",
@@ -3104,6 +3105,27 @@
           "origin": "extra",
           "note": "修改判断弹层右上关闭；原型 L240；reference/I-proto-write.md「弹层取消」",
           "decision": "P66"
+        },
+        "paperRefAside": {
+          "raw": null,
+          "text": "参考字形 · 和你纸上的字对照",
+          "origin": "extra",
+          "note": "纸上那一字的判断页：只有参考字形（放到书写格大小），格下这一行旁注；阶段 1 P1-E8",
+          "decision": "P167"
+        },
+        "paperMineLabel": {
+          "raw": null,
+          "text": "你的书写：写在纸上",
+          "origin": "extra",
+          "note": "纸上那一字的读屏：判断页「你的书写」的名称、修改判断弹层本人格的名称（实现交接 §9.5 / §10.2）",
+          "decision": "P167"
+        },
+        "paperMineBox": {
+          "raw": null,
+          "text": "写在纸上",
+          "origin": "extra",
+          "note": "修改判断弹层里纸上那一字的本人格（没有墨迹，不写「没有笔迹」）",
+          "decision": "P167"
         }
       }
     },
@@ -3404,6 +3426,20 @@
           "origin": "extra",
           "note": "从自选移除的撤销写入失败时撤销底栏第二行（第一行用 X-DETAIL.saveFailed，按钮保留，10.15 / UndoBar.js 约定）",
           "decision": "P76"
+        },
+        "paperTag": {
+          "raw": null,
+          "text": "· 纸上",
+          "origin": "extra",
+          "note": "单字详情记录行「10 月 4 日　写对 · 纸上」的标注（墨三）；纸上那次不占笔迹格（实现交接 §10.2）；阶段 1 P1-E8",
+          "decision": "P169"
+        },
+        "paperRowLabel": {
+          "raw": null,
+          "text": "{date}，{caption}，纸上",
+          "origin": "extra",
+          "note": "纸上记录行的读屏名称（实现交接 §10.2「10月4日，写对，纸上」）",
+          "decision": "P169"
         }
       }
     },
@@ -3924,6 +3960,48 @@
           "origin": "extra",
           "decision": "P132",
           "note": "D29：v1 迁移带来 settings.large=true（旧「更大字体」打开过）时，启动后显示一次的轻提示（6 秒），显示后从 settings 去掉 large、不再显示；句子取 06 阶段 1 P1-E6 卡面，过渡文案，阶段 1 文案统一时定稿"
+        },
+        "writeMode": {
+          "raw": null,
+          "text": "写字方式",
+          "origin": "extra",
+          "note": "设置「练习」组一行（右侧当前方式 ›），点开底部弹层二选；阶段 1 P1-E8，Claude Design「拾字设计系统」实现交接.md §10.3（全部过渡）、求助与判断.html ⑤；D46 ⑬ / D47",
+          "decision": "P165"
+        },
+        "writeScreen": {
+          "raw": null,
+          "text": "在屏幕上写",
+          "origin": "extra",
+          "note": "写字方式选项一（缺省）",
+          "decision": "P165"
+        },
+        "writeScreenSub": {
+          "raw": null,
+          "text": "用手指或 Apple Pencil 写在书写格里",
+          "origin": "extra",
+          "note": "选项一的说明",
+          "decision": "P165"
+        },
+        "writePaper": {
+          "raw": null,
+          "text": "在纸上写",
+          "origin": "extra",
+          "note": "写字方式选项二",
+          "decision": "P165"
+        },
+        "writePaperSub": {
+          "raw": null,
+          "text": "题面、提示、看答案照常；写好后点「写好了」，自己对照",
+          "origin": "extra",
+          "note": "选项二的说明",
+          "decision": "P165"
+        },
+        "writeModeNote": {
+          "raw": null,
+          "text": "选「在纸上写」时，判断照常记下、标注「纸上」，不留笔迹，所以不会出现在这次的图片和年报里。随时可以改回来，也可以在写字页格下点「在纸上写」只改这一个字。",
+          "origin": "extra",
+          "note": "写字方式弹层两个选项下的说明",
+          "decision": "P165"
         }
       }
     },
@@ -4521,6 +4599,69 @@
           "origin": "extra",
           "note": "系统权限被拒后这一块变成的一行，不再追问（意思同 R-S02）",
           "decision": "P157"
+        }
+      }
+    },
+    "X-PAPER": {
+      "screen": "write",
+      "milestone": "M1",
+      "source": "阶段 1 P1-E8「在纸上写，回来自判」写字页（src/ui/screens/write/paper.js）：Claude Design「拾字设计系统」实现交接.md §10.3（全部过渡）、求助与判断.html ⑤；D46 ⑬ / D47",
+      "slots": {
+        "title": {
+          "raw": null,
+          "text": "在纸上写",
+          "origin": "extra",
+          "note": "纸上模式书写格内居中第一行（17 中黑）",
+          "decision": "P167"
+        },
+        "body": {
+          "raw": null,
+          "text": "写好了点「写好了」，再自己对照。",
+          "origin": "extra",
+          "note": "书写格内第二行（15，墨二）",
+          "decision": "P167"
+        },
+        "backToScreen": {
+          "raw": null,
+          "text": "改回在屏幕上写",
+          "origin": "extra",
+          "note": "书写格内文字按钮：只把这一个字改回屏幕（写进 current.paper=false）",
+          "decision": "P165"
+        },
+        "toPaper": {
+          "raw": null,
+          "text": "在纸上写",
+          "origin": "extra",
+          "note": "屏幕模式格下一行右端（还没落笔时，撤销 / 清空的位置）：只把这一个字改到纸上（current.paper=true）",
+          "decision": "P165"
+        },
+        "note": {
+          "raw": null,
+          "text": "这个字记下时会标注「纸上」，不留笔迹。",
+          "origin": "extra",
+          "note": "纸上模式格下说明（13，墨三）",
+          "decision": "P167"
+        },
+        "suggest": {
+          "raw": null,
+          "text": "读屏开启时，可以在纸上写好，回来自己对照。",
+          "origin": "extra",
+          "note": "读屏 / 切换控制开启后第一次进写字页时，格下一条非阻断建议（只出现一次，settings.paperSuggested）",
+          "decision": "P168"
+        },
+        "suggestYes": {
+          "raw": null,
+          "text": "改为在纸上写",
+          "origin": "extra",
+          "note": "建议的接受按钮：写字方式设置改为纸上",
+          "decision": "P168"
+        },
+        "suggestNo": {
+          "raw": null,
+          "text": "不用",
+          "origin": "extra",
+          "note": "建议的谢绝按钮",
+          "decision": "P168"
         }
       }
     }

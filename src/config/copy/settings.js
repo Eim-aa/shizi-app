@@ -31,6 +31,13 @@ export default Object.freeze({
   'X-SETTINGS.retry': '再试一次',
   // P132（D29）：旧「更大字体」打开过的用户（v1 迁移带来 large=true），启动后显示一次的轻提示；过渡文案
   'X-SETTINGS.textSizeNotice': '文字大小跟随手机设置，可以在手机的设置里调整。',
+  // 写字方式（阶段 1 P1-E8，D46 ⑬；实现交接 §10.3，过渡文案；03 P165）
+  'X-SETTINGS.writeMode': '写字方式',
+  'X-SETTINGS.writeScreen': '在屏幕上写',
+  'X-SETTINGS.writeScreenSub': '用手指或 Apple Pencil 写在书写格里',
+  'X-SETTINGS.writePaper': '在纸上写',
+  'X-SETTINGS.writePaperSub': '题面、提示、看答案照常；写好后点「写好了」，自己对照',
+  'X-SETTINGS.writeModeNote': '选「在纸上写」时，判断照常记下、标注「纸上」，不留笔迹，所以不会出现在这次的图片和年报里。随时可以改回来，也可以在写字页格下点「在纸上写」只改这一个字。',
   // X-REMIND（M5-5 提醒通知的标题与正文，P48；R-S01 只给了设置页说明，通知字样沿旧版，见 copy-source.json extra）
   'X-REMIND.title': '{word}（{pinyin}）',
   'X-REMIND.body': '还记得这个字怎么写吗？点开试试。',

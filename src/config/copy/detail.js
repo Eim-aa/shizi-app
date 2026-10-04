@@ -52,4 +52,7 @@ export default Object.freeze({
   'X-DETAIL.retry': '再试一次',
   'X-DETAIL.cancel': '先不保存',
   'X-DETAIL.undoFailedL2': '可以再点一次撤销',
+  // 纸上记录的标注（阶段 1 P1-E8；实现交接 §10.2，过渡文案；03 P169）
+  'X-DETAIL.paperTag': '· 纸上',
+  'X-DETAIL.paperRowLabel': '{date}，{caption}，纸上',
 });

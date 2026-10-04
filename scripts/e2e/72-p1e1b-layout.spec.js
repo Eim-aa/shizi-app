@@ -1,7 +1,8 @@
 // 阶段 1 P1-E1b（D43 / D46）：按设计系统 v1 重排页面结构（首页 / 结果页 / 图片除外）的版式断言：
 //   A 页边 20：写字页、字库 / 我的 tab 根页、设置页的正文左右内边距 = --gutter（20），书写格贴着同一条边；
-//   B 判断页上下两格（D46 ⑪）：本人书写在上、参考字形在下，与书写格同一顶边、同一中线；边长随屏宽 / 可用高（S = min(W − 168, …)）；
-//     「你的书写 / 参考字形」是右侧旁注（aria-hidden），读屏名称仍在两张卡的 aria-label 上；说明与两键进页底栏、两键同权重；
+//   B 判断页上下两格（D46 ⑪、D49）：本人书写在上、参考字形在下，与书写格同一顶边、同一中线；边长 S = min(W − 40, ⌊(主区高 − 书写格顶 − 16) ÷ 2⌋)（D49 去掉旁注后
+//     宽度只受页边限制；测试浏览器无安全区：402×874 → 255、440×956 → 287、393×852 → 247、375×667 → 187）；没有「你的书写 / 参考字形」旁注，读屏名称仍在两张卡的
+//     aria-label 上；两键在主按钮的位置、同权重，没有说明句（更细的断言在 77-e9b-write-judge.spec.js）；
 //   C 写字页结果行（D19）挪到格下说明位（D46 ⑭）；
 //   D 字墙：取令牌 wall1–wall4 的独立色值（浅深各一套），写错格同样按新旧取档并多一颗朱点；8 列 / Pro Max 9 列 / 大字 6 列；
 //   E 增强对比度（D46 ⑯）：prefers-contrast: more 时淡朱提示笔画出现 1pt 描边（drop-shadow），否则没有；
@@ -77,12 +78,12 @@ export default async function p1e1bLayout(page, ctx) {
   assert.deepEqual([pad.l, pad.r, pad.fl, pad.fr], ['20px', '20px', '20px', '20px'], 'write page body and footer: left / right padding 20 (--gutter)');
   const g0 = await rectOf(page, '[data-testid="write-grid"]');
   assert.ok(near(g0.left, 20) && near(393 - g0.right, 20), `the writing grid sits on the 20pt edges (${g0.left}, ${393 - g0.right})`);
-  const main = await rectOf(page, '.sz-write__main');
-  assert.ok(near(main.left, 20) && near(393 - main.right, 20), 'the main action row shares the same edges');
+  const done = await rectOf(page, '[data-testid="write-done"]');
+  assert.ok(near(done.left, 20) && near(393 - done.right, 20), 'the main action button shares the same edges (full width, D49)');
   const below = await rectOf(page, '.sz-write__below');
   assert.ok(near(below.left, g0.left) && near(below.right, g0.right), 'the row under the grid is as wide as the grid (note left, tools right)');
   const prompt = await rectOf(page, '[data-testid="write-prompt"]');
-  assert.ok(near(g0.top - prompt.bottom, 24), `prompt → grid gap is 24 (${g0.top - prompt.bottom})`);
+  assert.ok(near(g0.top - prompt.bottom, 16), `prompt → grid gap is 16 (D49: was 24) (${g0.top - prompt.bottom})`);
 
   await page.evaluate(async () => { const { nav } = await import('/src/ui/router.js'); nav.back(); });
   await page.waitForTimeout(500);
@@ -108,7 +109,7 @@ export default async function p1e1bLayout(page, ctx) {
   assert.deepEqual(sp, ['20px', '20px'], 'settings page: left / right padding 20');
 
   // ------------------------------------------------------------------ B 判断页上下两格
-  for (const [w, h, expected] of [[402, 874, 234], [440, 956, 272], [393, 852, 225]]) {
+  for (const [w, h, expected] of [[402, 874, 255], [440, 956, 287], [393, 852, 247]]) {
     step(`B: judge page ${w}×${h}: two stacked cards, same top edge and midline as the writing grid, S = ${expected}`);
     await openWriteAt(page, ctx, { width: w, height: h });
     const grid = await rectOf(page, '[data-testid="write-grid"]');
@@ -119,41 +120,30 @@ export default async function p1e1bLayout(page, ctx) {
     assert.ok(near(mine.cx, grid.cx) && near(ref.cx, grid.cx), `${w}×${h}: both cards are on the writing grid's midline (${mine.cx}, ${ref.cx} vs ${grid.cx})`);
     assert.ok(near(ref.top, mine.bottom - 1, 1), `${w}×${h}: the lower card hangs under the upper one on a shared line (${ref.top} vs ${mine.bottom})`);
     assert.ok(near(mine.width, mine.height) && near(ref.width, ref.height) && near(mine.width, ref.width), `${w}×${h}: both cards are the same square (${mine.width}×${mine.height}, ${ref.width}×${ref.height})`);
-    assert.ok(near(mine.width, expected, 1), `${w}×${h}: S = min(W − 168, available ÷ 2) = ${expected} (got ${mine.width})`);
+    assert.ok(near(mine.width, expected, 1), `${w}×${h}: S = min(W − 40, ⌊(main − grid top − 16) ÷ 2⌋) = ${expected} (got ${mine.width})`);
     const foot = await rectOf(page, '.sz-page__foot');
-    assert.ok(ref.bottom <= foot.top + 0.5, `${w}×${h}: the cards end above the footer (${ref.bottom} ≤ ${foot.top})`);
+    assert.ok(ref.bottom <= foot.top - 11, `${w}×${h}: the cards end ≥ 12 above the footer (${ref.bottom} vs ${foot.top})`);
     const aside = await page.evaluate(() => {
       const top = document.querySelector('.sz-layer[data-top="true"]');
-      const f = id => {
-        const el = top.querySelector(`[data-testid="${id}"]`);
-        if (!el) return null;
-        const r = el.getBoundingClientRect();
-        const cs = getComputedStyle(el);
-        return { text: el.textContent, hidden: el.getAttribute('aria-hidden'), left: r.left, top: r.top, right: r.right, fs: parseFloat(cs.fontSize), color: cs.color };
-      };
       const mineCard = top.querySelector('[data-testid="write-compare-mine"]');
       const refCard = top.querySelector('[data-testid="write-compare-ref"]');
-      return { m: f('write-compare-aside-mine'), r: f('write-compare-aside-ref'), mAria: mineCard.getAttribute('aria-label'), rAria: refCard.getAttribute('aria-label'), mRole: mineCard.getAttribute('role'), rRole: refCard.getAttribute('role') };
+      return { asides: top.querySelectorAll('.sz-compare__aside, [data-testid="write-compare-aside-mine"], [data-testid="write-compare-aside-ref"]').length, text: top.innerText,
+        mAria: mineCard.getAttribute('aria-label'), rAria: refCard.getAttribute('aria-label'), mRole: mineCard.getAttribute('role'), rRole: refCard.getAttribute('role'), note: !!top.querySelector('[data-testid="write-judge-note"]') };
     });
-    assert.deepEqual([aside.m && aside.m.text, aside.r && aside.r.text], ['你的书写', '参考字形'], `${w}×${h}: side notes 你的书写 / 参考字形 exist`);
-    assert.deepEqual([aside.m.hidden, aside.r.hidden], ['true', 'true'], `${w}×${h}: the side notes are aria-hidden (the names live on the cards)`);
-    assert.ok(aside.m.left >= mine.right + 11.5 && aside.r.left >= ref.right + 11.5, `${w}×${h}: the side notes sit to the right of their cards (12 apart)`);
-    assert.ok(aside.m.right <= w - 16 && near(aside.m.top, mine.top, 1) && near(aside.r.top, ref.top, 1), `${w}×${h}: the side notes stay on screen and align with their card tops`);
-    assert.equal(aside.m.fs, 13, `${w}×${h}: side notes are 13pt`);
-    assert.equal(aside.m.color, tokenRgb('light', 'ink3'), `${w}×${h}: side notes are ink3`);
+    assert.equal(aside.asides, 0, `${w}×${h}: no side notes (D49)`);
+    assert.ok(!aside.text.includes('你的书写') && !aside.text.includes('参考字形') && !aside.text.includes('你来判断'), `${w}×${h}: neither the notes nor the instruction sentence is on the page`);
+    assert.equal(aside.note, false, `${w}×${h}: no sentence above the buttons`);
     assert.deepEqual([aside.mRole, aside.rRole], ['img', 'img'], `${w}×${h}: the cards keep role=img`);
     assert.equal(aside.mAria, '你的书写，1 笔', `${w}×${h}: screen-reader name of my card unchanged`);
     assert.ok(/^参考字形：永，yǒng，\d+ 画$/.test(aside.rAria), `${w}×${h}: screen-reader name of the reference card unchanged (${aside.rAria})`);
     const btns = await page.evaluate(() => {
       const top = document.querySelector('.sz-layer[data-top="true"]');
-      const note = top.querySelector('[data-testid="write-judge-note"]').getBoundingClientRect();
       const a = top.querySelector('[data-testid="write-judge-wrong"]').getBoundingClientRect();
       const b = top.querySelector('[data-testid="write-judge-correct"]').getBoundingClientRect();
-      const doneRowTop = null;
-      return { note: { top: note.top, bottom: note.bottom }, a: { w: a.width, h: a.height, top: a.top, left: a.left }, b: { w: b.width, h: b.height, top: b.top, left: b.left }, doneRowTop };
+      return { a: { w: a.width, h: a.height, top: a.top, left: a.left }, b: { w: b.width, h: b.height, top: b.top, left: b.left } };
     });
     assert.ok(near(btns.a.w, btns.b.w) && near(btns.a.h, btns.b.h) && btns.a.h >= 54 - 0.5, `${w}×${h}: the two judge buttons are the same size, ≥ 54 tall (${btns.a.w}×${btns.a.h})`);
-    assert.ok(btns.note.top >= ref.bottom, `${w}×${h}: the note sentence is below the cards, above the buttons`);
+    assert.ok(near(btns.a.top, btns.b.top) && btns.a.left < btns.b.left, `${w}×${h}: 写错了 left, 写对了 right, one row`);
   }
 
   step('B: short screen 375×667 — the pair shrinks to fit between the grid top and the footer');
@@ -163,8 +153,8 @@ export default async function p1e1bLayout(page, ctx) {
   const mSE = await rectOf(page, '[data-testid="write-compare-mine"]');
   const rSE = await rectOf(page, '[data-testid="write-compare-ref"]');
   const fSE = await rectOf(page, '.sz-page__foot');
-  assert.ok(mSE.width >= 120 && mSE.width <= 375 - 168 + 0.5, `375×667: S within [120, W − 168] (${mSE.width})`);
-  assert.ok(rSE.bottom <= fSE.top + 0.5, `375×667: the pair fits above the footer (${rSE.bottom} ≤ ${fSE.top})`);
+  assert.ok(near(mSE.width, 187, 1), `375×667: S = ⌊(main 499 − grid top 108 − 16) ÷ 2⌋ = 187 (${mSE.width})`);
+  assert.ok(rSE.bottom <= fSE.top - 11, `375×667: the pair fits above the footer with ≥ 12 to spare (${rSE.bottom} vs ${fSE.top})`);
   assert.ok(near(mSE.top, gridSE.top) && near(mSE.cx, gridSE.cx), '375×667: still the grid\'s top edge and midline');
   const bodyScroll = await page.evaluate(() => { const b = document.querySelector('.sz-layer[data-top="true"] .sz-page__body'); return [b.scrollHeight, b.clientHeight]; });
   assert.ok(bodyScroll[0] <= bodyScroll[1] + 1, `375×667: the judge page does not scroll (${bodyScroll[0]} ≤ ${bodyScroll[1]})`);
@@ -174,9 +164,7 @@ export default async function p1e1bLayout(page, ctx) {
   const gridD = await rectOf(page, '[data-testid="write-grid"]');
   await toCompare(page);
   const mD = await rectOf(page, '[data-testid="write-compare-mine"]');
-  assert.ok(near(mD.top, gridD.top) && near(mD.cx, gridD.cx) && near(mD.width, 234, 1), 'dark 402×874: 234pt, grid top edge and midline');
-  const asideD = await page.evaluate(() => getComputedStyle(document.querySelector('.sz-layer[data-top="true"] [data-testid="write-compare-aside-mine"]')).color);
-  assert.equal(asideD, tokenRgb('dark', 'ink3'), 'dark: side notes are ink3');
+  assert.ok(near(mD.top, gridD.top) && near(mD.cx, gridD.cx) && near(mD.width, 255, 1), 'dark 402×874: 255pt, grid top edge and midline');
 
   // ------------------------------------------------------------------ C 结果行在格下说明位
   step('C: the D19 result row of the previous character sits in the note slot under the grid');

@@ -151,14 +151,14 @@ test('P168: 读屏建议——读屏在运行、设置仍是屏幕、还没出�
   assert.equal(validateValue(KEYS.settings, store.getState().settings), null);
 });
 
-test('P167: 纸上判断页只有参考字形（书写格大小）+ 旁注「参考字形 · 和你纸上的字对照」，读屏「你的书写：写在纸上」', () => {
+test('P167: 纸上判断页只有参考字形（书写格大小）+ 格下说明位「和你纸上的字对照」（D49：没有「参考字形 · 」旁注），读屏「你的书写：写在纸上」', () => {
   const v = PaperCompareStage({ char: '永', py: 'yǒng', strokeData: { status: 'loading' }, size: 330 });
   const ids = byTestid(v);
   assert.equal(ids['write-compare'][0].props['data-paper'], 'true');
   assert.equal(ids['write-compare'][0].props['data-size'], 330);
   assert.ok(!ids['write-compare-mine'], 'no learner card');
   assert.equal(ids['write-compare-ref'].length, 1);
-  assert.equal(textOf(ids['write-compare-aside-ref'][0]), '参考字形 · 和你纸上的字对照');
+  assert.equal(textOf(ids['write-compare-aside-ref'][0]), '和你纸上的字对照');
   assert.equal(textOf(ids['write-compare-paper'][0]), '你的书写：写在纸上');
   assert.equal(ids['write-compare-paper'][0].props.class, 'sr-only');
 });

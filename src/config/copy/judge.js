@@ -4,9 +4,7 @@
 
 export default Object.freeze({
   // R-W09（已定）
-  'R-W09.prompt': '你来判断，点一下就记下。',
   'R-W09.continueWriting': '接着写',
-  'R-W09.continueWritingAria': '回到格子里接着写',
   'R-W09.btnWrong': '写错了',
   'R-W09.btnCorrect': '写对了',
   'R-W09.labelMine': '你的书写',
@@ -24,7 +22,7 @@ export default Object.freeze({
   'X-JUDGE.changeToCorrect': '改为写对',
   'X-JUDGE.changeCancel': '取消',
   // 纸上那一字的判断页与修改判断弹层（阶段 1 P1-E8；实现交接 §9.5 / §10.2，过渡文案；03 P167）
-  'X-JUDGE.paperRefAside': '参考字形 · 和你纸上的字对照',
+  'X-JUDGE.paperRefAside': '和你纸上的字对照',
   'X-JUDGE.paperMineLabel': '你的书写：写在纸上',
   'X-JUDGE.paperMineBox': '写在纸上',
 });

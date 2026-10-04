@@ -347,7 +347,7 @@ test('JudgeButtons: 写错了 left, 写对了 right, same component / variant / 
   }
 });
 
-test('JudgeFooter: prompt copy; failure swaps in R-W16 copy and [先不保存 / 再试一次]', () => {
+test('JudgeFooter: only the two buttons (no 「你来判断…」 sentence, D49); failure adds the R-W16 sentence and swaps in [先不保存 / 再试一次]', () => {
   const ids = node => {
     const out = [];
     walk(node, n => {
@@ -356,7 +356,7 @@ test('JudgeFooter: prompt copy; failure swaps in R-W16 copy and [先不保存 / 
     return out;
   };
   const normal = JudgeFooter({ failed: false, onJudge: () => {} });
-  assert.deepEqual(ids(normal), ['write-judge-foot', 'write-judge-note']);
+  assert.deepEqual(ids(normal), ['write-judge-foot'], 'no note sentence next to the two keys');
   const failed = JudgeFooter({ failed: true, onRetry: () => {}, onCancelFail: () => {} });
   assert.deepEqual(ids(failed), ['write-judge-foot', 'write-judge-note', 'write-judge-fail-cancel', 'write-judge-fail-retry']);
   const bar = SkipUndoBar({ char: '春', onUndo: () => {} });

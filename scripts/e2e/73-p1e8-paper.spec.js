@@ -3,7 +3,7 @@
 //   1. 设置 › 写字方式：弹层二选（在屏幕上写 / 在纸上写 + 说明），选「在纸上写」写 settings.writeMode=paper，设置行显示「在纸上写」。
 //   2. 纸上写一组：书写格换成同样大小的纸面格（格内「在纸上写」/ 说明 /「改回在屏幕上写」、格下「纸上」说明，不能落笔），
 //      「写好了」不要求笔画；提示照常（画在纸面格里，格内文字收起）。
-//   3. 判断页只有参考字形（书写格大小）+ 旁注「参考字形 · 和你纸上的字对照」，读屏「你的书写：写在纸上」；判断后记录 source:'paper'、
+//   3. 判断页只有参考字形（书写格大小）+ 格下说明位「和你纸上的字对照」（D49：没有「参考字形 · 」旁注），读屏「你的书写：写在纸上」；判断后记录 source:'paper'、
 //      不写墨迹、照常评级推进，之前留墨的那次墨迹不被回收（D27：纸上那次不占位）。
 //   4. 写字页单字切换：纸上 →「改回在屏幕上写」只改这一个字（current.paper=false）；屏幕上还没落笔时格下右端「在纸上写」，落笔后换回撤销 / 清空；
 //      下一字回到设置的写字方式。
@@ -198,7 +198,7 @@ export default async function paperSpec(page, ctx) {
   assert.equal(cmp.paper, 'true');
   assert.equal(cmp.mine, false, 'no learner card');
   assert.ok(Math.abs(cmp.refW - box.paper.width) < 1.5, `reference = writing-grid size (${cmp.refW} vs ${box.paper.width})`);
-  assert.equal(cmp.aside, '参考字形 · 和你纸上的字对照');
+  assert.equal(cmp.aside, '和你纸上的字对照', 'D49: the slot under the reference reads 「和你纸上的字对照」, no 「参考字形 · 」 side note');
   assert.equal(cmp.sr, '你的书写：写在纸上');
   assert.equal(cmp.srClass, 'sr-only');
   assert.equal(cmp.stored.phase, 'compare');

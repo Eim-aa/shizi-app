@@ -5,20 +5,19 @@
 //   1. 回忆阶段书写格有本人笔画时「写好了」可点（空格子 disabled + aria-disabled，01 §6.6）→ 进 compare。
 //      进 / 出 compare 是会话现场写入（phase + 原始笔画，core/ink-math encodeRawStrokes），按 P52 **不阻断**：
 //      写失败时本页照样切换（本地阶段覆盖），判断时由判断 commit 的三段式兜底。
-//   2. 判断页（D46 ⑪，P1-E1b）：书写格位置换成上下两格——本人书写在上、参考字形在下，共用一条格线，与书写格同一顶边、同一中线；
-//      边长 S = min(屏宽 − 168, 格下到说明句顶的可用高 ÷ 2)（168 = 2 × (页边 20 + 旁注 52 + 间距 12)，见 judgePairSize）；
-//      「你的书写 / 参考字形」做成两格右侧的 13pt 旁注（读屏名称仍在两张卡的 aria-label 上，不变）。
-//      没有本人笔画时上格「这次没写」（R-W17；01 §3.3 compare 且笔画为空按 recall 处理，正常流程到不了）。
-//      说明「你来判断，点一下就记下。」（R-W09.prompt）放在页底栏的主操作行之上；两键「写错了」左、「写对了」右，同一个组件同一组类名
-//      （同样式同尺寸同字重），无 autofocus、无 aria-pressed、无预选；对照区没有任何判定着色 / 判定类名（决定-D03）。
-//      左上「接着写」（aria「回到格子里接着写」）回书写格，笔迹保留，不记录（决定-D20 / 走查-W09）。
+//   2. 判断页（D46 ⑪、D49 减法修稿；实现交接 §9）：书写格位置换成上下两格——本人书写在上、参考字形在下，共用一条 1pt 格线，与书写格同一顶边、同一中线；
+//      页头左「‹」（与写字页同一个图标，读屏名「接着写」，回书写格、墨不变）/ 中「写对了吗？」/ 右计数；题面与写字页完全相同、目标格不显示答案
+//      （答案只在参考格出现一次）；没有旁注（「你的书写 / 参考字形」只留读屏名称）、没有说明句；两键「写错了」左、「写对了」右放在主操作行
+//      （同一个组件同一组类名，同样式同尺寸同字重），文字行留空（保持行位与写字页相同）；无 autofocus、无 aria-pressed、无预选；
+//      对照区没有任何判定着色 / 判定类名（决定-D03）。边长 S 见 layout.js judgePairSize（无旁注，宽度只受页边限制）；AX 档按「上下排 / 并排」取格子更大的
+//      一种（judgeAxLayout，D49 ⑧），按钮纵排。没有本人笔画时上格「这次没写」（R-W17；01 §3.3 compare 且笔画为空按 recall 处理，正常流程到不了）。
 //      进判断页时焦点移到页标题（不落在任何判断键上）。
 //   3. 判断 = 一次 store.commit（D07：成功才推进）：judged 记录（help 照实：hints = max(本地, 已存)）+ FSRS
 //      （core/fsrs.applyJudgment，评级按 policy.ratingWithHint，P34）+ 会话推进（items[].fsrsBefore 供本会话更正重放，
 //      结果行 {kind:'record'}）+ 墨迹（policy.features.perRecordInk 为 true 时按记录月份写 shizi.v2.ink.<月>；
 //      false 时不写 ink 键，记录即「有记录无笔迹」，10.12）+ 墨迹留存（决定-D27：这个字只留第一次与最近一次判断的墨迹，
 //      上一次的「最近一次」若不是第一次，其墨迹在同一次提交里回收，store/budget.js pruneInkOfCards）。commit 前再断言有本人笔画：空笔画直接拒绝，不调用 commit。
-//      失败留在判断页：说明换成「没保存上，你写的字还在。」、两键换成 [先不保存 / 再试一次]（R-W16 三段式）；
+//      失败留在判断页：两键上方出现「没保存上，你写的字还在。」、两键换成 [先不保存 / 再试一次]（R-W16 三段式）；
 //      重试成功才推进；commit 是原子事务，失败不留半条记录，重试不重复计数。
 //   同一会话同一字已有 judged 记录（中断恢复路径）时不再新增记录、不再评级，只补推进（D07 不重复计数）。
 //   4. 纸上写的这一字（阶段 1 P1-E8，D46 ⑬；write/paper.js）：「写好了」不要求笔画，进判断页时写 current.paper=true；对照区只有参考字形、
@@ -27,13 +26,14 @@
 // 规则：只经 store.commit 写存储；记录用 core/records.makeRecord，会话用 core/sessions，调度用 core/fsrs。
 //
 // data-testid：write-compare（对照区）、write-compare-mine / write-compare-ref（两张卡，role=img）、write-compare-noink
-//   （「这次没写」）、write-judge-foot（对照卡下方的说明 + 两键，data-failed）、write-judge-note（说明 / 失败句，aria-live）、
+//   （「这次没写」）、write-judge-foot（按钮行：两键 + 留空的文字行，data-failed）、write-judge-note（只在保存失败时出现的失败句，aria-live）、
 //   write-judge-wrong / write-judge-correct（判断两键）、write-judge-fail-cancel / write-judge-fail-retry（失败两键）、
-//   write-continue（左上「接着写」）。
+//   write-continue（左上「‹」，读屏名「接着写」）。
 
 import { html, useEffect, useLayoutEffect, useMemo, useRef, useState } from '../../../../vendor/ui.js';
 import { Button, markStateChange } from '../../components/Button.js';
 import { injectStyles, T, TEX } from '../../components/styles.js';
+import { BACK_ICON } from '../../components/Page.js';
 import { useNearViewport } from '../../components/near.js';
 import { t } from '../../../config/copy/index.js';
 import * as defaultPolicy from '../../../config/policy.js';
@@ -63,28 +63,9 @@ function pyOf(cardKey) {
 export const JUDGE_ORDER = Object.freeze(['wrong', 'correct']);
 /** 对照卡里本人笔迹的线宽倍数（原型 inkEls(strokes, 'm', 1.41)：卡内 166.5 / 345 × 1.41 ≈ 0.68 倍）。 */
 export const MINI_WIDTH_SCALE = 1.41;
-/** 上下两格与旁注的间距（设计系统 v1：space 12）。 */
-export const COMPARE_GAP = 12;
-/** 旁注（「你的书写 / 参考字形」）的宽度：13pt 四个字 = 52。 */
-export const JUDGE_ASIDE_W = 52;
-/** 页边（space.gutter）。 */
-export const JUDGE_GUTTER = 20;
-/** 上下两格边长下限（再小就退到页面可滚动，不让两格缩得认不出字）。 */
-export const JUDGE_MIN = 120;
-
-/**
- * 判断页上下两格的边长（D46 ⑪；设计稿 求助与判断.html ④）：
- *   S = min(屏宽 − 2 × (页边 + 旁注 + 间距), (格下说明句顶 − 间距 − 书写格顶) ÷ 2)
- * 两格共用一条格线（第二格上移 1px），所以按 (可用高 + 1) ÷ 2 取整。可用高 = 书写格顶到说明句顶再减去 12（说明句与格之间的间距）。
- * 402 × 874：min(234, 237) = 234；440 × 956：272；375 × 667（短屏）≈ 176。
- * @param {{width:number, available:number}} o  width：页面宽；available：书写格顶到说明句顶之间的高度（已减去间距 12）
- */
-export function judgePairSize({ width, available }) {
-  const byWidth = Number.isFinite(width) && width > 0 ? width - 2 * (JUDGE_GUTTER + JUDGE_ASIDE_W + COMPARE_GAP) : Infinity;
-  const byHeight = Number.isFinite(available) && available > 0 ? (available + 1) / 2 : Infinity;
-  const s = Math.floor(Math.min(byWidth, byHeight));
-  return Number.isFinite(s) ? Math.max(JUDGE_MIN, s) : 234;
-}
+// 边长公式与常量在 layout.js（纯函数）；这里转出，保持原导入路径可用。
+export { judgePairSize, judgeAxLayout, COMPARE_GAP, JUDGE_MIN } from './layout.js';
+import { COMPARE_GAP } from './layout.js';
 
 const COPY_KEYS = Object.freeze({
   wrong: 'R-W09.btnWrong',
@@ -93,21 +74,19 @@ const COPY_KEYS = Object.freeze({
 
 injectStyles('write-compare', `
 @keyframes szCmpIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-@keyframes szCmpFade{from{opacity:0}to{opacity:1}}
 .sz-compare{box-sizing:border-box;max-width:100%;margin:0 auto;display:flex;flex-direction:column;align-items:stretch}
-.sz-compare__row{position:relative;min-width:0}
+.sz-compare[data-layout="side"]{flex-direction:row;gap:${COMPARE_GAP}px}
+.sz-compare__row{position:relative;min-width:0;flex:1 1 0}
 .sz-compare__row--ref{margin-top:calc(-1 * ${T.frameW});animation:szCmpIn .26s cubic-bezier(.2,.7,.2,1) .12s both}
-.sz-compare__aside{position:absolute;left:100%;top:0;margin-left:${T.s3};width:${JUDGE_ASIDE_W}px;font-size:${T.fs13};line-height:${T.lh13};
-  color:${T.ink3};overflow-wrap:anywhere;text-align:left}
+.sz-compare[data-layout="side"] .sz-compare__row--ref{margin-top:0}
 .sz-compare__card{position:relative;aspect-ratio:1/1;box-sizing:border-box;border:${T.frameW} solid ${T.frame};border-radius:${T.rWork};
   ${TEX};overflow:hidden}
 .sz-compare__card canvas{position:absolute;left:0;top:0;display:block}
 .sz-compare__empty{aspect-ratio:1/1;box-sizing:border-box;border:${T.frameW} dashed ${T.frame};border-radius:${T.rWork};display:grid;
   place-items:center;font-size:${T.fs13};color:${T.ink3};text-align:center;padding:8px}
 .sz-compare__label{text-align:center;font-size:${T.fs13};color:${T.ink3}}
-.sz-compare__paperaside{margin:${T.s2} 0 0;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3};text-align:left}
-.sz-write[data-phase="compare"] .sz-prompt__fill{animation:szCmpFade .2s ease-out .12s both}
-.sz-judge__note{margin:0;width:100%;text-align:center;font-size:${T.fs15};line-height:${T.lh15};
+.sz-compare__paperaside{margin:0;min-height:40px;display:flex;align-items:center;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3};text-align:left}
+.sz-judge__note{margin:0 0 6px;width:100%;text-align:center;font-size:${T.fs15};line-height:${T.lh15};
   color:${T.ink2}}
 .sz-judge__btns{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
 .sz-judge__btn{width:100%;min-height:${T.btnH};border-radius:${T.rCtl};background:transparent;box-shadow:inset 0 0 0 1px ${T.ink4};color:${T.ink1};
@@ -115,13 +94,7 @@ injectStyles('write-compare', `
 .sz-judge__btn[data-pressed]{background:${T.field};filter:none}
 .sz-judge__fail{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
 .sz-cmpstage{display:flex;flex-direction:column;align-items:stretch;max-width:100%}
-.sz-write[data-phase="compare"]{margin-bottom:calc(-1 * ${T.s8})} /* 抵消页面正文的下内边距：上下两格按「格顶到页底栏」恰好占满，不多出 32 的可滚动余量 */
-.sz-write__foot.sz-write__foot--judge{gap:${T.s3}} /* 说明与两键之间 ≥12px：双类名提高优先级，否则被 write/index.js 后注入的 .sz-write__foot{gap:0} 盖掉（A10） */
-.sz-continue{height:44px;padding:0 8px;font-size:${T.fs15};color:${T.ink1}}
-@media (prefers-reduced-motion: reduce){
-  .sz-compare__col--ref{animation:szCmpFade .12s linear both}
-  .sz-write[data-phase="compare"] .sz-prompt__fill{animation:szCmpFade .12s linear both}
-}
+.sz-write__links--ghost{visibility:hidden}
 `);
 
 // ---------------------------------------------------------------- 纯函数（草稿变换）
@@ -431,28 +404,26 @@ export function refCardLabel({ char, py, strokeData }) {
 }
 
 /**
- * 对照区（D46 ⑪）：上格「你的书写」、下格「参考字形」，共用一条格线，居中（与书写格同一顶边、同一中线）；两个名字是各格右侧的 13pt 旁注
- * （aria-hidden，读屏名称仍是两张卡的 aria-label，不变）。没有任何判定着色 / 判定类名（决定-D03）。py = 本题读音（读屏名称用）。
- * size = 每格边长（judgePairSize）。
+ * 对照区（D46 ⑪、D49）：上格「你的书写」、下格「参考字形」，共用一条格线，居中（与书写格同一顶边、同一中线）；没有旁注，读屏名称是两张卡的 aria-label。
+ * 没有任何判定着色 / 判定类名（决定-D03）。py = 本题读音（读屏名称用）。size = 每格边长（layout.js judgePairSize / judgeAxLayout）。
+ * layout='side'（AX 档、并排能让两格更大时，D49 ⑧）：左 = 你的书写、右 = 参考字形，间距 12，整体宽 2S + 12。
  */
-export function CompareStage({ char, py = '', strokes, strokeData, size = 234 }) {
-  const mine = t('R-W09.labelMine');
-  const ref = t('R-W09.labelReference');
-  return html`<div class="sz-compare" data-testid="write-compare" data-size=${size} style=${{ width: `${size}px` }}>
+export function CompareStage({ char, py = '', strokes, strokeData, size = 234, layout = 'stack' }) {
+  const side = layout === 'side';
+  return html`<div class="sz-compare" data-testid="write-compare" data-size=${size} data-layout=${side ? 'side' : 'stack'}
+    style=${{ width: `${side ? 2 * size + COMPARE_GAP : size}px` }}>
     <div class="sz-compare__row sz-compare__row--mine">
       <${InkMini} strokes=${strokes} testid="write-compare-mine" label=${mineCardLabel(strokes)} />
-      <span class="sz-compare__aside" data-testid="write-compare-aside-mine" aria-hidden="true">${mine}</span>
     </div>
     <div class="sz-compare__row sz-compare__row--ref">
       <${RefMini} char=${char} strokeData=${strokeData} testid="write-compare-ref" label=${refCardLabel({ char, py, strokeData })} />
-      <span class="sz-compare__aside" data-testid="write-compare-aside-ref" aria-hidden="true">${ref}</span>
     </div>
   </div>`;
 }
 
 /**
- * 纸上写的这一字的对照区（阶段 1 P1-E8，D46 ⑬；实现交接 §10.2、求助与判断 ⑤「对照 · 纸上」）：没有本人书写，只有参考字形，
- * 放到书写格大小（size = 书写格边长），格下旁注「参考字形 · 和你纸上的字对照」；读屏先读「你的书写：写在纸上」（§9.5），再读参考字形。
+ * 纸上写的这一字的对照区（阶段 1 P1-E8，D46 ⑬；实现交接 §10.2）：没有本人书写，只有参考字形，放到书写格大小（size = 书写格边长），
+ * 格下说明位「和你纸上的字对照」（13 墨三）；读屏先读「你的书写：写在纸上」（§9.5），再读参考字形。
  */
 export function PaperCompareStage({ char, py = '', strokeData, size = 345 }) {
   return html`<div class="sz-compare sz-compare--paper" data-testid="write-compare" data-paper="true" data-size=${size}
@@ -464,46 +435,6 @@ export function PaperCompareStage({ char, py = '', strokeData, size = 345 }) {
 }
 
 /**
- * 判断页上下两格的边长：量出书写格顶（.sz-write__gridwrap）到页底栏（说明句所在）之间的高度，按 judgePairSize 取值；
- * 随页面尺寸（ResizeObserver）重算。首帧用屏宽估一个（宽度限制）。
- * @param {{current: HTMLElement|null}} writeRef  .sz-write 元素
- * @param {boolean} enabled  判断页才量
- */
-export function useJudgePairSize(writeRef, enabled) {
-  const [size, setSize] = useState(() => judgePairSize({ width: typeof window !== 'undefined' ? window.innerWidth : 0, available: 0 }));
-  useLayoutEffect(() => {
-    if (!enabled) return undefined;
-    const el = writeRef.current;
-    const page = el && el.closest ? el.closest('.sz-page') : null;
-    const body = page ? page.querySelector('.sz-page__body') : null;
-    if (!el || !page || !body) return undefined;
-    const measure = () => {
-      const width = page.clientWidth;
-      const wrap = el.querySelector('.sz-write__gridwrap');
-      if (!(width > 0) || !wrap) return; // 被藏在别的页下面或还没排版
-      // 页底栏 = 正文区下沿；说明句顶 = 页底栏顶 + 页底栏上内边距，再减去与格之间的间距 12，两者相抵：可用高 = 正文区下沿 − 书写格顶
-      const available = body.getBoundingClientRect().bottom - wrap.getBoundingClientRect().top;
-      const next = judgePairSize({ width, available });
-      setSize(prev => (prev === next ? prev : next));
-    };
-    measure();
-    let ro = null;
-    if (typeof ResizeObserver === 'function') {
-      ro = new ResizeObserver(measure);
-      ro.observe(page);
-      ro.observe(body);
-    } else {
-      window.addEventListener('resize', measure);
-    }
-    return () => {
-      if (ro) ro.disconnect();
-      else window.removeEventListener('resize', measure);
-    };
-  }, [enabled]);
-  return size;
-}
-
-/**
  * 判断两键：同一组件同一组类名（同样式、同尺寸、同字重），不带 aria-pressed / autofocus / 任何判定修饰（决定-D03）。
  * 纯视图（无 hook），单测直接调用。
  */
@@ -512,9 +443,11 @@ export function JudgeButtons({ onJudge }) {
     data-testid=${`write-judge-${j}`} onClick=${() => onJudge && onJudge(j)}>${t(COPY_KEYS[j])}</${Button}>`)}</div>`;
 }
 
-/** 判断区（对照卡下方）：说明 + 两键；失败时说明换 R-W16.saveFailed、两键换 [先不保存 / 再试一次]。纯视图。 */
+/**
+ * 判断区（按钮行）：两键 + 留空的文字行（保持行位与写字页相同，D49）；保存失败时两键上方出现「没保存上，你写的字还在。」、
+ * 两键换成 [先不保存 / 再试一次]。纯视图。
+ */
 export function JudgeFooter({ failed = false, onJudge, onRetry, onCancelFail }) {
-  const note = failed ? t('R-W16.saveFailed') : t('R-W09.prompt');
   const body = failed
     ? html`<div class="sz-judge__fail">
         <${Button} variant="secondary" data-testid="write-judge-fail-cancel" onClick=${onCancelFail}>${t('R-W16.cancel')}</${Button}>
@@ -522,15 +455,15 @@ export function JudgeFooter({ failed = false, onJudge, onRetry, onCancelFail }) 
       </div>`
     : html`<${JudgeButtons} onJudge=${onJudge} />`;
   return html`<div class="sz-write__foot sz-write__foot--judge" data-testid="write-judge-foot" data-failed=${failed ? 'true' : 'false'}>
-    <p class="sz-judge__note" data-testid="write-judge-note" aria-live="polite">${note}</p>
+    ${failed ? html`<p class="sz-judge__note" data-testid="write-judge-note" aria-live="polite">${t('R-W16.saveFailed')}</p>` : null}
     ${body}
+    <div class="sz-write__links sz-write__links--ghost" aria-hidden="true"></div>
   </div>`;
 }
 
-/** 左上「接着写」（R-W09.continueWriting / continueWritingAria）。 */
+/** 左上「‹」（与写字页同一个图标，读屏名「接着写」：R-W09.continueWriting；D49）。 */
 export function ContinueButton({ onClick }) {
-  return html`<${Button} variant="text" class="sz-continue" data-testid="write-continue"
-    aria-label=${t('R-W09.continueWritingAria')} onClick=${onClick}>${t('R-W09.continueWriting')}</${Button}>`;
+  return html`<${Button} variant="icon" data-testid="write-continue" aria-label=${t('R-W09.continueWriting')} onClick=${onClick}>${BACK_ICON()}</${Button}>`;
 }
 
 // ---------------------------------------------------------------- 写字页接线
@@ -605,12 +538,13 @@ export function useComparePhase({ slot, session, cardKey, storedPhase, strokeCou
  * @param {number} o.hints        本地提示次数（useHint().used）
  * @param {object} o.strokeData   useStrokeData(char) 的结果（写字页只开一路 watch）
  * @param {() => void} o.onLeave  「接着写」
- * @param {number} [o.size=234]  上下两格每格边长（useJudgePairSize）
+ * @param {number} [o.size=234]  每格边长（layout.js judgePairSize / judgeAxLayout，经 useWriteLayout 的 pair.s）
+ * @param {'stack'|'side'} [o.layout='stack']  上下排 / 并排（AX 档，pair.layout）
  * @param {boolean} [o.paper=false]  在纸上写的这一字（P1-E8）：只有参考字形、放到书写格大小（paperSize），判断记 source:'paper'
  * @param {number} [o.paperSize]  纸上判断页参考字形的边长（= 书写格边长）
- * @returns {{active, stage, footer, lead}}  stage = 上下两格（替代书写格）；footer = 说明 + 两键（进页底栏，替代写字页底栏）
+ * @returns {{active, stage, footer, lead}}  stage = 上下两格（替代书写格）；footer = 两键 + 留空的文字行（进页底栏，替代写字页底栏）
  */
-export function useCompareFlow({ slot, session, cardKey, char, phase, strokes, hints = 0, strokeData, onLeave, size = 234, paper = false, paperSize }) {
+export function useCompareFlow({ slot, session, cardKey, char, phase, strokes, hints = 0, strokeData, onLeave, size = 234, layout = 'stack', paper = false, paperSize }) {
   const active = !!cardKey && phase === 'compare';
   const [fail, setFail] = useState(null); // {key, judgment}
   const key = session && cardKey ? `${session.id}|${session.cursor}|${cardKey}` : null;
@@ -649,11 +583,11 @@ export function useCompareFlow({ slot, session, cardKey, char, phase, strokes, h
 
   if (!active) return { active: false, stage: null, footer: null, lead: null };
 
-  // D46 ⑪（P1-E1b）：对照区只有上下两格，占书写格的位置；说明与两键进页底栏（与写字页「写好了」同一行位置，设计系统 设计说明 14）。
+  // D46 ⑪、D49：对照区只有上下两格（AX 档可能并排），占书写格的位置；两键进页底栏（与写字页「写好了」同一行位置）。
   const stage = html`<div class="sz-cmpstage">
     ${paper
     ? html`<${PaperCompareStage} char=${char} py=${pyOf(cardKey)} strokeData=${strokeData} size=${paperSize || size} />`
-    : html`<${CompareStage} char=${char} py=${pyOf(cardKey)} strokes=${strokes} strokeData=${strokeData} size=${size} />`}
+    : html`<${CompareStage} char=${char} py=${pyOf(cardKey)} strokes=${strokes} strokeData=${strokeData} size=${size} layout=${layout} />`}
   </div>`;
   const footer = html`<${JudgeFooter} failed=${!!failNow} onJudge=${judge}
       onRetry=${() => failNow && judge(failNow.judgment)} onCancelFail=${() => { setFail(null); markStateChange(); }} />`;

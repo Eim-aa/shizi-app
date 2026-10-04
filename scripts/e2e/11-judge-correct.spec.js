@@ -20,14 +20,12 @@ import {
 
 const COPY = {
   titleRecall: '凭记忆写出这个字',
-  titleCompare: '对照一下，写对了吗？',
-  prompt: '你来判断，点一下就记下。',
+  titleCompare: '写对了吗？', // D49：判断页页头只问一次
   wrong: '写错了',
   correct: '写对了',
   mine: '你的书写',
   ref: '参考字形',
   cont: '接着写',
-  contAria: '回到格子里接着写',
   saveFailed: '没保存上，你写的字还在。',
   retry: '再试一次',
   notNow: '先不保存',
@@ -215,8 +213,8 @@ export default async function judgeCorrect(page, ctx) {
   assert.deepEqual(s.done, { disabled: false, ariaDisabled: null }, '写好了 enabled after a stroke');
   await toCompare(page);
   s = await writeSnapshot(page);
-  assert.equal(s.title, COPY.titleCompare, 'title 对照一下，写对了吗？ (R-W03)');
-  assert.equal(await text(page, 'write-judge-note'), COPY.prompt, 'note 你来判断，点一下就记下。 (R-W09)');
+  assert.equal(s.title, COPY.titleCompare, 'title 写对了吗？ (R-W03, D49: 去掉「对照一下，」)');
+  assert.equal(await present(page, 'write-judge-note'), false, 'D49: no 「你来判断，点一下就记下。」 sentence on the judge page');
   assert.equal(await present(page, 'write-grid'), false, 'grid replaced by the compare cards');
   assert.equal(await present(page, 'write-skip'), false, 'no skip on the judge page');
   assert.equal(await present(page, 'write-show-answer'), false, 'no 看答案 on the judge page');
@@ -257,7 +255,8 @@ export default async function judgeCorrect(page, ctx) {
       // D46 ⑪（P1-E1b）：上下两格，本人书写在上、参考字形在下（共用一条格线，下格上沿与上格下沿相差 1px 的重叠）
       mineAbove: mineLabel && refCard ? mineLabel.getBoundingClientRect().bottom <= refCard.getBoundingClientRect().top + 1.5 : false,
       labels: [...area.querySelectorAll('.sz-compare__aside')].map(el => el.textContent),
-      cont: cont ? { text: cont.textContent.trim(), aria: cont.getAttribute('aria-label') } : null,
+      pageText: top.innerText,
+      cont: cont ? { text: cont.textContent.trim(), aria: cont.getAttribute('aria-label'), icon: !!cont.querySelector('svg') } : null,
       pageBack: !!top.querySelector('[data-testid="page-back"]'),
       toolsPresent: !!top.querySelector('[data-testid="write-tools"]'),
       fill: top.querySelector('.sz-prompt__fill') ? top.querySelector('.sz-prompt__fill').textContent : null,
@@ -275,23 +274,15 @@ export default async function judgeCorrect(page, ctx) {
   assert.equal(VERDICT_CLASS.test(cmp.classes), false, `compare area has no verdict class names (${cmp.classes})`);
   assert.equal(cmp.attrs.some(a => VERDICT_CLASS.test(a.split('=')[1] || '')), false, 'compare area has no verdict data / aria values');
   assert.ok(cmp.mineAbove, '你的书写 above, 参考字形 below (D46 ⑪)');
-  // A10：说明行高随字号（不再写死 18px），与两键之间 ≥12px
-  const note = await page.evaluate(() => {
-    const n = document.querySelector('.sz-layer[data-top="true"] [data-testid="write-judge-note"]');
-    const b = document.querySelector('.sz-layer[data-top="true"] [data-testid="write-judge-wrong"]');
-    const cs = getComputedStyle(n);
-    return { fs: parseFloat(cs.fontSize), lh: parseFloat(cs.lineHeight), gap: b.getBoundingClientRect().top - n.getBoundingClientRect().bottom };
-  });
-  assert.ok(note.lh / note.fs >= 1.35, `A10: judge note line-height is relative to the font size (${note.lh}/${note.fs})`);
-  assert.ok(note.gap >= 12, `A10: judge note → buttons gap >= 12px (${note.gap})`);
-  assert.deepEqual(cmp.labels, [COPY.mine, COPY.ref], 'side notes 你的书写 / 参考字形 (R-W09, D46 ⑪)');
+  assert.deepEqual(cmp.labels, [], 'D49: no 「你的书写 / 参考字形」 side notes (the names live on the cards)');
+  assert.ok(!cmp.pageText.includes(COPY.mine) && !cmp.pageText.includes(COPY.ref), 'D49: neither label is rendered as text anywhere on the judge page');
   // A9：读屏名称带上信息——本人卡「你的书写，N 笔」，参考卡「参考字形：字，拼音，N 画」（视觉标签不变）
   assert.equal(cmp.mineAria, `${COPY.mine}，1 笔`, 'my card is role=img: 「你的书写，1 笔」 (one stroke drawn)');
   assert.ok(new RegExp(`^${COPY.ref}：${CHARS[0]}，[^，]+，\\d+ 画$`).test(cmp.refAria), `reference card is role=img: 「参考字形：字，拼音，N 画」 (${cmp.refAria})`);
-  assert.deepEqual(cmp.cont, { text: COPY.cont, aria: COPY.contAria }, 'top-left 接着写 with aria 回到格子里接着写 (R-W09)');
-  assert.equal(cmp.pageBack, false, 'the back arrow is replaced by 接着写 on the judge page');
+  assert.deepEqual(cmp.cont, { text: '', aria: COPY.cont, icon: true }, 'top-left is the ‹ icon (same as the write page), screen-reader name 接着写 (R-W09, D49)');
+  assert.equal(cmp.pageBack, false, 'the default back button is replaced by the continue icon on the judge page (same icon, different action)');
   assert.equal(cmp.toolsPresent, false, 'no undo / clear row on the judge page (the stacked cards take the grid\'s place)');
-  assert.equal(cmp.fill, CHARS[0], 'the prompt blank reveals the target on the judge page (REVEAL_PHASES)');
+  assert.equal(cmp.fill, null, 'D49: the prompt blank does NOT reveal the target on the judge page (the answer shows once, in the reference card)');
   await page.waitForFunction(() => {
     const r = document.querySelector('.sz-layer[data-top="true"] [data-testid="write-compare-ref"]');
     return !!r && r.dataset.state === 'ready';
@@ -337,7 +328,7 @@ export default async function judgeCorrect(page, ctx) {
   await page.click(topSel('write-judge-fail-cancel'));
   await page.waitForSelector(topSel('write-judge-correct'));
   await settle(page);
-  assert.equal(await text(page, 'write-judge-note'), COPY.prompt, 'note back to 你来判断');
+  assert.equal(await present(page, 'write-judge-note'), false, 'the failure sentence is gone again (and still no instruction sentence)');
   await page.evaluate(() => window.__shiziTest.failNextWrite(1, { kind: 'quota' }));
   await page.click(topSel('write-judge-correct'));
   await page.waitForSelector(`${topSel('write-judge-foot')}[data-failed="true"]`);

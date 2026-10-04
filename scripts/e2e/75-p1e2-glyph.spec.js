@@ -225,9 +225,14 @@ export default async function (page, ctx) {
   await page.waitForFunction(() => !document.querySelector('.sz-layer[data-top="true"] .sz-prompt__fill[data-glyph-src="loading"]'), null, { timeout: 15000 });
   const fill = await page.evaluate(() => {
     const el = document.querySelector('.sz-layer[data-top="true"] .sz-prompt__fill');
-    return el ? { src: el.dataset.glyphSrc, text: el.textContent, paths: el.querySelectorAll('path').length } : null;
+    const blank = document.querySelector('.sz-layer[data-top="true"] [data-testid="write-prompt-cell"][data-kind="blank"]');
+    return { fill: el ? el.textContent : null, blank: blank ? blank.textContent : null };
   });
-  assert.ok(fill && fill.src === 'outline' && fill.paths >= 5 && fill.text === '嚏', 'judge page: the target char is filled back as an outline (textContent keeps the char)');
+  assert.ok(fill.fill === null && !fill.blank.includes('嚏'), 'judge page (D49): the prompt target cell stays an empty frame — the answer is drawn once, in the reference cell');
+  await page.waitForFunction(() => {
+    const r = document.querySelector('.sz-layer[data-top="true"] [data-testid="write-compare-ref"]');
+    return !!r && r.dataset.state === 'ready';
+  }, null, { timeout: 15000 });
   assert.deepEqual(await page.evaluate(() => [...new Set(window.__fb)]), [MISSING], 'ShiziKai text never appeared for chars with outline data (wall, prompt, detail, month, result)');
 
   // ---------------------------------------------------------------- 6. 数据 404：回退

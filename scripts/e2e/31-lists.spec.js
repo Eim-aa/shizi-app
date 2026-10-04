@@ -4,7 +4,7 @@
 //      0 个时「先选一个字」disabled + aria-disabled 且点了不开组；快忘了一行（小图下不写）；两单空态。
 //   2. S06：只选一个字 → 练这个字 → 写字页（B，来源 wrongList）→ 没写完就返回 → 勾选保留；刷新后仍保留。
 //   3. 场景 8a（写错后再练写对）：从写错过开 B → 写对 → 直接进结果页（来源说明「从写错过」、离开「回到写错过」）→
-//      回到本页：字离开写错过、清单重算且重新全选；不进快忘了；首页「今天记录了 N 个字」与字库首页两张卡的数字按 getState 同步。
+//      回到本页：字离开写错过、清单重算且重新全选；不进快忘了；首页「今天写了 N 个字」与字库首页两张卡的数字按 getState 同步。
 //   4. 场景 8b（写错后更正为对）：结果行更正（写字页「改为写对」）+ 结果页格子更正，两字都离开写错过、不进快忘了、
 //      记录条数不增加（D19）→ 回到本页是空态；首页 / 字库数字同步。
 //   5. 从快忘了开 B → 写对 → 结果页「回到快忘了」→ 回到本页（字离开快忘了）。
@@ -46,7 +46,7 @@ const COPY = {
   leaveForget: '回到快忘了',
   fromWrong: '从写错过',
   fromForget: '从快忘了',
-  todayCount: n => `今天记录了 ${n} 个字`,
+  todayCount: n => `今天写了 ${n} 个字`, // P1-E5：设计稿「今天写过」状态的说明句
   startFailed: '没保存上，刚才的选择没记下。',
 };
 
@@ -194,7 +194,7 @@ async function leaveResult(page) {
   await waitNavIdle(page);
 }
 
-/** 首页「今天记录了 N 个字」与字库首页两张卡（M3-1，data-n）的数字；回到本页前先切 tab。 */
+/** 首页「今天写了 N 个字」与字库首页两张卡（M3-1，data-n）的数字；回到本页前先切 tab。 */
 async function tabNumbers(page) {
   const read = () => page.evaluate(() => {
     const top = document.querySelector('.sz-layer[data-top="true"]');
@@ -417,7 +417,7 @@ export default async function listsSpec(page, ctx) {
   assert.equal(n.today, 1, 'getState: today N = 1');
   assert.equal(n.lastB, null, 'lastEnded.B cleared after leaving the result page');
   let tabs = await tabNumbers(page);
-  assert.equal(tabs.todayCount, COPY.todayCount(n.today), 'home 今天记录了 N 个字 = getState');
+  assert.equal(tabs.todayCount, COPY.todayCount(n.today), 'home 今天写了 N 个字 = getState');
   assert.equal(tabs.wrongCard, n.wrong.length, 'library home 写错过 card count = getState');
   assert.equal(tabs.forgetCard, n.forget.length, 'library home 快忘了 card count = getState');
   await openList(page, 'forget');
@@ -466,7 +466,7 @@ export default async function listsSpec(page, ctx) {
   v = await listView(page);
   assert.deepEqual(v.empty && v.empty.title, COPY.wrongEmpty, 'back on the list: empty state');
   tabs = await tabNumbers(page);
-  assert.equal(tabs.todayCount, COPY.todayCount(n.today), `home 今天记录了 ${n.today} 个字 = getState`);
+  assert.equal(tabs.todayCount, COPY.todayCount(n.today), `home 今天写了 ${n.today} 个字 = getState`);
   assert.equal(tabs.wrongCard, 0, 'library home 写错过 card = 0');
   assert.equal(tabs.forgetCard, n.forget.length, 'library home 快忘了 card = getState');
 

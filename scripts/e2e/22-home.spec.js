@@ -1,13 +1,16 @@
 // M2-1 首页（02 §4 M2-1；01 §2 首页状态 records × resume；R-H01–R-H07、R-H11；决定-D12、D05；03 P16 / P23 / P37 / P46）。
+// 阶段 1 P1-E5 起首页按设计稿重排（五态 + 首次打开，03 P155 / P156）：本文件保留状态矩阵、N、日期时段、主入口、自己选字、跨天、R-H11 的断言，
+// 改了的口径逐条在断言里写明（首页不再有「拾」大按钮 / 光影层 / 紧凑版合成行；续练行换成这一组的格子；首次打开隐藏「自己选字」）；
+// 五态各自的版式、朱点、位置不动等断言在 72-p1e5-home-first.spec.js。
 //
 // 场景：
 //   1. 状态矩阵（需求 §6 反例 1：今天记录 0 / 有 × 未完成会话 无 / A / B / A+B，加首次）：data-records / data-resume、主入口字样、
 //      S01 两行（R-H04，B 优先、A+B 时另一行带 ›）、「今天记录了 N 个字」+ 墨迹行在有未完成组时仍显示（P16）、第一次来说明只在首次且无组时；
-//      清空过记录（backupMeta.lastConclusion kind=clear）→ 不再说「第一次来」（R-H09 / P46）；首练组没写完 →「第一次练习 · …」。
-//   2. N = 0 / 1 / 8 / 9：同字两次判断计 1、看过答案 / 跳过 / 昨天的判断不计；墨迹行最近 8 条 judged（按 id、同字留最近一次），
-//      数字为去重 N；逐判断笔迹关闭时按 10.12 只画字；紧凑版（360×640）墨迹与计数合成一行、只放最近 4 个（A09）。
+//      清空过记录（backupMeta.lastConclusion kind=clear）→ 不再说「第一次来」（R-H09 / P46）；首练组没写完 → 「这一组还有 N 个字」。
+//   2. N = 0 / 1 / 8 / 9：同字两次判断计 1、看过答案 / 跳过 / 昨天的判断不计；今天写的字最近 8 条 judged（按 id、同字留最近一次），
+//      数字为去重 N；没有笔迹的记录按 10.12 只画字；紧凑版（360×640）同样的格子、两行四列，都在首屏内。
 //   3. 日期行与时段词（R-H02）：setClock 四段与边界 04:59 / 05:00 / 09:59 / 10:00 / 14:59 / 15:00 / 18:59 / 19:00，
-//      回前台（visibilitychange）重算；题记按日 doy % 3（P23）；光影层随时段切换，淡入 600ms，减少动态效果时直接切。
+//      回前台（visibilitychange）重算；题记按日 doy % 3（P23）；光影层已取消（D43，03 P143）。
 //   4. 主入口：第一次 → 第一次练习 3 字（policy.firstQueue，D38）；返回首页 → 轻提示（R-H10）+「第一次练习 · 还有 3 个字没写」；
 //      A+B → 续写 B（D05 B 优先）；另一行 › → 续写 A；有记录无组 → 今天的练习；写入失败 → 主入口下三段式，再试一次成功。
 //   5. 自己选字 →（R-H06）：打开查字组件 pick 模式，选两个字 → 开 B（一次 commit）、弹层关、写字页 B；返回首页 resume-line 为 B；
@@ -27,12 +30,13 @@ const COPY = {
   title: '今天写几个字',
   start: '开始写字',
   continue: '继续写字',
-  firstVisit: '第一次来，先写 3 个字试试。',
-  picked: n => `这次选的字 · 还有 ${n} 个字没写`,
-  daily: n => `今天的练习 · 还有 ${n} 个字没写`,
-  first: n => `第一次练习 · 还有 ${n} 个字没写`,
-  count: n => `今天记录了 ${n} 个字`,
-  pick: '自己选字 →',
+  firstVisit: '先写三个大家常忘的字。',
+  picked: n => `这一组还有 ${n} 个字`,
+  daily: n => `这一组还有 ${n} 个字`,
+  dailyOther: n => `今天的练习 · 还有 ${n} 个字没写`,
+  first: n => `这一组还有 ${n} 个字`,
+  count: n => `今天写了 ${n} 个字`,
+  pick: '自己选字',
   pickTitle: '自己选字',
   savedToast: '已保存，下次接着写',
   startFailed: '没保存上，刚才的选择没记下。',
@@ -142,12 +146,12 @@ async function home(page) {
         chars: [...inkRow.querySelectorAll('[data-testid="home-ink-item"]')].map(e => e.dataset.char),
         ids: [...inkRow.querySelectorAll('[data-testid="home-ink-item"]')].map(e => e.dataset.record),
         ink: [...inkRow.querySelectorAll('[data-testid="home-ink-item"]')].map(e => e.dataset.ink),
-        glyphs: [...inkRow.querySelectorAll('.sz-inkrow__glyph')].map(e => e.textContent),
+        glyphs: [...inkRow.querySelectorAll('.sz-hcell__glyph')].map(e => e.textContent),
       } : null,
-      merged: !!q('home-record'),
       pick: txt('home-pick'),
       fail: txt('home-start-fail'),
-      light: q('home-light') ? q('home-light').dataset.period : null,
+      light: !!q('home-light'),
+      view: root.dataset.view,
     };
   });
 }
@@ -203,15 +207,15 @@ export default async function run(page, ctx) {
   let h = await home(page);
   assert.equal(h.records, 'first', 'data-records=first');
   assert.equal(h.resume, 'none', 'data-resume=none');
-  assert.equal(h.title, COPY.title, 'R-H01 title 「今天写几个字」');
+  assert.equal(h.title, null, 'P1-E5: the first open has no 「今天写几个字」 title (design §一: the 「拾」 is the title; 72 covers the screen)');
   assert.equal(h.cta, COPY.start, 'main entry reads 开始写字');
-  assert.ok(h.ctaText.includes('拾') && h.ctaText.includes(COPY.start), 'red block shows 拾 + 开始写字 →');
-  assert.equal(h.firstTip, COPY.firstVisit, 'R-H03 「第一次来，先写 3 个字试试。」');
+  assert.equal(h.ctaText, COPY.start, 'P1-E5: the main button is a plain 240 ink button (no 「拾」 block any more)');
+  assert.equal(h.firstTip, COPY.firstVisit, 'R-H03 「先写三个大家常忘的字。」 (stage-1 design)');
   assert.equal(h.resumeLine, null, 'no resume-line');
   assert.equal(h.otherLine, null, 'no other-line');
   assert.equal(h.count, null, 'no 今天记录了 0 个字 (R-H12: first / no records → no zero stat)');
   assert.equal(h.inkRow, null, 'no ink row');
-  assert.equal(h.pick, COPY.pick, '「自己选字 →」 entry');
+  assert.equal(h.pick, null, 'D46 ②: no 「自己选字」 on the first open');
 
   const todayRecs = [rec(1, '数'), rec(2, '感', { judgment: 'wrong' }), rec(3, '警')];
   const oldRecs = [rec(1, '数', { day: YDAY }), rec(2, '感', { day: YDAY })];
@@ -230,16 +234,20 @@ export default async function run(page, ctx) {
     h = await home(page);
     assert.equal(h.records, recordsCase, `data-records=${recordsCase}`);
     assert.equal(h.resume, resumeCase, `data-resume=${resumeCase}`);
-    assert.equal(h.cta, resumeCase === 'none' ? COPY.start : COPY.continue, `main entry ${resumeCase === 'none' ? '开始写字' : '继续写字'}`);
+    const noneCta = recordsCase === 'record' ? '再写一组' : COPY.start;
+    assert.equal(h.cta, resumeCase === 'none' ? noneCta : COPY.continue, `main entry ${resumeCase === 'none' ? noneCta : '继续写字'} (P1-E5: 今天写过 → 再写一组)`);
     assert.equal(h.firstTip, null, 'no 第一次来 (records exist)');
     const expectPrimary = resumeCase === 'none' ? null
       : resumeCase === 'A' ? { text: COPY.daily(3), slot: 'A' } : { text: COPY.picked(2), slot: 'B' };
     assert.deepEqual(h.resumeLine, expectPrimary, `resume-line ${expectPrimary ? expectPrimary.text : 'absent'} (B first, D05)`);
-    const expectOther = resumeCase === 'A+B' ? { text: `${COPY.daily(3)} ›`, slot: 'A', tag: 'BUTTON' } : null;
+    const expectOther = resumeCase === 'A+B' ? { text: `${COPY.dailyOther(3)} ›`, slot: 'A', tag: 'BUTTON' } : null;
     assert.deepEqual(h.otherLine, expectOther, `other-line ${expectOther ? expectOther.text : 'absent'}`);
-    if (recordsCase === 'record') {
-      assert.equal(h.count, COPY.count(3), 'N row shown even with an unfinished group (P16)');
-      assert.deepEqual(h.inkRow && h.inkRow.chars, ['数', '感', '警'], 'ink row: today’s judged chars in judgment order');
+    if (recordsCase === 'record' && resumeCase === 'none') {
+      assert.equal(h.count, COPY.count(3), 'today written, nothing in progress: 「今天写了 3 个字」');
+      assert.deepEqual(h.inkRow && h.inkRow.chars, ['数', '感', '警'], 'today’s judged chars in judgment order');
+    } else if (recordsCase === 'record') {
+      assert.equal(h.count, null, 'P16 (decided by the stage-1 design): with a group in progress the home shows the group, not 今天写了 N 个字');
+      assert.equal(h.inkRow, null, 'and not today’s chars');
     } else {
       assert.equal(h.count, null, 'no N row (no record today; empty state says nothing)');
       assert.equal(h.inkRow, null, 'no ink row');
@@ -251,17 +259,17 @@ export default async function run(page, ctx) {
   h = await home(page);
   assert.equal(h.records, 'first', 'records=first (no judged record yet)');
   assert.equal(h.resume, 'A', 'resume=A');
-  assert.deepEqual(h.resumeLine, { text: COPY.first(2), slot: 'A' }, '「第一次练习 · 还有 2 个字没写」（3 字首练，写到第 2 个）');
+  assert.deepEqual(h.resumeLine, { text: COPY.first(2), slot: 'A' }, '「这一组还有 2 个字」（3 字首练，写到第 2 个）');
   assert.equal(h.firstTip, null, 'first-visit tip hidden while the group is unfinished');
+  assert.equal(h.pick, null, 'D46 ②: still no 「自己选字」 until the first practice is finished');
 
-  step('B6 (G45, D36): current char has seen its answer (tracing) → 「正在写第 2 个字 · 还有 1 个」, not 「还有 2 个字没写」; last char → 「这是最后一个」');
+  step('B6 (G45, D36): current char has seen its answer (tracing) → 「这一组还有 1 个字」 (not 2: the char being written is not counted); last char → 「这是这一组的最后一个字」');
   await setup(page, { seed: { sessions: { A: sess({ id: 's804', slot: 'A', kind: 'first', chars: FIRST, cursor: 1, current: { phase: 'trace', answerSeen: true } }), B: null, lastEnded: {} } } });
   h = await home(page);
-  assert.deepEqual(h.resumeLine, { text: '第一次练习 · 正在写第 2 个字 · 还有 1 个', slot: 'A' }, 'seen the answer: current char leaves the 「还有 N 个字没写」 count');
-  assert.ok(!h.resumeLine.text.includes('没写'), 'no double count wording');
+  assert.deepEqual(h.resumeLine, { text: '这一组还有 1 个字', slot: 'A' }, 'seen the answer: current char leaves the 「还有 N 个字」 count');
   await setup(page, { seed: { sessions: { A: null, B: sess({ id: 's805', slot: 'B', kind: 'picked', chars: ['永', '和'], cursor: 1, current: { phase: 'retrace', answerSeen: true } }), lastEnded: {} } } });
   h = await home(page);
-  assert.deepEqual(h.resumeLine, { text: '这次选的字 · 正在写第 2 个字 · 这是最后一个', slot: 'B' }, 'last char: no 「还有 0 个」');
+  assert.deepEqual(h.resumeLine, { text: '这是这一组的最后一个字', slot: 'B' }, 'last char: no 「还有 0 个」');
 
   step('records cleared (R-H09 / P46): no 第一次来 wording, empty state');
   await setup(page, { seed: { backupMeta: { lastExportAt: null, lastExportSig: null, lastConclusion: { kind: 'clear', date: YDAY, count: 12 } } } });
@@ -284,12 +292,12 @@ export default async function run(page, ctx) {
   await setup(page, { seed: { records: byMonth([rec(1, '永', { judgment: 'wrong' }), rec(2, '和', { kind: 'answer-seen' }), rec(3, '永')]) } });
   h = await home(page);
   assert.equal(h.records, 'record', 'records=record');
-  assert.equal(h.count, COPY.count(1), '「今天记录了 1 个字」');
+  assert.equal(h.count, COPY.count(1), '「今天写了 1 个字」');
   assert.deepEqual(h.inkRow.chars, ['永'], 'one ink item');
   assert.deepEqual(h.inkRow.ids, ['r3'], 'the latest judgment of 永 (r3)');
   assert.equal(h.inkRow.count, 1, 'ink row data-count=1');
   assert.deepEqual(h.inkRow.ink, ['none'], 'seeded record has no stored ink → standard glyph (10.12; perRecordInk is on since D27, the ink path is 66-ink-retention / 47)');
-  assert.deepEqual(h.inkRow.glyphs, ['永'], '10.12 small cell: the character only');
+  assert.deepEqual(h.inkRow.glyphs, ['永'], '10.12: no stored ink → the character in its cell (kai, secondary colour)');
   assert.equal(h.inkRow.tag, 'BUTTON', 'ink row is a button: M4-1 registered 今天的记录 (R-H08; 40-mine covers the target)');
   assert.equal(h.inkRow.label, '今天有记录的字：「永」', 'ink row reader label');
 
@@ -297,25 +305,24 @@ export default async function run(page, ctx) {
   step('N=8: eight distinct chars → 8 items, count 8');
   await setup(page, { seed: { records: byMonth(nine.slice(0, 8).map((c, i) => rec(i + 1, c))) } });
   h = await home(page);
-  assert.equal(h.count, COPY.count(8), '「今天记录了 8 个字」');
+  assert.equal(h.count, COPY.count(8), '「今天写了 8 个字」');
   assert.deepEqual(h.inkRow.chars, nine.slice(0, 8), '8 items in id order');
 
   step('N=9 (+ a repeat of the first char last): 8 most recent items, number stays 9 (D12)');
   const nineRecs = [...nine.map((c, i) => rec(i + 1, c)), rec(10, '一', { judgment: 'wrong' }), rec(11, '十', { day: YDAY })];
   await setup(page, { seed: { records: byMonth(nineRecs) } });
   h = await home(page);
-  assert.equal(h.count, COPY.count(9), '「今天记录了 9 个字」 (deduped N)');
+  assert.equal(h.count, COPY.count(9), '「今天写了 9 个字」 (deduped N)');
   assert.deepEqual(h.inkRow.chars, ['三', '四', '五', '六', '七', '八', '九', '一'], 'most recent 8, 一 moved to its latest judgment');
   assert.equal(h.inkRow.ids[7], 'r10', 'last item is r10');
   assert.equal(h.inkRow.count, 9, 'ink row data-count=9');
 
-  step('compact (360×640): ink + count merged in one line, last 4 chars, number still 9 (A09)');
+  step('compact (360×640): the same 8 cells in two rows of four (no merged one-line variant any more, P75 decided by the stage-1 design), number still 9');
   await page.setViewportSize({ width: 360, height: 640 });
   await page.waitForFunction(() => document.querySelector('[data-testid="screen-home"]').dataset.compact === 'true');
   h = await home(page);
   assert.equal(h.compact, 'true', 'data-compact=true');
-  assert.ok(h.merged, 'home-record merged line');
-  assert.deepEqual(h.inkRow.chars, ['七', '八', '九', '一'], 'last 4 chars');
+  assert.deepEqual(h.inkRow.chars, ['三', '四', '五', '六', '七', '八', '九', '一'], 'all 8 chars');
   assert.equal(h.count, COPY.count(9), 'number still 9');
   const fits = await page.evaluate(() => {
     const panel = document.querySelector('.sz-tabroot__panel');
@@ -324,7 +331,7 @@ export default async function run(page, ctx) {
     return ['home-start', 'home-pick', 'home-today-count'].every(id => r(id).top >= pr.top && r(id).bottom <= pr.bottom)
       && document.documentElement.scrollWidth <= window.innerWidth;
   });
-  assert.ok(fits, '360×640: 拾, count and 自己选字 fit on the first screen, no horizontal overflow');
+  assert.ok(fits, '360×640: the cells, the count and 自己选字 fit on the first screen, no horizontal overflow');
   await page.setViewportSize(ctx.viewport);
   await page.waitForFunction(() => document.querySelector('[data-testid="screen-home"]').dataset.compact === 'false');
   const fitsStd = await page.evaluate(() => {
@@ -333,11 +340,11 @@ export default async function run(page, ctx) {
     const r = id => document.querySelector(`[data-testid="${id}"]`).getBoundingClientRect();
     return ['home-start', 'home-pick', 'home-today-count', 'home-ink-row'].every(id => r(id).top >= pr.top && r(id).bottom <= pr.bottom);
   });
-  assert.ok(fitsStd, '393×852: 拾, ink row, count and 自己选字 on the first screen');
+  assert.ok(fitsStd, '393×852: the cells, the count and 自己选字 on the first screen');
 
   // ------------------------------------------------------------------ 3. 日期行、时段、题记、光影
   step('date line and period word at the four periods and their boundaries (R-H02, setClock + back to foreground)');
-  await setup(page, { time: '07:00:00' });
+  await setup(page, { time: '07:00:00', seed: { records: byMonth(oldRecs) } }); // 首次打开没有日期行（P1-E5 设计稿），所以带一条昨天的记录
   const cases = [
     ['04:59:00', 'night', '晚上'], ['05:00:00', 'dawn', '早上'], ['07:00:00', 'dawn', '早上'], ['09:59:00', 'dawn', '早上'],
     ['10:00:00', 'noon', '中午'], ['12:30:00', 'noon', '中午'], ['14:59:00', 'noon', '中午'], ['15:00:00', 'dusk', '傍晚'],
@@ -348,7 +355,6 @@ export default async function run(page, ctx) {
     h = await home(page);
     assert.equal(h.date, COPY.date(9, 24, word), `${time} → 「9 月 24 日 · ${word}」`);
     assert.equal(h.period, period, `${time} → data-period=${period}`);
-    assert.equal(h.light, period, `${time} → light layer ${period}`);
   }
 
   step('epigraph rotates by day of year % 3 (P23)');
@@ -360,25 +366,15 @@ export default async function run(page, ctx) {
   }
   assert.equal(h.date, COPY.date(9, 26, '早上'), 'date line follows the day');
 
-  step('light layer: period change fades in over 600ms; reduced motion switches directly');
+  step('no light layer (D43, 03 P143: the design sheet has none): the period only changes the date line');
   await setClock(page, DAY, '09:00:00');
-  await page.waitForTimeout(700);
+  assert.equal((await home(page)).light, false, 'no home-light element');
   await setClock(page, DAY, '12:00:00');
-  let anim = await page.evaluate(() => {
-    const el = document.querySelector('[data-testid="home-light"]');
-    return el.getAnimations().map(a => ({ duration: a.effect.getTiming().duration, easing: a.effect.getTiming().easing }));
-  });
-  assert.deepEqual(anim, [{ duration: 600, easing: 'ease-out' }], 'dawn → noon: one 600ms ease-out fade');
-  await page.waitForTimeout(700);
-  await page.emulateMedia({ reducedMotion: 'reduce' });
-  await setClock(page, DAY, '16:00:00');
-  anim = await page.evaluate(() => document.querySelector('[data-testid="home-light"]').getAnimations().length);
-  assert.equal(anim, 0, 'reduced motion: noon → dusk switches without animation');
-  assert.equal((await home(page)).light, 'dusk', 'layer is dusk');
-  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  assert.equal((await home(page)).light, false, 'still none after the period changes');
+  assert.equal(await page.evaluate(() => document.querySelectorAll('.sz-light, [data-testid="home-light"]').length), 0, 'LightLayer is gone');
 
   // ------------------------------------------------------------------ 4. 主入口
-  step('first visit: 拾 → first group of 3 (policy.firstQueue, D38) → back → toast + 第一次练习 · 还有 3 个字没写 (R-H03/R-H10)');
+  step('first visit: 开始写字 → first group of 3 (policy.firstQueue, D38) → back → toast + 这一组还有 3 个字 (R-H03/R-H10)');
   await setup(page);
   await page.click(tid('home-start'));
   await waitWrite(page, 'A');
@@ -403,7 +399,7 @@ export default async function run(page, ctx) {
   h = await home(page);
   assert.equal(h.resume, 'A', 'resume=A');
   assert.equal(h.cta, COPY.continue, '继续写字');
-  assert.deepEqual(h.resumeLine, { text: COPY.first(3), slot: 'A' }, '「第一次练习 · 还有 3 个字没写」');
+  assert.deepEqual(h.resumeLine, { text: COPY.first(3), slot: 'A' }, '「这一组还有 3 个字」');
   assert.equal(h.firstTip, null, 'tip gone');
   await page.click(tid('home-start'));
   await waitWrite(page, 'A');
@@ -470,7 +466,7 @@ export default async function run(page, ctx) {
   assert.equal(await page.locator(SHEET).count(), 0, 'sheet closed (prototype lkGo closes it)');
   await backToHome(page);
   h = await home(page);
-  assert.deepEqual(h.resumeLine, { text: COPY.picked(2), slot: 'B' }, 'resume-line 「这次选的字 · 还有 2 个字没写」');
+  assert.deepEqual(h.resumeLine, { text: COPY.picked(2), slot: 'B' }, 'resume-line 「这一组还有 2 个字」');
 
   step('自己选字: commit fails → R-H06 three-part in the sheet, input kept, no B; retry opens B');
   await setup(page, { seed: { records: byMonth(oldRecs) } });

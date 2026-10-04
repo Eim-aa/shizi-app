@@ -31,7 +31,7 @@ test('Button press styles: scale from the token, primary → --btn-down, seconda
   assert.ok(!/transform:\s*none/.test(reduce[1]), 'D43: the press scale stays under reduced motion; only the easing is flattened to 120ms');
 });
 
-test('no :active press styles anywhere under src/ui (iOS WebKit needs data-pressed; the home CTA no longer stacks :active on data-pressed)', () => {
+test('no :active press styles anywhere under src/ui (iOS WebKit needs data-pressed)', () => {
   const files = [
     'src/ui/components/Button.js', 'src/ui/screens/home/index.js', 'src/ui/screens/write/compare.js', 'src/ui/screens/result/index.js',
     'src/ui/screens/library/index.js', 'src/ui/screens/library/all.js',
@@ -40,5 +40,8 @@ test('no :active press styles anywhere under src/ui (iOS WebKit needs data-press
     const css = read(f).replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '');
     assert.ok(!/[\w\]\)]:active\b/.test(css), `${f}: no :active rule`);
   }
-  assert.match(read('src/ui/screens/home/index.js'), /\.sz-home__cta\.sz-btn\[data-pressed\]\{background-color:\$\{T\.btnDown\}/);
+  // P1-E5：首页主按钮是普通的 primary 按钮（宽 240），按压样式就是 Button 的 .sz-btn--primary[data-pressed]，首页不再自带一份
+  const home = read('src/ui/screens/home/index.js');
+  assert.match(home, /variant="primary" class="sz-home__cta"/);
+  assert.ok(!/sz-home__cta[^\n]*\[data-pressed\]/.test(home), 'no home-specific press style on the CTA');
 });

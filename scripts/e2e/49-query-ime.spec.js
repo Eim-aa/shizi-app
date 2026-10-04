@@ -12,6 +12,7 @@
 //   真实输入法    CDP Input.imeSetComposition + Input.insertText（Chromium 自己的组字 / 提交顺序）
 // 断言：组字中（拼音字母）不出过滤提示、不出结果；选字后立即出现逐字行 / 字卡，不需要再按任何键。
 import { bootTestHost, tid, waitNavIdle } from './helpers.mjs';
+import { markFirstPracticeDone } from './home-helpers.mjs';
 
 const SHEET = '[data-testid="query-sheet"]';
 const INPUT = `${SHEET} ${tid('query-input')}`;
@@ -20,6 +21,7 @@ async function openFromHome(page) {
   await page.evaluate(async () => (await import('/src/ui/router.js')).nav.switchTab('home'));
   await page.waitForFunction(() => document.querySelector('.sz-app').dataset.topScreen === 'home');
   await waitNavIdle(page);
+  await markFirstPracticeDone(page); // P1-E5 / D46 ②：首次打开不显示「自己选字」
   await page.click(`.sz-layer[data-top="true"] ${tid('home-pick')}`);
   await page.waitForSelector(INPUT);
   await page.waitForFunction(() => document.activeElement && document.activeElement.dataset.testid === 'query-input');

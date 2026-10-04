@@ -5,14 +5,17 @@
 //   2. requireFont 三个 face（src/data/font-loader.js）：都 resolve、不降级；之后 document.fonts.check 三个精确字重都命中，
 //      document.fonts 里本包只有三个 face 且全部 loaded；三份 WOFF2 都由同源 fonts/ 返回 200，没有别的字体请求。
 //   3. 实际渲染用的字体（CDP CSS.getPlatformFontsForNode）：首页标题 = ShiziSerifSC-Medium（500），题记 = ShiziSerifSC-Regular，
-//      印 = ShiziKai-Regular，且这些节点里每个字都由本包字体画出（没有回退系统字体 = 该段文字无缺字）。
-//   4. 覆盖：copy/ 全文与题库 word / py 在 coverage-manifest 里缺字为 0（浏览器里再核一遍，主判定在单测）。
+//      印 = ShiziKai-Regular，且这些节点里每个字都由本包字体画出（没有回退系统字体 = 该段文字无缺字）；
+//      阶段 1 P1-E5：首次打开的竖排题跋 = ShiziSerifSC-Regular，书家「拾」占位 = ShiziKai-Regular。
+//   4. 覆盖：copy/ 全文（宋体语料不含只用黑体显示的 HEI_ONLY_COPY，scripts/fonts/build_corpus.mjs）与题库 word / py 在 coverage-manifest 里缺字为 0
+//      （浏览器里再核一遍，主判定在单测）。
 //   5. canvas：core/images/render.js 经 requireCanvasFont 注入口画单字图片——印字 ShiziKai 400 先 loaded 再建画布，无「font not ready」警告。
 //   6. 降级：coverage-manifest 取不到（404）→ requireFont 仍经 document.fonts.load 精确加载，degraded:true；
 //      缺字 / 400 冒充 500 的拒绝在单测（test/core/font-loader.test.mjs）。
 // Safari / WKWebView 与真机字体渲染不在本 spec（M7 真机清单）。
 
 import { bootTestHost, tid } from './helpers.mjs';
+import { HEI_ONLY_COPY } from '../fonts/build_corpus.mjs';
 
 const FACES = [
   { key: 'ShiziKai:400', family: 'ShiziKai', weight: '400', file: 'ShiziKai-Regular.woff2', ps: 'ShiziKai-Regular' },
@@ -97,6 +100,17 @@ export default async function fontsSpec(page, ctx) {
   assert.ok(!fontResponses.some(r => /\.(ttf|otf)$/.test(r.url)), 'no TTF / OTF requests');
 
   ctx.step('rendered fonts on home (CDP platform fonts): title 500, epigraph 400, seal Kai');
+  // 首次打开没有标题（P1-E5）：先 seed 一条昨天的判断，首页回到「今天还没写」，再量标题 / 题记 / 印
+  await page.evaluate(() => {
+    window.__shiziTest.reset();
+    const at = window.__shiziTest.now() - 24 * 3600 * 1000;
+    const d = new Date(at);
+    const pad = n => String(n).padStart(2, '0');
+    const day = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    const rec = { id: 'r1', cardKey: 'base:永', char: '永', sessionId: 's1', kind: 'judged', judgment: 'correct', at, localDay: day, help: { hints: 0, answerSeen: false, traced: false } };
+    window.__shiziTest.seed({ records: { [day.slice(0, 7)]: [rec] } });
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
   await page.waitForSelector(tid('home-title'));
   await page.evaluate(() => document.fonts.ready);
   const cdp = await page.context().newCDPSession(page);
@@ -128,27 +142,41 @@ export default async function fontsSpec(page, ctx) {
     if (c.deep) await page.evaluate(() => document.querySelector('[data-font-probe]').removeAttribute('data-font-probe'));
   }
 
+  ctx.step('first open (P1-E5): vertical motto → ShiziSerifSC 400, the 「拾」 placeholder → ShiziKai 400');
+  await page.evaluate(() => { window.__shiziTest.reset(); document.dispatchEvent(new Event('visibilitychange')); });
+  await page.waitForSelector(tid('home-motto'));
+  await page.evaluate(() => document.fonts.ready);
+  for (const c of [
+    { sel: '[data-testid="home-motto"] .sz-first__col', ps: 'ShiziSerifSC-Regular', what: 'first-open motto column → ShiziSerifSC 400' },
+    { sel: '.sz-hshi__glyph', ps: 'ShiziKai-Regular', what: 'brand 拾 placeholder → ShiziKai 400' },
+  ]) {
+    const fonts = await platformFonts(cdp, c.sel);
+    assert.ok(Array.isArray(fonts) && fonts.length > 0, `${c.what}: node has rendered text`);
+    assert.deepEqual((fonts || []).map(f => f.postScriptName || f.familyName), [c.ps], `${c.what}: no system fallback — got ${JSON.stringify(fonts)}`);
+  }
+
   ctx.step('coverage: copy/ full text and deck word/py against the coverage manifest');
-  const cov = await page.evaluate(async () => {
+  const cov = await page.evaluate(async heiOnly => {
     const m = await import('/src/data/font-loader.js');
     const { COPY } = await import('/src/config/copy/index.js');
     const manifest = await (await fetch('fonts/coverage-manifest.json')).json();
     const { allCards } = await import('/src/data/deck.js');
     const cards = allCards();
     const copy = Object.values(COPY).join('\n');
+    const copySerifText = Object.entries(COPY).filter(([key]) => !heiOnly.includes(key)).map(([, v]) => v).join('\n');
     const deck = cards.map(c => c.word + c.py).join('\n');
     const miss = (key, text) => m.inspectText(manifest, key, text).missing.map(x => x.char).join('');
     return {
       cards: cards.length,
       copyKai: miss('ShiziKai:400', copy),
-      copySerif: miss('ShiziSerifSC:400', copy),
-      copySerifM: miss('ShiziSerifSC:500', copy),
+      copySerif: miss('ShiziSerifSC:400', copySerifText),
+      copySerifM: miss('ShiziSerifSC:500', copySerifText),
       deckKai: miss('ShiziKai:400', deck),
     };
-  });
+  }, [...HEI_ONLY_COPY]);
   assert.ok(cov.cards > 7000, `deck loaded in page (${cov.cards} cards)`);
   assert.equal(cov.copyKai, '', 'copy/ full text: ShiziKai missing 0');
-  assert.equal(cov.copySerif, '', 'copy/ full text: ShiziSerifSC 400 missing 0');
+  assert.equal(cov.copySerif, '', 'copy/ text (minus the HEI_ONLY_COPY keys that render in the system sans): ShiziSerifSC 400 missing 0');
   assert.equal(cov.copySerifM, '', 'copy/ full text: ShiziSerifSC 500 missing 0');
   assert.equal(cov.deckKai, '', 'deck word / py: ShiziKai missing 0');
 

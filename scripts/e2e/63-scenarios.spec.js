@@ -18,6 +18,7 @@
 //      图片 / 地址 / 未知三种 kind 的提示句。
 // 控制台零错误由 run.mjs 统一断言；全程无绕过 storage.js 的写入。
 
+import { markFirstPracticeDone } from './home-helpers.mjs';
 import {
   bootTestHost, drawStroke, HORIZONTAL, installNativeStub, makeSession, nativeMessages, PRESS_SETTLE_MS, tid, topSel,
   VERTICAL, waitNavIdle, writeSnapshot, setTextSize, LARGE_TEXT,
@@ -260,9 +261,9 @@ export default async function run(page, ctx) {
   assert.equal(await toastText(page), await copy(page, 'R-H10.savedToast'), 'toast 已保存，下次接着写 (R-H10)');
   h = await homeView(page);
   assert.deepEqual([h.records, h.resume], ['first', 'A'], 'home: still first-visit records state, resume A');
-  assert.equal(h.resumeLine, await copy(page, 'R-H04.resumeFirst', { n: 3 }), 'resume line 第一次练习 · 还有 3 个字没写');
+  assert.equal(h.resumeLine, await copy(page, 'X-HOME.progressLeft', { n: 3 }), 'resume line 这一组还有 3 个字（P1-E5）');
 
-  step('场景 1: resume → same char with its stroke → judge → back: one judged record, 今天记录了 1 个字, group stays open');
+  step('场景 1: resume → same char with its stroke → judge → back: one judged record, 今天的 N = 1, group stays open');
   await page.click(topSel('home-start'));
   await page.waitForSelector(topSel('write-screen'));
   await waitNavIdle(page);
@@ -276,8 +277,8 @@ export default async function run(page, ctx) {
   assert.equal(f.todayN, 1, 'today N = 1');
   assert.ok(f.sessions.A && f.sessions.A.cursor === 1, 'the group is still open at cursor 1 (not forced to finish)');
   h = await homeView(page);
-  assert.equal(h.count, await copy(page, 'R-H07.todayCount', { n: 1 }), 'home 今天记录了 1 个字 (R-H07)');
-  assert.equal(h.resumeLine, await copy(page, 'R-H04.resumeFirst', { n: 2 }), 'resume line 第一次练习 · 还有 2 个字没写');
+  assert.equal(h.count, null, 'P1-E5: with the group still open the home shows the group, not 「今天写了 N 个字」（今天写的字在组的格子里）');
+  assert.equal(h.resumeLine, await copy(page, 'X-HOME.progressLeft', { n: 2 }), 'resume line 这一组还有 2 个字'); 
   assert.equal(await topScreen(page), 'home', 'no result page, no forced next step');
 
   // --------------------------------------------------------------- 2. 场景 2 + 反例 2
@@ -391,6 +392,7 @@ export default async function run(page, ctx) {
   await backToHome(page);
   const B1 = (await facts(page)).sessions.B;
   assert.equal(B1.current.strokes.length, 1, 'B has one unjudged stroke');
+  await markFirstPracticeDone(page); // P1-E5 / D46 ②：首次打开不显示「自己选字」；只补 backupMeta，不碰记录与会话
   await openPickSheet(page);
   await typeInSheet(page, '和春');
   await page.locator(`${SHEET} [data-testid="query-row"][data-char="和"] [data-testid="query-row-select"]`).click();
@@ -412,6 +414,7 @@ export default async function run(page, ctx) {
   step('场景 5: 自己选字 — no preselection; check then cancel → zero writes; reopen remembers nothing');
   await resetAt(page);
   await toHome(page);
+  await markFirstPracticeDone(page); // 同上（写入发生在「零写入」计量之前）
   let base = await logLen(page);
   let keys0 = await rawKeys(page);
   await openPickSheet(page);

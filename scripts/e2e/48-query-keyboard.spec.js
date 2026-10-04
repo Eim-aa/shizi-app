@@ -10,6 +10,7 @@
 // 另验：卡片内容超高时滚动区自己滚动（弹层不滚）、输入框不随之移动；pick 逐字行的底栏同样钉在底部。
 // 真实 iOS 键盘 / 候选栏的高度只能真机复测（见 DEVICE_QA）。
 import { bootTestHost, LARGE_TEXT, setTextSize, tid, topSel, waitNavIdle } from './helpers.mjs';
+import { markFirstPracticeDone } from './home-helpers.mjs';
 
 const CHAR = '春';
 
@@ -47,6 +48,7 @@ async function openFromHome(page) {
   await page.evaluate(async () => (await import('/src/ui/router.js')).nav.switchTab('home'));
   await page.waitForFunction(() => document.querySelector('.sz-app').dataset.topScreen === 'home');
   await waitNavIdle(page);
+  await markFirstPracticeDone(page); // P1-E5 / D46 ②：首次打开不显示「自己选字」
   await page.click(`.sz-layer[data-top="true"] ${tid('home-pick')}`);
   await page.waitForSelector('.sz-sheet [data-testid="query-input"]');
   await page.waitForFunction(() => document.activeElement && document.activeElement.dataset.testid === 'query-input');

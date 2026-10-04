@@ -394,6 +394,20 @@ export default async function a11y(page, realCtx) {
     'ariaSnapshot: tablist with 习字 [selected] / 字库 / 我的');
   assert.deepEqual(await page.evaluate(() => [...document.querySelectorAll('[role="tab"]')].map(el => el.getAttribute('tabindex'))),
     ['0', '-1', '-1'], 'roving tabindex: only the selected tab is in the Tab order');
+  // P1-E5：首次打开没有题记（首页是书家「拾」+ 题跋）；下面「今天还没写」的首页才有题记，先 seed 一条昨天的判断
+  const seedYesterday = () => page.evaluate(() => {
+    window.__shiziTest.reset();
+    const at = window.__shiziTest.now() - 24 * 3600 * 1000;
+    const d = new Date(at);
+    const pad = n => String(n).padStart(2, '0');
+    const day = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    const rec = { id: 'r1', cardKey: 'base:永', char: '永', sessionId: 's1', kind: 'judged', judgment: 'correct', at, localDay: day, help: { hints: 0, answerSeen: false, traced: false } };
+    window.__shiziTest.seed({ records: { [day.slice(0, 7)]: [rec] } });
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  await audit(page, cdp, ctx, 'home (first open)');
+  await seedYesterday();
+  await page.waitForSelector(tid('home-epigraph'));
   {
     // A9：题记 figure 读整句 + 出处（取 EPIGRAPHS 现有文案拼接），竖排子节点不进无障碍树
     const epi = await page.evaluate(async () => {

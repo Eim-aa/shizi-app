@@ -144,7 +144,7 @@ export default async function run(page, ctx) {
   await resetAt(page);
   await waitNavIdle(page);
   const hint0 = await page.locator(topSel('home-first-tip')).textContent();
-  assert.equal(hint0.trim(), '第一次来，先写 3 个字试试。', 'home first-visit line says 3 chars');
+  assert.equal(hint0.trim(), '先写三个大家常忘的字。', 'home first-open line (P1-E5 design §一: 「三个」 = the 3 first-practice chars, D38)');
   await page.click(topSel('home-start'));
   await page.waitForSelector(topSel('write-screen'));
   await waitNavIdle(page);
@@ -262,7 +262,7 @@ export default async function run(page, ctx) {
   await seed(page, { records: byMonth(recs2), sched: sched2, sessions: { A: null, B: null, lastEnded: {} } });
   await toHome(page);
   await page.waitForSelector(topSel('home-capital-hint'));
-  assert.equal((await page.locator(topSel('home-capital-hint')).textContent()).trim(), '今天来写写大写数字，借条、报销单上都用得到。');
+  assert.equal((await page.locator(topSel('home-capital-hint')).textContent()).trim(), '「拾」也是大写的十。今天写两组大写数字，借条、红包上用得着。', 'P1-E5: two lines (lead + body), design §四 ④');
   assert.equal(await page.locator(topSel('home-capital-hint')).getAttribute('data-kind'), 'capital1');
   await page.click(topSel('home-start'));
   await page.waitForSelector(topSel('write-screen'));

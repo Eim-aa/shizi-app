@@ -164,8 +164,8 @@ export default async function scenario(page, ctx) {
   step('home now shows only A: main entry 继续写字, resume-line 今天的练习; enter → A intact, no auto-advance');
   h = await homeLines(page);
   assert.equal(h.cta, '继续写字', 'main entry reads 继续写字');
-  assert.deepEqual([h.resume && h.resume.slot, h.resume && h.resume.kind, h.resume && h.resume.text], ['A', 'daily', '今天的练习 · 还有 3 个字没写'],
-    'resume-line: 今天的练习 · 还有 3 个字没写');
+  assert.deepEqual([h.resume && h.resume.slot, h.resume && h.resume.kind, h.resume && h.resume.text], ['A', 'daily', '这一组还有 3 个字'],
+    'resume-line: 这一组还有 3 个字（P1-E5：续练行换成这一组的格子 + 一句话）');
   assert.equal(h.other, null, 'no other-line');
   s = await sessions(page);
   assert.deepEqual([s.B, s.lastEnded.B], [null, undefined], 'B ended and its result left (lastEnded.B cleared)');

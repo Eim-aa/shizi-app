@@ -33,6 +33,7 @@ injectStyles('write-paper', `
 .sz-paper[data-hinted="true"] .sz-paper__body{justify-content:flex-end;padding-bottom:0}
 .sz-paper[data-hinted="true"] .sz-paper__title,.sz-paper[data-hinted="true"] .sz-paper__text{display:none}
 .sz-paper__note{display:block}
+.sz-paper__nowrap{white-space:nowrap}
 .sz-paper__suggest{display:flex;flex-direction:column;align-items:flex-start;gap:0;color:${T.ink2};font-size:${T.fs13};line-height:${T.lh13}}
 .sz-paper__suggestbtns{display:flex;flex-wrap:wrap;gap:${T.s4};margin-left:-2px}
 .sz-paper__sbtn{min-height:44px;padding:0 2px;font-size:${T.fs15};color:${T.ink1}}
@@ -98,9 +99,14 @@ export function PaperStage({ size, glyphLayer = null, hinted = false, onBack }) 
   </div>`;
 }
 
-/** 纸上那一字的格下说明。 */
+/**
+ * 纸上那一字的格下说明。句子里「…」括起来的词（「纸上」）整体不换行（Q2-12，复测 simC D9：窄的时候被断成「纸 / 上」两行）；
+ * 按引号切分，不在代码里写死文案。
+ */
 export function PaperNote() {
-  return html`<span class="sz-paper__note" data-testid="write-paper-note">${t('X-PAPER.note')}</span>`;
+  const parts = t('X-PAPER.note').split(/(「[^」]*」)/);
+  return html`<span class="sz-paper__note" data-testid="write-paper-note">${parts.map(part => (/^「[^」]*」$/.test(part)
+    ? html`<span class="sz-paper__nowrap">${part}</span>` : part))}</span>`;
 }
 
 // ---------------------------------------------------------------- 读屏开启时的建议（P168；求助与判断 ⑤「读屏开启时的第一次」）

@@ -89,6 +89,7 @@ injectStyles('write', `
 .sz-write__note{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3}}
 .sz-write__tools{flex:none;display:flex;gap:${T.s1};margin-right:-10px}
 .sz-write__tools[data-shown="false"]{visibility:hidden}
+.sz-write__tools[data-paper="true"]{display:none} /* 纸上那一字没有撤销 / 清空，不再为它们空着一块宽度（脚注才放得下，Q2-12） */
 .sz-write__tool{height:44px;min-width:44px;padding:0 10px;font-size:${T.fs15};color:${T.ink2}}
 .sz-write__progress{font-size:${T.fs13};color:${T.ink3};font-variant-numeric:tabular-nums;
   padding-right:16px}
@@ -396,7 +397,8 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
   // 「在纸上写」叠在（隐藏着的）撤销 / 清空同一位置，不改这一行的排布。
   const toPaper = !paper && phase === 'recall' && !canUndo && !skip.failed;
   const toPaperSlot = toPaper ? html`<span class="sz-write__topaperslot"><${ToPaperButton} onClick=${() => paperMode.toggle(true)} /></span>` : null;
-  const tools = html`<span class="sz-write__tools" data-testid="write-tools" data-shown=${canUndo && drawable && !paper ? 'true' : 'false'}>
+  const tools = html`<span class="sz-write__tools" data-testid="write-tools" data-shown=${canUndo && drawable && !paper ? 'true' : 'false'}
+          data-paper=${paper ? 'true' : null}>
           <${Button} variant="plain" class="sz-write__tool" data-testid="write-undo" disabled=${!canUndo} rapid
             onClick=${onUndo}>${t('R-W18.btnUndo')}</${Button}>
           <${Button} variant="plain" class="sz-write__tool" data-testid="write-clear" disabled=${!hasStrokes} rapid

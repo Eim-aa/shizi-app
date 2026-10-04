@@ -7392,6 +7392,7 @@ src/ui/components/Button.js
 src/ui/components/Chevron.js
 src/ui/components/Confirm.js
 src/ui/components/Page.js
+src/ui/components/PracticeGlyph.js
 src/ui/components/Sheet.js
 src/ui/components/Tabs.js
 src/ui/components/Toast.js
@@ -7400,6 +7401,7 @@ src/ui/components/ax.js
 src/ui/components/corrupt-notice.js
 src/ui/components/image-preview.js
 src/ui/components/marks.js
+src/ui/components/near.js
 src/ui/components/query/CharCard.js
 src/ui/components/query/CharRow.js
 src/ui/components/query/QuerySheet.js

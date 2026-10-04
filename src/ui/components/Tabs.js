@@ -11,8 +11,9 @@ import { injectStyles, T } from './styles.js';
 injectStyles('tabs', `
 .sz-tabs{flex:none;box-sizing:border-box;margin:0;height:calc(50px * ${T.k} + env(safe-area-inset-bottom, 0px));padding-bottom:env(safe-area-inset-bottom, 0px);
   border-top:${T.hair} solid ${T.line};background:${T.paper};display:flex;align-items:stretch}
-.sz-tabs__tab{position:relative;flex:1;min-height:${T.hit};display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
-  color:${T.ink3};font-size:${T.fs11};font-weight:500}
+.sz-tabs__tab{position:relative;flex:1;min-height:${T.hit};box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  padding:0 0 calc(6px * ${T.k}); /* 底部留出选中圆点的位置，圆点（标签下 5px）落在栏内、不被没有安全区的屏幕底边裁掉（Q2-11） */
+  color:${T.ink3};font-size:${T.fs11};line-height:${T.lh11};font-weight:500} /* 行高按字阶 11 给（继承来的正文行高会让标签行盒比字大得多） */
 .sz-tabs__tab[aria-selected="true"]{color:${T.ink1}}
 .sz-tabs__tab span{position:relative}
 .sz-tabs__tab[aria-selected="true"] span::after{content:"";position:absolute;left:50%;top:100%;width:4px;height:4px;margin:1px 0 0 -2px;

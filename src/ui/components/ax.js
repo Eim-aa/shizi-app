@@ -8,7 +8,8 @@
 //   - 横排改竖排：写字页底栏「提示 · 写好了」、判断页「写错了 · 写对了」两键改上下排；「看答案 · 跳过 · 结束这组」放不下时折行；
 //     设置页带值的行（练习范围、外观、备份与恢复）标题与值改上下排。
 //   - 按钮最小高随字号：主 / 次按钮、文字按钮、判断键的最小高度按自身字号算（1.3em + 内边距），不再是固定 52 / 72 × --k。
-//   - Tab 栏不随 AX 继续放大：高度、图标、标签封顶在 XXXL 的倍率（iOS 系统 Tab 栏同样不随 Dynamic Type 放大）。
+//   - Tab 栏不随 AX 继续放大：高度、图标、标签（字号、行高、选中圆点的底部留白）封顶在 XXXL 的倍率（iOS 系统 Tab 栏同样不随 Dynamic Type 放大；Q2-11：
+//     此前只封了字号，行高仍按真 --k 算，AX5 的标签行盒比图标高好几倍，圆点被推出栏外）。
 // 书写格边长不受影响（P118 / D36，按可用空间算）。完整 AX 版式（逐级字阶、说明折叠到 ⓘ 等，ADA A03 / A04）等设计稿给出后替换本文件。
 // 选择器一律以 :root[data-ax][data-text-large] 开头，比紧凑版（write/compact.js 的 :root[data-text-large] …）多一个属性，
 // 注入顺序无关。由 ui/root.js 导入一次。
@@ -44,7 +45,7 @@ ${A} .sz-home .sz-home__date,${A} .sz-home .sz-home__record .sz-home__line,${A} 
 ${A} .sz-set__row.sz-set__row--value{flex-direction:column;align-items:flex-start;justify-content:center;gap:4px}
 ${A} .sz-set__row--value .sz-set__value{flex-wrap:wrap;max-width:100%}
 ${A} .sz-tabs{height:calc(50px * ${TAB_SCALE_CAP} + env(safe-area-inset-bottom, 0px))}
-${A} .sz-tabs .sz-tabs__tab{font-size:calc(11px * ${TAB_SCALE_CAP})}
+${A} .sz-tabs .sz-tabs__tab{font-size:calc(11px * ${TAB_SCALE_CAP});line-height:calc(16px * ${TAB_SCALE_CAP});padding-bottom:calc(6px * ${TAB_SCALE_CAP})}
 ${A} .sz-tabs .sz-tabs__tab svg{width:calc(24px * ${TAB_SCALE_CAP});height:calc(24px * ${TAB_SCALE_CAP})}
 `;
 

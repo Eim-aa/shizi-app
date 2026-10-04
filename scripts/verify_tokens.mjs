@@ -42,12 +42,10 @@ export const ZHU_ALLOW = Object.freeze({
 export const EXCEPTIONS = Object.freeze([
   { rule: 'fontSize', file: 'src/ui/screens/library/wall.js', snippet: 'calc(280px / var(--cols))', why: '不认 cqw 的浏览器的回退（后一行 72cqw 生效时被覆盖）；同样是字墙格里的字面' },
   { rule: 'fontSize', file: 'src/ui/screens/library/wall.js', snippet: 'calc(80cqw / var(--cols))', why: '字墙格里的楷体字面，边长 = 格宽 × 0.8（tokens.json typography.glyph.wallCellFace），随列数变化（字面是图，不是排版字阶；tokens.json typography.glyph）' },
-  { rule: 'fontSize', file: 'src/ui/screens/mine/annual.js', snippet: 'font-size:34cqw', why: '年度字帖格里的占位字面，按格宽的 34% 算（字面是图）' },
   { rule: 'fontSize', file: 'src/ui/screens/mine/records.js', snippet: 'font-size:34cqw', why: '字帖格里的占位字面，按格宽的 34% 算（字面是图）' },
   { rule: 'fontSize', file: 'src/ui/screens/detail/index.js', snippet: 'font-size:min(24px, calc((100cqw - 2px) / var(--n, 2) * .6))', why: '词语小字帖里的字面：边长 = 格宽 × 0.6，随字数变化（字面是图）' },
   { rule: 'fontSize', file: 'src/ui/screens/write/glyph-fallback.js', snippet: 'font-size:${Math.round(size * FALLBACK_FONT_RATIO * 100) / 100}px', why: '轮廓缺失时的楷体整字回退：字面尺寸 = 书写格边长 × 比例（字面是图，ShiziKai 只做回退）' },
   { rule: 'fontSize', file: 'src/ui/screens/mine/records.js', snippet: 'font-size:clamp(9px, 16cqw, 12px)', why: '字帖格里「没有笔迹」的小字，随格宽收缩；aria-hidden，同一信息在格子的 aria-label 里（X-MINE.cellLabel）' },
-  { rule: 'fontSize', file: 'src/ui/screens/mine/annual.js', snippet: 'font-size:clamp(9px, 13cqw, 12px)', why: '年度字帖格里「没有笔迹」的小字，同上' },
   { rule: 'fontSize', file: 'src/ui/screens/home/copybook.js', snippet: 'font-size:62cqw', why: '首页字帖位里书家「拾」的字面（占位），边长 = 格宽 × 0.62（字面是图，不是排版字阶；书家稿到位后换矢量资产）' },
   { rule: 'fontSize', file: 'src/ui/screens/home/copybook.js', snippet: 'font-size:58cqw', why: '首页字帖格里没有墨迹时的楷体字面，边长 = 格宽 × 0.58，随格宽变化（字面是图）' },
   { rule: 'fontSize', file: 'src/ui/screens/library/index.js', snippet: 'calc(46px * ${T.k})', why: '字库空态的空心字面（字面是图）' },

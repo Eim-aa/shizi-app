@@ -1,66 +1,67 @@
-// 年度报告（02 M4-2；04 R-M06；走查-M01；边改 M07 / L57「导出放以后版本」；原型 ShiziScreen-第十稿交接版 L133–L144、逻辑 L494–L498；
-// reference/J-proto-screen.md §2.3.16）。自注册 registerScreen('annual')（params {}）；「我的」菜单「年度报告」按屏名 push（M4-1 MINE_ROUTES.annual）。
+// 年报（阶段 1 P1-E7；交接 §8；设计稿「作品出口」§四；原 02 M4-2 / 04 R-M06）。自注册 registerScreen('annual')（params {}）；「我的」菜单「年度报告」按屏名 push。
 //
-// 版式（原型 annual）：页头「年度报告」→ 年份（13px / .2em）→ 四节（20px 宋体标题 + 内容 + 15px 说明）→ 页底说明。
-//   一 · 今年有记录的字      「{N} 个字」（数字 34px）+「写完并判断过对错的字，写对写错都算。」
-//   二 · 有记录天数最多的月份 「{month} 月有记录 {n} 天」+「只看哪天有记录，不分对错。」
-//   三 · 较少见的字          96px 格子里标准字形（原型 ref()，RefMini）+ 字 + 拼音 +「今年有记录的字里，它最不常用。」；
-//                            没有字频可比时整节不画（原型 annRareOn）。
-//   四 · 这一年第一个有记录的字 96px 格子里的真实笔迹（InkMini）+ 字 +「{date} 的笔迹」；D42（解 P122）：笔迹取今年这个字
-//                            从早到晚第一份留有墨迹的那一次，{date} 是那一次的日子；
-//                            今年里一份笔迹都没有（P31 perRecordInk 关 / 折叠月份 / 都被回收）：格子画标准字 +「没有笔迹」（R-D07 / 10.12，
-//                            不拿去年的笔迹冒充，I03），说明行只写日期（最早那条记录的日子；不说「的笔迹」——过渡口径，报告登记待定）。
-//   页底「只算今年的记录。这一页不能保存成图片。」——本页没有保存 / 分享入口（R-M06 不导出，P21-04 放以后版本）。
+// 年报是一卷（交接 §8.1，滚动）：页头「年报」+ 右侧分享 → 卷首（「二〇二六」t34 宋、「这一年，你写过 {n} 个字。」t17、今年第一个字：单格 132 +
+//   「今年第一个字」/「{M月D日} 的笔迹」，D45）→ 每月一段（顶 hairline；月名 t22 + 右侧「{n} 字」；8 列、格 45、无格线、墨内边 9%，没墨的画衬底；
+//   点一段进该月字帖）→ 卷尾「同一个字，两次」（第一次与最近一次墨迹两格并排 140，格下各自日期；D27）。只有一个数（年字数）；不出统计小节。
+// 右上分享 → 弹层「保存年报」：默认册页（卷首 + 每月 + 卷尾，每张 3:4，超 80 字的月份分张），文字按钮「存成一张长图」（images-annual.js）。
+// 纸上记录不进、不计入年字数（D46-13）。数字界面用阿拉伯数字（卷首年份是纸面汉字，由 work-text.js 填入）。
 // 空态（原型 annualEmpty）：虚线框「年」+「今年还没有记录」+「写字并判断对错后，这里会汇总你今年的记录。」。
-// 数字全部按记录算（annual-model.js，与 M4-1 recordIndex 同一索引）；界面一律阿拉伯数字（T10）。本页不写任何东西、没有可点的格子。
 //
 // data-testid（前缀 annual-；页面根 annual-screen）：
-//   annual-body（data-state=empty|report、data-year、data-today、data-count、data-days）、annual-year、
-//   annual-empty、annual-empty-glyph、annual-empty-title、annual-empty-body、
-//   annual-section（data-key=count|month|rare|first）、annual-section-title、annual-section-note、
-//   annual-count（data-n）、annual-count-unit、annual-month（data-month / data-days）、
-//   annual-rare（data-char / data-rank）、annual-rare-glyph、annual-rare-char、annual-rare-py、
-//   annual-first（data-char / data-day / data-record / data-ink）、annual-first-ink、annual-first-noink、annual-first-char、annual-first-line、
-//   annual-footer。
+//   annual-body（data-state=empty|report、data-year、data-today、data-count、data-days、data-months）、annual-share、annual-year、annual-head、
+//   annual-first（data-char / data-day / data-record / data-ink）、annual-first-cell、annual-first-label、annual-first-date、
+//   annual-month（按钮，data-month / data-n）、annual-month-name、annual-month-count、annual-month-grid、annual-month-cell（data-char / data-mode）、
+//   annual-twice（data-char）、annual-twice-first / annual-twice-last（data-record / data-day）、annual-twice-date、
+//   annual-empty、annual-empty-glyph、annual-empty-title、annual-empty-body。
 
 import { html, useMemo } from '../../../../vendor/ui.js';
 import { registerScreen, getScreen, nav } from '../../router.js';
 import { Page } from '../../components/Page.js';
+import { Button, pressFeedbackHandlers } from '../../components/Button.js';
+import { CellCanvas, builtInk, useAxSize, useScreenWidth } from '../../components/work.js';
 import { injectStyles, T, TEX } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
+import * as defaultPolicy from '../../../config/policy.js';
 import { getStore } from '../../../store/store.js';
 import { monthDayParts } from '../../../core/dates.js';
-import { hasInkPoints, inkOf } from '../detail/records.js';
-import { InkMini, RefMini } from '../write/compare.js';
-import { useStrokeData } from '../write/hint-layer.js';
+import { monthCells } from '../../../core/images/pick.js';
+import { inkOf, recordHasInk } from '../detail/records.js';
 import { hasInkOfStore, useStoreState, useToday } from './records.js';
 import { annualModel } from './annual-model.js';
+import { openMonth } from './month.js';
+import { annualYearText } from '../../work-text.js';
 
 export const ANNUAL_SCREEN = 'annual';
 
 injectStyles('mine-annual', `
-.sz-ann{display:flex;flex-direction:column;gap:${T.groupGap}}
-.sz-ann__year{font-size:${T.fs13};color:${T.ink3};font-variant-numeric:tabular-nums}
-.sz-ann__sec{display:flex;flex-direction:column;gap:${T.s3};min-width:0}
-.sz-ann__title{margin:0;font-family:${T.song};font-size:${T.fs22};line-height:${T.lh22};font-weight:500;color:${T.ink2}}
-.sz-ann__note{margin:0;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2};text-wrap:pretty}
-.sz-ann__count{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
-.sz-ann__num{font-family:${T.song};font-size:${T.fs34};line-height:1;font-weight:500;color:${T.ink1};font-variant-numeric:tabular-nums}
-.sz-ann__unit{font-size:${T.fs15};color:${T.ink2}}
-.sz-ann__month{font-family:${T.song};font-size:${T.fs22};line-height:${T.lh22};font-weight:500;color:${T.ink1}}
-.sz-ann__row{display:flex;gap:16px;align-items:center;min-width:0}
-.sz-ann__box{position:relative;width:96px;height:96px;flex:none;box-sizing:border-box;border:${T.frameW} solid ${T.frame};
-  ${TEX};container-type:inline-size}
-.sz-ann__box .sz-compare__card{position:absolute;inset:0;width:100%;height:100%;border:0;border-radius:0;background:transparent;padding:0}
-.sz-ann__glyph{position:absolute;left:0;right:0;top:42%;transform:translateY(-50%);text-align:center;font-family:${T.kai};
-  font-size:34cqw;line-height:1;color:${T.under}}
-.sz-ann__noink{position:absolute;left:0;right:0;top:80%;transform:translateY(-50%);text-align:center;font-family:${T.hei};
-  font-size:clamp(9px, 13cqw, 12px);line-height:1;color:${T.ink3};white-space:nowrap}
-.sz-ann__side{display:flex;flex-direction:column;gap:4px;min-width:0}
-.sz-ann__charline{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
-.sz-ann__char{font-family:${T.kai};font-size:${T.fs22};color:${T.ink1}}
-.sz-ann__py{font-size:${T.fs15};color:${T.ink2}}
-.sz-ann__empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:${T.s4};text-align:center;padding:${T.s6} 0 ${T.s12}}
+.sz-ann{display:flex;flex-direction:column;gap:0;margin:0 -4px}
+.sz-ann__year{margin:0;font-family:${T.song};font-size:${T.fs34};line-height:${T.lh34};font-weight:400;color:${T.ink1}}
+.sz-ann__line{margin:8px 0 0;font-size:${T.fs17};line-height:${T.lh17};color:${T.ink2}}
+.sz-ann__first{display:flex;gap:20px;align-items:flex-end;margin-top:24px;padding-bottom:16px}
+.sz-ann__fcell{position:relative;width:132px;height:132px;flex:none;box-sizing:border-box;${TEX};box-shadow:inset 0 0 0 ${T.frameW} ${T.frame}}
+.sz-ann__fcell canvas{position:absolute;left:0;top:0}
+.sz-ann__fside{display:grid;gap:4px;padding-bottom:4px;min-width:0}
+.sz-ann__flabel{font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3}}
+.sz-ann__fdate{font-size:${T.fs15};line-height:${T.lh15};color:${T.ink1}}
+.sz-ann__month{display:block;width:100%;box-sizing:border-box;margin:0;padding:14px 0 0;border:0;border-top:${T.hair} solid ${T.line};border-radius:${T.rWork};
+  background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.sz-ann__month[data-pressed]{background:${T.field}}
+.sz-ann__month:focus-visible{outline:2px solid ${T.ink1};outline-offset:-2px}
+.sz-ann__mhead{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:10px}
+.sz-ann__mname{font-family:${T.song};font-size:${T.fs22};line-height:${T.lh22};font-weight:500;color:${T.ink1}}
+.sz-ann__mcount{font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3};font-variant-numeric:tabular-nums}
+.sz-ann__mgrid{display:grid;margin-bottom:28px}
+.sz-ann__mcell{position:relative;display:block}
+.sz-ann__mcell canvas{position:absolute;left:0;top:0}
+.sz-ann__twice{display:grid;gap:14px;padding-top:14px;border-top:${T.hair} solid ${T.line};margin-bottom:24px}
+.sz-ann__twicetitle{margin:0;font-family:${T.song};font-size:${T.fs22};line-height:${T.lh22};font-weight:500;color:${T.ink1}}
+.sz-ann__twicerow{display:flex;gap:12px;flex-wrap:wrap}
+:root[data-ax] .sz-ann__twicerow{flex-direction:column}
+.sz-ann__twiceitem{display:grid;gap:8px;justify-items:center}
+.sz-ann__tcell{position:relative;width:140px;height:140px;box-sizing:border-box;${TEX};box-shadow:inset 0 0 0 ${T.frameW} ${T.frame}}
+.sz-ann__tcell canvas{position:absolute;left:0;top:0}
+.sz-ann__tdate{font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3}}
+.sz-ann__empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:24px 0 48px}
 .sz-ann__eglyph{width:88px;height:88px;box-sizing:border-box;border:${T.frameW} dashed ${T.frame};display:grid;place-items:center;
   font-family:${T.kai};font-size:52px;line-height:1;color:${T.under}}
 .sz-ann__etitle{margin:0;font-family:${T.song};font-size:${T.fs22};font-weight:500;color:${T.ink1}}
@@ -94,67 +95,38 @@ export function annualDateText(day) {
   }
 }
 
-/**
- * 「{n} 个字」拆成数字与其余文字（原型 L135：数字 34px 宋体，「个字」15px）。模板里没有 {n} 时整句当单位。
- * @returns {{before:string, num:string, after:string}}
- */
-export function countParts(n) {
-  const marker = '\u0000';
-  const text = t('R-M06.charCount', { n: marker });
-  const at = text.indexOf(marker);
-  if (at < 0) return { before: '', num: String(n), after: text };
-  return { before: text.slice(0, at), num: String(n), after: text.slice(at + marker.length) };
-}
-
-/** 四 · 说明行：有笔迹「{date} 的笔迹」（R-M06.inkDate；D45：日期是留有墨迹那一次的日子，不说「今年第一次」）；没有笔迹只写日期（过渡口径，待定）。 */
+/** 今年第一个字的说明行：有墨「{date} 的笔迹」（R-M06.inkDate；D45：日期是留有墨迹那一次的日子，不说「今年第一次」）；没墨只写日期。 */
 export function firstLine(day, hasInk) {
   const date = annualDateText(day);
   return hasInk ? t('R-M06.inkDate', { date }) : date;
 }
 
-function Section({ k, title, note, children }) {
-  return html`<section class="sz-ann__sec" data-testid="annual-section" data-key=${k}>
-    <h2 class="sz-ann__title" data-testid="annual-section-title">${title}</h2>
-    ${children}
-    ${note ? html`<p class="sz-ann__note" data-testid="annual-section-note">${note}</p>` : null}
-  </section>`;
+const CELL_PRESS = pressFeedbackHandlers(() => false);
+
+/** 年报每月的格子（点进月字帖的同一组：每字取本月留墨的第一次，没墨画衬底）。 */
+export function monthSections(state, model, store) {
+  return model.months.map(m => {
+    const r = monthCells(state, m.month, {
+      inkOf: record => builtInk(inkOf(store, record)),
+      hasInk: record => recordHasInk(store, record),
+      policy: defaultPolicy,
+    });
+    return { ...m, cells: r.cells.map((cell, i) => ({ key: `${cell.ch}-${i}`, ch: cell.ch, ink: cell.ink ? { points: cell.ink } : null, mode: cell.mode })) };
+  });
 }
 
-function RareBlock({ rare }) {
-  const strokeData = useStrokeData(rare.char);
-  return html`<div class="sz-ann__row" data-testid="annual-rare" data-char=${rare.char} data-rank=${rare.rank}>
-    <div class="sz-ann__box">
-      <${RefMini} char=${rare.char} strokeData=${strokeData} testid="annual-rare-glyph" label=${t('X-ANNUAL.rareGlyph', { char: rare.char })} />
-    </div>
-    <span class="sz-ann__side">
-      <span class="sz-ann__charline">
-        <span class="sz-ann__char" data-testid="annual-rare-char">${rare.char}</span>
-        ${rare.py ? html`<span class="sz-ann__py" data-testid="annual-rare-py">${rare.py}</span>` : null}
-      </span>
-      <p class="sz-ann__note" data-testid="annual-section-note">${t('R-M06.rareNote')}</p>
+function MonthSection({ section, cols, c }) {
+  return html`<button type="button" class="sz-ann__month" ...${CELL_PRESS} data-testid="annual-month" data-month=${section.month} data-n=${section.cells.length}
+    aria-label=${t('X-WORK.annualMonthAria', { month: section.monthNum, n: section.cells.length })} onClick=${() => openMonth({ month: section.month })}>
+    <span class="sz-ann__mhead">
+      <span class="sz-ann__mname" data-testid="annual-month-name">${t('X-WORK.annualMonthName', { month: section.monthNum })}</span>
+      <span class="sz-ann__mcount" data-testid="annual-month-count">${t('X-WORK.annualMonthCount', { n: section.cells.length })}</span>
     </span>
-  </div>`;
-}
-
-function FirstBlock({ first }) {
-  const store = currentStore();
-  const ink = useMemo(() => inkOf(store, first.record), [store, first.record]);
-  const has = hasInkPoints(ink);
-  return html`<div class="sz-ann__row" data-testid="annual-first" data-char=${first.char} data-day=${first.day}
-    data-record=${first.record ? first.record.id : ''} data-ink=${has ? 'true' : 'false'}>
-    <div class="sz-ann__box">
-      ${has
-        ? html`<${InkMini} points=${ink.points} strokes=${ink.strokes} testid="annual-first-ink" label=${t('X-ANNUAL.firstInk', { char: first.char })} />`
-        : html`<span role="img" aria-label=${t('X-ANNUAL.firstNoInk', { char: first.char })}>
-            <span class="sz-ann__glyph" aria-hidden="true">${first.char}</span>
-            <span class="sz-ann__noink" aria-hidden="true" data-testid="annual-first-noink">${t('R-D07.noInkLabel')}</span>
-          </span>`}
-    </div>
-    <span class="sz-ann__side">
-      <span class="sz-ann__char" data-testid="annual-first-char">${first.char}</span>
-      <p class="sz-ann__note" data-testid="annual-first-line">${firstLine(first.day, has)}</p>
+    <span class="sz-ann__mgrid" data-testid="annual-month-grid" aria-hidden="true" style=${{ gridTemplateColumns: `repeat(${cols}, ${c}px)` }}>
+      ${section.cells.map(cell => html`<span key=${cell.key} class="sz-ann__mcell" data-testid="annual-month-cell" data-char=${cell.ch} data-mode=${cell.mode}
+        style=${{ width: `${c}px`, height: `${c}px` }}><${CellCanvas} ch=${cell.ch} ink=${cell.ink} mode=${cell.mode} size=${c} pad=${0.09} testid="annual-month-canvas" /></span>`)}
     </span>
-  </div>`;
+  </button>`;
 }
 
 function EmptyState() {
@@ -165,40 +137,70 @@ function EmptyState() {
   </div>`;
 }
 
-function Report({ model }) {
-  const parts = countParts(model.count);
+function Report({ model, state }) {
+  const store = currentStore();
+  const sw = useScreenWidth();
+  const ax = useAxSize();
+  const sections = useMemo(() => monthSections(state, model, store), [state, model, store]);
+  const cols = ax ? 6 : 8;
+  const c = ax ? Math.floor((sw - 40) / 6) : Math.min(45, Math.floor((sw - 40) / 8));
+  const first = model.first;
+  const firstInk = first && first.record ? inkOf(store, first.record) : null;
+  const firstBuilt = builtInk(firstInk);
+  const twice = model.twice;
   return html`
-    <span class="sz-ann__year" data-testid="annual-year">${model.year}</span>
-    <${Section} k="count" title=${t('R-M06.section1')} note=${t('R-M06.section1Note')}>
-      <span class="sz-ann__count" data-testid="annual-count" data-n=${model.count}>
-        ${parts.before ? html`<span class="sz-ann__unit">${parts.before}</span>` : null}
-        <span class="sz-ann__num">${parts.num}</span>
-        <span class="sz-ann__unit" data-testid="annual-count-unit">${parts.after.trim()}</span>
-      </span>
-    </${Section}>
-    <${Section} k="month" title=${t('X-ANNUAL.section2')} note=${t('R-M06.monthNote')}>
-      <span class="sz-ann__month" data-testid="annual-month" data-month=${model.month ? model.month.month : ''}
-        data-days=${model.month ? model.month.days : 0}>
-        ${model.month ? t('R-M06.monthDays', { month: model.month.monthNum, n: model.month.days }) : t('R-M06.monthNone')}
-      </span>
-    </${Section}>
-    ${model.rare
-      ? html`<${Section} k="rare" title=${t('X-ANNUAL.section3')}><${RareBlock} rare=${model.rare} /></${Section}>`
+    <h2 class="sz-ann__year" data-testid="annual-year" data-year=${model.year}>${annualYearText(model.year)}</h2>
+    <p class="sz-ann__line" data-testid="annual-head" data-n=${model.count}>${t('X-WORK.annualHead', { n: model.count })}</p>
+    ${first
+      ? html`<div class="sz-ann__first" data-testid="annual-first" data-char=${first.char} data-day=${first.day}
+          data-record=${first.record ? first.record.id : ''} data-ink=${firstBuilt ? 'true' : 'false'}>
+          <span class="sz-ann__fcell" data-testid="annual-first-cell" role="img"
+            aria-label=${firstBuilt ? t('X-ANNUAL.firstInk', { char: first.char }) : t('X-ANNUAL.firstNoInk', { char: first.char })}>
+            <${CellCanvas} ch=${first.char} ink=${firstInk} mode=${firstBuilt ? 'hand' : 'under'} size=${132} testid="annual-first-canvas" />
+          </span>
+          <span class="sz-ann__fside">
+            <span class="sz-ann__flabel" data-testid="annual-first-label">${t('X-WORK.annualFirstLabel')}</span>
+            <span class="sz-ann__fdate" data-testid="annual-first-date">${firstLine(first.day, !!firstBuilt)}</span>
+          </span>
+        </div>`
       : null}
-    ${model.first
-      ? html`<${Section} k="first" title=${t('X-ANNUAL.section4')}><${FirstBlock} first=${model.first} /></${Section}>`
-      : null}
-    <p class="sz-ann__note" data-testid="annual-footer">${t('R-M06.footer')}</p>`;
+    ${sections.map(section => html`<${MonthSection} key=${section.month} section=${section} cols=${cols} c=${c} />`)}
+    ${twice
+      ? html`<section class="sz-ann__twice" data-testid="annual-twice" data-char=${twice.char}>
+          <h3 class="sz-ann__twicetitle">${t('X-WORK.annualTwiceTitle')}</h3>
+          <div class="sz-ann__twicerow">
+            ${[['first', twice.first], ['last', twice.last]].map(([key, side]) => html`<div key=${key} class="sz-ann__twiceitem">
+              <span class="sz-ann__tcell" data-testid=${`annual-twice-${key}`} data-record=${side.record.id} data-day=${side.day} role="img"
+                aria-label=${t(key === 'first' ? 'X-WORK.annualFirstCellAria' : 'X-WORK.annualLastCellAria', { char: twice.char })}>
+                <${CellCanvas} ch=${twice.char} ink=${inkOf(store, side.record)} mode="hand" size=${140} testid=${`annual-twice-${key}-canvas`} />
+              </span>
+              <span class="sz-ann__tdate" data-testid="annual-twice-date">${annualDateText(side.day)}</span>
+            </div>`)}
+          </div>
+        </section>`
+      : null}`;
+}
+
+const SHARE_ICON = () => html`<svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.5"
+  stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M11 14V3.5M7.2 7 11 3.2 14.8 7M6 10H5v8h12v-8h-1"></path></svg>`;
+
+/** 分享弹层（images-annual.js 在年报页之外没有别的入口，按需动态加载，与 images-entry.js 的加载顺序无关）。 */
+async function shareAnnual() {
+  const { openAnnualImage } = await import('../../images-annual.js');
+  openAnnualImage();
 }
 
 function AnnualScreen() {
   const state = useStoreState();
   const today = useToday();
-  const model = useMemo(() => annualModel(state, today, { hasInk: hasInkOfStore() }), [state, today]);
-  return html`<${Page} title=${t('X-MINE.annual')} testid="annual-screen">
+  const model = useMemo(() => annualModel(state, today, { hasInk: hasInkOfStore(), policy: defaultPolicy }), [state, today]);
+  const trailing = model.empty
+    ? null
+    : html`<${Button} variant="icon" data-testid="annual-share" aria-label=${t('X-WORK.shareAria')} onClick=${shareAnnual}>${SHARE_ICON()}</${Button}>`;
+  return html`<${Page} title=${t('X-WORK.annualPageTitle')} trailing=${trailing} testid="annual-screen">
     <div class="sz-ann" data-testid="annual-body" data-state=${model.empty ? 'empty' : 'report'} data-year=${model.year}
-      data-today=${today} data-count=${model.count} data-days=${model.days} style=${model.empty ? { flex: '1' } : null}>
-      ${model.empty ? html`<${EmptyState} />` : html`<${Report} model=${model} />`}
+      data-today=${today} data-count=${model.count} data-days=${model.days} data-months=${model.months.length} style=${model.empty ? { flex: '1' } : null}>
+      ${model.empty ? html`<${EmptyState} />` : html`<${Report} model=${model} state=${state} />`}
     </div>
   </${Page}>`;
 }

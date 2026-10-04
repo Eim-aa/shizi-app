@@ -1,12 +1,12 @@
-// M4-2 年度报告（02 §6 M4-2；04 R-M06；走查-M01；原型 ShiziScreen-第十稿交接版 L133–L144、逻辑 L494–L498）。
+// 年度报告（02 §6 M4-2；04 R-M06；走查-M01；阶段 1 P1-E7 重写：年报是一卷，交接 §8；D27 / D39 / D42 / D45 / D46 ⑦ ⑬）。
 //
 // 场景（钩子 seed + setClock 2026-09-24）：
-//   1. 空态：没有记录 / 只有看过答案、跳过 / 只有去年的记录 → 「年」+「今年还没有记录」+ R-M06 空态说明；没有四节、没有页底句。
+//   1. 空态：没有记录 / 只有看过答案、跳过 / 只有去年的记录 → 「年」+「今年还没有记录」+ R-M06 空态说明；没有卷、没有分享入口。
 //      入口是「我的」菜单「年度报告」（M4-1），返回回到我的。
-//   2. 有记录（真实 mutator judgeInDraft 造数，含去年记录、笔迹、看过答案 / 跳过、今年的折叠月份）：四节的数字按 getState + SEED 字频
-//      独立重算后对照（去重字数、有记录天数最多的月份（并列取大）、字频最大的字 + 拼音、今年第一条记录的字 / 日期 / 记录 id / 笔迹）。
-//   3. 第四节：那一次有笔迹 → 画笔迹 +「{date} 的笔迹」；没有笔迹 → 标准字 +「没有笔迹」、说明行只写日期。
-//   4. 不导出：页面里除了页头返回没有任何按钮、没有图片 / 分享入口；页底「只算今年的记录。这一页不能保存成图片。」。
+//   2. 有记录（真实 mutator judgeInDraft 造数，含去年记录、笔迹、看过答案 / 跳过、今年的折叠月份）：卷首（「二〇二六」、年字数按 getState 独立重算后对照、
+//      今年第一个字 + 「{M 月 D 日} 的笔迹」）→ 每月一段（月名、字数、8 列 45）→ 卷尾（同一个字、第一次与最近一次）；不再有四个统计小节。
+//   3. 今年第一个字：那一次有笔迹 → 画笔迹 +「{date} 的笔迹」；没有笔迹 → 衬底字、说明行只写日期。
+//   4. 右上分享（取代「这一页不能保存成图片」）→ 保存年报弹层：册页张数、「保存 N 张图片」、「存成一张长图」；点月段进月字帖页。
 //   5. 不写任何东西（写日志不变、shizi.* 原始键逐字节相等）；刷新后停在年度报告；跨年（2027-01-02）变空态。
 //   6. 300 字计时；深色（系统 / data-theme）与 360×640 无横向滚动；每个 button 有无障碍名。
 
@@ -17,20 +17,11 @@ const CLOCK = `${TODAY}T09:00:00`;
 const TOP = '.sz-layer[data-top="true"]';
 
 const COPY = {
-  title: '年度报告',
-  s1: '一 · 今年有记录的字',
-  s1Note: '写完并判断过对错的字，写对写错都算。',
-  s2: '二 · 有记录天数最多的月份',
-  s2Note: '只看哪天有记录，不分对错。',
-  s3: '三 · 较少见的字',
-  s3Note: '今年有记录的字里，它最不常用。',
-  s4: '四 · 这一年第一个有记录的字',
-  footer: '只算今年的记录。这一页不能保存成图片。',
+  title: '年报',
   emptyTitle: '今年还没有记录',
   emptyBody: '写字并判断对错后，这里会汇总你今年的记录。',
-  monthDays: (m, n) => `${m} 月有记录 ${n} 天`,
+  head: n => `这一年，你写过 ${n} 个字。`,
   inkLine: d => `${d} 的笔迹`,
-  noInk: '没有笔迹',
 };
 const md = day => `${Number(day.slice(5, 7))} 月 ${Number(day.slice(8, 10))} 日`;
 
@@ -66,7 +57,7 @@ async function seed(page, spec, clock = CLOCK) {
   if (!res.ok) throw new Error('seed failed: ' + JSON.stringify(res.r));
 }
 
-/** getState + SEED 的独立重算（不引用页面模块）。 */
+/** getState 的独立重算（不引用页面模块）：年字数、有记录天数、第一个字、各月字数。 */
 async function oracle(page, year) {
   return page.evaluate(y => {
     const st = window.__shiziTest.getState();
@@ -89,25 +80,14 @@ async function oracle(page, year) {
     const yj = judged.filter(r => r.localDay.startsWith(pre)).sort((a, b) => Number(a.id.slice(1)) - Number(b.id.slice(1)));
     for (const r of yj) days.add(r.localDay);
     const chars = new Set([...yj.map(r => r.char), ...foldEvents.map(e => e.char)]);
-    const byMonth = {};
-    for (const d of days) byMonth[d.slice(0, 7)] = (byMonth[d.slice(0, 7)] || 0) + 1;
-    const month = Object.entries(byMonth).sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? 1 : -1))[0] || null;
-    // eslint-disable-next-line no-undef
-    const seedRows = SEED;
-    const rankOf = c => {
-      const row = seedRows.find(w => w.target === c || (Number.isInteger(w.ci) && Array.from(w.ans)[w.ci] === c));
-      return row && row.rank ? { rank: row.rank, py: row.py } : null;
-    };
-    let rare = null;
-    for (const c of chars) {
-      const k = rankOf(c);
-      if (k && (!rare || k.rank > rare.rank)) rare = { char: c, rank: k.rank, py: k.py };
-    }
+    const monthChars = {};
+    for (const r of yj) (monthChars[r.localDay.slice(0, 7)] || (monthChars[r.localDay.slice(0, 7)] = new Set())).add(r.char);
+    for (const e of foldEvents) (monthChars[e.day.slice(0, 7)] || (monthChars[e.day.slice(0, 7)] = new Set())).add(e.char);
     foldEvents.sort((a, b) => (a.day < b.day ? -1 : a.day > b.day ? 1 : a.i - b.i));
     let first = yj.length ? { char: yj[0].char, day: yj[0].localDay, record: yj[0].id } : null;
     if (foldEvents.length && (!first || foldEvents[0].day < first.day)) first = { char: foldEvents[0].char, day: foldEvents[0].day, record: '' };
     const inkIds = Object.values(st.ink || {}).flatMap(t => Object.keys(t));
-    return { count: chars.size, days: days.size, month, rare, first, inkIds };
+    return { count: chars.size, days: days.size, months: Object.entries(monthChars).sort((a, b) => (a[0] < b[0] ? -1 : 1)).map(([m, set]) => [m, set.size]), first, inkIds };
   }, year);
 }
 
@@ -119,35 +99,29 @@ async function view(page) {
     const all = id => [...root.querySelectorAll(`[data-testid="${id}"]`)];
     const txt = el => (el ? el.innerText.replace(/\s+/g, ' ').trim() : null);
     const body = q('annual-body');
-    const sec = k => root.querySelector(`[data-testid="annual-section"][data-key="${k}"]`);
-    const secView = k => {
-      const el = sec(k);
-      if (!el) return null;
-      return { title: txt(el.querySelector('[data-testid="annual-section-title"]')),
-        notes: [...el.querySelectorAll('[data-testid="annual-section-note"]')].map(txt) };
-    };
     const first = q('annual-first');
-    const rare = q('annual-rare');
+    const twice = q('annual-twice');
     return {
       title: txt(root.querySelector('[data-page-title]')),
       state: body ? body.dataset.state : null,
       year: body ? body.dataset.year : null,
       today: body ? body.dataset.today : null,
       yearText: txt(q('annual-year')),
+      head: txt(q('annual-head')),
+      count: q('annual-head') ? Number(q('annual-head').dataset.n) : null,
       empty: q('annual-empty') ? { glyph: txt(q('annual-empty-glyph')), title: txt(q('annual-empty-title')), body: txt(q('annual-empty-body')) } : null,
-      sections: all('annual-section').map(el => el.dataset.key),
-      s: { count: secView('count'), month: secView('month'), rare: secView('rare'), first: secView('first') },
-      count: q('annual-count') ? { n: Number(q('annual-count').dataset.n), text: txt(q('annual-count')), unit: txt(q('annual-count-unit')) } : null,
-      month: q('annual-month') ? { month: q('annual-month').dataset.month, days: Number(q('annual-month').dataset.days), text: txt(q('annual-month')) } : null,
-      rare: rare ? { char: rare.dataset.char, rank: Number(rare.dataset.rank), glyphChar: txt(q('annual-rare-char')), py: txt(q('annual-rare-py')),
-        glyph: !!q('annual-rare-glyph'), glyphLabel: q('annual-rare-glyph') ? q('annual-rare-glyph').getAttribute('aria-label') : null } : null,
+      months: all('annual-month').map(el => ({
+        month: el.dataset.month, n: Number(el.dataset.n), name: txt(el.querySelector('[data-testid="annual-month-name"]')), count: txt(el.querySelector('[data-testid="annual-month-count"]')),
+        under: el.querySelectorAll('[data-testid="annual-month-cell"][data-mode="under"]').length,
+        cols: getComputedStyle(el.querySelector('[data-testid="annual-month-grid"]')).gridTemplateColumns.split(' ').length,
+        cell: Math.round(el.querySelector('[data-testid="annual-month-cell"]').getBoundingClientRect().width),
+      })),
       first: first ? { char: first.dataset.char, day: first.dataset.day, record: first.dataset.record, ink: first.dataset.ink,
-        inkEl: !!q('annual-first-ink'), inkLabel: q('annual-first-ink') ? q('annual-first-ink').getAttribute('aria-label') : null,
-        noink: txt(q('annual-first-noink')), charText: txt(q('annual-first-char')), line: txt(q('annual-first-line')),
-        canvas: !!(q('annual-first-ink') && q('annual-first-ink').querySelector('canvas')) } : null,
-      footer: txt(q('annual-footer')),
+        label: txt(q('annual-first-label')), line: txt(q('annual-first-date')), canvasMode: q('annual-first-canvas') ? q('annual-first-canvas').dataset.mode : null,
+        cellLabel: q('annual-first-cell').getAttribute('aria-label') } : null,
+      twice: twice ? { char: twice.dataset.char, dates: all('annual-twice-date').map(txt) } : null,
+      share: !!q('annual-share'),
       buttons: [...root.querySelectorAll('button, [role="button"], a[href]')].map(b => b.dataset.testid || b.outerHTML.slice(0, 60)),
-      exportish: [...root.querySelectorAll('[data-testid^="image-"], [data-testid*="share"], [data-testid*="save"]')].length,
       bodyText: root.innerText,
       unnamedButtons: [...root.querySelectorAll('button')].filter(b => !(b.getAttribute('aria-label') || b.innerText || '').trim())
         .map(b => b.outerHTML.slice(0, 80)),
@@ -221,6 +195,16 @@ const RICH = {
   ],
 };
 
+// 卷尾：同一个字「疆」4-27 与 10-02 各有一份墨迹（D27 留下第一次与最近一次）；5 月一整月没有墨迹的字画衬底
+const RICH2 = {
+  steps: [
+    { char: '春', judgment: 'correct', day: '2026-04-26', ink: true },
+    { char: '疆', judgment: 'correct', day: '2026-04-27', ink: true },
+    { char: '笔', judgment: 'correct', day: '2026-05-10', ink: false },
+    { char: '疆', judgment: 'wrong', day: '2026-10-02', ink: true },
+  ],
+};
+
 export default async function run(page, ctx) {
   const { assert, step } = ctx;
   await bootTestHost(page, ctx.baseURL);
@@ -236,10 +220,10 @@ export default async function run(page, ctx) {
   assert.deepEqual(await top(page), { depth: 1, name: 'annual', params: {} }, 'menu row pushes annual {}');
   await waitState(page, 'empty');
   let v = await view(page);
-  assert.equal(v.title, COPY.title, 'page title 年度报告');
+  assert.equal(v.title, COPY.title, 'page title 年报 (§8.1)');
   assert.deepEqual(v.empty, { glyph: '年', title: COPY.emptyTitle, body: COPY.emptyBody }, 'R-M06 empty state');
-  assert.deepEqual(v.sections, [], 'no sections in the empty state');
-  assert.equal(v.footer, null, 'no footer in the empty state (prototype annualEmpty)');
+  assert.deepEqual(v.months, [], 'no months in the empty state');
+  assert.equal(v.share, false, 'no share entry in the empty state');
 
   for (const [label, spec] of [
     ['only answer-seen / skipped', { extra: RICH.extra }],
@@ -251,87 +235,82 @@ export default async function run(page, ctx) {
     assert.equal(v.empty && v.empty.title, COPY.emptyTitle, `${label} → 今年还没有记录`);
   }
 
-  // ------------------------------------------------------------------ 2. 四节按记录算
-  step('report: four sections recomputed from getState + SEED ranks');
+  // ------------------------------------------------------------------ 2. 一卷
+  step('the scroll: 卷首 (二〇二六, the one number, 今年第一个字) → monthly sections → no statistics sections');
   await seed(page, RICH);
   await waitState(page, 'report');
   const o = await oracle(page, 2026);
   v = await view(page);
   assert.equal(v.year, '2026', 'data-year');
-  assert.equal(v.yearText, '2026', 'year line (Arabic digits, T10)');
-  assert.deepEqual(v.sections, ['count', 'month', 'rare', 'first'], 'four sections in prototype order');
-  assert.deepEqual(v.s.count, { title: COPY.s1, notes: [COPY.s1Note] }, 'section 1 title + note');
-  assert.equal(v.count.n, o.count, `count = distinct judged chars this year (oracle ${o.count})`);
-  assert.equal(o.count, 7, 'oracle sanity: 静 谁 题 慢 额 数 感');
-  assert.equal(v.count.text, `${o.count} 个字`, '「N 个字」');
-  assert.equal(v.count.unit, '个字', 'unit split from the number');
-  assert.deepEqual(v.s.month, { title: COPY.s2, notes: [COPY.s2Note] }, 'section 2 title + note');
-  assert.deepEqual([v.month.month, v.month.days], [o.month[0], o.month[1]], 'busiest month (oracle)');
-  assert.deepEqual(o.month, ['2026-09', 3], 'oracle sanity: May and Sept tie at 3 days → Sept');
-  assert.equal(v.month.text, COPY.monthDays(9, 3), '「9 月有记录 3 天」');
-  assert.deepEqual(v.s.rare, { title: COPY.s3, notes: [COPY.s3Note] }, 'section 3 title + note');
-  assert.ok(o.rare, 'oracle found a ranked char');
-  assert.deepEqual([v.rare.char, v.rare.rank], [o.rare.char, o.rare.rank], `rarest = max SEED rank (${o.rare.char} #${o.rare.rank})`);
-  assert.ok(v.rare.char !== '豕', 'last year\'s 豕 is not considered');
-  assert.equal(v.rare.glyphChar, o.rare.char, 'char text');
-  assert.equal(v.rare.py, o.rare.py, 'pinyin from the deck');
-  assert.equal(v.rare.glyph, true, 'standard glyph box (RefMini)');
-  assert.equal(v.rare.glyphLabel, `「${o.rare.char}」的标准字形`, 'glyph accessible name');
-  assert.deepEqual(v.s.first, { title: COPY.s4, notes: [] }, 'section 4 title');
-  assert.deepEqual([v.first.char, v.first.day, v.first.record], [o.first.char, o.first.day, o.first.record], 'first judged record of the year');
-  assert.deepEqual([o.first.char, o.first.day], ['静', '2026-01-05'], 'oracle sanity: answer-seen 户 on 1-02 does not count');
+  assert.equal(v.yearText, '二〇二六', '卷首 year in 汉字 (song 34)');
+  assert.equal(v.head, COPY.head(o.count), 'the one number: 「这一年，你写过 N 个字。」');
+  assert.equal(v.count, o.count, `distinct chars this year = ${o.count} (answer-seen / skipped / last year not counted)`);
+  assert.deepEqual(v.months.map(m => [m.month, m.n]), o.months, 'one section per month with chars, ascending; the count is the month sheet size');
+  assert.deepEqual(v.months.map(m => [m.name, m.count]), o.months.map(([m, n]) => [`${Number(m.slice(5))}月`, `${n} 字`]), 'month name + 「N 字」');
+  assert.ok(v.months.every(m => m.cols === 8 && m.cell === Math.min(45, Math.floor((ctx.viewport.width - 40) / 8))), 'every month: 8 columns, cell min(45, ⌊(W − 40) / 8⌋) (45 at 402; 44 at the runner\'s 393)');
+  assert.deepEqual([v.first.char, v.first.day, v.first.record], [o.first.char, o.first.day, o.first.record], 'the first char of the year (oracle)');
+  assert.deepEqual([v.first.label, v.first.line], ['今年第一个字', COPY.inkLine(md(o.first.day))], '「今年第一个字」 / 「{M 月 D 日} 的笔迹」 (D45)');
+  assert.equal(v.first.canvasMode, 'hand', 'the first char is drawn with its ink');
+  assert.ok(!/最忙|较少见|有记录天数|只算今年的记录/.test(v.bodyText), 'no statistics sections / footer (the model keeps one number)');
 
-  // ------------------------------------------------------------------ 3. 第四节笔迹
-  step('section 4: ink of that record → drawn + 「{date} 的笔迹」');
-  assert.ok(o.inkIds.includes(o.first.record), 'that record has stored ink (seed)');
-  assert.equal(v.first.ink, 'true', 'data-ink');
-  assert.equal(v.first.inkEl && v.first.canvas, true, 'InkMini canvas drawn');
-  assert.equal(v.first.inkLabel, '「静」当时的笔迹', 'ink accessible name');
-  assert.equal(v.first.noink, null, 'no 没有笔迹');
-  assert.equal(v.first.line, COPY.inkLine(md('2026-01-05')), '「1 月 5 日 的笔迹」');
-  const painted = await page.evaluate(sel => {
-    const c = document.querySelector(`${sel} [data-testid="annual-first-ink"] canvas`);
-    if (!c || !c.width) return 0;
-    const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
-    let n = 0;
-    for (let i = 3; i < d.length; i += 4) if (d[i]) n += 1;
-    return n;
-  }, TOP);
-  assert.ok(painted > 0, `ink pixels painted (${painted})`);
-
-  step('section 4 without ink: standard glyph + 没有笔迹, line = date only; folded month earlier in the year');
-  const noInk = { steps: RICH.steps.map(s => ({ ...s, ink: false })), extra: RICH.extra };
-  await seed(page, noInk);
+  // ------------------------------------------------------------------ 3. 今年第一个字：有 / 没有笔迹
+  step('first char of the year without ink: under glyph, the line is the date only; a folded earlier month supplies the first char');
+  await seed(page, { steps: [{ char: '静', judgment: 'wrong', day: '2026-01-05', ink: false }, { char: '谁', judgment: 'correct', day: '2026-01-06', ink: true }] });
   await waitState(page, 'report');
   v = await view(page);
-  assert.equal(v.first.ink, 'false', 'data-ink false');
-  assert.equal(v.first.inkEl, false, 'no InkMini');
-  assert.equal(v.first.noink, COPY.noInk, '「没有笔迹」 (R-D07 / 10.12)');
-  assert.equal(v.first.line, md('2026-01-05'), 'line is the date only (no 「的笔迹」 without ink)');
-  const folded = { folded: true, month: '2026-02', byDay: { '2026-02-03': ['永', '和'] }, chars: ['永', '和'], kept: [] };
-  const earlyFold = { folded: true, month: '2026-01', byDay: { '2026-01-01': ['和'] }, chars: ['和'], kept: [] };
-  await seed(page, { steps: RICH.steps.filter(s => s.day >= '2026-03' || s.day < '2026'), folded: [earlyFold, folded] });
-  await waitState(page, 'report', { count: 8 });
-  const of = await oracle(page, 2026);
+  assert.deepEqual([v.first.char, v.first.ink, v.first.canvasMode, v.first.line], ['静', 'false', 'under', md('2026-01-05')], 'no ink this year for the first char → under glyph, date only');
+  assert.equal(v.first.cellLabel, '「静」，没有笔迹', 'accessible name of the under cell');
+  await seed(page, {
+    steps: [{ char: '静', judgment: 'correct', day: '2026-03-01', ink: true }],
+    folded: [{ folded: true, month: '2026-02', byDay: { '2026-02-03': ['和', '永'], '2026-02-10': ['永', '天'] }, chars: ['和', '永', '天'], kept: [] }],
+  });
+  await waitState(page, 'report');
   v = await view(page);
-  assert.equal(v.count.n, of.count, 'folded chars count (oracle)');
-  assert.deepEqual([v.first.char, v.first.day, v.first.record], ['和', '2026-01-01', ''], 'first = folded day (no record)');
-  assert.equal(v.first.noink, COPY.noInk, 'folded first shows 没有笔迹');
+  const o2 = await oracle(page, 2026);
+  assert.deepEqual([v.first.char, v.first.day, v.first.record], ['和', '2026-02-03', ''], 'folded 2026-02: the first day only keeps chars (record null)');
+  assert.equal(v.count, o2.count, 'folded months count too');
+  assert.deepEqual(v.months.map(m => [m.month, m.n]), o2.months, 'the folded month is a section made of its byDay chars');
+  assert.equal(v.months[0].under, 3, 'folded month: no kept ink → all under cells (still counted)');
 
-  // ------------------------------------------------------------------ 4. 不导出
-  step('no export: only the header back button; no image / share / save entries; footer sentence');
-  await seed(page, RICH);
-  await waitState(page, 'report', { count: 7 });
+  // ------------------------------------------------------------------ 4. 分享（保存年报）与月段
+  step('the 卷尾 「同一个字，两次」; share → 保存年报 sheet (album page count, 保存 N 张图片, 存成一张长图); a month section opens the month page');
+  await seed(page, RICH2);
+  await waitState(page, 'report');
   v = await view(page);
-  assert.deepEqual(v.buttons, ['page-back'], 'the only button is the header back');
-  assert.equal(v.exportish, 0, 'no image / share / save entries');
-  assert.equal(v.footer, COPY.footer, 'R-M06 footer');
-  assert.ok(!/保存图片|分享/.test(v.bodyText.replace(COPY.footer, '')), 'no 保存图片 / 分享 wording besides the footer');
+  assert.deepEqual([v.twice.char, v.twice.dates], ['疆', ['4 月 27 日', '10 月 2 日']], '卷尾: the same char, first and latest ink, dates under the cells');
+  assert.equal(v.share, true, 'share icon (replaces 「这一页不能保存成图片」)');
+  assert.deepEqual(v.buttons.filter(b => b !== 'annual-month'), ['page-back', 'annual-share'], 'header back + share; the month sections are buttons');
   assert.deepEqual(v.unnamedButtons, [], 'every button has an accessible name');
-  assert.equal(v.hScroll, false, 'no horizontal overflow (393)');
+  await page.click(`${TOP} ${tid('annual-share')}`);
+  await page.waitForFunction(() => document.querySelector('[data-testid="image-preview"]')?.dataset.state === 'ready');
+  await page.waitForTimeout(700);
+  const sh = await page.evaluate(() => {
+    const r = document.querySelector('[data-testid="image-preview"]');
+    return {
+      title: document.querySelector('.sz-sheet__title').textContent.trim(), pages: Number(r.dataset.pages), save: r.querySelector('[data-testid="image-save"]').textContent.trim(),
+      long: r.querySelector('[data-testid="image-long"]').textContent.trim(), note: r.querySelector('[data-testid="image-note"]').textContent.trim(),
+      kinds: [...r.querySelectorAll('[data-testid="image-canvas"]')].map(c => c.dataset.kind), ratios: r.querySelectorAll('[data-testid="image-ratio"]').length,
+    };
+  });
+  assert.deepEqual([sh.title, sh.long, sh.note, sh.ratios], ['保存年报', '存成一张长图', '存成册页：卷首、每个月、卷尾，每张 3:4。', 0], 'sheet copy; the album is always 3:4 (no ratio segment)');
+  assert.deepEqual(sh.kinds, ['annual-cover', 'annual-month', 'annual-month', 'annual-month', 'annual-tail'], 'cover + 3 months (4, 5, 10) + tail');
+  assert.equal(sh.pages, 5, 'album pages');
+  assert.equal(sh.save, '保存 5 张图片', 'primary button 「保存 N 张图片」');
+  await page.waitForTimeout(450);
+  await page.evaluate(async () => (await import('/src/ui/router.js')).nav.back());
+  await page.waitForFunction(() => !document.querySelector('[data-testid="image-preview"]'));
+  await waitNavIdle(page);
+  await page.click(`${TOP} ${tid('annual-month')}[data-month="2026-05"]`);
+  await waitTop(page, 'month');
+  assert.deepEqual((await top(page)).params, { month: '2026-05' }, 'the month section pushes the month page');
+  await page.evaluate(async () => (await import('/src/ui/router.js')).nav.back());
+  await waitTop(page, 'annual');
 
   // ------------------------------------------------------------------ 5. 不写、刷新、跨年
   step('viewing writes nothing; reload stays on annual; back → 我的');
+  await seed(page, RICH);
+  await waitState(page, 'report');
+  const rawCount = (await view(page)).count;
   const raw0 = await page.evaluate(() => window.__shiziTest.getRawKeys());
   await page.reload();
   await page.waitForSelector('.sz-app');
@@ -340,9 +319,9 @@ export default async function run(page, ctx) {
   await page.evaluate(c => window.__shiziTest.setClock(c), CLOCK);
   await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
   await waitTop(page, 'annual');
-  await waitState(page, 'report', { count: 7 });
+  await waitState(page, 'report');
   v = await view(page);
-  assert.equal(v.count.n, 7, 'after reload: same report');
+  assert.equal(v.count, rawCount, 'after reload: same report');
   const wReload = await writes(page);
   await page.evaluate(async () => (await import('/src/ui/router.js')).nav.back());
   await waitTop(page, 'mine');
@@ -385,26 +364,27 @@ export default async function run(page, ctx) {
   console.log(`annual 300: seed→render ${ms}ms`);
   const ob = await oracle(page, 2026);
   v = await view(page);
-  assert.equal(v.count.n, 300, '300 chars');
-  assert.deepEqual([v.month.month, v.month.days], [ob.month[0], ob.month[1]], 'busiest month (oracle, 300)');
-  assert.equal(v.rare.char, ob.rare.char, 'rarest (oracle, 300)');
-  assert.ok(ms < 3000, `renders within 3s (${ms}ms)`);
+  assert.equal(v.count, 300, '300 chars');
+  assert.deepEqual(v.months.map(m => [m.month, m.n]), ob.months, 'month sections (oracle, 300)');
+  assert.equal(v.months.reduce((n, m) => n + m.n, 0), 300, 'every char is in some month');
+  assert.ok(ms < 5000, `renders within 5s (${ms}ms)`);
 
   step('dark (system and data-theme) + 360×640: no overflow, names');
   await seed(page, RICH);
-  await waitState(page, 'report', { count: 7 });
+  await waitState(page, 'report');
   await page.emulateMedia({ colorScheme: 'dark' });
   await page.setViewportSize({ width: 360, height: 640 });
-  await page.waitForTimeout(200);
+  await page.waitForTimeout(300);
   v = await view(page);
-  const darkBox = await page.evaluate(sel => getComputedStyle(document.querySelector(`${sel} .sz-ann__box`)).backgroundColor, TOP);
-  assert.equal(darkBox, tokenRgb('dark', 'sheet'), 'glyph box uses dark --sheet (D43: was --c #2D2823)');
+  const darkBox = await page.evaluate(sel => getComputedStyle(document.querySelector(`${sel} .sz-ann__fcell`)).backgroundColor, TOP);
+  assert.equal(darkBox, tokenRgb('dark', 'sheet'), 'first-char cell uses dark --sheet (D43)');
   assert.equal(v.hScroll, false, '360 dark: no horizontal overflow');
   assert.deepEqual(v.unnamedButtons, [], 'names in dark / compact');
+  assert.ok(v.months.every(m => m.cols === 8 && m.cell === Math.min(45, Math.floor((360 - 40) / 8))), '360: 8 columns, cell = ⌊(360 − 40) / 8⌋ = 40');
   await page.emulateMedia({ colorScheme: 'light' });
   await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'dark'));
   await page.waitForTimeout(100);
-  const forced = await page.evaluate(sel => getComputedStyle(document.querySelector(`${sel} .sz-ann__box`)).backgroundColor, TOP);
+  const forced = await page.evaluate(sel => getComputedStyle(document.querySelector(`${sel} .sz-ann__fcell`)).backgroundColor, TOP);
   assert.equal(forced, tokenRgb('dark', 'sheet'), 'data-theme=dark forced');
   await page.evaluate(() => document.documentElement.removeAttribute('data-theme'));
   await page.setViewportSize({ width: 320, height: 568 });

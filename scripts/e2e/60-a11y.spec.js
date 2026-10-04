@@ -526,9 +526,9 @@ export default async function a11y(page, realCtx) {
   await page.waitForSelector(topSel('result-screen'));
   await waitNavIdle(page);
   await audit(page, cdp, ctx, 'result');
-  await page.focus(`${topSel('result-cell')}[data-index="0"]`);
+  await page.focus(`${topSel('work-cell')}[data-index="0"]`); // P1-E7：日常结果页的格子是作品格（这里没有墨，是衬底一行里的 work-cell）
   await page.keyboard.press('Enter');
-  await dialogCheck(page, cdp, ctx, { label: 'result/compare-sheet', panel: tid('result-sheet'), opener: 'result-cell' });
+  await dialogCheck(page, cdp, ctx, { label: 'result/compare-sheet', panel: tid('result-sheet'), opener: 'work-cell' });
   await page.click(topSel('result-leave'));
   await waitTop(page, 'home');
 
@@ -611,6 +611,29 @@ export default async function a11y(page, realCtx) {
   await audit(page, cdp, ctx, 'backup');
   await page.click(topSel('backup-clear'));
   await dialogCheck(page, cdp, ctx, { label: 'backup/clear-sheet', panel: tid('backup-clear-sheet'), opener: 'backup-clear' });
+  await page.goBack();
+  await waitTop(page, 'mine');
+
+  // ================================================================ 月字帖 / 年报 / 分享弹层（阶段 1 P1-E7）
+  ctx.step('month page + 分享弹层: named cells (有墨 / 没墨), the share sheet is a labelled modal dialog');
+  await page.evaluate(async () => (await import('/src/ui/router.js')).nav.push('month', { month: '2026-09' }));
+  await waitTop(page, 'month');
+  await page.waitForSelector(topSel('month-cell'));
+  await audit(page, cdp, ctx, 'month');
+  const monthNames = await page.evaluate(() => [...document.querySelectorAll('.sz-layer[data-top="true"] [data-testid="month-cell"]')].map(c => c.getAttribute('aria-label')));
+  assert.ok(monthNames.length >= 3 && monthNames.every(n => n && n.trim()), `month cells are named (${monthNames.join(' / ')})`);
+  await page.click(topSel('month-share'));
+  await dialogCheck(page, cdp, ctx, { label: 'month/share-sheet', panel: tid('image-sheet'), opener: 'month-share' });
+  await page.goBack();
+  await waitTop(page, 'mine');
+
+  ctx.step('annual page (the scroll) + 保存年报弹层');
+  await page.click(topSel('mine-menu-annual'));
+  await waitTop(page, 'annual');
+  await waitNavIdle(page);
+  await audit(page, cdp, ctx, 'annual');
+  await page.click(topSel('annual-share'));
+  await dialogCheck(page, cdp, ctx, { label: 'annual/share-sheet', panel: tid('image-sheet'), opener: 'annual-share' });
   await page.goBack();
   await waitTop(page, 'mine');
 

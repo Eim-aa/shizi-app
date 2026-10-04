@@ -1,21 +1,26 @@
-// 年度报告数据模型单测（M4-2；04 R-M06；原型 ShiziScreen-第十稿交接版 L133–L144、逻辑 L494–L498）。
+// 年报数据模型单测（阶段 1 P1-E7，交接 §8；原 M4-2 / 04 R-M06）。
+// 年报是一卷：卷首（年字数、今年第一个字）→ 每月一段 → 卷尾「同一个字，两次」；只有一个数；不出统计小节；纸上记录不进、不计字数（D46-13）；
+// 册页 = 卷首 1 + 每月（超 80 字分张）+ 卷尾（有才出）。
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  annualModel, yearSlice, busiestMonth, rarestChar, firstOfYear, NO_RANK,
+  annualModel, annualPlan, firstOfYear, twiceOfYear, yearMonths, yearSlice,
 } from '../../src/ui/screens/mine/annual-model.js';
-import { ANNUAL_SCREEN, countParts, firstLine, annualDateText } from '../../src/ui/screens/mine/annual.js';
+import * as annualModule from '../../src/ui/screens/mine/annual-model.js';
+import { ANNUAL_SCREEN, annualDateText, firstLine } from '../../src/ui/screens/mine/annual.js';
+import { annualCoverLine, annualFirstDateText, annualTailKuan, annualYearText } from '../../src/ui/work-text.js';
 import { getScreen } from '../../src/ui/router.js';
 import { t } from '../../src/config/copy/index.js';
 
 const TODAY = '2026-09-24';
 
 let serial = 0;
-function rec(c, day, { kind = 'judged', judgment = 'correct' } = {}) {
+function rec(c, day, { kind = 'judged', judgment = 'correct', source } = {}) {
   serial += 1;
   const r = { id: `r${serial}`, cardKey: `base:${c}`, char: c, sessionId: 's1', kind, at: new Date(`${day}T08:00:00`).getTime() + serial,
     localDay: day, help: { hints: 0, answerSeen: kind === 'answer-seen', traced: false } };
   if (kind === 'judged') r.judgment = judgment;
+  if (source) r.source = source;
   return r;
 }
 
@@ -25,83 +30,77 @@ function state(records, extra = {}) {
   return { records: months, sessions: { A: null, B: null, lastEnded: {} }, ...extra };
 }
 
-const RANKS = { 的: 1, 一: 2, 静: 900, 谁: 300, 题: 450, 豕: 3100, 慢: 1200, 数: 280, 永: 1500, 和: 20 };
-const cardOf = c => (c in RANKS ? { rank: RANKS[c], py: c === '豕' ? 'shǐ' : 'py-' + c } : null);
+const INK = { s: ['AAAAAAAA'] };
+const POINTS = [[{ x: 60, y: 170, w: 11.5 }, { x: 280, y: 172, w: 11.5 }]];
 
-test('empty: no records / only answer-seen or skipped / only last year → empty; null state safe', () => {
+test('the statistics sections are gone: the model has one number (count) and no busiest month / rarest char', () => {
+  const m = annualModel(state([rec('静', '2026-03-01')]), TODAY);
+  assert.deepEqual(Object.keys(m).sort(), ['chars', 'count', 'days', 'empty', 'first', 'months', 'today', 'twice', 'year']);
+  assert.equal(annualModule.busiestMonth, undefined);
+  assert.equal(annualModule.rarestChar, undefined);
+});
+
+test('empty: no records / only answer-seen or skipped / only last year / only paper → empty; null state safe', () => {
   serial = 0;
   for (const s of [
     null,
     state([]),
     state([rec('户', TODAY, { kind: 'answer-seen' }), rec('虽', '2026-09-22', { kind: 'skipped' })]),
     state([rec('静', '2025-12-31'), rec('谁', '2025-06-01', { judgment: 'wrong' })]),
+    state([rec('静', '2026-03-01', { source: 'paper' })]),
   ]) {
-    const m = annualModel(s, TODAY, { cardOf });
+    const m = annualModel(s, TODAY);
     assert.equal(m.empty, true);
     assert.equal(m.year, 2026);
     assert.equal(m.count, 0);
-    assert.equal(m.month, null);
-    assert.equal(m.rare, null);
     assert.equal(m.first, null);
+    assert.deepEqual(m.months, []);
+    assert.equal(m.twice, null);
   }
 });
 
-test('section 1: distinct chars this year, correct and wrong both count, answer-seen / skipped / last year do not', () => {
+test('the year count: distinct chars this year (right and wrong both count); answer-seen / skipped / last year / 纸上 do not (D46-13)', () => {
   serial = 0;
   const s = state([
     rec('豕', '2025-12-30'),
     rec('静', '2026-01-03'), rec('静', '2026-02-10', { judgment: 'wrong' }), rec('谁', '2026-02-10', { judgment: 'wrong' }),
     rec('题', '2026-09-01'), rec('户', '2026-09-02', { kind: 'answer-seen' }), rec('虽', '2026-09-03', { kind: 'skipped' }),
+    rec('纸', '2026-09-04', { source: 'paper' }),
   ]);
-  const m = annualModel(s, TODAY, { cardOf });
+  const m = annualModel(s, TODAY);
   assert.equal(m.empty, false);
   assert.equal(m.count, 3);
   assert.deepEqual(m.chars, ['静', '谁', '题']);
-  assert.equal(m.days, 3, 'days with a judged record this year');
+  assert.equal(m.days, 3, 'days with a judged record this year, the paper day not counted');
 });
 
-test('section 2: month with the most record days; ties → later month; days not records', () => {
+test('months: one section per month that has chars, ascending; the count is the month sheet size (chars with no ink included)', () => {
   serial = 0;
-  // 3 月：3 天（同一天多条只算 1 天）；5 月：3 天；9 月：2 天 → 并列取 5 月。
   const s = state([
-    rec('静', '2026-03-01'), rec('谁', '2026-03-01'), rec('题', '2026-03-01'), rec('数', '2026-03-02'), rec('慢', '2026-03-09'),
-    rec('静', '2026-05-01'), rec('静', '2026-05-02'), rec('静', '2026-05-03', { judgment: 'wrong' }),
-    rec('一', '2026-09-01'), rec('的', '2026-09-24'),
+    rec('静', '2026-04-26'), rec('谁', '2026-04-26'), rec('题', '2026-04-27'),
+    rec('数', '2026-09-02'), rec('慢', '2026-09-02', { source: 'paper' }),
   ]);
-  const m = annualModel(s, TODAY, { cardOf });
-  assert.deepEqual(m.month, { month: '2026-05', monthNum: 5, days: 3 });
-  assert.equal(t('R-M06.monthDays', { month: m.month.monthNum, n: m.month.days }), '5 月有记录 3 天');
-  assert.deepEqual(busiestMonth(['2026-01-02', '2026-01-03', '2026-02-01']), { month: '2026-01', monthNum: 1, days: 2 });
-  assert.equal(busiestMonth([]), null);
+  const m = annualModel(s, TODAY);
+  assert.deepEqual(m.months, [{ month: '2026-04', monthNum: 4, n: 3 }, { month: '2026-09', monthNum: 9, n: 1 }], 'the paper char is not in September');
+  assert.deepEqual(yearMonths(s, yearSlice(s, 2026)), m.months);
+  // 折叠月：byDay 的字也是一个月的格
+  const f = state([rec('静', '2026-03-01')]);
+  f.records['2026-02'] = { folded: true, month: '2026-02', byDay: { '2026-02-03': ['和', '永'], '2026-02-10': ['永', '天'] }, chars: ['和', '永', '天'], kept: [] };
+  assert.deepEqual(annualModel(f, TODAY).months.map(x => [x.month, x.n]), [['2026-02', 3], ['2026-03', 1]]);
 });
 
-test('section 3: rarest = largest rank among this year\'s chars; unknown rank skipped; tie → first written; none → null', () => {
-  serial = 0;
-  const s = state([rec('豕', '2025-11-01'), rec('的', '2026-01-02'), rec('慢', '2026-02-02'), rec('怪', '2026-03-02'), rec('谁', '2026-04-02')]);
-  const m = annualModel(s, TODAY, { cardOf });
-  assert.deepEqual(m.rare, { char: '慢', py: 'py-慢', rank: 1200 }, '豕 is last year; 怪 has no rank');
-  assert.deepEqual(rarestChar(['和', '豕'], cardOf), { char: '豕', py: 'shǐ', rank: 3100 });
-  const tie = c => ({ rank: 500, py: c });
-  assert.equal(rarestChar(['乙', '甲'], tie).char, '乙', 'tie → first in order');
-  assert.equal(rarestChar(['怪', '奇'], cardOf), null);
-  assert.equal(rarestChar(['怪'], () => ({ rank: NO_RANK, py: '' })), null, 'default rank 999999 means no frequency');
-  const none = annualModel(state([rec('怪', '2026-03-02')]), TODAY, { cardOf });
-  assert.equal(none.empty, false);
-  assert.equal(none.rare, null, 'section 3 hidden when nothing has a frequency rank');
-});
-
-test('section 4: first judged record of the year (id order), not last year and not answer-seen', () => {
+test('first of the year: first judged record of the year (id order), not last year and not answer-seen; right and wrong both', () => {
   serial = 0;
   const s = state([
     rec('豕', '2025-12-31'),
     rec('户', '2026-01-01', { kind: 'answer-seen' }),
     rec('静', '2026-01-02', { judgment: 'wrong' }), rec('谁', '2026-01-02'), rec('静', '2026-03-01'),
   ]);
-  const m = annualModel(s, TODAY, { cardOf });
+  const m = annualModel(s, TODAY);
   assert.equal(m.first.char, '静');
   assert.equal(m.first.day, '2026-01-02');
   assert.equal(m.first.record.id, 'r3');
-  assert.equal(m.first.record.judgment, 'wrong', 'wrong also counts');
+  assert.equal(m.first.record.judgment, 'wrong');
 });
 
 test('folded months: byDay chars and days count; an earlier folded day is the first (record=null)', () => {
@@ -111,53 +110,68 @@ test('folded months: byDay chars and days count; an earlier folded day is the fi
   s.records['2026-02'] = { folded: true, month: '2026-02', byDay: { '2026-02-03': ['和', '永'], '2026-02-10': ['永', '天'] },
     chars: ['和', '永', '天'], kept: [kept] };
   s.records['2025-12'] = { folded: true, month: '2025-12', byDay: { '2025-12-01': ['豕'] }, chars: ['豕'], kept: [] };
-  const m = annualModel(s, TODAY, { cardOf });
+  const m = annualModel(s, TODAY);
   assert.equal(m.count, 5, '和 永 天 静 谁');
   assert.deepEqual(m.chars, ['和', '永', '天', '静', '谁']);
   assert.equal(m.days, 4);
-  assert.deepEqual(m.month, { month: '2026-03', monthNum: 3, days: 2 }, '2 vs 2 → later month');
   assert.deepEqual(m.first, { char: '和', day: '2026-02-03', record: null });
-  assert.equal(m.rare.char, '永');
-  // 同一天、同一字：用 judged 记录（可能有笔迹）。
   const sl = yearSlice({ records: { '2026-02': { folded: true, month: '2026-02', byDay: { '2026-02-10': ['永'] }, chars: ['永'], kept: [kept] } } }, 2026);
   assert.equal(firstOfYear(sl).record, kept);
 });
 
-test('D42 section 4: the ink comes from the earliest of this year\'s records of that char that still has ink (date = that record\'s day); none this year → earliest record, no ink; last year\'s ink never stands in', () => {
+test('D42 first of the year: the ink comes from the earliest of this year\'s records of that char that still has ink (date = that record\'s day); none this year → earliest record; last year\'s ink never stands in', () => {
   serial = 0;
-  const INK = { s: ['AAAAAAAA'] };
   const rs = [rec('静', '2025-12-30'), rec('静', '2026-01-02'), rec('静', '2026-03-05'), rec('静', '2026-05-09'), rec('谁', '2026-01-03')];
   const base = { '2025-12': { r1: INK }, '2026-05': { r4: INK } };
-  const m = annualModel(state(rs, { ink: base }), TODAY, { cardOf });
+  const m = annualModel(state(rs, { ink: base }), TODAY);
   assert.equal(m.first.char, '静');
   assert.equal(m.first.record.id, 'r4', '1-02 and 3-05 recycled → the 5-09 one');
   assert.equal(m.first.day, '2026-05-09', 'the date shown is the ink record\'s day');
-  // 今年一份都没有（去年 12-30 那份不冒充）：最早那条、没有笔迹
-  const none = annualModel(state(rs, { ink: { '2025-12': { r1: INK } } }), TODAY, { cardOf });
+  const none = annualModel(state(rs, { ink: { '2025-12': { r1: INK } } }), TODAY);
   assert.deepEqual([none.first.char, none.first.day, none.first.record.id], ['静', '2026-01-02', 'r2']);
-  // 最早那条自己有墨：照旧
-  const own = annualModel(state(rs, { ink: { '2026-01': { r2: INK } } }), TODAY, { cardOf });
+  const own = annualModel(state(rs, { ink: { '2026-01': { r2: INK } } }), TODAY);
   assert.deepEqual([own.first.day, own.first.record.id], ['2026-01-02', 'r2']);
-  // 折叠月份里更早的日子只剩字：今年内 kept 里有墨的那次接上；都没有则 record=null
   const kept = rec('和', '2026-02-10');
   const s = state([rec('静', '2026-03-01')], { ink: { '2026-02': { [kept.id]: INK } } });
   s.records['2026-02'] = { folded: true, month: '2026-02', byDay: { '2026-02-03': ['和'], '2026-02-10': ['和'] }, chars: ['和'], kept: [kept] };
-  const f = annualModel(s, TODAY, { cardOf });
+  const f = annualModel(s, TODAY);
   assert.deepEqual([f.first.char, f.first.day, f.first.record.id], ['和', '2026-02-10', kept.id]);
   s.ink = {};
-  assert.deepEqual(annualModel(s, TODAY, { cardOf }).first, { char: '和', day: '2026-02-03', record: null });
-  // 注入的 hasInk 优先
-  assert.equal(annualModel(state(rs, { ink: base }), TODAY, { cardOf, hasInk: r => r.id === 'r3' }).first.record.id, 'r3');
+  assert.deepEqual(annualModel(s, TODAY).first, { char: '和', day: '2026-02-03', record: null });
+  assert.equal(annualModel(state(rs, { ink: base }), TODAY, { hasInk: r => r.id === 'r3' }).first.record.id, 'r3');
+});
+
+test('卷尾「同一个字，两次」(P161): a char with two inked records this year, the pair furthest apart; ties → written first; none → no tail', () => {
+  serial = 0;
+  const rs = [
+    rec('疆', '2026-04-27'), rec('酱', '2026-04-27'), rec('酱', '2026-05-30'), rec('疆', '2026-10-02'), rec('永', '2026-06-01'), rec('永', '2026-06-01'),
+  ];
+  const inkAll = { '2026-04': { r1: INK, r2: INK }, '2026-05': { r3: INK }, '2026-10': { r4: INK }, '2026-06': { r5: INK, r6: INK } };
+  const sl = yearSlice(state(rs, { ink: inkAll }), 2026);
+  const twice = twiceOfYear(sl);
+  assert.equal(twice.char, '疆');
+  assert.deepEqual([twice.first.record.id, twice.first.day, twice.last.record.id, twice.last.day], ['r1', '2026-04-27', 'r4', '2026-10-02']);
+  assert.equal(twice.gap, 158);
+  // 酱 只有 36 天；永 同一天两条不算（要相隔 ≥ 1 天）
+  // 墨迹被回收到只剩一份 → 没有卷尾
+  assert.equal(twiceOfYear(yearSlice(state(rs, { ink: { '2026-04': { r1: INK } } }), 2026)), null);
+  // 去年的那份不冒充
+  const lastYear = [rec('疆', '2025-04-27'), rec('疆', '2026-04-27')];
+  assert.equal(twiceOfYear(yearSlice(state(lastYear, { ink: { '2025-04': { r1: INK }, '2026-04': { r2: INK } } }), 2026)), null);
+  // 并列取今年先写到的
+  const tie = [rec('甲', '2026-01-01'), rec('乙', '2026-01-01'), rec('乙', '2026-01-11'), rec('甲', '2026-01-11')];
+  const tt = twiceOfYear(yearSlice(state(tie, { ink: { '2026-01': Object.fromEntries(tie.map(r => [r.id, INK])) } }), 2026));
+  assert.equal(tt.char, '甲');
 });
 
 test('year boundary: on 2027-01-01 the 2026 records do not count', () => {
   serial = 0;
   const s = state([rec('静', '2026-12-31'), rec('谁', '2027-01-01')]);
-  const m26 = annualModel(s, '2026-12-31', { cardOf });
+  const m26 = annualModel(s, '2026-12-31');
   assert.deepEqual([m26.year, m26.count, m26.first.char], [2026, 1, '静']);
-  const m27 = annualModel(s, '2027-01-01', { cardOf });
-  assert.deepEqual([m27.year, m27.count, m27.first.char, m27.month.month], [2027, 1, '谁', '2027-01']);
-  assert.equal(annualModel(s, '2028-03-01', { cardOf }).empty, true);
+  const m27 = annualModel(s, '2027-01-01');
+  assert.deepEqual([m27.year, m27.count, m27.first.char, m27.months[0].month], [2027, 1, '谁', '2027-01']);
+  assert.equal(annualModel(s, '2028-03-01').empty, true);
 });
 
 test('300 chars: counts and speed', () => {
@@ -166,30 +180,73 @@ test('300 chars: counts and speed', () => {
   for (let i = 0; i < 300; i += 1) chars.push(String.fromCharCode(0x4e00 + i));
   const rs = chars.map((c, i) => rec(c, `2026-${String(1 + (i % 9)).padStart(2, '0')}-${String(1 + (i % 28)).padStart(2, '0')}`));
   const s = state(rs);
-  const ranks = c => ({ rank: c.charCodeAt(0) - 0x4e00 + 1, py: '' });
   const t0 = Date.now();
-  const m = annualModel(s, TODAY, { cardOf: ranks });
+  const m = annualModel(s, TODAY);
   const ms = Date.now() - t0;
   assert.equal(m.count, 300);
-  assert.equal(m.rare.char, chars[299]);
-  assert.ok(ms < 200, `model under 200ms (${ms}ms)`);
+  assert.equal(m.months.reduce((n, x) => n + x.n, 0), 300);
+  assert.ok(ms < 300, `model under 300ms (${ms}ms)`);
 });
 
-test('view helpers: count split, first line with / without ink, date text; screen registered', () => {
-  assert.deepEqual(countParts(12), { before: '', num: '12', after: ' 个字' });
+// ---------------------------------------------------------------- 册页张数（§8.2）
+
+function planOf(records, extra = {}) {
+  return annualPlan(state(records, extra), { today: '2026-10-04', inkOf: r => (extra.noInk ? null : POINTS), hasInk: r => !extra.noInk });
+}
+
+test('album pages: 1 cover + every month (a month over 80 chars is split by date, D39) + 1 tail (only if there is one)', () => {
+  serial = 0;
+  const rs = [rec('疆', '2026-04-27'), rec('酱', '2026-04-27')];
+  // 九月 96 字（同一天 96 个字 → 80 + 16）
+  for (let i = 0; i < 96; i += 1) rs.push(rec(String.fromCodePoint(0x4e00 + i), '2026-09-10'));
+  rs.push(rec('疆', '2026-10-02'));
+  const plan = planOf(rs);
+  assert.equal(plan.status, 'ready');
+  const kinds = plan.pages.map(p => (p.type === 'month' ? `${p.month}#${p.part}/${p.of}:${p.cells.length}` : p.type));
+  assert.deepEqual(kinds, ['cover', '2026-04#1/1:2', '2026-09#1/2:80', '2026-09#2/2:16', '2026-10#1/1:1', 'tail']);
+  assert.equal(plan.pages.length, 6);
+  assert.ok(plan.pages.filter(p => p.type === 'month').every(p => p.cells.length <= 80));
+  assert.equal(plan.tail.first.ch, '疆');
+  assert.equal(plan.first.ch, '疆', 'the cover shows the first char of the year');
+  // 页内日期角标：分出来的新页第一个字一定带角标
+  assert.equal(plan.pages[3].cells[0].tag, '10');
+  // 没有卷尾：每个字这一年只有一份墨迹
+  const noTail = planOf([rec('疆', '2026-04-27'), rec('酱', '2026-05-01')]);
+  assert.deepEqual(noTail.pages.map(p => p.type), ['cover', 'month', 'month']);
+  assert.equal(noTail.tail, null);
+  // 空
+  assert.equal(planOf([]).status, 'empty');
+  assert.deepEqual(planOf([]).pages, []);
+});
+
+test('album pages: a month with no ink is all under cells (still a page, still counted); the cover cell is under when the year has no ink for the first char', () => {
+  serial = 0;
+  const plan = planOf([rec('静', '2026-03-01'), rec('谁', '2026-03-02')], { noInk: true });
+  assert.deepEqual(plan.pages.map(p => p.type), ['cover', 'month']);
+  assert.ok(plan.pages[1].cells.every(c => c.mode === 'under'));
+  assert.equal(plan.first.mode, 'under');
+});
+
+// ---------------------------------------------------------------- 视图小件
+
+test('view helpers: first line with / without ink, date text, 纸面汉字文案；screen registered', () => {
   assert.equal(firstLine('2026-01-02', true), '1 月 2 日 的笔迹');
   assert.equal(firstLine('2026-01-02', false), '1 月 2 日');
   assert.equal(annualDateText('bad'), '');
   assert.equal(ANNUAL_SCREEN, 'annual');
   assert.ok(getScreen('annual'), 'annual screen registered on import');
-  assert.equal(t('X-ANNUAL.section2'), '二 · 有记录天数最多的月份');
+  assert.equal(annualYearText(2026), '二〇二六');
+  assert.equal(annualCoverLine(290), '这一年，你写过两百九十个字。');
+  assert.equal(annualCoverLine(2), '这一年，你写过两个字。');
+  assert.equal(annualFirstDateText('2026-04-26'), '四月二十六日的笔迹');
+  assert.equal(annualTailKuan('2026-10'), '二〇二六年十月');
+  assert.equal(t('X-WORK.annualHead', { n: 290 }), '这一年，你写过 290 个字。');
 });
 
-test('D45: section-4 date line reads 「{date} 的笔迹」 and never says it is the first time this year', () => {
+test('D45: the first-char date line reads 「{date} 的笔迹」 and never says it is the first time this year', () => {
   const slot = t('R-M06.inkDate', { date: '3 月 9 日' });
   assert.equal(slot, '3 月 9 日 的笔迹');
   assert.ok(!/第一次|当时|首次/.test(slot), 'the date is the day of the ink record, not 今年第一次');
   assert.equal(firstLine('2026-03-09', true), '3 月 9 日 的笔迹');
-  // 没有笔迹时仍只写日期（不借「的笔迹」）
   assert.equal(firstLine('2026-03-09', false), '3 月 9 日');
 });

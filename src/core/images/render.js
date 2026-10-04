@@ -219,7 +219,7 @@ export function drawKuan(ctx, text, { right, top, size, lineHeight }, { palette,
 
 // ---------------------------------------------------------------- 纸
 
-/** 加载纸纹图片（令牌里的两层 SVG data URL）。无 Image / 解码失败的那一层跳过。 */
+/** 加载纸纹图片（令牌里的 SVG data URL；导出图的调色板不带纹理，D51 ⑥）。无 Image / 解码失败的那一层跳过。 */
 export async function loadTextures(palette, { imageFactory = null } = {}) {
   const make = imageFactory || (typeof Image === 'function' ? () => new Image() : null);
   if (!make || !palette.textures || !palette.textures.length) return [];
@@ -237,7 +237,7 @@ export async function loadTextures(palette, { imageFactory = null } = {}) {
   return out;
 }
 
-/** 画纸：sheet 底 + 纹理（瓦片 = 令牌尺寸 × 2.69，逻辑 1080 上颗粒 645、云絮 1614）。 */
+/** 画纸：sheet 底 + 纹理（瓦片 = 令牌尺寸 × 2.69，逻辑 1080 上颗粒 645）；导出图的调色板 textures 为空时就是平涂笺色（D51 ⑥）。 */
 export function paintPaper(ctx, W, H, palette, textures = []) {
   ctx.save();
   ctx.fillStyle = palette.sheet;

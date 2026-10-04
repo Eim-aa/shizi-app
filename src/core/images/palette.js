@@ -1,8 +1,9 @@
 // 导出图的调色板（阶段 1 P1-E7；交接 §0.2 / §6.3：一切导出图片永远是浅纸，`color.light` 一套，不随系统）。
 //
 // 取值唯一来源是设计令牌（docs/design/design-system-v1/tokens.json ↔ src/config/tokens.css）。本文件里没有颜色字面量：
-//   - 浏览器里：`readLightPalette()` 在文档根下临时放一个 `.t-light` 元素，读它上面解析出来的 `--sheet` / `--hand` … 与纸纹 `--tex-light`
-//     （tokens.css 的 .t-light 局部强制浅色，令牌在子树内取浅色，不管页面当前是不是深色）；
+//   - 浏览器里：`readLightPalette()` 在文档根下临时放一个 `.t-light` 元素，读它上面解析出来的 `--sheet` / `--hand` …
+//     （tokens.css 的 .t-light 局部强制浅色，令牌在子树内取浅色，不管页面当前是不是深色）。导出图用平涂笺色，不带纹理（D51 ⑥、V2-07、T2-16：
+//     纸纹占位在手机相册里像脏，真实扫描纸纹资产到位前导出图不烘纹理），所以 textures 恒为空；
 //   - 测试 / 无 DOM：`paletteFromTokens(tokensJson)` 直接从 tokens.json 的 color.light 转出同一结构。
 // P1-E1a 遗留：render.js 旧的 #FBF8F2 / #3B2F28 / #A6533F 等写死色值就此删除。
 
@@ -24,8 +25,8 @@ export const PALETTE_VARS = Object.freeze({
   onSeal: '--on-seal',
 });
 
-/** 纸纹两层的瓦片尺寸（tokens.css --tex-size：240px / 600px，对 402 宽屏）。 */
-export const TEXTURE_TILES = Object.freeze([240, 600]);
+/** 纸纹瓦片尺寸（tokens.css --tex-size：240px，对 402 宽屏）；导出图现在不带纹理，只在以后换真实扫描资产时用。 */
+export const TEXTURE_TILES = Object.freeze([240]);
 
 let cached = null;
 
@@ -41,7 +42,7 @@ export function paletteFromTokens(tokens) {
   return Object.freeze({ ...colors, textures: Object.freeze([]), tiles: TEXTURE_TILES });
 }
 
-/** 解析 `url("…"), url("…")` → 两条 data URL。 */
+/** 解析 `url("…"), url("…")` → data URL 列表（现在 --tex-light / --tex-dark 只有颗粒一层）。 */
 export function parseTextureUrls(value) {
   const out = [];
   const re = /url\(\s*(?:"([^"]*)"|'([^']*)'|([^)]*))\s*\)/g;
@@ -70,7 +71,7 @@ export function readLightPalette(doc = typeof document !== 'undefined' ? documen
       if (!v) throw new Error(`PALETTE_UNAVAILABLE: ${name}`);
       colors[key] = v;
     }
-    const textures = parseTextureUrls(cs.getPropertyValue('--tex-img'));
+    const textures = []; // 平涂笺色（D51 ⑥）
     cached = Object.freeze({ ...colors, textures: Object.freeze(textures), tiles: TEXTURE_TILES });
     return cached;
   } finally {

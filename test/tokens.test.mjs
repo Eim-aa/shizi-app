@@ -67,12 +67,12 @@ test('elevation shadow and paper texture follow tokens.json shadow / texture', (
   assert.equal(norm(ctx.dark['--elev-shadow'].value), norm(px(tokens.shadow.dark.sheet)));
   assert.equal(ctx.light['--tex-img'].value, 'var(--tex-light)');
   assert.equal(ctx.dark['--tex-img'].value, 'var(--tex-dark)');
-  // 占位强度：颗粒层的 alpha 取 placeholderStrength.grain，云絮层的 alpha 倍率随 cloud（浅 .10 / 深 .04）
+  // 占位强度：颗粒层的 alpha 取 placeholderStrength.grain；低频云絮层 D51 ⑥ 起删掉（只剩一层）
   for (const theme of ['light', 'dark']) {
     const value = ctx.base[`--tex-${theme}`].value;
     const { grain } = tokens.texture.placeholderStrength[theme];
     assert.ok(value.includes(`0 0 0 ${String(grain).replace(/^0/, '')} 0`), `--tex-${theme} grain layer alpha ${grain}`);
-    assert.equal((value.match(/url\("data:/g) || []).length, 2, `--tex-${theme}: grain + cloud layers`);
+    assert.equal((value.match(/url\("data:/g) || []).length, 1, `--tex-${theme}: the fine grain only (no cloud layer, D51 ⑥)`);
   }
   assert.ok(tokens.texture.never.includes('页面底') && tokens.texture.never.includes('按钮'));
   assert.ok(!/--paper-image|--lamp/.test(tokensCss), 'page dot-grid texture and dark warm lamp are gone (D43)');

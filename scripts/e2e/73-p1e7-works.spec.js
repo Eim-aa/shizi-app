@@ -53,6 +53,7 @@ async function decodeStats(page, buf) {
 }
 
 async function downloadFile(page, trigger) {
+  await page.waitForTimeout(450); // 按钮防连点（新状态 0.4s 内不响应）：导出图不再解码纸纹后预览出得更快，点太早会被吞
   const [dl] = await Promise.all([page.waitForEvent('download'), trigger()]);
   const path = await dl.path();
   return { name: dl.suggestedFilename(), buf: fs.readFileSync(path) };
@@ -266,6 +267,7 @@ export default async function (page, ctx) {
   assert.ok(!p.all.includes('存下来的是图片'), 'the 「存下来的是图片，不能用来恢复记录」 line is gone (DQ6)');
   assert.deepEqual([p.share.text, p.saveBtn.text], ['分享', '保存图片']);
   assert.equal(p.note, '', 'a single page has no note');
+  await page.waitForTimeout(450); // 按钮防连点：弹层刚打开 0.4s 内不响应（导出图不再解码纸纹后预览出得更快，点太早会被吞）
   await page.click('[data-testid="image-chip"]');
   await page.waitForFunction(() => document.querySelector('[data-testid="image-canvas"]').dataset.members === '疆酱痒酝嚷');
   p = await preview(page);

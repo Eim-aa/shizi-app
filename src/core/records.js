@@ -7,7 +7,8 @@
 //   at, localDay,
 //   help: { hints, answerSeen, traced },          // 帮助事实，永不因更正删除（决定-D07）
 //   corrections?: [{ from, at }],                 // 更正历史；更正不新增记录（决定-D19）
-//   inkId?, legacy?
+//   inkId?, legacy?,
+//   source?: 'screen' | 'paper'                   // 阶段 1 P1-E8（D46 ⑬）：缺省 = screen（旧数据不重写）；纸上记录只能是 judged、不带墨迹
 // }
 //
 // 口径：
@@ -21,6 +22,8 @@ import { localDay, isValidDay, monthOf, diffDays } from './dates.js';
 
 export const RECORD_KINDS = Object.freeze(['judged', 'answer-seen', 'skipped']);
 export const JUDGMENTS = Object.freeze(['correct', 'wrong']);
+/** 书写方式（阶段 1 P1-E8，D46 ⑬ / 03 P166）：screen = 写在书写格里（缺省，不写进记录）；paper = 在纸上写、回来自判。 */
+export const RECORD_SOURCES = Object.freeze(['screen', 'paper']);
 
 const RECORD_ID_RE = /^r([1-9]\d*)$/;
 const SESSION_ID_RE = /^s([1-9]\d*)$/;
@@ -145,6 +148,13 @@ export function validateRecord(r) {
   }
   if (r.inkId !== undefined && typeof r.inkId !== 'string') errors.push('inkId must be a string');
   if (r.legacy !== undefined && r.legacy !== true) errors.push('legacy must be true when present');
+  if (r.source !== undefined) {
+    if (!RECORD_SOURCES.includes(r.source)) errors.push('source must be screen | paper');
+    else if (r.source === 'paper') {
+      if (r.kind !== 'judged') errors.push('only judged records can be on paper');
+      if (r.inkId !== undefined) errors.push('a paper record has no ink (inkId not allowed)');
+    }
+  }
   return errors;
 }
 
@@ -152,7 +162,7 @@ export function validateRecord(r) {
  * 构造一条记录。localDay 由 at 按本地日推出；help 规整为 {hints, answerSeen, traced}。
  * 形状不合法时抛错（调用方在 commit 前构造，错误属于编程错误）。
  */
-export function makeRecord({ id, cardKey, sessionId: sid, kind, judgment, at, help, inkId }) {
+export function makeRecord({ id, cardKey, sessionId: sid, kind, judgment, at, help, inkId, source }) {
   const record = {
     id,
     cardKey,
@@ -167,6 +177,8 @@ export function makeRecord({ id, cardKey, sessionId: sid, kind, judgment, at, he
   if (kind === 'judged' || judgment !== undefined) record.judgment = judgment;
   if (kind === 'answer-seen') record.help.answerSeen = true;
   if (inkId !== undefined) record.inkId = inkId;
+  // 书写方式：screen 是缺省，不写进记录（旧数据不带 source，读取时同样按 screen，P166）；其余值放进去让校验报出来。
+  if (source !== undefined && source !== 'screen') record.source = source;
   const errors = validateRecord(record);
   if (errors.length) throw new RangeError('invalid record: ' + errors.join('; '));
   return record;
@@ -174,6 +186,30 @@ export function makeRecord({ id, cardKey, sessionId: sid, kind, judgment, at, he
 
 export function isJudged(r) {
   return !!r && r.kind === 'judged';
+}
+
+// ---- 纸上记录（阶段 1 P1-E8，D46 ⑬ / D47；03 P166 / P169）----
+// 纸上记录是有效记录：判断、FSRS、写错过 / 快忘了、字库字数、字墙照常。只有「画本人笔迹」的地方没有它：
+// 作品（结果页、这次 / 这天的图片）、月字帖、年报，以及年报与月份的字数（D47）都只收 isWorkRecord。
+
+/** 记录的书写方式：source 缺省（旧数据、屏幕上写的）= 'screen'。 */
+export function recordSource(r) {
+  return r && r.source === 'paper' ? 'paper' : 'screen';
+}
+
+/** 在纸上写、回来自判的记录（没有墨迹，标注「纸上」）。 */
+export function isPaperRecord(r) {
+  return !!r && r.source === 'paper';
+}
+
+/** 能进作品 / 图片 / 月字帖 / 年报（含年字数、月字数）的记录：judged 且不在纸上（D46 ⑬ / D47）。 */
+export function isWorkRecord(r) {
+  return isJudged(r) && !isPaperRecord(r);
+}
+
+/** 去掉纸上记录（时间段视图先过一遍再交给 core/ink-pick：段内只有纸上记录的字不出现、不计数，D47）。 */
+export function withoutPaper(records) {
+  return (records || []).filter((r) => !isPaperRecord(r));
 }
 
 /**

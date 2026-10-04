@@ -120,18 +120,27 @@ export function indexRecords(records) {
   const byId = new Map();
   const latestByCard = new Map(); // cardKey → record（judged，序号最大）
   const firstByCard = new Map(); // cardKey → record（judged，序号最小）
-  const edges = new Set(); // 每月每字首/末条 judged 的 id
+  const latestScreen = new Map(); // cardKey → record（屏幕上写的 judged，序号最大；P1-E8）
+  const firstScreen = new Map(); // cardKey → record（屏幕上写的 judged，序号最小；P1-E8）
+  const edges = new Set(); // 每月每字首/末条 judged（屏幕上写的）的 id
   const perMonthCard = new Map(); // `${month}|${cardKey}` → {first, last}
+  const keepExtreme = (map, rec, s, latest) => {
+    const cur = map.get(rec.cardKey);
+    if (!cur || (latest ? serialOf(cur.id) < s : serialOf(cur.id) > s)) map.set(rec.cardKey, rec);
+  };
   for (const month of Object.keys(records || {})) {
     for (const rec of monthRecords(records[month])) {
       byId.set(rec.id, { rec, month });
       if (rec.inkId) byId.set(rec.inkId, { rec, month });
       if (rec.kind !== 'judged') continue;
       const s = serialOf(rec.id);
-      const latest = latestByCard.get(rec.cardKey);
-      if (!latest || serialOf(latest.id) < s) latestByCard.set(rec.cardKey, rec);
-      const first = firstByCard.get(rec.cardKey);
-      if (!first || serialOf(first.id) > s) firstByCard.set(rec.cardKey, rec);
+      keepExtreme(latestByCard, rec, s, true);
+      keepExtreme(firstByCard, rec, s, false);
+      // 阶段 1 P1-E8（D46 ⑬，03 P166）：纸上记录没有墨迹，不占「第一次 / 最近一次」的留墨位——
+      // 另记屏幕上写的第一次 / 最近一次一起留，纸上那次之前留墨的最近一次不会被当成中间那次回收（「你的笔迹」按 D27 / D42 取留有墨迹的那次）。
+      if (rec.source === 'paper') continue;
+      keepExtreme(latestScreen, rec, s, true);
+      keepExtreme(firstScreen, rec, s, false);
       const mk = `${month}|${rec.cardKey}`;
       const pair = perMonthCard.get(mk);
       if (!pair) perMonthCard.set(mk, { first: rec, last: rec });
@@ -147,8 +156,10 @@ export function indexRecords(records) {
   }
   const latestIds = new Set();
   for (const rec of latestByCard.values()) latestIds.add(rec.id);
+  for (const rec of latestScreen.values()) latestIds.add(rec.id);
   const firstIds = new Set();
   for (const rec of firstByCard.values()) firstIds.add(rec.id);
+  for (const rec of firstScreen.values()) firstIds.add(rec.id);
   return { byId, latestIds, firstIds, edges };
 }
 

@@ -281,6 +281,8 @@ const recordFields = {
   corrections: v.arrayOf((x, p) => checkFields(x, p, correctionFields, ['from', 'at'])),
   inkId: v.str,
   legacy: (x, p) => (x === true ? null : fail(p, 'must be true when present')),
+  // 阶段 1 P1-E8（D46 ⑬，03 P166）：书写方式。缺省 = screen（旧数据不带、不重写）；只有纸上记录写 'paper'。
+  source: v.oneOf(['screen', 'paper']),
 };
 
 /** 单条 Record（01 §3.2）。month 给出时校验 localDay 属于该月。 */
@@ -294,6 +296,8 @@ export function validateRecord(rec, path = 'record', month = null) {
   if (rec.kind === 'judged' && !hasOwn(rec, 'judgment')) return fail(`${path}.judgment`, 'required when kind is judged');
   if (rec.kind !== 'judged' && hasOwn(rec, 'judgment')) return fail(`${path}.judgment`, 'only allowed when kind is judged');
   if (rec.kind !== 'judged' && hasOwn(rec, 'corrections')) return fail(`${path}.corrections`, 'only allowed when kind is judged');
+  if (rec.source === 'paper' && rec.kind !== 'judged') return fail(`${path}.source`, 'paper only for judged records');
+  if (rec.source === 'paper' && hasOwn(rec, 'inkId')) return fail(`${path}.inkId`, 'a paper record has no ink');
   if (month && monthOfDay(rec.localDay) !== month) return fail(`${path}.localDay`, `not in month ${month}`);
   return null;
 }
@@ -406,6 +410,8 @@ const settingsFields = {
   remind: (x, p) => checkFields(x, p, remindFields, []),
   remindInvite: (x, p) => checkFields(x, p, remindInviteFields, []),
   capitalDeferredDay: v.day, // D46 ④：点了「这次先写平常的字」的那一天
+  writeMode: v.oneOf(['screen', 'paper']), // D46 ⑬（P1-E8，03 P165）：设置 › 写字方式；缺省 screen
+  paperSuggested: v.bool, // P1-E8（03 P168）：读屏开启时「改为在纸上写」的建议已出现过（只出现一次）
 
   large: v.bool,
   appearance: v.oneOf(['auto', 'light', 'dark']),
@@ -443,6 +449,8 @@ const currentFields = {
   answerSeen: v.bool,
   hintRange: (x, p) => (x === null || Array.isArray(x) || isPlainObject(x) ? null : fail(p, 'bad hintRange')),
   referenceReady: v.bool,
+  // P1-E8（03 P165）：只对当前这一个字切换写字方式（true 纸上 / false 屏幕；缺省跟 settings.writeMode）。推进时随 current 重置。
+  paper: v.bool,
 };
 
 const itemFields = {

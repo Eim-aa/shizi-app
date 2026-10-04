@@ -18,10 +18,11 @@
     "verify:data": "pnpm run verify:governance && pnpm run verify:vector440 && pnpm run verify:content && pnpm run verify:assets && pnpm run verify:sw-unit && pnpm run verify:api && pnpm run verify:order",
     "verify:unit": "node --test \"test/**/*.test.mjs\"",
     "verify:copy": "node scripts/verify_copy.mjs",
+    "verify:tokens": "node scripts/verify_tokens.mjs",
     "verify:pwa": "node scripts/verify_pwa_upgrade.js",
     "verify:web": "node scripts/e2e/run.mjs && node scripts/verify_pwa_upgrade.js",
     "verify:native-smoke": "python3 ios/ShiziApp/scripts/validate-native-smoke.py",
-    "test": "pnpm run verify:data && pnpm run verify:unit && pnpm run verify:copy && pnpm run verify:web"
+    "test": "pnpm run verify:data && pnpm run verify:unit && pnpm run verify:copy && pnpm run verify:tokens && pnpm run verify:web"
   },
   "devDependencies": {
     "playwright": "1.62.0"

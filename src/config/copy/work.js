@@ -54,6 +54,8 @@ export default Object.freeze({
   'X-WORK.monthUnderNote': '浅色的字，这个月没有留下笔迹。点一个字看详情。',
   'X-WORK.monthCellNoInk': '{char}，这个月没有留下笔迹',
   'X-WORK.monthOpen': '{month}月字帖，{n} 个字',
+  // 月字帖格的读屏名称：格上标的是排序用的日子（第一次写下），墨迹取自另一天时再说一句（N2-07）
+  'X-WORK.cellInkDay': '{char} · {date}，{inkDate} 的笔迹',
   // 年报（交接 §8）
   'X-WORK.annualPageTitle': '年报',
   'X-WORK.annualHead': '这一年，你写过 {n} 个字。',

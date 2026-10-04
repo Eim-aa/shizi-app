@@ -327,15 +327,15 @@ export default async function run(page, ctx) {
   assert.equal(h.count, COPY.count(10), '「今天写了 10 个字」 (deduped N; the wrong 赢 counts but never enters the row, D51 ⑤): D49-7 keeps this one line only when n > 8, because the copybook shows just 8');
   assert.deepEqual(h.inkRow.chars, ['三', '四', '五', '六', '七', '八', '九', '一'], 'most recent 8, 一 moved to its latest judgment');
   assert.equal(h.inkRow.ids[7], 'r10', 'last item is r10');
-  assert.equal(h.inkRow.count, 9, 'ink row data-count=9');
+  assert.equal(h.inkRow.count, 10, 'ink row data-count=10 (the true N, wrong 赢 included)');
 
-  step('compact (360×640): the same 8 cells in two rows of four (no merged one-line variant any more, P75 decided by the stage-1 design), number still 9');
+  step('compact (360×640): the same 8 cells in two rows of four (no merged one-line variant any more, P75 decided by the stage-1 design), number still 10');
   await page.setViewportSize({ width: 360, height: 640 });
   await page.waitForFunction(() => document.querySelector('[data-testid="screen-home"]').dataset.compact === 'true');
   h = await home(page);
   assert.equal(h.compact, 'true', 'data-compact=true');
   assert.deepEqual(h.inkRow.chars, ['三', '四', '五', '六', '七', '八', '九', '一'], 'all 8 chars');
-  assert.equal(h.count, COPY.count(9), 'number still 9');
+  assert.equal(h.count, COPY.count(10), 'number still 10');
   const fits = await page.evaluate(() => {
     const panel = document.querySelector('.sz-tabroot__panel');
     const pr = panel.getBoundingClientRect();

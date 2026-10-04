@@ -203,7 +203,7 @@ const RICH2 = {
     { char: '春', judgment: 'correct', day: '2026-04-26', ink: true },
     { char: '疆', judgment: 'correct', day: '2026-04-27', ink: true },
     { char: '笔', judgment: 'correct', day: '2026-05-10', ink: false },
-    { char: '疆', judgment: 'wrong', day: '2026-10-02', ink: true },
+    { char: '疆', judgment: 'correct', day: '2026-10-02', ink: true }, // 写错的那次不是作品成员，卷尾只看两次都在作品里的字（D51 ⑤）
   ],
 };
 
@@ -257,7 +257,7 @@ export default async function run(page, ctx) {
 
   // ------------------------------------------------------------------ 3. 今年第一个字：有 / 没有笔迹
   step('first char of the year without ink: under glyph, the line is the date only; a folded earlier month supplies the first char');
-  await seed(page, { steps: [{ char: '静', judgment: 'wrong', day: '2026-01-05', ink: false }, { char: '谁', judgment: 'correct', day: '2026-01-06', ink: true }] });
+  await seed(page, { steps: [{ char: '静', judgment: 'correct', day: '2026-01-05', ink: false }, { char: '谁', judgment: 'correct', day: '2026-01-06', ink: true }] });
   await waitState(page, 'report');
   v = await view(page);
   assert.deepEqual([v.first.char, v.first.ink, v.first.canvasMode, v.first.line], ['静', 'false', 'under', md('2026-01-05')], 'no ink this year for the first char → under glyph, date only');
@@ -357,7 +357,7 @@ export default async function run(page, ctx) {
     return getDeck().keys.filter(k => k.startsWith('base:')).map(k => k.slice(5)).slice(0, 300);
   });
   assert.equal(deckChars.length, 300, 'deck provides 300 chars');
-  const big = { steps: deckChars.map((c, i) => ({ char: c, judgment: i % 7 === 0 ? 'wrong' : 'correct',
+  const big = { steps: deckChars.map((c, i) => ({ char: c, judgment: 'correct', // 300 个作品字（写错的不进年报，D51 ⑤，所以这里全写对）
     day: `2026-${String(1 + (i % 9)).padStart(2, '0')}-${String(1 + Math.floor(i / 9) % 28).padStart(2, '0')}` })) };
   const t0 = Date.now();
   await seed(page, big);

@@ -50,10 +50,10 @@ export const SEAL_ROTATION = -2; // seal.rotationInWork
 export const INK_PAD = 0.12; // 墨在格内 12% 内边
 export const FRAME_W = 2; // 外框 2px
 export const GUIDE_W = 1.5; // 格间 1.5px
-export const TAG_SIZE = 30; // 日期角标 ≈ 11pt
+// 日期角标 ≈ 11pt，画在格内左上角（距格左 12px、距格上 8px），没有底色块、不压格线（V2-09：骑线角标把格线切断，已废）
+export const TAG_SIZE = 30;
 export const TAG_LEFT = 12;
-export const TAG_TOP = -16;
-export const TAG_PAD_X = 6;
+export const TAG_TOP = 8;
 
 export function defaultRatio(n) {
   return n >= 1 && n <= FEW_MAX_CHARS ? DEFAULT_RATIO_FEW : DEFAULT_RATIO_MANY;

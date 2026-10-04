@@ -497,14 +497,13 @@ export default async function run(page, ctx) {
     'sheet order / dates / tags / picked record = oracle (P02 first, D42: first one this month that still has ink)');
   assert.deepEqual(v.cells.map(c => c.char).join(''), '静谁慢您数', 'first-appearance order of the work members: the wrong-only 题 / 额 / 感 are not on the sheet (D51 ⑤)');
   const jing = v.cells.find(c => c.char === '静');
-  // D42（解 P122）：9-1、9-8 两次的墨迹已按 D27 回收（中间那次）；月字帖在本月内从早到晚找留有墨迹的那一次 → 9-22（笔迹与角标对应，M02），
-  // 不再是「9-1 没有笔迹」。8 月那次（8-20，种子没存墨迹）在时间段外，不进候选。
-  assert.equal(jing.day, '2026-09-22', '静 uses the first record this month that still has ink (D42): 9-22, not the recycled 9-1');
+  // D42（解 P122）：9-1、9-8 两次的墨迹已按 D27 回收（中间那次）；月字帖在本月内从早到晚找留有墨迹的那一次 → 画 9-22 的笔迹，
+  // 不再是「9-1 没有笔迹」；但角标与排序用的是 firstDay（9-1），不跟着取墨那条走（T2-05 / N2-07）。8 月那次（8-20，种子没存墨迹）在时间段外，不进候选。
+  assert.equal(jing.day, '2026-09-01', '静 is placed and numbered on the day it was first written as a work this month (9-1, firstDay), T2-05');
   assert.equal(jing.ink, 'true', '静 cell draws 9-22\'s own ink (D42 解 P122)');
-  assert.equal(v.cells.find(c => c.char === '感').ink, 'true', '感 cell draws that record\'s own ink (its first and latest judgment)');
-  // Q2-4（复测 simB D5）：我的页字帖卡片的日期角标与月字帖页一致——只写「日」、t11 hei 500 ink3、骑在格上边线上（不在格内、不碰字形）。
-  // 旧断言 '9·22'（「月·日」写在格内左上、字形缩小让位）改成 '22'。
-  assert.equal(jing.tagText, '22', 'date tag follows the picked record (M02); day only, like the month page (Q2-4)');
+  assert.equal(v.cells.some(c => c.char === '感' || c.char === '题' || c.char === '额'), false, 'wrong-only chars are not on the sheet (D51 ⑤)');
+  // Q2-4（复测 simB D5）：我的页字帖卡片的日期角标与月字帖页一致——只写「日」、t11 hei 500 ink3；V2-09：画在格内左上角，不再骑线、不压格线。
+  assert.equal(jing.tagText, '1', 'date tag = the sort day (firstDay); day only, like the month page (Q2-4 / T2-05)');
   const tagGeo = await page.evaluate(() => {
     const cell = [...document.querySelectorAll('.sz-layer[data-top="true"] [data-testid="mine-sheet-cell"]')].find(c => c.dataset.tag);
     const tag = cell.querySelector('.sz-scell__tag');
@@ -514,16 +513,19 @@ export default async function run(page, ctx) {
     const c = cell.getBoundingClientRect();
     const q = sq.getBoundingClientRect();
     return { size: cs.fontSize, weight: cs.fontWeight, family: cs.fontFamily.split(',')[0].trim(), straddles: r.top < c.top && r.bottom > c.top,
+      inside: r.top >= c.top && r.left >= c.left && r.right <= c.right && r.bottom <= c.bottom, bg: cs.backgroundColor,
       glyphScaled: Math.abs(q.width - c.width) > 1, tagText: tag.textContent.trim(), glyphClear: r.bottom <= q.top + 6 };
   });
   assert.deepEqual([tagGeo.size, tagGeo.weight], ['11px', '500'], 'tag is t11 / 500 (same as the month page)');
-  assert.equal(tagGeo.straddles, true, 'tag rides the cell’s top edge (not inside the cell)');
+  assert.equal(tagGeo.straddles, false, 'tag no longer rides the cell’s top edge (V2-09)');
+  assert.equal(tagGeo.inside, true, 'tag sits inside the cell’s top-left corner, off every grid line');
+  assert.ok(/rgba\(0, 0, 0, 0\)|transparent/.test(tagGeo.bg), 'no colour block behind the number');
   assert.equal(tagGeo.glyphScaled, false, 'the ink is not shrunk to make room for the tag');
   assert.equal(v.cells.find(c => c.char === '数').ink, 'false', 'no ink → 没有笔迹 (10.12, no borrowing)');
-  assert.equal(v.cells.find(c => c.char === '感').tagText, null, 'same date as previous cell → no tag');
-  assert.equal(jing.label, '静 · 9 月 22 日', 'cell accessible name follows the picked record');
+  assert.equal(v.cells.find(c => c.char === '谁').tagText, null, 'same sort day as the previous cell (静, 9-01) → no tag');
+  assert.equal(jing.label, '静 · 9 月 1 日，9 月 22 日 的笔迹', 'cell accessible name: the sort day, plus the day of the ink drawn (N2-07)');
   assert.equal(v.sign, `二〇二六年九月 · 有记录${cn(o9.monthDays.length)}天 · ${cn(o9.sheet.length)}个字`, 'signature in Chinese numerals');
-  assert.equal(v.sign, '二〇二六年九月 · 有记录五天 · 八个字', 'signature literal');
+  assert.equal(v.sign, '二〇二六年九月 · 有记录五天 · 五个字', 'signature literal');
   assert.equal(v.seal, '字', 'seal');
   assert.equal(v.sheetSave, null, 'save image hidden until M4-5 registers');
   assert.equal(v.sheetAll, null, 'no 全部 › when ≤ 3 rows');
@@ -555,7 +557,7 @@ export default async function run(page, ctx) {
   assert.ok(r.prev.bg !== 'rgba(0, 0, 0, 0)', 'arrow has a background (R-P05 箭头加底)');
   assert.deepEqual(r.sheetCells.map(c => [c.char, c.day, c.tag, c.record]), o9.sheet.map(c => [c.char, c.day, dayNum(c.tag), c.record]),
     'records sheet = oracle (same data as mine; the day tag now reads the day number only)');
-  assert.equal(r.sign, '二〇二六年九月 八字', '落款 (P1-E7: 月份 + 全角空格 + 字数，不再写有记录几天；txt() 把全角空格折成一个空格)');
+  assert.equal(r.sign, '二〇二六年九月 五字', '落款 (P1-E7: 月份 + 全角空格 + 字数，不再写有记录几天；txt() 把全角空格折成一个空格)');
   assert.equal(r.gridInPaper, true, 'records sheet grid laid out inside the month paper');
   assert.equal(r.order, null, 'P1-E7: the order line moved to the month page subtitle');
   assert.equal(r.seal, '字', 'seal');

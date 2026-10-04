@@ -4,7 +4,7 @@
 //                     （core/images/render.js paintCellContent），所以结果页上看到的作品与图片内容、样子一致（所见即所得）。
 //   WorkPaper         结果页作品：作品格（格宽 c，列 × 行与 3:4 分享图相同；格自己是笺面，直接放在页面纸上，没有作品底板，D49）+ 落款与品牌印
 //                     （位置规则同 layout.js；落款与印是图形，固定尺寸，不随系统字号放大）。
-//   MonthPaper        月字帖：笺面纸 + 6 列（Pro Max 7、AX 4）字帖格 + 骑线日期角标 + 落款与印。
+//   MonthPaper        月字帖：笺面纸 + 6 列（Pro Max 7、AX 4）字帖格 + 格内左上角的日期角标（不压格线）+ 落款与印。
 //   useScreenWidth    屏宽（CSS px）；作品格宽 / 月字帖格宽按它算。
 //   frameRects        外框的矩形（满行矩形 + 末行矩形，同 layout.js 的 frame）。
 //
@@ -22,6 +22,10 @@ import { paintBrushStroke } from '../canvas/brush.js';
 import { builtFromRaw, useNearViewport, useThemeVersion } from '../screens/write/compare.js';
 import { isPracticable } from '../../data/deck.js';
 import { useStrokeData } from '../screens/write/hint-layer.js';
+
+/** 月字帖格的日期角标：格内左上角的页边批注，没有底色块、不压格线（V2-09）。 */
+export const MONTH_PAPER_TAG_CSS = `.sz-mcell__tag{position:absolute;left:4px;top:3px;z-index:1;font-family:${T.hei};font-size:${T.fs11};line-height:${T.lh11};
+  font-weight:500;color:${T.ink3};font-variant-numeric:tabular-nums;pointer-events:none}`;
 
 injectStyles('work', `
 .sz-work{display:flex;flex-direction:column;align-items:stretch}
@@ -63,8 +67,7 @@ injectStyles('work', `
 .sz-mcell:focus-visible{outline:2px solid ${T.ink1};outline-offset:-2px;z-index:2}
 .sz-mcell[data-pressed]{background:${T.field}}
 .sz-mcell canvas{display:block;position:absolute;left:0;top:0}
-.sz-mcell__tag{position:absolute;left:4px;top:-6px;z-index:1;padding:0 2px;background:${T.sheet};font-family:${T.hei};font-size:${T.fs11};line-height:${T.lh11};
-  font-weight:500;color:${T.ink3};font-variant-numeric:tabular-nums;pointer-events:none}
+${MONTH_PAPER_TAG_CSS}
 .sz-month__sign{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:14px}
 `);
 

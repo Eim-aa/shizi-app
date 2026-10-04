@@ -7,7 +7,7 @@
 //   → 月历（周一开头；有记录的日子画墨点、是按钮；点了在月历下列出那天写的字，再点收起，R-P05；无补记：没有虚线圈 / 空心点，K27）
 //   → [那天写的字]（「{date}写的字」+ 格子，点格子进单字详情）
 //   → 「{month} 月字帖」（字帖跟月份走，R-P05；本月右侧「保存图片 ›」——M4-5 用 setMineImageActions 注册后才显示）
-//     阶段 1 P1-E7：字帖就是月字帖页那一块（mine/month.js MonthBody：6 列、骑线日期角标只写「日」、整月没墨的字画衬底、宋体落款 + 印、说明句只在有衬底字时出现）；
+//     阶段 1 P1-E7：字帖就是月字帖页那一块（mine/month.js MonthBody：6 列、格内左上角的日期角标只写「日」、整月没墨的字画衬底、宋体落款 + 印、说明句只在有衬底字时出现）；
 //     标题点进月字帖页，任何月份都能保存图片（D42）；这个月没有字：虚线框「这个月还没有可以放进图片的字」
 //   → 本月且今天有记录：「{今天}写的字 / 这次的图片 · 保存图片 ›」（R-P03；同样由 M4-5 注册后才显示）。
 // 数字全部按记录算（model.js recordsModel，R-M01 / K27）；格子只画那一次真实笔迹，没有就「没有笔迹」（10.12，不借别次，I03）。
@@ -117,8 +117,8 @@ injectStyles('mine-records', `
 .sz-scell__glyph{position:absolute;left:50%;top:42%;width:40%;height:auto;aspect-ratio:1/1;transform:translate(-50%,-50%);color:${T.under}} /* 衬底字是轮廓（P1-E2），字面约占格 32% */
 .sz-scell__noink{position:absolute;left:0;right:0;top:80%;transform:translateY(-50%);text-align:center;font-family:${T.hei};
   font-size:clamp(9px, 16cqw, 12px);line-height:1;color:${T.ink3};white-space:nowrap}
-.sz-scell__tag{position:absolute;left:4px;top:-6px;z-index:1;padding:0 2px;background:${T.sheet};font-family:${T.hei};font-size:${T.fs11};line-height:${T.lh11};
-  font-weight:500;color:${T.ink3};font-variant-numeric:tabular-nums;pointer-events:none} /* 骑在格上边线上，与月字帖页 .sz-mcell__tag 同一写法（Q2-4） */
+.sz-scell__tag{position:absolute;left:4px;top:3px;z-index:1;font-family:${T.hei};font-size:${T.fs11};line-height:${T.lh11};
+  font-weight:500;color:${T.ink3};font-variant-numeric:tabular-nums;pointer-events:none} /* 格内左上角，与月字帖页 .sz-mcell__tag 同一写法（Q2-4 / V2-09：不压格线） */
 .sz-msign{display:flex;justify-content:space-between;align-items:flex-end;gap:12px}
 .sz-msign__text{display:flex;flex-direction:column;gap:4px;min-width:0}
 .sz-msign__line{font-size:${T.fs11};line-height:${T.lh11};color:${T.ink2}}
@@ -282,7 +282,10 @@ export function SheetCell({ cell, store, testid, showTag = true }) {
   const ink = useMemo(() => inkOf(store, cell.record), [store, cell.record]);
   const has = hasInkPoints(ink);
   const tag = showTag && cell.tag ? tagText(cell.tag) : '';
-  const label = t('X-MINE.cellLabel', { char: cell.char, date: dayText(cell.day) });
+  const inkDay = cell.record && cell.record.localDay;
+  const label = inkDay && cell.day && inkDay !== cell.day
+    ? t('X-WORK.cellInkDay', { char: cell.char, date: dayText(cell.day), inkDate: dayText(inkDay) })
+    : t('X-MINE.cellLabel', { char: cell.char, date: dayText(cell.day) });
   return html`<button type="button" class="sz-scell" ...${CELL_PRESS} data-testid=${testid} data-char=${cell.char} data-day=${cell.day || ''}
     data-tag=${tag ? cell.tag : ''} data-record=${cell.record ? cell.record.id : ''} data-ink=${has ? 'true' : 'false'}
     aria-label=${label} onClick=${() => openCell(cell.char)}>
@@ -366,7 +369,7 @@ function DayList({ selected, listRef }) {
 function MonthSheet({ model, state }) {
   const { sheet } = model;
   const title = t('R-P02.sheetTitle', { month: model.monthNum });
-  // 阶段 1 P1-E7：字帖就是月字帖页那一块（month.js MonthBody：6 列、骑线日期角标、没墨的字画衬底），标题点进月字帖页；任何月份都能保存（D42）。
+  // 阶段 1 P1-E7：字帖就是月字帖页那一块（month.js MonthBody：6 列、格内左上角的日期角标、没墨的字画衬底），标题点进月字帖页；任何月份都能保存（D42）。
   const monthView = useMemo(() => monthModel(state, model.month), [state, model.month]);
   const save = monthView.n && imageActions.month;
   return html`<section class="sz-rec__sheet" data-testid="records-sheet" data-month=${sheet.month} data-count=${monthView.n}

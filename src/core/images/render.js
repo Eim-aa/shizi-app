@@ -4,7 +4,7 @@
 //   一律浅纸（调色板 palette.js，来自浅色令牌，不随系统主题）+ 纸纹（令牌里的两层 SVG 纹理，按导出尺寸放大）；
 //   格：外框 2px frame、格间 1.5px guide、直角，墨在格内 12% 内边，线宽按「格的屏幕当量（c ÷ 2.69 pt）」查补偿表；
 //   没有本人墨的字（mode 'under'）画参考轮廓、填 under（月字帖 / 年报里该时段没留下笔迹的字）；
-//   写错且手动放进来的字带朱点；月图日期角标骑在格上边线上（sheet 衬底断开格线）；
+//   写错且手动放进来的字带朱点；月图日期角标画在格内左上角（不压格线、没有底色块，V2-09）；
 //   落款 song 400 ink2、品牌印「字」白文直角 seal、旋转 −2°；字体在绘制前经注入的 requireFont 确认已加载（§6.5）。
 //   导出格式 JPEG 0.92、sRGB（exportCanvas）；纸纹在 PNG 里体积过大。
 // 单字手写图片 renderSingleGlyph（A05，详情页「把这个字做成图片」）沿用 glyph-layout.js 的版式，色值同样来自调色板。
@@ -13,7 +13,7 @@
 // 渲染结果把审计信息写进 canvas.dataset（e2e 断言尺寸 / 成员 / 落款 / recordId）。不读存储、不写存储。
 
 import {
-  EXPORT_SCALE, FRAME_W, GUIDE_W, INK_GRID, INK_PAD, LOGICAL_PER_PT, TAG_LEFT, TAG_PAD_X, TAG_SIZE, TAG_TOP,
+  EXPORT_SCALE, FRAME_W, GUIDE_W, INK_GRID, INK_PAD, LOGICAL_PER_PT, TAG_LEFT, TAG_SIZE, TAG_TOP,
   cellInkBox, dotLayout, inkWidthScale, layout,
 } from './layout.js';
 import { glyphLayout, inkBounds } from './glyph-layout.js';
@@ -345,20 +345,17 @@ export async function renderWorkPage({
   for (const r of L.frame) ctx.strokeRect(r.x, r.y, r.w, r.h);
   ctx.restore();
 
-  // 日期角标：骑在格上边线上，sheet 衬底断开格线
+  // 日期角标：每天第一个字的格内左上角，ink3、不画底色块、不碰格线（V2-09 / T2-05：角标与排序同一个日子，数字只增不减）
   if (tags) {
     ctx.save();
     ctx.font = `500 ${TAG_SIZE}px ${fonts.label}`;
     ctx.textBaseline = 'middle';
     ctx.textAlign = 'left';
+    ctx.fillStyle = pal.ink3;
     for (let i = 0; i < cells.length; i += 1) {
       const tag = cells[i].tag;
       if (!tag) continue;
       const { x, y } = L.cells[i];
-      const w = ctx.measureText(tag).width;
-      ctx.fillStyle = pal.sheet;
-      ctx.fillRect(x + TAG_LEFT - TAG_PAD_X, y + TAG_TOP, w + 2 * TAG_PAD_X, TAG_SIZE);
-      ctx.fillStyle = pal.ink3;
       ctx.fillText(tag, x + TAG_LEFT, y + TAG_TOP + TAG_SIZE / 2);
     }
     ctx.restore();

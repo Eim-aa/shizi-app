@@ -7,7 +7,7 @@
 //   3. 分享弹层：预览 = 导出图本身（1440 × 1440 / 1440 × 1920，永远浅纸，深色主题下也是）、默认比例 D47（3 字 1:1、5 字 3:4）、「也放进来」chip（加入后重画并带朱点）、
 //      「保存图片」下载 JPEG（尺寸 / 浅纸）+「存好了」、没有「存下来的是图片…」。
 //   4. 超过 80 字分张（D39）：弹层 2 页 + 页点 + 说明句 + 「保存 2 张图片」、落款其一 / 其二、每页自己的字数；保存下载 2 个文件。
-//   5. 月字帖页：6 列格 60、骑线日期角标只标每天第一个字、没墨的字画衬底（不写「没有笔迹」）、说明句只在有衬底字时出现、纸上记录不进。
+//   5. 月字帖页：6 列格 60、格内左上角的日期角标只标每天第一个字、没墨的字画衬底（不写「没有笔迹」）、说明句只在有衬底字时出现、纸上记录不进。
 //   6. 年报：卷首 / 每月一段 / 卷尾；点月段进月字帖；保存弹层册页张数与按钮「保存 N 张图片」；「存成一张长图」宽 1440；超高按月切。
 //   7. 读屏名称（作品整体、逐格、「放进去」）。
 
@@ -310,7 +310,7 @@ export default async function (page, ctx) {
   await closeShare(page);
 
   // ---------------------------------------------------------------- 5. 月字帖页
-  ctx.step('month page: 6 columns of 60, riding day tags only on each day\'s first char, under glyphs for chars with no ink (no 「没有笔迹」 inside), note only when there are some, 纸上 not in');
+  ctx.step('month page: 6 columns of 60, day tags (inside the cell, top-left) only on each day\'s first char, under glyphs for chars with no ink (no 「没有笔迹」 inside), note only when there are some, 纸上 not in');
   await seedMonthRecords(page, {
     clock: '2026-09-24T20:00:00',
     entries: [
@@ -363,7 +363,7 @@ export default async function (page, ctx) {
   assert.equal(m.modes, 'hhhhhhhhhuuuu', 'chars with no ink all month are under cells');
   assert.equal(m.tags, '2||||||4|||10|||', 'a day tag on the first char of each day only (day number, no month)');
   assert.ok(m.tagEls.every(t => t.size === '11px' && Number(t.weight) >= 500), 'tag 11pt / 500');
-  assert.ok(m.tagEls.every(t => t.top <= 0 && t.top >= -10), 'the tag rides on the cell\'s top line');
+  assert.ok(m.tagEls.every(t => t.top >= 2 && t.top <= 6), 'the tag sits inside the cell, just under its top line (V2-09: it no longer rides the grid line)');
   assert.equal(m.note, '浅色的字，这个月没有留下笔迹。点一个字看详情。');
   assert.equal(m.kuan, '二〇二六年九月　十三字', '纸上 not counted');
   assert.ok(!m.text.includes('没有笔迹') && m.noInkLabel === 0, 'no 「没有笔迹」 written inside the cells');

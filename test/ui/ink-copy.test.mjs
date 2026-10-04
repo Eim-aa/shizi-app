@@ -40,6 +40,7 @@ const BOTH_TRUE = {
   'X-WORK.annualFirstDate': '年报卷首「{日期}的笔迹」：只在今年第一个字确有留墨的那一次时画成笔迹格（annual.js hasInk），说的是那次的日子',
   'X-WORK.monthUnderNote': '月字帖说明句：只在本月确有整月没留墨的字（画 under 衬底）时出现',
   'X-WORK.monthCellNoInk': '月字帖里画衬底的格子的读屏名称：只给 mode under 的格子',
+  'X-WORK.cellInkDay': '月字帖格的读屏名称：只给取到墨迹、且墨迹日与角标日不同的格子（month.js cellLabel）',
   'X-WORK.annualFirstCellAria': '年报卷尾「同一个字，两次」两格的读屏名称：两格都是确有墨的记录（twiceOfYear 只选有墨的）',
   'X-WORK.annualLastCellAria': '同上（最近一次）',
 };

@@ -40,7 +40,8 @@
     "{part}": "分张序号（其一 / 其二，X-WORK.kuanPart）",
     "{ymd}": "本地日 YYYY-MM-DD（备份文件名 X-BACKUP.fileName）",
     "{text}": "一段现成文案（X-FIRST.laterGroup / laterSame：「明天再见」「3 天后再见」）",
-    "{label}": "字库页「写错过 / 快忘了」块名（X-LIBHOME.practiceAria 读屏名称里复用）"
+    "{label}": "字库页「写错过 / 快忘了」块名（X-LIBHOME.practiceAria 读屏名称里复用）",
+    "{inkDate}": "墨迹所在的日期（界面按 R-H02.dateFormat；月字帖格的读屏名称：墨迹取自另一天时补「{inkDate} 的笔迹」，X-WORK.cellInkDay）"
   },
   "normalization": [
     "{M} 月 {D} 日、{9 月 24 日} 这类日期、裸「M 月 D 日」、{日期} → {date}",
@@ -4941,6 +4942,12 @@
           "origin": "extra",
           "note": "月字帖（交接 §7）",
           "decision": "P160"
+        },
+        "cellInkDay": {
+          "raw": null,
+          "text": "{char} · {date}，{inkDate} 的笔迹",
+          "origin": "extra",
+          "note": "月字帖格的读屏名称：角标 / 排序用的是这个字本月第一次写下的日子（firstDay），取到的墨迹在另一天时补一句「{日期} 的笔迹」（N2-07）；与 D45「{日期} 的笔迹」同一写法"
         },
         "annualPageTitle": {
           "raw": null,

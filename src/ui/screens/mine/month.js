@@ -2,7 +2,7 @@
 // 年报的月段点进来，练习记录页的「{月}字帖」也用同一块（MonthBody）。
 //
 // 版式（402 宽）：页头返回 + 右侧分享 → 标题「{n}月字帖」t28 → 副标题「按第一次写下的先后排列」t13 ink3 → 字帖（6 列，Pro Max 7、AX 4；
-//   格 ⌊(W − 40) / 列⌋，笺面纸 + 外框 + 格间线；每天第一个字有骑线日期角标 11pt）→ 落款（宋 13 + 印 24）→ 说明句
+//   格 ⌊(W − 40) / 列⌋，笺面纸 + 外框 + 格间线；每天第一个字在格内左上角有日期角标 11pt，不压格线）→ 落款（宋 13 + 印 24）→ 说明句
 //   「浅色的字，这个月没有留下笔迹。点一个字看详情。」（整月全部有墨时不出现）→ 底栏「分享」/「保存图片」。
 // 每个字取这个月里留有墨迹的第一次（D42）；整个月一份墨迹都没有的字照样在，画 under 衬底参考字（不写「没有笔迹」）；
 // 纸上记录不进（D46-13）。导出 = 同一组格子，3:4 默认、超过 80 字按日期分张（分享弹层，images-entry.js）。
@@ -52,10 +52,17 @@ function currentStore() {
 
 // ---------------------------------------------------------------- 模型
 
-/** 一格的读屏名称：有墨「疆 · 9 月 2 日」，没墨「疆，这个月没有留下笔迹」。 */
-function cellLabel(cell) {
+/**
+ * 一格的读屏名称：有墨「疆 · 9 月 2 日」，没墨「疆，这个月没有留下笔迹」。日期是排序 / 角标用的日子（第一次写下）；
+ * 取到的墨迹在另一天时补一句「9 月 28 日 的笔迹」（N2-07）。
+ */
+export function cellLabel(cell) {
   if (cell.mode === 'under') return t('X-WORK.monthCellNoInk', { char: cell.ch });
   const date = cell.day ? t('R-H02.dateFormat', monthDayParts(cell.day)) : '';
+  const inkDay = cell.record && cell.record.localDay;
+  if (inkDay && cell.day && inkDay !== cell.day) {
+    return t('X-WORK.cellInkDay', { char: cell.ch, date, inkDate: t('R-H02.dateFormat', monthDayParts(inkDay)) });
+  }
   return t('X-MINE.cellLabel', { char: cell.ch, date });
 }
 

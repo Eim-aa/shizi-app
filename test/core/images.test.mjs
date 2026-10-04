@@ -9,7 +9,7 @@ import fs from 'node:fs';
 import * as policy from '../../src/config/policy.js';
 import {
   DEFAULT_RATIO_FEW, DEFAULT_RATIO_MANY, dayTag, defaultRatio, dotDiameterPt, dotLayout, gridOf, inkWidthScale, layout, monthCell, monthColumns,
-  resultGrid, withDayTags,
+  resultGrid, withDayTags, TAG_SIZE,
 } from '../../src/core/images/layout.js';
 import { glyphLayout, inkBounds, SIZES, MARGIN } from '../../src/core/images/glyph-layout.js';
 import { paginate, retagPages } from '../../src/core/images/paginate.js';
@@ -536,6 +536,21 @@ test('renderWorkPage: 1440×1920 / 1440×1440 (logical 1080 × 4/3), only the gi
   const empty = await renderWorkPage({ cells: [], kuan: 'x', sealText: '字', palette: PALETTE, canvasFactory: () => { throw new Error('no canvas for nothing'); } });
   assert.equal(empty.status, 'empty');
   await assert.rejects(() => renderWorkPage({ cells, kuan: 'a\nb', sealText: '字', palette: PALETTE, canvasFactory: fakeCanvas }), /SINGLE_LINE/);
+});
+
+test('renderWorkPage: the day tag is drawn inside its own cell, top-left, without a colour block — it never rides a grid line (V2-09)', async () => {
+  const cells = [cell('永', { tag: '2' }), cell('和'), cell('山', { tag: '5' })];
+  const out = await renderWorkPage({ cells, ratio: '3:4', kuan: '二〇二六年九月　三字', sealText: '字', palette: PALETTE, canvasFactory: fakeCanvas });
+  const L = out.layout;
+  const tagCalls = out.canvas.calls.filter(c => c[0] === 'fillText' && (c[1] === '2' || c[1] === '5'));
+  assert.equal(tagCalls.length, 2);
+  for (const [call, i] of [[tagCalls[0], 0], [tagCalls[1], 2]]) {
+    const box = L.cells[i];
+    assert.ok(call[2] >= box.x && call[2] < box.x + L.c / 2, 'x inside the cell, near its left edge');
+    assert.ok(call[3] - TAG_SIZE / 2 >= box.y && call[3] < box.y + L.c / 2, 'the whole line box is inside the cell (below its top line)');
+  }
+  const blocks = out.canvas.calls.filter(c => c[0] === 'fillRect' && c[4] === TAG_SIZE);
+  assert.deepEqual(blocks, [], 'no sheet-coloured block behind the number (that block is what cut the grid lines)');
 });
 
 test('renderWorkPage: colours come from the LIGHT design tokens (never the dark ones); ink width is scaled by the compensation table', async () => {

@@ -6,6 +6,9 @@
 // 文字按钮（variant="text"，H1 / D51 ⑥）全 App 只有一种规格：黑体 15（--fs15）、--ink2、无下划线、按下变 --ink1；可点性靠位置与动词文案，不靠下划线。
 //   「›」规则（设计系统一条）：标签是「去处的名字」（回到首页、练习记录、还有 N 个字、看写错过的字、更换字库）→ 行尾带「›」；
 //   标签是动作（撤销、取消、提示、看答案、跳过、自己选字、练这些字、保存图片、接着写、完成）→ 不带。「›」写在文案里（copy/*），样式不画箭头。
+//   页边对齐（H1 / T2-01）：文字按钮的点击区比字多 --bx（默认 4）的内边距，同量的负外边距把字形外缘对到所在盒的边——
+//   放在 20pt 页边线上的文字按钮，字形外缘就落在 20 / 屏宽 − 20 上；短标签不靠 min-width 撑 44（会把字挤离边线），点击区由 ::after 补到 ≥ 44。
+//   改了左右内边距的覆盖要同步改 --bx。
 // 按压反馈（P0-A4 / G16；D43 起取设计系统 v1 的动效令牌）：pointerdown 起 data-pressed、pointerup / pointercancel / pointerleave 收；
 // 样式见下方 .sz-btn[data-pressed]。不用 :active——iOS WebKit 上 :active 需要 touchstart 监听才生效；data-pressed 直接写 DOM 属性
 // （不走 state，不触发重画）。原生 <button> 格子（结果 / 详情 / 记录页的字帖格）也用同一套 pressFeedbackHandlers。
@@ -88,8 +91,9 @@ injectStyles('button', `
   font-size:${T.fs17};line-height:${T.lh17s};font-weight:500}
 .sz-btn--primary{background:${T.btnBg};color:${T.btnFg}}
 .sz-btn--secondary{background:transparent;color:${T.ink1};box-shadow:inset 0 0 0 1px ${T.ink4}}
-.sz-btn--text{min-height:${T.hit};padding:0 4px;display:inline-flex;align-items:center;gap:6px;font-family:${T.hei};font-size:${T.fs15};
-  line-height:${T.lh15};font-weight:400;color:${T.ink2};text-decoration:none}
+.sz-btn--text{--bx:4px;position:relative;min-width:0;min-height:${T.hit};padding:0 var(--bx);margin-inline:calc(-1 * var(--bx));display:inline-flex;
+  align-items:center;gap:6px;font-family:${T.hei};font-size:${T.fs15};line-height:${T.lh15};font-weight:400;color:${T.ink2};text-decoration:none}
+.sz-btn--text::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,${T.hit});height:max(100%,${T.hit});transform:translate(-50%,-50%)} /* 短标签（跳过）的点击区仍 ≥ 44，不靠 min-width（那会把字挤离边线） */
 .sz-btn--icon{width:${T.hit};height:${T.hit};display:grid;place-items:center;color:${T.ink1};padding:0}
 .sz-btn--plain{padding:0}
 .sz-btn[disabled]{cursor:default}

@@ -111,8 +111,8 @@ injectStyles('library-list', `
 .sz-list__note{margin:0;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2};text-wrap:pretty}
 .sz-list__hint{margin:0;text-align:center;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3}}
 .sz-list__fail{margin:0;text-align:center;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink1}}
-.sz-list__toggle{min-height:44px;padding:0 4px;font-size:${T.fs15};color:${T.ink2}}
-.sz-list__rest{align-self:flex-start;min-height:44px;padding:0 4px;margin-top:-12px;font-size:${T.fs15};color:${T.ink2}}
+.sz-list__toggle{min-height:44px;padding:0 4px;margin-right:-4px;font-size:${T.fs15};color:${T.ink2}} /* 页头尾端：字形外缘落在 20pt 线（H1） */
+.sz-list__rest{align-self:flex-start;min-height:44px;padding:0 4px;margin:-12px 0 0 -4px;font-size:${T.fs15};color:${T.ink2}}
 .sz-list-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:${T.s4};text-align:center;
   padding:${T.s6} 0 ${T.s16}}
 .sz-list-empty__glyph{width:88px;height:88px;box-sizing:border-box;border:${T.frameW} dashed ${T.frame};display:grid;

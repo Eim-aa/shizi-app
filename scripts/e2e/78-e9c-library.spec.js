@@ -129,7 +129,7 @@ export default async function (page, ctx) {
     assert.equal(b.btnText, '练这些字', `${kind}: the text button 练这些字 (no arrow)`);
     assert.equal(b.btnAria, `${title}，练这些字`, `${kind}: the button is named per block for screen readers`);
     assert.ok(b.btn.h >= 44 - 0.5, `${kind}: the button is 44 high (${b.btn.h})`);
-    assert.ok(near(b.btn.r, 382, 1), `${kind}: the button sits on the right edge`);
+    assert.ok(near(b.btn.r - 4, 382, 1), `${kind}: the button's text sits on the right edge (H1: the hit box reaches 4 past the 20pt line)`);
     assert.equal(b.samples.length, 5, `${kind}: five samples`);
     assert.ok(b.samples.every(s => near(s.w, 30) && near(s.h, 30)), `${kind}: samples are 30pt`);
     assert.ok(b.samples.slice(1).every((s, i) => near(s.x - b.samples[i].r, 8)), `${kind}: sample gap 8`);
@@ -161,7 +161,7 @@ export default async function (page, ctx) {
   f = await facts(page);
   assert.equal(f.hscroll, false, 'SE: no horizontal scroll');
   assert.equal(f.wrong.samples.length, 5, 'SE: five samples');
-  assert.ok(near(f.wrong.btn.r, 375 - 20, 1), 'SE: the button is on the right edge');
+  assert.ok(near(f.wrong.btn.r - 4, 375 - 20, 1), 'SE: the button text is on the right edge (H1: the hit box reaches 4 past the 20pt line)');
 
   // ---------------------------------------------------------------- 4. AX5
   ctx.step('AX5: 练这些字 folds under the name, samples 44, wall cells do not grow');

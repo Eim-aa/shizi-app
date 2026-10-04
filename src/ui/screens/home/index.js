@@ -96,7 +96,7 @@ injectStyles('home', `
 .sz-home__block{display:flex;flex-direction:column;align-items:center;max-width:100%}
 .sz-home__gap{flex:none;height:16px}
 .sz-home__line{margin:0;text-align:center;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3};text-wrap:balance}
-.sz-home__other.sz-btn{margin-top:4px;min-height:${T.hit};padding:0 12px}
+.sz-home__other.sz-btn{--bx:12px;margin-top:4px;min-height:${T.hit}}
 .sz-home__foot{flex:none;min-height:119px;display:flex;flex-direction:column;align-items:center}
 .sz-home__cta.sz-btn{width:240px;max-width:100%}
 .sz-home__side.sz-btn{margin-top:4px;min-height:${T.hit};justify-content:center}

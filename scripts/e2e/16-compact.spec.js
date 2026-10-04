@@ -195,7 +195,13 @@ async function compactWalk(page, ctx, { large }) {
   assert.ok(!!g.r['write-links'], `${tag}: the combined link row (write-links) is rendered`);
   assert.ok(c['write-done'].rect.height >= 54 - 0.5, `${tag}: the main button ≥ 54 tall`);
   assert.ok(Math.min(c['write-hint'].rect.height, c['write-show-answer'].rect.height, c['write-skip'].rect.height) >= 44 - 0.5, `${tag}: text buttons ≥ 44 tall`);
-  const hintBtn = await page.$eval(topSel('write-hint'), el => ({ sw: el.scrollWidth, cw: el.clientWidth, ws: getComputedStyle(el).whiteSpace }));
+  // H1：文字按钮的点击区由 ::after 补到 ≥ 44（它会计入 scrollWidth），所以按文字本身的行盒宽度比较
+  const hintBtn = await page.$eval(topSel('write-hint'), el => {
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    const cs = getComputedStyle(el);
+    return { sw: range.getBoundingClientRect().width, cw: el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight), ws: cs.whiteSpace };
+  });
   assert.ok(hintBtn.sw <= hintBtn.cw + 0.5, `${tag}: 提示 button text not cut (${hintBtn.sw} ≤ ${hintBtn.cw})`);
   const grid0 = g.r['write-grid'];
   assert.ok(grid0.top >= g.head.bottom && grid0.bottom <= g.foot.top + 0.5, `${tag}: whole grid visible between header and footer`);
@@ -321,8 +327,9 @@ async function compactWalk(page, ctx, { large }) {
   common(assert, g, `${tag} retrace`, ['write-retrace-trace', 'write-answer-next']);
 }
 
+// H1：文字按钮用负外边距把字形对到边线（点击区各向外多 --bx = 4，「结束这组」自带 8 的内边距），相邻两个文字按钮的点击区允许互相压到 ≤ 8，字形本身不能重叠。
 function overlaps(a, b) {
-  return !!a && !!b && a.left < b.right - 0.5 && b.left < a.right - 0.5 && a.top < b.bottom - 0.5 && b.top < a.bottom - 0.5;
+  return !!a && !!b && a.left < b.right - 8.5 && b.left < a.right - 8.5 && a.top < b.bottom - 0.5 && b.top < a.bottom - 0.5;
 }
 
 /**

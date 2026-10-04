@@ -68,7 +68,7 @@ injectStyles('library', `
 .sz-lib__l1 .sz-btn--text{flex:none}
 :root[data-ax] .sz-lib__l1{flex-wrap:wrap}
 :root[data-ax] .sz-lib__sp{display:none}
-:root[data-ax] .sz-lib__l1 .sz-btn--text{flex:1 0 100%;justify-content:flex-start;padding-left:0}
+:root[data-ax] .sz-lib__l1 .sz-btn--text{flex:1 0 100%;justify-content:flex-start;padding-left:0;margin-left:0}
 /* 字墙题注：快忘了块下 36，字墙在题注下 8 */
 .sz-lib__wl{margin:36px 0 0;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink3};font-variant-numeric:tabular-nums}
 .sz-lib__wallsec{display:flex;flex-direction:column;gap:${T.s3};margin-top:${T.s2}}

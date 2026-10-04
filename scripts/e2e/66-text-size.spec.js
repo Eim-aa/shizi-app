@@ -117,7 +117,9 @@ function measure({ primary, tabs }) {
   const check = (el, name) => {
     el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     const r = el.getBoundingClientRect();
-    if (r.width < 44 - 0.5 || r.height < 44 - 0.5) problems.push(`${name} touch target ${Math.round(r.width)}×${Math.round(r.height)} < 44`);
+    // H1：文字按钮的点击区宽度由 ::after 补到 ≥ 44（盒子本身只有字宽 + 内边距），所以宽度按「中心左右各 21.5 处仍命中它」算
+    const wideEnough = r.width >= 44 - 0.5 || [-21.5, 21.5].every(dx => hits(el, r.left + r.width / 2 + dx, r.top + r.height / 2));
+    if (!wideEnough || r.height < 44 - 0.5) problems.push(`${name} touch target ${Math.round(r.width)}×${Math.round(r.height)} < 44`);
     if (r.left < -0.5 || r.right > vw + 0.5 || r.top < -0.5 || r.bottom > vh + 0.5) {
       problems.push(`${name} outside the viewport ${JSON.stringify([r.left, r.top, r.right, r.bottom].map(Math.round))}`);
       return;

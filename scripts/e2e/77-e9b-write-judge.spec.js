@@ -167,7 +167,7 @@ export default async function e9bWriteJudge(page, ctx) {
   assert.ok(head.h1.w <= 1.5 && head.h1.h <= 1.5, `…but visually hidden (${head.h1.w}×${head.h1.h})`);
   assert.deepEqual([head.prog.text, head.prog.fs, head.prog.color], ['2 / 5', 15, tokenRgb('light', 'ink3')], 'the counter is 15pt ink3');
   assert.ok(head.prog.num.includes('tabular-nums'), 'tabular numbers');
-  assert.ok(near(head.prog.right, 12, 1.5), `the counter sits 12 from the right edge (${head.prog.right})`);
+  assert.ok(near(head.prog.right, 20, 1.5), `the counter sits 20 from the right edge (H1: 页边线；${head.prog.right})`);
   assert.deepEqual(head.back, { aria: '返回', svg: true }, 'left: the ‹ icon button');
 
   step('A: the prompt — the whole word is centered, given characters have no frame, only the blank is framed (frame token, 1pt), pinyin sits above the blank');
@@ -223,7 +223,7 @@ export default async function e9bWriteJudge(page, ctx) {
   assert.ok(near(byId['write-skip'].right, 402 - 20, 6) && near(byId['write-hint'].left, 20, 6), 'text row spans the content width (left group left, 跳过 at the right end)');
   assert.ok(near(byId['write-show-answer'].left - byId['write-hint'].right, 16, 10), `the two helpers are ~16 apart (${byId['write-show-answer'].left - byId['write-hint'].right})`);
   assert.equal(byId['write-done'].disabled, true, '写好了 is disabled before the first stroke');
-  assert.ok(byId['write-hint'].under.includes('underline') && byId['write-skip'].under.includes('underline'), 'text buttons are underlined (the single text style)');
+  assert.ok(!byId['write-hint'].under.includes('underline') && !byId['write-skip'].under.includes('underline'), 'text buttons are not underlined (H1 / D51 ⑥: the single text style is 15 / ink2 / no underline)');
 
   step('A: 提示 — the visible text is just 「提示」, the remaining count is only in the screen-reader name; used up → ink4, not clickable');
   assert.deepEqual([byId['write-hint'].text, byId['write-hint'].aria], ['提示', '提示，还有 2 次'], 'visible 提示, name 提示，还有 2 次');
@@ -418,7 +418,7 @@ export default async function e9bWriteJudge(page, ctx) {
       return { hint: r('write-hint'), answer: r('write-show-answer'), skip: r('write-skip'), vw: window.innerWidth, scrollW: document.documentElement.scrollWidth };
     });
     assert.ok(links.hint.height >= 44 - 0.5 && links.skip.height >= 44 - 0.5, `${tag}: text buttons keep ≥ 44 and grow with the text`);
-    assert.ok(links.skip.right <= links.vw - 20 + 1 && links.scrollW <= links.vw, `${tag}: 跳过 stays at the right edge, nothing overflows horizontally`);
+    assert.ok(links.skip.right <= links.vw - 20 + 4 + 1 && links.scrollW <= links.vw, `${tag}: 跳过 stays at the right edge (H1: the hit box reaches 4 past the 20pt line), nothing overflows horizontally`);
 
     step(`AX: ${tag} judge page — the question is only for screen readers, cells take the bigger of stacked / side-by-side (${wantLayout}), both on screen, buttons stacked`);
     await toCompare(page);

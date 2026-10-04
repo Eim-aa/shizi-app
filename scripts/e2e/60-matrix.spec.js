@@ -445,7 +445,13 @@ function measureInPage({ minContrast, minTap, exempt, expect }) {
     const hit = (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') && el.closest('label') ? el.closest('label') : el;
     const r = hit.getBoundingClientRect();
     taps += 1;
-    if (r.width < minTap - 0.5 || r.height < minTap - 0.5) problems.push(`tap ${desc(el)} ${r.width.toFixed(1)}×${r.height.toFixed(1)}`);
+    // H1：文字按钮的点击区宽度由 ::after 补到 ≥ 44（盒子只有字宽 + 内边距），所以宽度也按「中心左右各 minTap/2 − 0.5 处仍命中它」算
+    const cxm = r.left + r.width / 2;
+    const cym = r.top + r.height / 2;
+    const reach = minTap / 2 - 0.5;
+    const hitsIt = x => { const top = document.elementFromPoint(x, cym); return !!top && (top === hit || hit.contains(top)); };
+    const wideEnough = r.width >= minTap - 0.5 || (el.matches('.sz-btn--text') && hitsIt(cxm - reach) && hitsIt(cxm + reach));
+    if (!wideEnough || r.height < minTap - 0.5) problems.push(`tap ${desc(el)} ${r.width.toFixed(1)}×${r.height.toFixed(1)}`);
   }
   return { problems, vw, vh, visBottom, minRatio: Number.isFinite(minRatio) ? Number(minRatio.toFixed(2)) : null, checked, taps, exempted };
 }

@@ -7344,6 +7344,7 @@ src/config/tokens.css
 src/core/backup.js
 src/core/cards.js
 src/core/dates.js
+src/core/first-result.js
 src/core/fsrs.js
 src/core/hints.js
 src/core/images/layout.js
@@ -7412,9 +7413,9 @@ src/ui/screens/detail/actions.js
 src/ui/screens/detail/index.js
 src/ui/screens/detail/photos.js
 src/ui/screens/detail/records.js
+src/ui/screens/home/copybook.js
 src/ui/screens/home/index.js
 src/ui/screens/home/ink-row.js
-src/ui/screens/home/light.js
 src/ui/screens/home/today.js
 src/ui/screens/library/all-model.js
 src/ui/screens/library/all.js
@@ -7433,6 +7434,7 @@ src/ui/screens/mine/index.js
 src/ui/screens/mine/model.js
 src/ui/screens/mine/records.js
 src/ui/screens/mine/settings.js
+src/ui/screens/result/first.js
 src/ui/screens/result/index.js
 src/ui/screens/session/index.js
 src/ui/screens/session/none.js

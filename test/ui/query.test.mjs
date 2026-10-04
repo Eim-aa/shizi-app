@@ -158,6 +158,15 @@ test('keyboardInset / sheetFrameStyle: sheet sits on the visible-area bottom and
   assert.equal(sheetFrameStyle(null).minHeight, '64%');
 });
 
+test('sheetFrameStyle large（Q2-9）：大字号 + 键盘弹起时弹层用满可见区全高；键盘收起 / 普通字号不变', () => {
+  const full = sheetFrameStyle({ inset: 291, height: 376, top: 0 }, { large: true });
+  assert.deepEqual([full.bottom, full.maxHeight, full.minHeight, full.full], ['291px', '376px', '376px', true]);
+  const closed = sheetFrameStyle({ inset: 0, height: 667, top: 0 }, { large: true });
+  assert.deepEqual([closed.maxHeight, closed.minHeight, closed.full], ['586px', '426px', false], '键盘收起时仍是 88% / 64%');
+  const normal = sheetFrameStyle({ inset: 291, height: 376, top: 0 });
+  assert.deepEqual([normal.maxHeight, normal.minHeight, normal.full], ['330px', '240px', false], '普通字号不变');
+});
+
 test('focus proxy: no DOM → no-op; openQuery rejects unknown modes before touching the router (P42)', () => {
   assert.equal(focusProxyInput(null), null);
   assert.equal(handOffFocus(null, null), false);

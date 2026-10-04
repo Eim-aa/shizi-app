@@ -123,17 +123,23 @@ export function useVisualViewport(win = typeof window !== 'undefined' ? window :
   return state;
 }
 
-/** 弹层面板（Sheet 的 .sz-sheet）按可见区调整：底边、最小 / 最大高度、底部内边距（原型 L444：键盘弹起时 16px）。 */
-export function sheetFrameStyle(viewport) {
+/**
+ * 弹层面板（Sheet 的 .sz-sheet）按可见区调整：底边、最小 / 最大高度、底部内边距（原型 L444：键盘弹起时 16px）。
+ * large（系统字号 --k ≥ 1.3，紧凑排布）且键盘弹起时（Q2-9，复测 simC D5）：弹层用满可见区的全高——否则标题 + 输入框 + 主按钮随字号放大，
+ * 88% 高度里内容区只剩 17pt（AX3）；顶部让出安全区（env(safe-area-inset-top)），标题改为视觉隐藏（CSS，见 QuerySheet）。
+ */
+export function sheetFrameStyle(viewport, { large = false } = {}) {
   if (!viewport) return { bottom: '', maxHeight: '', minHeight: '64%', paddingBottom: '', pb: 'max(32px, env(safe-area-inset-bottom, 0px))' }; // 32 = Sheet 面板的底部内边距（P1-E1b 由 34 改）
   const h = Math.max(0, viewport.height);
   const pb = viewport.inset > 0 ? '16px' : 'max(32px, env(safe-area-inset-bottom, 0px))';
+  const full = large && viewport.inset > 0;
   return {
     bottom: `${viewport.inset}px`,
-    maxHeight: `${Math.floor(h * 0.88)}px`,
-    minHeight: `${Math.floor(h * 0.64)}px`,
+    maxHeight: full ? `${Math.floor(h)}px` : `${Math.floor(h * 0.88)}px`,
+    minHeight: full ? `${Math.floor(h)}px` : `${Math.floor(h * 0.64)}px`,
     paddingBottom: viewport.inset > 0 ? pb : '',
     pb,
+    full,
   };
 }
 

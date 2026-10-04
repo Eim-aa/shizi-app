@@ -50,6 +50,10 @@ export const ADD_LABEL = 'query:add';
 
 injectStyles('query-sheet', `
 .sz-sheet[data-testid="query-sheet"]{overflow:hidden}
+/* 大字号 + 键盘弹起（Q2-9）：弹层全高；顶部让出安全区，标题视觉隐藏（仍是 dialog 的名字），内容区才放得下一张候选卡 */
+.sz-sheet[data-testid="query-sheet"][data-full="true"]{border-radius:0;padding-top:max(${T.s4}, env(safe-area-inset-top, 0px))}
+.sz-sheet[data-testid="query-sheet"][data-full="true"] .sz-sheet__title{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;
+  clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0}
 .sz-query{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;gap:16px}
 .sz-query__input-wrap{flex:none}
 .sz-query__scroll{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
@@ -218,13 +222,15 @@ export function QuerySheet(p) {
   useLayoutEffect(() => {
     const panel = rootRef.current && rootRef.current.closest('.sz-sheet');
     if (!panel) return;
-    const f = sheetFrameStyle(viewport);
+    const large = typeof document !== 'undefined' && document.documentElement.hasAttribute('data-text-large');
+    const f = sheetFrameStyle(viewport, { large });
     panel.style.bottom = f.bottom;
     panel.style.maxHeight = f.maxHeight;
     panel.style.minHeight = f.minHeight;
     panel.style.paddingBottom = f.paddingBottom;
     panel.style.setProperty('--qpb', f.pb);
     panel.dataset.keyboard = viewport && viewport.inset > 0 ? 'true' : 'false';
+    panel.dataset.full = f.full ? 'true' : 'false';
   }, [viewport && viewport.inset, viewport && viewport.height, viewport && viewport.top]);
 
   // 看卡片 / 回到逐字行：面板滚回顶部（输入框与卡片的开头都在视野里）。

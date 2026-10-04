@@ -83,6 +83,7 @@ export const groupMix = Object.freeze({
   allAccuracyPrior: 0.7, // P125 全部判断写对率的先验（热身字门控用）
   accuracyPriorWeight: 2, // P125 先验按几个判断的权重平滑
   returnAfterDays: 7, // P125 离开 ≥ 此天数后回来的第一组，积压阀不判「全复习」，照常给 1 个新字
+  returnGroupSize: 3, // P184（已决定 D48 ⑧，补充 D41）离开 ≥ returnAfterDays 天回来的第一组缩短为 3 字（配比规则不变，只是组小了；大写数字特别组整组出，不受影响）
   earlyReviewFill: true, // P125 到期不够时用最快到期的字提前复习补位，再不足才补新字
   earlyCountsTowardCap: false, // P125 提前复习是否计入 dailyReviewCap（P03）：不计入
 });

@@ -361,7 +361,6 @@ export function selectDaily({
   isWarm = (key) => isWarmupKey(key),
   capitalDeferredDay = null,
 }) {
-  const size = policy.groupSize;
   const mix = policy.groupMix;
   const excluded = new Set(judgedCardKeysOn(records, today)); // 刚写过的字当天不再出（交接备注十.5）
   if (policy.answerSeenScope === 'today') {
@@ -397,6 +396,9 @@ export function selectDaily({
   const reviewBudgetLeft = Math.max(0, policy.dailyReviewCap - dueReviewsDoneOn(records, today, { sched, policy }));
 
   const stats = practiceStats(records, today, { policy, isWarm });
+  // D48 ⑧（P184）：离开 ≥ returnAfterDays 天回来的第一组（今天还没有判断）缩短为 returnGroupSize 个字；特别组不受影响（见下，按 groupSize 整组出）。
+  const size = stats.firstBack && Number.isInteger(mix.returnGroupSize) && mix.returnGroupSize > 0
+    ? Math.min(policy.groupSize, mix.returnGroupSize) : policy.groupSize;
   const backlog = due.length;
   const pressure = pressureOf(backlog, stats.groupsPerDay, mix);
   const base = { dueKeys: [], earlyKeys: [], newKeys: [], warmKeys: [], customKeys: [], reviewBudgetLeft, backlog, pressure };
@@ -404,7 +406,7 @@ export function selectDaily({
   // D40 大写数字特别组：整组换掉日常配比
   const special = capitalSpecial({ records, stats, pressure, practicable, excluded, policy, today, deferredDay: capitalDeferredDay });
   if (special) {
-    return { ...base, queue: special.keys.slice(0, size), newTarget: 0, special: { kind: special.kind, keys: special.keys } };
+    return { ...base, queue: special.keys.slice(0, policy.groupSize), newTarget: 0, special: { kind: special.kind, keys: special.keys } };
   }
 
   // ② 新字池：不在调度里（从没有 judged）、没被排除；自选未写的字在 'none' 下不进 daily；特别组之后佰仟排最前

@@ -5,7 +5,8 @@
 // 规则（阈值以每组 5 个字为前提）：
 //   p（积压天数）= 到期未写数 ÷（reviewsPerGroupForPressure × 近 pressureWindowDays 天平均每天组数，至少 1）
 //   新字数 = p ≥ valveDays ? (上一组有新字 ? 0 : 1) : p ≥ twoNewBelowDays ? 1 : (p < threeNewBelowDays 且最近新字写对率 ≥ 0.6) ? 3 : 2
-//   离开 ≥ returnAfterDays 天回来的第一组：把「上一组有新字」当作 false，积压阀照常给 1 个新字（不判全复习）。
+//   离开 ≥ returnAfterDays 天回来的第一组：把「上一组有新字」当作 false，积压阀照常给 1 个新字（不判全复习）；这一组缩短为 returnGroupSize（3）个字
+//   （D48 ⑧，P184；组大小在 sessions.selectDaily 取，本模块的 planGroup 只按传入的 size 配）。
 //   复习 = min(到期数, groupSize − 新字数, 今日复习预算)；新字最多 newMax 个；到期不够时用最快到期的字提前复习补位（不计入每日上限），
 //   仍不足才补新字（首练后的第一组因此是 1 热身 + 4 新）。
 //   热身字：只在首练后 firstDays 天内或最近写得吃力时放，每组至多 1 个（新热身字或热身字复习二选一）、放组首，占一个新字位（新字位 ≥ 2 时）。

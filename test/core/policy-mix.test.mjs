@@ -8,7 +8,7 @@ test('policy D41: groupMix (P125) matches the recommendation in 复习新字配�
     { ...policy.groupMix },
     {
       newMax: 3, threeNewBelowDays: 0.5, threeNewMinAccuracy: 0.6, twoNewBelowDays: 1.5, valveDays: 4, reviewsPerGroupForPressure: 4,
-      pressureWindowDays: 7, recentNewWindow: 10, newAccuracyPrior: 0.5, allAccuracyPrior: 0.7, accuracyPriorWeight: 2, returnAfterDays: 7,
+      pressureWindowDays: 7, recentNewWindow: 10, newAccuracyPrior: 0.5, allAccuracyPrior: 0.7, accuracyPriorWeight: 2, returnAfterDays: 7, returnGroupSize: 3,
       earlyReviewFill: true, earlyCountsTowardCap: false,
     },
   );

@@ -227,7 +227,10 @@ test('rule D: coming back after ≥ 7 days the first group still has 1 new char 
   const st = practiceStats(away.records, TODAY, { policy, isWarm: isWarmKey });
   assert.equal(st.firstBack, true);
   assert.equal(st.lastDay, addDays(TODAY, -10));
-  assert.deepEqual(counts(run(away)), [1, 4, 1, 0], 'away 10 days → 1 new as usual');
+  // Q2-15（D48 ⑧，P184）：离开 ≥ 7 天回来的第一组缩短为 3 字——配比规则不变（仍 1 新字），只是组小了：1 新 + 2 复习。旧断言 [1, 4, 1, 0]（5 字）改成 [1, 2, 1, 0]。
+  const backGroup = run(away);
+  assert.deepEqual(counts(backGroup), [1, 2, 1, 0], 'away 10 days → 1 new as usual, in a group of 3');
+  assert.equal(backGroup.queue.length, 3, 'the first group back is 3 chars (D48 ⑧)');
   // 回来的第二组（今天已经有判断）不再享受「照常 1 新」
   const second = { ...away, records: [...away.records, rec(9500, chars(1, 460)[0], 'judged', 'correct', TODAY, { sessionId: 's-back-1' })] };
   assert.equal(practiceStats(second.records, TODAY, { policy, isWarm: isWarmKey }).firstBack, false);
@@ -235,6 +238,22 @@ test('rule D: coming back after ≥ 7 days the first group still has 1 new char 
   const sixDays = scenario({ due: 16, lastHadNew: true });
   const shifted = sixDays.records.map((r) => (r.localDay === TODAY ? r : { ...r, localDay: addDays(r.localDay, -5), at: r.at - 5 * 86400000 }));
   assert.equal(practiceStats(shifted, TODAY, { policy, isWarm: isWarmKey }).firstBack, false, '6 days away is not "away"');
+});
+
+test('D48 ⑧ (P184): the first group after ≥ 7 days away is 3 chars; the next group the same day, 6 days away and the special group are not shortened', () => {
+  assert.equal(mix.returnGroupSize, 3);
+  const away = scenario({ due: 16, lastHadNew: true, away: true });
+  assert.equal(run(away).queue.length, 3, 'away 10 days → 3 chars');
+  // 「第一组」= 今天还没有判断：写完一个字（今天已有判断）之后，下一组回到 5 字
+  const second = { ...away, records: [...away.records, rec(9500, chars(1, 460)[0], 'judged', 'correct', TODAY, { sessionId: 's-back-1' })] };
+  assert.equal(run(second).queue.length, 5, 'a judgment today → the next group is a full group of 5');
+  // 正好 6 天不算离开
+  const sixDays = scenario({ due: 16, lastHadNew: true });
+  const shifted = sixDays.records.map((r) => (r.localDay === TODAY ? r : { ...r, localDay: addDays(r.localDay, -5), at: r.at - 5 * 86400000 }));
+  assert.equal(run({ ...sixDays, records: shifted }).queue.length, 5, '6 days away is not "away"');
+  // 没有那么多字可出时按实际数量（不为凑 3 个而硬补）
+  const few = run({ sched: {}, records: away.records.filter((r) => r.localDay <= addDays(TODAY, -9)), candidates: K('酱') });
+  assert.ok(few.queue.length <= 3, 'never more than 3 on the first group back');
 });
 
 test('new chars: at most 3 while the due + early pool can fill the group; the 4th / 5th new only appear when nothing else can fill', () => {

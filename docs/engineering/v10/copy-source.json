@@ -182,7 +182,9 @@
     "P166": "记录的书写方式 source（缺省 screen、纸上 paper）、纸上记录没有墨迹且不占 D27「第一次 / 最近一次」留墨位、恢复幂等不把纸上的判断页退回 recall：阶段 1 P1-E8，实现在 src/core/{records,schema,sessions}.js 与 src/store/budget.js indexRecords；无界面文案，见 03 P166",
     "P179": "冷启动到首页首帧的目标（Q3）：模拟器口径 iPhone 17 / iOS 26.5、Release、约 300 字 + 墨迹，进程启动 → 首页首个内容帧 ≤ 800ms（中位数）；量测方法与分段表见 01 §8.8，不是运行时开关",
     "P180": "e2e 冷启动首帧阈值（Q3，Chromium 口径）：scripts/e2e/68-q3-boot.spec.js LIMITS.firstFrameMs = 400ms（全新 context 打开到首页 FCP，3 次里最快一次，首次安装与约 300 字两种数据量）；测试取值，不是运行时开关",
-    "P183": "备份页重进时的状态句与撤销措辞（阶段 1 Q2-8，复测 simA S3）：撤销底栏还在时状态句说结论，离开再进来按现在的记录与上次导出时间重算、不再留结论句、不再提撤销；行为在 src/core/backup.js backupStatus({stored:false}) 与 src/ui/screens/mine/backup.js，不是 policy 开关"
+    "P183": "备份页重进时的状态句与撤销措辞（阶段 1 Q2-8，复测 simA S3）：撤销底栏还在时状态句说结论，离开再进来按现在的记录与上次导出时间重算、不再留结论句、不再提撤销；行为在 src/core/backup.js backupStatus({stored:false}) 与 src/ui/screens/mine/backup.js，不是 policy 开关",
+    "P183": "备份页重进时的状态句与撤销措辞（阶段 1 Q2-8，复测 simA S3）：撤销底栏还在时状态句说结论，离开再进来按现在的记录与上次导出时间重算、不再留结论句、不再提撤销；行为在 src/core/backup.js backupStatus({stored:false}) 与 src/ui/screens/mine/backup.js，不是 policy 开关",
+    "P184": "离开 ≥ 7 天回来的第一组缩短为 3 字（阶段 1 Q2-15，已决定 D48 ⑧）：调度规则，值在 policy.groupMix.returnGroupSize（P184），实现在 src/core/sessions.js selectDaily；首页「离开一周后回来」态文案没有提组大小，无新文案"
   },
   "noCopy": [
     "R-H08",

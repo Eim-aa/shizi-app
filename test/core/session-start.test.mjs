@@ -143,7 +143,8 @@ test('daily: due ordered overdue desc / stability asc, new characters in library
       rec(1, '子', 'judged', 'correct', '2026-09-01'),
       rec(2, '丑', 'judged', 'wrong', '2026-09-01'),
       rec(3, '寅', 'judged', 'correct', '2026-09-01'),
-      rec(4, '卯', 'judged', 'correct', '2026-09-01'),
+      // Q2-15（D48 ⑧）：这条本来是 9-01（离开 23 天，会被当成「回来的第一组」缩成 3 字）；本用例看的是 5 字组的排序，所以让最近一次练习落在昨天。
+      rec(4, '卯', 'judged', 'correct', YESTERDAY),
     ],
     schedTable: {
       'base:子': sched('2026-09-20', 9), // 逾期 4 天
@@ -165,6 +166,24 @@ test('daily: due ordered overdue desc / stability asc, new characters in library
   assert.deepEqual(r.plan.newKeys, ['base:甲', 'base:乙']);
   assert.equal(s.queue.length, policy.groupSize);
   assert.deepEqual(env.commits, ['session:start-daily']);
+});
+
+test('daily: the first group after ≥ 7 days away is 3 chars through startDaily (D48 ⑧ / P184)', () => {
+  const env = makeEnv();
+  seed(env, {
+    records: [
+      rec(1, '子', 'judged', 'correct', '2026-09-01'),
+      rec(2, '丑', 'judged', 'wrong', '2026-09-01'),
+      rec(3, '寅', 'judged', 'correct', '2026-09-01'),
+    ],
+    schedTable: { 'base:子': sched('2026-09-20', 9), 'base:丑': sched('2026-09-22', 1), 'base:寅': sched('2026-09-22', 3) },
+  });
+  const deck = fakeDeck(LIB, ['base:子', 'base:丑', 'base:寅']);
+  const r = startDaily(env.store, { now: env.now, deck });
+  assert.equal(r.started, true);
+  const s = env.store.getState().sessions.A;
+  assert.equal(s.queue.length, policy.groupMix.returnGroupSize, 'last judgment 23 days ago → a group of 3');
+  assert.equal(r.plan.newKeys.length >= 1, true, 'the usual 1 new char is still given');
 });
 
 test('daily: characters judged today never come back; skipped today can; answer-seen follows policy.answerSeenScope (P36)', async () => {

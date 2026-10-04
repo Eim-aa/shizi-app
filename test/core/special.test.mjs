@@ -40,6 +40,13 @@ test('special group: not before 10 groups; from the 10th group on (and p < 1.5) 
   assert.equal(specialPlan({ sched: {}, records: history(9), today: TODAY }), null);
 });
 
+test('special group is a full group of 5 even as the first group after ≥ 7 days away (D48 ⑧ shortens only ordinary groups, P184)', () => {
+  const away = history(10).map((r) => ({ ...r, localDay: addDays(r.localDay, -10) }));
+  const r = run(away);
+  assert.equal(r.special.kind, 'capital1');
+  assert.deepEqual(r.queue, K('壹贰叁肆伍'), 'the capital-numeral set is never cut to 3');
+});
+
 test('special group: only when p < 1.5; a heavy backlog postpones it', () => {
   const records = history(10);
   const schedTable = {};

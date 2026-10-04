@@ -80,6 +80,8 @@ export const HEI_ONLY_COPY = Object.freeze([
   'X-FIRST.reviewFirst', // 「…再来找你」：首练结果页复现预告，黑体 15
   'X-FIRST.reviewNext',
   'X-FIRST.reviewSame',
+  'X-FIRST.daysLater', // 「N 天后再见」：结果页每字的复现天数（D48，P185），黑体 13
+  'X-FIRST.daysLaterTomorrow',
   'X-HOME.lastYesterday', // 「昨天写的字」：首页字帖位下一行的标签，黑体 13
   'X-INVITE.body', // 「锁屏上只出现词语和拼音……」：提醒邀请的说明，黑体 13
   'X-INVITE.bodyPlain',

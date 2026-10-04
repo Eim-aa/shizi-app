@@ -1,7 +1,7 @@
 // 阶段 1 P1-E5：首练结果页专属区块（result/first.js）的纯函数与「放进去」状态；首页题记留白；只用黑体的文案登记。
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { firstExtras, inviteExample } from '../../src/ui/screens/result/first.js';
+import { daysLaterOf, firstExtras, inviteExample } from '../../src/ui/screens/result/first.js';
 import { setCardResolver } from '../../src/data/deck.js';
 import { epigraphReserve, tieIntrudesEpigraph } from '../../src/ui/screens/home/today.js';
 import { EPIGRAPHS } from '../../src/config/epigraphs.js';
@@ -27,6 +27,19 @@ test('firstExtras: the preview uses the real due days (the 「放进去」 list 
   // 看过答案 / 跳过的字没有调度：不进预告；一个可预告的都没有 → 没有预告句
   const noneJudged = [cell('尴', 'answer-seen', null, 'r1'), cell('赢', 'skipped', null, 'r2')];
   assert.deepEqual(firstExtras({ cells: noneJudged, today: TODAY, sched: {} }), { preview: '' });
+});
+
+test('daysLaterOf: the result page cells → [{char, days, text}] for each judged char (data + copy only; the layout is not touched, D48)', () => {
+  const cells = [cell('尴', 'judged', 'correct', 'r1'), cell('赢', 'judged', 'wrong', 'r2'), cell('拾', 'skipped', null, 'r3'), cell('酱', 'answer-seen', null, 'r4')];
+  const out = daysLaterOf({
+    cells, today: TODAY,
+    sched: { 'base:尴': sched(addDays(TODAY, 8)), 'base:赢': sched(addDays(TODAY, 1)), 'base:拾': sched(addDays(TODAY, 3)) },
+  });
+  assert.deepEqual(out, [
+    { char: '尴', cardKey: 'base:尴', days: 8, text: '8 天后再见' },
+    { char: '赢', cardKey: 'base:赢', days: 1, text: '明天再见' },
+  ], 'skipped / answer-seen chars are not valid records → no 「再见」');
+  assert.deepEqual(daysLaterOf({ cells: [], today: TODAY, sched: {} }), []);
 });
 
 test('inviteExample: the first practice char, its word masked (□), plus the pinyin; no word → no example', () => {

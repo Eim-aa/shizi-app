@@ -18,7 +18,7 @@ import { now as envNow } from '../../../platform/env.js';
 import { inviteChangeTime, inviteReminder, maskedWord } from '../../../platform/reminder.js';
 import { cardForKey } from '../../../data/deck.js';
 import {
-  commitInviteAnswer, commitInviteShown, inviteDecision, inviteTime, inviteTimeText, previewText, reviewPreview,
+  commitInviteAnswer, commitInviteShown, daysLaterText, inviteDecision, inviteTime, inviteTimeText, previewText, reviewDays, reviewPreview,
 } from '../../../core/first-result.js';
 import { parseTime, settingsView } from '../mine/settings.js';
 
@@ -52,6 +52,17 @@ export function firstExtras({ cells, sched, today }) {
   const judged = (cells || []).filter(c => c.kind === 'judged');
   const preview = previewText(reviewPreview({ chars: judged.map(c => ({ char: c.char, cardKey: c.cardKey })), sched: sched || {}, today }), t);
   return { preview };
+}
+
+/**
+ * 每字「N 天后再见」的数据与文案（D48，P185；结果页版式等重设计接入，现在不画）。
+ * @param {{cells:Array, sched:object, today:string}} o  cells = resultModel().cells
+ * @returns {Array<{char:string, cardKey:string, days:number, text:string}>}  只有 judged 的字（有 FSRS 调度），按组内顺序
+ */
+export function daysLaterOf({ cells, sched, today }) {
+  const judged = (cells || []).filter(c => c.kind === 'judged');
+  return reviewDays({ chars: judged.map(c => ({ char: c.char, cardKey: c.cardKey })), sched: sched || {}, today })
+    .map(d => ({ ...d, text: daysLaterText(d.days, t) }));
 }
 
 export function ReviewPreview({ text }) {

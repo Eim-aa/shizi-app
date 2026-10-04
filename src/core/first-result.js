@@ -5,6 +5,8 @@
 //     到期 ≤ 1 天 →「明天」；2–3 天 →「过两天」；≥ 4 天 →「过几天」。同档的字合并成一个分句，档位从近到远。
 //     没有 sched 的字（跳过、看过答案：不是有效记录，不动 FSRS，D18 / D23）不进复现句——设计稿 #162/#170 同意；
 //     一个都没有（三个字全是跳过 / 看过答案）时没有预告句，不说假话。
+// 一b、每字「N 天后再见」（D48，P185）：reviewDays 给每个有 FSRS 调度的字算「距到期还有几天」（已到期按 1），daysLaterText 出文案；
+//     与预告句同一个来源（sched[cardKey].due）。阶段 1 只做数据与文案槽，结果页版式等重设计接入，不在这里画。
 // 二、提醒邀请（inviteDecision / inviteTime / commitInvite*）：不弹窗（D35）；最多邀请两次（D46 ③）：
 //     首练结果页一次；这次没回应（直接「再写一组」/ 关闭）→ 下一次「今天的练习」结果页再问一次；之后不再问。
 //     「不用了」、系统通知权限被拒、已经打开了提醒，都永不再问。状态在 settings.remindInvite（schema.js），写入经 store.commit。
@@ -55,6 +57,30 @@ export function previewText(preview, translate) {
   const quote = (g) => g.chars.map((c) => `「${c}」`).join('');
   const parts = groups.map((g, i) => translate(i === 0 ? 'X-FIRST.reviewFirst' : 'X-FIRST.reviewNext', { chars: quote(g), tier: tier(g) }));
   return parts.join(translate('X-FIRST.reviewJoin')) + translate('X-FIRST.reviewEnd');
+}
+
+/**
+ * 每字「N 天后再见」的天数（D48，P185）。
+ * @param {{chars: Array<{char:string, cardKey:string}>, sched: object, today: string}} o  chars 按组内顺序
+ * @returns {Array<{char:string, cardKey:string, days:number}>}  没有调度（跳过 / 看过答案，D18 / D23）或已停的字不列；重复的字只列一次；已到期按 1 天。
+ */
+export function reviewDays({ chars, sched, today }) {
+  const out = [];
+  const seen = new Set();
+  for (const item of chars || []) {
+    if (!item || seen.has(item.cardKey)) continue;
+    const entry = sched ? sched[item.cardKey] : null;
+    if (!entry || typeof entry.due !== 'string' || entry.stoppedAt !== undefined) continue;
+    seen.add(item.cardKey);
+    out.push({ char: item.char, cardKey: item.cardKey, days: Math.max(1, diffDays(today, entry.due)) });
+  }
+  return out;
+}
+
+/** 「N 天后再见」；1 天（含已到期）说「明天再见」。translate = copy.t。 */
+export function daysLaterText(days, translate) {
+  const n = Math.max(1, Math.round(Number(days) || 0));
+  return n <= 1 ? translate('X-FIRST.daysLaterTomorrow') : translate('X-FIRST.daysLater', { n });
 }
 
 // ---------------------------------------------------------------- 提醒邀请

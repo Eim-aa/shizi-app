@@ -4513,6 +4513,20 @@
           "note": "复现预告句句末标点",
           "decision": "P159"
         },
+        "daysLater": {
+          "raw": null,
+          "text": "{n} 天后再见",
+          "origin": "extra",
+          "note": "结果页每字「N 天后再见」（D48）：{n} = 距 FSRS 到期日的天数（≥ 2）；只备数据与文案槽，版式等重设计接入；黑体 13，登记在 HEI_ONLY_COPY",
+          "decision": "P185"
+        },
+        "daysLaterTomorrow": {
+          "raw": null,
+          "text": "明天再见",
+          "origin": "extra",
+          "note": "结果页每字「N 天后再见」的 1 天（含已到期）说法（D48）",
+          "decision": "P185"
+        },
         "excluded": {
           "raw": null,
           "text": "「{char}」写错了，没放进图里",

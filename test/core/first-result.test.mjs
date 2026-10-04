@@ -12,8 +12,8 @@ import { selectDaily, specialPlan } from '../../src/core/sessions.js';
 import { deferSpecial, planDaily, planSpecial, capitalDeferredDayOf } from '../../src/core/session-start.js';
 import { capitalSpecial, isDeferred } from '../../src/core/special.js';
 import {
-  INVITE_MAX, commitInviteAnswer, commitInviteShown, inviteDecision, inviteOf, inviteTime, inviteTimeText, previewText, reviewPreview,
-  tierOfDue,
+  INVITE_MAX, commitInviteAnswer, commitInviteShown, daysLaterText, inviteDecision, inviteOf, inviteTime, inviteTimeText, previewText, reviewDays,
+  reviewPreview, tierOfDue,
 } from '../../src/core/first-result.js';
 import { at, rec } from './helpers.mjs';
 
@@ -32,6 +32,34 @@ test('tierOfDue: ≤1 day = 明天, 2–3 = 过两天, ≥4 = 过几天 (already
   assert.equal(tierOfDue(addDays(TODAY, 3), TODAY), 'soon');
   assert.equal(tierOfDue(addDays(TODAY, 4), TODAY), 'later');
   assert.equal(tierOfDue(addDays(TODAY, 30), TODAY), 'later');
+});
+
+// ---------------------------------------------------------------- 每字「N 天后再见」（D48，P185；只有数据与文案，结果页版式等重设计接入）
+
+test('reviewDays: per-char days until the real FSRS due day (same source as the preview sentence); already due counts as 1; no schedule → not listed', () => {
+  const out = reviewDays({
+    chars: [item('尴'), item('赢'), item('拾'), item('跳'), item('尴')],
+    sched: { 'base:尴': sched(addDays(TODAY, 8)), 'base:赢': sched(addDays(TODAY, 1)), 'base:拾': sched(addDays(TODAY, -2)) },
+    today: TODAY,
+  });
+  assert.deepEqual(out, [
+    { char: '尴', cardKey: 'base:尴', days: 8 },
+    { char: '赢', cardKey: 'base:赢', days: 1 },
+    { char: '拾', cardKey: 'base:拾', days: 1 },
+  ], 'group order, duplicates dropped, 跳 (skipped, no sched) left out, overdue → 1');
+  // 与预告句同一个来源：一天以内「明天」档 = 1 天，其余档位的天数与到期日一致
+  const preview = reviewPreview({ chars: [item('赢'), item('尴')], sched: { 'base:赢': sched(addDays(TODAY, 1)), 'base:尴': sched(addDays(TODAY, 8)) }, today: TODAY });
+  assert.deepEqual(preview.groups.map((g) => g.tier), ['tomorrow', 'later']);
+  assert.deepEqual(reviewDays({ chars: [], sched: {}, today: TODAY }), []);
+  assert.deepEqual(reviewDays({ chars: [item('甲')], sched: { 'base:甲': { ...sched(addDays(TODAY, 5)), stoppedAt: 1 } }, today: TODAY }), [], 'stopped chars never come back');
+});
+
+test('daysLaterText: 「N 天后再见」, and 「明天再见」 for 1 day (copy slots X-FIRST.daysLater / daysLaterTomorrow, P185)', () => {
+  assert.equal(daysLaterText(1, t), '明天再见');
+  assert.equal(daysLaterText(0, t), '明天再见', 'never says 0 days');
+  assert.equal(daysLaterText(2, t), '2 天后再见');
+  assert.equal(daysLaterText(8, t), '8 天后再见');
+  assert.equal(t('X-FIRST.daysLater', { n: 12 }), '12 天后再见');
 });
 
 test('reviewPreview + previewText: tiers merge by due (near → far); the design-sheet sentences', () => {

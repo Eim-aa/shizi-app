@@ -77,6 +77,9 @@ export default Object.freeze({
   'X-FIRST.reviewSame': '{tier}，它们再来找你。',
   'X-FIRST.reviewJoin': '，',
   'X-FIRST.reviewEnd': '。',
+  // X-FIRST.daysLater（阶段 1 Q2-16，03 P185，D48）：结果页每字「N 天后再见」；只备文案槽，版式等重设计接入
+  'X-FIRST.daysLater': '{n} 天后再见',
+  'X-FIRST.daysLaterTomorrow': '明天再见',
   'X-FIRST.excluded': '「{char}」写错了，没放进图里',
   'X-FIRST.included': '「{char}」放进图里了',
   'X-FIRST.addIn': '放进去',

@@ -43,7 +43,7 @@ import { getStore } from '../../../store/store.js';
 import { makeRecord, charOfCardKey } from '../../../core/records.js';
 import { advance, clearLine, currentCardKey, withCurrent } from '../../../core/sessions.js';
 import { peekStrokes, watchStrokes } from '../../../data/strokes.js';
-import { animate, drawGlyph, glyphColor } from '../../canvas/glyph.js';
+import { animate, drawGlyph, glyphColor, prefersMoreContrast } from '../../canvas/glyph.js';
 import { GlyphFallback } from './glyph-fallback.js';
 
 /** answer 流程的阶段（01 §3.3）。 */
@@ -208,12 +208,16 @@ function useThemeVersion() {
     if (typeof window === 'undefined') return undefined;
     const bump = () => setVersion(v => v + 1);
     let mq = null;
+    let mqc = null;
     try {
       mq = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+      mqc = window.matchMedia ? window.matchMedia('(prefers-contrast: more)') : null; // 增强对比度开关变化也要重画描红（P153）
     } catch (error) {
       mq = null;
+      mqc = null;
     }
     if (mq && mq.addEventListener) mq.addEventListener('change', bump);
+    if (mqc && mqc.addEventListener) mqc.addEventListener('change', bump);
     let observer = null;
     if (typeof MutationObserver === 'function') {
       observer = new MutationObserver(bump);
@@ -221,6 +225,7 @@ function useThemeVersion() {
     }
     return () => {
       if (mq && mq.removeEventListener) mq.removeEventListener('change', bump);
+      if (mqc && mqc.removeEventListener) mqc.removeEventListener('change', bump);
       if (observer) observer.disconnect();
     };
   }, []);
@@ -337,7 +342,9 @@ export function TraceLayer({ char, cssSize = 345, onStatus }) {
     if (!canvas) return;
     const ctx = paintCanvas(canvas, cssSize);
     if (load.status === 'ready' && load.data) {
-      drawGlyph(ctx, load.data, { color: glyphColor('--danzhu'), alpha: 0.4, outline: { color: glyphColor('--danzhu'), width: 4 } });
+      // 增强对比度（D46 ⑯ / P153）：淡朱描红多一圈 1pt 墨三外廓，令牌不改
+      const halo = prefersMoreContrast() ? { color: glyphColor('--ink3'), extra: 1 } : null;
+      drawGlyph(ctx, load.data, { color: glyphColor('--danzhu'), alpha: 0.4, outline: { color: glyphColor('--danzhu'), width: 4 }, halo });
     }
   }, [load.data, load.status, cssSize, theme]);
 

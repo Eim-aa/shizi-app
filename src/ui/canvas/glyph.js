@@ -69,6 +69,18 @@ function hasPath2D() {
 }
 
 /**
+ * 系统开启「增强对比度」（CSS prefers-contrast: more）吗（D46 ⑯ / 03 P153）。canvas 画淡朱描红时据此多画一圈 1pt 墨三外廓；
+ * 无 window / 不认这个媒体查询（node:test、旧浏览器）时为 false。
+ */
+export function prefersMoreContrast() {
+  try {
+    return typeof window !== 'undefined' && !!window.matchMedia && window.matchMedia('(prefers-contrast: more)').matches;
+  } catch (error) {
+    return false;
+  }
+}
+
+/**
  * 把参考字形（或其中 [from, to) 笔）画到 ctx。ctx 的当前变换决定单位：书写格内部坐标是 345，
  * DPR 缩放由调用方先 setTransform。返回是否画了。
  * @param {CanvasRenderingContext2D} ctx
@@ -80,6 +92,7 @@ function hasPath2D() {
  * @param {number} [opts.from=0] [opts.to=N]
  * @param {boolean} [opts.fill=true]
  * @param {{color:string, width:number}} [opts.outline]  外描线（描一遍：--tl，宽按格子单位，原型 4）
+ * @param {{color:string, extra?:number}} [opts.halo]  增强对比度的外廓（P153）：在 outline 之下先画一圈更宽的线，每侧多出 extra（缺省 1）个 css 像素（1pt）
  */
 export function drawGlyph(ctx, data, opts = {}) {
   if (!ctx || !data || !Array.isArray(data.strokes) || !hasPath2D()) return false;
@@ -95,6 +108,14 @@ export function drawGlyph(ctx, data, opts = {}) {
     ctx.scale(t.k, -t.k);
     const paths = [];
     for (let i = from; i < to; i++) paths.push(new Path2D(data.strokes[i]));
+    if (opts.halo && opts.halo.color) {
+      const base = opts.outline && Number.isFinite(opts.outline.width) ? opts.outline.width : 0;
+      const extra = Number.isFinite(opts.halo.extra) ? opts.halo.extra : 1;
+      ctx.strokeStyle = opts.halo.color;
+      ctx.lineWidth = (base + 2 * extra) / t.k;
+      ctx.lineJoin = 'round';
+      for (const p of paths) ctx.stroke(p);
+    }
     if (opts.outline && opts.outline.color) {
       ctx.strokeStyle = opts.outline.color;
       ctx.lineWidth = (Number.isFinite(opts.outline.width) ? opts.outline.width : 4) / t.k;

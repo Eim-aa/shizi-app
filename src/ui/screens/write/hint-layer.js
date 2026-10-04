@@ -211,6 +211,8 @@ injectStyles('hint-layer', `
 @keyframes szHintFadeIn{from{opacity:0}}
 .sz-hint{position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none;overflow:visible}
 .sz-hint__stroke{fill:none;stroke:${T.danzhu};stroke-linecap:round;stroke-linejoin:round}
+/* 增强对比度（D46 ⑯ / 03 P153）：淡朱提示笔画加 1pt 墨三描边（四向 1px 实影），令牌不改；浅深都加 */
+@media (prefers-contrast: more){.sz-hint__stroke{filter:drop-shadow(1px 0 0 ${T.ink3}) drop-shadow(-1px 0 0 ${T.ink3}) drop-shadow(0 1px 0 ${T.ink3}) drop-shadow(0 -1px 0 ${T.ink3})}}
 .sz-hint__stroke[data-anim="draw"]{stroke-dasharray:1 2;animation-name:szHintDraw;animation-fill-mode:both}
 .sz-hintbtn{white-space:nowrap;padding:0 6px;font-size:${T.fs15};}
 .sz-hintnote{display:flex;align-items:flex-start;gap:8px}

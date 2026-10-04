@@ -64,9 +64,14 @@ const swSource = read('sw.js');
     'licenses/preact-LICENSE.txt', 'licenses/htm-LICENSE.txt'];
   const missing = licenseFiles.filter(file => !existsSync(rel(file)) || statSync(rel(file)).size === 0);
   check('complete local license texts exist', missing.length === 0, missing);
+  // C1（D50）：三组来源有问题的补充数据已移除，行保留并写明 REMOVED；仍需外部动作的行与事项必须写明（CONDITIONAL + 末段清单）。
+  const rowOf = label => legal.split('\n').find(line => line.startsWith('| ' + label)) || '';
   check('LEGAL_RELEASE_CHECKLIST keeps unresolved release gates explicit',
-    ['Project-authored code and content', 'MOE/stroke-order supplement', 'Human-generated supplement',
-      'Stroke-order merged supplement', 'BLOCKED'].every(text => legal.includes(text)));
+    ['Project-authored code and content', 'Hanzi Writer Data 2.0.1 baseline', 'AnimCJK-derived supplement', 'Make Me a Hanzi metadata']
+      .every(label => /\| (CLEARED|CONDITIONAL|BLOCKED) \|/.test(rowOf(label)))
+    && ['MOE stroke-order supplement', 'Font-outline extraction from STKaitiSC', 'Stroke-order merged supplement']
+      .every(label => rowOf(label).includes('| REMOVED |'))
+    && ['BLOCKED', 'CONDITIONAL', 'External actions still open', 'Arphic Technology'].every(text => legal.includes(text)));
 }
 
 // ---- index.html CSP --------------------------------------------------------

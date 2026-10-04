@@ -415,6 +415,7 @@ const settingsFields = {
   capitalDeferredDay: v.day, // D46 ④：点了「这次先写平常的字」的那一天
   writeMode: v.oneOf(['screen', 'paper']), // D46 ⑬（P1-E8，03 P165）：设置 › 写字方式；缺省 screen
   paperSuggested: v.bool, // P1-E8（03 P168）：读屏开启时「改为在纸上写」的建议已出现过（只出现一次）
+  answerNoteSeen: v.bool, // W1（03 P212，D51 ⑧）：第一次用「看答案」时格下的一行说明已出现过（只出现一次；看答案没有确认框）
   firstTipSeen: v.bool, // Q2-1（03 P181）：首练第 1 字格下一次性提示「凭记忆写，想不起来可以点提示。」已出现过（只出现一次）
 
   large: v.bool,

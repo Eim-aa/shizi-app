@@ -104,9 +104,6 @@ export default async function s1SoundSpec(page, ctx) {
   const logBefore = (await log(page)).length;
   const reqBefore = requests.length;
   await page.click(topSel('write-show-answer'));
-  await page.waitForSelector(tid('write-answer-confirm'));
-  await waitNavIdle(page);
-  await page.click(tid('confirm-ok'));
   await page.waitForSelector(topSel('write-answer-trace'));
   await waitNavIdle(page);
   await page.click(topSel('write-answer-trace'));

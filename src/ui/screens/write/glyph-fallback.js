@@ -32,6 +32,7 @@ export const FALLBACK_OFFSET_RATIO = 0.03;
 
 const VARIANT_COLOR = Object.freeze({
   answer: 'var(--ref)',
+  under: 'var(--under)', // 看答案：衬在本人墨下层的答案字（D34 / D51 ⑧）
   reference: 'var(--ref)',
   trace: 'var(--danzhu)',
 });
@@ -49,7 +50,7 @@ injectStyles('glyph-fallback', `
  * 楷体整字。父元素须 position:relative（与书写格 / 对照卡同尺寸）。
  * @param {object} props
  * @param {string} props.char
- * @param {'answer'|'trace'|'reference'} [props.variant='answer']
+ * @param {'answer'|'under'|'trace'|'reference'} [props.variant='answer']
  * @param {number} [props.size=345]  CSS px 边长
  * @param {string} [props.testid='write-glyph-fallback']
  */

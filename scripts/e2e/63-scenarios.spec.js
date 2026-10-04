@@ -163,10 +163,6 @@ async function judge(page, judgment, { nextCursor = null } = {}) {
 
 async function openAnswer(page) {
   await page.click(topSel('write-show-answer'));
-  await page.waitForSelector(tid('write-answer-confirm'));
-  await waitNavIdle(page);
-  await page.click(`${tid('write-answer-confirm')} ${tid('confirm-ok')}`);
-  await page.waitForFunction(() => !document.querySelector('[data-testid="write-answer-confirm"]'));
   await waitPhase(page, 'answer');
 }
 

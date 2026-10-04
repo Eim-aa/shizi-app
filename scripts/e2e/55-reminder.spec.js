@@ -300,9 +300,6 @@ async function scenarioFeedback(page, ctx) {
 
   n0 = (await nativeMessages(page)).length;
   await page.click(topSel('write-show-answer'));
-  await page.waitForSelector(tid('write-answer-confirm'));
-  await waitNavIdle(page);
-  await page.click(tid('confirm-ok'));
   await page.waitForSelector(topSel('write-answer-trace'));
   await waitNavIdle(page);
   assert.deepEqual(await hapticsSince(page, n0), ['haptic:action'], '看答案: action');

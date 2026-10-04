@@ -286,30 +286,20 @@ async function compactWalk(page, ctx, { large }) {
   await waitNavIdle(page);
 
   // ---------------------------------------------------------------- answer
-  ctx.step(`${tag}: 看答案 → confirm → answer page: glyph card 200–345, buttons first screen`);
+  ctx.step(`${tag}: 看答案 (no confirm) → answer page: the answer glyph sits in the writing grid (200–345), buttons first screen`);
   await page.click(topSel('write-show-answer'));
-  await page.waitForSelector(tid('write-answer-confirm'));
-  await waitNavIdle(page);
-  g = await geometry(page, `${large ? 'L' : 'N'}-confirm`);
-  assert.ok(inView(g, g.r['write-answer-confirm']), `${tag}: confirm panel inside the viewport`);
-  common(assert, g, `${tag} confirm`, ['confirm-ok', 'confirm-cancel']);
-  await page.click(tid('confirm-ok'));
-  await page.waitForFunction(() => !document.querySelector('[data-testid="write-answer-confirm"]'));
   await waitPhase(page, 'answer');
+  assert.equal(await page.locator(tid('write-answer-confirm')).count(), 0, `${tag}: no confirm dialog`);
   await page.waitForSelector(`${topSel('write-answer-card')}[data-state="ready"]`);
   await page.waitForTimeout(300);
   g = await geometry(page, `${large ? 'L' : 'N'}-answer`);
   const card = g.r['write-answer-card'];
   assert.ok(!!card && card.width >= 200 - 0.5 && card.width <= 345 + 0.5 && Math.abs(card.width - card.height) < 1,
-    `${tag}: answer glyph card is square and 200–345 (${card && card.width})`);
-  assert.ok(card.top >= g.head.bottom - 0.5 && card.bottom <= g.foot.top + 0.5, `${tag}: whole answer card visible above the footer`);
-  const svgBox = await page.evaluate(() => {
-    const host = document.querySelector('.sz-layer[data-top="true"] [data-testid="write-answer-card"] .sz-answer__anim');
-    const svg = host && host.querySelector('svg');
-    const b = (svg || host).getBoundingClientRect();
-    return { w: b.width, h: b.height, svg: !!svg };
-  });
-  assert.ok(svgBox.w >= 200 - 0.5 && svgBox.w <= 345 + 0.5, `${tag}: glyph drawing box 200–345 (${svgBox.w}, svg ${svgBox.svg})`);
+    `${tag}: answer glyph layer is square and 200–345 (${card && card.width})`);
+  assert.ok(Math.abs(card.width - (g.r['write-grid'].width - 2)) <= 1.5, `${tag}: the answer layer fills the writing grid (${card.width} vs ${g.r['write-grid'].width})`);
+  // 看答案不换卡后，答案页的格子就是书写格（D36：格子不随阶段变），底栏比回忆阶段高约 50（说明行 + 两键 + 下一个）；iPhone SE 3（667 高）以上完整露在底栏之上，
+  // 比它还矮的 360×640 上格子最下面约 6pt 压在底栏线下（正文可滚；描一遍阶段同样如此）——不再像旧版那样把答案卡缩到 200 去躲底栏。
+  assert.ok(card.top >= g.head.bottom - 0.5 && card.bottom <= g.foot.top + (g.vh < 660 ? (large ? 24 : 8) : 0.5), `${tag}: whole answer glyph visible above the footer (screens shorter than 660 may tuck its last rows under it; now ${(card.bottom - g.foot.top).toFixed(1)}pt)`);
   common(assert, g, `${tag} answer`, ['write-answer-self', 'write-answer-trace', 'write-answer-next']);
 
   ctx.step(`${tag}: 描一遍 → trace grid 274; 描好了 → 自己写 grid 274`);
@@ -357,10 +347,6 @@ async function compactEnd(page, ctx, { large }) {
   ctx.step(`${tag}: recall / answer / trace / retrace all show 结束这组 on the first screen without covering other buttons`);
   await check('recall', ['write-hint', 'write-done', 'write-show-answer', 'write-skip']);
   await page.click(topSel('write-show-answer'));
-  await page.waitForSelector(tid('write-answer-confirm'));
-  await waitNavIdle(page);
-  await page.click(tid('confirm-ok'));
-  await page.waitForFunction(() => !document.querySelector('[data-testid="write-answer-confirm"]'));
   await waitPhase(page, 'answer');
   await check('answer', ['write-answer-self', 'write-answer-trace', 'write-answer-next']);
   await page.click(topSel('write-answer-trace'));

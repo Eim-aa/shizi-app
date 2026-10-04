@@ -86,19 +86,17 @@ export default async function skipUndo(page, ctx) {
   const hints = await page.evaluate(() => window.__shiziTest.getState().sessions.A.current.hints);
   assert.equal(hints, 1, 'the hint on 和 is recorded (not taken back by an undo)');
 
-  ctx.step('跳过 → 看答案 on the next character → bar gone, and stays gone after cancelling the confirm');
+  ctx.step('跳过 → 看答案 on the next character → bar gone (no confirm dialog any more, D51 ⑧)');
   await fresh(page, ctx, 0);
   await page.click(topSel('write-skip'));
   await waitCursor(page, 1);
   assert.equal(await present(page, 'write-skip-undo'), true, 'undo bar shown');
   await page.click(topSel('write-show-answer'));
-  await page.waitForSelector(tid('write-answer-confirm'));
+  await page.waitForSelector(topSel('write-answer-trace'));
+  assert.equal(await page.locator(tid('write-answer-confirm')).count(), 0, 'no confirm dialog');
   assert.equal(await present(page, 'write-skip-undo'), false, 'bar gone after 看答案');
   await waitNavIdle(page);
-  await page.click(tid('confirm-cancel'));
-  await page.waitForFunction(() => !document.querySelector('[data-testid="write-answer-confirm"]'));
-  await waitNavIdle(page);
-  assert.equal(await present(page, 'write-skip-undo'), false, 'bar stays gone after 再想想');
+  assert.equal(await present(page, 'write-skip-undo'), false, 'bar stays gone');
   assert.equal((await writeSnapshot(page)).cursor, 1, 'still on 和');
 
   ctx.step('D36 / P115: a finger held on the bar pauses the clock, releasing lets the rest run out');

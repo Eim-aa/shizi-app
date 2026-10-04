@@ -95,10 +95,6 @@ export default async function q1AfterSeen(page, ctx) {
 
   step('永: 看答案 → 描一遍 (one horizontal) → 自己写 (vertical + horizontal) → 再描一遍 → 自己写 (vertical) → 下一个');
   await page.click(topSel('write-show-answer'));
-  await page.waitForSelector(tid('write-answer-confirm'));
-  await waitNavIdle(page);
-  await page.click(tid('confirm-ok'));
-  await page.waitForFunction(() => !document.querySelector('[data-testid="write-answer-confirm"]'));
   await waitPhase(page, 'answer');
   await page.click(topSel('write-answer-trace'));
   await waitPhase(page, 'trace');

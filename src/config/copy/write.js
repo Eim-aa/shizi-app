@@ -22,10 +22,8 @@ export default Object.freeze({
   'R-W05.hintUnavailable': '暂时没有提示',
   'R-W05.noHintNote': '这个字暂时没有提示，可以直接看答案。',
   // R-W06（说明句「浅红色是提示……」已删，D51 ⑧：不再用文字解释颜色；方案②/N07 原型专用-不做）
-  // R-W07（已定（N01 的「」与 X10 关系见 §5.1-2））
-  'R-W07.confirmBody': '看了答案，这个字就记为看过答案。',
-  'R-W07.confirmKeepThinking': '接着想',
-  'R-W07.confirmShow': '看答案',
+  // R-W07（D51 ⑧：看答案没有确认框，确认正文与两键已删；第一次用时格下一行说明 firstExplain，P212）
+  'R-W07.firstExplain': '以后点「看答案」会直接显示。',
   'R-W07.answerNote': '这个字记为看过答案，后面再写只算练习。',
   'R-W07.btnSelf': '自己写',
   'R-W07.btnTrace': '描一遍',

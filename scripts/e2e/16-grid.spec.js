@@ -174,17 +174,13 @@ export default async function grid(page, ctx) {
     assert.ok(square(g.grid, size), `${tag}: grid unchanged after the first stroke`);
 
     await page.click(topSel('write-show-answer'));
-    await page.waitForSelector(tid('write-answer-confirm'));
-    await waitNavIdle(page);
-    await page.click(tid('confirm-ok'));
-    await page.waitForFunction(() => !document.querySelector('[data-testid="write-answer-confirm"]'));
     await waitPhase(page, 'answer');
     await page.waitForSelector(`${topSel('write-answer-card')}[data-state="ready"]`);
     await page.waitForTimeout(300);
     g = await geo(page);
-    assert.ok(g.card && Math.abs(g.card.width - g.card.height) < 1 && g.card.width <= size + 0.5 && g.card.width >= 200 - 0.5,
-      `${tag}: answer card is square, 200 ≤ card ≤ grid ${size} (${g.card && g.card.width})`);
-    if (!large && view.height > 760) assert.ok(square(g.card, size), `${tag}: standard layout: answer card = grid ${size}`);
+    assert.ok(square(g.grid, size), `${tag}: the answer page keeps the writing grid at ${size} (看答案 does not swap in another card, D51 ⑧)`);
+    assert.ok(!!g.card && Math.abs(g.card.width - (size - 2)) <= 1.5 && Math.abs(g.card.height - (size - 2)) <= 1.5,
+      `${tag}: the answer layer fills the grid inside its frame (${g.card && g.card.width})`);
 
     await page.click(topSel('write-answer-trace'));
     await waitPhase(page, 'trace');

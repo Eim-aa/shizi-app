@@ -486,9 +486,10 @@ export default async function a11y(page, realCtx) {
   }
   await audit(page, cdp, ctx, 'write/recall');
 
-  ctx.step('write page: 看答案 confirm (alertdialog, focus trap, focus return)');
+  ctx.step('write page: 看答案 has no confirm; only a failed write opens the 先不保存 / 再试一次 dialog (alertdialog, focus trap, focus return)');
+  await page.evaluate(() => window.__shiziTest.failNextWrite(1, { kind: 'generic' }));
   await page.click(topSel('write-show-answer'));
-  await dialogCheck(page, cdp, ctx, { label: 'write/answer-confirm', panel: tid('write-answer-confirm'), opener: 'write-show-answer' });
+  await dialogCheck(page, cdp, ctx, { label: 'write/answer-save-failed', panel: tid('write-answer-confirm'), opener: 'write-show-answer' });
 
   ctx.step('write page: compare');
   await drawStroke(page, HORIZONTAL);
@@ -525,10 +526,6 @@ export default async function a11y(page, realCtx) {
 
   ctx.step('write page: answer');
   await page.click(topSel('write-show-answer'));
-  await page.waitForSelector(tid('write-answer-confirm'));
-  await waitNavIdle(page);
-  await page.click(tid('confirm-ok'));
-  await page.waitForFunction(() => !document.querySelector('[data-testid="write-answer-confirm"]'));
   await waitPhase(page, 'answer');
   await audit(page, cdp, ctx, 'write/answer');
 

@@ -656,26 +656,9 @@
     "R-W07": {
       "screen": "write",
       "milestone": "M1",
-      "status": "已定（N01 的「」与 X10 关系见 §5.1-2）",
+      "status": "已定（N01 的「」与 X10 关系见 §5.1-2）；D51 ⑧：看答案没有确认框，确认正文与「接着想 / 看答案」两键已删",
       "source": "K25/D18；W05/W06；N01；T04；C023/C024；X01；N08；改动 L87–89",
       "slots": {
-        "confirmBody": {
-          "raw": "看了答案，这个字就记为「看过答案」。",
-          "text": "看了答案，这个字就记为看过答案。",
-          "decision": "P40",
-          "note": "按 X10 去掉结果词的「」",
-          "override": true
-        },
-        "confirmKeepThinking": {
-          "raw": "接着想 / 看答案",
-          "part": 0,
-          "text": "接着想"
-        },
-        "confirmShow": {
-          "raw": "接着想 / 看答案",
-          "part": 1,
-          "text": "看答案"
-        },
         "answerNote": {
           "raw": "这个字记为看过答案，后面再写只算练习。",
           "text": "这个字记为看过答案，后面再写只算练习。"
@@ -701,8 +684,25 @@
           "text": "看答案",
           "origin": "04 R-W07 规则列「看答案先确认」：写字页上的「看答案」按钮",
           "note": "与确认框按钮同字"
+        },
+        "firstExplain": {
+          "raw": null,
+          "text": "以后点「看答案」会直接显示。",
+          "origin": "extra",
+          "note": "第一次用「看答案」时格下一行说明（13，墨三；求助梯子设计稿 I2-02，过渡文案）；出现即记 settings.answerNoteSeen，只出现一次",
+          "decision": "P212"
         }
-      }
+      },
+      "dropped": [
+        {
+          "raw": "看了答案，这个字就记为「看过答案」。",
+          "why": "P40 / D51 ⑧：删除看答案确认框；后果由底栏说明 answerNote 与第一次的格下说明 firstExplain 承担"
+        },
+        {
+          "raw": "接着想 / 看答案",
+          "why": "D51 ⑧：删除看答案确认框（点「看答案」直接看）"
+        }
+      ]
     },
     "R-W08": {
       "screen": "write",

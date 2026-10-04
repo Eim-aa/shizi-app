@@ -1,11 +1,10 @@
-// M1-4 看答案 / 描一遍 / 自己写（02 §3 M1-4；决定-D18；01 §3.2 / §3.3 / §6.5；04 R-W07 / R-W08；走查-W19）。
-// seed 一个 A 会话（永 / 和 / 春）→ 没落笔就点「看答案」→ 确认框文案 R-W07 →「接着想」不记任何事 →
-// failNextWrite(1,{kind:'generic'}) 时确认写失败留在确认框（三段式）→「再试一次」成功才进看答案页，记录恰好一条
-// kind='answer-seen'，今日 N（judged 去重）仍为 0 → 描一遍（先播一遍、落笔即跳过、help.traced）→ 描好了，自己写 →
-// 再描一遍 → 自己写 →「下一个」推进（item kind='answer-seen'、结果行 saw），全程不进判断页（compare）→
-// 第二字：看答案页「自己写」直达、「下一个」写失败留现场可重试 → 第三字：看答案页底部「下一个」直接推进 →
-// 10.13 无笔顺数据：楷体整字、照实记 answer-seen、描一遍浅色整字不播 → 减少动态效果：看答案直接终态。
-// 控制台零错误由 run.mjs 统一断言（10.13 段的 404 请求显式放行）。
+// M1-4 看答案 / 描一遍 / 自己写（02 §3 M1-4；决定-D18；01 §3.2 / §3.3 / §6.5；04 R-W07 / R-W08；走查-W19）；W1（D34 / D51 ⑧，I2-02 / V2-02）改后：
+// seed 一个 A 会话（永 / 和 / 春）→ 先写两笔 → failNextWrite(1) 时点「看答案」写失败弹三段式失败框（先不保存 / 再试一次）→「先不保存」什么都不记 →
+// 再点「看答案」**没有任何确认框**、直接进看答案页：记录恰好一条 kind='answer-seen'，今日 N（judged 去重）仍为 0，本人墨（两笔）像素不变、不清空、
+// 不换卡，答案字形在书写格的参考字形层里（本人墨下层），第一次格下一行说明并记 settings.answerNoteSeen → 描一遍（快放 ≤ 1.6s、点一下即到终态、
+// help.traced）→ 描好了，自己写 → 再描一遍 → 自己写 →「下一个」推进（item kind='answer-seen'、结果行 saw），全程不进判断页（compare）→
+// 第二字：看答案页「自己写」直达（第二次起没有格下说明）、「下一个」写失败留现场可重试 → 第三字：描一遍快放 ≤ 1.6s → 10.13 无笔顺数据：楷体整字衬底、
+// 照实记 answer-seen、描一遍浅色整字不播 → 减少动态效果：看答案直接终态。控制台零错误由 run.mjs 统一断言（10.13 段的 404 请求显式放行）。
 
 import {
   bootTestHost, drawStroke, HORIZONTAL, localDayOf, PRESS_SETTLE_MS, seedSession, tid, topSel, VERTICAL,
@@ -14,9 +13,7 @@ import {
 
 const COPY = {
   link: '看答案',
-  confirmBody: '看了答案，这个字就记为看过答案。',
-  keepThinking: '接着想',
-  show: '看答案',
+  firstExplain: '以后点「看答案」会直接显示。',
   saveFailed: '没保存上，你写的字还在。',
   retry: '再试一次',
   notNow: '先不保存',
@@ -110,15 +107,38 @@ async function waitAttr(page, id, attr, values, timeout = 15000) {
   return page.getAttribute(topSel(id), attr);
 }
 
-async function openConfirm(page) {
+/** 点「看答案」：没有确认框，直接进看答案页（D51 ⑧）。 */
+async function showAnswer(page) {
   await page.click(topSel('write-show-answer'));
-  await page.waitForSelector(tid('write-answer-confirm'));
-  await waitNavIdle(page);
+  await waitPhase(page, 'answer');
+  assert0(await page.locator(tid('write-answer-confirm')).count() === 0, 'no confirm dialog appeared');
+}
+
+function assert0(ok, msg) {
+  if (!ok) throw new Error(msg);
 }
 
 async function confirmClosed(page) {
   await page.waitForFunction(() => !document.querySelector('[data-testid="write-answer-confirm"]'));
   await waitNavIdle(page);
+}
+
+/** 本人墨：固化层 canvas 上最不透明的像素 + 元素与祖先 opacity 连乘。 */
+async function inkProbe(page) {
+  return page.evaluate(() => {
+    const top = document.querySelector('.sz-layer[data-top="true"]');
+    const ink = top.querySelector('[data-testid="write-grid-ink"]');
+    let eff = 1;
+    for (let el = ink; el && el.nodeType === 1; el = el.parentElement) eff *= Number(getComputedStyle(el).opacity);
+    const data = ink.getContext('2d').getImageData(0, 0, ink.width, ink.height).data;
+    let best = null;
+    let solid = 0;
+    for (let i = 0; i < data.length; i += 4) {
+      if (data[i + 3] > 200) solid += 1;
+      if (!best || data[i + 3] > best[3] || (data[i + 3] === best[3] && data[i] < best[0])) best = [data[i], data[i + 1], data[i + 2], data[i + 3]];
+    }
+    return { eff, px: best, solid };
+  });
 }
 
 export default async function answer(page, ctx) {
@@ -140,50 +160,49 @@ export default async function answer(page, ctx) {
   assert.equal(await label(page, 'write-show-answer'), COPY.link, 'recall shows the 「看答案」 text button (R-W07.btnShowAnswer)');
   assert.ok(await page.isVisible(topSel('write-done')), 'recall footer is the normal one (「写好了」 present)');
 
-  ctx.step('看答案 → centred confirm with R-W07 copy; the answer character is not in it (D16)');
-  await openConfirm(page);
-  let c = await confirmState(page);
-  assert.equal(c.body, COPY.confirmBody, 'confirm body R-W07.confirmBody');
-  assert.deepEqual([c.cancel, c.ok], [COPY.keepThinking, COPY.show], 'buttons 接着想 / 看答案');
-  assert.equal(c.role, 'alertdialog', 'confirm is an alertdialog');
-  assert.deepEqual(CHARS.filter(ch => c.html.includes(ch)), [], 'no answer character in the confirm');
-  const focused = await page.evaluate(() => document.activeElement && document.activeElement.getAttribute('data-testid'));
-  assert.ok(focused !== 'confirm-ok' && focused !== 'confirm-cancel', 'no button preselected in the confirm');
-
-  ctx.step('接着想 → nothing recorded, still recall');
-  await page.click(topSel('confirm-cancel'));
-  await confirmClosed(page);
-  let f = await facts(page);
-  assert.equal(f.records.length, 0, 'no record after 接着想');
-  assert.equal(f.session.current.phase, 'recall', 'session phase still recall');
+  ctx.step('write two strokes first: they are the writer\'s own ink that 看答案 must keep');
+  await drawStroke(page, HORIZONTAL);
+  await drawStroke(page, VERTICAL);
   s = await track();
-  assert.equal(s.phase, 'recall', 'screen still recall');
+  assert.equal(s.strokes, 2, 'two strokes on the recall grid');
+  const inkRecall = await inkProbe(page);
+  assert.ok(inkRecall.solid > 200 && inkRecall.px[3] > 200, `solid ink on the grid (${inkRecall.solid} px)`);
 
-  ctx.step('failNextWrite(1,{generic}) → confirming fails → stays in the confirm with the three-part failure copy');
-  await openConfirm(page);
+  await page.waitForFunction(() => window.__shiziTest.getState().sessions.A.current.strokes.length === 2); // 抬笔写回会话现场已落盘，免得注入的失败被它吃掉
+  ctx.step('failNextWrite(1,{generic}) → 看答案 write fails → three-part failure dialog (先不保存 / 再试一次); nothing recorded, ink untouched');
   await page.evaluate(() => window.__shiziTest.failNextWrite(1, { kind: 'generic' }));
-  await page.click(topSel('confirm-ok'));
-  await page.waitForTimeout(PRESS_SETTLE_MS);
-  c = await confirmState(page);
-  assert.ok(!!c, 'confirm still open after the failed write');
-  assert.equal(c.body, COPY.saveFailed, 'body switches to 「没保存上，你写的字还在。」 (R-W16 / R-G04)');
+  await page.click(topSel('write-show-answer'));
+  await page.waitForSelector(tid('write-answer-confirm'));
+  await waitNavIdle(page);
+  let c = await confirmState(page);
+  assert.equal(c.body, COPY.saveFailed, 'body 「没保存上，你写的字还在。」 (R-W16 / R-G04)');
   assert.deepEqual([c.cancel, c.ok], [COPY.notNow, COPY.retry], 'buttons 先不保存 / 再试一次');
-  f = await facts(page);
+  assert.deepEqual(CHARS.filter(ch => c.html.includes(ch)), [], 'no answer character in the failure dialog (D16)');
+  let f = await facts(page);
   assert.equal(f.records.length, 0, 'failed write recorded nothing');
   assert.equal(f.session.current.phase, 'recall', 'failed write did not change the session');
   assert.equal(f.session.current.answerSeen, false, 'answerSeen still false');
   const recordWrites = await page.evaluate(() => window.__shiziTest.getWriteLog()
     .filter(e => e.ok && e.op === 'set' && e.key.startsWith('shizi.v2.records.')).length);
   assert.equal(recordWrites, 0, 'no records key was written (rolled back / never published)');
+  assert.deepEqual((await inkProbe(page)).px, inkRecall.px, 'own ink unchanged after the failure');
 
-  ctx.step('再试一次 → succeeds → answer page; exactly one answer-seen record, not judged, today N = 0');
-  await page.click(topSel('confirm-ok'));
+  ctx.step('先不保存 → dialog closes, still recall, two strokes still there');
+  await page.click(topSel('confirm-cancel'));
   await confirmClosed(page);
+  s = await track();
+  assert.deepEqual([s.phase, s.strokes], ['recall', 2], 'still recall with the ink');
+  f = await facts(page);
+  assert.equal(f.records.length, 0, 'no record after 先不保存');
+
+  ctx.step('看答案 (no failure) → NO confirm dialog at all: straight to the answer page on the same card, one answer-seen record, today N = 0');
+  await page.click(topSel('write-show-answer'));
   await waitPhase(page, 'answer');
+  assert.equal(await page.locator(tid('write-answer-confirm')).count(), 0, 'no confirm dialog (D51 ⑧)');
   s = await track();
   assert.equal(s.title, COPY.titleAnswer, 'title R-W03.titleAnswer');
   f = await facts(page);
-  assert.equal(f.records.length, 1, 'exactly one record after the retry');
+  assert.equal(f.records.length, 1, 'exactly one record');
   const rec1 = f.records[0];
   assert.equal(rec1.kind, 'answer-seen', "record kind === 'answer-seen'");
   assert.equal(rec1.cardKey, 'base:永', 'record is for 永');
@@ -198,23 +217,58 @@ export default async function answer(page, ctx) {
   assert.deepEqual(f.ink, {}, 'no ink written for answer-seen');
   assert.equal(f.session.current.phase, 'answer', "session.current.phase === 'answer'");
   assert.equal(f.session.current.answerSeen, true, 'session.current.answerSeen === true');
-  assert.equal(f.session.lastLine, null, 'result line collapsed on confirming (D19)');
+  assert.equal(f.session.current.strokes.length, 2, 'the writer\'s two strokes are still in the session (not cleared)');
+  assert.equal(f.session.lastLine, null, 'result line collapsed on 看答案 (D19)');
   assert.equal(f.session.cursor, 0, 'cursor not advanced yet');
 
-  ctx.step('answer page: card plays the glyph, R-W07 note and buttons, 下一个 link; no judge / write-done');
-  const anim = await waitAttr(page, 'write-answer-card', 'data-anim', ['completed', 'static', 'failed']);
-  assert.equal(await page.getAttribute(topSel('write-answer-card'), 'data-state'), 'ready', 'stroke data ready');
-  assert.equal(anim, 'completed', 'hanzi-writer play finished (final state = full glyph)');
-  assert.ok(await page.locator(`${topSel('write-answer-card')} svg path`).count() > 0, 'glyph strokes drawn in the card');
-  const card = await page.locator(topSel('write-answer-card')).boundingBox();
-  assert.equal(Math.round(card.width), 353, 'answer card is 353 wide at 393×852 (same geometry as the grid: screen width − 40, D36 / P1-E1b gutter 20)');
+  ctx.step('answer page: same grid, own ink untouched, the answer glyph is drawn UNDER the ink (--under, in the reference layer); no judge / write-done');
+  assert.equal(await waitAttr(page, 'write-answer-card', 'data-state', ['ready', 'missing']), 'ready', 'stroke data ready');
+  assert.equal(await page.getAttribute(topSel('write-answer-card'), 'data-anim'), 'reveal', 'answer under-layer reveals (400ms)');
+  assert.ok(await visible(page, 'write-grid'), 'the writing grid is still there (看答案 does not swap the card, D51 ⑧)');
+  assert.equal(await page.getAttribute(topSel('write-grid'), 'data-drawable'), 'false', 'no more writing on the answer page');
+  assert.equal(s.strokes, 2, 'the two strokes are still on the grid');
+  const layers = await page.evaluate(() => {
+    const top = document.querySelector('.sz-layer[data-top="true"]');
+    const card = top.querySelector('[data-testid="write-answer-card"]');
+    const glyph = top.querySelector('[data-testid="write-glyph-layer"]');
+    const ink = top.querySelector('[data-testid="write-grid-ink"]');
+    const grid = top.querySelector('[data-testid="write-grid"]');
+    const cv = card.querySelector('canvas');
+    const data = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data;
+    let n = 0;
+    let rgb = null;
+    for (let i = 0; i < data.length; i += 4) {
+      if (data[i + 3] === 255) { n += 1; if (!rgb) rgb = [data[i], data[i + 1], data[i + 2]]; }
+    }
+    const probe = document.createElement('span');
+    probe.style.color = 'var(--under)';
+    document.body.appendChild(probe);
+    const under = getComputedStyle(probe).color;
+    probe.remove();
+    return {
+      inGlyphLayer: glyph.contains(card), below: !!(glyph.compareDocumentPosition(ink) & Node.DOCUMENT_POSITION_FOLLOWING),
+      cardW: Math.round(card.getBoundingClientRect().width), gridW: Math.round(grid.getBoundingClientRect().width),
+      solid: n, rgb: rgb ? `rgb(${rgb.join(', ')})` : null, under,
+    };
+  });
+  assert.deepEqual([layers.inGlyphLayer, layers.below], [true, true], 'answer layer lives in the reference layer, below the ink canvas');
+  assert.equal(layers.cardW, layers.gridW - 2, 'answer layer fills the grid inside its 1px frame (same geometry as the hint layer)');
+  assert.equal(layers.gridW, 353, 'grid is 353 wide at 393×852 (screen width − 40, D36 / P1-E1b gutter 20)');
+  assert.ok(layers.solid > 500, `the answer glyph is drawn (${layers.solid} solid px)`);
+  assert.equal(layers.rgb, layers.under, 'answer glyph colour = --under');
+  const inkAnswer = await inkProbe(page);
+  assert.deepEqual(inkAnswer.px, inkRecall.px, 'darkest ink pixel identical to the recall one: not dimmed, not cleared');
+  assert.equal(inkAnswer.solid, inkRecall.solid, 'same number of solid ink pixels');
+  assert.equal(inkAnswer.eff, 1, 'ink canvas effective opacity 1');
+  assert.equal(await text(page, 'write-note'), COPY.firstExplain, 'first time: one line under the grid R-W07.firstExplain');
+  assert.equal((await page.evaluate(() => window.__shiziTest.getState().settings)).answerNoteSeen, true, 'settings.answerNoteSeen recorded (once)');
   assert.equal(await text(page, 'write-answer-note'), COPY.answerNote, 'note above buttons R-W07.answerNote');
+  assert.equal(await page.getAttribute(topSel('write-answer-char'), 'aria-label'), '永', 'screen readers get the answer glyph from the footer (the reference layer is aria-hidden)');
   assert.deepEqual([await label(page, 'write-answer-self'), await label(page, 'write-answer-trace')], [COPY.self, COPY.trace],
     'buttons 自己写 / 描一遍');
   assert.equal(await label(page, 'write-answer-next'), COPY.next, 'bottom link 下一个');
   assert.equal(await visible(page, 'write-done'), false, 'no 「写好了」 on the answer page');
   assert.equal(await visible(page, 'write-show-answer'), false, 'no second 「看答案」');
-  assert.equal(await visible(page, 'write-grid'), false, 'grid replaced by the answer card');
 
   ctx.step('描一遍 → trace: outline + preview animation, R-W08 note, step dot 1, traced fact recorded');
   await page.click(topSel('write-answer-trace'));
@@ -288,11 +342,10 @@ export default async function answer(page, ctx) {
   assert.equal(f.todayN, 0, '今日 N still 0');
   assert.equal(await label(page, 'write-show-answer'), COPY.link, '看答案 available again for the new character');
 
-  ctx.step('第二字: confirm → 自己写 goes straight to retrace (traced stays false)');
-  await openConfirm(page);
-  await page.click(topSel('confirm-ok'));
-  await confirmClosed(page);
-  await waitPhase(page, 'answer');
+  ctx.step('第二字: 看答案 (no confirm, no first-time line any more) → 自己写 goes straight to retrace (traced stays false)');
+  await showAnswer(page);
+  assert.equal(await text(page, 'write-note'), '', 'the one-time explanation does not come back (settings.answerNoteSeen)');
+  assert.equal(await text(page, 'write-answer-note'), COPY.answerNote, 'the consequence line above the buttons stays');
   await page.click(topSel('write-answer-self'));
   await waitPhase(page, 'retrace');
   f = await facts(page);
@@ -330,11 +383,8 @@ export default async function answer(page, ctx) {
   assert.equal(f.session.items.length, 2, 'exactly one item for 和 (retry did not duplicate)');
   assert.equal(f.records.length, 2, 'still two records');
 
-  ctx.step('第三字: answer page bottom 下一个 advances directly; session complete');
-  await openConfirm(page);
-  await page.click(topSel('confirm-ok'));
-  await confirmClosed(page);
-  await waitPhase(page, 'answer');
+  ctx.step('第三字: 看答案 → 下一个 advances directly; session complete');
+  await showAnswer(page);
   await page.click(topSel('write-answer-next'));
   await page.waitForFunction(() => {
     const st = window.__shiziTest.getState();
@@ -367,13 +417,10 @@ export default async function answer(page, ctx) {
   const seeded2 = await seedSession(page, { slot: 'A', kind: 'daily', chars: [NODATA, '春'], cursor: 0, id: 's9' });
   assert.ok(seeded2.ok, 'seeded a session whose first character has no stroke data');
   await openWrite(page, { slot: 'A' });
-  await openConfirm(page);
-  await page.click(topSel('confirm-ok'));
-  await confirmClosed(page);
-  await waitPhase(page, 'answer');
+  await showAnswer(page);
   assert.equal(await waitAttr(page, 'write-answer-card', 'data-state', ['missing']), 'missing', 'stroke data missing');
-  assert.equal(await page.getAttribute(`${topSel('write-answer-card')} ${tid('write-glyph-fallback')}`, 'data-variant'), 'answer',
-    'Kai full glyph fallback (variant answer)');
+  assert.equal(await page.getAttribute(`${topSel('write-answer-card')} ${tid('write-glyph-fallback')}`, 'data-variant'), 'under',
+    'Kai full glyph fallback, in the under-ink colour (variant under)');
   assert.equal(await text(page, 'write-glyph-fallback'), NODATA, 'fallback is DOM text of the character');
   assert.equal(await text(page, 'write-answer-note'), COPY.answerNote, 'note R-W08.answerNote');
   f = await facts(page);
@@ -399,12 +446,9 @@ export default async function answer(page, ctx) {
   const seeded3 = await seedSession(page, { slot: 'A', kind: 'daily', chars: ['春'], cursor: 0, id: 's12' });
   assert.ok(seeded3.ok, 'seeded a one-character session');
   await openWrite(page, { slot: 'A' });
-  await openConfirm(page);
-  await page.click(topSel('confirm-ok'));
-  await confirmClosed(page);
-  await waitPhase(page, 'answer');
-  assert.equal(await waitAttr(page, 'write-answer-card', 'data-anim', ['static', 'completed', 'failed']), 'static',
-    'reduced motion → static final glyph');
+  await showAnswer(page);
+  assert.equal(await waitAttr(page, 'write-answer-card', 'data-anim', ['static', 'reveal']), 'static',
+    'reduced motion → the answer glyph is just there (no 400ms reveal)');
   await page.click(topSel('write-answer-trace'));
   await waitPhase(page, 'trace');
   assert.equal(await waitAttr(page, 'write-trace-layer', 'data-anim', ['static', 'running', 'completed']), 'static',

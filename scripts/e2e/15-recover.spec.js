@@ -218,15 +218,15 @@ export default async function recover(page, ctx) {
   assert.equal((await facts(page)).judged.length, 0, 'no record written by any of this');
 
   // ------------------------------------------------------------------ 3. answer / trace / retrace
-  ctx.step('answer: confirm → refresh shows the answer card; one answer-seen record');
+  ctx.step('answer: 看答案 (no confirm dialog; the two strokes stay) → refresh shows the answer layer under the same ink; one answer-seen record');
   await page.click(topSel('write-show-answer'));
-  await page.waitForSelector(tid('write-answer-confirm'));
-  await waitNavIdle(page);
-  await page.click(topSel('confirm-ok'));
   await waitPhase(page, 'answer');
+  assert.equal(await page.locator(tid('write-answer-confirm')).count(), 0, 'no confirm dialog (D51 ⑧)');
+  assert.equal((await writeSnapshot(page)).strokes, 2, 'the recall strokes are still on the grid in the answer phase');
   await reloadWrite(page);
   await waitPhase(page, 'answer');
-  assert.ok(await present(page, 'write-answer-card'), 'refresh: answer card shown');
+  assert.equal((await writeSnapshot(page)).strokes, 2, 'refresh: the recall strokes come back in the answer phase (not cleared)');
+  assert.ok(await present(page, 'write-answer-card'), 'refresh: answer layer shown');
   assert.equal(await waitAttr(page, 'write-answer-card', 'data-state', ['ready', 'missing']), 'ready', 'refresh: answer glyph ready');
   f = await facts(page);
   assert.equal(f.answerSeen.length, 1, 'one answer-seen record');

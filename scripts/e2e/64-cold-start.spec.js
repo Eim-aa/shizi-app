@@ -251,11 +251,6 @@ export default async function coldStart(page, ctx) {
   await a.p.click(topSel('write-continue'));
   await waitPhase(a.p, 'recall');
   await a.p.click(topSel('write-show-answer'));
-  await a.p.waitForSelector(tid('write-answer-confirm'));
-  await waitNavIdle(a.p);
-  const S3pre = await a.context.storageState();
-  assert.deepEqual(JSON.parse(storedItem(S3pre, ROUTE_KEY)).stack.map(e => e.n), ['home', 'write'], 'the confirm overlay is not part of the saved stack');
-  await a.p.click(topSel('confirm-ok'));
   await waitPhase(a.p, 'answer');
   const S3 = await kill(a, ctx);
   a = await launch(ctx, browser, S3);

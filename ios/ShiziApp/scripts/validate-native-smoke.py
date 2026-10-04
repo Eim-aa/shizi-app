@@ -11,6 +11,13 @@ Stages (smoke-simulator.sh / smoke-device.sh run them in this order):
   relaunch  a second process launch still sees the smoke key and the records from `main`.
   deeplink  cold start with a reminder target: native dispatches after pageReady, clears the key only
             when the page returned true, and the page opens that character.
+  restore   (device QA, Q32) write one stroke, reach the judge page, wait until shizi.v2.route and the
+            session are persisted; smoke-device.sh then SIGKILLs the process (like swipe-to-kill).
+  restorecheck  cold start after the kill lands back on the write page in the judge phase (F1 route restore).
+  measure   (device QA, T1 non-touch part) 5 s rAF interval distribution on the idle home page and while
+            synthetic strokes are drawn, page-visible hardware / media queries, the brush-detail decision,
+            the text-size injection (P1-E6b) and native deviceInfo. Structural checks only: numbers are recorded,
+            not judged.
 Release artifacts without __shiziNativeDev are checked by verify-archive.sh (not by this file).
 
 Usage: validate-native-smoke.py RESULT.json STAGE [--allow-photos-denied]
@@ -19,7 +26,7 @@ Usage: validate-native-smoke.py RESULT.json STAGE [--allow-photos-denied]
 import json
 import sys
 
-STAGES = ("main", "relaunch", "deeplink")
+STAGES = ("main", "relaunch", "deeplink", "restore", "restorecheck", "measure")
 NOT_BACKUP = "notBackup"
 
 
@@ -38,6 +45,12 @@ def main() -> int:
         checks.update(main_checks(data, "--allow-photos-denied" in flags))
     elif stage == "relaunch":
         checks.update(relaunch_checks(data))
+    elif stage == "restore":
+        checks.update(restore_checks(data))
+    elif stage == "restorecheck":
+        checks.update(restorecheck_checks(data))
+    elif stage == "measure":
+        checks.update(measure_checks(data))
     else:
         checks.update(deeplink_checks(data))
 
@@ -175,6 +188,45 @@ def deeplink_checks(data: dict) -> dict:
         "reminderKeyCleared": link.get("cleared") is True,
         "reminderHandled": link.get("handlerRegistered") is True and link.get("pendingInBridge") == [],
         "reminderOpensTarget": "base:春" in queue,
+    }
+
+
+def restore_checks(data: dict) -> dict:
+    r = data.get("restore") or {}
+    return {
+        "armedOnJudgePage": r.get("armed") is True and r.get("topScreen") == "write" and r.get("phase") == "compare",
+        "routePersisted": "write" in (r.get("routeStack") or []),
+        "sessionPersisted": r.get("sessionPhase") == "compare" and r.get("sessionStrokes") == 1,
+    }
+
+
+def restorecheck_checks(data: dict) -> dict:
+    c = data.get("restoreCheck") or {}
+    return {
+        "restoredToWrite": c.get("restored") is True and c.get("topScreen") == "write",
+        "restoredJudgePhase": c.get("phase") == "compare" and c.get("judgeButtons") is True,
+        "restoredCursor": c.get("cursor") == "0",
+        "strokesKept": c.get("sessionStrokes") == 1,
+    }
+
+
+def measure_checks(data: dict) -> dict:
+    def sample_ok(s: dict) -> bool:
+        return int(s.get("frames") or 0) > 30 and all(isinstance(s.get(k), (int, float)) for k in ("medianMs", "p95Ms", "maxMs"))
+
+    env = data.get("env") or {}
+    text = data.get("textSize") or {}
+    native = data.get("native") or {}
+    return {
+        "rafIdleHome": sample_ok(data.get("rafIdleHome") or {}),
+        "rafWriteDrawing": sample_ok(data.get("rafWriteDrawing") or {})
+        and int((data.get("rafWriteDrawing") or {}).get("syntheticStrokes") or 0) > 0,
+        "envRecorded": isinstance(env.get("devicePixelRatio"), (int, float))
+        and isinstance(env.get("brushDetailEnabled"), bool)
+        and isinstance(env.get("prefersReducedMotion"), bool)
+        and isinstance(env.get("prefersContrastMore"), bool),
+        "textSizeRecorded": "kComputed" in text and "initialContentSize" in text,
+        "nativeDeviceInfo": isinstance(native.get("maximumFramesPerSecond"), int) and bool(native.get("machine")),
     }
 
 

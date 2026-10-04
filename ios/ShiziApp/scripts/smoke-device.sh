@@ -8,6 +8,9 @@ OUT_DIR="${OUT_DIR:-${IOS_ROOT}/build/device-smoke}"
 RESULT_TIMEOUT="${RESULT_TIMEOUT:-180}"
 REMINDER_TARGET="${REMINDER_TARGET:-base:春}"
 REMOTE_RESULT="Documents/shizi-native-smoke.json"
+# 阶段顺序（validate-native-smoke.py STAGES）。restore 之后脚本用 SIGKILL 结束进程，再以 restorecheck 冷启动核对（Q32）；
+# measure 是 T1 的非触控测量（只记录数字，不判优劣）。只跑一部分：SMOKE_STAGES="restore measure"。
+SMOKE_STAGES="${SMOKE_STAGES:-main relaunch deeplink restore measure}"
 sentinel_sequence=0
 
 read_xcconfig_value() {
@@ -97,8 +100,28 @@ collect_result() {
   return 1
 }
 
-echo "Building and installing ${APP_ID} on ${DEVICE_ID}"
-SKIP_LAUNCH=1 "${SCRIPT_DIR}/run-device.sh"
+# 结束 App 进程，等同上滑杀掉（SIGKILL：不跑 pagehide / visibilitychange）。
+kill_app() {
+  procs="${OUT_DIR}/processes.json"
+  rm -f "$procs"
+  xcrun devicectl device info processes --device "$DEVICE_ID" --quiet --json-output "$procs" >/dev/null
+  pids="$(python3 -c 'import json, sys
+for p in json.load(open(sys.argv[1]))["result"]["runningProcesses"]:
+    if p.get("executable", "").rstrip("/").endswith("/Shizi.app/Shizi"):
+        print(p["processIdentifier"])' "$procs")"
+  for pid in $pids; do
+    echo "  SIGKILL ${APP_ID} pid ${pid}"
+    xcrun devicectl device process signal --device "$DEVICE_ID" --pid "$pid" --signal SIGKILL --quiet
+  done
+  sleep 2
+}
+
+if [ "${SKIP_BUILD:-0}" = "1" ]; then
+  echo "SKIP_BUILD=1: using the ${APP_ID} already installed on ${DEVICE_ID}"
+else
+  echo "Building and installing ${APP_ID} on ${DEVICE_ID}"
+  SKIP_LAUNCH=1 "${SCRIPT_DIR}/run-device.sh"
+fi
 
 # 与 smoke-simulator.sh 同样三个阶段（02 M5-3）。真机上相册权限由系统弹窗决定：拒绝时 imageSave 允许「保存失败」分支。
 run_stage() {
@@ -116,9 +139,17 @@ run_stage() {
   echo "  ${result}"
 }
 
-run_stage main
-run_stage relaunch
-run_stage deeplink -shizi-reminder-target "$REMINDER_TARGET"
+for stage in $SMOKE_STAGES; do
+  case "$stage" in
+    deeplink) run_stage deeplink -shizi-reminder-target "$REMINDER_TARGET" ;;
+    restore)
+      run_stage restore
+      kill_app
+      run_stage restorecheck
+      ;;
+    *) run_stage "$stage" ;;
+  esac
+done
 
 echo "Real-device native smoke OK"
 echo "Complete the handwriting, keyboard, rotation, and offline checks in DEVICE_QA.md on the iPhone."

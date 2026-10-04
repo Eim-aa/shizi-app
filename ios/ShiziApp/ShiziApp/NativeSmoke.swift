@@ -11,7 +11,9 @@ import WebKit
 //   -shizi-smoke                 冒烟：URL 追加 ?test=1、documentStart 注入 window.__shiziNativeDev=true，
 //                                页面每次 postMessage pageReady 后注入下面的冒烟脚本（脚本自己用 sessionStorage 续跑刷新前后的步骤）。
 //   -shizi-dev                   开发：?dev=1&test=1 + __shiziNativeDev（色板页 / 指针统计，不跑冒烟）。
-//   -shizi-smoke-stage <name>    main（默认）| relaunch | deeplink。
+//   -shizi-smoke-stage <name>    main（默认）| relaunch | deeplink | restore | restorecheck | measure。
+//                                restore / restorecheck：冷启动恢复（Q32），两次启动之间由 smoke-device.sh 用 SIGKILL 结束进程；
+//                                measure：T1 非触控测量（rAF 间隔分布、媒体查询、笔锋细节判定、字号注入、原生 deviceInfo）。
 //   -shizi-reminder-target <k>   冷启动时把 k 当作「从提醒通知点进来」的目标（走 openReminderTarget，与 AppDelegate 同一路径）。
 //
 // 冒烟脚本只用公开测试钩子 window.__shiziTest、data-testid 与 bridge 公开接口，不依赖页面内部全局。
@@ -200,6 +202,45 @@ extension WebViewController {
                 "pendingReminderCardKey": pendingReminderCardKey.map { $0 as Any } ?? NSNull(),
                 "url": webView.url?.absoluteString ?? "",
             ])
+        case "deviceInfo":
+            // measure 阶段（T1 非触控部分）：页面拿不到的原生侧事实——屏幕最高刷新率、低电量模式（会把 rAF 钳到 30Hz）、温度、
+            // 真实核数与内存（页面里的 hardwareConcurrency / deviceMemory 会被 WebKit 钳低）、系统字号档位。
+            var systemInfo = utsname()
+            uname(&systemInfo)
+            let machine = withUnsafeBytes(of: &systemInfo.machine) { raw in
+                String(decoding: raw.prefix(while: { $0 != 0 }), as: UTF8.self)
+            }
+            let screen = view.window?.windowScene?.screen ?? UIScreen.main
+            let category = currentContentSizeCategory
+            let thermal: String
+            switch ProcessInfo.processInfo.thermalState {
+            case .nominal: thermal = "nominal"
+            case .fair: thermal = "fair"
+            case .serious: thermal = "serious"
+            case .critical: thermal = "critical"
+            @unknown default: thermal = "unknown"
+            }
+            recordSmokeEvent("deviceInfo", [
+                "machine": machine,
+                "systemName": UIDevice.current.systemName,
+                "systemVersion": UIDevice.current.systemVersion,
+                "maximumFramesPerSecond": screen.maximumFramesPerSecond,
+                "screenScale": screen.scale,
+                "screenNativeScale": screen.nativeScale,
+                "screenPoints": [screen.bounds.width, screen.bounds.height],
+                "webViewPoints": [webView.bounds.width, webView.bounds.height],
+                "activeProcessorCount": ProcessInfo.processInfo.activeProcessorCount,
+                "physicalMemoryMB": Int(ProcessInfo.processInfo.physicalMemory / 1_048_576),
+                "lowPowerMode": ProcessInfo.processInfo.isLowPowerModeEnabled,
+                "thermalState": thermal,
+                "reduceMotion": UIAccessibility.isReduceMotionEnabled,
+                "darkerSystemColors": UIAccessibility.isDarkerSystemColorsEnabled,
+                "contentSizeCategoryRaw": category.rawValue,
+                "contentSizeCategory": Self.contentSizeName(category),
+                "contentSizeScale": Self.contentSizeScale(category),
+                "initialContentSizeScript": Self.initialContentSizeScript(category) ?? NSNull(),
+                "userInterfaceStyle": traitCollection.userInterfaceStyle == .dark ? "dark" : "light",
+            ])
         default:
             recordSmokeEvent("unknownControl", ["action": body["action"] as? String ?? ""])
         }
@@ -314,6 +355,18 @@ extension WebViewController {
       const V = [[0.5, 0.2], [0.5, 0.5], [0.5, 0.8]];
       const strokeCount = () => (q('write-grid') ? Number(q('write-grid').dataset.strokeCount) : -1);
       const router = () => import('/src/ui/router.js');
+      // F1 冷启动恢复：上一阶段若停在写字页，冷启动会恢复到那里；种好数据后先退回首页，各阶段都从首页开始。
+      async function toHome() {
+        if (topScreen() !== 'home') {
+          const { nav } = await router();
+          for (let i = 0; i < 6 && topScreen() !== 'home'; i += 1) {
+            nav.back();
+            await waitFor(() => app() && app().dataset.navAnim === 'idle', 'nav idle after back');
+            await sleep(300);
+          }
+        }
+        await waitFor(() => topScreen() === 'home' && q('write-test-entry'), 'home screen');
+      }
 
       try {
         if (STAGE === 'main' && progress.phase === 'start') {
@@ -368,6 +421,7 @@ extension WebViewController {
           };
           const seeded = T().seed({ sessions: { A: session, B: null, lastEnded: {} } });
           if (!seeded || !seeded.ok) throw new Error('seed failed: ' + JSON.stringify(seeded));
+          await toHome();
           await idle();
           await tap('write-test-entry');
           await waitFor(() => topScreen() === 'write' && q('write-grid-live'), 'write screen');
@@ -588,6 +642,205 @@ extension WebViewController {
             sessionB: b ? { kind: b.kind, queue: b.queue, cursor: b.cursor } : null,
             overlay: !!document.querySelector('[role="dialog"]'),
           };
+          finish();
+          return;
+        }
+
+        // 冷启动恢复（DEVICE_QA Q32 自动化部分；F1 shizi.v2.route）：restore 写到判断页、确认路由与会话都已落盘，
+        // 由 smoke-device.sh 用 SIGKILL 结束进程（等同上滑杀掉：不跑 pagehide / visibilitychange），
+        // 再以 restorecheck 冷启动，核对回到写字页判断阶段、笔画还在。
+        const persistedRoute = () => {
+          const raw = T().getRawKeys('shizi.v2.', { includeRoute: true });
+          if (!raw['shizi.v2.route'] || !raw['shizi.v2.sessions']) return null;
+          const route = JSON.parse(raw['shizi.v2.route']);
+          const sessions = JSON.parse(raw['shizi.v2.sessions']);
+          const cur = sessions && sessions.A && sessions.A.current;
+          return {
+            routeStack: (route.stack || []).map(e => e.n),
+            routeAt: route.at,
+            sessionPhase: cur ? cur.phase : null,
+            sessionStrokes: cur && Array.isArray(cur.strokes) ? cur.strokes.length : -1,
+            sessionCursor: sessions && sessions.A ? sessions.A.cursor : null,
+          };
+        };
+
+        if (STAGE === 'restore') {
+          step('restoreArm');
+          await booted();
+          T().reset();
+          const at = T().now();
+          const session = {
+            id: 's1', slot: 'A', kind: 'daily', source: { view: 'home' },
+            queue: ['base:永', 'base:和', 'base:春'], cursor: 0, items: [],
+            current: { phase: 'recall', strokes: [], hints: 0, answerSeen: false, hintRange: null, referenceReady: false },
+            lastLine: null, startedAt: at, startedDay: localDay(at), updatedAt: at,
+          };
+          const seeded = T().seed({ sessions: { A: session, B: null, lastEnded: {} } });
+          if (!seeded || !seeded.ok) throw new Error('seed failed: ' + JSON.stringify(seeded));
+          await toHome();
+          await idle();
+          await tap('write-test-entry');
+          await waitFor(() => topScreen() === 'write' && q('write-grid-live'), 'write screen');
+          await idle();
+          await stroke(H);
+          await waitFor(() => strokeCount() === 1, 'first stroke drawn');
+          await sleep(480);
+          await tap('write-done');
+          await waitFor(() => q('write-judge-correct') && writeWrap() && writeWrap().dataset.phase === 'compare', 'judge page');
+          const saved = await waitFor(() => {
+            const p = persistedRoute();
+            return p && p.routeStack.indexOf('write') >= 0 && p.sessionPhase === 'compare' ? p : null;
+          }, 'route + session persisted');
+          result.restore = Object.assign({
+            armed: true,
+            topScreen: topScreen(),
+            phase: writeWrap().dataset.phase,
+            cursor: writeWrap().dataset.cursor,
+            strokes: strokeCount(),
+          }, saved);
+          finish();
+          return;
+        }
+
+        if (STAGE === 'restorecheck') {
+          step('restoreCheck');
+          await booted();
+          const started = Date.now();
+          let landed = null;
+          try {
+            landed = await waitFor(() => (topScreen() === 'write' && writeWrap() && writeWrap().dataset.phase ? true : null), 'write page restored', 8000);
+          } catch (e) { landed = false; }
+          await sleep(600);
+          result.restoreCheck = Object.assign({
+            restored: !!landed,
+            waitedMs: Date.now() - started,
+            topScreen: topScreen(),
+            phase: writeWrap() ? writeWrap().dataset.phase : null,
+            cursor: writeWrap() ? writeWrap().dataset.cursor : null,
+            strokes: strokeCount(),
+            judgeButtons: !!(q('write-judge-correct') && q('write-judge-wrong')),
+            historyDepth: history.length,
+          }, persistedRoute() || {});
+          finish();
+          return;
+        }
+
+        // 非触控测量（T1 自动化部分）：5 秒 rAF 间隔分布（首页静置；写字页合成笔画持续书写），
+        // 页面能读到的硬件 / 媒体查询 / 笔锋细节判定，原生侧事实，以及系统字号注入（P1-E6b）。
+        if (STAGE === 'measure') {
+          step('measure');
+          await booted();
+          await idle();
+          // 前一阶段（restorecheck）留下的路由会让冷启动恢复到写字页：清数据、种一组，退回首页再测静置。
+          T().reset();
+          const at = T().now();
+          const seeded = T().seed({ sessions: { A: {
+            id: 's1', slot: 'A', kind: 'daily', source: { view: 'home' },
+            queue: ['base:永', 'base:和', 'base:春'], cursor: 0, items: [],
+            current: { phase: 'recall', strokes: [], hints: 0, answerSeen: false, hintRange: null, referenceReady: false },
+            lastLine: null, startedAt: at, startedDay: localDay(at), updatedAt: at,
+          }, B: null, lastEnded: {} } });
+          if (!seeded || !seeded.ok) throw new Error('seed failed: ' + JSON.stringify(seeded));
+          await toHome();
+          await idle();
+          await sleep(1000);
+          const pct = (sorted, p) => sorted.length ? sorted[Math.min(sorted.length - 1, Math.max(0, Math.ceil(p * sorted.length) - 1))] : null;
+          const r2 = v => (v === null || v === undefined ? null : Math.round(v * 100) / 100);
+          function rafSample(ms) {
+            return new Promise(resolve => {
+              const stamps = [];
+              let t0 = null;
+              const frame = t => {
+                if (t0 === null) t0 = t;
+                stamps.push(t);
+                if (t - t0 < ms) requestAnimationFrame(frame);
+                else {
+                  const iv = [];
+                  for (let i = 1; i < stamps.length; i += 1) iv.push(stamps[i] - stamps[i - 1]);
+                  const s = iv.slice().sort((a, b) => a - b);
+                  const sum = iv.reduce((a, b) => a + b, 0);
+                  const bucket = (lo, hi) => iv.filter(v => v >= lo && v < hi).length;
+                  resolve({
+                    frames: stamps.length,
+                    intervals: iv.length,
+                    durationMs: r2(stamps[stamps.length - 1] - t0),
+                    medianMs: r2(pct(s, 0.5)),
+                    p95Ms: r2(pct(s, 0.95)),
+                    p99Ms: r2(pct(s, 0.99)),
+                    maxMs: r2(s[s.length - 1]),
+                    minMs: r2(s[0]),
+                    meanMs: r2(sum / Math.max(1, iv.length)),
+                    fps: r2(iv.length / (sum / 1000)),
+                    histogram: {
+                      'lt12': bucket(0, 12), '12-20': bucket(12, 20), '20-34': bucket(20, 34), '34-50': bucket(34, 50), 'ge50': bucket(50, Infinity),
+                    },
+                    over20ms: iv.filter(v => v > 20).length,
+                    over34ms: iv.filter(v => v > 34).length,
+                  });
+                }
+              };
+              requestAnimationFrame(frame);
+            });
+          }
+
+          result.rafIdleHome = Object.assign({ screen: topScreen() }, await rafSample(5000));
+
+          step('measureDrawing');
+          await tap('write-test-entry');
+          await waitFor(() => topScreen() === 'write' && q('write-grid-live'), 'write screen');
+          await idle();
+          let drawing = true;
+          let drawn = 0;
+          const paths = [
+            [[0.15, 0.2], [0.5, 0.35], [0.85, 0.2]], [[0.2, 0.15], [0.35, 0.5], [0.2, 0.85]],
+            [[0.15, 0.8], [0.5, 0.6], [0.85, 0.8]], [[0.8, 0.15], [0.65, 0.5], [0.8, 0.85]],
+          ];
+          const drawer = (async () => {
+            while (drawing) { await stroke(paths[drawn % paths.length]); drawn += 1; await sleep(40); }
+          })();
+          result.rafWriteDrawing = Object.assign({ screen: topScreen() }, await rafSample(5000));
+          drawing = false;
+          await drawer;
+          result.rafWriteDrawing.syntheticStrokes = drawn;
+          result.rafWriteDrawing.strokeCountOnGrid = strokeCount();
+          result.rafWriteDrawing.note = 'synthetic PointerEvent at ~60Hz via setTimeout(16); not real touch latency';
+
+          step('measureEnv');
+          const mq = s => { try { return window.matchMedia(s).matches; } catch (e) { return null; } };
+          const policyMod = await import('/src/config/policy.js');
+          const brushMod = await import('/src/ui/canvas/brush.js');
+          const reduced = mq('(prefers-reduced-motion: reduce)');
+          const hc = typeof navigator.hardwareConcurrency === 'number' ? navigator.hardwareConcurrency : null;
+          const dm = typeof navigator.deviceMemory === 'number' ? navigator.deviceMemory : null;
+          result.env = {
+            hardwareConcurrency: hc,
+            deviceMemory: dm,
+            devicePixelRatio: window.devicePixelRatio,
+            screen: [screen.width, screen.height],
+            inner: [window.innerWidth, window.innerHeight],
+            prefersContrastMore: mq('(prefers-contrast: more)'),
+            prefersReducedMotion: reduced,
+            prefersReducedTransparency: mq('(prefers-reduced-transparency: reduce)'),
+            prefersDark: mq('(prefers-color-scheme: dark)'),
+            policyBrushDetail: policyMod.brushDetail,
+            brushDetailEnabled: brushMod.brushDetailEnabled({ reducedMotion: !!reduced, enabled: policyMod.brushDetail }),
+            legacyRuleWouldDisable: (hc !== null && hc <= 2) || (dm !== null && dm <= 2),
+            userAgent: navigator.userAgent,
+          };
+          const root = document.documentElement;
+          result.textSize = {
+            initialContentSize: window.__shiziInitialContentSize || null,
+            kComputed: getComputedStyle(root).getPropertyValue('--k').trim(),
+            kInline: root.style.getPropertyValue('--k').trim() || null,
+            dataTextSize: root.getAttribute('data-text-size'),
+            dataAx: root.getAttribute('data-ax'),
+            dataTextLarge: root.hasAttribute('data-text-large'),
+            rootFontSize: getComputedStyle(root).fontSize,
+            bodyFontSize: getComputedStyle(document.body).fontSize,
+          };
+          const n = events().length;
+          control('deviceInfo');
+          result.native = (await nativeEvent('deviceInfo', n)).detail;
           finish();
           return;
         }

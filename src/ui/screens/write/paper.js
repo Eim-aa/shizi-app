@@ -37,7 +37,6 @@ injectStyles('write-paper', `
 .sz-paper__suggest{display:flex;flex-direction:column;align-items:flex-start;gap:0;color:${T.ink2};font-size:${T.fs13};line-height:${T.lh13}}
 .sz-paper__suggestbtns{display:flex;flex-wrap:wrap;gap:${T.s4};margin-left:-2px}
 .sz-paper__sbtn{min-height:44px;padding:0 2px;font-size:${T.fs15};color:${T.ink1}}
-.sz-write__topaperslot{position:absolute;right:0;top:0;height:40px;display:flex;align-items:center}
 `);
 
 const EMPTY = Object.freeze([]);

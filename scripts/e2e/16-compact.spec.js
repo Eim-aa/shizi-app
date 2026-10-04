@@ -206,7 +206,7 @@ async function compactWalk(page, ctx, { large }) {
   const grid0 = g.r['write-grid'];
   assert.ok(grid0.top >= g.head.bottom && grid0.bottom <= g.foot.top + 0.5, `${tag}: whole grid visible between header and footer`);
   assert.ok(g.r['write-prompt'] && g.r['write-prompt'].bottom <= grid0.top + 0.5, `${tag}: prompt above the grid`);
-  assert.ok(!g.toolsVisible, `${tag}: 撤销 / 清空 hidden before the first stroke (「在纸上写」takes the slot, P191)`);
+  assert.ok(g.toolsVisible, `${tag}: 撤销 / 清空 already in place before the first stroke (ink4, not tappable; 「在纸上写」 moved to the left note slot, P226)`);
 
   // ---------------------------------------------------------------- hint
   ctx.step(`${tag}: 提示 — grid size unchanged, no note under the grid (D51 ⑧), buttons still first screen`);
@@ -215,7 +215,7 @@ async function compactWalk(page, ctx, { large }) {
   await page.waitForTimeout(300);
   g = await geometry(page, `${large ? 'L' : 'N'}-hint`);
   assert.ok(square(g.r['write-grid'], GRID), `${tag}: grid still ${GRID} after 提示`);
-  assert.ok(!g.noteText, `${tag}: no legend note under the grid after a hint (D51 ⑧: 「浅红色是提示……」 deleted)`);
+  assert.ok(!g.noteText || g.noteText === '在纸上写', `${tag}: no legend note under the grid after a hint (D51 ⑧: 「浅红色是提示……」 deleted) — only the free slot's 「在纸上写」 may be there (P226) (${g.noteText})`);
   assert.equal(await page.locator('.sz-layer[data-top="true"] [data-hint-note]').count(), 0, `${tag}: no hint note element`);
   common(assert, g, `${tag} hint`, ['write-hint', 'write-done', 'write-show-answer', 'write-skip']);
 
@@ -385,7 +385,7 @@ function assertBlank(assert, b, label) {
   assert.ok(b.done && b.done.disabled === true && b.done.ariaDisabled === 'true', `${label}: 写好了 disabled + aria-disabled="true" ${JSON.stringify(b.done)}`);
   assert.equal(b.ink, 0, `${label}: committed ink layer has 0 painted pixels`);
   assert.equal(b.strokes, 0, `${label}: 0 local strokes`);
-  assert.ok(b.toolsShown === false && b.toolsVisible === false, `${label}: 撤销 / 清空 row not visible`);
+  assert.ok(b.toolsShown === true && b.toolsVisible === true, `${label}: 撤销 / 清空 in place (ink4, not tappable) on a blank grid (P226)`);
 }
 
 /**

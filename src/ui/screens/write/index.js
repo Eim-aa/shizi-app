@@ -103,6 +103,7 @@ ${W} .sz-page__foot[data-under="true"]::before{content:"";position:absolute;left
 .sz-write__firsttip{display:block}
 .sz-write__tools{flex:none;height:40px;display:flex;align-items:center;margin-right:-8px}
 .sz-write__tools[data-shown="false"]{visibility:hidden}
+.sz-write__topaper{display:block;margin:-2px 0 -2px -4px} /* 按钮盒 44（热区），上下各让 2：这一行仍是 40 高；文字与别的说明同一条左边 */
 .sz-write__tools[data-paper="true"]{display:none} /* 纸上那一字没有撤销 / 清空，不再为它们空着一块宽度（脚注才放得下，Q2-12） */
 /* 图标按钮（设计系统 sz-ibtn）：可见 36（::before 画底）、热区 44（base.css 的按钮最小 44 就是热区，两个相邻的图标压 4）；有墨 ink2、无墨 ink4 且不可点 */
 .sz-write__ibtn{position:relative;width:44px;height:44px;display:grid;place-items:center;padding:0;color:${T.ink2}}
@@ -428,8 +429,8 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
 
   // P1-E8：屏幕上写、还没落笔（也没有可撤销的清空）时可以改成「在纸上写」（只改这一个字）；纸上那一字不显示撤销 / 清空。
   const toPaper = !paper && phase === 'recall' && !canUndo && !skip.failed;
-  // 撤销 / 清空（R-W18）：标准版在格下一行右端（落第一笔后才出现）；AX 档在页头右侧、常驻（无墨时 ink4 且不可点，P225）；纸上那一字与看答案 / 判断阶段不显示。
-  const tools = html`<span class="sz-write__tools" data-testid="write-tools" data-shown=${(ax > 0 || canUndo) && drawable && !paper ? 'true' : 'false'}
+  // 撤销 / 清空（R-W18）：落笔前后都在原处（无墨时 ink4 且不可点，P226 / I2-06）——标准版在格下一行右端，AX 档在页头右侧（P225）；纸上那一字与看答案 / 判断阶段不显示。
+  const tools = html`<span class="sz-write__tools" data-testid="write-tools" data-shown=${drawable && !paper ? 'true' : 'false'}
           data-paper=${paper ? 'true' : null}>
           <${Button} variant="plain" class="sz-write__ibtn" data-testid="write-undo" aria-label=${t('R-W18.btnUndo')} disabled=${!canUndo} rapid
             onClick=${onUndo}>${UNDO_ICON()}</${Button}>
@@ -471,10 +472,11 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
       : html`<${AxFoot} primary=${{ testid: 'write-done', label: t('R-W29.btnDone'), disabled: !hasStrokes && !paper, onClick: onDone }}
           items=${items} testid="write-foot" stage=${phase} />`;
   }
-  // 标准版：「在纸上写」叠在（隐藏着的）撤销 / 清空同一位置（右端）；AX 档在「⋯」菜单里。
-  const toPaperSlot = toPaper && ax <= 0 ? html`<span class="sz-write__topaperslot"><${ToPaperButton} onClick=${() => paperMode.toggle(true)} /></span>` : null;
   const noteBody = answer.active ? answer.note
     : skip.failed ? skip.note : paper ? html`<${PaperNote} />` : hint.note ? html`<${HintNote} note=${hint.note} />` : firstTip.node;
+  // 标准版：「在纸上写」在格下说明位的左侧，只在没有别的说明时出现——结果行（D19）、读屏的非阻断建议、首练提示、提示说明在时让位；落第一笔后收起（P226 / I2-06）。AX 档在「⋯」菜单里。
+  const toPaperNode = toPaper && ax <= 0 && !row.node && !suggest.node && !noteBody
+    ? html`<span class="sz-write__topaper"><${ToPaperButton} onClick=${() => paperMode.toggle(true)} /></span>` : null;
 
   const trailing = ax > 0 ? html`<span class="sz-write__axhead">${tools}${progress}</span>` : progress;
   return html`<${Page} title=${titleFor(phase)} hideTitle=${phase === 'recall' || (phase === 'compare' && ax > 0)} lead=${compare.lead}
@@ -500,8 +502,8 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
         />`}
       </div>
       ${compare.active ? null : html`<div class="sz-write__below" style=${ax > 0 ? undefined : { width: `${gridSize}px` }}>
-        <span class="sz-write__note" data-testid="write-note"><span class="sz-write__lineslot" data-testid="write-line-slot">${row.node}</span>${suggest.node}${noteBody}</span>
-        ${ax > 0 ? null : tools}${toPaperSlot}
+        <span class="sz-write__note" data-testid="write-note"><span class="sz-write__lineslot" data-testid="write-line-slot">${row.node}</span>${suggest.node}${noteBody}${toPaperNode}</span>
+        ${ax > 0 ? null : tools}
       </div>`}
     </div>
     ${skip.bar}

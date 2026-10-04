@@ -238,13 +238,14 @@ export default async function e9bWriteJudge(page, ctx) {
   assert.deepEqual([h.text, h.aria, h.disabled, h.ariaDisabled], ['提示', '提示已用完', true, 'true'], 'used up: disabled + aria-disabled, name 提示已用完');
   assert.equal(h.color, tokenRgb('light', 'ink4'), 'used up: ink4');
 
-  step('A: undo / clear are icon buttons — visible 36, hit 44, ink2 with ink / ink4 and not clickable without (design-system icons)');
+  step('A: undo / clear are icon buttons — visible 36, hit 44, ink2 with ink / ink4 and not clickable without (design-system icons); in place before the first stroke (P226)');
   await boot(page, ctx, { view: { width: 402, height: 874 } });
   const beforeInk = await page.evaluate(() => {
     const top = document.querySelector('.sz-layer[data-top="true"]');
-    return { shown: top.querySelector('[data-testid="write-tools"]').dataset.shown, toPaper: !!top.querySelector('[data-testid="write-to-paper"]') };
+    return { shown: top.querySelector('[data-testid="write-tools"]').dataset.shown, toPaper: !!top.querySelector('[data-testid="write-to-paper"]'),
+      disabled: [top.querySelector('[data-testid="write-undo"]').disabled, top.querySelector('[data-testid="write-clear"]').disabled] };
   });
-  assert.deepEqual(beforeInk, { shown: 'false', toPaper: true }, 'before the first stroke the slot holds 「在纸上写」 (P191), the icons are hidden');
+  assert.deepEqual(beforeInk, { shown: 'true', toPaper: true, disabled: [true, true] }, 'before the first stroke the icons are already there (ink4, not tappable, P226) and 「在纸上写」 sits in the left note slot'),
   await drawStroke(page, HORIZONTAL);
   await page.waitForTimeout(250);
   const tools = await page.evaluate(() => {

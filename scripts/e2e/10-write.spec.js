@@ -26,7 +26,8 @@ export default async function write(page, ctx) {
   assert.equal(s.progress, '1 / 3', 'progress R-W01 = cursor + 1 / queue length');
   assert.equal(s.strokes, 0, 'no strokes yet');
   assert.deepEqual(s.done, { disabled: true, ariaDisabled: 'true' }, '「写好了」 disabled + aria-disabled with an empty grid');
-  assert.equal(s.toolsShown, false, 'undo / clear hidden while there is nothing to undo');
+  assert.equal(s.toolsShown, true, 'undo / clear are in place with an empty grid (R2-X1 / P226): ink4 and not tappable, not hidden');
+  assert.equal(await page.locator(topSel('write-undo')).isDisabled(), true, 'but not tappable while there is nothing to undo');
   const grid = await page.locator(topSel('write-grid')).boundingBox();
   // D36（覆盖 X08）：书写格 = min(屏宽 − 40, 视口高 − 预算) 夹在 258–400（P1-E1b：页边 20，原为屏宽 − 32）；393×852 取 353（内部坐标仍是 345 单位，见 16-grid.spec.js）。
   assert.equal(Math.round(grid.width), 353, 'grid at 393×852 is 353 wide (screen width − 40, gutter 20)');

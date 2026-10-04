@@ -132,9 +132,6 @@ injectStyles('result', `
 .sz-result__date{margin:0;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2}}
 .sz-result[data-variant="daily"],.sz-result[data-variant="first"]{gap:16px}
 .sz-result__remind{margin-top:12px}
-/* 日常 / 首练结果页的页头不写标题（作品就是标题，交接 §5.1）；h1 留给读屏 */
-.sz-page:has(.sz-result[data-variant="daily"]) .sz-page__title,.sz-page:has(.sz-result[data-variant="first"]) .sz-page__title{
-  position:absolute;left:auto;right:auto;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .sz-result__remind:empty{display:none}
 .sz-result__leave{align-self:center;justify-content:center}
 .sz-result__fail{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
@@ -801,7 +798,7 @@ function ResultScreen({ params, entry }) {
     ? html`<${Button} variant="icon" data-testid="result-share" aria-label=${t('X-WORK.shareAria')}
         onClick=${() => { dismissUndo(); imageAction({ slot, sessionId }); }}>${SHARE_ICON()}</${Button}>`
     : null;
-  return html`<${Page} title=${model.header} leading="close" onBack=${leave} footer=${footer} trailing=${shareButton} testid="result-screen">
+  return html`<${Page} title=${model.header} hideTitle=${isWork} leading="close" onBack=${leave} footer=${footer} trailing=${shareButton} testid="result-screen">
     <div class="sz-result" data-testid="result-body" data-variant=${model.variant} data-slot=${slot} data-session=${sessionId} data-early=${model.early ? 'true' : 'false'}
       data-found=${model.found ? 'true' : 'false'}>
       ${model.title || model.sub.length

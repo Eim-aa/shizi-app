@@ -3,9 +3,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { AX_CSS, AX_ROOT, TAB_SCALE_CAP } from '../../src/ui/components/ax.js';
+import { AX_CSS, AX_ROOT } from '../../src/ui/components/ax.js';
 import { splitRules } from '../../src/ui/components/styles.js';
-import * as policy from '../../src/config/policy.js';
 
 test('every AX rule is scoped to :root[data-ax][data-text-large] (never touches the default / XXXL layout)', () => {
   const rules = splitRules(AX_CSS);
@@ -16,15 +15,22 @@ test('every AX rule is scoped to :root[data-ax][data-text-large] (never touches 
   }
 });
 
-test('AX rules cover the card list: page title wraps, write / judge buttons stack, settings value rows stack, tab bar capped', () => {
+test('AX rules cover the card list: page title wraps, write / judge buttons stack, settings value rows stack, buttons take --btn-h (D49)', () => {
   assert.match(AX_CSS, /\.sz-page__title\{[^}]*white-space:normal/);
   assert.match(AX_CSS, /\.sz-write__main\{grid-template-columns:minmax\(0,1fr\)/);
   assert.match(AX_CSS, /\.sz-judge__btns,[^{]*\{grid-template-columns:minmax\(0,1fr\)/);
   assert.match(AX_CSS, /\.sz-set__row--value\{flex-direction:column/);
-  assert.match(AX_CSS, /\.sz-btn--primary,[^{]*\{min-height:calc\(1\.3em/, 'button min height follows its own font size');
-  assert.equal(TAB_SCALE_CAP, policy.contentSizeScale.XXXL, 'tab bar stops growing at the XXXL scale');
-  // P1-E1a：Tab 栏改为设计系统的通栏 50px（加底部安全区），封顶规则不变
-  assert.match(AX_CSS, new RegExp(`\\.sz-tabs\\{height:calc\\(50px \\* ${String(TAB_SCALE_CAP).replace('.', '\\.')} \\+ env\\(safe-area-inset-bottom`));
+  assert.match(AX_CSS, /\.sz-btn--primary,[^{]*\{min-height:var\(--btn-h\)/, 'D49: button min height = --btn-h (AX tier: max(54, lh17 + 26), 88 at AX5)');
+});
+
+test('D49: the tab bar does not grow in AX — no AX rule touches .sz-tabs and Tabs.js never reads --k (icon 24, label 11, height 49 + safe area)', () => {
+  assert.ok(!/\.sz-tabs/.test(AX_CSS), 'ax.js has no tab bar rule any more');
+  const tabs = readFileSync(new URL('../../src/ui/components/Tabs.js', import.meta.url), 'utf8').replace(/\/\/[^\n]*/g, '');
+  assert.ok(!/T\.k\b|var\(--k|T\.fs11|T\.lh11/.test(tabs), 'Tabs.js: no --k / fs11 (font scale) dependency');
+  assert.match(tabs, /height:calc\(49px \+ env\(safe-area-inset-bottom/);
+  assert.match(tabs, /svg\{width:24px;height:24px/);
+  assert.match(tabs, /font-size:calc\(11px \* 1\)/);
+  assert.ok(!/::after/.test(tabs), 'no selected dot (D49)');
 });
 
 test('ax.js is loaded once by the root and the settings value rows carry the AX hook class', () => {

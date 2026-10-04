@@ -8,20 +8,16 @@
 //   - 横排改竖排：写字页底栏「提示 · 写好了」、判断页「写错了 · 写对了」两键改上下排；「看答案 · 跳过 · 结束这组」放不下时折行；
 //     设置页带值的行（练习范围、外观、备份与恢复）标题与值改上下排。
 //   - 按钮最小高随字号：主 / 次按钮、文字按钮、判断键的最小高度按自身字号算（1.3em + 内边距），不再是固定 52 / 72 × --k。
-//   - Tab 栏不随 AX 继续放大：高度、图标、标签（字号、行高、选中圆点的底部留白）封顶在 XXXL 的倍率（iOS 系统 Tab 栏同样不随 Dynamic Type 放大；Q2-11：
-//     此前只封了字号，行高仍按真 --k 算，AX5 的标签行盒比图标高好几倍，圆点被推出栏外）。
+//   - Tab 栏不放大（D49 收紧 Q2-11 的封顶）：Tabs.js 的高、图标 24、标签 11 本来就不读 --k，AX 档没有任何额外规则（iOS 系统 Tab 栏同样不随 Dynamic Type 放大）。
+//   - 字阶（D49）：AX 档的 --fsN / --lhN / --btn-h 由 tokens.css 的 :root[data-ax="N"] 逐级给出（不再统一乘 --k），下面按钮的最小高直接取 --btn-h。
 // 书写格边长不受影响（P118 / D36，按可用空间算）。完整 AX 版式（逐级字阶、说明折叠到 ⓘ 等，ADA A03 / A04）等设计稿给出后替换本文件。
 // 选择器一律以 :root[data-ax][data-text-large] 开头，比紧凑版（write/compact.js 的 :root[data-text-large] …）多一个属性，
 // 注入顺序无关。由 ui/root.js 导入一次。
 
 import { injectStyles } from './styles.js';
-import * as policy from '../../config/policy.js';
 
 /** AX 档规则的根选择器（导出给单测）。 */
 export const AX_ROOT = ':root[data-ax][data-text-large]';
-/** Tab 栏在 AX 档的倍率上限 = XXXL 档的倍率（P130）。 */
-export const TAB_SCALE_CAP = policy.contentSizeScale.XXXL;
-
 const A = AX_ROOT;
 /** 写字 / 判断页规则再加一个 [data-testid]，比紧凑版同名规则（:root[data-text-large] .sz-page[data-testid=…] …）更具体。 */
 const W = `${A} .sz-page[data-testid]`;
@@ -31,7 +27,7 @@ ${A} .sz-page .sz-page__head{flex-wrap:wrap;align-items:center}
 ${A} .sz-page .sz-page__head>.sz-page__title{position:relative;left:auto;right:auto;order:3;flex:1 0 100%;min-width:0;
   padding:0 8px 6px;white-space:normal;overflow:visible;text-overflow:clip;text-align:left;line-height:var(--lh17);text-wrap:pretty}
 ${A} .sz-page .sz-page__head>.sz-page__lead,${A} .sz-page .sz-page__head>.sz-page__trail{flex:none}
-${A} .sz-btn--primary,${A} .sz-btn--secondary{min-height:calc(1.3em + 24px);height:auto;padding-top:6px;padding-bottom:6px;
+${A} .sz-btn--primary,${A} .sz-btn--secondary{min-height:var(--btn-h);height:auto;padding-top:6px;padding-bottom:6px;
   white-space:normal;}
 ${A} .sz-btn--text{min-height:max(44px, calc(1.3em + 12px));white-space:normal;text-align:left}
 ${W} .sz-write__main{grid-template-columns:minmax(0,1fr);gap:8px}
@@ -44,9 +40,6 @@ ${W} .sz-judge__btn{min-height:calc(1.3em + 28px)}
 ${A} .sz-home .sz-home__date,${A} .sz-home .sz-home__record .sz-home__line,${A} .sz-home .sz-home__other.sz-btn{white-space:normal}
 ${A} .sz-set__row.sz-set__row--value{flex-direction:column;align-items:flex-start;justify-content:center;gap:4px}
 ${A} .sz-set__row--value .sz-set__value{flex-wrap:wrap;max-width:100%}
-${A} .sz-tabs{height:calc(50px * ${TAB_SCALE_CAP} + env(safe-area-inset-bottom, 0px))}
-${A} .sz-tabs .sz-tabs__tab{font-size:calc(11px * ${TAB_SCALE_CAP});line-height:calc(16px * ${TAB_SCALE_CAP});padding-bottom:calc(6px * ${TAB_SCALE_CAP})}
-${A} .sz-tabs .sz-tabs__tab svg{width:calc(24px * ${TAB_SCALE_CAP});height:calc(24px * ${TAB_SCALE_CAP})}
 `;
 
 injectStyles('ax', AX_CSS);

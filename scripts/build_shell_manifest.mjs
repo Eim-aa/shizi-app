@@ -345,7 +345,8 @@ function isFontBinary(rel) {
 
 /**
  * 从清单分出 SW 的核心壳与尽力批次（01 §8.3：核心 SHELL 原子；deck 与字体作「尽力」批次）。
- * 不进 SW 预缓存：sw.js / sw-manifest.js 自身、笔顺 JSON（按 coreStrokes 另批预缓存 + 运行时缓存）、licenses/ 与 *.md。
+ * 不进 SW 预缓存：sw.js / sw-manifest.js 自身、笔顺 JSON（按 coreStrokes 另批预缓存 + 运行时缓存）、licenses/ 与 *.md、
+ * *.caf（iOS 包专用音频，网页用同名 WAV；仍在壳清单里供 iOS rsync）。
  */
 export function swLists(files, fingerprintOf) {
   const shell = [];
@@ -353,7 +354,7 @@ export function swLists(files, fingerprintOf) {
   const versioned = rel => `${rel}?v=${fingerprintOf(rel)}`;
   for (const rel of files) {
     if (rel === 'sw.js' || rel === SW_MANIFEST_PATH) continue;
-    if (rel.startsWith('licenses/') || rel.endsWith('.md')) continue;
+    if (rel.startsWith('licenses/') || rel.endsWith('.md') || rel.endsWith('.caf')) continue;
     if (rel === 'deck-data.js') bestEffort.push(versioned(rel));
     else if (rel === 'data/etymology.json') bestEffort.push(rel);
     else if (rel.startsWith('data/') && rel.endsWith('.json')) continue;

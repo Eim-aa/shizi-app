@@ -63,3 +63,56 @@ test('B7: build-info.js carries VERSION (MARKETING_VERSION → package.json fall
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+// Q3：首屏模块预载。index.html 里紧跟 app.js 入口的 <link rel="modulepreload"> 块 = app.js 静态依赖 + mountApp 的
+// import() 目标及其全部静态依赖；冷启动时整张图在解析 HTML / 执行 deck-data.js 时就取好，不再逐层发现。
+test('Q3: moduleSpecifiers reads static, re-export, side-effect and dynamic imports (not strings or comments)', async () => {
+  const { moduleSpecifiers } = await import('../scripts/build_shell_manifest.mjs');
+  const src = [
+    "import { a,\n  b } from './a.js';",
+    "import './side.js';",
+    "import * as ns from '../ns.js';",
+    "export { c } from './c.js';",
+    "export * from './star.js';",
+    "export const s = 'import x from \"./fake.js\"';",
+    "// import y from './comment.js';",
+    "const lazy = () => import('./lazy.js');",
+    'const meta = import.meta.url;',
+    "import ext from 'node:fs';",
+    "function f() { return Array.from('from'); }",
+  ].join('\n');
+  assert.deepEqual(moduleSpecifiers(src), {
+    statics: ['./a.js', './side.js', '../ns.js', './c.js', './star.js'],
+    dynamics: ['./lazy.js'],
+  });
+});
+
+test('Q3: index.html modulepreloads exactly the boot module graph, right after the app.js entry', async () => {
+  const { bootModules, BOOT_ENTRY } = await import('../scripts/build_shell_manifest.mjs');
+  const boot = bootModules();
+  for (const rel of ['src/store/store.js', 'src/store/migrate.js', 'src/ui/root.js', 'src/ui/screens/home/index.js', 'vendor/ui.js', 'vendor/preact.module.js']) {
+    assert.ok(boot.includes(rel), `boot graph includes ${rel}`);
+  }
+  assert.ok(!boot.includes(BOOT_ENTRY), 'the entry itself is loaded by its <script type="module">');
+  assert.ok(!boot.some(rel => rel.startsWith('src/ui/dev/')), 'the ?dev=1 palette is not part of the boot graph');
+  assert.ok(!boot.some(rel => rel.startsWith('src/ui/screens/_demo/')), 'test-host-only screens are not preloaded');
+  assert.equal(new Set(boot).size, boot.length, 'no duplicates');
+  const html = readFileSync(join(ROOT, 'index.html'), 'utf8');
+  const links = [...html.matchAll(/<link rel="modulepreload" href="([^"]+)">/g)].map(m => m[1]);
+  assert.deepEqual(links, boot, 'index.html lists the boot graph in discovery order');
+  const entryAt = html.indexOf('<script type="module" src="src/app.js"></script>');
+  assert.ok(entryAt > 0 && entryAt < html.indexOf('<link rel="modulepreload"'), 'preload block follows the module entry');
+  const manifest = new Set(readFileSync(join(ROOT, MANIFEST_PATH), 'utf8').split('\n').filter(Boolean));
+  for (const rel of links) assert.ok(manifest.has(rel), `preloaded module ${rel} ships in the shell manifest`);
+});
+
+test('Q3: patchIndexModulePreload inserts once and replaces in place (idempotent)', async () => {
+  const { patchIndexModulePreload } = await import('../scripts/build_shell_manifest.mjs');
+  const base = '<head>\n<script type="module" src="src/app.js"></script>\n</head>\n';
+  const once = patchIndexModulePreload(base, ['src/a.js', 'vendor/b.js']);
+  assert.match(once, /src\/app\.js"><\/script>\n<!-- shizi:modulepreload[^\n]*-->\n<link rel="modulepreload" href="src\/a\.js">\n<link rel="modulepreload" href="vendor\/b\.js">\n<!-- \/shizi:modulepreload -->\n<\/head>/);
+  assert.equal(patchIndexModulePreload(once, ['src/a.js', 'vendor/b.js']), once, 'same list → same bytes');
+  const next = patchIndexModulePreload(once, ['src/c.js']);
+  assert.equal((next.match(/rel="modulepreload"/g) || []).length, 1, 'old block replaced, not appended');
+  assert.throws(() => patchIndexModulePreload('<head></head>', []), /src\/app\.js/);
+});

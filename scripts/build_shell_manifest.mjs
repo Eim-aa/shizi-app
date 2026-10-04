@@ -6,8 +6,9 @@
 //                               保证 policy.firstQueue 排在最前）+ self.SHIZI_STROKE_DATA（首练 5 字笔顺内嵌，P09；
 //                               src/data/strokes.js 的内嵌钩子读它，保证第一次练习离线也有参考字形与提示）。
 //                               注意：build_8105_chars.py 重写 core-strokes.js 时只写字表，之后必须再跑本脚本。
-//   index.html                  只改两处：meta[name=shizi-asset-build] 的 content = BUILD；
-//                               <script defer src="…?v=…"> 的 ?v= = 该文件内容 SHA-256 前 12 位（deck / 语境覆盖 / core-strokes）。
+//   index.html                  只改三处：meta[name=shizi-asset-build] 的 content = BUILD；
+//                               <script defer src="…?v=…"> 的 ?v= = 该文件内容 SHA-256 前 12 位（deck / 语境覆盖 / core-strokes）；
+//                               紧跟 app.js 入口的 <link rel="modulepreload"> 块 = 首屏模块图（Q3，见 bootModules）。
 //   scripts/shell-manifest.txt  随包/离线壳的全部文件，逐行一个相对仓库根的路径，按 UTF-8 字节序排序。
 //                               data/ 下 7000+ 个笔顺 JSON 也逐个列出（iOS `rsync --files-from=` 与 verify-bundle-assets.sh 用）。
 //   src/build-info.js           export const BUILD = '<yyyymmdd>-<壳内容指纹 12 hex>'；export const VERSION = '<营销版本号>'
@@ -27,9 +28,10 @@
 
 import { createHash } from 'node:crypto';
 import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join, posix, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { firstQueue } from '../src/config/policy.js';
+import { lex } from './verify_api_floor.mjs';
 
 export const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 export const MANIFEST_PATH = 'scripts/shell-manifest.txt';
@@ -226,6 +228,110 @@ export function patchIndexFingerprints(html, fingerprintOf) {
   return out;
 }
 
+// ---------------------------------------------------------------- 首屏模块预载（Q3）
+
+// 冷启动首屏的模块图：src/app.js 的静态依赖 + mountApp 里逐个 await import() 的模块（store / migrate / root / 设置 /
+// 读屏 / 提醒 / SW）及它们的全部静态依赖。不预载就只能逐层发现：app.js 求值后才请求 store.js，store 起来后才请求 root.js，
+// root.js 解析后才请求它的 130 多个子模块（iOS 上每个请求都过一次 WebContent → UI 进程的 scheme handler）。
+// index.html 里生成一组 <link rel="modulepreload">（只取 + 解析、不求值，求值顺序仍由 app.js 决定），让整张图在解析
+// HTML、执行 deck-data.js 的同时就取好。iOS 17 以下的 WebKit 不认 modulepreload，整条忽略（行为同旧版）。
+export const BOOT_ENTRY = 'src/app.js';
+// app.js 里只在 ?dev=1 走的色板页（ui/dev/）不进首屏图。
+const BOOT_DYNAMIC_EXCLUDE = [/^src\/ui\/dev\//];
+const PRELOAD_START = '<!-- shizi:modulepreload（由 scripts/build_shell_manifest.mjs 生成，勿手改） -->';
+const PRELOAD_END = '<!-- /shizi:modulepreload -->';
+const PRELOAD_BLOCK_RE = /<!-- shizi:modulepreload[^>]*-->\n[\s\S]*?<!-- \/shizi:modulepreload -->\n/;
+const ENTRY_TAG_RE = /<script type="module" src="src\/app\.js"><\/script>\n/;
+
+/** 模块源码里的相对导入说明符：static = import … from / import '…' / export … from；dynamic = import('…')（字符串字面量）。 */
+export function moduleSpecifiers(src) {
+  const { tokens } = lex(src);
+  const statics = [];
+  const dynamics = [];
+  let depth = 0;
+  for (let k = 0; k < tokens.length; k += 1) {
+    const t = tokens[k];
+    if (t.type === 'punct') {
+      if (t.text === '(' || t.text === '[' || t.text === '{') depth += 1;
+      else if (t.text === ')' || t.text === ']' || t.text === '}') depth = Math.max(0, depth - 1);
+      continue;
+    }
+    if (t.type !== 'ident') continue;
+    const nx = tokens[k + 1];
+    if (t.text === 'import' && nx && nx.type === 'punct' && nx.text === '(') {
+      const arg = tokens[k + 2];
+      const close = tokens[k + 3];
+      if (arg && arg.type === 'str' && close && close.type === 'punct' && close.text === ')') dynamics.push(arg.text);
+      continue;
+    }
+    if (depth !== 0) continue;
+    if (t.text === 'import' && !(nx && nx.type === 'punct' && nx.text === '.')) {
+      let m = k + 1;
+      while (m < tokens.length && tokens[m].type !== 'str') m += 1;
+      if (m < tokens.length) statics.push(tokens[m].text);
+      k = m;
+      continue;
+    }
+    if (t.text === 'export' && nx && nx.type === 'punct' && (nx.text === '{' || nx.text === '*')) {
+      let m = k + 1;
+      if (nx.text === '{') while (m < tokens.length && !(tokens[m].type === 'punct' && tokens[m].text === '}')) m += 1;
+      const from = tokens[m + 1];
+      if (nx.text === '*' || (from && from.type === 'ident' && from.text === 'from')) {
+        while (m < tokens.length && tokens[m].type !== 'str') m += 1;
+        if (m < tokens.length) statics.push(tokens[m].text);
+      }
+      k = m;
+    }
+  }
+  const relative = list => list.filter(spec => spec.startsWith('./') || spec.startsWith('../'));
+  return { statics: relative(statics), dynamics: relative(dynamics) };
+}
+
+function resolveSpecifier(fromRel, spec) {
+  return posix.normalize(posix.join(posix.dirname(fromRel), spec));
+}
+
+/**
+ * 首屏模块列表（相对仓库根，不含 app.js 自身）：从 app.js 与它 import() 的模块出发，按广度优先走静态依赖。
+ * 顺序 = 发现顺序（入口先、叶子后），与浏览器自己逐层发现的顺序一致。依赖不在清单里（拼错 / 漏文件）直接报错。
+ */
+export function bootModules(root = ROOT, files = null) {
+  const listed = files ? new Set(files) : null;
+  const read = rel => {
+    if (listed && !listed.has(rel)) throw new Error(`boot module ${rel} is not in the shell manifest`);
+    const abs = join(root, rel);
+    if (!existsSync(abs)) throw new Error(`boot module ${rel} does not exist`);
+    return readFileSync(abs, 'utf8');
+  };
+  const entry = moduleSpecifiers(read(BOOT_ENTRY));
+  const queue = [
+    ...entry.statics.map(spec => resolveSpecifier(BOOT_ENTRY, spec)),
+    ...entry.dynamics.map(spec => resolveSpecifier(BOOT_ENTRY, spec)).filter(rel => !BOOT_DYNAMIC_EXCLUDE.some(re => re.test(rel))),
+  ];
+  const seen = new Set([BOOT_ENTRY]);
+  const order = [];
+  while (queue.length) {
+    const rel = queue.shift();
+    if (seen.has(rel)) continue;
+    seen.add(rel);
+    order.push(rel);
+    for (const spec of moduleSpecifiers(read(rel)).statics) queue.push(resolveSpecifier(rel, spec));
+  }
+  return order;
+}
+
+export function modulePreloadBlock(modules) {
+  return `${PRELOAD_START}\n${modules.map(rel => `<link rel="modulepreload" href="${rel}">`).join('\n')}\n${PRELOAD_END}\n`;
+}
+
+/** 生成块紧跟在 <script type="module" src="src/app.js"> 之后；已有块整段替换。 */
+export function patchIndexModulePreload(html, modules) {
+  const block = modulePreloadBlock(modules);
+  if (PRELOAD_BLOCK_RE.test(html)) return html.replace(PRELOAD_BLOCK_RE, () => block);
+  if (!ENTRY_TAG_RE.test(html)) throw new Error(`${INDEX_PATH}: missing <script type="module" src="src/app.js"></script>`);
+  return html.replace(ENTRY_TAG_RE, tag => `${tag}${block}`);
+}
+
 export function patchIndexBuild(html, build) {
   if (!META_RE.test(html)) throw new Error(`${INDEX_PATH}: missing <meta name="shizi-asset-build" content="…">`);
   return html.replace(META_RE, `$1${build}$3`);
@@ -296,7 +402,7 @@ export function plan(root = ROOT, now = new Date()) {
     : readFileSync(join(root, rel))).slice(0, 12);
   const currentHtml = readIfExists(join(root, INDEX_PATH));
   if (currentHtml === null) throw new Error(`${INDEX_PATH} is missing`);
-  const htmlWithV = patchIndexFingerprints(currentHtml, fingerprintOf);
+  const htmlWithV = patchIndexModulePreload(patchIndexFingerprints(currentHtml, fingerprintOf), bootModules(root, files));
   overrides[INDEX_PATH] = htmlWithV;
 
   // 3. BUILD

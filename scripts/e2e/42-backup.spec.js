@@ -329,7 +329,7 @@ export default async function run(page, { baseURL, assert, step }) {
     const el = document.querySelector('.sz-layer[data-top="true"] [data-testid="backup-last-date"]');
     return el && el.dataset.day === '2026-09-01';
   });
-  assert.equal(fileA.name, 'shizi-backup-2026-09-01.json', 'file name');
+  assert.equal(fileA.name, '拾字备份-2026-09-01.json', 'file name');
   const objA = JSON.parse(fileA.text);
   assert.deepEqual([objA.app, objA.version, objA.date.slice(0, 4)], ['shizi', 2, '2026'], 'v2 envelope');
   assert.ok(Object.keys(objA.data).every(k => k.indexOf('shizi.v2.') === 0), 'only shizi.v2.* keys');
@@ -761,7 +761,7 @@ export default async function run(page, { baseURL, assert, step }) {
     return el && el.dataset.day === '2026-09-24';
   });
   const shared = await page.evaluate(() => window.__shared);
-  assert.deepEqual([shared[1].name, shared[1].type, shared[1].size > 100], ['shizi-backup-2026-09-24.json', 'application/json', true], 'shared a JSON file');
+  assert.deepEqual([shared[1].name, shared[1].type, shared[1].size > 100], ['拾字备份-2026-09-24.json', 'application/json', true], 'shared a JSON file');
   v = await view(page);
   assert.equal(v.line, T.allBacked, 'Web Share done → recorded, conclusion cleared');
 
@@ -785,7 +785,7 @@ export default async function run(page, { baseURL, assert, step }) {
   await page.click(topSel('backup-export'));
   const msgs = await page.evaluate(() => window.__nativeMsgs.filter(m => m.type === 'shareBackup'));
   assert.equal(msgs.length, 1, 'posted shareBackup');
-  assert.equal(msgs[0].name, 'shizi-backup-2026-09-25.json', 'native file name');
+  assert.equal(msgs[0].name, '拾字备份-2026-09-25.json', 'native file name');
   assert.equal(JSON.parse(msgs[0].payload).version, 2, 'native payload is the v2 file text');
   assert.equal(S((await state(page)).backupMeta), S(metaBeforeNative), 'not recorded until markBackupExported');
   await page.evaluate(() => window.markBackupExported());

@@ -37,7 +37,8 @@
     "{state}": "格的状态词（X-WORK.cellState*：写对 / 看后写的 / 写错，读屏名称里用）",
     "{max}": "一张图最多放几个字（policy.imageMaxChars，D39）",
     "{kuan}": "分张前的落款（X-WORK.kuanJoinPart 内部）",
-    "{part}": "分张序号（其一 / 其二，X-WORK.kuanPart）"
+    "{part}": "分张序号（其一 / 其二，X-WORK.kuanPart）",
+    "{ymd}": "本地日 YYYY-MM-DD（备份文件名 X-BACKUP.fileName）"
   },
   "normalization": [
     "{M} 月 {D} 日、{9 月 24 日} 这类日期、裸「M 月 D 日」、{日期} → {date}",
@@ -4323,6 +4324,13 @@
           "origin": "extra",
           "note": "导出完成的轻提示（边改 K04「导出成功给反馈」，原型没有字样；原生壳在系统分享面板完成后 markBackupExported 时显示，取消分享不显示）。工程暂拟，待文案",
           "decision": "P55"
+        },
+        "fileName": {
+          "raw": null,
+          "text": "拾字备份-{ymd}.json",
+          "origin": "extra",
+          "note": "导出的备份文件名（用户在「文件」里认得出；页面下载 / Web Share / 原生分享同一名字，不带 UUID）；{ymd} = 本地日 YYYY-MM-DD",
+          "decision": "P182"
         }
       }
     },

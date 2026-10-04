@@ -92,7 +92,9 @@ test('buildBackupV2: 只含白名单键、值 = 落盘字串、缺 meta 时补�
   assert.deepEqual(meta, { schema: 2, serial: store.serial, createdAt: NOW, months: ['2026-07', '2026-09'] });
   const parsed = parseBackupV2(JSON.parse(serializeBackup(obj)));
   assert.equal(parsed.ok, true);
-  assert.equal(backupFileName(NOW), 'shizi-backup-2026-09-24.json');
+  // Q2-7（03 P182，复测 simA）：备份文件名是用户认得出的「拾字备份-日期.json」，不含 UUID / 英文前缀
+  assert.equal(backupFileName(NOW), '拾字备份-2026-09-24.json');
+  assert.doesNotMatch(backupFileName(NOW), /shizi|[0-9a-f]{8}-[0-9a-f]{4}/i);
   // 已有 meta 时原样导出
   const withMeta = buildBackupV2({ ...state, meta: { schema: 2, serial: 42, createdAt: 1, months: ['2026-07', '2026-09'] } }, { now: NOW });
   assert.equal(JSON.parse(withMeta.data[KEYS.meta]).serial, 42);

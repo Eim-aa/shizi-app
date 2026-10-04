@@ -402,13 +402,51 @@ final class WebViewController: UIViewController {
         files.filter { $0.lastPathComponent.hasPrefix(Self.temporarySharePrefix) }.forEach { try? manager.removeItem(at: $0) }
     }
 
+    /// 分享 / 导出用的临时文件。每次放在各自独立的临时目录（shizi-share-<UUID>/）里，文件名就是页面给的名字
+    /// （如「拾字备份-2026-10-04.json」）：用户在分享面板、存到「文件」时看到的是可认的名字，不带 UUID（Q2-7，复测 simA）。
+    /// 目录名带 shizi-share- 前缀，启动时 cleanupTemporaryShareFiles 一并清掉没删干净的。
     func temporaryShareURL(filename: String) -> URL {
-        let safeName = filename
+        let manager = FileManager.default
+        let directory = manager.temporaryDirectory
+            .appendingPathComponent("\(Self.temporarySharePrefix)\(UUID().uuidString)", isDirectory: true)
+        try? manager.createDirectory(at: directory, withIntermediateDirectories: true)
+        return Self.uniqueShareURL(in: directory, name: filename)
+    }
+
+    /// 文件名里的 / : \ 换成 -；空名字退回 shizi。
+    static func safeShareName(_ filename: String) -> String {
+        let name = filename
             .replacingOccurrences(of: "/", with: "-")
             .replacingOccurrences(of: ":", with: "-")
             .replacingOccurrences(of: "\\", with: "-")
-        return FileManager.default.temporaryDirectory
-            .appendingPathComponent("\(Self.temporarySharePrefix)\(UUID().uuidString)-\(safeName)")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return name.isEmpty ? "shizi" : name
+    }
+
+    /// directory 里 name 的落点；同名已存在时在扩展名前加序号（「拾字备份-2026-10-04 2.json」）。
+    static func uniqueShareURL(in directory: URL, name: String, manager: FileManager = .default) -> URL {
+        let safe = safeShareName(name)
+        let first = directory.appendingPathComponent(safe)
+        guard manager.fileExists(atPath: first.path) else { return first }
+        let stem = (safe as NSString).deletingPathExtension
+        let ext = (safe as NSString).pathExtension
+        var n = 2
+        while true {
+            let candidate = ext.isEmpty ? "\(stem) \(n)" : "\(stem) \(n).\(ext)"
+            let url = directory.appendingPathComponent(candidate)
+            if !manager.fileExists(atPath: url.path) { return url }
+            n += 1
+        }
+    }
+
+    /// 删掉临时分享文件；它所在的独立目录（shizi-share- 前缀）一并删掉。
+    func removeTemporaryShareFile(_ url: URL) {
+        let manager = FileManager.default
+        try? manager.removeItem(at: url)
+        let parent = url.deletingLastPathComponent()
+        if parent.lastPathComponent.hasPrefix(Self.temporarySharePrefix) {
+            try? manager.removeItem(at: parent)
+        }
     }
 
     private func shareBackup(filename: String, payload: String) {
@@ -430,7 +468,7 @@ final class WebViewController: UIViewController {
 
         let activity = UIActivityViewController(activityItems: [fileURL], applicationActivities: nil)
         activity.completionWithItemsHandler = { [weak self] _, completed, _, activityError in
-            defer { try? FileManager.default.removeItem(at: fileURL) }
+            defer { self?.removeTemporaryShareFile(fileURL) }
             if activityError != nil {
                 self?.notifyShareFailed(kind: "backup", reason: "activity")
                 return
@@ -484,7 +522,7 @@ final class WebViewController: UIViewController {
 
         let activity = UIActivityViewController(activityItems: [fileURL], applicationActivities: nil)
         activity.completionWithItemsHandler = { [weak self] _, _, _, activityError in
-            try? FileManager.default.removeItem(at: fileURL)
+            self?.removeTemporaryShareFile(fileURL)
             if activityError != nil {
                 self?.notifyShareFailed(kind: "card", reason: "activity")
             }
@@ -530,7 +568,7 @@ final class WebViewController: UIViewController {
                 url.stopAccessingSecurityScopedResource()
             }
             if shouldRemoveCopy {
-                try? FileManager.default.removeItem(at: url)
+                removeTemporaryShareFile(url)
             }
         }
 

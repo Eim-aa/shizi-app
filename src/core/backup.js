@@ -26,6 +26,7 @@ import {
   parseBackupV2, specForKey,
 } from './schema.js';
 import { localDay } from './dates.js';
+import { t } from '../config/copy/index.js';
 
 /** 备份文件大小上限（字节）：与 iOS 原生预检同口径（01 §8.1、M5-3「>10MB 显示 R-B06 文案」）。 */
 export const BACKUP_MAX_BYTES = 10 * 1024 * 1024;
@@ -170,9 +171,12 @@ export function serializeBackup(obj) {
   return JSON.stringify(obj, null, 1);
 }
 
-/** 文件名 shizi-backup-YYYY-MM-DD.json（沿旧版，日期取本地日）。 */
+/**
+ * 文件名「拾字备份-YYYY-MM-DD.json」（日期取本地日；Q2-7，03 P182：用户在「文件」里认得出哪份是备份，不带 UUID / 英文前缀）。
+ * 原生壳分享时用同一个名字（WebViewController.temporaryShareURL 放进各自独立的临时目录，同名冲突才加序号）。
+ */
 export function backupFileName(now) {
-  return `shizi-backup-${localDay(Number.isFinite(now) ? now : Date.now())}.json`;
+  return t('X-BACKUP.fileName', { ymd: localDay(Number.isFinite(now) ? now : Date.now()) });
 }
 
 // ---------------------------------------------------------------- v1 备份文件（M5-4 接入）

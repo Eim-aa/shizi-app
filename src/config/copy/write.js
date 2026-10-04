@@ -83,6 +83,18 @@ export default Object.freeze({
   'X-PROMPT.tone5': '轻声',
   // X-WRITE（M1-1 书写格组件的读屏名称）
   'X-WRITE.gridLabel': '书写格',
+  // 书写格读屏与播报（R2-A1 / A2-06，P231）：名称带笔数；抬笔 / 撤销 / 清空 / 提示 / 描一遍经 aria-live=polite 区域播报；笔画名称数据没有，按笔序
+  'X-WRITE.gridLabelCount': '书写格，已写 {n} 笔',
+  'X-WRITE.liveStroke': '已写 {n} 笔',
+  'X-WRITE.liveRestored': '恢复了，现在是 {n} 笔',
+  'X-WRITE.liveUndo': '撤销了一笔，还有 {n} 笔',
+  'X-WRITE.liveUndoEmpty': '撤销了一笔，格子是空的',
+  'X-WRITE.liveCleared': '已清空',
+  'X-WRITE.liveRangeOne': '第 {a} 笔',
+  'X-WRITE.liveRangeMany': '第 {a} 到第 {b} 笔',
+  'X-WRITE.liveHint': '提示画出了{range}',
+  'X-WRITE.liveTrace': '描一遍：参考字形画出了{range}',
+  'X-WRITE.liveTraceWhole': '描一遍：参考字形出现了',
   'X-WRITE.moreLabel': '更多', // AX 档底栏「⋯」按钮与菜单的读屏名称（P225）
   // X-WRITE.firstTip（阶段 1 Q2-1，03 P181；实现交接 §3 过渡文案）：首练第 1 字格下说明位一次性提示
   'X-WRITE.firstTip': '凭记忆写，想不起来可以点提示。',

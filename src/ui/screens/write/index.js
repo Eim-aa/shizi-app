@@ -63,6 +63,7 @@ import { useFirstTip } from './first-tip.js';
 import { assistiveTechActive } from '../../../platform/accessibility.js';
 import { AxFoot } from './ax-menu.js';
 import { usePhaseFade } from './phase-fade.js';
+import { gridLabel, useWriteAnnounce } from './sr-live.js';
 import { AX_NOTE_H } from './layout.js';
 
 export const WRITE_SCREEN = 'write';
@@ -349,6 +350,15 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
     onShowAnswer: endSkipUndo, endButton: end.button, ax, endOpen: end.open,
   });
 
+  // 读屏播报（A2-06，P231）：笔数（抬笔 / 撤销 / 清空）、提示给出了哪几笔、描一遍出现时的笔序；视觉隐藏的 aria-live=polite 区域，挂在写字页根上（不在淡化快照里）。
+  const announce = useWriteAnnounce({
+    key: cardKey ? `${cardKey}|${phase}` : null,
+    strokeCount: view.strokes.length,
+    drawable: !paper && (phase === 'recall' || phase === 'trace' || phase === 'retrace'),
+    hintView: hint.view,
+    trace: { active: phase === 'trace', status: strokeData ? strokeData.status : 'loading', total: strokeData && strokeData.data && strokeData.data.medians ? strokeData.data.medians.length : 0 },
+  });
+
   // M2-3：最后一字处理完（任一阶段推进，cursor 到队尾）→ 会话移入 lastEnded → 就地换成结果页（D20，无中间页）。
   // 跳过最后一字的撤销机会交给结果页；结束写入失败时结果页照样按槽里的会话显示并补写（commitFinish 幂等）。
   const topFree = useTopFree(entry);
@@ -498,7 +508,7 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
           inkTransition=${hint.inkTransition}
           resetKey=${cardKey + '|' + phase}
           size=${gridSize}
-          label=${t('X-WRITE.gridLabel')}
+          label=${gridLabel(view.strokes.length)}
         />`}
       </div>
       ${compare.active ? null : html`<div class="sz-write__below" style=${ax > 0 ? undefined : { width: `${gridSize}px` }}>
@@ -506,6 +516,7 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
         ${ax > 0 ? null : tools}
       </div>`}
     </div>
+    ${announce.node}
     ${skip.bar}
     ${persist.notice}
   </${Page}>`;

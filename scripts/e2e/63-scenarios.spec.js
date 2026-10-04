@@ -308,7 +308,9 @@ export default async function run(page, ctx) {
   assert.deepEqual(rec.help, { hints: 1, answerSeen: true, traced: true }, 'help facts: hints 1, answerSeen, traced — separate fields');
   assert.equal(rec.judgment, undefined, 'no judgment on answer-seen');
   assert.equal(f.todayN, 0, 'answer-seen is not a valid attempt: today N 0');
-  assert.deepEqual(f.ink, {}, 'trace / retrace strokes are practice, not stored as the learner ink of a record');
+  // Q1（QA simB D1）：描一遍的笔迹仍不存；「自己写一遍」的那一竖存成这条看过答案记录的墨迹（作品「看后写的」，D31），kind 不变
+  const inkIds = Object.values(f.ink || {}).flatMap(table => Object.keys(table));
+  assert.deepEqual(inkIds, [rec.id], 'trace strokes are not stored; the 自己写一遍 stroke is stored as the answer-seen record\'s ink (Q1)');
   assert.ok(!f.sched || !f.sched['base:大'], 'no FSRS entry for answer-seen');
   assert.deepEqual(f.sessions.A.items, [{ cardKey: 'base:大', kind: 'answer-seen', recordId: rec.id }], 'item answer-seen');
 

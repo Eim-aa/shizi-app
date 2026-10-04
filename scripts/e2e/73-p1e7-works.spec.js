@@ -318,7 +318,10 @@ export default async function (page, ctx) {
     const month = st.records['2026-09'];
     // 再加一条纸上记录（source: 'paper'，无墨）：不该出现
     const rec = { id: 'r900', cardKey: 'base:纸', char: '纸', sessionId: 's900', kind: 'judged', judgment: 'correct', at: Date.now(), localDay: '2026-09-11', source: 'paper', help: { hints: 0, answerSeen: false, traced: false } };
-    window.__shiziTest.seed({ records: { '2026-09': [...month, rec] } });
+    // seed 是整体替换（未给出的域删除）：只给 records 会把刚造好的墨迹一起清掉——ink / sched / sessions 要原样带过去。
+    // （P1-E78 之前这条 seed 因为记录带 source 被形状校验拒绝而什么都没做，月字帖的墨迹因此「碰巧」还在；P1-E8 把 source 放进 schema 后才暴露。）
+    const r = window.__shiziTest.seed({ records: { '2026-09': [...month, rec] }, ink: st.ink, sched: st.sched, sessions: st.sessions });
+    if (!r.ok) throw new Error('seed failed: ' + JSON.stringify(r));
     (await import('/src/ui/router.js')).nav.push('month', { month: '2026-09' });
   });
   await page.waitForSelector(topSel('month-screen'));

@@ -26,7 +26,7 @@ export default Object.freeze({
   'R-M06.monthNote': '只看哪天有记录，不分对错。',
   'R-M06.monthNone': '还没有记录',
   'R-M06.rareNote': '今年有记录的字里，它最不常用。',
-  'R-M06.inkDate': '{date} · 你当时的笔迹',
+  'R-M06.inkDate': '{date} 的笔迹',
   'R-M06.footer': '只算今年的记录。这一页不能保存成图片。',
   'R-M06.emptyTitle': '今年还没有记录',
   'R-M06.emptyBody': '写字并判断对错后，这里会汇总你今年的记录。',

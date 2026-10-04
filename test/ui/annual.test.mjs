@@ -177,10 +177,19 @@ test('300 chars: counts and speed', () => {
 
 test('view helpers: count split, first line with / without ink, date text; screen registered', () => {
   assert.deepEqual(countParts(12), { before: '', num: '12', after: ' 个字' });
-  assert.equal(firstLine('2026-01-02', true), '1 月 2 日 · 你当时的笔迹');
+  assert.equal(firstLine('2026-01-02', true), '1 月 2 日 的笔迹');
   assert.equal(firstLine('2026-01-02', false), '1 月 2 日');
   assert.equal(annualDateText('bad'), '');
   assert.equal(ANNUAL_SCREEN, 'annual');
   assert.ok(getScreen('annual'), 'annual screen registered on import');
   assert.equal(t('X-ANNUAL.section2'), '二 · 有记录天数最多的月份');
+});
+
+test('D45: section-4 date line reads 「{date} 的笔迹」 and never says it is the first time this year', () => {
+  const slot = t('R-M06.inkDate', { date: '3 月 9 日' });
+  assert.equal(slot, '3 月 9 日 的笔迹');
+  assert.ok(!/第一次|当时|首次/.test(slot), 'the date is the day of the ink record, not 今年第一次');
+  assert.equal(firstLine('2026-03-09', true), '3 月 9 日 的笔迹');
+  // 没有笔迹时仍只写日期（不借「的笔迹」）
+  assert.equal(firstLine('2026-03-09', false), '3 月 9 日');
 });

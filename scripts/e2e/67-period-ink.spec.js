@@ -159,7 +159,7 @@ export default async function run(page, ctx) {
       canvas: !!el.querySelector('[data-testid="annual-first-ink"] canvas') };
   }, TOP);
   assert.deepEqual([first.char, first.day, first.record, first.ink, first.canvas], ['题', '2026-04-02', rec('题', '2026-04-02').id, 'true', true], 'first char of the year, ink from 4-02');
-  assert.equal(first.line, '4 月 2 日 · 你当时的笔迹', 'the date line is the ink record\'s day');
+  assert.equal(first.line, '4 月 2 日 的笔迹', 'the date line is the ink record\'s day');
   await back(page);
 
   step('browsing and making images wrote nothing');

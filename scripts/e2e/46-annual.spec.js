@@ -5,7 +5,7 @@
 //      入口是「我的」菜单「年度报告」（M4-1），返回回到我的。
 //   2. 有记录（真实 mutator judgeInDraft 造数，含去年记录、笔迹、看过答案 / 跳过、今年的折叠月份）：四节的数字按 getState + SEED 字频
 //      独立重算后对照（去重字数、有记录天数最多的月份（并列取大）、字频最大的字 + 拼音、今年第一条记录的字 / 日期 / 记录 id / 笔迹）。
-//   3. 第四节：那一次有笔迹 → 画笔迹 +「{date} · 你当时的笔迹」；没有笔迹 → 标准字 +「没有笔迹」、说明行只写日期。
+//   3. 第四节：那一次有笔迹 → 画笔迹 +「{date} 的笔迹」；没有笔迹 → 标准字 +「没有笔迹」、说明行只写日期。
 //   4. 不导出：页面里除了页头返回没有任何按钮、没有图片 / 分享入口；页底「只算今年的记录。这一页不能保存成图片。」。
 //   5. 不写任何东西（写日志不变、shizi.* 原始键逐字节相等）；刷新后停在年度报告；跨年（2027-01-02）变空态。
 //   6. 300 字计时；深色（系统 / data-theme）与 360×640 无横向滚动；每个 button 有无障碍名。
@@ -29,7 +29,7 @@ const COPY = {
   emptyTitle: '今年还没有记录',
   emptyBody: '写字并判断对错后，这里会汇总你今年的记录。',
   monthDays: (m, n) => `${m} 月有记录 ${n} 天`,
-  inkLine: d => `${d} · 你当时的笔迹`,
+  inkLine: d => `${d} 的笔迹`,
   noInk: '没有笔迹',
 };
 const md = day => `${Number(day.slice(5, 7))} 月 ${Number(day.slice(8, 10))} 日`;
@@ -282,13 +282,13 @@ export default async function run(page, ctx) {
   assert.deepEqual([o.first.char, o.first.day], ['静', '2026-01-05'], 'oracle sanity: answer-seen 户 on 1-02 does not count');
 
   // ------------------------------------------------------------------ 3. 第四节笔迹
-  step('section 4: ink of that record → drawn + 「{date} · 你当时的笔迹」');
+  step('section 4: ink of that record → drawn + 「{date} 的笔迹」');
   assert.ok(o.inkIds.includes(o.first.record), 'that record has stored ink (seed)');
   assert.equal(v.first.ink, 'true', 'data-ink');
   assert.equal(v.first.inkEl && v.first.canvas, true, 'InkMini canvas drawn');
   assert.equal(v.first.inkLabel, '「静」当时的笔迹', 'ink accessible name');
   assert.equal(v.first.noink, null, 'no 没有笔迹');
-  assert.equal(v.first.line, COPY.inkLine(md('2026-01-05')), '「1 月 5 日 · 你当时的笔迹」');
+  assert.equal(v.first.line, COPY.inkLine(md('2026-01-05')), '「1 月 5 日 的笔迹」');
   const painted = await page.evaluate(sel => {
     const c = document.querySelector(`${sel} [data-testid="annual-first-ink"] canvas`);
     if (!c || !c.width) return 0;
@@ -307,7 +307,7 @@ export default async function run(page, ctx) {
   assert.equal(v.first.ink, 'false', 'data-ink false');
   assert.equal(v.first.inkEl, false, 'no InkMini');
   assert.equal(v.first.noink, COPY.noInk, '「没有笔迹」 (R-D07 / 10.12)');
-  assert.equal(v.first.line, md('2026-01-05'), 'line is the date only (no 「你当时的笔迹」 without ink)');
+  assert.equal(v.first.line, md('2026-01-05'), 'line is the date only (no 「的笔迹」 without ink)');
   const folded = { folded: true, month: '2026-02', byDay: { '2026-02-03': ['永', '和'] }, chars: ['永', '和'], kept: [] };
   const earlyFold = { folded: true, month: '2026-01', byDay: { '2026-01-01': ['和'] }, chars: ['和'], kept: [] };
   await seed(page, { steps: RICH.steps.filter(s => s.day >= '2026-03' || s.day < '2026'), folded: [earlyFold, folded] });

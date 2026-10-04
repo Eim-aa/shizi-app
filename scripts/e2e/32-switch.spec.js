@@ -1,7 +1,7 @@
 // M3-5 换库（02 M3-5；04 R-L06；01 §3 settings.library、§4「换库 · 就地重试」；03 P73）。
 //
 // 场景：
-//   1. 列表：四行（LIBRARIES 顺序）库名 / 一句说明 / 「可以练 N 个字 · 有记录 M 个」——N 从数据算（3500 / 2976 / 818 / 2500），
+//   1. 列表：四行（LIBRARIES 顺序）库名 / 一句说明 / 「可以练 N 个字 · 有记录 M 个」——N 从数据算（3500 / 2974 / 744 / 2500，D50 ① 移除 76 字后），
 //      M 按记录算（只算 judged，同字去重；看过答案不算）；没设过练习范围 → 规范常用字「正在用」（P73）；底注；
 //      320 宽时数量行两段各自不折断（折行整段换行）。
 //   2. 确认框：点别的库 → 「换成「规范次常用字」？」+ 两行正文 + 取消 / 换成这个库；取消 → 不写入。
@@ -26,7 +26,7 @@ const DESCS = [
   '人名、地名和古文里的少见字。目前能练的大约一半。',
   '小学到初中语文课要求会写的字。适合陪孩子一起练。',
 ];
-const TOTALS = [3500, 2976, 818, 2500];
+const TOTALS = [3500, 2974, 744, 2500];
 const SOURCE_NOTE = '字表参考教育部《通用规范汉字表》。有些字拾字还没收进来，暂时不能练，所以能练的字比原表少。';
 const CONFIRM_BODY = '以后的新字从这个字库里来。\n已有的记录、自选的字和写错过的字都不变。';
 const FAILED = '没保存上，刚才的选择没记下。';
@@ -224,7 +224,7 @@ export default async function librarySwitch(page, ctx) {
   assert.deepEqual(list.map(r => r.tag), ['BUTTON', 'BUTTON', 'BUTTON', 'BUTTON'], 'each row is a button');
   assert.deepEqual(list.map(r => r.name), NAMES, 'names');
   assert.deepEqual(list.map(r => r.desc), DESCS, 'one-line descriptions');
-  assert.deepEqual(list.map(r => r.total), TOTALS, 'N from data: 3500 / 2976 / 818 / 2500');
+  assert.deepEqual(list.map(r => r.total), TOTALS, 'N from data: 3500 / 2974 / 744 / 2500');
   assert.deepEqual(list.map(r => r.recorded), expectRecorded, 'M = judged chars in the library (的 一 耶; answer-seen 是 not counted)');
   assert.equal(expectRecorded[0], 2, 'core3500 has 的 一');
   assert.equal(expectRecorded[1], 1, 'adv3000 has 耶');

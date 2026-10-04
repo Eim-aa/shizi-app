@@ -24,9 +24,9 @@ export const GLYPH_BASELINE = 900;
 export const GLYPH_PAD_RATIO = 0.06;
 // 提示中线宽度（1024 单位；原型 strokeWidth 18，01 §6.4「宽约 18/1024 单位」）。
 export const MEDIAN_WIDTH_UNITS = 18;
-// 描红外廓在字形外侧的厚度（书写格 345 单位；原逐笔描边宽 4、居中，外侧一半 2；V2-02 改为只画外侧、不穿过交叠处，略加厚到 2.5）。
-export const RING_OUTER_UNITS = 2.5;
-// 描红整字不透明度（画布元素整体；原逐笔填充 .4，沿用）。
+// 帮助层（提示 / 描一遍）外廓在字形外侧的厚度（书写格 345 单位，约 1.5pt；V2-02：只画外侧、不穿过笔画交叠处）。
+export const RING_OUTER_UNITS = 1.5;
+// 帮助层（提示 / 描一遍）整层填充不透明度（画布元素整体；原逐笔填充 .4，沿用，全 App 同一个值）。
 export const TRACE_FILL_ALPHA = 0.4;
 
 // 动画节奏（工程取值；原型没有看答案播放与「先播一遍」，旧版提示用 speed 5 / 间隔 60ms 太快，

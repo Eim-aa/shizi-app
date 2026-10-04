@@ -60,14 +60,13 @@ test('prefersMoreContrast reads the media query; false without a window or when 
   }
 });
 
-test('the hint layer carries a constant 1pt ink3 outline under a solid danzhu fill — not only inside @media (prefers-contrast: more) (A2-02 / D51 ⑧)', () => {
-  const src = readFileSync(new URL('../../src/ui/screens/write/hint-layer.js', import.meta.url), 'utf8');
-  assert.ok(!/@media \(prefers-contrast: more\)\{\.sz-hint__stroke/.test(src), 'no contrast-only drop-shadow rule any more');
-  const outline = /\.sz-hint__outline\{((?:\$\{[^}]*\}|[^}])*)\}/.exec(src);
-  assert.ok(outline, 'an outline layer rule');
-  assert.ok(outline[1].includes('fill:none') && outline[1].includes('stroke:${T.ink3}'), 'ink3 outline, no fill');
-  assert.ok(/stroke-width:2px/.test(outline[1]) && /vector-effect:non-scaling-stroke/.test(outline[1]), '2px centred stroke = 1px visible outside, constant under any grid size');
-  const fill = /\.sz-hint__stroke\{((?:\$\{[^}]*\}|[^}])*)\}/.exec(src);
-  assert.ok(fill && fill[1].includes('fill:${T.danzhu}') && fill[1].includes('stroke:none'), 'solid danzhu fill (the token, not a polyline)');
-  assert.ok(src.indexOf('${outlines}${paths}') > 0, 'outlines are painted first, fills on top, so neighbouring strokes leave no seam');
+test('the hint layer is drawn with the same wash as the trace layer: one wash fill + an ink3 outer ring, no separate SVG outline rules (A2-02 / D51 ⑧ / W1)', () => {
+  const hint = readFileSync(new URL('../../src/ui/screens/write/hint-layer.js', import.meta.url), 'utf8');
+  const trace = readFileSync(new URL('../../src/ui/screens/write/answer.js', import.meta.url), 'utf8');
+  const wash = readFileSync(new URL('../../src/ui/canvas/glyph-wash.js', import.meta.url), 'utf8');
+  assert.ok(hint.includes('<${GlyphWash}') && trace.includes('<${GlyphWash}'), 'hint layer and trace layer both use GlyphWash');
+  assert.ok(!/sz-hint__outline|sz-hint__stroke|drop-shadow/.test(hint), 'no SVG outline / drop-shadow rules left in the hint layer');
+  assert.ok(wash.includes("drawGlyphSolid(fctx, data, { color: glyphColor('--danzhu')") && wash.includes("drawGlyphRing(rctx, data, { color: glyphColor('--ink3')"), 'danzhu wash + ink3 ring');
+  assert.ok(wash.includes('opacity: TRACE_FILL_ALPHA'), 'the fill layer carries TRACE_FILL_ALPHA');
+  assert.ok(!/drawGlyph(Solid|Ring)\(/.test(hint + trace), 'only glyph-wash.js calls the two drawing functions');
 });

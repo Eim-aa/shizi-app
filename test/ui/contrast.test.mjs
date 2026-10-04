@@ -106,8 +106,9 @@ test('seal: white-letter seal keeps ≥ 3:1 in light (5.7) and the documented 3.
 
 // ---- 求助梯子：提示 × 本人墨（不压暗）与提示 × 纸，三种色觉模拟（W1，A2-02 / V2-01 / D34 / D51 ⑧）
 // 旧测试只核对 danzhu/hand 这一对「不会出现在屏幕上的颜色」（本人墨被压到 35% 才是屏上真实的一对），没拦住 v2 的回退。
-// 现在按屏上真实合成：提示笔画 = danzhu 以 HINT_DRAW.opacity 压在笺面上、外面一圈 1pt ink3 外廓；本人墨 = hand，不压暗（inkOpacity 恒 1）。
+// 现在按屏上真实合成：提示 = 和描一遍同一种画法（glyph-wash.js）——danzhu 以整层 TRACE_FILL_ALPHA（.4）淡填在笺面上、外面一圈 ink3 外廓；本人墨 = hand，不压暗（inkOpacity 恒 1）。
 import { HINT_DRAW } from '../../src/ui/screens/write/hint-layer.js';
+import { TRACE_FILL_ALPHA } from '../../src/ui/canvas/glyph.js';
 
 const VISIONS = {
   normal: [[1, 0, 0], [0, 1, 0], [0, 0, 1]],
@@ -133,11 +134,11 @@ const over = (fg, bg, alpha) => fg.map((v, i) => Math.round(v * alpha + bg[i] * 
 
 for (const theme of ['light', 'dark']) {
   for (const vision of Object.keys(VISIONS)) {
-    test(`${theme} · ${vision}: hint fill × own ink (not dimmed) ≥ 3:1; hint outline × paper / sheet ≥ 3:1; the hint edge is readable on the sheet`, () => {
+    test(`${theme} · ${vision}: hint wash × own ink (not dimmed) ≥ 3:1; hint outline × paper / sheet ≥ 3:1; the hint edge is readable on the sheet`, () => {
       const sheet = colorOf(theme, 'sheet');
       const paper = colorOf(theme, 'paper');
       const hand = colorOf(theme, 'hand');
-      const fill = over(colorOf(theme, 'danzhu'), sheet, HINT_DRAW.opacity);
+      const fill = over(colorOf(theme, 'danzhu'), sheet, TRACE_FILL_ALPHA);
       const outline = colorOf(theme, 'ink3');
       const need = th.hintVsHand;
       assert.ok(need >= 3, 'threshold is 3:1');
@@ -147,9 +148,8 @@ for (const theme of ['light', 'dark']) {
         const edge = contrastUnder(outline, ground, vision);
         assert.ok(edge >= 3, `${theme}/${vision}: hint outline × ${name} ${edge.toFixed(2)} < 3`);
       }
-      // 笔画外缘 = 外廓对笺面；填充本身对笺面在正常视觉下 ≥ 3（tokens.json danzhu/sheet），色觉异常时由外廓保证。
+      // 笔画外缘 = 外廓对笺面；淡填充本身只是着色（整层 .4），可辨认由外廓保证（不靠色相）。
       const fillSheet = contrastUnder(fill, sheet, vision);
-      if (vision === 'normal') assert.ok(fillSheet >= th.hintAndTrace - 0.005, `${theme}: hint fill × sheet ${fillSheet.toFixed(2)}`);
       assert.ok(Math.max(fillSheet, contrastUnder(outline, sheet, vision)) >= 3, `${theme}/${vision}: the hint stroke is distinguishable from the sheet`);
     });
   }
@@ -159,5 +159,6 @@ test('the hint never dims the writer\'s ink: the 35% dimming is gone, so the rea
   const src = fs.readFileSync(path.join(ROOT, 'src/ui/screens/write/hint-layer.js'), 'utf8');
   assert.ok(!/INK_DIM_OPACITY\s*=/.test(src), 'INK_DIM_OPACITY is removed');
   assert.ok(/inkOpacity:\s*1,/.test(src), 'inkOpacity is a constant 1');
-  assert.equal(HINT_DRAW.opacity, 1, 'the hint layer is drawn at the token colour');
+  assert.equal(HINT_DRAW.opacity, 1, 'the whole hint group is shown at full strength (the wash carries its own TRACE_FILL_ALPHA)');
+  assert.equal(TRACE_FILL_ALPHA, 0.4, 'the same wash opacity as the trace layer (one drawing for every help layer)');
 });

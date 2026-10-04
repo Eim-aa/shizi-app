@@ -83,9 +83,11 @@ test('drawGlyphRing：先描边、再用 destination-out 擦掉字形本身，�
   assert.equal(drawGlyphRing(plain, { strokes: [] }, {}), false);
 });
 
-test('描一遍层的源码约束：整字合成（不再逐笔 drawGlyph + outline）', () => {
+test('描一遍层的源码约束：整字合成（不再逐笔 drawGlyph + outline），与提示同一个 GlyphWash', () => {
+  const wash = fs.readFileSync(path.join(ROOT, 'src/ui/canvas/glyph-wash.js'), 'utf8');
   const src = fs.readFileSync(path.join(ROOT, 'src/ui/screens/write/answer.js'), 'utf8');
-  assert.ok(src.includes('drawGlyphSolid(') && src.includes('drawGlyphRing('), 'TraceLayer uses the unified composite');
+  assert.ok(wash.includes('drawGlyphSolid(') && wash.includes('drawGlyphRing('), 'GlyphWash uses the unified composite');
+  assert.ok(src.includes('<${GlyphWash}'), 'TraceLayer renders the shared wash');
   assert.ok(!/outline:\s*\{[^}]*danzhu/.test(src), 'no per-stroke danzhu outline on the trace');
   assert.equal(STEP_PLAY_MAX_MS, policy.motion.stepPlayMaxMs);
 });

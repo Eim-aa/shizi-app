@@ -12,7 +12,7 @@
 //      DOM 文本（GlyphFallback）。按钮上方说明 R-W07.answerNote（10.13 用 R-W08.answerNote，字串相同）；按钮 [自己写 / 描一遍]；底部「下一个」文字按钮。
 //      **第一次**用看答案时格下多一行说明 R-W07.firstExplain（settings.answerNoteSeen，一次性，P212）。本人墨在 answer 阶段与回忆阶段共用同一份笔画现场
 //      （answerInkKey）。读屏：答案字放在底栏一个视觉隐藏的 role=img（书写格本身 aria-hidden 参考层）。
-//   4. 描一遍（trace）：书写格参考字形层画描红（整字一次合成：所有笔画同色不透明、整层 .4 不透明度、外侧一圈 --tl 外廓，没有逐笔描边与叠色接缝，V2-02；
+//   4. 描一遍（trace）：书写格参考字形层画描红（和提示同一种画法，canvas/glyph-wash.js：整字一次合成，所有笔画同色不透明、整层 .4 不透明度、外侧一圈 --ink3 外廓，没有逐笔描边与叠色接缝，V2-02；
 //      10.13 用浅色楷体整字、不分笔顺），进阶段先快放一遍笔顺（总时长 ≤ 1.6s，policy.motion.stepPlayMaxMs，P210；走查-W19；落笔 / 点一下即到终态；
 //      减少动态效果不播）；格下 R-W08.traceNote；主按钮「描好了，自己写」（没写时 disabled）；底部「下一个」。进入描一遍时把该 answer-seen 记录的
 //      help.traced 置 true（同一次 commit，帮助事实，D07）。
@@ -55,7 +55,8 @@ import { buildStroke, decodeRawStrokes, encodeInk } from '../../../core/ink-math
 import { makeRecord, charOfCardKey } from '../../../core/records.js';
 import { advance, clearLine, currentCardKey, withCurrent } from '../../../core/sessions.js';
 import { peekStrokes, watchStrokes } from '../../../data/strokes.js';
-import { animate, drawGlyph, drawGlyphRing, drawGlyphSolid, glyphColor, prefersMoreContrast, prefersReducedMotion, TRACE_FILL_ALPHA } from '../../canvas/glyph.js';
+import { animate, drawGlyph, glyphColor, prefersReducedMotion } from '../../canvas/glyph.js';
+import { GlyphWash, paintCanvas, useThemeVersion } from '../../canvas/glyph-wash.js';
 import { GlyphFallback } from './glyph-fallback.js';
 
 /** answer 流程的阶段（01 §3.3）。 */
@@ -285,37 +286,6 @@ function storeOrNull() {
   }
 }
 
-/** 深浅色变化计数（matchMedia 与 data-theme）；canvas / hanzi-writer 的颜色在绘制时读，变化后要重画。 */
-function useThemeVersion() {
-  const [version, setVersion] = useState(0);
-  useEffect(() => {
-    if (typeof window === 'undefined') return undefined;
-    const bump = () => setVersion(v => v + 1);
-    let mq = null;
-    let mqc = null;
-    try {
-      mq = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
-      mqc = window.matchMedia ? window.matchMedia('(prefers-contrast: more)') : null; // 增强对比度开关变化也要重画描红（P153）
-    } catch (error) {
-      mq = null;
-      mqc = null;
-    }
-    if (mq && mq.addEventListener) mq.addEventListener('change', bump);
-    if (mqc && mqc.addEventListener) mqc.addEventListener('change', bump);
-    let observer = null;
-    if (typeof MutationObserver === 'function') {
-      observer = new MutationObserver(bump);
-      observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-    }
-    return () => {
-      if (mq && mq.removeEventListener) mq.removeEventListener('change', bump);
-      if (mqc && mqc.removeEventListener) mqc.removeEventListener('change', bump);
-      if (observer) observer.disconnect();
-    };
-  }, []);
-  return version;
-}
-
 /** 笔顺数据：{status:'loading'|'ready'|'missing', data}；首帧用 peekStrokes 避免闪一下。 */
 function useStrokeData(char, onStatus) {
   const [load, setLoad] = useState(() => {
@@ -336,21 +306,6 @@ function useStrokeData(char, onStatus) {
     if (statusRef.current) statusRef.current(load.status);
   }, [load.status]);
   return load;
-}
-
-function paintCanvas(canvas, cssSize) {
-  const dpr = (typeof window !== 'undefined' && window.devicePixelRatio) || 1;
-  const px = Math.round(cssSize * dpr);
-  if (canvas.width !== px) canvas.width = px;
-  if (canvas.height !== px) canvas.height = px;
-  canvas.style.width = `${cssSize}px`;
-  canvas.style.height = `${cssSize}px`;
-  const ctx = canvas.getContext('2d');
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  const k = (dpr * cssSize) / 345; // 按书写格内部 345 单位画（01 §6.1）
-  ctx.setTransform(k, 0, 0, k, 0, 0);
-  return ctx;
 }
 
 // ---------------------------------------------------------------- 答案衬底（answer 阶段，书写格参考字形层）
@@ -382,34 +337,16 @@ export function AnswerUnderLayer({ char, cssSize = 345, onStatus }) {
 // ---------------------------------------------------------------- 描红层（trace 阶段，书写格参考字形层）
 
 /**
- * 描一遍：整字一次合成的描红（V2-02）——所有笔画同色不透明地填进一层 canvas、整层 .4 不透明度（交叠处不叠色，底色均匀），
- * 外侧另一层 canvas 只画一圈 --tl 外廓（不画逐笔描边）；进阶段先快放一遍笔顺（≤ 1.6s，走查-W19），落笔 / 点一下即跳过；
+ * 描一遍：和提示同一种画法（canvas/glyph-wash.js，V2-02 / W1 验收）——整字所有笔画同色不透明填进一层、整层 .4 不透明度（交叠处不叠色，底色均匀），
+ * 外侧另一层只画一圈 --ink3 外廓（不画逐笔描边）；进阶段先快放一遍笔顺（≤ 1.6s，走查-W19），落笔 / 点一下即跳过；
  * 10.13 浅色楷体整字、不播。主题变化只重画描红，不重播。
  */
 export function TraceLayer({ char, cssSize = 345, onStatus }) {
   const load = useStrokeData(char, onStatus);
   const rootRef = useRef(null);
-  const fillRef = useRef(null);
-  const ringRef = useRef(null);
   const animRef = useRef(null);
   const ctrlRef = useRef(null);
   const [anim, setAnim] = useState('idle');
-  const theme = useThemeVersion();
-
-  // 描红：填充层 + 外廓层
-  useLayoutEffect(() => {
-    const fill = fillRef.current;
-    const ring = ringRef.current;
-    if (!fill || !ring) return;
-    const fctx = paintCanvas(fill, cssSize);
-    const rctx = paintCanvas(ring, cssSize);
-    if (load.status === 'ready' && load.data) {
-      // 增强对比度（D46 ⑯ / P153）：淡朱外廓外再多一圈 1pt 墨三，令牌不改
-      const halo = prefersMoreContrast() ? { color: glyphColor('--ink3'), extra: 1 } : null;
-      drawGlyphSolid(fctx, load.data, { color: glyphColor('--danzhu') });
-      drawGlyphRing(rctx, load.data, { color: glyphColor('--danzhu'), halo });
-    }
-  }, [load.data, load.status, cssSize, theme]);
 
   // 先播一遍（每次进描一遍一次）
   useLayoutEffect(() => {
@@ -448,8 +385,8 @@ export function TraceLayer({ char, cssSize = 345, onStatus }) {
   }, []);
 
   return html`<div class="sz-answer__trace" ref=${rootRef} data-testid="write-trace-layer" data-state=${load.status} data-anim=${anim}>
-    <canvas ref=${fillRef} data-testid="write-trace-fill" style=${{ opacity: TRACE_FILL_ALPHA }} aria-hidden="true"></canvas>
-    <canvas ref=${ringRef} data-testid="write-trace-ring" aria-hidden="true"></canvas>
+    ${load.status === 'ready' && load.data
+      ? html`<${GlyphWash} data=${load.data} cssSize=${cssSize} fillTestid="write-trace-fill" ringTestid="write-trace-ring" />` : null}
     <div class="sz-answer__anim" ref=${animRef} style=${{ width: `${cssSize}px`, height: `${cssSize}px` }}></div>
     ${load.status === 'missing' ? html`<${GlyphFallback} char=${char} variant="trace" size=${cssSize} />` : null}
   </div>`;

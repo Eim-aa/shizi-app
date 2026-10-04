@@ -32,7 +32,6 @@ function hintState(page) {
     const top = document.querySelector('.sz-layer[data-top="true"]');
     const note = top.querySelector('[data-testid="write-note"]');
     const ink = top.querySelector('[data-testid="write-grid-ink"]');
-    const paths = l ? [...l.querySelectorAll('[data-testid="write-hint-stroke"]')] : [];
     return {
       label: b ? b.getAttribute('aria-label') : null, // D49：读屏名称（「提示，还有 N 次」）
       text: b ? b.textContent.trim() : null, // 可见文字一直是「提示」
@@ -43,17 +42,13 @@ function hintState(page) {
       from: l && l.dataset.from !== undefined ? Number(l.dataset.from) : null,
       to: l && l.dataset.to !== undefined ? Number(l.dataset.to) : null,
       anim: l ? l.dataset.anim || null : null,
-      strokes: paths.map(p => Number(p.dataset.stroke)),
-      timing: paths.map(p => {
-        const cs = getComputedStyle(p);
-        return { dur: cs.animationDuration, delay: cs.animationDelay, name: cs.animationName, ease: cs.animationTimingFunction };
-      }),
+      strokes: l && l.dataset.from !== undefined ? Array.from({ length: Number(l.dataset.to) - Number(l.dataset.from) }, (_, i) => Number(l.dataset.from) + i) : [], // 画出的是 [from, to) 这几笔
+      timing: l ? [...l.querySelectorAll('canvas')].map(c => ({ name: getComputedStyle(c).animationName })) : [], // 逐笔动画已没有：画布上都没有动画
       note: note ? note.textContent.trim() : null,
       noteKind: note && note.querySelector('[data-hint-note]') ? note.querySelector('[data-hint-note]').dataset.hintNote : null,
       noteDot: !!(note && note.querySelector('.sz-hintnote__dot')),
       inkOpacity: ink ? Number(getComputedStyle(ink).opacity) : null,
       inkTransition: ink ? getComputedStyle(ink).transitionDuration : null,
-      outlines: l ? l.querySelectorAll('.sz-hint__outline').length : 0,
     };
   }, { hint: HINT, layer: LAYER });
 }
@@ -128,7 +123,7 @@ export default async function hint(page, ctx) {
   assert.equal(h.anim, 'fade', 'the new hint fades in as one group (D51 ⑧: no stroke-by-stroke drawing on the web)');
   assert.ok(h.timing.every(x => x.name === 'none'), 'no per-stroke draw animation (no szHintDraw any more)');
   const fadeIn = await page.evaluate(sel => {
-    const cs = getComputedStyle(document.querySelector(sel + ' g'));
+    const cs = getComputedStyle(document.querySelector(sel + ' .sz-hint__group'));
     return { name: cs.animationName, dur: cs.animationDuration };
   }, LAYER);
   assert.deepEqual([fadeIn.name, fadeIn.dur], ['szHintFadeIn', '0.15s'], 'whole group fades in over 150ms (P210)');
@@ -149,30 +144,41 @@ export default async function hint(page, ctx) {
       probe.remove();
       return c;
     };
-    const fill = document.querySelector(sel + ' .sz-hint__stroke');
-    const outline = document.querySelector(sel + ' .sz-hint__outline');
-    const fcs = getComputedStyle(fill);
-    const ocs = getComputedStyle(outline);
+    const fill = document.querySelector(sel + ' [data-testid="write-hint-fill"]');
+    const ring = document.querySelector(sel + ' [data-testid="write-hint-ring"]');
     const top = document.querySelector('.sz-layer[data-top="true"]');
     const glyph = top.querySelector('[data-testid="write-glyph-layer"]');
     const ink = top.querySelector('[data-testid="write-grid-ink"]');
+    const read = cv => cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data;
+    const f = read(fill);
+    const r = read(ring);
+    let fillPx = 0;
+    let ringPx = 0;
+    let both = 0;
+    let fillRgb = null;
+    let ringRgb = null;
+    for (let i = 0; i < f.length; i += 4) {
+      if (f[i + 3] === 255) { fillPx += 1; if (!fillRgb) fillRgb = `rgb(${f[i]}, ${f[i + 1]}, ${f[i + 2]})`; }
+      if (r[i + 3] === 255) { ringPx += 1; if (!ringRgb) ringRgb = `rgb(${r[i]}, ${r[i + 1]}, ${r[i + 2]})`; }
+      if (f[i + 3] === 255 && r[i + 3] === 255) both += 1;
+    }
+    const trace = document.querySelector('[data-testid="write-trace-fill"]');
     return {
       danzhu: colorOf('--danzhu'), ink3: colorOf('--ink3'),
-      fillFill: fcs.fill, fillStroke: fcs.stroke,
-      outFill: ocs.fill, outStroke: ocs.stroke, outWidth: ocs.strokeWidth, outVector: ocs.vectorEffect,
-      d: fill.getAttribute('d'), transform: fill.getAttribute('transform'),
-      underInk: !!(glyph.compareDocumentPosition(ink) & Node.DOCUMENT_POSITION_FOLLOWING), glyphHasHint: glyph.contains(fill),
+      fillOpacity: getComputedStyle(fill).opacity, ringOpacity: getComputedStyle(ring).opacity,
+      fillPx, ringPx, both, fillRgb, ringRgb,
+      underInk: !!(glyph.compareDocumentPosition(ink) & Node.DOCUMENT_POSITION_FOLLOWING), glyphHasHint: glyph.contains(fill) && glyph.contains(ring),
+      traceFillOpacity: trace ? getComputedStyle(trace).opacity : null,
     };
   }, LAYER);
-  assert.equal(paint.fillFill, paint.danzhu, 'hint fill = --danzhu solid (D43 / D34: 淡朱实心，不再是中线折线)');
-  assert.equal(paint.fillStroke, 'none', 'the fill layer has no stroke of its own');
-  assert.equal(paint.outFill, 'none', 'the outline layer is not filled');
-  assert.equal(paint.outStroke, paint.ink3, 'constant 1pt outline in --ink3 (A2-02: a second channel besides hue)');
-  assert.deepEqual([paint.outWidth, paint.outVector], ['2px', 'non-scaling-stroke'], '2px centred, only the outer 1px shows (the fill covers the inner half)');
-  assert.ok(/[QCL]/.test(paint.d) && paint.d.trim().endsWith('Z'), `drawn from the glyph outline path, not a median polyline (${paint.d.slice(0, 40)}…)`);
-  assert.ok(/scale\(/.test(paint.transform), 'outline path is mapped into the grid by a transform');
+  assert.equal(paint.fillOpacity, '0.4', 'the hint wash is the light whole-layer 0.4 fill (the same as the trace layer: one drawing for every help layer)');
+  assert.equal(paint.ringOpacity, '1', 'the ring is drawn at full strength');
+  assert.ok(paint.fillPx > 300, `wash fill drawn (${paint.fillPx} px)`);
+  assert.equal(paint.fillRgb, paint.danzhu, 'fill colour = --danzhu (token)');
+  assert.ok(paint.ringPx > 30, `outer ring drawn (${paint.ringPx} px)`);
+  assert.equal(paint.ringRgb, paint.ink3, 'ring colour = --ink3 (A2-02: a second channel besides hue)');
+  assert.equal(paint.both, 0, 'the ring only sits outside the filled strokes');
   assert.deepEqual([paint.glyphHasHint, paint.underInk], [true, true], 'the hint lives in the reference layer, which is below the ink canvas in z-order');
-  assert.equal(h.outlines, 1, 'one outline per hinted stroke');
 
   ctx.step('write the next stroke → hint fades out (260ms), ink restores (200ms), range cleared');
   await drawStroke(page, HORIZONTAL);
@@ -219,7 +225,6 @@ export default async function hint(page, ctx) {
   h = await hintState(page);
   assert.deepEqual([h.from, h.to, h.strokes], [0, 4, [0, 1, 2, 3]], 'hint 1 with 0 written → strokes 0–3');
   assert.ok(h.timing.every(x => x.name === 'none'), '4 strokes appear together (one group fade, no stagger on the web)');
-  assert.equal(h.outlines, 4, 'an outline for each of the 4 hinted strokes');
   assert.equal(h.label, '提示，还有 1 次', '14-stroke: 「提示，还有 1 次」');
   cur = await current(page);
   assert.deepEqual([cur.hints, cur.hintRange], [1, { from: 0, to: 4 }], 'store: hints 1, hintRange {0,4}');
@@ -316,7 +321,7 @@ export default async function hint(page, ctx) {
   assert.equal(h.anim, 'fade', 'layer anim = fade');
   assert.ok(h.timing.every(x => x.name === 'none'), 'no per-stroke draw animation');
   const group = await page.evaluate(sel => {
-    const g = document.querySelector(sel + ' g');
+    const g = document.querySelector(sel + ' .sz-hint__group');
     const cs = getComputedStyle(g);
     return { name: cs.animationName, dur: cs.animationDuration, transition: cs.transitionDuration };
   }, LAYER);

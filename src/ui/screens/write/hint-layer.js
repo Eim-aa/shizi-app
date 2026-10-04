@@ -4,10 +4,10 @@
 //   min(已写笔数, N−q) 起（P01 按已写笔数）；没有分组数据的字前 1 / 前 2 笔；没有笔顺数据的字没有分步提示）。
 //   「有没有分组数据」= deck-data.js 的 GROUPS[字] 存在且各组笔数之和等于笔顺数据的总笔数（与旧 index.html L2508 同一判据；
 //   policy.hintUseGroups=false（P29）只表示不按分组内容切笔，分组数据本身只用来判断走 1/4 规则还是前 1 / 前 2 笔）。
-// 画法（D34 / D51 ⑧；V2-01 / A2-02）：提示画在书写格的参考字形层（本人笔迹层**下面**），用该笔的字形轮廓（hanzi-writer strokes，不是
-//   medians 中线折线）填淡朱 --danzhu 实心，常驻 1pt 墨三 --ink3 外廓（SVG stroke 2px + paint-order:stroke，只露外侧一圈 1px；不靠色相，
-//   红 / 绿色觉异常也分得开），整组 150ms 淡入（policy.motion.hintFadeInMs，P210；网页阶段不逐笔写出，拟合与逐笔属阶段 2）。
-//   本人笔迹**不变暗**（D34 覆盖 D25；INK_DIM_OPACITY 删除，inkOpacity 恒为 1）。写下一笔（接受了一次落笔）→ 提示 260ms 淡出，淡完清掉提示范围。
+// 画法（D34 / D51 ⑧，W1 验收：与描一遍同一种画法，全 App 只保留一种）：提示画在书写格的参考字形层（本人笔迹层**下面**），用 canvas/glyph-wash.js 的
+//   整层淡填充（drawGlyphSolid：给出的那几笔同色不透明填进一层、整层 .4 不透明度）+ 外侧一圈墨三 --ink3 外廓（drawGlyphRing）；颜色走令牌（--danzhu / --ink3）。
+//   不再是不透明实心色块，也不是中线折线。整组 150ms 淡入（policy.motion.hintFadeInMs，P210；网页阶段不逐笔写出，拟合与逐笔属阶段 2）。
+//   本人笔迹**不变暗**（D34 覆盖 D25；inkOpacity 恒为 1）。写下一笔（接受了一次落笔）→ 提示 260ms 淡出，淡完清掉提示范围。
 //   减少动态效果：提示整体 120ms 淡入 / 淡出（02 §3 M1-3 / R-G01）。
 // 按钮（R-W05；D49 起是文字行里的文字按钮）：可见文字一直是「提示」，读屏名称「提示，还有 {n} 次」→「提示已用完」（用完 disabled + aria-disabled，ink4）；没有笔顺数据时换成灰字「暂时没有提示」
 //   （M1-2 NoHintLabel，不是按钮）；数据还在加载时按钮文字照常、暂不可点。看过答案后（answerSeen）不显示（M1-4 的按钮）。
@@ -28,8 +28,8 @@ import { currentCardKey, withCurrent } from '../../../core/sessions.js';
 import * as defaultPolicy from '../../../config/policy.js';
 import { t } from '../../../config/copy/index.js';
 import { watchStrokes, peekStrokes } from '../../../data/strokes.js';
-import { GRID } from '../../../core/ink-math.js';
-import { glyphTransform, prefersReducedMotion } from '../../canvas/glyph.js';
+import { prefersReducedMotion } from '../../canvas/glyph.js';
+import { GlyphWash } from '../../canvas/glyph-wash.js';
 import { Button } from '../../components/Button.js';
 import { injectStyles, T } from '../../components/styles.js';
 import { NoHintLabel } from './glyph-fallback.js';
@@ -43,7 +43,7 @@ export const HINT_DRAW = Object.freeze({
   maxMs: defaultPolicy.motion.hintStrokeMs,
   stagger: defaultPolicy.motion.hintStagger,
   easing: 'cubic-bezier(.4,0,.2,1)',
-  opacity: 1, // 提示笔画不透明（淡朱令牌本身就是淡的；对比度见 test/ui/contrast.test.mjs「提示」）
+  opacity: 1, // 整组（淡填充 + 外廓）的显隐不透明度；淡填充自己的 .4 在 glyph.js TRACE_FILL_ALPHA（对比度见 test/ui/contrast.test.mjs「提示」）
 });
 /** 提示整组淡入（P210；D51 ⑧ 网页阶段的最小过渡）。 */
 export const HINT_FADE_IN_MS = defaultPolicy.motion.hintFadeInMs;
@@ -207,11 +207,7 @@ export function applyHintToDraft(draft, { slot, sessionId, cardKey, hints, hintR
 injectStyles('hint-layer', `
 @keyframes szHintFadeIn{from{opacity:0}}
 .sz-hint{position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none;overflow:visible}
-/* 提示笔画 = 字形轮廓填淡朱实心 + 常驻 1pt 墨三外廓（D34 / D51 ⑧ / A2-02）：先画一层 2px 墨三描边（所有笔），再在上面画一层淡朱填充（所有笔，
-   盖住描边的内侧一半），只露出外侧 1px；两层分开画是为了相邻两笔交叠处不会有后一笔的描边压在前一笔的填充上。non-scaling-stroke 让线宽不随格子缩放；
-   对比度由外廓保证（浅深、红绿色觉异常都 ≥ 3:1），不再只在「增强对比度」时才有。 */
-.sz-hint__outline{fill:none;stroke:${T.ink3};stroke-width:2px;stroke-linejoin:round;vector-effect:non-scaling-stroke}
-.sz-hint__stroke{fill:${T.danzhu};stroke:none}
+.sz-hint__group{position:absolute;inset:0}
 .sz-hintbtn{white-space:nowrap}
 .sz-hintnote{display:flex;align-items:flex-start;gap:8px}
 .sz-hintnote__dot{flex:none;width:6px;height:6px;margin-top:calc(.775em - 3px);border-radius:50%;background:${T.danzhu}}
@@ -225,13 +221,9 @@ injectStyles('hint-layer', `
  */
 export function HintLayer({ data, view, reduced = false, testid = 'write-hint-layer' }) {
   if (!data || !view || !view.range) {
-    return html`<svg class="sz-hint" data-testid=${testid} data-state="none" viewBox="0 0 ${GRID} ${GRID}"
-      aria-hidden="true" focusable="false"></svg>`;
+    return html`<div class="sz-hint" data-testid=${testid} data-state="none" aria-hidden="true"></div>`;
   }
   const { from, to } = view.range;
-  const strokes = data && Array.isArray(data.strokes) ? data.strokes : [];
-  const tr = glyphTransform({ size: GRID });
-  const transform = `translate(${tr.ox.toFixed(3)} ${tr.oy.toFixed(3)}) scale(${tr.k.toFixed(5)} ${(-tr.k).toFixed(5)})`;
   // 淡入：新给的提示（非恢复）整组淡入；恢复的提示直接静态显示；减少动态效果用 REDUCED_FADE_MS。
   const anim = view.restored ? 'static' : 'fade';
   const out = view.show === 'out';
@@ -242,20 +234,12 @@ export function HintLayer({ data, view, reduced = false, testid = 'write-hint-la
     transition: `opacity ${fadeMs}ms linear`,
   };
   if (view.show === 'in' && anim === 'fade') groupStyle.animation = `szHintFadeIn ${inMs}ms linear`;
-  const outlines = [];
-  const paths = [];
-  for (let idx = from; idx < to; idx += 1) {
-    const d = strokes[idx];
-    if (typeof d !== 'string' || !d) continue;
-    outlines.push(html`<path key=${`o${view.run}-${idx}`} class="sz-hint__outline" d=${d} transform=${transform}
-      data-stroke=${idx}></path>`);
-    paths.push(html`<path key=${`h${view.run}-${idx}`} class="sz-hint__stroke" d=${d} transform=${transform}
-      data-stroke=${idx} data-testid="write-hint-stroke"></path>`);
-  }
-  return html`<svg class="sz-hint" data-testid=${testid} data-state=${out ? 'fading' : 'shown'} data-from=${from}
-    data-to=${to} data-anim=${anim} data-run=${view.run} viewBox="0 0 ${GRID} ${GRID}" aria-hidden="true" focusable="false">
-    <g key=${`g${view.run}`} style=${groupStyle}>${outlines}${paths}</g>
-  </svg>`;
+  return html`<div class="sz-hint" data-testid=${testid} data-state=${out ? 'fading' : 'shown'} data-from=${from}
+    data-to=${to} data-anim=${anim} data-run=${view.run} aria-hidden="true">
+    <div class="sz-hint__group" key=${`g${view.run}`} style=${groupStyle}>
+      <${GlyphWash} data=${data} from=${from} to=${to} fillTestid="write-hint-fill" ringTestid="write-hint-ring" />
+    </div>
+  </div>`;
 }
 
 /** 提示按钮 / 灰字（R-W05）。model = hintButtonModel(...)。 */

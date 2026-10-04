@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// 把 JSON 与模拟结果填进 易忘度字表-初稿.md 里 <!-- GEN:名字 --> … <!-- /GEN:名字 --> 之间的块。
-// 文档其余部分是人工撰写，不会被覆盖。
+// 把 JSON 与模拟结果填进 易忘度字表-初稿.md（或 --table=1.0 时 易忘度字表-1.0.md）里 <!-- GEN:名字 --> … <!-- /GEN:名字 --> 之间的块。
+// 文档其余部分是人工撰写，不会被覆盖。文档里没有的块不生成（1.0 文档不含旧口径的 30 天模拟块）。
 //
 // 用法（仓库根目录，按顺序）：
 //   node docs/engineering/v10/phase1/tools/build-yiwang.mjs
@@ -13,9 +13,13 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-const MD = path.resolve(HERE, '..', '易忘度字表-初稿.md');
-const DATA = JSON.parse(fs.readFileSync(path.resolve(HERE, '..', '易忘度字表-初稿.json'), 'utf8'));
-const SIM = JSON.parse(fs.readFileSync(path.join(HERE, 'simulate-30d.out.json'), 'utf8'));
+const TABLE = (process.argv.find((a) => a.startsWith('--table=')) || '--table=初稿').slice('--table='.length);
+const MD = path.resolve(HERE, '..', '易忘度字表-' + TABLE + '.md');
+const DATA = JSON.parse(fs.readFileSync(path.resolve(HERE, '..', '易忘度字表-' + TABLE + '.json'), 'utf8'));
+const MD_TEXT = fs.readFileSync(MD, 'utf8');
+const HAS = (name) => MD_TEXT.includes('<!-- GEN:' + name + ' -->');
+const SIM = HAS('sim') || HAS('simAgg') ? JSON.parse(fs.readFileSync(path.join(HERE, 'simulate-30d.out.json'), 'utf8')) : null;
+const V1 = DATA.meta.version === '1.0';
 
 const esc = (s) => String(s ?? '').replace(/\|/g, '\\|');
 const ctxCell = (c) => {
@@ -23,7 +27,7 @@ const ctxCell = (c) => {
   if (c.status === 'ok') return cur;
   if (c.status === 'write') return cur + ' **需新写**';
   if (!c.suggest) return cur + '（需复核，无备选）';
-  return cur + ' → 「' + c.suggest + '」' + (c.status === 'review' ? '（需复核）' : '（建议）');
+  return cur + ' → 「' + c.suggest + '」' + (c.status === 'review' ? '（需复核）' : V1 ? '（顾问定）' : '（建议）');
 };
 const rankCell = (r) => (r == null ? '未收录' : r);
 
@@ -72,14 +76,19 @@ function blocks() {
     `- 字频序：最小 ${qr(0)}、中位 ${qr(0.5)}、最大 ${qr(1)}；笔画：最少 ${strokes[0]}、中位 ${strokes[Math.floor(strokes.length / 2)]}、最多 ${strokes[strokes.length - 1]}。`,
     `- 难度档（只用于排序交错）：≥16 画 ${tiers.hard || 0}、12–15 画 ${tiers.mid || 0}、≤11 画 ${tiers.light || 0}。`,
     `- 命中人工手写场景：${Object.entries(cats).map(([k, v]) => k + ' ' + v).join('、')}；未命中任何场景 ${noCat} 字（靠数据信号入选）。`,
-    `- 语境词：可直接用 ${ctx.ok || 0}、有人工建议 ${ctx.suggest || 0}、需复核 ${ctx.review || 0}、需新写 ${ctx.write || 0}（见 §6）。`,
+    V1
+      ? `- 语境词：沿用题库现有词 ${ctx.ok || 0}、顾问审定换词 ${ctx.suggest || 0}、需复核 ${ctx.review || 0}、需新写 ${ctx.write || 0}（见 §4）。`
+      : `- 语境词：可直接用 ${ctx.ok || 0}、有人工建议 ${ctx.suggest || 0}、需复核 ${ctx.review || 0}、需新写 ${ctx.write || 0}（见 §6）。`,
   ].join('\n');
 
-  out.ctx = '| 字 | 现有语境词 | 问题 | 建议 | 其他备选（jieba） |\n|:-:|---|---|---|---|\n' + entries
+  const warmEntries = DATA.warmup.order.map((c) => DATA.warmup.entries[c]);
+  const ctxRows = V1 ? [...entries, ...warmEntries.map((e) => ({ ...e, char: e.char + '（热身）' })), ...DATA.level2Appendix.map((e) => ({ ...e, char: e.char + '（二级）' }))] : entries;
+  out.ctx = '| 字 | 现有语境词 | 问题 | ' + (V1 ? '审定' : '建议') + ' | 其他备选（jieba） |\n|:-:|---|---|---|---|\n' + ctxRows
     .filter((e) => e.context.status !== 'ok')
-    .map((e) => `| ${e.char} | ${esc(e.context.current)} | ${esc(e.context.why.join('；') || '起草者建议换更日常的词')} | ${esc(e.context.suggest ? e.context.suggest + '（' + e.context.suggestSource + '）' : '需新写')} | ${esc(e.context.alts.join('、'))} |`)
+    .map((e) => `| ${e.char} | ${esc(e.context.current)} | ${esc(e.context.why.join('；') || '起草者建议换更日常的词')} | ${esc(e.context.suggest ? e.context.suggest + '（' + (V1 && e.context.suggestSource === '人工' ? '顾问定' : e.context.suggestSource) + '）' : '需新写')} | ${esc((e.context.alts || []).join('、'))} |`)
     .join('\n');
 
+  if (!SIM) return out;
   // 模拟
   const sim = SIM;
   const kindLabel = { 首练: '首练', 热身: '热身', 复习: '复习', 新: '新' };
@@ -107,11 +116,11 @@ function blocks() {
   return out;
 }
 
-let md = fs.readFileSync(MD, 'utf8');
+let md = MD_TEXT;
 const b = blocks();
 for (const [name, body] of Object.entries(b)) {
   const re = new RegExp(`(<!-- GEN:${name} -->)[\\s\\S]*?(<!-- /GEN:${name} -->)`);
-  if (!re.test(md)) { console.warn('missing block', name); continue; }
+  if (!re.test(md)) { if (!V1) console.warn('missing block', name); continue; }
   md = md.replace(re, `$1\n${body}\n$2`);
 }
 fs.writeFileSync(MD, md);

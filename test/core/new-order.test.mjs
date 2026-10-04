@@ -13,7 +13,7 @@ import vm from 'node:vm';
 import { COMMON_RANK_MAX, generate } from '../../scripts/build_char_order.mjs';
 import { ROOT } from './helpers.mjs';
 
-const TABLE = JSON.parse(fs.readFileSync(path.join(ROOT, 'docs/engineering/v10/phase1/易忘度字表-初稿.json'), 'utf8'));
+const TABLE = JSON.parse(fs.readFileSync(path.join(ROOT, 'docs/engineering/v10/phase1/易忘度字表-1.0.json'), 'utf8'));
 const deckRows = () => vm.runInNewContext(fs.readFileSync(path.join(ROOT, 'deck-data.js'), 'utf8') + '\n;SEED');
 const K = (s) => [...s].map((c) => 'base:' + c);
 
@@ -128,7 +128,7 @@ test('deck adapter: newCandidates are in table order for the default library, �
   setDeckSource({ seed, overrides: {} });
   try {
     const core = deckAdapter.newCandidates('core3500');
-    assert.deepEqual(core.slice(0, 2), K('酱尴'), 'listed chars first (酱 before 尴 in the table), table order');
+    assert.deepEqual(core.slice(0, 2), K('尴酱'), 'listed chars first (尴 before 酱 in the 1.0 table), table order');
     assert.equal(core.includes('base:滕') || core.includes('base:壹') || core.includes('base:拾') || core.includes('base:渝'), false, 'reserved never come as new');
     assert.deepEqual(core.slice(2), K('的一是春'), 'then the rest in frequency order');
     assert.deepEqual(deckAdapter.warmupCandidates('core3500'), K('春'));
@@ -172,7 +172,7 @@ test('capitalCard swaps in the money context only for a whole-capital queue; oth
   assert.equal(special.ci, 0);
   assert.equal(special.target, '肆');
   assert.equal(special.ctx, 'override');
-  assert.equal(special.promptHint, '借条上写的金额');
+  assert.equal(special.promptHint, '借条上的大写金额');
   assert.equal(card.word, '大肆', 'input not mutated');
   assert.equal(capitalCard(null, K('壹')), null);
   const noCtx = { word: '尴尬', chars: ['尴', '尬'], ci: 0, target: '尴' };

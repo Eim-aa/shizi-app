@@ -8,6 +8,12 @@
 // 语境词只在特别组里用（运行时 src/ui/screens/write/index.js 在整组都是大写数字字时才套用，不改全库的语境词，
 // 也不动内容门禁管的 deck-data.js / context-overrides.js）。每个词都是起草者的人工判断：避开真实人名，
 // 目标字在词里只出现一次，提示句不含答案字。
+//
+// 1.0 顾问审读（AI 顾问，非外部专家；理由见 ../顾问审读-1.0.md §4）：
+// - 第二组里「柒拾元整」「玖拾元整」会在「拾」之前把「拾」整字露出来（同组泄题），改为「柒佰元整」「玖佰元整」；
+//   同一组内任何一个词都不含本组其他要写的字（第一组的词里出现「佰、仟」不算泄题：佰仟在两组之后才作为新字出现，提前见到无妨）。
+// - 提示句加「大写」二字：只看「□佰元整」时仍可能写成小写「七」；「红包封面」改为「随礼红包」——红包上写金额主要见于随礼。
+// - 金额写法符合票据习惯：拾前加「壹」（壹拾元整），整数金额以「元整」结尾。
 
 /** 两组特别组（D40）：每组一个特别组，按顺序出现。 */
 export const GROUPS = [
@@ -23,18 +29,18 @@ export const AFTER_GROUPS = ['佰', '仟'];
  * 提示句只说明在哪里用、不含答案字。
  */
 export const CONTEXTS = {
-  壹: { word: '壹佰元整', ci: 0, py: 'yī', promptHint: '借条上写的金额' },
-  贰: { word: '贰仟元整', ci: 0, py: 'èr', promptHint: '借条上写的金额' },
-  叁: { word: '叁佰元整', ci: 0, py: 'sān', promptHint: '借条上写的金额' },
-  肆: { word: '肆仟元整', ci: 0, py: 'sì', promptHint: '借条上写的金额' },
-  伍: { word: '伍佰元整', ci: 0, py: 'wǔ', promptHint: '借条上写的金额' },
-  陆: { word: '陆佰元整', ci: 0, py: 'liù', promptHint: '报销单上写的金额' },
-  柒: { word: '柒拾元整', ci: 0, py: 'qī', promptHint: '报销单上写的金额' },
-  捌: { word: '捌佰元整', ci: 0, py: 'bā', promptHint: '红包封面上写的金额' },
-  玖: { word: '玖拾元整', ci: 0, py: 'jiǔ', promptHint: '红包封面上写的金额' },
-  拾: { word: '壹拾元整', ci: 1, py: 'shí', promptHint: '收据上写的金额' },
-  佰: { word: '壹佰元整', ci: 1, py: 'bǎi', promptHint: '收据上写的金额' },
-  仟: { word: '壹仟元整', ci: 1, py: 'qiān', promptHint: '收据上写的金额' },
+  壹: { word: '壹佰元整', ci: 0, py: 'yī', promptHint: '借条上的大写金额' },
+  贰: { word: '贰仟元整', ci: 0, py: 'èr', promptHint: '借条上的大写金额' },
+  叁: { word: '叁佰元整', ci: 0, py: 'sān', promptHint: '借条上的大写金额' },
+  肆: { word: '肆仟元整', ci: 0, py: 'sì', promptHint: '借条上的大写金额' },
+  伍: { word: '伍佰元整', ci: 0, py: 'wǔ', promptHint: '借条上的大写金额' },
+  陆: { word: '陆佰元整', ci: 0, py: 'liù', promptHint: '报销单上的大写金额' },
+  柒: { word: '柒佰元整', ci: 0, py: 'qī', promptHint: '报销单上的大写金额' },
+  捌: { word: '捌佰元整', ci: 0, py: 'bā', promptHint: '随礼红包上的大写金额' },
+  玖: { word: '玖佰元整', ci: 0, py: 'jiǔ', promptHint: '随礼红包上的大写金额' },
+  拾: { word: '壹拾元整', ci: 1, py: 'shí', promptHint: '收据上的大写金额' },
+  佰: { word: '壹佰元整', ci: 1, py: 'bǎi', promptHint: '收据上的大写金额' },
+  仟: { word: '壹仟元整', ci: 1, py: 'qiān', promptHint: '收据上的大写金额' },
 };
 
 /** 全部大写数字字（不进默认新字排序）。 */

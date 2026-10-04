@@ -36,7 +36,7 @@ function mulberry32(a) {
 // ---------------------------------------------------------------- 与 simulate-mix.mjs 对照
 
 test('mix vs simulate-mix: the sim and the app use the same warm-up list, group size and cap', () => {
-  const table = JSON.parse(fs.readFileSync(path.join(ROOT, 'docs/engineering/v10/phase1/易忘度字表-初稿.json'), 'utf8'));
+  const table = JSON.parse(fs.readFileSync(path.join(ROOT, 'docs/engineering/v10/phase1/易忘度字表-1.0.json'), 'utf8'));
   assert.deepEqual([...CHAR_ORDER.warmup], table.warmup.order);
   assert.equal(typeof sim.planGroup, 'function');
   assert.equal(typeof sim.RULES.D.newTarget, 'function');

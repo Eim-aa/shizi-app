@@ -11,7 +11,7 @@ import { buildCards, cardKey } from '../../src/core/cards.js';
 import { t } from '../../src/config/copy/index.js';
 import { at, ROOT } from './helpers.mjs';
 
-const TABLE = JSON.parse(fs.readFileSync(path.join(ROOT, 'docs/engineering/v10/phase1/易忘度字表-初稿.json'), 'utf8'));
+const TABLE = JSON.parse(fs.readFileSync(path.join(ROOT, 'docs/engineering/v10/phase1/易忘度字表-1.0.json'), 'utf8'));
 
 function loadSeed() {
   const ctx = {};

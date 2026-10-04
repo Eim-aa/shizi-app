@@ -6,7 +6,7 @@
 //   node scripts/build_char_order.mjs --check   只检查：生成物与工作区不一致则退出码 1（接在 pnpm run verify:data 里）
 //
 // 输入（都是只读数据，换表只需改它们再重跑本脚本，代码不用动）：
-//   docs/engineering/v10/phase1/易忘度字表-初稿.json       排序 order、二级附录 level2Appendix、热身字 warmup.order（初稿，顾问未审）
+//   docs/engineering/v10/phase1/易忘度字表-1.0.json        排序 order、二级附录 level2Appendix、热身字 warmup.order（1.0：AI 顾问审读，非外部专家；初稿 JSON 保留不用）
 //   docs/engineering/v10/phase1/tools/curation.mjs          HANDWRITING['签名姓氏'] / ['写地址'] 人工清单 → D39「姓氏与地名」主题的字
 //   docs/engineering/v10/phase1/tools/capital-numerals.mjs  D40 大写数字：两组特别组、佰仟、题面语境词
 //
@@ -14,7 +14,7 @@
 // 只剔除「日常少用」的——字频序（题库 deck-data.js 的 rank）> COMMON_RANK_MAX、或题库里没有字频的；rank ≤ COMMON_RANK_MAX 的常用字
 // （熊、颜、藏、桂、厦……）留在默认排序原位（D45）。被剔除的字不进「清单之后按字频序」的尾部（src/core/new-order.js 同样排除 reserved），
 // 之后由独立主题「姓氏与地名」/ D40 特别组承接。被剔除的字逐个列在输出的 removed 里，留下的常用字列在 commonKept 里。
-// 阈值是工程过渡值（登记 P145，待顾问审读）。
+// 阈值登记 P145；顾问审读 1.0 维持 3500（理由见 docs/engineering/v10/phase1/顾问审读-1.0.md Q3）。
 
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
@@ -25,7 +25,7 @@ import vm from 'node:vm';
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const ROOT = resolve(HERE, '..');
 export const OUT_PATH = 'src/config/char-order.js';
-const JSON_PATH = 'docs/engineering/v10/phase1/易忘度字表-初稿.json';
+const JSON_PATH = 'docs/engineering/v10/phase1/易忘度字表-1.0.json';
 const CURATION_PATH = 'docs/engineering/v10/phase1/tools/curation.mjs';
 const CAPITAL_PATH = 'docs/engineering/v10/phase1/tools/capital-numerals.mjs';
 const DECK_PATH = 'deck-data.js';
@@ -33,7 +33,7 @@ const DECK_PATH = 'deck-data.js';
 /**
  * D45 / P145：姓氏与地名清单里，字频序 rank ≤ 这个数的算「日常常用」，留在默认排序里；更靠后（或没有字频）的才剔除。
  * 取 3500 = 一级字（常用字表）的边界：熊 1741、颜 1545、桂 1930、傅 1887、豫 1956、疆 2036、厦 2264、藏 907、鞠 3037 都在内，
- * 滕 3892、翟 3919、蔺 5291、黔 3989、渝 3641、滇 3534 等生僻字仍剔除。过渡值，待顾问审读；换阈值只改这里再重跑脚本。
+ * 滕 3892、翟 3919、蔺 5291、黔 3989、渝 3641、滇 3534 等生僻字仍剔除。顾问审读 1.0 维持此值；换阈值只改这里再重跑脚本。
  */
 export const COMMON_RANK_MAX = 3500;
 
@@ -97,17 +97,24 @@ export async function generate(root = ROOT, { commonRankMax = COMMON_RANK_MAX } 
     if (cs.filter((x) => x === ch).length !== 1) throw new Error('capital-numerals.mjs: ' + ch + ' repeats in ' + c.word);
     if (c.promptHint.includes(ch)) throw new Error('capital-numerals.mjs: hint of ' + ch + ' leaks the answer');
   }
+  // 同一特别组里，任何一个词都不能含本组别的要写的字（否则先写的字会把后写的字整字露出来）
+  for (const g of capital.GROUPS) {
+    for (const ch of g) {
+      const leak = g.filter((x) => x !== ch && chars(capital.CONTEXTS[ch].word).includes(x));
+      if (leak.length) throw new Error('capital-numerals.mjs: word of ' + ch + ' shows ' + leak.join('') + ' from the same group');
+    }
+  }
 
   const lines = [];
   lines.push('// 新字顺序数据（D28 易忘度排序 / 热身字 / D39 姓氏与地名 / D40 大写数字）。');
   lines.push('// 由 scripts/build_char_order.mjs 生成，勿手改；换表：改输入后重跑，`--check` 在 pnpm run verify:data 里。');
-  lines.push('// 排序是策划初稿（语文 / 书法顾问未审，T3 / T7 未验证）；数据与代码分离，读取方是 src/core/new-order.js。');
+  lines.push('// 排序是易忘度字表 1.0（AI 顾问审读，非外部专家；T3 / T7 未验证）；数据与代码分离，读取方是 src/core/new-order.js。');
   lines.push('');
   lines.push('export const CHAR_ORDER = Object.freeze({');
   lines.push('  meta: Object.freeze({');
-  lines.push('    status: ' + q('draft：新字顺序初稿，待语文 / 书法顾问审读；大写数字语境词待审读') + ',');
+  lines.push('    status: ' + q('1.0：新字顺序与大写数字语境词已经 AI 顾问审读（非外部专家，见 docs/engineering/v10/phase1/顾问审读-1.0.md）；待 T3 / T7 真人数据验证') + ',');
   lines.push('    // 输入文件的内容指纹（路径见 scripts/build_char_order.mjs 顶部注释）；输入一变 --check 就报「过期」，提醒重跑。');
-  lines.push('    // D45 / P145：姓氏 / 地名清单里字频序 rank ≤ 这个数的常用字留在默认排序（见 commonKept），更靠后的才剔除（待顾问审读）。');
+  lines.push('    // D45 / P145：姓氏 / 地名清单里字频序 rank ≤ 这个数的常用字留在默认排序（见 commonKept），更靠后的才剔除（顾问审读 1.0：维持 3500）。');
   lines.push('    commonRankMax: ' + commonRankMax + ',');
   lines.push('    inputs: Object.freeze({');
   lines.push('      orderTable: ' + q(sha(jsonText)) + ',');

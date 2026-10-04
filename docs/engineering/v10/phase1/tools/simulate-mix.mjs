@@ -6,7 +6,7 @@
 //   node docs/engineering/v10/phase1/tools/simulate-mix.mjs --only=B --groups=1 --profile=mid --runs=50 --no-write
 //   node docs/engineering/v10/phase1/tools/simulate-mix.mjs --verify         # 只做 FSRS 一致性自检（本地引擎 vs src/core/fsrs.js）
 //
-// 读：../易忘度字表-初稿.json、vendor/fsrs6.min.js、src/core/fsrs.js（FSRS_CONFIG 与 --verify 对照）。
+// 读：../易忘度字表-1.0.json、vendor/fsrs6.min.js、src/core/fsrs.js（FSRS_CONFIG 与 --verify 对照）。
 // 写：tools/simulate-mix.out.json。
 //
 // 阶段 1 P1-E4：本文件现在也可以被 import（test/core/mix.test.mjs 用它对照 src/core/mix.js）：导出 RULES、planGroup、groupOrder；
@@ -45,7 +45,7 @@ import { fileURLToPath } from 'node:url';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '../../../../..');
-const JSON_PATH = path.resolve(HERE, '..', '易忘度字表-初稿.json');
+const JSON_PATH = path.resolve(HERE, '..', '易忘度字表-1.0.json'); // 与 App 同一份字表（src/config/char-order.js 由 1.0 生成）
 const OUT_PATH = path.join(HERE, 'simulate-mix.out.json');
 const argv = process.argv.slice(2);
 const flag = (k) => argv.includes('--' + k);

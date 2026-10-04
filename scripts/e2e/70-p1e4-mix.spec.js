@@ -3,7 +3,7 @@
 //
 // 场景：
 //   1. D38 首次练习是 尴 赢 拾 三字，进度「1 / 3」，写完（尴写错、赢拾写对）走到结果页，之后进入正常调度；首练写对的字记 Easy（稳定度远大于 Good）。
-//   2. 第 2 天（setClock）：尴到期 → 今天的练习是「热身字在组首 + 复习 + 新字」混合，新字来自易忘度清单（酱 疆 酝…，D45 起常用姓氏 / 地名字在内），不出现「的、一、是」，
+//   2. 第 2 天（setClock）：尴到期 → 今天的练习是「热身字在组首 + 复习 + 新字」混合，新字来自易忘度清单 1.0（豫 嚷 酝…，D45 起常用姓氏 / 地名字在内），不出现「的、一、是」，
 //      姓氏 / 地名 / 大写数字不在新字里；热身字写对记 Easy（稳定度远大于 Good）。
 //   3. 积压很大（40 个到期字）：连续开 6 组（经 core/session-start + commitJudgment 写完），不会连续两组全是复习（D41 积压阀）。
 //   4. D40 大写数字特别组：累计满 10 组、积压不重 → 首页出现一句提示；开组 = 壹贰叁肆伍（题面是借条语境「壹佰元整」…），写完后第二组 = 陆柒捌玖拾，
@@ -194,8 +194,8 @@ export default async function run(page, ctx) {
   for (const c of q2.filter(c => !firstChars.includes(c) && c !== q2[0])) {
     assert.equal(lib.reserved.includes(c), false, `${c} (surname / place / capital numeral) is not a default new char`);
   }
-  // D45：常用的姓氏 / 地名字（疆 豫 厦 …）回到默认排序原位，所以默认顺序是 酱 疆 酝 尴 …（疆 在易忘度表里排第 2）
-  assert.deepEqual(lib.candidates.slice(0, 2), ['酱', '疆'], 'the default order starts 酱 疆 酝 尴 …');
+  // D45：常用的姓氏 / 地名字（豫 疆 厦 …）回到默认排序原位；易忘度表 1.0（顾问审读）的默认顺序是 豫 嚷 酝 尴 疆 酱 …（肆 是大写数字，已剔除）
+  assert.deepEqual(lib.candidates.slice(0, 2), ['豫', '嚷'], 'the default order starts 豫 嚷 酝 尴 …');
   const commons = await page.evaluate(async () => {
     const { deckAdapter } = await import('/src/data/deck.js');
     const all = deckAdapter.newCandidates('core3500').map(k => k.slice(5));
@@ -203,8 +203,8 @@ export default async function run(page, ctx) {
   });
   assert.deepEqual(commons.in, ['熊', '颜', '藏', '桂', '厦', '傅', '鞠', '豫'], 'D45: common surnames / place names are new-char candidates again');
   assert.deepEqual(commons.out, [], 'D45: rarely-used surnames / place names stay out');
-  assert.ok(q2.includes('酱') && q2.includes('疆'), 'new chars are the first of the list: ' + S(q2));
-  assert.equal(q2[q2.length - 1] !== '酱' && q2[q2.length - 1] !== '疆', true, 'the group does not end on a new char');
+  assert.ok(q2.includes('豫') && q2.includes('嚷'), 'new chars are the first of the list: ' + S(q2));
+  assert.equal(q2[q2.length - 1] !== '豫' && q2[q2.length - 1] !== '嚷', true, 'the group does not end on a new char');
   const warmChar = q2[0];
   // 写完第一个（热身字）→ 写对 → 记 Easy
   await writeAndJudge(page, 'correct', { nextCursor: 1 });
@@ -270,7 +270,7 @@ export default async function run(page, ctx) {
   assert.deepEqual(await queueOfA(page), ['壹', '贰', '叁', '肆', '伍'], 'special group 1');
   p = await promptOf(page);
   assert.equal(p.word.includes('佰元整') || p.word.includes('仟元整'), true, 'money context on the prompt: ' + S(p));
-  assert.equal(p.hint, '借条上写的金额', 'hint line');
+  assert.equal(p.hint, '借条上的大写金额', 'hint line');
   assert.equal((await page.locator(topSel('write-progress')).textContent()).trim(), '1 / 5');
   for (let i = 0; i < 4; i += 1) await writeAndJudge(page, 'correct', { nextCursor: i + 1 });
   await writeAndJudge(page, 'correct', { result: true });
@@ -283,7 +283,7 @@ export default async function run(page, ctx) {
   await waitNavIdle(page);
   assert.deepEqual(await queueOfA(page), ['陆', '柒', '捌', '玖', '拾'], 'special group 2');
   p = await promptOf(page);
-  assert.equal(p.hint === '报销单上写的金额' || p.hint === '红包封面上写的金额', true, 'hint line of group 2: ' + S(p));
+  assert.equal(p.hint === '报销单上的大写金额' || p.hint === '随礼红包上的大写金额', true, 'hint line of group 2: ' + S(p));
   for (let i = 0; i < 4; i += 1) await writeAndJudge(page, 'correct', { nextCursor: i + 1 });
   await writeAndJudge(page, 'correct', { result: true });
   await leaveResult(page);
@@ -296,5 +296,5 @@ export default async function run(page, ctx) {
   for (const c of '壹贰叁肆伍陆柒捌玖拾') assert.equal(q4.includes(c), false, `${c} does not come again (once only; they return later by FSRS)`);
   assert.equal(q4.includes('佰') || q4.includes('仟'), true, '佰 仟 lead the ordinary new chars afterwards: ' + S(q4));
   p = await promptOf(page);
-  assert.equal(p.hint === '借条上写的金额' || p.hint === '报销单上写的金额' || p.hint === '红包封面上写的金额' || p.hint === '收据上写的金额', false, 'ordinary group: no money-context hint line');
+  assert.equal(p.hint === '借条上的大写金额' || p.hint === '报销单上的大写金额' || p.hint === '随礼红包上的大写金额' || p.hint === '收据上的大写金额', false, 'ordinary group: no money-context hint line');
 }

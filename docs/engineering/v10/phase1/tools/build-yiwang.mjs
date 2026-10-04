@@ -4,7 +4,7 @@
 // 用法（仓库根目录）：
 //   node docs/engineering/v10/phase1/tools/build-yiwang.mjs
 // 产物：
-//   docs/engineering/v10/phase1/易忘度字表-初稿.json
+//   docs/engineering/v10/phase1/易忘度字表-1.0.json（顾问审读后的 1.0 版；初稿 易忘度字表-初稿.json 保留不动，不再由本脚本覆盖）
 //
 // 输入（全部只读）：
 //   deck-data.js                         SEED（字、语境词 ans/ci、py、rank、strokes、norm、topic、ctx）
@@ -25,7 +25,7 @@ import * as CUR from './curation.mjs';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '../../../../..');
 const OUT_DIR = path.resolve(HERE, '..');
-const OUT_JSON = path.join(OUT_DIR, '易忘度字表-初稿.json');
+const OUT_JSON = path.join(OUT_DIR, '易忘度字表-1.0.json');
 
 const POOL_SIZE = 500;
 const L2_APPENDIX_SIZE = 40;
@@ -220,7 +220,8 @@ function contextOf(card, overrides, jieba) {
   if (status === 'review' && ((manual && manual === ans) || (addressChar && cur && PROPER_TAGS.has(cur.tag) && why.length === 1))) {
     status = 'ok'; why.length = 0;
   }
-  if (manual && manual !== ans) { status = status === 'ok' ? 'suggest' : status; }
+  // 1.0：有顾问审定词的一律算「已定」（suggest），不再停在「需复核」
+  if (manual && manual !== ans) { status = 'suggest'; why.length = 0; why.push('顾问审定换词'); }
   const suggest = manual && manual !== ans ? manual : (status === 'ok' || status === 'write' ? null : alts[0] || null);
   return {
     current: ans, ci, source, status, why,
@@ -239,6 +240,7 @@ function reasonOf(e) {
   else if (e.sig.H.homo.length >= 2) bits.push('同音形近字多（' + e.sig.H.homo.slice(0, 3).join('、') + '）');
   if (e.sig.W.cats.length) bits.push('手写场景：' + e.sig.W.cats.join('、'));
   if (e.resonance) bits.push('共鸣字（人工）');
+  if (e.added) bits.push('顾问补入：' + e.added);
   if (e.rank >= 999999) bits.push('字频未收录');
   return bits.join('；');
 }
@@ -272,12 +274,17 @@ function main() {
     return n;
   };
 
-  const manualChars = new Set([...Object.values(CUR.HANDWRITING).map((c) => c.chars).join(''), ...CUR.RESONANCE]);
+  const manualChars = new Set([...Object.values(CUR.HANDWRITING).map((c) => c.chars).join(''), ...CUR.RESONANCE, ...Object.keys(CUR.ADD || {})]);
+  // 1.0 顾问审读：EXCLUDE = 剔除（不进候选池与二级附录，回到清单之后的字频尾部）；ADD = 顾问补入（不论分数都进候选池）。
+  const EXCLUDE = CUR.EXCLUDE || {};
+  const ADD = CUR.ADD || {};
 
   function score(card) {
     const ch = card.target;
     const ids = (cand.get(ch) || {}).decomposition || '？';
     const comps = recursiveComponents(ch, mmah);
+    // 只在「直接部件」里才算数的陷阱（如 冫：疒、丬、习 里递归展开出的两点不算两点水）
+    for (const t of CUR.DIRECT_ONLY_TRAPS || []) if (comps.has(t) && !directLeaves(ch).includes(t)) comps.delete(t);
     const sig = {
       F: signalF(card.rank),
       S: signalS(card.strokes),
@@ -289,6 +296,7 @@ function main() {
     const resonance = CUR.RESONANCE.includes(ch);
     const total = Math.round((base + (resonance ? RESONANCE_BONUS : 0)) * 10) / 10;
     const e = {
+      added: ADD[ch] || null,
       char: ch, py: card.py, pinyinDict: (cand.get(ch) || {}).pinyin || null, strokes: card.strokes, rank: card.rank,
       norm: card.norm, edu: card.edu, topic: card.topic, ids, sig, resonance, score: total,
       context: contextOf(card, overrides, jieba),
@@ -299,12 +307,28 @@ function main() {
 
   // ---- 一级候选池
   const gate = (c) => {
+    if (EXCLUDE[c.target]) return false;
     const manual = manualChars.has(c.target);
     return (c.rank >= 400 || manual) && (c.strokes >= 7 || manual);
   };
   const scoredL1 = l1.filter(gate).map(score).sort((a, b) => b.score - a.score || a.rank - b.rank);
-  const pool = scoredL1.slice(0, POOL_SIZE);
-  const cutoff = pool[pool.length - 1].score;
+  for (const ch of Object.keys(ADD)) {
+    const card = byChar.get(ch);
+    if (!card || card.norm !== '一级') throw new Error('ADD 里的字不在一级：' + ch);
+    if (EXCLUDE[ch]) throw new Error('ADD 与 EXCLUDE 冲突：' + ch);
+  }
+  for (const ch of Object.keys(EXCLUDE)) if (!byChar.get(ch)) throw new Error('EXCLUDE 里的字不在题库：' + ch);
+  // 1.0：审定语境词必须含目标字且只出现一次（题面挖一个空，不重复泄题）
+  for (const [ch, w] of Object.entries(CUR.CONTEXT_SUGGEST)) if ([...w].filter((x) => x === ch).length !== 1) throw new Error('语境词里目标字不是恰好一次：' + ch + ' ' + w);
+  // 顾问补入的字一定进池；其余按分数取满 POOL_SIZE
+  const forced = scoredL1.filter((e) => ADD[e.char]);
+  const pool = [...forced, ...scoredL1.filter((e) => !ADD[e.char]).slice(0, POOL_SIZE - forced.length)]
+    .sort((a, b) => b.score - a.score || a.rank - b.rank);
+  const cutoff = Math.min(...scoredL1.filter((e) => !ADD[e.char]).slice(0, POOL_SIZE - forced.length).map((e) => e.score));
+  if (process.env.PEEK) {
+    const nonForced = scoredL1.filter((e) => !ADD[e.char]);
+    console.log('PEEK below cutoff', nonForced.slice(POOL_SIZE - forced.length, POOL_SIZE - forced.length + Number(process.env.PEEK)).map((e) => e.char + e.score + '#' + e.rank + '/' + e.strokes + (e.sig.W.cats.length ? '[' + e.sig.W.cats.join(',') + ']' : '')).join(' '));
+  }
 
   // ---- 排序：分高优先 + 每 4 个策划字按「中—难—中—易」交错，避免难字扎堆；窗口内去重（同词、同陷阱部件、同形近组、同类专名）
   const tierOf = (e) => (e.strokes >= 16 ? 'hard' : e.strokes >= 12 ? 'mid' : 'light');
@@ -313,7 +337,12 @@ function main() {
   const SPREAD_CATS = new Set(['记账票据', '写地址', '签名姓氏']);
   const remaining = [...pool];
   const order = [];
-  const conflicts = (e, win) => win.some((o) => {
+  // 1.0：语境词互含（X 的语境词里有 Y 字，如 酝「酝酿」与 酿）的两个字，在最近 CONTAIN_WINDOW 个策划字里不相邻：
+  // 先学的字复习时，题面会把后一个字整字露出来（同组泄题）。
+  const CONTAIN_WINDOW = 12;
+  const wordOf = (e) => e.context.suggest || e.context.current || '';
+  const contains = (e, recent) => recent.some((o) => [...wordOf(o)].includes(e.char) || [...wordOf(e)].includes(o.char));
+  const conflicts = (e, win) => contains(e, order.slice(-CONTAIN_WINDOW)) || win.some((o) => {
     if (o.context.current === e.context.current) return true;
     if (o.sig.C.traps.some((t) => e.sig.C.traps.includes(t))) return true;
     if (o.sig.H.formPeers.includes(e.char)) return true;
@@ -321,12 +350,12 @@ function main() {
     return false;
   });
   // 挑选优先级：前 EARLY_RESONANCE_POSITIONS 位共鸣字 +EARLY_RESONANCE_PICK；前 EARLY_AVOID_POSITIONS 位跳过 EARLY_AVOID。
-  const pickKey = (e, pos) => e.score + (pos < CUR.EARLY_RESONANCE_POSITIONS && e.resonance ? CUR.EARLY_RESONANCE_PICK : 0);
+  const pickKey = (e, pos) => (ADD[e.char] ? Math.max(e.score, CUR.ADD_PICK_FLOOR || 0) : e.score) + (pos < CUR.EARLY_RESONANCE_POSITIONS && e.resonance ? CUR.EARLY_RESONANCE_PICK : 0);
   while (remaining.length) {
     const pos = order.length;
     const want = PATTERN[pos % 4];
     const win = order.slice(-3);
-    const allowed = (e) => !(pos < CUR.EARLY_AVOID_POSITIONS && CUR.EARLY_AVOID.includes(e.char));
+    const allowed = (e) => !(pos < CUR.EARLY_AVOID_POSITIONS && (CUR.EARLY_AVOID + (CUR.EARLY_AVOID_WITH_FIRST || '')).includes(e.char));
     const ranked = [...remaining].sort((a, b) => pickKey(b, pos) - pickKey(a, pos) || a.rank - b.rank);
     let pick = null;
     for (const tier of [want, ...FALLBACK[want]]) {
@@ -340,7 +369,7 @@ function main() {
 
   // ---- 二级附录（不在默认库）
   const l2Scored = l2
-    .filter((c) => c.strokes >= 7 && c.ctx !== 'fallback')
+    .filter((c) => c.strokes >= 7 && c.ctx !== 'fallback' && !EXCLUDE[c.target])
     .filter((c) => manualChars.has(c.target) || (c.rank <= 4200 && ((jieba.get(c.target) || []).find((x) => !PROPER_TAGS.has(x.tag)) || { freq: 0 }).freq >= 500))
     .map(score)
     .sort((a, b) => b.score - a.score || a.rank - b.rank)
@@ -406,8 +435,10 @@ function main() {
   });
   const out = {
     meta: {
-      title: '易忘度候选字表初稿（P1-C1）',
-      status: 'draft — 待产品负责人与语文/书法顾问审读；未经用户验证',
+      title: '易忘度候选字表 1.0（P1-C1）',
+      version: '1.0',
+      status: '1.0 — 由 AI 顾问审读（非外部专家）；未经用户验证，待 T3 / T7 真人数据校准',
+      review: 'docs/engineering/v10/phase1/顾问审读-1.0.md',
       decision: 'D28',
       generatedBy: 'docs/engineering/v10/phase1/tools/build-yiwang.mjs',
       inputs: Object.fromEntries(['deck-data.js', 'data/context-overrides.js', 'generated/selected_8105_candidates.json',
@@ -418,10 +449,12 @@ function main() {
       poolSize: pool.length,
       poolGate: 'norm=一级 且 (rank≥400 或 人工清单) 且 (笔画≥7 或 人工清单)',
       scoreCutoff: cutoff,
+      excluded: Object.keys(EXCLUDE),
+      added: Object.keys(ADD),
       orderRule: '分高优先；每 4 个策划字按 中(12–15画)—难(≥16画)—中—易(≤11画) 交错；最近 3 字内不重复同一语境词、同一陷阱部件、同一形近组、同一类（记账/地址/姓氏）',
       warmupRule: '人工挑选（curation.WARMUP），校验：一级、100 ≤ 字频序 ≤ 2100、≥5 画、不在候选池；按主题行轮流排序；每组至多 1 个、放组首',
       warmupDropped: warmDropped,
-      earlyRules: { avoid: CUR.EARLY_AVOID, avoidPositions: CUR.EARLY_AVOID_POSITIONS, resonancePositions: CUR.EARLY_RESONANCE_POSITIONS, resonancePick: CUR.EARLY_RESONANCE_PICK },
+      earlyRules: { avoid: CUR.EARLY_AVOID, avoidWithFirst: CUR.EARLY_AVOID_WITH_FIRST || '', avoidPositions: CUR.EARLY_AVOID_POSITIONS, resonancePositions: CUR.EARLY_RESONANCE_POSITIONS, resonancePick: CUR.EARLY_RESONANCE_PICK },
       l1Candidates: scoredL1.length,
     },
     order: order.map((e) => e.char),
@@ -430,7 +463,7 @@ function main() {
       order: warm.map((x) => x.c.target),
       entries: Object.fromEntries(warm.map((x, i) => [x.c.target, {
         order: i + 1, char: x.c.target, py: x.c.py, strokes: x.c.strokes, freqRank: x.c.rank, norm: x.c.norm,
-        topic: x.c.topic, themeRow: x.row, context: { current: x.c.ans, ci: x.c.ci, source: x.c.ctx }, warmup: true,
+        topic: x.c.topic, themeRow: x.row, context: contextOf(x.c, overrides, jieba), warmup: true,
       }])),
     },
     level2Appendix: l2Scored.map((e, i) => ({ ...entryOut(e, i), note: '二级，不在默认库 core3500；仅当用户字库含二级时可用' })),

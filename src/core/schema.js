@@ -480,6 +480,8 @@ const sessionFields = {
   updatedAt: v.num,
   endedAt: v.num,
   endedEarly: v.bool,
+  // 阶段 1 P1-E7（D31 / D46 ⑥）：结果页「放进去」的记录 id（写错且有墨的字手动放进作品 / 图片）；随会话存，刷新后仍在
+  added: v.arrayOf(v.recordId),
 };
 
 export function validateSession(session, path = 'session', slot = null) {

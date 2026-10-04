@@ -14,11 +14,13 @@ import {
 } from '../../src/data/font-loader.js';
 import { FACE_SOURCES, appTexts, codepointsOf, parseUnicodes } from '../../scripts/fonts/build_corpus.mjs';
 import { FONTS, renderSingleGlyph } from '../../src/core/images/render.js';
+import { paletteFromTokens } from '../../src/core/images/palette.js';
 
 const read = rel => readFileSync(join(ROOT, rel), 'utf8');
 const sha = buf => createHash('sha256').update(buf).digest('hex');
 const manifest = JSON.parse(read('fonts/coverage-manifest.json'));
 const texts = await appTexts();
+const lightPalette = paletteFromTokens(JSON.parse(read('docs/design/design-system-v1/tokens.json'))); // P1-E7：render.js 的色值读浅色令牌，node 下由调用方给
 
 // ---------------------------------------------------------------- 运行包
 
@@ -284,7 +286,7 @@ test('core/images/render.js awaits the injected requireFont (seal = ShiziKai 400
   };
   const points = [[{ x: 100, y: 100, w: 12 }, { x: 240, y: 240, w: 12 }]];
   const out = await renderSingleGlyph({
-    points, caption: 'yǒng · 9 月 22 日', signatureText: '拾字', sealText: '字', canvasFactory: fakeCanvas,
+    points, caption: 'yǒng · 9 月 22 日', signatureText: '拾字', sealText: '字', canvasFactory: fakeCanvas, palette: lightPalette,
     requireFont: async (stack, text) => {
       const r = await requireCanvasFont(stack, text, { fonts, manifest });
       order.push(r.skipped ? 'skip' : `load:${r.face}`);

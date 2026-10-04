@@ -1,187 +1,234 @@
-// 图片版式（纯函数，无 DOM；02 M4-5；01 §10；04 §3.2「图片规格」、R-I02 / R-I03；03 P25）。
+// 作品版式（纯函数，无 DOM；阶段 1 P1-E7；设计交接「实现交接.md」§5.2 / §6；D31 / D39 / D46 ⑩ / D47）。
 //
-// 从 #180 handoff/r8-foundation/module/layout.mjs（origin/pr-180）抽取改造：
-//   - 两种比例：3:4 = 1080×1440（portrait）、1:1 = 1080×1080（square）；四周留白 72px，内区宽 936px。
-//   - 列数（备注 L136）：c ∈ [5, 10]，取满足 ceil(n/c) × (936/c) + 118 ≤ 内区高度 的最小 c（118 = 40px 间距 + 78px 小印）。
-//   - 竖版 3:4（T06-C，备注 L147）：字帖从内区顶端排（top = 72），落款紧跟最后一行下方 40px；
-//     1:1 不变（上下居中，与 #180 r1 夹具一致）。#180 两种比例都垂直居中——这是本卡的改造点。
-//   - 格宽 < 126px 时日期角标缩到 24px（否则 33px）；有角标的格子笔迹缩到 ≤ .78 倍并向右下让位
-//     （原型 ShiziScreen imgEl L338 的 6.1 规则；单位 pt × 3 = 导出 px）。
-//   - > 80 字（policy.imageMaxChars，P25 / D12）：返回 status 'pending'，不截字；0 字 'empty'。
-//   原型 imgEl 不画每格里的虚线十字（#180 render.mjs 画了），这里按冻结原型：只有格线。
-// 新增单字手写图片版式 glyphLayout（A05，备注 L146；原型 ShiziScreen charEl L352–L362）：
-//   不画格子；墨迹外框缩放到宽约画面 60%（放不下按高），居中；字下一行「拼音 · 日期」33/39px；右下「拾字」26px + 78px 小印。
+// 结果页上的作品、分享图、月字帖、年报册页共用这一个函数：输入格子（字数）与纸的比例，输出列数、格宽与落款 / 印的位置。
+// 坐标一律是「逻辑画布」px：宽 W = 1080；3:4 高 1440，1:1 高 1080。导出时整体 × 4/3 → 1440 × 1920 / 1440 × 1440（render.js）。
+//
+// 规则（逐条对应 §6.2）：
+//   m = round(0.09W) = 97；落款行 fh = 72；cw = W − 2m；ch = H − 2m − fh
+//   n = 1 → 单格 c = min(0.62W, 0.62·ch)
+//   n ≥ 2 → 对 k = 2…min(n, 10)：r = ⌈n / k⌉；r > k·H/W 的跳过（网格不比纸更瘦高）；
+//           c_k = min(cw / k, ch / r, r = 1 ? ∞ : 0.34W)（一行时占满可用宽）；score = c_k × (1 − 0.8 × (r·k − n) / n)；取 score 最大的 k
+//   块高 = r·c + 0.035W + max(印, 落款字号 × 1.4)
+//   块顶 = (竖纸且 r = 1) ? 0.4 × (H − 块高) : (H − 块高) / 2 − 0.025H
+//   左 = (W − cols·c) / 2
+// 落款与印（§6.4）：末字在最右列 → 印在末格正下方 0.035W、右沿对齐，落款在印左 22px、垂直居中于印；
+//   否则印在末格右侧 0.12c、底边上移 0.06c，落款在网格下方 0.035W、右对齐网格。
+//
+// 另导出：默认比例（D47）、结果页作品格宽（§5.2）、墨线宽补偿表（§1.1）、朱点尺寸（components.wrongDot）、日期角标尺寸。
 
-export const SIZES = Object.freeze({
-  portrait: Object.freeze({ width: 1080, height: 1440 }),
-  square: Object.freeze({ width: 1080, height: 1080 }),
-});
-export const RATIOS = Object.freeze(['portrait', 'square']);
-/** 界面上的比例标签（3:4 / 1:1）对应的版式名。 */
-export const RATIO_OF_LABEL = Object.freeze({ '3:4': 'portrait', '1:1': 'square' });
+/** 逻辑画布宽（px）。 */
+export const LOGICAL_W = 1080;
+/** 逻辑 → 导出的倍率：1080 × 4/3 = 1440。 */
+export const EXPORT_SCALE = 4 / 3;
+/** 逻辑 px 与屏幕 pt 的换算：一个逻辑 px = 1/2.69 pt（按 402 宽的屏对 1080 的画布，§6.3）。 */
+export const PT_PER_LOGICAL = 1 / 2.69;
+export const LOGICAL_PER_PT = 2.69;
 
-export const MARGIN = 72; // 24pt × 3
-export const INNER_WIDTH = 936; // 312pt × 3
-export const FOOTER_GAP = 40; // 最后一行到落款（T06-C）
-export const SEAL = 78; // 26pt × 3
-export const FOOTER = FOOTER_GAP + SEAL; // 118
-export const MIN_COLUMNS = 5;
-export const MAX_COLUMNS = 10;
-export const DEFAULT_MAX_CHARS = 80; // policy.imageMaxChars（P25）的过渡值；调用方传 policy 值
+export const RATIOS = Object.freeze(['3:4', '1:1']);
+export const HEIGHT_OF = Object.freeze({ '3:4': 1440, '1:1': 1080 });
 
-// 字帖格内常量（原型 imgEl：角标 11/13pt，格宽 < 42pt 时 8/9pt；top 3/2pt、left 4/3pt；HALF .42；×3 = px）
-const SMALL_CELL = 126;
-const HALF = 0.42;
+/** D47：1–3 字默认 1:1，4 字以上默认 3:4（交接 §12 / §6.6 的 DEFAULT_RATIO_FEW 常量）。 */
+export const DEFAULT_RATIO_FEW = '1:1';
+export const DEFAULT_RATIO_MANY = '3:4';
+export const FEW_MAX_CHARS = 3;
 
-// 单字图（原型 charEl：GAP 16pt、INFO 13pt、信息行字号 11pt、字宽 ≤ 60% 画面宽）
-export const GLYPH_GAP = 48;
-export const GLYPH_INFO_LINE = 39;
-export const GLYPH_INFO_FONT = 33;
-export const GLYPH_WIDTH_RATIO = 0.6;
-export const SIGNATURE_FONT = 26; // 26/3 pt × 3
-export const SIGNATURE_TRACKING = 0.16; // letter-spacing .16em
-export const SIGNATURE_SEAL_GAP = 36; // 12pt × 3（charEl 落款与印之间的 gap）
+/** 一张图最多放几个字（D39；与 policy.imageMaxChars 同值，调用方可传 policy 值覆盖）。 */
+export const MAX_CHARS_PER_PAGE = 80;
+
+export const MARGIN_RATIO = 0.09;
+export const FOOTER_H = 72;
+export const MAX_COLS = 10;
+export const ROW_CELL_CAP = 0.34; // 两行以上格宽上限 = 0.34W
+export const SINGLE_CELL_RATIO = 0.62;
+export const GAP_RATIO = 0.035; // 块与落款之间 = 0.035W
+export const SEAL_SIZE = 64; // ≈ 24pt
+export const SEAL_SIZE_SINGLE = 108; // ≈ 40pt
+export const KUAN_SIZE = 36;
+export const KUAN_SIZE_SINGLE = 40;
+export const KUAN_GAP_FROM_SEAL = 22;
+export const SEAL_ROTATION = -2; // seal.rotationInWork
+export const INK_PAD = 0.12; // 墨在格内 12% 内边
+export const FRAME_W = 2; // 外框 2px
+export const GUIDE_W = 1.5; // 格间 1.5px
+export const TAG_SIZE = 30; // 日期角标 ≈ 11pt
+export const TAG_LEFT = 12;
+export const TAG_TOP = -16;
+export const TAG_PAD_X = 6;
+
+export function defaultRatio(n) {
+  return n >= 1 && n <= FEW_MAX_CHARS ? DEFAULT_RATIO_FEW : DEFAULT_RATIO_MANY;
+}
 
 function assertRatio(ratio) {
-  if (typeof ratio !== 'string' || !Object.prototype.hasOwnProperty.call(SIZES, ratio)) throw new Error('INVALID_RATIO');
+  if (!Object.prototype.hasOwnProperty.call(HEIGHT_OF, ratio)) throw new Error('INVALID_RATIO');
 }
 
-/** 满足 ceil(n/c) × (936/c) + 118 ≤ innerHeight 的最小 c ∈ [5, 10]（放不下返回 11）。 */
-export function columnsFor(n, innerHeight) {
-  let c = MIN_COLUMNS;
-  while (c <= MAX_COLUMNS && Math.ceil(n / c) * (INNER_WIDTH / c) + FOOTER > innerHeight) c += 1;
-  return c;
+/** 墨线宽补偿（§1.1）：按格的屏幕当量 pt 查表 ≥150 ×1.0、100–150 ×1.15、70–100 ×1.35、<70 ×1.5。 */
+export function inkWidthScale(cellPt) {
+  if (cellPt >= 150) return 1;
+  if (cellPt >= 100) return 1.15;
+  if (cellPt >= 70) return 1.35;
+  return 1.5;
 }
 
-/**
- * 字帖 / 这次的图片的网格版式。
- * @param {number} n  图上的字数（已按 P50 去掉缺墨的字）
- * @param {'portrait'|'square'} [ratio]
- * @param {{maxChars?:number}} [o]  maxChars = policy.imageMaxChars（P25）
- * @returns {{status:'ready'|'empty'|'pending', …}}
- */
-export function sheetLayout(n, ratio = 'portrait', { maxChars = DEFAULT_MAX_CHARS } = {}) {
-  if (!Number.isSafeInteger(n) || n < 0) throw new Error('INVALID_COUNT');
-  assertRatio(ratio);
-  const { width, height } = SIZES[ratio];
-  const innerHeight = height - 2 * MARGIN;
-  const base = { n, ratio, width, height, margin: MARGIN, innerWidth: INNER_WIDTH, innerHeight };
-  if (n > maxChars) return { status: 'pending', reason: 'OVER_LIMIT_POLICY_PENDING', maxChars, ...base, columns: 0, rows: 0, cells: [] };
-  if (n === 0) return { status: 'empty', ...base, columns: 0, rows: 0, cells: [] };
-  const columns = columnsFor(n, innerHeight);
-  if (columns > MAX_COLUMNS) throw new Error('LAYOUT_DOES_NOT_FIT');
-  const cell = INNER_WIDTH / columns;
-  const rows = Math.ceil(n / columns);
-  const gridHeight = rows * cell;
-  // T06-C：竖版从内区顶端排；1:1 上下居中。
-  const top = ratio === 'portrait' ? MARGIN : MARGIN + Math.max(0, (innerHeight - gridHeight - FOOTER) / 2);
-  const footerTop = top + gridHeight + FOOTER_GAP;
-  const small = cell < SMALL_CELL;
-  const dateFont = small ? 24 : 33;
-  const dateLine = small ? 27 : 39;
-  const dateTop = small ? 6 : 9;
-  const dateLeft = small ? 9 : 12;
-  // 有角标的格子：字形上缘（半宽按 .42 格估）落在角标底边 1pt（3px）以下，下缘不出格。
-  const inkScale = Math.min(0.78, (cell - dateTop - dateLine - 3) / (2 * HALF * cell));
-  const inkDy = Math.max(0, dateTop + dateLine + 3 - cell * (0.5 - HALF * inkScale));
-  const inkDx = Math.min(9, cell * 0.05);
-  return {
-    status: 'ready',
-    ...base,
-    columns,
-    rows,
-    cell,
-    gridHeight,
-    top,
-    footerTop,
-    footerHeight: SEAL,
-    seal: { x: width - MARGIN - SEAL, y: footerTop, size: SEAL, rotate: -3 },
-    signature: { x: MARGIN, baseline: footerTop + SEAL - 6, font: SIGNATURE_FONT, tracking: SIGNATURE_TRACKING, maxWidth: INNER_WIDTH - SEAL - 36 },
-    dateFont,
-    dateLine,
-    dateTop,
-    dateLeft,
-    inkScale,
-    inkDx,
-    inkDy,
-    cells: Array.from({ length: rows * columns }, (_, i) => ({
-      index: i,
-      x: MARGIN + (i % columns) * cell,
-      y: top + Math.floor(i / columns) * cell,
-      empty: i >= n,
-    })),
-  };
+/** 朱点直径（pt）= clamp(5, 格宽 × 0.07, 8)（components.wrongDot）；格宽也用 pt。 */
+export function dotDiameterPt(cellPt) {
+  return Math.min(8, Math.max(5, cellPt * 0.07));
 }
 
-/**
- * 一格里笔迹的变换（345 单位 → 导出 px）：x_px = ox + x·k，y_px = oy + y·k。
- * 无角标：整格 = 345 单位；有角标：绕格心缩 inkScale 倍并向右下偏 (inkDx, inkDy)（原型 live(strokes, sh)）。
- */
-export function cellInkTransform(layout, box, tagged, grid = 345) {
-  const unit = layout.cell / grid;
-  const k = tagged ? unit * layout.inkScale : unit;
-  const cx = box.x + layout.cell / 2 + (tagged ? layout.inkDx : 0);
-  const cy = box.y + layout.cell / 2 + (tagged ? layout.inkDy : 0);
-  return { k, ox: cx - (grid / 2) * k, oy: cy - (grid / 2) * k };
-}
-
-/** 月字帖日期角标「9·24」（原型 fmt）。 */
-export function dateTag(day) {
-  if (typeof day !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(day)) return '';
-  return `${Number(day.slice(5, 7))}·${Number(day.slice(8, 10))}`;
-}
-
-/**
- * 笔迹外框（345 单位；每点按半宽外扩）。没有点返回 null。
- * @param {Array<Array<{x:number,y:number,w?:number}>>} points
- */
-export function inkBounds(points) {
-  let x0 = Infinity;
-  let y0 = Infinity;
-  let x1 = -Infinity;
-  let y1 = -Infinity;
-  for (const stroke of points || []) {
-    for (const p of stroke || []) {
-      if (!p || !Number.isFinite(p.x) || !Number.isFinite(p.y)) continue;
-      const r = Number.isFinite(p.w) && p.w > 0 ? p.w / 2 : 0;
-      x0 = Math.min(x0, p.x - r);
-      y0 = Math.min(y0, p.y - r);
-      x1 = Math.max(x1, p.x + r);
-      y1 = Math.max(y1, p.y + r);
-    }
+/** 选列数：返回 {k, r, c}（c 未取整）。n ≥ 2。 */
+export function pickColumns(n, W, H) {
+  const m = Math.round(MARGIN_RATIO * W);
+  const cw = W - 2 * m;
+  const ch = H - 2 * m - FOOTER_H;
+  let best = null;
+  for (let k = 2; k <= Math.min(n, MAX_COLS); k += 1) {
+    const r = Math.ceil(n / k);
+    if (r > (k * H) / W + 0.01) continue; // 网格不比纸更瘦高
+    const c = Math.min(cw / k, ch / r, r === 1 ? Infinity : ROW_CELL_CAP * W);
+    const score = c * (1 - (0.8 * (r * k - n)) / n);
+    if (!best || score > best.score) best = { k, r, c, score };
   }
-  if (!(x1 > x0) || !(y1 > y0)) return null;
-  return { x: x0, y: y0, width: x1 - x0, height: y1 - y0 };
+  if (!best) throw new Error('LAYOUT_DOES_NOT_FIT');
+  return { k: best.k, r: best.r, c: best.c };
+}
+
+/** 列 × 行与（逻辑）格宽；n = 0 时全是 0。 */
+export function gridOf(n, ratio = '3:4') {
+  assertRatio(ratio);
+  const W = LOGICAL_W;
+  const H = HEIGHT_OF[ratio];
+  if (!(n >= 1)) return { cols: 0, rows: 0, c: 0 };
+  if (n === 1) {
+    const m = Math.round(MARGIN_RATIO * W);
+    const ch = H - 2 * m - FOOTER_H;
+    return { cols: 1, rows: 1, c: Math.round(Math.min(SINGLE_CELL_RATIO * W, SINGLE_CELL_RATIO * ch)) };
+  }
+  const { k, r, c } = pickColumns(n, W, H);
+  return { cols: k, rows: r, c: Math.floor(c) };
 }
 
 /**
- * 单字手写图片版式（A05）。bounds = inkBounds(points)；没有笔迹（bounds 为 null）→ status 'noInk'（最近一次没有笔迹就不生成）。
- * 返回导出 px 下：墨迹变换 {k, ox, oy}（x_px = ox + x·k）、信息行、落款与印的位置。
+ * 作品版式。
+ * @param {Array<object>|number} cells  格子（只用个数；也可直接传数字）
+ * @param {'3:4'|'1:1'} [ratio]
+ * @returns {{W, H, n, cols, rows, c, left, top, cells:Array<{x:number,y:number}>, frame:Array<{x,y,w,h}>,
+ *   seal:{x,y,size,rotate}, kuan:{right:number, top:number, size:number, lineHeight:number}, below:boolean}}
+ *   n = 0 时 cells / frame 为空。
  */
-export function glyphLayout(bounds, ratio = 'portrait') {
+export function layout(cells, ratio = '3:4') {
   assertRatio(ratio);
-  const { width, height } = SIZES[ratio];
-  const base = { ratio, width, height, margin: MARGIN };
-  if (!bounds || !(bounds.width > 0) || !(bounds.height > 0)) return { status: 'noInk', ...base };
-  const top0 = MARGIN;
-  const bot0 = height - MARGIN - SEAL - GLYPH_GAP;
-  const maxH = bot0 - top0 - GLYPH_GAP - GLYPH_INFO_LINE;
-  const k = Math.min((width * GLYPH_WIDTH_RATIO) / bounds.width, maxH / bounds.height);
-  const glyphWidth = bounds.width * k;
-  const glyphHeight = bounds.height * k;
-  const glyphTop = top0 + (bot0 - top0 - (glyphHeight + GLYPH_GAP + GLYPH_INFO_LINE)) / 2;
-  const glyphLeft = (width - glyphWidth) / 2;
-  const sealX = width - MARGIN - SEAL;
-  const sealY = height - MARGIN - SEAL;
-  return {
-    status: 'ready',
-    ...base,
-    k,
-    ox: glyphLeft - bounds.x * k,
-    oy: glyphTop - bounds.y * k,
-    glyph: { x: glyphLeft, y: glyphTop, width: glyphWidth, height: glyphHeight },
-    info: { top: glyphTop + glyphHeight + GLYPH_GAP, line: GLYPH_INFO_LINE, font: GLYPH_INFO_FONT, centerX: width / 2 },
-    seal: { x: sealX, y: sealY, size: SEAL, rotate: -3 },
-    signature: { right: sealX - SIGNATURE_SEAL_GAP, baseline: sealY + SEAL - 6, font: SIGNATURE_FONT, tracking: SIGNATURE_TRACKING },
-  };
+  const n = typeof cells === 'number' ? cells : Array.isArray(cells) ? cells.length : 0;
+  if (!Number.isSafeInteger(n) || n < 0) throw new Error('INVALID_COUNT');
+  const W = LOGICAL_W;
+  const H = HEIGHT_OF[ratio];
+  if (n === 0) return { W, H, n, cols: 0, rows: 0, c: 0, left: 0, top: 0, cells: [], frame: [], seal: null, kuan: null, below: false };
+  const { cols, rows, c } = gridOf(n, ratio);
+  const gw = cols * c;
+  const gh = rows * c;
+  const seal = n === 1 ? SEAL_SIZE_SINGLE : SEAL_SIZE;
+  const kfs = n === 1 ? KUAN_SIZE_SINGLE : KUAN_SIZE;
+  const gap = Math.round(GAP_RATIO * W);
+  const lastCol = (n - 1) % cols;
+  const lastRow = rows - 1;
+  const below = lastCol === cols - 1;
+  const blockH = gh + gap + Math.max(seal, kfs * 1.4);
+  const top = rows === 1 && H > W ? Math.round((H - blockH) * 0.4) : Math.round((H - blockH) / 2 - H * 0.025);
+  const left = Math.round((W - gw) / 2);
+  const boxes = Array.from({ length: n }, (_, i) => ({ x: left + (i % cols) * c, y: top + Math.floor(i / cols) * c }));
+  const frame = rows > 1 && !below
+    ? [{ x: left, y: top, w: gw, h: (rows - 1) * c + 2 }, { x: left, y: top + (rows - 1) * c, w: (lastCol + 1) * c, h: c }]
+    : [{ x: left, y: top, w: gw, h: gh }];
+  let sealBox;
+  let kuan;
+  if (below) {
+    const sx = left + (lastCol + 1) * c - seal;
+    const sy = top + gh + gap;
+    sealBox = { x: sx, y: sy, size: seal, rotate: SEAL_ROTATION };
+    kuan = { right: sx - KUAN_GAP_FROM_SEAL, top: sy + seal / 2 - kfs * 0.7, size: kfs, lineHeight: kfs * 1.4 };
+  } else {
+    const sx = left + (lastCol + 1) * c + Math.round(c * 0.12);
+    const sy = top + (lastRow + 1) * c - seal - Math.round(c * 0.06);
+    sealBox = { x: sx, y: sy, size: seal, rotate: SEAL_ROTATION };
+    kuan = { right: left + gw, top: top + gh + gap, size: kfs, lineHeight: kfs * 1.4 };
+  }
+  return { W, H, n, cols, rows, c, left, top, cells: boxes, frame, seal: sealBox, kuan, below };
+}
+
+/**
+ * 结果页上作品的格宽（§5.2）：列 × 行 = 默认 3:4 分享图的排法；
+ * c = min(⌊cw / 列⌋, ⌊0.5b⌋, 行 ≥ 2 ? ⌊0.4b⌋ : ∞)，b = W − 40，cw = b − 32。
+ * @param {number} n  字数
+ * @param {number} screenWidth  屏宽（pt / CSS px）
+ * @returns {{cols:number, rows:number, c:number}}
+ */
+export function resultGrid(n, screenWidth) {
+  const { cols, rows } = gridOf(n, '3:4');
+  if (!cols) return { cols: 0, rows: 0, c: 0 };
+  const b = screenWidth - 40;
+  const cw = b - 32;
+  const c = Math.min(Math.floor(cw / cols), Math.floor(0.5 * b), rows >= 2 ? Math.floor(0.4 * b) : Infinity);
+  return { cols, rows, c };
+}
+
+/** 月字帖 / 年报月段的列数：6（Pro Max 7）；AX 档 4（§7.1 / §7.3）。屏宽 ≥ 430 当作 Pro Max。 */
+export function monthColumns(screenWidth, { ax = false } = {}) {
+  if (ax) return 4;
+  return screenWidth >= 430 ? 7 : 6;
+}
+
+/** 月字帖的格宽 = ⌊(W − 40) / 列⌋（§7.1）。 */
+export function monthCell(screenWidth, cols) {
+  return Math.floor((screenWidth - 40) / cols);
+}
+
+/** 日期角标文字：每天第一个字标「日」（月字帖里只有日，不带月；§7.1）。day = 'YYYY-MM-DD'。 */
+export function dayTag(day) {
+  if (typeof day !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(day)) return '';
+  return String(Number(day.slice(8, 10)));
+}
+
+/** 给按日分组的格子标角标：每天的第一个字带 tag，其余空串。cells 里要有 day。 */
+export function withDayTags(cells) {
+  let prev = null;
+  return cells.map(cell => {
+    const day = cell && cell.day ? cell.day : null;
+    const tag = day && day !== prev ? dayTag(day) : '';
+    if (day) prev = day;
+    return { ...cell, tag };
+  });
+}
+
+/** 本人墨迹的书写格内部单位（01 §6.1）。 */
+export const INK_GRID = 345;
+
+/**
+ * 格内墨迹的变换：书写格 345 单位 → 格内 76%（12% 内边）。返回相对格左上的 {ox, oy, k}（x = ox + x·k）。
+ * @param {number} cellSize  格边长（任意单位）
+ * @param {number} [pad]  内边比例，缺省 12%（年报月段是 9%，§8.1）
+ */
+export function cellInkBox(cellSize, pad = INK_PAD) {
+  const size = cellSize * (1 - 2 * pad);
+  return { ox: cellSize * pad, oy: cellSize * pad, size, k: size / INK_GRID };
+}
+
+/**
+ * 朱点（写错且手动放进来的字，D46 ⑥）：直径 clamp(5, 格宽 × 0.07, 8) pt，在墨迹外框右上外 2pt。
+ * 返回相对格左上的圆心 {cx, cy} 与直径 d，单位同 cellSize；圆点不出格（贴边 1pt）。
+ * @param {number} cellSize
+ * @param {number} unit  每 pt 几个单位：屏幕上 1；逻辑画布 2.69
+ * @param {{x:number,y:number,width:number,height:number}|null} bounds  inkBounds（345 单位）；没有时落在格右上角
+ */
+export function dotLayout(cellSize, unit, bounds, pad = INK_PAD) {
+  const d = dotDiameterPt(cellSize / unit) * unit;
+  const { ox, oy, k } = cellInkBox(cellSize, pad);
+  let cx = cellSize - d;
+  let cy = d;
+  if (bounds) {
+    cx = ox + (bounds.x + bounds.width) * k + 2 * unit + d / 2;
+    cy = oy + bounds.y * k - 2 * unit - d / 2;
+  }
+  cx = Math.min(Math.max(cx, d / 2 + unit), cellSize - d / 2 - unit);
+  cy = Math.min(Math.max(cy, d / 2 + unit), cellSize - d / 2 - unit);
+  return { cx, cy, d };
 }

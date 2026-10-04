@@ -1,32 +1,32 @@
-// 图片选字与取墨口径（纯函数，无 DOM；02 M4-5；01 §10；04 R-I01 / R-I04、R-R07、R-P03、R-D04、A05；决定-D11 / D12 / D23；
-// 03 P02 / P25 / P50）。
+// 图片选字与取墨口径（纯函数，无 DOM；02 M4-5；01 §10；04 R-I01 / R-I04、R-P03、R-D04、A05；决定-D11 / D12 / D23 / D31 / D39 / D42；
+// 03 P02 / P25 / P50；阶段 1 P1-E7 改按「作品」口径，交接 §4.2 / §6.6 / §7 / §8）。
 //
-// 从 #180 handoff/r8-foundation/module/selectors.mjs（origin/pr-180）改造：成员来自 v2 记录（kind==='judged'，D23），
-// 键为 cardKey（base:<字>），不读旧 activity / recentInk；「取哪一条」由 pick 参数决定：
-//   这次的图片（session）  本组 judged 的字，按本组第一次出现的先后；每字取本组最后一次判断（D11 / Y03）。
-//   这天写的字（day）      R-P03「这次的图片」= 那天判断过的字每字最近一次，按那天第一次出现的先后。
-//   月字帖（month）        本月判断过的字，按本月第一次出现的先后；每字取 policy.monthSheetPick（P02 过渡 'first' = 本月第一次，
-//                          M02「格子里的笔迹和格子上标的日期对应」）；角标 = 那条记录的日子「9·24」，与前一格同一天时不标。
-//                          落款天数 = 本月有 judged 记录的日子（K27）。
-//   单字手写图片（glyph）  这个字最近一次 judged（A05「只重绘最近一份笔迹」）；那次没有笔迹就不生成（R-D04 置灰）。
-// 缺墨（P50 过渡 policy.imageMissingInk='omit'，按第十稿 10.12）：那一条没有笔迹的字不画进图、不借别次笔迹（I03），
-//   落款字数跟着减（R-I04）；缺墨的字列在 missing 里供说明句。角标在去掉缺墨格之后重算（每个日子的第一格都带日期）。
-// 超上限（P25 过渡 policy.imageMaxChars=80、imageOverflow='pending'）：status 'pending'，不截字（D12）。
-// 「最近一次」「第一次」一律按记录 id 序号（01 §3.1），不看 at。
-// 取哪一条的 D42 口径（解 03 P122；D27 起中间几次的墨迹已回收）：这次 / 这天 / 这个月这三类按时间段取「某一次」的图片，每字在该时间段内
-//   按原取法的偏好顺序（月字帖 first 从早到晚、这次 / 这天 last 从晚到早）找**留有墨迹**的那一次（core/ink-pick.js pickRecordInPeriod）；
-//   时间段内一份都没有时才取偏好方向上的那一条、如实缺墨；时间段外的墨迹不进候选，不冒充。单字手写图片（glyph）本来就是
-//   「最近一次」、没有时间段，口径不变。角标日期跟着挑出来的那条记录走（M02「笔迹与角标对应」）。
+// 成员与取墨：
+//   这次的图片（session）  = 作品成员规则（work.js buildWork：默认写对 ∪ 看后自写有墨；写错有墨可「放进去」，带朱点），顺序 = 组内顺序；
+//                          每字取本组该字的那条记录（D11 最后一次）；成员里没有的（无墨、跳过）不画。
+//   这天写的字（day）      那天判断过的字每字最近一次（按那天第一次出现的先后）；缺墨的字不画（P50 omit）。
+//   月字帖（month）        本月判断过的字，按本月第一次出现的先后；每字取本月内留有墨迹的第一次（D42；policy.monthSheetPick 'first'）；
+//                          整个月一份墨迹都没有的字**照样在**，画 under 衬底（交接 §7，不写「没有笔迹」）；日期角标只标每天的第一个字；
+//                          纸上记录不进（D46-13，isPaperRecord），所以月字数也不计它。
+//   单字手写图片（glyph）  这个字最近一次 judged（A05）；那次没有笔迹就不生成（R-D04 置灰）。
+// 超过 80 字（D39）：不再返回 pending——plan.pages 按日期分页（paginate.js），每页独立排版。
+// 「最近一次」「第一次」一律按记录 id 序号（01 §3.1），不看 at。D42：时间段内每字找留有墨迹的那一次（core/ink-pick.js），
+// 时间段外的墨迹不进候选，不冒充。
 //
 // inkOf(record) → 345 单位点列（每笔 [{x,y,w,…}]，已 resampleForReplay）或 null；由调用方注入（界面层读 store 的墨迹表）。
 
 import * as defaultPolicy from '../../config/policy.js';
 import { charOfCardKey, compareRecordIds, isJudged } from '../records.js';
 import { isValidDay, isValidMonth, localDay } from '../dates.js';
-import { dateTag } from './layout.js';
+import { MAX_CHARS_PER_PAGE, withDayTags } from './layout.js';
+import { paginate, retagPages } from './paginate.js';
+import { dayTag } from './layout.js';
+import { addedOf, buildWork, isPaperRecord } from './work.js';
 import { pickRecordInPeriod } from '../ink-pick.js';
 
 export const IMAGE_KINDS = Object.freeze(['session', 'day', 'month', 'glyph']);
+
+export { isPaperRecord };
 
 /** state.records（{月: Record[] | 折叠月}）→ 全部记录（按 id 升序）；折叠月只剩 kept（01 §9）。 */
 export function flattenRecords(records) {
@@ -104,35 +104,25 @@ export function sessionDay(session, records = []) {
   return last && isValidDay(last.localDay) ? last.localDay : null;
 }
 
-/** 这次的图片：本组 judged，按本组先后；每字取本组内从晚到早第一条留有墨迹的判断（D11 的「最后一次」+ D42）。 */
-export function sessionMembers(state, { slot = null, sessionId, hasInk = null }) {
+/**
+ * 这次的图片的作品成员（交接 §4.2；顺序 = 组内 items 顺序）。session 的 items 之外、本组还有但没进 items 的 judged 记录（异常数据）不进。
+ * @returns {{work:object, day:string|null, session:object|null}}
+ */
+export function sessionWork(state, { slot = null, sessionId, hasInk }) {
   const all = flattenRecords(state && state.records).filter(r => r.sessionId === sessionId);
-  const judged = all.filter(isJudged);
   const session = findSession(state, { slot, sessionId });
-  // 顺序以会话 items（结果页格子顺序）为准；items 里没有的（异常数据）按记录先后接在后面。
-  const order = [];
-  if (session && Array.isArray(session.items)) {
-    for (const it of session.items) {
-      const r = it && it.recordId ? judged.find(x => x.id === it.recordId) : null;
-      if (r && !order.includes(charOf(r))) order.push(charOf(r));
-    }
-  }
-  const groups = groupByChar(judged, 'last', hasInk);
-  groups.sort((a, b) => {
-    const ia = order.indexOf(a.char);
-    const ib = order.indexOf(b.char);
-    if (ia >= 0 && ib >= 0) return ia - ib;
-    if (ia >= 0) return -1;
-    if (ib >= 0) return 1;
-    return 0;
-  });
-  return { members: groups, day: sessionDay(session, all), session };
+  const byId = new Map(all.map(r => [r.id, r]));
+  const items = session && Array.isArray(session.items)
+    ? session.items
+    : all.filter(r => r.kind === 'judged').map(r => ({ cardKey: r.cardKey, recordId: r.id, kind: r.kind }));
+  const work = buildWork({ items, records: byId, hasInk: typeof hasInk === 'function' ? hasInk : () => false, added: addedOf(session), charOf: key => charOfCardKey(key) || '' });
+  return { work, day: sessionDay(session, all), session };
 }
 
 /** 某天写的字：那天 judged，每字取那天内从晚到早第一条留有墨迹的判断（R-P03 的「最近一次」+ D42）。 */
 export function dayMembers(state, day, { hasInk = null } = {}) {
   if (!isValidDay(day)) throw new Error('INVALID_DAY');
-  const judged = flattenRecords(state && state.records).filter(r => isJudged(r) && r.localDay === day);
+  const judged = flattenRecords(state && state.records).filter(r => isJudged(r) && !isPaperRecord(r) && r.localDay === day);
   return { members: groupByChar(judged, 'last', hasInk), day };
 }
 
@@ -145,7 +135,7 @@ export function monthMembers(state, month, { pick = defaultPolicy.monthSheetPick
   const records = state && state.records;
   const folded = foldedMonth(records, month);
   const prefix = month + '-';
-  const judged = flattenRecords(records).filter(r => isJudged(r) && typeof r.localDay === 'string' && r.localDay.startsWith(prefix));
+  const judged = flattenRecords(records).filter(r => isJudged(r) && !isPaperRecord(r) && typeof r.localDay === 'string' && r.localDay.startsWith(prefix));
   let members;
   let days;
   if (folded) {
@@ -195,72 +185,82 @@ function inkPointsPresent(inkOf, record) {
   }
 }
 
-/**
- * 按成员里已选定的那条记录取墨（只取这一条，不再借别次，I03）。选哪一条已在成员里按 D42 在时间段内挑过
- * （挑的时候就是「留有墨迹的那一次」，段内全无墨迹的字才会走到 missing）。
- */
-export function splitByInk(members, inkOf) {
-  const drawn = [];
-  const missing = [];
-  for (const m of members) {
-    let points = null;
-    if (m.record && typeof inkOf === 'function') {
-      try {
-        points = inkOf(m.record);
-      } catch (error) {
-        points = null;
-      }
-    }
-    const has = hasPoints(points);
-    if (has) drawn.push({ ...m, points });
-    else missing.push(m.char);
+function pointsOf(inkOf, record) {
+  if (!record || typeof inkOf !== 'function') return null;
+  try {
+    const points = inkOf(record);
+    return hasPoints(points) ? points : null;
+  } catch (error) {
+    return null;
   }
-  return { drawn, missing };
 }
 
-/** 月字帖角标：那一格记录的日子，与前一格同一天时不标。 */
-export function withTags(cells) {
-  let prev = null;
-  return cells.map(c => {
-    const day = c.record ? c.record.localDay : null;
-    const tag = day && day !== prev ? dateTag(day) : '';
-    if (day) prev = day;
-    return { ...c, tag };
-  });
+/** 一个成员 → 排版 / 渲染用的格子：有墨 'hand'，没墨 'under'；day = 那一格记录的日子（角标 / 分页用）。 */
+export function cellOfMember(member, inkOf, { under = false } = {}) {
+  const ink = pointsOf(inkOf, member.record);
+  const day = member.record ? member.record.localDay : member.firstDay || null;
+  if (!ink && !under) return null;
+  return { ch: member.char, ink, mode: ink ? 'hand' : 'under', dot: false, tag: '', day, record: member.record || null };
 }
 
 /**
- * 成图计划（纯函数）：成员、取墨、缺墨、数量、状态。
+ * 月字帖 / 年报月页的格子（交接 §7 / §8）：本月每个字一格，有墨取留墨的第一次，一份都没有的画 under；日期角标只标每天的第一个字。
+ * @returns {{month:string, days:number, cells:Array, members:Array, inked:number}}
+ */
+export function monthCells(state, month, { inkOf, hasInk = null, policy = defaultPolicy } = {}) {
+  const has = typeof hasInk === 'function' ? hasInk : record => inkPointsPresent(inkOf, record);
+  const r = monthMembers(state, month, { pick: policy.monthSheetPick, hasInk: has });
+  const raw = r.members.map(m => cellOfMember(m, inkOf, { under: true }));
+  const cells = withDayTags(raw);
+  return { month: r.month, days: r.days, cells, members: r.members, inked: cells.filter(c => c.mode === 'hand').length };
+}
+
+/**
+ * 成图计划（纯函数）：成员、取墨、数量、状态、分页。
  * @param {object} state
  * @param {{kind:'session'|'day'|'month'|'glyph', slot?, sessionId?, day?, month?, char?}} scope
  * @param {{inkOf:(record)=>Array|null, hasInk?:(record)=>boolean, policy?:object}} o
  *   hasInk：D42 挑「时间段内留有墨迹的那一次」时判断一条记录有没有墨迹——界面层传按月表查找的廉价判据（不解码，ink-pick.js storedInkPresent）；
  *   缺省按 inkOf 的结果判断（要解码，单测与小数据用）。
- * @returns {{kind, status:'ready'|'empty'|'pending'|'noInk', key, day, month, members, drawn, missing, n, days, maxChars, recordIds}}
+ * @returns {{kind, status:'ready'|'empty'|'noInk', key, day, month, days, members, cells, drawn, missing, n, pages, maxChars, recordIds, work?}}
+ *   cells = 全部要画的格子（render 用）；pages = cells 按 D39 分页（≤ maxChars 一页；session 的默认顺序即组内顺序，不分日）；
+ *   drawn = 有墨的格子（glyph 图用 drawn[0].points）；missing = 没画进去的字（day / session 里缺墨的）。
  */
 export function imagePlan(state, scope, { inkOf, hasInk = null, policy = defaultPolicy } = {}) {
   const kind = scope && scope.kind;
   if (!IMAGE_KINDS.includes(kind)) throw new Error('INVALID_KIND');
-  const maxChars = Number.isSafeInteger(policy.imageMaxChars) ? policy.imageMaxChars : 80;
+  const maxChars = Number.isSafeInteger(policy.imageMaxChars) ? policy.imageMaxChars : MAX_CHARS_PER_PAGE;
   const has = typeof hasInk === 'function' ? hasInk : record => inkPointsPresent(inkOf, record);
   let members = [];
+  let cells = [];
   let day = null;
   let month = null;
   let days = null;
+  let work = null;
+  let missing = [];
   let key;
   if (kind === 'session') {
-    const r = sessionMembers(state, { slot: scope.slot || null, sessionId: scope.sessionId, hasInk: has });
-    members = r.members;
+    const r = sessionWork(state, { slot: scope.slot || null, sessionId: scope.sessionId, hasInk: has });
+    work = r.work;
     day = r.day;
     key = scope.sessionId;
+    members = work.cells;
+    cells = work.cells.map(e => ({ ch: e.char, ink: pointsOf(inkOf, e.record), mode: 'hand', dot: e.dot, tag: '', day, record: e.record }));
+    missing = work.entries.filter(e => e.state !== 'in' && e.state !== 'added' && e.state !== 'addable').map(e => e.char);
   } else if (kind === 'day') {
     const r = dayMembers(state, scope.day, { hasInk: has });
     members = r.members;
     day = r.day;
     key = scope.day;
+    for (const m of members) {
+      const cell = cellOfMember(m, inkOf);
+      if (cell) cells.push(cell);
+      else missing.push(m.char);
+    }
   } else if (kind === 'month') {
-    const r = monthMembers(state, scope.month, { pick: policy.monthSheetPick, hasInk: has });
+    const r = monthCells(state, scope.month, { inkOf, hasInk: has, policy });
     members = r.members;
+    cells = r.cells;
     month = r.month;
     days = r.days;
     key = scope.month;
@@ -269,13 +269,15 @@ export function imagePlan(state, scope, { inkOf, hasInk = null, policy = default
     members = m ? [m] : [];
     day = m ? m.record.localDay : null;
     key = scope.char;
+    const cell = m ? cellOfMember(m, inkOf) : null;
+    cells = cell ? [cell] : [];
+    if (m && !cell) missing = [m.char]; // 最近一次没有笔迹：不生成，也不借别次（I03）
   }
-  const { drawn: rawDrawn, missing } = splitByInk(members, inkOf);
-  const drawn = kind === 'month' ? withTags(rawDrawn) : rawDrawn.map(c => ({ ...c, tag: '' }));
+  const drawn = cells.filter(c => c.mode === 'hand').map(c => ({ char: c.ch, record: c.record, points: c.ink, tag: c.tag }));
   let status = 'ready';
   if (kind === 'glyph') status = drawn.length ? 'ready' : 'noInk';
-  else if (!drawn.length) status = 'empty';
-  else if (drawn.length > maxChars) status = 'pending'; // P25：不截字
+  else if (!cells.length) status = 'empty';
+  const pages = kind === 'glyph' || !cells.length ? (cells.length ? [cells] : []) : retagPagesFor(kind, paginate(cells, maxChars));
   return {
     kind,
     key,
@@ -285,9 +287,16 @@ export function imagePlan(state, scope, { inkOf, hasInk = null, policy = default
     days,
     maxChars,
     members,
+    cells,
     drawn,
     missing,
-    n: drawn.length,
-    recordIds: drawn.map(c => c.record.id),
+    n: cells.length,
+    pages,
+    work,
+    recordIds: cells.filter(c => c.record).map(c => c.record.id),
   };
+}
+
+function retagPagesFor(kind, pages) {
+  return kind === 'month' ? retagPages(pages, dayTag) : pages;
 }

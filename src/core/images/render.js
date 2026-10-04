@@ -1,44 +1,57 @@
-// 图片渲染（Canvas2D；02 M4-5；01 §10；04 §3.2「图片规格」、R-I01–R-I04、A05）。
+// 图片渲染（Canvas2D；阶段 1 P1-E7；交接 §6.3–§6.5；04 §3.2「图片规格」、A05）。
 //
-// 从 #180 handoff/r8-foundation/module/render.mjs（origin/pr-180）抽取改造：
-//   - 版式来自 ./layout.js（竖版从顶端排，T06-C）；只画有笔迹的字（P50 / 10.12），不画浅参考、不借别次笔迹；
-//   - 格线按冻结原型 imgEl（外框上 / 左 + 每格右 / 下，1pt = 3px，#A6533F47），不画 #180 的格内虚线十字；
-//   - 笔迹：345 单位点列（core/ink-math decodeInk → resampleForReplay）按格缩放，用调用方注入的笔锋（ui/canvas/brush.js
-//     paintBrushStroke，detail 关闭 = 与小卡 InkMini 同一画法；core 不依赖 ui，默认退回简单圆头折线）；
-//   - 落款单行（放不下报错，不偷偷截断）+ −3° 小印（原型 26pt 红印白字「字」，导出 78px）；
-//   - 新增 renderSingleGlyph（A05）：不画格子，墨迹外框约占画面宽 60%，字下「拼音 · 日期」，右下「拾字」+ 印。
-// 画布一律浅色纸面（原型 imgEl / charEl 永远 TH.light）；不读存储、不写存储。
-// 字体（01 §8.4 canvas 绘制前 requireFont；M5-2）：core 不依赖浏览器字体 API，由调用方注入 requireFont(fontStack, text)——
-//   ui/images-entry.js 传 src/data/font-loader.js 的 requireCanvasFont（本包字体精确字重加载 + 覆盖检查，系统字体栈直接放行，
-//   字体失败只 warn、按字体栈回退绘制）；绘制前对落款 / 角标（fonts.label）与印字（fonts.kai = ShiziKai 400）各 await 一次。
-//   未注入时不等待（单测与 node 下用）。
-// 渲染结果把审计信息写进 canvas.dataset（e2e 断言 PNG 尺寸与成员 / 落款 / recordId）。
+// 作品页 renderWorkPage：版式来自 ./layout.js（逻辑画布 1080 宽），整体 × 4/3 → 1440 × 1920（3:4）/ 1440 × 1440（1:1）；
+//   一律浅纸（调色板 palette.js，来自浅色令牌，不随系统主题）+ 纸纹（令牌里的两层 SVG 纹理，按导出尺寸放大）；
+//   格：外框 2px frame、格间 1.5px guide、直角，墨在格内 12% 内边，线宽按「格的屏幕当量（c ÷ 2.69 pt）」查补偿表；
+//   没有本人墨的字（mode 'under'）画参考轮廓、填 under（月字帖 / 年报里该时段没留下笔迹的字）；
+//   写错且手动放进来的字带朱点；月图日期角标骑在格上边线上（sheet 衬底断开格线）；
+//   落款 song 400 ink2、品牌印「字」白文直角 seal、旋转 −2°；字体在绘制前经注入的 requireFont 确认已加载（§6.5）。
+//   导出格式 JPEG 0.92、sRGB（exportCanvas）；纸纹在 PNG 里体积过大。
+// 单字手写图片 renderSingleGlyph（A05，详情页「把这个字做成图片」）沿用 glyph-layout.js 的版式，色值同样来自调色板。
+// 笔迹：345 单位点列（core/ink-math decodeInk → resampleForReplay）用调用方注入的笔锋（ui/canvas/brush.js paintBrushStroke；
+//   core 不依赖 ui，默认退回圆头折线）；参考轮廓取 data/strokes.js 的笔顺数据（调用方注入 loadGlyph）。
+// 渲染结果把审计信息写进 canvas.dataset（e2e 断言尺寸 / 成员 / 落款 / recordId）。不读存储、不写存储。
 
-import { cellInkTransform, glyphLayout, inkBounds, sheetLayout } from './layout.js';
-
-export const TOKENS = Object.freeze({
-  paper: '#FBF8F2', // 原型 TH.light --c（imgEl / charEl 背景）
-  ink: '#3B2F28', // --i1
-  muted: '#5D5952', // 落款 / 信息行（原型 #5D5952）
-  red: '#A6533F', // 角标、印（原型 #A6533F）
-  grid: 'rgba(166,83,63,.28)', // #A6533F47
-  sealText: '#FFF9F1',
-});
+import {
+  EXPORT_SCALE, FRAME_W, GUIDE_W, INK_GRID, INK_PAD, LOGICAL_PER_PT, TAG_LEFT, TAG_PAD_X, TAG_SIZE, TAG_TOP,
+  cellInkBox, dotLayout, inkWidthScale, layout,
+} from './layout.js';
+import { glyphLayout, inkBounds } from './glyph-layout.js';
+import { readLightPalette } from './palette.js';
 
 export const FONTS = Object.freeze({
   label: '-apple-system,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif',
   kai: '"ShiziKai","LXGW WenKai GB","Kaiti SC","STKaiti","KaiTi",serif',
+  song: '"ShiziSerifSC","Noto Serif SC","Songti SC","STSong",serif',
 });
 
-const GRID_UNITS = 345;
-const LINE = 3; // 1pt
+/** JPEG 质量（§6.5）。 */
+export const JPEG_QUALITY = 0.92;
 
-function defaultCanvasFactory(width, height) {
+const GLYPH_UNITS = 1024;
+const GLYPH_BASELINE = 900;
+const GLYPH_PAD = 0.06;
+
+export function defaultCanvasFactory(width, height) {
   if (typeof document === 'undefined') throw new Error('CANVAS_UNAVAILABLE');
   const canvas = document.createElement('canvas');
   canvas.width = width;
   canvas.height = height;
   return canvas;
+}
+
+export function makeCanvas(factory, width, height) {
+  const canvas = factory(width, height);
+  if (!canvas) throw new Error('CANVAS_UNAVAILABLE');
+  if (canvas.width !== width) canvas.width = width;
+  if (canvas.height !== height) canvas.height = height;
+  const ctx = canvas.getContext('2d', { colorSpace: 'srgb' }) || canvas.getContext('2d');
+  if (!ctx) throw new Error('CANVAS_UNAVAILABLE');
+  return { canvas, ctx };
+}
+
+function hasPoints(points) {
+  return Array.isArray(points) && points.some(s => Array.isArray(s) && s.length);
 }
 
 /** 没有注入笔锋时的兜底：圆头折线（宽 = 点上的绝对宽）。 */
@@ -69,34 +82,87 @@ function simpleStroke(ctx, points, { color }) {
   return true;
 }
 
-function makeCanvas(factory, width, height) {
-  const canvas = factory(width, height);
-  if (!canvas) throw new Error('CANVAS_UNAVAILABLE');
-  if (canvas.width !== width) canvas.width = width;
-  if (canvas.height !== height) canvas.height = height;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) throw new Error('CANVAS_UNAVAILABLE');
-  return { canvas, ctx };
-}
-
-/** 画一份笔迹（345 单位点列）到变换 {k, ox, oy}。返回画了几笔。 */
-export function drawInk(ctx, points, { k, ox, oy }, { paintStroke = null, color = TOKENS.ink } = {}) {
+/**
+ * 在 (x, y) 起边长 size 的方框里画一份本人笔迹（345 单位点列）。线宽乘 widthScale（补偿表）。
+ * 用相对变换（save / translate / scale），可以叠在已有缩放（导出 × 4/3、屏幕 DPR）上。返回画了几笔。
+ */
+export function paintHand(ctx, points, { x, y, size, color, widthScale = 1, paintStroke = null }) {
   const paint = typeof paintStroke === 'function' ? paintStroke : simpleStroke;
+  const k = size / INK_GRID;
   let n = 0;
   ctx.save();
-  ctx.setTransform(k, 0, 0, k, ox, oy);
+  ctx.translate(x, y);
+  ctx.scale(k, k);
   for (const stroke of points || []) {
     if (!Array.isArray(stroke) || !stroke.length) continue;
-    if (paint(ctx, stroke, { color, base: 11.5, detail: false }) !== false) n += 1;
+    const scaled = widthScale === 1 ? stroke : stroke.map(p => ({ ...p, w: (Number.isFinite(p.w) && p.w > 0 ? p.w : 11.5) * widthScale }));
+    if (paint(ctx, scaled, { color, base: 11.5 * widthScale, detail: false }) !== false) n += 1;
   }
   ctx.restore();
   return n;
 }
 
-/** 字距 .16em 的单行文字；返回总宽。align='left' 从 x 起，'right' 到 x 止。 */
-export function drawTracked(ctx, text, x, baseline, { font, size, tracking = 0.16, color, align = 'left' }) {
+/** 参考字形轮廓（hanzi-writer 数据：1024 单位、y 向上、基线 900）画进 (x, y) 起边长 size 的方框，填 color。返回是否画了。 */
+export function paintOutline(ctx, data, { x, y, size, color }) {
+  if (!data || !Array.isArray(data.strokes) || typeof Path2D !== 'function') return false;
+  const pad = size * GLYPH_PAD;
+  const k = (size - 2 * pad) / GLYPH_UNITS;
   ctx.save();
-  ctx.font = `400 ${size}px ${font}`;
+  ctx.translate(x + pad, y + pad + GLYPH_BASELINE * k);
+  ctx.scale(k, -k);
+  ctx.fillStyle = color;
+  for (const d of data.strokes) ctx.fill(new Path2D(d));
+  ctx.restore();
+  return true;
+}
+
+/** 没有笔顺数据时的衬底字：楷体整字，字面占方框 80%，居中。 */
+export function paintFallbackGlyph(ctx, ch, { x, y, size, color }) {
+  if (!ch || typeof ctx.fillText !== 'function') return false;
+  ctx.save();
+  ctx.fillStyle = color;
+  ctx.font = `400 ${Math.round(size * 0.8)}px ${FONTS.kai}`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(ch, x + size / 2, y + size * 0.54);
+  ctx.restore();
+  return true;
+}
+
+/**
+ * 画一格的内容（不含格线）：有墨画本人笔迹，没墨画 under 衬底。返回 {strokes, bounds}（bounds = 墨迹外框，345 单位，朱点定位用）。
+ * @param {object} cell  {ch, ink: 点列|null, mode: 'hand'|'under'}
+ * @param {{x:number,y:number,c:number}} box  格的左上与边长（当前 ctx 的单位）
+ * @param {{palette, unit:number, paintStroke?, glyphs?:Map<string,object>, pad?:number}} o  unit = 每 pt 几个单位（屏幕 1；逻辑画布 2.69）；pad = 内边比例（缺省 12%）
+ */
+export function paintCellContent(ctx, cell, box, { palette, unit, paintStroke = null, glyphs = null, pad = INK_PAD }) {
+  const inner = cellInkBox(box.c, pad);
+  const at = { x: box.x + inner.ox, y: box.y + inner.oy, size: inner.size };
+  if (cell.mode !== 'under' && hasPoints(cell.ink)) {
+    const widthScale = inkWidthScale(box.c / unit);
+    const strokes = paintHand(ctx, cell.ink, { ...at, color: palette.hand, widthScale, paintStroke });
+    return { strokes, bounds: inkBounds(cell.ink) };
+  }
+  const data = glyphs ? glyphs.get(cell.ch) : null;
+  // 取不到笔顺数据（10.13）：退回楷体整字，同样填 under（与写字页参考卡的回退同一取舍）
+  if (!paintOutline(ctx, data, { ...at, color: palette.under })) paintFallbackGlyph(ctx, cell.ch, { ...at, color: palette.under });
+  return { strokes: 0, bounds: null };
+}
+
+function paintDot(ctx, box, cell, bounds, { palette, unit }) {
+  const { cx, cy, d } = dotLayout(box.c, unit, bounds);
+  ctx.save();
+  ctx.fillStyle = palette.zhu;
+  ctx.beginPath();
+  ctx.arc(box.x + cx, box.y + cy, d / 2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+/** 字距 .16em 的单行文字；返回总宽。align='left' 从 x 起，'right' 到 x 止。 */
+export function drawTracked(ctx, text, x, baseline, { font, size, tracking = 0.16, color, align = 'left', weight = 400 }) {
+  ctx.save();
+  ctx.font = `${weight} ${size}px ${font}`;
   ctx.fillStyle = color;
   ctx.textBaseline = 'alphabetic';
   ctx.textAlign = 'left';
@@ -113,180 +179,276 @@ export function drawTracked(ctx, text, x, baseline, { font, size, tracking = 0.1
   return total;
 }
 
-/** 小印：26pt 红底圆角 3pt、白字楷体 16pt、旋 −3°（原型 imgEl / charEl）。 */
-export function drawSeal(ctx, { x, y, size, rotate = -3 }, { text, font = FONTS.kai } = {}) {
-  const r = size * (3 / 26);
+/** 品牌印：白文「字」、直角、seal 底、旋转 −2°；内缩 7% 一圈 onSeal 细线（与 marks.js 的屏上印同款）。 */
+export function drawSeal(ctx, { x, y, size, rotate = -2 }, { text, palette, font = FONTS.kai }) {
   ctx.save();
   ctx.translate(x + size / 2, y + size / 2);
   ctx.rotate((rotate * Math.PI) / 180);
-  ctx.fillStyle = TOKENS.red;
-  ctx.beginPath();
-  const h = size / 2;
-  ctx.moveTo(-h + r, -h);
-  ctx.lineTo(h - r, -h);
-  ctx.quadraticCurveTo(h, -h, h, -h + r);
-  ctx.lineTo(h, h - r);
-  ctx.quadraticCurveTo(h, h, h - r, h);
-  ctx.lineTo(-h + r, h);
-  ctx.quadraticCurveTo(-h, h, -h, h - r);
-  ctx.lineTo(-h, -h + r);
-  ctx.quadraticCurveTo(-h, -h, -h + r, -h);
-  ctx.closePath();
-  ctx.fill();
+  ctx.fillStyle = palette.seal;
+  ctx.fillRect(-size / 2, -size / 2, size, size);
+  const inset = size * 0.07;
+  ctx.save();
+  ctx.globalAlpha = 0.55;
+  ctx.strokeStyle = palette.onSeal;
+  ctx.lineWidth = Math.max(1, size / 40);
+  ctx.strokeRect(-size / 2 + inset, -size / 2 + inset, size - 2 * inset, size - 2 * inset);
+  ctx.restore();
   if (text) {
-    ctx.fillStyle = TOKENS.sealText;
-    ctx.font = `400 ${Math.round(size * (16 / 26))}px ${font}`;
+    ctx.fillStyle = palette.onSeal;
+    ctx.font = `400 ${Math.round(size * 0.66)}px ${font}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(text, 0, 0);
+    ctx.fillText(text, 0, size * 0.03);
   }
   ctx.restore();
 }
 
-function setDataset(canvas, meta) {
+/** 落款：song 400、ink2，右对齐到 right，垂直居中于 [top, top + lineHeight]。返回文字宽。 */
+export function drawKuan(ctx, text, { right, top, size, lineHeight }, { palette, fonts = FONTS, align = 'right' }) {
+  ctx.save();
+  ctx.font = `400 ${size}px ${fonts.song}`;
+  ctx.fillStyle = palette.ink2;
+  ctx.textBaseline = 'middle';
+  ctx.textAlign = align;
+  ctx.fillText(text, right, top + lineHeight / 2);
+  const width = ctx.measureText(text).width;
+  ctx.restore();
+  return width;
+}
+
+// ---------------------------------------------------------------- 纸
+
+/** 加载纸纹图片（令牌里的两层 SVG data URL）。无 Image / 解码失败的那一层跳过。 */
+export async function loadTextures(palette, { imageFactory = null } = {}) {
+  const make = imageFactory || (typeof Image === 'function' ? () => new Image() : null);
+  if (!make || !palette.textures || !palette.textures.length) return [];
+  const out = [];
+  for (const url of palette.textures) {
+    try {
+      const img = make();
+      img.src = url;
+      if (typeof img.decode === 'function') await img.decode();
+      out.push(img);
+    } catch (error) {
+      out.push(null);
+    }
+  }
+  return out;
+}
+
+/** 画纸：sheet 底 + 纹理（瓦片 = 令牌尺寸 × 2.69，逻辑 1080 上颗粒 645、云絮 1614）。 */
+export function paintPaper(ctx, W, H, palette, textures = []) {
+  ctx.save();
+  ctx.fillStyle = palette.sheet;
+  ctx.fillRect(0, 0, W, H);
+  textures.forEach((img, i) => {
+    if (!img) return;
+    const tile = (palette.tiles && palette.tiles[i] ? palette.tiles[i] : 240) * LOGICAL_PER_PT;
+    for (let y = 0; y < H; y += tile) for (let x = 0; x < W; x += tile) ctx.drawImage(img, x, y, tile, tile);
+  });
+  ctx.restore();
+}
+
+export function setDataset(canvas, meta) {
   if (!canvas || !canvas.dataset) return;
   for (const [k, v] of Object.entries(meta)) canvas.dataset[k] = v == null ? '' : String(v);
 }
 
+// ---------------------------------------------------------------- 作品页
+
 /**
- * 字帖 / 这次的图片。
+ * 渲染一页作品（结果页分享图 / 月字帖 / 年报月页）。
  * @param {object} o
- * @param {Array<{char:string, points:Array, tag?:string, record?:{id:string}}>} o.items  图上的格子（已去掉缺墨，P50）
- * @param {'portrait'|'square'} [o.ratio]
- * @param {string} o.signature  单行落款（汉字数字，R-I01 / R-P03）
- * @param {string} o.sealText   印上的字
- * @param {number} [o.maxChars]  policy.imageMaxChars（P25）
+ * @param {Array<{ch:string, ink?:Array|null, mode?:'hand'|'under', dot?:boolean, tag?:string, record?:{id:string}}>} o.cells
+ * @param {'3:4'|'1:1'} [o.ratio]
+ * @param {string} o.kuan        单行落款（汉字日期 + 全角空格 + 汉字字数 [+ 全角空格 + 其一 / 其二]）
+ * @param {string} o.sealText    印上的字
+ * @param {object} [o.palette]   缺省读浅色令牌（palette.js）
+ * @param {number} [o.scale]     逻辑 → 导出倍率，缺省 4/3
  * @param {Function} [o.canvasFactory]  (w, h) => canvas
  * @param {Function} [o.paintStroke]    ui/canvas/brush.js paintBrushStroke
- * @param {Function} [o.requireFont]    async (fontStack, text) => any；页面传 data/font-loader.js requireCanvasFont（M5-2）
- * @param {object} [o.meta]  额外写进 canvas.dataset 的审计字段
- * @returns {Promise<{status:'ready'|'empty'|'pending', canvas:HTMLCanvasElement|null, layout, cells}>}
+ * @param {Function} [o.requireFont]    async (fontStack, text) => any（data/font-loader.js requireCanvasFont）
+ * @param {Function} [o.loadGlyph]      async (ch) => 笔顺数据 | null（data/strokes.js loadStrokes）；under 格要用
+ * @param {object} [o.meta]
+ * @returns {Promise<{status:'ready'|'empty', canvas, layout, cells}>}
  */
-export async function renderSheet({
-  items, ratio = 'portrait', signature, sealText, maxChars, canvasFactory = defaultCanvasFactory,
-  paintStroke = null, requireFont = null, fonts = FONTS, meta = {},
+export async function renderWorkPage({
+  cells, ratio = '3:4', kuan, sealText, palette = null, scale = EXPORT_SCALE, canvasFactory = defaultCanvasFactory,
+  paintStroke = null, requireFont = null, loadGlyph = null, imageFactory = null, fonts = FONTS, meta = {},
 }) {
-  const layout = sheetLayout(items.length, ratio, maxChars == null ? {} : { maxChars });
-  if (layout.status !== 'ready') return { status: layout.status, canvas: null, layout, cells: [] };
-  if (typeof signature !== 'string' || !signature || /\n/.test(signature)) throw new Error('SINGLE_LINE_SIGNATURE_REQUIRED');
+  const L = layout(cells, ratio);
+  if (L.n === 0) return { status: 'empty', canvas: null, layout: L, cells: [] };
+  if (typeof kuan !== 'string' || !kuan || /\n/.test(kuan)) throw new Error('SINGLE_LINE_SIGNATURE_REQUIRED');
+  const pal = palette || readLightPalette();
+  const tags = cells.map(c => c.tag || '').join('');
   if (typeof requireFont === 'function') {
-    await requireFont(fonts.label, signature + items.map(i => i.tag || '').join(''));
+    await requireFont(fonts.song, kuan);
     if (sealText) await requireFont(fonts.kai, sealText);
+    if (tags) await requireFont(fonts.label, tags, { weight: 500 });
   }
-  const { canvas, ctx } = makeCanvas(canvasFactory, layout.width, layout.height);
-  ctx.fillStyle = TOKENS.paper;
-  ctx.fillRect(0, 0, layout.width, layout.height);
-  const { cell, top, columns, rows, margin } = layout;
-  // 格线：外框上 / 左 + 每格右 / 下（原型 imgEl），末行空格也画完整。
+  const glyphs = new Map();
+  if (typeof loadGlyph === 'function') {
+    for (const cell of cells) {
+      if (cell.mode === 'under' && !glyphs.has(cell.ch)) {
+        try {
+          glyphs.set(cell.ch, await loadGlyph(cell.ch));
+        } catch (error) {
+          glyphs.set(cell.ch, null);
+        }
+      }
+    }
+  }
+  const textures = await loadTextures(pal, { imageFactory });
+  const { canvas, ctx } = makeCanvas(canvasFactory, Math.round(L.W * scale), Math.round(L.H * scale));
+  ctx.scale(scale, scale);
+  paintPaper(ctx, L.W, L.H, pal, textures);
+
+  // 格内容与朱点
+  const drawn = [];
+  for (let i = 0; i < cells.length; i += 1) {
+    const cell = cells[i];
+    const box = { x: L.cells[i].x, y: L.cells[i].y, c: L.c };
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(box.x, box.y, box.c, box.c);
+    ctx.clip();
+    const res = paintCellContent(ctx, cell, box, { palette: pal, unit: LOGICAL_PER_PT, paintStroke, glyphs });
+    ctx.restore();
+    if (cell.dot) paintDot(ctx, box, cell, res.bounds, { palette: pal, unit: LOGICAL_PER_PT });
+    drawn.push({ index: i, ch: cell.ch, mode: cell.mode || 'hand', strokes: res.strokes, dot: !!cell.dot, tag: cell.tag || '',
+      recordId: cell.record ? cell.record.id : null, x: box.x, y: box.y });
+  }
+
+  // 格间线：只画存在的格子之间的边（末行不满不画空格）
   ctx.save();
-  ctx.strokeStyle = TOKENS.grid;
-  ctx.lineWidth = LINE;
+  ctx.strokeStyle = pal.guide;
+  ctx.lineWidth = GUIDE_W;
   ctx.beginPath();
-  for (let c = 0; c <= columns; c += 1) {
-    const x = margin + c * cell;
-    ctx.moveTo(x, top);
-    ctx.lineTo(x, top + rows * cell);
-  }
-  for (let r = 0; r <= rows; r += 1) {
-    const y = top + r * cell;
-    ctx.moveTo(margin, y);
-    ctx.lineTo(margin + columns * cell, y);
+  for (let i = 0; i < L.n; i += 1) {
+    const { x, y } = L.cells[i];
+    if ((i + 1) % L.cols !== 0 && i + 1 < L.n) {
+      ctx.moveTo(x + L.c, y);
+      ctx.lineTo(x + L.c, y + L.c);
+    }
+    if (i + L.cols < L.n) {
+      ctx.moveTo(x, y + L.c);
+      ctx.lineTo(x + L.c, y + L.c);
+    }
   }
   ctx.stroke();
   ctx.restore();
-  const cells = [];
-  for (let i = 0; i < items.length; i += 1) {
-    const box = layout.cells[i];
-    const item = items[i];
-    const tagged = !!item.tag;
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(box.x + LINE / 2, box.y + LINE / 2, cell - LINE, cell - LINE);
-    ctx.clip();
-    const strokes = drawInk(ctx, item.points, cellInkTransform(layout, box, tagged, GRID_UNITS), { paintStroke });
-    ctx.restore();
-    if (tagged) {
-      ctx.save();
-      ctx.fillStyle = TOKENS.red;
-      ctx.font = `400 ${layout.dateFont}px ${fonts.label}`;
-      ctx.textBaseline = 'top';
-      ctx.textAlign = 'left';
-      ctx.fillText(item.tag, box.x + layout.dateLeft, box.y + layout.dateTop + (layout.dateLine - layout.dateFont) / 2);
-      ctx.restore();
-    }
-    cells.push({ index: i, char: item.char, tag: item.tag || '', recordId: item.record ? item.record.id : null, strokes, x: box.x, y: box.y });
-  }
-  // 落款 + 印（T06-C：紧跟最后一行下方 40px）
+  // 外框
   ctx.save();
-  ctx.font = `400 ${layout.signature.font}px ${fonts.label}`;
-  const width = drawTracked(ctx, signature, layout.signature.x, layout.signature.baseline, {
-    font: fonts.label, size: layout.signature.font, tracking: layout.signature.tracking, color: TOKENS.muted,
-  });
+  ctx.strokeStyle = pal.frame;
+  ctx.lineWidth = FRAME_W;
+  for (const r of L.frame) ctx.strokeRect(r.x, r.y, r.w, r.h);
   ctx.restore();
-  if (width > layout.signature.maxWidth) throw new Error('SIGNATURE_TOO_LONG');
-  drawSeal(ctx, layout.seal, { text: sealText, font: fonts.kai });
+
+  // 日期角标：骑在格上边线上，sheet 衬底断开格线
+  if (tags) {
+    ctx.save();
+    ctx.font = `500 ${TAG_SIZE}px ${fonts.label}`;
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'left';
+    for (let i = 0; i < cells.length; i += 1) {
+      const tag = cells[i].tag;
+      if (!tag) continue;
+      const { x, y } = L.cells[i];
+      const w = ctx.measureText(tag).width;
+      ctx.fillStyle = pal.sheet;
+      ctx.fillRect(x + TAG_LEFT - TAG_PAD_X, y + TAG_TOP, w + 2 * TAG_PAD_X, TAG_SIZE);
+      ctx.fillStyle = pal.ink3;
+      ctx.fillText(tag, x + TAG_LEFT, y + TAG_TOP + TAG_SIZE / 2);
+    }
+    ctx.restore();
+  }
+
+  const kuanWidth = drawKuan(ctx, kuan, L.kuan, { palette: pal, fonts });
+  drawSeal(ctx, L.seal, { text: sealText, palette: pal, font: fonts.kai });
   setDataset(canvas, {
     ratio,
-    width: layout.width,
-    height: layout.height,
-    columns,
-    rows,
-    n: items.length,
-    members: items.map(i => i.char).join(''),
-    recordIds: cells.map(c => c.recordId || '').join(','),
-    tags: items.map(i => i.tag || '').join('|'),
-    signature,
-    top: layout.top,
-    footerTop: layout.footerTop,
+    width: canvas.width,
+    height: canvas.height,
+    logicalWidth: L.W,
+    logicalHeight: L.H,
+    columns: L.cols,
+    rows: L.rows,
+    cell: L.c,
+    n: L.n,
+    members: cells.map(c => c.ch).join(''),
+    modes: cells.map(c => (c.mode === 'under' ? 'u' : 'h')).join(''),
+    dots: cells.map(c => (c.dot ? '1' : '0')).join(''),
+    recordIds: drawn.map(c => c.recordId || '').join(','),
+    tags: cells.map(c => c.tag || '').join('|'),
+    signature: kuan,
+    top: L.top,
     ...meta,
   });
-  return { status: 'ready', canvas, layout, cells, signatureWidth: width };
+  return { status: 'ready', canvas, layout: L, cells: drawn, signatureWidth: kuanWidth };
 }
+
+/** 导出：canvas → JPEG dataURL（质量 0.92，sRGB，§6.5）。 */
+export function exportDataURL(canvas, { quality = JPEG_QUALITY, type = 'image/jpeg' } = {}) {
+  return canvas.toDataURL(type, quality);
+}
+
+// ---------------------------------------------------------------- 单字手写图片（A05）
 
 /**
  * 单字手写图片（A05）：最近一次没有笔迹 → status 'noInk'，不生成。
- * @param {{points:Array, caption:string, signatureText:string, sealText:string, ratio?, canvasFactory?, paintStroke?, requireFont?, meta?}} o
+ * @param {{points:Array, caption:string, signatureText:string, sealText:string, ratio?, palette?, canvasFactory?, paintStroke?, requireFont?, meta?}} o
  */
 export async function renderSingleGlyph({
-  points, caption, signatureText, sealText, ratio = 'portrait', canvasFactory = defaultCanvasFactory,
-  paintStroke = null, requireFont = null, fonts = FONTS, meta = {},
+  points, caption, signatureText, sealText, ratio = 'portrait', palette = null, canvasFactory = defaultCanvasFactory,
+  paintStroke = null, requireFont = null, imageFactory = null, fonts = FONTS, meta = {},
 }) {
-  const layout = glyphLayout(inkBounds(points), ratio);
-  if (layout.status !== 'ready') return { status: layout.status, canvas: null, layout };
+  const layoutBox = glyphLayout(inkBounds(points), ratio);
+  if (layoutBox.status !== 'ready') return { status: layoutBox.status, canvas: null, layout: layoutBox };
   if (typeof requireFont === 'function') {
     await requireFont(fonts.label, `${caption || ''}${signatureText || ''}`);
     if (sealText) await requireFont(fonts.kai, sealText);
   }
-  const { canvas, ctx } = makeCanvas(canvasFactory, layout.width, layout.height);
-  ctx.fillStyle = TOKENS.paper;
-  ctx.fillRect(0, 0, layout.width, layout.height);
-  const strokes = drawInk(ctx, points, layout, { paintStroke });
+  const pal = palette || readLightPalette();
+  const textures = await loadTextures(pal, { imageFactory });
+  const { canvas, ctx } = makeCanvas(canvasFactory, layoutBox.width, layoutBox.height);
+  paintPaper(ctx, layoutBox.width, layoutBox.height, pal, textures);
+  ctx.save();
+  ctx.translate(layoutBox.ox, layoutBox.oy);
+  ctx.scale(layoutBox.k, layoutBox.k);
+  let strokes = 0;
+  const paint = typeof paintStroke === 'function' ? paintStroke : simpleStroke;
+  for (const stroke of points || []) {
+    if (!Array.isArray(stroke) || !stroke.length) continue;
+    if (paint(ctx, stroke, { color: pal.hand, base: 11.5, detail: false }) !== false) strokes += 1;
+  }
+  ctx.restore();
   if (caption) {
     ctx.save();
-    ctx.fillStyle = TOKENS.muted;
-    ctx.font = `400 ${layout.info.font}px ${fonts.label}`;
+    ctx.fillStyle = pal.ink2;
+    ctx.font = `400 ${layoutBox.info.font}px ${fonts.label}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(caption, layout.info.centerX, layout.info.top + layout.info.line / 2);
+    ctx.fillText(caption, layoutBox.info.centerX, layoutBox.info.top + layoutBox.info.line / 2);
     ctx.restore();
   }
   if (signatureText) {
-    drawTracked(ctx, signatureText, layout.signature.right, layout.signature.baseline, {
-      font: fonts.label, size: layout.signature.font, tracking: layout.signature.tracking, color: TOKENS.muted, align: 'right',
+    drawTracked(ctx, signatureText, layoutBox.signature.right, layoutBox.signature.baseline, {
+      font: fonts.label, size: layoutBox.signature.font, tracking: layoutBox.signature.tracking, color: pal.ink2, align: 'right',
     });
   }
-  drawSeal(ctx, layout.seal, { text: sealText, font: fonts.kai });
+  drawSeal(ctx, layoutBox.seal, { text: sealText, palette: pal, font: fonts.kai });
   setDataset(canvas, {
     ratio,
-    width: layout.width,
-    height: layout.height,
+    width: layoutBox.width,
+    height: layoutBox.height,
     n: 1,
     strokes,
     caption: caption || '',
     signature: signatureText || '',
-    glyphWidth: Math.round(layout.glyph.width),
-    glyphHeight: Math.round(layout.glyph.height),
+    glyphWidth: Math.round(layoutBox.glyph.width),
+    glyphHeight: Math.round(layoutBox.glyph.height),
     ...meta,
   });
-  return { status: 'ready', canvas, layout, strokes };
+  return { status: 'ready', canvas, layout: layoutBox, strokes };
 }
+

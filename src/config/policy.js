@@ -51,12 +51,11 @@ export const replaceConfirmShowsLostRange = true;
 // ---- 图片 ----
 // P02 月字帖取墨：本月第一次（M02）；显示与导出一致
 export const monthSheetPick = 'first';
-// P50 缺墨字：按第十稿 10.12 不画进图并说明（不用 D11 的浅参考）
+// P50 缺墨字（已决定 D31 / D46 ⑩，阶段 1 P1-E7）：作品 / 这天的图片里无墨的字不收（不画进图、不能「放进去」）；月字帖与年报里整段没留墨的字
+// 画 under 衬底（仍占一格、仍计字数）。键保留是为了让「无墨即不收」有一个出处。
 export const imageMissingInk = 'omit';
-// P25 一张图片的字数上限（D12 契约）
+// P25 一张图片的字数上限（D39：超过按日期分成多张，每张 ≤ 此数、不截字；core/images/paginate.js）
 export const imageMaxChars = 80;
-// P25 超上限：返回 pending + 待文案说明，不截字
-export const imageOverflow = 'pending';
 
 // ---- 调度与选字 ----
 // P03 第二次起每组字数

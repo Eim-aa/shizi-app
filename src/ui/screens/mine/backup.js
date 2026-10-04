@@ -6,8 +6,9 @@
 //
 // 状态机（T07）：
 //   顶部状态块 = 「上次备份」+ 日期（还没有备份 / {date}；替换、撤销不改这个日期，K02）+ 状态句（core/backup.js backupStatus：
-//     没有记录 →「现在没有记录。」（撤销底栏还在时的清空后「记录已清空。现在没有记录。」）；撤销底栏还在时有结论 → 只写结论（X03）；
-//     离开再进来（撤销已失效）一律按现在的记录与上次导出时间重算，不再留结论句、也不再提撤销（Q2-8，03 P183）；从没备份 → 不写（N27）；
+//     有结论（替换 / 清空之后，撤销底栏还在时是现场结论，离开再进来撤销已失效、留下 backupMeta.lastConclusion，直到下次导出）→ 只写结论句（X03，D24）：
+//       清空后「记录已清空。现在没有记录。」、替换后「已换成 {date}备份里的记录，一共 {n} 个字。」——重进时保留，只是不再有已失效的「离开这一页前可以撤销」（03 P183，E9c 改回）；
+//     没有结论句时：没有记录 →「现在没有记录。」；从没备份 → 不写（N27）；
 //     签名一致 →「现在的记录都已经备份了。」否则「上次备份以后记录有改动，还没有备份。」）。
 //   没有记录：导出按钮与「清空所有记录」都灰（disabled + aria-disabled，V07 / Y06），不催导出。
 // 导出备份文件：点击处理里同步打包（core/backup.js buildBackupV2）→ platform/share.js 三级（原生 shareBackup → Web Share → 下载）；
@@ -493,8 +494,9 @@ function BackupScreen({ entry }) {
   }, [entryId]);
 
   const live = undo && !undo.done ? conclusionOfSafety(safetyOf(state), state) : null;
-  // Q2-8（03 P183）：结论句只在撤销底栏还在时说（live）；离开再进来按现在的记录与上次导出时间重算，不读 backupMeta.lastConclusion。
-  const status = backupStatus(state, { conclusion: live, stored: false });
+  // D24 / 03 P183：撤销底栏还在时用现场结论（live）；离开再进来留下 backupMeta.lastConclusion（结论句保留到下次导出）；没有结论句才按现在的记录与上次导出时间算。
+  // 已失效的「离开这一页前可以撤销」不再出现：没有记录时「从备份文件恢复」下面不放它（Q2-8 留下的这一半保留）。
+  const status = backupStatus(state, { conclusion: live });
   const undoOn = !!undo && !undo.done;
   const has = status.hasRecords;
   const lines = status.lines.map(lineText);

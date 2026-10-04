@@ -574,7 +574,7 @@ export default async function run(page, { baseURL, assert, step }) {
   await settle(page);
 
   // ------------------------------------------------------------ 10
-  step('leaving the page ends the undo: safety dropped; coming back recomputes the status sentence (Q2-8)');
+  step('leaving the page ends the undo: safety dropped, the conclusion sentence stays (D24; E9c puts back what Q2-8 had recomputed)');
   await pickFile(page, { name: fileA.name, text: fileA.text });
   await waitConfirm(page);
   await confirmOk(page);
@@ -587,10 +587,10 @@ export default async function run(page, { baseURL, assert, step }) {
   await openBackup(page);
   v = await view(page);
   assert.equal(v.undo, null, 'no undo bar after coming back');
-  // Q2-8（P183，复测 simA S3；D24「状态句只按现在的记录和上次导出时间算」）：离开再进来，撤销早已失效，状态句按现在的记录与上次导出时间重算，
-  // 不再留着「已换成…备份里的记录」；旧断言（T.conclusion 留结论句）改成重算结果：恢复后的记录与上次导出的签名不同 → 「上次备份以后记录有改动」。
-  assert.equal(v.line, T.changed, 'recomputed from the current records and the last export time (Q2-8)');
-  assert.equal(v.restoreSub, T.restoreSubHas, 'with records the sub still describes a future restore');
+  // E9c（D24 修正 Q2-8，03 P183）：Q2-8 曾让重进时一律按现在的记录与上次导出时间重算（这里改成过 T.changed），与 D24「撤销失效后留结论句」冲突。
+  // 改回：离开再进来，撤销早已失效，状态句仍是结论句（backupMeta.lastConclusion，保留到下次导出），只是不再有已失效的「离开这一页前可以撤销」。
+  assert.equal(v.line, T.conclusion, 'the conclusion sentence is kept after leaving and coming back (D24)');
+  assert.equal(v.restoreSub, T.restoreSubHas, 'with records the sub still describes the next restore (not the expired undo)');
   assert.equal(v.intro, T.intro, 'intro shown again');
 
   // ------------------------------------------------------------ 11
@@ -659,7 +659,7 @@ export default async function run(page, { baseURL, assert, step }) {
   await settle(page);
 
   // ------------------------------------------------------------ 11a（Q2-8）
-  step('Q2-8: clear → leave → come back: 「现在没有记录。」, no 「记录已清空」, no 「离开这一页前可以撤销」 anywhere');
+  step('D24 / E9c: clear → leave → come back: the conclusion 「记录已清空。现在没有记录。」 stays, but no expired 「离开这一页前可以撤销」 anywhere');
   await seed(page, S0);
   await waitNavIdle(page);
   await page.click(topSel('backup-clear'));
@@ -674,10 +674,11 @@ export default async function run(page, { baseURL, assert, step }) {
   await openBackup(page);
   v = await view(page);
   assert.equal(v.undo, null, 'no undo bar after coming back');
-  assert.equal(v.line, T.noRecords, 'recomputed: only 「现在没有记录。」');
-  assert.equal(v.restoreSub, null, 'no restore sub without records');
+  assert.equal(v.line, T.clearConclusion, 'the clear conclusion is kept (D24), not recomputed to 「现在没有记录。」');
+  assert.equal(v.restoreSub, null, 'no restore sub without records (the lone 「离开这一页前可以撤销」 stays gone, Q2-8)');
   const stale = await page.evaluate(() => document.querySelector('.sz-layer[data-top="true"] [data-testid="backup-screen"]').textContent);
-  assert.ok(!/记录已清空|离开这一页前可以撤销/.test(stale), 'nothing on the page mentions the expired undo: ' + stale);
+  assert.ok(!/离开这一页前可以撤销/.test(stale), 'nothing on the page mentions the expired undo: ' + stale);
+  assert.ok(stale.includes('记录已清空。现在没有记录。'), 'the conclusion sentence is on the page');
   await seed(page, S0);
   await waitNavIdle(page);
 

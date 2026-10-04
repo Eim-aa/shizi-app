@@ -195,10 +195,12 @@ test('backupStatus：T07 状态机（无记录 / 从没备份 / 一致 / 有改�
   assert.deepEqual(keys(cleared), ['R-B01.conclusionClear']);
   // 撤销底栏在时的结论覆盖 backupMeta 里的
   assert.deepEqual(backupStatus(s, { conclusion: { kind: 'restore', date: '2026-08-01', count: 2 } }).lines[0].vars, { day: '2026-08-01', n: 2 });
-  // Q2-8（03 P183）：备份页重进时 stored:false——不读 backupMeta.lastConclusion，按现在的记录与上次导出时间重算
-  assert.deepEqual(backupStatus(restored, { stored: false }).lines.map(l => l.key), ['R-B02.allBackedUp'], '有记录且签名一致 → 现在的记录都已经备份了，不留「已换成…」');
-  assert.deepEqual(backupStatus(cleared, { stored: false }).lines.map(l => l.key), ['R-B02.noRecords'], '清空结论不再留着：只说现在没有记录');
-  assert.equal(backupStatus(restored, { stored: false, conclusion: { kind: 'restore', date: '2026-08-01', count: 2 } }).lines[0].key, 'R-B01.conclusionRestore', '撤销底栏还在时的现场结论照常');
+  // E9c（D24 修正 Q2-8，03 P183）：备份页重进（撤销已失效、没有现场结论）时保留 backupMeta.lastConclusion 的结论句，直到下次导出清掉；
+  // 没有结论句时才按现在的记录与上次导出时间算
+  assert.deepEqual(backupStatus(restored).lines.map(l => l.key), ['R-B01.conclusionRestore'], '重进：替换的结论句保留（不被「现在的记录都已经备份了」顶掉）');
+  assert.deepEqual(backupStatus(cleared).lines.map(l => l.key), ['R-B01.conclusionClear'], '重进：清空的结论句保留');
+  assert.deepEqual(backupStatus({ ...restored, backupMeta: { ...restored.backupMeta, lastConclusion: null } }).lines.map(l => l.key), ['R-B02.allBackedUp'], '没有结论句才按记录与上次导出时间算');
+  assert.deepEqual(backupStatus({ records: {}, backupMeta: { lastExportAt: null, lastExportSig: null, lastConclusion: null } }).lines.map(l => l.key), ['R-B02.noRecords'], '没有结论句也没有记录 → 现在没有记录');
   // 清空结论之后又写了字：不再说「记录已清空」，回到一般规则
   assert.deepEqual(keys({ ...s, backupMeta: cleared.backupMeta }), []);
 });

@@ -363,15 +363,15 @@ export function confirmModel(state, report, { showLoss = true } = {}) {
  * @param {object} state
  * @param {{conclusion?: {kind, date, count}|null}} [opts]  撤销底栏在时的结论（覆盖 backupMeta 里的）
  */
-export function backupStatus(state, { conclusion: live = null, stored = true } = {}) {
+export function backupStatus(state, { conclusion: live = null } = {}) {
   const meta = state && isPlainObject(state.backupMeta) ? state.backupMeta : {};
   const count = judgedCharsOf(state && state.records).size;
   const hasRecords = count > 0;
   const exportedAt = Number.isFinite(meta.lastExportAt) ? meta.lastExportAt : null;
   const date = exportedAt === null ? { kind: 'never' } : { kind: 'day', day: localDay(exportedAt) };
-  // stored = false（备份页用，Q2-8 / 03 P183）：只认撤销底栏还在时的现场结论（live），不读 backupMeta.lastConclusion——
-  // 离开再进来撤销早已失效，状态句只按现在的记录和上次导出时间算（D24）。
-  const conclusion = live || (stored && isPlainObject(meta.lastConclusion) ? meta.lastConclusion : null);
+  // 结论句（D24）：撤销底栏还在时用现场结论（live），失效后（离开这一页再进来）留下 backupMeta.lastConclusion，直到下次导出清掉；
+  // 没有结论句时才按现在的记录和上次导出时间算。（Q2-8 曾让重进时一律重算，与 D24「撤销失效后留结论句」冲突，E9c 改回，03 P183。）
+  const conclusion = live || (isPlainObject(meta.lastConclusion) ? meta.lastConclusion : null);
   const lines = [];
   if (!hasRecords) {
     if (conclusion && conclusion.kind === 'clear') lines.push({ key: 'R-B01.conclusionClear' });

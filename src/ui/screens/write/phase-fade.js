@@ -3,7 +3,7 @@
 // 同一页里换状态——回忆 → 判断 → 接着写 → 看答案 → 描一遍 → 自己写 → 判断后换下一字——旧状态不再「一帧硬切」：
 //   1. 渲染期（DOM 还是旧状态）给整页（页头 + 正文 + 底栏）拍一张快照：cloneNode(true) 加上每张 canvas 的像素（笔迹、提示层、描红层）；
 //   2. 新状态提交后（useLayoutEffect，绘制之前）把快照作为 .sz-phasefade 盖在页上：不透明度 1 → 0，150ms 线性，只淡化（没有位移 / 缩放），
-//      新状态在它下面；快照 aria-hidden、inert、不可点、不带 data-testid / id（不和真页面重名）；动画结束后移除，终态与没有过渡时逐像素相同；
+//      新状态在它下面；快照 aria-hidden、不可点、里面的按钮 / 链接 / 输入全部 tabindex=-1（不进键盘焦点；不用 inert，iOS 15.5 才认）、不带 data-testid / id（不和真页面重名）；动画结束后移除，终态与没有过渡时逐像素相同；
 //   3. 减少动态效果（prefers-reduced-motion）：直接切换，不拍快照。
 // 墨迹与笔画现场不受影响：快照只是一张盖在上面的图，真页面的状态机、写回、落笔接受都照常。
 //
@@ -15,6 +15,7 @@ import { injectStyles, T } from '../../components/styles.js';
 /** 交叉淡化时长（ms；P227，取实现交接 §0.4）。 */
 export const FADE_MS = 150;
 export const SNAPSHOT_TESTID = 'write-phase-snapshot';
+const FOCUSABLE_TAGS = Object.freeze(['button', 'a', 'input', 'select', 'textarea']);
 
 injectStyles('write-fade', `
 @keyframes szPhaseOut{from{opacity:1}to{opacity:0}}
@@ -62,10 +63,13 @@ export function makeSnapshot(page, doc = page && page.ownerDocument) {
   for (const el of [clone, ...clone.querySelectorAll('*')]) {
     for (const name of ['data-testid', 'id', 'data-page-title', 'tabindex', 'autofocus']) el.removeAttribute(name);
   }
+  for (const el of clone.querySelectorAll('*')) {
+    const tag = String(el.tagName || '').toLowerCase();
+    if (FOCUSABLE_TAGS.includes(tag)) el.setAttribute('tabindex', '-1'); // 快照里的控件不进键盘焦点
+  }
   const wrap = doc.createElement('div');
   wrap.className = 'sz-phasefade';
   wrap.setAttribute('aria-hidden', 'true');
-  wrap.setAttribute('inert', '');
   wrap.setAttribute('data-testid', SNAPSHOT_TESTID);
   wrap.appendChild(clone);
   return wrap;

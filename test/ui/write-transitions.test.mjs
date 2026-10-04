@@ -24,6 +24,7 @@ class El {
     this.drawn = [];
   }
 
+  get tagName() { return this.tag.toUpperCase(); }
   setAttribute(k, v) { this.attrs[k] = String(v); }
   removeAttribute(k) { delete this.attrs[k]; }
   getAttribute(k) { return k in this.attrs ? this.attrs[k] : null; }
@@ -58,6 +59,8 @@ function samplePage() {
   const h1 = page.appendChild(new El('h1'));
   h1.setAttribute('data-page-title', '');
   h1.setAttribute('tabindex', '-1');
+  const btn = page.appendChild(new El('button'));
+  btn.setAttribute('data-testid', 'write-done');
   const grid = page.appendChild(new El('div'));
   grid.setAttribute('data-testid', 'write-grid');
   grid.setAttribute('id', 'x');
@@ -79,18 +82,20 @@ test('P227: the cross-fade is 150ms, linear, opacity only (no transform) — rea
   assert.match(css, /prefers-reduced-motion: reduce\)\{\.sz-phasefade\{display:none\}/);
 });
 
-test('makeSnapshot: wraps a clone of the page (aria-hidden, inert, own testid), copies every canvas, strips testids / ids / title marks from the clone', () => {
+test('makeSnapshot: wraps a clone of the page (aria-hidden, own testid), copies every canvas, strips testids / ids / title marks, takes buttons out of the tab order', () => {
   const { page, canvas } = samplePage();
   const wrap = makeSnapshot(page, doc);
   assert.equal(wrap.className, 'sz-phasefade');
   assert.equal(wrap.getAttribute('aria-hidden'), 'true');
-  assert.equal(wrap.getAttribute('inert'), '');
+  assert.equal(wrap.getAttribute('inert'), null, 'no inert attribute: iOS 15.5+ only (API floor gate)');
   assert.equal(wrap.getAttribute('data-testid'), SNAPSHOT_TESTID);
   const clone = wrap.children[0];
   assert.notEqual(clone, page);
-  const stripped = [clone, ...clone.all()].every(e => !('data-testid' in e.attrs) && !('id' in e.attrs) && !('data-page-title' in e.attrs) && !('tabindex' in e.attrs));
+  const stripped = [clone, ...clone.all()].every(e => !('data-testid' in e.attrs) && !('id' in e.attrs) && !('data-page-title' in e.attrs) && (e.tag === 'button' || !('tabindex' in e.attrs)));
   assert.ok(stripped, 'the snapshot never duplicates a testid / id / page title of the live page');
   assert.equal(page.getAttribute('data-testid'), 'write-screen', 'the live page keeps its own');
+  assert.equal(clone.all().find(e => e.tag === 'button').getAttribute('tabindex'), '-1', 'buttons in the snapshot are out of the tab order');
+  assert.equal(page.children.find(e => e.tag === 'button').getAttribute('tabindex'), null, 'the live buttons are untouched');
   const [copy] = clone.querySelectorAll('canvas');
   assert.deepEqual(copy.drawn, [canvas], 'the ink / hint canvases are copied pixel by pixel');
   assert.equal(copy.width, 690, 'same canvas size');

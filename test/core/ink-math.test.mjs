@@ -415,6 +415,41 @@ function twoCopies(chars) {
   return { bytes: inkBytes(table), avgStrokes: strokes / chars.length };
 }
 
+/**
+ * Q1（03 P176）：两份判断墨迹之外，每字至多再留一份看后自写的墨迹（新于最近一次判断的、最新的那次看过答案；store/budget.js
+ * pruneInkOfCards）。share = 有看后自写的字所占比例（1 = 上限：300 字每字都有）。
+ */
+function withAfterSeen(chars, share) {
+  const base = twoCopies(chars);
+  const table = {};
+  const n = Math.round(chars.length * share);
+  chars.slice(0, n).forEach((ch, i) => {
+    const month = `2026-${String(7 + (i % 4)).padStart(2, '0')}`;
+    (table[month] = table[month] || {})[`r${20000 + i}`] = encodeInk(writeChar(ch).map(st => st.map(p => ({ ...p, y: p.y + 1.1 }))));
+  });
+  return { bytes: base.bytes + inkBytes(table), extra: inkBytes(table) };
+}
+
+test('ink-math (Q1 / P176): after-seen ink on top of D27 two copies — measured against the 1.2MiB target and the P05 budget', () => {
+  const all = deckChars();
+  const common = all.slice(0, 300).map(c => c.ch);
+  const heavy = all.filter(c => c.strokes >= 12).slice(0, 300).map(c => c.ch);
+  const MiB = 1024 * 1024;
+  const cMax = withAfterSeen(common, 1);
+  const hMax = withAfterSeen(heavy, 1);
+  const cTyp = withAfterSeen(common, 0.2);
+  const hTyp = withAfterSeen(heavy, 0.2);
+  console.log(`# Q1 after-seen ink: common 300 × 3 (upper bound) = ${(cMax.bytes / MiB).toFixed(3)} MiB (+${(cMax.extra / MiB).toFixed(3)}); ` +
+    `≥12-stroke 300 × 3 = ${(hMax.bytes / MiB).toFixed(3)} MiB (+${(hMax.extra / MiB).toFixed(3)}); ` +
+    `20% of chars with after-seen: common ${(cTyp.bytes / MiB).toFixed(3)} MiB, ≥12-stroke ${(hTyp.bytes / MiB).toFixed(3)} MiB`);
+  // 常用 300 字：即使每字都有一份看后自写，仍在 1.2MiB 目标内
+  assert.ok(cMax.bytes <= 1.2 * MiB, `common 300 × 3 = ${cMax.bytes} B ≤ 1.2MiB`);
+  // 偏难的上限（12 画以上、每字都有）超过 1.2MiB 目标但仍在 P05 预算内：常规提交不回收；超预算时先回收判断其余层，再回收看后自写（4 → 5）
+  assert.ok(hMax.bytes <= policy.inkBudgetBytes, `≥12-stroke 300 × 3 = ${hMax.bytes} B ≤ P05 inkBudgetBytes`);
+  // 实际的比例（看过答案且自己写了、之后还没再判断的字）远低于全部：20% 时两组都在 1.2MiB 内
+  assert.ok(cTyp.bytes <= 1.2 * MiB && hTyp.bytes <= 1.2 * MiB, '20% share stays within 1.2MiB');
+});
+
 test('ink-math (P121): simplifyStroke keeps corners, width changes and pauses; straight steady strokes need few points; cap holds', () => {
   const straight = buildStroke(line({ len: 240, v: 0.4 }), { final: true });
   const s1 = simplifyStroke(straight);

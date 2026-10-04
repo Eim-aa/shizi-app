@@ -39,6 +39,10 @@ export const inkStoreTolerance = Object.freeze({
   w: 0.3, // P121 笔宽容差（345 单位；本体宽 11.5）
   t: 24, // P121 时间容差（ms；回放速度 / 停顿洇墨只需大致时间，v3 dt 量化档 16–32ms）
 });
+// P176 看后自写墨迹的保留天数（Q1，QA simB D1）：看过答案后「自己写一遍」的本人墨存在那条看过答案记录上（D31「看后写的」进作品）。
+// 所在的组还开着（结果页 / 这次的图片可用）时永不回收；之后保留到下次同字有判断（写入那次判断时回收），或超过这些天后
+// 在预算回收里先于未过期的被回收（两者都排在判断墨迹的其余层之后；store/budget.js indexRecords / inkTier / pruneInkOfCards）。
+export const afterSeenInkKeepDays = 30;
 
 // ---- 备份与保护副本 ----
 // P32 保护副本寿命：跟随备份页生命周期

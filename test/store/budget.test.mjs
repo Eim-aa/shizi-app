@@ -207,3 +207,89 @@ test('D27 retention: folding an old month keeps the first-ever judgment too (wit
   assert.ok(ink.r1, 'its ink survives the fold');
   assert.ok(!ink.r2 && !ink.r3, 'middle ink of the folded month dropped');
 });
+
+// ---------------------------------------------------------------- Q1 看后自写的墨迹（QA simB D1；01 §3.5 / §9；03 P176）
+// 看过答案后「自己写一遍」的本人墨存在那条 answer-seen 记录上。它不是判断，不占 D27 的「第一次 / 最近一次」；
+// 所在的组还开着（槽里或 lastEnded：结果页与「这次的图片」可用）时永不回收；之后保留到下次同字有判断（写入那次判断时回收）
+// 或超过 policy.afterSeenInkKeepDays 天后在预算回收里先于未过期的被回收；两者都排在判断墨迹的其余层之后。
+
+const DAY = 86400000;
+
+// 「人」：r1 首（7 月）r2 中（7 月）r3 最近（10-01）；r4 看过答案并自己写（10-02，s4，组已关，新于最近一次判断，1 天前）
+// 「口」：r6 写对（8 月）；r8 看过答案并自己写（10-02，s8，组还开着：lastEnded.A）
+// 「大」：r9 看过答案并自己写（2026-07-01，93 天前，s9，组已关，从没判断过）
+// 「中」：r10 看过答案并自己写（10-01，s10，组已关）→ r11 写对（10-02）：看后写的已有更晚的判断
+function afterSeenFixture() {
+  const records = {
+    '2026-07': [record(1, '人', { day: '2026-07-01' }), record(2, '人', { day: '2026-07-02' }),
+      record(9, '大', { day: '2026-07-01', kind: 'answer-seen', session: 9, at: NOW - 93 * DAY })],
+    '2026-08': [record(6, '口', { day: '2026-08-01' })],
+    '2026-10': [record(3, '人', { day: '2026-10-01' }),
+      record(4, '人', { day: '2026-10-02', kind: 'answer-seen', session: 4, at: NOW - DAY }),
+      record(8, '口', { day: '2026-10-02', kind: 'answer-seen', session: 8, at: NOW - DAY }),
+      record(10, '中', { day: '2026-10-01', kind: 'answer-seen', session: 10, at: NOW - DAY }),
+      record(11, '中', { day: '2026-10-02', session: 11, at: NOW - DAY / 2 })],
+  };
+  const monthOf = { r1: '2026-07', r2: '2026-07', r9: '2026-07', r6: '2026-08', r3: '2026-10', r4: '2026-10', r8: '2026-10', r10: '2026-10', r11: '2026-10' };
+  const ink = {};
+  for (const id of Object.keys(monthOf)) (ink[monthOf[id]] = ink[monthOf[id]] || {})[id] = inkEntry(20, 4);
+  const sessions = { A: null, B: null, lastEnded: { A: { id: 's8', items: [] } } };
+  return { records, ink, sessions };
+}
+
+test('Q1 tiers: after-seen ink is never recycled while its group is open; otherwise it ranks after every judged tier (expired 4, fresh 5)', () => {
+  const { records, sessions } = afterSeenFixture();
+  const index = indexRecords(records, { sessions, now: NOW, keepDays: 30 });
+  assert.equal(inkTier('r8', index, '2026-10'), Infinity, 'open group (lastEnded.A): its result page / 这次的图片 still draw it');
+  assert.equal(inkTier('r4', index, '2026-10'), 5, 'newer than the latest judgment of 人, 1 day old → kept as long as possible');
+  assert.equal(inkTier('r9', index, '2026-10'), 4, 'older than keepDays (93 > 30) → expired');
+  assert.equal(inkTier('r10', index, '2026-10'), 4, 'a later judgment of 中 exists → expired');
+  assert.equal(inkTier('r2', index, '2026-10'), 3, 'judged tiers unchanged (r2 = last of 人 in July)');
+  assert.equal(inkTier('r1', index, '2026-10'), Infinity, 'D27 first judged unchanged');
+  assert.equal(inkTier('r11', index, '2026-10'), Infinity, 'D27 latest judged unchanged (the after-seen r10 is not a judgment)');
+  // keepDays 来自 policy（P176）
+  assert.equal(typeof policy.afterSeenInkKeepDays, 'number');
+  const byPolicy = indexRecords(records, { sessions, now: NOW });
+  assert.equal(inkTier('r9', byPolicy, '2026-10'), 93 > policy.afterSeenInkKeepDays ? 4 : 5);
+});
+
+test('Q1 recover: judged middle ink goes first, then expired after-seen, then fresh after-seen; open-group after-seen and D27 first / latest never', () => {
+  const draft = afterSeenFixture();
+  const { actions } = recover(draft, { now: NOW, force: true, needBytes: 10 * MiB, limit: { inkMonths: ['2026-07', '2026-08', '2026-10'], months: [] } });
+  const order = actions.filter(a => a.type === 'evictInk').map(a => [a.id, a.tier]);
+  assert.deepEqual(order, [['r2', 3], ['r9', 4], ['r10', 4], ['r4', 5]], 'judged rest → expired after-seen (oldest first) → fresh after-seen');
+  assert.deepEqual(Object.keys(flatInk(draft.ink)).sort(), ['r1', 'r11', 'r3', 'r6', 'r8'], 'survivors: D27 first / latest + the open group\'s after-seen');
+});
+
+test('Q1 pruneInkOfCards: keeps after-seen ink newer than the latest judgment (only the latest one per card); drops it once a judgment follows, unless its group is open', () => {
+  const { pruneInkOfCards } = budgetModule;
+  const draft = afterSeenFixture();
+  const dropped = pruneInkOfCards(draft, ['base:人', 'base:口', 'base:中', 'base:大']).map(d => d.id).sort();
+  assert.deepEqual(dropped, ['r10', 'r2'], '人 middle judged r2 and 中 after-seen r10 (judged r11 came after) go');
+  const ink = flatInk(draft.ink);
+  assert.ok(ink.r4, '人 after-seen newer than its latest judgment stays (保留到下次同字有判断)');
+  assert.ok(ink.r8, '口 after-seen of the open group stays');
+  assert.ok(ink.r9, '大 never judged: its after-seen stays (age only matters to budget recovery)');
+  // 两份看后写的（都在已关的组）：只留新的那份
+  const two = {
+    records: { '2026-10': [record(20, '永', { day: '2026-10-01', kind: 'answer-seen', session: 20 }), record(21, '永', { day: '2026-10-02', kind: 'answer-seen', session: 21 })] },
+    ink: { '2026-10': { r20: inkEntry(8, 2), r21: inkEntry(8, 2) } },
+    sessions: { A: null, B: null, lastEnded: {} },
+  };
+  assert.deepEqual(pruneInkOfCards(two, ['base:永']).map(d => d.id), ['r20']);
+  // 旧那份的组还开着：两份都留
+  const open = { ...two, ink: { '2026-10': { r20: inkEntry(8, 2), r21: inkEntry(8, 2) } }, sessions: { A: null, B: null, lastEnded: { B: { id: 's20', items: [] } } } };
+  assert.deepEqual(pruneInkOfCards(open, ['base:永']), []);
+});
+
+test('Q1 fold: an old month keeps after-seen records of an open group (with ink); other after-seen records fold away with their ink', () => {
+  const draft = afterSeenFixture();
+  draft.sessions = { A: null, B: null, lastEnded: { A: { id: 's9', items: [] } } };
+  recover(draft, { now: NOW, budgets: { recordsBudgetBytes: 10 } });
+  assert.deepEqual(draft.records['2026-07'].kept.map(r => r.id), ['r1', 'r9'], '大 r9 is in the open group → kept with its ink');
+  assert.ok(flatInk(draft.ink).r9);
+  const closed = afterSeenFixture();
+  recover(closed, { now: NOW, budgets: { recordsBudgetBytes: 10 } });
+  assert.deepEqual(closed.records['2026-07'].kept.map(r => r.id), ['r1']);
+  assert.ok(!flatInk(closed.ink).r9, 'folded-away after-seen ink dropped');
+});

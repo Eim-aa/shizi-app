@@ -13,6 +13,10 @@
 //                 孤儿墨迹 → 其他月份的其余 → 本月其余 → 每月每字首/末条（P02）；「每字第一次」与「每字最近一次」永不回收
 //                 （D27 覆盖 01 §9 原「每字第一条可淘汰」）。同一层内先淘汰最旧（id 序号小）。
 //            第一次判断在开启前就没有墨迹（历史数据）时如实为无，不拿别次墨迹顶替（I03）。
+//            看后自写（Q1，QA simB D1；03 P176）：看过答案后「自己写一遍」的本人墨存在那条 answer-seen 记录上（D31「看后写的」）。
+//            它不是判断、不占 D27 的「第一次 / 最近一次」。所在的组还开着（sessions.A / B / lastEnded：结果页与「这次的图片」可用）
+//            时永不回收；之后保留到下次同字有判断——pruneInkOfCards 只留每字最新的那份、且要新于这个字最近一次判断——或超过
+//            policy.afterSeenInkKeepDays 天；预算回收里排在判断墨迹的其余层之后（过期 4 → 未过期 5），见 inkTier。
 //   records  最旧月份折叠为 {folded, month, byDay, chars, kept}（schema.validateRecordsMonth）；
 //            当月（及时钟回拨后的未来月份）不折叠；kept 保留该月中仍是「某字最近一次 judged」或「某字第一次 judged」（D27）的记录。
 //            被折掉的记录，其墨迹一并删除。
@@ -115,9 +119,32 @@ function isFolded(value) {
   return isPlainObject(value) && value.folded === true;
 }
 
-/** 从 records 域建立优先级索引（导出给单测核对层级口径）。 */
-export function indexRecords(records) {
+const DAY_MS = 86400000;
+
+/** 还开着的组的 id（槽里的 A / B 与 lastEnded 的 A / B：结果页与「这次的图片」还能用，Q1）。 */
+export function openSessionIds(sessions) {
+  const out = new Set();
+  if (!isPlainObject(sessions)) return out;
+  const add = s => {
+    if (isPlainObject(s) && typeof s.id === 'string') out.add(s.id);
+  };
+  add(sessions.A);
+  add(sessions.B);
+  if (isPlainObject(sessions.lastEnded)) {
+    add(sessions.lastEnded.A);
+    add(sessions.lastEnded.B);
+  }
+  return out;
+}
+
+/**
+ * 从 records 域建立优先级索引（导出给单测核对层级口径）。
+ * opts（Q1，看后自写的墨迹）：sessions = 草稿的 sessions（还开着的组里的看后自写永不回收）；now / keepDays（缺省
+ * policy.afterSeenInkKeepDays，P176）判断看后自写是否过期。afterSeen：answer-seen 记录 id → 层级（Infinity / 4 / 5）。
+ */
+export function indexRecords(records, { sessions = null, now = null, keepDays = policy.afterSeenInkKeepDays } = {}) {
   const byId = new Map();
+  const seen = []; // answer-seen 记录（Q1）
   const latestByCard = new Map(); // cardKey → record（judged，序号最大）
   const firstByCard = new Map(); // cardKey → record（judged，序号最小）
   const latestScreen = new Map(); // cardKey → record（屏幕上写的 judged，序号最大；P1-E8）
@@ -132,6 +159,7 @@ export function indexRecords(records) {
     for (const rec of monthRecords(records[month])) {
       byId.set(rec.id, { rec, month });
       if (rec.inkId) byId.set(rec.inkId, { rec, month });
+      if (rec.kind === 'answer-seen') seen.push(rec);
       if (rec.kind !== 'judged') continue;
       const s = serialOf(rec.id);
       keepExtreme(latestByCard, rec, s, true);
@@ -160,19 +188,43 @@ export function indexRecords(records) {
   const firstIds = new Set();
   for (const rec of firstByCard.values()) firstIds.add(rec.id);
   for (const rec of firstScreen.values()) firstIds.add(rec.id);
-  return { byId, latestIds, firstIds, edges };
+  // Q1：看后自写。还开着的组 → ∞；有更晚的判断、或不是这个字最新的那次看过答案、或超过 keepDays 天 → 4（过期）；其余 → 5。
+  const open = openSessionIds(sessions);
+  const latestSeen = new Map(); // cardKey → 最新一条 answer-seen 的序号
+  for (const rec of seen) {
+    const s = serialOf(rec.id);
+    if (!(latestSeen.get(rec.cardKey) >= s)) latestSeen.set(rec.cardKey, s);
+  }
+  const afterSeen = new Map();
+  const protectedIds = new Set();
+  const nowMs = typeof now === 'number' && Number.isFinite(now) ? now : null;
+  for (const rec of seen) {
+    if (open.has(rec.sessionId)) {
+      afterSeen.set(rec.id, Infinity);
+      protectedIds.add(rec.id);
+      continue;
+    }
+    const s = serialOf(rec.id);
+    const judged = latestByCard.get(rec.cardKey);
+    const aged = nowMs !== null && typeof rec.at === 'number' && Number.isFinite(keepDays) && nowMs - rec.at > keepDays * DAY_MS;
+    const expired = (judged && serialOf(judged.id) > s) || latestSeen.get(rec.cardKey) > s || aged;
+    afterSeen.set(rec.id, expired ? 4 : 5);
+  }
+  return { byId, latestIds, firstIds, edges, afterSeen, protectedIds };
 }
 
-/** D27 留存的记录 id：每字第一次 judged ∪ 每字最近一次 judged。 */
+/** D27 留存的记录 id：每字第一次 judged ∪ 每字最近一次 judged（∪ Q1：还开着的组里的看过答案记录，折叠时一并留下）。 */
 export function retainedIds(index) {
-  return new Set([...index.firstIds, ...index.latestIds]);
+  return new Set([...index.firstIds, ...index.latestIds, ...(index.protectedIds || [])]);
 }
 
 /**
  * D27 写入新判断时的回收：cardKeys 这些字里，既不是第一次也不是最近一次判断的记录，其墨迹从 draft.ink 删除
  * （copy-on-write：只替换有删除的月表）。只看这些字——新判断让上一次的「最近一次」变成中间那次。
+ * Q1 看后自写（answer-seen 记录上的墨）：还开着的组里的不删；其余每字只留最新的那一份、且要新于这个字最近一次判断
+ * （「保留到下次同字有判断」）——新判断写入时它就回收，新的看后自写写入时更早的那份回收。
  * 同一份墨迹（inkId 相同）被留存的记录引用时不删。返回被回收的 [{id, month, recordId}]。
- * 只改传入的草稿，不碰存储；在 store.commit 的 mutate 里调用。
+ * 只改传入的草稿，不碰存储；在 store.commit 的 mutate 里调用（write/compare.js judgeInDraft、write/answer.js storeSelfInkInDraft）。
  */
 export function pruneInkOfCards(draft, cardKeys) {
   if (!draft || !isPlainObject(draft.ink) || !draft.records) return [];
@@ -182,13 +234,35 @@ export function pruneInkOfCards(draft, cardKeys) {
   for (const month of Object.keys(draft.records)) {
     for (const rec of monthRecords(draft.records[month])) if (rec && want.has(rec.cardKey)) mine.push(rec);
   }
-  const index = indexRecords({ all: mine });
+  const index = indexRecords({ all: mine }, { sessions: draft.sessions });
   const keep = retainedIds(index);
   const slot = rec => {
     const month = inkMonthOf(rec);
     const id = inkIdOf(rec);
     return month && id ? { month, id } : null;
   };
+  const stored = rec => {
+    const s = slot(rec);
+    const table = s ? draft.ink[s.month] : null;
+    return !!s && isPlainObject(table) && Object.prototype.hasOwnProperty.call(table, s.id);
+  };
+  // Q1：每字最新一份留有墨迹的看后自写，新于这个字最近一次判断时留下
+  const latestJudged = new Map();
+  for (const rec of mine) {
+    if (rec.kind !== 'judged') continue;
+    const cur = latestJudged.get(rec.cardKey);
+    if (!cur || serialOf(cur.id) < serialOf(rec.id)) latestJudged.set(rec.cardKey, rec);
+  }
+  const latestSeen = new Map();
+  for (const rec of mine) {
+    if (rec.kind !== 'answer-seen' || !stored(rec)) continue;
+    const cur = latestSeen.get(rec.cardKey);
+    if (!cur || serialOf(cur.id) < serialOf(rec.id)) latestSeen.set(rec.cardKey, rec);
+  }
+  for (const [cardKey, rec] of latestSeen) {
+    const judged = latestJudged.get(cardKey);
+    if (!judged || serialOf(judged.id) < serialOf(rec.id)) keep.add(rec.id);
+  }
   const kept = new Set();
   for (const rec of mine) {
     if (!keep.has(rec.id)) continue;
@@ -250,12 +324,15 @@ function inkMonthBytes(month, table) {
 /**
  * 墨迹淘汰层级（数字越小越先淘汰）；Infinity = 永不淘汰。
  *   0 孤儿（找不到对应记录）  1 其他月份的其余  2 本月其余  3 每月每字首/末条
- *   ∞ 每字第一次 judged、每字最近一次 judged（决定-D27：绝不回收；原 01 §9 的「4 每字第一条」不再可淘汰）
+ *   4 看后自写·过期（有更晚的判断 / 不是这个字最新的那次 / 超过 afterSeenInkKeepDays 天，Q1）  5 看后自写·未过期
+ *   ∞ 每字第一次 judged、每字最近一次 judged（决定-D27：绝不回收；原 01 §9 的「4 每字第一条」不再可淘汰）；
+ *     还开着的组里的看后自写（结果页与「这次的图片」可用期内，Q1）
  */
 export function inkTier(id, index, currentMonth) {
   const hit = index.byId.get(id);
   if (!hit) return 0;
   const recId = hit.rec.id;
+  if (index.afterSeen && index.afterSeen.has(recId)) return index.afterSeen.get(recId);
   if (index.latestIds.has(recId) || index.firstIds.has(recId)) return Infinity;
   if (index.edges.has(recId)) return 3;
   return hit.month === currentMonth ? 2 : 1;
@@ -322,7 +399,7 @@ function foldMonth(month, list, keepIds) {
  *   （兼容旧写法 limit.ink === true：允许动全部 ink 月键。）
  * 返回 {actions:[{type:'evictInk', id, tier}|{type:'fold', month, kept, dropped}|{type:'dropFoldedInk'}], freedBytes}。
  */
-export function recover(draft, { now, budgets, force = false, needBytes = 0, limit = null } = {}) {
+export function recover(draft, { now, budgets, force = false, needBytes = 0, limit = null, afterSeenKeepDays = policy.afterSeenInkKeepDays } = {}) {
   const b = resolveBudgets(budgets);
   const nowMs = typeof now === 'number' ? now : Date.now();
   const today = localDayOf(nowMs);
@@ -332,7 +409,7 @@ export function recover(draft, { now, budgets, force = false, needBytes = 0, lim
   const wantMore = () => force && freed < needBytes;
 
   let records = draft.records || {};
-  const index = indexRecords(records);
+  const index = indexRecords(records, { sessions: draft.sessions, now: nowMs, keepDays: afterSeenKeepDays });
 
   // ---- 1. 墨迹（跨全部月键按层级排序；只改有淘汰的月表）
   const inkMonthAllowed = month => !limit || limit.ink === true || (Array.isArray(limit.inkMonths) && limit.inkMonths.indexOf(month) >= 0);

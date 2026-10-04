@@ -139,10 +139,20 @@ test('resultModel first: header 第一次练习, 5 columns, date-only line (R-R0
   assert.equal(m.cols, 5);
   assert.equal(m.dateLine, null, 'P1-E7: the date lives in the work 落款 now, not in a separate line');
   assert.equal(m.again, true, 'P1-E5 / D28: the first result page has 再写一组 (and 回到首页)');
-  assert.equal(m.title, '这三个字，很多人提笔就忘。', 'D28: no count in the title');
+  assert.equal(m.title, '这两个字，很多人提笔就忘。', 'V2-05: the title counts what the page shows (two chars here), it is not a fixed 「三」');
   assert.deepEqual(m.sub, [], 'no 「这次记录了 N 个字」/ grid-hint sentence under the first-practice title');
   const none = group({ kind: 'first', chars: ['尴', '嚏'], steps: ['skip', 'skip'] });
-  assert.equal(resultModel(ended(none.d, none.slot), { slot: none.slot, sessionId: none.id }).title, '这三个字，很多人提笔就忘。', 'the title holds for every outcome (design §三)');
+  assert.equal(resultModel(ended(none.d, none.slot), { slot: none.slot, sessionId: none.id }).title, '这两个字，很多人提笔就忘。', 'with no ink the plain row lists both chars: the title follows that count');
+  // 三个字里只有两个留有墨迹 → 作品（字帖）只有两格 → 标题写「两」，不写「三」（V2-05：标题与字数对不上是第一次使用最后一屏里的事实错误）
+  const inkOn = names => record => names.includes(record.char);
+  const titleOf = names => {
+    const three = group({ kind: 'first', chars: ['尴', '嚏', '拾'], steps: ['correct', 'wrong', 'correct'] });
+    return resultModel(ended(three.d, three.slot), { slot: three.slot, sessionId: three.id, hasInk: inkOn(names) }).title;
+  };
+  assert.equal(titleOf(['尴', '拾']), '这两个字，很多人提笔就忘。', '2 inked of 3 (the wrong one is not in the work)');
+  assert.equal(titleOf(['尴']), '这一个字，很多人提笔就忘。', '1 char on the page');
+  assert.equal(titleOf(['尴', '嚏', '拾']), '这两个字，很多人提笔就忘。', '3 judged, 1 wrong → the work holds 2: the title says 两, the page shows two cells');
+  assert.equal(titleOf([]), '这三个字，很多人提笔就忘。', 'no ink: the plain row lists all 3 chars');
   const daily = group({ kind: 'daily', chars: ['尴', '嚏'], steps: ['correct', 'wrong'] });
   assert.equal(resultModel(ended(daily.d, daily.slot), { slot: daily.slot, sessionId: daily.id }).title, null, 'daily has no title any more (P1-E7)');
 });

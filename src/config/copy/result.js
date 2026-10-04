@@ -68,7 +68,9 @@ export default Object.freeze({
   'X-RESULT.againRetry': '再试一次',
   'X-RESULT.againCancel': '先不保存',
   // X-FIRST（阶段 1 P1-E5，设计稿「首练与首页」§三：首练结果页的标题、复现预告、写错字的「放进去」；过渡文案，阶段 1 文案统一时定稿）
-  'X-FIRST.title': '这三个字，很多人提笔就忘。',
+  // 首练结果页标题：按这一页上实际有几个字写（V2-05：标题与字数不符是事实错误；汉字数字由 ui/work-text.js firstTitle 填入，没有字可数时用 titlePlain）
+  'X-FIRST.title': '这{n}个字，很多人提笔就忘。',
+  'X-FIRST.titlePlain': '这几个字，很多人提笔就忘。',
   'X-FIRST.tier.tomorrow': '明天',
   'X-FIRST.tier.soon': '过两天',
   'X-FIRST.tier.later': '过几天',

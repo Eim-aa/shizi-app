@@ -289,7 +289,9 @@ function rec(serial, char, judgment, day) {
 }
 
 async function seedRecords(page) {
-  const records = [rec(1, '永', 'wrong', '2026-09-20'), rec(2, '和', 'correct', '2026-09-22'), rec(3, '水', 'wrong', '2026-09-24')];
+  // 写对的字才在月字帖里（作品成员规则 D51 ⑤）：月字帖页要有 ≥ 3 个有名字的格，所以另放两个写对的字
+  const records = [rec(1, '永', 'wrong', '2026-09-20'), rec(2, '和', 'correct', '2026-09-22'), rec(3, '水', 'wrong', '2026-09-24'),
+    rec(4, '山', 'correct', '2026-09-23'), rec(5, '田', 'correct', '2026-09-24')];
   const res = await page.evaluate(async ({ rs, clock }) => {
     const { applyJudgment } = await import('/src/core/fsrs.js');
     window.__shiziTest.reset();

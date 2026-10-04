@@ -9,7 +9,7 @@
 // 三态（按会话 kind）：
 //   daily  「这次练习」：结果页即作品（P1-E7；E9c 起按 D49 减法修稿：没有底板、没有标题，作品格贴页边）；作品下「没放进图里」的行、复现句（每字「N 天后再见」，D48）；
 //          底栏只有主按钮「再写一组」，出口只在页头左上「×」（D49 ③：没有「回到首页」）。
-//   first  「第一次练习」：同一构图，多一个标题「这三个字，很多人提笔就忘。」（不以计数作标题，D28）与提醒邀请（内嵌，D35 / D46 ③）；底栏同上。
+//   first  「第一次练习」：同一构图，多一个标题「这三个字，很多人提笔就忘。」（数取这一页上实际有几个字，V2-05；不以计数作标题，D28）与提醒邀请（内嵌，D35 / D46 ③）；底栏同上。
 //          首练专属的三块在 result/first.js（与 P1-E7 作品出口的分界：本文件的格子 / 日期行 / 图片入口属通用结果页，E7 改构图）。
 //   picked 「这次选的字」：标题「这次选的字 / 写完了」或中途结束「这次选的字 / 先写到这里」（R-R05，P14）；3 列格子；
 //          说明「「额」「鲜」都记下了。」…「还有 N 个字没写，没有记下。」；日期行「{日期} · 自己选的 / 从写错过 / 从快忘了」（S05）；
@@ -65,6 +65,7 @@ import { openNonePage } from '../session/none.js';
 import { ReminderInvite, ReviewPreview, firstExtras } from './first.js';
 import { WorkRows, WorkSection, commitAdded } from './work.js';
 import { addedOf, buildWork } from '../../../core/images/work.js';
+import { firstTitle } from '../../work-text.js';
 
 export { commitAdded };
 
@@ -291,7 +292,7 @@ export function resultModel(state, { slot, sessionId, hasInk = null, policy = de
     // 阶段 1 P1-E7（交接 §5.1）：结果页最上面就是作品，不写「这次记录了 N 个字」「点一个格子…」；数量只出现在落款里。
     // 首练保留标题（D28 / P1-E5）：不以计数作标题；说明由格下标注与复现预告承担。
     header = t(variant === 'first' ? 'X-RESULT.headerFirst' : 'X-RESULT.headerDaily');
-    title = variant === 'first' ? t('X-FIRST.title') : null;
+    title = null; // 首练的标题要数这一页上的字，在下面作品算出来以后再定（firstTitle）
   }
   if (variant === 'picked' && cells.length) sub.push(t('R-R02.gridHint'));
 
@@ -306,6 +307,8 @@ export function resultModel(state, { slot, sessionId, hasInk = null, policy = de
     : null;
   // 分享入口：作品里至少有一个字（没有任何墨时隐藏，§4.1）
   const share = !!work && work.cells.length > 0;
+  // 首练标题按这一页上实际有几个字取数（V2-05）：作品里有几格就是几；没有墨时是衬底一行的字数
+  if (variant === 'first') title = firstTitle(work ? (work.empty ? work.entries.length : work.cells.length) : cells.length);
 
   return {
     found: !!session,

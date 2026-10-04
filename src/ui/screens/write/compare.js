@@ -61,11 +61,10 @@ function pyOf(cardKey) {
 
 /** 判断两键的顺序：写错了左、写对了右（决定-D20 / R-W09）。 */
 export const JUDGE_ORDER = Object.freeze(['wrong', 'correct']);
-/** 对照卡里本人笔迹的线宽倍数（原型 inkEls(strokes, 'm', 1.41)：卡内 166.5 / 345 × 1.41 ≈ 0.68 倍）。 */
-export const MINI_WIDTH_SCALE = 1.41;
 // 边长公式与常量在 layout.js（纯函数）；这里转出，保持原导入路径可用。
 export { judgePairSize, judgeAxLayout, COMPARE_GAP, JUDGE_MIN } from './layout.js';
 import { COMPARE_GAP } from './layout.js';
+import { minInkScale } from '../../../core/images/layout.js';
 
 const COPY_KEYS = Object.freeze({
   wrong: 'R-W09.btnWrong',
@@ -318,10 +317,11 @@ export function builtFromRaw(strokes) {
 }
 
 /**
- * 把管线点列画进一张小卡（线宽 × widthScale，原型 1.41）。纯绘制，调用方给 ctx（已按 345 单位变换）。
+ * 把管线点列画进一张小卡。线宽与写字格同一视觉粗细：笔迹在 345 单位坐标里保持原宽、随显示尺寸等比缩放（R2-R1 / V2-03：不再统一加粗 1.41 倍），
+ * 只有小到笔画细于最小物理线宽的卡，调用方传 widthScale（layout.js minInkScale）。纯绘制，调用方给 ctx（已按 345 单位变换）。
  * @returns {number} 画了几笔
  */
-export function paintMini(ctx, built, { color = '#221D19', widthScale = MINI_WIDTH_SCALE, base = INK.base } = {}) {
+export function paintMini(ctx, built, { color = '#221D19', widthScale = 1, base = INK.base } = {}) {
   let n = 0;
   for (const pts of built || []) {
     if (!Array.isArray(pts) || !pts.length) continue;
@@ -349,7 +349,7 @@ export function InkMini({ strokes = null, points = null, testid, emptyText, empt
     const canvas = canvasRef.current;
     if (!canvas || !has || !(size > 0) || !near) return;
     const ctx = prepareCanvas(canvas, size);
-    paintMini(ctx, built, { color: inkColor(cardRef.current) });
+    paintMini(ctx, built, { color: inkColor(cardRef.current), widthScale: minInkScale(size) });
     canvas.dataset.painted = 'true'; // M6-3：61-perf 首屏计时的就绪标记
   }, [size, theme, has, points, strokes, near]);
   if (!has) {

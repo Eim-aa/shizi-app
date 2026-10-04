@@ -62,12 +62,24 @@ function assertRatio(ratio) {
   if (!Object.prototype.hasOwnProperty.call(HEIGHT_OF, ratio)) throw new Error('INVALID_RATIO');
 }
 
-/** 墨线宽补偿（§1.1）：按格的屏幕当量 pt 查表 ≥150 ×1.0、100–150 ×1.15、70–100 ×1.35、<70 ×1.5。 */
+/**
+ * 本人墨的线宽只有一条规则（R2-R1 / V2-03：各尺寸同一视觉粗细）：笔迹在 345 单位坐标里保持原宽（= 随显示尺寸等比缩放），
+ * 小格只设一个最小物理线宽 MIN_INK_PT（约 1.2pt），不再按档位加粗（旧补偿表 ×1.15 / 1.35 / 1.5 与判断页小卡的 ×1.41 已废）。
+ * @param {number} boxPt  放墨的方框边长（pt / CSS px）
+ * @param {number} [innerRatio]  墨占方框的比例（作品格 0.76 = 12% 内边；判断卡等没有内边的方框 1）
+ * @returns {number} 线宽倍数 ≥ 1
+ */
+export const MIN_INK_PT = 1.2;
+export const INK_BASE_WIDTH = 11.5; // 345 单位里默认笔宽（core/ink-math INK.base）
+export function minInkScale(boxPt, innerRatio = 1) {
+  if (!(boxPt > 0)) return 1;
+  const physical = (INK_BASE_WIDTH * boxPt * innerRatio) / INK_GRID;
+  return physical >= MIN_INK_PT ? 1 : MIN_INK_PT / physical;
+}
+
+/** 作品格里墨线宽的倍数（格的屏幕当量 pt，墨占 76%）：≥ 约 47pt 的格原宽，更小的格抬到最小物理线宽。 */
 export function inkWidthScale(cellPt) {
-  if (cellPt >= 150) return 1;
-  if (cellPt >= 100) return 1.15;
-  if (cellPt >= 70) return 1.35;
-  return 1.5;
+  return minInkScale(cellPt, 1 - 2 * INK_PAD);
 }
 
 /** 朱点直径（pt）= clamp(5, 格宽 × 0.07, 8)（components.wrongDot）；格宽也用 pt。 */

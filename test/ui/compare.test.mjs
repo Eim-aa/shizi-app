@@ -9,6 +9,7 @@ import {
 } from '../../src/ui/screens/write/compare.js';
 import { correctInDraft, commitCorrection, resultRowModel, lineVisible, ResultRowView } from '../../src/ui/screens/write/result-row.js';
 import { skipInDraft, undoSkipInDraft, commitSkip, commitUndoSkip, canUndoSkip, SKIP_UNDO_MS, SkipUndoBar } from '../../src/ui/screens/write/skip.js';
+import * as compareModule from '../../src/ui/screens/write/compare.js';
 import { Button } from '../../src/ui/components/Button.js';
 import { createSession } from '../../src/core/sessions.js';
 import { replay } from '../../src/core/fsrs.js';
@@ -388,6 +389,17 @@ test('rememberInk / paintMini helpers', t0 => {
   const ctx = new Proxy({}, { get: (o, k) => (k in o ? o[k] : (...a) => calls.push(k)), set: (o, k, v) => { o[k] = v; return true; } });
   assert.equal(paintMini(ctx, [[{ x: 1, y: 1, w: 10, t: 0 }, { x: 20, y: 20, w: 10, t: 10 }]]), 1);
   assert.equal(paintMini(ctx, []), 0);
+  // R2-R1 / V2-03：判断卡 / 小格里的本人墨与写字格同一视觉粗细，不再统一 ×1.41——笔锋收到的宽度就是点上的原宽
+  const record = scale => {
+    const log = [];
+    const c = new Proxy({}, { get: (o, k) => (k in o ? o[k] : (...a) => log.push([k, ...a.map(v => (typeof v === 'number' ? Math.round(v * 1000) / 1000 : v))])), set: (o, k, v) => { o[k] = v; return true; } });
+    const pts = [[{ x: 60, y: 170, w: 11.5, t: 0 }, { x: 170, y: 171, w: 11.5, t: 60 }, { x: 280, y: 172, w: 11.5, t: 120 }]];
+    paintMini(c, pts, scale === undefined ? {} : { widthScale: scale });
+    return JSON.stringify(log);
+  };
+  assert.equal(record(undefined), record(1), 'default = the stroke at its own width (same as widthScale 1)');
+  assert.notEqual(record(undefined), record(1.41), 'and not the old fixed ×1.41');
+  assert.equal(compareModule.MINI_WIDTH_SCALE, undefined, 'the 1.41 constant is gone');
 });
 
 test('A9: compare cards read 「参考字形：嚏，tì，17 画」「你的书写，5 笔」; missing data degrades gracefully', () => {

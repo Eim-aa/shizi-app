@@ -9,7 +9,7 @@ import fs from 'node:fs';
 import * as policy from '../../src/config/policy.js';
 import {
   DEFAULT_RATIO_FEW, DEFAULT_RATIO_MANY, dayTag, defaultRatio, dotDiameterPt, dotLayout, gridOf, inkWidthScale, layout, monthCell, monthColumns,
-  resultGrid, withDayTags, TAG_SIZE,
+  resultGrid, withDayTags, TAG_SIZE, minInkScale,
 } from '../../src/core/images/layout.js';
 import { glyphLayout, inkBounds, SIZES, MARGIN } from '../../src/core/images/glyph-layout.js';
 import { paginate, retagPages } from '../../src/core/images/paginate.js';
@@ -131,7 +131,12 @@ test('result-page work cells (§5.2, D49: no board, cw = b): 402 → 181 / 181 /
 });
 
 test('ink width compensation table (§1.1) and the red dot (components.wrongDot)', () => {
-  assert.deepEqual([160, 150, 149.9, 100, 99.9, 70, 69.9, 40].map(inkWidthScale), [1, 1, 1.15, 1.15, 1.35, 1.35, 1.5, 1.5]);
+  // R2-R1 / V2-03：只有一条规则——原宽，小格只抬到最小物理线宽 1.2pt（旧补偿表 ×1.15 / 1.35 / 1.5 已废）
+  assert.deepEqual([160, 150, 100, 70, 50, 47.5].map(inkWidthScale), [1, 1, 1, 1, 1, 1]);
+  assert.ok(Math.abs(inkWidthScale(40) - 47.37 / 40) < 0.01 && inkWidthScale(40) > 1, '40pt cell: lifted so the stroke is 1.2pt');
+  assert.ok(Math.abs(inkWidthScale(30) * 11.5 * 0.76 * 30 / 345 - 1.2) < 1e-6, 'the lifted stroke is exactly the minimum physical width');
+  assert.equal(minInkScale(234), 1, 'the 234pt judge card: original width (no ×1.41)');
+  assert.equal(minInkScale(0), 1);
   assert.equal(dotDiameterPt(40), 5, 'clamp low');
   assert.ok(Math.abs(dotDiameterPt(110) - 7.7) < 1e-9);
   assert.equal(dotDiameterPt(300), 8, 'clamp high');
@@ -559,7 +564,7 @@ test('renderWorkPage: the day tag is drawn inside its own cell, top-left, withou
   assert.deepEqual(blocks, [], 'no sheet-coloured block behind the number (that block is what cut the grid lines)');
 });
 
-test('renderWorkPage: colours come from the LIGHT design tokens (never the dark ones); ink width is scaled by the compensation table', async () => {
+test('renderWorkPage: colours come from the LIGHT design tokens (never the dark ones); ink keeps its own width, only tiny cells are lifted to the minimum physical width (R2-R1)', async () => {
   const out = await renderWorkPage({ cells: [cell('永', { dot: true })], ratio: '3:4', kuan: '二〇二六年九月', sealText: '字', palette: PALETTE, canvasFactory: fakeCanvas });
   const fills = new Set(out.canvas.calls.map(c => c[c.length - 2]));
   const strokes = new Set(out.canvas.calls.map(c => c[c.length - 1]));
@@ -570,7 +575,7 @@ test('renderWorkPage: colours come from the LIGHT design tokens (never the dark 
   for (const dark of Object.values(TOKENS.color.dark)) {
     if (typeof dark === 'string') assert.ok(!fills.has(dark) || Object.values(TOKENS.color.light).includes(dark), 'no dark-only colour used');
   }
-  // 一个 295px 的格 ≈ 110pt → ×1.15：笔锋收到的点宽是 11.5 × 1.15
+  // 一个 670px 的格 ≈ 249pt：笔锋收到的点宽就是 11.5（原宽）
   const widths = [];
   await renderWorkPage({
     cells: [cell('永')], ratio: '3:4', kuan: 'k', sealText: '字', palette: PALETTE, canvasFactory: fakeCanvas,
@@ -582,7 +587,16 @@ test('renderWorkPage: colours come from the LIGHT design tokens (never the dark 
     cells: [cell('永'), cell('和'), cell('静')], ratio: '3:4', kuan: 'k', sealText: '字', palette: PALETTE, canvasFactory: fakeCanvas,
     paintStroke: (ctx, pts) => { w3.push(pts[0].w); return true; },
   });
-  assert.ok(Math.abs(w3[0] - 11.5 * 1.15) < 1e-9, '3 chars: cell 295px ≈ 110pt → ×1.15');
+  assert.ok(Math.abs(w3[0] - 11.5) < 1e-9, '3 chars: cell 295px ≈ 110pt → original width (the old ×1.15 step is gone)');
+  const many = Array.from({ length: 80 }, (_, i) => cell(String.fromCodePoint(0x4e00 + i)));
+  const w80 = [];
+  const big = await renderWorkPage({
+    cells: many, ratio: '3:4', kuan: 'k', sealText: '字', palette: PALETTE, canvasFactory: fakeCanvas,
+    paintStroke: (ctx, pts) => { w80.push(pts[0].w); return true; },
+  });
+  const tiny = big.layout.c / 2.69;
+  assert.ok(tiny < 47, `80 cells are tiny (${tiny.toFixed(1)}pt)`);
+  assert.ok(w80[0] > 11.5 && Math.abs(w80[0] - 11.5 * inkWidthScale(tiny)) < 1e-9, 'tiny cells: lifted to the minimum physical width only');
 });
 
 test('renderWorkPage awaits the injected requireFont (落款 song, seal kai, tags hei 500) before creating the canvas', async () => {

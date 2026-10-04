@@ -136,7 +136,7 @@ export async function seedPerf(page, variant) {
     const t0 = performance.now();
     events.forEach((e, i) => {
       draft.sessions.A = createSession({ id: nextId('s'), kind: 'daily', source: { view: 'home' }, queue: ['base:' + e.c], at: e.at });
-      judgeInDraft(draft, { slot: 'A', cardKey: 'base:' + e.c, judgment: (i * 13) % 100 < 15 ? 'wrong' : 'correct',
+      judgeInDraft(draft, { slot: 'A', cardKey: 'base:' + e.c, judgment: 'correct', // 全部写对：写错的字不进月字帖（D51 ⑤），这里要 300 个格
         strokes: makeStrokes(), at: e.at, nextId, perRecordInk: true });
       draft.sessions.A = null;
     });

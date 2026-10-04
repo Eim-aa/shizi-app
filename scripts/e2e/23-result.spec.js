@@ -600,7 +600,7 @@ export default async function resultSpec(page, ctx) {
   await waitResult(page);
   await waitNavIdle(page);
   v = await resultView(page);
-  assert.deepEqual([v.header, v.variant, v.title], ['第一次练习', 'first', '这三个字，很多人提笔就忘。'], 'first result: the title is no longer 「这次记录了 N 个字」 (D28; 72-p1e5 covers the rest of the first-practice blocks)');
+  assert.deepEqual([v.header, v.variant, v.title], ['第一次练习', 'first', '这一个字，很多人提笔就忘。'], 'first result (one char with ink on the page → 「这一个字」, V2-05: the title counts what the page shows): the title is no longer 「这次记录了 N 个字」 (D28; 72-p1e5 covers the rest of the first-practice blocks)');
   assert.equal(v.date, null, 'P1-E7: the date lives in the work 落款 now (交接 §4.1 has no separate date line)');
   assert.deepEqual(v.footButtons, ['result-again'], 'E9c / D49 ③: 再写一组 only; the exit is the close icon');
   assert.equal(v.remindSlot, true, 'remind invitation slot (the invitation itself fades in after ≈600ms, covered by 72-p1e5)');

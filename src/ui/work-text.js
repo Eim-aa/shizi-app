@@ -38,6 +38,11 @@ export function kuan({ day = null, month = null, n = null, part = 0, of = 1, bra
   return part && of > 1 ? t('X-WORK.kuanJoinPart', { kuan: base, part: partLabel(part) }) : base;
 }
 
+/** 首练结果页标题「这三个字，很多人提笔就忘。」：数取这一页上实际有几个字（汉字数字，2 写「两」）；没有可数的字时不写数量（V2-05）。 */
+export function firstTitle(n) {
+  return Number.isFinite(n) && n >= 1 ? t('X-FIRST.title', { n: cnCount(n) }) : t('X-FIRST.titlePlain');
+}
+
 /** 年报卷首：年份「二〇二六」、一句话「这一年，你写过二百九十个字。」、「四月二十六日的笔迹」（纸面汉字）。 */
 export function annualYearText(year) {
   return cnDigits(year);

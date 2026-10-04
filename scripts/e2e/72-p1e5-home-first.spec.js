@@ -243,7 +243,7 @@ export default async function run(page, ctx) {
   step('首练结果页: 标题不以计数作标题；复现句「N 天后再见」；写错字「放进图里」；提醒邀请约 600ms 后淡入，点「好」前没有系统权限请求');
   let r = await resultView(page);
   assert.equal(r.variant, 'first');
-  assert.equal(r.title, '这三个字，很多人提笔就忘。', 'D28: the title is not a count');
+  assert.equal(r.title, '这两个字，很多人提笔就忘。', 'V2-05: the title counts the chars the page shows (尴 and 拾 are the work; the wrong 赢 is not), D28: it is not a headline count');
   assert.equal(r.titleSize, 22, 'title is 宋 22 (design §三)');
   assert.ok(!/记录了/.test(r.title) && r.sub === null, 'no 「这次记录了 N 个字」 and no sentence under the title');
   assert.deepEqual(r.cells, ['尴:in', '拾:in'], 'P1-E7: the work holds the right chars only (赢 was wrong → not in by default, it is the row below)');
@@ -488,7 +488,7 @@ export default async function run(page, ctx) {
   h = await homeView(page);
   assert.deepEqual([h.view, h.hero, h.cta, h.pick, h.todayCount], ['today', 'today', '再写一组', '自己选字', null]);
   assert.ok(h.inkRowLabel.startsWith('今天写了 4 个字：'), `the count is in the ink row's screen-reader name: ${h.inkRowLabel}`);
-  assert.deepEqual(h.inkItems.map(i => [i.char, i.judgment, i.ink, i.canvas]), [['疆', 'correct', 'ink', true], ['酱', 'correct', 'ink', true], ['肆', 'wrong', 'ink', true], ['酝', 'correct', 'ink', true]]);
+  assert.deepEqual(h.inkItems.map(i => [i.char, i.judgment, i.ink, i.canvas]), [['疆', 'correct', 'ink', true], ['酱', 'correct', 'ink', true], ['酝', 'correct', 'ink', true]]); // 写错的 肆 不进首页字帖行（作品成员规则 D51 ⑤；计数仍是 4）
   assert.equal(h.reds, 0, 'D46 ①: a wrong char is not marked with a red dot on the home page');
   assert.equal(await page.evaluate(() => document.querySelectorAll('.sz-layer [data-testid="screen-home"] [data-wrong]').length), 0, 'no wrong marker element');
   assert.deepEqual(h.removedNodes, [], 'no yesterday row, no library link');

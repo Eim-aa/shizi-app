@@ -18,6 +18,7 @@ Stages (smoke-simulator.sh / smoke-device.sh run them in this order):
             synthetic strokes are drawn, page-visible hardware / media queries, the brush-detail decision,
             the text-size injection (P1-E6b) and native deviceInfo. Structural checks only: numbers are recorded,
             not judged.
+  cleanup   (device) syncReminder enabled:false so the reminders `main` really scheduled are removed.
 Release artifacts without __shiziNativeDev are checked by verify-archive.sh (not by this file).
 
 Usage: validate-native-smoke.py RESULT.json STAGE [--allow-photos-denied]
@@ -26,7 +27,7 @@ Usage: validate-native-smoke.py RESULT.json STAGE [--allow-photos-denied]
 import json
 import sys
 
-STAGES = ("main", "relaunch", "deeplink", "restore", "restorecheck", "measure")
+STAGES = ("main", "relaunch", "deeplink", "restore", "restorecheck", "measure", "cleanup")
 NOT_BACKUP = "notBackup"
 
 
@@ -51,6 +52,9 @@ def main() -> int:
         checks.update(restorecheck_checks(data))
     elif stage == "measure":
         checks.update(measure_checks(data))
+    elif stage == "cleanup":
+        c = data.get("cleanup") or {}
+        checks["remindersCleared"] = c.get("sent") is True and c.get("enabled") is False and c.get("plannedDays") == []
     else:
         checks.update(deeplink_checks(data))
 

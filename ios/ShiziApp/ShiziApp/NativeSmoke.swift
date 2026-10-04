@@ -11,9 +11,10 @@ import WebKit
 //   -shizi-smoke                 冒烟：URL 追加 ?test=1、documentStart 注入 window.__shiziNativeDev=true，
 //                                页面每次 postMessage pageReady 后注入下面的冒烟脚本（脚本自己用 sessionStorage 续跑刷新前后的步骤）。
 //   -shizi-dev                   开发：?dev=1&test=1 + __shiziNativeDev（色板页 / 指针统计，不跑冒烟）。
-//   -shizi-smoke-stage <name>    main（默认）| relaunch | deeplink | restore | restorecheck | measure。
+//   -shizi-smoke-stage <name>    main（默认）| relaunch | deeplink | restore | restorecheck | measure | cleanup。
 //                                restore / restorecheck：冷启动恢复（Q32），两次启动之间由 smoke-device.sh 用 SIGKILL 结束进程；
 //                                measure：T1 非触控测量（rAF 间隔分布、媒体查询、笔锋细节判定、字号注入、原生 deviceInfo）。
+//                                cleanup：移除 main 阶段真的排进系统的提醒（不碰 localStorage）。
 //   -shizi-reminder-target <k>   冷启动时把 k 当作「从提醒通知点进来」的目标（走 openReminderTarget，与 AppDelegate 同一路径）。
 //
 // 冒烟脚本只用公开测试钩子 window.__shiziTest、data-testid 与 bridge 公开接口，不依赖页面内部全局。
@@ -841,6 +842,21 @@ extension WebViewController {
           const n = events().length;
           control('deviceInfo');
           result.native = (await nativeEvent('deviceInfo', n)).detail;
+          finish();
+          return;
+        }
+
+        // 收尾（真机）：main 阶段的 syncReminder 会在系统里真的排下 7 天 20:30 的提醒（测试题目）。这里发一次 enabled:false，
+        // 原生移除本 App 排下的全部提醒（下次正常启动时，若用户自己开着提醒，页面会按自己的设置重新排）。不碰 localStorage。
+        if (STAGE === 'cleanup') {
+          step('cleanup');
+          await booted();
+          const settings = await import('/src/ui/screens/mine/settings.js');
+          const n = events().length;
+          const sent = settings.syncReminder({ enabled: false, hour: 20, minute: 30, permission: 'granted' });
+          const synced = await nativeEvent('syncReminder', n);
+          await sleep(1500); // 原生 getPending → removePending 是异步的
+          result.cleanup = { sent, enabled: synced.detail.enabled, plannedDays: synced.detail.plannedDays };
           finish();
           return;
         }

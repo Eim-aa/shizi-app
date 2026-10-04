@@ -9,8 +9,8 @@ RESULT_TIMEOUT="${RESULT_TIMEOUT:-180}"
 REMINDER_TARGET="${REMINDER_TARGET:-base:春}"
 REMOTE_RESULT="Documents/shizi-native-smoke.json"
 # 阶段顺序（validate-native-smoke.py STAGES）。restore 之后脚本用 SIGKILL 结束进程，再以 restorecheck 冷启动核对（Q32）；
-# measure 是 T1 的非触控测量（只记录数字，不判优劣）。只跑一部分：SMOKE_STAGES="restore measure"。
-SMOKE_STAGES="${SMOKE_STAGES:-main relaunch deeplink restore measure}"
+# measure 是 T1 的非触控测量（只记录数字，不判优劣）；cleanup 移除 main 真的排进系统的提醒。只跑一部分：SMOKE_STAGES="restore measure"。
+SMOKE_STAGES="${SMOKE_STAGES:-main relaunch deeplink restore measure cleanup}"
 sentinel_sequence=0
 
 read_xcconfig_value() {

@@ -7,7 +7,7 @@
 //                   最多邀请两次（首练结果页一次，没回应则下一次「今天的练习」结果页再一次，D46 ③；规则在 core/first-result.js inviteDecision）。
 //
 // data-testid：result-preview、
-//   result-invite（data-state = invite | accepted | denied）、result-invite-title、result-invite-body、result-invite-yes、result-invite-no、
+//   result-invite（data-state = invite | pending（点了「好」、系统权限弹窗还没回应，Q2-5）| accepted | denied）、result-invite-title、result-invite-body、result-invite-yes、result-invite-no、
 //   result-invite-accepted、result-invite-denied、result-invite-time（「改时间」按钮）、result-invite-time-input、result-invite-fail。
 
 import { html, useEffect, useState } from '../../../../vendor/ui.js';
@@ -76,7 +76,7 @@ export function inviteExample(session) {
 export function ReminderInvite({ store, settings, session, variant }) {
   const sessionId = session ? session.id : '';
   const show = inviteDecision({ settings, variant, sessionId }) === 'show';
-  const [phase, setPhase] = useState('wait'); // wait → invite → accepted | denied | gone
+  const [phase, setPhase] = useState('wait'); // wait → invite → (pending →) accepted | denied | gone
   const [editing, setEditing] = useState(false);
   const [failed, setFailed] = useState(false);
   const [evening, setEvening] = useState(false);
@@ -96,10 +96,15 @@ export function ReminderInvite({ store, settings, session, variant }) {
   // 点「好」之后系统权限被拒（原生回 permission = denied）：变成一行说明，以后不再问
   const remind = settingsView(settings).remind;
   useEffect(() => {
-    if (phase !== 'accepted' || remind.permission !== 'denied' || !store) return;
+    if ((phase !== 'accepted' && phase !== 'pending') || remind.permission !== 'denied' || !store) return;
     commitInviteAnswer(store, 'denied');
     setEditing(false);
     setPhase('denied');
+  }, [phase, remind.permission]);
+  // Q2-5（复测 simB D6，交接 §4.6）：点「好」后系统权限弹窗还没回应时（权限还是「未知」且这次真的发出了请求），块保持原状、按钮不可再点；
+  // 原生回报授权结果（shiziReminderStatus → settings.remind.permission 变成 granted / denied）后才换成「好，明天…」或拒绝说明。
+  useEffect(() => {
+    if (phase === 'pending' && remind.permission === 'granted') setPhase('accepted');
   }, [phase, remind.permission]);
 
   if (phase === 'wait' || phase === 'gone') return null;
@@ -118,7 +123,7 @@ export function ReminderInvite({ store, settings, session, variant }) {
     }
     setFailed(false);
     commitInviteAnswer(store, 'yes');
-    setPhase('accepted');
+    setPhase(r.requested && remind.permission === 'unknown' ? 'pending' : 'accepted');
   };
   const decline = () => {
     commitInviteAnswer(store, 'no');
@@ -153,13 +158,14 @@ export function ReminderInvite({ store, settings, session, variant }) {
     </div>`;
   }
   const example = inviteExample(session);
-  return html`<div class="sz-invite sz-invite--in" data-testid="result-invite" data-state="invite">
+  const waiting = phase === 'pending';
+  return html`<div class="sz-invite sz-invite--in" data-testid="result-invite" data-state=${waiting ? 'pending' : 'invite'} aria-busy=${waiting ? 'true' : null}>
     <p class="sz-invite__title" data-testid="result-invite-title">${t(evening ? 'X-INVITE.titleEvening' : 'X-INVITE.title')}</p>
     <p class="sz-invite__body" data-testid="result-invite-body">${example ? t('X-INVITE.body', example) : t('X-INVITE.bodyPlain')}</p>
     ${failed ? html`<p class="sz-invite__note" data-testid="result-invite-fail" aria-live="polite">${t('X-SETTINGS.saveFailed')}</p>` : null}
     <div class="sz-invite__acts">
-      <${Button} variant="secondary" data-testid="result-invite-yes" onClick=${accept}>${t('X-INVITE.yes')}</${Button}>
-      <${Button} variant="text" data-testid="result-invite-no" onClick=${decline}>${t('X-INVITE.no')}</${Button}>
+      <${Button} variant="secondary" data-testid="result-invite-yes" disabled=${waiting} onClick=${accept}>${t('X-INVITE.yes')}</${Button}>
+      <${Button} variant="text" data-testid="result-invite-no" disabled=${waiting} onClick=${decline}>${t('X-INVITE.no')}</${Button}>
     </div>
   </div>`;
 }

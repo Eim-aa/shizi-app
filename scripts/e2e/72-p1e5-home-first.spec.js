@@ -286,13 +286,20 @@ export default async function run(page, ctx) {
   step('点「好」: 才请求系统权限；一次 commit 开提醒（9:30）；一行「好，明天 9:30 给你一个词。」；改时间');
   await page.evaluate(() => { window.__nativeMsgs.length = 0; });
   await page.click(topSel('result-invite-yes'));
-  await waitInvite(page, 'accepted');
+  // Q2-5（复测 simB D6）：系统权限弹窗还没回应时不能先写「好，明天…」——先是等待态（块保持原状、按钮不可再点），原生回报授权结果后才换成文案。
+  await waitInvite(page, 'pending');
   r = await resultView(page);
-  assert.equal(r.invite.accepted, '好，明天 9:30 给你一个词。');
+  assert.equal(r.invite.accepted, null, 'no 「好，明天…」 before the system answers');
+  assert.equal(r.invite.title, '明天这个时候，给你一个词？', 'the block keeps its look while waiting');
+  assert.equal(await page.evaluate(() => document.querySelector('.sz-layer[data-top="true"] [data-testid="result-invite-yes"]').disabled), true, 'buttons are disabled while waiting');
   st = await stateOf(page);
   assert.deepEqual([st.settings.remind.enabled, st.settings.remind.hour, st.settings.remind.minute, st.settings.remindInvite.answered], [true, 9, 30, 'yes']);
   const msgs = (await nativeMessages(page)).map(m => m.type).filter(x => !['backGestureEnabled', 'haptic', 'sound'].includes(x));
   assert.deepEqual(msgs, ['requestReminderPermission', 'syncReminder'], 'permission requested only now, then synced');
+  await page.evaluate(() => window.shiziReminderStatus({ permission: 'granted' }));
+  await waitInvite(page, 'accepted');
+  r = await resultView(page);
+  assert.equal(r.invite.accepted, '好，明天 9:30 给你一个词。');
   await page.waitForTimeout(PRESS_SETTLE_MS);
   await page.click(topSel('result-invite-time'));
   await page.fill(topSel('result-invite-time-input'), '21:15');
@@ -404,9 +411,9 @@ export default async function run(page, ctx) {
   r = await resultView(page);
   assert.equal(r.invite.title, '明天晚上八点半，给你一个词？', '23:40 is outside 7:00–22:00 → 20:30 wording');
   await page.click(topSel('result-invite-yes'));
-  await waitInvite(page, 'accepted');
+  await waitInvite(page, 'pending');
   r = await resultView(page);
-  assert.equal(r.invite.accepted, '好，明天 20:30 给你一个词。');
+  assert.equal(r.invite.accepted, null, 'Q2-5: nothing claimed while the system dialog is up');
   await page.evaluate(() => window.shiziReminderStatus({ permission: 'denied' }));
   await waitInvite(page, 'denied');
   r = await resultView(page);

@@ -1,19 +1,20 @@
 // 习字 tab 根页 · 首页（02 M2-1；阶段 1 P1-E5 按设计稿「首练与首页」重排：D43 首页方案 B、D46 ①②④；R-H01–R-H07、R-H11；
 // 阶段 1 E9a 按减法修稿 D49 修订：实现交接 §1 / §2.4）。自注册，无中心路由表。
 //
-// 版式（D49；位置不动，只换内容）：
+// 版式（D49；H1 / D51 ④ 起日常状态不放品牌「拾」，字帖行贴着主按钮成组）：
 //   日期行（13 墨三，R-H02）→ 题记一行（日期下 2：宋 13 墨三，「心不厌精，手不忘熟。」+ 8 + 出处作者名，单行不折，不带印；AX1–AX5 隐藏，
-//   读屏把它作为标题的补充读出：h1 aria-describedby）→ 标题「今天写几个字」（宋 28，题记下 10）→ 字帖位（在标题与主按钮之间光学居中，
-//   区域底留 6% 内边）→ 固定位置的墨色主按钮（宽 240 居中，距 Tab 栏上沿 119，D43）→ 文字按钮「自己选字」。同屏字号 13 / 17 / 28 三级。
+//   读屏把它作为标题的补充读出：h1 aria-describedby）→ 标题「今天写几个字」（宋 28，题记下 10）→ 字帖位（日常状态：贴着主按钮放，字帖块——含它下面的
+//   说明句——底边到主按钮 32，上面是空纸；首次打开的品牌「拾」仍在标题与主按钮之间光学居中，区域底留 6% 内边）→ 固定位置的墨色主按钮
+//   （宽 240 居中，距 Tab 栏上沿 119，D43）→ 文字按钮「自己选字」（黑体 15 ink2 无下划线，H1）。同屏字号 13 / 15 / 17 / 28。
 //   首页没有朱色（题记不带印；不画写错朱点，D46 ①）；首页不画任何计数（「这一组还有 N 个字」「字库里有 N 个字了 ›」删去，D49-7：
 //   计数只进读屏标签），只在今天写的字多于 8 个时留一行「今天写了 N 个字」。字帖格只有外框与格间两种线，空格就是笺面（copybook.js）。
-//   五态（today.js homeViewOf，03 P155）：
-//     fresh     今天还没写：字帖位 = 书家「拾」，下面没有字；
+//   五态（today.js homeViewOf，03 P155；字帖位放什么见 heroOf，03 P220）：
+//     fresh     今天还没写：字帖位 = 本人最近写的 3 个字（本人墨，取每字最近一次仍留有墨的那条，recent.js），下面没有字；没有可显示的墨（清空过记录）才放品牌「拾」；
 //     today     今天写过：字帖位 = 今天写的字（本人笔迹），n > 8 才有一行「今天写了 N 个字」，主按钮「再写一组」；
 //     progress  有进行中的组：这一组的格子（写过的有墨，没写的是空笺面），主按钮「继续写字」；读屏名称「这一组还有 N 个字」；
-//     special   大写数字特别组那天（D40）：一句提示 + 文字按钮「这次先写平常的字」（点了顺延，D46 ④，session-start.deferSpecial）；
-//     back      离开 ≥7 天回来（D41）：书家「拾」，「你写过的 N 个字都还在。」，不提缺了几天。
-//   首次打开（first）：书家「拾」+ 竖排题跋三列 + 一枚印，没有日期和标题；主按钮「开始写字」，下面「先写三个大家常忘的字。」；
+//     special   大写数字特别组那天（D40）：字帖位同上（写过 = 今天的字，没写 = 最近写的字）+ 一句提示 + 文字按钮「这次先写平常的字」（点了顺延，D46 ④，session-start.deferSpecial）；
+//     back      离开 ≥7 天回来（D41）：字帖位 = 最近写的字，「你写过的 N 个字都还在。」，不提缺了几天。
+//   首次打开（first，品牌「拾」只在这里与没有可显示的墨时出现）：品牌「拾」+ 竖排题跋三列 + 一枚印，没有日期和标题；主按钮「开始写字」，下面「先写三个大家常忘的字。」；
 //     不显示「自己选字」，首练完成后出现（D46 ②）。品牌时刻 ≤1.8s：题跋逐字淡入 → 印 → 按钮；点任意处立即静帧，「减少动态效果」直接静帧。
 //     （印的触觉与动效编排属阶段 2；测试宿主默认不放动画，URL 加 brand=1 才放。）AX1–AX5：题跋改横排三行（一行一句，宋 13 档，
 //     「拾」缩到 120，印跟在末句后，主按钮满宽，说明句在按钮下 4），不放品牌动画（静帧）。
@@ -33,7 +34,7 @@
 // data-testid：screen-home（data-view / data-hero / data-records / data-resume / data-period / data-compact / data-today / data-ax）、home-date、
 //   home-epigraph（data-index）、home-title、home-start、home-first-tip（首次打开按钮下一行）、home-first（首次打开字帖位 + 题跋）、
 //   home-motto、home-seal、home-brand-shi、home-zone（读屏 group：字库计数）、home-today-count（只在 n > 8 时有）、home-ink-row / home-ink-item
-//   （今天写的字）、home-progress（data-slot / data-kind / data-remaining，读屏名称含剩余字数）/ home-cell、other-line（data-slot）、
+//   （今天写的字）、home-recent-row / home-recent-item（最近写的字，不是按钮）、home-progress（data-slot / data-kind / data-remaining，读屏名称含剩余字数）/ home-cell、other-line（data-slot）、
 //   home-back-note、home-capital-hint（data-kind = capital1 | capital2；含 home-capital-body）、
 //   home-capital-defer、home-pick、home-start-fail（+ -cancel / -retry）；测试宿主另有 demo-push、write-test-entry（开发入口，不是用户文案）。
 
@@ -91,8 +92,9 @@ injectStyles('home', `
 .sz-home__title{margin:10px 0 0;font-family:${T.song};font-weight:500;font-size:${T.fs28};
   line-height:${T.lh28};color:${T.ink1};text-wrap:balance}
 .sz-home__title:focus{outline:none}
-.sz-home__zone{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  padding:0 0 calc(6% + 2.4px)} /* 字帖块在标题与主按钮之间光学居中：区域底留整屏宽的 6%（百分比按内容宽算，内容宽 = 屏宽 − 40，故 + 40 × 6% = 2.4px），视觉略偏上（D49） */
+.sz-home__zone{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
+  padding:0 0 ${T.s8}} /* 日常状态：字帖行贴着主按钮成组，字帖块底边（含它下面的说明句）到按钮 32（H1 / D51 ④、T2-09；主按钮仍固定在 Tab 栏上 119，D43），上面是空纸 */
+.sz-home--first .sz-home__zone{justify-content:center;padding:0 0 calc(6% + 2.4px)} /* 首次打开：品牌「拾」在标题与主按钮之间光学居中：区域底留整屏宽的 6%（百分比按内容宽算，内容宽 = 屏宽 − 40，故 + 40 × 6% = 2.4px），视觉略偏上（D49） */
 .sz-home__block{display:flex;flex-direction:column;align-items:center;max-width:100%}
 .sz-home__gap{flex:none;height:16px}
 .sz-home__line{margin:0;text-align:center;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3};text-wrap:balance}
@@ -380,7 +382,7 @@ function FirstOpen({ width, compact, ax }) {
 }
 
 /**
- * AX 档字帖位可用高度（实现交接 §1.4）：Tab 面板高 − 页头（日期 / 题记 / 标题）− 按钮区 − 区域底内边（6% 宽）。
+ * AX 档字帖位可用高度（实现交接 §1.4；H1 起区域底内边是字帖块到主按钮的 32）：Tab 面板高 − 页头（日期 / 题记 / 标题）− 按钮区 − 32。
  * 只在 AX 档量；量不到（挂载前、没有面板）返回 0 = 不缩。页头 / 按钮区的高度与字帖位无关，不会回环。
  */
 function useTieAvail(rootRef, headRef, footRef, active) {
@@ -397,7 +399,7 @@ function useTieAvail(rootRef, headRef, footRef, active) {
       const head = headRef.current ? headRef.current.offsetHeight : 0;
       const foot = footRef.current ? footRef.current.offsetHeight : 0;
       const top = parseFloat(getComputedStyle(root).paddingTop) || 0;
-      const next = Math.max(0, Math.floor(panel.clientHeight - top - head - foot - root.clientWidth * 0.06));
+      const next = Math.max(0, Math.floor(panel.clientHeight - top - head - foot - 32)); // 32 = 字帖块到主按钮的间距（H1）
       setAvail(prev => (prev === next ? prev : next));
     };
     read();
@@ -499,8 +501,19 @@ function HomeScreen() {
           ? html`<div class="sz-home__gap"></div><p class="sz-home__line" data-testid="home-today-count">${t('R-H07.todayCount', { n: model.count })}</p>`
           : null}
     </div>`;
+  } else if (model.hero === 'recent') {
+    // 今天还没写 / 离开一周 / 特别组那天还没写：本人最近写的几个字（H1 / D51 ④），不放品牌字；下面按状态一句话
+    const cells = model.recentRow.map((r, i) => ({ index: i, state: 'ink', record: r }));
+    const size = sizeOf(cells.length, tieCellSize(cells.length, b));
+    zone = html`<div class="sz-home__block" data-testid="home-zone" ...${blockProps}>
+      <${HomeTie} cells=${cells} size=${size} kind="recent" count=${cells.length} getInk=${getInk}
+        label=${t('X-HOME.recentRowLabel', { chars: model.recentRow.map(r => `「${r.char}」`).join('') })} />
+      ${view === 'special' ? html`<div class="sz-home__gap"></div><${CapitalHint} kind=${model.capital} />` : null}
+      ${view === 'back' ? html`<div class="sz-home__gap"></div>
+        <p class="sz-home__line" data-testid="home-back-note">${t('X-HOME.backNote', { n: model.libraryCount })}</p>` : null}
+    </div>`;
   } else {
-    // shi：书家「拾」
+    // shi：品牌「拾」——只在没有任何可显示的本人墨时（首次打开走 FirstOpen）
     zone = html`<div class="sz-home__block" data-testid="home-zone" ...${blockProps}>
       <${BrandShi} size=${sizeOf(1, shiCellSize(b))} />
       ${view === 'special' ? html`<div class="sz-home__gap"></div><${CapitalHint} kind=${model.capital} />` : null}
@@ -511,7 +524,7 @@ function HomeScreen() {
 
   const demo = getScreen(DEMO_SCREEN);
   const testHost = isTestHost();
-  const classes = ['sz-home', compact ? 'sz-home--compact' : '', brand ? 'sz-home--brand' : ''].filter(Boolean).join(' ');
+  const classes = ['sz-home', compact ? 'sz-home--compact' : '', brand ? 'sz-home--brand' : '', view === 'first' ? 'sz-home--first' : ''].filter(Boolean).join(' ');
 
   return html`<section ref=${rootRef} class=${classes} data-testid="screen-home" data-view=${view} data-hero=${model.hero}
     data-records=${model.records} data-resume=${model.resume} data-period=${model.period} data-compact=${compact ? 'true' : 'false'}

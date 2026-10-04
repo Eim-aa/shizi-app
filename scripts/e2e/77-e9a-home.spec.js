@@ -170,13 +170,10 @@ export default async function run(page, ctx) {
           const want = size === 'AX5' ? (m.hasTextBtn ? [44, 49, 53, 58] : [44, 53, 58]) : (m.hasTextBtn ? [13, 15, 17, 28] : [13, 17, 28]);
           assert.deepEqual(m.sizes, want, `${t}: same-screen font sizes = ${want.join(' / ')} (text buttons are 15; AX5 per the tier table)`);
 
-          // 6 光学居中
-          const padW = size === 'AX5' ? null : m.width * 0.06;
+          // 6 字帖块与主按钮成组（H1 / D51 ④）：字帖块（含它下面的说明句）底边到主按钮 32、贴着按钮放（首次打开在上面已处理）
           if (size !== 'AX5') {
-            assert.ok(approx(m.zonePadBottom, padW, 1), `${t}: zone bottom padding 6% of the width (${m.zonePadBottom} ≈ ${padW})`);
-            const center = m.block.y + m.block.h / 2;
-            const expect = m.zone.y + (m.zone.h - m.zonePadBottom) / 2;
-            assert.ok(approx(center, expect, 1), `${t}: copybook block centred between the title and the button (centre ${center} vs ${expect})`);
+            assert.ok(approx(m.zonePadBottom, 32, 0.5), `${t}: zone bottom padding 32 (${m.zonePadBottom})`);
+            assert.ok(approx(m.start.y - m.block.b, 32, 1), `${t}: 32 between the copybook block and the main button (${m.start.y - m.block.b})`);
             assert.ok(m.block.y >= m.title.b - 0.5 && m.block.b <= m.start.y + 0.5, `${t}: block sits between the title and the main button`);
           }
 

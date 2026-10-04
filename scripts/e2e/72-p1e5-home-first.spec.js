@@ -460,11 +460,11 @@ export default async function run(page, ctx) {
   const check = (name, view) => { rects[name] = { start: view.startRect, title: view.titleRect, date: view.dateRect, epi: view.epiRect }; };
   const dayCells = chars => chars.map((c, i) => ({ char: c, at: `${D(4)}T20:0${i}:00` }));
 
-  step('五态 ①今天还没写: 书家「拾」，字帖位下没有字（D49：删「昨天写的字」与「字库里有 N 个字了 ›」）；题记一行横排小字不带印；按钮「开始写字」；有「自己选字」');
+  step('五态 ①今天还没写: 字帖位是本人最近写的 3 个字（H1 / D51 ④：日常状态不放品牌「拾」；D49：删「昨天写的字」与「字库里有 N 个字了 ›」）；题记一行横排小字不带印；按钮「开始写字」；有「自己选字」');
   await seedWorld(page, { entries: dayCells([...'疆酱肆酝春']), clock: `${D(5)}T09:30:00` });
   h = await homeView(page);
-  assert.deepEqual([h.view, h.hero, h.cta, h.pick, h.date, h.title], ['fresh', 'shi', '开始写字', '自己选字', '10 月 5 日 · 早上', '今天写几个字']);
-  assert.equal(h.brandShi, '拾');
+  assert.deepEqual([h.view, h.hero, h.cta, h.pick, h.date, h.title], ['fresh', 'recent', '开始写字', '自己选字', '10 月 5 日 · 早上', '今天写几个字']);
+  assert.equal(h.brandShi, null, 'H1 / D51 ④: no brand 拾 frame in the everyday states');
   assert.deepEqual(h.removedNodes, [], 'D49: no 「昨天写的字」 row, no library link, no resume line, no capital lead / back-old line in the DOM');
   assert.ok(!/昨天写的字|上次写的字|字库里有|这一组/.test(h.visibleText), `D49-7: nothing countable is drawn on the home page: ${h.visibleText}`);
   assert.equal(h.libraryLabel, '字库里有 5 个字了', 'D49-7: the library count lives only in the screen-reader name of the copybook block');
@@ -526,7 +526,8 @@ export default async function run(page, ctx) {
   h = await homeView(page);
   assert.deepEqual([h.view, h.capBody, h.defer, h.pick, h.cta], ['special', '今天写两组大写数字，借条、红包上用得着。', '这次先写平常的字', null, '开始写字']);
   assert.deepEqual(h.removedNodes, [], 'the lead sentence node is gone');
-  assert.equal(h.brandShi, '拾');
+  assert.equal(h.brandShi, null, 'H1 / D51 ④: the special day with nothing written yet shows the recent chars, not the brand 拾');
+  assert.equal(h.hero, 'recent');
   check('special', h);
   await page.click(tid('home-capital-defer'));
   // Q2-2（simB D3，交接 §1.2）：点了即开始一组普通练习（不再只顺延回首页）。旧断言「回到普通首页再点开始写字」改成「直接进写字页」。
@@ -551,10 +552,10 @@ export default async function run(page, ctx) {
   assert.deepEqual([h.view, h.hero, h.cta, h.capBody, h.todayCount, h.defer], ['special', 'today', '再写一组', '今天写两组大写数字，借条、红包上用得着。', null, '这次先写平常的字']);
   assert.deepEqual(h.inkItems.map(i => i.char), ['壹'], 'today’s char is the hero');
 
-  step('五态 ⑤离开 ≥7 天回来: 书家「拾」；一句「你写过的 N 个字都还在。」（D49 删「上次写的字」行与「这一组先写写旧字。」）；不提缺了几天');
+  step('五态 ⑤离开 ≥7 天回来: 本人最近写的字（H1 / D51 ④，不放品牌「拾」）；一句「你写过的 N 个字都还在。」（D49 删「上次写的字」行与「这一组先写写旧字。」）；不提缺了几天');
   await seedWorld(page, { entries: [...'醋膝屉鼎窗'].map((c, i) => ({ char: c, at: `2026-09-2${i}T20:00:00` })), clock: `${D(14)}T09:30:00` });
   h = await homeView(page);
-  assert.deepEqual([h.view, h.hero, h.cta, h.pick, h.backNote], ['back', 'shi', '开始写字', '自己选字', '你写过的 5 个字都还在。']);
+  assert.deepEqual([h.view, h.hero, h.cta, h.pick, h.backNote], ['back', 'recent', '开始写字', '自己选字', '你写过的 5 个字都还在。']);
   assert.deepEqual(h.removedNodes, [], 'no last-written row, no 「这一组先写写旧字。」');
   assert.ok(!/缺|断|好久不见|天没/.test(h.zoneText + (h.backNote || '')), 'does not mention how many days were missed: ' + h.zoneText);
   check('back', h);

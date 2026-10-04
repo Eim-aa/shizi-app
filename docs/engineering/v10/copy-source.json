@@ -2970,6 +2970,13 @@
           "note": "首页今天写的字的读屏名称（D49-7：首页不再画「今天写了 N 个字」，n ≤ 8 时计数只进读屏标签；n 照实，不含正在写的组；格子本身是图）；原「今天有记录的字：{chars}」加上计数",
           "decision": "P55"
         },
+        "recentRowLabel": {
+          "raw": null,
+          "text": "你最近写的字：{chars}",
+          "origin": "extra",
+          "note": "H1 / D51 ④：首页今天还没写、离开一周回来时，字帖位放本人最近写的几个字，读屏名称（格子本身是图；字用「」括起，同 inkRowLabel）",
+          "decision": "P220"
+        },
         "startFailed": {
           "raw": null,
           "text": "没保存上，刚才的选择没记下。",

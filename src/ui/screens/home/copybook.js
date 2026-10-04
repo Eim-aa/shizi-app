@@ -3,7 +3,8 @@
 //   BrandShi        品牌「拾」放在字帖格里（无记录时的字帖位）。字形是 ui/brand/shi.js 的矢量「拾」（拾字自绘 A1 骨架精修，不取自任何字体；
 //                   整字一色墨，--hand，D33），内联 SVG、currentColor；尺寸 --cell / 框 / 读屏名称（role=img + aria-label）不变。
 //                   TODO(资产)：书家实写的「拾」到位后只换 ui/brand/shi.js 的路径数据（06 P1-D2）。
-//   HomeTie         一排（或两行四列）字帖格：今天写的字（本人笔迹，首页不画朱点，D46 ①）/ 进行中这一组的格子（写过的有墨，没写的是空笺面）。
+//   HomeTie         一排（或两行四列）字帖格：今天写的字（本人笔迹，首页不画朱点，D46 ①）/ 进行中这一组的格子（写过的有墨，没写的是空笺面）/
+//                   本人最近写的几个字（kind 'recent'，今天还没写 / 离开一周回来时的字帖位，H1 / D51 ④；不是按钮）。
 //                   D49：字帖格只用两种线——外框 frameW frame + 格间 guideW guide（实线）；空格就是笺面，不画十字参照线，
 //                   也不画下一格的 targetFrame（与结果页作品格同一画法）。
 //
@@ -11,7 +12,7 @@
 // AX 档（axTieCellSize）：格宽按剩余高度重算，下限 44（整页可滚，实现交接 §1.4）。
 // 墨线宽补偿（格越小笔画越粗）暂未做：InkMini 按格宽等比缩放笔画，设计稿的补偿表是按示意笔迹估的，等真笔模型（V01 / T2）出来后按真墨调。
 //
-// data-testid：home-brand-shi、home-ink-row（今天写的字，data-count；登记了「今天的记录」去处时是 <button>）、home-ink-item
+// data-testid：home-brand-shi、home-recent-row / home-recent-item（最近写的字，同 home-ink-item 的 data-*）、home-ink-row（今天写的字，data-count；登记了「今天的记录」去处时是 <button>）、home-ink-item
 //   （data-char / data-record / data-judgment / data-ink）、home-progress（这一组的格子）、home-cell（data-state = done | passed | next | empty、
 //   data-index、data-char 只有 done 才有；next / empty 只是数据标记，画出来都是空笺面）。
 
@@ -116,10 +117,10 @@ export function HomeTie({ cells, size, kind, count = 0, label = '', getInk, attr
     const lastCol = (i + 1) % cols === 0 || i === n - 1;
     const lastRow = Math.floor(i / cols) === rows - 1;
     const common = { 'data-lastcol': lastCol ? 'true' : 'false', 'data-lastrow': lastRow ? 'true' : 'false', 'data-state': cell.state };
-    if (kind === 'today') {
+    if (kind === 'today' || kind === 'recent') {
       const points = rec ? recordInkPoints(rec, getInk) : null;
-      return html`<span key=${rec ? rec.id : i} class="sz-hcell" ...${common} data-testid="home-ink-item" data-char=${rec.char} data-record=${rec.id}
-        data-judgment=${rec.judgment} data-ink=${points && points.length ? 'ink' : 'none'}>
+      return html`<span key=${rec ? rec.id : i} class="sz-hcell" ...${common} data-testid=${kind === 'recent' ? 'home-recent-item' : 'home-ink-item'}
+        data-char=${rec.char} data-record=${rec.id} data-judgment=${rec.judgment} data-ink=${points && points.length ? 'ink' : 'none'}>
         <${CellInk} record=${rec} getInk=${getInk} />
       </span>`;
     }
@@ -133,7 +134,8 @@ export function HomeTie({ cells, size, kind, count = 0, label = '', getInk, attr
     return html`<${Button} variant="plain" class="sz-htie sz-htie--btn" style=${style} data-testid="home-ink-row" data-count=${count}
       aria-label=${label} onClick=${() => action()}>${items}</${Button}>`;
   }
-  return html`<div class="sz-htie" style=${style} role="img" aria-label=${label} data-testid=${kind === 'today' ? 'home-ink-row' : 'home-progress'}
+  const testid = kind === 'today' ? 'home-ink-row' : kind === 'recent' ? 'home-recent-row' : 'home-progress';
+  return html`<div class="sz-htie" style=${style} role="img" aria-label=${label} data-testid=${testid}
     data-count=${count} ...${attrs || {}}>${items}</div>`;
 }
 

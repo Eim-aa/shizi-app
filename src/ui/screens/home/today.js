@@ -29,6 +29,7 @@ import { hasInkOfState } from '../../../core/ink-pick.js';
 import { workMembers } from '../../../core/work-members.js';
 import { remainingCount } from '../../../core/sessions.js';
 import { aStartInfo, planSpecial, recordsOf, resumableSession } from '../../../core/session-start.js';
+import { recentInkRow } from './recent.js';
 
 /** 今天写的字最多几项（决定-D12：N ≤ 8 显示 N 项，N > 8 显示最近判断的 8 项，数字仍为 N；设计稿 §三：8 个字以内一行或两行四列）。 */
 export const INK_ROW_MAX = 8;
@@ -96,15 +97,21 @@ export function homeViewOf({ records, resume, capital, gapDays }) {
 }
 
 /**
- * 字帖位放什么：'shi'（书家「拾」）/ 'today'（今天写的字）/ 'progress'（这一组的格子）。
+ * 字帖位放什么（H1 / D51 ④，03 P220）：'progress'（这一组的格子）/ 'today'（今天写的字）/ 'recent'（本人最近写的几个字）/ 'shi'（品牌「拾」）。
+ * 日常状态不放品牌字：今天写过 = 今天的字；今天还没写、离开一周、特别组那天还没写 = 最近写的字（recentCount > 0）；
+ * 品牌「拾」只在首次打开（view 'first'）与没有任何可显示的本人墨时（recentCount = 0，例如清空过记录）出现。
  * 特别组那天已经写过字时字帖位照常放今天的字（设计稿 §四 ④）。
  */
-export function heroOf(view, records) {
+export function heroOf(view, records, recentCount = 0) {
   if (view === 'progress') return 'progress';
   if (view === 'today') return 'today';
-  if (view === 'special') return records === 'record' ? 'today' : 'shi';
-  return 'shi';
+  if (view === 'first') return 'shi';
+  if (view === 'special' && records === 'record') return 'today';
+  return recentCount > 0 ? 'recent' : 'shi';
 }
+
+/** 今天还没写 / 离开一周回来时，字帖位放本人最近写的几个字（H1 / D51 ④，03 P220）：一行三格，与 1–3 字的字帖行同一档格宽。 */
+export const RECENT_ROW_MAX = 3;
 
 /** 进行中的组最多画几格（设计稿：1–3 / 4 / 5 / 6–8 字五档格宽；更长的组只画包含当前字的 8 格）。 */
 export const PROGRESS_MAX = 8;
@@ -156,9 +163,10 @@ export function todayWorkRow(state, records, today, limit = INK_ROW_MAX, { hasIn
  * 首页全部派生数据。
  * @param {object|null} state  store 状态（未启动时 null → 按空状态算）
  * @param {number} nowMs       应用时钟（platform/env.js now()，测试钩子 setClock 可平移）
- * @param {{deck?: object}} [o] deck = 选字用的题库适配器（data/deck.js deckAdapter）；缺省不算大写数字特别组（capital 恒为 null）
+ * @param {{deck?: object, hasInk?: (record:object)=>boolean}} [o] deck = 选字用的题库适配器（data/deck.js deckAdapter）；缺省不算大写数字特别组（capital 恒为 null）；
+ *   hasInk = 这条记录有没有留着本人的墨（最近写的字只取有墨的）；缺省按 state.ink 里存下的墨迹查（core/ink-pick hasInkOfState）
  */
-export function homeModel(state, nowMs, { policy = defaultPolicy, inkRowMax = INK_ROW_MAX, deck = null } = {}) {
+export function homeModel(state, nowMs, { policy = defaultPolicy, inkRowMax = INK_ROW_MAX, deck = null, hasInk = null } = {}) {
   const today = localDay(nowMs);
   const records = recordsOf(state);
   const count = todayCount(records, today);
@@ -171,9 +179,13 @@ export function homeModel(state, nowMs, { policy = defaultPolicy, inkRowMax = IN
   const lastDay = lastJudgedDayOf(records);
   const gapDays = lastDay === null ? null : diffDays(lastDay, today);
   const view = homeViewOf({ records: recordsState, resume, capital, gapDays });
-  const inkRow = view === 'progress' ? [] : todayWorkRow(state, records, today, inkRowMax);
-  // 今天只写错了（作品成员为空）时字帖位没有字可放：退回书家「拾」，不画空字帖
-  const hero = heroOf(view, recordsState) === 'today' && !inkRow.length ? 'shi' : heroOf(view, recordsState);
+  const inkRow = view === 'progress' ? [] : todayWorkRow(state, records, today, inkRowMax, { hasInk: typeof hasInk === 'function' ? hasInk : null });
+  // 字帖位：日常状态不放品牌「拾」（H1 / D51 ④）。今天还没写 / 离开一周 / 特别组那天还没写 → 本人最近写的几个字；
+  // 今天只写错了（作品成员为空）时同样没有今天的字可放，也退回最近写的字；没有可显示的墨才退回品牌字
+  const todayEmpty = (view === 'today' || (view === 'special' && recordsState === 'record')) && !inkRow.length;
+  const needsRecent = view === 'fresh' || view === 'back' || (view === 'special' && recordsState !== 'record') || todayEmpty;
+  const recentRow = needsRecent ? recentInkRow(records, { limit: RECENT_ROW_MAX, hasInk: typeof hasInk === 'function' ? hasInk : hasInkOfState(state) }) : [];
+  const hero = todayEmpty ? (recentRow.length ? 'recent' : 'shi') : heroOf(view, recordsState, recentRow.length);
   const primarySession = primary ? resumableSession(state, primary.slot, { now: nowMs, policy }) : null;
   return {
     today,
@@ -186,6 +198,7 @@ export function homeModel(state, nowMs, { policy = defaultPolicy, inkRowMax = IN
     other,
     count,
     inkRow: hero === 'today' ? inkRow : [],
+    recentRow: hero === 'recent' ? recentRow : [],
     showRecord,
     showFirstTip: recordsState === 'first' && !resumeOn,
     capital,

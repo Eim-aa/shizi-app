@@ -39,7 +39,8 @@
     "{kuan}": "分张前的落款（X-WORK.kuanJoinPart 内部）",
     "{part}": "分张序号（其一 / 其二，X-WORK.kuanPart）",
     "{ymd}": "本地日 YYYY-MM-DD（备份文件名 X-BACKUP.fileName）",
-    "{text}": "一段现成文案（X-FIRST.laterGroup / laterSame：「明天再见」「3 天后再见」）"
+    "{text}": "一段现成文案（X-FIRST.laterGroup / laterSame：「明天再见」「3 天后再见」）",
+    "{label}": "字库页「写错过 / 快忘了」块名（X-LIBHOME.practiceAria 读屏名称里复用）"
   },
   "normalization": [
     "{M} 月 {D} 日、{9 月 24 日} 这类日期、裸「M 月 D 日」、{日期} → {date}",

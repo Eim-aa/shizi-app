@@ -41,6 +41,7 @@ export default Object.freeze({
   'X-WORK.pageAria': '第 {k} 张，共 {m} 张',
   // 落款（纸面汉字，由 ui/work-text.js kuan() 拼接；界面里的月份写「10 月」，数字与「月」之间留空格——落款里全是汉字、不留空格，T2-04）
   'X-WORK.kuanCount': '{n}字',
+  'X-WORK.kuanCountPicked': '自选{n}字',
   'X-WORK.kuanJoin': '{date}　{n}',
   'X-WORK.kuanMonthDay': '{month}月{day}日',
   'X-WORK.kuanPart': '其{n}',

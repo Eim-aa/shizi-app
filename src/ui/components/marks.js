@@ -14,7 +14,7 @@ import { injectStyles, T } from './styles.js';
 export const MARK_CSS = `
 .sz-lib__dot,.sz-lib__mark,.sz-drow__dot{flex:none;width:6px;height:6px;border-radius:50%;background:${T.zhu}}
 .sz-lib__dot{display:inline-block}
-.sz-rcell__res[data-wrong="true"]::before,.sz-dcell__cap[data-wrong="true"]::before{content:"";display:inline-block;flex:none;
+.sz-dcell__cap[data-wrong="true"]::before{content:"";display:inline-block;flex:none;
   width:6px;height:6px;margin-right:4px;border-radius:50%;background:${T.zhu};vertical-align:middle}
 .sz-home__seal,.sz-about__seal{position:relative;background:${T.seal};color:${T.onSeal}}
 .sz-home__seal::before,.sz-about__seal::before{content:"";position:absolute;inset:7%;pointer-events:none;

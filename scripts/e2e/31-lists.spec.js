@@ -44,8 +44,6 @@ const COPY = {
   forgetEmpty: '可能快忘了的字会放在这里。',
   leaveWrong: '回到写错过',
   leaveForget: '回到快忘了',
-  fromWrong: '从写错过',
-  fromForget: '从快忘了',
   todayCount: n => `今天写了 ${n} 个字`, // P1-E5：设计稿「今天写过」状态的说明句
   startFailed: '没保存上，刚才的选择没记下。',
 };
@@ -405,7 +403,7 @@ export default async function listsSpec(page, ctx) {
   await waitNavIdle(page);
   let r = await resultInfo(page);
   assert.equal(r.leave, COPY.leaveWrong, 'R-R06 leave 回到写错过');
-  assert.ok(r.date && r.date.endsWith(COPY.fromWrong), `S05 source line: ${r.date}`);
+  assert.equal(r.date, null, 'R2-R1: the picked result page has no source / date line any more (the date is in the work 落款)');
   await leaveResult(page);
   v = await listView(page);
   assert.deepEqual(v.rows.map(r2 => r2.char), ['和'], '永 left 写错过 (recomputed on return)');
@@ -449,7 +447,10 @@ export default async function listsSpec(page, ctx) {
   await writeAndJudge(page, 'wrong'); // 永（最后一字）→ 结果页
   await page.waitForSelector(topSel('result-screen'));
   await waitNavIdle(page);
-  await page.click(`${topSel('result-cell')}[data-index="1"]`);
+  // 第 2 个字：作品里有墨就点作品格，否则点「没放进图里」的行（作品版式，R2-R1）
+  const second = `${topSel('work-cell')}[data-index="1"]`;
+  if (await page.locator(second).count()) await page.click(second);
+  else await page.click(`${topSel('result-exrow')}[data-index="1"] [data-testid="result-exrow-open"]`);
   await page.waitForSelector(tid('result-sheet'));
   await waitNavIdle(page);
   await page.click(tid('result-sheet-flip'));
@@ -485,7 +486,7 @@ export default async function listsSpec(page, ctx) {
   await waitNavIdle(page);
   r = await resultInfo(page);
   assert.equal(r.leave, COPY.leaveForget, 'leave 回到快忘了');
-  assert.ok(r.date && r.date.endsWith(COPY.fromForget), `S05 source line: ${r.date}`);
+  assert.equal(r.date, null, 'R2-R1: no source / date line (the leave button still follows the source)');
   await leaveResult(page);
   v = await listView(page);
   assert.equal(v.title, COPY.titleForget, 'back on 快忘了');

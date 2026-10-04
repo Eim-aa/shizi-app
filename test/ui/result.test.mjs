@@ -9,8 +9,8 @@ import { skipInDraft, undoSkipInDraft } from '../../src/ui/screens/write/skip.js
 import { appendRecordToDraft } from '../../src/ui/screens/write/answer.js';
 import {
   resultModel, findResultSession, finishInDraft, commitFinish, commitLeave, correctResultInDraft, commitResultCorrection,
-  undoSkipFromResultInDraft, commitResultSkipUndo, canUndoSkipFromResult, handoffSkipUndo, takeSkipUndo, leaveOf, fromOf,
-  seenSkippedNote, seenCurrentItem, inkPresent, GRID_COLS,
+  undoSkipFromResultInDraft, commitResultSkipUndo, canUndoSkipFromResult, handoffSkipUndo, takeSkipUndo, leaveOf,
+  seenCurrentItem, inkPresent,
 } from '../../src/ui/screens/result/index.js';
 import { endInDraft, commitEndGroup, endConfirmCounts, canEndGroup, judgedCountOf, EndDialogContent } from '../../src/ui/screens/write/end.js';
 import { advance, createSession, endSlot } from '../../src/core/sessions.js';
@@ -109,11 +109,8 @@ test('resultModel daily: count by judged records, cells in order with captions, 
   ]);
   assert.deepEqual(m.cells.map(c => c.canChange), [true, false, true, false], 'only judged cells with fsrsBefore can change (K25)');
   assert.deepEqual(m.sub, [], 'no 「没算在内」 / 「点一个格子」 sentences on the daily page (交接 §5.1: 不写「没算在内」)');
-  assert.equal(seenSkippedNote(['和'], ['大']), '「和」看过答案，「大」跳过了，没算在内。', 'the P62 sentence helper itself is unchanged (picked page still uses it)');
-  assert.equal(m.cols, GRID_COLS.daily);
   assert.equal(m.again, true);
   assert.equal(m.leave.label, t('X-RESULT.leaveHome'));
-  assert.equal(m.dateLine, null, 'daily has no date line');
   // 作品成员（§4.2）：没有任何墨 → 作品为空（衬底一行变体），分享隐藏；每个字落在下面的行里
   assert.equal(m.work.empty, true);
   assert.equal(m.share, false, 'no ink at all → the share icon is hidden (§4.1)');
@@ -126,9 +123,6 @@ test('resultModel: P62 only-seen / only-skipped sentences; none → default note
   assert.equal(m.title, null);
   assert.equal(m.count, 0, 'nothing judged');
   assert.equal(m.share, false);
-  assert.equal(seenSkippedNote(['永', '和'], []), '「永」「和」看过答案，没算在内。');
-  assert.equal(seenSkippedNote([], ['和']), '「和」跳过了，没算在内。');
-  assert.equal(seenSkippedNote([], []), '');
 });
 
 test('resultModel first: header 第一次练习, 5 columns, date-only line (R-R03), 再写一组 (P1-E5), title is not a count (D28)', () => {
@@ -136,8 +130,6 @@ test('resultModel first: header 第一次练习, 5 columns, date-only line (R-R0
   const m = resultModel(ended(d, slot), { slot, sessionId: id });
   assert.equal(m.variant, 'first');
   assert.equal(m.header, t('X-RESULT.headerFirst'));
-  assert.equal(m.cols, 5);
-  assert.equal(m.dateLine, null, 'P1-E7: the date lives in the work 落款 now, not in a separate line');
   assert.equal(m.again, true, 'P1-E5 / D28: the first result page has 再写一组 (and 回到首页)');
   assert.equal(m.title, '这两个字，很多人提笔就忘。', 'V2-05: the title counts what the page shows (two chars here), it is not a fixed 「三」');
   assert.deepEqual(m.sub, [], 'no 「这次记录了 N 个字」/ grid-hint sentence under the first-practice title');
@@ -157,27 +149,29 @@ test('resultModel first: header 第一次练习, 5 columns, date-only line (R-R0
   assert.equal(resultModel(ended(daily.d, daily.slot), { slot: daily.slot, sessionId: daily.id }).title, null, 'daily has no title any more (P1-E7)');
 });
 
-test('resultModel picked: 写完了 / 先写到这里 (P14), bodyAll / bodyOne, early rest, S05 source line, leave by source (R-R06)', () => {
+test('resultModel picked (R2-R1 / V2-04 / T2-03): the same work layout as the daily page — no title, no note, no source line; only 「还有 N 个字没写」 when ended early; leave by source (R-R06)', () => {
   let { d, slot, id } = group({ kind: 'picked', chars: ['额', '鲜', '境'], steps: ['correct', 'wrong', 'skip'], source: { view: 'wrongList' } });
-  let m = resultModel(ended(d, slot), { slot, sessionId: id });
+  let m = resultModel(ended(d, slot), { slot, sessionId: id, hasInk: () => true });
   assert.equal(m.variant, 'picked');
-  assert.equal(m.header, t('R-R05.kicker'));
-  assert.deepEqual([m.kicker, m.title], ['这次选的字', '写完了']);
-  assert.deepEqual(m.sub, ['「额」「鲜」都记下了。', '「境」跳过了，没算在内。', t('R-R02.gridHint')]);
-  assert.equal(m.dateLine, '9 月 24 日 · 从写错过');
+  assert.equal(m.header, t('R-R05.kicker'), 'the page title is only for the screen reader (hideTitle), like the daily page');
+  assert.equal(m.title, null, 'no 「这次选的字 / 写完了」 heading any more');
+  assert.deepEqual(m.sub, [], 'no 「都记下了」 / 「没算在内」 / 「点一个格子」 sentences');
+  assert.ok(!('dateLine' in m) && !('kicker' in m) && !('cols' in m), 'the v1 table-page fields are gone');
   assert.equal(m.leave.label, '回到写错过');
-  assert.equal(m.again, false);
-  assert.equal(m.work, null, 'picked has no work / share (交接 §5 is the daily and first pages)');
+  assert.equal(m.again, false, 'the leave button is the one primary action');
+  assert.ok(m.work && !m.work.empty, 'picked now has a work (cells + 落款), like daily');
+  assert.deepEqual(m.work.cells.map(e => e.char), ['额'], 'the right one is in the work; the wrong 鲜 is a row you can put in, the skipped 境 a row');
+  assert.deepEqual(m.work.rows.map(e => [e.char, e.state]), [['鲜', 'addable'], ['境', 'skipped']]);
+  assert.equal(m.share, true, 'the picked page can share the picture too');
   ({ d, slot, id } = group({ kind: 'picked', chars: ['额', '鲜', '境', '静'], steps: ['correct'], source: { view: 'detail', char: '额' } }));
   m = resultModel(ended(d, slot, true), { slot, sessionId: id });
   assert.equal(m.early, true);
-  assert.equal(m.title, '先写到这里');
-  assert.deepEqual(m.sub, ['「额」记下了。', '还有 3 个字没写，没有记下。', t('R-R02.gridHint')]);
+  assert.equal(m.title, null);
+  assert.deepEqual(m.sub, ['还有 3 个字没写，没有记下。'], 'ended early: the one line about what was not written');
   assert.equal(m.leave.label, '回到「额」');
-  assert.equal(m.dateLine, '9 月 24 日 · 自己选的');
 });
 
-test('leaveOf / fromOf: every source view (R-R06 / S05); unknown and detail without char fall back to 回到首页', () => {
+test('leaveOf: every source view (R-R06); unknown and detail without char fall back to 回到首页', () => {
   assert.deepEqual(['wrongList', 'forgetList', 'allWritten', 'mine', 'library', 'home'].map(view => leaveOf({ view }).label),
     ['回到写错过', '回到快忘了', '回到有记录的字', '回到我的', '回到字库', '回到首页']);
   assert.equal(leaveOf({ view: 'againList' }).view, 'wrongList', 'old key againList → wrongList');
@@ -185,7 +179,6 @@ test('leaveOf / fromOf: every source view (R-R06 / S05); unknown and detail with
   assert.equal(leaveOf({ view: 'detail' }).label, '回到首页');
   assert.equal(leaveOf({ view: 'nowhere' }).label, '回到首页');
   assert.equal(leaveOf(null).label, '回到首页');
-  assert.deepEqual(['wrongList', 'forgetList', 'home', 'detail'].map(view => fromOf({ view })), ['从写错过', '从快忘了', '自己选的', '自己选的']);
 });
 
 test('resultModel: session still in the slot (finish write failed) is shown; missing session falls back to records', () => {
@@ -211,9 +204,8 @@ test('resultModel P77: ended from the answer phase with judged chars → current
   assert.deepEqual(m.cells.map(c => [c.char, c.kind, c.recordId, c.canChange]), [['额', 'judged', 'r10', true], ['鲜', 'answer-seen', 'r90', false]]);
   assert.equal(m.cells[1].caption, t('R-R02.cellSaw'));
   assert.equal(m.count, 1, 'title count by judged records only');
-  assert.deepEqual(m.seen, ['鲜'], 'seen list (note) includes it');
   assert.equal(m.unwritten, 2, 'unwritten count unchanged (queue − cursor)');
-  assert.ok(m.sub.includes(seenSkippedNote(['鲜'], [])), 'P62 only-seen sentence');
+  assert.ok(m.work.rows.some(e => e.char === '鲜' && e.state === 'seen'), 'it is a 「看过答案」 row under the work (the P62 note sentence is gone)');
   // 没有 answer-seen 记录（只打开了确认框）→ 不补
   const g2 = group({ kind: 'picked', chars: ['额', '鲜'], steps: ['correct'] });
   g2.d.sessions.B = { ...g2.d.sessions.B, current: { ...g2.d.sessions.B.current, answerSeen: true } };

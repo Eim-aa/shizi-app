@@ -154,8 +154,8 @@ export default async function scenario(page, ctx) {
   assert.equal(await page.locator(tid('write-end-body')).textContent(), '还有 1 个字没写，结束后就不写了。判断过的 1 个字已经记下。', 'S04 body');
   await page.click(tid('write-end-confirm'));
   await waitTop(page, 'result');
-  const title = await page.locator(topSel('result-title')).textContent();
-  assert.ok(title.includes('先写到这里'), 'B result: 这次选的字 / 先写到这里');
+  assert.equal(await page.locator(topSel('result-title')).count(), 0, 'B result: no visible heading any more (R2-R1: the picked page is the work layout)');
+  assert.equal((await page.locator(topSel('result-sub')).textContent()).trim(), '还有 1 个字没写，没有记下。', 'B result ended early: the one line about what was not written');
   assert.equal((await page.locator(topSel('result-leave')).textContent()).trim(), '回到首页', 'leave to the source: 回到首页');
   s = await sessions(page);
   assert.deepEqual(s.A, seeded, 'A still deep-equal after ending B');

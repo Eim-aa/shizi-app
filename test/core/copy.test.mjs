@@ -64,7 +64,6 @@ test('copy: decided multi-version cells use the 03 transitional choice', () => {
   assert.equal(has('R-W07.confirmBody'), false, 'P40 / D51 ⑧: the 看答案 confirm dialog is gone');
   assert.equal(has('R-W06.hintExplain'), false, 'P41 / D51 ⑧: the 「浅红色是提示」 legend sentence is gone');
   assert.equal(t('R-W07.firstExplain'), '以后点「看答案」会直接显示。', 'P212: one line the first time 看答案 is used');
-  assert.equal(t('R-R05.earlyTitle'), '先写到这里', 'P14: C066');
   assert.equal(t('R-R02.sheetNoInk'), '这次没写', 'P15');
   assert.equal(t('R-Q04.rowCustomCount', { n: 3 }), '自选的字 · 记录了 3 次', 'P43');
   assert.equal(t('R-B01.clearUndoL1'), '记录已清空', 'P44');

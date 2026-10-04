@@ -119,7 +119,7 @@ export function workAria(chars, n, date) {
  * @param {{work:object, day:string|null, dateText:string, inkOf:(record)=>object|null, onOpen:(entry)=>void}} props
  *   work = core/images/work.js buildWork 的结果；inkOf(record) → {points, strokes}。
  */
-export function WorkSection({ work, day, dateText, inkOf, onOpen, sealKey = '', settings = null }) {
+export function WorkSection({ work, day, dateText, inkOf, onOpen, picked = false, sealKey = '', settings = null }) {
   const sw = useScreenWidth();
   // 落款盖章声（S1，D50 ⑦ / D46 ⑮）：结果页作品首次呈现落款时响一次（网页阶段没有落印动画，作品出现即落款）；同一组（sealKey）再渲染、
   // 回到本页不再响；没有墨（衬底一行、无落款）不响；settings.sound 关着完全无声。
@@ -146,7 +146,7 @@ export function WorkSection({ work, day, dateText, inkOf, onOpen, sealKey = '', 
     label: t('X-WORK.cellAria', { char: e.char, state: stateWord(e) }),
   }));
   const caps = work.cells.map(e => (e.tag === 'afterSeen' ? t('X-WORK.afterSeen') : ''));
-  return html`<${WorkPaper} cells=${cells} grid=${grid} caps=${caps} kuan=${kuan({ day, n: cells.length })}
+  return html`<${WorkPaper} cells=${cells} grid=${grid} caps=${caps} kuan=${kuan({ day, n: cells.length, picked })}
     onOpen=${cell => onOpen(work.entries[cell.index])} label=${workAria(work.cells.map(e => e.char), work.cells.length, dateText)} />`;
 }
 

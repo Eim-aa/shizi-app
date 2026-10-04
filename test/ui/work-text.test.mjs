@@ -21,6 +21,13 @@ test('落款 text (§5.2 / §6.4): 汉字日期 + 全角空格 + 汉字字数；
   assert.match(kuan({ day: null, n: 3 }), /^二〇\S+年\S+月\S+日　三字$/, 'a missing day falls back to today instead of throwing');
 });
 
+test('自选组的落款 (T2-03): 「自选N字」，数量照样带', () => {
+  assert.equal(kuan({ day: '2026-10-04', n: 5, picked: true }), '二〇二六年十月四日　自选五字');
+  assert.equal(kuan({ day: '2026-10-04', n: 2, picked: true }), '二〇二六年十月四日　自选两字');
+  assert.equal(kuan({ day: '2026-10-04', n: 1, picked: true }), '二〇二六年十月四日　自选一字');
+  assert.equal(kuan({ day: '2026-10-04', n: 5 }), '二〇二六年十月四日　五字', 'the daily kuan is unchanged');
+});
+
 test('分张的落款 (D39 / §6.7): 其一 / 其二 appended, each page writes its own count; one page has no 其几', () => {
   const pages = paginate(cellsOn('2026-09-01', 96));
   assert.deepEqual(pages.map(p => p.length), [80, 16]);

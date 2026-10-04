@@ -11,13 +11,12 @@
 //          底栏只有主按钮「再写一组」，出口只在页头左上「×」（D49 ③：没有「回到首页」）。
 //   first  「第一次练习」：同一构图，多一个标题「这三个字，很多人提笔就忘。」（数取这一页上实际有几个字，V2-05；不以计数作标题，D28）与提醒邀请（内嵌，D35 / D46 ③）；底栏同上。
 //          首练专属的三块在 result/first.js（与 P1-E7 作品出口的分界：本文件的格子 / 日期行 / 图片入口属通用结果页，E7 改构图）。
-//   picked 「这次选的字」：标题「这次选的字 / 写完了」或中途结束「这次选的字 / 先写到这里」（R-R05，P14）；3 列格子；
-//          说明「「额」「鲜」都记下了。」…「还有 N 个字没写，没有记下。」；日期行「{日期} · 自己选的 / 从写错过 / 从快忘了」（S05）；
-//          底栏离开按钮按来源（R-R06）。没有图片行。
+//   picked 「这次选的字」：和日常组同一个作品版式（R2-R1 / V2-04 / T2-03：不再是 v1 的表格页）——作品格 + 落款（「二〇二六年十月四日　自选五字」）+ 印、
+//          作品下「没放进图里」的行与复现句；没有页头标题和说明段（中途结束时只有一行「还有 N 个字没写，没有记下。」，R-R05）；
+//          底栏唯一的主按钮是离开按钮，按来源（R-R06「回到字库」等）；页头右上同样有分享（这次的图片）。
 //   难度块按 P11（features.difficultyFeedback=false）不做。
 // 说明句（R-R01 / P62）：看过答案与跳过的字按字列出（只有一类时按示例拆成两句）；都没有时用默认说明；末尾「点一个格子…」。
-// 格子（R-R02）：本人笔迹（有墨迹或本页面会话里刚判断时记下的笔画）/ 没有笔迹时标准字 +「没有笔迹」（10.12）/
-//   看过答案、跳过为浅色楷体字；格下「字 + 写对 / 写错（红）/ 看过答案 / 跳过」。点格子 → 底部对照弹层：
+// 格子：点作品格 / 下面的行 → 底部对照弹层：
 //   判断过的字可「改为…」（同一记录只改 judgment、追加 corrections、以 fsrsBefore 重放更新 sched，不增加记录，决定-D19）；
 //   看过答案 / 跳过的字只看不改（K25）。失败「没改成，还是原来的判断。」[先不改 / 再试一次]。
 // 跳过的 5 秒撤销（走查-W16；D36）：最后一字跳过后写字页把撤销机会交给本页（handoffSkipUndo），底栏照样显示到 5 秒（计时在 SkipUndoDock 里）；
@@ -28,10 +27,9 @@
 //
 // 规则：所有写入只经 store.commit；文案只取 copy/。
 //
-// data-testid：result-screen、result-body（data-variant=daily|first|picked、data-early）、result-kicker、result-title、
-//   result-sub、result-grid、result-cell（data-index / data-kind / data-judgment / data-changeable）、result-cell-ink、
-//   result-cell-noink、result-cell-glyph、result-cell-char、result-cell-caption、result-date、result-image（「这次的图片」入口）、
-//   result-image-note、result-remind-slot（首练 / 今天的练习的提醒邀请块，见 first.js）、result-again、result-leave（只在自己选字的结果页底栏）、result-again-note / result-again-cancel /
+// data-testid：result-screen、result-body（data-variant=daily|first|picked、data-early）、result-title（首练）、
+//   result-sub、作品与行见 result/work.js（work、work-cell、result-exrow…）、result-share（页头分享）、
+//   result-remind-slot（首练 / 今天的练习的提醒邀请块，见 first.js）、result-again、result-leave（只在自己选字的结果页底栏）、result-again-note / result-again-cancel /
 //   result-again-retry（再写一组失败）、result-sheet（对照弹层面板，data-kind）、result-sheet-close（取消 / 关闭）、
 //   result-sheet-mine / result-sheet-ref / result-sheet-noink、result-sheet-note、result-sheet-flip、
 //   result-sheet-fail-cancel / result-sheet-fail-retry；撤销底栏沿用 write-skip-undo*（skip.js SkipUndoBar）。
@@ -39,10 +37,9 @@
 import { html, useEffect, useRef, useState } from '../../../../vendor/ui.js';
 import { registerScreen, getRouter, getScreen, nav } from '../../router.js';
 import { Page } from '../../components/Page.js';
-import { Button, markStateChange, pressFeedbackHandlers } from '../../components/Button.js';
+import { Button, markStateChange } from '../../components/Button.js';
 import { Sheet } from '../../components/Sheet.js';
-import { PracticeGlyph, FACE_FULL } from '../../components/PracticeGlyph.js';
-import { injectStyles, T, TEX } from '../../components/styles.js';
+import { injectStyles, T } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
 import * as defaultPolicy from '../../../config/policy.js';
 import { getStore } from '../../../store/store.js';
@@ -77,9 +74,6 @@ export const LABELS = Object.freeze({
   undoSkip: 'result:skip-undo',
 });
 
-/** 格子列数（原型：result 4 列、firstResult 5 列、endPicked 3 列，<3 个时按个数居中）。 */
-export const GRID_COLS = Object.freeze({ daily: 4, first: 5, picked: 3 });
-
 // 离开按钮（R-R06；04 §3.2 原型 LEAVE 映射；旧键 againList → wrongList，改动 L19）。
 const LEAVE_KEYS = Object.freeze({
   wrongList: 'R-R06.leaveWrong',
@@ -91,50 +85,21 @@ const LEAVE_KEYS = Object.freeze({
   detail: 'R-R06.leaveDetail',
   home: 'X-RESULT.leaveHome',
 });
-// 来源说明（边改 S05）：从写错过 / 从快忘了 / 其余一律「自己选的」。
-const FROM_KEYS = Object.freeze({
-  wrongList: 'R-R06.fromWrong',
-  againList: 'R-R06.fromWrong',
-  forgetList: 'R-R06.fromForget',
-});
 /** 离开时直接回 tab 根的来源（其余来源按页面栈返回）。 */
 const TAB_VIEWS = Object.freeze(['home', 'library', 'mine']);
 
 injectStyles('result', `
-.sz-result{display:flex;flex-direction:column;gap:28px}
+.sz-result{display:flex;flex-direction:column}
 .sz-result__head{display:flex;flex-direction:column;gap:8px}
 .sz-result__title{margin:0;font-family:${T.song};font-size:${T.fs28};line-height:${T.lh28};font-weight:500;color:${T.ink1};text-wrap:pretty}
 .sz-result__title--lead{font-size:${T.fs22};line-height:${T.lh22}}
 .sz-result__title:focus{outline:none}
-.sz-result__kicker{display:block}
 .sz-result__sub{margin:0;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3};text-wrap:pretty}
-.sz-result__grid{display:grid;box-sizing:border-box;border-top:${T.frameW} solid ${T.frame};
-  border-left:${T.frameW} solid ${T.frame};${TEX}}
-.sz-result__grid--few{align-self:center}
-.sz-rcell{position:relative;display:flex;flex-direction:column;box-sizing:border-box;min-width:0;padding:0;margin:0;
-  border:0;border-right:${T.frameW} solid ${T.frame};border-bottom:${T.frameW} solid ${T.frame};
-  border-radius:0;background:transparent;color:inherit;font:inherit;text-align:center;cursor:pointer;
-  -webkit-tap-highlight-color:transparent}
-.sz-rcell:disabled{cursor:default}
-.sz-rcell:focus-visible{outline:2px solid ${T.ink1};outline-offset:-2px}
-.sz-rcell[data-pressed]{background:${T.field}}
-.sz-rcell__sq{position:relative;aspect-ratio:1/1;display:grid;place-items:center;overflow:hidden}
-.sz-rcell__sq .sz-compare__card{position:absolute;inset:0;border:0;border-radius:0;background:transparent;aspect-ratio:auto}
-/* 格内字形是图，不随大字倍率放大（格子宽度不变，放大会压到「没有笔迹」）。衬底字用轮廓（P1-E2）：44 方框，字面约 35 */
-.sz-rcell__glyph{width:44px;height:44px;color:${T.under}}
-.sz-rcell__glyph--shape{transform:translateY(-6px)}
-.sz-rcell__noink{position:absolute;left:0;right:0;bottom:4px;font-size:${T.fs11};line-height:${T.lh11};color:${T.ink3}}
-.sz-rcell__cap{min-height:34px;box-sizing:border-box;padding:3px 2px;display:flex;flex-wrap:wrap;align-items:center;
-  justify-content:center;gap:2px 4px;border-top:${T.frameW} solid ${T.frame};font-size:${T.fs11};
-  line-height:${T.lh11};color:${T.ink2}}
-.sz-rcell__char{width:${T.fs15};height:${T.fs15};color:${T.ink1}}
-.sz-rcell--pad{cursor:default}
-.sz-result__date{margin:0;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2}}
-/* 作品页（daily / first，D49）：没有底板；间距用留白分组（作品→行 28、行→复现句 20、复现句→邀请 28）；内容不满一屏时整组在页头与按钮行之间居中（底部内边约 5%），超出时贴顶滚动 */
-.sz-result[data-variant="daily"],.sz-result[data-variant="first"]{gap:0;margin:auto 0;padding-bottom:5vh}
-.sz-result[data-variant="daily"]>.sz-work{margin-top:4px}
-.sz-result[data-variant="first"] .sz-result__head{margin-bottom:24px;gap:0}
-.sz-result[data-variant="first"] .sz-result__head+.sz-work{margin-top:0}
+/* 作品页（daily / first / picked，D49；自选组 R2-R1 起同一版式）：没有底板；间距用留白分组（作品→行 28、行→复现句 20、复现句→邀请 28）；内容不满一屏时整组在页头与按钮行之间居中（底部内边约 5%），超出时贴顶滚动 */
+.sz-result{gap:0;margin:auto 0;padding-bottom:5vh}
+.sz-result>.sz-work{margin-top:4px}
+.sz-result__head{margin-bottom:24px;gap:0}
+.sz-result__head+.sz-work{margin-top:0}
 .sz-result__remind{margin-top:28px}
 .sz-result__remind:empty{display:none}
 .sz-result__fail{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
@@ -179,12 +144,10 @@ export function recordsOfSession(state, sessionId) {
   return sortById(allRecords(state).filter(r => r && r.sessionId === sessionId));
 }
 
-function quote(chars) {
-  return chars.map(c => `「${c}」`).join('');
-}
-
-function uniq(list) {
-  return [...new Set(list)];
+function captionOf(kind, judgment) {
+  if (kind === 'judged') return t(judgment === 'wrong' ? 'X-RESULT.cellWrong' : 'X-RESULT.cellCorrect');
+  if (kind === 'answer-seen') return t('R-R02.cellSaw');
+  return t('X-RESULT.cellSkipped');
 }
 
 function dayOfSession(session) {
@@ -206,28 +169,6 @@ export function leaveOf(source) {
   const key = view !== 'detail' ? LEAVE_KEYS[view] : null;
   if (key) return { view: view === 'againList' ? 'wrongList' : view, char, label: t(key) };
   return { view: 'home', char: null, label: t(LEAVE_KEYS.home) };
-}
-
-/** 来源说明（S05）。 */
-export function fromOf(source) {
-  const view = source && typeof source.view === 'string' ? source.view : 'home';
-  return t(FROM_KEYS[view] || 'R-R06.fromPicked');
-}
-
-/**
- * 看过答案 / 跳过的说明句（R-R01；P62：只有一类时按示例拆成两句；都没有时默认说明）。
- */
-export function seenSkippedNote(seen, skipped) {
-  if (seen.length && skipped.length) return t('R-R01.noteSeenSkipped', { seen: quote(seen), skipped: quote(skipped) });
-  if (seen.length) return t('X-RESULT.noteSeenOnly', { seen: quote(seen) });
-  if (skipped.length) return t('X-RESULT.noteSkippedOnly', { skipped: quote(skipped) });
-  return '';
-}
-
-function captionOf(kind, judgment) {
-  if (kind === 'judged') return t(judgment === 'wrong' ? 'X-RESULT.cellWrong' : 'X-RESULT.cellCorrect');
-  if (kind === 'answer-seen') return t('R-R02.cellSaw');
-  return t('X-RESULT.cellSkipped');
 }
 
 /**
@@ -264,45 +205,24 @@ export function resultModel(state, { slot, sessionId, hasInk = null, policy = de
       canChange: kind === 'judged' && !!record && !record.legacy && !!session && canCorrect(session, record.id),
     };
   });
-  const judgedCells = cells.filter(c => c.kind === 'judged');
   const count = new Set(records.filter(isJudged).map(r => r.cardKey)).size;
-  const seen = uniq(cells.filter(c => c.kind === 'answer-seen').map(c => c.char));
-  const skipped = uniq(cells.filter(c => c.kind === 'skipped').map(c => c.char));
   const variant = session ? (session.kind === 'picked' ? 'picked' : session.kind === 'first' ? 'first' : 'daily') : slot === 'B' ? 'picked' : 'daily';
   const early = !!(session && session.endedEarly);
   const unwritten = session ? Math.max(0, session.queue.length - session.cursor) : 0;
   const source = session && session.source ? session.source : { view: 'home' };
   const day = dayOfSession(session);
 
+  // 三种结果页同一个作品版式（交接 §5.1；自选组 R2-R1 起也是）：最上面就是作品，不写「这次记录了 N 个字」「点一个格子…」；数量只出现在落款里。
+  // 首练保留标题（D28 / P1-E5）：数取这一页上的字（作品算出来以后再定，firstTitle）；自选组只在中途结束时多一行「还有 N 个字没写，没有记下。」。
   const sub = [];
-  let header;
-  let kicker = null;
-  let title;
-  if (variant === 'picked') {
-    header = t('R-R05.kicker');
-    kicker = t('R-R05.kicker');
-    title = t(early ? 'R-R05.earlyTitle' : 'X-RESULT.pickedDoneTitle');
-    const ok = uniq(judgedCells.map(c => c.char));
-    if (ok.length > 1) sub.push(t('R-R05.bodyAll', { chars: quote(ok) }));
-    else if (ok.length === 1) sub.push(t('R-R05.bodyOne', { char: ok[0] }));
-    const xs = seenSkippedNote(seen, skipped);
-    if (xs) sub.push(xs);
-    if (early && unwritten > 0) sub.push(t('R-R05.bodyEarly', { n: unwritten }));
-  } else {
-    // 阶段 1 P1-E7（交接 §5.1）：结果页最上面就是作品，不写「这次记录了 N 个字」「点一个格子…」；数量只出现在落款里。
-    // 首练保留标题（D28 / P1-E5）：不以计数作标题；说明由格下标注与复现预告承担。
-    header = t(variant === 'first' ? 'X-RESULT.headerFirst' : 'X-RESULT.headerDaily');
-    title = null; // 首练的标题要数这一页上的字，在下面作品算出来以后再定（firstTitle）
-  }
-  if (variant === 'picked' && cells.length) sub.push(t('R-R02.gridHint'));
+  let title = null;
+  const header = t(variant === 'first' ? 'X-RESULT.headerFirst' : variant === 'picked' ? 'R-R05.kicker' : 'X-RESULT.headerDaily');
+  if (variant === 'picked' && early && unwritten > 0) sub.push(t('R-R05.bodyEarly', { n: unwritten }));
 
-  let dateLine = null;
-  if (variant === 'picked') dateLine = day ? t('X-RESULT.dateSource', { date: dateText(day), source: fromOf(source) }) : null;
-
-  // 作品（daily / first；picked 没有作品，交接 §4–§5）：成员规则见 core/images/work.js。inkTest = 这条记录有没有本人墨
+  // 作品（三种结果页都有）：成员规则见 core/work-members.js / core/images/work.js。inkTest = 这条记录有没有本人墨
   // （存下的墨迹或本页面会话里刚判断时记下的笔画，与格子 / 图片取墨同一取法，I6）。
   const inkTest = typeof hasInk === 'function' ? hasInk : record => !!inkEntryOf(state, record) || hasStrokes(recalledInk(record.id, policy));
-  const work = variant !== 'picked' && cells.length
+  const work = cells.length
     ? buildWork({ items: items.map(it => ({ cardKey: it.cardKey, recordId: it.recordId, kind: it.kind })), records: byId, hasInk: inkTest, added: addedOf(session) })
     : null;
   // 分享入口：作品里至少有一个字（没有任何墨时隐藏，§4.1）
@@ -319,16 +239,11 @@ export function resultModel(state, { slot, sessionId, hasInk = null, policy = de
     variant,
     early,
     header,
-    kicker,
     title,
     sub,
     cells,
-    cols: GRID_COLS[variant],
     count,
-    seen,
-    skipped,
     unwritten,
-    dateLine,
     day,
     work,
     share,
@@ -570,53 +485,6 @@ function findRecord(state, recordId) {
   return null;
 }
 
-// 原生 <button> 格子的按压反馈：与 Button 同一套 data-pressed 机制（P1-E1a）；样式见 .sz-rcell[data-pressed]。
-const CELL_PRESS = pressFeedbackHandlers(() => false);
-
-function ResultCell({ cell, record, ink, onOpen }) {
-  const hasInk = inkPresent(ink);
-  let sq;
-  if (cell.kind === 'judged' && hasInk) {
-    sq = html`<${InkMini} points=${ink.points} strokes=${ink.strokes} testid="result-cell-ink" label=${cell.char} />`;
-  } else if (cell.kind === 'judged') {
-    // 有记录无笔迹（10.12）：标准字 +「没有笔迹」
-    sq = html`<${PracticeGlyph} class="sz-rcell__glyph sz-rcell__glyph--shape" hidden=${true} char=${cell.char} testid="result-cell-glyph" />
-      <span class="sz-rcell__noink" data-testid="result-cell-noink">${t('R-D07.noInkLabel')}</span>`;
-  } else {
-    sq = html`<${PracticeGlyph} class="sz-rcell__glyph" hidden=${true} char=${cell.char} testid="result-cell-glyph" />`;
-  }
-  return html`<button type="button" class="sz-rcell" ...${CELL_PRESS} data-testid="result-cell" data-index=${cell.index} data-kind=${cell.kind}
-    data-judgment=${cell.judgment || ''} data-changeable=${cell.canChange ? 'true' : 'false'} data-record=${record ? record.id : ''}
-    aria-label=${t('X-RESULT.cellAria', { char: cell.char, caption: cell.caption })}
-    onClick=${() => onOpen(cell)}>
-    <span class="sz-rcell__sq">${sq}</span>
-    <span class="sz-rcell__cap">
-      <${PracticeGlyph} class="sz-rcell__char" char=${cell.char} face=${FACE_FULL} testid="result-cell-char" />
-      <span class="sz-rcell__res" data-testid="result-cell-caption" data-wrong=${cell.judgment === 'wrong' ? 'true' : 'false'}>${cell.caption}</span>
-    </span>
-  </button>`;
-}
-
-function Grid({ model, state, store, onOpen }) {
-  const cells = model.cells;
-  const few = (model.variant === 'picked' || model.variant === 'first') && cells.length > 0 && cells.length < model.cols; // 首练只有 3 个字（D38）：不补空格
-  const cols = few ? cells.length : model.cols;
-  const pads = few ? 0 : (cols - (cells.length % cols)) % cols;
-  const style = few
-    ? { gridTemplateColumns: `repeat(${cols},minmax(0,1fr))`, width: `calc((100% - 1px) * ${cols} / ${model.cols} + 1px)` }
-    : { gridTemplateColumns: `repeat(${cols},minmax(0,1fr))` };
-  return html`<div class=${few ? 'sz-result__grid sz-result__grid--few' : 'sz-result__grid'} data-testid="result-grid"
-    data-cols=${cols} style=${style}>
-    ${cells.map(cell => {
-      const record = cell.recordId ? findRecord(state, cell.recordId) : null;
-      const ink = cell.kind === 'judged' ? inkOf(store, record) : null;
-      return html`<${ResultCell} key=${cell.index} cell=${cell} record=${record} ink=${ink} onOpen=${onOpen} />`;
-    })}
-    ${Array.from({ length: pads }, (_, i) => html`<span key=${'pad' + i} class="sz-rcell sz-rcell--pad" aria-hidden="true">
-      <span class="sz-rcell__sq"></span><span class="sz-rcell__cap"></span></span>`)}
-  </div>`;
-}
-
 /** 格子对照弹层（overlay 组件；root 注入 close / active）。 */
 export function ResultCellSheet({ slot, sessionId, recordId, cellKind, cellChar, close, active = true }) {
   const store = storeOrNull();
@@ -837,15 +705,12 @@ function ResultScreen({ params, entry }) {
   }
 
   const imageAction = hooks.image;
-  const isWork = model.variant === 'first' || model.variant === 'daily';
-  // 复现预告句（首练与日常都有，交接 §5.1）；提醒邀请在首练与「今天的练习」结果页的槽位里
-  const extras = isWork
-    ? firstExtras({
-      cells: model.cells,
-      sched: state && state.sched,
-      today: localDay(envNow()),
-    })
-    : null;
+  // 复现预告句（三种结果页都有，交接 §5.1）；提醒邀请在首练与「今天的练习」结果页的槽位里
+  const extras = firstExtras({
+    cells: model.cells,
+    sched: state && state.sched,
+    today: localDay(envNow()),
+  });
   const inkForRecord = record => (record ? inkOf(store, record) : null);
   const openEntry = entry => openCell(model.cells[entry.index]);
   const toggleEntry = entry => {
@@ -853,36 +718,28 @@ function ResultScreen({ params, entry }) {
     if (st && entry.recordId) commitAdded(st, { slot, sessionId, recordId: entry.recordId });
   };
   // 右上「分享」：作品里至少有一个字才有（没有任何墨时隐藏，交接 §4.1）
-  const shareButton = isWork && model.share && imageAction
+  const shareButton = model.share && imageAction
     ? html`<${Button} variant="icon" data-testid="result-share" aria-label=${t('X-WORK.shareAria')}
         onClick=${() => { dismissUndo(); imageAction({ slot, sessionId }); }}>${SHARE_ICON()}</${Button}>`
     : null;
-  return html`<${Page} title=${model.header} hideTitle=${isWork} leading="close" onBack=${leave} footer=${footer} trailing=${shareButton} testid="result-screen">
+  return html`<${Page} title=${model.header} hideTitle=${true} leading="close" onBack=${leave} footer=${footer} trailing=${shareButton} testid="result-screen">
     <div class="sz-result" ref=${rootRef} data-testid="result-body" data-variant=${model.variant} data-slot=${slot} data-session=${sessionId} data-early=${model.early ? 'true' : 'false'}
       data-found=${model.found ? 'true' : 'false'}>
       ${model.title || model.sub.length
         ? html`<div class="sz-result__head">
-            ${model.title
-              ? html`<h2 class=${model.variant === 'first' ? 'sz-result__title sz-result__title--lead' : 'sz-result__title'} data-testid="result-title">${model.kicker
-                ? html`<span class="sz-result__kicker" data-testid="result-kicker">${model.kicker}</span><span class="sz-result__kicker">${model.title}</span>`
-                : model.title}</h2>`
-              : null}
+            ${model.title ? html`<h2 class="sz-result__title sz-result__title--lead" data-testid="result-title">${model.title}</h2>` : null}
             ${model.sub.length ? html`<p class="sz-result__sub" data-testid="result-sub">${model.sub.join('')}</p>` : null}
           </div>`
         : null}
-      ${isWork && model.work
+      ${model.work
         ? html`<${WorkSection} work=${model.work} day=${model.day} dateText=${dateText(model.day)} inkOf=${inkForRecord} onOpen=${openEntry}
-          sealKey=${`${slot}:${sessionId}`} settings=${state && state.settings} />`
+          picked=${model.variant === 'picked'} sealKey=${`${slot}:${sessionId}`} settings=${state && state.settings} />`
         : null}
-      ${!isWork && model.cells.length ? html`<${Grid} model=${model} state=${state} store=${store} onOpen=${openCell} />` : null}
-      ${model.dateLine ? html`<p class="sz-result__date" data-testid="result-date">${model.dateLine}</p>` : null}
-      ${isWork && model.work ? html`<${WorkRows} rows=${model.work.rows.filter(r => r.state !== 'in')} inkOf=${inkForRecord} onOpen=${openEntry} onToggle=${toggleEntry} />` : null}
+      ${model.work ? html`<${WorkRows} rows=${model.work.rows.filter(r => r.state !== 'in')} inkOf=${inkForRecord} onOpen=${openEntry} onToggle=${toggleEntry} />` : null}
       ${extras ? html`<${ReviewPreview} text=${extras.preview} />` : null}
-      ${isWork
-        ? html`<div class="sz-result__remind" data-testid="result-remind-slot">
-            <${ReminderInvite} store=${store} settings=${state && state.settings} session=${model.session} variant=${model.variant} />
-          </div>`
-        : null}
+      <div class="sz-result__remind" data-testid="result-remind-slot">
+        <${ReminderInvite} store=${store} settings=${state && state.settings} session=${model.session} variant=${model.variant} />
+      </div>
     </div>
     ${undo ? html`<${SkipUndoDock} char=${undo.char} failed=${!!undo.failed} onUndo=${doUndo} until=${undo.until}
       onExpire=${() => setUndo(u => (u === undo ? null : u))}

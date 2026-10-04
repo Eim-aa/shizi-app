@@ -6,9 +6,8 @@ import { readFileSync } from 'node:fs';
 
 const read = rel => readFileSync(new URL(`../../${rel}`, import.meta.url), 'utf8');
 
-test('native <button> cells (sz-rcell / sz-dcell / sz-scell) get the same pointer press handlers and a [data-pressed] style', () => {
+test('native <button> cells (sz-dcell / sz-scell) get the same pointer press handlers and a [data-pressed] style', () => {
   const cells = [
-    ['src/ui/screens/result/index.js', 'sz-rcell'],
     ['src/ui/screens/detail/records.js', 'sz-dcell'],
     ['src/ui/screens/mine/records.js', 'sz-scell'],
   ];

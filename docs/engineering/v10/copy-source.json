@@ -19,13 +19,10 @@
     "{year}": "年（R-I01.signatureDate / signatureMonth 内部，汉字数字）",
     "{char}": "一个字（04 的 X、{字}）；外面的「」写在模板里",
     "{chars}": "多个字，调用方拼成「鲜」「境」",
-    "{seen}": "看过答案的字（带「」的列表）",
-    "{skipped}": "跳过的字（带「」的列表）",
     "{word}": "词语（04 的 {词}）",
     "{period}": "时段词（R-H02.period.*）",
     "{pinyin}": "拼音",
     "{tone}": "声调读法（X-PROMPT.tone1–tone5：一声 … 轻声），读屏名称里用",
-    "{source}": "来源说明（R-R06.fromWrong / fromForget / fromPicked，边改 S05）",
     "{status}": "记录情况（查字逐字行行尾那句，R-Q04 / P43，读屏标签里复用）",
     "{caption}": "结果页格下标签（X-RESULT.cellCorrect / cellWrong / cellSkipped / R-R02.cellSaw，读屏标签里复用）",
     "{library}": "字库名（R-L06.lib.*.name，M3-5 换库确认框标题与换完轻提示）",
@@ -1016,17 +1013,17 @@
           "raw": "跳过和看过答案的字不算在内。",
           "text": "跳过和看过答案的字不算在内。"
         },
-        "noteSeenSkipped": {
-          "raw": "「主」看过答案，「性」跳过了，没算在内。",
-          "text": "{seen}看过答案，{skipped}跳过了，没算在内。",
-          "note": "例字 → {seen}/{skipped}（各为带「」的字列表）；只有一类时的句式未给，M2-3 定",
-          "override": true
-        },
         "noteSeenCount": {
           "raw": "另有 {N} 个字看过答案，没算在内。",
           "text": "另有 {n} 个字看过答案，没算在内。"
         }
-      }
+      },
+      "dropped": [
+        {
+          "raw": "「主」看过答案，「性」跳过了，没算在内。",
+          "why": "R2-R1（V2-04 / T2-03）：自己选字的结果页换成和日常组同一个作品版式，不再有标题 / 说明句 / 表格；看过答案 / 跳过的字落在作品下的行里（X-WORK.row*）"
+        }
+      ]
     },
     "R-R02": {
       "screen": "result",
@@ -1086,12 +1083,14 @@
         "cellSaw": {
           "raw": "看过答案",
           "text": "看过答案"
-        },
-        "gridHint": {
-          "raw": "点一个格子，可以对照参考字形、修改判断。",
-          "text": "点一个格子，可以对照参考字形、修改判断。"
         }
-      }
+      },
+      "dropped": [
+        {
+          "raw": "点一个格子，可以对照参考字形、修改判断。",
+          "why": "R2-R1（V2-04 / T2-03）：自己选字的结果页换成和日常组同一个作品版式，不再有标题 / 说明句 / 表格；作品格 / 行本身可点，不再写这句说明"
+        }
+      ]
     },
     "R-R03": {
       "screen": "result",
@@ -1152,18 +1151,6 @@
       "status": "已定；标题字样 §5.1-3",
       "source": "10.10；C066（已改写）；C120–C124",
       "slots": {
-        "bodyAll": {
-          "raw": "「额」「鲜」都记下了。",
-          "text": "{chars}都记下了。",
-          "note": "例字 → {chars}（每个字带「」，由调用方拼接）",
-          "override": true
-        },
-        "bodyOne": {
-          "raw": "「额」记下了。",
-          "text": "「{char}」记下了。",
-          "note": "例字 → 「{char}」",
-          "override": true
-        },
         "bodyEarly": {
           "raw": "还有 {N} 个字没写，没有记下。",
           "text": "还有 {n} 个字没写，没有记下。"
@@ -1172,19 +1159,25 @@
           "raw": "这次选的字 / 先写到这里",
           "part": 0,
           "text": "这次选的字"
-        },
-        "earlyTitle": {
-          "raw": "这次选的字 / 先写到这里",
-          "part": 1,
-          "text": "先写到这里",
-          "decision": "P14",
-          "note": "中途结束标题取 C066「先写到这里」"
         }
       },
       "dropped": [
         {
           "raw": "结束了",
           "why": "P14：改动 L43 的「结束了」未采用"
+        },
+        {
+          "raw": "「额」「鲜」都记下了。",
+          "why": "R2-R1（V2-04 / T2-03）：自己选字的结果页换成和日常组同一个作品版式，不再有标题 / 说明句 / 表格；作品本身就是「记下了」，不再列举"
+        },
+        {
+          "raw": "「额」记下了。",
+          "why": "R2-R1（V2-04 / T2-03）：自己选字的结果页换成和日常组同一个作品版式，不再有标题 / 说明句 / 表格；同上"
+        },
+        {
+          "raw": "这次选的字 / 先写到这里",
+          "part": 1,
+          "why": "R2-R1（V2-04 / T2-03）：自己选字的结果页换成和日常组同一个作品版式，不再有标题 / 说明句 / 表格；标题「先写到这里」不再有，中途结束只留「还有 N 个字没写，没有记下。」一行"
         }
       ]
     },
@@ -1219,23 +1212,14 @@
           "text": "回到字库",
           "origin": "04 §3.2 结果页离开按钮映射 LEAVE.library",
           "note": "§4.1 未列，取 §3.2 原型映射"
-        },
-        "fromWrong": {
-          "raw": "从写错过 / 从快忘了 / 自己选的",
-          "part": 0,
-          "text": "从写错过"
-        },
-        "fromForget": {
-          "raw": "从写错过 / 从快忘了 / 自己选的",
-          "part": 1,
-          "text": "从快忘了"
-        },
-        "fromPicked": {
-          "raw": "从写错过 / 从快忘了 / 自己选的",
-          "part": 2,
-          "text": "自己选的"
         }
-      }
+      },
+      "dropped": [
+        {
+          "raw": "从写错过 / 从快忘了 / 自己选的",
+          "why": "R2-R1（V2-04 / T2-03）：自己选字的结果页换成和日常组同一个作品版式，不再有标题 / 说明句 / 表格；来源改由落款里的「自选N字」承担（日期行不再有）；来源只决定底栏离开按钮（R-R06.leave*）"
+        }
+      ]
     },
     "R-R07": {
       "screen": "result",
@@ -3498,27 +3482,6 @@
           "note": "原型 ShiziScreen-第十稿交接版 L119 firstResult 页头；reference/J-proto-screen.md §2.3.12",
           "decision": "P55"
         },
-        "pickedDoneTitle": {
-          "raw": null,
-          "text": "写完了",
-          "origin": "extra",
-          "note": "原型 ShiziScreen-第十稿交接版 L122 pickDoneT「这次选的字<br>写完了」的第二行（R-R05 只给了中途结束的「先写到这里」）",
-          "decision": "P55"
-        },
-        "noteSeenOnly": {
-          "raw": null,
-          "text": "{seen}看过答案，没算在内。",
-          "origin": "extra",
-          "note": "R-R01 混合示例「「主」看过答案，「性」跳过了，没算在内。」按 03 P62 过渡拆出的「只有看过答案」一句",
-          "decision": "P62"
-        },
-        "noteSkippedOnly": {
-          "raw": null,
-          "text": "{skipped}跳过了，没算在内。",
-          "origin": "extra",
-          "note": "R-R01 混合示例按 03 P62 过渡拆出的「只有跳过」一句",
-          "decision": "P62"
-        },
         "cellCorrect": {
           "raw": null,
           "text": "写对",
@@ -3554,13 +3517,6 @@
           "note": "原型 ShiziScreen-第十稿交接版 L118 onHome 链接 / L124 pickLeave 缺省；R-R06 映射里没有 home 来源",
           "decision": "P55"
         },
-        "dateSource": {
-          "raw": null,
-          "text": "{date} · {source}",
-          "origin": "extra",
-          "note": "原型 ShiziScreen-第十稿交接版 L124 pickDateLine「{日期} · 自己选字」；来源说明按边改 S05 换成 R-R06.from*",
-          "decision": "P55"
-        },
         "againFailed": {
           "raw": null,
           "text": "没保存上，刚才的选择没记下。",
@@ -3581,12 +3537,6 @@
           "origin": "extra",
           "note": "「再写一组」失败次按钮（收起失败说明，留在结果页）；取 R-W16 / X-SESSION.s02Cancel 同字，待文案确认",
           "decision": "P55"
-        },
-        "cellAria": {
-          "raw": null,
-          "text": "{char} · {caption}",
-          "origin": "extra",
-          "note": "结果页格子（button）的 aria-label（M2 验收 H3）：{caption} 取同格格下标签 X-RESULT.cellCorrect / cellWrong / cellSkipped / R-R02.cellSaw；原型没有读屏标签，按格下「字 + 标签」拼成"
         }
       }
     },
@@ -4858,6 +4808,13 @@
           "text": "{n}字",
           "origin": "extra",
           "note": "纸面落款与年报册页文字（汉字数字由 ui/work-text.js 填入；交接 §6.4 / §8.2）",
+          "decision": "P160"
+        },
+        "kuanCountPicked": {
+          "raw": null,
+          "text": "自选{n}字",
+          "origin": "extra",
+          "note": "自己选字的结果页落款里的数量（T2-03：「二〇二六年十月四日　自选五字」）；汉字数字由 ui/work-text.js kuan 填入",
           "decision": "P160"
         },
         "kuanJoin": {

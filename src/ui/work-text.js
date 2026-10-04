@@ -29,12 +29,14 @@ export function partLabel(i) {
  *   month：按月的作品（月字帖页与图、年报每月一页、我的页缩略图）→「二〇二六年十月　四十六字」；
  *   n：字数（汉字，永远带；缺省 null 只在没有数量可写的落款里——年报卷尾「二〇二六年十月」）；
  *   part / of：第几张 / 共几张（of > 1 才在末尾写「其几」）；
- *   brand：年报卷首的品牌落款「拾字　年报」。
+ *   brand：年报卷首的品牌落款「拾字　年报」；
+ *   picked：自己选字的这一组（T2-03）→「二〇二六年十月四日　自选五字」，数量照样带。
  */
-export function kuan({ day = null, month = null, n = null, part = 0, of = 1, brand = false } = {}) {
+export function kuan({ day = null, month = null, n = null, part = 0, of = 1, brand = false, picked = false } = {}) {
   if (brand) return t('X-WORK.annualBrand');
   const date = month ? monthText(month) : dateText(day);
-  const base = Number.isFinite(n) && n >= 0 ? t('X-WORK.kuanJoin', { date, n: t('X-WORK.kuanCount', { n: cnCount(n) }) }) : date;
+  const countKey = picked ? 'X-WORK.kuanCountPicked' : 'X-WORK.kuanCount';
+  const base = Number.isFinite(n) && n >= 0 ? t('X-WORK.kuanJoin', { date, n: t(countKey, { n: cnCount(n) }) }) : date;
   return part && of > 1 ? t('X-WORK.kuanJoinPart', { kuan: base, part: partLabel(part) }) : base;
 }
 

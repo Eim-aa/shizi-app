@@ -147,7 +147,8 @@ async function resultView(page) {
     const q = id => (top ? top.querySelector(`[data-testid="${id}"]`) : null);
     const txt = id => (q(id) ? q(id).textContent.trim() : null);
     const body = q('result-body');
-    const isWork = !!body && (body.dataset.variant === 'daily' || body.dataset.variant === 'first');
+    // R2-R1（V2-04 / T2-03）：三种结果页同一个作品版式，自选组也一样
+    const isWork = !!body;
     let cells;
     let count = null;
     if (isWork) {
@@ -163,11 +164,7 @@ async function resultView(page) {
       };
       cells = m.cells.map(c => ({ kind: c.kind, judgment: c.judgment || '', changeable: c.canChange ? 'true' : 'false', char: c.char, caption: c.caption, aria: nameOf(c.index), record: c.recordId }));
     } else {
-      cells = top ? [...top.querySelectorAll('[data-testid="result-cell"]')].map(c => ({
-        kind: c.dataset.kind, judgment: c.dataset.judgment, changeable: c.dataset.changeable,
-        char: c.querySelector('[data-testid="result-cell-char"]').textContent, caption: c.querySelector('[data-testid="result-cell-caption"]').textContent,
-        aria: c.getAttribute('aria-label'),
-      })) : [];
+      cells = [];
     }
     const workCells = top ? [...top.querySelectorAll('[data-testid="work-cell"]')].map(c => {
       const cv = c.querySelector('canvas');
@@ -184,6 +181,7 @@ async function resultView(page) {
       early: body ? body.dataset.early : null,
       kicker: txt('result-kicker'),
       title: txt('result-title'),
+      kuan: txt('work-kuan'),
       sub: txt('result-sub'),
       date: txt('result-date'),
       again: txt('result-again'),
@@ -350,10 +348,13 @@ export default async function resultSpec(page, ctx) {
   await waitResult(page);
   await waitNavIdle(page);
   let v = await resultView(page);
-  assert.deepEqual([v.header, v.variant, v.early, v.kicker], ['这次选的字', 'picked', 'true', '这次选的字'], 'picked result, ended early');
-  assert.ok(v.title.endsWith('先写到这里'), 'title 这次选的字 / 先写到这里 (P14)');
-  assert.equal(v.sub, '「永」记下了。还有 2 个字没写，没有记下。点一个格子，可以对照参考字形、修改判断。', 'R-R05 body');
-  assert.ok(/^\d+ 月 \d+ 日 · 自己选的$/.test(v.date), `S05 date line ${v.date}`);
+  assert.deepEqual([v.header, v.variant, v.early, v.title], ['这次选的字', 'picked', 'true', null], 'picked result, ended early: the page title is only for the screen reader; no visible heading (R2-R1 / V2-04)');
+  assert.equal(v.sub, '还有 2 个字没写，没有记下。', 'R-R05: only the line about what was not written (the 「记下了」 / 「点一个格子」 sentences are gone)');
+  assert.equal(v.date, null, 'no date / source line: the date lives in the work 落款');
+  assert.equal(v.workCells.length, 1, 'the one char written on this page is in the work (the same work layout as the daily page, V2-04)');
+  assert.ok(/\s自选一字$/.test(v.kuan), `the 落款 carries 「自选」 and the count: ${v.kuan}`);
+  assert.equal(v.share, true, 'the picked page has the same header share icon');
+  assert.equal(await page.locator(`${topSel('work-seal')}`).count(), 1, 'and the same single seal');
   assert.deepEqual([v.leave, v.footButtons], ['回到首页', ['result-leave']], 'only the leave button: 回到首页');
   st = await state(page);
   assert.ok(!st.sessions.B && st.sessions.lastEnded.B && st.sessions.lastEnded.B.endedEarly === true, 'B ended early into lastEnded.B');
@@ -446,10 +447,9 @@ export default async function resultSpec(page, ctx) {
   v = await resultView(page);
   assert.deepEqual(v.cells.map(c => [c.char, c.kind, c.caption, c.changeable]), [['额', 'judged', '写对', 'true'], ['鲜', 'answer-seen', '看过答案', 'false']],
     'P77: 鲜 added as 看过答案, not changeable');
-  const seenCellRecord = await evalIn(page, () => document.querySelectorAll('.sz-layer[data-top="true"] [data-testid="result-cell"]')[1].dataset.record);
-  assert.equal(seenCellRecord, seenRec.id, 'the added cell points at the answer-seen record of this session');
-  assert.ok(v.sub.startsWith('「额」记下了。') && v.sub.includes('「鲜」看过答案'), `note lists 鲜 as seen: ${v.sub}`);
-  assert.ok(v.sub.includes('还有 2 个字没写'), 'unwritten count unchanged (queue − cursor)');
+  const seenRow = await evalIn(page, () => { const r = document.querySelector('.sz-layer[data-top="true"] [data-testid="result-exrow"][data-index="1"]'); return r ? { record: r.dataset.record, state: r.dataset.state } : null; });
+  assert.deepEqual(seenRow, { record: seenRec.id, state: 'seen' }, 'the added item is a 「看过答案」 row pointing at the answer-seen record of this session');
+  assert.equal(v.sub, '还有 2 个字没写，没有记下。', 'unwritten count unchanged (queue − cursor)');
   st = await state(page);
   assert.equal(st.records.filter(r => r.kind === 'judged').length, 1, 'still one judged record');
   await page.click(topSel('result-leave'));
@@ -482,7 +482,7 @@ export default async function resultSpec(page, ctx) {
     { source: { view: 'detail', char: '额' }, leave: '回到「额」', from: '自己选的' },
   ];
   for (const s of sources) {
-    step(`seeded B with source ${s.source.view}: leave button 「${s.leave}」, source line 「${s.from}」; leave → back to the page below`);
+    step(`seeded B with source ${s.source.view}: leave button 「${s.leave}」; leave → back to the page below`);
     await goHome(page);
     await seedGroup(page, { kind: 'picked', chars: ['额', '鲜'], steps: ['correct'], source: s.source });
     await openWriteSlot(page, 'B');
@@ -491,8 +491,7 @@ export default async function resultSpec(page, ctx) {
     await waitNavIdle(page);
     v = await resultView(page);
     assert.equal(v.leave, s.leave, `R-R06 leave ${s.leave}`);
-    assert.ok(v.date && v.date.endsWith(`· ${s.from}`), `S05 source line ${v.date}`);
-    assert.ok(v.title.endsWith('写完了'), 'completed picked group: 这次选的字 / 写完了');
+    assert.deepEqual([v.title, v.date, v.sub], [null, null, null], 'completed picked group: no heading, no source line, no note (R2-R1)');
     await page.click(topSel('result-leave'));
     await page.waitForFunction(() => document.querySelector('.sz-app').dataset.topScreen === 'home');
     await waitNavIdle(page);

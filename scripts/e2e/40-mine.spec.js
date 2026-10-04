@@ -125,7 +125,9 @@ async function oracle(page, month) {
     }
     judged.sort((a, b) => Number(a.id.slice(1)) - Number(b.id.slice(1)));
     for (const r of judged) days.add(r.localDay);
-    const inMonth = judged.filter(r => r.localDay.startsWith(m + '-'));
+    // D51 ⑤ 作品成员规则：写错的记录不进月字帖 / 某一天的字（日历的「写过的日子」照旧看全部判断）
+    const work = judged.filter(r => r.judgment !== 'wrong' && r.source !== 'paper');
+    const inMonth = work.filter(r => r.localDay.startsWith(m + '-'));
     // D42（解 P122）：每字在本月内从早到晚找留有墨迹的那一次（存下的墨迹表里有这条），一份都没有才取本月第一次。
     const hasInk = r => !!((st.ink || {})[r.localDay.slice(0, 7)] || {})[r.id];
     const byChar = new Map();
@@ -140,7 +142,8 @@ async function oracle(page, month) {
       for (const d of Object.keys(folded[m].byDay).sort()) for (const c of folded[m].byDay[d]) if (!fd.has(c)) fd.set(c, d);
       sheet = [...fd.entries()].map(([char, day]) => ({ char, day, record: '' }));
     } else {
-      sheet = [...first.values()].map(r => ({ char: r.char, day: r.localDay, record: r.id }));
+      // 角标与排序同一个日子：这个字本月第一次作为成员出现的那天（T2-05），不是取墨那条的日子
+      sheet = [...first.entries()].map(([char, r]) => ({ char, day: byChar.get(char)[0].localDay, record: r.id }));
     }
     let prev = null;
     sheet = sheet.map(c => {
@@ -151,7 +154,7 @@ async function oracle(page, month) {
     const dayChars = day => {
       // 那天每字：按最近一次的先后排；留的这条 = 那天内从晚到早第一条留有墨迹的（D42），都没有才是最近一次
       const map = new Map();
-      for (const r of judged) {
+      for (const r of work) {
         if (r.localDay !== day) continue;
         const list = map.get(r.char) || [];
         list.push(r);
@@ -492,7 +495,7 @@ export default async function run(page, ctx) {
   assert.equal(v.gridInPaper, true, 'sheet grid laid out inside the paper card');
   assert.deepEqual(v.cells.map(c => [c.char, c.day, c.tag, c.record]), o9.sheet.map(c => [c.char, c.day, c.tag, c.record]),
     'sheet order / dates / tags / picked record = oracle (P02 first, D42: first one this month that still has ink)');
-  assert.deepEqual(v.cells.map(c => c.char).join(''), '静谁题慢额您数感', 'first-appearance order');
+  assert.deepEqual(v.cells.map(c => c.char).join(''), '静谁慢您数', 'first-appearance order of the work members: the wrong-only 题 / 额 / 感 are not on the sheet (D51 ⑤)');
   const jing = v.cells.find(c => c.char === '静');
   // D42（解 P122）：9-1、9-8 两次的墨迹已按 D27 回收（中间那次）；月字帖在本月内从早到晚找留有墨迹的那一次 → 9-22（笔迹与角标对应，M02），
   // 不再是「9-1 没有笔迹」。8 月那次（8-20，种子没存墨迹）在时间段外，不进候选。

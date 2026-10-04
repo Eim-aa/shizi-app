@@ -37,7 +37,7 @@ test('pick: a char written only on paper is not a member of day / month / glyph;
     rec(1, '永', 'judged', 'correct', '2026-09-02'),
     paper(rec(2, '纸', 'judged', 'correct', '2026-09-02')),
     // 和：屏幕上写过但没留墨（段内全无墨 → 兜底取偏好方向上那条）、之后又在纸上写过：兜底必须落在屏幕那条，不能是纸上那条
-    rec(3, '和', 'judged', 'wrong', '2026-09-03'),
+    rec(3, '和', 'judged', 'correct', '2026-09-03'),
     paper(rec(4, '和', 'judged', 'correct', '2026-09-04')),
   ];
   const st = stateOf(recs);

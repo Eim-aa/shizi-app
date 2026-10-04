@@ -80,7 +80,7 @@ test('Q1 mine: 月字帖 and the chars of a day include after-seen chars with in
   const sheet = monthSheet(index, '2026-10');
   assert.deepEqual(sheet.cells.map(c => [c.char, c.record && c.record.id]), [['永', 'r1'], ['和', 'r2'], ['中', 'r6']]);
   assert.equal(sheet.chars, 3, 'month char count = cells');
-  assert.deepEqual(dayItems(index, '2026-10-05').map(x => [x.char, x.record.id]), [['和', 'r5'], ['中', 'r6']], '和 on 10-05: only the judged r5 that day (no ink) — no borrowing from 10-02');
+  assert.deepEqual(dayItems(index, '2026-10-05').map(x => [x.char, x.record.id]), [['中', 'r6']], '和 on 10-05 is a wrong write: not a member (D51 ⑤), and nothing is borrowed from 10-02');
   assert.deepEqual(dayItems(index, '2026-10-02').map(x => x.char), ['永', '和']);
   // 日历「写过的日子」仍只看判断（看过答案不是有效记录，D18 / D23）
   assert.deepEqual([...index.days].sort(), ['2026-10-02', '2026-10-05']);

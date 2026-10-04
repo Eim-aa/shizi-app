@@ -24,7 +24,9 @@
 import * as defaultPolicy from '../../../config/policy.js';
 import { epigraphFor } from '../../../config/epigraphs.js';
 import { diffDays, localDay, monthDayParts, periodOf } from '../../../core/dates.js';
-import { charOfCardKey, hasAnyJudged, isJudged, latestJudgedByCard, todayCount, todayInkRow } from '../../../core/records.js';
+import { charOfCardKey, hasAnyJudged, isJudged, latestJudgedByCard, todayCount } from '../../../core/records.js';
+import { hasInkOfState } from '../../../core/ink-pick.js';
+import { workMembers } from '../../../core/work-members.js';
 import { remainingCount } from '../../../core/sessions.js';
 import { aStartInfo, planSpecial, recordsOf, resumableSession } from '../../../core/session-start.js';
 
@@ -140,6 +142,17 @@ export function libraryCountOf(records) {
 }
 
 /**
+ * 首页今天的字帖行（决定-D12 的取法 + 作品成员规则 D51 ⑤，core/work-members.js）：今天的作品成员（写对 ∪ 看后自写；写错的不进，计数仍照实），
+ * 同字只留最近一次（D42：从晚到早第一条留有墨迹的），按最近一次出现的先后；N ≤ limit 时 N 项，N > limit 时取最近 limit 项。
+ * @returns {object[]} 记录
+ */
+export function todayWorkRow(state, records, today, limit = INK_ROW_MAX, { hasInk = null } = {}) {
+  const has = typeof hasInk === 'function' ? hasInk : hasInkOfState(state);
+  const members = workMembers((records || []).filter(r => r && r.localDay === today), { prefer: 'last', order: 'last', hasInk: has });
+  return members.slice(Math.max(0, members.length - limit)).map(m => m.record);
+}
+
+/**
  * 首页全部派生数据。
  * @param {object|null} state  store 状态（未启动时 null → 按空状态算）
  * @param {number} nowMs       应用时钟（platform/env.js now()，测试钩子 setClock 可平移）
@@ -158,7 +171,9 @@ export function homeModel(state, nowMs, { policy = defaultPolicy, inkRowMax = IN
   const lastDay = lastJudgedDayOf(records);
   const gapDays = lastDay === null ? null : diffDays(lastDay, today);
   const view = homeViewOf({ records: recordsState, resume, capital, gapDays });
-  const hero = heroOf(view, recordsState);
+  const inkRow = view === 'progress' ? [] : todayWorkRow(state, records, today, inkRowMax);
+  // 今天只写错了（作品成员为空）时字帖位没有字可放：退回书家「拾」，不画空字帖
+  const hero = heroOf(view, recordsState) === 'today' && !inkRow.length ? 'shi' : heroOf(view, recordsState);
   const primarySession = primary ? resumableSession(state, primary.slot, { now: nowMs, policy }) : null;
   return {
     today,
@@ -170,7 +185,7 @@ export function homeModel(state, nowMs, { policy = defaultPolicy, inkRowMax = IN
     primary,
     other,
     count,
-    inkRow: hero === 'today' ? todayInkRow(records, today, inkRowMax) : [],
+    inkRow: hero === 'today' ? inkRow : [],
     showRecord,
     showFirstTip: recordsState === 'first' && !resumeOn,
     capital,

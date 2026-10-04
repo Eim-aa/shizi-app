@@ -58,29 +58,29 @@ test('month sheet: first-appearance order, date tags on day change, P02 pick fir
   const idx = recordIndex(state(rs));
   const first = monthSheet(idx, '2026-09', { policy });
   assert.equal(first.pick, 'first');
-  assert.deepEqual(first.cells.map(c => c.char), ['静', '谁', '题', '慢', '数']);
-  assert.deepEqual(first.cells.map(c => c.tag), ['2026-09-01', null, null, '2026-09-08', TODAY]);
+  assert.deepEqual(first.cells.map(c => c.char), ['静', '谁', '慢', '数'], '题 was written wrong: not in the sheet (D51 ⑤)');
+  assert.deepEqual(first.cells.map(c => c.tag), ['2026-09-01', null, '2026-09-08', TODAY]);
   assert.equal(first.cells[0].record.id, 'r1', '静 = first record this month (M02)');
-  assert.equal(first.cells[4].record.id, 'r7');
+  assert.equal(first.cells[3].record.id, 'r7');
   assert.equal(first.days, 4);
-  assert.equal(first.chars, 5);
+  assert.equal(first.chars, 4);
   const last = monthSheet(idx, '2026-09', { policy: { ...policy, monthSheetPick: 'last' } });
   assert.equal(last.cells[0].record.id, 'r6', '静 = last judged in month (D11)');
-  assert.equal(last.cells[0].day, '2026-09-22', 'tag follows the drawn record');
-  assert.deepEqual(last.cells.map(c => c.char), ['静', '谁', '题', '慢', '数'], 'order stays first-appearance');
+  assert.equal(last.cells[0].day, '2026-09-01', 'the tag is the sort day (first appearance), not the day of the drawn record (T2-05)');
+  assert.deepEqual(last.cells.map(c => c.char), ['静', '谁', '慢', '数'], 'order stays first-appearance');
 });
 
 const INK_ENTRY = { s: ['AAAAAAAA'] }; // 存下的墨迹（只看有没有笔画；不解码）
 
 test('D42 month sheet: 静 written in August then 9-01 / 9-08 / 9-22 — September shows 9-22 (tag 9-22), August shows its own; ink never borrowed across months', () => {
   serial = 0;
-  const rs = [rec('静', '2026-08-05'), rec('静', '2026-09-01'), rec('谁', '2026-09-01'), rec('静', '2026-09-08'), rec('静', '2026-09-22', { judgment: 'wrong' })];
+  const rs = [rec('静', '2026-08-05'), rec('静', '2026-09-01'), rec('谁', '2026-09-01'), rec('静', '2026-09-08'), rec('静', '2026-09-22')];
   // D27：只留首次（r1）与最近一次（r5）的墨迹；谁 只有一次、墨迹还在
   const ink = { '2026-08': { r1: INK_ENTRY }, '2026-09': { r5: INK_ENTRY, r3: INK_ENTRY } };
   const idx = recordIndex(state(rs, { ink }));
   const sep = monthSheet(idx, '2026-09', { policy });
-  assert.deepEqual(sep.cells.map(c => [c.char, c.record.id, c.day, c.tag]), [['静', 'r5', '2026-09-22', '2026-09-22'], ['谁', 'r3', '2026-09-01', '2026-09-01']],
-    '9-01 recycled: 静 takes 9-22 and the tag follows it; 谁 keeps its 9-01');
+  assert.deepEqual(sep.cells.map(c => [c.char, c.record.id, c.day, c.tag]), [['静', 'r5', '2026-09-01', '2026-09-01'], ['谁', 'r3', '2026-09-01', null]],
+    '9-01 recycled: 静 takes the 9-22 ink but the tag stays on its sort day 9-01 (T2-05); 谁 keeps its 9-01 (same day, no second tag)');
   assert.equal(sep.cells[0].record.localDay, '2026-09-22');
   const aug = monthSheet(idx, '2026-08', { policy });
   assert.deepEqual(aug.cells.map(c => [c.char, c.record.id]), [['静', 'r1']]);
@@ -102,12 +102,12 @@ test('D42 month sheet on a folded month: only kept records are candidates; kept 
   const s = state([], { ink: { '2026-06': { [k2.id]: INK_ENTRY } } });
   s.records['2026-06'] = { folded: true, month: '2026-06', byDay: { '2026-06-03': ['和', '永'], '2026-06-10': ['和'] }, chars: ['和', '永'], kept: [k1, k2] };
   const fs = monthSheet(recordIndex(s), '2026-06');
-  assert.deepEqual(fs.cells.map(c => [c.char, c.record ? c.record.id : null, c.day]), [['和', k2.id, '2026-06-10'], ['永', null, '2026-06-03']]);
+  assert.deepEqual(fs.cells.map(c => [c.char, c.record ? c.record.id : null, c.day]), [['和', k2.id, '2026-06-03'], ['永', null, '2026-06-03']]);
 });
 
 test('D42 day items: the char keeps the latest record OF THAT DAY that has ink; order stays by latest; none that day keeps the latest', () => {
   serial = 0;
-  const rs = [rec('数', TODAY), rec('感', TODAY), rec('数', TODAY, { judgment: 'wrong' }), rec('静', TODAY), rec('静', '2026-09-25')];
+  const rs = [rec('数', TODAY), rec('感', TODAY), rec('数', TODAY), rec('静', TODAY), rec('静', '2026-09-25')];
   // r1（数 的第一次）有墨、r3（数 最近一次）没有；感 没有墨；静 只有 9-25 有墨
   const idx = recordIndex(state(rs, { ink: { '2026-09': { r1: INK_ENTRY, r5: INK_ENTRY } } }));
   assert.deepEqual(dayItems(idx, TODAY).map(i => [i.char, i.record.id]), [['感', 'r2'], ['数', 'r1'], ['静', 'r4']],
@@ -167,9 +167,9 @@ test('sheet preview: ≤ 3 rows untouched; more → last 3 rows of the 7-column 
 
 test('day items: same char keeps its latest record, ordered by latest (home ink row rule)', () => {
   serial = 0;
-  const idx = recordIndex(state([rec('数', TODAY), rec('感', TODAY, { judgment: 'wrong' }), rec('数', TODAY, { judgment: 'wrong' }),
+  const idx = recordIndex(state([rec('数', TODAY), rec('感', TODAY), rec('数', TODAY), rec('赢', TODAY, { judgment: 'wrong' }),
     rec('户', TODAY, { kind: 'answer-seen' }), rec('静', '2026-09-22')]));
-  assert.deepEqual(dayItems(idx, TODAY).map(i => [i.char, i.record.id]), [['感', 'r2'], ['数', 'r3']]);
+  assert.deepEqual(dayItems(idx, TODAY).map(i => [i.char, i.record.id]), [['感', 'r2'], ['数', 'r3']], '赢 (wrong) is not a work member');
   assert.deepEqual(dayItems(idx, 'bad'), []);
 });
 

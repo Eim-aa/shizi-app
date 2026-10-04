@@ -252,7 +252,7 @@ export default async function run(page, ctx) {
     if (recordsCase === 'record' && resumeCase === 'none') {
       assert.equal(h.count, null, 'D49-7: today written (3 ≤ 8), nothing in progress: no visible 「今天写了 3 个字」 line');
       assert.ok(h.inkRow.label.startsWith(COPY.count(3)), `…the count is in the ink row’s screen-reader name: ${h.inkRow.label}`);
-      assert.deepEqual(h.inkRow && h.inkRow.chars, ['数', '感', '警'], 'today’s judged chars in judgment order');
+      assert.deepEqual(h.inkRow && h.inkRow.chars, ['数', '警'], 'today’s work members in judgment order: the wrong 感 is not in the row (D51 ⑤), while N stays 3');
     } else if (recordsCase === 'record') {
       assert.equal(h.count, null, 'P16 (decided by the stage-1 design): with a group in progress the home shows the group, not 今天写了 N 个字');
       assert.equal(h.inkRow, null, 'and not today’s chars');
@@ -321,10 +321,10 @@ export default async function run(page, ctx) {
   assert.deepEqual(h.inkRow.chars, nine.slice(0, 8), '8 items in id order');
 
   step('N=9 (+ a repeat of the first char last): 8 most recent items, number stays 9 (D12)');
-  const nineRecs = [...nine.map((c, i) => rec(i + 1, c)), rec(10, '一', { judgment: 'wrong' }), rec(11, '十', { day: YDAY })];
+  const nineRecs = [...nine.map((c, i) => rec(i + 1, c)), rec(10, '一'), rec(11, '十', { day: YDAY }), rec(12, '赢', { judgment: 'wrong' })];
   await setup(page, { seed: { records: byMonth(nineRecs) } });
   h = await home(page);
-  assert.equal(h.count, COPY.count(9), '「今天写了 9 个字」 (deduped N): D49-7 keeps this one line only when n > 8, because the copybook shows just 8');
+  assert.equal(h.count, COPY.count(10), '「今天写了 10 个字」 (deduped N; the wrong 赢 counts but never enters the row, D51 ⑤): D49-7 keeps this one line only when n > 8, because the copybook shows just 8');
   assert.deepEqual(h.inkRow.chars, ['三', '四', '五', '六', '七', '八', '九', '一'], 'most recent 8, 一 moved to its latest judgment');
   assert.equal(h.inkRow.ids[7], 'r10', 'last item is r10');
   assert.equal(h.inkRow.count, 9, 'ink row data-count=9');

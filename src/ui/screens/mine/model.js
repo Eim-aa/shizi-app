@@ -11,23 +11,24 @@
 //   （'first' = 这个月第一次写这个字那次，M02；'last' = 月内最后一次判断，D11）；角标 = 与前一格日期不同时标那格的日期（原型 L321）。
 //   D42（解 P122；D27 起中间几次的墨迹已回收）：每字在本月内按这个偏好顺序（first 从早到晚、last 从晚到早）找**留有墨迹**的那一次
 //   （core/ink-pick.js pickRecordInPeriod），本月里一份都没有才取偏好方向上的那一条、如实「没有笔迹」；不拿别月的墨迹冒充（I03）；
-//   角标日期跟着挑出来的那条记录走（M02）。「有没有墨迹」由 hasInk 判断，缺省按 state.ink 的存下的墨迹。
+//   角标日期 = 排序用的 firstDay（这个字本月第一次作为作品成员出现的那天），不跟着挑出来的那条记录走（T2-05 / N2-07；M02 原口径作废）。「有没有墨迹」由 hasInk 判断，缺省按 state.ink 的存下的墨迹。
 //   折叠月份只剩 byDay / chars 与 kept：字按 chars 顺序、日期取该字最早出现的那天；记录只能从 kept 里找（同样按 D42 挑有墨迹的），
 //   kept 里没有这个字（或一份墨迹都没有）时 record=null（10.12「没有笔迹」，不借别次笔迹，I03）。
 // - 纸上记录（D46 ⑬ / D47，P1-E78）：recordIndex 的 judged / days **不**过滤——纸上那天仍算「写过的日子」（日历、本周、签名里的天数）；
-//   月字帖（monthSheet）与某一天的字（dayItems）画的是本人笔迹，只收 isWorkRecord，折叠月份用 foldWorkByDay 去掉只在纸上写过的字；
+//   月字帖（monthSheet）与某一天的字（dayItems）画的是本人笔迹，只收作品成员（core/work-members.js：写对 ∪ 看后自写，写错没手动放进来的不进，D51 ⑤），折叠月份用 foldWorkByDay 去掉只在纸上写过的字；
 //   所以字数（chars）不计纸上字，只在纸上写过的字不出现在我的首页字帖，也不占 pickRecordInPeriod 的兜底。
 // - 看后自写（Q1，QA simB D1；D31「写对与看后自己写的字」）：月字帖与某一天的字另收「看过答案且留有自己写一遍的本人墨」的记录
 //   （recordIndex.afterSeen，按 state.ink 判断有没有墨），与判断记录一起按 D42 挑留有墨迹的那一次；它不是有效记录（D18 / D23），
 //   所以不进 judged / days（日历、本周、签名天数不变）。
 // - 我的首页字帖（R-M05，边改 M03）：7 列，最多放最近 3 行（按整张字帖 7 列排好后的最后 3 行），多了给「全部 ›」。
 // - 某一天的字（R-P05「点有记录的日子列出那天的字」）：那天 judged，同字只留一条，按最近一次的先后（与首页墨迹行同一口径，
-//   core/records todayInkRow）；D42：留的这一条 = 那天内从晚到早第一条留有墨迹的，那天里都没有才留最近一次；折叠日子只有字，没有记录。
+//   home/today.js todayWorkRow）；D42：留的这一条 = 那天内从晚到早第一条留有墨迹的，那天里都没有才留最近一次；折叠日子只有字，没有记录。
 
 import * as defaultPolicy from '../../../config/policy.js';
 import { addDays, addMonths, daysInMonth, isValidDay, isValidMonth, localDay, monthOf, parseDay } from '../../../core/dates.js';
-import { foldWorkByDay, isAfterSeenWork, isJudged, isWorkRecord, sortById } from '../../../core/records.js';
+import { foldWorkByDay, isAfterSeenWork, isJudged, sortById } from '../../../core/records.js';
 import { pickRecordInPeriod, storedInkPresent } from '../../../core/ink-pick.js';
+import { isWorkMember, workMembers } from '../../../core/work-members.js';
 
 /** 我的首页字帖列数、最多行数（原型 L26 7 列；R-M05「最近 3 行」）。 */
 export const MINE_SHEET_COLS = 7;
@@ -87,11 +88,16 @@ function inkChecker(index, hasInk) {
   return record => storedInkPresent(state, record);
 }
 
-/** 作品记录（id 升序）：屏幕上写的判断 ∪ 看后自写（Q1）。 */
-export function workRecordsOf(index) {
-  const extra = index && Array.isArray(index.afterSeen) ? index.afterSeen : [];
-  const judged = index ? index.judged.filter(isWorkRecord) : [];
-  return extra.length ? sortById(judged.concat(extra)) : judged;
+/**
+ * 作品记录（id 升序）：作品成员规则（core/work-members.js，D51 ⑤）——写对 ∪ 看后自写（Q1）；写错只在 added 里（手动放进来）才进。
+ * 月字帖预览、某一天的字、年报与首页、结果页、图片同一条规则。
+ */
+export function workRecordsOf(index, { added = null } = {}) {
+  if (!index) return [];
+  const extra = Array.isArray(index.afterSeen) ? index.afterSeen : [];
+  const all = extra.length ? sortById(index.judged.concat(extra)) : index.judged;
+  const hasInk = inkChecker(index, null);
+  return all.filter(r => isWorkMember(r, { hasInk, added }));
 }
 
 /** 有没有任何有效记录（R-M04 空态的反面）。 */
@@ -183,29 +189,22 @@ export function monthSheet(index, month, { policy = defaultPolicy, hasInk = null
     const order = fold.chars.filter(c => firstDay.has(c));
     for (const c of firstDay.keys()) if (!order.includes(c)) order.push(c);
     order.sort((a, b) => (firstDay.get(a) < firstDay.get(b) ? -1 : firstDay.get(a) > firstDay.get(b) ? 1 : 0));
-    // 折叠月份只剩 kept：只在 kept 里找（D42），找不到的字 record=null、日期取 byDay 里最早出现的那天。
+    // 折叠月份只剩 kept：只在 kept 里找（D42），找不到的字 record=null；角标与排序同一个日子（byDay 里最早出现的那天）。
     const keptOf = new Map();
     for (const r of inMonth) {
       if (!keptOf.has(r.char)) keptOf.set(r.char, []);
       keptOf.get(r.char).push(r);
     }
     const cells = retag(order.map(char => {
-      const { record } = pickRecordInPeriod(keptOf.get(char), { prefer: pick, hasInk: has });
-      return { char, day: record ? record.localDay : firstDay.get(char), record };
+      const list = keptOf.get(char);
+      const picked = list ? workMembers(list, { prefer: pick, hasInk: has })[0] : null;
+      return { char, day: firstDay.get(char), record: picked ? picked.record : null, dot: picked ? picked.dot : false };
     }));
     return { month, cells, days, chars: cells.length, folded: true, pick };
   }
-  const byChar = new Map(); // char → 本月该字的记录（id 升序）；插入顺序 = 本月第一次出现的先后
-  for (const r of inMonth) {
-    if (!byChar.has(r.char)) byChar.set(r.char, []);
-    byChar.get(r.char).push(r);
-  }
-  const cells = retag([...byChar.values()].map(list => {
-    // D42：本月内按偏好顺序找留有墨迹的那一次；一份都没有才取偏好方向上的那一条（如实没有笔迹）。
-    const { record } = pickRecordInPeriod(list, { prefer: pick, hasInk: has });
-    // 角标日期跟格子里的笔迹走（M02「格子里的笔迹和格子上标的日期对应」）。
-    return { char: list[0].char, day: record.localDay, record };
-  }));
+  // 作品成员每字取一条（D42：本月内按偏好顺序找留有墨迹的那一次，一份都没有才取偏好方向上的那一条，如实没有笔迹）；
+  // 角标日期 = 排序用的 firstDay（这个字本月第一次作为成员出现的那天），不跟着取墨那条走（T2-05 / N2-07）。
+  const cells = retag(workMembers(inMonth, { prefer: pick, order: 'first', hasInk: has }).map(m => ({ char: m.char, day: m.firstDay, record: m.record, dot: m.dot })));
   return { month, cells, days, chars: cells.length, folded: false, pick };
 }
 
@@ -233,15 +232,8 @@ export function dayItems(index, day, { hasInk = null } = {}) {
   const fold = index.folded[monthOf(day)];
   if (fold) return (foldWorkByDay(fold)[day] || []).map(char => ({ char, record: null }));
   const has = inkChecker(index, hasInk);
-  const byChar = new Map();
-  for (const r of workRecordsOf(index)) {
-    if (r.localDay !== day) continue;
-    const list = byChar.get(r.char) || [];
-    list.push(r);
-    byChar.delete(r.char); // 顺序按最近一次的先后
-    byChar.set(r.char, list);
-  }
-  return [...byChar.values()].map(list => ({ char: list[0].char, record: pickRecordInPeriod(list, { prefer: 'last', hasInk: has }).record }));
+  const inDay = workRecordsOf(index).filter(r => r.localDay === day);
+  return workMembers(inDay, { prefer: 'last', order: 'last', hasInk: has }).map(m => ({ char: m.char, record: m.record, dot: m.dot }));
 }
 
 // ---------------------------------------------------------------- 页面模型

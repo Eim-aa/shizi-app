@@ -17,7 +17,6 @@ import {
   replaceRecord,
   removeRecord,
   todayCount,
-  todayInkRow,
   judgedCountOfCard,
   wrongCountOfCard,
   firstJudgedOfCard,
@@ -221,16 +220,6 @@ test('records: today N counts distinct chars judged today only', () => {
   assert.equal(todayCount(records, TODAY), 2);
   assert.equal(todayCount(records, '2026-09-23'), 1);
   assert.equal(todayCount([], TODAY), 0);
-});
-
-test('records: home ink row shows N ≤ 8 items, else the latest 8 (D12), one per char', () => {
-  const chars = '一二三四五六七八九';
-  const records = [...chars].map((ch, i) => rec(i + 1, ch, 'judged', 'correct', TODAY));
-  assert.deepEqual(todayInkRow(records.slice(0, 5), TODAY).map((r) => r.char), ['一', '二', '三', '四', '五']);
-  assert.deepEqual(todayInkRow(records, TODAY).map((r) => r.char), [...'二三四五六七八九']);
-  assert.equal(todayCount(records, TODAY), 9, 'number stays N');
-  const again = [...records, rec(20, '一', 'judged', 'wrong', TODAY)];
-  assert.deepEqual(todayInkRow(again, TODAY).map((r) => r.char), [...'三四五六七八九一'], 'rewritten char moves to its latest position');
 });
 
 test('records: counts, first record and monthly index', () => {

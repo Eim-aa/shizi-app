@@ -59,12 +59,12 @@ test('resume dimension: none / A / B / A+B; B is the primary line, A the other (
 test('N and ink row: judged today deduped by char, latest 8 by id (D12)', () => {
   const chars = '一二三四五六七八九';
   const records = [...chars].map((c, i) => rec(i + 1, c));
-  records.push(rec(10, '一', { judgment: 'wrong' }), rec(11, '十', { day: YDAY }), rec(12, '二', { kind: 'skipped' }));
+  records.push(rec(10, '一', { judgment: 'correct' }), rec(11, '十', { day: YDAY }), rec(12, '二', { kind: 'skipped' }), rec(13, '赢', { judgment: 'wrong' }));
   const m = homeModel(state({ records }), at(DAY));
-  assert.equal(m.count, 9);
-  assert.deepEqual(m.inkRow.map(r => r.char), [...'三四五六七八九一']);
+  assert.equal(m.count, 10, 'N counts the wrong 赢 too: the number is true');
+  assert.deepEqual(m.inkRow.map(r => r.char), [...'三四五六七八九一'], '赢 (wrong) is not in the row — the row is today’s work (D51 ⑤)');
   assert.equal(m.inkRow.length, INK_ROW_MAX);
-  assert.equal(m.count, 9, 'number stays N');
+  assert.equal(m.count, 10, 'number stays N');
   assert.equal(INK_ROW_MAX, 8);
 });
 
@@ -189,7 +189,7 @@ test('homeModel five states from a real state: first / fresh / today / progress 
   assert.deepEqual([halfJudged.view, halfJudged.records, halfJudged.showPick], ['progress', 'record', false], 'one char judged but the first practice is not finished: still hidden');
   const fresh = homeModel(state({ records: [rec(1, '永', { day: YDAY })] }), at(DAY), { deck: CAP_DECK });
   assert.deepEqual([fresh.view, fresh.hero, fresh.showPick, fresh.libraryCount], ['fresh', 'shi', true, 1], 'after the first practice 自己选字 is there');
-  const today = homeModel(state({ records: [rec(1, '永'), rec(2, '和', { judgment: 'wrong' })] }), at(DAY), { deck: CAP_DECK });
+  const today = homeModel(state({ records: [rec(1, '永'), rec(2, '和', { judgment: 'correct' }), rec(3, '赢', { judgment: 'wrong' })] }), at(DAY), { deck: CAP_DECK });
   assert.deepEqual([today.view, today.hero, today.inkRow.map(r => r.char), today.showPick], ['today', 'today', ['永', '和'], true]);
   const progress = homeModel(state({ records: [rec(1, '永')], A: sess('A', 'daily', 5, 2) }), at(DAY));
   assert.deepEqual([progress.view, progress.hero, progress.progress.cells.length, progress.primary.remaining, progress.showPick], ['progress', 'progress', 5, 3, true]);

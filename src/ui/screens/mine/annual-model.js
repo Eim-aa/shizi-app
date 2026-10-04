@@ -6,10 +6,10 @@
 // 口径（与 M4-1 mine/model.js recordIndex 同一索引）：
 // - 「今年」= 应用时钟今天所在的公历年；只算 localDay 在这一年的记录。
 // - 「记录」只看 judged（看过答案 / 跳过不算）；折叠月份（01 §9）的 byDay 字与日子也算。**纸上记录不进、不计入年字数、月字数、今年第一个字**
-//   （D46-13 / D47，isWorkRecord；折叠月份用折叠时记下的 paperOnly 去掉只在纸上写过的字，foldWorkByDay）。日历「写过的日子」不在这里，仍算纸上那天。
+//   （D46-13 / D47，作品成员规则 core/work-members.js；写错的字没手动放进来也不进，D51 ⑤；折叠月份用折叠时记下的 paperOnly 去掉只在纸上写过的字，foldWorkByDay）。日历「写过的日子」不在这里，仍算纸上那天。
 // - 看后自写（Q1，QA simB D1；D31「写对与看后自己写的字」）：年字数、每月一段、卷尾另收看过答案且留有自己写一遍本人墨的记录
 //   （mine/model.js workRecordsOf，slice.works）；「今年第一个字」仍取今年第一条判断记录的字（节标题「有记录的字」，D18 看过答案不是记录）。
-// - 年字数 count = 今年有记录的字去重（写对写错都算；整月没留下笔迹的字也算——它们在月段里画 under 衬底）。
+// - 年字数 count = 今年的作品成员字去重（写对 ∪ 看后自写；写错没手动放进来的不算，D51 ⑤；整月没留下笔迹的字也算——它们在月段里画 under 衬底）。
 // - 今年第一个字：字 = 今年最早的一条 judged 记录的字；笔迹按 D42（解 P122）：在今年这个字的记录里从早到晚找留有墨迹的那一次，日期是那一次的日子
 //   （说明行写「{M月D日} 的笔迹」，D45：不说「今年第一次」）；今年里一份墨迹都没有才 record = 最早那条、格子画 under 衬底；不拿去年的墨冒充（I03）。
 // - 每月一段：该月月字帖的格子（pick.js monthCells：每字取本月留墨的第一次，没墨画衬底）；月字数 = 格数。
@@ -17,7 +17,8 @@
 // - 空态：今年没有任何记录。去年有记录、今年没有也是空态。
 
 import { diffDays, isValidDay, monthOf, parseDay } from '../../../core/dates.js';
-import { foldWorkByDay, isWorkRecord } from '../../../core/records.js';
+import { foldWorkByDay } from '../../../core/records.js';
+import { isWorkMember } from '../../../core/work-members.js';
 import * as defaultPolicy from '../../../config/policy.js';
 import { monthCells, monthMembers } from '../../../core/images/pick.js';
 import { paginate, retagPages } from '../../../core/images/paginate.js';
@@ -37,7 +38,7 @@ function yearOfDay(day) {
 export function yearSlice(state, year) {
   const index = recordIndex(state);
   const prefix = String(year) + '-';
-  const judged = index.judged.filter(r => isWorkRecord(r) && typeof r.localDay === 'string' && r.localDay.startsWith(prefix) && isValidDay(r.localDay));
+  const judged = index.judged.filter(r => isWorkMember(r) && typeof r.localDay === 'string' && r.localDay.startsWith(prefix) && isValidDay(r.localDay));
   const works = workRecordsOf(index).filter(r => typeof r.localDay === 'string' && r.localDay.startsWith(prefix) && isValidDay(r.localDay));
   const folded = {};
   const rawMonths = state && state.records && typeof state.records === 'object' ? state.records : {};

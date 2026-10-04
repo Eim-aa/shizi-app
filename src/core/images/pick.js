@@ -4,13 +4,14 @@
 // 成员与取墨：
 //   这次的图片（session）  = 作品成员规则（work.js buildWork：默认写对 ∪ 看后自写有墨；写错有墨可「放进去」，带朱点），顺序 = 组内顺序；
 //                          每字取本组该字的那条记录（D11 最后一次）；成员里没有的（无墨、跳过）不画。
-//   这天写的字（day）      那天判断过的字每字最近一次（按那天第一次出现的先后）；缺墨的字不画（P50 omit）。
-//   Q1（QA simB D1；D31「写对与看后自己写的字」）：这天 / 月字帖（及年报的月段）的候选另收「看后自写」——看过答案且那条记录留有
-//                          自己写一遍的本人墨（core/records.js isAfterSeenWork；hasInk 缺省按 state.ink）；没写的看过答案、跳过仍不进。
-//   月字帖（month）        本月判断过的字，按本月第一次出现的先后；每字取本月内留有墨迹的第一次（D42；policy.monthSheetPick 'first'）；
+//   这天写的字（day）      那天的作品成员每字最近一次（按那天第一次出现的先后）；缺墨的字不画（P50 omit）。
+//   作品成员（D51 ⑤，core/work-members.js 单一来源）：写对 ∪ 看后自写（Q1，看过答案且那条记录留有自己写一遍的本人墨；hasInk 缺省按 state.ink）；
+//                          写错的字只在手动放进来时（added）进入并带朱点；没写的看过答案、跳过、纸上记录不进。
+//   月字帖（month）        本月的作品成员，按本月第一次出现的先后；每字取本月内留有墨迹的第一次（D42；policy.monthSheetPick 'first'）；
+//                          日期角标与排序用同一个日子（firstDay：该字在本月第一次作为成员出现的那天，T2-05 / N2-07），取墨在别的日子也不改角标；
 //                          整个月一份墨迹都没有的字**照样在**，画 under 衬底（交接 §7，不写「没有笔迹」）；日期角标只标每天的第一个字；
 //                          纸上记录不进（D46-13 / D47，isWorkRecord；折叠月用 paperOnly 去掉），所以月字数也不计它；
-//                          纸上记录必须在 pickRecordInPeriod 之前滤掉（段内全无墨时它会兜底取那条）。
+//                          纸上记录必须在取墨（work-members.js 里的 pickRecordInPeriod）之前滤掉（段内全无墨时它会兜底取那条）——成员规则已经保证。
 //   单字手写图片（glyph）  这个字最近一次 judged、不在纸上（A05；纸上那次不占位，D47）；那次没有笔迹就不生成（R-D04 置灰）。
 // 超过 80 字（D39）：不再返回 pending——plan.pages 按日期分页（paginate.js），每页独立排版。
 // 「最近一次」「第一次」一律按记录 id 序号（01 §3.1），不看 at。D42：时间段内每字找留有墨迹的那一次（core/ink-pick.js），
@@ -19,13 +20,14 @@
 // inkOf(record) → 345 单位点列（每笔 [{x,y,w,…}]，已 resampleForReplay）或 null；由调用方注入（界面层读 store 的墨迹表）。
 
 import * as defaultPolicy from '../../config/policy.js';
-import { charOfCardKey, compareRecordIds, foldWorkByDay, isPaperRecord, isWorkOrAfterSeen, isWorkRecord } from '../records.js';
+import { charOfCardKey, compareRecordIds, foldWorkByDay, isPaperRecord, isWorkRecord } from '../records.js';
+import { workMemberRecords, workMembers } from '../work-members.js';
 import { isValidDay, isValidMonth, localDay } from '../dates.js';
 import { MAX_CHARS_PER_PAGE, withDayTags } from './layout.js';
 import { paginate, retagPages } from './paginate.js';
 import { dayTag } from './layout.js';
 import { addedOf, buildWork } from './work.js';
-import { hasInkOfState, pickRecordInPeriod } from '../ink-pick.js';
+import { hasInkOfState } from '../ink-pick.js';
 
 export const IMAGE_KINDS = Object.freeze(['session', 'day', 'month', 'glyph']);
 
@@ -50,28 +52,6 @@ function foldedMonth(records, month) {
 
 function charOf(record) {
   return typeof record.char === 'string' && record.char ? record.char : charOfCardKey(record.cardKey);
-}
-
-/**
- * judged 记录按字分组：成员顺序 = 第一次出现的先后；每字按 pick 方向取一条（D42：给了 hasInk 时取该方向上第一条留有墨迹的，
- * 段内全无墨迹才取方向上的那一条；不给 hasInk 就是单纯取第一次 / 最后一次）。judged 要按 id 升序。
- * @returns {Array<{char, cardKey, record, firstDay}>}
- */
-export function groupByChar(judged, pick = 'last', hasInk = null) {
-  const byChar = new Map();
-  for (const r of judged) {
-    const char = charOf(r);
-    const row = byChar.get(char);
-    if (!row) byChar.set(char, { char, list: [r] });
-    else row.list.push(r);
-  }
-  return [...byChar.values()].map(row => {
-    const prefer = pick === 'first' ? 'first' : 'last';
-    const record = typeof hasInk === 'function'
-      ? pickRecordInPeriod(row.list, { prefer, hasInk }).record
-      : prefer === 'first' ? row.list[0] : row.list[row.list.length - 1];
-    return { char: row.char, cardKey: record.cardKey, record, firstDay: row.list[0].localDay };
-  });
 }
 
 // ---------------------------------------------------------------- 成员
@@ -122,29 +102,34 @@ export function sessionWork(state, { slot = null, sessionId, hasInk }) {
   return { work, day: sessionDay(session, all), session };
 }
 
-/** 作品出口的候选记录（id 升序）：屏幕上写的判断 ∪ 留有墨迹的看后自写（Q1）；hasInk 缺省按 state.ink。 */
-function workRecords(state, hasInk) {
+/** 作品出口的候选记录（id 升序）：写对 ∪ 留有墨迹的看后自写（Q1）∪ 手动放进来的写错（added）；hasInk 缺省按 state.ink。成员规则在 core/work-members.js。 */
+function workRecords(state, hasInk, added = null) {
   const has = typeof hasInk === 'function' ? hasInk : hasInkOfState(state);
-  return flattenRecords(state && state.records).filter(r => isWorkOrAfterSeen(r, has));
+  return workMemberRecords(flattenRecords(state && state.records), { hasInk: has, added });
 }
 
-/** 某天写的字：那天 judged（∪ 看后自写，Q1），每字取那天内从晚到早第一条留有墨迹的那次（R-P03 的「最近一次」+ D42）。 */
-export function dayMembers(state, day, { hasInk = null } = {}) {
+/** 某天写的字：那天的作品成员，每字取那天内从晚到早第一条留有墨迹的那次（R-P03 的「最近一次」+ D42）。 */
+export function dayMembers(state, day, { hasInk = null, added = null } = {}) {
   if (!isValidDay(day)) throw new Error('INVALID_DAY');
-  const judged = workRecords(state, hasInk).filter(r => r.localDay === day);
-  return { members: groupByChar(judged, 'last', hasInk), day };
+  const has = typeof hasInk === 'function' ? hasInk : hasInkOfState(state);
+  const pickInk = typeof hasInk === 'function' ? hasInk : null; // 没注入 hasInk 时不做 D42：每字就取那天最近一次
+  const inDay = workRecords(state, has, added).filter(r => r.localDay === day);
+  return { members: workMembers(inDay, { prefer: 'last', order: 'first', hasInk: has, pickInk, added }), day };
 }
 
 /**
  * 月字帖成员。折叠月（01 §9）只剩 byDay / chars 与 kept：成员按 byDay 的日子先后，记录只能从 kept 里取到
  * 「仍是某字最新 judged」的那条——取不到的格子按缺墨处理（墨迹随折叠删除）。
  */
-export function monthMembers(state, month, { pick = defaultPolicy.monthSheetPick, hasInk = null } = {}) {
+export function monthMembers(state, month, { pick = defaultPolicy.monthSheetPick, hasInk = null, added = null } = {}) {
   if (!isValidMonth(month)) throw new Error('INVALID_MONTH');
   const records = state && state.records;
   const folded = foldedMonth(records, month);
   const prefix = month + '-';
-  const judged = workRecords(state, hasInk).filter(r => typeof r.localDay === 'string' && r.localDay.startsWith(prefix));
+  const has = typeof hasInk === 'function' ? hasInk : hasInkOfState(state);
+  const pickInk = typeof hasInk === 'function' ? hasInk : null; // 没注入 hasInk 时不做 D42：每字就取偏好方向上的那一次
+  const inMonth = workRecords(state, has, added).filter(r => typeof r.localDay === 'string' && r.localDay.startsWith(prefix));
+  const prefer = pick === 'first' ? 'first' : 'last';
   let members;
   let days;
   if (folded) {
@@ -156,17 +141,16 @@ export function monthMembers(state, month, { pick = defaultPolicy.monthSheetPick
       for (const char of byDay[d] || []) {
         if (seen.has(char)) continue;
         seen.add(char);
-        const kept = judged.filter(r => charOf(r) === char);
-        const prefer = pick === 'first' ? 'first' : 'last';
-        const record = kept.length
-          ? (typeof hasInk === 'function' ? pickRecordInPeriod(kept, { prefer, hasInk }).record : prefer === 'first' ? kept[0] : kept[kept.length - 1])
-          : null;
-        members.push({ char, cardKey: record ? record.cardKey : 'base:' + char, record, firstDay: d });
+        // byDay 只记了字，分不出写错：留下来的 kept 里的作品成员按成员规则取（写错没放进来的记录取不到 → 这格画衬底，不画写错的字）
+        const kept = inMonth.filter(r => charOf(r) === char);
+        const picked = kept.length ? workMembers(kept, { prefer, hasInk: has, pickInk, added })[0] : null;
+        const record = picked ? picked.record : null;
+        members.push({ char, cardKey: record ? record.cardKey : 'base:' + char, record, firstDay: d, dot: picked ? picked.dot : false });
       }
     }
   } else {
-    days = [...new Set(judged.map(r => r.localDay))].sort();
-    members = groupByChar(judged, pick === 'first' ? 'first' : 'last', hasInk);
+    days = [...new Set(inMonth.map(r => r.localDay))].sort();
+    members = workMembers(inMonth, { prefer, order: 'first', hasInk: has, pickInk, added });
   }
   return { members, days: days.length, dayList: days, month, pick };
 }
@@ -204,21 +188,24 @@ function pointsOf(inkOf, record) {
   }
 }
 
-/** 一个成员 → 排版 / 渲染用的格子：有墨 'hand'，没墨 'under'；day = 那一格记录的日子（角标 / 分页用）。 */
+/**
+ * 一个成员 → 排版 / 渲染用的格子：有墨 'hand'，没墨 'under'；day = 排序用的那个日子（firstDay：这个字在这个时间段第一次作为成员出现的那天；
+ * 角标与分页都用它，不用取墨那条记录的日子——取墨在别的日子也不让角标跳，T2-05 / N2-07）；dot = 写错且手动放进来的字。
+ */
 export function cellOfMember(member, inkOf, { under = false } = {}) {
   const ink = pointsOf(inkOf, member.record);
-  const day = member.record ? member.record.localDay : member.firstDay || null;
+  const day = member.firstDay || (member.record ? member.record.localDay : null);
   if (!ink && !under) return null;
-  return { ch: member.char, ink, mode: ink ? 'hand' : 'under', dot: false, tag: '', day, record: member.record || null };
+  return { ch: member.char, ink, mode: ink ? 'hand' : 'under', dot: !!(ink && member.dot), tag: '', day, record: member.record || null };
 }
 
 /**
  * 月字帖 / 年报月页的格子（交接 §7 / §8）：本月每个字一格，有墨取留墨的第一次，一份都没有的画 under；日期角标只标每天的第一个字。
  * @returns {{month:string, days:number, cells:Array, members:Array, inked:number}}
  */
-export function monthCells(state, month, { inkOf, hasInk = null, policy = defaultPolicy } = {}) {
+export function monthCells(state, month, { inkOf, hasInk = null, policy = defaultPolicy, added = null } = {}) {
   const has = typeof hasInk === 'function' ? hasInk : record => inkPointsPresent(inkOf, record);
-  const r = monthMembers(state, month, { pick: policy.monthSheetPick, hasInk: has });
+  const r = monthMembers(state, month, { pick: policy.monthSheetPick, hasInk: has, added });
   const raw = r.members.map(m => cellOfMember(m, inkOf, { under: true }));
   const cells = withDayTags(raw);
   return { month: r.month, days: r.days, cells, members: r.members, inked: cells.filter(c => c.mode === 'hand').length };

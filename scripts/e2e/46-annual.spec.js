@@ -77,7 +77,8 @@ async function oracle(page, year) {
         }
       }
     }
-    const yj = judged.filter(r => r.localDay.startsWith(pre)).sort((a, b) => Number(a.id.slice(1)) - Number(b.id.slice(1)));
+    // D51 ⑤ 作品成员规则：写错的字不进年报（年字数、月字数、第一个字）
+    const yj = judged.filter(r => r.localDay.startsWith(pre) && r.judgment !== 'wrong' && r.source !== 'paper').sort((a, b) => Number(a.id.slice(1)) - Number(b.id.slice(1)));
     for (const r of yj) days.add(r.localDay);
     const chars = new Set([...yj.map(r => r.char), ...foldEvents.map(e => e.char)]);
     const monthChars = {};
@@ -179,7 +180,8 @@ const RICH = {
   steps: [
     { char: '豕', judgment: 'correct', day: '2025-12-30' },
     { char: '籍', judgment: 'wrong', day: '2025-12-31' },
-    { char: '静', judgment: 'wrong', day: '2026-01-05', ink: true },
+    { char: '惊', judgment: 'wrong', day: '2026-01-04', ink: true }, // 写错的字不算第一个字（D51 ⑤）
+    { char: '静', judgment: 'correct', day: '2026-01-05', ink: true },
     { char: '谁', judgment: 'correct', day: '2026-01-05' },
     { char: '题', judgment: 'correct', day: '2026-03-02' },
     { char: '静', judgment: 'correct', day: '2026-05-01', ink: true },

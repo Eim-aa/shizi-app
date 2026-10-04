@@ -20,7 +20,7 @@ const COPY = {
   kindGlyph: '手写字图片',
   kindMonth: '9月字帖',
   sessionSign: '二〇二六年九月二十四日',
-  dayDoneSign: '二〇二六年九月二十四日　两字',
+  dayDoneSign: '二〇二六年九月二十四日',
   monthSign: '二〇二六年九月　五字',
   share: '分享',
   save: '保存图片',
@@ -334,7 +334,7 @@ export default async function run(page, ctx) {
   await waitPreview(page);
   v = await preview(page);
   assert.equal(v.kind, 'day', 'day preview');
-  assert.equal(v.canvas.members, '永静', 'that day\'s chars with ink (和 has none → not drawn)');
+  assert.equal(v.canvas.members, '静', 'that day\'s work members with ink: 永 was written wrong (not a member, D51 ⑤), 和 has no ink → not drawn');
   assert.equal(v.canvas.signature, COPY.dayDoneSign, 'day 落款');
   await closeOverlay(page);
 

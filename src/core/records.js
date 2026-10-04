@@ -388,21 +388,6 @@ export function todayCount(records, today) {
   return judgedCardKeysOn(records, today).size;
 }
 
-/**
- * 首页墨迹行（决定-D12）：今天 judged，同字只留最近一次，按 id 先后；取最后 limit 条。
- * N ≤ limit 时显示 N 项；N > limit 时显示最近 limit 项（数字仍为 N）。
- */
-export function todayInkRow(records, today, limit = 8) {
-  const byChar = new Map();
-  for (const r of sortById(records)) {
-    if (!isJudged(r) || r.localDay !== today) continue;
-    byChar.delete(r.cardKey);
-    byChar.set(r.cardKey, r);
-  }
-  const list = [...byChar.values()];
-  return list.slice(Math.max(0, list.length - limit));
-}
-
 /** 本日 judged 的「复习字」个数：今天有 judged、且在今天以前已有 judged（每日上限记账，§5「练完记账」）。 */
 export function reviewsDoneOn(records, day) {
   const firstDay = new Map();

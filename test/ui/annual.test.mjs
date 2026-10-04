@@ -59,7 +59,7 @@ test('empty: no records / only answer-seen or skipped / only last year / only pa
   }
 });
 
-test('the year count: distinct chars this year (right and wrong both count); answer-seen / skipped / last year / 纸上 do not (D46-13)', () => {
+test('the year count: distinct work chars this year (right ones; a wrong-only char does not count, D51 ⑤); answer-seen / skipped / last year / 纸上 do not (D46-13)', () => {
   serial = 0;
   const s = state([
     rec('豕', '2025-12-30'),
@@ -69,9 +69,9 @@ test('the year count: distinct chars this year (right and wrong both count); ans
   ]);
   const m = annualModel(s, TODAY);
   assert.equal(m.empty, false);
-  assert.equal(m.count, 3);
-  assert.deepEqual(m.chars, ['静', '谁', '题']);
-  assert.equal(m.days, 3, 'days with a judged record this year, the paper day not counted');
+  assert.equal(m.count, 2);
+  assert.deepEqual(m.chars, ['静', '题'], '谁 was only ever written wrong this year');
+  assert.equal(m.days, 2, 'days with a work record this year: the wrong-only day and the paper day are not counted');
 });
 
 test('months: one section per month that has chars, ascending; the count is the month sheet size (chars with no ink included)', () => {
@@ -89,7 +89,7 @@ test('months: one section per month that has chars, ascending; the count is the 
   assert.deepEqual(annualModel(f, TODAY).months.map(x => [x.month, x.n]), [['2026-02', 3], ['2026-03', 1]]);
 });
 
-test('first of the year: first judged record of the year (id order), not last year and not answer-seen; right and wrong both', () => {
+test('first of the year: first work record of the year (id order), not last year, not answer-seen, not a wrong write (D51 ⑤)', () => {
   serial = 0;
   const s = state([
     rec('豕', '2025-12-31'),
@@ -97,10 +97,10 @@ test('first of the year: first judged record of the year (id order), not last ye
     rec('静', '2026-01-02', { judgment: 'wrong' }), rec('谁', '2026-01-02'), rec('静', '2026-03-01'),
   ]);
   const m = annualModel(s, TODAY);
-  assert.equal(m.first.char, '静');
+  assert.equal(m.first.char, '谁', '静 was first written wrong on 01-02: that is not a work record');
   assert.equal(m.first.day, '2026-01-02');
-  assert.equal(m.first.record.id, 'r3');
-  assert.equal(m.first.record.judgment, 'wrong');
+  assert.equal(m.first.record.id, 'r4');
+  assert.equal(m.first.record.judgment, 'correct');
 });
 
 test('folded months: byDay chars and days count; an earlier folded day is the first (record=null)', () => {

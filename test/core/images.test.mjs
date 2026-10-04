@@ -294,7 +294,7 @@ test('month cells (§7): first-appearance order, ink = FIRST judgment in the mon
     rec(3, '和', 'judged', 'correct', '2026-09-02'),
     rec(4, '静', 'answer-seen', null, '2026-09-03'),
     rec(5, '静', 'judged', 'correct', '2026-09-05'),
-    rec(6, '永', 'judged', 'wrong', '2026-09-05'),
+    rec(6, '永', 'judged', 'correct', '2026-09-05'),
     rec(7, '山', 'judged', 'correct', '2026-09-07'),
   ];
   const st = stateOf(recs);
@@ -307,9 +307,11 @@ test('month cells (§7): first-appearance order, ink = FIRST judgment in the mon
   const all = monthCells(st, '2026-09', { inkOf: unwritten(() => INK) });
   assert.deepEqual(all.cells.map(c => [c.ch, c.mode, c.tag]), [['永', 'hand', '2'], ['和', 'hand', ''], ['静', 'hand', '5'], ['山', 'hand', '7']]);
   assert.equal(all.inked, 4);
-  // D42：第一次那条缺墨 → 本月内从早到晚找下一条有墨的（永 r6，9-5），角标日子跟着那一条走
+  // D42：第一次那条缺墨 → 本月内从早到晚找下一条有墨的（永 r6，9-5）；角标与排序用同一个日子（firstDay = 永第一次作为成员出现的 9-02），不跟着取墨那条走
   const gap = monthCells(st, '2026-09', { inkOf: unwritten(r => (r.id === 'r2' ? null : INK)) });
-  assert.deepEqual(gap.cells.map(c => [c.ch, c.record.id, c.day, c.tag]), [['永', 'r6', '2026-09-05', '5'], ['和', 'r3', '2026-09-02', '2'], ['静', 'r5', '2026-09-05', '5'], ['山', 'r7', '2026-09-07', '7']]);
+  assert.deepEqual(gap.cells.map(c => [c.ch, c.record.id, c.day, c.tag]), [['永', 'r6', '2026-09-02', '2'], ['和', 'r3', '2026-09-02', ''], ['静', 'r5', '2026-09-05', '5'], ['山', 'r7', '2026-09-07', '7']]);
+  const dayNumbers = gap.cells.map(c => c.tag).filter(Boolean).map(Number);
+  assert.deepEqual(dayNumbers, [...dayNumbers].sort((a, b) => a - b), 'the margin numbers only ever go up (T2-05 / N2-07)');
   // 本月内一份都没有（8-30 那条不算：时间段外不冒充）→ 画 under 衬底，仍占一格、仍计字数；它的日期是偏好方向上的那条
   const none = monthCells(st, '2026-09', { inkOf: unwritten(r => (r.id === 'r2' || r.id === 'r6' ? null : INK)) });
   assert.deepEqual(none.cells.map(c => [c.ch, c.mode, c.tag]), [['永', 'under', '2'], ['和', 'hand', ''], ['静', 'hand', '5'], ['山', 'hand', '7']]);
@@ -340,7 +342,7 @@ test('month cells on a folded month: members from byDay, only kept records can c
   assert.deepEqual(m.members.map(x => [x.char, x.record ? x.record.id : null]), [['永', null], ['和', 'r9'], ['山', null]]);
   assert.equal(m.days, 2);
   const r = monthCells(st, '2025-01', { inkOf: () => INK });
-  assert.deepEqual(r.cells.map(c => [c.ch, c.mode, c.tag]), [['永', 'under', '3'], ['和', 'hand', '10'], ['山', 'under', '']]);
+  assert.deepEqual(r.cells.map(c => [c.ch, c.mode, c.tag]), [['永', 'under', '3'], ['和', 'hand', ''], ['山', 'under', '10']], '和 sits on its first day (01-03) even though the kept ink is from 01-10; 山 first appears on 01-10');
   assert.deepEqual(flattenRecords(st.records).map(x => x.id), ['r9']);
 });
 
@@ -369,7 +371,7 @@ function jingState(extra = {}) {
     rec(1, '静', 'judged', 'correct', '2026-08-05'),
     rec(2, '静', 'judged', 'correct', '2026-09-01', { sessionId: 's2' }),
     rec(3, '静', 'judged', 'correct', '2026-09-08', { sessionId: 's3' }),
-    rec(4, '静', 'judged', 'wrong', '2026-09-22', { sessionId: 's4' }),
+    rec(4, '静', 'judged', 'correct', '2026-09-22', { sessionId: 's4' }),
   ];
   return { ...stateOf(recs), ink: { '2026-08': { r1: INK_ENTRY }, '2026-09': { r4: INK_ENTRY } }, ...extra };
 }
@@ -382,7 +384,7 @@ test('D42 month cells: September picks 9-22 (the month\'s ink-bearing one), Augu
   const aug = monthMembers(st, '2026-08', { hasInk: hasStored(st) });
   assert.deepEqual(aug.members.map(m => [m.char, m.record.id]), [['静', 'r1']]);
   const plan = imagePlan(st, { kind: 'month', month: '2026-09' }, { inkOf: r => (hasStored(st)(r) ? INK : null) });
-  assert.deepEqual(plan.cells.map(c => [c.ch, c.record.id, c.tag]), [['静', 'r4', '22']], 'tag follows the picked record');
+  assert.deepEqual(plan.cells.map(c => [c.ch, c.record.id, c.tag]), [['静', 'r4', '1']], 'the tag is the sort day (first member day 9-01), not the day of the picked record (T2-05)');
   assert.equal(monthMembers(st, '2026-09').members[0].record.id, 'r2', 'without hasInk: the plain first of the month');
 });
 

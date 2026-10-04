@@ -106,7 +106,7 @@ test('mix vs simulate-mix: planGroup (3000 random states) gives the same new / r
 // ---------------------------------------------------------------- 规则 D 各分支（经 selectDaily 的真实输入）
 
 // 造字：从 CJK 区间取不含热身字 / 保留字的字，按 from 偏移取 n 个（互不重叠的偏移 = 互不相同的字）。
-const RESERVED = new Set([...CHAR_ORDER.reserved.surnames, ...CHAR_ORDER.reserved.places, ...CHAR_ORDER.reserved.capitalNumerals]);
+const RESERVED = new Set([...CHAR_ORDER.reserved.surnames, ...CHAR_ORDER.reserved.places, ...CHAR_ORDER.reserved.capitalNumerals, ...CHAR_ORDER.reserved.heavy]);
 const plainChars = (n, from) => chars(n, from);
 function chars(n, from) {
   const out = [];

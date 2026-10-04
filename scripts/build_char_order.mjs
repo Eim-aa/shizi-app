@@ -62,21 +62,26 @@ export async function generate(root = ROOT, { commonRankMax = COMMON_RANK_MAX } 
   const curation = await import(pathToFileURL(join(root, CURATION_PATH)).href);
   const capital = await import(pathToFileURL(join(root, CAPITAL_PATH)).href);
 
-  const surnames = chars(curation.HANDWRITING['签名姓氏'].chars);
+  const surnameOnly = chars(curation.RESERVED_SURNAME_ONLY || '');
+  const surnames = [...new Set([...chars(curation.HANDWRITING['签名姓氏'].chars), ...surnameOnly])];
   const places = chars(curation.HANDWRITING['写地址'].chars);
   const numerals = [...capital.ALL];
   const ranks = deckRanks(root);
   // D45：姓氏 / 地名只剔除日常少用的（rank > COMMON_RANK_MAX 或没有字频）；常用字回到默认排序。大写数字一律剔除。
   const isCommon = (ch) => ranks.has(ch) && ranks.get(ch) <= commonRankMax;
-  const rareSurnames = [...new Set(surnames)].filter((ch) => !isCommon(ch));
+  // D50 ⑤：只作姓氏的字不论字频都剔除（归「姓氏与地名」）；其余姓氏按 D45 的字频阈值。
+  const rareSurnames = [...new Set(surnames)].filter((ch) => !isCommon(ch) || surnameOnly.includes(ch));
   const rarePlaces = [...new Set(places)].filter((ch) => !isCommon(ch) && !rareSurnames.includes(ch));
-  const keptSurnames = [...new Set(surnames)].filter(isCommon);
+  const keptSurnames = [...new Set(surnames)].filter((ch) => isCommon(ch) && !surnameOnly.includes(ch));
+  // D50 ⑥：字义沉重的字（只收题库里有的）。
+  const heavy = Object.keys(curation.RESERVED_HEAVY || {}).filter((ch) => ranks.has(ch) && !numerals.includes(ch));
   const keptPlaces = [...new Set(places)].filter((ch) => isCommon(ch) && !keptSurnames.includes(ch));
-  const reserved = new Set([...rareSurnames, ...rarePlaces, ...numerals]);
+  const reserved = new Set([...rareSurnames, ...rarePlaces, ...numerals, ...heavy]);
 
-  const removed = { surnames: [], places: [], capitalNumerals: [] };
-  const kind = (ch) => (numerals.includes(ch) ? 'capitalNumerals' : rareSurnames.includes(ch) ? 'surnames' : 'places');
-  const rankText = (ch) => (ranks.has(ch) ? '字频#' + ranks.get(ch) : '无字频');
+  const removed = { surnames: [], places: [], capitalNumerals: [], heavy: [] };
+  const kind = (ch) => (numerals.includes(ch) ? 'capitalNumerals' : rareSurnames.includes(ch) ? 'surnames' : heavy.includes(ch) ? 'heavy' : 'places');
+  const rankText = (ch) => (ranks.has(ch) ? '字频#' + ranks.get(ch) : '无字频')
+    + (surnameOnly.includes(ch) ? '，只作姓氏' : '') + (heavy.includes(ch) ? '，' + curation.RESERVED_HEAVY[ch] : '');
   const keep = (rows, label) => {
     const out = [];
     for (const ch of rows) {
@@ -128,12 +133,16 @@ export async function generate(root = ROOT, { commonRankMax = COMMON_RANK_MAX } 
   lines.push('  level2: Object.freeze(' + list(level2) + '),');
   lines.push('  // 热身字（高频、成年人肯定写得出，D28）：按主题行轮流排序。');
   lines.push('  warmup: Object.freeze(' + list(warmup) + '),');
-  lines.push('  // 不进默认新字排序的字（含尾部字频序）：D39 / D45 日常少用的姓氏、省份简称与地名 → 独立主题「姓氏与地名」；D40 大写数字 → 特别组。');
+  lines.push('  // 不进默认新字排序的字（含尾部字频序）：D39 / D45 日常少用的姓氏、省份简称与地名、D50 ⑤ 只作姓氏的字 → 独立主题「姓氏与地名」；');
+  lines.push('  // D40 大写数字 → 特别组；D50 ⑥ 字义沉重的字（heavy）不进默认排序，查字 / 自选仍可练。');
   lines.push('  reserved: Object.freeze({');
   lines.push('    surnames: Object.freeze(' + list(rareSurnames) + '),');
   lines.push('    places: Object.freeze(' + list(rarePlaces) + '),');
   lines.push('    capitalNumerals: Object.freeze(' + list(numerals) + '),');
+  lines.push('    heavy: Object.freeze(' + list(heavy) + '),');
   lines.push('  }),');
+  lines.push('  // D50 ⑤：只作姓氏的字（不论字频都在 reserved.surnames）。');
+  lines.push('  surnameOnly: Object.freeze(' + list(surnameOnly) + '),');
   lines.push('  // 在姓氏 / 地名清单里、但字频常用而留在默认排序的字（D45；不进 reserved，按易忘度表原位 / 字频序出现）。');
   lines.push('  commonKept: Object.freeze({');
   lines.push('    surnames: Object.freeze(' + list(keptSurnames) + '),');

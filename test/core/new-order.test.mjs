@@ -25,7 +25,7 @@ test('char-order.js is generated from the draft table (--check passes) and a cha
 });
 
 test('default order = the table order minus the reserved chars; nothing is reordered or invented', () => {
-  const reserved = new Set([...CHAR_ORDER.reserved.surnames, ...CHAR_ORDER.reserved.places, ...CHAR_ORDER.reserved.capitalNumerals]);
+  const reserved = new Set([...CHAR_ORDER.reserved.surnames, ...CHAR_ORDER.reserved.places, ...CHAR_ORDER.reserved.capitalNumerals, ...CHAR_ORDER.reserved.heavy]);
   assert.deepEqual([...CHAR_ORDER.order], TABLE.order.filter((c) => !reserved.has(c)));
   assert.deepEqual([...CHAR_ORDER.level2], TABLE.level2Appendix.map((e) => e.char).filter((c) => !reserved.has(c)));
   assert.deepEqual([...CHAR_ORDER.warmup], TABLE.warmup.order, 'warm-up list is the table\'s, none of them reserved');
@@ -77,9 +77,12 @@ test('D45 / P145: commonly-used surnames and place names (熊 颜 藏 桂 厦 �
   for (const row of deckRows()) if (!ranks.has(row.target) || row.rank < ranks.get(row.target)) ranks.set(row.target, row.rank);
   const max = CHAR_ORDER.meta.commonRankMax;
   assert.equal(max, COMMON_RANK_MAX);
-  for (const c of [...CHAR_ORDER.reserved.surnames, ...CHAR_ORDER.reserved.places]) assert.ok(!(ranks.get(c) <= max), `${c} 生僻（字频 > ${max}）才剔除`);
+  const surnameOnly = new Set(CHAR_ORDER.surnameOnly);
+  for (const c of [...CHAR_ORDER.reserved.surnames, ...CHAR_ORDER.reserved.places]) {
+    if (!surnameOnly.has(c)) assert.ok(!(ranks.get(c) <= max), `${c} 生僻（字频 > ${max}）才剔除`);
+  }
   for (const c of [...CHAR_ORDER.commonKept.surnames, ...CHAR_ORDER.commonKept.places]) assert.ok(ranks.get(c) <= max, `${c} 字频 ≤ ${max}`);
-  assert.equal(CHAR_ORDER.reserved.surnames.length + CHAR_ORDER.commonKept.surnames.length, 31);
+  assert.equal(CHAR_ORDER.reserved.surnames.length + CHAR_ORDER.commonKept.surnames.length, 32, '签名姓氏 31 字 ∪ 只作姓氏 7 字（袁不在签名清单里）');
   assert.equal(CHAR_ORDER.reserved.places.length + CHAR_ORDER.commonKept.places.length, 21);
 });
 
@@ -177,4 +180,22 @@ test('capitalCard swaps in the money context only for a whole-capital queue; oth
   assert.equal(capitalCard(null, K('壹')), null);
   const noCtx = { word: '尴尬', chars: ['尴', '尬'], ci: 0, target: '尴' };
   assert.equal(capitalCard(noCtx, K('壹贰叁肆伍')), noCtx);
+});
+
+test('D50 ⑤ ⑥ (C1): surname-only chars go to 「姓氏与地名」 whatever their frequency; heavy chars never come as new, yet stay practicable', () => {
+  assert.deepEqual([...CHAR_ORDER.surnameOnly], [...'薛彭潘蔡阎魏袁']);
+  for (const c of '薛彭潘蔡阎魏袁') {
+    assert.ok(CHAR_ORDER.reserved.surnames.includes(c), `${c} in reserved.surnames`);
+    assert.ok(!CHAR_ORDER.commonKept.surnames.includes(c), `${c} not kept in the default order`);
+    assert.equal(isReservedChar(c), true);
+  }
+  for (const c of '癌瘤瘟痢癣瘸棺妓娼嫖') {
+    assert.ok(CHAR_ORDER.reserved.heavy.includes(c), `${c} in reserved.heavy`);
+    assert.equal(isReservedChar(c), true);
+  }
+  const inOrder = new Set([...CHAR_ORDER.order, ...CHAR_ORDER.level2, ...CHAR_ORDER.warmup]);
+  for (const c of [...CHAR_ORDER.surnameOnly, ...CHAR_ORDER.reserved.heavy]) assert.ok(!inOrder.has(c), `${c} not in any default list`);
+  // 字频尾部也不出现：彭 #1340、癌 #1907 这类常用字以前会按字频冒出来
+  const ordered = orderNewKeys(K('的一是彭潘蔡魏癌瘤棺妓春')).map((k) => k.slice(5));
+  assert.deepEqual([...ordered].sort(), [...'的一是春'].sort(), 'only the ordinary chars come as new');
 });

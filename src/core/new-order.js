@@ -3,7 +3,8 @@
 //
 // - 默认新字顺序：易忘度清单（order，再接二级附录 level2）里属于当前字库的字，按清单顺序在前；清单外的字排在清单之后，按调用方给的原字频序。
 // - 日常少用的姓氏字、省份简称与地名（D39 / D45，独立主题「姓氏与地名」；字频序 rank > 阈值才算少用，P145）与大写数字（D40，特别组）
-//   不进默认排序：清单里已剔除，这里也不让它们出现在清单之后的字频尾部（reserved）。常用的（熊、颜、藏、桂、厦……）按清单原位正常出现。
+//   不进默认排序：清单里已剔除，这里也不让它们出现在清单之后的字频尾部（reserved）。D50 ⑤ 只作姓氏的 7 字同样在 reserved.surnames；
+//   D50 ⑥ 字义沉重的字在 reserved.heavy，同样不进默认排序（查字 / 自选仍可练）。常用的（熊、颜、藏、桂、厦……）按清单原位正常出现。
 // - 热身字：warmup 清单里属于当前字库的字，按清单顺序。
 
 import { CHAR_ORDER } from '../config/char-order.js';
@@ -18,7 +19,7 @@ function indexOf(data) {
     for (const ch of [...data.order, ...data.level2]) if (!rank.has(ch)) rank.set(ch, rank.size);
     hit = {
       rank,
-      reserved: new Set([...data.reserved.surnames, ...data.reserved.places, ...data.reserved.capitalNumerals]),
+      reserved: new Set([...data.reserved.surnames, ...data.reserved.places, ...data.reserved.capitalNumerals, ...(data.reserved.heavy || [])]),
       warmup: new Set(data.warmup),
       warmupRank: new Map(data.warmup.map((ch, i) => [ch, i])),
       capital: new Set(data.reserved.capitalNumerals),
@@ -28,7 +29,7 @@ function indexOf(data) {
   return hit;
 }
 
-/** 不进默认排序的字（姓氏 / 地名 / 大写数字）。 */
+/** 不进默认排序的字（姓氏 / 地名 / 大写数字 / 字义沉重，D39 / D40 / D45 / D50）。 */
 export function isReservedChar(ch, data = CHAR_ORDER) {
   return indexOf(data).reserved.has(ch);
 }

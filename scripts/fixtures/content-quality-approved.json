@@ -18031,14 +18031,14 @@
         "w": "壹佰元整",
         "ci": 0,
         "py": "yī",
-        "promptHint": "借条上的大写金额"
+        "promptHint": "大写数字。"
       },
       "expected": {
         "word": "壹佰元整",
         "ci": 0,
         "py": "yī",
         "ctx": "override",
-        "visibleHint": "借条上的大写金额"
+        "visibleHint": "大写数字。"
       },
       "reason": "顾问审读 1.0 §3.4 审定（大写数字：与 D40 特别组同词）",
       "previous": {
@@ -18066,14 +18066,14 @@
         "w": "贰仟元整",
         "ci": 0,
         "py": "èr",
-        "promptHint": "借条上的大写金额"
+        "promptHint": "大写数字。"
       },
       "expected": {
         "word": "贰仟元整",
         "ci": 0,
         "py": "èr",
         "ctx": "override",
-        "visibleHint": "借条上的大写金额"
+        "visibleHint": "大写数字。"
       },
       "reason": "顾问审读 1.0 §3.4 审定（大写数字：与 D40 特别组同词）",
       "previous": {
@@ -18101,14 +18101,14 @@
         "w": "叁佰元整",
         "ci": 0,
         "py": "sān",
-        "promptHint": "借条上的大写金额"
+        "promptHint": "大写数字。"
       },
       "expected": {
         "word": "叁佰元整",
         "ci": 0,
         "py": "sān",
         "ctx": "override",
-        "visibleHint": "借条上的大写金额"
+        "visibleHint": "大写数字。"
       },
       "reason": "顾问审读 1.0 §3.4 审定（大写数字：与 D40 特别组同词）",
       "previous": {
@@ -18136,14 +18136,14 @@
         "w": "肆仟元整",
         "ci": 0,
         "py": "sì",
-        "promptHint": "借条上的大写金额"
+        "promptHint": "大写数字。"
       },
       "expected": {
         "word": "肆仟元整",
         "ci": 0,
         "py": "sì",
         "ctx": "override",
-        "visibleHint": "借条上的大写金额"
+        "visibleHint": "大写数字。"
       },
       "reason": "顾问审读 1.0 §3.4 审定（大写数字：与 D40 特别组同词）",
       "previous": {
@@ -18171,14 +18171,14 @@
         "w": "伍佰元整",
         "ci": 0,
         "py": "wǔ",
-        "promptHint": "借条上的大写金额"
+        "promptHint": "大写数字。"
       },
       "expected": {
         "word": "伍佰元整",
         "ci": 0,
         "py": "wǔ",
         "ctx": "override",
-        "visibleHint": "借条上的大写金额"
+        "visibleHint": "大写数字。"
       },
       "reason": "顾问审读 1.0 §3.4 审定（大写数字：与 D40 特别组同词）",
       "previous": {
@@ -18206,14 +18206,14 @@
         "w": "陆佰元整",
         "ci": 0,
         "py": "liù",
-        "promptHint": "报销单上的大写金额"
+        "promptHint": "大写数字。"
       },
       "expected": {
         "word": "陆佰元整",
         "ci": 0,
         "py": "liù",
         "ctx": "override",
-        "visibleHint": "报销单上的大写金额"
+        "visibleHint": "大写数字。"
       },
       "reason": "顾问审读 1.0 §3.4 审定（大写数字：与 D40 特别组同词）",
       "previous": {
@@ -18241,14 +18241,14 @@
         "w": "柒佰元整",
         "ci": 0,
         "py": "qī",
-        "promptHint": "报销单上的大写金额"
+        "promptHint": "大写数字。"
       },
       "expected": {
         "word": "柒佰元整",
         "ci": 0,
         "py": "qī",
         "ctx": "override",
-        "visibleHint": "报销单上的大写金额"
+        "visibleHint": "大写数字。"
       },
       "reason": "顾问审读 1.0 §3.4 审定（大写数字：与 D40 特别组同词）",
       "previous": {
@@ -18276,14 +18276,14 @@
         "w": "捌佰元整",
         "ci": 0,
         "py": "bā",
-        "promptHint": "随礼红包上的大写金额"
+        "promptHint": "大写数字。"
       },
       "expected": {
         "word": "捌佰元整",
         "ci": 0,
         "py": "bā",
         "ctx": "override",
-        "visibleHint": "随礼红包上的大写金额"
+        "visibleHint": "大写数字。"
       },
       "reason": "顾问审读 1.0 §3.4 审定（大写数字：与 D40 特别组同词）",
       "previous": {
@@ -18311,14 +18311,14 @@
         "w": "玖佰元整",
         "ci": 0,
         "py": "jiǔ",
-        "promptHint": "随礼红包上的大写金额"
+        "promptHint": "大写数字。"
       },
       "expected": {
         "word": "玖佰元整",
         "ci": 0,
         "py": "jiǔ",
         "ctx": "override",
-        "visibleHint": "随礼红包上的大写金额"
+        "visibleHint": "大写数字。"
       },
       "reason": "顾问审读 1.0 §3.4 审定（大写数字：与 D40 特别组同词）",
       "previous": {
@@ -18346,14 +18346,14 @@
         "w": "壹佰元整",
         "ci": 1,
         "py": "bǎi",
-        "promptHint": "收据上的大写金额"
+        "promptHint": "大写数字。"
       },
       "expected": {
         "word": "壹佰元整",
         "ci": 1,
         "py": "bǎi",
         "ctx": "override",
-        "visibleHint": "收据上的大写金额"
+        "visibleHint": "大写数字。"
       },
       "reason": "顾问审读 1.0 §3.4 审定（大写数字：与 D40 特别组同词）",
       "previous": {
@@ -18381,14 +18381,14 @@
         "w": "壹仟元整",
         "ci": 1,
         "py": "qiān",
-        "promptHint": "收据上的大写金额"
+        "promptHint": "大写数字。"
       },
       "expected": {
         "word": "壹仟元整",
         "ci": 1,
         "py": "qiān",
         "ctx": "override",
-        "visibleHint": "收据上的大写金额"
+        "visibleHint": "大写数字。"
       },
       "reason": "顾问审读 1.0 §3.4 审定（大写数字：与 D40 特别组同词）",
       "previous": {

@@ -2,7 +2,7 @@
 // 移植 PR #175 scripts/verify_content_ui.cjs 的 verifyMask / assertLayout 与三条规则：
 //   ① 答案不进 aria / title / data 等任何属性；② 题面与提示都走 textContent（`<img onerror>` 字面量不注入）；
 //   ③ 320×568 + 大字（P1-E6 / D29 起 = 系统字号 XXXL，--k 1.35，模拟原生 shiziContentSize；原 data-large 1.3 已删）下最长题面与四行提示不裁切。
-// 取样：内容门禁 340 条批准项里原本含重复目标字的子集（baseline.originalRepeatedTargets，含「越来越」「慢慢」改写前的
+// 取样：内容门禁 822 条批准项（rounds 1–3：340；round 4 = C1 / D50 ③）里原本含重复目标字的子集（baseline.originalRepeatedTargets，含「越来越」「慢慢」改写前的
 // 越 / 慢）∪ 当前题库仍含重复目标字的卡；另用 setCardResolver 注入合成卡：越来越、慢慢、自定义「哈哈哈」、补充平面字 𠮷、
 // `<img onerror>` 字面量、四行长提示。期望值由内容门禁 loadCorpus（scripts/content-corpus.cjs，与 UI 同一 cards.js）
 // 在 node 端独立算出，逐格比对。
@@ -247,7 +247,7 @@ export default async function promptMask(page, ctx) {
   const sample = subsetKeys.map(k => byKey.get(k));
 
   ctx.step(`sample: ${approvals.length} approved ∩ originally-repeated + currently repeated = ${sample.length} cards`);
-  assert.equal(approvals.length, 340, 'content gate has 340 approved entries');
+  assert.equal(approvals.length, 822, 'content gate has 822 approved entries (340 + C1 round 4)');
   assert.ok(sample.every(Boolean), 'every sampled cardKey exists in the governed corpus');
   assert.ok(originalRepeated.has('越') && originalRepeated.has('慢'), '越来越 / 慢慢 (越 / 慢) are among the original repeated targets');
   assert.ok(subsetKeys.includes('base:越') && subsetKeys.includes('base:慢'), '越 / 慢 are in the sample');

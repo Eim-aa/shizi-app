@@ -182,4 +182,11 @@ export default async function (page, ctx) {
     return { has: day ? day.dataset.has : null, list: !!top.querySelector('[data-testid="records-daylist"]'), today: !!top.querySelector('[data-testid="records-today"]'), body: top.querySelector('[data-testid="records-body"]').dataset.recordDays };
   });
   assert.deepEqual(r2, { has: 'true', list: false, today: false, body: '1' }, 'calendar dot stays (written), but there is no sheet to show');
+  // P1-E2（P172）：点开只在纸上写过的那一天不再是空的——一行说明，仍然没有字帖
+  const note = await page.evaluate(() => {
+    const el = document.querySelector('.sz-layer[data-top="true"] [data-testid="records-daylist-paper"]');
+    return el ? { text: el.textContent.trim(), day: el.dataset.day } : null;
+  });
+  assert.deepEqual(note, { text: '这一天的字都写在纸上。', day: '2026-10-05' }, 'a paper-only day explains itself instead of opening empty');
+  assert.equal(await page.locator(topSel('records-daylist')).count(), 0, 'and still shows no sheet');
 }

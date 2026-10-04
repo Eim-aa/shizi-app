@@ -57,6 +57,8 @@ export default Object.freeze({
   'X-MINE.cellLabel': '{char} · {date}',
   'X-MINE.sheetOrder': '按第一次写下的先后排列',
   'X-MINE.sheetEmpty': '这个月还没有可以放进图片的字',
+  // 只在纸上写过的一天（日历有点、没有字帖）；阶段 1 P1-E2，过渡文案，03 P172
+  'X-MINE.paperDayNote': '这一天的字都写在纸上。',
   'X-MINE.seal': '字',
   // X-ANNUAL（extra：M4-2 年度报告里 04 R-M06 没有收录的原型字样与读屏名，见 copy-source.json extra.X-ANNUAL）
   'X-ANNUAL.section2': '二 · 有记录天数最多的月份',

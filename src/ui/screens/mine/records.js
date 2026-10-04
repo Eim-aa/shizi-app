@@ -21,7 +21,7 @@
 //   records-body（data-month / data-current / data-record-days / data-selected / data-today）、records-month（data-month）、
 //   records-year、records-prev / records-next（disabled 时 aria-disabled=true）、records-title、records-legend、records-calendar、
 //   records-weekday、records-day（data-day / data-has / data-today / data-future；有记录的是 button，aria-pressed）、records-day-dot、
-//   records-daylist（data-day / data-count）、records-daylist-title、records-daylist-grid、records-daylist-cell（同 records-sheet-cell）、
+//   records-daylist（data-day / data-count）、records-daylist-paper（只在纸上写过的一天：「这一天的字都写在纸上。」，P1-E2）、records-daylist-title、records-daylist-grid、records-daylist-cell（同 records-sheet-cell）、
 //   records-sheet（data-month / data-count / data-days / data-current / data-folded）、records-sheet-title、records-sheet-save、
 //   records-sheet-open（标题按钮 → 月字帖页）、records-sheet-grid（月字帖纸，month.js MonthPaper）、records-sheet-cell（data-char / data-day /
 //   data-tag（角标的「日」，没有则空）/ data-mode=hand|under / data-record / data-ink）、records-sheet-cell-canvas、month-tag / month-kuan / month-seal /
@@ -41,6 +41,7 @@ import { setTodayRecordsAction } from '../home/ink-row.js';
 import { openDetail } from '../detail/index.js';
 import { hasInkPoints, inkOf, recordHasInk } from '../detail/records.js';
 import { InkMini } from '../write/compare.js';
+import { PracticeGlyph } from '../../components/PracticeGlyph.js';
 import { RECORDS_SHEET_COLS, recordsModel } from './model.js';
 import { MonthBody, monthModel, openMonth } from './month.js';
 
@@ -86,6 +87,7 @@ injectStyles('mine-records', `
 .sz-rec__dotrow{display:flex;height:5px;align-items:center}
 .sz-rec__dot{width:5px;height:5px;border-radius:50%;background:${T.ink1}}
 .sz-rec__daylist{display:flex;flex-direction:column;gap:12px}
+.sz-rec__paperday{margin:0;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3};text-wrap:pretty}
 .sz-rec__subtitle{margin:0;font-family:${T.song};font-size:${T.fs22};line-height:${T.lh22};font-weight:500;
   color:${T.ink2}}
 .sz-rec__sheet{display:flex;flex-direction:column;gap:12px}
@@ -112,8 +114,7 @@ injectStyles('mine-records', `
 .sz-scell__sq{position:absolute;inset:0;display:grid;place-items:center}
 .sz-scell__sq--tag{transform:translate(6%,9%) scale(.78)}
 .sz-scell__sq .sz-compare__card{position:absolute;inset:0;width:100%;height:100%;border:0;border-radius:0;background:transparent;padding:0}
-.sz-scell__glyph{position:absolute;left:0;right:0;top:42%;transform:translateY(-50%);text-align:center;font-family:${T.hei};
-  font-size:34cqw;line-height:1;color:${T.under}}
+.sz-scell__glyph{position:absolute;left:50%;top:42%;width:40%;height:auto;aspect-ratio:1/1;transform:translate(-50%,-50%);color:${T.under}} /* 衬底字是轮廓（P1-E2），字面约占格 32% */
 .sz-scell__noink{position:absolute;left:0;right:0;top:80%;transform:translateY(-50%);text-align:center;font-family:${T.hei};
   font-size:clamp(9px, 16cqw, 12px);line-height:1;color:${T.ink3};white-space:nowrap}
 .sz-scell__tag{position:absolute;left:3px;top:2px;font-size:${T.fs11};line-height:1;color:${T.ink3};
@@ -292,7 +293,7 @@ export function SheetCell({ cell, store, testid, showTag = true }) {
     <span class=${tag ? 'sz-scell__sq sz-scell__sq--tag' : 'sz-scell__sq'}>
       ${has
         ? html`<${InkMini} points=${ink.points} strokes=${ink.strokes} testid=${`${testid}-ink`} label=${cell.char} />`
-        : html`<span class="sz-scell__glyph" aria-hidden="true">${cell.char}</span>
+        : html`<${PracticeGlyph} class="sz-scell__glyph" hidden=${true} char=${cell.char} />
           <span class="sz-scell__noink" aria-hidden="true" data-testid=${`${testid}-noink`}>${t('R-D07.noInkLabel')}</span>`}
     </span>
     ${tag ? html`<span class="sz-scell__tag" aria-hidden="true">${tag}</span>` : null}
@@ -353,8 +354,10 @@ function Calendar({ model, selected, onPick }) {
 }
 
 function DayList({ selected, listRef }) {
-  // 那天只在纸上写过：日历上仍有点（写过的日子），但没有笔迹可列，不画空字帖（D47，P1-E78）
-  if (!selected.items.length) return null;
+  // 那天只在纸上写过：日历上仍有点（写过的日子），但没有笔迹可列，不画空字帖（D47，P1-E78）；只留一行说明，免得点开是空的（P1-E2，P172）
+  if (!selected.items.length) {
+    return html`<p class="sz-rec__paperday" data-testid="records-daylist-paper" data-day=${selected.day} ref=${listRef}>${t('X-MINE.paperDayNote')}</p>`;
+  }
   return html`<section class="sz-rec__daylist" data-testid="records-daylist" data-day=${selected.day} data-count=${selected.items.length}
     ref=${listRef}>
     <h3 class="sz-rec__subtitle" data-testid="records-daylist-title">${t('R-P03.todayChars', { date: dayText(selected.day) })}</h3>

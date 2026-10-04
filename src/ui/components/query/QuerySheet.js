@@ -63,7 +63,7 @@ injectStyles('query-sheet', `
 .sz-query__notedot{flex:none;width:6px;height:6px;margin-top:8px;border-radius:50%;background:${T.ink2}}
 .sz-query__notetext{flex:1;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink2}}
 .sz-query__hint{margin:0;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3}}
-.sz-query__back{align-self:flex-start;min-height:36px;margin:-6px 0;font-size:${T.fs15};color:${T.ink2};}
+.sz-query__back{align-self:flex-start;min-height:44px;margin:0 0 -10px;font-size:${T.fs15};color:${T.ink2};} /* 热区 44（Q2-13）：它是滚动区的第一个子元素，往上伸会被滚动区裁掉，所以改成真 44 高、只往下叠 10px */
 .sz-query__foot{flex:none;max-height:56%;overflow-y:auto;margin:0 calc(-1 * ${T.gutter}) calc(-1 * var(--qpb, 32px));
   padding:${T.s3} ${T.gutter} var(--qpb, 32px);display:flex;flex-direction:column;gap:${T.s2};background:${T.elev};z-index:1}
 .sz-query__barfail{margin:0;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2}}

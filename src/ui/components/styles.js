@@ -124,4 +124,9 @@ export const T = {
 };
 
 /** 笺面纸纹（只给书写格、对照卡、字帖、月帖、图片等笺面；按钮、弹层、列表、页面底不用）：笺色 + --tex-img。 */
+/**
+ * 透明的触控热区扩展（Q2-13，复测 simC D10）：用在视觉高度 < 44 的可点控件的 ::after 上（控件本身要 position:relative）——
+ * 以控件中心为准把可点区域撑到至少 --hit（44），不改视觉尺寸。例：.x{position:relative}.x::after{${HIT_EXT}}
+ */
+export const HIT_EXT = `content:"";position:absolute;left:0;right:0;top:50%;height:max(100%,${T.hit});transform:translateY(-50%)`;
 export const TEX = `background-color:${T.sheet};background-image:var(--tex-img);background-size:var(--tex-size)`;

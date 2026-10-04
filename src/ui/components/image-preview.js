@@ -26,7 +26,7 @@ import { Sheet } from './Sheet.js';
 import { Button, markStateChange } from './Button.js';
 import { showToast } from './Toast.js';
 import { CellCanvas } from './work.js';
-import { injectStyles, T } from './styles.js';
+import { HIT_EXT, injectStyles, T } from './styles.js';
 import { t } from '../../config/copy/index.js';
 import { EXPORT_SCALE } from '../../core/images/layout.js';
 import { JPEG_QUALITY } from '../../core/images/render.js';
@@ -54,8 +54,9 @@ injectStyles('image-preview', `
 .sz-img__dot{width:6px;height:6px;border-radius:50%;background:${T.ink4}}
 .sz-img__dot[data-on="true"]{background:${T.ink1}}
 .sz-img__ratio{align-self:center;display:flex;padding:3px;border-radius:${T.rCtl};background:${T.field}}
-.sz-img__ratio button{width:60px;height:38px;min-height:38px;border-radius:calc(${T.rCtl} - 3px);display:grid;place-items:center;
+.sz-img__ratio button{position:relative;width:60px;height:38px;min-height:38px;border-radius:calc(${T.rCtl} - 3px);display:grid;place-items:center;
   font-size:${T.fs15};color:${T.ink2};font-variant-numeric:tabular-nums}
+.sz-img__ratio button::after{${HIT_EXT}} /* 视觉 38 高，热区 44（Q2-13） */
 .sz-img__ratio button[aria-pressed="true"]{background:${T.paper};color:${T.ink1}}
 .sz-img__boardnote{display:grid;place-items:center;text-align:center;margin:0 auto;border:${T.frameW} dashed ${T.frame};
   border-radius:${T.rWork};padding:12px;box-sizing:border-box;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink2}}

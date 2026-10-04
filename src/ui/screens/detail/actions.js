@@ -23,7 +23,7 @@
 import { html } from '../../../../vendor/ui.js';
 import { Button } from '../../components/Button.js';
 import { Chevron } from '../../components/Chevron.js';
-import { injectStyles, T } from '../../components/styles.js';
+import { HIT_EXT, injectStyles, T } from '../../components/styles.js';
 import { t, tInk } from '../../../config/copy/index.js';
 import { dayText } from './records.js';
 
@@ -54,7 +54,8 @@ button.sz-drow:focus-visible{outline:2px solid ${T.ink1};outline-offset:2px}
   display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;border-bottom:1px solid ${T.line};background:${T.paper};
   font-size:${T.fs15};color:${T.ink2}}
 .sz-dbanner__sep{color:${T.ink4}}
-.sz-dbanner .sz-btn--text{min-height:40px;padding:0;color:${T.ink1};font-size:${T.fs15}}
+.sz-dbanner .sz-btn--text{position:relative;min-height:40px;padding:0;color:${T.ink1};font-size:${T.fs15}}
+.sz-dbanner .sz-btn--text::after{${HIT_EXT}} /* 视觉 40 高，热区 44（Q2-13） */
 `);
 
 // ---------------------------------------------------------------- 写入

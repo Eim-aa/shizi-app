@@ -25,7 +25,7 @@ import { Button } from '../../components/Button.js';
 import { useDialogFocus } from '../../components/Sheet.js';
 import '../../components/Confirm.js'; // .sz-overlay / .sz-confirm 样式
 import { showToast } from '../../components/Toast.js';
-import { injectStyles, T } from '../../components/styles.js';
+import { HIT_EXT, injectStyles, T } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
 import { getStore } from '../../../store/store.js';
 import { isJudged } from '../../../core/records.js';
@@ -38,7 +38,8 @@ export const END_OVERLAY = 'write-end-dialog';
 const RESULT_SCREEN = 'result';
 
 injectStyles('write-end', `
-.sz-end__btn{min-height:40px;padding:0 8px;color:${T.ink2}}
+.sz-end__btn{position:relative;min-height:40px;padding:0 8px;color:${T.ink2}}
+.sz-end__btn::after{${HIT_EXT}} /* 视觉 40 高，热区 44（Q2-13） */
 `);
 
 // ---------------------------------------------------------------- 纯函数

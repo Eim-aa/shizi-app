@@ -25,7 +25,7 @@ import { registerScreen, getScreen, nav } from '../../router.js';
 import { TabPage } from '../../components/Page.js';
 import { Button } from '../../components/Button.js';
 import { PracticeGlyph, FACE_FULL } from '../../components/PracticeGlyph.js';
-import { injectStyles, T } from '../../components/styles.js';
+import { HIT_EXT, injectStyles, T } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
 import { getStore } from '../../../store/store.js';
 import { now as envNow } from '../../../platform/env.js';
@@ -90,7 +90,8 @@ injectStyles('library', `
 .sz-lib__cardn{font-family:${T.song};font-size:${T.fs22};line-height:${T.lh22};font-weight:500;color:${T.ink1};
   font-variant-numeric:tabular-nums}
 .sz-lib__cardnote{font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2};text-wrap:pretty}
-.sz-lib__act{min-height:40px;display:flex;align-items:center;font-size:${T.fs15};color:${T.ink1}}
+.sz-lib__act{position:relative;min-height:40px;display:flex;align-items:center;font-size:${T.fs15};color:${T.ink1}}
+.sz-lib__act::after{${HIT_EXT}} /* 视觉 40 高，热区 44（Q2-13；整张卡是一个按钮，这一行跟着它点） */
 .sz-lib__wallsec{display:flex;flex-direction:column;gap:${T.s3};margin-top:${T.groupGap}}
 .sz-lib__foot{display:flex;align-items:center;justify-content:space-between;gap:${T.s3}}
 .sz-lib__footnote{flex:1;min-width:0;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3};text-wrap:pretty}

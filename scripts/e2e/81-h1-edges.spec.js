@@ -1,6 +1,6 @@
 // H1-2（T2-01、D51 ⑥、设计说明「页边 20」）：页头尾端、文字按钮、内容的右边线统一落在 20pt 页边线（右 = 屏宽 − 20）；左边线 20。
 // 逐页量「可见字形的外缘」（文字用 Range 的行盒，图标用 path 几何盒，加 / 减描边半宽 0.75）：
-//   写字页：页头计数「1 / 3」右缘、提示 / 看答案左缘、在纸上写 / 跳过右缘、页头返回箭头左缘；
+//   写字页：页头计数「1 / 3」右缘、提示 / 看答案左缘、跳过右缘、页头返回箭头左缘（在纸上写在左组看答案之后）；
 //   清单页：页头尾端「全选 / 全不选」右缘；字库：「练这些字」右缘；我的：「练习记录 ›」「保存图片」右缘；
 //   有记录的字：「练这些字」左缘；详情 / 设置：返回箭头左缘、主按钮 20..W−20。
 // 393×852 与 375×667 各一遍。
@@ -82,7 +82,10 @@ export default async function run(page0, ctx) {
     await leftOf(`${tag} write 返回箭头`, topSel('page-back'));
     await leftOf(`${tag} write 提示`, topSel('write-hint'));
     await rightOf(`${tag} write 跳过`, topSel('write-skip'));
-    await rightOf(`${tag} write 在纸上写`, topSel('write-to-paper'));
+    // R2-X1（P226）：「在纸上写」是左组里的常驻文字按钮（看答案之后），不再贴右边线；右边线只有跳过
+    const answerBox = await box(page, topSel('write-show-answer'));
+    const paperBox = await box(page, topSel('write-to-paper'));
+    assert.ok(paperBox && paperBox.l >= answerBox.r - 0.5 && paperBox.r <= (await box(page, topSel('write-skip'))).l, `${tag} write 在纸上写 sits after 看答案, before 跳过`);
     const done = await box(page, topSel('write-done'));
     assert.ok(near(done.l, 20) && near(done.r, done.w - 20), `${tag} write 写好了 20..W−20`);
     await go(page, async () => (await import('/src/ui/router.js')).nav.back());

@@ -45,7 +45,7 @@ export const NATIVE_ACCEPTS_JPEG = false;
 injectStyles('image-preview', `
 .sz-img{display:flex;flex-direction:column;gap:16px}
 .sz-img__done{position:absolute;right:16px;top:20px;min-height:${T.hit}}
-.sz-img__scroll{display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;box-sizing:border-box;padding:0 calc((100% - var(--bw)) / 2);
+.sz-img__scroll{display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;box-sizing:border-box;padding:0 calc((100% + 2 * ${T.gutter} - var(--bw)) / 2); /* 百分比按包含块（弹层内容宽）算，滚动条自己比它宽 2 个页边（负外边距），要补回来才居中（Q2-3） */
   margin:0 calc(-1 * ${T.gutter});scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .sz-img__scroll::-webkit-scrollbar{display:none}
 .sz-img__board{flex:none;box-sizing:border-box;overflow:hidden;position:relative;scroll-snap-align:center;animation:szImgFade 150ms ease-out both}

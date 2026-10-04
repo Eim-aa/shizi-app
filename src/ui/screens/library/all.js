@@ -251,7 +251,6 @@ export function AllMenuSheet({ close, active = true }) {
       : null}
     ${m && m.showLegend ? html`<${Legend} />` : null}
     ${m && m.note ? html`<p class="sz-all__note" data-testid="all-note">${m.note}</p>` : null}
-    <${Button} variant="secondary" data-testid="all-menu-close" onClick=${() => close && close()}>${t('X-COMMON.close')}</${Button}>
   </${Sheet}>`;
 }
 

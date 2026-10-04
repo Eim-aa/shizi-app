@@ -44,7 +44,6 @@ export const NATIVE_ACCEPTS_JPEG = true;
 
 injectStyles('image-preview', `
 .sz-img{display:flex;flex-direction:column;gap:16px}
-.sz-img__done{position:absolute;right:16px;top:20px;min-height:${T.hit}}
 .sz-img__scroll{display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;box-sizing:border-box;padding:0 calc((100% + 2 * ${T.gutter} - var(--bw)) / 2); /* 百分比按包含块（弹层内容宽）算，滚动条自己比它宽 2 个页边（负外边距），要补回来才居中（Q2-3） */
   margin:0 calc(-1 * ${T.gutter});scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .sz-img__scroll::-webkit-scrollbar{display:none}
@@ -74,7 +73,6 @@ injectStyles('image-preview', `
 @keyframes szImgFade{from{opacity:0}to{opacity:1}}
 @media (prefers-reduced-motion: reduce){.sz-img__board{animation:none}}
 :root[data-ax] .sz-img__two{grid-template-columns:minmax(0,1fr)}
-.sz-sheet[data-testid="image-sheet"] .sz-sheet__title{padding-right:96px}
 `);
 
 // ---------------------------------------------------------------- 分发
@@ -340,8 +338,7 @@ export function ImagePreview({ job, close, active = true, share = shareImageFile
   const placeholders = !ready ? 1 : total;
   const saveLabel = total > 1 ? t('X-WORK.saveMany', { m: total }) : t('X-IMAGES.save');
   const mainSave = job.saveLabel ? job.saveLabel(total) : saveLabel;
-  return html`<${Sheet} title=${job.title} onClose=${close} active=${active} testid="image-sheet">
-    <${Button} variant="text" class="sz-img__done" data-testid="image-done" onClick=${() => close && close()}>${t('X-WORK.done')}</${Button}>
+  return html`<${Sheet} title=${job.title} onClose=${close} active=${active} testid="image-sheet" doneTestid="image-done">
     <div class="sz-img" data-testid="image-preview" data-kind=${job.kind} data-state=${view.state} data-ratio=${curRatio}
       data-pages=${total} data-page=${page} data-save=${busy === 'save' ? 'busy' : saveState}>
       ${boardNote

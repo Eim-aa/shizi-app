@@ -282,7 +282,7 @@ export function RestoreConfirm({ model, onConfirm, close, active = true }) {
 /** 清空确认底部弹层（原型 L208）；failed 时换成「没保存上，记录都还在。」+ 先不清空 / 再试一次。 */
 export function ClearSheet({ n, failed = false, onConfirm, close, active = true }) {
   const cancel = () => close && close();
-  return html`<${Sheet} title=${t('X-BACKUP.clearTitle')} onClose=${cancel} active=${active} testid="backup-clear-sheet">
+  return html`<${Sheet} title=${t('X-BACKUP.clearTitle')} onClose=${cancel} active=${active} testid="backup-clear-sheet" dismiss="own">
     <p class="sz-bk__sheetbody" data-testid="backup-clear-body" data-state=${failed ? 'failed' : 'ask'} role=${failed ? 'alert' : undefined}>${
       failed ? t('X-BACKUP.clearFailed') : t('R-B03.clearBody', { n })}</p>
     <div class="sz-bk__actions">

@@ -198,7 +198,8 @@
     "P226": "撤销 / 清空常驻、「在纸上写」进底部文字行（R2-X1 / I2-06，D51 ⑦；验收后改）：撤销、清空始终在格下一行右端（无墨 ink4 且不可点），「在纸上写」是底部文字行里的常驻文字按钮（回忆阶段始终在，不因结果行 / 落笔收起）；AX 档在「⋯」菜单；位置与显隐逻辑在 src/ui/screens/write/index.js，不是 policy 开关",
     "P227": "写字页内阶段切换的网页最小过渡（R2-X1 / I2-01，D51 ②⑦，取 moments.js M1 / M3 的最小子集）：同一页内阶段 / 换字 150ms 线性交叉淡化（旧页快照淡出，只淡化不平移不缩放，src/ui/screens/write/phase-fade.js）、判断页参考格去掉 8px 上滑、判断两键 0–320ms 不显示 / 320ms 起 60% 不可点 / 440ms 变实可点（compare.js JUDGE_*_MS）、换字后 250ms 内早到的落笔缓存并补画（PEN_ARM_MS 300 → 250，ink-canvas.js）；减少动态效果直接切换；触觉不属于动效照发，一次判断只发一次。时长是工程取值，不是 policy 开关",
     "P211": "提示的画法（阶段 1 W1，已决定 D34 / D51 ⑧；验收后与描一遍同一种画法）：给出的那几笔用 GlyphWash 画——整层 .4 淡朱填充 + 外侧一圈墨三外廓，画在本人墨下层，本人墨不变暗（去掉 INK_DIM_OPACITY）；样式与绘制取值，src/ui/screens/write/hint-layer.js、src/ui/canvas/glyph-wash.js，test/ui/contrast.test.mjs 核对；不是运行时开关",
-    "P213": "帮助层统一画法（阶段 1 W1，D51 ⑧ / V2-02）：所有笔画同色不透明填进一层、整层 .4 不透明度、外侧一圈墨三外廓，不画逐笔描边；提示与描一遍共用；绘制取值，src/ui/canvas/glyph.js drawGlyphSolid / drawGlyphRing、glyph-wash.js；不是运行时开关"
+    "P213": "帮助层统一画法（阶段 1 W1，D51 ⑧ / V2-02）：所有笔画同色不透明填进一层、整层 .4 不透明度、外侧一圈墨三外廓，不画逐笔描边；提示与描一遍共用；绘制取值，src/ui/canvas/glyph.js drawGlyphSolid / drawGlyphRing、glyph-wash.js；不是运行时开关",
+    "P230": "底部弹层统一的「完成」与读屏退出手势（R2-A1 / A2-05，D29 / D51）：标题行右端「完成」文字按钮（文案槽 X-COMMON.done）、Esc 与 shizi-native-escape 关最上层弹层、决策弹层 dismiss=\"own\"；位置与逻辑在 src/ui/components/Sheet.js、src/ui/root.js、ios WebViewController.accessibilityPerformEscape，不是 policy 开关"
   },
   "noCopy": [
     "R-H08",
@@ -2752,6 +2753,12 @@
           "text": "关闭",
           "origin": "extra",
           "note": "Page.js 页头关闭按钮的 aria-label（读屏文案）；与 R-R02.sheetClose 同字"
+        },
+        "done": {
+          "raw": null,
+          "text": "完成",
+          "origin": "extra",
+          "note": "components/Sheet.js 底部弹层标题行右端的「完成」文字按钮（A2-05 / R2-A1，D29 / D51）：读屏可达、可见的统一出口；与 X-WORK.done / X-RESULT.done 同字"
         },
         "undo": {
           "raw": null,

@@ -222,7 +222,7 @@ export function ChangeSheet({ slot, recordId, close, active = true }) {
   const flipLabel = t(judgment === 'correct' ? 'X-JUDGE.changeToWrong' : 'X-JUDGE.changeToCorrect');
   const mine = t('R-W09.labelMine');
   const ref = t('R-W09.labelReference');
-  return html`<${Sheet} title=${t('X-JUDGE.changeTitle', { char })} onClose=${close} active=${active} testid="write-change-sheet">
+  return html`<${Sheet} title=${t('X-JUDGE.changeTitle', { char })} onClose=${close} active=${active} testid="write-change-sheet" dismiss="own">
     <div class="sz-change">
       <${Button} variant="text" class="sz-change__cancel" data-testid="write-change-cancel" onClick=${() => close && close()}>${t('X-JUDGE.changeCancel')}</${Button}>
       <div class="sz-change__minis">

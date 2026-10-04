@@ -23,6 +23,7 @@ import {
   getScreen,
   listTabs,
   nav,
+  NATIVE_ESCAPE_EVENT,
   NATIVE_PROGRESS_EVENT,
   pageDepth,
   setActiveRouter,
@@ -296,8 +297,17 @@ function Root({ router, win }) {
       event.preventDefault();
       router.back();
     };
+    // 读屏两指 Z 形（A2-05）：原生 accessibilityPerformEscape 派发 shizi-native-escape，同样只关最上层遮罩。
+    const onNativeEscape = () => {
+      if (!router.getState().topIsOverlay) return;
+      router.back();
+    };
     win.addEventListener('keydown', onKey);
-    return () => win.removeEventListener('keydown', onKey);
+    win.addEventListener(NATIVE_ESCAPE_EVENT, onNativeEscape);
+    return () => {
+      win.removeEventListener('keydown', onKey);
+      win.removeEventListener(NATIVE_ESCAPE_EVENT, onNativeEscape);
+    };
   }, [router, win]);
 
   // 原生左缘手势进度（Swift 唯一所有者；JS 只按事件渲染）。M6-5 跟手交互式返回，见文件头与 router.createBackGestureController。

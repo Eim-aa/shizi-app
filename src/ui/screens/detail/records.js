@@ -78,7 +78,6 @@ injectStyles('detail-records', `
 .sz-drec__ptag{margin-left:0.35em;color:${T.ink3}}
 .sz-dzoom{display:flex;flex-direction:column;gap:${T.s4}}
 .sz-dzoom__sq{width:100%;max-width:300px;align-self:center}
-.sz-dzoom__close{align-self:stretch}
 .sz-dsrc{display:grid;grid-template-columns:44px minmax(0,1fr);gap:8px;align-items:baseline}
 .sz-dsrc__label{font-size:${T.fs13};color:${T.ink3}}
 .sz-dsrc__body{display:flex;flex-direction:column;gap:4px}
@@ -371,14 +370,12 @@ function Cell({ record, ink, onOpen, first = false, latest = false }) {
 /** 放大弹层（overlay 组件；root 注入 close / active）。 */
 export function ZoomSheet({ record, points = null, strokes = null, close, active = true }) {
   const { title } = cellCopy(record);
-  return html`<${Sheet} title=${title} onClose=${close} active=${active} testid="detail-zoom">
+  return html`<${Sheet} title=${title} onClose=${close} active=${active} testid="detail-zoom" doneTestid="detail-zoom-close">
     <div class="sz-dzoom">
       <div class="sz-dzoom__sq">
         <${InkMini} points=${points} strokes=${strokes} testid="detail-zoom-ink" label=${title}
           emptyText=${t('R-D07.noInkLarge')} emptyTestid="detail-zoom-noink" />
       </div>
-      <${Button} variant="secondary" class="sz-dzoom__close" data-testid="detail-zoom-close"
-        onClick=${() => close && close()}>${t('X-COMMON.close')}</${Button}>
     </div>
   </${Sheet}>`;
 }

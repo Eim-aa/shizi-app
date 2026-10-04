@@ -12,6 +12,7 @@ export default Object.freeze({
   // X-COMMON（通用组件：Page.js 页头 aria-label、UndoBar.js 撤销底栏（R-G05））
   'X-COMMON.back': '返回',
   'X-COMMON.close': '关闭',
+  'X-COMMON.done': '完成',
   'X-COMMON.undo': '撤销',
   'X-COMMON.undone': '已撤销',
   // X-SYS（03 P55：坏值顶部提示、迁移失败阻断页补充说明；已写过渡文案，待产品定稿）

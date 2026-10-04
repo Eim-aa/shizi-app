@@ -15,7 +15,7 @@ import WebKit
 //           shiziAccessibilityStatus（P116：读屏 / 切换控制状态，pageReady 与状态变化时）、
 //           shiziContentSize（P130 / D29：系统字号档位与正文倍率，pageReady 与系统字号变化时；P1-E6b：文档开始时另有
 //           WKUserScript 注入 window.__shiziInitialContentSize，冷启动首帧即目标字号）；
-//           事件 shizi-native-back / shizi-native-back-progress。
+//           事件 shizi-native-back / shizi-native-back-progress / shizi-native-escape（读屏两指 Z 形，A2-05：关最上层弹层）。
 // 面向用户的文字一律在 Web 侧（src/config/copy/）：原生不弹 alert、不 reload（导入桥只交付文本或拒绝原因）。
 
 private final class WeakScriptMessageHandler: NSObject, WKScriptMessageHandler {
@@ -179,6 +179,18 @@ final class WebViewController: UIViewController {
         }
         webView.evaluateJavaScript(script + " void 0;")
         return fired
+    }
+
+    // MARK: - 读屏退出手势（A2-05）
+
+    /// VoiceOver 两指 Z 形：页面里关最上层弹层（没有弹层时页面什么都不做）。原生不判断页面状态，只派发 shizi-native-escape。
+    override func accessibilityPerformEscape() -> Bool {
+        dispatchAccessibilityEscape()
+        return true
+    }
+
+    func dispatchAccessibilityEscape() {
+        webView.evaluateJavaScript("window.dispatchEvent(new CustomEvent('shizi-native-escape')); void 0;")
     }
 
     // MARK: - 加载与就绪

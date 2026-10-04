@@ -22,6 +22,8 @@ export const STATE_VERSION = 1;
 // 原生壳事件（01-架构设计 §7、§8.1）。M0-4 期间兼容的别名 'shizi-native-progress' 已在 M5-3 删除（Swift 只派发下面两个）。
 export const NATIVE_BACK_EVENT = 'shizi-native-back';
 export const NATIVE_PROGRESS_EVENT = 'shizi-native-back-progress';
+/** 读屏「两指 Z 形」退出手势（A2-05）：Swift 的 WebViewController.accessibilityPerformEscape 派发；页面关闭最上层弹层（没有弹层时什么都不做）。 */
+export const NATIVE_ESCAPE_EVENT = 'shizi-native-escape';
 
 // history.back()/go() 发出后等 popstate 的上限；超时则放弃等待、继续执行排队的操作。
 export const PENDING_TIMEOUT_MS = 1000;

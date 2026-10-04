@@ -2,10 +2,16 @@
 // 规格取设计系统 v1 的弹层（P1-E1b）：遮罩 --scrim；面板贴底、max-height 88%、24px 上圆角（--r-box）、--elev 底、--elev-shadow（只有弹层有阴影）、
 // padding 24 20（页边）底部 max(32, 安全区)、gap 16（间距尺度）；没有顶部把手（网页里不能跟手下拉，把手是假的，P0-A12 / G12，阶段 3 由原生 Sheet 取代）。
 // 进场上滑，减少动态效果时直接显示。
+// 完成（A2-05 / R2-A1，D29 / D51）：每个底部弹层标题行右端有一个可见的「完成」文字按钮（H1 统一的文字按钮规格，44 点击区，读屏可达），
+// 与点遮罩 / 系统返回 / Esc / 原生 accessibilityPerformEscape（shizi-native-escape）同走 onClose。没有标题的弹层（写字页「⋯」菜单）这一行只有「完成」、靠右。
+// 弹层自己已有一个等价的可见出口时（修改判断「取消」、清空确认「先不清空」这类决策弹层，取消比完成准确）传 dismiss="own"：不再多画一个「完成」，
+// 根节点带 data-dismiss="own"，e2e 逐个核对。
 // 打开方式：nav.openOverlay(内容组件, props)；内容组件里用 <Sheet onClose=${close}>…</Sheet>。
 // 点遮罩 / 系统返回 / Esc 都经 router 走 history.back()。
 import { html, useEffect, useRef } from '../../../vendor/ui.js';
 import { injectStyles, T } from './styles.js';
+import { Button } from './Button.js';
+import { t } from '../../config/copy/index.js';
 
 injectStyles('sheet', `
 .sz-overlay{position:absolute;inset:0;z-index:20}
@@ -15,6 +21,9 @@ injectStyles('sheet', `
   padding:${T.s6} ${T.gutter} max(${T.s8}, env(safe-area-inset-bottom, 0px));display:flex;flex-direction:column;gap:${T.s4};color:${T.ink1};
   animation:sz-sheet-in .28s cubic-bezier(.2,.7,.2,1) both}
 .sz-sheet:focus{outline:none}
+.sz-sheet__head{display:flex;align-items:center;justify-content:flex-end;gap:${T.s4};flex:none}
+.sz-sheet__head .sz-sheet__title{flex:1 1 auto;min-width:0}
+.sz-sheet__done{flex:none;margin-inline-end:calc(-1 * var(--bx));white-space:nowrap;word-break:keep-all}
 .sz-sheet__title{margin:0;font-family:${T.song};font-size:${T.fs22};font-weight:500;line-height:${T.lh22}}
 @keyframes sz-fade-in{from{opacity:0}to{opacity:1}}
 @keyframes sz-sheet-in{from{transform:translateY(100%)}to{transform:none}}
@@ -80,17 +89,26 @@ let titleSeq = 0;
  * @param {() => void} props.onClose  点遮罩时调用（通常是 overlay 的 close）
  * @param {boolean} [props.active]  由 root 传入：是否在最上层
  * @param {string} [props.testid]
+ * @param {'done'|'own'} [props.dismiss]  默认 'done'：标题行右端画「完成」；'own' = 弹层自己已有可见的取消 / 关闭，不画
+ * @param {string} [props.doneTestid]  「完成」按钮的 data-testid（默认 sheet-done）
  */
-export function Sheet({ title, onClose, active = true, testid, children }) {
+export function Sheet({ title, onClose, active = true, testid, dismiss = 'done', doneTestid = 'sheet-done', children }) {
   const panelRef = useRef(null);
   const titleIdRef = useRef(null);
   if (!titleIdRef.current) titleIdRef.current = `sz-sheet-title-${(titleSeq += 1)}`;
   useDialogFocus(panelRef, active);
+  const close = () => onClose && onClose();
+  const done = dismiss !== 'own';
   return html`<div class="sz-overlay" data-overlay="sheet">
-    <div class="sz-scrim" aria-hidden="true" onClick=${() => onClose && onClose()}></div>
+    <div class="sz-scrim" aria-hidden="true" onClick=${close}></div>
     <div class="sz-sheet" role="dialog" aria-modal="true" tabindex="-1" ref=${panelRef} data-testid=${testid}
-      aria-labelledby=${title ? titleIdRef.current : undefined}>
-      ${title ? html`<h2 class="sz-sheet__title" id=${titleIdRef.current}>${title}</h2>` : null}
+      data-dismiss=${done ? 'done' : 'own'} aria-labelledby=${title ? titleIdRef.current : undefined}>
+      ${title || done
+    ? html`<div class="sz-sheet__head" data-testid="sheet-head">
+        ${title ? html`<h2 class="sz-sheet__title" id=${titleIdRef.current}>${title}</h2>` : null}
+        ${done ? html`<${Button} variant="text" class="sz-sheet__done" data-testid=${doneTestid} onClick=${close}>${t('X-COMMON.done')}</${Button}>` : null}
+      </div>`
+    : null}
       ${children}
     </div>
   </div>`;

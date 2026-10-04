@@ -527,7 +527,7 @@ export function ResultCellSheet({ slot, sessionId, recordId, cellKind, cellChar,
   const mine = t('R-W09.labelMine');
   const ref = t('R-W09.labelReference');
   const topLabel = changeable ? t('R-R02.sheetCancel') : t('R-R02.sheetClose');
-  return html`<${Sheet} title=${title} onClose=${close} active=${active} testid="result-sheet">
+  return html`<${Sheet} title=${title} onClose=${close} active=${active} testid="result-sheet" dismiss="own">
     <div class="sz-change" data-kind=${kind}>
       <${Button} variant="text" class="sz-change__cancel" data-testid="result-sheet-close" onClick=${() => close && close()}>${topLabel}</${Button}>
       <div class="sz-change__minis">

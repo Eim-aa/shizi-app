@@ -54,6 +54,9 @@ injectStyles('query-sheet', `
 .sz-sheet[data-testid="query-sheet"][data-full="true"]{border-radius:0;padding-top:max(${T.s4}, env(safe-area-inset-top, 0px))}
 .sz-sheet[data-testid="query-sheet"][data-full="true"] .sz-sheet__title{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;
   clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0}
+/* 全高时标题行只剩「完成」（A2-05）：不占竖向空间——绝对定位到顶部右端、与查字框同一行，查字框右侧让出它的宽（两个汉字 + 点击区内边距），内容区高度不变（76-q2-09） */
+.sz-sheet[data-testid="query-sheet"][data-full="true"] .sz-sheet__head{position:absolute;top:max(${T.s4}, env(safe-area-inset-top, 0px));right:${T.gutter};margin:0}
+.sz-sheet[data-testid="query-sheet"][data-full="true"] .sz-query__input-wrap{margin-right:calc(2 * ${T.fs15} + ${T.s4})}
 .sz-query{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;gap:16px}
 .sz-query__input-wrap{flex:none}
 .sz-query__scroll{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;

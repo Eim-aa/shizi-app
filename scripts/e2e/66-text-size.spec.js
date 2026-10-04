@@ -90,6 +90,7 @@ function measure({ primary, tabs }) {
       const cs = getComputedStyle(el);
       if (/(auto|scroll|hidden|clip)/.test(cs.overflowX) && el.scrollWidth > el.clientWidth + 1 && el.clientWidth > 0) {
         if (el.closest('[aria-hidden="true"]') || el.tagName === 'CANVAS') continue;
+        if (el.classList.contains('sz-page__title--hidden')) continue; // 页头标题只留给读屏（视觉隐藏的 1×1 盒子，D49 写字页回忆阶段 / 结果页）
         problems.push(`horizontal overflow in ${el.tagName.toLowerCase()}.${String(el.className).slice(0, 40)} (${el.scrollWidth} > ${el.clientWidth})`);
       }
     }
@@ -97,7 +98,7 @@ function measure({ primary, tabs }) {
     for (let n = walker.nextNode(); n; n = walker.nextNode()) {
       if (!n.textContent.trim()) continue;
       const host = n.parentElement;
-      if (!host || !host.checkVisibility({ visibilityProperty: true }) || host.closest('.sr-only, [hidden]')) continue;
+      if (!host || !host.checkVisibility({ visibilityProperty: true }) || host.closest('.sr-only, [hidden], .sz-page__title--hidden')) continue; // 视觉隐藏的读屏标题（D49）不算可见文字
       const range = document.createRange();
       range.selectNodeContents(n);
       for (const r of range.getClientRects()) {

@@ -9,14 +9,15 @@ export default Object.freeze({
   'R-W02.firstTip': '看拼音和提示，把这个字写在格子里。',
   // R-W03（已定）
   'R-W03.titleRecall': '凭记忆写出这个字',
-  'R-W03.titleCompare': '对照一下，写对了吗？',
+  'R-W03.titleCompare': '写对了吗？',
   'R-W03.titleAnswer': '这个字这样写',
   'R-W03.titleSelf': '自己写一遍',
   // R-W04（已定）
   'R-W04.stepTrace': '第 1 步，共 2 步：描一遍',
   'R-W04.stepSelf': '第 2 步，共 2 步：自己写',
   // R-W05（文案已定；"已写对哪几笔"算法 待定-工程确认（做不到退回按已写笔数））
-  'R-W05.hintRemaining': '提示 · 还有 {n} 次',
+  'R-W05.hintLabel': '提示',
+  'R-W05.hintRemaining': '提示，还有 {n} 次',
   'R-W05.hintUsedUp': '提示已用完',
   'R-W05.hintUnavailable': '暂时没有提示',
   'R-W05.noHintNote': '这个字暂时没有提示，可以直接看答案。',

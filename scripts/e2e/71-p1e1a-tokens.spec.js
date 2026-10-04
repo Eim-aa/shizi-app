@@ -160,12 +160,12 @@ async function visitPages(page, scheme, ctx) {
   await tab(page, 'home');
   await openWrite(page, { slot: 'A' });
   await page.waitForTimeout(600);
-  await check('write', { sheets: '.sz-inkgrid, .sz-prompt__word' });
+  await check('write', { sheets: '.sz-inkgrid' }); // D49：题面不再有笺面底（已给的字不装框、没有词语块）
   await drawStroke(page, HORIZONTAL);
   await page.waitForTimeout(150);
   await page.click(topSel('write-done'));
   await page.waitForTimeout(1000);
-  await check('judge', { sheets: '.sz-compare__card, .sz-prompt__word' });
+  await check('judge', { sheets: '.sz-compare__card' });
   const judge = await page.evaluate(() => {
     const el = document.querySelector('.sz-layer[data-top="true"] .sz-judge__btn');
     const cs = getComputedStyle(el);

@@ -45,12 +45,12 @@ test('hints: no stroke data → no stepped hints, button says 暂时没有提示
   assert.equal(t('R-W05.noHintNote'), '这个字暂时没有提示，可以直接看答案。');
 });
 
-test('hints: button label sequence 还有 2 次 → 还有 1 次 → 已用完 (改动 L85)', () => {
+test('hints: button label (screen-reader name) sequence 还有 2 次 → 还有 1 次 → 已用完 (改动 L85；D49 起可见文字只有「提示」)', () => {
   const labels = [0, 1, 2].map((used) => {
     const c = hintButtonCopy(hintButtonState({ used }));
     return t(c.key, c.vars);
   });
-  assert.deepEqual(labels, ['提示 · 还有 2 次', '提示 · 还有 1 次', '提示已用完']);
+  assert.deepEqual(labels, ['提示，还有 2 次', '提示，还有 1 次', '提示已用完']);
 });
 
 test('hints: hintMax comes from policy (P17)', async () => {

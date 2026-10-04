@@ -41,7 +41,7 @@ injectStyles('glyph-fallback', `
   pointer-events:none;user-select:none;-webkit-user-select:none;font-family:${T.kai};
   font-weight:400;line-height:1;font-synthesis:none}
 .sz-glyph-fb__char{display:block;line-height:1}
-.sz-nohint{min-height:52px;display:flex;align-items:center;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3};
+.sz-nohint{min-height:44px;display:flex;align-items:center;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3};
   text-wrap:pretty}
 `);
 

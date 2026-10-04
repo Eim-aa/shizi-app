@@ -40,12 +40,12 @@ import { allRecords, replaceRecordInDraft } from './answer.js';
 import { InkMini, RefMini, recalledInk } from './compare.js';
 
 injectStyles('write-result-row', `
-/* D46 ⑭：结果行在书写格下面的说明位（左对齐、13pt 墨三），不再是格子上方整行；「修改 ›」仍是 44 高的文字按钮 */
+/* D46 ⑭：结果行在书写格下面的说明位（左对齐、13pt 墨三），不再是格子上方整行；「修改 ›」仍是 44 高的文字按钮；标准字号下一行放得下，AX 档允许折行（D49） */
 .sz-line{box-sizing:border-box;display:flex;align-items:center;justify-content:flex-start;gap:${T.s1} ${T.s2};
   font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3};flex-wrap:wrap}
 .sz-line[data-state="skipped"]{display:none}
 .sz-line__dot{color:${T.ink4}}
-.sz-line__change{min-height:${T.hit};padding:0;gap:${T.s1};color:${T.ink1};font-size:${T.fs13};}
+.sz-line__change{min-height:${T.hit};margin:-2px 0;padding:0;gap:${T.s1};color:${T.ink1};font-size:${T.fs13};} /* 按钮盒 44（base.css），上下各让 2：说明位那一行仍是 40 高，热区仍是 44 */
 .sz-change__cancel{position:absolute;right:12px;top:18px;height:44px;padding:0 12px;font-size:${T.fs15};color:${T.ink2}}
 .sz-change__minis{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
 .sz-change__col{display:flex;flex-direction:column;gap:12px;min-width:0}

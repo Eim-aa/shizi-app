@@ -58,7 +58,6 @@ import { GlyphFallback } from './glyph-fallback.js';
 export const ANSWER_PHASES = Object.freeze(['answer', 'trace', 'retrace']);
 
 injectStyles('write-answer', `
-.sz-answer__link{text-decoration:underline;text-underline-offset:4px;text-decoration-thickness:.5px;color:${T.ink2}}
 .sz-answer__card{position:relative;flex:none;box-sizing:border-box;max-width:100%;margin:0 auto;
   border:${T.frameW} solid ${T.frame};border-radius:${T.rWork};${TEX};overflow:hidden}
 .sz-answer__anim{position:absolute;left:0;top:0;pointer-events:none}
@@ -523,7 +522,7 @@ export function useAnswerFlow({ slot, session, cardKey, phase, strokeCount = 0, 
   };
 
   const link = cardKey && phase === 'recall' && !answerSeen
-    ? html`<${Button} variant="text" class="sz-answer__link" data-testid="write-show-answer"
+    ? html`<${Button} variant="text" data-testid="write-show-answer"
         onClick=${() => {
           if (typeof onShowAnswer === 'function') onShowAnswer(); // 写字页：跳过的撤销机会到此结束（G3）
           openAnswerConfirm({ slot, cardKey });

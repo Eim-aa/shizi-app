@@ -179,7 +179,9 @@
     "P163": "月字帖骑线日期角标只写「日」、每天只标第一个字：阶段 1 P1-E7，见 03 P163",
     "P164": "多张图时「分享」分享当前这一张、「保存 N 张图片」逐张保存：阶段 1 P1-E7，见 03 P164",
     "P150": "页边 20 与间距尺度（阶段 1 P1-E1b，D43）：版式取值，实现在 src/ui/components/{Page,Sheet,Confirm,Toast,UndoBar,Chevron}.js 与各屏 CSS；写字格 policy.writeGrid（sideMargin 20、reserveStd 416、reserveCompact 344）随之更新，不是新开关；Toast 去圆点、加计时线、撤销条最小高 48；无界面文案",
-    "P151": "判断页上下两格（D46 ⑪，P1-E1b）：版式行为——S = min(屏宽 − 168, (书写格顶到页底栏的可用高 + 1) ÷ 2)，实现在 src/ui/screens/write/compare.js judgePairSize / useJudgePairSize；旁注沿用 R-W09 的「你的书写 / 参考字形」，读屏名称不变；长按叠看（D46 ⑫）本卡不做；无新文案",
+    "P151": "判断页上下两格（D46 ⑪，已决定 D49）：版式行为——无旁注、无说明句；S = min(屏宽 − 40, ⌊(主区高 − 书写格顶 − 16) ÷ 2⌋)，AX 档上下排 / 并排取格子更大的一种，实现在 src/ui/screens/write/layout.js judgePairSize / judgeAxLayout 与 compact.js useWriteLayout；读屏名称沿用（你的书写，N 笔 / 参考字形：字，拼音，N 画）；长按叠看（D46 ⑫）不做；文案变化见 P189",
+    "P190": "回忆阶段与 AX 档判断页的页头标题只留给读屏：Page hideTitle（src/ui/screens/write/index.js），视觉上无标题、读屏页名保留；样式与结构行为，不是运行时开关",
+    "P191": "未落笔时格下右端「在纸上写」占撤销 / 清空的位置（设计稿画禁用图标）：src/ui/screens/write/index.js 的 toPaper 分支，行为 / 布局取舍，不是运行时开关；请设计确认",
     "P152": "字库与字墙（设计系统 v1，P1-E1b）：墙格四档取令牌 --wall1…--wall4（取代透明度四档），8 列 / Pro Max 9 列 / 大字最多 6 列（一格不窄于 44pt，按屏宽取 ⌊(屏宽 − 40) ÷ 44⌋），写错只加朱点；实现在 src/ui/screens/library/{wall,model}.js；自选未写的淡朱双钩由 P1-E2 的 PracticeGlyph variant=hollow 接入（已决定 D43 / D33）；无界面文案",
     "P173": "练习字字形组件的实现取舍（阶段 1 P1-E2，D33 8a 方案 B / D43 / D44）：SVG 组件 src/ui/components/PracticeGlyph.js + 视口附近懒取（并发 ≤ 6）+ 笔顺 LRU 512 + 回退 ShiziKai；图片导出 core/images/render.js paintOutline；scripts/verify_tokens.mjs 的 glyph 规则登记楷体用法；无界面文案",
     "P153": "增强对比度下的提示与描红描边（D46 ⑯，P1-E1b）：CSS 媒体查询 prefers-contrast: more 与 canvas 的 matchMedia 判断，实现在 src/ui/screens/write/hint-layer.js、src/ui/canvas/glyph.js、src/ui/screens/write/answer.js；原生壳桥接（UIAccessibility.isDarkerSystemColorsEnabled）只在报告里说明；无界面文案",
@@ -538,7 +540,10 @@
         },
         "titleCompare": {
           "raw": "对照一下，写对了吗？",
-          "text": "对照一下，写对了吗？"
+          "text": "写对了吗？",
+          "decision": "P189",
+          "note": "D49 减法修稿：判断页页头只问一次「写对了吗？」（实现交接 §9.2；AX 档只留给读屏）；去掉「对照一下，」",
+          "override": true
         },
         "titleAnswer": {
           "raw": "这个字这样写",
@@ -572,9 +577,19 @@
       "status": "文案已定；\"已写对哪几笔\"算法 **待定-工程确认**（做不到退回按已写笔数）",
       "source": "W03/W04；C021/C022；N04；C018；备注 L159",
       "slots": {
+        "hintLabel": {
+          "raw": null,
+          "text": "提示",
+          "origin": "extra",
+          "note": "D49 实现交接 §13.1：写字页文字行的「提示」按钮可见文字不再带「· 还有 N 次」，次数只进读屏名称（hintRemaining）",
+          "decision": "P189"
+        },
         "hintRemaining": {
           "raw": "提示 · 还有 {N} 次",
-          "text": "提示 · 还有 {n} 次"
+          "text": "提示，还有 {n} 次",
+          "decision": "P189",
+          "note": "D49 实现交接 §13.1：提示按钮的读屏名称（可见文字是 hintLabel「提示」）；用完后 hintUsedUp、不可点",
+          "override": true
         },
         "hintUsedUp": {
           "raw": "提示已用完",
@@ -683,17 +698,9 @@
       "status": "已定",
       "source": "K31/W09/D20；C013；N09",
       "slots": {
-        "prompt": {
-          "raw": "你来判断，点一下就记下。",
-          "text": "你来判断，点一下就记下。"
-        },
         "continueWriting": {
           "raw": "接着写",
           "text": "接着写"
-        },
-        "continueWritingAria": {
-          "raw": "回到格子里接着写",
-          "text": "回到格子里接着写"
         },
         "btnWrong": {
           "raw": null,
@@ -747,7 +754,17 @@
           "note": "阶段 0 A9：题库里没有这个字的拼音时只读字",
           "decision": "P112"
         }
-      }
+      },
+      "dropped": [
+        {
+          "raw": "你来判断，点一下就记下。",
+          "why": "D49 减法修稿（P189）：判断页不设说明句，页头问题「写对了吗？」就是说明（实现交接 §9.2）"
+        },
+        {
+          "raw": "回到格子里接着写",
+          "why": "D49 减法修稿（P189）：左上改用与写字页同一个「‹」，读屏名称是「接着写」（R-W09.continueWriting；实现交接 §9.2）"
+        }
+      ]
     },
     "R-W10": {
       "screen": "write",
@@ -3095,9 +3112,9 @@
         },
         "paperRefAside": {
           "raw": null,
-          "text": "参考字形 · 和你纸上的字对照",
+          "text": "和你纸上的字对照",
           "origin": "extra",
-          "note": "纸上那一字的判断页：只有参考字形（放到书写格大小），格下这一行旁注；阶段 1 P1-E8",
+          "note": "纸上那一字的判断页：只有参考字形（放到书写格大小），格下说明位这一行；阶段 1 P1-E8；D49 起判断页不用旁注，去掉「参考字形 · 」（实现交接 §10.2）",
           "decision": "P167"
         },
         "paperMineLabel": {

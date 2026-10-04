@@ -2,19 +2,19 @@
 //
 // 题面 = 词语行 + 提示行：
 // - 词语按码点逐格渲染（core/cards.js promptModel 的 segments，与内容门禁共用同一实现）：
-//   原目标位（blank）只显示拼音（格上方）+ 红框虚线十字；词里其余同一目标字位（repeatBlank）一律「□」，
-//   role=img + aria-label「同一目标字的另一处空格」；其余字原样显示。
+//   原目标位（blank）只显示拼音（格上方）+ 一个空框（D49：不画十字）；词里其余同一目标字位（repeatBlank）一律「□」（同样的空框），
+//   role=img + aria-label「同一目标字的另一处空格」；其余字原样显示、不装框。
 // - 提示行 = promptModel.visibleHint（释义 / 语境线索 / 仅拼音题说明 + 重复目标字说明 R-W28），aria-live=polite；
 //   题面容器 role=group、aria-describedby 指向提示行（沿 #175 #prompt/#hint 语义）。
 // - 全部文字用 Preact 文本子节点写入（= textContent，不走 innerHTML）：题库或自定义文本里的 `<img onerror>` 只是字面量。
-// - 回忆阶段答案字不进任何文本、aria / title / data 属性（D16）；本组件只在 REVEAL_PHASES（对照 / 看答案 / 描一遍，
-//   与原型 ShiziWriteScreen L527 `revealed` 同一集合）把目标字填进空格——判断页的揭示动效由 M1-5 接。
+// - 回忆阶段答案字不进任何文本、aria / title / data 属性（D16）；本组件只在 REVEAL_PHASES（看答案 / 描一遍）把目标字填进空格；
+//   D49 起判断页（compare）也不填：目标格仍是空框，答案只在下面的参考格出现一次。
 // - 文案：PROMPT_COPY 的五项全部从 src/config/copy/ 取（promptCopy()），值与 cards.js 默认值逐字一致
 //   （test/ui/prompt.test.mjs 断言），所以门禁 promptHTML / visibleHint 与界面字节一致。
 //
-// 版式（原型 ShiziWriteScreen L45–L60 标准版 / L175–L181 紧凑版）：拼音 15px（单字题 22px）在空格正上方；
-// 每格 56×54、楷体 34px、--g 细边、--c 底；空格 inset 1.5px --ar 红框 + 虚线十字；空格尽量水平居中
-// （原型 rowLeft = 168.5 − blank×56），放不下时整行贴边；字号随 --k（大字 1.3）；格宽不够时等比收窄不裁切。
+// 版式（D49 实现交接 §13.1，取代原型 L45–L60）：整词水平居中（与书写格同一条中轴）；每格 52 见方（AX 档 64），已给的字只画字（格内 80%）、不装框；
+// 要写的格只画 frameW frame 的空框；拼音 t15 ink2 注在要写的格正上方（拼音行高 ≥ 24、与格间 4，各列底对齐）。402 标准字号下整个题面高 80（28 + 52）；
+// 提示行（释义 / 语境线索 / 重复目标字说明）只在有内容时出现，题面随之变高（写字页按量到的题面高算书写格组的位置）。格宽不够时等比收窄不裁切。
 //
 // data-testid：write-prompt（容器）、write-prompt-word（词语行）、write-prompt-cell（每格，data-kind=text|blank|repeatBlank）、
 // write-prompt-py（原目标位拼音）、write-prompt-hint（提示行）。
@@ -23,12 +23,12 @@ import { html, useRef } from '../../../../vendor/ui.js';
 import { promptModel } from '../../../core/cards.js';
 import { capitalCard, cardForKey, withWordOff } from '../../../data/deck.js';
 import { getStore } from '../../../store/store.js';
-import { injectStyles, T, TEX } from '../../components/styles.js';
+import { injectStyles, T } from '../../components/styles.js';
 import { PracticeGlyph, FACE_FULL } from '../../components/PracticeGlyph.js';
 import { t } from '../../../config/copy/index.js';
 
-/** 这些阶段题面把目标字填回空格（原型 L527）；recall / retrace 一律遮住。 */
-export const REVEAL_PHASES = Object.freeze(['compare', 'answer', 'trace']);
+/** 这些阶段题面把目标字填回空格（原型 L527）；recall / retrace 一律遮住。D49：判断页（compare）的目标格也不显示答案，答案只在参考格出现一次。 */
+export const REVEAL_PHASES = Object.freeze(['answer', 'trace']);
 
 let copyCache = null;
 /** cards.js PROMPT_COPY 的同形对象，值取自 src/config/copy/（R-W28、X-PROMPT）。 */
@@ -101,26 +101,22 @@ export function promptCells(card, { revealed = false, copy = promptCopy() } = {}
 // ---- 视图 --------------------------------------------------------------------------------------------------
 
 injectStyles('write-prompt', `
-.sz-prompt{align-self:stretch;min-width:0;display:flex;flex-direction:column;align-items:stretch}
-.sz-prompt__wordwrap{box-sizing:border-box;width:100%;padding-top:calc(26px * ${T.k})}
-.sz-prompt[data-single="true"] .sz-prompt__wordwrap{padding-top:calc(32px * ${T.k})}
-.sz-prompt__word{--cw:calc(56px * ${T.k});box-sizing:border-box;display:flex;width:max-content;max-width:100%;
-  margin-left:max(0px, min(calc(50% - (var(--bi) + .5) * var(--cw)), calc(100% - var(--n) * var(--cw))));
-  border:${T.frameW} solid ${T.frame};border-left:0;${TEX}}
-.sz-prompt__cell{position:relative;box-sizing:border-box;flex:0 1 auto;width:var(--cw);min-width:0;height:calc(54px * ${T.k});
-  border-left:${T.frameW} solid ${T.frame};text-align:center;color:${T.ink1};white-space:nowrap}
-/* 练习字统一用轮廓（P1-E2）：字面方框 40pt（设计系统 v1 题面：52 格里 40 的字面 svg，随字号倍率），居中；格比 40 窄时随格收窄 */
-.sz-prompt__cell>.sz-pg{position:absolute;left:50%;top:50%;width:min(calc(40px * ${T.k}), 100%);height:auto;aspect-ratio:1/1;
+.sz-prompt{--cw:52px;align-self:stretch;min-width:0;display:flex;flex-direction:column;align-items:stretch}
+:root[data-ax] .sz-prompt{--cw:64px}
+.sz-prompt__wordwrap{box-sizing:border-box;width:100%;display:flex;justify-content:center;padding-top:calc(max(24px, ${T.lh15}) + 4px)}
+.sz-prompt__word{display:flex;width:max-content;max-width:100%}
+.sz-prompt__cell{position:relative;box-sizing:border-box;flex:0 1 auto;width:var(--cw);min-width:0;aspect-ratio:1/1;text-align:center;
+  color:${T.ink1};white-space:nowrap}
+/* 练习字统一用轮廓（P1-E2）：已给的字只画字、不装框，字面占格 80%（实现交接 §13.1）；格比 52 窄时随格收窄 */
+.sz-prompt__cell>.sz-pg{position:absolute;left:50%;top:50%;width:80%;height:auto;aspect-ratio:1/1;
   transform:translate(-50%,-50%);color:${T.ink1}}
-.sz-prompt__cell[data-kind="blank"]{box-shadow:inset 0 0 0 ${T.targetW} ${T.ink1}}
-.sz-prompt__cell[data-kind="repeatBlank"][data-masked="true"]{font-family:${T.hei};font-size:${T.fs28};color:${T.ink3}}
-.sz-prompt__py{position:absolute;left:50%;bottom:100%;transform:translateX(-50%);padding-bottom:calc(4px * ${T.k});
+/* 只有要写的格（原目标位、同一目标字的另一处空格）画框：frameW frame，格内空白，不画十字（D49：框只表示「在这里写」） */
+.sz-prompt__cell[data-kind="blank"],.sz-prompt__cell[data-kind="repeatBlank"][data-masked="true"]{box-shadow:inset 0 0 0 ${T.frameW} ${T.frame}}
+.sz-prompt__cell[data-kind="repeatBlank"][data-masked="true"]{display:flex;align-items:center;justify-content:center;
+  font-family:${T.hei};font-size:${T.fs28};line-height:1;color:${T.ink3}}
+.sz-prompt__py{position:absolute;left:50%;bottom:100%;transform:translateX(-50%);padding-bottom:4px;
   font-family:${T.hei};font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2};
   white-space:nowrap}
-.sz-prompt[data-single="true"] .sz-prompt__py{font-size:${T.fs22};line-height:${T.lh22};color:${T.ink1}}
-.sz-prompt__cross{position:absolute;inset:0;pointer-events:none}
-.sz-prompt__cross::before{content:"";position:absolute;left:50%;top:9px;bottom:9px;border-left:${T.guideW} dashed ${T.guide}}
-.sz-prompt__cross::after{content:"";position:absolute;top:50%;left:9px;right:9px;border-top:${T.guideW} dashed ${T.guide}}
 .sz-prompt__hint{margin:10px 0 0;min-width:0;text-align:center;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2};white-space:normal;overflow-wrap:anywhere}
 .sz-prompt__hint:empty{margin:0}
 `);
@@ -134,7 +130,7 @@ function Cell({ cell }) {
       role=${cell.label ? 'img' : undefined} aria-label=${cell.label || undefined}><span
       class="sz-prompt__py" data-testid="write-prompt-py">${cell.text}</span>${cell.fill
       ? glyph(cell.fill, 'sz-prompt__fill')
-      : html`<span class="sz-prompt__cross" aria-hidden="true"></span>`}</span>`;
+      : null}</span>`;
   }
   if (cell.kind === 'repeatBlank' && cell.label) {
     return html`<span class="sz-prompt__cell" data-kind="repeatBlank" data-masked="true" data-testid="write-prompt-cell"
@@ -148,12 +144,11 @@ function Cell({ cell }) {
  * @param {{model: ReturnType<typeof promptCells>, hintId: string, groupLabel: string, testid?: string}} props
  */
 export function PromptView({ model, hintId, groupLabel, testid = 'write-prompt' }) {
-  const { cells, hint, blankIndex, count } = model;
-  const vars = `--n:${Math.max(count, 1)};--bi:${Math.max(blankIndex, 0)}`;
+  const { cells, hint, count } = model;
   return html`<div class="sz-write__prompt sz-prompt" role="group" aria-label=${groupLabel} aria-describedby=${hintId}
     data-testid=${testid} data-single=${count === 1 ? 'true' : 'false'}>
     <div class="sz-prompt__wordwrap">
-      <div class="sz-prompt__word" data-testid="write-prompt-word" style=${vars}>
+      <div class="sz-prompt__word" data-testid="write-prompt-word">
         ${cells.map((cell, i) => html`<${Cell} key=${i} cell=${cell} />`)}
       </div>
     </div>

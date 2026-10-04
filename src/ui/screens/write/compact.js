@@ -1,32 +1,21 @@
-// 紧凑版写字页（M1-7；02 §3 M1-7；R-W18 / R-W26 / R-G09；走查-W15 / 核对-V02；reference/I-proto-write.md §3.7）。
+// 写字页的紧凑条件、AX 档、版式量测与看答案卡片尺寸（M1-7；V02；P0-D / D36；阶段 1 E9b 按 D49 重做）。
 //
-// 何时用紧凑版：:root[data-text-large]（系统字号 --k ≥ policy.compactTextScale 1.3，P131 / D29，由 platform/text-size.js 设；
-// 原型 size==='compact' ⇔ --k 1.3），或视口高度 ≤ COMPACT_MAX_HEIGHT
-// （标准版 393×852 的整页需要约 790px 才能让书写格与底栏同屏；360×640 这类短屏在标准字号下也走紧凑版）。
-// 高度阈值是工程取值（原型只按字号切换）；CSS 与 JS 用同一个条件（COMPACT_QUERY + data-text-large）。
+// 何时算「紧凑」：:root[data-text-large]（系统字号 --k ≥ policy.compactTextScale 1.3，P131 / D29，由 platform/text-size.js 设）或视口高度 ≤ COMPACT_MAX_HEIGHT
+// （CSS 与 JS 同一个条件）。D49 起写字页 / 判断页的版式不再分「标准 / 紧凑」两套：页头、题面、书写格、格下工具行、按钮行是同一个结构，只由
+// 可用高度（layout.js）与 AX 档（:root[data-ax]，本文件 useAxLevel）决定尺寸；紧凑条件只剩看答案页的卡片按剩余高度取（useAnswerFit）与页头标题可换行。
+// 书写格边长 g、组顶、判断页两格边长全部是 layout.js 的纯函数，本文件的 useWriteLayout 只负责量出主区高与题面高后调用（与字号、阶段、提示无关，D36）。
 //
-// D36（覆盖 X08 / P69 的缩格）：紧凑版**只改控件排布**（间距、题面高度、底栏两行），不再改书写格大小，字号也不触发缩格。
-// 书写格边长由 writeGridSize 按「屏宽 − 32」与「视口高 − 预算」取小、夹在 [258, 400]（policy.writeGrid，P118），与字号无关；
-// recall / trace / retrace 各阶段、点提示前后都是同一个边长。内部坐标仍是 345 单位（ink-canvas.js），这里只决定显示尺寸。
-//
-// 紧凑版布局（原型 ShiziWriteScreen L158–L224）：
-// - 看答案页卡片按屏高取（fitC，原型 L382–L384；不超过书写格边长，也不超过正文内容宽，下限 200）。
-// - 页头标题可换行（R-W18「判断页标题可换行」）；正文左右 20、上下收紧；固定 36px 的一行放结果行
-//   （撤销 / 清空不再挪到格子上方：G32 / D36，标准版与紧凑版都在格下一行的右端，触控 ≥44pt）；格下一行（说明 + 撤销 / 清空）
-//   与格子留出间距（R-W26：别贴着格子和按钮）。紧凑版靠收紧页边 / 题面 / 底栏的间距腾地方。
-// - 底栏两行：「提示 · 写好了」一行（提示按钮不折行，列宽 auto / minmax(0,1fr)），「看答案 · 跳过 · 结束这组」一行
-//   （三栏 minmax(0,1fr) auto minmax(0,1fr)；结束这组的槽位留给 M2）；按钮最小高 56。
-// - 所有可点控件仍是 components/Button（<button>，R-G09）——原型紧凑版的 span/div 不照搬。
-//
-// 本模块只放样式与尺寸计算；写字页 index.js 读 useCompact() 决定结构（撤销 / 清空的位置、底栏两行）与尺寸。
+// 本模块只放样式、量测 hook 与尺寸计算；写字页 index.js 读 useCompact() / useWriteLayout() 决定结构与尺寸。
 
 import { useEffect, useLayoutEffect, useState } from '../../../../vendor/ui.js';
 import { injectStyles, T } from '../../components/styles.js';
 import * as policy from '../../../config/policy.js';
+import {
+  GRID_MIN, GRID_MAX, writeLayout, judgePairSize, judgeAxLayout, estimateLayout, PROMPT_H_STD,
+} from './layout.js';
 
-/** 书写格边长的下限 / 上限（policy.writeGrid，P118，D36）。 */
-export const GRID_MIN = policy.writeGrid.min;
-export const GRID_MAX = policy.writeGrid.max;
+export { GRID_MIN, GRID_MAX };
+
 /** 看答案页卡片边长下限 / 缺省上限（V02：200–345；写字页实际上限取书写格边长）。 */
 export const ANSWER_MIN = 200;
 export const ANSWER_MAX = 345;
@@ -39,40 +28,21 @@ export const TEXT_LARGE_ATTR = 'data-text-large';
 /** 写字页 Page 根（components/Page 把 testid 放在 .sz-page 上）。 */
 const S = '.sz-page[data-testid="write-screen"]';
 
+// 紧凑 / 大字号下只剩两件事：页头标题可换行（看答案 / 描一遍阶段的标题），其余版式一律由 layout.js 与 index.js 的结构规则决定（D49：不再有第二套排布）。
 function compactRules(scope) {
   const P = `${scope} ${S}`.trim();
   return `
-${P} .sz-write{--bleed:0px}
-${P} .sz-write__gridwrap{margin-top:12px}
-${P} .sz-page__head{padding-left:4px;padding-right:4px}
 ${P} .sz-page__title{position:relative;left:auto;right:auto;flex:1;min-width:0;padding:6px 8px;white-space:normal;
   overflow:visible;text-overflow:clip;line-height:1.3;text-wrap:balance}
 ${P} .sz-page__lead,${P} .sz-page__trail{flex:none}
-${P} .sz-page__body{padding:2px 20px 2px;gap:12px}
-${P} .sz-page__foot{padding:1px 20px max(6px, env(safe-area-inset-bottom, 0px));gap:6px}
-${P} .sz-write__steps{margin:-4px 0 1px}
-${P} .sz-write__prompt{min-height:0;gap:2px;padding:0 0 2px}
-${P} .sz-write__note{line-height:1.4}
-${P} .sz-write__foot .sz-btn--primary,${P} .sz-write__foot .sz-btn--secondary{min-height:56px;padding:0 12px;white-space:nowrap}
-${P} .sz-write__main{grid-template-columns:auto minmax(0,1fr);gap:10px}
-${P} .sz-write__hint{min-height:56px}
-${P} .sz-write__hint .sz-hintbtn{padding:0 12px}
+${P} .sz-page__title--hidden{position:absolute;flex:none;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 ${P} .sz-answer__note,${P} .sz-write__note,${P} .sz-judge__note{text-wrap:pretty}
 `;
 }
 
-// 系统字号 XXXL（--k 1.35，P130）比原型紧凑版的 1.3 大一点：最矮的 360×640 上格子已在下限 258，题面与格下说明多出约 7px，
-// 说明会被底栏压住。只在大字号下收紧：格下说明行高 1.4 → 1.3（字号不变）、题面区去掉 2px 间距与 2px 下边距（提示行自带 10px 上边距），
-// 说明与底栏仍留 ≥6px（R-W26），格子不缩（D36）。
-const TEXT_LARGE_TIGHTEN = `
-:root[data-text-large] ${S} .sz-write__note{line-height:1.3}
-:root[data-text-large] ${S} .sz-write__prompt{gap:0;padding-bottom:0}
-`;
-
 injectStyles('write-compact', `
 @media ${COMPACT_QUERY}{${compactRules('')}}
 ${compactRules(':root[data-text-large]')}
-${TEXT_LARGE_TIGHTEN}
 `);
 
 function winOf(win) {
@@ -128,77 +98,78 @@ export function useCompact(win) {
   return compact;
 }
 
-/**
- * 书写格显示边长（D36，P118；纯函数）。
- * 边长 = min(屏宽 − 2·sideMargin, 视口高 − 预算)，夹在 [min, max] 并取整；预算是页头 / 页边 / 行 / 题面 / 格下一行 / 底栏的高度
- * （policy.writeGrid.reserveStd / reserveCompact，视口高 ≤ compactMaxHeight 时用紧凑排布那份），再加安全区（顶部全算，底部只算
- * 超出底栏基线内边距的部分）。**与字号（--k、:root[data-text-large]）无关**：同一视口换系统字号前后边长不变，只有控件排布变。
- * @param {{width:number, height:number, safeTop?:number, safeBottom?:number}} o  width / height：页面（视口）的宽高，pt
- * @returns {number}
- */
-export function writeGridSize({ width, height, safeTop = 0, safeBottom = 0 } = {}) {
-  const g = policy.writeGrid;
-  const w = Number.isFinite(width) && width > 0 ? width : null;
-  const h = Number.isFinite(height) && height > 0 ? height : null;
-  if (w === null && h === null) return STD_GRID;
-  const short = h !== null && h <= COMPACT_MAX_HEIGHT;
-  const reserve = short ? g.reserveCompact : g.reserveStd;
-  const basePad = short ? SHORT_FOOT_PAD : STD_FOOT_PAD; // 底栏下内边距的基线（超出的安全区才多占高度）
-  const top = Number.isFinite(safeTop) && safeTop > 0 ? safeTop : 0;
-  const bottom = Number.isFinite(safeBottom) && safeBottom > basePad ? safeBottom - basePad : 0;
-  const byWidth = w === null ? Infinity : w - 2 * g.sideMargin;
-  const byHeight = h === null ? Infinity : h - reserve - top - bottom;
-  return Math.max(g.min, Math.min(g.max, Math.floor(Math.min(byWidth, byHeight))));
-}
-
-/** 取不到视口时的缺省边长（旧标准格 345）。 */
-const STD_GRID = 345;
-/** 底栏下内边距基线：标准 max(20, 安全区) / 紧凑 max(6, 安全区)（见 Page.js、compactRules）。 */
-const STD_FOOT_PAD = 20;
-const SHORT_FOOT_PAD = 6;
-
-/** 按窗口尺寸算书写格边长（首帧用；不读字号，D36）。无 window（node:test）时为缺省 345。 */
-export function gridSizeOfWindow(win) {
-  const w = winOf(win);
-  if (!w) return STD_GRID;
-  const root = w.document && w.document.documentElement;
-  return writeGridSize({
-    width: w.innerWidth || (root && root.clientWidth),
-    height: w.innerHeight || (root && root.clientHeight),
-  });
-}
-
 function px(value) {
   const n = parseFloat(value);
   return Number.isFinite(n) ? n : 0;
 }
 
+/** 系统「更大字体」辅助功能档（platform/text-size.js 给 <html> 加 data-ax="1".."5"）；0 = 不是 AX 档。 */
+export function axLevelOf(win) {
+  const w = winOf(win);
+  const root = w && w.document && w.document.documentElement;
+  const n = root && root.getAttribute ? parseInt(root.getAttribute('data-ax'), 10) : 0;
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
+/** 订阅 AX 档（:root[data-ax] 变化）。 */
+export function useAxLevel(win) {
+  const [level, setLevel] = useState(() => axLevelOf(win));
+  useEffect(() => {
+    const w = winOf(win);
+    const root = w && w.document && w.document.documentElement;
+    if (!w || !root || typeof w.MutationObserver !== 'function') return undefined;
+    const sync = () => setLevel(axLevelOf(w));
+    sync();
+    const mo = new w.MutationObserver(sync);
+    mo.observe(root, { attributes: true, attributeFilter: ['data-ax'] });
+    return () => mo.disconnect();
+  }, [win]);
+  return level;
+}
+
+/** 这些阶段的页面骨架（页头 + 标准按钮行）就是书写格那一套，量到的主区高有效；其余阶段（看答案 / 描一遍…）沿用最近一次量到的，书写格大小不变（D36）。 */
+const MEASURED_PHASES = Object.freeze(['recall', 'compare']);
+
 /**
- * 写字页书写格边长：随页面尺寸（ResizeObserver）重算，不随字号、阶段、提示变化。
- * @param {{current: HTMLElement|null}} writeRef  .sz-write 元素（里面有 .sz-write__safe 安全区探针）
- * @returns {number}
+ * 写字页 / 判断页的版式：量出主区高（.sz-page__body 的内高）与题面高 P，交给 layout.js 的纯函数（D49，实现交接 §13.2 / §9.1 / §9.4）。
+ * 随页面尺寸（ResizeObserver）重算；不随字号、阶段、提示变化（D36：非回忆 / 判断阶段沿用最近一次量到的主区高）。
+ * @param {{current: HTMLElement|null}} writeRef  .sz-write 元素
+ * @param {{phase:string, ax:number}} o
+ * @returns {{g:number, top:number, gridTop:number, toolsHeight:number, mainHeight:number, promptHeight:number, wordHeight:number,
+ *            pair:{s:number, layout:'stack'|'side', top:number}}}
  */
-export function useWriteGridSize(writeRef, win) {
-  const [size, setSize] = useState(() => gridSizeOfWindow(win));
+export function useWriteLayout(writeRef, { phase = 'recall', ax = 0 } = {}, win) {
+  const [measured, setMeasured] = useState(() => ({ ...estimateLayout(win), width: NaN, mainHeight: NaN, promptHeight: PROMPT_H_STD, wordHeight: PROMPT_H_STD }));
   useLayoutEffect(() => {
     const w = winOf(win);
     const el = writeRef.current;
     const page = el && el.closest ? el.closest('.sz-page') : null;
-    if (!w || !page || typeof w.getComputedStyle !== 'function') return undefined;
+    const body = page ? page.querySelector('.sz-page__body') : null;
+    if (!w || !page || !body || typeof w.getComputedStyle !== 'function') return undefined;
     const measure = () => {
       const width = page.clientWidth;
-      const height = page.clientHeight;
-      if (!(width > 0) || !(height > 0)) return; // 页面被藏在别的页下面或还没排版
-      const probe = el.querySelector('.sz-write__safe');
-      const cs = probe ? w.getComputedStyle(probe) : null;
-      const next = writeGridSize({ width, height, safeTop: cs ? px(cs.paddingTop) : 0, safeBottom: cs ? px(cs.paddingBottom) : 0 });
-      setSize(prev => (prev === next ? prev : next));
+      const cs = w.getComputedStyle(body);
+      const mainHeight = body.clientHeight - px(cs.paddingTop) - px(cs.paddingBottom);
+      if (!(width > 0) || !(mainHeight > 0)) return; // 被藏在别的页下面或还没排版
+      const prompt = el.querySelector('.sz-write__prompt');
+      const word = el.querySelector('.sz-prompt__wordwrap');
+      const promptHeight = prompt ? prompt.offsetHeight : PROMPT_H_STD;
+      const wordHeight = word ? word.offsetHeight : PROMPT_H_STD;
+      setMeasured(prev => {
+        const keep = !MEASURED_PHASES.includes(phase) && Number.isFinite(prev.mainHeight);
+        const mh = keep ? prev.mainHeight : mainHeight;
+        const ph = keep ? prev.promptHeight : promptHeight;
+        const wh = keep ? prev.wordHeight : wordHeight;
+        if (prev.width === width && prev.mainHeight === mh && prev.promptHeight === ph && prev.wordHeight === wh) return prev;
+        return { width, mainHeight: mh, promptHeight: ph, wordHeight: wh };
+      });
     };
     measure();
     let ro = null;
     if (typeof w.ResizeObserver === 'function') {
       ro = new w.ResizeObserver(measure);
       ro.observe(page);
+      ro.observe(body);
     } else {
       w.addEventListener('resize', measure);
     }
@@ -206,8 +177,61 @@ export function useWriteGridSize(writeRef, win) {
       if (ro) ro.disconnect();
       else w.removeEventListener('resize', measure);
     };
-  }, [win]);
-  return size;
+  }, [phase, win]);
+  const { width, mainHeight, promptHeight, wordHeight } = measured;
+  const base = Number.isFinite(mainHeight)
+    ? writeLayout({ width, mainHeight, promptHeight, sizingHeight: ax > 0 ? wordHeight : PROMPT_H_STD, ax: ax > 0 })
+    : { g: measured.g, top: measured.top, gridTop: measured.gridTop, toolsHeight: measured.toolsHeight };
+  let pair = { s: 0, layout: 'stack', top: base.top };
+  if (phase === 'compare' && Number.isFinite(mainHeight)) {
+    if (ax > 0) {
+      const a = judgeAxLayout({ width, mainHeight, promptHeight });
+      pair = { s: a.s, layout: a.layout, top: a.top };
+    } else {
+      pair = { s: judgePairSize({ width, mainHeight, gridTop: base.gridTop }), layout: 'stack', top: base.top };
+    }
+  }
+  return { ...base, mainHeight, promptHeight, wordHeight, pair };
+}
+
+/**
+ * 内容比可视高度长、且还有内容被按钮行挡在下面时，按钮行上沿出现 hairline（实现交接 §0.5：内容可滚、且滚到按钮行下面时；qa-simC D2）。
+ * 直接写按钮行元素的 data-under（不走 state，不触发重画）；CSS 见 write/index.js。
+ * @param {{current: HTMLElement|null}} writeRef  .sz-write 元素
+ * @param {any[]} deps  内容变化时重算
+ */
+export function useFootHairline(writeRef, deps = []) {
+  useLayoutEffect(() => {
+    const w = winOf();
+    const el = writeRef.current;
+    const page = el && el.closest ? el.closest('.sz-page') : null;
+    const body = page ? page.querySelector('.sz-page__body') : null;
+    if (!w || !page || !body) return undefined;
+    const update = () => {
+      const foot = page.querySelector('.sz-page__foot');
+      if (!foot) return;
+      const more = body.scrollHeight > body.clientHeight + 1 && body.scrollTop + body.clientHeight < body.scrollHeight - 1;
+      if (more) foot.setAttribute('data-under', 'true');
+      else foot.removeAttribute('data-under');
+    };
+    update();
+    body.addEventListener('scroll', update, { passive: true });
+    let ro = null;
+    if (typeof w.ResizeObserver === 'function') {
+      ro = new w.ResizeObserver(update);
+      ro.observe(body);
+      ro.observe(el);
+    } else {
+      w.addEventListener('resize', update);
+    }
+    return () => {
+      body.removeEventListener('scroll', update);
+      if (ro) ro.disconnect();
+      else w.removeEventListener('resize', update);
+      const foot = page.querySelector('.sz-page__foot');
+      if (foot) foot.removeAttribute('data-under');
+    };
+  }, deps);
 }
 
 /**

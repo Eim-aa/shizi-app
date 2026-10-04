@@ -6,7 +6,7 @@
 // 越 / 慢）∪ 当前题库仍含重复目标字的卡；另用 setCardResolver 注入合成卡：越来越、慢慢、自定义「哈哈哈」、补充平面字 𠮷、
 // `<img onerror>` 字面量、四行长提示。期望值由内容门禁 loadCorpus（scripts/content-corpus.cjs，与 UI 同一 cards.js）
 // 在 node 端独立算出，逐格比对。
-// 「写好了」之前（recall）整页 body 文本、全部属性、ariaSnapshot 均无目标字；判断页显示答案属于 M1-5，此处只断言写字页。
+// 「写好了」之前（recall）整页 body 文本、全部属性、ariaSnapshot 均无目标字；D49 起判断页的目标格同样不显示答案（答案只在参考格出现一次，77-e9b-write-judge.spec.js 断言）。
 
 import { createRequire } from 'node:module';
 import { readFileSync } from 'node:fs';
@@ -44,7 +44,7 @@ async function inspect(page, target) {
     }
     const box = el => {
       const r = el.getBoundingClientRect();
-      return { left: r.left, right: r.right, width: r.width };
+      return { left: r.left, right: r.right, width: r.width, height: r.height };
     };
     const wrap = prompt.querySelector('.sz-prompt__wordwrap');
     return {
@@ -100,21 +100,22 @@ function verifyMask(row, card) {
   return problems;
 }
 
-/** 原型版式：每格 56×k 宽（放不下时等比收窄），空格尽量水平居中（原型 rowLeft = 168.5 − blank×56），放不下时贴边。 */
+/** D49 版式（实现交接 §13.1）：每格 52 见方（放不下时等比收窄），整个词水平居中、不装框；AX 档 64（本文件不测 AX）。 */
 function verifyGeometry(row, card) {
   const g = row.geometry;
   const problems = [];
   if (!g || !g.wrap || !g.cells.length) return [`${card.target}: no geometry`];
   const n = g.cells.length;
-  const cw = 56 * g.k;
-  const avail = g.wrap.width - 1; // 词语行右边框 1px
+  const cw = 52;
+  const avail = g.wrap.width;
   const want = n * cw <= avail ? cw : avail / n;
   const widths = g.cells.map(c => c.width);
   if (!widths.every(w => Math.abs(w - want) <= 1)) problems.push(`${card.target}: cell widths ${JSON.stringify(widths)} ≠ ${want.toFixed(1)}`);
+  const heights = g.cells.map(c => c.height);
+  if (!heights.every((h, i) => Math.abs(h - widths[i]) <= 1)) problems.push(`${card.target}: cells are not square ${JSON.stringify(heights)}`);
   const left = g.cells[0].left - g.wrap.left;
-  const ideal = g.wrap.width / 2 - (g.blank + 0.5) * want;
-  const expectLeft = Math.max(0, Math.min(ideal, g.wrap.width - n * want - 1));
-  if (Math.abs(left - expectLeft) > 1.5) problems.push(`${card.target}: row left ${left.toFixed(1)} ≠ ${expectLeft.toFixed(1)} (blank centred when it fits)`);
+  const expectLeft = (g.wrap.width - n * want) / 2;
+  if (Math.abs(left - expectLeft) > 1.5) problems.push(`${card.target}: row left ${left.toFixed(1)} ≠ ${expectLeft.toFixed(1)} (the whole word is centred)`);
   const last = g.cells[n - 1];
   if (g.cells[0].left < g.wrap.left - 0.5 || last.right > g.wrap.right + 0.5) problems.push(`${card.target}: row outside the prompt box`);
   return problems;
@@ -275,7 +276,7 @@ export default async function promptMask(page, ctx) {
     if (row.title !== title0) problems.push(`${card.target}: document.title changed`);
     if (row.cells.some(c => c.kind === 'repeatBlank')) repeatedSeen += 1;
   }
-  assert.deepEqual(problems.slice(0, 20), [], `all ${sample.length} sampled cards: masked per code point, □ role=img, no answer in text / attributes / aria snapshot; cells 56 wide, blank centred`);
+  assert.deepEqual(problems.slice(0, 20), [], `all ${sample.length} sampled cards: masked per code point, □ role=img, no answer in text / attributes / aria snapshot; cells 52 wide, the whole word centred`);
   assert.equal(hintChecked, sample.length, 'hint line equals the content gate visibleHint byte for byte (copy from src/config/copy)');
   assert.equal(repeatedSeen, currentRepeated.length, 'every currently repeated card rendered at least one □');
 
@@ -336,7 +337,7 @@ export default async function promptMask(page, ctx) {
   if (process.env.SHIZI_E2E_SHOTS) await page.screenshot({ path: join(process.env.SHIZI_E2E_SHOTS, 'm1-8-longest-320-large.png') });
   assertLayout(assert, L, `longest (${longest.target})`);
   row = await inspect(page, longest.target);
-  assert.deepEqual([...verifyMask(row, longest), ...verifyGeometry(row, longest)], [], 'longest: still masked at 320×568 large; cells 56×--k wide, blank centred');
+  assert.deepEqual([...verifyMask(row, longest), ...verifyGeometry(row, longest)], [], 'longest: still masked at 320×568 large; cells 52 wide, the whole word centred');
 
   const longCard = { ...synth[`base:${SUPP}`], promptHint: LONG_HINT };
   await setResolver(page, { [`base:${SUPP}`]: longCard });

@@ -193,16 +193,20 @@ export const brushDetail = true;
 // P69 紧凑版触发（已决定 D36：只改控件排布，不再缩书写格）：视口高度 ≤ 此值（px）或 :root[data-text-large]（系统字号 --k ≥ compactTextScale，P131）时写字页用紧凑版。
 // src/ui/screens/write/compact.js 读取（COMPACT_MAX_HEIGHT / COMPACT_QUERY，CSS media 与 JS 同一条件）。
 export const compactMaxHeight = 760;
-// P118 书写格显示边长（D36，覆盖 X08「紧凑版固定 258」与 P69 的缩格）：边长 = min(屏宽 − 2·sideMargin, 视口高 − reserve)，夹在 [min, max]；
-// 内部坐标仍是 345 单位，只缩放显示（src/ui/screens/write/compact.js writeGridSize）。reserve 是页头 / 页边 / 行 / 题面 / 格下一行 / 底栏
-// 的高度预算：视口高 ≤ compactMaxHeight 用 reserveCompact（紧凑版排布，按大字 1.3 校准），否则用 reserveStd（标准排布）；
-// 两者都与字号（--k、:root[data-text-large]）无关，所以同一视口换系统字号前后格子边长不变。题面提示行比预算多时页面正文可滚动，格子不缩。
+// P118 书写格显示边长（D36，覆盖 X08「紧凑版固定 258」与 P69 的缩格；阶段 1 E9b 按 D49 实现交接 §13.2 改公式）：题面（高 P）、promptGap、书写格（边长 g）、
+// 格下工具行（高 toolsHeight）作为一组放在主区（页头底 → 按钮行顶 − 12）里：g = clamp(min, min(屏宽 − 2·sideMargin, max, 主区高 − P − promptGap − toolsHeight − bottomGap), max)；
+// 组顶 = max(topMin, round((主区高 − 组高) × topShare))（空余 40% 在上、60% 在下）。内部坐标仍是 345 单位，只缩放显示（src/ui/screens/write/layout.js）。
+// g 与字号（--k、:root[data-text-large]）无关；AX 档格下工具行取 toolsHeightAx。放不下（g 取下限）时页面正文可滚动、按钮行上沿出现 hairline。
 export const writeGrid = Object.freeze({
   min: 258, // P118 书写格边长下限（pt）
   max: 400, // P118 书写格边长上限（pt）
   sideMargin: 20, // P118 格子距屏幕左右边缘至少 20pt（屏宽 − 40；设计系统 v1 页边 20，P1-E1b 由 16 改）
-  reserveStd: 422, // P118 标准排布（视口高 > compactMaxHeight）下，格子以外的高度预算（pt，不含安全区）：页头 44 + 页边 16 + 题面 86 + 题面提示行 32 + 题面到格 24 + 格下一行 6 + 44 + 页面下内边距 32 + 底栏 138（P1-E1b：结果行进了格下说明位、页底栏两行，旧值 446 → 422）
-  reserveCompact: 366, // P118 紧凑排布（视口高 ≤ compactMaxHeight）下，格子以外的高度预算（pt，不含安全区）：按大字 1.35 + 3 行格下说明校准（页头 44 + 页边 2 + 题面 110 + 题面到格 12 + 格下一行 6 + 68 + 底栏 115 + 间距 6 + 余量 3；P1-E1b：结果行进了格下说明位、页底栏两行，旧值 384 → 366）
+  promptGap: 16, // P118 题面到书写格的间距（pt；D49 实现交接 §13.1，P1-E1b 的 24 改 16）
+  toolsHeight: 40, // P118 格下工具行（说明位 + 撤销 / 清空图标）高度（pt，D49 实现交接 §13.1）
+  toolsHeightAx: 52, // P118 AX 档格下工具行高度（pt，D49 减法稿 AX5 画框）
+  bottomGap: 16, // P118 书写格组与按钮行之间至少留的空（pt，D49 实现交接 §13.2）
+  topShare: 0.4, // P118 组高以外的空余，上方占的比例（D49 实现交接 §13.2：40% 在上、60% 在下）
+  topMin: 12, // P118 组顶下限（pt）
 });
 // P70 动画节奏（工程取值，原型没有；待设计走查）。各模块默认从这里读，仍可经参数覆盖。
 export const motion = Object.freeze({

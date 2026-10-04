@@ -77,11 +77,12 @@ test('planHint: 3-stroke and 14-stroke quarter rule, prefix rule, exhausted, not
 
 test('hintButtonModel: R-W05 label sequence and states', () => {
   const m0 = hintButtonModel({ status: 'ready', used: 0 });
-  assert.deepEqual(m0, { kind: 'available', label: '提示 · 还有 2 次', disabled: false, remaining: 2 });
-  assert.deepEqual(hintButtonModel({ status: 'ready', used: 1 }), { kind: 'available', label: '提示 · 还有 1 次', disabled: false, remaining: 1 });
-  assert.deepEqual(hintButtonModel({ status: 'ready', used: 2 }), { kind: 'exhausted', label: '提示已用完', disabled: true, remaining: 0 });
+  // D49：可见文字（text）一直是「提示」，label 是读屏名称（次数只进读屏）
+  assert.deepEqual(m0, { kind: 'available', label: '提示，还有 2 次', text: '提示', disabled: false, remaining: 2 });
+  assert.deepEqual(hintButtonModel({ status: 'ready', used: 1 }), { kind: 'available', label: '提示，还有 1 次', text: '提示', disabled: false, remaining: 1 });
+  assert.deepEqual(hintButtonModel({ status: 'ready', used: 2 }), { kind: 'exhausted', label: '提示已用完', text: '提示', disabled: true, remaining: 0 });
   assert.deepEqual(hintButtonModel({ status: 'missing', used: 0 }), { kind: 'unavailable', label: '暂时没有提示' });
-  assert.deepEqual(hintButtonModel({ status: 'loading', used: 1 }), { kind: 'loading', label: '提示 · 还有 1 次', disabled: true, remaining: 1 });
+  assert.deepEqual(hintButtonModel({ status: 'loading', used: 1 }), { kind: 'loading', label: '提示，还有 1 次', text: '提示', disabled: true, remaining: 1 });
   assert.deepEqual(hintButtonModel({ status: 'loading', used: 2 }).kind, 'exhausted');
   assert.deepEqual(hintButtonModel({ status: 'ready', used: 0, answerSeen: true }), { kind: 'hidden' }, 'M1-4 owns the saw-state buttons');
   assert.deepEqual(hintButtonModel({ phase: 'compare', status: 'ready' }), { kind: 'hidden' });

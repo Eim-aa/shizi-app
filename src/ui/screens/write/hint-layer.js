@@ -10,7 +10,7 @@
 //   写下一笔（接受了一次落笔）→ 提示 260ms 淡出、本人笔迹 200ms 恢复，淡完清掉提示范围。
 //   减少动态效果：不逐笔描画，提示整体 120ms 淡入 / 淡出，笔迹 120ms 变浅 / 恢复（02 §3 M1-3「减少动态效果时 120ms 淡化
 //   （R-G01；不是直接显隐）」；01 §6.4 旧句「直接显隐」已被 02 修订——见 M1-3 报告待定项）。
-// 按钮（R-W05）：「提示 · 还有 {n} 次」→「提示已用完」（disabled + aria-disabled）；没有笔顺数据时换成灰字「暂时没有提示」
+// 按钮（R-W05；D49 起是文字行里的文字按钮）：可见文字一直是「提示」，读屏名称「提示，还有 {n} 次」→「提示已用完」（用完 disabled + aria-disabled，ink4）；没有笔顺数据时换成灰字「暂时没有提示」
 //   （M1-2 NoHintLabel，不是按钮）；数据还在加载时按钮文字照常、暂不可点。看过答案后（answerSeen）不显示（M1-4 的按钮）。
 // 格下说明：用过提示后「浅红色是提示，只给一部分。接着写下一笔，提示就收起。」（R-W06 / P41）；没有笔顺数据时
 //   「这个字暂时没有提示，可以直接看答案。」（R-W05）；两者前面有 --o 小圆点（原型 hintNote）。
@@ -142,11 +142,12 @@ export function hintButtonModel({ phase = 'recall', status, used = 0, answerSeen
   if (phase !== 'recall' || answerSeen) return { kind: 'hidden' };
   const st = hintButtonState({ used, hasStrokeData: status !== 'missing' }, policy);
   const copy = hintButtonCopy(st);
-  const label = t(copy.key, copy.vars);
+  const label = t(copy.key, copy.vars); // 读屏名称（「提示，还有 2 次」「提示已用完」）；可见文字一律是 text（D49：次数不画出来）
+  const text = t('R-W05.hintLabel');
   if (st.state === 'unavailable') return { kind: 'unavailable', label };
-  if (st.state === 'exhausted') return { kind: 'exhausted', label, disabled: true, remaining: 0 };
-  if (status !== 'ready') return { kind: 'loading', label, disabled: true, remaining: st.remaining };
-  return { kind: 'available', label, disabled: false, remaining: st.remaining };
+  if (st.state === 'exhausted') return { kind: 'exhausted', label, text, disabled: true, remaining: 0 };
+  if (status !== 'ready') return { kind: 'loading', label, text, disabled: true, remaining: st.remaining };
+  return { kind: 'available', label, text, disabled: false, remaining: st.remaining };
 }
 
 /** 格下说明（提示相关的两句）。其余说明（保存失败、看过答案…）由各自卡片决定优先级。 */
@@ -214,7 +215,7 @@ injectStyles('hint-layer', `
 /* 增强对比度（D46 ⑯ / 03 P153）：淡朱提示笔画加 1pt 墨三描边（四向 1px 实影），令牌不改；浅深都加 */
 @media (prefers-contrast: more){.sz-hint__stroke{filter:drop-shadow(1px 0 0 ${T.ink3}) drop-shadow(-1px 0 0 ${T.ink3}) drop-shadow(0 1px 0 ${T.ink3}) drop-shadow(0 -1px 0 ${T.ink3})}}
 .sz-hint__stroke[data-anim="draw"]{stroke-dasharray:1 2;animation-name:szHintDraw;animation-fill-mode:both}
-.sz-hintbtn{white-space:nowrap;padding:0 6px;font-size:${T.fs15};}
+.sz-hintbtn{white-space:nowrap}
 .sz-hintnote{display:flex;align-items:flex-start;gap:8px}
 .sz-hintnote__dot{flex:none;width:6px;height:6px;margin-top:calc(.775em - 3px);border-radius:50%;background:${T.danzhu}}
 `);
@@ -268,8 +269,8 @@ export function HintLayer({ data, view, reduced = false, testid = 'write-hint-la
 export function HintButton({ model, onHint, testid = 'write-hint' }) {
   if (!model || model.kind === 'hidden') return null;
   if (model.kind === 'unavailable') return html`<${NoHintLabel} testid="write-hint-unavailable" />`;
-  return html`<${Button} variant="secondary" class="sz-hintbtn" data-testid=${testid} data-state=${model.kind}
-    data-remaining=${model.remaining} disabled=${!!model.disabled} onClick=${onHint}>${model.label}</${Button}>`;
+  return html`<${Button} variant="text" class="sz-hintbtn" data-testid=${testid} data-state=${model.kind}
+    data-remaining=${model.remaining} aria-label=${model.label} disabled=${!!model.disabled} onClick=${onHint}>${model.text}</${Button}>`;
 }
 
 /** 格下说明（带 --o 小圆点）。note = hintNoteModel(...)。 */

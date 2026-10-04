@@ -5,9 +5,10 @@
 // D36 / P118，与字号无关；内部坐标恒为 345 单位）、撤销 / 清空（R-W18；格下一行右端，标准版与紧凑版同一位置，G32；清空后给一次撤销，走查-W17）、按钮区：看答案占位（M1-4）、
 // 提示占位（M1-3）、「写好了」（R-W29；空笔画时 disabled + aria-disabled，M1-5 接判断页）、跳过 / 结束这组占位（M1-5 / M2）。
 //
-// 版式（P1-E1b，设计系统 v1 / D46）：页边 20；题面 → 24 → 书写格；格下一行（说明在左、撤销 / 清空在右，D43 / D36），D19「上一个字」结果行
-// 挪到这个说明位（D46 ⑭）；页底栏两行——主操作行（提示 · 写好了 / 判断页的写错了 · 写对了，同一行位置）与文字行（看答案 · 跳过 · 结束这组，
-// 两端对齐）。判断页（compare.js）的上下两格占书写格的位置，说明与两键进页底栏。
+// 版式（D49 减法修稿，实现交接 §13；取代 P1-E1b 的版式）：页边 20；页头只有左「‹」与右计数（回忆阶段没有可见标题，标题只留给读屏）；题面（整词居中，已给的字
+// 不装框）→ 16 → 书写格 → 格下工具行（高 40：说明在左，撤销 / 清空图标在右；D19「上一个字」结果行在这个说明位）作为一组，在页头与按钮行之间居中（空余 40% 在上，
+// layout.js）；按钮行只有一个主按钮「写好了」，其下一行文字按钮：左「提示」「看答案」、右「跳过」（picked 会话再多一个「结束这组」，在「跳过」左边）。
+// 判断页（compare.js）的上下两格占书写格的位置（同一顶边、同一中线），两键进主按钮的位置、文字行留空。
 //
 // 规则：
 // - 换字后 0.3s 书写格不接受落笔（01 §6.6 / 走查-V01，按事件 timeStamp）；进页面也算一次换字。
@@ -50,10 +51,10 @@ import { charOfCardKey } from '../../../core/records.js';
 import { useHint, useStrokeData, HintNote } from './hint-layer.js';
 import { Prompt } from './prompt.js';
 import { answerInkKey, useAnswerFlow } from './answer.js';
-import { useCompareFlow, useComparePhase, useJudgePairSize } from './compare.js';
+import { useCompareFlow, useComparePhase } from './compare.js';
 import { useResultRow } from './result-row.js';
 import { useSkip } from './skip.js';
-import { useAnswerFit, useCompact, useWriteGridSize } from './compact.js';
+import { useAnswerFit, useAxLevel, useCompact, useFootHairline, useWriteLayout } from './compact.js';
 import { storedStrokes, usePersist } from './persist.js';
 import { useEndGroup } from './end.js';
 import { commitFinish, handoffSkipUndo, openResult } from '../result/index.js';
@@ -79,32 +80,56 @@ export function titleFor(phase) {
   return key ? t(key) : '';
 }
 
+const W = '.sz-page[data-testid="write-screen"]';
+
 injectStyles('write', `
-.sz-write{--bleed:0px;display:flex;flex-direction:column;align-items:stretch;gap:0}
-.sz-write__safe{position:absolute;width:0;height:0;overflow:hidden;visibility:hidden;pointer-events:none;
-  padding:env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px)}
-.sz-write__prompt{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:${T.s1};padding-bottom:0}
-.sz-write__gridwrap{display:flex;justify-content:center;margin:${T.s6} calc(-1 * var(--bleed)) 0}
-.sz-write__below{position:relative;min-height:44px;display:flex;align-items:center;justify-content:space-between;gap:${T.s3};margin:6px 0 0} /* 说明不贴着格子（R-W26：≥ 6px） */
-.sz-write__note{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3}}
-.sz-write__tools{flex:none;display:flex;gap:${T.s1};margin-right:-10px}
+${W} .sz-page__body{padding:0 ${T.gutter};gap:0}
+${W} .sz-page__foot{padding:${T.s3} ${T.gutter} max(8px, env(safe-area-inset-bottom, 0px));gap:0}
+${W} .sz-page__foot{position:relative}
+${W} .sz-page__foot[data-under="true"]::before{content:"";position:absolute;left:0;right:0;top:0;height:${T.hair};background:${T.line}} /* 不占高度：出现 / 消失不挪动内容 */
+:root[data-ax][data-text-large] ${W} .sz-page__head>.sz-page__title--hidden{position:absolute;order:0;flex:none;width:1px;height:1px;
+  padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.sz-write{--bleed:0px;flex:none;display:flex;flex-direction:column;align-items:stretch;gap:0}
+.sz-write__prompt{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0}
+.sz-write__gridwrap{display:flex;justify-content:center;margin:${T.s4} calc(-1 * var(--bleed)) 0}
+.sz-write__below{position:relative;box-sizing:border-box;max-width:100%;min-height:40px;display:flex;align-items:flex-start;justify-content:space-between;gap:${T.s3};margin:0 auto}
+.sz-write__note{flex:1;min-width:0;min-height:40px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3}}
+.sz-write__firsttip,.sz-hintnote,.sz-paper__note{padding:3px 0} /* 单行时仍是 40 高的一行（文字居中，离格子 10）；两行说明（提示说明、纸上脚注）46 高，文字离格子 ≥ 3、不被按钮行挡住（最矮的屏上书写格组只剩 4 的余量） */
+.sz-write__firsttip{display:block}
+.sz-write__tools{flex:none;height:40px;display:flex;align-items:center;margin-right:-8px}
 .sz-write__tools[data-shown="false"]{visibility:hidden}
 .sz-write__tools[data-paper="true"]{display:none} /* 纸上那一字没有撤销 / 清空，不再为它们空着一块宽度（脚注才放得下，Q2-12） */
-.sz-write__tool{height:44px;min-width:44px;padding:0 10px;font-size:${T.fs15};color:${T.ink2}}
-.sz-write__progress{font-size:${T.fs13};color:${T.ink3};font-variant-numeric:tabular-nums;
-  padding-right:16px}
+/* 图标按钮（设计系统 sz-ibtn）：可见 36（::before 画底）、热区 44（base.css 的按钮最小 44 就是热区，两个相邻的图标压 4）；有墨 ink2、无墨 ink4 且不可点 */
+.sz-write__ibtn{position:relative;width:44px;height:44px;display:grid;place-items:center;padding:0;color:${T.ink2}}
+.sz-write__ibtn+.sz-write__ibtn{margin-left:-4px}
+.sz-write__ibtn::before{content:"";position:absolute;inset:4px;border-radius:${T.rCtl}}
+.sz-write__ibtn svg{position:relative;width:20px;height:20px}
+.sz-write__ibtn[data-pressed]{color:${T.ink1};transform:none;filter:none}
+.sz-write__ibtn[data-pressed]::before{background:${T.field}}
+.sz-write__ibtn[disabled]{color:${T.ink4}}
+.sz-write__progress{font-size:${T.fs15};line-height:${T.lh15};color:${T.ink3};font-variant-numeric:tabular-nums}
 .sz-write__steps{height:5px;margin:-8px 0 3px;display:flex;justify-content:center;gap:5px;pointer-events:none}
 .sz-write__dot{width:5px;height:5px;box-sizing:border-box;border-radius:50%;border:1px solid ${T.ink3}}
 .sz-write__dot[data-on="true"]{border:0;background:${T.ink1}}
-.sz-write__foot{display:flex;flex-direction:column;gap:${T.s2}}
+.sz-write__foot{display:flex;flex-direction:column;gap:6px}
 .sz-write__main{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:${T.s3};align-items:stretch}
-.sz-write__hint{min-height:${T.btnH}}
-.sz-write__links{min-height:44px;display:flex;align-items:center;justify-content:space-between;gap:${T.s3}}
-.sz-write__linkrow,.sz-write__skiprow{min-height:44px;display:flex;align-items:center}
+.sz-write__links{min-height:${T.hit};display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;column-gap:${T.s3}}
+.sz-write__linkgrp{display:flex;align-items:center;gap:${T.s4};min-width:0}
+.sz-write__linkgrp:last-child{margin-left:auto}
+.sz-write__slot:empty{display:none}
+.sz-write__linkrow,.sz-write__skiprow,.sz-write__hint{min-height:${T.hit};display:flex;align-items:center}
 .sz-write__endslot{display:flex;align-items:center}
+:root[data-ax] ${W} .sz-write__below{min-height:52px}
+:root[data-ax] .sz-write__links--ghost{display:none}
 `);
 
 const EMPTY = Object.freeze([]);
+
+// 撤销 / 清空的图标（设计系统 减法修稿：i-undo / i-clear，20 见方）；每次渲染现取新 vnode（vendor/ui.js 注释，M6-3）。
+const UNDO_ICON = () => html`<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
+  stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M7 5 3.5 8.5 7 12M4 8.5h8a4.5 4.5 0 0 1 0 9H9"></path></svg>`;
+const CLEAR_ICON = () => html`<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
+  stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 6h12M8 6V4h4v2M6 6l.8 10h6.4L14 6"></path></svg>`;
 
 function clockNow() {
   return typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now();
@@ -276,18 +301,21 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
     settings: state ? state.settings : null, session, phase, paper, strokeCount: view.strokes.length, hinted: hint.used > 0,
     blocked: !!suggest.node, getStore,
   });
-  // M1-7 紧凑版（compact.js）：只改控件排布（底栏两行、间距），不改格子大小（D36）。书写格边长按屏宽与视口高算（P118），
-  // 与字号、阶段、提示无关；看答案卡片紧凑版按剩余高度取、不超过书写格边长。内部坐标恒为 345 单位，这里只是显示尺寸。
+  // 版式（compact.js useWriteLayout → layout.js，D49 实现交接 §13.2）：题面 + 书写格 + 格下工具行作为一组在页头与按钮行之间居中（空余 40% 在上）；书写格边长按
+  // 可用高度算（258–400，D36 / P118，与字号、阶段、提示无关）；判断页上下两格（AX 档可能并排）与书写格同一顶边、同一中线。内部坐标恒为 345 单位，这里只是显示尺寸。
   const compact = useCompact();
+  const ax = useAxLevel();
   const writeRef = useRef(null);
-  const gridSize = useWriteGridSize(writeRef);
+  const layout = useWriteLayout(writeRef, { phase, ax });
+  const gridSize = layout.g;
+  const groupTop = phase === 'compare' ? layout.pair.top : layout.top;
+  useFootHairline(writeRef); // 内容比可视高度长（AX 档 / 小屏放不下）时，按钮行上沿出现 hairline
   const answerFit = useAnswerFit(writeRef, { enabled: compact && phase === 'answer', key: cardKey || '', max: gridSize });
   const answerSize = Math.min(answerFit, gridSize);
-  // M1-5 判断页、结果行、跳过。判断页上下两格的边长按「书写格顶到说明句顶」的可用高与屏宽算（D46 ⑪，judgePairSize）。
-  const pairSize = useJudgePairSize(writeRef, phase === 'compare');
+  // M1-5 判断页、结果行、跳过。判断页两格边长 layout.pair（D46 ⑪ / D49：上下排，AX 档取上下排与并排里格子更大的一种）。
   const compare = useCompareFlow({
     slot, session, cardKey, char: charOfCardKey(cardKey), phase, strokes: view.strokes, hints: hint.used, strokeData,
-    onLeave: cmpPhase.leave, size: pairSize, paper, paperSize: gridSize,
+    onLeave: cmpPhase.leave, size: layout.pair.s || gridSize, layout: layout.pair.layout, paper, paperSize: gridSize,
   });
   const row = useResultRow({ slot, session, state, phase, strokeCount: view.strokes.length });
   const skip = useSkip({ slot, session, cardKey, phase, hints: hint.used, strokes: view.strokes });
@@ -380,36 +408,39 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
     total: session.queue.length,
   })}</span>`;
 
-  const answerSlot = html`<div class="sz-write__linkrow" data-testid="write-answer-slot">${answer.link}</div>`;
-  const mainRow = skip.failed ? skip.failButtons : html`<div class="sz-write__main">
-      <div class="sz-write__hint" data-testid="write-hint-slot">${hint.button}</div>
-      <${Button} variant="primary" data-testid="write-done" disabled=${!hasStrokes && !paper} onClick=${onDone}>${t('R-W29.btnDone')}</${Button}>
-    </div>`;
-  const skipSlot = html`<div class="sz-write__skiprow" data-testid="write-skip-slot">${skip.button}</div>`;
-  // 页底栏两行（设计系统 v1，标准版与紧凑版同一结构）：主操作行「提示 · 写好了」；文字行「看答案 · 跳过 · 结束这组」两端对齐
-  // （picked 会话才有「结束这组」，没有时只剩看答案在左、跳过在右）。
+  // 按钮行（D49，实现交接 §13.1）：主按钮「写好了」（满宽、唯一）；其下一行文字按钮——左「提示」「看答案」（不合并，D49 ②），右「跳过」（picked 会话在它左边多一个「结束这组」）。
+  // 保存失败（跳过写失败）时主按钮换成 [先不保存 / 再试一次]。
+  const mainRow = skip.failed ? skip.failButtons
+    : html`<${Button} variant="primary" data-testid="write-done" disabled=${!hasStrokes && !paper} onClick=${onDone}>${t('R-W29.btnDone')}</${Button}>`;
   const footer = html`<div class="sz-write__foot" data-compact=${compact ? 'true' : 'false'}>
       ${mainRow}
-      <div class="sz-write__links" data-testid="write-links">${answerSlot}${skipSlot}${end.button
-    ? html`<div class="sz-write__endslot" data-testid="write-end-slot">${end.button}</div>` : null}</div>
+      <div class="sz-write__links" data-testid="write-links">
+        <div class="sz-write__linkgrp sz-write__slot">
+          <div class="sz-write__hint sz-write__slot" data-testid="write-hint-slot">${hint.button}</div>
+          <div class="sz-write__linkrow sz-write__slot" data-testid="write-answer-slot">${answer.link}</div>
+        </div>
+        <div class="sz-write__linkgrp sz-write__slot">
+          ${end.button ? html`<div class="sz-write__endslot" data-testid="write-end-slot">${end.button}</div>` : null}
+          <div class="sz-write__skiprow sz-write__slot" data-testid="write-skip-slot">${skip.button}</div>
+        </div>
+      </div>
     </div>`;
-  // P1-E8：屏幕上写、还没落笔（也没有可撤销的清空）时，格下右端是「在纸上写」（只改这一个字）；纸上那一字不显示撤销 / 清空。
+  // P1-E8：屏幕上写、还没落笔（也没有可撤销的清空）时，格下一行右端是「在纸上写」（只改这一个字）；纸上那一字不显示撤销 / 清空。
   // 「在纸上写」叠在（隐藏着的）撤销 / 清空同一位置，不改这一行的排布。
   const toPaper = !paper && phase === 'recall' && !canUndo && !skip.failed;
   const toPaperSlot = toPaper ? html`<span class="sz-write__topaperslot"><${ToPaperButton} onClick=${() => paperMode.toggle(true)} /></span>` : null;
   const tools = html`<span class="sz-write__tools" data-testid="write-tools" data-shown=${canUndo && drawable && !paper ? 'true' : 'false'}
           data-paper=${paper ? 'true' : null}>
-          <${Button} variant="plain" class="sz-write__tool" data-testid="write-undo" disabled=${!canUndo} rapid
-            onClick=${onUndo}>${t('R-W18.btnUndo')}</${Button}>
-          <${Button} variant="plain" class="sz-write__tool" data-testid="write-clear" disabled=${!hasStrokes} rapid
-            onClick=${onClear}>${t('R-W18.btnClear')}</${Button}>
+          <${Button} variant="plain" class="sz-write__ibtn" data-testid="write-undo" aria-label=${t('R-W18.btnUndo')} disabled=${!canUndo} rapid
+            onClick=${onUndo}>${UNDO_ICON()}</${Button}>
+          <${Button} variant="plain" class="sz-write__ibtn" data-testid="write-clear" aria-label=${t('R-W18.btnClear')} disabled=${!hasStrokes} rapid
+            onClick=${onClear}>${CLEAR_ICON()}</${Button}>
         </span>`;
 
-  return html`<${Page} title=${titleFor(phase)} lead=${compare.lead} trailing=${progress}
-    footer=${answer.footer || (compare.active ? compare.footer : footer)} testid="write-screen">
+  return html`<${Page} title=${titleFor(phase)} hideTitle=${phase === 'recall' || (phase === 'compare' && ax > 0)} lead=${compare.lead}
+    trailing=${progress} footer=${answer.footer || (compare.active ? compare.footer : footer)} testid="write-screen">
     <div class="sz-write" ref=${writeRef} data-cursor=${session.cursor} data-phase=${phase} data-slot=${slot}
-      data-compact=${compact ? 'true' : 'false'}>
-      <span class="sz-write__safe" aria-hidden="true"></span>
+      data-compact=${compact ? 'true' : 'false'} data-ax=${ax > 0 ? String(ax) : null} style=${{ paddingTop: `${groupTop}px` }}>
       <${StepDots} phase=${phase} />
       <${Prompt} cardKey=${cardKey} queue=${session.queue} phase=${phase} />
       <div class="sz-write__gridwrap">
@@ -428,7 +459,7 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
           label=${t('X-WRITE.gridLabel')}
         />`}
       </div>
-      ${compare.active ? null : html`<div class="sz-write__below">
+      ${compare.active ? null : html`<div class="sz-write__below" style=${{ width: `${gridSize}px` }}>
         <span class="sz-write__note" data-testid="write-note"><span class="sz-write__lineslot" data-testid="write-line-slot">${row.node}</span>${suggest.node}${answer.active ? answer.note
           : skip.failed ? skip.note : paper ? html`<${PaperNote} />` : hint.note ? html`<${HintNote} note=${hint.note} />` : firstTip.node}</span>
         ${tools}${toPaperSlot}

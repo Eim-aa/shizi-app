@@ -1,10 +1,12 @@
 // P0-D / D36（G05，覆盖 X08）：书写格边长与字号脱钩，只缩放显示，内部坐标仍是 345 单位、存储不变。
 //
-// 公式（policy.writeGrid，P118；P1-E1b 起页边 20）：边长 = min(屏宽 − 40, 视口高 − 预算) 夹在 [258, 400]；视口高 ≤ 760 用紧凑排布那份预算（366），否则 422；
-// 预算与字号无关（P1-E6 / D29 起「大字」= 系统字号 XXXL，经模拟的原生 shiziContentSize 设 --k 1.35 与 :root[data-text-large]，
-// 原来手动设的 :root[data-large] 已删除）。本文件用**写死的期望值**（不引用实现里的函数）：
-//   393×852 → 353（屏宽 − 40 先到）    375×812 → 335（屏宽 − 40）    375×667 → 301（667 − 366）
-//   360×640 → 274（640 − 366）         320×568 → 258（预算不够，取下限） 440×956 → 400（上限）
+// 公式（policy.writeGrid，P118；D49 实现交接 §13.2，write/layout.js）：边长 = clamp(258, min(屏宽 − 40, 400, 主区高 − 题面 80 − 16 − 格下工具行 40 − 16), 400)，
+// 主区 = 页头底 → 按钮行顶 − 12。测试浏览器没有安全区：页头 44、按钮行 = 上 12 + 主按钮 54 + 间 6 + 文字行 44 + 下 8 = 124，所以主区高 = 屏高 − 168，
+// 边长 = min(屏宽 − 40, 400, 屏高 − 320)（设计稿的 402×874 带 54 + 34 的安全区，数值在 test/ui/write-layout.test.mjs）。
+// 与字号无关（P1-E6 / D29 起「大字」= 系统字号 XXXL，经模拟的原生 shiziContentSize 设 --k 1.35 与 :root[data-text-large]）：算边长用的题面高取标称 80，
+// 不随字号与题面提示行变（D36）。本文件用**写死的期望值**（不引用实现里的函数）：
+//   393×852 → 353（屏宽 − 40 先到）    375×812 → 335（屏宽 − 40）    375×667 → 335（屏宽 − 40；667 − 320 = 347 够）
+//   360×640 → 320（屏宽 − 40 = 640 − 320，同时到）  320×568 → 258（568 − 320 = 248 < 258，取下限） 440×956 → 400（上限）
 //
 // ① 各视口、大字关 / 开：边长等于期望值、方形、距屏幕左右 ≥ 20（页边）、同一视口开关大字前后不变（同一页面内切换，不重载）；
 //    边长大于下限的视口里整个格子在页头与底栏之间；底栏按钮在首屏。
@@ -24,8 +26,8 @@ const FIRST_SCREEN = ['page-back', 'write-hint', 'write-done', 'write-show-answe
 const CASES = [
   { view: { width: 393, height: 852 }, grid: 353 },
   { view: { width: 375, height: 812 }, grid: 335 },
-  { view: { width: 375, height: 667 }, grid: 301 },
-  { view: { width: 360, height: 640 }, grid: 274 },
+  { view: { width: 375, height: 667 }, grid: 335 },
+  { view: { width: 360, height: 640 }, grid: 320 },
   { view: { width: 320, height: 568 }, grid: 258 },
   { view: { width: 440, height: 956 }, grid: 400 },
 ];
@@ -152,7 +154,7 @@ export default async function grid(page, ctx) {
   }
 
   // ------------------------------------------------------------------ ② 各阶段同一边长
-  for (const [view, large, size] of [[{ width: 375, height: 667 }, false, 301], [{ width: 393, height: 852 }, true, 353]]) {
+  for (const [view, large, size] of [[{ width: 375, height: 667 }, false, 335], [{ width: 393, height: 852 }, true, 353]]) {
     const tag = `${view.width}×${view.height}${large ? ' large' : ''}`;
     ctx.step(`${tag}: recall → 提示 → 写一笔 → 看答案 → 描一遍 → 自己写 all use grid ${size}`);
     await boot(page, ctx, view, { large });
@@ -201,10 +203,10 @@ export default async function grid(page, ctx) {
   }
 
   // ------------------------------------------------------------------ ③ 落点：345 单位存储，只缩放显示
-  ctx.step('375×667 (grid 301): a stroke drawn at grid-relative (0.2,0.5)→(0.8,0.5) is stored in 345 units and painted at the same relative place');
+  ctx.step('375×667 (grid 335): a stroke drawn at grid-relative (0.2,0.5)→(0.8,0.5) is stored in 345 units and painted at the same relative place');
   await boot(page, ctx, { width: 375, height: 667 }, { large: false });
   let g = await geo(page);
-  assert.ok(square(g.grid, 301), '301 grid (not 345)');
+  assert.ok(square(g.grid, 335), '335 grid (not 345)');
   await drawStroke(page, HORIZONTAL);
   await waitStrokes(page, 1);
   await page.waitForFunction(() => window.__shiziTest.getState().sessions.A.current.strokes.length === 1);
@@ -221,11 +223,11 @@ export default async function grid(page, ctx) {
   assert.ok(await canvasInk(page, 'write-grid-ink') > 200, 'stroke painted on the solid layer');
   let box = await inkBox(page);
   assert.ok(box && near(box.x0, 0.2, 0.04) && near(box.x1, 0.8, 0.04) && near(box.y0 + box.y1, 1, 0.08),
-    `painted stroke sits at the same relative place on the 301 grid ${JSON.stringify(box)}`);
+    `painted stroke sits at the same relative place on the 335 grid ${JSON.stringify(box)}`);
   const stored0 = st.rows;
 
-  ctx.step('same page: shrink to 360×640 (grid 274), system text XXXL and back, grow to 440×956 (grid 400) — stored strokes byte-identical, ink repainted at the same relative place');
-  for (const [view, large, size] of [[{ width: 360, height: 640 }, false, 274], [{ width: 360, height: 640 }, true, 274], [{ width: 440, height: 956 }, true, 400],
+  ctx.step('same page: shrink to 360×640 (grid 320), system text XXXL and back, grow to 440×956 (grid 400) — stored strokes byte-identical, ink repainted at the same relative place');
+  for (const [view, large, size] of [[{ width: 360, height: 640 }, false, 320], [{ width: 360, height: 640 }, true, 320], [{ width: 440, height: 956 }, true, 400],
     [{ width: 440, height: 956 }, false, 400], [{ width: 393, height: 852 }, false, 353]]) {
     await page.setViewportSize(view);
     await setLarge(page, large);

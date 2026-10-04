@@ -50,7 +50,8 @@ test('copy: normalization unifies placeholders and turns <br> into lines', () =>
 });
 
 test('copy: t() fills placeholders, returns arrays for multi-line copy, and rejects unknown keys', () => {
-  assert.equal(t('R-W05.hintRemaining', { n: 2 }), '提示 · 还有 2 次');
+  assert.equal(t('R-W05.hintRemaining', { n: 2 }), '提示，还有 2 次', 'D49：读屏名称；可见文字是 R-W05.hintLabel');
+  assert.equal(t('R-W05.hintLabel'), '提示');
   assert.equal(t('R-W10.lineRecordedCorrect', { char: '静' }), '「静」记为写对 · 修改 ›');
   assert.deepEqual(t('R-L06.confirmBody'), ['以后的新字从这个字库里来。', '已有的记录、自选的字和写错过的字都不变。']);
   assert.equal(format('{n} / {total}', { n: 3 }), '3 / {total}', 'missing values stay visible');

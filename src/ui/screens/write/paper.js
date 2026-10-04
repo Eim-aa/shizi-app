@@ -5,7 +5,7 @@
 //   文字按钮「改回在屏幕上写」（只改这一个字）；格下说明「这个字记下时会标注「纸上」，不留笔迹。」。题面、提示、看答案、跳过照常；
 //   提示画在纸面格里（标准位置），这时格内文字收起、只留「改回在屏幕上写」贴在格底，不和提示笔画叠在一起。「写好了」不要求笔画。
 // - 屏幕（recall，还没落笔）：格下一行右端（撤销 / 清空的位置）是「在纸上写」，只把这一个字改到纸上；落笔后换回撤销 / 清空。
-// - 判断页（compare.js PaperCompareStage）、判断 commit（source:'paper'，不写墨迹）见 compare.js。
+// - 判断页（compare.js PaperCompareStage；D49 起格下说明位「和你纸上的字对照」，没有旁注）、判断 commit（source:'paper'，不写墨迹）见 compare.js。
 // 切换是会话现场写入（withCurrent {paper}），按 P52 不阻断：本地先切换，写失败也照样显示，下一次写入时由进判断页的 commit 带上。
 // - 读屏开启时的建议（P168）：读屏 / 切换控制开启后第一次进写字页（platform/accessibility.js assistiveTechActive，阶段 0 桥），
 //   格下说明位一条非阻断建议「读屏开启时，可以在纸上写好，回来自己对照。」+「不用」/「改为在纸上写」；出现即记 settings.paperSuggested，
@@ -37,8 +37,7 @@ injectStyles('write-paper', `
 .sz-paper__suggest{display:flex;flex-direction:column;align-items:flex-start;gap:0;color:${T.ink2};font-size:${T.fs13};line-height:${T.lh13}}
 .sz-paper__suggestbtns{display:flex;flex-wrap:wrap;gap:${T.s4};margin-left:-2px}
 .sz-paper__sbtn{min-height:44px;padding:0 2px;font-size:${T.fs15};color:${T.ink1}}
-.sz-write__topaperslot{position:absolute;right:-10px;top:0;bottom:0;display:flex;align-items:center}
-.sz-write__topaper{height:44px;min-width:44px;padding:0 10px;font-size:${T.fs15};color:${T.ink2}}
+.sz-write__topaperslot{position:absolute;right:0;top:0;height:40px;display:flex;align-items:center}
 `);
 
 const EMPTY = Object.freeze([]);
@@ -167,5 +166,5 @@ export function usePaperSuggest({ settings, phase, paper, assistive, getStore })
 
 /** 屏幕模式格下一行右端「在纸上写」（还没落笔时占撤销 / 清空的位置）。 */
 export function ToPaperButton({ onClick }) {
-  return html`<${Button} variant="plain" class="sz-write__topaper" data-testid="write-to-paper" onClick=${onClick}>${t('X-PAPER.toPaper')}</${Button}>`;
+  return html`<${Button} variant="text" data-testid="write-to-paper" onClick=${onClick}>${t('X-PAPER.toPaper')}</${Button}>`;
 }

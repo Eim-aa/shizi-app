@@ -35,7 +35,8 @@ function hintState(page) {
     const ink = top.querySelector('[data-testid="write-grid-ink"]');
     const paths = l ? [...l.querySelectorAll('[data-testid="write-hint-stroke"]')] : [];
     return {
-      label: b ? b.textContent.trim() : null,
+      label: b ? b.getAttribute('aria-label') : null, // D49：读屏名称（「提示，还有 N 次」）
+      text: b ? b.textContent.trim() : null, // 可见文字一直是「提示」
       state: b ? b.dataset.state : null,
       disabled: b ? b.disabled : null,
       ariaDisabled: b ? b.getAttribute('aria-disabled') : null,
@@ -95,7 +96,8 @@ export default async function hint(page, ctx) {
   await open(page, ctx, ['大', '聚']);
   await waitButton(page, 'available');
   let h = await hintState(page);
-  assert.equal(h.label, '提示 · 还有 2 次', 'R-W05 button starts at 「提示 · 还有 2 次」');
+  assert.equal(h.label, '提示，还有 2 次', 'R-W05 button screen-reader name starts at 「提示，还有 2 次」');
+  assert.equal(h.text, '提示', 'D49: the visible text is just 「提示」 (the count is only in the screen-reader name)');
   assert.deepEqual([h.disabled, h.ariaDisabled], [false, null], 'hint button enabled');
   assert.equal(h.layer, 'none', 'no hint drawn yet');
   assert.equal(h.note, '', 'no note under the grid before a hint');
@@ -108,7 +110,7 @@ export default async function hint(page, ctx) {
   assert.equal(h.anim, 'draw', 'strokes are drawn along medians (not reduced motion)');
   assert.deepEqual(h.timing.map(x => [x.name, x.dur, x.delay, x.ease]), [['szHintDraw', `${drawMs(1) / 1000}s`, '0s', 'cubic-bezier(0.4, 0, 0.2, 1)']],
     'single stroke: 240ms, delay 0, cubic-bezier(.4,0,.2,1) (01 §6.4)');
-  assert.equal(h.label, '提示 · 还有 1 次', 'button → 「提示 · 还有 1 次」');
+  assert.equal(h.label, '提示，还有 1 次', 'button → 「提示，还有 1 次」');
   assert.equal(h.note, '浅红色是提示，只给一部分。接着写下一笔，提示就收起。', 'R-W06 / P41 note under the grid');
   assert.deepEqual([h.noteKind, h.noteDot], ['hint', true], 'note has the --o dot');
   await page.waitForTimeout(260);
@@ -169,7 +171,7 @@ export default async function hint(page, ctx) {
   const d4 = drawMs(4);
   assert.deepEqual(h.timing.map(x => [x.dur, x.delay]),
     [0, 1, 2, 3].map(j => [`${d4 / 1000}s`, `${Math.round(j * d4 * 0.7) / 1000}s`]), `4 strokes: ${d4}ms each, stagger ×0.7`);
-  assert.equal(h.label, '提示 · 还有 1 次', '14-stroke: 「提示 · 还有 1 次」');
+  assert.equal(h.label, '提示，还有 1 次', '14-stroke: 「提示，还有 1 次」');
   cur = await current(page);
   assert.deepEqual([cur.hints, cur.hintRange], [1, { from: 0, to: 4 }], 'store: hints 1, hintRange {0,4}');
 
@@ -285,7 +287,7 @@ export default async function hint(page, ctx) {
   await pressHint(page);
   await waitLayer(page, 'shown');
   h = await hintState(page);
-  assert.equal(h.label, '提示 · 还有 1 次', 'button still counts the hint');
+  assert.equal(h.label, '提示，还有 1 次', 'button still counts the hint');
   cur = await current(page);
   assert.deepEqual([cur.hints, cur.hintRange], [0, null], 'failed write left the store unchanged');
   await drawStroke(page, HORIZONTAL);
@@ -299,7 +301,7 @@ export default async function hint(page, ctx) {
   await waitButton(page, 'available');
   await waitLayer(page, 'shown');
   h = await hintState(page);
-  assert.deepEqual([h.from, h.to, h.anim, h.label], [0, 4, 'static', '提示 · 还有 1 次'], 'restored hint drawn statically');
+  assert.deepEqual([h.from, h.to, h.anim, h.label], [0, 4, 'static', '提示，还有 1 次'], 'restored hint drawn statically');
   assert.ok(h.timing.every(x => x.name === 'none'), 'no re-draw animation on restore');
   await waitNavIdle(page, { settleMs: 50 });
 

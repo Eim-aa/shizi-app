@@ -1,5 +1,5 @@
 // M1-2 完成定义（02 §3 M1-2；01 §6.4–6.5、§8.5；10.13）：
-// - page.route 让 data/<字>.json 先失败后成功：灰字「暂时没有提示」+ 楷体 DOM 整字 → 联网恢复后正常字形、按钮「提示 · 还有 N 次」；
+// - page.route 让 data/<字>.json 先失败后成功：灰字「暂时没有提示」+ 楷体 DOM 整字 → 联网恢复后正常字形、按钮「提示，还有 N 次」；
 // - 断网（route abort）不卡死、立刻进 10.13 分支；请求挂起时 3s 超时 + 1 次重试后进 10.13 分支；
 // - hanzi-writer：看答案播放、描一遍（轮廓 + 先播一遍可跳过）、减少动态效果直接终态；静态字形与 hanzi-writer 同一变换；
 // - 控制台无未捕获错误（pageerror / Uncaught 一律不放行；只放行本 spec 故意制造的笔顺请求失败日志）。
@@ -137,7 +137,7 @@ export default async function glyph(page, ctx) {
   assert.equal(await text(page, 'write-glyph-note'), '这个字记为看过答案，后面再写只算练习。', 'answer note (R-W08.answerNote)');
   await click(page, 'write-glyph-mode-static');
 
-  ctx.step('永: network comes back → online event → refetch → normal glyph and 「提示 · 还有 2 次」');
+  ctx.step('永: network comes back → online event → refetch → normal glyph and 「提示，还有 2 次」');
   plan.set('永', 'pass');
   await page.context().setOffline(true);
   assert.equal(await page.evaluate(() => navigator.onLine), false, 'offline');
@@ -146,7 +146,7 @@ export default async function glyph(page, ctx) {
   assert.equal(hits.get('永'), 3, 'exactly one more request after coming back online');
   assert.equal(await page.locator(tid('write-glyph-fallback')).count(), 0, 'fallback removed');
   assert.equal(await page.locator(tid('write-hint-unavailable')).count(), 0, 'gray label removed');
-  assert.equal(await text(page, 'write-hint'), '提示 · 还有 2 次', 'hint button restored (R-W05.hintRemaining, P17 hintMax=2)');
+  assert.equal(await text(page, 'write-hint'), '提示，还有 2 次', 'hint button restored (R-W05.hintRemaining, P17 hintMax=2; this is the dev glyph demo, which prints the whole label — D49 shows only 「提示」 in the real write page)');
   assert.ok((await inkPixels(page)) > 2000, 'Path2D reference glyph painted on canvas');
   assert.equal(await page.locator(tid('write-glyph-note')).count(), 0, 'no 10.13 note once data is there');
 
@@ -208,7 +208,7 @@ export default async function glyph(page, ctx) {
   await click(page, 'write-glyph-mode-static');
   const before = await inkPixels(page);
   await click(page, 'write-hint');
-  assert.equal(await text(page, 'write-hint'), '提示 · 还有 1 次', 'first hint used');
+  assert.equal(await text(page, 'write-hint'), '提示，还有 1 次', 'first hint used');
   assert.ok((await inkPixels(page)) >= before, 'hint medians drawn over the glyph');
   await click(page, 'write-hint');
   assert.equal(await text(page, 'write-hint'), '提示已用完', 'hints used up (R-W05.hintUsedUp)');

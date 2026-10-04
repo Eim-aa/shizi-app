@@ -199,7 +199,7 @@ test('missing pinyin → ？; empty card → empty model', () => {
 });
 
 test('reveal phases fill the target; recall / retrace stay masked', () => {
-  assert.deepEqual([...REVEAL_PHASES], ['compare', 'answer', 'trace']);
+  assert.deepEqual([...REVEAL_PHASES], ['answer', 'trace'], 'D49：判断页（compare）的目标格不显示答案，答案只在参考格出现一次');
   const card = { word: '越来越', chars: Array.from('越来越'), ci: 0, target: '越', py: 'yuè', ctx: 'override' };
   const { model, tree } = renderTree(card, { revealed: true });
   assert.equal(model.cells[0].fill, '越');

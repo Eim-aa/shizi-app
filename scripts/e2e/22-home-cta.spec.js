@@ -59,7 +59,7 @@ export default async function homeCta(page, ctx) {
     await page.waitForSelector(tid('home-pick'));
     await waitNavIdle(page, { settleMs: 200 });
     const tag = `${view.width}×${view.height}`;
-    step(`${tag}: 主按钮在标准字号与大字下都是 ${CTA_W}×${CTA_H}、距 Tab 栏上沿 119（D43 / D36 / G05），开关大字前后不变`);
+    step(`${tag}: 主按钮在标准字号与大字下都是 ${CTA_W}×${CTA_H}、整体块在页头与 Tab 栏之间居中（H1 起不再固定距 Tab 栏 119；D36 / G05：按钮不随字号缩小），开关大字前后尺寸不变`);
     const sizes = [];
     for (const large of [false, true]) {
       await setTextSize(page, large ? LARGE_TEXT : 'L');
@@ -70,12 +70,11 @@ export default async function homeCta(page, ctx) {
         `${tag} ${large ? 'large' : 'normal'} (compact=${c.compact}): main button ${CTA_W}×${CTA_H}, got ${c.w.toFixed(1)}×${c.h.toFixed(1)}`);
       assert.ok(Math.abs(c.left + c.w / 2 - c.vw / 2) < 1, `${tag}: centred`);
       assert.ok(c.left >= 0 && c.right <= c.vw, `${tag}: button inside the viewport width`);
-      assert.ok(Math.abs(c.fromBottom - 119) < 1, `${tag} ${large ? 'large' : 'normal'}: 119 above the tab bar (got ${c.fromBottom})`);
       assert.ok(c.startInPanel, `${tag} ${large ? 'large' : 'normal'}: 主按钮整个在首屏内`);
       assert.ok(c.pickInPanel, `${tag} ${large ? 'large' : 'normal'}: 「自己选字」也在首屏内（五态里按钮下方的文字按钮位置固定）`);
-      sizes.push([c.w, c.h, c.fromBottom]);
+      sizes.push([c.w, c.h]);
     }
-    assert.deepEqual(sizes[0], sizes[1], `${tag}: same size and place (from the tab bar) before and after switching 系统字号`);
+    assert.deepEqual(sizes[0], sizes[1], `${tag}: same size before and after switching 系统字号`);
   }
   await setTextSize(page, 'L');
 }

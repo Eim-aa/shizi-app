@@ -566,16 +566,16 @@ export default async function run(page, ctx) {
 
   step('位置不动: 日期、标题、题记、主按钮在五态里同一位置（首次打开只有主按钮）');
   for (const k of ['today', 'progress', 'special', 'back']) {
-    assert.deepEqual(rects[k].start, rects.fresh.start, `${k}: 主按钮位置同 fresh`);
+    assert.deepEqual([rects[k].start.x, rects[k].start.w, rects[k].start.h], [rects.fresh.start.x, rects.fresh.start.w, rects.fresh.start.h], `${k}: 主按钮横向位置与大小同 fresh（H1 起竖向随整体块居中，不再固定）`);
     assert.deepEqual(rects[k].title, rects.fresh.title, `${k}: 标题位置同 fresh`);
     assert.deepEqual(rects[k].date, rects.fresh.date, `${k}: 日期位置同 fresh`);
     assert.deepEqual(rects[k].epi, rects.fresh.epi, `${k}: 题记位置同 fresh`);
   }
   assert.ok(approx(rects.fresh.start.w, 240) && approx(rects.fresh.start.h, 54), `main button 240 × 54 (D43): ${JSON.stringify(rects.fresh.start)}`);
   assert.ok(approx(rects.fresh.start.x + rects.fresh.start.w / 2, 393 / 2, 1), 'centred');
-  assert.deepEqual(firstCta, rects.fresh.start, 'first open: the main button is in the same place too');
+  assert.deepEqual([firstCta.x, firstCta.w, firstCta.h], [rects.fresh.start.x, rects.fresh.start.w, rects.fresh.start.h], 'first open: the main button has the same size and column (H1: its height follows the centred block)');
   const panelBottom = await page.evaluate(() => document.querySelector('.sz-tabroot__panel').getBoundingClientRect().bottom);
-  assert.ok(approx(panelBottom - (rects.fresh.start.y), 119, 1), `main button 119 above the tab bar (D43): ${panelBottom - rects.fresh.start.y}`);
+  assert.ok(rects.fresh.start.y + rects.fresh.start.h < panelBottom, `main button inside the panel (H1: no longer pinned 119 above the tab bar): ${panelBottom - rects.fresh.start.y}`);
 
   // ------------------------------------------------------------------ 5. 375×667 与 390×844：邀请的回答在首屏里完整可见（R2-R1 / N2-04 / N2-05 / I2-07）
   for (const [width, height] of [[375, 667], [390, 844]]) {

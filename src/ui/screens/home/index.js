@@ -1,11 +1,11 @@
 // 习字 tab 根页 · 首页（02 M2-1；阶段 1 P1-E5 按设计稿「首练与首页」重排：D43 首页方案 B、D46 ①②④；R-H01–R-H07、R-H11；
 // 阶段 1 E9a 按减法修稿 D49 修订：实现交接 §1 / §2.4）。自注册，无中心路由表。
 //
-// 版式（D49；H1 / D51 ④ 起日常状态不放品牌「拾」，字帖行贴着主按钮成组）：
+// 版式（D49；H1 / D51 ④ 起日常状态不放品牌「拾」；H1 验收：「字帖块 + 主按钮 + 次按钮」是一个整体，放在页头下沿到 Tab 栏上沿之间的光学中心）：
 //   日期行（13 墨三，R-H02）→ 题记一行（日期下 2：宋 13 墨三，「心不厌精，手不忘熟。」+ 8 + 出处作者名，单行不折，不带印；AX1–AX5 隐藏，
-//   读屏把它作为标题的补充读出：h1 aria-describedby）→ 标题「今天写几个字」（宋 28，题记下 10）→ 字帖位（日常状态：贴着主按钮放，字帖块——含它下面的
-//   说明句——底边到主按钮 32，上面是空纸；首次打开的品牌「拾」仍在标题与主按钮之间光学居中，区域底留 6% 内边）→ 固定位置的墨色主按钮
-//   （宽 240 居中，距 Tab 栏上沿 119，D43）→ 文字按钮「自己选字」（黑体 15 ink2 无下划线，H1）。同屏字号 13 / 15 / 17 / 28。
+//   读屏把它作为标题的补充读出：h1 aria-describedby）→ 标题「今天写几个字」（宋 28，题记下 10）→ [舞台 .sz-home__stage：上下留白 42 : 58，几何中心往上约 4–6%；
+//   里面依次是 字帖位（字帖块——含它下面的说明句——底边到主按钮 32；首次打开的品牌「拾」同一规则）→ 墨色主按钮
+//   （宽 240 居中；竖向位置随整体块居中，不再固定距 Tab 栏 119）→ 文字按钮「自己选字」（黑体 15 ink2 无下划线，H1）]；AX 档放不下时留白收成 0，整体从页头下方开始排。同屏字号 13 / 15 / 17 / 28。
 //   首页没有朱色（题记不带印；不画写错朱点，D46 ①）；首页不画任何计数（「这一组还有 N 个字」「字库里有 N 个字了 ›」删去，D49-7：
 //   计数只进读屏标签），只在今天写的字多于 8 个时留一行「今天写了 N 个字」。字帖格只有外框与格间两种线，空格就是笺面（copybook.js）。
 //   五态（today.js homeViewOf，03 P155；字帖位放什么见 heroOf，03 P220）：
@@ -95,14 +95,16 @@ injectStyles('home', `
 .sz-home__title{margin:10px 0 0;font-family:${T.song};font-weight:500;font-size:${T.fs28};
   line-height:${T.lh28};color:${T.ink1};text-wrap:balance}
 .sz-home__title:focus{outline:none}
-.sz-home__zone{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
-  padding:0 0 ${T.s8}} /* 日常状态：字帖行贴着主按钮成组，字帖块底边（含它下面的说明句）到按钮 32（H1 / D51 ④、T2-09；主按钮仍固定在 Tab 栏上 119，D43），上面是空纸 */
-.sz-home--first .sz-home__zone{justify-content:center;padding:0 0 calc(6% + 2.4px)} /* 首次打开：品牌「拾」在标题与主按钮之间光学居中：区域底留整屏宽的 6%（百分比按内容宽算，内容宽 = 屏宽 − 40，故 + 40 × 6% = 2.4px），视觉略偏上（D49） */
+.sz-home__stage{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;align-items:center}
+.sz-home__stage::before,.sz-home__stage::after{content:"";min-height:0} /* 「字帖块 + 主按钮 + 次按钮」整体放在页头下沿到 Tab 栏上沿之间的光学中心：上下留白 42 : 58（几何中心往上约 4–6% 的舞台高）；放不下（AX 档）时留白收成 0，整体从页头下方开始排（H1） */
+.sz-home__stage::before{flex:42 1 0}
+.sz-home__stage::after{flex:58 1 0}
+.sz-home__zone{flex:none;width:100%;display:flex;flex-direction:column;align-items:center;padding:0 0 ${T.s8}} /* 字帖块（含它下面的说明句）底边到主按钮 32（H1 / D51 ④、T2-09）；首次打开的品牌「拾」同一规则 */
 .sz-home__block{display:flex;flex-direction:column;align-items:center;max-width:100%}
 .sz-home__gap{flex:none;height:16px}
 .sz-home__line{margin:0;text-align:center;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3};text-wrap:balance}
 .sz-home__other.sz-btn{--bx:12px;margin-top:4px;min-height:${T.hit}}
-.sz-home__foot{flex:none;min-height:119px;display:flex;flex-direction:column;align-items:center}
+.sz-home__foot{flex:none;width:100%;display:flex;flex-direction:column;align-items:center}
 .sz-home__cta.sz-btn{width:240px;max-width:100%}
 .sz-home__side.sz-btn{margin-top:4px;min-height:${T.hit};justify-content:center}
 .sz-home__note{margin:16px 0 0;text-align:center;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3}}
@@ -583,6 +585,7 @@ function HomeScreen() {
       <${Epigraph} epigraph=${model.epigraph} />
       <h1 class="sz-home__title" tabindex="-1" data-page-title data-testid="home-title" aria-describedby=${EPIGRAPH_ID}>${t('R-H01.title')}</h1>
     </header>`}
+    <div class="sz-home__stage">
     <div class="sz-home__zone">${zone}</div>
     <div ref=${footRef} class="sz-home__foot">
       <${Button} variant="primary" class="sz-home__cta" data-testid="home-start" aria-label=${ctaLabel}
@@ -594,6 +597,7 @@ function HomeScreen() {
         : model.showPick
           ? html`<${Button} variant="text" class="sz-home__side" data-testid="home-pick" onClick=${() => openPick()}>${t('X-HOME.pick')}</${Button}>`
           : null}
+    </div>
     </div>
     ${demo || testHost ? html`<div class="sz-home__dev">
       ${demo ? html`<${Button} variant="secondary" data-testid="demo-push"

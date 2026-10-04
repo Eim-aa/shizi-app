@@ -46,7 +46,8 @@ export default async function run(page0, ctx) {
     const r = await rects(page, topSel('home-start'));
     assert.equal(r.text, '已保存，下次接着写', `${v.tag}: the toast is up`);
     assert.equal(intersects(r.toast, r.btn), false, `${v.tag}: the toast box does not intersect the main button (toast ${Math.round(r.toast.top)}–${Math.round(r.toast.bottom)}, button ${Math.round(r.btn.top)}–${Math.round(r.btn.bottom)})`);
-    assert.ok(r.btn.top - r.toast.bottom >= 12 - 0.5, `${v.tag}: at least 12 between the toast and the button (${(r.btn.top - r.toast.bottom).toFixed(1)})`);
+    const gap = Math.max(r.btn.top - r.toast.bottom, r.toast.top - r.btn.bottom);
+    assert.ok(gap >= 12 - 0.5, `${v.tag}: at least 12 between the toast and the button (${gap.toFixed(1)})`);
     assert.equal(r.hitIsBtn, true, `${v.tag}: the centre of 继续写字 hits the button`);
     assert.ok(r.toast.left >= 19.5 && r.toast.right <= v.width - 19.5, `${v.tag}: the toast stays inside the page margins`);
 

@@ -1,7 +1,8 @@
 // H1-3（D51 ④、T2-09、N2-09）：首页日常状态的主视觉。
 //   今天还没写 / 离开一周 / 特别组那天还没写：本人最近写的 3 个字（本人墨，home-recent-row）；今天写过：今天的字（home-ink-row）；进行中：这一组的格子；
 //   这些态里没有品牌「拾」（home-brand-shi 不存在）；品牌「拾」只在首次打开、以及有记录却没有任何可显示的本人墨（清空过记录）时出现。
-//   字帖块（含它下面的说明句）的底边到主按钮 32，主按钮仍在 Tab 栏上 119；一屏一个焦点（字帖行与品牌字合计 ≤ 1 个）。
+//   字帖块（含它下面的说明句）的底边到主按钮 32；「字帖块 + 主按钮 + 次按钮」是一个整体，放在页头下沿到 Tab 栏上沿之间的光学中心
+//   （几何中心往上约 4–6%，上下留白 42 : 58），不再贴着按钮落在屏幕下半部；首次打开与品牌「拾」同一规则；一屏一个焦点（字帖行与品牌字合计 ≤ 1 个）。
 //   393×852 浅 / 深，375×667 浅。
 import { bootTestHost, waitNavIdle } from './helpers.mjs';
 import { markFirstPracticeDone, seedHomeState } from './home-helpers.mjs';
@@ -28,11 +29,24 @@ async function facts(page) {
       block: rect(q('home-zone')),
       cta: rect(q('home-start')),
       panelBottom: panel.bottom,
+      stage: rect(root.querySelector('.sz-home__stage')),
+      zone: rect(root.querySelector('.sz-home__zone')),
+      foot: rect(root.querySelector('.sz-home__foot')),
     };
   });
 }
 
 const near = (a, b, tol = 1) => Math.abs(a - b) <= tol;
+
+/** 整体块（字帖块 + 主按钮 + 次按钮）在页头下沿到 Tab 栏上沿之间：几何中心往上 4–6%（容差放到 3.5–6.5%），整块都在这一段里。 */
+function assertCentred(assert, f, t) {
+  const stageH = f.stage.bottom - f.stage.top;
+  const groupTop = f.zone.top;
+  const groupBottom = f.foot.bottom;
+  const shift = ((f.stage.top + f.stage.bottom) / 2 - (groupTop + groupBottom) / 2) / stageH;
+  assert.ok(shift >= 0.035 && shift <= 0.065, `${t}: the block sits ${(shift * 100).toFixed(1)}% above the geometric centre of the stage (want ≈ 4–6%)`);
+  assert.ok(groupTop >= f.stage.top - 0.5 && groupBottom <= f.stage.bottom + 0.5, `${t}: the whole block is inside the stage`);
+}
 
 export default async function run(page0, ctx) {
   const { assert, step } = ctx;
@@ -73,19 +87,21 @@ export default async function run(page0, ctx) {
         assert.equal(f.hasProgress, true, `${t}: the group's cells`);
       }
       assert.ok(near(f.cta.top - f.block.bottom, 32), `${t}: 32 between the copybook block and the main button (${(f.cta.top - f.block.bottom).toFixed(1)})`);
-      assert.ok(near(f.panelBottom - f.cta.top, 119), `${t}: the main button stays 119 above the tab bar (${f.panelBottom - f.cta.top})`);
+      assertCentred(assert, f, t);
     }
 
     step(`${v.tag}: 品牌「拾」只在首次打开与没有可显示的本人墨时出现`);
     await seedHomeState(page, 'first');
     let f = await facts(page);
     assert.deepEqual([f.view, f.brand], ['first', true], `${v.tag}: first open shows the brand 拾`);
+    assertCentred(assert, f, `${v.tag} first`);
     await page.evaluate(() => window.__shiziTest.reset());
     await markFirstPracticeDone(page); // 清空过记录的结论句：有过记录、现在没有任何一条
     await page.waitForFunction(() => document.querySelector('.sz-layer[data-top="true"] [data-testid="screen-home"]').dataset.view === 'fresh');
     await waitNavIdle(page);
     f = await facts(page);
     assert.deepEqual([f.view, f.hero, f.brand, f.recentChars.length], ['fresh', 'shi', true, 0], `${v.tag}: no ink to show (records cleared) → the brand 拾 is the placeholder`);
+    assertCentred(assert, f, `${v.tag} brand placeholder`);
   }
   if (page !== page0) await page.close();
 }

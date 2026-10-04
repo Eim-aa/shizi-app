@@ -30,7 +30,7 @@ import { openDetail } from '../detail/index.js';
 export const LIBRARY_QUERY_SOURCE = Object.freeze({ view: 'library' });
 
 injectStyles('library-query', `
-.sz-libq.sz-btn{width:100%;min-height:calc(44px + 6px * ${T.k});box-sizing:border-box;border-radius:${T.rCtl};background:${T.field};
+.sz-libq.sz-btn{width:100%;min-height:48px;box-sizing:border-box;border-radius:${T.rCtl};background:${T.field};
   display:flex;align-items:center;gap:10px;padding:0 16px;
   text-align:left}
 .sz-libq__icon{flex:none;width:18px;height:18px;color:${T.ink2}}

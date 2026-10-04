@@ -7,7 +7,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  scan, scanText, stripComments, fontSizeOk, radiusOk, findKaiUses, EXCEPTIONS, ZHU_ALLOW, FONT_SCALE,
+  scan, scanText, stripComments, fontSizeOk, radiusOk, findKaiUses, EXCEPTIONS, ZHU_ALLOW, DANZHU_ALLOW_DIRS, FONT_SCALE,
 } from '../../scripts/verify_tokens.mjs';
 import { T, TEX } from '../../src/ui/components/styles.js';
 import { parseTokenDecls } from '../../src/ui/dev/palette.js';
@@ -68,7 +68,16 @@ test('scanText: zhu is allowed only in the allow-listed marks component', () => 
   const css = 'a{background:${T.zhu};color:var(--on-seal);border-color:var(--seal)}';
   assert.equal(scanText('src/ui/components/marks.js', css).filter(h => h.rule === 'zhu').length, 0);
   assert.equal(scanText('src/ui/screens/write/index.js', css).filter(h => h.rule === 'zhu').length, 3);
-  assert.equal(scanText('src/ui/screens/write/index.js', 'a{color:${T.danzhu};background:var(--danzhu)}').length, 0, 'danzhu is not zhu');
+  // D49 ⑤：朱色只表示写错；淡朱 --danzhu 只许提示 / 描一遍（写字页与字形 canvas），字库墙的空心字等别处不许再用
+  assert.equal(scanText('src/ui/screens/write/index.js', 'a{color:${T.danzhu};background:var(--danzhu)}').length, 0, 'danzhu is allowed in the write page (hints, trace)');
+  assert.equal(scanText('src/ui/canvas/glyph.js', "glyphColor('--danzhu')").length, 0, 'and in the glyph canvas');
+  const wall = scanText('src/ui/screens/library/wall.js', '.sz-lib__g--hollow .sz-lib__char{color:${T.danzhu}}.sz-lib__box{border:1px solid var(--danzhu)}');
+  assert.deepEqual(wall.map(h => h.rule), ['zhu', 'zhu'], 'danzhu is rejected in the library wall (hollow chars are ink4 now)');
+  assert.equal(scanText('src/ui/screens/library/wall.js', '.sz-lib__g--hollow .sz-lib__char{color:${T.ink4}}').length, 0);
+  for (const [dir, why] of Object.entries(DANZHU_ALLOW_DIRS)) {
+    assert.ok(why.length > 8, dir);
+    assert.ok(fs.existsSync(path.join(ROOT, dir)), `${dir} exists`);
+  }
 });
 
 test('scanText: letter-spacing must be 0 except in a vertical inscription rule; font-size and radius literals are reported', () => {

@@ -287,15 +287,14 @@ export default async function run(page, { baseURL, assert, step }) {
   await goLibrary(page);
 
   // ---------------------------------------------------------------- 1. 接入
-  step('entry: library-query-slot holds the 查字 box (<button>), R-L04 note below it; no horizontal scroll');
+  step('entry: library-query-slot holds the 查字 box (<button>), no note under it (D49); no horizontal scroll');
   let e = await entryInfo(page);
   assert.equal(e.tag, 'BUTTON', 'the 查字 box is a <button>');
   assert.equal(e.name, COPY.box, 'accessible name 「查字」');
   assert.equal(e.mode, 'lookup', 'data-mode=lookup');
   assert.equal(e.haspopup, 'dialog', 'aria-haspopup=dialog');
-  assert.equal(e.note, COPY.note, 'R-L04 note 「查到的字可以直接练，也可以加入自选的字。」');
-  assert.ok(e.noteBelow, 'the note sits below the box');
-  assert.ok(e.height >= 44, `box is at least 44px tall (${Math.round(e.height)})`);
+  assert.equal(e.note, null, 'D49: the sentence under the box (R-L04 「查到的字可以直接练，也可以加入自选的字。」) is gone');
+  assert.ok(e.height >= 44 && e.height <= 56, `box is 48-ish tall (sz-input, ${Math.round(e.height)})`);
   assert.equal(e.hscroll, false, 'no horizontal scroll on the library page');
 
   step('tap → lookup sheet; focus is on the proxy input when the click handler ends (R-Q08); opening writes nothing');

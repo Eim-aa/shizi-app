@@ -3551,48 +3551,11 @@
           "origin": "原型 字库墨墙屏-第十稿交接版.dc.html L39",
           "note": "M3-1：大数字上方的小标签（整块是进「有记录的字」完整页的按钮，R-L02）；也用作墙的读屏分组名"
         },
-        "countUnit": {
-          "raw": null,
-          "text": "个字",
-          "origin": "原型 字库墨墙屏-第十稿交接版.dc.html L40",
-          "note": "M3-1：大数字后的单位"
-        },
-        "since": {
-          "raw": null,
-          "text": "从 {date}开始记录",
-          "origin": "原型 字库墨墙屏-第十稿交接版.dc.html L357 factB",
-          "note": "M3-1：第二条事实（R-L10）；原型「从 '+md(D.first)+'开始记录」，日期后无空格；{date} = R-H02.dateFormat",
-          "decision": "P63"
-        },
-        "factSep": {
-          "raw": null,
-          "text": "·",
-          "origin": "原型 字库墨墙屏-第十稿交接版.dc.html L41",
-          "note": "M3-1：两条事实前的间隔点（装饰，aria-hidden；第一条前的点被负边距藏起，同原型）"
-        },
         "wrongCardNote": {
           "raw": null,
           "text": "你判断写错的字。",
           "origin": "原型 字库墨墙屏-第十稿交接版.dc.html L360 card()",
           "note": "M3-1：写错过卡片说明（快忘了卡片的对应句在 R-L07）"
-        },
-        "wrongCardEmpty": {
-          "raw": null,
-          "text": "你判断写错的字会放在这里。",
-          "origin": "原型 字库墨墙屏-第十稿交接版.dc.html L360 card()",
-          "note": "M3-1：写错过卡片空态（空卡去卡片样式、不可点，R-L02）；同 X-LIST.wrongEmptyBody 字样"
-        },
-        "cardActOne": {
-          "raw": null,
-          "text": "练这个字 →",
-          "origin": "原型 字库墨墙屏-第十稿交接版.dc.html L67、L361 act",
-          "note": "M3-1：卡片底部动作行（列表只有 1 个字时）；原型 act + 「→」；整张卡是进清单的按钮"
-        },
-        "cardActMany": {
-          "raw": null,
-          "text": "练这些字 →",
-          "origin": "原型 字库墨墙屏-第十稿交接版.dc.html L67、L361 act",
-          "note": "M3-1：卡片底部动作行（2 个字以上）；同 R-A02.practiceThese 字样"
         },
         "tone0": {
           "raw": null,
@@ -3646,6 +3609,27 @@
           "text": "{char}，{status}",
           "origin": "extra",
           "note": "M3-1：墙上每格按钮的读屏名；{status} = 墨色档位图例字样 / 写错过 / 自选了还没写（原型格子只有 data-nav，没有读屏名）"
+        },
+        "caption": {
+          "raw": null,
+          "origin": "extra",
+          "text": "{n} 个字",
+          "note": "字库页字墙上方的小标注（D49 减法稿，实现交接 §14：原宋 34 大数字「278」改为题注，t15 墨三）；{n} = 有记录的字数；黑体 15",
+          "decision": "P193"
+        },
+        "practiceThese": {
+          "raw": null,
+          "origin": "extra",
+          "text": "练这些字",
+          "note": "字库页「写错过 / 快忘了」两块右侧的文字按钮（D49：全 App 一种文字按钮、不再有「→」）；黑体 15",
+          "decision": "P193"
+        },
+        "practiceAria": {
+          "raw": null,
+          "origin": "extra",
+          "text": "{label}，练这些字",
+          "note": "「练这些字」的读屏名称：两块各一个，读屏要分得清是哪一块（{label} = 块名「写错过」「快忘了」）",
+          "decision": "P193"
         }
       }
     },

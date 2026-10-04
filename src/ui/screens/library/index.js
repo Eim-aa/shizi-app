@@ -1,39 +1,36 @@
 // 字库 tab 根页 · 字库首页（墨墙）（02 M3-1；R-L01–R-L04、R-L07–R-L10；原型 docs/design/v10/extracted/字库墨墙屏-第十稿交接版.dc.html
 // L26–L79、L353–L365；reference/K-proto-home-lib.md）。自注册，无中心路由表。
 //
-// 版式（各状态同一个顶部，R-L01）：
-//   标题「字库」→ 查字框占位（data-testid=library-query-slot；M3-3 用 setLibraryQuerySlot 挂 M2-0 查字组件）+ 说明（R-L04）
-//   → 练习范围一行（只写库名，R-L01；整行是按钮 → 换库 library-switch，M3-5）
-//   → 有记录：「有记录的字 N 个字」（大数字可点 → 有记录的字完整页 library-all，M3-4，R-L02）+ 两条事实（R-L10）
-//            → 写错过 / 快忘了两张卡（有字才能点 → library-list {kind}，M3-2；空卡去卡片样式，R-L02 / R-L07）
-//            → 图例 + 墙（≤ 8 行，wall.js；点字 → 单字详情 detail {char}，M3-6；点空心字同样进详情，详情画「没有记录」一态）
-//            → 说明（R-L03；深色反向说法）+「还有 N 个字 ›」（P27；没截断时不显示）
+// 版式（D49 减法稿，实现交接 §14；各状态同一个顶部）：
+//   大标题「字库」→ 查字框（library-query-slot；M3-3 用 setLibraryQuerySlot 挂 M2-0 查字组件，下面不再有说明句）
+//   → 有记录：「写错过」「快忘了」两个同一模板的块（名称 + 数 + 右侧文字按钮「练这些字」 → library-list {kind}，M3-2；下面一排最该练的 5 个样字，
+//            30pt 标准字形、wall1、不画朱点；没有字时只有名称 + 0，不画按钮与样字）
+//            → 字墙题注「{n} 个字」（有记录的字数，R-L10，小标注）→ 墙（≤ 8 行，wall.js；点字 → 单字详情 detail {char}，M3-6；点空心字同样进详情，
+//              空心 = 自选了还没写，描边 ink4）→ 墙下说明（R-L03；深色反向说法）+「还有 N 个字 ›」（P27；没截断时不显示；进 library-all，M3-4）
 //   → 没有记录：「每天写的新字，从这个字库里挑。」（R-L05，原型 L37）+ 空态（原型 L71–L77）。
+//   去掉的（D49）：搜索框下说明、练习范围一行（移到「我的 › 设置」）、「有记录的字」大数字与副统计、两栏说明与朱点、两行图例、「→」。
 //   数据全部从记录算（R-L10；model.js 纯函数）。
 //
 // 导航：目标屏由拥有它们的卡自注册（M3-2 library-list、M3-4 library-all、M3-5 library-switch、M3-6 detail）；
 // 还没注册时按钮不跳转（console.warn），不抛错。
 //
 // data-testid：screen-library（data-state=empty|records / data-recorded / data-today / data-compact）、library-query-slot、
-//   library-query-note、library-switch（data-library）、library-scope-name、library-no-record-note、library-count（data-n）、
-//   library-fact（data-kind）、library-card-wrong / library-card-forget（data-n；空卡 data-empty=true 且不是按钮）、
-//   library-card-mini-cell、library-legend…、library-wall、library-wall-cell、library-legend-note、library-more（data-n）、
-//   library-empty。墙与图例的 testid 见 wall.js。
+//   library-no-record-note、library-card-wrong / library-card-forget（data-n；没有字 data-empty=true，无按钮无样字）、library-card-name /
+//   library-card-count / library-card-practice（文字按钮「练这些字」）/ library-card-samples / library-card-mini-cell（样字）、library-caption（data-n）、
+//   library-wall、library-wall-cell、library-legend-note、library-more（data-n）、library-empty。墙的 testid 见 wall.js。
 
 import { html, useEffect, useMemo, useState } from '../../../../vendor/ui.js';
 import { registerScreen, getScreen, nav } from '../../router.js';
 import { TabPage } from '../../components/Page.js';
 import { Button } from '../../components/Button.js';
 import { PracticeGlyph, FACE_FULL } from '../../components/PracticeGlyph.js';
-import { HIT_EXT, injectStyles, T } from '../../components/styles.js';
+import { injectStyles, T } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
 import { getStore } from '../../../store/store.js';
 import { now as envNow } from '../../../platform/env.js';
 import { localDay } from '../../../core/dates.js';
-import { currentLibraryId } from '../../../data/deck.js';
-import { formatDay } from '../../components/query/CharCard.js';
 import { libraryHomeModel, cardMini } from './model.js';
-import { Legend, LegendNote, MiniRow, Wall, WALL_CSS, useWallLayout } from './wall.js';
+import { LegendNote, Samples, Wall, WALL_CSS, useWallLayout } from './wall.js';
 import './list.js'; // M3-2 写错过 / 快忘了清单页自注册（library-list）；也注册「现在没有要写的字」页的「看写错过的字」
 import './switch.js'; // M3-5 换库页自注册（library-switch）
 import './all.js'; // M3-4 有记录的字（完整页）自注册（library-all）
@@ -56,43 +53,25 @@ const ICON = () => html`<svg viewBox="0 0 22 22" fill="none" stroke="currentColo
   stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M11 5.4C7.8 3 4.6 3.8 3 4.6v13.2c2.4-.8 5.4-.4 8 1.2 2.6-1.6 5.6-2 8-1.2V4.6c-1.6-.8-4.8-1.6-8 .8ZM11 5.4v13.6"></path></svg>`;
 
 injectStyles('library', `
+.sz-tabpage[data-testid="screen-library"]{gap:12px}
 .sz-lib{display:flex;flex-direction:column;min-height:0}
-.sz-lib__query{display:flex;flex-direction:column;gap:${T.s1}}
-.sz-lib__qnote{margin:0;padding:${T.s2} 0 0;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3};text-wrap:pretty}
-.sz-lib__scope.sz-btn{margin-top:${T.s4};width:100%;min-height:52px;padding:${T.s2} 0;text-align:left;
-  border-top:${T.hair} solid ${T.line};border-bottom:${T.hair} solid ${T.line};display:flex;flex-wrap:wrap;align-items:center;
-  justify-content:space-between;gap:${T.s1} ${T.s3}}
-.sz-lib__scopel{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 ${T.s3};min-width:0}
-.sz-lib__scopelabel{font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3};white-space:nowrap}
-.sz-lib__scopename{font-size:${T.fs15};line-height:${T.lh15};color:${T.ink1};white-space:nowrap}
-.sz-lib__scopeentry{flex:none;margin-left:auto;font-size:${T.fs15};line-height:${T.lh15};
-  color:${T.ink2};white-space:nowrap}
+.sz-lib__query{display:flex;flex-direction:column}
 .sz-lib__nonote{margin:${T.s2} 0 0;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3}}
-.sz-lib__rec{display:flex;flex-direction:column;gap:${T.s1};margin-top:${T.groupGap}}
-.sz-lib__count.sz-btn{display:flex;flex-direction:column;align-items:flex-start;gap:${T.s1};text-align:left;min-height:44px}
-.sz-lib__label{font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3}}
-.sz-lib__num{display:flex;align-items:baseline;flex-wrap:wrap;gap:${T.s1}}
-.sz-lib__big{font-family:${T.song};font-size:${T.fs34};line-height:${T.lh34};font-weight:500;color:${T.ink1};
-  font-variant-numeric:tabular-nums}
-.sz-lib__unit{font-family:${T.song};font-size:${T.fs22};line-height:${T.lh22};font-weight:500;color:${T.ink2}}
-.sz-lib__facts{display:block;overflow:hidden;margin:0;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2}}
-.sz-lib__factrow{display:flex;flex-wrap:wrap;margin-left:calc(-18px * ${T.k})}
-.sz-lib__fact{white-space:nowrap}
-.sz-lib__sep{display:inline-block;width:calc(18px * ${T.k});text-align:center}
-.sz-lib__cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:${T.s5};margin-top:${T.groupGap}}
-/* 设计系统：卡片取消，用发丝线与留白分组（P141 → E1b）；整块仍是按钮，靠标题 + 数量 + 「看这几个字」动作行表明可点；空卡不是按钮 */
-.sz-lib__card{position:relative;box-sizing:border-box;min-width:0;display:flex;flex-direction:column;gap:${T.s2};text-align:left;padding:${T.s3} 0 0}
-.sz-lib__card::before{content:"";position:absolute;left:0;right:0;top:0;border-top:${T.hair} solid ${T.line}} /* 分组发丝线（空卡也有；它不是卡片边框） */
-.sz-lib__card.sz-btn{border-radius:0;background:transparent;align-items:stretch}
-.sz-lib__cardhead{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
-.sz-lib__cardtitle{display:flex;align-items:center;gap:7px;font-family:${T.song};font-size:${T.fs22};
-  line-height:${T.lh22};font-weight:500;color:${T.ink1};white-space:nowrap}
-.sz-lib__cardn{font-family:${T.song};font-size:${T.fs22};line-height:${T.lh22};font-weight:500;color:${T.ink1};
-  font-variant-numeric:tabular-nums}
-.sz-lib__cardnote{font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2};text-wrap:pretty}
-.sz-lib__act{position:relative;min-height:40px;display:flex;align-items:center;font-size:${T.fs15};color:${T.ink1}}
-.sz-lib__act::after{${HIT_EXT}} /* 视觉 40 高，热区 44（Q2-13；整张卡是一个按钮，这一行跟着它点） */
-.sz-lib__wallsec{display:flex;flex-direction:column;gap:${T.s3};margin-top:${T.groupGap}}
+/* 写错过 / 快忘了：同一个行模板（查字下 28，两块之间 20）。第一行 名称 17 / 500 + 数 15 墨三 + 右侧文字按钮；第二行样字（下 6） */
+.sz-lib__pbs{display:flex;flex-direction:column;margin-top:28px}
+.sz-lib__pb{display:flex;flex-direction:column;gap:6px;min-width:0}
+.sz-lib__pb+.sz-lib__pb{margin-top:20px}
+.sz-lib__l1{display:flex;align-items:center;gap:${T.s2};min-height:${T.hit}}
+.sz-lib__name{font-size:${T.fs17};line-height:${T.lh17s};font-weight:500;color:${T.ink1}}
+.sz-lib__cnt{font-size:${T.fs15};line-height:${T.lh15};color:${T.ink3};font-variant-numeric:tabular-nums}
+.sz-lib__sp{flex:1}
+.sz-lib__l1 .sz-btn--text{flex:none}
+:root[data-ax] .sz-lib__l1{flex-wrap:wrap}
+:root[data-ax] .sz-lib__sp{display:none}
+:root[data-ax] .sz-lib__l1 .sz-btn--text{flex:1 0 100%;justify-content:flex-start;padding-left:0}
+/* 字墙题注：快忘了块下 36，字墙在题注下 8 */
+.sz-lib__wl{margin:36px 0 0;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink3};font-variant-numeric:tabular-nums}
+.sz-lib__wallsec{display:flex;flex-direction:column;gap:${T.s3};margin-top:${T.s2}}
 .sz-lib__foot{display:flex;align-items:center;justify-content:space-between;gap:${T.s3}}
 .sz-lib__footnote{flex:1;min-width:0;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3};text-wrap:pretty}
 .sz-lib__more.sz-btn{flex:none;white-space:nowrap;color:${T.ink2}}
@@ -188,44 +167,22 @@ export function libraryName(libraryId) {
 
 // ---------------------------------------------------------------- 视图
 
-function factText(fact) {
-  if (fact.kind === 'customUnwritten') return t('R-L10.customUnwritten', { n: fact.n });
-  return t('X-LIBHOME.since', { date: formatDay(fact.day) });
-}
-
-function Facts({ facts }) {
-  if (!facts.length) return null;
-  const sep = t('X-LIBHOME.factSep');
-  return html`<p class="sz-lib__facts"><span class="sz-lib__factrow">
-    ${facts.map(f => html`<span key=${f.kind} class="sz-lib__fact" data-testid="library-fact" data-kind=${f.kind}
-      ><span class="sz-lib__sep" aria-hidden="true">${sep}</span>${factText(f)}</span>`)}
-  </span></p>`;
-}
-
-const CARD_COPY = Object.freeze({
-  wrong: { title: 'R-E04.titleWrong', note: 'X-LIBHOME.wrongCardNote', empty: 'X-LIBHOME.wrongCardEmpty' },
-  forget: { title: 'R-E04.titleForget', note: 'R-L07.forgetCardNote', empty: 'R-L07.forgetCardEmpty' },
-});
-
-function Card({ kind, items, getInk }) {
-  const copy = CARD_COPY[kind];
+/** 写错过 / 快忘了的块（D49：两块同一模板）。 */
+function PracticeBlock({ kind, items }) {
   const n = items.length;
-  const title = html`<span class="sz-lib__cardtitle">${kind === 'wrong'
-    ? html`<span class="sz-lib__dot" aria-hidden="true"></span>` : null}${t(copy.title)}</span>`;
-  if (!n) {
-    // 空卡：去卡片样式、不是按钮（R-L02「卡片有字才能点」「空卡片去卡片样式」）。
-    return html`<div class="sz-lib__card sz-lib__card--empty" data-testid=${`library-card-${kind}`} data-n="0" data-empty="true">
-      <span class="sz-lib__cardhead">${title}</span>
-      <span class="sz-lib__cardnote">${t(copy.empty)}</span>
-    </div>`;
-  }
-  return html`<${Button} variant="plain" class="sz-lib__card" data-testid=${`library-card-${kind}`} data-n=${n} data-empty="false"
-    onClick=${() => openList(kind)}>
-    <span class="sz-lib__cardhead">${title}<span class="sz-lib__cardn">${n}</span></span>
-    <span class="sz-lib__cardnote">${t(copy.note)}</span>
-    <${MiniRow} cells=${cardMini(items, kind)} getInk=${getInk} />
-    <span class="sz-lib__act">${t(n === 1 ? 'X-LIBHOME.cardActOne' : 'X-LIBHOME.cardActMany')}</span>
-  </${Button}>`;
+  const name = t(kind === 'wrong' ? 'R-E04.titleWrong' : 'R-E04.titleForget');
+  return html`<section class="sz-lib__pb" data-testid=${`library-card-${kind}`} data-n=${n} data-empty=${n ? 'false' : 'true'}>
+    <div class="sz-lib__l1">
+      <span class="sz-lib__name" data-testid="library-card-name">${name}</span>
+      <span class="sz-lib__cnt" data-testid="library-card-count">${n}</span>
+      <span class="sz-lib__sp"></span>
+      ${n
+        ? html`<${Button} variant="text" data-testid="library-card-practice" aria-label=${t('X-LIBHOME.practiceAria', { label: name })}
+            onClick=${() => openList(kind)}>${t('X-LIBHOME.practiceThese')}</${Button}>`
+        : null}
+    </div>
+    ${n ? html`<${Samples} cells=${cardMini(items, kind)} />` : null}
+  </section>`;
 }
 
 function EmptyState() {
@@ -242,7 +199,6 @@ function LibraryScreen() {
   const { large, width } = useWallLayout();
   const compact = large;
   const model = useMemo(() => libraryHomeModel(state, today, { compact: large, width }), [state, today, large, width]);
-  const libraryId = currentLibraryId(state && state.settings);
   const getInk = useMemo(() => record => {
     try {
       return getStore().getInk(record);
@@ -257,28 +213,15 @@ function LibraryScreen() {
       data-today=${today} data-compact=${compact ? 'true' : 'false'}>
       <div class="sz-lib__query">
         <div data-testid="library-query-slot">${Slot ? html`<${Slot} />` : html`<${LibraryQueryBox} />`}</div>
-        <p class="sz-lib__qnote" data-testid="library-query-note">${t('R-L04.queryNote')}</p>
       </div>
-      <${Button} variant="plain" class="sz-lib__scope" data-testid="library-switch" data-library=${libraryId} onClick=${openSwitch}>
-        <span class="sz-lib__scopel"><span class="sz-lib__scopelabel">${t('R-S01.library')}</span
-          ><span class="sz-lib__scopename" data-testid="library-scope-name">${libraryName(libraryId)}</span></span>
-        <span class="sz-lib__scopeentry">${t('R-L06.entry')}</span>
-      </${Button}>
       ${model.empty
         ? html`<p class="sz-lib__nonote" data-testid="library-no-record-note">${t('R-L05.noRecordNote')}</p><${EmptyState} />`
-        : html`<div class="sz-lib__rec">
-            <${Button} variant="plain" class="sz-lib__count" data-testid="library-count" data-n=${model.recorded} onClick=${openAll}>
-              <span class="sz-lib__label">${t('X-LIBHOME.recordedLabel')}</span>
-              <span class="sz-lib__num"><span class="sz-lib__big">${model.recorded}</span><span class="sz-lib__unit">${t('X-LIBHOME.countUnit')}</span></span>
-            </${Button}>
-            <${Facts} facts=${model.facts} />
+        : html`<div class="sz-lib__pbs">
+            <${PracticeBlock} kind="wrong" items=${model.wrong.items} />
+            <${PracticeBlock} kind="forget" items=${model.forget.items} />
           </div>
-          <div class="sz-lib__cards">
-            <${Card} kind="wrong" items=${model.wrong.items} getInk=${getInk} />
-            <${Card} kind="forget" items=${model.forget.items} getInk=${getInk} />
-          </div>
+          <p class="sz-lib__wl" data-testid="library-caption" data-n=${model.recorded}>${t('X-LIBHOME.caption', { n: model.recorded })}</p>
           <div class="sz-lib__wallsec">
-            <${Legend} />
             <${Wall} wall=${model.wall} getInk=${getInk} onOpen=${openDetail} />
             <div class="sz-lib__foot">
               <span class="sz-lib__footnote"><${LegendNote} /></span>

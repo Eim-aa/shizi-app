@@ -223,8 +223,8 @@ export default async function p1e1bLayout(page, ctx) {
         const mark = el.querySelector('.sz-lib__mark');
         return { kind: el.dataset.kind, tone: el.dataset.tone, color: ch ? getComputedStyle(ch).color : null, stroke: ch ? getComputedStyle(ch).webkitTextStrokeColor : null, mark: !!mark, scale: ch ? getComputedStyle(ch).transform : null, opacity: el.querySelector('.sz-lib__g') ? getComputedStyle(el.querySelector('.sz-lib__g')).opacity : null };
       });
-      const sw = [...top.querySelectorAll('[data-testid="library-legend-tone"] path')].map(p => getComputedStyle(p).fill);
-      return { cols: w.dataset.cols, cells, sw, tpl: getComputedStyle(w).gridTemplateColumns.split(' ').length };
+      const legend = top.querySelectorAll('[data-testid="library-legend"], [data-testid="library-legend-tone"]').length;
+      return { cols: w.dataset.cols, cells, legend, tpl: getComputedStyle(w).gridTemplateColumns.split(' ').length };
     });
     assert.equal(wall.cols, '8', `${scheme}: 8 columns at 393 wide`);
     assert.equal(wall.tpl, 8, `${scheme}: the grid really has 8 tracks`);
@@ -237,9 +237,9 @@ export default async function p1e1bLayout(page, ctx) {
     const wrongCells = wall.cells.filter(c => c.kind === 'wrong');
     assert.ok(wrongCells.length > 0 && wrongCells.every(c => c.mark), `${scheme}: wrong cells carry the zhu dot`);
     assert.ok(wrongCells.every(c => c.scale === 'none'), `${scheme}: wrong cells are not shrunk`);
-    assert.deepEqual(wall.sw, toneColors, `${scheme}: the legend strokes use the same four colours`);
+    assert.equal(wall.legend, 0, `${scheme}: no legend on the library page (D49: the tones and marks explain themselves)`);
     const hollow = wall.cells.filter(c => c.kind === 'hollow');
-    assert.ok(hollow.length === 2 && hollow.every(c => c.stroke === tokenRgb(scheme, 'danzhu')), `${scheme}: unwritten custom chars are outlined in danzhu`);
+    assert.ok(hollow.length === 2 && hollow.every(c => c.stroke === tokenRgb(scheme, 'ink4')), `${scheme}: unwritten custom chars are outlined in ink4 (D49 ⑤: vermilion only means wrong)`);
   }
 
   step('D: Pro Max width → 9 columns; system large text → 6 columns');

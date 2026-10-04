@@ -29,8 +29,8 @@ import { compareRecordIds, forgetList, isJudged } from '../../../core/records.js
 
 /** 墙最多几行（R-L02 / 原型 L363 cols*8）。 */
 export const WALL_MAX_ROWS = 8;
-/** 卡片预览格数（原型 L358 mini：前 4 个）。 */
-export const CARD_MINI_MAX = 4;
+/** 样字个数（D49 减法稿：每块一排最该练的 5 个样字，D36；原型 L358 的前 4 个作废）。 */
+export const CARD_MINI_MAX = 5;
 /**
  * 列数（设计系统 v1，tokens.json components.wall：8 列，Pro Max 9 列）：最多 9 列、系统大字号最多 6 列，并且一格不窄于 minCell（44pt 触控）——
  * 列数 = min(上限, ⌊(屏宽 − 2 × 页边) ÷ 44⌋)。393 / 402 宽 → 8，440 宽 → 9，375 宽 → 7，320 宽 → 6；屏宽未知时按标准 8（大字 6）。
@@ -172,12 +172,15 @@ export function libraryHomeModel(state, today, { policy = defaultPolicy, compact
   };
 }
 
-/** 卡片预览（前 4 个；写错过画标准字 + 红点，快忘了画最近一次笔迹 / 标准字占位，原型 L358 mini）。 */
-export function cardMini(items, kind) {
+/**
+ * 样字（D49 减法稿 / 实现交接 §14.1：每块一排最该练的 5 个，30pt 标准字形，颜色 wall1，不画朱点——写错过与快忘了同一个样子）。
+ * items 已经按「最该练」排好（写错过 = 最近写错的，快忘了 = 到期最久的，D36）；kind 只留作调用方对照，不再影响画法。
+ */
+export function cardMini(items, kind) { // eslint-disable-line no-unused-vars
   return (items || []).slice(0, CARD_MINI_MAX).map(item => ({
     char: item.char,
-    kind: kind === 'wrong' ? 'wrong' : 'ink',
-    tone: item.tone == null ? null : item.tone,
-    record: item.record || null,
+    kind: 'sample',
+    tone: 0,
+    record: null,
   }));
 }

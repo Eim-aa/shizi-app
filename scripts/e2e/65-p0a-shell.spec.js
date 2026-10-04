@@ -106,7 +106,7 @@ export default async function p0aShell(page, ctx) {
 
   // ------------------------------------------------------------------ A4 按压反馈（G16）
   // 不靠 :active（iOS WebKit 没有 touchstart 监听时 :active 不生效），改 pointerdown / up / cancel / leave 切 data-pressed。
-  // 对象：Tab 条（Tabs 组件）与一个列表行（字库页的「字库」切换行），它们都是 Button variant=plain。
+  // 对象：Tab 条（Tabs 组件）与字库页字墙上的一格（D49 起字库页没有「练习范围」切换行了），它们都是 Button variant=plain。
   step('A4: pointerdown on a Tab sets data-pressed; it scales to .97 and darkens in 120ms (D43 motion tokens), release clears it');
   const tab = topSel('tab-home');
   const pressState = async sel => page.evaluate(s => {
@@ -135,12 +135,12 @@ export default async function p0aShell(page, ctx) {
   assert.equal(ps.transform, 'none', 'released back to rest');
   assert.equal(ps.filter, 'none', 'released filter cleared');
 
-  step('A4: pointercancel clears data-pressed on a list row; a disabled button never shows the pressed look');
-  const lib = topSel('library-switch');
-  const lbox = await page.locator(lib).boundingBox();
+  step('A4: pointercancel clears data-pressed on a wall cell; a disabled button never shows the pressed look');
+  const lib = topSel('library-wall-cell');
+  const lbox = await page.locator(lib).first().boundingBox();
   await page.mouse.move(lbox.x + lbox.width / 2, lbox.y + lbox.height / 2);
   await page.mouse.down();
-  assert.equal((await pressState(lib)).attr, 'true', 'row: data-pressed set on pointerdown');
+  assert.equal((await pressState(lib)).attr, 'true', 'cell: data-pressed set on pointerdown');
   await page.evaluate(s => document.querySelector(s).dispatchEvent(new PointerEvent('pointercancel', { bubbles: true, pointerId: 1 })), lib);
   assert.equal((await pressState(lib)).attr, null, 'pointercancel clears data-pressed');
   await page.mouse.move(cx, cy - 400);

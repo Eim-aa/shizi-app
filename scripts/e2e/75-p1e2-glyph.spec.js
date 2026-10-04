@@ -99,7 +99,7 @@ export default async function (page, ctx) {
   await bootTestHost(page, ctx.baseURL);
 
   // ---------------------------------------------------------------- 1. 字墙
-  ctx.step('wall: loading draws nothing (no ShiziKai flash); then outlines; hollow = danzhu double-hook; out-of-deck char falls back to ShiziKai');
+  ctx.step('wall: loading draws nothing (no ShiziKai flash); then outlines; hollow = ink4 double-hook (D49 ⑤); out-of-deck char falls back to ShiziKai');
   await goTab(page, 'library');
   await page.evaluate(({ iso, s }) => {
     window.__shiziTest.reset();
@@ -136,7 +136,7 @@ export default async function (page, ctx) {
   assert.deepEqual(wall.filter(c => c.kind === 'hollow').map(c => [c.char, c.variant, c.src]).sort(), [[MISSING, 'hollow', 'fallback'], ['馨', 'hollow', 'outline'], ['鼎', 'hollow', 'outline']].sort(), 'custom unwritten cells are hollow');
   for (const c of wall.filter(c => c.kind === 'hollow' && c.src === 'outline')) {
     assert.equal(c.fill, 'none', `${c.char}: double-hook is not filled`);
-    assert.equal(c.stroke, tokenRgb('light', 'danzhu'), `${c.char}: double-hook strokes with --danzhu`);
+    assert.equal(c.stroke, tokenRgb('light', 'ink4'), `${c.char}: double-hook strokes with --ink4 (D49 ⑤: vermilion only means wrong; danzhu is only for hints / trace)`);
   }
   const filled = wall.filter(c => c.kind === 'ink' || c.kind === 'wrong');
   assert.ok(filled.length > 0 && filled.every(c => c.src === 'outline' && c.fill !== 'none' && c.fill === c.color), 'filled outlines take the tone colour (currentColor)');

@@ -1,4 +1,4 @@
-// 阶段 1 Q2-13（复测 simC D10）：三处可点控件的触控热区 < 44——字库「练这些字」(.sz-lib__act 40)、写字页「结束这组」(.sz-end__btn 40)、
+// 阶段 1 Q2-13（复测 simC D10）：三处可点控件的触控热区 < 44——字库「练这些字」(.sz-lib__act 40；E9c 起它是文字按钮本身，高 44)、写字页「结束这组」(.sz-end__btn 40)、
 // 分享比例分段按钮 (.sz-img__ratio button 38)；另查到查字弹层「回到这 N 个字」(.sz-query__back 36)、详情「换掉这个词语」横幅按钮 (.sz-dbanner 40)。
 // 视觉尺寸不变，用透明的 ::after 把热区扩到 ≥ 44：在控件中心上下各 21pt 处做命中测试，必须仍落在这个控件（或它所在的按钮）上，宽度也 ≥ 44。
 import { bootTestHost, seedSession, tid, topSel, waitNavIdle } from './helpers.mjs';
@@ -47,10 +47,10 @@ export default async function run(page, ctx) {
   await page.evaluate(async () => (await import('/src/ui/router.js')).nav.switchTab('library'));
   await page.waitForFunction(() => document.querySelector('.sz-app').dataset.topScreen === 'library');
   await waitNavIdle(page);
-  await page.waitForSelector(`${topSel('library-card-wrong')} .sz-lib__act, .sz-layer[data-top="true"] .sz-lib__act`);
-  check(assert, 'library 练这些字', await hitFacts(page, '.sz-layer[data-top="true"] .sz-lib__act'));
-  const actH = await page.evaluate(() => document.querySelector('.sz-layer[data-top="true"] .sz-lib__act').getBoundingClientRect().height);
-  assert.equal(Math.round(actH), 40, 'the visible row is unchanged (40)');
+  await page.waitForSelector(topSel('library-card-practice'));
+  check(assert, 'library 练这些字', await hitFacts(page, topSel('library-card-practice')));
+  const actH = await page.evaluate(() => document.querySelector('.sz-layer[data-top="true"] [data-testid="library-card-practice"]').getBoundingClientRect().height);
+  assert.equal(Math.round(actH), 44, 'D49: 「练这些字」 is a text button (min height 44), so the visible height is the hit height');
 
   step('写字页：「结束这组」（自选的字那一组才有）');
   await seedSession(page, { slot: 'B', kind: 'picked', chars: ['春', '夏'] });

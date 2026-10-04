@@ -173,13 +173,15 @@ test('forget card uses core forgetList (K16 / P04): latest correct + due; mutual
   assert.equal(m.forget.items[0].tone, 3, 'last written > 90 days ago → oldest tone');
   assert.deepEqual(m.wrong.chars, ['乙']);
   const mini = cardMini(m.wrong.items, 'wrong');
-  assert.deepEqual(mini.map(c => [c.char, c.kind]), [['乙', 'wrong']], 'wrong card preview = standard glyph + red dot (K28)');
-  assert.deepEqual(cardMini(m.forget.items, 'forget').map(c => [c.char, c.kind, c.tone]), [['甲', 'ink', 3]]);
+  // D49（E9c）：写错过与快忘了是同一个模板——样字都是标准字形（kind 'sample'）、不画朱点、不画本人笔迹
+  assert.deepEqual(mini.map(c => [c.char, c.kind]), [['乙', 'sample']], 'samples are plain standard glyphs: no red dot on the wrong block');
+  assert.deepEqual(cardMini(m.forget.items, 'forget').map(c => [c.char, c.kind]), [['甲', 'sample']], 'the forgetting block uses the same sample kind');
 });
 
-test('card preview keeps at most 4', () => {
-  const items = CHARS.slice(0, 6).map(char => ({ char, record: null, tone: 0 }));
-  assert.equal(cardMini(items, 'forget').length, 4);
+test('sample row keeps at most 5 (D49, implementation hand-off §14.1), most-to-practise first', () => {
+  const items = CHARS.slice(0, 8).map(char => ({ char, record: null, tone: 0 }));
+  assert.equal(cardMini(items, 'forget').length, 5);
+  assert.deepEqual(cardMini(items, 'wrong').map(c => c.char), CHARS.slice(0, 5), 'the model order (most recent wrong / longest overdue) is kept');
 });
 
 test('helpers: customCharsOf dedups and drops non-single chars; latestJudgedByChar uses id order', () => {

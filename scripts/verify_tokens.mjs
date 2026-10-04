@@ -10,6 +10,8 @@
 //   color        颜色字面量（#hex、rgb()/rgba()/hsl() 里写死数字、white / black 等颜色名）只许出现在 tokens.css；图片导出 canvas 等
 //                确实读不到令牌的地方逐条登记在 EXCEPTIONS，写明理由。
 //   zhu          朱色（--zhu / --seal / --on-seal，T.zhu / T.seal / T.onSeal）只许出现在白名单组件（写错朱点、印章、落款）。
+//                淡朱 --danzhu（T.danzhu）只许出现在提示与描一遍的当前笔那几处（src/ui/screens/write/ 与 src/ui/canvas/，DANZHU_ALLOW_DIRS）：
+//                D49 ⑤ 起朱色只表示写错，字库墙上自选未写的空心字改用 ink4，不再用淡朱——别处再用淡朱会被这条拦住（同属 zhu 规则）。
 //   legacy       旧令牌名（--p --c --i1 … --ar --g …）一律不许再出现。
 //   glyph        练习字字形单一来源（阶段 1 P1-E2，D33 8a 方案 B、D44）：src/ui 与 src/core/images 里每一处用楷体字体（--kai / T.kai / FONTS.kai）
 //                的规则 / 代码，必须逐条登记在 EXCEPTIONS（rule 'glyph'：书家「拾」占位、印章、题跋 / 释义 / 词语文字、输入框、
@@ -40,6 +42,14 @@ const TOKEN_FILE = 'src/config/tokens.css';
  */
 export const ZHU_ALLOW = Object.freeze({
   'src/ui/components/marks.js': '写错朱点（字墙 / 结果页 / 记录页格子上的同一个符号）与印章（首页题记、关于页、字帖落款）的样式，集中在这一个组件里',
+});
+
+/**
+ * 淡朱 --danzhu 的允许目录（D49 ⑤，color.roles.danzhu 的用途只剩「提示、描一遍当前笔」）。目录前缀，相对仓库根。
+ */
+export const DANZHU_ALLOW_DIRS = Object.freeze({
+  'src/ui/screens/write/': '写字页：提示笔画 / 提示说明点（hint-layer）、看答案与描一遍的淡朱字形与描边（answer / glyph-fallback）',
+  'src/ui/canvas/': '字形 canvas：提示 / 描红当前笔读令牌（glyph.js）',
 });
 
 /**
@@ -131,6 +141,7 @@ function lineOf(text, index) {
 }
 
 const ZHU_RE = /var\(\s*--(?:zhu|seal|on-seal)\b|\bT\.(?:zhu|seal|onSeal)\b/g;
+const DANZHU_RE = /--danzhu\b|\bT\.danzhu\b/g;
 
 
 const KAI_REF_RE = /\bFONTS\.kai\b|\bfonts\.kai\b|\bT\.kai\b|var\(--kai\)/g;
@@ -224,6 +235,13 @@ export function scanText(rel, source, used = new Set()) {
     if (!ZHU_ALLOW[rel]) {
       ZHU_RE.lastIndex = 0;
       while ((m = ZHU_RE.exec(text))) {
+        out.push({ rule: 'zhu', file: rel, line: lineOf(text, m.index), snippet: text.slice(Math.max(0, m.index - 20), m.index + 40).replace(/\s+/g, ' ').trim() });
+      }
+    }
+    // 淡朱 --danzhu：只许提示 / 描一遍那几处（D49 ⑤）
+    if (!Object.keys(DANZHU_ALLOW_DIRS).some(dir => rel.startsWith(dir))) {
+      DANZHU_RE.lastIndex = 0;
+      while ((m = DANZHU_RE.exec(text))) {
         out.push({ rule: 'zhu', file: rel, line: lineOf(text, m.index), snippet: text.slice(Math.max(0, m.index - 20), m.index + 40).replace(/\s+/g, ' ').trim() });
       }
     }

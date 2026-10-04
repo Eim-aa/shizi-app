@@ -11,6 +11,10 @@
 //                确实读不到令牌的地方逐条登记在 EXCEPTIONS，写明理由。
 //   zhu          朱色（--zhu / --seal / --on-seal，T.zhu / T.seal / T.onSeal）只许出现在白名单组件（写错朱点、印章、落款）。
 //   legacy       旧令牌名（--p --c --i1 … --ar --g …）一律不许再出现。
+//   glyph        练习字字形单一来源（阶段 1 P1-E2，D33 8a 方案 B、D44）：src/ui 与 src/core/images 里每一处用楷体字体（--kai / T.kai / FONTS.kai）
+//                的规则 / 代码，必须逐条登记在 EXCEPTIONS（rule 'glyph'：书家「拾」占位、印章、题跋 / 释义 / 词语文字、输入框、
+//                轮廓缺失的回退分支……），写明为什么它不是「练习字」；练习字（要写的字、参考字、衬底字、墙 / 字帖 / 详情 / 图片里的标准字形）
+//                一律走 ui/components/PracticeGlyph.js（SVG 轮廓）或 core/images/render.js paintOutline（canvas 轮廓）。登记过期也报错。
 //
 // 用法：node scripts/verify_tokens.mjs [--root=<目录>] [--quiet]   有违规退出码 1；--root 指向另一份源码树（比较旧代码用）。
 
@@ -22,8 +26,10 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(HERE, '..');
 
 export const SCAN_DIRS = Object.freeze(['src/ui', 'src/config']);
+/** 只检查 glyph 规则的目录（图片导出的 canvas 字体）。 */
+export const GLYPH_ONLY_DIRS = Object.freeze(['src/core/images']);
 export const FONT_SCALE = Object.freeze([11, 13, 15, 17, 22, 28, 34]);
-export const RULES = Object.freeze(['fontSize', 'radius', 'letterSpacing', 'color', 'zhu', 'legacy']);
+export const RULES = Object.freeze(['fontSize', 'radius', 'letterSpacing', 'color', 'zhu', 'legacy', 'glyph']);
 
 /** 令牌文件本身：颜色字面量与旧名的「定义处」。 */
 const TOKEN_FILE = 'src/config/tokens.css';
@@ -40,19 +46,33 @@ export const ZHU_ALLOW = Object.freeze({
  * 登记的例外：{ rule, file, snippet（源码里出现的片段）, why }。过期（文件里已找不到 snippet）报错。
  */
 export const EXCEPTIONS = Object.freeze([
-  { rule: 'fontSize', file: 'src/ui/screens/library/wall.js', snippet: 'calc(280px / var(--cols))', why: '不认 cqw 的浏览器的回退（后一行 72cqw 生效时被覆盖）；同样是字墙格里的字面' },
-  { rule: 'fontSize', file: 'src/ui/screens/library/wall.js', snippet: 'calc(80cqw / var(--cols))', why: '字墙格里的楷体字面，边长 = 格宽 × 0.8（tokens.json typography.glyph.wallCellFace），随列数变化（字面是图，不是排版字阶；tokens.json typography.glyph）' },
-  { rule: 'fontSize', file: 'src/ui/screens/mine/records.js', snippet: 'font-size:34cqw', why: '字帖格里的占位字面，按格宽的 34% 算（字面是图）' },
-  { rule: 'fontSize', file: 'src/ui/screens/detail/index.js', snippet: 'font-size:min(24px, calc((100cqw - 2px) / var(--n, 2) * .6))', why: '词语小字帖里的字面：边长 = 格宽 × 0.6，随字数变化（字面是图）' },
+  { rule: 'fontSize', file: 'src/ui/components/PracticeGlyph.js', snippet: 'font-size:calc(var(--pg-face) * 100cqw)', why: '练习字轮廓缺失时的楷体整字回退：字面尺寸 = 元素边长 × 字面比例（tokens.json typography.glyph.*Face，字面是图，ShiziKai 只做回退）' },
   { rule: 'fontSize', file: 'src/ui/screens/write/glyph-fallback.js', snippet: 'font-size:${Math.round(size * FALLBACK_FONT_RATIO * 100) / 100}px', why: '轮廓缺失时的楷体整字回退：字面尺寸 = 书写格边长 × 比例（字面是图，ShiziKai 只做回退）' },
   { rule: 'fontSize', file: 'src/ui/screens/mine/records.js', snippet: 'font-size:clamp(9px, 16cqw, 12px)', why: '字帖格里「没有笔迹」的小字，随格宽收缩；aria-hidden，同一信息在格子的 aria-label 里（X-MINE.cellLabel）' },
   { rule: 'fontSize', file: 'src/ui/screens/home/copybook.js', snippet: 'font-size:62cqw', why: '首页字帖位里书家「拾」的字面（占位），边长 = 格宽 × 0.62（字面是图，不是排版字阶；书家稿到位后换矢量资产）' },
-  { rule: 'fontSize', file: 'src/ui/screens/home/copybook.js', snippet: 'font-size:58cqw', why: '首页字帖格里没有墨迹时的楷体字面，边长 = 格宽 × 0.58，随格宽变化（字面是图）' },
-  { rule: 'fontSize', file: 'src/ui/screens/library/index.js', snippet: 'calc(46px * ${T.k})', why: '字库空态的空心字面（字面是图）' },
-  { rule: 'fontSize', file: 'src/ui/screens/library/list.js', snippet: 'font-size:52px', why: '空态占位框（88×88）里的「字」字面（字面是图，约占格 60%）' },
-  { rule: 'fontSize', file: 'src/ui/screens/mine/annual.js', snippet: 'font-size:52px', why: '空态占位框（88×88）里的「字」字面（字面是图）' },
-  { rule: 'fontSize', file: 'src/ui/screens/result/index.js', snippet: 'font-size:40px', why: '结果页格子里的楷体回退字面，随格宽、不随字号倍率（格子宽度不变，放大会压到说明）' },
   { rule: 'fontSize', file: 'src/ui/components/query/input.js', snippet: "fontSize: '16px", why: '查字框的隐形代理 input（1×1、opacity 0）：iOS 对字号 < 16px 的输入框聚焦时会放大页面，所以这个看不见的框必须 ≥ 16px，与字阶无关' },
+  // ---- glyph：楷体字体（--kai）只许用在这些地方（P1-E2；每条写明为什么它不是「练习字」）
+  { rule: 'glyph', file: 'src/ui/components/PracticeGlyph.js', snippet: '.sz-pg__fb', why: '练习字组件自己的回退分支：轮廓缺失 / 取不到数据 / 不是汉字时的楷体整字（10.13 语义，ShiziKai 只做回退）' },
+  { rule: 'glyph', file: 'src/ui/screens/write/glyph-fallback.js', snippet: '.sz-glyph-fb', why: '写字页 10.13 回退分支：看答案 / 对照 / 描一遍取不到笔顺数据时的楷体整字' },
+  { rule: 'glyph', file: 'src/ui/screens/home/copybook.js', snippet: '.sz-hshi__glyph', why: '首页字帖位里书家写的「拾」的占位（D43 方案 B 品牌字，不是练习字；书家稿到位后换矢量资产）' },
+  { rule: 'glyph', file: 'src/ui/screens/home/index.js', snippet: '.sz-home__seal>span', why: '首页题记 / 字帖落款旁的印章里的「字」（印章，不是练习字）' },
+  { rule: 'glyph', file: 'src/ui/screens/mine/records.js', snippet: '.sz-mseal', why: '字帖落款旁的印章（不是练习字）' },
+  { rule: 'glyph', file: 'src/ui/components/work.js', snippet: '.sz-wseal', why: '作品落款旁的印章（不是练习字）' },
+  { rule: 'glyph', file: 'src/ui/screens/mine/about.js', snippet: '.sz-about__seal', why: '关于页的印章（品牌印，不是练习字）' },
+  { rule: 'glyph', file: 'src/ui/screens/mine/about.js', snippet: '.sz-about__motto', why: '关于页的题记（整句文字，不是单个练习字）' },
+  { rule: 'glyph', file: 'src/ui/screens/detail/records.js', snippet: '.sz-dsrc__text', why: '单字详情里的字源释义原文（整句题跋式文字，不是练习字）' },
+  { rule: 'glyph', file: 'src/ui/screens/detail/index.js', snippet: '.sz-dcard__gloss', why: '单字详情里没有语境词时的释义（整句文字）' },
+  { rule: 'glyph', file: 'src/ui/screens/library/list.js', snippet: '.sz-lrow__word', why: '清单行的语境词语（多字词整段文字，目标字加粗；不是单个练习字）' },
+  { rule: 'glyph', file: 'src/ui/components/query/CharRow.js', snippet: '.sz-qrow__word', why: '查字结果行的语境词语（多字词文字）' },
+  { rule: 'glyph', file: 'src/ui/components/query/CharCard.js', snippet: '.sz-qcard__word', why: '查字卡片的语境词语（多字词文字）' },
+  { rule: 'glyph', file: 'src/ui/components/query/input.js', snippet: '.sz-query__input', why: '查字输入框：用户正在输入的文字（输入控件，不是标准字形）' },
+  { rule: 'glyph', file: 'src/ui/screens/library/all.js', snippet: '.sz-all__input', why: '「有记录的字」页的找字输入框：用户正在输入的文字' },
+  { rule: 'glyph', file: 'src/core/images/render.js', snippet: 'ctx.font = `400 ${Math.round(size * 0.8)}px ${FONTS.kai}`', why: '图片导出里轮廓缺失的衬底字回退（paintFallbackGlyph，10.13 语义；有数据时一律 paintOutline 画同一份轮廓）' },
+  { rule: 'glyph', file: 'src/core/images/render.js', snippet: 'font = FONTS.kai', why: '印章默认字体（drawSeal；印章不是练习字）' },
+  { rule: 'glyph', file: 'src/core/images/render.js', snippet: 'font: fonts.kai', why: '图片落款的印章（drawSeal；印章不是练习字）' },
+  { rule: 'glyph', file: 'src/core/images/render.js', snippet: 'requireFont(fonts.kai, sealText)', why: '等印章字体就绪（印章不是练习字）' },
+  { rule: 'glyph', file: 'src/core/images/annual-render.js', snippet: 'requireFont(fonts.kai, sealText)', why: '等年报印章字体就绪（印章不是练习字）' },
+  { rule: 'glyph', file: 'src/core/images/annual-render.js', snippet: 'font: fonts.kai', why: '年报图片的印章（drawSeal；印章不是练习字）' },
   { rule: 'color', file: 'src/config/credits.js', snippet: '#', why: '致谢正文里的「#180」是议题编号（恰好是合法的 3 位十六进制），不是颜色' },
   { rule: 'color', file: 'src/config/char-order.js', snippet: '#', why: 'build_char_order.mjs 生成的新字顺序数据，removed / reserved 条目里的「字频#3919」是字频序号（恰好是合法的 4 位十六进制），不是颜色' },
   { rule: 'color', file: 'src/ui/canvas/glyph.js', snippet: '#', why: '字形 canvas 读不到 DOM（单测环境）时的最后回退色；浏览器里一律 getComputedStyle 读令牌' },
@@ -111,6 +131,39 @@ function lineOf(text, index) {
 }
 
 const ZHU_RE = /var\(\s*--(?:zhu|seal|on-seal)\b|\bT\.(?:zhu|seal|onSeal)\b/g;
+
+
+const KAI_REF_RE = /\bFONTS\.kai\b|\bfonts\.kai\b|\bT\.kai\b|var\(--kai\)/g;
+const KAI_FAMILY_RE = /font-family\s*:[^;]*(?:\bT\.kai\b|var\(--kai\))/;
+// 另一种漏网：练习字用黑体 / 别的字体画文字（选择器带 glyph / __char 的规则）——同样要么改走轮廓组件，要么登记
+const OTHER_GLYPH_FAMILY_RE = /font-family\s*:[^;]*(?:\bT\.hei\b|\bT\.song\b|var\(--hei\)|var\(--song\))/;
+const GLYPH_SELECTOR_RE = /glyph|__char\b/;
+
+/**
+ * glyph 规则：找出所有用到楷体字体的规则（CSS 选择器）与代码行（canvas 字体等），返回 [{snippet, index}]。
+ * 注释已去掉；`${…}` 里的花括号先遮住，免得拆坏 CSS 规则。
+ */
+export function findKaiUses(text) {
+  const prot = text.replace(/\$\{[^{}]*\}/g, m => `\u0001\u0001${m.slice(2, -1).replace(/[{}]/g, '_')}\u0002`);
+  const found = [];
+  const spans = [];
+  const ruleRe = /(?<=[{}`])([^{}`]*)\{([^{}]*)\}/g;
+  let m;
+  while ((m = ruleRe.exec(prot))) {
+    if (!KAI_FAMILY_RE.test(m[2]) && !(OTHER_GLYPH_FAMILY_RE.test(m[2]) && GLYPH_SELECTOR_RE.test(m[1]))) continue;
+    const start = m.index + m[1].length + 1;
+    spans.push([start, start + m[2].length]);
+    found.push({ snippet: m[1].replace(/\s+/g, ' ').trim(), index: m.index + m[1].length - m[1].trimStart().length });
+  }
+  KAI_REF_RE.lastIndex = 0;
+  while ((m = KAI_REF_RE.exec(prot))) {
+    if (spans.some(([a, b]) => m.index >= a && m.index <= b)) continue;
+    const lineStart = text.lastIndexOf('\n', m.index) + 1;
+    const lineEnd = text.indexOf('\n', m.index);
+    found.push({ snippet: text.slice(lineStart, lineEnd < 0 ? text.length : lineEnd).trim(), index: m.index });
+  }
+  return found;
+}
 
 /**
  * 扫一个文件的文本，返回 [{rule, file, line, snippet}]（已去掉登记过的例外）。
@@ -179,6 +232,12 @@ export function scanText(rel, source, used = new Set()) {
     while ((m = LEGACY_RE.exec(text))) {
       out.push({ rule: 'legacy', file: rel, line: lineOf(text, m.index), snippet: m[0] });
     }
+    // 练习字字形单一来源：楷体字体的每一处用法都要登记（P1-E2）
+    for (const use of findKaiUses(text)) {
+      const ex = EXCEPTIONS.find(e => e.rule === 'glyph' && e.file === rel && use.snippet.includes(e.snippet));
+      if (ex) { used.add(ex); continue; }
+      out.push({ rule: 'glyph', file: rel, line: lineOf(text, use.index), snippet: use.snippet.slice(0, 120) });
+    }
   }
   return out;
 }
@@ -202,6 +261,13 @@ export function scan({ root = REPO_ROOT } = {}) {
     for (const file of walk(path.join(root, dir))) {
       const rel = path.relative(root, file).split(path.sep).join('/');
       violations.push(...scanText(rel, fs.readFileSync(file, 'utf8'), used));
+      checked += 1;
+    }
+  }
+  for (const dir of GLYPH_ONLY_DIRS) {
+    for (const file of walk(path.join(root, dir))) {
+      const rel = path.relative(root, file).split(path.sep).join('/');
+      violations.push(...scanText(rel, fs.readFileSync(file, 'utf8'), used).filter(v => v.rule === 'glyph'));
       checked += 1;
     }
   }

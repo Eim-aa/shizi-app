@@ -7,7 +7,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  scan, scanText, stripComments, fontSizeOk, radiusOk, EXCEPTIONS, ZHU_ALLOW, FONT_SCALE,
+  scan, scanText, stripComments, fontSizeOk, radiusOk, findKaiUses, EXCEPTIONS, ZHU_ALLOW, FONT_SCALE,
 } from '../../scripts/verify_tokens.mjs';
 import { T, TEX } from '../../src/ui/components/styles.js';
 import { parseTokenDecls } from '../../src/ui/dev/palette.js';
@@ -128,4 +128,26 @@ test('every var(--x) used under src/ui is a token, a base.css variable or a comp
   }
   const unknown = [...used].filter(([name]) => !defined.has(name) && !local.has(name) && !/^--lib-t/.test(name));
   assert.deepEqual(unknown, [], 'var(--x) with no definition anywhere');
+});
+
+// ---- 阶段 1 P1-E2：练习字字形单一来源（glyph 规则）
+test('glyph rule: every use of the kai font in src/ui and src/core/images is a registered exception (practice chars use PracticeGlyph / paintOutline)', () => {
+  const { violations, stale } = scan();
+  assert.deepEqual(violations.filter(v => v.rule === 'glyph').map(v => `${v.file}:${v.line} ${v.snippet}`), [], 'unregistered kai-font rule: practice chars must render through PracticeGlyph');
+  const registered = EXCEPTIONS.filter(e => e.rule === 'glyph');
+  assert.ok(registered.length >= 15, 'the registry lists the seals, words, inputs, brand 拾 and the fallback branches');
+  assert.deepEqual(stale.filter(e => e.rule === 'glyph'), [], 'no stale glyph exceptions');
+});
+
+test('glyph rule: findKaiUses sees kai CSS rules (selector reported), canvas FONTS.kai code and look-alike practice-glyph rules; ignores other fonts', () => {
+  const css = 'a{x:1}\n.sz-foo__char{font-family:${T.kai};font-size:${T.fs28}}\n.sz-bar{font-family:${T.song}}\n@media (x){ .sz-baz .sz-pg{font-family:var(--kai)} }';
+  assert.deepEqual(findKaiUses(css).map(u => u.snippet), ['.sz-foo__char', '.sz-baz .sz-pg']);
+  assert.deepEqual(findKaiUses('ctx.font = `400 ${size}px ${FONTS.kai}`;\nconst x = 1;').map(u => u.snippet), ['ctx.font = `400 ${size}px ${FONTS.kai}`;']);
+  assert.deepEqual(findKaiUses('`.sz-x__glyph{font-family:${T.hei};color:red}\n.sz-y{font-family:${T.hei}}').map(u => u.snippet), ['.sz-x__glyph'], 'a glyph-named rule in another font is flagged too');
+  assert.equal(findKaiUses('`.sz-p{font-family:${T.song}}').length, 0);
+  const hits = scanText('src/ui/screens/x.js', 'const css = `.sz-lib__char{font-family:${T.kai};color:${T.ink1}}`;');
+  assert.deepEqual(hits.map(h => [h.rule, h.snippet]), [['glyph', '.sz-lib__char']]);
+  assert.equal(scanText('src/ui/screens/x.js', 'a{font-family:${T.song}}').length, 0);
+  // 登记过的例外放行（同一选择器在登记的文件里）
+  assert.equal(scanText('src/ui/components/PracticeGlyph.js', 'x`.sz-pg__fb{font-family:${T.kai}}`').filter(h => h.rule === 'glyph').length, 0);
 });

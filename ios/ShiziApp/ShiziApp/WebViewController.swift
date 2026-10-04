@@ -107,6 +107,11 @@ final class WebViewController: UIViewController {
         webView.scrollView.bounces = false
         webView.scrollView.alwaysBounceVertical = false
         webView.scrollView.contentInsetAdjustmentBehavior = .never
+        // 页面不能被双指缩放（缩放后界面没有恢复入口，Q2-14，复测 simC D11）。这只管页面的捏合缩放；系统「辅助功能 › 缩放」是系统层的屏幕放大镜、
+        // 「更大字体」走 shiziContentSize，都不受影响。
+        webView.scrollView.minimumZoomScale = 1
+        webView.scrollView.maximumZoomScale = 1
+        webView.scrollView.pinchGestureRecognizer?.isEnabled = false
 
         let practiceBackGesture = UIScreenEdgePanGestureRecognizer(target: self, action: #selector(handlePracticeBackGesture(_:)))
         practiceBackGesture.edges = .left

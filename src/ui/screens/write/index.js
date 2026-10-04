@@ -27,6 +27,9 @@
 // （nav.replace('result')，决定-D20 无中间页）；跳过最后一字的 3 秒撤销机会交给结果页（handoffSkipUndo）。
 // M2 验收 H1：槽里没有会话（且不是刚交给结果页）→ 回本 tab 根，不留空页（刷新从 history 恢复 / reset / 跨天作废）。
 //
+// P1-E8（paper.js，D46 ⑬）：这一字在纸上写时，书写格换成同样大小的纸面格（提示照常画在里面）、格下说明换成「纸上」说明、
+// 「写好了」不要求笔画、判断页只有参考字形；屏幕上写且还没落笔时格下右端是「在纸上写」（只改这一个字）。
+//
 // data-testid：write-screen、write-progress、write-steps、write-line-slot、write-prompt、write-grid（及
 // write-grid-ink / write-grid-live / write-glyph-layer）、write-tools、write-undo、write-clear、write-note、
 // write-answer-slot、write-hint-slot、write-done、write-skip-slot、write-end-slot、write-empty。
@@ -54,6 +57,7 @@ import { useAnswerFit, useCompact, useWriteGridSize } from './compact.js';
 import { storedStrokes, usePersist } from './persist.js';
 import { useEndGroup } from './end.js';
 import { commitFinish, handoffSkipUndo, openResult } from '../result/index.js';
+import { PaperNote, PaperStage, ToPaperButton, usePaperMode } from './paper.js';
 
 export const WRITE_SCREEN = 'write';
 /** 换字后书写格不接受落笔的时长（01 §6.6 / 走查-V01，已定）。 */
@@ -79,7 +83,7 @@ injectStyles('write', `
   padding:env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px)}
 .sz-write__prompt{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:${T.s1};padding-bottom:0}
 .sz-write__gridwrap{display:flex;justify-content:center;margin:${T.s6} calc(-1 * var(--bleed)) 0}
-.sz-write__below{min-height:44px;display:flex;align-items:center;justify-content:space-between;gap:${T.s3};margin:6px 0 0} /* 说明不贴着格子（R-W26：≥ 6px） */
+.sz-write__below{position:relative;min-height:44px;display:flex;align-items:center;justify-content:space-between;gap:${T.s3};margin:6px 0 0} /* 说明不贴着格子（R-W26：≥ 6px） */
 .sz-write__note{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3}}
 .sz-write__tools{flex:none;display:flex;gap:${T.s1};margin-right:-10px}
 .sz-write__tools[data-shown="false"]{visibility:hidden}
@@ -236,9 +240,12 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
   const view = ink.key === localKey ? ink : hydrate(keyRef.current);
   const update = fn => setInk(prev => fn(prev.key === keyRef.current.localKey ? prev : hydrate(keyRef.current)));
 
-  // M1-5：有效阶段 = 存下的阶段 + 进 / 出判断页的本地覆盖（写入不阻断，P52）；compare 且没有本人笔画按 recall（01 §3.3）。
-  const cmpPhase = useComparePhase({ slot, session, cardKey, storedPhase, strokeCount: view.strokes.length });
+  // P1-E8（D46 ⑬）：这一字在纸上写还是屏幕上写（本字切换 current.paper 优先，否则设置 settings.writeMode；只管 recall / compare）。
+  const paperMode = usePaperMode({ slot, session, cardKey, settings: state ? state.settings : null, storedPhase, getStore });
+  // M1-5：有效阶段 = 存下的阶段 + 进 / 出判断页的本地覆盖（写入不阻断，P52）；compare 且没有本人笔画按 recall（01 §3.3），纸上那一字除外。
+  const cmpPhase = useComparePhase({ slot, session, cardKey, storedPhase, strokeCount: view.strokes.length, paper: paperMode.paper });
   const phase = cmpPhase.phase;
+  const paper = paperMode.paper && (phase === 'recall' || phase === 'compare');
   // M1-6 会话现场：本地笔画一变就写回 sessions（P52 不阻断 + 一次性提示）、visibilitychange 重写、打开时恢复幂等。
   // M2-2：只有顶层写字页写回现场（抬笔 / visibilitychange / pagehide / 离开）；被压在下面时不写（cardKey 传 null = 不写）。
   const persist = usePersist({ slot, session, state, cardKey: isTop ? cardKey : null, inkKey, strokes: view.strokes, phase, isStale });
@@ -256,7 +263,7 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
   // M1-3 提示：当前字的笔顺数据（M1-4 看答案 / 描一遍共用 strokeData）与提示控制器（hint-layer.js）。
   const strokeData = useStrokeData(charOfCardKey(cardKey));
   const hint = useHint({
-    slot, session, cardKey, char: charOfCardKey(cardKey), phase, written: view.strokes.length, strokes: strokeData, getStore,
+    slot, session, cardKey, char: charOfCardKey(cardKey), phase, written: paper ? 0 : view.strokes.length, strokes: strokeData, getStore,
     onHinted: endSkipUndo,
   });
   // M1-7 紧凑版（compact.js）：只改控件排布（底栏两行、间距），不改格子大小（D36）。书写格边长按屏宽与视口高算（P118），
@@ -270,7 +277,7 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
   const pairSize = useJudgePairSize(writeRef, phase === 'compare');
   const compare = useCompareFlow({
     slot, session, cardKey, char: charOfCardKey(cardKey), phase, strokes: view.strokes, hints: hint.used, strokeData,
-    onLeave: cmpPhase.leave, size: pairSize,
+    onLeave: cmpPhase.leave, size: pairSize, paper, paperSize: gridSize,
   });
   const row = useResultRow({ slot, session, state, phase, strokeCount: view.strokes.length });
   const skip = useSkip({ slot, session, cardKey, phase, hints: hint.used, strokes: view.strokes });
@@ -342,8 +349,8 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
   });
   const onClear = () => update(prev => (prev.strokes.length ? { ...prev, strokes: EMPTY, cleared: prev.strokes } : prev));
   const onDone = () => {
-    // 进判断页（compare）；空格子不进（01 §6.6：按钮 disabled 之外再挡一次；判断 commit 前还会再断言有本人笔画）。
-    if (!view.strokes.length) return;
+    // 进判断页（compare）；空格子不进（01 §6.6：按钮 disabled 之外再挡一次；判断 commit 前还会再断言有本人笔画）。纸上那一字不要求笔画（P1-E8）。
+    if (!view.strokes.length && !paper) return;
     cmpPhase.enter(view.strokes);
   };
 
@@ -366,7 +373,7 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
   const answerSlot = html`<div class="sz-write__linkrow" data-testid="write-answer-slot">${answer.link}</div>`;
   const mainRow = skip.failed ? skip.failButtons : html`<div class="sz-write__main">
       <div class="sz-write__hint" data-testid="write-hint-slot">${hint.button}</div>
-      <${Button} variant="primary" data-testid="write-done" disabled=${!hasStrokes} onClick=${onDone}>${t('R-W29.btnDone')}</${Button}>
+      <${Button} variant="primary" data-testid="write-done" disabled=${!hasStrokes && !paper} onClick=${onDone}>${t('R-W29.btnDone')}</${Button}>
     </div>`;
   const skipSlot = html`<div class="sz-write__skiprow" data-testid="write-skip-slot">${skip.button}</div>`;
   // 页底栏两行（设计系统 v1，标准版与紧凑版同一结构）：主操作行「提示 · 写好了」；文字行「看答案 · 跳过 · 结束这组」两端对齐
@@ -376,7 +383,11 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
       <div class="sz-write__links" data-testid="write-links">${answerSlot}${skipSlot}${end.button
     ? html`<div class="sz-write__endslot" data-testid="write-end-slot">${end.button}</div>` : null}</div>
     </div>`;
-  const tools = html`<span class="sz-write__tools" data-testid="write-tools" data-shown=${canUndo && drawable ? 'true' : 'false'}>
+  // P1-E8：屏幕上写、还没落笔（也没有可撤销的清空）时，格下右端是「在纸上写」（只改这一个字）；纸上那一字不显示撤销 / 清空。
+  // 「在纸上写」叠在（隐藏着的）撤销 / 清空同一位置，不改这一行的排布。
+  const toPaper = !paper && phase === 'recall' && !canUndo && !skip.failed;
+  const toPaperSlot = toPaper ? html`<span class="sz-write__topaperslot"><${ToPaperButton} onClick=${() => paperMode.toggle(true)} /></span>` : null;
+  const tools = html`<span class="sz-write__tools" data-testid="write-tools" data-shown=${canUndo && drawable && !paper ? 'true' : 'false'}>
           <${Button} variant="plain" class="sz-write__tool" data-testid="write-undo" disabled=${!canUndo} rapid
             onClick=${onUndo}>${t('R-W18.btnUndo')}</${Button}>
           <${Button} variant="plain" class="sz-write__tool" data-testid="write-clear" disabled=${!hasStrokes} rapid
@@ -391,7 +402,8 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
       <${StepDots} phase=${phase} />
       <${Prompt} cardKey=${cardKey} queue=${session.queue} phase=${phase} />
       <div class="sz-write__gridwrap">
-        ${answer.stage || compare.stage || html`<${InkGrid}
+        ${answer.stage || compare.stage || (paper ? html`<${PaperStage} size=${gridSize} glyphLayer=${hint.layer}
+          hinted=${hint.used > 0} onBack=${() => paperMode.toggle(false)} />` : null) || html`<${InkGrid}
           strokes=${view.strokes}
           onStrokeEnd=${onStrokeEnd}
           drawable=${drawable}
@@ -407,8 +419,8 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
       </div>
       ${compare.active ? null : html`<div class="sz-write__below">
         <span class="sz-write__note" data-testid="write-note"><span class="sz-write__lineslot" data-testid="write-line-slot">${row.node}</span>${answer.active ? answer.note
-          : skip.failed ? skip.note : html`<${HintNote} note=${hint.note} />`}</span>
-        ${tools}
+          : skip.failed ? skip.note : paper ? html`<${PaperNote} />` : html`<${HintNote} note=${hint.note} />`}</span>
+        ${tools}${toPaperSlot}
       </div>`}
     </div>
     ${skip.bar}

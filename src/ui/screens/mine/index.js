@@ -25,13 +25,14 @@ import { html, useMemo } from '../../../../vendor/ui.js';
 import { registerScreen } from '../../router.js';
 import { TabPage } from '../../components/Page.js';
 import { Button } from '../../components/Button.js';
+import { Seal } from '../../components/marks.js';
 import { Chevron } from '../../components/Chevron.js';
 import { injectStyles, T, TEX } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
 import * as defaultPolicy from '../../../config/policy.js';
 import { mineModel, MINE_SHEET_COLS } from './model.js';
 import {
-  dayText, getMineImageActions, go, hasInkOfStore, MINE_ROUTES, openRecords, Seal, SheetGrid, signatureText, useStoreState, useToday,
+  dayText, getMineImageActions, go, hasInkOfStore, MINE_ROUTES, openRecords, SheetGrid, signatureText, useStoreState, useToday,
 } from './records.js'; // 练习记录页自注册（records）；首页墨迹行「今天的记录」也在那里注册
 
 export { MINE_ROUTES, openRecords, openTodayRecords, setMineImageActions, RECORDS_SCREEN } from './records.js';
@@ -122,7 +123,7 @@ function Sheet({ model }) {
         : null}
       <div class="sz-msign">
         <span class="sz-msign__text"><span class="sz-msign__line" data-testid="mine-sheet-sign">${signatureText(sheet)}</span></span>
-        <${Seal} small=${true} testid="mine-sheet-seal" />
+        <${Seal} testid="mine-sheet-seal" />
       </div>
     </div>
   </section>`;

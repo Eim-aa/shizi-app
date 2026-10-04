@@ -77,7 +77,7 @@ export function glyphLayout(bounds, ratio = 'portrait') {
     oy: glyphTop - bounds.y * k,
     glyph: { x: glyphLeft, y: glyphTop, width: glyphWidth, height: glyphHeight },
     info: { top: glyphTop + glyphHeight + GLYPH_GAP, line: GLYPH_INFO_LINE, font: GLYPH_INFO_FONT, centerX: width / 2 },
-    seal: { x: sealX, y: sealY, size: SEAL, rotate: -3 },
+    seal: { x: sealX, y: sealY, size: SEAL, rotate: 0 },
     signature: { right: sealX - SIGNATURE_SEAL_GAP, baseline: sealY + SEAL - 6, font: SIGNATURE_FONT, tracking: SIGNATURE_TRACKING },
   };
 }

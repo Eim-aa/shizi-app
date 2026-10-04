@@ -5,7 +5,7 @@
 //   格：外框 2px frame、格间 1.5px guide、直角，墨在格内 12% 内边，线宽按「格的屏幕当量（c ÷ 2.69 pt）」查补偿表；
 //   没有本人墨的字（mode 'under'）画参考轮廓、填 under（月字帖 / 年报里该时段没留下笔迹的字）；
 //   写错且手动放进来的字带朱点；月图日期角标画在格内左上角（不压格线、没有底色块，V2-09）；
-//   落款 song 400 ink2、品牌印「字」白文直角 seal、旋转 −2°；字体在绘制前经注入的 requireFont 确认已加载（§6.5）。
+//   落款 song 400 ink2、印白文直角 seal、正放（与屏上 <Seal/> 同一种，不倾斜）；字体在绘制前经注入的 requireFont 确认已加载（§6.5）。
 //   导出格式 JPEG 0.92、sRGB（exportCanvas）；纸纹在 PNG 里体积过大。
 // 单字手写图片 renderSingleGlyph（A05，详情页「把这个字做成图片」）沿用 glyph-layout.js 的版式，色值同样来自调色板。
 // 笔迹：345 单位点列（core/ink-math decodeInk → resampleForReplay）用调用方注入的笔锋（ui/canvas/brush.js paintBrushStroke；
@@ -180,8 +180,8 @@ export function drawTracked(ctx, text, x, baseline, { font, size, tracking = 0.1
   return total;
 }
 
-/** 品牌印：白文「字」、直角、seal 底、旋转 −2°；内缩 7% 一圈 onSeal 细线（与 marks.js 的屏上印同款）。 */
-export function drawSeal(ctx, { x, y, size, rotate = -2 }, { text, palette, font = FONTS.kai }) {
+/** 印：白文、直角、seal 底、正放；内缩 7% 一圈 onSeal 细线（与 marks.js 的屏上印 <Seal/> 同款；R2-R1：印只有一种，不倾斜）。 */
+export function drawSeal(ctx, { x, y, size, rotate = 0 }, { text, palette, font = FONTS.kai }) {
   ctx.save();
   ctx.translate(x + size / 2, y + size / 2);
   ctx.rotate((rotate * Math.PI) / 180);

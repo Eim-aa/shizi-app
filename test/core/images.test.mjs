@@ -89,7 +89,7 @@ test('layout: seal and 落款 — last cell in the rightmost column → seal und
   assert.equal(three.seal.y, three.top + three.c + 38, 'seal 0.035W below the grid');
   assert.equal(three.kuan.right, three.seal.x - 22, '落款 22px left of the seal');
   assert.ok(Math.abs(three.kuan.top + three.kuan.lineHeight / 2 - (three.seal.y + three.seal.size / 2)) < 1e-9, '落款 vertically centred on the seal');
-  assert.equal(three.seal.rotate, -2);
+  assert.equal(three.seal.rotate, 0, 'the seal is not tilted (R2-R1: one kind of seal)');
   const five = layout(5, '3:4'); // 3 + 2：末字在第 2 列，不在最右列
   assert.equal(five.below, false);
   assert.equal(five.seal.x, five.left + 2 * five.c + Math.round(five.c * 0.12), 'beside the last cell, 0.12c');
@@ -97,7 +97,13 @@ test('layout: seal and 落款 — last cell in the rightmost column → seal und
   assert.equal(five.kuan.right, five.left + 3 * five.c, '落款 right-aligned to the grid');
   assert.equal(five.kuan.top, five.top + 2 * five.c + 38, '落款 0.035W under the grid');
   const one = layout(1, '3:4');
-  assert.deepEqual([one.seal.size, one.kuan.size], [108, 40], 'a single char: big seal / 40px 落款');
+  assert.deepEqual([one.seal.size, one.kuan.size], [64, 36], 'a single char: the same seal / 落款 size as every other count (V2-05 / T2-22)');
+  for (const n of [1, 2, 3, 4, 5, 9, 20, 80]) {
+    for (const ratio of ['3:4', '1:1']) {
+      const l = layout(n, ratio);
+      assert.deepEqual([l.seal.size, l.seal.rotate, l.kuan.size], [64, 0, 36], `n=${n} ${ratio}: one seal size, no tilt`);
+    }
+  }
   // 外框：末行不满且末字不在最右列 → 两段（满行矩形 + 末行矩形）；否则一个矩形
   assert.equal(five.frame.length, 2);
   assert.deepEqual(five.frame[1], { x: five.left, y: five.top + five.c, w: 2 * five.c, h: five.c });

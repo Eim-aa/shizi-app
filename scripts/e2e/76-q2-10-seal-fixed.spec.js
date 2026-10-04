@@ -43,7 +43,7 @@ export default async function run(page, ctx) {
     step(`系统字号 ${category}：各处印章的印框与「字」固定尺寸`);
 
     await openResultOf(page);
-    let f = await sealFacts(page, '.sz-wseal');
+    let f = await sealFacts(page, '.sz-seal');
     assert.deepEqual([f.box, f.font], [24, 17], `${category} result work seal: box 24, glyph 17px`);
     assert.ok(f.glyphW <= f.box && f.glyphH <= f.box, `${category} work seal: glyph inside the box`);
 
@@ -51,7 +51,7 @@ export default async function run(page, ctx) {
     await page.waitForFunction(() => document.querySelector('.sz-app').dataset.topScreen === 'mine');
     await waitNavIdle(page);
     f = await sealFacts(page, '[data-testid="mine-sheet-seal"]');
-    assert.deepEqual([f.box, f.font], [16, 11], `${category} mine month-sheet seal (small): box 16, glyph 11px`);
+    assert.deepEqual([f.box, f.font], [24, 17], `${category} mine month-sheet seal: the same single work seal, box 24, glyph 17px (R2-R1)`);
 
     await page.evaluate(async () => (await import('/src/ui/router.js')).nav.push('about', {}));
     await page.waitForSelector(topSel('about-seal'));

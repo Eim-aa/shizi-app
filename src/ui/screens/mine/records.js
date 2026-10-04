@@ -124,9 +124,6 @@ injectStyles('mine-records', `
 .sz-msign__text{display:flex;flex-direction:column;gap:4px;min-width:0}
 .sz-msign__line{font-family:${T.song};font-size:calc(13px * 1);line-height:20px;font-weight:400;color:${T.ink2};white-space:nowrap} /* 与作品落款同一写法：宋 13 / 20、ink2、右对齐（R2-R1） */
 .sz-msign__order{font-size:${T.fs11};color:${T.ink3}}
-.sz-mseal{width:24px;height:24px;flex:none;border-radius:${T.rWork};display:grid;place-items:center;
-  font-family:${T.kai};font-size:calc(17px * 1);line-height:1;transform:rotate(-2deg)} /* 印是图形：固定 seal24 / 字形 17px，不随 --k（Q2-10） */
-.sz-mseal--small{width:16px;height:16px;font-size:calc(11px * 1)}
 `);
 
 // ---------------------------------------------------------------- 状态订阅
@@ -309,10 +306,6 @@ export function SheetGrid({ cells, cols = RECORDS_SHEET_COLS, variant = 'lines',
     ${cells.map(cell => html`<${SheetCell} key=${cell.char} cell=${cell} store=${store} testid=${cellTestid} showTag=${showTag} />`)}
     ${pads.map(i => html`<span key=${`pad${i}`} class="sz-scell sz-scell--pad" aria-hidden="true"></span>`)}
   </div>`;
-}
-
-export function Seal({ small = false, testid }) {
-  return html`<span class=${small ? 'sz-mseal sz-mseal--small' : 'sz-mseal'} aria-hidden="true" data-testid=${testid}>${t('X-MINE.seal')}</span>`;
 }
 
 // ---------------------------------------------------------------- 练习记录页

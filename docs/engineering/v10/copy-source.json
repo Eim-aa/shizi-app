@@ -4121,12 +4121,6 @@
           "origin": "extra",
           "note": "阶段 1 P1-E2：练习记录里只在纸上写过的一天（日历上有点、没有可列的字帖）点开时的一行说明，过渡文案",
           "decision": "P172"
-        },
-        "seal": {
-          "raw": null,
-          "text": "字",
-          "origin": "原型 ShiziScreen-第十稿交接版.dc.html L26 / L91 红印",
-          "note": "M4-1：字帖落款旁的红印（装饰，aria-hidden）"
         }
       }
     },

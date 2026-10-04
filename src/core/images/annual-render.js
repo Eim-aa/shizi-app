@@ -76,7 +76,7 @@ const BRAND_SEAL = SEAL_SIZE;
 function drawFoot(ctx, kuan, env, fonts, sealText) {
   const sx = 896;
   const sy = 1240;
-  drawSeal(ctx, { x: sx, y: sy, size: BRAND_SEAL, rotate: -2 }, { text: sealText, palette: env.pal, font: fonts.kai });
+  drawSeal(ctx, { x: sx, y: sy, size: BRAND_SEAL }, { text: sealText, palette: env.pal, font: fonts.kai });
   text(ctx, kuan, sx - 36, sy + BRAND_SEAL / 2, { font: fonts.song, size: 36, color: env.pal.ink2, align: 'right' });
 }
 
@@ -217,7 +217,7 @@ export async function renderAnnualLong({
     h: footH,
     draw(ctx, y) {
       const sy = y + 40;
-      drawSeal(ctx, { x: M + CW - BRAND_SEAL, y: sy, size: BRAND_SEAL, rotate: -2 }, { text: sealText, palette: pal, font: fonts.kai });
+      drawSeal(ctx, { x: M + CW - BRAND_SEAL, y: sy, size: BRAND_SEAL }, { text: sealText, palette: pal, font: fonts.kai });
       text(ctx, kuan, M + CW - BRAND_SEAL - 36, sy + BRAND_SEAL / 2, { font: fonts.song, size: 36, color: pal.ink2, align: 'right' });
     },
   };

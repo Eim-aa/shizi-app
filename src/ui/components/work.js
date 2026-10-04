@@ -2,8 +2,8 @@
 //
 //   CellCanvas        一格里的内容：有本人墨画笔迹（线宽按格宽查补偿表），没墨画 under 衬底参考轮廓——画法就是导出图的画法
 //                     （core/images/render.js paintCellContent），所以结果页上看到的作品与图片内容、样子一致（所见即所得）。
-//   WorkPaper         结果页作品：作品格（格宽 c，列 × 行与 3:4 分享图相同；格自己是笺面，直接放在页面纸上，没有作品底板，D49）+ 落款与品牌印
-//                     （位置规则同 layout.js；落款与印是图形，固定尺寸，不随系统字号放大）。
+//   WorkPaper         结果页作品：作品格（格宽 c，列 × 行与 3:4 分享图相同；格自己是笺面，直接放在页面纸上，没有作品底板，D49）+ 落款与印
+//                     （位置规则同 layout.js；落款与印是图形，固定尺寸，不随系统字号放大；印是 marks.js 的 <Seal/>，只有一种）。
 //   MonthPaper        月字帖：笺面纸 + 6 列（Pro Max 7、AX 4）字帖格 + 格内左上角的日期角标（不压格线）+ 落款与印。
 //   useScreenWidth    屏宽（CSS px）；作品格宽 / 月字帖格宽按它算。
 //   frameRects        外框的矩形（满行矩形 + 末行矩形，同 layout.js 的 frame）。
@@ -14,6 +14,7 @@
 import { html, useEffect, useLayoutEffect, useMemo, useRef, useState } from '../../../vendor/ui.js';
 import { pressFeedbackHandlers } from './Button.js';
 import { injectStyles, T, TEX } from './styles.js';
+import { SEAL_PT, Seal } from './marks.js';
 import { t } from '../../config/copy/index.js';
 import { paintCellContent } from '../../core/images/render.js';
 import { inkBounds } from '../../core/images/glyph-layout.js';
@@ -46,9 +47,6 @@ injectStyles('work', `
 .sz-work__dot{position:absolute;border-radius:50%;pointer-events:none}
 .sz-work__sign{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:14px}
 .sz-work__kuan{font-family:${T.song};font-size:calc(13px * 1);line-height:20px;font-weight:400;color:${T.ink2};white-space:nowrap} /* 落款是图形：宋 13 / 20 固定，不读 --k（D49，作品内文字不随字号放大） */
-.sz-wseal{width:24px;height:24px;flex:none;border-radius:${T.rWork};display:grid;place-items:center;font-family:${T.kai};font-size:calc(17px * 1);line-height:1;
-  transform:rotate(-2deg)} /* 印是图形：固定 seal24 / 40，字形 17 / 28px，不随 --k（Q2-10） */
-.sz-wseal--big{width:40px;height:40px;font-size:calc(28px * 1)}
 .sz-work__caps{display:grid;margin:6px auto 0;justify-items:center;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3}}
 .sz-work__cap{text-align:center}
 .sz-work__plain{display:flex;flex-wrap:wrap;gap:0 0;justify-content:center}
@@ -181,11 +179,6 @@ export function WrongDot({ size, ink, testid = 'work-dot', pad = INK_PAD }) {
     style=${{ left: `${cx - d / 2}px`, top: `${cy - d / 2}px`, width: `${d}px`, height: `${d}px` }}></span>`;
 }
 
-/** 品牌印「字」：白文直角，24（单字 40），颜色在 marks.js。 */
-export function WorkSeal({ big = false, testid = 'work-seal', style = null }) {
-  return html`<span class=${big ? 'sz-wseal sz-wseal--big' : 'sz-wseal'} aria-hidden="true" data-testid=${testid} style=${style}>${t('X-IMAGES.seal')}</span>`;
-}
-
 const CELL_PRESS = pressFeedbackHandlers(() => false);
 
 // ---------------------------------------------------------------- 结果页作品
@@ -207,8 +200,7 @@ export function WorkPaper({ cells, grid, kuan, caps = [], onOpen, label, withSig
   const lastCol = (n - 1) % cols;
   const below = lastCol === cols - 1;
   const gw = cols * c;
-  const sealBig = n === 1;
-  const sealSize = sealBig ? 40 : 24;
+  const sealSize = SEAL_PT; // 印只有一种：24pt，与字数无关（V2-05 / T2-22）
   const frames = frameRects(n, cols, c);
   const capSlots = Array.from({ length: cols }, (_, j) => {
     for (let i = 0; i < n; i += 1) if (i % cols === j && caps[i]) return caps[i];
@@ -235,12 +227,12 @@ export function WorkPaper({ cells, grid, kuan, caps = [], onOpen, label, withSig
           </button>`)}
           ${frames.map((r, i) => html`<span key=${`f${i}`} class="sz-work__frame" aria-hidden="true"
             style=${{ left: `${r.x}px`, top: `${r.y}px`, width: `${r.w}px`, height: `${r.h}px` }}></span>`)}
-          ${withSign && !below ? html`<${WorkSeal} big=${sealBig} style=${{ ...sealStyle, position: 'absolute' }} />` : null}
+          ${withSign && !below ? html`<${Seal} style=${{ ...sealStyle, position: 'absolute' }} />` : null}
         </div>
         ${withSign
           ? html`<div class="sz-work__sign" data-testid="work-sign" data-below=${below ? 'true' : 'false'}>
               <span class="sz-work__kuan" data-testid="work-kuan">${kuan}</span>
-              ${below ? html`<${WorkSeal} big=${sealBig} style=${{ position: 'relative' }} />` : null}
+              ${below ? html`<${Seal} style=${{ position: 'relative' }} />` : null}
             </div>`
           : null}
       </div>
@@ -308,7 +300,7 @@ export function MonthPaper({ cells, cols, c, kuan, onOpen, label, testid = 'mont
     </div>
     <div class="sz-month__sign" style=${{ width: `${gw}px` }}>
       <span class="sz-work__kuan" data-testid="month-kuan">${kuan}</span>
-      <${WorkSeal} testid="month-seal" style=${{ position: 'relative' }} />
+      <${Seal} testid="month-seal" style=${{ position: 'relative' }} />
     </div>
   </section>`;
 }

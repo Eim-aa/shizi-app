@@ -132,7 +132,7 @@ export default async function (page, ctx) {
     if (n === 2) assert.equal(v.kuan, '二〇二六年十月五日　两字', '2 is written 两');
     if (n === 1) {
       assert.equal(v.kuan, '二〇二六年十月五日　一字', 'a single char also writes its count (V2-05: the kuan always has it)');
-      assert.ok(Math.abs(v.seal.w - 40) <= 2, 'single char: 40pt seal');
+      assert.ok(Math.abs(v.seal.w - 24) <= 1.5, 'single char: the same 24pt seal (V2-05: one seal size, whatever the count)');
     }
     if (n === 5) {
       assert.equal(v.sign.below, 'false', '3 + 2: the last char is not in the rightmost column → seal beside it');

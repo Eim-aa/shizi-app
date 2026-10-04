@@ -41,12 +41,11 @@ export const MAX_COLS = 10;
 export const ROW_CELL_CAP = 0.34; // 两行以上格宽上限 = 0.34W
 export const SINGLE_CELL_RATIO = 0.62;
 export const GAP_RATIO = 0.035; // 块与落款之间 = 0.035W
+// 印只有一种（R2-R1 / D51 ③）：作品里一个尺寸、不倾斜，与字数无关（旧：单字 108 / 其余 64、倾 −2°，V2-05 / T2-22 已废）；落款字号同理一个
 export const SEAL_SIZE = 64; // ≈ 24pt
-export const SEAL_SIZE_SINGLE = 108; // ≈ 40pt
 export const KUAN_SIZE = 36;
-export const KUAN_SIZE_SINGLE = 40;
 export const KUAN_GAP_FROM_SEAL = 22;
-export const SEAL_ROTATION = -2; // seal.rotationInWork
+export const SEAL_ROTATION = 0;
 export const INK_PAD = 0.12; // 墨在格内 12% 内边
 export const FRAME_W = 2; // 外框 2px
 export const GUIDE_W = 1.5; // 格间 1.5px
@@ -126,8 +125,8 @@ export function layout(cells, ratio = '3:4') {
   const { cols, rows, c } = gridOf(n, ratio);
   const gw = cols * c;
   const gh = rows * c;
-  const seal = n === 1 ? SEAL_SIZE_SINGLE : SEAL_SIZE;
-  const kfs = n === 1 ? KUAN_SIZE_SINGLE : KUAN_SIZE;
+  const seal = SEAL_SIZE;
+  const kfs = KUAN_SIZE;
   const gap = Math.round(GAP_RATIO * W);
   const lastCol = (n - 1) % cols;
   const lastRow = rows - 1;

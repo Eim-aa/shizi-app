@@ -8,8 +8,9 @@
 //
 // 三态（按会话 kind）：
 //   daily  「这次练习」：结果页即作品（P1-E7；E9c 起按 D49 减法修稿：没有底板、没有标题，作品格贴页边）；作品下「没放进图里」的行、复现句（每字「N 天后再见」，D48）；
-//          底栏只有主按钮「再写一组」，出口只在页头左上「×」（D49 ③：没有「回到首页」）。
-//   first  「第一次练习」：同一构图，多一个标题「这三个字，很多人提笔就忘。」（数取这一页上实际有几个字，V2-05；不以计数作标题，D28）与提醒邀请（内嵌，D35 / D46 ③）；底栏同上。
+//          底栏只有主按钮「再写一组」，出口只在页头左上「×」（D49 ③：没有「回到首页」）；第二次邀请没回答前，底栏是「好 / 不用了」（R2-R1 / N2-04）。
+//   first  「第一次练习」：同一构图，多一个标题「这三个字，很多人提笔就忘。」（数取这一页上实际有几个字，V2-05；不以计数作标题，D28）与提醒邀请（内嵌，D35 / D46 ③）；
+//          底栏（R2-R1 / N2-04 / N2-05 / I2-07）：邀请没回答前就是「好 / 不用了」，回答以后是主按钮「完成」+ 文字按钮「再写一组」。
 //          首练专属的三块在 result/first.js（与 P1-E7 作品出口的分界：本文件的格子 / 日期行 / 图片入口属通用结果页，E7 改构图）。
 //   picked 「这次选的字」：和日常组同一个作品版式（R2-R1 / V2-04 / T2-03：不再是 v1 的表格页）——作品格 + 落款（「二〇二六年十月四日　自选五字」）+ 印、
 //          作品下「没放进图里」的行与复现句；没有页头标题和说明段（中途结束时只有一行「还有 N 个字没写，没有记下。」，R-R05）；
@@ -59,7 +60,7 @@ import { SkipUndoDock, canUndoSkip, undoSkipInDraft } from '../write/skip.js';
 import '../write/result-row.js'; // .sz-change* 弹层样式（与写字页修改判断弹层同一版式）
 import { openWrite } from '../session/index.js';
 import { openNonePage } from '../session/none.js';
-import { ReminderInvite, ReviewPreview, firstExtras } from './first.js';
+import { InviteActions, ReminderInvite, ReviewPreview, firstExtras, useReminderInvite } from './first.js';
 import { WorkRows, WorkSection, commitAdded } from './work.js';
 import { addedOf, buildWork } from '../../../core/images/work.js';
 import { firstTitle } from '../../work-text.js';
@@ -102,6 +103,7 @@ injectStyles('result', `
 .sz-result__head+.sz-work{margin-top:0}
 .sz-result__remind{margin-top:28px}
 .sz-result__remind:empty{display:none}
+.sz-result__textbtn{align-self:center}
 .sz-result__fail{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
 .sz-result__failnote{margin:0;text-align:center;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3}}
 .sz-page[data-testid="result-screen"] .sz-page__body{padding-top:12px}
@@ -620,6 +622,7 @@ function ResultScreen({ params, entry }) {
   const store = storeOrNull();
   const rootRef = useRef(null);
   useFootHairline(rootRef);
+  const [landed, setLanded] = useState(false); // 作品落定（印落下，D51 ②）：邀请的 600ms 从这时算起
   // 「这次的图片」入口与格子同一取法（存下的墨迹 → 本页面会话里的笔画，I6）
   const model = resultModel(state, { slot, sessionId, hasInk: record => inkPresent(inkOf(store, record)) });
   useEffect(() => { installCommitFeedback(getStore); }, []); // M5-5：结果页的改判断 / 撤销跳过 / 补写结束也发触觉（刷新后直接停在本页时写字页没挂过）
@@ -689,6 +692,10 @@ function ResultScreen({ params, entry }) {
     openCellSheet({ slot, sessionId, cell });
   };
 
+  // 提醒邀请（首练 / 第二次）：没回答之前吸底栏就是「好 / 不用了」；该问但还没到时候时占位（N2-04、I2-07）
+  const invite = useReminderInvite({ store, settings: state && state.settings, session: model.session, variant: model.variant, ready: landed });
+  useEffect(() => { if (!model.work || model.work.empty) setLanded(true); }, [!!model.work, model.work ? model.work.empty : true]); // 没有作品（没有落印）：直接算落定
+
   let footer;
   if (againFailed) {
     footer = html`<p class="sz-result__failnote" data-testid="result-again-note" aria-live="polite">${t('X-RESULT.againFailed')}</p>
@@ -696,6 +703,12 @@ function ResultScreen({ params, entry }) {
         <${Button} variant="secondary" data-testid="result-again-cancel" onClick=${() => { setAgainFailed(false); markStateChange(); }}>${t('X-RESULT.againCancel')}</${Button}>
         <${Button} variant="primary" data-testid="result-again-retry" onClick=${again}>${t('X-RESULT.againRetry')}</${Button}>
       </div>`;
+  } else if (invite.active || invite.reserved) {
+    footer = html`<${InviteActions} invite=${invite} />`;
+  } else if (model.variant === 'first') {
+    // 首练收尾（N2-05）：主按钮是「完成」，「再写一组」降为下面的文字按钮
+    footer = html`<${Button} variant="primary" data-testid="result-done" onClick=${leave}>${t('X-RESULT.done')}</${Button}>
+      <${Button} variant="text" class="sz-result__textbtn" data-testid="result-again" onClick=${again}>${t('X-RESULT.again')}</${Button}>`;
   } else if (model.again) {
     // D49 ③：出口只在页头左上「×」；底栏只有主按钮（文字行留空，让主按钮行与写字页同位）
     footer = html`<${Button} variant="primary" data-testid="result-again" onClick=${again}>${t('X-RESULT.again')}</${Button}>
@@ -733,12 +746,12 @@ function ResultScreen({ params, entry }) {
         : null}
       ${model.work
         ? html`<${WorkSection} work=${model.work} day=${model.day} dateText=${dateText(model.day)} inkOf=${inkForRecord} onOpen=${openEntry}
-          picked=${model.variant === 'picked'} sealKey=${`${slot}:${sessionId}`} settings=${state && state.settings} />`
+          picked=${model.variant === 'picked'} sealKey=${`${slot}:${sessionId}`} settings=${state && state.settings} onLanded=${() => setLanded(true)} />`
         : null}
       ${model.work ? html`<${WorkRows} rows=${model.work.rows.filter(r => r.state !== 'in')} inkOf=${inkForRecord} onOpen=${openEntry} onToggle=${toggleEntry} />` : null}
       ${extras ? html`<${ReviewPreview} text=${extras.preview} />` : null}
       <div class="sz-result__remind" data-testid="result-remind-slot">
-        <${ReminderInvite} store=${store} settings=${state && state.settings} session=${model.session} variant=${model.variant} />
+        <${ReminderInvite} invite=${invite} />
       </div>
     </div>
     ${undo ? html`<${SkipUndoDock} char=${undo.char} failed=${!!undo.failed} onUndo=${doUndo} until=${undo.until}

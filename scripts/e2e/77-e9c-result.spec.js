@@ -201,7 +201,7 @@ export default async function (page, ctx) {
   await waitNavIdle(page);
   await show(page, { chars: [...'尴赢拾'], steps: ['correct', 'correct', 'correct'] }, { kind: 'first', id: 's78' });
   f = await facts(page);
-  assert.deepEqual([f.again, f.leave, f.footButtons], [1, 0, 1], 'first: the footer holds exactly the primary button');
+  assert.deepEqual([f.again, f.leave, f.footButtons], [0, 0, 2], 'first (R2-R1 / N2-04): the footer is the invitation answer — 好 (primary) + 不用了 (text) — until it is answered');
   assert.equal(f.pageText.includes('回到首页'), false, 'first: no 回到首页 anywhere');
   const title = await page.locator(topSel('result-title')).textContent();
   assert.equal(title.trim(), '这三个字，很多人提笔就忘。', 'first: the title is the only extra block');

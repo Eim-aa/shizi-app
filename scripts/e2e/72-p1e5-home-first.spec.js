@@ -13,7 +13,7 @@
 //      → 一行说明、不再问。
 //   4. 首页五态各一（setClock + seed）：今天还没写 / 今天写过（写错的字也不画朱点，D46 ①）/ 进行中（没写的格子不露字）/ 大写数字特别组那天
 //      （「这次先写平常的字」顺延，D46 ④，第二天回来）/ 离开 ≥7 天回来；五态里日期、标题、题记、主按钮的位置不动。
-//   5. 375×667 的首练结果页：内容滚动、主按钮固定在底。
+//   5. 375×667 与 390×844 的首练结果页（R2-R1 / N2-04 / N2-05 / I2-07）：邀请没回答前吸底栏就是「好 / 不用了」，整个在首屏内；回答后「完成」+ 文字按钮「再写一组」。
 
 import { PRESS_SETTLE_MS, bootTestHost, drawStroke, HORIZONTAL, installNativeStub, nativeMessages, tid, topSel, waitNavIdle, leaveResult } from './helpers.mjs';
 
@@ -269,7 +269,7 @@ export default async function run(page, ctx) {
   assert.deepEqual(r.exrows, [{ char: '赢', text: '写错了', btn: '放进图里', ink: true }], 'wrong char with ink: the status word + 放进图里 (the char is the glyph on the left, not in the sentence; D49)');
   assert.equal(r.invite, null, 'the invitation has not faded in yet (≈600ms after the work settles)');
   assert.equal((await nativeMessages(page, 'requestReminderPermission')).length, 0, 'no permission request before 好');
-  assert.deepEqual(r.foot, ['result-again:再写一组'], 'E9c / D49 ③: 再写一组 only; the exit is the close icon top-left');
+  assert.deepEqual(r.foot, ['result-invite-yes:好', 'result-invite-no:不用了'], 'R2-R1 (N2-04): until the invitation is answered the sticky footer IS the invitation (好 / 不用了; kept invisible until it fades in); the exit is the close icon top-left');
   await waitInvite(page);
   r = await resultView(page);
   assert.equal(r.invite.title, '明天这个时候，给你一个词？', 'time 9:41 is inside 7:00–22:00');
@@ -576,35 +576,44 @@ export default async function run(page, ctx) {
   const panelBottom = await page.evaluate(() => document.querySelector('.sz-tabroot__panel').getBoundingClientRect().bottom);
   assert.ok(approx(panelBottom - (rects.fresh.start.y), 119, 1), `main button 119 above the tab bar (D43): ${panelBottom - rects.fresh.start.y}`);
 
-  // ------------------------------------------------------------------ 5. 375×667
-  step('375×667 的首练结果页: 内容可滚动，主按钮固定在底（邀请可以在首屏之下）');
-  await page.setViewportSize({ width: 375, height: 667 });
-  await page.evaluate(() => { window.__shiziTest.reset(); window.__shiziTest.setClock('2026-10-05T09:41:00'); });
-  await page.evaluate(`(${SEED_FN})(${JSON.stringify({ entries: [], groups: [{ at: `${D(5)}T09:00:00`, kind: 'first', chars: [...'尴赢拾'], steps: ['correct', 'wrong'] }], clock: `${D(5)}T09:41:00` })})`);
-  await goHome(page);
-  await page.evaluate(async () => (await import('/src/ui/screens/session/index.js')).openWrite('A'));
-  await waitWrite(page);
-  await judgeLive(page, 'correct', { last: true });
-  await waitInvite(page);
-  const se = await page.evaluate(() => {
-    const top = document.querySelector('.sz-layer[data-top="true"]');
-    const body = top.querySelector('.sz-page__body');
-    const btn = top.querySelector('[data-testid="result-again"]').getBoundingClientRect();
-    const inv = top.querySelector('[data-testid="result-invite"]').getBoundingClientRect();
-    const before = body.scrollTop;
-    return { scrollable: body.scrollHeight > body.clientHeight, btnBottom: btn.bottom, vh: window.innerHeight, invBottom: inv.bottom, bodyBottom: body.getBoundingClientRect().bottom, before };
-  });
-  assert.ok(se.btnBottom <= se.vh, `主按钮在首屏内 (${se.btnBottom} ≤ ${se.vh})`);
-  assert.ok(se.scrollable, '内容超过首屏时在正文里滚动');
-  await page.evaluate(() => { const b = document.querySelector('.sz-layer[data-top="true"] .sz-page__body'); b.scrollTop = b.scrollHeight; });
-  const after = await page.evaluate(() => {
-    const top = document.querySelector('.sz-layer[data-top="true"]');
-    const btn = top.querySelector('[data-testid="result-again"]').getBoundingClientRect();
-    const inv = top.querySelector('[data-testid="result-invite-yes"]').getBoundingClientRect();
-    const bodyB = top.querySelector('.sz-page__body').getBoundingClientRect().bottom;
-    return { btnTop: btn.top, btnBottom: btn.bottom, yesBottom: inv.bottom, bodyB };
-  });
-  assert.ok(after.yesBottom <= after.bodyB + 1, 'scrolled to the end the invitation buttons are visible above the fixed footer');
-  assert.ok(approx(after.btnBottom, se.btnBottom, 1), 'the main button stays put while the content scrolls');
+  // ------------------------------------------------------------------ 5. 375×667 与 390×844：邀请的回答在首屏里完整可见（R2-R1 / N2-04 / N2-05 / I2-07）
+  for (const [width, height] of [[375, 667], [390, 844]]) {
+    step(`${width}×${height} 的首练结果页: 邀请没回答前吸底栏就是「好 / 不用了」，两个按钮整个在首屏内、没被盖住；回答后吸底栏是「完成」+ 文字按钮「再写一组」`);
+    await page.setViewportSize({ width, height });
+    await page.evaluate(() => { window.__shiziTest.reset(); window.__shiziTest.setClock('2026-10-05T09:41:00'); });
+    await page.evaluate(`(${SEED_FN})(${JSON.stringify({ entries: [], groups: [{ at: `${D(5)}T09:00:00`, kind: 'first', chars: [...'尴赢拾'], steps: ['correct', 'wrong'] }], clock: `${D(5)}T09:41:00` })})`);
+    await goHome(page);
+    await page.evaluate(async () => (await import('/src/ui/screens/session/index.js')).openWrite('A'));
+    await waitWrite(page);
+    await judgeLive(page, 'correct', { last: true });
+    await waitInvite(page);
+    await page.waitForFunction(() => { const e = document.querySelector('.sz-layer[data-top="true"] [data-testid="result-invite-actions"]'); return e && e.dataset.state === 'invite'; });
+    await page.waitForTimeout(350); // 吸底栏淡入结束
+    const asked = await page.evaluate(() => {
+      const top = document.querySelector('.sz-layer[data-top="true"]');
+      const box = id => { const el = top.querySelector(`[data-testid="${id}"]`); if (!el) return null; const r = el.getBoundingClientRect(); const hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2); return { top: r.top, bottom: r.bottom, left: r.left, right: r.right, disabled: el.disabled, covered: !(hit === el || el.contains(hit)) }; };
+      return { yes: box('result-invite-yes'), no: box('result-invite-no'), again: !!top.querySelector('[data-testid="result-again"]'), done: !!top.querySelector('[data-testid="result-done"]'),
+        scrollTop: top.querySelector('.sz-page__body').scrollTop, vh: window.innerHeight, vw: window.innerWidth,
+        inviteText: !!top.querySelector('[data-testid="result-invite-title"]') };
+    });
+    for (const k of ['yes', 'no']) {
+      assert.ok(asked[k] && asked[k].top >= 0 && asked[k].bottom <= asked.vh && asked[k].left >= 0 && asked[k].right <= asked.vw, `${width}×${height}: 「${k === 'yes' ? '好' : '不用了'}」 is wholly inside the first screen (${JSON.stringify(asked[k])})`);
+      assert.equal(asked[k].covered, false, `${width}×${height}: the ${k} button is not covered by anything`);
+      assert.equal(asked[k].disabled, false, `${width}×${height}: the ${k} button is enabled`);
+    }
+    assert.ok(asked.yes.top < asked.no.top, `${width}×${height}: 好 (primary) above 不用了 (text)`);
+    assert.deepEqual([asked.again, asked.done, asked.scrollTop, asked.inviteText], [false, false, 0, true], `${width}×${height}: no 再写一组 / 完成 while unanswered, nothing scrolled, the question text is in the page`);
+    await page.click(topSel('result-invite-no'));
+    await page.waitForFunction(() => !!document.querySelector('.sz-layer[data-top="true"] [data-testid="result-done"]'));
+    const answered = await page.evaluate(() => {
+      const top = document.querySelector('.sz-layer[data-top="true"]');
+      const r = id => { const el = top.querySelector(`[data-testid="${id}"]`); const b = el.getBoundingClientRect(); return { text: el.textContent.trim(), cls: el.className, top: b.top, bottom: b.bottom }; };
+      return { done: r('result-done'), again: r('result-again'), foot: [...top.querySelectorAll('.sz-page__foot button')].map(b => b.dataset.testid), vh: window.innerHeight };
+    });
+    assert.deepEqual(answered.foot, ['result-done', 'result-again'], `${width}×${height}: answered → 完成 (primary) + 再写一组 (text)`);
+    assert.deepEqual([answered.done.text, answered.again.text], ['完成', '再写一组']);
+    assert.ok(/sz-btn--primary/.test(answered.done.cls) && /sz-btn--text/.test(answered.again.cls), `${width}×${height}: 完成 is the primary button, 再写一组 a text button`);
+    assert.ok(answered.again.bottom <= answered.vh && answered.done.top < answered.again.top, `${width}×${height}: both inside the screen, 完成 above 再写一组`);
+  }
   await page.setViewportSize({ width: 393, height: 852 });
 }

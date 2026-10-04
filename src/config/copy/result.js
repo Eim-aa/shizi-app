@@ -50,6 +50,8 @@ export default Object.freeze({
   'X-RESULT.cellWrong': '写错',
   'X-RESULT.cellSkipped': '跳过',
   'X-RESULT.again': '再写一组',
+  // 首练结果页的主按钮（R2-R1 / N2-05）：「再写一组」降为下面的文字按钮
+  'X-RESULT.done': '完成',
   'X-RESULT.leaveHome': '回到首页',
   'X-RESULT.againFailed': '没保存上，刚才的选择没记下。',
   'X-RESULT.againRetry': '再试一次',

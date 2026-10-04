@@ -32,6 +32,7 @@ export const LABELS = Object.freeze({
   startDaily: 'session:start-daily',
   startPicked: 'session:start-picked',
   endAndStartPicked: 'session:end-and-start-picked',
+  deferSpecial: 'session:defer-special',
 });
 
 // ---------------------------------------------------------------- 读状态
@@ -100,6 +101,7 @@ export function planDaily(state, { today, deck, policy = defaultPolicy }) {
     custom: (state && state.custom) || null,
     practicable: deck.practicable,
     policy,
+    capitalDeferredDay: capitalDeferredDayOf(state),
   });
   const libraryExhausted = !newCandidates.some(key => deck.practicable(key) && !sched[key]);
   return { ...plan, libraryId, libraryExhausted };
@@ -112,7 +114,26 @@ export function planDaily(state, { today, deck, policy = defaultPolicy }) {
 export function planSpecial(state, { today, deck, policy = defaultPolicy }) {
   const records = recordsOf(state);
   if (!hasAnyJudged(records)) return null;
-  return specialPlan({ sched: (state && state.sched) || {}, records, today, practicable: deck.practicable, policy });
+  return specialPlan({ sched: (state && state.sched) || {}, records, today, practicable: deck.practicable, policy, capitalDeferredDay: capitalDeferredDayOf(state) });
+}
+
+/** settings.capitalDeferredDay：用户点「这次先写平常的字」的那一天（D46 ④）；没有 → null。 */
+export function capitalDeferredDayOf(state) {
+  const day = state && state.settings ? state.settings.capitalDeferredDay : null;
+  return typeof day === 'string' ? day : null;
+}
+
+/**
+ * 「这次先写平常的字」（D46 ④）：特别组顺延——今天不再出特别组（今天开的「今天的练习」是平常的组），
+ * 之后条件满足的下一个日子再出现（core/special.js isDeferred）。一次 store.commit 写 settings.capitalDeferredDay；
+ * 今天已经顺延过 → 不写（{ok:true, skipped:true}）。失败原样返回 commit 的 {ok:false, error}。
+ */
+export function deferSpecial(store, { now } = {}) {
+  const today = localDay(nowOf(now));
+  if (capitalDeferredDayOf(store.getState()) === today) return { ok: true, keys: [], skipped: true };
+  return store.commit(LABELS.deferSpecial, (draft) => {
+    draft.settings = { ...(draft.settings || {}), capitalDeferredDay: today };
+  });
 }
 
 /** S02 确认框数据（R-H05）：旧 B 没写完 → {sessionId, unwrittenKeys, unwrittenChars, judgedCount}；否则 null。 */

@@ -3,8 +3,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as policy from '../../src/config/policy.js';
 import {
-  homeModel, recordsStateOf, resumeOf, resumeKeyOf, resumeLineText, epigraphColumnHeight, INK_ROW_MAX, INK_ROW_COMPACT_MAX,
+  BACK_AFTER_DAYS, LAST_ROW_MAX, PROGRESS_MAX, homeModel, homeViewOf, heroOf, lastWrittenRow, libraryCountOf, progressCells, recordsStateOf,
+  resumeOf, resumeKeyOf, resumeLineText, epigraphColumnHeight, INK_ROW_MAX,
 } from '../../src/ui/screens/home/today.js';
+import { firstShiSize, shiCellSize, tieCellSize, tieCols } from '../../src/ui/screens/home/copybook.js';
 import { EPIGRAPHS } from '../../src/config/epigraphs.js';
 import { t } from '../../src/config/copy/index.js';
 
@@ -62,21 +64,18 @@ test('N and ink row: judged today deduped by char, latest 8 by id (D12)', () => 
   assert.equal(m.count, 9);
   assert.deepEqual(m.inkRow.map(r => r.char), [...'三四五六七八九一']);
   assert.equal(m.inkRow.length, INK_ROW_MAX);
-  const c = homeModel(state({ records }), at(DAY), { inkRowMax: INK_ROW_COMPACT_MAX });
-  assert.deepEqual(c.inkRow.map(r => r.char), [...'七八九一']);
-  assert.equal(c.count, 9, 'number stays N');
-  assert.equal(INK_ROW_COMPACT_MAX, 4, 'compact ink row = policy.inkRowCompactMax (P75)');
+  assert.equal(m.count, 9, 'number stays N');
+  assert.equal(INK_ROW_MAX, 8);
 });
 
-test('P16: N row shown together with an unfinished group; false hides it', () => {
+test('P16 (decided by the stage-1 home design): with an unfinished group the home shows that group, not today’s chars', () => {
   const s = state({ records: [rec(1, '永')], A: sess('A', 'daily', 5, 1) });
-  const shown = homeModel(s, at(DAY));
-  assert.equal(shown.showRecord, true);
-  assert.equal(shown.inkRow.length, 1);
-  const hidden = homeModel(s, at(DAY), { policy: { ...policy, homeShowRecordWhileResume: false } });
-  assert.equal(hidden.showRecord, false);
-  assert.deepEqual(hidden.inkRow, []);
-  assert.equal(hidden.count, 1, 'count is still computed');
+  const m = homeModel(s, at(DAY));
+  assert.equal(m.view, 'progress');
+  assert.equal(m.hero, 'progress');
+  assert.equal(m.showRecord, false);
+  assert.deepEqual(m.inkRow, [], 'today’s chars are not drawn next to the group');
+  assert.equal(m.count, 1, 'count is still computed');
 });
 
 test('first-visit tip only when first and no group; period / date / epigraph from the clock', () => {
@@ -141,6 +140,113 @@ test('D40 (P129): the home model says which special group is next — only with 
   assert.equal(homeModel(state({ records: after }), at(DAY), { deck }).capital, 'capital2');
   const done = [...after, ...[...'陆柒捌玖'].map((c, i) => ({ ...rec(60 + i, c, { day: YDAY }), sessionId: 's21' }))];
   assert.equal(homeModel(state({ records: done }), at(DAY), { deck }).capital, null, 'both groups have appeared');
-  assert.equal(t('X-HOME.capitalHint'), '今天来写写大写数字，借条、报销单上都用得到。');
-  assert.equal(t('R-H03.firstVisit'), '第一次来，先写 3 个字试试。', 'D38: first practice is 3 chars');
+  assert.equal(t('X-HOME.capitalLead'), '「拾」也是大写的十。');
+  assert.equal(t('X-HOME.capitalBody'), '今天写两组大写数字，借条、红包上用得着。');
+  assert.equal(t('R-H03.firstVisit'), '先写三个大家常忘的字。', 'stage-1 design §一: the line under 开始写字 (D38: 3 chars)');
+});
+
+// ---------------------------------------------------------------- 阶段 1 P1-E5：首页五态与首次打开
+
+const CAP_DECK = { newCandidates: () => [], practicable: key => key.startsWith('base:') };
+const history10 = () => Array.from({ length: 10 }, (_, i) => ({ ...rec(i + 1, String.fromCodePoint(0x6100 + i), { day: `2026-09-${String(23 - i).padStart(2, '0')}` }), sessionId: `s${i + 1}` }));
+
+test('homeViewOf: first / fresh / today / progress / special / back, with this priority (03 P155)', () => {
+  assert.equal(homeViewOf({ records: 'first', resume: 'none', capital: null, gapDays: null }), 'first');
+  assert.equal(homeViewOf({ records: 'empty', resume: 'none', capital: null, gapDays: 1 }), 'fresh');
+  assert.equal(homeViewOf({ records: 'empty', resume: 'none', capital: null, gapDays: BACK_AFTER_DAYS - 1 }), 'fresh', '6 days away is not 「回来」');
+  assert.equal(homeViewOf({ records: 'empty', resume: 'none', capital: null, gapDays: BACK_AFTER_DAYS }), 'back', '≥7 days (D41)');
+  assert.equal(homeViewOf({ records: 'empty', resume: 'none', capital: null, gapDays: 30 }), 'back');
+  assert.equal(homeViewOf({ records: 'record', resume: 'none', capital: null, gapDays: 0 }), 'today');
+  assert.equal(homeViewOf({ records: 'record', resume: 'A', capital: null, gapDays: 0 }), 'progress', 'a group in progress wins over 今天写过');
+  assert.equal(homeViewOf({ records: 'first', resume: 'A', capital: null, gapDays: null }), 'progress', 'a first practice written halfway is a group in progress');
+  assert.equal(homeViewOf({ records: 'empty', resume: 'B', capital: null, gapDays: 20 }), 'progress');
+  assert.equal(homeViewOf({ records: 'record', resume: 'none', capital: 'capital1', gapDays: 0 }), 'special');
+  assert.equal(homeViewOf({ records: 'empty', resume: 'none', capital: 'capital2', gapDays: 12 }), 'special', 'the next group is the special one: say so instead of 「写旧字」');
+  assert.equal(homeViewOf({ records: 'empty', resume: 'A', capital: 'capital1', gapDays: 3 }), 'progress');
+  assert.equal(heroOf('first', 'first'), 'shi');
+  assert.equal(heroOf('fresh', 'empty'), 'shi');
+  assert.equal(heroOf('back', 'empty'), 'shi');
+  assert.equal(heroOf('today', 'record'), 'today');
+  assert.equal(heroOf('progress', 'record'), 'progress');
+  assert.equal(heroOf('special', 'record'), 'today', 'special day with chars already written: the chars stay the hero (design §四 ④)');
+  assert.equal(heroOf('special', 'empty'), 'shi');
+});
+
+test('homeModel five states from a real state: first / fresh / today / progress / special / back (+ 自己选字 only after the first practice)', () => {
+  const first = homeModel(state(), at(DAY), { deck: CAP_DECK });
+  assert.deepEqual([first.view, first.hero, first.showPick, first.libraryCount], ['first', 'shi', false, 0], 'first open hides 自己选字 (D46 ②)');
+  const half = homeModel(state({ A: sess('A', 'first', 3, 1) }), at(DAY));
+  assert.deepEqual([half.view, half.showPick], ['progress', false], 'first practice not finished: still no 自己选字');
+  const halfJudged = homeModel(state({ records: [rec(1, '尴')], A: sess('A', 'first', 3, 1) }), at(DAY));
+  assert.deepEqual([halfJudged.view, halfJudged.records, halfJudged.showPick], ['progress', 'record', false], 'one char judged but the first practice is not finished: still hidden');
+  const fresh = homeModel(state({ records: [rec(1, '永', { day: YDAY })] }), at(DAY), { deck: CAP_DECK });
+  assert.deepEqual([fresh.view, fresh.hero, fresh.showPick, fresh.libraryCount], ['fresh', 'shi', true, 1], 'after the first practice 自己选字 is there');
+  const today = homeModel(state({ records: [rec(1, '永'), rec(2, '和', { judgment: 'wrong' })] }), at(DAY), { deck: CAP_DECK });
+  assert.deepEqual([today.view, today.hero, today.inkRow.map(r => r.char), today.showPick], ['today', 'today', ['永', '和'], true]);
+  const progress = homeModel(state({ records: [rec(1, '永')], A: sess('A', 'daily', 5, 2) }), at(DAY));
+  assert.deepEqual([progress.view, progress.hero, progress.progress.cells.length, progress.primary.remaining, progress.showPick], ['progress', 'progress', 5, 3, true]);
+  const special = homeModel(state({ records: history10() }), at(DAY), { deck: CAP_DECK });
+  assert.deepEqual([special.view, special.capital, special.showPick], ['special', 'capital1', false], 'the defer button takes the place of 自己选字 (D46 ④)');
+  const back = homeModel(state({ records: [rec(1, '醋', { day: '2026-09-10' })] }), at(DAY), { deck: CAP_DECK });
+  assert.deepEqual([back.view, back.gapDays], ['back', 14]);
+  const cleared = homeModel(state({ backupMeta: { lastExportAt: null, lastExportSig: null, lastConclusion: { kind: 'clear', date: YDAY, count: 3 } } }), at(DAY));
+  assert.deepEqual([cleared.view, cleared.showPick], ['fresh', true], 'cleared records: not the first-open screen again (K06), no gap');
+});
+
+test('progressCells: written ones carry their record, passed ones have no char, the next one is marked, the rest are blank (nothing leaks)', () => {
+  const r1 = rec(1, '一');
+  const session = { ...sess('A', 'daily', 5, 3), items: [
+    { cardKey: 'base:一', recordId: 'r1', kind: 'judged' },
+    { cardKey: 'base:二', recordId: 'r2', kind: 'skipped' },
+    { cardKey: 'base:三', recordId: 'r3', kind: 'answer-seen' },
+  ] };
+  const { cells, total, start } = progressCells(session, [r1, rec(2, '二', { kind: 'skipped' }), rec(3, '三', { kind: 'answer-seen' })]);
+  assert.deepEqual(cells.map(c => c.state), ['done', 'passed', 'passed', 'next', 'empty']);
+  assert.deepEqual([total, start], [5, 0]);
+  assert.equal(cells[0].char, '一');
+  assert.equal(cells[0].record.id, 'r1');
+  for (const c of cells.slice(1)) assert.equal(c.char, undefined, `cell ${c.index} ${c.state} has no char`);
+  assert.deepEqual(progressCells(null, []), { cells: [], total: 0, start: 0 });
+  assert.equal(progressCells({ ...sess('A', 'daily', 2, 2), items: [] }, []).cells.some(c => c.state === 'next'), false, 'written out: no next');
+  const long = { ...sess('B', 'picked', 8, 0), queue: Array.from({ length: 12 }, (_, i) => `base:${String.fromCodePoint(0x4e00 + i)}`), cursor: 9 };
+  const w = progressCells(long, []);
+  assert.equal(w.cells.length, PROGRESS_MAX);
+  assert.deepEqual([w.start, w.cells.map(c => c.index).includes(9), w.cells.find(c => c.index === 9).state, w.total], [4, true, 'next', 12]);
+  const head = progressCells({ ...long, cursor: 1 }, []);
+  assert.equal(head.start, 0);
+});
+
+test('lastWrittenRow: the latest earlier day, inked chars only, last 5, 昨天 vs 上次 (03 P156)', () => {
+  const withInk = new Set(['r2', 'r3', 'r4', 'r5', 'r6', 'r7', 'r8']);
+  const hasInk = r => withInk.has(r.id);
+  const records = [
+    rec(1, '一', { day: '2026-09-20' }),
+    ...[...'二三四五六七八'].map((c, i) => rec(2 + i, c, { day: YDAY })),
+    rec(20, '九'),
+    rec(21, '十', { day: YDAY, kind: 'skipped' }),
+  ];
+  const row = lastWrittenRow(records, DAY, { hasInk });
+  assert.equal(row.day, YDAY);
+  assert.equal(row.yesterday, true);
+  assert.equal(row.items.length, LAST_ROW_MAX);
+  assert.deepEqual(row.items.map(i => i.record.id), ['r4', 'r5', 'r6', 'r7', 'r8'], 'seven inked chars yesterday → the last five, in writing order');
+  assert.deepEqual(row.items.map(i => i.char), [...'四五六七八']);
+  const only = lastWrittenRow(records, DAY, { hasInk: r => r.id === 'r1' });
+  assert.deepEqual([only.day, only.yesterday, only.items.map(i => i.char)], ['2026-09-20', false, ['一']], 'yesterday has no inked char → look further back');
+  assert.equal(lastWrittenRow(records, DAY, { hasInk: () => false }), null, 'no ink anywhere → no row (no placeholder either)');
+  assert.equal(lastWrittenRow([rec(1, '一')], DAY, { hasInk }), null, 'today is not 「昨天」');
+  const dup = lastWrittenRow([rec(1, '一', { day: YDAY }), rec(2, '一', { day: YDAY, judgment: 'wrong' })], DAY, { hasInk: () => true });
+  assert.deepEqual(dup.items.map(i => i.record.id), ['r2'], 'the same char twice in a day keeps the latest');
+  assert.equal(libraryCountOf([rec(1, '一'), rec(2, '一'), rec(3, '二'), rec(4, '三', { kind: 'skipped' })]), 2, 'distinct chars with a judged record');
+});
+
+test('home cell sizes follow the design sheet (b = width − 40): 1–3 / 4 / 5 / 6–8 chars and the single 「拾」', () => {
+  const b = 402 - 40;
+  assert.deepEqual([1, 2, 3, 4, 5, 6, 8].map(n => tieCellSize(n, b)), [107, 107, 107, 85, 72, 80, 80]);
+  assert.deepEqual([1, 3, 4, 5, 6, 8, 9].map(tieCols), [1, 3, 4, 5, 4, 4, 4]);
+  assert.equal(shiCellSize(b), 167, 'round(0.46b) = 167 at 402 wide (design sheet)');
+  assert.equal(firstShiSize(402), 201);
+  assert.equal(firstShiSize(375), 188);
+  assert.equal(firstShiSize(320), 172, 'clamped to 172 on the narrowest');
+  assert.equal(firstShiSize(500), 216, 'clamped to 216');
 });

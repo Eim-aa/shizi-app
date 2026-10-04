@@ -138,13 +138,8 @@ export const afterClearRestartFirst = true;
 export const defaultLibrary = 'core3500';
 
 // ---- 首页 ----
-// P16 有未完成组时首页仍显示「今天记录了 N 个字」+ 墨迹行
-export const homeShowRecordWhileResume = true;
 // P23 题记：三条按日轮换（一年中第几天 mod 3）
 export const epigraphRotation = 'day-of-year';
-// P75 紧凑版首页墨迹行与计数合成一行、只放最近几个字（原型首页壳 L233 审美返修 A09；D12 只写了 N ≤ 8；M2-1 报告）。
-// 数字仍为 N。src/ui/screens/home/today.js INK_ROW_COMPACT_MAX 读取。
-export const inkRowCompactMax = 4;
 
 // ---- 写字页与提示 ----
 // P17 每字提示上限

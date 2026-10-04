@@ -358,6 +358,7 @@ export function selectDaily({
   practicable = (key) => typeof key === 'string' && key.startsWith('base:'),
   policy = defaultPolicy,
   isWarm = (key) => isWarmupKey(key),
+  capitalDeferredDay = null,
 }) {
   const size = policy.groupSize;
   const mix = policy.groupMix;
@@ -400,7 +401,7 @@ export function selectDaily({
   const base = { dueKeys: [], earlyKeys: [], newKeys: [], warmKeys: [], customKeys: [], reviewBudgetLeft, backlog, pressure };
 
   // D40 大写数字特别组：整组换掉日常配比
-  const special = capitalSpecial({ records, stats, pressure, practicable, excluded, policy });
+  const special = capitalSpecial({ records, stats, pressure, practicable, excluded, policy, today, deferredDay: capitalDeferredDay });
   if (special) {
     return { ...base, queue: special.keys.slice(0, size), newTarget: 0, special: { kind: special.kind, keys: special.keys } };
   }
@@ -457,9 +458,10 @@ export function selectDaily({
 }
 
 /** 下一次日常组是不是大写数字特别组（首页提示用，不选字）；返回 {kind, keys} 或 null。参数同 selectDaily 的子集。 */
-export function specialPlan({ sched = {}, records = [], today, practicable = (key) => typeof key === 'string' && key.startsWith('base:'), policy = defaultPolicy, isWarm = (key) => isWarmupKey(key) }) {
+export function specialPlan({ sched = {}, records = [], today, practicable = (key) => typeof key === 'string' && key.startsWith('base:'), policy = defaultPolicy, isWarm = (key) => isWarmupKey(key), capitalDeferredDay = null }) {
   const cfg = policy.capitalNumerals;
   if (!cfg || cfg.enabled === false) return null;
+  if (capitalDeferredDay === today) return null; // D46 ④：今天点了「这次先写平常的字」
   const stats = practiceStats(records, today, { policy, isWarm });
   if (stats.groupsTotal < cfg.afterGroups) return null; // 还没满：不用算积压
   const excluded = new Set(judgedCardKeysOn(records, today));
@@ -470,5 +472,5 @@ export function specialPlan({ sched = {}, records = [], today, practicable = (ke
     if (od !== null && od >= 0) backlog += 1;
   }
   const pressure = pressureOf(backlog, stats.groupsPerDay, policy.groupMix);
-  return capitalSpecial({ records, stats, pressure, practicable, excluded, policy });
+  return capitalSpecial({ records, stats, pressure, practicable, excluded, policy, today, deferredDay: capitalDeferredDay });
 }

@@ -393,10 +393,20 @@ const remindFields = {
   minute: v.intRange(0, 59),
   permission: v.str,
 };
+// 首练结果页的提醒邀请状态（D35 / D46 ③，P1-E5）：shown = 已邀请几次（最多 2）、last = 最近一次邀请所在的会话 id（同一页刷新不重复计数）、
+// answered = 用户的回应（yes 点了「好」/ no「不用了」/ denied 系统拒绝）；没回应时没有 answered。
+const remindInviteFields = {
+  shown: v.int,
+  last: v.str,
+  answered: v.oneOf(['yes', 'no', 'denied']),
+};
 const settingsFields = {
   library: v.str,
   sound: v.bool,
   remind: (x, p) => checkFields(x, p, remindFields, []),
+  remindInvite: (x, p) => checkFields(x, p, remindInviteFields, []),
+  capitalDeferredDay: v.day, // D46 ④：点了「这次先写平常的字」的那一天
+
   large: v.bool,
   appearance: v.oneOf(['auto', 'light', 'dark']),
 };

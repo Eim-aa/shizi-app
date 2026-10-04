@@ -20,6 +20,16 @@ function charsWithAnyRecord(records) {
   return out;
 }
 
+/**
+ * 「这次先写平常的字」（D46 ④）：用户在首页点了它，特别组顺延到下一个合适的日子。
+ * 顺延只管点的那一天（deferredDay === today）；第二天起条件照常判断（累计组数、积压 p、两组是否出现过），满足就再出现，
+ * 不另算「合适」——D41 的积压阀本来就是「合适的日子」的定义。存储在 settings.capitalDeferredDay（schema.js），写入经 store.commit
+ * （session-start.js deferSpecial）。
+ */
+export function isDeferred(deferredDay, today) {
+  return typeof deferredDay === 'string' && typeof today === 'string' && deferredDay === today;
+}
+
 /** 每一组是否已经出现过（标记字有任何记录）。 */
 export function capitalProgress(records, policy, data = CHAR_ORDER) {
   const appeared = charsWithAnyRecord(records);
@@ -39,11 +49,14 @@ export function capitalProgress(records, policy, data = CHAR_ORDER) {
  * @param {(key:string)=>boolean} a.practicable
  * @param {Set<string>} a.excluded              今天不再出的字
  * @param {object} a.policy
+ * @param {string|null} [a.today]               今天（YYYY-MM-DD）；与 deferredDay 一起用于「这次先写平常的字」
+ * @param {string|null} [a.deferredDay]         用户点了「这次先写平常的字」的那一天（settings.capitalDeferredDay）；那天不出特别组
  * @returns {{kind:'capital1'|'capital2', keys:string[]}|null}
  */
-export function capitalSpecial({ records, stats, pressure, practicable, excluded, policy, data = CHAR_ORDER }) {
+export function capitalSpecial({ records, stats, pressure, practicable, excluded, policy, data = CHAR_ORDER, today = null, deferredDay = null }) {
   const cfg = policy.capitalNumerals;
   if (!cfg || cfg.enabled === false) return null;
+  if (isDeferred(deferredDay, today)) return null;
   if (stats.groupsTotal < cfg.afterGroups || pressure >= cfg.belowDays) return null;
   const progress = capitalProgress(records, policy, data);
   for (let i = 0; i < progress.length; i += 1) {

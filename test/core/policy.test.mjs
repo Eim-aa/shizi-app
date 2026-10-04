@@ -85,13 +85,14 @@ test('policy: transitional defaults match 03 / the M0-6 card', () => {
   assert.equal(policy.features.perRecordInk, true, 'P31 decided D27 (stage 1 P1-E3): per-judgment ink on (was false until D14 was lifted, card M0-6)');
   assert.equal(policy.features.soundscape, false);
   assert.equal(policy.defaultLibrary, 'core3500', 'P73 default library');
-  assert.equal(policy.inkRowCompactMax, 4, 'P75 compact home ink row');
   assert.equal(policy.features.difficultyFeedback, false);
   assert.equal(policy.features.nextReviewLine, true);
   // M0 验收修复 F4：P56–P61
   assert.deepEqual([...policy.inkToneDays], [7, 30, 90], 'P56');
   assert.equal(policy.storageWarnRatio, 0.8, 'P57');
   assert.equal(policy.assumedQuotaBytes, 5 * 1024 * 1024, 'P57');
+  assert.equal(policy.homeShowRecordWhileResume, undefined, 'P16 decided by the stage-1 home design (P1-E5): a group in progress shows its cells, no switch');
+  assert.equal(policy.inkRowCompactMax, undefined, 'P75 decided by the stage-1 home design (P1-E5): today\'s chars use the 1–8 cell sizes, no merged compact row');
   assert.equal(policy.darkLampLevel, undefined, 'P58 decided D43: the dark warm lamp is cancelled');
   assert.equal(policy.darkBrightenStep, undefined, 'P58 decided D43: dark hint / trace / disabled colours are fixed in tokens.json, no brighten switch');
   assert.equal(policy.largeTextScale, undefined, 'P59 decided D29: no fixed in-app large scale any more');

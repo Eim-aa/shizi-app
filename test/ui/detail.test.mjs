@@ -164,11 +164,11 @@ test('wordView: gloss cards use the prompt content hint; fallback cards use the 
   assert.deepEqual(wordView(null), { hasWord: false, tiles: [], gloss: '' });
 });
 
-test('cellCopy: 「M·D 写对 / 写错」 caption and 「M 月 D 日 · 写错」 title', () => {
+test('cellCopy: 记录格下两行「M月D日 / 写对·写错」，读屏名与放大标题「M月D日 · 写错」（H1 / P224）', () => {
   serial = 0;
   const r = rec('静', 'wrong', '2026-09-08');
-  assert.deepEqual(cellCopy(r), { caption: '9·8 写错', title: '9 月 8 日 · 写错' });
-  assert.equal(cellCopy({ ...r, judgment: 'correct' }).caption, '9·8 写对');
+  assert.deepEqual(cellCopy(r), { date: '9月8日', caption: '写错', title: '9月8日 · 写错' });
+  assert.equal(cellCopy({ ...r, judgment: 'correct' }).caption, '写对');
 });
 
 // ---------------------------------------------------------------- 字源

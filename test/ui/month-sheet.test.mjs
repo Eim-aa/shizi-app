@@ -39,8 +39,8 @@ test('month page: the corner number is the sort day (firstDay), not the day of t
 test('month page: a cell whose ink comes from another day says so in its screen-reader name only (N2-07)', () => {
   const { state, store } = fixture();
   const m = monthModel(state, '2026-09', { store, policy });
-  assert.equal(m.cells[0].label, '永 · 9 月 2 日，9 月 28 日 的笔迹');
-  assert.equal(m.cells[1].label, '和 · 9 月 2 日', 'same day: the plain name');
+  assert.equal(m.cells[0].label, '永 · 9月2日，9月28日的笔迹');
+  assert.equal(m.cells[1].label, '和 · 9月2日', 'same day: the plain name');
 });
 
 test('the corner number sits inside the cell (top-left), with no colour block and no negative offset — it never rides a grid line (V2-09)', () => {

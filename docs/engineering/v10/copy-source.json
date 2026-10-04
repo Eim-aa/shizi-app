@@ -102,6 +102,7 @@
     "X-PERSIST.quotaFailed": "P66 旧 index.html L1067 配额句逐字；03 P66 已登记「建议改写」，待文案"
   },
   "nonRuntimeDecisions": {
+    "P224": "界面日期写法统一与中文标点（阶段 1 H1，D51 收口；设计说明第 8 条）：文案写法（src/config/copy/* 各 {month}月{day}日 槽）与 text-spacing-trim 样式（src/ui/components/Page.js、home/index.js）、清单行间隔号随前一段（library/list-model.js listRowMetaParts）；不是运行时开关",
     "P222": "Toast 不盖主操作、首次打开主按钮第一帧可见（阶段 1 H1，D51 收口）：放置规则与品牌时刻的动画范围，src/ui/components/Toast.js toastBottom 与 src/ui/screens/home/index.js；不是运行时开关",
     "P186": "AX1–AX5 字阶按层级分别取值（已决定 D49）：样式取值，src/config/tokens.css 的 :root[data-ax=\"N\"] 块与 tokens.json typography.dynamicType.ax，test/ax-type.test.mjs 核对；不是运行时开关",
     "P187": "首页减法版式（已决定 D49）：题记一行横排、去掉计数与「昨天写的字」行、字帖格两种线、AX 档字帖格宽重算——版式与派生规则，src/ui/screens/home/*；不是运行时开关；删去的文案槽见 X-HOME 各键的 note",
@@ -280,7 +281,7 @@
         },
         "dateFormat": {
           "raw": null,
-          "text": "{month} 月 {day} 日",
+          "text": "{month}月{day}日",
           "origin": "04 R-H02 文案列「{M} 月 {D} 日」的日期格式本身（全 App 界面日期，阿拉伯数字，T10）",
           "note": "{date} 占位符按此格式展开"
         },
@@ -1551,7 +1552,7 @@
       "slots": {
         "foundIn": {
           "raw": "在 {X} 月",
-          "text": "在 {month} 月",
+          "text": "在 {month}月",
           "note": "此处 {X} 是月份数字",
           "override": true
         },
@@ -1775,7 +1776,7 @@
       "slots": {
         "nextReview": {
           "raw": "下次练习 · 大约 {10 月 3 日} 再练到",
-          "text": "下次练习 · 大约 {date} 再练到",
+          "text": "下次练习 · 大约 {date}再练到",
           "decision": "P12",
           "note": "features.nextReviewLine=true，仅有 judged 记录时显示"
         }
@@ -2165,9 +2166,8 @@
         },
         "monthDays": {
           "raw": "{月}月有记录 {N} 天",
-          "text": "{month} 月有记录 {n} 天",
-          "note": "{month} 为月份数字；数字与「月」之间按 R-P01 例「9 月有记录 6 天」空一格（T10）",
-          "override": true
+          "text": "{month}月有记录 {n} 天",
+          "note": "{month} 为月份数字；H1（03 P224）：界面日期统一「10月」「10月4日」，月 / 日 / 年的单位字紧跟数字不空格（覆盖原来 T10 / R-P01 例「9 月有记录 6 天」的空格）"
         },
         "monthNote": {
           "raw": "只看哪天有记录，不分对错。",
@@ -2183,7 +2183,7 @@
         },
         "inkDate": {
           "raw": "M 月 D 日 · 你当时的笔迹",
-          "text": "{date} 的笔迹",
+          "text": "{date}的笔迹",
           "decision": "D45",
           "note": "04 原为「M 月 D 日 · 你当时的笔迹」；D45 起日期按 D42 是留有墨迹那一次的日子，改为「{date} 的笔迹」，不说也不暗示「今年第一次」",
           "override": true
@@ -2210,8 +2210,8 @@
       "slots": {
         "monthDays": {
           "raw": "{月}有记录 {N} 天",
-          "text": "{month} 月有记录 {n} 天",
-          "note": "{月} 按例「9 月有记录 6 天」拆为 {month} 月",
+          "text": "{month}月有记录 {n} 天",
+          "note": "{月} 拆为 {month}月；H1（03 P224）：界面日期统一不在数字与「月」之间空格（覆盖原例「9 月有记录 6 天」）",
           "override": true
         },
         "legend": {
@@ -2234,7 +2234,7 @@
       "slots": {
         "sheetTitle": {
           "raw": "9 月字帖",
-          "text": "{month} 月字帖",
+          "text": "{month}月字帖",
           "note": "例 → {month}",
           "override": true
         },
@@ -2624,7 +2624,7 @@
         },
         "kindMonth": {
           "raw": "{月}字帖",
-          "text": "{month} 月字帖",
+          "text": "{month}月字帖",
           "note": "{月} 按 R-P02 例「9 月字帖」拆为 {month} 月",
           "override": true
         },
@@ -3407,13 +3407,6 @@
           "origin": "extra",
           "note": "没有记录时记录块右侧说明；原型 detailEmpty L57"
         },
-        "cellCaption": {
-          "raw": null,
-          "text": "{month}·{day} {caption}",
-          "origin": "extra",
-          "note": "历次格子格下标签；原型 L413 fmt(r.d)+' '+vd(r.v)「9·8 写对」；{caption} = X-RESULT.cellCorrect / cellWrong",
-          "decision": "P76"
-        },
         "cellTitle": {
           "raw": null,
           "text": "{date} · {caption}",
@@ -3732,20 +3725,20 @@
         },
         "groupMonth": {
           "raw": null,
-          "text": "{month} 月",
+          "text": "{month}月",
           "origin": "原型 字库墨墙屏-第十稿交接版.dc.html L380 m+' 月'",
           "note": "M3-4：按月分组的组名 / 收起的月份行（今年的月份）"
         },
         "groupMonthYear": {
           "raw": null,
-          "text": "{year} 年 {month} 月",
+          "text": "{year}年{month}月",
           "origin": "extra",
           "note": "M3-4：不是今年的月份的组名（一年量级的记录会有两个同名月份；原型月份不带年）。工程补，待文案确认",
           "decision": "P55"
         },
         "foundInYear": {
           "raw": null,
-          "text": "在 {year} 年 {month} 月",
+          "text": "在 {year}年{month}月",
           "origin": "extra",
           "note": "M3-4：查字定位命中的月份不是今年时输入框右侧的说法（R-A03.foundIn 的跨年形态）。工程补，待文案确认",
           "decision": "P55"
@@ -4097,14 +4090,14 @@
         },
         "monthHead": {
           "raw": null,
-          "text": "{month} 月",
+          "text": "{month}月",
           "origin": "原型 ShiziScreen-第十稿交接版.dc.html L89「9 月」",
           "note": "M4-1：练习记录月份行（后接年份数字，数据）；{month} 月的写法同 P64 归一",
           "decision": "P64"
         },
         "monthNone": {
           "raw": null,
-          "text": "{month} 月还没有记录",
+          "text": "{month}月还没有记录",
           "origin": "原型 ShiziScreen-第十稿交接版.dc.html L107 recordsEmpty「9 月还没有记录」",
           "note": "M4-1：练习记录这个月没有有记录的日子时的标题（下面接 R-P04.empty）；{month} 月的写法同 P64 归一",
           "decision": "P64"
@@ -4951,7 +4944,7 @@
         },
         "monthTitle": {
           "raw": null,
-          "text": "{month} 月字帖",
+          "text": "{month}月字帖",
           "origin": "extra",
           "note": "月字帖（交接 §7）",
           "decision": "P160"
@@ -4972,14 +4965,14 @@
         },
         "monthOpen": {
           "raw": null,
-          "text": "{month} 月字帖，{n} 个字",
+          "text": "{month}月字帖，{n} 个字",
           "origin": "extra",
           "note": "月字帖（交接 §7）",
           "decision": "P160"
         },
         "cellInkDay": {
           "raw": null,
-          "text": "{char} · {date}，{inkDate} 的笔迹",
+          "text": "{char} · {date}，{inkDate}的笔迹",
           "origin": "extra",
           "note": "月字帖格的读屏名称：角标 / 排序用的是这个字本月第一次写下的日子（firstDay），取到的墨迹在另一天时补一句「{日期} 的笔迹」（N2-07）；与 D45「{日期} 的笔迹」同一写法"
         },
@@ -4999,7 +4992,7 @@
         },
         "annualMonthName": {
           "raw": null,
-          "text": "{month} 月",
+          "text": "{month}月",
           "origin": "extra",
           "note": "年报（交接 §8）",
           "decision": "P160"
@@ -5013,7 +5006,7 @@
         },
         "annualMonthAria": {
           "raw": null,
-          "text": "{month} 月，{n} 个字，点开看字帖",
+          "text": "{month}月，{n} 个字，点开看字帖",
           "origin": "extra",
           "note": "年报（交接 §8）",
           "decision": "P160"

@@ -463,7 +463,7 @@ export default async function run(page, ctx) {
   step('五态 ①今天还没写: 字帖位是本人最近写的 3 个字（H1 / D51 ④：日常状态不放品牌「拾」；D49：删「昨天写的字」与「字库里有 N 个字了 ›」）；题记一行横排小字不带印；按钮「开始写字」；有「自己选字」');
   await seedWorld(page, { entries: dayCells([...'疆酱肆酝春']), clock: `${D(5)}T09:30:00` });
   h = await homeView(page);
-  assert.deepEqual([h.view, h.hero, h.cta, h.pick, h.date, h.title], ['fresh', 'recent', '开始写字', '自己选字', '10 月 5 日 · 早上', '今天写几个字']);
+  assert.deepEqual([h.view, h.hero, h.cta, h.pick, h.date, h.title], ['fresh', 'recent', '开始写字', '自己选字', '10月5日 · 早上', '今天写几个字']);
   assert.equal(h.brandShi, null, 'H1 / D51 ④: no brand 拾 frame in the everyday states');
   assert.deepEqual(h.removedNodes, [], 'D49: no 「昨天写的字」 row, no library link, no resume line, no capital lead / back-old line in the DOM');
   assert.ok(!/昨天写的字|上次写的字|字库里有|这一组/.test(h.visibleText), `D49-7: nothing countable is drawn on the home page: ${h.visibleText}`);

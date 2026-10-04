@@ -181,7 +181,7 @@ export default async function run(page, { baseURL, assert, step }) {
   await bootTestHost(page, baseURL);
   await page.evaluate(() => window.__shiziTest.reset());
 
-  // 永：两条 judged（9 月 20 日 / 9 月 24 日）；和：没有记录。
+  // 永：两条 judged（9月20日 / 9月24日）；和：没有记录。
   const t1 = new Date(2026, 8, 20, 10, 0).getTime();
   const t2 = new Date(2026, 8, 24, 10, 0).getTime();
   const seeded = await page.evaluate(({ recs }) => {
@@ -306,7 +306,7 @@ export default async function run(page, { baseURL, assert, step }) {
   assert.equal(info.view, 'card', 'one char → card');
   assert.equal(info.card.char, '永', 'card for 永');
   assert.equal(info.card.custom, 'false', 'not in custom');
-  assert.equal(info.card.stat, '记录了 2 次 · 最近一次 9 月 24 日', 'card record line');
+  assert.equal(info.card.stat, '记录了 2 次 · 最近一次 9月24日', 'card record line');
   assert.equal(info.card.practice, COPY.one, '「练这个字」');
   assert.deepEqual(info.card.add, { text: COPY.add, disabled: false }, '「加入自选的字」 enabled');
   assert.deepEqual(info.card.detail, { text: COPY.viewRecords, disabled: true, aria: 'true' }, '「查看记录」 greyed before M3-6 (no onDetail)');

@@ -67,9 +67,10 @@ injectStyles('detail-records', `
 .sz-dhero__sq .sz-compare__card{position:absolute;inset:0;width:100%;border:0;background:transparent}
 .sz-dhero__glyph{width:76%;height:auto;aspect-ratio:1/1;color:${T.under}} /* 这一次没有存下墨：画衬底字（轮廓），不写「没有笔迹」（V16） */
 .sz-dhero__cap{font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3};font-variant-numeric:tabular-nums}
-.sz-dcell__cap{min-height:32px;box-sizing:border-box;padding:0 4px;display:flex;align-items:center;justify-content:center;gap:4px;
-  border-top:${T.frameW} solid ${T.frame};font-size:${T.fs11};line-height:${T.lh11};
-  color:${T.ink2};font-variant-numeric:tabular-nums;text-align:center}
+.sz-dcell__meta{box-sizing:border-box;min-height:44px;padding:4px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  border-top:${T.frameW} solid ${T.frame};font-size:${T.fs11};line-height:${T.lh11};color:${T.ink2};font-variant-numeric:tabular-nums;text-align:center}
+.sz-dcell__date{white-space:nowrap}
+.sz-dcell__cap{display:flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap}
 .sz-drec__paper{margin:0;padding:0;list-style:none;border-top:${T.hair} solid ${T.line}}
 .sz-drec__prow{display:flex;align-items:center;gap:${T.s3};min-height:52px;border-bottom:${T.hair} solid ${T.line};
   font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2}}
@@ -96,7 +97,7 @@ export function recordsOfChar(state, char) {
   return sortById(flattenRecords(state && state.records).filter(r => r && r.char === char));
 }
 
-/** localDay → 「{month} 月 {day} 日」（R-H02.dateFormat）。 */
+/** localDay → 「{month}月{day}日」（R-H02.dateFormat，界面日期统一写法，P224）。 */
 export function dayText(day) {
   try {
     return t('R-H02.dateFormat', monthDayParts(day));
@@ -105,7 +106,7 @@ export function dayText(day) {
   }
 }
 
-/** 格下标签「9·8 写对」与读屏名 / 放大标题「9 月 8 日 · 写对」。 */
+/** 记录格下两行「10月4日 / 写对」（H1 / V2-08：不再有「10·4」式）；读屏名与放大标题「10月4日 · 写对」。date 缺（坏日期）时只有 caption。 */
 export function cellCopy(record) {
   const caption = t(record.judgment === 'wrong' ? 'X-RESULT.cellWrong' : 'X-RESULT.cellCorrect');
   let parts = null;
@@ -115,7 +116,8 @@ export function cellCopy(record) {
     parts = null;
   }
   return {
-    caption: parts ? t('X-DETAIL.cellCaption', { month: parts.month, day: parts.day, caption }) : caption,
+    date: parts ? dayText(record.localDay) : '',
+    caption,
     title: parts ? t('X-DETAIL.cellTitle', { date: dayText(record.localDay), caption }) : caption,
   };
 }
@@ -351,7 +353,7 @@ const CELL_PRESS = pressFeedbackHandlers(() => false);
 
 function Cell({ record, ink, onOpen, first = false, latest = false }) {
   const has = hasInkPoints(ink);
-  const { caption, title } = cellCopy(record);
+  const { date, caption, title } = cellCopy(record);
   const sq = has
     ? html`<${InkMini} points=${ink.points} strokes=${ink.strokes} testid="detail-cell-ink" label=${record.char} />`
     : html`<${PracticeGlyph} class="sz-dcell__glyph" hidden=${true} char=${record.char} testid="detail-cell-glyph" />`;
@@ -359,7 +361,10 @@ function Cell({ record, ink, onOpen, first = false, latest = false }) {
     data-judgment=${record.judgment} data-ink=${has ? 'true' : 'false'} data-first=${first ? 'true' : null} data-latest=${latest ? 'true' : null}
     aria-label=${has ? title : t('X-DETAIL.cellNoInkLabel', { text: title })} onClick=${() => onOpen(record)}>
     <span class="sz-dcell__sq">${sq}</span>
-    <span class="sz-dcell__cap" data-testid="detail-cell-caption" data-wrong=${record.judgment === 'wrong' ? 'true' : 'false'}>${caption}</span>
+    <span class="sz-dcell__meta">
+      <span class="sz-dcell__date" data-testid="detail-cell-date">${date}</span>
+      <span class="sz-dcell__cap" data-testid="detail-cell-caption" data-wrong=${record.judgment === 'wrong' ? 'true' : 'false'}>${caption}</span>
+    </span>
   </button>`;
 }
 

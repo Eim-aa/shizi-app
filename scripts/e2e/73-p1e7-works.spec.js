@@ -173,7 +173,7 @@ export default async function (page, ctx) {
   v = await resultSnapshot(page);
   assert.deepEqual(v.cells.map(c => [c.ch, c.hasDot]), [['疆', false], ['酱', false], ['痒', true], ['酝', false]], 'after a reload the added char is still in the work with its dot');
   ctx.step('读屏: the work is one element with its chars / count / date; cells are named by result; rows read 「字，状态」');
-  assert.equal(v.work.label, '作品：疆、酱、痒、酝，4 个字，10 月 5 日', 'the work reads as one element');
+  assert.equal(v.work.label, '作品：疆、酱、痒、酝，4 个字，10月5日', 'the work reads as one element');
   assert.deepEqual(v.cells.map(c => c.label), ['疆，写对，点两下对照和修改', '酱，写对，点两下对照和修改', '痒，写错，点两下对照和修改', '酝，看后写的，点两下对照和修改'], 'cells are named by result');
   assert.deepEqual(v.rows.map(r => r.aria), ['嚷，跳过了', '醋，看过答案'], 'rows are named 「字，状态」');
   // 拿出来：结果页的行没有了，从分享弹层「也放进来」里取（72-p1e5 走弹层）；这里直接用同一个写入
@@ -358,7 +358,7 @@ export default async function (page, ctx) {
       foot: [...top.querySelectorAll('.sz-page__foot button')].map(b => b.textContent.trim()),
     };
   });
-  assert.equal(m.title, '9 月字帖');
+  assert.equal(m.title, '9月字帖');
   assert.equal(m.sub, '按第一次写下的先后排列');
   assert.deepEqual([m.cols, m.cell, m.firstRowN, m.widths], [6, 60, 6, [60]], '6 columns of ⌊(402 − 40) / 6⌋ = 60');
   assert.equal(m.chars, '永山水田和静日月星风云雨雪', 'the 纸上 char 纸 is not on the page');
@@ -459,18 +459,18 @@ export default async function (page, ctx) {
   });
   assert.equal(a.year, '二〇二六');
   assert.equal(a.head, '这一年，你写过 119 个字。');
-  assert.deepEqual([a.first.char, a.first.ink, a.first.label, a.first.date, Math.round(a.first.size)], ['春', 'true', '今年第一个字', '4 月 26 日 的笔迹', 132]);
-  assert.deepEqual(a.months.map(x => [x.month, x.n, x.name, x.count]), [['2026-04', 5, '4 月', '5 字'], ['2026-05', 18, '5 月', '18 字'], ['2026-09', 96, '9 月', '96 字'], ['2026-10', 1, '10 月', '1 字']]);
+  assert.deepEqual([a.first.char, a.first.ink, a.first.label, a.first.date, Math.round(a.first.size)], ['春', 'true', '今年第一个字', '4月26日的笔迹', 132]);
+  assert.deepEqual(a.months.map(x => [x.month, x.n, x.name, x.count]), [['2026-04', 5, '4月', '5 字'], ['2026-05', 18, '5月', '18 字'], ['2026-09', 96, '9月', '96 字'], ['2026-10', 1, '10月', '1 字']]);
   assert.ok(a.months.every(x => x.cols === 8 && Math.round(x.cell) === 45), 'month sections: 8 columns of 45');
   assert.equal(a.months[1].under, 9, 'chars without ink are under cells');
-  assert.deepEqual([a.twice.char, a.twice.dates, Math.round(a.twice.size)], ['疆', ['4 月 27 日', '10 月 2 日'], 140], '卷尾: the same char, first and latest ink');
+  assert.deepEqual([a.twice.char, a.twice.dates, Math.round(a.twice.size)], ['疆', ['4月27日', '10月2日'], 140], '卷尾: the same char, first and latest ink');
   assert.equal(a.pageTitle, '年报');
   assert.equal(a.stats, false, 'no statistics sections');
   assert.equal(a.share, true);
   await page.click(`${topSel('annual-month')}[data-month="2026-05"]`);
   await page.waitForSelector(topSel('month-screen'));
   await waitNavIdle(page);
-  assert.equal(await page.textContent(topSel('month-title')), '5 月字帖', 'the month section opens the month page');
+  assert.equal(await page.textContent(topSel('month-title')), '5月字帖', 'the month section opens the month page');
   await page.evaluate(async () => (await import('/src/ui/router.js')).nav.back());
   await waitNavIdle(page);
   await page.click(topSel('annual-share'));

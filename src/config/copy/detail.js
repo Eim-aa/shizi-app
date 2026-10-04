@@ -7,7 +7,7 @@ export default Object.freeze({
   'R-D01.wrongLine': '上次你判断写错了',
   'R-D01.forgetLine': '有一阵没写，可能快忘了',
   // R-D02（待定-工程确认（算不出就删行））
-  'R-D02.nextReview': '下次练习 · 大约 {date} 再练到',
+  'R-D02.nextReview': '下次练习 · 大约 {date}再练到',
   // R-D03（已定；L12/L13 边开发边改）
   'R-D03.count': '记录了 {n} 次',
   'R-D03.none': '还没有记录',
@@ -43,7 +43,6 @@ export default Object.freeze({
   'X-DETAIL.glossLabel': '释义',
   'X-DETAIL.firstRecord': '首次记录 {date}',
   'X-DETAIL.emptyNote': '判断过的每一次书写都会留在这里',
-  'X-DETAIL.cellCaption': '{month}·{day} {caption}',
   'X-DETAIL.cellTitle': '{date} · {caption}',
   // 头图「第一次 | 最近一次」（H1 / V2-03、N2-10，03 P223）
   'X-DETAIL.cellNoInkLabel': '{text}，没有笔迹', // 记录格没有存下墨时的读屏名称（格里画衬底字，不写字，V16）

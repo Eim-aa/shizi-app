@@ -18,7 +18,7 @@ const CLOCK = '2026-09-24T20:00:00';
 const COPY = {
   kindSession: '这次的图片',
   kindGlyph: '手写字图片',
-  kindMonth: '9 月字帖',
+  kindMonth: '9月字帖',
   sessionSign: '二〇二六年九月二十四日　一字',
   dayDoneSign: '二〇二六年九月二十四日　一字',
   monthSign: '二〇二六年九月　五字',
@@ -270,7 +270,7 @@ export default async function run(page, ctx) {
   assert.equal(v.title, COPY.kindGlyph, 'title R-I01.kindGlyph');
   assert.equal(v.ratio, '3:4', 'the single-char hand-written image keeps 3:4 (D47 is about works)');
   assert.deepEqual([v.canvas.width, v.canvas.height], [1080, 1440], 'A05 3:4 1080×1440');
-  assert.equal(v.canvas.caption, `${py} · 9 月 24 日`, 'caption 「拼音 · 日期」 (R-I02)');
+  assert.equal(v.canvas.caption, `${py} · 9月24日`, 'caption 「拼音 · 日期」 (R-I02)');
   assert.equal(v.canvas.signature, COPY.brand, 'bottom-right 「拾字」');
   assert.equal(v.canvas.recordIds, idOf(flat, '静'), 'ink = latest judged record of 静');
   assert.ok(Number(v.canvas.glyphWidth) <= 648, 'ink box ≤ 60% of the width');
@@ -314,7 +314,7 @@ export default async function run(page, ctx) {
   await waitPreview(page);
   v = await preview(page);
   assert.equal(v.kind, 'month', 'month preview');
-  assert.equal(v.title, COPY.kindMonth, 'title 「9 月字帖」');
+  assert.equal(v.title, COPY.kindMonth, 'title 「9月字帖」');
   assert.equal(v.ratio, '3:4', '5 chars → 3:4 (D47)');
   assert.equal(v.canvas.members, '永山水和静', 'first-appearance order; 水 and 和 had no ink all month → still on the page as under cells (§7)');
   assert.equal(v.canvas.modes, 'hhuuh', 'ink / under per cell');

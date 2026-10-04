@@ -32,7 +32,7 @@ test('recentInkRow：最近写的 3 个不同的字，按先后排（早 → 晚
   const records = [rec(1, '一', { day: '2026-09-01' }), rec(2, '二', { day: '2026-09-02' }), rec(3, '三', { day: '2026-09-03' }),
     rec(4, '四', { day: '2026-09-04' }), rec(5, '二', { day: '2026-09-05' })];
   const row = recentInkRow(records, { limit: 3, hasInk: allInk });
-  assert.deepEqual(row.map(r => r.char), ['三', '四', '二'], '二 最近一次在 9 月 5 日，排在最后');
+  assert.deepEqual(row.map(r => r.char), ['三', '四', '二'], '二 最近一次在 9月5日，排在最后');
   assert.equal(row[2].id, 'r5', '同一个字取最近一次的记录');
 });
 

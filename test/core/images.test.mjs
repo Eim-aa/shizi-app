@@ -622,15 +622,15 @@ test('palette: paletteFromTokens reads color.light only and has no colour litera
 
 test('renderSingleGlyph: A05 sizes, caption and brand; no ink → noInk without a canvas', async () => {
   for (const [ratio, h] of [['portrait', 1440], ['square', 1080]]) {
-    const out = await renderSingleGlyph({ points: INK, caption: 'jìng · 9 月 22 日', signatureText: '拾字', sealText: '字', ratio, palette: PALETTE,
+    const out = await renderSingleGlyph({ points: INK, caption: 'jìng · 9月22日', signatureText: '拾字', sealText: '字', ratio, palette: PALETTE,
       canvasFactory: fakeCanvas, meta: { kind: 'glyph', recordIds: 'r2' } });
     assert.equal(out.status, 'ready');
     assert.equal(out.canvas.height, h);
-    assert.equal(out.canvas.dataset.caption, 'jìng · 9 月 22 日');
+    assert.equal(out.canvas.dataset.caption, 'jìng · 9月22日');
     assert.equal(out.canvas.dataset.signature, '拾字');
     assert.equal(out.canvas.dataset.recordIds, 'r2');
     assert.ok(Number(out.canvas.dataset.glyphWidth) <= 648);
-    assert.ok(out.canvas.calls.some(c => c[0] === 'fillText' && c[1] === 'jìng · 9 月 22 日'), 'caption drawn');
+    assert.ok(out.canvas.calls.some(c => c[0] === 'fillText' && c[1] === 'jìng · 9月22日'), 'caption drawn');
   }
   const none = await renderSingleGlyph({ points: [], caption: '', signatureText: '拾字', sealText: '字', palette: PALETTE, canvasFactory: fakeCanvas });
   assert.equal(none.status, 'noInk');

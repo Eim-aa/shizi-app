@@ -230,8 +230,8 @@ test('album pages: a month with no ink is all under cells (still a page, still c
 // ---------------------------------------------------------------- 视图小件
 
 test('view helpers: first line with / without ink, date text, 纸面汉字文案；screen registered', () => {
-  assert.equal(firstLine('2026-01-02', true), '1 月 2 日 的笔迹');
-  assert.equal(firstLine('2026-01-02', false), '1 月 2 日');
+  assert.equal(firstLine('2026-01-02', true), '1月2日的笔迹');
+  assert.equal(firstLine('2026-01-02', false), '1月2日');
   assert.equal(annualDateText('bad'), '');
   assert.equal(ANNUAL_SCREEN, 'annual');
   assert.ok(getScreen('annual'), 'annual screen registered on import');
@@ -243,10 +243,10 @@ test('view helpers: first line with / without ink, date text, 纸面汉字文案
   assert.equal(t('X-WORK.annualHead', { n: 290 }), '这一年，你写过 290 个字。');
 });
 
-test('D45: the first-char date line reads 「{date} 的笔迹」 and never says it is the first time this year', () => {
-  const slot = t('R-M06.inkDate', { date: '3 月 9 日' });
-  assert.equal(slot, '3 月 9 日 的笔迹');
+test('D45: the first-char date line reads 「{date}的笔迹」 and never says it is the first time this year', () => {
+  const slot = t('R-M06.inkDate', { date: '3月9日' });
+  assert.equal(slot, '3月9日的笔迹');
   assert.ok(!/第一次|当时|首次/.test(slot), 'the date is the day of the ink record, not 今年第一次');
-  assert.equal(firstLine('2026-03-09', true), '3 月 9 日 的笔迹');
-  assert.equal(firstLine('2026-03-09', false), '3 月 9 日');
+  assert.equal(firstLine('2026-03-09', true), '3月9日的笔迹');
+  assert.equal(firstLine('2026-03-09', false), '3月9日');
 });

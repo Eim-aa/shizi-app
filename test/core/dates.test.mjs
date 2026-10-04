@@ -69,7 +69,7 @@ test('dates: monthOf and addMonths', () => {
   assert.equal(addMonths('2026-09', -21), '2024-12');
 });
 
-test('dates: dayOfYear matches prototype index (9 月 24 日 = 267)', () => {
+test('dates: dayOfYear matches prototype index (9月24日 = 267)', () => {
   assert.equal(dayOfYear('2026-01-01'), 1);
   assert.equal(dayOfYear('2026-09-24'), 267);
   assert.equal(dayOfYear('2026-12-31'), 365);
@@ -92,8 +92,8 @@ test('dates: period words and date line come from copy (R-H02)', () => {
   const words = PERIODS.map((p) => t('R-H02.period.' + p));
   assert.deepEqual(words, ['早上', '中午', '傍晚', '晚上']);
   const date = t('R-H02.dateFormat', monthDayParts('2026-09-24'));
-  assert.equal(date, '9 月 24 日');
-  assert.equal(t('R-H02.line', { date, period: t('R-H02.period.' + periodOfHour(20)) }), '9 月 24 日 · 晚上');
+  assert.equal(date, '9月24日');
+  assert.equal(t('R-H02.line', { date, period: t('R-H02.period.' + periodOfHour(20)) }), '9月24日 · 晚上');
 });
 
 test('dates: cnNumber counts in Chinese numerals (signature only)', () => {

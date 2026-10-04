@@ -4,7 +4,7 @@
 //   1. 空态：没有记录 / 只有看过答案、跳过 / 只有去年的记录 → 「年」+「今年还没有记录」+ R-M06 空态说明；没有卷、没有分享入口。
 //      入口是「我的」菜单「年度报告」（M4-1），返回回到我的。
 //   2. 有记录（真实 mutator judgeInDraft 造数，含去年记录、笔迹、看过答案 / 跳过、今年的折叠月份）：卷首（「二〇二六」、年字数按 getState 独立重算后对照、
-//      今年第一个字 + 「{M 月 D 日} 的笔迹」）→ 每月一段（月名、字数、8 列 45）→ 卷尾（同一个字、第一次与最近一次）；不再有四个统计小节。
+//      今年第一个字 + 「{M月D日} 的笔迹」）→ 每月一段（月名、字数、8 列 45）→ 卷尾（同一个字、第一次与最近一次）；不再有四个统计小节。
 //   3. 今年第一个字：那一次有笔迹 → 画笔迹 +「{date} 的笔迹」；没有笔迹 → 衬底字、说明行只写日期。
 //   4. 右上分享（取代「这一页不能保存成图片」）→ 保存年报弹层：册页张数、「保存 N 张图片」、「存成一张长图」；点月段进月字帖页。
 //   5. 不写任何东西（写日志不变、shizi.* 原始键逐字节相等）；刷新后停在年度报告；跨年（2027-01-02）变空态。
@@ -21,9 +21,9 @@ const COPY = {
   emptyTitle: '今年还没有记录',
   emptyBody: '写字并判断对错后，这里会汇总你今年的记录。',
   head: n => `这一年，你写过 ${n} 个字。`,
-  inkLine: d => `${d} 的笔迹`,
+  inkLine: d => `${d}的笔迹`,
 };
-const md = day => `${Number(day.slice(5, 7))} 月 ${Number(day.slice(8, 10))} 日`;
+const md = day => `${Number(day.slice(5, 7))}月${Number(day.slice(8, 10))}日`;
 
 async function seed(page, spec, clock = CLOCK) {
   const res = await page.evaluate(async s => {
@@ -175,7 +175,7 @@ async function writes(page) {
   return page.evaluate(() => window.__shiziTest.getWriteLog().length);
 }
 
-// 今天 2026-09-24。去年记录（不算）、今年跨 1/3/5/9 月；5 月与 9 月各 3 天 → 并列取 9 月；第一条（1-05「静」）有笔迹。
+// 今天 2026-09-24。去年记录（不算）、今年跨 1/3/5/9月；5月与 9月各 3 天 → 并列取 9月；第一条（1-05「静」）有笔迹。
 const RICH = {
   steps: [
     { char: '豕', judgment: 'correct', day: '2025-12-30' },
@@ -197,7 +197,7 @@ const RICH = {
   ],
 };
 
-// 卷尾：同一个字「疆」4-27 与 10-02 各有一份墨迹（D27 留下第一次与最近一次）；5 月一整月没有墨迹的字画衬底
+// 卷尾：同一个字「疆」4-27 与 10-02 各有一份墨迹（D27 留下第一次与最近一次）；5月一整月没有墨迹的字画衬底
 const RICH2 = {
   steps: [
     { char: '春', judgment: 'correct', day: '2026-04-26', ink: true },
@@ -248,10 +248,10 @@ export default async function run(page, ctx) {
   assert.equal(v.head, COPY.head(o.count), 'the one number: 「这一年，你写过 N 个字。」');
   assert.equal(v.count, o.count, `distinct chars this year = ${o.count} (answer-seen / skipped / last year not counted)`);
   assert.deepEqual(v.months.map(m => [m.month, m.n]), o.months, 'one section per month with chars, ascending; the count is the month sheet size');
-  assert.deepEqual(v.months.map(m => [m.name, m.count]), o.months.map(([m, n]) => [`${Number(m.slice(5))} 月`, `${n} 字`]), 'month name + 「N 字」');
+  assert.deepEqual(v.months.map(m => [m.name, m.count]), o.months.map(([m, n]) => [`${Number(m.slice(5))}月`, `${n} 字`]), 'month name + 「N 字」');
   assert.ok(v.months.every(m => m.cols === 8 && m.cell === Math.min(45, Math.floor((ctx.viewport.width - 40) / 8))), 'every month: 8 columns, cell min(45, ⌊(W − 40) / 8⌋) (45 at 402; 44 at the runner\'s 393)');
   assert.deepEqual([v.first.char, v.first.day, v.first.record], [o.first.char, o.first.day, o.first.record], 'the first char of the year (oracle)');
-  assert.deepEqual([v.first.label, v.first.line], ['今年第一个字', COPY.inkLine(md(o.first.day))], '「今年第一个字」 / 「{M 月 D 日} 的笔迹」 (D45)');
+  assert.deepEqual([v.first.label, v.first.line], ['今年第一个字', COPY.inkLine(md(o.first.day))], '「今年第一个字」 / 「{M月D日} 的笔迹」 (D45)');
   assert.equal(v.first.canvasMode, 'hand', 'the first char is drawn with its ink');
   assert.ok(!/最忙|较少见|有记录天数|只算今年的记录/.test(v.bodyText), 'no statistics sections / footer (the model keeps one number)');
 
@@ -279,7 +279,7 @@ export default async function run(page, ctx) {
   await seed(page, RICH2);
   await waitState(page, 'report');
   v = await view(page);
-  assert.deepEqual([v.twice.char, v.twice.dates], ['疆', ['4 月 27 日', '10 月 2 日']], '卷尾: the same char, first and latest ink, dates under the cells');
+  assert.deepEqual([v.twice.char, v.twice.dates], ['疆', ['4月27日', '10月2日']], '卷尾: the same char, first and latest ink, dates under the cells');
   assert.equal(v.share, true, 'share icon (replaces 「这一页不能保存成图片」)');
   assert.deepEqual(v.buttons.filter(b => b !== 'annual-month'), ['page-back', 'annual-share'], 'header back + share; the month sections are buttons');
   assert.deepEqual(v.unnamedButtons, [], 'every button has an accessible name');

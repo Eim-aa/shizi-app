@@ -1,15 +1,15 @@
 // M4-4 备份与恢复（02 M4-4；决定-D24；需求 R12 / O04；04 R-B01–R-B08、T07、边改 K04 / Z04；01 §3.6 / §8.1 / §9；03 P26 / P32 / P44）。
 //
 //   1. 入口与空态：「我的」菜单 → 备份与恢复；没有记录：还没有备份 /「现在没有记录。」/ 导出与清空都真禁用、不催导出。
-//   2. 导出（下载一级）：9 月 1 日那份旧备份（23 个字）→ 文件名、外壳、只含 v2 白名单键；导出后「现在的记录都已经备份了。」+ 轻提示。
+//   2. 导出（下载一级）：9月1日那份旧备份（23 个字）→ 文件名、外壳、只含 v2 白名单键；导出后「现在的记录都已经备份了。」+ 轻提示。
 //      300 字状态：「上次备份以后记录有改动…」→ 导出 → 文件 data 与落盘字串逐键相等（meta 缺失时补）。
 //   3. R-B06：非备份文件 / 半坏备份 / 截断文件 / 坏了的 v1 文件（M5-4 转换器整单拒绝）/ 取消选文件 → 说明框文案，全部 v2 键与 getState 深相等。
 //      好的 v1 文件经本页导入见 52-migrate。
-//   4. 替换确认（R-B03 / K04）：标题、正文（9 月 1 日、23、300）、丢失日期范围、「替换」不是主按钮；取消不写。
+//   4. 替换确认（R-B03 / K04）：标题、正文（9月1日、23、300）、丢失日期范围、「替换」不是主按钮；取消不写。
 //   5. R-B04：failNextWrite(2,{kind:'quota', matchKey:safety}) 与 failNextWrite(1,{kind:'generic'}) 让保护副本写失败 → 10.14 说明框 +
 //      「再试一次」回到确认框；全部 v2 键深相等（没有预算回收）。
 //   6. 覆盖失败已回滚：替换中途写失败 → 已回滚、副本删掉、R-B06「没能恢复」、全部键深相等。
-//   7. K03（R-B07）：300 字 → 导出 → 用 9 月 1 日备份替换（进行中的组结束、原会话进保护副本（P79）、shizi.corrupt.* 清掉、结论句、
+//   7. K03（R-B07）：300 字 → 导出 → 用 9月1日备份替换（进行中的组结束、原会话进保护副本（P79）、shizi.corrupt.* 清掉、结论句、
 //      日期不变、撤销底栏在页底栏区）→ 撤销 →「已撤销」→ 全部 v2 键（含 sessions）与 getState 深相等。
 //   8. R-B05：撤销失败 → 底栏换字、副本保留、可再点；再点成功 → 深相等。
 //   9. P32：替换后刷新，仍在备份页 → 撤销底栏恢复 → 撤销 → 深相等。
@@ -41,13 +41,13 @@ const T = {
   cancelled: '没有选文件，你的记录没有变。',
   protectFailed: '没能换成备份，你现在的记录没有变。可以再试一次。',
   replaceTitle: '用备份替换现在的记录？',
-  replaceBody: '这份备份是 9 月 1 日的，里面有 23 个字的记录。现在 300 个字的记录会被替换。离开这一页前可以撤销。',
-  loss: '9 月 2 日到 9 月 24 日的记录会丢失，建议先导出备份文件。',
+  replaceBody: '这份备份是 9月1日的，里面有 23 个字的记录。现在 300 个字的记录会被替换。离开这一页前可以撤销。',
+  loss: '9月2日到 9月24日的记录会丢失，建议先导出备份文件。',
   restoreTitle: '用这份备份恢复记录？',
-  restoreBody: '这份备份是 9 月 1 日的，里面有 23 个字的记录。',
+  restoreBody: '这份备份是 9月1日的，里面有 23 个字的记录。',
   undoL1: '已换成备份里的记录',
   undoL2: '离开这一页前可以撤销',
-  conclusion: '已换成 9 月 1 日备份里的记录，一共 23 个字。',
+  conclusion: '已换成 9月1日备份里的记录，一共 23 个字。',
   undoFailRestore: '没能撤销，现在还是备份里的记录',
   undoFailClear: '没能撤销，记录还是空的',
   undoAgain: '可以再点一次撤销',
@@ -100,7 +100,7 @@ function buildRecords(events, serialBase = 0) {
   return { records: sortedRecords, sched };
 }
 
-/** 9 月 1 日那份旧备份里的状态：23 个字，8 月的记录。 */
+/** 9月1日那份旧备份里的状态：23 个字，8月的记录。 */
 function oldState() {
   const events = [];
   for (let i = 0; i < 23; i += 1) events.push({ char: String.fromCodePoint(0x5e00 + i * 5), day: addDays('2026-08-01', i), judgment: i % 6 === 0 ? 'wrong' : 'correct' });
@@ -108,7 +108,7 @@ function oldState() {
   return { records, sched, settings: { library: 'core3500' } };
 }
 
-/** 300 字：2 月 10 日到 9 月 24 日，部分字写过两次、有写错、有看过答案；自选、换词、旧照片、设置、B 会话（不进备份）。 */
+/** 300 字：2月10日到 9月24日，部分字写过两次、有写错、有看过答案；自选、换词、旧照片、设置、B 会话（不进备份）。 */
 function bigState() {
   const chars = [];
   for (let i = 0; chars.length < 300; i += 1) chars.push(String.fromCodePoint(0x4e00 + 7 * i));
@@ -336,7 +336,7 @@ export default async function run(page, { baseURL, assert, step }) {
   assert.ok(!('shizi.v2.sessions' in objA.data) && !('shizi.v2.safety' in objA.data), 'no sessions / safety in the file');
   assert.ok('shizi.v2.meta' in objA.data, 'meta synthesized');
   v = await view(page);
-  assert.equal(v.date, '9 月 1 日', 'last backup date');
+  assert.equal(v.date, '9月1日', 'last backup date');
   assert.equal(v.line, T.allBacked, '现在的记录都已经备份了。');
   assert.equal(v.toast, T.exported, 'export feedback toast (K04)');
   let st = await state(page);
@@ -349,7 +349,7 @@ export default async function run(page, { baseURL, assert, step }) {
   await waitNavIdle(page);
   v = await view(page);
   assert.equal(v.records, 300, '300 chars with records');
-  assert.equal(v.date, '9 月 10 日', 'last backup from backupMeta');
+  assert.equal(v.date, '9月10日', 'last backup from backupMeta');
   assert.equal(v.line, T.changed, '上次备份以后记录有改动，还没有备份。');
   const rawBeforeExport = await raw(page);
   await settle(page);
@@ -479,7 +479,7 @@ export default async function run(page, { baseURL, assert, step }) {
   assert.deepEqual([v.undo.kind, v.undo.state], ['restore', 'on'], 'undo bar on');
   assert.equal(v.undo.text, `${T.undoL1}${T.undoL2}撤销`, 'undo bar lines (R-B01)');
   assert.equal(v.line, T.conclusion, 'status says only the conclusion (X03)');
-  assert.equal(v.date, '9 月 24 日', 'last backup date unchanged by replace (K02)');
+  assert.equal(v.date, '9月24日', 'last backup date unchanged by replace (K02)');
   assert.equal(v.intro, null, 'no intro paragraph while undo is on');
   assert.equal(v.restoreSub, null, 'no restore sub while undo is on');
   assert.equal(v.records, 23, '23 chars now');

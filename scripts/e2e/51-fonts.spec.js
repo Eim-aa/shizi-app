@@ -187,7 +187,7 @@ export default async function fontsSpec(page, ctx) {
     const seen = [];
     const out = await renderSingleGlyph({
       points: [[{ x: 80, y: 80, w: 12 }, { x: 260, y: 260, w: 12 }]],
-      caption: 'yǒng · 9 月 22 日', signatureText: '拾字', sealText: '字',
+      caption: 'yǒng · 9月22日', signatureText: '拾字', sealText: '字',
       requireFont: async (stack, text) => {
         const r = await requireCanvasFont(stack, text);
         seen.push({ face: r.face || null, ok: r.ok, skipped: !!r.skipped });

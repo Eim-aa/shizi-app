@@ -7,7 +7,7 @@ export default Object.freeze({
   'R-H01.title': '今天写几个字',
   // R-H02（已定）
   'R-H02.line': '{date} · {period}',
-  'R-H02.dateFormat': '{month} 月 {day} 日',
+  'R-H02.dateFormat': '{month}月{day}日',
   'R-H02.period.dawn': '早上',
   'R-H02.period.noon': '中午',
   'R-H02.period.dusk': '傍晚',

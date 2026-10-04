@@ -113,7 +113,7 @@ test('time helpers and backup row value (R-M03)', () => {
   assert.deepEqual(backupValue(null), { text: '还没有备份', arrow: true, day: null });
   assert.deepEqual(backupValue({ lastExportAt: null }), { text: '还没有备份', arrow: true, day: null });
   const at = new Date(2026, 8, 1, 21, 30).getTime();
-  assert.deepEqual(backupValue({ lastExportAt: at }), { text: '上次备份 9 月 1 日 ›', arrow: false, day: '2026-09-01' });
+  assert.deepEqual(backupValue({ lastExportAt: at }), { text: '上次备份 9月1日 ›', arrow: false, day: '2026-09-01' });
 });
 
 // ---------------------------------------------------------------- 写入

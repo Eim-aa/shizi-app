@@ -63,7 +63,7 @@ export default Object.freeze({
   'R-A02.filterCustomUnwritten': '自选了还没写',
   'R-A02.practiceThese': '练这些字',
   // R-A03（已定）
-  'R-A03.foundIn': '在 {month} 月',
+  'R-A03.foundIn': '在 {month}月',
   'R-A03.notFound': '「{char}」还没有记录。',
   'R-A03.searchAria': '在有记录的字里查字',
   // R-E02（已定；S06（返回保留勾选 + 全选/全不选）边开发边改）
@@ -110,9 +110,9 @@ export default Object.freeze({
   'X-ALL.groupRecorded': '有记录',
   // 有记录的字页页头尾端的菜单按钮与弹层标题（H1 / T2-11，03 P223）：排序、筛选、图例、说明句都收在里面
   'X-ALL.menuLabel': '排序 · 筛选',
-  'X-ALL.groupMonth': '{month} 月',
-  'X-ALL.groupMonthYear': '{year} 年 {month} 月',
-  'X-ALL.foundInYear': '在 {year} 年 {month} 月',
+  'X-ALL.groupMonth': '{month}月',
+  'X-ALL.groupMonthYear': '{year}年{month}月',
+  'X-ALL.foundInYear': '在 {year}年{month}月',
   'X-ALL.groupOther': '其他',
   'X-ALL.groupCount': '{n} 个字',
   'X-ALL.closedCount': '{n} 个字 ›',

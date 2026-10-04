@@ -47,7 +47,7 @@ const COPY = {
   notSave: '先不保存',
   retry: '再试一次',
   saveFailedQuery: '没保存上，输入的字还在。',
-  date: (m, d, p) => `${m} 月 ${d} 日 · ${p}`,
+  date: (m, d, p) => `${m}月${d}日 · ${p}`,
 };
 const EPIGRAPH_FIRST_LINES = ['心不厌精，', '文章千古事，', '我书意造本无法，'];
 
@@ -365,7 +365,7 @@ export default async function run(page, ctx) {
   for (const [time, period, word] of cases) {
     await setClock(page, DAY, time);
     h = await home(page);
-    assert.equal(h.date, COPY.date(9, 24, word), `${time} → 「9 月 24 日 · ${word}」`);
+    assert.equal(h.date, COPY.date(9, 24, word), `${time} → 「9月24日 · ${word}」`);
     assert.equal(h.period, period, `${time} → data-period=${period}`);
   }
 

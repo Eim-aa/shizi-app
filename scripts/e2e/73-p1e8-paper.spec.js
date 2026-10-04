@@ -310,8 +310,8 @@ export default async function paperSpec(page, ctx) {
   assert.deepEqual(det.cells, [{ id: firstId, ink: 'true', latest: 'true' }], 'the inked screen record is 你的笔迹 (latest inked); the paper one takes no cell');
   assert.equal(det.rows.length, 1);
   assert.equal(det.rows[0].id, paperRec.id);
-  assert.ok(/^\d+ 月 \d+ 日　写对· 纸上$/.test(det.rows[0].visible), `row text: ${det.rows[0].visible}`);
-  assert.ok(/^\d+ 月 \d+ 日，写对，纸上$/.test(det.rows[0].label), `screen-reader label: ${det.rows[0].label}`);
+  assert.ok(/^\d+月\d+日　写对· 纸上$/.test(det.rows[0].visible), `row text: ${det.rows[0].visible}`);
+  assert.ok(/^\d+月\d+日，写对，纸上$/.test(det.rows[0].label), `screen-reader label: ${det.rows[0].label}`);
   assert.equal(det.tagColor, det.ink3, '「· 纸上」 is ink3');
 
   ctx.step('字墙 as usual — 永 is a normal cell (tone by date), no 「纸上」 mark');

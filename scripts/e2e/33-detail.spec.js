@@ -127,7 +127,7 @@ async function view(page) {
       cells: qa('detail-cell').map(el => ({
         record: el.dataset.record, judgment: el.dataset.judgment, ink: el.dataset.ink,
         caption: el.querySelector('[data-testid="detail-cell-caption"]').textContent, aria: el.getAttribute('aria-label'),
-        noink: !!el.querySelector('[data-testid="detail-cell-noink"]'), glyph: !!el.querySelector('[data-testid="detail-cell-glyph"]'), aria: el.getAttribute('aria-label'), tag: el.tagName,
+        noink: !!el.querySelector('[data-testid="detail-cell-noink"]'), glyph: !!el.querySelector('[data-testid="detail-cell-glyph"]'), date: (el.querySelector('[data-testid="detail-cell-date"]') || {}).textContent, aria: el.getAttribute('aria-label'), tag: el.tagName,
       })),
       source: txt('detail-source-text'),
       sourceFrom: txt('detail-source-from'),
@@ -247,9 +247,10 @@ export default async function detailSpec(page, ctx) {
   assert.deepEqual(v.cells.map(c => c.glyph), [false, true, true], 'no-ink cells draw the under glyph');
   assert.deepEqual(v.cells.map(c => /没有笔迹/.test(c.aria)), [false, true, true], 'the accessible name of a no-ink cell says it (R-D07)');
   const [m0, d0] = heRecs[1].localDay.split('-').slice(1).map(Number);
-  assert.equal(v.cells[1].caption, `${m0}·${d0} 写错`, 'caption 「M·D 写错」');
+  assert.equal(v.cells[1].caption, '写错', 'caption: the judgment on its own line');
+  assert.equal(v.cells[1].date, `${m0}月${d0}日`, 'date line 「M月D日」 (H1 / P224: no 「M·D」)');
   assert.ok(v.cells.every(c => c.tag === 'BUTTON' && c.aria), 'cells are buttons with accessible names');
-  assert.equal(v.next, `下次练习 · 大约 ${await dateText(page, st.sched['base:和'].due)} 再练到`, 'R-D02 next review = sched.due');
+  assert.equal(v.next, `下次练习 · 大约 ${await dateText(page, st.sched['base:和'].due)}再练到`, 'R-D02 next review = sched.due');
   assert.equal(v.list, null, 'latest correct, not due → no list row');
   assert.equal(v.image && v.image.state, 'noInk', 'latest record has no ink → image entry greyed');
   // D27（阶段 1 P1-E3）：perRecordInk 默认开启，再写一次就存下墨迹、最近一次永不回收——原槽的承诺成立；

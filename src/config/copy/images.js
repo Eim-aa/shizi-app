@@ -5,7 +5,7 @@
 export default Object.freeze({
   // R-I01（已定）
   'R-I01.kindSession': '这次的图片',
-  'R-I01.kindMonth': '{month} 月字帖',
+  'R-I01.kindMonth': '{month}月字帖',
   'R-I01.kindGlyph': '手写字图片',
   'R-I01.imageNote': '存下来的是图片，不能用来恢复记录。',
   'R-I01.glyphNote': '用的是你最近一次写的这个字。存下来的是图片，不能用来恢复记录。',

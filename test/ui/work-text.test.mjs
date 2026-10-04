@@ -49,16 +49,15 @@ test('落款只有一个函数：缩略图、年报卷首 / 卷尾也都是 kuan
   assert.equal(COPY['R-P03.signature'], undefined);
 });
 
-test('界面里的月份写「10 月」：数字与「月」之间留空格；落款（汉字）里不留（T2-04）', () => {
+test('界面里的月份写「10月」：月 / 日 / 年紧跟数字，不留空格，与落款一种写法（H1 / 03 P224，设计说明第 8 条）', () => {
   const keys = ['X-WORK.monthTitle', 'X-WORK.monthOpen', 'X-WORK.annualMonthName', 'X-WORK.annualMonthAria'];
   for (const key of keys) {
     const text = [].concat(COPY[key]).join('');
-    assert.ok(/\{month\} 月/.test(text), `${key}: 「{month} 月」 with a space (got ${text})`);
-    assert.ok(!/\{month\}月/.test(text), `${key}: no 「{month}月」`);
+    assert.ok(/\{month\}月/.test(text), `${key}: 「{month}月」 with no space (got ${text})`);
+    assert.ok(!/\{month\} 月/.test(text), `${key}: no 「{month} 月」`);
   }
-  // 整个 copy 里，阿拉伯数字 / 占位符后面紧跟「月」且前面不是汉字日期落款的，都要留空格
-  const bad = Object.entries(COPY).filter(([key, v]) => !/^R-I01\.signature|^X-WORK\.kuanMonthDay$/.test(key) && /(\d|\{month\}|\{monthNum\})月/.test([].concat(v).join(''))).map(([k]) => k);
-  assert.deepEqual(bad, [], 'every UI 「N 月」 has the space');
+  const bad = Object.entries(COPY).filter(([, v]) => /(\d|\{month\}|\{monthNum\}) 月/.test([].concat(v).join(''))).map(([k]) => k);
+  assert.deepEqual(bad, [], 'no UI 「N 月」 with a space anywhere');
 });
 
 test('年报纸面文字 (§8.2): 卷首年份 / 一句话 / 日期；2 写「两」，年份逐位汉字', () => {

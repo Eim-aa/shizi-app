@@ -73,14 +73,14 @@ test('recent (default): hollow first, months new → old, two open by default, r
   assert.equal(on.note, '按最近一次写的月份排。每格是你最近一次的笔迹。', 'perRecordInk=true → original slot')
   assert.deepEqual(m.groups.map(g => [g.key, g.name, g.count]), [
     ['hollow', '自选了还没写', '2 个字'],
-    ['m:2026-09', '9 月', '3 个字'],
-    ['m:2026-08', '8 月', '1 个字'],
+    ['m:2026-09', '9月', '3 个字'],
+    ['m:2026-08', '8月', '1 个字'],
   ]);
   assert.deepEqual(m.groups[0].cells.map(c => [c.char, c.kind]), [['馨', 'hollow'], ['鼎', 'hollow']]);
   assert.deepEqual(m.groups[1].cells.map(c => [c.char, c.kind, c.tone]), [['绿', 'ink', 0], ['静', 'wrong', 0], ['境', 'ink', 1]],
     'newest first; 静 latest wrong → wrong cell; tones by P56');
   assert.deepEqual(m.closed.map(c => [c.month, c.name, c.count]), [
-    ['2026-07', '7 月', 1], ['2026-05', '5 月', 1], ['2025-09', '2025 年 9 月', 1],
+    ['2026-07', '7月', 1], ['2026-05', '5月', 1], ['2025-09', '2025年9月', 1],
   ], 'older months folded; last year month carries the year');
   assert.equal(m.groups[1].fold, 'open');
   const f1 = toggleFold({}, '2025-09', false);
@@ -89,7 +89,7 @@ test('recent (default): hollow first, months new → old, two open by default, r
   const m2 = allModel(S, opts({ fold: f2 }));
   assert.deepEqual(m2.groups.map(g => g.key), ['hollow', 'm:2026-08', 'm:2025-09']);
   assert.deepEqual(m2.closed.map(c => c.month), ['2026-09', '2026-07', '2026-05']);
-  assert.equal(monthName('2026-01', TODAY), '1 月');
+  assert.equal(monthName('2026-01', TODAY), '1月');
   assert.deepEqual(normalizeFold({ '2026-09': true, bad: true, '2026-08': 'x' }), { '2026-09': true });
 });
 
@@ -161,7 +161,7 @@ test('find by char (R-A03): only that month, ring, where; miss keeps the page', 
   const m = allModel(S, opts({ find: '静', filter: 'wrong', sort: 'age' }));
   assert.equal(m.find.mode, 'char');
   assert.equal(m.find.found, true);
-  assert.equal(m.find.where, '在 9 月');
+  assert.equal(m.find.where, '在 9月');
   assert.equal(m.showSort, false);
   assert.equal(m.showChips, false);
   assert.equal(m.note, '');
@@ -170,7 +170,7 @@ test('find by char (R-A03): only that month, ring, where; miss keeps the page', 
   assert.deepEqual(m.closed, []);
   assert.deepEqual(m.groups[0].cells.filter(c => c.hit).map(c => c.char), ['静']);
   const y = allModel(S, opts({ find: '安' }));
-  assert.equal(y.find.where, '在 2025 年 9 月', 'cross-year found label');
+  assert.equal(y.find.where, '在 2025年9月', 'cross-year found label');
   const miss = allModel(S, opts({ find: '馨' }));
   assert.equal(miss.find.found, false);
   assert.equal(miss.find.miss, '「馨」还没有记录。', 'custom unwritten char is not recorded');
@@ -193,7 +193,7 @@ test('find by pinyin (R-A04): exact syllable (tones ignored), else prefix; rings
   assert.deepEqual(toned.find.chars.sort(), ['京', '境', '惊', '静'].sort(), 'tone marks ignored');
   const lv = allModel(S, opts({ find: 'lv' }));
   assert.deepEqual(lv.find.chars, ['绿'], 'v means ü');
-  assert.equal(lv.find.where, '在 9 月');
+  assert.equal(lv.find.where, '在 9月');
   const prefix = allModel(S, opts({ find: 'a' }));
   assert.deepEqual(prefix.find.chars.sort(), ['安', '爱'].sort(), 'no exact match → prefix');
   const miss = allModel(S, opts({ find: 'zzz' }));

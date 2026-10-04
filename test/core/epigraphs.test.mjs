@@ -29,7 +29,7 @@ test('epigraphs: each couplet has two halves of equal length', () => {
   assert.ok(Object.isFrozen(EPIGRAPHS) && EPIGRAPHS.every((e) => Object.isFrozen(e) && Object.isFrozen(e.lines)));
 });
 
-test('epigraphs: rotate by day of year mod 3 (P23; 9 月 24 日 = 267 → first)', () => {
+test('epigraphs: rotate by day of year mod 3 (P23; 9月24日 = 267 → first)', () => {
   assert.equal(epigraphIndexFor('2026-09-24'), 267 % 3);
   assert.equal(epigraphFor('2026-09-24'), EPIGRAPHS[0]);
   assert.equal(epigraphFor('2026-09-25'), EPIGRAPHS[1]);

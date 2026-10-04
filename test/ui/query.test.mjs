@@ -343,11 +343,11 @@ test('CardActions: add / already added / detail greyed without onDetail; add fai
   assert.equal(text(pf['query-card-practice-fail-retry'][0]), '再试一次');
   assert.ok(text(pf['query-card-practice-fail'][0]).includes('没保存上，输入的字还在。'));
   // 卡片文字
-  assert.equal(cardStatText(summary), '记录了 2 次 · 最近一次 9 月 24 日');
+  assert.equal(cardStatText(summary), '记录了 2 次 · 最近一次 9月24日');
   assert.equal(cardStatText({ ...summary, count: 0, latestDay: null }), '还没有记录');
   assert.equal(cardMetaText('yǒng', 5), 'yǒng · 5 画');
   assert.equal(cardMetaText('yǒng', 0), 'yǒng');
-  assert.equal(formatDay('2026-09-24'), '9 月 24 日');
+  assert.equal(formatDay('2026-09-24'), '9月24日');
   assert.equal(typeof CharCard, 'function');
 });
 

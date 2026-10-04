@@ -5,10 +5,10 @@
 //   「谁」9-08 一次；「数」9-10 一次但没存墨迹；
 //   「题」1-10 首次（没存墨迹）、3-05、4-02（3-05 被回收）——年报第四节用。
 // 断言：
-//   1. 练习记录 9 月字帖：静 取 9-22 的本人笔迹（data-day / 角标 = 9-22、data-ink=true、record 是 9-22 那条），不再是 9-01「没有笔迹」；
-//      数 本月没有任何墨迹 → 如实「没有笔迹」；练习记录 8 月字帖：静 取 8 月 5 日那次。
+//   1. 练习记录 9月字帖：静 取 9-22 的本人笔迹（data-day / 角标 = 9-22、data-ink=true、record 是 9-22 那条），不再是 9-01「没有笔迹」；
+//      数 本月没有任何墨迹 → 如实「没有笔迹」；练习记录 8月字帖：静 取 8月5日那次。
 //   2. 我的首页本月字帖与练习记录同一取法（同一条记录）。
-//   3. 9 月月图片：静 取 9-22、数 缺墨且说明句是「这个月没有」；8 月月图片 静 取 8-05（时间段外的墨迹不冒充）。
+//   3. 9月月图片：静 取 9-22、数 缺墨且说明句是「这个月没有」；8月月图片 静 取 8-05（时间段外的墨迹不冒充）。
 //   4. 这天写的字：9-08 那天 静 的唯一一次已回收 → 没有笔迹（不借 9-22），说明句「这天没有」；谁 有笔迹。
 //   5. 年报第四节：字 = 今年最早记录的字 题（1-10 没存墨迹）→ 取今年里最早留有墨迹的 4-02，说明行是 4-02 的日子。
 //   6. 浏览与做图不写任何东西（写日志为空）。
@@ -95,7 +95,7 @@ export default async function run(page, ctx) {
   assert.equal(rec('数', '2026-09-10').ink, false, '数: no ink stored at all');
   assert.equal(rec('谁', '2026-09-08').ink, true, '谁: its only record keeps ink');
 
-  step('练习记录 9 月字帖: 静 = 9-22 own ink (D42), 数 honestly 没有笔迹; 8 月字帖: 静 = the August one');
+  step('练习记录 9月字帖: 静 = 9-22 own ink (D42), 数 honestly 没有笔迹; 8月字帖: 静 = the August one');
   await push(page, 'records', { month: '2026-09' });
   await page.waitForSelector(`${TOP} ${tid('records-sheet-cell')}`);
   const sep = await cells(page, 'records-sheet-cell');
@@ -129,7 +129,7 @@ export default async function run(page, ctx) {
   const mine = await cells(page, 'mine-sheet-cell');
   assert.deepEqual(mine.map(c => [c.char, c.day, c.record, c.ink]), sep.map(c => [c.char, c.day, c.record, c.ink]), 'mine sheet = practice-log September sheet');
 
-  step('月图片: 9 月 静 = 9-22, 数 missing with the month sentence; 8 月 静 = 8-05; 这天图片 shows the day sentence');
+  step('月图片: 9月 静 = 9-22, 数 missing with the month sentence; 8月 静 = 8-05; 这天图片 shows the day sentence');
   const jobs = await page.evaluate(async () => {
     const { buildImageJob } = await import('/src/ui/images-entry.js');
     const { t } = await import('/src/config/copy/index.js');
@@ -162,7 +162,7 @@ export default async function run(page, ctx) {
       canvas: el.querySelector('[data-testid="annual-first-canvas"]') ? el.querySelector('[data-testid="annual-first-canvas"]').dataset.mode === 'hand' : false };
   }, TOP);
   assert.deepEqual([first.char, first.day, first.record, first.ink, first.canvas], ['题', '2026-04-02', rec('题', '2026-04-02').id, 'true', true], 'first char of the year, ink from 4-02');
-  assert.equal(first.line, '4 月 2 日 的笔迹', 'the date line is the ink record\'s day');
+  assert.equal(first.line, '4月2日的笔迹', 'the date line is the ink record\'s day');
   await back(page);
 
   step('browsing and making images wrote nothing');

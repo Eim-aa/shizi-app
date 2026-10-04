@@ -84,7 +84,7 @@ const ICON = () => html`<svg viewBox="0 0 22 22" fill="none" stroke="currentColo
 // 否则首页内容会盖在上层写字页上、吃掉书写格的指针事件）。
 
 injectStyles('home', `
-.sz-home{position:relative;isolation:isolate;min-height:100%;box-sizing:border-box;display:flex;flex-direction:column;
+.sz-home{text-spacing-trim:trim-start;position:relative;isolation:isolate;min-height:100%;box-sizing:border-box;display:flex;flex-direction:column;
   padding:calc(12px + env(safe-area-inset-top, 0px)) 20px 0;color:${T.ink1}}
 .sz-home__head{position:relative;flex:none}
 .sz-home__date{margin:0;font-size:${T.fs13};line-height:${T.lh13};white-space:nowrap;color:${T.ink3}}

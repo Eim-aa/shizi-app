@@ -31,6 +31,7 @@ injectStyles('page', `
 .sz-page__lead .sz-page__ico--back{margin-left:-17.75px}
 .sz-page__lead .sz-page__ico--close{margin-left:-16.25px}
 .sz-page__trail .sz-btn--icon{margin-right:-15.25px}
+.sz-page__body,.sz-page__foot,.sz-tabpage{text-spacing-trim:trim-start} /* 中文标点挤压：连续标点与行首开括号按全角半宽处理（H1 / 03 P224；iOS 26 WebKit 是否生效待真机核实） */
 .sz-page__body{flex:1;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;
   box-sizing:border-box;padding:${T.s4} ${T.gutter} ${T.s8};display:flex;flex-direction:column;gap:${T.groupGap}}
 .sz-page__foot{flex:none;box-sizing:border-box;padding:${T.s3} ${T.gutter} max(${T.s5}, env(safe-area-inset-bottom, 0px));

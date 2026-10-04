@@ -28,7 +28,7 @@ function rec(serial, char, day, { kind = 'judged', judgment = 'correct' } = {}) 
 
 const FSRS = { stability: 3, difficulty: 5, state: 2 };
 
-/** 两个月的记录（7 月、9 月）+ sched / custom / settings / backupMeta / sessions。 */
+/** 两个月的记录（7月、9月）+ sched / custom / settings / backupMeta / sessions。 */
 function currentState() {
   return {
     records: {
@@ -47,7 +47,7 @@ function currentState() {
   };
 }
 
-/** 一份旧备份：9 月 1 日以前的 1 个字。 */
+/** 一份旧备份：9月1日以前的 1 个字。 */
 function oldBackupState() {
   return {
     meta: { schema: 2, serial: 9, createdAt: ms('2026-06-01'), months: ['2026-08'] },
@@ -329,7 +329,7 @@ test('恢复 → 撤销：替换采用备份（backupMeta 换成本机日期 + �
 
 test('R-B04：保护副本写失败（配额两次 / 通用）→ 不替换、不做预算回收、全部键不变', () => {
   for (const [n, kind, matchKey] of [[2, 'quota', KEYS.safety], [1, 'generic', null], [2, 'quota', null]]) {
-    // 7 月是旧月份：若副本走 commit 的「撞配额先回收」，会被折叠——这里必须原样不动
+    // 7月是旧月份：若副本走 commit 的「撞配额先回收」，会被折叠——这里必须原样不动
     const { store, backend, storage } = makeStore(currentState());
     const before = v2Raw(backend);
     const report = inspectBackup(serializeBackup(buildBackupV2(oldBackupState(), { now: ms('2026-09-01', 20) })));
@@ -340,7 +340,7 @@ test('R-B04：保护副本写失败（配额两次 / 通用）→ 不替换、�
     storage.clearFaults();
     assert.deepEqual(v2Raw(backend), before, `${kind} x${n}: nothing changed`);
     assert.equal(safetyOf(store.getState()), null);
-    assert.equal(Array.isArray(store.getState().records['2026-07']), true, '7 月没有被折叠');
+    assert.equal(Array.isArray(store.getState().records['2026-07']), true, '7月没有被折叠');
   }
 });
 
@@ -426,14 +426,14 @@ test('备份页文案小工具（mine/backup.js）：撤销底栏两行、丢失
   assert.deepEqual(ui.undoLines('clear', false), ['记录已清空', '离开这一页前可以撤销']);
   assert.deepEqual(ui.undoLines('restore', true), ['没能撤销，现在还是备份里的记录', '可以再点一次撤销']);
   assert.deepEqual(ui.undoLines('clear', true), ['没能撤销，记录还是空的', '可以再点一次撤销']);
-  assert.equal(ui.lossText({ from: '2026-09-02', to: '2026-09-24' }), '9 月 2 日到 9 月 24 日的记录会丢失，建议先导出备份文件。');
-  assert.equal(ui.lossText({ from: '2026-09-20', to: '2026-09-20' }), '9 月 20 日的记录会丢失，建议先导出备份文件。');
+  assert.equal(ui.lossText({ from: '2026-09-02', to: '2026-09-24' }), '9月2日到 9月24日的记录会丢失，建议先导出备份文件。');
+  assert.equal(ui.lossText({ from: '2026-09-20', to: '2026-09-20' }), '9月20日的记录会丢失，建议先导出备份文件。');
   assert.equal(ui.lossText(null), '');
-  assert.equal(ui.lineText({ key: 'R-B01.conclusionRestore', vars: { day: '2026-09-01', n: 23 } }), '已换成 9 月 1 日备份里的记录，一共 23 个字。');
+  assert.equal(ui.lineText({ key: 'R-B01.conclusionRestore', vars: { day: '2026-09-01', n: 23 } }), '已换成 9月1日备份里的记录，一共 23 个字。');
   assert.equal(ui.lineText({ key: 'R-B02.noRecords' }), '现在没有记录。');
   assert.deepEqual(ui.backupMenuStatus({ records: {} }), { kind: 'never', day: null, text: '还没有备份' });
   assert.deepEqual(ui.backupMenuStatus({ records: {}, backupMeta: { lastExportAt: ms('2026-09-01', 20) } }),
-    { kind: 'day', day: '2026-09-01', text: '上次备份 9 月 1 日 ›' });
+    { kind: 'day', day: '2026-09-01', text: '上次备份 9月1日 ›' });
   assert.deepEqual(Object.values(ui.NOTE_KEYS), ['R-B04.protectFailed', 'R-B06.cancelled', 'R-B06.notBackup', 'R-B06.restoreFailed']);
 });
 
@@ -445,7 +445,7 @@ test('D27：备份信封含墨迹（每字第一次 + 最近一次，跨月键�
   const stroke = (y, t0) => buildStroke([{ x: 60, y, t: t0 }, { x: 170, y: y + 2, t: t0 + 60 }, { x: 280, y: y + 9, t: t0 + 120 }], { final: true });
   const inkA = encodeInk([stroke(120, 0), stroke(200, 500)]);
   const inkB = encodeInk([stroke(90, 0)]);
-  // 永：r1（7 月，第一次）+ r3（9 月，最近一次）；和 r2、字 r4 各一次
+  // 永：r1（7月，第一次）+ r3（9月，最近一次）；和 r2、字 r4 各一次
   const withInk = { ...currentState(), ink: { '2026-07': { r1: inkA, r2: inkB }, '2026-09': { r3: inkB, r4: inkA } } };
   const { store, backend } = makeStore(withInk);
   // 1. 导出文件里有每个 ink 月键，值 = 落盘字串

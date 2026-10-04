@@ -82,7 +82,7 @@ test('P169: detailModel——纸上记录计入次数与写错过，但不进笔
   assert.equal(only.image, 'noInk', 'only paper → nothing to draw');
 });
 
-test('P169: 纸上记录行「10 月 4 日　写对 · 纸上」（· 纸上 单独一段，墨三），读屏「10 月 4 日，写对，纸上」', () => {
+test('P169: 纸上记录行「10月4日　写对 · 纸上」（· 纸上 单独一段，墨三），读屏「10月4日，写对，纸上」', () => {
   const p = rec('correct', TODAY, { source: 'paper' });
   const c = paperRowCopy(p);
   assert.equal(c.date, t('R-H02.dateFormat', { month: 10, day: 4 }));

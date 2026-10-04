@@ -7,7 +7,7 @@ import {
 import { rec } from './helpers.mjs';
 
 const INK_ENTRY = { s: ['AAAAAAAA'] };
-/** 「静」：8 月首次、9-1、9-8、9-22（D27 回收了中间两次的墨迹）。 */
+/** 「静」：8月首次、9-1、9-8、9-22（D27 回收了中间两次的墨迹）。 */
 const JING = [
   rec(1, '静', 'judged', 'correct', '2026-08-05'),
   rec(2, '静', 'judged', 'correct', '2026-09-01'),
@@ -52,7 +52,7 @@ test('D42 example: jing, September (first) = 9-22; August = its own August one; 
   const hasInk = hasInkOfState(state);
   assert.equal(pickRecordInPeriod(inMonth('2026-09'), { prefer: 'first', hasInk }).record.id, 'r4', '9-01 recycled, so 9-22');
   assert.equal(pickRecordInPeriod(inMonth('2026-08'), { prefer: 'first', hasInk }).record.id, 'r1');
-  // 9 月里一份墨迹都没有（只剩 8 月那份）：如实没有，不拿 8 月的冒充
+  // 9月里一份墨迹都没有（只剩 8月那份）：如实没有，不拿 8月的冒充
   const aug = { ink: { '2026-08': { r1: INK_ENTRY } } };
   assert.deepEqual(pickRecordInPeriod(inMonth('2026-09'), { prefer: 'first', hasInk: hasInkOfState(aug) }), { record: JING[1], inked: false });
   assert.equal(pickInkRecord(inMonth('2026-09'), { prefer: 'first', hasInk: hasInkOfState(aug) }), null);

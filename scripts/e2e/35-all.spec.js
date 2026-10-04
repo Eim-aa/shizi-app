@@ -35,7 +35,7 @@ const COPY = {
   customNote: '你自己挑来常练的字。还没写的排在前面。',
   go: '练这些字',
   searchAria: '在有记录的字里查字',
-  foundIn: m => `在 ${m} 月`,
+  foundIn: m => `在 ${m}月`,
   notFound: c => `「${c}」还没有记录。`,
   startFailed: '没保存上，刚才的选择没记下。',
   emptyTitle: '你写下的字会留在这里',
@@ -53,7 +53,7 @@ function dayAgo(n) {
 
 function monthLabel(month) {
   const [y, m] = month.split('-').map(Number);
-  return y === 2026 ? `${m} 月` : `${y} 年 ${m} 月`;
+  return y === 2026 ? `${m}月` : `${y}年${m}月`;
 }
 
 function stripPy(py) {
@@ -340,7 +340,7 @@ export default async function run(page, ctx) {
   assert.equal(v.groups[1].headTag, 'BUTTON', 'open month title is a button (tap to fold)');
   assert.equal(v.groups[1].expanded, 'true', 'aria-expanded=true');
   assert.deepEqual(v.closed.map(c => c.month), months.slice(2), 'older months folded, new → old');
-  assert.ok(v.closed.some(c => c.text.startsWith('2025 年')), 'last-year months carry the year');
+  assert.ok(v.closed.some(c => c.text.startsWith('2025年')), 'last-year months carry the year');
   const lastClosed = v.closed.at(-1);
   const lastN = byNew.filter(r => r.day.startsWith(lastClosed.month)).length;
   assert.equal(lastClosed.text, `${monthLabel(lastClosed.month)} ${lastN} 个字 ›`, 'closed month row: name + N 个字 ›');

@@ -286,7 +286,7 @@ test('core/images/render.js awaits the injected requireFont (seal = ShiziKai 400
   };
   const points = [[{ x: 100, y: 100, w: 12 }, { x: 240, y: 240, w: 12 }]];
   const out = await renderSingleGlyph({
-    points, caption: 'yǒng · 9 月 22 日', signatureText: '拾字', sealText: '字', canvasFactory: fakeCanvas, palette: lightPalette,
+    points, caption: 'yǒng · 9月22日', signatureText: '拾字', sealText: '字', canvasFactory: fakeCanvas, palette: lightPalette,
     requireFont: async (stack, text) => {
       const r = await requireCanvasFont(stack, text, { fonts, manifest });
       order.push(r.skipped ? 'skip' : `load:${r.face}`);

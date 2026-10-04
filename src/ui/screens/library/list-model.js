@@ -22,6 +22,15 @@ export const LIST_KINDS = Object.freeze(['wrong', 'forget']);
 export const VIEW_OF_KIND = Object.freeze({ wrong: 'wrongList', forget: 'forgetList' });
 
 /** params.kind 规整：'forget' / 'forgetList' → forget；其余（含旧键 againList / wrongList）→ wrong。 */
+/**
+ * 清单行第二行「{日期}写错 · 一共写错 {n} 次」拆成不拆开的片段（H1 / V2-08，03 P224）：行内间隔号随前一段（「A ·」「B」），换行时换在间隔号之后，
+ * 间隔号不会落在行首。
+ */
+export function listRowMetaParts(meta) {
+  const parts = String(meta == null ? '' : meta).split(' · ');
+  return parts.map((part, i) => (i < parts.length - 1 ? `${part} ·` : part));
+}
+
 export function normalizeKind(kind) {
   return kind === 'forget' || kind === 'forgetList' ? 'forget' : 'wrong';
 }
@@ -164,7 +173,7 @@ export function listModel(state, { kind: rawKind, sel = null, today, policy = de
       count: e.count,
       word: wordParts(card && card.word, e.char),
       meta,
-      metaParts: meta.split(' · '),
+      metaParts: listRowMetaParts(meta),
       thumbCaption: isWrong ? t('R-E03.wrongThumb') : '',
       selectable,
       selected,

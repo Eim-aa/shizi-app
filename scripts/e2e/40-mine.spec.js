@@ -3,7 +3,7 @@
 //
 // 场景（钩子 seed + setClock 2026-09-24 周四）：
 //   1. 没有记录：我的（R-M04 两句、这一周无墨点、不画字帖、菜单四行、备份行「还没有备份 ›」）；只有看过答案 / 跳过也算没有记录；
-//      练习记录（「9 月还没有记录」+ R-P04、‹ › 都灰且 aria-disabled、没有可点的日子、字帖虚线框、没有今天那一行）。
+//      练习记录（「9月还没有记录」+ R-P04、‹ › 都灰且 aria-disabled、没有可点的日子、字帖虚线框、没有今天那一行）。
 //   2. 有记录（真实 mutator judgeInDraft 造数，含笔迹、看过答案 / 跳过、折叠月份、legacy.days、backupMeta）：
 //      所有数字按 getState 独立重算后对照（这一周墨点、「N 月有记录 N 天」、墨点日子、字帖字数 / 顺序 / 角标 / 取墨记录 P02、
 //      落款汉字数字、上次备份日期）；无补记痕迹（没有虚线圈 / 空心点 / 「补记」字样；看过答案、跳过、legacy 旧练习日都不画墨点）。
@@ -38,11 +38,11 @@ const COPY = {
   lastBackup: d => `上次备份 ${d} ›`,
   annual: '年度报告',
   about: '关于拾字',
-  monthDays: (m, n) => `${m} 月有记录 ${n} 天`,
-  monthNone: m => `${m} 月还没有记录`,
+  monthDays: (m, n) => `${m}月有记录 ${n} 天`,
+  monthNone: m => `${m}月还没有记录`,
   legend: '墨点表示这天有记录，不分对错。',
   emptyLegend: '写一个字并判断对错，这天就会有一个墨点。',
-  sheetTitle: m => `${m} 月字帖`,
+  sheetTitle: m => `${m}月字帖`,
   sheetNote: '点一个字看详情，红色小字是那天的日期。',
   historyNote: '这里只能保存本月的字帖。',
   sheetEmpty: '这个月还没有可以放进图片的字',
@@ -65,7 +65,7 @@ function cn(n) {
   if (!rest) return CN[h] + '百';
   return CN[h] + '百' + (rest < 10 ? '零' + CN[rest] : (rest < 20 ? '一' : '') + cn(rest));
 }
-const md = day => `${Number(day.slice(5, 7))} 月 ${Number(day.slice(8, 10))} 日`;
+const md = day => `${Number(day.slice(5, 7))}月${Number(day.slice(8, 10))}日`;
 const tagOf = day => `${Number(day.slice(5, 7))}·${Number(day.slice(8, 10))}`;
 
 /**
@@ -451,9 +451,9 @@ export default async function run(page, ctx) {
   let r = await recordsView(page);
   assert.equal(r.title, COPY.records, 'page title 练习记录');
   assert.equal(r.month, '2026-09', 'opens this month');
-  assert.equal(r.monthText, '9 月', 'month head');
+  assert.equal(r.monthText, '9月', 'month head');
   assert.equal(r.year, '2026', 'year');
-  assert.equal(r.heading, COPY.monthNone(9), '「9 月还没有记录」');
+  assert.equal(r.heading, COPY.monthNone(9), '「9月还没有记录」');
   assert.equal(r.legend, COPY.emptyLegend, 'R-P04');
   assert.deepEqual([r.prev.disabled, r.prev.aria, r.next.disabled, r.next.aria], [true, 'true', true, 'true'], 'both arrows grey + aria-disabled');
   assert.deepEqual([r.prev.label, r.next.label], ['上个月', '下个月'], 'arrow accessible names');
@@ -488,17 +488,17 @@ export default async function run(page, ctx) {
     'week dots = days with judged records (oracle)');
   assert.deepEqual(v.week.filter(d => d.dot).map(d => d.day), ['2026-09-22', '2026-09-24'],
     'week dots 22 / 24 (21 skipped only, 23 answer-seen + legacy only → no dot)');
-  assert.equal(v.week.find(d => d.day === '2026-09-22').label, '9 月 22 日，有记录', 'dot day accessible name');
+  assert.equal(v.week.find(d => d.day === '2026-09-22').label, '9月22日，有记录', 'dot day accessible name');
   assert.deepEqual(v.sheet, { month: '2026-09', count: o9.sheet.length, shown: o9.sheet.length, truncated: false, days: o9.monthDays.length },
     'sheet counts from records');
-  assert.equal(v.sheetTitle, COPY.sheetTitle(9), 'R-P02 「9 月字帖」');
+  assert.equal(v.sheetTitle, COPY.sheetTitle(9), 'R-P02 「9月字帖」');
   assert.equal(v.gridInPaper, true, 'sheet grid laid out inside the paper card');
   assert.deepEqual(v.cells.map(c => [c.char, c.day, c.tag, c.record]), o9.sheet.map(c => [c.char, c.day, c.tag, c.record]),
     'sheet order / dates / tags / picked record = oracle (P02 first, D42: first one this month that still has ink)');
   assert.deepEqual(v.cells.map(c => c.char).join(''), '静谁慢您数', 'first-appearance order of the work members: the wrong-only 题 / 额 / 感 are not on the sheet (D51 ⑤)');
   const jing = v.cells.find(c => c.char === '静');
   // D42（解 P122）：9-1、9-8 两次的墨迹已按 D27 回收（中间那次）；月字帖在本月内从早到晚找留有墨迹的那一次 → 画 9-22 的笔迹，
-  // 不再是「9-1 没有笔迹」；但角标与排序用的是 firstDay（9-1），不跟着取墨那条走（T2-05 / N2-07）。8 月那次（8-20，种子没存墨迹）在时间段外，不进候选。
+  // 不再是「9-1 没有笔迹」；但角标与排序用的是 firstDay（9-1），不跟着取墨那条走（T2-05 / N2-07）。8月那次（8-20，种子没存墨迹）在时间段外，不进候选。
   assert.equal(jing.day, '2026-09-01', '静 is placed and numbered on the day it was first written as a work this month (9-1, firstDay), T2-05');
   assert.equal(jing.ink, 'true', '静 cell draws 9-22\'s own ink (D42 解 P122)');
   assert.equal(v.cells.some(c => c.char === '感' || c.char === '题' || c.char === '额'), false, 'wrong-only chars are not on the sheet (D51 ⑤)');
@@ -523,7 +523,7 @@ export default async function run(page, ctx) {
   assert.equal(tagGeo.glyphScaled, false, 'the ink is not shrunk to make room for the tag');
   assert.equal(v.cells.find(c => c.char === '数').ink, 'false', 'no ink → 没有笔迹 (10.12, no borrowing)');
   assert.equal(v.cells.find(c => c.char === '谁').tagText, null, 'same sort day as the previous cell (静, 9-01) → no tag');
-  assert.equal(jing.label, '静 · 9 月 1 日，9 月 22 日 的笔迹', 'cell accessible name: the sort day, plus the day of the ink drawn (N2-07)');
+  assert.equal(jing.label, '静 · 9月1日，9月22日的笔迹', 'cell accessible name: the sort day, plus the day of the ink drawn (N2-07)');
   assert.equal(v.sign, `二〇二六年九月 ${cn(o9.sheet.length)}字`, 'signature in Chinese numerals: the same kuan() as the month page and the export (R2-R1; txt() folds the full-width space)');
   assert.equal(v.sign, '二〇二六年九月 五字', 'signature literal');
   assert.equal(v.seal, '字', 'seal');
@@ -542,8 +542,8 @@ export default async function run(page, ctx) {
   r = await recordsView(page);
   assert.deepEqual((await top(page)).params, { month: '2026-09', day: null }, 'view params written back');
   assert.equal(r.recordDays, o9.monthDays.length, 'record days = oracle');
-  assert.equal(r.heading, COPY.monthDays(9, o9.monthDays.length), 'R-P01 「9 月有记录 N 天」');
-  assert.equal(r.heading, '9 月有记录 5 天', 'literal 5 days');
+  assert.equal(r.heading, COPY.monthDays(9, o9.monthDays.length), 'R-P01 「9月有记录 N 天」');
+  assert.equal(r.heading, '9月有记录 5 天', 'literal 5 days');
   assert.equal(r.legend, COPY.legend, 'R-P01 legend');
   assert.deepEqual(r.days.filter(d => d.dot).map(d => d.day), o9.monthDays, 'dots = oracle days');
   assert.deepEqual(r.days.filter(d => d.tag === 'BUTTON').map(d => d.day), o9.monthDays, 'only record days are buttons');
@@ -589,7 +589,7 @@ export default async function run(page, ctx) {
   await waitRecordsMonth(page, '2026-08');
   const o8 = await oracle(page, '2026-08');
   r = await recordsView(page);
-  assert.equal(r.heading, COPY.monthDays(8, o8.monthDays.length), '「8 月有记录 2 天」');
+  assert.equal(r.heading, COPY.monthDays(8, o8.monthDays.length), '「8月有记录 2 天」');
   assert.equal(o8.monthDays.length, 2, 'oracle 2 days');
   assert.equal(r.lead, 5, 'Aug 2026 starts on Saturday');
   assert.equal(r.sheetTitle, COPY.sheetTitle(8), 'sheet follows the month (R-P05)');
@@ -684,7 +684,7 @@ export default async function run(page, ctx) {
   assert.deepEqual(r.daylist.cells.map(c => c.char), o9.todayChars.map(c => c.char), 'today\'s chars (oracle)');
   assert.deepEqual(r.daylist.cells.map(c => c.char), row.chars, 'same set and order as the home ink row');
   assert.deepEqual(r.daylist.cells.map(c => c.record), o9.todayChars.map(c => c.record), 'latest record of each char today');
-  assert.equal(r.daylist.title, COPY.dayChars('9 月 24 日'), '「9 月 24 日写的字」');
+  assert.equal(r.daylist.title, COPY.dayChars('9月24日'), '「9月24日写的字」');
   await back(page);
   await goTab(page, 'mine');
 
@@ -707,7 +707,7 @@ export default async function run(page, ctx) {
   await openRecordsFromMine(page);
   r = await recordsView(page);
   assert.equal(r.sheetSave, COPY.saveImage, 'records 保存图片 › (same entry)');
-  assert.equal(r.today && r.today.text, `${COPY.dayChars('9 月 24 日')} ${COPY.todayImage}`, 'R-P03 today row');
+  assert.equal(r.today && r.today.text, `${COPY.dayChars('9月24日')} ${COPY.todayImage}`, 'R-P03 today row');
   assert.equal(r.today.n, o9.todayChars.length, 'today row n');
   await page.click(`${TOP} ${tid('records-sheet-save')}`);
   await page.waitForTimeout(450);

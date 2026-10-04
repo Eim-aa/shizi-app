@@ -219,7 +219,7 @@ export function baselineState() {
   };
 }
 
-/** 典型「判断」提交：新增一条记录（10 月，新键）、更新 sched、写 ink、推进会话。 */
+/** 典型「判断」提交：新增一条记录（10月，新键）、更新 sched、写 ink、推进会话。 */
 export function judgeMutation(char = '大') {
   return (draft, ctx) => {
     const id = ctx.nextId('r');

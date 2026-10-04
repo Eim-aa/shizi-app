@@ -24,8 +24,8 @@ const COPY = {
   head: n => `先练这 ${n} 个`, // B4（D36）：默认只选最该练的 5 个，不足 5 个按实际数
   restShow: n => `其余 ${n} 个字 ›`,
   restHide: n => `收起其余 ${n} 个字`,
-  wrongMeta: (m, d, n) => `${m} 月 ${d} 日写错 · 一共写错 ${n} 次`,
-  forgetMeta: (m, d, n) => `最近一次 ${m} 月 ${d} 日 · 记录了 ${n} 次`,
+  wrongMeta: (m, d, n) => `${m}月${d}日写错 · 一共写错 ${n} 次`,
+  forgetMeta: (m, d, n) => `最近一次 ${m}月${d}日 · 记录了 ${n} 次`,
   wrongThumb: '写错那次',
   noInk: '没有笔迹',
   // D27（阶段 1 P1-E3）：perRecordInk 默认开启 → 原槽（最近一次的墨迹永不回收，承诺成立）；关闭态的 …Glyph 见 47-ink-promises

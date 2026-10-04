@@ -100,7 +100,7 @@ injectStyles('library-list', `
 .sz-lrow__word b{font-weight:700;color:${T.ink1}}
 .sz-lrow__meta{display:block;font-size:${T.fs15};line-height:${T.lh15};
   color:${T.ink2};font-variant-numeric:tabular-nums}
-/* 每段整段换行；M6-2：一段比这一栏还宽时（320 宽 + 大字）段内再换行，不越出这一栏压到右边的小图说明 */
+/* 每段整段换行（间隔号在前一段末尾，不落行首，H1）；M6-2：一段比这一栏还宽时（320 宽 + 大字）段内再换行，不越出这一栏压到右边的小图说明 */
 .sz-lrow__meta span{display:inline-block;max-width:100%}
 .sz-lrow__thumbcol{flex:none;display:flex;flex-direction:column;align-items:center;gap:2px}
 .sz-lrow__thumb{position:relative;width:44px;height:44px;box-sizing:border-box;border:${T.frameW} solid ${T.frame};
@@ -204,7 +204,7 @@ function Row({ row, ink, onToggle, onDetail }) {
     <span class="sz-lrow__char" data-testid="list-row-char"><${PracticeGlyph} char=${row.char} face=${0.7} /></span>
     <span class="sz-lrow__main">
       ${w.has ? html`<span class="sz-lrow__word" data-testid="list-row-word">${w.pre}${w.tg ? html`<b>${w.tg}</b>` : null}${w.post}</span>` : null}
-      <span class="sz-lrow__meta" data-testid="list-row-meta">${row.metaParts.map((part, i) => html`${i ? ' ' : ''}<span key=${i}>${i ? `· ${part}` : part}</span>`)}</span>
+      <span class="sz-lrow__meta" data-testid="list-row-meta">${row.metaParts.map((part, i) => html`${i ? ' ' : ''}<span key=${i}>${part}</span>`)}</span>
     </span>
     <${Thumb} row=${row} ink=${ink} />`;
   return html`<li class="sz-lrow" data-testid="list-row" data-char=${row.char} data-selectable=${row.selectable ? 'true' : 'false'}

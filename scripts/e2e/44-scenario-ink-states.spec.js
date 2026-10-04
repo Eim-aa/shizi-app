@@ -18,7 +18,7 @@
 //   6 这次的图片（结果页）           本组每字从晚到早找留有墨迹的那次（D11 + D42）；缺墨不画、落款字数跟着减（P50 / R-I04）
 //   7 单字图片（详情）               最近一次；缺墨不生成
 // 阶段 1 P1-E7 改口径（交接 §4.2 / §7）：6 这次的图片 = 作品成员（有墨的字；无墨落在作品下的行里，不再有「不在图里」说明句，落款只数画进去的字）；
-//   5 月字帖：没墨的字不再被去掉，而是画 under 衬底仍占一格、仍计字数（plan.cells 全部成员，plan.drawn 只有有墨的）；字帖页是 month.js 的 MonthBody。
+//   5月字帖：没墨的字不再被去掉，而是画 under 衬底仍占一格、仍计字数（plan.cells 全部成员，plan.drawn 只有有墨的）；字帖页是 month.js 的 MonthBody。
 // 其余页面由并行卡实现：未注册的屏（getScreen 为空）记 NOT-RUN 并跳过该项，不算通过。
 
 import { bootTestHost, tid, topSel, waitNavIdle, PRESS_SETTLE_MS } from './helpers.mjs';
@@ -295,7 +295,7 @@ export default async function run(page, ctx) {
       missing: j.plan.cells.filter(c => c.mode === 'under').map(c => c.ch), cells: j.plan.cells.map(c => c.ch).join(''), pages: j.plan.pages.length,
       days: j.plan.days, signature: j.signature };
   });
-  // D51 ⑤：写错的不是作品成员。i % 10 === 3 的字最近一次写错；其中 i < 10 的另有一次写对（9 月内），i ≥ 10 的在 9 月里只有那一次写错 → 不在月字帖里
+  // D51 ⑤：写错的不是作品成员。i % 10 === 3 的字最近一次写错；其中 i < 10 的另有一次写对（9月内），i ≥ 10 的在 9月里只有那一次写错 → 不在月字帖里
   const septChars = chars.filter((c, i) => i <= 68);
   const wrongOnly = septChars.filter((c, i) => i % 10 === 3 && i >= 10);
   assert.equal(wrongOnly.length, 6, 'six September chars were only written wrong this month');

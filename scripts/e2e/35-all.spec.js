@@ -12,7 +12,7 @@
 //   7. 页内查字：命中只显示那个月、描一圈、「在 X 月」；没有记录「「X」还没有记录。」；拼音查（R-A03 / R-A04）。
 //   8. 点格子 → 单字详情 {char}；浏览不写入；视图参数刷新后恢复；0 个字空态；紧凑版列数；可访问性；无横向滚动。
 
-import { bootTestHost, tid, waitNavIdle } from './helpers.mjs';
+import { bootTestHost, tid, waitNavIdle, setTextSize, LARGE_TEXT } from './helpers.mjs';
 
 const TODAY = '2026-09-24';
 const CLOCK = `${TODAY}T09:00:00`;
@@ -296,7 +296,7 @@ export default async function run(page, ctx) {
   assert.equal(v.title, COPY.title, 'page title 有记录的字');
   assert.equal(v.recorded, 300, 'recorded 300 (same as the home big number)');
   assert.equal(v.rendered, v.total, `all ${v.total} cells rendered after batching`);
-  assert.equal(v.cols, 8, '≥ 60 members → 8 columns (same as the wall)');
+  assert.equal(v.cols, 8, '8 columns (same as the wall)');
   assert.equal(v.findAria, COPY.searchAria, 'find box aria-label 「在有记录的字里查字」 (R-A03)');
 
   // ------------------------------------------------------------------ 2. 最近写的
@@ -525,7 +525,7 @@ export default async function run(page, ctx) {
   v = await view(page);
   assert.equal(v.sort, 'py', 'sort restored from params after reload');
 
-  step('a11y and layout: named buttons, no horizontal scroll; compact 360×640 → 6 columns');
+  step('a11y and layout: named buttons, no horizontal scroll; 360×640 → 8 columns, system large text → 6 (P1-E1b)');
   assert.deepEqual(v.unnamedButtons, [], 'every button has an accessible name');
   assert.equal(v.hScroll, false, `no horizontal scroll ${v.hDims}`);
   const aCell = v.groups.find(g => g.cells.length).cells[0];
@@ -533,8 +533,14 @@ export default async function run(page, ctx) {
   await page.setViewportSize({ width: 360, height: 640 });
   await page.waitForTimeout(150);
   v = await view(page);
-  assert.equal(v.cols, 6, 'compact: 6 columns');
-  assert.equal(v.hScroll, false, 'compact: no horizontal scroll');
+  assert.equal(v.cols, 8, '360×640: still 8 columns (a short screen no longer changes the wall)');
+  assert.equal(v.hScroll, false, '360×640: no horizontal scroll');
+  await setTextSize(page, LARGE_TEXT);
+  await page.waitForTimeout(250);
+  v = await view(page);
+  assert.equal(v.cols, 6, 'XXXL system text: 6 columns');
+  assert.equal(v.hScroll, false, 'XXXL: no horizontal scroll');
+  await setTextSize(page, 'L');
   await page.setViewportSize({ width: 393, height: 852 });
 
   step('zero-count filters greyed & inert; 0 records → empty state');
@@ -546,7 +552,7 @@ export default async function run(page, ctx) {
   await seed(page, yearSeed(chars.slice(0, 20), { custom: false }).state);
   await openAll(page);
   v = await view(page);
-  assert.equal(v.cols, 5, '< 60 members → 5 columns');
+  assert.equal(v.cols, 8, '< 60 members → still 8 columns (P1-E1b: independent of the member count)');
   const zero = v.chips.filter(c => c.n === 0);
   assert.ok(zero.length >= 2 && zero.every(c => c.disabled && c.ariaDisabled === 'true'), 'zero chips disabled + aria-disabled (R-A04)');
   await page.click(`${BODY} [data-testid="all-chip"][data-key="unw"]`, { force: true });

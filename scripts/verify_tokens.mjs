@@ -40,8 +40,8 @@ export const ZHU_ALLOW = Object.freeze({
  * 登记的例外：{ rule, file, snippet（源码里出现的片段）, why }。过期（文件里已找不到 snippet）报错。
  */
 export const EXCEPTIONS = Object.freeze([
-  { rule: 'fontSize', file: 'src/ui/screens/library/wall.js', snippet: 'calc(245px / var(--cols))', why: '不认 cqw 的浏览器的回退（后一行 72cqw 生效时被覆盖）；同样是字墙格里的字面' },
-  { rule: 'fontSize', file: 'src/ui/screens/library/wall.js', snippet: 'calc(72cqw / var(--cols))', why: '字墙格里的楷体字面，边长 = 格宽 × 0.72，随列数变化（字面是图，不是排版字阶；tokens.json typography.glyph）' },
+  { rule: 'fontSize', file: 'src/ui/screens/library/wall.js', snippet: 'calc(280px / var(--cols))', why: '不认 cqw 的浏览器的回退（后一行 72cqw 生效时被覆盖）；同样是字墙格里的字面' },
+  { rule: 'fontSize', file: 'src/ui/screens/library/wall.js', snippet: 'calc(80cqw / var(--cols))', why: '字墙格里的楷体字面，边长 = 格宽 × 0.8（tokens.json typography.glyph.wallCellFace），随列数变化（字面是图，不是排版字阶；tokens.json typography.glyph）' },
   { rule: 'fontSize', file: 'src/ui/screens/mine/annual.js', snippet: 'font-size:34cqw', why: '年度字帖格里的占位字面，按格宽的 34% 算（字面是图）' },
   { rule: 'fontSize', file: 'src/ui/screens/mine/records.js', snippet: 'font-size:34cqw', why: '字帖格里的占位字面，按格宽的 34% 算（字面是图）' },
   { rule: 'fontSize', file: 'src/ui/screens/detail/index.js', snippet: 'font-size:min(24px, calc((100cqw - 2px) / var(--n, 2) * .6))', why: '词语小字帖里的字面：边长 = 格宽 × 0.6，随字数变化（字面是图）' },

@@ -35,9 +35,8 @@ import { getStore } from '../../../store/store.js';
 import { now as envNow } from '../../../platform/env.js';
 import { localDay } from '../../../core/dates.js';
 import { cardForKey, isPracticable } from '../../../data/deck.js';
-import { useCompact } from '../write/compact.js';
 import { startPicked } from '../session/index.js';
-import { Glyph, Legend, cellLabel, TONE_OPACITY } from './wall.js';
+import { Glyph, Legend, cellLabel, toneColor, useWallLayout } from './wall.js';
 import {
   allModel, normalizeFilter, normalizeFold, normalizeSort, takeCells, toggleFold, RENDER_BATCH,
 } from './all-model.js';
@@ -53,11 +52,11 @@ export function openAllWritten(params = {}) {
 // ---------------------------------------------------------------- 样式
 
 injectStyles('library-all', `
-.sz-all{display:flex;flex-direction:column;gap:14px}
-.sz-all__findbar{position:sticky;top:-14px;z-index:2;margin:-14px -24px 0;padding:14px 24px 4px;background:${T.paper};display:flex;
-  flex-direction:column;gap:8px}
+.sz-all{display:flex;flex-direction:column;gap:${T.s4}}
+.sz-all__findbar{position:sticky;top:calc(-1 * ${T.s4});z-index:2;margin:calc(-1 * ${T.s4}) calc(-1 * ${T.gutter}) 0;padding:${T.s4} ${T.gutter} ${T.s1};background:${T.paper};display:flex;
+  flex-direction:column;gap:${T.s2}}
 .sz-all__find{position:relative;min-height:calc(50px * ${T.k});box-sizing:border-box;border-radius:${T.rCtl};background:${T.field};
-  display:flex;align-items:center;gap:10px;padding:0 16px}
+  display:flex;align-items:center;gap:${T.s3};padding:0 ${T.s4}}
 .sz-all__find--hit{background:${T.sheet};box-shadow:inset 0 0 0 1px ${T.ink2}}
 .sz-all__find svg{flex:none}
 .sz-all__input{flex:1;min-width:0;border:0;background:transparent;outline:none;padding:0;font-family:${T.kai};
@@ -69,22 +68,22 @@ injectStyles('library-all', `
 .sz-all__sort.sz-btn{flex:1;min-height:44px;box-sizing:border-box;border-radius:calc(${T.rCtl} - 3px);display:grid;place-items:center;
   font-size:${T.fs15};color:${T.ink2}}
 .sz-all__sort.sz-btn[aria-pressed="true"]{background:${T.sheet};color:${T.ink1}}
-.sz-all__chips{display:flex;flex-wrap:wrap;gap:8px}
-.sz-all__chip.sz-btn{min-height:44px;box-sizing:border-box;padding:0 14px;border-radius:${T.rCtl};box-shadow:inset 0 0 0 .5px ${T.ink4};
-  display:inline-flex;align-items:center;gap:7px;font-size:${T.fs15};color:${T.ink2};white-space:nowrap}
+.sz-all__chips{display:flex;flex-wrap:wrap;gap:${T.s2}}
+.sz-all__chip.sz-btn{min-height:44px;box-sizing:border-box;padding:0 ${T.s4};border-radius:${T.rCtl};box-shadow:inset 0 0 0 .5px ${T.ink4};
+  display:inline-flex;align-items:center;gap:${T.s2};font-size:${T.fs15};color:${T.ink2};white-space:nowrap}
 .sz-all__chip.sz-btn[aria-pressed="true"]{background:${T.field};box-shadow:inset 0 0 0 1px ${T.ink1};color:${T.ink1}}
 .sz-all__chip.sz-btn[disabled]{color:${T.ink4};box-shadow:inset 0 0 0 .5px ${T.line}}
 .sz-all__chip.sz-btn[disabled] .sz-lib__dot{opacity:.45}
 .sz-all__note{margin:0;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3};text-wrap:pretty}
-.sz-all__group{display:flex;flex-direction:column;gap:6px;margin-top:4px}
-.sz-all__head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;width:100%;text-align:left;min-height:28px}
+.sz-all__group{display:flex;flex-direction:column;gap:${T.s2};margin-top:${T.s1}}
+.sz-all__head{display:flex;justify-content:space-between;align-items:baseline;gap:${T.s3};width:100%;text-align:left;min-height:28px}
 .sz-all__head.sz-btn{min-height:44px}
-.sz-all__name{display:flex;align-items:center;gap:8px;font-family:${T.song};font-size:${T.fs22};
+.sz-all__name{display:flex;align-items:center;gap:${T.s2};font-family:${T.song};font-size:${T.fs22};
   line-height:${T.lh22};font-weight:500;color:${T.ink2}}
 .sz-all__count{font-size:${T.fs15};color:${T.ink2};font-variant-numeric:tabular-nums;white-space:nowrap}
 .sz-all__swatch{flex:none;display:block;width:20px;height:7px;overflow:visible}
 .sz-all__swatch path{fill:${T.ink1}}
-.sz-all__grid{display:grid;grid-template-columns:repeat(var(--cols),minmax(0,1fr));margin:0 -4px;container-type:inline-size}
+.sz-all__grid{display:grid;grid-template-columns:repeat(var(--cols),minmax(0,1fr));container-type:inline-size}
 .sz-all__cell.sz-btn{position:relative;display:flex;flex-direction:column;align-items:stretch;min-height:0;padding:0;border-radius:${T.rWork};
   background:transparent}
 .sz-all__cell.sz-btn:focus-visible{outline:2px solid ${T.ink1};outline-offset:-2px}
@@ -92,15 +91,15 @@ injectStyles('library-all', `
 .sz-all__ring{position:absolute;inset:1px;border-radius:${T.rWork};box-shadow:inset 0 0 0 2px ${T.ink1};pointer-events:none}
 .sz-all__py{display:block;margin:-2px 0 4px;text-align:center;font-size:${T.fs11};line-height:${T.lh11};
   color:${T.ink2};white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.sz-all__closed{margin:6px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;border-top:.5px solid ${T.line}}
+.sz-all__closed{margin:${T.s2} 0 0;padding:0;list-style:none;display:flex;flex-direction:column;border-top:.5px solid ${T.line}}
 .sz-all__month.sz-btn{width:100%;min-height:52px;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;
-  gap:12px;border-bottom:.5px solid ${T.line};text-align:left}
+  gap:${T.s3};border-bottom:.5px solid ${T.line};text-align:left}
 .sz-all__mname{font-size:${T.fs17};color:${T.ink1}}
 .sz-all__mcount{font-size:${T.fs15};color:${T.ink2};white-space:nowrap;font-variant-numeric:tabular-nums}
 .sz-all__go.sz-btn{align-self:flex-start;min-height:44px;display:flex;align-items:center;font-size:${T.fs15};color:${T.ink1}}
 .sz-all__fail{margin:0;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink1}}
-.sz-all__empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;
-  padding:36px 16px 28px}
+.sz-all__empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:${T.s2};text-align:center;
+  padding:${T.s8} ${T.s4} ${T.s6}}
 .sz-all__emptytitle{margin:0;font-family:${T.song};font-size:${T.fs22};line-height:${T.lh22};font-weight:500;
   color:${T.ink1}}
 .sz-all__emptytext{margin:0;max-width:calc(250px * ${T.k});font-size:${T.fs15};line-height:${T.lh15};
@@ -172,7 +171,7 @@ function nextFrame(fn) {
 function Swatch({ tone }) {
   return html`<svg class="sz-all__swatch" viewBox="0 0 40 14" aria-hidden="true" focusable="false">
     <path d="M1.5 7.6C6 5.2 13 4.6 22 4.9c6 .2 11 .5 16.2 1.3.6.1.6 1.4 0 1.6C32 9.6 22 9.3 13 9.5 8 9.6 4.4 10.2 2.2 10.4.6 10.5.3 8.3 1.5 7.6Z"
-      style=${{ opacity: `var(--lib-t${tone}, ${TONE_OPACITY[tone]})` }}></path>
+      style=${{ fill: toneColor(tone) }}></path>
   </svg>`;
 }
 
@@ -207,7 +206,7 @@ function AllScreen({ params, entry }) {
   const p = params || {};
   const entryId = entry && entry.id;
   const state = useStoreState();
-  const compact = useCompact();
+  const { large: compact, wide } = useWallLayout();
   const [sort, setSort] = useState(() => normalizeSort(p.sort));
   const [filter, setFilter] = useState(() => normalizeFilter(p.filter));
   const [fold, setFold] = useState(() => normalizeFold(p.fold));
@@ -216,8 +215,8 @@ function AllScreen({ params, entry }) {
   const today = localDay(envNow());
 
   const model = useMemo(() => allModel(state, {
-    today, policy: defaultPolicy, compact, sort, filter, fold, find, pyOf: pyOfChar, practicable: isPracticable,
-  }), [state, today, compact, sort, filter, fold, find]);
+    today, policy: defaultPolicy, compact, wide, sort, filter, fold, find, pyOf: pyOfChar, practicable: isPracticable,
+  }), [state, today, compact, wide, sort, filter, fold, find]);
 
   // 分批画：视图一变就从 72 格重新开始，之后逐帧补 72 格（01 §10）。
   const viewKey = `${model.sort}|${model.filter}|${find}|${JSON.stringify(fold)}`;

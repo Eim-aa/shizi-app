@@ -1,56 +1,55 @@
-// 阶段 0 卡 P0-A · B5（G30 部分，D36）：字库墨墙四档墨色最淡档 .4 → .55，浅色下与纸色的对比度 ≥ 3:1（WCAG 1.4.11 非文字），
-// 深色最淡档同样 ≥ 3:1。对比度按令牌实际取值计算（墨色以该档透明度叠在纸色上）。
+// 字库墨墙四档墨色（阶段 1 P1-E1b，设计系统 v1 设计说明 16）：四个独立色值 --wall1…--wall4（tokens.json color.*.wall1–4）取代原来的透明度四档
+// （阶段 0 P0-A·B5 的 .55 最淡档与深色提亮 DARK_OLDEST_TONE 随之作废）。这里核对：
+//   · wall.js 只用令牌取色（TONE_COLOR_VARS / toneColor），不再导出透明度常量；
+//   · 四档颜色对纸色的对比度逐档递减（档位仍可分辨）且最淡一档 ≥ 3:1（WCAG 1.4.11 非文字），浅深各一套；
+//   · 对比度与 tokens.json 的 contrast 表（wall4/paper 3.52 / 4.72）一致。
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { TONE_OPACITY, DARK_OLDEST_TONE } from '../../src/ui/screens/library/wall.js';
+import * as wall from '../../src/ui/screens/library/wall.js';
+import { TONE_COLOR_VARS, toneColor } from '../../src/ui/screens/library/wall.js';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
-const tokens = readFileSync(join(ROOT, 'src/config/tokens.css'), 'utf8');
+const tokens = JSON.parse(readFileSync(join(ROOT, 'docs/design/design-system-v1/tokens.json'), 'utf8'));
+const css = readFileSync(join(ROOT, 'src/config/tokens.css'), 'utf8');
 
-function hexOf(block, name) {
-  const m = new RegExp(`${name}:\\s*#([0-9a-fA-F]{6})\\b`).exec(block);
-  assert.ok(m, `${name} not found`);
-  return [0, 2, 4].map(i => parseInt(m[1].slice(i, i + 2), 16));
-}
-
-function luminance(rgb) {
-  const [r, g, b] = rgb.map(v => {
-    const c = v / 255;
-    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+const rgb = hex => [0, 2, 4].map(i => parseInt(hex.slice(1 + i, 3 + i), 16));
+function luminance(c) {
+  const [r, g, b] = c.map(v => {
+    const x = v / 255;
+    return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4;
   });
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
-
 function ratio(a, b) {
-  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+  const [hi, lo] = [luminance(rgb(a)), luminance(rgb(b))].sort((x, y) => y - x);
   return (hi + 0.05) / (lo + 0.05);
 }
 
-const blend = (ink, paper, alpha) => ink.map((v, i) => Math.round(v * alpha + paper[i] * (1 - alpha)));
-
-const darkStart = tokens.indexOf('@media (prefers-color-scheme: dark)');
-const lightBlock = tokens.slice(0, darkStart);
-const darkBlock = tokens.slice(darkStart);
-
-test('墨墙四档透明度：最淡档 .55（D36），档位仍单调递减', () => {
-  assert.deepEqual([...TONE_OPACITY], [1, 0.78, 0.58, 0.55]);
-  for (let i = 1; i < TONE_OPACITY.length; i += 1) assert.ok(TONE_OPACITY[i] < TONE_OPACITY[i - 1], `tone ${i} < tone ${i - 1}`);
+test('墨墙取色只走令牌：四档 → --wall1…--wall4，没有透明度四档常量', () => {
+  assert.deepEqual([...TONE_COLOR_VARS], ['--wall1', '--wall2', '--wall3', '--wall4']);
+  assert.equal(toneColor(0), 'var(--wall1)');
+  assert.equal(toneColor(3), 'var(--wall4)');
+  assert.equal(toneColor(null), 'var(--wall4)', '没有档位按最淡一档');
+  assert.equal('TONE_OPACITY' in wall, false, 'the opacity encoding is gone');
+  assert.equal('DARK_OLDEST_TONE' in wall, false, 'the dark brighten-the-oldest hack is gone');
+  const rules = wall.WALL_CSS;
+  assert.ok(!/--lib-t[0-3]/.test(rules), 'no --lib-tN opacity variables in the wall CSS');
+  for (const n of [1, 2, 3, 4]) assert.ok(rules.includes(`var(--wall${n})`), `wall CSS uses --wall${n}`);
+  for (const n of [1, 2, 3, 4]) {
+    for (const theme of ['light', 'dark']) assert.ok(css.includes(`--wall${n}: ${tokens.color[theme][`wall${n}`]};`), `tokens.css has ${theme} wall${n}`);
+  }
 });
 
-test('浅色：最淡档墨色叠在纸色上 ≥ 3:1（旧值 .4 不到 3:1）', () => {
-  const ink = hexOf(lightBlock, '--ink1');
-  const paper = hexOf(lightBlock, '--paper');
-  const oldest = ratio(blend(ink, paper, TONE_OPACITY[3]), paper);
-  assert.ok(oldest >= 3, `light oldest tone contrast ${oldest.toFixed(2)}`);
-  assert.ok(ratio(blend(ink, paper, 0.4), paper) < 3, 'the old .4 was below 3:1');
-});
-
-test('深色：最淡档（DARK_OLDEST_TONE）叠在深纸色上 ≥ 3:1', () => {
-  const ink = hexOf(darkBlock, '--ink1');
-  const paper = hexOf(darkBlock, '--paper');
-  const oldest = ratio(blend(ink, paper, DARK_OLDEST_TONE), paper);
-  assert.ok(oldest >= 3, `dark oldest tone contrast ${oldest.toFixed(2)}`);
-});
+for (const theme of ['light', 'dark']) {
+  test(`${theme}：四档对纸的对比度逐档递减，最淡档 ≥ 3:1，与 tokens.json 的 contrast 表一致`, () => {
+    const c = tokens.color[theme];
+    const r = [1, 2, 3, 4].map(n => ratio(c[`wall${n}`], c.paper));
+    for (let i = 1; i < r.length; i += 1) assert.ok(r[i] < r[i - 1], `${theme} tone ${i} (${r[i].toFixed(2)}) < tone ${i - 1} (${r[i - 1].toFixed(2)})`);
+    assert.ok(r[3] >= 3, `${theme} oldest tone contrast ${r[3].toFixed(2)} ≥ 3`);
+    assert.ok(Math.abs(r[3] - tokens.color.contrast[theme]['wall4/paper']) < 0.02, `${theme} wall4/paper matches the token table`);
+    assert.ok(r[0] - r[1] > 1 && r[1] - r[2] > 1, `${theme}: the first three steps are at least 1:1 apart (distinguishable)`);
+  });
+}

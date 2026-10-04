@@ -35,6 +35,7 @@ import { html, useEffect, useRef, useState } from '../../../../vendor/ui.js';
 import { registerScreen, getRouter, getScreen, nav } from '../../router.js';
 import { Page } from '../../components/Page.js';
 import { Button, markStateChange } from '../../components/Button.js';
+import { Chevron } from '../../components/Chevron.js';
 import { injectStyles, T, TEX } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
 import * as defaultPolicy from '../../../config/policy.js';
@@ -80,7 +81,7 @@ setNoneActions({ wrongList: () => nav.replace(LIST_SCREEN, { kind: 'wrong' }) })
 // ---------------------------------------------------------------- 样式
 
 injectStyles('library-list', `
-.sz-list{display:flex;flex-direction:column;gap:22px}
+.sz-list{display:flex;flex-direction:column;gap:${T.s6}}
 .sz-list__intro{display:flex;flex-direction:column;gap:8px}
 .sz-list__head{margin:0;font-family:${T.song};font-size:${T.fs28};line-height:${T.lh28};font-weight:500;color:${T.ink1}}
 .sz-list__top{margin:0;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2};text-wrap:pretty}
@@ -94,7 +95,7 @@ injectStyles('library-list', `
   text-align:left;color:inherit}
 .sz-lrow__char{flex:none;width:calc(44px * ${T.k});text-align:center;font-family:${T.kai};font-size:${T.fs34};
   line-height:${T.lh34};color:${T.ink1}}
-.sz-lrow__main{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}
+.sz-lrow__main{flex:1;min-width:0;display:flex;flex-direction:column;gap:${T.s1}}
 .sz-lrow__word{font-family:${T.kai};font-size:${T.fs22};line-height:${T.lh22};color:${T.ink2}}
 .sz-lrow__word b{font-weight:700;color:${T.ink1}}
 .sz-lrow__meta{display:block;font-size:${T.fs15};line-height:${T.lh15};
@@ -107,14 +108,13 @@ injectStyles('library-list', `
 .sz-lrow__thumb .sz-compare__card{position:absolute;inset:0;border:0;border-radius:0;background:transparent;aspect-ratio:auto}
 .sz-lrow__noink{max-width:2.4em;font-size:${T.fs11};line-height:${T.lh11};color:${T.ink3};text-align:center;overflow-wrap:anywhere}
 .sz-lrow__cap{font-size:${T.fs11};line-height:${T.lh11};color:${T.ink3};white-space:nowrap}
-.sz-lrow__chev{flex:none;font-size:${T.fs15};color:${T.ink3}}
 .sz-list__note{margin:0;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2};text-wrap:pretty}
 .sz-list__hint{margin:0;text-align:center;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3}}
 .sz-list__fail{margin:0;text-align:center;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink1}}
 .sz-list__toggle{min-height:44px;padding:0 4px;font-size:${T.fs15};color:${T.ink2}}
 .sz-list__rest{align-self:flex-start;min-height:44px;padding:0 4px;margin-top:-12px;font-size:${T.fs15};color:${T.ink2}}
-.sz-list-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;
-  padding:24px 0 96px}
+.sz-list-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:${T.s4};text-align:center;
+  padding:${T.s6} 0 ${T.s16}}
 .sz-list-empty__glyph{width:88px;height:88px;box-sizing:border-box;border:${T.frameW} dashed ${T.frame};display:grid;
   place-items:center;font-family:${T.kai};font-size:52px;color:${T.under}}
 .sz-list-empty__title{margin:0;font-family:${T.song};font-size:${T.fs22};line-height:${T.lh22};font-weight:500;
@@ -211,7 +211,7 @@ function Row({ row, ink, onToggle, onDetail }) {
     ${sel}
     ${onDetail
       ? html`<${Button} variant="plain" class="sz-lrow__open" data-testid="list-row-open" onClick=${() => onDetail(row)}>
-          ${body}<span class="sz-lrow__chev" aria-hidden="true">›</span>
+          ${body}<${Chevron} />
         </${Button}>`
       : html`<div class="sz-lrow__open" data-testid="list-row-main">${body}</div>`}
   </li>`;

@@ -5,7 +5,7 @@
 //      只有看过答案 / 跳过 / 自选的字也是空态。
 //   2. 5 / 30 / 300 个字：大数字 = 有记录的字（R-L10）；两条事实（另有 N 个自选的字还没写 / 从 X 开始记录，P63）；
 //      墙：自选了还没写（空心）排最前，其余最近一次新 → 旧；写错过 = 标准字 + 红点（K28，不画写错笔迹）；墨色四档（P56）；
-//      列数 5 / 8（≥ 60）；最多 8 行；截断时「还有 N 个字 ›」（P27：分母含自选未写）；没截断时不显示。
+//      列数 8（P1-E1b 设计系统：与成员数无关；≥ 430 宽 9 列、系统大字号 6 列）；最多 8 行；截断时「还有 N 个字 ›」（P27：分母含自选未写）；没截断时不显示。
 //      写错过 / 快忘了卡片：数字、前 4 格预览、有字才能点；空卡不是按钮、去卡片样式（R-L02 / R-L07）。
 //      300 字首屏渲染计时（R-L09）；紧凑版（360×640）列数 6 / 4。
 //   3. 导航（目标屏由 M3-2 / M3-4 / M3-5 / M3-6 注册；本卡只测 nav 调用，测试里用占位屏覆盖）：
@@ -13,7 +13,7 @@
 //   4. 深色：墙下说明反向（「颜色越暗，越久没写。…」），最淡一档提亮；跟随系统（prefers-color-scheme）与 data-theme 强制两种。
 //   5. 可访问性：页内每个 button 有可读的无障碍名。
 
-import { bootTestHost, tid, waitNavIdle } from './helpers.mjs';
+import { bootTestHost, tid, tokenRgb, waitNavIdle, setTextSize, LARGE_TEXT } from './helpers.mjs';
 
 const TODAY = '2026-09-24';
 const CLOCK = `${TODAY}T09:00:00`;
@@ -159,6 +159,7 @@ async function lib(page) {
       return {
         char: el.dataset.char, kind: el.dataset.kind, tone: el.dataset.tone, label: el.getAttribute('aria-label'),
         opacity: g ? getComputedStyle(g).opacity : null, mark: !!el.querySelector('.sz-lib__mark'),
+        color: el.querySelector('.sz-lib__char') ? getComputedStyle(el.querySelector('.sz-lib__char')).color : null,
         glyph: el.querySelector('.sz-lib__char') ? el.querySelector('.sz-lib__char').textContent : null,
         ink: g ? g.dataset.ink : null, y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height),
       };
@@ -282,7 +283,7 @@ export default async function run(page, ctx) {
     const ms = await setup(page, state, n);
     v = await lib(page);
     const members = n + HOLLOW.length;
-    const cols = members >= 60 ? 8 : 5;
+    const cols = 8; // 设计系统 v1（P1-E1b）：8 列，与成员数无关
     const shown = Math.min(members, cols * 8);
     assert.equal(v.state, 'records', 'data-state=records');
     assert.deepEqual(v.count, { n, text: `${COPY.recordedLabel} ${n} 个字`, tag: 'BUTTON' }, `big number ${n} (R-L10) is a button (R-L02)`);
@@ -310,8 +311,10 @@ export default async function run(page, ctx) {
       return Number(c.tone) === r.i % 4;
     });
     assert.ok(toneOk, 'ink cells carry the tone of their last record (7/30/90, P56)');
-    const LIGHT = ['1', '0.78', '0.58', '0.55'];
-    assert.ok(inkCells.every(c => c.opacity === LIGHT[Number(c.tone)]), 'tone opacities 1 / .78 / .58 / .55 (light, D36)');
+    // P1-E1b：新旧四档改用令牌 wall1–wall4 的独立色值（取代透明度 1 / .78 / .58 / .55），写错格也按新旧取档、不再变灰变小
+    const WALL = ['wall1', 'wall2', 'wall3', 'wall4'].map(k => tokenRgb('light', k));
+    assert.ok(inkCells.every(c => c.color === WALL[Number(c.tone)] && c.opacity === '1'), 'tone colours wall1–wall4 (light), no opacity coding (P1-E1b)');
+    assert.ok(wrongCells.every(c => c.color === WALL[Number(c.tone)]), 'wrong cells are toned by recency like the others (no grey-out)');
     assert.ok(inkCells.every(c => c.ink === 'none' && c.glyph === c.char), 'records seeded without ink → standard glyph placeholder (10.12; with stored ink the wall draws it, D27: 66-ink-retention / 47)');
     const hollowCell = v.cells[0];
     assert.equal(hollowCell.label, `${HOLLOW[0]}，${COPY.hollowLegend}`, 'cell accessible name 「字，状态」');
@@ -384,16 +387,16 @@ export default async function run(page, ctx) {
   }
 
   // ------------------------------------------------------------------ 4. 深色
-  step('dark (data-theme=dark): note reversed, oldest tone brightened (R-L03 / 边改 L14)');
+  step('dark (data-theme=dark): note reversed, tone colours = dark wall1–wall4 (R-L03 / 边改 L14, P1-E1b)');
   await setup(page, seedOf(deckChars.slice(0, 30)).state, 30); // 30 字：四档都在墙上
   await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'dark'));
   await page.waitForTimeout(60);
   v = await lib(page);
   assert.equal(v.note, COPY.legendDark, 'dark note 「颜色越暗，越久没写。…」');
   const oldest = v.cells.find(c => c.kind === 'ink' && c.tone === '3');
-  assert.equal(oldest && oldest.opacity, '0.5', 'oldest tone brighter in dark (.4 → .5)');
+  assert.equal(oldest && oldest.color, tokenRgb('dark', 'wall4'), 'oldest tone = dark wall4 (an independent colour, not an opacity)');
   const tone2 = v.cells.find(c => c.kind === 'ink' && c.tone === '2');
-  assert.equal(tone2 && tone2.opacity, '0.58', 'other tones unchanged');
+  assert.equal(tone2 && tone2.color, tokenRgb('dark', 'wall3'), 'third tone = dark wall3');
   await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'light'));
   await page.emulateMedia({ colorScheme: 'dark' });
   await page.waitForTimeout(60);
@@ -403,26 +406,36 @@ export default async function run(page, ctx) {
   await page.waitForTimeout(60);
   v = await lib(page);
   assert.equal(v.note, COPY.legendDark, 'follow system dark (prefers-color-scheme) → dark note');
-  assert.equal(v.cells.find(c => c.kind === 'ink' && c.tone === '3').opacity, '0.5', 'follow system dark → oldest tone .5');
+  assert.equal(v.cells.find(c => c.kind === 'ink' && c.tone === '3').color, tokenRgb('dark', 'wall4'), 'follow system dark → oldest tone = dark wall4');
   await page.emulateMedia({ colorScheme: 'light' });
   await page.waitForTimeout(60);
   v = await lib(page);
   assert.equal(v.note, COPY.legend, 'back to light note');
 
   // ------------------------------------------------------------------ 5. 紧凑版
-  step('compact (360×640): 300 chars → 6 columns, 48 cells; 5 chars → 4 columns');
+  step('360×640: still 8 columns (a short screen no longer changes the wall); system large text (XXXL) → 6 columns; 440 wide → 9 (P1-E1b)');
   await page.setViewportSize({ width: 360, height: 640 });
   await page.waitForTimeout(120);
   await setup(page, seedOf(deckChars.slice(0, 300)).state, 300);
   v = await lib(page);
-  assert.deepEqual({ cols: v.wall.cols, shown: v.wall.shown, more: v.wall.more }, { cols: 6, shown: 48, more: 302 - 48 }, 'compact 300: 6 cols × 8 rows');
-  assert.equal(v.more.text, COPY.more(302 - 48), 'more text follows compact truncation');
+  assert.deepEqual({ cols: v.wall.cols, shown: v.wall.shown, more: v.wall.more }, { cols: 8, shown: 64, more: 302 - 64 }, '360×640, 300 chars: 8 cols × 8 rows');
+  assert.equal(v.more.text, COPY.more(302 - 64), 'more text follows the truncation');
   assert.equal(v.hScroll, false, 'no horizontal scroll at 360');
+  await setTextSize(page, LARGE_TEXT);
+  await page.waitForTimeout(300);
+  v = await lib(page);
+  assert.deepEqual({ cols: v.wall.cols, shown: v.wall.shown, more: v.wall.more }, { cols: 6, shown: 48, more: 302 - 48 }, 'XXXL: 6 cols × 8 rows');
+  assert.equal(v.hScroll, false, 'no horizontal scroll at 360 with large text');
+  await setTextSize(page, 'L');
+  await page.setViewportSize({ width: 440, height: 956 });
+  await page.waitForTimeout(300);
+  v = await lib(page);
+  assert.equal(v.wall.cols, 9, '440 wide: 9 cols (Pro Max)');
   {
     const { state } = seedOf(deckChars.slice(0, 5));
     await setup(page, state, 5);
     v = await lib(page);
-    assert.equal(v.wall.cols, 4, 'compact 5 chars: 4 cols');
+    assert.equal(v.wall.cols, 9, '5 chars on 440 wide: still 9 cols');
   }
   await page.setViewportSize(ctx.viewport);
   await page.waitForTimeout(120);

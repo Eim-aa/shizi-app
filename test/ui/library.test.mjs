@@ -105,29 +105,34 @@ test('wall order: hollow first, then latest judged newest → oldest (by id); wr
   assert.equal(m.wall.cells[1].record.id, 'r5', 'cell carries the latest judged record');
 });
 
-test('columns (5 / 8 at ≥ 60 members; compact 4 / 6) and truncation to 8 rows + more (P27 wall members)', () => {
-  assert.equal(wallColumns(0), 5);
-  assert.equal(wallColumns(59), 5);
-  assert.equal(wallColumns(60), 8);
-  assert.equal(wallColumns(59, true), 4);
-  assert.equal(wallColumns(60, true), 6);
+test('columns (8, Pro Max 9, large text 6; independent of members) and truncation to 8 rows + more (P27 wall members; P1-E1b design system)', () => {
+  assert.equal(wallColumns(0), 8);
+  assert.equal(wallColumns(59), 8);
+  assert.equal(wallColumns(60), 8, 'the member count no longer changes the column count');
+  assert.equal(wallColumns(60, false, true), 9, 'Pro Max: 9 columns');
+  assert.equal(wallColumns(59, true), 6, 'large text: 6 columns');
+  assert.equal(wallColumns(60, true, true), 6, 'large text wins over the wide screen');
   assert.equal(policy.wallMoreScope, 'wall-members');
 
   const mk = n => Array.from({ length: n }, (_, i) => rec(i + 1, String.fromCodePoint(0x4E00 + i), { day: addDays(TODAY, -(n - i)) }));
   const m5 = libraryHomeModel(state({ records: mk(5) }), TODAY);
-  assert.equal(m5.wall.cols, 5);
+  assert.equal(m5.wall.cols, 8);
   assert.equal(m5.wall.cells.length, 5);
   assert.equal(m5.wall.more, 0);
 
   const m30 = libraryHomeModel(state({ records: mk(30) }), TODAY);
-  assert.equal(m30.wall.cols, 5);
+  assert.equal(m30.wall.cols, 8);
   assert.equal(m30.wall.cells.length, 30);
   assert.equal(m30.wall.more, 0);
 
-  const m45 = libraryHomeModel(state({ records: mk(45) }), TODAY);
-  assert.equal(m45.wall.cells.length, 5 * WALL_MAX_ROWS, '45 members, 5 cols → 40 cells');
-  assert.equal(m45.wall.more, 5);
-  assert.equal(m45.wall.rows, 8);
+  const m70 = libraryHomeModel(state({ records: mk(70) }), TODAY);
+  assert.equal(m70.wall.cells.length, 8 * WALL_MAX_ROWS, '70 members, 8 cols → 64 cells');
+  assert.equal(m70.wall.more, 6);
+  assert.equal(m70.wall.rows, 8);
+
+  const proMax = libraryHomeModel(state({ records: mk(80) }), TODAY, { wide: true });
+  assert.equal(proMax.wall.cols, 9, 'Pro Max: 9 columns');
+  assert.equal(proMax.wall.cells.length, 9 * WALL_MAX_ROWS);
 
   const custom = { added: Array.from('馨鼎瓷').map((char, i) => ({ char, at: i })) };
   const m300 = libraryHomeModel(state({ records: mk(300), custom }), TODAY);

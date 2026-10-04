@@ -31,9 +31,8 @@ import { now as envNow } from '../../../platform/env.js';
 import { localDay } from '../../../core/dates.js';
 import { currentLibraryId } from '../../../data/deck.js';
 import { formatDay } from '../../components/query/CharCard.js';
-import { useCompact } from '../write/compact.js';
 import { libraryHomeModel, cardMini } from './model.js';
-import { Legend, LegendNote, MiniRow, Wall, WALL_CSS } from './wall.js';
+import { Legend, LegendNote, MiniRow, Wall, WALL_CSS, useWallLayout } from './wall.js';
 import './list.js'; // M3-2 写错过 / 快忘了清单页自注册（library-list）；也注册「现在没有要写的字」页的「看写错过的字」
 import './switch.js'; // M3-5 换库页自注册（library-switch）
 import './all.js'; // M3-4 有记录的字（完整页）自注册（library-all）
@@ -57,21 +56,21 @@ const ICON = () => html`<svg viewBox="0 0 22 22" fill="none" stroke="currentColo
 
 injectStyles('library', `
 .sz-lib{display:flex;flex-direction:column;min-height:0}
-.sz-lib__query{display:flex;flex-direction:column;gap:2px}
-.sz-lib__qnote{margin:0;padding:6px 2px 4px;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3};text-wrap:pretty}
-.sz-lib__scope.sz-btn{margin-top:calc(16px - 6px * ${T.k});width:100%;min-height:48px;padding:6px 0;text-align:left;
-  border-top:.5px solid ${T.line};border-bottom:.5px solid ${T.line};display:flex;flex-wrap:wrap;align-items:center;
-  justify-content:space-between;gap:2px 12px}
-.sz-lib__scopel{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 10px;min-width:0}
+.sz-lib__query{display:flex;flex-direction:column;gap:${T.s1}}
+.sz-lib__qnote{margin:0;padding:${T.s2} 0 0;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3};text-wrap:pretty}
+.sz-lib__scope.sz-btn{margin-top:${T.s4};width:100%;min-height:52px;padding:${T.s2} 0;text-align:left;
+  border-top:${T.hair} solid ${T.line};border-bottom:${T.hair} solid ${T.line};display:flex;flex-wrap:wrap;align-items:center;
+  justify-content:space-between;gap:${T.s1} ${T.s3}}
+.sz-lib__scopel{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 ${T.s3};min-width:0}
 .sz-lib__scopelabel{font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3};white-space:nowrap}
 .sz-lib__scopename{font-size:${T.fs15};line-height:${T.lh15};color:${T.ink1};white-space:nowrap}
 .sz-lib__scopeentry{flex:none;margin-left:auto;font-size:${T.fs15};line-height:${T.lh15};
   color:${T.ink2};white-space:nowrap}
-.sz-lib__nonote{margin:8px 0 0;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3}}
-.sz-lib__rec{display:flex;flex-direction:column;gap:4px;margin-top:calc(42px - 20px * ${T.k})}
-.sz-lib__count.sz-btn{display:flex;flex-direction:column;align-items:flex-start;gap:4px;text-align:left;min-height:44px}
+.sz-lib__nonote{margin:${T.s2} 0 0;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3}}
+.sz-lib__rec{display:flex;flex-direction:column;gap:${T.s1};margin-top:${T.groupGap}}
+.sz-lib__count.sz-btn{display:flex;flex-direction:column;align-items:flex-start;gap:${T.s1};text-align:left;min-height:44px}
 .sz-lib__label{font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3}}
-.sz-lib__num{display:flex;align-items:baseline;flex-wrap:wrap;gap:6px}
+.sz-lib__num{display:flex;align-items:baseline;flex-wrap:wrap;gap:${T.s1}}
 .sz-lib__big{font-family:${T.song};font-size:${T.fs34};line-height:${T.lh34};font-weight:500;color:${T.ink1};
   font-variant-numeric:tabular-nums}
 .sz-lib__unit{font-family:${T.song};font-size:${T.fs22};line-height:${T.lh22};font-weight:500;color:${T.ink2}}
@@ -79,12 +78,11 @@ injectStyles('library', `
 .sz-lib__factrow{display:flex;flex-wrap:wrap;margin-left:calc(-18px * ${T.k})}
 .sz-lib__fact{white-space:nowrap}
 .sz-lib__sep{display:inline-block;width:calc(18px * ${T.k});text-align:center}
-.sz-lib__cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:calc(24px - 10px * ${T.k})}
-.sz-lib__card{box-sizing:border-box;min-width:0;display:flex;flex-direction:column;gap:6px;text-align:left}
-.sz-lib__card.sz-btn{border-radius:${T.rCtl};background:${T.field};
-  padding:14px 14px 8px}
-.sz-lib__card--empty{padding:14px 0 8px}
-.sz-lib__card.sz-btn[data-pressed]{background:${T.line};filter:none}
+.sz-lib__cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:${T.s5};margin-top:${T.groupGap}}
+/* 设计系统：卡片取消，用发丝线与留白分组（P141 → E1b）；整块仍是按钮，靠标题 + 数量 + 「看这几个字」动作行表明可点；空卡不是按钮 */
+.sz-lib__card{position:relative;box-sizing:border-box;min-width:0;display:flex;flex-direction:column;gap:${T.s2};text-align:left;padding:${T.s3} 0 0}
+.sz-lib__card::before{content:"";position:absolute;left:0;right:0;top:0;border-top:${T.hair} solid ${T.line}} /* 分组发丝线（空卡也有；它不是卡片边框） */
+.sz-lib__card.sz-btn{border-radius:0;background:transparent;align-items:stretch}
 .sz-lib__cardhead{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
 .sz-lib__cardtitle{display:flex;align-items:center;gap:7px;font-family:${T.song};font-size:${T.fs22};
   line-height:${T.lh22};font-weight:500;color:${T.ink1};white-space:nowrap}
@@ -92,13 +90,13 @@ injectStyles('library', `
   font-variant-numeric:tabular-nums}
 .sz-lib__cardnote{font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2};text-wrap:pretty}
 .sz-lib__act{min-height:40px;display:flex;align-items:center;font-size:${T.fs15};color:${T.ink1}}
-.sz-lib__wallsec{display:flex;flex-direction:column;gap:12px;margin-top:26px}
-.sz-lib__foot{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.sz-lib__wallsec{display:flex;flex-direction:column;gap:${T.s3};margin-top:${T.groupGap}}
+.sz-lib__foot{display:flex;align-items:center;justify-content:space-between;gap:${T.s3}}
 .sz-lib__footnote{flex:1;min-width:0;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3};text-wrap:pretty}
 .sz-lib__more.sz-btn{flex:none;white-space:nowrap;color:${T.ink2}}
-.sz-lib__empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;
-  padding:36px 16px 28px}
-.sz-lib__emptyglyph{display:block;margin-bottom:6px;font-family:${T.kai};font-size:calc(46px * ${T.k});line-height:1;
+.sz-lib__empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:${T.s2};text-align:center;
+  padding:${T.s8} ${T.s4} ${T.s6}}
+.sz-lib__emptyglyph{display:block;margin-bottom:${T.s2};font-family:${T.kai};font-size:calc(46px * ${T.k});line-height:1;
   color:transparent;-webkit-text-stroke:1px ${T.ink3}}
 .sz-lib__emptytitle{margin:0;font-family:${T.song};font-size:${T.fs22};line-height:${T.lh22};font-weight:500;
   color:${T.ink1}}
@@ -240,8 +238,9 @@ function EmptyState() {
 function LibraryScreen() {
   const state = useStoreState();
   const today = useToday();
-  const compact = useCompact();
-  const model = useMemo(() => libraryHomeModel(state, today, { compact }), [state, today, compact]);
+  const { large, wide } = useWallLayout();
+  const compact = large;
+  const model = useMemo(() => libraryHomeModel(state, today, { compact: large, wide }), [state, today, large, wide]);
   const libraryId = currentLibraryId(state && state.settings);
   const getInk = useMemo(() => record => {
     try {

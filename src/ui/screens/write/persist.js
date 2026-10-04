@@ -39,11 +39,10 @@ const EMPTY = Object.freeze([]);
 const SYNC_PHASES = Object.freeze(['recall', 'compare']);
 
 injectStyles('write-persist', `
-.sz-persist{position:absolute;left:24px;right:24px;top:calc(48px + env(safe-area-inset-top, 0px));z-index:30;
-  pointer-events:none;box-sizing:border-box;display:flex;gap:12px;align-items:flex-start;padding:12px 16px;border-radius:${T.rCtl};
+.sz-persist{position:absolute;left:${T.gutter};right:${T.gutter};top:calc(${T.s12} + env(safe-area-inset-top, 0px));z-index:30;
+  pointer-events:none;box-sizing:border-box;display:flex;gap:${T.s3};align-items:center;min-height:48px;padding:${T.s3} ${T.s4};border-radius:${T.rCtl};
   background:${T.toastBg};color:${T.toastFg};animation:sz-fade-in .2s ease-out both}
-.sz-persist__dot{width:6px;height:6px;margin-top:calc(8px * ${T.k});flex:none;border-radius:50%;background:currentColor}
-.sz-persist__text{flex:1;font-size:${T.fs15};line-height:${T.lh15};color:inherit}
+.sz-persist__text{flex:1;align-self:center;font-size:${T.fs15};line-height:${T.lh15};color:inherit}
 @media (prefers-reduced-motion: reduce){.sz-persist{animation:none}}
 `);
 
@@ -168,7 +167,7 @@ export function PersistNotice({ notice }) {
   if (!notice) return null;
   return html`<div class="sz-persist" role="status" aria-live="polite" data-testid="write-persist-notice"
     data-kind=${notice.kind}>
-    <span class="sz-persist__dot" aria-hidden="true"></span><span class="sz-persist__text">${notice.text}</span>
+    <span class="sz-persist__text">${notice.text}</span>
   </div>`;
 }
 

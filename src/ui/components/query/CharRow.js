@@ -9,17 +9,18 @@
 
 import { html } from '../../../../vendor/ui.js';
 import { Button } from '../Button.js';
+import { Chevron } from '../Chevron.js';
 import { injectStyles, T } from '../styles.js';
 import { t } from '../../../config/copy/index.js';
 import { rowStatus } from '../../../core/query.js';
 
 injectStyles('query-row', `
 .sz-qrows{display:flex;flex-direction:column;border-top:.5px solid ${T.line};margin:0;padding:0;list-style:none}
-.sz-qrow{min-height:calc(64px * ${T.k});box-sizing:border-box;display:flex;align-items:center;gap:4px;border-bottom:.5px solid ${T.line}}
+.sz-qrow{min-height:calc(64px * ${T.k});box-sizing:border-box;display:flex;align-items:center;gap:${T.s1};border-bottom:${T.hair} solid ${T.line}}
 .sz-qrow__sel{flex:none;width:44px;height:44px;margin-left:-10px;display:grid;place-items:center}
 .sz-qrow__dot{width:24px;height:24px;box-sizing:border-box;border-radius:50%;border:1.5px solid ${T.ink4};display:grid;place-items:center}
 .sz-qrow__sel[aria-checked="true"] .sz-qrow__dot{border:0;background:${T.ink1}}
-.sz-qrow__open{flex:1;min-width:0;min-height:calc(64px * ${T.k});padding:6px 0;display:flex;align-items:center;gap:12px;text-align:left}
+.sz-qrow__open{flex:1;min-width:0;min-height:calc(64px * ${T.k});padding:${T.s2} 0;display:flex;align-items:center;gap:${T.s3};text-align:left}
 .sz-qrow__main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .sz-qrow__head{display:flex;align-items:baseline;gap:10px}
 .sz-qrow__char{font-family:${T.kai};font-size:${T.fs28};line-height:${T.lh28};color:${T.ink1}}
@@ -27,7 +28,6 @@ injectStyles('query-row', `
 .sz-qrow__py{font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2}}
 .sz-qrow__word{font-family:${T.kai};font-size:${T.fs17};line-height:${T.lh17s};color:${T.ink2}}
 .sz-qrow__status{flex:none;max-width:40%;text-align:right;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3}}
-.sz-qrow__chev{flex:none;font-size:${T.fs15};color:${T.ink3}}
 `);
 
 // 每次渲染现取新 vnode，不复用模块级常量（vendor/ui.js 注释，M6-3）。
@@ -64,7 +64,7 @@ export function CharRow({ summary, pinyin = '', word = '', selectable = false, s
         ${showWord ? html`<span class="sz-qrow__word">${word}</span>` : null}
       </span>
       <span class="sz-qrow__status" data-testid="query-row-status">${statusText}</span>
-      <span class="sz-qrow__chev" aria-hidden="true">›</span>
+      <${Chevron} />
     </${Button}>
   </li>`;
 }

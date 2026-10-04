@@ -58,7 +58,7 @@ export const MINE_ROUTES = Object.freeze({
 });
 
 injectStyles('mine-records', `
-.sz-rec{display:flex;flex-direction:column;gap:26px}
+.sz-rec{display:flex;flex-direction:column;gap:${T.groupGap}}
 .sz-rec__mhead{display:flex;justify-content:space-between;align-items:center;gap:12px}
 .sz-rec__mtitle{display:flex;align-items:baseline;gap:10px;min-width:0}
 .sz-rec__month{margin:0;font-family:${T.song};font-size:${T.fs28};line-height:${T.lh28};font-weight:500;color:${T.ink1};white-space:nowrap}
@@ -90,7 +90,7 @@ injectStyles('mine-records', `
 .sz-rec__shead{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
 .sz-rec__save.sz-btn{flex:none;font-size:${T.fs15};color:${T.ink2}}
 .sz-rec__paper{box-sizing:border-box;${TEX};border:${T.frameW} solid ${T.frame};
-  padding:18px 16px 16px;display:flex;flex-direction:column;gap:14px}
+  padding:${T.s4};display:flex;flex-direction:column;gap:${T.s4}}
 .sz-rec__note{margin:0;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2};text-wrap:pretty}
 .sz-rec__blank{min-height:120px;box-sizing:border-box;border:${T.frameW} dashed ${T.frame};display:grid;place-items:center;
   padding:12px;text-align:center;font-size:${T.fs15};color:${T.ink2}}

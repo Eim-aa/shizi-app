@@ -39,9 +39,9 @@ import { annualModel } from './annual-model.js';
 export const ANNUAL_SCREEN = 'annual';
 
 injectStyles('mine-annual', `
-.sz-ann{display:flex;flex-direction:column;gap:30px}
+.sz-ann{display:flex;flex-direction:column;gap:${T.groupGap}}
 .sz-ann__year{font-size:${T.fs13};color:${T.ink3};font-variant-numeric:tabular-nums}
-.sz-ann__sec{display:flex;flex-direction:column;gap:10px;min-width:0}
+.sz-ann__sec{display:flex;flex-direction:column;gap:${T.s3};min-width:0}
 .sz-ann__title{margin:0;font-family:${T.song};font-size:${T.fs22};line-height:${T.lh22};font-weight:500;color:${T.ink2}}
 .sz-ann__note{margin:0;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2};text-wrap:pretty}
 .sz-ann__count{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
@@ -60,7 +60,7 @@ injectStyles('mine-annual', `
 .sz-ann__charline{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
 .sz-ann__char{font-family:${T.kai};font-size:${T.fs22};color:${T.ink1}}
 .sz-ann__py{font-size:${T.fs15};color:${T.ink2}}
-.sz-ann__empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:24px 0 48px}
+.sz-ann__empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:${T.s4};text-align:center;padding:${T.s6} 0 ${T.s12}}
 .sz-ann__eglyph{width:88px;height:88px;box-sizing:border-box;border:${T.frameW} dashed ${T.frame};display:grid;place-items:center;
   font-family:${T.kai};font-size:52px;line-height:1;color:${T.under}}
 .sz-ann__etitle{margin:0;font-family:${T.song};font-size:${T.fs22};font-weight:500;color:${T.ink1}}

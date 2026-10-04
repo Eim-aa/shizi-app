@@ -26,6 +26,7 @@ import { html, useState } from '../../../../vendor/ui.js';
 import { registerScreen, nav } from '../../router.js';
 import { Page } from '../../components/Page.js';
 import { Button } from '../../components/Button.js';
+import { Chevron } from '../../components/Chevron.js';
 import { injectStyles, T } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
 import { BUILD, VERSION } from '../../../build-info.js';
@@ -106,7 +107,7 @@ export function openAbout() {
 // ---------------------------------------------------------------- 样式
 
 injectStyles('about', `
-.sz-about__head{display:flex;flex-direction:column;align-items:center;gap:14px;padding:24px 0 8px}
+.sz-about__head{display:flex;flex-direction:column;align-items:center;gap:${T.s4};padding:${T.s6} 0 ${T.s2}}
 .sz-about__seal{width:40px;height:40px;border-radius:${T.rWork};display:grid;place-items:center;
   font-family:${T.kai};font-size:${T.fs28};line-height:1}
 .sz-about__name{margin:0;font-family:${T.song};font-size:${T.fs22};font-weight:500;color:${T.ink1}}
@@ -116,10 +117,10 @@ injectStyles('about', `
 .sz-about__motto{margin:0;text-align:center;font-family:${T.kai};font-size:${T.fs17};line-height:${T.lh17};color:${T.ink1}}
 .sz-about__rows{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;border-top:1px solid ${T.line}}
 .sz-about__row{width:100%;min-height:52px;padding:8px 0;box-sizing:border-box;display:flex;align-items:center;
-  justify-content:space-between;gap:12px;text-align:left;color:${T.ink1};border-bottom:1px solid ${T.line}}
-.sz-about__label{min-width:0;font-size:${T.fs15};color:${T.ink1}}
-.sz-about__value{flex:none;max-width:60%;text-align:right;font-size:${T.fs15};color:${T.ink2}}
-.sz-about__value--arrow{font-size:${T.fs13};color:${T.ink3}}
+  justify-content:space-between;gap:${T.s3};text-align:left;color:${T.ink1};border-bottom:${T.hair} solid ${T.line}}
+.sz-about__label{min-width:0;font-size:${T.fs17};line-height:${T.lh17s};color:${T.ink1}}
+.sz-about__value{flex:none;max-width:60%;display:flex;align-items:center;justify-content:flex-end;text-align:right;font-size:${T.fs15};color:${T.ink3}}
+.sz-about__value--arrow{color:${T.ink4}}
 .sz-about__p{margin:0;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink1};text-wrap:pretty}
 .sz-about__intro{margin:0;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2};text-wrap:pretty}
 .sz-about__group{display:flex;flex-direction:column;gap:0}
@@ -165,7 +166,7 @@ export function AboutView({ onOpen = to => nav.push(to), version = VERSION, buil
         <${Button} variant="plain" class="sz-about__row" data-testid=${`about-row-${r.key}`} data-to=${r.to}
           aria-label=${r.aria} onClick=${() => onOpen(r.to)}>
           <span class="sz-about__label">${r.label}</span>
-          <span class=${r.key === 'privacy' ? 'sz-about__value' : 'sz-about__value sz-about__value--arrow'} aria-hidden="true">${r.value}</span>
+          <span class=${r.key === 'privacy' ? 'sz-about__value' : 'sz-about__value sz-about__value--arrow'} aria-hidden="true">${r.key === 'privacy' ? r.value : html`<${Chevron} />`}</span>
         </${Button}>
       </li>`)}
     </ul>

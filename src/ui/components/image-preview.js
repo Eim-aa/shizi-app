@@ -33,7 +33,7 @@ export const PREVIEW_BOX = Object.freeze({ portrait: { width: 228, height: 304 }
 
 injectStyles('image-preview', `
 .sz-img{display:flex;flex-direction:column;gap:18px}
-.sz-img__ratio{position:absolute;right:24px;top:25px;display:flex;padding:3px;border-radius:${T.rCtl};background:${T.field}}
+.sz-img__ratio{position:absolute;right:${T.gutter};top:25px;display:flex;padding:3px;border-radius:${T.rCtl};background:${T.field}}
 .sz-img__ratio button{width:52px;height:38px;min-height:38px;border-radius:calc(${T.rCtl} - 3px);display:grid;place-items:center;
   font-size:${T.fs15};color:${T.ink2};font-variant-numeric:tabular-nums}
 .sz-img__ratio button[aria-pressed="true"]{background:${T.sheet};color:${T.ink1}}

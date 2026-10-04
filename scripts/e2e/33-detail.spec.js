@@ -214,7 +214,7 @@ export default async function detailSpec(page, ctx) {
   assert.equal(v.list, null, 'no wrong / forget row');
   assert.equal(v.image, null, 'image entry hidden until M4-5 registers it');
   assert.equal(v.remove, null, 'not custom → no remove row');
-  assert.equal(v.swap, `${await copy(page, 'R-D05.swapWord')}›`, 'swap-word row shown for a context word');
+  assert.equal(v.swap, await copy(page, 'R-D05.swapWord'), 'swap-word row shown for a context word (the trailing › is now an svg chevron, P1-E1b)');
   assert.deepEqual(v.practice, { disabled: false, text: '练这个字' }, 'practice button');
   const log1 = (await page.evaluate(() => window.__shiziTest.getWriteLog())).length;
   assert.equal(log1, log0, 'opening the detail page wrote nothing');
@@ -457,7 +457,7 @@ export default async function detailSpec(page, ctx) {
   v = await view(page);
   assert.equal(v.count, '还没有记录', 'photo does not count as a record (P10b)');
   assert.equal(v.dataCount, '0', 'data-count 0');
-  assert.equal(v.legacy, `${await copy(page, 'X-DETAIL.legacyEntry')}›`, 'legacy row 「旧版本的记录 ›」');
+  assert.equal(v.legacy, await copy(page, 'X-DETAIL.legacyEntry'), 'legacy row 「旧版本的记录」 (+ svg chevron, P1-E1b)');
   await clickTop(page, 'detail-legacy');
   await waitTop(page, 'detail-photo');
   const photo = await page.evaluate(() => {

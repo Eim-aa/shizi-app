@@ -238,7 +238,7 @@ test('SettingsBody: four groups, rows in prototype order; no 背景音 (P07) / �
   const all = textOf(vnode);
   assert.ok(!all.includes('背景音'), 'P07: no soundscape row');
   assert.ok(!all.includes('写完提示做成图片'), 'P13: no photoHint row');
-  assert.match(textOf(ids['settings-library'][0]), /^练习范围规范常用字›$/);
+  assert.match(textOf(ids['settings-library'][0]), /^练习范围规范常用字$/, 'the trailing › is an svg chevron since P1-E1b (components/Chevron.js)');
   assert.equal(ids['settings-sound'][0].props.role, 'switch');
   assert.equal(ids['settings-sound'][0].props['aria-checked'], 'true', 'sound defaults on');
   assert.equal(textOf(ids['settings-sound'][0]), '按键音');
@@ -251,7 +251,7 @@ test('SettingsBody: four groups, rows in prototype order; no 背景音 (P07) / �
   assert.equal(allByTestid(ids['settings-group'][2])['settings-appearance'].length, 1, 'the 显示 group holds 外观');
   assert.equal(textOf(ids['settings-appearance-value'][0]), '跟随系统');
   assert.equal(ids['settings-appearance'][0].props['aria-haspopup'], 'dialog');
-  assert.equal(textOf(ids['settings-backup'][0]), '备份与恢复还没有备份›');
+  assert.equal(textOf(ids['settings-backup'][0]), '备份与恢复还没有备份', 'svg chevron, not text (P1-E1b)');
   assert.ok(!ids['settings-fail']);
 });
 

@@ -31,7 +31,7 @@ const COPY = {
   settings: '设置',
   backup: '备份与恢复',
   backupSub: '记录只存在这台手机上',
-  noBackup: '还没有备份 ›',
+  noBackup: '还没有备份', // 行尾的 › 自 P1-E1b 起是 svg chevron（components/Chevron.js），不在文字里
   lastBackup: d => `上次备份 ${d} ›`,
   annual: '年度报告',
   about: '关于拾字',
@@ -429,11 +429,11 @@ export default async function run(page, ctx) {
   assert.equal(v.sheet, null, 'no month sheet in the empty state');
   assert.deepEqual(v.menu.map(m => [m.testid, m.to]), [['mine-menu-settings', 'settings'], ['mine-menu-backup', 'backup'],
     ['mine-menu-annual', 'annual'], ['mine-menu-about', 'about']], 'menu order and targets (prototype L28)');
-  assert.equal(v.menu[0].text, `${COPY.settings} ›`, 'settings row');
+  assert.equal(v.menu[0].text, COPY.settings, 'settings row (the trailing › is an svg chevron since P1-E1b)');
   assert.equal(v.backupSub, COPY.backupSub, 'R-M03 backup sub line');
   assert.equal(v.backupValue, COPY.noBackup, 'R-M03 no backup');
   assert.equal(v.year, '2026', 'annual row shows this year');
-  assert.equal(v.menu[3].text, `${COPY.about} ›`, 'about row');
+  assert.equal(v.menu[3].text, COPY.about, 'about row (svg chevron)');
   assert.deepEqual(v.unnamedButtons, [], 'every button has an accessible name');
 
   step('only answer-seen / skipped records → still empty');

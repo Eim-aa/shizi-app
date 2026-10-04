@@ -64,7 +64,7 @@ injectStyles('detail-records', `
 .sz-dcell__cap{min-height:32px;box-sizing:border-box;padding:0 4px;display:flex;align-items:center;justify-content:center;gap:4px;
   border-top:${T.frameW} solid ${T.frame};font-size:${T.fs11};line-height:${T.lh11};
   color:${T.ink2};font-variant-numeric:tabular-nums;text-align:center}
-.sz-dzoom{display:flex;flex-direction:column;gap:14px}
+.sz-dzoom{display:flex;flex-direction:column;gap:${T.s4}}
 .sz-dzoom__sq{width:100%;max-width:300px;align-self:center}
 .sz-dzoom__close{align-self:stretch}
 .sz-dsrc{display:grid;grid-template-columns:44px minmax(0,1fr);gap:8px;align-items:baseline}

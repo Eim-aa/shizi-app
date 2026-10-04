@@ -25,6 +25,7 @@ import { html, useMemo } from '../../../../vendor/ui.js';
 import { registerScreen } from '../../router.js';
 import { TabPage } from '../../components/Page.js';
 import { Button } from '../../components/Button.js';
+import { Chevron } from '../../components/Chevron.js';
 import { injectStyles, T, TEX } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
 import * as defaultPolicy from '../../../config/policy.js';
@@ -44,17 +45,17 @@ const ICON = () => html`<svg viewBox="0 0 22 22" fill="none" stroke="currentColo
   stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="11" cy="7" r="3.6"></circle><path d="M4.2 19.4v-3a6.8 6.8 0 0 1 13.6 0v3"></path></svg>`;
 
 injectStyles('mine', `
-.sz-mine{display:flex;flex-direction:column;gap:26px}
-.sz-mine__empty{display:flex;flex-direction:column;gap:8px}
+.sz-mine{display:flex;flex-direction:column;gap:${T.groupGap}}
+.sz-mine__empty{display:flex;flex-direction:column;gap:${T.s2}}
 .sz-mine__emptyt{margin:0;font-family:${T.song};font-size:${T.fs22};line-height:${T.lh22};font-weight:500;color:${T.ink1}}
 .sz-mine__emptyb{margin:0;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2};text-wrap:pretty}
-.sz-mine__block{display:flex;flex-direction:column;gap:8px}
-.sz-mine__sheetblock{display:flex;flex-direction:column;gap:10px}
-.sz-mine__bhead{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.sz-mine__block{display:flex;flex-direction:column;gap:${T.s2}}
+.sz-mine__sheetblock{display:flex;flex-direction:column;gap:${T.s3}}
+.sz-mine__bhead{display:flex;justify-content:space-between;align-items:baseline;gap:${T.s3}}
 .sz-mine__btitle{margin:0;font-family:${T.song};font-size:${T.fs22};line-height:${T.lh22};font-weight:500;color:${T.ink2}}
 .sz-mine__link.sz-btn{flex:none;min-height:44px;font-size:${T.fs15};color:${T.ink2};white-space:nowrap}
 .sz-mine__week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));font-variant-numeric:tabular-nums}
-.sz-mine__wd{display:flex;flex-direction:column;align-items:center;gap:6px;padding:4px 0}
+.sz-mine__wd{display:flex;flex-direction:column;align-items:center;gap:${T.s1};padding:${T.s1} 0}
 .sz-mine__wdname{font-size:${T.fs11};color:${T.ink3}}
 .sz-mine__wdnum{width:34px;height:34px;display:grid;place-items:center;font-size:${T.fs15};color:${T.ink1}}
 .sz-mine__wd[data-today="true"] .sz-mine__wdnum{color:${T.ink1};font-weight:600}
@@ -62,16 +63,18 @@ injectStyles('mine', `
 .sz-mine__wddot{display:flex;height:6px;align-items:center}
 .sz-mine__dot{width:6px;height:6px;border-radius:50%;background:${T.ink1}}
 .sz-mine__paper{box-sizing:border-box;${TEX};border:${T.frameW} solid ${T.frame};
-  padding:14px 14px 12px;display:flex;flex-direction:column;gap:12px}
+  padding:${T.s4};display:flex;flex-direction:column;gap:${T.s3}}
 .sz-mine__all.sz-btn{align-self:center;min-height:44px;font-size:${T.fs15};color:${T.ink2}}
-.sz-mine__menu{display:flex;flex-direction:column;border-top:1px solid ${T.line}}
-.sz-mine__row.sz-btn{min-height:52px;padding:8px 0;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;
-  gap:12px;border-bottom:1px solid ${T.line};text-align:left;width:100%}
+.sz-mine__menu{display:flex;flex-direction:column;border-top:${T.hair} solid ${T.line}}
+.sz-mine__row.sz-btn{min-height:52px;padding:${T.s3} 0;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;
+  gap:${T.s3};border-bottom:${T.hair} solid ${T.line};text-align:left;width:100%}
 .sz-mine__rowl{display:flex;flex-direction:column;gap:3px;min-width:0}
-.sz-mine__rowt{font-size:${T.fs15};color:${T.ink1}}
-.sz-mine__rows{font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2}}
-.sz-mine__rowr{flex:none;display:flex;align-items:center;gap:8px;font-size:${T.fs13};color:${T.ink3}}
-.sz-mine__rowr--value{font-size:${T.fs15};color:${T.ink2}}
+/* 列表行（设计系统 v1）：主文字 17 / 22 墨一，副文字 15 / 22 墨三，右侧值 15 墨三，chevron 8×13 墨四；最小高 52，上下 12 */
+.sz-mine__rowt{font-size:${T.fs17};line-height:${T.lh17s};color:${T.ink1}}
+.sz-mine__rows{font-size:${T.fs15};line-height:${T.lh15};color:${T.ink3}}
+.sz-mine__rowr{flex:none;display:flex;align-items:center;gap:${T.s2};font-size:${T.fs15};color:${T.ink3}}
+.sz-mine__rowr--value{font-size:${T.fs15};color:${T.ink3}}
+.sz-mine__bval{display:inline-flex;align-items:center;gap:${T.s2};white-space:nowrap}
 `);
 
 // ---------------------------------------------------------------- 视图
@@ -139,7 +142,7 @@ function MenuRow({ to, testid, title, sub = null, value = null, valueTestid, sub
     </span>
     ${value !== null
       ? html`<span class="sz-mine__rowr sz-mine__rowr--value" id=${valueId} data-testid=${valueTestid}>${value}</span>`
-      : html`<span class="sz-mine__rowr" aria-hidden="true">${t('X-MINE.chevron')}</span>`}
+      : html`<span class="sz-mine__rowr" aria-hidden="true"><${Chevron} /></span>`}
   </${Button}>`;
 }
 
@@ -147,11 +150,11 @@ function Menu({ model }) {
   const last = model.lastBackup;
   const backupValue = last
     ? t('R-M03.lastBackup', { date: dayText(last) })
-    : html`${t('R-M03.noBackup')} <span aria-hidden="true">${t('X-MINE.chevron')}</span>`;
+    : html`${t('R-M03.noBackup')} <${Chevron} />`;
   return html`<nav class="sz-mine__menu" data-testid="mine-menu" aria-label=${MINE_LABEL}>
     <${MenuRow} to=${MINE_ROUTES.settings} testid="mine-menu-settings" title=${t('R-M03.settings')} />
     <${MenuRow} to=${MINE_ROUTES.backup} testid="mine-menu-backup" title=${t('R-M03.backup')} sub=${t('R-M03.backupSub')}
-      subTestid="mine-backup-sub" value=${html`<span data-testid="mine-backup-value" data-last=${last || ''}>${backupValue}</span>`} />
+      subTestid="mine-backup-sub" value=${html`<span class="sz-mine__bval" data-testid="mine-backup-value" data-last=${last || ''}>${backupValue}</span>`} />
     <${MenuRow} to=${MINE_ROUTES.annual} testid="mine-menu-annual" title=${t('X-MINE.annual')}
       sub=${html`<span data-testid="mine-annual-year">${model.year}</span>`} />
     <${MenuRow} to=${MINE_ROUTES.about} testid="mine-menu-about" title=${t('X-MINE.about')} />

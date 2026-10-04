@@ -1,6 +1,6 @@
 // 底部弹层（遮罩栈里的一层）：role=dialog aria-modal、焦点陷阱、关闭后焦点归还（01-架构设计 §7）。
-// 规格取原型「底部弹层通用」：遮罩 --scrim；面板贴底、max-height 88%、24px 上圆角、--elev 底、--elev-shadow、
-// padding 28 24 底部安全区、gap 18；没有顶部把手（网页里不能跟手下拉，把手是假的，P0-A12 / G12，阶段 3 由原生 Sheet 取代）。
+// 规格取设计系统 v1 的弹层（P1-E1b）：遮罩 --scrim；面板贴底、max-height 88%、24px 上圆角（--r-box）、--elev 底、--elev-shadow（只有弹层有阴影）、
+// padding 24 20（页边）底部 max(32, 安全区)、gap 16（间距尺度）；没有顶部把手（网页里不能跟手下拉，把手是假的，P0-A12 / G12，阶段 3 由原生 Sheet 取代）。
 // 进场上滑，减少动态效果时直接显示。
 // 打开方式：nav.openOverlay(内容组件, props)；内容组件里用 <Sheet onClose=${close}>…</Sheet>。
 // 点遮罩 / 系统返回 / Esc 都经 router 走 history.back()。
@@ -12,7 +12,7 @@ injectStyles('sheet', `
 .sz-scrim{position:absolute;inset:0;background:${T.scrim};animation:sz-fade-in .2s ease-out both}
 .sz-sheet{position:absolute;left:0;right:0;bottom:0;max-height:88%;overflow:auto;box-sizing:border-box;
   border-radius:${T.rBox} ${T.rBox} 0 0;background:${T.elev};box-shadow:${T.elevShadow};
-  padding:28px 24px max(34px, env(safe-area-inset-bottom, 0px));display:flex;flex-direction:column;gap:18px;color:${T.ink1};
+  padding:${T.s6} ${T.gutter} max(${T.s8}, env(safe-area-inset-bottom, 0px));display:flex;flex-direction:column;gap:${T.s4};color:${T.ink1};
   animation:sz-sheet-in .28s cubic-bezier(.2,.7,.2,1) both}
 .sz-sheet:focus{outline:none}
 .sz-sheet__title{margin:0;font-family:${T.song};font-size:${T.fs22};font-weight:500;line-height:${T.lh22}}

@@ -24,11 +24,11 @@ injectStyles('page', `
 .sz-page__lead,.sz-page__trail{position:relative;z-index:1;min-width:44px;min-height:44px;display:flex;align-items:center}
 .sz-page__trail{justify-content:flex-end;padding-right:4px;font-size:${T.fs15};color:${T.ink2}}
 .sz-page__body{flex:1;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;
-  box-sizing:border-box;padding:14px 24px 32px;display:flex;flex-direction:column;gap:24px}
-.sz-page__foot{flex:none;box-sizing:border-box;padding:12px 24px max(20px, env(safe-area-inset-bottom, 0px));
-  display:flex;flex-direction:column;gap:12px;background:${T.paper}}
-.sz-tabpage{box-sizing:border-box;padding:calc(14px + env(safe-area-inset-top, 0px)) 24px 32px;display:flex;
-  flex-direction:column;gap:26px;color:${T.ink1}}
+  box-sizing:border-box;padding:${T.s4} ${T.gutter} ${T.s8};display:flex;flex-direction:column;gap:${T.groupGap}}
+.sz-page__foot{flex:none;box-sizing:border-box;padding:${T.s3} ${T.gutter} max(${T.s5}, env(safe-area-inset-bottom, 0px));
+  display:flex;flex-direction:column;gap:${T.s3};background:${T.paper}}
+.sz-tabpage{box-sizing:border-box;padding:calc(${T.s4} + env(safe-area-inset-top, 0px)) ${T.gutter} ${T.s8};display:flex;
+  flex-direction:column;gap:${T.groupGap};color:${T.ink1}}
 .sz-tabpage__title{margin:0;font-family:${T.song};font-size:${T.fs28};line-height:${T.lh28};font-weight:500;
   color:${T.ink1}}
 .sz-tabpage__title:focus{outline:none}

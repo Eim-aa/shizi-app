@@ -137,7 +137,7 @@ export default async function about(page, ctx) {
   assert.ok(head.rows.every(x => x.tag === 'BUTTON'), 'every row is a <button>');
   assert.deepEqual(head.rows.map(x => x.to), ['about-privacy', 'about-credits', 'about-letter'], 'row targets');
   assert.deepEqual(head.rows.map(x => x.aria), ['隐私，记录只存在这台手机上', '开源资料 · 致谢', '给我们写信'], 'row accessible names');
-  assert.deepEqual(head.rows.map(x => x.text), ['隐私 记录只存在这台手机上 ›', '开源资料 · 致谢 ›', '给我们写信 ›'], 'row texts (R-AB01)');
+  assert.deepEqual(head.rows.map(x => x.text), ['隐私 记录只存在这台手机上 ›', '开源资料 · 致谢', '给我们写信'], 'row texts (R-AB01; the arrows of the last two rows are svg chevrons since P1-E1b)');
   assert.ok(head.rows.every(x => x.h >= 44), 'rows at least 44px tall');
   assert.ok(await noHScroll(page), 'about: no horizontal scroll');
 

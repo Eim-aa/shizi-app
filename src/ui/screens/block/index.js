@@ -100,7 +100,7 @@ export function useBlockReason(getStoreSync) {
 
 injectStyles('block', `
 .sz-block{flex:1;min-height:0;box-sizing:border-box;overflow:auto;display:flex;flex-direction:column;justify-content:center;
-  gap:28px;padding:calc(32px + env(safe-area-inset-top, 0px)) 32px calc(32px + env(safe-area-inset-bottom, 0px));
+  gap:${T.groupGap};padding:calc(${T.s8} + env(safe-area-inset-top, 0px)) ${T.gutter} calc(${T.s8} + env(safe-area-inset-bottom, 0px));
   background:${T.paper};color:${T.ink1}}
 .sz-block__title{margin:0;font-family:${T.song};font-size:${T.fs22};line-height:${T.lh22};font-weight:500;color:${T.ink1}}
 .sz-block__title:focus{outline:none}

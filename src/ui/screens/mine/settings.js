@@ -39,6 +39,7 @@ import { html, useEffect, useState } from '../../../../vendor/ui.js';
 import { registerScreen, getScreen, nav } from '../../router.js';
 import { Page } from '../../components/Page.js';
 import { Button } from '../../components/Button.js';
+import { Chevron } from '../../components/Chevron.js';
 import { Sheet } from '../../components/Sheet.js';
 import { injectStyles, T } from '../../components/styles.js';
 import { getStore } from '../../../store/store.js';
@@ -235,20 +236,21 @@ export function requestReminderPermission(remind) {
 // ---------------------------------------------------------------- 样式（原型 ShiziScreen L145–L152；J §2.3.17）
 
 injectStyles('settings', `
-.sz-set{display:flex;flex-direction:column;gap:28px}
-.sz-set__group{display:flex;flex-direction:column;gap:10px}
+.sz-set{display:flex;flex-direction:column;gap:${T.groupGap}}
+.sz-set__group{display:flex;flex-direction:column;gap:${T.s3}}
 .sz-set__gtitle{margin:0;font-family:${T.song};font-size:${T.fs22};font-weight:500;color:${T.ink2}}
 .sz-set__list{display:flex;flex-direction:column;border-top:1px solid ${T.line}}
-.sz-set__row{box-sizing:border-box;width:100%;min-height:52px;padding:8px 0;display:flex;align-items:center;justify-content:space-between;
-  gap:12px;border:0;border-bottom:1px solid ${T.line};background:transparent;color:inherit;font:inherit;text-align:left}
+.sz-set__row{box-sizing:border-box;width:100%;min-height:52px;padding:${T.s3} 0;display:flex;align-items:center;justify-content:space-between;
+  gap:${T.s3};border:0;border-bottom:${T.hair} solid ${T.line};background:transparent;color:inherit;font:inherit;text-align:left}
 button.sz-set__row{cursor:pointer}
 button.sz-set__row:focus-visible{outline:2px solid ${T.ink1};outline-offset:2px}
 .sz-set__main{display:flex;flex-direction:column;gap:3px;min-width:0}
-.sz-set__title{font-size:${T.fs15};color:${T.ink1}}
-.sz-set__sub{font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2};text-wrap:pretty}
+/* 列表行（设计系统 v1）：主文字 17 / 22 墨一，副文字 15 / 22 墨三，右侧值 15 墨三 */
+.sz-set__title{font-size:${T.fs17};line-height:${T.lh17s};color:${T.ink1}}
+.sz-set__sub{font-size:${T.fs15};line-height:${T.lh15};color:${T.ink3};text-wrap:pretty}
 .sz-set__sub span{display:block}
-.sz-set__value{flex:none;display:flex;align-items:center;gap:8px;font-size:${T.fs15};color:${T.ink2}}
-.sz-set__arrow{color:${T.ink2}}
+.sz-set__value{flex:none;display:flex;align-items:center;gap:${T.s2};font-size:${T.fs15};color:${T.ink3}}
+.sz-set__arrow{display:flex;color:${T.ink4}}
 .sz-set__switch{position:relative;flex:none;width:44px;height:26px;border-radius:${T.rCtl};background:${T.line};
   box-shadow:inset 0 0 0 1px ${T.ink3};transition:background .15s}
 .sz-set__knob{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:${T.sheet};
@@ -306,7 +308,7 @@ function ValueRow({ testid, title, value, valueTestid, arrow = true, onClick, ex
   return html`<${Button} variant="plain" class="sz-set__row sz-set__row--value" data-testid=${testid} onClick=${onClick} ...${extra}>
     <span class="sz-set__main"><span class="sz-set__title">${title}</span></span>
     <span class="sz-set__value"><span data-testid=${valueTestid}>${value}</span>${arrow
-      ? html`<span class="sz-set__arrow" aria-hidden="true">${t('X-SETTINGS.more')}</span>` : null}</span>
+      ? html`<span class="sz-set__arrow" aria-hidden="true"><${Chevron} /></span>` : null}</span>
   </${Button}>`;
 }
 

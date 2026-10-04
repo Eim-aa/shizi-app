@@ -22,6 +22,7 @@
 
 import { html } from '../../../../vendor/ui.js';
 import { Button } from '../../components/Button.js';
+import { Chevron } from '../../components/Chevron.js';
 import { injectStyles, T } from '../../components/styles.js';
 import { t, tInk } from '../../../config/copy/index.js';
 import { dayText } from './records.js';
@@ -34,23 +35,22 @@ export const LABELS = Object.freeze({
 });
 
 injectStyles('detail-actions', `
-.sz-drows{display:flex;flex-direction:column;border-top:1px solid ${T.line}}
-.sz-drow{box-sizing:border-box;width:100%;min-height:52px;padding:8px 0;display:flex;align-items:center;justify-content:space-between;
-  gap:12px;border:0;border-bottom:1px solid ${T.line};background:transparent;color:inherit;font:inherit;text-align:left}
+.sz-drows{display:flex;flex-direction:column;border-top:${T.hair} solid ${T.line}}
+.sz-drow{box-sizing:border-box;width:100%;min-height:52px;padding:${T.s3} 0;display:flex;align-items:center;justify-content:space-between;
+  gap:${T.s3};border:0;border-bottom:${T.hair} solid ${T.line};background:transparent;color:inherit;font:inherit;text-align:left}
 button.sz-drow{cursor:pointer}
 button.sz-drow:focus-visible{outline:2px solid ${T.ink1};outline-offset:2px}
 .sz-drow--tall{min-height:60px}
 .sz-drow__main{display:flex;flex-direction:column;gap:3px;min-width:0}
-.sz-drow__title{display:flex;align-items:center;gap:8px;font-size:${T.fs15};color:${T.ink1}}
+.sz-drow__title{display:flex;align-items:center;gap:${T.s2};font-size:${T.fs17};line-height:${T.lh17s};color:${T.ink1}}
 .sz-drow__title--off{color:${T.ink3}}
-.sz-drow__sub{font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2};text-wrap:pretty}
+.sz-drow__sub{font-size:${T.fs15};line-height:${T.lh15};color:${T.ink3};text-wrap:pretty}
 .sz-drow__sub--small{font-size:${T.fs13};color:${T.ink3}}
-.sz-drow__value{flex:none;font-size:${T.fs15};color:${T.ink2}}
-.sz-drow__arrow{flex:none;font-size:${T.fs13};color:${T.ink3}}
-.sz-dfail{display:flex;flex-direction:column;gap:10px;padding:12px 0;border-bottom:1px solid ${T.line}}
+.sz-drow__value{flex:none;font-size:${T.fs15};color:${T.ink3}}
+.sz-dfail{display:flex;flex-direction:column;gap:${T.s3};padding:${T.s3} 0;border-bottom:1px solid ${T.line}}
 .sz-dfail__note{margin:0;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2}}
 .sz-dfail__btns{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
-.sz-dbanner{position:sticky;top:-14px;z-index:3;margin:-14px -24px 0;min-height:40px;box-sizing:border-box;padding:0 24px;
+.sz-dbanner{position:sticky;top:calc(-1 * ${T.s4});z-index:3;margin:calc(-1 * ${T.s4}) calc(-1 * ${T.gutter}) 0;min-height:44px;box-sizing:border-box;padding:0 ${T.gutter};
   display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;border-bottom:1px solid ${T.line};background:${T.paper};
   font-size:${T.fs15};color:${T.ink2}}
 .sz-dbanner__sep{color:${T.ink4}}
@@ -114,7 +114,7 @@ function Row({ testid, title, sub = null, value = null, arrow = false, off = fal
       ${sub ? html`<span class=${subSmall ? 'sz-drow__sub sz-drow__sub--small' : 'sz-drow__sub'}>${sub}</span>` : null}
     </span>
     ${value ? html`<span class="sz-drow__value">${value}</span>` : null}
-    ${arrow ? html`<span class="sz-drow__arrow" aria-hidden="true">›</span>` : null}`;
+    ${arrow ? html`<${Chevron} />` : null}`;
   const cls = tall ? 'sz-drow sz-drow--tall' : 'sz-drow';
   if (onClick) {
     return html`<${Button} variant="plain" class=${cls} data-testid=${testid} ...${extra} onClick=${onClick}>${inner}</${Button}>`;

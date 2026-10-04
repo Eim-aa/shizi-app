@@ -117,6 +117,9 @@ export const T = {
   rWork: v('r-work'), rCtl: v('r-ctl'), rBox: v('r-box'),
   hair: v('hair'), frameW: v('frame-w'), guideW: v('guide-w'), targetW: v('target-w'),
   hit: v('hit'), btnH: v('btn-h'),
+  // 间距：尺度 4 / 8 / 12 / 16 / 20 / 24 / 32 / 48 / 64（--s1…--s16）、页边 20、分组留白 32
+  s1: v('s1'), s2: v('s2'), s3: v('s3'), s4: v('s4'), s5: v('s5'), s6: v('s6'), s8: v('s8'), s12: v('s12'), s16: v('s16'),
+  gutter: v('gutter'), groupGap: v('group-gap'),
   pressScale: v('press-scale'), tPress: v('t-press'), tRelease: v('t-release'), easeOut: v('ease-out'),
 };
 

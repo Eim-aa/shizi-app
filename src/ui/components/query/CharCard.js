@@ -24,10 +24,10 @@ import { decodeInk, resampleForReplay } from '../../../core/ink-math.js';
 import { InkMini, RefMini } from '../../screens/write/compare.js';
 
 injectStyles('query-card', `
-.sz-qcard-wrap{display:flex;flex-direction:column;gap:16px}
-.sz-qcard{box-sizing:border-box;padding:16px;border-radius:${T.rCtl};background:${T.field};display:flex;
-  flex-direction:column;gap:14px}
-.sz-qcard__pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.sz-qcard-wrap{display:flex;flex-direction:column;gap:${T.s4}}
+.sz-qcard{box-sizing:border-box;padding:${T.s4};border-radius:${T.rCtl};background:${T.field};display:flex;
+  flex-direction:column;gap:${T.s4}}
+.sz-qcard__pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:${T.s4}}
 .sz-qcard__col{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0}
 .sz-qcard__cell{width:100%;max-width:124px}
 .sz-qcard__empty{width:100%;aspect-ratio:1/1;box-sizing:border-box;border:${T.frameW} dashed ${T.frame};border-radius:${T.rWork};
@@ -39,14 +39,14 @@ injectStyles('query-card', `
 .sz-qcard__meta{font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2}}
 .sz-qcard__word{font-family:${T.kai};font-size:${T.fs22};line-height:${T.lh22};color:${T.ink1}}
 .sz-qcard__stat{font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2}}
-.sz-qcard__acts{display:flex;flex-direction:column;gap:10px}
+.sz-qcard__acts{display:flex;flex-direction:column;gap:${T.s3}}
 .sz-qcard__two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
 .sz-qcard__one{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
 .sz-qcard__two .sz-btn{padding:0 8px}
-.sz-qcard__fail{display:flex;flex-direction:column;gap:10px}
+.sz-qcard__fail{display:flex;flex-direction:column;gap:${T.s3}}
 .sz-qcard__failnote{margin:0;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2}}
-.sz-qbad{display:flex;flex-direction:column;gap:10px}
-.sz-qbad__box{display:flex;flex-direction:column;gap:4px;padding:14px 16px;border-radius:${T.rCtl};background:${T.field}}
+.sz-qbad{display:flex;flex-direction:column;gap:${T.s3}}
+.sz-qbad__box{display:flex;flex-direction:column;gap:4px;padding:${T.s3} ${T.s4};border-radius:${T.rCtl};background:${T.field}}
 .sz-qbad__title{font-size:${T.fs15};line-height:${T.lh15};color:${T.ink1}}
 .sz-qbad__line{font-size:${T.fs13};line-height:${T.lh13};color:${T.ink2}}
 `);

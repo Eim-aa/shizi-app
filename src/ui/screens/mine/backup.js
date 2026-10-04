@@ -122,8 +122,7 @@ injectStyles('mine-backup', `
 .sz-bk__note[data-tone="error"] .sz-bk__dot{background:${T.ink1}}
 .sz-bk__notetext{flex:1;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2}}
 .sz-bk__note[data-tone="error"] .sz-bk__notetext{color:${T.ink1}}
-.sz-bk__retry.sz-btn--text{min-height:0;margin:-10px 0 -10px 6px;padding:10px 0;display:inline-block;line-height:inherit;vertical-align:baseline;color:${T.ink1};text-decoration:underline;
-  text-underline-offset:4px;text-decoration-color:${T.ink4};white-space:nowrap;}
+.sz-bk__retry.sz-btn--text{min-height:0;margin:-10px 0 -10px 6px;padding:10px 0;display:inline-block;line-height:inherit;vertical-align:baseline;white-space:nowrap}
 .sz-bk__export.sz-btn--primary[disabled]{background:${T.field};color:${T.ink4}}
 .sz-bk__list{display:flex;flex-direction:column;border-top:${T.hair} solid ${T.line}}
 .sz-bk__row.sz-btn{width:100%;min-height:52px;padding:${T.s3} 0;display:flex;align-items:center;justify-content:space-between;gap:${T.s3};

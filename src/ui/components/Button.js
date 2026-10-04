@@ -3,6 +3,9 @@
 // 一律按事件 timeStamp 比较（与 performance.now() 同一时钟）。
 // rapid：本来就要连点的按钮（书写格的撤销 / 清空：连撤几笔）不做「同一按钮 0.4s」节流，只保留「新状态后 0.4s」（M1 验收 G2）。
 // 禁用：disabled + aria-disabled（R-G08）。
+// 文字按钮（variant="text"，H1 / D51 ⑥）全 App 只有一种规格：黑体 15（--fs15）、--ink2、无下划线、按下变 --ink1；可点性靠位置与动词文案，不靠下划线。
+//   「›」规则（设计系统一条）：标签是「去处的名字」（回到首页、练习记录、还有 N 个字、看写错过的字、更换字库）→ 行尾带「›」；
+//   标签是动作（撤销、取消、提示、看答案、跳过、自己选字、练这些字、保存图片、接着写、完成）→ 不带。「›」写在文案里（copy/*），样式不画箭头。
 // 按压反馈（P0-A4 / G16；D43 起取设计系统 v1 的动效令牌）：pointerdown 起 data-pressed、pointerup / pointercancel / pointerleave 收；
 // 样式见下方 .sz-btn[data-pressed]。不用 :active——iOS WebKit 上 :active 需要 touchstart 监听才生效；data-pressed 直接写 DOM 属性
 // （不走 state，不触发重画）。原生 <button> 格子（结果 / 详情 / 记录页的字帖格）也用同一套 pressFeedbackHandlers。
@@ -85,8 +88,8 @@ injectStyles('button', `
   font-size:${T.fs17};line-height:${T.lh17s};font-weight:500}
 .sz-btn--primary{background:${T.btnBg};color:${T.btnFg}}
 .sz-btn--secondary{background:transparent;color:${T.ink1};box-shadow:inset 0 0 0 1px ${T.ink4}}
-.sz-btn--text{min-height:${T.hit};padding:0 4px;display:inline-flex;align-items:center;gap:6px;font-size:${T.fs15};color:${T.ink2};
-  text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:5px;text-decoration-color:${T.ink4}}
+.sz-btn--text{min-height:${T.hit};padding:0 4px;display:inline-flex;align-items:center;gap:6px;font-family:${T.hei};font-size:${T.fs15};
+  line-height:${T.lh15};font-weight:400;color:${T.ink2};text-decoration:none}
 .sz-btn--icon{width:${T.hit};height:${T.hit};display:grid;place-items:center;color:${T.ink1};padding:0}
 .sz-btn--plain{padding:0}
 .sz-btn[disabled]{cursor:default}

@@ -22,7 +22,7 @@ injectStyles('undobar', `
   padding:${T.s2} ${T.s2} ${T.s2} ${T.s4};border-radius:${T.rCtl};background:${T.toastBg};color:${T.toastFg};
   font-size:${T.fs15};line-height:${T.lh15}}
 .sz-undobar__text{display:flex;flex-direction:column;min-width:0}
-.sz-undobar .sz-btn--text{color:${T.toastFg};font-weight:500;font-size:${T.fs15};flex:none;text-decoration-color:currentColor}
+.sz-undobar .sz-btn--text{color:${T.toastFg};font-weight:500;font-size:${T.fs15};flex:none}
 .sz-undobar .sz-btn--text[disabled]{opacity:.55}
 `);
 

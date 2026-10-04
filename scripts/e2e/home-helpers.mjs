@@ -70,6 +70,14 @@ export const HOME_STATES = Object.freeze({
   back: { entries: [...'醋膝屉鼎窗'].map((c, i) => ({ char: c, at: `2026-09-2${i}T20:00:00` })), clock: `${D(14)}T09:30:00` },
 });
 
+/** 按自定义 spec（同 HOME_STATES 的形状）造数，不等首页状态（调用方自己等）。 */
+export async function seedHomeSpec(page, spec) {
+  const res = await page.evaluate(`(${SEED_FN})(${JSON.stringify(spec)})`);
+  if (!res.ok) throw new Error('seedHomeSpec failed: ' + JSON.stringify(res.r));
+  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+  return res;
+}
+
 /** 造数并等首页换成对应状态；spec 为 null（首次打开）时只清空。 */
 export async function seedHomeState(page, name) {
   const spec = HOME_STATES[name];

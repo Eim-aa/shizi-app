@@ -47,10 +47,10 @@ const COPY = {
   historyNote: '这里只能保存本月的字帖。',
   sheetEmpty: '这个月还没有可以放进图片的字',
   sheetOrder: '按第一次写下的先后排列',
-  saveImage: '保存图片 ›',
+  saveImage: '保存图片',
   all: '全部 ›',
   dayChars: d => `${d}写的字`,
-  todayImage: '这次的图片 · 保存图片 ›',
+  todayImage: '这次的图片 · 保存图片',
   noInk: '没有笔迹',
 };
 

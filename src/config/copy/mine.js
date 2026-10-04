@@ -5,7 +5,7 @@
 export default Object.freeze({
   // R-M01（已定）
   'R-M01.week': '这一周',
-  'R-M01.saveImage': '保存图片 ›',
+  'R-M01.saveImage': '保存图片',
   'R-M01.practiceLog': '练习记录',
   // R-M03（已定）
   'R-M03.settings': '设置',
@@ -39,7 +39,7 @@ export default Object.freeze({
   'R-P02.historyNote': '这里只能保存本月的字帖。',
   // R-P03（已定）
   'R-P03.todayChars': '{date}写的字',
-  'R-P03.todayImage': '这次的图片 · 保存图片 ›',
+  'R-P03.todayImage': '这次的图片 · 保存图片',
   // R-P04（已定）
   'R-P04.empty': '写一个字并判断对错，这天就会有一个墨点。',
   // X-MINE（extra：M4-1 我的首页与练习记录里 04 没有收录的原型字样与读屏名，见 copy-source.json extra.X-MINE）

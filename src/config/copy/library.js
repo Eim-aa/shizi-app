@@ -61,7 +61,7 @@ export default Object.freeze({
   'R-A02.filterWrong': '写错过',
   'R-A02.filterForget': '快忘了',
   'R-A02.filterCustomUnwritten': '自选了还没写',
-  'R-A02.practiceThese': '练这些字 →',
+  'R-A02.practiceThese': '练这些字',
   // R-A03（已定）
   'R-A03.foundIn': '在 {month} 月',
   'R-A03.notFound': '「{char}」还没有记录。',

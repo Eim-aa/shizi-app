@@ -5,7 +5,7 @@
 //   2. 题记一行：日期下 2、宋 13 墨三、不带印、不折行；标题在题记下 10；AX5 隐藏（display:none），读屏经标题的 describedby 读到（60-a11y 另测）。
 //   3. 没有两处计数：页面上看不到「这一组还有 N 个字」「字库里有 N 个字了」「昨天写的字」，计数只在读屏名称里（72 / 22 逐态断言文字）。
 //   4. 字帖格线只有两种：外框 frame（1px）+ 格间 guide（实线），空格里没有虚十字 svg、没有下一格墨框（::after）。
-//   5. 同屏字号 3 级：L 档 13 / 17 / 28；AX5 档 44 / 53 / 58（按设计表各级取值，层级不倒置）。
+//   5. 同屏字号 3 级：L 档 13 / 17 / 28；AX5 档 44 / 53 / 58（按设计表各级取值，层级不倒置）；H1 起文字按钮统一 15（AX5 49），有文字按钮的态再加这一级。
 //   6. 字帖块在标题与主按钮之间光学居中（区域底留 6% 内边，视觉略偏上）。
 //   7. AX5：主按钮满宽、「自己选字」在下，整页可滚、按钮不固定；字帖格 ≥ 44。
 //   8. 首次打开 AX5：题跋横排三行（一行一句、不折）、印跟在末句后间距 8、「拾」120、主按钮满宽、说明句在按钮下 4。
@@ -78,6 +78,7 @@ function measure() {
     width: root.clientWidth,
     reds,
     sizes: [...sizes].sort((a, b) => a - b),
+    hasTextBtn: [...root.querySelectorAll('.sz-btn--text')].some(b => b.checkVisibility()),
     date: rect(date),
     epi: epi ? { ...rect(epi), display: epiCs.display, font: epiCs.fontFamily, weight: epiCs.fontWeight, size: parseFloat(epiCs.fontSize), color: epiCs.color, lineHeight: parseFloat(epiCs.lineHeight), text: epi.textContent.replace(/\s+/g, ''), seals: epi.querySelectorAll('.sz-home__seal').length } : null,
     title: rect(title),
@@ -165,8 +166,9 @@ export default async function run(page, ctx) {
           }
 
           // 5 字号
-          const want = size === 'AX5' ? [44, 53, 58] : [13, 17, 28];
-          assert.deepEqual(m.sizes, want, `${t}: same-screen font sizes = ${want.join(' / ')} (3 levels; AX5 per the tier table)`);
+          // H1：文字按钮统一 15（D51 ⑥），有文字按钮的态多一级 15（原来「自己选字」是 17）
+          const want = size === 'AX5' ? (m.hasTextBtn ? [44, 49, 53, 58] : [44, 53, 58]) : (m.hasTextBtn ? [13, 15, 17, 28] : [13, 17, 28]);
+          assert.deepEqual(m.sizes, want, `${t}: same-screen font sizes = ${want.join(' / ')} (text buttons are 15; AX5 per the tier table)`);
 
           // 6 光学居中
           const padW = size === 'AX5' ? null : m.width * 0.06;

@@ -7,12 +7,12 @@
 // 版式（原型 L85–L114）：页头「有记录的字」→ 查字框（吸顶；只在有记录的字里查，R-A03；aria「在有记录的字里查字」；
 //   命中时右侧「在 {month} 月」，没有记录时框下「「X」还没有记录。」）→ 排序三键（R-A01；选了筛选后收起，R-A04）
 //   → 筛选四项（R-A02；再点取消；0 个的变灰，R-A04）→ 图例（与字库首页同一套，wall.js）→ 说明句 → 分组（组名 + 字数，
-//   格子与墨墙同一画法；拼音排序时每格下标拼音，R-A04）→ 收起的月份（点开）→「练这些字 →」（R-A02）。
+//   格子与墨墙同一画法；拼音排序时每格下标拼音，R-A04）→ 收起的月份（点开）→「练这些字」（R-A02）。
 // 查字命中：排序 / 筛选 / 图例 / 说明都收起，只显示命中的字所在的月份，这一格描一圈（R-A03）。
 // 按月排：默认展开最近两个月；点展开的月份标题收起，点下面收起的月份行展开（R-A01）。
 // 分批画（01 §10「一次 ≤ 72 格」、原型 budget=72）：先画前 72 格，其余逐帧补上（300 字首屏 < 200ms）。
 //
-// 去处：点格子 → 单字详情（'detail' {char}，M3-6）；「练这些字 →」：自选了还没写 → session startPicked(keys,
+// 去处：点格子 → 单字详情（'detail' {char}，M3-6）；「练这些字」：自选了还没写 → session startPicked(keys,
 //   {source:{view:'allWritten'}})（旧 B 没写完由它弹 S02；写入失败留在本页、筛选不变，说明 X-ALL.startFailed，可再点）；
 //   写错过 / 快忘了 → 推入对应清单页（'library-list' {kind}，M3-2；原型 filterGo）。目标屏没注册时不跳转（console.warn）。
 // 只读 store；本页不写入。文案只取 copy/。
@@ -96,7 +96,7 @@ injectStyles('library-all', `
   gap:${T.s3};border-bottom:.5px solid ${T.line};text-align:left}
 .sz-all__mname{font-size:${T.fs17};color:${T.ink1}}
 .sz-all__mcount{font-size:${T.fs15};color:${T.ink2};white-space:nowrap;font-variant-numeric:tabular-nums}
-.sz-all__go.sz-btn{align-self:flex-start;min-height:44px;display:flex;align-items:center;font-size:${T.fs15};color:${T.ink1}}
+.sz-all__go.sz-btn{align-self:flex-start}
 .sz-all__fail{margin:0;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink1}}
 .sz-all__empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:${T.s2};text-align:center;
   padding:${T.s8} ${T.s4} ${T.s6}}
@@ -322,7 +322,7 @@ function AllScreen({ params, entry }) {
         : null}
       ${failed ? html`<p class="sz-all__fail" data-testid="all-start-fail" aria-live="polite">${t('X-ALL.startFailed')}</p>` : null}
       ${model.go
-        ? html`<${Button} variant="plain" class="sz-all__go" data-testid="all-go" data-kind=${model.go.kind}
+        ? html`<${Button} variant="text" class="sz-all__go" data-testid="all-go" data-kind=${model.go.kind}
             onClick=${onGo}>${t('R-A02.practiceThese')}</${Button}>`
         : null}
     </div>

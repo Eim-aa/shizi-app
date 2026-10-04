@@ -33,7 +33,7 @@ const COPY = {
   forgetNote: '有一阵没写、可能快忘了的字。',
   unwNote: '加入了自选的字，还没有记录。',
   customNote: '你自己挑来常练的字。还没写的排在前面。',
-  go: '练这些字 →',
+  go: '练这些字',
   searchAria: '在有记录的字里查字',
   foundIn: m => `在 ${m} 月`,
   notFound: c => `「${c}」还没有记录。`,

@@ -3,7 +3,7 @@
 //
 // 落款是这个产品的签名：结果页、这次 / 这天的图片、月字帖（页面与导出图）、年报册页、「我的」里的月字帖缩略图都经 kuan()，格式只有一种：
 //   「{汉字年月日}　{汉字数}字」，字数永远带（一个字也写「一字」，V2-05），右对齐，印跟在末字右下；月份落款没有日。
-// 界面里的数字（「10 月」「9 月」）是另一套规则：阿拉伯数字与「月」之间留空格，写在 copy 里；落款里全是汉字、不留空格（T2-04）。
+// 界面里的日期（「10月」「9月」「10月4日」）写在 copy 里，月 / 日 / 年紧跟数字、不留空格，与落款一种写法（H1 / 03 P224，设计说明第 8 条）；落款里全是汉字（T2-04）。
 import { t } from '../config/copy/index.js';
 import { cnCount, cnDigits, cnNumber, isValidDay, localDay, signatureDateParts, signatureMonthParts } from '../core/dates.js';
 import { now as envNow } from '../platform/env.js';

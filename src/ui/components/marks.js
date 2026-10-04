@@ -38,8 +38,10 @@ injectStyles('marks-work', WORK_MARK_CSS);
 
 /**
  * 作品里的印（唯一的一种）。
- * @param {{testid?:string, style?:object|null, cls?:string}} props  style 给位置（绝对 / 相对）；cls 给出现动画等附加类
+ * @param {{testid?:string, style?:object|null, cls?:string, onLand?:()=>void}} props  style 给位置（绝对 / 相对）；cls 给出现动画等附加类；
+ *   onLand：落印动画（animationend）到位那一帧的回调（结果页用它对齐落款声，D51 ②）
  */
-export function Seal({ testid = 'work-seal', style = null, cls = '' } = {}) {
-  return html`<span class=${cls ? `sz-seal ${cls}` : 'sz-seal'} aria-hidden="true" data-testid=${testid} style=${style}>${t('X-IMAGES.seal')}</span>`;
+export function Seal({ testid = 'work-seal', style = null, cls = '', onLand = null } = {}) {
+  return html`<span class=${cls ? `sz-seal ${cls}` : 'sz-seal'} aria-hidden="true" data-testid=${testid} style=${style}
+    onanimationend=${onLand}>${t('X-IMAGES.seal')}</span>`;
 }

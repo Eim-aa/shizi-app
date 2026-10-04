@@ -15,10 +15,10 @@
 //   write:answer-trace   进入「描一遍」                          select                        旧 openTracingTeaching L2603
 //   write:skip-undo      跳过的 3 秒撤销                        undo                          旧重盖 undo L2624
 //   result:skip-undo     结果页上撤销最后一字的跳过             undo                          同上
-//   result:finish        写完最后一字、结果页出现               action                        旧 roundSummary 落章 L2717
+//   （result:finish 写完最后一字、结果页出现：不再发触觉——R2-R1 / I2-03：判断落定已经有 stamp，结果页的触觉只在印落下的那一帧发一次，见 result/work.js sealMoment）
 //   write:end            「结束这组」确认（有判断时换成结果页） action                        同上
 // 声音（S1，D50 ⑦）：判断类 commit 同时发判断声 j1；书写与描红不出声（没有 trace-stroke 点位）；落款盖章声不是 commit，
-// 由结果页 WorkSection 在作品出现时直接调 sound.js keySound('seal')。
+// 由结果页 WorkSection 在印落下的那一帧直接调 sound.js keySound('seal')，同一帧发一次触觉（D51 ②）。
 // 这张表是 M5-5 按旧版点位的过渡映射（第十稿没给触觉规格），已登记待定。
 //
 // 接线：installCommitFeedback(getStore) 在写字页 / 结果页挂载时调用（幂等：同一个 store 只订阅一次）；
@@ -39,7 +39,6 @@ export const COMMIT_FEEDBACK = Object.freeze({
   'write:answer-trace': Object.freeze({ haptic: 'select' }),
   'write:skip-undo': Object.freeze({ haptic: 'undo' }),
   'result:skip-undo': Object.freeze({ haptic: 'undo' }),
-  'result:finish': Object.freeze({ haptic: 'action' }),
   'write:end': Object.freeze({ haptic: 'action' }),
 });
 

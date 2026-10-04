@@ -189,6 +189,7 @@
     "P183": "备份页重进时的状态句与撤销措辞（阶段 1 Q2-8，复测 simA S3；D24；E9c 改写）：撤销失效后留结论句（backupMeta.lastConclusion，保留到下次导出）、不再有已失效的「离开这一页前可以撤销」，没有结论句时才按现在的记录与上次导出时间算；行为在 src/core/backup.js backupStatus 与 src/ui/screens/mine/backup.js，不是 policy 开关",
     "P184": "离开 ≥ 7 天回来的第一组缩短为 3 字（阶段 1 Q2-15，已决定 D48 ⑧）：调度规则，值在 policy.groupMix.returnGroupSize（P184），实现在 src/core/sessions.js selectDaily；首页「离开一周后回来」态文案没有提组大小，无新文案",
     "P215": "首练结果页标题按这一页上实际写出的字数取（R2-R1 / V2-05）：作品里有几格就写「这两个字 / 这三个字…」，没有墨时按这一页列出的字数；行为在 src/ui/work-text.js firstTitle 与 src/ui/screens/result/index.js resultModel，不是 policy 开关",
+    "P216": "结果页作品显现与落印的时序（R2-R1 / D51 ②，I2-03 / N2-01）：格依次淡入（每格错开 ≤ 50ms，字多时收紧）→ 落款淡入 → 印落下，印到位那一帧发 s1 与一次触觉，总时长 ≤ 750ms（src/ui/screens/result/work.js revealPlan）；点一下直接到终态；减少动态效果只显示终态并立即发 s1；同一组只响一次；结果页不再在进入时发 result:finish 触觉；提醒邀请的 600ms 从落印后算起。时长是工程取值，不是 policy 开关",
     "P211": "提示的画法（阶段 1 W1，已决定 D34 / D51 ⑧；验收后与描一遍同一种画法）：给出的那几笔用 GlyphWash 画——整层 .4 淡朱填充 + 外侧一圈墨三外廓，画在本人墨下层，本人墨不变暗（去掉 INK_DIM_OPACITY）；样式与绘制取值，src/ui/screens/write/hint-layer.js、src/ui/canvas/glyph-wash.js，test/ui/contrast.test.mjs 核对；不是运行时开关",
     "P213": "帮助层统一画法（阶段 1 W1，D51 ⑧ / V2-02）：所有笔画同色不透明填进一层、整层 .4 不透明度、外侧一圈墨三外廓，不画逐笔描边；提示与描一遍共用；绘制取值，src/ui/canvas/glyph.js drawGlyphSolid / drawGlyphRing、glyph-wash.js；不是运行时开关"
   },

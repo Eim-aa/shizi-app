@@ -2,7 +2,8 @@
 // E9c（D49 减法修稿）：作品直接放在页面纸上（没有作品底板）；作品下的行只剩「字 + 状态 + 动作」，无框、无分隔线、用留白分组；
 // 朱点在字的右上角（墨迹外框右上外 2pt）。
 //
-//   WorkSection   作品（作品格 + 落款与印 + 格下「看后写的」标注；落款出现时播一次盖章声，S1）；没有任何墨时换成衬底参考字一行 + 格下状态字（§4.2 变体）。
+//   WorkSection   作品（作品格 + 落款与印 + 格下「看后写的」标注）；第一次呈现时依次显现：格错开淡入 → 落款淡入 → 印落下，盖章声 s1 与印到位那一帧同帧
+//                 （D51 ②，revealPlan；点一下直接到终态；减少动态效果只显示终态并立即发 s1）；没有任何墨时换成衬底参考字一行 + 格下状态字（§4.2 变体）。
 //   WorkRows      作品下「没放进图里」的行：36pt 字（有墨写本人墨，没墨写衬底）+ 状态词（写错了 / 看过答案 / 跳过了 / 写对 · 纸上…）+ 右侧「放进图里」
 //                 （仅写错且有墨；纸上只有说明，D47）；点行 → 对照与修改（D19）。放进图里的字回到作品、这一行消失。
 //   commitAdded   「放进图里」/ 从分享弹层拿出来：写进本组会话的 added（经 store.commit，刷新后仍在；核心规则在 core/images/work.js）。
@@ -10,7 +11,7 @@
 // data-testid：work（作品；data-n / data-cols / data-rows / data-cell）、work-cell（data-index / data-char / data-mode / data-dot / data-state）、
 //   work-cap、work-kuan、work-seal、work-dot；result-excluded、result-exrow（data-char / data-record / data-state / data-added）、result-exrow-open、
 //   result-add（aria-pressed）；result-exrow 带 data-index（该字在本组里的序号，与作品格的 data-index 同一套）。
-import { html, useEffect } from '../../../../vendor/ui.js';
+import { html, useEffect, useRef, useState } from '../../../../vendor/ui.js';
 import { Button } from '../../components/Button.js';
 import { CellCanvas, PlainRow, WorkPaper, WrongDot, useAxSize, useScreenWidth } from '../../components/work.js';
 import { injectStyles, T, TEX } from '../../components/styles.js';
@@ -19,6 +20,7 @@ import { resultGrid } from '../../../core/images/layout.js';
 import { toggleAdded } from '../../../core/images/work.js';
 import { kuan } from '../../work-text.js';
 import { keySound, warmSounds } from '../../../platform/sound.js';
+import { haptic } from '../../../platform/haptics.js';
 
 export const WORK_LABELS = Object.freeze({ added: 'result:added' });
 
@@ -27,7 +29,58 @@ export const ROW_GLYPH = 36;
 export const ROW_GLYPH_AX = 52;
 const ROW_PAD = 0.03;
 
+// ---------------------------------------------------------------- 作品显现与落印（D51 ②，网页阶段的最小过渡；完整编排属阶段 2 原生）
+
+/** 整段显现的上限（ms）：格依次淡入 + 落款淡入 + 印落下，印到位那一帧发 s1 与一次触觉。 */
+export const REVEAL_MAX_MS = 750;
+
+/**
+ * 显现时序（纯函数）：n 个作品格。每格错开 stagger（≤ 50ms；字多时收紧，保证总时长 ≤ REVEAL_MAX_MS），落款在最后一格快到位时淡入，印在落款之后落下。
+ * @returns {{stagger:number, cellMs:number, kuanDelay:number, kuanMs:number, sealDelay:number, sealMs:number, total:number}} 全是 ms；total = 印到位的时刻
+ */
+export function revealPlan(n) {
+  const count = Math.max(1, Math.floor(Number(n) || 1));
+  const cellMs = 180;
+  const kuanMs = 140;
+  const sealMs = 220;
+  // total = (n − 1) × stagger + cellMs − 40（落款提前 40ms 进）+ 60（印比落款晚 60ms）+ sealMs ≤ 750  →  stagger ≤ (750 − 420) / (n − 1)
+  const stagger = count > 1 ? Math.min(50, Math.floor((REVEAL_MAX_MS - (cellMs - 40 + 60 + sealMs)) / (count - 1))) : 0;
+  const cellsEnd = (count - 1) * stagger + cellMs;
+  const kuanDelay = cellsEnd - 40;
+  const sealDelay = kuanDelay + 60;
+  return { stagger, cellMs, kuanDelay, kuanMs, sealDelay, sealMs, total: sealDelay + sealMs };
+}
+
+const revealed = new Set(); // 已经显现过 / 响过 s1 的组（sealKey）：回到本页不再重演
+
+/** 测试：忘掉哪些组已经显现过。 */
+export function resetReveal() {
+  revealed.clear();
+}
+
+function prefersReducedMotion() {
+  try {
+    return typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  } catch (error) {
+    return false;
+  }
+}
+
+/** 印到位的那一帧：盖章声 s1 与一次触觉同帧发（I2-03：最后一字的 j1 在判断时已经响过，s1 晚约 0.5–0.7 秒，不叠在一起）。 */
+function sealMoment(settings, key) {
+  haptic('action');
+  const play = () => keySound('seal', { settings, key });
+  if (!play()) warmSounds({ settings, events: ['seal'] }).then(play, play); // 素材还没解码好：解码后补响，不占 key
+}
+
 injectStyles('result-work', `
+@keyframes szWorkCellIn{from{opacity:0;transform:translateY(2px)}to{opacity:1;transform:none}}
+@keyframes szWorkKuanIn{from{opacity:0}to{opacity:1}}
+@keyframes szResultSeal{0%{opacity:0;transform:scale(1.25)}60%{opacity:1;transform:scale(.92)}100%{opacity:1;transform:scale(1)}}
+.sz-wcell--in{animation:szWorkCellIn 180ms ease-out both}
+.sz-work__kuan--in{animation:szWorkKuanIn 140ms ease-out both}
+.sz-seal--land{animation:szResultSeal 220ms ease-out both}
+@media (prefers-reduced-motion: reduce){.sz-wcell--in,.sz-work__kuan--in,.sz-seal--land{animation:none}}
 .sz-exrows{display:flex;flex-direction:column;margin-top:28px}
 .sz-exrow{display:flex;align-items:center;gap:4px;min-height:52px;box-sizing:border-box}
 .sz-exrow__open{flex:1;min-width:0;min-height:52px;display:flex;align-items:center;gap:12px;padding:8px 0;margin:0;border:0;background:transparent;
@@ -119,16 +172,50 @@ export function workAria(chars, n, date) {
  * @param {{work:object, day:string|null, dateText:string, inkOf:(record)=>object|null, onOpen:(entry)=>void}} props
  *   work = core/images/work.js buildWork 的结果；inkOf(record) → {points, strokes}。
  */
-export function WorkSection({ work, day, dateText, inkOf, onOpen, picked = false, sealKey = '', settings = null }) {
+export function WorkSection({ work, day, dateText, inkOf, onOpen, picked = false, sealKey = '', settings = null, onLanded = null }) {
   const sw = useScreenWidth();
-  // 落款盖章声（S1，D50 ⑦ / D46 ⑮）：结果页作品首次呈现落款时响一次（网页阶段没有落印动画，作品出现即落款）；同一组（sealKey）再渲染、
-  // 回到本页不再响；没有墨（衬底一行、无落款）不响；settings.sound 关着完全无声。
+  // 作品显现与落印（D51 ②）：第一次呈现这一组时，格依次淡入 → 落款淡入 → 印落下；盖章声 s1（S1，D50 ⑦）与印到位那一帧同帧发，总时长 ≤ 750ms。
+  // 点一下直接到终态（印立刻落下、s1 立刻响）；减少动态效果只显示终态并立即发 s1；同一组（sealKey）只响一次，回到本页 / 重绘不再重演；
+  // 没有墨（衬底一行、无落款）不响；settings.sound 关着完全无声。onLanded：作品落定（邀请块的 600ms 从这时算起）。
   const hasSeal = !work.empty;
+  const key = sealKey || 'work';
+  const plan = revealPlan(work.empty ? 1 : work.cells.length);
+  const [phase, setPhase] = useState(() => (hasSeal && !revealed.has(key) && !prefersReducedMotion() ? 'play' : 'done'));
+  const landedRef = useRef(false);
+  const soundDue = useRef(false);
+  const [landedAt, setLandedAt] = useState(0);
+  const land = () => {
+    if (landedRef.current) return;
+    landedRef.current = true;
+    setPhase('done');
+    if (hasSeal && !revealed.has(key)) {
+      revealed.add(key); // 同一组只响一次（回到本页 / 重绘不再来）
+      soundDue.current = true;
+    }
+    setLandedAt(1);
+    if (typeof onLanded === 'function') onLanded();
+  };
+  // 声音与触觉在「终态已经画出来」之后发（印到位 / 点掉后的下一帧），所以声音响起时画面上的印一定已经落定
   useEffect(() => {
-    if (!hasSeal) return;
-    const play = () => keySound('seal', { settings, key: sealKey || 'work' });
-    warmSounds({ settings, events: ['seal'] }).then(play, play);
-  }, [hasSeal, sealKey]);
+    if (!landedAt || !soundDue.current) return;
+    soundDue.current = false;
+    sealMoment(settings, key);
+  }, [landedAt]);
+  useEffect(() => {
+    if (hasSeal) warmSounds({ settings, events: ['seal'] }); // 预解码，印到位时马上能响
+    if (phase === 'done') {
+      land();
+      return undefined;
+    }
+    const timer = setTimeout(land, plan.total + 150); // 保底：animationend 没来（后台标签页等）也要落
+    const skip = () => land();
+    window.addEventListener('pointerdown', skip, true);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('pointerdown', skip, true);
+    };
+  }, [hasSeal, key]);
+  const reveal = phase === 'play' ? { plan, onLand: land } : null;
   if (work.empty) {
     const entries = work.entries;
     if (!entries.length) return null;
@@ -146,7 +233,7 @@ export function WorkSection({ work, day, dateText, inkOf, onOpen, picked = false
     label: t('X-WORK.cellAria', { char: e.char, state: stateWord(e) }),
   }));
   const caps = work.cells.map(e => (e.tag === 'afterSeen' ? t('X-WORK.afterSeen') : ''));
-  return html`<${WorkPaper} cells=${cells} grid=${grid} caps=${caps} kuan=${kuan({ day, n: cells.length, picked })}
+  return html`<${WorkPaper} cells=${cells} grid=${grid} caps=${caps} kuan=${kuan({ day, n: cells.length, picked })} reveal=${reveal}
     onOpen=${cell => onOpen(work.entries[cell.index])} label=${workAria(work.cells.map(e => e.char), work.cells.length, dateText)} />`;
 }
 

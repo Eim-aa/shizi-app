@@ -193,8 +193,10 @@ const CELL_PRESS = pressFeedbackHandlers(() => false);
  * @param {(cell)=>void} [props.onOpen]
  * @param {string} [props.label]  整体的读屏名称
  * @param {boolean} [props.withSign]  画落款与印（缺省 true）
+ * @param {{plan:{stagger:number, kuanDelay:number, sealDelay:number}, onLand:()=>void}|null} [props.reveal]
+ *   作品显现与落印（D51 ②，result/work.js revealPlan）：格依次淡入、落款淡入、印落下；null = 直接是终态。动画样式在 result/work.js。
  */
-export function WorkPaper({ cells, grid, kuan, caps = [], onOpen, label, withSign = true }) {
+export function WorkPaper({ cells, grid, kuan, caps = [], onOpen, label, withSign = true, reveal = null }) {
   const { cols, rows, c } = grid;
   const n = cells.length;
   const lastCol = (n - 1) % cols;
@@ -211,13 +213,17 @@ export function WorkPaper({ cells, grid, kuan, caps = [], onOpen, label, withSig
     left: `${(lastCol + 1) * c + Math.round(c * 0.12)}px`,
     top: `${rows * c - sealSize - Math.round(c * 0.06)}px`,
   };
+  const plan = reveal ? reveal.plan : null;
+  const sealProps = plan ? { cls: 'sz-seal--land', onLand: reveal.onLand } : {};
+  const sealDelay = plan ? { animationDelay: `${plan.sealDelay}ms` } : null;
   return html`<section class="sz-work" data-testid="work" data-n=${n} data-cols=${cols} data-rows=${rows} data-cell=${c} role="group" aria-label=${label}>
     <div class="sz-work__paper">
       <div class="sz-work__stage" style=${{ width: `${gw}px` }}>
         <div class="sz-work__grid" data-testid="work-grid" style=${{ gridTemplateColumns: `repeat(${cols}, ${c}px)`, width: `${gw}px` }}>
           ${frames.map((r, i) => html`<span key=${`s${i}`} class="sz-work__sheet" aria-hidden="true" data-testid="work-sheet"
             style=${{ left: `${r.x}px`, top: `${r.y}px`, width: `${r.w}px`, height: `${r.h}px` }}></span>`)}
-          ${cells.map((cell, i) => html`<button type="button" key=${cell.key} class="sz-wcell" ...${CELL_PRESS} style=${{ width: `${c}px`, height: `${c}px` }}
+          ${cells.map((cell, i) => html`<button type="button" key=${cell.key} class=${plan ? 'sz-wcell sz-wcell--in' : 'sz-wcell'} ...${CELL_PRESS}
+            style=${plan ? { width: `${c}px`, height: `${c}px`, animationDelay: `${i * plan.stagger}ms` } : { width: `${c}px`, height: `${c}px` }}
             data-testid="work-cell" data-index=${cell.index == null ? i : cell.index} data-char=${cell.ch} data-mode=${cell.mode || 'hand'}
             data-dot=${cell.dot ? 'true' : 'false'} data-record=${cell.record || ''} data-state=${cell.state || ''}
             data-last-col=${(i + 1) % cols === 0 || i === n - 1 ? 'true' : 'false'} data-last-row=${i + cols >= n ? 'true' : 'false'}
@@ -227,12 +233,13 @@ export function WorkPaper({ cells, grid, kuan, caps = [], onOpen, label, withSig
           </button>`)}
           ${frames.map((r, i) => html`<span key=${`f${i}`} class="sz-work__frame" aria-hidden="true"
             style=${{ left: `${r.x}px`, top: `${r.y}px`, width: `${r.w}px`, height: `${r.h}px` }}></span>`)}
-          ${withSign && !below ? html`<${Seal} style=${{ ...sealStyle, position: 'absolute' }} />` : null}
+          ${withSign && !below ? html`<${Seal} style=${{ ...sealStyle, ...sealDelay, position: 'absolute' }} ...${sealProps} />` : null}
         </div>
         ${withSign
           ? html`<div class="sz-work__sign" data-testid="work-sign" data-below=${below ? 'true' : 'false'}>
-              <span class="sz-work__kuan" data-testid="work-kuan">${kuan}</span>
-              ${below ? html`<${Seal} style=${{ position: 'relative' }} />` : null}
+              <span class=${plan ? 'sz-work__kuan sz-work__kuan--in' : 'sz-work__kuan'} data-testid="work-kuan"
+                style=${plan ? { animationDelay: `${plan.kuanDelay}ms` } : null}>${kuan}</span>
+              ${below ? html`<${Seal} style=${{ position: 'relative', ...sealDelay }} ...${sealProps} />` : null}
             </div>`
           : null}
       </div>

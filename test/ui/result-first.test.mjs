@@ -54,5 +54,5 @@ test('inviteExample: the first practice char, its word masked (□), plus the pi
 
 test('HEI_ONLY_COPY: every registered key exists in copy (so it can be excluded from the Serif subset), and only these three kinds of text', () => {
   for (const key of HEI_ONLY_COPY) assert.ok(Object.prototype.hasOwnProperty.call(COPY, key), `${key} is a copy key`);
-  assert.ok(HEI_ONLY_COPY.every(key => /^X-(FIRST|HOME|INVITE|WORK)\./.test(key)), 'only the P1-E5 / P1-E7 body texts');
+  assert.ok(HEI_ONLY_COPY.every(key => /^X-(FIRST|HOME|INVITE|WORK|ALL)\./.test(key)), 'only the P1-E5 / P1-E7 body texts');
 });

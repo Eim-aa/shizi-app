@@ -3727,6 +3727,13 @@
           "origin": "原型 字库墨墙屏-第十稿交接版.dc.html L380 count",
           "note": "M3-4：分组标题右侧的字数"
         },
+        "menuLabel": {
+          "raw": null,
+          "text": "排序 · 筛选",
+          "origin": "extra",
+          "note": "H1 / T2-11：有记录的字页页头尾端的文字按钮与弹层标题；排序三键、筛选四项、图例、说明句都收在这个菜单里，页面只留字墙",
+          "decision": "P223"
+        },
         "closedCount": {
           "raw": null,
           "text": "{n} 个字 ›",

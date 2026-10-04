@@ -86,6 +86,7 @@ export const HEI_ONLY_COPY = Object.freeze([
   'X-FIRST.laterSame',
   'X-INVITE.body', // 「锁屏上只出现词语和拼音……」：提醒邀请的说明，黑体 13
   'X-INVITE.bodyPlain',
+  'X-ALL.menuLabel', // 「排序 · 筛选」：有记录的字页页头尾端的文字按钮与弹层标题（H1 / P223），都用黑体，「筛」不在宋体子集里
   'X-WORK.annualSaveNote', // 「存成册页：卷首、每个月、卷尾……」：年报保存弹层的说明，黑体 15，「卷」不在宋体子集里（阶段 1 P1-E7）
 ]);
 

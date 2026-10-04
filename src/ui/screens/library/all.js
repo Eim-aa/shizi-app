@@ -4,11 +4,12 @@
 // registerScreen('library-all')，params {sort?, filter?, fold?, find?}（页面自己用 nav.setParams 写回，刷新 / 返回后恢复）。
 // 进入：字库首页的大数字「有记录的字 N 个字」与墙下「还有 N 个字 ›」（M3-1 LIBRARY_ROUTES.all）。
 //
-// 版式（原型 L85–L114）：页头「有记录的字」→ 查字框（吸顶；只在有记录的字里查，R-A03；aria「在有记录的字里查字」；
-//   命中时右侧「在 {month} 月」，没有记录时框下「「X」还没有记录。」）→ 排序三键（R-A01；选了筛选后收起，R-A04）
-//   → 筛选四项（R-A02；再点取消；0 个的变灰，R-A04）→ 图例（与字库首页同一套，wall.js）→ 说明句 → 分组（组名 + 字数，
+// 版式（原型 L85–L114；H1 / T2-11 起页面只留字墙）：页头「有记录的字」，尾端文字按钮「排序 · 筛选」（03 P223）→ 查字框（吸顶；只在有记录的字里查，R-A03；aria「在有记录的字里查字」；
+//   命中时右侧「在 {month}月」，没有记录时框下「「X」还没有记录。」）→ 分组（组名 + 字数，
 //   格子与墨墙同一画法；拼音排序时每格下标拼音，R-A04）→ 收起的月份（点开）→「练这些字」（R-A02）。
-// 查字命中：排序 / 筛选 / 图例 / 说明都收起，只显示命中的字所在的月份，这一格描一圈（R-A03）。
+// 「排序 · 筛选」菜单（底部弹层 all-menu，P223）：排序三键（R-A01；选了筛选后收起，R-A04）→ 筛选四项（R-A02；再点取消；0 个的变灰，R-A04）→ 图例
+//   （与字库首页同一套，wall.js）→ 说明句；选定后弹层关闭；有筛选时按钮标 data-active（一个小圆点）。
+// 查字命中：排序 / 筛选 / 图例 / 说明都收起（菜单按钮也收起），只显示命中的字所在的月份，这一格描一圈（R-A03）。
 // 按月排：默认展开最近两个月；点展开的月份标题收起，点下面收起的月份行展开（R-A01）。
 // 分批画（01 §10「一次 ≤ 72 格」、原型 budget=72）：先画前 72 格，其余逐帧补上（300 字首屏 < 200ms）。
 //
@@ -18,15 +19,16 @@
 // 只读 store；本页不写入。文案只取 copy/。
 //
 // data-testid（前缀 all-）：all-screen（页面）、all-body（data-sort / data-filter / data-find-mode / data-found / data-total /
-//   data-rendered / data-recorded / data-cols）、all-find（输入框）、all-find-where、all-find-miss、all-sorts、all-sort（data-key、
-//   aria-pressed）、all-chips、all-chip（data-key / data-n / aria-pressed / disabled）、all-note、all-group（data-key / data-month）、
+//   data-rendered / data-recorded / data-cols）、all-find（输入框）、all-find-where、all-find-miss、all-menu-open（页头尾端按钮，data-active）、
+//   all-menu（弹层）里的 all-sorts、all-sort（data-key、aria-pressed）、all-chips、all-chip（data-key / data-n / aria-pressed / disabled）、all-note、all-group（data-key / data-month）、
 //   all-group-head（展开的月份标题是按钮，aria-expanded=true；其余是文字）、all-group-name、all-group-count、all-cells、
 //   all-cell（data-char / data-kind / data-tone / data-hit / data-py）、all-cell-py、all-closed、all-month（data-month，
 //   aria-expanded=false）、all-go（data-kind=start|list）、all-start-fail、all-empty。图例沿用 wall.js 的 library-legend*。
 
-import { html, useEffect, useMemo, useState } from '../../../../vendor/ui.js';
+import { html, useEffect, useMemo, useRef, useState } from '../../../../vendor/ui.js';
 import { registerScreen, getRouter, getScreen, nav } from '../../router.js';
 import { Page } from '../../components/Page.js';
+import { Sheet } from '../../components/Sheet.js';
 import { Button, markStateChange } from '../../components/Button.js';
 import { injectStyles, T } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
@@ -64,6 +66,7 @@ injectStyles('library-all', `
 .sz-all__input::placeholder{font-family:${T.hei};font-size:${T.fs17};color:${T.ink2}}
 .sz-all__where{flex:none;font-size:${T.fs15};color:${T.ink2};white-space:nowrap}
 .sz-all__miss{margin:0;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3}}
+.sz-sheet[data-testid="all-menu"] .sz-sheet__title{font-family:${T.hei};font-size:${T.fs17};line-height:${T.lh17s}} /* 菜单标题用黑体（系统菜单的样子；「筛」也不在宋体子集里） */
 .sz-all__sorts{display:flex;padding:3px;border-radius:${T.rCtl};background:${T.field}}
 .sz-all__sort.sz-btn{flex:1;min-height:44px;box-sizing:border-box;border-radius:calc(${T.rCtl} - 3px);display:grid;place-items:center;
   font-size:${T.fs15};color:${T.ink2}}
@@ -202,6 +205,56 @@ function Group({ group, cols, getInk, onOpen, onFold }) {
   </section>`;
 }
 
+// ---------------------------------------------------------------- 「排序 · 筛选」菜单（P223）
+// 菜单是遮罩栈里的一层，组件与 props 只在打开时给一次；排序 / 筛选状态在页面里，所以页面把当前视图（控件、说明、回调）发布到这里，菜单订阅它。
+
+const menuBridge = { props: null, listeners: new Set() };
+
+function publishMenu(props) {
+  menuBridge.props = props;
+  for (const fn of [...menuBridge.listeners]) fn(props);
+}
+
+function useMenuProps() {
+  const [props, setProps] = useState(menuBridge.props);
+  useEffect(() => {
+    menuBridge.listeners.add(setProps);
+    setProps(menuBridge.props);
+    return () => menuBridge.listeners.delete(setProps);
+  }, []);
+  return props;
+}
+
+export const ALL_MENU_OVERLAY = 'library-all-menu';
+
+/** 菜单当前发布的视图（只读快照，e2e 不必每次打开弹层就能核对排序 / 筛选 / 图例 / 说明句）；页面不在时为 null。 */
+export function allMenuSnapshot() {
+  return menuBridge.props;
+}
+
+/** 弹层内容（overlay 组件；root 注入 close / active）。 */
+export function AllMenuSheet({ close, active = true }) {
+  const m = useMenuProps();
+  return html`<${Sheet} title=${t('X-ALL.menuLabel')} onClose=${close} active=${active} testid="all-menu">
+    ${m && m.showSort
+      ? html`<div class="sz-all__sorts" data-testid="all-sorts" role="group">
+          ${m.sorts.map(s => html`<${Button} key=${s.key} variant="plain" class="sz-all__sort" data-testid="all-sort" data-key=${s.key}
+            aria-pressed=${s.active ? 'true' : 'false'} rapid=${true} onClick=${() => m.onSort(s.key)}>${s.label}</${Button}>`)}
+        </div>`
+      : null}
+    ${m && m.showChips
+      ? html`<div class="sz-all__chips" data-testid="all-chips">
+          ${m.chips.map(c => html`<${Button} key=${c.key} variant="plain" class="sz-all__chip" data-testid="all-chip" data-key=${c.key}
+            data-n=${c.n} aria-pressed=${c.active ? 'true' : 'false'} disabled=${c.disabled} rapid=${true}
+            onClick=${() => m.onChip(c.key)}>${c.key === 'wrong' ? html`<span class="sz-lib__dot" aria-hidden="true"></span>` : null}${c.label}</${Button}>`)}
+        </div>`
+      : null}
+    ${m && m.showLegend ? html`<${Legend} />` : null}
+    ${m && m.note ? html`<p class="sz-all__note" data-testid="all-note">${m.note}</p>` : null}
+    <${Button} variant="secondary" data-testid="all-menu-close" onClick=${() => close && close()}>${t('X-COMMON.close')}</${Button}>
+  </${Sheet}>`;
+}
+
 function AllScreen({ params, entry }) {
   const p = params || {};
   const entryId = entry && entry.id;
@@ -212,6 +265,7 @@ function AllScreen({ params, entry }) {
   const [fold, setFold] = useState(() => normalizeFold(p.fold));
   const [find, setFind] = useState(() => (typeof p.find === 'string' ? p.find : ''));
   const [failed, setFailed] = useState(false);
+  const menuId = useRef(null);
   const today = localDay(envNow());
 
   const model = useMemo(() => allModel(state, {
@@ -246,13 +300,22 @@ function AllScreen({ params, entry }) {
   }, [state]);
 
   const openDetail = char => goScreen('detail', { char });
+  const closeMenu = () => {
+    if (menuId.current) nav.closeOverlay(menuId.current);
+    menuId.current = null;
+  };
   const onSort = key => {
     setFailed(false);
     setSort(key);
+    closeMenu(); // 选定后弹层关闭（菜单的习惯）
   };
   const onChip = key => {
     setFailed(false);
     setFilter(cur => (cur === key ? '' : key));
+    closeMenu();
+  };
+  const openMenu = () => {
+    menuId.current = nav.openOverlay(AllMenuSheet, {}, { name: ALL_MENU_OVERLAY });
   };
   const onFold = (month, open) => setFold(cur => toggleFold(cur, month, open));
   const onGo = () => {
@@ -271,6 +334,15 @@ function AllScreen({ params, entry }) {
     setFailed(false);
   };
 
+  // 把当前视图发布给菜单（每次渲染都发，菜单随排序 / 筛选 / 查字即时变）
+  publishMenu(model.empty ? null : {
+    showSort: model.showSort, sorts: model.sorts, showChips: model.showChips, chips: model.chips, showLegend: model.showLegend, note: model.note, onSort, onChip,
+  });
+  useEffect(() => () => {
+    publishMenu(null);
+    closeMenu();
+  }, []);
+
   const title = t('X-LIBHOME.recordedLabel');
   if (model.empty) {
     return html`<${Page} title=${title} testid="all-screen">
@@ -282,7 +354,11 @@ function AllScreen({ params, entry }) {
   }
 
   const f = model.find;
-  return html`<${Page} title=${title} testid="all-screen">
+  const menuButton = model.showSort || model.showChips
+    ? html`<${Button} variant="text" data-testid="all-menu-open" data-active=${model.filter ? 'true' : undefined} aria-haspopup="dialog"
+        onClick=${openMenu}>${t('X-ALL.menuLabel')}</${Button}>`
+    : null;
+  return html`<${Page} title=${title} trailing=${menuButton} testid="all-screen">
     <div class="sz-lib sz-all" data-testid="all-body" data-sort=${model.sort} data-filter=${model.filter} data-find-mode=${f.mode}
       data-found=${f.found ? 'true' : 'false'} data-total=${model.total} data-rendered=${rendered} data-recorded=${model.recorded}
       data-cols=${model.cols}>
@@ -296,21 +372,6 @@ function AllScreen({ params, entry }) {
         </label>
         ${f.miss ? html`<p class="sz-all__miss" data-testid="all-find-miss" aria-live="polite">${f.miss}</p>` : null}
       </div>
-      ${model.showSort
-        ? html`<div class="sz-all__sorts" data-testid="all-sorts" role="group">
-            ${model.sorts.map(s => html`<${Button} key=${s.key} variant="plain" class="sz-all__sort" data-testid="all-sort" data-key=${s.key}
-              aria-pressed=${s.active ? 'true' : 'false'} rapid=${true} onClick=${() => onSort(s.key)}>${s.label}</${Button}>`)}
-          </div>`
-        : null}
-      ${model.showChips
-        ? html`<div class="sz-all__chips" data-testid="all-chips">
-            ${model.chips.map(c => html`<${Button} key=${c.key} variant="plain" class="sz-all__chip" data-testid="all-chip" data-key=${c.key}
-              data-n=${c.n} aria-pressed=${c.active ? 'true' : 'false'} disabled=${c.disabled} rapid=${true}
-              onClick=${() => onChip(c.key)}>${c.key === 'wrong' ? html`<span class="sz-lib__dot" aria-hidden="true"></span>` : null}${c.label}</${Button}>`)}
-          </div>`
-        : null}
-      ${model.showLegend ? html`<${Legend} />` : null}
-      ${model.note ? html`<p class="sz-all__note" data-testid="all-note">${model.note}</p>` : null}
       ${shown.map(g => html`<${Group} key=${g.key} group=${g} cols=${model.cols} getInk=${getInk} onOpen=${openDetail} onFold=${onFold} />`)}
       ${model.closed.length
         ? html`<ul class="sz-all__closed" data-testid="all-closed">

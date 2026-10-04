@@ -108,6 +108,8 @@ export default Object.freeze({
   'X-ALL.chipUnwritten': '自选了还没写 {n}',
   'X-ALL.ageNote': '离上次写越久，排得越前。',
   'X-ALL.groupRecorded': '有记录',
+  // 有记录的字页页头尾端的菜单按钮与弹层标题（H1 / T2-11，03 P223）：排序、筛选、图例、说明句都收在里面
+  'X-ALL.menuLabel': '排序 · 筛选',
   'X-ALL.groupMonth': '{month} 月',
   'X-ALL.groupMonthYear': '{year} 年 {month} 月',
   'X-ALL.foundInYear': '在 {year} 年 {month} 月',

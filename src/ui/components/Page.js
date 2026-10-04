@@ -18,12 +18,12 @@ injectStyles('page', `
 .sz-page{position:relative;display:flex;flex-direction:column;height:100%;min-height:0;color:${T.ink1}}
 .sz-page__head{position:relative;flex:none;box-sizing:border-box;min-height:44px;display:flex;align-items:center;
   justify-content:space-between;padding:env(safe-area-inset-top, 0px) ${T.gutter} 0}
-.sz-page__title{position:absolute;left:56px;right:56px;margin:0;text-align:center;font-size:${T.fs17};
-  font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none}
+.sz-page__title{flex:1 1 0;min-width:0;margin:0 ${T.s2};text-align:center;font-size:${T.fs17};
+  font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none} /* 标题在两端槽之间的流里居中（两端槽同宽时就是屏幕正中）；页头尾端的文字按钮再宽也不会压在标题上（H1：「排序 · 筛选」） */
 .sz-page__title:focus{outline:none}
 /* 页头不显示标题、只留给读屏（结果页即作品，P1-E7；不用 :has()，iOS 15.4 才认） */
-.sz-page__title--hidden{left:auto;right:auto;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0)}
-.sz-page__lead,.sz-page__trail{position:relative;z-index:1;min-width:44px;min-height:44px;display:flex;align-items:center}
+.sz-page__title--hidden{position:absolute;flex:none;left:auto;right:auto;margin:-1px;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.sz-page__lead,.sz-page__trail{flex:none;position:relative;z-index:1;min-width:44px;min-height:44px;display:flex;align-items:center}
 .sz-page__trail{justify-content:flex-end;font-size:${T.fs15};color:${T.ink2}}
 /* 页边对齐（H1 / T2-01）：页头两端的可见字形外缘落在 20pt 线上。图标按钮 44 × 44 保持点击区，用负外边距把图标描边外缘对到边线：
    返回箭头（22 框、笔画 x 7.5 起，加描边半宽 → 距按钮左缘 17.75）、关闭 ×（20 框，16.25）、尾端分享图标（22 框，距按钮右缘 15.25）；

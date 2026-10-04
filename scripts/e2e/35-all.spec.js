@@ -159,7 +159,7 @@ async function waitRendered(page) {
 
 async function view(page) {
   await waitRendered(page);
-  return page.evaluate(sel => {
+  const base = await page.evaluate(sel => {
     const root = document.querySelector(sel);
     if (!root) return null;
     const txt = el => (el ? el.innerText.replace(/\s+/g, ' ').trim() : null);
@@ -205,6 +205,32 @@ async function view(page) {
       hDims: [document.scrollingElement.scrollWidth, window.innerWidth, root.closest('.sz-page__body').scrollWidth, root.closest('.sz-page__body').clientWidth],
     };
   }, BODY);
+  if (!base) return null;
+  // H1 / T2-11：排序、筛选、图例、说明句收进页头尾端「排序 · 筛选」菜单——读菜单当前发布的视图（弹层里的真实渲染另见 81-h1-library-menu）
+  const m = await page.evaluate(async () => (await import('/src/ui/screens/library/all.js')).allMenuSnapshot());
+  const hasBtn = await page.evaluate(() => !!document.querySelector('.sz-layer[data-top="true"] [data-testid="all-menu-open"]'));
+  const on = !!(m && hasBtn);
+  base.menuButton = hasBtn;
+  base.sorts = on && m.showSort ? m.sorts.map(x => ({ key: x.key, text: x.label, pressed: x.active ? 'true' : 'false' })) : null;
+  base.chips = on && m.showChips ? m.chips.map(c => ({ key: c.key, text: c.label, n: c.n, pressed: c.active ? 'true' : 'false', disabled: !!c.disabled, ariaDisabled: c.disabled ? 'true' : null })) : null;
+  base.legend = !!(on && m.showLegend);
+  base.note = on && m.note ? m.note.replace(/\s+/g, ' ').trim() : null;
+  return base;
+}
+
+/** 打开「排序 · 筛选」菜单点里面的一项（点完弹层关闭；stay = 点不动的项，弹层还开着，用 closeMenu 收）。 */
+async function menuClick(page, inner, { stay = false, force = false } = {}) {
+  await page.click(`${TOP} ${tid('all-menu-open')}`);
+  await page.waitForSelector(`${TOP} ${tid('all-menu')}`);
+  await waitNavIdle(page, { settleMs: 450 });
+  await page.click(`${TOP} ${tid('all-menu')} ${inner}`, { force });
+  await page.waitForTimeout(40);
+  if (!stay) await waitNavIdle(page, { settleMs: 450 });
+}
+
+async function closeMenu(page) {
+  await page.evaluate(async () => (await import('/src/ui/router.js')).nav.back());
+  await waitNavIdle(page, { settleMs: 450 });
 }
 
 async function click(page, selector) {
@@ -341,7 +367,7 @@ export default async function run(page, ctx) {
 
   // ------------------------------------------------------------------ 3. 拼音
   step('pinyin: initial groups, every cell labelled with its pinyin (R-A04 / P20)');
-  await click(page, `${BODY} [data-testid="all-sort"][data-key="py"]`);
+  await menuClick(page, '[data-testid="all-sort"][data-key="py"]');
   v = await view(page);
   assert.equal(v.sort, 'py', 'sort py');
   assert.equal(v.note, COPY.pyNote, 'R-A01 pinyin note');
@@ -363,7 +389,7 @@ export default async function run(page, ctx) {
 
   // ------------------------------------------------------------------ 4. 多久没写
   step('age: four tones, oldest first (P56)');
-  await click(page, `${BODY} [data-testid="all-sort"][data-key="age"]`);
+  await menuClick(page, '[data-testid="all-sort"][data-key="age"]');
   v = await view(page);
   assert.equal(v.note, COPY.ageNote, 'age note');
   const toneGroups = v.groups.filter(g => g.key.startsWith('t:'));
@@ -381,7 +407,7 @@ export default async function run(page, ctx) {
     ['unw', `自选了还没写 ${HOLLOW.length}`, false],
     ['custom', `自选的字 ${HOLLOW.length + 1}`, false],
   ], 'chip labels with counts');
-  await click(page, `${BODY} [data-testid="all-chip"][data-key="wrong"]`);
+  await menuClick(page, '[data-testid="all-chip"][data-key="wrong"]');
   v = await view(page);
   assert.equal(v.filter, 'wrong', 'filter wrong on');
   assert.equal(v.sorts, null, 'R-A04: sort collapsed while a filter is on');
@@ -389,16 +415,16 @@ export default async function run(page, ctx) {
   assert.equal(v.note, COPY.wrongNote, 'wrong note');
   assert.deepEqual(v.groups.flatMap(g => g.cells.map(c => c.char)), wrongChars, 'wrong filter = latest wrong, newest first');
   assert.deepEqual(v.go, { kind: 'list', text: COPY.go }, '练这些字 → (to the wrong list)');
-  await click(page, `${BODY} [data-testid="all-chip"][data-key="wrong"]`);
+  await menuClick(page, '[data-testid="all-chip"][data-key="wrong"]');
   v = await view(page);
   assert.equal(v.filter, '', 'tap again cancels');
   assert.equal(v.sort, 'age', 'sort restored');
   assert.ok(v.sorts, 'sort control back');
-  await click(page, `${BODY} [data-testid="all-chip"][data-key="forget"]`);
+  await menuClick(page, '[data-testid="all-chip"][data-key="forget"]');
   v = await view(page);
   assert.equal(v.note, COPY.forgetNote, 'forget note');
   assert.deepEqual(v.groups.flatMap(g => g.cells.map(c => c.char)).sort(), [...forgetChars].sort(), 'forget filter = due & latest correct (K16)');
-  await click(page, `${BODY} [data-testid="all-chip"][data-key="custom"]`);
+  await menuClick(page, '[data-testid="all-chip"][data-key="custom"]');
   v = await view(page);
   assert.equal(v.filter, 'custom', 'switching filters');
   assert.equal(v.note, COPY.customNote, 'custom note (R-A02)');
@@ -406,7 +432,7 @@ export default async function run(page, ctx) {
     [COPY.hollowGroup, HOLLOW.join('')], [COPY.recordedGroup, chars[2]],
   ], 'custom: unwritten first, then recorded (K19)');
   assert.equal(v.go, null, 'no practice button under 自选的字');
-  await click(page, `${BODY} [data-testid="all-chip"][data-key="unw"]`);
+  await menuClick(page, '[data-testid="all-chip"][data-key="unw"]');
   v = await view(page);
   assert.equal(v.note, COPY.unwNote, 'unw note (R-A02)');
   assert.deepEqual(v.groups[0].cells.map(c => [c.char, c.kind]), HOLLOW.map(c => [c, 'hollow']), 'unw cells = hollow');
@@ -441,7 +467,7 @@ export default async function run(page, ctx) {
   assert.equal(v.fail, null, 'failure note cleared after success');
 
   step('practice these (wrong): pushes the wrong list page');
-  await click(page, `${BODY} [data-testid="all-chip"][data-key="wrong"]`);
+  await menuClick(page, '[data-testid="all-chip"][data-key="wrong"]');
   await click(page, `${BODY} ${tid('all-go')}`);
   await page.waitForFunction(async () => {
     const { getRouter } = await import('/src/ui/router.js');
@@ -452,8 +478,8 @@ export default async function run(page, ctx) {
   top = await routerTop(page);
   assert.deepEqual([top.name, top.params.kind], ['library-list', 'wrong'], "→ library-list {kind:'wrong'}");
   await backToAll(page);
-  await click(page, `${BODY} [data-testid="all-chip"][data-key="wrong"]`);
-  await click(page, `${BODY} [data-testid="all-sort"][data-key="recent"]`);
+  await menuClick(page, '[data-testid="all-chip"][data-key="wrong"]');
+  await menuClick(page, '[data-testid="all-sort"][data-key="recent"]');
 
   // ------------------------------------------------------------------ 7. 页内查字
   step('find: a recorded char → only its month, ring, 「在 X 月」 (R-A03)');
@@ -514,7 +540,7 @@ export default async function run(page, ctx) {
   assert.equal(log.filter(e => e.via === 'direct').length, 0, 'no direct localStorage writes');
 
   step('view params survive a reload');
-  await click(page, `${BODY} [data-testid="all-sort"][data-key="py"]`);
+  await menuClick(page, '[data-testid="all-sort"][data-key="py"]');
   await page.fill(`${BODY} ${tid('all-find')}`, 'zzz');
   await page.waitForTimeout(80);
   await page.fill(`${BODY} ${tid('all-find')}`, '');
@@ -555,8 +581,8 @@ export default async function run(page, ctx) {
   assert.equal(v.cols, 8, '< 60 members → still 8 columns (P1-E1b: independent of the member count)');
   const zero = v.chips.filter(c => c.n === 0);
   assert.ok(zero.length >= 2 && zero.every(c => c.disabled && c.ariaDisabled === 'true'), 'zero chips disabled + aria-disabled (R-A04)');
-  await page.click(`${BODY} [data-testid="all-chip"][data-key="unw"]`, { force: true });
-  await page.waitForTimeout(60);
+  await menuClick(page, '[data-testid="all-chip"][data-key="unw"]', { stay: true, force: true });
+  await closeMenu(page);
   v = await view(page);
   assert.equal(v.filter, '', 'tapping a zero chip does nothing');
   await backToAllRoot();

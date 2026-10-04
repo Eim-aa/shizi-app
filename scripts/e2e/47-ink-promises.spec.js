@@ -92,9 +92,16 @@ async function walk(page, { assert, step }, on) {
   await page.evaluate(async () => (await import('/src/ui/router.js')).nav.push('library-all', {}));
   await page.waitForSelector(topSel('all-body'));
   await waitNavIdle(page);
+  const pageOnly = await pageText(page);
+  assert.ok(!banned.test(pageOnly), 'all page text: no unkept promise');
+  // H1 / T2-11：说明句收进页头尾端的「排序 · 筛选」菜单
+  await page.click(topSel('all-menu-open'));
+  await page.waitForSelector(topSel('all-menu'));
+  await waitNavIdle(page);
   const allText = await pageText(page);
-  assert.ok(allText.includes(await copy(page, slot('R-A01.sortRecentNote'))), `R-A01 note = ${slot('R-A01.sortRecentNote')}`);
-  assert.ok(!banned.test(allText), 'all page text: no unkept promise');
+  assert.ok(allText.includes(await copy(page, slot('R-A01.sortRecentNote'))), `R-A01 note = ${slot('R-A01.sortRecentNote')} (inside the 排序 · 筛选 menu)`);
+  assert.ok(!banned.test(allText), 'all page menu text: no unkept promise');
+  await goBack(page);
   await goBack(page);
 
   for (const [kind, base] of [['wrong', 'R-E03.wrongNote'], ['forget', 'R-E03.forgetNote']]) {

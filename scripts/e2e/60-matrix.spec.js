@@ -121,8 +121,8 @@ const PAGES = [
     },
     primary: ['list-go'],
   },
-  // 「练这些字 →」只在筛选后出现；默认视图的主操作是排序与格子（点格子进单字详情）。
-  { id: 'all', go: page => push(page, 'library-all'), ready: `${TOP} [data-testid="all-cell"]`, primary: ['all-sort', 'all-cell'] },
+  // 「练这些字」只在筛选后出现；默认视图的主操作是页头尾端的「排序 · 筛选」与格子（点格子进单字详情，H1）。
+  { id: 'all', go: page => push(page, 'library-all'), ready: `${TOP} [data-testid="all-cell"]`, primary: ['all-menu-open', 'all-cell'] },
   { id: 'switch', go: page => push(page, 'library-switch'), primary: ['libswitch-row'] },
   {
     id: 'detail',

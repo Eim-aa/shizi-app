@@ -207,6 +207,25 @@ export function isWorkRecord(r) {
   return isJudged(r) && !isPaperRecord(r);
 }
 
+/**
+ * 看后自写（Q1，QA simB D1；D31「写对与看后自己写的字」）：看过答案、且这条记录上留有「自己写一遍」的本人墨。
+ * 它仍不是有效记录（D18 / D23：不算写对写错、不进统计 / 清单 / 日历），只在画本人笔迹的作品出口里与 isWorkRecord 并列：
+ * 结果页作品与这次的图片（core/images/work.js）、这天的图片与月字帖、年报（含年字数 / 月字数）。hasInk 由调用方注入。
+ */
+export function isAfterSeenWork(r, hasInk) {
+  if (!r || r.kind !== 'answer-seen' || typeof hasInk !== 'function') return false;
+  try {
+    return !!hasInk(r);
+  } catch (error) {
+    return false;
+  }
+}
+
+/** 作品出口收的记录：isWorkRecord ∪ isAfterSeenWork（Q1）。 */
+export function isWorkOrAfterSeen(r, hasInk) {
+  return isWorkRecord(r) || isAfterSeenWork(r, hasInk);
+}
+
 /** 去掉纸上记录（时间段视图先过一遍再交给 core/ink-pick：段内只有纸上记录的字不出现、不计数，D47）。 */
 export function withoutPaper(records) {
   return (records || []).filter((r) => !isPaperRecord(r));

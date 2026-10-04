@@ -5,6 +5,8 @@
 //   这次的图片（session）  = 作品成员规则（work.js buildWork：默认写对 ∪ 看后自写有墨；写错有墨可「放进去」，带朱点），顺序 = 组内顺序；
 //                          每字取本组该字的那条记录（D11 最后一次）；成员里没有的（无墨、跳过）不画。
 //   这天写的字（day）      那天判断过的字每字最近一次（按那天第一次出现的先后）；缺墨的字不画（P50 omit）。
+//   Q1（QA simB D1；D31「写对与看后自己写的字」）：这天 / 月字帖（及年报的月段）的候选另收「看后自写」——看过答案且那条记录留有
+//                          自己写一遍的本人墨（core/records.js isAfterSeenWork；hasInk 缺省按 state.ink）；没写的看过答案、跳过仍不进。
 //   月字帖（month）        本月判断过的字，按本月第一次出现的先后；每字取本月内留有墨迹的第一次（D42；policy.monthSheetPick 'first'）；
 //                          整个月一份墨迹都没有的字**照样在**，画 under 衬底（交接 §7，不写「没有笔迹」）；日期角标只标每天的第一个字；
 //                          纸上记录不进（D46-13 / D47，isWorkRecord；折叠月用 paperOnly 去掉），所以月字数也不计它；
@@ -17,13 +19,13 @@
 // inkOf(record) → 345 单位点列（每笔 [{x,y,w,…}]，已 resampleForReplay）或 null；由调用方注入（界面层读 store 的墨迹表）。
 
 import * as defaultPolicy from '../../config/policy.js';
-import { charOfCardKey, compareRecordIds, foldWorkByDay, isPaperRecord, isWorkRecord } from '../records.js';
+import { charOfCardKey, compareRecordIds, foldWorkByDay, isPaperRecord, isWorkOrAfterSeen, isWorkRecord } from '../records.js';
 import { isValidDay, isValidMonth, localDay } from '../dates.js';
 import { MAX_CHARS_PER_PAGE, withDayTags } from './layout.js';
 import { paginate, retagPages } from './paginate.js';
 import { dayTag } from './layout.js';
 import { addedOf, buildWork } from './work.js';
-import { pickRecordInPeriod } from '../ink-pick.js';
+import { hasInkOfState, pickRecordInPeriod } from '../ink-pick.js';
 
 export const IMAGE_KINDS = Object.freeze(['session', 'day', 'month', 'glyph']);
 
@@ -120,10 +122,16 @@ export function sessionWork(state, { slot = null, sessionId, hasInk }) {
   return { work, day: sessionDay(session, all), session };
 }
 
-/** 某天写的字：那天 judged，每字取那天内从晚到早第一条留有墨迹的判断（R-P03 的「最近一次」+ D42）。 */
+/** 作品出口的候选记录（id 升序）：屏幕上写的判断 ∪ 留有墨迹的看后自写（Q1）；hasInk 缺省按 state.ink。 */
+function workRecords(state, hasInk) {
+  const has = typeof hasInk === 'function' ? hasInk : hasInkOfState(state);
+  return flattenRecords(state && state.records).filter(r => isWorkOrAfterSeen(r, has));
+}
+
+/** 某天写的字：那天 judged（∪ 看后自写，Q1），每字取那天内从晚到早第一条留有墨迹的那次（R-P03 的「最近一次」+ D42）。 */
 export function dayMembers(state, day, { hasInk = null } = {}) {
   if (!isValidDay(day)) throw new Error('INVALID_DAY');
-  const judged = flattenRecords(state && state.records).filter(r => isWorkRecord(r) && r.localDay === day);
+  const judged = workRecords(state, hasInk).filter(r => r.localDay === day);
   return { members: groupByChar(judged, 'last', hasInk), day };
 }
 
@@ -136,7 +144,7 @@ export function monthMembers(state, month, { pick = defaultPolicy.monthSheetPick
   const records = state && state.records;
   const folded = foldedMonth(records, month);
   const prefix = month + '-';
-  const judged = flattenRecords(records).filter(r => isWorkRecord(r) && typeof r.localDay === 'string' && r.localDay.startsWith(prefix));
+  const judged = workRecords(state, hasInk).filter(r => typeof r.localDay === 'string' && r.localDay.startsWith(prefix));
   let members;
   let days;
   if (folded) {

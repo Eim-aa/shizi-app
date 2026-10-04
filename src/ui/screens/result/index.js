@@ -528,7 +528,7 @@ function useStoreState() {
   return state;
 }
 
-/** 某条 judged 记录的本人笔迹：存下的墨迹（perRecordInk 开）→ 本页面会话里刚判断时记下的笔画 → 没有。 */
+/** 某条记录的本人笔迹（judged，或看过答案后自己写的那份，Q1）：存下的墨迹（perRecordInk 开）→ 本页面会话里刚判断时记下的笔画 → 没有。 */
 function inkOf(store, record) {
   if (!record) return { points: null, strokes: null };
   if (store) {
@@ -611,7 +611,8 @@ export function ResultCellSheet({ slot, sessionId, recordId, cellKind, cellChar,
   const changeable = judged && !record.legacy && !!found && canCorrect(found.session, record.id);
   const [failed, setFailed] = useState(false);
   const strokeData = useStrokeData(char);
-  const [ink] = useState(() => (judged ? inkOf(store, record) : { points: null, strokes: null }));
+  // 看过答案的格：有看后自写的本人墨（Q1）就画出来，没有仍是「这次没写」
+  const [ink] = useState(() => (judged || (kind === 'answer-seen' && record) ? inkOf(store, record) : { points: null, strokes: null }));
   const judgment = judged ? record.judgment : null;
   let title;
   let note;

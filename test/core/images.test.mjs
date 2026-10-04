@@ -298,24 +298,26 @@ test('month cells (§7): first-appearance order, ink = FIRST judgment in the mon
     rec(7, '山', 'judged', 'correct', '2026-09-07'),
   ];
   const st = stateOf(recs);
+  // 静 r4 是「看了答案没写」：没有看后自写的墨。Q1 起看过答案的记录有墨就是看后自写、进月字帖，所以这里的取墨函数对它返回 null。
+  const unwritten = fn => r => (r.kind === 'answer-seen' ? null : fn(r));
   assert.equal(policy.monthSheetPick, 'first');
   const m = monthMembers(st, '2026-09');
   assert.deepEqual(m.members.map(x => [x.char, x.record.id]), [['永', 'r2'], ['和', 'r3'], ['静', 'r5'], ['山', 'r7']]);
   assert.equal(m.days, 3, 'judged days only (answer-seen day 9-03 not counted, K27)');
-  const all = monthCells(st, '2026-09', { inkOf: () => INK });
+  const all = monthCells(st, '2026-09', { inkOf: unwritten(() => INK) });
   assert.deepEqual(all.cells.map(c => [c.ch, c.mode, c.tag]), [['永', 'hand', '2'], ['和', 'hand', ''], ['静', 'hand', '5'], ['山', 'hand', '7']]);
   assert.equal(all.inked, 4);
   // D42：第一次那条缺墨 → 本月内从早到晚找下一条有墨的（永 r6，9-5），角标日子跟着那一条走
-  const gap = monthCells(st, '2026-09', { inkOf: r => (r.id === 'r2' ? null : INK) });
+  const gap = monthCells(st, '2026-09', { inkOf: unwritten(r => (r.id === 'r2' ? null : INK)) });
   assert.deepEqual(gap.cells.map(c => [c.ch, c.record.id, c.day, c.tag]), [['永', 'r6', '2026-09-05', '5'], ['和', 'r3', '2026-09-02', '2'], ['静', 'r5', '2026-09-05', '5'], ['山', 'r7', '2026-09-07', '7']]);
   // 本月内一份都没有（8-30 那条不算：时间段外不冒充）→ 画 under 衬底，仍占一格、仍计字数；它的日期是偏好方向上的那条
-  const none = monthCells(st, '2026-09', { inkOf: r => (r.id === 'r2' || r.id === 'r6' ? null : INK) });
+  const none = monthCells(st, '2026-09', { inkOf: unwritten(r => (r.id === 'r2' || r.id === 'r6' ? null : INK)) });
   assert.deepEqual(none.cells.map(c => [c.ch, c.mode, c.tag]), [['永', 'under', '2'], ['和', 'hand', ''], ['静', 'hand', '5'], ['山', 'hand', '7']]);
   assert.equal(none.cells.length, 4, 'the char with no ink all month still counts');
   assert.equal(none.inked, 3);
   assert.equal(none.cells[0].ink, null);
   // 'last' 偏好：从晚到早找
-  const lastGap = monthCells(st, '2026-09', { inkOf: r => (r.id === 'r6' ? null : INK), policy: { ...policy, monthSheetPick: 'last' } });
+  const lastGap = monthCells(st, '2026-09', { inkOf: unwritten(r => (r.id === 'r6' ? null : INK)), policy: { ...policy, monthSheetPick: 'last' } });
   assert.deepEqual(lastGap.cells.map(c => [c.ch, c.record.id]), [['永', 'r2'], ['和', 'r3'], ['静', 'r5'], ['山', 'r7']]);
   const last = monthMembers(st, '2026-09', { pick: 'last' });
   assert.deepEqual(last.members.map(x => x.record.id), ['r6', 'r3', 'r5', 'r7']);

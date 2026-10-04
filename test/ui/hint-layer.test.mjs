@@ -4,7 +4,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   strokeDrawMs, hintTimeline, groupsFor, hasGroupData, hintSourceOf, planHint, hintButtonModel, hintNoteModel,
-  initialHintView, reduceHintView, applyHintToDraft, HINT_FADE_OUT_MS, INK_DIM_OPACITY, REDUCED_FADE_MS, HINT_DRAW,
+  initialHintView, reduceHintView, applyHintToDraft, HINT_FADE_OUT_MS, HINT_FADE_IN_MS, REDUCED_FADE_MS, HINT_DRAW, HintLayer,
 } from '../../src/ui/screens/write/hint-layer.js';
 import { createSession, freshCurrent } from '../../src/core/sessions.js';
 import { validateValue, KEYS } from '../../src/core/schema.js';
@@ -28,10 +28,10 @@ test('hintTimeline staggers each stroke by dur × 0.7', () => {
   assert.equal(tl.total, 504 + 240);
   assert.deepEqual(hintTimeline(0), { dur: 240, items: [], total: 0 });
   assert.equal(HINT_DRAW.easing, 'cubic-bezier(.4,0,.2,1)');
-  assert.equal(HINT_DRAW.opacity, 0.92);
+  assert.equal(HINT_DRAW.opacity, 1, 'hint strokes are opaque 淡朱 (V2-01): the token itself is the light colour');
+  assert.equal(HINT_FADE_IN_MS, 150, 'whole group fades in over 150ms (D51 ⑧, P210)');
   assert.equal(HINT_FADE_OUT_MS, 260);
   assert.equal(REDUCED_FADE_MS, 120);
-  assert.equal(INK_DIM_OPACITY, 0.35);
 });
 
 test('group data: present only when every group is a positive int and they sum to the stroke count', () => {
@@ -89,9 +89,10 @@ test('hintButtonModel: R-W05 label sequence and states', () => {
   assert.deepEqual(hintButtonModel({ phase: 'trace', status: 'missing' }), { kind: 'hidden' });
 });
 
-test('hintNoteModel: R-W06 after a hint, R-W05 note without data, nothing otherwise', () => {
+test('hintNoteModel: no legend sentence after a hint (D51 ⑧), R-W05 note without data, nothing otherwise', () => {
   assert.equal(hintNoteModel({ status: 'ready', used: 0 }), null);
-  assert.deepEqual(hintNoteModel({ status: 'ready', used: 1 }), { kind: 'hint', text: '浅红色是提示，只给一部分。接着写下一笔，提示就收起。', dot: true });
+  assert.equal(hintNoteModel({ status: 'ready', used: 1 }), null, 'the 「浅红色是提示」 legend is gone');
+  assert.equal(hintNoteModel({ status: 'ready', used: 2 }), null);
   assert.deepEqual(hintNoteModel({ status: 'missing', used: 0 }), { kind: 'no-hint', text: '这个字暂时没有提示，可以直接看答案。', dot: true });
   assert.equal(hintNoteModel({ status: 'ready', used: 1, answerSeen: true }), null);
   assert.equal(hintNoteModel({ phase: 'retrace', status: 'ready', used: 1 }), null);
@@ -155,4 +156,36 @@ test('applyHintToDraft writes hints + hintRange into the current card only, in t
     assert.equal(d.sessions.A, s, 'draft untouched');
   }
   assert.equal(applyHintToDraft({ sessions: null }, { slot: 'A', sessionId: 's1', cardKey: 'base:大', hints: 1 }, 1), false);
+});
+
+test('HintLayer: filled glyph outlines (strokes, not medians) under a 1pt ink3 outline layer; whole group fades in (V2-01)', () => {
+  const d = { strokes: ['M0 0L10 0L10 10Z', 'M20 0L30 0L30 10Z', 'M40 0L50 0L50 10Z'], medians: [[[0, 0], [1, 1]], [[2, 2], [3, 3]], [[4, 4], [5, 5]]] };
+  const view = { key: 'base:x', used: 1, range: { from: 1, to: 3 }, show: 'in', run: 1, restored: false };
+  const vnode = HintLayer({ data: d, view, reduced: false });
+  const flat = [];
+  const walk = n => {
+    if (!n || typeof n !== 'object') return;
+    if (Array.isArray(n)) { n.forEach(walk); return; }
+    flat.push(n);
+    if (n.props) walk(n.props.children);
+  };
+  walk(vnode);
+  const outlines = flat.filter(n => n.props && n.props.class === 'sz-hint__outline');
+  const fills = flat.filter(n => n.props && n.props.class === 'sz-hint__stroke');
+  assert.deepEqual(outlines.map(n => n.props.d), [d.strokes[1], d.strokes[2]], 'one outline per hinted stroke, taken from the stroke outlines [from, to)');
+  assert.deepEqual(fills.map(n => n.props.d), [d.strokes[1], d.strokes[2]], 'one solid fill per hinted stroke');
+  const g = flat.find(n => n.type === 'g');
+  assert.match(g.props.style.animation, /^szHintFadeIn 150ms/, 'group fade-in 150ms');
+  assert.equal(g.props.style.opacity, 1);
+  const root = flat.find(n => n.type === 'svg');
+  assert.equal(root.props['data-anim'], 'fade');
+  // outline layer first (under), fills after
+  const order = flat.filter(n => n.props && (n.props.class === 'sz-hint__outline' || n.props.class === 'sz-hint__stroke')).map(n => n.props.class);
+  assert.deepEqual(order, ['sz-hint__outline', 'sz-hint__outline', 'sz-hint__stroke', 'sz-hint__stroke']);
+  const restored = HintLayer({ data: d, view: { ...view, restored: true }, reduced: false });
+  const rg = [];
+  const walk2 = n => { if (!n || typeof n !== 'object') return; if (Array.isArray(n)) return n.forEach(walk2); rg.push(n); if (n.props) walk2(n.props.children); };
+  walk2(restored);
+  assert.equal(rg.find(n => n.type === 'svg').props['data-anim'], 'static', 'a restored hint is shown statically');
+  assert.equal(rg.find(n => n.type === 'g').props.style.animation, undefined);
 });

@@ -4,22 +4,21 @@
 //   min(已写笔数, N−q) 起（P01 按已写笔数）；没有分组数据的字前 1 / 前 2 笔；没有笔顺数据的字没有分步提示）。
 //   「有没有分组数据」= deck-data.js 的 GROUPS[字] 存在且各组笔数之和等于笔顺数据的总笔数（与旧 index.html L2508 同一判据；
 //   policy.hintUseGroups=false（P29）只表示不按分组内容切笔，分组数据本身只用来判断走 1/4 规则还是前 1 / 前 2 笔）。
-// 画法（方案①）：提示画在书写格的参考字形层（本人笔迹层下面），沿 medians 用 --hint（= --ar）细线逐笔描出：
-//   单笔时长 round(min(max(1100/n,110), 240, 1200/(.3+.7n))) ms，第 j 笔延迟 j×时长×0.7，曲线 cubic-bezier(.4,0,.2,1)，
-//   线宽 18/1024 单位，提示组不透明度 .92；同时本人笔迹（固化层）淡到 35%（200ms）。
-//   写下一笔（接受了一次落笔）→ 提示 260ms 淡出、本人笔迹 200ms 恢复，淡完清掉提示范围。
-//   减少动态效果：不逐笔描画，提示整体 120ms 淡入 / 淡出，笔迹 120ms 变浅 / 恢复（02 §3 M1-3「减少动态效果时 120ms 淡化
-//   （R-G01；不是直接显隐）」；01 §6.4 旧句「直接显隐」已被 02 修订——见 M1-3 报告待定项）。
+// 画法（D34 / D51 ⑧；V2-01 / A2-02）：提示画在书写格的参考字形层（本人笔迹层**下面**），用该笔的字形轮廓（hanzi-writer strokes，不是
+//   medians 中线折线）填淡朱 --danzhu 实心，常驻 1pt 墨三 --ink3 外廓（SVG stroke 2px + paint-order:stroke，只露外侧一圈 1px；不靠色相，
+//   红 / 绿色觉异常也分得开），整组 150ms 淡入（policy.motion.hintFadeInMs，P210；网页阶段不逐笔写出，拟合与逐笔属阶段 2）。
+//   本人笔迹**不变暗**（D34 覆盖 D25；INK_DIM_OPACITY 删除，inkOpacity 恒为 1）。写下一笔（接受了一次落笔）→ 提示 260ms 淡出，淡完清掉提示范围。
+//   减少动态效果：提示整体 120ms 淡入 / 淡出（02 §3 M1-3 / R-G01）。
 // 按钮（R-W05；D49 起是文字行里的文字按钮）：可见文字一直是「提示」，读屏名称「提示，还有 {n} 次」→「提示已用完」（用完 disabled + aria-disabled，ink4）；没有笔顺数据时换成灰字「暂时没有提示」
 //   （M1-2 NoHintLabel，不是按钮）；数据还在加载时按钮文字照常、暂不可点。看过答案后（answerSeen）不显示（M1-4 的按钮）。
-// 格下说明：用过提示后「浅红色是提示，只给一部分。接着写下一笔，提示就收起。」（R-W06 / P41）；没有笔顺数据时
-//   「这个字暂时没有提示，可以直接看答案。」（R-W05）；两者前面有 --o 小圆点（原型 hintNote）。
+// 格下说明：用过提示后没有说明句（D51 ⑧：删去解释颜色的图例句「浅红色是提示……」，P41）；没有笔顺数据时
+//   「这个字暂时没有提示，可以直接看答案。」（R-W05），前面有 --o 小圆点（原型 hintNote）。
 // 记录：每次点提示 commit sessions[slot].current.hints（次数）与 hintRange（{from, to}，笔序 0 起、to 不含）；
 //   淡出结束再 commit hintRange:null。写入失败不阻断（P52 同口径）：提示照常显示，本地次数保留，下一次写入带上本地次数；
 //   调用方判断 / 看答案时应取 used（= max(本地, 已存)）兜底。
 // 回忆阶段答案字不进任何属性（决定-D16）：本层只有笔序号与几何路径，宿主层 aria-hidden。
 //
-// 纯逻辑（单测 test/ui/hint-layer.test.mjs）：strokeDrawMs、hintTimeline、groupsFor、hasGroupData、hintSourceOf、
+// 纯逻辑（单测 test/ui/hint-layer.test.mjs）：strokeDrawMs、hintTimeline（逐笔时序，阶段 2 原生的基准保留）、groupsFor、hasGroupData、hintSourceOf、
 //   planHint、hintButtonModel、hintNoteModel、initialHintView、reduceHintView、applyHintToDraft。
 // 组件 / hook：useStrokeData(char)、useHint({...})、HintLayer、HintButton、HintNote。
 
@@ -30,7 +29,7 @@ import * as defaultPolicy from '../../../config/policy.js';
 import { t } from '../../../config/copy/index.js';
 import { watchStrokes, peekStrokes } from '../../../data/strokes.js';
 import { GRID } from '../../../core/ink-math.js';
-import { glyphTransform, mediansInBox, prefersReducedMotion, MEDIAN_WIDTH_UNITS } from '../../canvas/glyph.js';
+import { glyphTransform, prefersReducedMotion } from '../../canvas/glyph.js';
 import { Button } from '../../components/Button.js';
 import { injectStyles, T } from '../../components/styles.js';
 import { NoHintLabel } from './glyph-fallback.js';
@@ -44,13 +43,12 @@ export const HINT_DRAW = Object.freeze({
   maxMs: defaultPolicy.motion.hintStrokeMs,
   stagger: defaultPolicy.motion.hintStagger,
   easing: 'cubic-bezier(.4,0,.2,1)',
-  opacity: 0.92,
+  opacity: 1, // 提示笔画不透明（淡朱令牌本身就是淡的；对比度见 test/ui/contrast.test.mjs「提示」）
 });
+/** 提示整组淡入（P210；D51 ⑧ 网页阶段的最小过渡）。 */
+export const HINT_FADE_IN_MS = defaultPolicy.motion.hintFadeInMs;
 /** 写下一笔后提示淡出时长（01 §6.4）。 */
 export const HINT_FADE_OUT_MS = 260;
-/** 本人笔迹淡到 35% / 恢复的时长（原型 ink 组 transition .2s）。 */
-export const INK_DIM_MS = 200;
-export const INK_DIM_OPACITY = 0.35;
 /** 减少动态效果时的淡入淡出（02 §3 M1-3 / R-G01；policy.motion.reducedFadeMs，P70）。 */
 export const REDUCED_FADE_MS = defaultPolicy.motion.reducedFadeMs;
 
@@ -154,8 +152,7 @@ export function hintButtonModel({ phase = 'recall', status, used = 0, answerSeen
 export function hintNoteModel({ phase = 'recall', status, used = 0, answerSeen = false } = {}) {
   if (phase !== 'recall' || answerSeen) return null;
   if (status === 'missing') return { kind: 'no-hint', text: t('R-W05.noHintNote'), dot: true };
-  if (used > 0) return { kind: 'hint', text: t('R-W06.hintExplain'), dot: true };
-  return null;
+  return null; // 用过提示后没有说明句（D51 ⑧：不再用文字解释颜色）
 }
 
 function validRange(r) {
@@ -208,13 +205,13 @@ export function applyHintToDraft(draft, { slot, sessionId, cardKey, hints, hintR
 // ---------------------------------------------------------------- 样式
 
 injectStyles('hint-layer', `
-@keyframes szHintDraw{from{stroke-dashoffset:1.02}to{stroke-dashoffset:0}}
 @keyframes szHintFadeIn{from{opacity:0}}
 .sz-hint{position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none;overflow:visible}
-.sz-hint__stroke{fill:none;stroke:${T.danzhu};stroke-linecap:round;stroke-linejoin:round}
-/* 增强对比度（D46 ⑯ / 03 P153）：淡朱提示笔画加 1pt 墨三描边（四向 1px 实影），令牌不改；浅深都加 */
-@media (prefers-contrast: more){.sz-hint__stroke{filter:drop-shadow(1px 0 0 ${T.ink3}) drop-shadow(-1px 0 0 ${T.ink3}) drop-shadow(0 1px 0 ${T.ink3}) drop-shadow(0 -1px 0 ${T.ink3})}}
-.sz-hint__stroke[data-anim="draw"]{stroke-dasharray:1 2;animation-name:szHintDraw;animation-fill-mode:both}
+/* 提示笔画 = 字形轮廓填淡朱实心 + 常驻 1pt 墨三外廓（D34 / D51 ⑧ / A2-02）：先画一层 2px 墨三描边（所有笔），再在上面画一层淡朱填充（所有笔，
+   盖住描边的内侧一半），只露出外侧 1px；两层分开画是为了相邻两笔交叠处不会有后一笔的描边压在前一笔的填充上。non-scaling-stroke 让线宽不随格子缩放；
+   对比度由外廓保证（浅深、红绿色觉异常都 ≥ 3:1），不再只在「增强对比度」时才有。 */
+.sz-hint__outline{fill:none;stroke:${T.ink3};stroke-width:2px;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+.sz-hint__stroke{fill:${T.danzhu};stroke:none}
 .sz-hintbtn{white-space:nowrap}
 .sz-hintnote{display:flex;align-items:flex-start;gap:8px}
 .sz-hintnote__dot{flex:none;width:6px;height:6px;margin-top:calc(.775em - 3px);border-radius:50%;background:${T.danzhu}}
@@ -232,36 +229,32 @@ export function HintLayer({ data, view, reduced = false, testid = 'write-hint-la
       aria-hidden="true" focusable="false"></svg>`;
   }
   const { from, to } = view.range;
-  const medians = mediansInBox(data, { size: GRID });
-  const k = glyphTransform({ size: GRID }).k;
-  const width = Math.round(MEDIAN_WIDTH_UNITS * k * 100) / 100;
-  const drawn = view.show === 'in' && !view.restored && !reduced;
-  const anim = view.restored ? 'static' : reduced ? 'fade' : 'draw';
-  const tl = hintTimeline(to - from);
+  const strokes = data && Array.isArray(data.strokes) ? data.strokes : [];
+  const tr = glyphTransform({ size: GRID });
+  const transform = `translate(${tr.ox.toFixed(3)} ${tr.oy.toFixed(3)}) scale(${tr.k.toFixed(5)} ${(-tr.k).toFixed(5)})`;
+  // 淡入：新给的提示（非恢复）整组淡入；恢复的提示直接静态显示；减少动态效果用 REDUCED_FADE_MS。
+  const anim = view.restored ? 'static' : 'fade';
   const out = view.show === 'out';
   const fadeMs = reduced ? REDUCED_FADE_MS : HINT_FADE_OUT_MS;
+  const inMs = reduced ? REDUCED_FADE_MS : HINT_FADE_IN_MS;
   const groupStyle = {
     opacity: out ? 0 : HINT_DRAW.opacity,
     transition: `opacity ${fadeMs}ms linear`,
   };
-  if (view.show === 'in' && anim === 'fade') groupStyle.animation = `szHintFadeIn ${REDUCED_FADE_MS}ms linear`;
+  if (view.show === 'in' && anim === 'fade') groupStyle.animation = `szHintFadeIn ${inMs}ms linear`;
+  const outlines = [];
   const paths = [];
-  for (let idx = from, j = 0; idx < to; idx += 1, j += 1) {
-    const pts = medians[idx];
-    if (!pts || !pts.length) continue;
-    let d = `M${pts[0][0].toFixed(2)} ${pts[0][1].toFixed(2)}`;
-    if (pts.length === 1) d += `L${(pts[0][0] + 0.01).toFixed(2)} ${pts[0][1].toFixed(2)}`;
-    for (let i = 1; i < pts.length; i += 1) d += `L${pts[i][0].toFixed(2)} ${pts[i][1].toFixed(2)}`;
-    const style = drawn
-      ? { animationDuration: `${tl.dur}ms`, animationDelay: `${tl.items[j].delay}ms`, animationTimingFunction: HINT_DRAW.easing }
-      : null;
-    paths.push(html`<path key=${`h${view.run}-${idx}`} class="sz-hint__stroke" d=${d} pathLength="1"
-      stroke-width=${width} data-anim=${drawn ? 'draw' : 'none'} data-stroke=${idx} data-testid="write-hint-stroke"
-      style=${style}></path>`);
+  for (let idx = from; idx < to; idx += 1) {
+    const d = strokes[idx];
+    if (typeof d !== 'string' || !d) continue;
+    outlines.push(html`<path key=${`o${view.run}-${idx}`} class="sz-hint__outline" d=${d} transform=${transform}
+      data-stroke=${idx}></path>`);
+    paths.push(html`<path key=${`h${view.run}-${idx}`} class="sz-hint__stroke" d=${d} transform=${transform}
+      data-stroke=${idx} data-testid="write-hint-stroke"></path>`);
   }
   return html`<svg class="sz-hint" data-testid=${testid} data-state=${out ? 'fading' : 'shown'} data-from=${from}
     data-to=${to} data-anim=${anim} data-run=${view.run} viewBox="0 0 ${GRID} ${GRID}" aria-hidden="true" focusable="false">
-    <g key=${`g${view.run}`} style=${groupStyle}>${paths}</g>
+    <g key=${`g${view.run}`} style=${groupStyle}>${outlines}${paths}</g>
   </svg>`;
 }
 
@@ -346,7 +339,7 @@ function useReducedMotion() {
  * @param {{status, data}} o.strokes    useStrokeData(char) 的结果
  * @param {() => object} [o.getStore]   store 访问（缺省 store/store.js getStore，注入给测试）
  * @param {() => void} [o.onHinted]      给出了一次提示之后（写字页用来结束跳过的撤销机会，G3）
- * @returns {{used, source, button, layer, note, inkOpacity, inkTransition, onStrokeStart, onHint, lastCommit}}
+ * @returns {{used, source, button, layer, note, inkOpacity(恒 1), inkTransition, onStrokeStart, onHint, lastCommit}}
  *   used = max(本地次数, 已存次数)，M1-4 / M1-5 记 help.hints 用它兜底。
  */
 export function useHint({ slot, session, cardKey, char, phase, written, strokes, getStore, onHinted }) {
@@ -427,9 +420,6 @@ export function useHint({ slot, session, cardKey, char, phase, written, strokes,
     }, red ? REDUCED_FADE_MS : HINT_FADE_OUT_MS);
   }
 
-  const showing = phase === 'recall' && !answerSeen && active.show !== 'none' && source.status === 'ready';
-  const dim = showing && active.show === 'in';
-  const inkMs = reduced ? REDUCED_FADE_MS : INK_DIM_MS;
   const buttonModel = hintButtonModel({ phase, status: source.status, used, answerSeen });
   return {
     used,
@@ -442,8 +432,8 @@ export function useHint({ slot, session, cardKey, char, phase, written, strokes,
       ? html`<${HintLayer} data=${strokes.data} view=${active} reduced=${reduced} />`
       : null,
     note: hintNoteModel({ phase, status: source.status, used, answerSeen }),
-    inkOpacity: dim ? INK_DIM_OPACITY : 1,
-    inkTransition: `opacity ${inkMs}ms linear`,
+    inkOpacity: 1, // 本人墨任何求助态都不变暗（D34 / D43 / D51 ⑧）
+    inkTransition: undefined,
     onStrokeStart,
     onHint,
     lastCommit: lastCommitRef.current,

@@ -5,7 +5,7 @@
 //     aria-label 上；两键在主按钮的位置、同权重，没有说明句（更细的断言在 77-e9b-write-judge.spec.js）；
 //   C 写字页结果行（D19）挪到格下说明位（D46 ⑭）；
 //   D 字墙：取令牌 wall1–wall4 的独立色值（浅深各一套），写错格同样按新旧取档并多一颗朱点；8 列 / Pro Max 9 列 / 大字 6 列；
-//   E 增强对比度（D46 ⑯）：prefers-contrast: more 时淡朱提示笔画出现 1pt 描边（drop-shadow），否则没有；
+//   E 提示笔画的 1pt 墨三外廓（D46 ⑯ → W1 / A2-02：常驻，不再只在 prefers-contrast: more 时才有；描红 canvas 的 halo 仍随该偏好）；
 //   F 危险操作（P142）：清空 / 替换的确认层里取消 = 主按钮、危险键 = 次按钮；危险入口行与常规项之间留组间距；
 //   G Toast：最小高 48、没有圆点、有 2px 计时线。
 
@@ -243,9 +243,9 @@ export default async function p1e1bLayout(page, ctx) {
   await setTextSize(page, 'L');
   await page.setViewportSize({ width: 393, height: 852 });
 
-  // ------------------------------------------------------------------ E 增强对比度
-  for (const [contrast, scheme] of [['more', 'light'], ['more', 'dark'], ['no-preference', 'dark']]) {
-    step(`E: prefers-contrast ${contrast} (${scheme}): hint strokes ${contrast === 'more' ? 'get the 1pt outline' : 'stay plain'}`);
+  // ------------------------------------------------------------------ E 提示的外廓（D46 ⑯ → W1：常驻，不再只在增强对比度时才有）
+  for (const [contrast, scheme] of [['more', 'light'], ['more', 'dark'], ['no-preference', 'light'], ['no-preference', 'dark']]) {
+    step(`E: prefers-contrast ${contrast} (${scheme}): the hint stroke is a danzhu fill with a constant ink3 outline (A2-02 / D51 ⑧)`);
     await page.emulateMedia({ colorScheme: scheme, contrast });
     await openWriteAt(page, ctx, { width: 393, height: 852 }, { scheme });
     await page.emulateMedia({ colorScheme: scheme, contrast });
@@ -253,19 +253,16 @@ export default async function p1e1bLayout(page, ctx) {
     await page.waitForSelector(topSel('write-hint-stroke'));
     await page.waitForTimeout(900);
     const f = await page.evaluate(() => {
-      const el = document.querySelector('.sz-layer[data-top="true"] [data-testid="write-hint-stroke"]');
-      const cs = getComputedStyle(el);
-      return { filter: cs.filter, stroke: cs.stroke, mq: matchMedia('(prefers-contrast: more)').matches };
+      const fill = document.querySelector('.sz-layer[data-top="true"] [data-testid="write-hint-stroke"]');
+      const outline = document.querySelector('.sz-layer[data-top="true"] .sz-hint__outline');
+      const fcs = getComputedStyle(fill);
+      const ocs = getComputedStyle(outline);
+      return { fill: fcs.fill, fillFilter: fcs.filter, stroke: ocs.stroke, width: ocs.strokeWidth, vector: ocs.vectorEffect, mq: matchMedia('(prefers-contrast: more)').matches };
     });
     assert.equal(f.mq, contrast === 'more', `the media query reports ${contrast}`);
-    assert.equal(f.stroke, tokenRgb(scheme, 'danzhu'), `the stroke itself stays danzhu (tokens untouched)`);
-    if (contrast === 'more') {
-      const ink3 = tokenRgb(scheme, 'ink3');
-      assert.ok(/drop-shadow/.test(f.filter) && f.filter.includes(ink3), `hint stroke outline = drop-shadow in ink3 (${f.filter})`);
-      assert.equal((f.filter.match(/drop-shadow/g) || []).length, 4, 'four 1px hard shadows make the outline');
-    } else {
-      assert.equal(f.filter, 'none', 'no outline without the preference');
-    }
+    assert.equal(f.fill, tokenRgb(scheme, 'danzhu'), `the stroke fill stays danzhu (tokens untouched)`);
+    assert.equal(f.stroke, tokenRgb(scheme, 'ink3'), `the outline is ink3 whatever the contrast preference (a second channel besides hue)`);
+    assert.deepEqual([f.width, f.vector, f.fillFilter], ['2px', 'non-scaling-stroke', 'none'], 'a 2px centred non-scaling stroke (1px visible outside the fill), no filter hack any more');
   }
   await page.emulateMedia({ colorScheme: 'light', contrast: 'no-preference' });
 

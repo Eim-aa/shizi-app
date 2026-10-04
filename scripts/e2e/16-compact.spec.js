@@ -203,35 +203,14 @@ async function compactWalk(page, ctx, { large }) {
   assert.ok(!g.toolsVisible, `${tag}: 撤销 / 清空 hidden before the first stroke (「在纸上写」takes the slot, P191)`);
 
   // ---------------------------------------------------------------- hint
-  ctx.step(`${tag}: 提示 — grid size unchanged, note has breathing room (R-W26), buttons still first screen`);
+  ctx.step(`${tag}: 提示 — grid size unchanged, no note under the grid (D51 ⑧), buttons still first screen`);
   await page.click(topSel('write-hint'));
   await page.waitForSelector(`${topSel('write-hint-layer')}[data-state="shown"]`);
   await page.waitForTimeout(300);
   g = await geometry(page, `${large ? 'L' : 'N'}-hint`);
   assert.ok(square(g.r['write-grid'], GRID), `${tag}: grid still ${GRID} after 提示`);
-  assert.ok(g.noteText && g.noteText.length > 0, `${tag}: hint note shown under the grid`);
-  const note = g.r['write-note'];
-  // 说明文字本身（不是说明位的盒子）离格子 ≥ 6、离按钮行 ≥ 6（R-W26）：量文字的 Range 矩形
-  const textBox = await page.evaluate(() => {
-    const el = document.querySelector('.sz-layer[data-top="true"] [data-hint-note]');
-    if (!el) return null;
-    const range = document.createRange();
-    range.selectNodeContents(el);
-    const b = range.getBoundingClientRect();
-    return { top: b.top, bottom: b.bottom };
-  });
-  // D49：说明位是 40 高的一行，两行说明比它高 6（上下各 3），最矮的屏（360×640）书写格组只剩 4 的余量——文字离格子 ≥ 3、完整露在按钮行之上即可（R-W26 原来的 ≥ 6 随 40 高的说明位放宽）
-  assert.ok(textBox && textBox.top - g.r['write-grid'].bottom >= 3 - 0.5, `${tag}: note text ≥ 3px below the grid (${textBox && (textBox.top - g.r['write-grid'].bottom).toFixed(1)})`);
-  if (!large) {
-    assert.ok(textBox && g.foot.top - textBox.bottom >= -0.5, `${tag}: note text fully above the footer (${textBox && (g.foot.top - textBox.bottom).toFixed(1)})`);
-  } else {
-    // 系统字号 XXXL：书写格不随字号缩（D36），格下说明变成 3 行放不进 40 高的说明位——页面正文可滚（实现交接 §13.3），说明的第一行在首屏，按钮行上沿出现 hairline 提示下面还有
-    assert.ok(textBox && textBox.top < g.foot.top - 20, `${tag}: the first line of the note is on the first screen (${textBox && (g.foot.top - textBox.top).toFixed(1)} above the footer)`);
-    const under = await page.$eval('.sz-layer[data-top="true"] .sz-page__foot', el => el.getAttribute('data-under'));
-    assert.equal(under, 'true', `${tag}: the footer gets its hairline while content continues below it (实现交接 §0.5)`);
-  }
-  assert.ok(note && g.r['write-tools'] && note.right <= g.r['write-tools'].left + 0.5,
-    `${tag}: note shares the row under the grid with 撤销 / 清空 (G32) and does not run under them`);
+  assert.ok(!g.noteText, `${tag}: no legend note under the grid after a hint (D51 ⑧: 「浅红色是提示……」 deleted)`);
+  assert.equal(await page.locator('.sz-layer[data-top="true"] [data-hint-note]').count(), 0, `${tag}: no hint note element`);
   common(assert, g, `${tag} hint`, ['write-hint', 'write-done', 'write-show-answer', 'write-skip']);
 
   // ---------------------------------------------------------------- tools at the grid's bottom right

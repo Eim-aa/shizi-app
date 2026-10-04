@@ -228,6 +228,9 @@ export const motion = Object.freeze({
   hintStagger: 0.7, // P70 提示第 j 笔延迟 = j × 单笔时长 × 此系数；hint-layer.js HINT_DRAW.stagger
   reducedFadeMs: 120, // P70 减少动态效果时提示与笔迹的淡入淡出（ms，R-G01）；hint-layer.js REDUCED_FADE_MS
   persistNoticeMs: 5000, // P70 P52 抬笔写失败的一次性顶部提示显示时长（ms）；src/ui/screens/write/persist.js NOTICE_MS
+  hintFadeInMs: 150, // P210 提示整组淡入（ms，D34 / D51 ⑧：网页阶段不逐笔写出）；hint-layer.js HINT_FADE_IN_MS
+  answerRevealMs: 400, // P210 看答案时答案衬底显影（ms，求助梯子设计稿 I2-02；减少动态效果直接显示）；answer.js ANSWER_REVEAL_MS
+  stepPlayMaxMs: 1600, // P210 描一遍前笔顺快放总时长上限（ms，含起始淡化与笔间隔；落笔 / 点一下即到终态）；glyph.js playbackPlan
 });
 
 // ---- 查字 / 字库 ----

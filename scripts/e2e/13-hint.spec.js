@@ -1,7 +1,8 @@
-// M1-3 提示（02 §3 M1-3；01 §6.4；决定-D25 方案①；R-W05 / R-W06；P01 / P17 / P29 / P41）。
+// M1-3 提示（02 §3 M1-3；01 §6.4；R-W05；P01 / P17 / P29 / P41）。W1（D34 / D51 ⑧，V2-01 / A2-02）：提示 = 字形轮廓填淡朱实心 + 常驻 1pt 墨三外廓、
+// 在本人墨下层，本人墨任何时候都不变暗（像素取样断言），整组 150ms 淡入，没有图例说明句。
 // 完成定义：3 画字（大）与 14 画字（聚）的提示笔数与按钮文案序列与 core/hints.js 一致；无笔顺数据的字显示
 // 「暂时没有提示」且没有可点的提示按钮；提示次数经 store.commit 写进 sessions[slot].current.hints（M0-6 形状）；
-// R-W05 / R-W06 文案。另覆盖：无分组数据的字前 1 / 前 2 笔；写下一笔提示淡出、笔迹恢复；减少动态效果 120ms 淡化；
+// R-W05 文案。另覆盖：无分组数据的字前 1 / 前 2 笔；写下一笔提示淡出（笔迹始终 100%）；减少动态效果 120ms 淡化；
 // 写入失败不阻断且下次写入补上次数；会话现场里 hintRange 还在时静态恢复；无绕过 storage.js 的写入；回忆阶段 DOM 不含答案字。
 
 import {
@@ -11,8 +12,6 @@ import {
 const HINT = topSel('write-hint');
 const LAYER = topSel('write-hint-layer');
 
-// 与 core/hints.js / hint-layer.js 同一公式，独立写一遍作对照。
-const drawMs = n => Math.round(Math.min(Math.max(1100 / n, 110), 240, 1200 / (0.3 + 0.7 * n)));
 
 async function open(page, ctx, chars, extra = {}) {
   await page.goto('about:blank'); // 全新的历史条目（同 URL 的 goto 会沿用上一页写字页的 history.state）
@@ -54,8 +53,27 @@ function hintState(page) {
       noteDot: !!(note && note.querySelector('.sz-hintnote__dot')),
       inkOpacity: ink ? Number(getComputedStyle(ink).opacity) : null,
       inkTransition: ink ? getComputedStyle(ink).transitionDuration : null,
+      outlines: l ? l.querySelectorAll('.sz-hint__outline').length : 0,
     };
   }, { hint: HINT, layer: LAYER });
+}
+
+/** 本人墨：固化层 canvas 上最不透明的那个像素 + 它到根的有效不透明度（元素与祖先 opacity 连乘）。 */
+function inkProbe(page) {
+  return page.evaluate(() => {
+    const top = document.querySelector('.sz-layer[data-top="true"]');
+    const ink = top.querySelector('[data-testid="write-grid-ink"]');
+    let eff = 1;
+    for (let el = ink; el && el.nodeType === 1; el = el.parentElement) eff *= Number(getComputedStyle(el).opacity);
+    const ctx = ink.getContext('2d');
+    const { width, height } = ink;
+    const data = ctx.getImageData(0, 0, width, height).data;
+    let best = null;
+    for (let i = 0; i < data.length; i += 4) {
+      if (!best || data[i + 3] > best[3] || (data[i + 3] === best[3] && data[i] < best[0])) best = [data[i], data[i + 1], data[i + 2], data[i + 3]];
+    }
+    return { eff, px: best };
+  });
 }
 
 function current(page) {
@@ -107,28 +125,54 @@ export default async function hint(page, ctx) {
   await waitLayer(page, 'shown');
   h = await hintState(page);
   assert.deepEqual([h.from, h.to, h.strokes], [0, 1, [0]], 'hint 1 with 0 written → stroke 0 only');
-  assert.equal(h.anim, 'draw', 'strokes are drawn along medians (not reduced motion)');
-  assert.deepEqual(h.timing.map(x => [x.name, x.dur, x.delay, x.ease]), [['szHintDraw', `${drawMs(1) / 1000}s`, '0s', 'cubic-bezier(0.4, 0, 0.2, 1)']],
-    'single stroke: 240ms, delay 0, cubic-bezier(.4,0,.2,1) (01 §6.4)');
+  assert.equal(h.anim, 'fade', 'the new hint fades in as one group (D51 ⑧: no stroke-by-stroke drawing on the web)');
+  assert.ok(h.timing.every(x => x.name === 'none'), 'no per-stroke draw animation (no szHintDraw any more)');
+  const fadeIn = await page.evaluate(sel => {
+    const cs = getComputedStyle(document.querySelector(sel + ' g'));
+    return { name: cs.animationName, dur: cs.animationDuration };
+  }, LAYER);
+  assert.deepEqual([fadeIn.name, fadeIn.dur], ['szHintFadeIn', '0.15s'], 'whole group fades in over 150ms (P210)');
   assert.equal(h.label, '提示，还有 1 次', 'button → 「提示，还有 1 次」');
-  assert.equal(h.note, '浅红色是提示，只给一部分。接着写下一笔，提示就收起。', 'R-W06 / P41 note under the grid');
-  assert.deepEqual([h.noteKind, h.noteDot], ['hint', true], 'note has the --o dot');
+  assert.equal(h.note, '', 'no legend sentence under the grid after a hint (D51 ⑧: 「浅红色是提示……」 deleted, P41)');
+  assert.deepEqual([h.noteKind, h.noteDot], [null, false], 'no hint note, no dot');
   await page.waitForTimeout(260);
   h = await hintState(page);
-  assert.ok(Math.abs(h.inkOpacity - 0.35) < 0.01, `own ink dimmed to 35% (got ${h.inkOpacity})`);
+  assert.equal(h.inkOpacity, 1, `own ink is not dimmed (got ${h.inkOpacity})`);
   let cur = await current(page);
   assert.deepEqual([cur.hints, cur.hintRange], [1, { from: 0, to: 1 }], 'store.commit wrote current.hints = 1 and hintRange {0,1}');
-  const hintColor = await page.evaluate(sel => {
-    const p = document.querySelector(sel + ' path');
-    const probe = document.createElement('span');
-    probe.style.color = 'var(--danzhu)';
-    document.body.appendChild(probe);
-    const ar = getComputedStyle(probe).color; // 变量名沿用 ar，值是 --danzhu
-    probe.remove();
-    return { stroke: getComputedStyle(p).stroke, ar, width: Number(p.getAttribute('stroke-width')) };
+  const paint = await page.evaluate(sel => {
+    const colorOf = v => {
+      const probe = document.createElement('span');
+      probe.style.color = `var(${v})`;
+      document.body.appendChild(probe);
+      const c = getComputedStyle(probe).color;
+      probe.remove();
+      return c;
+    };
+    const fill = document.querySelector(sel + ' .sz-hint__stroke');
+    const outline = document.querySelector(sel + ' .sz-hint__outline');
+    const fcs = getComputedStyle(fill);
+    const ocs = getComputedStyle(outline);
+    const top = document.querySelector('.sz-layer[data-top="true"]');
+    const glyph = top.querySelector('[data-testid="write-glyph-layer"]');
+    const ink = top.querySelector('[data-testid="write-grid-ink"]');
+    return {
+      danzhu: colorOf('--danzhu'), ink3: colorOf('--ink3'),
+      fillFill: fcs.fill, fillStroke: fcs.stroke,
+      outFill: ocs.fill, outStroke: ocs.stroke, outWidth: ocs.strokeWidth, outVector: ocs.vectorEffect,
+      d: fill.getAttribute('d'), transform: fill.getAttribute('transform'),
+      underInk: !!(glyph.compareDocumentPosition(ink) & Node.DOCUMENT_POSITION_FOLLOWING), glyphHasHint: glyph.contains(fill),
+    };
   }, LAYER);
-  assert.equal(hintColor.stroke, hintColor.ar, 'hint stroke uses --danzhu (D43: 淡朱实心，不再等于文字红 --ar)');
-  assert.ok(Math.abs(hintColor.width - 18 * (345 - 2 * 345 * 0.06) / 1024) < 0.02, `stroke width 18/1024 units (${hintColor.width})`);
+  assert.equal(paint.fillFill, paint.danzhu, 'hint fill = --danzhu solid (D43 / D34: 淡朱实心，不再是中线折线)');
+  assert.equal(paint.fillStroke, 'none', 'the fill layer has no stroke of its own');
+  assert.equal(paint.outFill, 'none', 'the outline layer is not filled');
+  assert.equal(paint.outStroke, paint.ink3, 'constant 1pt outline in --ink3 (A2-02: a second channel besides hue)');
+  assert.deepEqual([paint.outWidth, paint.outVector], ['2px', 'non-scaling-stroke'], '2px centred, only the outer 1px shows (the fill covers the inner half)');
+  assert.ok(/[QCL]/.test(paint.d) && paint.d.trim().endsWith('Z'), `drawn from the glyph outline path, not a median polyline (${paint.d.slice(0, 40)}…)`);
+  assert.ok(/scale\(/.test(paint.transform), 'outline path is mapped into the grid by a transform');
+  assert.deepEqual([paint.glyphHasHint, paint.underInk], [true, true], 'the hint lives in the reference layer, which is below the ink canvas in z-order');
+  assert.equal(h.outlines, 1, 'one outline per hinted stroke');
 
   ctx.step('write the next stroke → hint fades out (260ms), ink restores (200ms), range cleared');
   await drawStroke(page, HORIZONTAL);
@@ -137,16 +181,22 @@ export default async function hint(page, ctx) {
   await waitLayer(page, 'none');
   await page.waitForTimeout(250);
   h = await hintState(page);
-  assert.equal(h.inkOpacity, 1, 'own ink back to 100%');
-  assert.equal(h.inkTransition, '0.2s', 'ink restore transition 200ms');
+  assert.equal(h.inkOpacity, 1, 'own ink stays at 100% throughout');
   await page.waitForFunction(() => window.__shiziTest.getState().sessions.A.current.hintRange === null);
   cur = await current(page);
   assert.deepEqual([cur.hints, cur.hintRange], [1, null], 'after fade: hints stays 1, hintRange cleared');
-  assert.equal(h.note, '浅红色是提示，只给一部分。接着写下一笔，提示就收起。', 'note stays for the rest of this character');
+  assert.equal(h.note, '', 'still no legend sentence');
 
-  ctx.step('hint 2 continues from the written count (P01): 1 written → stroke 1');
+  ctx.step('hint 2 continues from the written count (P01): 1 written → stroke 1; the writer\'s ink pixels are unchanged (not dimmed)');
+  const inkBefore = await inkProbe(page);
+  assert.ok(inkBefore.px && inkBefore.px[3] > 200, `there is solid ink on the grid before the hint (${inkBefore.px})`);
   await pressHint(page);
   await waitLayer(page, 'shown');
+  await page.waitForTimeout(400);
+  const inkDuring = await inkProbe(page);
+  assert.deepEqual(inkDuring.px, inkBefore.px, 'darkest ink pixel is identical while the hint is shown');
+  assert.equal(inkDuring.eff, 1, 'effective opacity of the ink canvas (element × ancestors) stays 1');
+  assert.equal(inkBefore.eff, 1);
   h = await hintState(page);
   assert.deepEqual([h.from, h.to, h.strokes], [1, 2, [1]], 'hint 2 with 1 written → stroke 1');
   assert.equal(h.label, '提示已用完', 'button → 「提示已用完」');
@@ -168,9 +218,8 @@ export default async function hint(page, ctx) {
   await waitLayer(page, 'shown');
   h = await hintState(page);
   assert.deepEqual([h.from, h.to, h.strokes], [0, 4, [0, 1, 2, 3]], 'hint 1 with 0 written → strokes 0–3');
-  const d4 = drawMs(4);
-  assert.deepEqual(h.timing.map(x => [x.dur, x.delay]),
-    [0, 1, 2, 3].map(j => [`${d4 / 1000}s`, `${Math.round(j * d4 * 0.7) / 1000}s`]), `4 strokes: ${d4}ms each, stagger ×0.7`);
+  assert.ok(h.timing.every(x => x.name === 'none'), '4 strokes appear together (one group fade, no stagger on the web)');
+  assert.equal(h.outlines, 4, 'an outline for each of the 4 hinted strokes');
   assert.equal(h.label, '提示，还有 1 次', '14-stroke: 「提示，还有 1 次」');
   cur = await current(page);
   assert.deepEqual([cur.hints, cur.hintRange], [1, { from: 0, to: 4 }], 'store: hints 1, hintRange {0,4}');
@@ -257,7 +306,7 @@ export default async function hint(page, ctx) {
   await page.unrouteAll({ behavior: 'ignoreErrors' });
 
   // ---------------------------------------------------------------- 减少动态效果
-  ctx.step('reduced motion: 120ms fade instead of stroke-by-stroke drawing (02 §3 M1-3 / R-G01)');
+  ctx.step('reduced motion: 120ms fade (02 §3 M1-3 / R-G01)');
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await open(page, ctx, ['大']);
   await waitButton(page, 'available');
@@ -272,7 +321,7 @@ export default async function hint(page, ctx) {
     return { name: cs.animationName, dur: cs.animationDuration, transition: cs.transitionDuration };
   }, LAYER);
   assert.deepEqual([group.name, group.dur, group.transition], ['szHintFadeIn', '0.12s', '0.12s'], 'group fades in / out over 120ms');
-  assert.equal(h.inkTransition, '0.12s', 'ink dims over 120ms');
+  assert.equal(h.inkOpacity, 1, 'ink is not dimmed in reduced motion either');
   await drawStroke(page, HORIZONTAL);
   await waitLayer(page, 'none');
   h = await hintState(page);
@@ -302,7 +351,7 @@ export default async function hint(page, ctx) {
   await waitLayer(page, 'shown');
   h = await hintState(page);
   assert.deepEqual([h.from, h.to, h.anim, h.label], [0, 4, 'static', '提示，还有 1 次'], 'restored hint drawn statically');
-  assert.ok(h.timing.every(x => x.name === 'none'), 'no re-draw animation on restore');
+  assert.ok(h.timing.every(x => x.name === 'none'), 'no animation on restore');
   await waitNavIdle(page, { settleMs: 50 });
 
   ctx.step('all localStorage writes went through storage.js');

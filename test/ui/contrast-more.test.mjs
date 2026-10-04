@@ -60,12 +60,14 @@ test('prefersMoreContrast reads the media query; false without a window or when 
   }
 });
 
-test('the hint layer stylesheet adds the four-way ink3 drop-shadow only inside @media (prefers-contrast: more)', () => {
+test('the hint layer carries a constant 1pt ink3 outline under a solid danzhu fill — not only inside @media (prefers-contrast: more) (A2-02 / D51 ⑧)', () => {
   const src = readFileSync(new URL('../../src/ui/screens/write/hint-layer.js', import.meta.url), 'utf8');
-  const m = /@media \(prefers-contrast: more\)\{\.sz-hint__stroke\{filter:(.*?\))\}\}\n/.exec(src);
-  assert.ok(m, 'a prefers-contrast: more rule on .sz-hint__stroke');
-  assert.equal((m[1].match(/drop-shadow/g) || []).length, 4, 'four 1px hard shadows');
-  assert.ok(m[1].includes('${T.ink3}'), 'the outline colour is the ink3 token');
-  const base = /\.sz-hint__stroke\{fill:none;stroke:\$\{T\.danzhu\};[^}]*\}\n/.exec(src);
-  assert.ok(base && !/filter/.test(base[0]), 'the base rule has no filter (no outline without the preference)');
+  assert.ok(!/@media \(prefers-contrast: more\)\{\.sz-hint__stroke/.test(src), 'no contrast-only drop-shadow rule any more');
+  const outline = /\.sz-hint__outline\{((?:\$\{[^}]*\}|[^}])*)\}/.exec(src);
+  assert.ok(outline, 'an outline layer rule');
+  assert.ok(outline[1].includes('fill:none') && outline[1].includes('stroke:${T.ink3}'), 'ink3 outline, no fill');
+  assert.ok(/stroke-width:2px/.test(outline[1]) && /vector-effect:non-scaling-stroke/.test(outline[1]), '2px centred stroke = 1px visible outside, constant under any grid size');
+  const fill = /\.sz-hint__stroke\{((?:\$\{[^}]*\}|[^}])*)\}/.exec(src);
+  assert.ok(fill && fill[1].includes('fill:${T.danzhu}') && fill[1].includes('stroke:none'), 'solid danzhu fill (the token, not a polyline)');
+  assert.ok(src.indexOf('${outlines}${paths}') > 0, 'outlines are painted first, fills on top, so neighbouring strokes leave no seam');
 });

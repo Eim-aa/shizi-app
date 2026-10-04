@@ -62,7 +62,7 @@ test('copy: t() fills placeholders, returns arrays for multi-line copy, and reje
 
 test('copy: decided multi-version cells use the 03 transitional choice', () => {
   assert.equal(t('R-W07.confirmBody'), '看了答案，这个字就记为看过答案。', 'P40: no quotes around the result word');
-  assert.equal(t('R-W06.hintExplain'), '浅红色是提示，只给一部分。接着写下一笔，提示就收起。', 'P41: 改动 L86');
+  assert.equal(has('R-W06.hintExplain'), false, 'P41 / D51 ⑧: the 「浅红色是提示」 legend sentence is gone');
   assert.equal(t('R-R05.earlyTitle'), '先写到这里', 'P14: C066');
   assert.equal(t('R-R02.sheetNoInk'), '这次没写', 'P15');
   assert.equal(t('R-Q04.rowCustomCount', { n: 3 }), '自选的字 · 记录了 3 次', 'P43');

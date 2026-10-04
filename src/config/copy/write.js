@@ -21,8 +21,7 @@ export default Object.freeze({
   'R-W05.hintUsedUp': '提示已用完',
   'R-W05.hintUnavailable': '暂时没有提示',
   'R-W05.noHintNote': '这个字暂时没有提示，可以直接看答案。',
-  // R-W06（已定（说明句二选一见 §6.2）；方案②/N07 原型专用-不做）
-  'R-W06.hintExplain': '浅红色是提示，只给一部分。接着写下一笔，提示就收起。',
+  // R-W06（说明句「浅红色是提示……」已删，D51 ⑧：不再用文字解释颜色；方案②/N07 原型专用-不做）
   // R-W07（已定（N01 的「」与 X10 关系见 §5.1-2））
   'R-W07.confirmBody': '看了答案，这个字就记为看过答案。',
   'R-W07.confirmKeepThinking': '接着想',

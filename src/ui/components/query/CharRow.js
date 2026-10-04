@@ -10,6 +10,7 @@
 import { html } from '../../../../vendor/ui.js';
 import { Button } from '../Button.js';
 import { Chevron } from '../Chevron.js';
+import { PracticeGlyph, FACE_FULL } from '../PracticeGlyph.js';
 import { injectStyles, T } from '../styles.js';
 import { t } from '../../../config/copy/index.js';
 import { rowStatus } from '../../../core/query.js';
@@ -22,8 +23,8 @@ injectStyles('query-row', `
 .sz-qrow__sel[aria-checked="true"] .sz-qrow__dot{border:0;background:${T.ink1}}
 .sz-qrow__open{flex:1;min-width:0;min-height:calc(64px * ${T.k});padding:${T.s2} 0;display:flex;align-items:center;gap:${T.s3};text-align:left}
 .sz-qrow__main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
-.sz-qrow__head{display:flex;align-items:baseline;gap:10px}
-.sz-qrow__char{font-family:${T.kai};font-size:${T.fs28};line-height:${T.lh28};color:${T.ink1}}
+.sz-qrow__head{display:flex;align-items:center;gap:10px}
+.sz-qrow__char{width:${T.fs28};height:${T.fs28};flex:none;color:${T.ink1}} /* 标准字形用轮廓（P1-E2） */
 .sz-qrow[data-practicable="false"] .sz-qrow__char{color:${T.ink4}}
 .sz-qrow__py{font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2}}
 .sz-qrow__word{font-family:${T.kai};font-size:${T.fs17};line-height:${T.lh17s};color:${T.ink2}}
@@ -60,7 +61,7 @@ export function CharRow({ summary, pinyin = '', word = '', selectable = false, s
     <${Button} variant="plain" class="sz-qrow__open" data-testid="query-row-open" onClick=${() => onOpen && onOpen(c)}
       aria-label=${pinyin ? t('X-QUERY.rowAria', { char: c, pinyin, status: statusText }) : t('X-QUERY.rowAriaNoPinyin', { char: c, status: statusText })}>
       <span class="sz-qrow__main">
-        <span class="sz-qrow__head"><span class="sz-qrow__char">${c}</span>${pinyin ? html`<span class="sz-qrow__py">${pinyin}</span>` : null}</span>
+        <span class="sz-qrow__head"><${PracticeGlyph} class="sz-qrow__char" char=${c} face=${FACE_FULL} />${pinyin ? html`<span class="sz-qrow__py">${pinyin}</span>` : null}</span>
         ${showWord ? html`<span class="sz-qrow__word">${word}</span>` : null}
       </span>
       <span class="sz-qrow__status" data-testid="query-row-status">${statusText}</span>

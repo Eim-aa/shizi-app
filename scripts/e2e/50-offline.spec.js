@@ -96,8 +96,12 @@ export default async function offline(page, ctx) {
     const first = await m.loadStrokesDetailed('尴');
     return { stats: m.getStrokesLoader().stats(), first: { source: first.source, ok: !!first.data } };
   });
-  assert.ok(strokes.stats.embedded > 0 && strokes.stats.failures === 0,
-    `write page read first-practice strokes from the embedded table (${JSON.stringify(strokes.stats)})`);
+  // P1-E2：题面词语里的其他字（尴尬的「尬」）也是轮廓，不在内嵌表里、也没进过缓存时离线取不到——这一个字回退 ShiziKai（10.13 语义），
+  // 请求失败的日志是预期的；要写的字本身仍来自内嵌表，不走网络。
+  ctx.allowConsoleError(/%E5%B0%AC\.json/);
+  assert.ok(strokes.stats.embedded > 0, `write page read first-practice strokes from the embedded table (${JSON.stringify(strokes.stats)})`);
+  const partner = await page.evaluate(() => [...document.querySelectorAll('.sz-layer[data-top="true"] [data-testid="write-prompt-cell"] .sz-pg')].map(g => [g.textContent, g.dataset.glyphSrc]));
+  assert.ok(partner.length > 0 && partner.every(([, src]) => src === 'fallback' || src === 'outline'), `word partner chars settle as outline or ShiziKai fallback offline (${JSON.stringify(partner)})`);
   assert.deepEqual(strokes.first, { source: 'embedded', ok: true }, '尴 comes from SHIZI_STROKE_DATA');
 
   ctx.step('offline: a core character that is not embedded is a worker cache hit');
@@ -116,6 +120,8 @@ export default async function offline(page, ctx) {
   await waitNavIdle(page);
   assert.ok(await page.locator(tid('screen-home')).count() > 0, 'home visible after leaving the write page offline');
   await page.context().setOffline(false);
-  assert.ok(loadFailures.length === 1 && loadFailures.every(url => url.includes('offline-probe=1')),
-    `the only failed resource load is the offline probe (${JSON.stringify(loadFailures)})`);
+  // P1-E2：除了离线探针，只有题面词语里那个没内嵌也没缓存的「尬」（取一次 + 重试一次，随后回退 ShiziKai）
+  const unexpected = loadFailures.filter(url => !url.includes('offline-probe=1') && !url.includes('%E5%B0%AC.json'));
+  assert.ok(unexpected.length === 0 && loadFailures.filter(url => url.includes('offline-probe=1')).length === 1,
+    `the only failed resource loads are the offline probe and the uncached word partner (${JSON.stringify(loadFailures)})`);
 }

@@ -42,6 +42,7 @@ import { registerScreen, getRouter, getScreen, nav } from '../../router.js';
 import { Page } from '../../components/Page.js';
 import { Button, markStateChange, pressFeedbackHandlers } from '../../components/Button.js';
 import { Sheet } from '../../components/Sheet.js';
+import { PracticeGlyph, FACE_FULL } from '../../components/PracticeGlyph.js';
 import { injectStyles, T, TEX } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
 import * as defaultPolicy from '../../../config/policy.js';
@@ -119,15 +120,14 @@ injectStyles('result', `
 .sz-rcell[data-pressed]{background:${T.field}}
 .sz-rcell__sq{position:relative;aspect-ratio:1/1;display:grid;place-items:center;overflow:hidden}
 .sz-rcell__sq .sz-compare__card{position:absolute;inset:0;border:0;border-radius:0;background:transparent;aspect-ratio:auto}
-/* 格内字形是图，不随大字倍率放大（格子宽度不变，放大会压到「没有笔迹」） */
-.sz-rcell__glyph{font-family:${T.kai};font-size:40px;line-height:1;color:${T.under}}
-.sz-rcell__glyph--shape{font-family:${T.hei};font-weight:300;color:${T.under};transform:translateY(-6px)}
+/* 格内字形是图，不随大字倍率放大（格子宽度不变，放大会压到「没有笔迹」）。衬底字用轮廓（P1-E2）：44 方框，字面约 35 */
+.sz-rcell__glyph{width:44px;height:44px;color:${T.under}}
+.sz-rcell__glyph--shape{transform:translateY(-6px)}
 .sz-rcell__noink{position:absolute;left:0;right:0;bottom:4px;font-size:${T.fs11};line-height:${T.lh11};color:${T.ink3}}
 .sz-rcell__cap{min-height:34px;box-sizing:border-box;padding:3px 2px;display:flex;flex-wrap:wrap;align-items:center;
   justify-content:center;gap:2px 4px;border-top:${T.frameW} solid ${T.frame};font-size:${T.fs11};
   line-height:${T.lh11};color:${T.ink2}}
-.sz-rcell__char{font-family:${T.kai};font-size:${T.fs15};line-height:1;
-  color:${T.ink1}}
+.sz-rcell__char{width:${T.fs15};height:${T.fs15};color:${T.ink1}}
 .sz-rcell--pad{cursor:default}
 .sz-result__date{margin:0;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2}}
 .sz-result[data-variant="daily"],.sz-result[data-variant="first"]{gap:16px}
@@ -562,10 +562,10 @@ function ResultCell({ cell, record, ink, onOpen }) {
     sq = html`<${InkMini} points=${ink.points} strokes=${ink.strokes} testid="result-cell-ink" label=${cell.char} />`;
   } else if (cell.kind === 'judged') {
     // 有记录无笔迹（10.12）：标准字 +「没有笔迹」
-    sq = html`<span class="sz-rcell__glyph sz-rcell__glyph--shape" aria-hidden="true" data-testid="result-cell-glyph">${cell.char}</span>
+    sq = html`<${PracticeGlyph} class="sz-rcell__glyph sz-rcell__glyph--shape" hidden=${true} char=${cell.char} testid="result-cell-glyph" />
       <span class="sz-rcell__noink" data-testid="result-cell-noink">${t('R-D07.noInkLabel')}</span>`;
   } else {
-    sq = html`<span class="sz-rcell__glyph" aria-hidden="true" data-testid="result-cell-glyph">${cell.char}</span>`;
+    sq = html`<${PracticeGlyph} class="sz-rcell__glyph" hidden=${true} char=${cell.char} testid="result-cell-glyph" />`;
   }
   return html`<button type="button" class="sz-rcell" ...${CELL_PRESS} data-testid="result-cell" data-index=${cell.index} data-kind=${cell.kind}
     data-judgment=${cell.judgment || ''} data-changeable=${cell.canChange ? 'true' : 'false'} data-record=${record ? record.id : ''}
@@ -573,7 +573,7 @@ function ResultCell({ cell, record, ink, onOpen }) {
     onClick=${() => onOpen(cell)}>
     <span class="sz-rcell__sq">${sq}</span>
     <span class="sz-rcell__cap">
-      <span class="sz-rcell__char" data-testid="result-cell-char">${cell.char}</span>
+      <${PracticeGlyph} class="sz-rcell__char" char=${cell.char} face=${FACE_FULL} testid="result-cell-char" />
       <span class="sz-rcell__res" data-testid="result-cell-caption" data-wrong=${cell.judgment === 'wrong' ? 'true' : 'false'}>${cell.caption}</span>
     </span>
   </button>`;

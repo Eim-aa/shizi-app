@@ -29,6 +29,7 @@ import { registerScreen, getRouter, getScreen, nav } from '../../router.js';
 import { Page } from '../../components/Page.js';
 import { Button } from '../../components/Button.js';
 import { Confirm } from '../../components/Confirm.js';
+import { PracticeGlyph } from '../../components/PracticeGlyph.js';
 import { UndoBar } from '../../components/UndoBar.js';
 import { injectStyles, T, TEX } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
@@ -60,9 +61,10 @@ injectStyles('detail', `
 .sz-dcard__wordbox{display:flex;flex-direction:column;gap:8px;min-width:0;container-type:inline-size}
 .sz-dcard__label{font-size:${T.fs13};color:${T.ink2}}
 .sz-dcard__tiles{display:grid;grid-template-columns:repeat(var(--n, 2),minmax(0,1fr));box-sizing:border-box;
-  width:min(100%, calc(40px * var(--n, 2) + 2px));border:${T.frameW} solid ${T.frame};font-family:${T.kai};
-  font-size:min(24px, calc((100cqw - 2px) / var(--n, 2) * .6));line-height:38px;text-align:center;color:${T.ink1};${TEX}}
-.sz-dcard__tile{min-width:0}
+  width:min(100%, calc(40px * var(--n, 2) + 2px));border:${T.frameW} solid ${T.frame};text-align:center;color:${T.ink1};${TEX}}
+/* 词语小字帖里的字是轮廓（P1-E2）：格 40 × 38，字方框 30（字面 ≈ 24），格更窄时随格收窄 */
+.sz-dcard__tile{position:relative;min-width:0;height:38px}
+.sz-dcard__tile>.sz-pg{position:absolute;left:50%;top:50%;width:min(30px, 90%);height:auto;aspect-ratio:1/1;transform:translate(-50%,-50%)}
 .sz-dcard__tile + .sz-dcard__tile{border-left:${T.frameW} solid ${T.frame}}
 .sz-dcard__tile[data-blank="true"]{box-shadow:inset 0 0 0 ${T.targetW} ${T.ink1}}
 .sz-dcard__gloss{font-family:${T.kai};font-size:${T.fs17};line-height:${T.lh17};color:${T.ink1}}
@@ -159,7 +161,7 @@ function CharCard({ model, strokeData }) {
         ${word.hasWord
           ? html`<div class="sz-dcard__tiles" lang="zh-CN" role="img" aria-label=${model.card.word} data-testid="detail-word"
               data-word=${model.card.word} style=${`--n:${word.tiles.length}`}>${word.tiles.map((tile, i) => html`<span key=${i} class="sz-dcard__tile" aria-hidden="true"
-                data-testid="detail-word-tile" data-blank=${tile.blank ? 'true' : 'false'}>${tile.ch}</span>`)}</div>`
+                data-testid="detail-word-tile" data-blank=${tile.blank ? 'true' : 'false'}><${PracticeGlyph} char=${tile.ch} face=${0.8} /></span>`)}</div>`
           : html`<span class="sz-dcard__gloss" data-testid="detail-gloss">${word.gloss}</span>`}
       </div>` : null}
     </div>

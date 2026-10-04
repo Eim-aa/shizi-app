@@ -38,6 +38,7 @@ import { decodeInk, resampleForReplay } from '../../../core/ink-math.js';
 import { inkHasStrokes } from '../../../core/ink-pick.js';
 import { cardForKey, hasContextWord, withWordOff } from '../../../data/deck.js';
 import { InkMini, recalledInk } from '../write/compare.js';
+import { PracticeGlyph } from '../../components/PracticeGlyph.js';
 import { promptCopy } from '../write/prompt.js';
 
 export const ZOOM_OVERLAY = 'detail-zoom';
@@ -56,7 +57,7 @@ injectStyles('detail-records', `
 .sz-dcell[data-pressed]{background:${T.field}}
 .sz-dcell__sq{position:relative;aspect-ratio:1/1;display:grid;place-items:center;color:${T.under}}
 .sz-dcell__sq .sz-compare__card{position:absolute;inset:0;width:100%;border:0;border-radius:0;background:transparent}
-.sz-dcell__glyph{font-family:${T.hei};font-size:${T.fs28};line-height:1;color:${T.under}}
+.sz-dcell__glyph{width:44%;height:auto;aspect-ratio:1/1;color:${T.under}} /* 没有笔迹的格：衬底字是轮廓（P1-E2），字面约占格 35% */
 .sz-dcell__noink{position:absolute;left:0;right:0;bottom:4px;font-size:${T.fs11};color:${T.ink3}}
 /* M6-2：大字时格子放不下「字 + 没有笔迹」叠放（320 宽 + 大字里说明压在字上），改成上下排、整组居中（P1-E6：大字 = 系统字号 --k ≥ 1.3，P131） */
 :root[data-text-large] .sz-dcell__sq{align-content:center;gap:2px}
@@ -332,7 +333,7 @@ function Cell({ record, ink, onOpen, first = false, latest = false }) {
   const { caption, title } = cellCopy(record);
   const sq = has
     ? html`<${InkMini} points=${ink.points} strokes=${ink.strokes} testid="detail-cell-ink" label=${record.char} />`
-    : html`<span class="sz-dcell__glyph" aria-hidden="true" data-testid="detail-cell-glyph">${record.char}</span>
+    : html`<${PracticeGlyph} class="sz-dcell__glyph" hidden=${true} char=${record.char} testid="detail-cell-glyph" />
       <span class="sz-dcell__noink" data-testid="detail-cell-noink">${t('R-D07.noInkLabel')}</span>`;
   return html`<button type="button" class="sz-dcell" ...${CELL_PRESS} data-testid="detail-cell" data-record=${record.id}
     data-judgment=${record.judgment} data-ink=${has ? 'true' : 'false'} data-first=${first ? 'true' : null} data-latest=${latest ? 'true' : null}

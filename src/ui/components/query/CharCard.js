@@ -15,6 +15,7 @@
 
 import { html, useMemo } from '../../../../vendor/ui.js';
 import { Button } from '../Button.js';
+import { PracticeGlyph, FACE_FULL } from '../PracticeGlyph.js';
 import { injectStyles, T } from '../styles.js';
 import { t } from '../../../config/copy/index.js';
 import * as defaultPolicy from '../../../config/policy.js';
@@ -34,8 +35,8 @@ injectStyles('query-card', `
   display:grid;place-items:center;font-size:${T.fs13};color:${T.ink2}}
 .sz-qcard__label{font-size:${T.fs13};line-height:${T.lh13};color:${T.ink2}}
 .sz-qcard__info{display:flex;flex-direction:column;gap:4px}
-.sz-qcard__head{display:flex;align-items:baseline;gap:10px}
-.sz-qcard__char{font-family:${T.kai};font-size:${T.fs28};line-height:${T.lh28};color:${T.ink1}}
+.sz-qcard__head{display:flex;align-items:center;gap:10px}
+.sz-qcard__char{width:${T.fs28};height:${T.fs28};flex:none;color:${T.ink1}} /* 标准字形用轮廓（P1-E2） */
 .sz-qcard__meta{font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2}}
 .sz-qcard__word{font-family:${T.kai};font-size:${T.fs22};line-height:${T.lh22};color:${T.ink1}}
 .sz-qcard__stat{font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2}}
@@ -195,7 +196,7 @@ export function CharCard(p) {
         </div>
       </div>
       <div class="sz-qcard__info">
-        <span class="sz-qcard__head"><span class="sz-qcard__char" lang="zh-CN">${c}</span>${meta
+        <span class="sz-qcard__head"><${PracticeGlyph} class="sz-qcard__char" char=${c} face=${FACE_FULL} />${meta
           ? html`<span class="sz-qcard__meta" data-testid="query-card-meta">${meta}</span>` : null}</span>
         ${word && word !== c ? html`<span class="sz-qcard__word" data-testid="query-card-word">${word}</span>` : null}
         <span class="sz-qcard__stat" data-testid="query-card-stat">${cardStatText(summary)}</span>

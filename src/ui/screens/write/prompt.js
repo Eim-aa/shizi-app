@@ -24,6 +24,7 @@ import { promptModel } from '../../../core/cards.js';
 import { capitalCard, cardForKey, withWordOff } from '../../../data/deck.js';
 import { getStore } from '../../../store/store.js';
 import { injectStyles, T, TEX } from '../../components/styles.js';
+import { PracticeGlyph, FACE_FULL } from '../../components/PracticeGlyph.js';
 import { t } from '../../../config/copy/index.js';
 
 /** 这些阶段题面把目标字填回空格（原型 L527）；recall / retrace 一律遮住。 */
@@ -107,8 +108,10 @@ injectStyles('write-prompt', `
   margin-left:max(0px, min(calc(50% - (var(--bi) + .5) * var(--cw)), calc(100% - var(--n) * var(--cw))));
   border:${T.frameW} solid ${T.frame};border-left:0;${TEX}}
 .sz-prompt__cell{position:relative;box-sizing:border-box;flex:0 1 auto;width:var(--cw);min-width:0;height:calc(54px * ${T.k});
-  border-left:${T.frameW} solid ${T.frame};font-family:${T.kai};font-size:${T.fs34};
-  line-height:${T.lh34};text-align:center;color:${T.ink1};white-space:nowrap}
+  border-left:${T.frameW} solid ${T.frame};text-align:center;color:${T.ink1};white-space:nowrap}
+/* 练习字统一用轮廓（P1-E2）：字面方框 40pt（设计系统 v1 题面：52 格里 40 的字面 svg，随字号倍率），居中；格比 40 窄时随格收窄 */
+.sz-prompt__cell>.sz-pg{position:absolute;left:50%;top:50%;width:min(calc(40px * ${T.k}), 100%);height:auto;aspect-ratio:1/1;
+  transform:translate(-50%,-50%);color:${T.ink1}}
 .sz-prompt__cell[data-kind="blank"]{box-shadow:inset 0 0 0 ${T.targetW} ${T.ink1}}
 .sz-prompt__cell[data-kind="repeatBlank"][data-masked="true"]{font-family:${T.hei};font-size:${T.fs28};color:${T.ink3}}
 .sz-prompt__py{position:absolute;left:50%;bottom:100%;transform:translateX(-50%);padding-bottom:calc(4px * ${T.k});
@@ -118,24 +121,26 @@ injectStyles('write-prompt', `
 .sz-prompt__cross{position:absolute;inset:0;pointer-events:none}
 .sz-prompt__cross::before{content:"";position:absolute;left:50%;top:9px;bottom:9px;border-left:${T.guideW} dashed ${T.guide}}
 .sz-prompt__cross::after{content:"";position:absolute;top:50%;left:9px;right:9px;border-top:${T.guideW} dashed ${T.guide}}
-.sz-prompt__fill{display:block}
 .sz-prompt__hint{margin:10px 0 0;min-width:0;text-align:center;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2};white-space:normal;overflow-wrap:anywhere}
 .sz-prompt__hint:empty{margin:0}
 `);
+
+// 题面里的字：练习字轮廓（P1-E2）。方框就是那 40pt（FACE_FULL：1024 方框占满元素）。
+const glyph = (char, cls) => html`<${PracticeGlyph} char=${char} face=${FACE_FULL} class=${cls} />`;
 
 function Cell({ cell }) {
   if (cell.kind === 'blank') {
     return html`<span class="sz-prompt__cell" data-kind="blank" data-testid="write-prompt-cell"
       role=${cell.label ? 'img' : undefined} aria-label=${cell.label || undefined}><span
       class="sz-prompt__py" data-testid="write-prompt-py">${cell.text}</span>${cell.fill
-      ? html`<span class="sz-prompt__fill">${cell.fill}</span>`
+      ? glyph(cell.fill, 'sz-prompt__fill')
       : html`<span class="sz-prompt__cross" aria-hidden="true"></span>`}</span>`;
   }
   if (cell.kind === 'repeatBlank' && cell.label) {
     return html`<span class="sz-prompt__cell" data-kind="repeatBlank" data-masked="true" data-testid="write-prompt-cell"
       role="img" aria-label=${cell.label}>${cell.text}</span>`;
   }
-  return html`<span class="sz-prompt__cell" data-kind=${cell.kind} data-testid="write-prompt-cell">${cell.text}</span>`;
+  return html`<span class="sz-prompt__cell" data-kind=${cell.kind} data-testid="write-prompt-cell">${glyph(cell.text)}</span>`;
 }
 
 /**

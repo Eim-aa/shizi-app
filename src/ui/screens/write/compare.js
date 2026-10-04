@@ -34,6 +34,7 @@
 import { html, useEffect, useLayoutEffect, useMemo, useRef, useState } from '../../../../vendor/ui.js';
 import { Button, markStateChange } from '../../components/Button.js';
 import { injectStyles, T, TEX } from '../../components/styles.js';
+import { useNearViewport } from '../../components/near.js';
 import { t } from '../../../config/copy/index.js';
 import * as defaultPolicy from '../../../config/policy.js';
 import { getStore, setInk } from '../../../store/store.js';
@@ -311,54 +312,8 @@ function useBoxSize(ref, fallback) {
   return size;
 }
 
-// M6-3（61-perf）：视口附近才画。练习记录 300 格、完整页、墙都是一屏几十格的长网格，一次画完全部 canvas 使首屏超 200ms；
-// 离视口一屏以内的格子挂载当帧就画（与原来相同），更远的先登记到全页共用的一个 IntersectionObserver，滚到附近再画。
-// 隐藏图层（下层页面）里的格子尺寸为 0，同样等露出时再画。
-const NEAR_SCREENS = 1;
-let nearObserver = null;
-const nearCallbacks = new WeakMap();
-
-function isNearViewport(el) {
-  const r = el.getBoundingClientRect();
-  if (!r.width && !r.height) return false;
-  const h = window.innerHeight || document.documentElement.clientHeight || 0;
-  return r.bottom > -h * NEAR_SCREENS && r.top < h * (1 + NEAR_SCREENS);
-}
-
-function observeNear(el, onNear) {
-  if (!nearObserver) {
-    nearObserver = new IntersectionObserver(entries => {
-      for (const entry of entries) {
-        if (!entry.isIntersecting) continue;
-        const fn = nearCallbacks.get(entry.target);
-        nearCallbacks.delete(entry.target);
-        nearObserver.unobserve(entry.target);
-        if (fn) fn();
-      }
-    }, { rootMargin: `${NEAR_SCREENS * 100}% 100%` }); // 横向放宽一屏：推入转场中的图层还在右侧屏外
-  }
-  nearCallbacks.set(el, onNear);
-  nearObserver.observe(el);
-  return () => {
-    nearCallbacks.delete(el);
-    if (nearObserver) nearObserver.unobserve(el);
-  };
-}
-
-/** 元素是否已到视口附近（一旦为真不再变回）。没有 IntersectionObserver 时恒为真。作品格（components/work.js）也用它做懒绘制（P1-E7）。 */
-export function useNearViewport(ref) {
-  const [near, setNear] = useState(false);
-  useLayoutEffect(() => {
-    const el = ref.current;
-    if (!el) return undefined;
-    if (typeof IntersectionObserver !== 'function' || isNearViewport(el)) {
-      setNear(true);
-      return undefined;
-    }
-    return observeNear(el, () => setNear(true));
-  }, []);
-  return near;
-}
+// 视口附近才画（M6-3，61-perf）：实现在 components/near.js，作品格与练习字字形组件也用它。
+export { useNearViewport };
 
 function prepareCanvas(canvas, cssSize) {
   const dpr = Math.max(1, Math.min(4, (typeof window !== 'undefined' && window.devicePixelRatio) || 1));

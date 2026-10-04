@@ -138,6 +138,8 @@ export function CellCanvas({ ch, ink = null, mode = 'hand', size, pad = INK_PAD,
   // 题库外的字（迁移来的旧记录等）没有笔顺数据文件：不去取（免得 404），直接退回楷体整字（render.js paintFallbackGlyph）
   const strokeData = useStrokeData(near && under && isPracticable(`base:${ch}`) ? ch : '');
   const data = strokeData && strokeData.status === 'ready' ? strokeData.data : null;
+  // 练习字统一用轮廓（P1-E2）：数据还在路上时衬底格留空，不先画一遍楷体再换（不闪 ShiziKai）
+  const waiting = near && under && !data && !!strokeData && strokeData.status === 'loading';
   useLayoutEffect(() => {
     const canvas = ref.current;
     if (!canvas || !(size > 0) || !near) return;
@@ -150,12 +152,17 @@ export function CellCanvas({ ch, ink = null, mode = 'hand', size, pad = INK_PAD,
     const ctx = canvas.getContext('2d');
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, size, size);
+    if (waiting) {
+      canvas.dataset.glyph = 'loading';
+      return;
+    }
     const palette = { hand: cssVar(canvas, '--hand'), under: cssVar(canvas, '--under') };
     const res = paintCellContent(ctx, { ch, ink: under ? null : points, mode: under ? 'under' : 'hand' }, { x: 0, y: 0, c: size },
       { palette, unit: 1, paintStroke: paintBrushStroke, glyphs: new Map([[ch, data]]), pad });
     canvas.dataset.painted = 'true';
     canvas.dataset.strokes = String(res.strokes);
-  }, [size, theme, points, under, data, ch, pad, near]);
+    canvas.dataset.glyph = res.glyph || 'ink'; // outline = 轮廓衬底；fallback = 楷体回退；ink = 本人笔迹
+  }, [size, theme, points, under, data, ch, pad, near, waiting]);
   return html`<canvas ref=${ref} aria-hidden="true" data-testid=${testid} data-mode=${under ? 'under' : 'hand'}
     style=${{ width: `${size}px`, height: `${size}px` }}></canvas>`;
 }

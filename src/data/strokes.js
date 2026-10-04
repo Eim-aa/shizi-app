@@ -18,7 +18,9 @@
 export const STROKES_TIMEOUT_MS = 3000;
 export const STROKES_RETRIES = 1;
 export const STROKES_RETRY_DELAY_MS = 250;
-export const STROKES_LRU_SIZE = 64;
+// P1-E2：练习字统一用轮廓（字墙 / 全部字 / 字帖 / 详情 / 题面都经 ui/components/PracticeGlyph.js 取数）。一屏最多几百格、滚动来回，
+// 64 会反复淘汰；单字数据约 2.4KB 字符串 + 中线点（全库平均 10.8 笔），512 字约 1.3–2MB，在 5 层页面栈的堆预算（61-perf）之内。
+export const STROKES_LRU_SIZE = 512;
 export const EMBEDDED_GLOBAL = 'SHIZI_STROKE_DATA';
 
 /** 数据文件的相对 URL（与旧 charLoader、sw.js 的笔顺路由同形）。 */
@@ -94,7 +96,7 @@ class AttemptError extends Error {
  * @param {number}   [o.timeoutMs=3000]   每次尝试的超时
  * @param {number}   [o.retries=1]        失败后再试几次
  * @param {number}   [o.retryDelayMs=250]
- * @param {number}   [o.lruSize=64]
+ * @param {number}   [o.lruSize=512]
  * @param {object|Function} [o.embedded]  内嵌表 {字: json} 或 (字) => json；缺省读 globalThis.SHIZI_STROKE_DATA
  * @param {string}   [o.base='data/']
  * @param {Function} [o.setTimeout] [o.clearTimeout]

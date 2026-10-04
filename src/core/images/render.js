@@ -144,9 +144,10 @@ export function paintCellContent(ctx, cell, box, { palette, unit, paintStroke = 
     return { strokes, bounds: inkBounds(cell.ink) };
   }
   const data = glyphs ? glyphs.get(cell.ch) : null;
-  // 取不到笔顺数据（10.13）：退回楷体整字，同样填 under（与写字页参考卡的回退同一取舍）
-  if (!paintOutline(ctx, data, { ...at, color: palette.under })) paintFallbackGlyph(ctx, cell.ch, { ...at, color: palette.under });
-  return { strokes: 0, bounds: null };
+  // 练习字统一用轮廓（P1-E2，D33）；取不到笔顺数据（10.13）才退回楷体整字，同样填 under（与写字页参考卡的回退同一取舍）
+  if (paintOutline(ctx, data, { ...at, color: palette.under })) return { strokes: 0, bounds: null, glyph: 'outline' };
+  paintFallbackGlyph(ctx, cell.ch, { ...at, color: palette.under });
+  return { strokes: 0, bounds: null, glyph: 'fallback' };
 }
 
 function paintDot(ctx, box, cell, bounds, { palette, unit }) {

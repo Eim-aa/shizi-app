@@ -2,11 +2,11 @@
 // L61–L69 图例与墙、L283–L313 ink / hollow / wrongStd、L222–L223 墨色四档）。数据来自 model.js（纯函数）。
 //
 // 一格一字（GlyphCell）：
-//   - hollow（自选了还没写）：标准楷体的空心轮廓（原型 hollow()：描边 --i3、纸色填充，缩 .84）。这里用楷体 DOM 文本 +
-//     -webkit-text-stroke 画外轮廓，不取笔顺数据（300 字下不为墙发几十个请求，R-L09）。
-//   - wrong（最近一次判断为写错，K28 / R-L08）：标准楷体 + 右上朱点，不画那一次写错的笔迹；字色按墨色档位取，写错不改字色与大小（设计系统 v1 设计说明 16）。
+//   - hollow（自选了还没写）：标准字形的淡朱双钩（--danzhu 描边、不填）。P1-E2 起由笔画轮廓生成（PracticeGlyph variant="hollow"），
+//     取笔顺数据只在格子到视口附近时才排队（并发 ≤ 6）；轮廓缺失的字回退成楷体文字的空心描边（ShiziKai 回退，10.13 语义）。
+//   - wrong（最近一次判断为写错，K28 / R-L08）：标准字形（轮廓，P1-E2） + 右上朱点，不画那一次写错的笔迹；字色按墨色档位取，写错不改字色与大小（设计系统 v1 设计说明 16）。
 //   - ink：逐判断笔迹打开（P31 policy.features.perRecordInk）且这条记录有墨迹 → 画最近一次的笔迹（write/compare.js InkMini）；
-//     否则按 10.12「有记录无笔迹」不拿别次笔迹补位，用标准楷体占位（任务卡 M3-1）。两者都按墨色档位取色。
+//     否则按 10.12「有记录无笔迹」不拿别次笔迹补位，用标准字形（轮廓，P1-E2）占位（任务卡 M3-1）。两者都按墨色档位取色。
 // 墨色四档（设计系统 v1，P1-E1b）：四个独立色值 --wall1…--wall4（一周内 / 一月内 / 三月内 / 更久，tokens.json color.*.wall1–4），
 // 取代原来的透明度四档（1 / .78 / .58 / .55）与深色「最淡一档提亮」。档位 → 颜色：字面文字直接取 color；本人笔迹 canvas 读 --hand，
 // 所以档位类在格子内把 --hand 改成同一档颜色；图例的一笔短横用 fill。
@@ -20,6 +20,7 @@
 import { html, useEffect, useMemo, useState } from '../../../../vendor/ui.js';
 import { Button } from '../../components/Button.js';
 import { T } from '../../components/styles.js';
+import { PracticeGlyph } from '../../components/PracticeGlyph.js';
 import * as defaultPolicy from '../../../config/policy.js';
 import { t, tInk } from '../../../config/copy/index.js';
 import { InkMini } from '../write/compare.js';
@@ -81,8 +82,8 @@ export const WALL_CSS = `
   place-items:center;overflow:hidden;background:transparent}
 .sz-lib__cell.sz-btn:focus-visible{outline:2px solid ${T.ink1};outline-offset:-2px}
 .sz-lib__g{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none}
-.sz-lib__char{font-family:${T.kai};line-height:1;font-size:calc(280px / var(--cols));font-size:calc(80cqw / var(--cols));
-  color:${T.wall1}}
+/* 标准字形一律轮廓（P1-E2，D33）：字面占格 0.8（tokens.json typography.glyph.wallCellFace，PracticeGlyph 默认），颜色取档位令牌 */
+.sz-lib__char{color:${T.wall1}}
 .sz-lib__g--t0{--hand:${T.wall1}}
 .sz-lib__g--t1{--hand:${T.wall2}}
 .sz-lib__g--t2{--hand:${T.wall3}}
@@ -91,8 +92,8 @@ export const WALL_CSS = `
 .sz-lib__g--t1 .sz-lib__char{color:${T.wall2}}
 .sz-lib__g--t2 .sz-lib__char{color:${T.wall3}}
 .sz-lib__g--t3 .sz-lib__char{color:${T.wall4}}
-/* 自选了还没写：淡朱空心字（轮廓版双钩随 P1-E2 的字形单一来源换成由笔画轮廓生成的双钩，这里先用 text-stroke） */
-.sz-lib__g--hollow .sz-lib__char{color:transparent;-webkit-text-stroke:1px ${T.danzhu};paint-order:stroke fill}
+/* 自选了还没写：淡朱双钩（由笔画轮廓描边生成，P1-E2；不填色，PracticeGlyph variant="hollow"） */
+.sz-lib__g--hollow .sz-lib__char{color:${T.danzhu}}
 .sz-lib__mark{position:absolute;right:9%;top:9%}
 .sz-lib__g .sz-compare__card{position:absolute;inset:4%;width:auto;height:auto;border:0;border-radius:0;background:transparent;padding:0}
 .sz-lib__mini{display:grid;grid-template-columns:repeat(var(--cols),minmax(0,1fr));margin:auto 0 0;padding-top:${T.s1};
@@ -120,7 +121,7 @@ export function Glyph({ cell, getInk, policy = defaultPolicy }) {
   return html`<span class=${`sz-lib__g sz-lib__g--${cell.kind}${tone}`} aria-hidden="true" data-ink=${hasInk ? 'ink' : 'none'}>
     ${hasInk
       ? html`<${InkMini} points=${points} testid="library-cell-ink" emptyText="" />`
-      : html`<span class="sz-lib__char">${cell.char}</span>`}
+      : html`<${PracticeGlyph} char=${cell.char} class="sz-lib__char" variant=${cell.kind === 'hollow' ? 'hollow' : 'fill'} />`}
     ${cell.kind === 'wrong' ? html`<span class="sz-lib__mark"></span>` : null}
   </span>`;
 }

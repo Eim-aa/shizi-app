@@ -16,10 +16,14 @@
 
 import { html, useLayoutEffect, useMemo, useState } from '../../../../vendor/ui.js';
 import { Button } from '../../components/Button.js';
+import { PracticeGlyph } from '../../components/PracticeGlyph.js';
 import { injectStyles, T, TEX } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
 import { InkMini } from '../write/compare.js';
 import { getTodayRecordsAction, recordInkPoints } from './ink-row.js';
+
+/** 字帖格里衬底字的字面占格比例（tokens.json typography.glyph.tieCellFace）。 */
+export const TIE_CELL_FACE = 0.76;
 
 /** 字帖格的列数：≤5 字一行，6–8 字两行四列。 */
 export function tieCols(n) {
@@ -64,7 +68,7 @@ injectStyles('home-copybook', `
 .sz-hcell[data-state="next"]::after{content:"";position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 0 0 ${T.targetW} ${T.ink1}}
 .sz-hcell__ink{position:absolute;inset:12%}
 .sz-hcell__ink .sz-compare__card{position:absolute;inset:0;border:0;border-radius:0;background:transparent;aspect-ratio:auto}
-.sz-hcell__glyph{position:absolute;inset:0;display:grid;place-items:center;font-family:${T.kai};font-size:58cqw;line-height:1;color:${T.under}}
+.sz-hcell__glyph{position:absolute;left:0;top:0;width:100%;height:100%;color:${T.under}} /* 没有墨迹的格：衬底字是轮廓，字面占格 0.76（tokens.json typography.glyph.tieCellFace） */
 .sz-hcell__guides{position:absolute;inset:0;width:100%;height:100%;color:${T.guide};pointer-events:none}
 .sz-hmini{display:flex;justify-content:center;gap:6px}
 .sz-hmini__item{position:relative;width:34px;height:34px;flex:none}
@@ -89,7 +93,7 @@ function CellInk({ record, getInk }) {
   const points = useMemo(() => recordInkPoints(record, getInk), [record, getInk]);
   const has = !!(points && points.length);
   if (has) return html`<span class="sz-hcell__ink"><${InkMini} points=${points} testid="home-ink-mine" emptyText="" /></span>`;
-  return html`<span class="sz-hcell__glyph" aria-hidden="true">${record.char}</span>`;
+  return html`<${PracticeGlyph} class="sz-hcell__glyph" hidden=${true} char=${record.char} face=${TIE_CELL_FACE} />`;
 }
 
 /**

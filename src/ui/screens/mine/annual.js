@@ -17,6 +17,7 @@
 import { html, useMemo } from '../../../../vendor/ui.js';
 import { registerScreen, getScreen, nav } from '../../router.js';
 import { Page } from '../../components/Page.js';
+import { PracticeGlyph, FACE_FULL } from '../../components/PracticeGlyph.js';
 import { Button, pressFeedbackHandlers } from '../../components/Button.js';
 import { CellCanvas, builtInk, useAxSize, useScreenWidth } from '../../components/work.js';
 import { injectStyles, T, TEX } from '../../components/styles.js';
@@ -63,7 +64,8 @@ injectStyles('mine-annual', `
 .sz-ann__tdate{font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3}}
 .sz-ann__empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:24px 0 48px}
 .sz-ann__eglyph{width:88px;height:88px;box-sizing:border-box;border:${T.frameW} dashed ${T.frame};display:grid;place-items:center;
-  font-family:${T.kai};font-size:52px;line-height:1;color:${T.under}}
+  color:${T.under}}
+.sz-ann__eglyph .sz-pg{width:60%;height:60%}
 .sz-ann__etitle{margin:0;font-family:${T.song};font-size:${T.fs22};font-weight:500;color:${T.ink1}}
 .sz-ann__ebody{margin:0;max-width:290px;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3}}
 `);
@@ -131,7 +133,7 @@ function MonthSection({ section, cols, c }) {
 
 function EmptyState() {
   return html`<div class="sz-ann__empty" data-testid="annual-empty">
-    <span class="sz-ann__eglyph" aria-hidden="true" data-testid="annual-empty-glyph">${t('X-ANNUAL.emptyGlyph')}</span>
+    <span class="sz-ann__eglyph" aria-hidden="true" data-testid="annual-empty-glyph"><${PracticeGlyph} char=${t('X-ANNUAL.emptyGlyph')} face=${FACE_FULL} /></span>
     <p class="sz-ann__etitle" data-testid="annual-empty-title">${t('R-M06.emptyTitle')}</p>
     <p class="sz-ann__ebody" data-testid="annual-empty-body">${t('R-M06.emptyBody')}</p>
   </div>`;

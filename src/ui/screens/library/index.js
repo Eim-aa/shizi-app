@@ -24,6 +24,7 @@ import { html, useEffect, useMemo, useState } from '../../../../vendor/ui.js';
 import { registerScreen, getScreen, nav } from '../../router.js';
 import { TabPage } from '../../components/Page.js';
 import { Button } from '../../components/Button.js';
+import { PracticeGlyph, FACE_FULL } from '../../components/PracticeGlyph.js';
 import { injectStyles, T } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
 import { getStore } from '../../../store/store.js';
@@ -96,8 +97,7 @@ injectStyles('library', `
 .sz-lib__more.sz-btn{flex:none;white-space:nowrap;color:${T.ink2}}
 .sz-lib__empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:${T.s2};text-align:center;
   padding:${T.s8} ${T.s4} ${T.s6}}
-.sz-lib__emptyglyph{display:block;margin-bottom:${T.s2};font-family:${T.kai};font-size:calc(46px * ${T.k});line-height:1;
-  color:transparent;-webkit-text-stroke:1px ${T.ink3}}
+.sz-lib__emptyglyph{display:block;margin-bottom:${T.s2};width:calc(46px * ${T.k});height:calc(46px * ${T.k});color:${T.ink3}}
 .sz-lib__emptytitle{margin:0;font-family:${T.song};font-size:${T.fs22};line-height:${T.lh22};font-weight:500;
   color:${T.ink1}}
 .sz-lib__emptytext{margin:0;max-width:calc(250px * ${T.k});font-size:${T.fs15};line-height:${T.lh15};
@@ -229,7 +229,7 @@ function Card({ kind, items, getInk }) {
 
 function EmptyState() {
   return html`<div class="sz-lib__empty" data-testid="library-empty">
-    <span class="sz-lib__emptyglyph" aria-hidden="true">${t('X-LIBHOME.emptyGlyph')}</span>
+    <span class="sz-lib__emptyglyph" aria-hidden="true"><${PracticeGlyph} char=${t('X-LIBHOME.emptyGlyph')} face=${FACE_FULL} variant="hollow" /></span>
     <p class="sz-lib__emptytitle">${t('X-LIBHOME.emptyTitle')}</p>
     <p class="sz-lib__emptytext">${t('R-L05.empty')}</p>
   </div>`;

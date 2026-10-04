@@ -234,7 +234,9 @@ export async function timedNav(page, { method, args = [], containerSel, cellSel 
             return r.bottom > 0 && r.top < h;
           });
           const vc = visible.flatMap(c => [...c.querySelectorAll('canvas')]);
-          if (vc.every(c => c.dataset.painted === 'true')) {
+          // P1-E2：练习字轮廓（SVG 字形 / 衬底 canvas）也算首屏内容：还在「加载中」的不算就绪
+          const glyphWaiting = visible.some(c => c.querySelector('.sz-pg[data-glyph-src="loading"], canvas[data-glyph="loading"]'));
+          if (vc.every(c => c.dataset.painted === 'true') && !glyphWaiting) {
             const canvases = box.querySelectorAll('canvas');
             done({ readyMs: performance.now() - t0, cells: cells.length, canvases: canvases.length, visibleCells: visible.length,
               visibleInk: vc.length, painted: box.querySelectorAll('canvas[data-painted="true"]').length });
@@ -542,6 +544,52 @@ export default async function run(page, ctx) {
   row('练习记录首屏（300 格，3 次最大）', fmtMs(rec300Max), '≤ 200ms', rec300Max <= LIMITS.firstPaintMs);
   const u2 = await storageUsage(page);
   row('localStorage 总占用（300 格变体）', fmtMiB(u2.total), '< 3.2MiB', u2.total < LIMITS.totalBytes);
+
+  // ------------------------------------------------------------------ 8. 练习字轮廓首屏（P1-E2）
+  step('no-ink cells are outlines (P1-E2): wall and month sheet, ~70 chars with no ink, cold stroke cache');
+  await goTab(page, 'home');
+  const outlineSeed = await page.evaluate(async ({ clock }) => {
+    const chars = [...'的一是不了人我在有他这中大来上国个到说们为子和你地出道也时年得就那要下以生会自着去之过家学对可她里后小么心多天而能好都然没日于起还发成事只作当想看文无开手十用主行方又如前所本见经头面公同三已老从动两长知民样现分将外但身些与高意进把法此实回二理美点月明其种声全工己话儿者向情部正名定女问力机给等几很业最间新什写相'].slice(0, 72);
+    const records = {};
+    chars.forEach((c, i) => {
+      const day = `2026-09-${String(1 + (i % 20)).padStart(2, '0')}`;
+      const at = new Date(`${day}T08:00:00`).getTime() + i * 1000;
+      (records['2026-09'] || (records['2026-09'] = [])).push({ id: `r${i + 1}`, cardKey: `base:${c}`, char: c, sessionId: 's901', kind: 'judged', judgment: 'correct', at, localDay: day, help: { hints: 0, answerSeen: false, traced: false } });
+    });
+    window.__shiziTest.reset();
+    window.__shiziTest.setClock(clock);
+    const r = window.__shiziTest.seed({ records });
+    document.dispatchEvent(new Event('visibilitychange'));
+    return { ok: !!(r && r.ok), n: chars.length, r: JSON.stringify(r).slice(0, 300) };
+  }, { clock: CLOCK });
+  assert.ok(outlineSeed.ok && outlineSeed.n >= 60, `seeded ${outlineSeed.n} no-ink records ${outlineSeed.r}`);
+  await page.waitForTimeout(PRESS_SETTLE_MS);
+  const coldWall = [];
+  const coldMonth = [];
+  for (let k = 0; k < 3; k += 1) {
+    await page.evaluate(async () => (await import('/src/data/strokes.js')).getStrokesLoader().clear());
+    coldWall.push(await timedNav(page, { method: 'switchTab', args: ['library'], containerSel: '[data-testid="library-wall"]', cellSel: '[data-testid="library-wall-cell"]' }));
+    await goTab(page, 'home');
+  }
+  await goTab(page, 'mine');
+  for (let k = 0; k < 3; k += 1) {
+    await page.evaluate(async () => (await import('/src/data/strokes.js')).getStrokesLoader().clear());
+    coldMonth.push(await timedNav(page, { method: 'push', args: ['records', { month: '2026-09' }], containerSel: '[data-testid="records-sheet"]', cellSel: '[data-testid="records-sheet-cell"]' }));
+    await backToDepth(page, 0);
+  }
+  const outlineGlyphs = await page.evaluate(async () => {
+    const { nav: n } = await import('/src/ui/router.js');
+    n.switchTab('library');
+    await new Promise(r => setTimeout(r, 800));
+    return [...document.querySelectorAll('.sz-layer[data-top="true"] [data-testid="library-wall-cell"] .sz-pg')].map(g => g.dataset.glyphSrc);
+  });
+  const coldWallMax = Math.max(...coldWall.map(r => r.ms));
+  const coldMonthMax = Math.max(...coldMonth.map(r => r.ms));
+  console.log(`    wall (~70 outline cells, cold): ${coldWall.map(r => fmtMs(r.ms)).join(' / ')}; month sheet (~70 under outlines, cold): ${coldMonth.map(r => fmtMs(r.ms)).join(' / ')}`);
+  assert.ok(outlineGlyphs.length >= 60 && outlineGlyphs.every(x => x === 'outline'), `wall glyph cells are outlines (${outlineGlyphs.length})`);
+  row('墙首屏（约 70 个无笔迹字轮廓，冷笔顺缓存，3 次最大）', fmtMs(coldWallMax), '≤ 200ms', coldWallMax <= LIMITS.firstPaintMs);
+  row('练习记录首屏（约 70 个无笔迹衬底轮廓，冷缓存，3 次最大）', fmtMs(coldMonthMax), '≤ 200ms', coldMonthMax <= LIMITS.firstPaintMs);
+  await goTab(page, 'home');
 
   // 参考：CDP CPU 4× 降速（粗略模拟中端手机主线程；不作断言，真机数字见 M7）。
   step('reference only: the same first paints under CDP CPU throttling 4×');

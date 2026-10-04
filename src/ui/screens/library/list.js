@@ -36,6 +36,7 @@ import { registerScreen, getRouter, getScreen, nav } from '../../router.js';
 import { Page } from '../../components/Page.js';
 import { Button, markStateChange } from '../../components/Button.js';
 import { Chevron } from '../../components/Chevron.js';
+import { PracticeGlyph, FACE_FULL } from '../../components/PracticeGlyph.js';
 import { injectStyles, T, TEX } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
 import * as defaultPolicy from '../../../config/policy.js';
@@ -93,8 +94,7 @@ injectStyles('library-list', `
 .sz-lrow__gap{flex:none;width:27px}
 .sz-lrow__open{flex:1;min-width:0;min-height:84px;box-sizing:border-box;padding:10px 0;display:flex;align-items:center;gap:12px;
   text-align:left;color:inherit}
-.sz-lrow__char{flex:none;width:calc(44px * ${T.k});text-align:center;font-family:${T.kai};font-size:${T.fs34};
-  line-height:${T.lh34};color:${T.ink1}}
+.sz-lrow__char{flex:none;width:calc(44px * ${T.k});height:calc(44px * ${T.k});color:${T.ink1}} /* 标准字形用轮廓（P1-E2）：44pt 方框，字面 ≈ 34pt */
 .sz-lrow__main{flex:1;min-width:0;display:flex;flex-direction:column;gap:${T.s1}}
 .sz-lrow__word{font-family:${T.kai};font-size:${T.fs22};line-height:${T.lh22};color:${T.ink2}}
 .sz-lrow__word b{font-weight:700;color:${T.ink1}}
@@ -116,7 +116,8 @@ injectStyles('library-list', `
 .sz-list-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:${T.s4};text-align:center;
   padding:${T.s6} 0 ${T.s16}}
 .sz-list-empty__glyph{width:88px;height:88px;box-sizing:border-box;border:${T.frameW} dashed ${T.frame};display:grid;
-  place-items:center;font-family:${T.kai};font-size:52px;color:${T.under}}
+  place-items:center;color:${T.under}}
+.sz-list-empty__glyph .sz-pg{width:60%;height:60%}
 .sz-list-empty__title{margin:0;font-family:${T.song};font-size:${T.fs22};line-height:${T.lh22};font-weight:500;
   color:${T.ink1}}
 .sz-list-empty__body{margin:0;max-width:290px;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3};text-wrap:pretty}
@@ -200,7 +201,7 @@ function Row({ row, ink, onToggle, onDetail }) {
     : html`<span class="sz-lrow__gap" aria-hidden="true"></span>`;
   const w = row.word;
   const body = html`
-    <span class="sz-lrow__char" data-testid="list-row-char">${row.char}</span>
+    <span class="sz-lrow__char" data-testid="list-row-char"><${PracticeGlyph} char=${row.char} face=${0.7} /></span>
     <span class="sz-lrow__main">
       ${w.has ? html`<span class="sz-lrow__word" data-testid="list-row-word">${w.pre}${w.tg ? html`<b>${w.tg}</b>` : null}${w.post}</span>` : null}
       <span class="sz-lrow__meta" data-testid="list-row-meta">${row.metaParts.map((part, i) => html`${i ? ' ' : ''}<span key=${i}>${i ? `· ${part}` : part}</span>`)}</span>
@@ -280,7 +281,7 @@ function ListScreen({ params, entry }) {
   if (model.empty) {
     return html`<${Page} title=${model.title} testid="list-screen">
       <div class="sz-list-empty" data-testid="list-empty" data-kind=${kind}>
-        <span class="sz-list-empty__glyph" aria-hidden="true" data-testid="list-empty-glyph">${model.emptyGlyph}</span>
+        <span class="sz-list-empty__glyph" aria-hidden="true" data-testid="list-empty-glyph"><${PracticeGlyph} char=${model.emptyGlyph} face=${FACE_FULL} /></span>
         <h2 class="sz-list-empty__title" data-testid="list-empty-title">${model.emptyTitle}</h2>
         <p class="sz-list-empty__body" data-testid="list-empty-body">${model.emptyBody}</p>
       </div>

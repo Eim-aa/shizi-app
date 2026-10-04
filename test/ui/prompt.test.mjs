@@ -13,6 +13,7 @@ import {
   promptCopy, promptCells, blankLabel, toneOfPinyin, PromptView, REVEAL_PHASES, cardForKey, setCardResolver, indexCards,
 } from '../../src/ui/screens/write/prompt.js';
 import { t } from '../../src/config/copy/index.js';
+import { PracticeGlyph, PracticeGlyphView } from '../../src/ui/components/PracticeGlyph.js';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const require = createRequire(import.meta.url);
@@ -36,6 +37,8 @@ function walk(vnode, out = { attrs: [], texts: [], props: [] }) {
     return out;
   }
   const { type, props } = vnode;
+  // 练习字组件（P1-E2）带 hooks（取数 / 视口观察），不能在 node 里直接调：按它的第一帧（加载中：只有读屏文字，没有任何可见字形）展开
+  if (type === PracticeGlyph) return walk(PracticeGlyphView({ ...props, status: 'loading' }), out);
   if (typeof type === 'function') return walk(type(props), out);
   for (const [name, value] of Object.entries(props || {})) {
     if (name === 'children') continue;
@@ -79,7 +82,9 @@ const STATIC_ATTRS = new Set([
   'class=sz-prompt__wordwrap', 'class=sz-prompt__word', 'data-testid=write-prompt-word', 'class=sz-prompt__cell',
   'data-kind=text', 'data-kind=blank', 'data-kind=repeatBlank', 'data-masked=true', 'data-testid=write-prompt-cell',
   'class=sz-prompt__py', 'data-testid=write-prompt-py', 'class=sz-prompt__cross', 'aria-hidden=true', 'role=img',
-  'class=sz-prompt__fill', 'class=sz-prompt__hint', 'id=sz-prompt-hint-test', 'aria-live=polite', 'data-testid=write-prompt-hint',
+  'class=sz-prompt__fill', 'class=sz-prompt__hint',
+  // 练习字组件（PracticeGlyph）第一帧：字形没到之前只有视觉隐藏的字（.sz-pg__sr）（文本子节点），属性都是界面常量
+  'class=sz-pg', 'class=sz-pg sz-prompt__fill', 'data-glyph-src=loading', 'data-glyph-variant=fill', 'class=sz-pg__sr', 'id=sz-prompt-hint-test', 'aria-live=polite', 'data-testid=write-prompt-hint',
 ]);
 
 test('all cards: cells per code point, blank shows pinyin, other targets □, no answer in any text or attribute', async () => {
@@ -100,7 +105,7 @@ test('all cards: cells per code point, blank shows pinyin, other targets □, no
     // 属性与卡片无关：只能是固定集合里的值（界面常量）或 --n/--bi 版式变量——卡片内容（字、词、拼音、提示）从不进属性。
     // 例外：空格的读屏名称（A9）只由位置 + 拼音 + 声调决定（不含答案字）——下面单独断言。
     const blankName = model.cells.filter(c => c.kind === 'blank' && c.label).map(c => `aria-label=${c.label}`);
-    const dynamic = tree.attrs.filter(a => !STATIC_ATTRS.has(a) && !blankName.includes(a) && !/^style=--n:\d+;--bi:\d+$/.test(a) && !/^key=\d+$/.test(a));
+    const dynamic = tree.attrs.filter(a => !STATIC_ATTRS.has(a) && !blankName.includes(a) && !/^style=--n:\d+;--bi:\d+$/.test(a) && !/^key=\d+$/.test(a) && a !== 'style=[object Object]');
     if (dynamic.length) failures.push([card.cardKey, 'card-dependent attribute', dynamic]);
     const blankCell = model.cells.find(c => c.kind === 'blank');
     const idx = model.cells.indexOf(blankCell);

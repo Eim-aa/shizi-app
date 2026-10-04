@@ -499,7 +499,23 @@ export default async function run(page, ctx) {
   assert.equal(jing.day, '2026-09-22', '静 uses the first record this month that still has ink (D42): 9-22, not the recycled 9-1');
   assert.equal(jing.ink, 'true', '静 cell draws 9-22\'s own ink (D42 解 P122)');
   assert.equal(v.cells.find(c => c.char === '感').ink, 'true', '感 cell draws that record\'s own ink (its first and latest judgment)');
-  assert.equal(jing.tagText, '9·22', 'red date tag follows the picked record (M02)');
+  // Q2-4（复测 simB D5）：我的页字帖卡片的日期角标与月字帖页一致——只写「日」、t11 hei 500 ink3、骑在格上边线上（不在格内、不碰字形）。
+  // 旧断言 '9·22'（「月·日」写在格内左上、字形缩小让位）改成 '22'。
+  assert.equal(jing.tagText, '22', 'date tag follows the picked record (M02); day only, like the month page (Q2-4)');
+  const tagGeo = await page.evaluate(() => {
+    const cell = [...document.querySelectorAll('.sz-layer[data-top="true"] [data-testid="mine-sheet-cell"]')].find(c => c.dataset.tag);
+    const tag = cell.querySelector('.sz-scell__tag');
+    const sq = cell.querySelector('.sz-scell__sq');
+    const cs = getComputedStyle(tag);
+    const r = tag.getBoundingClientRect();
+    const c = cell.getBoundingClientRect();
+    const q = sq.getBoundingClientRect();
+    return { size: cs.fontSize, weight: cs.fontWeight, family: cs.fontFamily.split(',')[0].trim(), straddles: r.top < c.top && r.bottom > c.top,
+      glyphScaled: Math.abs(q.width - c.width) > 1, tagText: tag.textContent.trim(), glyphClear: r.bottom <= q.top + 6 };
+  });
+  assert.deepEqual([tagGeo.size, tagGeo.weight], ['11px', '500'], 'tag is t11 / 500 (same as the month page)');
+  assert.equal(tagGeo.straddles, true, 'tag rides the cell’s top edge (not inside the cell)');
+  assert.equal(tagGeo.glyphScaled, false, 'the ink is not shrunk to make room for the tag');
   assert.equal(v.cells.find(c => c.char === '数').ink, 'false', 'no ink → 没有笔迹 (10.12, no borrowing)');
   assert.equal(v.cells.find(c => c.char === '感').tagText, null, 'same date as previous cell → no tag');
   assert.equal(jing.label, '静 · 9 月 22 日', 'cell accessible name follows the picked record');

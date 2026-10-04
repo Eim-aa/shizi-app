@@ -4097,12 +4097,6 @@
           "note": "M4-1：读屏名——练习记录「›」（原型 L89 data-nav=nextMonth，无文字）；待文案",
           "decision": "P76"
         },
-        "cellTag": {
-          "raw": null,
-          "text": "{month}·{day}",
-          "origin": "原型 ShiziScreen-第十稿交接版.dc.html L266 fmt()「9·1」",
-          "note": "M4-1：字帖格子左上角红色小日期（R-P02「红色小字是那天的日期」）"
-        },
         "cellLabel": {
           "raw": null,
           "text": "{char} · {date}",

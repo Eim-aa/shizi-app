@@ -53,7 +53,6 @@ export default Object.freeze({
   'X-MINE.monthNone': '{month} 月还没有记录',
   'X-MINE.prevMonth': '上个月',
   'X-MINE.nextMonth': '下个月',
-  'X-MINE.cellTag': '{month}·{day}',
   'X-MINE.cellLabel': '{char} · {date}',
   'X-MINE.sheetOrder': '按第一次写下的先后排列',
   'X-MINE.sheetEmpty': '这个月还没有可以放进图片的字',

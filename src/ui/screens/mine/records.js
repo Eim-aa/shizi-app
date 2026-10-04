@@ -37,6 +37,7 @@ import * as defaultPolicy from '../../../config/policy.js';
 import { getStore } from '../../../store/store.js';
 import { now as envNow } from '../../../platform/env.js';
 import { cnCount, localDay, monthDayParts, monthOf, signatureMonthParts } from '../../../core/dates.js';
+import { dayTag } from '../../../core/images/layout.js';
 import { setTodayRecordsAction } from '../home/ink-row.js';
 import { openDetail } from '../detail/index.js';
 import { hasInkPoints, inkOf, recordHasInk } from '../detail/records.js';
@@ -112,13 +113,12 @@ injectStyles('mine-records', `
 .sz-scell[data-pressed]{background:${T.field}}
 .sz-zt--gap .sz-scell[data-pressed]{background:${T.field}}
 .sz-scell__sq{position:absolute;inset:0;display:grid;place-items:center}
-.sz-scell__sq--tag{transform:translate(6%,9%) scale(.78)}
 .sz-scell__sq .sz-compare__card{position:absolute;inset:0;width:100%;height:100%;border:0;border-radius:0;background:transparent;padding:0}
 .sz-scell__glyph{position:absolute;left:50%;top:42%;width:40%;height:auto;aspect-ratio:1/1;transform:translate(-50%,-50%);color:${T.under}} /* 衬底字是轮廓（P1-E2），字面约占格 32% */
 .sz-scell__noink{position:absolute;left:0;right:0;top:80%;transform:translateY(-50%);text-align:center;font-family:${T.hei};
   font-size:clamp(9px, 16cqw, 12px);line-height:1;color:${T.ink3};white-space:nowrap}
-.sz-scell__tag{position:absolute;left:3px;top:2px;font-size:${T.fs11};line-height:1;color:${T.ink3};
-  font-variant-numeric:tabular-nums;pointer-events:none}
+.sz-scell__tag{position:absolute;left:4px;top:-6px;z-index:1;padding:0 2px;background:${T.sheet};font-family:${T.hei};font-size:${T.fs11};line-height:${T.lh11};
+  font-weight:500;color:${T.ink3};font-variant-numeric:tabular-nums;pointer-events:none} /* 骑在格上边线上，与月字帖页 .sz-mcell__tag 同一写法（Q2-4） */
 .sz-msign{display:flex;justify-content:space-between;align-items:flex-end;gap:12px}
 .sz-msign__text{display:flex;flex-direction:column;gap:4px;min-width:0}
 .sz-msign__line{font-size:${T.fs11};line-height:${T.lh11};color:${T.ink2}}
@@ -258,13 +258,9 @@ export function dayText(day) {
   }
 }
 
-/** 格子角标「9·1」（原型 fmt）。 */
+/** 格子角标：只写「日」（月份在标题里），与月字帖页同一写法（core/images/layout.js dayTag，P163；Q2-4）。 */
 export function tagText(day) {
-  try {
-    return t('X-MINE.cellTag', monthDayParts(day));
-  } catch (error) {
-    return '';
-  }
+  return dayTag(day);
 }
 
 /** 月字帖落款「二〇二六年九月 · 有记录六天 · 二十六个字」（R-I01.monthSignature / signatureMonth；汉字数字，文案-D3）。 */
@@ -290,7 +286,7 @@ export function SheetCell({ cell, store, testid, showTag = true }) {
   return html`<button type="button" class="sz-scell" ...${CELL_PRESS} data-testid=${testid} data-char=${cell.char} data-day=${cell.day || ''}
     data-tag=${tag ? cell.tag : ''} data-record=${cell.record ? cell.record.id : ''} data-ink=${has ? 'true' : 'false'}
     aria-label=${label} onClick=${() => openCell(cell.char)}>
-    <span class=${tag ? 'sz-scell__sq sz-scell__sq--tag' : 'sz-scell__sq'}>
+    <span class="sz-scell__sq">
       ${has
         ? html`<${InkMini} points=${ink.points} strokes=${ink.strokes} testid=${`${testid}-ink`} label=${cell.char} />`
         : html`<${PracticeGlyph} class="sz-scell__glyph" hidden=${true} char=${cell.char} />

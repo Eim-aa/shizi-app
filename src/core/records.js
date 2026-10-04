@@ -213,6 +213,25 @@ export function withoutPaper(records) {
 }
 
 /**
+ * 折叠月份（01 §9）里「作品」的 byDay：byDay 去掉只在纸上写过的（日, 字）（fold.paperOnly，折叠时记下，P1-E78）；
+ * 去掉后没有字的日子不出现。没有 paperOnly（该月折叠时还没有纸上记录，或没有纸上记录）就是 byDay 本身。
+ * 日历「写过的日子」不用它——纸上那天仍算写过（D47）。
+ * @returns {{[localDay]: string[]}}
+ */
+export function foldWorkByDay(fold) {
+  const byDay = fold && fold.byDay && typeof fold.byDay === 'object' ? fold.byDay : {};
+  const paperOnly = fold && fold.paperOnly && typeof fold.paperOnly === 'object' ? fold.paperOnly : null;
+  const out = {};
+  for (const [day, chars] of Object.entries(byDay)) {
+    if (!Array.isArray(chars)) continue;
+    const skip = paperOnly && Array.isArray(paperOnly[day]) ? paperOnly[day] : null;
+    const kept = skip ? chars.filter((c) => !skip.includes(c)) : chars.slice();
+    if (kept.length) out[day] = kept;
+  }
+  return out;
+}
+
+/**
  * 更正（决定-D19）：只改 judgment、追加 corrections；id/at/localDay 不变、帮助事实不变。
  * 同判断视为无变化（返回原对象）。legacy 记录与非 judged 记录不可更正（K25）。
  */

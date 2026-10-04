@@ -317,7 +317,8 @@ function validateRecordList(list, path, month) {
 
 /**
  * 按月记录键的值：当月 Record[]（按 id 升序），或预算回收折叠后的月汇总（01 §9）：
- *   { folded: true, month, byDay: {[localDay]: [char…]}, chars: [char…], kept: Record[] }
+ *   { folded: true, month, byDay: {[localDay]: [char…]}, chars: [char…], kept: Record[], paperOnly?: {[localDay]: [char…]} }
+ * paperOnly（可缺省）：byDay 里那天只在纸上写过的字（D47，P1-E78）；年报 / 月字数据此不计它们，日历照常算写过的日子。
  * byDay/chars 供日历与「练习记录」显示；kept 保留该月里仍是「某字最近一次 judged」或「某字第一次 judged」（D27，阶段 1 P1-E3）的记录，
  * 以维持「sched 存在 ⇒ 有 judged 记录」与写错过/快忘了查询（折叠细节见报告里的待定项）。
  */
@@ -329,6 +330,8 @@ export function validateRecordsMonth(value, month, path = 'records') {
     byDay: (x, p) => checkMap(x, p, key => isLocalDay(key) && monthOfDay(key) === month, v.arrayOf(v.char)),
     chars: v.arrayOf(v.char),
     kept: (x, p) => validateRecordList(x, p, month),
+    // 可缺省：byDay 里「那天只在纸上写过」的字（D47：不计入年报 / 月字数；折叠时记下，缺省 = 没有）
+    paperOnly: (x, p) => checkMap(x, p, key => isLocalDay(key) && monthOfDay(key) === month, v.arrayOf(v.char)),
   };
   return checkFields(value, path, fields, ['folded', 'month', 'byDay', 'chars', 'kept']);
 }

@@ -5,13 +5,13 @@
 //   可手动加入 = 写错 ∧ 有墨                                        state 'addable'（作品下一行「放进去」）→ 加入后 'added'（带朱点，D46 ⑥）
 //   不可加入   = 无墨：写对 / 写错但没留墨迹（'noInk'）、看过答案没写（'seen'）、跳过（'skipped'）、纸上（'paper'）
 // 顺序 = 组内顺序（items 顺序）；墨取本次该字最后一次本人墨（D11 / D42，由调用方的 hasInk 判断「这条记录有没有墨」）。
-// 「纸上」：阶段 1 本卡只留判定接口 isPaperRecord（记录 source === 'paper'）；纸上记录 ink = null，所以同样落在「无墨不收」里。
+// 「纸上」：记录 source === 'paper'（core/records.js isPaperRecord；P1-E8 字段，P1-E78 接入）；纸上记录 ink = null，永远不进作品、不可「放进去」，state 'paper'。
 // 「放进去」的状态存在本组会话上（session.added = recordId[]，经 store.commit），刷新后仍在（core/schema.js sessionFields.added）。
 
-/** 纸上记录的判定接口（D46-13：记录 source: 'screen' | 'paper'；字段由后续卡写入）。 */
-export function isPaperRecord(record) {
-  return !!record && record.source === 'paper';
-}
+import { isPaperRecord } from '../records.js';
+
+// 判定在 core/records.js（P1-E8 字段、P1-E78 接入）；这里再导出，保持 images 内部与单测的引用不变。
+export { isPaperRecord };
 
 /** 本组里用户「放进去」的记录 id 集合。 */
 export function addedOf(session) {

@@ -7,8 +7,9 @@
 //   这天写的字（day）      那天判断过的字每字最近一次（按那天第一次出现的先后）；缺墨的字不画（P50 omit）。
 //   月字帖（month）        本月判断过的字，按本月第一次出现的先后；每字取本月内留有墨迹的第一次（D42；policy.monthSheetPick 'first'）；
 //                          整个月一份墨迹都没有的字**照样在**，画 under 衬底（交接 §7，不写「没有笔迹」）；日期角标只标每天的第一个字；
-//                          纸上记录不进（D46-13，isPaperRecord），所以月字数也不计它。
-//   单字手写图片（glyph）  这个字最近一次 judged（A05）；那次没有笔迹就不生成（R-D04 置灰）。
+//                          纸上记录不进（D46-13 / D47，isWorkRecord；折叠月用 paperOnly 去掉），所以月字数也不计它；
+//                          纸上记录必须在 pickRecordInPeriod 之前滤掉（段内全无墨时它会兜底取那条）。
+//   单字手写图片（glyph）  这个字最近一次 judged、不在纸上（A05；纸上那次不占位，D47）；那次没有笔迹就不生成（R-D04 置灰）。
 // 超过 80 字（D39）：不再返回 pending——plan.pages 按日期分页（paginate.js），每页独立排版。
 // 「最近一次」「第一次」一律按记录 id 序号（01 §3.1），不看 at。D42：时间段内每字找留有墨迹的那一次（core/ink-pick.js），
 // 时间段外的墨迹不进候选，不冒充。
@@ -16,12 +17,12 @@
 // inkOf(record) → 345 单位点列（每笔 [{x,y,w,…}]，已 resampleForReplay）或 null；由调用方注入（界面层读 store 的墨迹表）。
 
 import * as defaultPolicy from '../../config/policy.js';
-import { charOfCardKey, compareRecordIds, isJudged } from '../records.js';
+import { charOfCardKey, compareRecordIds, foldWorkByDay, isPaperRecord, isWorkRecord } from '../records.js';
 import { isValidDay, isValidMonth, localDay } from '../dates.js';
 import { MAX_CHARS_PER_PAGE, withDayTags } from './layout.js';
 import { paginate, retagPages } from './paginate.js';
 import { dayTag } from './layout.js';
-import { addedOf, buildWork, isPaperRecord } from './work.js';
+import { addedOf, buildWork } from './work.js';
 import { pickRecordInPeriod } from '../ink-pick.js';
 
 export const IMAGE_KINDS = Object.freeze(['session', 'day', 'month', 'glyph']);
@@ -122,7 +123,7 @@ export function sessionWork(state, { slot = null, sessionId, hasInk }) {
 /** 某天写的字：那天 judged，每字取那天内从晚到早第一条留有墨迹的判断（R-P03 的「最近一次」+ D42）。 */
 export function dayMembers(state, day, { hasInk = null } = {}) {
   if (!isValidDay(day)) throw new Error('INVALID_DAY');
-  const judged = flattenRecords(state && state.records).filter(r => isJudged(r) && !isPaperRecord(r) && r.localDay === day);
+  const judged = flattenRecords(state && state.records).filter(r => isWorkRecord(r) && r.localDay === day);
   return { members: groupByChar(judged, 'last', hasInk), day };
 }
 
@@ -135,11 +136,11 @@ export function monthMembers(state, month, { pick = defaultPolicy.monthSheetPick
   const records = state && state.records;
   const folded = foldedMonth(records, month);
   const prefix = month + '-';
-  const judged = flattenRecords(records).filter(r => isJudged(r) && !isPaperRecord(r) && typeof r.localDay === 'string' && r.localDay.startsWith(prefix));
+  const judged = flattenRecords(records).filter(r => isWorkRecord(r) && typeof r.localDay === 'string' && r.localDay.startsWith(prefix));
   let members;
   let days;
   if (folded) {
-    const byDay = folded.byDay && typeof folded.byDay === 'object' ? folded.byDay : {};
+    const byDay = foldWorkByDay(folded); // 折叠时记下的「只在纸上写过」的字不进（D47）
     days = Object.keys(byDay).filter(d => d.startsWith(prefix)).sort();
     const seen = new Set();
     members = [];
@@ -164,7 +165,7 @@ export function monthMembers(state, month, { pick = defaultPolicy.monthSheetPick
 
 /** 单字：这个字最近一次 judged（A05）。 */
 export function glyphMember(state, char) {
-  const judged = flattenRecords(state && state.records).filter(r => isJudged(r) && charOf(r) === char);
+  const judged = flattenRecords(state && state.records).filter(r => isWorkRecord(r) && charOf(r) === char);
   const record = judged.length ? judged[judged.length - 1] : null;
   return record ? { char, cardKey: record.cardKey, record, firstDay: judged[0].localDay } : null;
 }

@@ -291,17 +291,27 @@ function foldMonth(month, list, keepIds) {
   const byDay = {};
   const chars = [];
   const seen = new Set();
+  // 「那天只在纸上写过」的字（D47）：折叠后年报 / 月字数不计它们（日历仍按 byDay 算写过的日子）。
+  const screenDay = new Set();
+  for (const rec of list) if (rec.kind === 'judged' && rec.source !== 'paper') screenDay.add(rec.localDay + '\u0000' + rec.char);
+  const paperOnly = {};
   for (const rec of list) {
     if (rec.kind !== 'judged') continue;
     const day = byDay[rec.localDay] || (byDay[rec.localDay] = []);
     if (day.indexOf(rec.char) < 0) day.push(rec.char);
+    if (rec.source === 'paper' && !screenDay.has(rec.localDay + '\u0000' + rec.char)) {
+      const po = paperOnly[rec.localDay] || (paperOnly[rec.localDay] = []);
+      if (po.indexOf(rec.char) < 0) po.push(rec.char);
+    }
     if (!seen.has(rec.char)) {
       seen.add(rec.char);
       chars.push(rec.char);
     }
   }
   const kept = list.filter(rec => keepIds.has(rec.id));
-  return { folded: true, month, byDay, chars, kept };
+  const out = { folded: true, month, byDay, chars, kept };
+  if (Object.keys(paperOnly).length) out.paperOnly = paperOnly;
+  return out;
 }
 
 /**

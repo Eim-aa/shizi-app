@@ -106,7 +106,7 @@ test('policy: transitional defaults match 03 / the M0-6 card', () => {
   assert.equal(policy.compactMaxHeight, 760, 'P69');
   assert.deepEqual(
     { ...policy.writeGrid },
-    { min: 258, max: 400, sideMargin: 20, promptGap: 16, toolsHeight: 40, toolsHeightAx: 52, bottomGap: 16, topShare: 0.4, topMin: 12 },
+    { min: 258, max: 400, sideMargin: 20, promptGap: 16, toolsHeight: 40, toolsHeightAx: 52, bottomGap: 16, topShare: 0.4, topMin: 12, nominalHead: 44, nominalFoot: 116, footBottomMin: 8, nominalPrompt: 80 },
     'P118 D36 / D49（E9b：实现交接 §13.2 的整组居中公式）',
   );
   assert.deepEqual(

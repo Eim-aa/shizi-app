@@ -11,7 +11,7 @@ test('constants follow D36 / V02', () => {
   assert.equal(GRID_MAX, 400);
   assert.deepEqual(
     { ...policy.writeGrid },
-    { min: 258, max: 400, sideMargin: 20, promptGap: 16, toolsHeight: 40, toolsHeightAx: 52, bottomGap: 16, topShare: 0.4, topMin: 12 },
+    { min: 258, max: 400, sideMargin: 20, promptGap: 16, toolsHeight: 40, toolsHeightAx: 52, bottomGap: 16, topShare: 0.4, topMin: 12, nominalHead: 44, nominalFoot: 116, footBottomMin: 8, nominalPrompt: 80 },
     'P118（D49：整组居中公式的参数；书写格边长公式的测试在 write-layout.test.mjs）',
   );
   assert.equal(ANSWER_MIN, 200);

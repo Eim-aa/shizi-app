@@ -7,7 +7,7 @@
 //   4. {月}字帖（我的「保存图片 ›」注册的去处 openMonthImage）：P02 本月第一次、骑线角标（只写日）、整月没墨的字画衬底（仍占一格、仍计字数）、有记录天数；
 //      这天写的字（R-P03）。
 //   5. > 80 字不再 pending（D39）：按日期分页、每页 ≤ 80 字、不截字。
-//   6. 原生壳（假 webkit.messageHandlers）：「保存图片」发 savePracticeCard（原生壳现在只认 PNG，P162）→ shiziCardSaved({success:false})
+//   6. 原生壳（假 webkit.messageHandlers）：「保存图片」发 savePracticeCard（Q2-6 起原生壳也收 JPEG，P162）→ shiziCardSaved({success:false})
 //      → R-B10 失败说明 +「再试一次」→ 成功 → 轻提示「存好了」；「分享」发 sharePracticeCard。
 //   7. 全程不写存储（getWriteLog 无新增；「也放进来」是例外：它经 store.commit 写本组会话的 added，单独断言）。
 
@@ -228,6 +228,13 @@ export default async function run(page, ctx) {
     else i += 2 + buf.readUInt16BE(i + 2);
   }
   assert.deepEqual(sof, { w: 1440, h: 1920 }, 'downloaded JPEG is 1440×1920');
+  // Q2-6：JPEG 0.92 比同一张画布的 PNG 小得多（复测 simB：PNG 约 2.2MB/张）
+  const pngBytes = await page.evaluate(() => {
+    const c = document.querySelector('[data-testid="image-canvas"]');
+    const b64 = c.toDataURL('image/png').split(',')[1];
+    return Math.floor(b64.length * 3 / 4);
+  });
+  assert.ok(buf.length < pngBytes * 0.6, `JPEG ${buf.length} B is well under the PNG ${pngBytes} B of the same canvas`);
   await page.waitForFunction(() => document.querySelector('[data-testid="image-preview"]').dataset.save === 'saved');
   assert.equal((await page.textContent(tid('toast'))).trim(), COPY.saved, 'toast 「存好了」');
   // 「也放进来」：永 加入 → 重画，成员 永静，永带朱点；写进本组会话（这是本 spec 里唯一的存储写入）
@@ -351,7 +358,7 @@ export default async function run(page, ctx) {
   await closeOverlay(page);
 
   // ------------------------------------------------------------------ 5. 原生壳
-  ctx.step('native shell: savePracticeCard (PNG until the shell accepts JPEG, P162) → shiziCardSaved false → R-B10 + 再试一次 → true → toast 存好了; sharePracticeCard');
+  ctx.step('native shell: savePracticeCard (JPEG since Q2-6, P162) → shiziCardSaved false → R-B10 + 再试一次 → true → toast 存好了; sharePracticeCard');
   await installNativeStub(page);
   await bootTestHost(page, ctx.baseURL);
   flat = await seed(page);
@@ -362,8 +369,8 @@ export default async function run(page, ctx) {
   await page.waitForFunction(() => (window.__nativeMsgs || []).some(m => m.type === 'savePracticeCard'));
   let msgs = await nativeMessages(page, 'savePracticeCard');
   assert.equal(msgs.length, 1, 'one savePracticeCard message');
-  assert.ok(msgs[0].dataURL.startsWith('data:image/png;base64,'), 'dataURL is a PNG (WebViewController.pngData only accepts PNG; NATIVE_ACCEPTS_JPEG = false)');
-  assert.deepEqual([msgs[0].kind, msgs[0].name], ['session', 'shizi-session-s90-1x1.png'], 'kind and file name (extension follows the real format)');
+  assert.ok(msgs[0].dataURL.startsWith('data:image/jpeg;base64,'), 'dataURL is a JPEG (Q2-6: WebViewController.imageData accepts JPEG, NATIVE_ACCEPTS_JPEG = true)');
+  assert.deepEqual([msgs[0].kind, msgs[0].name], ['session', 'shizi-session-s90-1x1.jpg'], 'kind and file name (extension follows the real format)');
   v = await preview(page);
   assert.equal(v.saveState, 'busy', 'waiting for the native callback');
   await page.evaluate(() => window.shiziCardSaved({ success: false }));
@@ -386,7 +393,7 @@ export default async function run(page, ctx) {
   await page.waitForFunction(() => (window.__nativeMsgs || []).some(m => m.type === 'sharePracticeCard'));
   msgs = await nativeMessages(page, 'sharePracticeCard');
   assert.equal(msgs.length, 1, 'one sharePracticeCard message');
-  assert.ok(msgs[0].dataURL.startsWith('data:image/png;base64,') && msgs[0].name === 'shizi-session-s90-1x1.png', 'share payload');
+  assert.ok(msgs[0].dataURL.startsWith('data:image/jpeg;base64,') && msgs[0].name === 'shizi-session-s90-1x1.jpg', 'share payload (JPEG)');
   await closeOverlay(page);
   const direct = await page.evaluate(() => window.__shiziTest.getWriteLog().filter(e => e.via === 'direct').length);
   assert.equal(direct, 0, 'no write bypasses storage.js');

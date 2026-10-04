@@ -461,17 +461,18 @@ final class WebViewController: UIViewController {
 
     private func sharePracticeCard(filename: String, dataURL: String) {
         guard presentedViewController == nil else { return }
-        guard let data = Self.pngData(fromDataURL: dataURL) else {
-            logNative("sharePracticeCard rejected a payload that is not a PNG data URL")
+        guard let image = Self.imageData(fromDataURL: dataURL) else {
+            logNative("sharePracticeCard rejected a payload that is not a JPEG / PNG data URL")
             notifyShareFailed(kind: "card", reason: "payload")
             return
         }
+        let data = image.data
 
         let safeStem = filename
             .replacingOccurrences(of: "/", with: "-")
             .replacingOccurrences(of: ":", with: "-")
             .replacingOccurrences(of: "\\", with: "-")
-        let safeName = safeStem.lowercased().hasSuffix(".png") ? safeStem : "\(safeStem).png"
+        let safeName = Self.fileName(safeStem, forExtension: image.fileExtension)
         let fileURL = temporaryShareURL(filename: safeName)
         do {
             try data.write(to: fileURL, options: .atomic)
@@ -695,7 +696,7 @@ extension WebViewController: WKScriptMessageHandler {
             let payload = body["payload"] as? String ?? "{}"
             shareBackup(filename: name, payload: payload)
         case "sharePracticeCard":
-            let name = body["name"] as? String ?? "shizi-card.png"
+            let name = body["name"] as? String ?? "shizi-card.jpg"
             let dataURL = body["dataURL"] as? String ?? ""
             sharePracticeCard(filename: name, dataURL: dataURL)
         case "savePracticeCard":
@@ -750,21 +751,40 @@ extension WebViewController: UIGestureRecognizerDelegate {
 
 // MARK: - 图片存相册：成功与否回 shiziCardSaved({success})，提示文案在 Web 侧（R-B10）
 extension WebViewController {
-    static func pngData(fromDataURL dataURL: String) -> Data? {
-        guard
-            dataURL.hasPrefix("data:image/png;base64,"),
-            let comma = dataURL.firstIndex(of: ","),
-            let data = Data(base64Encoded: String(dataURL[dataURL.index(after: comma)...])),
-            data.count <= 12 * 1024 * 1024,
-            data.starts(with: [0x89, 0x50, 0x4E, 0x47])
+    /// 页面发来的导出图：JPEG（交接 §6.5，quality 0.92）或 PNG（旧页面）。只认 `data:image/jpeg|png;base64,` 且文件头与声明一致、≤ 12MB。
+    struct CardImage {
+        let data: Data
+        let fileExtension: String
+    }
+
+    static func imageData(fromDataURL dataURL: String) -> CardImage? {
+        let kinds: [(prefix: String, magic: [UInt8], ext: String)] = [
+            ("data:image/jpeg;base64,", [0xFF, 0xD8, 0xFF], "jpg"),
+            ("data:image/png;base64,", [0x89, 0x50, 0x4E, 0x47], "png"),
+        ]
+        guard let kind = kinds.first(where: { dataURL.hasPrefix($0.prefix) }),
+              let comma = dataURL.firstIndex(of: ","),
+              let data = Data(base64Encoded: String(dataURL[dataURL.index(after: comma)...])),
+              data.count <= 12 * 1024 * 1024,
+              data.starts(with: kind.magic)
         else {
             return nil
         }
-        return data
+        return CardImage(data: data, fileExtension: kind.ext)
+    }
+
+    /// 文件名的扩展名跟着实际格式走：去掉页面给的 .jpg / .jpeg / .png 再补上真实扩展名。
+    static func fileName(_ stem: String, forExtension ext: String) -> String {
+        var base = stem
+        for suffix in [".jpeg", ".jpg", ".png"] where base.lowercased().hasSuffix(suffix) {
+            base = String(base.dropLast(suffix.count))
+            break
+        }
+        return "\(base.isEmpty ? "shizi-card" : base).\(ext)"
     }
 
     private func savePracticeCard(dataURL: String) {
-        guard let data = Self.pngData(fromDataURL: dataURL), let image = UIImage(data: data) else {
+        guard let card = Self.imageData(fromDataURL: dataURL), UIImage(data: card.data) != nil else {
             sendPracticeCardSaveResult(false)
             return
         }
@@ -775,7 +795,9 @@ extension WebViewController {
                 return
             }
             PHPhotoLibrary.shared().performChanges({
-                PHAssetChangeRequest.creationRequestForAsset(from: image)
+                // 按原始字节写入（JPEG 不再经 UIImage 转码一遍）。
+                let request = PHAssetCreationRequest.forAsset()
+                request.addResource(with: .photo, data: card.data, options: nil)
             }) { success, _ in
                 self?.sendPracticeCardSaveResult(success)
             }

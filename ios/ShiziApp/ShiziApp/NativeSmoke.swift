@@ -595,7 +595,7 @@ extension WebViewController {
           g.fillRect(20, 55, 50, 8);
           const { saveImageFile } = await import('/src/ui/components/image-preview.js');
           const saved = await Promise.race([
-            saveImageFile({ dataURL: canvas.toDataURL('image/png'), name: 'shizi-smoke.png', kind: 'character' }),
+            saveImageFile({ dataURL: canvas.toDataURL('image/jpeg', 0.92), name: 'shizi-smoke.jpg', kind: 'character' }),
             sleep(30000).then(() => ({ via: 'timeout', ok: false })),
           ]);
           const cardSaved = events().filter(e => e.kind === 'cardSaved').slice(-1)[0];

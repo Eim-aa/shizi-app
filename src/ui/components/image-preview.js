@@ -14,8 +14,8 @@
 // 分发（01 §10：原生 → Web Share → 下载）：
 //   分享  src/platform/share.js shareFile：原生 {type:'sharePracticeCard', name, dataURL, kind} → navigator.share({files}) → 下载；JPEG 0.92（§6.5）。
 //   保存  原生 {type:'savePracticeCard', …} 等 iOS 回调 window.shiziCardSaved({success})；浏览器 = 下载。
-//   原生壳目前只认 PNG（WebViewController.pngData(fromDataURL:)，阶段 1 不改 ios/**）：原生通道里导出 PNG，原生放开 JPEG 后把
-//   NATIVE_ACCEPTS_JPEG 置 true（P162）。
+//   原生壳（WebViewController.imageData(fromDataURL:)）认 JPEG 与 PNG：原生通道与网页同样导出 JPEG 0.92（Q2-6，P162，NATIVE_ACCEPTS_JPEG = true）；
+//   保存到相册时原生按原始字节写入，不再转码。
 //
 // data-testid（前缀 image-）：image-preview（data-kind / data-state=loading|ready|empty|noInk|renderFailed / data-ratio / data-save=idle|busy|failed|saved /
 //   data-pages / data-page）、image-ratio（data-ratio，aria-pressed）、image-board（每页一块，data-page）、image-canvas（画布，dataset 见 core/images/render.js）、
@@ -39,8 +39,8 @@ export const IMAGE_OVERLAY = 'image-preview';
 export const PREVIEW_BOX = Object.freeze({ '3:4': { width: 225, height: 300 }, '1:1': { width: 270, height: 270 }, portrait: { width: 225, height: 300 }, square: { width: 270, height: 270 } });
 /** 页数多时预览用小一点的倍率（保存时按 EXPORT_SCALE 重画）。 */
 export const PREVIEW_SCALE_MANY = 0.4;
-/** 原生壳是否已经接受 JPEG（WebViewController.pngData 现在只认 PNG；原生放开后改 true，P162）。 */
-export const NATIVE_ACCEPTS_JPEG = false;
+/** 原生壳是否已经接受 JPEG（WebViewController.imageData 认 PNG 与 JPEG；阶段 1 Q2-6 放开，P162）。 */
+export const NATIVE_ACCEPTS_JPEG = true;
 
 injectStyles('image-preview', `
 .sz-img{display:flex;flex-direction:column;gap:16px}
@@ -107,13 +107,13 @@ function installSaveHandler(bridge) {
   bridge.registerNativeHandler('shiziCardSaved', onCardSaved);
 }
 
-/** canvas → 导出用的 dataURL：网页 / 下载 JPEG 0.92（§6.5）；原生壳现在只认 PNG（NATIVE_ACCEPTS_JPEG）。 */
+/** canvas → 导出用的 dataURL：网页 / 下载 / 原生壳都是 JPEG 0.92（§6.5；原生壳不接受 JPEG 的旧版本才退回 PNG，NATIVE_ACCEPTS_JPEG）。 */
 export function exportImage(canvas, { win = typeof window !== 'undefined' ? window : null } = {}) {
   const native = isNativeShell(win) && !NATIVE_ACCEPTS_JPEG;
   return native ? canvas.toDataURL('image/png') : canvas.toDataURL('image/jpeg', JPEG_QUALITY);
 }
 
-/** 文件名的扩展名跟着实际的图片格式走（原生通道现在发 PNG，名字不能还写 .jpg）。 */
+/** 文件名的扩展名跟着实际的图片格式走（PNG 时名字不能还写 .jpg）。 */
 export function withExt(file) {
   return /^data:image\/png/.test(file.dataURL) ? { ...file, name: file.name.replace(/\.jpe?g$/i, '.png') } : file;
 }

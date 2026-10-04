@@ -55,6 +55,7 @@ export const EXCEPTIONS = Object.freeze([
   { rule: 'fontSize', file: 'src/ui/screens/result/index.js', snippet: 'font-size:40px', why: '结果页格子里的楷体回退字面，随格宽、不随字号倍率（格子宽度不变，放大会压到说明）' },
   { rule: 'fontSize', file: 'src/ui/components/query/input.js', snippet: "fontSize: '16px", why: '查字框的隐形代理 input（1×1、opacity 0）：iOS 对字号 < 16px 的输入框聚焦时会放大页面，所以这个看不见的框必须 ≥ 16px，与字阶无关' },
   { rule: 'color', file: 'src/config/credits.js', snippet: '#', why: '致谢正文里的「#180」是议题编号（恰好是合法的 3 位十六进制），不是颜色' },
+  { rule: 'color', file: 'src/config/char-order.js', snippet: '#', why: 'build_char_order.mjs 生成的新字顺序数据，removed / reserved 条目里的「字频#3919」是字频序号（恰好是合法的 4 位十六进制），不是颜色' },
   { rule: 'color', file: 'src/ui/screens/home/light.js', snippet: 'rgba(', why: '首页光影层是按时段着色的插画（设计说明 4：暖灯、叶影取消，E1b 重排首页时整层评估），颜色是装饰色不作令牌' },
   { rule: 'color', file: 'src/ui/canvas/glyph.js', snippet: '#', why: '字形 canvas 读不到 DOM（单测环境）时的最后回退色；浏览器里一律 getComputedStyle 读令牌' },
   { rule: 'color', file: 'src/ui/canvas/ink-canvas.js', snippet: '#', why: '笔迹 canvas 取色失败（无 DOM 的单测环境）时的回退，浏览器里读 --hand' },

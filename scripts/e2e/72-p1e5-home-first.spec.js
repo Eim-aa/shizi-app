@@ -496,14 +496,11 @@ export default async function run(page, ctx) {
   assert.equal(h.brandShi, '拾');
   check('special', h);
   await page.click(tid('home-capital-defer'));
-  await page.waitForFunction(() => document.querySelector('.sz-layer [data-testid="screen-home"]').dataset.view !== 'special');
-  st = await stateOf(page);
-  assert.equal(st.settings.capitalDeferredDay, D(5), 'one store.commit: settings.capitalDeferredDay = today');
-  h = await homeView(page);
-  assert.deepEqual([h.view, h.pick, h.capLead], ['fresh', '自己选字', null], 'back to the ordinary home; 自己选字 is back');
-  await page.click(tid('home-start'));
+  // Q2-2（simB D3，交接 §1.2）：点了即开始一组普通练习（不再只顺延回首页）。旧断言「回到普通首页再点开始写字」改成「直接进写字页」。
   await waitWrite(page);
   st = await stateOf(page);
+  assert.equal(st.settings.capitalDeferredDay, D(5), 'one store.commit: settings.capitalDeferredDay = today');
+  assert.ok(st.sessions.A && st.sessions.A.kind === 'daily', 'a daily group started right away');
   assert.ok(st.sessions.A.queue.every(k => !'壹贰叁肆伍陆柒捌玖拾'.includes(k.slice(5))), 'today’s group is an ordinary one: ' + st.sessions.A.queue.join(','));
   await page.click(topSel('page-back'));
   await page.waitForFunction(() => document.querySelector('.sz-app').dataset.topScreen === 'home');

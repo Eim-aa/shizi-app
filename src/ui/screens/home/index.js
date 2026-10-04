@@ -23,7 +23,7 @@
 //   「自己选字」：在点击处理里同步打开查字组件 pick 模式（R-Q08）；选好后开「这次选的字」（B）：旧 B 没写完 → 关弹层、S02（R-H05）；
 //     否则一次 commit 开 B，成功才关弹层、打开写字页；失败（{ok:false}）弹层就地显示 R-H06 三段式、输入还在。
 //   开组 / 续写写入失败：主按钮下方就地三段式「没保存上，刚才的选择没记下。」［先不保存 / 再试一次］（R-G04；文案待定 P55）。
-//   「这次先写平常的字」：一次 commit 写 settings.capitalDeferredDay；今天的练习照常出普通组。
+//   「这次先写平常的字」：一次 commit 写 settings.capitalDeferredDay，随即开一组普通的今天的练习（Q2-2，交接 §1.2）。
 //   跨天：挂载与回前台时 session.expireStale()（P37）；日期在回前台、每 30s 重算。
 //
 // data-testid：screen-home（data-view / data-hero / data-records / data-resume / data-period / data-compact / data-today）、home-date、
@@ -276,9 +276,15 @@ export function resumeOther() {
   return r;
 }
 
-/** 「这次先写平常的字」（D46 ④）：特别组顺延；一次 commit，失败返回 {ok:false}。 */
+/**
+ * 「这次先写平常的字」（D46 ④，交接 §1.2）：特别组顺延（一次 commit，失败返回 {ok:false}），然后点了即开始一组普通练习——
+ * 今天已顺延，开出来的「今天的练习」是平常的组（core/sessions specialPlan 见 capitalDeferredDay === today 不出特别组）。
+ * 特别组那天首页没有未写完的组（view=special 的前提），所以直接走 A 槽。Q2-2（复测 simB D3）。
+ */
 export function deferCapital() {
-  return core.deferSpecial(getStore(), { now: envNow });
+  const r = core.deferSpecial(getStore(), { now: envNow });
+  if (!r || r.ok === false) return r;
+  return startA({ source: SOURCE });
 }
 
 /**

@@ -8,7 +8,7 @@ import {
 } from '../../src/ui/screens/mine/annual-model.js';
 import * as annualModule from '../../src/ui/screens/mine/annual-model.js';
 import { ANNUAL_SCREEN, annualDateText, firstLine } from '../../src/ui/screens/mine/annual.js';
-import { annualCoverLine, annualFirstDateText, annualTailKuan, annualYearText } from '../../src/ui/work-text.js';
+import { annualCoverLine, annualFirstDateText, annualYearText, kuan } from '../../src/ui/work-text.js';
 import { getScreen } from '../../src/ui/router.js';
 import { t } from '../../src/config/copy/index.js';
 
@@ -239,7 +239,7 @@ test('view helpers: first line with / without ink, date text, 纸面汉字文案
   assert.equal(annualCoverLine(290), '这一年，你写过两百九十个字。');
   assert.equal(annualCoverLine(2), '这一年，你写过两个字。');
   assert.equal(annualFirstDateText('2026-04-26'), '四月二十六日的笔迹');
-  assert.equal(annualTailKuan('2026-10'), '二〇二六年十月');
+  assert.equal(kuan({ month: '2026-10' }), '二〇二六年十月');
   assert.equal(t('X-WORK.annualHead', { n: 290 }), '这一年，你写过 290 个字。');
 });
 

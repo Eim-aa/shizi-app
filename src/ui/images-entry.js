@@ -32,7 +32,7 @@ import { commitAdded, setResultImageAction } from './screens/result/index.js';
 import { setDetailImageAction } from './screens/detail/index.js';
 import * as mineRecords from './screens/mine/records.js';
 import { recordHasInk } from './screens/detail/records.js';
-import { monthKuan, workKuan } from './work-text.js';
+import { kuan } from './work-text.js';
 
 function storeOrNull() {
   try {
@@ -64,7 +64,7 @@ export function inkPointsOf(store, record) {
 }
 
 /**
- * 落款计数：汉字数字（文案-D3），与我的页字帖落款（mine/records.js signatureText）同用 core/dates.js cnCount
+ * 落款计数：汉字数字（文案-D3），与所有落款（work-text.js kuan）同用 core/dates.js cnCount
  * （2 → 「两」，200 → 「两百」，12 → 「十二」；已决定 D36，与原型 ShiziScreen cn() 一致；年份仍是 cnDigits）。
  */
 export function countCn(n) {
@@ -130,8 +130,8 @@ export function buildImageJob(scope, { state = null, store = storeOrNull(), inkO
   };
   const plan = planNow();
   const kuanFor = (p, i, pages, cells) => {
-    if (p.kind === 'month') return monthKuan({ month: p.month, n: cells.length, part: i + 1, of: pages });
-    return workKuan({ day: p.day, n: cells.length, part: i + 1, of: pages });
+    if (p.kind === 'month') return kuan({ month: p.month, n: cells.length, part: i + 1, of: pages });
+    return kuan({ day: p.day, n: cells.length, part: i + 1, of: pages });
   };
   const sealText = t('X-IMAGES.seal');
   const job = {

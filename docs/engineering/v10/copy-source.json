@@ -89,7 +89,6 @@
     "R-M06.*": "年度报告节号「一 · 」（R-M06 原文汉字节号）",
     "X-ANNUAL.section*": "年度报告第二至四节节号，与 R-M06.section1 同式",
     "R-I01.signature*": "纸面落款保留汉字数字（04 §3.1 T10 / 文案-D3）；汉字由 core/dates.js 落款函数填入",
-    "R-P03.signature": "这次的图片 / 这天写的字落款（04 §3.2 Y03，汉字数字）",
     "R-L03.toneOldest": "墨色第四档「三个月以上」04 §3.2 逐字（C153）",
     "X-LIBHOME.tone2": "墨色第三档「三个月内」，与 R-L03.toneOldest（C153）同一口径（P56）",
     "X-PROMPT.tone*": "声调读法「一声…四声」读屏名称（阶段 0 A9，03 P112）；声调是序数名称，不是数量，不改阿拉伯数字",
@@ -2274,14 +2273,14 @@
           "raw": "{9 月 24 日}写的字 / 这次的图片 · 保存图片 ›",
           "part": 1,
           "text": "这次的图片 · 保存图片 ›"
-        },
-        "signature": {
-          "raw": "二〇二六年九月二十四日 · {N}个字",
-          "text": "{date} · {n}个字",
-          "note": "落款：{date} 用 R-I01.signatureDate 格式、{n} 用汉字数字（core/dates.js cnNumber），T10 / 文案-D3",
-          "override": true
         }
-      }
+      },
+      "dropped": [
+        {
+          "raw": "二〇二六年九月二十四日 · {N}个字",
+          "why": "落款只有一个函数（work-text.js kuan，R2-R1 / T2-04）：这天的图片写「{汉字年月日}　{汉字数}字」，不再有「 · 」「个字」体例"
+        }
+      ]
     },
     "R-P04": {
       "screen": "mine",
@@ -2650,12 +2649,6 @@
           "raw": "用的是你最近一次写的这个字。存下来的是图片，不能用来恢复记录。",
           "text": "用的是你最近一次写的这个字。存下来的是图片，不能用来恢复记录。"
         },
-        "monthSignature": {
-          "raw": "二〇二六年九月 · 有记录二十二天 · 八十个字",
-          "text": "{month} · 有记录{n}天 · {m}个字",
-          "note": "落款（汉字数字，文案-D3）：{month} 用 signatureMonth 格式，{n}/{m} 用 cnNumber",
-          "override": true
-        },
         "signatureDate": {
           "raw": null,
           "text": "{year}年{month}月{day}日",
@@ -2681,7 +2674,13 @@
           "decision": "P25",
           "note": "过渡文案，待产品定稿（P55）；80 与 policy.imageMaxChars 同值"
         }
-      }
+      },
+      "dropped": [
+        {
+          "raw": "二〇二六年九月 · 有记录二十二天 · 八十个字",
+          "why": "落款只有一个函数（work-text.js kuan，R2-R1 / T2-04）：缩略图与月字帖页同写「{汉字年月}　{汉字数}字」，不再写有记录几天"
+        }
+      ]
     },
     "R-I02": {
       "screen": "images",
@@ -4917,7 +4916,7 @@
         },
         "monthTitle": {
           "raw": null,
-          "text": "{month}月字帖",
+          "text": "{month} 月字帖",
           "origin": "extra",
           "note": "月字帖（交接 §7）",
           "decision": "P160"
@@ -4938,7 +4937,7 @@
         },
         "monthOpen": {
           "raw": null,
-          "text": "{month}月字帖，{n} 个字",
+          "text": "{month} 月字帖，{n} 个字",
           "origin": "extra",
           "note": "月字帖（交接 §7）",
           "decision": "P160"
@@ -4965,7 +4964,7 @@
         },
         "annualMonthName": {
           "raw": null,
-          "text": "{month}月",
+          "text": "{month} 月",
           "origin": "extra",
           "note": "年报（交接 §8）",
           "decision": "P160"
@@ -4979,7 +4978,7 @@
         },
         "annualMonthAria": {
           "raw": null,
-          "text": "{month}月，{n} 个字，点开看字帖",
+          "text": "{month} 月，{n} 个字，点开看字帖",
           "origin": "extra",
           "note": "年报（交接 §8）",
           "decision": "P160"

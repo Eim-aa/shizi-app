@@ -9,7 +9,6 @@ export default Object.freeze({
   'R-I01.kindGlyph': '手写字图片',
   'R-I01.imageNote': '存下来的是图片，不能用来恢复记录。',
   'R-I01.glyphNote': '用的是你最近一次写的这个字。存下来的是图片，不能用来恢复记录。',
-  'R-I01.monthSignature': '{month} · 有记录{n}天 · {m}个字',
   'R-I01.signatureDate': '{year}年{month}月{day}日',
   'R-I01.signatureMonth': '{year}年{month}月',
   'R-I01.glyphEntry': '把这个字做成图片',

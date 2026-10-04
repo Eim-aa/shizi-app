@@ -248,7 +248,7 @@ export default async function run(page, ctx) {
   assert.equal(v.head, COPY.head(o.count), 'the one number: 「这一年，你写过 N 个字。」');
   assert.equal(v.count, o.count, `distinct chars this year = ${o.count} (answer-seen / skipped / last year not counted)`);
   assert.deepEqual(v.months.map(m => [m.month, m.n]), o.months, 'one section per month with chars, ascending; the count is the month sheet size');
-  assert.deepEqual(v.months.map(m => [m.name, m.count]), o.months.map(([m, n]) => [`${Number(m.slice(5))}月`, `${n} 字`]), 'month name + 「N 字」');
+  assert.deepEqual(v.months.map(m => [m.name, m.count]), o.months.map(([m, n]) => [`${Number(m.slice(5))} 月`, `${n} 字`]), 'month name + 「N 字」');
   assert.ok(v.months.every(m => m.cols === 8 && m.cell === Math.min(45, Math.floor((ctx.viewport.width - 40) / 8))), 'every month: 8 columns, cell min(45, ⌊(W − 40) / 8⌋) (45 at 402; 44 at the runner\'s 393)');
   assert.deepEqual([v.first.char, v.first.day, v.first.record], [o.first.char, o.first.day, o.first.record], 'the first char of the year (oracle)');
   assert.deepEqual([v.first.label, v.first.line], ['今年第一个字', COPY.inkLine(md(o.first.day))], '「今年第一个字」 / 「{M 月 D 日} 的笔迹」 (D45)');

@@ -39,7 +39,7 @@ export default Object.freeze({
   'X-WORK.splitNote': '{n} 个字，存成 {m} 张，每张不超过 {max} 字。',
   'X-WORK.saveMany': '保存 {m} 张图片',
   'X-WORK.pageAria': '第 {k} 张，共 {m} 张',
-  // 落款（纸面汉字，由 ui/work-text.js 拼接）
+  // 落款（纸面汉字，由 ui/work-text.js kuan() 拼接；界面里的月份写「10 月」，数字与「月」之间留空格——落款里全是汉字、不留空格，T2-04）
   'X-WORK.kuanCount': '{n}字',
   'X-WORK.kuanJoin': '{date}　{n}',
   'X-WORK.kuanMonthDay': '{month}月{day}日',
@@ -50,18 +50,18 @@ export default Object.freeze({
   'X-WORK.annualFirstLabel': '今年第一个字',
   'X-WORK.annualFirstDate': '{date}的笔迹',
   // 月字帖（交接 §7）
-  'X-WORK.monthTitle': '{month}月字帖',
+  'X-WORK.monthTitle': '{month} 月字帖',
   'X-WORK.monthUnderNote': '浅色的字，这个月没有留下笔迹。点一个字看详情。',
   'X-WORK.monthCellNoInk': '{char}，这个月没有留下笔迹',
-  'X-WORK.monthOpen': '{month}月字帖，{n} 个字',
+  'X-WORK.monthOpen': '{month} 月字帖，{n} 个字',
   // 月字帖格的读屏名称：格上标的是排序用的日子（第一次写下），墨迹取自另一天时再说一句（N2-07）
   'X-WORK.cellInkDay': '{char} · {date}，{inkDate} 的笔迹',
   // 年报（交接 §8）
   'X-WORK.annualPageTitle': '年报',
   'X-WORK.annualHead': '这一年，你写过 {n} 个字。',
-  'X-WORK.annualMonthName': '{month}月',
+  'X-WORK.annualMonthName': '{month} 月',
   'X-WORK.annualMonthCount': '{n} 字',
-  'X-WORK.annualMonthAria': '{month}月，{n} 个字，点开看字帖',
+  'X-WORK.annualMonthAria': '{month} 月，{n} 个字，点开看字帖',
   'X-WORK.annualTwiceTitle': '同一个字，两次',
   'X-WORK.annualFirstCellAria': '「{char}」第一次的笔迹',
   'X-WORK.annualLastCellAria': '「{char}」最近一次的笔迹',

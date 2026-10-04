@@ -1,6 +1,9 @@
-// 作品落款与纸面文字（阶段 1 P1-E7；交接 §5.2 / §6.4 / §6.7 / §8）：汉字日期 + 全角空格 + 汉字字数 [+ 全角空格 + 其一 / 其二]。
+// 作品落款与纸面文字（阶段 1 P1-E7；交接 §5.2 / §6.4 / §6.7 / §8；R2-R1：落款只有一个函数 kuan()）。
 // 汉字数字（2 写「两」，D36）只用于纸面落款：helper 来自 core/dates.js，本文件登记在 scripts/verify_copy.mjs CN_HELPER_FILES。
-// 单字作品（n = 1）不写字数；多张时每张写自己的字数。
+//
+// 落款是这个产品的签名：结果页、这次 / 这天的图片、月字帖（页面与导出图）、年报册页、「我的」里的月字帖缩略图都经 kuan()，格式只有一种：
+//   「{汉字年月日}　{汉字数}字」，字数永远带（一个字也写「一字」，V2-05），右对齐，印跟在末字右下；月份落款没有日。
+// 界面里的数字（「10 月」「9 月」）是另一套规则：阿拉伯数字与「月」之间留空格，写在 copy 里；落款里全是汉字、不留空格（T2-04）。
 import { t } from '../config/copy/index.js';
 import { cnCount, cnDigits, cnNumber, isValidDay, localDay, signatureDateParts, signatureMonthParts } from '../core/dates.js';
 import { now as envNow } from '../platform/env.js';
@@ -19,33 +22,20 @@ export function partLabel(i) {
   return t('X-WORK.kuanPart', { n: cnNumber(i) });
 }
 
-function withPart(kuan, part, of) {
-  return part && of > 1 ? t('X-WORK.kuanJoinPart', { kuan, part: partLabel(part) }) : kuan;
-}
-
 /**
- * 这次的图片 / 这天写的字的落款：「二〇二六年十月五日　三字」；单字只有日期。
- * @param {{day:string, n:number, part?:number, of?:number}} o  part / of：第几张 / 共几张（of > 1 才写「其几」）
+ * 所有落款的单一出口。
+ * @param {{day?:string, month?:string, n?:number|null, part?:number, of?:number, brand?:boolean}} o
+ *   day：按日的作品（结果页、这次的图片、这天的图片）→「二〇二六年十月五日　两字」；
+ *   month：按月的作品（月字帖页与图、年报每月一页、我的页缩略图）→「二〇二六年十月　四十六字」；
+ *   n：字数（汉字，永远带；缺省 null 只在没有数量可写的落款里——年报卷尾「二〇二六年十月」）；
+ *   part / of：第几张 / 共几张（of > 1 才在末尾写「其几」）；
+ *   brand：年报卷首的品牌落款「拾字　年报」。
  */
-export function workKuan({ day, n, part = 0, of = 1 }) {
-  const date = dateText(day);
-  const kuan = n > 1 ? t('X-WORK.kuanJoin', { date, n: t('X-WORK.kuanCount', { n: cnCount(n) }) }) : date;
-  return withPart(kuan, part, of);
-}
-
-/** 月字帖落款：「二〇二六年八月　四十六字」。 */
-export function monthKuan({ month, n, part = 0, of = 1 }) {
-  const kuan = t('X-WORK.kuanJoin', { date: monthText(month), n: t('X-WORK.kuanCount', { n: cnCount(n) }) });
-  return withPart(kuan, part, of);
-}
-
-/** 年报册页的落款：卷首「拾字　年报」、卷尾「二〇二六年十月」。 */
-export function annualBrandKuan() {
-  return t('X-WORK.annualBrand');
-}
-
-export function annualTailKuan(month) {
-  return monthText(month);
+export function kuan({ day = null, month = null, n = null, part = 0, of = 1, brand = false } = {}) {
+  if (brand) return t('X-WORK.annualBrand');
+  const date = month ? monthText(month) : dateText(day);
+  const base = Number.isFinite(n) && n >= 0 ? t('X-WORK.kuanJoin', { date, n: t('X-WORK.kuanCount', { n: cnCount(n) }) }) : date;
+  return part && of > 1 ? t('X-WORK.kuanJoinPart', { kuan: base, part: partLabel(part) }) : base;
 }
 
 /** 年报卷首：年份「二〇二六」、一句话「这一年，你写过二百九十个字。」、「四月二十六日的笔迹」（纸面汉字）。 */

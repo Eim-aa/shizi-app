@@ -25,7 +25,7 @@ import { monthCells } from '../../../core/images/pick.js';
 import { now as envNow } from '../../../platform/env.js';
 import { openDetail } from '../detail/index.js';
 import { inkOf, recordHasInk } from '../detail/records.js';
-import { monthKuan } from '../../work-text.js';
+import { kuan } from '../../work-text.js';
 import { useStoreState } from './records.js';
 
 export const MONTH_SCREEN = 'month';
@@ -96,7 +96,7 @@ export function monthModel(state, month, { store = currentStore(), policy = defa
     n: cells.length,
     days: r.days,
     under: cells.some(c => c.mode === 'under'),
-    kuan: cells.length ? monthKuan({ month: r.month, n: cells.length }) : '',
+    kuan: cells.length ? kuan({ month: r.month, n: cells.length }) : '',
   };
 }
 

@@ -18,9 +18,9 @@ const CLOCK = '2026-09-24T20:00:00';
 const COPY = {
   kindSession: '这次的图片',
   kindGlyph: '手写字图片',
-  kindMonth: '9月字帖',
-  sessionSign: '二〇二六年九月二十四日',
-  dayDoneSign: '二〇二六年九月二十四日',
+  kindMonth: '9 月字帖',
+  sessionSign: '二〇二六年九月二十四日　一字',
+  dayDoneSign: '二〇二六年九月二十四日　一字',
   monthSign: '二〇二六年九月　五字',
   share: '分享',
   save: '保存图片',
@@ -190,7 +190,7 @@ export default async function run(page, ctx) {
   assert.deepEqual([v.canvas.width, v.canvas.height], [1440, 1440], '1:1 canvas 1440×1440');
   assert.equal(v.canvas.members, '静', 'members = the work: 静 (right, ink); 永 is wrong → not in by default; 和 has no ink → never');
   assert.equal(v.canvas.recordIds, idOf(flat, '静', 's90'), 'the cell ink = this session\'s record (D11)');
-  assert.equal(v.canvas.signature, COPY.sessionSign, 'a single char: 落款 is the date only (汉字数字)');
+  assert.equal(v.canvas.signature, COPY.sessionSign, 'a single char: 落款 = date + 「一字」 (汉字数字; the count is always written, V2-05)');
   assert.equal(v.canvas.n, '1', 'n');
   assert.equal(v.note, '', 'no note on a single page (「存下来的是图片…」 is gone, DQ6)');
   assert.deepEqual(v.chips, [{ ch: '永', on: 'false' }], '「也放进来」: 永 (wrong, with ink)');
@@ -314,7 +314,7 @@ export default async function run(page, ctx) {
   await waitPreview(page);
   v = await preview(page);
   assert.equal(v.kind, 'month', 'month preview');
-  assert.equal(v.title, COPY.kindMonth, 'title 「9月字帖」');
+  assert.equal(v.title, COPY.kindMonth, 'title 「9 月字帖」');
   assert.equal(v.ratio, '3:4', '5 chars → 3:4 (D47)');
   assert.equal(v.canvas.members, '永山水和静', 'first-appearance order; 水 and 和 had no ink all month → still on the page as under cells (§7)');
   assert.equal(v.canvas.modes, 'hhuuh', 'ink / under per cell');

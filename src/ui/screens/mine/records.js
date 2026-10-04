@@ -36,7 +36,8 @@ import { t } from '../../../config/copy/index.js';
 import * as defaultPolicy from '../../../config/policy.js';
 import { getStore } from '../../../store/store.js';
 import { now as envNow } from '../../../platform/env.js';
-import { cnCount, localDay, monthDayParts, monthOf, signatureMonthParts } from '../../../core/dates.js';
+import { localDay, monthDayParts, monthOf } from '../../../core/dates.js';
+import { kuan } from '../../work-text.js';
 import { dayTag } from '../../../core/images/layout.js';
 import { setTodayRecordsAction } from '../home/ink-row.js';
 import { openDetail } from '../detail/index.js';
@@ -119,9 +120,9 @@ injectStyles('mine-records', `
   font-size:clamp(9px, 16cqw, 12px);line-height:1;color:${T.ink3};white-space:nowrap}
 .sz-scell__tag{position:absolute;left:4px;top:3px;z-index:1;font-family:${T.hei};font-size:${T.fs11};line-height:${T.lh11};
   font-weight:500;color:${T.ink3};font-variant-numeric:tabular-nums;pointer-events:none} /* 格内左上角，与月字帖页 .sz-mcell__tag 同一写法（Q2-4 / V2-09：不压格线） */
-.sz-msign{display:flex;justify-content:space-between;align-items:flex-end;gap:12px}
+.sz-msign{display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-top:14px}
 .sz-msign__text{display:flex;flex-direction:column;gap:4px;min-width:0}
-.sz-msign__line{font-size:${T.fs11};line-height:${T.lh11};color:${T.ink2}}
+.sz-msign__line{font-family:${T.song};font-size:calc(13px * 1);line-height:20px;font-weight:400;color:${T.ink2};white-space:nowrap} /* 与作品落款同一写法：宋 13 / 20、ink2、右对齐（R2-R1） */
 .sz-msign__order{font-size:${T.fs11};color:${T.ink3}}
 .sz-mseal{width:24px;height:24px;flex:none;border-radius:${T.rWork};display:grid;place-items:center;
   font-family:${T.kai};font-size:calc(17px * 1);line-height:1;transform:rotate(-2deg)} /* 印是图形：固定 seal24 / 字形 17px，不随 --k（Q2-10） */
@@ -263,13 +264,9 @@ export function tagText(day) {
   return dayTag(day);
 }
 
-/** 月字帖落款「二〇二六年九月 · 有记录六天 · 二十六个字」（R-I01.monthSignature / signatureMonth；汉字数字，文案-D3）。 */
+/** 月字帖缩略图的落款「二〇二六年九月　二十六字」：与月字帖页、导出图同一个函数（work-text.js kuan，R2-R1），右对齐，印在末尾。 */
 export function signatureText(sheet) {
-  return t('R-I01.monthSignature', {
-    month: t('R-I01.signatureMonth', signatureMonthParts(sheet.month)),
-    n: cnCount(sheet.days),
-    m: cnCount(sheet.chars),
-  });
+  return kuan({ month: sheet.month, n: sheet.chars });
 }
 
 // ---------------------------------------------------------------- 格子与字帖

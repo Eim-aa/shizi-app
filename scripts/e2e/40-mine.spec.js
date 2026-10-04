@@ -524,8 +524,8 @@ export default async function run(page, ctx) {
   assert.equal(v.cells.find(c => c.char === '数').ink, 'false', 'no ink → 没有笔迹 (10.12, no borrowing)');
   assert.equal(v.cells.find(c => c.char === '谁').tagText, null, 'same sort day as the previous cell (静, 9-01) → no tag');
   assert.equal(jing.label, '静 · 9 月 1 日，9 月 22 日 的笔迹', 'cell accessible name: the sort day, plus the day of the ink drawn (N2-07)');
-  assert.equal(v.sign, `二〇二六年九月 · 有记录${cn(o9.monthDays.length)}天 · ${cn(o9.sheet.length)}个字`, 'signature in Chinese numerals');
-  assert.equal(v.sign, '二〇二六年九月 · 有记录五天 · 五个字', 'signature literal');
+  assert.equal(v.sign, `二〇二六年九月 ${cn(o9.sheet.length)}字`, 'signature in Chinese numerals: the same kuan() as the month page and the export (R2-R1; txt() folds the full-width space)');
+  assert.equal(v.sign, '二〇二六年九月 五字', 'signature literal');
   assert.equal(v.seal, '字', 'seal');
   assert.equal(v.sheetSave, null, 'save image hidden until M4-5 registers');
   assert.equal(v.sheetAll, null, 'no 全部 › when ≤ 3 rows');
@@ -650,9 +650,9 @@ export default async function run(page, ctx) {
   await waitTop(page, 'mine');
 
   step('mine: sheet cell → detail; menu rows → their screens');
-  await page.click(`${TOP} [data-testid="mine-sheet-cell"][data-char="额"]`);
+  await page.click(`${TOP} [data-testid="mine-sheet-cell"][data-char="您"]`);
   await waitTop(page, 'detail');
-  assert.deepEqual((await top(page)).params, { char: '额' }, 'mine sheet cell → detail {char} (R-M01)');
+  assert.deepEqual((await top(page)).params, { char: '您' }, 'mine sheet cell → detail {char} (R-M01)');
   await back(page);
   for (const [testid, name] of [['mine-menu-settings', 'settings'], ['mine-menu-backup', 'backup'], ['mine-menu-annual', 'annual'], ['mine-menu-about', 'about']]) {
     await page.click(`${TOP} ${tid(testid)}`);
@@ -714,8 +714,8 @@ export default async function run(page, ctx) {
   await page.click(`${TOP} ${tid('records-today')}`);
   const calls = await page.evaluate(() => window.__imgCalls);
   assert.deepEqual(calls, [
-    { kind: 'month', month: '2026-09', n: 8 },
-    { kind: 'month', month: '2026-09', n: 8 },
+    { kind: 'month', month: '2026-09', n: 5 },
+    { kind: 'month', month: '2026-09', n: 5 },
     { kind: 'today', day: TODAY, chars: o9.todayChars.map(c => c.char) },
   ], 'image actions called with this month / today (each char\'s latest record today)');
   await page.evaluate(async () => {
@@ -731,7 +731,7 @@ export default async function run(page, ctx) {
     return getDeck().keys.filter(k => k.startsWith('base:')).map(k => k.slice(5)).slice(0, 300);
   });
   assert.equal(deckChars.length, 300, 'deck provides 300 chars');
-  const big = { steps: deckChars.map((c, i) => ({ char: c, judgment: i % 7 === 0 ? 'wrong' : 'correct',
+  const big = { steps: deckChars.map((c, i) => ({ char: c, judgment: 'correct', // 300 个作品字（写错的不进字帖，D51 ⑤，所以这里全写对）
     day: `2026-09-${String(1 + Math.floor(i / 13)).padStart(2, '0')}` })) };
   const t0 = Date.now();
   await seed(page, big);
@@ -750,7 +750,7 @@ export default async function run(page, ctx) {
   assert.deepEqual(v.cells.map(c => c.char), lastRows.map(c => c.char), 'most recent chars, oldest first');
   assert.equal(v.cells[0].tag, lastRows[0].day, 'first visible cell re-tagged with its date');
   assert.equal(v.sheetAll, COPY.all, '「全部 ›」');
-  assert.equal(v.sign, `二〇二六年九月 · 有记录${cn(oBig.monthDays.length)}天 · 三百个字`, 'signature counts all 300');
+  assert.equal(v.sign, '二〇二六年九月 三百字', 'signature counts all 300');
   assert.equal(v.hScroll, false, 'no horizontal overflow');
   console.log(`mine 300: seed→render ${mineMs}ms`);
   assert.ok(mineMs < 3000, `mine 300 chars renders within 3s (${mineMs}ms)`);

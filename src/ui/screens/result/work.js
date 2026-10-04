@@ -17,7 +17,7 @@ import { injectStyles, T, TEX } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
 import { resultGrid } from '../../../core/images/layout.js';
 import { toggleAdded } from '../../../core/images/work.js';
-import { workKuan } from '../../work-text.js';
+import { kuan } from '../../work-text.js';
 import { keySound, warmSounds } from '../../../platform/sound.js';
 
 export const WORK_LABELS = Object.freeze({ added: 'result:added' });
@@ -146,7 +146,7 @@ export function WorkSection({ work, day, dateText, inkOf, onOpen, sealKey = '', 
     label: t('X-WORK.cellAria', { char: e.char, state: stateWord(e) }),
   }));
   const caps = work.cells.map(e => (e.tag === 'afterSeen' ? t('X-WORK.afterSeen') : ''));
-  return html`<${WorkPaper} cells=${cells} grid=${grid} caps=${caps} kuan=${workKuan({ day, n: cells.length })}
+  return html`<${WorkPaper} cells=${cells} grid=${grid} caps=${caps} kuan=${kuan({ day, n: cells.length })}
     onOpen=${cell => onOpen(work.entries[cell.index])} label=${workAria(work.cells.map(e => e.char), work.cells.length, dateText)} />`;
 }
 

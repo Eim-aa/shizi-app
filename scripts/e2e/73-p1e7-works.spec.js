@@ -131,7 +131,7 @@ export default async function (page, ctx) {
     }
     if (n === 2) assert.equal(v.kuan, '二〇二六年十月五日　两字', '2 is written 两');
     if (n === 1) {
-      assert.equal(v.kuan, '二〇二六年十月五日', 'a single char has no count');
+      assert.equal(v.kuan, '二〇二六年十月五日　一字', 'a single char also writes its count (V2-05: the kuan always has it)');
       assert.ok(Math.abs(v.seal.w - 40) <= 2, 'single char: 40pt seal');
     }
     if (n === 5) {
@@ -356,7 +356,7 @@ export default async function (page, ctx) {
       foot: [...top.querySelectorAll('.sz-page__foot button')].map(b => b.textContent.trim()),
     };
   });
-  assert.equal(m.title, '9月字帖');
+  assert.equal(m.title, '9 月字帖');
   assert.equal(m.sub, '按第一次写下的先后排列');
   assert.deepEqual([m.cols, m.cell, m.firstRowN, m.widths], [6, 60, 6, [60]], '6 columns of ⌊(402 − 40) / 6⌋ = 60');
   assert.equal(m.chars, '永山水田和静日月星风云雨雪', 'the 纸上 char 纸 is not on the page');
@@ -458,7 +458,7 @@ export default async function (page, ctx) {
   assert.equal(a.year, '二〇二六');
   assert.equal(a.head, '这一年，你写过 119 个字。');
   assert.deepEqual([a.first.char, a.first.ink, a.first.label, a.first.date, Math.round(a.first.size)], ['春', 'true', '今年第一个字', '4 月 26 日 的笔迹', 132]);
-  assert.deepEqual(a.months.map(x => [x.month, x.n, x.name, x.count]), [['2026-04', 5, '4月', '5 字'], ['2026-05', 18, '5月', '18 字'], ['2026-09', 96, '9月', '96 字'], ['2026-10', 1, '10月', '1 字']]);
+  assert.deepEqual(a.months.map(x => [x.month, x.n, x.name, x.count]), [['2026-04', 5, '4 月', '5 字'], ['2026-05', 18, '5 月', '18 字'], ['2026-09', 96, '9 月', '96 字'], ['2026-10', 1, '10 月', '1 字']]);
   assert.ok(a.months.every(x => x.cols === 8 && Math.round(x.cell) === 45), 'month sections: 8 columns of 45');
   assert.equal(a.months[1].under, 9, 'chars without ink are under cells');
   assert.deepEqual([a.twice.char, a.twice.dates, Math.round(a.twice.size)], ['疆', ['4 月 27 日', '10 月 2 日'], 140], '卷尾: the same char, first and latest ink');
@@ -468,7 +468,7 @@ export default async function (page, ctx) {
   await page.click(`${topSel('annual-month')}[data-month="2026-05"]`);
   await page.waitForSelector(topSel('month-screen'));
   await waitNavIdle(page);
-  assert.equal(await page.textContent(topSel('month-title')), '5月字帖', 'the month section opens the month page');
+  assert.equal(await page.textContent(topSel('month-title')), '5 月字帖', 'the month section opens the month page');
   await page.evaluate(async () => (await import('/src/ui/router.js')).nav.back());
   await waitNavIdle(page);
   await page.click(topSel('annual-share'));

@@ -295,9 +295,14 @@ export default async function run(page, ctx) {
       missing: j.plan.cells.filter(c => c.mode === 'under').map(c => c.ch), cells: j.plan.cells.map(c => c.ch).join(''), pages: j.plan.pages.length,
       days: j.plan.days, signature: j.signature };
   });
+  // D51 ⑤：写错的不是作品成员。i % 10 === 3 的字最近一次写错；其中 i < 10 的另有一次写对（9 月内），i ≥ 10 的在 9 月里只有那一次写错 → 不在月字帖里
   const septChars = chars.filter((c, i) => i <= 68);
-  assert.equal(job.members.length, septChars.length + today.length, 'month members = September chars (69 + 6 today)');
-  assert.deepEqual([job.status, job.pages], ['ready', 1], '75 chars → ready, one page (D39: no pending any more)');
+  const wrongOnly = septChars.filter((c, i) => i % 10 === 3 && i >= 10);
+  assert.equal(wrongOnly.length, 6, 'six September chars were only written wrong this month');
+  const nMembers = septChars.length - wrongOnly.length + today.length;
+  assert.equal(job.members.length, nMembers, 'month members = September work chars (69 − 6 wrong-only + 6 today = 69)');
+  assert.ok(wrongOnly.every(c => !job.members.some(m => m.char === c)), 'the wrong-only chars are not on the sheet');
+  assert.deepEqual([job.status, job.pages], ['ready', 1], '69 chars → ready, one page (D39: no pending any more)');
   for (const i of [0, 1, 4, 6]) {
     const m = job.members.find(x => x.char === chars[i]);
     assert.equal(m.record, ids[chars[i]].older.id, `P02 first: ${chars[i]} (i=${i}) uses its first September record (the older one, which has ink)`);
@@ -311,11 +316,13 @@ export default async function run(page, ctx) {
     assert.ok(!job.missing.includes(chars[i]), `C ${chars[i]} no longer missing`);
   }
   assert.ok(job.drawn.includes(chars[0]) && job.recordIds.includes(ids[chars[0]].older.id), 'A i=0 drawn from its first-of-month record, not the missing latest');
-  assert.ok(B.filter(i => i <= 68).every(i => job.missing.includes(chars[i])), 'B: no ink anywhere in the month → an under cell (still on the page, nothing borrowed)');
+  const bMembers = B.filter(i => i <= 68 && !wrongOnly.includes(chars[i]));
+  assert.ok(bMembers.every(i => job.missing.includes(chars[i])), 'B: no ink anywhere in the month → an under cell (still on the page, nothing borrowed)');
   assert.equal(job.days, 24, 'judged days in September (9-01 … 9-24)');
-  assert.equal(job.drawn.length, 75 - 4 - 2, 'drawn (with ink) = 75 members − B(4) − today missing(2)');
-  assert.equal(job.cells.length, 75, 'every member is a cell (the no-ink ones are under cells, §7)');
-  assert.equal(job.signature, '二〇二六年九月　七十五字', '落款: month + all 75 chars (under cells count too)');
+  assert.equal(job.drawn.length, nMembers - bMembers.length - 2, 'drawn (with ink) = members − B members − today missing(2)');
+  assert.equal(job.cells.length, nMembers, 'every member is a cell (the no-ink ones are under cells, §7)');
+  assert.equal(nMembers, 69, 'the arithmetic above is 69');
+  assert.equal(job.signature, '二〇二六年九月　六十九字', '落款: month + all 69 chars (under cells count too)');
   if (await screenRegistered(page, 'records')) {
     await nav(page, 'push', 'records', { month: '2026-09' });
     await page.waitForSelector(topSel('records-sheet'));
@@ -339,7 +346,7 @@ export default async function run(page, ctx) {
   assert.equal(month.members, job.cells, 'month image members = plan cells (with-ink and under)');
   assert.equal(month.recordIds, job.allRecordIds.join(','), 'month image record ids = first-of-month records');
   assert.equal(month.signature, job.signature, 'month image signature');
-  assert.equal([month.width, month.height].join('×'), '1440×1920', 'month image 1440×1920 (75 chars → 3:4)');
+  assert.equal([month.width, month.height].join('×'), '1440×1920', 'month image 1440×1920 (69 chars → 3:4)');
   await page.evaluate(async () => (await import('/src/ui/router.js')).nav.back());
   await page.waitForFunction(() => !document.querySelector('[data-testid="image-preview"]'));
 

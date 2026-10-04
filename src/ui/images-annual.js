@@ -15,9 +15,7 @@ import { ImagePreview, IMAGE_OVERLAY } from './components/image-preview.js';
 import { recordHasInk } from './screens/detail/records.js';
 import { annualPlan } from './screens/mine/annual-model.js';
 import { inkPointsOf, renderDeps } from './images-entry.js';
-import {
-  annualBrandKuan, annualCoverLine, annualFirstDateText, annualTailDateText, annualTailKuan, annualYearText, monthKuan,
-} from './work-text.js';
+import { annualCoverLine, annualFirstDateText, annualTailDateText, annualYearText, kuan } from './work-text.js';
 
 function storeOrNull() {
   try {
@@ -42,7 +40,7 @@ export function buildAnnualJob({ state = null, store = storeOrNull(), inkOf = nu
     first: plan.first,
     firstLabel: t('X-WORK.annualFirstLabel'),
     firstDate: annualFirstDateText(plan.model.first.day),
-    kuan: annualBrandKuan(),
+    kuan: kuan({ brand: true }),
     sealText,
   });
   const tailArgs = () => ({
@@ -51,7 +49,7 @@ export function buildAnnualJob({ state = null, store = storeOrNull(), inkOf = nu
     last: plan.tail.last,
     firstDate: annualTailDateText(plan.tail.firstDay),
     lastDate: annualTailDateText(plan.tail.lastDay),
-    kuan: annualTailKuan(monthOf(day)),
+    kuan: kuan({ month: monthOf(day) }),
     sealText,
   });
   return {
@@ -71,7 +69,7 @@ export function buildAnnualJob({ state = null, store = storeOrNull(), inkOf = nu
       if (page.type === 'cover') return renderAnnualCover({ ...coverArgs(), scale, ...deps, meta: { page: i + 1, pages: plan.pages.length } });
       if (page.type === 'tail') return renderAnnualTail({ ...tailArgs(), scale, ...deps, meta: { page: i + 1, pages: plan.pages.length } });
       return renderWorkPage({
-        cells: page.cells, ratio: '3:4', kuan: monthKuan({ month: page.month, n: page.cells.length, part: page.part, of: page.of }), sealText, scale, ...deps,
+        cells: page.cells, ratio: '3:4', kuan: kuan({ month: page.month, n: page.cells.length, part: page.part, of: page.of }), sealText, scale, ...deps,
         meta: { kind: 'annual-month', month: page.month, page: i + 1, pages: plan.pages.length },
       });
     },

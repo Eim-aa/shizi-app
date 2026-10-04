@@ -244,7 +244,7 @@ test('sessions: first practice is the fixed 3 chars 尴 赢 拾 (D38 / P09; was 
   assert.deepEqual(q, ['base:尴', 'base:赢', 'base:拾']);
   const s = createSession({ id: 's1', kind: 'first', queue: q, at: at(TODAY) });
   assert.equal(t('R-W01.progress', { n: s.cursor + 1, total: s.queue.length }), '1 / 3');
-  assert.equal(t('R-H03.firstVisit'), '第一次来，先写 3 个字试试。');
+  assert.equal(t('R-H03.firstVisit'), '先写三个大家常忘的字。', 'P1-E5: the line under 开始写字 (stage-1 design §一)');
   assert.equal(policy.groupSize, 5, 'D38 只影响首练，日常组仍是 5');
 });
 

@@ -30,7 +30,10 @@
     "{caption}": "结果页格下标签（X-RESULT.cellCorrect / cellWrong / cellSkipped / R-R02.cellSaw，读屏标签里复用）",
     "{library}": "字库名（R-L06.lib.*.name，M3-5 换库确认框标题与换完轻提示）",
     "{from}": "起始日期（界面按 R-H02.dateFormat；M4-4 替换确认的丢失日期范围）",
-    "{to}": "结束日期（同 {from}）"
+    "{to}": "结束日期（同 {from}）",
+    "{time}": "时刻（提醒邀请：好，明天 {time} 给你一个词。，如 9:30）",
+    "{tier}": "复现预告档位词（X-FIRST.tier.*：明天 / 过两天 / 过几天）",
+    "{label}": "一行字帖位的标签（X-HOME.lastYesterday / lastBefore，读屏名称里复用）"
   },
   "normalization": [
     "{M} 月 {D} 日、{9 月 24 日} 这类日期、裸「M 月 D 日」、{日期} → {date}",
@@ -82,7 +85,11 @@
     "R-L03.toneOldest": "墨色第四档「三个月以上」04 §3.2 逐字（C153）",
     "X-LIBHOME.tone2": "墨色第三档「三个月内」，与 R-L03.toneOldest（C153）同一口径（P56）",
     "X-PROMPT.tone*": "声调读法「一声…四声」读屏名称（阶段 0 A9，03 P112）；声调是序数名称，不是数量，不改阿拉伯数字",
-    "R-I01.monthSignature": "月字帖落款「二〇二六年九月 · 有记录二十二天 · 八十个字」（C103，汉字数字，文案-D3）"
+    "R-I01.monthSignature": "月字帖落款「二〇二六年九月 · 有记录二十二天 · 八十个字」（C103，汉字数字，文案-D3）",
+    "R-H03.firstVisit": "设计稿「首练与首页」§一原句「先写三个大家常忘的字。」：口语里的「三个」，不是统计数字（阶段 1 P1-E5，过渡文案）",
+    "X-FIRST.title": "设计稿「首练与首页」§三标题原句「这三个字，很多人提笔就忘。」：指首练的那三个字，不是统计数字（阶段 1 P1-E5）",
+    "X-FIRST.tier.soon": "复现预告档位词「过两天」：口语的时间说法，不写日期（D41；设计稿 §三）",
+    "X-HOME.capitalBody": "设计稿 §四 ④ 原句「今天写两组大写数字，借条、红包上用得着。」：口语里的「两组」（D40，过渡文案）"
   },
   "exportWordAllow": {
     "X-BACKUP.intro": "P55 原型 ShiziScreen L166 bkCanExp 段逐字「先导出一份备份文件」；指的是按钮「导出备份文件」这一动作",
@@ -95,7 +102,7 @@
     "P140": "旧字号 / 行高归并到字阶（9–36px 共 25 种并入 7 级）：样式取值，src/ui/** 的 CSS 与 scripts/verify_tokens.mjs 的检查，不是运行时开关；字格里的楷体字面登记为例外",
     "P141": "「卡片取消」的过渡处理（field 凹面 / 笺面纸纹 / 次按钮透明底）：样式取值，不是运行时开关；E1b 复核",
     "P142": "朱色退出与危险操作的呈现（朱只留写错朱点与印章，其余改墨）：样式取值，src/ui/components/marks.js 是白名单组件；不是运行时开关",
-    "P143": "首页光影层（叶影 / 日光 / 浅色夜灯）去留：本卡保留，E1b 评估；样式 / 插画，不是运行时开关",
+    "P143": "已决定 D43：取消首页光影层（叶影 / 日光 / 浅色夜灯 / 夜灯），阶段 1 P1-E5 删除 src/ui/screens/home/light.js",
     "P144": "Tab 栏通栏化与印章 16 / 24 / 40 三档：样式取值，src/ui/components/Tabs.js 与 marks.js；不是运行时开关",
     "P62": "结果页说明句单独「看过答案」/「跳过」的措辞：待设计给文案，M2-3 落槽（R-R01）；落槽前不占 copy 键",
     "P63": "字库首页「从 X 开始记录」的 X：待设计裁定日期/月份，M3-1 落槽（R-L10）",
@@ -128,7 +135,7 @@
     "P95": "字体：requireFont 失败只警告用回退栈（src/data/font-loader.js requireCanvasFont）；工具在 scripts/fonts/；子集语料加 ‹ —— 设计确认项",
     "P96": "原生分享/保存失败静默（M5-3 删除原生 alert）：实现在 ios/ShiziApp/ShiziApp/WebViewController.swift，待产品定是否加错误回调",
     "P97": "触觉点位与按键音：实现在 src/platform/haptics.js / sound.js 与 write/result 接线，设计确认项",
-    "P98": "第一次结果页提醒邀请未做：src/ui/screens/result/index.js 的 setRemindInvite 槽留空，待产品给定",
+    "P98": "已决定 D35 / D46 ③：首练结果页内嵌提醒邀请（点「好」才请求系统权限；最多邀请两次），实现见阶段 1 P1-E5（src/ui/screens/result/first.js、src/core/first-result.js、src/platform/reminder.js inviteReminder）",
     "P99": "提醒内容细则：实现在 src/platform/reminder.js（policy.reminderWord 为运行时键）",
     "P100": "iOS 相册用途串文案：ios/ShiziApp/ShiziApp/Info.plist，产品确认项",
     "P101": "深色对比度豁免（印章、墨墙墨色、结果格浅字）：登记在 scripts/e2e/60-matrix.spec.js 的豁免表，设计确认项",
@@ -141,15 +148,20 @@
     "P108": "冷启动恢复离开时的页面（审查整改 F1）：运行时键 policy.routeRestore（enabled / maxAgeMinutes / crossDay），实现在 src/ui/route-memory.js 与 router.js coldStart；无界面文案",
     "P116": "读屏状态桥（阶段 0 B2）：原生全局 shiziAccessibilityStatus({voiceOver, switchControl})，实现在 src/platform/accessibility.js（bridge.js NATIVE_GLOBALS / LAST_ONLY）与 WebViewController.swift sendAccessibilityStatus；无界面文案。P115（跳过撤销时长等）是运行时键 policy.skipUndo，由 policy.js 覆盖",
     "P109": "按压反馈参数（阶段 0 P0-A4）：src/ui/components/Button.js 的 PRESS_IN_MS / PRESS_OUT_MS / PRESS_SCALE / PRESS_DARKEN，无界面文案，设计知悉项",
-    "P109": "按压反馈参数（阶段 0 P0-A4）：src/ui/components/Button.js 的 PRESS_IN_MS / PRESS_OUT_MS / PRESS_SCALE / PRESS_DARKEN，无界面文案，设计知悉项",
     "P110": "输入框光标色（阶段 0 P0-A11）：src/config/base.css 的 caret-color:var(--i1)（主墨，不用朱色，D33），无界面文案，设计知悉项",
     "P111": "笔锋细节（飞白 / 洇墨）门控（阶段 0 P0-A3）：运行时键 policy.brushDetail，实现在 src/ui/canvas/brush.js brushDetailEnabled 与 ink-canvas.js，只看减少动态效果与该开关，无界面文案",
     "P119": "撤销 / 清空的位置（D36 / G32）：版式行为——标准版与紧凑版都在格下一行右端，触控 ≥44pt；实现在 src/ui/screens/write/index.js 与 compact.js 的 CSS，不是 policy 开关；无界面文案",
-    "P120": "首页主按钮「拾」不随字号缩小（D36 / G05）：版式行为——大字（系统字号，P130）与紧凑版都保持 196×190；实现在 src/ui/screens/home/index.js 的 CSS，不是 policy 开关；无界面文案",
+    "P120": "已决定 D36 / D43：首页主按钮改成宽 240 居中的墨色主按钮（设计稿，阶段 1 P1-E5）；版式行为，不是 policy 开关；无界面文案",
     "P133": "网页（PWA / 浏览器，没有原生桥）的字号倍率：--k 保持 1，不读浏览器默认字号或 -apple-system-body 推算系统字号；行为在 src/platform/text-size.js（只响应原生 shiziContentSize），不是 policy 开关（D29 / 阶段 1 P1-E6）",
-    "P120": "首页主按钮「拾」不随字号缩小（D36 / G05）：版式行为——大字与紧凑版都保持 196×190；实现在 src/ui/screens/home/index.js 的 CSS，不是 policy 开关；无界面文案",
     "P122": "已决定 D42：D27 留存（每字只留第一次 + 最近一次）与按「某一次」取墨的月字帖（P02）/ 这天 / 这次图片 / 年报首字冲突，改为在该时间段内按原取法的偏好顺序找留有墨迹的那一次，段内一份都没有才如实缺墨（共用 src/core/ink-pick.js）；偏好方向仍由 policy.monthSheetPick（P02）决定，不新增开关；缺墨句 X-IMAGES.missingMonth 改「这个月没有」，新增 X-IMAGES.missingDay「这天没有」；D45：年报第四节说明行改为 R-M06.inkDate「{date} 的笔迹」，日期是留有墨迹那一次的日子，不说「今年第一次」",
-    "P145": "已决定 D45（原则）：姓氏、省份简称与地名清单只剔除日常少用的，常用字（熊、颜、藏、桂、厦等）回到默认新字排序。界线用题库字频序 rank：scripts/build_char_order.mjs 的 COMMON_RANK_MAX（过渡值 3500，写入 src/config/char-order.js 的 meta.commonRankMax；commonKept 列留下的常用字，reserved / removed 列剔除的），待顾问审读；无界面文案"
+    "P145": "已决定 D45（原则）：姓氏、省份简称与地名清单只剔除日常少用的，常用字（熊、颜、藏、桂、厦等）回到默认新字排序。界线用题库字频序 rank：scripts/build_char_order.mjs 的 COMMON_RANK_MAX（过渡值 3500，写入 src/config/char-order.js 的 meta.commonRankMax；commonKept 列留下的常用字，reserved / removed 列剔除的），待顾问审读；无界面文案",
+    "P155": "首页五态（今天还没写 / 今天写过 / 有进行中的组 / 大写数字特别组那天 / 离开 ≥7 天回来）与首次打开的判定优先级、版式取值：阶段 1 P1-E5，见 03 P155",
+    "P156": "首页字帖位的字与「昨天写的字」一行的取法（最近 8 个字、最多 5 个有墨迹的字、字库字数口径）：阶段 1 P1-E5，见 03 P156",
+    "P157": "提醒邀请的计次、时间与状态：阶段 1 P1-E5，见 03 P157",
+    "P158": "大写数字特别组顺延的语义（只顺延点击当天）：阶段 1 P1-E5，见 03 P158",
+    "P159": "首练结果页复现预告的档位与取法、「放进去」入口状态：阶段 1 P1-E5，见 03 P159",
+    "P16": "已决定 阶段 1 设计稿（D43）：有进行中的组时首页画这一组的格子，不再同时显示今天写的字；`policy.homeShowRecordWhileResume` 随阶段 1 P1-E5 删除，无界面文案开关",
+    "P75": "已决定 阶段 1 设计稿（D43）：不再有合成一行的紧凑墨迹行（今天写的字按字数取格宽，最多 8 个）；`policy.inkRowCompactMax` 随阶段 1 P1-E5 删除"
   },
   "noCopy": [
     "R-H08",
@@ -272,9 +284,9 @@
       "slots": {
         "firstVisit": {
           "raw": "第一次来，先写 5 个字试试。",
-          "text": "第一次来，先写 3 个字试试。",
-          "decision": "P09",
-          "note": "阶段 1 P1-E4：D38 首次练习改为 3 个字（尴 赢 拾），字数随之由 5 改 3；覆盖 D17 的 5 字"
+          "text": "先写三个大家常忘的字。",
+          "decision": "P155",
+          "note": "阶段 1 P1-E5：首次打开按钮下一行改为设计稿「首练与首页」§一的说明成本一句，替换「第一次来，先写 3 个字试试。」（D38 3 字；D46 ②）"
         }
       }
     },
@@ -414,9 +426,10 @@
       "slots": {
         "todayCount": {
           "raw": null,
-          "text": "今天记录了 {n} 个字",
+          "text": "今天写了 {n} 个字",
           "origin": "04 R-H07 规则列 \"今天记录了 N 个字\"（决定-D12）",
-          "note": "规则列引号内原文，N → {n}"
+          "note": "阶段 1 P1-E5：「今天写过」状态的说明句改为设计稿「首练与首页」§四 ②的「今天写了 N 个字」，替换「今天记录了 N 个字」",
+          "decision": "P155"
         }
       }
     },
@@ -2866,18 +2879,6 @@
           "origin": "首页壳-v3 L217",
           "note": "主入口（有未完成组）"
         },
-        "ctaGlyph": {
-          "raw": null,
-          "text": "拾",
-          "origin": "首页壳-v3 L56",
-          "note": "M2-1：「拾」主入口红块上的大字（装饰，aria-hidden；按钮读屏名为 start / continue）"
-        },
-        "arrow": {
-          "raw": null,
-          "text": "→",
-          "origin": "首页壳-v3 L57",
-          "note": "M2-1：主入口文字后的箭头（装饰，aria-hidden）"
-        },
         "sealGlyph": {
           "raw": null,
           "text": "字",
@@ -2892,9 +2893,9 @@
         },
         "pick": {
           "raw": null,
-          "text": "自己选字 →",
+          "text": "自己选字",
           "origin": "首页壳-v3 L81",
-          "note": "M2-1：首页辅助入口，打开查字组件 pick 模式（R-H06；弹层标题用 R-H06.title）"
+          "note": "M2-1：首页辅助入口，打开查字组件 pick 模式（R-H06；弹层标题用 R-H06.title）；阶段 1 P1-E5 起按设计稿改为文字按钮「自己选字」（去掉箭头），首次打开不显示，首练完成后出现（D46 ②）"
         },
         "inkRowLabel": {
           "raw": null,
@@ -2910,12 +2911,138 @@
           "note": "M2-1：主入口 / 另一组续写开组写入失败时主入口下方的说明句（R-G04 三段式；按钮用 R-H06.cancel / R-H06.retry）；套用 R-R04 / R-L06 / X-SESSION.s02SaveFailed 同句，原型没有这一态，待文案确认",
           "decision": "P55"
         },
-        "capitalHint": {
+        "mottoLine1": {
           "raw": null,
-          "text": "今天来写写大写数字，借条、报销单上都用得到。",
+          "text": "提笔忘字，",
           "origin": "extra",
-          "note": "阶段 1 P1-E4（D40）：下一次练习是「写写大写数字」特别组（壹贰叁肆伍 / 陆柒捌玖拾）时，首页主入口下方的一行提示；两组共用这一句。过渡文案，阶段 1 文案语气统一时定稿",
+          "note": "首次打开竖排题跋第一列（右起），沿用关于页 X-ABOUT.motto 的句子；设计稿「首练与首页」（Claude Design「拾字设计系统」）§一/§四",
+          "decision": "P155"
+        },
+        "mottoLine2": {
+          "raw": null,
+          "text": "不是忘了，",
+          "origin": "extra",
+          "note": "首次打开竖排题跋第二列",
+          "decision": "P155"
+        },
+        "mottoLine3": {
+          "raw": null,
+          "text": "只是很久没写。",
+          "origin": "extra",
+          "note": "首次打开竖排题跋第三列，印落在这一列下",
+          "decision": "P155"
+        },
+        "lastYesterday": {
+          "raw": null,
+          "text": "昨天写的字",
+          "origin": "extra",
+          "note": "「今天还没写」状态下字帖位下一行的标签（昨天有记录时）；黑体 13（系统字体，不在宋体子集里，scripts/fonts/build_corpus.mjs HEI_ONLY_COPY）",
+          "decision": "P156"
+        },
+        "lastBefore": {
+          "raw": null,
+          "text": "上次写的字 · {date}",
+          "origin": "extra",
+          "note": "同一行：最近一次有墨迹的日子不是昨天时的标签；也用于离开 ≥7 天回来的状态",
+          "decision": "P156"
+        },
+        "lastRowLabel": {
+          "raw": null,
+          "text": "{label}：{chars}",
+          "origin": "extra",
+          "note": "上一行的读屏名称",
+          "decision": "P156"
+        },
+        "libraryCount": {
+          "raw": null,
+          "text": "字库里有 {n} 个字了",
+          "origin": "extra",
+          "note": "首页唯一的数字（G33 / N10：只用你自己的字和一句话），可点进字库；n = 有过判断记录的字数",
+          "decision": "P156"
+        },
+        "progressLeft": {
+          "raw": null,
+          "text": "这一组还有 {n} 个字",
+          "origin": "extra",
+          "note": "有进行中的组：格子下一行，计数不含正在写的字（D36）",
+          "decision": "P155"
+        },
+        "progressLast": {
+          "raw": null,
+          "text": "这是这一组的最后一个字",
+          "origin": "extra",
+          "note": "进行中、正在写的就是最后一个字（已看过答案）时代替「还有 0 个字」",
+          "decision": "P155"
+        },
+        "progressLabel": {
+          "raw": null,
+          "text": "这一组：{chars}",
+          "origin": "extra",
+          "note": "进行中的格子行读屏名称（只列已写过的字，没写的格子不泄题）",
+          "decision": "P155"
+        },
+        "cellDone": {
+          "raw": null,
+          "text": "{char}，写过了",
+          "origin": "extra",
+          "note": "进行中格子读屏：已写",
+          "decision": "P155"
+        },
+        "cellNext": {
+          "raw": null,
+          "text": "下一个字，还没写",
+          "origin": "extra",
+          "note": "进行中格子读屏：下一个要写的格（不说是什么字，不泄题）",
+          "decision": "P155"
+        },
+        "cellEmpty": {
+          "raw": null,
+          "text": "还没写",
+          "origin": "extra",
+          "note": "进行中格子读屏：没写的格",
+          "decision": "P155"
+        },
+        "shiLabel": {
+          "raw": null,
+          "text": "拾",
+          "origin": "extra",
+          "note": "首页字帖位里书家「拾」的读屏名称（装饰性占位，书家稿到位后换资产，不换文字）",
+          "decision": "P155"
+        },
+        "capitalLead": {
+          "raw": null,
+          "text": "「拾」也是大写的十。",
+          "origin": "extra",
+          "note": "D40 大写数字特别组那天首页第一句，接在字帖位里的「拾」下（两组特别组共用）；替代阶段 1 P1-E4 的 capitalHint",
           "decision": "P129"
+        },
+        "capitalBody": {
+          "raw": null,
+          "text": "今天写两组大写数字，借条、红包上用得着。",
+          "origin": "extra",
+          "note": "D40 首页第二句（13 墨三）",
+          "decision": "P129"
+        },
+        "capitalDefer": {
+          "raw": null,
+          "text": "这次先写平常的字",
+          "origin": "extra",
+          "note": "特别组那天的文字按钮（代替「自己选字」）：点了顺延到下一个合适的日子（D46 ④，P158）",
+          "decision": "P158"
+        },
+        "backNote": {
+          "raw": null,
+          "text": "你写过的 {n} 个字都还在。",
+          "origin": "extra",
+          "note": "离开 ≥7 天回来：把积累和「没有丢」合成一句，不提缺了几天（D01 / D41）",
+          "decision": "P155"
+        },
+        "backOld": {
+          "raw": null,
+          "text": "这一组先写写旧字。",
+          "origin": "extra",
+          "note": "同上第二句：预告回来后第一组多是复习（D41）",
+          "decision": "P155"
         }
       }
     },
@@ -4200,6 +4327,195 @@
           "origin": "extra",
           "decision": "P96",
           "note": "kind 不认识时的通用句"
+        }
+      }
+    },
+    "X-FIRST": {
+      "screen": "result",
+      "milestone": "M2",
+      "source": "设计稿「首练与首页」§三：首练结果页的标题、复现预告与写错字的「放进去」；全部是过渡文案，阶段 1 文案统一时定稿",
+      "slots": {
+        "title": {
+          "raw": null,
+          "text": "这三个字，很多人提笔就忘。",
+          "origin": "extra",
+          "note": "首练结果页标题：承认难度，不以计数作标题（D28 / N03）；替换首练分支的 R-R01.titleCount",
+          "decision": "P159"
+        },
+        "tier.tomorrow": {
+          "raw": null,
+          "text": "明天",
+          "origin": "extra",
+          "note": "复现预告档位：到期 ≤ 1 天（D41）",
+          "decision": "P159"
+        },
+        "tier.soon": {
+          "raw": null,
+          "text": "过两天",
+          "origin": "extra",
+          "note": "复现预告档位：到期 2–3 天",
+          "decision": "P159"
+        },
+        "tier.later": {
+          "raw": null,
+          "text": "过几天",
+          "origin": "extra",
+          "note": "复现预告档位：到期 ≥ 4 天",
+          "decision": "P159"
+        },
+        "reviewFirst": {
+          "raw": null,
+          "text": "{chars}{tier}再来找你",
+          "origin": "extra",
+          "note": "复现预告句第一个分句（{chars} 是「尴」「拾」式字列）；黑体 15，「找」不在宋体子集里（scripts/fonts/build_corpus.mjs HEI_ONLY_COPY）",
+          "decision": "P159"
+        },
+        "reviewNext": {
+          "raw": null,
+          "text": "{chars}{tier}",
+          "origin": "extra",
+          "note": "复现预告句后续分句",
+          "decision": "P159"
+        },
+        "reviewSame": {
+          "raw": null,
+          "text": "{tier}，它们再来找你。",
+          "origin": "extra",
+          "note": "复现预告句：所有字同一档且不止一个字",
+          "decision": "P159"
+        },
+        "reviewJoin": {
+          "raw": null,
+          "text": "，",
+          "origin": "extra",
+          "note": "复现预告句分句之间的标点",
+          "decision": "P159"
+        },
+        "reviewEnd": {
+          "raw": null,
+          "text": "。",
+          "origin": "extra",
+          "note": "复现预告句句末标点",
+          "decision": "P159"
+        },
+        "excluded": {
+          "raw": null,
+          "text": "「{char}」写错了，没放进图里",
+          "origin": "extra",
+          "note": "作品下一行：写错且有墨迹的字没放进图（D31）；右边「放进去」",
+          "decision": "P159"
+        },
+        "included": {
+          "raw": null,
+          "text": "「{char}」放进图里了",
+          "origin": "extra",
+          "note": "点「放进去」之后同一行的状态",
+          "decision": "P159"
+        },
+        "addIn": {
+          "raw": null,
+          "text": "放进去",
+          "origin": "extra",
+          "note": "「放进去」入口（只做入口与状态，图片成员规则由 P1-E7 实现）",
+          "decision": "P159"
+        },
+        "takeOut": {
+          "raw": null,
+          "text": "拿出来",
+          "origin": "extra",
+          "note": "放进去之后的反向操作",
+          "decision": "P159"
+        },
+        "addAria": {
+          "raw": null,
+          "text": "把「{char}」加入图片",
+          "origin": "extra",
+          "note": "「放进去」读屏名称（设计稿「读屏」一节）",
+          "decision": "P159"
+        },
+        "takeOutAria": {
+          "raw": null,
+          "text": "把「{char}」从图片里拿出来",
+          "origin": "extra",
+          "note": "「拿出来」读屏名称",
+          "decision": "P159"
+        }
+      }
+    },
+    "X-INVITE": {
+      "screen": "result",
+      "milestone": "M2",
+      "source": "设计稿「首练与首页」§三「提醒邀请」；D35 / D46 ③",
+      "slots": {
+        "title": {
+          "raw": null,
+          "text": "明天这个时候，给你一个词？",
+          "origin": "extra",
+          "note": "提醒邀请标题（D35；内嵌不弹窗，作品落定后约 600ms 淡入）",
+          "decision": "P157"
+        },
+        "titleEvening": {
+          "raw": null,
+          "text": "明天晚上八点半，给你一个词？",
+          "origin": "extra",
+          "note": "现在的时刻向下取整到半点落在 7:00–22:00 之外时取 20:30，标题换成这一句",
+          "decision": "P157"
+        },
+        "body": {
+          "raw": null,
+          "text": "锁屏上只出现词语和拼音，比如「{word} {pinyin}」，你先在心里写一遍。",
+          "origin": "extra",
+          "note": "邀请说明；示例词随首练第一个字（词语里目标字位是 □，与通知标题同一写法）；黑体 13，「锁」不在宋体子集里（HEI_ONLY_COPY）",
+          "decision": "P157"
+        },
+        "bodyPlain": {
+          "raw": null,
+          "text": "锁屏上只出现词语和拼音，你先在心里写一遍。",
+          "origin": "extra",
+          "note": "没有可举例的词语时的说明（不举例）；同上走黑体",
+          "decision": "P157"
+        },
+        "yes": {
+          "raw": null,
+          "text": "好",
+          "origin": "extra",
+          "note": "邀请按钮：点了才请求系统通知权限",
+          "decision": "P157"
+        },
+        "no": {
+          "raw": null,
+          "text": "不用了",
+          "origin": "extra",
+          "note": "邀请文字按钮：以后不在结果页再问；设置页「练习提醒」始终可开",
+          "decision": "P157"
+        },
+        "accepted": {
+          "raw": null,
+          "text": "好，明天 {time} 给你一个词。",
+          "origin": "extra",
+          "note": "点「好」之后的一行（{time} 如 9:30）；右边「改时间」",
+          "decision": "P157"
+        },
+        "changeTime": {
+          "raw": null,
+          "text": "改时间",
+          "origin": "extra",
+          "note": "打开时间选择（网页 <input type=time>；iOS 壳里是系统滚轮）",
+          "decision": "P157"
+        },
+        "timeLabel": {
+          "raw": null,
+          "text": "提醒时间",
+          "origin": "extra",
+          "note": "时间选择的读屏名称",
+          "decision": "P157"
+        },
+        "denied": {
+          "raw": null,
+          "text": "没打开通知。想要提醒，可以在手机设置里打开。",
+          "origin": "extra",
+          "note": "系统权限被拒后这一块变成的一行，不再追问（意思同 R-S02）",
+          "decision": "P157"
         }
       }
     }

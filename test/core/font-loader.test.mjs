@@ -96,8 +96,9 @@ for (const [face, sources] of Object.entries(FACE_SOURCES)) {
 
 test('DoD scope: every character of src/config/copy/ and deck word/py is in all three faces or in ShiziKai as specified', () => {
   const copyKai = inspectText(manifest, 'ShiziKai:400', texts.copy).missing;
-  const copySerif = inspectText(manifest, 'ShiziSerifSC:400', texts.copy).missing;
-  const copySerifM = inspectText(manifest, 'ShiziSerifSC:500', texts.copy).missing;
+  // 宋体要覆盖的文案不含只用黑体显示的键（build_corpus.mjs HEI_ONLY_COPY，P1-E5）
+  const copySerif = inspectText(manifest, 'ShiziSerifSC:400', texts.copySerif).missing;
+  const copySerifM = inspectText(manifest, 'ShiziSerifSC:500', texts.copySerif).missing;
   const deckKai = inspectText(manifest, 'ShiziKai:400', texts.deckWords + texts.deckPinyin).missing;
   assert.deepEqual([copyKai.length, copySerif.length, copySerifM.length, deckKai.length], [0, 0, 0, 0]);
   assert.ok(codepointsOf(texts.deckWords).size > 3000, 'deck text actually loaded');

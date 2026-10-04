@@ -7,7 +7,7 @@
 //     + 题库卡片（deck-data.js SEED 套 data/context-overrides.js 后的 word / py / hint / promptHint）
 //     + 字源 data/etymology.json（gloss / source）
 //   ShiziSerifSC 400 / 500（首页标题、题记、页标题、大数字、详情拼音）
-//     文案 src/config/copy/ 全部值 + 题记 + 四库名 + 题库拼音 py
+//     文案 src/config/copy/ 的值（去掉只用黑体显示的 HEI_ONLY_COPY）+ 题记 + 四库名 + 题库拼音 py
 // 文本先 NFC 归一化，去掉空白与控制字符，按码点收集。
 //
 // 输出（与 #180 同格式：一行 `U+XXXX,U+YYYY,…`，按码点升序）：
@@ -72,8 +72,22 @@ export function loadDeckGlobals(root = ROOT) {
 const importRepo = p => import(pathToFileURL(rel(p)).href);
 
 /**
- * 第十稿各类文字（按来源分组，单测与生成共用）。
- * @returns {Promise<{copy:string, epigraphs:string, libraries:string, promptCopy:string,
+ * 只在黑体（系统字体，不在 ShiziSerifSC 子集里）显示的文案键：这些值里有宋体子集里没有的字（找 昨 锁），宋体语料不收，
+ * 否则每多一个这样的字都要重建字体（需要下载上游）。键必须真的只用黑体显示（设计系统 v1：一切操作与说明、统计数字用黑体）；
+ * 阶段 1 P1-E5 新增，登记理由写在 copy-source.json 对应槽的 note 里。ShiziKai 子集不受影响（照旧收全部文案）。
+ */
+export const HEI_ONLY_COPY = Object.freeze([
+  'X-FIRST.reviewFirst', // 「…再来找你」：首练结果页复现预告，黑体 15
+  'X-FIRST.reviewNext',
+  'X-FIRST.reviewSame',
+  'X-HOME.lastYesterday', // 「昨天写的字」：首页字帖位下一行的标签，黑体 13
+  'X-INVITE.body', // 「锁屏上只出现词语和拼音……」：提醒邀请的说明，黑体 13
+  'X-INVITE.bodyPlain',
+]);
+
+/**
+ * 第十稿各类文字（按来源分组，单测与生成共用）。copySerif = copy 去掉 HEI_ONLY_COPY（宋体子集要覆盖的文案）。
+ * @returns {Promise<{copy:string, copySerif:string, epigraphs:string, libraries:string, promptCopy:string,
  *   deckWords:string, deckPinyin:string, deckHints:string, etymology:string}>}
  */
 export async function appTexts() {
@@ -85,6 +99,7 @@ export async function appTexts() {
   const ety = JSON.parse(read('data/etymology.json'));
   return {
     copy: Object.values(COPY).join('\n'),
+    copySerif: Object.entries(COPY).filter(([key]) => !HEI_ONLY_COPY.includes(key)).map(([, value]) => value).join('\n'),
     epigraphs: EPIGRAPHS.map(e => [...e.lines, e.source].join('\n')).join('\n'),
     libraries: LIBRARIES.map(l => l.label).join('\n'),
     promptCopy: Object.values(PROMPT_COPY).join('\n'),
@@ -98,8 +113,8 @@ export async function appTexts() {
 /** 各 face 要覆盖的文字来源（单测按同一张表逐项断言缺字为 0）。 */
 export const FACE_SOURCES = Object.freeze({
   'ShiziKai:400': Object.freeze(['copy', 'epigraphs', 'libraries', 'promptCopy', 'deckWords', 'deckPinyin', 'deckHints', 'etymology']),
-  'ShiziSerifSC:400': Object.freeze(['copy', 'epigraphs', 'libraries', 'deckPinyin']),
-  'ShiziSerifSC:500': Object.freeze(['copy', 'epigraphs', 'libraries', 'deckPinyin']),
+  'ShiziSerifSC:400': Object.freeze(['copySerif', 'epigraphs', 'libraries', 'deckPinyin']),
+  'ShiziSerifSC:500': Object.freeze(['copySerif', 'epigraphs', 'libraries', 'deckPinyin']),
 });
 
 const CORPUS = Object.freeze({

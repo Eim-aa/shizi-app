@@ -12,8 +12,8 @@ export default Object.freeze({
   'R-H02.period.noon': '中午',
   'R-H02.period.dusk': '傍晚',
   'R-H02.period.night': '晚上',
-  // R-H03（已定；D38 首练改为 3 个字，字数随之改）
-  'R-H03.firstVisit': '第一次来，先写 3 个字试试。',
+  // R-H03（已定；阶段 1 P1-E5：首次打开按钮下一行，设计稿「首练与首页」§一，替换「第一次来，先写 3 个字试试。」）
+  'R-H03.firstVisit': '先写三个大家常忘的字。',
   // R-H04（已定）
   'R-H04.resumePicked': '这次选的字 · 还有 {n} 个字没写',
   'R-H04.resumeDaily': '今天的练习 · 还有 {n} 个字没写',
@@ -37,8 +37,8 @@ export default Object.freeze({
   'R-H06.saveFailed': '没保存上，输入的字还在。',
   'R-H06.cancel': '先不保存',
   'R-H06.retry': '再试一次',
-  // R-H07（已定（契约））
-  'R-H07.todayCount': '今天记录了 {n} 个字',
+  // R-H07（已定（契约）；阶段 1 P1-E5：今天写过的状态里的说明句，设计稿「首练与首页」§四 ②，替换「今天记录了 N 个字」）
+  'R-H07.todayCount': '今天写了 {n} 个字',
   // R-H10（边开发边改）
   'R-H10.savedToast': '已保存，下次接着写',
   // R-H11（已定（两态是否同一页见 §6.2））
@@ -51,15 +51,31 @@ export default Object.freeze({
   'X-HOME.start': '开始写字',
   'X-HOME.continue': '继续写字',
   // X-HOME（M2-1 首页：原型首页壳-v3 L44 / L56 / L57 / L71 / L74 / L81 的装饰字与入口；开组写入失败说明，P55 待文案）
-  'X-HOME.ctaGlyph': '拾',
-  'X-HOME.arrow': '→',
   'X-HOME.sealGlyph': '字',
   'X-HOME.more': '›',
-  'X-HOME.pick': '自己选字 →',
+  'X-HOME.pick': '自己选字',
   'X-HOME.inkRowLabel': '今天有记录的字：{chars}',
   'X-HOME.startFailed': '没保存上，刚才的选择没记下。',
-  // X-HOME（阶段 1 P1-E4，D40 大写数字特别组的首页提示；过渡文案，阶段 1 文案统一时定稿，P129）
-  'X-HOME.capitalHint': '今天来写写大写数字，借条、报销单上都用得到。',
+  // X-HOME（阶段 1 P1-E5，设计稿「首练与首页」：首次打开、日常首页五态；全部是过渡文案，阶段 1 文案统一时定稿）
+  'X-HOME.mottoLine1': '提笔忘字，',
+  'X-HOME.mottoLine2': '不是忘了，',
+  'X-HOME.mottoLine3': '只是很久没写。',
+  'X-HOME.lastYesterday': '昨天写的字',
+  'X-HOME.lastBefore': '上次写的字 · {date}',
+  'X-HOME.lastRowLabel': '{label}：{chars}',
+  'X-HOME.libraryCount': '字库里有 {n} 个字了',
+  'X-HOME.progressLeft': '这一组还有 {n} 个字',
+  'X-HOME.progressLast': '这是这一组的最后一个字',
+  'X-HOME.progressLabel': '这一组：{chars}',
+  'X-HOME.cellDone': '{char}，写过了',
+  'X-HOME.cellNext': '下一个字，还没写',
+  'X-HOME.cellEmpty': '还没写',
+  'X-HOME.shiLabel': '拾',
+  'X-HOME.capitalLead': '「拾」也是大写的十。',
+  'X-HOME.capitalBody': '今天写两组大写数字，借条、红包上用得着。',
+  'X-HOME.capitalDefer': '这次先写平常的字',
+  'X-HOME.backNote': '你写过的 {n} 个字都还在。',
+  'X-HOME.backOld': '这一组先写写旧字。',
   // X-SESSION（M2-2 会话开始：S02 保存失败三段式、「现在没有要写的字」页主按钮；04 R-H05 / R-H11 没给这些槽，P55 待文案）
   'X-SESSION.s02SaveFailed': '没保存上，刚才的选择没记下。',
   'X-SESSION.s02Retry': '再试一次',

@@ -14,6 +14,11 @@ export default Object.freeze({
   'R-W09.refCardLabel': '参考字形：{char}，{pinyin}，{n} 画',
   'R-W09.refCardLabelNoCount': '参考字形：{char}，{pinyin}',
   'R-W09.refCardLabelChar': '参考字形：{char}',
+  // 参考字形读屏名称补结构与部件数（R2-A1 / A2-09，03 P232）：几何推导，只在清楚时说；部件名没有数据
+  'X-JUDGE.refStructureLr': '左右结构',
+  'X-JUDGE.refStructureTb': '上下结构',
+  'X-JUDGE.refParts': '{n} 个部件',
+  'X-JUDGE.refCardLabelPlus': '{base}，{extra}',
   // R-W17（已定）
   'R-W17.noInk': '这次没写',
   // X-JUDGE（M1-5 修改判断弹层标题 / 主按钮 / 取消；原型 ShiziWriteScreen L240、L637、L639）

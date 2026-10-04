@@ -276,9 +276,9 @@ export default async function judgeCorrect(page, ctx) {
   assert.ok(cmp.mineAbove, '你的书写 above, 参考字形 below (D46 ⑪)');
   assert.deepEqual(cmp.labels, [], 'D49: no 「你的书写 / 参考字形」 side notes (the names live on the cards)');
   assert.ok(!cmp.pageText.includes(COPY.mine) && !cmp.pageText.includes(COPY.ref), 'D49: neither label is rendered as text anywhere on the judge page');
-  // A9：读屏名称带上信息——本人卡「你的书写，N 笔」，参考卡「参考字形：字，拼音，N 画」（视觉标签不变）
+  // A9：读屏名称带上信息——本人卡「你的书写，N 笔」，参考卡「参考字形：字，拼音，N 画[，结构 / 部件数]」（视觉标签不变；R2-A1 起补结构，A2-09）
   assert.equal(cmp.mineAria, `${COPY.mine}，1 笔`, 'my card is role=img: 「你的书写，1 笔」 (one stroke drawn)');
-  assert.ok(new RegExp(`^${COPY.ref}：${CHARS[0]}，[^，]+，\\d+ 画$`).test(cmp.refAria), `reference card is role=img: 「参考字形：字，拼音，N 画」 (${cmp.refAria})`);
+  assert.ok(new RegExp(`^${COPY.ref}：${CHARS[0]}，[^，]+，\\d+ 画(，[^，]+)?$`).test(cmp.refAria), `reference card is role=img: 「参考字形：字，拼音，N 画」 (${cmp.refAria})`);
   assert.deepEqual(cmp.cont, { text: '', aria: COPY.cont, icon: true }, 'top-left is the ‹ icon (same as the write page), screen-reader name 接着写 (R-W09, D49)');
   assert.equal(cmp.pageBack, false, 'the default back button is replaced by the continue icon on the judge page (same icon, different action)');
   assert.equal(cmp.toolsPresent, false, 'no undo / clear row on the judge page (the stacked cards take the grid\'s place)');

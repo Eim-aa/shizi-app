@@ -262,7 +262,8 @@ export default async function answer(page, ctx) {
   assert.equal(await text(page, 'write-note'), COPY.firstExplain, 'first time: one line under the grid R-W07.firstExplain');
   assert.equal((await page.evaluate(() => window.__shiziTest.getState().settings)).answerNoteSeen, true, 'settings.answerNoteSeen recorded (once)');
   assert.equal(await text(page, 'write-answer-note'), COPY.answerNote, 'note above buttons R-W07.answerNote');
-  assert.equal(await page.getAttribute(topSel('write-answer-char'), 'aria-label'), '永', 'screen readers get the answer glyph from the footer (the reference layer is aria-hidden)');
+  // R2-A1（A2-09）：名称与判断页参考卡同一句——字、拼音、笔画数、结构 / 部件数
+  assert.ok(/^参考字形：永，yǒng(，\d+ 画(，[^，]+)?)?$/.test(await page.getAttribute(topSel('write-answer-char'), 'aria-label')), 'screen readers get the answer glyph from the footer (the reference layer is aria-hidden)');
   assert.deepEqual([await label(page, 'write-answer-self'), await label(page, 'write-answer-trace')], [COPY.self, COPY.trace],
     'buttons 自己写 / 描一遍');
   assert.equal(await label(page, 'write-answer-next'), COPY.next, 'bottom link 下一个');

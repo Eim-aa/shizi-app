@@ -11,7 +11,7 @@
 //      答案衬底 400ms 显影（policy.motion.answerRevealMs，P210；减少动态效果直接显示）；不播笔顺。笔顺数据取不到（10.13）→ ShiziKai 楷体整字
 //      DOM 文本（GlyphFallback）。按钮上方说明 R-W07.answerNote（10.13 用 R-W08.answerNote，字串相同）；按钮 [自己写 / 描一遍]；底部「下一个」文字按钮。
 //      **第一次**用看答案时格下多一行说明 R-W07.firstExplain（settings.answerNoteSeen，一次性，P212）。本人墨在 answer 阶段与回忆阶段共用同一份笔画现场
-//      （answerInkKey）。读屏：答案字放在底栏一个视觉隐藏的 role=img（书写格本身 aria-hidden 参考层）。
+//      （answerInkKey）。读屏：答案字放在底栏一个视觉隐藏的 role=img（书写格本身 aria-hidden 参考层），名称是「参考字形：字，拼音，n 画，结构」（ref-label.js，A2-09）。
 //   4. 描一遍（trace）：书写格参考字形层画描红（和提示同一种画法，canvas/glyph-wash.js：整字一次合成，所有笔画同色不透明、整层 .4 不透明度、外侧一圈 --ink3 外廓，没有逐笔描边与叠色接缝，V2-02；
 //      10.13 用浅色楷体整字、不分笔顺），进阶段先快放一遍笔顺（总时长 ≤ 1.6s，policy.motion.stepPlayMaxMs，P210；走查-W19；落笔 / 点一下即到终态；
 //      减少动态效果不播）；格下没有说明（R-W08.traceNote 已删：描一遍自明，不再用文字解释颜色）；主按钮「描好了，自己写」（没写时 disabled）；底部「下一个」。进入描一遍时把该 answer-seen 记录的
@@ -58,6 +58,7 @@ import { peekStrokes, watchStrokes } from '../../../data/strokes.js';
 import { animate, drawGlyph, glyphColor, prefersReducedMotion } from '../../canvas/glyph.js';
 import { GlyphWash, paintCanvas, useThemeVersion } from '../../canvas/glyph-wash.js';
 import { GlyphFallback } from './glyph-fallback.js';
+import { pyOf, refCardLabel } from './ref-label.js';
 import { AxFoot } from './ax-menu.js';
 
 /** answer 流程的阶段（01 §3.3）。 */
@@ -516,6 +517,10 @@ export function useAnswerFlow({ slot, session, cardKey, phase, strokeCount = 0, 
       ? ({ cssSize }) => html`<${TraceLayer} key=${'trace|' + cardKey} char=${char} cssSize=${cssSize} onStatus=${setGlyphStatus} />`
       : null;
 
+  // 看答案页底栏里视觉隐藏的答案字（书写格参考层 aria-hidden）：读屏名称与判断页参考卡同一句——字、拼音、笔画数、结构 / 部件数（A2-09 / P232）
+  const answerLabel = phase === 'answer'
+    ? refCardLabel({ char, py: pyOf(cardKey), strokeData: { status: glyphStatus, data: glyphStatus === 'ready' ? peekStrokes(char) : null } })
+    : '';
   const failed = !!failNow;
   const failText = t('R-W16.saveFailed');
   let note = '';
@@ -554,7 +559,7 @@ export function useAnswerFlow({ slot, session, cardKey, phase, strokeCount = 0, 
       primary = { testid: 'write-answer-next', label: t('R-W07.btnNext'), onClick: next };
       items = [item('write-answer-show', t('R-W07.btnShowAnswer'), toPhase('answer')), ...endItem];
     }
-    const lead = phase === 'answer' ? html`<span class="sz-answer__sr" role="img" aria-label=${char} data-testid="write-answer-char"></span>` : null;
+    const lead = phase === 'answer' ? html`<span class="sz-answer__sr" role="img" aria-label=${answerLabel} data-testid="write-answer-char"></span>` : null;
     const axNote = phase === 'answer' ? (failed || !firstNote ? noteAbove : `${noteAbove}${t('R-W07.firstExplain')}`) : note; // 两句合成一块说明（最多两行）
     const axFooter = html`<${AxFoot} primary=${primary} items=${items} testid="write-answer-foot" stage=${phase} failed=${failed} lead=${lead} />`;
     return { active: true, link, show: showAnswer, stage, glyphLayer, note: axNote, footer: axFooter };
@@ -589,7 +594,7 @@ export function useAnswerFlow({ slot, session, cardKey, phase, strokeCount = 0, 
 
   const footer = html`<div class="sz-write__foot" data-testid="write-answer-foot" data-stage=${phase}
     data-failed=${failed ? 'true' : 'false'}>
-    ${phase === 'answer' ? html`<span class="sz-answer__sr" role="img" aria-label=${char} data-testid="write-answer-char"></span>` : null}
+    ${phase === 'answer' ? html`<span class="sz-answer__sr" role="img" aria-label=${answerLabel} data-testid="write-answer-char"></span>` : null}
     <div class="sz-write__linkrow">${noteAbove
       ? html`<p class="sz-answer__note" data-testid="write-answer-note" aria-live="polite">${noteAbove}</p>`
       : null}</div>

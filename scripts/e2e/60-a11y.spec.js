@@ -513,7 +513,7 @@ export default async function a11y(page, realCtx) {
     // A9：对照卡读「参考字形：字，拼音，N 画」「你的书写，N 笔」
     const refAx = await axOf(cdp, topSel('write-compare-ref'));
     const mineAx = await axOf(cdp, topSel('write-compare-mine'));
-    assert.ok(refAx && /^参考字形：永，yǒng，\d+ 画$/.test(refAx.name), `A9: reference card name "${refAx && refAx.name}"`);
+    assert.ok(refAx && /^参考字形：永，yǒng，\d+ 画(，[^，]+)?$/.test(refAx.name), `A9: reference card name "${refAx && refAx.name}"`);
     assert.equal(refAx.role, 'image', 'A9: reference card is an image');
     assert.deepEqual(mineAx && { role: mineAx.role, name: mineAx.name }, { role: 'image', name: '你的书写，1 笔' }, 'A9: my card reads the stroke count (one stroke drawn)');
   }

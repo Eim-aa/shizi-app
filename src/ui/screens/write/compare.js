@@ -47,17 +47,7 @@ import { paintBrushStroke } from '../../canvas/brush.js';
 import { drawGlyph, glyphColor } from '../../canvas/glyph.js';
 import { GlyphFallback } from './glyph-fallback.js';
 import { allRecords, appendRecordToDraft } from './answer.js';
-import { cardForKey } from '../../../data/deck.js';
-
-/** 题库里这张卡的读音（读屏名称用）；查不到给空串。 */
-function pyOf(cardKey) {
-  try {
-    const card = cardKey ? cardForKey(cardKey) : null;
-    return card && card.py ? String(card.py) : '';
-  } catch (error) {
-    return '';
-  }
-}
+import { pyOf, refCardLabel } from './ref-label.js';
 
 /** 判断两键的出现与就绪（P227，时刻编排 M1）：0–320ms 不显示，320ms 起 60% 且不可点，440ms 变实可点（取代看不见的 0.4s 防连点）；减少动态效果下 150ms 起可点、不淡入。 */
 export const JUDGE_SHOW_MS = 320;
@@ -405,19 +395,7 @@ export function mineCardLabel(strokes) {
   return n > 0 ? t('R-W09.mineCardLabel', { n }) : t('R-W09.labelMine');
 }
 
-/**
- * 参考卡的读屏名称「参考字形：嚏，tì，17 画」（A9）。判断页已揭晓答案，读出字、拼音、笔画数不算泄露。
- * 笔顺数据没取到时不报笔画数；没有拼音时只读字。
- */
-export function refCardLabel({ char, py, strokeData }) {
-  const pinyin = String(py || '').trim();
-  if (!pinyin) return t('R-W09.refCardLabelChar', { char });
-  const data = strokeData && strokeData.status === 'ready' ? strokeData.data : null;
-  const n = data && Array.isArray(data.strokes) ? data.strokes.length : 0;
-  return n > 0
-    ? t('R-W09.refCardLabel', { char, pinyin, n })
-    : t('R-W09.refCardLabelNoCount', { char, pinyin });
-}
+export { refCardLabel };
 
 /**
  * 对照区（D46 ⑪、D49）：上格「你的书写」、下格「参考字形」，共用一条格线，居中（与书写格同一顶边、同一中线）；没有旁注，读屏名称是两张卡的 aria-label。

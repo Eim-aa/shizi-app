@@ -11,7 +11,7 @@ import { useEffect, useLayoutEffect, useState } from '../../../../vendor/ui.js';
 import { injectStyles, T } from '../../components/styles.js';
 import * as policy from '../../../config/policy.js';
 import {
-  GRID_MIN, GRID_MAX, writeLayout, judgePairSize, judgeAxLayout, estimateLayout, nominalMainHeight, PROMPT_H_STD, FOOT_BOTTOM_MIN,
+  GRID_MIN, GRID_MAX, writeLayout, axWriteLayout, judgePairSize, judgeAxLayout, estimateLayout, nominalMainHeight, PROMPT_H_STD, FOOT_BOTTOM_MIN,
 } from './layout.js';
 
 export { GRID_MIN, GRID_MAX };
@@ -124,7 +124,8 @@ export function useAxLevel(win) {
   return level;
 }
 
-/** 这些阶段的页面骨架（页头 + 标准按钮行）就是书写格那一套，量到的主区高有效；其余阶段（看答案 / 描一遍…）沿用最近一次量到的，书写格大小不变（D36）。 */
+/** 这些阶段的页面骨架（页头 + 标准按钮行）就是书写格那一套，量到的主区高有效；其余阶段（看答案 / 描一遍…）沿用最近一次量到的，书写格大小不变（D36）。
+ *  AX 档（D51 ⑦，P225）每个阶段的页头 / 底栏都是 AX 专属的一行版式，各阶段都量（见 useWriteLayout）。 */
 const MEASURED_PHASES = Object.freeze(['recall', 'compare']);
 
 /**
@@ -162,7 +163,7 @@ export function useWriteLayout(writeRef, { phase = 'recall', ax = 0 } = {}, win)
       const prompt = el.querySelector('.sz-write__prompt');
       const promptHeight = prompt ? prompt.offsetHeight : PROMPT_H_STD;
       setMeasured(prev => {
-        const keep = !MEASURED_PHASES.includes(phase) && Number.isFinite(prev.mainHeight);
+        const keep = ax <= 0 && !MEASURED_PHASES.includes(phase) && Number.isFinite(prev.mainHeight);
         const mh = keep ? prev.mainHeight : mainHeight;
         const nh = keep ? prev.nominalHeight : nominalHeight;
         const ph = keep ? prev.promptHeight : promptHeight;
@@ -183,10 +184,11 @@ export function useWriteLayout(writeRef, { phase = 'recall', ax = 0 } = {}, win)
       if (ro) ro.disconnect();
       else w.removeEventListener('resize', measure);
     };
-  }, [phase, win]);
+  }, [phase, win, ax > 0]);
   const { width, mainHeight, nominalHeight, promptHeight } = measured;
+  // AX 档：按实际可用高度排（永不滚动，axWriteLayout）；其余档仍按名义版式（D29 / D36 / P195）。
   const base = Number.isFinite(mainHeight)
-    ? writeLayout({ width, mainHeight, nominalHeight, promptHeight, ax: ax > 0 })
+    ? (ax > 0 ? axWriteLayout({ width, mainHeight, promptHeight }) : writeLayout({ width, mainHeight, nominalHeight, promptHeight }))
     : { g: measured.g, top: measured.top, gridTop: measured.gridTop, toolsHeight: measured.toolsHeight };
   let pair = { s: 0, layout: 'stack', top: base.top };
   if (phase === 'compare' && Number.isFinite(mainHeight)) {

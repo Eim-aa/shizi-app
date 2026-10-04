@@ -186,15 +186,16 @@ export function openEndConfirm({ slot, sessionId }) {
  * @param {string} o.phase        有效阶段（compare 判断页不显示；其余阶段都显示，H4）
  * @param {boolean} [o.blocked]   底栏被保存失败两键占住（跳过失败；看答案流程的保存失败由 answer.js 自己隐藏）
  * @param {() => void} [o.onOpen] 打开确认框前（写字页用来结束跳过的撤销机会）
- * @returns {{shown:boolean, button:any}}
+ * @returns {{shown:boolean, button:any, open:(()=>void)|null}}  open：打开确认框（AX 档收进「⋯」菜单时直接用，P225）
  */
 export function useEndGroup({ slot, session, phase, blocked = false, onOpen }) {
   const shown = canEndGroup(session) && phase !== 'compare' && !blocked;
-  if (!shown) return { shown: false, button: null };
+  if (!shown) return { shown: false, button: null, open: null };
   const sessionId = session.id;
-  const button = html`<${Button} variant="text" class="sz-end__btn" data-testid="write-end" onClick=${() => {
+  const open = () => {
     if (typeof onOpen === 'function') onOpen();
     openEndConfirm({ slot, sessionId });
-  }}>${t('R-W15.end')}</${Button}>`;
-  return { shown: true, button };
+  };
+  const button = html`<${Button} variant="text" class="sz-end__btn" data-testid="write-end" onClick=${open}>${t('R-W15.end')}</${Button}>`;
+  return { shown: true, button, open };
 }

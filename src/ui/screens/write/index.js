@@ -61,6 +61,8 @@ import { commitFinish, handoffSkipUndo, openResult } from '../result/index.js';
 import { PaperNote, PaperStage, ToPaperButton, usePaperMode, usePaperSuggest } from './paper.js';
 import { useFirstTip } from './first-tip.js';
 import { assistiveTechActive } from '../../../platform/accessibility.js';
+import { AxFoot } from './ax-menu.js';
+import { AX_NOTE_H } from './layout.js';
 
 export const WRITE_SCREEN = 'write';
 /** 换字后书写格不接受落笔的时长（01 §6.6 / 走查-V01，已定）。 */
@@ -82,6 +84,9 @@ export function titleFor(phase) {
 
 const W = '.sz-page[data-testid="write-screen"]';
 
+// AX 档（D51 ⑦，P225；A2-01 / A2-04 / A2-09）：写字页永不滚动。撤销 / 清空常驻页头（28pt 图标、热区 44），底栏只剩「写好了」+「⋯」（ax-menu.js），
+// 格下只剩固定 56 高的说明位（说明 / 提示 / 结果行，辅助字封顶 17pt）；拼音、进度、说明、纸上说明等辅助信息封顶 17pt，题面汉字才随档放大（prompt.js）。
+// 下面 :root[data-ax] 开头的规则就是这一套（尺寸见 layout.js axWriteLayout）。
 injectStyles('write', `
 ${W} .sz-page__body{padding:0 ${T.gutter};gap:0}
 ${W} .sz-page__foot{padding:${T.s3} ${T.gutter} max(8px, env(safe-area-inset-bottom, 0px));gap:0}
@@ -119,8 +124,21 @@ ${W} .sz-page__foot[data-under="true"]::before{content:"";position:absolute;left
 .sz-write__slot:empty{display:none}
 .sz-write__linkrow,.sz-write__skiprow,.sz-write__hint{min-height:${T.hit};display:flex;align-items:center}
 .sz-write__endslot{display:flex;align-items:center}
-:root[data-ax] ${W} .sz-write__below{min-height:52px}
 :root[data-ax] .sz-write__links--ghost{display:none}
+:root[data-ax] ${W} .sz-write__below{width:100%;min-height:${AX_NOTE_H}px;margin:0}
+:root[data-ax] ${W} .sz-write__below *,:root[data-ax] ${W} .sz-paper__title,:root[data-ax] ${W} .sz-paper__text,:root[data-ax] ${W} .sz-paper__back,
+:root[data-ax] ${W} .sz-write__progress{font-size:calc(17px * 1);line-height:24px}
+:root[data-ax] ${W} .sz-write__note{box-sizing:border-box;min-height:${AX_NOTE_H}px;justify-content:flex-start;padding-top:8px}
+:root[data-ax] ${W} .sz-write__axhead{display:flex;align-items:center}
+:root[data-ax] ${W} .sz-write__axhead .sz-write__tools{height:44px;margin-right:0;visibility:visible}
+:root[data-ax] ${W} .sz-write__axhead .sz-write__tools[data-shown="false"]{visibility:hidden}
+:root[data-ax] ${W} .sz-write__axhead .sz-write__ibtn svg{width:28px;height:28px}
+:root[data-ax] ${W} .sz-write__axhead .sz-write__ibtn::before{inset:0}
+:root[data-ax] ${W} .sz-write__axhead .sz-write__ibtn+.sz-write__ibtn{margin-left:0}
+:root[data-ax] ${W} .sz-write__axhead .sz-write__progress{padding-left:4px}
+:root[data-ax][data-text-large] ${W} .sz-page__head{flex-wrap:nowrap}
+:root[data-ax][data-text-large] ${W} .sz-page__head>.sz-page__title:not(.sz-page__title--hidden){position:static;order:0;flex:1 1 0;min-width:0;
+  padding:0 4px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:calc(17px * 1);line-height:24px}
 `);
 
 const EMPTY = Object.freeze([]);
@@ -325,7 +343,7 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
   // （接管时「结束这组」放在它底栏「下一个」那一行右端，H4）。Q1：本地笔画交给它，离开自己写一遍时存成看后自写的墨迹。
   const answer = useAnswerFlow({
     slot, session, cardKey, phase, strokeCount: view.strokes.length, strokes: view.strokes,
-    onShowAnswer: endSkipUndo, endButton: end.button,
+    onShowAnswer: endSkipUndo, endButton: end.button, ax, endOpen: end.open,
   });
 
   // M2-3：最后一字处理完（任一阶段推进，cursor 到队尾）→ 会话移入 lastEnded → 就地换成结果页（D20，无中间页）。
@@ -401,10 +419,23 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
   const hasStrokes = view.strokes.length > 0;
   const canUndo = hasStrokes || !!view.cleared;
   const drawable = phase === 'recall' || phase === 'trace' || phase === 'retrace';
-  const progress = html`<span class="sz-write__progress" data-testid="write-progress">${t('R-W01.progress', {
+  // 进度「n / 总数」：读屏念「第 n 个字，共 m 个」（A2-09），不念斜杠符号；AX 档视觉上封顶 17pt（P225）。
+  const progress = html`<span class="sz-write__progress" data-testid="write-progress" role="img"
+    aria-label=${t('R-W01.progressLabel', { n: session.cursor + 1, total: session.queue.length })}>${t('R-W01.progress', {
     n: session.cursor + 1,
     total: session.queue.length,
   })}</span>`;
+
+  // P1-E8：屏幕上写、还没落笔（也没有可撤销的清空）时可以改成「在纸上写」（只改这一个字）；纸上那一字不显示撤销 / 清空。
+  const toPaper = !paper && phase === 'recall' && !canUndo && !skip.failed;
+  // 撤销 / 清空（R-W18）：标准版在格下一行右端（落第一笔后才出现）；AX 档在页头右侧、常驻（无墨时 ink4 且不可点，P225）；纸上那一字与看答案 / 判断阶段不显示。
+  const tools = html`<span class="sz-write__tools" data-testid="write-tools" data-shown=${(ax > 0 || canUndo) && drawable && !paper ? 'true' : 'false'}
+          data-paper=${paper ? 'true' : null}>
+          <${Button} variant="plain" class="sz-write__ibtn" data-testid="write-undo" aria-label=${t('R-W18.btnUndo')} disabled=${!canUndo} rapid
+            onClick=${onUndo}>${UNDO_ICON()}</${Button}>
+          <${Button} variant="plain" class="sz-write__ibtn" data-testid="write-clear" aria-label=${t('R-W18.btnClear')} disabled=${!hasStrokes} rapid
+            onClick=${onClear}>${CLEAR_ICON()}</${Button}>
+        </span>`;
 
   // 按钮行（D49，实现交接 §13.1）：主按钮「写好了」（满宽、唯一）；其下一行文字按钮——左「提示」「看答案」（不合并，D49 ②），右「跳过」（picked 会话在它左边多一个「结束这组」）。
   // 保存失败（跳过写失败）时主按钮换成 [先不保存 / 再试一次]。
@@ -423,20 +454,31 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
         </div>
       </div>
     </div>`;
-  // P1-E8：屏幕上写、还没落笔（也没有可撤销的清空）时，格下一行右端是「在纸上写」（只改这一个字）；纸上那一字不显示撤销 / 清空。
-  // 「在纸上写」叠在（隐藏着的）撤销 / 清空同一位置，不改这一行的排布。
-  const toPaper = !paper && phase === 'recall' && !canUndo && !skip.failed;
-  const toPaperSlot = toPaper ? html`<span class="sz-write__topaperslot"><${ToPaperButton} onClick=${() => paperMode.toggle(true)} /></span>` : null;
-  const tools = html`<span class="sz-write__tools" data-testid="write-tools" data-shown=${canUndo && drawable && !paper ? 'true' : 'false'}
-          data-paper=${paper ? 'true' : null}>
-          <${Button} variant="plain" class="sz-write__ibtn" data-testid="write-undo" aria-label=${t('R-W18.btnUndo')} disabled=${!canUndo} rapid
-            onClick=${onUndo}>${UNDO_ICON()}</${Button}>
-          <${Button} variant="plain" class="sz-write__ibtn" data-testid="write-clear" aria-label=${t('R-W18.btnClear')} disabled=${!hasStrokes} rapid
-            onClick=${onClear}>${CLEAR_ICON()}</${Button}>
-        </span>`;
+  // AX 档底栏（P225）：一行「写好了」+「⋯」，提示 / 看答案 / 跳过 / 在纸上写 / 结束这组收进菜单（ax-menu.js）；保存失败时主按钮是「再试一次」，「先不保存」进菜单。
+  let axFooter = null;
+  if (ax > 0) {
+    const hm = hint.buttonModel;
+    const items = [];
+    if (hm.kind === 'unavailable') items.push({ testid: 'write-hint-unavailable', label: t('R-W05.hintUnavailable'), static: true });
+    else if (hm.kind !== 'hidden') items.push({ testid: 'write-hint', label: hm.text, ariaLabel: hm.label, disabled: !!hm.disabled, onSelect: hint.onHint });
+    if (answer.link) items.push({ testid: 'write-show-answer', label: t('R-W07.btnShowAnswer'), onSelect: answer.show });
+    if (skip.button) items.push({ testid: 'write-skip', label: t('R-W14.btnSkip'), onSelect: skip.run });
+    if (toPaper) items.push({ testid: 'write-to-paper', label: t('X-PAPER.toPaper'), onSelect: () => paperMode.toggle(true) });
+    if (end.open) items.push({ testid: 'write-end', label: t('R-W15.end'), onSelect: end.open });
+    axFooter = skip.failed
+      ? html`<${AxFoot} primary=${{ testid: 'write-skip-fail-retry', label: t('R-W16.retry'), onClick: skip.run }}
+          items=${[{ testid: 'write-skip-fail-cancel', label: t('R-W16.cancel'), onSelect: skip.cancelFail }]} testid="write-foot" stage="recall" failed=${true} />`
+      : html`<${AxFoot} primary=${{ testid: 'write-done', label: t('R-W29.btnDone'), disabled: !hasStrokes && !paper, onClick: onDone }}
+          items=${items} testid="write-foot" stage=${phase} />`;
+  }
+  // 标准版：「在纸上写」叠在（隐藏着的）撤销 / 清空同一位置（右端）；AX 档在「⋯」菜单里。
+  const toPaperSlot = toPaper && ax <= 0 ? html`<span class="sz-write__topaperslot"><${ToPaperButton} onClick=${() => paperMode.toggle(true)} /></span>` : null;
+  const noteBody = answer.active ? answer.note
+    : skip.failed ? skip.note : paper ? html`<${PaperNote} />` : hint.note ? html`<${HintNote} note=${hint.note} />` : firstTip.node;
 
+  const trailing = ax > 0 ? html`<span class="sz-write__axhead">${tools}${progress}</span>` : progress;
   return html`<${Page} title=${titleFor(phase)} hideTitle=${phase === 'recall' || (phase === 'compare' && ax > 0)} lead=${compare.lead}
-    trailing=${progress} footer=${answer.footer || (compare.active ? compare.footer : footer)} testid="write-screen">
+    trailing=${trailing} footer=${answer.footer || (compare.active ? compare.footer : (ax > 0 ? axFooter : footer))} testid="write-screen">
     <div class="sz-write" ref=${writeRef} data-cursor=${session.cursor} data-phase=${phase} data-slot=${slot}
       data-compact=${compact ? 'true' : 'false'} data-ax=${ax > 0 ? String(ax) : null} style=${{ paddingTop: `${groupTop}px` }}>
       <${StepDots} phase=${phase} />
@@ -457,10 +499,9 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
           label=${t('X-WRITE.gridLabel')}
         />`}
       </div>
-      ${compare.active ? null : html`<div class="sz-write__below" style=${{ width: `${gridSize}px` }}>
-        <span class="sz-write__note" data-testid="write-note"><span class="sz-write__lineslot" data-testid="write-line-slot">${row.node}</span>${suggest.node}${answer.active ? answer.note
-          : skip.failed ? skip.note : paper ? html`<${PaperNote} />` : hint.note ? html`<${HintNote} note=${hint.note} />` : firstTip.node}</span>
-        ${tools}${toPaperSlot}
+      ${compare.active ? null : html`<div class="sz-write__below" style=${ax > 0 ? undefined : { width: `${gridSize}px` }}>
+        <span class="sz-write__note" data-testid="write-note"><span class="sz-write__lineslot" data-testid="write-line-slot">${row.node}</span>${suggest.node}${noteBody}</span>
+        ${ax > 0 ? null : tools}${toPaperSlot}
       </div>`}
     </div>
     ${skip.bar}

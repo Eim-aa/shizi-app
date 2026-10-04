@@ -303,7 +303,7 @@ export function SkipUndoDock({ until, onExpire, ...props }) {
  * @param {string} o.phase       有效阶段
  * @param {number} o.hints       本地提示次数（useHint().used）
  * @param {Array} [o.strokes]    书写格本人原始笔画（跳过时记下，撤销时写回 current.strokes，M2-3）
- * @returns {{shown, button, failed, note, failButtons, bar, undoOpen, undo, dismiss}}
+ * @returns {{shown, button, failed, note, run, cancelFail, failButtons, bar, undoOpen, undo, dismiss}}
  *   shown：回忆阶段、没看过答案时显示「跳过」；failed：跳过写失败（调用方把主按钮行换成 failButtons、格下说明换 note）；
  *   bar：5 秒撤销轻提示（D36）（放在页面根上，absolute 贴底；空页 / 结果页也要渲染）；undoOpen：撤销底栏是否在；
  *   dismiss()：撤销机会结束（下一字落笔 / 点提示 / 点看答案），立即收起底栏。
@@ -366,6 +366,8 @@ export function useSkip({ slot, session, cardKey, phase, hints = 0, strokes = nu
       ? html`<${Button} variant="text" data-testid="write-skip" onClick=${skip}>${t('R-W14.btnSkip')}</${Button}>`
       : null,
     note: failed ? t('R-W16.saveFailed') : '',
+    run: skip, // 跳过 / 失败后重试的动作本身（AX 档收进「⋯」菜单与主按钮，P225）
+    cancelFail: () => { setFail(null); markStateChange(); },
     failButtons: failed
       ? html`<div class="sz-skip__fail">
           <${Button} variant="secondary" data-testid="write-skip-fail-cancel" onClick=${() => { setFail(null); markStateChange(); }}>${t('R-W16.cancel')}</${Button}>

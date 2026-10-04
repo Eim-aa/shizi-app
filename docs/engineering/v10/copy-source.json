@@ -547,6 +547,13 @@
         "progress": {
           "raw": "{n} / {总数}",
           "text": "{n} / {total}"
+        },
+        "progressLabel": {
+          "raw": null,
+          "text": "第 {n} 个字，共 {total} 个",
+          "origin": "extra",
+          "note": "进度的读屏名称（role=img 的 aria-label；ADA A2-09：读屏不再念「1 斜杠 3」）；可见文字仍是 R-W01.progress",
+          "decision": "P225"
         }
       }
     },
@@ -2855,6 +2862,13 @@
           "origin": "extra",
           "note": "书写格容器 role=img 的 aria-label（读屏文案）；取 01 §6.1 的名称，不含答案字（决定-D16）",
           "decision": "P66"
+        },
+        "moreLabel": {
+          "raw": null,
+          "text": "更多",
+          "origin": "extra",
+          "note": "AX 档写字页底栏「⋯」按钮与菜单的读屏名称（只有读屏念；可见的是三点图标）",
+          "decision": "P225"
         },
         "firstTip": {
           "raw": null,

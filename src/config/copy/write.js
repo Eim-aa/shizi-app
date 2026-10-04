@@ -5,6 +5,7 @@
 export default Object.freeze({
   // R-W01（已定）
   'R-W01.progress': '{n} / {total}',
+  'R-W01.progressLabel': '第 {n} 个字，共 {total} 个', // 读屏名称（A2-09，P225）：不念斜杠符号
   // R-W02（已定（显示位置/持续几字见 §6.2））
   'R-W02.firstTip': '看拼音和提示，把这个字写在格子里。',
   // R-W03（已定）
@@ -82,6 +83,7 @@ export default Object.freeze({
   'X-PROMPT.tone5': '轻声',
   // X-WRITE（M1-1 书写格组件的读屏名称）
   'X-WRITE.gridLabel': '书写格',
+  'X-WRITE.moreLabel': '更多', // AX 档底栏「⋯」按钮与菜单的读屏名称（P225）
   // X-WRITE.firstTip（阶段 1 Q2-1，03 P181；实现交接 §3 过渡文案）：首练第 1 字格下说明位一次性提示
   'X-WRITE.firstTip': '凭记忆写，想不起来可以点提示。',
   // X-ANSWER（M1-4 描一遍阶段标题与按钮；原型 ShiziWriteScreen L551–L553）

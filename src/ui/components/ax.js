@@ -10,7 +10,9 @@
 //   - 按钮最小高随字号：主 / 次按钮、文字按钮、判断键的最小高度按自身字号算（1.3em + 内边距），不再是固定 52 / 72 × --k。
 //   - Tab 栏不放大（D49 收紧 Q2-11 的封顶）：Tabs.js 的高、图标 24、标签 11 本来就不读 --k，AX 档没有任何额外规则（iOS 系统 Tab 栏同样不随 Dynamic Type 放大）。
 //   - 字阶（D49）：AX 档的 --fsN / --lhN / --btn-h 由 tokens.css 的 :root[data-ax="N"] 逐级给出（不再统一乘 --k），下面按钮的最小高直接取 --btn-h。
-// 书写格边长不受影响（P118 / D36，按可用空间算）。完整 AX 版式（逐级字阶、说明折叠到 ⓘ 等，ADA A03 / A04）等设计稿给出后替换本文件。
+// 写字页 / 判断页 / 看答案页在 AX 档有自己的专属版式（D51 ⑦，P225；ADA A2-01 / A2-04 / A2-09 / A2-11）：永不滚动、书写格按实际可用高度排（下限 220）、
+// 底栏只留主按钮 + 「⋯」菜单、撤销 / 清空在页头、辅助字封顶 17pt——样式在 write/index.js、write/prompt.js、write/ax-menu.js，尺寸在 write/layout.js axWriteLayout。
+// 本文件只放各页共用的防溢出规则；按钮文字词内不折行（word-break:keep-all，A2-11）。
 // 选择器一律以 :root[data-ax][data-text-large] 开头，比紧凑版（write/compact.js 的 :root[data-text-large] …）多一个属性，
 // 注入顺序无关。由 ui/root.js 导入一次。
 
@@ -30,8 +32,8 @@ ${A} .sz-page .sz-page__head>.sz-page__title{position:relative;left:auto;right:a
   padding:0 8px 6px;white-space:normal;overflow:visible;text-overflow:clip;text-align:left;line-height:var(--lh17);text-wrap:pretty}
 ${A} .sz-page .sz-page__head>.sz-page__lead,${A} .sz-page .sz-page__head>.sz-page__trail{flex:none}
 ${A} .sz-btn--primary,${A} .sz-btn--secondary{min-height:var(--btn-h);height:auto;padding-top:6px;padding-bottom:6px;
-  white-space:normal;}
-${A} .sz-btn--text{min-height:max(44px, calc(1.3em + 12px));white-space:normal;text-align:left}
+  white-space:normal;word-break:keep-all}
+${A} .sz-btn--text{min-height:max(44px, calc(1.3em + 12px));white-space:normal;word-break:keep-all;text-align:left}
 ${W} .sz-write__main{grid-template-columns:minmax(0,1fr);gap:8px}
 ${W} .sz-write__foot .sz-btn--primary,${W} .sz-write__foot .sz-btn--secondary{min-height:calc(1.3em + 20px);white-space:normal}
 ${W} .sz-write__hint .sz-hintbtn{white-space:normal}

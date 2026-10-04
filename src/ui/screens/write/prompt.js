@@ -12,7 +12,7 @@
 // - 文案：PROMPT_COPY 的五项全部从 src/config/copy/ 取（promptCopy()），值与 cards.js 默认值逐字一致
 //   （test/ui/prompt.test.mjs 断言），所以门禁 promptHTML / visibleHint 与界面字节一致。
 //
-// 版式（D49 实现交接 §13.1，取代原型 L45–L60）：整词水平居中（与书写格同一条中轴）；每格 52 见方（AX 档 64），已给的字只画字（格内 80%）、不装框；
+// 版式（D49 实现交接 §13.1，取代原型 L45–L60）：整词水平居中（与书写格同一条中轴）；每格 52 见方（AX 档 52 × min(--k, 1.6)，P225；拼音、提示行封顶 17pt），已给的字只画字（格内 80%）、不装框；
 // 要写的格只画 frameW frame 的空框；拼音 t15 ink2 注在要写的格正上方（拼音行高 ≥ 24、与格间 4，各列底对齐）。402 标准字号下整个题面高 80（28 + 52）；
 // 提示行（释义 / 语境线索 / 重复目标字说明）只在有内容时出现，题面随之变高（写字页按量到的题面高算书写格组的位置）。格宽不够时等比收窄不裁切。
 //
@@ -26,6 +26,9 @@ import { getStore } from '../../../store/store.js';
 import { injectStyles, T } from '../../components/styles.js';
 import { PracticeGlyph, FACE_FULL } from '../../components/PracticeGlyph.js';
 import { t } from '../../../config/copy/index.js';
+import * as policy from '../../../config/policy.js';
+
+const AX_SCALE_MAX = policy.writeGrid.axPromptScaleMax;
 
 /** 这些阶段题面把目标字填回空格（原型 L527）；recall / retrace 一律遮住。D49：判断页（compare）的目标格也不显示答案，答案只在参考格出现一次。 */
 export const REVEAL_PHASES = Object.freeze(['answer', 'trace']);
@@ -102,7 +105,7 @@ export function promptCells(card, { revealed = false, copy = promptCopy() } = {}
 
 injectStyles('write-prompt', `
 .sz-prompt{--cw:52px;align-self:stretch;min-width:0;display:flex;flex-direction:column;align-items:stretch}
-:root[data-ax] .sz-prompt{--cw:64px}
+:root[data-ax] .sz-prompt{--cw:calc(52px * min(var(--k), ${AX_SCALE_MAX}))}
 .sz-prompt__wordwrap{box-sizing:border-box;width:100%;display:flex;justify-content:center;padding-top:calc(max(24px, ${T.lh15}) + 4px)}
 .sz-prompt__word{display:flex;width:max-content;max-width:100%}
 .sz-prompt__cell{position:relative;box-sizing:border-box;flex:0 1 auto;width:var(--cw);min-width:0;aspect-ratio:1/1;text-align:center;
@@ -119,6 +122,10 @@ injectStyles('write-prompt', `
   white-space:nowrap}
 .sz-prompt__hint{margin:10px 0 0;min-width:0;text-align:center;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2};white-space:normal;overflow-wrap:anywhere}
 .sz-prompt__hint:empty{margin:0}
+/* AX 档（D51 ⑦，P225；A2-04 / V2-06）：字永远最大——题面格随 min(--k, 1.6) 放大（52 → 83），拼音与提示行（辅助信息）封顶 17pt、不再随档放大（拼音原先 AX5 是 49px，比要回忆的字还大） */
+:root[data-ax] .sz-prompt__wordwrap{padding-top:28px}
+:root[data-ax] .sz-prompt__py{font-size:calc(17px * 1);line-height:24px}
+:root[data-ax] .sz-prompt__hint{margin-top:8px;font-size:calc(17px * 1);line-height:24px}
 `);
 
 // 题面里的字：练习字轮廓（P1-E2）。方框就是那 40pt（FACE_FULL：1024 方框占满元素）。

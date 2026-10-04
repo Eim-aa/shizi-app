@@ -48,7 +48,9 @@ const PAGES = [
   { id: 'home', go: () => null, primary: ['home-start', 'home-pick'], tabs: true },
   {
     id: 'write', go: page => push(page, 'write', { slot: 'A' }), ready: `${TOP} [data-testid="write-hint"][data-state]`,
-    primary: ['page-back', 'write-hint', 'write-done', 'write-show-answer', 'write-skip'], grid: true,
+    primary: ['page-back', 'write-hint', 'write-done', 'write-show-answer', 'write-skip'],
+    // AX 档（R2-X1，P225）：底栏只有「写好了」+「⋯」（提示 / 看答案 / 跳过在菜单里），撤销 / 清空在页头
+    primaryAx: ['page-back', 'write-done', 'write-more', 'write-undo', 'write-clear'], grid: true,
   },
   {
     id: 'judge', phase: 'compare', go: page => push(page, 'write', { slot: 'A' }), ready: `${TOP} .sz-write[data-phase="compare"]`,
@@ -184,15 +186,18 @@ export default async function textSize(page, ctx) {
         if (process.env.SHIZI_E2E_SHOTS) {
           await page.screenshot({ path: `${process.env.SHIZI_E2E_SHOTS}/p1e6-${view.width}x${view.height}-${p.id}-${size.category}.png` });
         }
-        const m = await page.evaluate(measure, { primary: p.primary, tabs: !!p.tabs });
+        const m = await page.evaluate(measure, { primary: size.ax && p.primaryAx ? p.primaryAx : p.primary, tabs: !!p.tabs });
         const t = `${tag} ${size.category}`;
         assert.deepEqual({ ...m.env, type: undefined }, { k: size.k, ax: size.ax, large: size.large, type: undefined }, `${t}: --k ${size.k}, data-ax ${size.ax}, data-text-large ${size.large}`);
         assert.deepEqual(m.env.type, size.type, `${t}: --fs13 / --fs28 / --fs17 / --btn-h = ${size.type.join(' / ')} (D49: AX tiers are absolute, xS–XXXL = N × k)`);
         assert.deepEqual(m.problems, [], `${t}: no horizontal overflow; key buttons inside the viewport, uncovered, ≥44pt`);
-        if (p.grid) {
+        if (p.grid && size.ax) {
+          // AX 档：按实际可用高度排版，下限 220（P225）；320×568 这类很矮的屏取下限
+          assert.ok(m.grid && m.grid.w >= 220 - 0.5 && Math.abs(m.grid.w - m.grid.h) < 1, `${t}: square grid ≥ 220 (${m.grid && m.grid.w}) — the AX floor (P225)`);
+        } else if (p.grid) {
           assert.ok(m.grid && m.grid.w >= 258 - 0.5 && Math.abs(m.grid.w - m.grid.h) < 1, `${t}: square grid ≥ 258 (${m.grid && m.grid.w})`);
           if (size.category === 'L') gridL = m.grid.w;
-          else assert.ok(Math.abs(m.grid.w - gridL) < 0.5, `${t}: grid edge ${m.grid.w} = the L edge ${gridL} (text size does not change the grid, D36 / P118)`);
+          else assert.ok(Math.abs(m.grid.w - gridL) < 0.5, `${t}: grid edge ${m.grid.w} = the L edge ${gridL} (xS–XXXL: text size does not change the grid, D36 / P118)`);
         }
       }
       await page.evaluate(() => window.shiziContentSize({ category: 'L' }));

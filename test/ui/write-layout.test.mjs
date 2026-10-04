@@ -4,7 +4,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  writeGridSize, writeLayout, nominalMainHeight, groupTop, judgePairSize, judgeAxLayout, estimateLayout, GRID_MIN, GRID_MAX, JUDGE_MIN, COMPARE_GAP,
+  writeGridSize, writeLayout, axWriteLayout, AX_GRID_MIN, AX_NOTE_H, nominalMainHeight, groupTop, judgePairSize, judgeAxLayout, estimateLayout, GRID_MIN, GRID_MAX, JUDGE_MIN, COMPARE_GAP,
 } from '../../src/ui/screens/write/layout.js';
 
 const mainOf = (h, sb, bot) => h - sb - 44 - (12 + 54 + 6 + 44 + bot);
@@ -41,24 +41,71 @@ test('writeLayout: g is sized from the nominal prompt (80), the position from th
   assert.equal(hinted.gridTop, hinted.top + 112 + 16);
 });
 
-test('writeLayout (E9d, P195, D29 / D36): AX levels never shrink the grid — g is sized from the nominal (L) main area, only the position follows the real one', () => {
-  // 402×874（状态栏 54、下 34）：L 档主区 626；AX5 按钮行 88（主按钮）、页头 / 工具行更高 → 实际主区只剩 500 左右，题面 126
+test('writeLayout (E9d, P195, D29 / D36): xS–XXXL never shrink the grid — g is sized from the nominal (L) main area, only the position follows the real one', () => {
+  // 402×874（状态栏 54、下 34）：L 档主区 626；XXXL 页头 / 按钮行略高 → 实际主区只剩 560 左右，题面 106
   const L = writeLayout({ width: 402, mainHeight: 626, nominalHeight: 626, promptHeight: 80 });
-  for (const [real, prompt] of [[560, 106], [532, 126], [500, 126], [420, 126], [300, 126]]) {
-    const ax = writeLayout({ width: 402, mainHeight: real, nominalHeight: 626, promptHeight: prompt, ax: true });
-    assert.equal(ax.g, L.g, `real main ${real}: AX g = L g (${L.g})`);
-    assert.equal(ax.toolsHeight, 52, 'AX tools row is 52 high (position only)');
-    assert.ok(ax.top >= 0 && ax.top <= 12 + Math.max(0, real), 'the top gap never pushes the group out of the main area');
+  for (const [real, prompt] of [[620, 86], [600, 92], [560, 106]]) {
+    const big = writeLayout({ width: 402, mainHeight: real, nominalHeight: 626, promptHeight: prompt });
+    assert.equal(big.g, L.g, `real main ${real}: g = L g (${L.g})`);
+    assert.equal(big.toolsHeight, 40);
+    assert.ok(big.top >= 0 && big.top <= 12 + Math.max(0, real), 'the top gap never pushes the group out of the main area');
   }
-  // 放不下：组顶取 0，页面整体滚动（不缩格子）
-  const tight = writeLayout({ width: 402, mainHeight: 300, nominalHeight: 626, promptHeight: 126, ax: true });
+  // 放不下：组顶取 0，页面整体滚动（非 AX 档仍不缩格子）
+  const tight = writeLayout({ width: 402, mainHeight: 300, nominalHeight: 626, promptHeight: 126 });
   assert.equal(tight.top, 0);
   assert.equal(tight.g, 362);
-  // 同样适用于 SE：AX 档 g = L 档 g（327）
-  const seL = writeLayout({ width: 375, mainHeight: 479, nominalHeight: 479, promptHeight: 80 });
-  const seAx = writeLayout({ width: 375, mainHeight: 330, nominalHeight: 479, promptHeight: 126, ax: true });
-  assert.equal(seAx.g, seL.g);
-  assert.equal(seL.g, 327);
+});
+
+// ---- AX 档（D51 ⑦，P225，A2-01）：永不滚动，格子按实际可用高度排，下限 220
+// 页面外壳按 AX 档实测值建模：页头 44 + 上安全区；底栏 = 上 12 + 主按钮（--btn-h：AX1 60 / AX2 64 / AX3 74 / AX4 82 / AX5 88）+ max(8, 下安全区)（只有「写好了」+「⋯」一行）；
+// 题面 P = 拼音行 28 + 题面格 round(52 × min(k, 1.6)) = 83 → 112（有两行提示时再加 8 + 48；提示行是 17pt 两行）。
+const AX_BTN = { 1: 60, 2: 64, 3: 74, 4: 82, 5: 88 };
+const PHONES = [
+  { name: '375×667 (SE 3)', w: 375, h: 667, top: 20, bottom: 0 },
+  { name: '390×844 (iPhone 14)', w: 390, h: 844, top: 47, bottom: 34 },
+  { name: '430×932 (Pro Max)', w: 430, h: 932, top: 59, bottom: 34 },
+];
+const axMain = (phone, level) => phone.h - (44 + phone.top) - (12 + AX_BTN[level] + Math.max(8, phone.bottom));
+const AX_P = 112;
+
+test('axWriteLayout (P225): AX1 / AX3 / AX5 × SE / 14 / Pro Max — grid whole, ≥ 220, group inside the main area (nothing to scroll), width-capped', () => {
+  for (const phone of PHONES) {
+    for (const level of [1, 3, 5]) {
+      const main = axMain(phone, level);
+      for (const P of [AX_P, AX_P + 8 + 48]) { // 无提示行 / 两行提示行
+        const r = axWriteLayout({ width: phone.w, mainHeight: main, promptHeight: P });
+        const tag = `${phone.name} AX${level} P${P} (main ${main})`;
+        assert.ok(r.g >= AX_GRID_MIN && r.g >= 220, `${tag}: g ${r.g} ≥ 220`);
+        assert.ok(r.g <= Math.min(phone.w - 40, GRID_MAX), `${tag}: g ${r.g} within the page margins`);
+        assert.ok(Number.isInteger(r.g), `${tag}: integer`);
+        assert.equal(r.fits, true, `${tag}: the whole group fits in the main area`);
+        assert.ok(r.top + P + 16 + r.g + AX_NOTE_H <= main + 0.5, `${tag}: group bottom ${r.top + P + 16 + r.g + AX_NOTE_H} ≤ main ${main} — no scrolling`);
+        assert.ok(r.top >= 0, `${tag}: top ≥ 0`);
+        assert.equal(r.gridTop, r.top + P + 16);
+        assert.equal(r.toolsHeight, AX_NOTE_H, 'the note slot is the only thing under the grid (undo / clear are in the header)');
+      }
+    }
+  }
+});
+
+test('axWriteLayout: SE 3 at AX5 fits a grid bigger than 220 (the whole point of dropping the floor from 258); big screens are width-limited', () => {
+  const se5 = axWriteLayout({ width: 375, mainHeight: axMain(PHONES[0], 5), promptHeight: AX_P });
+  assert.equal(se5.g, 295, 'main 495 (667 − 64 − 108) − 112 − 16 − 56 − 16: height-limited, still well above 220');
+  const pm = axWriteLayout({ width: 430, mainHeight: axMain(PHONES[2], 5), promptHeight: AX_P });
+  assert.equal(pm.g, 390, 'Pro Max: width − 40');
+});
+
+test('axWriteLayout: follows the real height — a shorter main area gives a smaller grid, down to the 220 floor, never below; fits=false only when even 220 does not fit', () => {
+  const g = main => axWriteLayout({ width: 480, mainHeight: main, promptHeight: AX_P });
+  assert.equal(g(560).g, 560 - AX_P - 16 - AX_NOTE_H - 16, 'height-limited: 368');
+  assert.ok(g(500).g < g(560).g, 'smaller main → smaller grid');
+  const floor = g(AX_P + 16 + 220 + AX_NOTE_H + 16);
+  assert.equal(floor.g, 220, 'exactly the floor');
+  assert.equal(floor.fits, true);
+  const tooSmall = g(300);
+  assert.equal(tooSmall.g, 220, 'never below 220');
+  assert.equal(tooSmall.fits, false, 'cannot fit → the caller knows (320×568-class screens)');
+  assert.equal(axWriteLayout({}).g, 345, 'nothing known → the old 345 grid');
 });
 
 test('nominalMainHeight: page − (44 + status bar) − (116 + max(8, bottom inset)); equals the standard-size main area of the design sheet', () => {

@@ -2,7 +2,10 @@
 //
 // 主区 = 页头底 → 按钮行顶 − 12（正文区 .sz-page__body，上下内边距 0）。题面（高 P）、16、书写格（边长 g）、格下工具行（高 T）作为一组放在主区里：
 //   g    = clamp(258, min(屏宽 − 40, 400, 名义主区高 − 80 − 16 − 40 − 16), 400)    D29 / D36 / P195：只由视口决定——名义主区高 = 页面高 − 名义页头 − 名义按钮行（标准字号 L 档的尺寸 + 量到的安全区），
-//                                                                                   名义题面高 80、名义工具行高 40；与系统字号（含 AX 档）、题面提示行无关。AX 档放不下时整页滚动，不缩格子
+//                                                                                   名义题面高 80、名义工具行高 40；与系统字号、题面提示行无关（xS–XXXL）。
+// AX 档（D51 ⑦，P225，ADA A2-01）不再「放不下整页滚动」：整页永不滚动，格子按实际可用高度排——axWriteLayout：
+//   g = clamp(220, min(屏宽 − 40, 400, 实际主区高 − P − 16 − 56 − 16), 400)       56 = 格下说明位固定高（撤销 / 清空已移到页头，底栏只剩「写好了」+「⋯」）
+//   组高 = P + 16 + g + 56，组顶按同一条 40% 规则；格子完整显示在首屏，下限 220（SE 3 的 AX5 也放得下）。
 //   组高 = P + 16 + g + T                                                           P、T 取实际（AX 档的词语行、52 高工具行更高）
 //   组顶 = max(12, round((主区高 − 组高) × 0.4))                                    主区高取实际量到的；空余 40% 在上、60% 在下（空余不足 12 时取空余本身，不足 0 时取 0）
 //   书写格顶（主区内）= 组顶 + P + 16
@@ -21,10 +24,12 @@ import * as policy from '../../../config/policy.js';
 /** 书写格边长的下限 / 上限（policy.writeGrid，P118，D36）。 */
 export const GRID_MIN = policy.writeGrid.min;
 export const GRID_MAX = policy.writeGrid.max;
-/** 题面到书写格的间距、格下工具行高（标准 / AX）、书写格组到按钮行的最小空隙、组顶的上空余占比与下限。 */
+/** 题面到书写格的间距、格下工具行高（标准）、书写格组到按钮行的最小空隙、组顶的上空余占比与下限。 */
 export const PROMPT_GAP = policy.writeGrid.promptGap;
 export const TOOLS_H = policy.writeGrid.toolsHeight;
-export const TOOLS_H_AX = policy.writeGrid.toolsHeightAx;
+/** AX 档：书写格边长下限、格下说明位固定高度（P225）。 */
+export const AX_GRID_MIN = policy.writeGrid.axMin;
+export const AX_NOTE_H = policy.writeGrid.axNoteHeight;
 export const BOTTOM_GAP = policy.writeGrid.bottomGap;
 export const TOP_SHARE = policy.writeGrid.topShare;
 export const TOP_MIN = policy.writeGrid.topMin;
@@ -94,14 +99,32 @@ export function nominalMainHeight({ pageHeight, safeTop = 0, footBottom = FOOT_B
 /**
  * 写字页的整组位置：{g, top, gridTop}（gridTop = 书写格顶，主区内的偏移）。
  * g 只按名义版式算（见文件头）；位置按实际量到的主区高、题面高与工具行高排。
- * @param {{width:number, mainHeight:number, nominalHeight?:number, promptHeight?:number, ax?:boolean}} o
- *   mainHeight：实际主区高；nominalHeight：名义主区高（缺省 = mainHeight，即标准字号下两者相等）；promptHeight：量到的整个题面高 P；ax：AX 档（格下工具行 52 高，只影响位置）
+ * @param {{width:number, mainHeight:number, nominalHeight?:number, promptHeight?:number}} o
+ *   mainHeight：实际主区高；nominalHeight：名义主区高（缺省 = mainHeight，即标准字号下两者相等）；promptHeight：量到的整个题面高 P。AX 档用 axWriteLayout。
  */
-export function writeLayout({ width, mainHeight, nominalHeight = mainHeight, promptHeight = PROMPT_H_STD, ax = false } = {}) {
-  const toolsHeight = ax ? TOOLS_H_AX : TOOLS_H;
+export function writeLayout({ width, mainHeight, nominalHeight = mainHeight, promptHeight = PROMPT_H_STD } = {}) {
+  const toolsHeight = TOOLS_H;
   const g = writeGridSize({ width, mainHeight: nominalHeight, promptHeight: PROMPT_H_STD, toolsHeight: TOOLS_H });
   const top = groupTop({ mainHeight, groupHeight: promptHeight + PROMPT_GAP + g + toolsHeight });
   return { g, top, gridTop: top + promptHeight + PROMPT_GAP, toolsHeight };
+}
+
+/**
+ * AX 档书写格边长（D51 ⑦，P225；纯函数）：按实际可用高度，格子完整显示在首屏、永不滚动。
+ * g = clamp(AX_GRID_MIN, min(屏宽 − 40, 400, 实际主区高 − P − 16 − 56 − 16), 400)；实际放不下（g 取下限还超高）时 fits=false，由调用方决定怎么办（正常机型不会出现）。
+ * @param {{width:number, mainHeight:number, promptHeight?:number}} o
+ * @returns {{g:number, top:number, gridTop:number, toolsHeight:number, fits:boolean}}
+ */
+export function axWriteLayout({ width, mainHeight, promptHeight = PROMPT_H_STD } = {}) {
+  const hasW = finite(width) && width > 0;
+  const hasH = finite(mainHeight) && mainHeight > 0;
+  const w = contentWidth(width);
+  const h = hasH ? mainHeight - promptHeight - PROMPT_GAP - AX_NOTE_H - BOTTOM_GAP : Infinity;
+  const g = !hasW && !hasH ? STD_GRID : Math.max(AX_GRID_MIN, Math.min(GRID_MAX, Math.floor(Math.min(w, GRID_MAX, h))));
+  const groupHeight = promptHeight + PROMPT_GAP + g + AX_NOTE_H;
+  const top = groupTop({ mainHeight, groupHeight });
+  const fits = !finite(mainHeight) || top + groupHeight <= mainHeight + 0.5;
+  return { g, top, gridTop: top + promptHeight + PROMPT_GAP, toolsHeight: AX_NOTE_H, fits };
 }
 
 /**

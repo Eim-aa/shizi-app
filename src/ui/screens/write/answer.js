@@ -58,6 +58,7 @@ import { peekStrokes, watchStrokes } from '../../../data/strokes.js';
 import { animate, drawGlyph, glyphColor, prefersReducedMotion } from '../../canvas/glyph.js';
 import { GlyphWash, paintCanvas, useThemeVersion } from '../../canvas/glyph-wash.js';
 import { GlyphFallback } from './glyph-fallback.js';
+import { AxFoot } from './ax-menu.js';
 
 /** answer 流程的阶段（01 §3.3）。 */
 export const ANSWER_PHASES = Object.freeze(['answer', 'trace', 'retrace']);
@@ -462,12 +463,14 @@ function useAnswerFirstNote({ phase, cardKey }) {
  * @param {() => void} [o.onShowAnswer]  点了「看答案」（写入前；写字页用来结束跳过的撤销机会，G3）
  * @param {any} [o.endButton]  「结束这组」按钮（write/end.js useEndGroup().button；picked 会话才有）：放在底栏「下一个」那一行的
  *   右端（与回忆阶段「跳过」那一行同一位置，M2 验收 H4）；保存失败两键占住底栏时不显示。
- * @returns {{active:boolean, link:any, stage:any, glyphLayer:any, note:string, footer:any}}
+ * @param {number} [o.ax]  AX 档（1–5；0 = 不是 AX 档）：底栏改成一行「主按钮 + ⋯」（D51 ⑦，P225；write/ax-menu.js），按钮行上方的说明挪到格下说明位（note）
+ * @param {(() => void)|null} [o.endOpen]  AX 档菜单里「结束这组」的动作（write/end.js useEndGroup().open）
+ * @returns {{active:boolean, link:any, show:Function, stage:any, glyphLayer:any, note:string, footer:any}}
  *   active：本流程接管底栏（answer / trace / retrace，或看过答案后的 recall）；
  *   link：回忆阶段「看答案」按钮（放 write-answer-slot）；stage：恒为 null（看答案不换卡，答案衬底画在书写格参考字形层里，D51 ⑧）；
  *   glyphLayer：answer 阶段的答案衬底 / trace 阶段的描红，书写格参考字形层内容；note：书写格下说明（write-note）；footer：接管时的底栏。
  */
-export function useAnswerFlow({ slot, session, cardKey, phase, strokeCount = 0, strokes = null, onShowAnswer, endButton = null }) {
+export function useAnswerFlow({ slot, session, cardKey, phase, strokeCount = 0, strokes = null, onShowAnswer, endButton = null, ax = 0, endOpen = null }) {
   const char = cardKey ? charOfCardKey(cardKey) : null;
   const answerSeen = !!(session && session.current && session.current.answerSeen);
   const inFlow = ANSWER_PHASES.includes(phase);
@@ -503,7 +506,7 @@ export function useAnswerFlow({ slot, session, cardKey, phase, strokeCount = 0, 
     ? html`<${Button} variant="text" data-testid="write-show-answer" onClick=${showAnswer}>${t('R-W07.btnShowAnswer')}</${Button}>`
     : null;
 
-  if (!active) return { active: false, link, stage: null, glyphLayer: null, note: '', footer: null };
+  if (!active) return { active: false, link, show: showAnswer, stage: null, glyphLayer: null, note: '', footer: null };
 
   const missing = glyphStatus === 'missing';
   const stage = null; // 看答案不换卡（D51 ⑧）
@@ -529,6 +532,33 @@ export function useAnswerFlow({ slot, session, cardKey, phase, strokeCount = 0, 
 
   const next = () => run({ kind: 'next' });
   const toPhase = p => () => run({ kind: 'phase', phase: p });
+  if (ax > 0) {
+    // AX 档（P225）：一行「主按钮 + ⋯」，各阶段同高；说明（答案说明 / 保存失败）挪到格下说明位，答案字永远不被说明盖住（A2-01）。
+    const item = (testid, label, onSelect) => ({ testid, label, onSelect });
+    const endItem = endOpen && !failed ? [item('write-end', t('R-W15.end'), endOpen)] : [];
+    let primary;
+    let items;
+    if (failed) {
+      primary = { testid: 'write-answer-fail-retry', label: t('R-W16.retry'), onClick: () => run(failNow) };
+      items = [item('write-answer-fail-cancel', t('R-W16.cancel'), () => setFail(null))];
+    } else if (phase === 'answer') {
+      primary = { testid: 'write-answer-trace', label: t('R-W07.btnTrace'), onClick: toPhase('trace') };
+      items = [item('write-answer-self', t('R-W07.btnSelf'), toPhase('retrace')), item('write-answer-next', t('R-W07.btnNext'), next), ...endItem];
+    } else if (phase === 'trace') {
+      primary = { testid: 'write-trace-done', label: t('X-ANSWER.btnTraceDone'), disabled: strokeCount === 0, onClick: toPhase('retrace') };
+      items = [item('write-answer-next', t('R-W07.btnNext'), next), ...endItem];
+    } else if (phase === 'retrace') {
+      primary = { testid: 'write-answer-next', label: t('R-W07.btnNext'), onClick: next };
+      items = [item('write-retrace-trace', t('X-ANSWER.btnRetrace'), toPhase('trace')), ...endItem];
+    } else {
+      primary = { testid: 'write-answer-next', label: t('R-W07.btnNext'), onClick: next };
+      items = [item('write-answer-show', t('R-W07.btnShowAnswer'), toPhase('answer')), ...endItem];
+    }
+    const lead = phase === 'answer' ? html`<span class="sz-answer__sr" role="img" aria-label=${char} data-testid="write-answer-char"></span>` : null;
+    const axNote = phase === 'answer' ? (failed || !firstNote ? noteAbove : `${noteAbove}${t('R-W07.firstExplain')}`) : note; // 两句合成一块说明（最多两行）
+    const axFooter = html`<${AxFoot} primary=${primary} items=${items} testid="write-answer-foot" stage=${phase} failed=${failed} lead=${lead} />`;
+    return { active: true, link, show: showAnswer, stage, glyphLayer, note: axNote, footer: axFooter };
+  }
   let buttons;
   let one = false;
   let skipRow = false;
@@ -569,5 +599,5 @@ export function useAnswerFlow({ slot, session, cardKey, phase, strokeCount = 0, 
       : null}${endButton && !failed ? html`<span class="sz-write__endslot" data-testid="write-end-slot">${endButton}</span>` : null}</div>
   </div>`;
 
-  return { active: true, link, stage, glyphLayer, note, footer };
+  return { active: true, link, show: showAnswer, stage, glyphLayer, note, footer };
 }

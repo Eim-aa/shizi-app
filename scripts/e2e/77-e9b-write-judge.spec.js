@@ -3,7 +3,7 @@
 //   A 写字页：回忆阶段页头没有可见标题（读屏页名保留）、只有「‹」与计数；题面整词居中、已给的字不装框、要写的格只画空框；题面 + 书写格 + 格下工具行作为一组
 //     在页头与按钮行之间居中（空余 40% 在上，书写格边长 = clamp(258, min(W − 40, 400, 主区高 − 80 − 16 − 40 − 16), 400)）；按钮行只有一个主按钮「写好了」，
 //     其下一行文字按钮左「提示」「看答案」、右「跳过」；可点样式 ≤ 2 种（主按钮 / 文字按钮，另有格下图标）；「提示」可见文字只有「提示」、次数在读屏名称里；
-//     撤销 / 清空是设计系统图标按钮（可见 36、热区 44）；浅 / 深色；402 / SE / Pro Max 实测值写进断言；AX5 书写格与 L 档相同（D29 / D36，含冷启动直接在 AX5）、放不下整页可滚、按钮行上沿出现 hairline。
+//     撤销 / 清空是设计系统图标按钮（可见 36、热区 44）；浅 / 深色；402 / SE / Pro Max 实测值写进断言；AX5（R2-X1，P225）书写格按实际可用高度排、完整在首屏、整页不滚动（含冷启动直接在 AX5）、底栏只有「写好了」+「⋯」；各 AX 档的详细断言在 82–84-x1-write-ax-*.spec.js。
 //   B 判断页：页头问题「写对了吗？」、左上与写字页同一个「‹」（读屏名「接着写」）；没有旁注与说明句但读屏名称都在；题面目标格不显示答案（答案只在参考格出现一次）；
 //     两格与书写格同一顶边、同一中线，边长按 §9.1 的新公式（402 / SE / Pro Max 实测值写进断言）；AX5：页头问题只留读屏、两格取「上下排 / 并排」格子更大的一种、
 //     同屏可比、按钮纵排；纸上那一字：参考字形放到书写格大小，格下说明位「和你纸上的字对照」。
@@ -42,7 +42,7 @@ async function boot(page, ctx, { view, scheme = 'light', size = 'L', cold = fals
   const seeded = await seedSession(page, { slot: 'A', kind: 'daily', chars, cursor, extraState });
   ctx.assert.ok(seeded.ok, `${view.width}×${view.height} ${scheme} ${size}: seed A session`);
   await openWrite(page, { slot: 'A' });
-  await page.waitForSelector(`${topSel('write-hint')}[data-state="available"]`, { timeout: 15000 });
+  await page.waitForSelector(`${topSel('write-hint')}[data-state="available"], ${topSel('write-more')}`, { timeout: 15000 });
   await page.waitForTimeout(400);
   await page.mouse.move(1, 1);
 }
@@ -384,41 +384,37 @@ export default async function e9bWriteJudge(page, ctx) {
   // ------------------------------------------------------------------ AX5
   for (const [W, H, wantLayout] of [[402, 874, 'stack'], [375, 667, 'side']]) {
     const tag = `${W}×${H} AX5`;
-    step(`AX: ${tag} write page — grid = the L-size grid (D29 / D36, also on a cold start), the page scrolls when it does not fit, hairline above the button row`);
+    step(`AX: ${tag} write page — never scrolls, the whole grid sits above the button row (P225), also on a cold start; prompt cells 83, no hairline`);
     await boot(page, ctx, { view: { width: W, height: H }, size: 'AX5' });
     const a = await geo(page);
-    const eW = expectWrite({ W, mainH: a.body.height, P: a.wordwrap.height });
-    const toolsH = 52;
-    // D29 / D36 / P195：书写格边长只由视口决定，与系统字号（含 AX5）无关——按 L 档的名义主区高（屏高 − 168，测试浏览器无安全区）算，AX5 实际主区更矮也不缩格子
-    const gL = expectWrite({ W, mainH: H - 44 - 124, P: 80 }).g;
-    assert.ok(a.body.height < H - 44 - 124 - 20, `${tag}: the real main area is shorter than the nominal one (${a.body.height.toFixed(0)} < ${H - 168}) — the button row / header are taller in AX5`);
-    assert.ok(near(a.grid.width, gL, 0.5), `${tag}: grid = the L-size grid ${gL} (nominal main ${H - 168}; real main ${a.body.height.toFixed(0)}, word row ${a.wordwrap.height.toFixed(0)}, tools ${toolsH}) (${a.grid.width})`);
-    assert.ok(a.grid.width >= 258 - 0.5, `${tag}: never below the 258 floor`);
-    assert.ok(eW.g >= 258, 'formula sanity');
+    // R2-X1（D51 ⑦，P225）：AX 档按实际可用高度排版——格子完整落在首屏（下限 220），页面正文不滚动；格子大小不再等于 L 档的格子
+    assert.ok(a.grid.width >= 220 - 0.5, `${tag}: grid ${a.grid.width.toFixed(0)} ≥ the AX floor 220`);
+    assert.ok(a.grid.bottom <= a.foot.top + 0.5, `${tag}: the grid ends above the button row (${a.grid.bottom.toFixed(0)} ≤ ${a.foot.top.toFixed(0)})`);
+    assert.ok(a.bodyScroll <= a.bodyClient + 1, `${tag}: nothing to scroll (${a.bodyScroll} ≤ ${a.bodyClient})`);
+    assert.equal(a.footUnder, null, `${tag}: no hairline on the button row — nothing is pushed under it`);
     // 冷启动直接在 AX5（原生注入 __shiziInitialContentSize）：同一视口、同一个 g
     await boot(page, ctx, { view: { width: W, height: H }, size: 'AX5', cold: true });
     const cold = await geo(page);
     assert.equal(cold.ax, '5', `${tag} cold start: data-ax 5 from the first frame`);
-    assert.ok(near(cold.grid.width, gL, 0.5), `${tag} cold start straight into AX5: grid ${cold.grid.width} = the L-size grid ${gL}`);
+    assert.ok(near(cold.grid.width, a.grid.width, 0.5), `${tag} cold start straight into AX5: grid ${cold.grid.width} = ${a.grid.width}`);
     await boot(page, ctx, { view: { width: W, height: H }, size: 'AX5' });
     const cell = await page.$eval(topSel('write-prompt-cell') + '[data-kind="blank"]', el => el.getBoundingClientRect().width);
-    assert.ok(near(cell, 64, 1), `${tag}: prompt cells are 64 (52 → 64 in AX)`);
+    assert.ok(near(cell, 83.2, 1.2), `${tag}: prompt cells are 52 × min(k, 1.6) = 83 (the word grows, V2-06)`);
     const title = await page.evaluate(() => {
       const h1 = document.querySelector('.sz-layer[data-top="true"] [data-page-title]');
       const r = h1.getBoundingClientRect();
       const prog = document.querySelector('.sz-layer[data-top="true"] [data-testid="write-progress"]').getBoundingClientRect();
       return { w: r.width, h: r.height, headH: document.querySelector('.sz-layer[data-top="true"] .sz-page__head').getBoundingClientRect().height, progH: prog.height };
     });
-    assert.ok(title.w <= 1.5 && title.h <= 1.5 && title.headH <= Math.max(44, title.progH) + 1, `${tag}: the hidden title does not take a row in the header — one line, as high as the (enlarged) counter (${title.w}×${title.h}, header ${title.headH.toFixed(1)}, counter ${title.progH.toFixed(1)})`);
-    const overflow = a.bodyScroll > a.bodyClient + 1;
-    assert.equal(a.footUnder, overflow ? 'true' : null, `${tag}: the button row has its hairline exactly when content is pushed under it (overflow ${overflow})`);
+    assert.ok(title.w <= 1.5 && title.h <= 1.5 && title.headH <= Math.max(44, title.progH) + 1, `${tag}: the hidden title does not take a row in the header — one line, as high as the (capped) counter (${title.w}×${title.h}, header ${title.headH.toFixed(1)}, counter ${title.progH.toFixed(1)})`);
     const links = await page.evaluate(() => {
       const top = document.querySelector('.sz-layer[data-top="true"]');
       const r = id => top.querySelector(`[data-testid="${id}"]`).getBoundingClientRect();
-      return { hint: r('write-hint'), answer: r('write-show-answer'), skip: r('write-skip'), vw: window.innerWidth, scrollW: document.documentElement.scrollWidth };
+      return { more: r('write-more'), done: r('write-done'), vw: window.innerWidth, scrollW: document.documentElement.scrollWidth, hint: !!top.querySelector('[data-testid="write-hint"]'), skip: !!top.querySelector('[data-testid="write-skip"]') };
     });
-    assert.ok(links.hint.height >= 44 - 0.5 && links.skip.height >= 44 - 0.5, `${tag}: text buttons keep ≥ 44 and grow with the text`);
-    assert.ok(links.skip.right <= links.vw - 20 + 4 + 1 && links.scrollW <= links.vw, `${tag}: 跳过 stays at the right edge (H1: the hit box reaches 4 past the 20pt line), nothing overflows horizontally`);
+    assert.ok(links.more.height >= 44 - 0.5 && links.done.height >= 44 - 0.5, `${tag}: the foot buttons keep ≥ 44 and grow with the text`);
+    assert.ok(links.more.right <= links.vw - 20 + 1 && links.scrollW <= links.vw, `${tag}: 「⋯」 stays at the right edge, nothing overflows horizontally`);
+    assert.deepEqual([links.hint, links.skip], [false, false], `${tag}: 提示 / 跳过 are in the 「⋯」 menu, not on the page`);
 
     step(`AX: ${tag} judge page — the question is only for screen readers, cells take the bigger of stacked / side-by-side (${wantLayout}), both on screen, buttons stacked`);
     await toCompare(page);

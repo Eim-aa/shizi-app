@@ -201,14 +201,18 @@ export const compactMaxHeight = 760;
 // P118 书写格显示边长（D36，覆盖 X08「紧凑版固定 258」与 P69 的缩格；阶段 1 E9b 按 D49 实现交接 §13.2 改公式）：题面（高 P）、promptGap、书写格（边长 g）、
 // 格下工具行（高 toolsHeight）作为一组放在主区（页头底 → 按钮行顶 − 12）里：g = clamp(min, min(屏宽 − 2·sideMargin, max, 主区高 − P − promptGap − toolsHeight − bottomGap), max)；
 // 组顶 = max(topMin, round((主区高 − 组高) × topShare))（空余 40% 在上、60% 在下）。内部坐标仍是 345 单位，只缩放显示（src/ui/screens/write/layout.js）。
-// g 与字号（--k、:root[data-text-large]）无关；AX 档格下工具行取 toolsHeightAx。放不下（g 取下限）时页面正文可滚动、按钮行上沿出现 hairline。
+// g 与字号（--k、:root[data-text-large]）无关（xS–XXXL）；AX 档（:root[data-ax]）改为按实际可用高度排版、永不滚动（D51 ⑦，P225）：g = clamp(axMin, min(屏宽 − 2·sideMargin, max,
+// 实际主区高 − P − promptGap − axNoteHeight − bottomGap), max)，撤销 / 清空移到页头，格下只留 axNoteHeight 高的说明位。非 AX 档放不下（g 取下限）时页面正文可滚动、按钮行上沿出现 hairline。
 export const writeGrid = Object.freeze({
   min: 258, // P118 书写格边长下限（pt）
   max: 400, // P118 书写格边长上限（pt）
   sideMargin: 20, // P118 格子距屏幕左右边缘至少 20pt（屏宽 − 40；设计系统 v1 页边 20，P1-E1b 由 16 改）
   promptGap: 16, // P118 题面到书写格的间距（pt；D49 实现交接 §13.1，P1-E1b 的 24 改 16）
   toolsHeight: 40, // P118 格下工具行（说明位 + 撤销 / 清空图标）高度（pt，D49 实现交接 §13.1）
-  toolsHeightAx: 52, // P118 AX 档格下工具行高度（pt，D49 减法稿 AX5 画框）
+  axMin: 220, // P225 AX 档书写格边长下限（pt；D51 ⑦：258 → 220，SE 3 的 AX5 也放得下，格子完整可写好过大格子被盖住）
+  axNoteHeight: 56, // P225 AX 档格下说明位的固定高度（pt，两行 17pt 辅助字 2 × 24 + 上内边距 8；撤销 / 清空已移到页头，格下只剩说明）
+  axAuxMax: 17, // P225 AX 档拼音 / 进度 / 说明等辅助信息的字号封顶（pt；题面汉字随档放大，辅助字不再放大，V2-06）
+  axPromptScaleMax: 1.6, // P225 AX 档题面汉字格的放大倍率上限：格边 = 52 × min(--k, 1.6)（V2-06「练习字按 min(k, 1.6) 放大」）
   bottomGap: 16, // P118 书写格组与按钮行之间至少留的空（pt，D49 实现交接 §13.2）
   topShare: 0.4, // P118 组高以外的空余，上方占的比例（D49 实现交接 §13.2：40% 在上、60% 在下）
   topMin: 12, // P118 组顶下限（pt）

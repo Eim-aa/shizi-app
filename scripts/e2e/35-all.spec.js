@@ -525,7 +525,7 @@ export default async function run(page, ctx) {
   v = await view(page);
   assert.equal(v.sort, 'py', 'sort restored from params after reload');
 
-  step('a11y and layout: named buttons, no horizontal scroll; 360×640 → 8 columns, system large text → 6 (P1-E1b)');
+  step('a11y and layout: named buttons, no horizontal scroll; 360×640 → 7 columns (cells ≥ 44pt), system large text → 6 (P1-E1b)');
   assert.deepEqual(v.unnamedButtons, [], 'every button has an accessible name');
   assert.equal(v.hScroll, false, `no horizontal scroll ${v.hDims}`);
   const aCell = v.groups.find(g => g.cells.length).cells[0];
@@ -533,7 +533,7 @@ export default async function run(page, ctx) {
   await page.setViewportSize({ width: 360, height: 640 });
   await page.waitForTimeout(150);
   v = await view(page);
-  assert.equal(v.cols, 8, '360×640: still 8 columns (a short screen no longer changes the wall)');
+  assert.equal(v.cols, 7, '360×640: 7 columns so every cell stays ≥ 44pt wide (360 − 40) ÷ 44');
   assert.equal(v.hScroll, false, '360×640: no horizontal scroll');
   await setTextSize(page, LARGE_TEXT);
   await page.waitForTimeout(250);

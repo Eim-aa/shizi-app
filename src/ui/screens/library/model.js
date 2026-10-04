@@ -17,7 +17,7 @@
 // - 墙：自选了还没写（空心）排最前 → 其余按最近一次判断新 → 旧；最多 8 行（cols × 8 格，R-L02）；写错过（最近一次 judged 为
 //   wrong）画标准字 + 朱点，不画那一次写错的笔迹（K28 / R-L08）；写错不再改字色与大小（设计系统 v1 设计说明 16），所有 judged 格按最近一次记录
 //   距今天数分四档（P56 policy.inkToneDays，≤7 / ≤30 / ≤90 / 更久），四档取令牌 wall1–wall4 的独立色值。
-// - 列数（设计系统 v1，P1-E1b：tokens.json components.wall）：标准 8 列、Pro Max（屏宽 ≥ 430）9 列，与墙成员多少无关；系统字号 ≥ 1.3（大字）6 列。
+// - 列数（设计系统 v1，P1-E1b：tokens.json components.wall）：标准 8 列、Pro Max 9 列，一格不窄于 44pt（列数 = min(上限, ⌊(屏宽 − 40) ÷ 44⌋)：393 / 402 → 8、440 → 9、375 → 7、320 → 6）；系统大字号最多 6 列；与墙成员多少无关。
 //   旧版按成员数 5 / 8 列、紧凑 4 / 6 列（原型 L339）作废。
 // - 墙底「还有 N 个字 ›」：N = 墙成员 − 已画格数（P27 policy.wallMoreScope='wall-members'，含自选未写）；
 //   'records' 口径时只数有记录的字。没截断时 N = 0，不显示（R-L02 / 走查-L09：大数字才是进完整页的常设入口）。
@@ -31,8 +31,11 @@ import { compareRecordIds, forgetList, isJudged } from '../../../core/records.js
 export const WALL_MAX_ROWS = 8;
 /** 卡片预览格数（原型 L358 mini：前 4 个）。 */
 export const CARD_MINI_MAX = 4;
-/** 列数（设计系统 v1：8 列、Pro Max 9 列；大字 6 列）。 */
-export const WALL_COLS = Object.freeze({ standard: 8, proMax: 9, large: 6, proMaxFrom: 430 });
+/**
+ * 列数（设计系统 v1，tokens.json components.wall：8 列，Pro Max 9 列）：最多 9 列、系统大字号最多 6 列，并且一格不窄于 minCell（44pt 触控）——
+ * 列数 = min(上限, ⌊(屏宽 − 2 × 页边) ÷ 44⌋)。393 / 402 宽 → 8，440 宽 → 9，375 宽 → 7，320 宽 → 6；屏宽未知时按标准 8（大字 6）。
+ */
+export const WALL_COLS = Object.freeze({ standard: 8, max: 9, large: 6, minCell: 44, gutter: 20 });
 
 /** store 状态 → {records（平铺）, foldedDays（折叠月份的练习日）}。 */
 export function recordsOfState(state) {
@@ -78,10 +81,12 @@ export function toneOf(day, today, days = defaultPolicy.inkToneDays) {
   return 3;
 }
 
-/** 墙列数（设计系统 v1）：large = 系统大字号；wide = Pro Max 级屏宽（≥ WALL_COLS.proMaxFrom）。members 不再影响列数。 */
-export function wallColumns(members, large = false, wide = false) {
-  if (large) return WALL_COLS.large;
-  return wide ? WALL_COLS.proMax : WALL_COLS.standard;
+/** 墙列数（设计系统 v1）：large = 系统大字号；width = 屏宽（css px，缺省按标准 8 列）。members 不再影响列数。 */
+export function wallColumns(members, large = false, width = null) {
+  const cap = large ? WALL_COLS.large : WALL_COLS.max;
+  if (!Number.isFinite(width) || width <= 0) return large ? WALL_COLS.large : WALL_COLS.standard;
+  const byWidth = Math.floor((width - 2 * WALL_COLS.gutter) / WALL_COLS.minCell);
+  return Math.max(4, Math.min(cap, byWidth));
 }
 
 /** 自选的字（custom.added 顺序，去重、只留单个字）。 */
@@ -112,7 +117,7 @@ export function firstRecordDay(records, foldedDays = []) {
  * @param {string} today       本地日 YYYY-MM-DD（应用时钟）
  * @param {{policy?:object, compact?:boolean}} [opts]
  */
-export function libraryHomeModel(state, today, { policy = defaultPolicy, compact = false, wide = false } = {}) {
+export function libraryHomeModel(state, today, { policy = defaultPolicy, compact = false, width = null } = {}) {
   const { records, foldedDays } = recordsOfState(state);
   const latest = latestJudgedByChar(records);
   const recorded = latest.size;
@@ -137,7 +142,7 @@ export function libraryHomeModel(state, today, { policy = defaultPolicy, compact
     .filter(item => !wrongSet.has(item.char)); // K16 互斥（forgetList 已只取写对的；防御）
 
   const members = hollow.length + recorded;
-  const cols = wallColumns(members, compact, wide);
+  const cols = wallColumns(members, compact, width);
   const cap = cols * WALL_MAX_ROWS;
   const ordered = hollow.map(char => ({ char, kind: 'hollow', tone: null, record: null }))
     .concat(byNew.map(record => ({

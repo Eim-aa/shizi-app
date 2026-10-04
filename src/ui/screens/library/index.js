@@ -238,9 +238,9 @@ function EmptyState() {
 function LibraryScreen() {
   const state = useStoreState();
   const today = useToday();
-  const { large, wide } = useWallLayout();
+  const { large, width } = useWallLayout();
   const compact = large;
-  const model = useMemo(() => libraryHomeModel(state, today, { compact: large, wide }), [state, today, large, wide]);
+  const model = useMemo(() => libraryHomeModel(state, today, { compact: large, width }), [state, today, large, width]);
   const libraryId = currentLibraryId(state && state.settings);
   const getInk = useMemo(() => record => {
     try {

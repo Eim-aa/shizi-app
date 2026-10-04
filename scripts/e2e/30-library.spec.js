@@ -413,13 +413,13 @@ export default async function run(page, ctx) {
   assert.equal(v.note, COPY.legend, 'back to light note');
 
   // ------------------------------------------------------------------ 5. 紧凑版
-  step('360×640: still 8 columns (a short screen no longer changes the wall); system large text (XXXL) → 6 columns; 440 wide → 9 (P1-E1b)');
+  step('360×640: 7 columns (cells stay ≥ 44pt; a short screen itself changes nothing); system large text (XXXL) → 6; 440 wide → 9 (P1-E1b)');
   await page.setViewportSize({ width: 360, height: 640 });
   await page.waitForTimeout(120);
   await setup(page, seedOf(deckChars.slice(0, 300)).state, 300);
   v = await lib(page);
-  assert.deepEqual({ cols: v.wall.cols, shown: v.wall.shown, more: v.wall.more }, { cols: 8, shown: 64, more: 302 - 64 }, '360×640, 300 chars: 8 cols × 8 rows');
-  assert.equal(v.more.text, COPY.more(302 - 64), 'more text follows the truncation');
+  assert.deepEqual({ cols: v.wall.cols, shown: v.wall.shown, more: v.wall.more }, { cols: 7, shown: 56, more: 302 - 56 }, '360×640, 300 chars: 7 cols × 8 rows (360 − 40 = 320 ÷ 44)');
+  assert.equal(v.more.text, COPY.more(302 - 56), 'more text follows the truncation');
   assert.equal(v.hScroll, false, 'no horizontal scroll at 360');
   await setTextSize(page, LARGE_TEXT);
   await page.waitForTimeout(300);

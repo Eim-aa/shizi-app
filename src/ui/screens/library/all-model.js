@@ -135,7 +135,7 @@ export function toggleFold(fold, month, currentlyOpen) {
  *          pyOf?:(char:string)=>string, practicable?:(cardKey:string)=>boolean}} opts
  */
 export function allModel(state, {
-  today, policy = defaultPolicy, compact = false, wide = false, sort: sortIn, filter: filterIn, fold: foldIn, find: findIn = '',
+  today, policy = defaultPolicy, compact = false, width = null, sort: sortIn, filter: filterIn, fold: foldIn, find: findIn = '',
   pyOf = () => '', practicable = () => true,
 } = {}) {
   const { records } = recordsOfState(state);
@@ -145,7 +145,7 @@ export function allModel(state, {
   const hollow = custom.filter(c => !latest.has(c));
   const recorded = latest.size;
   const members = recorded + hollow.length;
-  const cols = wallColumns(members, compact, wide);
+  const cols = wallColumns(members, compact, width);
 
   const wrongRecs = byNew.filter(r => r.judgment === 'wrong');
   const wrongSet = new Set(wrongRecs.map(r => r.char));

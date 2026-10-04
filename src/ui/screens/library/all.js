@@ -84,7 +84,7 @@ injectStyles('library-all', `
 .sz-all__swatch{flex:none;display:block;width:20px;height:7px;overflow:visible}
 .sz-all__swatch path{fill:${T.ink1}}
 .sz-all__grid{display:grid;grid-template-columns:repeat(var(--cols),minmax(0,1fr));container-type:inline-size}
-.sz-all__cell.sz-btn{position:relative;display:flex;flex-direction:column;align-items:stretch;min-height:0;padding:0;border-radius:${T.rWork};
+.sz-all__cell.sz-btn{position:relative;display:flex;flex-direction:column;align-items:stretch;min-width:0;min-height:0;padding:0;border-radius:${T.rWork};
   background:transparent}
 .sz-all__cell.sz-btn:focus-visible{outline:2px solid ${T.ink1};outline-offset:-2px}
 .sz-all__sq{position:relative;display:block;width:100%;aspect-ratio:1/1;overflow:hidden}
@@ -206,7 +206,7 @@ function AllScreen({ params, entry }) {
   const p = params || {};
   const entryId = entry && entry.id;
   const state = useStoreState();
-  const { large: compact, wide } = useWallLayout();
+  const { large: compact, width } = useWallLayout();
   const [sort, setSort] = useState(() => normalizeSort(p.sort));
   const [filter, setFilter] = useState(() => normalizeFilter(p.filter));
   const [fold, setFold] = useState(() => normalizeFold(p.fold));
@@ -215,8 +215,8 @@ function AllScreen({ params, entry }) {
   const today = localDay(envNow());
 
   const model = useMemo(() => allModel(state, {
-    today, policy: defaultPolicy, compact, wide, sort, filter, fold, find, pyOf: pyOfChar, practicable: isPracticable,
-  }), [state, today, compact, wide, sort, filter, fold, find]);
+    today, policy: defaultPolicy, compact, width, sort, filter, fold, find, pyOf: pyOfChar, practicable: isPracticable,
+  }), [state, today, compact, width, sort, filter, fold, find]);
 
   // 分批画：视图一变就从 72 格重新开始，之后逐帧补 72 格（01 §10）。
   const viewKey = `${model.sort}|${model.filter}|${find}|${JSON.stringify(fold)}`;

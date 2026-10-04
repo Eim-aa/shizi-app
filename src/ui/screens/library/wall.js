@@ -24,42 +24,30 @@ import * as defaultPolicy from '../../../config/policy.js';
 import { t, tInk } from '../../../config/copy/index.js';
 import { InkMini } from '../write/compare.js';
 import { recordInkPoints } from '../home/ink-row.js';
-import { WALL_COLS } from './model.js';
 
-/** 墙的版式输入：large = 系统大字号（:root[data-text-large]，P131）、wide = Pro Max 级屏宽（≥ WALL_COLS.proMaxFrom）；随两者变化更新。 */
+/** 墙的版式输入：large = 系统大字号（:root[data-text-large]，P131）、width = 屏宽（css px，决定列数，见 model.js WALL_COLS）；随两者变化更新。 */
 export function useWallLayout() {
   const read = () => {
-    if (typeof document === 'undefined' || typeof window === 'undefined') return { large: false, wide: false };
-    let wide = false;
-    try {
-      wide = !!(window.matchMedia && window.matchMedia(`(min-width: ${WALL_COLS.proMaxFrom}px)`).matches);
-    } catch (error) {
-      wide = false;
-    }
-    return { large: document.documentElement.hasAttribute('data-text-large'), wide };
+    if (typeof document === 'undefined' || typeof window === 'undefined') return { large: false, width: null };
+    const root = document.documentElement;
+    return { large: root.hasAttribute('data-text-large'), width: root.clientWidth || window.innerWidth || null };
   };
   const [layout, setLayout] = useState(read);
   useEffect(() => {
     if (typeof document === 'undefined' || typeof window === 'undefined') return undefined;
     const sync = () => setLayout(prev => {
       const next = read();
-      return prev.large === next.large && prev.wide === next.wide ? prev : next;
+      return prev.large === next.large && prev.width === next.width ? prev : next;
     });
     sync();
-    let mql = null;
-    try {
-      mql = window.matchMedia ? window.matchMedia(`(min-width: ${WALL_COLS.proMaxFrom}px)`) : null;
-    } catch (error) {
-      mql = null;
-    }
-    if (mql && mql.addEventListener) mql.addEventListener('change', sync);
+    window.addEventListener('resize', sync);
     let mo = null;
     if (typeof MutationObserver === 'function') {
       mo = new MutationObserver(sync);
       mo.observe(document.documentElement, { attributes: true, attributeFilter: ['data-text-large'] });
     }
     return () => {
-      if (mql && mql.removeEventListener) mql.removeEventListener('change', sync);
+      window.removeEventListener('resize', sync);
       if (mo) mo.disconnect();
     };
   }, []);
@@ -89,7 +77,7 @@ export const WALL_CSS = `
 .sz-lib__swatch path{fill:${T.wall1}}
 .sz-lib__box{flex:none;width:9px;height:9px;box-sizing:border-box;border-radius:${T.rWork};border:1px solid ${T.danzhu}}
 .sz-lib__wall{display:grid;grid-template-columns:repeat(var(--cols),minmax(0,1fr));container-type:inline-size}
-.sz-lib__cell.sz-btn{position:relative;aspect-ratio:1/1;width:100%;min-height:0;padding:0;border-radius:${T.rWork};display:grid;
+.sz-lib__cell.sz-btn{position:relative;aspect-ratio:1/1;width:100%;min-width:0;min-height:0;padding:0;border-radius:${T.rWork};display:grid;
   place-items:center;overflow:hidden;background:transparent}
 .sz-lib__cell.sz-btn:focus-visible{outline:2px solid ${T.ink1};outline-offset:-2px}
 .sz-lib__g{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none}

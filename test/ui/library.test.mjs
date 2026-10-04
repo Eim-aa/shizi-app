@@ -105,13 +105,22 @@ test('wall order: hollow first, then latest judged newest → oldest (by id); wr
   assert.equal(m.wall.cells[1].record.id, 'r5', 'cell carries the latest judged record');
 });
 
-test('columns (8, Pro Max 9, large text 6; independent of members) and truncation to 8 rows + more (P27 wall members; P1-E1b design system)', () => {
-  assert.equal(wallColumns(0), 8);
+test('columns (8, Pro Max 9, large text ≤ 6, every cell ≥ 44pt; independent of members) and truncation to 8 rows + more (P27 wall members; P1-E1b design system)', () => {
+  assert.equal(wallColumns(0), 8, 'unknown width → the standard 8');
   assert.equal(wallColumns(59), 8);
   assert.equal(wallColumns(60), 8, 'the member count no longer changes the column count');
-  assert.equal(wallColumns(60, false, true), 9, 'Pro Max: 9 columns');
-  assert.equal(wallColumns(59, true), 6, 'large text: 6 columns');
-  assert.equal(wallColumns(60, true, true), 6, 'large text wins over the wide screen');
+  assert.equal(wallColumns(60, false, 393), 8, '393 wide: (393 − 40) ÷ 44 = 8.0');
+  assert.equal(wallColumns(60, false, 402), 8, 'iPhone 17: 8');
+  assert.equal(wallColumns(60, false, 440), 9, 'Pro Max: 9 columns');
+  assert.equal(wallColumns(60, false, 430), 8, '15 Pro Max (430): (430 − 40) ÷ 44 = 8.9 → 8');
+  assert.equal(wallColumns(60, false, 375), 7, '375 wide: 7 so that a cell stays ≥ 44pt');
+  assert.equal(wallColumns(60, false, 360), 7);
+  assert.equal(wallColumns(60, false, 320), 6);
+  assert.equal(wallColumns(60, false, 200), 4, 'floor of 4 columns');
+  assert.equal(wallColumns(59, true), 6, 'large text: 6 columns (width unknown)');
+  assert.equal(wallColumns(60, true, 440), 6, 'large text caps at 6 even on a wide screen');
+  assert.equal(wallColumns(60, true, 320), 6);
+  assert.equal(wallColumns(60, true, 300), 5, 'large text on a very narrow screen still keeps cells ≥ 44pt');
   assert.equal(policy.wallMoreScope, 'wall-members');
 
   const mk = n => Array.from({ length: n }, (_, i) => rec(i + 1, String.fromCodePoint(0x4E00 + i), { day: addDays(TODAY, -(n - i)) }));
@@ -130,7 +139,7 @@ test('columns (8, Pro Max 9, large text 6; independent of members) and truncatio
   assert.equal(m70.wall.more, 6);
   assert.equal(m70.wall.rows, 8);
 
-  const proMax = libraryHomeModel(state({ records: mk(80) }), TODAY, { wide: true });
+  const proMax = libraryHomeModel(state({ records: mk(80) }), TODAY, { width: 440 });
   assert.equal(proMax.wall.cols, 9, 'Pro Max: 9 columns');
   assert.equal(proMax.wall.cells.length, 9 * WALL_MAX_ROWS);
 

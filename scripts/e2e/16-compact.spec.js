@@ -1,12 +1,12 @@
 // M1-7 紧凑版写字页（02 §3 M1-7；R-W18 / R-W26 / R-G09；走查-W15 / 核对-V02 / X08；reference/I-proto-write.md §3.7）。
-// D36（覆盖 X08）：紧凑版只改排布，不再缩格。书写格边长按公式取（屏宽 − 32 与视口高 − 预算取小，夹在 258–400）；360×640 的预算
-// 不够，落在下限 258（所以本文件 360×640 的各阶段仍是 258）。其他视口的格子边长与阶段 / 大字的关系见 16-grid.spec.js。
+// D36（覆盖 X08）：紧凑版只改排布，不再缩格。书写格边长按公式取（屏宽 − 40 与视口高 − 预算取小，夹在 258–400；P1-E1b 起页边 20、紧凑预算 350）；
+// 360×640 → 290（本文件 360×640 的各阶段都是 290）；320×568 预算不够，落在下限 258。其他视口的格子边长与阶段 / 大字的关系见 16-grid.spec.js。
 // 「大字」= 系统字号 XXXL（P1-E6 / D29：模拟原生 shiziContentSize → --k 1.35 + :root[data-text-large]；原 App 内 data-large 1.3 已删）。
-// 完成定义：360×640（标准字号与大字各走一遍）书写格 258（recall / trace / retrace 同一边长，点提示前后不变）、
+// 完成定义：360×640（标准字号与大字各走一遍）书写格 290（recall / trace / retrace 同一边长，点提示前后不变）、
 // 按钮区首屏、无横向溢出（scrollWidth ≤ clientWidth）、可点控件全是 <button>、看答案页字形 200–345；
 // 另：撤销 / 清空在书写格右下（G32 / D36：标准版与紧凑版同一位置，不再挪到格子上方）、「提示 · 写好了」一行 +「看答案 · 跳过 · 结束这组」一行、判断页标题可换行不裁切、
-// 提示说明与格子 / 按钮留出间距（R-W26）；视口从 360×640 切到 393×852 时回到标准版（361、三行底栏），
-// 393×852 + 大字仍是紧凑版排布，但格子仍是 361（D36：不随大字缩格）；320×568 + 大字抽查无横向溢出、按钮首屏。
+// 提示说明与格子 / 按钮留出间距（R-W26）；视口从 360×640 切到 393×852 时回到标准版（353、两行页底栏），
+// 393×852 + 大字仍是紧凑版排布，但格子仍是 353（D36：不随大字缩格）；320×568 + 大字抽查无横向溢出、按钮首屏。
 // 393×852 标准版不回归由 10 / 11 / 13 / 14 spec 复跑保证。
 
 import {
@@ -18,8 +18,9 @@ const SHOTS = process.env.SHIZI_E2E_SHOTS || '';
 const COMPACT_VIEW = { width: 360, height: 640 };
 const STD_VIEW = { width: 393, height: 852 };
 const CHARS = ['越', '大', '永'];
-const GRID = 258; // 360×640 / 320×568 的格子边长：预算不够，取下限（policy.writeGrid.min）
-const GRID_393 = 361; // 393×852：屏宽 393 − 32，预算够（policy.writeGrid.reserveStd）
+const GRID = 290; // 360×640 的格子边长：640 − 预算 350（policy.writeGrid.reserveCompact，P1-E1b）
+const GRID_FLOOR = 258; // 320×568：预算不够，取下限（policy.writeGrid.min）
+const GRID_393 = 353; // 393×852：屏宽 393 − 40（页边 20），预算够（policy.writeGrid.reserveStd）
 
 /** 每个 testid 若出现就必须是 <button>（原型紧凑版这些是 span / div，R-G09 要求真按钮）。 */
 const CONTROL_IDS = [
@@ -171,7 +172,7 @@ async function compactWalk(page, ctx, { large }) {
   await page.mouse.move(1, 1);
 
   // ---------------------------------------------------------------- recall
-  ctx.step(`${tag}: recall — grid 258, two footer rows, buttons on the first screen`);
+  ctx.step(`${tag}: recall — grid 290, two footer rows, buttons on the first screen`);
   let g = await geometry(page, `${large ? 'L' : 'N'}-recall`);
   assert.equal(g.compact, 'true', `${tag}: write screen is in compact mode`);
   assert.equal(g.large, large, `${tag}: data-text-large ${large ? 'on' : 'off'}`);
@@ -184,8 +185,10 @@ async function compactWalk(page, ctx, { large }) {
     && Math.abs(c['write-show-answer'].rect.bottom - c['write-skip'].rect.bottom) < 2, `${tag}: 看答案 and 跳过 share one row`);
   assert.ok(c['write-show-answer'].rect.top >= c['write-done'].rect.bottom - 0.5, `${tag}: 看答案 · 跳过 row is below 提示 · 写好了`);
   assert.ok(c['write-show-answer'].rect.right <= c['write-skip'].rect.left, `${tag}: 看答案 left of 跳过`);
-  const mid = (c['write-skip'].rect.left + c['write-skip'].rect.right) / 2;
-  assert.ok(Math.abs(mid - g.vw / 2) < 2, `${tag}: 跳过 centred (${mid.toFixed(1)} vs ${g.vw / 2})`);
+  // P1-E1b（设计系统 v1）：文字行两端对齐——看答案在左、跳过在右（没有「结束这组」时）；不再把跳过放在正中。
+  const skipRight = c['write-skip'].rect.right;
+  assert.ok(Math.abs(skipRight - (g.vw - 20)) < 8, `${tag}: 跳过 sits at the right end of the text row (${skipRight.toFixed(1)} vs ${g.vw - 20})`);
+  assert.ok(Math.abs(c['write-show-answer'].rect.left - 20) < 8, `${tag}: 看答案 sits at the left end of the text row (${c['write-show-answer'].rect.left.toFixed(1)})`);
   assert.ok(!!g.r['write-links'], `${tag}: the combined link row (write-links) is rendered`);
   assert.ok(Math.min(c['write-hint'].rect.height, c['write-done'].rect.height) >= 56 - 0.5, `${tag}: main buttons ≥ 56 tall`);
   const hintBtn = await page.$eval(topSel('write-hint'), el => ({ sw: el.scrollWidth, cw: el.clientWidth, ws: getComputedStyle(el).whiteSpace }));
@@ -304,7 +307,7 @@ async function compactWalk(page, ctx, { large }) {
   assert.ok(svgBox.w >= 200 - 0.5 && svgBox.w <= 345 + 0.5, `${tag}: glyph drawing box 200–345 (${svgBox.w}, svg ${svgBox.svg})`);
   common(assert, g, `${tag} answer`, ['write-answer-self', 'write-answer-trace', 'write-answer-next']);
 
-  ctx.step(`${tag}: 描一遍 → trace grid 258; 描好了 → 自己写 grid 258`);
+  ctx.step(`${tag}: 描一遍 → trace grid 290; 描好了 → 自己写 grid 290`);
   await page.click(topSel('write-answer-trace'));
   await waitPhase(page, 'trace');
   g = await geometry(page, `${large ? 'L' : 'N'}-trace`);
@@ -517,7 +520,7 @@ export default async function compact(page, ctx) {
   await page.waitForTimeout(300);
   g = await geometry(page, '320large');
   assert.equal(g.compact, 'true', '320×568 large: compact');
-  assert.ok(square(g.r['write-grid'], GRID), `320×568 large: grid ${GRID}`);
+  assert.ok(square(g.r['write-grid'], GRID_FLOOR), `320×568 large: grid ${GRID_FLOOR} (the floor)`);
   common(assert, g, '320×568 large', ['write-hint', 'write-done', 'write-show-answer', 'write-skip']);
   const doneText = await page.$eval(topSel('write-done'), el => ({ sw: el.scrollWidth, cw: el.clientWidth }));
   assert.ok(doneText.sw <= doneText.cw + 0.5, `320×568 large: 写好了 text fits its button (${doneText.sw} ≤ ${doneText.cw})`);

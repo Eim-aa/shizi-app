@@ -5,6 +5,10 @@
 // D36 / P118，与字号无关；内部坐标恒为 345 单位）、撤销 / 清空（R-W18；格下一行右端，标准版与紧凑版同一位置，G32；清空后给一次撤销，走查-W17）、按钮区：看答案占位（M1-4）、
 // 提示占位（M1-3）、「写好了」（R-W29；空笔画时 disabled + aria-disabled，M1-5 接判断页）、跳过 / 结束这组占位（M1-5 / M2）。
 //
+// 版式（P1-E1b，设计系统 v1 / D46）：页边 20；题面 → 24 → 书写格；格下一行（说明在左、撤销 / 清空在右，D43 / D36），D19「上一个字」结果行
+// 挪到这个说明位（D46 ⑭）；页底栏两行——主操作行（提示 · 写好了 / 判断页的写错了 · 写对了，同一行位置）与文字行（看答案 · 跳过 · 结束这组，
+// 两端对齐）。判断页（compare.js）的上下两格占书写格的位置，说明与两键进页底栏。
+//
 // 规则：
 // - 换字后 0.3s 书写格不接受落笔（01 §6.6 / 走查-V01，按事件 timeStamp）；进页面也算一次换字。
 // - 换字 / 换阶段算「新状态」：按钮 0.4s 不响应（components/Button.js markStateChange，走查-W08）。
@@ -32,7 +36,7 @@ import { backGestureAllowed, registerScreen, getRouter, nav } from '../../router
 import { Page } from '../../components/Page.js';
 import { Button, markStateChange } from '../../components/Button.js';
 import { injectStyles, T } from '../../components/styles.js';
-import { InkGrid, STD_SIZE } from '../../canvas/ink-canvas.js';
+import { InkGrid } from '../../canvas/ink-canvas.js';
 import { currentCardKey, isComplete, PHASES } from '../../../core/sessions.js';
 import { getStore, isReplacement } from '../../../store/store.js';
 import { setBackGestureEnabled } from '../../../platform/bridge.js';
@@ -43,7 +47,7 @@ import { charOfCardKey } from '../../../core/records.js';
 import { useHint, useStrokeData, HintNote } from './hint-layer.js';
 import { Prompt } from './prompt.js';
 import { answerInkKey, useAnswerFlow } from './answer.js';
-import { useCompareFlow, useComparePhase } from './compare.js';
+import { useCompareFlow, useComparePhase, useJudgePairSize } from './compare.js';
 import { useResultRow } from './result-row.js';
 import { useSkip } from './skip.js';
 import { useAnswerFit, useCompact, useWriteGridSize } from './compact.js';
@@ -70,16 +74,14 @@ export function titleFor(phase) {
 }
 
 injectStyles('write', `
-.sz-write{--bleed:8px;display:flex;flex-direction:column;align-items:stretch;gap:0}
+.sz-write{--bleed:0px;display:flex;flex-direction:column;align-items:stretch;gap:0}
 .sz-write__safe{position:absolute;width:0;height:0;overflow:hidden;visibility:hidden;pointer-events:none;
   padding:env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px)}
-.sz-write__line{min-height:40px;display:flex;align-items:center;justify-content:center}
-.sz-write__prompt{min-height:96px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
-  padding-bottom:8px}
-.sz-write__gridwrap{display:flex;justify-content:center;margin:0 calc(-1 * var(--bleed))}
-.sz-write__below{min-height:44px;display:flex;align-items:center;justify-content:space-between;gap:12px;margin:6px calc(-1 * var(--bleed)) 0}
-.sz-write__note{flex:1;min-width:0;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3}}
-.sz-write__tools{flex:none;display:flex;gap:4px;margin-right:-10px}
+.sz-write__prompt{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:${T.s1};padding-bottom:0}
+.sz-write__gridwrap{display:flex;justify-content:center;margin:${T.s6} calc(-1 * var(--bleed)) 0}
+.sz-write__below{min-height:44px;display:flex;align-items:center;justify-content:space-between;gap:${T.s3};margin:6px auto 0} /* 说明不贴着格子（R-W26：≥ 6px） */
+.sz-write__note{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3}}
+.sz-write__tools{flex:none;display:flex;gap:${T.s1};margin-right:-10px}
 .sz-write__tools[data-shown="false"]{visibility:hidden}
 .sz-write__tool{height:44px;min-width:44px;padding:0 10px;font-size:${T.fs15};color:${T.ink2}}
 .sz-write__progress{font-size:${T.fs13};color:${T.ink3};font-variant-numeric:tabular-nums;
@@ -87,12 +89,12 @@ injectStyles('write', `
 .sz-write__steps{height:5px;margin:-8px 0 3px;display:flex;justify-content:center;gap:5px;pointer-events:none}
 .sz-write__dot{width:5px;height:5px;box-sizing:border-box;border-radius:50%;border:1px solid ${T.ink3}}
 .sz-write__dot[data-on="true"]{border:0;background:${T.ink1}}
-.sz-write__foot{display:flex;flex-direction:column;gap:0}
-.sz-write__linkrow{min-height:36px;display:flex;align-items:center}
-.sz-write__main{display:grid;grid-template-columns:148px 1fr;gap:12px;align-items:stretch}
-.sz-write__hint{min-height:52px}
-.sz-write__skiprow{min-height:40px;display:flex;align-items:center;justify-content:center;position:relative}
-.sz-write__skiprow>.sz-write__endslot{position:absolute;right:-8px;top:0;bottom:0;display:flex;align-items:center}
+.sz-write__foot{display:flex;flex-direction:column;gap:${T.s2}}
+.sz-write__main{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:${T.s3};align-items:stretch}
+.sz-write__hint{min-height:${T.btnH}}
+.sz-write__links{min-height:44px;display:flex;align-items:center;justify-content:space-between;gap:${T.s3}}
+.sz-write__linkrow,.sz-write__skiprow{min-height:44px;display:flex;align-items:center}
+.sz-write__endslot{display:flex;align-items:center}
 `);
 
 const EMPTY = Object.freeze([]);
@@ -264,10 +266,11 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
   const gridSize = useWriteGridSize(writeRef);
   const answerFit = useAnswerFit(writeRef, { enabled: compact && phase === 'answer', key: cardKey || '', max: gridSize });
   const answerSize = Math.min(answerFit, gridSize);
-  // M1-5 判断页、结果行、跳过。
+  // M1-5 判断页、结果行、跳过。判断页上下两格的边长按「书写格顶到说明句顶」的可用高与屏宽算（D46 ⑪，judgePairSize）。
+  const pairSize = useJudgePairSize(writeRef, phase === 'compare');
   const compare = useCompareFlow({
     slot, session, cardKey, char: charOfCardKey(cardKey), phase, strokes: view.strokes, hints: hint.used, strokeData,
-    onLeave: cmpPhase.leave, size: Math.max(gridSize, STD_SIZE), // 对照卡不比书写格窄（紧凑短屏仍按容器宽收）
+    onLeave: cmpPhase.leave, size: pairSize,
   });
   const row = useResultRow({ slot, session, state, phase, strokeCount: view.strokes.length });
   const skip = useSkip({ slot, session, cardKey, phase, hints: hint.used, strokes: view.strokes });
@@ -365,19 +368,14 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
       <div class="sz-write__hint" data-testid="write-hint-slot">${hint.button}</div>
       <${Button} variant="primary" data-testid="write-done" disabled=${!hasStrokes} onClick=${onDone}>${t('R-W29.btnDone')}</${Button}>
     </div>`;
-  const skipSlot = html`<div class="sz-write__skiprow" data-testid="write-skip-slot">${skip.button}${!compact && end.button
-    ? html`<span class="sz-write__endslot" data-testid="write-end-slot">${end.button}</span>` : null}</div>`;
-  // 紧凑版（R-W18）：「提示 · 写好了」一行，「看答案 · 跳过 · 结束这组」一行（结束这组的槽位留给 M2）。
-  const footer = compact
-    ? html`<div class="sz-write__foot" data-compact="true">
+  const skipSlot = html`<div class="sz-write__skiprow" data-testid="write-skip-slot">${skip.button}</div>`;
+  // 页底栏两行（设计系统 v1，标准版与紧凑版同一结构）：主操作行「提示 · 写好了」；文字行「看答案 · 跳过 · 结束这组」两端对齐
+  // （picked 会话才有「结束这组」，没有时只剩看答案在左、跳过在右）。
+  const footer = html`<div class="sz-write__foot" data-compact=${compact ? 'true' : 'false'}>
       ${mainRow}
-      <div class="sz-write__links" data-testid="write-links">${answerSlot}${skipSlot}<div class="sz-write__endslot" data-testid="write-end-slot">${end.button}</div></div>
-    </div>`
-    : html`<div class="sz-write__foot">
-    ${answerSlot}
-    ${mainRow}
-    ${skipSlot}
-  </div>`;
+      <div class="sz-write__links" data-testid="write-links">${answerSlot}${skipSlot}${end.button
+    ? html`<div class="sz-write__endslot" data-testid="write-end-slot">${end.button}</div>` : null}</div>
+    </div>`;
   const tools = html`<span class="sz-write__tools" data-testid="write-tools" data-shown=${canUndo && drawable ? 'true' : 'false'}>
           <${Button} variant="plain" class="sz-write__tool" data-testid="write-undo" disabled=${!canUndo} rapid
             onClick=${onUndo}>${t('R-W18.btnUndo')}</${Button}>
@@ -385,13 +383,13 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
             onClick=${onClear}>${t('R-W18.btnClear')}</${Button}>
         </span>`;
 
+  const belowWidth = compare.active ? null : (answer.active && compact ? answerSize : gridSize);
   return html`<${Page} title=${titleFor(phase)} lead=${compare.lead} trailing=${progress}
-    footer=${answer.footer || (compare.active ? null : footer)} testid="write-screen">
+    footer=${answer.footer || (compare.active ? compare.footer : footer)} testid="write-screen">
     <div class="sz-write" ref=${writeRef} data-cursor=${session.cursor} data-phase=${phase} data-slot=${slot}
       data-compact=${compact ? 'true' : 'false'}>
       <span class="sz-write__safe" aria-hidden="true"></span>
       <${StepDots} phase=${phase} />
-      <div class="sz-write__line" data-testid="write-line-slot">${row.node}</div>
       <${Prompt} cardKey=${cardKey} queue=${session.queue} phase=${phase} />
       <div class="sz-write__gridwrap">
         ${answer.stage || compare.stage || html`<${InkGrid}
@@ -408,11 +406,11 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
           label=${t('X-WRITE.gridLabel')}
         />`}
       </div>
-      <div class="sz-write__below">
-        <span class="sz-write__note" data-testid="write-note">${answer.active ? answer.note
+      ${compare.active ? null : html`<div class="sz-write__below" style=${belowWidth ? { width: '100%', maxWidth: `${belowWidth}px` } : undefined}>
+        <span class="sz-write__note" data-testid="write-note"><span class="sz-write__lineslot" data-testid="write-line-slot">${row.node}</span>${answer.active ? answer.note
           : skip.failed ? skip.note : html`<${HintNote} note=${hint.note} />`}</span>
         ${tools}
-      </div>
+      </div>`}
     </div>
     ${skip.bar}
     ${persist.notice}

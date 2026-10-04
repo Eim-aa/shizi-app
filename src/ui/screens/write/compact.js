@@ -42,7 +42,8 @@ const S = '.sz-page[data-testid="write-screen"]';
 function compactRules(scope) {
   const P = `${scope} ${S}`.trim();
   return `
-${P} .sz-write{--bleed:4px}
+${P} .sz-write{--bleed:0px}
+${P} .sz-write__gridwrap{margin-top:12px}
 ${P} .sz-page__head{padding-left:4px;padding-right:4px}
 ${P} .sz-page__title{position:relative;left:auto;right:auto;flex:1;min-width:0;padding:6px 8px;white-space:normal;
   overflow:visible;text-overflow:clip;line-height:1.3;text-wrap:balance}
@@ -50,22 +51,12 @@ ${P} .sz-page__lead,${P} .sz-page__trail{flex:none}
 ${P} .sz-page__body{padding:2px 20px 2px;gap:12px}
 ${P} .sz-page__foot{padding:1px 20px max(6px, env(safe-area-inset-bottom, 0px));gap:6px}
 ${P} .sz-write__steps{margin:-4px 0 1px}
-${P} .sz-write__line{min-height:36px;justify-content:center}
-${P} .sz-write__line .sz-line{min-height:36px}
-${P} .sz-write__line .sz-line__change{min-height:44px;margin:-4px 0}
 ${P} .sz-write__prompt{min-height:0;gap:2px;padding:0 0 2px}
 ${P} .sz-write__note{line-height:1.4}
 ${P} .sz-write__foot .sz-btn--primary,${P} .sz-write__foot .sz-btn--secondary{min-height:56px;padding:0 12px;white-space:nowrap}
 ${P} .sz-write__main{grid-template-columns:auto minmax(0,1fr);gap:10px}
 ${P} .sz-write__hint{min-height:56px}
 ${P} .sz-write__hint .sz-hintbtn{padding:0 12px}
-${P} .sz-write__foot .sz-write__linkrow{min-height:28px}
-${P} .sz-write__foot .sz-write__skiprow{min-height:40px}
-${P} .sz-write__links{min-height:40px;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center}
-${P} .sz-write__links>.sz-write__linkrow{justify-self:start;min-height:40px}
-${P} .sz-write__links>.sz-write__skiprow{justify-self:center;min-height:40px}
-${P} .sz-write__links>.sz-write__endslot{justify-self:end;display:flex;align-items:center}
-${P} .sz-judge__btn{min-height:calc(72px * ${T.k})}
 ${P} .sz-answer__note,${P} .sz-write__note,${P} .sz-judge__note{text-wrap:pretty}
 `;
 }

@@ -104,7 +104,7 @@ test('policy: transitional defaults match 03 / the M0-6 card', () => {
   assert.deepEqual({ ...policy.sessionExpiry }, { first: 'never', picked: 'never' }, 'P61');
   // M2-H：P69 / P70 迁入 policy（值不变）
   assert.equal(policy.compactMaxHeight, 760, 'P69');
-  assert.deepEqual({ ...policy.writeGrid }, { min: 258, max: 400, sideMargin: 16, reserveStd: 446, reserveCompact: 384 }, 'P118 D36');
+  assert.deepEqual({ ...policy.writeGrid }, { min: 258, max: 400, sideMargin: 20, reserveStd: 422, reserveCompact: 350 }, 'P118 D36（P1-E1b：页边 20、结果行进格下说明位、页底栏两行）');
   assert.deepEqual(
     { ...policy.motion },
     { answerSpeed: 1.6, answerStrokeGapMs: 180, answerFadeMs: 240, hintStrokeMs: 240, hintStagger: 0.7, reducedFadeMs: 120, persistNoticeMs: 5000 },

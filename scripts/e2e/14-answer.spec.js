@@ -207,7 +207,7 @@ export default async function answer(page, ctx) {
   assert.equal(anim, 'completed', 'hanzi-writer play finished (final state = full glyph)');
   assert.ok(await page.locator(`${topSel('write-answer-card')} svg path`).count() > 0, 'glyph strokes drawn in the card');
   const card = await page.locator(topSel('write-answer-card')).boundingBox();
-  assert.equal(Math.round(card.width), 361, 'answer card is 361 wide at 393×852 (same geometry as the grid: screen width − 32, D36)');
+  assert.equal(Math.round(card.width), 353, 'answer card is 353 wide at 393×852 (same geometry as the grid: screen width − 40, D36 / P1-E1b gutter 20)');
   assert.equal(await text(page, 'write-answer-note'), COPY.answerNote, 'note above buttons R-W07.answerNote');
   assert.deepEqual([await label(page, 'write-answer-self'), await label(page, 'write-answer-trace')], [COPY.self, COPY.trace],
     'buttons 自己写 / 描一遍');

@@ -254,11 +254,12 @@ export default async function judgeCorrect(page, ctx) {
       sameSize: Math.abs(rw.width - rc.width) < 0.5 && Math.abs(rw.height - rc.height) < 0.5,
       mineAria: mineLabel ? mineLabel.getAttribute('aria-label') : null,
       refAria: refCard ? refCard.getAttribute('aria-label') : null,
-      mineLeft: mineLabel && refCard ? mineLabel.getBoundingClientRect().right <= refCard.getBoundingClientRect().left : false,
-      labels: [...area.querySelectorAll('.sz-compare__label')].map(el => el.textContent),
+      // D46 ⑪（P1-E1b）：上下两格，本人书写在上、参考字形在下（共用一条格线，下格上沿与上格下沿相差 1px 的重叠）
+      mineAbove: mineLabel && refCard ? mineLabel.getBoundingClientRect().bottom <= refCard.getBoundingClientRect().top + 1.5 : false,
+      labels: [...area.querySelectorAll('.sz-compare__aside')].map(el => el.textContent),
       cont: cont ? { text: cont.textContent.trim(), aria: cont.getAttribute('aria-label') } : null,
       pageBack: !!top.querySelector('[data-testid="page-back"]'),
-      toolsShown: top.querySelector('[data-testid="write-tools"]').dataset.shown,
+      toolsPresent: !!top.querySelector('[data-testid="write-tools"]'),
       fill: top.querySelector('.sz-prompt__fill') ? top.querySelector('.sz-prompt__fill').textContent : null,
     };
   });
@@ -273,7 +274,7 @@ export default async function judgeCorrect(page, ctx) {
   assert.equal(cmp.activeTag, 'H1[data-page-title]', 'focus moved to the page title');
   assert.equal(VERDICT_CLASS.test(cmp.classes), false, `compare area has no verdict class names (${cmp.classes})`);
   assert.equal(cmp.attrs.some(a => VERDICT_CLASS.test(a.split('=')[1] || '')), false, 'compare area has no verdict data / aria values');
-  assert.ok(cmp.mineLeft, '你的书写 on the left, 参考字形 on the right');
+  assert.ok(cmp.mineAbove, '你的书写 above, 参考字形 below (D46 ⑪)');
   // A10：说明行高随字号（不再写死 18px），与两键之间 ≥12px
   const note = await page.evaluate(() => {
     const n = document.querySelector('.sz-layer[data-top="true"] [data-testid="write-judge-note"]');
@@ -283,13 +284,13 @@ export default async function judgeCorrect(page, ctx) {
   });
   assert.ok(note.lh / note.fs >= 1.35, `A10: judge note line-height is relative to the font size (${note.lh}/${note.fs})`);
   assert.ok(note.gap >= 12, `A10: judge note → buttons gap >= 12px (${note.gap})`);
-  assert.deepEqual(cmp.labels, [COPY.mine, COPY.ref], 'card labels 你的书写 / 参考字形 (R-W09)');
+  assert.deepEqual(cmp.labels, [COPY.mine, COPY.ref], 'side notes 你的书写 / 参考字形 (R-W09, D46 ⑪)');
   // A9：读屏名称带上信息——本人卡「你的书写，N 笔」，参考卡「参考字形：字，拼音，N 画」（视觉标签不变）
   assert.equal(cmp.mineAria, `${COPY.mine}，1 笔`, 'my card is role=img: 「你的书写，1 笔」 (one stroke drawn)');
   assert.ok(new RegExp(`^${COPY.ref}：${CHARS[0]}，[^，]+，\\d+ 画$`).test(cmp.refAria), `reference card is role=img: 「参考字形：字，拼音，N 画」 (${cmp.refAria})`);
   assert.deepEqual(cmp.cont, { text: COPY.cont, aria: COPY.contAria }, 'top-left 接着写 with aria 回到格子里接着写 (R-W09)');
   assert.equal(cmp.pageBack, false, 'the back arrow is replaced by 接着写 on the judge page');
-  assert.equal(cmp.toolsShown, 'false', 'undo / clear hidden on the judge page');
+  assert.equal(cmp.toolsPresent, false, 'no undo / clear row on the judge page (the stacked cards take the grid\'s place)');
   assert.equal(cmp.fill, CHARS[0], 'the prompt blank reveals the target on the judge page (REVEAL_PHASES)');
   await page.waitForFunction(() => {
     const r = document.querySelector('.sz-layer[data-top="true"] [data-testid="write-compare-ref"]');

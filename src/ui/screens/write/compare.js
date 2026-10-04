@@ -5,9 +5,11 @@
 //   1. 回忆阶段书写格有本人笔画时「写好了」可点（空格子 disabled + aria-disabled，01 §6.6）→ 进 compare。
 //      进 / 出 compare 是会话现场写入（phase + 原始笔画，core/ink-math encodeRawStrokes），按 P52 **不阻断**：
 //      写失败时本页照样切换（本地阶段覆盖），判断时由判断 commit 的三段式兜底。
-//   2. 判断页：书写格位置换成两张对照卡，左「你的书写」右「参考字形」（04 §4.1：对照方向全 App 统一）；
-//      没有本人笔画时左卡「这次没写」（R-W17；01 §3.3 compare 且笔画为空按 recall 处理，正常流程到不了）。
-//      说明「你来判断，点一下就记下。」（R-W09.prompt）；两键「写错了」左、「写对了」右，同一个组件同一组类名
+//   2. 判断页（D46 ⑪，P1-E1b）：书写格位置换成上下两格——本人书写在上、参考字形在下，共用一条格线，与书写格同一顶边、同一中线；
+//      边长 S = min(屏宽 − 168, 格下到说明句顶的可用高 ÷ 2)（168 = 2 × (页边 20 + 旁注 52 + 间距 12)，见 judgePairSize）；
+//      「你的书写 / 参考字形」做成两格右侧的 13pt 旁注（读屏名称仍在两张卡的 aria-label 上，不变）。
+//      没有本人笔画时上格「这次没写」（R-W17；01 §3.3 compare 且笔画为空按 recall 处理，正常流程到不了）。
+//      说明「你来判断，点一下就记下。」（R-W09.prompt）放在页底栏的主操作行之上；两键「写错了」左、「写对了」右，同一个组件同一组类名
 //      （同样式同尺寸同字重），无 autofocus、无 aria-pressed、无预选；对照区没有任何判定着色 / 判定类名（决定-D03）。
 //      左上「接着写」（aria「回到格子里接着写」）回书写格，笔迹保留，不记录（决定-D20 / 走查-W09）。
 //      进判断页时焦点移到页标题（不落在任何判断键上）。
@@ -58,8 +60,28 @@ function pyOf(cardKey) {
 export const JUDGE_ORDER = Object.freeze(['wrong', 'correct']);
 /** 对照卡里本人笔迹的线宽倍数（原型 inkEls(strokes, 'm', 1.41)：卡内 166.5 / 345 × 1.41 ≈ 0.68 倍）。 */
 export const MINI_WIDTH_SCALE = 1.41;
-/** 对照卡间距（原型 grid gap 12）。 */
+/** 上下两格与旁注的间距（设计系统 v1：space 12）。 */
 export const COMPARE_GAP = 12;
+/** 旁注（「你的书写 / 参考字形」）的宽度：13pt 四个字 = 52。 */
+export const JUDGE_ASIDE_W = 52;
+/** 页边（space.gutter）。 */
+export const JUDGE_GUTTER = 20;
+/** 上下两格边长下限（再小就退到页面可滚动，不让两格缩得认不出字）。 */
+export const JUDGE_MIN = 120;
+
+/**
+ * 判断页上下两格的边长（D46 ⑪；设计稿 求助与判断.html ④）：
+ *   S = min(屏宽 − 2 × (页边 + 旁注 + 间距), (格下说明句顶 − 间距 − 书写格顶) ÷ 2)
+ * 两格共用一条格线（第二格上移 1px），所以按 (可用高 + 1) ÷ 2 取整。可用高 = 书写格顶到说明句顶再减去 12（说明句与格之间的间距）。
+ * 402 × 874：min(234, 237) = 234；440 × 956：272；375 × 667（短屏）≈ 176。
+ * @param {{width:number, available:number}} o  width：页面宽；available：书写格顶到说明句顶之间的高度（已减去间距 12）
+ */
+export function judgePairSize({ width, available }) {
+  const byWidth = Number.isFinite(width) && width > 0 ? width - 2 * (JUDGE_GUTTER + JUDGE_ASIDE_W + COMPARE_GAP) : Infinity;
+  const byHeight = Number.isFinite(available) && available > 0 ? (available + 1) / 2 : Infinity;
+  const s = Math.floor(Math.min(byWidth, byHeight));
+  return Number.isFinite(s) ? Math.max(JUDGE_MIN, s) : 234;
+}
 
 const COPY_KEYS = Object.freeze({
   wrong: 'R-W09.btnWrong',
@@ -69,10 +91,11 @@ const COPY_KEYS = Object.freeze({
 injectStyles('write-compare', `
 @keyframes szCmpIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 @keyframes szCmpFade{from{opacity:0}to{opacity:1}}
-.sz-compare{box-sizing:border-box;max-width:100%;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);
-  gap:${COMPARE_GAP}px;align-content:start}
-.sz-compare__col{display:flex;flex-direction:column;gap:12px;min-width:0}
-.sz-compare__col--ref{animation:szCmpIn .26s cubic-bezier(.2,.7,.2,1) .12s both}
+.sz-compare{box-sizing:border-box;max-width:100%;margin:0 auto;display:flex;flex-direction:column;align-items:stretch}
+.sz-compare__row{position:relative;min-width:0}
+.sz-compare__row--ref{margin-top:calc(-1 * ${T.frameW});animation:szCmpIn .26s cubic-bezier(.2,.7,.2,1) .12s both}
+.sz-compare__aside{position:absolute;left:100%;top:0;margin-left:${T.s3};width:${JUDGE_ASIDE_W}px;font-size:${T.fs13};line-height:${T.lh13};
+  color:${T.ink3};overflow-wrap:anywhere;text-align:left}
 .sz-compare__card{position:relative;aspect-ratio:1/1;box-sizing:border-box;border:${T.frameW} solid ${T.frame};border-radius:${T.rWork};
   ${TEX};overflow:hidden}
 .sz-compare__card canvas{position:absolute;left:0;top:0;display:block}
@@ -80,15 +103,16 @@ injectStyles('write-compare', `
   place-items:center;font-size:${T.fs13};color:${T.ink3};text-align:center;padding:8px}
 .sz-compare__label{text-align:center;font-size:${T.fs13};color:${T.ink3}}
 .sz-write[data-phase="compare"] .sz-prompt__fill{animation:szCmpFade .2s ease-out .12s both}
-.sz-judge__note{margin:0;width:100%;text-align:center;font-size:${T.fs13};line-height:${T.lh13};
-  color:${T.ink3}}
+.sz-judge__note{margin:0;width:100%;text-align:center;font-size:${T.fs15};line-height:${T.lh15};
+  color:${T.ink2}}
 .sz-judge__btns{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
-.sz-judge__btn{width:100%;min-height:72px;border-radius:${T.rCtl};background:transparent;box-shadow:inset 0 0 0 1px ${T.ink4};color:${T.ink1};
+.sz-judge__btn{width:100%;min-height:${T.btnH};border-radius:${T.rCtl};background:transparent;box-shadow:inset 0 0 0 1px ${T.ink4};color:${T.ink1};
   font-size:${T.fs17};line-height:${T.lh17s};font-weight:500}
 .sz-judge__btn[data-pressed]{background:${T.field};filter:none}
 .sz-judge__fail{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
 .sz-cmpstage{display:flex;flex-direction:column;align-items:stretch;max-width:100%}
-.sz-write__foot.sz-write__foot--judge{gap:14px;margin-top:24px} /* 说明与两键之间 ≥12px：双类名提高优先级，否则被 write/index.js 后注入的 .sz-write__foot{gap:0} 盖掉（A10） */
+.sz-write[data-phase="compare"]{margin-bottom:calc(-1 * ${T.s8})} /* 抵消页面正文的下内边距：上下两格按「格顶到页底栏」恰好占满，不多出 32 的可滚动余量 */
+.sz-write__foot.sz-write__foot--judge{gap:${T.s3}} /* 说明与两键之间 ≥12px：双类名提高优先级，否则被 write/index.js 后注入的 .sz-write__foot{gap:0} 盖掉（A10） */
 .sz-continue{height:44px;padding:0 8px;font-size:${T.fs15};color:${T.ink1}}
 @media (prefers-reduced-motion: reduce){
   .sz-compare__col--ref{animation:szCmpFade .12s linear both}
@@ -442,20 +466,64 @@ export function refCardLabel({ char, py, strokeData }) {
     : t('R-W09.refCardLabelNoCount', { char, pinyin });
 }
 
-/** 对照区：左「你的书写」、右「参考字形」（04 §4.1）。没有任何判定着色 / 判定类名（决定-D03）。py = 本题读音（读屏名称用）。 */
-export function CompareStage({ char, py = '', strokes, strokeData, size = 345 }) {
+/**
+ * 对照区（D46 ⑪）：上格「你的书写」、下格「参考字形」，共用一条格线，居中（与书写格同一顶边、同一中线）；两个名字是各格右侧的 13pt 旁注
+ * （aria-hidden，读屏名称仍是两张卡的 aria-label，不变）。没有任何判定着色 / 判定类名（决定-D03）。py = 本题读音（读屏名称用）。
+ * size = 每格边长（judgePairSize）。
+ */
+export function CompareStage({ char, py = '', strokes, strokeData, size = 234 }) {
   const mine = t('R-W09.labelMine');
   const ref = t('R-W09.labelReference');
-  return html`<div class="sz-compare" data-testid="write-compare" style=${{ width: '100%', maxWidth: `${size}px` }}>
-    <div class="sz-compare__col">
+  return html`<div class="sz-compare" data-testid="write-compare" data-size=${size} style=${{ width: `${size}px` }}>
+    <div class="sz-compare__row sz-compare__row--mine">
       <${InkMini} strokes=${strokes} testid="write-compare-mine" label=${mineCardLabel(strokes)} />
-      <span class="sz-compare__label" aria-hidden="true">${mine}</span>
+      <span class="sz-compare__aside" data-testid="write-compare-aside-mine" aria-hidden="true">${mine}</span>
     </div>
-    <div class="sz-compare__col sz-compare__col--ref">
+    <div class="sz-compare__row sz-compare__row--ref">
       <${RefMini} char=${char} strokeData=${strokeData} testid="write-compare-ref" label=${refCardLabel({ char, py, strokeData })} />
-      <span class="sz-compare__label" aria-hidden="true">${ref}</span>
+      <span class="sz-compare__aside" data-testid="write-compare-aside-ref" aria-hidden="true">${ref}</span>
     </div>
   </div>`;
+}
+
+/**
+ * 判断页上下两格的边长：量出书写格顶（.sz-write__gridwrap）到页底栏（说明句所在）之间的高度，按 judgePairSize 取值；
+ * 随页面尺寸（ResizeObserver）重算。首帧用屏宽估一个（宽度限制）。
+ * @param {{current: HTMLElement|null}} writeRef  .sz-write 元素
+ * @param {boolean} enabled  判断页才量
+ */
+export function useJudgePairSize(writeRef, enabled) {
+  const [size, setSize] = useState(() => judgePairSize({ width: typeof window !== 'undefined' ? window.innerWidth : 0, available: 0 }));
+  useLayoutEffect(() => {
+    if (!enabled) return undefined;
+    const el = writeRef.current;
+    const page = el && el.closest ? el.closest('.sz-page') : null;
+    const body = page ? page.querySelector('.sz-page__body') : null;
+    if (!el || !page || !body) return undefined;
+    const measure = () => {
+      const width = page.clientWidth;
+      const wrap = el.querySelector('.sz-write__gridwrap');
+      if (!(width > 0) || !wrap) return; // 被藏在别的页下面或还没排版
+      // 页底栏 = 正文区下沿；说明句顶 = 页底栏顶 + 页底栏上内边距，再减去与格之间的间距 12，两者相抵：可用高 = 正文区下沿 − 书写格顶
+      const available = body.getBoundingClientRect().bottom - wrap.getBoundingClientRect().top;
+      const next = judgePairSize({ width, available });
+      setSize(prev => (prev === next ? prev : next));
+    };
+    measure();
+    let ro = null;
+    if (typeof ResizeObserver === 'function') {
+      ro = new ResizeObserver(measure);
+      ro.observe(page);
+      ro.observe(body);
+    } else {
+      window.addEventListener('resize', measure);
+    }
+    return () => {
+      if (ro) ro.disconnect();
+      else window.removeEventListener('resize', measure);
+    };
+  }, [enabled]);
+  return size;
 }
 
 /**
@@ -560,10 +628,10 @@ export function useComparePhase({ slot, session, cardKey, storedPhase, strokeCou
  * @param {number} o.hints        本地提示次数（useHint().used）
  * @param {object} o.strokeData   useStrokeData(char) 的结果（写字页只开一路 watch）
  * @param {() => void} o.onLeave  「接着写」
- * @param {number} [o.size=345]
- * @returns {{active, stage, lead}}  stage = 对照卡 + 说明 + 两键（替代书写格）；active 时写字页不渲染底栏
+ * @param {number} [o.size=234]  上下两格每格边长（useJudgePairSize）
+ * @returns {{active, stage, footer, lead}}  stage = 上下两格（替代书写格）；footer = 说明 + 两键（进页底栏，替代写字页底栏）
  */
-export function useCompareFlow({ slot, session, cardKey, char, phase, strokes, hints = 0, strokeData, onLeave, size = 345 }) {
+export function useCompareFlow({ slot, session, cardKey, char, phase, strokes, hints = 0, strokeData, onLeave, size = 234 }) {
   const active = !!cardKey && phase === 'compare';
   const [fail, setFail] = useState(null); // {key, judgment}
   const key = session && cardKey ? `${session.id}|${session.cursor}|${cardKey}` : null;
@@ -600,14 +668,14 @@ export function useCompareFlow({ slot, session, cardKey, char, phase, strokes, h
     markStateChange(); // 失败态是新状态：按钮 0.4s 不响应（走查-W08）
   };
 
-  if (!active) return { active: false, stage: null, lead: null };
+  if (!active) return { active: false, stage: null, footer: null, lead: null };
 
-  // 原型 L128–L134：说明与两键紧跟在对照卡下面（不在页底），判断页没有底栏。
-  const stage = html`<div class="sz-cmpstage" style=${{ width: `${size}px` }}>
+  // D46 ⑪（P1-E1b）：对照区只有上下两格，占书写格的位置；说明与两键进页底栏（与写字页「写好了」同一行位置，设计系统 设计说明 14）。
+  const stage = html`<div class="sz-cmpstage">
     <${CompareStage} char=${char} py=${pyOf(cardKey)} strokes=${strokes} strokeData=${strokeData} size=${size} />
-    <${JudgeFooter} failed=${!!failNow} onJudge=${judge}
-      onRetry=${() => failNow && judge(failNow.judgment)} onCancelFail=${() => { setFail(null); markStateChange(); }} />
   </div>`;
+  const footer = html`<${JudgeFooter} failed=${!!failNow} onJudge=${judge}
+      onRetry=${() => failNow && judge(failNow.judgment)} onCancelFail=${() => { setFail(null); markStateChange(); }} />`;
   const lead = html`<${ContinueButton} onClick=${() => { setFail(null); if (onLeave) onLeave(); }} />`;
-  return { active: true, stage, lead };
+  return { active: true, stage, footer, lead };
 }

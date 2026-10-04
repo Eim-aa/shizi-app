@@ -194,7 +194,7 @@ async function leaveResult(page) {
   await waitNavIdle(page);
 }
 
-/** 首页「今天写了 N 个字」与字库首页两张卡（M3-1，data-n）的数字；回到本页前先切 tab。 */
+/** 首页「今天写了 N 个字」（读屏名称）与字库首页两张卡（M3-1，data-n）的数字；回到本页前先切 tab。 */
 async function tabNumbers(page) {
   const read = () => page.evaluate(() => {
     const top = document.querySelector('.sz-layer[data-top="true"]');
@@ -202,7 +202,8 @@ async function tabNumbers(page) {
     const n = el => (el && el.dataset.n !== undefined ? Number(el.dataset.n) : null);
     return {
       screen: document.querySelector('.sz-app').dataset.topScreen,
-      todayCount: q('home-today-count') ? q('home-today-count').textContent.trim() : null,
+      // E9a（D49-7）：首页不再画「今天写了 N 个字」（n ≤ 8），同一句话是今天写的字那一排的读屏名称（「今天写了 N 个字：「…」」）的前半
+      todayCount: q('home-ink-row') ? q('home-ink-row').getAttribute('aria-label').split('：')[0] : null,
       wrongCard: n(q('library-card-wrong')),
       forgetCard: n(q('library-card-forget')),
     };

@@ -2,6 +2,9 @@
 // 阶段 1 P1-E5 起首页按设计稿重排（五态 + 首次打开，03 P155 / P156）：本文件保留状态矩阵、N、日期时段、主入口、自己选字、跨天、R-H11 的断言，
 // 改了的口径逐条在断言里写明（首页不再有「拾」大按钮 / 光影层 / 紧凑版合成行；续练行换成这一组的格子；首次打开隐藏「自己选字」）；
 // 五态各自的版式、朱点、位置不动等断言在 72-p1e5-home-first.spec.js。
+// 阶段 1 E9a（D49-7，实现交接 §1.1）：首页不再画「这一组还有 N 个字」「今天写了 N 个字」（n ≤ 8）「字库里有 N 个字了 ›」，计数只进读屏标签；
+// 续写信息（槽 / 种类 / 剩余字数）改读进行中格子块上的 data-slot / data-kind / data-remaining 与它的读屏名称（旧断言读的 resume-line 文字行已删），
+// 「今天的练习 · 还有 N 个字没写」一行去掉 ›（带箭头的文字链接已取消，减法修稿 §1-5）。
 //
 // 场景：
 //   1. 状态矩阵（需求 §6 反例 1：今天记录 0 / 有 × 未完成会话 无 / A / B / A+B，加首次）：data-records / data-resume、主入口字样、
@@ -136,7 +139,10 @@ async function home(page) {
       cta: q('home-start') ? q('home-start').getAttribute('aria-label') : null,
       ctaText: txt('home-start'),
       firstTip: txt('home-first-tip'),
-      resumeLine: q('resume-line') ? { text: txt('resume-line'), slot: q('resume-line').dataset.slot } : null,
+      // D49-7：可见的「这一组还有 N 个字」行已删；同一个数在进行中格子块的读屏名称第一句（旧 resume-line 的位置）
+      resumeLine: q('home-progress') ? { text: q('home-progress').getAttribute('aria-label').split('。')[0], slot: q('home-progress').dataset.slot } : null,
+      noVisibleCount: !/这一组还有|字库里有|今天写了 \d+ 个字|还有 \d+ 个字没写/.test([...root.querySelectorAll('*')].filter(e => e.children.length === 0 && !e.closest('[aria-hidden="true"], [data-testid="other-line"]') && e.checkVisibility()).map(e => e.textContent).join(' ')),
+      libraryLabel: q('home-zone') ? q('home-zone').getAttribute('aria-label') : null,
       otherLine: q('other-line') ? { text: txt('other-line'), slot: q('other-line').dataset.slot, tag: q('other-line').tagName } : null,
       count: txt('home-today-count'),
       inkRow: inkRow ? {
@@ -240,10 +246,11 @@ export default async function run(page, ctx) {
     const expectPrimary = resumeCase === 'none' ? null
       : resumeCase === 'A' ? { text: COPY.daily(3), slot: 'A' } : { text: COPY.picked(2), slot: 'B' };
     assert.deepEqual(h.resumeLine, expectPrimary, `resume-line ${expectPrimary ? expectPrimary.text : 'absent'} (B first, D05)`);
-    const expectOther = resumeCase === 'A+B' ? { text: `${COPY.dailyOther(3)} ›`, slot: 'A', tag: 'BUTTON' } : null;
+    const expectOther = resumeCase === 'A+B' ? { text: COPY.dailyOther(3), slot: 'A', tag: 'BUTTON' } : null;
     assert.deepEqual(h.otherLine, expectOther, `other-line ${expectOther ? expectOther.text : 'absent'}`);
     if (recordsCase === 'record' && resumeCase === 'none') {
-      assert.equal(h.count, COPY.count(3), 'today written, nothing in progress: 「今天写了 3 个字」');
+      assert.equal(h.count, null, 'D49-7: today written (3 ≤ 8), nothing in progress: no visible 「今天写了 3 个字」 line');
+      assert.ok(h.inkRow.label.startsWith(COPY.count(3)), `…the count is in the ink row’s screen-reader name: ${h.inkRow.label}`);
       assert.deepEqual(h.inkRow && h.inkRow.chars, ['数', '感', '警'], 'today’s judged chars in judgment order');
     } else if (recordsCase === 'record') {
       assert.equal(h.count, null, 'P16 (decided by the stage-1 design): with a group in progress the home shows the group, not 今天写了 N 个字');
@@ -292,27 +299,31 @@ export default async function run(page, ctx) {
   await setup(page, { seed: { records: byMonth([rec(1, '永', { judgment: 'wrong' }), rec(2, '和', { kind: 'answer-seen' }), rec(3, '永')]) } });
   h = await home(page);
   assert.equal(h.records, 'record', 'records=record');
-  assert.equal(h.count, COPY.count(1), '「今天写了 1 个字」');
+  assert.equal(h.count, null, 'D49-7: n = 1 ≤ 8 → no visible 「今天写了 1 个字」 (the count is only in the screen-reader name)');
+  assert.ok(h.inkRow.label.startsWith(COPY.count(1)), `screen-reader name starts with 「今天写了 1 个字」: ${h.inkRow.label}`);
   assert.deepEqual(h.inkRow.chars, ['永'], 'one ink item');
   assert.deepEqual(h.inkRow.ids, ['r3'], 'the latest judgment of 永 (r3)');
   assert.equal(h.inkRow.count, 1, 'ink row data-count=1');
   assert.deepEqual(h.inkRow.ink, ['none'], 'seeded record has no stored ink → standard glyph (10.12; perRecordInk is on since D27, the ink path is 66-ink-retention / 47)');
   assert.deepEqual(h.inkRow.glyphs, ['永'], '10.12: no stored ink → the character in its cell (kai, secondary colour)');
   assert.equal(h.inkRow.tag, 'BUTTON', 'ink row is a button: M4-1 registered 今天的记录 (R-H08; 40-mine covers the target)');
-  assert.equal(h.inkRow.label, '今天有记录的字：「永」', 'ink row reader label');
+  assert.equal(h.inkRow.label, '今天写了 1 个字：「永」', 'ink row reader label (D49-7: now carries the count — the visible count line is gone)');
+  assert.equal(h.noVisibleCount, true, 'D49-7: no visible count text anywhere on the home page');
+  assert.equal(h.libraryLabel, '字库里有 1 个字了', 'D49-7: the library count only lives in the screen-reader name of the copybook block');
 
   const nine = ['一', '二', '三', '四', '五', '六', '七', '八', '九'];
-  step('N=8: eight distinct chars → 8 items, count 8');
+  step('N=8: eight distinct chars → 8 items; D49-7: 8 fit the copybook, so no visible 「今天写了 8 个字」 (reader name carries it)');
   await setup(page, { seed: { records: byMonth(nine.slice(0, 8).map((c, i) => rec(i + 1, c))) } });
   h = await home(page);
-  assert.equal(h.count, COPY.count(8), '「今天写了 8 个字」');
+  assert.equal(h.count, null, 'D49-7: n ≤ 8 → no visible count line');
+  assert.ok(h.inkRow.label.startsWith(COPY.count(8)), `reader name: ${h.inkRow.label}`);
   assert.deepEqual(h.inkRow.chars, nine.slice(0, 8), '8 items in id order');
 
   step('N=9 (+ a repeat of the first char last): 8 most recent items, number stays 9 (D12)');
   const nineRecs = [...nine.map((c, i) => rec(i + 1, c)), rec(10, '一', { judgment: 'wrong' }), rec(11, '十', { day: YDAY })];
   await setup(page, { seed: { records: byMonth(nineRecs) } });
   h = await home(page);
-  assert.equal(h.count, COPY.count(9), '「今天写了 9 个字」 (deduped N)');
+  assert.equal(h.count, COPY.count(9), '「今天写了 9 个字」 (deduped N): D49-7 keeps this one line only when n > 8, because the copybook shows just 8');
   assert.deepEqual(h.inkRow.chars, ['三', '四', '五', '六', '七', '八', '九', '一'], 'most recent 8, 一 moved to its latest judgment');
   assert.equal(h.inkRow.ids[7], 'r10', 'last item is r10');
   assert.equal(h.inkRow.count, 9, 'ink row data-count=9');
@@ -328,7 +339,7 @@ export default async function run(page, ctx) {
     const panel = document.querySelector('.sz-tabroot__panel');
     const pr = panel.getBoundingClientRect();
     const r = id => document.querySelector(`[data-testid="${id}"]`).getBoundingClientRect();
-    return ['home-start', 'home-pick', 'home-today-count'].every(id => r(id).top >= pr.top && r(id).bottom <= pr.bottom)
+    return ['home-start', 'home-pick', 'home-today-count', 'home-ink-row'].every(id => r(id).top >= pr.top && r(id).bottom <= pr.bottom)
       && document.documentElement.scrollWidth <= window.innerWidth;
   });
   assert.ok(fits, '360×640: the cells, the count and 自己选字 fit on the first screen, no horizontal overflow');

@@ -24,14 +24,12 @@
 import * as defaultPolicy from '../../../config/policy.js';
 import { epigraphFor } from '../../../config/epigraphs.js';
 import { diffDays, localDay, monthDayParts, periodOf } from '../../../core/dates.js';
-import { charOfCardKey, hasAnyJudged, isJudged, latestJudgedByCard, sortById, todayCount, todayInkRow } from '../../../core/records.js';
+import { charOfCardKey, hasAnyJudged, isJudged, latestJudgedByCard, todayCount, todayInkRow } from '../../../core/records.js';
 import { remainingCount } from '../../../core/sessions.js';
 import { aStartInfo, planSpecial, recordsOf, resumableSession } from '../../../core/session-start.js';
 
 /** 今天写的字最多几项（决定-D12：N ≤ 8 显示 N 项，N > 8 显示最近判断的 8 项，数字仍为 N；设计稿 §三：8 个字以内一行或两行四列）。 */
 export const INK_ROW_MAX = 8;
-/** 「昨天写的字」一行最多几个字（设计稿 §三「昨天写的字」行：最多 5 字，P156）。 */
-export const LAST_ROW_MAX = 5;
 /** 离开多少天算「回来」（D41：离开 ≥7 天回来的第一组照常 1 新；首页换成「你写过的 N 个字都还在」，P155）。 */
 export const BACK_AFTER_DAYS = 7;
 
@@ -136,34 +134,7 @@ export function progressCells(session, records, { max = PROGRESS_MAX } = {}) {
   return { cells: all.slice(start, start + max), total: all.length, start };
 }
 
-/**
- * 「昨天写的字」一行（设计稿 §三，P156）：最近一个（不含今天）有记录的日子里，同字留最近一次、只放有本人墨迹的字
- * （没有墨迹的字不放进这一行，也不放衬底），取最后 limit 个、按写的先后排。那一天一个有墨的字都没有 → 往前找下一个有记录的日子。
- * @param {Array} records
- * @param {string} today
- * @param {{hasInk:(record)=>boolean, limit?:number}} o
- * @returns {{day:string, yesterday:boolean, items:Array<{char:string, record:object}>}|null}
- */
-export function lastWrittenRow(records, today, { hasInk, limit = LAST_ROW_MAX } = {}) {
-  const byDay = new Map();
-  for (const r of sortById((records || []).filter(isJudged))) {
-    if (!(r.localDay < today)) continue;
-    if (!byDay.has(r.localDay)) byDay.set(r.localDay, new Map());
-    const m = byDay.get(r.localDay);
-    m.delete(r.cardKey);
-    m.set(r.cardKey, r);
-  }
-  const days = [...byDay.keys()].sort().reverse();
-  for (const day of days) {
-    const items = [...byDay.get(day).values()].filter(r => (typeof hasInk === 'function' ? hasInk(r) : true))
-      .map(r => ({ char: r.char || charOfCardKey(r.cardKey), record: r }));
-    if (!items.length) continue;
-    return { day, yesterday: diffDays(day, today) === 1, items: items.slice(Math.max(0, items.length - limit)) };
-  }
-  return null;
-}
-
-/** 字库里有几个字（有过判断记录的字，按字去重）——首页「字库里有 N 个字了」。 */
+/** 字库里有几个字（有过判断记录的字，按字去重）——首页字帖位块的读屏标签「字库里有 N 个字了」（D49-7：不再画在首页上）；也是回来态「你写过的 N 个字都还在」的 N。 */
 export function libraryCountOf(records) {
   return latestJudgedByCard(records || []).size;
 }
@@ -229,40 +200,4 @@ export function resumeLineText(line, translate) {
   const base = resumeKeyOf(line.kind);
   if (line.position === undefined) return translate(base, { n: line.remaining });
   return translate(line.remaining > 0 ? `${base}Now` : `${base}NowLast`, { k: line.position, n: line.remaining });
-}
-
-/** 题记每列的高度（原型首页壳 QH：上句去掉句末标点后 4 / 5 / 7 字 → 96 / 114 / 150）。 */
-export const EPIGRAPH_COLUMN = Object.freeze({ 4: 96, 5: 114, 7: 150 });
-
-/**
- * 题记（右上竖排：下句 + 上句两列，出处一列 + 印）占的高度（px，自首页顶起；设计稿 §三「首页」）：出处一列从 44（+ 长句的半个差）起，
- * 每字 13 + 字距 .12em ≈ 14.56，下面 8 + 印 16。首页字帖位比较宽（今天写的字 / 进行中的格子，3 格以上）时，字帖位的顶不能高过它，
- * 否则格子的上沿会压到出处的末字——首页据此给字帖位区域留一段上边距（紧凑版题记合成一列、贴右边，同样要让）。
- */
-export function epigraphReserve(epigraph, { compact = false } = {}) {
-  if (!epigraph) return 0;
-  if (compact) {
-    // 紧凑版题记合成一列（13pt，每字 13 + 字距 .12em ≈ 14.56，下面 8 + 印 16），贴右边、不放出处
-    const n = [...epigraph.lines.join('')].length;
-    return Math.ceil(4 + n * 14.56 + 8 + 16);
-  }
-  const colH = epigraphColumnHeight(epigraph);
-  const srcLen = [...String(epigraph.source || '')].length;
-  const quoteBottom = colH;
-  const srcBottom = 44 + (colH - 96) / 2 + srcLen * 14.56 + 8 + 16;
-  return Math.ceil(4 + Math.max(quoteBottom, srcBottom));
-}
-
-/**
- * 字帖位（宽 tieWidth，在屏宽 width 里居中）的右缘会不会伸到题记下面：标准版题记（两列 + 出处）的左缘约在 width − 100，
- * 紧凑版（一列）约在 width − 36。会的话首页给字帖位区域留 epigraphReserve 的上边距。
- */
-export function tieIntrudesEpigraph({ width, tieWidth, compact = false }) {
-  const epiLeft = compact ? width - 36 : width - 100;
-  return (width + tieWidth) / 2 > epiLeft - 4;
-}
-
-export function epigraphColumnHeight(epigraph) {
-  const n = epigraph && epigraph.lines && epigraph.lines[0] ? [...epigraph.lines[0]].length - 1 : 4;
-  return EPIGRAPH_COLUMN[n] || EPIGRAPH_COLUMN[4];
 }

@@ -149,7 +149,8 @@ async function homeView(page) {
     return {
       records: home ? home.dataset.records : null,
       resume: home ? home.dataset.resume : null,
-      resumeLine: q('resume-line') ? q('resume-line').textContent.trim() : null,
+      // E9a（D49-7）：「这一组还有 N 个字」文字行已删，同一句话是进行中格子块读屏名称的第一句
+      resumeLine: q('home-progress') ? q('home-progress').getAttribute('aria-label').split('。')[0] : null,
       count: q('home-today-count') ? q('home-today-count').textContent.trim() : null,
     };
   });
@@ -261,7 +262,7 @@ export default async function run(page, ctx) {
   assert.equal(await toastText(page), await copy(page, 'R-H10.savedToast'), 'toast 已保存，下次接着写 (R-H10)');
   h = await homeView(page);
   assert.deepEqual([h.records, h.resume], ['first', 'A'], 'home: still first-visit records state, resume A');
-  assert.equal(h.resumeLine, await copy(page, 'X-HOME.progressLeft', { n: 3 }), 'resume line 这一组还有 3 个字（P1-E5）');
+  assert.equal(h.resumeLine, await copy(page, 'X-HOME.progressLeft', { n: 3 }), 'progress block reader name: 这一组还有 3 个字（P1-E5；E9a 起只在读屏名称里）');
 
   step('场景 1: resume → same char with its stroke → judge → back: one judged record, 今天的 N = 1, group stays open');
   await page.click(topSel('home-start'));
@@ -278,7 +279,7 @@ export default async function run(page, ctx) {
   assert.ok(f.sessions.A && f.sessions.A.cursor === 1, 'the group is still open at cursor 1 (not forced to finish)');
   h = await homeView(page);
   assert.equal(h.count, null, 'P1-E5: with the group still open the home shows the group, not 「今天写了 N 个字」（今天写的字在组的格子里）');
-  assert.equal(h.resumeLine, await copy(page, 'X-HOME.progressLeft', { n: 2 }), 'resume line 这一组还有 2 个字'); 
+  assert.equal(h.resumeLine, await copy(page, 'X-HOME.progressLeft', { n: 2 }), 'progress block reader name: 这一组还有 2 个字'); 
   assert.equal(await topScreen(page), 'home', 'no result page, no forced next step');
 
   // --------------------------------------------------------------- 2. 场景 2 + 反例 2

@@ -14,6 +14,8 @@
 // 选择器一律以 :root[data-ax][data-text-large] 开头，比紧凑版（write/compact.js 的 :root[data-text-large] …）多一个属性，
 // 注入顺序无关。由 ui/root.js 导入一次。
 
+import { useEffect, useState } from '../../../vendor/ui.js';
+import { getTextSize, onTextSize } from '../../platform/text-size.js';
 import { injectStyles } from './styles.js';
 
 /** AX 档规则的根选择器（导出给单测）。 */
@@ -37,9 +39,19 @@ ${W} .sz-write__links{display:flex;flex-wrap:wrap;align-items:center;justify-con
 ${W} .sz-write__links>.sz-write__linkrow,${W} .sz-write__links>.sz-write__skiprow{justify-self:auto}
 ${W} .sz-judge__btns,${W} .sz-judge__fail{grid-template-columns:minmax(0,1fr)}
 ${W} .sz-judge__btn{min-height:calc(1.3em + 28px)}
-${A} .sz-home .sz-home__date,${A} .sz-home .sz-home__record .sz-home__line,${A} .sz-home .sz-home__other.sz-btn{white-space:normal}
+${A} .sz-home .sz-home__date,${A} .sz-home .sz-home__line,${A} .sz-home .sz-home__other.sz-btn{white-space:normal}
 ${A} .sz-set__row.sz-set__row--value{flex-direction:column;align-items:flex-start;justify-content:center;gap:4px}
 ${A} .sz-set__row--value .sz-set__value{flex-wrap:wrap;max-width:100%}
 `;
+
+/** 当前 AX 档位 1–5（不在 AX 档为 0）；系统字号变化时更新。需要 JS 改结构的页面用它（首页首次打开的横排题跋、AX 档字帖格宽）；纯样式差异用 :root[data-ax]。 */
+export function useAxLevel() {
+  const [ax, setAx] = useState(() => getTextSize().ax);
+  useEffect(() => {
+    setAx(getTextSize().ax);
+    return onTextSize(view => setAx(view.ax));
+  }, []);
+  return ax;
+}
 
 injectStyles('ax', AX_CSS);

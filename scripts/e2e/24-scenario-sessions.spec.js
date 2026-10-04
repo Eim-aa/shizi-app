@@ -55,7 +55,8 @@ async function homeLines(page) {
     const line = id => (q(id) ? { slot: q(id).dataset.slot, kind: q(id).dataset.kind, text: q(id).textContent.trim() } : null);
     return {
       screen: document.querySelector('.sz-app').dataset.topScreen,
-      resume: line('resume-line'),
+      // E9a（D49-7）：「这一组还有 N 个字」文字行已删；槽 / 种类 / 句子改读进行中格子块（data-slot / data-kind，读屏名称第一句）
+      resume: q('home-progress') ? { slot: q('home-progress').dataset.slot, kind: q('home-progress').dataset.kind, text: q('home-progress').getAttribute('aria-label').split('。')[0] } : null,
       other: line('other-line'),
       cta: q('home-start') ? q('home-start').getAttribute('aria-label') : null,
       dataResume: q('screen-home') ? q('screen-home').dataset.resume : null,
@@ -165,7 +166,7 @@ export default async function scenario(page, ctx) {
   h = await homeLines(page);
   assert.equal(h.cta, '继续写字', 'main entry reads 继续写字');
   assert.deepEqual([h.resume && h.resume.slot, h.resume && h.resume.kind, h.resume && h.resume.text], ['A', 'daily', '这一组还有 3 个字'],
-    'resume-line: 这一组还有 3 个字（P1-E5：续练行换成这一组的格子 + 一句话）');
+    'copybook block: 读屏名称第一句「这一组还有 3 个字」（P1-E5 起是格子 + 一句话；E9a D49-7 起这句话只在读屏名称里）');
   assert.equal(h.other, null, 'no other-line');
   s = await sessions(page);
   assert.deepEqual([s.B, s.lastEnded.B], [null, undefined], 'B ended and its result left (lastEnded.B cleared)');

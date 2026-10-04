@@ -262,7 +262,7 @@ export default async function run(page, ctx) {
   await seed(page, { records: byMonth(recs2), sched: sched2, sessions: { A: null, B: null, lastEnded: {} } });
   await toHome(page);
   await page.waitForSelector(topSel('home-capital-hint'));
-  assert.equal((await page.locator(topSel('home-capital-hint')).textContent()).trim(), '「拾」也是大写的十。今天写两组大写数字，借条、红包上用得着。', 'P1-E5: two lines (lead + body), design §四 ④');
+  assert.equal((await page.locator(topSel('home-capital-hint')).textContent()).trim(), '今天写两组大写数字，借条、红包上用得着。', 'E9a (D49, 实现交接 §1.2 ④): one sentence — the lead 「「拾」也是大写的十。」 is gone');
   assert.equal(await page.locator(topSel('home-capital-hint')).getAttribute('data-kind'), 'capital1');
   await page.click(topSel('home-start'));
   await page.waitForSelector(topSel('write-screen'));

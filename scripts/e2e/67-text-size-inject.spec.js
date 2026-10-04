@@ -41,7 +41,9 @@ function installFakeNativeAndInject() {
   };
   const rects = () => {
     const out = {};
-    for (const id of ['home-start', 'home-pick', 'tab-home', 'tab-library', 'tab-mine']) {
+    // E9a（D49）：Tab 栏与首页按钮不再随字号变（Tab 固定 49 / 24 / 11，按钮锚在 Tab 上 119），旧版靠它们的位置变化证明「首帧跳动」；
+    // 这里再量两个随字号变的文字块（首次打开的题跋、按钮下的说明句），对照断言（版式在桥调用后会动）才仍然抓得到跳动。
+    for (const id of ['home-start', 'home-pick', 'home-motto', 'home-first-tip', 'tab-home', 'tab-library', 'tab-mine']) {
       const el = document.querySelector(`[data-testid="${id}"]`);
       if (!el) continue;
       const r = el.getBoundingClientRect();

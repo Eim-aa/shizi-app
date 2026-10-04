@@ -99,7 +99,7 @@ export default async function fontsSpec(page, ctx) {
   assert.ok(fontResponses.some(r => r.url === '/fonts/coverage-manifest.json' && r.status === 200), 'coverage manifest fetched from fonts/');
   assert.ok(!fontResponses.some(r => /\.(ttf|otf)$/.test(r.url)), 'no TTF / OTF requests');
 
-  ctx.step('rendered fonts on home (CDP platform fonts): title 500, epigraph 400, seal Kai');
+  ctx.step('rendered fonts on home (CDP platform fonts): title 500, epigraph 400 (the seal is on the first-open page only, D49)');
   // 首次打开没有标题（P1-E5）：先 seed 一条昨天的判断，首页回到「今天还没写」，再量标题 / 题记 / 印
   await page.evaluate(() => {
     window.__shiziTest.reset();
@@ -118,9 +118,9 @@ export default async function fontsSpec(page, ctx) {
   await cdp.send('CSS.enable');
   const cases = [
     { sel: '[data-testid="home-title"]', ps: 'ShiziSerifSC-Medium', what: 'home title → ShiziSerifSC 500' },
-    { sel: '.sz-home__quote', ps: 'ShiziSerifSC-Regular', what: 'epigraph → ShiziSerifSC 400', deep: true },
-    { sel: '.sz-home__srctext', ps: 'ShiziSerifSC-Regular', what: 'epigraph source → ShiziSerifSC 400' },
-    { sel: '.sz-home__seal > span', ps: 'ShiziKai-Regular', what: 'seal → ShiziKai 400' },
+    // E9a（D49）：题记是日期下一行横排小字（句子 + 作者名两个 span，都是宋 400），不带印；日常首页没有印，印的字体在下面首次打开一步量
+    { sel: '.sz-home__epitext', ps: 'ShiziSerifSC-Regular', what: 'epigraph line → ShiziSerifSC 400' },
+    { sel: '.sz-home__episrc', ps: 'ShiziSerifSC-Regular', what: 'epigraph author → ShiziSerifSC 400' },
   ];
   for (const c of cases) {
     let selector = c.sel;
@@ -149,6 +149,7 @@ export default async function fontsSpec(page, ctx) {
   for (const c of [
     { sel: '[data-testid="home-motto"] .sz-first__col', ps: 'ShiziSerifSC-Regular', what: 'first-open motto column → ShiziSerifSC 400' },
     { sel: '.sz-hshi__glyph', ps: 'ShiziKai-Regular', what: 'brand 拾 placeholder → ShiziKai 400' },
+    { sel: '.sz-home__seal > span', ps: 'ShiziKai-Regular', what: 'seal → ShiziKai 400' },
   ]) {
     const fonts = await platformFonts(cdp, c.sel);
     assert.ok(Array.isArray(fonts) && fonts.length > 0, `${c.what}: node has rendered text`);

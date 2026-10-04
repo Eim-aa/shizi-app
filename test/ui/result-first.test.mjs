@@ -1,10 +1,8 @@
-// 阶段 1 P1-E5：首练结果页专属区块（result/first.js）的纯函数与「放进去」状态；首页题记留白；只用黑体的文案登记。
+// 阶段 1 P1-E5：首练结果页专属区块（result/first.js）的纯函数与「放进去」状态；只用黑体的文案登记。
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { daysLaterOf, firstExtras, inviteExample } from '../../src/ui/screens/result/first.js';
 import { setCardResolver } from '../../src/data/deck.js';
-import { epigraphReserve, tieIntrudesEpigraph } from '../../src/ui/screens/home/today.js';
-import { EPIGRAPHS } from '../../src/config/epigraphs.js';
 import { HEI_ONLY_COPY } from '../../scripts/fonts/build_corpus.mjs';
 import { COPY } from '../../src/config/copy/index.js';
 import { addDays } from '../../src/core/dates.js';
@@ -54,25 +52,7 @@ test('inviteExample: the first practice char, its word masked (□), plus the pi
   }
 });
 
-test('epigraphReserve: how far down the top-right epigraph reaches (wide copybooks keep clear of it)', () => {
-  const reserve = EPIGRAPHS.map(e => epigraphReserve(e));
-  assert.deepEqual(reserve, [174, 169, 245], 'per epigraph (出处 length and quote column height differ)');
-  assert.ok(reserve[2] > reserve[0] && reserve[2] > reserve[1], 'the long 苏轼 line reaches the lowest');
-  assert.ok(reserve.every(r => r > 96), 'all reach below the 96px header, so a wide copybook needs a margin');
-  assert.deepEqual(EPIGRAPHS.map(e => epigraphReserve(e, { compact: true })), [174, 203, 261], 'compact: one 13pt column of both lines + seal, no source');
-  assert.equal(epigraphReserve(null), 0);
-  assert.equal(reserve[2], 245, '4 + 71 + 10 × 14.56 + 8 + 16 for 苏轼《石苍舒醉墨堂》');
-});
-
 test('HEI_ONLY_COPY: every registered key exists in copy (so it can be excluded from the Serif subset), and only these three kinds of text', () => {
   for (const key of HEI_ONLY_COPY) assert.ok(Object.prototype.hasOwnProperty.call(COPY, key), `${key} is a copy key`);
   assert.ok(HEI_ONLY_COPY.every(key => /^X-(FIRST|HOME|INVITE|WORK)\./.test(key)), 'only the P1-E5 / P1-E7 body texts');
-});
-
-test('tieIntrudesEpigraph: which copybooks reach under the top-right epigraph (they get a top margin; a single 「拾」 does not)', () => {
-  assert.equal(tieIntrudesEpigraph({ width: 393, tieWidth: 340 }), true, 'four cells at 393');
-  assert.equal(tieIntrudesEpigraph({ width: 393, tieWidth: 214 }), true, 'two cells just reach it');
-  assert.equal(tieIntrudesEpigraph({ width: 393, tieWidth: 167 }), false, 'a single 拾 cell is narrow');
-  assert.equal(tieIntrudesEpigraph({ width: 360, tieWidth: 280, compact: true }), false, 'compact: two rows of four (280) stay clear of the one-column epigraph');
-  assert.equal(tieIntrudesEpigraph({ width: 360, tieWidth: 320, compact: true }), true, 'compact: five cells (320) reach it');
 });

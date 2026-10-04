@@ -11,6 +11,13 @@ export const EPIGRAPHS = Object.freeze([
   Object.freeze({ lines: Object.freeze(['我书意造本无法，', '点画信手烦推求。']), source: '苏轼《石苍舒醉墨堂》' }),
 ]);
 
+/** 首页题记行里的出处只写作者名（D49：设计稿画的是「孙过庭」）：取出处里《篇名》之前的部分；读屏仍读全句与《篇名》。 */
+export function epigraphAuthor(epigraph) {
+  const source = epigraph && epigraph.source ? String(epigraph.source) : '';
+  const i = source.indexOf('《');
+  return (i > 0 ? source.slice(0, i) : source).trim();
+}
+
 /** 某日（YYYY-MM-DD）显示哪一条题记（P23：dayOfYear % 3）。 */
 export function epigraphIndexFor(day) {
   return dayOfYear(day) % EPIGRAPHS.length;

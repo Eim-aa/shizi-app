@@ -1,18 +1,19 @@
-// 首页字帖位的零件（阶段 1 P1-E5；设计稿「首练与首页」§三「首页」、D43 首页方案 B、D46 ①）。
+// 首页字帖位的零件（阶段 1 P1-E5；设计稿「首练与首页」§三「首页」、D43 首页方案 B、D46 ①；阶段 1 E9a 按减法修稿 D49 改）。
 //
 //   BrandShi        书家写的「拾」放在字帖格里（无记录时的字帖位）。书家稿还没到：先用 ShiziKai 的「拾」占位（与设计稿用霞鹜文楷轮廓
 //                   占位同一个字形来源）；书家稿到位后把 .sz-hshi__glyph 换成 assets 里的矢量资产，这个组件的尺寸 / 框 / 读屏名称不动。
 //                   TODO(资产)：书家「拾」到位后替换占位（06 P1-D2）。不显示任何「占位」字样给用户。
-//   HomeTie         一排（或两行四列）字帖格：今天写的字（本人笔迹，首页不画朱点，D46 ①）/ 进行中这一组的格子
-//                   （写过的有墨，没写的空格只画十字参照线、不露字也不画衬底，下一格 1.5pt 墨框）。
-//   MiniRow         「昨天写的字」一行：本人笔迹 34pt 无格，只放有墨的字。
+//   HomeTie         一排（或两行四列）字帖格：今天写的字（本人笔迹，首页不画朱点，D46 ①）/ 进行中这一组的格子（写过的有墨，没写的是空笺面）。
+//                   D49：字帖格只用两种线——外框 frameW frame + 格间 guideW guide（实线）；空格就是笺面，不画十字参照线，
+//                   也不画下一格的 targetFrame（与结果页作品格同一画法）。
 //
 // 格宽（b = 屏宽 − 40）：「拾」单格 round(0.46b)；1–3 字 ⌊(b−40)/3⌋；4 字 ⌊(b−20)/4⌋；5 字 ⌊b/5⌋；6–8 字两行四列 ⌊(b−40)/4⌋。
+// AX 档（axTieCellSize）：格宽按剩余高度重算，下限 44（整页可滚，实现交接 §1.4）。
 // 墨线宽补偿（格越小笔画越粗）暂未做：InkMini 按格宽等比缩放笔画，设计稿的补偿表是按示意笔迹估的，等真笔模型（V01 / T2）出来后按真墨调。
 //
 // data-testid：home-brand-shi、home-ink-row（今天写的字，data-count；登记了「今天的记录」去处时是 <button>）、home-ink-item
 //   （data-char / data-record / data-judgment / data-ink）、home-progress（这一组的格子）、home-cell（data-state = done | passed | next | empty、
-//   data-index、data-char 只有 done 才有）、home-last-row（data-day）、home-last-item（data-char）。
+//   data-index、data-char 只有 done 才有；next / empty 只是数据标记，画出来都是空笺面）。
 
 import { html, useLayoutEffect, useMemo, useState } from '../../../../vendor/ui.js';
 import { Button } from '../../components/Button.js';
@@ -43,6 +44,18 @@ export function shiCellSize(b) {
   return Math.round(b * 0.46);
 }
 
+/** AX 档字帖格宽下限（pt，实现交接 §1.4）。 */
+export const AX_TIE_MIN = 44;
+
+/**
+ * AX 档字帖格宽（实现交接 §1.4「字帖位格宽按剩余高度重算（下限 44）」）：普通格宽 normal 是上限；剩余高度 avail 放不下 rows 行
+ * 时按 ⌊avail / rows⌋ 缩小，但不小于 AX_TIE_MIN（再矮就让整页滚，主按钮不固定）。avail 未知（≤ 0 / 非数）→ 不缩。
+ */
+export function axTieCellSize(normal, rows, avail) {
+  if (!(avail > 0) || !(rows >= 1)) return normal;
+  return Math.max(AX_TIE_MIN, Math.min(normal, Math.floor(avail / rows)));
+}
+
 /** 首次打开的「拾」：iPhone 17 约 200、SE 3 172、Pro Max 216；按屏宽取、夹在 [172, 216]。 */
 export function firstShiSize(width) {
   return Math.max(172, Math.min(216, Math.round(width * 0.5)));
@@ -65,22 +78,10 @@ injectStyles('home-copybook', `
 .sz-hcell[data-lastcol="true"]{box-shadow:inset 0 calc(-1 * ${T.guideW}) 0 ${T.guide}}
 .sz-hcell[data-lastrow="true"]{box-shadow:inset calc(-1 * ${T.guideW}) 0 0 ${T.guide}}
 .sz-hcell[data-lastcol="true"][data-lastrow="true"]{box-shadow:none}
-.sz-hcell[data-state="next"]::after{content:"";position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 0 0 ${T.targetW} ${T.ink1}}
 .sz-hcell__ink{position:absolute;inset:12%}
 .sz-hcell__ink .sz-compare__card{position:absolute;inset:0;border:0;border-radius:0;background:transparent;aspect-ratio:auto}
 .sz-hcell__glyph{position:absolute;left:0;top:0;width:100%;height:100%;color:${T.under}} /* 没有墨迹的格：衬底字是轮廓，字面占格 0.76（tokens.json typography.glyph.tieCellFace） */
-.sz-hcell__guides{position:absolute;inset:0;width:100%;height:100%;color:${T.guide};pointer-events:none}
-.sz-hmini{display:flex;justify-content:center;gap:6px}
-.sz-hmini__item{position:relative;width:34px;height:34px;flex:none}
-.sz-hmini__item .sz-compare__card{position:absolute;inset:4%;border:0;border-radius:0;background:transparent;aspect-ratio:auto}
 `);
-
-/** 十字参照线（虚线，随格缩放；颜色取 currentColor = --guide）。 */
-function Guides() {
-  return html`<svg class="sz-hcell__guides" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">
-    <path d="M50 0V100M0 50H100" fill="none" stroke="currentColor" stroke-width="0.75" stroke-dasharray="4 4" vector-effect="non-scaling-stroke"></path>
-  </svg>`;
-}
 
 /** 无记录时的字帖位：书家「拾」。 */
 export function BrandShi({ size }) {
@@ -99,9 +100,10 @@ function CellInk({ record, getInk }) {
 /**
  * 字帖格。cells：[{index, state: 'ink' | 'done' | 'passed' | 'next' | 'empty', record?, char?}]
  *   'ink' / 'done' 有记录（画本人笔迹，没有墨迹时画楷体字、次文字色）；其余是空格（十字线，不露字）。
- * @param {{cells:Array, size:number, kind:'today'|'progress', count?:number, label?:string, getInk?:Function}} props
+ * @param {{cells:Array, size:number, kind:'today'|'progress', count?:number, label?:string, getInk?:Function, attrs?:object}} props
+ * attrs：额外挂在容器上的 data-* 属性（进行中的组带 data-slot / data-kind / data-remaining，读屏名称里的剩余字数同源）
  */
-export function HomeTie({ cells, size, kind, count = 0, label = '', getInk }) {
+export function HomeTie({ cells, size, kind, count = 0, label = '', getInk, attrs = null }) {
   const n = cells.length;
   if (!n) return null;
   const cols = tieCols(n);
@@ -122,7 +124,7 @@ export function HomeTie({ cells, size, kind, count = 0, label = '', getInk }) {
     }
     return html`<span key=${i} class="sz-hcell" ...${common} data-testid="home-cell" data-index=${cell.index}
       data-char=${filled && rec ? rec.char : ''} aria-hidden="true">
-      ${filled && rec ? html`<${CellInk} record=${rec} getInk=${getInk} />` : html`<${Guides} />`}
+      ${filled && rec ? html`<${CellInk} record=${rec} getInk=${getInk} />` : null}
     </span>`;
   });
   const style = { '--cell': `${size}px`, '--cols': String(cols) };
@@ -131,22 +133,7 @@ export function HomeTie({ cells, size, kind, count = 0, label = '', getInk }) {
       aria-label=${label} onClick=${() => action()}>${items}</${Button}>`;
   }
   return html`<div class="sz-htie" style=${style} role="img" aria-label=${label} data-testid=${kind === 'today' ? 'home-ink-row' : 'home-progress'}
-    data-count=${count}>${items}</div>`;
-}
-
-/** 「昨天写的字」一行：本人笔迹 34pt，无格。items = [{char, record}]。 */
-export function MiniRow({ items, day, label, getInk }) {
-  if (!items || !items.length) return null;
-  return html`<div class="sz-hmini" role="img" aria-label=${label} data-testid="home-last-row" data-day=${day}>
-    ${items.map(it => html`<span key=${it.record.id} class="sz-hmini__item" data-testid="home-last-item" data-char=${it.char}
-      data-record=${it.record.id}><${MiniInk} record=${it.record} getInk=${getInk} /></span>`)}
-  </div>`;
-}
-
-function MiniInk({ record, getInk }) {
-  const points = useMemo(() => recordInkPoints(record, getInk), [record, getInk]);
-  if (!points || !points.length) return null;
-  return html`<${InkMini} points=${points} testid="home-last-ink" emptyText="" />`;
+    data-count=${count} ...${attrs || {}}>${items}</div>`;
 }
 
 /** 元素的内容宽（clientWidth，px），随 resize 更新；挂载前给 fallback。首页字帖位的格宽按它算（b = 内容宽 − 40）。 */

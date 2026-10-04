@@ -409,17 +409,29 @@ export default async function a11y(page, realCtx) {
   await seedYesterday();
   await page.waitForSelector(tid('home-epigraph'));
   {
-    // A9：题记 figure 读整句 + 出处（取 EPIGRAPHS 现有文案拼接），竖排子节点不进无障碍树
+    // A9：题记整句 + 出处（含《篇名》）读屏仍要读到。E9a（D49）起题记是日期下一行横排小字、AX 档隐藏（display:none），
+    // 读屏把它作为标题的补充读出：h1 aria-describedby 指向题记（figure 本身 aria-hidden，避免和标题重复读两遍；被描述引用的隐藏节点仍参与描述计算）。
     const epi = await page.evaluate(async () => {
       const { EPIGRAPHS } = await import('/src/config/epigraphs.js');
       const fig = document.querySelector('[data-testid="home-epigraph"]');
       const e = EPIGRAPHS[Number(fig.dataset.index)];
-      return { expected: e.lines.join('') + e.source, hidden: [...fig.children].map(c => c.getAttribute('aria-hidden')) };
+      const h1 = document.querySelector('[data-testid="home-title"]');
+      return { expected: e.lines.join('') + e.source, hidden: fig.getAttribute('aria-hidden'), describedby: h1.getAttribute('aria-describedby'), figId: fig.id };
     });
-    const epiAx = await axOf(cdp, tid('home-epigraph'));
-    assert.equal(epiAx && epiAx.name, epi.expected, 'A9: epigraph figure is read as one sentence + source');
+    const titleAx = await axOf(cdp, tid('home-title'));
+    assert.equal(titleAx && titleAx.description, epi.expected, 'A9: the title is described by the full epigraph (one sentence + 《source》)');
+    assert.equal(titleAx && titleAx.name, '今天写几个字', 'the title keeps its own name');
     assert.ok(/^.+。.+《.+》$|^.+，.+。.+$/.test(epi.expected), 'epigraph label has the quote and its source');
-    assert.deepEqual(epi.hidden, ['true', 'true'], 'A9: epigraph columns / caption are aria-hidden');
+    assert.deepEqual([epi.hidden, epi.describedby === epi.figId], ['true', true], 'A9: the on-screen epigraph line is aria-hidden (read once, as the title’s description)');
+    // AX1–AX5：题记视觉上隐藏，读屏描述仍在
+    await page.evaluate(() => window.shiziContentSize({ category: 'AX3' }));
+    await page.waitForTimeout(250);
+    const hiddenAx = await page.evaluate(() => getComputedStyle(document.querySelector('[data-testid="home-epigraph"]')).display);
+    const titleAx3 = await axOf(cdp, tid('home-title'));
+    assert.equal(hiddenAx, 'none', 'AX: the epigraph line is hidden (D49)');
+    assert.equal(titleAx3 && titleAx3.description, epi.expected, 'AX: still read as the title’s supplement');
+    await page.evaluate(() => window.shiziContentSize({ category: 'L' }));
+    await page.waitForTimeout(250);
   }
   await audit(page, cdp, ctx, 'home');
 

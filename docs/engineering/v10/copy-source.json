@@ -33,7 +33,7 @@
     "{to}": "结束日期（同 {from}）",
     "{time}": "时刻（提醒邀请：好，明天 {time} 给你一个词。，如 9:30）",
     "{tier}": "复现预告档位词（X-FIRST.tier.*：明天 / 过两天 / 过几天）",
-    "{label}": "一行字帖位的标签（X-HOME.lastYesterday / lastBefore，读屏名称里复用）",
+    "{left}": "进行中的组还剩几个字的那句（X-HOME.progressLeft / progressLast，读屏名称里复用）",
     "{state}": "格的状态词（X-WORK.cellState*：写对 / 看后写的 / 写错，读屏名称里用）",
     "{max}": "一张图最多放几个字（policy.imageMaxChars，D39）",
     "{kuan}": "分张前的落款（X-WORK.kuanJoinPart 内部）",
@@ -2916,13 +2916,7 @@
           "raw": null,
           "text": "字",
           "origin": "首页壳-v3 L44",
-          "note": "M2-1：题记出处下的闲章（原型 title「闲章 · 字」；装饰，aria-hidden）"
-        },
-        "more": {
-          "raw": null,
-          "text": "›",
-          "origin": "首页壳-v3 L71",
-          "note": "M2-1：S01 第二行（另一组）末尾的「 ›」（04 R-H04「另一组在下一行加 ›」）；前面的组说明用 R-H04 各槽"
+          "note": "M2-1：印章里的「字」（原型 title「闲章 · 字」；装饰，aria-hidden）。D49 起日常首页题记不再带印，只有首次打开品牌时刻的那一枚（seal16）"
         },
         "pick": {
           "raw": null,
@@ -2932,9 +2926,9 @@
         },
         "inkRowLabel": {
           "raw": null,
-          "text": "今天有记录的字：{chars}",
+          "text": "今天写了 {n} 个字：{chars}",
           "origin": "extra",
-          "note": "M2-1：墨迹行的读屏名称；取原型首页壳 L74 aria-label 前半「今天有记录的字」，去掉「打开练习记录」（走查-M07：应点进今天的记录，去处未接入前墨迹行不是按钮），加上字表便于读屏",
+          "note": "首页今天写的字的读屏名称（D49-7：首页不再画「今天写了 N 个字」，n ≤ 8 时计数只进读屏标签；n 照实，不含正在写的组；格子本身是图）；原「今天有记录的字：{chars}」加上计数",
           "decision": "P55"
         },
         "startFailed": {
@@ -2965,53 +2959,32 @@
           "note": "首次打开竖排题跋第三列，印落在这一列下",
           "decision": "P155"
         },
-        "lastYesterday": {
-          "raw": null,
-          "text": "昨天写的字",
-          "origin": "extra",
-          "note": "「今天还没写」状态下字帖位下一行的标签（昨天有记录时）；黑体 13（系统字体，不在宋体子集里，scripts/fonts/build_corpus.mjs HEI_ONLY_COPY）",
-          "decision": "P156"
-        },
-        "lastBefore": {
-          "raw": null,
-          "text": "上次写的字 · {date}",
-          "origin": "extra",
-          "note": "同一行：最近一次有墨迹的日子不是昨天时的标签；也用于离开 ≥7 天回来的状态",
-          "decision": "P156"
-        },
-        "lastRowLabel": {
-          "raw": null,
-          "text": "{label}：{chars}",
-          "origin": "extra",
-          "note": "上一行的读屏名称",
-          "decision": "P156"
-        },
         "libraryCount": {
           "raw": null,
           "text": "字库里有 {n} 个字了",
           "origin": "extra",
-          "note": "首页唯一的数字（G33 / N10：只用你自己的字和一句话），可点进字库；n = 有过判断记录的字数",
+          "note": "D49-7：首页不再画「字库里有 N 个字了 ›」，字库计数只进读屏（字帖位块的 aria-label）；n = 有过判断记录的字数；入口只留 Tab「字库」",
           "decision": "P156"
         },
         "progressLeft": {
           "raw": null,
           "text": "这一组还有 {n} 个字",
           "origin": "extra",
-          "note": "有进行中的组：格子下一行，计数不含正在写的字（D36）",
+          "note": "D49-7：读屏标签（进行中的格子块），不再画在格子下；计数不含正在写的字（D36）",
           "decision": "P155"
         },
         "progressLast": {
           "raw": null,
           "text": "这是这一组的最后一个字",
           "origin": "extra",
-          "note": "进行中、正在写的就是最后一个字（已看过答案）时代替「还有 0 个字」",
+          "note": "D49-7：读屏标签：进行中、正在写的就是最后一个字（已看过答案）时代替「还有 0 个字」",
           "decision": "P155"
         },
         "progressLabel": {
           "raw": null,
-          "text": "这一组：{chars}",
+          "text": "{left}。已写：{chars}",
           "origin": "extra",
-          "note": "进行中的格子行读屏名称（只列已写过的字，没写的格子不泄题）",
+          "note": "进行中的格子块读屏名称（D49-7）：第一句 {left} = progressLeft / progressLast（剩余字数，不含正在写的），第二句只列已写过的字（没写的格子不泄题）；一个字都没写时只读第一句",
           "decision": "P155"
         },
         "cellDone": {
@@ -3042,18 +3015,11 @@
           "note": "首页字帖位里书家「拾」的读屏名称（装饰性占位，书家稿到位后换资产，不换文字）",
           "decision": "P155"
         },
-        "capitalLead": {
-          "raw": null,
-          "text": "「拾」也是大写的十。",
-          "origin": "extra",
-          "note": "D40 大写数字特别组那天首页第一句，接在字帖位里的「拾」下（两组特别组共用）；替代阶段 1 P1-E4 的 capitalHint",
-          "decision": "P129"
-        },
         "capitalBody": {
           "raw": null,
           "text": "今天写两组大写数字，借条、红包上用得着。",
           "origin": "extra",
-          "note": "D40 首页第二句（13 墨三）",
+          "note": "D40 大写数字特别组那天首页的一句（13 墨三，D49：删去第一句「「拾」也是大写的十。」）",
           "decision": "P129"
         },
         "capitalDefer": {
@@ -3068,13 +3034,6 @@
           "text": "你写过的 {n} 个字都还在。",
           "origin": "extra",
           "note": "离开 ≥7 天回来：把积累和「没有丢」合成一句，不提缺了几天（D01 / D41）",
-          "decision": "P155"
-        },
-        "backOld": {
-          "raw": null,
-          "text": "这一组先写写旧字。",
-          "origin": "extra",
-          "note": "同上第二句：预告回来后第一组多是复习（D41）",
           "decision": "P155"
         }
       }

@@ -3,12 +3,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as policy from '../../src/config/policy.js';
 import {
-  BACK_AFTER_DAYS, LAST_ROW_MAX, PROGRESS_MAX, homeModel, homeViewOf, heroOf, lastWrittenRow, libraryCountOf, progressCells, recordsStateOf,
-  resumeOf, resumeKeyOf, resumeLineText, epigraphColumnHeight, INK_ROW_MAX,
+  BACK_AFTER_DAYS, PROGRESS_MAX, homeModel, homeViewOf, heroOf, libraryCountOf, progressCells, recordsStateOf,
+  resumeOf, resumeKeyOf, resumeLineText, INK_ROW_MAX,
 } from '../../src/ui/screens/home/today.js';
-import { firstShiSize, shiCellSize, tieCellSize, tieCols } from '../../src/ui/screens/home/copybook.js';
-import { EPIGRAPHS } from '../../src/config/epigraphs.js';
-import { t } from '../../src/config/copy/index.js';
+import { AX_TIE_MIN, axTieCellSize, firstShiSize, shiCellSize, tieCellSize, tieCols } from '../../src/ui/screens/home/copybook.js';
+import { EPIGRAPHS, epigraphAuthor } from '../../src/config/epigraphs.js';
+import { COPY, t } from '../../src/config/copy/index.js';
 
 const DAY = '2026-09-24';
 const YDAY = '2026-09-23';
@@ -89,11 +89,13 @@ test('first-visit tip only when first and no group; period / date / epigraph fro
   assert.equal(homeModel(state(), at('2026-09-25', 4)).epigraph, EPIGRAPHS[1]);
 });
 
-test('R-H04 keys and epigraph column heights', () => {
+test('R-H04 keys and the epigraph line (D49: one horizontal line, author name only)', () => {
   assert.equal(resumeKeyOf('picked'), 'R-H04.resumePicked');
   assert.equal(resumeKeyOf('first'), 'R-H04.resumeFirst');
   assert.equal(resumeKeyOf('daily'), 'R-H04.resumeDaily');
-  assert.deepEqual(EPIGRAPHS.map(epigraphColumnHeight), [96, 114, 150]);
+  assert.deepEqual(EPIGRAPHS.map(epigraphAuthor), ['孙过庭', '杜甫', '苏轼'], 'the line shows the author only; the full 《篇名》 stays in the source (read aloud by the screen reader)');
+  assert.equal(epigraphAuthor({ source: '佚名' }), '佚名', 'no 《》 → the whole source');
+  assert.equal(epigraphAuthor(null), '');
 });
 
 test('B6 (G45, D36): a current char that has seen its answer (still tracing / writing it) is not counted in 「还有 N 个字没写」', () => {
@@ -140,7 +142,7 @@ test('D40 (P129): the home model says which special group is next — only with 
   assert.equal(homeModel(state({ records: after }), at(DAY), { deck }).capital, 'capital2');
   const done = [...after, ...[...'陆柒捌玖'].map((c, i) => ({ ...rec(60 + i, c, { day: YDAY }), sessionId: 's21' }))];
   assert.equal(homeModel(state({ records: done }), at(DAY), { deck }).capital, null, 'both groups have appeared');
-  assert.equal(t('X-HOME.capitalLead'), '「拾」也是大写的十。');
+  assert.equal(COPY['X-HOME.capitalLead'], undefined, 'D49: the first sentence 「「拾」也是大写的十。」 is gone, one sentence left');
   assert.equal(t('X-HOME.capitalBody'), '今天写两组大写数字，借条、红包上用得着。');
   assert.equal(t('R-H03.firstVisit'), '先写三个大家常忘的字。', 'stage-1 design §一: the line under 开始写字 (D38: 3 chars)');
 });
@@ -216,28 +218,25 @@ test('progressCells: written ones carry their record, passed ones have no char, 
   assert.equal(head.start, 0);
 });
 
-test('lastWrittenRow: the latest earlier day, inked chars only, last 5, 昨天 vs 上次 (03 P156)', () => {
-  const withInk = new Set(['r2', 'r3', 'r4', 'r5', 'r6', 'r7', 'r8']);
-  const hasInk = r => withInk.has(r.id);
-  const records = [
-    rec(1, '一', { day: '2026-09-20' }),
-    ...[...'二三四五六七八'].map((c, i) => rec(2 + i, c, { day: YDAY })),
-    rec(20, '九'),
-    rec(21, '十', { day: YDAY, kind: 'skipped' }),
-  ];
-  const row = lastWrittenRow(records, DAY, { hasInk });
-  assert.equal(row.day, YDAY);
-  assert.equal(row.yesterday, true);
-  assert.equal(row.items.length, LAST_ROW_MAX);
-  assert.deepEqual(row.items.map(i => i.record.id), ['r4', 'r5', 'r6', 'r7', 'r8'], 'seven inked chars yesterday → the last five, in writing order');
-  assert.deepEqual(row.items.map(i => i.char), [...'四五六七八']);
-  const only = lastWrittenRow(records, DAY, { hasInk: r => r.id === 'r1' });
-  assert.deepEqual([only.day, only.yesterday, only.items.map(i => i.char)], ['2026-09-20', false, ['一']], 'yesterday has no inked char → look further back');
-  assert.equal(lastWrittenRow(records, DAY, { hasInk: () => false }), null, 'no ink anywhere → no row (no placeholder either)');
-  assert.equal(lastWrittenRow([rec(1, '一')], DAY, { hasInk }), null, 'today is not 「昨天」');
-  const dup = lastWrittenRow([rec(1, '一', { day: YDAY }), rec(2, '一', { day: YDAY, judgment: 'wrong' })], DAY, { hasInk: () => true });
-  assert.deepEqual(dup.items.map(i => i.record.id), ['r2'], 'the same char twice in a day keeps the latest');
+test('libraryCountOf: distinct chars with a judged record (the count now lives only in the screen-reader label, D49-7)', () => {
   assert.equal(libraryCountOf([rec(1, '一'), rec(2, '一'), rec(3, '二'), rec(4, '三', { kind: 'skipped' })]), 2, 'distinct chars with a judged record');
+});
+
+test('D49: the 「昨天写的字」 row, the epigraph reserve and the intrusion test are gone from the home model (nothing left to leak a count or a vertical epigraph)', async () => {
+  const today = await import('../../src/ui/screens/home/today.js');
+  for (const name of ['lastWrittenRow', 'LAST_ROW_MAX', 'epigraphReserve', 'tieIntrudesEpigraph', 'epigraphColumnHeight', 'EPIGRAPH_COLUMN']) {
+    assert.equal(name in today, false, `${name} removed`);
+  }
+});
+
+test('axTieCellSize (AX tiers, 实现交接 §1.4): the normal cell width is the ceiling; a short remaining height shrinks it, never below 44', () => {
+  assert.equal(AX_TIE_MIN, 44);
+  assert.equal(axTieCellSize(107, 1, 0), 107, 'height unknown → unchanged');
+  assert.equal(axTieCellSize(107, 1, 400), 107, 'plenty of room → unchanged (never larger than the normal width)');
+  assert.equal(axTieCellSize(107, 1, 90), 90, 'one row, 90 left → 90');
+  assert.equal(axTieCellSize(80, 2, 150), 75, 'two rows (6–8 chars) share the height');
+  assert.equal(axTieCellSize(80, 2, 60), 44, 'floor 44 — the page scrolls instead');
+  assert.equal(axTieCellSize(167, 1, Number.NaN), 167);
 });
 
 test('home cell sizes follow the design sheet (b = width − 40): 1–3 / 4 / 5 / 6–8 chars and the single 「拾」', () => {

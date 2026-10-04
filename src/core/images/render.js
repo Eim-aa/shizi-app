@@ -18,6 +18,7 @@ import {
 } from './layout.js';
 import { glyphLayout, inkBounds } from './glyph-layout.js';
 import { readLightPalette } from './palette.js';
+import { SHI_BOLD_CENTER, SHI_BOLD_PATHS, SHI_BOLD_TRANSFORM, SHI_SEAL_VIEW } from '../../ui/brand/shi.js';
 
 export const FONTS = Object.freeze({
   label: '-apple-system,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif',
@@ -180,8 +181,12 @@ export function drawTracked(ctx, text, x, baseline, { font, size, tracking = 0.1
   return total;
 }
 
-/** 印：白文、直角、seal 底、正放；内缩 7% 一圈 onSeal 细线（与 marks.js 的屏上印 <Seal/> 同款；R2-R1：印只有一种，不倾斜）。 */
-export function drawSeal(ctx, { x, y, size, rotate = 0 }, { text, palette, font = FONTS.kai }) {
+/**
+ * 印：白文「拾」、直角、seal 底、正放；内缩 7% 一圈 onSeal 细线（与 marks.js 的屏上印 <Seal/> 同款；R2-R1：印只有一种，不倾斜）。
+ * R2-S2（D51 ③）：印文是品牌「拾」的小尺寸加粗字形——shi.js 的 SHI_BOLD_PATHS 逐条 Path2D 填 onSeal，不用字体字（没有 fillText）；
+ * 视框 / 变换与屏上 <SealGlyph/> 同一份：SHI_SEAL_VIEW 铺满整枚印，光学中心落在印心。没有 Path2D（单测环境）时只画底与细线。
+ */
+export function drawSeal(ctx, { x, y, size, rotate = 0 }, { palette }) {
   ctx.save();
   ctx.translate(x + size / 2, y + size / 2);
   ctx.rotate((rotate * Math.PI) / 180);
@@ -194,12 +199,14 @@ export function drawSeal(ctx, { x, y, size, rotate = 0 }, { text, palette, font 
   ctx.lineWidth = Math.max(1, size / 40);
   ctx.strokeRect(-size / 2 + inset, -size / 2 + inset, size - 2 * inset, size - 2 * inset);
   ctx.restore();
-  if (text) {
+  if (typeof Path2D === 'function') {
+    const k = size / SHI_SEAL_VIEW;
+    ctx.scale(k, k);
+    ctx.translate(-SHI_BOLD_CENTER.x, -SHI_BOLD_CENTER.y);
+    ctx.translate(SHI_BOLD_TRANSFORM.tx, SHI_BOLD_TRANSFORM.ty);
+    ctx.scale(SHI_BOLD_TRANSFORM.scale, SHI_BOLD_TRANSFORM.scale);
     ctx.fillStyle = palette.onSeal;
-    ctx.font = `400 ${Math.round(size * 0.66)}px ${font}`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(text, 0, size * 0.03);
+    for (const d of SHI_BOLD_PATHS) ctx.fill(new Path2D(d));
   }
   ctx.restore();
 }
@@ -263,7 +270,6 @@ export function setDataset(canvas, meta) {
  * @param {Array<{ch:string, ink?:Array|null, mode?:'hand'|'under', dot?:boolean, tag?:string, record?:{id:string}}>} o.cells
  * @param {'3:4'|'1:1'} [o.ratio]
  * @param {string} o.kuan        单行落款（汉字日期 + 全角空格 + 汉字字数 [+ 全角空格 + 其一 / 其二]）
- * @param {string} o.sealText    印上的字
  * @param {object} [o.palette]   缺省读浅色令牌（palette.js）
  * @param {number} [o.scale]     逻辑 → 导出倍率，缺省 4/3
  * @param {Function} [o.canvasFactory]  (w, h) => canvas
@@ -274,7 +280,7 @@ export function setDataset(canvas, meta) {
  * @returns {Promise<{status:'ready'|'empty', canvas, layout, cells}>}
  */
 export async function renderWorkPage({
-  cells, ratio = '3:4', kuan, sealText, palette = null, scale = EXPORT_SCALE, canvasFactory = defaultCanvasFactory,
+  cells, ratio = '3:4', kuan, palette = null, scale = EXPORT_SCALE, canvasFactory = defaultCanvasFactory,
   paintStroke = null, requireFont = null, loadGlyph = null, imageFactory = null, fonts = FONTS, meta = {},
 }) {
   const L = layout(cells, ratio);
@@ -284,7 +290,6 @@ export async function renderWorkPage({
   const tags = cells.map(c => c.tag || '').join('');
   if (typeof requireFont === 'function') {
     await requireFont(fonts.song, kuan);
-    if (sealText) await requireFont(fonts.kai, sealText);
     if (tags) await requireFont(fonts.label, tags, { weight: 500 });
   }
   const glyphs = new Map();
@@ -362,7 +367,7 @@ export async function renderWorkPage({
   }
 
   const kuanWidth = drawKuan(ctx, kuan, L.kuan, { palette: pal, fonts });
-  drawSeal(ctx, L.seal, { text: sealText, palette: pal, font: fonts.kai });
+  drawSeal(ctx, L.seal, { palette: pal });
   setDataset(canvas, {
     ratio,
     width: canvas.width,
@@ -394,17 +399,16 @@ export function exportDataURL(canvas, { quality = JPEG_QUALITY, type = 'image/jp
 
 /**
  * 单字手写图片（A05）：最近一次没有笔迹 → status 'noInk'，不生成。
- * @param {{points:Array, caption:string, signatureText:string, sealText:string, ratio?, palette?, canvasFactory?, paintStroke?, requireFont?, meta?}} o
+ * @param {{points:Array, caption:string, signatureText:string, ratio?, palette?, canvasFactory?, paintStroke?, requireFont?, meta?}} o
  */
 export async function renderSingleGlyph({
-  points, caption, signatureText, sealText, ratio = 'portrait', palette = null, canvasFactory = defaultCanvasFactory,
+  points, caption, signatureText, ratio = 'portrait', palette = null, canvasFactory = defaultCanvasFactory,
   paintStroke = null, requireFont = null, imageFactory = null, fonts = FONTS, meta = {},
 }) {
   const layoutBox = glyphLayout(inkBounds(points), ratio);
   if (layoutBox.status !== 'ready') return { status: layoutBox.status, canvas: null, layout: layoutBox };
   if (typeof requireFont === 'function') {
     await requireFont(fonts.label, `${caption || ''}${signatureText || ''}`);
-    if (sealText) await requireFont(fonts.kai, sealText);
   }
   const pal = palette || readLightPalette();
   const textures = await loadTextures(pal, { imageFactory });
@@ -434,7 +438,7 @@ export async function renderSingleGlyph({
       font: fonts.label, size: layoutBox.signature.font, tracking: layoutBox.signature.tracking, color: pal.ink2, align: 'right',
     });
   }
-  drawSeal(ctx, layoutBox.seal, { text: sealText, palette: pal, font: fonts.kai });
+  drawSeal(ctx, layoutBox.seal, { palette: pal });
   setDataset(canvas, {
     ratio,
     width: layoutBox.width,

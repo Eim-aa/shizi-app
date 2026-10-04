@@ -501,7 +501,7 @@ export default async function (page, ctx) {
     const pts = [[{ x: 60, y: 170, w: 11.5 }, { x: 280, y: 172, w: 11.5 }]];
     const plan = annualPlan(window.__shiziTest.getState(), { today: '2026-10-04', inkOf: () => pts, hasInk: () => true });
     const out = await renderAnnualLong({
-      yearText: 'x', line: 'y', first: plan.first, firstLabel: 'a', firstDate: 'b', kuan: 'k', sealText: '字',
+      yearText: 'x', line: 'y', first: plan.first, firstLabel: 'a', firstDate: 'b', kuan: 'k',
       months: plan.months.map(mm => ({ name: String(mm.monthNum), count: String(mm.cells.length), cells: mm.cells })), tail: null,
       maxExportHeight: 3000, paintStroke: paintBrushStroke, requireFont: requireCanvasFont, loadGlyph: loadStrokes,
     });

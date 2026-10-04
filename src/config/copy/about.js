@@ -16,7 +16,6 @@ export default Object.freeze({
   'X-ABOUT.version': '版本 {version}（{day}）',
   'X-ABOUT.versionAria': '版本 {version}，构建日期 {day}，点按显示完整构建号',
   'X-ABOUT.buildFull': '构建号 {build}',
-  'X-ABOUT.seal': '字',
   'X-ABOUT.motto': ['提笔忘字，不是忘了，', '只是很久没写。'],
   'X-ABOUT.privacy': '隐私',
   'X-ABOUT.privacy1': '你写的字、笔迹和对错，只存在这台手机上。',

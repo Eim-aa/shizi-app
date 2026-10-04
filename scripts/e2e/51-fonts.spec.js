@@ -142,18 +142,19 @@ export default async function fontsSpec(page, ctx) {
     if (c.deep) await page.evaluate(() => document.querySelector('[data-font-probe]').removeAttribute('data-font-probe'));
   }
 
-  ctx.step('first open (P1-E5): vertical motto → ShiziSerifSC 400, seal → ShiziKai 400 (the brand 「拾」 is a vector mark, no font)');
+  ctx.step('first open (P1-E5): vertical motto → ShiziSerifSC 400 (the brand 「拾」 and the seal 「拾」 are vector marks, no font)');
   await page.evaluate(() => { window.__shiziTest.reset(); document.dispatchEvent(new Event('visibilitychange')); });
   await page.waitForSelector(tid('home-motto'));
   await page.evaluate(() => document.fonts.ready);
   for (const c of [
     { sel: '[data-testid="home-motto"] .sz-first__col', ps: 'ShiziSerifSC-Regular', what: 'first-open motto column → ShiziSerifSC 400' },
-    { sel: '.sz-home__seal > span', ps: 'ShiziKai-Regular', what: 'seal → ShiziKai 400' },
   ]) {
     const fonts = await platformFonts(cdp, c.sel);
     assert.ok(Array.isArray(fonts) && fonts.length > 0, `${c.what}: node has rendered text`);
     assert.deepEqual((fonts || []).map(f => f.postScriptName || f.familyName), [c.ps], `${c.what}: no system fallback — got ${JSON.stringify(fonts)}`);
   }
+
+  assert.deepEqual(await page.evaluate(() => { const s = document.querySelector('.sz-home__seal'); return { text: s.textContent.trim(), paths: s.querySelectorAll('svg path').length }; }), { text: '', paths: 9 }, 'R2-S2: the seal is a drawing (nine paths), not text in any font');
 
   ctx.step('coverage: copy/ full text and deck word/py against the coverage manifest');
   const cov = await page.evaluate(async heiOnly => {
@@ -187,7 +188,7 @@ export default async function fontsSpec(page, ctx) {
     const seen = [];
     const out = await renderSingleGlyph({
       points: [[{ x: 80, y: 80, w: 12 }, { x: 260, y: 260, w: 12 }]],
-      caption: 'yǒng · 9月22日', signatureText: '拾字', sealText: '字',
+      caption: 'yǒng · 9月22日', signatureText: '拾字',
       requireFont: async (stack, text) => {
         const r = await requireCanvasFont(stack, text);
         seen.push({ face: r.face || null, ok: r.ok, skipped: !!r.skipped });
@@ -197,8 +198,8 @@ export default async function fontsSpec(page, ctx) {
     return { status: out.status, w: out.canvas && out.canvas.width, seen };
   });
   assert.equal(img.status, 'ready', 'single-glyph image rendered');
-  assert.deepEqual(img.seen, [{ face: null, ok: true, skipped: true }, { face: 'ShiziKai:400', ok: true, skipped: false }],
-    'label stack (system) skipped, seal ShiziKai 400 loaded');
+  assert.deepEqual(img.seen, [{ face: null, ok: true, skipped: true }],
+    'label stack (system) skipped; the seal 「拾」 is a Path2D drawing, no font is loaded for it (R2-S2)');
   assert.equal(warnings.length, 0, 'no "font not ready" warnings');
 
   ctx.step('degraded: coverage manifest unavailable → document.fonts.load only');

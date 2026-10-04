@@ -273,7 +273,7 @@ test('requireCanvasFont: system stacks pass without loading; Shizi failures warn
   assert.equal(warned.length, 1);
 });
 
-test('core/images/render.js awaits the injected requireFont (seal = ShiziKai 400) before creating the canvas', async () => {
+test('core/images/render.js awaits the injected requireFont before creating the canvas (the seal 「拾」 is a Path2D drawing: no font to wait for, R2-S2)', async () => {
   const order = [];
   const fonts = fakeFonts();
   const fakeCanvas = (width, height) => {
@@ -286,7 +286,7 @@ test('core/images/render.js awaits the injected requireFont (seal = ShiziKai 400
   };
   const points = [[{ x: 100, y: 100, w: 12 }, { x: 240, y: 240, w: 12 }]];
   const out = await renderSingleGlyph({
-    points, caption: 'yǒng · 9月22日', signatureText: '拾字', sealText: '字', canvasFactory: fakeCanvas, palette: lightPalette,
+    points, caption: 'yǒng · 9月22日', signatureText: '拾字', canvasFactory: fakeCanvas, palette: lightPalette,
     requireFont: async (stack, text) => {
       const r = await requireCanvasFont(stack, text, { fonts, manifest });
       order.push(r.skipped ? 'skip' : `load:${r.face}`);
@@ -294,6 +294,6 @@ test('core/images/render.js awaits the injected requireFont (seal = ShiziKai 400
     },
   });
   assert.equal(out.status, 'ready');
-  assert.deepEqual(order, ['skip', 'load:ShiziKai:400', 'canvas']);
-  assert.deepEqual(fonts.calls, [['400 32px "ShiziKai"', '字']]);
+  assert.deepEqual(order, ['skip', 'canvas']);
+  assert.deepEqual(fonts.calls, [], 'no font is loaded for the seal');
 });

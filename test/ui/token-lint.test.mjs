@@ -144,7 +144,8 @@ test('glyph rule: every use of the kai font in src/ui and src/core/images is a r
   const { violations, stale } = scan();
   assert.deepEqual(violations.filter(v => v.rule === 'glyph').map(v => `${v.file}:${v.line} ${v.snippet}`), [], 'unregistered kai-font rule: practice chars must render through PracticeGlyph');
   const registered = EXCEPTIONS.filter(e => e.rule === 'glyph');
-  assert.ok(registered.length >= 15, 'the registry lists the seals, words, inputs and the fallback branches');
+  assert.ok(registered.length >= 10, 'the registry lists the words, inputs and the fallback branches (no seal entries any more: the seal 「拾」 is drawn, not typeset — R2-S2)');
+  assert.ok(!registered.some(e => /seal|印章/i.test(`${e.snippet} ${e.why}`)), 'no kai-font exception for a seal');
   assert.deepEqual(stale.filter(e => e.rule === 'glyph'), [], 'no stale glyph exceptions');
 });
 

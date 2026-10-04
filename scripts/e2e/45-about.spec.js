@@ -98,7 +98,7 @@ export default async function about(page, ctx) {
     const top = document.querySelector('.sz-layer[data-top="true"]');
     const q = id => top.querySelector(`[data-testid="${id}"]`);
     return {
-      seal: q('about-seal').textContent, sealHidden: q('about-seal').getAttribute('aria-hidden'),
+      seal: q('about-seal').textContent.trim(), sealPaths: q('about-seal').querySelectorAll('svg path').length, sealHidden: q('about-seal').getAttribute('aria-hidden'),
       name: q('about-name').textContent, build: q('about-build').textContent,
       motto: q('about-motto').innerText.replace(/\s+/g, '|'),
       back: q('page-back') ? q('page-back').getAttribute('aria-label') : null,
@@ -112,7 +112,8 @@ export default async function about(page, ctx) {
     const m = await import('/src/build-info.js');
     return { build: m.BUILD, version: m.VERSION };
   });
-  assert.equal(head.seal, '字', 'seal 字');
+  assert.equal(head.seal, '', 'R2-S2: the seal is a drawing, no text');
+  assert.equal(head.sealPaths, 9, 'seal draws the brand 拾 (nine strokes)');
   assert.equal(head.sealHidden, 'true', 'seal is decorative (aria-hidden)');
   assert.equal(head.name, '拾字', 'app name');
   // B7（D36）：版本行「版本 1.0（20261001）」= VERSION + BUILD 的日期部分；完整 BUILD 点按展开、可选中

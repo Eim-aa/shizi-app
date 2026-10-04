@@ -56,7 +56,7 @@ const KEYBOARD_RATIO = 0.4;
 //   glyph-result 没有本人笔迹的格子里的衬底字面（结果页看过答案 / 跳过格、详情与记录页的无笔迹格、年报与空态的占位字、首页墨迹行的占位字；
 //                R-R02 / 10.12，色 --under = tokens.json「答案衬底 / 没有本人墨的字格」，对笺 ≥ 3:1 由 test/ui/contrast.test.mjs 实算；D43 起 P101
 //                不再按旧 --i4 逐项豁免，这里只是 4.5:1 文字线对大字面 / 图形的豁免）：字面都在 aria-hidden 里，格子的无障碍名与格下文字说明另有。
-//   seal         首页题记印章、关于页印章、字帖落款印章（「字」字印，--seal 底 --on-seal 字；深色 3.7:1，tokens.json contrast onSeal/seal）：
+//   seal         首页题记印章、关于页印章、字帖落款印章（「拾」白文印，--seal 底 --on-seal 字形；深色 3.7:1，tokens.json contrast onSeal/seal）：
 //                印章 / 标识类装饰（WCAG 1.4.3 logotype 例外，P101 已决定 D43）。
 export const EXEMPT = Object.freeze([
   { id: 'disabled', sel: 'button:disabled, [aria-disabled="true"], input:disabled, fieldset:disabled', hidden: false },

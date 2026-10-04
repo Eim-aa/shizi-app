@@ -7,7 +7,10 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { SHI_PATHS, SHI_VIEWBOX, SHI_VIEW, SHI_UNITS, ShiMark } from '../../src/ui/brand/shi.js';
+import {
+  SHI_PATHS, SHI_VIEWBOX, SHI_VIEW, SHI_UNITS, ShiMark,
+  SHI_BOLD_PATHS, SHI_BOLD_TRANSFORM, SHI_BOLD_TRANSFORM_ATTR, SHI_BOLD_CENTER, SHI_SEAL_VIEW, SHI_SEAL_VIEWBOX, ShiSealMark,
+} from '../../src/ui/brand/shi.js';
 import { BrandShi } from '../../src/ui/screens/home/copybook.js';
 import { t } from '../../src/config/copy/index.js';
 
@@ -64,6 +67,41 @@ test('brand shi: the viewBox is a square centred on the optical centre of the in
   const cy = y + h / 2;
   assert.ok(Math.abs(cx - 502) < 1 && Math.abs(cy - 494) < 1, 'optical centre: half-way between ink-box centre (518, 482) and centroid (485, 505)');
   assert.ok(Math.abs(788 / SHI_VIEW - 0.62) < 0.005, 'ink long side is 62% of the cell');
+});
+
+test('brand shi: SHI_BOLD_PATHS + SHI_BOLD_TRANSFORM are the same data as docs/design/brand/shi-A1-bold-small.svg (the small-size master used by the seal)', () => {
+  const svg = read('docs/design/brand/shi-A1-bold-small.svg');
+  const ds = [...svg.matchAll(/<path id="shi-s(\d)" d="([^"]+)"/g)];
+  assert.deepEqual(ds.map(m => m[1]), ['1', '2', '3', '4', '5', '6', '7', '8', '9']);
+  assert.deepEqual(ds.map(m => m[2]), [...SHI_BOLD_PATHS]);
+  assert.match(svg, /viewBox="0 0 1024 1024"/);
+  assert.equal(svg.match(/<g id="shi-glyph"[^>]*transform="([^"]+)"/)[1], SHI_BOLD_TRANSFORM_ATTR);
+  assert.deepEqual({ ...SHI_BOLD_TRANSFORM }, { tx: -21.24, ty: -19.48, scale: 1.04 });
+  for (const d of SHI_BOLD_PATHS) assert.match(d, /^M[\d.\s,CLZ-]+Z$/);
+  assert.notDeepEqual([...SHI_BOLD_PATHS], [...SHI_PATHS], 'a second, bolder set — not the regular one');
+});
+
+test('brand shi: the seal viewBox is a square centred on the optical centre of the bold ink (box 88–973 × 138–835 after the master transform)', () => {
+  const [x, y, w, h] = SHI_SEAL_VIEWBOX.split(' ').map(Number);
+  assert.equal(w, SHI_SEAL_VIEW);
+  assert.equal(h, SHI_SEAL_VIEW);
+  assert.ok(x < 88 && x + w > 973 && y < 138 && y + h > 835, 'the whole bold ink box fits inside the viewBox');
+  assert.deepEqual({ ...SHI_BOLD_CENTER }, { x: 510, y: 499 });
+  assert.ok(Math.abs(x + w / 2 - 510) < 1 && Math.abs(y + h / 2 - 499) < 1);
+  const share = 885 / SHI_SEAL_VIEW;
+  assert.ok(share > 0.6 && share < 0.7, `ink long side is ${(share * 100).toFixed(0)}% of the seal — leaves clear room inside the 7% inset line`);
+});
+
+test('ShiSealMark: inline svg, nine bold paths inside the master transform, currentColor, decorative, no text', () => {
+  const tree = walk(ShiSealMark({ class: 'x' }));
+  const svg = find(tree, 'svg');
+  assert.equal(svg.length, 1);
+  assert.equal(svg[0].props.fill, 'currentColor');
+  assert.equal(svg[0].props['aria-hidden'], 'true');
+  assert.equal(svg[0].props.viewBox, SHI_SEAL_VIEWBOX);
+  assert.equal(find(tree, 'g')[0].props.transform, SHI_BOLD_TRANSFORM_ATTR);
+  assert.deepEqual(find(tree, 'path').map(n => n.props.d), [...SHI_BOLD_PATHS]);
+  assert.deepEqual(tree.texts.filter(s => s.trim()), []);
 });
 
 test('ShiMark: inline svg, nine paths, currentColor, decorative', () => {

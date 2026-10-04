@@ -55,7 +55,6 @@ export default Object.freeze({
   'X-HOME.start': '开始写字',
   'X-HOME.continue': '继续写字',
   // X-HOME（M2-1 首页：原型首页壳-v3 L44 / L56 / L57 / L71 / L74 / L81 的装饰字与入口；开组写入失败说明，P55 待文案）
-  'X-HOME.sealGlyph': '字',
   'X-HOME.pick': '自己选字',
   'X-HOME.inkRowLabel': '今天写了 {n} 个字：{chars}',
   // 首页日常状态的字帖位（H1 / D51 ④，03 P220）：今天还没写、离开一周回来时放本人最近写的几个字；读屏名称

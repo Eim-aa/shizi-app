@@ -14,7 +14,7 @@
 //                D49 ⑤ 起朱色只表示写错，字库墙上自选未写的空心字改用 ink4，不再用淡朱——别处再用淡朱会被这条拦住（同属 zhu 规则）。
 //   legacy       旧令牌名（--p --c --i1 … --ar --g …）一律不许再出现。
 //   glyph        练习字字形单一来源（阶段 1 P1-E2，D33 8a 方案 B、D44）：src/ui 与 src/core/images 里每一处用楷体字体（--kai / T.kai / FONTS.kai）
-//                的规则 / 代码，必须逐条登记在 EXCEPTIONS（rule 'glyph'：印章、题跋 / 释义 / 词语文字、输入框、
+//                的规则 / 代码，必须逐条登记在 EXCEPTIONS（rule 'glyph'：题跋 / 释义 / 词语文字、输入框、
 //                轮廓缺失的回退分支……），写明为什么它不是「练习字」；练习字（要写的字、参考字、衬底字、墙 / 字帖 / 详情 / 图片里的标准字形）
 //                一律走 ui/components/PracticeGlyph.js（SVG 轮廓）或 core/images/render.js paintOutline（canvas 轮廓）。登记过期也报错。
 //
@@ -63,9 +63,6 @@ export const EXCEPTIONS = Object.freeze([
   // ---- glyph：楷体字体（--kai）只许用在这些地方（P1-E2；每条写明为什么它不是「练习字」）
   { rule: 'glyph', file: 'src/ui/components/PracticeGlyph.js', snippet: '.sz-pg__fb', why: '练习字组件自己的回退分支：轮廓缺失 / 取不到数据 / 不是汉字时的楷体整字（10.13 语义，ShiziKai 只做回退）' },
   { rule: 'glyph', file: 'src/ui/screens/write/glyph-fallback.js', snippet: '.sz-glyph-fb', why: '写字页 10.13 回退分支：看答案 / 对照 / 描一遍取不到笔顺数据时的楷体整字' },
-  { rule: 'glyph', file: 'src/ui/screens/home/index.js', snippet: '.sz-home__seal>span', why: '首页题记 / 字帖落款旁的印章里的「字」（印章，不是练习字）' },
-  { rule: 'glyph', file: 'src/ui/components/marks.js', snippet: '.sz-seal', why: '作品落款旁的印章（作品里唯一的一种印，<Seal/>；不是练习字）' },
-  { rule: 'glyph', file: 'src/ui/screens/mine/about.js', snippet: '.sz-about__seal', why: '关于页的印章（品牌印，不是练习字）' },
   { rule: 'glyph', file: 'src/ui/screens/mine/about.js', snippet: '.sz-about__motto', why: '关于页的题记（整句文字，不是单个练习字）' },
   { rule: 'glyph', file: 'src/ui/screens/detail/records.js', snippet: '.sz-dsrc__text', why: '单字详情里的字源释义原文（整句题跋式文字，不是练习字）' },
   { rule: 'glyph', file: 'src/ui/screens/detail/index.js', snippet: '.sz-dcard__gloss', why: '单字详情里没有语境词时的释义（整句文字）' },
@@ -75,11 +72,6 @@ export const EXCEPTIONS = Object.freeze([
   { rule: 'glyph', file: 'src/ui/components/query/input.js', snippet: '.sz-query__input', why: '查字输入框：用户正在输入的文字（输入控件，不是标准字形）' },
   { rule: 'glyph', file: 'src/ui/screens/library/all.js', snippet: '.sz-all__input', why: '「有记录的字」页的找字输入框：用户正在输入的文字' },
   { rule: 'glyph', file: 'src/core/images/render.js', snippet: 'ctx.font = `400 ${Math.round(size * 0.8)}px ${FONTS.kai}`', why: '图片导出里轮廓缺失的衬底字回退（paintFallbackGlyph，10.13 语义；有数据时一律 paintOutline 画同一份轮廓）' },
-  { rule: 'glyph', file: 'src/core/images/render.js', snippet: 'font = FONTS.kai', why: '印章默认字体（drawSeal；印章不是练习字）' },
-  { rule: 'glyph', file: 'src/core/images/render.js', snippet: 'font: fonts.kai', why: '图片落款的印章（drawSeal；印章不是练习字）' },
-  { rule: 'glyph', file: 'src/core/images/render.js', snippet: 'requireFont(fonts.kai, sealText)', why: '等印章字体就绪（印章不是练习字）' },
-  { rule: 'glyph', file: 'src/core/images/annual-render.js', snippet: 'requireFont(fonts.kai, sealText)', why: '等年报印章字体就绪（印章不是练习字）' },
-  { rule: 'glyph', file: 'src/core/images/annual-render.js', snippet: 'font: fonts.kai', why: '年报图片的印章（drawSeal；印章不是练习字）' },
   { rule: 'color', file: 'src/config/credits.js', snippet: '#', why: '致谢正文里的「#180」是议题编号（恰好是合法的 3 位十六进制），不是颜色' },
   { rule: 'color', file: 'src/config/char-order.js', snippet: '#', why: 'build_char_order.mjs 生成的新字顺序数据，removed / reserved 条目里的「字频#3919」是字频序号（恰好是合法的 4 位十六进制），不是颜色' },
   { rule: 'color', file: 'src/ui/canvas/glyph.js', snippet: '#', why: '字形 canvas 读不到 DOM（单测环境）时的最后回退色；浏览器里一律 getComputedStyle 读令牌' },

@@ -133,7 +133,6 @@ export function buildImageJob(scope, { state = null, store = storeOrNull(), inkO
     if (p.kind === 'month') return kuan({ month: p.month, n: cells.length, part: i + 1, of: pages });
     return kuan({ day: p.day, n: cells.length, part: i + 1, of: pages });
   };
-  const sealText = t('X-IMAGES.seal');
   const job = {
     kind: plan.kind,
     plan,
@@ -156,7 +155,6 @@ export function buildImageJob(scope, { state = null, store = storeOrNull(), inkO
           points: cell.points,
           caption: glyphCaption(cell.record, lookup),
           signatureText: t('X-IMAGES.brand'),
-          sealText,
           ratio: RATIO_OF_LABEL[ratio] || 'portrait',
           paintStroke: paintBrushStroke,
           requireFont: requireCanvasFont,
@@ -167,7 +165,7 @@ export function buildImageJob(scope, { state = null, store = storeOrNull(), inkO
       if (p.status !== 'ready') return { status: p.status, canvas: null };
       const cells = p.pages[i] || [];
       const out = await renderWorkPage({
-        cells, ratio, kuan: kuanFor(p, i, p.pages.length, cells), sealText, scale, ...renderDeps(),
+        cells, ratio, kuan: kuanFor(p, i, p.pages.length, cells), scale, ...renderDeps(),
         meta: { kind: p.kind, key: p.key, plan: p.status, day: p.day || '', month: p.month || '', days: p.days == null ? '' : p.days, page: i + 1, pages: p.pages.length },
       });
       return { status: out.status, canvas: out.canvas };

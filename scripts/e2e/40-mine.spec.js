@@ -254,7 +254,7 @@ async function mineView(page) {
       sheetSave: q('mine-sheet-save') ? txt(q('mine-sheet-save')) : null,
       sheetAll: q('mine-sheet-all') ? txt(q('mine-sheet-all')) : null,
       sign: txt(q('mine-sheet-sign')),
-      seal: txt(q('mine-sheet-seal')),
+      seal: txt(q('mine-sheet-seal')), sealPaths: q('mine-sheet-seal') ? q('mine-sheet-seal').querySelectorAll('svg path').length : 0,
       cells: all('mine-sheet-cell').map(el => ({ char: el.dataset.char, day: el.dataset.day, tag: el.dataset.tag, record: el.dataset.record,
         ink: el.dataset.ink, label: el.getAttribute('aria-label'), tagText: txt(el.querySelector('.sz-scell__tag')) })),
       menu: all('mine-menu').length ? [...q('mine-menu').querySelectorAll('button')].map(b => ({ testid: b.dataset.testid, to: b.dataset.to,
@@ -319,7 +319,7 @@ async function recordsView(page) {
         noink: el.dataset.mode === 'under', label: el.getAttribute('aria-label') })),
       sign: txt(q('month-kuan')),
       order: txt(q('records-sheet-order')),
-      seal: txt(q('month-seal')),
+      seal: txt(q('month-seal')), sealPaths: q('month-seal') ? q('month-seal').querySelectorAll('svg path').length : 0,
       note: txt(q('month-note')),
       sheetEmpty: txt(q('records-sheet-empty')),
       gridInPaper: (() => {
@@ -526,7 +526,8 @@ export default async function run(page, ctx) {
   assert.equal(jing.label, '静 · 9月1日，9月22日的笔迹', 'cell accessible name: the sort day, plus the day of the ink drawn (N2-07)');
   assert.equal(v.sign, `二〇二六年九月 ${cn(o9.sheet.length)}字`, 'signature in Chinese numerals: the same kuan() as the month page and the export (R2-R1; txt() folds the full-width space)');
   assert.equal(v.sign, '二〇二六年九月 五字', 'signature literal');
-  assert.equal(v.seal, '字', 'seal');
+  assert.equal(v.seal, '', 'R2-S2: the seal is a drawing, no text');
+  assert.equal(v.sealPaths, 9, 'the seal draws the brand 拾');
   assert.equal(v.sheetSave, null, 'save image hidden until M4-5 registers');
   assert.equal(v.sheetAll, null, 'no 全部 › when ≤ 3 rows');
   assert.equal(v.backupValue, COPY.lastBackup(md('2026-09-01')), 'last backup date from backupMeta');
@@ -560,7 +561,8 @@ export default async function run(page, ctx) {
   assert.equal(r.sign, '二〇二六年九月 五字', '落款 (P1-E7: 月份 + 全角空格 + 字数，不再写有记录几天；txt() 把全角空格折成一个空格)');
   assert.equal(r.gridInPaper, true, 'records sheet grid laid out inside the month paper');
   assert.equal(r.order, null, 'P1-E7: the order line moved to the month page subtitle');
-  assert.equal(r.seal, '字', 'seal');
+  assert.equal(r.seal, '', 'R2-S2: the seal is a drawing, no text');
+  assert.equal(r.sealPaths, 9, 'the seal draws the brand 拾');
   assert.equal(r.note, UNDER_NOTE, 'P1-E7: the only note is the under-glyph sentence (there is an under cell: 数)');
   assert.equal(r.sheetCells.find(c => c.char === '数').noink, true, 'no ink all month → an under cell (drawn as the reference outline, no 「没有笔迹」 text)');
   assert.equal(r.today, null, 'today row hidden until M4-5 registers');

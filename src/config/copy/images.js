@@ -26,6 +26,5 @@ export default Object.freeze({
   'X-IMAGES.missingMonth': '{chars}这个月没有留下笔迹，不在图里。',
   'X-IMAGES.emptyMonth': '这个月还没有可以放进图片的字',
   'X-IMAGES.brand': '拾字',
-  'X-IMAGES.seal': '字',
   'X-IMAGES.renderFailed': '图片暂时无法生成，请稍后再试。',
 });

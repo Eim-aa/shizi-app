@@ -2952,12 +2952,6 @@
           "origin": "首页壳-v3 L217",
           "note": "主入口（有未完成组）"
         },
-        "sealGlyph": {
-          "raw": null,
-          "text": "字",
-          "origin": "首页壳-v3 L44",
-          "note": "M2-1：印章里的「字」（原型 title「闲章 · 字」；装饰，aria-hidden）。D49 起日常首页题记不再带印，只有首次打开品牌时刻的那一枚（seal16）"
-        },
         "pick": {
           "raw": null,
           "text": "自己选字",
@@ -3817,13 +3811,6 @@
           "note": "关于页印章下的应用名；原型 ShiziScreen L161",
           "decision": "P55"
         },
-        "seal": {
-          "raw": null,
-          "text": "字",
-          "origin": "extra",
-          "note": "关于页 64px 红印里的字（装饰，aria-hidden）；原型 ShiziScreen L161",
-          "decision": "P55"
-        },
         "motto": {
           "raw": null,
           "text": [
@@ -4205,12 +4192,6 @@
           "text": "拾字",
           "origin": "extra",
           "note": "单字手写图片右下落款（A05，备注 L146 右下「拾字」落款 26px；原型 charEl L360）"
-        },
-        "seal": {
-          "raw": null,
-          "text": "字",
-          "origin": "extra",
-          "note": "图片右下小印里的字（原型 imgEl / charEl 红印白字「字」，L338 / L360）"
         },
         "renderFailed": {
           "raw": null,

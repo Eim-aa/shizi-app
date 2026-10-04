@@ -32,7 +32,6 @@ export function buildAnnualJob({ state = null, store = storeOrNull(), inkOf = nu
   const ink = inkOf || (record => inkPointsOf(store, record));
   const plan = annualPlan(st, { today: day, inkOf: ink, hasInk: record => recordHasInk(store, record), policy });
   const year = plan.model.year;
-  const sealText = t('X-IMAGES.seal');
   const deps = renderDeps();
   const coverArgs = () => ({
     yearText: annualYearText(year),
@@ -41,7 +40,6 @@ export function buildAnnualJob({ state = null, store = storeOrNull(), inkOf = nu
     firstLabel: t('X-WORK.annualFirstLabel'),
     firstDate: annualFirstDateText(plan.model.first.day),
     kuan: kuan({ brand: true }),
-    sealText,
   });
   const tailArgs = () => ({
     title: t('X-WORK.annualTwiceTitle'),
@@ -50,7 +48,6 @@ export function buildAnnualJob({ state = null, store = storeOrNull(), inkOf = nu
     firstDate: annualTailDateText(plan.tail.firstDay),
     lastDate: annualTailDateText(plan.tail.lastDay),
     kuan: kuan({ month: monthOf(day) }),
-    sealText,
   });
   return {
     kind: 'annual',
@@ -69,7 +66,7 @@ export function buildAnnualJob({ state = null, store = storeOrNull(), inkOf = nu
       if (page.type === 'cover') return renderAnnualCover({ ...coverArgs(), scale, ...deps, meta: { page: i + 1, pages: plan.pages.length } });
       if (page.type === 'tail') return renderAnnualTail({ ...tailArgs(), scale, ...deps, meta: { page: i + 1, pages: plan.pages.length } });
       return renderWorkPage({
-        cells: page.cells, ratio: '3:4', kuan: kuan({ month: page.month, n: page.cells.length, part: page.part, of: page.of }), sealText, scale, ...deps,
+        cells: page.cells, ratio: '3:4', kuan: kuan({ month: page.month, n: page.cells.length, part: page.part, of: page.of }), scale, ...deps,
         meta: { kind: 'annual-month', month: page.month, page: i + 1, pages: plan.pages.length },
       });
     },

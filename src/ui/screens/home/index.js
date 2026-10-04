@@ -43,6 +43,7 @@
 import { html, useEffect, useLayoutEffect, useMemo, useRef, useState } from '../../../../vendor/ui.js';
 import { registerScreen, getRouter, getScreen, nav } from '../../router.js';
 import { Button } from '../../components/Button.js';
+import { SealGlyph } from '../../components/marks.js';
 import { injectStyles, T } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
 import { EPIGRAPHS, epigraphAuthor } from '../../../config/epigraphs.js';
@@ -90,8 +91,7 @@ injectStyles('home', `
 .sz-home__date{margin:0;font-size:${T.fs13};line-height:${T.lh13};white-space:nowrap;color:${T.ink3}}
 .sz-home__epi{margin:2px 0 0;font-family:${T.song};font-weight:400;font-size:${T.fs13};line-height:${T.lh13};white-space:nowrap;color:${T.ink3}} /* 题记一行（D49）：宋 13 墨三，不带印 */
 .sz-home__episrc{margin-left:8px}
-.sz-home__seal{width:16px;height:16px;box-sizing:border-box;border-radius:${T.rWork};display:grid;place-items:center;flex:none}
-.sz-home__seal>span{display:grid;place-items:center;font-family:${T.kai};font-size:calc(11px * 1);line-height:1} /* 印是图形：字形固定 11px（seal16），不随 --k（Q2-10） */
+.sz-home__seal{width:16px;height:16px;box-sizing:border-box;border-radius:${T.rWork};display:block;flex:none} /* 印是图形：固定 seal16，白文「拾」是铺满的 svg（SealGlyph），不随 --k（Q2-10） */
 .sz-home__title{margin:10px 0 0;font-family:${T.song};font-weight:500;font-size:${T.fs28};
   line-height:${T.lh28};color:${T.ink1};text-wrap:balance}
 .sz-home__title:focus{outline:none}
@@ -402,7 +402,7 @@ function FirstOpen({ width, compact, ax }) {
       <h1 class="sz-first__mottoh" tabindex="-1" data-page-title data-testid="home-motto" aria-label=${lines.join('')}>
         ${lines.map((line, i) => (i < lines.length - 1
           ? html`<span key=${i} class="sz-first__hline" aria-hidden="true">${line}</span>`
-          : html`<span key=${i} class="sz-first__hline" aria-hidden="true">${line}<span class="sz-home__seal sz-first__seal" data-testid="home-seal"><span>${t('X-HOME.sealGlyph')}</span></span></span>`))}
+          : html`<span key=${i} class="sz-first__hline" aria-hidden="true">${line}<span class="sz-home__seal sz-first__seal" data-testid="home-seal"><${SealGlyph} /></span></span>`))}
       </h1>
     </div>`;
   }
@@ -420,7 +420,7 @@ function FirstOpen({ width, compact, ax }) {
         ? html`<span key=${i} class="sz-first__col" aria-hidden="true"><${MottoChars} text=${col.line} from=${col.start} /></span>`
         : html`<span key=${i} class="sz-first__col sz-first__col--last" aria-hidden="true">
             <span class="sz-first__line"><${MottoChars} text=${col.line} from=${col.start} /></span>
-            <span class="sz-home__seal sz-first__seal" data-testid="home-seal"><span>${t('X-HOME.sealGlyph')}</span></span>
+            <span class="sz-home__seal sz-first__seal" data-testid="home-seal"><${SealGlyph} /></span>
           </span>`))}
     </h1>
   </div>`;

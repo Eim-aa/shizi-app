@@ -525,7 +525,7 @@ test('renderWorkPage: 1440×1920 / 1440×1440 (logical 1080 × 4/3), only the gi
   const glyphsAsked = [];
   for (const [ratio, h] of [['3:4', 1920], ['1:1', 1440]]) {
     const out = await renderWorkPage({
-      cells, ratio, kuan: '二〇二六年九月　三字', sealText: '字', palette: PALETTE, canvasFactory: fakeCanvas,
+      cells, ratio, kuan: '二〇二六年九月　三字', palette: PALETTE, canvasFactory: fakeCanvas,
       paintStroke: () => { painted += 1; return true; }, loadGlyph: async ch => { glyphsAsked.push(ch); return null; }, meta: { kind: 'month' },
     });
     assert.equal(out.status, 'ready');
@@ -544,14 +544,14 @@ test('renderWorkPage: 1440×1920 / 1440×1440 (logical 1080 × 4/3), only the gi
   }
   assert.equal(painted, 4, 'one stroke per inked cell per render');
   assert.deepEqual(glyphsAsked, ['山', '山'], 'reference outlines are loaded only for under cells');
-  const empty = await renderWorkPage({ cells: [], kuan: 'x', sealText: '字', palette: PALETTE, canvasFactory: () => { throw new Error('no canvas for nothing'); } });
+  const empty = await renderWorkPage({ cells: [], kuan: 'x', palette: PALETTE, canvasFactory: () => { throw new Error('no canvas for nothing'); } });
   assert.equal(empty.status, 'empty');
-  await assert.rejects(() => renderWorkPage({ cells, kuan: 'a\nb', sealText: '字', palette: PALETTE, canvasFactory: fakeCanvas }), /SINGLE_LINE/);
+  await assert.rejects(() => renderWorkPage({ cells, kuan: 'a\nb', palette: PALETTE, canvasFactory: fakeCanvas }), /SINGLE_LINE/);
 });
 
 test('renderWorkPage: the day tag is drawn inside its own cell, top-left, without a colour block — it never rides a grid line (V2-09)', async () => {
   const cells = [cell('永', { tag: '2' }), cell('和'), cell('山', { tag: '5' })];
-  const out = await renderWorkPage({ cells, ratio: '3:4', kuan: '二〇二六年九月　三字', sealText: '字', palette: PALETTE, canvasFactory: fakeCanvas });
+  const out = await renderWorkPage({ cells, ratio: '3:4', kuan: '二〇二六年九月　三字', palette: PALETTE, canvasFactory: fakeCanvas });
   const L = out.layout;
   const tagCalls = out.canvas.calls.filter(c => c[0] === 'fillText' && (c[1] === '2' || c[1] === '5'));
   assert.equal(tagCalls.length, 2);
@@ -565,7 +565,7 @@ test('renderWorkPage: the day tag is drawn inside its own cell, top-left, withou
 });
 
 test('renderWorkPage: colours come from the LIGHT design tokens (never the dark ones); ink keeps its own width, only tiny cells are lifted to the minimum physical width (R2-R1)', async () => {
-  const out = await renderWorkPage({ cells: [cell('永', { dot: true })], ratio: '3:4', kuan: '二〇二六年九月', sealText: '字', palette: PALETTE, canvasFactory: fakeCanvas });
+  const out = await renderWorkPage({ cells: [cell('永', { dot: true })], ratio: '3:4', kuan: '二〇二六年九月', palette: PALETTE, canvasFactory: fakeCanvas });
   const fills = new Set(out.canvas.calls.map(c => c[c.length - 2]));
   const strokes = new Set(out.canvas.calls.map(c => c[c.length - 1]));
   assert.ok(fills.has(TOKENS.color.light.sheet), 'paper = light sheet');
@@ -578,20 +578,20 @@ test('renderWorkPage: colours come from the LIGHT design tokens (never the dark 
   // 一个 670px 的格 ≈ 249pt：笔锋收到的点宽就是 11.5（原宽）
   const widths = [];
   await renderWorkPage({
-    cells: [cell('永')], ratio: '3:4', kuan: 'k', sealText: '字', palette: PALETTE, canvasFactory: fakeCanvas,
+    cells: [cell('永')], ratio: '3:4', kuan: 'k', palette: PALETTE, canvasFactory: fakeCanvas,
     paintStroke: (ctx, pts) => { widths.push(pts[0].w); return true; },
   });
   assert.ok(Math.abs(widths[0] - 11.5 * inkWidthScale(670 / 2.69)) < 1e-9, 'single char: cell 670px ≈ 249pt → ×1.0');
   const w3 = [];
   await renderWorkPage({
-    cells: [cell('永'), cell('和'), cell('静')], ratio: '3:4', kuan: 'k', sealText: '字', palette: PALETTE, canvasFactory: fakeCanvas,
+    cells: [cell('永'), cell('和'), cell('静')], ratio: '3:4', kuan: 'k', palette: PALETTE, canvasFactory: fakeCanvas,
     paintStroke: (ctx, pts) => { w3.push(pts[0].w); return true; },
   });
   assert.ok(Math.abs(w3[0] - 11.5) < 1e-9, '3 chars: cell 295px ≈ 110pt → original width (the old ×1.15 step is gone)');
   const many = Array.from({ length: 80 }, (_, i) => cell(String.fromCodePoint(0x4e00 + i)));
   const w80 = [];
   const big = await renderWorkPage({
-    cells: many, ratio: '3:4', kuan: 'k', sealText: '字', palette: PALETTE, canvasFactory: fakeCanvas,
+    cells: many, ratio: '3:4', kuan: 'k', palette: PALETTE, canvasFactory: fakeCanvas,
     paintStroke: (ctx, pts) => { w80.push(pts[0].w); return true; },
   });
   const tiny = big.layout.c / 2.69;
@@ -599,14 +599,14 @@ test('renderWorkPage: colours come from the LIGHT design tokens (never the dark 
   assert.ok(w80[0] > 11.5 && Math.abs(w80[0] - 11.5 * inkWidthScale(tiny)) < 1e-9, 'tiny cells: lifted to the minimum physical width only');
 });
 
-test('renderWorkPage awaits the injected requireFont (落款 song, seal kai, tags hei 500) before creating the canvas', async () => {
+test('renderWorkPage awaits the injected requireFont (落款 song, tags hei 500; the seal is drawn, not set in a font) before creating the canvas', async () => {
   const order = [];
   const canvasFactory = (w, h) => { order.push('canvas'); return fakeCanvas(w, h); };
   await renderWorkPage({
-    cells: [cell('永', { tag: '2' })], ratio: '3:4', kuan: '二〇二六年九月　一字', sealText: '字', palette: PALETTE, canvasFactory,
+    cells: [cell('永', { tag: '2' })], ratio: '3:4', kuan: '二〇二六年九月　一字', palette: PALETTE, canvasFactory,
     requireFont: async (stack, text, o) => { order.push(`font:${stack.split(',')[0].replace(/"/g, '')}:${text}${o && o.weight ? `:${o.weight}` : ''}`); },
   });
-  assert.deepEqual(order, ['font:ShiziSerifSC:二〇二六年九月　一字', 'font:ShiziKai:字', 'font:-apple-system:2:500', 'canvas']);
+  assert.deepEqual(order, ['font:ShiziSerifSC:二〇二六年九月　一字', 'font:-apple-system:2:500', 'canvas']);
 });
 
 test('palette: paletteFromTokens reads color.light only and has no colour literal of its own', () => {
@@ -622,7 +622,7 @@ test('palette: paletteFromTokens reads color.light only and has no colour litera
 
 test('renderSingleGlyph: A05 sizes, caption and brand; no ink → noInk without a canvas', async () => {
   for (const [ratio, h] of [['portrait', 1440], ['square', 1080]]) {
-    const out = await renderSingleGlyph({ points: INK, caption: 'jìng · 9月22日', signatureText: '拾字', sealText: '字', ratio, palette: PALETTE,
+    const out = await renderSingleGlyph({ points: INK, caption: 'jìng · 9月22日', signatureText: '拾字', ratio, palette: PALETTE,
       canvasFactory: fakeCanvas, meta: { kind: 'glyph', recordIds: 'r2' } });
     assert.equal(out.status, 'ready');
     assert.equal(out.canvas.height, h);
@@ -632,7 +632,7 @@ test('renderSingleGlyph: A05 sizes, caption and brand; no ink → noInk without 
     assert.ok(Number(out.canvas.dataset.glyphWidth) <= 648);
     assert.ok(out.canvas.calls.some(c => c[0] === 'fillText' && c[1] === 'jìng · 9月22日'), 'caption drawn');
   }
-  const none = await renderSingleGlyph({ points: [], caption: '', signatureText: '拾字', sealText: '字', palette: PALETTE, canvasFactory: fakeCanvas });
+  const none = await renderSingleGlyph({ points: [], caption: '', signatureText: '拾字', palette: PALETTE, canvasFactory: fakeCanvas });
   assert.equal(none.status, 'noInk');
   assert.equal(none.canvas, null);
 });
@@ -643,7 +643,7 @@ test('annual long image: width 1440, height by content, not capped at 80 chars; 
   const month = (name, n) => ({ name, count: `${n} 字`, cells: Array.from({ length: n }, (_, i) => cell(String.fromCodePoint(0x4e00 + i))) });
   const base = {
     yearText: '二〇二六', line: '这一年，你写过二百零二个字。', first: cell('春'), firstLabel: '今年第一个字', firstDate: '四月二十六日的笔迹',
-    kuan: '拾字　年报', sealText: '字', palette: PALETTE, canvasFactory: fakeCanvas,
+    kuan: '拾字　年报', palette: PALETTE, canvasFactory: fakeCanvas,
   };
   const small = await renderAnnualLong({ ...base, months: [month('4月', 12), month('5月', 90)], tail: null });
   assert.equal(small.canvases.length, 1);

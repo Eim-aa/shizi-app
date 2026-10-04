@@ -37,11 +37,10 @@ function text(ctx, str, x, midY, { font, size, color, align = 'left', weight = 4
 }
 
 /** 公共准备：调色板、字体确认、参考字形、纸纹。 */
-async function prepare({ palette, texts, sealText, cells, requireFont, loadGlyph, imageFactory, fonts }) {
+async function prepare({ palette, texts, cells, requireFont, loadGlyph, imageFactory, fonts }) {
   const pal = palette || readLightPalette();
   if (typeof requireFont === 'function') {
     await requireFont(fonts.song, texts.join(''));
-    if (sealText) await requireFont(fonts.kai, sealText);
     await requireFont(fonts.label, texts.join(''));
   }
   const glyphs = new Map();
@@ -73,24 +72,24 @@ function drawCell(ctx, cell, x, y, c, env, { frame = true, pad } = {}) {
 const BRAND_SEAL = SEAL_SIZE;
 
 /** 册页的印与落款：印在 (896, 1240)，落款右沿在印左 36px（设计稿 cover / tail）。 */
-function drawFoot(ctx, kuan, env, fonts, sealText) {
+function drawFoot(ctx, kuan, env, fonts) {
   const sx = 896;
   const sy = 1240;
-  drawSeal(ctx, { x: sx, y: sy, size: BRAND_SEAL }, { text: sealText, palette: env.pal, font: fonts.kai });
+  drawSeal(ctx, { x: sx, y: sy, size: BRAND_SEAL }, { palette: env.pal });
   text(ctx, kuan, sx - 36, sy + BRAND_SEAL / 2, { font: fonts.song, size: 36, color: env.pal.ink2, align: 'right' });
 }
 
 /**
  * 册页卷首。
- * @param {{yearText:string, line:string, first:{ch,ink,mode}, firstLabel:string, firstDate:string, kuan:string, sealText:string}} o
+ * @param {{yearText:string, line:string, first:{ch,ink,mode}, firstLabel:string, firstDate:string, kuan:string}} o
  */
 export async function renderAnnualCover({
-  yearText, line, first, firstLabel, firstDate, kuan, sealText, palette = null, scale = EXPORT_SCALE, canvasFactory = defaultCanvasFactory,
+  yearText, line, first, firstLabel, firstDate, kuan, palette = null, scale = EXPORT_SCALE, canvasFactory = defaultCanvasFactory,
   paintStroke = null, requireFont = null, loadGlyph = null, imageFactory = null, fonts = FONTS, meta = {},
 }) {
   const W = LOGICAL_W;
   const H = 1440;
-  const env = await prepare({ palette, texts: [yearText, line, firstLabel, firstDate, kuan], sealText, cells: [first], requireFont, loadGlyph, imageFactory, fonts });
+  const env = await prepare({ palette, texts: [yearText, line, firstLabel, firstDate, kuan], cells: [first], requireFont, loadGlyph, imageFactory, fonts });
   env.paintStroke = paintStroke;
   const { canvas, ctx } = makeCanvas(canvasFactory, Math.round(W * scale), Math.round(H * scale));
   ctx.scale(scale, scale);
@@ -100,22 +99,22 @@ export async function renderAnnualCover({
   drawCell(ctx, first, 120, 560, 420, env);
   text(ctx, firstLabel, 580, 900 + 25, { font: fonts.song, size: 36, color: env.pal.ink2 });
   text(ctx, firstDate, 580, 900 + 75, { font: fonts.song, size: 36, color: env.pal.ink2 });
-  drawFoot(ctx, kuan, env, fonts, sealText);
+  drawFoot(ctx, kuan, env, fonts);
   setDataset(canvas, { kind: 'annual-cover', ratio: '3:4', width: canvas.width, height: canvas.height, members: first.ch, signature: kuan, ...meta });
   return { status: 'ready', canvas };
 }
 
 /**
  * 册页卷尾「同一个字，两次」。
- * @param {{title:string, first:{ch,ink,mode}, last:{ch,ink,mode}, firstDate:string, lastDate:string, kuan:string, sealText:string}} o
+ * @param {{title:string, first:{ch,ink,mode}, last:{ch,ink,mode}, firstDate:string, lastDate:string, kuan:string}} o
  */
 export async function renderAnnualTail({
-  title, first, last, firstDate, lastDate, kuan, sealText, palette = null, scale = EXPORT_SCALE, canvasFactory = defaultCanvasFactory,
+  title, first, last, firstDate, lastDate, kuan, palette = null, scale = EXPORT_SCALE, canvasFactory = defaultCanvasFactory,
   paintStroke = null, requireFont = null, loadGlyph = null, imageFactory = null, fonts = FONTS, meta = {},
 }) {
   const W = LOGICAL_W;
   const H = 1440;
-  const env = await prepare({ palette, texts: [title, firstDate, lastDate, kuan], sealText, cells: [first, last], requireFont, loadGlyph, imageFactory, fonts });
+  const env = await prepare({ palette, texts: [title, firstDate, lastDate, kuan], cells: [first, last], requireFont, loadGlyph, imageFactory, fonts });
   env.paintStroke = paintStroke;
   const { canvas, ctx } = makeCanvas(canvasFactory, Math.round(W * scale), Math.round(H * scale));
   ctx.scale(scale, scale);
@@ -125,7 +124,7 @@ export async function renderAnnualTail({
   drawCell(ctx, last, 560, 420, 400, env);
   text(ctx, firstDate, 120, 850 + 25, { font: fonts.song, size: 36, color: env.pal.ink2 });
   text(ctx, lastDate, 560, 850 + 25, { font: fonts.song, size: 36, color: env.pal.ink2 });
-  drawFoot(ctx, kuan, env, fonts, sealText);
+  drawFoot(ctx, kuan, env, fonts);
   setDataset(canvas, { kind: 'annual-tail', ratio: '3:4', width: canvas.width, height: canvas.height, members: first.ch, signature: kuan, ...meta });
   return { status: 'ready', canvas };
 }
@@ -136,12 +135,12 @@ export async function renderAnnualTail({
  * @param {string} o.yearText  @param {string} o.line  @param {{ch,ink,mode}} o.first  @param {string} o.firstLabel  @param {string} o.firstDate
  * @param {Array<{name:string, count:string, cells:Array<{ch,ink,mode}>}>} o.months
  * @param {{title:string, first, last, firstDate:string, lastDate:string}|null} o.tail
- * @param {string} o.kuan  末尾落款（「拾字　年报」）  @param {string} o.sealText
+ * @param {string} o.kuan  末尾落款（「拾字　年报」）
  * @param {number} [o.maxExportHeight]  单张长图的导出高度上限
  * @returns {Promise<{status:'ready', canvases:HTMLCanvasElement[], heights:number[]}>}
  */
 export async function renderAnnualLong({
-  yearText, line, first, firstLabel, firstDate, months, tail = null, kuan, sealText, maxExportHeight = MAX_LONG_EXPORT_HEIGHT,
+  yearText, line, first, firstLabel, firstDate, months, tail = null, kuan, maxExportHeight = MAX_LONG_EXPORT_HEIGHT,
   palette = null, scale = EXPORT_SCALE, canvasFactory = defaultCanvasFactory, paintStroke = null, requireFont = null, loadGlyph = null,
   imageFactory = null, fonts = FONTS, meta = {},
 }) {
@@ -151,7 +150,7 @@ export async function renderAnnualLong({
   const c = Math.floor(CW / ANNUAL_COLS);
   const allCells = [first, ...months.flatMap(m => m.cells), ...(tail ? [tail.first, tail.last] : [])];
   const texts = [yearText, line, firstLabel, firstDate, kuan, ...months.flatMap(m => [m.name, m.count]), ...(tail ? [tail.title, tail.firstDate, tail.lastDate] : [])];
-  const env = await prepare({ palette, texts, sealText, cells: allCells, requireFont, loadGlyph, imageFactory, fonts });
+  const env = await prepare({ palette, texts, cells: allCells, requireFont, loadGlyph, imageFactory, fonts });
   env.paintStroke = paintStroke;
   const pal = env.pal;
 
@@ -217,7 +216,7 @@ export async function renderAnnualLong({
     h: footH,
     draw(ctx, y) {
       const sy = y + 40;
-      drawSeal(ctx, { x: M + CW - BRAND_SEAL, y: sy, size: BRAND_SEAL }, { text: sealText, palette: pal, font: fonts.kai });
+      drawSeal(ctx, { x: M + CW - BRAND_SEAL, y: sy, size: BRAND_SEAL }, { palette: pal });
       text(ctx, kuan, M + CW - BRAND_SEAL - 36, sy + BRAND_SEAL / 2, { font: fonts.song, size: 36, color: pal.ink2, align: 'right' });
     },
   };

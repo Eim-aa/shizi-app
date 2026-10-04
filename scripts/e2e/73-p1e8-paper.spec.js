@@ -224,6 +224,19 @@ export default async function paperSpec(page, ctx) {
   assert.ok(/^\d{4}-\d{2}-\d{2}$/.test(f.sched['base:永'].due), 'FSRS scheduled the paper judgment');
   assert.ok(/「永」记为写对/.test(await text(page, 'write-line')), 'D19 result line as usual');
 
+  ctx.step('P167: 修改 the paper judgment → the sheet shows 写在纸上 (screen reader: 你的书写：写在纸上) instead of an empty ink cell');
+  await page.click(topSel('write-line-change'));
+  await page.waitForSelector(tid('write-change-sheet'));
+  await waitNavIdle(page);
+  const sheetPaper = await page.evaluate(() => {
+    const el = document.querySelector('[data-testid="write-change-sheet"] [data-testid="write-change-paper"]');
+    return el ? { text: el.textContent, label: el.getAttribute('aria-label'), noink: !!document.querySelector('[data-testid="write-change-noink"]') } : null;
+  });
+  assert.deepEqual(sheetPaper, { text: '写在纸上', label: '你的书写：写在纸上', noink: false });
+  await page.click(tid('write-change-cancel'));
+  await page.waitForFunction(() => !document.querySelector('[data-testid="write-change-sheet"]'));
+  await waitNavIdle(page);
+
   // ------------------------------------------------------------------ 4. 单字切换
   ctx.step('P165: next character follows the setting (paper); 改回在屏幕上写 switches only this character');
   assert.equal(await present(page, 'write-paper'), true, '和 starts on paper (setting)');
@@ -264,6 +277,54 @@ export default async function paperSpec(page, ctx) {
   await page.waitForSelector(topSel('write-paper'));
   f = await facts(page);
   assert.equal(f.session.current.paper, true);
+
+  // ------------------------------------------------------------------ 5. 标注：单字详情 / 字墙
+  ctx.step('P169: 单字详情 of 永 — 记录了 2 次; one ink cell (the screen one); the paper record is a row 「{日期}　写对 · 纸上」');
+  await page.evaluate(async () => {
+    const { openDetail } = await import('/src/ui/screens/detail/index.js');
+    openDetail('永');
+  });
+  await page.waitForFunction(() => {
+    const el = document.querySelector('.sz-layer[data-top="true"] [data-testid="detail-screen"]');
+    return !!el && el.dataset.char === '永';
+  });
+  await waitNavIdle(page);
+  const det = await page.evaluate(() => {
+    const top = document.querySelector('.sz-layer[data-top="true"]');
+    const rows = [...top.querySelectorAll('[data-testid="detail-paper-row"]')];
+    const tag = top.querySelector('[data-testid="detail-paper-tag"]');
+    const probe = document.createElement('span');
+    probe.style.color = 'var(--ink3)';
+    top.appendChild(probe);
+    const ink3 = getComputedStyle(probe).color;
+    probe.remove();
+    return {
+      count: top.querySelector('[data-testid="detail-records-count"]').textContent,
+      cells: [...top.querySelectorAll('[data-testid="detail-cell"]')].map(c => ({ id: c.dataset.record, ink: c.dataset.ink, latest: c.dataset.latest || null })),
+      rows: rows.map(r => ({ id: r.dataset.record, visible: [...r.querySelectorAll('[aria-hidden="true"]')].map(s => s.textContent).join('　'), label: r.querySelector('[data-testid="detail-paper-label"]').textContent })),
+      tagColor: tag ? getComputedStyle(tag).color : null,
+      ink3,
+    };
+  });
+  assert.equal(det.count, '记录了 2 次');
+  assert.deepEqual(det.cells, [{ id: firstId, ink: 'true', latest: 'true' }], 'the inked screen record is 你的笔迹 (latest inked); the paper one takes no cell');
+  assert.equal(det.rows.length, 1);
+  assert.equal(det.rows[0].id, paperRec.id);
+  assert.ok(/^\d+ 月 \d+ 日　写对· 纸上$/.test(det.rows[0].visible), `row text: ${det.rows[0].visible}`);
+  assert.ok(/^\d+ 月 \d+ 日，写对，纸上$/.test(det.rows[0].label), `screen-reader label: ${det.rows[0].label}`);
+  assert.equal(det.tagColor, det.ink3, '「· 纸上」 is ink3');
+
+  ctx.step('字墙 as usual — 永 is a normal cell (tone by date), no 「纸上」 mark');
+  await goTab(page, 'library');
+  await page.waitForSelector(`${topSel('library-wall-cell')}[data-char="永"]`);
+  const wall = await page.evaluate(() => {
+    const cell = document.querySelector('.sz-layer[data-top="true"] [data-testid="library-wall-cell"][data-char="永"]');
+    const w = document.querySelector('.sz-layer[data-top="true"] [data-testid="library-wall"]');
+    return { kind: cell.dataset.kind, tone: cell.dataset.tone, label: cell.getAttribute('aria-label'), wallText: w.textContent };
+  });
+  assert.equal(wall.kind, 'ink', 'paper correct → a normal (not wrong) cell');
+  assert.equal(wall.tone, '0', 'newest tone: the paper judgment is today');
+  assert.ok(!/纸上/.test(wall.label) && !/纸上/.test(wall.wallText), 'no paper mark on the wall');
 
   ctx.step('all writes through storage.js');
   let direct = await page.evaluate(() => window.__shiziTest.getWriteLog().filter(e => e.via === 'direct'));

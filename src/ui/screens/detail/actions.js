@@ -156,7 +156,7 @@ export function DetailRows({ model, onList = null, onImage = null, onLegacy, onS
   if (onImage) {
     if (model.image === 'ok') {
       rows.push(html`<${Row} key="image" testid="detail-image" title=${t('R-D04.makeImage')} arrow=${true}
-        onClick=${() => onImage({ char: model.char, cardKey: model.cardKey, record: model.latest })} extra=${{ 'data-state': 'ok' }} />`);
+        onClick=${() => onImage({ char: model.char, cardKey: model.cardKey, record: model.imageRecord || model.latest })} extra=${{ 'data-state': 'ok' }} />`);
     } else {
       const note = model.image === 'noInk' ? tInk('R-D04.noInkNote') : t('R-D04.noRecordNote');
       rows.push(html`<${Row} key="image" testid="detail-image" title=${t('R-D04.makeImage')} off=${true} sub=${note}

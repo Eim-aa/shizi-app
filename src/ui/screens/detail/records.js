@@ -31,7 +31,7 @@ import { injectStyles, T, TEX } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
 import * as defaultPolicy from '../../../config/policy.js';
 import { monthDayParts } from '../../../core/dates.js';
-import { compareRecordIds, forgetList, isJudged, sortById } from '../../../core/records.js';
+import { compareRecordIds, forgetList, isJudged, isPaperRecord, sortById } from '../../../core/records.js';
 import { flattenRecords } from '../../../core/query.js';
 import { promptModel } from '../../../core/cards.js';
 import { decodeInk, resampleForReplay } from '../../../core/ink-math.js';
@@ -64,6 +64,11 @@ injectStyles('detail-records', `
 .sz-dcell__cap{min-height:32px;box-sizing:border-box;padding:0 4px;display:flex;align-items:center;justify-content:center;gap:4px;
   border-top:${T.frameW} solid ${T.frame};font-size:${T.fs11};line-height:${T.lh11};
   color:${T.ink2};font-variant-numeric:tabular-nums;text-align:center}
+.sz-drec__paper{margin:0;padding:0;list-style:none;border-top:${T.hair} solid ${T.line}}
+.sz-drec__prow{display:flex;align-items:center;gap:${T.s3};min-height:52px;border-bottom:${T.hair} solid ${T.line};
+  font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2}}
+.sz-drec__pdate{flex:none;min-width:64px;color:${T.ink1};font-variant-numeric:tabular-nums}
+.sz-drec__ptag{margin-left:0.35em;color:${T.ink3}}
 .sz-dzoom{display:flex;flex-direction:column;gap:${T.s4}}
 .sz-dzoom__sq{width:100%;max-width:300px;align-self:center}
 .sz-dzoom__close{align-self:stretch}
@@ -156,6 +161,11 @@ export function detailModel(state, char, { today, policy = defaultPolicy, lookup
   const mine = recordsOfChar(state, char);
   const judged = mine.filter(isJudged);
   const latest = judged.length ? judged[judged.length - 1] : null;
+  // P1-E8（D46 ⑬，03 P169）：纸上记录照常计数、照常决定写错过 / 快忘了，但不占笔迹格（「你的笔迹」按 D27 / D42 取留有墨迹的那次）；
+  // 记录列表里另起一行「{日期}　写对 · 纸上」。做成图片取屏幕上写的最近一次。
+  const screen = judged.filter(r => !isPaperRecord(r));
+  const paper = judged.filter(isPaperRecord);
+  const inkLatest = screen.length ? screen[screen.length - 1] : null;
   const sched = state && state.sched ? state.sched : null;
   const entry = sched ? sched[cardKey] : null;
   const features = policy.features || {};
@@ -166,7 +176,7 @@ export function detailModel(state, char, { today, policy = defaultPolicy, lookup
   const photo = photos && Object.prototype.hasOwnProperty.call(photos, char) ? photos[char] : null;
   let image = 'ok';
   if (!latest) image = 'noRecord';
-  else if (!hasInk(latest)) image = 'noInk';
+  else if (!inkLatest || !hasInk(inkLatest)) image = 'noInk';
   const word = wordView(card);
   return {
     char,
@@ -185,6 +195,12 @@ export function detailModel(state, char, { today, policy = defaultPolicy, lookup
     count: judged.length,
     first: judged[0] || null,
     latest,
+    // 笔迹格（屏幕上写的判断）与纸上记录行（P1-E8）；inkFirst / inkLatest = 留墨的第一次 / 最近一次（D27 对照用，纸上那次不占位）
+    cells: screen,
+    paperRows: paper,
+    inkFirst: screen[0] || null,
+    inkLatest,
+    imageRecord: inkLatest,
     list: listOf({ records: all, sched, today, cardKey, policy }),
     due,
     image,
@@ -359,7 +375,11 @@ export function RecordsBlock({ model, store }) {
       </div>
     </div>`;
   }
-  const cells = model.judged.map(record => ({ record, ink: inkOf(store, record) }));
+  const source = Array.isArray(model.cells) ? model.cells : model.judged;
+  const cells = source.map(record => ({ record, ink: inkOf(store, record) }));
+  const inkFirst = model.inkFirst !== undefined ? model.inkFirst : model.first;
+  const inkLatest = model.inkLatest !== undefined ? model.inkLatest : model.latest;
+  const paperRows = Array.isArray(model.paperRows) ? model.paperRows : [];
   return html`<div class="sz-drec" data-testid="detail-records" data-count=${model.count}>
     <div class="sz-drec__head">
       <span class="sz-drec__count" data-testid="detail-records-count">${t('R-D03.count', { n: model.count })}</span>
@@ -367,9 +387,35 @@ export function RecordsBlock({ model, store }) {
         ? html`<span class="sz-drec__first" data-testid="detail-records-first">${t('X-DETAIL.firstRecord', { date: dayText(model.first.localDay) })}</span>`
         : null}
     </div>
-    <div class="sz-drec__grid" data-testid="detail-cells">
+    ${cells.length ? html`<div class="sz-drec__grid" data-testid="detail-cells">
       ${cells.map(c => html`<${Cell} key=${c.record.id} record=${c.record} ink=${c.ink} onOpen=${() => openZoom(c.record, c.ink)}
-        first=${model.first === c.record} latest=${model.latest === c.record} />`)}
-    </div>
+        first=${inkFirst === c.record} latest=${inkLatest === c.record} />`)}
+    </div>` : null}
+    ${paperRows.length ? html`<${PaperRows} records=${paperRows} />` : null}
   </div>`;
+}
+
+/** 纸上记录行的文案：「10 月 4 日」「写对」与读屏名「10 月 4 日，写对，纸上」（实现交接 §10.2；P1-E8，P169）。 */
+export function paperRowCopy(record) {
+  const date = dayText(record.localDay);
+  const caption = t(record.judgment === 'wrong' ? 'X-RESULT.cellWrong' : 'X-RESULT.cellCorrect');
+  return { date, caption, tag: t('X-DETAIL.paperTag'), label: t('X-DETAIL.paperRowLabel', { date, caption }) };
+}
+
+/**
+ * 纸上记录（P1-E8，D46 ⑬）：不占笔迹格、不画空格，记录列表里一行「{日期}　写对 · 纸上」（「· 纸上」墨三），按记录先后。
+ * 读屏一行读成「10 月 4 日，写对，纸上」。
+ */
+export function PaperRows({ records }) {
+  return html`<ul class="sz-drec__paper" data-testid="detail-paper-rows">
+    ${records.map(record => {
+      const c = paperRowCopy(record);
+      return html`<li key=${record.id} class="sz-drec__prow" data-testid="detail-paper-row" data-record=${record.id}
+        data-judgment=${record.judgment}>
+        <span class="sr-only" data-testid="detail-paper-label">${c.label}</span>
+        <span class="sz-drec__pdate" aria-hidden="true">${c.date}</span>
+        <span class="sz-drec__pcap" aria-hidden="true">${c.caption}<span class="sz-drec__ptag" data-testid="detail-paper-tag">${c.tag}</span></span>
+      </li>`;
+    })}
+  </ul>`;
 }

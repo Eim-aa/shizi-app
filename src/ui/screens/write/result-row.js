@@ -31,7 +31,7 @@ import { injectStyles, T } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
 import * as defaultPolicy from '../../../config/policy.js';
 import { getStore } from '../../../store/store.js';
-import { compareRecordIds, correctRecord, isJudged, sortById } from '../../../core/records.js';
+import { compareRecordIds, correctRecord, isJudged, isPaperRecord, sortById } from '../../../core/records.js';
 import { canCorrect, fsrsBeforeOf, markLineChanged } from '../../../core/sessions.js';
 import { replay } from '../../../core/fsrs.js';
 import { decodeInk, resampleForReplay } from '../../../core/ink-math.js';
@@ -227,8 +227,10 @@ export function ChangeSheet({ slot, recordId, close, active = true }) {
       <${Button} variant="text" class="sz-change__cancel" data-testid="write-change-cancel" onClick=${() => close && close()}>${t('X-JUDGE.changeCancel')}</${Button}>
       <div class="sz-change__minis">
         <div class="sz-change__col">
-          <${InkMini} points=${ink.points} strokes=${ink.strokes} testid="write-change-mine" label=${mine}
-            emptyText=${t('R-D07.noInkLarge')} emptyTestid="write-change-noink" />
+          ${isPaperRecord(record)
+    ? html`<div class="sz-compare__empty" data-testid="write-change-paper" role="img" aria-label=${t('X-JUDGE.paperMineLabel')}>${t('X-JUDGE.paperMineBox')}</div>`
+    : html`<${InkMini} points=${ink.points} strokes=${ink.strokes} testid="write-change-mine" label=${mine}
+            emptyText=${t('R-D07.noInkLarge')} emptyTestid="write-change-noink" />`}
           <span class="sz-compare__label" aria-hidden="true">${mine}</span>
         </div>
         <div class="sz-change__col">

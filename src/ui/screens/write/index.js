@@ -54,7 +54,7 @@ import { answerInkKey, useAnswerFlow } from './answer.js';
 import { useCompareFlow, useComparePhase } from './compare.js';
 import { useResultRow } from './result-row.js';
 import { useSkip } from './skip.js';
-import { useAnswerFit, useAxLevel, useCompact, useFootHairline, useWriteLayout } from './compact.js';
+import { useAxLevel, useCompact, useFootHairline, useWriteLayout } from './compact.js';
 import { storedStrokes, usePersist } from './persist.js';
 import { useEndGroup } from './end.js';
 import { commitFinish, handoffSkipUndo, openResult } from '../result/index.js';
@@ -311,8 +311,6 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
   const gridSize = layout.g;
   const groupTop = phase === 'compare' ? layout.pair.top : layout.top;
   useFootHairline(writeRef); // 内容比可视高度长（AX 档 / 小屏放不下）时，按钮行上沿出现 hairline
-  const answerFit = useAnswerFit(writeRef, { enabled: compact && phase === 'answer', key: cardKey || '', max: gridSize });
-  const answerSize = Math.min(answerFit, gridSize);
   // M1-5 判断页、结果行、跳过。判断页两格边长 layout.pair（D46 ⑪ / D49：上下排，AX 档取上下排与并排里格子更大的一种）。
   const compare = useCompareFlow({
     slot, session, cardKey, char: charOfCardKey(cardKey), phase, strokes: view.strokes, hints: hint.used, strokeData,
@@ -326,7 +324,7 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
   // M1-4 看答案 / 描一遍 / 自己写（answer.js）：回忆阶段「看答案」按钮、answer 阶段卡片、描红层、格下说明、接管底栏
   // （接管时「结束这组」放在它底栏「下一个」那一行右端，H4）。Q1：本地笔画交给它，离开自己写一遍时存成看后自写的墨迹。
   const answer = useAnswerFlow({
-    slot, session, cardKey, phase, strokeCount: view.strokes.length, strokes: view.strokes, size: compact ? answerSize : gridSize,
+    slot, session, cardKey, phase, strokeCount: view.strokes.length, strokes: view.strokes,
     onShowAnswer: endSkipUndo, endButton: end.button,
   });
 

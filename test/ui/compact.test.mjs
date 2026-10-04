@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  fitAnswerSize, isCompact, axLevelOf, GRID_MIN, GRID_MAX, ANSWER_MIN, ANSWER_MAX, COMPACT_MAX_HEIGHT, COMPACT_QUERY,
+  isCompact, axLevelOf, GRID_MIN, GRID_MAX, COMPACT_MAX_HEIGHT, COMPACT_QUERY,
 } from '../../src/ui/screens/write/compact.js';
 import * as policy from '../../src/config/policy.js';
 
@@ -14,30 +14,8 @@ test('constants follow D36 / V02', () => {
     { min: 258, max: 400, sideMargin: 20, promptGap: 16, toolsHeight: 40, toolsHeightAx: 52, bottomGap: 16, topShare: 0.4, topMin: 12, nominalHead: 44, nominalFoot: 116, footBottomMin: 8, nominalPrompt: 80 },
     'P118（D49：整组居中公式的参数；书写格边长公式的测试在 write-layout.test.mjs）',
   );
-  assert.equal(ANSWER_MIN, 200);
-  assert.equal(ANSWER_MAX, 345);
   assert.equal(COMPACT_QUERY, `(max-height: ${COMPACT_MAX_HEIGHT}px)`);
   assert.ok(COMPACT_MAX_HEIGHT >= 640 && COMPACT_MAX_HEIGHT < 852, '360×640 is compact, 393×852 is not');
-});
-
-test('fitAnswerSize clamps the available height to 200–345 (prototype fitC)', () => {
-  assert.equal(fitAnswerSize({ available: 284.7 }), 284);
-  assert.equal(fitAnswerSize({ available: 120 }), 200);
-  assert.equal(fitAnswerSize({ available: 900 }), 345);
-  assert.equal(fitAnswerSize({ available: NaN }), 345);
-  assert.equal(fitAnswerSize({ available: -50 }), 200);
-});
-
-test('fitAnswerSize max follows the grid edge (write page passes it)', () => {
-  assert.equal(fitAnswerSize({ available: 900, max: 361 }), 361);
-  assert.equal(fitAnswerSize({ available: 900, max: 258 }), 258);
-  assert.equal(fitAnswerSize({ available: 150, max: 361 }), 200);
-});
-
-test('fitAnswerSize never exceeds the content width', () => {
-  assert.equal(fitAnswerSize({ available: 400, width: 320 }), 320);
-  assert.equal(fitAnswerSize({ available: 250, width: 320 }), 250);
-  assert.equal(fitAnswerSize({ available: 400, width: 0 }), 345, 'unknown width is ignored');
 });
 
 function fakeWin({ large = false, matches = false, throws = false } = {}) {

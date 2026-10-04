@@ -2,7 +2,7 @@
 //
 // 何时算「紧凑」：:root[data-text-large]（系统字号 --k ≥ policy.compactTextScale 1.3，P131 / D29，由 platform/text-size.js 设）或视口高度 ≤ COMPACT_MAX_HEIGHT
 // （CSS 与 JS 同一个条件）。D49 起写字页 / 判断页的版式不再分「标准 / 紧凑」两套：页头、题面、书写格、格下工具行、按钮行是同一个结构，只由
-// 可用高度（layout.js）与 AX 档（:root[data-ax]，本文件 useAxLevel）决定尺寸；紧凑条件只剩看答案页的卡片按剩余高度取（useAnswerFit）与页头标题可换行。
+// 可用高度（layout.js）与 AX 档（:root[data-ax]，本文件 useAxLevel）决定尺寸；紧凑条件只剩页头标题可换行（看答案不换卡后，看答案页的卡片按剩余高度取的 useAnswerFit 已删，W1）。
 // 书写格边长 g、组顶、判断页两格边长全部是 layout.js 的纯函数，本文件的 useWriteLayout 只负责量出页面高 / 安全区 / 主区高与题面高后调用（g 与字号、阶段、提示无关，D29 / D36 / P195）。
 //
 // 本模块只放样式、量测 hook 与尺寸计算；写字页 index.js 读 useCompact() / useWriteLayout() 决定结构与尺寸。
@@ -16,9 +16,6 @@ import {
 
 export { GRID_MIN, GRID_MAX };
 
-/** 看答案页卡片边长下限 / 缺省上限（V02：200–345；写字页实际上限取书写格边长）。 */
-export const ANSWER_MIN = 200;
-export const ANSWER_MAX = 345;
 /** 视口高度不超过此值时用紧凑版（policy.compactMaxHeight，P69，D36；见本文件头）。 */
 export const COMPACT_MAX_HEIGHT = policy.compactMaxHeight;
 export const COMPACT_QUERY = `(max-height: ${COMPACT_MAX_HEIGHT}px)`;
@@ -241,56 +238,4 @@ export function useFootHairline(writeRef, deps = []) {
       if (foot) foot.removeAttribute('data-under');
     };
   }, deps);
-}
-
-/**
- * 看答案页卡片边长（纯函数；原型 fitC L382–L384）：可用高度夹在 200–345 之间，且不超过内容宽。
- * @param {{available:number, width?:number, min?:number, max?:number}} o
- */
-export function fitAnswerSize({ available, width = Infinity, min = ANSWER_MIN, max = ANSWER_MAX }) {
-  const avail = Number.isFinite(available) ? Math.floor(available) : max;
-  const byHeight = Math.max(min, Math.min(max, avail));
-  const w = Number.isFinite(width) && width > 0 ? Math.floor(width) : Infinity;
-  return Math.min(byHeight, w);
-}
-
-/**
- * 紧凑版看答案页：量出正文里除卡片外的高度，卡片取剩下的高度（200–345）。
- * @param {{current: HTMLElement|null}} writeRef  .sz-write 元素
- * @param {{enabled:boolean, key?:string, max?:number}} o  enabled：紧凑版且在 answer 阶段；key 变化（换字）时重量；max：卡片上限（写字页传书写格边长）
- * @returns {number}
- */
-export function useAnswerFit(writeRef, { enabled, key = '', max = ANSWER_MAX }) {
-  const [size, setSize] = useState(max);
-  useLayoutEffect(() => {
-    if (!enabled) return undefined;
-    const el = writeRef.current;
-    const body = el && el.closest ? el.closest('.sz-page__body') : null;
-    if (!el || !body || typeof getComputedStyle !== 'function') return undefined;
-    const measure = () => {
-      const card = el.querySelector('[data-testid="write-answer-card"]');
-      if (!card) return;
-      const cs = getComputedStyle(body);
-      const px = v => parseFloat(v) || 0;
-      const wrap = card.closest('.sz-write__gridwrap');
-      const innerW = wrap ? wrap.clientWidth : body.clientWidth - px(cs.paddingLeft) - px(cs.paddingRight);
-      const other = el.offsetHeight - card.offsetHeight + px(cs.paddingTop) + px(cs.paddingBottom);
-      const next = fitAnswerSize({ available: body.clientHeight - other, width: innerW, max });
-      setSize(prev => (Math.abs(prev - next) > 1 ? next : prev));
-    };
-    measure();
-    let ro = null;
-    if (typeof ResizeObserver === 'function') {
-      ro = new ResizeObserver(measure);
-      ro.observe(body);
-      ro.observe(el);
-    } else {
-      window.addEventListener('resize', measure);
-    }
-    return () => {
-      if (ro) ro.disconnect();
-      else window.removeEventListener('resize', measure);
-    };
-  }, [enabled, key, max]);
-  return size;
 }

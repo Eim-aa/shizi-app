@@ -459,7 +459,6 @@ function useAnswerFirstNote({ phase, cardKey }) {
  * @param {string} o.phase
  * @param {number} o.strokeCount  当前阶段书写格笔数
  * @param {Array} [o.strokes]  当前阶段书写格的本人原始笔画（离开自己写一遍时存成看后自写的墨迹，Q1）
- * @param {number} [o.size=345]
  * @param {() => void} [o.onShowAnswer]  点了「看答案」（写入前；写字页用来结束跳过的撤销机会，G3）
  * @param {any} [o.endButton]  「结束这组」按钮（write/end.js useEndGroup().button；picked 会话才有）：放在底栏「下一个」那一行的
  *   右端（与回忆阶段「跳过」那一行同一位置，M2 验收 H4）；保存失败两键占住底栏时不显示。
@@ -468,7 +467,7 @@ function useAnswerFirstNote({ phase, cardKey }) {
  *   link：回忆阶段「看答案」按钮（放 write-answer-slot）；stage：恒为 null（看答案不换卡，答案衬底画在书写格参考字形层里，D51 ⑧）；
  *   glyphLayer：answer 阶段的答案衬底 / trace 阶段的描红，书写格参考字形层内容；note：书写格下说明（write-note）；footer：接管时的底栏。
  */
-export function useAnswerFlow({ slot, session, cardKey, phase, strokeCount = 0, strokes = null, size = 345, onShowAnswer, endButton = null }) {
+export function useAnswerFlow({ slot, session, cardKey, phase, strokeCount = 0, strokes = null, onShowAnswer, endButton = null }) {
   const char = cardKey ? charOfCardKey(cardKey) : null;
   const answerSeen = !!(session && session.current && session.current.answerSeen);
   const inFlow = ANSWER_PHASES.includes(phase);

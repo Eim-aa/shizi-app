@@ -11,6 +11,9 @@
 //   data-ax="1".."5"     AX 档（AX 专用防溢出规则挂在 :root[data-ax] 上，见 ui/components/ax.js）。
 //   data-text-large      --k ≥ policy.compactTextScale（P131）：写字页 / 首页等用紧凑排布（与视口高 ≤ 760 同一套，P69 / D36）。
 // 书写格边长与字号无关（P118 / D36，write/compact.js writeGridSize 不读这些属性）。
+// AX 档字阶（D49 / P186）：data-ax="1".."5" 是 AX 分级字号的唯一开关——tokens.css 的 :root[data-ax="N"] 块按等级覆盖每级的 --fsN / --lhN / --btn-h
+//   （取值表 tokens.json typography.dynamicType.ax，test/ax-type.test.mjs 逐值核对），AX 档的字阶因此不再乘 --k；xS–XXXL 仍按连续 --k。
+//   本模块只写 data-ax 与 --k，不写每级字号（避免 JS / CSS 两份取值表）。
 //
 // 网页（PWA / 浏览器，无原生桥）：没有人调用 shiziContentSize，--k 保持 1（P133：不读浏览器默认字号，理由见 03 P133）。
 //

@@ -7,9 +7,10 @@
  * 主题：无 data-theme 时跟随系统（prefers-color-scheme）；:root[data-theme="light"|"dark"] 强制。深色块写两遍
  * （媒体查询一遍、data-theme 一遍），两遍必须逐字一致（单测核对）。.t-light / .t-dark 是局部强制：一块子树里不随主题
  * （例如图片预览的画布永远是浅色纸面、旧记录照片页永远是深色）时给它们加这个类，令牌在子树内换成对应主题的取值。
- * 字号：字阶 7 级（11 / 13 / 15 / 17 / 22 / 28 / 34），--fsN 与 --lhN 已乘 --k；--k 是字号倍率，缺省 1；在 iOS 壳里跟随系统
+ * 字号：字阶 7 级（11 / 13 / 15 / 17 / 22 / 28 / 34），--fsN 与 --lhN 在 xS–XXXL 已乘 --k；--k 是字号倍率，缺省 1；在 iOS 壳里跟随系统
  * Dynamic Type（D29，覆盖 P59 的 data-large 1.3）：src/platform/text-size.js 收到原生 shiziContentSize 后把连续倍率写成 :root 的行内
  * --k（policy.contentSizeScale，P130），AX 档加 data-ax、--k ≥ 1.3 加 data-text-large（P131）。网页（无原生桥）保持 1（P133）。
+ * AX1–AX5（D49）：字阶不再乘 --k，:root[data-ax="N"] 逐级直接取值（见下方 AX 块；取值表 tokens.json typography.dynamicType.ax）。
  * 颜色字面量只允许出现在本文件（scripts/verify_tokens.mjs 检查）；朱色 --zhu / --seal 只许出现在白名单组件（同脚本）。
  *
  * 对比度（tokens.json color.contrast，test/ui/contrast.test.mjs 逐对实算，低于阈值即失败）：ink3 在 field 上浅色只有 4.2:1，
@@ -64,6 +65,105 @@
   --tex-size: 240px 240px, 600px 600px; /* 纸纹两层的平铺尺寸（细颗粒 + 低频云絮）· 来源：tokens.json texture.asset */
   --tex-light: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .42  0 0 0 0 .36  0 0 0 0 .28  0 0 0 .055 0'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)'/%3E%3C/svg%3E"), url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='600'%3E%3Cfilter id='c'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.016' numOctaves='3' seed='11' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .42  0 0 0 0 .36  0 0 0 0 .28  0 0 0 .16 -.06'/%3E%3C/filter%3E%3Crect width='600' height='600' filter='url(%23c)'/%3E%3C/svg%3E"); /* 纸纹占位（浅）：细颗粒 .055 + 低频云絮 .10；真实扫描纸纹资产以后再换 · 来源：tokens.json texture.placeholderStrength.light */
   --tex-dark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .96  0 0 0 0 .9  0 0 0 0 .8  0 0 0 .035 0'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)'/%3E%3C/svg%3E"), url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='600'%3E%3Cfilter id='c'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.016' numOctaves='3' seed='11' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .96  0 0 0 0 .9  0 0 0 0 .8  0 0 0 .07 -.03'/%3E%3C/filter%3E%3Crect width='600' height='600' filter='url(%23c)'/%3E%3C/svg%3E"); /* 纸纹占位（深）：细颗粒 .035 + 低频云絮 .04 · 来源：tokens.json texture.placeholderStrength.dark */
+}
+
+/* ---- AX1–AX5：字阶按层级分别取值（D49，像系统 Text Style；xS–XXXL 仍按 --k 连续倍率，AX 档不再读 --k 放大字阶）----
+ * 取值表 tokens.json typography.dynamicType.ax（pt）；行高 = 字号 × 1.18 取整到偶数，且不小于该级默认行高；--btn-h = max(54, lh17 + 26)。
+ * platform/text-size.js 给 <html> 写 data-ax="1".."5"，这里按等级覆盖 --fsN / --lhN / --btn-h。阶段 2 原生用 UIFontMetrics 得到同样的值（±1pt 以系统为准）。
+ * 作品内文字（落款、印、字帖、分享预览）与 Tab 栏不读这些变量，固定不放大。 */
+:root[data-ax="1"] {
+  --fs34: 44px; /* 字阶 34（AX1，对应系统 Large Title）· 来源：tokens.json typography.dynamicType.ax.t34[0] */
+  --lh34: 52px; /* 字阶 34 行高（AX1：字号 × 1.18 取整到偶数，不小于默认）· 来源：tokens.json typography.dynamicType.ax.lineHeight */
+  --fs28: 38px; /* 字阶 28（AX1，对应系统 Title 1）· 来源：tokens.json typography.dynamicType.ax.t28[0] */
+  --lh28: 44px; /* 字阶 28 行高（AX1：字号 × 1.18 取整到偶数，不小于默认）· 来源：tokens.json typography.dynamicType.ax.lineHeight */
+  --fs22: 34px; /* 字阶 22（AX1，对应系统 Title 2）· 来源：tokens.json typography.dynamicType.ax.t22[0] */
+  --lh22: 40px; /* 字阶 22 行高（AX1：字号 × 1.18 取整到偶数，不小于默认）· 来源：tokens.json typography.dynamicType.ax.lineHeight */
+  --fs17: 28px; /* 字阶 17（AX1，对应系统 Body）· 来源：tokens.json typography.dynamicType.ax.t17[0] */
+  --lh17: 34px; /* 字阶 17 行高（AX1：字号 × 1.18 取整到偶数，不小于默认）· 来源：tokens.json typography.dynamicType.ax.lineHeight */
+  --lh17s: 34px; /* 字阶 17 单行行高（AX1：与多行行高同值）· 来源：tokens.json typography.dynamicType.ax.lineHeight */
+  --fs15: 25px; /* 字阶 15（AX1，对应系统 Subhead）· 来源：tokens.json typography.dynamicType.ax.t15[0] */
+  --lh15: 30px; /* 字阶 15 行高（AX1：字号 × 1.18 取整到偶数，不小于默认）· 来源：tokens.json typography.dynamicType.ax.lineHeight */
+  --fs13: 23px; /* 字阶 13（AX1，对应系统 Footnote）· 来源：tokens.json typography.dynamicType.ax.t13[0] */
+  --lh13: 28px; /* 字阶 13 行高（AX1：字号 × 1.18 取整到偶数，不小于默认）· 来源：tokens.json typography.dynamicType.ax.lineHeight */
+  --fs11: 20px; /* 字阶 11（AX1，对应系统 Caption 2）· 来源：tokens.json typography.dynamicType.ax.t11[0] */
+  --lh11: 24px; /* 字阶 11 行高（AX1：字号 × 1.18 取整到偶数，不小于默认）· 来源：tokens.json typography.dynamicType.ax.lineHeight */
+  --btn-h: 60px; /* 主 / 次按钮高（AX1：max(54, lh17 + 26)）· 来源：tokens.json typography.dynamicType.ax.buttonHeight */
+}
+
+:root[data-ax="2"] {
+  --fs34: 48px; /* 字阶 34（AX2，对应系统 Large Title）· 来源：tokens.json typography.dynamicType.ax.t34[1] */
+  --lh34: 56px; /* 字阶 34 行高（AX2：字号 × 1.18 取整到偶数，不小于默认）· 来源：tokens.json typography.dynamicType.ax.lineHeight */
+  --fs28: 43px; /* 字阶 28（AX2，对应系统 Title 1）· 来源：tokens.json typography.dynamicType.ax.t28[1] */
+  --lh28: 50px; /* 字阶 28 行高（AX2：字号 × 1.18 取整到偶数，不小于默认）· 来源：tokens.json typography.dynamicType.ax.lineHeight */
+  --fs22: 39px; /* 字阶 22（AX2，对应系统 Title 2）· 来源：tokens.json typography.dynamicType.ax.t22[1] */
+  --lh22: 46px; /* 字阶 22 行高（AX2：字号 × 1.18 取整到偶数，不小于默认）· 来源：tokens.json typography.dynamicType.ax.lineHeight */
+  --fs17: 33px; /* 字阶 17（AX2，对应系统 Body）· 来源：tokens.json typography.dynamicType.ax.t17[1] */
+  --lh17: 38px; /* 字阶 17 行高（AX2：字号 × 1.18 取整到偶数，不小于默认）· 来源：tokens.json typography.dynamicType.ax.lineHeight */
+  --lh17s: 38px; /* 字阶 17 单行行高（AX2：与多行行高同值）· 来源：tokens.json typography.dynamicType.ax.lineHeight */
+  --fs15: 30px; /* 字阶 15（AX2，对应系统 Subhead）· 来源：tokens.json typography.dynamicType.ax.t15[1] */
+  --lh15: 36px; /* 字阶 15 行高（AX2：字号 × 1.18 取整到偶数，不小于默认）· 来源：tokens.json typography.dynamicType.ax.lineHeight */
+  --fs13: 27px; /* 字阶 13（AX2，对应系统 Footnote）· 来源：tokens.json typography.dynamicType.ax.t13[1] */
+  --lh13: 32px; /* 字阶 13 行高（AX2：字号 × 1.18 取整到偶数，不小于默认）· 来源：tokens.json typography.dynamicType.ax.lineHeight */
+  --fs11: 24px; /* 字阶 11（AX2，对应系统 Caption 2）· 来源：tokens.json typography.dynamicType.ax.t11[1] */
+  --lh11: 28px; /* 字阶 11 行高（AX2：字号 × 1.18 取整到偶数，不小于默认）· 来源：tokens.json typography.dynamicType.ax.lineHeight */
+  --btn-h: 64px; /* 主 / 次按钮高（AX2：max(54, lh17 + 26)）· 来源：tokens.json typography.dynamicType.ax.buttonHeight */
+}
+
+:root[data-ax="3"] {
+  --fs34: 52px; /* 字阶 34（AX3，对应系统 Large Title）· 来源：tokens.json typography.dynamicType.ax.t34[2] */
+  --lh34: 62px; /* 字阶 34 行高（AX3：字号 × 1.18 取整到偶数，不小于默认）· 来源：tokens.json typography.dynamicType.ax.lineHeight */
+  --fs28: 48px; /* 字阶 28（AX3，对应系统 Title 1）· 来源：tokens.json typography.dynamicType.ax.t28[2] */
+  --lh28: 56px; /* 字阶 28 行高（AX3：字号 × 1.18 取整到偶数，不小于默认）· 来源：tokens.json typography.dynamicType.ax.lineHeight */
+  --fs22: 44px; /* 字阶 22（AX3，对应系统 Title 2）· 来源：tokens.json typography.dynamicType.ax.t22[2] */
+  --lh22: 52px; /* 字阶 22 行高（AX3：字号 × 1.18 取整到偶数，不小于默认）· 来源：tokens.json typography.dynamicType.ax.lineHeight */
+  --fs17: 40px; /* 字阶 17（AX3，对应系统 Body）· 来源：tokens.json typography.dynamicType.ax.t17[2] */
+  --lh17: 48px; /* 字阶 17 行高（AX3：字号 × 1.18 取整到偶数，不小于默认）· 来源：tokens.json typography.dynamicType.ax.lineHeight */
+  --lh17s: 48px; /* 字阶 17 单行行高（AX3：与多行行高同值）· 来源：tokens.json typography.dynamicType.ax.lineHeight */
+  --fs15: 36px; /* 字阶 15（AX3，对应系统 Subhead）· 来源：tokens.json typography.dynamicType.ax.t15[2] */
+  --lh15: 42px; /* 字阶 15 行高（AX3：字号 × 1.18 取整到偶数，不小于默认）· 来源：tokens.json typography.dynamicType.ax.lineHeight */
+  --fs13: 33px; /* 字阶 13（AX3，对应系统 Footnote）· 来源：tokens.json typography.dynamicType.ax.t13[2] */
+  --lh13: 38px; /* 字阶 13 行高（AX3：字号 × 1.18 取整到偶数，不小于默认）· 来源：tokens.json typography.dynamicType.ax.lineHeight */
+  --fs11: 29px; /* 字阶 11（AX3，对应系统 Caption 2）· 来源：tokens.json typography.dynamicType.ax.t11[2] */
+  --lh11: 34px; /* 字阶 11 行高（AX3：字号 × 1.18 取整到偶数，不小于默认）· 来源：tokens.json typography.dynamicType.ax.lineHeight */
+  --btn-h: 74px; /* 主 / 次按钮高（AX3：max(54, lh17 + 26)）· 来源：tokens.json typography.dynamicType.ax.buttonHeight */
+}
+
+:root[data-ax="4"] {
+  --fs34: 56px; /* 字阶 34（AX4，对应系统 Large Title）· 来源：tokens.json typography.dynamicType.ax.t34[3] */
+  --lh34: 66px; /* 字阶 34 行高（AX4：字号 × 1.18 取整到偶数，不小于默认）· 来源：tokens.json typography.dynamicType.ax.lineHeight */
+  --fs28: 53px; /* 字阶 28（AX4，对应系统 Title 1）· 来源：tokens.json typography.dynamicType.ax.t28[3] */
+  --lh28: 62px; /* 字阶 28 行高（AX4：字号 × 1.18 取整到偶数，不小于默认）· 来源：tokens.json typography.dynamicType.ax.lineHeight */
+  --fs22: 50px; /* 字阶 22（AX4，对应系统 Title 2）· 来源：tokens.json typography.dynamicType.ax.t22[3] */
+  --lh22: 60px; /* 字阶 22 行高（AX4：字号 × 1.18 取整到偶数，不小于默认）· 来源：tokens.json typography.dynamicType.ax.lineHeight */
+  --fs17: 47px; /* 字阶 17（AX4，对应系统 Body）· 来源：tokens.json typography.dynamicType.ax.t17[3] */
+  --lh17: 56px; /* 字阶 17 行高（AX4：字号 × 1.18 取整到偶数，不小于默认）· 来源：tokens.json typography.dynamicType.ax.lineHeight */
+  --lh17s: 56px; /* 字阶 17 单行行高（AX4：与多行行高同值）· 来源：tokens.json typography.dynamicType.ax.lineHeight */
+  --fs15: 42px; /* 字阶 15（AX4，对应系统 Subhead）· 来源：tokens.json typography.dynamicType.ax.t15[3] */
+  --lh15: 50px; /* 字阶 15 行高（AX4：字号 × 1.18 取整到偶数，不小于默认）· 来源：tokens.json typography.dynamicType.ax.lineHeight */
+  --fs13: 38px; /* 字阶 13（AX4，对应系统 Footnote）· 来源：tokens.json typography.dynamicType.ax.t13[3] */
+  --lh13: 44px; /* 字阶 13 行高（AX4：字号 × 1.18 取整到偶数，不小于默认）· 来源：tokens.json typography.dynamicType.ax.lineHeight */
+  --fs11: 34px; /* 字阶 11（AX4，对应系统 Caption 2）· 来源：tokens.json typography.dynamicType.ax.t11[3] */
+  --lh11: 40px; /* 字阶 11 行高（AX4：字号 × 1.18 取整到偶数，不小于默认）· 来源：tokens.json typography.dynamicType.ax.lineHeight */
+  --btn-h: 82px; /* 主 / 次按钮高（AX4：max(54, lh17 + 26)）· 来源：tokens.json typography.dynamicType.ax.buttonHeight */
+}
+
+:root[data-ax="5"] {
+  --fs34: 60px; /* 字阶 34（AX5，对应系统 Large Title）· 来源：tokens.json typography.dynamicType.ax.t34[4] */
+  --lh34: 70px; /* 字阶 34 行高（AX5：字号 × 1.18 取整到偶数，不小于默认）· 来源：tokens.json typography.dynamicType.ax.lineHeight */
+  --fs28: 58px; /* 字阶 28（AX5，对应系统 Title 1）· 来源：tokens.json typography.dynamicType.ax.t28[4] */
+  --lh28: 68px; /* 字阶 28 行高（AX5：字号 × 1.18 取整到偶数，不小于默认）· 来源：tokens.json typography.dynamicType.ax.lineHeight */
+  --fs22: 56px; /* 字阶 22（AX5，对应系统 Title 2）· 来源：tokens.json typography.dynamicType.ax.t22[4] */
+  --lh22: 66px; /* 字阶 22 行高（AX5：字号 × 1.18 取整到偶数，不小于默认）· 来源：tokens.json typography.dynamicType.ax.lineHeight */
+  --fs17: 53px; /* 字阶 17（AX5，对应系统 Body）· 来源：tokens.json typography.dynamicType.ax.t17[4] */
+  --lh17: 62px; /* 字阶 17 行高（AX5：字号 × 1.18 取整到偶数，不小于默认）· 来源：tokens.json typography.dynamicType.ax.lineHeight */
+  --lh17s: 62px; /* 字阶 17 单行行高（AX5：与多行行高同值）· 来源：tokens.json typography.dynamicType.ax.lineHeight */
+  --fs15: 49px; /* 字阶 15（AX5，对应系统 Subhead）· 来源：tokens.json typography.dynamicType.ax.t15[4] */
+  --lh15: 58px; /* 字阶 15 行高（AX5：字号 × 1.18 取整到偶数，不小于默认）· 来源：tokens.json typography.dynamicType.ax.lineHeight */
+  --fs13: 44px; /* 字阶 13（AX5，对应系统 Footnote）· 来源：tokens.json typography.dynamicType.ax.t13[4] */
+  --lh13: 52px; /* 字阶 13 行高（AX5：字号 × 1.18 取整到偶数，不小于默认）· 来源：tokens.json typography.dynamicType.ax.lineHeight */
+  --fs11: 40px; /* 字阶 11（AX5，对应系统 Caption 2）· 来源：tokens.json typography.dynamicType.ax.t11[4] */
+  --lh11: 48px; /* 字阶 11 行高（AX5：字号 × 1.18 取整到偶数，不小于默认）· 来源：tokens.json typography.dynamicType.ax.lineHeight */
+  --btn-h: 88px; /* 主 / 次按钮高（AX5：max(54, lh17 + 26)）· 来源：tokens.json typography.dynamicType.ax.buttonHeight */
 }
 
 /* ---- 浅色（默认；data-theme="light" 强制；.t-light 局部强制） ---- */

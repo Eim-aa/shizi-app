@@ -21,10 +21,15 @@ const DARK = ':root[data-theme="dark"], .t-dark';
 const kebab = s => s.replace(/[A-Z]/g, m => `-${m.toLowerCase()}`);
 
 function declsByContext(cssText) {
-  const ctx = { base: {}, light: {}, dark: {}, darkMedia: {} };
+  const ctx = { base: {}, light: {}, dark: {}, darkMedia: {}, ax: { 1: {}, 2: {}, 3: {}, 4: {}, 5: {} } };
   for (const d of parseTokenDecls(cssText)) {
     const s = d.selectors;
     let key = null;
+    const axLevel = s.length === 1 ? /^:root\[data-ax="([1-5])"\]$/.exec(s[0]) : null; // D49：AX1–AX5 分级字阶块
+    if (axLevel) {
+      ctx.ax[axLevel[1]][d.name] = d;
+      continue;
+    }
     if (s.length === 1 && s[0] === ':root') key = 'base';
     else if (s.length === 1 && s[0] === LIGHT) key = 'light';
     else if (s.length === 1 && s[0] === DARK) key = 'dark';

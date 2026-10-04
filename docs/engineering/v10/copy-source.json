@@ -103,6 +103,9 @@
     "X-PERSIST.quotaFailed": "P66 旧 index.html L1067 配额句逐字；03 P66 已登记「建议改写」，待文案"
   },
   "nonRuntimeDecisions": {
+    "P186": "AX1–AX5 字阶按层级分别取值（已决定 D49）：样式取值，src/config/tokens.css 的 :root[data-ax=\"N\"] 块与 tokens.json typography.dynamicType.ax，test/ax-type.test.mjs 核对；不是运行时开关",
+    "P187": "首页减法版式（已决定 D49）：题记一行横排、去掉计数与「昨天写的字」行、字帖格两种线、AX 档字帖格宽重算——版式与派生规则，src/ui/screens/home/*；不是运行时开关；删去的文案槽见 X-HOME 各键的 note",
+    "P188": "Tab 栏不随动态字体放大、选中实心图标（已决定 D49）：样式取值，src/ui/components/Tabs.js 与 tab-icons.js；不是运行时开关",
     "P22": "字体子集重建范围：构建期（M5-2 用 #180 reproduce.py），不是运行时开关",
     "P58": "深色暖灯与深色提亮一档：已决定 D43（设计系统 v1）——暖灯取消、深色提示 / 描一遍 / 禁用颜色在 docs/design/design-system-v1/tokens.json 单独定值；原 policy.darkLampLevel / darkBrightenStep 随阶段 1 P1-E1a 删除，不再是运行时开关",
     "P140": "旧字号 / 行高归并到字阶（9–36px 共 25 种并入 7 级）：样式取值，src/ui/** 的 CSS 与 scripts/verify_tokens.mjs 的检查，不是运行时开关；字格里的楷体字面登记为例外",

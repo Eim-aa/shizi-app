@@ -10,16 +10,20 @@
 //   3. 关键按钮在视口内：滚到它（允许纵向滚动，AX 档内容本来就比一屏长）后整块在可见区内、不被底栏 / tab 条盖住（elementFromPoint），
 //      且触控区 ≥ 44×44pt（R-G09 / --tap）；tab 根页的三个 tab 也一样。
 //   4. 书写格边长不随字号变化（阶段 0 卡 D / D36 / P118 的口径）：写字页同一视口各档的格子边长都等于 L 档的边长。
+//   5. （E9a，D49）字阶按档取值：xS–XXXL 仍是 Npx × --k（连续）；AX1–AX5 不再乘 --k，每一级各取设计表内的值（像系统 Text Style）——
+//      读首页「日期（t13）/ 标题（t28）/ 主按钮（t17）」与 :root 上的 --fs / --btn-h 的计算值，AX3 / AX5 与设计表逐值相等，层级不倒置。
+//      旧断言只测「--k 的值」，AX 档的字阶在旧实现里是 k 的倍数（AX5 的 t28 = 67.2、t13 = 31.2），本条在旧实现下为红。
 // 完整 AX 版式等设计稿（ui/components/ax.js 只放防溢出的过渡规则）；真机矩阵见 DEVICE_QA Q24。
 
 import { longTextCatalog, seedLongText } from './fixtures/long-text.mjs';
 
 const TOP = '.sz-layer[data-top="true"]';
+// type = [t13, t28, t17, 按钮高] 的计算值（px）；xS–XXXL = Npx × k，AX = 设计表内的值（D49：减法修稿 §5-1，t13 / t28 / t17 / max(54, lh17 + 26)）
 const SIZES = [
-  { category: 'L', k: '1', ax: null, large: false },
-  { category: 'XXXL', k: '1.35', ax: null, large: true },
-  { category: 'AX3', k: '2', ax: '3', large: true },
-  { category: 'AX5', k: '2.4', ax: '5', large: true },
+  { category: 'L', k: '1', ax: null, large: false, type: [13, 28, 17, 54] },
+  { category: 'XXXL', k: '1.35', ax: null, large: true, type: [17.55, 37.8, 22.95, 54] },
+  { category: 'AX3', k: '2', ax: '3', large: true, type: [33, 48, 40, 74] },
+  { category: 'AX5', k: '2.4', ax: '5', large: true, type: [44, 58, 53, 88] },
 ];
 const VIEWS = [{ width: 393, height: 852 }, { width: 320, height: 568 }];
 const TABS = ['tab-home', 'tab-library', 'tab-mine'];
@@ -68,6 +72,14 @@ function measure({ primary, tabs }) {
     ax: root.getAttribute('data-ax'),
     large: root.hasAttribute('data-text-large'),
   };
+  const probe = document.createElement('div'); // var() 在 getPropertyValue 里不展开：用探针元素读计算值
+  document.body.appendChild(probe);
+  const px = (prop, name) => {
+    probe.style.cssText = `position:absolute;visibility:hidden;${prop}:var(${name})`;
+    return parseFloat(getComputedStyle(probe)[prop === 'height' ? 'height' : 'fontSize']);
+  };
+  env.type = [px('font-size', '--fs13'), px('font-size', '--fs28'), px('font-size', '--fs17'), px('height', '--btn-h')].map(v => Math.round(v * 100) / 100);
+  probe.remove();
   const top = document.querySelector('.sz-layer[data-top="true"]');
   if (!top) return { env, problems: ['no top layer'] };
   if (root.scrollWidth > vw + 0.5) problems.push(`document scrollWidth ${root.scrollWidth} > ${vw}`);
@@ -171,7 +183,8 @@ export default async function textSize(page, ctx) {
         }
         const m = await page.evaluate(measure, { primary: p.primary, tabs: !!p.tabs });
         const t = `${tag} ${size.category}`;
-        assert.deepEqual(m.env, { k: size.k, ax: size.ax, large: size.large }, `${t}: --k ${size.k}, data-ax ${size.ax}, data-text-large ${size.large}`);
+        assert.deepEqual({ ...m.env, type: undefined }, { k: size.k, ax: size.ax, large: size.large, type: undefined }, `${t}: --k ${size.k}, data-ax ${size.ax}, data-text-large ${size.large}`);
+        assert.deepEqual(m.env.type, size.type, `${t}: --fs13 / --fs28 / --fs17 / --btn-h = ${size.type.join(' / ')} (D49: AX tiers are absolute, xS–XXXL = N × k)`);
         assert.deepEqual(m.problems, [], `${t}: no horizontal overflow; key buttons inside the viewport, uncovered, ≥44pt`);
         if (p.grid) {
           assert.ok(m.grid && m.grid.w >= 258 - 0.5 && Math.abs(m.grid.w - m.grid.h) < 1, `${t}: square grid ≥ 258 (${m.grid && m.grid.w})`);

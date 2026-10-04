@@ -182,7 +182,7 @@ export function glyphStatus(char, { scheduler = getGlyphScheduler(), peek = peek
 
 injectStyles('practice-glyph', `
 .sz-pg{position:relative;display:block;width:100%;height:100%;flex:none;line-height:1;color:inherit;user-select:none;-webkit-user-select:none}
-.sz-pg__sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;border:0;clip-path:inset(50%);white-space:nowrap}
+.sz-pg__sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;border:0;clip-path:inset(50%);white-space:nowrap;font-size:calc(11px * 1)} /* 视觉隐藏的字不随字号放大：AX 档逐级字阶（D49）下继承来的字号会让这 1px 盒的文字溢出到右边、撑出格子的 scrollWidth */
 .sz-pg__svg{position:absolute;left:0;top:0;width:100%;height:100%;overflow:visible;pointer-events:none}
 .sz-pg[data-glyph-src="fallback"],.sz-pg[data-glyph-src="text"]{container-type:inline-size}
 .sz-pg__fb{position:absolute;left:0;top:0;width:100%;height:100%;display:grid;place-items:center;font-family:${T.kai};

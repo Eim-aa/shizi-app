@@ -276,6 +276,8 @@ export const migration = Object.freeze({
 // xS–XXXL 取 iOS 正文（body）字号与默认 17pt 之比（14/15/16/17/19/21/23 pt）。AX1–AX5 继续增大但比 iOS 正文（28–53pt，×1.65–3.12）收一些：
 // --k 是全站同一个倍率，标题 / 题面这些大字也乘它，而 iOS 自己在 AX 档里大字放大得少得多（Large Title 只到 ×1.76）；
 // 取正文与大标题之间的值，完整 AX 版式（逐级字阶）待设计稿给出后再细分。须经 T5 系统字号矩阵（DEVICE_QA Q24）真机截图确认。
+// 【D49 / P186】AX1–AX5 的**字阶**已不再乘 --k：tokens.css 的 :root[data-ax="N"] 逐级直接取值（像系统 Text Style，取值表 tokens.json
+// typography.dynamicType.ax）。下面 AX 档的 --k 只剩两个用途：compactTextScale 的紧凑排布判定，以及少数非字阶尺寸（间距、图标等）的倍率。
 export const contentSizeScale = Object.freeze({
   xS: 0.82, // P130 extraSmall（14pt）
   S: 0.88, // P130 small（15pt）

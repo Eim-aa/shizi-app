@@ -7401,6 +7401,7 @@ src/ui/screens/session/index.js
 src/ui/screens/session/none.js
 src/ui/screens/session/s02.js
 src/ui/screens/write/answer.js
+src/ui/screens/write/ax-menu.js
 src/ui/screens/write/compact.js
 src/ui/screens/write/compare.js
 src/ui/screens/write/end.js
@@ -7411,6 +7412,7 @@ src/ui/screens/write/index.js
 src/ui/screens/write/layout.js
 src/ui/screens/write/paper.js
 src/ui/screens/write/persist.js
+src/ui/screens/write/phase-fade.js
 src/ui/screens/write/prompt.js
 src/ui/screens/write/result-row.js
 src/ui/screens/write/skip.js

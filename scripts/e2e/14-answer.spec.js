@@ -24,7 +24,6 @@ const COPY = {
   traceDone: '描好了，自己写',
   retrace: '再描一遍',
   selfNote: '这个字看过答案了，再写只算练习。',
-  traceNote: '浅色是参考字形。',
   titleRecall: '凭记忆写出这个字',
   titleAnswer: '这个字这样写',
   titleTrace: '描一遍',
@@ -283,7 +282,7 @@ export default async function answer(page, ctx) {
   s = await track();
   assert.equal(s.title, COPY.titleTrace, 'title 描一遍');
   assert.equal(await page.getAttribute(topSel('write-steps'), 'aria-label'), COPY.stepTrace, 'step dots R-W04.stepTrace');
-  assert.equal(await text(page, 'write-note'), COPY.traceNote, 'grid note 浅色是参考字形。');
+  assert.equal(await text(page, 'write-note'), '', 'no note under the grid in trace (R-W08.traceNote deleted: the trace explains itself)');
   assert.equal(s.strokes, 0, 'trace starts with an empty grid');
   assert.equal(await label(page, 'write-trace-done'), COPY.traceDone, 'main button 描好了，自己写');
   assert.deepEqual(s.done, null, 'no 「写好了」 in trace');
@@ -486,7 +485,7 @@ export default async function answer(page, ctx) {
   assert.equal(await page.getAttribute(`${topSel('write-trace-layer')} ${tid('write-glyph-fallback')}`, 'data-variant'), 'trace',
     'trace uses the light full glyph (variant trace)');
   assert.equal(await page.getAttribute(topSel('write-trace-layer'), 'data-anim'), 'idle', 'no stroke-order preview without data');
-  assert.equal(await text(page, 'write-note'), COPY.traceNote, 'note 浅色是参考字形。');
+  assert.equal(await text(page, 'write-note'), '', 'still no trace note without stroke data');
   await page.unroute('**/data/*.json');
 
   ctx.step('reduced motion: answer page shows the final glyph immediately (static)');

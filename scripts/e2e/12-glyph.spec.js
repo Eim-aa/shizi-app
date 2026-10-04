@@ -128,10 +128,10 @@ export default async function glyph(page, ctx) {
   assert.equal(await text(page, 'write-glyph-note'), '这个字暂时没有提示，可以直接看答案。', 'note under the grid (R-W05.noHintNote)');
   assert.equal(await inkPixels(page), 0, 'no canvas glyph without data');
 
-  ctx.step('永: 描一遍 without data → light whole-character fallback + 「浅色是参考字形。」 (R-W08.traceNote)');
+  ctx.step('永: 描一遍 without data → light whole-character fallback, no colour legend (R-W08.traceNote deleted)');
   await click(page, 'write-glyph-mode-trace');
   assert.equal(await page.locator(tid('write-glyph-fallback')).getAttribute('data-variant'), 'trace');
-  assert.equal(await text(page, 'write-glyph-note'), '浅色是参考字形。');
+  assert.equal(await page.locator(tid('write-glyph-note')).count(), 0, 'no 「浅色是参考字形。」 note any more');
   assert.equal((await animInfo(page)).svg, false, 'no hanzi-writer without data');
   await click(page, 'write-glyph-mode-play');
   assert.equal(await text(page, 'write-glyph-note'), '这个字记为看过答案，后面再写只算练习。', 'answer note (R-W08.answerNote)');
@@ -189,7 +189,7 @@ export default async function glyph(page, ctx) {
   assert.equal((await state(page)).anim, 'running', 'preview playing');
   assert.ok((await inkPixels(page)) > 2000, 'trace outline painted under the preview');
   assert.equal((await animInfo(page)).hosts, 1, 'previous animation was torn down (one host only)');
-  assert.equal(await text(page, 'write-glyph-note'), '浅色是参考字形。', 'trace note (R-W08.traceNote)');
+  assert.equal(await page.locator(tid('write-glyph-note')).count(), 0, 'no trace note (R-W08.traceNote deleted)');
   await click(page, 'write-glyph-skip');
   await waitState(page, 'anim', 'skipped');
 

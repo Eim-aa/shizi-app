@@ -4,14 +4,14 @@
 // - 没有分步提示：提示按钮位置换成灰字「暂时没有提示」（R-W05.hintUnavailable；原型 'txt' 态：13px、--i3、不可点）；
 //   书写格下说明「这个字暂时没有提示，可以直接看答案。」（R-W05.noHintNote）。
 // - 看答案 / 对照 / 描一遍：完整楷体整字，用 DOM 文本（不是 canvas），字体 ${T.kai}（ShiziKai，M5 接入前回退系统楷体，§8.4）；
-//   描一遍用浅色（--tf）整字、不分笔顺，格下「浅色是参考字形。」（R-W08.traceNote）；
+//   描一遍用浅色（--tf）整字、不分笔顺，格下没有说明（R-W08.traceNote 已删，D51 ⑧）；
 //   看答案说明「这个字记为看过答案，后面再写只算练习。」（R-W08.answerNote）。
 // 文案一律取 src/config/copy/。回忆阶段不要渲染 GlyphFallback（答案字不能出现在回忆阶段，M1-8）。
 //
 // 给 M1-3 / M1-4 / M1-5 的接口：
 //   <GlyphFallback char variant='answer'|'trace'|'reference' size testid? />   叠在书写格 / 对照卡里（父元素 position:relative）
 //   <NoHintLabel />                                                            提示按钮位置上的灰字
-//   fallbackCopy()                                                             四条说明文案
+//   fallbackCopy()                                                             三条说明文案
 import { html } from '../../../../vendor/ui.js';
 import { t } from '../../../config/copy/index.js';
 import { injectStyles, T } from '../../components/styles.js';
@@ -22,7 +22,6 @@ export function fallbackCopy() {
     hintUnavailable: t('R-W05.hintUnavailable'),
     noHintNote: t('R-W05.noHintNote'),
     answerNote: t('R-W08.answerNote'),
-    traceNote: t('R-W08.traceNote'),
   };
 }
 

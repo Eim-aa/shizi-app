@@ -32,7 +32,7 @@ export default Object.freeze({
   'R-W07.btnShowAnswer': '看答案',
   // R-W08（已定（接入时实测，决定 L51））
   'R-W08.answerNote': '这个字记为看过答案，后面再写只算练习。',
-  'R-W08.traceNote': '浅色是参考字形。',
+  // R-W08.traceNote「浅色是参考字形。」已删（D51 ⑧ / W1 验收：描一遍是逐笔引导，不再用文字解释颜色，理由同提示图例句 P41）
   // R-W10（已定）
   'R-W10.lineRecordedCorrect': '「{char}」记为写对 · 修改 ›',
   'R-W10.lineRecordedWrong': '「{char}」记为写错 · 修改 ›',

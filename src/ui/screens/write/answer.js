@@ -14,7 +14,7 @@
 //      （answerInkKey）。读屏：答案字放在底栏一个视觉隐藏的 role=img（书写格本身 aria-hidden 参考层）。
 //   4. 描一遍（trace）：书写格参考字形层画描红（和提示同一种画法，canvas/glyph-wash.js：整字一次合成，所有笔画同色不透明、整层 .4 不透明度、外侧一圈 --ink3 外廓，没有逐笔描边与叠色接缝，V2-02；
 //      10.13 用浅色楷体整字、不分笔顺），进阶段先快放一遍笔顺（总时长 ≤ 1.6s，policy.motion.stepPlayMaxMs，P210；走查-W19；落笔 / 点一下即到终态；
-//      减少动态效果不播）；格下 R-W08.traceNote；主按钮「描好了，自己写」（没写时 disabled）；底部「下一个」。进入描一遍时把该 answer-seen 记录的
+//      减少动态效果不播）；格下没有说明（R-W08.traceNote 已删：描一遍自明，不再用文字解释颜色）；主按钮「描好了，自己写」（没写时 disabled）；底部「下一个」。进入描一遍时把该 answer-seen 记录的
 //      help.traced 置 true（同一次 commit，帮助事实，D07）。
 //   5. 自己写一遍（retrace）：空书写格；格下 R-W07.selfNote；按钮 [再描一遍 / 下一个]；底部不显示跳过。
 //      Q1（QA simB D1；D31 / 实现交接 §4.2）：离开自己写一遍（「下一个」或「再描一遍」，同一次 commit）时，格子里有本人笔画就把它
@@ -519,7 +519,7 @@ export function useAnswerFlow({ slot, session, cardKey, phase, strokeCount = 0, 
   let note = '';
   if (phase !== 'answer') {
     if (failed) note = failText;
-    else if (phase === 'trace') note = t('R-W08.traceNote');
+    else if (phase === 'trace') note = ''; // 描一遍格下没有说明（R-W08.traceNote 已删）
     else note = t('R-W07.selfNote'); // retrace，或看过答案后的 recall
   } else if (!failed && firstNote) {
     note = t('R-W07.firstExplain'); // 第一次用看答案：格下一行说明（P212），之后直接看

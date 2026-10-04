@@ -124,8 +124,8 @@ function GlyphDemo({ params }) {
   const hintState = hintButtonState({ used: hintsUsed, hasStrokeData: ready });
   const hintCopy = hintButtonCopy(hintState);
   const note = missing
-    ? mode === 'trace' ? copy.traceNote : mode === 'play' ? copy.answerNote : copy.noHintNote
-    : ready && mode === 'trace' ? copy.traceNote : ready && mode === 'play' ? copy.answerNote : '';
+    ? mode === 'trace' ? '' : mode === 'play' ? copy.answerNote : copy.noHintNote
+    : ready && mode === 'play' ? copy.answerNote : '';
   const fbVariant = mode === 'trace' ? 'trace' : 'answer';
   const skip = () => {
     if (ctrlRef.current) ctrlRef.current.skip();

@@ -288,9 +288,9 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
   // M2-3「结束这组」（picked 会话；打开确认框即结束跳过的撤销机会）。除判断页外各阶段都显示（H4）。
   const end = useEndGroup({ slot, session, phase, blocked: skip.failed, onOpen: endSkipUndo });
   // M1-4 看答案 / 描一遍 / 自己写（answer.js）：回忆阶段「看答案」按钮、answer 阶段卡片、描红层、格下说明、接管底栏
-  // （接管时「结束这组」放在它底栏「下一个」那一行右端，H4）。
+  // （接管时「结束这组」放在它底栏「下一个」那一行右端，H4）。Q1：本地笔画交给它，离开自己写一遍时存成看后自写的墨迹。
   const answer = useAnswerFlow({
-    slot, session, cardKey, phase, strokeCount: view.strokes.length, size: compact ? answerSize : gridSize,
+    slot, session, cardKey, phase, strokeCount: view.strokes.length, strokes: view.strokes, size: compact ? answerSize : gridSize,
     onShowAnswer: endSkipUndo, endButton: end.button,
   });
 

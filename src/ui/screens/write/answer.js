@@ -15,6 +15,11 @@
 //      笔顺（走查-W19；落笔即跳过；减少动态效果不播）；格下 R-W08.traceNote；主按钮「描好了，自己写」（没写时 disabled）；
 //      底部「下一个」。进入描一遍时把该 answer-seen 记录的 help.traced 置 true（同一次 commit，帮助事实，D07）。
 //   5. 自己写一遍（retrace）：空书写格；格下 R-W07.selfNote；按钮 [再描一遍 / 下一个]；底部不显示跳过。
+//      Q1（QA simB D1；D31 / 实现交接 §4.2）：离开自己写一遍（「下一个」或「再描一遍」，同一次 commit）时，格子里有本人笔画就把它
+//      存成**这条 answer-seen 记录的墨迹**（storeSelfInkInDraft：store.setInk 按记录月份写 shizi.v2.ink.<月>，键 = 记录 id），
+//      作品里成为「看后写的」格。记录 kind 不变、不写判断、不动 sched（D18 不变）；一次看答案后多次自己写只留最后一次
+//      （同一记录键覆盖；最后一次没写就留上一次）；描一遍的笔画不存。看过答案后恢复到的 recall（格下同样是自己写的说明）同样算。
+//      留存：store/budget.js pruneInkOfCards（同一次 commit）——这个字只留最新一份看后自写，且要新于最近一次判断；组还开着时不回收。
 //   6. 「下一个」= 一次 commit：sessions.advance(kind='answer-seen', recordId) → 追加 item、cursor+1、现场重置、
 //      结果行 {kind:'saw'}（「「X」记为看过答案」由结果行（M1-5）显示）。不进判断页（compare）。
 //   阶段切换（answer ⇄ trace ⇄ retrace）与「下一个」都是 commit：成功才切换 / 推进（D07）；失败留在当前阶段，
@@ -23,7 +28,7 @@
 // 规则：
 // - 本文件只写 store.commit，不直接碰 localStorage；记录构造用 core/records.makeRecord，会话推进用 core/sessions。
 // - 回忆阶段不渲染答案字（决定-D16）：「看答案」按钮与确认框里都没有字；答案字只在 answer / trace 阶段出现。
-// - answer-seen 不是有效记录：不写 judged、不动 sched / FSRS、不写墨迹（决定-D18 / D23）。
+// - answer-seen 不是有效记录：不写 judged、不动 sched / FSRS（决定-D18 / D23）；墨迹只存「自己写一遍」的本人笔画（Q1，上面第 5 条）。
 //
 // data-testid：write-show-answer（回忆阶段「看答案」）、write-answer-confirm（确认框面板；两键为 Confirm 组件的
 // confirm-cancel / confirm-ok）、write-answer-card（看答案卡片，data-state=loading|ready|missing、data-anim）、
@@ -39,7 +44,10 @@ import { Button } from '../../components/Button.js';
 import { Confirm } from '../../components/Confirm.js';
 import { injectStyles, T, TEX } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
-import { getStore } from '../../../store/store.js';
+import { getStore, setInk } from '../../../store/store.js';
+import { pruneInkOfCards } from '../../../store/budget.js';
+import * as defaultPolicy from '../../../config/policy.js';
+import { buildStroke, decodeRawStrokes, encodeInk } from '../../../core/ink-math.js';
 import { makeRecord, charOfCardKey } from '../../../core/records.js';
 import { advance, clearLine, currentCardKey, withCurrent } from '../../../core/sessions.js';
 import { peekStrokes, watchStrokes } from '../../../data/strokes.js';
@@ -127,6 +135,46 @@ function staleGuard(store, slot, cardKey) {
   return !s || currentCardKey(s) !== cardKey ? STALE : null;
 }
 
+/** 至少一笔、至少一个点的原始笔画。 */
+function hasStrokes(strokes) {
+  return Array.isArray(strokes) && strokes.some(st => Array.isArray(st) && st.length > 0);
+}
+
+/** 当前阶段是不是「自己写」：自己写一遍（retrace），或看过答案后恢复到的回忆阶段（格下同样是 R-W07.selfNote）。 */
+export function isSelfWritePhase(current) {
+  if (!current) return false;
+  return current.phase === 'retrace' || (current.phase === 'recall' && current.answerSeen === true);
+}
+
+/** perRecordInk 开关（P31 / D27）：显式传入优先，否则读 policy.features。 */
+function inkEnabled(perRecordInk, policy) {
+  if (typeof perRecordInk === 'boolean') return perRecordInk;
+  const p = policy || defaultPolicy;
+  return !!(p.features && p.features.perRecordInk === true);
+}
+
+/**
+ * Q1：把「自己写一遍」的本人笔画存成本会话这个字的 answer-seen 记录的墨迹（store.commit 的 mutate 里调用）。
+ * 当前阶段不是自己写、没有 answer-seen 记录、没有笔画或 perRecordInk 关时什么都不做。strokes 缺省取会话现场
+ * （session.current.strokes，抬笔写回的那份——刷新 / 冷启动后本地现场即由它恢复）。同一记录键覆盖 = 只留最后一次；
+ * 随后 pruneInkOfCards 回收这个字更早的看后自写（组已关的），判断墨迹的 D27 留存不变。
+ * @returns {{stored:boolean, recordId:string|null}}
+ */
+export function storeSelfInkInDraft(draft, { slot, cardKey, strokes, perRecordInk, policy } = {}) {
+  const none = { stored: false, recordId: null };
+  const s = sessionOf(draft, slot);
+  if (!s || currentCardKey(s) !== cardKey || !isSelfWritePhase(s.current)) return none;
+  if (!inkEnabled(perRecordInk, policy)) return none;
+  const record = findAnswerSeen(draft, s.id, cardKey);
+  if (!record) return none;
+  const raw = Array.isArray(strokes) ? strokes : decodeRawStrokes(s.current.strokes || []);
+  if (!hasStrokes(raw)) return { stored: false, recordId: record.id };
+  const built = raw.filter(st => Array.isArray(st) && st.length).map(st => buildStroke(st, { final: true }));
+  setInk(draft, record, encodeInk(built, { policy: policy || defaultPolicy }));
+  pruneInkOfCards(draft, [cardKey]);
+  return { stored: true, recordId: record.id };
+}
+
 /**
  * 确认看答案：一次 commit 写 answer-seen 记录 + 会话现场（phase='answer'、answerSeen、结果行收起）。
  * 同一会话同一字已有 answer-seen 记录时只更新会话（事件不重复）。
@@ -158,14 +206,16 @@ export function commitAnswerSeen(store, { slot, cardKey }) {
 /**
  * answer 流程内换阶段（answer / trace / retrace；看过答案后的 recall 也可回到 answer）：笔画清空。
  * 进 trace 时同一次 commit 把该字的 answer-seen 记录 help.traced 置 true（帮助事实，01 §3.2）。
+ * 离开自己写一遍时同一次 commit 存下本人笔画（Q1，storeSelfInkInDraft；strokes = 写字页本地现场，缺省取会话现场）。
  */
-export function commitAnswerPhase(store, { slot, cardKey, phase }) {
+export function commitAnswerPhase(store, { slot, cardKey, phase, strokes, perRecordInk, policy }) {
   if (!ANSWER_PHASES.includes(phase)) throw new RangeError('commitAnswerPhase: not an answer-flow phase');
   const stale = staleGuard(store, slot, cardKey);
   if (stale) return stale;
   return store.commit(`write:answer-${phase}`, (draft, ctx) => {
     const s = sessionOf(draft, slot);
     if (!s || currentCardKey(s) !== cardKey) throw new Error('answer phase: not the current card');
+    storeSelfInkInDraft(draft, { slot, cardKey, strokes, perRecordInk, policy });
     if (phase === 'trace') {
       const record = findAnswerSeen(draft, s.id, cardKey);
       if (record && !record.help.traced) replaceRecordInDraft(draft, { ...record, help: { ...record.help, traced: true } });
@@ -174,13 +224,17 @@ export function commitAnswerPhase(store, { slot, cardKey, phase }) {
   });
 }
 
-/** 看过答案后「下一个」：推进到下一字（item kind='answer-seen'，结果行 'saw'），不进判断页。 */
-export function commitAnswerNext(store, { slot, cardKey }) {
+/**
+ * 看过答案后「下一个」：推进到下一字（item kind='answer-seen'，结果行 'saw'），不进判断页。
+ * 从自己写一遍按「下一个」时同一次 commit 存下本人笔画（Q1，storeSelfInkInDraft）；写失败什么都不留（D07）。
+ */
+export function commitAnswerNext(store, { slot, cardKey, strokes, perRecordInk, policy }) {
   const stale = staleGuard(store, slot, cardKey);
   if (stale) return stale;
   return store.commit('write:answer-next', (draft, ctx) => {
     const s = sessionOf(draft, slot);
     if (!s || currentCardKey(s) !== cardKey) throw new Error('answer next: not the current card');
+    storeSelfInkInDraft(draft, { slot, cardKey, strokes, perRecordInk, policy });
     const record = findAnswerSeen(draft, s.id, cardKey);
     setSession(draft, slot, advance(s, { cardKey, recordId: record ? record.id : undefined, kind: 'answer-seen', at: ctx.now }));
   });
@@ -435,6 +489,7 @@ export function openAnswerConfirm({ slot, cardKey }) {
  * @param {string|null} o.cardKey
  * @param {string} o.phase
  * @param {number} o.strokeCount  当前阶段书写格笔数
+ * @param {Array} [o.strokes]  当前阶段书写格的本人原始笔画（离开自己写一遍时存成看后自写的墨迹，Q1）
  * @param {number} [o.size=345]
  * @param {() => void} [o.onShowAnswer]  点了「看答案」（确认框打开前；写字页用来结束跳过的撤销机会，G3）
  * @param {any} [o.endButton]  「结束这组」按钮（write/end.js useEndGroup().button；picked 会话才有）：放在底栏「下一个」那一行的
@@ -444,7 +499,7 @@ export function openAnswerConfirm({ slot, cardKey }) {
  *   link：回忆阶段「看答案」按钮（放 write-answer-slot）；stage：answer 阶段替代书写格的看答案卡片；
  *   glyphLayer：trace 阶段书写格参考字形层内容；note：书写格下说明（write-note）；footer：接管时的底栏。
  */
-export function useAnswerFlow({ slot, session, cardKey, phase, strokeCount = 0, size = 345, onShowAnswer, endButton = null }) {
+export function useAnswerFlow({ slot, session, cardKey, phase, strokeCount = 0, strokes = null, size = 345, onShowAnswer, endButton = null }) {
   const char = cardKey ? charOfCardKey(cardKey) : null;
   const answerSeen = !!(session && session.current && session.current.answerSeen);
   const inFlow = ANSWER_PHASES.includes(phase);
@@ -458,8 +513,8 @@ export function useAnswerFlow({ slot, session, cardKey, phase, strokeCount = 0, 
     const store = storeOrNull();
     let result;
     if (!store) result = { ok: false, error: { kind: 'unavailable' } };
-    else if (action.kind === 'next') result = commitAnswerNext(store, { slot, cardKey });
-    else result = commitAnswerPhase(store, { slot, cardKey, phase: action.phase });
+    else if (action.kind === 'next') result = commitAnswerNext(store, { slot, cardKey, strokes: strokes || undefined });
+    else result = commitAnswerPhase(store, { slot, cardKey, phase: action.phase, strokes: strokes || undefined });
     if (result.ok || (result.error && result.error.kind === 'stale')) {
       setFail(null);
       return;

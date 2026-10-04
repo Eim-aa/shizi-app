@@ -8,6 +8,9 @@
 //
 // 给后续卡的接口（M1-3 提示 / M1-4 看答案·描一遍 / M1-5 判断页）：
 //   drawGlyph(ctx, strokesData, {color, alpha, size, padding, x, y, from, to, outline})
+//   drawGlyphSolid(ctx, strokesData, {color, size, padding, x, y})   整字一次合成：所有笔画同色不透明（交叠不叠色），描红底色用（V2-02）
+//   drawGlyphRing(ctx, strokesData, {color, width, halo, …})         整字外廓：只画在字形外侧、不穿过笔画交叠处（透明画布上用 destination-out 擦掉字形内部）
+//   playbackPlan(strokesData, {maxMs, …})                            笔顺快放：算出让总时长不超过 maxMs 的 speed / delay / fade
 //   drawMedians(ctx, strokesData, {from, to, color, alpha, width, size, padding, x, y})
 //   mediansInBox(strokesData, {size, padding, x, y})  → [[ [x,y]… ]…]（书写格坐标）
 //   animate(container, strokesData, {mode:'play'|'preview', char, size, color, reducedMotion, …}) → controller
@@ -21,6 +24,10 @@ export const GLYPH_BASELINE = 900;
 export const GLYPH_PAD_RATIO = 0.06;
 // 提示中线宽度（1024 单位；原型 strokeWidth 18，01 §6.4「宽约 18/1024 单位」）。
 export const MEDIAN_WIDTH_UNITS = 18;
+// 描红外廓在字形外侧的厚度（书写格 345 单位；原逐笔描边宽 4、居中，外侧一半 2；V2-02 改为只画外侧、不穿过交叠处，略加厚到 2.5）。
+export const RING_OUTER_UNITS = 2.5;
+// 描红整字不透明度（画布元素整体；原逐笔填充 .4，沿用）。
+export const TRACE_FILL_ALPHA = 0.4;
 
 // 动画节奏（工程取值；原型没有看答案播放与「先播一遍」，旧版提示用 speed 5 / 间隔 60ms 太快，
 // hanzi-writer 默认 speed 1 / 间隔 1000ms 太慢）。过渡值在 policy.motion（P70，待设计走查）；
@@ -133,6 +140,64 @@ export function drawGlyph(ctx, data, opts = {}) {
 }
 
 /**
+ * 整字一次合成（V2-02）：把所有笔画用同一种不透明颜色填进 ctx。笔画交叠处因为颜色不透明而不会叠深，
+ * 整组的透明度由调用方在画布元素上整体设置（canvas 的 CSS opacity），所以底色处处均匀、没有「逐笔半透明贴纸」的接缝。
+ * 不画逐笔描边。
+ */
+export function drawGlyphSolid(ctx, data, opts = {}) {
+  if (!ctx || !data || !Array.isArray(data.strokes) || !hasPath2D()) return false;
+  const t = glyphTransform(opts);
+  const [from, to] = strokeRange(data, opts.from, opts.to);
+  if (from >= to) return false;
+  ctx.save();
+  try {
+    ctx.translate(t.ox, t.oy);
+    ctx.scale(t.k, -t.k);
+    ctx.fillStyle = opts.color || glyphColor('--danzhu');
+    for (let i = from; i < to; i++) ctx.fill(new Path2D(data.strokes[i]));
+  } finally {
+    ctx.restore();
+  }
+  return true;
+}
+
+/**
+ * 整字外廓（V2-02）：在**透明**画布上先把每笔的描边画出来，再用 destination-out 把字形本身擦掉，留下的只有字形外侧的一圈——
+ * 笔画交叠处的内部边不会被描出来。width = 外侧厚度（书写格 345 单位）；halo（增强对比度，P153）= 再往外多一圈 extra 的另一种颜色。
+ * 画布上不要有别的内容（擦除会一起擦掉）。
+ */
+export function drawGlyphRing(ctx, data, opts = {}) {
+  if (!ctx || !data || !Array.isArray(data.strokes) || !hasPath2D()) return false;
+  const t = glyphTransform(opts);
+  const [from, to] = strokeRange(data, opts.from, opts.to);
+  if (from >= to) return false;
+  const outer = Number.isFinite(opts.width) ? opts.width : RING_OUTER_UNITS;
+  ctx.save();
+  try {
+    ctx.translate(t.ox, t.oy);
+    ctx.scale(t.k, -t.k);
+    ctx.lineJoin = 'round';
+    const paths = [];
+    for (let i = from; i < to; i++) paths.push(new Path2D(data.strokes[i]));
+    if (opts.halo && opts.halo.color) {
+      const extra = Number.isFinite(opts.halo.extra) ? opts.halo.extra : 1;
+      ctx.strokeStyle = opts.halo.color;
+      ctx.lineWidth = (2 * (outer + extra)) / t.k;
+      for (const p of paths) ctx.stroke(p);
+    }
+    ctx.strokeStyle = opts.color || glyphColor('--danzhu');
+    ctx.lineWidth = (2 * outer) / t.k;
+    for (const p of paths) ctx.stroke(p);
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.fillStyle = '#000';
+    for (const p of paths) ctx.fill(p);
+  } finally {
+    ctx.restore();
+  }
+  return true;
+}
+
+/**
  * 画 [from, to) 笔的中线（提示笔画的静态终态；M1-3 的逐笔描画动画在它之上做）。
  * width 按 1024 单位（缺省 18）。
  */
@@ -214,6 +279,37 @@ export function prefersReducedMotion(win = typeof window !== 'undefined' ? windo
 
 // ---------------------------------------------------------------- 动画（hanzi-writer）
 
+/** 一笔中线的折线长度（与 hanzi-writer Stroke.getLength 同口径，数据单位）。 */
+function medianLength(points) {
+  let sum = 0;
+  for (let i = 1; i < points.length; i++) sum += Math.hypot(points[i][0] - points[i - 1][0], points[i][1] - points[i - 1][1]);
+  return sum;
+}
+
+/**
+ * 笔顺快放的节奏（D34 / I2-02：总时长 ≤ maxMs）。hanzi-writer 的总时长 = 起始淡化 fade + Σ (长度_i + 600) ÷ (3 × speed) + 笔间隔 × (n − 1)。
+ * 缺省节奏（policy.motion.answerSpeed / answerStrokeGapMs / answerFadeMs）够快就不动；笔画多的字把笔间隔压到总预算的 15% 以内、
+ * 再按需要加速（speed 只升不降）。数据没有中线时按笔数估一个平均长度。
+ * @returns {{speed:number, delay:number, fade:number, estimatedMs:number}}
+ */
+export function playbackPlan(data, { maxMs, speed = ANIMATION.strokeAnimationSpeed, delay = ANIMATION.delayBetweenStrokes, fade = ANIMATION.strokeFadeDuration } = {}) {
+  const medians = data && Array.isArray(data.medians) ? data.medians : [];
+  const n = Math.max(1, medians.length || (data && Array.isArray(data.strokes) ? data.strokes.length : 0) || 1);
+  const sumLen = medians.length
+    ? medians.reduce((a, m) => a + (Array.isArray(m) && m.length > 1 ? medianLength(m) : 0), 0)
+    : n * 300;
+  const work = sumLen + 600 * n; // Σ (长度 + 600)
+  const estimate = (s, g, f) => f + work / (3 * s) + g * (n - 1);
+  if (!Number.isFinite(maxMs) || maxMs <= 0) return { speed, delay, fade, estimatedMs: Math.round(estimate(speed, delay, fade)) };
+  const f = Math.min(fade, 100);
+  const g = n > 1 ? Math.min(delay, Math.floor((maxMs * 0.15) / (n - 1))) : 0;
+  const room = Math.max(maxMs * 0.4, maxMs - f - g * (n - 1));
+  const s = Math.max(speed, work / (3 * room * 0.9));
+  const sp = Math.round(s * 1000) / 1000;
+  return { speed: sp, delay: g, fade: f, estimatedMs: Math.round(estimate(sp, g, f)) };
+}
+
+
 function getHanziWriter(win) {
   const w = win || (typeof window !== 'undefined' ? window : globalThis);
   return w && typeof w.HanziWriter === 'function' ? w.HanziWriter : null;
@@ -239,6 +335,7 @@ function getHanziWriter(win) {
  * @param {string} [opts.color]        笔画色；缺省 --ref
  * @param {boolean} [opts.reducedMotion]
  * @param {number} [opts.speed] [opts.delay]
+ * @param {number} [opts.maxMs]        总时长上限（ms）：给了就按 playbackPlan 压缩节奏（描一遍前快放 ≤ 1.6s，policy.motion.stepPlayMaxMs）
  * @param {Window} [opts.win]
  * @returns {{done: Promise<'completed'|'skipped'|'static'|'cancelled'|'failed'>, skip():void, cancel():void,
  *   destroy():void, replay():Promise, readonly state:string, readonly writer:any}}
@@ -250,7 +347,8 @@ export function animate(container, data, opts = {}) {
   const size = Number.isFinite(opts.size) && opts.size > 0 ? opts.size : (container && container.clientWidth) || 345;
   const padding = Number.isFinite(opts.padding) ? opts.padding : size * GLYPH_PAD_RATIO;
   const color = normalizeColor(opts.color) || glyphColor('--ref');
-  const fadeMs = Number.isFinite(opts.fade) ? opts.fade : ANIMATION.strokeFadeDuration;
+  const plan = Number.isFinite(opts.maxMs) ? playbackPlan(data, { maxMs: opts.maxMs, speed: opts.speed, delay: opts.delay, fade: opts.fade }) : null;
+  const fadeMs = plan ? plan.fade : Number.isFinite(opts.fade) ? opts.fade : ANIMATION.strokeFadeDuration;
   const doc = container && container.ownerDocument;
 
   let state = 'running';
@@ -320,8 +418,8 @@ export function animate(container, data, opts = {}) {
       showOutline: false,
       strokeColor: color,
       radicalColor: null,
-      strokeAnimationSpeed: Number.isFinite(opts.speed) ? opts.speed : ANIMATION.strokeAnimationSpeed,
-      delayBetweenStrokes: Number.isFinite(opts.delay) ? opts.delay : ANIMATION.delayBetweenStrokes,
+      strokeAnimationSpeed: plan ? plan.speed : Number.isFinite(opts.speed) ? opts.speed : ANIMATION.strokeAnimationSpeed,
+      delayBetweenStrokes: plan ? plan.delay : Number.isFinite(opts.delay) ? opts.delay : ANIMATION.delayBetweenStrokes,
       strokeFadeDuration: reduced ? 0 : fadeMs,
       charDataLoader: (_char, onLoad) => onLoad(data),
       onLoadCharDataError: () => {

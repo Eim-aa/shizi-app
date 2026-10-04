@@ -191,7 +191,8 @@
     "P180": "e2e 冷启动首帧阈值（Q3，Chromium 口径）：scripts/e2e/68-q3-boot.spec.js LIMITS.firstFrameMs = 400ms（全新 context 打开到首页 FCP，3 次里最快一次，首次安装与约 300 字两种数据量）；测试取值，不是运行时开关",
     "P183": "备份页重进时的状态句与撤销措辞（阶段 1 Q2-8，复测 simA S3；D24；E9c 改写）：撤销失效后留结论句（backupMeta.lastConclusion，保留到下次导出）、不再有已失效的「离开这一页前可以撤销」，没有结论句时才按现在的记录与上次导出时间算；行为在 src/core/backup.js backupStatus 与 src/ui/screens/mine/backup.js，不是 policy 开关",
     "P184": "离开 ≥ 7 天回来的第一组缩短为 3 字（阶段 1 Q2-15，已决定 D48 ⑧）：调度规则，值在 policy.groupMix.returnGroupSize（P184），实现在 src/core/sessions.js selectDaily；首页「离开一周后回来」态文案没有提组大小，无新文案",
-    "P211": "提示的画法（阶段 1 W1，已决定 D34 / D51 ⑧）：字形轮廓填淡朱实心 + 常驻 1pt 墨三外廓、画在本人墨下层，本人墨不变暗（去掉 INK_DIM_OPACITY）；样式与绘制取值，src/ui/screens/write/hint-layer.js，test/ui/contrast.test.mjs 核对；不是运行时开关"
+    "P211": "提示的画法（阶段 1 W1，已决定 D34 / D51 ⑧）：字形轮廓填淡朱实心 + 常驻 1pt 墨三外廓、画在本人墨下层，本人墨不变暗（去掉 INK_DIM_OPACITY）；样式与绘制取值，src/ui/screens/write/hint-layer.js，test/ui/contrast.test.mjs 核对；不是运行时开关",
+    "P213": "描一遍整字一次合成（阶段 1 W1，D51 ⑧ / V2-02）：所有笔画同色不透明填进一层、整层 .4 不透明度、外侧一圈外廓，不画逐笔描边；绘制取值，src/ui/canvas/glyph.js drawGlyphSolid / drawGlyphRing；不是运行时开关"
   },
   "noCopy": [
     "R-H08",

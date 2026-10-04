@@ -271,6 +271,13 @@ export default async function answer(page, ctx) {
   assert.equal(await visible(page, 'write-show-answer'), false, 'no second 「看答案」');
 
   ctx.step('描一遍 → trace: outline + preview animation, R-W08 note, step dot 1, traced fact recorded');
+  await page.evaluate(() => {
+    window.__previewLog = [];
+    new MutationObserver(() => {
+      const el = document.querySelector('.sz-layer[data-top="true"] [data-testid="write-trace-layer"]');
+      if (el) window.__previewLog.push([el.dataset.anim, performance.now()]);
+    }).observe(document.body, { subtree: true, attributes: true, attributeFilter: ['data-anim'], childList: true });
+  });
   await page.click(topSel('write-answer-trace'));
   await waitPhase(page, 'trace');
   s = await track();
@@ -284,6 +291,33 @@ export default async function answer(page, ctx) {
   assert.equal(traceDone0, true, '描好了 disabled before writing');
   assert.equal(await label(page, 'write-answer-next'), COPY.next, '下一个 link in trace');
   assert.equal(await page.getAttribute(topSel('write-trace-layer'), 'data-state'), 'ready', 'trace layer has stroke data');
+  const tr = await page.evaluate(() => {
+    const top = document.querySelector('.sz-layer[data-top="true"]');
+    const fill = top.querySelector('[data-testid="write-trace-fill"]');
+    const ring = top.querySelector('[data-testid="write-trace-ring"]');
+    const read = cv => cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data;
+    const f = read(fill);
+    const r = read(ring);
+    let lo = [255, 255, 255];
+    let hi = [0, 0, 0];
+    let solid = 0;
+    let both = 0;
+    let ringSolid = 0;
+    for (let i = 0; i < f.length; i += 4) {
+      if (f[i + 3] === 255) {
+        solid += 1;
+        for (let k = 0; k < 3; k += 1) { lo[k] = Math.min(lo[k], f[i + k]); hi[k] = Math.max(hi[k], f[i + k]); }
+      }
+      if (r[i + 3] === 255) ringSolid += 1;
+      if (f[i + 3] === 255 && r[i + 3] === 255) both += 1;
+    }
+    return { solid, spread: Math.max(hi[0] - lo[0], hi[1] - lo[1], hi[2] - lo[2]), both, ringSolid, fillOpacity: getComputedStyle(fill).opacity };
+  });
+  assert.ok(tr.solid > 500, `trace fill drawn (${tr.solid} px)`);
+  assert.ok(tr.spread <= 2, `V2-02: one flat colour (spread ${tr.spread}) over the whole glyph — overlaps of strokes do not darken (all strokes composited in one pass, the 0.4 is applied to the layer)`);
+  assert.equal(tr.fillOpacity, '0.4', 'the whole fill layer carries the 0.4 opacity');
+  assert.ok(tr.ringSolid > 50, `outline ring drawn (${tr.ringSolid} px)`);
+  assert.equal(tr.both, 0, 'V2-02: the outline never runs through the glyph body (no per-stroke outlines crossing neighbouring strokes)');
   assert.equal(await page.getAttribute(topSel('write-trace-layer'), 'data-anim'), 'running', 'preview (先播一遍) is running (走查-W19)');
   f = await facts(page);
   assert.equal(f.records.length, 1, 'still one record');
@@ -320,6 +354,10 @@ export default async function answer(page, ctx) {
   s = await track();
   assert.equal(s.strokes, 0, 'back in trace with an empty grid');
   assert.ok(['running', 'completed'].includes(await page.getAttribute(topSel('write-trace-layer'), 'data-anim')), 'preview plays again');
+  ctx.step('a single tap on the grid jumps the preview straight to its end state (点一下直接到终态)');
+  const tapBox = await page.locator(topSel('write-grid')).boundingBox();
+  await page.mouse.click(tapBox.x + tapBox.width / 2, tapBox.y + tapBox.height / 2);
+  assert.equal(await waitAttr(page, 'write-trace-layer', 'data-anim', ['skipped', 'completed']), 'skipped', 'one tap → preview skipped');
   await drawStroke(page, HORIZONTAL);
   await page.click(topSel('write-trace-done'));
   await waitPhase(page, 'retrace');
@@ -383,8 +421,23 @@ export default async function answer(page, ctx) {
   assert.equal(f.session.items.length, 2, 'exactly one item for 和 (retry did not duplicate)');
   assert.equal(f.records.length, 2, 'still two records');
 
-  ctx.step('第三字: 看答案 → 下一个 advances directly; session complete');
+  ctx.step('第三字: 看答案 → 描一遍: the stroke-order preview plays in ≤ 1.6s; 下一个 advances directly; session complete');
   await showAnswer(page);
+  await page.evaluate(() => {
+    window.__previewLog = [];
+    new MutationObserver(() => {
+      const el = document.querySelector('.sz-layer[data-top="true"] [data-testid="write-trace-layer"]');
+      if (el) window.__previewLog.push([el.dataset.anim, performance.now()]);
+    }).observe(document.body, { subtree: true, attributes: true, attributeFilter: ['data-anim'], childList: true });
+  });
+  await page.click(topSel('write-answer-trace'));
+  await waitPhase(page, 'trace');
+  assert.equal(await waitAttr(page, 'write-trace-layer', 'data-anim', ['completed', 'skipped']), 'completed', 'the preview ran to the end on its own');
+  const log = await page.evaluate(() => window.__previewLog);
+  const tRun = (log.find(e => e[0] === 'running') || [])[1];
+  const tDone = (log.find(e => e[0] === 'completed') || [])[1];
+  assert.ok(Number.isFinite(tRun) && Number.isFinite(tDone), `preview start / end observed (${JSON.stringify(log.map(e => e[0]))})`);
+  assert.ok(tDone - tRun <= 1650, `stroke-order quick play ≤ 1.6s (took ${Math.round(tDone - tRun)}ms, 春 = 9 strokes)`);
   await page.click(topSel('write-answer-next'));
   await page.waitForFunction(() => {
     const st = window.__shiziTest.getState();

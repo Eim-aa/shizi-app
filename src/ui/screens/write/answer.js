@@ -55,7 +55,7 @@ import { buildStroke, decodeRawStrokes, encodeInk } from '../../../core/ink-math
 import { makeRecord, charOfCardKey } from '../../../core/records.js';
 import { advance, clearLine, currentCardKey, withCurrent } from '../../../core/sessions.js';
 import { peekStrokes, watchStrokes } from '../../../data/strokes.js';
-import { animate, drawGlyph, glyphColor, prefersMoreContrast, prefersReducedMotion } from '../../canvas/glyph.js';
+import { animate, drawGlyph, drawGlyphRing, drawGlyphSolid, glyphColor, prefersMoreContrast, prefersReducedMotion, TRACE_FILL_ALPHA } from '../../canvas/glyph.js';
 import { GlyphFallback } from './glyph-fallback.js';
 
 /** answer 流程的阶段（01 §3.3）。 */
@@ -63,6 +63,8 @@ export const ANSWER_PHASES = Object.freeze(['answer', 'trace', 'retrace']);
 
 /** 答案衬底显影时长（P210）。 */
 export const ANSWER_REVEAL_MS = defaultPolicy.motion.answerRevealMs;
+/** 描一遍前笔顺快放总时长上限（P210）。 */
+export const STEP_PLAY_MAX_MS = defaultPolicy.motion.stepPlayMaxMs;
 
 injectStyles('write-answer', `
 @keyframes szAnswerReveal{from{opacity:0}to{opacity:1}}
@@ -380,27 +382,32 @@ export function AnswerUnderLayer({ char, cssSize = 345, onStatus }) {
 // ---------------------------------------------------------------- 描红层（trace 阶段，书写格参考字形层）
 
 /**
- * 描一遍：Path2D 描红（--tf 填充 + --tl 外描线 4）；进阶段先播一遍笔顺（走查-W19），落笔即跳过；
+ * 描一遍：整字一次合成的描红（V2-02）——所有笔画同色不透明地填进一层 canvas、整层 .4 不透明度（交叠处不叠色，底色均匀），
+ * 外侧另一层 canvas 只画一圈 --tl 外廓（不画逐笔描边）；进阶段先快放一遍笔顺（≤ 1.6s，走查-W19），落笔 / 点一下即跳过；
  * 10.13 浅色楷体整字、不播。主题变化只重画描红，不重播。
  */
 export function TraceLayer({ char, cssSize = 345, onStatus }) {
   const load = useStrokeData(char, onStatus);
   const rootRef = useRef(null);
-  const canvasRef = useRef(null);
+  const fillRef = useRef(null);
+  const ringRef = useRef(null);
   const animRef = useRef(null);
   const ctrlRef = useRef(null);
   const [anim, setAnim] = useState('idle');
   const theme = useThemeVersion();
 
-  // 描红轮廓
+  // 描红：填充层 + 外廓层
   useLayoutEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = paintCanvas(canvas, cssSize);
+    const fill = fillRef.current;
+    const ring = ringRef.current;
+    if (!fill || !ring) return;
+    const fctx = paintCanvas(fill, cssSize);
+    const rctx = paintCanvas(ring, cssSize);
     if (load.status === 'ready' && load.data) {
-      // 增强对比度（D46 ⑯ / P153）：淡朱描红多一圈 1pt 墨三外廓，令牌不改
+      // 增强对比度（D46 ⑯ / P153）：淡朱外廓外再多一圈 1pt 墨三，令牌不改
       const halo = prefersMoreContrast() ? { color: glyphColor('--ink3'), extra: 1 } : null;
-      drawGlyph(ctx, load.data, { color: glyphColor('--danzhu'), alpha: 0.4, outline: { color: glyphColor('--danzhu'), width: 4 }, halo });
+      drawGlyphSolid(fctx, load.data, { color: glyphColor('--danzhu') });
+      drawGlyphRing(rctx, load.data, { color: glyphColor('--danzhu'), halo });
     }
   }, [load.data, load.status, cssSize, theme]);
 
@@ -414,7 +421,7 @@ export function TraceLayer({ char, cssSize = 345, onStatus }) {
       setAnim('idle');
       return undefined;
     }
-    const ctrl = animate(animRef.current, load.data, { mode: 'preview', char, size: cssSize });
+    const ctrl = animate(animRef.current, load.data, { mode: 'preview', char, size: cssSize, maxMs: STEP_PLAY_MAX_MS });
     ctrlRef.current = ctrl;
     setAnim(ctrl.state);
     ctrl.done.then(result => {
@@ -441,7 +448,8 @@ export function TraceLayer({ char, cssSize = 345, onStatus }) {
   }, []);
 
   return html`<div class="sz-answer__trace" ref=${rootRef} data-testid="write-trace-layer" data-state=${load.status} data-anim=${anim}>
-    <canvas ref=${canvasRef} aria-hidden="true"></canvas>
+    <canvas ref=${fillRef} data-testid="write-trace-fill" style=${{ opacity: TRACE_FILL_ALPHA }} aria-hidden="true"></canvas>
+    <canvas ref=${ringRef} data-testid="write-trace-ring" aria-hidden="true"></canvas>
     <div class="sz-answer__anim" ref=${animRef} style=${{ width: `${cssSize}px`, height: `${cssSize}px` }}></div>
     ${load.status === 'missing' ? html`<${GlyphFallback} char=${char} variant="trace" size=${cssSize} />` : null}
   </div>`;

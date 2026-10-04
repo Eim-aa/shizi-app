@@ -38,6 +38,7 @@ import { html, useEffect, useRef, useState } from '../../../../vendor/ui.js';
 import { registerScreen, getRouter, getScreen, nav } from '../../router.js';
 import { Page } from '../../components/Page.js';
 import { Button } from '../../components/Button.js';
+import { Chevron } from '../../components/Chevron.js';
 import { UndoBar } from '../../components/UndoBar.js';
 import { Sheet, useDialogFocus } from '../../components/Sheet.js';
 import '../../components/Confirm.js'; // .sz-overlay / .sz-confirm 样式
@@ -108,13 +109,13 @@ export function backupMenuStatus(state) {
 // ---------------------------------------------------------------- 样式
 
 injectStyles('mine-backup', `
-.sz-bk{display:flex;flex-direction:column;gap:28px}
+.sz-bk{display:flex;flex-direction:column;gap:${T.groupGap}}
 .sz-bk__status{display:flex;flex-direction:column;gap:8px}
 .sz-bk__label{font-size:${T.fs13};color:${T.ink3}}
 .sz-bk__date{font-family:${T.song};font-size:${T.fs28};font-weight:500;color:${T.ink1}}
 .sz-bk__line{font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3}}
 .sz-bk__intro{margin:0;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2};text-wrap:pretty}
-.sz-bk__note{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border-radius:${T.rCtl};background:${T.field}}
+.sz-bk__note{display:flex;gap:${T.s3};align-items:flex-start;padding:${T.s3} ${T.s4};border-radius:${T.rCtl};background:${T.field}}
 .sz-bk__dot{width:6px;height:6px;margin-top:calc(8px * ${T.k});flex:none;border-radius:50%;background:${T.ink2}}
 .sz-bk__note[data-tone="error"] .sz-bk__dot{background:${T.ink1}}
 .sz-bk__notetext{flex:1;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2}}
@@ -122,13 +123,18 @@ injectStyles('mine-backup', `
 .sz-bk__retry.sz-btn--text{min-height:0;margin:-10px 0 -10px 6px;padding:10px 0;display:inline-block;line-height:inherit;vertical-align:baseline;color:${T.ink1};text-decoration:underline;
   text-underline-offset:4px;text-decoration-color:${T.ink4};white-space:nowrap;}
 .sz-bk__export.sz-btn--primary[disabled]{background:${T.field};color:${T.ink4}}
-.sz-bk__list{display:flex;flex-direction:column;border-top:1px solid ${T.line}}
-.sz-bk__row.sz-btn{width:100%;min-height:52px;padding:8px 0;display:flex;align-items:center;justify-content:space-between;gap:12px;
-  text-align:left;border-bottom:1px solid ${T.line}}
+.sz-bk__list{display:flex;flex-direction:column;border-top:${T.hair} solid ${T.line}}
+.sz-bk__row.sz-btn{width:100%;min-height:52px;padding:${T.s3} 0;display:flex;align-items:center;justify-content:space-between;gap:${T.s3};
+  text-align:left;border-bottom:${T.hair} solid ${T.line}}
 .sz-bk__rowl{display:flex;flex-direction:column;gap:3px;min-width:0}
-.sz-bk__rowt{font-size:${T.fs15};color:${T.ink1}}
-.sz-bk__rows{font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2}}
-.sz-bk__rowr{flex:none;font-size:${T.fs13};color:${T.ink3}}
+/* 列表行（设计系统 v1）：主文字 17 / 22 墨一，副文字 15 墨三，chevron 8×13 墨四 */
+.sz-bk__rowt{font-size:${T.fs17};line-height:${T.lh17s};color:${T.ink1}}
+.sz-bk__rows{font-size:${T.fs15};line-height:${T.lh15};color:${T.ink3}}
+.sz-bk__rowr{flex:none;display:flex}
+/* 危险操作（P142）：不变色。危险入口单独成组（与上面的常规行隔开一个组间距，自带上下发丝线）；确认层里取消是主按钮、危险键是次按钮，正文用墨一 */
+.sz-bk__row--danger{margin-top:${T.groupGap};border-top:${T.hair} solid ${T.line}}
+.sz-bk__danger{box-shadow:inset 0 0 0 1px ${T.ink1}}
+.sz-bk__sheetbody[data-state="ask"],.sz-confirm[data-mode="replace"] .sz-confirm__body{color:${T.ink1}}
 .sz-bk__row[disabled] .sz-bk__rowt{color:${T.ink4}}
 .sz-bk__file{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;overflow:hidden}
 .sz-bk__undo{position:relative;margin:0 -8px}
@@ -263,7 +269,7 @@ export function RestoreConfirm({ model, onConfirm, close, active = true }) {
         ${loss ? html`<p class="sz-bk__loss" data-testid="backup-restore-confirm-loss" data-from=${model.loss.from} data-to=${model.loss.to}>${loss}</p>` : null}
       </div>
       <div class="sz-confirm__actions">
-        <${Button} variant="secondary" data-testid="backup-restore-cancel" onClick=${cancel}>${t('X-BACKUP.confirmCancel')}</${Button}>
+        <${Button} variant=${replace ? 'primary' : 'secondary'} data-testid="backup-restore-cancel" onClick=${cancel}>${t('X-BACKUP.confirmCancel')}</${Button}>
         ${replace
           ? html`<${Button} variant="secondary" class="sz-bk__danger" data-testid="backup-restore-ok" onClick=${() => onConfirm && onConfirm()}>${t('X-BACKUP.replaceOk')}</${Button}>`
           : html`<${Button} variant="primary" data-testid="backup-restore-ok" onClick=${() => onConfirm && onConfirm()}>${t('R-B03.restoreBtn')}</${Button}>`}
@@ -282,7 +288,7 @@ export function ClearSheet({ n, failed = false, onConfirm, close, active = true 
       ${failed
         ? html`<${Button} variant="secondary" data-testid="backup-clear-stay" onClick=${cancel}>${t('X-BACKUP.clearStay')}</${Button}>
             <${Button} variant="primary" data-testid="backup-clear-retry" onClick=${() => onConfirm && onConfirm()}>${t('X-BACKUP.retry')}</${Button}>`
-        : html`<${Button} variant="secondary" data-testid="backup-clear-cancel" onClick=${cancel}>${t('X-BACKUP.confirmCancel')}</${Button}>
+        : html`<${Button} variant="primary" data-testid="backup-clear-cancel" onClick=${cancel}>${t('X-BACKUP.confirmCancel')}</${Button}>
             <${Button} variant="secondary" class="sz-bk__danger" data-testid="backup-clear-ok" onClick=${() => onConfirm && onConfirm()}>${t('X-BACKUP.clearOk')}</${Button}>`}
     </div>
   </${Sheet}>`;
@@ -525,7 +531,7 @@ function BackupScreen({ entry }) {
             <span class="sz-bk__rowt" data-testid="backup-restore-title">${t('X-BACKUP.restoreRow')}</span>
             ${undoOn ? null : html`<span class="sz-bk__rows" data-testid="backup-restore-sub">${t(has ? 'X-BACKUP.restoreRowSub' : 'R-B03.restoreRowSub')}</span>`}
           </span>
-          <span class="sz-bk__rowr" aria-hidden="true">›</span>
+          <span class="sz-bk__rowr" aria-hidden="true"><${Chevron} /></span>
         </${Button}>
         <${Button} variant="plain" class="sz-bk__row sz-bk__row--danger" data-testid="backup-clear" disabled=${!has}
           aria-haspopup="dialog" onClick=${openClear}>

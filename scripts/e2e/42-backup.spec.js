@@ -35,7 +35,6 @@ const T = {
   intro: '记录只存在这台手机上。换手机、清理浏览器或删掉拾字之前，先导出一份备份文件。',
   introEmpty: '记录只存在这台手机上。',
   restoreSubHas: '会替换现在的记录，离开这一页前可以撤销',
-  restoreSubNone: '离开这一页前可以撤销',
   exported: '已导出备份文件。',
   notBackup: '这个文件不是拾字的备份，没法恢复。你的记录没有变。',
   restoreFailed: '没能恢复，你的记录还是原来的。',
@@ -306,7 +305,8 @@ export default async function run(page, { baseURL, assert, step }) {
   assert.deepEqual([v.export.disabled, v.export.aria, v.export.text, v.export.tag], [true, 'true', '导出备份文件', 'BUTTON'], 'export disabled (V07)');
   assert.deepEqual([v.clear.disabled, v.clear.aria, v.clear.text], [true, 'true', '清空所有记录'], 'clear disabled + aria-disabled (Y06)');
   assert.equal(v.restore.disabled, false, 'restore row usable without records');
-  assert.equal(v.restoreSub, T.restoreSubNone, 'restore sub without records (X07)');
+  // Q2-8（P183，复测 simA S3）：没有记录时「从备份文件恢复」下面不再放孤零零的「离开这一页前可以撤销」（那是上一次清空留下的措辞，此时没有可撤销的东西）。
+  assert.equal(v.restoreSub, null, 'no restore sub without records (Q2-8; was X07 「离开这一页前可以撤销」)');
   assert.equal(v.note, null, 'no note box without an error');
   assert.equal(v.undo, null, 'no undo bar');
   const names = await page.evaluate(() => [...document.querySelectorAll('.sz-layer[data-top="true"] button')]
@@ -574,7 +574,7 @@ export default async function run(page, { baseURL, assert, step }) {
   await settle(page);
 
   // ------------------------------------------------------------ 10
-  step('leaving the page ends the undo: safety dropped, conclusion stays');
+  step('leaving the page ends the undo: safety dropped; coming back recomputes the status sentence (Q2-8)');
   await pickFile(page, { name: fileA.name, text: fileA.text });
   await waitConfirm(page);
   await confirmOk(page);
@@ -587,7 +587,10 @@ export default async function run(page, { baseURL, assert, step }) {
   await openBackup(page);
   v = await view(page);
   assert.equal(v.undo, null, 'no undo bar after coming back');
-  assert.equal(v.line, T.conclusion, 'only the conclusion sentence (R-B01)');
+  // Q2-8（P183，复测 simA S3；D24「状态句只按现在的记录和上次导出时间算」）：离开再进来，撤销早已失效，状态句按现在的记录与上次导出时间重算，
+  // 不再留着「已换成…备份里的记录」；旧断言（T.conclusion 留结论句）改成重算结果：恢复后的记录与上次导出的签名不同 → 「上次备份以后记录有改动」。
+  assert.equal(v.line, T.changed, 'recomputed from the current records and the last export time (Q2-8)');
+  assert.equal(v.restoreSub, T.restoreSubHas, 'with records the sub still describes a future restore');
   assert.equal(v.intro, T.intro, 'intro shown again');
 
   // ------------------------------------------------------------ 11
@@ -654,6 +657,29 @@ export default async function run(page, { baseURL, assert, step }) {
   assert.equal(S(await state(page)), S(S0), 'clear undo: getState deep-equal');
   await page.waitForFunction(() => !document.querySelector('[data-testid="backup-undo"]'), null, { timeout: 5000 });
   await settle(page);
+
+  // ------------------------------------------------------------ 11a（Q2-8）
+  step('Q2-8: clear → leave → come back: 「现在没有记录。」, no 「记录已清空」, no 「离开这一页前可以撤销」 anywhere');
+  await seed(page, S0);
+  await waitNavIdle(page);
+  await page.click(topSel('backup-clear'));
+  await page.waitForSelector(topSel('backup-clear-sheet'));
+  await waitNavIdle(page);
+  await page.click(topSel('backup-clear-ok'));
+  await page.waitForSelector(topSel('backup-undo'));
+  await page.waitForFunction(() => !document.querySelector('[data-testid="backup-clear-sheet"]'));
+  await waitNavIdle(page);
+  assert.equal((await view(page)).line, T.clearConclusion, 'while the undo is live: the conclusion');
+  await back(page);
+  await openBackup(page);
+  v = await view(page);
+  assert.equal(v.undo, null, 'no undo bar after coming back');
+  assert.equal(v.line, T.noRecords, 'recomputed: only 「现在没有记录。」');
+  assert.equal(v.restoreSub, null, 'no restore sub without records');
+  const stale = await page.evaluate(() => document.querySelector('.sz-layer[data-top="true"] [data-testid="backup-screen"]').textContent);
+  assert.ok(!/记录已清空|离开这一页前可以撤销/.test(stale), 'nothing on the page mentions the expired undo: ' + stale);
+  await seed(page, S0);
+  await waitNavIdle(page);
 
   // ------------------------------------------------------------ 11b
   step('P79: an unfinished A group is ended by the replace (home shows no resume); undo brings it back deep-equal');

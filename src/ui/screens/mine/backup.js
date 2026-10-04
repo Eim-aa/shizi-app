@@ -6,7 +6,8 @@
 //
 // 状态机（T07）：
 //   顶部状态块 = 「上次备份」+ 日期（还没有备份 / {date}；替换、撤销不改这个日期，K02）+ 状态句（core/backup.js backupStatus：
-//     没有记录 →「现在没有记录。」（清空后「记录已清空。现在没有记录。」）；有结论 → 只写结论（X03）；从没备份 → 不写（N27）；
+//     没有记录 →「现在没有记录。」（撤销底栏还在时的清空后「记录已清空。现在没有记录。」）；撤销底栏还在时有结论 → 只写结论（X03）；
+//     离开再进来（撤销已失效）一律按现在的记录与上次导出时间重算，不再留结论句、也不再提撤销（Q2-8，03 P183）；从没备份 → 不写（N27）；
 //     签名一致 →「现在的记录都已经备份了。」否则「上次备份以后记录有改动，还没有备份。」）。
 //   没有记录：导出按钮与「清空所有记录」都灰（disabled + aria-disabled，V07 / Y06），不催导出。
 // 导出备份文件：点击处理里同步打包（core/backup.js buildBackupV2）→ platform/share.js 三级（原生 shareBackup → Web Share → 下载）；
@@ -492,7 +493,8 @@ function BackupScreen({ entry }) {
   }, [entryId]);
 
   const live = undo && !undo.done ? conclusionOfSafety(safetyOf(state), state) : null;
-  const status = backupStatus(state, { conclusion: live });
+  // Q2-8（03 P183）：结论句只在撤销底栏还在时说（live）；离开再进来按现在的记录与上次导出时间重算，不读 backupMeta.lastConclusion。
+  const status = backupStatus(state, { conclusion: live, stored: false });
   const undoOn = !!undo && !undo.done;
   const has = status.hasRecords;
   const lines = status.lines.map(lineText);
@@ -529,7 +531,7 @@ function BackupScreen({ entry }) {
         <${Button} variant="plain" class="sz-bk__row" data-testid="backup-restore" aria-haspopup="dialog" onClick=${pick}>
           <span class="sz-bk__rowl">
             <span class="sz-bk__rowt" data-testid="backup-restore-title">${t('X-BACKUP.restoreRow')}</span>
-            ${undoOn ? null : html`<span class="sz-bk__rows" data-testid="backup-restore-sub">${t(has ? 'X-BACKUP.restoreRowSub' : 'R-B03.restoreRowSub')}</span>`}
+            ${undoOn || !has ? null : html`<span class="sz-bk__rows" data-testid="backup-restore-sub">${t('X-BACKUP.restoreRowSub')}</span>`}
           </span>
           <span class="sz-bk__rowr" aria-hidden="true"><${Chevron} /></span>
         </${Button}>

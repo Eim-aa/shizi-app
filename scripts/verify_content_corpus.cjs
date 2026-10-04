@@ -16,6 +16,13 @@ assert.equal(sha256(fs.readFileSync(path.join(root, 'deck-data.js'), 'utf8')), b
   'Generated corpus changed; review its current governance baseline separately');
 assert.equal(current.cards.length, baseline.cardCount);
 assert.equal(byKey.size, current.cards.length);
+// D50 ①（C1）：来源授权有问题而移除的 76 个字不得回到题库（回执见 audit/compliance-2026-10/）。
+const complianceRemoval = require('../audit/compliance-2026-10/source-removal-76.receipt.json');
+assert.equal(complianceRemoval.removed.length, 76);
+for (const row of complianceRemoval.removed) {
+  assert(!byKey.has(`base:${row.character}`) && !current.seed.some(seedRow => seedRow.target === row.character),
+    `Compliance-removed character is back in the corpus: ${row.character}`);
+}
 assert.equal(new Set(current.cards.map(card => card.target)).size, current.cards.length);
 assert.equal(sha256(identity(current.cards)), baseline.identitySha256,
   'Content corrections must retain the current governed target set, order and libraries');

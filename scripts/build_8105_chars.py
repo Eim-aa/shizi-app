@@ -55,6 +55,12 @@ VECTOR_DATA_SUPPLEMENT_COUNT = 440
 VECTOR_DATA_HUMAN_ACCEPTED_COUNT = 440
 VECTOR_DATA_HUMAN_REVIEW_PENDING_COUNT = 0
 VECTOR_DATA_SUPPLEMENT_MEMBERS_SHA256 = "c8835eaa2eb28c133a82433854bd460f6e8632e15812a5d4bba51921103c8dbc"
+# D50 ①（C1）：76 个来源授权有问题的补充字从题库与 data/ 移除（合规说明 §1.8–§1.10、附录 B）。2026-08 的 440 条清单作为
+# 历史证据不改；可练补充 = 清单 − 回执里逐字列出的移除字（回执绑定决定记录与历史清单的哈希，成员另由下面的摘要钉死）。
+COMPLIANCE_REMOVAL_RECEIPT_PATH = ROOT / "audit" / "compliance-2026-10" / "source-removal-76.receipt.json"
+COMPLIANCE_REMOVAL_COUNT = 76
+COMPLIANCE_REMOVAL_MEMBERS_SHA256 = "8cbe427a2ab67d4c15c7816d85d8460544e0f47d3fff796e83019a322344675c"
+PRACTICE_SUPPLEMENT_COUNT = VECTOR_DATA_SUPPLEMENT_COUNT - COMPLIANCE_REMOVAL_COUNT
 NORMATIVE_SOURCE_URL = "https://www.gov.cn/gzdt/att/att/site1/20130819/tygfhzb.pdf"
 CURRICULUM_SOURCE_URL = "https://hudong.moe.gov.cn/srcsite/A26/s8001/202204/W020220420582344386456.pdf"
 CURRICULUM_SOURCE_SHA256 = "3ef0ec8a30b5a950211202658df07d99f5427f750f8ba0c3cfda12736b7bd71a"
@@ -335,15 +341,43 @@ def file_sha256(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def read_compliance_removals():
+    """D50 ①：返回 {字: 回执行}。回执须绑定当前历史清单与决定记录的哈希，成员摘要与常量一致，且被移除字的 data/<字>.json 不存在。"""
+    receipt = json.loads(COMPLIANCE_REMOVAL_RECEIPT_PATH.read_text(encoding="utf-8"))
+    if receipt.get("artifact") != "shizi-vector-data-compliance-76-removal-receipt":
+        raise RuntimeError("Unexpected compliance-removal receipt")
+    for key in ("decision_binding", "historical_manifest_binding"):
+        binding = receipt.get(key) or {}
+        bound_path = ROOT / str(binding.get("path", ""))
+        if not bound_path.is_file() or file_sha256(bound_path) != binding.get("sha256"):
+            raise RuntimeError(f"Compliance-removal receipt {key} hash mismatch")
+    if receipt["historical_manifest_binding"]["path"] != str(VECTOR_DATA_MANIFEST_PATH.relative_to(ROOT)):
+        raise RuntimeError("Compliance-removal receipt is bound to a different manifest")
+    rows = receipt.get("removed") or []
+    removals = {row.get("character"): row for row in rows}
+    if len(removals) != len(rows) or len(rows) != COMPLIANCE_REMOVAL_COUNT:
+        raise RuntimeError("Compliance removal must list exactly 76 unique characters")
+    manifest = json.loads(VECTOR_DATA_MANIFEST_PATH.read_text(encoding="utf-8"))
+    order = "".join(record["character"] for record in manifest["records"] if record["character"] in removals)
+    if hashlib.sha256(order.encode("utf-8")).hexdigest() != COMPLIANCE_REMOVAL_MEMBERS_SHA256:
+        raise RuntimeError("Compliance-removal membership changed")
+    for character, row in removals.items():
+        if row.get("removed_data_path") != f"data/{character}.json" or (ROOT / row["removed_data_path"]).exists():
+            raise RuntimeError(f"Compliance-removed stroke data is still present for {character}")
+    return removals
+
+
 def read_hanzi_writer_available_chars(standard_rows):
     """Return the exact, locally bundled practice-data inventory.
 
     The original 6,854-character baseline is independently pinned to the
     Hanzi Writer Data 2.0.1 membership used by this repository. The only
     explicit additions are the 440 records in the final technical supplement
-    manifest; an arbitrary JSON file copied into data/ cannot silently enter
-    the practice deck. Human-review state remains separately hash-bound so a
-    later payload change cannot inherit an earlier acceptance.
+    manifest, minus the 76 records removed for source-licensing reasons
+    (D50 ①, audit/compliance-2026-10/); an arbitrary JSON file copied into
+    data/ cannot silently enter the practice deck. Human-review state remains
+    separately hash-bound so a later payload change cannot inherit an earlier
+    acceptance.
     """
     manifest = json.loads(VECTOR_DATA_MANIFEST_PATH.read_text(encoding="utf-8"))
     if manifest.get("schema_version") != 2 or manifest.get("artifact") != "shizi-vector-data-440-technical-manifest":
@@ -369,6 +403,16 @@ def read_hanzi_writer_available_chars(standard_rows):
     standard_set = set(standard_order)
     if not supplement_chars <= standard_set:
         raise RuntimeError("The vector-data supplement contains a non-normative character")
+
+    removals = read_compliance_removals()
+    if not set(removals) <= supplement_chars:
+        raise RuntimeError("A compliance-removed character is not in the historical supplement")
+    for record in records:
+        if record["character"] in removals and removals[record["character"]].get("removed_data_sha256") != record.get("data_sha256"):
+            raise RuntimeError(f"Compliance-removal receipt hash differs from the manifest for {record['character']}")
+    historical_chars = supplement_chars
+    supplement_chars = historical_chars - set(removals)
+    records = [record for record in records if record["character"] in supplement_chars]
 
     review_status_by_char = {}
     for record in records:
@@ -408,13 +452,16 @@ def read_hanzi_writer_available_chars(standard_rows):
     supplement_digest = hashlib.sha256("".join(supplement_order).encode("utf-8")).hexdigest()
     if len(baseline_chars) != HANZI_WRITER_BASELINE_STANDARD_COUNT or baseline_digest != HANZI_WRITER_BASELINE_MEMBERS_SHA256:
         raise RuntimeError("The pinned Hanzi Writer Data 2.0.1 baseline membership changed")
-    if supplement_digest != VECTOR_DATA_SUPPLEMENT_MEMBERS_SHA256:
+    historical_digest = hashlib.sha256("".join(c for c in standard_order if c in historical_chars).encode("utf-8")).hexdigest()
+    if historical_digest != VECTOR_DATA_SUPPLEMENT_MEMBERS_SHA256:
         raise RuntimeError("The reviewed 440-character supplement membership changed")
+    if len(supplement_chars) != PRACTICE_SUPPLEMENT_COUNT:
+        raise RuntimeError("The practice supplement must be the 440 reviewed records minus the 76 compliance removals")
     if local_standard_chars != baseline_chars | supplement_chars:
         raise RuntimeError("Local vector-data inventory is not exactly baseline plus reviewed supplement")
     review_counts = Counter(review_status_by_char.values())
     if (
-        review_counts["HUMAN_ACCEPTED"] != VECTOR_DATA_HUMAN_ACCEPTED_COUNT
+        review_counts["HUMAN_ACCEPTED"] != PRACTICE_SUPPLEMENT_COUNT
         or review_counts["PENDING_HUMAN_REVIEW"] != VECTOR_DATA_HUMAN_REVIEW_PENDING_COUNT
         or set(review_counts) - {"HUMAN_ACCEPTED", "PENDING_HUMAN_REVIEW"}
     ):
@@ -439,15 +486,24 @@ def read_hanzi_writer_available_chars(standard_rows):
             "evidence_index_path": str(evidence_path.relative_to(ROOT)),
             "evidence_index_sha256": file_sha256(evidence_path),
             "license_review": evidence.get("license_review"),
+            "historical_reviewed_character_count": len(historical_chars),
+            "historical_members_sha256": historical_digest,
+            "compliance_removal": {
+                "receipt_path": str(COMPLIANCE_REMOVAL_RECEIPT_PATH.relative_to(ROOT)),
+                "receipt_sha256": file_sha256(COMPLIANCE_REMOVAL_RECEIPT_PATH),
+                "character_count": len(removals),
+                "members_sha256": COMPLIANCE_REMOVAL_MEMBERS_SHA256,
+                "decision": "D50 ①",
+            },
         },
         "combined_standard_character_count": len(local_standard_chars),
     }
-    return local_standard_chars, source_inventory, review_status_by_char
+    return local_standard_chars, source_inventory, review_status_by_char, set(removals)
 
 
-def read_vector_data_hint_groups():
+def read_vector_data_hint_groups(removed_chars):
     manifest = json.loads(VECTOR_DATA_MANIFEST_PATH.read_text(encoding="utf-8"))
-    manifest_records = {record["character"]: record for record in manifest["records"]}
+    all_manifest_records = {record["character"]: record for record in manifest["records"]}
     payload = json.loads(VECTOR_DATA_HINT_GROUPS_PATH.read_text(encoding="utf-8"))
     if payload.get("artifact") != "shizi-vector-data-440-hint-groups":
         raise RuntimeError("Unexpected vector-data hint-group manifest")
@@ -458,6 +514,10 @@ def read_vector_data_hint_groups():
         raise RuntimeError("A vector-data hint-group gate is false")
 
     records = payload.get("records") or []
+    if {record.get("character") for record in records} != set(all_manifest_records) or len(records) != VECTOR_DATA_SUPPLEMENT_COUNT:
+        raise RuntimeError("Hint-group manifest must cover the exact reviewed 440-character supplement")
+    manifest_records = {character: record for character, record in all_manifest_records.items() if character not in removed_chars}
+    records = [record for record in records if record.get("character") not in removed_chars]
     groups_by_char = {}
     for record in records:
         character = record.get("character")
@@ -475,8 +535,8 @@ def read_vector_data_hint_groups():
         ):
             raise RuntimeError(f"Invalid hint groups for {character}: {groups}")
         groups_by_char[character] = groups
-    if set(groups_by_char) != set(manifest_records) or len(groups_by_char) != VECTOR_DATA_SUPPLEMENT_COUNT:
-        raise RuntimeError("Hint-group manifest must cover the exact reviewed 440-character supplement")
+    if set(groups_by_char) != set(manifest_records) or len(groups_by_char) != PRACTICE_SUPPLEMENT_COUNT:
+        raise RuntimeError("Hint groups must cover the exact practice supplement (440 reviewed − 76 compliance removals)")
     return groups_by_char, {
         "path": str(VECTOR_DATA_HINT_GROUPS_PATH.relative_to(ROOT)),
         "sha256": file_sha256(VECTOR_DATA_HINT_GROUPS_PATH),
@@ -693,6 +753,7 @@ def choose_candidates(
     curriculum_table_one,
     supplemental_groups,
     supplemental_review_statuses,
+    compliance_removed,
 ):
     resolve_groups = build_group_resolver(mm)
     rows_by_char = {}
@@ -702,9 +763,12 @@ def choose_candidates(
             rows_by_char[ch] = row
 
     candidates = []
-    skipped = {"no_hanzi_writer": [], "no_make_me_hanzi": [], "stroke_mismatch": []}
+    skipped = {"no_hanzi_writer": [], "source_license_removed": [], "no_make_me_hanzi": [], "stroke_mismatch": []}
     for standard in standard_rows:
         ch = standard["character"]
+        if ch in compliance_removed:
+            skipped["source_license_removed"].append(standard)
+            continue
         if ch not in hanzi_writer_chars:
             skipped["no_hanzi_writer"].append(standard)
             continue
@@ -1015,8 +1079,8 @@ def main():
     curriculum_table_one = read_curriculum_table_one()
     rows = read_hanzi_db()
     word_index = read_context_words()
-    hanzi_writer_chars, source_inventory, supplemental_review_statuses = read_hanzi_writer_available_chars(standard_rows)
-    supplemental_groups, hint_group_inventory = read_vector_data_hint_groups()
+    hanzi_writer_chars, source_inventory, supplemental_review_statuses, compliance_removed = read_hanzi_writer_available_chars(standard_rows)
+    supplemental_groups, hint_group_inventory = read_vector_data_hint_groups(compliance_removed)
     source_inventory["reviewed_project_supplement"]["hint_groups"] = hint_group_inventory
     coverage = coverage_report(standard_rows, hanzi_writer_chars, source_inventory)
     (GENERATED_DIR / COVERAGE_JSON).write_text(
@@ -1031,6 +1095,7 @@ def main():
         set(curriculum_table_one),
         supplemental_groups,
         supplemental_review_statuses,
+        compliance_removed,
     )
     if not chosen:
         raise RuntimeError("No candidates selected")

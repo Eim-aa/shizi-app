@@ -95,8 +95,8 @@ def main_checks(data: dict, allow_photos_denied: bool) -> dict:
         and isinstance(boot.get("topScreen"), str)
         and bool(boot.get("topScreen")),
         "testHost": boot.get("testQuery") is True and boot.get("nativeDev") is True and boot.get("testHooks") is True,
-        "deckGlobals": int(boot.get("seed") or 0) >= 7294
-        and int(boot.get("groups") or 0) >= 7294
+        "deckGlobals": int(boot.get("seed") or 0) >= 7218
+        and int(boot.get("groups") or 0) >= 7218
         and int(boot.get("contextOverrides") or 0) > 0
         and int(boot.get("coreStrokes") or 0) >= 600
         and boot.get("hanziWriter") is True,

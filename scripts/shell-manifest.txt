@@ -16,7 +16,6 @@ assets/sound/s1_wood_muted.wav
 core-strokes.js
 data/context-overrides.js
 data/etymology.json
-data/㧐.json
 data/㬎.json
 data/一.json
 data/丁.json
@@ -258,7 +257,6 @@ data/侬.json
 data/侮.json
 data/侯.json
 data/侵.json
-data/侹.json
 data/便.json
 data/促.json
 data/俄.json
@@ -1012,7 +1010,6 @@ data/嚏.json
 data/嚓.json
 data/嚚.json
 data/嚣.json
-data/嚭.json
 data/嚯.json
 data/嚷.json
 data/嚼.json
@@ -1047,7 +1044,6 @@ data/圊.json
 data/圙.json
 data/圜.json
 data/土.json
-data/圢.json
 data/圣.json
 data/在.json
 data/圩.json
@@ -1190,7 +1186,6 @@ data/墈.json
 data/墉.json
 data/墒.json
 data/墓.json
-data/墘.json
 data/墙.json
 data/墚.json
 data/增.json
@@ -1371,7 +1366,6 @@ data/媸.json
 data/媾.json
 data/嫁.json
 data/嫂.json
-data/嫄.json
 data/嫉.json
 data/嫌.json
 data/嫒.json
@@ -1508,7 +1502,6 @@ data/尤.json
 data/尥.json
 data/尧.json
 data/尨.json
-data/尪.json
 data/尬.json
 data/就.json
 data/尴.json
@@ -1545,7 +1538,6 @@ data/屯.json
 data/山.json
 data/屹.json
 data/屺.json
-data/屼.json
 data/屾.json
 data/屿.json
 data/岁.json
@@ -1563,7 +1555,6 @@ data/岙.json
 data/岚.json
 data/岛.json
 data/岜.json
-data/岠.json
 data/岢.json
 data/岣.json
 data/岨.json
@@ -1595,7 +1586,6 @@ data/峪.json
 data/峭.json
 data/峰.json
 data/峻.json
-data/崁.json
 data/崂.json
 data/崃.json
 data/崆.json
@@ -1681,7 +1671,6 @@ data/帝.json
 data/帡.json
 data/带.json
 data/帧.json
-data/帨.json
 data/席.json
 data/帮.json
 data/帱.json
@@ -1735,7 +1724,6 @@ data/庥.json
 data/度.json
 data/座.json
 data/庭.json
-data/庱.json
 data/庳.json
 data/庵.json
 data/庶.json
@@ -1744,7 +1732,6 @@ data/庸.json
 data/庹.json
 data/庼.json
 data/庾.json
-data/廆.json
 data/廉.json
 data/廊.json
 data/廋.json
@@ -2443,7 +2430,6 @@ data/族.json
 data/旒.json
 data/旖.json
 data/旗.json
-data/旞.json
 data/无.json
 data/既.json
 data/日.json
@@ -3284,9 +3270,7 @@ data/溉.json
 data/溏.json
 data/源.json
 data/溘.json
-data/溚.json
 data/溜.json
-data/溞.json
 data/溟.json
 data/溠.json
 data/溢.json
@@ -3348,7 +3332,6 @@ data/漯.json
 data/漱.json
 data/漳.json
 data/漶.json
-data/漷.json
 data/漼.json
 data/漾.json
 data/潆.json
@@ -3467,7 +3450,6 @@ data/烫.json
 data/烬.json
 data/热.json
 data/烯.json
-data/烶.json
 data/烷.json
 data/烹.json
 data/烺.json
@@ -3533,7 +3515,6 @@ data/燹.json
 data/爆.json
 data/爇.json
 data/爝.json
-data/爟.json
 data/爨.json
 data/爪.json
 data/爬.json
@@ -3696,7 +3677,6 @@ data/珂.json
 data/珈.json
 data/珉.json
 data/珊.json
-data/珋.json
 data/珍.json
 data/珏.json
 data/珐.json
@@ -3778,7 +3758,6 @@ data/璧.json
 data/璨.json
 data/璩.json
 data/璪.json
-data/璲.json
 data/璺.json
 data/瓒.json
 data/瓘.json
@@ -3801,7 +3780,6 @@ data/甍.json
 data/甏.json
 data/甑.json
 data/甓.json
-data/甗.json
 data/甘.json
 data/甚.json
 data/甜.json
@@ -4179,7 +4157,6 @@ data/磅.json
 data/磉.json
 data/磊.json
 data/磋.json
-data/磏.json
 data/磐.json
 data/磔.json
 data/磕.json
@@ -4296,7 +4273,6 @@ data/穄.json
 data/穆.json
 data/穑.json
 data/穗.json
-data/穟.json
 data/穰.json
 data/穴.json
 data/究.json
@@ -5007,7 +4983,6 @@ data/艽.json
 data/艾.json
 data/艿.json
 data/节.json
-data/芃.json
 data/芄.json
 data/芈.json
 data/芊.json
@@ -5023,9 +4998,7 @@ data/芙.json
 data/芜.json
 data/芝.json
 data/芟.json
-data/芠.json
 data/芡.json
-data/芣.json
 data/芤.json
 data/芥.json
 data/芦.json
@@ -5051,7 +5024,6 @@ data/苁.json
 data/苄.json
 data/苇.json
 data/苈.json
-data/苉.json
 data/苊.json
 data/苋.json
 data/苌.json
@@ -5083,7 +5055,6 @@ data/苴.json
 data/苷.json
 data/苹.json
 data/苻.json
-data/苾.json
 data/茀.json
 data/茁.json
 data/茂.json
@@ -5120,11 +5091,8 @@ data/茸.json
 data/茹.json
 data/茺.json
 data/茼.json
-data/茽.json
 data/荀.json
-data/荁.json
 data/荃.json
-data/荄.json
 data/荆.json
 data/荇.json
 data/草.json
@@ -5132,9 +5100,7 @@ data/荏.json
 data/荐.json
 data/荑.json
 data/荒.json
-data/荓.json
 data/荔.json
-data/荖.json
 data/荙.json
 data/荚.json
 data/荛.json
@@ -5171,7 +5137,6 @@ data/莘.json
 data/莙.json
 data/莛.json
 data/莜.json
-data/莝.json
 data/莞.json
 data/莠.json
 data/莨.json
@@ -5235,9 +5200,7 @@ data/萧.json
 data/萨.json
 data/萩.json
 data/萱.json
-data/萳.json
 data/萸.json
-data/萹.json
 data/萼.json
 data/落.json
 data/葆.json
@@ -5257,7 +5220,6 @@ data/葬.json
 data/葭.json
 data/葱.json
 data/葳.json
-data/葴.json
 data/葵.json
 data/葶.json
 data/葸.json
@@ -5275,9 +5237,7 @@ data/蒙.json
 data/蒜.json
 data/蒟.json
 data/蒡.json
-data/蒨.json
 data/蒯.json
-data/蒱.json
 data/蒲.json
 data/蒴.json
 data/蒸.json
@@ -5293,7 +5253,6 @@ data/蓇.json
 data/蓉.json
 data/蓊.json
 data/蓍.json
-data/蓏.json
 data/蓐.json
 data/蓑.json
 data/蓓.json
@@ -5301,7 +5260,6 @@ data/蓖.json
 data/蓝.json
 data/蓟.json
 data/蓠.json
-data/蓢.json
 data/蓣.json
 data/蓥.json
 data/蓦.json
@@ -5309,8 +5267,6 @@ data/蓬.json
 data/蓰.json
 data/蓼.json
 data/蓿.json
-data/蔈.json
-data/蔊.json
 data/蔌.json
 data/蔑.json
 data/蔓.json
@@ -5357,7 +5313,6 @@ data/薮.json
 data/薯.json
 data/薰.json
 data/薷.json
-data/薸.json
 data/薹.json
 data/藁.json
 data/藉.json
@@ -5366,10 +5321,8 @@ data/藐.json
 data/藓.json
 data/藕.json
 data/藜.json
-data/藟.json
 data/藠.json
 data/藤.json
-data/藦.json
 data/藩.json
 data/藻.json
 data/藿.json
@@ -5533,7 +5486,6 @@ data/蟛.json
 data/蟠.json
 data/蟥.json
 data/蟪.json
-data/蟫.json
 data/蟮.json
 data/蟹.json
 data/蟾.json
@@ -5553,7 +5505,6 @@ data/衄.json
 data/衅.json
 data/行.json
 data/衍.json
-data/衎.json
 data/衒.json
 data/衔.json
 data/街.json
@@ -5639,7 +5590,6 @@ data/褶.json
 data/襁.json
 data/襄.json
 data/襕.json
-data/襚.json
 data/襞.json
 data/襟.json
 data/襦.json
@@ -5651,7 +5601,6 @@ data/覃.json
 data/覆.json
 data/见.json
 data/观.json
-data/觃.json
 data/规.json
 data/觅.json
 data/视.json
@@ -5845,7 +5794,6 @@ data/豢.json
 data/豨.json
 data/豪.json
 data/豫.json
-data/豮.json
 data/豳.json
 data/豸.json
 data/豹.json
@@ -6000,7 +5948,6 @@ data/踞.json
 data/踟.json
 data/踢.json
 data/踣.json
-data/踦.json
 data/踩.json
 data/踪.json
 data/踬.json
@@ -6186,7 +6133,6 @@ data/逦.json
 data/逭.json
 data/逮.json
 data/逯.json
-data/逴.json
 data/逵.json
 data/逶.json
 data/逸.json
@@ -6196,7 +6142,6 @@ data/逾.json
 data/遁.json
 data/遂.json
 data/遄.json
-data/遆.json
 data/遇.json
 data/遍.json
 data/遏.json
@@ -6215,7 +6160,6 @@ data/遭.json
 data/遮.json
 data/遴.json
 data/遵.json
-data/遹.json
 data/遽.json
 data/避.json
 data/邀.json
@@ -6243,7 +6187,6 @@ data/邮.json
 data/邯.json
 data/邰.json
 data/邱.json
-data/邲.json
 data/邳.json
 data/邴.json
 data/邵.json
@@ -6254,9 +6197,7 @@ data/邺.json
 data/邻.json
 data/邽.json
 data/邾.json
-data/邿.json
 data/郁.json
-data/郃.json
 data/郄.json
 data/郅.json
 data/郇.json
@@ -6278,7 +6219,6 @@ data/郤.json
 data/郦.json
 data/郧.json
 data/部.json
-data/郪.json
 data/郫.json
 data/郭.json
 data/郯.json
@@ -6288,24 +6228,17 @@ data/都.json
 data/郾.json
 data/郿.json
 data/鄂.json
-data/鄃.json
 data/鄄.json
 data/鄌.json
-data/鄗.json
 data/鄘.json
 data/鄙.json
-data/鄜.json
 data/鄞.json
-data/鄠.json
 data/鄢.json
 data/鄣.json
-data/鄫.json
 data/鄯.json
 data/鄱.json
 data/鄹.json
-data/酂.json
 data/酃.json
-data/酅.json
 data/酆.json
 data/酉.json
 data/酊.json
@@ -6355,7 +6288,6 @@ data/醒.json
 data/醚.json
 data/醛.json
 data/醢.json
-data/醨.json
 data/醪.json
 data/醭.json
 data/醮.json
@@ -6689,9 +6621,7 @@ data/陉.json
 data/陋.json
 data/陌.json
 data/降.json
-data/陎.json
 data/限.json
-data/陑.json
 data/陔.json
 data/陕.json
 data/陛.json
@@ -6710,7 +6640,6 @@ data/陴.json
 data/陵.json
 data/陶.json
 data/陷.json
-data/隃.json
 data/隅.json
 data/隆.json
 data/隈.json
@@ -6750,7 +6679,6 @@ data/雨.json
 data/雩.json
 data/雪.json
 data/雯.json
-data/雱.json
 data/雳.json
 data/零.json
 data/雷.json
@@ -7019,7 +6947,6 @@ data/髑.json
 data/髓.json
 data/高.json
 data/髡.json
-data/髢.json
 data/髦.json
 data/髫.json
 data/髭.json
@@ -7046,7 +6973,6 @@ data/魆.json
 data/魇.json
 data/魈.json
 data/魉.json
-data/魋.json
 data/魍.json
 data/魏.json
 data/魑.json
@@ -7306,8 +7232,6 @@ data/龚.json
 data/龛.json
 data/龟.json
 data/龠.json
-data/龢.json
-data/𠙶.json
 data/𬇕.json
 data/𬜯.json
 deck-data.js

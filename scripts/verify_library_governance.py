@@ -19,14 +19,21 @@ EXPECTED_NORM_SHA256 = {
     "二级": "d597a6e99ea7b8c41215081f824c6e8587bf1c9a3f45fb13086a826306789785",
     "三级": "c9fbc83a9f8cd860306b218bf16c6a4cc56d7c4a22a686d403b176a0dbec7931",
 }
-EXPECTED_AVAILABLE = {"一级": 3500, "二级": 2976, "三级": 818}
+# D50 ①（C1）：76 个来源授权有问题的补充字移除后（audit/compliance-2026-10/），二级 2976 → 2974、三级 818 → 744。
+EXPECTED_AVAILABLE = {"一级": 3500, "二级": 2974, "三级": 744}
 EXPECTED_VECTOR_BASELINE = 6854
+# 2026-08 的历史补充清单（audit/vector-data-460-manifest.json）仍是 440 条、原样不改；可练的是其中 364 条。
 EXPECTED_VECTOR_SUPPLEMENT = 440
-EXPECTED_PRACTICE_READY = 7294
-EXPECTED_UNAVAILABLE = 811
-EXPECTED_SELECTED_ORDER_SHA256 = "2d898ac1d6604a8fa315ad60ec3bc4de2f1b9d64efc47d1cdd6ba206a24f108b"
+EXPECTED_COMPLIANCE_REMOVED = 76
+EXPECTED_PRACTICE_SUPPLEMENT = EXPECTED_VECTOR_SUPPLEMENT - EXPECTED_COMPLIANCE_REMOVED
+EXPECTED_COMPLIANCE_REMOVED_MEMBERS_SHA256 = "8cbe427a2ab67d4c15c7816d85d8460544e0f47d3fff796e83019a322344675c"
+EXPECTED_PRACTICE_READY = 7218
+EXPECTED_UNAVAILABLE = 887
+EXPECTED_UNAVAILABLE_BY_REASON = {"no_hanzi_writer": 811, "source_license_removed": EXPECTED_COMPLIANCE_REMOVED, "no_make_me_hanzi": 0, "stroke_mismatch": 0}
+EXPECTED_SELECTED_ORDER_SHA256 = "ac40de531353f50c8a8db2b0505401af8f8c5aa0d9c12636e3356396b8e84a4a"
 EXPECTED_BASELINE_SELECTED_ORDER_SHA256 = "5955e843c604582905337b67465f080ba130e5a7865f317045a8963b2d363f57"
-EXPECTED_SUPPLEMENT_SELECTED_ORDER_SHA256 = "4ea80f9d0cb74adf651e7d61ec028882775ad67666cd39a05618befd17c29352"
+EXPECTED_SUPPLEMENT_SELECTED_ORDER_SHA256 = "af1115674e7c5f06e06afb059f51427091be2ca331445d151b07cf4acc86d34a"
+COMPLIANCE_RECEIPT_PATH = ROOT / "audit" / "compliance-2026-10" / "source-removal-76.receipt.json"
 EXPECTED_CURRICULUM_FILE_SHA256 = "c9b12e616ca252a3af6e7c872a953281ae7d5614bd2263f640131e90bf67b528"
 EXPECTED_CURRICULUM_MEMBERS_SHA256 = "c3de017903fc18076a7ab59ad9f41a29d0daba9a1725f04d206c0158a28de4aa"
 EXPECTED_CURRICULUM_PDF_SHA256 = "3ef0ec8a30b5a950211202658df07d99f5427f750f8ba0c3cfda12736b7bd71a"
@@ -79,8 +86,8 @@ CARDS_MODULE = ROOT / "src" / "core" / "cards.js"
 EXPECTED_LIBRARIES = [
     # (id, label, officialTotal, practice-ready count)
     ("core3500", "规范常用字", 3500, 3500),
-    ("adv3000", "规范次常用字", 3000, 2976),
-    ("rare", "规范专门用字", 1605, 818),
+    ("adv3000", "规范次常用字", 3000, 2974),
+    ("rare", "规范专门用字", 1605, 744),
     ("curriculum2500", "小学初中常用字", 2500, 2500),
 ]
 RETIRED_LIBRARY_LABEL = "义教基础字"
@@ -187,7 +194,7 @@ def main():
     require(members_sha256(selected_order) == EXPECTED_SELECTED_ORDER_SHA256, "selected runtime membership/order changed without source review")
     require(selected_chars.isdisjoint(skipped_chars), "a character cannot be both available and unavailable")
     require(selected_chars | skipped_chars == all_norm, "every normative character needs an availability status")
-    require({reason: len(rows) for reason, rows in skipped.items()} == {"no_hanzi_writer": EXPECTED_UNAVAILABLE, "no_make_me_hanzi": 0, "stroke_mismatch": 0}, "availability reasons changed without review")
+    require({reason: len(rows) for reason, rows in skipped.items()} == EXPECTED_UNAVAILABLE_BY_REASON, "availability reasons changed without review")
     require({level: sum(row["norm_level"] == level for row in selected) for level in LEVEL_FILES} == EXPECTED_AVAILABLE, "available counts changed without review")
     require(all(row.get("difficulty_band") in ALLOWED_BANDS and "level" not in row for row in selected), "generated records must use writing difficulty bands, not education levels")
     require(sum(row.get("curriculum_table") == "表一" for row in selected) == 2500, "all curriculum table-one characters must be practice-ready")
@@ -195,22 +202,35 @@ def main():
 
     vector_manifest_path = ROOT / "audit" / "vector-data-460-manifest.json"
     vector_manifest = json.loads(vector_manifest_path.read_text(encoding="utf-8"))
-    vector_chars = {row["character"] for row in vector_manifest["records"]}
-    require(len(vector_chars) == EXPECTED_VECTOR_SUPPLEMENT, "vector supplement must contain 440 unique characters")
-    require(vector_chars <= selected_chars, "every vector supplement character must be practice-ready")
-    require(sum(row.get("group_source") == "vector_data_supplement" for row in selected) == EXPECTED_VECTOR_SUPPLEMENT, "vector supplement group provenance is incomplete")
-    review_counts = Counter(row.get("human_review_status") for row in vector_manifest["records"])
-    require(review_counts == Counter({"HUMAN_ACCEPTED": 440}), "vector supplement review-state split changed")
+    historical_vector_chars = {row["character"] for row in vector_manifest["records"]}
+    require(len(historical_vector_chars) == EXPECTED_VECTOR_SUPPLEMENT, "historical vector supplement must contain 440 unique characters")
+    compliance_receipt = json.loads(COMPLIANCE_RECEIPT_PATH.read_text(encoding="utf-8"))
+    removed_rows = compliance_receipt["removed"]
+    removed_chars = {row["character"] for row in removed_rows}
+    require(len(removed_rows) == len(removed_chars) == EXPECTED_COMPLIANCE_REMOVED, "compliance removal must list 76 unique characters")
+    require(removed_chars <= historical_vector_chars, "compliance removal lists a character outside the historical supplement")
+    require(members_sha256([row["character"] for row in vector_manifest["records"] if row["character"] in removed_chars]) == EXPECTED_COMPLIANCE_REMOVED_MEMBERS_SHA256,
+            "compliance-removal membership changed without review")
+    require(removed_chars.isdisjoint(selected_chars), "a compliance-removed character is still practice-ready")
+    require({row["character"] for row in skipped["source_license_removed"]} == removed_chars, "compliance-removed characters must carry the source_license_removed status")
+    require(not any((ROOT / "data" / f"{char}.json").exists() for char in removed_chars), "compliance-removed stroke data is still bundled")
+    vector_chars = historical_vector_chars - removed_chars
+    require(len(vector_chars) == EXPECTED_PRACTICE_SUPPLEMENT, "practice supplement must be 440 − 76 = 364 characters")
+    require(vector_chars <= selected_chars, "every practice supplement character must be practice-ready")
+    require(sum(row.get("group_source") == "vector_data_supplement" for row in selected) == EXPECTED_PRACTICE_SUPPLEMENT, "vector supplement group provenance is incomplete")
+    review_counts = Counter(row.get("human_review_status") for row in vector_manifest["records"] if row["character"] in vector_chars)
+    require(review_counts == Counter({"HUMAN_ACCEPTED": EXPECTED_PRACTICE_SUPPLEMENT}), "vector supplement review-state split changed")
     require(Counter(row.get("vector_data_review_status") for row in selected if row.get("group_source") == "vector_data_supplement") == review_counts, "generated candidate review states differ from the technical manifest")
     hint_manifest_path = ROOT / "audit" / "vector-data-460-hint-groups.json"
     hint_manifest = json.loads(hint_manifest_path.read_text(encoding="utf-8"))
-    hint_groups = {row["character"]: row["groups"] for row in hint_manifest["records"]}
-    require(set(hint_groups) == vector_chars and len(hint_groups) == EXPECTED_VECTOR_SUPPLEMENT, "hint-group manifest does not cover the exact vector supplement")
+    require({row["character"] for row in hint_manifest["records"]} == historical_vector_chars, "hint-group manifest does not cover the exact historical supplement")
+    hint_groups = {row["character"]: row["groups"] for row in hint_manifest["records"] if row["character"] in vector_chars}
+    require(set(hint_groups) == vector_chars and len(hint_groups) == EXPECTED_PRACTICE_SUPPLEMENT, "hint groups do not cover the exact practice supplement")
     selected_by_char = {row["character"]: row for row in selected}
     require(all(selected_by_char[char]["groups"] == groups for char, groups in hint_groups.items()), "generated candidate groups differ from the reviewed supplement groups")
     supplement_selected = [row["character"] for row in selected if row.get("group_source") == "vector_data_supplement"]
     baseline_selected = [row["character"] for row in selected if row.get("group_source") == "make_me_a_hanzi"]
-    require(set(supplement_selected) == vector_chars, "supplement provenance must match the exact reviewed 440-character set")
+    require(set(supplement_selected) == vector_chars, "supplement provenance must match the exact 364-character practice supplement")
     require(set(baseline_selected) == selected_chars - vector_chars, "baseline provenance must match every non-supplement practice character")
     require(len(supplement_selected) + len(baseline_selected) == len(selected), "a selected character has an unknown or missing group source")
     require(members_sha256(supplement_selected) == EXPECTED_SUPPLEMENT_SELECTED_ORDER_SHA256, "supplement provenance/order changed without review")
@@ -224,6 +244,7 @@ def main():
     require(sum(row.get("edu") == "表一" for row in seed) == 2500 and sum(row.get("edu") == "表二" for row in seed) == 1000, "runtime curriculum membership is incomplete")
     runtime_groups = load_groups()
     require(set(runtime_groups) == selected_chars, "runtime GROUPS must cover exactly the runtime character set")
+    require(removed_chars.isdisjoint(runtime_chars) and removed_chars.isdisjoint(runtime_groups), "a compliance-removed character is still in deck-data.js")
     require(all(runtime_groups.get(char) == groups for char, groups in hint_groups.items()), "runtime GROUPS differ from the reviewed supplement groups")
 
     audit_path = ROOT / "generated" / "library-governance.json"
@@ -232,12 +253,16 @@ def main():
     require(audit["practice_availability"]["available"] == EXPECTED_PRACTICE_READY and audit["practice_availability"]["unavailable"] == EXPECTED_UNAVAILABLE, "audit availability totals are wrong")
     inventory = audit["vector_data_inventory"]
     require(inventory["official_baseline"]["standard_character_count"] == EXPECTED_VECTOR_BASELINE, "official Hanzi Writer baseline count changed")
-    require(inventory["reviewed_project_supplement"]["character_count"] == EXPECTED_VECTOR_SUPPLEMENT, "reviewed vector supplement count changed")
-    require(inventory["reviewed_project_supplement"]["human_accepted_character_count"] == 440 and inventory["reviewed_project_supplement"]["human_review_pending_character_count"] == 0, "vector supplement review counts changed")
+    require(inventory["reviewed_project_supplement"]["character_count"] == EXPECTED_PRACTICE_SUPPLEMENT, "reviewed vector supplement count changed")
+    require(inventory["reviewed_project_supplement"]["historical_reviewed_character_count"] == EXPECTED_VECTOR_SUPPLEMENT, "historical supplement count changed")
+    require(inventory["reviewed_project_supplement"]["human_accepted_character_count"] == EXPECTED_PRACTICE_SUPPLEMENT and inventory["reviewed_project_supplement"]["human_review_pending_character_count"] == 0, "vector supplement review counts changed")
+    removal_inventory = inventory["reviewed_project_supplement"]["compliance_removal"]
+    require(removal_inventory["character_count"] == EXPECTED_COMPLIANCE_REMOVED and removal_inventory["members_sha256"] == EXPECTED_COMPLIANCE_REMOVED_MEMBERS_SHA256
+            and sha256(ROOT / removal_inventory["receipt_path"]) == removal_inventory["receipt_sha256"], "compliance-removal inventory is not pinned")
     require(inventory["combined_standard_character_count"] == EXPECTED_PRACTICE_READY, "combined vector inventory count changed")
     require(sha256(ROOT / inventory["reviewed_project_supplement"]["manifest_path"]) == inventory["reviewed_project_supplement"]["manifest_sha256"], "vector supplement manifest hash mismatch")
     hint_inventory = inventory["reviewed_project_supplement"]["hint_groups"]
-    require(sha256(ROOT / hint_inventory["path"]) == hint_inventory["sha256"] and hint_inventory["character_count"] == EXPECTED_VECTOR_SUPPLEMENT, "vector supplement hint groups are not pinned")
+    require(sha256(ROOT / hint_inventory["path"]) == hint_inventory["sha256"] and hint_inventory["character_count"] == EXPECTED_PRACTICE_SUPPLEMENT, "vector supplement hint groups are not pinned")
     for item in audit["normative_source"]["files"]:
         require(sha256(ROOT / item["path"]) == item["sha256"], f"source hash mismatch: {item['path']}")
     table_one = audit["curriculum_source"]["table_one"]
@@ -249,7 +274,7 @@ def main():
 
     verify_library_table(seed)
 
-    print("library governance: 8105 normative characters classified; 3500 curriculum characters verified; 7294 practice-ready; 811 explicitly unavailable")
+    print(f"library governance: 8105 normative characters classified; 3500 curriculum characters verified; {EXPECTED_PRACTICE_READY} practice-ready; {EXPECTED_UNAVAILABLE} explicitly unavailable ({EXPECTED_COMPLIANCE_REMOVED} removed for source licensing, D50)")
 
 
 if __name__ == "__main__":

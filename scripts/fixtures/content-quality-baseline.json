@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
   "sourceCommit": "06e141b677f6c2ae2c5cfce8ecccd44cce4cfac6",
-  "cardCount": 7294,
-  "deckSha256": "3ac0637e30ecf187e5a979b6e5f3212760b23aabed03928ee33b31a8d82c1b81",
-  "identitySha256": "5a0b097683dece1d3f49eb21d06c87bac3e089491867e4c74e2dc85a3bb1f94f",
-  "protectedCardDataSha256": "b0f237f826036ca941c81bf8ea0b7caab8090eff379dc0826f71b1abde40e3b9",
+  "cardCount": 7218,
+  "deckSha256": "4b8770326dc6a5275e8a1d903bf5fd9c2f758ba523e036121dbbc4fbd107e5f9",
+  "identitySha256": "76a7c916ba757583a573453b7896542499b488122e6f3679374eef15710e2bc1",
+  "protectedCardDataSha256": "f084a4671a4d40ec5bd3cfee297810ffeecaed9933188eae2c249a3d386bd083",
   "originalRepeatedTargets": [
     "越",
     "刚",
@@ -121,7 +121,27 @@
     "wordCollisionGroups": 34,
     "wordCollisionCards": 69,
     "allCollisionGroups": 260,
-    "fallback": 954
+    "fallback": 885
   },
-  "scope": "Current governed main before these approved content fixes. Match by target/cardKey; removed characters are not reintroduced."
+  "scope": "Current governed main before these approved content fixes. Match by target/cardKey; removed characters are not reintroduced.",
+  "revisions": [
+    {
+      "revision": 1,
+      "reason": "D50 ①（C1，2026-10-04）：移除 76 个来源授权有问题的补充字（audit/compliance-2026-10/source-removal-76.*.json）；其余 7218 张卡逐字段不变（deck-data.js 由 build_8105_chars.py 重新生成，内容 = 旧 SEED/GROUPS 去掉这 76 行），其中 69 张原是 fallback 卡。",
+      "previous": {
+        "cardCount": 7294,
+        "deckSha256": "3ac0637e30ecf187e5a979b6e5f3212760b23aabed03928ee33b31a8d82c1b81",
+        "identitySha256": "5a0b097683dece1d3f49eb21d06c87bac3e089491867e4c74e2dc85a3bb1f94f",
+        "protectedCardDataSha256": "b0f237f826036ca941c81bf8ea0b7caab8090eff379dc0826f71b1abde40e3b9",
+        "fallback": 954
+      },
+      "current": {
+        "cardCount": 7218,
+        "deckSha256": "4b8770326dc6a5275e8a1d903bf5fd9c2f758ba523e036121dbbc4fbd107e5f9",
+        "identitySha256": "76a7c916ba757583a573453b7896542499b488122e6f3679374eef15710e2bc1",
+        "protectedCardDataSha256": "f084a4671a4d40ec5bd3cfee297810ffeecaed9933188eae2c249a3d386bd083",
+        "fallback": 885
+      }
+    }
+  ]
 }

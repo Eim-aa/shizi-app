@@ -38,12 +38,12 @@ test('cards.js is a pure module (no browser globals, storage or network)', () =>
   assert.doesNotMatch(source, /^\s*import\s/m, 'core/cards.js has no imports');
 });
 
-test('buildCards yields one card per SEED row: 7294 unique targets', () => {
-  assert.equal(seed.length, 7294);
-  assert.equal(cards.length, 7294);
-  assert.equal(new Set(cards.map(card => card.target)).size, 7294);
+test('buildCards yields one card per SEED row: 7218 unique targets', () => {
+  assert.equal(seed.length, 7218);
+  assert.equal(cards.length, 7218);
+  assert.equal(new Set(cards.map(card => card.target)).size, 7218);
   assert.deepEqual(cards.map(card => card.target), seed.map(row => row.target), 'SEED order preserved');
-  assert.equal(rawCards.length, 7294);
+  assert.equal(rawCards.length, 7218);
 });
 
 test('card fields and key order match the legacy CARDS construction', () => {
@@ -64,12 +64,12 @@ test('card fields and key order match the legacy CARDS construction', () => {
   });
 });
 
-test('LIBRARIES: legacy ids, v10 labels, counts 3500/2976/818/2500', () => {
+test('LIBRARIES: legacy ids, v10 labels, counts 3500/2974/744/2500', () => {
   assert.deepEqual(LIBRARIES.map(lib => lib.id), ['core3500', 'adv3000', 'rare', 'curriculum2500']);
   assert.deepEqual(LIBRARIES.map(lib => lib.label), ['规范常用字', '规范次常用字', '规范专门用字', '小学初中常用字']);
   assert.deepEqual(LIBRARIES.map(lib => lib.officialTotal), [3500, 3000, 1605, 2500]);
   const counts = Object.fromEntries(LIBRARIES.map(lib => [lib.id, cards.filter(lib.test).length]));
-  assert.deepEqual(counts, { core3500: 3500, adv3000: 2976, rare: 818, curriculum2500: 2500 });
+  assert.deepEqual(counts, { core3500: 3500, adv3000: 2974, rare: 744, curriculum2500: 2500 });
   assert.ok(Object.isFrozen(LIBRARIES) && LIBRARIES.every(Object.isFrozen));
   assert.equal(libraryById('rare').label, '规范专门用字');
   assert.equal(libraryById('primary'), null);
@@ -79,7 +79,7 @@ test('LIBRARIES: legacy ids, v10 labels, counts 3500/2976/818/2500', () => {
 test('cardKey is base:<字> / custom:<字>', () => {
   assert.equal(cardKey(withOverrides.get('越')), 'base:越');
   assert.equal(cardKey({ target: '𠮷', custom: true }), 'custom:𠮷');
-  assert.equal(new Set(cards.map(cardKey)).size, 7294);
+  assert.equal(new Set(cards.map(cardKey)).size, 7218);
 });
 
 test('promptModel masks every occurrence of a repeated target (越来越, raw SEED)', () => {

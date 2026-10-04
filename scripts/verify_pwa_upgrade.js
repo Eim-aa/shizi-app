@@ -84,11 +84,11 @@ const GENERATIONS = {
 const LEGACY_GENERATIONS = ["v10", "v13"];
 // 冻结副本：让"被回放的旧缓存策略"在代码评审里可见。
 const FROZEN_FIXTURES = ["sw.js", "core-strokes.js"];
-const CURRENT_SEED_CHARS = 7294;
+const CURRENT_SEED_CHARS = 7218; // D50 ①（C1）：移除 76 个来源授权有问题的补充字后
 const EXPECTED_LIBRARIES = [
   { id: "core3500", total: 3500 },
-  { id: "adv3000", total: 2976 },
-  { id: "rare", total: 818 },
+  { id: "adv3000", total: 2974 },
+  { id: "rare", total: 744 },
   { id: "curriculum2500", total: 2500 },
 ];
 

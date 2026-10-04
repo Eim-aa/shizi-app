@@ -107,7 +107,7 @@ test('judgedChars: only judged (correct / wrong) records, deduped by char', () =
   assert.deepEqual([...judgedChars(null)], []);
 });
 
-test('real deck: counts come from the data (3500 / 2976 / 818 / 2500)', () => {
+test('real deck: counts come from the data (3500 / 2974 / 744 / 2500)', () => {
   const ctx = {};
   vm.createContext(ctx);
   vm.runInContext(`${fs.readFileSync(path.join(ROOT, 'deck-data.js'), 'utf8')}\n;globalThis.__seed = SEED;`, ctx);
@@ -115,9 +115,9 @@ test('real deck: counts come from the data (3500 / 2976 / 818 / 2500)', () => {
   setDeckSource({ seed: ctx.__seed, overrides: ctx.__ov });
   try {
     const rows = libraryRows({ settings: null, records: { '2026-09': [rec('r1', '的'), rec('r2', '耶')] } });
-    assert.deepEqual(rows.map(r => r.total), [3500, 2976, 818, 2500]);
+    assert.deepEqual(rows.map(r => r.total), [3500, 2974, 744, 2500]);
     assert.deepEqual(rows.map(r => r.recorded), [1, 1, 0, 1]);
-    assert.equal(rows[1].countLine, '可以练 2976 个字 · 有记录 1 个');
+    assert.equal(rows[1].countLine, '可以练 2974 个字 · 有记录 1 个');
     // 新字来源跟着 settings.library 走（session-start 读 deck.currentLibraryId）
     assert.equal(currentLibraryId({ library: 'adv3000' }), 'adv3000');
     const plan = planDaily({ records: {}, sched: {}, settings: { library: 'adv3000' }, sessions: null },

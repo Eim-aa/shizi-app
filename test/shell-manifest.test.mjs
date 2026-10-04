@@ -23,7 +23,7 @@ test('every manifest line exists and required shell files are listed', () => {
     'vendor/ui.js', 'vendor/fsrs6.min.js', 'vendor/hanzi-writer.min.js', 'data/context-overrides.js', 'icon-180.png']) {
     assert.ok(lines.includes(rel), `manifest must list ${rel}`);
   }
-  assert.ok(lines.filter(rel => /^data\/.+\.json$/.test(rel)).length >= 7294, 'all stroke JSON listed');
+  assert.ok(lines.filter(rel => /^data\/.+\.json$/.test(rel)).length >= 7218, 'all stroke JSON listed');
 });
 
 test('BUILD has the <yyyymmdd>-<12 hex> shape', async () => {

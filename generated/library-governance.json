@@ -52,41 +52,54 @@
     "reviewed_project_supplement": {
       "manifest_path": "audit/vector-data-460-manifest.json",
       "manifest_sha256": "c5add68779f17fd433672ef1ed063bcec6ae4b4ac632fd1e4aa858d02873d5ff",
-      "character_count": 440,
-      "members_sha256": "c8835eaa2eb28c133a82433854bd460f6e8632e15812a5d4bba51921103c8dbc",
+      "character_count": 364,
+      "members_sha256": "54e523701fe6fff329f79c9746b4d63e801cef35780d4c62e8c5e2b06e3a56e9",
       "audit_state": "TECHNICAL_AND_HUMAN_REVIEW_PASS_440",
-      "human_accepted_character_count": 440,
+      "human_accepted_character_count": 364,
       "human_review_pending_character_count": 0,
       "evidence_index_path": "audit/vector-data-460-evidence-index.json",
       "evidence_index_sha256": "1b0b5a20695f23091dd03c7b2d4a9ffb2a91ff299c71b13780eddd4c67f3f6a8",
       "license_review": "OUT_OF_SCOPE_PENDING_SEPARATE_REVIEW",
+      "historical_reviewed_character_count": 440,
+      "historical_members_sha256": "c8835eaa2eb28c133a82433854bd460f6e8632e15812a5d4bba51921103c8dbc",
+      "compliance_removal": {
+        "receipt_path": "audit/compliance-2026-10/source-removal-76.receipt.json",
+        "receipt_sha256": "0f21eac4fa33c7894260deb528eb41814d5285bdbe8e340b2e40f1b0d52b97db",
+        "character_count": 76,
+        "members_sha256": "8cbe427a2ab67d4c15c7816d85d8460544e0f47d3fff796e83019a322344675c",
+        "decision": "D50 ①"
+      },
       "hint_groups": {
         "path": "audit/vector-data-460-hint-groups.json",
         "sha256": "cc94cefe9b82fabeb059e3f62b938efa8e196188af52c2a7326716f60839aad0",
-        "character_count": 440,
+        "character_count": 364,
         "maximum_groups_per_character": 5,
         "source": "Chaifen 0.4.0 G-tagged component graph"
       }
     },
-    "combined_standard_character_count": 7294
+    "combined_standard_character_count": 7218
   },
   "practice_availability": {
-    "available": 7294,
-    "unavailable": 811,
+    "available": 7218,
+    "unavailable": 887,
     "available_by_norm_level": {
       "一级": 3500,
-      "二级": 2976,
-      "三级": 818
+      "二级": 2974,
+      "三级": 744
     },
     "unavailable_by_norm_level": {
       "一级": 0,
-      "二级": 24,
-      "三级": 787
+      "二级": 26,
+      "三级": 861
     },
     "unavailable_by_reason": {
       "no_hanzi_writer": {
         "count": 811,
         "characters": "牤玭㧟䏝𬉼炘㤘𠳐䥽捽睄媭颎滫叆䁖粿踒𥻗縠䦃鞬霨㸆冮𬣙讱圲圫朳𨙸辿伣伈癿汋䜣讻𬣞𬘓玒玘刬𫭟坉扽𫭢坋㧑𫇭杕杄𫐄旴旵㕮𫵷呇㑇伭佖佁飏汫𣲘𣲗𬇙㳇忳忺𬣡诇𫸩岊䢺妧妘𨚕纮驲𫘜𬘘𫘝纼玤玞玱坥坰坬坽弆䢼𦭜茋㭎枍匼𬨂𬀩𬀪旿昄昒昈咉咇咍岞㟃𬬩钖牥侁佸佺㑊侂舠攽肸炌泂泇峃祋祊𫍣𬣳𬩽弢弨𬮿𬯀乸妭姈𫰛𬳵𬳶䌹𫠊㛃玶珇珅𬍛玹珌玿垙耇鿍垎挓垵垏𬜬𦰡㭕柷栐柖䴓迺砆砄耏䶮昺𪾢盷咡咺昳昣昤昡昪虷虸哃峘峛𪨰峗𫓧𬬮𬬱𬬭秬俫俙俍垕侴䏡𦙶胈胣炣㶲洭洘洓洿㳚洢洈㳘恔祏娀姱姤枲绖骃𬘡𬳽𬘩𫄧骉珛珹玼珖𪟝珦珫珒𬍤珢珕珝𫭼垾垺垿埌鄀䓖栻𬂩梠梴𫠆砵砫翃𨐈𬌗晅晊冔晐畖蚄蚆𫑡峿𪨶崄崀𬬸𬬻𬬹𬬿𬭁甡倴脩倕𫢸倧衃舥朓虓峱𫗧羖羓烠烔烻𬊈涍浭涄涐浰浟浛浲悈𬒈宧窊窎堲𨺙㛚翀翂𬳿𫄨𬘫䂮珵琄琈琀珺堎堐埫𫮃掞埪壸㙍萚莿䓫勚䓬菍萣䓨菉䓛桯梌桹敔硔鿎硊硍勔䴕翈㫰晙𬱖蛃蚲𬟽䎃崌崡铏𫓯𫟹𫟼牻笯偰偡偭偁㿠鄅偓徛悆䝙脟䏲𠅤痓䴔竫焆𬇹淟淜淴涴𬍡㥄惔悰寁𬤇𫍯𬤊𫍲谞弶𬯎婼媖婍婌婫婤婘婠𬘬𬘭𬴂𫘦𫟅𬘯𫘧珷琡琟琔琭堾堼揕㙘堧堨塅𪣻𡎚惎靬鄚蒐葰鄑棤棽棫椓𬃊棓棪𬷕奡詟𫐐棐龂𬹼睎晫晪晱𧿹崶嵁𫶇嵅崿𫖮圌圐鿏𬭊𨱇𫓶𬭎稌筥傃傉翛傒𫖯脿腘䐃𬱟猰𫛭㺄凓𫷷旐𬮱焞𬊤𣸣溁渰㴔渼湑愐敩婻媆媞㛹媓媂媄𬴃𫘨缐瑃瑓瑅瑆䴖瑖瑝瑔𤧛瑳瑂嶅瑑摛塝蔀榃楒楩椸歅𬪩碃碏𬒔碈䃅硿𬨎𫐓䣘暕𫫇㬊跱蜐嵲赗𫓹锳𬭚𬭛稑䅟𬕂筶筤谼貆腨腯䲟𬶋𬶍雊猺觟𦝼裛麀𫔶煁煃煴煋煟煓溍溹滆溵滧愭慆塱𫌀禋禔禘禒𫖳媱戣𫘪𫘬缞瑧𫞩瑨斠摏墕墐摴𡐓𪤗榰𣗋𬸘酺䃎𬒗碨𥔲𫚖䴗鹖幖嶍𨱏𬭤馝箖僔僎㙦𫚕鲖鲘𬶐𬶏𩽾𬸚凘鲝熇漹漖潩漴㽏漈漋漻慬㮾𬤝褕隩嫕嫭𬙂㻬漦叇墣墡薁蔃槱暵暲暶䗖蝘蝲噇罶嶲㠇嶟嶒𬭩皞䴘𩾃觭鹢熛潖㵐澛瑬潾憭憕𬸣戭褯𫍽嫽𬴊璥璒薳𬞟薢橞橑磡𥕢磜𫟦𬺈𫠜虤暿曌㬚䗛疁㠓𪩘嶦𬭬𨱑𬭯馞篯衠𫗴𬸦羱燋熻燚濩濋澽澭𫄷璱𤩽璬璮髽薿檞磹磻瞫㘎𬭳𬭶𫔍𬭸𨱔𬭼𫔎矰穙穜簕儦斶𬸪䲠𬶟𬶠鲿䗪𬶨螱嬥𦈡𫄸瓀鬶鞳𬟁藨黡𥖨䗴髃镮馧簝簰䲢鳒鹯癗𦒍翷䎖瀔襜䴙𬙊㰀鬷翾儳儴𬶭𩾌鳛麑麖嬿欂𨟠巇髎𬶮𨭉㸌爔瀱瀼𬙋𤫉瓖鬘𬺓鳠爚灈礵皭𫚭齇觿"
+      },
+      "source_license_removed": {
+        "count": 76,
+        "characters": "㧐雱𠙶圢芃屼芣苉芠尪岠觃邲邿苾侹郃陑陎珋荖荁茽荄荓衎莝郪崁帨烶逴鄃庱隃萳葴萹鄗廆遆溚溞髢蒱蒨蓏蓢鄠鄜漷嫄墘蔈蔊鄫磏踦遹璲豮薸醨穟魋襚藟藦蟫酂旞嚭甗酅爟龢"
       },
       "no_make_me_hanzi": {
         "count": 0,

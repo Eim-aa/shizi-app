@@ -1,6 +1,6 @@
 // 题面（M1-8，决定-D16 / R-W28）纯逻辑与视图树单测。
 // - promptCopy() 从 src/config/copy 取值，必须与 cards.js PROMPT_COPY 逐字一致（门禁 promptHTML / visibleHint 字节一致）；
-// - 全部 7294 张卡：格数 = 码点数、原位拼音、其余同一目标字 □、提示行 = 内容门禁 visibleHint、未揭示时目标字不进任何文本；
+// - 全部 7218 张卡：格数 = 码点数、原位拼音、其余同一目标字 □、提示行 = 内容门禁 visibleHint、未揭示时目标字不进任何文本；
 // - PromptView 的 vnode 树（无 hooks，直接展开）：任何属性值不含目标字、没有 dangerouslySetInnerHTML、文本都是文本子节点；
 // - 补充平面字 𠮷、自定义「哈哈哈」、`<img onerror>` 字面量、缺拼音、揭示阶段。
 import test from 'node:test';
@@ -65,7 +65,7 @@ test('promptCopy() comes from src/config/copy and is byte-identical to cards.js 
 
 test('all cards: gate promptHTML / visibleHint unchanged when rendered with copy from src/config/copy', async () => {
   const { cards } = await corpus();
-  assert.equal(cards.length, 7294);
+  assert.equal(cards.length, 7218);
   let repeated = 0;
   for (const card of cards) {
     assert.equal(promptHTML(card, promptCopy()), card.promptHTML, `promptHTML bytes ${card.cardKey}`);

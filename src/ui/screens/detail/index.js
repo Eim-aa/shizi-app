@@ -40,6 +40,7 @@ import { isHan } from '../../../core/query.js';
 import { RefMini } from '../write/compare.js';
 import { useStrokeData } from '../write/hint-layer.js';
 import { startPicked } from '../session/index.js';
+import { isPracticable } from '../../../data/deck.js';
 import { detailModel, hasInkPoints, inkOf, RecordsBlock, SourceRow } from './records.js';
 import {
   commitRemoveCustom, commitRestoreCustom, commitWordOff, commitWordOn, DetailRows, FailBlock, WordBanner,
@@ -176,7 +177,8 @@ function DetailScreen({ params, entry }) {
   const store = storeOrNull();
   const today = localDay(envNow());
   const model = detailModel(state, char, { today, hasInk: record => hasInkPoints(inkOf(store, record)) });
-  const strokeData = useStrokeData(char);
+  // 题库外的字（如 D50 ① 因来源授权移除的字、迁移来的旧记录）没有 data/<字>.json：不发请求，参考字直接用楷体回退（与 components/work.js 同一取舍）。
+  const strokeData = useStrokeData(isPracticable(`base:${char}`) ? char : '');
 
   const [undo, setUndo] = useState(null); // {removed, state:'on'|'failed'|'done'}
   const [banner, setBanner] = useState(null); // {word, cardKey, state:'on'|'failed'|'undone'}

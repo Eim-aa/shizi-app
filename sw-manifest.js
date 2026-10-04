@@ -1,7 +1,7 @@
 // 由 scripts/build_shell_manifest.mjs 生成，勿手改。sw.js 以 importScripts('./sw-manifest.js') 读取（01 §8.3）。
 // 升级的唯一入口：本文件或 sw.js 的字节变化 → 浏览器装新 worker。build 与 src/build-info.js、index.html meta 同源。
 self.SHIZI_SW_MANIFEST = {
-  build: "20261005-52210f191287",
+  build: "20261004-cfe2293ba715",
   // 核心壳：Cache.addAll 原子预缓存，任何一项失败 = 安装失败
   shell: [
     "core-strokes.js?v=6b92d133c66c",
@@ -63,7 +63,6 @@ self.SHIZI_SW_MANIFEST = {
     "src/core/session-start.js",
     "src/core/sessions.js",
     "src/core/special.js",
-    "src/core/work-members.js",
     "src/data/deck.js",
     "src/data/font-loader.js",
     "src/data/strokes.js",
@@ -82,9 +81,7 @@ self.SHIZI_SW_MANIFEST = {
     "src/store/migrate.js",
     "src/store/storage.js",
     "src/store/store.js",
-    "src/ui/brand/shi.js",
     "src/ui/canvas/brush.js",
-    "src/ui/canvas/glyph-wash.js",
     "src/ui/canvas/glyph.js",
     "src/ui/canvas/ink-canvas.js",
     "src/ui/components/Button.js",
@@ -182,12 +179,8 @@ self.SHIZI_SW_MANIFEST = {
     "assets/branding/app-icon-source-small.svg",
     "assets/branding/app-icon-source.svg",
     "assets/branding/app-icon-tinted.svg",
-    "assets/sound/j1_page_settle.wav",
-    "assets/sound/j1_page_settle_b.wav",
-    "assets/sound/j1_page_settle_c.wav",
-    "assets/sound/s1_wood_muted.wav",
     "data/etymology.json",
-    "deck-data.js?v=3ac0637e30ec",
+    "deck-data.js?v=4b8770326dc6",
     "fonts/ShiziKai-Regular.woff2",
     "fonts/ShiziSerifSC-Medium.woff2",
     "fonts/ShiziSerifSC-Regular.woff2",

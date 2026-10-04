@@ -153,7 +153,7 @@ export function setGlyphScheduler(s) {
 }
 
 /**
- * 这个字有没有轮廓数据可取：题库里的字（data/<字>.json 与题库 7294 字一一对应）才发请求；题库外的字（迁移来的旧记录、自选历史）
+ * 这个字有没有轮廓数据可取：题库里的字（data/<字>.json 与题库 7218 字一一对应）才发请求；题库外的字（迁移来的旧记录、自选历史）
  * 直接回退，免得为它们发一串 404（e2e 与线上都不该有失败请求；与 components/work.js 的取舍一致）。
  */
 const defaultGate = char => {

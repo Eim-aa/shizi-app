@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "artifact": "shizi-vector-data-compliance-76-source-removal",
+  "recorded_at_utc": "2026-10-04T16:00:00Z",
+  "reviewer_role": "product_owner",
+  "reviewer_response_verbatim": "按推荐",
+  "decision_reference": "docs/handoff/decisions.md D50 ①（2026-10-04 产品负责人「按推荐」）",
+  "decision": "REMOVE_76_SUPPLEMENT_CHARACTERS_WITHOUT_REDISTRIBUTION_BASIS",
+  "basis": {
+    "document": "docs/legal/合规说明.md",
+    "sections": [
+      "§0 第 5–7 项",
+      "§1.8",
+      "§1.9",
+      "§1.10",
+      "附录 B"
+    ],
+    "note": "合规说明由 AI 起草，不是律师意见；本记录只转录产品负责人按其推荐作出的范围决定。"
+  },
+  "precedent": {
+    "path": "audit/vector-data-460-evidence/review-decisions/strokeorder-49-scope-closure.json",
+    "summary": "2026-08-06 产品负责人以产品范围排除 20 个生僻字：记录决定原话与字表、删除 data/<字>.json、导入回执逐字写明删除文件的哈希、门禁确认被排除的字不再可练。本次照同一方式记录与核验。"
+  },
+  "scope": {
+    "historical_practice_supplement": 440,
+    "removed_characters": 76,
+    "remaining_practice_supplement": 364,
+    "remaining_routes": {
+      "animcjk_363": 363,
+      "human_generated_8": 1
+    },
+    "removed_by_norm_level": {
+      "三级": 74,
+      "二级": 2
+    },
+    "in_curriculum_common_2500": 0
+  },
+  "removed_by_source": {
+    "strokeorder_cc": {
+      "route": "strokeorder_merge_79",
+      "count": 59,
+      "basis": "合规说明 §1.8：轮廓从 strokeorder.cc 网站的 GIF 笔顺动画逐帧抽取，网站没有开放许可；其中 29 条另拼接了 hanzi-writer-data（APL）部件，主体来源问题仍在",
+      "characters": "侹岠廆旞溚溞漷烶爟璲甗磏穟芃芠芣苉苾茽荁荄荓荖莝萳萹葴蒨蒱蓏蓢蔈蔊薸藟藦蟫襚豮逴遆遹邲邿郃郪鄃鄗鄜鄠鄫酂酅醨陎陑隃髢魋"
+    },
+    "moe_stroke_order": {
+      "route": "moe_stroke_svg_10",
+      "count": 10,
+      "basis": "合规说明 §1.9：台湾教育部「國字標準字體筆順學習網」笔顺 SVG，许可为 CC BY-NC-ND 3.0 台湾版（禁止改作、禁止商业使用），转换为 hanzi-writer 格式本身即改作",
+      "characters": "嚭墘嫄尪屼崁帨踦雱龢"
+    },
+    "stkaiti_outline": {
+      "route": "human_generated_8",
+      "count": 7,
+      "basis": "合规说明 §1.10：整字轮廓取自 Apple 系统字体「华文楷体」STKaitiSC-Regular，字体许可不允许提取轮廓后再分发；不能靠补署名补救",
+      "characters": "㧐圢庱珋衎觃𠙶"
+    }
+  },
+  "removed_members_in_manifest_order": "㧐侹嚭圢墘嫄尪屼岠崁帨庱廆旞溚溞漷烶爟珋璲甗磏穟芃芠芣苉苾茽荁荄荓荖莝萳萹葴蒨蒱蓏蓢蔈蔊薸藟藦蟫衎襚觃豮踦逴遆遹邲邿郃郪鄃鄗鄜鄠鄫酂酅醨陎陑隃雱髢魋龢𠙶",
+  "retained_exception": {
+    "character": "𬇕",
+    "route": "human_generated_8",
+    "reason": "合规说明 §1.10：整字轮廓取自霞鹜文楷 GB（LXGW WenKai GB，SIL OFL 1.1），可以随 App 分发；保留，并按 OFL 在 THIRD_PARTY_NOTICES.md 与 data/LICENSE.md 写明来源与许可。"
+  },
+  "interpretation": [
+    "事实：这 76 个字的笔顺数据在 2026-08 都通过了技术校验与产品负责人的人工视觉验收；本次移除的理由是来源授权，不是数据质量。",
+    "边界：这是产品范围移除，不等于这些字不该练、也不等于技术上无法得到它们的笔顺数据。1.x 用开放许可字体（如霞鹜文楷 GB）重制后补回（合规说明 §1.8.2 R2），补回需要新的验收与导入记录。",
+    "边界：2026-08 的 440 条技术清单、验收与导入证据保持原样不改（仍是当时验收的历史证据，哈希照旧可核）；当前可练的补充数据 = 440 − 76 = 364 条，由本记录与回执界定。",
+    "用户记录：已有记录里若有这些字，按现有「字不在题库」的路径降级（字墙与月字帖用楷体回退、不再作为新字或到期复习出现、备份照常导入导出），不删除用户数据。"
+  ],
+  "historical_evidence_unchanged": true,
+  "app_data_modified_by_this_decision": true
+}

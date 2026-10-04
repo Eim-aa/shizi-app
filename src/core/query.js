@@ -105,7 +105,7 @@ export function baseKey(char) {
 
 /**
  * 「不能练」判定（任务卡 M2-0）：不在当前库且不在题库 → 不能练。
- * inDeck(char)：题库（7294 张基础卡）有没有这个字；inLibrary(char)：当前练习范围（settings.library）有没有。
+ * inDeck(char)：题库（7218 张基础卡）有没有这个字；inLibrary(char)：当前练习范围（settings.library）有没有。
  * 两个谓词都缺省为「没有」。
  */
 export function isPracticable(char, { inDeck = null, inLibrary = null } = {}) {

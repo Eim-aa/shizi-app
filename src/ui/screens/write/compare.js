@@ -59,6 +59,19 @@ function pyOf(cardKey) {
   }
 }
 
+/** 判断两键的出现与就绪（P227，时刻编排 M1）：0–320ms 不显示，320ms 起 60% 且不可点，440ms 变实可点（取代看不见的 0.4s 防连点）；减少动态效果下 150ms 起可点、不淡入。 */
+export const JUDGE_SHOW_MS = 320;
+export const JUDGE_READY_MS = 440;
+export const JUDGE_READY_REDUCED_MS = 150;
+
+function prefersReducedMotionNow() {
+  try {
+    return typeof window !== 'undefined' && !!window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  } catch (error) {
+    return false;
+  }
+}
+
 /** 判断两键的顺序：写错了左、写对了右（决定-D20 / R-W09）。 */
 export const JUDGE_ORDER = Object.freeze(['wrong', 'correct']);
 // 边长公式与常量在 layout.js（纯函数）；这里转出，保持原导入路径可用。
@@ -72,11 +85,12 @@ const COPY_KEYS = Object.freeze({
 });
 
 injectStyles('write-compare', `
-@keyframes szCmpIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes szCmpIn{from{opacity:0}to{opacity:1}}
+@keyframes szJudgeWait{0%,72.7%{opacity:0}77.3%,99.9%{opacity:.6}100%{opacity:1}}
 .sz-compare{box-sizing:border-box;max-width:100%;margin:0 auto;display:flex;flex-direction:column;align-items:stretch}
 .sz-compare[data-layout="side"]{flex-direction:row;gap:${COMPARE_GAP}px}
 .sz-compare__row{position:relative;min-width:0;flex:1 1 0}
-.sz-compare__row--ref{margin-top:calc(-1 * ${T.frameW});animation:szCmpIn .26s cubic-bezier(.2,.7,.2,1) .12s both}
+.sz-compare__row--ref{margin-top:calc(-1 * ${T.frameW});animation:szCmpIn .2s linear .16s both}
 .sz-compare[data-layout="side"] .sz-compare__row--ref{margin-top:0}
 .sz-compare__card{position:relative;aspect-ratio:1/1;box-sizing:border-box;border:${T.frameW} solid ${T.frame};border-radius:${T.rWork};
   ${TEX};overflow:hidden}
@@ -88,6 +102,8 @@ injectStyles('write-compare', `
 .sz-judge__note{margin:0 0 6px;width:100%;text-align:center;font-size:${T.fs15};line-height:${T.lh15};
   color:${T.ink2}}
 .sz-judge__btns{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+.sz-judge__btns[data-ready="false"]{animation:szJudgeWait 440ms linear both;pointer-events:none}
+@media (prefers-reduced-motion: reduce){.sz-judge__btns[data-ready]{animation:none}.sz-compare__row--ref{animation:none}}
 .sz-judge__btn{width:100%;min-height:${T.btnH};border-radius:${T.rCtl};background:transparent;box-shadow:inset 0 0 0 1px ${T.ink4};color:${T.ink1};
   font-size:${T.fs17};line-height:${T.lh17s};font-weight:500}
 .sz-judge__btn[data-pressed]{background:${T.field};filter:none}
@@ -438,22 +454,22 @@ export function PaperCompareStage({ char, py = '', strokeData, size = 345 }) {
  * 判断两键：同一组件同一组类名（同样式、同尺寸、同字重），不带 aria-pressed / autofocus / 任何判定修饰（决定-D03）。
  * 纯视图（无 hook），单测直接调用。
  */
-export function JudgeButtons({ onJudge }) {
-  return html`<div class="sz-judge__btns">${JUDGE_ORDER.map(j => html`<${Button} key=${j} variant="plain" class="sz-judge__btn"
-    data-testid=${`write-judge-${j}`} onClick=${() => onJudge && onJudge(j)}>${t(COPY_KEYS[j])}</${Button}>`)}</div>`;
+export function JudgeButtons({ onJudge, ready = true, guard = true }) {
+  return html`<div class="sz-judge__btns" data-ready=${ready ? 'true' : 'false'}>${JUDGE_ORDER.map(j => html`<${Button} key=${j} variant="plain" class="sz-judge__btn"
+    data-testid=${`write-judge-${j}`} guard=${guard} onClick=${() => ready && onJudge && onJudge(j)}>${t(COPY_KEYS[j])}</${Button}>`)}</div>`;
 }
 
 /**
  * 判断区（按钮行）：两键 + 留空的文字行（保持行位与写字页相同，D49）；保存失败时两键上方出现「没保存上，你写的字还在。」、
  * 两键换成 [先不保存 / 再试一次]。纯视图。
  */
-export function JudgeFooter({ failed = false, onJudge, onRetry, onCancelFail }) {
+export function JudgeFooter({ failed = false, onJudge, onRetry, onCancelFail, ready = true, guard = true }) {
   const body = failed
     ? html`<div class="sz-judge__fail">
         <${Button} variant="secondary" data-testid="write-judge-fail-cancel" onClick=${onCancelFail}>${t('R-W16.cancel')}</${Button}>
         <${Button} variant="primary" data-testid="write-judge-fail-retry" onClick=${onRetry}>${t('R-W16.retry')}</${Button}>
       </div>`
-    : html`<${JudgeButtons} onJudge=${onJudge} />`;
+    : html`<${JudgeButtons} onJudge=${onJudge} ready=${ready} guard=${guard} />`;
   return html`<div class="sz-write__foot sz-write__foot--judge" data-testid="write-judge-foot" data-failed=${failed ? 'true' : 'false'}>
     ${failed ? html`<p class="sz-judge__note" data-testid="write-judge-note" aria-live="polite">${t('R-W16.saveFailed')}</p>` : null}
     ${body}
@@ -551,6 +567,19 @@ export function useCompareFlow({ slot, session, cardKey, char, phase, strokes, h
   const failNow = fail && fail.key === key ? fail : null;
   const wasActive = useRef(false);
 
+  // 判断两键的就绪（P227）：进判断页 440ms 后才可点（看得见的就绪，取代看不见的 0.4s）；减少动态效果 150ms。离开判断页就重置，回来重新计。
+  const [readyKey, setReadyKey] = useState(null);
+  const reducedNow = prefersReducedMotionNow();
+  useEffect(() => {
+    if (!active) {
+      setReadyKey(null);
+      return undefined;
+    }
+    const id = setTimeout(() => setReadyKey(key), prefersReducedMotionNow() ? JUDGE_READY_REDUCED_MS : JUDGE_READY_MS);
+    return () => clearTimeout(id);
+  }, [active, key]);
+  const ready = active && readyKey === key;
+
   // 进判断页：焦点移到页标题（不落在判断键上，决定-D03；读屏先读到「对照一下，写对了吗？」）。
   useLayoutEffect(() => {
     if (active && !wasActive.current && typeof document !== 'undefined') {
@@ -589,7 +618,7 @@ export function useCompareFlow({ slot, session, cardKey, char, phase, strokes, h
     ? html`<${PaperCompareStage} char=${char} py=${pyOf(cardKey)} strokeData=${strokeData} size=${paperSize || size} />`
     : html`<${CompareStage} char=${char} py=${pyOf(cardKey)} strokes=${strokes} strokeData=${strokeData} size=${size} layout=${layout} />`}
   </div>`;
-  const footer = html`<${JudgeFooter} failed=${!!failNow} onJudge=${judge}
+  const footer = html`<${JudgeFooter} failed=${!!failNow} onJudge=${judge} ready=${ready} guard=${!reducedNow}
       onRetry=${() => failNow && judge(failNow.judgment)} onCancelFail=${() => { setFail(null); markStateChange(); }} />`;
   const lead = html`<${ContinueButton} onClick=${() => { setFail(null); if (onLeave) onLeave(); }} />`;
   return { active: true, stage, footer, lead };

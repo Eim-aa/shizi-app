@@ -11,7 +11,7 @@
 // 判断页（compare.js）的上下两格占书写格的位置（同一顶边、同一中线），两键进主按钮的位置、文字行留空。
 //
 // 规则：
-// - 换字后 0.3s 书写格不接受落笔（01 §6.6 / 走查-V01，按事件 timeStamp）；进页面也算一次换字。
+// - 换字后 250ms 内落下的笔先持住、到点补开始 / 补画，不丢笔（01 §6.6 / 走查-V01；R2-X1 / P227：M3「250ms 起接受落笔、早到的缓存」，按事件 timeStamp）；进页面也算一次换字。
 // - 换字 / 换阶段算「新状态」：按钮 0.4s 不响应（components/Button.js markStateChange，走查-W08）。
 // - 写字页是顶层页面期间 backGestureEnabled=false（01 §7：整页期间，不是只在落笔期间——M0-7）；离开顶层 / 卸载时交还
 //   按栈的值（tab 根页 false、子页 true，router.backGestureAllowed），根组件在写字页为顶层时不发（ownsBackGesture）。
@@ -62,11 +62,12 @@ import { PaperNote, PaperStage, ToPaperButton, usePaperMode, usePaperSuggest } f
 import { useFirstTip } from './first-tip.js';
 import { assistiveTechActive } from '../../../platform/accessibility.js';
 import { AxFoot } from './ax-menu.js';
+import { usePhaseFade } from './phase-fade.js';
 import { AX_NOTE_H } from './layout.js';
 
 export const WRITE_SCREEN = 'write';
-/** 换字后书写格不接受落笔的时长（01 §6.6 / 走查-V01，已定）。 */
-export const PEN_ARM_MS = 300;
+/** 换字后书写格的落笔门限（01 §6.6 / 走查-V01；P227：300 → 250，门限内的笔先持住、到点补画，不再丢弃）。 */
+export const PEN_ARM_MS = 250;
 
 // 阶段 → 标题（R-W03）。trace（描一遍）的标题在 R-W03 没有槽位，取原型 L553（copy X-ANSWER.titleTrace，M1-4）。
 const TITLE_KEYS = Object.freeze({
@@ -265,7 +266,7 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
   if (isTop && !topGenRef.current.was && storedCurrent !== topGenRef.current.current) topGenRef.current.gen += 1;
   topGenRef.current.was = isTop;
 
-  // 换字（含进页面）→ 0.3s 不接受落笔。在渲染期定下时刻（与原型 penArm 同法，Math.max 幂等），保证新字第一帧就生效。
+  // 换字（含进页面）→ 250ms 内的落笔先持住、到点补画。在渲染期定下时刻（与原型 penArm 同法，Math.max 幂等），保证新字第一帧就生效。
   const armRef = useRef({ key: undefined, until: 0 });
   if (armRef.current.key !== cardKey) armRef.current = { key: cardKey, until: clockNow() + PEN_ARM_MS };
 
@@ -329,6 +330,8 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
   const layout = useWriteLayout(writeRef, { phase, ax });
   const gridSize = layout.g;
   const groupTop = phase === 'compare' ? layout.pair.top : layout.top;
+  // 阶段 / 换字的 150ms 交叉淡化（phase-fade.js，P227）：key 一变，渲染期给旧页拍快照，提交后盖上去淡出；减少动态效果直接切换。
+  usePhaseFade(writeRef, cardKey ? `${cardKey}|${phase}` : null);
   useFootHairline(writeRef); // 内容比可视高度长（AX 档 / 小屏放不下）时，按钮行上沿出现 hairline
   // M1-5 判断页、结果行、跳过。判断页两格边长 layout.pair（D46 ⑪ / D49：上下排，AX 档取上下排与并排里格子更大的一种）。
   const compare = useCompareFlow({

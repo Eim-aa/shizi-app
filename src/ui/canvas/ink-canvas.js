@@ -14,7 +14,9 @@
 // 中断：pointercancel / lostpointercapture / 原生 shizi-native-back-progress {phase:'began'}（M0-7：识别器触发时
 //   WebKit 不发 pointercancel）一律丢弃未完成的当前笔：不固化、不计笔数；已固化层不动。
 // pointerdown 一律 preventDefault（M0-7：让原生边缘识别器不开始，作为 backGestureEnabled 门控之外的第二道保护）。
-// 防连点（01 §6.6 / 走查-V01）：acceptFrom 之前（按事件 timeStamp）落下的笔不接受——换字后 0.3s 由写字页给出。
+// 换字后的落笔门限（01 §6.6 / 走查-V01；R2-X1 / P227：不再丢笔）：acceptFrom 之前（按事件 timeStamp）落下的笔先「持住」——照常记点，但不画、不通知
+// 写字页（提示淡出、结果行收起都不因它而动）；到点（acceptFrom）补开始并接着实时画，或者抬笔时先补开始、再整笔固化——这一笔不丢（时刻编排 M3：250ms 前的落笔缓存、补画）。
+// 门限本身由写字页给出（换字后 PEN_ARM_MS = 250ms）。换字 / 换阶段把持住的笔取消（cancelCurrent('reset')）。
 // 渲染：同一条管线（core/ink-math buildStroke）实时出点、抬笔用 final=true 结果固化；笔锋基元见 brush.js；
 //   减少动态效果或 policy.brushDetail 关闭时不画飞白 / 洇墨，只保留管线本身的首尾锥形（01 §6.3）；不再按核数 / 内存关（P0-A3）。
 
@@ -42,6 +44,10 @@ injectStyles('inkgrid', `
 .sz-inkgrid__live{touch-action:none;cursor:default}
 .sz-inkgrid[data-drawable="true"] .sz-inkgrid__live{cursor:crosshair}
 `);
+
+function clockNow() {
+  return typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now();
+}
 
 function matchMediaSafe(win, query) {
   try {
@@ -80,7 +86,7 @@ export function createInkSurface({ box, inkCanvas, liveCanvas, win = window, get
   });
   const built = new WeakMap(); // 原始笔 → final 点列（缓存，整层重画时不重跑管线）
   let painted = []; // 固化层上当前画着的原始笔（按引用）
-  let current = null; // {pointerId, raw:[…], pen}
+  let current = null; // {pointerId, raw:[…], pen, held, timer}
   let raf = 0;
   let color = inkColorOf(box);
   let scale = 1;
@@ -196,6 +202,7 @@ export function createInkSurface({ box, inkCanvas, liveCanvas, win = window, get
   function cancelCurrent(reason = 'cancel') {
     if (!current) return false;
     const pointerId = current.pointerId;
+    if (current.timer) win.clearTimeout(current.timer);
     current = null;
     cancelRaf();
     clearCtx(liveCtx, liveCanvas);
@@ -217,14 +224,36 @@ export function createInkSurface({ box, inkCanvas, liveCanvas, win = window, get
     const p = getProps();
     if (!p.drawable) return;
     const ts = eventTime(e);
-    if (Number.isFinite(p.acceptFrom) && ts < p.acceptFrom) return; // 换字后 0.3s 不接受落笔（V01）
+    const early = Number.isFinite(p.acceptFrom) && ts < p.acceptFrom; // 换字后 250ms 内：先持住，到点补开始（P227，不丢笔）
     const rect = liveCanvas.getBoundingClientRect();
-    current = { pointerId: e.pointerId, raw: [sample(e, rect)] };
+    current = { pointerId: e.pointerId, raw: [sample(e, rect)], held: early, timer: 0 };
     try {
       liveCanvas.setPointerCapture(e.pointerId);
     } catch (error) {
       // 合成事件或指针已失效：照常写，靠 pointerup / cancel 收尾
     }
+    if (early) {
+      const stroke = current;
+      const wait = Math.max(0, p.acceptFrom - clockNow());
+      stroke.timer = win.setTimeout(() => {
+        stroke.timer = 0;
+        if (current === stroke) release();
+      }, wait);
+      return;
+    }
+    if (typeof p.onStrokeStart === 'function') p.onStrokeStart();
+    scheduleLive();
+  }
+
+  /** 持住的笔到点了（或抬笔时提前）：补开始、补画已记下的点。 */
+  function release() {
+    if (!current || !current.held) return;
+    current.held = false;
+    if (current.timer) {
+      win.clearTimeout(current.timer);
+      current.timer = 0;
+    }
+    const p = getProps();
     if (typeof p.onStrokeStart === 'function') p.onStrokeStart();
     scheduleLive();
   }
@@ -236,12 +265,13 @@ export function createInkSurface({ box, inkCanvas, liveCanvas, win = window, get
     let list = typeof e.getCoalescedEvents === 'function' ? e.getCoalescedEvents() : null;
     if (!list || !list.length) list = [e];
     for (const s of list) current.raw.push(sample(s, rect));
-    scheduleLive();
+    if (!current.held) scheduleLive();
   }
 
   function onUp(e) {
     if (!current || e.pointerId !== current.pointerId) return;
     e.preventDefault();
+    release(); // 抬笔时笔还被持住（早于门限抬起）：先补开始，再整笔固化
     const raw = current.raw;
     const last = raw[raw.length - 1];
     const rect = liveCanvas.getBoundingClientRect();
@@ -362,7 +392,7 @@ const GUIDES = () => html`<svg class="sz-inkgrid__layer sz-inkgrid__guides" view
  * @param {() => void} [props.onStrokeStart]  接受了一次落笔（提示淡出 / 结果行收起用，M1-3 / M1-5）
  * @param {(reason:string) => void} [props.onStrokeCancel]  当前笔被中断丢弃
  * @param {boolean} [props.drawable=true]
- * @param {number} [props.acceptFrom]  performance.now() 时钟；早于它（按事件 timeStamp）的落笔不接受
+ * @param {number} [props.acceptFrom]  performance.now() 时钟；早于它（按事件 timeStamp）的落笔先持住、到点补开始 / 补画（不丢笔，P227）
  * @param {*} [props.resetKey]  变化时丢弃正在写的一笔（换字 / 换阶段）
  * @param {number} [props.size=345]  显示边长（CSS px；不超过容器宽）
  * @param {*} [props.glyphLayer]  参考字形层内容：vnode，或 ({size:345, cssSize}) => vnode

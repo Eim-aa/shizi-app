@@ -1,6 +1,6 @@
 // M1-1 写字页骨架与书写格（02 §3 M1-1；01 §6.1–6.3；走查-W17 / V01；M0-7 手势门控）。
 // seed 一个 A 会话（3 个字）→ 首页测试入口打开写字页 → 鼠标画一笔「写好了」变可用 → 撤销后 disabled →
-// 清空后一次撤销恢复 → 原生返回 began / pointercancel 中断当前笔不计 → 换字 0.3s 内落笔不计 → 返回 tab 根手势仍关（K1）。
+// 清空后一次撤销恢复 → 原生返回 began / pointercancel 中断当前笔不计 → 换字 250ms 内早到的落笔缓存、补画、不丢（R2-X1 / P227）→ 返回 tab 根手势仍关（K1）。
 // 控制台零错误由 run.mjs 统一断言。后续卡（M1-2…M1-8）在本文件后面追加各自的段落。
 
 import {
@@ -125,7 +125,7 @@ export default async function write(page, ctx) {
   assert.deepEqual(s.done, { disabled: true, ariaDisabled: 'true' }, '「写好了」 disabled again');
   assert.equal(await canvasInk(page, 'write-grid-ink'), 0, 'solid layer repainted empty');
 
-  ctx.step('changing the character: pen-down within 0.3s is ignored, after 0.3s it counts (走查-V01)');
+  ctx.step('changing the character: a pen-down within 250ms is held and drawn, not lost (R2-X1 / P227; it used to be dropped for 0.3s, 走查-V01)');
   const next = makeSession({ slot: 'A', kind: 'daily', chars: CHARS, cursor: 1 });
   const timing = await page.evaluate(sess => {
     // seed 是整体替换：写字页本体按 store 替换代数重挂（M6-6），书写格 canvas 会换新，监听挂在 document 上（捕获阶段）。
@@ -141,17 +141,17 @@ export default async function write(page, ctx) {
   assert.ok(timing.ok, 'seed moved cursor to the second character');
   await drawStroke(page, HORIZONTAL, { steps: 2 });
   const earlyDown = await page.evaluate(() => window.__penDowns[0] - window.__seedAt);
-  assert.ok(earlyDown < 300, `the early pen-down really landed inside the 0.3s window (${Math.round(earlyDown)}ms after the change)`);
+  assert.ok(earlyDown < 250, `the early pen-down really landed inside the 250ms window (${Math.round(earlyDown)}ms after the change)`);
   s = await writeSnapshot(page);
   assert.equal(s.cursor, 1, 'screen follows sessions.A.cursor');
   assert.equal(s.progress, '2 / 3', 'progress updated');
-  assert.equal(s.strokes, 0, 'strokes of the previous character are gone and the early stroke was not accepted');
-  assert.deepEqual(s.done, { disabled: true, ariaDisabled: 'true' }, '「写好了」 stays disabled');
-  assert.equal(await canvasInk(page, 'write-grid-ink'), 0, 'nothing painted for the ignored stroke');
+  assert.equal(s.strokes, 1, 'strokes of the previous character are gone; the early stroke was kept (held, then committed at pen-up), not dropped');
+  assert.deepEqual(s.done, { disabled: false, ariaDisabled: null }, '「写好了」 is live — the early stroke counts');
+  assert.ok(await canvasInk(page, 'write-grid-ink') > 0, 'and it was painted on the solid layer');
   await page.waitForTimeout(350);
-  await drawStroke(page, HORIZONTAL);
+  await drawStroke(page, VERTICAL);
   s = await writeSnapshot(page);
-  assert.equal(s.strokes, 1, 'a pen-down after 0.3s is accepted');
+  assert.equal(s.strokes, 2, 'a pen-down after the window is accepted as usual (2 strokes now)');
   assert.equal(s.done.disabled, false, '「写好了」 enabled');
 
   ctx.step('back to home: the tab root keeps the native back gesture off (K1, 01 §7); no direct localStorage writes');

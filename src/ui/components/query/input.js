@@ -125,9 +125,9 @@ export function useVisualViewport(win = typeof window !== 'undefined' ? window :
 
 /** 弹层面板（Sheet 的 .sz-sheet）按可见区调整：底边、最小 / 最大高度、底部内边距（原型 L444：键盘弹起时 16px）。 */
 export function sheetFrameStyle(viewport) {
-  if (!viewport) return { bottom: '', maxHeight: '', minHeight: '64%', paddingBottom: '', pb: 'max(34px, env(safe-area-inset-bottom, 0px))' };
+  if (!viewport) return { bottom: '', maxHeight: '', minHeight: '64%', paddingBottom: '', pb: 'max(32px, env(safe-area-inset-bottom, 0px))' }; // 32 = Sheet 面板的底部内边距（P1-E1b 由 34 改）
   const h = Math.max(0, viewport.height);
-  const pb = viewport.inset > 0 ? '16px' : 'max(34px, env(safe-area-inset-bottom, 0px))';
+  const pb = viewport.inset > 0 ? '16px' : 'max(32px, env(safe-area-inset-bottom, 0px))';
   return {
     bottom: `${viewport.inset}px`,
     maxHeight: `${Math.floor(h * 0.88)}px`,

@@ -231,7 +231,7 @@ export default async function run(page, ctx) {
       const img = top.querySelector('[data-testid="detail-image"]');
       return {
         cells: [...top.querySelectorAll('[data-testid="detail-cell"]')].map(el => ({ record: el.dataset.record, ink: el.dataset.ink === 'true',
-          noink: el.querySelector('[data-testid="detail-cell-noink"]') ? el.querySelector('[data-testid="detail-cell-noink"]').textContent.trim() : null })),
+          noink: el.querySelector('[data-testid="detail-cell-noink"]') ? el.querySelector('[data-testid="detail-cell-noink"]').textContent.trim() : (el.dataset.ink === 'true' ? null : (el.getAttribute('aria-label').includes('没有笔迹') && el.querySelector('[data-testid="detail-cell-glyph"]') ? '没有笔迹' : 'missing')) })),
         image: img ? img.dataset.state : null,
       };
     });

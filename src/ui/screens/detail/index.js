@@ -5,8 +5,9 @@
 // registerScreen('detail')，params {char}。进入：openDetail(char)（字库墙 / 清单行 / 查字卡片「查看记录」onDetail / 字帖格子）。
 // 打开本页不写任何东西、不碰会话：B 没写完时打开详情不弹 S02、不改 sessions.B（S02 只在点「练这个字」时由 startPicked 弹）。
 //
-// 版式（自上而下）：页头（返回，标题空，原型如此）→ [词语反馈横幅，sticky] → 字卡（左参考字形；右拼音 / N 画 / 「词语」词块
-//   （目标字位红框）或「释义」+ 释义句）→ 记录块（records.js）→ 字源行（R-D09）→ 列表行（actions.js）→ 底栏「练这个字」。
+// 版式（自上而下；H1 / V2-03、T2-13、N2-10，03 P223 起没有凹面卡）：页头（返回，标题空，原型如此）→ [词语反馈横幅，sticky] → 头图（「第一次 | 最近一次」两格本人墨，
+//   只写过一次只有一格；没写过才是参考字形）+ 一行拼音（黑体）/ N 画 + 「词语」词块（目标字位红框）或「释义」+ 释义句（参考字形在写过时降为右侧小格）→
+//   记录块（records.js）→ 字源行（R-D09）→ 列表行（actions.js）→ 底栏「练这个字」。
 //   部首一行：运行时数据没有部首（O-data §6-10），不显示（报告登记）。
 // 「练这个字」（R-D08）：一律走 session/index.js startPicked([字], {source:{view:'detail', char}})——旧 B 没写完时它弹 S02；
 //   写完 / 结束这组后结果页「回到「{字}」」按页面栈返回本页（R-R06 / S05）。开组写入失败：底栏换成三段式。
@@ -41,7 +42,7 @@ import { RefMini } from '../write/compare.js';
 import { useStrokeData } from '../write/hint-layer.js';
 import { startPicked } from '../session/index.js';
 import { isPracticable } from '../../../data/deck.js';
-import { detailModel, hasInkPoints, inkOf, RecordsBlock, SourceRow } from './records.js';
+import { detailHero, detailModel, hasInkPoints, HeroPair, inkOf, RecordsBlock, SourceRow } from './records.js';
 import {
   commitRemoveCustom, commitRestoreCustom, commitWordOff, commitWordOn, DetailRows, FailBlock, WordBanner,
 } from './actions.js';
@@ -53,12 +54,14 @@ export const REMOVE_OVERLAY = 'detail-remove';
 export const BANNER_UNDONE_MS = 2400;
 
 injectStyles('detail', `
-.sz-dcard{box-sizing:border-box;border-radius:${T.rCtl};background:${T.field};padding:16px;display:grid;
-  grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:16px}
-.sz-dcard__info{display:flex;flex-direction:column;justify-content:space-between;gap:12px;min-width:0;padding:2px 0}
-.sz-dcard__top{display:flex;flex-direction:column;gap:6px}
-.sz-dcard__py{font-family:${T.song};font-size:${T.fs22};font-weight:500;color:${T.ink1}}
-.sz-dcard__meta{display:flex;flex-direction:column;gap:3px;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2}}
+.sz-dhead{display:flex;flex-direction:column;gap:${T.s4}} /* 头部直接放在纸上：没有凹面卡（框中框），只留笺框一层（T2-13） */
+.sz-dhead__row{display:flex;align-items:flex-start;gap:${T.s4};min-width:0}
+.sz-dcard__info{flex:1;display:flex;flex-direction:column;gap:12px;min-width:0}
+.sz-dcard__top{display:flex;align-items:baseline;gap:${T.s2};flex-wrap:wrap}
+.sz-dcard__py{font-family:${T.hei};font-size:${T.fs17};line-height:${T.lh17s};font-weight:400;color:${T.ink2}} /* 拼音一律黑体（D33 / 设计说明 6） */
+.sz-dcard__meta{font-size:${T.fs15};line-height:${T.lh15};color:${T.ink3}}
+.sz-dcard__refsm{flex:none;width:64px}
+.sz-dcard__ref{width:calc((100% - 12px) / 2)}
 .sz-dcard__wordbox{display:flex;flex-direction:column;gap:8px;min-width:0;container-type:inline-size}
 .sz-dcard__label{font-size:${T.fs13};color:${T.ink2}}
 .sz-dcard__tiles{display:grid;grid-template-columns:repeat(var(--n, 2),minmax(0,1fr));box-sizing:border-box;
@@ -146,25 +149,30 @@ function useLeave(entryId, onLeave) {
 
 // ---------------------------------------------------------------- 字卡
 
-function CharCard({ model, strokeData }) {
+function CharCard({ model, strokeData, store }) {
   const { word } = model;
-  return html`<div class="sz-dcard" data-testid="detail-card">
-    <div class="sz-dcard__ref">
-      <${RefMini} char=${model.char} strokeData=${strokeData} testid="detail-ref" label=${t('R-W09.labelReference')} />
-    </div>
-    <div class="sz-dcard__info">
-      <div class="sz-dcard__top">
-        ${model.pinyin ? html`<span class="sz-dcard__py" data-testid="detail-pinyin">${model.pinyin}</span>` : null}
-        ${model.strokes ? html`<span class="sz-dcard__meta"><span data-testid="detail-strokes">${t('X-DETAIL.strokes', { n: model.strokes })}</span></span>` : null}
+  const hero = detailHero(model);
+  const ref = html`<${RefMini} char=${model.char} strokeData=${strokeData} testid="detail-ref" label=${t('R-W09.labelReference')} />`;
+  return html`<div class="sz-dhead" data-testid="detail-card">
+    ${hero.kind === 'ink'
+      ? html`<${HeroPair} hero=${hero} store=${store} />`
+      : html`<div class="sz-dcard__ref">${ref}</div>`}
+    <div class="sz-dhead__row">
+      <div class="sz-dcard__info">
+        <div class="sz-dcard__top">
+          ${model.pinyin ? html`<span class="sz-dcard__py" data-testid="detail-pinyin">${model.pinyin}</span>` : null}
+          ${model.strokes ? html`<span class="sz-dcard__meta" data-testid="detail-strokes">${t('X-DETAIL.strokes', { n: model.strokes })}</span>` : null}
+        </div>
+        ${model.card ? html`<div class="sz-dcard__wordbox">
+          <span class="sz-dcard__label" data-testid="detail-word-label">${t(word.hasWord ? 'X-DETAIL.wordLabel' : 'X-DETAIL.glossLabel')}</span>
+          ${word.hasWord
+            ? html`<div class="sz-dcard__tiles" lang="zh-CN" role="img" aria-label=${model.card.word} data-testid="detail-word"
+                data-word=${model.card.word} style=${`--n:${word.tiles.length}`}>${word.tiles.map((tile, i) => html`<span key=${i} class="sz-dcard__tile" aria-hidden="true"
+                  data-testid="detail-word-tile" data-blank=${tile.blank ? 'true' : 'false'}><${PracticeGlyph} char=${tile.ch} face=${0.8} /></span>`)}</div>`
+            : html`<span class="sz-dcard__gloss" data-testid="detail-gloss">${word.gloss}</span>`}
+        </div>` : null}
       </div>
-      ${model.card ? html`<div class="sz-dcard__wordbox">
-        <span class="sz-dcard__label" data-testid="detail-word-label">${t(word.hasWord ? 'X-DETAIL.wordLabel' : 'X-DETAIL.glossLabel')}</span>
-        ${word.hasWord
-          ? html`<div class="sz-dcard__tiles" lang="zh-CN" role="img" aria-label=${model.card.word} data-testid="detail-word"
-              data-word=${model.card.word} style=${`--n:${word.tiles.length}`}>${word.tiles.map((tile, i) => html`<span key=${i} class="sz-dcard__tile" aria-hidden="true"
-                data-testid="detail-word-tile" data-blank=${tile.blank ? 'true' : 'false'}><${PracticeGlyph} char=${tile.ch} face=${0.8} /></span>`)}</div>`
-          : html`<span class="sz-dcard__gloss" data-testid="detail-gloss">${word.gloss}</span>`}
-      </div>` : null}
+      ${hero.kind === 'ink' ? html`<div class="sz-dcard__refsm">${ref}</div>` : null}
     </div>
   </div>`;
 }
@@ -276,7 +284,7 @@ function DetailScreen({ params, entry }) {
     data-word-off=${model.wordOff ? 'true' : 'false'}>
     <${Page} title="" footer=${footer}>
       <${WordBanner} banner=${banner} onUndo=${undoWord} />
-      <${CharCard} model=${model} strokeData=${strokeData} />
+      <${CharCard} model=${model} strokeData=${strokeData} store=${store} />
       <${RecordsBlock} model=${model} store=${store} />
       <${SourceRow} char=${char} />
       <${DetailRows} model=${model} onList=${onList} onImage=${hooks.image} swapFailed=${swapFailed}

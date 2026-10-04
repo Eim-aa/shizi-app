@@ -127,7 +127,7 @@ async function view(page) {
       cells: qa('detail-cell').map(el => ({
         record: el.dataset.record, judgment: el.dataset.judgment, ink: el.dataset.ink,
         caption: el.querySelector('[data-testid="detail-cell-caption"]').textContent, aria: el.getAttribute('aria-label'),
-        noink: !!el.querySelector('[data-testid="detail-cell-noink"]'), tag: el.tagName,
+        noink: !!el.querySelector('[data-testid="detail-cell-noink"]'), glyph: !!el.querySelector('[data-testid="detail-cell-glyph"]'), aria: el.getAttribute('aria-label'), tag: el.tagName,
       })),
       source: txt('detail-source-text'),
       sourceFrom: txt('detail-source-from'),
@@ -243,7 +243,9 @@ export default async function detailSpec(page, ctx) {
   assert.deepEqual(v.cells.map(c => c.record), heRecs.map(r => r.id), 'one cell per judged record, oldest first, nothing else');
   assert.deepEqual(v.cells.map(c => c.judgment), ['correct', 'wrong', 'correct'], 'cell judgments');
   assert.deepEqual(v.cells.map(c => c.ink), ['true', 'false', 'false'], 'first cell has stored ink, others none');
-  assert.deepEqual(v.cells.map(c => c.noink), [false, true, true], 'no-ink cells: glyph + 「没有笔迹」 (R-D07)');
+  assert.deepEqual(v.cells.map(c => c.noink), [false, false, false], 'H1 / V16: no 「没有笔迹」 label inside any cell');
+  assert.deepEqual(v.cells.map(c => c.glyph), [false, true, true], 'no-ink cells draw the under glyph');
+  assert.deepEqual(v.cells.map(c => /没有笔迹/.test(c.aria)), [false, true, true], 'the accessible name of a no-ink cell says it (R-D07)');
   const [m0, d0] = heRecs[1].localDay.split('-').slice(1).map(Number);
   assert.equal(v.cells[1].caption, `${m0}·${d0} 写错`, 'caption 「M·D 写错」');
   assert.ok(v.cells.every(c => c.tag === 'BUTTON' && c.aria), 'cells are buttons with accessible names');

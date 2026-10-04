@@ -16,6 +16,7 @@ const BOTH_TRUE = {
   'X-ABOUT.privacy1': '隐私说明：写下的内容只存在本机，与格子画什么无关',
   'R-D07.noInkLabel': '没有笔迹时的标签',
   'R-D07.noInkLarge': '没有笔迹时的说明',
+  'X-DETAIL.cellNoInkLabel': '详情记录格没存下墨时的读屏名称：只给这条记录确实没墨的格子（detail/records.js Cell has = false），与格子画什么一致',
   'R-I01.glyphNote': '手写字图片只有最近一次有笔迹（持久或本页面会话）才能生成，否则入口置灰（R-D04）',
   'X-IMAGES.missingSession': '说明缺墨的字不在图里',
   'X-IMAGES.missingDay': '说明缺墨的字不在图里',

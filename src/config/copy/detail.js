@@ -45,6 +45,12 @@ export default Object.freeze({
   'X-DETAIL.emptyNote': '判断过的每一次书写都会留在这里',
   'X-DETAIL.cellCaption': '{month}·{day} {caption}',
   'X-DETAIL.cellTitle': '{date} · {caption}',
+  // 头图「第一次 | 最近一次」（H1 / V2-03、N2-10，03 P223）
+  'X-DETAIL.cellNoInkLabel': '{text}，没有笔迹', // 记录格没有存下墨时的读屏名称（格里画衬底字，不写字，V16）
+  'X-DETAIL.heroFirst': '第一次',
+  'X-DETAIL.heroLatest': '最近一次',
+  'X-DETAIL.heroCaption': '{label} · {date}',
+  'X-DETAIL.heroCellLabel': '{label}：{text}',
   'X-DETAIL.sourceLabel': '字源',
   'X-DETAIL.legacyEntry': '旧版本的记录',
   'X-DETAIL.photoAlt': '旧版本拍下的照片',

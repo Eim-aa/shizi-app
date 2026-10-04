@@ -3421,6 +3421,41 @@
           "note": "历次格子按钮的读屏名与放大弹层标题（R-D03「点格子放大」，原型没有放大后的样子）",
           "decision": "P76"
         },
+        "cellNoInkLabel": {
+          "raw": null,
+          "text": "{text}，没有笔迹",
+          "origin": "extra",
+          "note": "H1 / V2-03：记录格没有存下本人墨时的读屏名称（格里画衬底字、不再写「没有笔迹」，V16）；{text} = X-DETAIL.cellTitle",
+          "decision": "P223"
+        },
+        "heroFirst": {
+          "raw": null,
+          "text": "第一次",
+          "origin": "extra",
+          "note": "H1 / V2-03、N2-10：详情页头图「第一次 | 最近一次」左格的标签（只写过一次时也标「第一次」）",
+          "decision": "P223"
+        },
+        "heroLatest": {
+          "raw": null,
+          "text": "最近一次",
+          "origin": "extra",
+          "note": "H1 / V2-03、N2-10：详情页头图右格的标签",
+          "decision": "P223"
+        },
+        "heroCaption": {
+          "raw": null,
+          "text": "{label} · {date}",
+          "origin": "extra",
+          "note": "H1：头图每格下面一行（13 墨三），{label} = 第一次 / 最近一次，{date} = 界面日期写法",
+          "decision": "P223"
+        },
+        "heroCellLabel": {
+          "raw": null,
+          "text": "{label}：{text}",
+          "origin": "extra",
+          "note": "H1：头图每格按钮的读屏名称，{text} = X-DETAIL.cellTitle（日期 · 写对 / 写错）",
+          "decision": "P223"
+        },
         "sourceLabel": {
           "raw": null,
           "text": "字源",
@@ -3731,7 +3766,7 @@
           "raw": null,
           "text": "排序 · 筛选",
           "origin": "extra",
-          "note": "H1 / T2-11：有记录的字页页头尾端的文字按钮与弹层标题；排序三键、筛选四项、图例、说明句都收在这个菜单里，页面只留字墙",
+          "note": "H1 / T2-11：有记录的字页页头尾端的文字按钮与弹层标题；排序三键、筛选四项、图例、说明句都收在这个菜单里，页面只留字墙；只用黑体显示（按钮与弹层标题），登记在 scripts/fonts/build_corpus.mjs HEI_ONLY_COPY，「筛」不进宋体子集",
           "decision": "P223"
         },
         "closedCount": {

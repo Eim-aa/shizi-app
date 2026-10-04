@@ -3,9 +3,12 @@
 //
 //   detailModel(state, char, {today, policy, lookup, hasInk})   纯函数：字卡、记录、写错过 / 快忘了、下次练习、做图片状态、
 //                                                             自选、换掉的词语、旧照片——全部由 store 状态实时算（R-D01「修改判断后实时变」）。
+//   detailHero / HeroPair                                      头图（H1 / V2-03、N2-10，03 P223）：「第一次 | 最近一次」两格本人墨（取屏幕上写的第一条与最后一条判断，
+//                                                             D27 只有这两次留墨；只写过一次只有一格；没写过 / 只在纸上写过才用参考字形当头图，由页面画）。
 //   RecordsBlock                                               「记录了 N 次 / 首次记录 {date}」+ 历次格子（按记录先后，没有空的
 //                                                             「下一次」格，R-D03 / L12）；点格子放大（ZoomSheet，R-D03）；
-//                                                             没有笔迹的记录：标准字 +「没有笔迹」，放大「这一次没有留下笔迹」（R-D07 / 10.12）。
+//                                                             没有笔迹的记录：画衬底字（V16，格里不写「没有笔迹」，读屏名称里说），放大「这一次没有留下笔迹」（R-D07 / 10.12）；
+//                                                             格子容器不铺整条笺面，只画有内容的格（最后一行不满时后面是纸，T2-13）。
 //                                                             D27（P1-E3）：只有第一次与最近一次留墨，中间被回收的历次照实是「没有笔迹」；
 //                                                             model.first / model.latest 即对照用的两条（设计稿出对照入口前只保证数据可取）。
 //   SourceRow + useEtymology                                   字源行（data/etymology.json：{char, gloss, source}）；没有字源的字整块不显示（R-D09）。
@@ -49,19 +52,21 @@ injectStyles('detail-records', `
 .sz-drec__head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;column-gap:12px;row-gap:4px}
 .sz-drec__count{font-family:${T.song};font-size:${T.fs22};font-weight:500;color:${T.ink2};white-space:nowrap}
 .sz-drec__first{font-size:${T.fs15};color:${T.ink2};text-align:right}
-.sz-drec__grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));box-sizing:border-box;border-top:${T.frameW} solid ${T.frame};
-  border-left:${T.frameW} solid ${T.frame};${TEX}}
-.sz-dcell{display:flex;flex-direction:column;box-sizing:border-box;min-width:0;padding:0;border-right:${T.frameW} solid ${T.frame};
-  border-bottom:${T.frameW} solid ${T.frame};background:transparent;color:inherit;font:inherit;text-align:center;cursor:pointer}
+.sz-drec__grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));box-sizing:border-box;padding:0 ${T.frameW} ${T.frameW} 0} /* 不铺笺面：每格自带笺面与框，相邻格框线叠 1px（负外边距），最后一行不满时后面是纸（T2-13） */
+.sz-dcell{display:flex;flex-direction:column;box-sizing:border-box;min-width:0;margin:0 calc(-1 * ${T.frameW}) calc(-1 * ${T.frameW}) 0;padding:0;border:0;
+  box-shadow:inset 0 0 0 ${T.frameW} ${T.frame};${TEX};color:inherit;font:inherit;text-align:center;cursor:pointer}
 .sz-dcell:focus-visible{outline:2px solid ${T.ink1};outline-offset:-2px}
 .sz-dcell[data-pressed]{background:${T.field}}
 .sz-dcell__sq{position:relative;aspect-ratio:1/1;display:grid;place-items:center;color:${T.under}}
 .sz-dcell__sq .sz-compare__card{position:absolute;inset:0;width:100%;border:0;border-radius:0;background:transparent}
 .sz-dcell__glyph{width:44%;height:auto;aspect-ratio:1/1;color:${T.under}} /* 没有笔迹的格：衬底字是轮廓（P1-E2），字面约占格 35% */
-.sz-dcell__noink{position:absolute;left:0;right:0;bottom:4px;font-size:${T.fs11};color:${T.ink3}}
-/* M6-2：大字时格子放不下「字 + 没有笔迹」叠放（320 宽 + 大字里说明压在字上），改成上下排、整组居中（P1-E6：大字 = 系统字号 --k ≥ 1.3，P131） */
-:root[data-text-large] .sz-dcell__sq{align-content:center;gap:2px}
-:root[data-text-large] .sz-dcell__noink{position:static}
+.sz-dhero{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.sz-dhero__btn{display:flex;flex-direction:column;gap:${T.s2};min-width:0;padding:0;border:0;background:transparent;color:inherit;font:inherit;text-align:center;cursor:pointer}
+.sz-dhero__btn[data-pressed]{opacity:.8}
+.sz-dhero__sq{position:relative;aspect-ratio:1/1;box-sizing:border-box;display:grid;place-items:center;border:${T.frameW} solid ${T.frame};${TEX};color:${T.under}}
+.sz-dhero__sq .sz-compare__card{position:absolute;inset:0;width:100%;border:0;background:transparent}
+.sz-dhero__glyph{width:76%;height:auto;aspect-ratio:1/1;color:${T.under}} /* 这一次没有存下墨：画衬底字（轮廓），不写「没有笔迹」（V16） */
+.sz-dhero__cap{font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3};font-variant-numeric:tabular-nums}
 .sz-dcell__cap{min-height:32px;box-sizing:border-box;padding:0 4px;display:flex;align-items:center;justify-content:center;gap:4px;
   border-top:${T.frameW} solid ${T.frame};font-size:${T.fs11};line-height:${T.lh11};
   color:${T.ink2};font-variant-numeric:tabular-nums;text-align:center}
@@ -214,6 +219,22 @@ export function detailModel(state, char, { today, policy = defaultPolicy, lookup
   };
 }
 
+/**
+ * 头图（V2-03、N2-10，03 P223）：屏幕上写过 → 「第一次 | 最近一次」两格本人墨（只写过一次只有一格，标「第一次」）；
+ * 一次都没写过、或只在纸上写过 → 'ref'（页面用参考字形当头图）。
+ * @returns {{kind:'ink'|'ref', cells: Array<{kind:'first'|'latest', record:object}>}}
+ */
+export function detailHero(model) {
+  const screen = Array.isArray(model && model.cells) ? model.cells : [];
+  if (!screen.length) return { kind: 'ref', cells: [] };
+  const first = screen[0];
+  const latest = screen[screen.length - 1];
+  const cells = first.id === latest.id
+    ? [{ kind: 'first', record: first }]
+    : [{ kind: 'first', record: first }, { kind: 'latest', record: latest }];
+  return { kind: 'ink', cells };
+}
+
 // ---------------------------------------------------------------- 笔迹
 
 /** 某条 judged 记录的本人笔迹：存下的墨迹（perRecordInk）→ 本页面会话里刚判断时记下的笔画 → 没有（10.12）。 */
@@ -333,11 +354,10 @@ function Cell({ record, ink, onOpen, first = false, latest = false }) {
   const { caption, title } = cellCopy(record);
   const sq = has
     ? html`<${InkMini} points=${ink.points} strokes=${ink.strokes} testid="detail-cell-ink" label=${record.char} />`
-    : html`<${PracticeGlyph} class="sz-dcell__glyph" hidden=${true} char=${record.char} testid="detail-cell-glyph" />
-      <span class="sz-dcell__noink" data-testid="detail-cell-noink">${t('R-D07.noInkLabel')}</span>`;
+    : html`<${PracticeGlyph} class="sz-dcell__glyph" hidden=${true} char=${record.char} testid="detail-cell-glyph" />`;
   return html`<button type="button" class="sz-dcell" ...${CELL_PRESS} data-testid="detail-cell" data-record=${record.id}
     data-judgment=${record.judgment} data-ink=${has ? 'true' : 'false'} data-first=${first ? 'true' : null} data-latest=${latest ? 'true' : null}
-    aria-label=${title} onClick=${() => onOpen(record)}>
+    aria-label=${has ? title : t('X-DETAIL.cellNoInkLabel', { text: title })} onClick=${() => onOpen(record)}>
     <span class="sz-dcell__sq">${sq}</span>
     <span class="sz-dcell__cap" data-testid="detail-cell-caption" data-wrong=${record.judgment === 'wrong' ? 'true' : 'false'}>${caption}</span>
   </button>`;
@@ -361,6 +381,30 @@ export function ZoomSheet({ record, points = null, strokes = null, close, active
 export function openZoom(record, ink) {
   return nav.openOverlay(ZoomSheet, { record, points: ink ? ink.points : null, strokes: ink ? ink.strokes : null },
     { name: ZOOM_OVERLAY });
+}
+
+/**
+ * 头图两格（本人墨）：每格 = 方格（有墨画墨，没墨画衬底字）+ 一行「第一次 · 8 月 4 日」；点一格放大（同记录格）。
+ * @param {{hero: {cells: Array<{kind, record}>}, store: object|null}} props
+ */
+export function HeroPair({ hero, store }) {
+  return html`<div class="sz-dhero" data-testid="detail-hero" data-n=${hero.cells.length}>
+    ${hero.cells.map(c => {
+      const ink = inkOf(store, c.record);
+      const has = hasInkPoints(ink);
+      const label = t(c.kind === 'first' ? 'X-DETAIL.heroFirst' : 'X-DETAIL.heroLatest');
+      const date = dayText(c.record.localDay);
+      const { title } = cellCopy(c.record);
+      return html`<button key=${c.record.id} type="button" class="sz-dhero__btn" ...${CELL_PRESS} data-testid="detail-hero-cell" data-kind=${c.kind}
+        data-record=${c.record.id} data-ink=${has ? 'true' : 'false'} aria-label=${t('X-DETAIL.heroCellLabel', { label, text: title })}
+        onClick=${() => openZoom(c.record, ink)}>
+        <span class="sz-dhero__sq">${has
+          ? html`<${InkMini} points=${ink.points} strokes=${ink.strokes} testid="detail-hero-ink" label=${c.record.char} />`
+          : html`<${PracticeGlyph} class="sz-dhero__glyph" hidden=${true} char=${c.record.char} testid="detail-hero-glyph" />`}</span>
+        <span class="sz-dhero__cap" data-testid="detail-hero-caption" aria-hidden="true">${t('X-DETAIL.heroCaption', { label, date })}</span>
+      </button>`;
+    })}
+  </div>`;
 }
 
 /**

@@ -100,7 +100,7 @@ async function openDetail(page) {
         ink: cell.dataset.ink,
         first: cell.dataset.first || null,
         latest: cell.dataset.latest || null,
-        noink: !!cell.querySelector('[data-testid="detail-cell-noink"]'),
+        noink: !cell.querySelector('[data-testid="detail-cell-noink"]') && !!cell.querySelector('[data-testid="detail-cell-glyph"]') && cell.getAttribute('aria-label').includes('没有笔迹') && !cell.textContent.includes('没有笔迹'),
         px,
       };
     });
@@ -115,7 +115,7 @@ async function goBack(page) {
 function checkDetail(assert, cells, ids, where) {
   assert.deepEqual(cells.map(c => c.record), ids, `${where}: three cells in record order`);
   assert.deepEqual(cells.map(c => c.ink), ['true', 'false', 'true'], `${where}: first + latest draw the learner's ink, the middle one has none`);
-  assert.equal(cells[1].noink, true, `${where}: the middle cell says 没有笔迹 (R-D07)`);
+  assert.equal(cells[1].noink, true, `${where}: the middle cell draws the under glyph, writes no 「没有笔迹」 in the cell, and says it in its accessible name (V16 / R-D07)`);
   assert.deepEqual(cells.map(c => [c.first, c.latest]), [['true', null], [null, null], [null, 'true']], `${where}: data-first / data-latest`);
   assert.ok(cells[0].px > 0 && cells[2].px > 0, `${where}: first / latest canvases really have ink (${cells[0].px} / ${cells[2].px} px)`);
 }

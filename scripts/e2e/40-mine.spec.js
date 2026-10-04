@@ -22,6 +22,9 @@ const TODAY = '2026-09-24';
 const CLOCK = `${TODAY}T09:00:00`;
 const TOP = '.sz-layer[data-top="true"]';
 
+const dayNum = tag => (tag ? String(Number(tag.slice(8))) : ''); // P1-E7：月字帖角标只写「日」
+const UNDER_NOTE = '浅色的字，这个月没有留下笔迹。点一个字看详情。';
+
 const COPY = {
   mine: '我的',
   week: '这一周',
@@ -307,21 +310,18 @@ async function recordsView(page) {
         current: sheet.dataset.current === 'true', folded: sheet.dataset.folded === 'true' } : null,
       sheetTitle: txt(q('records-sheet-title')),
       sheetSave: q('records-sheet-save') ? txt(q('records-sheet-save')) : null,
+      // 阶段 1 P1-E7：练习记录页的月字帖是 month.js 的 MonthBody（6 列、骑线日期角标只写日、没墨的字画衬底、落款 song、说明句只在有衬底字时出现）
       sheetCells: all('records-sheet-cell').map(el => ({ char: el.dataset.char, day: el.dataset.day, tag: el.dataset.tag,
-        record: el.dataset.record, ink: el.dataset.ink, tagText: txt(el.querySelector('.sz-scell__tag')),
-        noink: !!el.querySelector('[data-testid="records-sheet-cell-noink"]'), label: el.getAttribute('aria-label') })),
-      sign: txt(q('records-sheet-sign')),
+        record: el.dataset.record, ink: el.dataset.ink, tagText: txt(el.querySelector('[data-testid="month-tag"]')),
+        noink: el.dataset.mode === 'under', label: el.getAttribute('aria-label') })),
+      sign: txt(q('month-kuan')),
       order: txt(q('records-sheet-order')),
-      seal: txt(q('records-sheet-seal')),
-      note: txt(q('records-sheet-note')),
+      seal: txt(q('month-seal')),
+      note: txt(q('month-note')),
       sheetEmpty: txt(q('records-sheet-empty')),
       gridInPaper: (() => {
         const g = q('records-sheet-grid');
-        const pp = g && g.closest('.sz-rec__paper');
-        if (!g || !pp) return null;
-        const a = g.getBoundingClientRect();
-        const b = pp.getBoundingClientRect();
-        return a.top >= b.top && a.bottom <= b.bottom && a.left >= b.left && a.right <= b.right;
+        return !!g && g.classList.contains('sz-month') && [...g.querySelectorAll('[data-testid="records-sheet-cell"]')].every(c => g.contains(c));
       })(),
       today: q('records-today') ? { text: txt(q('records-today')), day: q('records-today').dataset.day, n: Number(q('records-today').dataset.n) } : null,
       bodyText: root.innerText,
@@ -534,14 +534,14 @@ export default async function run(page, ctx) {
   assert.equal(r.days.filter(d => d.future).length, 6, '25–30 future');
   assert.deepEqual([r.prev.disabled, r.next.disabled, r.next.aria], [false, true, 'true'], 'prev enabled, next grey on this month');
   assert.ok(r.prev.bg !== 'rgba(0, 0, 0, 0)', 'arrow has a background (R-P05 箭头加底)');
-  assert.deepEqual(r.sheetCells.map(c => [c.char, c.day, c.tag, c.record]), o9.sheet.map(c => [c.char, c.day, c.tag, c.record]),
-    'records sheet = oracle (same data as mine)');
-  assert.equal(r.sign, '二〇二六年九月 · 有记录五天 · 八个字', 'signature');
-  assert.equal(r.gridInPaper, true, 'records sheet grid laid out inside the paper card');
-  assert.equal(r.order, COPY.sheetOrder, 'order line');
+  assert.deepEqual(r.sheetCells.map(c => [c.char, c.day, c.tag, c.record]), o9.sheet.map(c => [c.char, c.day, dayNum(c.tag), c.record]),
+    'records sheet = oracle (same data as mine; the day tag now reads the day number only)');
+  assert.equal(r.sign, '二〇二六年九月 八字', '落款 (P1-E7: 月份 + 全角空格 + 字数，不再写有记录几天；txt() 把全角空格折成一个空格)');
+  assert.equal(r.gridInPaper, true, 'records sheet grid laid out inside the month paper');
+  assert.equal(r.order, null, 'P1-E7: the order line moved to the month page subtitle');
   assert.equal(r.seal, '字', 'seal');
-  assert.equal(r.note, COPY.sheetNote, 'R-P02 note this month');
-  assert.equal(r.sheetCells.find(c => c.char === '数').noink, true, '没有笔迹 placeholder');
+  assert.equal(r.note, UNDER_NOTE, 'P1-E7: the only note is the under-glyph sentence (there is an under cell: 数)');
+  assert.equal(r.sheetCells.find(c => c.char === '数').noink, true, 'no ink all month → an under cell (drawn as the reference outline, no 「没有笔迹」 text)');
   assert.equal(r.today, null, 'today row hidden until M4-5 registers');
   assert.equal(r.daylist, null, 'no day selected');
   assert.deepEqual(r.unnamedButtons, [], 'every button has an accessible name');
@@ -572,9 +572,9 @@ export default async function run(page, ctx) {
   assert.equal(o8.monthDays.length, 2, 'oracle 2 days');
   assert.equal(r.lead, 5, 'Aug 2026 starts on Saturday');
   assert.equal(r.sheetTitle, COPY.sheetTitle(8), 'sheet follows the month (R-P05)');
-  assert.deepEqual(r.sheetCells.map(c => [c.char, c.tag, c.record]), o8.sheet.map(c => [c.char, c.tag, c.record]), 'August sheet = oracle');
-  assert.equal(r.note, COPY.historyNote, 'R-P02 history note');
-  assert.equal(r.sheetSave, null, 'no save on a past month');
+  assert.deepEqual(r.sheetCells.map(c => [c.char, c.tag, c.record]), o8.sheet.map(c => [c.char, dayNum(c.tag), c.record]), 'August sheet = oracle');
+  assert.equal(r.note, r.sheetCells.some(c => c.noink) ? UNDER_NOTE : null, 'P1-E7: no 「这里只能保存本月的字帖」 any more; the note appears only with under cells');
+  assert.equal(r.sheetSave, null, 'save entry only when M4-5 has registered it (any month can be saved since P1-E7 / D42; stubbed out here)');
   assert.equal(r.today, null, 'no today row on a past month');
   assert.deepEqual([r.prev.disabled, r.next.disabled], [false, false], 'both arrows enabled');
   await page.waitForTimeout(450);
@@ -591,7 +591,7 @@ export default async function run(page, ctx) {
   assert.equal(r.heading, COPY.monthDays(6, 2), 'folded month days from byDay');
   assert.deepEqual(r.days.filter(d => d.dot).map(d => d.day), o6.monthDays, 'folded dots = oracle');
   assert.equal(r.sheet.folded, true, 'folded sheet');
-  assert.deepEqual(r.sheetCells.map(c => [c.char, c.tag, c.ink]), [['永', '2026-06-03', 'false'], ['和', '', 'false'], ['天', '2026-06-10', 'false']],
+  assert.deepEqual(r.sheetCells.map(c => [c.char, c.tag, c.ink]), [['永', '3', 'false'], ['和', '', 'false'], ['天', '10', 'false']],
     'folded sheet: chars by first day, no ink');
   assert.deepEqual([r.prev.disabled, r.prev.aria], [true, 'true'], 'earliest month → ‹ grey');
   await page.click(`${TOP} [data-testid="records-day"][data-day="2026-06-10"]`);

@@ -17,6 +17,8 @@
 //   5 字帖（我的 / 练习记录，M4-1）  本月第一次起从早到晚找留有墨迹的那次（P02 + D42）；落款天数与图片一致
 //   6 这次的图片（结果页）           本组每字从晚到早找留有墨迹的那次（D11 + D42）；缺墨不画、落款字数跟着减（P50 / R-I04）
 //   7 单字图片（详情）               最近一次；缺墨不生成
+// 阶段 1 P1-E7 改口径（交接 §4.2 / §7）：6 这次的图片 = 作品成员（有墨的字；无墨落在作品下的行里，不再有「不在图里」说明句，落款只数画进去的字）；
+//   5 月字帖：没墨的字不再被去掉，而是画 under 衬底仍占一格、仍计字数（plan.cells 全部成员，plan.drawn 只有有墨的）；字帖页是 month.js 的 MonthBody。
 // 其余页面由并行卡实现：未注册的屏（getScreen 为空）记 NOT-RUN 并跳过该项，不算通过。
 
 import { bootTestHost, tid, topSel, waitNavIdle, PRESS_SETTLE_MS } from './helpers.mjs';
@@ -259,22 +261,26 @@ export default async function run(page, ctx) {
   }
 
   // ------------------------------------------------------------------ 6 这次的图片
-  ctx.step('6 session image: members = this session\'s chars with ink, last judgment each; signature count follows');
+  ctx.step('6 session image (the work): members = this session\'s chars with ink; the no-ink ones are rows below, not in the image; 落款 count follows the drawn chars');
   await nav(page, 'push', 'result', { slot: 'A', sessionId });
   await page.waitForSelector(topSel('result-screen'));
-  const resultCells = await page.evaluate(() => [...document.querySelectorAll('.sz-layer[data-top="true"] [data-testid="result-cell"]')].map(el => ({
-    ink: !!el.querySelector('[data-testid="result-cell-ink"]'), noink: !!el.querySelector('[data-testid="result-cell-noink"]') })));
-  assert.deepEqual(resultCells.map(c => c.ink), today.map(c => latestHas(c)), 'result grid: ink iff the record has ink');
-  await page.click(topSel('result-image'));
+  await page.waitForFunction(() => [...document.querySelectorAll('.sz-layer[data-top="true"] [data-testid="work-canvas"]')].every(c => c.dataset.painted === 'true'));
+  const resultItems = await page.evaluate(() => ({
+    work: [...document.querySelectorAll('.sz-layer[data-top="true"] [data-testid="work-cell"]')].map(el => el.dataset.char),
+    rows: [...document.querySelectorAll('.sz-layer[data-top="true"] [data-testid="result-exrow"]')].map(el => [el.dataset.char, el.dataset.state]),
+  }));
+  const drawnToday = today.filter(c => latestHas(c));
+  assert.deepEqual(resultItems.work, drawnToday, 'result work: the chars whose record has ink');
+  assert.deepEqual(resultItems.rows, T_MISS.map(k => [today[k], 'noInk']), 'result rows: the no-ink chars, state noInk');
+  await waitNavIdle(page);
+  await page.click(topSel('result-share'));
   await page.waitForFunction(() => document.querySelector('[data-testid="image-preview"]')?.dataset.state === 'ready');
   const sess = await page.evaluate(() => ({ ...document.querySelector('[data-testid="image-canvas"]').dataset,
     note: document.querySelector('[data-testid="image-note"]').textContent.trim() }));
-  const drawnToday = today.filter(c => latestHas(c));
   assert.equal(sess.members, drawnToday.join(''), 'members = today chars with ink, session order');
   assert.equal(sess.recordIds, drawnToday.map(latestId).join(','), 'record ids = this session\'s judgments');
-  assert.equal(sess.missing, T_MISS.map(k => today[k]).join(''), 'missing-ink chars listed');
-  assert.equal(sess.signature, '二〇二六年九月二十四日 · 四个字', 'signature: date + drawn count (R-I04)');
-  assert.equal(sess.note, `${T_MISS.map(k => `「${today[k]}」`).join('')}这一次没有留下笔迹，不在图里。存下来的是图片，不能用来恢复记录。`, 'note names the missing chars (P50)');
+  assert.equal(sess.signature, '二〇二六年九月二十四日　四字', '落款: date + drawn count (R-I04)');
+  assert.equal(sess.note, '', 'no 「不在图里」 sentence and no 「存下来的是图片…」 any more');
   await page.evaluate(async () => (await import('/src/ui/router.js')).nav.back());
   await page.waitForFunction(() => !document.querySelector('[data-testid="image-preview"]'));
   await waitNavIdle(page);
@@ -285,11 +291,13 @@ export default async function run(page, ctx) {
     const { buildImageJob } = await import('/src/ui/images-entry.js');
     const j = buildImageJob({ kind: 'month', month: '2026-09' });
     return { status: j.plan.status, members: j.plan.members.map(m => ({ char: m.char, record: m.record ? m.record.id : null })),
-      drawn: j.plan.drawn.map(m => m.char), recordIds: j.plan.recordIds, missing: j.plan.missing, days: j.plan.days, signature: j.signature };
+      drawn: j.plan.drawn.map(m => m.char), recordIds: j.plan.drawn.map(m => m.record.id), allRecordIds: j.plan.recordIds,
+      missing: j.plan.cells.filter(c => c.mode === 'under').map(c => c.ch), cells: j.plan.cells.map(c => c.ch).join(''), pages: j.plan.pages.length,
+      days: j.plan.days, signature: j.signature };
   });
   const septChars = chars.filter((c, i) => i <= 68);
   assert.equal(job.members.length, septChars.length + today.length, 'month members = September chars (69 + 6 today)');
-  assert.equal(job.status, 'ready', '≤ 80 drawn → ready');
+  assert.deepEqual([job.status, job.pages], ['ready', 1], '75 chars → ready, one page (D39: no pending any more)');
   for (const i of [0, 1, 4, 6]) {
     const m = job.members.find(x => x.char === chars[i]);
     assert.equal(m.record, ids[chars[i]].older.id, `P02 first: ${chars[i]} (i=${i}) uses its first September record (the older one, which has ink)`);
@@ -303,13 +311,15 @@ export default async function run(page, ctx) {
     assert.ok(!job.missing.includes(chars[i]), `C ${chars[i]} no longer missing`);
   }
   assert.ok(job.drawn.includes(chars[0]) && job.recordIds.includes(ids[chars[0]].older.id), 'A i=0 drawn from its first-of-month record, not the missing latest');
-  assert.ok(B.filter(i => i <= 68).every(i => job.missing.includes(chars[i])), 'B: no ink anywhere in the month → omitted (nothing borrowed)');
+  assert.ok(B.filter(i => i <= 68).every(i => job.missing.includes(chars[i])), 'B: no ink anywhere in the month → an under cell (still on the page, nothing borrowed)');
   assert.equal(job.days, 24, 'judged days in September (9-01 … 9-24)');
-  assert.equal(job.drawn.length, 75 - 4 - 2, 'drawn = 75 members − B(4) − today missing(2)');
-  assert.equal(job.signature, '二〇二六年九月 · 有记录二十四天 · 六十九个字', 'signature: 24 days · drawn count 69 (R-I04)');
+  assert.equal(job.drawn.length, 75 - 4 - 2, 'drawn (with ink) = 75 members − B(4) − today missing(2)');
+  assert.equal(job.cells.length, 75, 'every member is a cell (the no-ink ones are under cells, §7)');
+  assert.equal(job.signature, '二〇二六年九月　七十五字', '落款: month + all 75 chars (under cells count too)');
   if (await screenRegistered(page, 'records')) {
     await nav(page, 'push', 'records', { month: '2026-09' });
     await page.waitForSelector(topSel('records-sheet'));
+    await page.waitForFunction(() => document.querySelectorAll('.sz-layer[data-top="true"] [data-testid="records-sheet-cell"]').length > 0);
     await page.waitForTimeout(200);
     const sheet = await page.evaluate(() => {
       const top = document.querySelector('.sz-layer[data-top="true"]');
@@ -326,10 +336,10 @@ export default async function run(page, ctx) {
   await page.evaluate(async () => (await import('/src/ui/images-entry.js')).openMonthImage({ month: '2026-09' }));
   await page.waitForFunction(() => document.querySelector('[data-testid="image-preview"]')?.dataset.state === 'ready');
   const month = await page.evaluate(() => ({ ...document.querySelector('[data-testid="image-canvas"]').dataset }));
-  assert.equal(month.members, job.drawn.join(''), 'month image members = plan drawn');
-  assert.equal(month.recordIds, job.recordIds.join(','), 'month image record ids = first-of-month records');
+  assert.equal(month.members, job.cells, 'month image members = plan cells (with-ink and under)');
+  assert.equal(month.recordIds, job.allRecordIds.join(','), 'month image record ids = first-of-month records');
   assert.equal(month.signature, job.signature, 'month image signature');
-  assert.equal([month.width, month.height].join('×'), '1080×1440', 'month image 1080×1440');
+  assert.equal([month.width, month.height].join('×'), '1440×1920', 'month image 1440×1920 (75 chars → 3:4)');
   await page.evaluate(async () => (await import('/src/ui/router.js')).nav.back());
   await page.waitForFunction(() => !document.querySelector('[data-testid="image-preview"]'));
 

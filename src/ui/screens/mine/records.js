@@ -7,8 +7,8 @@
 //   → 月历（周一开头；有记录的日子画墨点、是按钮；点了在月历下列出那天写的字，再点收起，R-P05；无补记：没有虚线圈 / 空心点，K27）
 //   → [那天写的字]（「{date}写的字」+ 格子，点格子进单字详情）
 //   → 「{month} 月字帖」（字帖跟月份走，R-P05；本月右侧「保存图片 ›」——M4-5 用 setMineImageActions 注册后才显示）
-//     纸卡：5 列格子（角标 = 那天的日期，R-P02）+ 落款（R-I01.monthSignature 汉字数字）+「按第一次写下的先后排列」+ 红印；
-//     卡下说明：本月 R-P02.sheetNote / 历史月 R-P02.historyNote；这个月没有字：虚线框「这个月还没有可以放进图片的字」
+//     阶段 1 P1-E7：字帖就是月字帖页那一块（mine/month.js MonthBody：6 列、骑线日期角标只写「日」、整月没墨的字画衬底、宋体落款 + 印、说明句只在有衬底字时出现）；
+//     标题点进月字帖页，任何月份都能保存图片（D42）；这个月没有字：虚线框「这个月还没有可以放进图片的字」
 //   → 本月且今天有记录：「{今天}写的字 / 这次的图片 · 保存图片 ›」（R-P03；同样由 M4-5 注册后才显示）。
 // 数字全部按记录算（model.js recordsModel，R-M01 / K27）；格子只画那一次真实笔迹，没有就「没有笔迹」（10.12，不借别次，I03）。
 // D42（解 P122）：月字帖 / 那天写的字每字先在该时间段内找留有墨迹的那一次（月字帖从本月第一次起从早到晚，那天从晚到早），
@@ -23,8 +23,9 @@
 //   records-weekday、records-day（data-day / data-has / data-today / data-future；有记录的是 button，aria-pressed）、records-day-dot、
 //   records-daylist（data-day / data-count）、records-daylist-title、records-daylist-grid、records-daylist-cell（同 records-sheet-cell）、
 //   records-sheet（data-month / data-count / data-days / data-current / data-folded）、records-sheet-title、records-sheet-save、
-//   records-sheet-grid、records-sheet-cell（data-char / data-day / data-tag / data-record / data-ink）、records-sheet-sign、
-//   records-sheet-order、records-sheet-seal、records-sheet-note、records-sheet-empty、records-today（data-day / data-n）。
+//   records-sheet-open（标题按钮 → 月字帖页）、records-sheet-grid（月字帖纸，month.js MonthPaper）、records-sheet-cell（data-char / data-day /
+//   data-tag（角标的「日」，没有则空）/ data-mode=hand|under / data-record / data-ink）、records-sheet-cell-canvas、month-tag / month-kuan / month-seal /
+//   month-note（说明句，只在有衬底字时出现）、records-sheet-empty、records-today（data-day / data-n）。
 
 import { html, useEffect, useMemo, useRef, useState } from '../../../../vendor/ui.js';
 import { registerScreen, getRouter, getScreen, nav } from '../../router.js';
@@ -41,6 +42,7 @@ import { openDetail } from '../detail/index.js';
 import { hasInkPoints, inkOf, recordHasInk } from '../detail/records.js';
 import { InkMini } from '../write/compare.js';
 import { RECORDS_SHEET_COLS, recordsModel } from './model.js';
+import { MonthBody, monthModel, openMonth } from './month.js';
 
 export const RECORDS_SCREEN = 'records';
 
@@ -89,11 +91,7 @@ injectStyles('mine-records', `
 .sz-rec__sheet{display:flex;flex-direction:column;gap:12px}
 .sz-rec__shead{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
 .sz-rec__save.sz-btn{flex:none;font-size:${T.fs15};color:${T.ink2}}
-.sz-rec__paper{box-sizing:border-box;${TEX};border:${T.frameW} solid ${T.frame};
-  padding:${T.s4};display:flex;flex-direction:column;gap:${T.s4}}
-.sz-rec__note{margin:0;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2};text-wrap:pretty}
-.sz-rec__blank{min-height:120px;box-sizing:border-box;border:${T.frameW} dashed ${T.frame};display:grid;place-items:center;
-  padding:12px;text-align:center;font-size:${T.fs15};color:${T.ink2}}
+.sz-rec__open.sz-btn{font:inherit;color:inherit;text-align:left}
 .sz-rec__todaylist{display:flex;flex-direction:column;border-top:1px solid ${T.line}}
 .sz-rec__today.sz-btn{min-height:52px;padding:8px 0;box-sizing:border-box;display:flex;flex-direction:column;align-items:flex-start;gap:3px;
   text-align:left;border-bottom:1px solid ${T.line}}
@@ -364,33 +362,26 @@ function DayList({ selected, listRef }) {
   </section>`;
 }
 
-function MonthSheet({ model }) {
+function MonthSheet({ model, state }) {
   const { sheet } = model;
   const title = t('R-P02.sheetTitle', { month: model.monthNum });
-  const save = model.current && sheet.cells.length && imageActions.month;
-  return html`<section class="sz-rec__sheet" data-testid="records-sheet" data-month=${sheet.month} data-count=${sheet.chars}
-    data-days=${sheet.days} data-current=${model.current ? 'true' : 'false'} data-folded=${sheet.folded ? 'true' : 'false'}>
+  // 阶段 1 P1-E7：字帖就是月字帖页那一块（month.js MonthBody：6 列、骑线日期角标、没墨的字画衬底），标题点进月字帖页；任何月份都能保存（D42）。
+  const monthView = useMemo(() => monthModel(state, model.month), [state, model.month]);
+  const save = monthView.n && imageActions.month;
+  return html`<section class="sz-rec__sheet" data-testid="records-sheet" data-month=${sheet.month} data-count=${monthView.n}
+    data-days=${monthView.days} data-current=${model.current ? 'true' : 'false'} data-folded=${sheet.folded ? 'true' : 'false'}>
     <div class="sz-rec__shead">
-      <h2 class="sz-rec__subtitle" data-testid="records-sheet-title">${title}</h2>
+      <h2 class="sz-rec__subtitle" data-testid="records-sheet-title">
+        ${monthView.n
+          ? html`<${Button} variant="plain" class="sz-rec__open" data-testid="records-sheet-open" onClick=${() => openMonth({ month: sheet.month })}>${title}</${Button}>`
+          : title}
+      </h2>
       ${save
         ? html`<${Button} variant="text" class="sz-rec__save" data-testid="records-sheet-save"
             onClick=${() => { const fn = imageActions.month; if (fn) fn({ month: sheet.month, sheet }); }}>${t('R-M01.saveImage')}</${Button}>`
         : null}
     </div>
-    ${sheet.cells.length
-      ? html`<div class="sz-rec__paper">
-          <${SheetGrid} cells=${sheet.cells} cols=${RECORDS_SHEET_COLS} variant="lines" testid="records-sheet-grid"
-            cellTestid="records-sheet-cell" label=${title} />
-          <div class="sz-msign">
-            <span class="sz-msign__text">
-              <span class="sz-msign__line" data-testid="records-sheet-sign">${signatureText(sheet)}</span>
-              <span class="sz-msign__order" data-testid="records-sheet-order">${t('X-MINE.sheetOrder')}</span>
-            </span>
-            <${Seal} testid="records-sheet-seal" />
-          </div>
-        </div>
-        <p class="sz-rec__note" data-testid="records-sheet-note">${t(model.current ? 'R-P02.sheetNote' : 'R-P02.historyNote')}</p>`
-      : html`<div class="sz-rec__blank" data-testid="records-sheet-empty">${t('X-MINE.sheetEmpty')}</div>`}
+    <${MonthBody} model=${monthView} testid="records-sheet-grid" cellTestid="records-sheet-cell" emptyTestid="records-sheet-empty" />
   </section>`;
 }
 
@@ -464,7 +455,7 @@ function RecordsScreen({ params, entry }) {
       </div>
       <${Calendar} model=${model} selected=${selected ? selected.day : ''} onPick=${onPick} />
       ${selected ? html`<${DayList} selected=${selected} listRef=${listRef} />` : null}
-      <${MonthSheet} model=${model} />
+      <${MonthSheet} model=${model} state=${state} />
       <${TodayRow} row=${model.todayRow} />
     </div>
   </${Page}>`;

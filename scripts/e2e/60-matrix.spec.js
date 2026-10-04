@@ -3,10 +3,10 @@
 //
 // 矩阵：主组 2 视口（393×852、360×640）× 2 主题（prefers-color-scheme light / dark）× 2 字号（系统字号 L / XXXL：P1-E6 / D29 起
 //       模拟原生 shiziContentSize，--k 1 / 1.35 + :root[data-text-large]；原 App 内大字 :root[data-large] 1.3 已删）
-//       × 2 减少动态效果（prefers-reduced-motion no-preference / reduce）× PAGES（16 页）= 256 格；
-//       附加组 A：320×568 × 2 主题 × 2 大字 × 2 减动 × 16 页 = 128 格；
+//       × 2 减少动态效果（prefers-reduced-motion no-preference / reduce）× PAGES（17 页：P1-E7 加了月字帖页）= 272 格；
+//       附加组 A：320×568 × 2 主题 × 2 大字 × 2 减动 × 17 页 = 136 格；
 //       附加组 B：浏览器基础字号 130%（CDP Page.setFontSizes standard 16 → 21px，整数最接近 20.8）× 393×852 浅色 /
-//       360×640 深色 × 2 大字 × 16 页 = 64 格。
+//       360×640 深色 × 2 大字 × 17 页 = 68 格。
 // 每页先用长文本 fixture（fixtures/long-text.mjs：题面最长的卡、最长词、300 字一年量级种子、说明句最长的结果页）造数，
 // 再在同一页上逐格切大字 / 减动（视口与主题按 worker 固定），等有限时长动画跑完后，每格断言：
 //   0. 条件生效：视口宽高、prefers-color-scheme、--k（1 / 1.35）、prefers-reduced-motion 与这一格一致；130% 组根字号 = 21px。
@@ -62,7 +62,7 @@ export const EXEMPT = Object.freeze([
   { id: 'disabled', sel: 'button:disabled, [aria-disabled="true"], input:disabled, fieldset:disabled', hidden: false },
   { id: 'glyph-wall', sel: '.sz-lib__g', hidden: true },
   { id: 'glyph-result', sel: '.sz-rcell__glyph, .sz-dcell__glyph, .sz-scell__glyph, .sz-ann__glyph, .sz-ann__eglyph, .sz-list-empty__glyph, .sz-inkrow__glyph', hidden: true },
-  { id: 'seal', sel: '.sz-home__seal, .sz-mseal, .sz-about__seal', hidden: true },
+  { id: 'seal', sel: '.sz-home__seal, .sz-mseal, .sz-wseal, .sz-about__seal', hidden: true },
 ]);
 
 // ---------------------------------------------------------------------------------------------- 页面清单
@@ -174,6 +174,8 @@ const PAGES = [
   },
   { id: 'mine', go: page => switchTab(page, 'mine'), primary: ['mine-records'] },
   { id: 'records', go: page => push(page, 'records'), primary: ['records-prev'] },
+  // 阶段 1 P1-E7：月字帖页（本月，长文本种子里有 300 字一年量级的记录）
+  { id: 'month', go: page => push(page, 'month'), ready: `${TOP} [data-testid="month-cell"]`, primary: ['month-save'] },
   { id: 'settings', go: page => push(page, 'settings'), primary: ['.sz-set__row'] },
   { id: 'backup', go: page => push(page, 'backup'), primary: ['backup-export'] },
   { id: 'annual', go: page => push(page, 'annual'), primary: ['page-back'] },

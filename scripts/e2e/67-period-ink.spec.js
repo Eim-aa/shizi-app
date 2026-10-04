@@ -100,12 +100,13 @@ export default async function run(page, ctx) {
   await page.waitForSelector(`${TOP} ${tid('records-sheet-cell')}`);
   const sep = await cells(page, 'records-sheet-cell');
   assert.deepEqual(sep.map(c => [c.char, c.day, c.record, c.ink, c.tag]), [
-    ['静', '2026-09-22', jing[3].id, 'true', '2026-09-22'],
-    ['谁', '2026-09-08', rec('谁', '2026-09-08').id, 'true', '2026-09-08'],
-    ['数', '2026-09-10', rec('数', '2026-09-10').id, 'false', '2026-09-10'],
-  ], 'September: 静 takes the month\'s ink-bearing record (9-22) with its own date tag; 数 has none in the month → 没有笔迹');
-  assert.ok(await page.evaluate(sel => !!document.querySelector(`${sel} [data-testid="records-sheet-cell-ink"]`), TOP), 'the 静 cell paints ink');
-  assert.equal(await page.evaluate(sel => document.querySelectorAll(`${sel} [data-testid="records-sheet-cell-noink"]`).length, TOP), 1, 'only 数 says 没有笔迹');
+    ['静', '2026-09-22', jing[3].id, 'true', '22'],
+    ['谁', '2026-09-08', rec('谁', '2026-09-08').id, 'true', '8'],
+    ['数', '2026-09-10', rec('数', '2026-09-10').id, 'false', '10'],
+  ], 'September: 静 takes the month\'s ink-bearing record (9-22) with its own day tag (P1-E7: the day number only); 数 has none in the month → an under cell');
+  assert.deepEqual(await page.evaluate(sel => [...document.querySelectorAll(`${sel} [data-testid="records-sheet-cell"]`)].map(c => [c.dataset.char, c.dataset.mode]), TOP),
+    [['静', 'hand'], ['谁', 'hand'], ['数', 'under']], 'the 静 cell paints ink; only 数 is the under cell (P1-E7: drawn as the reference outline, no 「没有笔迹」 text inside)');
+  assert.equal(await page.evaluate(sel => document.querySelector(`${sel} [data-testid="records-sheet-grid"]`).innerText.includes('没有笔迹'), TOP), false, 'no 「没有笔迹」 written in the cells');
   await page.click(`${TOP} ${tid('records-prev')}`);
   await page.waitForFunction(sel => document.querySelector(`${sel} [data-testid="records-body"]`)?.dataset.month === '2026-08', TOP);
   await page.waitForSelector(`${TOP} ${tid('records-sheet-cell')}`);
@@ -132,8 +133,9 @@ export default async function run(page, ctx) {
   const jobs = await page.evaluate(async () => {
     const { buildImageJob } = await import('/src/ui/images-entry.js');
     const { t } = await import('/src/config/copy/index.js');
-    const pick = job => ({ status: job.plan.status, drawn: job.plan.drawn.map(c => c.char).join(''), recordIds: job.plan.recordIds, missing: job.plan.missing.join(''),
-      tags: job.plan.drawn.map(c => c.tag).join('|'), note: job.note, signature: job.signature });
+    const pick = job => ({ status: job.plan.status, drawn: job.plan.drawn.map(c => c.char).join(''), recordIds: job.plan.drawn.map(c => c.record.id),
+      missing: job.plan.kind === 'month' ? job.plan.cells.filter(c => c.mode === 'under').map(c => c.ch).join('') : job.plan.missing.join(''),
+      tags: job.plan.cells.map(c => c.tag).join('|'), note: job.note, signature: job.signature });
     return {
       sep: pick(buildImageJob({ kind: 'month', month: '2026-09' })),
       aug: pick(buildImageJob({ kind: 'month', month: '2026-08' })),
@@ -142,12 +144,13 @@ export default async function run(page, ctx) {
     };
   });
   assert.deepEqual([jobs.sep.status, jobs.sep.drawn, jobs.sep.recordIds, jobs.sep.missing, jobs.sep.tags],
-    ['ready', '静谁', [jing[3].id, rec('谁', '2026-09-08').id], '数', '9·22|9·8'], 'September image: 静 from 9-22, tags follow the picked records');
-  assert.equal(jobs.sep.note, '「数」这个月没有留下笔迹，不在图里。' + jobs.imageNote, 'month sentence: none in the whole month');
-  assert.equal(jobs.sep.signature, '二〇二六年九月 · 有记录四天 · 两个字', 'signature follows the drawn chars');
+    ['ready', '静谁', [jing[3].id, rec('谁', '2026-09-08').id], '数', '22|8|10'], 'September image: 静 from 9-22, day tags follow the picked records; 数 is an under cell (still on the page)');
+  assert.equal(jobs.sep.note, '', 'P1-E7: the 「这个月没有留下笔迹，不在图里」 / 「存下来的是图片」 sentences are gone from the sheet');
+  assert.equal(jobs.sep.signature, '二〇二六年九月　三字', '落款 counts every cell on the page, the under cell included');
   assert.deepEqual([jobs.aug.status, jobs.aug.drawn, jobs.aug.recordIds, jobs.aug.missing], ['ready', '静', [jing[0].id], ''], 'August image: 静 = 8-05');
   assert.deepEqual([jobs.day.status, jobs.day.drawn, jobs.day.missing], ['ready', '谁', '静'], 'day image: 静 has no ink that day (9-22 is another day)');
-  assert.equal(jobs.day.note, '「静」这天没有留下笔迹，不在图里。' + jobs.imageNote, 'day sentence');
+  assert.equal(jobs.day.note, '', 'P1-E7: no missing-ink sentence under the day image either');
+  assert.ok(jobs.imageNote.length > 0, 'the R-I01.imageNote copy slot still exists (04 §4.1) but the sheet no longer shows it');
 
   step('年报第四节: 题 (1-10 never stored ink) → the year\'s earliest record that has ink (4-02), line shows 4-02');
   await push(page, 'annual', {});
@@ -155,8 +158,8 @@ export default async function run(page, ctx) {
   const first = await page.evaluate(sel => {
     const el = document.querySelector(`${sel} [data-testid="annual-first"]`);
     return { char: el.dataset.char, day: el.dataset.day, record: el.dataset.record, ink: el.dataset.ink,
-      line: el.querySelector('[data-testid="annual-first-line"]').innerText.replace(/\s+/g, ' ').trim(),
-      canvas: !!el.querySelector('[data-testid="annual-first-ink"] canvas') };
+      line: el.querySelector('[data-testid="annual-first-date"]').innerText.replace(/\s+/g, ' ').trim(),
+      canvas: el.querySelector('[data-testid="annual-first-canvas"]') ? el.querySelector('[data-testid="annual-first-canvas"]').dataset.mode === 'hand' : false };
   }, TOP);
   assert.deepEqual([first.char, first.day, first.record, first.ink, first.canvas], ['题', '2026-04-02', rec('题', '2026-04-02').id, 'true', true], 'first char of the year, ink from 4-02');
   assert.equal(first.line, '4 月 2 日 的笔迹', 'the date line is the ink record\'s day');

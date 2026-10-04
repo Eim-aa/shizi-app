@@ -1,7 +1,7 @@
 // 由 scripts/build_shell_manifest.mjs 生成，勿手改。sw.js 以 importScripts('./sw-manifest.js') 读取（01 §8.3）。
 // 升级的唯一入口：本文件或 sw.js 的字节变化 → 浏览器装新 worker。build 与 src/build-info.js、index.html meta 同源。
 self.SHIZI_SW_MANIFEST = {
-  build: "20261004-96b5b2dc949c",
+  build: "20261004-db040ab97a25",
   // 核心壳：Cache.addAll 原子预缓存，任何一项失败 = 安装失败
   shell: [
     "core-strokes.js?v=6b92d133c66c",
@@ -153,6 +153,7 @@ self.SHIZI_SW_MANIFEST = {
     "src/ui/screens/write/compact.js",
     "src/ui/screens/write/compare.js",
     "src/ui/screens/write/end.js",
+    "src/ui/screens/write/first-tip.js",
     "src/ui/screens/write/glyph-fallback.js",
     "src/ui/screens/write/hint-layer.js",
     "src/ui/screens/write/index.js",

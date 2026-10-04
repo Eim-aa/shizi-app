@@ -11,7 +11,7 @@ Vendored SHA-256: `17b11a1e025b780cb518d49b30faacc770dfa7fbc387aa3876e3e5c1bd31e
 
 Hanzi Writer is licensed under the MIT License, Copyright (c) 2014 David
 Chanin. The complete notice is included at
-`sources/LICENSE-MIT-HANZI-WRITER.txt`.
+`licenses/hanzi-writer-LICENSE.txt`.
 
 ## Preact 10.29.8 (core and hooks)
 
@@ -60,17 +60,39 @@ complete license text is included at `licenses/htm-LICENSE.txt`.
 
 ## Hanzi Writer Data 2.0.1
 
-The 6,854 baseline character records in `data/*.json` are pinned to
-[`chanind/hanzi-writer-data`](https://github.com/chanind/hanzi-writer-data)
-version 2.0.1. The upstream project states that this data is derived from
-Arphic fonts and may be redistributed or modified under the Arphic Public
-License. The complete, unmodified license text is included at
-`sources/LICENSE-ARPHIC-PUBLIC.txt`.
+The stroke outlines and stroke-order lines for 6,854 characters are taken
+unmodified from [`chanind/hanzi-writer-data`](https://github.com/chanind/hanzi-writer-data)
+version 2.0.1. That project converted them from the Make Me a Hanzi project,
+which extracted them from fonts made by Arphic Technology
+(Copyright (C) 1999 Arphic Technology Co., Ltd.). They are distributed under
+the Arphic Public License; the complete, unmodified license text is included
+at `licenses/ARPHICPL.TXT`.
 
-The project also ships 440 reviewed supplemental records. Their technical
-provenance is recorded in `audit/vector-data-460-manifest.json`; outstanding
-redistribution and commercial-release decisions are explicit release gates in
-`LEGAL_RELEASE_CHECKLIST.md`.
+The app only draws these outlines and animates the stroke order; pictures you
+export contain your own handwriting over a rendered reference image, not the
+outline data. Shizi adds no restriction to the rights the Arphic Public
+License gives you. The same stroke data, including the project's modified
+records below, is freely available under that license from the `data/`
+folder of the public repository https://github.com/Eim-aa/shizi-app (each
+release has a matching tag).
+
+## AnimCJK
+
+Stroke outlines and stroke-order lines for 363 further characters are derived
+from [`parsimonhi/animCJK`](https://github.com/parsimonhi/animCJK) at commit
+`ec5e17cca76c87587790bcbce5ea0b4d4fb753d6` (files graphicsZhHans.txt and
+graphicsJa.txt). AnimCJK's Chinese character graphics are based on the Arphic
+PL KaitiM fonts and are licensed under the Arphic Public License; the complete
+license text is included at `licenses/ARPHICPL.TXT`.
+
+Modifications by the Shizi project: each record was converted to the Hanzi
+Writer format on 2026-07-29 by removing the source "character" key (outlines
+and stroke-order lines unchanged), and imported on 2026-08-05; for 豨 two
+stroke-order lines were exchanged (5 and 7), and for 镵 the three anchor
+points of stroke 13 were reordered. Every modified file states how and when it
+was changed in its own "_notice" field. The modified records are freely
+available under the Arphic Public License from the `data/` folder of the
+public repository https://github.com/Eim-aa/shizi-app.
 
 ## Shuowen.org data
 
@@ -81,7 +103,7 @@ commit `6553a350763ce4feca2c5d1cc2cad7e594dc2975`.
 The source is licensed under Apache License 2.0. The generated records were
 converted to simplified display forms, shortened to at most 20 characters,
 and 50 representative rows were manually edited and checked. A copy of the
-license is included at `sources/LICENSE-APACHE-2.0.txt`.
+license is included at `licenses/Apache-2.0.txt`.
 
 ## OpenCC character mappings
 
@@ -92,20 +114,55 @@ snapshots of `STCharacters.txt` and `TSCharacters.txt` from
 generating the character-origin data.
 
 OpenCC is licensed under Apache License 2.0. A copy of the license is included
-at `sources/LICENSE-APACHE-2.0.txt`.
+at `licenses/Apache-2.0.txt`.
 
 ## Make Me a Hanzi dictionary metadata
 
-`sources/make-me-a-hanzi-dict.txt` is derived from the `dictionary.txt`
-metadata published by
-[`skishore/makemeahanzi`](https://github.com/skishore/makemeahanzi). Its
-explicit pictophonetic fields and a small set of manually translated
-ideographic hints provide fallback records in `data/etymology.json`.
+79 short character-origin notes in the app (marked "Make Me a Hanzi") are
+condensed from the dictionary metadata of
+[`skishore/makemeahanzi`](https://github.com/skishore/makemeahanzi). The
+component grouping used for step-by-step hints was also computed from this
+metadata when the question bank was built.
 
-The upstream dictionary metadata is licensed under GNU LGPL version 3 or, at
-your option, any later version. The generated fallback records have been
-modified and condensed. A copy of the license is included at
-`sources/LICENSE-LGPL-3.0.txt`.
+This metadata is licensed under the GNU LGPL version 3 or, at your option, any
+later version. The condensed notes are provided under the same license; the
+complete license texts are included at `licenses/LGPL-3.0.txt` and
+`licenses/GPL-3.0.txt`.
+
+## jieba dictionary
+
+The context words shown with each character were chosen from the dictionary
+of [`fxsjy/jieba`](https://github.com/fxsjy/jieba) 0.42.1 (word list and word
+frequencies) when the question bank was built.
+
+jieba is licensed under the MIT License, Copyright (c) 2013 Sun Junyi. The
+complete license text is included at `licenses/jieba-LICENSE.txt`.
+
+## pypinyin 0.55.0
+
+The pinyin readings were generated with
+[`mozillazg/python-pinyin`](https://github.com/mozillazg/python-pinyin) 0.55.0
+when the question bank was built (readings that needed it were then corrected
+by hand).
+
+pypinyin is licensed under the MIT License, Copyright (c) 2016 mozillazg, 闲耘.
+The complete license text is included at `licenses/pypinyin-LICENSE.txt`.
+
+## hanziDB
+
+The character frequency ranks were taken from
+[`ruddfawcett/hanziDB.csv`](https://github.com/ruddfawcett/hanziDB.csv)
+(MIT License, by Rudd Fawcett), which is based on Jun Da's Modern Chinese
+Character Frequency List. Only the ranking is used.
+
+## wordfreq
+
+[`rspeer/wordfreq`](https://github.com/rspeer/wordfreq) is an optional
+dependency of the question-bank builder. It was not used for the question
+bank shipped in the app: no wordfreq data is included. (wordfreq's code is
+licensed under the Apache License 2.0, and its word-frequency data under
+CC BY-SA 4.0; using it in a later build would add an attribution and
+share-alike requirement for the data derived from it.)
 
 ## ts-fsrs 5.2.0
 
@@ -161,6 +218,11 @@ unmodified license text is included at `licenses/LXGW-WenKai-GB-OFL.txt`. The
 modifications and renaming are documented at
 `licenses/Shizi-fonts-COPYRIGHT-NOTICES.md`; the build inputs and scripts are in
 `scripts/fonts/`.
+
+The stroke data for one character in the app, 𬇕, is also derived from the
+LXGW WenKai GB outline (converted into strokes and stroke-order lines by the
+Shizi project) and is provided under the same SIL Open Font License 1.1; it
+is not sold on its own.
 
 ## Noto Serif SC 2.003 (renamed ShiziSerifSC)
 

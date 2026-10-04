@@ -7,3 +7,11 @@ copyright holder.
 
 Third-party components, fonts and stroke data keep their own licenses; see
 THIRD_PARTY_NOTICES.md, licenses/ and sources/LICENSE-*.
+
+Exception for data/: the stroke data files data/<character>.json and the
+character-origin file data/etymology.json are NOT covered by the reservation
+above. They, including this project's modifications to them, are provided
+under the licenses of the works they derive from (Arphic Public License, SIL
+Open Font License 1.1, Apache License 2.0, GNU LGPL 3.0 or later), file by
+file as listed in data/LICENSE.md. Nothing in this LICENSE restricts the
+rights those licenses give you.

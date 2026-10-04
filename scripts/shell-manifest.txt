@@ -14,6 +14,7 @@ assets/sound/j1_page_settle_c.wav
 assets/sound/s1_wood_muted.caf
 assets/sound/s1_wood_muted.wav
 core-strokes.js
+data/LICENSE.md
 data/context-overrides.js
 data/etymology.json
 data/㬎.json
@@ -7245,11 +7246,18 @@ icon-192.png
 icon-512-maskable.png
 icon-512.png
 index.html
+licenses/ARPHICPL.TXT
+licenses/Apache-2.0.txt
+licenses/GPL-3.0.txt
+licenses/LGPL-3.0.txt
 licenses/LXGW-WenKai-GB-OFL.txt
 licenses/Noto-Serif-SC-OFL.txt
 licenses/Shizi-fonts-COPYRIGHT-NOTICES.md
+licenses/hanzi-writer-LICENSE.txt
 licenses/htm-LICENSE.txt
+licenses/jieba-LICENSE.txt
 licenses/preact-LICENSE.txt
+licenses/pypinyin-LICENSE.txt
 manifest.webmanifest
 src/app.js
 src/build-info.js

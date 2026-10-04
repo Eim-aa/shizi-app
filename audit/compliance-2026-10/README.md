@@ -36,3 +36,10 @@
 ### 以后补回
 
 1.x 用开放许可字体（如霞鹜文楷 GB）重制后补回（合规说明 §1.8.2 R2）。补回要新的验收记录与导入回执，不能沿用 2026-08 的验收。
+
+## Arphic 数据的修改说明（D50 ②，合规说明 §1.6.6 A2）
+
+- [arphic-modification-notices.json](arphic-modification-notices.json)：363 个 AnimCJK 衍生文件逐个列出改动方式、日期与写进文件的说明原文。
+- 每个文件的首键 `"_notice"` 就是这段说明（Arphic Public License §2(a)「在每个改过的文件里显著注明怎么改的、什么时候改的」）。写法是在原字节前插入 `{"_notice":"…",`，去掉这段前缀就是 2026-08 验收导入的原字节，哈希仍等于技术清单里的 `data_sha256`，所以历史证据链照旧逐字节可核（`scripts/verify_vector_data_440.js`、`scripts/build_8105_chars.py` 都按这个规则读）。
+- 6,854 条 hanzi-writer-data 基础数据未修改，不加说明；𬇕（霞鹜文楷 GB，OFL）在 `data/LICENSE.md` 与 NOTICES 写明。
+- 许可原文随包：`licenses/ARPHICPL.TXT`；`data/` 的逐文件许可：`data/LICENSE.md`；根 `LICENSE` 写明 `data/` 例外。

@@ -207,6 +207,7 @@ export function coreStrokesText(list, embedded) {
     '// 由 scripts/build_8105_chars.py 生成 600 字字表（首日校准字优先，再按题库字频补满）；',
     '// scripts/build_shell_manifest.mjs 把首练字（policy.firstQueue，P09）排到最前并内嵌它们的笔顺（SHIZI_STROKE_DATA），',
     '// 让第一次练习离线也有参考字形与提示（src/data/strokes.js 内嵌钩子）。勿手改；P09 定稿后重跑两个生成器。',
+    '// 内嵌的笔顺记录逐字取自 data/<字>.json（hanzi-writer-data 2.0.1，Arphic Public License，未修改；许可见 licenses/ARPHICPL.TXT 与 data/LICENSE.md）。',
     '(function(scope){',
     `  scope.SHIZI_CORE_STROKES=${JSON.stringify(list)};`,
     '  var data=scope.SHIZI_STROKE_DATA||(scope.SHIZI_STROKE_DATA={});',

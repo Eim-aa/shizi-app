@@ -61,6 +61,8 @@ COMPLIANCE_REMOVAL_RECEIPT_PATH = ROOT / "audit" / "compliance-2026-10" / "sourc
 COMPLIANCE_REMOVAL_COUNT = 76
 COMPLIANCE_REMOVAL_MEMBERS_SHA256 = "8cbe427a2ab67d4c15c7816d85d8460544e0f47d3fff796e83019a322344675c"
 PRACTICE_SUPPLEMENT_COUNT = VECTOR_DATA_SUPPLEMENT_COUNT - COMPLIANCE_REMOVAL_COUNT
+# D50 ②（C1，APL §2(a)）：AnimCJK 衍生的 363 个文件首键是 "_notice"（怎么改、什么时候改）；去掉这段前缀就是清单里验收的原字节。
+ARPHIC_NOTICES_PATH = ROOT / "audit" / "compliance-2026-10" / "arphic-modification-notices.json"
 NORMATIVE_SOURCE_URL = "https://www.gov.cn/gzdt/att/att/site1/20130819/tygfhzb.pdf"
 CURRICULUM_SOURCE_URL = "https://hudong.moe.gov.cn/srcsite/A26/s8001/202204/W020220420582344386456.pdf"
 CURRICULUM_SOURCE_SHA256 = "3ef0ec8a30b5a950211202658df07d99f5427f750f8ba0c3cfda12736b7bd71a"
@@ -367,6 +369,24 @@ def read_compliance_removals():
     return removals
 
 
+def read_arphic_notices():
+    payload = json.loads(ARPHIC_NOTICES_PATH.read_text(encoding="utf-8"))
+    if payload.get("artifact") != "shizi-arphic-modification-notices" or payload.get("count") != 363:
+        raise RuntimeError("Unexpected Arphic modification-notice list")
+    return {row["character"]: row for row in payload["records"]}
+
+
+def accepted_payload_bytes(data_path, notice_row):
+    """打包文件的字节；带修改说明的 AnimCJK 文件去掉 "_notice" 前缀后还原成验收时的原字节。"""
+    raw = data_path.read_bytes()
+    if notice_row is None:
+        return raw
+    prefix = ('{"_notice":' + json.dumps(notice_row["notice"], ensure_ascii=False) + ",").encode("utf-8")
+    if not raw.startswith(prefix):
+        raise RuntimeError(f"Modified file {data_path.name} does not start with its recorded notice")
+    return b"{" + raw[len(prefix):]
+
+
 def read_hanzi_writer_available_chars(standard_rows):
     """Return the exact, locally bundled practice-data inventory.
 
@@ -414,6 +434,7 @@ def read_hanzi_writer_available_chars(standard_rows):
     supplement_chars = historical_chars - set(removals)
     records = [record for record in records if record["character"] in supplement_chars]
 
+    notices = read_arphic_notices()
     review_status_by_char = {}
     for record in records:
         character = record["character"]
@@ -425,9 +446,12 @@ def read_hanzi_writer_available_chars(standard_rows):
         if record.get("data_path") != expected_path:
             raise RuntimeError(f"Unexpected supplement data path for {character}")
         data_path = ROOT / expected_path
-        if not data_path.is_file() or file_sha256(data_path) != record.get("data_sha256"):
+        if not data_path.is_file():
+            raise RuntimeError(f"Supplement data missing for {character}")
+        original = accepted_payload_bytes(data_path, notices.get(character))
+        if hashlib.sha256(original).hexdigest() != record.get("data_sha256"):
             raise RuntimeError(f"Supplement data hash mismatch for {character}")
-        payload = json.loads(data_path.read_text(encoding="utf-8"))
+        payload = json.loads(original.decode("utf-8"))
         strokes = payload.get("strokes")
         medians = payload.get("medians")
         expected_count = record.get("normative_stroke_count")

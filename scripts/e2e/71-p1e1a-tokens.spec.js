@@ -15,8 +15,8 @@ const CHARS = '永和春大中国人天地山水火木金土日月星云风雨�
 const TONE_AGO = [1, 15, 60, 120];
 
 /** 登记过的字面例外（verify_tokens.mjs EXCEPTIONS 同一批）：字格里的楷体字、印章里的字、占位小字。 */
-const FACE = '.sz-hshi__glyph, .sz-hcell__glyph, .sz-exrow__glyph, .sz-lib__char, .sz-lib__emptyglyph, .sz-rcell__glyph, .sz-glyph-fb, .sz-list-empty__glyph, .sz-ann__glyph, .sz-ann__noink, .sz-ann__eglyph, .sz-scell__glyph, .sz-scell__noink, .sz-dcard__tiles, .sz-about__seal, .sz-mseal, .sz-home__seal';
-const ZHU_OK = '.sz-lib__dot, .sz-lib__mark, .sz-drow__dot, .sz-home__seal, .sz-about__seal, .sz-mseal';
+const FACE = '.sz-hshi__glyph, .sz-hcell__glyph, .sz-exrow__glyph, .sz-lib__char, .sz-lib__emptyglyph, .sz-rcell__glyph, .sz-glyph-fb, .sz-list-empty__glyph, .sz-ann__glyph, .sz-ann__noink, .sz-ann__eglyph, .sz-scell__glyph, .sz-scell__noink, .sz-dcard__tiles, .sz-about__seal, .sz-mseal, .sz-wseal, .sz-home__seal';
+const ZHU_OK = '.sz-lib__dot, .sz-lib__mark, .sz-drow__dot, .sz-home__seal, .sz-about__seal, .sz-mseal, .sz-wseal, .sz-work__dot--wrong';
 
 function pad2(n) { return n < 10 ? `0${n}` : String(n); }
 function dayAgo(n) { const d = new Date(`${TODAY}T12:00:00`); d.setDate(d.getDate() - n); return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`; }
@@ -175,7 +175,7 @@ async function visitPages(page, scheme, ctx) {
 
   step(`${scheme}: result`);
   await openResult(page);
-  await check('result', { sheets: '.sz-result__grid' });
+  await check('result', { sheets: '.sz-work__paper' }); // P1-E7：结果页的笺面是作品纸
   const primary = await page.evaluate(() => {
     const el = document.querySelector('.sz-layer[data-top="true"] .sz-btn--primary');
     const cs = el ? getComputedStyle(el) : null;
@@ -194,12 +194,12 @@ async function visitPages(page, scheme, ctx) {
   });
   assert.ok(wrongDot, `${scheme}: a wrong cell is in the grid`);
   assert.equal(wrongDot.dot, tokenRgb(scheme, 'zhu'), `${scheme}: 「写错」 is marked by a zhu dot ::before`);
-  assert.equal(wrongDot.text, tokenRgb(scheme, 'ink2'), `${scheme}: the caption text itself is ink, not red`);
+  assert.ok([tokenRgb(scheme, 'ink2'), tokenRgb(scheme, 'ink3')].includes(wrongDot.text), `${scheme}: the caption text itself is ink (ink2 / ink3 under the work cell), not red`);
   assert.deepEqual([wrongDot.w, wrongDot.radius], ['6px', '50%'], `${scheme}: the wrong dot is a 6px circle`);
 
   // 原生 <button> 字帖格：按下 → data-pressed、背景 field；松手收回
   step(`${scheme}: result cell (native <button>) press feedback`);
-  const cell = topSel('result-cell');
+  const cell = topSel('work-cell'); // P1-E7：日常结果页的格子是作品格
   const box = await page.locator(cell).first().boundingBox();
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   await page.mouse.down();

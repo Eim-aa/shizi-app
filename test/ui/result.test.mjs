@@ -102,33 +102,32 @@ test('resultModel daily: count by judged records, cells in order with captions, 
   assert.equal(m.where, 'ended');
   assert.equal(m.variant, 'daily');
   assert.equal(m.header, t('X-RESULT.headerDaily'));
-  assert.equal(m.title, t('R-R01.titleCount', { n: 2 }), '2 judged characters (永 春)');
-  assert.equal(m.count, 2);
+  assert.equal(m.title, null, 'P1-E7 (交接 §5.1): the daily result page has no 「这次记录了 N 个字」 title — the work is the title');
+  assert.equal(m.count, 2, 'the judged count is still computed (picked / first use it)');
   assert.deepEqual(m.cells.map(c => [c.char, c.kind, c.caption]), [
     ['永', 'judged', '写对'], ['和', 'answer-seen', '看过答案'], ['春', 'judged', '写错'], ['大', 'skipped', '跳过'],
   ]);
   assert.deepEqual(m.cells.map(c => c.canChange), [true, false, true, false], 'only judged cells with fsrsBefore can change (K25)');
-  assert.deepEqual(m.sub, [t('R-R01.noteSeenSkipped', { seen: '「和」', skipped: '「大」' }), t('R-R02.gridHint')]);
-  assert.equal(m.sub[0], '「和」看过答案，「大」跳过了，没算在内。');
+  assert.deepEqual(m.sub, [], 'no 「没算在内」 / 「点一个格子」 sentences on the daily page (交接 §5.1: 不写「没算在内」)');
+  assert.equal(seenSkippedNote(['和'], ['大']), '「和」看过答案，「大」跳过了，没算在内。', 'the P62 sentence helper itself is unchanged (picked page still uses it)');
   assert.equal(m.cols, GRID_COLS.daily);
   assert.equal(m.again, true);
   assert.equal(m.leave.label, t('X-RESULT.leaveHome'));
   assert.equal(m.dateLine, null, 'daily has no date line');
-  assert.equal(m.image, 'allMissing', 'no stored ink (perRecordInk off) → R-R07 all-missing note');
+  // 作品成员（§4.2）：没有任何墨 → 作品为空（衬底一行变体），分享隐藏；每个字落在下面的行里
+  assert.equal(m.work.empty, true);
+  assert.equal(m.share, false, 'no ink at all → the share icon is hidden (§4.1)');
+  assert.deepEqual(m.work.entries.map(e => [e.char, e.state]), [['永', 'noInk'], ['和', 'seen'], ['春', 'noInk'], ['大', 'skipped']]);
 });
 
 test('resultModel: P62 only-seen / only-skipped sentences; none → default note; zero judged → 这次没有记下字', () => {
   let { d, slot, id } = group({ chars: ['永', '和'], steps: ['seen', 'seen'] });
   let m = resultModel(ended(d, slot), { slot, sessionId: id });
-  assert.equal(m.title, t('R-R01.titleZero'));
-  assert.equal(m.sub[0], '「永」「和」看过答案，没算在内。');
-  assert.equal(m.image, 'none', 'nothing recorded → no image block');
-  ({ d, slot, id } = group({ chars: ['永', '和'], steps: ['correct', 'skip'] }));
-  m = resultModel(ended(d, slot), { slot, sessionId: id });
-  assert.equal(m.sub[0], '「和」跳过了，没算在内。');
-  ({ d, slot, id } = group({ chars: ['永'], steps: ['correct'] }));
-  m = resultModel(ended(d, slot), { slot, sessionId: id });
-  assert.equal(m.sub[0], t('R-R01.noteDefault'));
+  assert.equal(m.title, null);
+  assert.equal(m.count, 0, 'nothing judged');
+  assert.equal(m.share, false);
+  assert.equal(seenSkippedNote(['永', '和'], []), '「永」「和」看过答案，没算在内。');
+  assert.equal(seenSkippedNote([], ['和']), '「和」跳过了，没算在内。');
   assert.equal(seenSkippedNote([], []), '');
 });
 
@@ -138,14 +137,14 @@ test('resultModel first: header 第一次练习, 5 columns, date-only line (R-R0
   assert.equal(m.variant, 'first');
   assert.equal(m.header, t('X-RESULT.headerFirst'));
   assert.equal(m.cols, 5);
-  assert.equal(m.dateLine, '9 月 24 日');
+  assert.equal(m.dateLine, null, 'P1-E7: the date lives in the work 落款 now, not in a separate line');
   assert.equal(m.again, true, 'P1-E5 / D28: the first result page has 再写一组 (and 回到首页)');
   assert.equal(m.title, '这三个字，很多人提笔就忘。', 'D28: no count in the title');
   assert.deepEqual(m.sub, [], 'no 「这次记录了 N 个字」/ grid-hint sentence under the first-practice title');
   const none = group({ kind: 'first', chars: ['尴', '嚏'], steps: ['skip', 'skip'] });
   assert.equal(resultModel(ended(none.d, none.slot), { slot: none.slot, sessionId: none.id }).title, '这三个字，很多人提笔就忘。', 'the title holds for every outcome (design §三)');
   const daily = group({ kind: 'daily', chars: ['尴', '嚏'], steps: ['correct', 'wrong'] });
-  assert.equal(resultModel(ended(daily.d, daily.slot), { slot: daily.slot, sessionId: daily.id }).title, '这次记录了 2 个字', 'daily keeps the count title');
+  assert.equal(resultModel(ended(daily.d, daily.slot), { slot: daily.slot, sessionId: daily.id }).title, null, 'daily has no title any more (P1-E7)');
 });
 
 test('resultModel picked: 写完了 / 先写到这里 (P14), bodyAll / bodyOne, early rest, S05 source line, leave by source (R-R06)', () => {
@@ -158,7 +157,7 @@ test('resultModel picked: 写完了 / 先写到这里 (P14), bodyAll / bodyOne, 
   assert.equal(m.dateLine, '9 月 24 日 · 从写错过');
   assert.equal(m.leave.label, '回到写错过');
   assert.equal(m.again, false);
-  assert.equal(m.image, 'none', 'picked has no image row');
+  assert.equal(m.work, null, 'picked has no work / share (交接 §5 is the daily and first pages)');
   ({ d, slot, id } = group({ kind: 'picked', chars: ['额', '鲜', '境', '静'], steps: ['correct'], source: { view: 'detail', char: '额' } }));
   m = resultModel(ended(d, slot, true), { slot, sessionId: id });
   assert.equal(m.early, true);
@@ -188,7 +187,7 @@ test('resultModel: session still in the slot (finish write failed) is shown; mis
   m = resultModel(noSession, { slot, sessionId: id });
   assert.equal(m.found, false);
   assert.deepEqual(m.cells.map(c => [c.char, c.kind, c.canChange]), [['永', 'judged', false]], 'records only, no correction without the session');
-  assert.equal(m.title, t('R-R01.titleCount', { n: 1 }));
+  assert.equal(m.count, 1);
 });
 
 test('resultModel P77: ended from the answer phase with judged chars → current char added as 看过答案 (not changeable); count unchanged', () => {
@@ -222,23 +221,23 @@ test('resultModel P77: ended from the answer phase with judged chars → current
   assert.deepEqual(seenCurrentItem(g5.d.sessions.B, recs(g5.d)), [], 'other session record ignored');
 });
 
-test('resultModel I6: 「这次的图片」 entry counts page-memory strokes like the grid does (stored ink OR recalledInk)', t0 => {
+test('resultModel I6: the work counts page-memory strokes like the grid does (stored ink OR recalledInk) → share / members', t0 => {
   forgetRecentInk(); // M6-6：不继承别的用例记下的笔画
   t0.after(() => forgetRecentInk()); // 也不留给后面的用例（记录 id 在各用例里会重复）
   const { d, slot, id } = group({ chars: ['永', '和'], steps: ['correct', 'correct'], id: 's77' });
   ended(d, slot);
   const ids = recs(d).map(r => r.id);
   const OFF = { features: { perRecordInk: false } }; // 页面内笔画只在关闭时（10.12 兜底）才算
-  assert.equal(resultModel(d, { slot, sessionId: id, policy: OFF }).image, 'allMissing', 'no stored ink, nothing in page memory → allMissing');
+  assert.equal(resultModel(d, { slot, sessionId: id, policy: OFF }).share, false, 'no stored ink, nothing in page memory → no share');
   rememberInk(ids[1], [STROKE]); // 本页面会话里刚判断时记下的笔画（格子会画它）
-  assert.equal(resultModel(d, { slot, sessionId: id }).image, 'allMissing', 'D27 (default on): only stored ink counts — page memory does not stand in');
+  assert.equal(resultModel(d, { slot, sessionId: id }).share, false, 'D27 (default on): only stored ink counts — page memory does not stand in');
   let m = resultModel(d, { slot, sessionId: id, policy: OFF });
-  assert.equal(m.image, 'entry', 'page-memory strokes count → entry');
-  assert.deepEqual(m.inkChars, ['和']);
-  assert.deepEqual(m.missingInkChars, ['永']);
-  // 页面传入的判据（与格子同一个 inkOf）：刷新后页面内笔画没了 → allMissing
+  assert.equal(m.share, true, 'page-memory strokes count → share');
+  assert.deepEqual(m.work.cells.map(c => c.char), ['和']);
+  assert.deepEqual(m.work.rows.map(c => [c.char, c.state]), [['永', 'noInk']]);
+  // 页面传入的判据（与格子同一个 inkOf）：刷新后页面内笔画没了 → 没有墨
   m = resultModel(d, { slot, sessionId: id, hasInk: () => inkPresent({ points: null, strokes: null }) });
-  assert.equal(m.image, 'allMissing', 'after reload (no page strokes, perRecordInk off) → R-R07.allMissing');
+  assert.equal(m.share, false, 'after reload (no page strokes, perRecordInk off) → nothing to share');
   assert.equal(inkPresent({ points: [[{ x: 1, y: 1 }]], strokes: null }), true);
   assert.equal(inkPresent({ points: null, strokes: [[{ x: 1, y: 1, t: 0 }]] }), true);
   assert.equal(inkPresent(null), false);
@@ -296,7 +295,7 @@ test('correctResultInDraft: same record, judgment flipped, corrections appended,
   assert.deepEqual(after.sessions.lastEnded.A, d.sessions.lastEnded.A, 'session untouched');
   const m = resultModel(after, { slot, sessionId: id });
   assert.equal(m.cells[0].caption, '写错');
-  assert.equal(m.title, t('R-R01.titleCount', { n: 3 }), 'count unchanged by a correction');
+  assert.equal(m.count, 3, 'count unchanged by a correction');
 });
 
 test('commitResultCorrection: skipped / answer-seen are not correctable; failure leaves records as they were', () => {

@@ -34,6 +34,14 @@ const BOTH_TRUE = {
   'X-PAPER.note': '纸上那一字的格下说明：纸上记录不留笔迹（ink = null），perRecordInk 无关',
   'X-JUDGE.paperMineLabel': '纸上那一字的读屏名称「你的书写：写在纸上」，说的是没有屏幕笔迹，perRecordInk 无关',
   'X-SETTINGS.writeModeNote': '写字方式说明：纸上记录不留笔迹、不进图片和年报，perRecordInk 无关',
+  // 阶段 1 P1-E7：作品出口。下面都是「按这一条记录有没有墨」逐条判断后才出现的文案（有墨才画笔迹、没墨才说没有），与格子画什么一致
+  'X-WORK.rowNoInkCorrect': '结果页作品下的行：这条记录确实没有墨（work.js state noInk），才出现这一行',
+  'X-WORK.rowNoInkWrong': '同上（写错且没有墨）',
+  'X-WORK.annualFirstDate': '年报卷首「{日期}的笔迹」：只在今年第一个字确有留墨的那一次时画成笔迹格（annual.js hasInk），说的是那次的日子',
+  'X-WORK.monthUnderNote': '月字帖说明句：只在本月确有整月没留墨的字（画 under 衬底）时出现',
+  'X-WORK.monthCellNoInk': '月字帖里画衬底的格子的读屏名称：只给 mode under 的格子',
+  'X-WORK.annualFirstCellAria': '年报卷尾「同一个字，两次」两格的读屏名称：两格都是确有墨的记录（twiceOfYear 只选有墨的）',
+  'X-WORK.annualLastCellAria': '同上（最近一次）',
 };
 
 test('F4: every copy slot that mentions 笔迹 / 你写的字 is a variant pair or registered as true either way', () => {

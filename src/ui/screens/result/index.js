@@ -62,7 +62,11 @@ import { SkipUndoDock, canUndoSkip, undoSkipInDraft } from '../write/skip.js';
 import '../write/result-row.js'; // .sz-change* 弹层样式（与写字页修改判断弹层同一版式）
 import { openWrite } from '../session/index.js';
 import { openNonePage } from '../session/none.js';
-import { ExcludedRows, ReminderInvite, ReviewPreview, firstExtras } from './first.js';
+import { ReminderInvite, ReviewPreview, firstExtras } from './first.js';
+import { WorkRows, WorkSection, commitAdded } from './work.js';
+import { addedOf, buildWork } from '../../../core/images/work.js';
+
+export { commitAdded };
 
 export const RESULT_SCREEN = 'result';
 export const LABELS = Object.freeze({
@@ -126,11 +130,11 @@ injectStyles('result', `
   color:${T.ink1}}
 .sz-rcell--pad{cursor:default}
 .sz-result__date{margin:0;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2}}
-.sz-result__note{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border-radius:${T.rCtl};background:${T.field}}
-.sz-result__note-dot{width:6px;height:6px;margin-top:calc(8px * ${T.k});flex:none;border-radius:50%;background:${T.ink2}}
-.sz-result__note-text{flex:1;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2}}
-.sz-result__imgrow{min-height:52px;justify-content:space-between;border-top:1px solid ${T.line};border-bottom:1px solid ${T.line};
-  border-radius:0;padding:8px 0;color:${T.ink1}}
+.sz-result[data-variant="daily"],.sz-result[data-variant="first"]{gap:16px}
+.sz-result__remind{margin-top:12px}
+/* 日常 / 首练结果页的页头不写标题（作品就是标题，交接 §5.1）；h1 留给读屏 */
+.sz-page:has(.sz-result[data-variant="daily"]) .sz-page__title,.sz-page:has(.sz-result[data-variant="first"]) .sz-page__title{
+  position:absolute;left:auto;right:auto;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .sz-result__remind:empty{display:none}
 .sz-result__leave{align-self:center;justify-content:center}
 .sz-result__fail{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
@@ -272,28 +276,24 @@ export function resultModel(state, { slot, sessionId, hasInk = null, policy = de
     if (xs) sub.push(xs);
     if (early && unwritten > 0) sub.push(t('R-R05.bodyEarly', { n: unwritten }));
   } else {
+    // 阶段 1 P1-E7（交接 §5.1）：结果页最上面就是作品，不写「这次记录了 N 个字」「点一个格子…」；数量只出现在落款里。
+    // 首练保留标题（D28 / P1-E5）：不以计数作标题；说明由格下标注与复现预告承担。
     header = t(variant === 'first' ? 'X-RESULT.headerFirst' : 'X-RESULT.headerDaily');
-    if (variant === 'first') {
-      title = t('X-FIRST.title'); // D28：首练结果页不以计数作标题；说明句（跳过 / 看过答案）由格下标注与复现预告承担
-    } else {
-      title = count > 0 ? t('R-R01.titleCount', { n: count }) : t('R-R01.titleZero');
-      sub.push(seenSkippedNote(seen, skipped) || t('R-R01.noteDefault'));
-    }
+    title = variant === 'first' ? t('X-FIRST.title') : null;
   }
-  if (cells.length && variant !== 'first') sub.push(t('R-R02.gridHint'));
+  if (variant === 'picked' && cells.length) sub.push(t('R-R02.gridHint'));
 
   let dateLine = null;
-  if (variant === 'first') dateLine = dateText(day);
-  else if (variant === 'picked') dateLine = day ? t('X-RESULT.dateSource', { date: dateText(day), source: fromOf(source) }) : null;
+  if (variant === 'picked') dateLine = day ? t('X-RESULT.dateSource', { date: dateText(day), source: fromOf(source) }) : null;
 
-  // R-R07「这次的图片」（daily / first；picked 没有图片行）：只画有墨迹的字；都没有 → 说明句。
+  // 作品（daily / first；picked 没有作品，交接 §4–§5）：成员规则见 core/images/work.js。inkTest = 这条记录有没有本人墨
+  // （存下的墨迹或本页面会话里刚判断时记下的笔画，与格子 / 图片取墨同一取法，I6）。
   const inkTest = typeof hasInk === 'function' ? hasInk : record => !!inkEntryOf(state, record) || hasStrokes(recalledInk(record.id, policy));
-  const inkChars = judgedCells.filter(c => {
-    const record = c.recordId ? byId.get(c.recordId) : null;
-    return !!record && inkTest(record);
-  }).map(c => c.char);
-  let image = 'none';
-  if (variant !== 'picked' && count > 0) image = inkChars.length ? 'entry' : 'allMissing';
+  const work = variant !== 'picked' && cells.length
+    ? buildWork({ items: items.map(it => ({ cardKey: it.cardKey, recordId: it.recordId, kind: it.kind })), records: byId, hasInk: inkTest, added: addedOf(session) })
+    : null;
+  // 分享入口：作品里至少有一个字（没有任何墨时隐藏，§4.1）
+  const share = !!work && work.cells.length > 0;
 
   return {
     found: !!session,
@@ -314,9 +314,9 @@ export function resultModel(state, { slot, sessionId, hasInk = null, policy = de
     skipped,
     unwritten,
     dateLine,
-    image,
-    inkChars,
-    missingInkChars: uniq(judgedCells.map(c => c.char).filter(c => !inkChars.includes(c))),
+    day,
+    work,
+    share,
     leave: leaveOf(source),
     again: variant === 'daily' || variant === 'first',
     source,
@@ -493,7 +493,11 @@ function clockNow() {
 
 const hooks = { image: null };
 
-/** 「这次的图片」入口的去处（M4-5 注册：fn({slot, sessionId, chars})）；没注册时入口不显示（R-R07 占位）。 */
+// 每次渲染现取新 vnode，不复用模块级常量（vendor/ui.js 注释，M6-3）。
+const SHARE_ICON = () => html`<svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.5"
+  stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M11 14V3.5M7.2 7 11 3.2 14.8 7M6 10H5v8h12v-8h-1"></path></svg>`;
+
+/** 右上「分享」的去处（M4-5 注册，P1-E7 起是结果页页头的分享图标：fn({slot, sessionId})）；没注册时入口不显示。 */
 export function setResultImageAction(fn) {
   hooks.image = typeof fn === 'function' ? fn : null;
 }
@@ -777,44 +781,47 @@ function ResultScreen({ params, entry }) {
   }
 
   const imageAction = hooks.image;
-  // 首练专属：复现预告 + 写错字「放进去」（first.js）；提醒邀请在首练与「今天的练习」结果页的槽位里
-  const extras = model.variant === 'first'
+  const isWork = model.variant === 'first' || model.variant === 'daily';
+  // 复现预告句（首练与日常都有，交接 §5.1）；提醒邀请在首练与「今天的练习」结果页的槽位里
+  const extras = isWork
     ? firstExtras({
       cells: model.cells,
       sched: state && state.sched,
       today: localDay(envNow()),
-      hasInk: recordId => inkPresent(inkOf(store, findRecord(state, recordId))),
     })
     : null;
-  const renderExcludedMini = row => {
-    const record = findRecord(state, row.recordId);
-    const ink = inkOf(store, record);
-    return inkPresent(ink)
-      ? html`<${InkMini} points=${ink.points} strokes=${ink.strokes} testid="result-exrow-ink" label=${row.char} />`
-      : html`<span class="sz-exrow__glyph" aria-hidden="true">${row.char}</span>`;
+  const inkForRecord = record => (record ? inkOf(store, record) : null);
+  const openEntry = entry => openCell(model.cells[entry.index]);
+  const toggleEntry = entry => {
+    const st = storeOrNull();
+    if (st && entry.recordId) commitAdded(st, { slot, sessionId, recordId: entry.recordId });
   };
-  return html`<${Page} title=${model.header} leading="close" onBack=${leave} footer=${footer} testid="result-screen">
-    <div class="sz-result" data-testid="result-body" data-variant=${model.variant} data-early=${model.early ? 'true' : 'false'}
+  // 右上「分享」：作品里至少有一个字才有（没有任何墨时隐藏，交接 §4.1）
+  const shareButton = isWork && model.share && imageAction
+    ? html`<${Button} variant="icon" data-testid="result-share" aria-label=${t('X-WORK.shareAria')}
+        onClick=${() => { dismissUndo(); imageAction({ slot, sessionId }); }}>${SHARE_ICON()}</${Button}>`
+    : null;
+  return html`<${Page} title=${model.header} leading="close" onBack=${leave} footer=${footer} trailing=${shareButton} testid="result-screen">
+    <div class="sz-result" data-testid="result-body" data-variant=${model.variant} data-slot=${slot} data-session=${sessionId} data-early=${model.early ? 'true' : 'false'}
       data-found=${model.found ? 'true' : 'false'}>
-      <div class="sz-result__head">
-        <h2 class=${model.variant === 'first' ? 'sz-result__title sz-result__title--lead' : 'sz-result__title'} data-testid="result-title">${model.kicker
-          ? html`<span class="sz-result__kicker" data-testid="result-kicker">${model.kicker}</span><span class="sz-result__kicker">${model.title}</span>`
-          : model.title}</h2>
-        ${model.sub.length ? html`<p class="sz-result__sub" data-testid="result-sub">${model.sub.join('')}</p>` : null}
-      </div>
-      ${model.cells.length ? html`<${Grid} model=${model} state=${state} store=${store} onOpen=${openCell} />` : null}
+      ${model.title || model.sub.length
+        ? html`<div class="sz-result__head">
+            ${model.title
+              ? html`<h2 class=${model.variant === 'first' ? 'sz-result__title sz-result__title--lead' : 'sz-result__title'} data-testid="result-title">${model.kicker
+                ? html`<span class="sz-result__kicker" data-testid="result-kicker">${model.kicker}</span><span class="sz-result__kicker">${model.title}</span>`
+                : model.title}</h2>`
+              : null}
+            ${model.sub.length ? html`<p class="sz-result__sub" data-testid="result-sub">${model.sub.join('')}</p>` : null}
+          </div>`
+        : null}
+      ${isWork && model.work
+        ? html`<${WorkSection} work=${model.work} day=${model.day} dateText=${dateText(model.day)} inkOf=${inkForRecord} onOpen=${openEntry} />`
+        : null}
+      ${!isWork && model.cells.length ? html`<${Grid} model=${model} state=${state} store=${store} onOpen=${openCell} />` : null}
       ${model.dateLine ? html`<p class="sz-result__date" data-testid="result-date">${model.dateLine}</p>` : null}
-      ${model.image === 'entry' && imageAction
-        ? html`<${Button} variant="plain" class="sz-result__imgrow" data-testid="result-image"
-            onClick=${() => imageAction({ slot, sessionId, chars: model.inkChars })}>${t('R-R07.title')}</${Button}>`
-        : null}
-      ${model.image === 'allMissing'
-        ? html`<div class="sz-result__note" data-testid="result-image-note"><span class="sz-result__note-dot" aria-hidden="true"></span>
-            <span class="sz-result__note-text">${t('R-R07.allMissing')}</span></div>`
-        : null}
-      ${extras ? html`<${ExcludedRows} rows=${extras.excluded} sessionId=${sessionId} renderMini=${renderExcludedMini} />` : null}
+      ${isWork && model.work ? html`<${WorkRows} rows=${model.work.rows.filter(r => r.state !== 'in')} inkOf=${inkForRecord} onOpen=${openEntry} onToggle=${toggleEntry} />` : null}
       ${extras ? html`<${ReviewPreview} text=${extras.preview} />` : null}
-      ${model.variant === 'first' || model.variant === 'daily'
+      ${isWork
         ? html`<div class="sz-result__remind" data-testid="result-remind-slot">
             <${ReminderInvite} store=${store} settings=${state && state.settings} session=${model.session} variant=${model.variant} />
           </div>`

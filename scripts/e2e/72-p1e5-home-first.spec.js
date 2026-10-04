@@ -146,8 +146,9 @@ async function resultView(page) {
       variant: body ? body.dataset.variant : null,
       title: txt('result-title'), titleSize: q('result-title') ? parseFloat(getComputedStyle(q('result-title')).fontSize) : null,
       sub: txt('result-sub'), preview: txt('result-preview'), date: txt('result-date'),
-      cells: top ? [...top.querySelectorAll('[data-testid="result-cell"]')].map(c => c.querySelector('[data-testid="result-cell-char"]').textContent + ':' + c.dataset.judgment) : [],
-      cols: q('result-grid') ? q('result-grid').dataset.cols : null,
+      // P1-E7：作品里的格子（写对的字）；列数是作品的列数（3 字以内一行，4 字 2 × 2…）
+      cells: top ? [...top.querySelectorAll('[data-testid="work-cell"]')].map(c => c.dataset.char + ':' + c.dataset.state) : [],
+      cols: q('work') ? q('work').dataset.cols : null,
       exrows: top ? [...top.querySelectorAll('[data-testid="result-exrow"]')].map(r => ({ char: r.dataset.char, added: r.dataset.added, text: r.querySelector('.sz-exrow__t').textContent.trim(), btn: r.querySelector('[data-testid="result-add"]').textContent.trim(), ink: !!r.querySelector('canvas') })) : [],
       invite: invite ? { state: invite.dataset.state, title: txt('result-invite-title'), body: txt('result-invite-body'), accepted: txt('result-invite-accepted'), denied: txt('result-invite-denied'), yes: txt('result-invite-yes'), no: txt('result-invite-no'), time: txt('result-invite-time') } : null,
       foot: top ? [...top.querySelectorAll('.sz-page__foot button')].map(b => b.dataset.testid + ':' + b.textContent.trim()) : [],
@@ -233,8 +234,8 @@ export default async function run(page, ctx) {
   assert.equal(r.title, '这三个字，很多人提笔就忘。', 'D28: the title is not a count');
   assert.equal(r.titleSize, 22, 'title is 宋 22 (design §三)');
   assert.ok(!/记录了/.test(r.title) && r.sub === null, 'no 「这次记录了 N 个字」 and no sentence under the title');
-  assert.deepEqual(r.cells, ['尴:correct', '赢:wrong', '拾:correct'], 'work area keeps the current result grid (E7 redoes the composition)');
-  assert.equal(r.cols, '3', 'three chars → three columns, no blank cells');
+  assert.deepEqual(r.cells, ['尴:in', '拾:in'], 'P1-E7: the work holds the right chars only (赢 was wrong → not in by default, it is the row below)');
+  assert.equal(r.cols, '2', 'two chars in the work → one row of two (the same layout function as the share image)');
   const st1 = await stateOf(page);
   const todayKey = '2026-10-05';
   const dueGap = key => Math.round((Date.parse(`${st1.sched[key].due}T12:00:00`) - Date.parse(`${todayKey}T12:00:00`)) / 86400000);
@@ -270,12 +271,13 @@ export default async function run(page, ctx) {
   assert.equal(animName, 'szInviteIn', 'fades in (not a modal)');
   assert.equal(await page.evaluate(() => !!document.querySelector('.sz-sheet, [role="dialog"]')), false, 'no dialog / sheet');
 
-  step('写错字「放进去」只做入口与状态（页面内记集合，图片规则归 P1-E7）');
+  step('写错字「放进去」：写进本组会话（session.added，经 store.commit），作品按组内原位置重排并带朱点（阶段 1 P1-E7，成员规则 D31）');
   await page.click(topSel('result-add'));
   r = await resultView(page);
   assert.deepEqual([r.exrows[0].added, r.exrows[0].text, r.exrows[0].btn], ['true', '「赢」放进图里了', '拿出来']);
-  const members = await page.evaluate(async () => (await import('/src/ui/screens/result/first.js')).addedMembers(window.__shiziTest.getState().sessions.lastEnded.A.id));
-  assert.equal(members.length, 1, 'one member recorded');
+  assert.deepEqual(r.cells, ['尴:in', '赢:added', '拾:in'], '赢 is in the work in its original place (尴 赢 拾)');
+  const members = await page.evaluate(() => window.__shiziTest.getState().sessions.lastEnded.A.added);
+  assert.equal(members.length, 1, 'one member recorded on the session');
   await page.waitForTimeout(PRESS_SETTLE_MS);
   await page.click(topSel('result-add'));
   r = await resultView(page);

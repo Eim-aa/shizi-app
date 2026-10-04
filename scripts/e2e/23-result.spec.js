@@ -11,6 +11,10 @@
 //   6. 结果页修改判断：不增加记录、corrections 追加、格子与数字按记录更新；看过答案 / 跳过的格子只看不改；修改失败可重试。
 //   7. 停在结果页刷新 → 由 lastEnded 恢复；「再写一组」→ 新的今天的练习（结果页出栈，不叠页）；第一次练习结果页。
 //
+// 阶段 1 P1-E7（交接 §5）：日常 / 首练结果页的主体是「作品」（work-cell + 作品下 result-exrow 的行），不再是 result-cell 格子、标题、
+//   「点一个格子」说明与「这次的图片」入口行（页头右上 result-share 取代它）。本 spec 里日常 / 首练的断言改读：model 的 cells（格子的 kind / 判断 / 能否修改
+//   不变）、作品格 / 行的读屏名称（X-WORK.*）、作品里有没有墨（原来的 inkCells / imageEntry）；选字（picked）结果页没有改动，断言照旧。
+//
 // 开关：本 spec 用 page.route 把 policy.features.perRecordInk 改成 false（D27 起默认 true）。理由：I6 / P88 断言的是关闭态的
 // 「页面内笔画」口径（刚写的字格子有墨、刷新后没有 → R-R07.allMissing），这条路径只在关闭时存在；开启时墨迹存下、刷新后仍在，
 // 由 66-ink-retention（结果页刷新、详情、墙、冷启动）覆盖。其余结果页行为与开关无关。
@@ -65,6 +69,8 @@ async function seedGroup(page, o) {
       draft.sessions[slot] = { ...cur, current: { ...cur.current, ...opts.current } };
     }
     window.__shiziTest.reset();
+    // P1-E7：作品按「这条记录有没有墨」分成员，页面内笔画（perRecordInk 关）按记录 id 记，各用例里 id 会重复——每次造组前清掉，免得串墨
+    (await import('/src/ui/screens/write/compare.js')).forgetRecentInk();
     const r = window.__shiziTest.seed(draft);
     return { ok: !!(r && r.ok), r, slot };
   }, o);
@@ -136,11 +142,42 @@ async function state(page) {
 }
 
 async function resultView(page) {
-  return evalIn(page, () => {
+  return evalIn(page, async () => {
     const top = document.querySelector('.sz-layer[data-top="true"]');
     const q = id => (top ? top.querySelector(`[data-testid="${id}"]`) : null);
     const txt = id => (q(id) ? q(id).textContent.trim() : null);
     const body = q('result-body');
+    const isWork = !!body && (body.dataset.variant === 'daily' || body.dataset.variant === 'first');
+    let cells;
+    let count = null;
+    if (isWork) {
+      // P1-E7：日常 / 首练的格子 = model 的 cells（kind / 判断 / 能否修改不变）；读屏名称取作品格的 aria-label 或「没放进图里」行的文字
+      const { resultModel } = await import('/src/ui/screens/result/index.js');
+      const m = resultModel(window.__shiziTest.getState(), { slot: body.dataset.slot, sessionId: body.dataset.session });
+      count = m.count;
+      const nameOf = i => {
+        const wc = top.querySelector(`[data-testid="work-cell"][data-index="${i}"]`);
+        if (wc) return wc.getAttribute('aria-label');
+        const row = top.querySelector(`[data-testid="result-exrow"][data-index="${i}"] .sz-exrow__t`);
+        return row ? row.textContent.trim() : null;
+      };
+      cells = m.cells.map(c => ({ kind: c.kind, judgment: c.judgment || '', changeable: c.canChange ? 'true' : 'false', char: c.char, caption: c.caption, aria: nameOf(c.index), record: c.recordId }));
+    } else {
+      cells = top ? [...top.querySelectorAll('[data-testid="result-cell"]')].map(c => ({
+        kind: c.dataset.kind, judgment: c.dataset.judgment, changeable: c.dataset.changeable,
+        char: c.querySelector('[data-testid="result-cell-char"]').textContent, caption: c.querySelector('[data-testid="result-cell-caption"]').textContent,
+        aria: c.getAttribute('aria-label'),
+      })) : [];
+    }
+    const workCells = top ? [...top.querySelectorAll('[data-testid="work-cell"]')].map(c => {
+      const cv = c.querySelector('canvas');
+      let painted = 0;
+      if (cv && cv.width && cv.dataset.mode === 'hand') {
+        const d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data;
+        for (let i = 3; i < d.length; i += 4) if (d[i] > 0) painted += 1;
+      }
+      return { index: Number(c.dataset.index), ch: c.dataset.char, mode: c.dataset.mode, painted: painted > 0 };
+    }) : [];
     return {
       header: top && top.querySelector('[data-page-title]') ? top.querySelector('[data-page-title]').textContent.trim() : null,
       variant: body ? body.dataset.variant : null,
@@ -151,18 +188,22 @@ async function resultView(page) {
       date: txt('result-date'),
       again: txt('result-again'),
       leave: txt('result-leave'),
-      imageNote: txt('result-image-note'),
-      imageEntry: !!q('result-image'),
-      inkCells: top ? [...top.querySelectorAll('[data-testid="result-cell"]')].map(c => !!c.querySelector('[data-testid="result-cell-ink"]')) : [],
+      share: !!q('result-share'),
+      workVariant: q('work') ? (q('work').dataset.variant || 'work') : null,
+      workCells,
+      count,
       remindSlot: !!q('result-remind-slot'),
       footButtons: top ? [...top.querySelectorAll('.sz-page__foot button')].map(b => b.dataset.testid) : [],
-      cells: top ? [...top.querySelectorAll('[data-testid="result-cell"]')].map(c => ({
-        kind: c.dataset.kind, judgment: c.dataset.judgment, changeable: c.dataset.changeable,
-        char: c.querySelector('[data-testid="result-cell-char"]').textContent, caption: c.querySelector('[data-testid="result-cell-caption"]').textContent,
-        aria: c.getAttribute('aria-label'),
-      })) : [],
+      cells,
     };
   });
+}
+
+/** 点第 i 个字：在作品里就点作品格，在「没放进图里」的行里就点那一行（点作品任一格或任一行都进对照 / 修改，D19）。 */
+async function openItem(page, i) {
+  const cell = `${topSel('work-cell')}[data-index="${i}"]`;
+  if (await page.locator(cell).count()) await page.click(cell);
+  else await page.click(`${topSel('result-exrow')}[data-index="${i}"] [data-testid="result-exrow-open"]`);
 }
 
 async function writeAndJudge(page, judgment = 'correct') {
@@ -226,23 +267,25 @@ export default async function resultSpec(page, ctx) {
     assert.ok(!st.sessions.A && st.sessions.lastEnded.A && st.sessions.lastEnded.A.id === 's40', 'session moved to lastEnded.A');
     const v = await resultView(page);
     assert.deepEqual(v.cells.map(c => c.kind), ['judged', p.kind], `cells [judged, ${p.kind}]`);
-    assert.deepEqual(v.cells.map(c => c.aria), ['永 · 写对', `和 · ${{ judged: '写对', skipped: '跳过', 'answer-seen': '看过答案' }[p.kind]}`], 'H3: cell accessible names');
+    assert.deepEqual(v.cells.map(c => c.aria), p.kind === 'judged'
+      ? ['「永」写对了，没有笔迹', '和，写对，点两下对照和修改']
+      : ['永，写对，点两下对照和修改', `和，${{ skipped: '跳过', 'answer-seen': '看过答案' }[p.kind]}，点两下对照和修改`],
+    'H3 (P1-E7): item accessible names — a work cell / plain-row cell reads 「字，结果，点两下对照和修改」, a 「没放进图里」 row reads its own sentence');
     assert.equal(v.header, '这次练习', 'daily header 这次练习');
     if (p.kind === 'judged') {
-      // I6 / P88：「这次的图片」入口与格子同一口径——和 刚在本页面写过（页面内笔画，perRecordInk 关）→ 格子画笔迹、入口显示
-      assert.deepEqual(v.inkCells, [false, true], 'I6: 和 cell draws the page-memory strokes, 永 (seeded) has none');
-      assert.deepEqual([v.imageEntry, v.imageNote], [true, null], 'I6: image entry shown because a cell has ink (not the all-missing note)');
+      // I6 / P88：分享入口与作品同一口径——和 刚在本页面写过（页面内笔画，perRecordInk 关）→ 在作品里、分享显示
+      assert.deepEqual(v.workCells.map(c => [c.index, c.painted]), [[1, true]], 'I6: only 和 is in the work and draws the page-memory strokes, 永 (seeded) has none');
+      assert.equal(v.share, true, 'I6: share icon shown because the work has ink');
       await page.reload();
       await page.waitForSelector('.sz-app');
       await page.waitForFunction(() => typeof window.__shiziTest === 'object');
       await waitResult(page);
       await waitNavIdle(page);
       const r = await resultView(page);
-      assert.deepEqual(r.inkCells, [false, false], 'I6: after reload the page-memory strokes are gone (perRecordInk off)');
-      assert.deepEqual([r.imageEntry, r.imageNote], [false, '这次记下的字都没有留下笔迹，不能保存本次练习图片；本月图片仍可到练习记录保存。'],
-        'I6: after reload → R-R07.allMissing, consistent with the grid');
+      assert.deepEqual(r.workCells.map(c => c.mode), ['under', 'under'], 'I6: after reload the page-memory strokes are gone (perRecordInk off) → the plain under row');
+      assert.deepEqual([r.share, r.workVariant], [false, 'plain'], 'I6: after reload nothing has ink → no share, the no-ink variant (§4.2)');
     } else {
-      assert.deepEqual([v.imageEntry, v.inkCells], [false, [false, false]], 'I6: no ink anywhere → no entry');
+      assert.deepEqual([v.share, v.workVariant], [false, 'plain'], 'I6: no ink anywhere → no share, the no-ink variant');
     }
   }
 
@@ -468,26 +511,16 @@ export default async function resultSpec(page, ctx) {
   await waitResult(page);
   await waitNavIdle(page);
   v = await resultView(page);
-  assert.equal(v.title, '这次记录了 2 个字', 'R-R01 title by records');
-  assert.equal(v.sub, '「和」看过答案，没算在内。点一个格子，可以对照参考字形、修改判断。', 'P62 only-seen sentence + grid hint');
+  assert.deepEqual([v.title, v.sub, v.count], [null, null, 2], 'P1-E7: no 「这次记录了 N 个字」 title and no 「没算在内 / 点一个格子」 sentence on the daily page; the count still comes from the records');
   assert.deepEqual(v.cells.map(c => [c.char, c.caption, c.changeable]), [['永', '写对', 'true'], ['和', '看过答案', 'false'], ['春', '写对', 'true']], 'cells');
-  assert.deepEqual(v.cells.map(c => c.aria), ['永 · 写对', '和 · 看过答案', '春 · 写对'], 'H3: every cell button has an accessible name 「字 · 标签」');
-  // I6 / P88：春 刚在本页面写过（格子画页面内笔迹）→ 入口与格子一致，显示「这次的图片」；刷新后见下方 reload 步骤
-  assert.deepEqual([v.imageEntry, v.imageNote], [true, null], 'I6: image entry follows the grid (春 has page-memory ink; perRecordInk off)');
+  assert.deepEqual(v.cells.map(c => c.aria), ['「永」写对了，没有笔迹', '「和」看过答案', '春，写对，点两下对照和修改'], 'H3 (P1-E7): every item has an accessible name');
+  // I6 / P88：春 刚在本页面写过（页面内笔迹）→ 在作品里，分享与作品一致；刷新后见下方 reload 步骤
+  assert.equal(v.share, true, 'I6: share follows the work (春 has page-memory ink; perRecordInk off)');
   assert.deepEqual([v.again, v.leave], ['再写一组', '回到首页'], 'daily footer 再写一组 + 回到首页');
-  const inkCells = await evalIn(page, () => [...document.querySelectorAll('.sz-layer[data-top="true"] [data-testid="result-cell"]')].map(c => {
-    const cv = c.querySelector('[data-testid="result-cell-ink"] canvas');
-    let painted = 0;
-    if (cv && cv.width) {
-      const d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data;
-      for (let i = 3; i < d.length; i += 4) if (d[i] > 0) painted += 1;
-    }
-    return { ink: !!cv, painted: painted > 0, noink: !!c.querySelector('[data-testid="result-cell-noink"]') };
-  }));
-  assert.deepEqual(inkCells, [{ ink: false, painted: false, noink: true }, { ink: false, painted: false, noink: false }, { ink: true, painted: true, noink: false }],
-    'cells: seeded 永 has no ink (没有笔迹, 10.12); 和 seen glyph; 春 just written shows the learner\'s ink');
+  assert.deepEqual(v.workCells.map(c => [c.index, c.ch, c.mode, c.painted]), [[2, '春', 'hand', true]],
+    'the work: only 春 (just written, shows the learner\'s ink); seeded 永 has no ink (没有笔迹, 10.12) and 和 was only seen → both are rows below');
   const before = await state(page);
-  await page.click(`${topSel('result-cell')}[data-index="0"]`);
+  await openItem(page, 0);
   await page.waitForSelector(tid('result-sheet'));
   await waitNavIdle(page);
   const sheet = await evalIn(page, () => {
@@ -505,11 +538,11 @@ export default async function resultSpec(page, ctx) {
   assert.deepEqual([yong.judgment, yong.corrections.length, yong.corrections[0].from], ['wrong', 1, 'correct'], 'same record: judgment wrong, one correction');
   assert.ok(st.sched['base:永'].due !== before.sched['base:永'].due, `sched replayed (due ${before.sched['base:永'].due} → ${st.sched['base:永'].due})`);
   v = await resultView(page);
-  assert.deepEqual([v.cells[0].caption, v.cells[0].judgment, v.title], ['写错', 'wrong', '这次记录了 2 个字'], 'cell shows 写错; count unchanged');
-  assert.equal(v.cells[0].aria, '永 · 写错', 'H3: the accessible name follows the corrected judgment');
+  assert.deepEqual([v.cells[0].caption, v.cells[0].judgment, v.count], ['写错', 'wrong', 2], 'item shows 写错; count unchanged');
+  assert.equal(v.cells[0].aria, '「永」写错了，没有笔迹', 'H3: the accessible name follows the corrected judgment');
 
   step('seen cell → sheet without 改为…, 关闭; correction failure → 没改成 + retry');
-  await page.click(`${topSel('result-cell')}[data-index="1"]`);
+  await openItem(page, 1);
   await page.waitForSelector(tid('result-sheet'));
   await waitNavIdle(page);
   const seenSheet = await evalIn(page, () => {
@@ -522,7 +555,7 @@ export default async function resultSpec(page, ctx) {
   await page.click(tid('result-sheet-close'));
   await page.waitForFunction(() => !document.querySelector('[data-testid="result-sheet"]'));
   await waitNavIdle(page);
-  await page.click(`${topSel('result-cell')}[data-index="2"]`);
+  await openItem(page, 2);
   await page.waitForSelector(tid('result-sheet'));
   await waitNavIdle(page);
   await evalIn(page, () => window.__shiziTest.failNextWrite(1));
@@ -546,9 +579,9 @@ export default async function resultSpec(page, ctx) {
   await waitResult(page);
   await waitNavIdle(page);
   v = await resultView(page);
-  assert.deepEqual([v.title, v.cells.length, v.cells[2].caption], ['这次记录了 2 个字', 3, '写错'], 'same result after reload');
-  assert.deepEqual([v.imageEntry, v.imageNote, v.inkCells], [false, '这次记下的字都没有留下笔迹，不能保存本次练习图片；本月图片仍可到练习记录保存。', [false, false, false]],
-    'I6: after reload page-memory strokes are gone → R-R07.allMissing (perRecordInk off), grid has no ink either');
+  assert.deepEqual([v.count, v.cells.length, v.cells[2].caption], [2, 3, '写错'], 'same result after reload');
+  assert.deepEqual([v.share, v.workVariant, v.workCells.map(c => c.mode)], [false, 'plain', ['under', 'under', 'under']],
+    'I6: after reload page-memory strokes are gone → nothing in the work (perRecordInk off): the no-ink variant, share hidden');
 
   step('再写一组 → a new 今天的练习 on the write page; the result page left the stack (no stacking)');
   await page.click(topSel('result-again'));
@@ -563,7 +596,7 @@ export default async function resultSpec(page, ctx) {
   assert.ok(st.sessions.A && st.sessions.A.id !== 's40' && st.sessions.A.kind === 'daily', 'new daily group in A');
   assert.equal(st.sessions.lastEnded.A, undefined, 'old lastEnded.A cleared');
 
-  step('第一次练习 result: header 第一次练习, title not a count (P1-E5 / D28), date-only line, 5 columns, 再写一组 + 回到首页, remind slot');
+  step('第一次练习 result: header 第一次练习, title not a count (P1-E5 / D28), the work (P1-E7), 再写一组 + 回到首页, remind slot');
   await goHome(page);
   await seedGroup(page, { kind: 'first', chars: ['尴', '嚏', '狩', '晤', '飓'], steps: ['correct', 'wrong', 'seen', 'skip'] });
   await openWriteSlot(page, 'A');
@@ -572,11 +605,10 @@ export default async function resultSpec(page, ctx) {
   await waitNavIdle(page);
   v = await resultView(page);
   assert.deepEqual([v.header, v.variant, v.title], ['第一次练习', 'first', '这三个字，很多人提笔就忘。'], 'first result: the title is no longer 「这次记录了 N 个字」 (D28; 72-p1e5 covers the rest of the first-practice blocks)');
-  assert.ok(/^\d+ 月 \d+ 日$/.test(v.date), `R-R03 date only: ${v.date}`);
+  assert.equal(v.date, null, 'P1-E7: the date lives in the work 落款 now (交接 §4.1 has no separate date line)');
   assert.deepEqual(v.footButtons, ['result-again', 'result-leave'], 'P1-E5: 再写一组 (primary) + 回到首页');
   assert.equal(v.remindSlot, true, 'remind invitation slot (the invitation itself fades in after ≈600ms, covered by 72-p1e5)');
-  const cols = await page.getAttribute(topSel('result-grid'), 'data-cols');
-  assert.equal(cols, '5', '5 columns');
+  assert.deepEqual(v.workCells.map(c => [c.index, c.ch]), [[4, '飓']], 'the work holds only the char with ink (the page-memory strokes of the last one); the other four are rows');
   await page.click(topSel('result-leave'));
   await page.waitForFunction(() => document.querySelector('.sz-app').dataset.topScreen === 'home');
   await waitNavIdle(page);

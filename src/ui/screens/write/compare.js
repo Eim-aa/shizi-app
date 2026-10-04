@@ -345,8 +345,8 @@ function observeNear(el, onNear) {
   };
 }
 
-/** 元素是否已到视口附近（一旦为真不再变回）。没有 IntersectionObserver 时恒为真。 */
-function useNearViewport(ref) {
+/** 元素是否已到视口附近（一旦为真不再变回）。没有 IntersectionObserver 时恒为真。作品格（components/work.js）也用它做懒绘制（P1-E7）。 */
+export function useNearViewport(ref) {
   const [near, setNear] = useState(false);
   useLayoutEffect(() => {
     const el = ref.current;

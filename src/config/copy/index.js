@@ -15,6 +15,7 @@ import backup from './backup.js';
 import settings from './settings.js';
 import about from './about.js';
 import images from './images.js';
+import work from './work.js';
 import * as defaultPolicy from '../policy.js';
 
 export const SCREENS = Object.freeze({
@@ -31,6 +32,7 @@ export const SCREENS = Object.freeze({
   settings,
   about,
   images,
+  work,
 });
 
 function merge(screens) {

@@ -18,3 +18,13 @@ export const MARK_CSS = `
 `;
 
 injectStyles('marks', MARK_CSS);
+
+// 阶段 1 P1-E7：作品（结果页 / 月字帖）上的朱点与印。朱点 = 写错且手动放进作品的字（D46 ⑥），印 = 品牌印「字」（D46 ⑧，24 / 单字 40）；
+// 作品格下一行状态字「写错」前的点同样是 6px 朱点。尺寸与位置在 components/work.js，颜色只在这里。
+export const WORK_MARK_CSS = `
+.sz-work__dot--wrong,.sz-work__status[data-wrong="true"]::before{background:${T.zhu}}
+.sz-wseal{position:relative;background:${T.seal};color:${T.onSeal}}
+.sz-wseal::before{content:"";position:absolute;inset:7%;pointer-events:none;box-shadow:inset 0 0 0 1px ${T.onSeal};opacity:.55}
+`;
+
+injectStyles('marks-work', WORK_MARK_CSS);

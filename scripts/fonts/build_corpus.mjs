@@ -83,6 +83,7 @@ export const HEI_ONLY_COPY = Object.freeze([
   'X-HOME.lastYesterday', // 「昨天写的字」：首页字帖位下一行的标签，黑体 13
   'X-INVITE.body', // 「锁屏上只出现词语和拼音……」：提醒邀请的说明，黑体 13
   'X-INVITE.bodyPlain',
+  'X-WORK.annualSaveNote', // 「存成册页：卷首、每个月、卷尾……」：年报保存弹层的说明，黑体 15，「卷」不在宋体子集里（阶段 1 P1-E7）
 ]);
 
 /**

@@ -204,19 +204,21 @@ export default async function inkRetention(page, ctx) {
     await writeAndJudge(cold, 'correct', 3);
     await cold.waitForSelector(topSel('result-screen'));
     await waitNavIdle(cold);
+    // P1-E7：结果页是作品——有墨的字在作品里（work-cell，画的是存下的墨迹），分享入口 = 页头右上 result-share；没墨时是衬底一行、没有分享
     const resultView = () => cold.evaluate(() => {
       const top = document.querySelector('.sz-layer[data-top="true"]');
       return {
-        inkCells: [...top.querySelectorAll('[data-testid="result-cell"]')].map(c => !!c.querySelector('[data-testid="result-cell-ink"]')),
-        imageEntry: !!top.querySelector('[data-testid="result-image"]'),
-        imageNote: top.querySelector('[data-testid="result-image-note"]') ? top.querySelector('[data-testid="result-image-note"]').textContent.trim() : null,
+        inkCells: [...top.querySelectorAll('[data-testid="work-cell"]')].map(c => c.dataset.mode === 'hand' && !!c.querySelector('canvas[data-painted="true"]')),
+        imageEntry: !!top.querySelector('[data-testid="result-share"]'),
+        plain: !!top.querySelector('[data-testid="work"][data-variant="plain"]'),
       };
     });
-    assert.deepEqual(await resultView(), { inkCells: [true], imageEntry: true, imageNote: null }, 'result page: the cell draws stored ink, image entry shown');
+    assert.deepEqual(await resultView(), { inkCells: [true], imageEntry: true, plain: false }, 'result page: the work cell draws stored ink, share icon shown');
     await cold.reload();
     await cold.waitForSelector(topSel('result-screen'));
     await waitNavIdle(cold);
-    assert.deepEqual(await resultView(), { inkCells: [true], imageEntry: true, imageNote: null }, 'after reload the stored ink is still there (not R-R07.allMissing)');
+    await cold.waitForFunction(() => !!document.querySelector('.sz-layer[data-top="true"] [data-testid="work-cell"] canvas[data-painted="true"]'));
+    assert.deepEqual(await resultView(), { inkCells: [true], imageEntry: true, plain: false }, 'after reload the stored ink is still there (not the no-ink variant)');
     const f4 = await facts(cold);
     assert.deepEqual(f4.judged.map(r => r.ink), [true, false, false, true], 'D27 again: first + new latest kept, the former latest recycled');
   } finally {

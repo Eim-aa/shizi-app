@@ -33,7 +33,11 @@
     "{to}": "结束日期（同 {from}）",
     "{time}": "时刻（提醒邀请：好，明天 {time} 给你一个词。，如 9:30）",
     "{tier}": "复现预告档位词（X-FIRST.tier.*：明天 / 过两天 / 过几天）",
-    "{label}": "一行字帖位的标签（X-HOME.lastYesterday / lastBefore，读屏名称里复用）"
+    "{label}": "一行字帖位的标签（X-HOME.lastYesterday / lastBefore，读屏名称里复用）",
+    "{state}": "格的状态词（X-WORK.cellState*：写对 / 看后写的 / 写错，读屏名称里用）",
+    "{max}": "一张图最多放几个字（policy.imageMaxChars，D39）",
+    "{kuan}": "分张前的落款（X-WORK.kuanJoinPart 内部）",
+    "{part}": "分张序号（其一 / 其二，X-WORK.kuanPart）"
   },
   "normalization": [
     "{M} 月 {D} 日、{9 月 24 日} 这类日期、裸「M 月 D 日」、{日期} → {date}",
@@ -89,7 +93,8 @@
     "R-H03.firstVisit": "设计稿「首练与首页」§一原句「先写三个大家常忘的字。」：口语里的「三个」，不是统计数字（阶段 1 P1-E5，过渡文案）",
     "X-FIRST.title": "设计稿「首练与首页」§三标题原句「这三个字，很多人提笔就忘。」：指首练的那三个字，不是统计数字（阶段 1 P1-E5）",
     "X-FIRST.tier.soon": "复现预告档位词「过两天」：口语的时间说法，不写日期（D41；设计稿 §三）",
-    "X-HOME.capitalBody": "设计稿 §四 ④ 原句「今天写两组大写数字，借条、红包上用得着。」：口语里的「两组」（D40，过渡文案）"
+    "X-HOME.capitalBody": "设计稿 §四 ④ 原句「今天写两组大写数字，借条、红包上用得着。」：口语里的「两组」（D40，过渡文案）",
+    "X-WORK.annualTwiceTitle": "设计稿「作品出口」年报卷尾原句「同一个字，两次」：口语里的「两次」，不是统计数字（阶段 1 P1-E7，P160）"
   },
   "exportWordAllow": {
     "X-BACKUP.intro": "P55 原型 ShiziScreen L166 bkCanExp 段逐字「先导出一份备份文件」；指的是按钮「导出备份文件」这一动作",
@@ -162,6 +167,11 @@
     "P159": "首练结果页复现预告的档位与取法、「放进去」入口状态：阶段 1 P1-E5，见 03 P159",
     "P16": "已决定 阶段 1 设计稿（D43）：有进行中的组时首页画这一组的格子，不再同时显示今天写的字；`policy.homeShowRecordWhileResume` 随阶段 1 P1-E5 删除，无界面文案开关",
     "P75": "已决定 阶段 1 设计稿（D43）：不再有合成一行的紧凑墨迹行（今天写的字按字数取格宽，最多 8 个）；`policy.inkRowCompactMax` 随阶段 1 P1-E5 删除",
+    "P160": "作品出口新增文案（结果页作品下的行、读屏名称、分享弹层、月字帖说明、年报册页）：阶段 1 P1-E7，过渡文案，见 03 P160",
+    "P161": "年报卷尾「同一个字，两次」的选字口径（年内留有墨迹的第一次与最近一次，相隔最久；没有则不出卷尾）：阶段 1 P1-E7，见 03 P161",
+    "P162": "导出图在原生壳里的传输格式（网页 JPEG 0.92；原生壳 pngData 目前只认 PNG，原生通道暂发 PNG，NATIVE_ACCEPTS_JPEG 待原生放开）：阶段 1 P1-E7，见 03 P162",
+    "P163": "月字帖骑线日期角标只写「日」、每天只标第一个字：阶段 1 P1-E7，见 03 P163",
+    "P164": "多张图时「分享」分享当前这一张、「保存 N 张图片」逐张保存：阶段 1 P1-E7，见 03 P164",
     "P150": "页边 20 与间距尺度（阶段 1 P1-E1b，D43）：版式取值，实现在 src/ui/components/{Page,Sheet,Confirm,Toast,UndoBar,Chevron}.js 与各屏 CSS；写字格 policy.writeGrid（sideMargin 20、reserveStd 416、reserveCompact 344）随之更新，不是新开关；Toast 去圆点、加计时线、撤销条最小高 48；无界面文案",
     "P151": "判断页上下两格（D46 ⑪，P1-E1b）：版式行为——S = min(屏宽 − 168, (书写格顶到页底栏的可用高 + 1) ÷ 2)，实现在 src/ui/screens/write/compare.js judgePairSize / useJudgePairSize；旁注沿用 R-W09 的「你的书写 / 参考字形」，读屏名称不变；长按叠看（D46 ⑫）本卡不做；无新文案",
     "P152": "字库与字墙（设计系统 v1，P1-E1b）：墙格四档取令牌 --wall1…--wall4（取代透明度四档），8 列 / Pro Max 9 列 / 大字最多 6 列（一格不窄于 44pt，按屏宽取 ⌊(屏宽 − 40) ÷ 44⌋），写错只加朱点；实现在 src/ui/screens/library/{wall,model}.js；自选未写的淡朱双钩留给 P1-E2；无界面文案",
@@ -4599,6 +4609,384 @@
           "origin": "extra",
           "note": "系统权限被拒后这一块变成的一行，不再追问（意思同 R-S02）",
           "decision": "P157"
+        }
+      }
+    },
+    "X-WORK": {
+      "screen": "work",
+      "milestone": "M4",
+      "source": "阶段 1 P1-E7 作品出口：设计稿「作品出口」与「实现交接.md」§4–§8（结果页即作品、分享弹层、月字帖、年报、分张）；全部是过渡文案，阶段 1 文案统一时定稿",
+      "slots": {
+        "afterSeen": {
+          "raw": null,
+          "text": "看后写的",
+          "origin": "extra",
+          "note": "格下标注：看过答案后自己写了一遍的字（仅 App 内，图片里不出现；交接 §4.4）",
+          "decision": "P160"
+        },
+        "rowNoInkCorrect": {
+          "raw": null,
+          "text": "「{char}」写对了，没有笔迹",
+          "origin": "extra",
+          "note": "作品下的行：没放进作品的字（无墨 / 看过答案 / 跳过 / 纸上只有说明，没有「放进去」；交接 §4.4）",
+          "decision": "P160"
+        },
+        "rowNoInkWrong": {
+          "raw": null,
+          "text": "「{char}」写错了，没有笔迹",
+          "origin": "extra",
+          "note": "作品下的行：没放进作品的字（无墨 / 看过答案 / 跳过 / 纸上只有说明，没有「放进去」；交接 §4.4）",
+          "decision": "P160"
+        },
+        "rowSeen": {
+          "raw": null,
+          "text": "「{char}」看过答案",
+          "origin": "extra",
+          "note": "作品下的行：没放进作品的字（无墨 / 看过答案 / 跳过 / 纸上只有说明，没有「放进去」；交接 §4.4）",
+          "decision": "P160"
+        },
+        "rowSkipped": {
+          "raw": null,
+          "text": "「{char}」跳过了",
+          "origin": "extra",
+          "note": "作品下的行：没放进作品的字（无墨 / 看过答案 / 跳过 / 纸上只有说明，没有「放进去」；交接 §4.4）",
+          "decision": "P160"
+        },
+        "rowPaperCorrect": {
+          "raw": null,
+          "text": "「{char}」写对 · 纸上",
+          "origin": "extra",
+          "note": "作品下的行：没放进作品的字（无墨 / 看过答案 / 跳过 / 纸上只有说明，没有「放进去」；交接 §4.4）",
+          "decision": "P160"
+        },
+        "rowPaperWrong": {
+          "raw": null,
+          "text": "「{char}」写错 · 纸上",
+          "origin": "extra",
+          "note": "作品下的行：没放进作品的字（无墨 / 看过答案 / 跳过 / 纸上只有说明，没有「放进去」；交接 §4.4）",
+          "decision": "P160"
+        },
+        "statusCorrect": {
+          "raw": null,
+          "text": "写对",
+          "origin": "extra",
+          "note": "没有任何墨时衬底一行的格下状态字（交接 §4.2 变体）",
+          "decision": "P160"
+        },
+        "statusWrong": {
+          "raw": null,
+          "text": "写错",
+          "origin": "extra",
+          "note": "没有任何墨时衬底一行的格下状态字（交接 §4.2 变体）",
+          "decision": "P160"
+        },
+        "statusSeen": {
+          "raw": null,
+          "text": "看过答案",
+          "origin": "extra",
+          "note": "没有任何墨时衬底一行的格下状态字（交接 §4.2 变体）",
+          "decision": "P160"
+        },
+        "statusSkipped": {
+          "raw": null,
+          "text": "跳过",
+          "origin": "extra",
+          "note": "没有任何墨时衬底一行的格下状态字（交接 §4.2 变体）",
+          "decision": "P160"
+        },
+        "charsJoin": {
+          "raw": null,
+          "text": "、",
+          "origin": "extra",
+          "note": "读屏名称（交接 §5.5；念法 D45 文案统一时定稿）",
+          "decision": "P160"
+        },
+        "workAria": {
+          "raw": null,
+          "text": "作品：{chars}，{n} 个字，{date}",
+          "origin": "extra",
+          "note": "读屏名称（交接 §5.5；念法 D45 文案统一时定稿）",
+          "decision": "P160"
+        },
+        "workAriaOne": {
+          "raw": null,
+          "text": "作品：{chars}，{date}",
+          "origin": "extra",
+          "note": "读屏名称（交接 §5.5；念法 D45 文案统一时定稿）",
+          "decision": "P160"
+        },
+        "cellAria": {
+          "raw": null,
+          "text": "{char}，{state}，点两下对照和修改",
+          "origin": "extra",
+          "note": "读屏名称（交接 §5.5；念法 D45 文案统一时定稿）",
+          "decision": "P160"
+        },
+        "cellStateCorrect": {
+          "raw": null,
+          "text": "写对",
+          "origin": "extra",
+          "note": "读屏名称（交接 §5.5；念法 D45 文案统一时定稿）",
+          "decision": "P160"
+        },
+        "cellStateAfterSeen": {
+          "raw": null,
+          "text": "看后写的",
+          "origin": "extra",
+          "note": "读屏名称（交接 §5.5；念法 D45 文案统一时定稿）",
+          "decision": "P160"
+        },
+        "cellStateWrong": {
+          "raw": null,
+          "text": "写错",
+          "origin": "extra",
+          "note": "读屏名称（交接 §5.5；念法 D45 文案统一时定稿）",
+          "decision": "P160"
+        },
+        "shareAria": {
+          "raw": null,
+          "text": "分享这次的图片",
+          "origin": "extra",
+          "note": "读屏名称（交接 §5.5；念法 D45 文案统一时定稿）",
+          "decision": "P160"
+        },
+        "done": {
+          "raw": null,
+          "text": "完成",
+          "origin": "extra",
+          "note": "分享弹层（交接 §5.3 / §6.7；D39 分张）",
+          "decision": "P160"
+        },
+        "alsoAdd": {
+          "raw": null,
+          "text": "也放进来",
+          "origin": "extra",
+          "note": "分享弹层（交接 §5.3 / §6.7；D39 分张）",
+          "decision": "P160"
+        },
+        "chipWrong": {
+          "raw": null,
+          "text": "{char} · 写错",
+          "origin": "extra",
+          "note": "分享弹层（交接 §5.3 / §6.7；D39 分张）",
+          "decision": "P160"
+        },
+        "saved": {
+          "raw": null,
+          "text": "存好了",
+          "origin": "extra",
+          "note": "分享弹层（交接 §5.3 / §6.7；D39 分张）",
+          "decision": "P160"
+        },
+        "previewAria": {
+          "raw": null,
+          "text": "图片预览",
+          "origin": "extra",
+          "note": "分享弹层（交接 §5.3 / §6.7；D39 分张）",
+          "decision": "P160"
+        },
+        "splitNote": {
+          "raw": null,
+          "text": "{n} 个字，存成 {m} 张，每张不超过 {max} 字。",
+          "origin": "extra",
+          "note": "分享弹层（交接 §5.3 / §6.7；D39 分张）",
+          "decision": "P160"
+        },
+        "saveMany": {
+          "raw": null,
+          "text": "保存 {m} 张图片",
+          "origin": "extra",
+          "note": "分享弹层（交接 §5.3 / §6.7；D39 分张）",
+          "decision": "P160"
+        },
+        "pageAria": {
+          "raw": null,
+          "text": "第 {k} 张，共 {m} 张",
+          "origin": "extra",
+          "note": "分享弹层（交接 §5.3 / §6.7；D39 分张）",
+          "decision": "P160"
+        },
+        "kuanCount": {
+          "raw": null,
+          "text": "{n}字",
+          "origin": "extra",
+          "note": "纸面落款与年报册页文字（汉字数字由 ui/work-text.js 填入；交接 §6.4 / §8.2）",
+          "decision": "P160"
+        },
+        "kuanJoin": {
+          "raw": null,
+          "text": "{date}　{n}",
+          "origin": "extra",
+          "note": "纸面落款与年报册页文字（汉字数字由 ui/work-text.js 填入；交接 §6.4 / §8.2）",
+          "decision": "P160"
+        },
+        "kuanMonthDay": {
+          "raw": null,
+          "text": "{month}月{day}日",
+          "origin": "extra",
+          "note": "纸面落款与年报册页文字（汉字数字由 ui/work-text.js 填入；交接 §6.4 / §8.2）",
+          "decision": "P160"
+        },
+        "kuanPart": {
+          "raw": null,
+          "text": "其{n}",
+          "origin": "extra",
+          "note": "纸面落款与年报册页文字（汉字数字由 ui/work-text.js 填入；交接 §6.4 / §8.2）",
+          "decision": "P160"
+        },
+        "kuanJoinPart": {
+          "raw": null,
+          "text": "{kuan}　{part}",
+          "origin": "extra",
+          "note": "纸面落款与年报册页文字（汉字数字由 ui/work-text.js 填入；交接 §6.4 / §8.2）",
+          "decision": "P160"
+        },
+        "annualBrand": {
+          "raw": null,
+          "text": "拾字　年报",
+          "origin": "extra",
+          "note": "纸面落款与年报册页文字（汉字数字由 ui/work-text.js 填入；交接 §6.4 / §8.2）",
+          "decision": "P160"
+        },
+        "annualCoverLine": {
+          "raw": null,
+          "text": "这一年，你写过{n}个字。",
+          "origin": "extra",
+          "note": "纸面落款与年报册页文字（汉字数字由 ui/work-text.js 填入；交接 §6.4 / §8.2）",
+          "decision": "P160"
+        },
+        "annualFirstLabel": {
+          "raw": null,
+          "text": "今年第一个字",
+          "origin": "extra",
+          "note": "纸面落款与年报册页文字（汉字数字由 ui/work-text.js 填入；交接 §6.4 / §8.2）",
+          "decision": "P160"
+        },
+        "annualFirstDate": {
+          "raw": null,
+          "text": "{date}的笔迹",
+          "origin": "extra",
+          "note": "纸面落款与年报册页文字（汉字数字由 ui/work-text.js 填入；交接 §6.4 / §8.2）",
+          "decision": "P160"
+        },
+        "monthTitle": {
+          "raw": null,
+          "text": "{month}月字帖",
+          "origin": "extra",
+          "note": "月字帖（交接 §7）",
+          "decision": "P160"
+        },
+        "monthUnderNote": {
+          "raw": null,
+          "text": "浅色的字，这个月没有留下笔迹。点一个字看详情。",
+          "origin": "extra",
+          "note": "月字帖（交接 §7）",
+          "decision": "P160"
+        },
+        "monthCellNoInk": {
+          "raw": null,
+          "text": "{char}，这个月没有留下笔迹",
+          "origin": "extra",
+          "note": "月字帖（交接 §7）",
+          "decision": "P160"
+        },
+        "monthOpen": {
+          "raw": null,
+          "text": "{month}月字帖，{n} 个字",
+          "origin": "extra",
+          "note": "月字帖（交接 §7）",
+          "decision": "P160"
+        },
+        "annualPageTitle": {
+          "raw": null,
+          "text": "年报",
+          "origin": "extra",
+          "note": "年报（交接 §8）",
+          "decision": "P160"
+        },
+        "annualHead": {
+          "raw": null,
+          "text": "这一年，你写过 {n} 个字。",
+          "origin": "extra",
+          "note": "年报（交接 §8）",
+          "decision": "P160"
+        },
+        "annualMonthName": {
+          "raw": null,
+          "text": "{month}月",
+          "origin": "extra",
+          "note": "年报（交接 §8）",
+          "decision": "P160"
+        },
+        "annualMonthCount": {
+          "raw": null,
+          "text": "{n} 字",
+          "origin": "extra",
+          "note": "年报（交接 §8）",
+          "decision": "P160"
+        },
+        "annualMonthAria": {
+          "raw": null,
+          "text": "{month}月，{n} 个字，点开看字帖",
+          "origin": "extra",
+          "note": "年报（交接 §8）",
+          "decision": "P160"
+        },
+        "annualTwiceTitle": {
+          "raw": null,
+          "text": "同一个字，两次",
+          "origin": "extra",
+          "note": "年报（交接 §8）",
+          "decision": "P160"
+        },
+        "annualFirstCellAria": {
+          "raw": null,
+          "text": "「{char}」第一次的笔迹",
+          "origin": "extra",
+          "note": "年报（交接 §8）",
+          "decision": "P160"
+        },
+        "annualLastCellAria": {
+          "raw": null,
+          "text": "「{char}」最近一次的笔迹",
+          "origin": "extra",
+          "note": "年报（交接 §8）",
+          "decision": "P160"
+        },
+        "annualSaveTitle": {
+          "raw": null,
+          "text": "保存年报",
+          "origin": "extra",
+          "note": "年报（交接 §8）",
+          "decision": "P160"
+        },
+        "annualSaveNote": {
+          "raw": null,
+          "text": "存成册页：卷首、每个月、卷尾，每张 3:4。",
+          "origin": "extra",
+          "note": "年报（交接 §8）",
+          "decision": "P160"
+        },
+        "annualSaveButton": {
+          "raw": null,
+          "text": "保存 {n} 张图片",
+          "origin": "extra",
+          "note": "年报（交接 §8）",
+          "decision": "P160"
+        },
+        "annualSaveLong": {
+          "raw": null,
+          "text": "存成一张长图",
+          "origin": "extra",
+          "note": "年报（交接 §8）",
+          "decision": "P160"
+        },
+        "annualLongNote": {
+          "raw": null,
+          "text": "一张长图，宽 1440，字很小，适合存进相册。",
+          "origin": "extra",
+          "note": "年报（交接 §8）",
+          "decision": "P160"
         }
       }
     },

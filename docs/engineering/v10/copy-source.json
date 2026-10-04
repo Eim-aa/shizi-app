@@ -2808,6 +2808,13 @@
           "origin": "extra",
           "note": "书写格容器 role=img 的 aria-label（读屏文案）；取 01 §6.1 的名称，不含答案字（决定-D16）",
           "decision": "P66"
+        },
+        "firstTip": {
+          "raw": null,
+          "text": "凭记忆写，想不起来可以点提示。",
+          "origin": "extra",
+          "note": "首练第 1 字格下说明位一次性提示（13，墨三；设计交接 §3，过渡）；出现即记 settings.firstTipSeen，只出现一次",
+          "decision": "P181"
         }
       }
     },

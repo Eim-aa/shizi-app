@@ -58,6 +58,7 @@ import { storedStrokes, usePersist } from './persist.js';
 import { useEndGroup } from './end.js';
 import { commitFinish, handoffSkipUndo, openResult } from '../result/index.js';
 import { PaperNote, PaperStage, ToPaperButton, usePaperMode, usePaperSuggest } from './paper.js';
+import { useFirstTip } from './first-tip.js';
 import { assistiveTechActive } from '../../../platform/accessibility.js';
 
 export const WRITE_SCREEN = 'write';
@@ -269,6 +270,11 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
     slot, session, cardKey, char: charOfCardKey(cardKey), phase, written: paper ? 0 : view.strokes.length, strokes: strokeData, getStore,
     onHinted: endSkipUndo,
   });
+  // Q2-1（03 P181）：首练第 1 字格下一次性提示「凭记忆写，想不起来可以点提示。」（settings.firstTipSeen；首次落笔 / 用提示后收起）。
+  const firstTip = useFirstTip({
+    settings: state ? state.settings : null, session, phase, paper, strokeCount: view.strokes.length, hinted: hint.used > 0,
+    blocked: !!suggest.node, getStore,
+  });
   // M1-7 紧凑版（compact.js）：只改控件排布（底栏两行、间距），不改格子大小（D36）。书写格边长按屏宽与视口高算（P118），
   // 与字号、阶段、提示无关；看答案卡片紧凑版按剩余高度取、不超过书写格边长。内部坐标恒为 345 单位，这里只是显示尺寸。
   const compact = useCompact();
@@ -422,7 +428,7 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
       </div>
       ${compare.active ? null : html`<div class="sz-write__below">
         <span class="sz-write__note" data-testid="write-note"><span class="sz-write__lineslot" data-testid="write-line-slot">${row.node}</span>${suggest.node}${answer.active ? answer.note
-          : skip.failed ? skip.note : paper ? html`<${PaperNote} />` : html`<${HintNote} note=${hint.note} />`}</span>
+          : skip.failed ? skip.note : paper ? html`<${PaperNote} />` : hint.note ? html`<${HintNote} note=${hint.note} />` : firstTip.node}</span>
         ${tools}${toPaperSlot}
       </div>`}
     </div>

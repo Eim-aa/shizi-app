@@ -203,7 +203,7 @@ export default async function sessionStart(page, ctx) {
 
   // ------------------------------------------------------------ 4. 今天的练习选字
   ctx.step('daily: due reviews (most overdue first) mixed with new chars (D41), judged-today excluded, skipped / answer-seen today can return, custom unwritten excluded');
-  // 新字顺序（D28 易忘度，规范常用字库）：酱 酝 尴 嚷 痒 酿 罐 …（不再是 SEED 字频序的 的 一 是 不 了 在 人）
+  // 新字顺序（D28 易忘度，规范常用字库）：酱 疆 酝 尴 嚷 豫 痒 酿 罐 …（D45：常用的姓氏 / 地名字 疆 豫 在内；不再是 SEED 字频序的 的 一 是 不 了 在 人）
   const recs = [
     record(1, '了', 'judged', 'correct', LONG_AGO, LA),
     record(2, '在', 'judged', 'correct', LONG_AGO, LA + 1),
@@ -227,8 +227,8 @@ export default async function sessionStart(page, ctx) {
   st = await state(page);
   assert.equal(st.sessions.A.kind, 'daily', 'kind daily');
   // D41：2 个到期、p = 2 / 4 = 0.5 → 2 复习 + 3 新字；组内复、新交错，末位若是新字就换成复习字（组尾放好写的字）
-  assert.deepEqual(st.sessions.A.queue, ['base:在', 'base:酱', 'base:酝', 'base:痒', 'base:了'],
-    '在 (3 days overdue, first) · 酱 (skipped today) · 酝 (answer-seen today) · 痒 · 了 (1 day, moved to the tail); not 尴 (judged today) nor 嚷 (custom)');
+  assert.deepEqual(st.sessions.A.queue, ['base:在', 'base:酱', 'base:疆', 'base:酝', 'base:了'],
+    '在 (3 days overdue, first) · 酱 (skipped today) · 疆 (D45: common place-name char, 2nd in the table) · 酝 (answer-seen today) · 了 (1 day, moved to the tail); not 尴 (judged today) nor 嚷 (custom)');
   for (const c of ['的', '一', '是']) assert.equal(st.sessions.A.queue.includes(`base:${c}`), false, `${c} is not a new character any more (D28)`);
 
   ctx.step('daily cap: 29 reviews done today → only 1 due character in the group (dailyReviewCap 30)');

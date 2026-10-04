@@ -10,14 +10,17 @@
 //   docs/engineering/v10/phase1/tools/curation.mjs          HANDWRITING['签名姓氏'] / ['写地址'] 人工清单 → D39「姓氏与地名」主题的字
 //   docs/engineering/v10/phase1/tools/capital-numerals.mjs  D40 大写数字：两组特别组、佰仟、题面语境词
 //
-// 剔除规则（D39 / D40）：姓氏字、省份简称与常见地名（curation 的两张清单）、大写数字 12 个字，都从默认新字排序（order 与二级附录）里剔除，
-// 并且不进「清单之后按字频序」的尾部（src/core/new-order.js 同样排除 reserved）；它们之后由独立主题「姓氏与地名」/ D40 特别组承接。
-// 被剔除的字逐个列在输出的 removed 里。
+// 剔除规则（D39 / D40 / D45）：大写数字 12 个字一律从默认新字排序（order 与二级附录）里剔除；姓氏字、省份简称与常见地名（curation 的两张清单）
+// 只剔除「日常少用」的——字频序（题库 deck-data.js 的 rank）> COMMON_RANK_MAX、或题库里没有字频的；rank ≤ COMMON_RANK_MAX 的常用字
+// （熊、颜、藏、桂、厦……）留在默认排序原位（D45）。被剔除的字不进「清单之后按字频序」的尾部（src/core/new-order.js 同样排除 reserved），
+// 之后由独立主题「姓氏与地名」/ D40 特别组承接。被剔除的字逐个列在输出的 removed 里，留下的常用字列在 commonKept 里。
+// 阈值是工程过渡值（登记 P145，待顾问审读）。
 
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import vm from 'node:vm';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const ROOT = resolve(HERE, '..');
@@ -25,14 +28,35 @@ export const OUT_PATH = 'src/config/char-order.js';
 const JSON_PATH = 'docs/engineering/v10/phase1/易忘度字表-初稿.json';
 const CURATION_PATH = 'docs/engineering/v10/phase1/tools/curation.mjs';
 const CAPITAL_PATH = 'docs/engineering/v10/phase1/tools/capital-numerals.mjs';
+const DECK_PATH = 'deck-data.js';
+
+/**
+ * D45 / P145：姓氏与地名清单里，字频序 rank ≤ 这个数的算「日常常用」，留在默认排序里；更靠后（或没有字频）的才剔除。
+ * 取 3500 = 一级字（常用字表）的边界：熊 1741、颜 1545、桂 1930、傅 1887、豫 1956、疆 2036、厦 2264、藏 907、鞠 3037 都在内，
+ * 滕 3892、翟 3919、蔺 5291、黔 3989、渝 3641、滇 3534 等生僻字仍剔除。过渡值，待顾问审读；换阈值只改这里再重跑脚本。
+ */
+export const COMMON_RANK_MAX = 3500;
+
 
 const sha = (text) => createHash('sha256').update(text).digest('hex').slice(0, 12);
 const chars = (s) => Array.from(s);
 const q = (s) => JSON.stringify(s);
+/** 题库（deck-data.js 的 SEED）里每个目标字的最小字频序 rank。root 可注入。 */
+export function deckRanks(root = ROOT) {
+  const seed = vm.runInNewContext(readFileSync(join(root, DECK_PATH), 'utf8') + '\n;SEED');
+  const ranks = new Map();
+  for (const row of seed) {
+    const r = Number(row.rank);
+    if (!row.target || !Number.isFinite(r) || r <= 0) continue;
+    if (!ranks.has(row.target) || r < ranks.get(row.target)) ranks.set(row.target, r);
+  }
+  return ranks;
+}
+
 const list = (xs) => '[' + xs.map(q).join(', ') + ']';
 
 /** 生成模块文本。root 可注入（测试用）。 */
-export async function generate(root = ROOT) {
+export async function generate(root = ROOT, { commonRankMax = COMMON_RANK_MAX } = {}) {
   const jsonText = readFileSync(join(root, JSON_PATH), 'utf8');
   const data = JSON.parse(jsonText);
   const curation = await import(pathToFileURL(join(root, CURATION_PATH)).href);
@@ -41,14 +65,22 @@ export async function generate(root = ROOT) {
   const surnames = chars(curation.HANDWRITING['签名姓氏'].chars);
   const places = chars(curation.HANDWRITING['写地址'].chars);
   const numerals = [...capital.ALL];
-  const reserved = new Set([...surnames, ...places, ...numerals]);
+  const ranks = deckRanks(root);
+  // D45：姓氏 / 地名只剔除日常少用的（rank > COMMON_RANK_MAX 或没有字频）；常用字回到默认排序。大写数字一律剔除。
+  const isCommon = (ch) => ranks.has(ch) && ranks.get(ch) <= commonRankMax;
+  const rareSurnames = [...new Set(surnames)].filter((ch) => !isCommon(ch));
+  const rarePlaces = [...new Set(places)].filter((ch) => !isCommon(ch) && !rareSurnames.includes(ch));
+  const keptSurnames = [...new Set(surnames)].filter(isCommon);
+  const keptPlaces = [...new Set(places)].filter((ch) => isCommon(ch) && !keptSurnames.includes(ch));
+  const reserved = new Set([...rareSurnames, ...rarePlaces, ...numerals]);
 
   const removed = { surnames: [], places: [], capitalNumerals: [] };
-  const kind = (ch) => (numerals.includes(ch) ? 'capitalNumerals' : surnames.includes(ch) ? 'surnames' : 'places');
+  const kind = (ch) => (numerals.includes(ch) ? 'capitalNumerals' : rareSurnames.includes(ch) ? 'surnames' : 'places');
+  const rankText = (ch) => (ranks.has(ch) ? '字频#' + ranks.get(ch) : '无字频');
   const keep = (rows, label) => {
     const out = [];
     for (const ch of rows) {
-      if (reserved.has(ch)) removed[kind(ch)].push(ch + '（' + label + '）');
+      if (reserved.has(ch)) removed[kind(ch)].push(ch + '（' + label + (numerals.includes(ch) ? '' : '，' + rankText(ch)) + '）');
       else if (!out.includes(ch)) out.push(ch);
     }
     return out;
@@ -75,6 +107,8 @@ export async function generate(root = ROOT) {
   lines.push('  meta: Object.freeze({');
   lines.push('    status: ' + q('draft：新字顺序初稿，待语文 / 书法顾问审读；大写数字语境词待审读') + ',');
   lines.push('    // 输入文件的内容指纹（路径见 scripts/build_char_order.mjs 顶部注释）；输入一变 --check 就报「过期」，提醒重跑。');
+  lines.push('    // D45 / P145：姓氏 / 地名清单里字频序 rank ≤ 这个数的常用字留在默认排序（见 commonKept），更靠后的才剔除（待顾问审读）。');
+  lines.push('    commonRankMax: ' + commonRankMax + ',');
   lines.push('    inputs: Object.freeze({');
   lines.push('      orderTable: ' + q(sha(jsonText)) + ',');
   lines.push('      curation: ' + q(sha(readFileSync(join(root, CURATION_PATH), 'utf8'))) + ',');
@@ -87,11 +121,16 @@ export async function generate(root = ROOT) {
   lines.push('  level2: Object.freeze(' + list(level2) + '),');
   lines.push('  // 热身字（高频、成年人肯定写得出，D28）：按主题行轮流排序。');
   lines.push('  warmup: Object.freeze(' + list(warmup) + '),');
-  lines.push('  // 不进默认新字排序的字（含尾部字频序）：D39 姓氏、省份简称与常见地名 → 独立主题「姓氏与地名」；D40 大写数字 → 特别组。');
+  lines.push('  // 不进默认新字排序的字（含尾部字频序）：D39 / D45 日常少用的姓氏、省份简称与地名 → 独立主题「姓氏与地名」；D40 大写数字 → 特别组。');
   lines.push('  reserved: Object.freeze({');
-  lines.push('    surnames: Object.freeze(' + list(surnames) + '),');
-  lines.push('    places: Object.freeze(' + list(places) + '),');
+  lines.push('    surnames: Object.freeze(' + list(rareSurnames) + '),');
+  lines.push('    places: Object.freeze(' + list(rarePlaces) + '),');
   lines.push('    capitalNumerals: Object.freeze(' + list(numerals) + '),');
+  lines.push('  }),');
+  lines.push('  // 在姓氏 / 地名清单里、但字频常用而留在默认排序的字（D45；不进 reserved，按易忘度表原位 / 字频序出现）。');
+  lines.push('  commonKept: Object.freeze({');
+  lines.push('    surnames: Object.freeze(' + list(keptSurnames) + '),');
+  lines.push('    places: Object.freeze(' + list(keptPlaces) + '),');
   lines.push('  }),');
   lines.push('  // 从默认排序里剔除的字（逐个列出，供审读）。');
   lines.push('  removed: Object.freeze({');

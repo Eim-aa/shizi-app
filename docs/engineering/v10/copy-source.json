@@ -142,7 +142,8 @@
     "P120": "首页主按钮「拾」不随字号缩小（D36 / G05）：版式行为——大字（系统字号，P130）与紧凑版都保持 196×190；实现在 src/ui/screens/home/index.js 的 CSS，不是 policy 开关；无界面文案",
     "P133": "网页（PWA / 浏览器，没有原生桥）的字号倍率：--k 保持 1，不读浏览器默认字号或 -apple-system-body 推算系统字号；行为在 src/platform/text-size.js（只响应原生 shiziContentSize），不是 policy 开关（D29 / 阶段 1 P1-E6）",
     "P120": "首页主按钮「拾」不随字号缩小（D36 / G05）：版式行为——大字与紧凑版都保持 196×190；实现在 src/ui/screens/home/index.js 的 CSS，不是 policy 开关；无界面文案",
-    "P122": "已决定 D42：D27 留存（每字只留第一次 + 最近一次）与按「某一次」取墨的月字帖（P02）/ 这天 / 这次图片 / 年报首字冲突，改为在该时间段内按原取法的偏好顺序找留有墨迹的那一次，段内一份都没有才如实缺墨（共用 src/core/ink-pick.js）；偏好方向仍由 policy.monthSheetPick（P02）决定，不新增开关；缺墨句 X-IMAGES.missingMonth 改「这个月没有」，新增 X-IMAGES.missingDay「这天没有」"
+    "P122": "已决定 D42：D27 留存（每字只留第一次 + 最近一次）与按「某一次」取墨的月字帖（P02）/ 这天 / 这次图片 / 年报首字冲突，改为在该时间段内按原取法的偏好顺序找留有墨迹的那一次，段内一份都没有才如实缺墨（共用 src/core/ink-pick.js）；偏好方向仍由 policy.monthSheetPick（P02）决定，不新增开关；缺墨句 X-IMAGES.missingMonth 改「这个月没有」，新增 X-IMAGES.missingDay「这天没有」；D45：年报第四节说明行改为 R-M06.inkDate「{date} 的笔迹」，日期是留有墨迹那一次的日子，不说「今年第一次」",
+    "P145": "已决定 D45（原则）：姓氏、省份简称与地名清单只剔除日常少用的，常用字（熊、颜、藏、桂、厦等）回到默认新字排序。界线用题库字频序 rank：scripts/build_char_order.mjs 的 COMMON_RANK_MAX（过渡值 3500，写入 src/config/char-order.js 的 meta.commonRankMax；commonKept 列留下的常用字，reserved / removed 列剔除的），待顾问审读；无界面文案"
   },
   "noCopy": [
     "R-H08",

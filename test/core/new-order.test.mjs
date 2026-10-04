@@ -9,10 +9,12 @@ import {
   capitalAfterKeys, capitalGroupKeys, isCapitalChar, isCapitalQueue, isReservedChar, isWarmupChar, orderNewKeys, warmupKeys,
 } from '../../src/core/new-order.js';
 import { capitalCard, deckAdapter, setDeckSource, libraryOf, newOrderOf, warmupOf } from '../../src/data/deck.js';
-import { generate } from '../../scripts/build_char_order.mjs';
+import vm from 'node:vm';
+import { COMMON_RANK_MAX, generate } from '../../scripts/build_char_order.mjs';
 import { ROOT } from './helpers.mjs';
 
 const TABLE = JSON.parse(fs.readFileSync(path.join(ROOT, 'docs/engineering/v10/phase1/易忘度字表-初稿.json'), 'utf8'));
+const deckRows = () => vm.runInNewContext(fs.readFileSync(path.join(ROOT, 'deck-data.js'), 'utf8') + '\n;SEED');
 const K = (s) => [...s].map((c) => 'base:' + c);
 
 test('char-order.js is generated from the draft table (--check passes) and a change to the table makes it stale', async () => {
@@ -31,11 +33,11 @@ test('default order = the table order minus the reserved chars; nothing is reord
   assert.ok(CHAR_ORDER.order.length > 400);
 });
 
-test('D39 / D40: surnames, province abbreviations / common place names and capital numerals are not in the default sort', () => {
+test('D39 / D40 / D45: rarely-used surnames / place names and capital numerals are not in the default sort', () => {
   const inOrder = new Set([...CHAR_ORDER.order, ...CHAR_ORDER.level2]);
   const sample = {
-    surnames: '戴魏薛谭蔡潘彭鲍萧黎熊颜霍傅阎鞠廖瞿龚',
-    places: '冀豫赣鄂湘黔滇蜀闽粤桂渝沪厦藏疆',
+    surnames: '滕翟蔺',
+    places: '黔滇渝',
     capital: '壹贰叁肆伍陆柒捌玖拾佰仟',
   };
   for (const [group, chars] of Object.entries(sample)) {
@@ -45,13 +47,51 @@ test('D39 / D40: surnames, province abbreviations / common place names and capit
     }
   }
   // 它们也不会从「清单之后的字频尾部」混进来
-  const lib = K('的一是魏戴疆豫壹肆拾佰仟春酱尴赢热');
+  const lib = K('的一是滕翟黔渝壹肆拾佰仟春酱尴赢热');
   const ordered = orderNewKeys(lib);
-  for (const c of '魏戴疆豫壹肆拾佰仟') assert.equal(ordered.includes('base:' + c), false, c);
-  // removed 列表逐个写明（供审读）：肆 贰 拾 是主表里的大写数字
+  for (const c of '滕翟黔渝壹肆拾佰仟') assert.equal(ordered.includes('base:' + c), false, c);
+  // removed 列表逐个写明（供审读）：肆 贰 拾 是主表里的大写数字；姓氏 / 地名带字频
   assert.ok(CHAR_ORDER.removed.capitalNumerals.some((x) => x.startsWith('肆')));
-  assert.ok(CHAR_ORDER.removed.surnames.length >= 10 && CHAR_ORDER.removed.places.length >= 10);
+  assert.ok(CHAR_ORDER.removed.surnames.every((x) => /字频#\d+/.test(x)) && CHAR_ORDER.removed.places.every((x) => /字频#\d+/.test(x)));
+  assert.deepEqual(CHAR_ORDER.removed.surnames.map((x) => x[0]).sort(), [...'滕翟蔺'].sort());
+  assert.deepEqual(CHAR_ORDER.removed.places.map((x) => x[0]).sort(), [...'黔滇渝'].sort());
   assert.equal(CHAR_ORDER.reserved.capitalNumerals.join(''), '壹贰叁肆伍陆柒捌玖拾佰仟');
+});
+
+test('D45 / P145: commonly-used surnames and place names (熊 颜 藏 桂 厦 傅 鞠 豫 疆 …) are back in the default sort, at their table positions', () => {
+  const inOrder = new Set([...CHAR_ORDER.order, ...CHAR_ORDER.level2]);
+  for (const c of '熊颜藏桂厦傅鞠豫疆') {
+    assert.equal(inOrder.has(c), true, `${c} 常用字在默认排序里`);
+    assert.equal(isReservedChar(c), false, `${c} not reserved`);
+    assert.equal([...CHAR_ORDER.commonKept.surnames, ...CHAR_ORDER.commonKept.places].includes(c), true, `${c} 登记在 commonKept`);
+  }
+  // 原位：与易忘度表里的相对顺序一致（只少了被剔除的字）
+  const tableRest = TABLE.order.filter((c) => !CHAR_ORDER.reserved.capitalNumerals.includes(c) && !CHAR_ORDER.reserved.surnames.includes(c) && !CHAR_ORDER.reserved.places.includes(c));
+  assert.deepEqual([...CHAR_ORDER.order], tableRest);
+  // 经 orderNewKeys：常用姓氏 / 地名字按表序出现在前，不被挡在字频尾部之后
+  const ordered = orderNewKeys(K('的一是熊颜藏桂厦傅鞠豫疆酱尴春')).map((k) => k.slice(5));
+  for (const c of '熊颜藏桂厦傅鞠豫疆') assert.ok(ordered.includes(c), c);
+  assert.ok(ordered.indexOf('疆') < ordered.indexOf('的'), 'listed chars precede the frequency tail');
+  // 阈值与字频：reserved 里的姓氏 / 地名都比阈值靠后，commonKept 都不超过阈值；两边合起来正好是 curation 的两张清单
+  const ranks = new Map();
+  for (const row of deckRows()) if (!ranks.has(row.target) || row.rank < ranks.get(row.target)) ranks.set(row.target, row.rank);
+  const max = CHAR_ORDER.meta.commonRankMax;
+  assert.equal(max, COMMON_RANK_MAX);
+  for (const c of [...CHAR_ORDER.reserved.surnames, ...CHAR_ORDER.reserved.places]) assert.ok(!(ranks.get(c) <= max), `${c} 生僻（字频 > ${max}）才剔除`);
+  for (const c of [...CHAR_ORDER.commonKept.surnames, ...CHAR_ORDER.commonKept.places]) assert.ok(ranks.get(c) <= max, `${c} 字频 ≤ ${max}`);
+  assert.equal(CHAR_ORDER.reserved.surnames.length + CHAR_ORDER.commonKept.surnames.length, 31);
+  assert.equal(CHAR_ORDER.reserved.places.length + CHAR_ORDER.commonKept.places.length, 21);
+});
+
+test('D45 / P145: the threshold is a generator parameter — a stricter one (1500) removes more of the list', async () => {
+  const strict = await generate(ROOT, { commonRankMax: 1500 });
+  const onDisk = fs.readFileSync(path.join(ROOT, 'src/config/char-order.js'), 'utf8');
+  assert.notEqual(strict, onDisk);
+  const m = (text, key) => new RegExp('    ' + key + ': Object.freeze\\(\\[([^\\]]*)\\]\\)').exec(text.slice(text.indexOf('reserved: Object.freeze')))[1];
+  // 1500：熊 颜 桂 厦 …仍被剔除，藏 谢 鲁 戴 韩留下 → 说明阈值确实起作用
+  assert.ok(m(strict, 'surnames').includes('熊') && !m(strict, 'surnames').includes('谢'));
+  assert.ok(m(strict, 'places').includes('桂') && !m(strict, 'places').includes('藏'));
+  assert.ok(strict.includes('commonRankMax: 1500'));
 });
 
 test('listed chars come first in table order; unlisted chars follow in the original frequency order; keys outside the list are kept', () => {
@@ -84,19 +124,19 @@ test('swapping the table swaps the order: orderNewKeys / warmupKeys read only th
 
 test('deck adapter: newCandidates are in table order for the default library, 的 一 是 do not lead, warm-up chars are listed separately', () => {
   const row = (ans, ci, rank, norm = '一级', edu = '表一') => ({ py: 'x', hint: 'h', ans, ci, target: Array.from(ans)[ci], rank, strokes: 8, parts: 2, topic: 't', d: 50, band: '进阶', edu, common: 3, norm, std: 1, ctx: 'dict' });
-  const seed = [row('的确', 0, 1), row('一个', 0, 2), row('是的', 0, 3), row('春天', 0, 400), row('酱油', 0, 900), row('尴尬', 0, 950), row('魏国', 0, 1000), row('壹元', 0, 1100), row('拾取', 0, 1200), row('疆土', 0, 1300), row('嚏喷', 0, 1400, '二级', null)];
+  const seed = [row('的确', 0, 1), row('一个', 0, 2), row('是的', 0, 3), row('春天', 0, 400), row('酱油', 0, 900), row('尴尬', 0, 950), row('滕国', 0, 1000), row('壹元', 0, 1100), row('拾取', 0, 1200), row('渝州', 0, 1300), row('嚏喷', 0, 1400, '二级', null)];
   setDeckSource({ seed, overrides: {} });
   try {
     const core = deckAdapter.newCandidates('core3500');
     assert.deepEqual(core.slice(0, 2), K('酱尴'), 'listed chars first (酱 before 尴 in the table), table order');
-    assert.equal(core.includes('base:魏') || core.includes('base:壹') || core.includes('base:拾') || core.includes('base:疆'), false, 'reserved never come as new');
+    assert.equal(core.includes('base:滕') || core.includes('base:壹') || core.includes('base:拾') || core.includes('base:渝'), false, 'reserved never come as new');
     assert.deepEqual(core.slice(2), K('的一是春'), 'then the rest in frequency order');
     assert.deepEqual(deckAdapter.warmupCandidates('core3500'), K('春'));
     assert.deepEqual(warmupOf('adv3000'), [], '二级库里没有热身字');
     assert.deepEqual(deckAdapter.newCandidates('adv3000'), K('嚏'));
     assert.deepEqual(newOrderOf('core3500'), core);
     assert.ok(Object.isFrozen(newOrderOf('core3500')));
-    assert.equal(libraryOf('core3500').keys.includes('base:魏'), true, 'the library itself still holds them (look-up, pick)');
+    assert.equal(libraryOf('core3500').keys.includes('base:滕'), true, 'the library itself still holds them (look-up, pick)');
   } finally {
     setDeckSource(null);
   }

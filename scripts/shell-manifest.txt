@@ -7308,6 +7308,7 @@ src/core/schema.js
 src/core/session-start.js
 src/core/sessions.js
 src/core/special.js
+src/core/structure.js
 src/core/work-members.js
 src/data/deck.js
 src/data/font-loader.js
@@ -7414,8 +7415,10 @@ src/ui/screens/write/paper.js
 src/ui/screens/write/persist.js
 src/ui/screens/write/phase-fade.js
 src/ui/screens/write/prompt.js
+src/ui/screens/write/ref-label.js
 src/ui/screens/write/result-row.js
 src/ui/screens/write/skip.js
+src/ui/screens/write/sr-live.js
 src/ui/work-text.js
 sw-manifest.js
 sw.js

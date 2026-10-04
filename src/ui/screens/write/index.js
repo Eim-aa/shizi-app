@@ -79,7 +79,7 @@ injectStyles('write', `
   padding:env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px)}
 .sz-write__prompt{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:${T.s1};padding-bottom:0}
 .sz-write__gridwrap{display:flex;justify-content:center;margin:${T.s6} calc(-1 * var(--bleed)) 0}
-.sz-write__below{min-height:44px;display:flex;align-items:center;justify-content:space-between;gap:${T.s3};margin:6px auto 0} /* 说明不贴着格子（R-W26：≥ 6px） */
+.sz-write__below{min-height:44px;display:flex;align-items:center;justify-content:space-between;gap:${T.s3};margin:6px 0 0} /* 说明不贴着格子（R-W26：≥ 6px） */
 .sz-write__note{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3}}
 .sz-write__tools{flex:none;display:flex;gap:${T.s1};margin-right:-10px}
 .sz-write__tools[data-shown="false"]{visibility:hidden}
@@ -383,7 +383,6 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
             onClick=${onClear}>${t('R-W18.btnClear')}</${Button}>
         </span>`;
 
-  const belowWidth = compare.active ? null : (answer.active && compact ? answerSize : gridSize);
   return html`<${Page} title=${titleFor(phase)} lead=${compare.lead} trailing=${progress}
     footer=${answer.footer || (compare.active ? compare.footer : footer)} testid="write-screen">
     <div class="sz-write" ref=${writeRef} data-cursor=${session.cursor} data-phase=${phase} data-slot=${slot}
@@ -406,7 +405,7 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
           label=${t('X-WRITE.gridLabel')}
         />`}
       </div>
-      ${compare.active ? null : html`<div class="sz-write__below" style=${belowWidth ? { width: '100%', maxWidth: `${belowWidth}px` } : undefined}>
+      ${compare.active ? null : html`<div class="sz-write__below">
         <span class="sz-write__note" data-testid="write-note"><span class="sz-write__lineslot" data-testid="write-line-slot">${row.node}</span>${answer.active ? answer.note
           : skip.failed ? skip.note : html`<${HintNote} note=${hint.note} />`}</span>
         ${tools}

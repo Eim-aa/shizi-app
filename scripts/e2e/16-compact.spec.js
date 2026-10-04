@@ -1,8 +1,8 @@
 // M1-7 紧凑版写字页（02 §3 M1-7；R-W18 / R-W26 / R-G09；走查-W15 / 核对-V02 / X08；reference/I-proto-write.md §3.7）。
-// D36（覆盖 X08）：紧凑版只改排布，不再缩格。书写格边长按公式取（屏宽 − 40 与视口高 − 预算取小，夹在 258–400；P1-E1b 起页边 20、紧凑预算 350）；
-// 360×640 → 290（本文件 360×640 的各阶段都是 290）；320×568 预算不够，落在下限 258。其他视口的格子边长与阶段 / 大字的关系见 16-grid.spec.js。
+// D36（覆盖 X08）：紧凑版只改排布，不再缩格。书写格边长按公式取（屏宽 − 40 与视口高 − 预算取小，夹在 258–400；P1-E1b 起页边 20、紧凑预算 366）；
+// 360×640 → 274（本文件 360×640 的各阶段都是 274）；320×568 预算不够，落在下限 258。其他视口的格子边长与阶段 / 大字的关系见 16-grid.spec.js。
 // 「大字」= 系统字号 XXXL（P1-E6 / D29：模拟原生 shiziContentSize → --k 1.35 + :root[data-text-large]；原 App 内 data-large 1.3 已删）。
-// 完成定义：360×640（标准字号与大字各走一遍）书写格 290（recall / trace / retrace 同一边长，点提示前后不变）、
+// 完成定义：360×640（标准字号与大字各走一遍）书写格 274（recall / trace / retrace 同一边长，点提示前后不变）、
 // 按钮区首屏、无横向溢出（scrollWidth ≤ clientWidth）、可点控件全是 <button>、看答案页字形 200–345；
 // 另：撤销 / 清空在书写格右下（G32 / D36：标准版与紧凑版同一位置，不再挪到格子上方）、「提示 · 写好了」一行 +「看答案 · 跳过 · 结束这组」一行、判断页标题可换行不裁切、
 // 提示说明与格子 / 按钮留出间距（R-W26）；视口从 360×640 切到 393×852 时回到标准版（353、两行页底栏），
@@ -18,7 +18,7 @@ const SHOTS = process.env.SHIZI_E2E_SHOTS || '';
 const COMPACT_VIEW = { width: 360, height: 640 };
 const STD_VIEW = { width: 393, height: 852 };
 const CHARS = ['越', '大', '永'];
-const GRID = 290; // 360×640 的格子边长：640 − 预算 350（policy.writeGrid.reserveCompact，P1-E1b）
+const GRID = 274; // 360×640 的格子边长：640 − 预算 366（policy.writeGrid.reserveCompact，P1-E1b）
 const GRID_FLOOR = 258; // 320×568：预算不够，取下限（policy.writeGrid.min）
 const GRID_393 = 353; // 393×852：屏宽 393 − 40（页边 20），预算够（policy.writeGrid.reserveStd）
 
@@ -172,7 +172,7 @@ async function compactWalk(page, ctx, { large }) {
   await page.mouse.move(1, 1);
 
   // ---------------------------------------------------------------- recall
-  ctx.step(`${tag}: recall — grid 290, two footer rows, buttons on the first screen`);
+  ctx.step(`${tag}: recall — grid 274, two footer rows, buttons on the first screen`);
   let g = await geometry(page, `${large ? 'L' : 'N'}-recall`);
   assert.equal(g.compact, 'true', `${tag}: write screen is in compact mode`);
   assert.equal(g.large, large, `${tag}: data-text-large ${large ? 'on' : 'off'}`);
@@ -266,7 +266,8 @@ async function compactWalk(page, ctx, { large }) {
   g = await geometry(page, `${large ? 'L' : 'N'}-resultrow`);
   assert.ok(square(g.r['write-grid'], GRID), `${tag}: 2nd char grid ${GRID}`);
   const change = g.controls['write-line-change'].rect;
-  assert.ok(change.bottom <= g.r['write-grid'].top && inView(g, change), `${tag}: 修改 (result row) above the grid, on screen`);
+  // P1-E1b（D46 ⑭）：结果行挪到格下说明位（原先在格子上方整行）
+  assert.ok(change.top >= g.r['write-grid'].bottom - 0.5 && inView(g, change), `${tag}: 修改 (result row) under the grid in the note slot, on screen`);
   common(assert, g, `${tag} result row`, ['write-line-change', 'write-hint', 'write-done', 'write-show-answer', 'write-skip']);
 
   ctx.step(`${tag}: 修改 sheet — no horizontal overflow, controls are buttons`);
@@ -307,7 +308,7 @@ async function compactWalk(page, ctx, { large }) {
   assert.ok(svgBox.w >= 200 - 0.5 && svgBox.w <= 345 + 0.5, `${tag}: glyph drawing box 200–345 (${svgBox.w}, svg ${svgBox.svg})`);
   common(assert, g, `${tag} answer`, ['write-answer-self', 'write-answer-trace', 'write-answer-next']);
 
-  ctx.step(`${tag}: 描一遍 → trace grid 290; 描好了 → 自己写 grid 290`);
+  ctx.step(`${tag}: 描一遍 → trace grid 274; 描好了 → 自己写 grid 274`);
   await page.click(topSel('write-answer-trace'));
   await waitPhase(page, 'trace');
   g = await geometry(page, `${large ? 'L' : 'N'}-trace`);
@@ -460,10 +461,11 @@ export default async function compact(page, ctx) {
   let g = await geometry(page, 'std393');
   assert.equal(g.compact, 'false', '393×852: standard layout (not compact)');
   assert.ok(square(g.r['write-grid'], GRID_393), `393×852: grid ${GRID_393} = screen width − 32 (D36) ${JSON.stringify(g.r['write-grid'])}`);
-  assert.ok(!g.r['write-links'], '393×852: no combined link row');
+  // P1-E1b（设计系统 v1）：标准版与紧凑版同一结构——页底栏两行：提示 · 写好了，看答案 · 跳过（· 结束这组）
+  assert.ok(!!g.r['write-links'], '393×852: the same combined link row (write-links) as the compact layout');
   const c = g.controls;
-  assert.ok(c['write-show-answer'].rect.bottom <= c['write-done'].rect.top + 0.5, '393×852: 看答案 row above 提示 · 写好了 (standard order)');
-  assert.ok(c['write-skip'].rect.top >= c['write-done'].rect.bottom - 0.5, '393×852: 跳过 row below 写好了');
+  assert.ok(c['write-show-answer'].rect.top >= c['write-done'].rect.bottom - 0.5, '393×852: 看答案 row below 提示 · 写好了 (same two-row footer)');
+  assert.ok(Math.abs(c['write-show-answer'].rect.top - c['write-skip'].rect.top) < 2, '393×852: 看答案 and 跳过 share one row');
   common(assert, g, '393×852', ['write-hint', 'write-done', 'write-show-answer', 'write-skip']);
 
   ctx.step('393×852 standard layout: after a stroke 撤销 / 清空 sit at the grid\'s bottom right (reference for the compact layout, G32)');

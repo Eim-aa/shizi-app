@@ -9,24 +9,24 @@ import * as policy from '../../src/config/policy.js';
 test('constants follow D36 / V02', () => {
   assert.equal(GRID_MIN, 258);
   assert.equal(GRID_MAX, 400);
-  assert.deepEqual({ ...policy.writeGrid }, { min: 258, max: 400, sideMargin: 20, reserveStd: 422, reserveCompact: 350 }, 'P118（P1-E1b：页边 20、结果行进格下说明位、页底栏两行）');
+  assert.deepEqual({ ...policy.writeGrid }, { min: 258, max: 400, sideMargin: 20, reserveStd: 422, reserveCompact: 366 }, 'P118（P1-E1b：页边 20、结果行进格下说明位、页底栏两行）');
   assert.equal(ANSWER_MIN, 200);
   assert.equal(ANSWER_MAX, 345);
   assert.equal(COMPACT_QUERY, `(max-height: ${COMPACT_MAX_HEIGHT}px)`);
   assert.ok(COMPACT_MAX_HEIGHT >= 640 && COMPACT_MAX_HEIGHT < 852, '360×640 is compact, 393×852 is not');
 });
 
-// 书写格边长公式（D36，P118；P1-E1b 起页边 20）：min(屏宽 − 40, 视口高 − 预算) 夹在 [258, 400]；视口高 ≤ 760 用紧凑预算 350，否则标准预算 422。
+// 书写格边长公式（D36，P118；P1-E1b 起页边 20）：min(屏宽 − 40, 视口高 − 预算) 夹在 [258, 400]；视口高 ≤ 760 用紧凑预算 366，否则标准预算 422。
 // 期望值写死（不从实现里算）。
 const GRID_CASES = [
   // [宽, 高, 期望, 说明]
   [393, 852, 353, '屏宽 − 40 先到'],
   [440, 956, 400, '上限 400'],
-  [375, 667, 317, '667 − 350'],
+  [375, 667, 301, '667 − 366'],
   [320, 568, 258, '预算不够，取下限'],
-  [360, 640, 290, '640 − 350'],
+  [360, 640, 274, '640 − 366'],
   [375, 812, 335, '屏宽 − 40'],
-  [393, 760, 353, '紧凑预算：760 − 350 = 410，屏宽先到'],
+  [393, 760, 353, '紧凑预算：760 − 366 = 394，屏宽先到'],
   [393, 761, 339, '标准预算：761 − 422'],
   [412, 915, 372, '屏宽 − 40'],
   [768, 1024, 400, '平板：上限'],
@@ -52,7 +52,7 @@ test('writeGridSize: always within [258, 400] and never wider than the screen mi
 test('writeGridSize: safe areas take height (top in full, bottom only above the footer padding baseline)', () => {
   assert.equal(writeGridSize({ width: 393, height: 780, safeTop: 59, safeBottom: 34 }), 285, '780 − 422 − 59 − (34 − 20)');
   assert.equal(writeGridSize({ width: 393, height: 852, safeTop: 0, safeBottom: 20 }), 353, 'bottom padding at the baseline costs nothing');
-  assert.equal(writeGridSize({ width: 393, height: 700, safeTop: 20, safeBottom: 34 }), 700 - 350 - 20 - (34 - 6), 'compact baseline is 6');
+  assert.equal(writeGridSize({ width: 393, height: 700, safeTop: 20, safeBottom: 34 }), 700 - 366 - 20 - (34 - 6), 'compact baseline is 6');
   assert.equal(writeGridSize({ width: 393, height: 852, safeTop: 400 }), 258, 'floor wins');
 });
 
@@ -61,7 +61,7 @@ test('writeGridSize: missing or invalid viewport falls back to the old 345 grid'
   assert.equal(writeGridSize({}), 345);
   assert.equal(writeGridSize({ width: NaN, height: 0 }), 345);
   assert.equal(writeGridSize({ width: 393 }), 353, 'only the width known');
-  assert.equal(writeGridSize({ height: 667 }), 317, 'only the height known');
+  assert.equal(writeGridSize({ height: 667 }), 301, 'only the height known');
 });
 
 function sizedWin({ width, height, large }) {

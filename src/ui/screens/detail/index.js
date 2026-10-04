@@ -30,7 +30,7 @@ import { Page } from '../../components/Page.js';
 import { Button } from '../../components/Button.js';
 import { Confirm } from '../../components/Confirm.js';
 import { UndoBar } from '../../components/UndoBar.js';
-import { injectStyles, T } from '../../components/styles.js';
+import { injectStyles, T, TEX } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
 import { getStore } from '../../../store/store.js';
 import { now as envNow } from '../../../platform/env.js';
@@ -51,23 +51,21 @@ export const REMOVE_OVERLAY = 'detail-remove';
 export const BANNER_UNDONE_MS = 2400;
 
 injectStyles('detail', `
-.sz-dcard{box-sizing:border-box;border:.5px solid ${T.i5};border-radius:20px;background:${T.c};padding:16px;display:grid;
+.sz-dcard{box-sizing:border-box;border-radius:${T.rCtl};background:${T.field};padding:16px;display:grid;
   grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:16px}
-.sz-dcard__ref .sz-compare__card{border:1px solid var(--g, rgba(166,83,63,.28));border-radius:4px}
 .sz-dcard__info{display:flex;flex-direction:column;justify-content:space-between;gap:12px;min-width:0;padding:2px 0}
 .sz-dcard__top{display:flex;flex-direction:column;gap:6px}
-.sz-dcard__py{font-family:${T.serif};font-size:calc(24px * ${T.k});font-weight:500;letter-spacing:.04em;color:${T.i1}}
-.sz-dcard__meta{display:flex;flex-direction:column;gap:3px;font-size:calc(15px * ${T.k});line-height:calc(22px * ${T.k});
-  letter-spacing:.04em;color:${T.i2}}
+.sz-dcard__py{font-family:${T.song};font-size:${T.fs22};font-weight:500;color:${T.ink1}}
+.sz-dcard__meta{display:flex;flex-direction:column;gap:3px;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2}}
 .sz-dcard__wordbox{display:flex;flex-direction:column;gap:8px;min-width:0;container-type:inline-size}
-.sz-dcard__label{font-size:calc(13px * ${T.k});letter-spacing:.14em;color:${T.i3}}
+.sz-dcard__label{font-size:${T.fs13};color:${T.ink2}}
 .sz-dcard__tiles{display:grid;grid-template-columns:repeat(var(--n, 2),minmax(0,1fr));box-sizing:border-box;
-  width:min(100%, calc(40px * var(--n, 2) + 2px));border:1px solid var(--g, rgba(166,83,63,.28));font-family:var(--kai, serif);
-  font-size:min(24px, calc((100cqw - 2px) / var(--n, 2) * .6));line-height:38px;text-align:center;color:${T.i1};background:${T.c}}
+  width:min(100%, calc(40px * var(--n, 2) + 2px));border:${T.frameW} solid ${T.frame};font-family:${T.kai};
+  font-size:min(24px, calc((100cqw - 2px) / var(--n, 2) * .6));line-height:38px;text-align:center;color:${T.ink1};${TEX}}
 .sz-dcard__tile{min-width:0}
-.sz-dcard__tile + .sz-dcard__tile{border-left:1px solid var(--g, rgba(166,83,63,.28))}
-.sz-dcard__tile[data-blank="true"]{box-shadow:inset 0 0 0 1.5px ${T.ar}}
-.sz-dcard__gloss{font-family:var(--kai, serif);font-size:calc(19px * ${T.k});line-height:1.6;letter-spacing:.06em;color:${T.i1}}
+.sz-dcard__tile + .sz-dcard__tile{border-left:${T.frameW} solid ${T.frame}}
+.sz-dcard__tile[data-blank="true"]{box-shadow:inset 0 0 0 ${T.targetW} ${T.ink1}}
+.sz-dcard__gloss{font-family:${T.kai};font-size:${T.fs17};line-height:${T.lh17};color:${T.ink1}}
 .sz-detail__undo{position:relative;margin:0 -8px}
 .sz-detail__undo .sz-undobar{position:relative;left:auto;right:auto;bottom:auto}
 `);

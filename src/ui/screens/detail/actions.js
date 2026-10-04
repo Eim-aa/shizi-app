@@ -34,28 +34,27 @@ export const LABELS = Object.freeze({
 });
 
 injectStyles('detail-actions', `
-.sz-drows{display:flex;flex-direction:column;border-top:1px solid ${T.i5}}
+.sz-drows{display:flex;flex-direction:column;border-top:1px solid ${T.line}}
 .sz-drow{box-sizing:border-box;width:100%;min-height:52px;padding:8px 0;display:flex;align-items:center;justify-content:space-between;
-  gap:12px;border:0;border-bottom:1px solid ${T.i5};background:transparent;color:inherit;font:inherit;text-align:left}
+  gap:12px;border:0;border-bottom:1px solid ${T.line};background:transparent;color:inherit;font:inherit;text-align:left}
 button.sz-drow{cursor:pointer}
-button.sz-drow:focus-visible{outline:2px solid ${T.ar};outline-offset:2px}
+button.sz-drow:focus-visible{outline:2px solid ${T.ink1};outline-offset:2px}
 .sz-drow--tall{min-height:60px}
 .sz-drow__main{display:flex;flex-direction:column;gap:3px;min-width:0}
-.sz-drow__title{display:flex;align-items:center;gap:8px;font-size:calc(15px * ${T.k});color:${T.i1}}
-.sz-drow__title--off{color:${T.i3}}
-.sz-drow__sub{font-size:calc(15px * ${T.k});line-height:1.5;color:${T.i2};text-wrap:pretty}
-.sz-drow__sub--small{font-size:calc(13px * ${T.k});color:${T.i3}}
-.sz-drow__value{flex:none;font-size:calc(15px * ${T.k});color:${T.i2}}
-.sz-drow__arrow{flex:none;font-size:calc(13px * ${T.k});color:${T.i3}}
-.sz-drow__dot{flex:none;width:6px;height:6px;border-radius:50%;background:${T.ar}}
-.sz-dfail{display:flex;flex-direction:column;gap:10px;padding:12px 0;border-bottom:1px solid ${T.i5}}
-.sz-dfail__note{margin:0;font-size:calc(15px * ${T.k});line-height:1.6;color:${T.i2}}
+.sz-drow__title{display:flex;align-items:center;gap:8px;font-size:${T.fs15};color:${T.ink1}}
+.sz-drow__title--off{color:${T.ink3}}
+.sz-drow__sub{font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2};text-wrap:pretty}
+.sz-drow__sub--small{font-size:${T.fs13};color:${T.ink3}}
+.sz-drow__value{flex:none;font-size:${T.fs15};color:${T.ink2}}
+.sz-drow__arrow{flex:none;font-size:${T.fs13};color:${T.ink3}}
+.sz-dfail{display:flex;flex-direction:column;gap:10px;padding:12px 0;border-bottom:1px solid ${T.line}}
+.sz-dfail__note{margin:0;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2}}
 .sz-dfail__btns{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
 .sz-dbanner{position:sticky;top:-14px;z-index:3;margin:-14px -24px 0;min-height:40px;box-sizing:border-box;padding:0 24px;
-  display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;border-bottom:1px solid ${T.i5};background:${T.p};
-  font-size:calc(15px * ${T.k});letter-spacing:.02em;color:${T.i2}}
-.sz-dbanner__sep{color:${T.i4}}
-.sz-dbanner .sz-btn--text{min-height:40px;padding:0;color:${T.i1};font-size:calc(15px * ${T.k})}
+  display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;border-bottom:1px solid ${T.line};background:${T.paper};
+  font-size:${T.fs15};color:${T.ink2}}
+.sz-dbanner__sep{color:${T.ink4}}
+.sz-dbanner .sz-btn--text{min-height:40px;padding:0;color:${T.ink1};font-size:${T.fs15}}
 `);
 
 // ---------------------------------------------------------------- 写入

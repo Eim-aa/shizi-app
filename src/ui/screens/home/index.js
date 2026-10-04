@@ -29,7 +29,7 @@
 import { html, useEffect, useState } from '../../../../vendor/ui.js';
 import { registerScreen, getScreen, nav } from '../../router.js';
 import { Button } from '../../components/Button.js';
-import { injectStyles } from '../../components/styles.js';
+import { injectStyles, T } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
 import { EPIGRAPHS } from '../../../config/epigraphs.js';
 import { isTestHost, now as envNow } from '../../../platform/env.js';
@@ -63,69 +63,63 @@ const DEMO_SCREEN = '_demo/sub';
 const ICON = () => html`<svg viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
   stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 9.4 11 3l8 6.4V19H3V9.4M8.4 19v-6.6h5.2V19"></path></svg>`;
 
-// 纸纹点（原型「拾」红块 L55 background-image）；颜色是装饰值，不作令牌。
 // .sz-home 用 isolation:isolate 自成层叠上下文：内部 z-index 不能越过 router 图层（转场 / 跟手返回时下层首页露出，
 // 否则首页内容会盖在上层写字页上、吃掉书写格的指针事件）。
-const CTA_TEXTURE = 'radial-gradient(rgba(60,20,10,.06) 1px,transparent 1.2px),radial-gradient(rgba(60,20,10,.06) 1px,transparent 1.2px)';
 
 injectStyles('home', `
 .sz-home{position:relative;isolation:isolate;min-height:100%;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;
-  padding:calc(20px + env(safe-area-inset-top, 0px)) 24px 16px;color:var(--i1, #3B2F28)}
+  padding:calc(20px + env(safe-area-inset-top, 0px)) 24px 16px;color:${T.ink1}}
 .sz-home>.paper-layer{z-index:0}
 .sz-home>.sz-light{z-index:0}
 .sz-home__head,.sz-home__main,.sz-home__dev{position:relative;z-index:1}
 .sz-home__head{flex:none}
-.sz-home__date{margin:0;font-size:15px;line-height:22px;letter-spacing:.04em;white-space:nowrap;color:var(--tm, #5D5952)}
+.sz-home__date{margin:0;font-size:${T.fs15};line-height:${T.lh15};white-space:nowrap;color:${T.ink2}}
 .sz-home__epi{position:absolute;right:4px;top:36px;display:flex;align-items:flex-start;gap:12px}
 .sz-home__src{display:flex;flex-direction:column;align-items:center;gap:10px}
-.sz-home__srcline{display:block;width:20px;height:1px;background:var(--ln, #CFC7B9)}
-.sz-home__srctext{writing-mode:vertical-rl;font-family:var(--serif);font-size:12px;line-height:1.5;letter-spacing:.16em;
-  color:var(--tm, #5D5952)}
-.sz-home__seal{margin-top:-6px;width:15px;height:15px;box-sizing:border-box;border-radius:2px;background:var(--seal, #A6533F);
-  padding:1.25px;display:grid}
-.sz-home__seal>span{border:.5px solid rgba(255,249,241,.55);border-radius:1px;display:grid;place-items:center;font-family:var(--kai);
-  font-size:10px;line-height:1;color:#FFF9F1}
-.sz-home__quote{margin:0;display:flex;flex-direction:row-reverse;gap:12px;font-family:var(--serif);font-weight:400;font-size:14px;
-  color:var(--tm, #5D5952)}
-.sz-home__col{writing-mode:vertical-rl;line-height:1;letter-spacing:.286em}
-.sz-home__title{margin:123px 0 0;width:300px;max-width:calc(100% - 96px);font-family:var(--serif);font-weight:500;font-size:34px;
-  line-height:42px;letter-spacing:.02em;color:var(--tt, #5D5952)}
+.sz-home__srcline{display:block;width:20px;height:1px;background:${T.line}}
+.sz-home__srctext{writing-mode:vertical-rl;font-family:${T.song};font-size:${T.fs13};line-height:${T.lh13};letter-spacing:.2em;
+  color:${T.ink2}}
+.sz-home__seal{margin-top:-6px;width:16px;height:16px;box-sizing:border-box;border-radius:${T.rWork};
+  display:grid;place-items:center}
+.sz-home__seal>span{display:grid;place-items:center;font-family:${T.kai};font-size:${T.fs11};line-height:1}
+.sz-home__quote{margin:0;display:flex;flex-direction:row-reverse;gap:12px;font-family:${T.song};font-weight:400;font-size:${T.fs15};
+  color:${T.ink2}}
+.sz-home__col{writing-mode:vertical-rl;line-height:1;letter-spacing:.2em}
+.sz-home__title{margin:123px 0 0;width:300px;max-width:calc(100% - 96px);font-family:${T.song};font-weight:500;font-size:${T.fs34};
+  line-height:${T.lh34};color:${T.ink1}}
 .sz-home__title:focus{outline:none}
 .sz-home__gap{flex:3 1 24px;min-height:24px}
 .sz-home__gap--end{flex:2 1 16px;min-height:16px}
 .sz-home__main{flex:none;display:flex;flex-direction:column;align-items:center}
-.sz-home__cta.sz-btn{position:relative;width:196px;height:190px;padding:0;border-radius:28px;background-color:var(--btn, #A6533F);
-  background-image:${CTA_TEXTURE};background-size:7px 7px,11px 11px;background-position:0 0,3px 5px;
-  box-shadow:inset 0 0 0 1px rgba(80,30,20,.10),0 10px 24px rgba(120,50,30,.16);display:flex;flex-direction:column;
-  align-items:center;justify-content:center;gap:8px;color:#FFF9F1}
-.sz-home__cta.sz-btn:active{background-color:var(--down, #984B39)}
-.sz-home__glyph{font-family:var(--kai);font-size:64px;line-height:1}
-.sz-home__label{position:relative;font-size:15px;line-height:22px;letter-spacing:.06em}
-.sz-home__arrow{position:absolute;left:100%;top:0;margin-left:6px;letter-spacing:0}
+.sz-home__cta.sz-btn{position:relative;width:196px;height:190px;padding:0;border-radius:${T.rCtl};background-color:${T.btnBg};
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:${T.btnFg}}
+.sz-home__cta.sz-btn[data-pressed]{background-color:${T.btnDown};filter:none}
+.sz-home__glyph{font-family:${T.kai};font-size:64px;line-height:1;color:${T.btnFg}}
+.sz-home__label{position:relative;font-size:${T.fs15};line-height:${T.lh15}}
+.sz-home__arrow{position:absolute;left:100%;top:0;margin-left:6px}
 .sz-home__rows{margin-top:12px;width:100%;display:flex;flex-direction:column;align-items:center}
-.sz-home__line{margin:0;min-height:22px;text-align:center;font-size:15px;line-height:22px;letter-spacing:.02em;color:var(--tb, #6A645B)}
-.sz-home__other.sz-btn{min-height:44px;padding:0 12px;font-size:15px;line-height:22px;letter-spacing:.02em;color:var(--tb, #6A645B);
-  text-decoration:underline;text-underline-offset:4px;text-decoration-color:var(--i4, #B3AC9F)}
+.sz-home__line{margin:0;min-height:22px;text-align:center;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2}}
+.sz-home__other.sz-btn{min-height:44px;padding:0 12px;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2};
+  text-decoration:underline;text-underline-offset:4px;text-decoration-color:${T.ink4}}
 .sz-home__record{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:0 12px;min-height:44px} /* M6-2：放不下一行（320 宽 + 大字）时计数换到下一行，不越出屏幕 */
-.sz-home__pick.sz-btn{margin-top:14px;width:196px;min-height:44px;justify-content:center;font-size:15px;line-height:22px;
-  letter-spacing:.04em;color:var(--tb, #6A645B)}
+.sz-home__pick.sz-btn{margin-top:14px;width:196px;min-height:44px;justify-content:center;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2}}
 .sz-home__fail{margin-top:12px;width:100%;max-width:345px;display:flex;flex-direction:column;gap:10px}
-.sz-home__failnote{margin:0;text-align:center;font-size:15px;line-height:1.6;color:var(--i2, #5D5952)}
+.sz-home__failnote{margin:0;text-align:center;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2}}
 .sz-home__failbtns{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
 .sz-home__dev{flex:none;display:flex;flex-direction:column;gap:8px;margin-top:12px}
 .sz-home--compact{padding:calc(14px + env(safe-area-inset-top, 0px)) 20px 12px}
-.sz-home--compact .sz-home__date{font-size:17px;line-height:24px}
+.sz-home--compact .sz-home__date{font-size:${T.fs17};line-height:${T.lh17s}}
 .sz-home--compact .sz-home__epi{right:2px;top:30px;gap:10px}
 .sz-home--compact .sz-home__src{gap:8px}
 .sz-home--compact .sz-home__srcline{width:16px}
 .sz-home--compact .sz-home__quote{gap:10px}
-.sz-home--compact .sz-home__title{margin-top:68px;font-size:36px;line-height:46px}
-.sz-home--compact .sz-home__label{font-size:17px;line-height:24px}
+.sz-home--compact .sz-home__title{margin-top:68px;font-size:${T.fs34};line-height:${T.lh34}}
+.sz-home--compact .sz-home__label{font-size:${T.fs17};line-height:${T.lh17s}}
 .sz-home--compact .sz-home__rows{margin-top:10px}
-.sz-home--compact .sz-home__line{min-height:44px;display:flex;align-items:center;justify-content:center;font-size:17px;line-height:24px}
-.sz-home--compact .sz-home__other.sz-btn{font-size:17px;line-height:24px;white-space:nowrap}
+.sz-home--compact .sz-home__line{min-height:44px;display:flex;align-items:center;justify-content:center;font-size:${T.fs17};line-height:${T.lh17s}}
+.sz-home--compact .sz-home__other.sz-btn{font-size:${T.fs17};line-height:${T.lh17s};white-space:nowrap}
 .sz-home--compact .sz-home__record .sz-home__line{white-space:nowrap}
-.sz-home--compact .sz-home__pick.sz-btn{margin-top:6px;font-size:17px;line-height:24px}
+.sz-home--compact .sz-home__pick.sz-btn{margin-top:6px;font-size:${T.fs17};line-height:${T.lh17s}}
 ${LIGHT_CSS}
 ${INK_ROW_CSS}
 `);

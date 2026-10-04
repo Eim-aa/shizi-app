@@ -29,8 +29,8 @@
 import { html, useEffect, useMemo, useRef, useState } from '../../../../vendor/ui.js';
 import { registerScreen, getRouter, getScreen, nav } from '../../router.js';
 import { Page } from '../../components/Page.js';
-import { Button } from '../../components/Button.js';
-import { injectStyles, T } from '../../components/styles.js';
+import { Button, pressFeedbackHandlers } from '../../components/Button.js';
+import { injectStyles, T, TEX } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
 import * as defaultPolicy from '../../../config/policy.js';
 import { getStore } from '../../../store/store.js';
@@ -61,71 +61,72 @@ injectStyles('mine-records', `
 .sz-rec{display:flex;flex-direction:column;gap:26px}
 .sz-rec__mhead{display:flex;justify-content:space-between;align-items:center;gap:12px}
 .sz-rec__mtitle{display:flex;align-items:baseline;gap:10px;min-width:0}
-.sz-rec__month{margin:0;font-family:${T.serif};font-size:calc(26px * ${T.k});line-height:calc(34px * ${T.k});font-weight:500;
-  letter-spacing:.04em;color:${T.i1};white-space:nowrap}
-.sz-rec__year{font-size:calc(13px * ${T.k});color:${T.i3};font-variant-numeric:tabular-nums}
+.sz-rec__month{margin:0;font-family:${T.song};font-size:${T.fs28};line-height:${T.lh28};font-weight:500;color:${T.ink1};white-space:nowrap}
+.sz-rec__year{font-size:${T.fs13};color:${T.ink3};font-variant-numeric:tabular-nums}
 .sz-rec__arrows{display:flex;gap:4px;margin-right:-8px}
-.sz-rec__arrow.sz-btn{width:44px;height:44px;display:grid;place-items:center;color:${T.i2}}
-.sz-rec__arrowbg{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:${T.off}}
-.sz-rec__arrow.sz-btn[disabled]{color:${T.i4};cursor:default}
-.sz-rec__arrow.sz-btn[disabled] .sz-rec__arrowbg{background:transparent;box-shadow:inset 0 0 0 1px ${T.i5}}
+.sz-rec__arrow.sz-btn{width:44px;height:44px;display:grid;place-items:center;color:${T.ink2}}
+.sz-rec__arrowbg{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:${T.field}}
+.sz-rec__arrow.sz-btn[disabled]{color:${T.ink4};cursor:default}
+.sz-rec__arrow.sz-btn[disabled] .sz-rec__arrowbg{background:transparent;box-shadow:inset 0 0 0 1px ${T.line}}
 .sz-rec__head{display:flex;flex-direction:column;gap:6px}
-.sz-rec__title{margin:0;font-family:${T.serif};font-size:calc(20px * ${T.k});line-height:1.4;font-weight:500;letter-spacing:.04em;
-  color:${T.i1}}
-.sz-rec__legend{margin:0;font-size:calc(15px * ${T.k});line-height:1.7;color:${T.i2};text-wrap:pretty}
-.sz-rec__cal{box-sizing:border-box;border-radius:18px;background:${T.c};border:.5px solid ${T.i5};padding:8px 6px 10px;display:grid;
+.sz-rec__title{margin:0;font-family:${T.song};font-size:${T.fs22};line-height:${T.lh22};font-weight:500;
+  color:${T.ink1}}
+.sz-rec__legend{margin:0;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2};text-wrap:pretty}
+.sz-rec__cal{box-sizing:border-box;padding:8px 6px 10px;display:grid;
   grid-template-columns:repeat(7,minmax(0,1fr));font-variant-numeric:tabular-nums}
-.sz-rec__wd{height:26px;display:grid;place-items:center;font-size:calc(11px * ${T.k});color:${T.i3}}
-.sz-rec__day{min-height:44px;display:flex;flex-direction:column;align-items:center;gap:3px;padding:0;color:${T.i1}}
+.sz-rec__wd{height:26px;display:grid;place-items:center;font-size:${T.fs11};color:${T.ink3}}
+.sz-rec__day{min-height:44px;display:flex;flex-direction:column;align-items:center;gap:3px;padding:0;color:${T.ink1}}
 .sz-rec__day.sz-btn{min-height:44px}
-.sz-rec__num{width:30px;height:30px;display:grid;place-items:center;border-radius:50%;font-size:calc(15px * ${T.k});line-height:1}
-.sz-rec__day[data-today="true"] .sz-rec__num{color:${T.ar};font-weight:600}
-.sz-rec__day[data-future="true"] .sz-rec__num{color:${T.i3}}
-.sz-rec__day[aria-pressed="true"] .sz-rec__num{background:${T.off}}
+.sz-rec__num{width:30px;height:30px;display:grid;place-items:center;border-radius:50%;font-size:${T.fs15};line-height:1}
+.sz-rec__day[data-today="true"] .sz-rec__num{color:${T.ink1};font-weight:600}
+.sz-rec__day[data-future="true"] .sz-rec__num{color:${T.ink3}}
+.sz-rec__day[aria-pressed="true"] .sz-rec__num{background:${T.field}}
 .sz-rec__dotrow{display:flex;height:5px;align-items:center}
-.sz-rec__dot{width:5px;height:5px;border-radius:50%;background:${T.i1}}
+.sz-rec__dot{width:5px;height:5px;border-radius:50%;background:${T.ink1}}
 .sz-rec__daylist{display:flex;flex-direction:column;gap:12px}
-.sz-rec__subtitle{margin:0;font-family:${T.serif};font-size:calc(20px * ${T.k});line-height:1.4;font-weight:500;letter-spacing:.04em;
-  color:${T.i2}}
+.sz-rec__subtitle{margin:0;font-family:${T.song};font-size:${T.fs22};line-height:${T.lh22};font-weight:500;
+  color:${T.ink2}}
 .sz-rec__sheet{display:flex;flex-direction:column;gap:12px}
 .sz-rec__shead{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
-.sz-rec__save.sz-btn{flex:none;font-size:calc(15px * ${T.k});letter-spacing:.04em;color:${T.i2}}
-.sz-rec__paper{box-sizing:border-box;background:${T.c};border:.5px solid ${T.i5};box-shadow:0 12px 28px rgba(59,47,40,.08);
+.sz-rec__save.sz-btn{flex:none;font-size:${T.fs15};color:${T.ink2}}
+.sz-rec__paper{box-sizing:border-box;${TEX};border:${T.frameW} solid ${T.frame};
   padding:18px 16px 16px;display:flex;flex-direction:column;gap:14px}
-.sz-rec__note{margin:0;font-size:calc(15px * ${T.k});line-height:1.7;color:${T.i2};text-wrap:pretty}
-.sz-rec__blank{min-height:120px;box-sizing:border-box;border:1px dashed var(--g, rgba(166,83,63,.28));display:grid;place-items:center;
-  padding:12px;text-align:center;font-size:calc(15px * ${T.k});color:${T.i2}}
-.sz-rec__todaylist{display:flex;flex-direction:column;border-top:1px solid ${T.i5}}
+.sz-rec__note{margin:0;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2};text-wrap:pretty}
+.sz-rec__blank{min-height:120px;box-sizing:border-box;border:${T.frameW} dashed ${T.frame};display:grid;place-items:center;
+  padding:12px;text-align:center;font-size:${T.fs15};color:${T.ink2}}
+.sz-rec__todaylist{display:flex;flex-direction:column;border-top:1px solid ${T.line}}
 .sz-rec__today.sz-btn{min-height:52px;padding:8px 0;box-sizing:border-box;display:flex;flex-direction:column;align-items:flex-start;gap:3px;
-  text-align:left;border-bottom:1px solid ${T.i5}}
-.sz-rec__todayt{font-size:calc(15px * ${T.k});color:${T.i1}}
-.sz-rec__todays{font-size:calc(15px * ${T.k});line-height:1.5;color:${T.i2}}
+  text-align:left;border-bottom:1px solid ${T.line}}
+.sz-rec__todayt{font-size:${T.fs15};color:${T.ink1}}
+.sz-rec__todays{font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2}}
 
 .sz-zt{display:grid;grid-template-columns:repeat(var(--cols, 5),minmax(0,1fr));box-sizing:border-box}
-.sz-zt--lines{border-top:1px solid var(--g, rgba(166,83,63,.28));border-left:1px solid var(--g, rgba(166,83,63,.28));background:${T.c}}
-.sz-zt--lines .sz-scell{border-right:1px solid var(--g, rgba(166,83,63,.28));border-bottom:1px solid var(--g, rgba(166,83,63,.28))}
-.sz-zt--gap{gap:1px;background:var(--g, rgba(166,83,63,.28));border:1px solid var(--g, rgba(166,83,63,.28))}
-.sz-zt--gap .sz-scell{background:${T.c}}
+.sz-zt--lines{border-top:${T.frameW} solid ${T.frame};border-left:${T.frameW} solid ${T.frame};${TEX}}
+.sz-zt--lines .sz-scell{border-right:${T.frameW} solid ${T.frame};border-bottom:${T.frameW} solid ${T.frame}}
+.sz-zt--gap{gap:1px;background:${T.guide};border:${T.frameW} solid ${T.frame}}
+.sz-zt--gap .sz-scell{${TEX}}
 .sz-scell{position:relative;display:block;box-sizing:border-box;min-width:0;aspect-ratio:1/1;padding:0;margin:0;border:0;
   background:transparent;color:inherit;font:inherit;container-type:inline-size;cursor:pointer}
 .sz-scell--pad{cursor:default}
-.sz-scell:focus-visible{outline:2px solid ${T.ar};outline-offset:-2px}
+.sz-scell:focus-visible{outline:2px solid ${T.ink1};outline-offset:-2px}
+.sz-scell[data-pressed]{background:${T.field}}
+.sz-zt--gap .sz-scell[data-pressed]{background:${T.field}}
 .sz-scell__sq{position:absolute;inset:0;display:grid;place-items:center}
 .sz-scell__sq--tag{transform:translate(6%,9%) scale(.78)}
 .sz-scell__sq .sz-compare__card{position:absolute;inset:0;width:100%;height:100%;border:0;border-radius:0;background:transparent;padding:0}
-.sz-scell__glyph{position:absolute;left:0;right:0;top:42%;transform:translateY(-50%);text-align:center;font-family:${T.sans};
-  font-size:34cqw;line-height:1;color:${T.i3}}
-.sz-scell__noink{position:absolute;left:0;right:0;top:80%;transform:translateY(-50%);text-align:center;font-family:${T.sans};
-  font-size:clamp(9px, 16cqw, 12px);line-height:1;color:${T.i3};white-space:nowrap}
-.sz-scell__tag{position:absolute;left:3px;top:2px;font-size:calc(11px * ${T.k});line-height:calc(13px * ${T.k});color:${T.ar};
+.sz-scell__glyph{position:absolute;left:0;right:0;top:42%;transform:translateY(-50%);text-align:center;font-family:${T.hei};
+  font-size:34cqw;line-height:1;color:${T.under}}
+.sz-scell__noink{position:absolute;left:0;right:0;top:80%;transform:translateY(-50%);text-align:center;font-family:${T.hei};
+  font-size:clamp(9px, 16cqw, 12px);line-height:1;color:${T.ink3};white-space:nowrap}
+.sz-scell__tag{position:absolute;left:3px;top:2px;font-size:${T.fs11};line-height:1;color:${T.ink3};
   font-variant-numeric:tabular-nums;pointer-events:none}
 .sz-msign{display:flex;justify-content:space-between;align-items:flex-end;gap:12px}
 .sz-msign__text{display:flex;flex-direction:column;gap:4px;min-width:0}
-.sz-msign__line{font-size:calc(11px * ${T.k});line-height:calc(13px * ${T.k});letter-spacing:.16em;color:${T.i2}}
-.sz-msign__order{font-size:calc(11px * ${T.k});color:${T.i3}}
-.sz-mseal{width:26px;height:26px;flex:none;border-radius:3px;background:var(--seal, ${T.a});color:#FFF9F1;display:grid;place-items:center;
-  font-family:var(--kai, serif);font-size:16px;line-height:1;transform:rotate(-3deg)}
-.sz-mseal--small{width:24px;height:24px;font-size:15px}
+.sz-msign__line{font-size:${T.fs11};line-height:${T.lh11};color:${T.ink2}}
+.sz-msign__order{font-size:${T.fs11};color:${T.ink3}}
+.sz-mseal{width:24px;height:24px;flex:none;border-radius:${T.rWork};display:grid;place-items:center;
+  font-family:${T.kai};font-size:${T.fs17};line-height:1;transform:rotate(-2deg)}
+.sz-mseal--small{width:16px;height:16px;font-size:${T.fs11}}
 `);
 
 // ---------------------------------------------------------------- 状态订阅
@@ -278,13 +279,16 @@ export function signatureText(sheet) {
 
 // ---------------------------------------------------------------- 格子与字帖
 
+// 原生 <button> 格子的按压反馈：与 Button 同一套 data-pressed 机制（P1-E1a）；样式见 .sz-scell[data-pressed]。
+const CELL_PRESS = pressFeedbackHandlers(() => false);
+
 /** 一格：那一次的真实笔迹（InkMini），没有就标准字 +「没有笔迹」（R-D07 / 10.12）；角标日期（R-P02）。 */
 export function SheetCell({ cell, store, testid, showTag = true }) {
   const ink = useMemo(() => inkOf(store, cell.record), [store, cell.record]);
   const has = hasInkPoints(ink);
   const tag = showTag && cell.tag ? tagText(cell.tag) : '';
   const label = t('X-MINE.cellLabel', { char: cell.char, date: dayText(cell.day) });
-  return html`<button type="button" class="sz-scell" data-testid=${testid} data-char=${cell.char} data-day=${cell.day || ''}
+  return html`<button type="button" class="sz-scell" ...${CELL_PRESS} data-testid=${testid} data-char=${cell.char} data-day=${cell.day || ''}
     data-tag=${tag ? cell.tag : ''} data-record=${cell.record ? cell.record.id : ''} data-ink=${has ? 'true' : 'false'}
     aria-label=${label} onClick=${() => openCell(cell.char)}>
     <span class=${tag ? 'sz-scell__sq sz-scell__sq--tag' : 'sz-scell__sq'}>

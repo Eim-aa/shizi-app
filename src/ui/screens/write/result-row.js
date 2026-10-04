@@ -41,16 +41,16 @@ import { InkMini, RefMini, recalledInk } from './compare.js';
 
 injectStyles('write-result-row', `
 .sz-line{box-sizing:border-box;width:100%;min-height:40px;display:flex;align-items:center;justify-content:center;gap:8px;
-  border-bottom:1px solid ${T.i5};font-size:calc(15px * ${T.k});letter-spacing:.04em;color:${T.i2};flex-wrap:wrap}
+  border-bottom:1px solid ${T.line};font-size:${T.fs15};color:${T.ink2};flex-wrap:wrap}
 .sz-line[data-state="skipped"]{border-bottom:0}
-.sz-line__dot{color:${T.i4}}
-.sz-line__change{min-height:40px;padding:0;gap:4px;color:${T.i1};font-size:calc(15px * ${T.k});letter-spacing:.04em}
-.sz-change__cancel{position:absolute;right:12px;top:18px;height:44px;padding:0 12px;font-size:calc(15px * ${T.k});color:${T.i2}}
+.sz-line__dot{color:${T.ink4}}
+.sz-line__change{min-height:40px;padding:0;gap:4px;color:${T.ink1};font-size:${T.fs15};}
+.sz-change__cancel{position:absolute;right:12px;top:18px;height:44px;padding:0 12px;font-size:${T.fs15};color:${T.ink2}}
 .sz-change__minis{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
 .sz-change__col{display:flex;flex-direction:column;gap:12px;min-width:0}
-.sz-change__note{margin:0;text-align:center;font-size:calc(13px * ${T.k});line-height:1.6;letter-spacing:.02em;color:${T.i3}}
+.sz-change__note{margin:0;text-align:center;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3}}
 .sz-change__btns{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
-.sz-change .sz-sheet__title{font-family:inherit;font-size:calc(17px * ${T.k});padding-right:64px}
+.sz-change .sz-sheet__title{font-family:inherit;font-size:${T.fs17};padding-right:64px}
 `);
 
 // ---------------------------------------------------------------- 纯函数

@@ -53,16 +53,16 @@ injectStyles('query-sheet', `
 .sz-query{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;gap:16px}
 .sz-query__input-wrap{flex:none}
 .sz-query__scroll{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
-  display:flex;flex-direction:column;gap:16px}
+  display:flex;flex-direction:column;gap:16px;padding-bottom:1px} /* 带调拼音的回退字体让行高带小数，滚到底时最后一行可能差不到 1px 没露全；多留 1px（60-matrix scroll-end） */
 .sz-query__notes{display:flex;flex-direction:column;gap:6px}
-.sz-query__note{display:flex;gap:10px;align-items:flex-start;padding:12px 16px;border-radius:14px;background:${T.off}}
-.sz-query__notedot{flex:none;width:6px;height:6px;margin-top:8px;border-radius:50%;background:${T.i2}}
-.sz-query__notetext{flex:1;font-size:calc(13px * ${T.k});line-height:1.7;color:${T.i2}}
-.sz-query__hint{margin:0;font-size:calc(13px * ${T.k});line-height:calc(18px * ${T.k});color:${T.i3}}
-.sz-query__back{align-self:flex-start;min-height:36px;margin:-6px 0;font-size:calc(15px * ${T.k});color:${T.i2};letter-spacing:.02em}
+.sz-query__note{display:flex;gap:10px;align-items:flex-start;padding:12px 16px;border-radius:${T.rCtl};background:${T.field}}
+.sz-query__notedot{flex:none;width:6px;height:6px;margin-top:8px;border-radius:50%;background:${T.ink2}}
+.sz-query__notetext{flex:1;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink2}}
+.sz-query__hint{margin:0;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3}}
+.sz-query__back{align-self:flex-start;min-height:36px;margin:-6px 0;font-size:${T.fs15};color:${T.ink2};}
 .sz-query__foot{flex:none;max-height:56%;overflow-y:auto;margin:0 -24px calc(-1 * var(--qpb, 34px));
-  padding:12px 24px var(--qpb, 34px);display:flex;flex-direction:column;gap:8px;background:${T.sh};z-index:1}
-.sz-query__barfail{margin:0;font-size:calc(15px * ${T.k});line-height:1.6;color:${T.i2}}
+  padding:12px 24px var(--qpb, 34px);display:flex;flex-direction:column;gap:8px;background:${T.elev};z-index:1}
+.sz-query__barfail{margin:0;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2}}
 .sz-query__bartwo{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
 `);
 

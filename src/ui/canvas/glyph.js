@@ -11,7 +11,7 @@
 //   drawMedians(ctx, strokesData, {from, to, color, alpha, width, size, padding, x, y})
 //   mediansInBox(strokesData, {size, padding, x, y})  → [[ [x,y]… ]…]（书写格坐标）
 //   animate(container, strokesData, {mode:'play'|'preview', char, size, color, reducedMotion, …}) → controller
-//   glyphColor(name, fallback)                       → 读设计令牌（--ref / --tl / --tf / --ar），给 canvas 与 hanzi-writer 用
+//   glyphColor(name, fallback)                       → 读设计令牌（--ref / --danzhu / --hand），给 canvas 与 hanzi-writer 用
 // 本模块不取数据（src/data/strokes.js 负责），不写存储，不含文案。
 
 import * as policy from '../../config/policy.js';
@@ -31,14 +31,11 @@ export const ANIMATION = Object.freeze({
   strokeFadeDuration: policy.motion.answerFadeMs,
 });
 
-// 令牌回退值：原型 TH.light（与 src/config/tokens.css 同源）。
+// 令牌回退值：浅色取值（与 src/config/tokens.css 同源；只在读不到 DOM 的单测环境用）。
 const TOKEN_FALLBACK = Object.freeze({
-  '--ref': '#5D5952',
-  '--tl': '#948D81',
-  '--tf': '#EBE6DE',
-  '--ar': '#A6533F',
-  '--hint': '#A6533F',
-  '--i4': '#B3AC9F',
+  '--ref': '#4E4741',
+  '--danzhu': '#C06D57',
+  '--hand': '#221D19',
 });
 
 /** 格子到数据坐标的仿射参数。 */
@@ -128,7 +125,7 @@ export function drawMedians(ctx, data, opts = {}) {
   ctx.save();
   try {
     ctx.globalAlpha *= Number.isFinite(opts.alpha) ? opts.alpha : 1;
-    ctx.strokeStyle = opts.color || glyphColor('--hint', glyphColor('--ar'));
+    ctx.strokeStyle = opts.color || glyphColor('--danzhu');
     ctx.lineWidth = (Number.isFinite(opts.width) ? opts.width : MEDIAN_WIDTH_UNITS) * t.k;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
@@ -183,7 +180,7 @@ export function glyphColor(name, fallback, el) {
   } catch (error) {
     raw = '';
   }
-  return normalizeColor(raw) || normalizeColor(fallback) || TOKEN_FALLBACK[name] || '#5D5952';
+  return normalizeColor(raw) || normalizeColor(fallback) || TOKEN_FALLBACK[name] || '#4E4741';
 }
 
 export function prefersReducedMotion(win = typeof window !== 'undefined' ? window : null) {

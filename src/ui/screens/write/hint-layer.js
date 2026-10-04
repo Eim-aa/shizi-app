@@ -210,12 +210,11 @@ injectStyles('hint-layer', `
 @keyframes szHintDraw{from{stroke-dashoffset:1.02}to{stroke-dashoffset:0}}
 @keyframes szHintFadeIn{from{opacity:0}}
 .sz-hint{position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none;overflow:visible}
-.sz-hint__stroke{fill:none;stroke:var(--hint, ${T.ar});stroke-linecap:round;stroke-linejoin:round}
+.sz-hint__stroke{fill:none;stroke:${T.danzhu};stroke-linecap:round;stroke-linejoin:round}
 .sz-hint__stroke[data-anim="draw"]{stroke-dasharray:1 2;animation-name:szHintDraw;animation-fill-mode:both}
-.sz-hintbtn{white-space:nowrap;padding:0 6px;font-size:calc(15px * ${T.k});letter-spacing:.04em}
-.sz-hintbtn[disabled]{border-color:transparent;background:var(--off, #EFE8DC);color:${T.i4}}
+.sz-hintbtn{white-space:nowrap;padding:0 6px;font-size:${T.fs15};}
 .sz-hintnote{display:flex;align-items:flex-start;gap:8px}
-.sz-hintnote__dot{flex:none;width:6px;height:6px;margin-top:calc(.775em - 3px);border-radius:50%;background:var(--o, #9A5B33);opacity:.7}
+.sz-hintnote__dot{flex:none;width:6px;height:6px;margin-top:calc(.775em - 3px);border-radius:50%;background:${T.danzhu}}
 `);
 
 // ---------------------------------------------------------------- 组件

@@ -118,7 +118,7 @@ export function createLayerCache(createCanvas) {
 export function paintBrushStroke(ctx, points, options = {}) {
   if (!ctx || !Array.isArray(points) || !points.length || !points.every(finitePoint)) return false;
   const base = Number.isFinite(options.base) && options.base > 0 ? options.base : 11.5;
-  const color = options.color || '#3B2F28';
+  const color = options.color || '#221D19';
   const detail = options.detail === true;
   const layers = options.layers || null;
   const layer = layers ? layers.take(ctx) : null;

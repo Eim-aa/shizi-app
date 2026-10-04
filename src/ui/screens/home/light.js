@@ -1,8 +1,8 @@
-// 首页光影层（装饰，不作令牌；原型首页壳-v3 L144–L152 BRANCHES、L196–L210 lightLayer()、L174 时段切换 600ms 淡入）。
+// 首页光影层（装饰，不作令牌，颜色字面量在 scripts/verify_tokens.mjs 登记为例外，P143；原型首页壳-v3 L144–L152 BRANCHES、L196–L210 lightLayer()、L174 时段切换 600ms 淡入）。
 //
 // - 早上 / 中午 / 傍晚：浅色有底光 radial + 两枝叶影 + 顶部日光；中午枝叶右移 126、模糊 +3、强度 ×.7；傍晚整层 scaleX(-1)、
 //   色调 120,86,52。深色不画底光与日光，叶影改黑 .30、模糊 12。
-// - 晚上：浅色只留右上灯光 radial（.08）；深色什么都不画（暖灯由 .paper-layer 的 --paper-image 画，tokens.css --lamp，P58）。
+// - 晚上：浅色只留右上灯光 radial（.08）；深色什么都不画（深色暖灯已随 D43 取消：--lamp / --paper-image 删除，P58；本层的去留见 P143，E1b 评估）。
 // - 时段变化（不是首次渲染）时整层 opacity 0→1，时长取 base.css --motion-light（600ms；减少动态效果时 0ms = 直接切）。
 //   原型只在 props.period 变化时动画、auto 模式下永不触发（K 报告 §5-3）；这里由首页的时钟（回前台 / 定时重算）驱动。
 //
@@ -10,6 +10,7 @@
 // data-testid：home-light（data-period / data-dark）。
 
 import { html, useEffect, useLayoutEffect, useRef, useState } from '../../../../vendor/ui.js';
+import { T } from '../../components/styles.js';
 
 // 叶影（早上为基准；坐标沿用交接版）。a 不透明度，b 模糊，c 颜色。原型 L145–L151 逐字。
 export const BRANCHES = Object.freeze([
@@ -172,6 +173,6 @@ export const LIGHT_CSS = `
 .sz-light{position:absolute;left:0;top:0;right:0;overflow:hidden;pointer-events:none}
 .sz-light__fill{position:absolute;inset:0}
 .sz-light__branch{position:absolute;transform-origin:left center}
-.sz-light__twig{position:absolute;left:0;height:3px;border-radius:2px}
+.sz-light__twig{position:absolute;left:0;height:3px;border-radius:${T.rWork}}
 .sz-light__leaf{position:absolute}
 `;

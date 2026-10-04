@@ -40,10 +40,10 @@ const SYNC_PHASES = Object.freeze(['recall', 'compare']);
 
 injectStyles('write-persist', `
 .sz-persist{position:absolute;left:24px;right:24px;top:calc(48px + env(safe-area-inset-top, 0px));z-index:30;
-  pointer-events:none;box-sizing:border-box;display:flex;gap:12px;align-items:flex-start;padding:12px 16px;border-radius:14px;
-  background:${T.off};box-shadow:0 6px 18px rgba(48,38,26,.10);animation:sz-fade-in .2s ease-out both}
-.sz-persist__dot{width:6px;height:6px;margin-top:calc(8px * ${T.k});flex:none;border-radius:50%;background:${T.a}}
-.sz-persist__text{flex:1;font-size:calc(14px * ${T.k});line-height:1.6;color:${T.i2}}
+  pointer-events:none;box-sizing:border-box;display:flex;gap:12px;align-items:flex-start;padding:12px 16px;border-radius:${T.rCtl};
+  background:${T.toastBg};color:${T.toastFg};animation:sz-fade-in .2s ease-out both}
+.sz-persist__dot{width:6px;height:6px;margin-top:calc(8px * ${T.k});flex:none;border-radius:50%;background:currentColor}
+.sz-persist__text{flex:1;font-size:${T.fs15};line-height:${T.lh15};color:inherit}
 @media (prefers-reduced-motion: reduce){.sz-persist{animation:none}}
 `);
 

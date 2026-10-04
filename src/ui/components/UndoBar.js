@@ -1,10 +1,10 @@
 // 撤销底栏（R-G05、决定-D24）：两行说明 + 「撤销」按钮；撤销成功后换成「已撤销」2.4s。
 // 寿命「离开这一页前可以撤销」由所在页面负责：底栏画在页面里，离开页面即卸载。
 // 撤销失败（10.15）由调用方换 line1/line2（如「没能撤销，…」「可以再点一次撤销」），按钮保留。
-// 规格取原型模板 undo 条：左右 16px、距底 --ubb（默认 34px）、16px 圆角、深底 #3B2F28 / 字 #F4F0E7、15px/22px。
+// 规格取原型模板 undo 条：左右 16px、距底 --ubb（默认 34px）、12px 圆角（--r-ctl）、--toast-bg 底 / --toast-fg 字（D43，无阴影）、15px/22px。
 import { html, useEffect, useState } from '../../../vendor/ui.js';
 import { Button } from './Button.js';
-import { injectStyles } from './styles.js';
+import { injectStyles, T } from './styles.js';
 import { t } from '../../config/copy/index.js';
 
 export const UNDONE_MS = 2400;
@@ -18,10 +18,11 @@ export const UNDO_COPY = Object.freeze({
 injectStyles('undobar', `
 .sz-undobar{position:absolute;left:16px;right:16px;bottom:var(--ubb, max(34px, env(safe-area-inset-bottom, 0px)));z-index:15;
   box-sizing:border-box;min-height:72px;display:flex;align-items:center;justify-content:space-between;gap:12px;
-  padding:14px 16px;border-radius:16px;background:#3B2F28;color:#F4F0E7;box-shadow:var(--ubs, 0 8px 24px rgba(48,38,26,.18));
-  font-size:15px;line-height:22px}
+  padding:14px 16px;border-radius:${T.rCtl};background:${T.toastBg};color:${T.toastFg};
+  font-size:${T.fs15};line-height:${T.lh15}}
 .sz-undobar__text{display:flex;flex-direction:column;min-width:0}
-.sz-undobar .sz-btn--text{color:#F4F0E7;font-weight:500;font-size:15px;flex:none}
+.sz-undobar .sz-btn--text{color:${T.toastFg};font-weight:500;font-size:${T.fs15};flex:none;text-decoration-color:currentColor}
+.sz-undobar .sz-btn--text[disabled]{opacity:.55}
 `);
 
 /**

@@ -38,9 +38,9 @@
 import { html, useEffect, useState } from '../../../../vendor/ui.js';
 import { registerScreen, getRouter, getScreen, nav } from '../../router.js';
 import { Page } from '../../components/Page.js';
-import { Button, markStateChange } from '../../components/Button.js';
+import { Button, markStateChange, pressFeedbackHandlers } from '../../components/Button.js';
 import { Sheet } from '../../components/Sheet.js';
-import { injectStyles, T } from '../../components/styles.js';
+import { injectStyles, T, TEX } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
 import * as defaultPolicy from '../../../config/policy.js';
 import { getStore } from '../../../store/store.js';
@@ -95,43 +95,42 @@ const TAB_VIEWS = Object.freeze(['home', 'library', 'mine']);
 injectStyles('result', `
 .sz-result{display:flex;flex-direction:column;gap:28px}
 .sz-result__head{display:flex;flex-direction:column;gap:8px}
-.sz-result__title{margin:0;font-family:${T.serif};font-size:calc(26px * ${T.k});line-height:1.4;font-weight:500;
-  letter-spacing:.04em;color:${T.i1};text-wrap:pretty}
+.sz-result__title{margin:0;font-family:${T.song};font-size:${T.fs28};line-height:${T.lh28};font-weight:500;color:${T.ink1};text-wrap:pretty}
 .sz-result__title:focus{outline:none}
 .sz-result__kicker{display:block}
-.sz-result__sub{margin:0;font-size:calc(13px * ${T.k});line-height:1.7;color:${T.i3};text-wrap:pretty}
-.sz-result__grid{display:grid;box-sizing:border-box;border-top:1px solid var(--g, rgba(166,83,63,.28));
-  border-left:1px solid var(--g, rgba(166,83,63,.28));background:${T.c}}
+.sz-result__sub{margin:0;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3};text-wrap:pretty}
+.sz-result__grid{display:grid;box-sizing:border-box;border-top:${T.frameW} solid ${T.frame};
+  border-left:${T.frameW} solid ${T.frame};${TEX}}
 .sz-result__grid--few{align-self:center}
 .sz-rcell{position:relative;display:flex;flex-direction:column;box-sizing:border-box;min-width:0;padding:0;margin:0;
-  border:0;border-right:1px solid var(--g, rgba(166,83,63,.28));border-bottom:1px solid var(--g, rgba(166,83,63,.28));
+  border:0;border-right:${T.frameW} solid ${T.frame};border-bottom:${T.frameW} solid ${T.frame};
   border-radius:0;background:transparent;color:inherit;font:inherit;text-align:center;cursor:pointer;
   -webkit-tap-highlight-color:transparent}
 .sz-rcell:disabled{cursor:default}
-.sz-rcell:focus-visible{outline:2px solid ${T.a};outline-offset:-2px}
+.sz-rcell:focus-visible{outline:2px solid ${T.ink1};outline-offset:-2px}
+.sz-rcell[data-pressed]{background:${T.field}}
 .sz-rcell__sq{position:relative;aspect-ratio:1/1;display:grid;place-items:center;overflow:hidden}
 .sz-rcell__sq .sz-compare__card{position:absolute;inset:0;border:0;border-radius:0;background:transparent;aspect-ratio:auto}
 /* 格内字形是图，不随大字倍率放大（格子宽度不变，放大会压到「没有笔迹」） */
-.sz-rcell__glyph{font-family:var(--kai, "Kaiti SC", "STKaiti", "KaiTi", serif);font-size:40px;line-height:1;color:${T.i4}}
-.sz-rcell__glyph--shape{font-family:${T.sans};font-weight:300;color:${T.i3};transform:translateY(-6px)}
-.sz-rcell__noink{position:absolute;left:0;right:0;bottom:4px;font-size:calc(11px * ${T.k});line-height:1.2;color:${T.i3}}
+.sz-rcell__glyph{font-family:${T.kai};font-size:40px;line-height:1;color:${T.under}}
+.sz-rcell__glyph--shape{font-family:${T.hei};font-weight:300;color:${T.under};transform:translateY(-6px)}
+.sz-rcell__noink{position:absolute;left:0;right:0;bottom:4px;font-size:${T.fs11};line-height:${T.lh11};color:${T.ink3}}
 .sz-rcell__cap{min-height:34px;box-sizing:border-box;padding:3px 2px;display:flex;flex-wrap:wrap;align-items:center;
-  justify-content:center;gap:2px 4px;border-top:1px solid var(--g, rgba(166,83,63,.28));font-size:calc(11px * ${T.k});
-  line-height:calc(13px * ${T.k});letter-spacing:.02em;color:${T.i2}}
-.sz-rcell__char{font-family:var(--kai, "Kaiti SC", "STKaiti", "KaiTi", serif);font-size:calc(15px * ${T.k});line-height:1;
-  color:${T.i1}}
-.sz-rcell__res[data-wrong="true"]{color:${T.ar}}
+  justify-content:center;gap:2px 4px;border-top:${T.frameW} solid ${T.frame};font-size:${T.fs11};
+  line-height:${T.lh11};color:${T.ink2}}
+.sz-rcell__char{font-family:${T.kai};font-size:${T.fs15};line-height:1;
+  color:${T.ink1}}
 .sz-rcell--pad{cursor:default}
-.sz-result__date{margin:0;font-size:calc(15px * ${T.k});line-height:1.7;color:${T.i2}}
-.sz-result__note{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border-radius:14px;background:${T.off}}
-.sz-result__note-dot{width:6px;height:6px;margin-top:calc(8px * ${T.k});flex:none;border-radius:50%;background:${T.i2}}
-.sz-result__note-text{flex:1;font-size:calc(15px * ${T.k});line-height:1.7;color:${T.i2}}
-.sz-result__imgrow{min-height:52px;justify-content:space-between;border-top:1px solid ${T.i5};border-bottom:1px solid ${T.i5};
-  border-radius:0;padding:8px 0;color:${T.i1}}
+.sz-result__date{margin:0;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2}}
+.sz-result__note{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border-radius:${T.rCtl};background:${T.field}}
+.sz-result__note-dot{width:6px;height:6px;margin-top:calc(8px * ${T.k});flex:none;border-radius:50%;background:${T.ink2}}
+.sz-result__note-text{flex:1;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2}}
+.sz-result__imgrow{min-height:52px;justify-content:space-between;border-top:1px solid ${T.line};border-bottom:1px solid ${T.line};
+  border-radius:0;padding:8px 0;color:${T.ink1}}
 .sz-result__remind:empty{display:none}
 .sz-result__leave{align-self:center;justify-content:center}
 .sz-result__fail{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
-.sz-result__failnote{margin:0;text-align:center;font-size:calc(13px * ${T.k});line-height:1.6;color:${T.i3}}
+.sz-result__failnote{margin:0;text-align:center;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3}}
 `);
 
 // ---------------------------------------------------------------- 纯函数：读状态
@@ -549,6 +548,9 @@ function findRecord(state, recordId) {
   return null;
 }
 
+// 原生 <button> 格子的按压反馈：与 Button 同一套 data-pressed 机制（P1-E1a）；样式见 .sz-rcell[data-pressed]。
+const CELL_PRESS = pressFeedbackHandlers(() => false);
+
 function ResultCell({ cell, record, ink, onOpen }) {
   const hasInk = inkPresent(ink);
   let sq;
@@ -561,7 +563,7 @@ function ResultCell({ cell, record, ink, onOpen }) {
   } else {
     sq = html`<span class="sz-rcell__glyph" aria-hidden="true" data-testid="result-cell-glyph">${cell.char}</span>`;
   }
-  return html`<button type="button" class="sz-rcell" data-testid="result-cell" data-index=${cell.index} data-kind=${cell.kind}
+  return html`<button type="button" class="sz-rcell" ...${CELL_PRESS} data-testid="result-cell" data-index=${cell.index} data-kind=${cell.kind}
     data-judgment=${cell.judgment || ''} data-changeable=${cell.canChange ? 'true' : 'false'} data-record=${record ? record.id : ''}
     aria-label=${t('X-RESULT.cellAria', { char: cell.char, caption: cell.caption })}
     onClick=${() => onOpen(cell)}>

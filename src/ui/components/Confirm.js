@@ -1,5 +1,5 @@
 // 居中确认框（遮罩栈里的一层）：标题 + 正文 + 左右两键（左「取消类」、右「确认类」）。
-// 规格取原型「居中确认通用」：左右 24px、垂直居中、24px 圆角、--c 底、padding 24 20 20、gap 14；
+// 规格取原型「居中确认通用」：左右 24px、垂直居中、24px 圆角、--elev 底、padding 24 20 20、gap 14；
 // 标题宋体 20/1.45；正文 15/1.75 --i2；两键 1fr 1fr、gap 12。
 // 失败三段式（R-G04）由调用方用 nav.updateOverlay(id, {body, cancelLabel, confirmLabel}) 换文案实现，
 // 确认框自身不关闭；成功后调用方 close()。不预选任何按钮（焦点落在对话框本身）。
@@ -11,12 +11,12 @@ import { injectStyles, T } from './styles.js';
 
 injectStyles('confirm', `
 .sz-confirm{position:absolute;left:24px;right:24px;top:50%;transform:translateY(-50%);box-sizing:border-box;
-  max-height:calc(100% - 48px);overflow:auto;border-radius:24px;background:${T.c};box-shadow:0 20px 50px rgba(48,38,26,.2);
-  padding:24px 20px 20px;display:flex;flex-direction:column;gap:14px;color:${T.i1};
+  max-height:calc(100% - 48px);overflow:auto;border-radius:${T.rBox};background:${T.elev};box-shadow:${T.elevShadow};
+  padding:24px 20px 20px;display:flex;flex-direction:column;gap:14px;color:${T.ink1};
   animation:sz-confirm-in .2s cubic-bezier(.2,.7,.2,1) both}
 .sz-confirm:focus{outline:none}
-.sz-confirm__title{margin:0;font-family:${T.serif};font-size:calc(20px * ${T.k});line-height:1.45;font-weight:500}
-.sz-confirm__body{margin:0;font-size:calc(15px * ${T.k});line-height:1.75;color:${T.i2};white-space:pre-line}
+.sz-confirm__title{margin:0;font-family:${T.song};font-size:${T.fs22};line-height:${T.lh22};font-weight:500}
+.sz-confirm__body{margin:0;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2};white-space:pre-line}
 .sz-confirm__actions{margin-top:4px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
 .sz-confirm__actions--one{grid-template-columns:minmax(0,1fr)}
 @keyframes sz-confirm-in{from{opacity:0;transform:translateY(-50%) scale(.96)}to{opacity:1;transform:translateY(-50%)}}

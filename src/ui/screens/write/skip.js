@@ -38,7 +38,7 @@ import { allRecords, appendRecordToDraft } from './answer.js';
 export const SKIP_UNDO_MS = defaultPolicy.skipUndo.ms;
 
 injectStyles('write-skip', `
-.sz-skip__btn{text-decoration:underline;text-underline-offset:4px;text-decoration-thickness:.5px;color:${T.i2}}
+.sz-skip__btn{text-decoration:underline;text-underline-offset:4px;text-decoration-thickness:.5px;color:${T.ink2}}
 .sz-skip__fail{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
 .sz-skipbar{flex-wrap:wrap}
 .sz-skipbar__btns{display:flex;gap:4px;flex:none}

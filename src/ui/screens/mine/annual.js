@@ -26,7 +26,7 @@
 import { html, useMemo } from '../../../../vendor/ui.js';
 import { registerScreen, getScreen, nav } from '../../router.js';
 import { Page } from '../../components/Page.js';
-import { injectStyles, T } from '../../components/styles.js';
+import { injectStyles, T, TEX } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
 import { getStore } from '../../../store/store.js';
 import { monthDayParts } from '../../../core/dates.js';
@@ -40,31 +40,31 @@ export const ANNUAL_SCREEN = 'annual';
 
 injectStyles('mine-annual', `
 .sz-ann{display:flex;flex-direction:column;gap:30px}
-.sz-ann__year{font-size:calc(13px * ${T.k});letter-spacing:.2em;color:${T.i3};font-variant-numeric:tabular-nums}
+.sz-ann__year{font-size:${T.fs13};color:${T.ink3};font-variant-numeric:tabular-nums}
 .sz-ann__sec{display:flex;flex-direction:column;gap:10px;min-width:0}
-.sz-ann__title{margin:0;font-family:${T.serif};font-size:calc(20px * ${T.k});line-height:1.4;font-weight:500;letter-spacing:.04em;color:${T.i2}}
-.sz-ann__note{margin:0;font-size:calc(15px * ${T.k});line-height:1.7;color:${T.i2};text-wrap:pretty}
+.sz-ann__title{margin:0;font-family:${T.song};font-size:${T.fs22};line-height:${T.lh22};font-weight:500;color:${T.ink2}}
+.sz-ann__note{margin:0;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2};text-wrap:pretty}
 .sz-ann__count{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
-.sz-ann__num{font-family:${T.serif};font-size:calc(34px * ${T.k});line-height:1;font-weight:500;color:${T.i1};font-variant-numeric:tabular-nums}
-.sz-ann__unit{font-size:calc(15px * ${T.k});color:${T.i2}}
-.sz-ann__month{font-family:${T.serif};font-size:calc(20px * ${T.k});line-height:1.4;font-weight:500;color:${T.i1}}
+.sz-ann__num{font-family:${T.song};font-size:${T.fs34};line-height:1;font-weight:500;color:${T.ink1};font-variant-numeric:tabular-nums}
+.sz-ann__unit{font-size:${T.fs15};color:${T.ink2}}
+.sz-ann__month{font-family:${T.song};font-size:${T.fs22};line-height:${T.lh22};font-weight:500;color:${T.ink1}}
 .sz-ann__row{display:flex;gap:16px;align-items:center;min-width:0}
-.sz-ann__box{position:relative;width:96px;height:96px;flex:none;box-sizing:border-box;border:1px solid var(--g, rgba(166,83,63,.28));
-  background:${T.c};container-type:inline-size}
+.sz-ann__box{position:relative;width:96px;height:96px;flex:none;box-sizing:border-box;border:${T.frameW} solid ${T.frame};
+  ${TEX};container-type:inline-size}
 .sz-ann__box .sz-compare__card{position:absolute;inset:0;width:100%;height:100%;border:0;border-radius:0;background:transparent;padding:0}
-.sz-ann__glyph{position:absolute;left:0;right:0;top:42%;transform:translateY(-50%);text-align:center;font-family:var(--kai, ${T.serif});
-  font-size:34cqw;line-height:1;color:${T.i3}}
-.sz-ann__noink{position:absolute;left:0;right:0;top:80%;transform:translateY(-50%);text-align:center;font-family:${T.sans};
-  font-size:clamp(9px, 13cqw, 12px);line-height:1;color:${T.i3};white-space:nowrap}
+.sz-ann__glyph{position:absolute;left:0;right:0;top:42%;transform:translateY(-50%);text-align:center;font-family:${T.kai};
+  font-size:34cqw;line-height:1;color:${T.under}}
+.sz-ann__noink{position:absolute;left:0;right:0;top:80%;transform:translateY(-50%);text-align:center;font-family:${T.hei};
+  font-size:clamp(9px, 13cqw, 12px);line-height:1;color:${T.ink3};white-space:nowrap}
 .sz-ann__side{display:flex;flex-direction:column;gap:4px;min-width:0}
 .sz-ann__charline{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
-.sz-ann__char{font-family:var(--kai, ${T.serif});font-size:calc(20px * ${T.k});color:${T.i1}}
-.sz-ann__py{font-size:calc(15px * ${T.k});color:${T.i2}}
+.sz-ann__char{font-family:${T.kai};font-size:${T.fs22};color:${T.ink1}}
+.sz-ann__py{font-size:${T.fs15};color:${T.ink2}}
 .sz-ann__empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:24px 0 48px}
-.sz-ann__eglyph{width:88px;height:88px;box-sizing:border-box;border:1px dashed var(--g, rgba(166,83,63,.28));display:grid;place-items:center;
-  font-family:var(--kai, ${T.serif});font-size:52px;line-height:1;color:${T.i4}}
-.sz-ann__etitle{margin:0;font-family:${T.serif};font-size:calc(20px * ${T.k});font-weight:500;color:${T.i1}}
-.sz-ann__ebody{margin:0;max-width:290px;font-size:calc(13px * ${T.k});line-height:1.75;color:${T.i3}}
+.sz-ann__eglyph{width:88px;height:88px;box-sizing:border-box;border:${T.frameW} dashed ${T.frame};display:grid;place-items:center;
+  font-family:${T.kai};font-size:52px;line-height:1;color:${T.under}}
+.sz-ann__etitle{margin:0;font-family:${T.song};font-size:${T.fs22};font-weight:500;color:${T.ink1}}
+.sz-ann__ebody{margin:0;max-width:290px;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3}}
 `);
 
 function currentStore() {

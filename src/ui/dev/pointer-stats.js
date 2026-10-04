@@ -36,7 +36,7 @@ function el(tag, style, text) {
 }
 
 function line(key) {
-  const node = el('div', { fontSize: 'calc(11px * var(--k))', lineHeight: '1.4', color: 'var(--i2)', wordBreak: 'break-all', fontFamily: 'ui-monospace, Menlo, monospace' });
+  const node = el('div', { fontSize: 'var(--fs11)', lineHeight: '1.4', color: 'var(--ink2)', wordBreak: 'break-all', fontFamily: 'ui-monospace, Menlo, monospace' });
   node.setAttribute('data-spike', key);
   return node;
 }
@@ -96,9 +96,9 @@ async function probeMime() {
 
 export function mountPointerStats(page) {
   const host = page || document.body;
-  const block = el('section', { margin: '0 0 16px', padding: '0 0 12px', borderBottom: '1px solid var(--i5)' });
+  const block = el('section', { margin: '0 0 16px', padding: '0 0 12px', borderBottom: '1px solid var(--line)' });
   block.setAttribute('data-dev-pointer-stats', '');
-  block.appendChild(el('h2', { fontFamily: 'var(--serif)', fontWeight: '500', fontSize: 'calc(17px * var(--k))', margin: '0 0 4px' }, LABELS.title));
+  block.appendChild(el('h2', { fontFamily: 'var(--song)', fontWeight: '500', fontSize: 'var(--fs17)', margin: '0 0 4px' }, LABELS.title));
 
   // 详细环境行放在书写格下方（393×852 首屏只放统计与书写格），格上方只放一行摘要。
   const env = envChecks();
@@ -113,7 +113,7 @@ export function mountPointerStats(page) {
   const mimeLine = line('mime');
   mimeLine.textContent = 'mime: （原生壳内自动测；浏览器点「测 MIME」）';
   envBox.appendChild(mimeLine);
-  const fontSample = el('div', { fontFamily: 'ShiziSpikeSerif, var(--serif)', fontSize: 'calc(15px * var(--k))', color: 'var(--i1)', margin: '2px 0' }, '拾字 · 提笔忘字（ShiziSpikeSerif 样张）');
+  const fontSample = el('div', { fontFamily: 'ShiziSpikeSerif, var(--song)', fontSize: 'var(--fs15)', color: 'var(--ink1)', margin: '2px 0' }, '拾字 · 提笔忘字（ShiziSpikeSerif 样张）');
   envBox.appendChild(fontSample);
   let mimeSummary = '未测';
   function renderSummary() {
@@ -125,7 +125,7 @@ export function mountPointerStats(page) {
   // 工具条
   const bar = el('div', { display: 'flex', flexWrap: 'wrap', gap: '6px 8px', margin: '6px 0' });
   const mkBtn = (label, action, onClick) => {
-    const b = el('button', { padding: '0 12px', borderRadius: '12px', background: 'var(--c)', color: 'var(--i1)', boxShadow: 'inset 0 0 0 .5px var(--i5)', fontSize: 'calc(13px * var(--k))' }, label);
+    const b = el('button', { padding: '0 12px', borderRadius: '12px', background: 'var(--sheet)', color: 'var(--ink1)', boxShadow: 'inset 0 0 0 .5px var(--line)', fontSize: 'var(--fs13)' }, label);
     b.type = 'button';
     b.setAttribute('data-action', action);
     b.addEventListener('click', onClick);
@@ -174,7 +174,7 @@ export function mountPointerStats(page) {
   });
   const box = el('div', {
     position: 'relative', width: `${GRID}px`, height: `${GRID}px`, flex: '0 0 auto',
-    background: 'var(--c)', boxShadow: 'inset 0 0 0 1px var(--i4)', borderRadius: '4px',
+    background: 'var(--sheet)', boxShadow: 'inset 0 0 0 1px var(--ink4)', borderRadius: 'var(--r-work)',
     touchAction: 'none', overscrollBehavior: 'none',
   });
   box.setAttribute('data-spike-grid', '');

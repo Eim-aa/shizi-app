@@ -25,7 +25,7 @@ import { html, useMemo } from '../../../../vendor/ui.js';
 import { registerScreen } from '../../router.js';
 import { TabPage } from '../../components/Page.js';
 import { Button } from '../../components/Button.js';
-import { injectStyles, T } from '../../components/styles.js';
+import { injectStyles, T, TEX } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
 import * as defaultPolicy from '../../../config/policy.js';
 import { mineModel, MINE_SHEET_COLS } from './model.js';
@@ -46,33 +46,32 @@ const ICON = () => html`<svg viewBox="0 0 22 22" fill="none" stroke="currentColo
 injectStyles('mine', `
 .sz-mine{display:flex;flex-direction:column;gap:26px}
 .sz-mine__empty{display:flex;flex-direction:column;gap:8px}
-.sz-mine__emptyt{margin:0;font-family:${T.serif};font-size:calc(20px * ${T.k});line-height:1.5;font-weight:500;color:${T.i1}}
-.sz-mine__emptyb{margin:0;font-size:calc(15px * ${T.k});line-height:1.7;color:${T.i2};text-wrap:pretty}
+.sz-mine__emptyt{margin:0;font-family:${T.song};font-size:${T.fs22};line-height:${T.lh22};font-weight:500;color:${T.ink1}}
+.sz-mine__emptyb{margin:0;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2};text-wrap:pretty}
 .sz-mine__block{display:flex;flex-direction:column;gap:8px}
 .sz-mine__sheetblock{display:flex;flex-direction:column;gap:10px}
 .sz-mine__bhead{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
-.sz-mine__btitle{margin:0;font-family:${T.serif};font-size:calc(20px * ${T.k});line-height:calc(28px * ${T.k});font-weight:500;
-  letter-spacing:.04em;color:${T.i2}}
-.sz-mine__link.sz-btn{flex:none;min-height:44px;font-size:calc(15px * ${T.k});letter-spacing:.04em;color:${T.i2};white-space:nowrap}
+.sz-mine__btitle{margin:0;font-family:${T.song};font-size:${T.fs22};line-height:${T.lh22};font-weight:500;color:${T.ink2}}
+.sz-mine__link.sz-btn{flex:none;min-height:44px;font-size:${T.fs15};color:${T.ink2};white-space:nowrap}
 .sz-mine__week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));font-variant-numeric:tabular-nums}
 .sz-mine__wd{display:flex;flex-direction:column;align-items:center;gap:6px;padding:4px 0}
-.sz-mine__wdname{font-size:calc(11px * ${T.k});color:${T.i3}}
-.sz-mine__wdnum{width:34px;height:34px;display:grid;place-items:center;font-size:calc(15px * ${T.k});color:${T.i1}}
-.sz-mine__wd[data-today="true"] .sz-mine__wdnum{color:${T.ar};font-weight:600}
-.sz-mine__wd[data-future="true"] .sz-mine__wdnum{color:${T.i3}}
+.sz-mine__wdname{font-size:${T.fs11};color:${T.ink3}}
+.sz-mine__wdnum{width:34px;height:34px;display:grid;place-items:center;font-size:${T.fs15};color:${T.ink1}}
+.sz-mine__wd[data-today="true"] .sz-mine__wdnum{color:${T.ink1};font-weight:600}
+.sz-mine__wd[data-future="true"] .sz-mine__wdnum{color:${T.ink3}}
 .sz-mine__wddot{display:flex;height:6px;align-items:center}
-.sz-mine__dot{width:6px;height:6px;border-radius:50%;background:${T.i1}}
-.sz-mine__paper{box-sizing:border-box;background:${T.c};border:.5px solid ${T.i5};box-shadow:0 12px 28px rgba(59,47,40,.08);
+.sz-mine__dot{width:6px;height:6px;border-radius:50%;background:${T.ink1}}
+.sz-mine__paper{box-sizing:border-box;${TEX};border:${T.frameW} solid ${T.frame};
   padding:14px 14px 12px;display:flex;flex-direction:column;gap:12px}
-.sz-mine__all.sz-btn{align-self:center;min-height:44px;font-size:calc(15px * ${T.k});color:${T.i2}}
-.sz-mine__menu{display:flex;flex-direction:column;border-top:1px solid ${T.i5}}
+.sz-mine__all.sz-btn{align-self:center;min-height:44px;font-size:${T.fs15};color:${T.ink2}}
+.sz-mine__menu{display:flex;flex-direction:column;border-top:1px solid ${T.line}}
 .sz-mine__row.sz-btn{min-height:52px;padding:8px 0;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;
-  gap:12px;border-bottom:1px solid ${T.i5};text-align:left;width:100%}
+  gap:12px;border-bottom:1px solid ${T.line};text-align:left;width:100%}
 .sz-mine__rowl{display:flex;flex-direction:column;gap:3px;min-width:0}
-.sz-mine__rowt{font-size:calc(15px * ${T.k});color:${T.i1}}
-.sz-mine__rows{font-size:calc(15px * ${T.k});line-height:1.5;color:${T.i2}}
-.sz-mine__rowr{flex:none;display:flex;align-items:center;gap:8px;font-size:calc(13px * ${T.k});color:${T.i3}}
-.sz-mine__rowr--value{font-size:calc(15px * ${T.k});color:${T.i2}}
+.sz-mine__rowt{font-size:${T.fs15};color:${T.ink1}}
+.sz-mine__rows{font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2}}
+.sz-mine__rowr{flex:none;display:flex;align-items:center;gap:8px;font-size:${T.fs13};color:${T.ink3}}
+.sz-mine__rowr--value{font-size:${T.fs15};color:${T.ink2}}
 `);
 
 // ---------------------------------------------------------------- 视图

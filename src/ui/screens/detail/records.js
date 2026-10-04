@@ -25,9 +25,9 @@
 
 import { html, useEffect, useState } from '../../../../vendor/ui.js';
 import { nav } from '../../router.js';
-import { Button } from '../../components/Button.js';
+import { Button, pressFeedbackHandlers } from '../../components/Button.js';
 import { Sheet } from '../../components/Sheet.js';
-import { injectStyles, T } from '../../components/styles.js';
+import { injectStyles, T, TEX } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
 import * as defaultPolicy from '../../../config/policy.js';
 import { monthDayParts } from '../../../core/dates.js';
@@ -46,32 +46,32 @@ export const ETYMOLOGY_URL = 'data/etymology.json';
 injectStyles('detail-records', `
 .sz-drec{display:flex;flex-direction:column;gap:12px}
 .sz-drec__head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;column-gap:12px;row-gap:4px}
-.sz-drec__count{font-family:${T.serif};font-size:calc(20px * ${T.k});font-weight:500;letter-spacing:.04em;color:${T.i2};white-space:nowrap}
-.sz-drec__first{font-size:calc(15px * ${T.k});color:${T.i2};text-align:right}
-.sz-drec__grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));box-sizing:border-box;border-top:1px solid var(--g, rgba(166,83,63,.28));
-  border-left:1px solid var(--g, rgba(166,83,63,.28));background:${T.c}}
-.sz-dcell{display:flex;flex-direction:column;box-sizing:border-box;min-width:0;padding:0;border-right:1px solid var(--g, rgba(166,83,63,.28));
-  border-bottom:1px solid var(--g, rgba(166,83,63,.28));background:transparent;color:inherit;font:inherit;text-align:center;cursor:pointer}
-.sz-dcell:focus-visible{outline:2px solid ${T.ar};outline-offset:-2px}
-.sz-dcell__sq{position:relative;aspect-ratio:1/1;display:grid;place-items:center;color:${T.i4}}
+.sz-drec__count{font-family:${T.song};font-size:${T.fs22};font-weight:500;color:${T.ink2};white-space:nowrap}
+.sz-drec__first{font-size:${T.fs15};color:${T.ink2};text-align:right}
+.sz-drec__grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));box-sizing:border-box;border-top:${T.frameW} solid ${T.frame};
+  border-left:${T.frameW} solid ${T.frame};${TEX}}
+.sz-dcell{display:flex;flex-direction:column;box-sizing:border-box;min-width:0;padding:0;border-right:${T.frameW} solid ${T.frame};
+  border-bottom:${T.frameW} solid ${T.frame};background:transparent;color:inherit;font:inherit;text-align:center;cursor:pointer}
+.sz-dcell:focus-visible{outline:2px solid ${T.ink1};outline-offset:-2px}
+.sz-dcell[data-pressed]{background:${T.field}}
+.sz-dcell__sq{position:relative;aspect-ratio:1/1;display:grid;place-items:center;color:${T.under}}
 .sz-dcell__sq .sz-compare__card{position:absolute;inset:0;width:100%;border:0;border-radius:0;background:transparent}
-.sz-dcell__glyph{font-family:${T.sans};font-size:calc(30px * ${T.k});line-height:1;color:${T.i3}}
-.sz-dcell__noink{position:absolute;left:0;right:0;bottom:4px;font-size:calc(11px * ${T.k});color:${T.i3}}
+.sz-dcell__glyph{font-family:${T.hei};font-size:${T.fs28};line-height:1;color:${T.under}}
+.sz-dcell__noink{position:absolute;left:0;right:0;bottom:4px;font-size:${T.fs11};color:${T.ink3}}
 /* M6-2：大字时格子放不下「字 + 没有笔迹」叠放（320 宽 + 大字里说明压在字上），改成上下排、整组居中（P1-E6：大字 = 系统字号 --k ≥ 1.3，P131） */
 :root[data-text-large] .sz-dcell__sq{align-content:center;gap:2px}
 :root[data-text-large] .sz-dcell__noink{position:static}
 .sz-dcell__cap{min-height:32px;box-sizing:border-box;padding:0 4px;display:flex;align-items:center;justify-content:center;gap:4px;
-  border-top:1px solid var(--g, rgba(166,83,63,.28));font-size:calc(11px * ${T.k});line-height:calc(13px * ${T.k});letter-spacing:.02em;
-  color:${T.i2};font-variant-numeric:tabular-nums;text-align:center}
-.sz-dcell__cap[data-wrong="true"]{color:${T.ar}}
+  border-top:${T.frameW} solid ${T.frame};font-size:${T.fs11};line-height:${T.lh11};
+  color:${T.ink2};font-variant-numeric:tabular-nums;text-align:center}
 .sz-dzoom{display:flex;flex-direction:column;gap:14px}
 .sz-dzoom__sq{width:100%;max-width:300px;align-self:center}
 .sz-dzoom__close{align-self:stretch}
 .sz-dsrc{display:grid;grid-template-columns:44px minmax(0,1fr);gap:8px;align-items:baseline}
-.sz-dsrc__label{font-size:calc(13px * ${T.k});letter-spacing:.14em;color:${T.i3}}
+.sz-dsrc__label{font-size:${T.fs13};color:${T.ink3}}
 .sz-dsrc__body{display:flex;flex-direction:column;gap:4px}
-.sz-dsrc__text{font-family:var(--kai, serif);font-size:calc(19px * ${T.k});line-height:1.6;letter-spacing:.08em;color:${T.i1}}
-.sz-dsrc__from{font-size:calc(13px * ${T.k});color:${T.i3}}
+.sz-dsrc__text{font-family:${T.kai};font-size:${T.fs17};line-height:${T.lh17};color:${T.ink1}}
+.sz-dsrc__from{font-size:${T.fs13};color:${T.ink3}}
 `);
 
 // ---------------------------------------------------------------- 纯模型
@@ -308,6 +308,9 @@ export function SourceRow({ char }) {
 
 // ---------------------------------------------------------------- 记录块
 
+// 原生 <button> 格子的按压反馈：与 Button 同一套 data-pressed 机制（P1-E1a）；样式见 .sz-dcell[data-pressed]。
+const CELL_PRESS = pressFeedbackHandlers(() => false);
+
 function Cell({ record, ink, onOpen, first = false, latest = false }) {
   const has = hasInkPoints(ink);
   const { caption, title } = cellCopy(record);
@@ -315,7 +318,7 @@ function Cell({ record, ink, onOpen, first = false, latest = false }) {
     ? html`<${InkMini} points=${ink.points} strokes=${ink.strokes} testid="detail-cell-ink" label=${record.char} />`
     : html`<span class="sz-dcell__glyph" aria-hidden="true" data-testid="detail-cell-glyph">${record.char}</span>
       <span class="sz-dcell__noink" data-testid="detail-cell-noink">${t('R-D07.noInkLabel')}</span>`;
-  return html`<button type="button" class="sz-dcell" data-testid="detail-cell" data-record=${record.id}
+  return html`<button type="button" class="sz-dcell" ...${CELL_PRESS} data-testid="detail-cell" data-record=${record.id}
     data-judgment=${record.judgment} data-ink=${has ? 'true' : 'false'} data-first=${first ? 'true' : null} data-latest=${latest ? 'true' : null}
     aria-label=${title} onClick=${() => onOpen(record)}>
     <span class="sz-dcell__sq">${sq}</span>

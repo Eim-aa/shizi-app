@@ -31,6 +31,7 @@ import { setBackGestureEnabled } from '../platform/bridge.js';
 import { isStandalone, isTestHost } from '../platform/env.js';
 import { markStateChange } from './components/Button.js';
 import { Tabs } from './components/Tabs.js';
+import './components/marks.js'; // 朱色白名单组件：写错朱点与印章（D43，P1-E1a）
 import { ToastHost } from './components/Toast.js';
 import { injectStyles, T } from './components/styles.js';
 import './screens/home/index.js';
@@ -56,10 +57,10 @@ export const SNAP_MS = 200;
 const GESTURE_POP_MIN_MS = 150;
 
 injectStyles('root', `
-.sz-app{position:fixed;inset:0;overflow:hidden;background:${T.p};color:${T.i1};font-family:${T.sans};
+.sz-app{position:fixed;inset:0;overflow:hidden;background:${T.paper};color:${T.ink1};font-family:${T.hei};
   -webkit-font-smoothing:antialiased;-webkit-text-size-adjust:100%}
-.sz-layer{position:absolute;inset:0;overflow:hidden;isolation:isolate;background:${T.p};display:flex;flex-direction:column}
-.sz-layer--moving{box-shadow:-12px 0 24px rgba(48,38,26,.12)}
+.sz-layer{position:absolute;inset:0;overflow:hidden;isolation:isolate;background:${T.paper};display:flex;flex-direction:column}
+.sz-layer--moving{box-shadow:-1px 0 0 ${T.line}}
 .sz-layer--snap{transition:transform ${SNAP_MS}ms ${PUSH_EASING}}
 .sz-layer--under{pointer-events:none}
 .sz-layer__screen{flex:1;min-height:0;display:flex;flex-direction:column}
@@ -67,7 +68,7 @@ injectStyles('root', `
 .sz-tabroot{flex:1;min-height:0;display:flex;flex-direction:column}
 .sz-tabroot__panel{flex:1;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 .sz-tabroot__panel::before{content:"";position:sticky;top:0;display:block;height:env(safe-area-inset-top, 0px);
-  margin-bottom:calc(-1 * env(safe-area-inset-top, 0px));background:linear-gradient(${T.p} 70%, transparent);z-index:2;pointer-events:none}
+  margin-bottom:calc(-1 * env(safe-area-inset-top, 0px));background:linear-gradient(${T.paper} 70%, transparent);z-index:2;pointer-events:none}
 `);
 
 function matches(win, query) {

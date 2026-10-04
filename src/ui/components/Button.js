@@ -3,16 +3,18 @@
 // 一律按事件 timeStamp 比较（与 performance.now() 同一时钟）。
 // rapid：本来就要连点的按钮（书写格的撤销 / 清空：连撤几笔）不做「同一按钮 0.4s」节流，只保留「新状态后 0.4s」（M1 验收 G2）。
 // 禁用：disabled + aria-disabled（R-G08）。
-// 按压反馈（P0-A4 / G16）：pointerdown 起 data-pressed、pointerup / pointercancel / pointerleave 收；样式见下方 .sz-btn[data-pressed]。
-// 不用 :active——iOS WebKit 上 :active 需要 touchstart 监听才生效；data-pressed 直接写 DOM 属性（不走 state，不触发重画）。
-// 按下 scale .97 + 亮度 −6%、80ms；松手 160ms 回弹；减少动态效果时只变色不缩放。参数登记 P109。
+// 按压反馈（P0-A4 / G16；D43 起取设计系统 v1 的动效令牌）：pointerdown 起 data-pressed、pointerup / pointercancel / pointerleave 收；
+// 样式见下方 .sz-btn[data-pressed]。不用 :active——iOS WebKit 上 :active 需要 touchstart 监听才生效；data-pressed 直接写 DOM 属性
+// （不走 state，不触发重画）。原生 <button> 格子（结果 / 详情 / 记录页的字帖格）也用同一套 pressFeedbackHandlers。
+// 按下 scale .97（--press-scale）、120ms（--t-press）；松手 220ms（--t-release）回弹；主按钮按下换 --btn-down、次按钮按下换 --field，
+// 其余加深约 6%；减少动态效果时按下缩放保留，其余过渡改 120ms 线性（tokens.json motion.reduceMotion）。参数登记 P109（已决定 D43）。
 import { html, useRef } from '../../../vendor/ui.js';
 import { injectStyles, T } from './styles.js';
 
 export const PRESS_GUARD_MS = 400;
-/** 按压反馈（P109）：按下 80ms 缩到 .97 并加深约 6%；松手 160ms 回弹。 */
-export const PRESS_IN_MS = 80;
-export const PRESS_OUT_MS = 160;
+/** 按压反馈（P109，已决定 D43）：按下 120ms 缩到 .97；松手 220ms 回弹。与 tokens.css 的 --t-press / --t-release 同值（单测核对）。 */
+export const PRESS_IN_MS = 120;
+export const PRESS_OUT_MS = 220;
 export const PRESS_SCALE = 0.97;
 export const PRESS_DARKEN = 0.94; // brightness：背景 / 字加深约 6%
 
@@ -75,24 +77,26 @@ export function pressFeedbackHandlers(isDisabled) {
 injectStyles('button', `
 .sz-btn{box-sizing:border-box;margin:0;border:0;background:transparent;color:inherit;font:inherit;cursor:pointer;
   -webkit-tap-highlight-color:transparent;touch-action:manipulation;-webkit-appearance:none;appearance:none;
-  transition:transform ${PRESS_OUT_MS}ms cubic-bezier(.2,.7,.2,1),filter ${PRESS_OUT_MS}ms ease-out}
-.sz-btn[data-pressed]{transform:scale(${PRESS_SCALE});filter:brightness(${PRESS_DARKEN});transition-duration:${PRESS_IN_MS}ms}
+  transition:transform ${T.tRelease} ${T.easeOut},background-color ${T.tRelease} ${T.easeOut},filter ${T.tRelease} ${T.easeOut},color ${T.tRelease}}
+.sz-btn[data-pressed]{transform:scale(${T.pressScale});filter:brightness(${PRESS_DARKEN});transition-duration:${T.tPress}}
 .sz-btn[disabled][data-pressed]{transform:none;filter:none}
-.sz-btn:focus-visible{outline:2px solid ${T.ar};outline-offset:2px}
-.sz-btn--primary,.sz-btn--secondary{width:100%;min-height:52px;border-radius:16px;padding:0 16px;
-  font-size:calc(17px * ${T.k});letter-spacing:.08em}
-.sz-btn--primary{background:${T.a};color:#FFF9F1}
-.sz-btn--secondary{border:.5px solid ${T.i5};background:${T.c};color:${T.i1};letter-spacing:.06em}
-.sz-btn--text{min-height:44px;padding:0 4px;display:inline-flex;align-items:center;gap:6px;
-  font-size:calc(15px * ${T.k});letter-spacing:.04em;color:${T.i2}}
-.sz-btn--icon{width:44px;height:44px;display:grid;place-items:center;color:${T.i1};padding:0}
+.sz-btn:focus-visible{outline:2px solid ${T.ink1};outline-offset:2px}
+.sz-btn--primary,.sz-btn--secondary{width:100%;min-height:${T.btnH};border-radius:${T.rCtl};padding:0 24px;
+  font-size:${T.fs17};line-height:${T.lh17s};font-weight:500}
+.sz-btn--primary{background:${T.btnBg};color:${T.btnFg}}
+.sz-btn--secondary{background:transparent;color:${T.ink1};box-shadow:inset 0 0 0 1px ${T.ink4}}
+.sz-btn--text{min-height:${T.hit};padding:0 4px;display:inline-flex;align-items:center;gap:6px;font-size:${T.fs15};color:${T.ink2};
+  text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:5px;text-decoration-color:${T.ink4}}
+.sz-btn--icon{width:${T.hit};height:${T.hit};display:grid;place-items:center;color:${T.ink1};padding:0}
 .sz-btn--plain{padding:0}
 .sz-btn[disabled]{cursor:default}
-.sz-btn--primary[disabled]{background:${T.i5};color:${T.i3}}
-.sz-btn--secondary[disabled],.sz-btn--text[disabled]{color:${T.i4}}
+.sz-btn--primary[data-pressed]{background:${T.btnDown};filter:none}
+.sz-btn--secondary[data-pressed]{background:${T.field};filter:none}
+.sz-btn--text[data-pressed]{color:${T.ink1};transform:none;filter:none}
+.sz-btn--primary[disabled],.sz-btn--secondary[disabled]{background:${T.field};color:${T.ink4};box-shadow:none}
+.sz-btn--text[disabled]{color:${T.ink4}}
 @media (prefers-reduced-motion: reduce){
-  .sz-btn{transition:filter ${PRESS_IN_MS}ms linear}
-  .sz-btn[data-pressed]{transform:none}
+  .sz-btn{transition-duration:${T.tPress};transition-timing-function:linear}
 }
 `);
 

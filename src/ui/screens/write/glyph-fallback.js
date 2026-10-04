@@ -3,7 +3,7 @@
 // 笔画数据取不到（src/data/strokes.js 返回 null，或 hanzi-writer 失败）时：
 // - 没有分步提示：提示按钮位置换成灰字「暂时没有提示」（R-W05.hintUnavailable；原型 'txt' 态：13px、--i3、不可点）；
 //   书写格下说明「这个字暂时没有提示，可以直接看答案。」（R-W05.noHintNote）。
-// - 看答案 / 对照 / 描一遍：完整楷体整字，用 DOM 文本（不是 canvas），字体 var(--kai)（ShiziKai，M5 接入前回退系统楷体，§8.4）；
+// - 看答案 / 对照 / 描一遍：完整楷体整字，用 DOM 文本（不是 canvas），字体 ${T.kai}（ShiziKai，M5 接入前回退系统楷体，§8.4）；
 //   描一遍用浅色（--tf）整字、不分笔顺，格下「浅色是参考字形。」（R-W08.traceNote）；
 //   看答案说明「这个字记为看过答案，后面再写只算练习。」（R-W08.answerNote）。
 // 文案一律取 src/config/copy/。回忆阶段不要渲染 GlyphFallback（答案字不能出现在回忆阶段，M1-8）。
@@ -31,17 +31,17 @@ export const FALLBACK_FONT_RATIO = 0.78;
 export const FALLBACK_OFFSET_RATIO = 0.03;
 
 const VARIANT_COLOR = Object.freeze({
-  answer: 'var(--ref, #5D5952)',
-  reference: 'var(--ref, #5D5952)',
-  trace: 'var(--tf, #EBE6DE)',
+  answer: 'var(--ref)',
+  reference: 'var(--ref)',
+  trace: 'var(--danzhu)',
 });
 
 injectStyles('glyph-fallback', `
 .sz-glyph-fb{position:absolute;left:0;top:0;display:flex;align-items:center;justify-content:center;
-  pointer-events:none;user-select:none;-webkit-user-select:none;font-family:var(--kai, "Kaiti SC", "STKaiti", "KaiTi", serif);
+  pointer-events:none;user-select:none;-webkit-user-select:none;font-family:${T.kai};
   font-weight:400;line-height:1;font-synthesis:none}
 .sz-glyph-fb__char{display:block;line-height:1}
-.sz-nohint{min-height:52px;display:flex;align-items:center;font-size:calc(13px * ${T.k});line-height:1.45;color:${T.i3};
+.sz-nohint{min-height:52px;display:flex;align-items:center;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3};
   text-wrap:pretty}
 `);
 

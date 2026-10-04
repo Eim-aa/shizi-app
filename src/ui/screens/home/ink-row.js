@@ -11,6 +11,7 @@
 
 import { html, useMemo } from '../../../../vendor/ui.js';
 import { Button } from '../../components/Button.js';
+import { T } from '../../components/styles.js';
 import * as defaultPolicy from '../../../config/policy.js';
 import { t } from '../../../config/copy/index.js';
 import { decodeInk, resampleForReplay } from '../../../core/ink-math.js';
@@ -75,7 +76,7 @@ export const INK_ROW_CSS = `
 .sz-inkrow__item{width:calc(26px * var(--k, 1));height:calc(26px * var(--k, 1));flex:none;display:grid;place-items:center}
 .sz-inkrow--inline{padding:7px 0}
 .sz-inkrow--inline .sz-inkrow__item{width:calc(30px * var(--k, 1));height:calc(30px * var(--k, 1))}
-.sz-inkrow__glyph{font-family:var(--sans);font-size:calc(19px * var(--k, 1));line-height:1;color:var(--i3, #6A645B)}
-.sz-inkrow--inline .sz-inkrow__glyph{font-size:calc(22px * var(--k, 1))}
+.sz-inkrow__glyph{font-family:${T.hei};font-size:${T.fs17};line-height:1;color:${T.under}}
+.sz-inkrow--inline .sz-inkrow__glyph{font-size:${T.fs22}}
 .sz-inkrow__item .sz-compare__card{width:100%;height:100%;border:0;border-radius:0;background:transparent;padding:0}
 `;

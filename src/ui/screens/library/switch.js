@@ -112,17 +112,17 @@ export function commitLibrary(store, id) {
 injectStyles('library-switch', `
 .sz-libsw__list{margin:0;padding:0;list-style:none;display:flex;flex-direction:column}
 .sz-libsw__row{width:100%;min-height:62px;padding:10px 0;display:flex;align-items:center;gap:12px;text-align:left;
-  color:${T.i1};border-bottom:.5px solid ${T.i5}}
+  color:${T.ink1};border-bottom:.5px solid ${T.line}}
 .sz-libsw__item:last-child .sz-libsw__row{border-bottom:0}
 .sz-libsw__main{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
-.sz-libsw__name{font-size:calc(17px * ${T.k});line-height:1.5;font-weight:400;letter-spacing:.04em}
+.sz-libsw__name{font-size:${T.fs17};line-height:${T.lh17};font-weight:400;}
 .sz-libsw__row[data-current="true"] .sz-libsw__name{font-weight:500}
-.sz-libsw__desc{font-size:calc(13px * ${T.k});line-height:1.6;color:${T.i2}}
-.sz-libsw__count{font-size:calc(15px * ${T.k});line-height:1.6;color:${T.i2}}
+.sz-libsw__desc{font-size:${T.fs13};line-height:${T.lh13};color:${T.ink2}}
+.sz-libsw__count{font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2}}
 .sz-libsw__seg{white-space:nowrap}
-.sz-libsw__mark{flex:none;font-size:calc(15px * ${T.k});color:${T.i3}}
-.sz-libsw__row[data-current="true"] .sz-libsw__mark{font-size:calc(13px * ${T.k});color:${T.ar}}
-.sz-libsw__source{margin:0;font-size:calc(13px * ${T.k});line-height:1.7;color:${T.i3}}
+.sz-libsw__mark{flex:none;font-size:${T.fs15};color:${T.ink3}}
+.sz-libsw__row[data-current="true"] .sz-libsw__mark{font-size:${T.fs13};color:${T.ink1}}
+.sz-libsw__source{margin:0;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3}}
 `);
 
 // ---------------------------------------------------------------- 状态订阅

@@ -1,7 +1,7 @@
 // 书写格：三层 canvas + 指针输入（01-架构设计 §6.1、§6.3；reference/C-ink.md；acceptance/M0-7-spike.md）。
 //
 // 图层（下 → 上）：
-//   1. 十字虚线（SVG，var(--g)，原型 ShiziWriteScreen guides() L471–L482）
+//   1. 十字虚线（SVG，var(--guide)，原型 ShiziWriteScreen guides() L471–L482）
 //   2. 参考字形 / 提示 / 描红层挂载点（M1-2 / M1-3 / M1-4 提供内容）：prop glyphLayer（vnode 或 ({size, cssSize}) => vnode）
 //      与 prop glyphRef（拿到宿主 div 自己画 canvas / SVG）
 //   3. 固化层 canvas：已完成的笔画；抬笔时只追加一笔（不全量重画），撤销 / 清空 / 换字 / 尺寸或主题变化时才整层重画
@@ -23,7 +23,7 @@ import { buildStroke, GRID, INK } from '../../core/ink-math.js';
 import { brushDetail } from '../../config/policy.js';
 import { brushDetailEnabled, createLayerCache, paintBrushStroke } from './brush.js';
 import { eventTime } from '../components/Button.js';
-import { injectStyles, T } from '../components/styles.js';
+import { injectStyles, T, TEX } from '../components/styles.js';
 import { NATIVE_PROGRESS_EVENT } from '../router.js';
 
 export { GRID };
@@ -33,7 +33,7 @@ export const STD_SIZE = 345;
 
 injectStyles('inkgrid', `
 .sz-inkgrid{position:relative;flex:none;box-sizing:border-box;aspect-ratio:1/1;max-width:100%;margin:0 auto;
-  border:.5px solid ${T.i5};border-radius:16px;background:${T.c};overflow:hidden;
+  border:${T.frameW} solid ${T.frame};border-radius:${T.rWork};${TEX};overflow:hidden;
   touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
 .sz-inkgrid__layer{position:absolute;inset:0;width:100%;height:100%;display:block}
 .sz-inkgrid__guides{pointer-events:none}
@@ -53,10 +53,10 @@ function matchMediaSafe(win, query) {
 
 function inkColorOf(el) {
   try {
-    const v = getComputedStyle(el).getPropertyValue('--i1').trim();
-    return v || '#3B2F28';
+    const v = getComputedStyle(el).getPropertyValue('--hand').trim();
+    return v || '#221D19';
   } catch (error) {
-    return '#3B2F28';
+    return '#221D19';
   }
 }
 
@@ -350,8 +350,8 @@ export function createInkSurface({ box, inkCanvas, liveCanvas, win = window, get
 
 // 每次渲染现取新 vnode，不复用模块级常量（vendor/ui.js 注释，M6-3）。
 const GUIDES = () => html`<svg class="sz-inkgrid__layer sz-inkgrid__guides" viewBox="0 0 ${GRID} ${GRID}" aria-hidden="true" focusable="false">
-  <line x1=${GRID / 2} y1="0" x2=${GRID / 2} y2=${GRID} stroke="var(--g)" stroke-width="1" stroke-dasharray="4 5"></line>
-  <line x1="0" y1=${GRID / 2} x2=${GRID} y2=${GRID / 2} stroke="var(--g)" stroke-width="1" stroke-dasharray="4 5"></line>
+  <line x1=${GRID / 2} y1="0" x2=${GRID / 2} y2=${GRID} stroke="var(--guide)" stroke-width="0.75" stroke-dasharray="4 4"></line>
+  <line x1="0" y1=${GRID / 2} x2=${GRID} y2=${GRID / 2} stroke="var(--guide)" stroke-width="0.75" stroke-dasharray="4 4"></line>
 </svg>`;
 
 /**

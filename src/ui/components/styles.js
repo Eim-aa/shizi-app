@@ -118,10 +118,6 @@ export const T = {
   hair: v('hair'), frameW: v('frame-w'), guideW: v('guide-w'), targetW: v('target-w'),
   hit: v('hit'), btnH: v('btn-h'),
   pressScale: v('press-scale'), tPress: v('t-press'), tRelease: v('t-release'), easeOut: v('ease-out'),
-  // 过渡别名（P1-E1a 第一步；全局替换提交里删除）
-  p: v('paper'), c: v('sheet'), sh: v('elev'), off: v('field'),
-  i1: v('ink1'), i2: v('ink2'), i3: v('ink3'), i4: v('ink4'), i5: v('line'),
-  a: v('btn-bg'), ar: v('zhu'), serif: v('song'), sans: v('hei'),
 };
 
 /** 笺面纸纹（只给书写格、对照卡、字帖、月帖、图片等笺面；按钮、弹层、列表、页面底不用）：笺色 + --tex-img。 */

@@ -29,7 +29,7 @@
 
 import { html, useEffect, useLayoutEffect, useMemo, useRef, useState } from '../../../../vendor/ui.js';
 import { Button, markStateChange } from '../../components/Button.js';
-import { injectStyles, T } from '../../components/styles.js';
+import { injectStyles, T, TEX } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
 import * as defaultPolicy from '../../../config/policy.js';
 import { getStore, setInk } from '../../../store/store.js';
@@ -73,27 +73,26 @@ injectStyles('write-compare', `
   gap:${COMPARE_GAP}px;align-content:start}
 .sz-compare__col{display:flex;flex-direction:column;gap:12px;min-width:0}
 .sz-compare__col--ref{animation:szCmpIn .26s cubic-bezier(.2,.7,.2,1) .12s both}
-.sz-compare__card{position:relative;aspect-ratio:1/1;box-sizing:border-box;border:.5px solid ${T.i5};border-radius:12px;
-  background:${T.c};overflow:hidden}
+.sz-compare__card{position:relative;aspect-ratio:1/1;box-sizing:border-box;border:${T.frameW} solid ${T.frame};border-radius:${T.rWork};
+  ${TEX};overflow:hidden}
 .sz-compare__card canvas{position:absolute;left:0;top:0;display:block}
-.sz-compare__empty{aspect-ratio:1/1;box-sizing:border-box;border:1px dashed ${T.i4};border-radius:12px;display:grid;
-  place-items:center;font-size:calc(13px * ${T.k});color:${T.i3};letter-spacing:.04em;text-align:center;padding:8px}
-.sz-compare__label{text-align:center;font-size:calc(13px * ${T.k});letter-spacing:.12em;color:${T.i3}}
+.sz-compare__empty{aspect-ratio:1/1;box-sizing:border-box;border:${T.frameW} dashed ${T.frame};border-radius:${T.rWork};display:grid;
+  place-items:center;font-size:${T.fs13};color:${T.ink3};text-align:center;padding:8px}
+.sz-compare__label{text-align:center;font-size:${T.fs13};color:${T.ink3}}
 .sz-write[data-phase="compare"] .sz-prompt__fill{animation:szCmpFade .2s ease-out .12s both}
-.sz-judge__note{margin:0;width:100%;text-align:center;font-size:calc(13px * ${T.k});line-height:1.4;letter-spacing:.06em;
-  color:${T.i3}}
+.sz-judge__note{margin:0;width:100%;text-align:center;font-size:${T.fs13};line-height:${T.lh13};
+  color:${T.ink3}}
 .sz-judge__btns{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
-.sz-judge__btn{width:100%;min-height:72px;border:.5px solid ${T.i5};border-radius:20px;background:${T.c};color:${T.i1};
-  font-size:calc(17px * ${T.k});font-weight:400;letter-spacing:.1em;transition:transform .12s,background-color .12s}
-.sz-judge__btn:active{transform:scale(.98);background:var(--off, #EFE8DC)}
+.sz-judge__btn{width:100%;min-height:72px;border-radius:${T.rCtl};background:transparent;box-shadow:inset 0 0 0 1px ${T.ink4};color:${T.ink1};
+  font-size:${T.fs17};line-height:${T.lh17s};font-weight:500}
+.sz-judge__btn[data-pressed]{background:${T.field};filter:none}
 .sz-judge__fail{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
 .sz-cmpstage{display:flex;flex-direction:column;align-items:stretch;max-width:100%}
 .sz-write__foot.sz-write__foot--judge{gap:14px;margin-top:24px} /* 说明与两键之间 ≥12px：双类名提高优先级，否则被 write/index.js 后注入的 .sz-write__foot{gap:0} 盖掉（A10） */
-.sz-continue{height:44px;padding:0 8px;font-size:calc(15px * ${T.k});letter-spacing:.04em;color:${T.i1}}
+.sz-continue{height:44px;padding:0 8px;font-size:${T.fs15};color:${T.ink1}}
 @media (prefers-reduced-motion: reduce){
   .sz-compare__col--ref{animation:szCmpFade .12s linear both}
   .sz-write[data-phase="compare"] .sz-prompt__fill{animation:szCmpFade .12s linear both}
-  .sz-judge__btn{transition:none}
 }
 `);
 
@@ -345,10 +344,10 @@ function prepareCanvas(canvas, cssSize) {
 
 function inkColor(el) {
   try {
-    const v = getComputedStyle(el).getPropertyValue('--i1').trim();
-    return v || '#3B2F28';
+    const v = getComputedStyle(el).getPropertyValue('--hand').trim();
+    return v || '#221D19';
   } catch (error) {
-    return '#3B2F28';
+    return '#221D19';
   }
 }
 
@@ -361,7 +360,7 @@ export function builtFromRaw(strokes) {
  * 把管线点列画进一张小卡（线宽 × widthScale，原型 1.41）。纯绘制，调用方给 ctx（已按 345 单位变换）。
  * @returns {number} 画了几笔
  */
-export function paintMini(ctx, built, { color = '#3B2F28', widthScale = MINI_WIDTH_SCALE, base = INK.base } = {}) {
+export function paintMini(ctx, built, { color = '#221D19', widthScale = MINI_WIDTH_SCALE, base = INK.base } = {}) {
   let n = 0;
   for (const pts of built || []) {
     if (!Array.isArray(pts) || !pts.length) continue;

@@ -23,7 +23,8 @@ test('AX rules cover the card list: page title wraps, write / judge buttons stac
   assert.match(AX_CSS, /\.sz-set__row--value\{flex-direction:column/);
   assert.match(AX_CSS, /\.sz-btn--primary,[^{]*\{min-height:calc\(1\.3em/, 'button min height follows its own font size');
   assert.equal(TAB_SCALE_CAP, policy.contentSizeScale.XXXL, 'tab bar stops growing at the XXXL scale');
-  assert.match(AX_CSS, new RegExp(`\\.sz-tabs\\{height:calc\\(64px \\* ${String(TAB_SCALE_CAP).replace('.', '\\.')}\\)`));
+  // P1-E1a：Tab 栏改为设计系统的通栏 50px（加底部安全区），封顶规则不变
+  assert.match(AX_CSS, new RegExp(`\\.sz-tabs\\{height:calc\\(50px \\* ${String(TAB_SCALE_CAP).replace('.', '\\.')} \\+ env\\(safe-area-inset-bottom`));
 });
 
 test('ax.js is loaded once by the root and the settings value rows carry the AX hook class', () => {

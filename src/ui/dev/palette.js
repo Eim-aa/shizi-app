@@ -20,7 +20,7 @@ const LABELS = {
   themeLight: '浅色',
   themeDark: '深色',
   size: '系统字号',
-  sample: '字号 calc(15px*var(--k)) · 楷体 --kai：提笔忘字 · 宋体 --serif：拾字 · 黑体 --sans：今天写几个字',
+  sample: '字阶 var(--fs15) · 楷体 --kai：提笔忘字 · 宋体 --song：拾字 · 黑体 --hei：今天写几个字',
   colName: '令牌',
   colNow: '当前值',
   colUse: '用途 · 来源',
@@ -135,33 +135,33 @@ export function mountPalette(root) {
   const page = el('main', {
     minHeight: '100vh',
     padding: 'calc(16px + var(--safe-top)) calc(16px + var(--safe-right)) calc(32px + var(--safe-bottom)) calc(16px + var(--safe-left))',
-    color: 'var(--i1)',
-    fontFamily: 'var(--sans)',
+    color: 'var(--ink1)',
+    fontFamily: 'var(--hei)',
     userSelect: 'text',
     webkitUserSelect: 'text',
   });
-  page.className = 'paper';
+  page.className = 'tex';
   page.setAttribute('data-dev-palette', '');
 
-  page.appendChild(el('h1', { fontFamily: 'var(--serif)', fontWeight: '500', fontSize: 'calc(26px * var(--k))', lineHeight: '1.3' }, LABELS.title));
-  page.appendChild(el('p', { margin: '6px 0 14px', fontSize: 'calc(13px * var(--k))', color: 'var(--i3)' }, LABELS.intro));
+  page.appendChild(el('h1', { fontFamily: 'var(--song)', fontWeight: '500', fontSize: 'var(--fs28)', lineHeight: '1.3' }, LABELS.title));
+  page.appendChild(el('p', { margin: '6px 0 14px', fontSize: 'var(--fs13)', color: 'var(--ink3)' }, LABELS.intro));
 
   // 工具条
   const bar = el('div', { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px 12px', marginBottom: '10px' });
-  const status = el('code', { display: 'block', margin: '0 0 12px', fontSize: 'calc(13px * var(--k))', color: 'var(--i2)', wordBreak: 'break-all' });
+  const status = el('code', { display: 'block', margin: '0 0 12px', fontSize: 'var(--fs13)', color: 'var(--ink2)', wordBreak: 'break-all' });
   status.setAttribute('data-palette-status', '');
   const themeButtons = [];
   const mkBtn = (label, action, onClick) => {
     const b = el('button', {
-      padding: '0 14px', borderRadius: '12px', background: 'var(--c)', color: 'var(--i1)',
-      boxShadow: 'inset 0 0 0 .5px var(--i5)', fontSize: 'calc(15px * var(--k))',
+      padding: '0 14px', borderRadius: '12px', background: 'var(--sheet)', color: 'var(--ink1)',
+      boxShadow: 'inset 0 0 0 .5px var(--line)', fontSize: 'var(--fs15)',
     }, label);
     b.type = 'button';
     b.setAttribute('data-action', action);
     b.addEventListener('click', onClick);
     return b;
   };
-  bar.appendChild(el('span', { fontSize: 'calc(13px * var(--k))', color: 'var(--i3)' }, LABELS.theme));
+  bar.appendChild(el('span', { fontSize: 'var(--fs13)', color: 'var(--ink3)' }, LABELS.theme));
   for (const [label, value] of [[LABELS.themeSystem, 'system'], [LABELS.themeLight, 'light'], [LABELS.themeDark, 'dark']]) {
     const b = mkBtn(label, `theme-${value}`, () => {
       if (value === 'system') document.documentElement.removeAttribute('data-theme');
@@ -180,9 +180,9 @@ export function mountPalette(root) {
   bar.appendChild(sizeBtn);
   page.appendChild(bar);
   page.appendChild(status);
-  page.appendChild(el('p', { margin: '0 0 16px', fontSize: 'calc(15px * var(--k))', lineHeight: '1.6', color: 'var(--i2)' }, LABELS.sample));
+  page.appendChild(el('p', { margin: '0 0 16px', fontSize: 'var(--fs15)', lineHeight: '1.6', color: 'var(--ink2)' }, LABELS.sample));
 
-  const list = el('div', { display: 'flex', flexDirection: 'column', borderTop: '1px solid var(--i5)' });
+  const list = el('div', { display: 'flex', flexDirection: 'column', borderTop: '1px solid var(--line)' });
   list.setAttribute('role', 'list');
   page.appendChild(list);
   host.appendChild(page);
@@ -196,29 +196,29 @@ export function mountPalette(root) {
     for (const row of rows) {
       const item = el('div', {
         display: 'grid', gridTemplateColumns: '36px minmax(0, 1fr)', gap: '4px 12px',
-        padding: '10px 0', borderBottom: '1px solid var(--i5)', alignItems: 'start',
+        padding: '10px 0', borderBottom: '1px solid var(--line)', alignItems: 'start',
       });
       item.setAttribute('role', 'listitem');
       item.setAttribute('data-token', row.name);
       const swatch = el('span', {
-        width: '36px', height: '36px', borderRadius: '8px', boxShadow: 'inset 0 0 0 .5px var(--i5)',
-        display: 'grid', placeItems: 'center', fontSize: '11px', color: 'var(--i3)', overflow: 'hidden',
+        width: '36px', height: '36px', borderRadius: 'var(--r-work)', boxShadow: 'inset 0 0 0 .5px var(--line)',
+        display: 'grid', placeItems: 'center', fontSize: 'var(--fs11)', color: 'var(--ink3)', overflow: 'hidden',
       });
       const body = el('div', { minWidth: '0', display: 'flex', flexDirection: 'column', gap: '3px' });
       const head = el('div', { display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: '2px 10px' });
-      head.appendChild(el('code', { fontSize: 'calc(15px * var(--k))', fontWeight: '600', color: 'var(--i1)' }, row.name));
-      const now = el('code', { fontSize: 'calc(13px * var(--k))', color: 'var(--i2)', wordBreak: 'break-all' });
+      head.appendChild(el('code', { fontSize: 'var(--fs15)', fontWeight: '600', color: 'var(--ink1)' }, row.name));
+      const now = el('code', { fontSize: 'var(--fs13)', color: 'var(--ink2)', wordBreak: 'break-all' });
       now.setAttribute('data-current', '');
       head.appendChild(now);
-      head.appendChild(el('span', { fontSize: '11px', color: 'var(--i3)' }, row.file));
+      head.appendChild(el('span', { fontSize: 'var(--fs11)', color: 'var(--ink3)' }, row.file));
       body.appendChild(head);
       for (const ctx of Object.keys(row.byCtx)) {
         if (ctx === 'darkMedia' && row.byCtx.dark) continue; // 与 data-theme=dark 块一致（单测核对），不重复列
         const entry = row.byCtx[ctx];
         const label = (CONTEXTS.find(c => c.id === ctx) || { label: ctx }).label;
-        const line = el('div', { fontSize: 'calc(12px * var(--k))', lineHeight: '1.5', color: 'var(--i3)', wordBreak: 'break-all' });
+        const line = el('div', { fontSize: 'var(--fs13)', lineHeight: '1.5', color: 'var(--ink3)', wordBreak: 'break-all' });
         line.setAttribute('data-ctx', ctx);
-        line.appendChild(el('span', { color: 'var(--i2)' }, `${label}  ${entry.value}`));
+        line.appendChild(el('span', { color: 'var(--ink2)' }, `${label}  ${entry.value}`));
         if (entry.use) line.appendChild(el('span', null, `  · ${entry.use}`));
         if (entry.source) line.appendChild(el('span', { display: 'block' }, `来源：${entry.source}`));
         body.appendChild(line);
@@ -236,21 +236,21 @@ export function mountPalette(root) {
     for (const b of themeButtons) {
       const on = b.dataset.value === st.theme;
       b.setAttribute('aria-pressed', on ? 'true' : 'false');
-      b.style.boxShadow = on ? 'inset 0 0 0 1.5px var(--i1)' : 'inset 0 0 0 .5px var(--i5)';
+      b.style.boxShadow = on ? 'inset 0 0 0 1.5px var(--ink1)' : 'inset 0 0 0 .5px var(--line)';
     }
     sizeBtn.textContent = `${LABELS.size}：${st.size}`;
-    status.textContent = `data-theme=${st.theme}  data-text-size=${st.size}  --p=${currentValue('--p')}  --k=${currentValue('--k')}`;
+    status.textContent = `data-theme=${st.theme}  data-text-size=${st.size}  --paper=${currentValue('--paper')}  --k=${currentValue('--k')}`;
     for (const c of cells) {
       const v = currentValue(c.name);
       c.now.textContent = v;
-      if (c.name === '--paper-image') {
+      if (c.name === '--tex-img') {
         c.swatch.textContent = '';
-        c.swatch.className = 'paper';
+        c.swatch.className = 'tex';
       } else if (isColor(v)) {
         c.swatch.textContent = '';
         c.swatch.style.background = `var(${c.name})`;
       } else {
-        c.swatch.style.background = 'var(--c)';
+        c.swatch.style.background = 'var(--sheet)';
         c.swatch.textContent = v.length <= 6 ? v : '…';
       }
     }
@@ -268,7 +268,7 @@ export function mountPalette(root) {
     rows = r;
     renderRows();
   }, error => {
-    list.appendChild(el('p', { padding: '12px 0', color: 'var(--ar)' }, LABELS.loadFailed + (error && error.message ? error.message : String(error))));
+    list.appendChild(el('p', { padding: '12px 0', color: 'var(--ink1)' }, LABELS.loadFailed + (error && error.message ? error.message : String(error))));
     console.warn('[shizi] palette:', error);
   });
 

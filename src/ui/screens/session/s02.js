@@ -26,7 +26,7 @@ export const S02_OVERLAY = 's02';
 
 injectStyles('session-s02', `
 .sz-s02__actions{margin-top:4px;display:flex;flex-direction:column;gap:12px}
-.sz-s02__cancel{align-self:stretch;justify-content:center;color:${T.i2}}
+.sz-s02__cancel{align-self:stretch;justify-content:center;color:${T.ink2}}
 `);
 
 /** 「鲜」「境」→ 正文里的 {chars}。 */

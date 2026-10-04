@@ -35,9 +35,9 @@ export function setNoneActions(next) {
 injectStyles('session-none', `
 .sz-none{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:0 16px;
   text-align:center}
-.sz-none__cell{width:88px;height:88px;box-sizing:border-box;border:1px solid var(--g, rgba(166,83,63,.28))}
-.sz-none__title{margin:0;font-family:${T.serif};font-size:calc(22px * ${T.k});font-weight:500;letter-spacing:.04em;color:${T.i1}}
-.sz-none__body{margin:0;font-size:calc(15px * ${T.k});line-height:1.7;color:${T.i2}}
+.sz-none__cell{width:88px;height:88px;box-sizing:border-box;border:${T.frameW} solid ${T.frame}}
+.sz-none__title{margin:0;font-family:${T.song};font-size:${T.fs22};font-weight:500;color:${T.ink1}}
+.sz-none__body{margin:0;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2}}
 .sz-none__home{align-self:center;justify-content:center}
 `);
 

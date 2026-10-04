@@ -55,8 +55,7 @@ ${P} .sz-write__line .sz-line{min-height:36px}
 ${P} .sz-write__line .sz-line__change{min-height:44px;margin:-4px 0}
 ${P} .sz-write__prompt{min-height:0;gap:2px;padding:0 0 2px}
 ${P} .sz-write__note{line-height:1.4}
-${P} .sz-write__foot .sz-btn--primary,${P} .sz-write__foot .sz-btn--secondary{min-height:56px;padding:0 12px;
-  letter-spacing:.02em;white-space:nowrap}
+${P} .sz-write__foot .sz-btn--primary,${P} .sz-write__foot .sz-btn--secondary{min-height:56px;padding:0 12px;white-space:nowrap}
 ${P} .sz-write__main{grid-template-columns:auto minmax(0,1fr);gap:10px}
 ${P} .sz-write__hint{min-height:56px}
 ${P} .sz-write__hint .sz-hintbtn{padding:0 12px}

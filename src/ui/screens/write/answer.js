@@ -37,7 +37,7 @@ import { html, useEffect, useLayoutEffect, useRef, useState } from '../../../../
 import { nav } from '../../router.js';
 import { Button } from '../../components/Button.js';
 import { Confirm } from '../../components/Confirm.js';
-import { injectStyles, T } from '../../components/styles.js';
+import { injectStyles, T, TEX } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
 import { getStore } from '../../../store/store.js';
 import { makeRecord, charOfCardKey } from '../../../core/records.js';
@@ -50,14 +50,14 @@ import { GlyphFallback } from './glyph-fallback.js';
 export const ANSWER_PHASES = Object.freeze(['answer', 'trace', 'retrace']);
 
 injectStyles('write-answer', `
-.sz-answer__link{text-decoration:underline;text-underline-offset:4px;text-decoration-thickness:.5px;color:${T.i2}}
+.sz-answer__link{text-decoration:underline;text-underline-offset:4px;text-decoration-thickness:.5px;color:${T.ink2}}
 .sz-answer__card{position:relative;flex:none;box-sizing:border-box;max-width:100%;margin:0 auto;
-  border:.5px solid ${T.i5};border-radius:16px;background:${T.c};overflow:hidden}
+  border:${T.frameW} solid ${T.frame};border-radius:${T.rWork};${TEX};overflow:hidden}
 .sz-answer__anim{position:absolute;left:0;top:0;pointer-events:none}
 .sz-answer__trace{position:absolute;inset:0;pointer-events:none}
 .sz-answer__trace canvas{position:absolute;left:0;top:0;display:block}
-.sz-answer__note{margin:0;width:100%;text-align:center;font-size:calc(13px * ${T.k});line-height:1.55;letter-spacing:.02em;
-  color:${T.i3}}
+.sz-answer__note{margin:0;width:100%;text-align:center;font-size:${T.fs13};line-height:${T.lh13};
+  color:${T.ink3}}
 .sz-answer__btns{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
 .sz-answer__btns--one{grid-template-columns:minmax(0,1fr)}
 .sz-answer__next{text-decoration:underline;text-underline-offset:4px;text-decoration-thickness:.5px}
@@ -337,7 +337,7 @@ export function TraceLayer({ char, cssSize = 345, onStatus }) {
     if (!canvas) return;
     const ctx = paintCanvas(canvas, cssSize);
     if (load.status === 'ready' && load.data) {
-      drawGlyph(ctx, load.data, { color: glyphColor('--tf'), outline: { color: glyphColor('--tl'), width: 4 } });
+      drawGlyph(ctx, load.data, { color: glyphColor('--danzhu'), alpha: 0.4, outline: { color: glyphColor('--danzhu'), width: 4 } });
     }
   }, [load.data, load.status, cssSize, theme]);
 

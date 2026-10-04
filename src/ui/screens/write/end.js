@@ -38,7 +38,7 @@ export const END_OVERLAY = 'write-end-dialog';
 const RESULT_SCREEN = 'result';
 
 injectStyles('write-end', `
-.sz-end__btn{min-height:40px;padding:0 8px;letter-spacing:.04em;color:${T.i2}}
+.sz-end__btn{min-height:40px;padding:0 8px;color:${T.ink2}}
 `);
 
 // ---------------------------------------------------------------- 纯函数

@@ -101,11 +101,11 @@ export function useBlockReason(getStoreSync) {
 injectStyles('block', `
 .sz-block{flex:1;min-height:0;box-sizing:border-box;overflow:auto;display:flex;flex-direction:column;justify-content:center;
   gap:28px;padding:calc(32px + env(safe-area-inset-top, 0px)) 32px calc(32px + env(safe-area-inset-bottom, 0px));
-  background:${T.p};color:${T.i1}}
-.sz-block__title{margin:0;font-family:${T.serif};font-size:calc(22px * ${T.k});line-height:1.5;font-weight:500;color:${T.i1}}
+  background:${T.paper};color:${T.ink1}}
+.sz-block__title{margin:0;font-family:${T.song};font-size:${T.fs22};line-height:${T.lh22};font-weight:500;color:${T.ink1}}
 .sz-block__title:focus{outline:none}
 .sz-block__body{display:flex;flex-direction:column;gap:8px}
-.sz-block__line{margin:0;font-size:calc(15px * ${T.k});line-height:1.8;color:${T.i2}}
+.sz-block__line{margin:0;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2}}
 .sz-block__actions{display:flex;flex-direction:column;gap:12px}
 `);
 

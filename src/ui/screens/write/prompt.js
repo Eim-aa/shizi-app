@@ -23,7 +23,7 @@ import { html, useRef } from '../../../../vendor/ui.js';
 import { promptModel } from '../../../core/cards.js';
 import { capitalCard, cardForKey, withWordOff } from '../../../data/deck.js';
 import { getStore } from '../../../store/store.js';
-import { injectStyles, T } from '../../components/styles.js';
+import { injectStyles, T, TEX } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
 
 /** 这些阶段题面把目标字填回空格（原型 L527）；recall / retrace 一律遮住。 */
@@ -105,22 +105,21 @@ injectStyles('write-prompt', `
 .sz-prompt[data-single="true"] .sz-prompt__wordwrap{padding-top:calc(32px * ${T.k})}
 .sz-prompt__word{--cw:calc(56px * ${T.k});box-sizing:border-box;display:flex;width:max-content;max-width:100%;
   margin-left:max(0px, min(calc(50% - (var(--bi) + .5) * var(--cw)), calc(100% - var(--n) * var(--cw))));
-  border:1px solid var(--g, rgba(166,83,63,.28));border-left:0;background:${T.c}}
+  border:${T.frameW} solid ${T.frame};border-left:0;${TEX}}
 .sz-prompt__cell{position:relative;box-sizing:border-box;flex:0 1 auto;width:var(--cw);min-width:0;height:calc(54px * ${T.k});
-  border-left:1px solid var(--g, rgba(166,83,63,.28));font-family:var(--kai, serif);font-size:calc(34px * ${T.k});
-  line-height:calc(54px * ${T.k});text-align:center;color:${T.i1};white-space:nowrap}
-.sz-prompt__cell[data-kind="blank"]{box-shadow:inset 0 0 0 1.5px ${T.ar}}
-.sz-prompt__cell[data-kind="repeatBlank"][data-masked="true"]{font-family:${T.sans};font-size:calc(28px * ${T.k});color:${T.i3}}
+  border-left:${T.frameW} solid ${T.frame};font-family:${T.kai};font-size:${T.fs34};
+  line-height:${T.lh34};text-align:center;color:${T.ink1};white-space:nowrap}
+.sz-prompt__cell[data-kind="blank"]{box-shadow:inset 0 0 0 ${T.targetW} ${T.ink1}}
+.sz-prompt__cell[data-kind="repeatBlank"][data-masked="true"]{font-family:${T.hei};font-size:${T.fs28};color:${T.ink3}}
 .sz-prompt__py{position:absolute;left:50%;bottom:100%;transform:translateX(-50%);padding-bottom:calc(4px * ${T.k});
-  font-family:${T.sans};font-size:calc(15px * ${T.k});line-height:calc(22px * ${T.k});letter-spacing:0;color:${T.i2};
+  font-family:${T.hei};font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2};
   white-space:nowrap}
-.sz-prompt[data-single="true"] .sz-prompt__py{font-size:calc(22px * ${T.k});line-height:calc(28px * ${T.k});color:${T.i1}}
+.sz-prompt[data-single="true"] .sz-prompt__py{font-size:${T.fs22};line-height:${T.lh22};color:${T.ink1}}
 .sz-prompt__cross{position:absolute;inset:0;pointer-events:none}
-.sz-prompt__cross::before{content:"";position:absolute;left:50%;top:9px;bottom:9px;border-left:1px dashed var(--g, rgba(166,83,63,.28))}
-.sz-prompt__cross::after{content:"";position:absolute;top:50%;left:9px;right:9px;border-top:1px dashed var(--g, rgba(166,83,63,.28))}
+.sz-prompt__cross::before{content:"";position:absolute;left:50%;top:9px;bottom:9px;border-left:${T.guideW} dashed ${T.guide}}
+.sz-prompt__cross::after{content:"";position:absolute;top:50%;left:9px;right:9px;border-top:${T.guideW} dashed ${T.guide}}
 .sz-prompt__fill{display:block}
-.sz-prompt__hint{margin:10px 0 0;min-width:0;text-align:center;font-size:calc(14px * ${T.k});line-height:1.6;
-  letter-spacing:.02em;color:${T.i2};white-space:normal;overflow-wrap:anywhere}
+.sz-prompt__hint{margin:10px 0 0;min-width:0;text-align:center;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2};white-space:normal;overflow-wrap:anywhere}
 .sz-prompt__hint:empty{margin:0}
 `);
 

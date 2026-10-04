@@ -23,11 +23,11 @@ import { injectStyles, T } from '../styles.js';
 export const PROXY_ATTR = 'data-query-focus-proxy';
 
 injectStyles('query-input', `
-.sz-query__input{width:100%;min-height:52px;box-sizing:border-box;margin:0;border:1px solid ${T.i2};border-radius:16px;
-  background:${T.c};padding:0 16px;font-family:var(--kai, serif);font-size:calc(24px * ${T.k});color:${T.i1};outline:none;
+.sz-query__input{width:100%;min-height:52px;box-sizing:border-box;margin:0;border:1px solid transparent;border-radius:${T.rCtl};
+  background:${T.field};padding:0 16px;font-family:${T.kai};font-size:${T.fs22};color:${T.ink1};outline:none;
   -webkit-appearance:none;appearance:none}
-.sz-query__input::placeholder{color:${T.i4}}
-.sz-query__input:focus-visible{border-color:${T.i1}}
+.sz-query__input::placeholder{color:${T.ink2}}
+.sz-query__input:focus-visible{border-color:${T.ink1}}
 `);
 
 function doc(win) {

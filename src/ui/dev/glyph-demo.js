@@ -28,12 +28,12 @@ const DEV = {
 };
 
 injectStyles('glyph-demo', `
-.sz-gd__box{position:relative;align-self:center;background:${T.c};border-radius:14px;overflow:hidden}
+.sz-gd__box{position:relative;align-self:center;background:${T.sheet};border-radius:${T.rCtl};overflow:hidden}
 .sz-gd__box canvas{position:absolute;left:0;top:0;display:block}
 .sz-gd__anim{position:absolute;left:0;top:0;pointer-events:none}
 .sz-gd__row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
 .sz-gd__row>.sz-btn--secondary,.sz-gd__row>.sz-btn--primary{flex:1;min-width:120px}
-.sz-gd__note{margin:0;font-size:calc(13px * ${T.k});line-height:1.45;color:${T.i3}}
+.sz-gd__note{margin:0;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3}}
 `);
 
 function boxSize(win) {

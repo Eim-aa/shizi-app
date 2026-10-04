@@ -25,32 +25,30 @@ import { InkMini, RefMini } from '../../screens/write/compare.js';
 
 injectStyles('query-card', `
 .sz-qcard-wrap{display:flex;flex-direction:column;gap:16px}
-.sz-qcard{box-sizing:border-box;padding:16px;border-radius:18px;background:${T.c};border:.5px solid ${T.i5};display:flex;
+.sz-qcard{box-sizing:border-box;padding:16px;border-radius:${T.rCtl};background:${T.field};display:flex;
   flex-direction:column;gap:14px}
 .sz-qcard__pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
 .sz-qcard__col{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0}
 .sz-qcard__cell{width:100%;max-width:124px}
-.sz-qcard__empty{width:100%;aspect-ratio:1/1;box-sizing:border-box;border:1px dashed var(--g, rgba(166,83,63,.28));border-radius:4px;
-  display:grid;place-items:center;font-size:calc(13px * ${T.k});color:${T.i3}}
-.sz-qcard__label{font-size:calc(13px * ${T.k});line-height:calc(18px * ${T.k});color:${T.i3}}
+.sz-qcard__empty{width:100%;aspect-ratio:1/1;box-sizing:border-box;border:${T.frameW} dashed ${T.frame};border-radius:${T.rWork};
+  display:grid;place-items:center;font-size:${T.fs13};color:${T.ink2}}
+.sz-qcard__label{font-size:${T.fs13};line-height:${T.lh13};color:${T.ink2}}
 .sz-qcard__info{display:flex;flex-direction:column;gap:4px}
 .sz-qcard__head{display:flex;align-items:baseline;gap:10px}
-.sz-qcard__char{font-family:var(--kai, serif);font-size:calc(28px * ${T.k});line-height:calc(34px * ${T.k});color:${T.i1}}
-.sz-qcard__meta{font-size:calc(15px * ${T.k});line-height:calc(22px * ${T.k});color:${T.i2}}
-.sz-qcard__word{font-family:var(--kai, serif);font-size:calc(20px * ${T.k});line-height:calc(28px * ${T.k});color:${T.i1}}
-.sz-qcard__stat{font-size:calc(15px * ${T.k});line-height:calc(22px * ${T.k});color:${T.i2}}
+.sz-qcard__char{font-family:${T.kai};font-size:${T.fs28};line-height:${T.lh28};color:${T.ink1}}
+.sz-qcard__meta{font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2}}
+.sz-qcard__word{font-family:${T.kai};font-size:${T.fs22};line-height:${T.lh22};color:${T.ink1}}
+.sz-qcard__stat{font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2}}
 .sz-qcard__acts{display:flex;flex-direction:column;gap:10px}
 .sz-qcard__two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
 .sz-qcard__one{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
-.sz-qcard__acts .sz-btn--secondary{letter-spacing:.04em}
 .sz-qcard__two .sz-btn{padding:0 8px}
-.sz-qcard__acts .sz-btn--secondary[disabled]{border:0;background:${T.off};color:${T.i3}}
 .sz-qcard__fail{display:flex;flex-direction:column;gap:10px}
-.sz-qcard__failnote{margin:0;font-size:calc(15px * ${T.k});line-height:1.6;color:${T.i2}}
+.sz-qcard__failnote{margin:0;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2}}
 .sz-qbad{display:flex;flex-direction:column;gap:10px}
-.sz-qbad__box{display:flex;flex-direction:column;gap:4px;padding:14px 16px;border-radius:14px;background:${T.off}}
-.sz-qbad__title{font-size:calc(15px * ${T.k});line-height:calc(22px * ${T.k});color:${T.i1}}
-.sz-qbad__line{font-size:calc(13px * ${T.k});line-height:1.7;color:${T.i3}}
+.sz-qbad__box{display:flex;flex-direction:column;gap:4px;padding:14px 16px;border-radius:${T.rCtl};background:${T.field}}
+.sz-qbad__title{font-size:${T.fs15};line-height:${T.lh15};color:${T.ink1}}
+.sz-qbad__line{font-size:${T.fs13};line-height:${T.lh13};color:${T.ink2}}
 `);
 
 /** localDay → 「{month} 月 {day} 日」（R-H02.dateFormat；copy-source placeholders 约定界面日期都用它）。 */

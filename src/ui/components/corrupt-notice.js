@@ -10,9 +10,10 @@ import { injectStyles, T } from './styles.js';
 
 injectStyles('corrupt-notice', `
 .sz-corrupt{position:absolute;left:16px;right:16px;top:calc(8px + env(safe-area-inset-top, 0px));z-index:45;box-sizing:border-box;
-  display:flex;gap:8px;align-items:flex-start;padding:10px 6px 10px 16px;border-radius:14px;background:${T.off};
-  box-shadow:0 6px 18px rgba(48,38,26,.10)}
-.sz-corrupt__text{flex:1;margin:0;padding-top:2px;font-size:calc(15px * ${T.k});line-height:1.7;color:${T.i2}}
+  display:flex;gap:8px;align-items:flex-start;padding:10px 6px 10px 16px;border-radius:${T.rCtl};background:${T.toastBg};color:${T.toastFg};
+  }
+.sz-corrupt .sz-btn{color:inherit}
+.sz-corrupt__text{flex:1;margin:0;padding-top:2px;font-size:${T.fs15};line-height:${T.lh15};color:inherit}
 `);
 
 // 每次渲染现取新 vnode，不复用模块级常量（vendor/ui.js 注释，M6-3）。

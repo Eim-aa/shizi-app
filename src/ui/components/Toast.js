@@ -1,7 +1,7 @@
 // 轻提示：showToast(text) 显示一条，新的替换旧的，默认 3.2s 后消失（原型 note()：3200ms）。
 // 跨页面保留（例如写字页返回首页后显示「已保存，下次接着写」，走查-W18）。
 // <ToastHost/> 由 ui/root.js 挂一次；role=status + aria-live=polite（01-架构设计 §7）。
-// 规格取原型 note 浮层：左右 24px、距底 110px（在 tab 条上方）、14px 圆角、--off 底、6px 圆点、15px/1.7 --i2。
+// 规格取原型 note 浮层：左右 24px、距底 110px（在 tab 条上方）、12px 圆角（--r-ctl）、--toast-bg 底 / --toast-fg 字（D43）、6px 圆点、15px/22px。
 import { html, useEffect, useState } from '../../../vendor/ui.js';
 import { injectStyles, T } from './styles.js';
 
@@ -41,10 +41,10 @@ export function hideToast() {
 injectStyles('toast', `
 .sz-toast-host{position:absolute;left:24px;right:24px;bottom:calc(110px + env(safe-area-inset-bottom, 0px));z-index:40;
   pointer-events:none;display:flex;justify-content:center}
-.sz-toast{box-sizing:border-box;width:100%;display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border-radius:14px;
-  background:${T.off};box-shadow:0 6px 18px rgba(48,38,26,.10);animation:sz-fade-in .2s ease-out both}
-.sz-toast__dot{width:6px;height:6px;margin-top:calc(8px * ${T.k});flex:none;border-radius:50%;background:${T.i2}}
-.sz-toast__text{flex:1;font-size:calc(15px * ${T.k});line-height:1.7;color:${T.i2}}
+.sz-toast{box-sizing:border-box;width:100%;display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border-radius:${T.rCtl};
+  background:${T.toastBg};color:${T.toastFg};animation:sz-fade-in .2s ease-out both}
+.sz-toast__dot{width:6px;height:6px;margin-top:calc(8px * ${T.k});flex:none;border-radius:50%;background:currentColor}
+.sz-toast__text{flex:1;font-size:${T.fs15};line-height:${T.lh15};color:inherit}
 @media (prefers-reduced-motion: reduce){.sz-toast{animation:none}}
 `);
 

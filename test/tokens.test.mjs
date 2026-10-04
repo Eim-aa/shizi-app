@@ -114,14 +114,16 @@ test('dark block is written three times identically (prefers-color-scheme, data-
   assert.deepEqual(Object.keys(ctx.light).sort(), Object.keys(ctx.dark).sort(), 'light and dark define the same keys');
 });
 
-test('mapping: variables tokens.json marks as deleted are gone; mapped names exist as aliases or are replaced', () => {
+test('mapping: every pre-D43 variable is gone from tokens.css (deleted, renamed or split into the new tokens)', () => {
   const names = new Set(parseTokenDecls(tokensCss).map(d => d.name));
-  for (const [old, m] of Object.entries(tokens.mapping)) {
-    if (!old.startsWith('--')) continue;
-    if (m.to === null) assert.ok(!names.has(old), `${old}: tokens.json mapping says delete`);
+  const KEPT = new Set(['--k', '--scrim', '--ref', '--seal']); // 名字沿用，取值换成新令牌
+  for (const old of Object.keys(tokens.mapping)) {
+    if (old.startsWith('--') && !KEPT.has(old)) assert.ok(!names.has(old), `${old}: replaced by ${JSON.stringify(tokens.mapping[old].to)} (tokens.json mapping)`);
   }
-  for (const old of ['--st1', '--st2', '--hi', '--ho', '--lamp', '--sy0', '--syt', '--sys', '--syl', '--paper-image', '--paper-size', '--paper-position', '--paper-repeat']) {
-    assert.ok(!names.has(old), `${old} deleted`);
+  for (const old of ['--serif', '--sans', '--tap', '--ease']) assert.ok(!names.has(old), `${old} renamed (--song / --hei / --hit / --ease-out)`);
+  // mapping 里的新令牌都已建成 CSS 变量
+  for (const key of ['hand', 'under', 'wall1', 'wall2', 'wall3', 'wall4', 'onSeal', 'btnFg', 'toastBg', 'toastFg', 'frame', 'guide', 'danzhu']) {
+    assert.ok(names.has(`--${kebab(key)}`), `--${kebab(key)} exists`);
   }
 });
 

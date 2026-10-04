@@ -30,11 +30,11 @@ import { openDetail } from '../detail/index.js';
 export const LIBRARY_QUERY_SOURCE = Object.freeze({ view: 'library' });
 
 injectStyles('library-query', `
-.sz-libq.sz-btn{width:100%;min-height:calc(44px + 6px * ${T.k});box-sizing:border-box;border-radius:14px;background:${T.off};
-  box-shadow:inset 0 1px 2px rgba(48,38,26,.08),inset 0 0 0 .5px ${T.i5};display:flex;align-items:center;gap:10px;padding:0 16px;
+.sz-libq.sz-btn{width:100%;min-height:calc(44px + 6px * ${T.k});box-sizing:border-box;border-radius:${T.rCtl};background:${T.field};
+  display:flex;align-items:center;gap:10px;padding:0 16px;
   text-align:left}
-.sz-libq__icon{flex:none;width:18px;height:18px;color:${T.i2}}
-.sz-libq__text{min-width:0;font-size:calc(17px * ${T.k});line-height:calc(24px * ${T.k});letter-spacing:.04em;color:${T.i3}}
+.sz-libq__icon{flex:none;width:18px;height:18px;color:${T.ink2}}
+.sz-libq__text{min-width:0;font-size:${T.fs17};line-height:${T.lh17s};color:${T.ink2}}
 `);
 
 // 每次渲染现取新 vnode，不复用模块级常量（vendor/ui.js 注释，M6-3）。

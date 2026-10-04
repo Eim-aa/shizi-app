@@ -35,7 +35,7 @@ import { html, useEffect, useRef, useState } from '../../../../vendor/ui.js';
 import { registerScreen, getRouter, getScreen, nav } from '../../router.js';
 import { Page } from '../../components/Page.js';
 import { Button, markStateChange } from '../../components/Button.js';
-import { injectStyles, T } from '../../components/styles.js';
+import { injectStyles, T, TEX } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
 import * as defaultPolicy from '../../../config/policy.js';
 import { getStore } from '../../../store/store.js';
@@ -82,49 +82,48 @@ setNoneActions({ wrongList: () => nav.replace(LIST_SCREEN, { kind: 'wrong' }) })
 injectStyles('library-list', `
 .sz-list{display:flex;flex-direction:column;gap:22px}
 .sz-list__intro{display:flex;flex-direction:column;gap:8px}
-.sz-list__head{margin:0;font-family:${T.serif};font-size:calc(26px * ${T.k});line-height:calc(34px * ${T.k});font-weight:500;
-  letter-spacing:.04em;color:${T.i1}}
-.sz-list__top{margin:0;font-size:calc(15px * ${T.k});line-height:1.7;color:${T.i2};text-wrap:pretty}
-.sz-list__rows{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;border-top:1px solid ${T.i5}}
-.sz-lrow{min-height:84px;box-sizing:border-box;display:flex;align-items:center;gap:12px;border-bottom:1px solid ${T.i5}}
+.sz-list__head{margin:0;font-family:${T.song};font-size:${T.fs28};line-height:${T.lh28};font-weight:500;color:${T.ink1}}
+.sz-list__top{margin:0;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2};text-wrap:pretty}
+.sz-list__rows{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;border-top:1px solid ${T.line}}
+.sz-lrow{min-height:84px;box-sizing:border-box;display:flex;align-items:center;gap:12px;border-bottom:1px solid ${T.line}}
 .sz-lrow__sel{flex:none;width:44px;height:44px;margin:0 -8px 0 -9px;display:grid;place-items:center}
-.sz-lrow__dot{width:26px;height:26px;box-sizing:border-box;border-radius:50%;border:1.5px solid ${T.i4};display:grid;place-items:center}
-.sz-lrow__sel[aria-checked="true"] .sz-lrow__dot{border:0;background:${T.i1}}
+.sz-lrow__dot{width:26px;height:26px;box-sizing:border-box;border-radius:50%;border:1.5px solid ${T.ink4};display:grid;place-items:center}
+.sz-lrow__sel[aria-checked="true"] .sz-lrow__dot{border:0;background:${T.ink1}}
 .sz-lrow__gap{flex:none;width:27px}
 .sz-lrow__open{flex:1;min-width:0;min-height:84px;box-sizing:border-box;padding:10px 0;display:flex;align-items:center;gap:12px;
   text-align:left;color:inherit}
-.sz-lrow__char{flex:none;width:calc(44px * ${T.k});text-align:center;font-family:var(--kai, serif);font-size:calc(36px * ${T.k});
-  line-height:calc(48px * ${T.k});color:${T.i1}}
+.sz-lrow__char{flex:none;width:calc(44px * ${T.k});text-align:center;font-family:${T.kai};font-size:${T.fs34};
+  line-height:${T.lh34};color:${T.ink1}}
 .sz-lrow__main{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}
-.sz-lrow__word{font-family:var(--kai, serif);font-size:calc(20px * ${T.k});line-height:calc(28px * ${T.k});color:${T.i2}}
-.sz-lrow__word b{font-weight:700;color:${T.i1}}
-.sz-lrow__meta{display:block;font-size:calc(14px * ${T.k});line-height:calc(20px * ${T.k});
-  color:${T.i2};font-variant-numeric:tabular-nums}
+.sz-lrow__word{font-family:${T.kai};font-size:${T.fs22};line-height:${T.lh22};color:${T.ink2}}
+.sz-lrow__word b{font-weight:700;color:${T.ink1}}
+.sz-lrow__meta{display:block;font-size:${T.fs15};line-height:${T.lh15};
+  color:${T.ink2};font-variant-numeric:tabular-nums}
 /* 每段整段换行；M6-2：一段比这一栏还宽时（320 宽 + 大字）段内再换行，不越出这一栏压到右边的小图说明 */
 .sz-lrow__meta span{display:inline-block;max-width:100%}
 .sz-lrow__thumbcol{flex:none;display:flex;flex-direction:column;align-items:center;gap:2px}
-.sz-lrow__thumb{position:relative;width:44px;height:44px;box-sizing:border-box;border:1px solid var(--g, rgba(166,83,63,.28));
-  background:${T.c};display:grid;place-items:center;overflow:hidden}
+.sz-lrow__thumb{position:relative;width:44px;height:44px;box-sizing:border-box;border:${T.frameW} solid ${T.frame};
+  ${TEX};display:grid;place-items:center;overflow:hidden}
 .sz-lrow__thumb .sz-compare__card{position:absolute;inset:0;border:0;border-radius:0;background:transparent;aspect-ratio:auto}
-.sz-lrow__noink{max-width:2.4em;font-size:calc(11px * ${T.k});line-height:1.2;color:${T.i3};text-align:center;overflow-wrap:anywhere}
-.sz-lrow__cap{font-size:calc(11px * ${T.k});line-height:1.2;color:${T.i3};white-space:nowrap}
-.sz-lrow__chev{flex:none;font-size:calc(15px * ${T.k});color:${T.i3}}
-.sz-list__note{margin:0;font-size:calc(15px * ${T.k});line-height:1.7;color:${T.i2};text-wrap:pretty}
-.sz-list__hint{margin:0;text-align:center;font-size:calc(13px * ${T.k});line-height:calc(18px * ${T.k});color:${T.i3}}
-.sz-list__fail{margin:0;text-align:center;font-size:calc(13px * ${T.k});line-height:1.6;color:${T.ar}}
-.sz-list__toggle{min-height:44px;padding:0 4px;font-size:calc(15px * ${T.k});color:${T.i2}}
-.sz-list__rest{align-self:flex-start;min-height:44px;padding:0 4px;margin-top:-12px;font-size:calc(15px * ${T.k});color:${T.i2}}
+.sz-lrow__noink{max-width:2.4em;font-size:${T.fs11};line-height:${T.lh11};color:${T.ink3};text-align:center;overflow-wrap:anywhere}
+.sz-lrow__cap{font-size:${T.fs11};line-height:${T.lh11};color:${T.ink3};white-space:nowrap}
+.sz-lrow__chev{flex:none;font-size:${T.fs15};color:${T.ink3}}
+.sz-list__note{margin:0;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2};text-wrap:pretty}
+.sz-list__hint{margin:0;text-align:center;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3}}
+.sz-list__fail{margin:0;text-align:center;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink1}}
+.sz-list__toggle{min-height:44px;padding:0 4px;font-size:${T.fs15};color:${T.ink2}}
+.sz-list__rest{align-self:flex-start;min-height:44px;padding:0 4px;margin-top:-12px;font-size:${T.fs15};color:${T.ink2}}
 .sz-list-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;
   padding:24px 0 96px}
-.sz-list-empty__glyph{width:88px;height:88px;box-sizing:border-box;border:1px dashed var(--g, rgba(166,83,63,.28));display:grid;
-  place-items:center;font-family:var(--kai, serif);font-size:52px;color:${T.i4}}
-.sz-list-empty__title{margin:0;font-family:${T.serif};font-size:calc(20px * ${T.k});line-height:calc(28px * ${T.k});font-weight:500;
-  color:${T.i1}}
-.sz-list-empty__body{margin:0;max-width:290px;font-size:calc(13px * ${T.k});line-height:1.75;color:${T.i3};text-wrap:pretty}
+.sz-list-empty__glyph{width:88px;height:88px;box-sizing:border-box;border:${T.frameW} dashed ${T.frame};display:grid;
+  place-items:center;font-family:${T.kai};font-size:52px;color:${T.under}}
+.sz-list-empty__title{margin:0;font-family:${T.song};font-size:${T.fs22};line-height:${T.lh22};font-weight:500;
+  color:${T.ink1}}
+.sz-list-empty__body{margin:0;max-width:290px;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3};text-wrap:pretty}
 `);
 
 // 每次渲染现取新 vnode，不复用模块级常量（vendor/ui.js 注释，M6-3）。
-const CHECK = () => html`<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="var(--p, #F4F0E7)" stroke-width="1.8"
+const CHECK = () => html`<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="var(--paper)" stroke-width="1.8"
   stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m3 7.2 2.6 2.6L11 4.4"></path></svg>`;
 
 // ---------------------------------------------------------------- 状态

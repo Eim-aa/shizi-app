@@ -2,19 +2,22 @@
 // 键盘按 WAI-ARIA Tabs「漫游 tabindex、手动激活」（02 §8 M6-1；M0-4 三项都可 Tab 是过渡实现）：
 // 只有选中项 tabindex=0（Tab 键进出 tablist 只停一次，落在选中项上），其余 tabindex=-1；
 // 在 tablist 里左右方向键 / Home / End 移动焦点（首尾循环），不切换；Enter / Space（按钮原生点击）才切换。
-// 规格取原型 ShiziScreen hasTabs：左右 12px 外边距、64px 高（×--k）、32px 圆角、--c 底、.5px --i5 边，
-// 图标 22px、字 11px；选中 --ar、未选 --i3。
+// 规格取设计系统 v1 的 .sz-tabs（D43；真机用原生 UITabBar，只设 tint）：通栏、50px 高（×--k，加底部安全区）、纸色底、
+// 顶部 0.5pt 发丝线，图标 24px、字 11px；选中 --ink1 并在标签下加 4px 圆点、未选 --ink3（不再是朱）。
 import { html, useRef } from '../../../vendor/ui.js';
 import { Button } from './Button.js';
 import { injectStyles, T } from './styles.js';
 
 injectStyles('tabs', `
-.sz-tabs{flex:none;box-sizing:border-box;margin:0 12px max(calc(22px * ${T.k}), env(safe-area-inset-bottom, 0px));
-  height:calc(64px * ${T.k});border-radius:32px;background:${T.c};border:.5px solid ${T.i5};display:flex;align-items:stretch}
-.sz-tabs__tab{flex:1;min-height:44px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
-  border-radius:32px;color:${T.i3};font-size:calc(11px * ${T.k});letter-spacing:.06em}
-.sz-tabs__tab[aria-selected="true"]{color:${T.ar}}
-.sz-tabs__tab svg{width:calc(22px * ${T.k});height:calc(22px * ${T.k})}
+.sz-tabs{flex:none;box-sizing:border-box;margin:0;height:calc(50px * ${T.k} + env(safe-area-inset-bottom, 0px));padding-bottom:env(safe-area-inset-bottom, 0px);
+  border-top:${T.hair} solid ${T.line};background:${T.paper};display:flex;align-items:stretch}
+.sz-tabs__tab{position:relative;flex:1;min-height:${T.hit};display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  color:${T.ink3};font-size:${T.fs11};font-weight:500}
+.sz-tabs__tab[aria-selected="true"]{color:${T.ink1}}
+.sz-tabs__tab span{position:relative}
+.sz-tabs__tab[aria-selected="true"] span::after{content:"";position:absolute;left:50%;top:100%;width:4px;height:4px;margin:1px 0 0 -2px;
+  border-radius:50%;background:currentColor}
+.sz-tabs__tab svg{width:calc(24px * ${T.k});height:calc(24px * ${T.k})}
 `);
 
 /**

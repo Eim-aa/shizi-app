@@ -15,22 +15,22 @@ export const PAGE_COPY = Object.freeze({
 });
 
 injectStyles('page', `
-.sz-page{position:relative;display:flex;flex-direction:column;height:100%;min-height:0;color:${T.i1}}
+.sz-page{position:relative;display:flex;flex-direction:column;height:100%;min-height:0;color:${T.ink1}}
 .sz-page__head{position:relative;flex:none;box-sizing:border-box;min-height:44px;display:flex;align-items:center;
   justify-content:space-between;padding:env(safe-area-inset-top, 0px) 8px 0}
-.sz-page__title{position:absolute;left:56px;right:56px;margin:0;text-align:center;font-size:calc(17px * ${T.k});
-  font-weight:500;letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none}
+.sz-page__title{position:absolute;left:56px;right:56px;margin:0;text-align:center;font-size:${T.fs17};
+  font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none}
 .sz-page__title:focus{outline:none}
 .sz-page__lead,.sz-page__trail{position:relative;z-index:1;min-width:44px;min-height:44px;display:flex;align-items:center}
-.sz-page__trail{justify-content:flex-end;padding-right:4px;font-size:calc(15px * ${T.k});color:${T.i2}}
+.sz-page__trail{justify-content:flex-end;padding-right:4px;font-size:${T.fs15};color:${T.ink2}}
 .sz-page__body{flex:1;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;
   box-sizing:border-box;padding:14px 24px 32px;display:flex;flex-direction:column;gap:24px}
 .sz-page__foot{flex:none;box-sizing:border-box;padding:12px 24px max(20px, env(safe-area-inset-bottom, 0px));
-  display:flex;flex-direction:column;gap:12px;background:${T.p}}
+  display:flex;flex-direction:column;gap:12px;background:${T.paper}}
 .sz-tabpage{box-sizing:border-box;padding:calc(14px + env(safe-area-inset-top, 0px)) 24px 32px;display:flex;
-  flex-direction:column;gap:26px;color:${T.i1}}
-.sz-tabpage__title{margin:0;font-family:${T.serif};font-size:calc(26px * ${T.k});line-height:1.4;font-weight:500;
-  color:${T.i1}}
+  flex-direction:column;gap:26px;color:${T.ink1}}
+.sz-tabpage__title{margin:0;font-family:${T.song};font-size:${T.fs28};line-height:${T.lh28};font-weight:500;
+  color:${T.ink1}}
 .sz-tabpage__title:focus{outline:none}
 `);
 

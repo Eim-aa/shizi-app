@@ -110,34 +110,32 @@ export function backupMenuStatus(state) {
 injectStyles('mine-backup', `
 .sz-bk{display:flex;flex-direction:column;gap:28px}
 .sz-bk__status{display:flex;flex-direction:column;gap:8px}
-.sz-bk__label{font-size:calc(13px * ${T.k});letter-spacing:.14em;color:${T.i3}}
-.sz-bk__date{font-family:${T.serif};font-size:calc(26px * ${T.k});font-weight:500;color:${T.i1}}
-.sz-bk__line{font-size:calc(13px * ${T.k});line-height:1.7;color:${T.i3}}
-.sz-bk__intro{margin:0;font-size:calc(15px * ${T.k});line-height:1.7;color:${T.i2};text-wrap:pretty}
-.sz-bk__note{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border-radius:14px;background:${T.off}}
-.sz-bk__dot{width:6px;height:6px;margin-top:calc(8px * ${T.k});flex:none;border-radius:50%;background:${T.i2}}
-.sz-bk__note[data-tone="error"] .sz-bk__dot{background:${T.ar}}
-.sz-bk__notetext{flex:1;font-size:calc(15px * ${T.k});line-height:1.7;color:${T.i2}}
-.sz-bk__note[data-tone="error"] .sz-bk__notetext{color:${T.i1}}
-.sz-bk__retry.sz-btn--text{min-height:0;margin:-10px 0 -10px 6px;padding:10px 0;display:inline-block;line-height:inherit;vertical-align:baseline;color:${T.i1};text-decoration:underline;
-  text-underline-offset:4px;text-decoration-color:${T.i4};white-space:nowrap;letter-spacing:0}
-.sz-bk__export.sz-btn--primary[disabled]{background:${T.off};color:${T.i4}}
-.sz-bk__list{display:flex;flex-direction:column;border-top:1px solid ${T.i5}}
+.sz-bk__label{font-size:${T.fs13};color:${T.ink3}}
+.sz-bk__date{font-family:${T.song};font-size:${T.fs28};font-weight:500;color:${T.ink1}}
+.sz-bk__line{font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3}}
+.sz-bk__intro{margin:0;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2};text-wrap:pretty}
+.sz-bk__note{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border-radius:${T.rCtl};background:${T.field}}
+.sz-bk__dot{width:6px;height:6px;margin-top:calc(8px * ${T.k});flex:none;border-radius:50%;background:${T.ink2}}
+.sz-bk__note[data-tone="error"] .sz-bk__dot{background:${T.ink1}}
+.sz-bk__notetext{flex:1;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2}}
+.sz-bk__note[data-tone="error"] .sz-bk__notetext{color:${T.ink1}}
+.sz-bk__retry.sz-btn--text{min-height:0;margin:-10px 0 -10px 6px;padding:10px 0;display:inline-block;line-height:inherit;vertical-align:baseline;color:${T.ink1};text-decoration:underline;
+  text-underline-offset:4px;text-decoration-color:${T.ink4};white-space:nowrap;}
+.sz-bk__export.sz-btn--primary[disabled]{background:${T.field};color:${T.ink4}}
+.sz-bk__list{display:flex;flex-direction:column;border-top:1px solid ${T.line}}
 .sz-bk__row.sz-btn{width:100%;min-height:52px;padding:8px 0;display:flex;align-items:center;justify-content:space-between;gap:12px;
-  text-align:left;border-bottom:1px solid ${T.i5}}
+  text-align:left;border-bottom:1px solid ${T.line}}
 .sz-bk__rowl{display:flex;flex-direction:column;gap:3px;min-width:0}
-.sz-bk__rowt{font-size:calc(15px * ${T.k});color:${T.i1}}
-.sz-bk__rows{font-size:calc(15px * ${T.k});line-height:1.5;color:${T.i2}}
-.sz-bk__rowr{flex:none;font-size:calc(13px * ${T.k});color:${T.i3}}
-.sz-bk__row--danger .sz-bk__rowt{color:${T.ar}}
-.sz-bk__row[disabled] .sz-bk__rowt{color:${T.i4}}
+.sz-bk__rowt{font-size:${T.fs15};color:${T.ink1}}
+.sz-bk__rows{font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2}}
+.sz-bk__rowr{flex:none;font-size:${T.fs13};color:${T.ink3}}
+.sz-bk__row[disabled] .sz-bk__rowt{color:${T.ink4}}
 .sz-bk__file{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;overflow:hidden}
 .sz-bk__undo{position:relative;margin:0 -8px}
 .sz-bk__undo .sz-undobar{position:relative;left:auto;right:auto;bottom:auto}
-.sz-bk__danger.sz-btn--secondary{border:1px solid ${T.ar};background:transparent;color:${T.ar}}
-.sz-bk__sheetbody{margin:0;font-size:calc(15px * ${T.k});line-height:1.75;color:${T.i2};text-wrap:pretty}
+.sz-bk__sheetbody{margin:0;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2};text-wrap:pretty}
 .sz-bk__actions{margin-top:4px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
-.sz-bk__loss{margin:0;font-size:calc(15px * ${T.k});line-height:1.75;color:${T.ar}}
+.sz-bk__loss{margin:0;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink1}}
 `);
 
 // ---------------------------------------------------------------- store / router 小工具

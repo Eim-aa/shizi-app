@@ -2,7 +2,11 @@
 // （不依赖 :active，iOS WebKit 上 :active 需要 touchstart 监听才生效）。纯逻辑单测；真实样式与减少动态效果见 e2e 65-p0a-shell。
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { pressFeedbackHandlers, PRESS_IN_MS, PRESS_OUT_MS } from '../../src/ui/components/Button.js';
+import { readFileSync } from 'node:fs';
+import { pressFeedbackHandlers, PRESS_IN_MS, PRESS_OUT_MS, PRESS_SCALE } from '../../src/ui/components/Button.js';
+
+const tokensCss = readFileSync(new URL('../../src/config/tokens.css', import.meta.url), 'utf8');
+const tokenValue = name => new RegExp(`${name}:\\s*([^;]+);`).exec(tokensCss)[1].trim();
 
 function fakeEl() {
   const attrs = new Map();
@@ -36,7 +40,11 @@ test('handlers are lowercase on* props (Preact keeps un-lowercased names for eve
   assert.deepEqual(Object.keys(h).sort(), ['onpointercancel', 'onpointerdown', 'onpointerleave', 'onpointerup']);
 });
 
-test('timing constants: press 80ms in, 160ms rebound (ADA A4)', () => {
-  assert.equal(PRESS_IN_MS, 80);
-  assert.equal(PRESS_OUT_MS, 160);
+test('timing constants equal the motion tokens (D43, P109): press .97 in 120ms, 220ms rebound', () => {
+  assert.equal(PRESS_IN_MS, 120);
+  assert.equal(PRESS_OUT_MS, 220);
+  assert.equal(PRESS_SCALE, 0.97);
+  assert.equal(tokenValue('--t-press'), `${PRESS_IN_MS}ms`);
+  assert.equal(tokenValue('--t-release'), `${PRESS_OUT_MS}ms`);
+  assert.equal(Number(tokenValue('--press-scale')), PRESS_SCALE);
 });

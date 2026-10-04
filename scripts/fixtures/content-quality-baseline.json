@@ -4,7 +4,7 @@
   "cardCount": 7218,
   "deckSha256": "4b8770326dc6a5275e8a1d903bf5fd9c2f758ba523e036121dbbc4fbd107e5f9",
   "identitySha256": "76a7c916ba757583a573453b7896542499b488122e6f3679374eef15710e2bc1",
-  "protectedCardDataSha256": "f084a4671a4d40ec5bd3cfee297810ffeecaed9933188eae2c249a3d386bd083",
+  "protectedCardDataSha256": "701d1c825cbab721160eea0e20347b9d476b0e570accd2a5fcf3ebb82a14176a",
   "originalRepeatedTargets": [
     "越",
     "刚",
@@ -140,6 +140,24 @@
         "deckSha256": "4b8770326dc6a5275e8a1d903bf5fd9c2f758ba523e036121dbbc4fbd107e5f9",
         "identitySha256": "76a7c916ba757583a573453b7896542499b488122e6f3679374eef15710e2bc1",
         "protectedCardDataSha256": "f084a4671a4d40ec5bd3cfee297810ffeecaed9933188eae2c249a3d386bd083",
+        "fallback": 885
+      }
+    },
+    {
+      "revision": 2,
+      "reason": "D50 ③（C1，2026-10-04）：round 4 新增 482 条、覆盖 8 条审定语境词（顾问审读 1.0 CONTEXT_SUGGEST 219 条 + 合规全库排查 271 条）。受保护字段的忽略集随批准条目扩大（被批准卡的词、读音、ctx、提示由批准条目逐条核对）；用新忽略集分别以旧、新两份覆盖表计算受保护数据，7218 张卡逐字段相同（0 处差异），deck-data.js 未改。",
+      "previous": {
+        "cardCount": 7218,
+        "deckSha256": "4b8770326dc6a5275e8a1d903bf5fd9c2f758ba523e036121dbbc4fbd107e5f9",
+        "identitySha256": "76a7c916ba757583a573453b7896542499b488122e6f3679374eef15710e2bc1",
+        "protectedCardDataSha256": "f084a4671a4d40ec5bd3cfee297810ffeecaed9933188eae2c249a3d386bd083",
+        "fallback": 885
+      },
+      "current": {
+        "cardCount": 7218,
+        "deckSha256": "4b8770326dc6a5275e8a1d903bf5fd9c2f758ba523e036121dbbc4fbd107e5f9",
+        "identitySha256": "76a7c916ba757583a573453b7896542499b488122e6f3679374eef15710e2bc1",
+        "protectedCardDataSha256": "701d1c825cbab721160eea0e20347b9d476b0e570accd2a5fcf3ebb82a14176a",
         "fallback": 885
       }
     }

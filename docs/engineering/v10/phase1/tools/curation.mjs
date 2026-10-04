@@ -244,8 +244,9 @@ export const DEFAULT_COMBO = 'A';
 
 // ---------------------------------------------------------------- 语境词（1.0 顾问审定）
 // 键 = 字，值 = 审定后的语境词（目标字在词里只出现一次，build 会校验）。与题库现有词相同的条目 = 确认现有词可用。
-// 只写在这里不会改变 App 的题面：运行时题面来自 deck-data.js 与 data/context-overrides.js（内容门禁管），
-// 要生效需按内容门禁流程把这些词落进 context-overrides.js（见 顾问审读-1.0.md §5「落地」）。
+// 运行时题面来自 deck-data.js 与 data/context-overrides.js（内容门禁管）。卡 C1（D50 ③）已把这里与题库现有词不同的条目
+// （连同 CONTEXT_PY 读音）落进 context-overrides.js，批准记录见 scripts/fixtures/content-quality-approved.json round 4、
+// 清单见 docs/legal/语境词替换清单-C1.md。之后再改这里，要照同一流程另落一轮，只改这里不会改变题面。
 // 大写数字的词与 capital-numerals.mjs 的特别组语境保持一致（特别组之外复习时也该用同一个词）。
 import { CONTEXTS as CAPITAL_CONTEXTS } from './capital-numerals.mjs';
 

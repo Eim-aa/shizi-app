@@ -115,4 +115,21 @@ function issues(cards) {
   return {leaks, collisions, pairs};
 }
 
-module.exports = {loadCorpus, loadSources, originalOverrides, reviewedOverrides, protectedCardData, sha256, identity, issues, promptSignature};
+// D50 ③（C1）：题面可见文字（语境词、题面提示、释义）里出现禁用词表（scripts/fixtures/content-blocklist.json）的词 → 命中列表。
+function visibleText(card) {
+  return [card.word, card.promptHint || '', card.ctx === 'gloss' ? card.hint || '' : '', card.visibleHint || ''].join('\n');
+}
+function blocklistWords(blocklist) {
+  return Object.values((blocklist && blocklist.categories) || {}).flatMap(row => row.words || []);
+}
+function blockedWordHits(cards, words) {
+  const hits = [];
+  for (const card of cards) {
+    const text = visibleText(card);
+    for (const word of words) if (word && text.includes(word)) hits.push({target:card.target, cardKey:card.cardKey, word});
+  }
+  return hits;
+}
+
+module.exports = {loadCorpus, loadSources, originalOverrides, reviewedOverrides, protectedCardData, sha256, identity, issues, promptSignature,
+  blocklistWords, blockedWordHits};

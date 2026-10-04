@@ -2,12 +2,13 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const {loadCorpus, reviewedOverrides, protectedCardData, sha256, identity, issues} = require('./content-corpus.cjs');
+const {loadCorpus, reviewedOverrides, protectedCardData, sha256, identity, issues, blocklistWords, blockedWordHits} = require('./content-corpus.cjs');
 
 const root = path.resolve(__dirname, '..');
 const approval = require('./fixtures/content-quality-approved.json');
 const baseline = require('./fixtures/content-quality-baseline.json');
 const legacy = require('./fixtures/context-overrides-approved.json');
+const blocklist = require('./fixtures/content-blocklist.json');
 async function main() {
 const current = await loadCorpus(root);
 const byKey = new Map(current.cards.map(card => [card.cardKey, card]));
@@ -46,7 +47,7 @@ for (const entry of approval.entries) {
   assert.equal(card.promptHint || '', entry.override.promptHint || '');
   if (entry.override.gloss) assert.equal(card.hint, entry.override.gloss);
 }
-assert.equal(approvedKeys.size, 340);
+assert.equal(approvedKeys.size, 822); // rounds 1–3: 340；round 4（C1 / D50 ③）：新增 482 + 覆盖 8
 
 for (const card of current.cards) {
   assert.equal(card.chars.join(''), card.word);
@@ -64,6 +65,16 @@ for (const card of current.cards) {
     'Only the original target position carries pinyin');
   assert(!card.promptHTML.includes(card.target), `Answer exposed in prompt text/attributes: ${card.target}`);
 }
+// D50 ③（C1）：替换掉的敏感语境词（不雅、疾病污名、人名、政治与民族、宗教、品牌…）不得回到题面。
+const blockedWords = blocklistWords(blocklist);
+assert(blockedWords.length >= 200 && new Set(blockedWords).size === blockedWords.length, 'Content blocklist must be present and unique');
+for (const word of ['梅毒', '妓女', '娼妓', '狎妓', '嫖娼', '老鸨', '奸淫', '赌博', '杀人', '屠杀', '杀戮', '尸体', '僵尸', '死囚', '掐死', '拉屎', '天安门', '万岁', '河蟹']) {
+  assert(blockedWords.includes(word), `Content blocklist lost a named word: ${word}`);
+}
+const blockedHits = blockedWordHits(current.cards, blockedWords);
+assert.deepEqual(blockedHits, [], 'A blocked sensitive word is visible on a prompt');
+assert.equal(blockedWordHits([{target:'梅', cardKey:'base:梅', word:'梅毒', ctx:'override', visibleHint:''}], blockedWords).length, 1,
+  'Blocklist negative control was not rejected');
 const found = issues(current.cards);
 assert.equal(found.leaks.length, 0, 'Visible prompt/hint must not contain the target');
 assert(found.collisions.every(group => group.cards.every(card => card.ctx === 'fallback')),
@@ -93,7 +104,7 @@ for (const flag of [true, false, undefined]) {
   assert.equal(corpus.cards.find(card => card.target === target).common, flag === true ? 0 : 1);
 }
 
-console.log(JSON.stringify({status:'passed', cards:current.cards.length, approvedTargets:approvedKeys.size,
+console.log(JSON.stringify({status:'passed', cards:current.cards.length, approvedTargets:approvedKeys.size, blockedWords:blockedWords.length,
   before:baseline.issueCounts, remaining:{leaks:found.leaks.length, wordCollisionGroups:0,
     allCollisionGroups:found.collisions.length, fallback},
   governedMembershipUnchanged:true, protectedCardDataUnchanged:true, generatedDeckUnchanged:true,

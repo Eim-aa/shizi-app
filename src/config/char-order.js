@@ -10,7 +10,7 @@ export const CHAR_ORDER = Object.freeze({
     commonRankMax: 3500,
     inputs: Object.freeze({
       orderTable: "0fb1bc024762",
-      curation: "9fde5657e0b1",
+      curation: "aab819061407",
       capitalNumerals: "b6c806cc7103",
     }),
   }),

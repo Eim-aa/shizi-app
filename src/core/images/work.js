@@ -9,6 +9,7 @@
 // 「放进去」的状态存在本组会话上（session.added = recordId[]，经 store.commit），刷新后仍在（core/schema.js sessionFields.added）。
 
 import { isPaperRecord } from '../records.js';
+import { isWorkMember } from '../work-members.js';
 
 // 判定在 core/records.js（P1-E8 字段、P1-E78 接入）；这里再导出，保持 images 内部与单测的引用不变。
 export { isPaperRecord };
@@ -55,12 +56,14 @@ export function buildWork({ items, records, hasInk, added = [], charOf = key => 
         ink = false;
       }
     }
+    // 谁算作品成员只有一条规则（core/work-members.js isWorkMember）：写对、有墨的看后自写、手动放进来的写错；这里再要求有墨（结果页作品要画本人墨）
+    const member = !!record && isWorkMember(record, { hasInk: () => ink, added: addedIds });
     let state;
     if (kind === 'skipped') state = 'skipped';
     else if (paper) state = 'paper';
-    else if (kind === 'answer-seen') state = ink ? 'in' : 'seen';
-    else if (judgment === 'wrong') state = ink ? (addedIds.has(record.id) ? 'added' : 'addable') : 'noInk';
-    else state = ink ? 'in' : 'noInk';
+    else if (kind === 'answer-seen') state = member ? 'in' : 'seen';
+    else if (judgment === 'wrong') state = !ink ? 'noInk' : member ? 'added' : 'addable';
+    else state = member && ink ? 'in' : 'noInk';
     return {
       index,
       cardKey: item.cardKey,

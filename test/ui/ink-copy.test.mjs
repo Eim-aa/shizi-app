@@ -30,6 +30,10 @@ const BOTH_TRUE = {
   'R-P03.todayChars': '「这天写的字」指记录里的字，不指笔迹',
   'R-W16.saveFailed': '写字页保存失败：刚写的笔画还在页面上',
   'X-LIBHOME.emptyTitle': '空态：写过的字会留在这里（字，不是笔迹）',
+  // 阶段 1 P1-E8「在纸上写」：说的是纸上那次「不留笔迹」，纸上记录本来就没有墨迹，与 perRecordInk 开关无关
+  'X-PAPER.note': '纸上那一字的格下说明：纸上记录不留笔迹（ink = null），perRecordInk 无关',
+  'X-JUDGE.paperMineLabel': '纸上那一字的读屏名称「你的书写：写在纸上」，说的是没有屏幕笔迹，perRecordInk 无关',
+  'X-SETTINGS.writeModeNote': '写字方式说明：纸上记录不留笔迹、不进图片和年报，perRecordInk 无关',
 };
 
 test('F4: every copy slot that mentions 笔迹 / 你写的字 is a variant pair or registered as true either way', () => {

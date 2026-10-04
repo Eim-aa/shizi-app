@@ -115,6 +115,10 @@ final class LocalWebSchemeHandler: NSObject, WKURLSchemeHandler {
             return "font/woff"
         case "ttf":
             return "font/ttf"
+        case "wav":
+            return "audio/wav"
+        case "caf":
+            return "audio/x-caf"
         case "txt":
             return "text/plain"
         case "md":

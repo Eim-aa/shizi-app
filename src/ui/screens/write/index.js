@@ -45,7 +45,7 @@ import { currentCardKey, isComplete, PHASES } from '../../../core/sessions.js';
 import { getStore, isReplacement } from '../../../store/store.js';
 import { setBackGestureEnabled } from '../../../platform/bridge.js';
 import { installCommitFeedback } from '../../../platform/haptics.js'; // M5-5 触觉 / 按键音（按 commit label）
-import { keySound } from '../../../platform/sound.js'; // M5-5 描一遍落笔的纸声（P24）
+import { warmSounds } from '../../../platform/sound.js'; // 阶段 1 S1：预载判断声 / 落款声（网页用；书写与描红不出声，P200）
 import { t } from '../../../config/copy/index.js';
 import { charOfCardKey } from '../../../core/records.js';
 import { useHint, useStrokeData, HintNote } from './hint-layer.js';
@@ -225,7 +225,8 @@ function WriteScreen({ params, entry }) {
   const slot = params && params.slot === 'B' ? 'B' : 'A';
   const { state, epoch } = useStoreState();
   const isTop = useBackGestureGate(entry);
-  useEffect(() => { installCommitFeedback(getStore); }, []); // M5-5：判断 / 提示 / 看答案 / 撤销等 commit 成功后发触觉与按键音（platform/haptics.js）
+  useEffect(() => { installCommitFeedback(getStore); }, []); // M5-5：判断 / 提示 / 看答案 / 撤销等 commit 成功后发触觉与判断声（platform/haptics.js）
+  useEffect(() => { warmSounds({ state }); }, []); // S1：网页预载判断声三个变体与落款声，判断时直接播（settings.sound 关着不请求）
   const epochRef = useRef(epoch);
   epochRef.current = epoch;
   return html`<${WriteBody} key=${`e${epoch}`} slot=${slot} state=${state} epoch=${epoch} isTop=${isTop} entry=${entry}
@@ -376,7 +377,6 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
     hint.onStrokeStart();
     row.onStrokeStart(); // 落笔：上一字的结果行收起（决定-D19）
     skip.dismiss(); // 落笔：跳过的撤销机会结束（G3）
-    if (phase === 'trace') keySound('trace-stroke', { state }); // M5-5：描一遍每次落笔的纸声（P24，settings.sound 关时不响）
   };
 
   const onStrokeEnd = raw => update(prev => ({ ...prev, strokes: prev.strokes.concat([raw]), cleared: null }));

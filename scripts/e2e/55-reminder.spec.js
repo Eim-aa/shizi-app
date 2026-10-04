@@ -11,8 +11,8 @@
 //      queryReminderStatus + syncReminder；零 pageerror / console.error。
 //   3. 冷启动深链（有未完成 B）：走 S02「上一组还有…没写」→「结束那组，开新的」→ B 换成「额」；热启动再点一次通知（「境」，
 //      就绪后直接交付）→ 又一次 S02 →「接着写那组」回到「额」。
-//   4. 触觉 / 按键音点位：判断落定 haptic stamp + sound stamp；看答案 action；描一遍 select；描一遍落笔 sound paper；
-//      写完最后一字进结果页 action；按键音关（settings.sound=false）时判断只有触觉没有声音。
+//   4. 触觉 / 声音点位（S1，D50 ⑦）：判断落定 haptic stamp + sound j1 纸页落定（三个变体轮换）；看答案 action；描一遍 select；
+//      描一遍落笔**不出声**（书写 / 描红无声）；写完最后一字进结果页 action + 落款盖章声 s1；按键音关（settings.sound=false）时判断只有触觉没有声音。
 
 import {
   HORIZONTAL, bootTestHost, drawStroke, installNativeStub, localDayOf, makeSession, nativeMessages, tid, topSel, waitNavIdle,
@@ -270,7 +270,7 @@ async function hapticsSince(page, n0) {
 
 async function scenarioFeedback(page, ctx) {
   const { assert, step } = ctx;
-  step('haptics / key sounds at the old points (judge, answer, trace, trace stroke, result)');
+  step('haptics / sounds at the points (judge j1, answer, trace, trace stroke silent, result seal s1)');
   await page.evaluate(() => window.__shiziTest.reset());
   const session = makeSession({ id: 's5', slot: 'A', kind: 'daily', chars: ['永', '和'] });
   const seeded = await page.evaluate(s => window.__shiziTest.seed({ sessions: { A: s, B: null, lastEnded: {} } }), session);
@@ -295,7 +295,7 @@ async function scenarioFeedback(page, ctx) {
   assert.deepEqual(await hapticsSince(page, n0), [], 'drawing / entering compare: no feedback');
   await page.click(topSel('write-judge-correct'));
   await page.waitForFunction(() => document.querySelector('.sz-layer[data-top="true"] .sz-write').dataset.cursor === '1');
-  assert.deepEqual(await hapticsSince(page, n0), ['haptic:stamp', 'sound:stamp'], 'judge: haptic stamp + key sound (P24)');
+  assert.deepEqual(await hapticsSince(page, n0), ['haptic:stamp', 'sound:j1_page_settle'], 'judge: haptic stamp + j1 page-settle (P24 / P200)');
   await waitNavIdle(page);
 
   n0 = (await nativeMessages(page)).length;
@@ -315,13 +315,13 @@ async function scenarioFeedback(page, ctx) {
   await drawStroke(page, HORIZONTAL);
   await page.waitForTimeout(150);
   await drawStroke(page, [[0.5, 0.2], [0.5, 0.8]]);
-  assert.deepEqual(await hapticsSince(page, n0), ['sound:paper', 'sound:paper'], 'each trace stroke: paper sound');
+  assert.deepEqual(await hapticsSince(page, n0), [], 'trace strokes are silent (D50 ⑦: no writing / tracing sound)');
 
   n0 = (await nativeMessages(page)).length;
   await page.click(topSel('write-answer-next'));
   await page.waitForSelector(topSel('result-screen'));
   await waitNavIdle(page);
-  assert.deepEqual(await hapticsSince(page, n0), ['haptic:action'], 'last char done → result page: action');
+  assert.deepEqual((await hapticsSince(page, n0)).sort(), ['haptic:action', 'sound:s1_wood_muted'], 'last char done → result page: action + seal sound (once)');
   assert.equal(await topScreen(page), 'result', 'on the result page');
 
   step('key sound off (settings.sound=false): judge gives the haptic only');

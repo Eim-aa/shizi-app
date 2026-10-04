@@ -868,7 +868,8 @@ function ResultScreen({ params, entry }) {
           </div>`
         : null}
       ${isWork && model.work
-        ? html`<${WorkSection} work=${model.work} day=${model.day} dateText=${dateText(model.day)} inkOf=${inkForRecord} onOpen=${openEntry} />`
+        ? html`<${WorkSection} work=${model.work} day=${model.day} dateText=${dateText(model.day)} inkOf=${inkForRecord} onOpen=${openEntry}
+          sealKey=${`${slot}:${sessionId}`} settings=${state && state.settings} />`
         : null}
       ${!isWork && model.cells.length ? html`<${Grid} model=${model} state=${state} store=${store} onOpen=${openCell} />` : null}
       ${model.dateLine ? html`<p class="sz-result__date" data-testid="result-date">${model.dateLine}</p>` : null}

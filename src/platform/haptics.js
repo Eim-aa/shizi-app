@@ -7,7 +7,7 @@
 // iOS Safari 没有 vibrate，静默）。未知种类忽略。
 //
 // 触发点（旧版调用点按第十稿流程挪到对应的 store.commit；commit 成功才发，失败三段式不发）：
-//   write:judge          「写对了 / 写错了」判断落定           stamp + 按键音 judge（P24）   旧 pickStamp L2639
+//   write:judge          「写对了 / 写错了」判断落定           stamp + 判断声 judge（P24 / P200） 旧 pickStamp L2639
 //   write:correct        写字页结果行「修改判断」改成功         stamp + 按键音 judge          旧重盖后再盖 L2624/L2639
 //   result:correct       结果页对照弹层「改为…」改成功          stamp + 按键音 judge          同上
 //   hint                 提示（给出下一笔）                     select                        旧 #tip L2558 / 长按 L2546
@@ -17,7 +17,8 @@
 //   result:skip-undo     结果页上撤销最后一字的跳过             undo                          同上
 //   result:finish        写完最后一字、结果页出现               action                        旧 roundSummary 落章 L2717
 //   write:end            「结束这组」确认（有判断时换成结果页） action                        同上
-// 描一遍落笔的纸声（按键音 trace-stroke）不是 commit，由写字页 onStrokeStart 直接调 sound.js keySound。
+// 声音（S1，D50 ⑦）：判断类 commit 同时发判断声 j1；书写与描红不出声（没有 trace-stroke 点位）；落款盖章声不是 commit，
+// 由结果页 WorkSection 在作品出现时直接调 sound.js keySound('seal')。
 // 这张表是 M5-5 按旧版点位的过渡映射（第十稿没给触觉规格），已登记待定。
 //
 // 接线：installCommitFeedback(getStore) 在写字页 / 结果页挂载时调用（幂等：同一个 store 只订阅一次）；
@@ -83,7 +84,7 @@ export function feedbackFor(info) {
   return Object.prototype.hasOwnProperty.call(COMMIT_FEEDBACK, info.label) ? COMMIT_FEEDBACK[info.label] : null;
 }
 
-/** 按一条 store 通知发触觉与按键音；state 是通知带来的新状态（按键音读 settings.sound）。 */
+/** 按一条 store 通知发触觉与判断声；state 是通知带来的新状态（声音读 settings.sound，关着只发触觉）。 */
 export function applyFeedback(info, state, deps = {}) {
   const fb = feedbackFor(info);
   if (!fb) return null;

@@ -136,9 +136,9 @@ test('importing bridge.js in a page defines every global immediately (before any
   }
 });
 
-test('haptic and sound messages: {type:"haptic", kind} for the five old kinds, {type:"sound", kind:"stamp"|"paper"}; settings.sound gates sound', async () => {
+test('haptic and sound messages: {type:"haptic", kind} for the five old kinds, {type:"sound", kind:<file stem>, gain} (S1, D50 ⑦); settings.sound gates sound', async () => {
   const { haptic, applyFeedback, feedbackFor, installCommitFeedback, resetCommitFeedback, COMMIT_FEEDBACK, HAPTIC_KINDS } = await import('../../src/platform/haptics.js');
-  const { keySound, synthesize, resetSound, SOUND_OF_EVENT } = await import('../../src/platform/sound.js');
+  const { keySound, resetSound, SOUND_FILES } = await import('../../src/platform/sound.js');
   const { win, sent } = fakeWin();
   const b = createBridge(win);
   assert.deepEqual([...HAPTIC_KINDS], ['stamp', 'undo', 'action', 'select', 'milestone']);
@@ -154,20 +154,17 @@ test('haptic and sound messages: {type:"haptic", kind} for the five old kinds, {
 
   resetSound();
   sent.length = 0;
-  assert.deepEqual(SOUND_OF_EVENT, { judge: 'stamp', 'trace-stroke': 'paper' });
+  assert.deepEqual(Object.keys(SOUND_FILES), ['judge', 'seal']);
   assert.equal(keySound('judge', { bridge: b, settings: null }), 'native', 'default on');
   assert.equal(keySound('judge', { bridge: b, settings: { sound: false } }), false, 'settings.sound=false');
-  assert.equal(keySound('trace-stroke', { bridge: b, now: 1000 }), 'native');
-  assert.equal(keySound('trace-stroke', { bridge: b, now: 1050 }), false, 'paper throttled to 100ms (old)');
-  assert.equal(keySound('trace-stroke', { bridge: b, now: 1100 }), 'native');
-  assert.equal(keySound('tap', { bridge: b }), false, 'not a P24 event');
-  assert.equal(keySound('judge', { bridge: b, policy: { keySoundEvents: ['trace-stroke'] } }), false, 'policy.keySoundEvents gates');
-  assert.deepEqual(sent, [{ kind: 'stamp', type: 'sound' }, { kind: 'paper', type: 'sound' }, { kind: 'paper', type: 'sound' }]);
-  const stamp = synthesize('stamp', 8000);
-  assert.equal(stamp.length, Math.round(8000 * 0.22));
-  assert.ok(stamp.every(x => Number.isFinite(x) && Math.abs(x) <= 1));
-  assert.equal(synthesize('paper', 8000).length, Math.round(8000 * 0.11));
-  assert.throws(() => synthesize('rain', 8000), /unknown sound kind/);
+  assert.equal(keySound('trace-stroke', { bridge: b }), false, 'writing / tracing is silent (D50 ⑦)');
+  assert.equal(keySound('tap', { bridge: b }), false, 'not a sound event');
+  assert.equal(keySound('judge', { bridge: b, policy: { keySoundEvents: ['seal'] } }), false, 'policy.keySoundEvents gates');
+  assert.equal(keySound('seal', { bridge: b, key: 'k' }), 'native');
+  assert.deepEqual(sent, [
+    { kind: 'j1_page_settle', gain: 1, type: 'sound' },
+    { kind: 's1_wood_muted', gain: 1, type: 'sound' },
+  ]);
 
   // commit label → 反馈
   assert.deepEqual(feedbackFor({ type: 'commit', label: 'write:judge' }), { haptic: 'stamp', sound: 'judge' });

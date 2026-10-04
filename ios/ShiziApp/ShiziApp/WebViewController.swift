@@ -59,8 +59,8 @@ final class WebViewController: UIViewController {
     private lazy var actionHaptic = UIImpactFeedbackGenerator(style: .light)
     private lazy var selectionHaptic = UISelectionFeedbackGenerator()
     private lazy var milestoneHaptic = UINotificationFeedbackGenerator()
-    private lazy var stampSoundPlayer = makePaperSoundPlayer(kind: .stamp)
-    private lazy var paperSoundPlayer = makePaperSoundPlayer(kind: .paper)
+    /// 判断声三个变体与落款声（assets/sound/*.caf，S1 / D50 ⑦）：文件名 → 预载好的播放器；`preloadSounds()` 在 viewDidLoad 填满。
+    private var soundPlayers: [String: AVAudioPlayer] = [:]
 
     init() {
         guard let webRoot = Bundle.main.url(forResource: "Web", withExtension: nil) else {
@@ -127,6 +127,7 @@ final class WebViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         cleanupTemporaryShareFiles()
+        preloadSounds()
         #if DEBUG
         applySmokeLaunchArguments()
         #endif
@@ -757,7 +758,7 @@ extension WebViewController: WKScriptMessageHandler {
         case "haptic":
             playHaptic(kind: body["kind"] as? String ?? "")
         case "sound":
-            playPaperSound(kind: body["kind"] as? String ?? "")
+            playSound(kind: body["kind"] as? String ?? "", gain: body["gain"] as? Double ?? 1)
         case "soundscape":
             // P07：练字背景音已删；旧页面若还发这条消息，原生什么都不做。
             break
@@ -859,87 +860,30 @@ extension WebViewController {
     }
 }
 
-// MARK: - 纸墨声音：ambient 会随静音键静默，并与其他音频混合
+// MARK: - 声音：判断「收进」的纸页落定（三个变体，页面轮换）与落款的木印盖章（S1，D50 ⑦）
+// 素材是打进包里的 CAF（线性 PCM 16bit，无编码、无 priming 补零，起音从第 0 个采样开始；assets/sound/，scripts/sound/gen.mjs 程序合成）。
+// AVAudioSession 用 .ambient + .mixWithOthers：遵守静音键（静音时完全无声），与后台音乐混音——不打断、不压低（不用 duckOthers）。
+// 书写与描红没有声音；设置里「按键音」关着时页面根本不发 sound 消息。页面决定播哪个文件（kind = 文件名，不含扩展名）与增益 gain。
 extension WebViewController {
-    private enum PaperSoundKind {
-        case stamp
-        case paper
-    }
+    private static let soundNames = ["j1_page_settle", "j1_page_settle_b", "j1_page_settle_c", "s1_wood_muted"]
 
-    private func makePaperSoundPlayer(kind: PaperSoundKind) -> AVAudioPlayer? {
-        do {
-            try AVAudioSession.sharedInstance().setCategory(.ambient, mode: .default, options: [.mixWithOthers])
-            let player = try AVAudioPlayer(data: Self.paperSoundData(kind: kind))
+    private func preloadSounds() {
+        guard let webRoot = Bundle.main.url(forResource: "Web", withExtension: nil) else { return }
+        try? AVAudioSession.sharedInstance().setCategory(.ambient, mode: .default, options: [.mixWithOthers])
+        let directory = webRoot.appendingPathComponent("assets/sound", isDirectory: true)
+        for name in Self.soundNames {
+            let url = directory.appendingPathComponent("\(name).caf")
+            guard let player = try? AVAudioPlayer(contentsOf: url) else { continue }
             player.prepareToPlay()
-            return player
-        } catch {
-            return nil
+            soundPlayers[name] = player
         }
     }
 
-    private func playPaperSound(kind: String) {
-        let player: AVAudioPlayer?
-        switch kind {
-        case "stamp":
-            player = stampSoundPlayer
-        case "paper":
-            player = paperSoundPlayer
-        default:
-            return
-        }
-        player?.currentTime = 0
-        player?.play()
-    }
-
-    private static func paperSoundData(kind: PaperSoundKind) -> Data {
-        let sampleRate: UInt32 = 22_050
-        let duration = kind == .stamp ? 0.22 : 0.11
-        let frameCount = Int(Double(sampleRate) * duration)
-        var pcm = Data(capacity: frameCount * 2)
-        var noiseState: UInt32 = kind == .stamp ? 194 : 73
-        var filteredNoise = 0.0
-
-        for index in 0..<frameCount {
-            noiseState = noiseState &* 1_664_525 &+ 1_013_904_223
-            let noise = Double(noiseState) / Double(UInt32.max) * 2 - 1
-            let progress = Double(index) / Double(frameCount)
-            let time = Double(index) / Double(sampleRate)
-            let value: Double
-            if kind == .stamp {
-                filteredNoise = filteredNoise * 0.82 + noise * 0.18
-                let envelope = pow(1 - progress, 2.8)
-                value = (sin(2 * .pi * (82 + 22 * time) * time) * 0.58 + filteredNoise * 0.34) * envelope * 0.42
-            } else {
-                let envelope = pow(1 - progress, 1.4)
-                value = (noise - filteredNoise) * envelope * 0.075
-                filteredNoise = noise
-            }
-            let sample = Int16(clamping: Int(value * Double(Int16.max)))
-            appendLittleEndian(sample, to: &pcm)
-        }
-
-        var wav = Data()
-        wav.append(Data("RIFF".utf8))
-        appendLittleEndian(UInt32(36 + pcm.count), to: &wav)
-        wav.append(Data("WAVEfmt ".utf8))
-        appendLittleEndian(UInt32(16), to: &wav)
-        appendLittleEndian(UInt16(1), to: &wav)
-        appendLittleEndian(UInt16(1), to: &wav)
-        appendLittleEndian(sampleRate, to: &wav)
-        appendLittleEndian(sampleRate * 2, to: &wav)
-        appendLittleEndian(UInt16(2), to: &wav)
-        appendLittleEndian(UInt16(16), to: &wav)
-        wav.append(Data("data".utf8))
-        appendLittleEndian(UInt32(pcm.count), to: &wav)
-        wav.append(pcm)
-        return wav
-    }
-
-    private static func appendLittleEndian<T: FixedWidthInteger>(_ value: T, to data: inout Data) {
-        var littleEndian = value.littleEndian
-        withUnsafeBytes(of: &littleEndian) { bytes in
-            data.append(contentsOf: bytes)
-        }
+    private func playSound(kind: String, gain: Double) {
+        guard let player = soundPlayers[kind] else { return } // 未知名字忽略（旧的 stamp / paper 已不存在）
+        player.volume = Float(min(max(gain, 0), 1))
+        player.currentTime = 0
+        player.play()
     }
 }
 

@@ -2,7 +2,7 @@
 // E9c（D49 减法修稿）：作品直接放在页面纸上（没有作品底板）；作品下的行只剩「字 + 状态 + 动作」，无框、无分隔线、用留白分组；
 // 朱点在字的右上角（墨迹外框右上外 2pt）。
 //
-//   WorkSection   作品（作品格 + 落款与印 + 格下「看后写的」标注）；没有任何墨时换成衬底参考字一行 + 格下状态字（§4.2 变体）。
+//   WorkSection   作品（作品格 + 落款与印 + 格下「看后写的」标注；落款出现时播一次盖章声，S1）；没有任何墨时换成衬底参考字一行 + 格下状态字（§4.2 变体）。
 //   WorkRows      作品下「没放进图里」的行：36pt 字（有墨写本人墨，没墨写衬底）+ 状态词（写错了 / 看过答案 / 跳过了 / 写对 · 纸上…）+ 右侧「放进图里」
 //                 （仅写错且有墨；纸上只有说明，D47）；点行 → 对照与修改（D19）。放进图里的字回到作品、这一行消失。
 //   commitAdded   「放进图里」/ 从分享弹层拿出来：写进本组会话的 added（经 store.commit，刷新后仍在；核心规则在 core/images/work.js）。
@@ -10,7 +10,7 @@
 // data-testid：work（作品；data-n / data-cols / data-rows / data-cell）、work-cell（data-index / data-char / data-mode / data-dot / data-state）、
 //   work-cap、work-kuan、work-seal、work-dot；result-excluded、result-exrow（data-char / data-record / data-state / data-added）、result-exrow-open、
 //   result-add（aria-pressed）；result-exrow 带 data-index（该字在本组里的序号，与作品格的 data-index 同一套）。
-import { html } from '../../../../vendor/ui.js';
+import { html, useEffect } from '../../../../vendor/ui.js';
 import { Button } from '../../components/Button.js';
 import { CellCanvas, PlainRow, WorkPaper, WrongDot, useAxSize, useScreenWidth } from '../../components/work.js';
 import { injectStyles, T, TEX } from '../../components/styles.js';
@@ -18,6 +18,7 @@ import { t } from '../../../config/copy/index.js';
 import { resultGrid } from '../../../core/images/layout.js';
 import { toggleAdded } from '../../../core/images/work.js';
 import { workKuan } from '../../work-text.js';
+import { keySound, warmSounds } from '../../../platform/sound.js';
 
 export const WORK_LABELS = Object.freeze({ added: 'result:added' });
 
@@ -118,8 +119,16 @@ export function workAria(chars, n, date) {
  * @param {{work:object, day:string|null, dateText:string, inkOf:(record)=>object|null, onOpen:(entry)=>void}} props
  *   work = core/images/work.js buildWork 的结果；inkOf(record) → {points, strokes}。
  */
-export function WorkSection({ work, day, dateText, inkOf, onOpen }) {
+export function WorkSection({ work, day, dateText, inkOf, onOpen, sealKey = '', settings = null }) {
   const sw = useScreenWidth();
+  // 落款盖章声（S1，D50 ⑦ / D46 ⑮）：结果页作品首次呈现落款时响一次（网页阶段没有落印动画，作品出现即落款）；同一组（sealKey）再渲染、
+  // 回到本页不再响；没有墨（衬底一行、无落款）不响；settings.sound 关着完全无声。
+  const hasSeal = !work.empty;
+  useEffect(() => {
+    if (!hasSeal) return;
+    const play = () => keySound('seal', { settings, key: sealKey || 'work' });
+    warmSounds({ settings, events: ['seal'] }).then(play, play);
+  }, [hasSeal, sealKey]);
   if (work.empty) {
     const entries = work.entries;
     if (!entries.length) return null;

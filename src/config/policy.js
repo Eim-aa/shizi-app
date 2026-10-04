@@ -160,8 +160,13 @@ export const firstTip = Object.freeze({
 });
 // P52 抬笔写会话失败：不阻断书写，顶部一次性提示，判断时由三段式兜底
 export const strokeSaveFailure = 'non-blocking';
-// P24 按键音触发点：判断落定与描红落笔（沿旧）
-export const keySoundEvents = Object.freeze(['judge', 'trace-stroke']);
+// P24 / P200 声音触发点（已决定 D50 ⑦ / D46 ⑮）：判断「收进」（j1 纸页落定，三个变体轮换）与结果页落款（s1 木印·闷实）；
+// 书写与描红不出声（原 trace-stroke 点位与高频纸声已删除）。素材 assets/sound/（scripts/sound/gen.mjs 程序合成），逻辑 platform/sound.js。
+export const keySoundEvents = Object.freeze(['judge', 'seal']);
+// P201 声音播放增益（dB，已决定 D50 ⑦ 的「判断声比盖章低约 6–8dB」）：这个差已经在素材里——LUFS-M −31 对 −23（耳机 8dB）、
+// 采样峰值 −10.6…−12.2 对 −3.0 dBFS、外放估差 6.1dB——所以两项都取 0dB，不在播放端放大（放大会削波）；
+// 真机试听后落款偏吓人 / 偏轻时在这里调（负值降、不超过 0 以防削波）。原生与网页同一取值（原生消息带 gain）。
+export const soundGainDb = Object.freeze({ judge: 0, seal: 0 });
 
 // ---- 笔迹渲染（手感参数，待真机）----
 // P65 笔迹渲染常量：core/ink-math.js 默认从这里读（buildStroke / catmullRom / resampleForReplay / encodeInk 的 base），

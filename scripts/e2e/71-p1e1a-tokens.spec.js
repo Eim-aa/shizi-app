@@ -15,7 +15,7 @@ const CHARS = '永和春大中国人天地山水火木金土日月星云风雨�
 const TONE_AGO = [1, 15, 60, 120];
 
 /** 登记过的字面例外（verify_tokens.mjs EXCEPTIONS 同一批）：字格里的楷体字、印章里的字、占位小字。 */
-const FACE = '.sz-hshi__glyph, .sz-hcell__glyph, .sz-exrow__glyph, .sz-lib__char, .sz-lib__emptyglyph, .sz-rcell__glyph, .sz-glyph-fb, .sz-list-empty__glyph, .sz-ann__glyph, .sz-ann__noink, .sz-ann__eglyph, .sz-scell__glyph, .sz-scell__noink, .sz-dcard__tiles, .sz-about__seal, .sz-mseal, .sz-wseal, .sz-home__seal';
+const FACE = '.sz-hcell__glyph, .sz-exrow__glyph, .sz-lib__char, .sz-lib__emptyglyph, .sz-rcell__glyph, .sz-glyph-fb, .sz-list-empty__glyph, .sz-ann__glyph, .sz-ann__noink, .sz-ann__eglyph, .sz-scell__glyph, .sz-scell__noink, .sz-dcard__tiles, .sz-about__seal, .sz-mseal, .sz-wseal, .sz-home__seal';
 const ZHU_OK = '.sz-lib__dot, .sz-lib__mark, .sz-drow__dot, .sz-home__seal, .sz-about__seal, .sz-mseal, .sz-wseal, .sz-work__dot--wrong';
 
 function pad2(n) { return n < 10 ? `0${n}` : String(n); }

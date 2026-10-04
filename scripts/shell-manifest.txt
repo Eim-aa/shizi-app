@@ -7394,6 +7394,7 @@ src/store/budget.js
 src/store/migrate.js
 src/store/storage.js
 src/store/store.js
+src/ui/brand/shi.js
 src/ui/canvas/brush.js
 src/ui/canvas/glyph.js
 src/ui/canvas/ink-canvas.js

@@ -1,8 +1,8 @@
 // 首页字帖位的零件（阶段 1 P1-E5；设计稿「首练与首页」§三「首页」、D43 首页方案 B、D46 ①；阶段 1 E9a 按减法修稿 D49 改）。
 //
-//   BrandShi        书家写的「拾」放在字帖格里（无记录时的字帖位）。书家稿还没到：先用 ShiziKai 的「拾」占位（与设计稿用霞鹜文楷轮廓
-//                   占位同一个字形来源）；书家稿到位后把 .sz-hshi__glyph 换成 assets 里的矢量资产，这个组件的尺寸 / 框 / 读屏名称不动。
-//                   TODO(资产)：书家「拾」到位后替换占位（06 P1-D2）。不显示任何「占位」字样给用户。
+//   BrandShi        品牌「拾」放在字帖格里（无记录时的字帖位）。字形是 ui/brand/shi.js 的矢量「拾」（拾字自绘 A1 骨架精修，不取自任何字体；
+//                   整字一色墨，--hand，D33），内联 SVG、currentColor；尺寸 --cell / 框 / 读屏名称（role=img + aria-label）不变。
+//                   TODO(资产)：书家实写的「拾」到位后只换 ui/brand/shi.js 的路径数据（06 P1-D2）。
 //   HomeTie         一排（或两行四列）字帖格：今天写的字（本人笔迹，首页不画朱点，D46 ①）/ 进行中这一组的格子（写过的有墨，没写的是空笺面）。
 //                   D49：字帖格只用两种线——外框 frameW frame + 格间 guideW guide（实线）；空格就是笺面，不画十字参照线，
 //                   也不画下一格的 targetFrame（与结果页作品格同一画法）。
@@ -20,6 +20,7 @@ import { Button } from '../../components/Button.js';
 import { PracticeGlyph } from '../../components/PracticeGlyph.js';
 import { injectStyles, T, TEX } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
+import { ShiMark } from '../../brand/shi.js';
 import { InkMini } from '../write/compare.js';
 import { getTodayRecordsAction, recordInkPoints } from './ink-row.js';
 
@@ -69,7 +70,7 @@ export function tieHeight(n, size) {
 injectStyles('home-copybook', `
 .sz-hshi{position:relative;display:grid;place-items:center;box-sizing:border-box;width:var(--cell);height:var(--cell);${TEX};
   box-shadow:inset 0 0 0 ${T.frameW} ${T.frame};container-type:inline-size}
-.sz-hshi__glyph{font-family:${T.kai};font-size:62cqw;line-height:1;color:${T.hand}}
+.sz-hshi__glyph{position:absolute;left:0;top:0;width:100%;height:100%;color:${T.hand}} /* 品牌「拾」是矢量图：墨框长边占格 62%，光学居中（ui/brand/shi.js） */
 .sz-htie{position:relative;display:inline-flex;flex-wrap:wrap;width:calc(var(--cell) * var(--cols));box-sizing:border-box;${TEX};
   box-shadow:inset 0 0 0 ${T.frameW} ${T.frame}}
 .sz-htie--btn.sz-btn{padding:0;display:inline-flex;text-align:left}
@@ -83,10 +84,10 @@ injectStyles('home-copybook', `
 .sz-hcell__glyph{position:absolute;left:0;top:0;width:100%;height:100%;color:${T.under}} /* 没有墨迹的格：衬底字是轮廓，字面占格 0.76（tokens.json typography.glyph.tieCellFace） */
 `);
 
-/** 无记录时的字帖位：书家「拾」。 */
+/** 无记录时的字帖位：品牌「拾」。 */
 export function BrandShi({ size }) {
   return html`<div class="sz-hshi" style=${{ '--cell': `${size}px` }} role="img" aria-label=${t('X-HOME.shiLabel')} data-testid="home-brand-shi">
-    <span class="sz-hshi__glyph" aria-hidden="true">${t('X-HOME.shiLabel')}</span>
+    <${ShiMark} class="sz-hshi__glyph" />
   </div>`;
 }
 

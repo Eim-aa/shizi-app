@@ -144,7 +144,7 @@ test('glyph rule: every use of the kai font in src/ui and src/core/images is a r
   const { violations, stale } = scan();
   assert.deepEqual(violations.filter(v => v.rule === 'glyph').map(v => `${v.file}:${v.line} ${v.snippet}`), [], 'unregistered kai-font rule: practice chars must render through PracticeGlyph');
   const registered = EXCEPTIONS.filter(e => e.rule === 'glyph');
-  assert.ok(registered.length >= 15, 'the registry lists the seals, words, inputs, brand 拾 and the fallback branches');
+  assert.ok(registered.length >= 15, 'the registry lists the seals, words, inputs and the fallback branches');
   assert.deepEqual(stale.filter(e => e.rule === 'glyph'), [], 'no stale glyph exceptions');
 });
 

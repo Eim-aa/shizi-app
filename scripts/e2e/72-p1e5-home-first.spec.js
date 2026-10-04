@@ -96,7 +96,7 @@ async function homeView(page) {
       view: root.dataset.view, hero: root.dataset.hero, brand: root.dataset.brand, records: root.dataset.records, resume: root.dataset.resume,
       date: txt('home-date'), title: txt('home-title'), epigraph: !!q('home-epigraph'), cta: txt('home-start'), firstTip: txt('home-first-tip'),
       pick: txt('home-pick'), defer: txt('home-capital-defer'), seals: root.querySelectorAll('.sz-home__seal').length,
-      brandShi: txt('home-brand-shi'), motto: q('home-motto') ? q('home-motto').getAttribute('aria-label') : null,
+      brandShi: q('home-brand-shi') ? q('home-brand-shi').getAttribute('aria-label') : null, brandShiSvg: q('home-brand-shi') ? q('home-brand-shi').querySelectorAll('svg path').length : 0, brandShiText: q('home-brand-shi') ? q('home-brand-shi').textContent.trim() : null, motto: q('home-motto') ? q('home-motto').getAttribute('aria-label') : null,
       todayCount: txt('home-today-count'), otherLine: txt('other-line'),
       // D49-7：计数不画在首页上，只在读屏名称里——进行中格子块的名称第一句 / 今天写的字那一排的名称 / 字帖位块（group）的名称
       resumeLine: q('home-progress') ? q('home-progress').getAttribute('aria-label').split('。')[0] : null,
@@ -183,7 +183,9 @@ export default async function run(page, ctx) {
   await bootTestHost(page, ctx.baseURL);
   let h = await homeView(page);
   assert.equal(h.view, 'first', 'view = first');
-  assert.equal(h.brandShi, '拾', 'brand 「拾」 in the copybook slot (placeholder glyph)');
+  assert.equal(h.brandShi, '拾', 'brand 「拾」 in the copybook slot (read-aloud name)');
+  assert.equal(h.brandShiSvg, 9, 'brand 「拾」 is the 9-stroke vector mark (ui/brand/shi.js), not a text node');
+  assert.equal(h.brandShiText, '', 'brand 「拾」 draws no text (no font glyph)');
   assert.equal(h.motto, '提笔忘字，不是忘了，只是很久没写。', 'motto (vertical, three columns)');
   assert.equal(h.cta, '开始写字');
   assert.equal(h.firstTip, '先写三个大家常忘的字。');

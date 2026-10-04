@@ -14,7 +14,7 @@
 //                D49 ⑤ 起朱色只表示写错，字库墙上自选未写的空心字改用 ink4，不再用淡朱——别处再用淡朱会被这条拦住（同属 zhu 规则）。
 //   legacy       旧令牌名（--p --c --i1 … --ar --g …）一律不许再出现。
 //   glyph        练习字字形单一来源（阶段 1 P1-E2，D33 8a 方案 B、D44）：src/ui 与 src/core/images 里每一处用楷体字体（--kai / T.kai / FONTS.kai）
-//                的规则 / 代码，必须逐条登记在 EXCEPTIONS（rule 'glyph'：书家「拾」占位、印章、题跋 / 释义 / 词语文字、输入框、
+//                的规则 / 代码，必须逐条登记在 EXCEPTIONS（rule 'glyph'：印章、题跋 / 释义 / 词语文字、输入框、
 //                轮廓缺失的回退分支……），写明为什么它不是「练习字」；练习字（要写的字、参考字、衬底字、墙 / 字帖 / 详情 / 图片里的标准字形）
 //                一律走 ui/components/PracticeGlyph.js（SVG 轮廓）或 core/images/render.js paintOutline（canvas 轮廓）。登记过期也报错。
 //
@@ -59,12 +59,10 @@ export const EXCEPTIONS = Object.freeze([
   { rule: 'fontSize', file: 'src/ui/components/PracticeGlyph.js', snippet: 'font-size:calc(var(--pg-face) * 100cqw)', why: '练习字轮廓缺失时的楷体整字回退：字面尺寸 = 元素边长 × 字面比例（tokens.json typography.glyph.*Face，字面是图，ShiziKai 只做回退）' },
   { rule: 'fontSize', file: 'src/ui/screens/write/glyph-fallback.js', snippet: 'font-size:${Math.round(size * FALLBACK_FONT_RATIO * 100) / 100}px', why: '轮廓缺失时的楷体整字回退：字面尺寸 = 书写格边长 × 比例（字面是图，ShiziKai 只做回退）' },
   { rule: 'fontSize', file: 'src/ui/screens/mine/records.js', snippet: 'font-size:clamp(9px, 16cqw, 12px)', why: '字帖格里「没有笔迹」的小字，随格宽收缩；aria-hidden，同一信息在格子的 aria-label 里（X-MINE.cellLabel）' },
-  { rule: 'fontSize', file: 'src/ui/screens/home/copybook.js', snippet: 'font-size:62cqw', why: '首页字帖位里书家「拾」的字面（占位），边长 = 格宽 × 0.62（字面是图，不是排版字阶；书家稿到位后换矢量资产）' },
   { rule: 'fontSize', file: 'src/ui/components/query/input.js', snippet: "fontSize: '16px", why: '查字框的隐形代理 input（1×1、opacity 0）：iOS 对字号 < 16px 的输入框聚焦时会放大页面，所以这个看不见的框必须 ≥ 16px，与字阶无关' },
   // ---- glyph：楷体字体（--kai）只许用在这些地方（P1-E2；每条写明为什么它不是「练习字」）
   { rule: 'glyph', file: 'src/ui/components/PracticeGlyph.js', snippet: '.sz-pg__fb', why: '练习字组件自己的回退分支：轮廓缺失 / 取不到数据 / 不是汉字时的楷体整字（10.13 语义，ShiziKai 只做回退）' },
   { rule: 'glyph', file: 'src/ui/screens/write/glyph-fallback.js', snippet: '.sz-glyph-fb', why: '写字页 10.13 回退分支：看答案 / 对照 / 描一遍取不到笔顺数据时的楷体整字' },
-  { rule: 'glyph', file: 'src/ui/screens/home/copybook.js', snippet: '.sz-hshi__glyph', why: '首页字帖位里书家写的「拾」的占位（D43 方案 B 品牌字，不是练习字；书家稿到位后换矢量资产）' },
   { rule: 'glyph', file: 'src/ui/screens/home/index.js', snippet: '.sz-home__seal>span', why: '首页题记 / 字帖落款旁的印章里的「字」（印章，不是练习字）' },
   { rule: 'glyph', file: 'src/ui/screens/mine/records.js', snippet: '.sz-mseal', why: '字帖落款旁的印章（不是练习字）' },
   { rule: 'glyph', file: 'src/ui/components/work.js', snippet: '.sz-wseal', why: '作品落款旁的印章（不是练习字）' },

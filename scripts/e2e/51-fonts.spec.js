@@ -142,13 +142,12 @@ export default async function fontsSpec(page, ctx) {
     if (c.deep) await page.evaluate(() => document.querySelector('[data-font-probe]').removeAttribute('data-font-probe'));
   }
 
-  ctx.step('first open (P1-E5): vertical motto → ShiziSerifSC 400, the 「拾」 placeholder → ShiziKai 400');
+  ctx.step('first open (P1-E5): vertical motto → ShiziSerifSC 400, seal → ShiziKai 400 (the brand 「拾」 is a vector mark, no font)');
   await page.evaluate(() => { window.__shiziTest.reset(); document.dispatchEvent(new Event('visibilitychange')); });
   await page.waitForSelector(tid('home-motto'));
   await page.evaluate(() => document.fonts.ready);
   for (const c of [
     { sel: '[data-testid="home-motto"] .sz-first__col', ps: 'ShiziSerifSC-Regular', what: 'first-open motto column → ShiziSerifSC 400' },
-    { sel: '.sz-hshi__glyph', ps: 'ShiziKai-Regular', what: 'brand 拾 placeholder → ShiziKai 400' },
     { sel: '.sz-home__seal > span', ps: 'ShiziKai-Regular', what: 'seal → ShiziKai 400' },
   ]) {
     const fonts = await platformFonts(cdp, c.sel);

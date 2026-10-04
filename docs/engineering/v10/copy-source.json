@@ -38,7 +38,8 @@
     "{max}": "一张图最多放几个字（policy.imageMaxChars，D39）",
     "{kuan}": "分张前的落款（X-WORK.kuanJoinPart 内部）",
     "{part}": "分张序号（其一 / 其二，X-WORK.kuanPart）",
-    "{ymd}": "本地日 YYYY-MM-DD（备份文件名 X-BACKUP.fileName）"
+    "{ymd}": "本地日 YYYY-MM-DD（备份文件名 X-BACKUP.fileName）",
+    "{text}": "一段现成文案（X-FIRST.laterGroup / laterSame：「明天再见」「3 天后再见」）"
   },
   "normalization": [
     "{M} 月 {D} 日、{9 月 24 日} 这类日期、裸「M 月 D 日」、{日期} → {date}",
@@ -185,7 +186,6 @@
     "P166": "记录的书写方式 source（缺省 screen、纸上 paper）、纸上记录没有墨迹且不占 D27「第一次 / 最近一次」留墨位、恢复幂等不把纸上的判断页退回 recall：阶段 1 P1-E8，实现在 src/core/{records,schema,sessions}.js 与 src/store/budget.js indexRecords；无界面文案，见 03 P166",
     "P179": "冷启动到首页首帧的目标（Q3）：模拟器口径 iPhone 17 / iOS 26.5、Release、约 300 字 + 墨迹，进程启动 → 首页首个内容帧 ≤ 800ms（中位数）；量测方法与分段表见 01 §8.8，不是运行时开关",
     "P180": "e2e 冷启动首帧阈值（Q3，Chromium 口径）：scripts/e2e/68-q3-boot.spec.js LIMITS.firstFrameMs = 400ms（全新 context 打开到首页 FCP，3 次里最快一次，首次安装与约 300 字两种数据量）；测试取值，不是运行时开关",
-    "P183": "备份页重进时的状态句与撤销措辞（阶段 1 Q2-8，复测 simA S3）：撤销底栏还在时状态句说结论，离开再进来按现在的记录与上次导出时间重算、不再留结论句、不再提撤销；行为在 src/core/backup.js backupStatus({stored:false}) 与 src/ui/screens/mine/backup.js，不是 policy 开关",
     "P183": "备份页重进时的状态句与撤销措辞（阶段 1 Q2-8，复测 simA S3）：撤销底栏还在时状态句说结论，离开再进来按现在的记录与上次导出时间重算、不再留结论句、不再提撤销；行为在 src/core/backup.js backupStatus({stored:false}) 与 src/ui/screens/mine/backup.js，不是 policy 开关",
     "P184": "离开 ≥ 7 天回来的第一组缩短为 3 字（阶段 1 Q2-15，已决定 D48 ⑧）：调度规则，值在 policy.groupMix.returnGroupSize（P184），实现在 src/core/sessions.js selectDaily；首页「离开一周后回来」态文案没有提组大小，无新文案"
   },
@@ -4442,10 +4442,10 @@
         },
         "reviewFirst": {
           "raw": null,
-          "text": "{chars}{tier}再来找你",
+          "text": "{chars}{tier}再来",
           "origin": "extra",
-          "note": "复现预告句第一个分句（{chars} 是「尴」「拾」式字列）；黑体 15，「找」不在宋体子集里（scripts/fonts/build_corpus.mjs HEI_ONLY_COPY）",
-          "decision": "P159"
+          "note": "复现预告句第一个分句（三档口语说法，D49 稿「再来找你」→「再来」；结果页现在用「N 天后再见」的 laterGroup，这三句保留给 T3 比较）；黑体 15（scripts/fonts/build_corpus.mjs HEI_ONLY_COPY）",
+          "decision": "P192"
         },
         "reviewNext": {
           "raw": null,
@@ -4456,10 +4456,10 @@
         },
         "reviewSame": {
           "raw": null,
-          "text": "{tier}，它们再来找你。",
+          "text": "{tier}，它们再来。",
           "origin": "extra",
-          "note": "复现预告句：所有字同一档且不止一个字",
-          "decision": "P159"
+          "note": "复现预告句：所有字同一档且不止一个字（D49 稿「再来找你」→「再来」；结果页不用，保留给 T3 比较）",
+          "decision": "P192"
         },
         "reviewJoin": {
           "raw": null,
@@ -4479,7 +4479,7 @@
           "raw": null,
           "text": "{n} 天后再见",
           "origin": "extra",
-          "note": "结果页每字「N 天后再见」（D48）：{n} = 距 FSRS 到期日的天数（≥ 2）；只备数据与文案槽，版式等重设计接入；黑体 13，登记在 HEI_ONLY_COPY",
+          "note": "结果页每字「N 天后再见」（D48）：{n} = 距 FSRS 到期日的天数（≥ 2）；E9c 起接入结果页复现句（P185 / P192）；黑体 15，登记在 HEI_ONLY_COPY",
           "decision": "P185"
         },
         "daysLaterTomorrow": {
@@ -4491,45 +4491,38 @@
         },
         "excluded": {
           "raw": null,
-          "text": "「{char}」写错了，没放进图里",
+          "text": "写错了",
           "origin": "extra",
-          "note": "作品下一行：写错且有墨迹的字没放进图（D31）；右边「放进去」",
-          "decision": "P159"
-        },
-        "included": {
-          "raw": null,
-          "text": "「{char}」放进图里了",
-          "origin": "extra",
-          "note": "点「放进去」之后同一行的状态",
-          "decision": "P159"
+          "note": "作品下一行的状态词：写错且有墨迹的字没放进图（D31）；右边「放进图里」。D49 稿：字在左边，状态句不再重复字名与引号",
+          "decision": "P192"
         },
         "addIn": {
           "raw": null,
-          "text": "放进去",
+          "text": "放进图里",
           "origin": "extra",
-          "note": "「放进去」入口（只做入口与状态，图片成员规则由 P1-E7 实现）",
-          "decision": "P159"
-        },
-        "takeOut": {
-          "raw": null,
-          "text": "拿出来",
-          "origin": "extra",
-          "note": "放进去之后的反向操作",
-          "decision": "P159"
+          "note": "「放进图里」入口（D49：原「放进去」）；放进去之后该字回到作品、这一行消失（朱点保留，D46 ⑥）",
+          "decision": "P192"
         },
         "addAria": {
           "raw": null,
-          "text": "把「{char}」加入图片",
+          "text": "把「{char}」放进图里",
           "origin": "extra",
-          "note": "「放进去」读屏名称（设计稿「读屏」一节）",
-          "decision": "P159"
+          "note": "「放进图里」读屏名称",
+          "decision": "P192"
         },
-        "takeOutAria": {
+        "laterGroup": {
           "raw": null,
-          "text": "把「{char}」从图片里拿出来",
           "origin": "extra",
-          "note": "「拿出来」读屏名称",
-          "decision": "P159"
+          "text": "{chars}{text}",
+          "note": "结果页复现句的分句（E9c，D48「N 天后再见」落在复现句处；天数相同的字合并，近 → 远）：「「求」明天再见」「「据」「类」3 天后再见」；黑体 15",
+          "decision": "P192"
+        },
+        "laterSame": {
+          "raw": null,
+          "origin": "extra",
+          "text": "{text}",
+          "note": "结果页复现句：所有字天数相同且不止一个字时只写这一句（「明天再见。」「3 天后再见。」，不再写「它们」）；黑体 15",
+          "decision": "P192"
         }
       }
     },
@@ -4624,44 +4617,44 @@
         },
         "rowNoInkCorrect": {
           "raw": null,
-          "text": "「{char}」写对了，没有笔迹",
+          "text": "写对了，没有笔迹",
           "origin": "extra",
-          "note": "作品下的行：没放进作品的字（无墨 / 看过答案 / 跳过 / 纸上只有说明，没有「放进去」；交接 §4.4）",
-          "decision": "P160"
+          "note": "作品下的行状态词：写对但没留墨迹（D49 稿：字在左边，状态句不再重复字名与引号；没有「放进图里」）",
+          "decision": "P192"
         },
         "rowNoInkWrong": {
           "raw": null,
-          "text": "「{char}」写错了，没有笔迹",
+          "text": "写错了，没有笔迹",
           "origin": "extra",
-          "note": "作品下的行：没放进作品的字（无墨 / 看过答案 / 跳过 / 纸上只有说明，没有「放进去」；交接 §4.4）",
-          "decision": "P160"
+          "note": "作品下的行状态词：写错且没留墨迹（同上）",
+          "decision": "P192"
         },
         "rowSeen": {
           "raw": null,
-          "text": "「{char}」看过答案",
+          "text": "看过答案",
           "origin": "extra",
-          "note": "作品下的行：没放进作品的字（无墨 / 看过答案 / 跳过 / 纸上只有说明，没有「放进去」；交接 §4.4）",
-          "decision": "P160"
+          "note": "作品下的行状态词：看过答案没写（D49 稿）",
+          "decision": "P192"
         },
         "rowSkipped": {
           "raw": null,
-          "text": "「{char}」跳过了",
+          "text": "跳过了",
           "origin": "extra",
-          "note": "作品下的行：没放进作品的字（无墨 / 看过答案 / 跳过 / 纸上只有说明，没有「放进去」；交接 §4.4）",
-          "decision": "P160"
+          "note": "作品下的行状态词：跳过（D49 稿）",
+          "decision": "P192"
         },
         "rowPaperCorrect": {
           "raw": null,
-          "text": "「{char}」写对",
+          "text": "写对",
           "origin": "extra",
-          "note": "纸上那一字的行（D46 ⑬ / D47，P1-E78；交接 §4.2 / §10.2）：「「{char}」写对」，后面接墨三的「· 纸上」（X-DETAIL.paperTag），没有「放进去」",
+          "note": "纸上那一字的行（D46 ⑬ / D47，P1-E78；交接 §4.2 / §10.2）：「写对」，后面接墨三的「· 纸上」（X-DETAIL.paperTag），没有「放进图里」；D49 稿去掉字名与引号",
           "decision": "D47"
         },
         "rowPaperWrong": {
           "raw": null,
-          "text": "「{char}」写错",
+          "text": "写错",
           "origin": "extra",
-          "note": "纸上那一字的行（D46 ⑬ / D47，P1-E78；交接 §4.2 / §10.2）：「「{char}」写对」，后面接墨三的「· 纸上」（X-DETAIL.paperTag），没有「放进去」",
+          "note": "纸上那一字的行：「写错」+「· 纸上」（同上）",
           "decision": "D47"
         },
         "rowPaperAria": {
@@ -5006,6 +4999,13 @@
           "origin": "extra",
           "note": "年报（交接 §8）",
           "decision": "P160"
+        },
+        "rowAria": {
+          "raw": null,
+          "origin": "extra",
+          "text": "{char}，{state}",
+          "note": "作品下的行的读屏名称（行里字名不再写在可见文字里，D49；纸上行用 rowPaperAria）",
+          "decision": "P192"
         }
       }
     },

@@ -111,8 +111,8 @@ test('D47: 1–3 chars default to 1:1, 4 and more to 3:4 (a constant, not a magi
   assert.deepEqual([1, 2, 3, 4, 5, 20, 80].map(defaultRatio), ['1:1', '1:1', '1:1', '3:4', '3:4', '3:4', '3:4']);
 });
 
-test('result-page work cells (§5.2): 402 → 181 / 165 / 110 / 144 / 110, plus the SE 375 and Pro Max 440 columns; same cols × rows as the 3:4 image', () => {
-  const widths = { 402: [181, 165, 110, 144, 110], 375: [167, 151, 101, 134, 101], 440: [200, 184, 122, 160, 122] };
+test('result-page work cells (§5.2, D49: no board, cw = b): 402 → 181 / 181 / 120 / 144 / 120, plus the SE 375 and Pro Max 440 columns; same cols × rows as the 3:4 image', () => {
+  const widths = { 402: [181, 181, 120, 144, 120], 375: [167, 167, 111, 134, 111], 440: [200, 200, 133, 160, 133] };
   for (const [w, expected] of Object.entries(widths)) {
     assert.deepEqual([1, 2, 3, 4, 5].map(n => resultGrid(n, Number(w)).c), expected, `screen ${w}`);
   }

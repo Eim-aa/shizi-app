@@ -77,11 +77,13 @@ const importRepo = p => import(pathToFileURL(rel(p)).href);
  * 阶段 1 P1-E5 新增，登记理由写在 copy-source.json 对应槽的 note 里。ShiziKai 子集不受影响（照旧收全部文案）。
  */
 export const HEI_ONLY_COPY = Object.freeze([
-  'X-FIRST.reviewFirst', // 「…再来找你」：首练结果页复现预告，黑体 15
+  'X-FIRST.reviewFirst', // 「…再来」：首练结果页复现预告（三档口语说法，E9c 起结果页不用、留给 T3 比较），黑体 15
   'X-FIRST.reviewNext',
   'X-FIRST.reviewSame',
-  'X-FIRST.daysLater', // 「N 天后再见」：结果页每字的复现天数（D48，P185），黑体 13
+  'X-FIRST.daysLater', // 「N 天后再见」：结果页复现句的每字复现天数（D48，P185 / P192），黑体 15
   'X-FIRST.daysLaterTomorrow',
+  'X-FIRST.laterGroup', // 复现句分句「「求」明天再见」：黑体 15
+  'X-FIRST.laterSame',
   'X-INVITE.body', // 「锁屏上只出现词语和拼音……」：提醒邀请的说明，黑体 13
   'X-INVITE.bodyPlain',
   'X-WORK.annualSaveNote', // 「存成册页：卷首、每个月、卷尾……」：年报保存弹层的说明，黑体 15，「卷」不在宋体子集里（阶段 1 P1-E7）

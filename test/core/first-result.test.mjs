@@ -12,7 +12,7 @@ import { selectDaily, specialPlan } from '../../src/core/sessions.js';
 import { deferSpecial, planDaily, planSpecial, capitalDeferredDayOf } from '../../src/core/session-start.js';
 import { capitalSpecial, isDeferred } from '../../src/core/special.js';
 import {
-  INVITE_MAX, commitInviteAnswer, commitInviteShown, daysLaterText, inviteDecision, inviteOf, inviteTime, inviteTimeText, previewText, reviewDays,
+  INVITE_MAX, commitInviteAnswer, commitInviteShown, daysLaterLine, daysLaterText, inviteDecision, inviteOf, inviteTime, inviteTimeText, previewText, reviewDays,
   reviewPreview, tierOfDue,
 } from '../../src/core/first-result.js';
 import { at, rec } from './helpers.mjs';
@@ -70,14 +70,14 @@ test('reviewPreview + previewText: tiers merge by due (near → far); the design
   });
   assert.deepEqual(mixed.groups, [{ tier: 'tomorrow', chars: ['赢'] }, { tier: 'soon', chars: ['尴', '拾'] }]);
   assert.equal(mixed.same, false);
-  assert.equal(previewText(mixed, t), '「赢」明天再来找你，「尴」「拾」过两天。');
+  assert.equal(previewText(mixed, t), '「赢」明天再来，「尴」「拾」过两天。');
 
   const three = reviewPreview({
     chars: [item('尴'), item('赢'), item('拾')],
     sched: { 'base:尴': sched(addDays(TODAY, 5)), 'base:赢': sched(addDays(TODAY, 1)), 'base:拾': sched(addDays(TODAY, 2)) },
     today: TODAY,
   });
-  assert.equal(previewText(three, t), '「赢」明天再来找你，「拾」过两天，「尴」过几天。');
+  assert.equal(previewText(three, t), '「赢」明天再来，「拾」过两天，「尴」过几天。');
 
   const same = reviewPreview({
     chars: [item('尴'), item('赢'), item('拾')],
@@ -85,17 +85,39 @@ test('reviewPreview + previewText: tiers merge by due (near → far); the design
     today: TODAY,
   });
   assert.equal(same.same, true);
-  assert.equal(previewText(same, t), '过两天，它们再来找你。');
+  assert.equal(previewText(same, t), '过两天，它们再来。');
   const tomorrowAll = reviewPreview({
     chars: [item('尴'), item('赢')],
     sched: { 'base:尴': sched(addDays(TODAY, 1)), 'base:赢': sched(addDays(TODAY, 1)) },
     today: TODAY,
   });
-  assert.equal(previewText(tomorrowAll, t), '明天，它们再来找你。');
+  assert.equal(previewText(tomorrowAll, t), '明天，它们再来。');
 
   const one = reviewPreview({ chars: [item('赢')], sched: { 'base:赢': sched(addDays(TODAY, 1)) }, today: TODAY });
   assert.equal(one.same, false, 'a single char is not 「它们」');
-  assert.equal(previewText(one, t), '「赢」明天再来找你。');
+  assert.equal(previewText(one, t), '「赢」明天再来。');
+});
+
+test('daysLaterLine (E9c, D48): the result-page 复现句 — chars with the same days merge (near → far), all same days → one bare clause, unscheduled chars are left out', () => {
+  const chars = [item('尴'), item('赢'), item('拾')];
+  const mixed = daysLaterLine({
+    chars, today: TODAY,
+    sched: { 'base:尴': sched(addDays(TODAY, 8)), 'base:赢': sched(addDays(TODAY, 1)), 'base:拾': sched(addDays(TODAY, 3)) },
+  }, t);
+  assert.equal(mixed, '「赢」明天再见，「拾」3 天后再见，「尴」8 天后再见。');
+  const merged = daysLaterLine({
+    chars, today: TODAY,
+    sched: { 'base:尴': sched(addDays(TODAY, 3)), 'base:赢': sched(addDays(TODAY, 1)), 'base:拾': sched(addDays(TODAY, 3)) },
+  }, t);
+  assert.equal(merged, '「赢」明天再见，「尴」「拾」3 天后再见。', 'same days merge into one clause, in group order');
+  const same = daysLaterLine({ chars, today: TODAY, sched: Object.fromEntries(chars.map(c => [`base:${c.char}`, sched(addDays(TODAY, 2))])) }, t);
+  assert.equal(same, '2 天后再见。');
+  const overdue = daysLaterLine({ chars: [item('尴'), item('赢')], today: TODAY, sched: { 'base:尴': sched(addDays(TODAY, -2)), 'base:赢': sched(TODAY) } }, t);
+  assert.equal(overdue, '明天再见。', 'already due counts as 明天');
+  assert.equal(daysLaterLine({ chars: [item('赢')], today: TODAY, sched: { 'base:赢': sched(addDays(TODAY, 1)) } }, t), '「赢」明天再见。', 'a single char keeps its own clause');
+  assert.equal(daysLaterLine({ chars, today: TODAY, sched: { 'base:拾': sched(addDays(TODAY, 4)) } }, t), '「拾」4 天后再见。', 'no schedule (skipped / answer-seen) → left out');
+  assert.equal(daysLaterLine({ chars, today: TODAY, sched: {} }, t), '', 'none at all → no sentence');
+  assert.equal(daysLaterLine({ chars: [item('尴')], today: TODAY, sched: { 'base:尴': { ...sched(addDays(TODAY, 3)), stoppedAt: 5 } } }, t), '', 'stopped cards never come back');
 });
 
 test('reviewPreview: chars without a schedule (skipped / answer-seen, D18) are left out; none at all → no sentence', () => {
@@ -105,7 +127,7 @@ test('reviewPreview: chars without a schedule (skipped / answer-seen, D18) are l
     today: TODAY,
   });
   assert.deepEqual(p.groups, [{ tier: 'soon', chars: ['拾'] }]);
-  assert.equal(previewText(p, t), '「拾」过两天再来找你。');
+  assert.equal(previewText(p, t), '「拾」过两天再来。');
   const none = reviewPreview({ chars: [item('尴'), item('赢')], sched: {}, today: TODAY });
   assert.deepEqual(none.groups, []);
   assert.equal(previewText(none, t), '');

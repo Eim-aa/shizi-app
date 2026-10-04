@@ -5,13 +5,15 @@
 export default Object.freeze({
   // 结果页作品：格下标注、作品下的行
   'X-WORK.afterSeen': '看后写的',
-  'X-WORK.rowNoInkCorrect': '「{char}」写对了，没有笔迹',
-  'X-WORK.rowNoInkWrong': '「{char}」写错了，没有笔迹',
-  'X-WORK.rowSeen': '「{char}」看过答案',
-  'X-WORK.rowSkipped': '「{char}」跳过了',
-  // 纸上（D46 ⑬ / D47，P1-E78）：行 =「「{char}」写对」+ 墨三的「· 纸上」（X-DETAIL.paperTag）；整组都在纸上时衬底格下写「纸上」
-  'X-WORK.rowPaperCorrect': '「{char}」写对',
-  'X-WORK.rowPaperWrong': '「{char}」写错',
+  // D49 减法稿（P192）：字在行的左边，状态词不再重复字名与引号
+  'X-WORK.rowNoInkCorrect': '写对了，没有笔迹',
+  'X-WORK.rowNoInkWrong': '写错了，没有笔迹',
+  'X-WORK.rowSeen': '看过答案',
+  'X-WORK.rowSkipped': '跳过了',
+  'X-WORK.rowAria': '{char}，{state}',
+  // 纸上（D46 ⑬ / D47，P1-E78）：行 =「写对」+ 墨三的「· 纸上」（X-DETAIL.paperTag）；整组都在纸上时衬底格下写「纸上」
+  'X-WORK.rowPaperCorrect': '写对',
+  'X-WORK.rowPaperWrong': '写错',
   'X-WORK.rowPaperAria': '{char}，{state}，纸上',
   'X-WORK.paperState': '{state}，纸上',
   'X-WORK.statusPaper': '纸上',

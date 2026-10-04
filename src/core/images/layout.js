@@ -156,8 +156,8 @@ export function layout(cells, ratio = '3:4') {
 }
 
 /**
- * 结果页上作品的格宽（§5.2）：列 × 行 = 默认 3:4 分享图的排法；
- * c = min(⌊cw / 列⌋, ⌊0.5b⌋, 行 ≥ 2 ? ⌊0.4b⌋ : ∞)，b = W − 40，cw = b − 32。
+ * 结果页上作品的格宽（§5.2，D49 减法修稿）：列 × 行 = 默认 3:4 分享图的排法；
+ * c = min(⌊b / 列⌋, ⌊0.5b⌋, 行 ≥ 2 ? ⌊0.4b⌋ : ∞)，b = W − 40（作品不再有底板，格直接贴页边；原 cw = b − 32 是给底板留的内边）。
  * @param {number} n  字数
  * @param {number} screenWidth  屏宽（pt / CSS px）
  * @returns {{cols:number, rows:number, c:number}}
@@ -166,8 +166,7 @@ export function resultGrid(n, screenWidth) {
   const { cols, rows } = gridOf(n, '3:4');
   if (!cols) return { cols: 0, rows: 0, c: 0 };
   const b = screenWidth - 40;
-  const cw = b - 32;
-  const c = Math.min(Math.floor(cw / cols), Math.floor(0.5 * b), rows >= 2 ? Math.floor(0.4 * b) : Infinity);
+  const c = Math.min(Math.floor(b / cols), Math.floor(0.5 * b), rows >= 2 ? Math.floor(0.4 * b) : Infinity);
   return { cols, rows, c };
 }
 

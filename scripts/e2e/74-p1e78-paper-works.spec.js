@@ -1,7 +1,7 @@
 // 阶段 1 P1-E78：纸上记录不进作品（D46 ⑬ / D47；实现交接 §4.2 / §5 / §10.2）。
 //
 //   一组 4 字：屏幕上写 2 字（疆、酱）+ 纸上写 2 字（纸写对、笔写错；走真实 mutator judgeInDraft({paper:true})，记录 source:'paper'、没有墨）。
-//   1. 结果页：作品只有屏幕上的 2 字（落款「两字」）；作品下 2 条纸上行「「纸」写对 · 纸上」「「笔」写错 · 纸上」，「· 纸上」墨三，没有「放进去」；
+//   1. 结果页：作品只有屏幕上的 2 字（落款「两字」）；作品下 2 条纸上行「写对 · 纸上」「写错 · 纸上」（E9c：字在左边，不再重复字名与引号），「· 纸上」墨三，没有「放进图里」；
 //      读屏「纸，写对，纸上」；点行照常进对照 / 修改；分享仍在。
 //   2. 分享图：成员只有 2 字、没有朱点、「也放进来」里没有纸上那个写错的字。
 //   3. 月字帖与年报：只有屏幕上的 2 字，月落款「两字」、年字数 2、月段 2 字；记录页日历那天仍有点、那天的字只有 2 个。
@@ -38,7 +38,7 @@ export default async function (page, ctx) {
   await bootTestHost(page, ctx.baseURL);
 
   // ---------------------------------------------------------------- 1. 结果页
-  ctx.step('result page: the work has the 2 screen chars only; the 2 paper chars are rows 「…」写对 · 纸上 with no 「放进去」');
+  ctx.step('result page: the work has the 2 screen chars only; the 2 paper chars are rows 写对 · 纸上 / 写错 · 纸上 with no 「放进图里」');
   const g = await seedWork(page, { chars: [...'疆纸笔酱'], steps: ['correct', 'paper-correct', 'paper-wrong', 'correct'], clock: CLOCK });
   assert.deepEqual(g.records.map(r => r.source || 'screen'), ['screen', 'paper', 'paper', 'screen'], 'the paper chars were judged with source paper');
   await openResultPage(page, g);
@@ -47,9 +47,9 @@ export default async function (page, ctx) {
   assert.deepEqual(v.cells.map(c => [c.index, c.ch]), [[0, '疆'], [3, '酱']], 'in group order; the paper chars are not cells');
   assert.equal(v.kuan, '二〇二六年十月五日　两字', 'the count in the kuan is 2');
   assert.equal(v.share, true, 'the share icon stays (the work has ink)');
-  assert.deepEqual(v.rows.map(r => [r.ch, r.state, r.add]), [['纸', 'paper', null], ['笔', 'paper', null]], 'two paper rows, no 「放进去」');
-  assert.deepEqual(v.rows.map(r => r.text), ['「纸」写对 · 纸上', '「笔」写错 · 纸上']);
-  assert.equal(await page.locator(topSel('result-add')).count(), 0, 'no 「放进去」 button anywhere');
+  assert.deepEqual(v.rows.map(r => [r.ch, r.state, r.add]), [['纸', 'paper', null], ['笔', 'paper', null]], 'two paper rows, no 「放进图里」');
+  assert.deepEqual(v.rows.map(r => r.text), ['写对 · 纸上', '写错 · 纸上']);
+  assert.equal(await page.locator(topSel('result-add')).count(), 0, 'no 「放进图里」 button anywhere');
   const rowFacts = await page.evaluate(() => {
     const top = document.querySelector('.sz-layer[data-top="true"]');
     return [...top.querySelectorAll('[data-testid="result-exrow"]')].map(row => ({
@@ -143,7 +143,7 @@ export default async function (page, ctx) {
   assert.equal(v.work.n, 3);
   assert.equal(v.share, false, 'no share when nothing is on the paper');
   assert.deepEqual(v.rows.map(x => [x.ch, x.state, x.add]), [['疆', 'paper', null], ['纸', 'paper', null], ['笔', 'paper', null]]);
-  assert.deepEqual(v.rows.map(x => x.text), ['「疆」写对 · 纸上', '「纸」写错 · 纸上', '「笔」写对 · 纸上']);
+  assert.deepEqual(v.rows.map(x => x.text), ['写对 · 纸上', '写错 · 纸上', '写对 · 纸上']);
   const plain = await page.evaluate(() => {
     const top = document.querySelector('.sz-layer[data-top="true"]');
     return {

@@ -6,18 +6,16 @@
 // 场景：
 //   1. 首次打开：书家「拾」占位 + 竖排题跋 + 印；没有日期 / 标题 / 题记；主按钮「开始写字」+ 下一行；隐藏「自己选字」（D46 ②）；
 //      品牌时刻（?brand=1 才放）：逐字淡入、点任意处立即静帧、到时自己停；「减少动态效果」直接静帧；测试宿主默认静帧。
-//   2. 首练三字（真实写字页：尴 写对 → 赢 写错 → 拾 写对）→ 结果页：标题「这三个字，很多人提笔就忘。」、没有「这次记录了 N 个字」、复现预告
-//      （FSRS 实际到期：赢明天、尴 / 拾 过几天）、写错字「放进去」入口与状态、提醒邀请（约 600ms 后淡入，点「好」才请求系统权限、改时间、
-//      点「不用了」收起）、「再写一组」「回到首页」；首练完成后首页出现「自己选字」。
+//   2. 首练三字（真实写字页：尴 写对 → 赢 写错 → 拾 写对）→ 结果页：标题「这三个字，很多人提笔就忘。」、没有「这次记录了 N 个字」、复现句
+//      （E9c / D48：FSRS 实际到期的「N 天后再见」，天数相同的字合并）、写错字「放进图里」入口（放进去后这一行消失，拿出来在分享弹层）、提醒邀请
+//      （约 600ms 后淡入，点「好」才请求系统权限、改时间、点「不用了」收起）、底栏只有「再写一组」（出口是页头左上「×」，D49 ③）；首练完成后首页出现「自己选字」。
 //   3. 提醒邀请最多两次：首练页问一次 → 没回应、再写一组 → 下一次结果页再问一次 → 第三次不问；「不用了」之后不再问；系统拒绝（原生回 denied）
 //      → 一行说明、不再问。
 //   4. 首页五态各一（setClock + seed）：今天还没写 / 今天写过（写错的字也不画朱点，D46 ①）/ 进行中（没写的格子不露字）/ 大写数字特别组那天
 //      （「这次先写平常的字」顺延，D46 ④，第二天回来）/ 离开 ≥7 天回来；五态里日期、标题、题记、主按钮的位置不动。
 //   5. 375×667 的首练结果页：内容滚动、主按钮固定在底。
 
-import {
-  PRESS_SETTLE_MS, bootTestHost, drawStroke, HORIZONTAL, installNativeStub, nativeMessages, tid, topSel, waitNavIdle,
-} from './helpers.mjs';
+import { PRESS_SETTLE_MS, bootTestHost, drawStroke, HORIZONTAL, installNativeStub, nativeMessages, tid, topSel, waitNavIdle, leaveResult } from './helpers.mjs';
 
 /** 页面里造数：entries（每条一个独立会话 = 一组一个字）→ group（保留在槽里的组）→ settings → setClock → seed。 */
 const SEED_FN = `async (spec) => {
@@ -161,7 +159,7 @@ async function resultView(page) {
       // P1-E7：作品里的格子（写对的字）；列数是作品的列数（3 字以内一行，4 字 2 × 2…）
       cells: top ? [...top.querySelectorAll('[data-testid="work-cell"]')].map(c => c.dataset.char + ':' + c.dataset.state) : [],
       cols: q('work') ? q('work').dataset.cols : null,
-      exrows: top ? [...top.querySelectorAll('[data-testid="result-exrow"]')].map(r => ({ char: r.dataset.char, added: r.dataset.added, text: r.querySelector('.sz-exrow__t').textContent.trim(), btn: r.querySelector('[data-testid="result-add"]').textContent.trim(), ink: !!r.querySelector('canvas') })) : [],
+      exrows: top ? [...top.querySelectorAll('[data-testid="result-exrow"]')].map(r => ({ char: r.dataset.char, text: r.querySelector('.sz-exrow__t').textContent.trim(), btn: r.querySelector('[data-testid="result-add"]') ? r.querySelector('[data-testid="result-add"]').textContent.trim() : null, ink: !!r.querySelector('canvas') })) : [],
       invite: invite ? { state: invite.dataset.state, title: txt('result-invite-title'), body: txt('result-invite-body'), accepted: txt('result-invite-accepted'), denied: txt('result-invite-denied'), yes: txt('result-invite-yes'), no: txt('result-invite-no'), time: txt('result-invite-time') } : null,
       foot: top ? [...top.querySelectorAll('.sz-page__foot button')].map(b => b.dataset.testid + ':' + b.textContent.trim()) : [],
     };
@@ -240,7 +238,7 @@ export default async function run(page, ctx) {
   await judgeLive(page, 'correct', { last: true });
   await waitNavIdle(page, { settleMs: 100 });
 
-  step('首练结果页: 标题不以计数作标题；复现预告；写错字「放进去」；提醒邀请约 600ms 后淡入，点「好」前没有系统权限请求');
+  step('首练结果页: 标题不以计数作标题；复现句「N 天后再见」；写错字「放进图里」；提醒邀请约 600ms 后淡入，点「好」前没有系统权限请求');
   let r = await resultView(page);
   assert.equal(r.variant, 'first');
   assert.equal(r.title, '这三个字，很多人提笔就忘。', 'D28: the title is not a count');
@@ -251,23 +249,25 @@ export default async function run(page, ctx) {
   const st1 = await stateOf(page);
   const todayKey = '2026-10-05';
   const dueGap = key => Math.round((Date.parse(`${st1.sched[key].due}T12:00:00`) - Date.parse(`${todayKey}T12:00:00`)) / 86400000);
-  const tier = n => (n <= 1 ? '明天' : n <= 3 ? '过两天' : '过几天');
-  const expectedByTier = new Map();
+  // E9c（D48）：复现句 =「N 天后再见」，天数相同的字合并成一个分句，近 → 远；所有字同一天只写「N 天后再见。」
+  const daysText = n => (n <= 1 ? '明天再见' : `${n} 天后再见`);
+  const byDays = new Map();
   for (const [c, k] of [['赢', 'base:赢'], ['尴', 'base:尴'], ['拾', 'base:拾']]) {
-    const t = tier(dueGap(k));
-    expectedByTier.set(t, [...(expectedByTier.get(t) || []), c]);
+    const n = Math.max(1, dueGap(k));
+    byDays.set(n, [...(byDays.get(n) || []), c]);
   }
-  const order = ['明天', '过两天', '过几天'].filter(t => expectedByTier.has(t));
-  const expectedPreview = order.length === 1
-    ? `${order[0]}，它们再来找你。`
-    : order.map((t, i) => `${expectedByTier.get(t).map(c => `「${c}」`).join('')}${t}${i === 0 ? '再来找你' : ''}`).join('，') + '。';
+  const groups = [...byDays.entries()].sort((x, y) => x[0] - y[0]);
+  const expectedPreview = groups.length === 1
+    ? `${daysText(groups[0][0])}。`
+    : groups.map(([n, cs]) => `${cs.map(c => `「${c}」`).join('')}${daysText(n)}`).join('，') + '。';
   assert.equal(r.preview, expectedPreview, `preview from the real FSRS due days (${JSON.stringify(Object.fromEntries(['尴', '赢', '拾'].map(c => [c, st1.sched['base:' + c].due])))})`);
-  assert.ok(r.preview.startsWith('「赢」明天再来找你'), 'the wrong one comes back first: ' + r.preview);
+  assert.ok(r.preview.startsWith('「赢」明天再见'), 'the wrong one comes back first: ' + r.preview);
+  assert.ok(!/再来|找你/.test(r.preview), 'no 「再来找你」 any more');
   assert.ok(st1.sched['base:赢'].due > todayKey, '赢 due is after today');
-  assert.deepEqual(r.exrows, [{ char: '赢', added: 'false', text: '「赢」写错了，没放进图里', btn: '放进去', ink: true }], 'wrong char with ink: 没放进图里 + 放进去 (mini ink inside)');
+  assert.deepEqual(r.exrows, [{ char: '赢', text: '写错了', btn: '放进图里', ink: true }], 'wrong char with ink: the status word + 放进图里 (the char is the glyph on the left, not in the sentence; D49)');
   assert.equal(r.invite, null, 'the invitation has not faded in yet (≈600ms after the work settles)');
   assert.equal((await nativeMessages(page, 'requestReminderPermission')).length, 0, 'no permission request before 好');
-  assert.deepEqual(r.foot, ['result-again:再写一组', 'result-leave:回到首页'], '再写一组 (primary) + 回到首页 (text)');
+  assert.deepEqual(r.foot, ['result-again:再写一组'], 'E9c / D49 ③: 再写一组 only; the exit is the close icon top-left');
   await waitInvite(page);
   r = await resultView(page);
   assert.equal(r.invite.title, '明天这个时候，给你一个词？', 'time 9:41 is inside 7:00–22:00');
@@ -283,17 +283,26 @@ export default async function run(page, ctx) {
   assert.equal(animName, 'szInviteIn', 'fades in (not a modal)');
   assert.equal(await page.evaluate(() => !!document.querySelector('.sz-sheet, [role="dialog"]')), false, 'no dialog / sheet');
 
-  step('写错字「放进去」：写进本组会话（session.added，经 store.commit），作品按组内原位置重排并带朱点（阶段 1 P1-E7，成员规则 D31）');
+  step('写错字「放进图里」：写进本组会话（session.added，经 store.commit），作品按组内原位置重排并带朱点，这一行消失（阶段 1 P1-E7 / E9c，成员规则 D31）');
   await page.click(topSel('result-add'));
   r = await resultView(page);
-  assert.deepEqual([r.exrows[0].added, r.exrows[0].text, r.exrows[0].btn], ['true', '「赢」放进图里了', '拿出来']);
+  assert.deepEqual(r.exrows, [], 'the row goes away once the char is in the picture');
   assert.deepEqual(r.cells, ['尴:in', '赢:added', '拾:in'], '赢 is in the work in its original place (尴 赢 拾)');
   const members = await page.evaluate(() => window.__shiziTest.getState().sessions.lastEnded.A.added);
   assert.equal(members.length, 1, 'one member recorded on the session');
   await page.waitForTimeout(PRESS_SETTLE_MS);
-  await page.click(topSel('result-add'));
+  // 拿出来：分享弹层「也放进来」里的 chip（结果页的行已经没有了）
+  await page.click(topSel('result-share'));
+  await page.waitForSelector('[data-testid="image-chip"]');
+  await page.waitForFunction(() => document.querySelector('[data-testid="image-preview"]')?.dataset.state === 'ready');
+  await page.waitForTimeout(PRESS_SETTLE_MS);
+  await page.click('[data-testid="image-chip"]');
+  await page.waitForFunction(() => window.__shiziTest.getState().sessions.lastEnded.A.added.length === 0);
+  await page.click('[data-testid="image-done"]');
+  await page.waitForFunction(() => !document.querySelector('[data-testid="image-preview"]'));
+  await waitNavIdle(page);
   r = await resultView(page);
-  assert.deepEqual([r.exrows[0].added, r.exrows[0].btn], ['false', '放进去'], 'toggles back');
+  assert.deepEqual([r.exrows.length, r.cells], [1, ['尴:in', '拾:in']], 'taking it out of the picture (share sheet chip) brings the row back');
 
   step('点「好」: 才请求系统权限；一次 commit 开提醒（9:30）；一行「好，明天 9:30 给你一个词。」；改时间');
   await page.evaluate(() => { window.__nativeMsgs.length = 0; });
@@ -362,7 +371,7 @@ export default async function run(page, ctx) {
   await waitInvite(page);
   st = await stateOf(page);
   assert.equal(st.settings.remindInvite.shown, 1, 'first ask');
-  await page.click(topSel('result-leave'));
+  await leaveResult(page);
   await page.waitForFunction(() => document.querySelector('.sz-app').dataset.topScreen === 'home');
   await waitNavIdle(page);
   st = await stateOf(page);
@@ -374,7 +383,7 @@ export default async function run(page, ctx) {
   r = await resultView(page);
   assert.equal(r.variant, 'daily');
   assert.equal(r.invite.title, '明天这个时候，给你一个词？');
-  await page.click(topSel('result-leave'));
+  await leaveResult(page);
   await page.waitForFunction(() => document.querySelector('.sz-app').dataset.topScreen === 'home');
   await waitNavIdle(page);
   await dailyResultVia(page);
@@ -384,7 +393,7 @@ export default async function run(page, ctx) {
   st = await stateOf(page);
   assert.equal(st.settings.remindInvite.shown, 2, 'still two');
   assert.equal(st.settings.remind, undefined, 'never turned on by itself');
-  await page.click(topSel('result-leave'));
+  await leaveResult(page);
   await page.waitForFunction(() => document.querySelector('.sz-app').dataset.topScreen === 'home');
   await waitNavIdle(page);
 
@@ -402,14 +411,14 @@ export default async function run(page, ctx) {
   assert.equal(st.settings.remindInvite.answered, 'no');
   assert.equal(st.settings.remind, undefined, '不用了 does not turn the reminder on');
   assert.equal((await nativeMessages(page, 'requestReminderPermission')).length, 1, 'only the earlier 好 requested permission (page-level stub keeps the log)');
-  await page.click(topSel('result-leave'));
+  await leaveResult(page);
   await page.waitForFunction(() => document.querySelector('.sz-app').dataset.topScreen === 'home');
   await waitNavIdle(page);
   await dailyResultVia(page);
   await page.waitForTimeout(1300);
   r = await resultView(page);
   assert.equal(r.invite, null, 'after 不用了 the next result page does not ask');
-  await page.click(topSel('result-leave'));
+  await leaveResult(page);
   await page.waitForFunction(() => document.querySelector('.sz-app').dataset.topScreen === 'home');
   await waitNavIdle(page);
 
@@ -433,14 +442,14 @@ export default async function run(page, ctx) {
   st = await stateOf(page);
   assert.equal(st.settings.remindInvite.answered, 'denied');
   assert.equal(st.settings.remind.permission, 'denied');
-  await page.click(topSel('result-leave'));
+  await leaveResult(page);
   await page.waitForFunction(() => document.querySelector('.sz-app').dataset.topScreen === 'home');
   await waitNavIdle(page);
   await dailyResultVia(page);
   await page.waitForTimeout(1300);
   r = await resultView(page);
   assert.equal(r.invite, null, 'after a system denial it never asks again on result pages');
-  await page.click(topSel('result-leave'));
+  await leaveResult(page);
   await page.waitForFunction(() => document.querySelector('.sz-app').dataset.topScreen === 'home');
   await waitNavIdle(page);
 

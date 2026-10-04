@@ -541,7 +541,7 @@ export default async function a11y(page, realCtx) {
   await page.focus(`${topSel('work-cell')}[data-index="0"]`); // P1-E7：日常结果页的格子是作品格（这里没有墨，是衬底一行里的 work-cell）
   await page.keyboard.press('Enter');
   await dialogCheck(page, cdp, ctx, { label: 'result/compare-sheet', panel: tid('result-sheet'), opener: 'work-cell' });
-  await page.click(topSel('result-leave'));
+  await page.click(topSel('page-back')); // E9c / D49 ③：日常结果页的出口只有页头左上「×」
   await waitTop(page, 'home');
 
   // ================================================================ 字库 / 查字 / 清单 / 详情

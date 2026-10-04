@@ -158,8 +158,8 @@ async function resultView(page) {
       const nameOf = i => {
         const wc = top.querySelector(`[data-testid="work-cell"][data-index="${i}"]`);
         if (wc) return wc.getAttribute('aria-label');
-        const row = top.querySelector(`[data-testid="result-exrow"][data-index="${i}"] .sz-exrow__t`);
-        return row ? row.textContent.trim() : null;
+        const row = top.querySelector(`[data-testid="result-exrow"][data-index="${i}"] [data-testid="result-exrow-open"]`);
+        return row ? row.getAttribute('aria-label') : null;
       };
       cells = m.cells.map(c => ({ kind: c.kind, judgment: c.judgment || '', changeable: c.canChange ? 'true' : 'false', char: c.char, caption: c.caption, aria: nameOf(c.index), record: c.recordId }));
     } else {
@@ -268,9 +268,9 @@ export default async function resultSpec(page, ctx) {
     const v = await resultView(page);
     assert.deepEqual(v.cells.map(c => c.kind), ['judged', p.kind], `cells [judged, ${p.kind}]`);
     assert.deepEqual(v.cells.map(c => c.aria), p.kind === 'judged'
-      ? ['「永」写对了，没有笔迹', '和，写对，点两下对照和修改']
+      ? ['永，写对了，没有笔迹', '和，写对，点两下对照和修改']
       : ['永，写对，点两下对照和修改', `和，${{ skipped: '跳过', 'answer-seen': '看过答案' }[p.kind]}，点两下对照和修改`],
-    'H3 (P1-E7): item accessible names — a work cell / plain-row cell reads 「字，结果，点两下对照和修改」, a 「没放进图里」 row reads its own sentence');
+    'H3 (P1-E7 / E9c): item accessible names — a work cell / plain-row cell reads 「字，结果，点两下对照和修改」, a row below the work reads 「字，状态」 (the visible status no longer repeats the char, D49)');
     assert.equal(v.header, '这次练习', 'daily header 这次练习');
     if (p.kind === 'judged') {
       // I6 / P88：分享入口与作品同一口径——和 刚在本页面写过（页面内笔画，perRecordInk 关）→ 在作品里、分享显示
@@ -513,10 +513,10 @@ export default async function resultSpec(page, ctx) {
   v = await resultView(page);
   assert.deepEqual([v.title, v.sub, v.count], [null, null, 2], 'P1-E7: no 「这次记录了 N 个字」 title and no 「没算在内 / 点一个格子」 sentence on the daily page; the count still comes from the records');
   assert.deepEqual(v.cells.map(c => [c.char, c.caption, c.changeable]), [['永', '写对', 'true'], ['和', '看过答案', 'false'], ['春', '写对', 'true']], 'cells');
-  assert.deepEqual(v.cells.map(c => c.aria), ['「永」写对了，没有笔迹', '「和」看过答案', '春，写对，点两下对照和修改'], 'H3 (P1-E7): every item has an accessible name');
+  assert.deepEqual(v.cells.map(c => c.aria), ['永，写对了，没有笔迹', '和，看过答案', '春，写对，点两下对照和修改'], 'H3 (P1-E7 / E9c): every item has an accessible name (rows carry the char in the name, not in the visible text)');
   // I6 / P88：春 刚在本页面写过（页面内笔迹）→ 在作品里，分享与作品一致；刷新后见下方 reload 步骤
   assert.equal(v.share, true, 'I6: share follows the work (春 has page-memory ink; perRecordInk off)');
-  assert.deepEqual([v.again, v.leave], ['再写一组', '回到首页'], 'daily footer 再写一组 + 回到首页');
+  assert.deepEqual([v.again, v.leave, v.footButtons], ['再写一组', null, ['result-again']], 'E9c / D49 ③: the daily footer is 再写一组 only (no 回到首页; the exit is the close icon top-left)');
   assert.deepEqual(v.workCells.map(c => [c.index, c.ch, c.mode, c.painted]), [[2, '春', 'hand', true]],
     'the work: only 春 (just written, shows the learner\'s ink); seeded 永 has no ink (没有笔迹, 10.12) and 和 was only seen → both are rows below');
   const before = await state(page);
@@ -539,7 +539,7 @@ export default async function resultSpec(page, ctx) {
   assert.ok(st.sched['base:永'].due !== before.sched['base:永'].due, `sched replayed (due ${before.sched['base:永'].due} → ${st.sched['base:永'].due})`);
   v = await resultView(page);
   assert.deepEqual([v.cells[0].caption, v.cells[0].judgment, v.count], ['写错', 'wrong', 2], 'item shows 写错; count unchanged');
-  assert.equal(v.cells[0].aria, '「永」写错了，没有笔迹', 'H3: the accessible name follows the corrected judgment');
+  assert.equal(v.cells[0].aria, '永，写错了，没有笔迹', 'H3: the accessible name follows the corrected judgment');
 
   step('seen cell → sheet without 改为…, 关闭; correction failure → 没改成 + retry');
   await openItem(page, 1);
@@ -596,7 +596,7 @@ export default async function resultSpec(page, ctx) {
   assert.ok(st.sessions.A && st.sessions.A.id !== 's40' && st.sessions.A.kind === 'daily', 'new daily group in A');
   assert.equal(st.sessions.lastEnded.A, undefined, 'old lastEnded.A cleared');
 
-  step('第一次练习 result: header 第一次练习, title not a count (P1-E5 / D28), the work (P1-E7), 再写一组 + 回到首页, remind slot');
+  step('第一次练习 result: header 第一次练习, title not a count (P1-E5 / D28), the work (P1-E7), 再写一组 only (E9c), remind slot');
   await goHome(page);
   await seedGroup(page, { kind: 'first', chars: ['尴', '嚏', '狩', '晤', '飓'], steps: ['correct', 'wrong', 'seen', 'skip'] });
   await openWriteSlot(page, 'A');
@@ -606,10 +606,10 @@ export default async function resultSpec(page, ctx) {
   v = await resultView(page);
   assert.deepEqual([v.header, v.variant, v.title], ['第一次练习', 'first', '这三个字，很多人提笔就忘。'], 'first result: the title is no longer 「这次记录了 N 个字」 (D28; 72-p1e5 covers the rest of the first-practice blocks)');
   assert.equal(v.date, null, 'P1-E7: the date lives in the work 落款 now (交接 §4.1 has no separate date line)');
-  assert.deepEqual(v.footButtons, ['result-again', 'result-leave'], 'P1-E5: 再写一组 (primary) + 回到首页');
+  assert.deepEqual(v.footButtons, ['result-again'], 'E9c / D49 ③: 再写一组 only; the exit is the close icon');
   assert.equal(v.remindSlot, true, 'remind invitation slot (the invitation itself fades in after ≈600ms, covered by 72-p1e5)');
   assert.deepEqual(v.workCells.map(c => [c.index, c.ch]), [[4, '飓']], 'the work holds only the char with ink (the page-memory strokes of the last one); the other four are rows');
-  await page.click(topSel('result-leave'));
+  await page.click(topSel('page-back'));
   await page.waitForFunction(() => document.querySelector('.sz-app').dataset.topScreen === 'home');
   await waitNavIdle(page);
 

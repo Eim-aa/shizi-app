@@ -1,15 +1,18 @@
 // 结果页即作品（阶段 1 P1-E7；交接 §4 / §5；D31 / D46 ⑥ ⑩；首练结果页与日常结果页共用这一作品构图）。
+// E9c（D49 减法修稿）：作品直接放在页面纸上（没有作品底板）；作品下的行只剩「字 + 状态 + 动作」，无框、无分隔线、用留白分组；
+// 朱点在字的右上角（墨迹外框右上外 2pt）。
 //
-//   WorkSection   作品（纸 + 作品格 + 落款与印 + 格下「看后写的」标注）；没有任何墨时换成衬底参考字一行 + 格下状态字（§4.2 变体）。
-//   WorkRows      作品下「没放进图里」的行：写错有墨「放进去」、无墨 / 看过答案 / 跳过 / 纸上（「「字」写对 · 纸上」，「· 纸上」墨三；只有说明，没有「放进去」，D47）；点行 → 对照与修改（D19）。
-//   commitAdded   「放进去」/「拿出来」：写进本组会话的 added（经 store.commit，刷新后仍在；核心规则在 core/images/work.js）。
+//   WorkSection   作品（作品格 + 落款与印 + 格下「看后写的」标注）；没有任何墨时换成衬底参考字一行 + 格下状态字（§4.2 变体）。
+//   WorkRows      作品下「没放进图里」的行：36pt 字（有墨写本人墨，没墨写衬底）+ 状态词（写错了 / 看过答案 / 跳过了 / 写对 · 纸上…）+ 右侧「放进图里」
+//                 （仅写错且有墨；纸上只有说明，D47）；点行 → 对照与修改（D19）。放进图里的字回到作品、这一行消失。
+//   commitAdded   「放进图里」/ 从分享弹层拿出来：写进本组会话的 added（经 store.commit，刷新后仍在；核心规则在 core/images/work.js）。
 //
 // data-testid：work（作品；data-n / data-cols / data-rows / data-cell）、work-cell（data-index / data-char / data-mode / data-dot / data-state）、
 //   work-cap、work-kuan、work-seal、work-dot；result-excluded、result-exrow（data-char / data-record / data-state / data-added）、result-exrow-open、
 //   result-add（aria-pressed）；result-exrow 带 data-index（该字在本组里的序号，与作品格的 data-index 同一套）。
 import { html } from '../../../../vendor/ui.js';
 import { Button } from '../../components/Button.js';
-import { CellCanvas, PlainRow, WorkPaper, useScreenWidth } from '../../components/work.js';
+import { CellCanvas, PlainRow, WorkPaper, WrongDot, useAxSize, useScreenWidth } from '../../components/work.js';
 import { injectStyles, T, TEX } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
 import { resultGrid } from '../../../core/images/layout.js';
@@ -18,22 +21,27 @@ import { workKuan } from '../../work-text.js';
 
 export const WORK_LABELS = Object.freeze({ added: 'result:added' });
 
+/** 作品下一行里字的边长（pt；AX 档 52，D49）与格内内边（字面约 88%，字是图，不随字号放大——AX 档单独取 52）。 */
+export const ROW_GLYPH = 36;
+export const ROW_GLYPH_AX = 52;
+const ROW_PAD = 0.03;
+
 injectStyles('result-work', `
-.sz-exrows{display:flex;flex-direction:column}
-.sz-exrow{display:flex;align-items:center;gap:4px;min-height:60px;box-sizing:border-box;border-top:${T.hair} solid ${T.line};border-bottom:${T.hair} solid ${T.line}}
-.sz-exrow+.sz-exrow{border-top:0}
-.sz-exrow__open{flex:1;min-width:0;min-height:60px;display:flex;align-items:center;gap:12px;padding:6px 0;margin:0;border:0;background:transparent;
+.sz-exrows{display:flex;flex-direction:column;margin-top:28px}
+.sz-exrow{display:flex;align-items:center;gap:4px;min-height:52px;box-sizing:border-box}
+.sz-exrow__open{flex:1;min-width:0;min-height:52px;display:flex;align-items:center;gap:12px;padding:8px 0;margin:0;border:0;background:transparent;
   color:inherit;font:inherit;text-align:left;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .sz-exrow__open:focus-visible{outline:2px solid ${T.ink1};outline-offset:-2px}
 .sz-exrow__open[data-pressed]{background:${T.field}}
-.sz-exrow__cell{position:relative;flex:none;width:48px;height:48px;box-sizing:border-box;${TEX};box-shadow:inset 0 0 0 ${T.frameW} ${T.frame}}
-.sz-exrow__cell canvas{position:absolute;left:1px;top:1px}
-.sz-exrow__t{flex:1;min-width:0;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2}}
+.sz-exrow__cell{position:relative;flex:none;width:${ROW_GLYPH}px;height:${ROW_GLYPH}px}
+.sz-exrow__cell--ax{width:${ROW_GLYPH_AX}px;height:${ROW_GLYPH_AX}px}
+.sz-exrow__cell canvas{position:absolute;left:0;top:0}
+.sz-exrow__t{flex:1;min-width:0;font-size:${T.fs17};line-height:${T.lh17s};color:${T.ink2}}
 .sz-exrow__tag{color:${T.ink3}}
 .sz-exrow .sz-btn--text{flex:none}
-:root[data-ax] .sz-exrow{flex-wrap:wrap}
-:root[data-ax] .sz-exrow__open{flex:1 1 100%}
-:root[data-ax] .sz-exrow .sz-btn--text{margin-left:60px}
+:root[data-ax] .sz-exrow{flex-wrap:wrap;padding:6px 0}
+:root[data-ax] .sz-exrow__open{flex:1 1 100%;min-height:${ROW_GLYPH_AX}px;padding:0}
+:root[data-ax] .sz-exrow .sz-btn--text{margin-left:${ROW_GLYPH_AX + 12}px}
 `);
 
 // ---------------------------------------------------------------- 写入
@@ -136,51 +144,55 @@ export function WorkSection({ work, day, dateText, inkOf, onOpen }) {
 function rowText(entry) {
   switch (entry.state) {
     case 'addable':
-      return t('X-FIRST.excluded', { char: entry.char });
     case 'added':
-      return t('X-FIRST.included', { char: entry.char });
+      return t('X-FIRST.excluded');
     case 'noInk':
-      return t(entry.judgment === 'wrong' ? 'X-WORK.rowNoInkWrong' : 'X-WORK.rowNoInkCorrect', { char: entry.char });
+      return t(entry.judgment === 'wrong' ? 'X-WORK.rowNoInkWrong' : 'X-WORK.rowNoInkCorrect');
     case 'seen':
-      return t('X-WORK.rowSeen', { char: entry.char });
+      return t('X-WORK.rowSeen');
     case 'skipped':
-      return t('X-WORK.rowSkipped', { char: entry.char });
+      return t('X-WORK.rowSkipped');
     default:
-      // 纸上：「「{字}」写对」，后面单独接墨三的「· 纸上」（rowTag）
-      return t(entry.judgment === 'wrong' ? 'X-WORK.rowPaperWrong' : 'X-WORK.rowPaperCorrect', { char: entry.char });
+      // 纸上：「写对」，后面单独接墨三的「· 纸上」（rowTag）
+      return t(entry.judgment === 'wrong' ? 'X-WORK.rowPaperWrong' : 'X-WORK.rowPaperCorrect');
   }
 }
 
-/** 纸上行的读屏名称：「{字}，写对，纸上」（交接 §5.5）。 */
+/** 纸上行的读屏名称：「{字}，写对，纸上」（交接 §5.5）；其余行读「{字}，{状态}」，字在文字里已经没有了（D49）。 */
 function rowAria(entry) {
-  return entry.state === 'paper' ? t('X-WORK.rowPaperAria', { char: entry.char, state: judgmentWord(entry) }) : null;
+  if (entry.state === 'paper') return t('X-WORK.rowPaperAria', { char: entry.char, state: judgmentWord(entry) });
+  return t('X-WORK.rowAria', { char: entry.char, state: rowText(entry) });
 }
 
 /**
- * 作品下没放进图里的行。
+ * 作品下没放进图里的行（已放进图里的字回到作品，不再有行）。
  * @param {{rows:Array, inkOf:(record)=>object|null, onOpen:(entry)=>void, onToggle:(entry)=>void}} props
  */
 export function WorkRows({ rows, inkOf, onOpen, onToggle }) {
-  if (!rows || !rows.length) return null;
-  return html`<div class="sz-exrows" data-testid="result-excluded">${rows.map(row => {
-    const inked = row.state === 'addable' || row.state === 'added';
-    const wrongRow = row.state === 'addable' || row.state === 'added' || (row.state === 'noInk' && row.judgment === 'wrong');
-    const on = row.state === 'added';
-    const actable = inked;
+  const ax = useAxSize();
+  const shown = (rows || []).filter(row => row.state !== 'added');
+  if (!shown.length) return null;
+  const size = ax ? ROW_GLYPH_AX : ROW_GLYPH;
+  return html`<div class="sz-exrows" data-testid="result-excluded">${shown.map(row => {
+    const inked = row.state === 'addable';
+    // 写错的字（有墨可放进图里的、或写错但没留墨迹的）在字的右上带朱点；纸上行没有墨、不带
+    const wrongRow = row.state === 'addable' || (row.state === 'noInk' && row.judgment === 'wrong');
+    const ink = inked ? inkOf(row.record) : null;
     return html`<div key=${row.index} class="sz-exrow" data-testid="result-exrow" data-index=${row.index} data-char=${row.char} data-record=${row.recordId || ''}
-      data-state=${row.state} data-added=${on ? 'true' : 'false'}>
+      data-state=${row.state}>
       <button type="button" class="sz-exrow__open" data-testid="result-exrow-open" aria-label=${rowAria(row)} onClick=${() => onOpen(row)}>
-        <span class="sz-exrow__cell" aria-hidden="true">
-          <${CellCanvas} ch=${row.char} ink=${inked ? inkOf(row.record) : null} mode=${inked ? 'hand' : 'under'} size=${46} testid="result-exrow-canvas" />
+        <span class=${ax ? 'sz-exrow__cell sz-exrow__cell--ax' : 'sz-exrow__cell'} data-testid="result-exrow-glyph" aria-hidden="true">
+          <${CellCanvas} ch=${row.char} ink=${ink} mode=${inked ? 'hand' : 'under'} size=${size} pad=${ROW_PAD} testid="result-exrow-canvas" />
+          ${wrongRow ? html`<${WrongDot} size=${size} ink=${ink} pad=${ROW_PAD} testid="result-exrow-dot" />` : null}
         </span>
-        <span class="sz-exrow__t" data-wrong=${wrongRow ? 'true' : 'false'}>${rowText(row)}${row.state === 'paper'
+        <span class="sz-exrow__t" data-testid="result-exrow-text">${rowText(row)}${row.state === 'paper'
           ? html` <span class="sz-exrow__tag" data-testid="result-exrow-tag">${t('X-DETAIL.paperTag')}</span>`
           : null}</span>
       </button>
-      ${actable
-        ? html`<${Button} variant="text" data-testid="result-add" aria-pressed=${on ? 'true' : 'false'}
-            aria-label=${t(on ? 'X-FIRST.takeOutAria' : 'X-FIRST.addAria', { char: row.char })}
-            onClick=${() => onToggle(row)}>${t(on ? 'X-FIRST.takeOut' : 'X-FIRST.addIn')}</${Button}>`
+      ${inked
+        ? html`<${Button} variant="text" data-testid="result-add"
+            aria-label=${t('X-FIRST.addAria', { char: row.char })}
+            onClick=${() => onToggle(row)}>${t('X-FIRST.addIn')}</${Button}>`
         : null}
     </div>`;
   })}</div>`;

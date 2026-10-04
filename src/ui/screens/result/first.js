@@ -2,7 +2,7 @@
 //
 // 分界（与 P1-E7「作品出口」）：result/index.js 管通用的结果页结构，作品构图（格子、落款、「没放进图里」的行与「放进去」）在
 // result/work.js，首练与日常结果页共用（P1-E7）；本文件只放首练（以及「今天的练习」结果页的第二次邀请）特有的两块：
-//   ReviewPreview   复现预告句：用 FSRS 的实际到期日分「明天 / 过两天 / 过几天」三档（core/first-result.js reviewPreview，D41）。
+//   ReviewPreview   复现句：每字「N 天后再见」（D48）；天数用 FSRS 的实际到期日，天数相同的字合并成一个分句（core/first-result.js daysLaterLine，E9c）。
 //   ReminderInvite  提醒邀请（D35）：内嵌不弹窗，作品落定约 600ms 后淡入；点「好」才请求系统通知权限（platform/reminder.js inviteReminder）；
 //                   最多邀请两次（首练结果页一次，没回应则下一次「今天的练习」结果页再一次，D46 ③；规则在 core/first-result.js inviteDecision）。
 //
@@ -18,7 +18,7 @@ import { now as envNow } from '../../../platform/env.js';
 import { inviteChangeTime, inviteReminder, maskedWord } from '../../../platform/reminder.js';
 import { cardForKey } from '../../../data/deck.js';
 import {
-  commitInviteAnswer, commitInviteShown, daysLaterText, inviteDecision, inviteTime, inviteTimeText, previewText, reviewDays, reviewPreview,
+  commitInviteAnswer, commitInviteShown, daysLaterLine, daysLaterText, inviteDecision, inviteTime, inviteTimeText, reviewDays,
 } from '../../../core/first-result.js';
 import { parseTime, settingsView } from '../mine/settings.js';
 
@@ -26,7 +26,7 @@ import { parseTime, settingsView } from '../mine/settings.js';
 export const INVITE_DELAY_MS = 600;
 
 injectStyles('result-first', `
-.sz-result__preview{margin:0;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2};text-wrap:pretty}
+.sz-result__preview{margin:20px 0 0;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2};text-wrap:pretty}
 .sz-invite{display:grid;gap:4px;padding-top:16px;border-top:${T.hair} solid ${T.line}}
 .sz-invite--in{animation:szInviteIn 300ms ease-out both}
 @keyframes szInviteIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
@@ -44,18 +44,18 @@ injectStyles('result-first', `
 // ---------------------------------------------------------------- 纯函数
 
 /**
- * 复现预告句（纯函数；单测直接调用）。
+ * 复现句（纯函数；单测直接调用）：「「求」明天再见，「据」「类」3 天后再见。」（D48，天数同 FSRS 到期日）。
  * @param {{cells:Array, sched:object, today:string}} o  cells = resultModel().cells
  * @returns {{preview:string}}  没有可预告的字（都是跳过 / 看过答案）时 preview 为 ''
  */
 export function firstExtras({ cells, sched, today }) {
   const judged = (cells || []).filter(c => c.kind === 'judged');
-  const preview = previewText(reviewPreview({ chars: judged.map(c => ({ char: c.char, cardKey: c.cardKey })), sched: sched || {}, today }), t);
+  const preview = daysLaterLine({ chars: judged.map(c => ({ char: c.char, cardKey: c.cardKey })), sched: sched || {}, today }, t);
   return { preview };
 }
 
 /**
- * 每字「N 天后再见」的数据与文案（D48，P185；结果页版式等重设计接入，现在不画）。
+ * 每字「N 天后再见」的数据与文案（D48，P185；结果页的复现句用它的合并版 firstExtras）。
  * @param {{cells:Array, sched:object, today:string}} o  cells = resultModel().cells
  * @returns {Array<{char:string, cardKey:string, days:number, text:string}>}  只有 judged 的字（有 FSRS 调度），按组内顺序
  */

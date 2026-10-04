@@ -1,8 +1,9 @@
-// 作品组件（阶段 1 P1-E7；交接 §5.2 / §7.1）：结果页上的作品、月字帖字帖、年报月段共用的格子与纸。
+// 作品组件（阶段 1 P1-E7；交接 §5.2 / §7.1；E9c 起结果页作品没有底板，D49）：结果页上的作品、月字帖字帖、年报月段共用的格子与纸。
 //
 //   CellCanvas        一格里的内容：有本人墨画笔迹（线宽按格宽查补偿表），没墨画 under 衬底参考轮廓——画法就是导出图的画法
 //                     （core/images/render.js paintCellContent），所以结果页上看到的作品与图片内容、样子一致（所见即所得）。
-//   WorkPaper         结果页作品：笺面纸 + 作品格（格宽 c，列 × 行与 3:4 分享图相同）+ 落款与品牌印（位置规则同 layout.js）。
+//   WorkPaper         结果页作品：作品格（格宽 c，列 × 行与 3:4 分享图相同；格自己是笺面，直接放在页面纸上，没有作品底板，D49）+ 落款与品牌印
+//                     （位置规则同 layout.js；落款与印是图形，固定尺寸，不随系统字号放大）。
 //   MonthPaper        月字帖：笺面纸 + 6 列（Pro Max 7、AX 4）字帖格 + 骑线日期角标 + 落款与印。
 //   useScreenWidth    屏宽（CSS px）；作品格宽 / 月字帖格宽按它算。
 //   frameRects        外框的矩形（满行矩形 + 末行矩形，同 layout.js 的 frame）。
@@ -23,10 +24,11 @@ import { isPracticable } from '../../data/deck.js';
 import { useStrokeData } from '../screens/write/hint-layer.js';
 
 injectStyles('work', `
-.sz-work{display:flex;flex-direction:column;align-items:stretch;margin:0 -4px}
-.sz-work__paper{position:relative;box-sizing:border-box;${TEX};padding:24px 0 20px;display:flex;flex-direction:column;align-items:center}
+.sz-work{display:flex;flex-direction:column;align-items:stretch}
+.sz-work__paper{position:relative;box-sizing:border-box;display:flex;flex-direction:column;align-items:center}
 .sz-work__stage{position:relative}
 .sz-work__grid{position:relative;display:grid}
+.sz-work__sheet{position:absolute;box-sizing:border-box;pointer-events:none;${TEX}}
 .sz-work__frame{position:absolute;box-sizing:border-box;border:${T.frameW} solid ${T.frame};pointer-events:none}
 .sz-wcell{position:relative;display:block;box-sizing:border-box;margin:0;padding:0;border:0;border-radius:${T.rWork};background:transparent;
   color:inherit;font:inherit;cursor:pointer;overflow:visible;-webkit-tap-highlight-color:transparent}
@@ -39,7 +41,7 @@ injectStyles('work', `
 .sz-wcell canvas{display:block;position:absolute;left:0;top:0}
 .sz-work__dot{position:absolute;border-radius:50%;pointer-events:none}
 .sz-work__sign{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:14px}
-.sz-work__kuan{font-family:${T.song};font-size:${T.fs13};line-height:${T.lh13};font-weight:400;color:${T.ink2};white-space:nowrap}
+.sz-work__kuan{font-family:${T.song};font-size:calc(13px * 1);line-height:20px;font-weight:400;color:${T.ink2};white-space:nowrap} /* 落款是图形：宋 13 / 20 固定，不读 --k（D49，作品内文字不随字号放大） */
 .sz-wseal{width:24px;height:24px;flex:none;border-radius:${T.rWork};display:grid;place-items:center;font-family:${T.kai};font-size:calc(17px * 1);line-height:1;
   transform:rotate(-2deg)} /* 印是图形：固定 seal24 / 40，字形 17 / 28px，不随 --k（Q2-10） */
 .sz-wseal--big{width:40px;height:40px;font-size:calc(28px * 1)}
@@ -47,6 +49,7 @@ injectStyles('work', `
 .sz-work__cap{text-align:center}
 .sz-work__plain{display:flex;flex-wrap:wrap;gap:0 0;justify-content:center}
 .sz-work__plainitem{display:flex;flex-direction:column;align-items:center}
+.sz-work__plaincell{box-sizing:border-box;padding:1px;${TEX};box-shadow:inset 0 0 0 ${T.frameW} ${T.frame}}
 .sz-work__status{margin-top:6px;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3};text-align:center}
 .sz-work__status[data-wrong="true"]::before{content:"";display:inline-block;width:6px;height:6px;margin-right:4px;border-radius:50%;vertical-align:middle}
 .sz-month{box-sizing:border-box;${TEX};display:flex;flex-direction:column;align-items:center;padding:0 0 18px}
@@ -168,9 +171,9 @@ export function CellCanvas({ ch, ink = null, mode = 'hand', size, pad = INK_PAD,
 }
 
 /** 朱点：写错且手动放进来的字，墨迹外框右上外 2pt（直径 clamp(5, 格宽 × 0.07, 8)）。 */
-export function WrongDot({ size, ink, testid = 'work-dot' }) {
+export function WrongDot({ size, ink, testid = 'work-dot', pad = INK_PAD }) {
   const points = useMemo(() => builtInk(ink), [ink]);
-  const { cx, cy, d } = dotLayout(size, 1, points ? inkBounds(points) : null);
+  const { cx, cy, d } = dotLayout(size, 1, points ? inkBounds(points) : null, pad);
   return html`<span class="sz-work__dot sz-work__dot--wrong" aria-hidden="true" data-testid=${testid}
     style=${{ left: `${cx - d / 2}px`, top: `${cy - d / 2}px`, width: `${d}px`, height: `${d}px` }}></span>`;
 }
@@ -217,6 +220,8 @@ export function WorkPaper({ cells, grid, kuan, caps = [], onOpen, label, withSig
     <div class="sz-work__paper">
       <div class="sz-work__stage" style=${{ width: `${gw}px` }}>
         <div class="sz-work__grid" data-testid="work-grid" style=${{ gridTemplateColumns: `repeat(${cols}, ${c}px)`, width: `${gw}px` }}>
+          ${frames.map((r, i) => html`<span key=${`s${i}`} class="sz-work__sheet" aria-hidden="true" data-testid="work-sheet"
+            style=${{ left: `${r.x}px`, top: `${r.y}px`, width: `${r.w}px`, height: `${r.h}px` }}></span>`)}
           ${cells.map((cell, i) => html`<button type="button" key=${cell.key} class="sz-wcell" ...${CELL_PRESS} style=${{ width: `${c}px`, height: `${c}px` }}
             data-testid="work-cell" data-index=${cell.index == null ? i : cell.index} data-char=${cell.ch} data-mode=${cell.mode || 'hand'}
             data-dot=${cell.dot ? 'true' : 'false'} data-record=${cell.record || ''} data-state=${cell.state || ''}
@@ -255,11 +260,13 @@ export function PlainRow({ cells, grid, onOpen, label }) {
     <div class="sz-work__paper">
       <div class="sz-work__plain">
         ${cells.map(cell => html`<div key=${cell.key} class="sz-work__plainitem">
-          <button type="button" class="sz-wcell" ...${CELL_PRESS} style=${{ width: `${c}px`, height: `${c}px`, border: `${T.frameW} solid ${T.frame}` }}
-            data-testid="work-cell" data-index=${cell.index} data-char=${cell.ch} data-mode="under" data-last-col="true" data-last-row="true"
-            aria-label=${cell.label} onClick=${() => onOpen && onOpen(cell)}>
-            <${CellCanvas} ch=${cell.ch} mode="under" size=${c - 2} />
-          </button>
+          <div class="sz-work__plaincell" style=${{ width: `${c}px`, height: `${c}px` }}>
+            <button type="button" class="sz-wcell" ...${CELL_PRESS} style=${{ width: `${c - 2}px`, height: `${c - 2}px` }}
+              data-testid="work-cell" data-index=${cell.index} data-char=${cell.ch} data-mode="under" data-last-col="true" data-last-row="true"
+              aria-label=${cell.label} onClick=${() => onOpen && onOpen(cell)}>
+              <${CellCanvas} ch=${cell.ch} mode="under" size=${c - 2} />
+            </button>
+          </div>
           <span class="sz-work__status" data-testid="work-status" data-wrong=${cell.wrong ? 'true' : 'false'}>${cell.status}</span>
         </div>`)}
       </div>

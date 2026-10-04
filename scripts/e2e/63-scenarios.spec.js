@@ -19,10 +19,7 @@
 // 控制台零错误由 run.mjs 统一断言；全程无绕过 storage.js 的写入。
 
 import { markFirstPracticeDone } from './home-helpers.mjs';
-import {
-  bootTestHost, drawStroke, HORIZONTAL, installNativeStub, makeSession, nativeMessages, PRESS_SETTLE_MS, tid, topSel,
-  VERTICAL, waitNavIdle, writeSnapshot, setTextSize, LARGE_TEXT,
-} from './helpers.mjs';
+import { bootTestHost, drawStroke, HORIZONTAL, installNativeStub, makeSession, nativeMessages, PRESS_SETTLE_MS, tid, topSel, VERTICAL, waitNavIdle, writeSnapshot, setTextSize, LARGE_TEXT, leaveResult } from './helpers.mjs';
 
 const CLOCK = '2026-09-24T20:00:00';
 const SHEET = '[data-testid="query-sheet"]';
@@ -345,7 +342,7 @@ export default async function run(page, ctx) {
   assert.equal(rec && rec.kind, 'skipped', 'skipped record for 和');
   assert.equal(f.todayN, 1, 'today N still 1 after 跳过 without a stroke');
   assert.deepEqual(f.judgedToday, ['base:中'], 'only 中 is a judged (valid) attempt today');
-  await page.click(topSel('result-leave'));
+  await leaveResult(page);
   await waitTop(page, 'home');
 
   // --------------------------------------------------------------- 3. 场景 4（A 现场不动）
@@ -385,7 +382,7 @@ export default async function run(page, ctx) {
   assert.ok(!f.sessions.B && f.sessions.lastEnded.B && f.sessions.lastEnded.B.endedEarly === true, 'B ended early into lastEnded.B');
   assert.equal(f.records.filter(r => r.kind === 'judged').length, 1, 'the partial judgment is kept (1 judged)');
   assert.equal(S(f.sessions.A), S(A0), 'A deep-equal after the partial group');
-  await page.click(topSel('result-leave'));
+  await leaveResult(page);
   await waitTop(page, 'home');
 
   step('场景 4: B with an unjudged stroke → 自己选字 another group → S02 protects B (cancel = nothing written)');
@@ -517,7 +514,7 @@ export default async function run(page, ctx) {
   assert.equal(f.records.length, n0, 'no extra record from the second confirm');
   assert.ok(!f.sessions.B && f.sessions.lastEnded.B && f.sessions.lastEnded.B.queue.length === 2, 'B ended once into lastEnded.B');
   assert.equal(f.sessions.A.cursor, 2, 'A untouched by the double confirm');
-  await page.click(topSel('result-leave'));
+  await leaveResult(page);
   await waitTop(page, 'home');
 
   // --------------------------------------------------------------- 6. 跨天作废回首页

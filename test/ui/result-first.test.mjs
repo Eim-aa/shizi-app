@@ -11,23 +11,23 @@ const TODAY = '2026-10-05';
 const sched = due => ({ fsrs: { stability: 3 }, due, lastJudgedAt: 0 });
 const cell = (char, kind, judgment, recordId) => ({ char, cardKey: `base:${char}`, kind, judgment, recordId });
 
-test('firstExtras: the preview uses the real due days (the 「放进去」 list moved to core/images/work.js with P1-E7)', () => {
+test('firstExtras (E9c, D48): the 复现句 is 「N 天后再见」 per char from the real due days (merged when equal)', () => {
   const cells = [cell('尴', 'judged', 'correct', 'r1'), cell('赢', 'judged', 'wrong', 'r2'), cell('拾', 'judged', 'correct', 'r3')];
   const out = firstExtras({
     cells, today: TODAY,
     sched: { 'base:尴': sched(addDays(TODAY, 8)), 'base:赢': sched(addDays(TODAY, 1)), 'base:拾': sched(addDays(TODAY, 3)) },
   });
-  assert.equal(out.preview, '「赢」明天再来找你，「拾」过两天，「尴」过几天。');
-  // 全部写对：预告句是「它们」
+  assert.equal(out.preview, '「赢」明天再见，「拾」3 天后再见，「尴」8 天后再见。');
+  // 全部同一天：合并成一句
   const allRight = [cell('尴', 'judged', 'correct', 'r1'), cell('赢', 'judged', 'correct', 'r2'), cell('拾', 'judged', 'correct', 'r3')];
   const same = firstExtras({ cells: allRight, today: TODAY, sched: Object.fromEntries(['尴', '赢', '拾'].map(c => [`base:${c}`, sched(addDays(TODAY, 2))])) });
-  assert.equal(same.preview, '过两天，它们再来找你。');
+  assert.equal(same.preview, '2 天后再见。');
   // 看过答案 / 跳过的字没有调度：不进预告；一个可预告的都没有 → 没有预告句
   const noneJudged = [cell('尴', 'answer-seen', null, 'r1'), cell('赢', 'skipped', null, 'r2')];
   assert.deepEqual(firstExtras({ cells: noneJudged, today: TODAY, sched: {} }), { preview: '' });
 });
 
-test('daysLaterOf: the result page cells → [{char, days, text}] for each judged char (data + copy only; the layout is not touched, D48)', () => {
+test('daysLaterOf: the result page cells → [{char, days, text}] for each judged char (the per-char data behind the 复现句, D48)', () => {
   const cells = [cell('尴', 'judged', 'correct', 'r1'), cell('赢', 'judged', 'wrong', 'r2'), cell('拾', 'skipped', null, 'r3'), cell('酱', 'answer-seen', null, 'r4')];
   const out = daysLaterOf({
     cells, today: TODAY,

@@ -10,7 +10,7 @@
 //      再之后不再出现；整个过程里别的组的题面语境不受影响。
 // 控制台零错误由 run.mjs 统一断言。
 
-import { bootTestHost, drawStroke, HORIZONTAL, PRESS_SETTLE_MS, topSel, waitNavIdle } from './helpers.mjs';
+import { bootTestHost, drawStroke, HORIZONTAL, PRESS_SETTLE_MS, topSel, waitNavIdle, leaveResult } from './helpers.mjs';
 
 const CLOCK = '2026-09-24T20:00:00';
 const S = v => JSON.stringify(v);
@@ -164,7 +164,7 @@ export default async function run(page, ctx) {
   const stab = k => st.sched[k].fsrs.stability;
   assert.ok(stab('base:赢') > 8 && stab('base:拾') > 8, `first-time correct → Easy (stability ${stab('base:赢')} / ${stab('base:拾')}, Good would be ~2.3)`);
   assert.ok(stab('base:尴') < 3, `first-time wrong → Again (stability ${stab('base:尴')})`);
-  await page.click(topSel('result-leave'));
+  await leaveResult(page);
   await waitTop(page, 'home');
 
   // ------------------------------------------------------------ 2. 第 2 天
@@ -274,7 +274,7 @@ export default async function run(page, ctx) {
   assert.equal((await page.locator(topSel('write-progress')).textContent()).trim(), '1 / 5');
   for (let i = 0; i < 4; i += 1) await writeAndJudge(page, 'correct', { nextCursor: i + 1 });
   await writeAndJudge(page, 'correct', { result: true });
-  await page.click(topSel('result-leave'));
+  await leaveResult(page);
   await waitTop(page, 'home');
   await page.waitForSelector(topSel('home-capital-hint'));
   assert.equal(await page.locator(topSel('home-capital-hint')).getAttribute('data-kind'), 'capital2', 'second special group next');
@@ -286,7 +286,7 @@ export default async function run(page, ctx) {
   assert.equal(p.hint === '报销单上写的金额' || p.hint === '红包封面上写的金额', true, 'hint line of group 2: ' + S(p));
   for (let i = 0; i < 4; i += 1) await writeAndJudge(page, 'correct', { nextCursor: i + 1 });
   await writeAndJudge(page, 'correct', { result: true });
-  await page.click(topSel('result-leave'));
+  await leaveResult(page);
   await waitTop(page, 'home');
   assert.equal(await page.locator(topSel('home-capital-hint')).count(), 0, 'both groups done → no more hint');
   await page.click(topSel('home-start'));

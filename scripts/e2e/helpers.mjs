@@ -37,6 +37,16 @@ export const topSel = id => `.sz-layer[data-top="true"] ${tid(id)}`;
 
 export const PRESS_SETTLE_MS = 450;
 
+/**
+ * 离开结果页（E9c / D49 ③）：日常 / 首练结果页的出口只有页头左上「×」（page-back）；自己选字的结果页底栏仍是 result-leave。
+ * 不论哪种都用这个，spec 不必先判断变体。
+ */
+export async function leaveResult(page) {
+  const leave = page.locator(topSel('result-leave'));
+  if (await leave.count()) await leave.click();
+  else await page.click(topSel('page-back'));
+}
+
 export async function waitNavIdle(page, { settleMs = PRESS_SETTLE_MS } = {}) {
   await page.waitForFunction(() => {
     const app = document.querySelector('.sz-app');

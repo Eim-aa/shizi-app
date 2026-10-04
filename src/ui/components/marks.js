@@ -3,14 +3,15 @@
 // 一屏朱色（含印）不超过两处。scripts/verify_tokens.mjs 的白名单只放行本文件：其余组件写 --zhu / --seal / --on-seal 一律报错，
 // 需要这两个符号的地方在自己的样式里只管尺寸与位置，颜色由这里按类名统一给。
 //   写错朱点：字库图例 / 墙格 / 筛选条 / 卡片标题（.sz-lib__dot、.sz-lib__mark）、详情列表行（.sz-drow__dot）、
-//             结果页与记录页格注「写错」前面的点（[data-wrong="true"]::before）、首练结果页「没放进图里」一行（.sz-exrow__t）。同一个符号：直径 6px、正圆。
+//             结果页（自己选字）与记录页格注「写错」前面的点（[data-wrong="true"]::before）。同一个符号：直径 6px、正圆。
+//             E9c（D49）：结果页「没放进图里」的行里朱点移到字的右上角（墨迹外框右上外 2pt），用作品朱点 .sz-work__dot--wrong（下方 WORK_MARK_CSS），不再在状态字前。
 //   印章：白文「字」、直角（--r-work）；首页题记（16）、关于页（40）、字帖落款（24 / 16，作品里略倾 −2°）。
 import { injectStyles, T } from './styles.js';
 
 export const MARK_CSS = `
 .sz-lib__dot,.sz-lib__mark,.sz-drow__dot{flex:none;width:6px;height:6px;border-radius:50%;background:${T.zhu}}
 .sz-lib__dot{display:inline-block}
-.sz-rcell__res[data-wrong="true"]::before,.sz-dcell__cap[data-wrong="true"]::before,.sz-exrow__t[data-wrong="true"]::before{content:"";display:inline-block;flex:none;
+.sz-rcell__res[data-wrong="true"]::before,.sz-dcell__cap[data-wrong="true"]::before{content:"";display:inline-block;flex:none;
   width:6px;height:6px;margin-right:4px;border-radius:50%;background:${T.zhu};vertical-align:middle}
 .sz-home__seal,.sz-about__seal,.sz-mseal{position:relative;background:${T.seal};color:${T.onSeal}}
 .sz-home__seal::before,.sz-about__seal::before,.sz-mseal::before{content:"";position:absolute;inset:7%;pointer-events:none;

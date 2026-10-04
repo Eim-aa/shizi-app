@@ -7,10 +7,9 @@
 // 停在本页刷新：按 params 从 lastEnded[slot] 恢复（01 §3.3）；会话还在槽里（写完但结束写入失败）时照样显示并补写结束。
 //
 // 三态（按会话 kind）：
-//   daily  「这次练习」：标题「这次记录了 N 个字」/「这次没有记下字」（R-R01，N 按本组 judged 记录算）；4 列格子；
-//          「这次的图片」入口（R-R07，占位到 M4-5）；底栏「再写一组」+「回到首页」。
-//   first  「第一次练习」：阶段 1 P1-E5 起标题「这三个字，很多人提笔就忘。」（不以计数作标题，D28）、格子、日期行（R-R03：只写日期）、
-//          写错字的「放进去」入口、复现预告句（FSRS 实际到期，D41）、提醒邀请（内嵌，D35 / D46 ③）；底栏「再写一组」+「回到首页」。
+//   daily  「这次练习」：结果页即作品（P1-E7；E9c 起按 D49 减法修稿：没有底板、没有标题，作品格贴页边）；作品下「没放进图里」的行、复现句（每字「N 天后再见」，D48）；
+//          底栏只有主按钮「再写一组」，出口只在页头左上「×」（D49 ③：没有「回到首页」）。
+//   first  「第一次练习」：同一构图，多一个标题「这三个字，很多人提笔就忘。」（不以计数作标题，D28）与提醒邀请（内嵌，D35 / D46 ③）；底栏同上。
 //          首练专属的三块在 result/first.js（与 P1-E7 作品出口的分界：本文件的格子 / 日期行 / 图片入口属通用结果页，E7 改构图）。
 //   picked 「这次选的字」：标题「这次选的字 / 写完了」或中途结束「这次选的字 / 先写到这里」（R-R05，P14）；3 列格子；
 //          说明「「额」「鲜」都记下了。」…「还有 N 个字没写，没有记下。」；日期行「{日期} · 自己选的 / 从写错过 / 从快忘了」（S05）；
@@ -32,12 +31,12 @@
 // data-testid：result-screen、result-body（data-variant=daily|first|picked、data-early）、result-kicker、result-title、
 //   result-sub、result-grid、result-cell（data-index / data-kind / data-judgment / data-changeable）、result-cell-ink、
 //   result-cell-noink、result-cell-glyph、result-cell-char、result-cell-caption、result-date、result-image（「这次的图片」入口）、
-//   result-image-note、result-remind-slot（首练 / 今天的练习的提醒邀请块，见 first.js）、result-again、result-leave、result-again-note / result-again-cancel /
+//   result-image-note、result-remind-slot（首练 / 今天的练习的提醒邀请块，见 first.js）、result-again、result-leave（只在自己选字的结果页底栏）、result-again-note / result-again-cancel /
 //   result-again-retry（再写一组失败）、result-sheet（对照弹层面板，data-kind）、result-sheet-close（取消 / 关闭）、
 //   result-sheet-mine / result-sheet-ref / result-sheet-noink、result-sheet-note、result-sheet-flip、
 //   result-sheet-fail-cancel / result-sheet-fail-retry；撤销底栏沿用 write-skip-undo*（skip.js SkipUndoBar）。
 
-import { html, useEffect, useState } from '../../../../vendor/ui.js';
+import { html, useEffect, useRef, useState } from '../../../../vendor/ui.js';
 import { registerScreen, getRouter, getScreen, nav } from '../../router.js';
 import { Page } from '../../components/Page.js';
 import { Button, markStateChange, pressFeedbackHandlers } from '../../components/Button.js';
@@ -130,12 +129,28 @@ injectStyles('result', `
 .sz-rcell__char{width:${T.fs15};height:${T.fs15};color:${T.ink1}}
 .sz-rcell--pad{cursor:default}
 .sz-result__date{margin:0;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2}}
-.sz-result[data-variant="daily"],.sz-result[data-variant="first"]{gap:16px}
-.sz-result__remind{margin-top:12px}
+/* 作品页（daily / first，D49）：没有底板；间距用留白分组（作品→行 28、行→复现句 20、复现句→邀请 28）；内容不满一屏时整组在页头与按钮行之间居中（底部内边约 5%），超出时贴顶滚动 */
+.sz-result[data-variant="daily"],.sz-result[data-variant="first"]{gap:0;margin:auto 0;padding-bottom:5vh}
+.sz-result[data-variant="daily"]>.sz-work{margin-top:4px}
+.sz-result[data-variant="first"] .sz-result__head{margin-bottom:24px;gap:0}
+.sz-result[data-variant="first"] .sz-result__head+.sz-work{margin-top:0}
+.sz-result__remind{margin-top:28px}
 .sz-result__remind:empty{display:none}
-.sz-result__leave{align-self:center;justify-content:center}
 .sz-result__fail{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
 .sz-result__failnote{margin:0;text-align:center;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3}}
+.sz-page[data-testid="result-screen"] .sz-page__body{padding-top:12px}
+/* 日常 / 首练结果页的页头标题只给读屏；AX 档的页头规则（ui/components/ax.js）会把标题挤成单独一行，这里压回去（作品不再被标题盖住，D49） */
+:root[data-ax][data-text-large] .sz-page[data-testid="result-screen"] .sz-page__head>.sz-page__title--hidden{position:absolute;left:auto;right:auto;flex:none;
+  width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+/* 底栏：主按钮行位置与写字页相同（文字行留空）；紧凑高度与 AX 档不留空行；内容滚到它下面时上沿出现 hairline（data-under，由 useFootHairline 写） */
+.sz-result__ghost{height:44px;margin-top:-6px;visibility:hidden;pointer-events:none}
+@media (max-height:799px){
+  .sz-result__ghost{display:none}
+  .sz-page[data-testid="result-screen"] .sz-page__foot{padding-bottom:max(8px, env(safe-area-inset-bottom, 0px))}
+}
+:root[data-text-large] .sz-result__ghost{display:none}
+:root[data-text-large] .sz-page[data-testid="result-screen"] .sz-page__foot{padding-bottom:max(8px, env(safe-area-inset-bottom, 0px))}
+.sz-page[data-testid="result-screen"] .sz-page__foot[data-under="true"]{box-shadow:0 calc(${T.hair} * -1) 0 ${T.line}}
 `);
 
 // ---------------------------------------------------------------- 纯函数：读状态
@@ -690,11 +705,50 @@ function leaveTo(leave) {
   nav.back();
 }
 
+/**
+ * 内容滚到按钮行下面时，按钮行上沿出现 hairline（D49，实现交接 §0.5 / §4.1）：body 下面还有内容没滚到 → 给 .sz-page__foot 写 data-under="true"。
+ * 页面骨架 Page 不认识这条规则，所以由本页从自己的根节点往上找；每次渲染后与 body 滚动 / 尺寸变化时重算。
+ */
+function useFootHairline(rootRef) {
+  useEffect(() => {
+    const root = rootRef.current;
+    const page = root && root.closest ? root.closest('.sz-page') : null;
+    const body = page ? page.querySelector('.sz-page__body') : null;
+    const foot = page ? page.querySelector('.sz-page__foot') : null;
+    if (!body || !foot) return undefined;
+    const update = () => {
+      const under = body.scrollHeight - body.scrollTop - body.clientHeight > 1;
+      const cur = foot.getAttribute('data-under') === 'true';
+      if (under !== cur) {
+        if (under) foot.setAttribute('data-under', 'true');
+        else foot.removeAttribute('data-under');
+      }
+    };
+    update();
+    body.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update);
+    let ro = null;
+    if (typeof ResizeObserver === 'function') {
+      ro = new ResizeObserver(update);
+      ro.observe(body);
+      if (root) ro.observe(root);
+    }
+    return () => {
+      body.removeEventListener('scroll', update);
+      window.removeEventListener('resize', update);
+      if (ro) ro.disconnect();
+      foot.removeAttribute('data-under');
+    };
+  });
+}
+
 function ResultScreen({ params, entry }) {
   const slot = params && params.slot === 'B' ? 'B' : 'A';
   const sessionId = params && typeof params.sessionId === 'string' ? params.sessionId : '';
   const state = useStoreState();
   const store = storeOrNull();
+  const rootRef = useRef(null);
+  useFootHairline(rootRef);
   // 「这次的图片」入口与格子同一取法（存下的墨迹 → 本页面会话里的笔画，I6）
   const model = resultModel(state, { slot, sessionId, hasInk: record => inkPresent(inkOf(store, record)) });
   useEffect(() => { installCommitFeedback(getStore); }, []); // M5-5：结果页的改判断 / 撤销跳过 / 补写结束也发触觉（刷新后直接停在本页时写字页没挂过）
@@ -772,8 +826,9 @@ function ResultScreen({ params, entry }) {
         <${Button} variant="primary" data-testid="result-again-retry" onClick=${again}>${t('X-RESULT.againRetry')}</${Button}>
       </div>`;
   } else if (model.again) {
+    // D49 ③：出口只在页头左上「×」；底栏只有主按钮（文字行留空，让主按钮行与写字页同位）
     footer = html`<${Button} variant="primary" data-testid="result-again" onClick=${again}>${t('X-RESULT.again')}</${Button}>
-      <${Button} variant="text" class="sz-result__leave" data-testid="result-leave" onClick=${leave}>${model.leave.label}</${Button}>`;
+      <span class="sz-result__ghost" aria-hidden="true"></span>`;
   } else {
     footer = html`<${Button} variant="primary" data-testid="result-leave" onClick=${leave}>${model.leave.label}</${Button}>`;
   }
@@ -800,7 +855,7 @@ function ResultScreen({ params, entry }) {
         onClick=${() => { dismissUndo(); imageAction({ slot, sessionId }); }}>${SHARE_ICON()}</${Button}>`
     : null;
   return html`<${Page} title=${model.header} hideTitle=${isWork} leading="close" onBack=${leave} footer=${footer} trailing=${shareButton} testid="result-screen">
-    <div class="sz-result" data-testid="result-body" data-variant=${model.variant} data-slot=${slot} data-session=${sessionId} data-early=${model.early ? 'true' : 'false'}
+    <div class="sz-result" ref=${rootRef} data-testid="result-body" data-variant=${model.variant} data-slot=${slot} data-session=${sessionId} data-early=${model.early ? 'true' : 'false'}
       data-found=${model.found ? 'true' : 'false'}>
       ${model.title || model.sub.length
         ? html`<div class="sz-result__head">

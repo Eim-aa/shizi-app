@@ -1,6 +1,6 @@
 // 阶段 1 P1-E7：作品出口（交接「实现交接.md」§4–§8；D31 / D39 / D42 / D46 ⑥⑦⑧⑨⑩ / D47）。
 //
-//   1. 结果页即作品：402 宽 1 / 2 / 3 / 4 / 5 字的作品格 181 / 165 / 110 / 144 / 110；列 × 行同 3:4 分享图；落款「二〇二六年十月五日　三字」+ 印
+//   1. 结果页即作品：402 宽 1 / 2 / 3 / 4 / 5 字的作品格 181 / 181 / 120 / 144 / 120（E9c：没有底板，格贴页边，77-e9c-result 逐尺寸核对）；列 × 行同 3:4 分享图；落款「二〇二六年十月五日　三字」+ 印
 //      （末字在最右列 → 印在末格正下方、右沿对齐；否则印在末格右侧）；格下「看后写的」；页头右上分享、没有标题、没有「这次记录了 N 个字」。
 //   2. 「没放进图里」的行与「放进去」：写错有墨可加入（作品里按组内原位置、带朱点）、无墨 / 看过答案 / 跳过没有「放进去」；状态存进会话，刷新后仍在；
 //      整组没有任何墨 → 衬底一行 + 格下状态字、分享隐藏。
@@ -105,8 +105,8 @@ export default async function (page, ctx) {
   await bootTestHost(page, ctx.baseURL);
 
   // ---------------------------------------------------------------- 1. 结果页即作品
-  ctx.step('result page: work cells 181 / 165 / 110 / 144 / 110 at 402 wide, 3:4 shape, no title and no 「N 个字」 line, share icon in the header');
-  const expectCells = { 1: 181, 2: 165, 3: 110, 4: 144, 5: 110 };
+  ctx.step('result page: work cells 181 / 181 / 120 / 144 / 120 at 402 wide (E9c: no board), 3:4 shape, no title and no 「N 个字」 line, share icon in the header');
+  const expectCells = { 1: 181, 2: 181, 3: 120, 4: 144, 5: 120 };
   const expectShape = { 1: [1, 1], 2: [2, 1], 3: [3, 1], 4: [2, 2], 5: [3, 2] };
   const chars = [...'疆酱酝痒嚷'];
   for (const n of [1, 2, 3, 4, 5]) {
@@ -145,23 +145,23 @@ export default async function (page, ctx) {
   }
 
   // ---------------------------------------------------------------- 2. 没放进图里 · 放进去 · 刷新仍在
-  ctx.step('rows: wrong+ink → 「放进去」; seen / skipped / no-ink have no action; 看后写的 caption; the 放进去 state persists across a reload and brings the red dot');
+  ctx.step('rows: wrong+ink → 「放进图里」; seen / skipped / no-ink have no action; 看后写的 caption; the 放进图里 state persists across a reload and brings the red dot (the row goes away, E9c)');
   const g2 = await seedWork(page, { chars: [...'疆酱痒酝嚷醋'], steps: ['correct', 'correct', 'wrong', 'seen-ink', 'skip', 'seen'], clock: CLOCK });
   await openResultPage(page, g2);
   let v = await resultSnapshot(page);
   assert.deepEqual(v.cells.map(c => c.ch), ['疆', '酱', '酝'], 'default members: right + 看后写的');
   assert.deepEqual(v.caps, ['看后写的'], 'caption under the 看后写的 cell (App only)');
-  assert.deepEqual(v.rows.map(r => [r.ch, r.state, !!r.add]), [['痒', 'addable', true], ['嚷', 'skipped', false], ['醋', 'seen', false]], 'rows: only the wrong char with ink has 「放进去」');
-  assert.equal(v.rows[0].text, '「痒」写错了，没放进图里', 'row text');
-  assert.equal(v.rows[0].add.text, '放进去', 'row action');
+  assert.deepEqual(v.rows.map(r => [r.ch, r.state, !!r.add]), [['痒', 'addable', true], ['嚷', 'skipped', false], ['醋', 'seen', false]], 'rows: only the wrong char with ink has 「放进图里」');
+  assert.deepEqual(v.rows.map(r => r.text), ['写错了', '跳过了', '看过答案'], 'row text is the status word only (the char is the glyph on the left, D49)');
+  assert.equal(v.rows[0].add.text, '放进图里', 'row action');
   assert.ok(v.cells.every(c => !c.hasDot), 'no red dot yet');
-  assert.ok(v.preview && v.preview.includes('再来找你'), 'recurrence sentence');
+  assert.ok(v.preview && /再见。$/.test(v.preview), 'recurrence sentence: N 天后再见 (D48)');
+  assert.equal(await page.getAttribute(`${topSel('result-add')}`, 'aria-label'), '把「痒」放进图里', '放进图里 read-aloud name');
   await page.click(`${topSel('result-add')}`);
   await page.waitForFunction(() => document.querySelectorAll('.sz-layer[data-top="true"] [data-testid="work-cell"]').length === 4);
   v = await resultSnapshot(page);
   assert.deepEqual(v.cells.map(c => [c.ch, c.hasDot]), [['疆', false], ['酱', false], ['痒', true], ['酝', false]], 'back in its original position, with the red dot (D46 ⑥)');
-  assert.equal(v.rows[0].added, 'true', 'row is in the added state');
-  assert.equal(v.rows[0].add.text, '拿出来', 'row action flips to 拿出来');
+  assert.deepEqual(v.rows.map(r => r.ch), ['嚷', '醋'], 'the row of the added char is gone');
   assert.equal(v.work.cell, 144, '4 chars → 2 × 2, cell 144 (the work re-flowed)');
   const stored = await page.evaluate(() => window.__shiziTest.getState().sessions.lastEnded.A.added);
   assert.deepEqual(stored, [g2.ids[2]], 'stored on the session via store.commit');
@@ -171,13 +171,18 @@ export default async function (page, ctx) {
   await page.waitForFunction(() => document.querySelectorAll('.sz-layer[data-top="true"] [data-testid="work-dot"]').length === 1);
   v = await resultSnapshot(page);
   assert.deepEqual(v.cells.map(c => [c.ch, c.hasDot]), [['疆', false], ['酱', false], ['痒', true], ['酝', false]], 'after a reload the added char is still in the work with its dot');
-  ctx.step('读屏: the work is one element with its chars / count / date; cells are named by result; 放进去 reads 把「痒」加入图片');
+  ctx.step('读屏: the work is one element with its chars / count / date; cells are named by result; rows read 「字，状态」');
   assert.equal(v.work.label, '作品：疆、酱、痒、酝，4 个字，10 月 5 日', 'the work reads as one element');
   assert.deepEqual(v.cells.map(c => c.label), ['疆，写对，点两下对照和修改', '酱，写对，点两下对照和修改', '痒，写错，点两下对照和修改', '酝，看后写的，点两下对照和修改'], 'cells are named by result');
-  assert.equal(await page.getAttribute(`${topSel('result-add')}`, 'aria-label'), '把「痒」从图片里拿出来', 'added → 拿出来 name');
-  await page.click(`${topSel('result-add')}`);
+  assert.deepEqual(v.rows.map(r => r.aria), ['嚷，跳过了', '醋，看过答案'], 'rows are named 「字，状态」');
+  // 拿出来：结果页的行没有了，从分享弹层「也放进来」里取（72-p1e5 走弹层）；这里直接用同一个写入
+  await page.evaluate(async o => {
+    const { commitAdded } = await import('/src/ui/screens/result/index.js');
+    const { getStore } = await import('/src/store/store.js');
+    commitAdded(getStore(), o);
+  }, { slot: 'A', sessionId: g2.sessionId, recordId: g2.ids[2] });
   await page.waitForFunction(() => document.querySelectorAll('.sz-layer[data-top="true"] [data-testid="work-cell"]').length === 3);
-  assert.equal(await page.getAttribute(`${topSel('result-add')}`, 'aria-label'), '把「痒」加入图片', 'back out → 加入图片');
+  assert.equal(await page.getAttribute(`${topSel('result-add')}`, 'aria-label'), '把「痒」放进图里', 'taken out → the row (and 放进图里) is back');
   ctx.step('tapping a cell or a row opens the compare / change sheet (D19)');
   await page.click(`${topSel('work-cell')}`);
   await page.waitForSelector(tid('result-sheet'));
@@ -205,13 +210,14 @@ export default async function (page, ctx) {
   await waitNavIdle(page);
 
   // ---------------------------------------------------------------- 2b. 紧凑高度 / AX（§4.1）
-  ctx.step('compact height (SE 375 × 667): the work keeps its size (5 chars → 101), the content scrolls under a fixed button row');
+  ctx.step('compact height (SE 375 × 667): the work keeps its size (3 chars → 111), the content scrolls under a fixed button row');
   await page.setViewportSize({ width: 375, height: 667 });
-  const gse = await seedWork(page, { chars: [...'疆酱痒酝嚷醋'], steps: ['correct', 'correct', 'wrong', 'seen-ink', 'skip', 'seen'], clock: CLOCK });
+  // E9c：行变矮、没有底板以后 6 字一组在 SE 上放得下一屏；这里多放几行（4 个跳过 / 看过答案）让内容超出滚动区
+  const gse = await seedWork(page, { chars: [...'疆酱痒酝嚷醋噪晤嚏饕'], steps: ['correct', 'correct', 'wrong', 'seen-ink', 'skip', 'seen', 'skip', 'seen', 'skip', 'seen'], clock: CLOCK });
   await openResultPage(page, gse);
   v = await resultSnapshot(page);
-  assert.equal(v.work.cell, 101, 'SE: cell 101 for 3 chars — the work does not shrink to fit the first screen');
-  assert.deepEqual(v.cells.map(c => Math.round(c.rect.w)), [101, 101, 101]);
+  assert.equal(v.work.cell, 111, 'SE: cell 111 for 3 chars — the work does not shrink to fit the first screen');
+  assert.deepEqual(v.cells.map(c => Math.round(c.rect.w)), [111, 111, 111]);
   assert.ok(v.bodyScroll.sh > v.bodyScroll.ch, `the content is taller than the scroll area (${v.bodyScroll.sh} > ${v.bodyScroll.ch}) → it scrolls`);
   assert.ok(Math.abs(v.foot.y + v.foot.h - 667) <= 1, 'the button row is fixed at the bottom');
   await page.evaluate(() => { const b = document.querySelector('.sz-layer[data-top="true"] .sz-page__body'); b.scrollTop = b.scrollHeight; });
@@ -219,7 +225,7 @@ export default async function (page, ctx) {
   assert.equal(v2.foot.y, v.foot.y, 'scrolling the content does not move the button row');
   await page.setViewportSize({ width: 402, height: 874 });
 
-  ctx.step('AX3: the work cells do not grow with the text size (the glyph is a picture), buttons stack, 「放进去」 moves under the sentence');
+  ctx.step('AX3: the work cells do not grow with the text size (the glyph is a picture), the footer is one button, 「放进图里」 moves under the status');
   await openResultPage(page, g2).catch(() => {});
   await setTextSize(page, 'AX3');
   await page.waitForTimeout(200);
@@ -238,8 +244,8 @@ export default async function (page, ctx) {
     };
   });
   assert.ok(ax.cells.length >= 3 && ax.cells.every(c => c === ax.cells[0]) && ax.cells[0] >= 100 && ax.cells[0] <= 150, `AX3: work cells keep their size (${ax.cells})`);
-  assert.ok(ax.add.y >= ax.open.y + ax.open.h - 1, 'AX: 「放进去」 sits under the sentence');
-  assert.ok(ax.foot.length === 2 && ax.foot[1].y > ax.foot[0].y, 'AX: buttons stacked, primary on top');
+  assert.ok(ax.add.y >= ax.open.y + ax.open.h - 1, 'AX: 「放进图里」 sits under the status');
+  assert.equal(ax.foot.length, 1, 'AX: the footer is the primary button only (D49 ③: no 回到首页)');
   assert.equal(ax.scrolls, true, 'AX: the content scrolls');
   assert.equal(ax.h, false, 'AX: no horizontal overflow');
   await setTextSize(page, 'L');

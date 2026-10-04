@@ -101,8 +101,9 @@ export async function resultSnapshot(page) {
       seal: rect(q('work-seal')),
       sign: q('work-sign') ? { below: q('work-sign').dataset.below, rect: rect(q('work-sign')) } : null,
       rows: all('result-exrow').map(r => ({
-        ch: r.dataset.char, state: r.dataset.state, added: r.dataset.added, text: r.querySelector('.sz-exrow__t').textContent.trim(),
-        add: r.querySelector('[data-testid="result-add"]') ? { text: r.querySelector('[data-testid="result-add"]').textContent.trim(), pressed: r.querySelector('[data-testid="result-add"]').getAttribute('aria-pressed') } : null,
+        ch: r.dataset.char, state: r.dataset.state, text: r.querySelector('.sz-exrow__t').textContent.trim(),
+        aria: r.querySelector('[data-testid="result-exrow-open"]').getAttribute('aria-label'),
+        add: r.querySelector('[data-testid="result-add"]') ? { text: r.querySelector('[data-testid="result-add"]').textContent.trim() } : null,
       })),
       share: !!q('result-share'),
       preview: q('result-preview') ? q('result-preview').textContent.trim() : null,

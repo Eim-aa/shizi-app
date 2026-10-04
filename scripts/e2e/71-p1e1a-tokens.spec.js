@@ -175,7 +175,7 @@ async function visitPages(page, scheme, ctx) {
 
   step(`${scheme}: result`);
   await openResult(page);
-  await check('result', { sheets: '.sz-work__paper' }); // P1-E7：结果页的笺面是作品纸
+  await check('result', { sheets: '.sz-work__sheet' }); // E9c（D49）：结果页没有作品纸，笺面是作品格后面的 sheet
   const primary = await page.evaluate(() => {
     const el = document.querySelector('.sz-layer[data-top="true"] .sz-btn--primary');
     const cs = el ? getComputedStyle(el) : null;
@@ -186,16 +186,22 @@ async function visitPages(page, scheme, ctx) {
   assert.equal(primary.color, tokenRgb(scheme, 'btnFg'), `${scheme}: primary label = btn-fg`);
   assert.equal(primary.radius, '12px', `${scheme}: primary radius = control (12)`);
   assert.ok(primary.h >= 54, `${scheme}: primary height ≥ 54 (btn-h, got ${primary.h})`);
+  // E9c（D49）：写错的朱点在字的右上（作品朱点同一个符号），不再是状态字前的 ::before
   const wrongDot = await page.evaluate(() => {
-    const el = document.querySelector('.sz-layer[data-top="true"] [data-wrong="true"]');
-    if (!el) return null;
-    const before = getComputedStyle(el, '::before');
-    return { text: getComputedStyle(el).color, dot: before.backgroundColor, w: before.width, radius: before.borderTopLeftRadius };
+    const dot = document.querySelector('.sz-layer[data-top="true"] [data-testid="result-exrow-dot"]');
+    if (!dot) return null;
+    const row = dot.closest('[data-testid="result-exrow"]');
+    const st = getComputedStyle(dot);
+    return {
+      text: getComputedStyle(row.querySelector('[data-testid="result-exrow-text"]')).color, dot: st.backgroundColor, w: st.width, radius: st.borderTopLeftRadius,
+      before: getComputedStyle(row.querySelector('[data-testid="result-exrow-text"]'), '::before').content,
+    };
   });
-  assert.ok(wrongDot, `${scheme}: a wrong cell is in the grid`);
-  assert.equal(wrongDot.dot, tokenRgb(scheme, 'zhu'), `${scheme}: 「写错」 is marked by a zhu dot ::before`);
-  assert.ok([tokenRgb(scheme, 'ink2'), tokenRgb(scheme, 'ink3')].includes(wrongDot.text), `${scheme}: the caption text itself is ink (ink2 / ink3 under the work cell), not red`);
-  assert.deepEqual([wrongDot.w, wrongDot.radius], ['6px', '50%'], `${scheme}: the wrong dot is a 6px circle`);
+  assert.ok(wrongDot, `${scheme}: a wrong row is below the work`);
+  assert.equal(wrongDot.dot, tokenRgb(scheme, 'zhu'), `${scheme}: 「写错」 is marked by a zhu dot on the glyph`);
+  assert.equal(wrongDot.before, 'none', `${scheme}: nothing in front of the status word any more`);
+  assert.equal(wrongDot.text, tokenRgb(scheme, 'ink2'), `${scheme}: the status text itself is ink2, not red`);
+  assert.deepEqual([wrongDot.w, wrongDot.radius], ['5px', '50%'], `${scheme}: the wrong dot is a circle (5pt for the 36pt row glyph)`);
 
   // 原生 <button> 字帖格：按下 → data-pressed、背景 field；松手收回
   step(`${scheme}: result cell (native <button>) press feedback`);

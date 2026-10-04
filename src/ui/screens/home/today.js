@@ -30,6 +30,7 @@ import { workMembers } from '../../../core/work-members.js';
 import { remainingCount } from '../../../core/sessions.js';
 import { aStartInfo, planSpecial, recordsOf, resumableSession } from '../../../core/session-start.js';
 import { recentInkRow } from './recent.js';
+import { shiHandoffRecord } from './handoff.js';
 
 /** 今天写的字最多几项（决定-D12：N ≤ 8 显示 N 项，N > 8 显示最近判断的 8 项，数字仍为 N；设计稿 §三：8 个字以内一行或两行四列）。 */
 export const INK_ROW_MAX = 8;
@@ -179,12 +180,13 @@ export function homeModel(state, nowMs, { policy = defaultPolicy, inkRowMax = IN
   const lastDay = lastJudgedDayOf(records);
   const gapDays = lastDay === null ? null : diffDays(lastDay, today);
   const view = homeViewOf({ records: recordsState, resume, capital, gapDays });
-  const inkRow = view === 'progress' ? [] : todayWorkRow(state, records, today, inkRowMax, { hasInk: typeof hasInk === 'function' ? hasInk : null });
+  const inked = typeof hasInk === 'function' ? hasInk : hasInkOfState(state);
+  const inkRow = view === 'progress' ? [] : todayWorkRow(state, records, today, inkRowMax, { hasInk: inked });
   // 字帖位：日常状态不放品牌「拾」（H1 / D51 ④）。今天还没写 / 离开一周 / 特别组那天还没写 → 本人最近写的几个字；
   // 今天只写错了（作品成员为空）时同样没有今天的字可放，也退回最近写的字；没有可显示的墨才退回品牌字
   const todayEmpty = (view === 'today' || (view === 'special' && recordsState === 'record')) && !inkRow.length;
   const needsRecent = view === 'fresh' || view === 'back' || (view === 'special' && recordsState !== 'record') || todayEmpty;
-  const recentRow = needsRecent ? recentInkRow(records, { limit: RECENT_ROW_MAX, hasInk: typeof hasInk === 'function' ? hasInk : hasInkOfState(state) }) : [];
+  const recentRow = needsRecent ? recentInkRow(records, { limit: RECENT_ROW_MAX, hasInk: inked }) : [];
   const hero = todayEmpty ? (recentRow.length ? 'recent' : 'shi') : heroOf(view, recordsState, recentRow.length);
   const primarySession = primary ? resumableSession(state, primary.slot, { now: nowMs, policy }) : null;
   return {
@@ -199,6 +201,8 @@ export function homeModel(state, nowMs, { policy = defaultPolicy, inkRowMax = IN
     count,
     inkRow: hero === 'today' ? inkRow : [],
     recentRow: hero === 'recent' ? recentRow : [],
+    // 「拾」的交接（D51 ④、03 P221）：首练当天回到首页（view today）时要不要把品牌「拾」的位置换成本人写的「拾」；页面在首页位于顶层时才真正开始
+    shiHandoff: view === 'today' ? shiHandoffRecord({ settings: state && state.settings, records, today, hasInk: inked }) : null,
     showRecord,
     showFirstTip: recordsState === 'first' && !resumeOn,
     capital,

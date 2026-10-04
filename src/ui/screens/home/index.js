@@ -14,6 +14,8 @@
 //     progress  有进行中的组：这一组的格子（写过的有墨，没写的是空笺面），主按钮「继续写字」；读屏名称「这一组还有 N 个字」；
 //     special   大写数字特别组那天（D40）：字帖位同上（写过 = 今天的字，没写 = 最近写的字）+ 一句提示 + 文字按钮「这次先写平常的字」（点了顺延，D46 ④，session-start.deferSpecial）；
 //     back      离开 ≥7 天回来（D41）：字帖位 = 最近写的字，「你写过的 N 个字都还在。」，不提缺了几天。
+//   「拾」的交接（D51 ④，03 P221，handoff.js）：首练写下「拾」后第一次回到首页（today 态），字帖位先是一个大格——品牌「拾」淡出、本人写的「拾」淡入
+//     （≤ 300ms，减少动态效果直接换），一直画到离开首页，只一次（settings.shiHandoffDone）；之后按日常状态。home-shi-handoff。
 //   首次打开（first，品牌「拾」只在这里与没有可显示的墨时出现）：品牌「拾」+ 竖排题跋三列 + 一枚印，没有日期和标题；主按钮「开始写字」，下面「先写三个大家常忘的字。」；
 //     不显示「自己选字」，首练完成后出现（D46 ②）。品牌时刻 ≤1.8s：题跋逐字淡入 → 印 → 按钮；点任意处立即静帧，「减少动态效果」直接静帧。
 //     （印的触觉与动效编排属阶段 2；测试宿主默认不放动画，URL 加 brand=1 才放。）AX1–AX5：题跋改横排三行（一行一句，宋 13 档，
@@ -39,7 +41,7 @@
 //   home-capital-defer、home-pick、home-start-fail（+ -cancel / -retry）；测试宿主另有 demo-push、write-test-entry（开发入口，不是用户文案）。
 
 import { html, useEffect, useLayoutEffect, useMemo, useRef, useState } from '../../../../vendor/ui.js';
-import { registerScreen, getScreen, nav } from '../../router.js';
+import { registerScreen, getRouter, getScreen, nav } from '../../router.js';
 import { Button } from '../../components/Button.js';
 import { injectStyles, T } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
@@ -54,7 +56,8 @@ import { useCompact } from '../write/compact.js';
 import { ensureNavHooks, expireStale, openWrite, resumeSlot, startA, startPicked } from '../session/index.js';
 import { setNoneActions } from '../session/none.js';
 import { homeModel, resumeLineText, resumeLineAria, INK_ROW_MAX } from './today.js';
-import { BrandShi, HomeTie, axTieCellSize, firstShiSize, shiCellSize, tieCellSize, tieCols, useElementWidth } from './copybook.js';
+import { commitShiHandoffDone } from './handoff.js';
+import { BrandShi, HomeTie, ShiHandoff, axTieCellSize, firstShiSize, shiCellSize, tieCellSize, tieCols, useElementWidth } from './copybook.js';
 import { useAxLevel } from '../../components/ax.js';
 // 写字页自注册（M1-1）：首页是它的入口页，随首页一起加载。
 import '../write/index.js';
@@ -251,6 +254,47 @@ function useBrandMoment(active, rootRef) {
   return playing && active;
 }
 
+// ---------------------------------------------------------------- 「拾」的交接（H1 / D51 ④、N2-02）
+
+/** 首页现在是不是最上层的页面（所有页面图层一直挂着，回到首页时组件不会重新挂载，只能订阅路由）。 */
+function useHomeOnTop() {
+  const topNow = () => {
+    const router = getRouter();
+    const snap = router ? router.getState() : null;
+    return !snap || !snap.top || snap.top.n === HOME_TAB;
+  };
+  const [top, setTop] = useState(topNow);
+  useEffect(() => {
+    const router = getRouter();
+    if (!router) return undefined;
+    setTop(topNow());
+    return router.subscribe(snap => setTop(!snap || !snap.top || snap.top.n === HOME_TAB));
+  }, []);
+  return top;
+}
+
+/**
+ * 「拾」的交接：首页在顶层时第一次发现 model.shiHandoff，就把那条记录存进状态、立即记 settings.shiHandoffDone（只发生一次）；
+ * 交接格一直画到离开首页（切 tab / 进别的页），下一次回来按日常状态。返回当前要画的记录或 null。
+ */
+function useShiHandoff(model) {
+  const onTop = useHomeOnTop();
+  const [shown, setShown] = useState(null);
+  useEffect(() => {
+    if (!shown && onTop && model.shiHandoff) {
+      setShown(model.shiHandoff);
+      try {
+        commitShiHandoffDone(getStore()); // 写失败不阻断：下次回到首页可能再交接一次
+      } catch (error) {
+        // store 不可用：照样显示
+      }
+    } else if (shown && !onTop) {
+      setShown(null);
+    }
+  }, [onTop, model.shiHandoff, shown]);
+  return shown;
+}
+
 // ---------------------------------------------------------------- 动作
 
 const SOURCE = Object.freeze({ view: HOME_TAB });
@@ -432,6 +476,7 @@ function HomeScreen() {
 
   const model = homeModel(state, envNow(), { inkRowMax: INK_ROW_MAX, deck: deckAdapter });
   const view = model.view;
+  const handoff = useShiHandoff(model);
   const brand = useBrandMoment(view === 'first' && ax === 0, rootRef);
   const avail = useTieAvail(rootRef, headRef, footRef, ax > 0 && view !== 'first');
   const resumeOn = model.resume !== 'none';
@@ -489,6 +534,11 @@ function HomeScreen() {
         data-kind=${model.other.kind} data-remaining=${String(model.other.remaining)} aria-label=${resumeLineAria(model.other, t)}
         onClick=${() => run(resumeOther)}>${resumeLineText(model.other, t)}</${Button}>` : null}
     </div>`;
+  } else if (handoff && model.hero === 'today') {
+    // 首练写下「拾」后第一次回首页：品牌「拾」的位置换成本人写的「拾」（只一次，离开首页就收，D51 ④）
+    zone = html`<div class="sz-home__block" data-testid="home-zone" ...${blockProps}>
+      <${ShiHandoff} size=${sizeOf(1, shiCellSize(b))} record=${handoff} getInk=${getInk} />
+    </div>`;
   } else if (model.hero === 'today') {
     const cells = model.inkRow.map((r, i) => ({ index: i, state: 'ink', record: r }));
     const size = sizeOf(cells.length, tieCellSize(cells.length, b));
@@ -528,7 +578,7 @@ function HomeScreen() {
 
   return html`<section ref=${rootRef} class=${classes} data-testid="screen-home" data-view=${view} data-hero=${model.hero}
     data-records=${model.records} data-resume=${model.resume} data-period=${model.period} data-compact=${compact ? 'true' : 'false'}
-    data-today=${model.today} data-brand=${brand ? 'playing' : 'off'} data-ax=${ax > 0 ? String(ax) : undefined}>
+    data-today=${model.today} data-brand=${brand ? 'playing' : 'off'} data-handoff=${handoff && model.hero === 'today' ? 'true' : undefined} data-ax=${ax > 0 ? String(ax) : undefined}>
     ${view === 'first' ? html`<div class="sz-home__head" aria-hidden="true" style=${{ minHeight: '28px' }}></div>` : html`<header ref=${headRef} class="sz-home__head">
       <p class="sz-home__date" data-testid="home-date">${dateText}</p>
       <${Epigraph} epigraph=${model.epigraph} />

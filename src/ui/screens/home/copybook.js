@@ -1,6 +1,7 @@
 // 首页字帖位的零件（阶段 1 P1-E5；设计稿「首练与首页」§三「首页」、D43 首页方案 B、D46 ①；阶段 1 E9a 按减法修稿 D49 改）。
 //
-//   BrandShi        品牌「拾」放在字帖格里（无记录时的字帖位）。字形是 ui/brand/shi.js 的矢量「拾」（拾字自绘 A1 骨架精修，不取自任何字体；
+//   ShiHandoff      「拾」的交接格（H1 / D51 ④）：品牌「拾」淡出、本人写的「拾」淡入，首练写下「拾」后第一次回首页出现一次。
+//   BrandShi        品牌「拾」放在字帖格里（首次打开与没有可显示的本人墨时的字帖位）。字形是 ui/brand/shi.js 的矢量「拾」（拾字自绘 A1 骨架精修，不取自任何字体；
 //                   整字一色墨，--hand，D33），内联 SVG、currentColor；尺寸 --cell / 框 / 读屏名称（role=img + aria-label）不变。
 //                   TODO(资产)：书家实写的「拾」到位后只换 ui/brand/shi.js 的路径数据（06 P1-D2）。
 //   HomeTie         一排（或两行四列）字帖格：今天写的字（本人笔迹，首页不画朱点，D46 ①）/ 进行中这一组的格子（写过的有墨，没写的是空笺面）/
@@ -12,7 +13,7 @@
 // AX 档（axTieCellSize）：格宽按剩余高度重算，下限 44（整页可滚，实现交接 §1.4）。
 // 墨线宽补偿（格越小笔画越粗）暂未做：InkMini 按格宽等比缩放笔画，设计稿的补偿表是按示意笔迹估的，等真笔模型（V01 / T2）出来后按真墨调。
 //
-// data-testid：home-brand-shi、home-recent-row / home-recent-item（最近写的字，同 home-ink-item 的 data-*）、home-ink-row（今天写的字，data-count；登记了「今天的记录」去处时是 <button>）、home-ink-item
+// data-testid：home-brand-shi、home-shi-handoff（data-char / data-record；内层 home-shi-handoff-mine）、home-recent-row / home-recent-item（最近写的字，同 home-ink-item 的 data-*）、home-ink-row（今天写的字，data-count；登记了「今天的记录」去处时是 <button>）、home-ink-item
 //   （data-char / data-record / data-judgment / data-ink）、home-progress（这一组的格子）、home-cell（data-state = done | passed | next | empty、
 //   data-index、data-char 只有 done 才有；next / empty 只是数据标记，画出来都是空笺面）。
 
@@ -72,6 +73,16 @@ injectStyles('home-copybook', `
 .sz-hshi{position:relative;display:grid;place-items:center;box-sizing:border-box;width:var(--cell);height:var(--cell);${TEX};
   box-shadow:inset 0 0 0 ${T.frameW} ${T.frame};container-type:inline-size}
 .sz-hshi__glyph{position:absolute;left:0;top:0;width:100%;height:100%;color:${T.hand}} /* 品牌「拾」是矢量图：墨框长边占格 62%，光学居中（ui/brand/shi.js） */
+/* 「拾」的交接（H1 / D51 ④）：品牌字层淡出、本人墨层淡入（同时 300ms）；减少动态效果：只剩本人的字 */
+.sz-hshi__mine{position:absolute;left:0;top:0;width:100%;height:100%;display:block}
+.sz-hshi--handoff .sz-hshi__brand{animation:szHandoffOut 300ms ease-out both}
+.sz-hshi--handoff .sz-hshi__mine{animation:szHandoffIn 300ms ease-out both}
+@keyframes szHandoffIn{from{opacity:0}to{opacity:1}}
+@keyframes szHandoffOut{from{opacity:1}to{opacity:0}}
+@media (prefers-reduced-motion: reduce){
+  .sz-hshi--handoff .sz-hshi__brand{display:none}
+  .sz-hshi--handoff .sz-hshi__mine{animation:none}
+}
 .sz-htie{position:relative;display:inline-flex;flex-wrap:wrap;width:calc(var(--cell) * var(--cols));box-sizing:border-box;${TEX};
   box-shadow:inset 0 0 0 ${T.frameW} ${T.frame}}
 .sz-htie--btn.sz-btn{padding:0;display:inline-flex;text-align:left}
@@ -89,6 +100,18 @@ injectStyles('home-copybook', `
 export function BrandShi({ size }) {
   return html`<div class="sz-hshi" style=${{ '--cell': `${size}px` }} role="img" aria-label=${t('X-HOME.shiLabel')} data-testid="home-brand-shi">
     <${ShiMark} class="sz-hshi__glyph" />
+  </div>`;
+}
+
+/**
+ * 「拾」的交接格（H1 / D51 ④、N2-02；03 P221）：品牌「拾」所在的格里换成本人写的「拾」——品牌字淡出、本人墨淡入，两层同时 ≤ 300ms；
+ * 「减少动态效果」下直接是本人的字（品牌层不显示、不动画）。读屏名称 X-HOME.shiHandoffLabel（整个 App 唯一一处「拾回」）。
+ */
+export function ShiHandoff({ size, record, getInk }) {
+  return html`<div class="sz-hshi sz-hshi--handoff" style=${{ '--cell': `${size}px` }} role="img" aria-label=${t('X-HOME.shiHandoffLabel')}
+    data-testid="home-shi-handoff" data-char=${record.char} data-record=${record.id}>
+    <${ShiMark} class="sz-hshi__glyph sz-hshi__brand" />
+    <span class="sz-hshi__mine" data-testid="home-shi-handoff-mine"><${CellInk} record=${record} getInk=${getInk} /></span>
   </div>`;
 }
 

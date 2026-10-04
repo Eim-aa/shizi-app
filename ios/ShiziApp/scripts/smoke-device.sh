@@ -71,6 +71,7 @@ launch_smoke() {
     --device "$DEVICE_ID" \
     --terminate-existing \
     "$APP_ID" \
+    -- \
     -shizi-smoke "$@"
 }
 

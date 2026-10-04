@@ -9,7 +9,9 @@
 // 三态（按会话 kind）：
 //   daily  「这次练习」：标题「这次记录了 N 个字」/「这次没有记下字」（R-R01，N 按本组 judged 记录算）；4 列格子；
 //          「这次的图片」入口（R-R07，占位到 M4-5）；底栏「再写一组」+「回到首页」。
-//   first  「第一次练习」：同上标题、5 列格子、日期行（R-R03：只写日期）、练习提醒邀请槽（占位到 M5-5）；底栏只有离开按钮。
+//   first  「第一次练习」：阶段 1 P1-E5 起标题「这三个字，很多人提笔就忘。」（不以计数作标题，D28）、格子、日期行（R-R03：只写日期）、
+//          写错字的「放进去」入口、复现预告句（FSRS 实际到期，D41）、提醒邀请（内嵌，D35 / D46 ③）；底栏「再写一组」+「回到首页」。
+//          首练专属的三块在 result/first.js（与 P1-E7 作品出口的分界：本文件的格子 / 日期行 / 图片入口属通用结果页，E7 改构图）。
 //   picked 「这次选的字」：标题「这次选的字 / 写完了」或中途结束「这次选的字 / 先写到这里」（R-R05，P14）；3 列格子；
 //          说明「「额」「鲜」都记下了。」…「还有 N 个字没写，没有记下。」；日期行「{日期} · 自己选的 / 从写错过 / 从快忘了」（S05）；
 //          底栏离开按钮按来源（R-R06）。没有图片行。
@@ -30,7 +32,7 @@
 // data-testid：result-screen、result-body（data-variant=daily|first|picked、data-early）、result-kicker、result-title、
 //   result-sub、result-grid、result-cell（data-index / data-kind / data-judgment / data-changeable）、result-cell-ink、
 //   result-cell-noink、result-cell-glyph、result-cell-char、result-cell-caption、result-date、result-image（「这次的图片」入口）、
-//   result-image-note、result-remind-slot、result-again、result-leave、result-again-note / result-again-cancel /
+//   result-image-note、result-remind-slot（首练 / 今天的练习的提醒邀请块，见 first.js）、result-again、result-leave、result-again-note / result-again-cancel /
 //   result-again-retry（再写一组失败）、result-sheet（对照弹层面板，data-kind）、result-sheet-close（取消 / 关闭）、
 //   result-sheet-mine / result-sheet-ref / result-sheet-noink、result-sheet-note、result-sheet-flip、
 //   result-sheet-fail-cancel / result-sheet-fail-retry；撤销底栏沿用 write-skip-undo*（skip.js SkipUndoBar）。
@@ -60,6 +62,7 @@ import { SkipUndoDock, canUndoSkip, undoSkipInDraft } from '../write/skip.js';
 import '../write/result-row.js'; // .sz-change* 弹层样式（与写字页修改判断弹层同一版式）
 import { openWrite } from '../session/index.js';
 import { openNonePage } from '../session/none.js';
+import { ExcludedRows, ReminderInvite, ReviewPreview, firstExtras } from './first.js';
 
 export const RESULT_SCREEN = 'result';
 export const LABELS = Object.freeze({
@@ -96,6 +99,7 @@ injectStyles('result', `
 .sz-result{display:flex;flex-direction:column;gap:28px}
 .sz-result__head{display:flex;flex-direction:column;gap:8px}
 .sz-result__title{margin:0;font-family:${T.song};font-size:${T.fs28};line-height:${T.lh28};font-weight:500;color:${T.ink1};text-wrap:pretty}
+.sz-result__title--lead{font-size:${T.fs22};line-height:${T.lh22}}
 .sz-result__title:focus{outline:none}
 .sz-result__kicker{display:block}
 .sz-result__sub{margin:0;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3};text-wrap:pretty}
@@ -269,10 +273,14 @@ export function resultModel(state, { slot, sessionId, hasInk = null, policy = de
     if (early && unwritten > 0) sub.push(t('R-R05.bodyEarly', { n: unwritten }));
   } else {
     header = t(variant === 'first' ? 'X-RESULT.headerFirst' : 'X-RESULT.headerDaily');
-    title = count > 0 ? t('R-R01.titleCount', { n: count }) : t('R-R01.titleZero');
-    sub.push(seenSkippedNote(seen, skipped) || t('R-R01.noteDefault'));
+    if (variant === 'first') {
+      title = t('X-FIRST.title'); // D28：首练结果页不以计数作标题；说明句（跳过 / 看过答案）由格下标注与复现预告承担
+    } else {
+      title = count > 0 ? t('R-R01.titleCount', { n: count }) : t('R-R01.titleZero');
+      sub.push(seenSkippedNote(seen, skipped) || t('R-R01.noteDefault'));
+    }
   }
-  if (cells.length) sub.push(t('R-R02.gridHint'));
+  if (cells.length && variant !== 'first') sub.push(t('R-R02.gridHint'));
 
   let dateLine = null;
   if (variant === 'first') dateLine = dateText(day);
@@ -310,7 +318,7 @@ export function resultModel(state, { slot, sessionId, hasInk = null, policy = de
     inkChars,
     missingInkChars: uniq(judgedCells.map(c => c.char).filter(c => !inkChars.includes(c))),
     leave: leaveOf(source),
-    again: variant === 'daily',
+    again: variant === 'daily' || variant === 'first',
     source,
   };
 }
@@ -483,16 +491,11 @@ function clockNow() {
   return typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now();
 }
 
-const hooks = { image: null, remind: null };
+const hooks = { image: null };
 
 /** 「这次的图片」入口的去处（M4-5 注册：fn({slot, sessionId, chars})）；没注册时入口不显示（R-R07 占位）。 */
 export function setResultImageAction(fn) {
   hooks.image = typeof fn === 'function' ? fn : null;
-}
-
-/** 第一次结果页的练习提醒邀请（M5-5 注册：组件 ({session}) => vnode）；没注册时槽位为空。 */
-export function setRemindInvite(component) {
-  hooks.remind = typeof component === 'function' ? component : null;
 }
 
 /** 写字页换成结果页（最后一字推进后 / 结束这组有判断）。 */
@@ -577,7 +580,7 @@ function ResultCell({ cell, record, ink, onOpen }) {
 
 function Grid({ model, state, store, onOpen }) {
   const cells = model.cells;
-  const few = model.variant === 'picked' && cells.length > 0 && cells.length < model.cols;
+  const few = (model.variant === 'picked' || model.variant === 'first') && cells.length > 0 && cells.length < model.cols; // 首练只有 3 个字（D38）：不补空格
   const cols = few ? cells.length : model.cols;
   const pads = few ? 0 : (cols - (cells.length % cols)) % cols;
   const style = few
@@ -773,16 +776,31 @@ function ResultScreen({ params, entry }) {
     footer = html`<${Button} variant="primary" data-testid="result-leave" onClick=${leave}>${model.leave.label}</${Button}>`;
   }
 
-  const Remind = hooks.remind;
   const imageAction = hooks.image;
+  // 首练专属：复现预告 + 写错字「放进去」（first.js）；提醒邀请在首练与「今天的练习」结果页的槽位里
+  const extras = model.variant === 'first'
+    ? firstExtras({
+      cells: model.cells,
+      sched: state && state.sched,
+      today: localDay(envNow()),
+      hasInk: recordId => inkPresent(inkOf(store, findRecord(state, recordId))),
+    })
+    : null;
+  const renderExcludedMini = row => {
+    const record = findRecord(state, row.recordId);
+    const ink = inkOf(store, record);
+    return inkPresent(ink)
+      ? html`<${InkMini} points=${ink.points} strokes=${ink.strokes} testid="result-exrow-ink" label=${row.char} />`
+      : html`<span class="sz-exrow__glyph" aria-hidden="true">${row.char}</span>`;
+  };
   return html`<${Page} title=${model.header} leading="close" onBack=${leave} footer=${footer} testid="result-screen">
     <div class="sz-result" data-testid="result-body" data-variant=${model.variant} data-early=${model.early ? 'true' : 'false'}
       data-found=${model.found ? 'true' : 'false'}>
       <div class="sz-result__head">
-        <h2 class="sz-result__title" data-testid="result-title">${model.kicker
+        <h2 class=${model.variant === 'first' ? 'sz-result__title sz-result__title--lead' : 'sz-result__title'} data-testid="result-title">${model.kicker
           ? html`<span class="sz-result__kicker" data-testid="result-kicker">${model.kicker}</span><span class="sz-result__kicker">${model.title}</span>`
           : model.title}</h2>
-        <p class="sz-result__sub" data-testid="result-sub">${model.sub.join('')}</p>
+        ${model.sub.length ? html`<p class="sz-result__sub" data-testid="result-sub">${model.sub.join('')}</p>` : null}
       </div>
       ${model.cells.length ? html`<${Grid} model=${model} state=${state} store=${store} onOpen=${openCell} />` : null}
       ${model.dateLine ? html`<p class="sz-result__date" data-testid="result-date">${model.dateLine}</p>` : null}
@@ -794,8 +812,12 @@ function ResultScreen({ params, entry }) {
         ? html`<div class="sz-result__note" data-testid="result-image-note"><span class="sz-result__note-dot" aria-hidden="true"></span>
             <span class="sz-result__note-text">${t('R-R07.allMissing')}</span></div>`
         : null}
-      ${model.variant === 'first'
-        ? html`<div class="sz-result__remind" data-testid="result-remind-slot">${Remind ? html`<${Remind} session=${model.session} />` : null}</div>`
+      ${extras ? html`<${ExcludedRows} rows=${extras.excluded} sessionId=${sessionId} renderMini=${renderExcludedMini} />` : null}
+      ${extras ? html`<${ReviewPreview} text=${extras.preview} />` : null}
+      ${model.variant === 'first' || model.variant === 'daily'
+        ? html`<div class="sz-result__remind" data-testid="result-remind-slot">
+            <${ReminderInvite} store=${store} settings=${state && state.settings} session=${model.session} variant=${model.variant} />
+          </div>`
         : null}
     </div>
     ${undo ? html`<${SkipUndoDock} char=${undo.char} failed=${!!undo.failed} onUndo=${doUndo} until=${undo.until}

@@ -365,3 +365,32 @@ export async function startReminder({ win = globalWin(), bridge: b = defaultBrid
 export function reminderController() {
   return running ? running.controller : null;
 }
+
+// ---------------------------------------------------------------- 首练结果页的提醒邀请（阶段 1 P1-E5；D35 / D46 ③）
+// 邀请本身（文案、次数、状态）在 core/first-result.js 与 ui/screens/result/first.js；这里只是两个调用入口，沿用设置页的写入与同步
+// （settings.js commitSettings / requestReminderPermission / syncReminder），不改上面的提醒机制：
+//   inviteReminder    点「好」：一次 settings commit 打开提醒并写下时间 → 才向原生请求通知权限 → 同步（带题目）。
+//   inviteChangeTime  邀请块里的「改时间」：写时间 → 同步。
+
+/**
+ * 点了邀请里的「好」。
+ * @returns {Promise<{ok:true, requested:boolean} | {ok:false, error}>}  requested = 这次真的发出了系统权限请求（原生壳内且还没授权）
+ */
+export async function inviteReminder(store, { hour, minute }) {
+  const settings = await import('../ui/screens/mine/settings.js');
+  const result = settings.commitSettings(store, settings.LABELS.remind, { remind: { enabled: true, hour, minute } });
+  if (!result.ok) return result;
+  const remind = settings.settingsView(store.getState().settings).remind;
+  const requested = settings.requestReminderPermission(remind);
+  settings.syncReminder(remind);
+  return { ok: true, requested: requested === true };
+}
+
+/** 邀请块里的「改时间」。 */
+export async function inviteChangeTime(store, { hour, minute }) {
+  const settings = await import('../ui/screens/mine/settings.js');
+  const result = settings.commitRemindTime(store, hour, minute);
+  if (!result.ok) return result;
+  settings.syncReminder(settings.settingsView(store.getState().settings).remind);
+  return { ok: true };
+}

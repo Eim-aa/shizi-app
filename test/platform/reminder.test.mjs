@@ -250,3 +250,35 @@ test('affectsReminder: records / sched / settings / wordOff writes and replaceme
   assert.equal(affectsReminder({ type: 'status' }), false);
   assert.equal(affectsReminder(null), false);
 });
+
+// ---------------------------------------------------------------- 阶段 1 P1-E5：首练结果页的提醒邀请入口（D35 / D46 ③）
+
+test('inviteReminder (点「好」): one settings commit turns the reminder on at the invited time and syncs; inviteChangeTime writes the time and re-syncs (the permission message itself is covered by e2e 72)', async () => {
+  const { createStore } = await import('../../src/store/store.js');
+  const { createStorage } = await import('../../src/store/storage.js');
+  const { MemoryStorage } = await import('../store/helpers.mjs');
+  const { inviteReminder, inviteChangeTime } = await import('../../src/platform/reminder.js');
+  const settings = await import('../../src/ui/screens/mine/settings.js');
+  const syncs = [];
+  settings.setReminderSync(remind => syncs.push({ ...remind }));
+  try {
+    const commits = [];
+    const store = createStore({ storage: createStorage(new MemoryStorage(), { now: () => AT }), now: () => AT });
+    store.load();
+    store.subscribe((state, info) => { if (info && info.type === 'commit') commits.push(info.label); });
+    assert.deepEqual(syncs, [], 'nothing is synced before 好');
+    const r = await inviteReminder(store, { hour: 9, minute: 30 });
+    assert.equal(r.ok, true);
+    assert.equal(r.requested, false, 'not in the native shell here: postNative has nowhere to go');
+    assert.deepEqual(store.getState().settings.remind, { enabled: true, hour: 9, minute: 30 });
+    assert.deepEqual(commits, ['settings:remind'], 'a single store.commit');
+    assert.deepEqual(syncs.map(s => [s.enabled, s.hour, s.minute]), [[true, 9, 30]]);
+    const changed = await inviteChangeTime(store, { hour: 21, minute: 15 });
+    assert.equal(changed.ok, true);
+    const remind = store.getState().settings.remind;
+    assert.deepEqual([remind.hour, remind.minute, remind.enabled], [21, 15, true]);
+    assert.deepEqual(syncs.map(s => [s.enabled, s.hour, s.minute]), [[true, 9, 30], [true, 21, 15]]);
+  } finally {
+    settings.setReminderSync(null);
+  }
+});

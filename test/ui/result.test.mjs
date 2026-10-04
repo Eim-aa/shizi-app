@@ -132,14 +132,20 @@ test('resultModel: P62 only-seen / only-skipped sentences; none → default note
   assert.equal(seenSkippedNote([], []), '');
 });
 
-test('resultModel first: header 第一次练习, 5 columns, date-only line (R-R03), no 再写一组', () => {
+test('resultModel first: header 第一次练习, 5 columns, date-only line (R-R03), 再写一组 (P1-E5), title is not a count (D28)', () => {
   const { d, slot, id } = group({ kind: 'first', chars: ['尴', '嚏'], steps: ['correct', 'wrong'] });
   const m = resultModel(ended(d, slot), { slot, sessionId: id });
   assert.equal(m.variant, 'first');
   assert.equal(m.header, t('X-RESULT.headerFirst'));
   assert.equal(m.cols, 5);
   assert.equal(m.dateLine, '9 月 24 日');
-  assert.equal(m.again, false);
+  assert.equal(m.again, true, 'P1-E5 / D28: the first result page has 再写一组 (and 回到首页)');
+  assert.equal(m.title, '这三个字，很多人提笔就忘。', 'D28: no count in the title');
+  assert.deepEqual(m.sub, [], 'no 「这次记录了 N 个字」/ grid-hint sentence under the first-practice title');
+  const none = group({ kind: 'first', chars: ['尴', '嚏'], steps: ['skip', 'skip'] });
+  assert.equal(resultModel(ended(none.d, none.slot), { slot: none.slot, sessionId: none.id }).title, '这三个字，很多人提笔就忘。', 'the title holds for every outcome (design §三)');
+  const daily = group({ kind: 'daily', chars: ['尴', '嚏'], steps: ['correct', 'wrong'] });
+  assert.equal(resultModel(ended(daily.d, daily.slot), { slot: daily.slot, sessionId: daily.id }).title, '这次记录了 2 个字', 'daily keeps the count title');
 });
 
 test('resultModel picked: 写完了 / 先写到这里 (P14), bodyAll / bodyOne, early rest, S05 source line, leave by source (R-R06)', () => {

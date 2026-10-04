@@ -18,6 +18,7 @@
 import {
   bootTestHost, drawStroke, HORIZONTAL, PRESS_SETTLE_MS, routePerRecordInk, tid, topSel, waitNavIdle,
 } from './helpers.mjs';
+import { markFirstPracticeDone } from './home-helpers.mjs';
 
 const SHEET = '[data-testid="query-sheet"]';
 const inSheet = id => `${SHEET} ${tid(id)}`;
@@ -264,6 +265,7 @@ export default async function resultSpec(page, ctx) {
   await goHome(page);
   await evalIn(page, () => window.__shiziTest.reset());
   await goHome(page);
+  await markFirstPracticeDone(page); // P1-E5 / D46 ②：首次打开不显示「自己选字」，首练完成后才有
   await page.click(tid('home-pick'));
   await page.waitForSelector(inSheet('query-input'));
   await waitNavIdle(page);
@@ -561,7 +563,7 @@ export default async function resultSpec(page, ctx) {
   assert.ok(st.sessions.A && st.sessions.A.id !== 's40' && st.sessions.A.kind === 'daily', 'new daily group in A');
   assert.equal(st.sessions.lastEnded.A, undefined, 'old lastEnded.A cleared');
 
-  step('第一次练习 result: header 第一次练习, date-only line, 5 columns, only 回到首页, remind slot');
+  step('第一次练习 result: header 第一次练习, title not a count (P1-E5 / D28), date-only line, 5 columns, 再写一组 + 回到首页, remind slot');
   await goHome(page);
   await seedGroup(page, { kind: 'first', chars: ['尴', '嚏', '狩', '晤', '飓'], steps: ['correct', 'wrong', 'seen', 'skip'] });
   await openWriteSlot(page, 'A');
@@ -569,10 +571,10 @@ export default async function resultSpec(page, ctx) {
   await waitResult(page);
   await waitNavIdle(page);
   v = await resultView(page);
-  assert.deepEqual([v.header, v.variant, v.title], ['第一次练习', 'first', '这次记录了 3 个字'], 'first result');
+  assert.deepEqual([v.header, v.variant, v.title], ['第一次练习', 'first', '这三个字，很多人提笔就忘。'], 'first result: the title is no longer 「这次记录了 N 个字」 (D28; 72-p1e5 covers the rest of the first-practice blocks)');
   assert.ok(/^\d+ 月 \d+ 日$/.test(v.date), `R-R03 date only: ${v.date}`);
-  assert.deepEqual(v.footButtons, ['result-leave'], 'only 回到首页');
-  assert.equal(v.remindSlot, true, 'remind invitation slot (placeholder until M5-5)');
+  assert.deepEqual(v.footButtons, ['result-again', 'result-leave'], 'P1-E5: 再写一组 (primary) + 回到首页');
+  assert.equal(v.remindSlot, true, 'remind invitation slot (the invitation itself fades in after ≈600ms, covered by 72-p1e5)');
   const cols = await page.getAttribute(topSel('result-grid'), 'data-cols');
   assert.equal(cols, '5', '5 columns');
   await page.click(topSel('result-leave'));

@@ -116,5 +116,6 @@ export default async function run(page, ctx) {
     await waitNavIdle(page);
     await page.waitForFunction(sel => document.querySelector('[data-testid="write-grid"]') && document.querySelector('.sz-layer[data-top="true"] [data-testid="write-grid"]').getAttribute('aria-label') === '书写格', GRID);
     assert.equal(await gridName(page), '书写格', `${scheme}: next char starts from the plain name`);
+    assert.equal((await status(page)).text, '', `${scheme}: the previous announcement is cleared on a new character`);
   }
 }

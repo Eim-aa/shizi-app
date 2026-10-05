@@ -74,6 +74,7 @@ export function useWriteAnnounce({ key, strokeCount, drawable, hintView, trace }
     const p = prev.current;
     if (p.key !== key) {
       prev.current = { key, count: strokeCount, run: hintRun, traced: null };
+      setMessage(''); // 换字 / 换阶段：上一句播报作废（读屏树里不留过期的话）
       return;
     }
     let text = '';

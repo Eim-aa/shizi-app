@@ -78,7 +78,7 @@ test('native ink: on — web canvases hidden, web pointer input ignored, strokes
   assert.equal(rect.drawable, true);
   h.surface.destroy();
   assert.equal(h.ink.style.visibility, undefined, 'destroy restores the web canvases');
-  assert.deepEqual(h.posted.pop(), { type: 'nativeInk', op: 'rect', visible: false });
+  assert.deepEqual(h.posted.pop(), { type: 'nativeInk', op: 'rect', visible: false, fadeMs: 150 }, 'native ink fades with the page cross-fade');
 });
 
 test('native ink: start → end commits the raw points through onStrokeEnd, times mapped to the page clock', () => {

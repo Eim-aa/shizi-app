@@ -94,7 +94,8 @@ final class NativeInkSpike: NSObject {
         guard visible else {
             if let ink, !ink.isHidden {
                 ink.cancelStroke(reason: "hidden", notify: true)
-                ink.isHidden = true
+                let fade = (b["fadeMs"] as? NSNumber)?.doubleValue ?? 0
+                if fade > 0 { ink.fadeOutAndHide(ms: fade) } else { ink.isHidden = true }
             }
             return
         }
@@ -109,6 +110,7 @@ final class NativeInkSpike: NSObject {
         v.drawable = b["drawable"] as? Bool ?? true
         if let c = Self.parseColor(b["color"] as? String) { v.inkColor = c }
         v.inkOpacity = Float((b["opacity"] as? NSNumber)?.doubleValue ?? 1)
+        v.cancelFade()
         if v.isHidden {
             v.isHidden = false
             v.requestRender()

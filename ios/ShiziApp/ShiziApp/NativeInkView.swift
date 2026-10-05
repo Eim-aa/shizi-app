@@ -482,6 +482,8 @@ final class NativeInkView: UIView {
 
     fileprivate func tick(_ link: CADisplayLink) {
         latency.tick(duration: link.targetTimestamp - link.timestamp)
+        stepFade(link.targetTimestamp)
+        if isHidden { return }
         let extra = overlayFrame?(link.targetTimestamp)
         if overlayFrame != nil, extra == nil { overlayFrame = nil; needsRender = true }
         guard needsRender || liveDirty || extra != nil else { return }
@@ -522,8 +524,37 @@ final class NativeInkView: UIView {
         }
     }
 
-    /// 渲染当前内容到一张 UIImage（截图对照用：CAMetalLayer 不进 snapshotView）。
     func requestRender() { needsRender = true }
+
+    // MARK: 卸载淡出（页面阶段交叉淡化 150ms 时，网页快照里没有墨，由原生层同步淡出）
+
+    private var fade: (start: CFTimeInterval, ms: Double, from: Float)?
+
+    func fadeOutAndHide(ms: Double) {
+        isUserInteractionEnabled = false
+        fade = (0, ms, inkOpacity)
+        needsRender = true
+    }
+
+    func cancelFade() {
+        guard let f = fade else { return }
+        fade = nil
+        inkOpacity = f.from
+        isUserInteractionEnabled = drawable
+    }
+
+    /// 每帧推进淡出；结束时隐藏并复原不透明度。
+    fileprivate func stepFade(_ target: CFTimeInterval) {
+        guard var f = fade else { return }
+        if f.start == 0 { f.start = target; fade = f }
+        let u = min(1, (target - f.start) * 1000 / max(1, f.ms))
+        inkOpacity = f.from * Float(1 - u)
+        if u >= 1 {
+            fade = nil
+            isHidden = true
+            inkOpacity = f.from
+        }
+    }
 }
 
 /// CADisplayLink 强引用 target：用弱引用中转，视图释放后 link 失效。

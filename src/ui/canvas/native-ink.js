@@ -237,7 +237,9 @@ export function attachNativeInk({ box, inkCanvas, liveCanvas, win, getProps, onE
       held = null;
       inkCanvas.style.visibility = prevInk;
       liveCanvas.style.opacity = prevLive;
-      post(win, { op: 'rect', visible: false });
+      // 书写格卸载（写好了 → 对照、换页）：页面阶段交叉淡化 150ms（phase-fade.js FADE_MS）的快照里网页墨是隐藏的，
+      // 所以由原生层把自己的墨在同样 150ms 里淡出，而不是第 0 帧消失
+      post(win, { op: 'rect', visible: false, fadeMs: 150 });
       if (active && active.onNative === onNative) {
         active = null;
         if (win.shiziNativeInk === onNative) win.shiziNativeInk = undefined;

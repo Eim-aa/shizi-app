@@ -4,8 +4,8 @@
 //   g    = clamp(258, min(屏宽 − 40, 400, 名义主区高 − 80 − 16 − 40 − 16), 400)    D29 / D36 / P195：只由视口决定——名义主区高 = 页面高 − 名义页头 − 名义按钮行（标准字号 L 档的尺寸 + 量到的安全区），
 //                                                                                   名义题面高 80、名义工具行高 40；与系统字号、题面提示行无关（xS–XXXL）。
 // AX 档（D51 ⑦，P225，ADA A2-01）不再「放不下整页滚动」：整页永不滚动，格子按实际可用高度排——axWriteLayout：
-//   g = clamp(220, min(屏宽 − 40, 400, 实际主区高 − P − 16 − 56 − 16), 400)       56 = 格下说明位固定高（撤销 / 清空已移到页头，底栏只剩「写好了」+「⋯」）
-//   组高 = P + 16 + g + 56，组顶按同一条 40% 规则；格子完整显示在首屏，下限 220（SE 3 的 AX5 也放得下）。
+//   g = clamp(220, min(屏宽 − 40, 400, 实际主区高 − P − 16 − N − 16), 400)        N = 格下说明位的实际高度（R3-K1 P241：量到的，至少 56；撤销 / 清空已移到页头，底栏只剩「写好了」+「⋯」）
+//   组高 = P + 16 + g + N，组顶按同一条 40% 规则；格子与说明位完整显示在首屏，下限 220；格子到了下限仍放不下说明位时，说明并入「⋯」菜单顶部（N 记 0）。
 //   组高 = P + 16 + g + T                                                           P、T 取实际（AX 档的词语行、52 高工具行更高）
 //   组顶 = max(12, round((主区高 − 组高) × 0.4))                                    主区高取实际量到的；空余 40% 在上、60% 在下（空余不足 12 时取空余本身，不足 0 时取 0）
 //   书写格顶（主区内）= 组顶 + P + 16
@@ -110,21 +110,27 @@ export function writeLayout({ width, mainHeight, nominalHeight = mainHeight, pro
 }
 
 /**
- * AX 档书写格边长（D51 ⑦，P225；纯函数）：按实际可用高度，格子完整显示在首屏、永不滚动。
- * g = clamp(AX_GRID_MIN, min(屏宽 − 40, 400, 实际主区高 − P − 16 − 56 − 16), 400)；实际放不下（g 取下限还超高）时 fits=false，由调用方决定怎么办（正常机型不会出现）。
- * @param {{width:number, mainHeight:number, promptHeight?:number}} o
- * @returns {{g:number, top:number, gridTop:number, toolsHeight:number, fits:boolean}}
+ * AX 档书写格边长（D51 ⑦，P225；R3-K1 P241 说明位按实际高度；纯函数）：按实际可用高度，格子与格下说明位都完整显示在首屏、永不滚动。
+ * N = max(AX_NOTE_H, noteHeight)：格下说明位的实际高度（写字页量到的，说明折成三行就是三行的高度，不再假定固定 56）。
+ * g = clamp(AX_GRID_MIN, min(屏宽 − 40, 400, 实际主区高 − P − 16 − N − 16), 400)。
+ * 格子缩到下限 220 仍放不下说明位时 noteInMenu=true：说明位并入「⋯」菜单顶部（格下不画），g 按没有说明位重算——视觉上什么都不被底栏盖住。
+ * 连说明位都拿走仍放不下（g 取下限还超高）时 fits=false（正常机型不会出现）。
+ * @param {{width:number, mainHeight:number, promptHeight?:number, noteHeight?:number}} o
+ * @returns {{g:number, top:number, gridTop:number, toolsHeight:number, fits:boolean, noteInMenu:boolean}}
  */
-export function axWriteLayout({ width, mainHeight, promptHeight = PROMPT_H_STD } = {}) {
+export function axWriteLayout({ width, mainHeight, promptHeight = PROMPT_H_STD, noteHeight = AX_NOTE_H } = {}) {
   const hasW = finite(width) && width > 0;
   const hasH = finite(mainHeight) && mainHeight > 0;
   const w = contentWidth(width);
-  const h = hasH ? mainHeight - promptHeight - PROMPT_GAP - AX_NOTE_H - BOTTOM_GAP : Infinity;
-  const g = !hasW && !hasH ? STD_GRID : Math.max(AX_GRID_MIN, Math.min(GRID_MAX, Math.floor(Math.min(w, GRID_MAX, h))));
-  const groupHeight = promptHeight + PROMPT_GAP + g + AX_NOTE_H;
+  const note = Math.max(AX_NOTE_H, finite(noteHeight) ? Math.ceil(noteHeight) : AX_NOTE_H);
+  const room = n => (hasH ? mainHeight - promptHeight - PROMPT_GAP - n - BOTTOM_GAP : Infinity);
+  const noteInMenu = hasH && Math.floor(Math.min(w, GRID_MAX, room(note))) < AX_GRID_MIN;
+  const slot = noteInMenu ? 0 : note;
+  const g = !hasW && !hasH ? STD_GRID : Math.max(AX_GRID_MIN, Math.min(GRID_MAX, Math.floor(Math.min(w, GRID_MAX, room(slot)))));
+  const groupHeight = promptHeight + PROMPT_GAP + g + slot;
   const top = groupTop({ mainHeight, groupHeight });
   const fits = !finite(mainHeight) || top + groupHeight <= mainHeight + 0.5;
-  return { g, top, gridTop: top + promptHeight + PROMPT_GAP, toolsHeight: AX_NOTE_H, fits };
+  return { g, top, gridTop: top + promptHeight + PROMPT_GAP, toolsHeight: slot, fits, noteInMenu };
 }
 
 /**

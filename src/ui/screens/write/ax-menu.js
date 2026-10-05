@@ -7,6 +7,8 @@
 // 菜单是现有的底部弹层（components/Sheet.js，经 nav.openOverlay 打开），菜单项竖排、字号随 AX 档、可折行（词内不折，A2-11）。
 // 菜单项沿用原按钮的 data-testid（write-hint / write-show-answer / write-skip / write-to-paper / write-end / write-answer-next …），
 // 选了菜单项 = 先关弹层再执行原来那个按钮的动作（动作是页面渲染时取的闭包 / live ref，菜单开着期间页面状态不会变）。
+// R3-K1（P241）：格子缩到下限 220 仍放不下格下说明位时（layout.js axWriteLayout noteInMenu），说明位的内容（结果行「修改」、读屏的纸上写建议、
+// 看答案的后果说明…）并入菜单顶部（head），格下不画——不被底栏盖住，也不丢。
 
 import { html } from '../../../../vendor/ui.js';
 import { nav } from '../../router.js';
@@ -21,6 +23,10 @@ injectStyles('write-ax', `
 .sz-write__more{flex:none;width:max(56px, calc(var(--btn-h) * .8));min-height:var(--btn-h);padding:0;display:grid;place-items:center}
 .sz-write__more svg{width:28px;height:28px}
 .sz-axmenu{display:flex;flex-direction:column;gap:0}
+.sz-axmenu__head{display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:4px 4px 12px;color:${T.ink2};
+  font-size:${T.fs15};line-height:${T.lh15};box-shadow:inset 0 -${T.hair} 0 ${T.line}}
+.sz-write__more{position:relative}
+.sz-write__more[data-note="true"]::after{content:"";position:absolute;top:8px;right:8px;width:8px;height:8px;border-radius:50%;background:${T.ink2}} /* 说明并入了菜单（P241） */
 .sz-axmenu__item{width:100%;min-height:max(${T.hit}, calc(var(--lh17) + 20px));padding:10px 4px;text-align:left;font-size:${T.fs17};
   line-height:${T.lh17};color:${T.ink1};white-space:normal;word-break:keep-all;display:flex;align-items:center;
   box-shadow:inset 0 -${T.hair} 0 ${T.line}}
@@ -36,9 +42,10 @@ const MORE_ICON = () => html`<svg viewBox="0 0 28 28" fill="currentColor" aria-h
  * 菜单项：{testid, label, ariaLabel?, disabled?, onSelect}。disabled 的项照样列出（灰），读屏知道有这一项但现在不能用（例如提示已用完）。
  * @param {{items: Array, close?: () => void, active?: boolean}} props  overlay 组件：root 注入 close / active
  */
-export function AxMenu({ items = [], close, active = true }) {
+export function AxMenu({ items = [], head = null, close, active = true }) {
   return html`<${Sheet} onClose=${close} active=${active} testid="write-ax-menu">
     <div class="sz-axmenu" role="group" aria-label=${t('X-WRITE.moreLabel')}>
+      ${head ? html`<div class="sz-axmenu__head" data-testid="write-menu-note">${head}</div>` : null}
       ${items.map(it => it.static
     ? html`<span key=${it.testid} class="sz-axmenu__item" data-static="true" data-testid=${it.testid}>${it.label}</span>`
     : html`<${Button} key=${it.testid} variant="plain" class="sz-axmenu__item" data-testid=${it.testid}
@@ -51,9 +58,9 @@ export function AxMenu({ items = [], close, active = true }) {
   </${Sheet}>`;
 }
 
-/** 打开 AX 菜单；返回 overlay id。 */
-export function openAxMenu(items) {
-  return nav.openOverlay(AxMenu, { items }, { name: 'write-ax-menu' });
+/** 打开 AX 菜单；head：并入菜单顶部的格下说明（P241，可缺省）。返回 overlay id。 */
+export function openAxMenu(items, head = null) {
+  return nav.openOverlay(AxMenu, { items, head }, { name: 'write-ax-menu' });
 }
 
 /**
@@ -61,14 +68,14 @@ export function openAxMenu(items) {
  * @param {{primary: {testid:string, label:string, disabled?:boolean, onClick:Function, variant?:string}, items: Array, testid?: string, stage?: string, failed?: boolean}} props
  *   items 为空时不画「⋯」（主按钮独占一行）。
  */
-export function AxFoot({ primary, items = [], testid = 'write-foot', stage, failed = false, lead = null }) {
+export function AxFoot({ primary, items = [], testid = 'write-foot', stage, failed = false, lead = null, head = null }) {
   return html`<div class="sz-write__foot sz-write__foot--ax" data-testid=${testid} data-stage=${stage} data-failed=${failed ? 'true' : 'false'}>
     ${lead}
     <${Button} variant=${primary.variant || 'primary'} data-testid=${primary.testid} disabled=${!!primary.disabled}
       onClick=${primary.onClick}>${primary.label}</${Button}>
-    ${items.length
+    ${items.length || head
     ? html`<${Button} variant="secondary" class="sz-write__more" data-testid="write-more" aria-label=${t('X-WRITE.moreLabel')}
-        aria-haspopup="dialog" onClick=${() => openAxMenu(items)}>${MORE_ICON()}</${Button}>`
+        aria-haspopup="dialog" data-note=${head ? 'true' : null} onClick=${() => openAxMenu(items, head)}>${MORE_ICON()}</${Button}>`
     : null}
   </div>`;
 }

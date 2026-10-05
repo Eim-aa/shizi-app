@@ -128,6 +128,7 @@ ${W} .sz-page__foot[data-under="true"]::before{content:"";position:absolute;left
 .sz-write__endslot{display:flex;align-items:center}
 :root[data-ax] .sz-write__links--ghost{display:none}
 :root[data-ax] ${W} .sz-write__below{width:100%;min-height:${AX_NOTE_H}px;margin:0}
+:root[data-ax] ${W} .sz-write__below[data-in-menu="true"]{min-height:0;height:0}
 :root[data-ax] ${W} .sz-write__below *,:root[data-ax] ${W} .sz-paper__title,:root[data-ax] ${W} .sz-paper__text,:root[data-ax] ${W} .sz-paper__back,
 :root[data-ax] ${W} .sz-write__progress{font-size:calc(17px * 1);line-height:24px}
 :root[data-ax] ${W} .sz-write__note{box-sizing:border-box;min-height:${AX_NOTE_H}px;justify-content:flex-start;padding-top:8px}
@@ -327,7 +328,9 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
   const compact = useCompact();
   const ax = useAxLevel();
   const writeRef = useRef(null);
-  const layout = useWriteLayout(writeRef, { phase, ax });
+  const layout = useWriteLayout(writeRef, { phase, ax, noteKey: cardKey ? `${cardKey}|${phase}` : null });
+  // R3-K1 P241：AX 档格子缩到下限仍放不下格下说明位时，说明并入「⋯」菜单顶部，格下不画（视觉上不被底栏盖住）。
+  const noteInMenu = ax > 0 && !!layout.noteInMenu;
   const gridSize = layout.g;
   const groupTop = phase === 'compare' ? layout.pair.top : layout.top;
   // 阶段 / 换字的 150ms 交叉淡化（phase-fade.js，P227）：key 一变，渲染期给旧页拍快照，提交后盖上去淡出；减少动态效果直接切换。
@@ -347,7 +350,7 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
   // （接管时「结束这组」放在它底栏「下一个」那一行右端，H4）。Q1：本地笔画交给它，离开自己写一遍时存成看后自写的墨迹。
   const answer = useAnswerFlow({
     slot, session, cardKey, phase, strokeCount: view.strokes.length, strokes: view.strokes,
-    onShowAnswer: endSkipUndo, endButton: end.button, ax, endOpen: end.open,
+    onShowAnswer: endSkipUndo, endButton: end.button, ax, endOpen: end.open, noteInMenu,
   });
 
   // 读屏播报（A2-06，P231）：笔数（抬笔 / 撤销 / 清空）、提示给出了哪几笔、描一遍出现时的笔序；视觉隐藏的 aria-live=polite 区域，挂在写字页根上（不在淡化快照里）。
@@ -468,6 +471,10 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
         </div>
       </div>
     </div>`;
+  const noteBody = answer.active ? answer.note
+    : skip.failed ? skip.note : paper ? html`<${PaperNote} />` : hint.note ? html`<${HintNote} note=${hint.note} />` : firstTip.node;
+  // 格下说明位的内容（结果行 / 读屏的纸上写建议 / 说明）：平时在格下；noteInMenu 时只画在「⋯」菜单顶部（同一份 vnode 不同时挂两处）。
+  const noteNodes = html`<span class="sz-write__lineslot" data-testid="write-line-slot">${row.node}</span>${suggest.node}${noteBody}`;
   // AX 档底栏（P225）：一行「写好了」+「⋯」，提示 / 看答案 / 跳过 / 在纸上写 / 结束这组收进菜单（ax-menu.js）；保存失败时主按钮是「再试一次」，「先不保存」进菜单。
   let axFooter = null;
   if (ax > 0) {
@@ -481,12 +488,11 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
     if (end.open) items.push({ testid: 'write-end', label: t('R-W15.end'), onSelect: end.open });
     axFooter = skip.failed
       ? html`<${AxFoot} primary=${{ testid: 'write-skip-fail-retry', label: t('R-W16.retry'), onClick: skip.run }}
-          items=${[{ testid: 'write-skip-fail-cancel', label: t('R-W16.cancel'), onSelect: skip.cancelFail }]} testid="write-foot" stage="recall" failed=${true} />`
+          items=${[{ testid: 'write-skip-fail-cancel', label: t('R-W16.cancel'), onSelect: skip.cancelFail }]} testid="write-foot" stage="recall" failed=${true}
+          head=${noteInMenu ? noteNodes : null} />`
       : html`<${AxFoot} primary=${{ testid: 'write-done', label: t('R-W29.btnDone'), disabled: !hasStrokes && !paper, onClick: onDone }}
-          items=${items} testid="write-foot" stage=${phase} />`;
+          items=${items} testid="write-foot" stage=${phase} head=${noteInMenu && !answer.active ? noteNodes : null} />`;
   }
-  const noteBody = answer.active ? answer.note
-    : skip.failed ? skip.note : paper ? html`<${PaperNote} />` : hint.note ? html`<${HintNote} note=${hint.note} />` : firstTip.node;
 
   const trailing = ax > 0 ? html`<span class="sz-write__axhead">${tools}${progress}</span>` : progress;
   return html`<${Page} title=${titleFor(phase)} hideTitle=${phase === 'recall' || (phase === 'compare' && ax > 0)} lead=${compare.lead}
@@ -511,8 +517,8 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
           label=${gridLabel(view.strokes.length)}
         />`}
       </div>
-      ${compare.active ? null : html`<div class="sz-write__below" style=${ax > 0 ? undefined : { width: `${gridSize}px` }}>
-        <span class="sz-write__note" data-testid="write-note"><span class="sz-write__lineslot" data-testid="write-line-slot">${row.node}</span>${suggest.node}${noteBody}</span>
+      ${compare.active ? null : html`<div class="sz-write__below" style=${ax > 0 ? undefined : { width: `${gridSize}px` }} data-in-menu=${noteInMenu ? 'true' : null}>
+        ${noteInMenu ? null : html`<span class="sz-write__note" data-testid="write-note">${noteNodes}</span>`}
         ${ax > 0 ? null : tools}
       </div>`}
     </div>

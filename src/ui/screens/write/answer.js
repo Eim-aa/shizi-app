@@ -466,12 +466,13 @@ function useAnswerFirstNote({ phase, cardKey }) {
  *   右端（与回忆阶段「跳过」那一行同一位置，M2 验收 H4）；保存失败两键占住底栏时不显示。
  * @param {number} [o.ax]  AX 档（1–5；0 = 不是 AX 档）：底栏改成一行「主按钮 + ⋯」（D51 ⑦，P225；write/ax-menu.js），按钮行上方的说明挪到格下说明位（note）
  * @param {(() => void)|null} [o.endOpen]  AX 档菜单里「结束这组」的动作（write/end.js useEndGroup().open）
+ * @param {boolean} [o.noteInMenu]  AX 档格子缩到下限仍放不下格下说明位（layout.js axWriteLayout，R3-K1 P241）：说明并入「⋯」菜单顶部
  * @returns {{active:boolean, link:any, show:Function, stage:any, glyphLayer:any, note:string, footer:any}}
  *   active：本流程接管底栏（answer / trace / retrace，或看过答案后的 recall）；
  *   link：回忆阶段「看答案」按钮（放 write-answer-slot）；stage：恒为 null（看答案不换卡，答案衬底画在书写格参考字形层里，D51 ⑧）；
  *   glyphLayer：answer 阶段的答案衬底 / trace 阶段的描红，书写格参考字形层内容；note：书写格下说明（write-note）；footer：接管时的底栏。
  */
-export function useAnswerFlow({ slot, session, cardKey, phase, strokeCount = 0, strokes = null, onShowAnswer, endButton = null, ax = 0, endOpen = null }) {
+export function useAnswerFlow({ slot, session, cardKey, phase, strokeCount = 0, strokes = null, onShowAnswer, endButton = null, ax = 0, endOpen = null, noteInMenu = false }) {
   const char = cardKey ? charOfCardKey(cardKey) : null;
   const answerSeen = !!(session && session.current && session.current.answerSeen);
   const inFlow = ANSWER_PHASES.includes(phase);
@@ -561,7 +562,8 @@ export function useAnswerFlow({ slot, session, cardKey, phase, strokeCount = 0, 
     }
     const lead = phase === 'answer' ? html`<span class="sz-answer__sr" role="img" aria-label=${answerLabel} data-testid="write-answer-char"></span>` : null;
     const axNote = phase === 'answer' ? (failed || !firstNote ? noteAbove : `${noteAbove}${t('R-W07.firstExplain')}`) : note; // 两句合成一块说明（最多两行）
-    const axFooter = html`<${AxFoot} primary=${primary} items=${items} testid="write-answer-foot" stage=${phase} failed=${failed} lead=${lead} />`;
+    const head = noteInMenu && axNote ? html`<span data-testid="write-answer-note">${axNote}</span>` : null;
+    const axFooter = html`<${AxFoot} primary=${primary} items=${items} testid="write-answer-foot" stage=${phase} failed=${failed} lead=${lead} head=${head} />`;
     return { active: true, link, show: showAnswer, stage, glyphLayer, note: axNote, footer: axFooter };
   }
   let buttons;

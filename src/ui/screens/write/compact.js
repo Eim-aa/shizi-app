@@ -137,8 +137,8 @@ const MEASURED_PHASES = Object.freeze(['recall', 'compare']);
  * @returns {{g:number, top:number, gridTop:number, toolsHeight:number, mainHeight:number, nominalHeight:number, promptHeight:number,
  *            pair:{s:number, layout:'stack'|'side', top:number}}}
  */
-export function useWriteLayout(writeRef, { phase = 'recall', ax = 0 } = {}, win) {
-  const [measured, setMeasured] = useState(() => ({ ...estimateLayout(win), width: NaN, mainHeight: NaN, nominalHeight: NaN, promptHeight: PROMPT_H_STD }));
+export function useWriteLayout(writeRef, { phase = 'recall', ax = 0, noteKey = null } = {}, win) {
+  const [measured, setMeasured] = useState(() => ({ ...estimateLayout(win), width: NaN, mainHeight: NaN, nominalHeight: NaN, promptHeight: PROMPT_H_STD, noteHeight: NaN, noteKey }));
   useLayoutEffect(() => {
     const w = winOf(win);
     const el = writeRef.current;
@@ -162,13 +162,22 @@ export function useWriteLayout(writeRef, { phase = 'recall', ax = 0 } = {}, win)
       });
       const prompt = el.querySelector('.sz-write__prompt');
       const promptHeight = prompt ? prompt.offsetHeight : PROMPT_H_STD;
+      // AX 档格下说明位的实际高度（R3-K1 P241）：同一个字的同一阶段里只增不减（落笔收起结果行时格子不跟着变大、不重排正在写的格子）；
+      // 说明已并入「⋯」菜单（格下不画）时沿用之前量到的值。换字 / 换阶段重新量。
+      const below = el.querySelector('.sz-write__below');
+      const inMenu = !!(below && below.getAttribute('data-in-menu') === 'true');
+      const noteNow = below && !inMenu ? below.offsetHeight : NaN;
       setMeasured(prev => {
         const keep = ax <= 0 && !MEASURED_PHASES.includes(phase) && Number.isFinite(prev.mainHeight);
         const mh = keep ? prev.mainHeight : mainHeight;
         const nh = keep ? prev.nominalHeight : nominalHeight;
         const ph = keep ? prev.promptHeight : promptHeight;
-        if (prev.width === width && prev.mainHeight === mh && prev.nominalHeight === nh && prev.promptHeight === ph) return prev;
-        return { width, mainHeight: mh, nominalHeight: nh, promptHeight: ph };
+        const sameKey = prev.noteKey === noteKey;
+        const prevNote = sameKey && Number.isFinite(prev.noteHeight) ? prev.noteHeight : NaN;
+        const nt = Number.isFinite(noteNow) ? (Number.isFinite(prevNote) ? Math.max(prevNote, noteNow) : noteNow) : prevNote;
+        const same = (a, b) => a === b || (Number.isNaN(a) && Number.isNaN(b));
+        if (prev.width === width && prev.mainHeight === mh && prev.nominalHeight === nh && prev.promptHeight === ph && same(prev.noteHeight, nt) && sameKey) return prev;
+        return { width, mainHeight: mh, nominalHeight: nh, promptHeight: ph, noteHeight: nt, noteKey };
       });
     };
     measure();
@@ -177,6 +186,7 @@ export function useWriteLayout(writeRef, { phase = 'recall', ax = 0 } = {}, win)
       ro = new w.ResizeObserver(measure);
       ro.observe(page);
       ro.observe(body);
+      ro.observe(el); // 格下说明位长高（结果行 / 提示说明出现）时 .sz-write 跟着变高
     } else {
       w.addEventListener('resize', measure);
     }
@@ -184,11 +194,12 @@ export function useWriteLayout(writeRef, { phase = 'recall', ax = 0 } = {}, win)
       if (ro) ro.disconnect();
       else w.removeEventListener('resize', measure);
     };
-  }, [phase, win, ax > 0]);
+  }, [phase, win, ax > 0, noteKey]);
   const { width, mainHeight, nominalHeight, promptHeight } = measured;
+  const noteHeight = measured.noteKey === noteKey ? measured.noteHeight : NaN;
   // AX 档：按实际可用高度排（永不滚动，axWriteLayout）；其余档仍按名义版式（D29 / D36 / P195）。
   const base = Number.isFinite(mainHeight)
-    ? (ax > 0 ? axWriteLayout({ width, mainHeight, promptHeight }) : writeLayout({ width, mainHeight, nominalHeight, promptHeight }))
+    ? (ax > 0 ? axWriteLayout({ width, mainHeight, promptHeight, noteHeight }) : writeLayout({ width, mainHeight, nominalHeight, promptHeight }))
     : { g: measured.g, top: measured.top, gridTop: measured.gridTop, toolsHeight: measured.toolsHeight };
   let pair = { s: 0, layout: 'stack', top: base.top };
   if (phase === 'compare' && Number.isFinite(mainHeight)) {

@@ -198,6 +198,10 @@
           { note: m.note, grid: m.grid, footTop: footBox && footBox.top });
         check('note slot content not clipped', note.scrollHeight <= note.clientHeight + 1, m.noteScroll);
       }
+      // 格子到了下限仍放不下说明位时（P241），说明并入「⋯」菜单顶部：格下不画，「⋯」带墨点（菜单内容在 run 里打开后核对）。
+      const slot = layer.querySelector('.sz-write__below');
+      m.noteInMenu = !!(slot && slot.getAttribute('data-in-menu') === 'true');
+      if (m.noteInMenu) check('note moved into the 「⋯」 menu is flagged on the button', !note && q('write-more') && q('write-more').getAttribute('data-note') === 'true');
     }
     return m;
   }
@@ -277,6 +281,12 @@
       result.metrics.layout = measure({ writePage: false });
     } else {
       throw new Error('unknown probe state ' + STATE);
+    }
+    if (result.metrics.layout && result.metrics.layout.noteInMenu) {
+      q('write-more').click();
+      const head = await waitFor(() => document.querySelector('[data-testid="write-ax-menu"] [data-testid="write-menu-note"]'), 'menu note', 5000).catch(() => null);
+      await idle(500);
+      check('the note is at the top of the 「⋯」 menu', !!head && head.textContent.trim().length > 0 && !hidden(head, document.body), head ? head.textContent.trim().slice(0, 40) : null);
     }
   } catch (error) {
     result.error = String(error && error.message ? error.message : error);

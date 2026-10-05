@@ -56,9 +56,12 @@ injectStyles('query-sheet', `
   clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0}
 /* 全高时标题行只剩「完成」（A2-05）：不占竖向空间——绝对定位到顶部右端、与查字框同一行，查字框右侧让出它的宽（两个汉字 + 点击区内边距），内容区高度不变（76-q2-09） */
 .sz-sheet[data-testid="query-sheet"][data-full="true"] .sz-sheet__head{position:absolute;top:max(${T.s4}, env(safe-area-inset-top, 0px));right:${T.gutter};margin:0}
-.sz-sheet[data-testid="query-sheet"][data-full="true"] .sz-query__input-wrap{margin-right:calc(2 * ${T.fs15} + ${T.s4})}
+/* R3-K1（A3-04）：原先这条让宽规则写在不存在的 .sz-query__input-wrap 上，从没生效——AX5 下「完成」直接压在查字框的占位文字上。
+   现在让在查字框本身（宽 = 100% − 让出的宽）；AX 档「完成」字号封顶 22（仍在查字框那一行，不占内容区高度，76-q2-09），让出 2 × 22 + 2 × --bx + 16 */
+.sz-sheet[data-testid="query-sheet"][data-full="true"] .sz-query__input{width:calc(100% - (2 * ${T.fs15} + 8px + ${T.s4}))}
+:root[data-ax] .sz-sheet[data-testid="query-sheet"][data-full="true"] .sz-sheet__done{font-size:calc(22px * 1);line-height:30px}
+:root[data-ax] .sz-sheet[data-testid="query-sheet"][data-full="true"] .sz-query__input{width:calc(100% - (2 * 22px + 8px + ${T.s4}))}
 .sz-query{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;gap:16px}
-.sz-query__input-wrap{flex:none}
 .sz-query__scroll{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
   display:flex;flex-direction:column;gap:16px;padding-bottom:1px} /* 带调拼音的回退字体让行高带小数，滚到底时最后一行可能差不到 1px 没露全；多留 1px（60-matrix scroll-end） */
 .sz-query__notes{display:flex;flex-direction:column;gap:6px}

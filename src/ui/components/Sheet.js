@@ -25,6 +25,7 @@ injectStyles('sheet', `
 .sz-sheet__head .sz-sheet__title{flex:1 1 auto;min-width:0}
 .sz-sheet__done{flex:none;margin-inline-end:calc(-1 * var(--bx));white-space:nowrap}
 .sz-sheet__title{margin:0;font-family:${T.song};font-size:${T.fs22};font-weight:500;line-height:${T.lh22}}
+:root[data-ax] .sz-sheet__title{text-wrap:balance;line-break:strict} /* AX 档（R3-K1，A3-04）：「这次的图 / 片」这样单字落行改成均衡折行 */
 @keyframes sz-fade-in{from{opacity:0}to{opacity:1}}
 @keyframes sz-sheet-in{from{transform:translateY(100%)}to{transform:none}}
 @media (prefers-reduced-motion: reduce){.sz-scrim,.sz-sheet{animation:none}}

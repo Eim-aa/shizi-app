@@ -1,11 +1,13 @@
 // 习字 tab 根页 · 首页（02 M2-1；阶段 1 P1-E5 按设计稿「首练与首页」重排：D43 首页方案 B、D46 ①②④；R-H01–R-H07、R-H11；
 // 阶段 1 E9a 按减法修稿 D49 修订：实现交接 §1 / §2.4）。自注册，无中心路由表。
 //
-// 版式（D49；H1 / D51 ④ 起日常状态不放品牌「拾」；H1 验收：「字帖块 + 主按钮 + 次按钮」是一个整体，放在页头下沿到 Tab 栏上沿之间的光学中心）：
-//   日期行（13 墨三，R-H02）→ 题记一行（日期下 2：宋 13 墨三，「心不厌精，手不忘熟。」+ 8 + 出处作者名，单行不折，不带印；AX1–AX5 隐藏，
-//   读屏把它作为标题的补充读出：h1 aria-describedby）→ 标题「今天写几个字」（宋 28，题记下 10）→ [舞台 .sz-home__stage：上下留白 42 : 58，几何中心往上约 4–6%；
-//   里面依次是 字帖位（字帖块——含它下面的说明句——底边到主按钮 32；首次打开的品牌「拾」同一规则）→ 墨色主按钮
-//   （宽 240 居中；竖向位置随整体块居中，不再固定距 Tab 栏 119）→ 文字按钮「自己选字」（黑体 15 ink2 无下划线，H1）]；AX 档放不下时留白收成 0，整体从页头下方开始排。同屏字号 13 / 15 / 17 / 28。
+// 版式（D49；H1 / D51 ④ 起日常状态不放品牌「拾」；C3-H / D53 ③ 起标题与字帖成一组、主按钮固定在底线，覆盖 H1 的「整体块居中」）：
+//   页头：日期行（13 墨三，R-H02）→ 题记一行（日期下 2：宋 13 墨三，「心不厌精，手不忘熟。」+ 8 + 出处作者名，单行不折，不带印；AX1–AX5 隐藏，
+//   读屏把它作为标题的补充读出：h1 aria-describedby）；
+//   主区 .sz-home__main：标题「今天写几个字」（宋 28）→ 20 → 字帖位（含它下面的说明句）这一组，在页头下沿与主按钮区之间光学居中（上下留白 42 : 58）；
+//   字帖行格边长 = min(版心宽 / n, 160)（copybook.js tieCellSize），一行撑满 20pt 页边之间的版心，左缘与标题同在 20 的线上；首次打开的品牌「拾」同一规则；
+//   主按钮区 .sz-home__foot：[失败提示 / 首次说明句 / 次按钮「自己选字」「这次先写平常的字」] → 墨色主按钮（宽 240 居中）——主按钮底边固定在 Tab 栏上沿
+//   上方 CTA_LINE（24）：五态与首次打开同一个 y，不随内容或状态移动，次按钮等都在它上面；AX 档放不下时留白收成 0，整体从页头下方开始排。同屏字号 13 / 15 / 17 / 28。
 //   首页没有朱色（题记不带印；不画写错朱点，D46 ①）；首页不画任何计数（「这一组还有 N 个字」「字库里有 N 个字了 ›」删去，D49-7：
 //   计数只进读屏标签），只在今天写的字多于 8 个时留一行「今天写了 N 个字」。字帖格只有外框与格间两种线，空格就是笺面（copybook.js）。
 //   五态（today.js homeViewOf，03 P155；字帖位放什么见 heroOf，03 P220）：
@@ -74,6 +76,11 @@ export const CLOCK_TICK_MS = 30000;
 /** 首次打开品牌时刻的总长（ms；I2-05 建议 ≤ 1.2s）：题跋逐字淡入 0.08–0.94s，印 0.9–1.2s。主按钮不参与动画，第一帧起可见可点（H1）。 */
 export const BRAND_TOTAL_MS = 1200;
 
+/** 主按钮底边到 Tab 栏上沿的固定距离（pt，T3-01 / D53 ③「全 App 统一的底线」）：首页五态与首次打开同一条线。 */
+export const CTA_LINE = 24;
+/** 标题到字帖行的距离（pt）：标题贴近字帖，成一组。 */
+export const TITLE_GAP = 20;
+
 // 演示子页只在测试主机上加载（ui/root.js），生产形态里 getScreen 为 null，入口不出现。
 const DEMO_SCREEN = '_demo/sub';
 
@@ -92,23 +99,25 @@ injectStyles('home', `
 .sz-home__epi{margin:2px 0 0;font-family:${T.song};font-weight:400;font-size:${T.fs13};line-height:${T.lh13};white-space:nowrap;color:${T.ink3}} /* 题记一行（D49）：宋 13 墨三，不带印 */
 .sz-home__episrc{margin-left:8px}
 .sz-home__seal{width:16px;height:16px;box-sizing:border-box;border-radius:${T.rWork};display:block;flex:none} /* 印是图形：固定 seal16，白文「拾」是铺满的 svg（SealGlyph），不随 --k（Q2-10） */
-.sz-home__title{margin:10px 0 0;font-family:${T.song};font-weight:500;font-size:${T.fs28};
+.sz-home__title{margin:0 0 ${TITLE_GAP}px;font-family:${T.song};font-weight:500;font-size:${T.fs28};
   line-height:${T.lh28};color:${T.ink1};text-wrap:balance}
 .sz-home__title:focus{outline:none}
-.sz-home__stage{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;align-items:center}
-.sz-home__stage::before,.sz-home__stage::after{content:"";min-height:0} /* 「字帖块 + 主按钮 + 次按钮」整体放在页头下沿到 Tab 栏上沿之间的光学中心：上下留白 42 : 58（几何中心往上约 4–6% 的舞台高）；放不下（AX 档）时留白收成 0，整体从页头下方开始排（H1） */
-.sz-home__stage::before{flex:42 1 0}
-.sz-home__stage::after{flex:58 1 0}
-.sz-home__zone{flex:none;width:100%;display:flex;flex-direction:column;align-items:center;padding:0 0 ${T.s8}} /* 字帖块（含它下面的说明句）底边到主按钮 32（H1 / D51 ④、T2-09）；首次打开的品牌「拾」同一规则 */
-.sz-home__block{display:flex;flex-direction:column;align-items:center;max-width:100%}
+.sz-home__stage{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+.sz-home__main{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;align-items:flex-start}
+.sz-home__main::before,.sz-home__main::after{content:"";min-height:0} /* 标题 + 字帖这一组在页头下沿与主按钮之间光学居中（上下留白 42 : 58，T3-01 / D53 ③）；主按钮不再跟着它走，固定在 Tab 栏上沿上方 24pt 的底线；放不下（AX 档）时留白收成 0，从页头下方开始排 */
+.sz-home__main::before{flex:42 1 0}
+.sz-home__main::after{flex:58 1 0}
+.sz-home__zone{flex:none;width:100%;display:flex;flex-direction:column;align-items:flex-start;padding:0 0 ${T.s4}} /* 字帖块（含它下面的说明句）到主按钮区至少 16 */
+.sz-home--first .sz-home__zone{align-items:center}
+.sz-home__block{display:flex;flex-direction:column;align-items:flex-start;max-width:100%}
 .sz-home__gap{flex:none;height:16px}
-.sz-home__line{margin:0;text-align:center;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3};text-wrap:balance}
+.sz-home__line{margin:0;text-align:left;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3};text-wrap:balance}
 .sz-home__other.sz-btn{--bx:12px;margin-top:4px;min-height:${T.hit}}
-.sz-home__foot{flex:none;width:100%;display:flex;flex-direction:column;align-items:center}
+.sz-home__foot{flex:none;width:100%;display:flex;flex-direction:column;align-items:center;padding:0 0 ${CTA_LINE}px} /* 主按钮底边固定在 Tab 栏上沿上方 24pt（T3-01 / D53 ③）：次按钮 / 首次说明 / 失败提示都在它上面，不论哪一态主按钮 y 不变 */
 .sz-home__cta.sz-btn{width:240px;max-width:100%}
-.sz-home__side.sz-btn{margin-top:4px;min-height:${T.hit};justify-content:center}
-.sz-home__note{margin:16px 0 0;text-align:center;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3}}
-.sz-home__fail{margin-top:12px;width:100%;max-width:345px;display:flex;flex-direction:column;gap:10px}
+.sz-home__side.sz-btn{margin-bottom:4px;min-height:${T.hit};justify-content:center}
+.sz-home__note{margin:0 0 12px;text-align:center;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3}}
+.sz-home__fail{margin-bottom:12px;width:100%;max-width:345px;display:flex;flex-direction:column;gap:10px}
 .sz-home__failnote{margin:0;text-align:center;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2}}
 .sz-home__failbtns{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
 .sz-home__dev{position:absolute;left:20px;right:20px;top:100%;display:flex;flex-direction:column;gap:8px;padding:12px 0} /* 测试宿主的开发入口：落在首屏下面，不占流内位置（首屏版式与线上一致） */
@@ -134,7 +143,7 @@ injectStyles('home', `
 }
 :root[data-ax] .sz-home__epi{display:none} /* AX1–AX5：题记隐藏（读屏经标题的 aria-describedby 读到，D49） */
 :root[data-ax] .sz-home__cta.sz-btn{width:100%}
-:root[data-ax] .sz-home__note{margin-top:4px}
+:root[data-ax] .sz-home__note{margin-bottom:4px}
 `);
 
 // ---------------------------------------------------------------- 状态订阅
@@ -427,10 +436,11 @@ function FirstOpen({ width, compact, ax }) {
 }
 
 /**
- * AX 档字帖位可用高度（实现交接 §1.4；H1 起区域底内边是字帖块到主按钮的 32）：Tab 面板高 − 页头（日期 / 题记 / 标题）− 按钮区 − 32。
- * 只在 AX 档量；量不到（挂载前、没有面板）返回 0 = 不缩。页头 / 按钮区的高度与字帖位无关，不会回环。
+ * AX 档字帖位可用高度（实现交接 §1.4；D53 ③ 起标题与字帖成一组、主按钮区固定在底线）：Tab 面板高 − 页头（日期 / 题记）− 标题（含它到字帖的间距）−
+ * 主按钮区（含底线留白）− 16（字帖块到主按钮区的最小间距）。只在 AX 档量；量不到（挂载前、没有面板）返回 0 = 不缩。
+ * 页头 / 标题 / 按钮区的高度与字帖位无关，不会回环。
  */
-function useTieAvail(rootRef, headRef, footRef, active) {
+function useTieAvail(rootRef, headRef, titleRef, footRef, active) {
   const [avail, setAvail] = useState(0);
   useLayoutEffect(() => {
     if (!active) {
@@ -442,9 +452,10 @@ function useTieAvail(rootRef, headRef, footRef, active) {
     if (!panel) return undefined;
     const read = () => {
       const head = headRef.current ? headRef.current.offsetHeight : 0;
+      const title = titleRef.current ? titleRef.current.offsetHeight + TITLE_GAP : 0;
       const foot = footRef.current ? footRef.current.offsetHeight : 0;
       const top = parseFloat(getComputedStyle(root).paddingTop) || 0;
-      const next = Math.max(0, Math.floor(panel.clientHeight - top - head - foot - 32)); // 32 = 字帖块到主按钮的间距（H1）
+      const next = Math.max(0, Math.floor(panel.clientHeight - top - head - title - foot - 16));
       setAvail(prev => (prev === next ? prev : next));
     };
     read();
@@ -455,6 +466,7 @@ function useTieAvail(rootRef, headRef, footRef, active) {
     const ro = new ResizeObserver(read);
     ro.observe(panel);
     if (headRef.current) ro.observe(headRef.current);
+    if (titleRef.current) ro.observe(titleRef.current);
     if (footRef.current) ro.observe(footRef.current);
     return () => ro.disconnect();
   }, [active]);
@@ -469,6 +481,7 @@ function HomeScreen() {
   const rootRef = useRef(null);
   const headRef = useRef(null);
   const footRef = useRef(null);
+  const titleRef = useRef(null);
   const width = useElementWidth(rootRef);
   const [failed, setFailed] = useState(null); // 写入失败的那个动作（再试一次重跑它）
   useEffect(() => {
@@ -479,7 +492,7 @@ function HomeScreen() {
   const view = model.view;
   const handoff = useShiHandoff(model);
   const brand = useBrandMoment(view === 'first' && ax === 0, rootRef);
-  const avail = useTieAvail(rootRef, headRef, footRef, ax > 0 && view !== 'first');
+  const avail = useTieAvail(rootRef, headRef, titleRef, footRef, ax > 0 && view !== 'first');
   const resumeOn = model.resume !== 'none';
   const ctaLabel = resumeOn ? t('X-HOME.continue') : view === 'first' || (model.records !== 'record') ? t('X-HOME.start') : t('X-RESULT.again');
   const dateText = t('R-H02.line', {
@@ -583,13 +596,13 @@ function HomeScreen() {
     ${view === 'first' ? html`<div class="sz-home__head" aria-hidden="true" style=${{ minHeight: '28px' }}></div>` : html`<header ref=${headRef} class="sz-home__head">
       <p class="sz-home__date" data-testid="home-date">${dateText}</p>
       <${Epigraph} epigraph=${model.epigraph} />
-      <h1 class="sz-home__title" tabindex="-1" data-page-title data-testid="home-title" aria-describedby=${EPIGRAPH_ID}>${t('R-H01.title')}</h1>
     </header>`}
     <div class="sz-home__stage">
-    <div class="sz-home__zone">${zone}</div>
-    <div ref=${footRef} class="sz-home__foot">
-      <${Button} variant="primary" class="sz-home__cta" data-testid="home-start" aria-label=${ctaLabel}
-        onClick=${() => run(startMain)}>${ctaLabel}</${Button}>
+    <div class="sz-home__main" data-testid="home-main">
+      ${view === 'first' ? null : html`<h1 ref=${titleRef} class="sz-home__title" tabindex="-1" data-page-title data-testid="home-title" aria-describedby=${EPIGRAPH_ID}>${t('R-H01.title')}</h1>`}
+      <div class="sz-home__zone">${zone}</div>
+    </div>
+    <div ref=${footRef} class="sz-home__foot" data-testid="home-foot">
       ${failed ? html`<${FailBlock} onCancel=${() => setFailed(null)} onRetry=${() => run(failed)} />` : null}
       ${view === 'first' ? html`<p class="sz-home__note" data-testid="home-first-tip">${t('R-H03.firstVisit')}</p>` : null}
       ${view === 'special'
@@ -597,6 +610,8 @@ function HomeScreen() {
         : model.showPick
           ? html`<${Button} variant="text" class="sz-home__side" data-testid="home-pick" onClick=${() => openPick()}>${t('X-HOME.pick')}</${Button}>`
           : null}
+      <${Button} variant="primary" class="sz-home__cta" data-testid="home-start" aria-label=${ctaLabel}
+        onClick=${() => run(startMain)}>${ctaLabel}</${Button}>
     </div>
     </div>
     ${demo || testHost ? html`<div class="sz-home__dev">

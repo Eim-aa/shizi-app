@@ -245,11 +245,15 @@ test('axTieCellSize (AX tiers, 实现交接 §1.4): the normal cell width is the
   assert.equal(axTieCellSize(167, 1, Number.NaN), 167);
 });
 
-test('home cell sizes follow the design sheet (b = width − 40): 1–3 / 4 / 5 / 6–8 chars and the single 「拾」', () => {
-  const b = 402 - 40;
-  assert.deepEqual([1, 2, 3, 4, 5, 6, 8].map(n => tieCellSize(n, b)), [107, 107, 107, 85, 72, 80, 80]);
+test('home cell sizes (T3-01 / D53 ③): a copybook row always fills the content width, cell = min(width / n, 160); the single 「拾」 is the same rule', () => {
+  const b = 402 - 40; // 362
+  assert.deepEqual([1, 2, 3, 4, 5, 6, 8].map(n => tieCellSize(n, b)), [160, 160, 120, 90, 72, 90, 90], 'n ≤ 5 one row: ⌊b / n⌋ capped at 160; 6–8 two rows of four');
+  assert.deepEqual([3, 4, 5].map(n => n * tieCellSize(n, b)), [360, 360, 360], 'rows of 3–5 fill the content width (362) to within the rounding');
   assert.deepEqual([1, 3, 4, 5, 6, 8, 9].map(tieCols), [1, 3, 4, 5, 4, 4, 4]);
-  assert.equal(shiCellSize(b), 167, 'round(0.46b) = 167 at 402 wide (design sheet)');
+  assert.equal(tieCellSize(3, 350), 116, '390 wide: ⌊350 / 3⌋');
+  assert.equal(tieCellSize(2, 335), 160, '375 wide, two chars: capped at 160');
+  assert.equal(shiCellSize(b), 160, 'the single 「拾」 cell = tieCellSize(1, b)');
+  assert.equal(shiCellSize(100), 100, 'never wider than the content');
   assert.equal(firstShiSize(402), 201);
   assert.equal(firstShiSize(375), 188);
   assert.equal(firstShiSize(320), 172, 'clamped to 172 on the narrowest');

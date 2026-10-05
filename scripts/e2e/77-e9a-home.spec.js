@@ -96,6 +96,7 @@ function measure() {
     seals: root.querySelectorAll('.sz-home__seal').length,
     sealBox: sealEl ? [sealEl.offsetWidth, sealEl.offsetHeight] : null,
     scrollable: panel ? panel.scrollHeight > panel.clientHeight + 1 : null,
+    panelBottom: panel ? panel.getBoundingClientRect().bottom : null,
     hlines: [...root.querySelectorAll('.sz-first__hline')].map(e => { const r = e.getBoundingClientRect(); return { w: r.width, h: r.height, x: r.x, text: [...e.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent).join('').trim(), lh: parseFloat(getComputedStyle(e).lineHeight), size: parseFloat(getComputedStyle(e).fontSize) }; }),
     shi: rect(q('home-brand-shi')),
     tip: rect(q('home-first-tip')),
@@ -148,7 +149,7 @@ export default async function run(page, ctx) {
           } else {
             assert.ok(m.epi.display !== 'none', `${t}: epigraph visible`);
             assert.ok(approx(m.epi.y - m.date.b, 2, 0.6), `${t}: epigraph 2 below the date (${m.epi.y - m.date.b})`);
-            assert.ok(approx(m.title.y - m.epi.b, 10, 0.6), `${t}: title 10 below the epigraph (${m.title.y - m.epi.b})`);
+            assert.ok(m.title.y >= m.epi.b + 10, `${t}: the title is no longer in the header — it sits with the copybook (C3-H / D53 ③), below the epigraph (${m.title.y - m.epi.b})`);
             assert.ok(approx(m.epi.h, m.epi.lineHeight, 0.6), `${t}: one line (height ${m.epi.h} = line-height ${m.epi.lineHeight})`);
             assert.ok(m.epi.r <= m.width - 20 + 0.5, `${t}: the line ends inside the right margin (${m.epi.r} ≤ ${m.width - 20})`);
             assert.deepEqual([m.epi.size, m.epi.weight, m.epi.font.startsWith('ShiziSerifSC')], [13, '400', true], `${t}: 宋 13 / 400`);
@@ -172,15 +173,16 @@ export default async function run(page, ctx) {
 
           // 6 字帖块与主按钮成组（H1 / D51 ④）：字帖块（含它下面的说明句）底边到主按钮 32、贴着按钮放（首次打开在上面已处理）
           if (size !== 'AX5') {
-            assert.ok(approx(m.zonePadBottom, 32, 0.5), `${t}: zone bottom padding 32 (${m.zonePadBottom})`);
-            assert.ok(approx(m.start.y - m.block.b, 32, 1), `${t}: 32 between the copybook block and the main button (${m.start.y - m.block.b})`);
+            assert.ok(approx(m.zonePadBottom, 16, 0.5), `${t}: zone bottom padding 16 (${m.zonePadBottom})`);
+            assert.ok(approx(m.zone.y - m.title.b, 20, 1), `${t}: the title is 20 above the copybook, one group (${m.zone.y - m.title.b})`);
             assert.ok(m.block.y >= m.title.b - 0.5 && m.block.b <= m.start.y + 0.5, `${t}: block sits between the title and the main button`);
+            assert.ok(approx(m.panelBottom - m.start.b, 24, 0.6), `${t}: the main button's bottom is 24 above the tab bar — the one baseline (${m.panelBottom - m.start.b})`);
           }
 
           // 7 AX5
           if (size === 'AX5') {
             assert.ok(approx(m.start.w, m.width - 40, 1) && approx(m.start.x, 20, 1), `${t}: main button full width (${m.start.w})`);
-            assert.ok(m.pick ? m.pick.y >= m.start.b - 0.5 : true, `${t}: 「自己选字」 / 这次先写平常的字 below the main button`);
+            assert.ok(m.pick ? m.pick.b <= m.start.y + 0.5 : true, `${t}: 「自己选字」 / 这次先写平常的字 sit above the main button (the baseline holds the main button)`);
             assert.equal(m.startPos, 'static', `${t}: the main button is not fixed (the whole page scrolls)`);
             assert.ok(m.cells.length === 0 || m.cells.every(c => c.w >= 44 - 0.5), `${t}: copybook cells ≥ 44 (${m.cells.map(c => c.w)})`);
             assert.ok(m.title.h >= 58, `${t}: title at the Title 1 AX tier`);
@@ -210,7 +212,7 @@ export default async function run(page, ctx) {
     assert.deepEqual(m.sealBox, [16, 16], `${t}: seal16 follows the last line`);
     assert.equal(m.shi.w, 120, `${t}: 「拾」 cell 120`);
     assert.ok(approx(m.start.w, view.width - 40, 1), `${t}: main button full width`);
-    assert.ok(approx(m.tip.y - m.start.b, 4, 0.6), `${t}: the note sits 4 below the button (${m.tip.y - m.start.b})`);
+    assert.ok(approx(m.start.y - m.tip.b, 4, 0.6), `${t}: the note sits 4 above the button (the baseline holds the button, C3-H) (${m.start.y - m.tip.b})`);
     assert.equal(m.pick, null, `${t}: no 「自己选字」 on first open`);
   }
   await setTextSize(page, 'L');

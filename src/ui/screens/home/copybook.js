@@ -9,7 +9,7 @@
 //                   D49：字帖格只用两种线——外框 frameW frame + 格间 guideW guide（实线）；空格就是笺面，不画十字参照线，
 //                   也不画下一格的 targetFrame（与结果页作品格同一画法）。
 //
-// 格宽（b = 屏宽 − 40）：「拾」单格 round(0.46b)；1–3 字 ⌊(b−40)/3⌋；4 字 ⌊(b−20)/4⌋；5 字 ⌊b/5⌋；6–8 字两行四列 ⌊(b−40)/4⌋。
+// 格宽（b = 屏宽 − 40 = 版心宽，T3-01 / D53 ③）：min(⌊b / 列数⌋, 160)——1–5 字一行（列数 = 字数）、6–8 字两行四列；单个「拾」同一规则（= 一格）。一行字帖撑满版心，1–2 字封顶 160。
 // AX 档（axTieCellSize）：格宽按剩余高度重算，下限 44（整页可滚，实现交接 §1.4）。
 // 墨线宽补偿（格越小笔画越粗）暂未做：InkMini 按格宽等比缩放笔画，设计稿的补偿表是按示意笔迹估的，等真笔模型（V01 / T2）出来后按真墨调。
 //
@@ -34,17 +34,21 @@ export function tieCols(n) {
   return n <= 5 ? Math.max(1, n) : 4;
 }
 
-/** 字帖格边长（px；b = 屏宽 − 40）。 */
+/** 字帖格边长上限（pt，T3-01 / D53 ③）：一格最大 160，字数少时不再放大。 */
+export const TIE_CELL_MAX = 160;
+
+/**
+ * 字帖格边长（px；b = 版心宽 = 屏宽 − 40，T3-01 / D53 ③）：min(b / n, 160)——一行字帖永远撑满 20pt 页边之间的版心（取整后最多差 n px），
+ * 字数少到 160 封顶（1–2 字）；6–8 字两行四列，同样按 b / 4 算。
+ */
 export function tieCellSize(n, b) {
-  if (n <= 3) return Math.floor((b - 40) / 3);
-  if (n === 4) return Math.floor((b - 20) / 4);
-  if (n === 5) return Math.floor(b / 5);
-  return Math.floor((b - 40) / 4);
+  const per = Math.floor(b / tieCols(n));
+  return Math.max(1, Math.min(TIE_CELL_MAX, per));
 }
 
-/** 首页字帖位里单个「拾」的格宽。 */
+/** 首页字帖位里单个「拾」（品牌 / 交接）的格宽：与一格字帖同一条规则。 */
 export function shiCellSize(b) {
-  return Math.round(b * 0.46);
+  return tieCellSize(1, b);
 }
 
 /** AX 档字帖格宽下限（pt，实现交接 §1.4）。 */

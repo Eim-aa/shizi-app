@@ -6,7 +6,8 @@ export default Object.freeze({
   // R-S01（已定）
   'R-S01.title': '设置',
   'R-S01.library': '练习范围',
-  'R-S01.keySound': '按键音',
+  'R-S01.keySound': '声音',
+  'X-SETTINGS.soundSub': '判断和落款时的轻声，书写时不出声。', // 副标题（D53，N2-12）：说清它管哪两处
   'R-S01.remindNote': '通知会给一个词语和拼音，让你想想是哪个字。',
   // R-S02（已定）
   'R-S02.title': '手机关了拾字的通知，收不到提醒',

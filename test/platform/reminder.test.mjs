@@ -105,8 +105,8 @@ test('questions: one per day from chars due by that day, 写错过 first, no rep
   ]);
   const tomorrow = qs[1];
   assert.deepEqual(Object.keys(tomorrow).sort(), ['body', 'day', 'targetCardKey', 'title']);
-  assert.equal(tomorrow.title, '学□（xí）', 'word with the target masked + pinyin');
-  assert.equal(tomorrow.title, t('X-REMIND.title', { word: '学□', pinyin: 'xí' }));
+  assert.equal(tomorrow.title, '学＿（xí）', 'word with the target masked (＿, D53: no 口-lookalike □) + pinyin');
+  assert.equal(tomorrow.title, t('X-REMIND.title', { word: '学＿', pinyin: 'xí' }));
   assert.equal(tomorrow.body, t('X-REMIND.body'));
   for (const q of qs) for (const k of ['day', 'title', 'body', 'targetCardKey']) assert.ok(q[k], `${k} non-empty (native drops empty fields)`);
   assert.deepEqual(reminderQuestions(stateWith(), { today: TODAY }), [], 'nothing due → no questions');
@@ -115,7 +115,10 @@ test('questions: one per day from chars due by that day, 写错过 first, no rep
 
 test('masked word: every position of the target is blanked; policy.reminderWord=word keeps the old whole word', () => {
   const rep = { chars: ['人', '人'], target: '人', word: '人人' };
-  assert.equal(maskedWord(rep), '□□');
+  assert.equal(maskedWord(rep), '＿＿');
+  assert.equal(policy.reminderBlank, '＿', 'P99 (D53): the lock-screen blank is the full-width low line');
+  assert.equal(maskedWord({ chars: ['尴', '尬'], target: '尴' }), '＿尬', 'N2-13: reads 「＿尬（gān）」 on the lock screen, not 「口尬」');
+  assert.equal(maskedWord(rep, { ...policy, reminderBlank: '?' }), '??', 'policy.reminderBlank is what is used');
   assert.equal(maskedWord({ chars: ['学', '习'], target: '习' }, { ...policy, reminderWord: 'word' }), '学习');
   assert.equal(policy.reminderWord, 'blank', 'P48 transitional default');
 });
@@ -173,7 +176,7 @@ test('controller: sync posts {type:syncReminder,…}; identical content is not r
   assert.equal(sent.length, 1);
   assert.equal(sent[0].type, 'syncReminder');
   assert.deepEqual(Object.keys(sent[0]).sort(), ['enabled', 'hour', 'minute', 'practicedToday', 'questions', 'type']);
-  assert.equal(sent[0].questions[1].title, '学□（xí）');
+  assert.equal(sent[0].questions[1].title, '学＿（xí）');
   assert.equal(c.sync(), null, 'same content → not re-sent');
   assert.ok(c.sync({ force: true }), 'forced (settings page) → sent');
   assert.equal(sent.length, 2);

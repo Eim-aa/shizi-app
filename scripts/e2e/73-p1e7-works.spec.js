@@ -458,7 +458,7 @@ export default async function (page, ctx) {
     };
   });
   assert.equal(a.year, '二〇二六');
-  assert.equal(a.head, '这一年，你写过 119 个字。');
+  assert.equal(a.head, '这一年，你拾回一百一十九个字。', 'N2-14: Chinese numerals, the same sentence as the album cover');
   assert.deepEqual([a.first.char, a.first.ink, a.first.label, a.first.date, Math.round(a.first.size)], ['春', 'true', '今年第一个字', '4月26日的笔迹', 132]);
   assert.deepEqual(a.months.map(x => [x.month, x.n, x.name, x.count]), [['2026-04', 5, '4月', '5 字'], ['2026-05', 18, '5月', '18 字'], ['2026-09', 96, '9月', '96 字'], ['2026-10', 1, '10月', '1 字']]);
   assert.ok(a.months.every(x => x.cols === 8 && Math.round(x.cell) === 45), 'month sections: 8 columns of 45');

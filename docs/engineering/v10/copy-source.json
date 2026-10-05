@@ -2525,9 +2525,9 @@
         },
         "keySound": {
           "raw": "按键音",
-          "text": "按键音",
+          "text": "声音",
           "decision": "P24",
-          "note": "触发点沿旧（policy.keySoundEvents）"
+          "note": "触发点沿旧（policy.keySoundEvents）；D53（N2-12）：它管的是判断声与落款声，不是键盘点击，设置里改叫「声音」，副标题见 X-SETTINGS.soundSub"
         },
         "remindNote": {
           "raw": "通知会给一个词语和拼音，让你想想是哪个字。",
@@ -4192,6 +4192,13 @@
           "origin": "extra",
           "note": "写字方式弹层两个选项下的说明",
           "decision": "P165"
+        },
+        "soundSub": {
+          "raw": null,
+          "text": "判断和落款时的轻声，书写时不出声。",
+          "origin": "extra",
+          "note": "设置里「声音」开关的副标题（D53，N2-12）：说清响的是判断声 j1 与落款声 s1 两处，书写与描红不出声",
+          "decision": "P24"
         }
       }
     },
@@ -4580,7 +4587,7 @@
           "raw": null,
           "text": "{word}（{pinyin}）",
           "origin": "旧版 639f592 index.html L1383 reminderQuestion title",
-          "note": "通知标题；{word} 为题面词语（policy.reminderWord='blank' 时目标字位换成 □，与写字页题面同样不露答案），{pinyin} 为目标字拼音（SEED py）；待文案确认",
+          "note": "通知标题；{word} 为题面词语（policy.reminderWord='blank' 时目标字位换成 policy.reminderBlank「＿」，与写字页题面同样不露答案；D53 / N2-13：不再用与「口」难分的 □，锁屏上读作「＿尬（gān）」），{pinyin} 为目标字拼音（SEED py）；待文案确认",
           "decision": "P48"
         },
         "body": {
@@ -4788,9 +4795,16 @@
         },
         "body": {
           "raw": null,
-          "text": "锁屏上只出现词语和拼音，比如「{word} {pinyin}」，你先在心里写一遍。",
+          "text": "锁屏上只出现词语和拼音，比如「{word}（{pinyin}）」，你先在心里写一遍。",
           "origin": "extra",
-          "note": "邀请说明；示例词随首练第一个字（词语里目标字位是 □，与通知标题同一写法）；黑体 13，「锁」不在宋体子集里（HEI_ONLY_COPY）",
+          "note": "邀请说明；示例词随首练第一个字，写成与锁屏通知同形的「{词语}（{拼音}）」；被遮住的那一位页面里画成描边小方框（D53，N2-13，不用与「口」难分的 □）；黑体 13，「锁」不在宋体子集里（HEI_ONLY_COPY）",
+          "decision": "P157"
+        },
+        "blankLabel": {
+          "raw": null,
+          "text": "空着的字",
+          "origin": "extra",
+          "note": "邀请示例里被遮住那一位的读屏名称（页面上是描边小方框，D53，N2-13）",
           "decision": "P157"
         },
         "bodyPlain": {
@@ -5110,9 +5124,9 @@
         },
         "annualCoverLine": {
           "raw": null,
-          "text": "这一年，你写过{n}个字。",
+          "text": "这一年，你拾回{n}个字。",
           "origin": "extra",
-          "note": "纸面落款与年报册页文字（汉字数字由 ui/work-text.js 填入；交接 §6.4 / §8.2）",
+          "note": "年报页首屏与册页卷首同一句，数字是汉字数字（由 ui/work-text.js 填入；交接 §6.4 / §8.2；D53，N2-14：同一句话只有一种数字写法，并把「拾回」放进卷首）",
           "decision": "P160"
         },
         "annualFirstLabel": {
@@ -5166,13 +5180,6 @@
         "annualPageTitle": {
           "raw": null,
           "text": "年报",
-          "origin": "extra",
-          "note": "年报（交接 §8）",
-          "decision": "P160"
-        },
-        "annualHead": {
-          "raw": null,
-          "text": "这一年，你写过 {n} 个字。",
           "origin": "extra",
           "note": "年报（交接 §8）",
           "decision": "P160"

@@ -380,7 +380,7 @@ export function SettingsBody({ view, backup, fail = null, on }) {
         onClick=${on.library} extra=${{ 'data-library': view.library }} />
       <${ValueRow} testid="settings-writemode" title=${t('X-SETTINGS.writeMode')} value=${writeModeLabel(view.writeMode)}
         valueTestid="settings-writemode-value" onClick=${on.writeMode} extra=${{ 'data-value': view.writeMode, 'aria-haspopup': 'dialog' }} />
-      <${SwitchRow} testid="settings-sound" title=${t('R-S01.keySound')} on=${view.sound} onToggle=${on.sound} />
+      <${SwitchRow} testid="settings-sound" title=${t('R-S01.keySound')} sub=${t('X-SETTINGS.soundSub')} subTestid="settings-sound-sub" on=${view.sound} onToggle=${on.sound} />
     </${Group}>
     <${Group} id="remind" title=${t('X-SETTINGS.groupRemind')} note=${html`${remindNote}${failFor('remind')}`}>
       <${SwitchRow} testid="settings-remind" title=${t('X-SETTINGS.remindLabel')} subTestid="settings-remind-sub"

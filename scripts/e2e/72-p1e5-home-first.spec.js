@@ -160,7 +160,8 @@ async function resultView(page) {
       cells: top ? [...top.querySelectorAll('[data-testid="work-cell"]')].map(c => c.dataset.char + ':' + c.dataset.state) : [],
       cols: q('work') ? q('work').dataset.cols : null,
       exrows: top ? [...top.querySelectorAll('[data-testid="result-exrow"]')].map(r => ({ char: r.dataset.char, text: r.querySelector('.sz-exrow__t').textContent.trim(), btn: r.querySelector('[data-testid="result-add"]') ? r.querySelector('[data-testid="result-add"]').textContent.trim() : null, ink: !!r.querySelector('canvas') })) : [],
-      invite: invite ? { state: invite.dataset.state, title: txt('result-invite-title'), body: txt('result-invite-body'), accepted: txt('result-invite-accepted'), denied: txt('result-invite-denied'), yes: txt('result-invite-yes'), no: txt('result-invite-no'), time: txt('result-invite-time') } : null,
+      invite: invite ? { state: invite.dataset.state, title: txt('result-invite-title'), body: txt('result-invite-body'), accepted: txt('result-invite-accepted'), denied: txt('result-invite-denied'), yes: txt('result-invite-yes'), no: txt('result-invite-no'), time: txt('result-invite-time'),
+        blank: (() => { const b = q('result-invite-blank'); if (!b) return null; const cs = getComputedStyle(b); const fs = parseFloat(getComputedStyle(b.parentElement).fontSize); const r = b.getBoundingClientRect(); return { label: b.getAttribute('aria-label'), role: b.getAttribute('role'), text: b.textContent, border: cs.borderTopWidth + ' ' + cs.borderTopStyle, wEm: r.width / fs, hEm: r.height / fs }; })() } : null,
       foot: top ? [...top.querySelectorAll('.sz-page__foot button')].map(b => b.dataset.testid + ':' + b.textContent.trim()) : [],
     };
   });
@@ -274,8 +275,12 @@ export default async function run(page, ctx) {
   await waitInvite(page);
   r = await resultView(page);
   assert.equal(r.invite.title, '明天这个时候，给你一个词？', 'time 9:41 is inside 7:00–22:00');
-  assert.ok(!r.invite.body, 'C3-H / T3-12 (D53): the first-practice page has at most two sentences besides the title (the 复现句 + this question) — no explanatory body: ' + r.invite.body);
-  assert.deepEqual([r.invite.yes, r.invite.no], ['好，明天给我一个词', '先不用'], 'the buttons say what happens');
+  assert.ok(/^锁屏上只出现词语和拼音，比如「.+（.+）」，你先在心里写一遍。$/.test(r.invite.body), 'example from the first char, same shape as the lock screen 「词语（拼音）」: ' + r.invite.body);
+  assert.ok(r.invite.body.includes('尬（gān）') && !r.invite.body.includes('□') && !r.invite.body.includes('＿'), 'example is 尴 masked: an outlined box (no text glyph) + 尬（gān） (N2-13, D53)');
+  assert.ok(r.invite.blank && r.invite.blank.text === '' && r.invite.blank.border === '1px solid', `the masked char is an outlined box (1pt frame), not a glyph: ${JSON.stringify(r.invite.blank)}`);
+  assert.ok(Math.abs(r.invite.blank.wEm - 0.9) < 0.03 && Math.abs(r.invite.blank.hEm - 0.9) < 0.03, `0.9em square (${r.invite.blank.wEm.toFixed(2)} × ${r.invite.blank.hEm.toFixed(2)})`);
+  assert.deepEqual([r.invite.blank.role, r.invite.blank.label], ['img', '空着的字'], 'read aloud as 空着的字');
+  assert.deepEqual([r.invite.yes, r.invite.no], ['好，明天给我一个词', '先不用'], 'the buttons say what happens (C3-H / T3-12, D53)');
   let st = await stateOf(page);
   assert.equal(st.settings.remindInvite.shown, 1, 'counted when it appeared');
   assert.equal(st.settings.remindInvite.last, st.sessions.lastEnded.A.id, 'remembers the session it was shown on');

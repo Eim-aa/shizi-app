@@ -18,6 +18,7 @@ import { html, useEffect, useState } from '../../../../vendor/ui.js';
 import { Button } from '../../components/Button.js';
 import { injectStyles, T } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
+import * as defaultPolicy from '../../../config/policy.js';
 import { now as envNow } from '../../../platform/env.js';
 import { inviteChangeTime, inviteReminder, maskedWord } from '../../../platform/reminder.js';
 import { cardForKey } from '../../../data/deck.js';
@@ -48,6 +49,7 @@ injectStyles('result-first', `
 .sz-invite__time{font:inherit;font-size:${T.fs15};color:${T.ink1};background:${T.field};border:0;border-radius:${T.rCtl};min-height:${T.hit};
   padding:0 12px;box-sizing:border-box}
 .sz-invite__note{margin:0;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3}}
+.sz-blankbox{display:inline-block;width:.9em;height:.9em;box-sizing:border-box;margin:0 .06em;border:${T.frameW} solid ${T.frame};vertical-align:-.12em} /* 示例里被遮住的那个字：描边小方框（与写字页题面的空框同一画法，不用与「口」难分的 □，N2-13） */
 `);
 
 // ---------------------------------------------------------------- 纯函数
@@ -93,12 +95,28 @@ export function ReviewPreview({ text }) {
 
 // ---------------------------------------------------------------- 提醒邀请
 
-/** 邀请说明里的示例：首练第一个字的题面词语（目标字位是 □）+ 拼音；取不到词语时 null。 */
+/**
+ * 邀请说明里的示例：首练第一个字的题面词语（目标字位与锁屏同形：＿）+ 拼音；取不到词语时 null。
+ * blanks[i]：word 的第 i 个字是不是被遮住的那一位——页面里这一位画成描边小方框，不画「＿」字符（N2-13）。
+ */
 export function inviteExample(session) {
   const key = session && Array.isArray(session.queue) ? session.queue[0] : null;
   const card = key ? cardForKey(key) : null;
   if (!card || !String(card.py || '').trim()) return null;
-  return { word: maskedWord(card), pinyin: String(card.py).trim() };
+  const word = maskedWord(card);
+  const blank = defaultPolicy.reminderBlank;
+  return { word, pinyin: String(card.py).trim(), blanks: Array.from(word).map(ch => ch === blank) };
+}
+
+const WORD_SLOT = '\u0001';
+
+/** 邀请正文：把示例词填进说明句，被遮住的字换成描边小方框（读屏读「空着的字」）。 */
+export function inviteBody(example) {
+  const [pre, post] = t('X-INVITE.body', { word: WORD_SLOT, pinyin: example.pinyin }).split(WORD_SLOT);
+  const chars = Array.from(example.word);
+  return [pre, ...chars.map((ch, i) => (example.blanks[i]
+    ? html`<span key=${i} class="sz-blankbox" role="img" aria-label=${t('X-INVITE.blankLabel')} data-testid="result-invite-blank"></span>`
+    : ch)), post];
 }
 
 /**
@@ -217,7 +235,7 @@ export function ReminderInvite({ invite }) {
   const waiting = phase === 'pending';
   return html`<div class="sz-invite sz-invite--in" data-testid="result-invite" data-state=${waiting ? 'pending' : 'invite'} aria-busy=${waiting ? 'true' : null}>
     <p class="sz-invite__title" data-testid="result-invite-title">${t(evening ? 'X-INVITE.titleEvening' : 'X-INVITE.title')}</p>
-    ${variant === 'first' ? null : html`<p class="sz-invite__body" data-testid="result-invite-body">${example ? t('X-INVITE.body', example) : t('X-INVITE.bodyPlain')}</p>`}
+    <p class="sz-invite__body" data-testid="result-invite-body">${example ? inviteBody(example) : t('X-INVITE.bodyPlain')}</p>
     ${failed ? html`<p class="sz-invite__note" data-testid="result-invite-fail" aria-live="polite">${t('X-SETTINGS.saveFailed')}</p>` : null}
   </div>`;
 }

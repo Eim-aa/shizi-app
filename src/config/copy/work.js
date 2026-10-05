@@ -47,7 +47,7 @@ export default Object.freeze({
   'X-WORK.kuanPart': '其{n}',
   'X-WORK.kuanJoinPart': '{kuan}　{part}',
   'X-WORK.annualBrand': '拾字　年报',
-  'X-WORK.annualCoverLine': '这一年，你写过{n}个字。',
+  'X-WORK.annualCoverLine': '这一年，你拾回{n}个字。', // 年报页首屏与册页卷首同一句，数字是汉字数字（D53，N2-14；{n} 由 work-text.js annualCoverLine 填）
   'X-WORK.annualFirstLabel': '今年第一个字',
   'X-WORK.annualFirstDate': '{date}的笔迹',
   // 月字帖（交接 §7）
@@ -59,7 +59,6 @@ export default Object.freeze({
   'X-WORK.cellInkDay': '{char} · {date}，{inkDate}的笔迹',
   // 年报（交接 §8）
   'X-WORK.annualPageTitle': '年报',
-  'X-WORK.annualHead': '这一年，你写过 {n} 个字。',
   'X-WORK.annualMonthName': '{month}月',
   'X-WORK.annualMonthCount': '{n} 字',
   'X-WORK.annualMonthAria': '{month}月，{n} 个字，点开看字帖',

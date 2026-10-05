@@ -7,7 +7,7 @@
 //   - 题目：从今天起 REMINDER_DAYS 天，每天取「到那天为止已到期」的字（sched.due ≤ 那天、没有 stoppedAt、题库里能练、
 //     有语境词语和拼音），按 P48（policy.reminderPick='wrong-then-overdue'）写错过优先（最近一次 judged 为写错，K15），
 //     其次到期最久（due 早的在前），再按最近一次记录先后；已被前几天用过的字尽量不重复（全被用过时沿旧版取第一个）。
-//     通知标题「{词语}（{拼音}）」、正文沿旧句（copy X-REMIND，P48 待文案）；词语按 policy.reminderWord（过渡 'blank'：目标字位换成 □，
+//     通知标题「{词语}（{拼音}）」、正文沿旧句（copy X-REMIND，P48 待文案）；词语按 policy.reminderWord（过渡 'blank'：目标字位换成 ＿，
 //     与写字页题面一样不露答案，决定-D16）。
 //   - practicedToday：今天有没有 judged 记录（旧版 dailyActivity().stamps>0 的第十稿口径）。
 //   - enabled：用户的开关（settings.remind.enabled）。权限由原生在排之前核对（web 侧 permission 可能来自备份，P86）。
@@ -42,7 +42,6 @@ export const RESYNC_DELAY_MS = 300;
 export const REMINDER_SOURCE_VIEW = 'reminder';
 
 const PERMISSIONS = ['granted', 'denied', 'unknown'];
-const BLANK = '□'; // copy X-PROMPT.repeatBlankGlyph（取自 copy，见 maskedWord）
 
 function parseTime(text) {
   const m = /^(\d{1,2}):(\d{2})$/.exec(String(text || '').trim());
@@ -74,16 +73,11 @@ export function normalizeTargetKey(raw) {
   return `${m ? m[1] : 'base'}:${body}`;
 }
 
-/** 题面词语：policy.reminderWord='blank' 时目标字位（含同一目标字的其他位置）换成 □；'word' 时整词。 */
+/** 题面词语：policy.reminderWord='blank' 时目标字位（含同一目标字的其他位置）换成 policy.reminderBlank（＿）；'word' 时整词。 */
 export function maskedWord(card, policy = defaultPolicy) {
   const chars = Array.isArray(card.chars) ? card.chars : Array.from(String(card.word || ''));
   if (policy.reminderWord === 'word') return chars.join('');
-  let glyph = BLANK;
-  try {
-    glyph = t('X-PROMPT.repeatBlankGlyph') || BLANK;
-  } catch (error) {
-    glyph = BLANK;
-  }
+  const glyph = typeof policy.reminderBlank === 'string' && policy.reminderBlank ? policy.reminderBlank : defaultPolicy.reminderBlank;
   return chars.map(ch => (ch === card.target ? glyph : ch)).join('');
 }
 

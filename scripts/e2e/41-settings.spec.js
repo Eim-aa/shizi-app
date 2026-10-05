@@ -210,7 +210,7 @@ export default async function settingsSpec(page, ctx) {
   });
   assert.deepEqual(a11y.unnamed, [], 'every button has an accessible name');
   assert.deepEqual(a11y.noTestid, [], 'every button has a data-testid');
-  assert.deepEqual(a11y.names, { 'settings-sound': '按键音', 'settings-remind': '练习提醒' }, 'switch names = row titles');
+  assert.deepEqual(a11y.names, { 'settings-sound': '声音', 'settings-remind': '练习提醒' }, 'switch names = row titles');
   assert.ok(a11y.described, 'remind switch is described by its note (the large switch it used to check is gone, D29)');
   assert.ok(a11y.minRow >= 44, `rows ≥ 44px (min ${a11y.minRow})`);
   assert.equal(a11y.hScroll, false, 'no horizontal scroll at 393');

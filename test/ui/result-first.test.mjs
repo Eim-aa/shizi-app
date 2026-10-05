@@ -61,10 +61,10 @@ test('daysLaterOf: the result page cells → [{char, days, text}] for each judge
   assert.deepEqual(daysLaterOf({ cells: [], today: TODAY, sched: {} }), []);
 });
 
-test('inviteExample: the first practice char, its word masked (□), plus the pinyin; no word → no example', () => {
+test('inviteExample: the first practice char, its word masked like the lock screen (＿ → drawn as an outlined box on the page), plus the pinyin; no word → no example', () => {
   setCardResolver(key => (key === 'base:尴' ? { chars: ['尴', '尬'], target: '尴', py: 'gān', word: '尴尬' } : key === 'base:无' ? { chars: ['无'], target: '无', py: '' } : undefined));
   try {
-    assert.deepEqual(inviteExample({ queue: ['base:尴', 'base:赢'] }), { word: '□尬', pinyin: 'gān' });
+    assert.deepEqual(inviteExample({ queue: ['base:尴', 'base:赢'] }), { word: '＿尬', pinyin: 'gān', blanks: [true, false] });
     assert.equal(inviteExample({ queue: ['base:无'] }), null, 'no pinyin → no example');
     assert.equal(inviteExample({ queue: [] }), null);
     assert.equal(inviteExample(null), null);

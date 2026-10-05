@@ -117,7 +117,7 @@ export default async function (page, ctx) {
         [...b.querySelectorAll('[data-testid="annual-month-cell"]')].map(c => c.dataset.char).join('')]),
     };
   });
-  assert.equal(a.head, '这一年，你写过 2 个字。', 'the year count does not count the paper chars');
+  assert.equal(a.head, '这一年，你拾回两个字。', 'the year count does not count the paper chars');
   assert.equal(a.first, '疆', 'the first char of the year is a screen char');
   assert.deepEqual(a.months, [['2026-10', '2', '2 字', '疆酱']], 'the month section: 2 chars, no paper chars');
   await page.evaluate(async () => (await import('/src/ui/router.js')).nav.back());

@@ -241,7 +241,8 @@ test('SettingsBody: four groups, rows in prototype order; no 背景音 (P07) / �
   assert.match(textOf(ids['settings-library'][0]), /^练习范围规范常用字$/, 'the trailing › is an svg chevron since P1-E1b (components/Chevron.js)');
   assert.equal(ids['settings-sound'][0].props.role, 'switch');
   assert.equal(ids['settings-sound'][0].props['aria-checked'], 'true', 'sound defaults on');
-  assert.equal(textOf(ids['settings-sound'][0]), '按键音');
+  assert.equal(textOf(ids['settings-sound'][0]), '声音判断和落款时的轻声，书写时不出声。', 'N2-12: 「声音」 + a subtitle saying which two moments (D53)');
+  assert.equal(textOf(ids['settings-sound-sub'][0]), t('X-SETTINGS.soundSub'));
   assert.equal(ids['settings-remind'][0].props['aria-checked'], 'false');
   assert.equal(textOf(ids['settings-remind-sub'][0]), t('R-S01.remindNote'));
   assert.ok(!ids['settings-remind-time'], 'no time row while reminders are off');

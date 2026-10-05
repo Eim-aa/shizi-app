@@ -236,11 +236,12 @@ test('view helpers: first line with / without ink, date text, 纸面汉字文案
   assert.equal(ANNUAL_SCREEN, 'annual');
   assert.ok(getScreen('annual'), 'annual screen registered on import');
   assert.equal(annualYearText(2026), '二〇二六');
-  assert.equal(annualCoverLine(290), '这一年，你写过两百九十个字。');
-  assert.equal(annualCoverLine(2), '这一年，你写过两个字。');
+  assert.equal(annualCoverLine(290), '这一年，你拾回两百九十个字。');
+  assert.equal(annualCoverLine(2), '这一年，你拾回两个字。');
+  assert.equal(annualCoverLine(218), '这一年，你拾回两百一十八个字。', 'N2-14: the page head and the album cover are one sentence, Chinese numerals');
   assert.equal(annualFirstDateText('2026-04-26'), '四月二十六日的笔迹');
   assert.equal(kuan({ month: '2026-10' }), '二〇二六年十月');
-  assert.equal(t('X-WORK.annualHead', { n: 290 }), '这一年，你写过 290 个字。');
+  assert.throws(() => t('X-WORK.annualHead', { n: 290 }), /unknown copy key/, 'N2-14: no separate Arabic-numeral head any more');
 });
 
 test('D45: the first-char date line reads 「{date}的笔迹」 and never says it is the first time this year', () => {

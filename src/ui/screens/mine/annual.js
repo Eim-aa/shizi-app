@@ -1,10 +1,10 @@
 // 年报（阶段 1 P1-E7；交接 §8；设计稿「作品出口」§四；原 02 M4-2 / 04 R-M06）。自注册 registerScreen('annual')（params {}）；「我的」菜单「年度报告」按屏名 push。
 //
-// 年报是一卷（交接 §8.1，滚动）：页头「年报」+ 右侧分享 → 卷首（「二〇二六」t34 宋、「这一年，你写过 {n} 个字。」t17、今年第一个字：单格 132 +
+// 年报是一卷（交接 §8.1，滚动）：页头「年报」+ 右侧分享 → 卷首（「二〇二六」t34 宋、「这一年，你拾回两百一十八个字。」t17（与册页卷首同一句、同样用汉字数字，D53 / N2-14）、今年第一个字：单格 132 +
 //   「今年第一个字」/「{M月D日} 的笔迹」，D45）→ 每月一段（顶 hairline；月名 t22 + 右侧「{n} 字」；8 列、格 45、无格线、墨内边 9%，没墨的画衬底；
 //   点一段进该月字帖）→ 卷尾「同一个字，两次」（第一次与最近一次墨迹两格并排 140，格下各自日期；D27）。只有一个数（年字数）；不出统计小节。
 // 右上分享 → 弹层「保存年报」：默认册页（卷首 + 每月 + 卷尾，每张 3:4，超 80 字的月份分张），文字按钮「存成一张长图」（images-annual.js）。
-// 纸上记录不进、不计入年字数（D46-13）。数字界面用阿拉伯数字（卷首年份是纸面汉字，由 work-text.js 填入）。
+// 纸上记录不进、不计入年字数（D46-13）。界面里的数字用阿拉伯数字，但卷首的年份与这一句属于作品，页面与册页统一用汉字数字（work-text.js 填入）。
 // 空态（原型 annualEmpty）：虚线框「年」+「今年还没有记录」+「写字并判断对错后，这里会汇总你今年的记录。」。
 //
 // data-testid（前缀 annual-；页面根 annual-screen）：
@@ -31,7 +31,7 @@ import { inkOf, recordHasInk } from '../detail/records.js';
 import { hasInkOfStore, useStoreState, useToday } from './records.js';
 import { annualModel } from './annual-model.js';
 import { openMonth } from './month.js';
-import { annualYearText } from '../../work-text.js';
+import { annualCoverLine, annualYearText } from '../../work-text.js';
 
 export const ANNUAL_SCREEN = 'annual';
 
@@ -153,7 +153,7 @@ function Report({ model, state }) {
   const twice = model.twice;
   return html`
     <h2 class="sz-ann__year" data-testid="annual-year" data-year=${model.year}>${annualYearText(model.year)}</h2>
-    <p class="sz-ann__line" data-testid="annual-head" data-n=${model.count}>${t('X-WORK.annualHead', { n: model.count })}</p>
+    <p class="sz-ann__line" data-testid="annual-head" data-n=${model.count}>${annualCoverLine(model.count)}</p>
     ${first
       ? html`<div class="sz-ann__first" data-testid="annual-first" data-char=${first.char} data-day=${first.day}
           data-record=${first.record ? first.record.id : ''} data-ink=${firstBuilt ? 'true' : 'false'}>

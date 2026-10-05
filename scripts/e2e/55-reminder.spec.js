@@ -71,7 +71,7 @@ async function cardInfo(page, char) {
 }
 
 function maskedTitle(info) {
-  return `${info.chars.map(ch => (ch === info.target ? '□' : ch)).join('')}（${info.py}）`;
+  return `${info.chars.map(ch => (ch === info.target ? '＿' : ch)).join('')}（${info.py}）`;
 }
 
 async function state(page) {
@@ -318,7 +318,7 @@ async function scenarioFeedback(page, ctx) {
   await page.click(topSel('write-answer-next'));
   await page.waitForSelector(topSel('result-screen'));
   await waitNavIdle(page);
-  assert.deepEqual((await hapticsSince(page, n0)).sort(), ['haptic:action', 'sound:s1_wood_muted'], 'last char done → result page: action + seal sound (once)');
+  assert.deepEqual((await hapticsSince(page, n0)).sort(), ['haptic:seal', 'sound:s1_wood_muted'], 'last char done → result page: the rigid seal haptic + the seal sound (once, same frame; C3-R)');
   assert.equal(await topScreen(page), 'result', 'on the result page');
 
   step('key sound off (settings.sound=false): judge gives the haptic only');

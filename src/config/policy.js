@@ -273,6 +273,8 @@ export const reminderPick = 'wrong-then-overdue';
 // P48 通知里的词语怎么给（M5-5 过渡）：'blank' = 目标字位换成 □（与写字页题面同样不露答案，决定-D16；
 // R-S01「让你想想是哪个字」）；'word' = 旧版整词（639f592 reminderQuestion）。src/platform/reminder.js 读取。
 export const reminderWord = 'blank';
+// P99 通知里目标字位的占位字符（D53，N2-13）：全角下划线「＿」，锁屏上读作「＿尬（gān）」；原来的「□」在正文字体里与「口」等宽等高，会读成「口尬」。src/platform/reminder.js 读取。
+export const reminderBlank = '＿';
 
 // ---- 容量 ----
 // P57 占用预警阈值：估算占用 > 该比例 × assumedQuotaBytes 时在备份页与首页状态句预警（01 §4）。store/budget.js 读取（可注入）。

@@ -62,9 +62,9 @@ test('界面里的月份写「10月」：月 / 日 / 年紧跟数字，不留空
 
 test('年报纸面文字 (§8.2): 卷首年份 / 一句话 / 日期；2 写「两」，年份逐位汉字', () => {
   assert.equal(annualYearText(2026), '二〇二六');
-  assert.equal(annualCoverLine(290), '这一年，你写过两百九十个字。');
-  assert.equal(annualCoverLine(2), '这一年，你写过两个字。');
-  assert.equal(annualCoverLine(46), '这一年，你写过四十六个字。');
+  assert.equal(annualCoverLine(290), '这一年，你拾回两百九十个字。');
+  assert.equal(annualCoverLine(2), '这一年，你拾回两个字。');
+  assert.equal(annualCoverLine(46), '这一年，你拾回四十六个字。');
   assert.equal(monthDayText('2026-04-26'), '四月二十六日');
   assert.equal(annualFirstDateText('2026-04-26'), '四月二十六日的笔迹');
   assert.equal(annualTailDateText('2026-10-02'), '十月二日');

@@ -20,7 +20,7 @@ const COPY = {
   title: '年报',
   emptyTitle: '今年还没有记录',
   emptyBody: '写字并判断对错后，这里会汇总你今年的记录。',
-  head: n => `这一年，你写过 ${n} 个字。`,
+  head: n => `这一年，你拾回${['零', '一', '两', '三', '四', '五', '六', '七', '八', '九', '十'][n]}个字。`, // 汉字数字，与册页卷首同一句（D53，N2-14；本用例的数都在 10 以内）
   inkLine: d => `${d}的笔迹`,
 };
 const md = day => `${Number(day.slice(5, 7))}月${Number(day.slice(8, 10))}日`;
@@ -245,7 +245,7 @@ export default async function run(page, ctx) {
   v = await view(page);
   assert.equal(v.year, '2026', 'data-year');
   assert.equal(v.yearText, '二〇二六', '卷首 year in 汉字 (song 34)');
-  assert.equal(v.head, COPY.head(o.count), 'the one number: 「这一年，你写过 N 个字。」');
+  assert.equal(v.head, COPY.head(o.count), 'the one number: 「这一年，你拾回N个字。」 (Chinese numerals)');
   assert.equal(v.count, o.count, `distinct chars this year = ${o.count} (answer-seen / skipped / last year not counted)`);
   assert.deepEqual(v.months.map(m => [m.month, m.n]), o.months, 'one section per month with chars, ascending; the count is the month sheet size');
   assert.deepEqual(v.months.map(m => [m.name, m.count]), o.months.map(([m, n]) => [`${Number(m.slice(5))}月`, `${n} 字`]), 'month name + 「N 字」');

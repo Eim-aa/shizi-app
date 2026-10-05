@@ -12,7 +12,8 @@
 //   - 字阶（D49）：AX 档的 --fsN / --lhN / --btn-h 由 tokens.css 的 :root[data-ax="N"] 逐级给出（不再统一乘 --k），下面按钮的最小高直接取 --btn-h。
 // 写字页 / 判断页 / 看答案页在 AX 档有自己的专属版式（D51 ⑦，P225；ADA A2-01 / A2-04 / A2-09 / A2-11）：永不滚动、书写格按实际可用高度排（下限 220）、
 // 底栏只留主按钮 + 「⋯」菜单、撤销 / 清空在页头、辅助字封顶 17pt——样式在 write/index.js、write/prompt.js、write/ax-menu.js，尺寸在 write/layout.js axWriteLayout。
-// 本文件只放各页共用的防溢出规则；按钮文字词内不折行（word-break:keep-all，A2-11）。
+// 本文件只放各页共用的防溢出规则；按钮文字词内不折行（A2-11）：按钮文字经 components/Words.js 分词、词与词之间才折；不用 word-break:keep-all——
+// 它让中文整句不能折行，WebKit 里按钮文字溢出、被裁（第三轮审查 A3-02，R3-K1 P242）。
 // 选择器一律以 :root[data-ax][data-text-large] 开头，比紧凑版（write/compact.js 的 :root[data-text-large] …）多一个属性，
 // 注入顺序无关。由 ui/root.js 导入一次。
 
@@ -32,8 +33,8 @@ ${A} .sz-page .sz-page__head>.sz-page__title{position:relative;left:auto;right:a
   padding:0 8px 6px;white-space:normal;overflow:visible;text-overflow:clip;text-align:left;line-height:var(--lh17);text-wrap:pretty}
 ${A} .sz-page .sz-page__head>.sz-page__lead,${A} .sz-page .sz-page__head>.sz-page__trail{flex:none}
 ${A} .sz-btn--primary,${A} .sz-btn--secondary{min-height:var(--btn-h);height:auto;padding-top:6px;padding-bottom:6px;
-  white-space:normal;word-break:keep-all}
-${A} .sz-btn--text{min-height:max(44px, calc(1.3em + 12px));white-space:normal;word-break:keep-all;text-align:left}
+  white-space:normal;line-break:strict}
+${A} .sz-btn--text{min-height:max(44px, calc(1.3em + 12px));white-space:normal;line-break:strict;text-align:left}
 ${W} .sz-write__main{grid-template-columns:minmax(0,1fr);gap:8px}
 ${W} .sz-write__foot .sz-btn--primary,${W} .sz-write__foot .sz-btn--secondary{min-height:calc(1.3em + 20px);white-space:normal}
 ${W} .sz-write__hint .sz-hintbtn{white-space:normal}

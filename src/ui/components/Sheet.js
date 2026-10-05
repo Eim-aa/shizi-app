@@ -23,7 +23,7 @@ injectStyles('sheet', `
 .sz-sheet:focus{outline:none}
 .sz-sheet__head{display:flex;align-items:center;justify-content:flex-end;gap:${T.s4};flex:none}
 .sz-sheet__head .sz-sheet__title{flex:1 1 auto;min-width:0}
-.sz-sheet__done{flex:none;margin-inline-end:calc(-1 * var(--bx));white-space:nowrap;word-break:keep-all}
+.sz-sheet__done{flex:none;margin-inline-end:calc(-1 * var(--bx));white-space:nowrap}
 .sz-sheet__title{margin:0;font-family:${T.song};font-size:${T.fs22};font-weight:500;line-height:${T.lh22}}
 @keyframes sz-fade-in{from{opacity:0}to{opacity:1}}
 @keyframes sz-sheet-in{from{transform:translateY(100%)}to{transform:none}}

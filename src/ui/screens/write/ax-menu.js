@@ -4,7 +4,7 @@
 //   回忆：主「写好了」；菜单收进 提示 / 看答案 / 跳过 / 在纸上写（/ 结束这组）。
 //   看答案：主「描一遍」；菜单 自己写 / 下一个（/ 结束这组）。描一遍：主「描好了，自己写」；菜单 下一个。自己写：主「下一个」；菜单 再描一遍。
 //   保存失败：主「再试一次」；菜单「先不保存」。
-// 菜单是现有的底部弹层（components/Sheet.js，经 nav.openOverlay 打开），菜单项竖排、字号随 AX 档、可折行（词内不折，A2-11）。
+// 菜单是现有的底部弹层（components/Sheet.js，经 nav.openOverlay 打开），菜单项竖排、字号随 AX 档、可折行（按词折，components/Words.js；A2-11 / A3-02）。
 // 菜单项沿用原按钮的 data-testid（write-hint / write-show-answer / write-skip / write-to-paper / write-end / write-answer-next …），
 // 选了菜单项 = 先关弹层再执行原来那个按钮的动作（动作是页面渲染时取的闭包 / live ref，菜单开着期间页面状态不会变）。
 // R3-K1（P241）：格子缩到下限 220 仍放不下格下说明位时（layout.js axWriteLayout noteInMenu），说明位的内容（结果行「修改」、读屏的纸上写建议、
@@ -14,12 +14,13 @@ import { html } from '../../../../vendor/ui.js';
 import { nav } from '../../router.js';
 import { Button } from '../../components/Button.js';
 import { Sheet } from '../../components/Sheet.js';
+import { Words } from '../../components/Words.js';
 import { injectStyles, T } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
 
 injectStyles('write-ax', `
 .sz-write__foot.sz-write__foot--ax{flex-direction:row;align-items:stretch;gap:${T.s3}}
-.sz-write__foot--ax>.sz-btn--primary{flex:1 1 0;min-width:0;word-break:keep-all;text-wrap:balance}
+.sz-write__foot--ax>.sz-btn--primary{flex:1 1 0;min-width:0;line-break:strict;text-wrap:balance}
 .sz-write__more{flex:none;width:max(56px, calc(var(--btn-h) * .8));min-height:var(--btn-h);padding:0;display:grid;place-items:center}
 .sz-write__more svg{width:28px;height:28px}
 .sz-axmenu{display:flex;flex-direction:column;gap:0}
@@ -28,7 +29,7 @@ injectStyles('write-ax', `
 .sz-write__more{position:relative}
 .sz-write__more[data-note="true"]::after{content:"";position:absolute;top:8px;right:8px;width:8px;height:8px;border-radius:50%;background:${T.ink2}} /* 说明并入了菜单（P241） */
 .sz-axmenu__item{width:100%;min-height:max(${T.hit}, calc(var(--lh17) + 20px));padding:10px 4px;text-align:left;font-size:${T.fs17};
-  line-height:${T.lh17};color:${T.ink1};white-space:normal;word-break:keep-all;display:flex;align-items:center;
+  line-height:${T.lh17};color:${T.ink1};white-space:normal;line-break:strict;display:flex;align-items:center;
   box-shadow:inset 0 -${T.hair} 0 ${T.line}}
 .sz-axmenu__item:last-child{box-shadow:none}
 .sz-axmenu__item[data-pressed]{background:${T.field}}
@@ -47,7 +48,7 @@ export function AxMenu({ items = [], head = null, close, active = true }) {
     <div class="sz-axmenu" role="group" aria-label=${t('X-WRITE.moreLabel')}>
       ${head ? html`<div class="sz-axmenu__head" data-testid="write-menu-note">${head}</div>` : null}
       ${items.map(it => it.static
-    ? html`<span key=${it.testid} class="sz-axmenu__item" data-static="true" data-testid=${it.testid}>${it.label}</span>`
+    ? html`<span key=${it.testid} class="sz-axmenu__item" data-static="true" data-testid=${it.testid}><${Words} text=${it.label} /></span>`
     : html`<${Button} key=${it.testid} variant="plain" class="sz-axmenu__item" data-testid=${it.testid}
         aria-label=${it.ariaLabel || undefined} disabled=${!!it.disabled}
         onClick=${() => {

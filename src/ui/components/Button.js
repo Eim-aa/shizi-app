@@ -14,8 +14,11 @@
 // （不走 state，不触发重画）。原生 <button> 格子（结果 / 详情 / 记录页的字帖格）也用同一套 pressFeedbackHandlers。
 // 按下 scale .97（--press-scale）、120ms（--t-press）；松手 220ms（--t-release）回弹；主按钮按下换 --btn-down、次按钮按下换 --field，
 // 其余加深约 6%；减少动态效果时按下缩放保留，其余过渡改 120ms 线性（tokens.json motion.reduceMotion）。参数登记 P109（已决定 D43）。
+// 中文按词折行（R3-K1，A3-02，P242）：字符串文字经 Words 分词，每个词一个 nowrap 的 span——标准档按钮 nowrap 一行到底不变，AX 档按钮（white-space:normal）
+// 只在词与词之间折，不词内折（A2-11）、也不像 keep-all 那样整句不折（A3-02）。
 import { html, useRef } from '../../../vendor/ui.js';
 import { injectStyles, T } from './styles.js';
+import { Words } from './Words.js';
 
 export const PRESS_GUARD_MS = 400;
 /** 按压反馈（P109，已决定 D43）：按下 120ms 缩到 .97；松手 220ms 回弹。与 tokens.css 的 --t-press / --t-release 同值（单测核对）。 */
@@ -154,5 +157,5 @@ export function Button(props) {
     disabled=${disabled}
     aria-disabled=${disabled ? 'true' : undefined}
     onClick=${handle}
-  >${children}</button>`;
+  >${typeof children === 'string' ? html`<${Words} text=${children} />` : children}</button>`;
 }

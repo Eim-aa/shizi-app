@@ -210,7 +210,8 @@
     "P233": "次级页 AX 档防叠（R2-A1 / A2-03，D29）：AX 档周条一句话、月历每天一行列表、字帖格角标不画、详情记录格两列；文案槽 X-MINE.axDayRow / axDayRowPaper / weekSummary / weekSummaryNone，样式与分支在 src/ui/screens/mine/*、detail/records.js、components/work.js，不是 policy 开关",
     "P234": "小字保底与格框对比（R2-A1 / A2-07、A2-12，D43）：--fs13 / --fs11（与行高）加 max() 保底（12px / 11px），浅色 --frame 改 #95826B（对纸面 3.23:1）；取值在 src/config/tokens.css 与 docs/design/design-system-v1/tokens.json（minSize / minLineHeight / frame/paper 对比表），不是 policy 开关",
     "P240": "书写格永远正方形（R3-K1 / A3-01）：书写格与判断页两格宽高写死成同一个 px 值（src/ui/canvas/ink-canvas.js、src/ui/screens/write/compare.js squareStyle），容器变形时笔画按较短边居中映射（squareMapping），WebKit 门禁 scripts/verify-webkit-ax.mjs；不是运行时开关",
-    "P241": "AX 档格下说明位按实际高度排、放不下时并入「⋯」菜单（R3-K1 / A3-01）：版式公式在 src/ui/screens/write/layout.js axWriteLayout（noteInMenu），量测在 compact.js useWriteLayout，菜单顶部 write-menu-note 在 ax-menu.js；policy.writeGrid.axNoteHeight 改为最小高度，不是新的运行时开关"
+    "P241": "AX 档格下说明位按实际高度排、放不下时并入「⋯」菜单（R3-K1 / A3-01）：版式公式在 src/ui/screens/write/layout.js axWriteLayout（noteInMenu），量测在 compact.js useWriteLayout，菜单顶部 write-menu-note 在 ax-menu.js；policy.writeGrid.axNoteHeight 改为最小高度，不是新的运行时开关",
+    "P242": "中文折行（R3-K1 / A3-02）：全 App 不用 word-break:keep-all；按钮与菜单项文字经 src/ui/components/Words.js（Intl.Segmenter 分词、每词一个 nowrap span）只在词边界折，正文与说明句用正常 CJK 折行 + line-break:strict；样式规则，不是运行时开关"
   },
   "noCopy": [
     "R-H08",

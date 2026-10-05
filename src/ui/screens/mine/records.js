@@ -123,7 +123,7 @@ injectStyles('mine-records', `
   font-weight:500;color:${T.ink3};font-variant-numeric:tabular-nums;pointer-events:none} /* 格内左上角，与月字帖页 .sz-mcell__tag 同一写法（Q2-4 / V2-09：不压格线） */
 .sz-rec__axlist{display:flex;flex-direction:column;border-top:${T.hair} solid ${T.line}}
 .sz-rec__axrow.sz-btn{min-height:52px;padding:${T.s3} 0;box-sizing:border-box;display:block;text-align:left;width:100%;
-  border-bottom:${T.hair} solid ${T.line};font-size:${T.fs17};line-height:${T.lh17s};color:${T.ink1};white-space:normal;word-break:keep-all}
+  border-bottom:${T.hair} solid ${T.line};font-size:${T.fs17};line-height:${T.lh17s};color:${T.ink1};white-space:normal;line-break:strict}
 .sz-rec__axrow[aria-pressed="true"]{font-weight:600}
 .sz-rec__axrow[data-today="true"] .sz-rec__axtoday{color:${T.ink3};font-weight:400}
 :root[data-ax] .sz-rec__mhead,:root[data-ax] .sz-rec__shead{flex-wrap:wrap}

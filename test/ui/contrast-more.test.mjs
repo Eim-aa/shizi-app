@@ -60,13 +60,13 @@ test('prefersMoreContrast reads the media query; false without a window or when 
   }
 });
 
-test('the hint layer is drawn with the same wash as the trace layer: one wash fill + an ink3 outer ring, no separate SVG outline rules (A2-02 / D51 ⑧ / W1)', () => {
+test('the hint layer is drawn with the same wash as the trace layer: opaque danzhu fill (+ hairline hooks on the trace), no ink3 ring, no separate SVG outline rules (D53 ①)', () => {
   const hint = readFileSync(new URL('../../src/ui/screens/write/hint-layer.js', import.meta.url), 'utf8');
   const trace = readFileSync(new URL('../../src/ui/screens/write/answer.js', import.meta.url), 'utf8');
   const wash = readFileSync(new URL('../../src/ui/canvas/glyph-wash.js', import.meta.url), 'utf8');
   assert.ok(hint.includes('<${GlyphWash}') && trace.includes('<${GlyphWash}'), 'hint layer and trace layer both use GlyphWash');
   assert.ok(!/sz-hint__outline|sz-hint__stroke|drop-shadow/.test(hint), 'no SVG outline / drop-shadow rules left in the hint layer');
-  assert.ok(wash.includes("drawGlyphSolid(fctx, data, { color: glyphColor('--danzhu')") && wash.includes("drawGlyphRing(rctx, data, { color: glyphColor('--ink3')"), 'danzhu wash + ink3 ring');
-  assert.ok(wash.includes('opacity: TRACE_FILL_ALPHA'), 'the fill layer carries TRACE_FILL_ALPHA');
-  assert.ok(!/drawGlyph(Solid|Ring)\(/.test(hint + trace), 'only glyph-wash.js calls the two drawing functions');
+  assert.ok(wash.includes("glyphColor('--danzhu')") && !/glyphColor\('--ink3'\)/.test(wash), 'danzhu only');
+  assert.ok(wash.includes('prefersMoreContrast()') && wash.includes('HOOK_WIDTH_MORE_CONTRAST_PT'), 'increase-contrast thickens the hook lines (P153)');
+  assert.ok(!/drawGlyph(Solid|Hook)\(/.test(hint + trace), 'only glyph-wash.js calls the two drawing functions');
 });

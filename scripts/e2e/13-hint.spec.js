@@ -145,39 +145,36 @@ export default async function hint(page, ctx) {
       return c;
     };
     const fill = document.querySelector(sel + ' [data-testid="write-hint-fill"]');
-    const ring = document.querySelector(sel + ' [data-testid="write-hint-ring"]');
     const top = document.querySelector('.sz-layer[data-top="true"]');
     const glyph = top.querySelector('[data-testid="write-glyph-layer"]');
     const ink = top.querySelector('[data-testid="write-grid-ink"]');
     const read = cv => cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data;
     const f = read(fill);
-    const r = read(ring);
     let fillPx = 0;
-    let ringPx = 0;
-    let both = 0;
+    let partial = 0;
     let fillRgb = null;
-    let ringRgb = null;
+    const others = new Set();
     for (let i = 0; i < f.length; i += 4) {
-      if (f[i + 3] === 255) { fillPx += 1; if (!fillRgb) fillRgb = `rgb(${f[i]}, ${f[i + 1]}, ${f[i + 2]})`; }
-      if (r[i + 3] === 255) { ringPx += 1; if (!ringRgb) ringRgb = `rgb(${r[i]}, ${r[i + 1]}, ${r[i + 2]})`; }
-      if (f[i + 3] === 255 && r[i + 3] === 255) both += 1;
+      if (f[i + 3] === 255) {
+        fillPx += 1;
+        const rgb = `rgb(${f[i]}, ${f[i + 1]}, ${f[i + 2]})`;
+        if (!fillRgb) fillRgb = rgb;
+        else if (rgb !== fillRgb) others.add(rgb);
+      } else if (f[i + 3] > 0) partial += 1;
     }
-    const trace = document.querySelector('[data-testid="write-trace-fill"]');
     return {
-      danzhu: colorOf('--danzhu'), ink3: colorOf('--ink3'),
-      fillOpacity: getComputedStyle(fill).opacity, ringOpacity: getComputedStyle(ring).opacity,
-      fillPx, ringPx, both, fillRgb, ringRgb,
-      underInk: !!(glyph.compareDocumentPosition(ink) & Node.DOCUMENT_POSITION_FOLLOWING), glyphHasHint: glyph.contains(fill) && glyph.contains(ring),
-      traceFillOpacity: trace ? getComputedStyle(trace).opacity : null,
+      danzhu: colorOf('--danzhu'),
+      fillOpacity: getComputedStyle(fill).opacity,
+      fillPx, partial, fillRgb, otherColours: others.size,
+      ring: !!document.querySelector(sel + ' [data-testid="write-hint-ring"]'),
+      underInk: !!(glyph.compareDocumentPosition(ink) & Node.DOCUMENT_POSITION_FOLLOWING), glyphHasHint: glyph.contains(fill),
     };
   }, LAYER);
-  assert.equal(paint.fillOpacity, '0.4', 'the hint wash is the light whole-layer 0.4 fill (the same as the trace layer: one drawing for every help layer)');
-  assert.equal(paint.ringOpacity, '1', 'the ring is drawn at full strength');
+  assert.equal(paint.fillOpacity, '1', 'D53 ①: the hint wash is opaque (no whole-layer 0.4)');
   assert.ok(paint.fillPx > 300, `wash fill drawn (${paint.fillPx} px)`);
-  assert.equal(paint.fillRgb, paint.danzhu, 'fill colour = --danzhu (token)');
-  assert.ok(paint.ringPx > 30, `outer ring drawn (${paint.ringPx} px)`);
-  assert.equal(paint.ringRgb, paint.ink3, 'ring colour = --ink3 (A2-02: a second channel besides hue)');
-  assert.equal(paint.both, 0, 'the ring only sits outside the filled strokes');
+  assert.equal(paint.fillRgb, paint.danzhu, 'fill colour = --danzhu (token) exactly: the opaque wash itself carries the 3:1');
+  assert.equal(paint.otherColours, 0, 'one flat colour: no ring, no ink3');
+  assert.equal(paint.ring, false, 'no outer ring canvas any more (D53 ①: the ink3 outline is gone)');
   assert.deepEqual([paint.glyphHasHint, paint.underInk], [true, true], 'the hint lives in the reference layer, which is below the ink canvas in z-order');
 
   ctx.step('write the next stroke → hint fades out (260ms), ink restores (200ms), range cleared');

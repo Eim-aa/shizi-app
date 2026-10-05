@@ -225,7 +225,7 @@
     --zhu: #EA6E50; /* 朱：只用于写错的朱点；一屏朱色（含印）不超过两处 · 来源：tokens.json color.dark.zhu */
     --seal: #C4553C; /* 印章底：只用于落款与品牌 · 来源：tokens.json color.dark.seal */
     --on-seal: #F4EAD9; /* 印章上的字（白文） · 来源：tokens.json color.dark.onSeal */
-    --danzhu: #A85C48; /* 淡朱：提示笔画、描一遍、自选未写的双钩；与朱在明度上分开 · 来源：tokens.json color.dark.danzhu */
+    --danzhu: #AF604B; /* 淡朱：提示笔画、描一遍、自选未写的双钩；与朱在明度上分开 · 来源：tokens.json color.dark.danzhu */
     --wall1: #E6DAC4; /* 字墙新旧一档：一周内 · 来源：tokens.json color.dark.wall1 */
     --wall2: #C1B7A4; /* 字墙新旧二档：一月内 · 来源：tokens.json color.dark.wall2 */
     --wall3: #A59C8C; /* 字墙新旧三档：三月内 · 来源：tokens.json color.dark.wall3 */
@@ -263,7 +263,7 @@
   --zhu: #EA6E50; /* 朱：只用于写错的朱点；一屏朱色（含印）不超过两处 · 来源：tokens.json color.dark.zhu */
   --seal: #C4553C; /* 印章底：只用于落款与品牌 · 来源：tokens.json color.dark.seal */
   --on-seal: #F4EAD9; /* 印章上的字（白文） · 来源：tokens.json color.dark.onSeal */
-  --danzhu: #A85C48; /* 淡朱：提示笔画、描一遍、自选未写的双钩；与朱在明度上分开 · 来源：tokens.json color.dark.danzhu */
+  --danzhu: #AF604B; /* 淡朱：提示笔画、描一遍、自选未写的双钩；与朱在明度上分开 · 来源：tokens.json color.dark.danzhu */
   --wall1: #E6DAC4; /* 字墙新旧一档：一周内 · 来源：tokens.json color.dark.wall1 */
   --wall2: #C1B7A4; /* 字墙新旧二档：一月内 · 来源：tokens.json color.dark.wall2 */
   --wall3: #A59C8C; /* 字墙新旧三档：三月内 · 来源：tokens.json color.dark.wall3 */

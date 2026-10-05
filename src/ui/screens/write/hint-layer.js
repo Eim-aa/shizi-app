@@ -4,9 +4,8 @@
 //   min(已写笔数, N−q) 起（P01 按已写笔数）；没有分组数据的字前 1 / 前 2 笔；没有笔顺数据的字没有分步提示）。
 //   「有没有分组数据」= deck-data.js 的 GROUPS[字] 存在且各组笔数之和等于笔顺数据的总笔数（与旧 index.html L2508 同一判据；
 //   policy.hintUseGroups=false（P29）只表示不按分组内容切笔，分组数据本身只用来判断走 1/4 规则还是前 1 / 前 2 笔）。
-// 画法（D34 / D51 ⑧，W1 验收：与描一遍同一种画法，全 App 只保留一种）：提示画在书写格的参考字形层（本人笔迹层**下面**），用 canvas/glyph-wash.js 的
-//   整层淡填充（drawGlyphSolid：给出的那几笔同色不透明填进一层、整层 .4 不透明度）+ 外侧一圈墨三 --ink3 外廓（drawGlyphRing）；颜色走令牌（--danzhu / --ink3）。
-//   不再是不透明实心色块，也不是中线折线。整组 150ms 淡入（policy.motion.hintFadeInMs，P210；网页阶段不逐笔写出，拟合与逐笔属阶段 2）。
+// 画法（D34 / D51 ⑧ → D53 ①，第三轮 V3-01 / T3-02：去掉 ink3 外廓，与描一遍同一种画法，全 App 只保留一种）：提示画在书写格的参考字形层（本人笔迹层**下面**），用 canvas/glyph-wash.js 的
+//   --danzhu 不透明实填（drawGlyphSolid：只画给出的那几笔，同色不透明填进一层、交叠处不叠色）；颜色走令牌（--danzhu）。没有灰外廓、没有整层不透明度，也不是中线折线。整组 150ms 淡入（policy.motion.hintFadeInMs，P210；网页阶段不逐笔写出，拟合与逐笔属阶段 2）。
 //   本人笔迹**不变暗**（D34 覆盖 D25；inkOpacity 恒为 1）。写下一笔（接受了一次落笔）→ 提示 260ms 淡出，淡完清掉提示范围。
 //   减少动态效果：提示整体 120ms 淡入 / 淡出（02 §3 M1-3 / R-G01）。
 // 按钮（R-W05；D49 起是文字行里的文字按钮）：可见文字一直是「提示」，读屏名称「提示，还有 {n} 次」→「提示已用完」（用完 disabled + aria-disabled，ink4）；没有笔顺数据时换成灰字「暂时没有提示」
@@ -43,7 +42,7 @@ export const HINT_DRAW = Object.freeze({
   maxMs: defaultPolicy.motion.hintStrokeMs,
   stagger: defaultPolicy.motion.hintStagger,
   easing: 'cubic-bezier(.4,0,.2,1)',
-  opacity: 1, // 整组（淡填充 + 外廓）的显隐不透明度；淡填充自己的 .4 在 glyph.js TRACE_FILL_ALPHA（对比度见 test/ui/contrast.test.mjs「提示」）
+  opacity: 1, // 整组的显隐不透明度；淡朱实填本身不透明（对比度见 test/ui/contrast.test.mjs「提示」）
 });
 /** 提示整组淡入（P210；D51 ⑧ 网页阶段的最小过渡）。 */
 export const HINT_FADE_IN_MS = defaultPolicy.motion.hintFadeInMs;
@@ -237,7 +236,7 @@ export function HintLayer({ data, view, reduced = false, testid = 'write-hint-la
   return html`<div class="sz-hint" data-testid=${testid} data-state=${out ? 'fading' : 'shown'} data-from=${from}
     data-to=${to} data-anim=${anim} data-run=${view.run} aria-hidden="true">
     <div class="sz-hint__group" key=${`g${view.run}`} style=${groupStyle}>
-      <${GlyphWash} data=${data} from=${from} to=${to} fillTestid="write-hint-fill" ringTestid="write-hint-ring" />
+      <${GlyphWash} data=${data} from=${from} to=${to} fillTestid="write-hint-fill" />
     </div>
   </div>`;
 }

@@ -8,8 +8,8 @@
 //
 // 给后续卡的接口（M1-3 提示 / M1-4 看答案·描一遍 / M1-5 判断页）：
 //   drawGlyph(ctx, strokesData, {color, alpha, size, padding, x, y, from, to, outline})
-//   drawGlyphSolid(ctx, strokesData, {color, size, padding, x, y})   整字一次合成：所有笔画同色不透明（交叠不叠色），描红底色用（V2-02）
-//   drawGlyphRing(ctx, strokesData, {color, width, halo, …})         整字外廓：只画在字形外侧、不穿过笔画交叠处（透明画布上用 destination-out 擦掉字形内部）
+//   drawGlyphSolid(ctx, strokesData, {color, strokes, from, to, …})  整层一次合成：给出的笔画同色不透明实填（交叠不叠色）；strokes = 笔序号列表（缺省 [from, to)）。帮助层用（D53 ①）
+//   drawGlyphHook(ctx, strokesData, {color, width, strokes, …})      双钩：只描给出笔画的细轮廓、不填色（同色相；描一遍里「还没轮到」的笔）。width 按书写格单位（1pt = 345 / 边长）
 //   playbackPlan(strokesData, {maxMs, …})                            笔顺快放：算出让总时长不超过 maxMs 的 speed / delay / fade
 //   drawMedians(ctx, strokesData, {from, to, color, alpha, width, size, padding, x, y})
 //   mediansInBox(strokesData, {size, padding, x, y})  → [[ [x,y]… ]…]（书写格坐标）
@@ -24,10 +24,11 @@ export const GLYPH_BASELINE = 900;
 export const GLYPH_PAD_RATIO = 0.06;
 // 提示中线宽度（1024 单位；原型 strokeWidth 18，01 §6.4「宽约 18/1024 单位」）。
 export const MEDIAN_WIDTH_UNITS = 18;
-// 帮助层（提示 / 描一遍）外廓在字形外侧的厚度（书写格 345 单位，约 1.5pt；V2-02：只画外侧、不穿过笔画交叠处）。
-export const RING_OUTER_UNITS = 1.5;
-// 帮助层（提示 / 描一遍）整层填充不透明度（画布元素整体；原逐笔填充 .4，沿用，全 App 同一个值）。
-export const TRACE_FILL_ALPHA = 0.4;
+// 帮助层（提示 / 描一遍）的画法（D53 ①，第三轮 V3-01 / T3-02）：淡朱不透明实填 + 同色相细轮廓（双钩），没有 ink3 灰外廓、没有整层 .4 不透明度——
+// 对比度由淡朱自己承担（对笺 ≥ 3:1、对本人墨 ≥ 3:1，test/ui/contrast.test.mjs）。双钩线宽（pt，书写格 345 单位下换算见 drawGlyphHook）：
+export const HOOK_WIDTH_PT = 0.75;
+/** 系统开了「增强对比度」时双钩加粗到的线宽（pt；P153：原来的 ink3 halo 已随灰外廓一起去掉，改为线加粗）。 */
+export const HOOK_WIDTH_MORE_CONTRAST_PT = 1.5;
 
 // 动画节奏（工程取值；原型没有看答案播放与「先播一遍」，旧版提示用 speed 5 / 间隔 60ms 太快，
 // hanzi-writer 默认 speed 1 / 间隔 1000ms 太慢）。过渡值在 policy.motion（P70，待设计走查）；
@@ -76,7 +77,7 @@ function hasPath2D() {
 }
 
 /**
- * 系统开启「增强对比度」（CSS prefers-contrast: more）吗（D46 ⑯ / 03 P153）。canvas 画淡朱描红时据此多画一圈 1pt 墨三外廓；
+ * 系统开启「增强对比度」（CSS prefers-contrast: more）吗（D46 ⑯ / 03 P153）。帮助层（glyph-wash.js）据此把双钩线加粗（D53 ①：ink3 外廓已去掉）；
  * 无 window / 不认这个媒体查询（node:test、旧浏览器）时为 false。
  */
 export function prefersMoreContrast() {
@@ -139,22 +140,33 @@ export function drawGlyph(ctx, data, opts = {}) {
   return true;
 }
 
+/** strokes（笔序号列表）或 [from, to) → 实际要画的笔序号（去重、越界的丢掉、升序）。 */
+export function strokeIndexList(data, opts = {}) {
+  const n = data && Array.isArray(data.strokes) ? data.strokes.length : 0;
+  if (Array.isArray(opts.strokes)) {
+    return Array.from(new Set(opts.strokes.filter(i => Number.isInteger(i) && i >= 0 && i < n))).sort((a, b) => a - b);
+  }
+  const [from, to] = strokeRange({ strokes: new Array(n) }, opts.from, opts.to);
+  const out = [];
+  for (let i = from; i < to; i++) out.push(i);
+  return out;
+}
+
 /**
- * 整字一次合成（V2-02）：把所有笔画用同一种不透明颜色填进 ctx。笔画交叠处因为颜色不透明而不会叠深，
- * 整组的透明度由调用方在画布元素上整体设置（canvas 的 CSS opacity），所以底色处处均匀、没有「逐笔半透明贴纸」的接缝。
- * 不画逐笔描边。
+ * 整层一次合成（V2-02 / D53 ①）：把给出的笔画用同一种不透明颜色实填进 ctx，交叠处不叠色；不描边、不改 globalAlpha。
+ * 给出笔画用 opts.strokes（笔序号列表）或 [opts.from, opts.to)。
  */
 export function drawGlyphSolid(ctx, data, opts = {}) {
   if (!ctx || !data || !Array.isArray(data.strokes) || !hasPath2D()) return false;
+  const list = strokeIndexList(data, opts);
+  if (!list.length) return false;
   const t = glyphTransform(opts);
-  const [from, to] = strokeRange(data, opts.from, opts.to);
-  if (from >= to) return false;
   ctx.save();
   try {
     ctx.translate(t.ox, t.oy);
     ctx.scale(t.k, -t.k);
     ctx.fillStyle = opts.color || glyphColor('--danzhu');
-    for (let i = from; i < to; i++) ctx.fill(new Path2D(data.strokes[i]));
+    for (const i of list) ctx.fill(new Path2D(data.strokes[i]));
   } finally {
     ctx.restore();
   }
@@ -162,35 +174,23 @@ export function drawGlyphSolid(ctx, data, opts = {}) {
 }
 
 /**
- * 整字外廓（V2-02）：在**透明**画布上先把每笔的描边画出来，再用 destination-out 把字形本身擦掉，留下的只有字形外侧的一圈——
- * 笔画交叠处的内部边不会被描出来。width = 外侧厚度（书写格 345 单位）；halo（增强对比度，P153）= 再往外多一圈 extra 的另一种颜色。
- * 画布上不要有别的内容（擦除会一起擦掉）。
+ * 双钩（D53 ①）：只描给出笔画的细轮廓、不填色，线与填色同一个色相（--danzhu）。width = 线宽（书写格 345 单位；调用方按
+ * 「1pt = 345 ÷ 边长」换算，GlyphWash 负责）。给出笔画用 opts.strokes 或 [opts.from, opts.to)。
  */
-export function drawGlyphRing(ctx, data, opts = {}) {
+export function drawGlyphHook(ctx, data, opts = {}) {
   if (!ctx || !data || !Array.isArray(data.strokes) || !hasPath2D()) return false;
+  const list = strokeIndexList(data, opts);
+  if (!list.length) return false;
   const t = glyphTransform(opts);
-  const [from, to] = strokeRange(data, opts.from, opts.to);
-  if (from >= to) return false;
-  const outer = Number.isFinite(opts.width) ? opts.width : RING_OUTER_UNITS;
+  const width = Number.isFinite(opts.width) && opts.width > 0 ? opts.width : HOOK_WIDTH_PT;
   ctx.save();
   try {
     ctx.translate(t.ox, t.oy);
     ctx.scale(t.k, -t.k);
     ctx.lineJoin = 'round';
-    const paths = [];
-    for (let i = from; i < to; i++) paths.push(new Path2D(data.strokes[i]));
-    if (opts.halo && opts.halo.color) {
-      const extra = Number.isFinite(opts.halo.extra) ? opts.halo.extra : 1;
-      ctx.strokeStyle = opts.halo.color;
-      ctx.lineWidth = (2 * (outer + extra)) / t.k;
-      for (const p of paths) ctx.stroke(p);
-    }
     ctx.strokeStyle = opts.color || glyphColor('--danzhu');
-    ctx.lineWidth = (2 * outer) / t.k;
-    for (const p of paths) ctx.stroke(p);
-    ctx.globalCompositeOperation = 'destination-out';
-    ctx.fillStyle = '#000';
-    for (const p of paths) ctx.fill(p);
+    ctx.lineWidth = width / t.k;
+    for (const i of list) ctx.stroke(new Path2D(data.strokes[i]));
   } finally {
     ctx.restore();
   }

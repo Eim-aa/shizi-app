@@ -1,11 +1,11 @@
-// 描一遍整字一次合成与笔顺快放 ≤ 1.6s（W1，D51 ⑧；V2-02 / I2-02）。
+// 帮助层（提示 / 描一遍）的整层实填 + 双钩画法（D53 ①，第三轮 V3-01 / T3-02）与笔顺快放 ≤ 1.6s（W1，D51 ⑧；V2-02 / I2-02）。
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { STEP_PLAY_MAX_MS } from '../../src/ui/screens/write/answer.js';
-import { playbackPlan, drawGlyphSolid, drawGlyphRing, RING_OUTER_UNITS, TRACE_FILL_ALPHA } from '../../src/ui/canvas/glyph.js';
+import { STEP_PLAY_MAX_MS, traceSplit } from '../../src/ui/screens/write/answer.js';
+import { playbackPlan, drawGlyphSolid, drawGlyphHook, strokeIndexList, glyphTransform, HOOK_WIDTH_PT } from '../../src/ui/canvas/glyph.js';
 import * as policy from '../../src/config/policy.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -53,40 +53,51 @@ function fakeCtx() {
 }
 const GLYPH = { strokes: ['M0 0', 'M1 1', 'M2 2'] };
 
-test('drawGlyphSolid：每笔只填色、同一种不透明颜色、不描边、不改 globalAlpha（交叠处不叠色，透明度由画布整体给）', () => {
+test('drawGlyphSolid：给出的笔画只填色、同一种不透明颜色、不描边、不改 globalAlpha（交叠处不叠色）；可按笔序号列表或 [from, to) 给笔', () => {
   globalThis.Path2D = FakePath;
   const ctx = fakeCtx();
   assert.equal(drawGlyphSolid(ctx, GLYPH, { color: '#C06D57' }), true);
   const ops = ctx.calls.filter(c => c[0] === 'stroke' || c[0] === 'fill');
   assert.deepEqual(ops.map(c => c[0]), ['fill', 'fill', 'fill'], 'no per-stroke outline');
   assert.ok(ops.every(c => c[1] === '#C06D57' && c[2] === 1 && c[3] === 'source-over'), 'one opaque colour, normal compositing');
-  assert.equal(TRACE_FILL_ALPHA, 0.4, 'the whole layer (canvas element) carries the 0.4');
+  const some = fakeCtx();
+  drawGlyphSolid(some, GLYPH, { color: '#C06D57', strokes: [2, 0, 2, 9, -1] });
+  assert.deepEqual(some.calls.filter(c => c[0] === 'fill').map(c => c[4]), ['M0 0', 'M2 2'], 'strokes: sorted, deduped, out-of-range dropped');
+  const range = fakeCtx();
+  drawGlyphSolid(range, GLYPH, { color: '#C06D57', from: 1, to: 3 });
+  assert.deepEqual(range.calls.filter(c => c[0] === 'fill').map(c => c[4]), ['M1 1', 'M2 2']);
+  assert.equal(drawGlyphSolid(fakeCtx(), GLYPH, { strokes: [] }), false, 'nothing to draw');
+  assert.deepEqual(strokeIndexList(GLYPH, { from: 1 }), [1, 2]);
 });
 
-test('drawGlyphRing：先描边、再用 destination-out 擦掉字形本身，只留外侧一圈（交叠处的内部边不描）；增强对比度的 halo 在最底层', () => {
+test('drawGlyphHook：双钩只描细轮廓、不填色、同一个色相；线宽按单位换算，不碰 globalAlpha', () => {
   globalThis.Path2D = FakePath;
   const ctx = fakeCtx();
-  drawGlyphRing(ctx, GLYPH, { color: '#C06D57', halo: { color: '#6E655B', extra: 1 } });
+  assert.equal(drawGlyphHook(ctx, GLYPH, { color: '#C06D57', width: 0.75, strokes: [1, 2] }), true);
   const ops = ctx.calls.filter(c => c[0] === 'stroke' || c[0] === 'fill');
-  assert.deepEqual(ops.map(c => `${c[0]}:${c[1]}:${c[3]}`), [
-    'stroke:#6E655B:source-over', 'stroke:#6E655B:source-over', 'stroke:#6E655B:source-over',
-    'stroke:#C06D57:source-over', 'stroke:#C06D57:source-over', 'stroke:#C06D57:source-over',
-    'fill:#000:destination-out', 'fill:#000:destination-out', 'fill:#000:destination-out',
-  ]);
-  const halo = ops[0];
-  const ring = ops[3];
-  assert.ok(halo[2] > ring[2], 'the halo band is wider than the danzhu ring');
-  assert.ok(RING_OUTER_UNITS > 0);
-  const plain = fakeCtx();
-  drawGlyphRing(plain, GLYPH, { color: '#C06D57' });
-  assert.deepEqual(plain.calls.filter(c => c[0] === 'stroke').map(c => c[1]), ['#C06D57', '#C06D57', '#C06D57'], 'no halo by default');
-  assert.equal(drawGlyphRing(plain, { strokes: [] }, {}), false);
+  assert.deepEqual(ops.map(c => `${c[0]}:${c[1]}:${c[4]}`), ['stroke:#C06D57:M1 1', 'stroke:#C06D57:M2 2'], 'only strokes, same hue, no fill');
+  assert.ok(ops.every(c => c[3] === 'source-over'), 'no destination-out ring trick any more');
+  assert.ok(Math.abs(ops[0][2] - 0.75 / glyphTransform({ size: 345 }).k) < 1e-9, 'line width = width / k (the glyph transform scale)');
+  assert.equal(HOOK_WIDTH_PT, 0.75);
+  assert.equal(drawGlyphHook(fakeCtx(), GLYPH, { strokes: [] }), false);
 });
 
-test('描一遍层的源码约束：整字合成（不再逐笔 drawGlyph + outline），与提示同一个 GlyphWash', () => {
+test('traceSplit：描一遍当前一笔实心、其余双钩、已描过的笔不画；全部写完什么都不画；撤销退回', () => {
+  assert.deepEqual(traceSplit(4, 0), { solid: [0], hook: [1, 2, 3] });
+  assert.deepEqual(traceSplit(4, 1), { solid: [1], hook: [2, 3] }, 'stroke 0 is covered by the own ink, not drawn');
+  assert.deepEqual(traceSplit(4, 3), { solid: [3], hook: [] });
+  assert.deepEqual(traceSplit(4, 4), { solid: [], hook: [] }, 'all traced');
+  assert.deepEqual(traceSplit(4, 9), { solid: [], hook: [] });
+  assert.deepEqual(traceSplit(4, 2), { solid: [2], hook: [3] }, 'undo one stroke (3 → 2) comes back to the same state as before');
+  assert.deepEqual(traceSplit(0, 0), { solid: [], hook: [] });
+  assert.deepEqual(traceSplit(3, -1), { solid: [0], hook: [1, 2] });
+});
+
+test('描一遍层的源码约束：与提示同一个 GlyphWash（实填 + 双钩），不再逐笔 drawGlyph + outline，也没有 ring', () => {
   const wash = fs.readFileSync(path.join(ROOT, 'src/ui/canvas/glyph-wash.js'), 'utf8');
   const src = fs.readFileSync(path.join(ROOT, 'src/ui/screens/write/answer.js'), 'utf8');
-  assert.ok(wash.includes('drawGlyphSolid(') && wash.includes('drawGlyphRing('), 'GlyphWash uses the unified composite');
+  assert.ok(wash.includes('drawGlyphSolid(') && wash.includes('drawGlyphHook('), 'GlyphWash uses the unified composite');
+  assert.ok(!wash.includes('drawGlyphRing'), 'no ring');
   assert.ok(src.includes('<${GlyphWash}'), 'TraceLayer renders the shared wash');
   assert.ok(!/outline:\s*\{[^}]*danzhu/.test(src), 'no per-stroke danzhu outline on the trace');
   assert.equal(STEP_PLAY_MAX_MS, policy.motion.stepPlayMaxMs);

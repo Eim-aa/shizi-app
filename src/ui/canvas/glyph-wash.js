@@ -1,10 +1,10 @@
-// 帮助层的唯一画法（W1 验收：提示与描一遍同一种画法，全 App 只保留这一种）：
-//   整层淡填充（所有要画的笔同色不透明填进一层 canvas，整层 TRACE_FILL_ALPHA 不透明度，交叠处不叠色）+ 外侧一圈墨三 --ink3 外廓
-//   （drawGlyphRing，只画在字形外侧，不穿过笔画交叠处）。提示只画给出的那几笔（from / to），描一遍画整字。
-//   颜色全走令牌：填充 --danzhu（整层 .4），外廓 --ink3（对笺面浅深、红绿色觉异常都 ≥ 3:1，不靠色相）。
+// 帮助层的唯一画法（D53 ①，第三轮 V3-01 / T3-02：覆盖 W1 的「淡填充 + ink3 外廓」）：
+//   给出的笔画用 --danzhu 不透明实填（整层一次合成，交叠处不叠色，没有整层不透明度）；描一遍里「还没轮到」的笔只画同色相 0.75pt 的双钩（不填色）。
+//   没有灰外廓：对比度由淡朱自己承担（对笺 / 对本人墨都 ≥ 3:1，test/ui/contrast.test.mjs），本人墨永远是画面上最深的东西、第一焦点。
+//   提示只画给出的那几笔；描一遍 = 当前一笔实心、其余笔双钩、已描过的笔被本人墨盖住不再画。颜色全走令牌（--danzhu）。
 // 给 hint-layer.js / answer.js 用；同文件放这两个层共用的 canvas 小工具（paintCanvas、useThemeVersion）。
 import { html, useEffect, useLayoutEffect, useRef, useState } from '../../../vendor/ui.js';
-import { drawGlyphRing, drawGlyphSolid, glyphColor, TRACE_FILL_ALPHA } from './glyph.js';
+import { drawGlyphHook, drawGlyphSolid, glyphColor, HOOK_WIDTH_PT, HOOK_WIDTH_MORE_CONTRAST_PT, prefersMoreContrast } from './glyph.js';
 import { injectStyles } from '../components/styles.js';
 
 injectStyles('glyph-wash', `
@@ -55,19 +55,22 @@ export function paintCanvas(canvas, cssSize) {
 }
 
 /**
- * 整层淡填充 + 外廓。父元素须 position:relative 且与书写格参考字形层同尺寸。
+ * 帮助层：实填 + 双钩画在同一张 canvas 上。父元素须 position:relative 且与书写格参考字形层同尺寸。
  * @param {object} props
  * @param {{strokes:string[]}|null} props.data  笔画数据（没有就什么都不画）
- * @param {number} [props.from] [props.to]      只画 [from, to) 笔（缺省整字）
+ * @param {number[]} [props.solid]              实填的笔序号列表（缺省用 from / to）
+ * @param {number} [props.from] [props.to]      实填 [from, to) 笔（solid 缺省时；都缺省则整字）
+ * @param {number[]} [props.hook]               只画双钩（细轮廓、不填色）的笔序号列表
  * @param {number} [props.cssSize]              边长（缺省量父元素，再缺省 345）
- * @param {string} [props.fillTestid] [props.ringTestid]
+ * @param {string} [props.fillTestid]           画布的 data-testid
  */
-export function GlyphWash({ data, from, to, cssSize, fillTestid = 'write-wash-fill', ringTestid = 'write-wash-ring' }) {
+export function GlyphWash({ data, solid, from, to, hook, cssSize, fillTestid = 'write-wash-fill' }) {
   const rootRef = useRef(null);
   const fillRef = useRef(null);
-  const ringRef = useRef(null);
   const theme = useThemeVersion();
   const [box, setBox] = useState(cssSize || 0);
+  const solidKey = Array.isArray(solid) ? solid.join(',') : '';
+  const hookKey = Array.isArray(hook) ? hook.join(',') : '';
 
   // 量出边长（父元素就是书写格里的参考字形层）；尺寸变了重画
   useLayoutEffect(() => {
@@ -94,19 +97,20 @@ export function GlyphWash({ data, from, to, cssSize, fillTestid = 'write-wash-fi
 
   useLayoutEffect(() => {
     const fill = fillRef.current;
-    const ring = ringRef.current;
-    if (!fill || !ring) return;
+    if (!fill) return;
     const size = box || 345;
-    const fctx = paintCanvas(fill, size);
-    const rctx = paintCanvas(ring, size);
-    if (data && Array.isArray(data.strokes)) {
-      drawGlyphSolid(fctx, data, { color: glyphColor('--danzhu'), from, to });
-      drawGlyphRing(rctx, data, { color: glyphColor('--ink3'), from, to });
+    const ctx = paintCanvas(fill, size);
+    if (!(data && Array.isArray(data.strokes))) return;
+    const color = glyphColor('--danzhu');
+    // 双钩先画、实填后画（同一色相，实填盖住与之交叠的钩线）。线宽按 pt 换算成书写格 345 单位。
+    if (Array.isArray(hook) && hook.length) {
+      const pt = prefersMoreContrast() ? HOOK_WIDTH_MORE_CONTRAST_PT : HOOK_WIDTH_PT;
+      drawGlyphHook(ctx, data, { color, width: (pt * 345) / size, strokes: hook });
     }
-  }, [data, from, to, box, theme]);
+    drawGlyphSolid(ctx, data, Array.isArray(solid) ? { color, strokes: solid } : { color, from, to });
+  }, [data, solidKey, hookKey, from, to, box, theme]);
 
   return html`<div class="sz-wash" ref=${rootRef} aria-hidden="true">
-    <canvas ref=${fillRef} data-testid=${fillTestid} style=${{ opacity: TRACE_FILL_ALPHA }}></canvas>
-    <canvas ref=${ringRef} data-testid=${ringTestid}></canvas>
+    <canvas ref=${fillRef} data-testid=${fillTestid}></canvas>
   </div>`;
 }

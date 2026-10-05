@@ -29,7 +29,7 @@ test('hintTimeline staggers each stroke by dur × 0.7', () => {
   assert.equal(tl.total, 504 + 240);
   assert.deepEqual(hintTimeline(0), { dur: 240, items: [], total: 0 });
   assert.equal(HINT_DRAW.easing, 'cubic-bezier(.4,0,.2,1)');
-  assert.equal(HINT_DRAW.opacity, 1, 'the group is shown at full strength; the wash fill carries its own .4 (glyph.js TRACE_FILL_ALPHA)');
+  assert.equal(HINT_DRAW.opacity, 1, 'the group is shown at full strength; the opaque wash needs no layer opacity (D53 ①)');
   assert.equal(HINT_FADE_IN_MS, 150, 'whole group fades in over 150ms (D51 ⑧, P210)');
   assert.equal(HINT_FADE_OUT_MS, 260);
   assert.equal(REDUCED_FADE_MS, 120);
@@ -159,7 +159,7 @@ test('applyHintToDraft writes hints + hintRange into the current card only, in t
   assert.equal(applyHintToDraft({ sessions: null }, { slot: 'A', sessionId: 's1', cardKey: 'base:大', hints: 1 }, 1), false);
 });
 
-test('HintLayer: the shared wash (fill + ring) for the hinted strokes only, under the ink; whole group fades in (V2-01 / W1)', () => {
+test('HintLayer: the shared opaque wash for the hinted strokes only, under the ink; whole group fades in (V2-01 / W1)', () => {
   const d = { strokes: ['M0 0L10 0L10 10Z', 'M20 0L30 0L30 10Z', 'M40 0L50 0L50 10Z'], medians: [[[0, 0], [1, 1]], [[2, 2], [3, 3]], [[4, 4], [5, 5]]] };
   const view = { key: 'base:x', used: 1, range: { from: 1, to: 3 }, show: 'in', run: 1, restored: false };
   const flat = [];

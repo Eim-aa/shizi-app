@@ -104,11 +104,12 @@ test('seal: white-letter seal keeps ≥ 3:1 in light (5.7) and the documented 3.
   assert.ok(contrast(colorOf('dark', 'onSeal'), colorOf('dark', 'seal')) >= 3);
 });
 
-// ---- 求助梯子：提示 × 本人墨（不压暗）与提示 × 纸，三种色觉模拟（W1，A2-02 / V2-01 / D34 / D51 ⑧）
-// 旧测试只核对 danzhu/hand 这一对「不会出现在屏幕上的颜色」（本人墨被压到 35% 才是屏上真实的一对），没拦住 v2 的回退。
-// 现在按屏上真实合成：提示 = 和描一遍同一种画法（glyph-wash.js）——danzhu 以整层 TRACE_FILL_ALPHA（.4）淡填在笺面上、外面一圈 ink3 外廓；本人墨 = hand，不压暗（inkOpacity 恒 1）。
+// ---- 求助梯子：帮助层 × 笺面 / 本人墨，三种色觉模拟（D53 ①，第三轮 V3-01 / T3-02；取代 W1 的「淡填充 + ink3 外廓」口径）
+// 屏上真实的一对：帮助层 = --danzhu **不透明**实填（没有整层 .4、没有灰外廓）画在笺面上，本人墨 = --hand 不压暗（inkOpacity 恒 1）压在它上面。
+// 要求：淡朱实填对笺面 ≥ 3:1（看得见）、对本人墨 ≥ 3:1（本人墨压上去仍分得清），浅 / 深、正常 / 红色盲 / 绿色盲；
+// 再要求本人墨比淡朱更「深」（对笺面的对比度更高），灰度下第一眼看到的只能是本人的墨。
 import { HINT_DRAW } from '../../src/ui/screens/write/hint-layer.js';
-import { TRACE_FILL_ALPHA } from '../../src/ui/canvas/glyph.js';
+import * as glyphMod from '../../src/ui/canvas/glyph.js';
 
 const VISIONS = {
   normal: [[1, 0, 0], [0, 1, 0], [0, 0, 1]],
@@ -130,37 +131,34 @@ function contrastUnder(a, b, vision) {
   const [hi, lo] = [lumUnder(a, vision), lumUnder(b, vision)].sort((x, y) => y - x);
   return (hi + 0.05) / (lo + 0.05);
 }
-const over = (fg, bg, alpha) => fg.map((v, i) => Math.round(v * alpha + bg[i] * (1 - alpha)));
 
 for (const theme of ['light', 'dark']) {
   for (const vision of Object.keys(VISIONS)) {
-    test(`${theme} · ${vision}: hint wash × own ink (not dimmed) ≥ 3:1; hint outline × paper / sheet ≥ 3:1; the hint edge is readable on the sheet`, () => {
+    test(`${theme} · ${vision}: opaque danzhu wash × sheet ≥ 3:1 and × own ink ≥ 3:1; own ink stands out more than the wash (D53 ①)`, () => {
       const sheet = colorOf(theme, 'sheet');
-      const paper = colorOf(theme, 'paper');
       const hand = colorOf(theme, 'hand');
-      const fill = over(colorOf(theme, 'danzhu'), sheet, TRACE_FILL_ALPHA);
-      const outline = colorOf(theme, 'ink3');
-      const need = th.hintVsHand;
-      assert.ok(need >= 3, 'threshold is 3:1');
-      const fillInk = contrastUnder(fill, hand, vision);
-      assert.ok(fillInk >= need, `${theme}/${vision}: hint × own ink ${fillInk.toFixed(2)} < ${need}`);
-      for (const [name, ground] of [['paper', paper], ['sheet', sheet]]) {
-        const edge = contrastUnder(outline, ground, vision);
-        assert.ok(edge >= 3, `${theme}/${vision}: hint outline × ${name} ${edge.toFixed(2)} < 3`);
-      }
-      // 笔画外缘 = 外廓对笺面；淡填充本身只是着色（整层 .4），可辨认由外廓保证（不靠色相）。
+      const fill = colorOf(theme, 'danzhu'); // 不透明实填：屏上的颜色就是令牌本身
+      assert.ok(th.hintAndTrace >= 3 && th.hintVsHand >= 3, 'thresholds are 3:1');
       const fillSheet = contrastUnder(fill, sheet, vision);
-      assert.ok(Math.max(fillSheet, contrastUnder(outline, sheet, vision)) >= 3, `${theme}/${vision}: the hint stroke is distinguishable from the sheet`);
+      assert.ok(fillSheet >= th.hintAndTrace, `${theme}/${vision}: wash × sheet ${fillSheet.toFixed(2)} < ${th.hintAndTrace}`);
+      const fillInk = contrastUnder(fill, hand, vision);
+      assert.ok(fillInk >= th.hintVsHand, `${theme}/${vision}: wash × own ink ${fillInk.toFixed(2)} < ${th.hintVsHand}`);
+      const inkSheet = contrastUnder(hand, sheet, vision);
+      assert.ok(inkSheet > fillSheet + 3, `${theme}/${vision}: own ink × sheet ${inkSheet.toFixed(2)} must clearly beat the wash × sheet ${fillSheet.toFixed(2)} (own ink is the first focus)`);
     });
   }
 }
 
-test('the hint never dims the writer\'s ink: the 35% dimming is gone, so the real on-screen pair is hint × hand at full strength (V2-01)', () => {
+test('the hint never dims the writer\'s ink and draws no grey ring: opaque wash only (D53 ①)', () => {
   const src = fs.readFileSync(path.join(ROOT, 'src/ui/screens/write/hint-layer.js'), 'utf8');
   assert.ok(!/INK_DIM_OPACITY\s*=/.test(src), 'INK_DIM_OPACITY is removed');
   assert.ok(/inkOpacity:\s*1,/.test(src), 'inkOpacity is a constant 1');
-  assert.equal(HINT_DRAW.opacity, 1, 'the whole hint group is shown at full strength (the wash carries its own TRACE_FILL_ALPHA)');
-  assert.equal(TRACE_FILL_ALPHA, 0.4, 'the same wash opacity as the trace layer (one drawing for every help layer)');
+  assert.equal(HINT_DRAW.opacity, 1, 'the whole hint group is shown at full strength');
+  assert.equal(glyphMod.TRACE_FILL_ALPHA, undefined, 'no whole-layer 0.4 any more: the wash is opaque');
+  assert.equal(glyphMod.drawGlyphRing, undefined, 'the ink3 outer ring is gone');
+  assert.equal(glyphMod.RING_OUTER_UNITS, undefined);
+  const wash = fs.readFileSync(path.join(ROOT, 'src/ui/canvas/glyph-wash.js'), 'utf8');
+  assert.ok(!/--ink3/.test(wash.replace(/\/\/.*$/gm, '')), 'glyph-wash.js paints with --danzhu only (no ink3)');
 });
 
 // ---- R2-A1（A2-12）：格框直接画在纸面上时（题面目标格、结果作品外框）也要 ≥ 3:1——不只对笺面

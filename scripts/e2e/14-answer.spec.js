@@ -293,30 +293,30 @@ export default async function answer(page, ctx) {
   const tr = await page.evaluate(() => {
     const top = document.querySelector('.sz-layer[data-top="true"]');
     const fill = top.querySelector('[data-testid="write-trace-fill"]');
-    const ring = top.querySelector('[data-testid="write-trace-ring"]');
     const read = cv => cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data;
     const f = read(fill);
-    const r = read(ring);
     let lo = [255, 255, 255];
     let hi = [0, 0, 0];
     let solid = 0;
-    let both = 0;
-    let ringSolid = 0;
+    let faint = 0;
     for (let i = 0; i < f.length; i += 4) {
       if (f[i + 3] === 255) {
         solid += 1;
         for (let k = 0; k < 3; k += 1) { lo[k] = Math.min(lo[k], f[i + k]); hi[k] = Math.max(hi[k], f[i + k]); }
-      }
-      if (r[i + 3] === 255) ringSolid += 1;
-      if (f[i + 3] === 255 && r[i + 3] === 255) both += 1;
+      } else if (f[i + 3] > 0) faint += 1;
     }
-    return { solid, spread: Math.max(hi[0] - lo[0], hi[1] - lo[1], hi[2] - lo[2]), both, ringSolid, fillOpacity: getComputedStyle(fill).opacity };
+    const css = getComputedStyle(document.documentElement).getPropertyValue('--danzhu').trim();
+    return {
+      solid, faint, spread: Math.max(hi[0] - lo[0], hi[1] - lo[1], hi[2] - lo[2]), fillOpacity: getComputedStyle(fill).opacity, ring: !!top.querySelector('[data-testid="write-trace-ring"]'),
+      current: top.querySelector('[data-testid="write-trace-layer"]').dataset.current, css,
+    };
   });
   assert.ok(tr.solid > 500, `trace fill drawn (${tr.solid} px)`);
-  assert.ok(tr.spread <= 2, `V2-02: one flat colour (spread ${tr.spread}) over the whole glyph — overlaps of strokes do not darken (all strokes composited in one pass, the 0.4 is applied to the layer)`);
-  assert.equal(tr.fillOpacity, '0.4', 'the whole fill layer carries the 0.4 opacity');
-  assert.ok(tr.ringSolid > 50, `outline ring drawn (${tr.ringSolid} px)`);
-  assert.equal(tr.both, 0, 'V2-02: the outline never runs through the glyph body (no per-stroke outlines crossing neighbouring strokes)');
+  assert.ok(tr.spread <= 2, `D53 ①: one flat danzhu colour (spread ${tr.spread}): the solid current stroke and the hairline hooks are the same hue, overlaps do not darken`);
+  assert.equal(tr.fillOpacity, '1', 'the trace layer is opaque (no whole-layer 0.4)');
+  assert.ok(tr.faint > 50, `the other strokes are hairline hooks (anti-aliased edge pixels: ${tr.faint})`);
+  assert.equal(tr.ring, false, 'no ink3 ring canvas any more');
+  assert.equal(tr.current, '0', 'the current stroke is stroke 0 before anything is traced');
   assert.equal(await page.getAttribute(topSel('write-trace-layer'), 'data-anim'), 'running', 'preview (先播一遍) is running (走查-W19)');
   f = await facts(page);
   assert.equal(f.records.length, 1, 'still one record');
@@ -326,6 +326,7 @@ export default async function answer(page, ctx) {
   ctx.step('pen-down during the preview skips it; the stroke still counts');
   await drawStroke(page, HORIZONTAL);
   assert.equal(await waitAttr(page, 'write-trace-layer', 'data-anim', ['skipped', 'completed']), 'skipped', 'preview skipped by writing');
+  assert.equal(await waitAttr(page, 'write-trace-layer', 'data-current', ['1']), '1', 'D53 ①: one stroke traced → the current (solid) stroke moves on to stroke 1; stroke 0 is covered by the own ink, not drawn any more');
   s = await track();
   assert.equal(s.strokes, 1, 'stroke on the trace grid');
   const traceDone1 = await page.evaluate(() => document.querySelector('.sz-layer[data-top="true"] [data-testid="write-trace-done"]').disabled);

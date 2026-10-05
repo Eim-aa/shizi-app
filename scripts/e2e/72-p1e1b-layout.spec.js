@@ -243,9 +243,9 @@ export default async function p1e1bLayout(page, ctx) {
   await setTextSize(page, 'L');
   await page.setViewportSize({ width: 393, height: 852 });
 
-  // ------------------------------------------------------------------ E 提示的画法（D46 ⑯ → W1：与描一遍同一种画法——整层淡填充 + 常驻墨三外廓，不随增强对比度变化）
+  // ------------------------------------------------------------------ E 提示的画法（D46 ⑯ → W1 → D53 ①：与描一遍同一种画法——淡朱不透明实填，没有灰外廓，不随增强对比度变化）
   for (const [contrast, scheme] of [['more', 'light'], ['more', 'dark'], ['no-preference', 'light'], ['no-preference', 'dark']]) {
-    step(`E: prefers-contrast ${contrast} (${scheme}): the hint is a danzhu wash (0.4 layer) with a constant ink3 ring`);
+    step(`E: prefers-contrast ${contrast} (${scheme}): the hint is an opaque danzhu wash, no ring`);
     await page.emulateMedia({ colorScheme: scheme, contrast });
     await openWriteAt(page, ctx, { width: 393, height: 852 }, { scheme });
     await page.emulateMedia({ colorScheme: scheme, contrast });
@@ -257,6 +257,7 @@ export default async function p1e1bLayout(page, ctx) {
       const fill = top.querySelector('[data-testid="write-hint-fill"]');
       const ring = top.querySelector('[data-testid="write-hint-ring"]');
       const first = cv => {
+        if (!cv) return null;
         const d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data;
         for (let i = 0; i < d.length; i += 4) if (d[i + 3] === 255) return `rgb(${d[i]}, ${d[i + 1]}, ${d[i + 2]})`;
         return null;
@@ -265,8 +266,8 @@ export default async function p1e1bLayout(page, ctx) {
     });
     assert.equal(f.mq, contrast === 'more', `the media query reports ${contrast}`);
     assert.equal(f.fill, tokenRgb(scheme, 'danzhu'), `the wash fill stays danzhu (tokens untouched)`);
-    assert.equal(f.ring, tokenRgb(scheme, 'ink3'), `the ring is ink3 whatever the contrast preference (a second channel besides hue)`);
-    assert.equal(f.opacity, '0.4', 'the fill layer is the light 0.4 wash');
+    assert.equal(f.ring, null, 'no ink3 ring canvas whatever the contrast preference (D53 ①)');
+    assert.equal(f.opacity, '1', 'the fill layer is opaque');
   }
   await page.emulateMedia({ colorScheme: 'light', contrast: 'no-preference' });
 

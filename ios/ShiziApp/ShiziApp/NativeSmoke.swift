@@ -15,6 +15,9 @@ import WebKit
 //                                restore / restorecheck：冷启动恢复（Q32），两次启动之间由 smoke-device.sh 用 SIGKILL 结束进程；
 //                                measure：T1 非触控测量（rAF 间隔分布、媒体查询、笔锋细节判定、字号注入、原生 deviceInfo）。
 //                                cleanup：移除 main 阶段真的排进系统的提醒（不碰 localStorage）。
+//                                probe：外部探针（R3-K1，scripts/verify-webkit-ax.mjs）——pageReady 后读 Documents/shizi-smoke-probe.js
+//                                （一个函数表达式，由门禁脚本放进数据容器），以 -shizi-probe-arg <字符串> 调用；探针自己经 nativeSmokeResult
+//                                回结果（写 shizi-native-smoke.json）。探针逻辑在仓库 scripts/ 下，改它不用重新构建 App。
 //   -shizi-reminder-target <k>   冷启动时把 k 当作「从提醒通知点进来」的目标（走 openReminderTarget，与 AppDelegate 同一路径）。
 //
 // 冒烟脚本只用公开测试钩子 window.__shiziTest、data-testid 与 bridge 公开接口，不依赖页面内部全局。
@@ -49,6 +52,11 @@ extension WebViewController {
     static var smokeResultURL: URL? {
         FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?
             .appendingPathComponent("shizi-native-smoke.json")
+    }
+
+    static var smokeProbeURL: URL? {
+        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?
+            .appendingPathComponent("shizi-smoke-probe.js")
     }
 
     static var smokeBackupURL: URL? {
@@ -257,10 +265,33 @@ extension WebViewController {
     func runNativeSmokeIfNeeded() {
         guard Self.nativeSmokeEnabled else { return }
         syncSmokeEvents()
+        if Self.nativeSmokeStage == "probe" {
+            runSmokeProbe()
+            return
+        }
         guard let stage = Self.jsonLiteral(Self.nativeSmokeStage) else { return }
         webView.evaluateJavaScript(Self.nativeSmokeScript + "(\(stage)); void 0;") { [weak self] _, error in
             if let error {
                 let message = Self.jsonLiteral(error.localizedDescription) ?? "\"script error\""
+                self?.writeNativeSmokeResult(#"{"error":\#(message)}"#)
+            }
+        }
+    }
+
+    /// probe 阶段：执行门禁脚本放进 Documents 的探针（每次 pageReady 都调用；探针自己用 window 标记保证一次页面加载只跑一遍）。
+    private func runSmokeProbe() {
+        guard
+            let url = Self.smokeProbeURL,
+            let source = try? String(contentsOf: url, encoding: .utf8),
+            !source.isEmpty
+        else {
+            writeNativeSmokeResult(#"{"error":"probe script missing"}"#)
+            return
+        }
+        let arg = Self.jsonLiteral(Self.argumentValue(after: "-shizi-probe-arg") ?? "") ?? "\"\""
+        webView.evaluateJavaScript("(\(source))(\(arg)); void 0;") { [weak self] _, error in
+            if let error {
+                let message = Self.jsonLiteral(error.localizedDescription) ?? "\"probe error\""
                 self?.writeNativeSmokeResult(#"{"error":\#(message)}"#)
             }
         }

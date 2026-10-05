@@ -200,7 +200,7 @@
       }
       // 格子到了下限仍放不下说明位时（P241），说明并入「⋯」菜单顶部：格下不画，「⋯」带墨点（菜单内容在 run 里打开后核对）。
       const slot = layer.querySelector('.sz-write__below');
-      m.noteInMenu = !!(slot && slot.getAttribute('data-in-menu') === 'true');
+      m.noteInMenu = !!(slot && slot.getAttribute('data-in-menu') === 'true' && slot.getAttribute('data-has-note') === 'true'); // 空说明位（描一遍）进不进菜单都无所谓
       if (m.noteInMenu) check('note moved into the 「⋯」 menu is flagged on the button', !note && q('write-more') && q('write-more').getAttribute('data-note') === 'true');
     }
     return m;

@@ -42,6 +42,8 @@ test('write page wires it: noteKey per card + phase, note measured from .sz-writ
   const index = readFileSync(new URL('../../src/ui/screens/write/index.js', import.meta.url), 'utf8');
   assert.match(index, /noteKey: cardKey \? `\$\{cardKey\}\|\$\{phase\}` : null/);
   assert.match(index, /data-in-menu=\$\{noteInMenu \? 'true' : null\}/);
+  assert.match(index, /const hasNote = !!\(row\.node \|\| suggest\.node \|\| noteBody\);/);
+  assert.match(index, /head=\$\{noteInMenu && hasNote && !answer\.active \? noteNodes : null\}/, 'an empty note slot (描一遍) never puts an empty head / dot on 「⋯」');
   const menu = readFileSync(new URL('../../src/ui/screens/write/ax-menu.js', import.meta.url), 'utf8');
   assert.match(menu, /data-testid="write-menu-note"/);
   assert.match(menu, /\.sz-write__more\[data-note="true"\]::after/);

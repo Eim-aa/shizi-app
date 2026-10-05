@@ -486,6 +486,8 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
     : skip.failed ? skip.note : paper ? html`<${PaperNote} />` : hint.note ? html`<${HintNote} note=${hint.note} />` : firstTip.node;
   // 格下说明位的内容（结果行 / 读屏的纸上写建议 / 说明）：平时在格下；noteInMenu 时只画在「⋯」菜单顶部（同一份 vnode 不同时挂两处）。
   const noteNodes = html`<span class="sz-write__lineslot" data-testid="write-line-slot">${row.node}</span>${suggest.node}${noteBody}`;
+  // 说明位此刻有没有内容（描一遍等阶段本来就空）：空的不进菜单、「⋯」不加墨点。
+  const hasNote = !!(row.node || suggest.node || noteBody);
   // AX 档底栏（P225）：一行「写好了」+「⋯」，提示 / 看答案 / 跳过 / 在纸上写 / 结束这组收进菜单（ax-menu.js）；保存失败时主按钮是「再试一次」，「先不保存」进菜单。
   let axFooter = null;
   if (ax > 0) {
@@ -500,9 +502,9 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
     axFooter = skip.failed
       ? html`<${AxFoot} primary=${{ testid: 'write-skip-fail-retry', label: t('R-W16.retry'), onClick: skip.run }}
           items=${[{ testid: 'write-skip-fail-cancel', label: t('R-W16.cancel'), onSelect: skip.cancelFail }]} testid="write-foot" stage="recall" failed=${true}
-          head=${noteInMenu ? noteNodes : null} />`
+          head=${noteInMenu && hasNote ? noteNodes : null} />`
       : html`<${AxFoot} primary=${{ testid: 'write-done', label: t('R-W29.btnDone'), disabled: !hasStrokes && !paper, onClick: onDone }}
-          items=${items} testid="write-foot" stage=${phase} head=${noteInMenu && !answer.active ? noteNodes : null} />`;
+          items=${items} testid="write-foot" stage=${phase} head=${noteInMenu && hasNote && !answer.active ? noteNodes : null} />`;
   }
 
   const trailing = ax > 0 ? html`<span class="sz-write__axhead">${tools}${progress}</span>` : progress;
@@ -528,7 +530,8 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
           label=${gridLabel(view.strokes.length)}
         />`}
       </div>
-      ${compare.active ? null : html`<div class="sz-write__below" style=${ax > 0 ? undefined : { width: `${gridSize}px` }} data-in-menu=${noteInMenu ? 'true' : null}>
+      ${compare.active ? null : html`<div class="sz-write__below" style=${ax > 0 ? undefined : { width: `${gridSize}px` }} data-in-menu=${noteInMenu ? 'true' : null}
+        data-has-note=${hasNote ? 'true' : 'false'}>
         ${noteInMenu ? null : html`<span class="sz-write__note" data-testid="write-note">${noteNodes}</span>`}
         ${ax > 0 ? null : tools}
       </div>`}

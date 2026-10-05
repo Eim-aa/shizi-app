@@ -103,9 +103,18 @@ test('P169: RecordsBlock——只有纸上记录时不画笔迹格（不画空�
   assert.ok(!ids['detail-cells'], 'no empty ink grid');
   assert.equal(ids['detail-paper-row'].length, 1);
   assert.equal(textOf(ids['detail-records-count'][0]), t('R-D03.count', { n: 1 }));
+  // 屏幕上写过 3 次：头图是第一次与最近一次，格子只画它们之外的那一次（C3-R：一个字只出现一次）
   const a = rec('correct', '2026-09-21');
-  const both = detailModel(stateWith([a, p]), '嚏', { today: TODAY, lookup });
+  const b = rec('wrong', '2026-09-25');
+  const c = rec('correct', '2026-09-28');
+  const both = detailModel(stateWith([a, b, c, p]), '嚏', { today: TODAY, lookup });
   const ids2 = byTestid(expand(RecordsBlock({ model: both, store: null })));
   assert.equal(ids2['detail-cells'].length, 1);
+  const cellNodes = [];
+  walk(expand(RecordsBlock({ model: both, store: null })), n => { if (typeof n.type === 'function' && n.type.name === 'Cell') cellNodes.push(n); });
+  assert.deepEqual(cellNodes.map(n => n.props.record.id), [b.id], 'only the record in between (the first and the latest are the hero)');
   assert.equal(ids2['detail-paper-row'].length, 1);
+  // 屏幕上只写过 1 次：头图已经是全部，不画历史格
+  const one = detailModel(stateWith([a, p]), '嚏', { today: TODAY, lookup });
+  assert.ok(!byTestid(expand(RecordsBlock({ model: one, store: null })))['detail-cells'], 'a single screen record is the hero; no strip');
 });

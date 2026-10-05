@@ -41,7 +41,6 @@ export default Object.freeze({
   'X-DETAIL.strokes': '{n} 画',
   'X-DETAIL.wordLabel': '词语',
   'X-DETAIL.glossLabel': '释义',
-  'X-DETAIL.firstRecord': '首次记录 {date}',
   'X-DETAIL.emptyNote': '判断过的每一次书写都会留在这里',
   'X-DETAIL.cellTitle': '{date} · {caption}',
   // 头图「第一次 | 最近一次」（H1 / V2-03、N2-10，03 P223）

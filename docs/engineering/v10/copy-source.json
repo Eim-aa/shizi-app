@@ -3565,12 +3565,6 @@
           "origin": "extra",
           "note": "字卡没有语境词（释义题 / 仅拼音题 / 换掉了词语）时的标签；原型 L400 dWordLabel「释义」"
         },
-        "firstRecord": {
-          "raw": null,
-          "text": "首次记录 {date}",
-          "origin": "extra",
-          "note": "记录块右侧；原型 L409 dFirst「首次记录 9 月 1 日」（C110–C113 的第二半，04 R-D03 只写了「记录了 {N} 次」）"
-        },
         "emptyNote": {
           "raw": null,
           "text": "判断过的每一次书写都会留在这里",

@@ -5,9 +5,9 @@
 // registerScreen('detail')，params {char}。进入：openDetail(char)（字库墙 / 清单行 / 查字卡片「查看记录」onDetail / 字帖格子）。
 // 打开本页不写任何东西、不碰会话：B 没写完时打开详情不弹 S02、不改 sessions.B（S02 只在点「练这个字」时由 startPicked 弹）。
 //
-// 版式（自上而下；H1 / V2-03、T2-13、N2-10，03 P223 起没有凹面卡）：页头（返回，标题空，原型如此）→ [词语反馈横幅，sticky] → 头图（「第一次 | 最近一次」两格本人墨，
-//   只写过一次只有一格；没写过才是参考字形）+ 一行拼音（黑体）/ N 画 + 「词语」词块（目标字位红框）或「释义」+ 释义句（参考字形在写过时降为右侧小格）→
-//   记录块（records.js）→ 字源行（R-D09）→ 列表行（actions.js）→ 底栏「练这个字」。
+// 版式（自上而下；H1 / V2-03、T2-13、N2-10，03 P223 起没有凹面卡；第三轮 V3-04 / T3-11 / N3-09 去重）：页头（返回，标题空，原型如此）→ [词语反馈横幅，sticky] → 头图（「第一次 | 最近一次」两格本人墨，
+//   只写过一次只有一格居中；没写过才是参考字形；写错的那一次日期后有朱点）+ 一行拼音（黑体）/ N 画（参考字形在写过时降为这一行末尾 44pt 的小格）+ 「词语」词块（36pt 小格，目标字位框）或「释义」+ 释义句 →
+//   记录块（records.js；只列头图那两次之外的记录，没有「首次记录」）→ 字源行（R-D09）→ 列表行（actions.js）→ 底栏「练这个字」。
 //   部首一行：运行时数据没有部首（O-data §6-10），不显示（报告登记）。
 // 「练这个字」（R-D08）：一律走 session/index.js startPicked([字], {source:{view:'detail', char}})——旧 B 没写完时它弹 S02；
 //   写完 / 结束这组后结果页「回到「{字}」」按页面栈返回本页（R-R06 / S05）。开组写入失败：底栏换成三段式。
@@ -60,15 +60,15 @@ injectStyles('detail', `
 .sz-dcard__top{display:flex;align-items:baseline;gap:${T.s2};flex-wrap:wrap}
 .sz-dcard__py{font-family:${T.hei};font-size:${T.fs17};line-height:${T.lh17s};font-weight:400;color:${T.ink2}} /* 拼音一律黑体（D33 / 设计说明 6） */
 .sz-dcard__meta{font-size:${T.fs15};line-height:${T.lh15};color:${T.ink3}}
-.sz-dcard__refsm{flex:none;width:64px}
+.sz-dcard__refsm{flex:none;width:44px} /* 参考字形降为 44pt 的小格，放在拼音那一行的末尾（T3-11：全 App 只有大 / 中 / 小三档格） */
 .sz-dcard__ref{width:calc((100% - 12px) / 2)}
 .sz-dcard__wordbox{display:flex;flex-direction:column;gap:8px;min-width:0;container-type:inline-size}
 .sz-dcard__label{font-size:${T.fs13};color:${T.ink2}}
 .sz-dcard__tiles{display:grid;grid-template-columns:repeat(var(--n, 2),minmax(0,1fr));box-sizing:border-box;
-  width:min(100%, calc(40px * var(--n, 2) + 2px));border:${T.frameW} solid ${T.frame};text-align:center;color:${T.ink1};${TEX}}
-/* 词语小字帖里的字是轮廓（P1-E2）：格 40 × 38，字方框 30（字面 ≈ 24），格更窄时随格收窄 */
-.sz-dcard__tile{position:relative;min-width:0;height:38px}
-.sz-dcard__tile>.sz-pg{position:absolute;left:50%;top:50%;width:min(30px, 90%);height:auto;aspect-ratio:1/1;transform:translate(-50%,-50%)}
+  width:min(100%, calc(36px * var(--n, 2) + 2px));border:${T.frameW} solid ${T.frame};text-align:center;color:${T.ink1};${TEX}}
+/* 词语小字帖里的字是轮廓（P1-E2）：格 36 × 36（小一档，T3-11），字方框 28，格更窄时随格收窄 */
+.sz-dcard__tile{position:relative;min-width:0;height:36px}
+.sz-dcard__tile>.sz-pg{position:absolute;left:50%;top:50%;width:min(28px, 90%);height:auto;aspect-ratio:1/1;transform:translate(-50%,-50%)}
 .sz-dcard__tile + .sz-dcard__tile{border-left:${T.frameW} solid ${T.frame}}
 .sz-dcard__tile[data-blank="true"]{box-shadow:inset 0 0 0 ${T.targetW} ${T.ink1}}
 .sz-dcard__gloss{font-family:${T.kai};font-size:${T.fs17};line-height:${T.lh17};color:${T.ink1}}

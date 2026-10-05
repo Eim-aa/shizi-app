@@ -44,13 +44,13 @@ export default async function run(page, ctx) {
       dateRect: c.querySelector('[data-testid="detail-cell-date"]').getBoundingClientRect(), capRect: c.querySelector('[data-testid="detail-cell-caption"]').getBoundingClientRect(),
     }));
     const body = top.querySelector('.sz-page__body');
-    return { cells, hero: [...top.querySelectorAll('[data-testid="detail-hero-caption"]')].map(e => e.textContent), first: top.querySelector('[data-testid="detail-records-first"]').textContent,
+    return { cells, hero: [...top.querySelectorAll('[data-testid="detail-hero-caption"]')].map(e => e.textContent), first: !!top.querySelector('[data-testid="detail-records-first"]'),
       next: (top.innerText.match(/大约[^\n]*/) || [''])[0], trim: getComputedStyle(body).textSpacingTrim, supported: CSS.supports('text-spacing-trim', 'trim-start') };
   });
-  assert.deepEqual(d.cells.map(c => [c.date, c.cap]), [['8月4日', '写对'], ['9月14日', '写对'], ['10月4日', '写错']], 'two lines per record cell: date / judgment');
+  assert.deepEqual(d.cells.map(c => [c.date, c.cap]), [['9月14日', '写对']], 'two lines per record cell: date / judgment (the strip lists only what the hero does not show, C3-R)');
   assert.ok(d.cells.every(c => c.capRect.top >= c.dateRect.bottom - 0.5), 'the judgment line sits under the date line');
   assert.deepEqual(d.hero, ['第一次 · 8月4日', '最近一次 · 10月4日'], 'hero captions use the same date style');
-  assert.equal(d.first, '首次记录 8月4日', 'first record date');
+  assert.equal(d.first, false, 'no 「首次记录」 line (C3-R / N3-09): the hero says 第一次 · 8月4日');
   assert.ok(!SPACED.test(d.next) && /大约 \d+月\d+日再练到/.test(d.next), `next review line (${d.next})`);
   if (d.supported) assert.equal(d.trim, 'trim-start', 'text-spacing-trim: trim-start on the body container');
   assert.ok(!SPACED.test(await text(page)), 'no spaced date on the detail page');

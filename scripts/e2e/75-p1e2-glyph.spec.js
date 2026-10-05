@@ -163,8 +163,8 @@ export default async function (page, ctx) {
     return {
       tiles: srcs('[data-testid="detail-word-tile"] .sz-pg'),
       tileText: [...top.querySelectorAll('[data-testid="detail-word-tile"]')].map(t => t.textContent),
-      cells: srcs('[data-testid="detail-cell-glyph"]'),
-      d: top.querySelector('[data-testid="detail-cell-glyph"] path').getAttribute('d'),
+      cells: srcs('[data-testid="detail-cell-glyph"], [data-testid="detail-hero-glyph"]'),
+      d: top.querySelector('[data-testid="detail-cell-glyph"] path, [data-testid="detail-hero-glyph"] path').getAttribute('d'),
       kaiTextNodes: top.querySelectorAll('.sz-pg__fb').length,
     };
   });

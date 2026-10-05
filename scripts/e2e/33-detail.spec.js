@@ -122,7 +122,8 @@ async function view(page) {
       tiles: qa('detail-word-tile').map(el => ({ ch: el.textContent, blank: el.dataset.blank === 'true' })),
       gloss: txt('detail-gloss'),
       count: txt('detail-records-count'),
-      first: txt('detail-records-first'),
+      first: q('detail-records-first') ? 'present' : null,
+      hero: qa('detail-hero-cell').map(el => ({ record: el.dataset.record, kind: el.dataset.kind, ink: el.dataset.ink, aria: el.getAttribute('aria-label'), cap: el.querySelector('[data-testid="detail-hero-caption"]').textContent, dot: !!el.querySelector('[data-testid="detail-hero-dot"]') })),
       empty: txt('detail-records-empty'),
       cells: qa('detail-cell').map(el => ({
         record: el.dataset.record, judgment: el.dataset.judgment, ink: el.dataset.ink,
@@ -226,7 +227,7 @@ export default async function detailSpec(page, ctx) {
   assert.equal(v.image && v.image.tag, 'DIV', 'greyed entry is not a button');
 
   // ------------------------------------------------------------------ 2. 有记录
-  step('with records: count / first date / cells in order (no 「下一次」 cell), ink vs no ink, zoom; next review from sched.due');
+  step('with records: count; hero = first | latest, the strip lists only the records in between (no repeats, no 「首次记录」, no 「下一次」 cell); ink vs no ink, zoom; next review from sched.due');
   await back(page);
   await waitTop(page, 'home');
   await seed(page, { steps: [
@@ -239,16 +240,20 @@ export default async function detailSpec(page, ctx) {
   let st = await state(page);
   const heRecs = st.flat.filter(r => r.char === '和').sort((a, b) => Number(a.id.slice(1)) - Number(b.id.slice(1)));
   assert.equal(v.count, '记录了 3 次', 'R-D03 「记录了 3 次」');
-  assert.equal(v.first, `首次记录 ${await dateText(page, heRecs[0].localDay)}`, 'first record date');
-  assert.deepEqual(v.cells.map(c => c.record), heRecs.map(r => r.id), 'one cell per judged record, oldest first, nothing else');
-  assert.deepEqual(v.cells.map(c => c.judgment), ['correct', 'wrong', 'correct'], 'cell judgments');
-  assert.deepEqual(v.cells.map(c => c.ink), ['true', 'false', 'false'], 'first cell has stored ink, others none');
-  assert.deepEqual(v.cells.map(c => c.noink), [false, false, false], 'H1 / V16: no 「没有笔迹」 label inside any cell');
-  assert.deepEqual(v.cells.map(c => c.glyph), [false, true, true], 'no-ink cells draw the under glyph');
-  assert.deepEqual(v.cells.map(c => /没有笔迹/.test(c.aria)), [false, true, true], 'the accessible name of a no-ink cell says it (R-D07)');
+  assert.equal(v.first, null, 'C3-R / N3-09: no 「首次记录」 line any more (the hero already says 第一次 · date)');
+  assert.deepEqual(v.hero.map(h => [h.kind, h.record]), [['first', heRecs[0].id], ['latest', heRecs[2].id]], 'the hero shows the first and the latest record');
+  assert.deepEqual(v.hero.map(h => h.ink), ['true', 'false'], 'first has stored ink, the latest none');
+  assert.deepEqual(v.hero.map(h => /没有笔迹/.test(h.aria)), [false, true], 'the accessible name of a no-ink hero cell says it (R-D07)');
+  assert.deepEqual(v.hero.map(h => h.dot), [false, false], 'no red dot: both are 写对');
+  assert.deepEqual(v.cells.map(c => c.record), [heRecs[1].id], 'the strip lists only the records the hero does not show (no repeats)');
+  assert.deepEqual(v.cells.map(c => c.judgment), ['wrong'], 'cell judgments');
+  assert.deepEqual(v.cells.map(c => c.ink), ['false'], 'no ink in between');
+  assert.deepEqual(v.cells.map(c => c.noink), [false], 'H1 / V16: no 「没有笔迹」 label inside any cell');
+  assert.deepEqual(v.cells.map(c => c.glyph), [true], 'no-ink cells draw the under glyph');
+  assert.deepEqual(v.cells.map(c => /没有笔迹/.test(c.aria)), [true], 'the accessible name of a no-ink cell says it (R-D07)');
   const [m0, d0] = heRecs[1].localDay.split('-').slice(1).map(Number);
-  assert.equal(v.cells[1].caption, '写错', 'caption: the judgment on its own line');
-  assert.equal(v.cells[1].date, `${m0}月${d0}日`, 'date line 「M月D日」 (H1 / P224: no 「M·D」)');
+  assert.equal(v.cells[0].caption, '写错', 'caption: the judgment on its own line');
+  assert.equal(v.cells[0].date, `${m0}月${d0}日`, 'date line 「M月D日」 (H1 / P224: no 「M·D」)');
   assert.ok(v.cells.every(c => c.tag === 'BUTTON' && c.aria), 'cells are buttons with accessible names');
   assert.equal(v.next, `下次练习 · 大约 ${await dateText(page, st.sched['base:和'].due)}再练到`, 'R-D02 next review = sched.due');
   assert.equal(v.list, null, 'latest correct, not due → no list row');
@@ -257,15 +262,15 @@ export default async function detailSpec(page, ctx) {
   // 关闭态（A5：不承诺「再写一次就能做图片」）由 test/ui/ink-copy.test.mjs 覆盖
   assert.ok(v.image.text.includes(await copy(page, 'R-D04.noInkNote')), 'R-D04 no-ink note (perRecordInk on → original slot)');
   assert.ok(v.image.text.includes('再写一次就能做图片'), 'D27: writing again stores the ink, so the promise holds');
-  await page.click(`${topSel('detail-cell')}[data-record="${heRecs[0].id}"]`);
+  await page.click(`${topSel('detail-hero-cell')}[data-record="${heRecs[0].id}"]`);
   await page.waitForSelector(tid('detail-zoom'));
   await waitNavIdle(page);
   assert.ok(await page.$(tid('detail-zoom-ink')), 'zoom shows the stored ink');
-  assert.equal((await page.textContent(`${tid('detail-zoom')} .sz-sheet__title`)).trim(), v.cells[0].aria, 'zoom title = cell name');
+  assert.ok(v.hero[0].aria.endsWith((await page.textContent(`${tid('detail-zoom')} .sz-sheet__title`)).trim()), 'zoom title = the cell name (after the 第一次 label)');
   await page.click(tid('detail-zoom-close'));
   await page.waitForFunction(() => !document.querySelector('[data-testid="detail-zoom"]'));
   await waitNavIdle(page);
-  await page.click(`${topSel('detail-cell')}[data-record="${heRecs[2].id}"]`);
+  await page.click(`${topSel('detail-hero-cell')}[data-record="${heRecs[2].id}"]`);
   await page.waitForSelector(tid('detail-zoom-noink'));
   assert.equal((await page.textContent(tid('detail-zoom-noink'))).trim(), await copy(page, 'R-D07.noInkLarge'), 'zoom: 「这一次没有留下笔迹」');
   await waitNavIdle(page);

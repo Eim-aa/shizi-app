@@ -3,7 +3,7 @@
 // 一屏朱色（含印）不超过两处。scripts/verify_tokens.mjs 的白名单只放行本文件：其余组件写 --zhu / --seal / --on-seal 一律报错，
 // 需要这两个符号的地方在自己的样式里只管尺寸与位置，颜色由这里按类名统一给。
 //   写错朱点：字库图例 / 墙格 / 筛选条 / 卡片标题（.sz-lib__dot、.sz-lib__mark）、详情列表行（.sz-drow__dot）、
-//             结果页（自己选字）与记录页格注「写错」前面的点（[data-wrong="true"]::before）。同一个符号：直径 6px、正圆。
+//             结果页（自己选字）与记录页格注「写错」前面的点（[data-wrong="true"]::before）、详情头图日期后的点（.sz-dhero__dot，C3-R / N3-09）。同一个符号：直径 6px、正圆。
 //             E9c（D49）：结果页「没放进图里」的行里朱点移到字的右上角（墨迹外框右上外 2pt），用作品朱点 .sz-work__dot--wrong（下方 WORK_MARK_CSS），不再在状态字前。
 //   印章：白文「拾」、直角（--r-work）；首页首次打开（16）、关于页（40）各有自己的类；作品（结果页、月字帖、我的里的缩略图）里只有一种印——
 //         <Seal/> 24pt 正放（R2-R1 / D51 ③；V2-05：一种样式、一个尺寸、不倾斜）。
@@ -14,7 +14,7 @@ import { ShiSealMark } from '../brand/shi.js';
 import { injectStyles, T } from './styles.js';
 
 export const MARK_CSS = `
-.sz-lib__dot,.sz-lib__mark,.sz-drow__dot{flex:none;width:6px;height:6px;border-radius:50%;background:${T.zhu}}
+.sz-lib__dot,.sz-lib__mark,.sz-drow__dot,.sz-dhero__dot{flex:none;width:6px;height:6px;border-radius:50%;background:${T.zhu}}
 .sz-lib__dot{display:inline-block}
 .sz-dcell__cap[data-wrong="true"]::before{content:"";display:inline-block;flex:none;
   width:6px;height:6px;margin-right:4px;border-radius:50%;background:${T.zhu};vertical-align:middle}

@@ -88,8 +88,11 @@ async function openDetail(page) {
   // 格子笔迹画在 canvas 上（视口附近才画）：等首末两格的 canvas 有像素
   return page.evaluate(() => {
     const top = document.querySelector('.sz-layer[data-top="true"]');
-    return [...top.querySelectorAll('[data-testid="detail-cell"]')].map(cell => {
-      const canvas = cell.querySelector('[data-testid="detail-cell-ink"] canvas') || cell.querySelector('canvas');
+    // 头图（第一次 | 最近一次）+ 它们之外的历史格（C3-R：一个字只画一次）；按记录先后合在一起看
+    const nodes = [...top.querySelectorAll('[data-testid="detail-hero-cell"], [data-testid="detail-cell"]')];
+    nodes.sort((a, b) => Number(a.dataset.record.slice(1)) - Number(b.dataset.record.slice(1)));
+    return nodes.map(cell => {
+      const canvas = cell.querySelector('[data-testid="detail-cell-ink"] canvas, [data-testid="detail-hero-ink"] canvas') || cell.querySelector('canvas');
       let px = 0;
       if (canvas && canvas.width) {
         const data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
@@ -98,9 +101,9 @@ async function openDetail(page) {
       return {
         record: cell.dataset.record,
         ink: cell.dataset.ink,
-        first: cell.dataset.first || null,
-        latest: cell.dataset.latest || null,
-        noink: !cell.querySelector('[data-testid="detail-cell-noink"]') && !!cell.querySelector('[data-testid="detail-cell-glyph"]') && cell.getAttribute('aria-label').includes('没有笔迹') && !cell.textContent.includes('没有笔迹'),
+        first: cell.dataset.first || (cell.dataset.kind === 'first' ? 'true' : null),
+        latest: cell.dataset.latest || (cell.dataset.kind === 'latest' ? 'true' : null),
+        noink: !cell.querySelector('[data-testid="detail-cell-noink"]') && !!cell.querySelector('[data-testid="detail-cell-glyph"], [data-testid="detail-hero-glyph"]') && cell.getAttribute('aria-label').includes('没有笔迹') && !cell.textContent.includes('没有笔迹'),
         px,
       };
     });

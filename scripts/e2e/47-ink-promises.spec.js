@@ -119,7 +119,7 @@ async function walk(page, { assert, step }, on) {
   await page.evaluate(async () => (await import('/src/ui/screens/detail/index.js')).openDetail('永'));
   await page.waitForSelector(topSel('detail-screen'));
   await waitNavIdle(page);
-  const cells = await page.evaluate(() => [...document.querySelectorAll('.sz-layer[data-top="true"] [data-testid="detail-cell"]')].map(c => c.dataset.ink));
+  const cells = await page.evaluate(() => [...document.querySelectorAll('.sz-layer[data-top="true"] [data-testid="detail-hero-cell"], .sz-layer[data-top="true"] [data-testid="detail-cell"]')].map(c => c.dataset.ink));
   assert.deepEqual(cells, [on ? 'true' : 'false'], 'detail cell ink state');
   assert.ok(!banned.test(await pageText(page)), 'detail text: no unkept promise');
   await goBack(page);

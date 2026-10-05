@@ -41,6 +41,10 @@ async function facts(page) {
       gridBg: grid ? getComputedStyle(grid).backgroundImage : null,
       gridBgColor: grid ? getComputedStyle(grid).backgroundColor : null,
       cells: [...root.querySelectorAll('[data-testid="detail-cell"]')].length,
+      heroDots: hero.map(el => !!el.querySelector('[data-testid="detail-hero-dot"]')),
+      cellRecords: [...root.querySelectorAll('[data-testid="detail-cell"]')].map(c => c.dataset.record),
+      grid: !!grid,
+      first: !!q('detail-records-first'),
       vw: window.innerWidth,
     };
   });
@@ -73,12 +77,15 @@ export default async function run(page0, ctx) {
     assert.ok(Math.abs(f.hero[0].rect.w - f.hero[1].rect.w) < 1, `${v.tag}: same size`);
     assert.ok(f.hero[0].rect.l >= 19.5 && f.hero[1].rect.r <= f.vw - 19.5, `${v.tag}: inside the 20pt margins`);
     assert.ok(f.hero[0].cap.startsWith('第一次') && f.hero[1].cap.startsWith('最近一次'), `${v.tag}: captions (${f.hero.map(h => h.cap).join(' | ')})`);
-    assert.ok(f.ref && f.refW <= 70, `${v.tag}: the reference glyph drops to a small cell beside the pinyin once the user has written it (${f.refW})`);
+    assert.ok(f.ref && f.refW <= 46, `${v.tag}: the reference glyph drops to a small cell beside the pinyin once the user has written it (${f.refW})`);
     assert.ok(f.card && (f.card.bg === 'rgba(0, 0, 0, 0)' || f.card.bg === 'transparent') && f.card.radius === '0px', `${v.tag}: no recessed card around the head (${JSON.stringify(f.card)})`);
     assert.ok(f.pinyin && !/Serif|Songti|STSong|Song|宋/.test(f.pinyin.font) && /apple-system|PingFang|sans/i.test(f.pinyin.font), `${v.tag}: pinyin in the 黑体 stack (${f.pinyin && f.pinyin.font})`);
     assert.ok(!f.text.includes('没有笔迹'), `${v.tag}: no 「没有笔迹」 placeholder`);
     assert.equal(f.noinkNodes, 0, `${v.tag}: no no-ink labels in the record cells`);
-    assert.equal(f.cells, 3, `${v.tag}: three record cells`);
+    assert.equal(f.cells, 1, `${v.tag}: the strip holds only the record the hero does not show (3 records − first − latest)`);
+    assert.ok(!f.cellRecords.some(id => f.hero.map(h => h.record).includes(id)), `${v.tag}: no record is drawn twice`);
+    assert.deepEqual(f.heroDots, [false, true], `${v.tag}: the latest was 写错 → a red dot after its date; the first was 写对 → none`);
+    assert.equal(f.first, false, `${v.tag}: no 「首次记录」 line`);
     assert.ok(f.gridBg === 'none' && /rgba\(0, 0, 0, 0\)|transparent/.test(f.gridBgColor), `${v.tag}: the record grid draws only its cells — no paper behind the empty rest of the row (${f.gridBg} ${f.gridBgColor})`);
     await back(page);
 
@@ -86,6 +93,9 @@ export default async function run(page0, ctx) {
     await open(page, '酱');
     f = await facts(page);
     assert.deepEqual(f.hero.map(h => h.kind), ['first'], `${v.tag}: a single cell`);
+    assert.equal(f.cells, 0, `${v.tag}: one record → the hero already shows it all; no history strip`);
+    assert.equal(f.grid, false, `${v.tag}: no empty strip container`);
+    assert.ok(Math.abs((f.hero[0].rect.l + f.hero[0].rect.r) / 2 - v.width / 2) <= 1, `${v.tag}: the single cell is centred on the content column`);
     assert.ok(f.hero[0].rect.w <= (v.width - 40 - 12) / 2 + 1, `${v.tag}: same cell size as in the two-cell case`);
     await back(page);
 

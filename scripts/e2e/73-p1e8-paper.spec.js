@@ -302,14 +302,16 @@ export default async function paperSpec(page, ctx) {
     probe.remove();
     return {
       count: top.querySelector('[data-testid="detail-records-count"]').textContent,
-      cells: [...top.querySelectorAll('[data-testid="detail-cell"]')].map(c => ({ id: c.dataset.record, ink: c.dataset.ink, latest: c.dataset.latest || null })),
+      cells: [...top.querySelectorAll('[data-testid="detail-hero-cell"], [data-testid="detail-cell"]')].map(c => ({ id: c.dataset.record, ink: c.dataset.ink, latest: c.dataset.kind === 'latest' || c.dataset.latest ? 'true' : null, first: c.dataset.kind === 'first' })),
+      strip: [...top.querySelectorAll('[data-testid="detail-cell"]')].length,
       rows: rows.map(r => ({ id: r.dataset.record, visible: [...r.querySelectorAll('[aria-hidden="true"]')].map(s => s.textContent).join('　'), label: r.querySelector('[data-testid="detail-paper-label"]').textContent })),
       tagColor: tag ? getComputedStyle(tag).color : null,
       ink3,
     };
   });
   assert.equal(det.count, '记录了 2 次');
-  assert.deepEqual(det.cells, [{ id: firstId, ink: 'true', latest: 'true' }], 'the inked screen record is 你的笔迹 (latest inked); the paper one takes no cell');
+  assert.deepEqual(det.cells, [{ id: firstId, ink: 'true', latest: null, first: true }], 'the inked screen record is the hero (a single screen record = 第一次); the paper one takes no cell');
+  assert.equal(det.strip, 0, 'nothing else in the strip');
   assert.equal(det.rows.length, 1);
   assert.equal(det.rows[0].id, paperRec.id);
   assert.ok(/^\d+月\d+日　写对· 纸上$/.test(det.rows[0].visible), `row text: ${det.rows[0].visible}`);

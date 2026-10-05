@@ -244,7 +244,7 @@ export default async function run(page, ctx) {
   assert.deepEqual(v.removed, { queryNote: false, scope: false, count: false, facts: 0, legend: false, arrows: false },
     'D49: no note under the query box, no 练习范围 / 更换字库 row (moved to settings), no big number, no facts, no legend, no → anywhere');
   assert.equal(v.noRecordNote, COPY.noRecordNote, 'R-L05 no-record note');
-  assert.equal(v.empty, `拾 ${COPY.emptyTitle} ${COPY.emptyText}`, "empty state: hollow 拾 + title + R-L05 text");
+  assert.equal(v.empty, `${COPY.emptyTitle} ${COPY.emptyText}`, 'empty state: an empty cell (no glyph, C3-H / D53 ⑦) + title + R-L05 text');
   assert.equal(v.caption, null, 'no caption without a wall');
   assert.equal(v.wall, null, 'no wall');
   assert.equal(v.wrong, null, 'no cards');

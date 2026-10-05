@@ -67,7 +67,7 @@ export default async function run(page, ctx) {
     await page.waitForSelector(topSel('about-seal'));
     await waitNavIdle(page);
     f = await sealFacts(page, '[data-testid="about-seal"]');
-    checkFace(assert, f, 40, `${category} about seal`);
+    checkFace(assert, f, 16, `${category} about seal (C3-H: the seal follows the motto, seal16; the logo is the app icon)`);
     await goHomeTab(page);
   }
   await setTextSize(page, 'L');

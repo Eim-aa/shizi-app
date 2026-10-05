@@ -130,6 +130,5 @@ export default Object.freeze({
   'X-LIBHOME.legendDarkNote': '颜色越暗，越久没写。点一个字，看它第一次和最近一次的笔迹。',
   'X-LIBHOME.legendDarkNoteGlyph': '颜色越暗，越久没写。点一个字，看它的记录。',
   'X-LIBHOME.emptyTitle': '你写下的字会留在这里',
-  'X-LIBHOME.emptyGlyph': '拾',
   'X-LIBHOME.cellAria': '{char}，{status}',
 });

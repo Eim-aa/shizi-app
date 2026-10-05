@@ -77,6 +77,9 @@ export default Object.freeze({
   'X-FIRST.excluded': '写错了',
   'X-FIRST.addIn': '放进图里',
   'X-FIRST.addAria': '把「{char}」放进图里',
+  // 首练结果页复现句前的一句（C3-H / N3-01、D53 ④，03 P245）：首页那个品牌字就是首练第三个「拾」——写成了说「你写下的第一个「拾」。」（与首页格下 X-HOME.shiFirstLine 同一句），没写成说一次它就是首页那个字
+  'X-FIRST.shiWritten': '你写下的第一个「拾」。',
+  'X-FIRST.shiHome': '「拾」就是首页那个字。',
   // X-INVITE（阶段 1 P1-E5，D35 / D46 ③：首练结果页内嵌的提醒邀请；点「好」才请求系统权限；过渡文案）
   'X-INVITE.title': '明天这个时候，给你一个词？',
   'X-INVITE.titleEvening': '明天晚上八点半，给你一个词？',

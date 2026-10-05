@@ -17,7 +17,7 @@
 //   （data-char / data-record / data-judgment / data-ink）、home-progress（这一组的格子）、home-cell（data-state = done | passed | next | empty、
 //   data-index、data-char 只有 done 才有；next / empty 只是数据标记，画出来都是空笺面）。
 
-import { html, useLayoutEffect, useMemo, useState } from '../../../../vendor/ui.js';
+import { html, useEffect, useLayoutEffect, useMemo, useState } from '../../../../vendor/ui.js';
 import { Button } from '../../components/Button.js';
 import { PracticeGlyph } from '../../components/PracticeGlyph.js';
 import { injectStyles, T, TEX } from '../../components/styles.js';
@@ -25,6 +25,8 @@ import { t } from '../../../config/copy/index.js';
 import { ShiMark } from '../../brand/shi.js';
 import { InkMini } from '../write/compare.js';
 import { getTodayRecordsAction, recordInkPoints } from './ink-row.js';
+import { HANDOFF_FADE_MS, HANDOFF_GRAY_MS, HANDOFF_STEPS } from './handoff.js';
+import { HandoffInk, inkTimeSpan } from './handoff-ink.js';
 
 /** 字帖格里衬底字的字面占格比例（tokens.json typography.glyph.tieCellFace）。 */
 export const TIE_CELL_FACE = 0.76;
@@ -77,15 +79,22 @@ injectStyles('home-copybook', `
 .sz-hshi{position:relative;display:grid;place-items:center;box-sizing:border-box;width:var(--cell);height:var(--cell);${TEX};
   box-shadow:inset 0 0 0 ${T.frameW} ${T.frame};container-type:inline-size}
 .sz-hshi__glyph{position:absolute;left:0;top:0;width:100%;height:100%;color:${T.hand}} /* 品牌「拾」是矢量图：墨框长边占格 62%，光学居中（ui/brand/shi.js） */
-/* 「拾」的交接（H1 / D51 ④）：品牌字层淡出、本人墨层淡入（同时 300ms）；减少动态效果：只剩本人的字 */
+/* 「拾」的交接（C3-H / D53 ④）：品牌字先退成浅灰（一层不透明、只换色），本人墨按笔顺逐笔写出，最后灰字退场；任何一帧不出现两层同时半透明。阶段由 data-phase 给：hold / gray / write / fade / done */
 .sz-hshi__mine{position:absolute;left:0;top:0;width:100%;height:100%;display:block}
-.sz-hshi--handoff .sz-hshi__brand{animation:szHandoffOut 300ms ease-out both}
-.sz-hshi--handoff .sz-hshi__mine{animation:szHandoffIn 300ms ease-out both}
+.sz-hshi__ink{position:absolute;inset:12%;display:block}
+.sz-hshi__ink canvas{display:block}
+.sz-hshi--handoff .sz-hshi__brand{transition:color ${HANDOFF_GRAY_MS}ms linear,opacity ${HANDOFF_FADE_MS}ms linear}
+.sz-hshi--handoff[data-phase="gray"] .sz-hshi__brand,.sz-hshi--handoff[data-phase="write"] .sz-hshi__brand{color:${T.under}}
+.sz-hshi--handoff[data-phase="fade"] .sz-hshi__brand,.sz-hshi--handoff[data-phase="done"] .sz-hshi__brand{color:${T.under};opacity:0}
+.sz-hshi--handoff[data-phase="hold"] .sz-hshi__mine,.sz-hshi--handoff[data-phase="gray"] .sz-hshi__mine{visibility:hidden}
+.sz-hshi--handoff[data-phase="write"] .sz-hshi__mine--fade{animation:szHandoffIn 300ms linear both}
 @keyframes szHandoffIn{from{opacity:0}to{opacity:1}}
-@keyframes szHandoffOut{from{opacity:1}to{opacity:0}}
+.sz-hshi--handoff[data-phase="done"] .sz-hshi__brand{visibility:hidden}
+.sz-hshi__line{margin:12px 0 0;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3};opacity:0;transition:opacity 200ms ease-out} /* 格下只这一次的一句：占位始终保留，免得出现时挪动版面 */
+.sz-hshi__line[data-on="true"]{opacity:1}
 @media (prefers-reduced-motion: reduce){
   .sz-hshi--handoff .sz-hshi__brand{display:none}
-  .sz-hshi--handoff .sz-hshi__mine{animation:none}
+  .sz-hshi__line{transition:none}
 }
 .sz-htie{position:relative;display:inline-flex;flex-wrap:wrap;width:calc(var(--cell) * var(--cols));box-sizing:border-box;${TEX};
   box-shadow:inset 0 0 0 ${T.frameW} ${T.frame}}
@@ -107,16 +116,73 @@ export function BrandShi({ size }) {
   </div>`;
 }
 
+function prefersReduced() {
+  try {
+    return !!(typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  } catch (error) {
+    return false;
+  }
+}
+
+/** 页面转场（.sz-app[data-nav-anim]）结束后再开始计时：品牌「拾」要在静止的首页上完整停 600ms。取不到 .sz-app 或 1.5s 还没结束也开始。返回取消函数。 */
+function whenNavIdle(start) {
+  const app = typeof document !== 'undefined' ? document.querySelector('.sz-app') : null;
+  if (!app || app.dataset.navAnim === 'idle') {
+    start();
+    return () => {};
+  }
+  let done = false;
+  const go = () => {
+    if (done) return;
+    done = true;
+    observer.disconnect();
+    clearTimeout(guard);
+    start();
+  };
+  const observer = new MutationObserver(() => { if (app.dataset.navAnim === 'idle') go(); });
+  observer.observe(app, { attributes: true, attributeFilter: ['data-nav-anim'] });
+  const guard = setTimeout(go, 1500);
+  return () => {
+    done = true;
+    observer.disconnect();
+    clearTimeout(guard);
+  };
+}
+
 /**
- * 「拾」的交接格（H1 / D51 ④、N2-02；03 P221）：品牌「拾」所在的格里换成本人写的「拾」——品牌字淡出、本人墨淡入，两层同时 ≤ 300ms；
- * 「减少动态效果」下直接是本人的字（品牌层不显示、不动画）。读屏名称 X-HOME.shiHandoffLabel（整个 App 唯一一处「拾回」）。
+ * 「拾」的交接格（H1 / D51 ④、N2-02；03 P221；C3-H 重做：N3-01、I3-06、T3-07；D53 ④，03 P245）：首页出现后，品牌「拾」先在静止的首页上停 600ms；
+ * 再 500ms「退灰 → 写墨」——品牌字退成浅灰（只换色）→ 本人的「拾」按笔顺逐笔写出（有笔画时间数据就按时间回放，没有就整字淡入）→ 灰字退场；
+ * 任何一帧都不出现两层同时半透明（时间表见 handoff.js HANDOFF_STEPS）。格下只这一次出现「你写下的第一个「拾」。」（墨写完时淡入，保留到离开首页）。
+ * 「减少动态效果」：直接是本人的字（品牌层不显示、不动画），那句话立即出现。读屏名称 X-HOME.shiHandoffLabel（整个 App 唯一一处「拾回」）。
+ * data-phase = hold / gray / write / fade / done。
  */
 export function ShiHandoff({ size, record, getInk }) {
+  const reduced = prefersReduced();
+  const [phase, setPhase] = useState(reduced ? 'done' : 'hold');
+  const points = useMemo(() => recordInkPoints(record, getInk), [record, getInk]);
+  const has = !!(points && points.length);
+  useEffect(() => {
+    if (reduced) return undefined;
+    const timers = [];
+    const cancel = whenNavIdle(() => {
+      for (const [name, at] of HANDOFF_STEPS) timers.push(setTimeout(() => setPhase(name), at));
+    });
+    return () => {
+      cancel();
+      timers.forEach(clearTimeout);
+    };
+  }, []);
+  const lineOn = phase === 'fade' || phase === 'done';
   return html`<div class="sz-hshi sz-hshi--handoff" style=${{ '--cell': `${size}px` }} role="img" aria-label=${t('X-HOME.shiHandoffLabel')}
-    data-testid="home-shi-handoff" data-char=${record.char} data-record=${record.id}>
+    data-testid="home-shi-handoff" data-phase=${phase} data-char=${record.char} data-record=${record.id}>
     <${ShiMark} class="sz-hshi__glyph sz-hshi__brand" />
-    <span class="sz-hshi__mine" data-testid="home-shi-handoff-mine"><${CellInk} record=${record} getInk=${getInk} /></span>
-  </div>`;
+    <span class=${has && inkTimeSpan(points) ? 'sz-hshi__mine' : 'sz-hshi__mine sz-hshi__mine--fade'} data-testid="home-shi-handoff-mine">
+      ${has
+        ? html`<${HandoffInk} points=${points} phase=${phase} />`
+        : html`<${PracticeGlyph} class="sz-hcell__glyph" hidden=${true} char=${record.char} face=${TIE_CELL_FACE} />`}
+    </span>
+  </div>
+  <p class="sz-hshi__line" data-testid="home-shi-first-line" data-on=${lineOn ? 'true' : 'false'}>${t('X-HOME.shiFirstLine')}</p>`;
 }
 
 function CellInk({ record, getInk }) {

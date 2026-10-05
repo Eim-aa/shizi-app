@@ -6,12 +6,28 @@
 //   commitShiHandoffDone(store)                          记下「交接过了」（settings.shiHandoffDone = true，经 store.commit；已记过不写）。
 //
 // 页面怎么用（home/index.js）：首页在顶层时第一次发现 shiHandoffRecord 不为 null，就把这条记录存进组件状态、立即 commit 标志位（刷新 / 重进不再交接），
-// 并一直画交接格直到离开首页（切 tab、进别的页）；下一次回来按日常状态（今天的字 / 最近写的字）。淡入 ≤ 300ms，「减少动态效果」直接换成本人的字。
+// 并一直画交接格直到离开首页（切 tab、进别的页）；下一次回来按日常状态（今天的字 / 最近写的字）。
+// 交接格的编排（C3-H / D53 ④，时间表见 HANDOFF_STEPS）：停 600ms → 500ms「退灰 → 写墨」，格下一句「你写下的第一个「拾」。」；「减少动态效果」直接换成本人的字并显示那句。
 // 「拾」字取自文案表（X-HOME.shiLabel，品牌字的读屏名称），代码里不写汉字字面量。
 
 import { t } from '../../../config/copy/index.js';
 import { isJudged, isWorkOrAfterSeen, sortById } from '../../../core/records.js';
 import { pickInkRecord } from '../../../core/ink-pick.js';
+
+// 交接的时间表（C3-H / N3-01、I3-06；D53 ④）：首页出现、转场结束后，品牌「拾」先完整停 HOLD；
+// 然后 500ms（= GRAY + WRITE + FADE）「退灰 → 写墨」：品牌字退成浅灰（GRAY）→ 本人墨按笔顺逐笔写出（WRITE）→ 灰字退场（FADE）；
+// 任何一帧都不出现两层同时半透明。减少动态效果：直接是本人墨，不走这张时间表。
+export const HANDOFF_HOLD_MS = 600;
+export const HANDOFF_GRAY_MS = 120;
+export const HANDOFF_WRITE_MS = 300;
+export const HANDOFF_FADE_MS = 80;
+/** 阶段起点（自转场结束起，ms）：hold 0 → gray 600 → write 720 → fade 1020 → done 1100。 */
+export const HANDOFF_STEPS = Object.freeze([
+  ['gray', HANDOFF_HOLD_MS],
+  ['write', HANDOFF_HOLD_MS + HANDOFF_GRAY_MS],
+  ['fade', HANDOFF_HOLD_MS + HANDOFF_GRAY_MS + HANDOFF_WRITE_MS],
+  ['done', HANDOFF_HOLD_MS + HANDOFF_GRAY_MS + HANDOFF_WRITE_MS + HANDOFF_FADE_MS],
+]);
 
 /** 「拾」的题库键（base:拾）。 */
 export function shiCardKey() {

@@ -74,6 +74,8 @@ export default Object.freeze({
   'X-HOME.shiLabel': '拾',
   // 「拾」的交接（H1 / D51 ④、N2-02，03 P221）：首练写下「拾」后第一次回首页，品牌「拾」的位置换成本人写的「拾」；读屏名称，整个 App 只在这里用一次「拾回」
   'X-HOME.shiHandoffLabel': '拾回的第一个字：你自己写的「拾」',
+  // 格下只出现一次的一句（C3-H / N3-01、D53 ④，03 P245）：交接写完后淡入，保留到离开首页；结果页复现句前的同一句见 X-FIRST.shiWritten
+  'X-HOME.shiFirstLine': '你写下的第一个「拾」。',
   'X-HOME.capitalBody': '今天写两组大写数字，借条、红包上用得着。',
   'X-HOME.capitalDefer': '这次先写平常的字',
   'X-HOME.backNote': '你写过的 {n} 个字都还在。',

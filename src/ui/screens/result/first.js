@@ -53,13 +53,25 @@ injectStyles('result-first', `
 
 /**
  * 复现句（纯函数；单测直接调用）：「「求」明天再见，「据」「类」3 天后再见。」（D48，天数同 FSRS 到期日）。
- * @param {{cells:Array, sched:object, today:string}} o  cells = resultModel().cells
- * @returns {{preview:string}}  没有可预告的字（都是跳过 / 看过答案）时 preview 为 ''
+ * 首练结果页（variant === 'first'）在它前面多一句关于「拾」的话（C3-H / N3-01、D53 ④，03 P245）——首页那个品牌字就是首练的第三个字：
+ *   写成了（作品里有「拾」）→「你写下的第一个「拾」。」（与首页格下同一句）；
+ *   没写成（有「拾」这一格，但没进作品：写错 / 看过答案 / 跳过）→「「拾」就是首页那个字。」，说一次。
+ * @param {{cells:Array, sched:object, today:string, work?:object|null, variant?:string}} o  cells = resultModel().cells，work = resultModel().work
+ * @returns {{preview:string}}  没有可预告的字（都是跳过 / 看过答案）且没有「拾」那句时 preview 为 ''
  */
-export function firstExtras({ cells, sched, today }) {
+export function firstExtras({ cells, sched, today, work = null, variant = '' }) {
   const judged = (cells || []).filter(c => c.kind === 'judged');
-  const preview = daysLaterLine({ chars: judged.map(c => ({ char: c.char, cardKey: c.cardKey })), sched: sched || {}, today }, t);
-  return { preview };
+  const later = daysLaterLine({ chars: judged.map(c => ({ char: c.char, cardKey: c.cardKey })), sched: sched || {}, today }, t);
+  let shi = null;
+  if (variant === 'first') {
+    const mark = t('X-HOME.shiLabel');
+    const inWork = !!work && (work.cells || []).some(c => c.char === mark);
+    const inGroup = inWork || (cells || []).some(c => c.char === mark);
+    if (inWork) shi = 'written';
+    else if (inGroup) shi = 'missed';
+  }
+  const lead = shi === 'written' ? t('X-FIRST.shiWritten') : shi === 'missed' ? t('X-FIRST.shiHome') : '';
+  return { preview: lead + later };
 }
 
 /**

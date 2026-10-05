@@ -259,11 +259,12 @@ export default async function run(page, ctx) {
     byDays.set(n, [...(byDays.get(n) || []), c]);
   }
   const groups = [...byDays.entries()].sort((x, y) => x[0] - y[0]);
-  const expectedPreview = groups.length === 1
+  // C3-H / D53 ④：首练三个字都写对（含「拾」）→ 复现句前多一句与首页格下同一句的「你写下的第一个「拾」。」
+  const expectedPreview = '你写下的第一个「拾」。' + (groups.length === 1
     ? `${daysText(groups[0][0])}。`
-    : groups.map(([n, cs]) => `${cs.map(c => `「${c}」`).join('')}${daysText(n)}`).join('，') + '。';
+    : groups.map(([n, cs]) => `${cs.map(c => `「${c}」`).join('')}${daysText(n)}`).join('，') + '。');
   assert.equal(r.preview, expectedPreview, `preview from the real FSRS due days (${JSON.stringify(Object.fromEntries(['尴', '赢', '拾'].map(c => [c, st1.sched['base:' + c].due])))})`);
-  assert.ok(r.preview.startsWith('「赢」明天再见'), 'the wrong one comes back first: ' + r.preview);
+  assert.ok(r.preview.startsWith('你写下的第一个「拾」。「赢」明天再见'), 'the 拾 sentence, then the wrong one comes back first: ' + r.preview);
   assert.ok(!/再来|找你/.test(r.preview), 'no 「再来找你」 any more');
   assert.ok(st1.sched['base:赢'].due > todayKey, '赢 due is after today');
   assert.deepEqual(r.exrows, [{ char: '赢', text: '写错了', btn: '放进图里', ink: true }], 'wrong char with ink: the status word + 放进图里 (the char is the glyph on the left, not in the sentence; D49)');

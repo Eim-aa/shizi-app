@@ -27,6 +27,27 @@ test('firstExtras (E9c, D48): the 复现句 is 「N 天后再见」 per char fro
   assert.deepEqual(firstExtras({ cells: noneJudged, today: TODAY, sched: {} }), { preview: '' });
 });
 
+test('firstExtras (C3-H / N3-01, D53 ④): the first-practice 复现句 starts with the 「拾」 sentence — written → 「你写下的第一个「拾」。」, missed → 「「拾」就是首页那个字。」 once; other variants never', () => {
+  const cells = [cell('尴', 'judged', 'correct', 'r1'), cell('赢', 'judged', 'correct', 'r2'), cell('拾', 'judged', 'correct', 'r3')];
+  const sch = Object.fromEntries(['尴', '赢', '拾'].map(c => [`base:${c}`, sched(addDays(TODAY, 2))]));
+  const work = { cells: cells.map(c => ({ char: c.char })), empty: false };
+  assert.equal(firstExtras({ cells, today: TODAY, sched: sch, work, variant: 'first' }).preview, '你写下的第一个「拾」。2 天后再见。', 'written: the same sentence as under the home cell, then the 复现句');
+  // 拾写错、没进作品：说一次它就是首页那个字
+  const wrongShi = [cell('尴', 'judged', 'correct', 'r1'), cell('赢', 'judged', 'correct', 'r2'), cell('拾', 'judged', 'wrong', 'r3')];
+  const workNoShi = { cells: [{ char: '尴' }, { char: '赢' }], empty: false };
+  assert.equal(firstExtras({ cells: wrongShi, today: TODAY, sched: sch, work: workNoShi, variant: 'first' }).preview, '「拾」就是首页那个字。2 天后再见。', 'missed: says once that it is the home-page char');
+  // 全写错（work.empty）也一样
+  const allWrong = [cell('尴', 'judged', 'wrong', 'r1'), cell('赢', 'judged', 'wrong', 'r2'), cell('拾', 'judged', 'wrong', 'r3')];
+  assert.ok(firstExtras({ cells: allWrong, today: TODAY, sched: sch, work: { cells: [], empty: true }, variant: 'first' }).preview.startsWith('「拾」就是首页那个字。'), 'all wrong: still the home-page sentence');
+  // 看过答案没有调度也说这句（没有 再见 句）
+  const seen = [cell('尴', 'answer-seen', null, 'r1'), cell('拾', 'skipped', null, 'r3')];
+  assert.equal(firstExtras({ cells: seen, today: TODAY, sched: {}, work: { cells: [], empty: true }, variant: 'first' }).preview, '「拾」就是首页那个字。');
+  // 不是首练、或这一组里没有「拾」：不加
+  assert.equal(firstExtras({ cells, today: TODAY, sched: sch, work, variant: 'daily' }).preview, '2 天后再见。', 'daily results never carry it');
+  const noShi = [cell('尴', 'judged', 'correct', 'r1'), cell('赢', 'judged', 'correct', 'r2')];
+  assert.equal(firstExtras({ cells: noShi, today: TODAY, sched: sch, work: { cells: [{ char: '尴' }, { char: '赢' }], empty: false }, variant: 'first' }).preview, '2 天后再见。', 'no 拾 in the group: nothing to say');
+});
+
 test('daysLaterOf: the result page cells → [{char, days, text}] for each judged char (the per-char data behind the 复现句, D48)', () => {
   const cells = [cell('尴', 'judged', 'correct', 'r1'), cell('赢', 'judged', 'wrong', 'r2'), cell('拾', 'skipped', null, 'r3'), cell('酱', 'answer-seen', null, 'r4')];
   const out = daysLaterOf({

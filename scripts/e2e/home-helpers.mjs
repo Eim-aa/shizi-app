@@ -36,6 +36,7 @@ const SEED_FN = `async (spec) => {
     [[{ x: 60, y: 120, t: 0 }, { x: 170, y: 118, t: 60 }, { x: 290, y: 122, t: 120 }], [{ x: 172, y: 50, t: 300 }, { x: 170, y: 170, t: 360 }, { x: 174, y: 300, t: 420 }]],
     [[{ x: 70, y: 70, t: 0 }, { x: 170, y: 170, t: 60 }, { x: 290, y: 290, t: 120 }], [{ x: 290, y: 70, t: 250 }, { x: 180, y: 180, t: 310 }, { x: 70, y: 290, t: 370 }]],
   ];
+  if (spec.noTime) strokes.forEach(set => set.forEach(st => st.forEach(pt => { pt.t = 0; }))); // 没有笔画时间数据的墨（C3-H：交接整字淡入的退路）
   (spec.entries || []).forEach((e, i) => {
     const at = Date.parse(e.at);
     draft.sessions.A = createSession({ id: nextId('s'), kind: e.kind || 'daily', source: { view: 'home' }, queue: ['base:' + e.char], at });

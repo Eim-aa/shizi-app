@@ -723,6 +723,8 @@ function ResultScreen({ params, entry }) {
     cells: model.cells,
     sched: state && state.sched,
     today: localDay(envNow()),
+    work: model.work,
+    variant: model.variant,
   });
   const inkForRecord = record => (record ? inkOf(store, record) : null);
   const openEntry = entry => openCell(model.cells[entry.index]);

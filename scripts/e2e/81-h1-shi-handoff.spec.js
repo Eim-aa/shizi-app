@@ -1,6 +1,7 @@
 // H1-4（D51 ④、N2-02；03 P221）：「拾」的交接。
 //   首练（今天是用户第一次练习的那天）第三字写下「拾」后，第一次回到首页：品牌「拾」所在的格里换成本人写的「拾」（home-shi-handoff）——
-//   品牌字层淡出、本人墨层淡入，同时 ≤ 300ms；「减少动态效果」下只剩本人的字（品牌层不显示、没有动画）；
+//   C3-H / D53 ④ 起的编排（逐帧时序见 94-c3h-shi-handoff）：先停 600ms，再「退灰 → 写墨 → 灰退场」500ms，格下一句「你写下的第一个「拾」。」；
+//   「减少动态效果」下只剩本人的字（品牌层不显示、没有动画）且那句话立即出现；
 //   只发生一次（settings.shiHandoffDone，一回到首页就记）：交接格一直画到离开首页，下一次回来是日常状态；刷新也不再有；
 //   不会提前发生（首页不在顶层时不交接、不记标志）；没写「拾」、老用户（不是第一次练习那天）不交接。读屏名称里用一次「拾回」。
 import { bootTestHost, topSel, waitNavIdle } from './helpers.mjs';
@@ -22,6 +23,8 @@ async function handoffFacts(page) {
     const mine = h.querySelector('[data-testid="home-shi-handoff-mine"]');
     const bcs = getComputedStyle(brand);
     const mcs = getComputedStyle(mine);
+    const line = root.querySelector('[data-testid="home-shi-first-line"]');
+    const canvas = h.querySelector('canvas');
     const r = h.getBoundingClientRect();
     const ink = mine.querySelector('[data-testid="home-ink-mine"]');
     return {
@@ -33,8 +36,11 @@ async function handoffFacts(page) {
       char: h.dataset.char,
       size: [Math.round(r.width), Math.round(r.height)],
       brandDisplay: bcs.display,
+      phase: h.dataset.phase,
       brandAnim: [bcs.animationName, bcs.animationDuration],
       mineAnim: [mcs.animationName, mcs.animationDuration],
+      line: line ? { text: line.textContent, on: line.dataset.on, opacity: getComputedStyle(line).opacity } : null,
+      progress: canvas ? canvas.dataset.progress : null,
       mineHasInk: !!ink,
       todayItems: root.querySelectorAll('[data-testid="home-ink-item"]').length,
       brandFrames: [...document.querySelectorAll('[data-testid="home-brand-shi"]')].length,
@@ -60,17 +66,18 @@ export default async function run(page0, ctx) {
   assert.deepEqual([f.hero, f.handoffAttr, f.char], ['today', 'true', '拾'], 'it is the user\'s own 拾');
   assert.equal(f.mineHasInk, true, 'drawn with the user\'s ink');
   assert.equal(f.done, true, 'settings.shiHandoffDone is recorded as soon as it appears');
-  assert.deepEqual(f.size, [162, 162], 'same cell as the brand 拾 (0.46 × content width)');
+  assert.deepEqual(f.size, [160, 160], 'same cell as the brand 拾 (one copybook cell: min(content width, 160))');
   assert.equal(f.todayItems, 0, 'the three-char row waits until the next visit');
   assert.equal(f.label, '拾回的第一个字：你自己写的「拾」', 'the screen-reader name uses 拾回 once');
-  assert.deepEqual(f.brandAnim, ['szHandoffOut', '0.3s'], 'the brand 拾 fades out in 300ms');
-  assert.deepEqual(f.mineAnim, ['szHandoffIn', '0.3s'], 'the user\'s 拾 fades in in 300ms');
-  assert.ok(parseFloat(f.mineAnim[1]) <= 0.3 + 1e-9 && parseFloat(f.brandAnim[1]) <= 0.3 + 1e-9, 'fade ≤ 300ms');
+  assert.equal(f.phase, 'hold', 'it starts by holding the brand 拾 (the timeline is pinned in 94-c3h-shi-handoff)');
+  assert.deepEqual([f.brandAnim[0], f.mineAnim[0]], ['none', 'none'], 'no keyframe cross-fade between the two glyphs any more (C3-H)');
+  assert.equal(f.line && f.line.text, '你写下的第一个「拾」。', 'the one-time line under the cell');
 
   step('交接格一直画到离开首页；回来是日常状态（今天写的字），不再交接');
-  await page.waitForTimeout(700);
+  await page.waitForTimeout(1700);
   f = await handoffFacts(page);
   assert.equal(f.present, true, 'still there while the user stays on the home page');
+  assert.deepEqual([f.phase, f.line.on, f.progress], ['done', 'true', '1'], 'after the timeline: the user\'s ink is complete and the line is shown');
   await tab(page, 'library');
   await waitNavIdle(page);
   await tab(page, 'home');
@@ -97,6 +104,7 @@ export default async function run(page0, ctx) {
   assert.equal(f.present, true, 'reduced motion: the handoff still happens');
   assert.equal(f.brandDisplay, 'none', 'the brand layer is not shown');
   assert.equal(f.mineAnim[0], 'none', 'no animation: the user\'s 拾 is just there');
+  assert.deepEqual([f.phase, f.line.on, f.progress], ['done', 'true', '1'], 'reduced motion: the final state straight away, with the line');
 
   step('没写「拾」（跳过）/ 不是第一次练习那天：不交接，标志位不动');
   await page.close();

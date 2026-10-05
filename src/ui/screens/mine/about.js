@@ -113,7 +113,7 @@ export function openAbout() {
 
 injectStyles('about', `
 .sz-about__head{display:flex;flex-direction:column;align-items:center;gap:${T.s4};padding:${T.s6} 0 ${T.s2}}
-.sz-about__logo{width:64px;height:64px;display:block;border-radius:${T.rCtl}} /* 顶部 logo 是 App 图标图像（icon-192.png，assets/branding 同源导出），不是印（C3-H / T3-09、D53 ⑦：品牌只有墨「拾」与印「拾」两种用途，印只在作品与这里的落款处） */
+.sz-about__logo{width:64px;height:64px;display:block;border-radius:${T.rCtl}} /* 顶部 logo 是 App 图标图像（icon-512.png，assets/branding 同源导出），不是印（C3-H / T3-09、D53 ⑦：品牌只有墨「拾」与印「拾」两种用途，印只在作品与这里的落款处） */
 .sz-about__seal{width:16px;height:16px;box-sizing:border-box;border-radius:${T.rWork};display:inline-block;vertical-align:middle;margin-left:8px} /* 印是图形：固定 seal16，跟在题跋末句后（同首次打开的题跋），白文「拾」是铺满的 svg（SealGlyph），不随 --k（Q2-10） */
 .sz-about__name{margin:0;font-family:${T.song};font-size:${T.fs22};font-weight:500;color:${T.ink1}}
 .sz-about__build{margin:0;min-height:44px;padding:0 8px;font-size:${T.fs15};color:${T.ink2};font-variant-numeric:tabular-nums;overflow-wrap:anywhere;text-align:center}
@@ -161,7 +161,7 @@ export function AboutView({ onOpen = to => nav.push(to), version = VERSION, buil
   const rows = aboutRows();
   return html`<${Page} title=${t('X-ABOUT.title')} testid="about-screen">
     <div class="sz-about__head" data-testid="about-head">
-      <img class="sz-about__logo" src="icon-192.png" alt="" width="64" height="64" aria-hidden="true" data-testid="about-logo" />
+      <img class="sz-about__logo" src="icon-512.png" alt="" width="64" height="64" aria-hidden="true" data-testid="about-logo" />
       <p class="sz-about__name" data-testid="about-name">${t('X-ABOUT.appName')}</p>
       <${BuildLine} version=${version} build=${build} />
     </div>

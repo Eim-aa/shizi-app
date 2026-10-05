@@ -39,8 +39,8 @@ export default async function run(page, ctx) {
       };
     });
     assert.equal(a.logoTag, 'IMG', 'the logo is an image');
-    assert.equal(a.logoSrc, 'icon-192.png', 'it is the exported app icon (assets/branding → icon-192.png)');
-    assert.deepEqual(a.logoNatural, [192, 192], 'the PNG loads at its native 192 × 192');
+    assert.equal(a.logoSrc, 'icon-512.png', 'it is the exported app icon (assets/branding → icon-512.png)');
+    assert.deepEqual(a.logoNatural, [512, 512], 'the PNG loads at its native 512 × 512');
     assert.deepEqual(a.logoBox.map(Math.round), [64, 64], 'drawn at 64pt');
     assert.equal(a.logoHidden, 'true', 'decorative');
     assert.equal(a.logoInHead, true, 'the first thing in the head');

@@ -8,6 +8,9 @@
 //   4. 当前笔层 canvas：只画正在写的一笔，每帧（rAF）清空重画；它也接收指针事件
 //
 // 坐标：内部恒为 345×345 单位（GRID），指针位置按 getBoundingClientRect 缩到 345 空间；t = event.timeStamp；
+//   正方形防线（R3-K1，ADA A3-01，P240）：格子边长由写字页写死成 size×size px（不靠 aspect-ratio / flex 拉伸——WKWebView 在 AX 档曾把它拉成 286×334）；
+//   万一容器仍然宽高不等，以较短边为单位、居中映射（squareMapping），位图与画布也按较短边做成正方形、object-fit:contain 居中显示，
+//   存进数据的笔画不因容器变形而失真；每个书写面只 console.warn 一次。
 //   p 只在 pointerType==='pen' 时取（WKWebView 手指 pressure 恒 0，M0-7 实测）。
 // 输入：pointer events + setPointerCapture + touch-action:none；getCoalescedEvents 仅在存在时使用
 //   （iOS 15–18.1 WebKit 没有，退回原始 pointermove）；非 primary 指针（第二根手指 / 手掌）忽略。
@@ -34,10 +37,11 @@ export { GRID };
 export const STD_SIZE = 345;
 
 injectStyles('inkgrid', `
-.sz-inkgrid{position:relative;flex:none;box-sizing:border-box;aspect-ratio:1/1;max-width:100%;margin:0 auto;
+.sz-inkgrid{position:relative;flex:none;align-self:center;box-sizing:border-box;margin:0 auto;
   border:${T.frameW} solid ${T.frame};border-radius:${T.rWork};${TEX};overflow:hidden;
   touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
 .sz-inkgrid__layer{position:absolute;inset:0;width:100%;height:100%;display:block}
+canvas.sz-inkgrid__layer{object-fit:contain}
 .sz-inkgrid__guides{pointer-events:none}
 .sz-inkgrid__glyph{pointer-events:none}
 .sz-inkgrid__ink{pointer-events:none}
@@ -55,6 +59,19 @@ function matchMediaSafe(win, query) {
   } catch (error) {
     return null;
   }
+}
+
+/**
+ * 书写格的正方形映射（纯函数）：以较短边为单位 side，正方形在较长边上居中（ox / oy 为偏移，CSS px）。
+ * square：宽高相差不到 1px（亚像素取整不算变形）。
+ * @param {{width:number, height:number}} rect
+ * @returns {{side:number, ox:number, oy:number, square:boolean}}
+ */
+export function squareMapping(rect) {
+  const w = rect && rect.width > 0 ? rect.width : 1;
+  const h = rect && rect.height > 0 ? rect.height : 1;
+  const side = Math.min(w, h);
+  return { side, ox: (w - side) / 2, oy: (h - side) / 2, square: Math.abs(w - h) < 1 };
 }
 
 function inkColorOf(el) {
@@ -90,6 +107,16 @@ export function createInkSurface({ box, inkCanvas, liveCanvas, win = window, get
   let raf = 0;
   let color = inkColorOf(box);
   let scale = 1;
+  let reported = false; // 宽高不等只上报一次
+  const reportShape = rect => {
+    if (reported) return;
+    reported = true;
+    try {
+      console.warn('[shizi] ink grid is not square; mapping strokes by the shorter side', Math.round(rect.width), Math.round(rect.height));
+    } catch (error) {
+      // 没有 console
+    }
+  };
   const reduceMq = matchMediaSafe(win, '(prefers-reduced-motion: reduce)');
   const darkMq = matchMediaSafe(win, '(prefers-color-scheme: dark)');
   let detail = computeDetail();
@@ -117,7 +144,9 @@ export function createInkSurface({ box, inkCanvas, liveCanvas, win = window, get
 
   function resize() {
     const rect = box.getBoundingClientRect();
-    const css = Math.max(1, Math.round(rect.width || STD_SIZE));
+    const map = squareMapping({ width: rect.width || STD_SIZE, height: rect.height || rect.width || STD_SIZE });
+    if (!map.square) reportShape(rect);
+    const css = Math.max(1, Math.round(map.side));
     const dpr = Math.max(1, Math.min(4, win.devicePixelRatio || 1));
     const px = Math.max(1, Math.round(css * dpr));
     scale = px / GRID;
@@ -184,11 +213,11 @@ export function createInkSurface({ box, inkCanvas, liveCanvas, win = window, get
   }
 
   function sample(e, rect) {
-    const w = rect.width || 1;
-    const h = rect.height || 1;
+    const map = squareMapping(rect); // 以较短边为单位、居中（A3-01）：容器变形时笔迹也不变形
+    if (!map.square) reportShape(rect);
     const q = {
-      x: ((e.clientX - rect.left) * GRID) / w,
-      y: ((e.clientY - rect.top) * GRID) / h,
+      x: ((e.clientX - rect.left - map.ox) * GRID) / map.side,
+      y: ((e.clientY - rect.top - map.oy) * GRID) / map.side,
       t: eventTime(e),
     };
     if (e.pointerType === 'pen') {
@@ -462,7 +491,7 @@ export function InkGrid(props) {
   return html`<div
     class="sz-inkgrid"
     ref=${boxRef}
-    style=${{ width: `${size}px` }}
+    style=${{ width: `${size}px`, height: `${size}px` }}
     role="img"
     aria-label=${label}
     data-testid=${testid}

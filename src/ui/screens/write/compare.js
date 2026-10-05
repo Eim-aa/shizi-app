@@ -340,10 +340,18 @@ export function paintMini(ctx, built, { color = '#221D19', widthScale = 1, base 
 // ---------------------------------------------------------------- 组件
 
 /**
+ * 判断页两格 / 纸上那一字的参考格写死边长（R3-K1，ADA A3-01，P240）：不依赖 aspect-ratio 与 flex 拉伸（WKWebView 在 AX 档会把它们拉成长方形）。
+ * side ≤ 0（修改判断弹层、结果页弹层的小卡）时不写，由所在网格给宽、aspect-ratio 给高。
+ */
+export function squareStyle(side) {
+  return side > 0 ? { width: `${side}px`, height: `${side}px` } : undefined;
+}
+
+/**
  * 本人笔迹小卡（对照卡、修改判断弹层共用）。points：管线点列（绝对宽）；缺省由 strokes（原始笔画）现算。
  * 没有笔画时渲染 placeholder（调用方给文案；缺省 R-W17「这次没写」）。
  */
-export function InkMini({ strokes = null, points = null, testid, emptyText, emptyTestid, label }) {
+export function InkMini({ strokes = null, points = null, testid, emptyText, emptyTestid, label, side = 0 }) {
   const cardRef = useRef(null);
   const canvasRef = useRef(null);
   const size = useBoxSize(cardRef, 0);
@@ -359,9 +367,9 @@ export function InkMini({ strokes = null, points = null, testid, emptyText, empt
     canvas.dataset.painted = 'true'; // M6-3：61-perf 首屏计时的就绪标记
   }, [size, theme, has, points, strokes, near]);
   if (!has) {
-    return html`<div class="sz-compare__empty" data-testid=${emptyTestid || 'write-compare-noink'}>${emptyText || t('R-W17.noInk')}</div>`;
+    return html`<div class="sz-compare__empty" data-testid=${emptyTestid || 'write-compare-noink'} style=${squareStyle(side)}>${emptyText || t('R-W17.noInk')}</div>`;
   }
-  return html`<div class="sz-compare__card" ref=${cardRef} data-testid=${testid} role="img" aria-label=${label}>
+  return html`<div class="sz-compare__card" ref=${cardRef} data-testid=${testid} role="img" aria-label=${label} style=${squareStyle(side)}>
     <canvas ref=${canvasRef} aria-hidden="true"></canvas>
   </div>`;
 }
@@ -370,7 +378,7 @@ export function InkMini({ strokes = null, points = null, testid, emptyText, empt
  * 参考字形小卡：有笔顺数据时 Path2D（--ref），取不到时（10.13）楷体整字 DOM 文本；加载中留空卡。
  * @param {{char:string, strokeData:{status:string, data:any}}} props
  */
-export function RefMini({ char, strokeData, testid, label }) {
+export function RefMini({ char, strokeData, testid, label, side = 0 }) {
   const cardRef = useRef(null);
   const canvasRef = useRef(null);
   const size = useBoxSize(cardRef, 0);
@@ -383,7 +391,8 @@ export function RefMini({ char, strokeData, testid, label }) {
     const ctx = prepareCanvas(canvas, size);
     if (data) drawGlyph(ctx, data, { color: glyphColor('--ref') });
   }, [size, theme, data]);
-  return html`<div class="sz-compare__card" ref=${cardRef} data-testid=${testid} data-state=${status} role="img" aria-label=${label}>
+  return html`<div class="sz-compare__card" ref=${cardRef} data-testid=${testid} data-state=${status} role="img" aria-label=${label}
+    style=${squareStyle(side)}>
     <canvas ref=${canvasRef} aria-hidden="true"></canvas>
     ${status === 'missing' && size > 0 ? html`<${GlyphFallback} char=${char} variant="reference" size=${size} />` : null}
   </div>`;
@@ -407,10 +416,10 @@ export function CompareStage({ char, py = '', strokes, strokeData, size = 234, l
   return html`<div class="sz-compare" data-testid="write-compare" data-size=${size} data-layout=${side ? 'side' : 'stack'}
     style=${{ width: `${side ? 2 * size + COMPARE_GAP : size}px` }}>
     <div class="sz-compare__row sz-compare__row--mine">
-      <${InkMini} strokes=${strokes} testid="write-compare-mine" label=${mineCardLabel(strokes)} />
+      <${InkMini} strokes=${strokes} testid="write-compare-mine" label=${mineCardLabel(strokes)} side=${size} />
     </div>
     <div class="sz-compare__row sz-compare__row--ref">
-      <${RefMini} char=${char} strokeData=${strokeData} testid="write-compare-ref" label=${refCardLabel({ char, py, strokeData })} />
+      <${RefMini} char=${char} strokeData=${strokeData} testid="write-compare-ref" label=${refCardLabel({ char, py, strokeData })} side=${size} />
     </div>
   </div>`;
 }
@@ -423,7 +432,7 @@ export function PaperCompareStage({ char, py = '', strokeData, size = 345 }) {
   return html`<div class="sz-compare sz-compare--paper" data-testid="write-compare" data-paper="true" data-size=${size}
     style=${{ width: `${size}px` }}>
     <span class="sr-only" data-testid="write-compare-paper">${t('X-JUDGE.paperMineLabel')}</span>
-    <${RefMini} char=${char} strokeData=${strokeData} testid="write-compare-ref" label=${refCardLabel({ char, py, strokeData })} />
+    <${RefMini} char=${char} strokeData=${strokeData} testid="write-compare-ref" label=${refCardLabel({ char, py, strokeData })} side=${size} />
     <p class="sz-compare__paperaside" data-testid="write-compare-aside-ref" aria-hidden="true">${t('X-JUDGE.paperRefAside')}</p>
   </div>`;
 }

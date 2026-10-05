@@ -22,6 +22,8 @@
 // 门限本身由写字页给出（换字后 PEN_ARM_MS = 250ms）。换字 / 换阶段把持住的笔取消（cancelCurrent('reset')）。
 // 渲染：同一条管线（core/ink-math buildStroke）实时出点、抬笔用 final=true 结果固化；笔锋基元见 brush.js；
 //   减少动态效果或 policy.brushDetail 关闭时不画飞白 / 洇墨，只保留管线本身的首尾锥形（01 §6.3）；不再按核数 / 内存关（P0-A3）。
+// 原生书写面 spike（P1-S2，native-ink.js）：只有 DEBUG 原生壳以 -shizi-native-ink 启动、且是写字页那一个书写格（nativeInk）时，
+//   落笔与墨交给叠在上面的原生层，这里只收抬笔后的原始点（与网页 onUp 同一路径）；其余情况本文件行为不变。
 
 import { html, useEffect, useLayoutEffect, useRef } from '../../../vendor/ui.js';
 import { buildStroke, GRID, INK } from '../../core/ink-math.js';
@@ -30,6 +32,7 @@ import { brushDetailEnabled, createLayerCache, paintBrushStroke } from './brush.
 import { eventTime } from '../components/Button.js';
 import { injectStyles, T, TEX } from '../components/styles.js';
 import { NATIVE_PROGRESS_EVENT } from '../router.js';
+import { attachNativeInk, nativeInkEnabled } from './native-ink.js';
 
 export { GRID };
 
@@ -92,7 +95,7 @@ function inkColorOf(el) {
  * @param {Window} [o.win]
  * @param {() => object} o.getProps  读最新 props：{drawable, acceptFrom, onStrokeStart, onStrokeEnd, onStrokeCancel, base}
  */
-export function createInkSurface({ box, inkCanvas, liveCanvas, win = window, getProps }) {
+export function createInkSurface({ box, inkCanvas, liveCanvas, win = window, getProps, nativeInk = false }) {
   const inkCtx = inkCanvas.getContext('2d');
   const liveCtx = liveCanvas.getContext('2d');
   const layers = createLayerCache((w, h) => {
@@ -104,6 +107,7 @@ export function createInkSurface({ box, inkCanvas, liveCanvas, win = window, get
   const built = new WeakMap(); // 原始笔 → final 点列（缓存，整层重画时不重跑管线）
   let painted = []; // 固化层上当前画着的原始笔（按引用）
   let current = null; // {pointerId, raw:[…], pen, held, timer}
+  let native = null; // 原生书写面 spike 接管时的接口（native-ink.js attachNativeInk）
   let raf = 0;
   let color = inkColorOf(box);
   let scale = 1;
@@ -181,6 +185,7 @@ export function createInkSurface({ box, inkCanvas, liveCanvas, win = window, get
   /** 让固化层与 strokes（原始笔数组，按引用比较）一致：尾部追加只画新笔，其余情况整层重画。 */
   function sync(strokes) {
     const next = Array.isArray(strokes) ? strokes.filter(s => Array.isArray(s) && s.length) : [];
+    if (native) native.strokes(next);
     const prefix = painted.length <= next.length && painted.every((s, i) => s === next[i]);
     if (prefix) {
       const extra = next.slice(painted.length);
@@ -229,6 +234,7 @@ export function createInkSurface({ box, inkCanvas, liveCanvas, win = window, get
 
   /** 丢弃未完成的当前笔（不固化、不计笔数）。reason：'cancel' | 'lostcapture' | 'native-back' | 'reset'。 */
   function cancelCurrent(reason = 'cancel') {
+    if (native) return native.cancel(reason);
     if (!current) return false;
     const pointerId = current.pointerId;
     if (current.timer) win.clearTimeout(current.timer);
@@ -247,6 +253,7 @@ export function createInkSurface({ box, inkCanvas, liveCanvas, win = window, get
 
   function onDown(e) {
     e.preventDefault(); // M0-7：第二道保护，让原生边缘识别器不开始
+    if (native) return; // 原生书写层接管落笔
     if (e.isPrimary === false) return; // 第二根手指 / 手掌
     if (e.button !== undefined && e.button > 0) return; // 鼠标右键 / 中键
     if (current) return;
@@ -377,6 +384,24 @@ export function createInkSurface({ box, inkCanvas, liveCanvas, win = window, get
 
   resize();
 
+  // 原生书写面 spike：抬笔走与 onUp 相同的固化路径（painted 追加、paintFinal、onStrokeEnd）
+  native = nativeInk && nativeInkEnabled(win)
+    ? attachNativeInk({
+      box,
+      inkCanvas,
+      liveCanvas,
+      win,
+      getProps,
+      inkColor: () => inkColorOf(box),
+      onEnd(raw) {
+        painted = painted.concat([raw]);
+        paintFinal(raw);
+        const p = getProps();
+        if (typeof p.onStrokeEnd === 'function') p.onStrokeEnd(raw);
+      },
+    })
+    : null;
+
   return {
     sync,
     cancelCurrent,
@@ -384,11 +409,12 @@ export function createInkSurface({ box, inkCanvas, liveCanvas, win = window, get
       redrawAll();
       drawLive();
     },
-    isDrawing: () => !!current,
+    isDrawing: () => !!current || !!(native && native.isWriting()),
     paintedCount: () => painted.length,
     destroy() {
       cancelRaf();
       current = null;
+      if (native) native.destroy();
       liveCanvas.removeEventListener('pointerdown', onDown);
       liveCanvas.removeEventListener('pointermove', onMove);
       liveCanvas.removeEventListener('pointerup', onUp);
@@ -461,6 +487,7 @@ export function InkGrid(props) {
       liveCanvas: liveRef.current,
       win: window,
       getProps: () => propsRef.current,
+      nativeInk: testid === 'write-grid', // 原生书写面 spike 只接写字页的书写格（native-ink.js）
     });
     surfaceRef.current = surface;
     if (apiRef) apiRef.current = surface;

@@ -7333,6 +7333,7 @@ src/ui/canvas/brush.js
 src/ui/canvas/glyph-wash.js
 src/ui/canvas/glyph.js
 src/ui/canvas/ink-canvas.js
+src/ui/canvas/native-ink.js
 src/ui/components/Button.js
 src/ui/components/Chevron.js
 src/ui/components/Confirm.js

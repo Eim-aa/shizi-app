@@ -34,10 +34,10 @@
   --lh17s: calc(22px * var(--k)); /* 字阶 17 单行行高（按钮、页头标题、列表主文字）· 来源：tokens.json typography.scale[17].lineHeightSingle */
   --fs15: calc(15px * var(--k)); /* 字阶 15：说明句、列表次文字、题面拼音、Toast · 来源：tokens.json typography.scale[15].size */
   --lh15: calc(22px * var(--k)); /* 字阶 15 行高 · 来源：tokens.json typography.scale[15].lineHeight */
-  --fs13: calc(13px * var(--k)); /* 字阶 13：注释、对照卡标签、字格状态、日期 · 来源：tokens.json typography.scale[13].size */
-  --lh13: calc(20px * var(--k)); /* 字阶 13 行高 · 来源：tokens.json typography.scale[13].lineHeight */
-  --fs11: calc(11px * var(--k)); /* 字阶 11：下限：图例、角标 · 来源：tokens.json typography.scale[11].size */
-  --lh11: calc(16px * var(--k)); /* 字阶 11 行高 · 来源：tokens.json typography.scale[11].lineHeight */
+  --fs13: max(12px, calc(13px * var(--k))); /* 字阶 13：注释、对照卡标签、字格状态、日期；系统字号偏小档（xS / S，--k < 1）不低于 12px（R2-A1 / A2-07；iOS Footnote 在最小档仍是 12pt）· 来源：tokens.json typography.scale[13].size / minSize */
+  --lh13: max(18px, calc(20px * var(--k))); /* 字阶 13 行高（随字号保底，同 12 / 13 的比例）· 来源：tokens.json typography.scale[13].lineHeight / minLineHeight */
+  --fs11: max(11px, calc(11px * var(--k))); /* 字阶 11：下限：图例、角标；不随系统字号缩到 11px 以下（R2-A1 / A2-07；iOS Caption 2 在最小档仍是 11pt）· 来源：tokens.json typography.scale[11].size / minSize */
+  --lh11: max(16px, calc(16px * var(--k))); /* 字阶 11 行高 · 来源：tokens.json typography.scale[11].lineHeight / minLineHeight */
   --s1: 4px; /* 间距尺度（4 的倍数）· 来源：tokens.json space.scale */
   --s2: 8px; /* 间距尺度（4 的倍数）· 来源：tokens.json space.scale */
   --s3: 12px; /* 间距尺度（4 的倍数）· 来源：tokens.json space.scale */
@@ -176,7 +176,7 @@
   --field: #E4DDD0; /* 凹：输入框、分段控件、按下底、必须有面时的分组面 · 来源：tokens.json color.light.field */
   --elev: #FBF8F2; /* 弹层面 · 来源：tokens.json color.light.elev */
   --line: #DDD5C7; /* 0.5pt 分隔线（装饰） · 来源：tokens.json color.light.line */
-  --frame: #9C8A74; /* 格框，按控件边界算（≥ 3:1） · 来源：tokens.json color.light.frame */
+  --frame: #95826B; /* 格框，按控件边界算（≥ 3:1）；对纸面 3.23、对笺面 3.49（直接画在纸面上的格框也够 3:1，R2-A1 / A2-12） · 来源：tokens.json color.light.frame */
   --guide: #D3C6B3; /* 格内十字虚线、字帖格间线（参照层） · 来源：tokens.json color.light.guide */
   --ink1: #26211D; /* 字、标题、正文、主按钮底、选中、今天、焦点环 · 来源：tokens.json color.light.ink1 */
   --ink2: #564E46; /* 次文字、文字按钮、拼音、输入框占位 · 来源：tokens.json color.light.ink2 */

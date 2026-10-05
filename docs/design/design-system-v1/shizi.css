@@ -14,8 +14,8 @@
 
   /* 七级字阶：字号 / 行高（pt）。--k 为 Dynamic Type 连续倍率（D29），标准档 = 1 */
   --k: 1;
-  --fs11: calc(11px * var(--k)); --lh11: calc(16px * var(--k));
-  --fs13: calc(13px * var(--k)); --lh13: calc(20px * var(--k));
+  --fs11: max(11px, calc(11px * var(--k))); --lh11: max(16px, calc(16px * var(--k)));
+  --fs13: max(12px, calc(13px * var(--k))); --lh13: max(18px, calc(20px * var(--k)));
   --fs15: calc(15px * var(--k)); --lh15: calc(22px * var(--k));
   --fs17: calc(17px * var(--k)); --lh17: calc(26px * var(--k)); --lh17s: calc(22px * var(--k));
   --fs22: calc(22px * var(--k)); --lh22: calc(30px * var(--k));
@@ -58,7 +58,7 @@
   --field: #E4DDD0;   /* 凹：输入框、分段控件、按下底；对纸 1.18 */
   --elev: #FBF8F2;    /* 弹层 */
   --line: #DDD5C7;    /* 分隔发丝线（装饰） */
-  --frame: #9C8A74;   /* 格框：印刷赭灰，对笺 3.14 */
+  --frame: #95826B;   /* 格框：印刷赭灰，对笺 3.49、对纸 3.23（R2-A1 / A2-12） */
   --guide: #D3C6B3;   /* 格内十字虚线（参照层） */
 
   --ink1: #26211D;    /* 墨一：字、标题、正文、主按钮底 13.9 */

@@ -47,7 +47,7 @@ const KIND = {
   'ink1/paper': 'text', 'ink2/paper': 'text', 'ink3/paper': 'text', 'ink3/sheet': 'text',
   'btnFg/btnBg': 'text', 'toastFg/toastBg': 'text',
   'ink4/paper': 'largeTextAndGraphics', 'hand/sheet': 'largeTextAndGraphics', 'ref/sheet': 'largeTextAndGraphics',
-  'under/sheet': 'largeTextAndGraphics', 'frame/sheet': 'largeTextAndGraphics', 'wall4/paper': 'largeTextAndGraphics',
+  'under/sheet': 'largeTextAndGraphics', 'frame/sheet': 'largeTextAndGraphics', 'frame/paper': 'largeTextAndGraphics', 'wall4/paper': 'largeTextAndGraphics',
   'zhu/paper': 'largeTextAndGraphics', 'zhu/sheet': 'largeTextAndGraphics', 'onSeal/seal': 'largeTextAndGraphics',
   'danzhu/sheet': 'hintAndTrace', 'danzhu/hand': 'hintVsHand',
   'field/paper': 'surface',
@@ -161,4 +161,33 @@ test('the hint never dims the writer\'s ink: the 35% dimming is gone, so the rea
   assert.ok(/inkOpacity:\s*1,/.test(src), 'inkOpacity is a constant 1');
   assert.equal(HINT_DRAW.opacity, 1, 'the whole hint group is shown at full strength (the wash carries its own TRACE_FILL_ALPHA)');
   assert.equal(TRACE_FILL_ALPHA, 0.4, 'the same wash opacity as the trace layer (one drawing for every help layer)');
+});
+
+// ---- R2-A1（A2-12）：格框直接画在纸面上时（题面目标格、结果作品外框）也要 ≥ 3:1——不只对笺面
+for (const theme of ['light', 'dark']) {
+  test(`${theme}: frame on paper (a frame drawn straight on the page) and on the sheet are both ≥ 3:1`, () => {
+    const frame = colorOf(theme, 'frame');
+    assert.ok(contrast(frame, colorOf(theme, 'paper')) >= th.largeTextAndGraphics, `${theme} frame/paper ${contrast(frame, colorOf(theme, 'paper')).toFixed(2)}`);
+    assert.ok(contrast(frame, colorOf(theme, 'sheet')) >= th.largeTextAndGraphics, `${theme} frame/sheet`);
+  });
+}
+
+test('light frame is no longer the 2.91:1 value #9C8A74 on paper (A2-12)', () => {
+  assert.ok(contrast(colorOf('light', 'frame'), colorOf('light', 'paper')) >= 3.2, 'light frame/paper ≥ 3.2');
+  assert.notEqual(tokens.color.light.frame.toUpperCase(), '#9C8A74');
+});
+
+// ---- R2-A1（A2-07）：小字保底——--fs11 / --fs13（和它们的行高）在系统字号偏小档不缩到 11 / 12px 以下
+test('--fs11 / --fs13 carry a max() floor of 11px / 12px, line heights 16px / 18px (A2-07)', () => {
+  const base = parseTokenDecls(read('src/config/tokens.css')).filter(x => x.selectors.length === 1 && x.selectors[0] === ':root');
+  const val = name => (base.find(x => x.name === name) || {}).value;
+  const norm = s => String(s).replace(/\s+/g, ' ').trim();
+  assert.equal(norm(val('--fs11')), 'max(11px, calc(11px * var(--k)))');
+  assert.equal(norm(val('--fs13')), 'max(12px, calc(13px * var(--k)))');
+  assert.equal(norm(val('--lh11')), 'max(16px, calc(16px * var(--k)))');
+  assert.equal(norm(val('--lh13')), 'max(18px, calc(20px * var(--k)))');
+  const scale = Object.fromEntries(tokens.typography.scale.map(s => [s.level, s]));
+  assert.deepEqual([scale[11].minSize, scale[13].minSize], [11, 12]);
+  // 其余字阶不加保底（它们在 xS 档本来就 ≥ 12px 的系统最小值）
+  for (const level of [34, 28, 22, 17, 15]) assert.equal(scale[level].minSize, undefined, `level ${level} has no floor`);
 });

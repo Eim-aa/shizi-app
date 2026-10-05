@@ -81,8 +81,10 @@ test('elevation shadow and paper texture follow tokens.json shadow / texture', (
 test('type scale, families, space, radius, line, touch, motion equal tokens.json', () => {
   const base = ctx.base;
   for (const s of tokens.typography.scale) {
-    assert.equal(norm(base[`--fs${s.level}`].value), norm(`calc(${s.size}px * var(--k))`), `--fs${s.level}`);
-    assert.equal(norm(base[`--lh${s.level}`].value), norm(`calc(${s.lineHeight}px * var(--k))`), `--lh${s.level}`);
+    // R2-A1（A2-07）：13 / 11 两级带保底（minSize / minLineHeight）：系统字号偏小档（--k < 1）不再缩到 12 / 11px 以下
+    const floor = (v, min) => (min ? `max(${min}px, ${v})` : v);
+    assert.equal(norm(base[`--fs${s.level}`].value), norm(floor(`calc(${s.size}px * var(--k))`, s.minSize)), `--fs${s.level}`);
+    assert.equal(norm(base[`--lh${s.level}`].value), norm(floor(`calc(${s.lineHeight}px * var(--k))`, s.minLineHeight)), `--lh${s.level}`);
     if (s.lineHeightSingle) assert.equal(norm(base[`--lh${s.level}s`].value), norm(`calc(${s.lineHeightSingle}px * var(--k))`), `--lh${s.level}s`);
   }
   assert.deepEqual(tokens.typography.scale.map(s => s.level), [34, 28, 22, 17, 15, 13, 11], 'seven levels');

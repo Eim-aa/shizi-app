@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { STEP_PLAY_MAX_MS, traceSplit } from '../../src/ui/screens/write/answer.js';
+import { STEP_PLAY_MAX_MS, traceSplit, tracePreviewed, markTracePreviewed, forgetTracePreviewed } from '../../src/ui/screens/write/answer.js';
 import { playbackPlan, drawGlyphSolid, drawGlyphHook, strokeIndexList, glyphTransform, HOOK_WIDTH_PT } from '../../src/ui/canvas/glyph.js';
 import * as policy from '../../src/config/policy.js';
 
@@ -101,4 +101,21 @@ test('描一遍层的源码约束：与提示同一个 GlyphWash（实填 + 双�
   assert.ok(src.includes('<${GlyphWash}'), 'TraceLayer renders the shared wash');
   assert.ok(!/outline:\s*\{[^}]*danzhu/.test(src), 'no per-stroke danzhu outline on the trace');
   assert.equal(STEP_PLAY_MAX_MS, policy.motion.stepPlayMaxMs);
+});
+
+test('描一遍前的笔顺快放每字只在第一次播（I3-07）：按会话 id + 字记；播过的再进直接是终态；只在页面会话里记', () => {
+  forgetTracePreviewed();
+  const key = 's1|base:永';
+  assert.equal(tracePreviewed(key), false, 'a fresh entry plays');
+  markTracePreviewed(key);
+  assert.equal(tracePreviewed(key), true, 'the same character in the same session does not replay');
+  assert.equal(tracePreviewed('s1|base:和'), false, 'another character still plays');
+  assert.equal(tracePreviewed('s2|base:永'), false, 'the same character in another session is a new first time');
+  assert.equal(tracePreviewed(null), false);
+  markTracePreviewed(null);
+  forgetTracePreviewed();
+  assert.equal(tracePreviewed(key), false);
+  const src = fs.readFileSync(path.join(ROOT, 'src/ui/screens/write/answer.js'), 'utf8');
+  assert.ok(src.includes('markTracePreviewed(playKey)') && src.includes('tracePreviewed(playKey)'), 'TraceLayer consults the played set before animating');
+  assert.ok(!/先播一遍（每次进描一遍一次）/.test(src), 'the every-entry replay is gone');
 });

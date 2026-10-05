@@ -345,7 +345,7 @@ export default async function answer(page, ctx) {
   assert.equal(await page.locator(topSel('write-answer-next')).count(), 1, 'only one 下一个 (no skip-row link in retrace)');
   assert.equal(await visible(page, 'write-trace-layer'), false, 'no trace outline in retrace');
 
-  ctx.step('write in retrace, 再描一遍 → trace again (fresh grid, preview replays), 描好了 → retrace');
+  ctx.step('write in retrace, 再描一遍 → trace again (fresh grid): the preview does NOT replay for the same character (I3-07), the wash is the end state');
   await drawStroke(page, VERTICAL);
   s = await track();
   assert.equal(s.strokes, 1, 'one stroke in retrace');
@@ -353,8 +353,18 @@ export default async function answer(page, ctx) {
   await waitPhase(page, 'trace');
   s = await track();
   assert.equal(s.strokes, 0, 'back in trace with an empty grid');
-  assert.ok(['running', 'completed'].includes(await page.getAttribute(topSel('write-trace-layer'), 'data-anim')), 'preview plays again');
-  ctx.step('a single tap on the grid jumps the preview straight to its end state (点一下直接到终态)');
+  await page.waitForTimeout(300);
+  assert.equal(await page.getAttribute(topSel('write-trace-layer'), 'data-anim'), 'idle', 'I3-07: no replay of the stroke-order preview for the same character (the first entry played it)');
+  assert.equal(await page.getAttribute(topSel('write-trace-layer'), 'data-current'), '0', 'the wash is already the end state: stroke 0 solid');
+  assert.equal(await page.getAttribute(topSel('write-trace-done'), 'disabled'), '', '描好了 is disabled until a stroke is written, no waiting for a preview');
+  await drawStroke(page, VERTICAL);
+  await page.click(topSel('write-trace-done'));
+  await waitPhase(page, 'retrace');
+  ctx.step('(a fresh first entry, simulated by forgetting the played set) a single tap on the grid jumps the preview straight to its end state (点一下直接到终态)');
+  await page.evaluate(async () => (await import('/src/ui/screens/write/answer.js')).forgetTracePreviewed());
+  await page.click(topSel('write-retrace-trace'));
+  await waitPhase(page, 'trace');
+  assert.ok(['running', 'completed'].includes(await page.getAttribute(topSel('write-trace-layer'), 'data-anim')), 'preview plays on a first entry');
   const tapBox = await page.locator(topSel('write-grid')).boundingBox();
   await page.mouse.click(tapBox.x + tapBox.width / 2, tapBox.y + tapBox.height / 2);
   assert.equal(await waitAttr(page, 'write-trace-layer', 'data-anim', ['skipped', 'completed']), 'skipped', 'one tap → preview skipped');

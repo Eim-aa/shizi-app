@@ -15,7 +15,7 @@
 //      （answerInkKey）。读屏：答案字放在底栏一个视觉隐藏的 role=img（书写格本身 aria-hidden 参考层），名称是「参考字形：字，拼音，n 画，结构」（ref-label.js，A2-09）。
 //   4. 描一遍（trace）：书写格参考字形层画描红（和提示同一种画法，canvas/glyph-wash.js；D53 ①：当前一笔 --danzhu 不透明实心，其余还没轮到的笔是同色相 0.75pt 双钩，
 //      已描过的笔被本人墨盖住、不再画；没有灰外廓、没有整层不透明度；当前一笔 = 本阶段已写笔数，撤销 / 清空后退回；
-//      10.13 用浅色楷体整字、不分笔顺），进阶段先快放一遍笔顺（总时长 ≤ 1.6s，policy.motion.stepPlayMaxMs，P210；走查-W19；落笔 / 点一下即到终态；
+//      10.13 用浅色楷体整字、不分笔顺），进阶段先快放一遍笔顺（每字只在第一次播，I3-07；总时长 ≤ 1.6s，policy.motion.stepPlayMaxMs，P210；走查-W19；落笔 / 点一下即到终态；
 //      减少动态效果不播）；格下没有说明（R-W08.traceNote 已删：描一遍自明，不再用文字解释颜色）；主按钮「描好了，自己写」（没写时 disabled）；底部「下一个」。进入描一遍时把该 answer-seen 记录的
 //      help.traced 置 true（同一次 commit，帮助事实，D07）。
 //   5. 自己写一遍（retrace）：空书写格；格下 R-W07.selfNote；按钮 [再描一遍 / 下一个]；底部不显示跳过。
@@ -339,6 +339,29 @@ export function AnswerUnderLayer({ char, cssSize = 345, onStatus }) {
 
 // ---------------------------------------------------------------- 描红层（trace 阶段，书写格参考字形层）
 
+// 描一遍前的笔顺快放「每字只在第一次描时播」（I3-07，D46-17）：按 会话 id + 字 记已播过，同一字再进描一遍（自己写 → 再描一遍）直接是描红终态。
+// 只记在本页面会话里（不进存储）：刷新 / 冷启动后第一次进描一遍可能再播一次，换一组 / 另一天的同一字是新的一次。
+const previewedTrace = new Set();
+const PREVIEWED_CAP = 200;
+
+/** 这个字在这个会话里的描一遍快放播过了吗。 */
+export function tracePreviewed(playKey) {
+  return !!playKey && previewedTrace.has(playKey);
+}
+
+/** 记下这个字的快放播过了（超过上限丢最早的）。 */
+export function markTracePreviewed(playKey) {
+  if (!playKey) return;
+  previewedTrace.delete(playKey);
+  previewedTrace.add(playKey);
+  while (previewedTrace.size > PREVIEWED_CAP) previewedTrace.delete(previewedTrace.values().next().value);
+}
+
+/** 测试清理接口：忘掉播过的字（单测 / e2e 之间不共享）。 */
+export function forgetTracePreviewed() {
+  previewedTrace.clear();
+}
+
 /**
  * 描一遍的描红笔画：当前一笔实心、其余还没轮到的笔是双钩（D53 ①）。当前一笔 = 本阶段已写笔数（written），已描过的笔被本人墨盖住、不画；全部写完什么都不画。纯函数。
  * @returns {{solid:number[], hook:number[]}}
@@ -355,16 +378,16 @@ export function traceSplit(total, written) {
 /**
  * 描一遍：和提示同一种画法（canvas/glyph-wash.js，D53 ①）——当前一笔 --danzhu 不透明实心、其余笔双钩（同色相 0.75pt 细轮廓）、已描过的笔不画（本人墨盖住）；
  * 进阶段先快放一遍笔顺（≤ 1.6s，走查-W19），落笔 / 点一下即跳过；
- * 10.13 浅色楷体整字、不播。主题变化只重画描红，不重播。
+ * 同一个字只在第一次进描一遍时播（I3-07：playKey = 会话 id + 字，播过的再进直接是终态）；10.13 浅色楷体整字、不播。主题变化只重画描红，不重播。
  */
-export function TraceLayer({ char, cssSize = 345, onStatus, strokeCount = 0 }) {
+export function TraceLayer({ char, cssSize = 345, onStatus, strokeCount = 0, playKey = null }) {
   const load = useStrokeData(char, onStatus);
   const rootRef = useRef(null);
   const animRef = useRef(null);
   const ctrlRef = useRef(null);
   const [anim, setAnim] = useState('idle');
 
-  // 先播一遍（每次进描一遍一次）
+  // 先播一遍（每字只在第一次进描一遍时播，I3-07）
   useLayoutEffect(() => {
     if (ctrlRef.current) {
       ctrlRef.current.destroy();
@@ -374,6 +397,11 @@ export function TraceLayer({ char, cssSize = 345, onStatus, strokeCount = 0 }) {
       setAnim('idle');
       return undefined;
     }
+    if (tracePreviewed(playKey)) {
+      setAnim('idle'); // 这个字已播过：直接是描红终态
+      return undefined;
+    }
+    markTracePreviewed(playKey);
     const ctrl = animate(animRef.current, load.data, { mode: 'preview', char, size: cssSize, maxMs: STEP_PLAY_MAX_MS });
     ctrlRef.current = ctrl;
     setAnim(ctrl.state);
@@ -503,7 +531,7 @@ export function useAnswerFlow({ slot, session, cardKey, phase, strokeCount = 0, 
     ? ({ cssSize }) => html`<${AnswerUnderLayer} key=${'answer|' + cardKey} char=${char} cssSize=${cssSize} onStatus=${setGlyphStatus} />`
     : phase === 'trace'
       ? ({ cssSize }) => html`<${TraceLayer} key=${'trace|' + cardKey} char=${char} cssSize=${cssSize} onStatus=${setGlyphStatus}
-          strokeCount=${strokeCount} />`
+          strokeCount=${strokeCount} playKey=${session ? `${session.id}|${cardKey}` : cardKey} />`
       : null;
 
   // 看答案页底栏里视觉隐藏的答案字（书写格参考层 aria-hidden）：读屏名称与判断页参考卡同一句——字、拼音、笔画数、结构 / 部件数（A2-09 / P232）

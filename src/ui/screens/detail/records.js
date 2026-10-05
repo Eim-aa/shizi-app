@@ -77,6 +77,7 @@ injectStyles('detail-records', `
 :root[data-ax] .sz-dcell__meta{min-height:44px;height:auto}
 :root[data-ax] .sz-dhero{grid-template-columns:minmax(0,1fr)}
 :root[data-ax] .sz-dhero__cap{line-break:strict}
+:root[data-ax] .sz-drec__first{text-align:left;line-break:strict} /* 不用 keep-all：中文整句会不能折行、冲出页边（A3-02） */
 .sz-drec__paper{margin:0;padding:0;list-style:none;border-top:${T.hair} solid ${T.line}}
 .sz-drec__prow{display:flex;align-items:center;gap:${T.s3};min-height:52px;border-bottom:${T.hair} solid ${T.line};
   font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2}}

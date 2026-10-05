@@ -326,7 +326,7 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
   // M1-3 提示：当前字的笔顺数据（M1-4 看答案 / 描一遍共用 strokeData）与提示控制器（hint-layer.js）。
   const strokeData = useStrokeData(charOfCardKey(cardKey));
   const hint = useHint({
-    slot, session, cardKey, char: charOfCardKey(cardKey), phase, written: paper ? 0 : view.strokes.length, strokes: strokeData, getStore,
+    slot, session, cardKey, char: charOfCardKey(cardKey), phase, written: paper ? 0 : view.strokes.length, ownStrokes: view.strokes, strokes: strokeData, getStore,
     onHinted: endSkipUndo,
   });
   // Q2-1（03 P181）：首练第 1 字格下一次性提示「凭记忆写，想不起来可以点提示。」（settings.firstTipSeen；首次落笔 / 用提示后收起）。
@@ -417,7 +417,6 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
     nav.switchTab(snap.tab);
   }, [orphan, topFree]);
   const onStrokeStart = () => {
-    hint.onStrokeStart();
     row.onStrokeStart(); // 落笔：上一字的结果行收起（决定-D19）
     skip.dismiss(); // 落笔：跳过的撤销机会结束（G3）
   };

@@ -2,7 +2,7 @@
 // 在本人墨下层，本人墨任何时候都不变暗（像素取样断言），整组 150ms 淡入，没有图例说明句。
 // 完成定义：3 画字（大）与 14 画字（聚）的提示笔数与按钮文案序列与 core/hints.js 一致；无笔顺数据的字显示
 // 「暂时没有提示」且没有可点的提示按钮；提示次数经 store.commit 写进 sessions[slot].current.hints（M0-6 形状）；
-// R-W05 文案。另覆盖：无分组数据的字前 1 / 前 2 笔；写下一笔提示淡出（笔迹始终 100%）；减少动态效果 120ms 淡化；
+// R-W05 文案。另覆盖：无分组数据的字前 1 / 前 2 笔；写过哪笔收哪笔（D53 ⑧；笔迹始终 100%）；减少动态效果 120ms 淡化；
 // 写入失败不阻断且下次写入补上次数；会话现场里 hintRange 还在时静态恢复；无绕过 storage.js 的写入；回忆阶段 DOM 不含答案字。
 
 import {
@@ -177,10 +177,10 @@ export default async function hint(page, ctx) {
   assert.equal(paint.ring, false, 'no outer ring canvas any more (D53 ①: the ink3 outline is gone)');
   assert.deepEqual([paint.glyphHasHint, paint.underInk], [true, true], 'the hint lives in the reference layer, which is below the ink canvas in z-order');
 
-  ctx.step('write the next stroke → hint fades out (260ms), ink restores (200ms), range cleared');
+  ctx.step('write the next stroke → the (only) hint stroke is taken in (260ms), ink stays 100%, range cleared');
   await drawStroke(page, HORIZONTAL);
   h = await hintState(page);
-  assert.ok(h.layer === 'fading' || h.layer === 'none', `hint starts fading on pen-down (${h.layer})`);
+  assert.ok(h.layer === 'fading' || h.layer === 'none', `the hint stroke starts fading when the stroke is written (${h.layer})`);
   await waitLayer(page, 'none');
   await page.waitForTimeout(250);
   h = await hintState(page);
@@ -226,8 +226,40 @@ export default async function hint(page, ctx) {
   cur = await current(page);
   assert.deepEqual([cur.hints, cur.hintRange], [1, { from: 0, to: 4 }], 'store: hints 1, hintRange {0,4}');
 
+  ctx.step('write ONE stroke → only that hint stroke goes (260ms), strokes 1–3 stay; the store keeps the range (D53 ⑧, I3-01)');
+  const remaining = () => page.evaluate(sel => document.querySelector(sel).dataset.remaining, LAYER);
+  await drawStroke(page, HORIZONTAL);
+  await page.waitForFunction(sel => document.querySelector(sel).dataset.remaining === '1,2,3', LAYER, { timeout: 5000 });
+  h = await hintState(page);
+  assert.ok(h.layer === 'fading' || h.layer === 'shown', `the layer stays (${h.layer})`);
+  const outs = await page.evaluate(sel => [...document.querySelectorAll(sel + ' [data-testid="write-hint-out"]')].map(e => e.dataset.stroke), LAYER);
+  assert.ok(outs.length === 0 || (outs.length === 1 && outs[0] === '0'), `only stroke 0 can be fading (${JSON.stringify(outs)})`);
+  await page.waitForFunction(sel => !document.querySelector(sel + ' [data-testid="write-hint-out"]'), LAYER, { timeout: 2000 });
+  assert.equal((await hintState(page)).layer, 'shown', 'after the 260ms the other three hint strokes are still shown');
+  assert.equal(await remaining(), '1,2,3');
+  const px1 = await page.evaluate(sel => {
+    const cv = document.querySelector(sel + ' [data-testid="write-hint-fill"]');
+    const d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data;
+    let n = 0;
+    for (let i = 3; i < d.length; i += 4) if (d[i] === 255) n += 1;
+    return n;
+  }, LAYER);
+  assert.ok(px1 > 100, `the remaining hint strokes are still painted (${px1} px)`);
+  cur = await current(page);
+  assert.deepEqual(cur.hintRange, { from: 0, to: 4 }, 'store: hintRange unchanged while some hint strokes remain');
+  await drawStroke(page, VERTICAL);
+  await page.waitForFunction(sel => document.querySelector(sel).dataset.remaining === '2,3', LAYER, { timeout: 5000 });
+  ctx.step('undo one stroke → the hint stroke it took in comes back');
+  await page.click(topSel('write-undo'));
+  await page.waitForFunction(sel => document.querySelector(sel).dataset.remaining === '1,2,3', LAYER, { timeout: 5000 });
+  assert.equal((await hintState(page)).layer, 'shown', 'restored hint stroke is visible again');
+  ctx.step('write the remaining strokes → the hint layer is gone and the range is cleared');
+  await drawN(page, 3);
+  await waitLayer(page, 'none');
+  await page.waitForFunction(() => window.__shiziTest.getState().sessions.A.current.hintRange === null);
+
   ctx.step('write 11 strokes → hint 2 clamps to the last quarter: from = min(11, 14 − 4) = 10');
-  await drawN(page, 11);
+  await drawN(page, 7); // 已有 4 笔，共 11 笔
   await waitLayer(page, 'none');
   const count = await page.evaluate(sel => Number(document.querySelector(sel).dataset.strokeCount), topSel('write-grid'));
   assert.equal(count, 11, '11 strokes on the grid');
@@ -320,9 +352,9 @@ export default async function hint(page, ctx) {
   const group = await page.evaluate(sel => {
     const g = document.querySelector(sel + ' .sz-hint__group');
     const cs = getComputedStyle(g);
-    return { name: cs.animationName, dur: cs.animationDuration, transition: cs.transitionDuration };
+    return { name: cs.animationName, dur: cs.animationDuration };
   }, LAYER);
-  assert.deepEqual([group.name, group.dur, group.transition], ['szHintFadeIn', '0.12s', '0.12s'], 'group fades in / out over 120ms');
+  assert.deepEqual([group.name, group.dur], ['szHintFadeIn', '0.12s'], 'group fades in over 120ms (the stroke taken in fades out over 120ms: unit test HintLayer reduced)');
   assert.equal(h.inkOpacity, 1, 'ink is not dimmed in reduced motion either');
   await drawStroke(page, HORIZONTAL);
   await waitLayer(page, 'none');

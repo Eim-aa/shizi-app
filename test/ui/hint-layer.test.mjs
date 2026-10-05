@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import {
   strokeDrawMs, hintTimeline, groupsFor, hasGroupData, hintSourceOf, planHint, hintButtonModel, hintNoteModel,
   initialHintView, reduceHintView, applyHintToDraft, HINT_FADE_OUT_MS, HINT_FADE_IN_MS, REDUCED_FADE_MS, HINT_DRAW, HintLayer,
+  hintRemaining, hintVisible, matchHintStroke, meanDistanceToMedian, HINT_MATCH_MAX_DIST,
 } from '../../src/ui/screens/write/hint-layer.js';
 import { GlyphWash } from '../../src/ui/canvas/glyph-wash.js';
 import { createSession, freshCurrent } from '../../src/core/sessions.js';
@@ -100,28 +101,71 @@ test('hintNoteModel: no legend sentence after a hint (D51 ⑧), R-W05 note witho
   assert.equal(hintNoteModel({ status: 'loading', used: 0 }), null);
 });
 
-test('reduceHintView: hint → stroke-start → faded; second hint restarts the draw; restore is static', () => {
+const NONE = { absorbed: [], fading: [] };
+
+test('reduceHintView: hint → absorb (only that stroke) → faded; second hint restarts; restore is static (D53 ⑧)', () => {
   let v = initialHintView('base:大', { hints: 0, hintRange: null });
-  assert.deepEqual(v, { key: 'base:大', used: 0, range: null, show: 'none', run: 0, restored: false });
-  assert.equal(reduceHintView(v, { type: 'stroke-start' }), v, 'stroke without a hint is a no-op');
-  v = reduceHintView(v, { type: 'hint', range: { from: 0, to: 1 } });
-  assert.deepEqual(v, { key: 'base:大', used: 1, range: { from: 0, to: 1 }, show: 'in', run: 1, restored: false });
-  v = reduceHintView(v, { type: 'stroke-start' });
-  assert.equal(v.show, 'out');
-  assert.equal(reduceHintView(v, { type: 'stroke-start' }), v, 'second pen-down while fading is a no-op');
-  v = reduceHintView(v, { type: 'faded' });
-  assert.deepEqual([v.show, v.range, v.used], ['none', null, 1]);
-  assert.equal(reduceHintView(v, { type: 'faded' }), v);
+  assert.deepEqual(v, { key: 'base:大', used: 0, range: null, ...NONE, show: 'none', run: 0, restored: false });
+  assert.equal(reduceHintView(v, { type: 'absorb', user: 0, hint: 0 }), v, 'a stroke without a hint is a no-op');
+  assert.equal(reduceHintView(v, { type: 'stroke-start' }), v, 'pen-down no longer does anything to the hint');
+  v = reduceHintView(v, { type: 'hint', range: { from: 1, to: 4 } });
+  assert.deepEqual(v, { key: 'base:大', used: 1, range: { from: 1, to: 4 }, ...NONE, show: 'in', run: 1, restored: false });
+  assert.deepEqual(hintRemaining(v), [1, 2, 3]);
+  v = reduceHintView(v, { type: 'absorb', user: 1, hint: 1 });
+  assert.deepEqual(hintRemaining(v), [2, 3], 'only stroke 1 goes; the rest of the hint stays');
+  assert.deepEqual(v.fading, [{ hint: 1 }]);
+  assert.equal(v.show, 'in', 'the layer stays');
+  assert.equal(reduceHintView(v, { type: 'absorb', user: 2, hint: 1 }), v, 'an already absorbed stroke is not absorbed twice');
+  assert.equal(reduceHintView(v, { type: 'absorb', user: 2, hint: 9 }), v, 'a stroke outside the hint range is ignored');
+  v = reduceHintView(v, { type: 'faded', hint: 1 });
+  assert.deepEqual(v.fading, []);
+  assert.equal(reduceHintView(v, { type: 'faded', hint: 1 }), v);
+  assert.equal(hintVisible(v), true);
+  v = reduceHintView(v, { type: 'absorb', user: 2, hint: 2 });
+  v = reduceHintView(v, { type: 'absorb', user: 3, hint: 3 });
+  assert.deepEqual(hintRemaining(v), []);
+  assert.equal(hintVisible(v), true, 'two strokes are still fading out');
+  v = reduceHintView(reduceHintView(v, { type: 'faded', hint: 2 }), { type: 'faded', hint: 3 });
+  assert.equal(hintVisible(v), false, 'all written → the hint layer is gone');
+  // 撤销：笔数退到 2 → 第 2、3 笔（本人第 2、3 笔）收掉的提示笔回来，第 1 笔仍收着
+  const back = reduceHintView(v, { type: 'restore', fromUser: 2 });
+  assert.deepEqual(hintRemaining(back), [2, 3]);
+  assert.equal(back.run, v.run + 1, 're-fades in as a group');
+  assert.equal(reduceHintView(v, { type: 'restore', fromUser: 9 }), v, 'nothing to restore');
+  const cleared = reduceHintView(v, { type: 'restore', fromUser: 0 });
+  assert.deepEqual(hintRemaining(cleared), [1, 2, 3], 'clear → every absorbed stroke comes back');
   v = reduceHintView(v, { type: 'hint', range: { from: 1, to: 2 } });
-  assert.deepEqual([v.used, v.run, v.show, v.range], [2, 2, 'in', { from: 1, to: 2 }]);
+  assert.deepEqual([v.used, v.run, v.show, v.range, v.absorbed], [2, 2, 'in', { from: 1, to: 2 }, []], 'a new hint starts a fresh range');
   assert.equal(reduceHintView(v, { type: 'hint', range: null }), v, 'invalid range ignored');
   assert.equal(reduceHintView(v, { type: 'sync-used', used: 1 }), v, 'sync only raises');
   assert.equal(reduceHintView(v, { type: 'sync-used', used: 3 }).used, 3);
   const r = initialHintView('base:聚', { hints: 1, hintRange: { from: 0, to: 4 } });
-  assert.deepEqual(r, { key: 'base:聚', used: 1, range: { from: 0, to: 4 }, show: 'in', run: 0, restored: true });
+  assert.deepEqual(r, { key: 'base:聚', used: 1, range: { from: 0, to: 4 }, ...NONE, show: 'in', run: 0, restored: true });
   assert.deepEqual(reduceHintView(r, { type: 'reset', key: 'base:大', stored: null }), initialHintView('base:大', null));
   assert.equal(initialHintView('k', { hints: 1, hintRange: { from: 2, to: 2 } }).range, null, 'empty range not restored');
   assert.equal(initialHintView('k', { hints: 1, hintRange: [0, 1] }).range, null, 'array form not restored');
+  // 恢复现场：已写 2 笔、提示范围 [1,4) → 按笔顺序号推出第 1 笔已被收掉
+  const rest = initialHintView('base:聚', { hints: 1, hintRange: { from: 1, to: 4 } }, 2);
+  assert.deepEqual(hintRemaining(rest), [2, 3]);
+  assert.deepEqual(initialHintView('base:聚', { hints: 1, hintRange: { from: 1, to: 4 } }, 9).absorbed.map(a => a.hint), [1, 2, 3]);
+});
+
+test('matchHintStroke：先按笔顺序号，序号对不上按几何最近（平均距离 ≤ 上限），再远就不算写过', () => {
+  const medians = [
+    [[10, 10], [10, 100]], // 提示笔 0：左侧竖
+    [[200, 10], [200, 100]], // 提示笔 1：右侧竖
+    [[10, 300], [300, 300]], // 提示笔 2：底部横
+  ];
+  const near = (x, y) => Array.from({ length: 10 }, (_, i) => ({ x: x + 2, y: y + i * 9 }));
+  assert.equal(matchHintStroke({ remaining: [1, 2], index: 1, points: near(10, 10), medians }), 1, 'the stroke number wins even if the geometry says otherwise');
+  assert.equal(matchHintStroke({ remaining: [1, 2], index: 0, points: near(200, 10), medians }), 1, 'index 0 is not in the hint → geometric nearest: stroke 1 (right bar)');
+  assert.equal(matchHintStroke({ remaining: [0, 2], index: 5, points: Array.from({ length: 10 }, (_, i) => ({ x: 20 + i * 25, y: 302 })), medians }), 2, 'bottom bar → stroke 2');
+  assert.equal(matchHintStroke({ remaining: [0], index: 3, points: Array.from({ length: 10 }, (_, i) => ({ x: 300, y: 300 + i })), medians }), null, 'too far from every remaining hint stroke → no match');
+  assert.equal(matchHintStroke({ remaining: [], index: 0 }), null);
+  assert.equal(matchHintStroke({ remaining: [2], index: 0 }), null, 'no geometry data → only the stroke number can match');
+  assert.ok(HINT_MATCH_MAX_DIST > 10 && HINT_MATCH_MAX_DIST < 80);
+  assert.ok(meanDistanceToMedian(near(10, 10), medians[0]) < 5);
+  assert.equal(meanDistanceToMedian([], medians[0]), Infinity);
 });
 
 function draftWith(session) {
@@ -159,33 +203,46 @@ test('applyHintToDraft writes hints + hintRange into the current card only, in t
   assert.equal(applyHintToDraft({ sessions: null }, { slot: 'A', sessionId: 's1', cardKey: 'base:大', hints: 1 }, 1), false);
 });
 
-test('HintLayer: the shared opaque wash for the hinted strokes only, under the ink; whole group fades in (V2-01 / W1)', () => {
+test('HintLayer: one shared opaque wash for the strokes not written yet (under the ink); a stroke just written fades on its own canvas (D53 ⑧)', () => {
   const d = { strokes: ['M0 0L10 0L10 10Z', 'M20 0L30 0L30 10Z', 'M40 0L50 0L50 10Z'], medians: [[[0, 0], [1, 1]], [[2, 2], [3, 3]], [[4, 4], [5, 5]]] };
-  const view = { key: 'base:x', used: 1, range: { from: 1, to: 3 }, show: 'in', run: 1, restored: false };
-  const flat = [];
-  const walk = n => {
-    if (!n || typeof n !== 'object') return;
-    if (Array.isArray(n)) { n.forEach(walk); return; }
-    flat.push(n);
-    if (n.props) walk(n.props.children);
+  const view = { key: 'base:x', used: 1, range: { from: 1, to: 3 }, absorbed: [], fading: [], show: 'in', run: 1, restored: false };
+  const collect = vnode => {
+    const flat = [];
+    const walk = n => {
+      if (!n || typeof n !== 'object') return;
+      if (Array.isArray(n)) { n.forEach(walk); return; }
+      flat.push(n);
+      if (n.props) walk(n.props.children);
+    };
+    walk(vnode);
+    return flat;
   };
-  walk(HintLayer({ data: d, view, reduced: false }));
-  const wash = flat.find(n => n.type === GlyphWash);
-  assert.ok(wash, 'the hint is a GlyphWash (same drawing as the trace layer)');
-  assert.deepEqual([wash.props.from, wash.props.to, wash.props.data], [1, 3, d], 'only the strokes [from, to) of the hint are drawn');
-  assert.equal(wash.props.fillTestid, 'write-hint-fill');
+  const flat = collect(HintLayer({ data: d, view, reduced: false }));
+  const washes = flat.filter(n => n.type === GlyphWash);
+  assert.equal(washes.length, 1, 'one wash while nothing has been written');
+  assert.deepEqual([washes[0].props.solid, washes[0].props.data], [[1, 2], d], 'only the strokes of the hint are drawn');
+  assert.equal(washes[0].props.fillTestid, 'write-hint-fill');
   const g = flat.find(n => n.props && n.props.class === 'sz-hint__group');
   assert.match(g.props.style.animation, /^szHintFadeIn 150ms/, 'group fade-in 150ms');
   assert.equal(g.props.style.opacity, 1);
   const root = flat.find(n => n.props && n.props['data-testid'] === 'write-hint-layer');
-  assert.deepEqual([root.props['data-anim'], root.props['data-from'], root.props['data-to']], ['fade', 1, 3]);
-  const rflat = [];
-  const walk2 = n => { if (!n || typeof n !== 'object') return; if (Array.isArray(n)) return n.forEach(walk2); rflat.push(n); if (n.props) walk2(n.props.children); };
-  walk2(HintLayer({ data: d, view: { ...view, restored: true }, reduced: false }));
+  assert.deepEqual([root.props['data-anim'], root.props['data-from'], root.props['data-to'], root.props['data-state']], ['fade', 1, 3, 'shown']);
+  // 写过第 1 笔：第 2 笔提示留着（主层只剩它），第 1 笔在自己的层里 260ms 淡出
+  const one = collect(HintLayer({ data: d, view: { ...view, absorbed: [{ user: 1, hint: 1 }], fading: [{ hint: 1 }] }, reduced: false }));
+  const w1 = one.filter(n => n.type === GlyphWash);
+  assert.deepEqual(w1.map(w => w.props.solid), [[2], [1]], 'stroke 2 stays; stroke 1 fades on its own canvas');
+  const out = one.find(n => n.props && n.props['data-testid'] === 'write-hint-out');
+  assert.match(out.props.style.animation, /^szHintOut 260ms linear forwards/);
+  assert.equal(one.find(n => n.props && n.props['data-testid'] === 'write-hint-layer').props['data-state'], 'fading');
+  const red = collect(HintLayer({ data: d, view: { ...view, absorbed: [{ user: 1, hint: 1 }], fading: [{ hint: 1 }] }, reduced: true }));
+  assert.match(red.find(n => n.props && n.props['data-testid'] === 'write-hint-out').props.style.animation, /^szHintOut 120ms/, 'reduced motion: 120ms');
+  // 全部写过且淡完 → 没有提示层
+  const gone = collect(HintLayer({ data: d, view: { ...view, absorbed: [{ user: 1, hint: 1 }, { user: 2, hint: 2 }], fading: [] }, reduced: false }));
+  assert.equal(gone.find(n => n.props && n.props['data-testid'] === 'write-hint-layer').props['data-state'], 'none');
+  assert.equal(gone.filter(n => n.type === GlyphWash).length, 0);
+  const rflat = collect(HintLayer({ data: d, view: { ...view, restored: true }, reduced: false }));
   assert.equal(rflat.find(n => n.props && n.props['data-testid'] === 'write-hint-layer').props['data-anim'], 'static', 'a restored hint is shown statically');
   assert.equal(rflat.find(n => n.props && n.props.class === 'sz-hint__group').props.style.animation, undefined);
-  const none = [];
-  const walk3 = n => { if (!n || typeof n !== 'object') return; if (Array.isArray(n)) return n.forEach(walk3); none.push(n); if (n.props) walk3(n.props.children); };
-  walk3(HintLayer({ data: d, view: { ...view, range: null }, reduced: false }));
+  const none = collect(HintLayer({ data: d, view: { ...view, range: null }, reduced: false }));
   assert.equal(none.find(n => n.props && n.props['data-testid'] === 'write-hint-layer').props['data-state'], 'none');
 });

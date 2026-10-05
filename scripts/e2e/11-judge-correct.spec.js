@@ -489,6 +489,7 @@ export default async function judgeCorrect(page, ctx) {
     });
     if (!res.ok) throw new Error('seed strokes failed');
   });
+  await settle(page); // D53 ⑧：这两笔盖过了提示范围 {0,2}，页面收掉提示笔并把 hintRange 写成 null；等它写完再取现场
   f = await facts(page);
   const cur3 = f.session.current;
   assert.ok(cur3.hints === 1 && cur3.strokes.length === 2, 'current: hints 1 and 2 strokes stored');

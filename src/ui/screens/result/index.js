@@ -39,6 +39,7 @@ import { html, useEffect, useLayoutEffect, useRef, useState } from '../../../../
 import { registerScreen, getRouter, getScreen, nav } from '../../router.js';
 import { Page } from '../../components/Page.js';
 import { Button, markStateChange } from '../../components/Button.js';
+import { Icons } from '../../components/icons.js';
 import { Sheet } from '../../components/Sheet.js';
 import { injectStyles, T } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
@@ -426,8 +427,7 @@ function clockNow() {
 const hooks = { image: null };
 
 // 每次渲染现取新 vnode，不复用模块级常量（vendor/ui.js 注释，M6-3）。
-const SHARE_ICON = () => html`<svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.5"
-  stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M11 14V3.5M7.2 7 11 3.2 14.8 7M6 10H5v8h12v-8h-1"></path></svg>`;
+const SHARE_ICON = () => Icons.share();
 
 /** 右上「分享」的去处（M4-5 注册，P1-E7 起是结果页页头的分享图标：fn({slot, sessionId})）；没注册时入口不显示。 */
 export function setResultImageAction(fn) {

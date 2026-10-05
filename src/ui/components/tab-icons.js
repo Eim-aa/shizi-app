@@ -14,7 +14,7 @@ const LINE = {
 
 const SOLID = {
   home: () => svg(html`<path d="M4 10.5 12 4l8 6.5V20h-5.5v-5.5h-5V20H4z" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"></path>`),
-  library: () => svg(html`<path d="M12 6.5C10 5 7 4.5 4 5v13c3-.5 6 0 8 1.5 2-1.5 5-2 8-1.5V5c-3-.5-6 0-8 1.5z" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"></path><path d="M12 7v12" stroke="var(--paper)" stroke-width="1.2"></path>`),
+  library: () => svg(html`<path d="M12 6.5C10 5 7 4.5 4 5v13c3-.5 6 0 8 1.5 2-1.5 5-2 8-1.5V5c-3-.5-6 0-8 1.5z" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"></path><path d="M12 7v12" stroke="var(--paper)" stroke-width="1.5"></path>`),
   mine: () => svg(html`<circle cx="12" cy="8.5" r="3.8" fill="currentColor"></circle><path d="M4.5 20c.8-4 3.8-6 7.5-6s6.7 2 7.5 6z" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"></path>`),
 };
 

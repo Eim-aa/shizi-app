@@ -6,6 +6,7 @@
 import { html, useEffect, useState } from '../../../vendor/ui.js';
 import { t } from '../../config/copy/index.js';
 import { Button } from './Button.js';
+import { Icons } from './icons.js';
 import { injectStyles, T } from './styles.js';
 
 injectStyles('corrupt-notice', `
@@ -17,8 +18,7 @@ injectStyles('corrupt-notice', `
 `);
 
 // 每次渲染现取新 vnode，不复用模块级常量（vendor/ui.js 注释，M6-3）。
-const CLOSE_ICON = () => html`<svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor"
-  stroke-width="1.5" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M5 5l10 10M15 5 5 15"></path></svg>`;
+const CLOSE_ICON = () => Icons.close({ size: 18 });
 
 /**
  * @param {{getStore: () => object}} props  取已启动的 store（没建成时抛错或返回 null）

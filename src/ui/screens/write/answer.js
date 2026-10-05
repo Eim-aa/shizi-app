@@ -82,7 +82,6 @@ injectStyles('write-answer', `
   color:${T.ink3}}
 .sz-answer__btns{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
 .sz-answer__btns--one{grid-template-columns:minmax(0,1fr)}
-.sz-answer__next{text-decoration:underline;text-underline-offset:4px;text-decoration-thickness:.5px}
 @media (prefers-reduced-motion: reduce){.sz-answer__under canvas{animation:none}}
 `);
 

@@ -29,6 +29,7 @@ import { html, useEffect, useMemo, useRef, useState } from '../../../../vendor/u
 import { registerScreen, getRouter, getScreen, nav } from '../../router.js';
 import { Page } from '../../components/Page.js';
 import { Sheet } from '../../components/Sheet.js';
+import { Icons } from '../../components/icons.js';
 import { Button, markStateChange } from '../../components/Button.js';
 import { injectStyles, T } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
@@ -110,8 +111,7 @@ injectStyles('library-all', `
 `);
 
 // 每次渲染现取新 vnode，不复用模块级常量（vendor/ui.js 注释，M6-3）。
-const SEARCH_ICON = () => html`<svg width="18" height="18" viewBox="0 0 22 22" fill="none" stroke="var(--ink2)" stroke-width="1.6"
-  stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="10" cy="10" r="6"></circle><path d="m14.5 14.5 4 4"></path></svg>`;
+const SEARCH_ICON = () => Icons.search({ color: 'var(--ink2)' });
 
 // ---------------------------------------------------------------- 状态
 

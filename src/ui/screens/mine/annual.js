@@ -17,6 +17,7 @@
 import { html, useMemo } from '../../../../vendor/ui.js';
 import { registerScreen, getScreen, nav } from '../../router.js';
 import { Page } from '../../components/Page.js';
+import { Icons } from '../../components/icons.js';
 import { PracticeGlyph, FACE_FULL } from '../../components/PracticeGlyph.js';
 import { Button, pressFeedbackHandlers } from '../../components/Button.js';
 import { CellCanvas, builtInk, useAxSize, useScreenWidth } from '../../components/work.js';
@@ -183,8 +184,7 @@ function Report({ model, state }) {
       : null}`;
 }
 
-const SHARE_ICON = () => html`<svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.5"
-  stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M11 14V3.5M7.2 7 11 3.2 14.8 7M6 10H5v8h12v-8h-1"></path></svg>`;
+const SHARE_ICON = () => Icons.share();
 
 /** 分享弹层（images-annual.js 在年报页之外没有别的入口，按需动态加载，与 images-entry.js 的加载顺序无关）。 */
 async function shareAnnual() {

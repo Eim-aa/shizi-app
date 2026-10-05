@@ -43,6 +43,7 @@ import { html, useEffect, useState } from '../../../../vendor/ui.js';
 import { registerScreen, getScreen, nav } from '../../router.js';
 import { Page } from '../../components/Page.js';
 import { Button } from '../../components/Button.js';
+import { Icons } from '../../components/icons.js';
 import { Chevron } from '../../components/Chevron.js';
 import { Sheet } from '../../components/Sheet.js';
 import { injectStyles, T } from '../../components/styles.js';
@@ -254,8 +255,8 @@ export function requestReminderPermission(remind) {
 injectStyles('settings', `
 .sz-set{display:flex;flex-direction:column;gap:${T.groupGap}}
 .sz-set__group{display:flex;flex-direction:column;gap:${T.s3}}
-.sz-set__gtitle{margin:0;font-family:${T.song};font-size:${T.fs22};font-weight:500;color:${T.ink2}}
-.sz-set__list{display:flex;flex-direction:column;border-top:1px solid ${T.line}}
+.sz-set__gtitle{margin:0;font-family:${T.hei};font-size:${T.fs13};line-height:${T.lh13};font-weight:400;color:${T.ink3}} /* 分组标题：黑体 13 ink3，不画线（iOS 分组列表惯例，T2-14；比页面标题小、比行字灰，不再倒置） */
+.sz-set__list{display:flex;flex-direction:column}
 .sz-set__row{box-sizing:border-box;width:100%;min-height:52px;padding:${T.s3} 0;display:flex;align-items:center;justify-content:space-between;
   gap:${T.s3};border:0;border-bottom:${T.hair} solid ${T.line};background:transparent;color:inherit;font:inherit;text-align:left}
 button.sz-set__row{cursor:pointer}
@@ -293,8 +294,7 @@ button.sz-set__row:focus-visible{outline:2px solid ${T.ink1};outline-offset:2px}
 `);
 
 // 每次渲染现取新 vnode，不复用模块级常量（vendor/ui.js 注释，M6-3）。
-const CHECK_ICON = () => html`<svg class="sz-set__check" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.6"
-  stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 11.5 9.2 15.5 17 7"></path></svg>`;
+const CHECK_ICON = () => Icons.checkLarge({ cls: 'sz-set__check' });
 
 // ---------------------------------------------------------------- 视图零件
 

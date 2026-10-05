@@ -9,6 +9,7 @@
 
 import { html } from '../../../../vendor/ui.js';
 import { Button } from '../Button.js';
+import { Icons } from '../icons.js';
 import { Chevron } from '../Chevron.js';
 import { PracticeGlyph, FACE_FULL } from '../PracticeGlyph.js';
 import { injectStyles, T } from '../styles.js';
@@ -32,8 +33,7 @@ injectStyles('query-row', `
 `);
 
 // 每次渲染现取新 vnode，不复用模块级常量（vendor/ui.js 注释，M6-3）。
-const CHECK = () => html`<svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="var(--paper)" stroke-width="1.8"
-  stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m3 7.2 2.6 2.6L11 4.4"></path></svg>`;
+const CHECK = () => Icons.check({ size: 13, color: 'var(--paper)' });
 
 /**
  * @param {object} p

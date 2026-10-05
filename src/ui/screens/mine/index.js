@@ -54,7 +54,7 @@ injectStyles('mine', `
 .sz-mine__block{display:flex;flex-direction:column;gap:${T.s2}}
 .sz-mine__sheetblock{display:flex;flex-direction:column;gap:${T.s3}}
 .sz-mine__bhead{display:flex;justify-content:space-between;align-items:baseline;gap:${T.s3}}
-.sz-mine__btitle{margin:0;font-family:${T.song};font-size:${T.fs22};line-height:${T.lh22};font-weight:500;color:${T.ink2}}
+.sz-mine__btitle{margin:0;font-family:${T.hei};font-size:${T.fs13};line-height:${T.lh13};font-weight:400;color:${T.ink3}} /* 分组标题：黑体 13 ink3，不画线（T2-14）；右侧「练习记录 ›」仍是 15 / ink2 的文字按钮 */
 :root[data-ax] .sz-mine__bhead{flex-wrap:wrap;align-items:center} /* AX 档标题与右侧链接放不下一行时上下排，标题不再被挤成一字一行（A2-03） */
 :root[data-ax] .sz-mine__btitle{flex:1 1 auto}
 .sz-mine__weeksum{margin:0;font-size:${T.fs17};line-height:${T.lh17s};color:${T.ink1}}

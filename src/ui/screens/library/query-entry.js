@@ -20,6 +20,7 @@
 
 import { html } from '../../../../vendor/ui.js';
 import { Button } from '../../components/Button.js';
+import { Icons } from '../../components/icons.js';
 import { injectStyles, T } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
 import { openQuery } from '../../components/query/index.js';
@@ -38,8 +39,7 @@ injectStyles('library-query', `
 `);
 
 // 每次渲染现取新 vnode，不复用模块级常量（vendor/ui.js 注释，M6-3）。
-const SEARCH_ICON = () => html`<svg class="sz-libq__icon" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.6"
-  stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="10" cy="10" r="6"></circle><path d="m14.5 14.5 4 4"></path></svg>`;
+const SEARCH_ICON = () => Icons.search({ cls: 'sz-libq__icon', size: 0 });
 
 /**
  * 查字弹层卡片「练这个字」：开「这次选的字」（B）。旧 B 没写完 → S02（startPicked 弹）；失败 → {ok:false}（弹层三段式）。

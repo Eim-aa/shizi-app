@@ -35,6 +35,7 @@ import { html, useEffect, useRef, useState } from '../../../../vendor/ui.js';
 import { registerScreen, getRouter, getScreen, nav } from '../../router.js';
 import { Page } from '../../components/Page.js';
 import { Button, markStateChange } from '../../components/Button.js';
+import { Icons } from '../../components/icons.js';
 import { Chevron } from '../../components/Chevron.js';
 import { PracticeGlyph, FACE_FULL } from '../../components/PracticeGlyph.js';
 import { injectStyles, T, TEX } from '../../components/styles.js';
@@ -124,8 +125,7 @@ injectStyles('library-list', `
 `);
 
 // 每次渲染现取新 vnode，不复用模块级常量（vendor/ui.js 注释，M6-3）。
-const CHECK = () => html`<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="var(--paper)" stroke-width="1.8"
-  stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m3 7.2 2.6 2.6L11 4.4"></path></svg>`;
+const CHECK = () => Icons.check({ color: 'var(--paper)' });
 
 // ---------------------------------------------------------------- 状态
 

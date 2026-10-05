@@ -55,7 +55,7 @@
   --hair: 0.5px; /* 分隔发丝线（真机 1 物理像素）· 来源：tokens.json line.hairline */
   --frame-w: 1px; /* 格框线宽 · 来源：tokens.json line.frame */
   --guide-w: 0.75px; /* 格内十字虚线线宽 · 来源：tokens.json line.guide */
-  --target-w: 1.5px; /* 题面目标格外框线宽 · 来源：tokens.json line.targetCellFrame */
+  --target-w: 1px; /* 题面目标格外框线宽（T2-21：与格框同为 1pt，与旁边已知字的区分靠「空」本身）· 来源：tokens.json line.targetCellFrame */
   --hit: 44px; /* 最小可点尺寸 · 来源：tokens.json touch.minHit */
   --btn-h: 54px; /* 主 / 次按钮高 · 来源：tokens.json touch.buttonHeight */
   --press-scale: 0.97; /* 按下缩放 · 来源：tokens.json motion.pressScale */

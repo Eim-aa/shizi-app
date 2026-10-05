@@ -99,6 +99,7 @@ injectStyles('home-copybook', `
 .sz-htie{position:relative;display:inline-flex;flex-wrap:wrap;width:calc(var(--cell) * var(--cols));box-sizing:border-box;${TEX};
   box-shadow:inset 0 0 0 ${T.frameW} ${T.frame}}
 .sz-htie--btn.sz-btn{padding:0;display:inline-flex;text-align:left}
+.sz-htie--recent{--hand:${T.ink2}} /* 最近写的字（今天还没写）用 ink2 画，与今天写的区分（N3-02 / D53）：墨取 --hand，这里只在这一排改它 */
 .sz-hcell{position:relative;display:block;width:var(--cell);height:var(--cell);box-sizing:border-box;container-type:inline-size;
   box-shadow:inset calc(-1 * ${T.guideW}) calc(-1 * ${T.guideW}) 0 ${T.guide}}
 .sz-hcell[data-lastcol="true"]{box-shadow:inset 0 calc(-1 * ${T.guideW}) 0 ${T.guide}}
@@ -223,12 +224,13 @@ export function HomeTie({ cells, size, kind, count = 0, label = '', getInk, attr
     </span>`;
   });
   const style = { '--cell': `${size}px`, '--cols': String(cols) };
+  const htieClass = kind === 'recent' ? 'sz-htie sz-htie--recent' : 'sz-htie';
   if (kind === 'today' && action) {
     return html`<${Button} variant="plain" class="sz-htie sz-htie--btn" style=${style} data-testid="home-ink-row" data-count=${count}
       aria-label=${label} onClick=${() => action()}>${items}</${Button}>`;
   }
   const testid = kind === 'today' ? 'home-ink-row' : kind === 'recent' ? 'home-recent-row' : 'home-progress';
-  return html`<div class="sz-htie" style=${style} role="img" aria-label=${label} data-testid=${testid}
+  return html`<div class=${htieClass} style=${style} role="img" aria-label=${label} data-testid=${testid}
     data-count=${count} ...${attrs || {}}>${items}</div>`;
 }
 

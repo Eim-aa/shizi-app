@@ -13,6 +13,7 @@ import { compareRecordIds, sortById } from '../../../core/records.js';
 import { isWorkMember } from '../../../core/work-members.js';
 import { pickInkRecord } from '../../../core/ink-pick.js';
 import { flattenRecords } from '../../../core/query.js';
+import { diffDays } from '../../../core/dates.js';
 
 /**
  * @param {object[]|{[month:string]:any}|null} records  全部记录（按月分键的 state.records，或已平铺的数组）
@@ -40,4 +41,23 @@ export function recentInkRow(records, { limit = 3, hasInk } = {}) {
     if (record) picked.push(record);
   }
   return sortById(picked);
+}
+
+/**
+ * 最近写的字下面的一句（C3-H / N3-02，D53；03 P246）：最近的字用 ink2 画（与今天写的区分），格下说清是哪天写的——不然第二天读起来像被预告了题目。
+ * 这几个字都是同一天写的：昨天 →「昨天写的字。」、前天 →「前天写的字。」、3–6 天前 →「{n} 天前写的字。」；不是同一天写的 →「最近写的字。」；
+ * 离开一周以上（那个态有自己的一句「你写过的 N 个字都还在。」）或算不出天数时返回 ''。
+ * @param {object[]} row  recentInkRow 的结果
+ * @param {string} today  今天的日键
+ * @param {(key:string, vars?:object)=>string} translate  copy.t
+ */
+export function recentDayLine(row, today, translate) {
+  const days = [...new Set((row || []).map(r => r && r.localDay).filter(d => typeof d === 'string'))];
+  if (!days.length || typeof today !== 'string') return '';
+  if (days.length > 1) return translate('X-HOME.recentMixed');
+  const n = diffDays(days[0], today);
+  if (!(n >= 1) || n >= 7) return '';
+  if (n === 1) return translate('X-HOME.recentYesterday');
+  if (n === 2) return translate('X-HOME.recentDayBefore');
+  return translate('X-HOME.recentDaysAgo', { n });
 }

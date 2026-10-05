@@ -467,7 +467,8 @@ export default async function run(page, ctx) {
   assert.deepEqual([h.view, h.hero, h.cta, h.pick, h.date, h.title], ['fresh', 'recent', '开始写字', '自己选字', '10月5日 · 早上', '今天写几个字']);
   assert.equal(h.brandShi, null, 'H1 / D51 ④: no brand 拾 frame in the everyday states');
   assert.deepEqual(h.removedNodes, [], 'D49: no 「昨天写的字」 row, no library link, no resume line, no capital lead / back-old line in the DOM');
-  assert.ok(!/昨天写的字|上次写的字|字库里有|这一组/.test(h.visibleText), `D49-7: nothing countable is drawn on the home page: ${h.visibleText}`);
+  // C3-H / N3-02（D53）：格下重新有一句「昨天写的字。」——不是 D49 删掉的那一行记录，而是说清这几个字是哪天写的的一句 13 墨三（P246）
+  assert.ok(!/上次写的字|字库里有|这一组/.test(h.visibleText) && h.visibleText.includes('昨天写的字。'), `D49-7 / N3-02: nothing countable is drawn, the one line says which day: ${h.visibleText}`);
   assert.equal(h.libraryLabel, '字库里有 5 个字了', 'D49-7: the library count lives only in the screen-reader name of the copybook block');
   assert.equal(h.reds, 0, 'no red dot');
   assert.equal(h.seals, 0, 'D49-1: the epigraph carries no seal — the everyday home has no red at all');

@@ -59,6 +59,7 @@ import { useCompact } from '../write/compact.js';
 import { ensureNavHooks, expireStale, openWrite, resumeSlot, startA, startPicked } from '../session/index.js';
 import { setNoneActions } from '../session/none.js';
 import { homeModel, resumeLineText, resumeLineAria, INK_ROW_MAX } from './today.js';
+import { recentDayLine } from './recent.js';
 import { commitShiHandoffDone } from './handoff.js';
 import { BrandShi, HomeTie, ShiHandoff, axTieCellSize, firstShiSize, shiCellSize, tieCellSize, tieCols, useElementWidth } from './copybook.js';
 import { useAxLevel } from '../../components/ax.js';
@@ -566,6 +567,7 @@ function HomeScreen() {
           : null}
     </div>`;
   } else if (model.hero === 'recent') {
+    const recentLine = recentDayLine(model.recentRow, model.today, t);
     // 今天还没写 / 离开一周 / 特别组那天还没写：本人最近写的几个字（H1 / D51 ④），不放品牌字；下面按状态一句话
     const cells = model.recentRow.map((r, i) => ({ index: i, state: 'ink', record: r }));
     const size = sizeOf(cells.length, tieCellSize(cells.length, b));
@@ -573,6 +575,7 @@ function HomeScreen() {
       <${HomeTie} cells=${cells} size=${size} kind="recent" count=${cells.length} getInk=${getInk}
         label=${t('X-HOME.recentRowLabel', { chars: model.recentRow.map(r => `「${r.char}」`).join('') })} />
       ${view === 'special' ? html`<div class="sz-home__gap"></div><${CapitalHint} kind=${model.capital} />` : null}
+      ${view === 'fresh' && recentLine ? html`<div class="sz-home__gap"></div><p class="sz-home__line" data-testid="home-recent-note">${recentLine}</p>` : null}
       ${view === 'back' ? html`<div class="sz-home__gap"></div>
         <p class="sz-home__line" data-testid="home-back-note">${t('X-HOME.backNote', { n: model.libraryCount })}</p>` : null}
     </div>`;

@@ -59,6 +59,11 @@ export default Object.freeze({
   'X-HOME.inkRowLabel': '今天写了 {n} 个字：{chars}',
   // 首页日常状态的字帖位（H1 / D51 ④，03 P220）：今天还没写、离开一周回来时放本人最近写的几个字；读屏名称
   'X-HOME.recentRowLabel': '你最近写的字：{chars}',
+  // 最近写的字（ink2）格下的一句（C3-H / N3-02、D53，03 P246）：今天还没写时说清这几个字是哪天写的；离开一周以上另有「你写过的 N 个字都还在。」
+  'X-HOME.recentYesterday': '昨天写的字。',
+  'X-HOME.recentDayBefore': '前天写的字。',
+  'X-HOME.recentDaysAgo': '{n} 天前写的字。',
+  'X-HOME.recentMixed': '最近写的字。',
   'X-HOME.startFailed': '没保存上，刚才的选择没记下。',
   // X-HOME（阶段 1 P1-E5，设计稿「首练与首页」：首次打开、日常首页五态；全部是过渡文案，阶段 1 文案统一时定稿）
   'X-HOME.mottoLine1': '提笔忘字，',

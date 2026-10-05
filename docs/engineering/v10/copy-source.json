@@ -210,6 +210,7 @@
     "P233": "次级页 AX 档防叠（R2-A1 / A2-03，D29）：AX 档周条一句话、月历每天一行列表、字帖格角标不画、详情记录格两列；文案槽 X-MINE.axDayRow / axDayRowPaper / weekSummary / weekSummaryNone，样式与分支在 src/ui/screens/mine/*、detail/records.js、components/work.js，不是 policy 开关",
     "P234": "小字保底与格框对比（R2-A1 / A2-07、A2-12，D43）：--fs13 / --fs11（与行高）加 max() 保底（12px / 11px），浅色 --frame 改 #95826B（对纸面 3.23:1）；取值在 src/config/tokens.css 与 docs/design/design-system-v1/tokens.json（minSize / minLineHeight / frame/paper 对比表），不是 policy 开关",
     "P245": "「拾」交接重做（C3-H，D53 ④）：时间表（停 600ms → 500ms 退灰 / 写墨 / 灰退场）与本人墨逐笔回放的编排，src/ui/screens/home/copybook.js、handoff.js、handoff-ink.js；格下与结果页那两句文案见 X-HOME.shiFirstLine / X-FIRST.shiWritten / X-FIRST.shiHome；不是运行时开关",
+    "P246": "第二天的连续性（C3-H，D53）：最近写的字用 ink2 画（样式取值，src/ui/screens/home/copybook.js .sz-htie--recent）与格下一句的选择规则（src/ui/screens/home/recent.js recentDayLine）；文案见 X-HOME.recent*；不是运行时开关",
     "P240": "书写格永远正方形（R3-K1 / A3-01）：书写格与判断页两格宽高写死成同一个 px 值（src/ui/canvas/ink-canvas.js、src/ui/screens/write/compare.js squareStyle），容器变形时笔画按较短边居中映射（squareMapping），WebKit 门禁 scripts/verify-webkit-ax.mjs；不是运行时开关",
     "P241": "AX 档格下说明位按实际高度排、放不下时并入「⋯」菜单（R3-K1 / A3-01）：版式公式在 src/ui/screens/write/layout.js axWriteLayout（noteInMenu），量测在 compact.js useWriteLayout，菜单顶部 write-menu-note 在 ax-menu.js；policy.writeGrid.axNoteHeight 改为最小高度，不是新的运行时开关",
     "P242": "中文折行（R3-K1 / A3-02）：全 App 不用 word-break:keep-all；按钮与菜单项文字经 src/ui/components/Words.js（Intl.Segmenter 分词、每词一个 nowrap span）只在词边界折，正文与说明句用正常 CJK 折行 + line-break:strict；样式规则，不是运行时开关",
@@ -3204,6 +3205,34 @@
           "origin": "extra",
           "note": "C3-H / N3-01、D53 ④：「拾」交接写完后格下出现一次的一句事实陈述（不是夸奖，D30），保留到离开首页；减少动态效果下立即出现；结果页复现句前加同一句（X-FIRST.shiWritten）",
           "decision": "P245"
+        },
+        "recentYesterday": {
+          "raw": null,
+          "text": "昨天写的字。",
+          "origin": "extra",
+          "note": "C3-H / N3-02、D53：首页今天还没写时，最近写的字（ink2）格下一句说清哪天写的（昨天）；离开一周以上不用这组，用 X-HOME.backNote",
+          "decision": "P246"
+        },
+        "recentDayBefore": {
+          "raw": null,
+          "text": "前天写的字。",
+          "origin": "extra",
+          "note": "C3-H / N3-02、D53：首页今天还没写时，最近写的字（ink2）格下一句说清哪天写的（前天）；离开一周以上不用这组，用 X-HOME.backNote",
+          "decision": "P246"
+        },
+        "recentDaysAgo": {
+          "raw": null,
+          "text": "{n} 天前写的字。",
+          "origin": "extra",
+          "note": "C3-H / N3-02、D53：首页今天还没写时，最近写的字（ink2）格下一句说清哪天写的（3–6 天前（n 为天数））；离开一周以上不用这组，用 X-HOME.backNote",
+          "decision": "P246"
+        },
+        "recentMixed": {
+          "raw": null,
+          "text": "最近写的字。",
+          "origin": "extra",
+          "note": "C3-H / N3-02、D53：首页今天还没写时，最近写的字（ink2）格下一句说清哪天写的（这几个字不是同一天写的）；离开一周以上不用这组，用 X-HOME.backNote",
+          "decision": "P246"
         }
       }
     },

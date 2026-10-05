@@ -259,3 +259,17 @@ test('home cell sizes (T3-01 / D53 ③): a copybook row always fills the content
   assert.equal(firstShiSize(320), 172, 'clamped to 172 on the narrowest');
   assert.equal(firstShiSize(500), 216, 'clamped to 216');
 });
+
+test('recentDayLine (C3-H / N3-02, D53): the line under the recent chars says which day they were written; mixed days → neutral; a week or more is the 回来 state\'s own line', async () => {
+  const { recentDayLine } = await import('../../src/ui/screens/home/recent.js');
+  const { t } = await import('../../src/config/copy/index.js');
+  const row = days => days.map((d, i) => ({ id: `r${i}`, localDay: d }));
+  assert.equal(recentDayLine(row(['2026-10-04', '2026-10-04']), '2026-10-05', t), '昨天写的字。');
+  assert.equal(recentDayLine(row(['2026-10-03']), '2026-10-05', t), '前天写的字。');
+  assert.equal(recentDayLine(row(['2026-10-01']), '2026-10-05', t), '4 天前写的字。');
+  assert.equal(recentDayLine(row(['2026-09-29']), '2026-10-05', t), '6 天前写的字。');
+  assert.equal(recentDayLine(row(['2026-09-28']), '2026-10-05', t), '', 'seven days or more: the back state has its own line');
+  assert.equal(recentDayLine(row(['2026-10-04', '2026-10-02']), '2026-10-05', t), '最近写的字。', 'different days → neutral');
+  assert.equal(recentDayLine([], '2026-10-05', t), '');
+  assert.equal(recentDayLine(row(['2026-10-05']), '2026-10-05', t), '', 'same day as today is not a recent-row case');
+});

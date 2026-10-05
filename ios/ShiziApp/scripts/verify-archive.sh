@@ -60,12 +60,15 @@ test -n "$app_minimum_os" || { echo "Missing MinimumOSVersion" >&2; exit 65; }
 test -n "$app_executable" && test -f "${APP}/${app_executable}" || { echo "Archived executable is missing" >&2; exit 65; }
 
 # M5-3：DEBUG 冒烟与测试宿主注入（NativeSmoke.swift、?test=1 + __shiziNativeDev）不得进 Release 可执行文件。
-for marker in "__shiziNativeDev" "nativeSmokeResult" "nativeSmokeControl" "shizi-native-smoke.json" "-shizi-smoke" "__shiziSmokeEvents" "restorecheck" "rafWriteDrawing" "deviceInfo" "shizi-smoke-probe.js" "-shizi-probe-arg"; do
+for marker in "__shiziNativeDev" "nativeSmokeResult" "nativeSmokeControl" "shizi-native-smoke.json" "-shizi-smoke" "__shiziSmokeEvents" "restorecheck" "rafWriteDrawing" "deviceInfo" "shizi-smoke-probe.js" "-shizi-probe-arg" "__shiziNativeInk" "-shizi-native-ink" "shizi-native-ink-latency.json" "ink_vs"; do
   if LC_ALL=C grep -aFq -e "$marker" "${APP}/${app_executable}"; then
     echo "Release executable contains Debug native-smoke marker: ${marker}" >&2
     exit 65
   fi
 done
+
+# P1-S2：原生书写面 spike 的笔锋模型金标准文件只在 Debug 构建复制进包（sync-web-assets.sh）。
+test ! -e "${APP}/InkModel" || { echo "Release app contains Debug-only InkModel/ self-check files" >&2; exit 65; }
 
 if [ -n "${EXPECTED_BUNDLE_ID:-}" ] && [ "$app_bundle_id" != "$EXPECTED_BUNDLE_ID" ]; then
   echo "Expected bundle ID ${EXPECTED_BUNDLE_ID}, got ${app_bundle_id}" >&2

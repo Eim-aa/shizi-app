@@ -244,7 +244,8 @@ const swiftDir = join('ios', 'ShiziApp', 'ShiziApp');
   check('bridge handler is cycle-free and removed on teardown',
     webView.includes('WeakScriptMessageHandler(delegate: self)') && webView.includes('removeScriptMessageHandler(forName: "shiziNative")'));
   // M5-3：冒烟与测试宿主注入（__shiziNativeDev、?test=1、nativeSmoke*）只在 #if DEBUG 里（Release 不编译；产物另由 verify-archive.sh 查）。
-  const debugOnly = /__shiziNativeDev|nativeSmoke|shizi-native-smoke|"test", value: "1"/;
+  // P1-S2：原生书写面 spike（__shiziNativeInk、-shizi-native-ink、NativeInkSpike / NativeInkView / InkModel）同样只在 DEBUG。
+  const debugOnly = /__shiziNativeDev|nativeSmoke|shizi-native-smoke|"test", value: "1"|__shiziNativeInk|shizi-native-ink|NativeInkSpike|NativeInkView|InkModel/;
   const leaks = [];
   for (const file of listFiles(swiftDir, f => f.endsWith('.swift'))) {
     const stack = [];

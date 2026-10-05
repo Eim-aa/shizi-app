@@ -22,7 +22,7 @@ struct InkRawPoint: Equatable {
     var alt: Double? = nil
     var predicted = false
 
-    var hasP: Bool { (p ?? 0) > 0 }
+    var hasP: Bool { @_optimize(speed) get { (p ?? 0) > 0 } }
 }
 
 /// 默认参数（规格 §3 参数表；与 reference.mjs PARAMS 同名同值）。
@@ -197,15 +197,15 @@ struct InkGeometry {
 
 // MARK: - 小工具
 
-@inline(__always) private func clamp(_ x: Double, _ lo: Double, _ hi: Double) -> Double { x < lo ? lo : (x > hi ? hi : x) }
-@inline(__always) private func lerp(_ a: Double, _ b: Double, _ u: Double) -> Double { a + (b - a) * u }
-@inline(__always) private func smooth(_ u: Double) -> Double {
+@inline(__always) @_optimize(speed) private func clamp(_ x: Double, _ lo: Double, _ hi: Double) -> Double { x < lo ? lo : (x > hi ? hi : x) }
+@inline(__always) @_optimize(speed) private func lerp(_ a: Double, _ b: Double, _ u: Double) -> Double { a + (b - a) * u }
+@inline(__always) @_optimize(speed) private func smooth(_ u: Double) -> Double {
     let x = clamp(u, 0, 1)
     return x * x * (3 - 2 * x)
 }
-@inline(__always) private func hyp(_ dx: Double, _ dy: Double) -> Double { (dx * dx + dy * dy).squareRoot() }
-@inline(__always) private func angleOf(_ ax: Double, _ ay: Double, _ bx: Double, _ by: Double) -> Double { atan2(by - ay, bx - ax) }
-@inline(__always) private func wrap(_ a: Double) -> Double {
+@inline(__always) @_optimize(speed) private func hyp(_ dx: Double, _ dy: Double) -> Double { (dx * dx + dy * dy).squareRoot() }
+@inline(__always) @_optimize(speed) private func angleOf(_ ax: Double, _ ay: Double, _ bx: Double, _ by: Double) -> Double { atan2(by - ay, bx - ax) }
+@inline(__always) @_optimize(speed) private func wrap(_ a: Double) -> Double {
     var x = a
     while x > Double.pi { x -= 2 * Double.pi }
     while x < -Double.pi { x += 2 * Double.pi }
@@ -221,31 +221,31 @@ struct InkMid {
     var p: Double?
     var alt: Double?
     var predicted: Bool
-    var hasP: Bool { (p ?? 0) > 0 }
+    var hasP: Bool { @_optimize(speed) get { (p ?? 0) > 0 } }
 }
 
 extension InkModel {
     // MARK: 因子（规格 §3）
 
-    static func speedFactor(_ v: Double, _ k: InkParams) -> Double {
+    @_optimize(speed) static func speedFactor(_ v: Double, _ k: InkParams) -> Double {
         let vv = clamp(v, 0, k.speedCap)
         return 1 - (1 - k.vMin) * (1 - exp(-vv / k.vK))
     }
 
-    static func pressureFactor(_ p: Double, _ k: InkParams) -> Double {
+    @_optimize(speed) static func pressureFactor(_ p: Double, _ k: InkParams) -> Double {
         clamp(k.pressureLo + clamp(p, 0, 1).squareRoot() * k.pressureGain, k.pressureLo, k.pressureHi)
     }
 
-    static func tiltFactor(_ alt: Double?, _ k: InkParams) -> Double {
+    @_optimize(speed) static func tiltFactor(_ alt: Double?, _ k: InkParams) -> Double {
         guard k.tiltGain > 0, let alt else { return 1 }
         return 1 + k.tiltGain * clamp((k.tiltAlt0 - alt) / k.tiltAlt0, 0, 1)
     }
 
-    static func dirFactor(_ theta: Double, _ k: InkParams) -> Double {
+    @_optimize(speed) static func dirFactor(_ theta: Double, _ k: InkParams) -> Double {
         max(k.dirMin, k.dirA + k.dirB * abs(sin(theta - k.dirAngle * deg)))
     }
 
-    static func sizeComp(_ S: Double, _ k: InkParams = .default) -> Double {
+    @_optimize(speed) static func sizeComp(_ S: Double, _ k: InkParams = .default) -> Double {
         if S >= k.sizeRef { return 1 }
         return min(k.sizeCompMax, pow(S / k.sizeRef, -k.sizeGamma))
     }
@@ -253,7 +253,7 @@ extension InkModel {
     // MARK: 输入预处理（规格 §2）
 
     /// 零时间差合并（留最后位置，D09）；坏点丢弃；时间不单调时夹到前一点（再按零差合并）。
-    static func prepare(_ raw: [InkRawPoint]) -> [InkRawPoint] {
+    @_optimize(speed) static func prepare(_ raw: [InkRawPoint]) -> [InkRawPoint] {
         var out: [InkRawPoint] = []
         out.reserveCapacity(raw.count)
         for r in raw {
@@ -271,7 +271,7 @@ extension InkModel {
     }
 
     /// 向量 1€（指数 α = 1 − e^(−2π·fc·Δt)，速度取模长，两轴共用截止频率）。
-    static func oneEuro(_ points: [InkRawPoint], _ k: InkParams) -> [InkRawPoint] {
+    @_optimize(speed) static func oneEuro(_ points: [InkRawPoint], _ k: InkParams) -> [InkRawPoint] {
         var out: [InkRawPoint] = []
         out.reserveCapacity(points.count)
         var xh = 0.0, yh = 0.0, dh = 0.0, tp = 0.0
@@ -302,7 +302,7 @@ extension InkModel {
     }
 
     /// 抬笔前 window ms 均速（D09：不足 window 用整段时长）。点少于 2 个返回 nil。
-    static func liftSpeed(_ m: [(x: Double, y: Double, t: Double)], _ windowMs: Double) -> Double? {
+    @_optimize(speed) static func liftSpeed(_ m: [(x: Double, y: Double, t: Double)], _ windowMs: Double) -> Double? {
         let n = m.count
         if n < 2 { return nil }
         let tl = m[n - 1].t
@@ -323,110 +323,117 @@ extension InkModel {
         return dt > 0 ? d / dt : 0
     }
 
-    static func liftSpeed(_ m: [InkRawPoint], _ windowMs: Double) -> Double? {
+    @_optimize(speed) static func liftSpeed(_ m: [InkRawPoint], _ windowMs: Double) -> Double? {
         liftSpeed(m.map { (x: $0.x, y: $0.y, t: $0.t) }, windowMs)
     }
 
     /// 落笔后 window ms 均速（liftSpeed 的镜像）。
-    static func startSpeed(_ m: [InkRawPoint], _ windowMs: Double) -> Double? {
+    @_optimize(speed) static func startSpeed(_ m: [InkRawPoint], _ windowMs: Double) -> Double? {
         liftSpeed(m.reversed().map { (x: $0.x, y: $0.y, t: -$0.t) }, windowMs)
     }
 
     // MARK: 重采样（规格 §2.4）
 
     /// 向心 Catmull-Rom 稠密化（端点镜像补控制点），段内 t / p 按弧长线性；再按等弧长 Δs 重采样。
-    static func resample(_ P: [InkRawPoint], _ k: InkParams) -> [InkMid] {
+    @_optimize(speed) static func resample(_ P: [InkRawPoint], _ k: InkParams) -> [InkMid] {
         let n = P.count
         if n == 1 { return [InkMid(x: P[0].x, y: P[0].y, t: P[0].t, s: 0, p: P[0].p, alt: P[0].alt, predicted: P[0].predicted)] }
-        struct D { var x: Double; var y: Double; var t: Double; var p: Double?; var alt: Double?; var predicted: Bool }
-        var dense: [D] = []
-        dense.reserveCapacity(n * 8)
-        func ext(_ a: InkRawPoint, _ b: InkRawPoint) -> (Double, Double) { (2 * a.x - b.x, 2 * a.y - b.y) }
-        var pts: [(Double, Double)] = []
-        var lens: [Double] = []
+        // 稠密点用平铺数组（-Onone 的 DEBUG 构建里局部结构体与嵌套函数不被优化，平铺后每帧快约 2 倍；算术顺序与 reference.mjs 逐式相同）
+        var dX: [Double] = [], dY: [Double] = [], dT: [Double] = [], dP: [Double] = [], dAlt: [Double] = []
+        var dHasP: [Bool] = [], dHasAlt: [Bool] = [], dPred: [Bool] = []
+        let cap = n * 8
+        dX.reserveCapacity(cap); dY.reserveCapacity(cap); dT.reserveCapacity(cap); dP.reserveCapacity(cap); dAlt.reserveCapacity(cap)
+        dHasP.reserveCapacity(cap); dHasAlt.reserveCapacity(cap); dPred.reserveCapacity(cap)
+        var px: [Double] = [], py: [Double] = [], lens: [Double] = []
         for i in 0..<(n - 1) {
-            let p0: (Double, Double) = i == 0 ? ext(P[0], P[1]) : (P[i - 1].x, P[i - 1].y)
             let p1 = P[i], p2 = P[i + 1]
-            let p3: (Double, Double) = i + 2 < n ? (P[i + 2].x, P[i + 2].y) : ext(P[n - 1], P[n - 2])
+            let p0x = i == 0 ? 2 * P[0].x - P[1].x : P[i - 1].x
+            let p0y = i == 0 ? 2 * P[0].y - P[1].y : P[i - 1].y
+            let p3x = i + 2 < n ? P[i + 2].x : 2 * P[n - 1].x - P[n - 2].x
+            let p3y = i + 2 < n ? P[i + 2].y : 2 * P[n - 1].y - P[n - 2].y
             let segChord = hyp(p2.x - p1.x, p2.y - p1.y)
             let M = max(4, Int((segChord / 0.25).rounded(.up)))
-            func kn(_ ax: Double, _ ay: Double, _ bx: Double, _ by: Double) -> Double { max(1e-4, hyp(bx - ax, by - ay).squareRoot()) }
             let t0 = 0.0
-            let t1 = t0 + kn(p0.0, p0.1, p1.x, p1.y)
-            let t2 = t1 + kn(p1.x, p1.y, p2.x, p2.y)
-            let t3 = t2 + kn(p2.x, p2.y, p3.0, p3.1)
-            pts.removeAll(keepingCapacity: true)
+            let t1 = t0 + max(1e-4, hyp(p1.x - p0x, p1.y - p0y).squareRoot())
+            let t2 = t1 + max(1e-4, hyp(p2.x - p1.x, p2.y - p1.y).squareRoot())
+            let t3 = t2 + max(1e-4, hyp(p3x - p2.x, p3y - p2.y).squareRoot())
+            px.removeAll(keepingCapacity: true)
+            py.removeAll(keepingCapacity: true)
             for j in 0...M {
                 if j == M, i < n - 2 { break } // 段尾留给下一段
                 if segChord < 1e-9 {
-                    pts.append((p1.x, p1.y))
+                    px.append(p1.x); py.append(p1.y)
                     continue
                 }
                 let tt = t1 + ((t2 - t1) * Double(j)) / Double(M)
-                @inline(__always) func L(_ ax: Double, _ ay: Double, _ bx: Double, _ by: Double, _ ta: Double, _ tb: Double) -> (Double, Double) {
-                    let u = (tt - ta) / (tb - ta)
-                    return (ax + (bx - ax) * u, ay + (by - ay) * u)
-                }
-                let A1 = L(p0.0, p0.1, p1.x, p1.y, t0, t1)
-                let A2 = L(p1.x, p1.y, p2.x, p2.y, t1, t2)
-                let A3 = L(p2.x, p2.y, p3.0, p3.1, t2, t3)
-                let B1 = L(A1.0, A1.1, A2.0, A2.1, t0, t2)
-                let B2 = L(A2.0, A2.1, A3.0, A3.1, t1, t3)
-                let C = L(B1.0, B1.1, B2.0, B2.1, t1, t2)
-                pts.append(C)
+                // Barry–Goldman：L(pa, pb, ta, tb) = pa + (pb − pa)·(tt − ta)/(tb − ta)
+                var u = (tt - t0) / (t1 - t0)
+                let a1x = p0x + (p1.x - p0x) * u, a1y = p0y + (p1.y - p0y) * u
+                u = (tt - t1) / (t2 - t1)
+                let a2x = p1.x + (p2.x - p1.x) * u, a2y = p1.y + (p2.y - p1.y) * u
+                u = (tt - t2) / (t3 - t2)
+                let a3x = p2.x + (p3x - p2.x) * u, a3y = p2.y + (p3y - p2.y) * u
+                u = (tt - t0) / (t2 - t0)
+                let b1x = a1x + (a2x - a1x) * u, b1y = a1y + (a2y - a1y) * u
+                u = (tt - t1) / (t3 - t1)
+                let b2x = a2x + (a3x - a2x) * u, b2y = a2y + (a3y - a2y) * u
+                u = (tt - t1) / (t2 - t1)
+                px.append(b1x + (b2x - b1x) * u)
+                py.append(b1y + (b2y - b1y) * u)
             }
             // 段内弧长 → 时间 / 压力线性
             var acc = 0.0
             lens.removeAll(keepingCapacity: true)
             lens.append(0)
-            if pts.count > 1 {
-                for j in 1..<pts.count {
-                    acc += hyp(pts[j].0 - pts[j - 1].0, pts[j].1 - pts[j - 1].1)
+            let cnt = px.count
+            if cnt > 1 {
+                for j in 1..<cnt {
+                    acc += hyp(px[j] - px[j - 1], py[j] - py[j - 1])
                     lens.append(acc)
                 }
             }
-            let lastPt = pts[pts.count - 1]
-            let segLen = i < n - 2 ? acc + hyp(p2.x - lastPt.0, p2.y - lastPt.1) : acc
+            let segLen = i < n - 2 ? acc + hyp(p2.x - px[cnt - 1], p2.y - py[cnt - 1]) : acc
             let withP = p1.hasP || p2.hasP
-            for (j, q) in pts.enumerated() {
-                let u = segLen > 1e-9 ? lens[j] / segLen : Double(j) / Double(max(1, pts.count - 1))
-                var d = D(x: q.0, y: q.1, t: lerp(p1.t, p2.t, u), p: nil, alt: nil, predicted: p2.predicted)
-                if withP { d.p = lerp(p1.p ?? 0, p2.p ?? 0, u) }
-                if let a1 = p1.alt, let a2 = p2.alt { d.alt = lerp(a1, a2, u) }
-                dense.append(d)
+            let withAlt = p1.alt != nil && p2.alt != nil
+            for j in 0..<cnt {
+                let u = segLen > 1e-9 ? lens[j] / segLen : Double(j) / Double(max(1, cnt - 1))
+                dX.append(px[j]); dY.append(py[j]); dT.append(lerp(p1.t, p2.t, u))
+                dHasP.append(withP); dP.append(withP ? lerp(p1.p ?? 0, p2.p ?? 0, u) : 0)
+                dHasAlt.append(withAlt); dAlt.append(withAlt ? lerp(p1.alt!, p2.alt!, u) : 0)
+                dPred.append(p2.predicted)
             }
         }
         // 等弧长
-        var S = [Double](repeating: 0, count: dense.count)
-        for j in 1..<dense.count { S[j] = S[j - 1] + hyp(dense[j].x - dense[j - 1].x, dense[j].y - dense[j - 1].y) }
-        let len = S[S.count - 1]
+        let dn = dX.count
+        var S = [Double](repeating: 0, count: dn)
+        for j in 1..<dn { S[j] = S[j - 1] + hyp(dX[j] - dX[j - 1], dY[j] - dY[j - 1]) }
+        let len = S[dn - 1]
         var out: [InkMid] = []
         let count = max(1, Int((len / k.step - 1e-9).rounded(.up)))
         out.reserveCapacity(count + 1)
         var j = 0
         for m in 0...count {
             let s = m == count ? len : Double(m) * k.step
-            while j < dense.count - 2, S[j + 1] < s { j += 1 }
+            while j < dn - 2, S[j + 1] < s { j += 1 }
             var a = j
-            var b = min(j + 1, dense.count - 1)
+            var b = min(j + 1, dn - 1)
             if m == count {
-                a = dense.count - 1
+                a = dn - 1
                 b = a
             }
             let span = S[b] - S[a]
             let u = span > 1e-12 ? clamp((s - S[a]) / span, 0, 1) : 0
-            let A = dense[a], B = dense[b]
-            var q = InkMid(x: lerp(A.x, B.x, u), y: lerp(A.y, B.y, u), t: lerp(A.t, B.t, u), s: s, p: nil, alt: nil, predicted: false)
-            if A.p != nil || B.p != nil { q.p = lerp(A.p ?? 0, B.p ?? 0, u) }
-            if let aa = A.alt, let ba = B.alt { q.alt = lerp(aa, ba, u) }
-            if B.predicted, u > 0 { q.predicted = true }
+            var q = InkMid(x: lerp(dX[a], dX[b], u), y: lerp(dY[a], dY[b], u), t: lerp(dT[a], dT[b], u), s: s, p: nil, alt: nil, predicted: false)
+            if dHasP[a] || dHasP[b] { q.p = lerp(dP[a], dP[b], u) }
+            if dHasAlt[a], dHasAlt[b] { q.alt = lerp(dAlt[a], dAlt[b], u) }
+            if dPred[b], u > 0 { q.predicted = true }
             out.append(q)
         }
         return out
     }
 
     /// 弧长 s 处的位置与时间（线性插值）；s 越界取端样本。
-    static func posAt(_ S: [InkMid], _ s: Double) -> (x: Double, y: Double, t: Double) {
+    @_optimize(speed) static func posAt(_ S: [InkMid], _ s: Double) -> (x: Double, y: Double, t: Double) {
         let n = S.count
         if s <= 0 { return (S[0].x, S[0].y, S[0].t) }
         if s >= S[n - 1].s { return (S[n - 1].x, S[n - 1].y, S[n - 1].t) }
@@ -440,7 +447,7 @@ extension InkModel {
         return (lerp(A.x, B.x, u), lerp(A.y, B.y, u), lerp(A.t, B.t, u))
     }
 
-    static func posAt(_ S: [InkSample], _ s: Double) -> (x: Double, y: Double) {
+    @_optimize(speed) static func posAt(_ S: [InkSample], _ s: Double) -> (x: Double, y: Double) {
         let n = S.count
         if s <= 0 { return (S[0].x, S[0].y) }
         if s >= S[n - 1].s { return (S[n - 1].x, S[n - 1].y) }
@@ -455,7 +462,7 @@ extension InkModel {
     }
 
     /// 弧长 s 处的宽度（线性插值）。
-    static func posAtW(_ S: [InkSample], _ s: Double) -> Double {
+    @_optimize(speed) static func posAtW(_ S: [InkSample], _ s: Double) -> Double {
         let n = S.count
         if s <= 0 { return S[0].w }
         if s >= S[n - 1].s { return S[n - 1].w }
@@ -471,7 +478,7 @@ extension InkModel {
     // MARK: 分析（规格 §3）
 
     /// 原始点 → 宽度剖面（reference.mjs analyze）。
-    static func analyze(_ raw: [InkRawPoint], final: Bool = true, predicted: [InkRawPoint] = [], reduceMotion: Bool = false, params k: InkParams = .default) -> InkProfile {
+    @_optimize(speed) static func analyze(_ raw: [InkRawPoint], final: Bool = true, predicted: [InkRawPoint] = [], reduceMotion: Bool = false, params k: InkParams = .default) -> InkProfile {
         let m = prepare(raw)
         let B = k.base
         var res = InkProfile(final: final, base: B, params: k)
@@ -620,7 +627,7 @@ extension InkModel {
         let kIn = clamp((vInV - k.lo) / max(1e-6, k.hi - k.lo), 0, 1)
         let Le = clamp(vInV * k.entryMs, k.entryLenMin, k.entryLenMax)
         let peakE = 1 + (k.entryPeak - 1) * (1 - k.entryFastDamp * kIn)
-        func fEntry(_ s: Double) -> Double {
+        @_optimize(speed) func fEntry(_ s: Double) -> Double {
             if s >= Le { return 1 }
             let u = s / Le
             if u < k.entryPeakAt { return lerp(k.entryStart, peakE, smooth(u / k.entryPeakAt)) }
@@ -630,12 +637,12 @@ extension InkModel {
         // 收笔
         let Ls = k.stopLen
         let Lt = min(k.tapRatio * len, lerp(k.tapLenMin, k.tapLenMax, kk))
-        func fSlow(_ s: Double) -> Double { len - s < Ls ? 1 + (k.stopPeak - 1) * smooth(1 - (len - s) / Ls) : 1 }
-        func fFast(_ s: Double) -> Double { len - s < Lt ? k.endFast + (1 - k.endFast) * pow((len - s) / Lt, k.tapGamma) : 1 }
+        @_optimize(speed) func fSlow(_ s: Double) -> Double { len - s < Ls ? 1 + (k.stopPeak - 1) * smooth(1 - (len - s) / Ls) : 1 }
+        @_optimize(speed) func fFast(_ s: Double) -> Double { len - s < Lt ? k.endFast + (1 - k.endFast) * pow((len - s) / Lt, k.tapGamma) : 1 }
         let blend = final ? 1 : k.liftBlend
-        func fExit(_ s: Double) -> Double { lerp(1, lerp(fSlow(s), fFast(s), kk), blend) }
+        @_optimize(speed) func fExit(_ s: Double) -> Double { lerp(1, lerp(fSlow(s), fFast(s), kk), blend) }
         let hookStart = hook.map { $0.corner.s + k.hookHold } ?? Double.infinity
-        func fHook(_ s: Double) -> Double {
+        @_optimize(speed) func fHook(_ s: Double) -> Double {
             if s <= hookStart { return 1 }
             let u = clamp((len - s) / max(1e-6, len - hookStart), 0, 1)
             return lerp(1, k.hookEnd + (1 - k.hookEnd) * pow(u, k.hookGamma), blend)
@@ -644,9 +651,10 @@ extension InkModel {
         var samples: [InkSample] = []
         samples.reserveCapacity(n)
         let (d0, d1, d2) = k.dotProfile
+        let dirA = k.dirA, dirB = k.dirB, dirOff = k.dirAngle * deg
         for i in 0..<n {
             let s = S[i].s
-            let fDir0 = dirFactor(theta[i], k)
+            let fDir0 = max(k.dirMin, dirA + dirB * abs(sin(theta[i] - dirOff))) // = dirFactor(theta, k)，系数提到循环外
             let fDir = S[i].hasP ? 1 + (fDir0 - 1) * k.dirPencil : fDir0
             let body = B * fBody[i] * fDir
             let fPhase: Double
@@ -722,7 +730,7 @@ extension InkModel {
     }
 
     /// 前缀冻结区：距笔尖弧长 ≥ Z 的样本不再变化（规格 §7.2）。
-    static func provisionalZone(_ rawPrefix: [InkRawPoint], _ k: InkParams = .default) -> Double {
+    @_optimize(speed) static func provisionalZone(_ rawPrefix: [InkRawPoint], _ k: InkParams = .default) -> Double {
         let m = prepare(rawPrefix)
         let n = m.count
         var tail2 = 0.0
@@ -733,7 +741,7 @@ extension InkModel {
     }
 
     /// 宽度剖面在弧长 s 处的值（线性插值）。
-    static func widthAt(_ profile: InkProfile, _ s: Double) -> Double {
+    @_optimize(speed) static func widthAt(_ profile: InkProfile, _ s: Double) -> Double {
         let S = profile.samples
         if S.isEmpty { return 0 }
         if S.count == 1 { return S[0].w }
@@ -748,7 +756,7 @@ extension InkModel {
 
     // MARK: 几何（规格 §4）
 
-    private static func orient(_ poly: [SIMD2<Double>]) -> [SIMD2<Double>] {
+    @_optimize(speed) private static func orient(_ poly: [SIMD2<Double>]) -> [SIMD2<Double>] {
         var a = 0.0
         for i in 0..<poly.count {
             let p = poly[i], q = poly[(i + 1) % poly.count]
@@ -758,9 +766,9 @@ extension InkModel {
     }
 
     /// 多边形被半平面 {X : dot(X − O, nrm) ≥ 0} 裁剪（Sutherland–Hodgman）。
-    private static func clipHalf(_ poly: [SIMD2<Double>], _ O: SIMD2<Double>, _ nrm: SIMD2<Double>) -> [SIMD2<Double>] {
+    @_optimize(speed) private static func clipHalf(_ poly: [SIMD2<Double>], _ O: SIMD2<Double>, _ nrm: SIMD2<Double>) -> [SIMD2<Double>] {
         var out: [SIMD2<Double>] = []
-        @inline(__always) func f(_ P: SIMD2<Double>) -> Double { (P.x - O.x) * nrm.x + (P.y - O.y) * nrm.y }
+        @_optimize(speed) @inline(__always) func f(_ P: SIMD2<Double>) -> Double { (P.x - O.x) * nrm.x + (P.y - O.y) * nrm.y }
         for i in 0..<poly.count {
             let A = poly[i], Bp = poly[(i + 1) % poly.count]
             let fa = f(A), fb = f(Bp)
@@ -774,12 +782,12 @@ extension InkModel {
     }
 
     /// 宽度剖面 → 几何：多边形列表（每个都是逆时针，按非零规则取并集；reference.mjs geometry）。
-    static func geometry(_ profile: InkProfile, capSegments seg: Int = 16) -> InkGeometry {
+    @_optimize(speed) static func geometry(_ profile: InkProfile, capSegments seg: Int = 16) -> InkGeometry {
         let k = profile.params
         let S = profile.samples
         var polys: [[SIMD2<Double>]] = []
         if S.isEmpty { return InkGeometry(polys: [], bbox: (0, 0, 0, 0)) }
-        func disc(_ cx: Double, _ cy: Double, _ r: Double) -> [SIMD2<Double>] {
+        @_optimize(speed) func disc(_ cx: Double, _ cy: Double, _ r: Double) -> [SIMD2<Double>] {
             var d: [SIMD2<Double>] = []
             d.reserveCapacity(seg * 2)
             for i in 0..<(seg * 2) {
@@ -912,7 +920,7 @@ extension InkModel {
         return finish(polys)
     }
 
-    private static func finish(_ polys: [[SIMD2<Double>]]) -> InkGeometry {
+    @_optimize(speed) private static func finish(_ polys: [[SIMD2<Double>]]) -> InkGeometry {
         var x0 = Double.infinity, y0 = Double.infinity, x1 = -Double.infinity, y1 = -Double.infinity
         for p in polys {
             for v in p {
@@ -926,7 +934,7 @@ extension InkModel {
     }
 
     /// 非零规则并集面积（扫描线，行距 h 单位）。
-    static func unionArea(_ geom: InkGeometry, h: Double = 0.1) -> Double {
+    @_optimize(speed) static func unionArea(_ geom: InkGeometry, h: Double = 0.1) -> Double {
         let (_, y0, _, y1) = geom.bbox
         if !(y1 > y0) { return 0 }
         let rows = Int(((y1 - y0) / h).rounded(.up))

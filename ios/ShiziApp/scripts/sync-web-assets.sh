@@ -23,3 +23,22 @@ test -f "${DEST}/vendor/fsrs6.min.js"
 test -f "${DEST}/src/app.js"
 test -f "${DEST}/manifest.webmanifest"
 test -d "${DEST}/data"
+
+# P1-S2 原生书写面 spike（只在 Debug）：笔锋模型金标准向量与参考实现摘要进包，供 -shizi-ink-selfcheck 在模拟器 / 真机上自检。
+INK_DEST="${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/InkModel"
+rm -rf "${INK_DEST}"
+if [ "${CONFIGURATION:-}" = "Debug" ]; then
+  INK_SRC="${REPO_ROOT}/docs/engineering/v10/phase1/ink-model"
+  mkdir -p "${INK_DEST}"
+  cp "${INK_SRC}/vectors.json" "${INK_SRC}/out/reference-dump.json" "${INK_DEST}/"
+  # ProMotion 120Hz：CADisplayLink 要超过 60Hz 需要 CADisableMinimumFrameDurationOnPhone。只在显式要求时（xcodebuild … SHIZI_NATIVE_INK_120HZ=YES，
+  # run-device.sh NATIVE_INK=1 会带上）写进 Debug 包的 Info.plist，平常的 Debug / Release 构建不变。
+  PLIST="${TARGET_BUILD_DIR}/${INFOPLIST_PATH}"
+  if [ -f "${PLIST}" ]; then
+    # 先删：上一次带开关的增量构建留下的键不会因 Info.plist 未变而被 Xcode 重写
+    /usr/libexec/PlistBuddy -c "Delete :CADisableMinimumFrameDurationOnPhone" "${PLIST}" >/dev/null 2>&1 || true
+    if [ "${SHIZI_NATIVE_INK_120HZ:-NO}" = "YES" ]; then
+      /usr/libexec/PlistBuddy -c "Add :CADisableMinimumFrameDurationOnPhone bool true" "${PLIST}"
+    fi
+  fi
+fi

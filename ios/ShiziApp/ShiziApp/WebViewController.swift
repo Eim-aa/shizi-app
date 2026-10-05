@@ -53,6 +53,8 @@ final class WebViewController: UIViewController {
     var smokeNextPick: String?
     /// 冒烟专用：原生侧事件（导出、选文件、提醒同步、深链派发、边缘返回），同步给页面的 window.__shiziSmokeEvents。
     var smokeEvents: [[String: Any]] = []
+    /// 原生书写面 spike（P1-S2，NativeInkSpike.swift）：启动参数 -shizi-native-ink 时才创建，默认 nil。
+    var nativeInkSpike: NativeInkSpike?
     #endif
     private lazy var stampHaptic = UIImpactFeedbackGenerator(style: .medium)
     private lazy var undoHaptic = UIImpactFeedbackGenerator(style: .light)
@@ -130,6 +132,7 @@ final class WebViewController: UIViewController {
         preloadSounds()
         #if DEBUG
         applySmokeLaunchArguments()
+        startNativeInkSpikeIfNeeded()
         #endif
         observeAccessibilityStatus()
         observeContentSize()
@@ -310,6 +313,7 @@ final class WebViewController: UIViewController {
         controller.removeAllUserScripts()
         #if DEBUG
         installNativeDevUserScriptIfNeeded(controller)
+        installNativeInkUserScriptIfNeeded(controller)
         #endif
         if let source = Self.initialContentSizeScript(category ?? currentContentSizeCategory) {
             controller.addUserScript(WKUserScript(source: source, injectionTime: .atDocumentStart, forMainFrameOnly: true))
@@ -766,6 +770,8 @@ extension WebViewController: WKScriptMessageHandler {
             writeNativeSmokeResult(payload)
         case "nativeSmokeControl":
             handleNativeSmokeControl(body)
+        case "nativeInk":
+            handleNativeInkMessage(body)
         #endif
         case "haptic":
             playHaptic(kind: body["kind"] as? String ?? "")

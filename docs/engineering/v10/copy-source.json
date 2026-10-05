@@ -219,7 +219,8 @@
     "P242": "中文折行（R3-K1 / A3-02）：全 App 不用 word-break:keep-all；按钮与菜单项文字经 src/ui/components/Words.js（Intl.Segmenter 分词、每词一个 nowrap span）只在词边界折，正文与说明句用正常 CJK 折行 + line-break:strict；样式规则，不是运行时开关",
     "P244": "AX 档弹层内不叠字（R3-K1 / A3-04）：查字弹层全高时「完成」封顶 22、查字框让出它的宽（src/ui/components/query/QuerySheet.js），分享预览比例在 AX 档两行满宽单选（image-preview.js），弹层标题 AX 档均衡折行（Sheet.js）；样式规则，不是运行时开关",
     "P255": "帮助层画法（R3-C3W / V3-01 / T3-02，D53 ①）：淡朱不透明实填 + 同色相 0.75pt 双钩，去掉 ink3 外廓；深色 --danzhu 由 #A85C48 调到 #AF604B（红色盲下对笺 ≥ 3:1）。样式 / 绘制，src/ui/canvas/glyph.js、glyph-wash.js、src/config/tokens.css，不是运行时开关",
-    "P256": "提示写过哪笔收哪笔（R3-C3W / I3-01，D53 ⑧）：匹配规则（笔顺序号优先、几何最近为辅，HINT_MATCH_MAX_DIST = 40）与逐笔淡出，src/ui/screens/write/hint-layer.js；不是运行时开关"
+    "P256": "提示写过哪笔收哪笔（R3-C3W / I3-01，D53 ⑧）：匹配规则（笔顺序号优先、几何最近为辅，HINT_MATCH_MAX_DIST = 40）与逐笔淡出，src/ui/screens/write/hint-layer.js；不是运行时开关",
+    "P259": "AX3 起描一遍阶段主按钮改用短文案「自己写」（R3-C3W，P259）：文案槽 X-ANSWER.btnTraceDoneShort 已入 copy，档位阈值在 policy.axShortPrimaryFrom；不是运行时开关"
   },
   "noCopy": [
     "R-H08",
@@ -2998,6 +2999,13 @@
           "origin": "extra",
           "note": "描一遍阶段主按钮（没写时 disabled）；原型 L551；reference/I-proto-write.md 文案表「主按钮 trace」",
           "decision": "P66"
+        },
+        "btnTraceDoneShort": {
+          "raw": null,
+          "text": "自己写",
+          "origin": "extra",
+          "note": "AX3 及以上描一遍阶段主按钮的短文案（SE 3 的 AX5 下「描好了，自己写」折成三行，第三轮审查）；AX1–AX2 与常规字号仍用 btnTraceDone",
+          "decision": "P259"
         },
         "btnRetrace": {
           "raw": null,

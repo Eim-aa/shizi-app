@@ -231,6 +231,8 @@ export const writeGrid = Object.freeze({
   footBottomMin: 8, // P195 按钮行下内边距下限（pt，= max(8, 下安全区)）
   nominalPrompt: 80, // P195 名义题面高（pt，L 档：拼音行 24 + 间 4 + 题面格 52）
 });
+/** P259 AX 档从这一级起描一遍阶段主按钮改用短文案「自己写」（X-ANSWER.btnTraceDoneShort；AX1–AX2 与常规字号仍是「描好了，自己写」）。 */
+export const axShortPrimaryFrom = 3;
 // P70 动画节奏（工程取值，原型没有；待设计走查）。各模块默认从这里读，仍可经参数覆盖。
 export const motion = Object.freeze({
   answerSpeed: 1.6, // P70 看答案 / 先播一遍笔顺动画速度（hanzi-writer strokeAnimationSpeed）；src/ui/canvas/glyph.js ANIMATION

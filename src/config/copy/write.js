@@ -100,6 +100,7 @@ export default Object.freeze({
   // X-ANSWER（M1-4 描一遍阶段标题与按钮；原型 ShiziWriteScreen L551–L553）
   'X-ANSWER.titleTrace': '描一遍',
   'X-ANSWER.btnTraceDone': '描好了，自己写',
+  'X-ANSWER.btnTraceDoneShort': '自己写', // AX3 起描一遍阶段主按钮的短文案（P259：SE 3 的 AX5 下「描好了，自己写」折成三行）
   'X-ANSWER.btnRetrace': '再描一遍',
   // X-PAPER（阶段 1 P1-E8「在纸上写，回来自判」写字页；实现交接 §10.2 / §10.3，过渡文案；03 P165 / P167 / P168）
   'X-PAPER.title': '在纸上写',

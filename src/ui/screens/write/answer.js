@@ -66,6 +66,14 @@ import { AxFoot } from './ax-menu.js';
 /** answer 流程的阶段（01 §3.3）。 */
 export const ANSWER_PHASES = Object.freeze(['answer', 'trace', 'retrace']);
 
+/**
+ * 描一遍阶段主按钮的文案（P259）：AX3 起用短文案「自己写」（SE 3 的 AX5 下「描好了，自己写」折成三行），其余档「描好了，自己写」。纯函数。
+ * @param {number} ax  AX 档（1–5；0 = 不是 AX 档）
+ */
+export function traceDoneLabel(ax = 0, policy = defaultPolicy) {
+  return ax >= policy.axShortPrimaryFrom ? t('X-ANSWER.btnTraceDoneShort') : t('X-ANSWER.btnTraceDone');
+}
+
 /** 答案衬底显影时长（P210）。 */
 export const ANSWER_REVEAL_MS = defaultPolicy.motion.answerRevealMs;
 /** 描一遍前笔顺快放总时长上限（P210）。 */
@@ -565,7 +573,7 @@ export function useAnswerFlow({ slot, session, cardKey, phase, strokeCount = 0, 
       primary = { testid: 'write-answer-trace', label: t('R-W07.btnTrace'), onClick: toPhase('trace') };
       items = [item('write-answer-self', t('R-W07.btnSelf'), toPhase('retrace')), item('write-answer-next', t('R-W07.btnNext'), next), ...endItem];
     } else if (phase === 'trace') {
-      primary = { testid: 'write-trace-done', label: t('X-ANSWER.btnTraceDone'), disabled: strokeCount === 0, onClick: toPhase('retrace') };
+      primary = { testid: 'write-trace-done', label: traceDoneLabel(ax), disabled: strokeCount === 0, onClick: toPhase('retrace') };
       items = [item('write-answer-next', t('R-W07.btnNext'), next), ...endItem];
     } else if (phase === 'retrace') {
       primary = { testid: 'write-answer-next', label: t('R-W07.btnNext'), onClick: next };

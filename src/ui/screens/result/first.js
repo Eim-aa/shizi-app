@@ -3,7 +3,8 @@
 // 分界（与 P1-E7「作品出口」）：result/index.js 管通用的结果页结构，作品构图（格子、落款、「没放进图里」的行与「放进去」）在
 // result/work.js，首练与日常结果页共用（P1-E7）；本文件只放首练（以及「今天的练习」结果页的第二次邀请）特有的两块：
 //   ReviewPreview   复现句：每字「N 天后再见」（D48）；天数用 FSRS 的实际到期日，天数相同的字合并成一个分句（core/first-result.js daysLaterLine，E9c）。
-//   useReminderInvite / ReminderInvite / InviteActions  提醒邀请（D35）：内嵌不弹窗，作品落定（印落下）约 600ms 后淡入；点「好」才请求系统通知权限
+//   useReminderInvite / ReminderInvite / InviteActions  提醒邀请（D35；C3-H / T3-12、D53：首练页最多两句话——复现句 + 邀请的问句，邀请说明 X-INVITE.body 只在「今天的练习」那次出现；
+//                   按钮写出结果「好，明天给我一个词」/「先不用」）：内嵌不弹窗，作品落定（印落下）约 600ms 后淡入；点「好」才请求系统通知权限
 //                   （platform/reminder.js inviteReminder）；最多邀请两次（首练结果页一次，没回应则下一次「今天的练习」结果页再一次，D46 ③；规则在
 //                   core/first-result.js inviteDecision）。R2-R1（N2-04 / N2-05 / I2-07）：回答之前，吸底栏就是「好 / 不用了」（InviteActions），说明块在正文里
 //                   （ReminderInvite）；回答以后吸底栏才换成别的（首练：「完成」+ 文字按钮「再写一组」）。
@@ -172,7 +173,7 @@ export function useReminderInvite({ store, settings, session, variant, ready = t
   };
 
   return {
-    show, phase, session, remind, editing, setEditing, failed, evening, accept, decline, changeTime,
+    show, phase, session, variant, remind, editing, setEditing, failed, evening, accept, decline, changeTime,
     active: phase === 'invite' || phase === 'pending',
     reserved: show && phase === 'wait',
     waiting: phase === 'pending',
@@ -192,7 +193,7 @@ export function InviteActions({ invite }) {
 
 /** 正文里的邀请说明块（标题 + 说明；回答后换成一行结果）。按钮不在这里，在吸底栏（InviteActions）。 */
 export function ReminderInvite({ invite }) {
-  const { phase, session, remind, editing, setEditing, failed, evening, changeTime } = invite;
+  const { phase, session, variant, remind, editing, setEditing, failed, evening, changeTime } = invite;
   if (phase === 'wait' || phase === 'gone') return null;
   if (phase === 'denied') {
     return html`<div class="sz-invite" data-testid="result-invite" data-state="denied">
@@ -216,7 +217,7 @@ export function ReminderInvite({ invite }) {
   const waiting = phase === 'pending';
   return html`<div class="sz-invite sz-invite--in" data-testid="result-invite" data-state=${waiting ? 'pending' : 'invite'} aria-busy=${waiting ? 'true' : null}>
     <p class="sz-invite__title" data-testid="result-invite-title">${t(evening ? 'X-INVITE.titleEvening' : 'X-INVITE.title')}</p>
-    <p class="sz-invite__body" data-testid="result-invite-body">${example ? t('X-INVITE.body', example) : t('X-INVITE.bodyPlain')}</p>
+    ${variant === 'first' ? null : html`<p class="sz-invite__body" data-testid="result-invite-body">${example ? t('X-INVITE.body', example) : t('X-INVITE.bodyPlain')}</p>`}
     ${failed ? html`<p class="sz-invite__note" data-testid="result-invite-fail" aria-live="polite">${t('X-SETTINGS.saveFailed')}</p>` : null}
   </div>`;
 }

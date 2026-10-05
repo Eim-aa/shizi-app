@@ -215,7 +215,7 @@ export function resultModel(state, { slot, sessionId, hasInk = null, policy = de
   const day = dayOfSession(session);
 
   // 三种结果页同一个作品版式（交接 §5.1；自选组 R2-R1 起也是）：最上面就是作品，不写「这次记录了 N 个字」「点一个格子…」；数量只出现在落款里。
-  // 首练保留标题（D28 / P1-E5）：数取这一页上的字（作品算出来以后再定，firstTitle）；自选组只在中途结束时多一行「还有 N 个字没写，没有记下。」。
+  // 首练保留标题（D28 / P1-E5；N3-07 / D53 起固定「这三个字」，firstTitle）；自选组只在中途结束时多一行「还有 N 个字没写，没有记下。」。
   const sub = [];
   let title = null;
   const header = t(variant === 'first' ? 'X-RESULT.headerFirst' : variant === 'picked' ? 'R-R05.kicker' : 'X-RESULT.headerDaily');
@@ -230,7 +230,7 @@ export function resultModel(state, { slot, sessionId, hasInk = null, policy = de
   // 分享入口：作品里至少有一个字（没有任何墨时隐藏，§4.1）
   const share = !!work && work.cells.length > 0;
   // 首练标题按这一页上实际有几个字取数（V2-05）：作品里有几格就是几；没有墨时是衬底一行的字数
-  if (variant === 'first') title = firstTitle(work ? (work.empty ? work.entries.length : work.cells.length) : cells.length);
+  if (variant === 'first') title = firstTitle();
 
   return {
     found: !!session,
@@ -750,7 +750,7 @@ function ResultScreen({ params, entry }) {
         ? html`<${WorkSection} work=${model.work} day=${model.day} dateText=${dateText(model.day)} inkOf=${inkForRecord} onOpen=${openEntry}
           picked=${model.variant === 'picked'} sealKey=${`${slot}:${sessionId}`} settings=${state && state.settings} onLanded=${() => setLanded(true)} />`
         : null}
-      ${model.work ? html`<${WorkRows} rows=${model.work.rows.filter(r => r.state !== 'in')} inkOf=${inkForRecord} onOpen=${openEntry} onToggle=${toggleEntry} />` : null}
+      ${model.work ? html`<${WorkRows} rows=${model.work.rows.filter(r => r.state !== 'in')} inkOf=${inkForRecord} onOpen=${openEntry} onToggle=${toggleEntry} quiet=${model.work.empty} />` : null}
       ${extras ? html`<${ReviewPreview} text=${extras.preview} />` : null}
       <div class="sz-result__remind" data-testid="result-remind-slot">
         <${ReminderInvite} invite=${invite} />

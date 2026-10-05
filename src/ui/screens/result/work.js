@@ -220,10 +220,14 @@ export function WorkSection({ work, day, dateText, inkOf, onOpen, picked = false
     const entries = work.entries;
     if (!entries.length) return null;
     const grid = resultGrid(entries.length, sw);
-    const cells = entries.map(e => ({
-      key: e.index, index: e.index, ch: e.char, status: statusWord(e), wrong: e.judgment === 'wrong' && e.kind === 'judged' && e.state !== 'paper',
-      label: t('X-WORK.cellAria', { char: e.char, state: cellStateOf(e) }),
-    }));
+    // 没有任何作品的一屏：写错的字，格下不写状态字、不画朱点——下面的行已经点过一次名（N3-03 / D53：不重复点名，朱色 ≤ 2）；其余（跳过 / 看过答案 / 纸上 / 没墨的写对）照旧写状态字
+    const cells = entries.map(e => {
+      const wrongOne = e.judgment === 'wrong' && e.kind === 'judged' && e.state !== 'paper';
+      return {
+        key: e.index, index: e.index, ch: e.char, status: wrongOne ? '' : statusWord(e), wrong: false,
+        label: t('X-WORK.cellAria', { char: e.char, state: cellStateOf(e) }),
+      };
+    });
     return html`<${PlainRow} cells=${cells} grid=${grid} onOpen=${cell => onOpen(entries[cell.index])}
       label=${workAria(entries.map(e => e.char), entries.length, dateText)} />`;
   }
@@ -237,11 +241,11 @@ export function WorkSection({ work, day, dateText, inkOf, onOpen, picked = false
     onOpen=${cell => onOpen(work.entries[cell.index])} label=${workAria(work.cells.map(e => e.char), work.cells.length, dateText)} />`;
 }
 
-function rowText(entry) {
+function rowText(entry, quiet = false) {
   switch (entry.state) {
     case 'addable':
     case 'added':
-      return t('X-FIRST.excluded');
+      return t(quiet ? 'X-FIRST.excludedQuiet' : 'X-FIRST.excluded');
     case 'noInk':
       return t(entry.judgment === 'wrong' ? 'X-WORK.rowNoInkWrong' : 'X-WORK.rowNoInkCorrect');
     case 'seen':
@@ -255,16 +259,16 @@ function rowText(entry) {
 }
 
 /** 纸上行的读屏名称：「{字}，写对，纸上」（交接 §5.5）；其余行读「{字}，{状态}」，字在文字里已经没有了（D49）。 */
-function rowAria(entry) {
+function rowAria(entry, quiet = false) {
   if (entry.state === 'paper') return t('X-WORK.rowPaperAria', { char: entry.char, state: judgmentWord(entry) });
-  return t('X-WORK.rowAria', { char: entry.char, state: rowText(entry) });
+  return t('X-WORK.rowAria', { char: entry.char, state: rowText(entry, quiet) });
 }
 
 /**
  * 作品下没放进图里的行（已放进图里的字回到作品，不再有行）。
  * @param {{rows:Array, inkOf:(record)=>object|null, onOpen:(entry)=>void, onToggle:(entry)=>void}} props
  */
-export function WorkRows({ rows, inkOf, onOpen, onToggle }) {
+export function WorkRows({ rows, inkOf, onOpen, onToggle, quiet = false }) {
   const ax = useAxSize();
   const shown = (rows || []).filter(row => row.state !== 'added');
   if (!shown.length) return null;
@@ -272,16 +276,17 @@ export function WorkRows({ rows, inkOf, onOpen, onToggle }) {
   return html`<div class="sz-exrows" data-testid="result-excluded">${shown.map(row => {
     const inked = row.state === 'addable';
     // 写错的字（有墨可放进图里的、或写错但没留墨迹的）在字的右上带朱点；纸上行没有墨、不带
-    const wrongRow = row.state === 'addable' || (row.state === 'noInk' && row.judgment === 'wrong');
+    // quiet（没有任何作品，全写错那一屏）：不带朱点、用中性的「写过了」——朱点留给「放进图里」以后的作品（N3-03 / D53，P248）
+    const wrongRow = !quiet && (row.state === 'addable' || (row.state === 'noInk' && row.judgment === 'wrong'));
     const ink = inked ? inkOf(row.record) : null;
     return html`<div key=${row.index} class="sz-exrow" data-testid="result-exrow" data-index=${row.index} data-char=${row.char} data-record=${row.recordId || ''}
       data-state=${row.state}>
-      <button type="button" class="sz-exrow__open" data-testid="result-exrow-open" aria-label=${rowAria(row)} onClick=${() => onOpen(row)}>
+      <button type="button" class="sz-exrow__open" data-testid="result-exrow-open" aria-label=${rowAria(row, quiet)} onClick=${() => onOpen(row)}>
         <span class=${ax ? 'sz-exrow__cell sz-exrow__cell--ax' : 'sz-exrow__cell'} data-testid="result-exrow-glyph" aria-hidden="true">
           <${CellCanvas} ch=${row.char} ink=${ink} mode=${inked ? 'hand' : 'under'} size=${size} pad=${ROW_PAD} testid="result-exrow-canvas" />
           ${wrongRow ? html`<${WrongDot} size=${size} ink=${ink} pad=${ROW_PAD} testid="result-exrow-dot" />` : null}
         </span>
-        <span class="sz-exrow__t" data-testid="result-exrow-text">${rowText(row)}${row.state === 'paper'
+        <span class="sz-exrow__t" data-testid="result-exrow-text">${rowText(row, quiet)}${row.state === 'paper'
           ? html` <span class="sz-exrow__tag" data-testid="result-exrow-tag">${t('X-DETAIL.paperTag')}</span>`
           : null}</span>
       </button>

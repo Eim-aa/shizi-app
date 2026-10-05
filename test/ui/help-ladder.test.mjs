@@ -14,7 +14,7 @@ import { createSession, withCurrent } from '../../src/core/sessions.js';
 import { decodeRawStrokes, encodeRawStrokes } from '../../src/core/ink-math.js';
 import { validateValue, KEYS } from '../../src/core/schema.js';
 import * as policy from '../../src/config/policy.js';
-import { t } from '../../src/config/copy/index.js';
+import { t, has } from '../../src/config/copy/index.js';
 
 loadFSRSGlobal();
 
@@ -99,7 +99,7 @@ test('看答案之后：进描一遍清空笔画、看答案前回忆阶段写�
   assert.equal(keys.length, 1, 'only the retrace strokes are stored (Q1)');
 });
 
-test('看答案第一次的格下说明：只在 answer 阶段、从没出现过时出现；出现即记 settings.answerNoteSeen（store.commit），之后不再出现', () => {
+test('settings.answerNoteSeen 标志位（C3-H / D53 起界面不再读它、第一次的格下说明已删）：answerNoteDue / commitAnswerNoteSeen 照旧，只在 answer 阶段、从没记过时 due；记即 store.commit，之后不再写', () => {
   assert.equal(answerNoteDue({ settings: null, phase: 'answer' }), true);
   assert.equal(answerNoteDue({ settings: { answerNoteSeen: false }, phase: 'answer' }), true);
   assert.equal(answerNoteDue({ settings: { answerNoteSeen: true }, phase: 'answer' }), false, 'seen once → never again');
@@ -113,7 +113,7 @@ test('看答案第一次的格下说明：只在 answer 阶段、从没出现过
   const again = commitAnswerNoteSeen(store);
   assert.equal(again.skipped, true);
   assert.equal(store.labels.length, 1, 'already recorded → no second commit');
-  assert.equal(t('R-W07.firstExplain'), '以后点「看答案」会直接显示。');
+  assert.equal(has('R-W07.firstExplain'), false, 'C3-H / D53: the line itself is gone; only the flag and these helpers remain');
 });
 
 test('schema：settings.answerNoteSeen 是可缺省的布尔，类型不对被拒绝', () => {

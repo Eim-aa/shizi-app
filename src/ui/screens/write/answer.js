@@ -10,7 +10,8 @@
 //   3. 看答案页（answer）：还是那个书写格——答案字形（--under 衬底色）画在参考字形层、**在本人墨下层**，本人墨 100% 不变；格子不再接受落笔；
 //      答案衬底 400ms 显影（policy.motion.answerRevealMs，P210；减少动态效果直接显示）；不播笔顺。笔顺数据取不到（10.13）→ ShiziKai 楷体整字
 //      DOM 文本（GlyphFallback）。按钮上方说明 R-W07.answerNote（10.13 用 R-W08.answerNote，字串相同）；按钮 [自己写 / 描一遍]；底部「下一个」文字按钮。
-//      **第一次**用看答案时格下多一行说明 R-W07.firstExplain（settings.answerNoteSeen，一次性，P212）。本人墨在 answer 阶段与回忆阶段共用同一份笔画现场
+//      （C3-H / N3-06、D53：第一次用看答案时格下的一行说明 R-W07.firstExplain 已删——这一次本来就直接显示，预告没有参照；「记为看过答案」只在按钮上方这一处说。
+//      settings.answerNoteSeen 标志位与 commitAnswerNoteSeen / answerNoteDue 保留，界面不再读它。）本人墨在 answer 阶段与回忆阶段共用同一份笔画现场
 //      （answerInkKey）。读屏：答案字放在底栏一个视觉隐藏的 role=img（书写格本身 aria-hidden 参考层），名称是「参考字形：字，拼音，n 画，结构」（ref-label.js，A2-09）。
 //   4. 描一遍（trace）：书写格参考字形层画描红（和提示同一种画法，canvas/glyph-wash.js：整字一次合成，所有笔画同色不透明、整层 .4 不透明度、外侧一圈 --ink3 外廓，没有逐笔描边与叠色接缝，V2-02；
 //      10.13 用浅色楷体整字、不分笔顺），进阶段先快放一遍笔顺（总时长 ≤ 1.6s，policy.motion.stepPlayMaxMs，P210；走查-W19；落笔 / 点一下即到终态；
@@ -424,35 +425,6 @@ export function openAnswerSaveFailed({ slot, cardKey }) {
 // ---------------------------------------------------------------- 写字页接线
 
 /**
- * 看答案第一次的格下说明（P212）：进看答案阶段时从没出现过就出现、并记下 settings.answerNoteSeen（经 store.commit，写失败不阻断——下次进来可能再出现一次）；
- * 出现过的这一字在本页挂载期间一直保持，之后（刷新、下一个字、下一组）不再出现。
- * @returns {boolean} 这一刻要不要显示
- */
-function useAnswerFirstNote({ phase, cardKey }) {
-  const shownRef = useRef(null);
-  const recordedRef = useRef(null);
-  let settings = null;
-  const store = storeOrNull();
-  try {
-    settings = store ? store.getState().settings : null;
-  } catch (error) {
-    settings = null;
-  }
-  if (answerNoteDue({ settings, phase })) shownRef.current = cardKey;
-  const visible = phase === 'answer' && shownRef.current === cardKey && !!cardKey;
-  useEffect(() => {
-    if (!visible || recordedRef.current === cardKey) return;
-    recordedRef.current = cardKey;
-    try {
-      if (store) commitAnswerNoteSeen(store); // P52 同口径：失败不阻断
-    } catch (error) {
-      // store 不可用：照样显示
-    }
-  }, [visible]);
-  return visible;
-}
-
-/**
  * 写字页用的 answer 流程接线。
  * @param {object} o
  * @param {'A'|'B'} o.slot
@@ -481,7 +453,6 @@ export function useAnswerFlow({ slot, session, cardKey, phase, strokeCount = 0, 
   const [glyphStatus, setGlyphStatus] = useState('loading');
   const failKey = `${cardKey}|${phase}`;
   const failNow = fail && fail.key === failKey ? fail : null;
-  const firstNote = useAnswerFirstNote({ phase, cardKey });
 
   const run = action => {
     const store = storeOrNull();
@@ -529,8 +500,6 @@ export function useAnswerFlow({ slot, session, cardKey, phase, strokeCount = 0, 
     if (failed) note = failText;
     else if (phase === 'trace') note = ''; // 描一遍格下没有说明（R-W08.traceNote 已删）
     else note = t('R-W07.selfNote'); // retrace，或看过答案后的 recall
-  } else if (!failed && firstNote) {
-    note = t('R-W07.firstExplain'); // 第一次用看答案：格下一行说明（P212），之后直接看
   }
   const noteAbove = phase === 'answer'
     ? (failed ? failText : missing ? t('R-W08.answerNote') : t('R-W07.answerNote'))
@@ -561,7 +530,7 @@ export function useAnswerFlow({ slot, session, cardKey, phase, strokeCount = 0, 
       items = [item('write-answer-show', t('R-W07.btnShowAnswer'), toPhase('answer')), ...endItem];
     }
     const lead = phase === 'answer' ? html`<span class="sz-answer__sr" role="img" aria-label=${answerLabel} data-testid="write-answer-char"></span>` : null;
-    const axNote = phase === 'answer' ? (failed || !firstNote ? noteAbove : `${noteAbove}${t('R-W07.firstExplain')}`) : note; // 两句合成一块说明（最多两行）
+    const axNote = phase === 'answer' ? noteAbove : note;
     const head = noteInMenu && axNote ? html`<span data-testid="write-answer-note">${axNote}</span>` : null;
     const axFooter = html`<${AxFoot} primary=${primary} items=${items} testid="write-answer-foot" stage=${phase} failed=${failed} lead=${lead} head=${head} />`;
     return { active: true, link, show: showAnswer, stage, glyphLayer, note: axNote, footer: axFooter };

@@ -57,9 +57,8 @@ export default Object.freeze({
   'X-RESULT.againRetry': '再试一次',
   'X-RESULT.againCancel': '先不保存',
   // X-FIRST（阶段 1 P1-E5，设计稿「首练与首页」§三：首练结果页的标题、复现预告、写错字的「放进去」；过渡文案，阶段 1 文案统一时定稿）
-  // 首练结果页标题：按这一页上实际有几个字写（V2-05：标题与字数不符是事实错误；汉字数字由 ui/work-text.js firstTitle 填入，没有字可数时用 titlePlain）
-  'X-FIRST.title': '这{n}个字，很多人提笔就忘。',
-  'X-FIRST.titlePlain': '这几个字，很多人提笔就忘。',
+  // 首练结果页标题：固定说这一组的「三个字」（首练恒为 3 个字；C3-H / N3-07、D53，03 P248，取代 V2-05 的按作品字数取数——作品字数交给落款）
+  'X-FIRST.title': '这三个字，很多人提笔就忘。',
   'X-FIRST.tier.tomorrow': '明天',
   'X-FIRST.tier.soon': '过两天',
   'X-FIRST.tier.later': '过几天',
@@ -75,6 +74,8 @@ export default Object.freeze({
   'X-FIRST.laterSame': '{text}',
   // 作品下的行（D49 减法稿：字在左边，状态词不再重复字名与引号；「放进去」→「放进图里」）
   'X-FIRST.excluded': '写错了',
+  // 全写错那一屏（没有任何作品，C3-H / N3-03、D53，03 P248）：下面几行只点一次名，不带朱点，用中性的说法；朱点留给「放进图里」以后的作品
+  'X-FIRST.excludedQuiet': '写过了',
   'X-FIRST.addIn': '放进图里',
   'X-FIRST.addAria': '把「{char}」放进图里',
   // 首练结果页复现句前的一句（C3-H / N3-01、D53 ④，03 P245）：首页那个品牌字就是首练第三个「拾」——写成了说「你写下的第一个「拾」。」（与首页格下 X-HOME.shiFirstLine 同一句），没写成说一次它就是首页那个字
@@ -85,8 +86,9 @@ export default Object.freeze({
   'X-INVITE.titleEvening': '明天晚上八点半，给你一个词？',
   'X-INVITE.body': '锁屏上只出现词语和拼音，比如「{word} {pinyin}」，你先在心里写一遍。',
   'X-INVITE.bodyPlain': '锁屏上只出现词语和拼音，你先在心里写一遍。',
-  'X-INVITE.yes': '好',
-  'X-INVITE.no': '不用了',
+  // 按钮写出结果（C3-H / T3-12、D53，03 P248）：「好」离开上下文不知道在好什么；首练页最多两句话，首练那次不再放说明 body（今天的练习那次仍放）
+  'X-INVITE.yes': '好，明天给我一个词',
+  'X-INVITE.no': '先不用',
   'X-INVITE.accepted': '好，明天 {time} 给你一个词。',
   'X-INVITE.changeTime': '改时间',
   'X-INVITE.timeLabel': '提醒时间',

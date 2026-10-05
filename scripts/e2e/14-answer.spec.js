@@ -13,7 +13,6 @@ import {
 
 const COPY = {
   link: '看答案',
-  firstExplain: '以后点「看答案」会直接显示。',
   saveFailed: '没保存上，你写的字还在。',
   retry: '再试一次',
   notNow: '先不保存',
@@ -259,8 +258,8 @@ export default async function answer(page, ctx) {
   assert.deepEqual(inkAnswer.px, inkRecall.px, 'darkest ink pixel identical to the recall one: not dimmed, not cleared');
   assert.equal(inkAnswer.solid, inkRecall.solid, 'same number of solid ink pixels');
   assert.equal(inkAnswer.eff, 1, 'ink canvas effective opacity 1');
-  assert.equal(await text(page, 'write-note'), COPY.firstExplain, 'first time: one line under the grid R-W07.firstExplain');
-  assert.equal((await page.evaluate(() => window.__shiziTest.getState().settings)).answerNoteSeen, true, 'settings.answerNoteSeen recorded (once)');
+  assert.equal(await text(page, 'write-note'), '', 'first time: nothing under the grid — the R-W07.firstExplain line is gone (C3-H / N3-06, D53): this very first 看答案 already shows the answer, there is nothing to foretell');
+  assert.equal(((await page.evaluate(() => window.__shiziTest.getState().settings)) || {}).answerNoteSeen, undefined, 'settings.answerNoteSeen is no longer written by the UI (the flag stays in the schema only)');
   assert.equal(await text(page, 'write-answer-note'), COPY.answerNote, 'note above buttons R-W07.answerNote');
   // R2-A1（A2-09）：名称与判断页参考卡同一句——字、拼音、笔画数、结构 / 部件数
   assert.ok(/^参考字形：永，yǒng(，\d+ 画(，[^，]+)?)?$/.test(await page.getAttribute(topSel('write-answer-char'), 'aria-label')), 'screen readers get the answer glyph from the footer (the reference layer is aria-hidden)');
@@ -380,9 +379,9 @@ export default async function answer(page, ctx) {
   assert.equal(f.todayN, 0, '今日 N still 0');
   assert.equal(await label(page, 'write-show-answer'), COPY.link, '看答案 available again for the new character');
 
-  ctx.step('第二字: 看答案 (no confirm, no first-time line any more) → 自己写 goes straight to retrace (traced stays false)');
+  ctx.step('第二字: 看答案 (no confirm, no first-time line) → 自己写 goes straight to retrace (traced stays false)');
   await showAnswer(page);
-  assert.equal(await text(page, 'write-note'), '', 'the one-time explanation does not come back (settings.answerNoteSeen)');
+  assert.equal(await text(page, 'write-note'), '', 'still no one-time explanation');
   assert.equal(await text(page, 'write-answer-note'), COPY.answerNote, 'the consequence line above the buttons stays');
   await page.click(topSel('write-answer-self'));
   await waitPhase(page, 'retrace');

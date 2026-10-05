@@ -243,7 +243,7 @@ export default async function run(page, ctx) {
   step('首练结果页: 标题不以计数作标题；复现句「N 天后再见」；写错字「放进图里」；提醒邀请约 600ms 后淡入，点「好」前没有系统权限请求');
   let r = await resultView(page);
   assert.equal(r.variant, 'first');
-  assert.equal(r.title, '这两个字，很多人提笔就忘。', 'V2-05: the title counts the chars the page shows (尴 and 拾 are the work; the wrong 赢 is not), D28: it is not a headline count');
+  assert.equal(r.title, '这三个字，很多人提笔就忘。', 'C3-H / N3-07 (D53): the title is fixed — the three chars of the first practice (the work holds two, the signature says so), D28: it is not a headline count');
   assert.equal(r.titleSize, 22, 'title is 宋 22 (design §三)');
   assert.ok(!/记录了/.test(r.title) && r.sub === null, 'no 「这次记录了 N 个字」 and no sentence under the title');
   assert.deepEqual(r.cells, ['尴:in', '拾:in'], 'P1-E7: the work holds the right chars only (赢 was wrong → not in by default, it is the row below)');
@@ -270,13 +270,12 @@ export default async function run(page, ctx) {
   assert.deepEqual(r.exrows, [{ char: '赢', text: '写错了', btn: '放进图里', ink: true }], 'wrong char with ink: the status word + 放进图里 (the char is the glyph on the left, not in the sentence; D49)');
   assert.equal(r.invite, null, 'the invitation has not faded in yet (≈600ms after the work settles)');
   assert.equal((await nativeMessages(page, 'requestReminderPermission')).length, 0, 'no permission request before 好');
-  assert.deepEqual(r.foot, ['result-invite-yes:好', 'result-invite-no:不用了'], 'R2-R1 (N2-04): until the invitation is answered the sticky footer IS the invitation (好 / 不用了; kept invisible until it fades in); the exit is the close icon top-left');
+  assert.deepEqual(r.foot, ['result-invite-yes:好，明天给我一个词', 'result-invite-no:先不用'], 'R2-R1 (N2-04): until the invitation is answered the sticky footer IS the invitation (好 / 不用了; kept invisible until it fades in); the exit is the close icon top-left');
   await waitInvite(page);
   r = await resultView(page);
   assert.equal(r.invite.title, '明天这个时候，给你一个词？', 'time 9:41 is inside 7:00–22:00');
-  assert.ok(/^锁屏上只出现词语和拼音，比如「.+ .+」，你先在心里写一遍。$/.test(r.invite.body), 'example from the first char: ' + r.invite.body);
-  assert.ok(r.invite.body.includes('□尬') && r.invite.body.includes('gān'), 'example is 尴 masked: □尬 gān');
-  assert.deepEqual([r.invite.yes, r.invite.no], ['好', '不用了']);
+  assert.ok(!r.invite.body, 'C3-H / T3-12 (D53): the first-practice page has at most two sentences besides the title (the 复现句 + this question) — no explanatory body: ' + r.invite.body);
+  assert.deepEqual([r.invite.yes, r.invite.no], ['好，明天给我一个词', '先不用'], 'the buttons say what happens');
   let st = await stateOf(page);
   assert.equal(st.settings.remindInvite.shown, 1, 'counted when it appeared');
   assert.equal(st.settings.remindInvite.last, st.sessions.lastEnded.A.id, 'remembers the session it was shown on');

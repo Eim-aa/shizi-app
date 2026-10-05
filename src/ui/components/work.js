@@ -270,7 +270,7 @@ export function PlainRow({ cells, grid, onOpen, label }) {
               <${CellCanvas} ch=${cell.ch} mode="under" size=${c - 2} />
             </button>
           </div>
-          <span class="sz-work__status" data-testid="work-status" data-wrong=${cell.wrong ? 'true' : 'false'}>${cell.status}</span>
+          ${cell.status ? html`<span class="sz-work__status" data-testid="work-status" data-wrong=${cell.wrong ? 'true' : 'false'}>${cell.status}</span>` : null}
         </div>`)}
       </div>
     </div>

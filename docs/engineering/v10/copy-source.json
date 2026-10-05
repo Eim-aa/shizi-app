@@ -197,7 +197,7 @@
     "P184": "离开 ≥ 7 天回来的第一组缩短为 3 字（阶段 1 Q2-15，已决定 D48 ⑧）：调度规则，值在 policy.groupMix.returnGroupSize（P184），实现在 src/core/sessions.js selectDaily；首页「离开一周后回来」态文案没有提组大小，无新文案",
     "P198": "「字义沉重」不进默认排序的字表（D50 ⑥，卡 C1）：数据取值，docs/engineering/v10/phase1/tools/curation.mjs RESERVED_HEAVY → src/config/char-order.js reserved.heavy（scripts/build_char_order.mjs 生成）；不是运行时开关",
     "P199": "Make Me a Hanzi 字源 79 条先按 LGPL-3.0-or-later 提供（合规说明 §1.15 方案 b，卡 C1）：data/LICENSE.md 与 THIRD_PARTY_NOTICES.md 的许可说明；不是运行时开关",
-    "P215": "首练结果页标题按这一页上实际写出的字数取（R2-R1 / V2-05）：作品里有几格就写「这两个字 / 这三个字…」，没有墨时按这一页列出的字数；行为在 src/ui/work-text.js firstTitle 与 src/ui/screens/result/index.js resultModel，不是 policy 开关",
+    "P215": "首练结果页标题固定「这三个字」（C3-H / N3-07，D53；取代 R2-R1 V2-05 按作品字数取数）：作品字数交给落款（kuan），标题说这一组；文案 X-FIRST.title，ui/work-text.js firstTitle；不是运行时开关",
     "P216": "结果页作品显现与落印的时序（R2-R1 / D51 ②，I2-03 / N2-01）：格依次淡入（每格错开 ≤ 50ms，字多时收紧）→ 落款淡入 → 印落下，印到位那一帧发 s1 与一次触觉，总时长 ≤ 750ms（src/ui/screens/result/work.js revealPlan）；点一下直接到终态；减少动态效果只显示终态并立即发 s1；同一组只响一次；结果页不再在进入时发 result:finish 触觉；提醒邀请的 600ms 从落印后算起。时长是工程取值，不是 policy 开关",
     "P217": "首练结果页吸底栏分两步（R2-R1 / N2-04 / N2-05 / I2-07）：提醒邀请没回答前底栏就是「好」（主按钮）+「不用了」（文字按钮），回答以后底栏是「完成」（主按钮，离开）+「再写一组」（文字按钮）；日常结果页第二次邀请同样先显示「好 / 不用了」，回答后仍是「再写一组」；行为在 src/ui/screens/result/index.js 与 first.js useReminderInvite，不是 policy 开关",
     "P226": "撤销 / 清空常驻、「在纸上写」进底部文字行（R2-X1 / I2-06，D51 ⑦；验收后改）：撤销、清空始终在格下一行右端（无墨 ink4 且不可点），「在纸上写」是底部文字行里的常驻文字按钮（回忆阶段始终在，不因结果行 / 落笔收起）；AX 档在「⋯」菜单；位置与显隐逻辑在 src/ui/screens/write/index.js，不是 policy 开关",
@@ -212,6 +212,8 @@
     "P245": "「拾」交接重做（C3-H，D53 ④）：时间表（停 600ms → 500ms 退灰 / 写墨 / 灰退场）与本人墨逐笔回放的编排，src/ui/screens/home/copybook.js、handoff.js、handoff-ink.js；格下与结果页那两句文案见 X-HOME.shiFirstLine / X-FIRST.shiWritten / X-FIRST.shiHome；不是运行时开关",
     "P246": "第二天的连续性（C3-H，D53）：最近写的字用 ink2 画（样式取值，src/ui/screens/home/copybook.js .sz-htie--recent）与格下一句的选择规则（src/ui/screens/home/recent.js recentDayLine）；文案见 X-HOME.recent*；不是运行时开关",
     "P247": "品牌「拾」两种用途（C3-H，D53 ⑦）：关于页 logo 用 App 图标图像、字库空状态用空格——资产与组件取舍，src/ui/screens/mine/about.js、src/ui/screens/library/index.js；不是运行时开关",
+    "P212": "看答案第一次的格下说明（W1，D51 ⑧）：C3-H / D53（P248，N3-06）已撤掉那一行说明（R-W07.firstExplain 槽删除）；settings.answerNoteSeen 标志位与 write/answer.js commitAnswerNoteSeen / answerNoteDue 保留，界面不再读它；不是运行时开关",
+    "P248": "首用口吻收口（C3-H，D53）：全写错结果页去朱点与重复点名、删看答案首次说明行、「记为看过答案」只说一处、首练标题固定「这三个字」、首练页最多两句话与按钮写出结果——样式与结构取舍，src/ui/screens/result/*、src/ui/components/work.js、src/ui/screens/write/answer.js；文案见 X-FIRST.* / X-INVITE.* / R-W10.lineSaw；不是运行时开关",
     "P240": "书写格永远正方形（R3-K1 / A3-01）：书写格与判断页两格宽高写死成同一个 px 值（src/ui/canvas/ink-canvas.js、src/ui/screens/write/compare.js squareStyle），容器变形时笔画按较短边居中映射（squareMapping），WebKit 门禁 scripts/verify-webkit-ax.mjs；不是运行时开关",
     "P241": "AX 档格下说明位按实际高度排、放不下时并入「⋯」菜单（R3-K1 / A3-01）：版式公式在 src/ui/screens/write/layout.js axWriteLayout（noteInMenu），量测在 compact.js useWriteLayout，菜单顶部 write-menu-note 在 ax-menu.js；policy.writeGrid.axNoteHeight 改为最小高度，不是新的运行时开关",
     "P242": "中文折行（R3-K1 / A3-02）：全 App 不用 word-break:keep-all；按钮与菜单项文字经 src/ui/components/Words.js（Intl.Segmenter 分词、每词一个 nowrap span）只在词边界折，正文与说明句用正常 CJK 折行 + line-break:strict；样式规则，不是运行时开关",
@@ -715,19 +717,12 @@
           "text": "看答案",
           "origin": "04 R-W07 规则列「看答案先确认」：写字页上的「看答案」按钮",
           "note": "与确认框按钮同字"
-        },
-        "firstExplain": {
-          "raw": null,
-          "text": "以后点「看答案」会直接显示。",
-          "origin": "extra",
-          "note": "第一次用「看答案」时格下一行说明（13，墨三；求助梯子设计稿 I2-02，过渡文案）；出现即记 settings.answerNoteSeen，只出现一次",
-          "decision": "P212"
         }
       },
       "dropped": [
         {
           "raw": "看了答案，这个字就记为「看过答案」。",
-          "why": "P40 / D51 ⑧：删除看答案确认框；后果由底栏说明 answerNote 与第一次的格下说明 firstExplain 承担"
+          "why": "P40 / D51 ⑧：删除看答案确认框；后果由底栏说明 answerNote 承担（第一次的格下说明 firstExplain 已在 C3-H / D53 删除，P248）"
         },
         {
           "raw": "接着想 / 看答案",
@@ -855,7 +850,9 @@
         },
         "lineSaw": {
           "raw": "「X」记为看过答案",
-          "text": "「{char}」记为看过答案"
+          "text": "「{char}」看过答案",
+          "note": "C3-H / N3-06、D53（P248）：看过答案的字下一字的结果行不再说「记为」——「记为看过答案」只在看答案页按钮上方那一句（R-W07.answerNote）说一次",
+          "decision": "P248"
         },
         "changeBodyCorrect": {
           "raw": "刚才记的是写对。改了只换掉这一次，不会多算一次。",
@@ -4643,17 +4640,10 @@
       "slots": {
         "title": {
           "raw": null,
-          "text": "这{n}个字，很多人提笔就忘。",
+          "text": "这三个字，很多人提笔就忘。",
           "origin": "extra",
-          "note": "首练结果页标题：承认难度，不以计数作标题（D28 / N03）；R2-R1（V2-05）起按这一页上实际有几个字写取数（汉字数字，ui/work-text.js firstTitle），不再固定「三」；替换首练分支的 R-R01.titleCount",
-          "decision": "P215"
-        },
-        "titlePlain": {
-          "raw": null,
-          "text": "这几个字，很多人提笔就忘。",
-          "origin": "extra",
-          "note": "首练结果页标题的兜底：这一页没有可数的字（异常数据）时用，不写数量",
-          "decision": "P215"
+          "note": "首练结果页标题：承认难度，不以计数作标题（D28 / N03）；首练恒为 3 个字，C3-H / N3-07、D53（P248）起固定说「这三个字」，不再按作品里有几格取数（取代 R2-R1 V2-05 的做法；titlePlain 槽删除）；替换首练分支的 R-R01.titleCount",
+          "decision": "P248"
         },
         "tier.tomorrow": {
           "raw": null,
@@ -4773,6 +4763,13 @@
           "origin": "extra",
           "note": "C3-H / N3-01、D53 ④：首练里有「拾」这一格但没写成（写错 / 看过答案 / 跳过）的人，结果页复现句前说一次它就是首页那个字，把首屏和这一题的关系说出来；措辞自拟",
           "decision": "P245"
+        },
+        "excludedQuiet": {
+          "raw": null,
+          "text": "写过了",
+          "origin": "extra",
+          "note": "C3-H / N3-03、D53：首练 / 日常结果页没有任何作品（全写错）时，作品下几行的状态字用这句中性的说法，行上不画朱点（朱色 ≤ 2、不重复点名；朱点留给「放进图里」以后的作品）",
+          "decision": "P248"
         }
       }
     },
@@ -4811,17 +4808,17 @@
         },
         "yes": {
           "raw": null,
-          "text": "好",
+          "text": "好，明天给我一个词",
           "origin": "extra",
-          "note": "邀请按钮：点了才请求系统通知权限",
-          "decision": "P157"
+          "note": "首练 / 今天的练习结果页提醒邀请的主按钮：写出结果（C3-H / T3-12、D53，P248），原为「好」",
+          "decision": "P248"
         },
         "no": {
           "raw": null,
-          "text": "不用了",
+          "text": "先不用",
           "origin": "extra",
-          "note": "邀请文字按钮：以后不在结果页再问；设置页「练习提醒」始终可开",
-          "decision": "P157"
+          "note": "提醒邀请的文字按钮（C3-H / T3-12、D53，P248），原为「不用了」",
+          "decision": "P248"
         },
         "accepted": {
           "raw": null,

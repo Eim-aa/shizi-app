@@ -248,6 +248,34 @@
 | S1-9 | **比例**（`policy.soundGainDb`，P201）：落款相对判断声 | 落款像「一组的句号」且不吓一跳；若吓一跳把 `soundGainDb.seal` 降 2dB，若不够「句号」调回 | 主观记录与结论 | 03 P201 | ☐ | ☐ | ☐ | |
 | S1-10 | **木还是石**：品牌印「字」若视觉上是石章，耳朵是否觉得木印声「不对」 | 记结论；不通过时对比候选 s2 石印（`node scripts/sound/gen.mjs --candidates <目录>` 可生成） | 主观记录 | README §8 | ☐ | ☐ | ☐ | |
 
+## 13f. 阶段 2 入场券 · 原生书写面 spike 真机测量（P1-S2；T1，T2 预备）
+
+spike 只在 **Debug 构建**里，默认关闭；不开开关时写字页仍是网页书写（与正式包相同）。开关打开后，写字页那一格由叠在 WKWebView 上的原生层接管：UITouch 合并点 + 预测点、CADisplayLink、Metal 渲染笔锋模型 ink-model-1.0（`ios/ShiziApp/ShiziApp/NativeInkView.swift`），抬笔后原始点照旧交给页面保存。判断页、结果页、字墙上的笔迹仍是网页画的（所以「写好了」之后看到的是网页墨，可以拿来和原生墨对照）。飞白、洇墨、抬笔 70ms 补间还没做。
+
+**iPhone 13（60Hz）上怎么做**（产品负责人；约 30 分钟）：
+
+1. 安装带开关的 Debug 包（Mac 上，iPhone 用线连好、已信任）：
+   `SIGNING_XCCONFIG=ios/ShiziApp/Config/Signing.local.xcconfig DEVICE_ID='<iPhone 13 的名字或 UDID>' NATIVE_INK=1 INK_SELFCHECK=1 ios/ShiziApp/scripts/run-device.sh`
+   （`CONFIGURATION` 默认就是 Debug。用 Xcode 也行：Scheme `Shizi` → Edit Scheme → Run → Arguments → Arguments Passed On Launch 加 `-shizi-native-ink` 与 `-shizi-ink-selfcheck`，Build Configuration 选 Debug。）
+2. 以后每次从主屏图标打开不会带开关——**要测时都用第 1 步的命令重新启动一次**（或在 Xcode 里 Run）。
+3. 进写字页（首页「开始写字」或任一字详情「练这个字」）。写字方式要是「在屏幕上写」。
+4. 按下面的表写字。每写完一笔，App 会把延迟统计存一次。
+5. **导出**：在书写格上**两指同时轻点两下**，弹出分享面板，选「存储到文件」或 AirDrop 到 Mac，文件名 `拾字-原生书写面-T1-<时间>.json`。没导出成功也不要紧：Mac 上 `xcrun devicectl device copy from --device '<设备>' --domain-type appDataContainer --domain-identifier <bundle id> --source Documents/shizi-native-ink-latency.json --destination ./` 可直接取回。
+6. 把 JSON、录像和备注交给工程（放 `.review/s2-spike/device/`）。
+
+| 编号 | 步骤 | 期望 / 记录什么 | 证据 | 通过 | 未通过 | 未覆盖 | 备注 |
+|---|---|---|---|---|---|---|---|
+| NI-0 | 打开 App 后 10 秒内不操作，Mac 上看 Console.app（选这台 iPhone，搜 `ink-selfcheck`） | 一行 `ink-selfcheck OK: 314 assertions passed · 0 failed · reference compare 40 paths …`：真机上的笔锋模型与金标准一致 | Console 截图 | ☐ | ☐ | ☐ | |
+| NI-1 | 进写字页，手指慢慢写「永」或「十」，看墨是否紧跟指尖、横细竖粗、起笔有斜切、慢收笔有圆头 | 墨的位置和格子对齐（墨不偏出格子、不比手指慢一截）；抬笔时形状只有一次很小的变化 | 截图 | ☐ | ☐ | ☐ | |
+| NI-2 | **T1 跟手**：240fps 慢动作（另一台手机）从侧上方拍，手指匀速在格子里画 10cm 直线 3 次；再打开备忘录同样画 3 次 | 逐帧数「指尖经过 → 墨出现在同一位置」的帧数差；原生书写层与备忘录相差 ≤ 1 帧（60Hz ≈ 16.7ms；120Hz 机 ≈ 8.3ms） | 两段录像 | ☐ | ☐ | ☐ | |
+| NI-3 | **慢写 / 快写**：同一个字先慢写（每笔 1 秒以上）、再快写（每笔 0.2 秒），各写 5 遍 | 快写的竖有悬针、横有出锋；慢写有顿；记下哪里看着「不像自己写的」 | 截图 + 备注 | ☐ | ☐ | ☐ | |
+| NI-4 | 写满 20 笔后两指轻点两下导出 JSON | 打开 JSON 看 `summary.touchToTargetMs.p50 / p95`（触点到「这一帧预计上屏」）、`touchToPresentedMs`（触点到真正上屏，真机才有）、`frameCpuMs.p95`（每帧计算，期望 ≤ 4ms）、`displayFrameMs.p50`（iPhone 13 应为 16.7） | JSON | ☐ | ☐ | ☐ | |
+| NI-5 | 写一半时：下拉通知中心、切后台再回来、点「撤销 / 清空」、换字 | 正在写的那一笔丢弃（不留半笔）；撤销 / 清空后原生层和页面一致；换字后格子是空的 | 截图 | ☐ | ☐ | ☐ | |
+| NI-6 | 「写好了」→ 点「写对了」 | 本人的字从上格轻轻离纸、收向右上角计数（约半秒），手里一震与离纸同时；（这是落定原型，T8 用） | 慢动作录像 | ☐ | ☐ | ☐ | |
+| NI-7 | **T2 预备**（可选）：分别用 `NATIVE_INK_PRESET=B`、`NATIVE_INK_PRESET=C` 再装一次，各写同一组 5 个字 | A 默认、B 更接近等宽硬笔、C 横竖对比更强出锋更长；记下哪一套「更像在纸上写」 | 截图 + 主观记录 | ☐ | ☐ | ☐ | |
+
+注意：模拟器上测到的延迟数字只说明管线通了，不代表真机（模拟器的触点是注入的，刷新是 Mac 合成器的节奏）。iPhone 13 是 60Hz 屏，测不出 120Hz；ProMotion 机（iPhone 13 Pro 及以后 Pro、17）上同一命令会自动请求 120Hz（`NATIVE_INK=1` 让 Debug 包带上 `CADisableMinimumFrameDurationOnPhone`）。VoiceOver 打开时原生层不提供读屏元素（读屏仍读网页书写格；「直接交互」留到阶段 2），测读屏时请关掉开关。
+
 ## 14. 不在本清单范围
 
 - 逐判断笔迹存储（`features.perRecordInk`）未开启（P31 未解除），真实多笔墨迹在墙、清单、详情、图片中的表现不测；开启前另列检查。

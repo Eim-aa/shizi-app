@@ -56,6 +56,10 @@ fi
 
 mkdir -p "$BUILD_DIR"
 
+# NATIVE_INK=1：Debug 包的 Info.plist 加 CADisableMinimumFrameDurationOnPhone（ProMotion 机上原生书写层可请求 120Hz；sync-web-assets.sh）
+EXTRA_BUILD_SETTINGS=()
+if [ "${NATIVE_INK:-0}" = "1" ]; then EXTRA_BUILD_SETTINGS+=(SHIZI_NATIVE_INK_120HZ=YES); fi
+
 echo "Building ${SCHEME} for device (${DESTINATION})"
 if [ -n "${BUNDLE_ID:-}" ]; then
   run_xcodebuild \
@@ -68,6 +72,7 @@ if [ -n "${BUNDLE_ID:-}" ]; then
     PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
     -allowProvisioningUpdates \
     -allowProvisioningDeviceRegistration \
+    ${EXTRA_BUILD_SETTINGS[@]+"${EXTRA_BUILD_SETTINGS[@]}"} \
     build
 else
   run_xcodebuild \
@@ -79,6 +84,7 @@ else
     DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM" \
     -allowProvisioningUpdates \
     -allowProvisioningDeviceRegistration \
+    ${EXTRA_BUILD_SETTINGS[@]+"${EXTRA_BUILD_SETTINGS[@]}"} \
     build
 fi
 
@@ -96,14 +102,14 @@ if [ "${SKIP_LAUNCH:-0}" = "1" ]; then
 fi
 
 echo "Launching ${APP_ID}"
-if [ "${DEV_MODE:-0}" = "1" ] && [ "${SMOKE_MODE:-0}" = "1" ]; then
-  xcrun devicectl device process launch --device "$DEVICE_ID" --terminate-existing "$APP_ID" -shizi-dev -shizi-smoke
-elif [ "${DEV_MODE:-0}" = "1" ]; then
-  xcrun devicectl device process launch --device "$DEVICE_ID" --terminate-existing "$APP_ID" -shizi-dev
-elif [ "${SMOKE_MODE:-0}" = "1" ]; then
-  xcrun devicectl device process launch --device "$DEVICE_ID" --terminate-existing "$APP_ID" -shizi-smoke
-else
-  xcrun devicectl device process launch --device "$DEVICE_ID" --terminate-existing "$APP_ID"
-fi
+LAUNCH_ARGS=()
+if [ "${DEV_MODE:-0}" = "1" ]; then LAUNCH_ARGS+=(-shizi-dev); fi
+if [ "${SMOKE_MODE:-0}" = "1" ]; then LAUNCH_ARGS+=(-shizi-smoke); fi
+# P1-S2 原生书写面 spike（只在 Debug 构建有效）：NATIVE_INK=1 打开原生书写层；NATIVE_INK_PRESET=A|B|C 选笔模型参数组（T2）；
+# INK_SELFCHECK=1 启动时跑笔锋模型金标准自检。步骤见 DEVICE_QA.md §13f。
+if [ "${NATIVE_INK:-0}" = "1" ]; then LAUNCH_ARGS+=(-shizi-native-ink); fi
+if [ -n "${NATIVE_INK_PRESET:-}" ]; then LAUNCH_ARGS+=(-shizi-native-ink-preset "${NATIVE_INK_PRESET}"); fi
+if [ "${INK_SELFCHECK:-0}" = "1" ]; then LAUNCH_ARGS+=(-shizi-ink-selfcheck); fi
+xcrun devicectl device process launch --device "$DEVICE_ID" --terminate-existing "$APP_ID" ${LAUNCH_ARGS[@]+"${LAUNCH_ARGS[@]}"}
 
 echo "Done. Continue manual iPhone handwriting and keyboard/safe-area checks on the device."

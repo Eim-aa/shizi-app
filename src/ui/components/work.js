@@ -47,8 +47,8 @@ injectStyles('work', `
 .sz-work__dot{position:absolute;border-radius:50%;pointer-events:none}
 .sz-work__sign{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:14px}
 .sz-work__kuan{font-family:${T.song};font-size:calc(13px * 1);line-height:20px;font-weight:400;color:${T.ink2};white-space:nowrap} /* 落款是图形：宋 13 / 20 固定，不读 --k（D49，作品内文字不随字号放大） */
-.sz-work__caps{display:grid;margin:6px auto 0;justify-items:center;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3}}
-.sz-work__cap{text-align:center}
+.sz-work__cap{position:absolute;left:0;right:0;bottom:4px;z-index:1;text-align:center;white-space:nowrap;pointer-events:none;font-family:${T.hei};
+  font-size:calc(11px * 1);line-height:16px;font-weight:500;color:${T.ink3}} /* 格内底边的小注（「看后写的」，T2-08 / V3-05）：与角标同字阶 11，是作品内的图形文字，不随字号放大 */
 .sz-work__plain{display:flex;flex-wrap:wrap;gap:0 0;justify-content:center}
 .sz-work__plainitem{display:flex;flex-direction:column;align-items:center}
 .sz-work__plaincell{box-sizing:border-box;padding:1px;${TEX};box-shadow:inset 0 0 0 ${T.frameW} ${T.frame}}
@@ -190,7 +190,7 @@ const CELL_PRESS = pressFeedbackHandlers(() => false);
  * @param {Array<{key:string, ch:string, ink?:object|null, mode?:'hand'|'under', dot?:boolean, label:string, index?:number, record?:string, state?:string}>} props.cells
  * @param {{cols:number, rows:number, c:number}} props.grid  resultGrid() 的结果
  * @param {string} props.kuan  落款
- * @param {string[]} [props.caps]  与 cells 同长的格下标注（空串 = 无）
+ * @param {string[]} [props.caps]  与 cells 同长的格内底边小注（空串 = 无）；落款永远是作品的最后一行，下面不再放任何东西
  * @param {(cell)=>void} [props.onOpen]
  * @param {string} [props.label]  整体的读屏名称
  * @param {boolean} [props.withSign]  画落款与印（缺省 true）
@@ -205,11 +205,6 @@ export function WorkPaper({ cells, grid, kuan, caps = [], onOpen, label, withSig
   const gw = cols * c;
   const sealSize = SEAL_PT; // 印只有一种：24pt，与字数无关（V2-05 / T2-22）
   const frames = frameRects(n, cols, c);
-  const capSlots = Array.from({ length: cols }, (_, j) => {
-    for (let i = 0; i < n; i += 1) if (i % cols === j && caps[i]) return caps[i];
-    return '';
-  });
-  const anyCap = capSlots.some(Boolean);
   const sealStyle = below ? null : {
     left: `${(lastCol + 1) * c + Math.round(c * 0.12)}px`,
     top: `${rows * c - sealSize - Math.round(c * 0.06)}px`,
@@ -231,6 +226,7 @@ export function WorkPaper({ cells, grid, kuan, caps = [], onOpen, label, withSig
             aria-label=${cell.label} onClick=${() => onOpen && onOpen(cell)}>
             <${CellCanvas} ch=${cell.ch} ink=${cell.ink} mode=${cell.mode || 'hand'} size=${c} />
             ${cell.dot ? html`<${WrongDot} size=${c} ink=${cell.ink} />` : null}
+            ${caps[i] ? html`<span class="sz-work__cap" aria-hidden="true" data-testid="work-cap">${caps[i]}</span>` : null}
           </button>`)}
           ${frames.map((r, i) => html`<span key=${`f${i}`} class="sz-work__frame" aria-hidden="true"
             style=${{ left: `${r.x}px`, top: `${r.y}px`, width: `${r.w}px`, height: `${r.h}px` }}></span>`)}
@@ -245,11 +241,6 @@ export function WorkPaper({ cells, grid, kuan, caps = [], onOpen, label, withSig
           : null}
       </div>
     </div>
-    ${anyCap
-      ? html`<div class="sz-work__caps" data-testid="work-caps" style=${{ gridTemplateColumns: `repeat(${cols}, ${c}px)`, width: `${gw}px` }}>
-          ${capSlots.map((text, j) => html`<span key=${j} class="sz-work__cap" data-testid=${text ? 'work-cap' : null}>${text}</span>`)}
-        </div>`
-      : null}
   </section>`;
 }
 

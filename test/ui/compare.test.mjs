@@ -2,10 +2,11 @@
 // 草稿变换（judgeInDraft / correctInDraft / skipInDraft / undoSkipInDraft）、commit 前置检查、结果行模型、判断两键视图。
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import { loadFSRSGlobal } from '../core/helpers.mjs';
 import {
   judgeInDraft, commitJudgment, commitComparePhase, hasInk, findJudged, JudgeButtons, JudgeFooter, JUDGE_ORDER, paintMini,
-  rememberInk, recalledInk, forgetRecentInk, mineCardLabel, refCardLabel, CompareStage,
+  rememberInk, recalledInk, forgetRecentInk, mineCardLabel, refCardLabel, CompareStage, ContinueButton,
 } from '../../src/ui/screens/write/compare.js';
 import { correctInDraft, commitCorrection, resultRowModel, lineVisible, ResultRowView } from '../../src/ui/screens/write/result-row.js';
 import { skipInDraft, undoSkipInDraft, commitSkip, commitUndoSkip, canUndoSkip, SKIP_UNDO_MS, SkipUndoBar } from '../../src/ui/screens/write/skip.js';
@@ -425,4 +426,13 @@ test('A9: compare cards read 「参考字形：嚏，tì，17 画」「你的书
     walk(p.children);
   })(stage);
   assert.deepEqual(labels, ['你的书写，2 笔', '参考字形：嚏，tì，17 画']);
+});
+
+test('ContinueButton（判断页左上「‹」）带 sz-page__ico--back：与写字页其它阶段同一个 x（I3-03）', () => {
+  const v = ContinueButton({ onClick() {} });
+  assert.equal(v.props.class, 'sz-page__ico--back', 'the same negative-margin class as Page.js leads (icon stroke edge on the 20pt line)');
+  assert.equal(v.props['data-testid'], 'write-continue');
+  assert.equal(v.props.variant, 'icon');
+  const page = fs.readFileSync(new URL('../../src/ui/components/Page.js', import.meta.url), 'utf8');
+  assert.ok(page.includes('.sz-page__lead .sz-page__ico--back{margin-left:-17.75px}'), 'the class is the one Page.js styles inside the lead slot');
 });

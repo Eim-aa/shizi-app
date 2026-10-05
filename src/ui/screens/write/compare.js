@@ -464,9 +464,12 @@ export function JudgeFooter({ failed = false, onJudge, onRetry, onCancelFail, re
   </div>`;
 }
 
-/** 左上「‹」（与写字页同一个图标，读屏名「接着写」：R-W09.continueWriting；D49）。 */
+/**
+ * 左上「‹」（与写字页同一个图标，读屏名「接着写」：R-W09.continueWriting；D49）。
+ * 带 Page.js 的 sz-page__ico--back（负外边距把图标描边外缘对到 20pt 页边线）：写字页各阶段与判断页的「‹」同一个 x（I3-03：之前漏了这个类，判断页右移 18pt，每字横跳两次）。
+ */
 export function ContinueButton({ onClick }) {
-  return html`<${Button} variant="icon" data-testid="write-continue" aria-label=${t('R-W09.continueWriting')} onClick=${onClick}>${BACK_ICON()}</${Button}>`;
+  return html`<${Button} variant="icon" class="sz-page__ico--back" data-testid="write-continue" aria-label=${t('R-W09.continueWriting')} onClick=${onClick}>${BACK_ICON()}</${Button}>`;
 }
 
 // ---------------------------------------------------------------- 写字页接线

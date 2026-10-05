@@ -91,8 +91,8 @@ test('homeModel：首练当天回首页（view today）带出 shiHandoff，交�
   assert.equal(homeModel(state(null), at('2026-10-06', 10), { hasInk: allInk }).shiHandoff, null, '隔天（view fresh）没有');
 });
 
-test('文案：「拾回」整个 App 只在这一处读屏名称里出现一次', () => {
+test('文案：「拾回」整个 App 只有两处——交接的读屏名称一次，年报卷首那一句一次（D53，N2-14）', () => {
   const hits = Object.entries(COPY).filter(([, v]) => typeof v === 'string' && v.includes('拾回'));
-  assert.deepEqual(hits.map(([k]) => k), ['X-HOME.shiHandoffLabel']);
+  assert.deepEqual(hits.map(([k]) => k).sort(), ['X-HOME.shiHandoffLabel', 'X-WORK.annualCoverLine']);
   assert.equal(t('X-HOME.shiHandoffLabel'), '拾回的第一个字：你自己写的「拾」');
 });

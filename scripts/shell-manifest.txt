@@ -7346,6 +7346,7 @@ src/ui/components/UndoBar.js
 src/ui/components/Words.js
 src/ui/components/ax.js
 src/ui/components/corrupt-notice.js
+src/ui/components/icons.js
 src/ui/components/image-preview.js
 src/ui/components/marks.js
 src/ui/components/near.js

@@ -63,7 +63,7 @@ injectStyles('mine-annual', `
 .sz-ann__tcell canvas{position:absolute;left:0;top:0}
 .sz-ann__tdate{font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3}}
 .sz-ann__empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:24px 0 48px}
-.sz-ann__eglyph{width:88px;height:88px;box-sizing:border-box;border:${T.frameW} dashed ${T.frame};display:grid;place-items:center;
+.sz-ann__eglyph{width:88px;height:88px;box-sizing:border-box;display:grid;place-items:center;
   color:${T.under}}
 .sz-ann__eglyph .sz-pg{width:60%;height:60%}
 .sz-ann__etitle{margin:0;font-family:${T.song};font-size:${T.fs22};font-weight:500;color:${T.ink1}}

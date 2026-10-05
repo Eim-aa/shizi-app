@@ -106,7 +106,7 @@ export const T = {
   zhu: v('zhu'), seal: v('seal'), onSeal: v('on-seal'), danzhu: v('danzhu'),
   wall1: v('wall1'), wall2: v('wall2'), wall3: v('wall3'), wall4: v('wall4'),
   btnBg: v('btn-bg'), btnFg: v('btn-fg'), btnDown: v('btn-down'), toastBg: v('toast-bg'), toastFg: v('toast-fg'),
-  scrim: v('scrim'), elevShadow: v('elev-shadow'),
+  scrim: v('scrim'), elevShadow: v('elev-shadow'), imgShadow: v('img-shadow'),
   // 字阶：七级，已乘 --k
   k: v('k'),
   fs11: v('fs11'), fs13: v('fs13'), fs15: v('fs15'), fs17: v('fs17'), fs22: v('fs22'), fs28: v('fs28'), fs34: v('fs34'),

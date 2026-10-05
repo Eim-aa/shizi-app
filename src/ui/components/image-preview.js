@@ -44,10 +44,14 @@ export const NATIVE_ACCEPTS_JPEG = true;
 
 injectStyles('image-preview', `
 .sz-img{display:flex;flex-direction:column;gap:16px}
-.sz-img__scroll{display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;box-sizing:border-box;padding:0 calc((100% + 2 * ${T.gutter} - var(--bw)) / 2); /* 百分比按包含块（弹层内容宽）算，滚动条自己比它宽 2 个页边（负外边距），要补回来才居中（Q2-3） */
-  margin:0 calc(-1 * ${T.gutter});scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.sz-img__stage{display:flex;align-items:center;justify-content:center;box-sizing:border-box;margin:0 calc(-1 * ${T.gutter});padding:20px 0;
+  min-height:calc(300px + 40px);background:${T.field}} /* 桌面：比弹层深一档的底（field），图是放在上面的一张笺（V3-03 / T3-06 / N3-04）；高度按最高的 3:4 留足，切比例时弹层不跳 */
+.sz-img__scroll{display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;box-sizing:border-box;width:100%;padding:0 calc((100% - var(--bw)) / 2); /* 百分比按包含块（桌面，满宽）算，补回来才居中（Q2-3） */
+  scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .sz-img__scroll::-webkit-scrollbar{display:none}
-.sz-img__board{flex:none;box-sizing:border-box;overflow:hidden;position:relative;scroll-snap-align:center;animation:szImgFade 150ms ease-out both}
+.sz-img__board{flex:none;box-sizing:border-box;overflow:hidden;position:relative;scroll-snap-align:center;animation:szImgFade 150ms ease-out both;
+  box-shadow:0 0 0 ${T.hair} ${T.line},${T.imgShadow}} /* 0.5pt 外缘 + 很轻的投影：一张放在桌上的纸（板自己是 t-light，不随主题） */
+.sz-img__scroll{padding-top:6px;padding-bottom:14px;margin:-6px 0 -14px;box-sizing:border-box} /* 滚动容器会裁掉投影：上下各留出投影的边 */
 .sz-img__board canvas{display:block;width:100%;height:100%}
 .sz-img__pager{display:flex;justify-content:center;gap:8px}
 .sz-img__dot{width:6px;height:6px;border-radius:50%;background:${T.ink4}}
@@ -60,8 +64,8 @@ injectStyles('image-preview', `
 /* AX 档（R3-K1，A3-04）：60 宽的两段放不下 AX 字号（「3:41:1」叠字）——改成两行满宽的单选，各 ≥ 44 高 */
 :root[data-ax] .sz-img__ratio{align-self:stretch;flex-direction:column;gap:3px}
 :root[data-ax] .sz-img__ratio button{width:100%;height:auto;min-height:44px;padding:4px 12px}
-.sz-img__boardnote{display:grid;place-items:center;text-align:center;margin:0 auto;border:${T.frameW} dashed ${T.frame};
-  border-radius:${T.rWork};padding:12px;box-sizing:border-box;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink2}}
+.sz-img__boardnote{display:grid;place-items:center;text-align:center;margin:0 auto;
+  padding:12px;box-sizing:border-box;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink2}}
 .sz-img__note{margin:0;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2};text-wrap:pretty}
 .sz-img__note:empty{display:none}
 .sz-img__chips{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
@@ -76,6 +80,8 @@ injectStyles('image-preview', `
 @keyframes szImgFade{from{opacity:0}to{opacity:1}}
 @media (prefers-reduced-motion: reduce){.sz-img__board{animation:none}}
 :root[data-ax] .sz-img__two{grid-template-columns:minmax(0,1fr)}
+:root[data-ax] .sz-img__ratio{flex-direction:column;align-self:stretch} /* AX 档：比例两项上下排，不再压成「3:41:1」（V3-10） */
+:root[data-ax] .sz-img__ratio button{width:auto;min-height:56px;height:auto;padding:0 12px}
 `);
 
 // ---------------------------------------------------------------- 分发
@@ -344,6 +350,7 @@ export function ImagePreview({ job, close, active = true, share = shareImageFile
   return html`<${Sheet} title=${job.title} onClose=${close} active=${active} testid="image-sheet" doneTestid="image-done">
     <div class="sz-img" data-testid="image-preview" data-kind=${job.kind} data-state=${view.state} data-ratio=${curRatio}
       data-pages=${total} data-page=${page} data-save=${busy === 'save' ? 'busy' : saveState}>
+      <div class="sz-img__stage" data-testid="image-stage">
       ${boardNote
         ? html`<span class="sz-img__boardnote" data-testid="image-board-note" style=${{ width: `${box.width}px`, height: `${box.height}px` }}>${boardNote}</span>`
         : html`<div class="sz-img__scroll" ref=${scrollRef} onScroll=${onScroll} style=${{ '--bw': `${box.width}px` }} role="group" aria-label=${t('X-WORK.previewAria')}>
@@ -352,6 +359,7 @@ export function ImagePreview({ job, close, active = true, share = shareImageFile
               aria-label=${total > 1 ? t('X-WORK.pageAria', { k: i + 1, m: total }) : job.title}
               style=${{ width: `${box.width}px`, height: `${box.height}px` }}></div>`)}
           </div>`}
+      </div>
       ${total > 1
         ? html`<div class="sz-img__pager" data-testid="image-pager">${Array.from({ length: total }, (_, i) => html`<span key=${i} class="sz-img__dot" data-testid="image-dot" data-on=${i === page ? 'true' : 'false'}></span>`)}</div>`
         : null}

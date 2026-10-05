@@ -31,12 +31,12 @@ import { useStoreState } from './records.js';
 export const MONTH_SCREEN = 'month';
 
 injectStyles('mine-month', `
-.sz-monthpage{display:flex;flex-direction:column;gap:12px;margin:0 -4px}
-.sz-monthpage__head{display:flex;flex-direction:column;gap:2px;padding:0 4px}
+.sz-monthpage{display:flex;flex-direction:column;gap:12px}
+.sz-monthpage__head{display:flex;flex-direction:column;gap:2px}
 .sz-monthpage__title{margin:0;font-family:${T.song};font-size:${T.fs28};line-height:${T.lh28};font-weight:500;color:${T.ink1}}
 .sz-monthpage__sub{margin:0;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3}}
-.sz-monthpage__note{margin:0;padding:0 4px;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3};text-wrap:pretty}
-.sz-monthpage__blank{min-height:120px;box-sizing:border-box;border:${T.frameW} dashed ${T.frame};display:grid;place-items:center;padding:12px;
+.sz-monthpage__note{margin:0;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3};text-wrap:pretty}
+.sz-monthpage__blank{min-height:120px;box-sizing:border-box;display:grid;place-items:center;padding:12px;
   text-align:center;font-size:${T.fs15};color:${T.ink2}}
 .sz-monthfoot{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
 :root[data-ax] .sz-monthfoot{grid-template-columns:minmax(0,1fr)}

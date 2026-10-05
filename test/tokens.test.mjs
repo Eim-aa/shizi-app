@@ -54,7 +54,7 @@ test('tokens.css colors equal tokens.json color.light / color.dark, key by key',
       assert.match(decl.note, new RegExp(`tokens\\.json color\\.${theme}\\.${key}$`), `${name} ${theme}: note cites its tokens.json path`);
     }
     // 反向：CSS 里每个颜色令牌都在 tokens.json 里（--elev-shadow / --tex-img 是派生项，另测）
-    const derived = new Set(['--elev-shadow', '--tex-img']);
+    const derived = new Set(['--elev-shadow', '--img-shadow', '--tex-img']);
     const known = new Set(Object.keys(table).map(k => `--${kebab(k)}`));
     for (const name of Object.keys(ctx[theme])) if (!derived.has(name)) assert.ok(known.has(name), `${name} (${theme}) is not in tokens.json`);
   }
@@ -65,6 +65,8 @@ test('elevation shadow and paper texture follow tokens.json shadow / texture', (
   const px = s => s.replace(/(-?[\d.]+) (-?[\d.]+) (-?[\d.]+) rgba/g, '$1px $2px $3px rgba');
   assert.equal(norm(ctx.light['--elev-shadow'].value), norm(px(tokens.shadow.light.sheet)));
   assert.equal(norm(ctx.dark['--elev-shadow'].value), norm(px(tokens.shadow.dark.sheet)));
+  assert.equal(norm(ctx.light['--img-shadow'].value), norm(px(tokens.shadow.light.preview)), 'the preview image’s light drop shadow (C3-R, D53 ⑤)');
+  assert.equal(norm(ctx.dark['--img-shadow'].value), norm(px(tokens.shadow.dark.preview)));
   assert.equal(ctx.light['--tex-img'].value, 'var(--tex-light)');
   assert.equal(ctx.dark['--tex-img'].value, 'var(--tex-dark)');
   // 占位强度：颗粒层的 alpha 取 placeholderStrength.grain；低频云絮层 D51 ⑥ 起删掉（只剩一层）

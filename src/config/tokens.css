@@ -200,6 +200,7 @@
   --toast-fg: #F4EFE6; /* Toast / 撤销条字 · 来源：tokens.json color.light.toastFg */
   --scrim: rgba(38,33,29,0.32); /* 遮罩 · 来源：tokens.json color.light.scrim */
   --elev-shadow: 0px -0.5px 0px rgba(38,33,29,.10), 0px -10px 30px rgba(38,33,29,.10); /* 弹层阴影（只有弹层有阴影）· 来源：tokens.json shadow.light.sheet */
+  --img-shadow: 0px 2px 12px rgba(38,33,29,.06); /* 分享预览里那张图的轻投影（唯一不在弹层本身上的阴影；只给 t-light 的预览板用）· 来源：tokens.json shadow.light.preview */
   --tex-img: var(--tex-light); /* 笺面纸纹（只用于 .tex 笺面，占位强度见 texture.placeholderStrength）· 来源：tokens.json texture.placeholderStrength.light */
 }
 
@@ -236,6 +237,7 @@
     --toast-fg: #ECE4D6; /* Toast / 撤销条字 · 来源：tokens.json color.dark.toastFg */
     --scrim: rgba(0,0,0,0.52); /* 遮罩 · 来源：tokens.json color.dark.scrim */
     --elev-shadow: 0px -0.5px 0px rgba(255,240,220,.06); /* 弹层阴影（只有弹层有阴影）· 来源：tokens.json shadow.dark.sheet */
+    --img-shadow: 0px 2px 12px rgba(0,0,0,.28); /* 分享预览里那张图的轻投影（预览板自己是 t-light，深色主题下这条只作对称保留）· 来源：tokens.json shadow.dark.preview */
     --tex-img: var(--tex-dark); /* 笺面纸纹（只用于 .tex 笺面，占位强度见 texture.placeholderStrength）· 来源：tokens.json texture.placeholderStrength.dark */
   }
 }
@@ -273,6 +275,7 @@
   --toast-fg: #ECE4D6; /* Toast / 撤销条字 · 来源：tokens.json color.dark.toastFg */
   --scrim: rgba(0,0,0,0.52); /* 遮罩 · 来源：tokens.json color.dark.scrim */
   --elev-shadow: 0px -0.5px 0px rgba(255,240,220,.06); /* 弹层阴影（只有弹层有阴影）· 来源：tokens.json shadow.dark.sheet */
+  --img-shadow: 0px 2px 12px rgba(0,0,0,.28); /* 分享预览里那张图的轻投影（预览板自己是 t-light，深色主题下这条只作对称保留）· 来源：tokens.json shadow.dark.preview */
   --tex-img: var(--tex-dark); /* 笺面纸纹（只用于 .tex 笺面，占位强度见 texture.placeholderStrength）· 来源：tokens.json texture.placeholderStrength.dark */
 }
 

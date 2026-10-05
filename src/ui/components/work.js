@@ -54,7 +54,7 @@ injectStyles('work', `
 .sz-work__plaincell{box-sizing:border-box;padding:1px;${TEX};box-shadow:inset 0 0 0 ${T.frameW} ${T.frame}}
 .sz-work__status{margin-top:6px;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3};text-align:center}
 .sz-work__status[data-wrong="true"]::before{content:"";display:inline-block;width:6px;height:6px;margin-right:4px;border-radius:50%;vertical-align:middle}
-.sz-month{box-sizing:border-box;${TEX};display:flex;flex-direction:column;align-items:center;padding:0 0 18px}
+.sz-month{box-sizing:border-box;display:flex;flex-direction:column;align-items:center;align-self:center;padding:0} /* 笺底只铺在格框里面（.sz-work__sheet，同作品）；落款在框外页面纸上（V3-05 / V3-08：不再两侧多出 5pt、下方多出 18px 笺底） */
 .sz-month__grid{position:relative;display:grid}
 .sz-mcell{position:relative;display:block;box-sizing:border-box;margin:0;padding:0;border:0;border-radius:${T.rWork};background:transparent;color:inherit;
   font:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
@@ -286,6 +286,8 @@ export function MonthPaper({ cells, cols, c, kuan, onOpen, label, testid = 'mont
   const frames = frameRects(n, cols, c);
   return html`<section class="sz-month" data-testid=${testid} data-n=${n} data-cols=${cols} data-cell=${c} role="group" aria-label=${label}>
     <div class="sz-month__grid" style=${{ gridTemplateColumns: `repeat(${cols}, ${c}px)`, width: `${gw}px` }}>
+      ${frames.map((r, i) => html`<span key=${`s${i}`} class="sz-work__sheet" aria-hidden="true" data-testid="month-sheet"
+        style=${{ left: `${r.x}px`, top: `${r.y}px`, width: `${r.w}px`, height: `${r.h}px` }}></span>`)}
       ${cells.map((cell, i) => html`<button type="button" key=${cell.key} class="sz-mcell" ...${CELL_PRESS} style=${{ width: `${c}px`, height: `${c}px` }}
         data-testid=${cellTestid} data-char=${cell.ch} data-mode=${cell.mode || 'hand'} data-day=${cell.day || ''} data-tag=${cell.tag || ''}
         data-record=${cell.record || ''} data-ink=${cell.mode === 'under' ? 'false' : 'true'}

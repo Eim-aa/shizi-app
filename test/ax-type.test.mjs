@@ -73,8 +73,10 @@ test('AX tier: xS–XXXL are untouched — the :root block still scales every st
   const base = {};
   for (const d of decls) if (d.selectors.length === 1 && d.selectors[0] === ':root') base[d.name] = d;
   for (const s of tokens.typography.scale) {
-    assert.equal(base[`--fs${s.level}`].value.replace(/\s+/g, ''), `calc(${s.size}px*var(--k))`);
-    assert.equal(base[`--lh${s.level}`].value.replace(/\s+/g, ''), `calc(${s.lineHeight}px*var(--k))`);
+    // 13 / 11 两级在偏小档带 max() 保底（R2-A1 / A2-07）：仍然是 --k 连续缩放，只是不低于 minSize / minLineHeight
+    const floor = (v, min) => (min ? `max(${min}px,${v})` : v);
+    assert.equal(base[`--fs${s.level}`].value.replace(/\s+/g, ''), floor(`calc(${s.size}px*var(--k))`, s.minSize));
+    assert.equal(base[`--lh${s.level}`].value.replace(/\s+/g, ''), floor(`calc(${s.lineHeight}px*var(--k))`, s.minLineHeight));
   }
   assert.equal(base['--btn-h'].value, '54px');
 });

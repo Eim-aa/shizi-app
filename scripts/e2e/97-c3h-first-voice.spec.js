@@ -68,10 +68,10 @@ export default async function run(page, ctx) {
     assert.equal(f.title, '这三个字，很多人提笔就忘。', 'the title speaks about the group');
     assert.ok(f.preview && f.preview.startsWith('「拾」就是首页那个字。'), `the 复现句 says once that 拾 is the home-page char: ${f.preview}`);
 
-    step(`${scheme}: 首练页标题之外最多两句话，邀请按钮写出结果，没有邀请说明`);
+    step(`${scheme}: 首练页标题之外两句话加一句锁屏隐私说明，邀请按钮写出结果`);
     await page.waitForSelector(`${topSel('result-invite')}[data-state="invite"]`, { timeout: 4000 });
     f = await firstPageFacts(page);
-    assert.equal(f.inviteBody, null, 'no explanatory body under the invitation question on the first-practice page');
+    assert.ok(f.inviteBody && f.inviteBody.startsWith('锁屏上只出现词语和拼音'), `D54: the lock-screen privacy line stays on the first-practice invitation: ${f.inviteBody}`);
     const sentences = [f.preview, f.inviteTitle].filter(Boolean);
     assert.equal(sentences.length, 2, `two sentences besides the title: 「${sentences.join('」「')}」`);
     assert.deepEqual([f.yes, f.no], ['好，明天给我一个词', '先不用'], 'the buttons say what happens');

@@ -61,9 +61,6 @@ injectStyles('image-preview', `
   font-size:${T.fs15};color:${T.ink2};font-variant-numeric:tabular-nums}
 .sz-img__ratio button::after{${HIT_EXT}} /* 视觉 38 高，热区 44（Q2-13） */
 .sz-img__ratio button[aria-pressed="true"]{background:${T.paper};color:${T.ink1}}
-/* AX 档（R3-K1，A3-04）：60 宽的两段放不下 AX 字号（「3:41:1」叠字）——改成两行满宽的单选，各 ≥ 44 高 */
-:root[data-ax] .sz-img__ratio{align-self:stretch;flex-direction:column;gap:3px}
-:root[data-ax] .sz-img__ratio button{width:100%;height:auto;min-height:44px;padding:4px 12px}
 .sz-img__boardnote{display:grid;place-items:center;text-align:center;margin:0 auto;
   padding:12px;box-sizing:border-box;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink2}}
 .sz-img__note{margin:0;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2};text-wrap:pretty}

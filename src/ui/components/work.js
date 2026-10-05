@@ -194,7 +194,7 @@ const CELL_PRESS = pressFeedbackHandlers(() => false);
  * @param {(cell)=>void} [props.onOpen]
  * @param {string} [props.label]  整体的读屏名称
  * @param {boolean} [props.withSign]  画落款与印（缺省 true）
- * @param {{plan:{stagger:number, kuanDelay:number, sealDelay:number}, onLand:()=>void}|null} [props.reveal]
+ * @param {{plan:{stagger:number, kuanDelay:number, sealDelay:number}, onLand:()=>void, onStart?:(event)=>void}|null} [props.reveal]
  *   作品显现与落印（D51 ②，result/work.js revealPlan）：格依次淡入、落款淡入、印落下；null = 直接是终态。动画样式在 result/work.js。
  */
 export function WorkPaper({ cells, grid, kuan, caps = [], onOpen, label, withSign = true, reveal = null }) {
@@ -215,7 +215,7 @@ export function WorkPaper({ cells, grid, kuan, caps = [], onOpen, label, withSig
     top: `${rows * c - sealSize - Math.round(c * 0.06)}px`,
   };
   const plan = reveal ? reveal.plan : null;
-  const sealProps = plan ? { cls: 'sz-seal--land', onLand: reveal.onLand } : {};
+  const sealProps = plan ? { cls: 'sz-seal--land', onLand: reveal.onLand, onStart: reveal.onStart } : {};
   const sealDelay = plan ? { animationDelay: `${plan.sealDelay}ms` } : null;
   return html`<section class="sz-work" data-testid="work" data-n=${n} data-cols=${cols} data-rows=${rows} data-cell=${c} role="group" aria-label=${label}>
     <div class="sz-work__paper">

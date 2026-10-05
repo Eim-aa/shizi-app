@@ -46,10 +46,11 @@ injectStyles('marks-work', WORK_MARK_CSS);
 
 /**
  * 作品里的印（唯一的一种）。
- * @param {{testid?:string, style?:object|null, cls?:string, onLand?:()=>void}} props  style 给位置（绝对 / 相对）；cls 给出现动画等附加类；
- *   onLand：落印动画（animationend）到位那一帧的回调（结果页用它对齐落款声，D51 ②）
+ * @param {{testid?:string, style?:object|null, cls?:string, onLand?:()=>void, onStart?:(event)=>void}} props  style 给位置（绝对 / 相对）；cls 给出现动画等附加类；
+ *   onLand：落印动画（animationend）回弹到位的回调；onStart：落印动画开始（delay 之后，animationstart）的回调——结果页用它盯着印的动画时钟，
+ *   在「着纸」那一帧（缩放最小值）发落款声与触觉（D51 ② / D53，I3-04）
  */
-export function Seal({ testid = 'work-seal', style = null, cls = '', onLand = null } = {}) {
+export function Seal({ testid = 'work-seal', style = null, cls = '', onLand = null, onStart = null } = {}) {
   return html`<span class=${cls ? `sz-seal ${cls}` : 'sz-seal'} aria-hidden="true" data-testid=${testid} style=${style}
-    onanimationend=${onLand}><${SealGlyph} /></span>`;
+    onanimationstart=${onStart} onanimationend=${onLand}><${SealGlyph} /></span>`;
 }

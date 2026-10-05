@@ -61,6 +61,8 @@ final class WebViewController: UIViewController {
     private lazy var actionHaptic = UIImpactFeedbackGenerator(style: .light)
     private lazy var selectionHaptic = UISelectionFeedbackGenerator()
     private lazy var milestoneHaptic = UINotificationFeedbackGenerator()
+    /// 结果页落印（D53 / I3-04）：rigid 0.8，全 App 只此一处；页面在印着纸的那一帧发 kind "seal"。
+    private lazy var sealHaptic = UIImpactFeedbackGenerator(style: .rigid)
     /// 判断声三个变体与落款声（assets/sound/*.caf，S1 / D50 ⑦）：文件名 → 预载好的播放器；`preloadSounds()` 在 viewDidLoad 填满。
     private var soundPlayers: [String: AVAudioPlayer] = [:]
 
@@ -912,6 +914,10 @@ extension WebViewController {
         case "stamp":
             stampHaptic.impactOccurred()
             stampHaptic.prepare()
+            sealHaptic.prepare() // 判断之后很快就是落印：提前唤醒 Taptic，落印那一下不延迟
+        case "seal":
+            sealHaptic.impactOccurred(intensity: 0.8)
+            sealHaptic.prepare()
         case "undo":
             undoHaptic.impactOccurred()
             undoHaptic.prepare()

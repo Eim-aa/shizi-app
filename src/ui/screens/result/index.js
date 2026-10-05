@@ -35,7 +35,7 @@
 //   result-sheet-mine / result-sheet-ref / result-sheet-noink、result-sheet-note、result-sheet-flip、
 //   result-sheet-fail-cancel / result-sheet-fail-retry；撤销底栏沿用 write-skip-undo*（skip.js SkipUndoBar）。
 
-import { html, useEffect, useRef, useState } from '../../../../vendor/ui.js';
+import { html, useEffect, useLayoutEffect, useRef, useState } from '../../../../vendor/ui.js';
 import { registerScreen, getRouter, getScreen, nav } from '../../router.js';
 import { Page } from '../../components/Page.js';
 import { Button, markStateChange } from '../../components/Button.js';
@@ -61,7 +61,7 @@ import '../write/result-row.js'; // .sz-change* 弹层样式（与写字页修�
 import { openWrite } from '../session/index.js';
 import { openNonePage } from '../session/none.js';
 import { InviteActions, ReminderInvite, ReviewPreview, firstExtras, useReminderInvite } from './first.js';
-import { WorkRows, WorkSection, commitAdded } from './work.js';
+import { WorkRows, WorkSection, commitAdded, commitSealed, shouldPlayReveal } from './work.js';
 import { addedOf, buildWork } from '../../../core/images/work.js';
 import { firstTitle } from '../../work-text.js';
 
@@ -622,9 +622,19 @@ function ResultScreen({ params, entry }) {
   const store = storeOrNull();
   const rootRef = useRef(null);
   useFootHairline(rootRef);
-  const [landed, setLanded] = useState(false); // 作品落定（印落下，D51 ②）：邀请的 600ms 从这时算起
   // 「这次的图片」入口与格子同一取法（存下的墨迹 → 本页面会话里的笔画，I6）
   const model = resultModel(state, { slot, sessionId, hasInk: record => inkPresent(inkOf(store, record)) });
+  const sealKey = `${slot}:${sessionId}`;
+  // 作品落定（印落下，D51 ② / D53）：邀请的 600ms 从这时算起；落印没有要演的（已落过印 / 减少动态效果 / 没有作品）时一开始就是已落定，文字与底栏不隐藏
+  const [landed, setLanded] = useState(() => !shouldPlayReveal({ work: model.work, key: sealKey, session: model.session }));
+  useLayoutEffect(() => { // 印落下之前先只显示作品（I3-04）：给页面写 data-late，底栏跟着淡入（正文那一半由 .sz-result[data-late] 管）
+    const root = rootRef.current;
+    const page = root && root.closest ? root.closest('.sz-page') : null;
+    if (!page) return undefined;
+    if (landed) page.removeAttribute('data-late');
+    else page.setAttribute('data-late', 'pending');
+    return () => page.removeAttribute('data-late');
+  }, [landed]);
   useEffect(() => { installCommitFeedback(getStore); }, []); // M5-5：结果页的改判断 / 撤销跳过 / 补写结束也发触觉（刷新后直接停在本页时写字页没挂过）
 
   // 写完但还在槽里（结束写入失败 / 刷新打断）→ 补写结束（幂等）。
@@ -738,7 +748,7 @@ function ResultScreen({ params, entry }) {
         onClick=${() => { dismissUndo(); imageAction({ slot, sessionId }); }}>${SHARE_ICON()}</${Button}>`
     : null;
   return html`<${Page} title=${model.header} hideTitle=${true} leading="close" onBack=${leave} footer=${footer} trailing=${shareButton} testid="result-screen">
-    <div class="sz-result" ref=${rootRef} data-testid="result-body" data-variant=${model.variant} data-slot=${slot} data-session=${sessionId} data-early=${model.early ? 'true' : 'false'}
+    <div class="sz-result" ref=${rootRef} data-testid="result-body" data-late=${landed ? null : 'pending'} data-variant=${model.variant} data-slot=${slot} data-session=${sessionId} data-early=${model.early ? 'true' : 'false'}
       data-found=${model.found ? 'true' : 'false'}>
       ${model.title || model.sub.length
         ? html`<div class="sz-result__head">
@@ -748,7 +758,8 @@ function ResultScreen({ params, entry }) {
         : null}
       ${model.work
         ? html`<${WorkSection} work=${model.work} day=${model.day} dateText=${dateText(model.day)} inkOf=${inkForRecord} onOpen=${openEntry}
-          picked=${model.variant === 'picked'} sealKey=${`${slot}:${sessionId}`} settings=${state && state.settings} onLanded=${() => setLanded(true)} />`
+          picked=${model.variant === 'picked'} sealKey=${sealKey} session=${model.session} settings=${state && state.settings}
+          onSealed=${() => { const st = storeOrNull(); if (st) commitSealed(st, { slot, sessionId }); }} onLanded=${() => setLanded(true)} />`
         : null}
       ${model.work ? html`<${WorkRows} rows=${model.work.rows.filter(r => r.state !== 'in')} inkOf=${inkForRecord} onOpen=${openEntry} onToggle=${toggleEntry} quiet=${model.work.empty} />` : null}
       ${extras ? html`<${ReviewPreview} text=${extras.preview} />` : null}

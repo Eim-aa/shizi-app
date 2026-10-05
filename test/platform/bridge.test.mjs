@@ -136,12 +136,12 @@ test('importing bridge.js in a page defines every global immediately (before any
   }
 });
 
-test('haptic and sound messages: {type:"haptic", kind} for the five old kinds, {type:"sound", kind:<file stem>, gain} (S1, D50 ⑦); settings.sound gates sound', async () => {
+test('haptic and sound messages: {type:"haptic", kind} for the five old kinds + seal (D53), {type:"sound", kind:<file stem>, gain} (S1, D50 ⑦); settings.sound gates sound', async () => {
   const { haptic, applyFeedback, feedbackFor, installCommitFeedback, resetCommitFeedback, COMMIT_FEEDBACK, HAPTIC_KINDS } = await import('../../src/platform/haptics.js');
   const { keySound, resetSound, SOUND_FILES } = await import('../../src/platform/sound.js');
   const { win, sent } = fakeWin();
   const b = createBridge(win);
-  assert.deepEqual([...HAPTIC_KINDS], ['stamp', 'undo', 'action', 'select', 'milestone']);
+  assert.deepEqual([...HAPTIC_KINDS], ['stamp', 'undo', 'action', 'select', 'milestone', 'seal']);
   assert.equal(haptic('stamp', { bridge: b }), 'native');
   assert.equal(haptic('nope', { bridge: b }), false);
   assert.deepEqual(sent, [{ kind: 'stamp', type: 'haptic' }]);

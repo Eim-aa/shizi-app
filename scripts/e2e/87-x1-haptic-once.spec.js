@@ -1,7 +1,7 @@
 // R2-X1（D51 ②，P227；第二轮审查 I2-03 的写字页部分）：每字一次触觉。
 //
 // 写字页里一次判断只发一次触觉（stamp，commit 'write:judge'）：进判断页、接着写、换下一字、画一笔、点提示后淡出都不发；最后一字也一样——
-// 判断到结果页出现之间只有那一次 stamp，结果页落印那一帧的 action 由 R2-R1（P216）管，不在这里叠加。
+// 判断到结果页出现之间只有那一次 stamp，结果页落印着纸那一帧的 seal 由 R2-R1（P216）/ C3-R 管，不在这里叠加。
 // 读 platform/haptics.js 的 hapticLog()（每发一次 push 一个种类）。
 
 import { bootTestHost, drawStroke, HORIZONTAL, seedSession, topSel, waitNavIdle } from './helpers.mjs';
@@ -43,7 +43,8 @@ export default async function x1HapticOnce(page, ctx) {
       assert.deepEqual(since, ['stamp'], `character ${i + 1}: and nothing else was sent by the write page`);
       await page.waitForTimeout(700);
     } else {
-      assert.ok(!since.includes('action') || since.indexOf('action') > since.indexOf('stamp'), 'the last character: no finish haptic stacked on the stamp (any later action is the seal moment of the result page, P216)');
+      assert.ok(!since.includes('action'), 'the last character: no finish haptic stacked on the stamp');
+      assert.ok(!since.includes('seal') || since.indexOf('seal') > since.indexOf('stamp'), 'any seal haptic is the result page’s landing moment, after the stamp (P216)');
       assert.equal(since.slice(0, 1)[0], 'stamp', 'the stamp comes first');
     }
   }

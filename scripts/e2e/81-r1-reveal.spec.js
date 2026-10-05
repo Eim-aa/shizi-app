@@ -1,7 +1,7 @@
 // 结果页作品显现与落印（R2-R1 / D51 ②；第二轮审查 N2-01 / I2-03；03 P216）：
 //   1. 最后一字判断后进结果页：作品格依次淡入 → 落款淡入 → 印落下；s1 落款声与「印到位那一帧」对齐（s1 开始播放的那一刻，印的动画已经 finished、
 //      scale 1、不透明；所有格已不透明）；从结果页出现到 s1 ≤ 750ms；最后一字的 j1 与 s1 相隔约 0.4–0.8 秒，不叠在一起（I2-03）。
-//   2. 触觉：进结果页那一刻不再发 finish 的 action；印到位那一帧发一次（I2-03）。
+//   2. 触觉：进结果页那一刻不再发 finish 的 action；印着纸那一帧发一次 seal（I2-03；第三轮 C3-R 起 s1 与触觉在着纸帧而不是回弹结束，细节在 93-c3r-seal）。
 //   3. 点一下直接到终态：印立刻落下、s1 立刻响（不等动画）。
 //   4. 减少动态效果：只显示终态，没有任何动画，s1 立即响。
 //   5. 同一组只响一次：点开一格再关闭（结果页重绘）作品不再重演、s1 不再响。
@@ -38,8 +38,6 @@ const rev = page => page.evaluate(() => window.__rev);
 const resetRev = page => page.evaluate(() => { window.__rev.starts.length = 0; window.__rev.workAt = null; });
 const hapticsNow = page => page.evaluate(async () => (await import('/src/platform/haptics.js')).hapticLog());
 const ready = page => page.evaluate(async () => (await import('/src/platform/sound.js')).warmSounds({}));
-
-const isUpright = transform => transform === 'none' || /^matrix\(1, 0, 0, 1, 0, 0\)$/.test(transform);
 
 async function judge(page, judgment = 'correct') {
   await drawStroke(page, HORIZONTAL);
@@ -79,14 +77,13 @@ export default async function revealSpec(page, ctx) {
   const s1 = r1.starts.find(s => s.ms === 320);
   assert.ok(j1 && s1, 'both the last j1 (150ms) and s1 (320ms) started');
   const gap = s1.t - j1.t;
-  assert.ok(gap >= 380 && gap <= 900, `j1 and s1 are separate beats, ~0.4–0.8s apart (${Math.round(gap)}ms): s1 no longer lands on top of j1`);
+  assert.ok(gap >= 300 && gap <= 900, `j1 and s1 are separate beats, ~0.3–0.8s apart (s1 now lands on contact, not at the end of the rebound — C3-R) (${Math.round(gap)}ms): s1 no longer lands on top of j1`);
   assert.ok(r1.workAt !== null && s1.t - r1.workAt <= 750 + 150, `from the work appearing to s1: ≤ 750ms (+ CI jitter) — ${Math.round(s1.t - r1.workAt)}ms`);
   assert.ok(s1.t - r1.workAt >= 300, `the stamp is not instant: s1 comes after the cells and the 落款 (${Math.round(s1.t - r1.workAt)}ms)`);
-  assert.deepEqual(s1.seal.anims.every(a => a === 'finished'), true, 'at s1 the seal animation has finished: the seal has landed on that frame');
-  assert.ok(s1.seal.opacity === '1' && isUpright(s1.seal.transform), `at s1 the seal is opaque and at scale 1 (${s1.seal.opacity} / ${s1.seal.transform})`);
+  assert.ok(s1.seal.opacity === '1', `at s1 the seal is fully opaque: it has touched the paper (${s1.seal.opacity})`);
   assert.ok(s1.cells.length === 2 && s1.cells.every(c => c.opacity === '1'), 'at s1 every cell is fully shown');
   const afterLand = (await hapticsNow(page)).slice(hapticBase);
-  assert.deepEqual(afterLand, ['stamp', 'action'], 'exactly one more haptic, sent at the landing');
+  assert.deepEqual(afterLand, ['stamp', 'seal'], 'exactly one more haptic, the rigid seal, sent at the landing');
   await page.waitForTimeout(500);
   assert.equal((await rev(page)).starts.filter(s => s.ms === 320).length, 1, 's1 once');
   assert.equal(await page.locator(`${topSel('work-cell')}.sz-wcell--in, ${topSel('work-seal')}.sz-seal--land`).count(), 0, 'after landing no animation class is left on the page');

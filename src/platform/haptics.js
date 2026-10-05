@@ -3,6 +3,8 @@
 // 种类沿旧版五档（639f592 index.html L1377–L1380；WebViewController playHaptic）：
 //   stamp（判断落定，Impact medium）、undo（撤销，Impact light）、action（过程完成，Impact light）、
 //   select（选择切换，Selection）、milestone（Notification success；P08 里程碑已删，没有触发点，保留档位给原生兼容）。
+// 第三轮（D53，I3-04）再加一档 seal：结果页落印那一下，Impact rigid 0.8（规格 §4.2「全 App 只此一处」，比判断的 stamp 更实），
+// 在印着纸那一帧与落款声 s1 同发（result/work.js sealMoment）。
 // 原生壳内：postNative('haptic', {kind})；浏览器 / PWA：只有 stamp 在支持 navigator.vibrate 的设备上震 10ms（沿旧；
 // iOS Safari 没有 vibrate，静默）。未知种类忽略。
 //
@@ -15,7 +17,7 @@
 //   write:answer-trace   进入「描一遍」                          select                        旧 openTracingTeaching L2603
 //   write:skip-undo      跳过的 3 秒撤销                        undo                          旧重盖 undo L2624
 //   result:skip-undo     结果页上撤销最后一字的跳过             undo                          同上
-//   （result:finish 写完最后一字、结果页出现：不再发触觉——R2-R1 / I2-03：判断落定已经有 stamp，结果页的触觉只在印落下的那一帧发一次，见 result/work.js sealMoment）
+//   （result:finish 写完最后一字、结果页出现：不再发触觉——R2-R1 / I2-03：判断落定已经有 stamp，结果页的触觉只在印着纸的那一帧发一次 seal，见 result/work.js sealMoment）
 //   write:end            「结束这组」确认（有判断时换成结果页） action                        同上
 // 声音（S1，D50 ⑦）：判断类 commit 同时发判断声 j1；书写与描红不出声（没有 trace-stroke 点位）；落款盖章声不是 commit，
 // 由结果页 WorkSection 在印落下的那一帧直接调 sound.js keySound('seal')，同一帧发一次触觉（D51 ②）。
@@ -27,7 +29,7 @@
 import { bridge } from './bridge.js';
 import { keySound } from './sound.js';
 
-export const HAPTIC_KINDS = Object.freeze(['stamp', 'undo', 'action', 'select', 'milestone']);
+export const HAPTIC_KINDS = Object.freeze(['stamp', 'undo', 'action', 'select', 'milestone', 'seal']);
 
 /** commit label → {haptic?, sound?}（sound 是 policy.keySoundEvents 里的事件名）。 */
 export const COMMIT_FEEDBACK = Object.freeze({
@@ -44,10 +46,16 @@ export const COMMIT_FEEDBACK = Object.freeze({
 
 const LOG_CAP = 30;
 const log = [];
+const logTimes = [];
 
 /** 最近发出的触觉（旧版 hapticDebug.events 的等价物；测试与诊断用）。 */
 export function hapticLog() {
   return log.slice();
+}
+
+/** 与 hapticLog() 一一对应的发出时刻（performance.now()，ms；e2e 核对「触觉与 s1 同一帧」用）。 */
+export function hapticTimes() {
+  return logTimes.slice();
 }
 
 function globalWin() {
@@ -62,7 +70,11 @@ function globalWin() {
 export function haptic(kind, { bridge: b = bridge, win = globalWin() } = {}) {
   if (HAPTIC_KINDS.indexOf(kind) < 0) return false;
   log.push(kind);
-  if (log.length > LOG_CAP) log.splice(0, log.length - LOG_CAP);
+  logTimes.push(typeof performance !== 'undefined' && typeof performance.now === 'function' ? performance.now() : Date.now());
+  if (log.length > LOG_CAP) {
+    log.splice(0, log.length - LOG_CAP);
+    logTimes.splice(0, logTimes.length - LOG_CAP);
+  }
   if (b && b.postNative('haptic', { kind })) return 'native';
   if (kind !== 'stamp') return false;
   try {
@@ -124,4 +136,5 @@ export function resetCommitFeedback() {
   if (installed) installed.off();
   installed = null;
   log.length = 0;
+  logTimes.length = 0;
 }

@@ -122,10 +122,14 @@ injectStyles('write-prompt', `
   white-space:nowrap}
 .sz-prompt__hint{margin:10px 0 0;min-width:0;text-align:center;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2};white-space:normal;overflow-wrap:anywhere}
 .sz-prompt__hint:empty{margin:0}
-/* AX 档（D51 ⑦，P225；A2-04 / V2-06）：字永远最大——题面格随 min(--k, 1.6) 放大（52 → 83），拼音与提示行（辅助信息）封顶 17pt、不再随档放大（拼音原先 AX5 是 49px，比要回忆的字还大） */
-:root[data-ax] .sz-prompt__wordwrap{padding-top:28px}
-:root[data-ax] .sz-prompt__py{font-size:calc(17px * 1);line-height:24px}
+/* AX 档（D51 ⑦，P225；A2-04 / V2-06）：字永远最大——题面格随 min(--k, 1.6) 放大（52 → 83，字面 66），拼音与提示行（辅助信息）分层封顶（R3-K1 P243，A3-03：
+   上一轮一律 17pt 矫枉过正）：拼音 AX1–AX2 22pt、AX3–AX5 28pt（单字题的唯一线索，声调要看得清）；提示行同说明位 17 / 22pt。都比题面字小。 */
+:root[data-ax] .sz-prompt__wordwrap{padding-top:34px}
+:root[data-ax] .sz-prompt__py{font-size:calc(22px * 1);line-height:30px}
 :root[data-ax] .sz-prompt__hint{margin-top:8px;font-size:calc(17px * 1);line-height:24px}
+${[3, 4, 5].map(n => `:root[data-ax="${n}"] .sz-prompt__wordwrap`).join(',')}{padding-top:40px}
+${[3, 4, 5].map(n => `:root[data-ax="${n}"] .sz-prompt__py`).join(',')}{font-size:calc(28px * 1);line-height:36px}
+${[3, 4, 5].map(n => `:root[data-ax="${n}"] .sz-prompt__hint`).join(',')}{font-size:calc(22px * 1);line-height:30px}
 `);
 
 // 题面里的字：练习字轮廓（P1-E2）。方框就是那 40pt（FACE_FULL：1024 方框占满元素）。

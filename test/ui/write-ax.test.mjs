@@ -20,11 +20,12 @@ function walk(node, fn) {
   if (node.props && node.props.children !== undefined) walk(node.props.children, fn);
 }
 
-test('policy.writeGrid (P225): AX floor 220, note slot 56, aux cap 17, prompt scale cap 1.6; the old AX toolsHeight is gone', () => {
+test('policy.writeGrid (P225 / P243): AX floor 220, note slot ≥ 56, tiered aux caps, prompt scale cap 1.6; the old AX toolsHeight is gone', () => {
   const g = policy.writeGrid;
   assert.equal(g.axMin, 220);
   assert.equal(g.axNoteHeight, 56);
-  assert.equal(g.axAuxMax, 17);
+  assert.ok(!('axAuxMax' in g), 'R3-K1 P243: the flat 17pt cap is replaced by tiers');
+  assert.deepEqual(g.axAux, { pinyin: [22, 28], note: [17, 22], progress: [17, 22], title: [17, 22], paper: [22, 28] });
   assert.equal(g.axPromptScaleMax, 1.6);
   assert.ok(!('toolsHeightAx' in g), 'AX tools moved to the header: no AX tools row any more');
   assert.equal(g.min, 258, 'xS–XXXL keep the 258 floor');
@@ -46,12 +47,12 @@ test('AxFoot: one row — the primary button plus 「⋯」 (aria-label 更多);
   assert.deepEqual(alone, ['write-answer-next']);
 });
 
-test('prompt.js AX rules: the cell grows with min(--k, 1.6) (the word is the biggest thing), pinyin / hint line are capped at 17pt', () => {
+test('prompt.js AX rules: the cell grows with min(--k, 1.6) (the word is the biggest thing), pinyin / hint line are capped by tier (P243)', () => {
   const src = read('src/ui/screens/write/prompt.js');
   assert.match(src, /:root\[data-ax\] \.sz-prompt\{--cw:calc\(52px \* min\(var\(--k\), \$\{AX_SCALE_MAX\}\)\)\}/);
   assert.match(src, /const AX_SCALE_MAX = policy\.writeGrid\.axPromptScaleMax;/);
-  assert.match(src, new RegExp(`:root\\[data-ax\\] \\.sz-prompt__py\\{font-size:calc\\(${policy.writeGrid.axAuxMax}px \\* 1\\)`));
-  assert.match(src, new RegExp(`:root\\[data-ax\\] \\.sz-prompt__hint\\{[^}]*font-size:calc\\(${policy.writeGrid.axAuxMax}px \\* 1\\)`));
+  assert.match(src, new RegExp(`:root\\[data-ax\\] \\.sz-prompt__py\\{font-size:calc\\(${policy.writeGrid.axAux.pinyin[0]}px \\* 1\\)`));
+  assert.match(src, new RegExp(`:root\\[data-ax\\] \\.sz-prompt__hint\\{[^}]*font-size:calc\\(${policy.writeGrid.axAux.note[0]}px \\* 1\\)`));
   assert.ok(!/--cw:64px/.test(src), 'the old 64px AX cell is gone');
 });
 

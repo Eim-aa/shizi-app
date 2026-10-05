@@ -85,9 +85,15 @@ export function titleFor(phase) {
 }
 
 const W = '.sz-page[data-testid="write-screen"]';
+/** AX3–AX5 的选择器（辅助字分层封顶的第二、三档；R3-K1 P243）。 */
+const AX_HI = (sel, extra = '') => [3, 4, 5].map(n => `:root[data-ax="${n}"]${extra} ${sel}`).join(',');
+/** AX3–AX5 格下说明位的最小高度：两行 22pt 辅助字 2 × 30 + 上内边距 8（AX1–AX2 仍是 AX_NOTE_H = 56）。 */
+const AX_NOTE_H_HI = 2 * 30 + 8;
 
 // AX 档（D51 ⑦，P225；A2-01 / A2-04 / A2-09）：写字页永不滚动。撤销 / 清空常驻页头（28pt 图标、热区 44），底栏只剩「写好了」+「⋯」（ax-menu.js），
-// 格下只剩固定 56 高的说明位（说明 / 提示 / 结果行，辅助字封顶 17pt）；拼音、进度、说明、纸上说明等辅助信息封顶 17pt，题面汉字才随档放大（prompt.js）。
+// 格下只剩说明位（说明 / 提示 / 结果行；高度按实际内容，至少两行，P241）。辅助字分层封顶（R3-K1 P243，第三轮审查 A3-03：上一轮一律 17pt 矫枉过正）：
+// 说明 / 结果行 / 进度 / 页头标题 AX1–AX2 17pt、AX3–AX5 22pt；纸上写说明 22 / 28pt；拼音见 prompt.js（22 / 28pt）；题面汉字（格 52 × min(k, 1.6) = 83，字面 66）仍是页面上最大的字。
+// 页头标题可折两行（不再单行省略）。
 // 下面 :root[data-ax] 开头的规则就是这一套（尺寸见 layout.js axWriteLayout）。
 injectStyles('write', `
 ${W} .sz-page__body{padding:0 ${T.gutter};gap:0}
@@ -129,9 +135,12 @@ ${W} .sz-page__foot[data-under="true"]::before{content:"";position:absolute;left
 :root[data-ax] .sz-write__links--ghost{display:none}
 :root[data-ax] ${W} .sz-write__below{width:100%;min-height:${AX_NOTE_H}px;margin:0}
 :root[data-ax] ${W} .sz-write__below[data-in-menu="true"]{min-height:0;height:0}
-:root[data-ax] ${W} .sz-write__below *,:root[data-ax] ${W} .sz-paper__title,:root[data-ax] ${W} .sz-paper__text,:root[data-ax] ${W} .sz-paper__back,
-:root[data-ax] ${W} .sz-write__progress{font-size:calc(17px * 1);line-height:24px}
+:root[data-ax] ${W} .sz-write__below *,:root[data-ax] ${W} .sz-write__progress{font-size:calc(17px * 1);line-height:24px}
+:root[data-ax] ${W} .sz-paper__title,:root[data-ax] ${W} .sz-paper__text,:root[data-ax] ${W} .sz-paper__back{font-size:calc(22px * 1);line-height:30px}
+${AX_HI(`${W} .sz-write__below *`)},${AX_HI(`${W} .sz-write__progress`)}{font-size:calc(22px * 1);line-height:30px}
+${AX_HI(`${W} .sz-paper__title`)},${AX_HI(`${W} .sz-paper__text`)},${AX_HI(`${W} .sz-paper__back`)}{font-size:calc(28px * 1);line-height:36px}
 :root[data-ax] ${W} .sz-write__note{box-sizing:border-box;min-height:${AX_NOTE_H}px;justify-content:flex-start;padding-top:8px}
+${AX_HI(`${W} .sz-write__below`)},${AX_HI(`${W} .sz-write__note`)}{min-height:${AX_NOTE_H_HI}px} /* 两行 22pt 辅助字 2 × 30 + 上内边距 8 */
 :root[data-ax] ${W} .sz-write__axhead{display:flex;align-items:center}
 :root[data-ax] ${W} .sz-write__axhead .sz-write__tools{height:44px;margin-right:0;visibility:visible}
 :root[data-ax] ${W} .sz-write__axhead .sz-write__tools[data-shown="false"]{visibility:hidden}
@@ -141,7 +150,9 @@ ${W} .sz-page__foot[data-under="true"]::before{content:"";position:absolute;left
 :root[data-ax] ${W} .sz-write__axhead .sz-write__progress{padding-left:4px}
 :root[data-ax][data-text-large] ${W} .sz-page__head{flex-wrap:nowrap}
 :root[data-ax][data-text-large] ${W} .sz-page__head>.sz-page__title:not(.sz-page__title--hidden){position:static;order:0;flex:1 1 0;min-width:0;
-  padding:0 4px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:calc(17px * 1);line-height:24px}
+  padding:0 4px;text-align:center;white-space:normal;line-break:strict;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;
+  font-size:calc(17px * 1);line-height:24px}
+${AX_HI(`${W} .sz-page__head>.sz-page__title:not(.sz-page__title--hidden)`, '[data-text-large]')}{font-size:calc(22px * 1);line-height:30px}
 `);
 
 const EMPTY = Object.freeze([]);

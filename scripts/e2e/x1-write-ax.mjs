@@ -4,7 +4,7 @@
 //   - 书写格（判断页是两格）完整落在首屏：不被底栏盖住、页面正文不滚动、书写格边长 ≥ 220；
 //   - 撤销 / 清空常驻页头右侧（28pt 图标、热区 ≥ 44）、「⋯」在底栏，都在首屏、都不与底栏 / 书写格相交；
 //   - 底栏只有一行：「写好了」主按钮 + 「⋯」；「⋯」打开现有底部弹层，菜单里有 提示 / 看答案 / 跳过 / 在纸上写（picked 会话再多一个「结束这组」），选了就生效；
-//   - 题面汉字随档放大（格边 = 52 × min(k, 1.6)），拼音与进度封顶 17pt；进度读屏名称是「第 n 个字，共 m 个」；
+//   - 题面汉字随档放大（格边 = 52 × min(k, 1.6)），拼音与进度分层封顶（R3-K1 P243：拼音 AX1 22 / AX3–AX5 28，进度 17 / 22）；进度读屏名称是「第 n 个字，共 m 个」；
 //   - 看答案页：主按钮「描一遍」、答案说明在格下说明位、答案字不被说明盖住。
 // 测试浏览器没有安全区（状态栏 0、底栏下内边距 8）。新旧对照：旧实现下 AX5 的 375×667 写字页书写格有约 37% 在底栏下面、页面正文可滚动。
 
@@ -107,10 +107,10 @@ export async function runWriteAx(page, ctx, views) {
       assert.ok(near(g.done.top, g.more.top, 1.5) || near(g.done.height, g.more.height, 1.5), `${tag}: the foot is one row`);
       const links = await page.evaluate(() => ['write-hint', 'write-show-answer', 'write-skip', 'write-to-paper'].filter(id => document.querySelector(`.sz-layer[data-top="true"] [data-testid="${id}"]`)));
       assert.deepEqual(links, [], `${tag}: hint / answer / skip / to-paper are not on the page, they are in the menu`);
-      // 题面：汉字随档放大，拼音与进度封顶 17pt
+      // 题面：汉字随档放大，拼音与进度分层封顶（P243）
       assert.ok(near(g.promptCell.width, Math.round(52 * Math.min(k, 1.6) * 10) / 10, 1.2), `${tag}: prompt cell ${g.promptCell.width.toFixed(1)} = 52 × min(${k}, 1.6)`);
-      assert.equal(g.pinyinFs, 17, `${tag}: pinyin is capped at 17pt (it was ${size === 'AX5' ? 49 : 'the Subhead step'} before)`);
-      assert.equal(g.progressFs, 17, `${tag}: the counter is capped at 17pt`);
+      assert.equal(g.pinyinFs, size === 'AX1' ? 22 : 28, `${tag}: pinyin is capped by tier (P243; it was 49 at AX5 before R2, a flat 17 in R2)`);
+      assert.equal(g.progressFs, size === 'AX1' ? 17 : 22, `${tag}: the counter is capped by tier`);
       assert.equal(g.progressText, '2 / 5');
       assert.equal(g.progressLabel, '第 2 个字，共 5 个', `${tag}: the counter reads 「第 2 个字，共 5 个」 for screen readers`);
 

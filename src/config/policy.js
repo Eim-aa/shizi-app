@@ -211,7 +211,15 @@ export const writeGrid = Object.freeze({
   toolsHeight: 40, // P118 格下工具行（说明位 + 撤销 / 清空图标）高度（pt，D49 实现交接 §13.1）
   axMin: 220, // P225 AX 档书写格边长下限（pt；D51 ⑦：258 → 220，SE 3 的 AX5 也放得下，格子完整可写好过大格子被盖住）
   axNoteHeight: 56, // P225 / P241 AX 档格下说明位的最小高度（pt；R3-K1 起按量到的实际高度排，格子缩到 axMin 仍放不下时说明并入「⋯」菜单顶部）
-  axAuxMax: 17, // P225 AX 档拼音 / 进度 / 说明等辅助信息的字号封顶（pt；题面汉字随档放大，辅助字不再放大，V2-06）
+  // P243（R3-K1，第三轮审查 A3-03）AX 档辅助字分层封顶（pt）：[AX1–AX2, AX3–AX5]；取代 P225 一律 17 的 axAuxMax。题面汉字（52 × min(k, 1.6) 的格、字面 80%）仍最大。
+  // 样式里是字面值（字阶 17 / 22 / 28，令牌门禁只认字面），test/ui/k1-aux-type.test.mjs 核对两边一致。
+  axAux: Object.freeze({
+    pinyin: Object.freeze([22, 28]), // P243 拼音：单字题的唯一线索
+    note: Object.freeze([17, 22]), // P243 格下说明 / 结果行 / 提示行 / 读屏建议
+    progress: Object.freeze([17, 22]), // P243 页头进度「n / m」
+    title: Object.freeze([17, 22]), // P243 页头标题（可折两行）
+    paper: Object.freeze([22, 28]), // P243 纸上写模式格内的说明与「改回在屏幕上写」
+  }),
   axPromptScaleMax: 1.6, // P225 AX 档题面汉字格的放大倍率上限：格边 = 52 × min(--k, 1.6)（V2-06「练习字按 min(k, 1.6) 放大」）
   bottomGap: 16, // P118 书写格组与按钮行之间至少留的空（pt，D49 实现交接 §13.2）
   topShare: 0.4, // P118 组高以外的空余，上方占的比例（D49 实现交接 §13.2：40% 在上、60% 在下）

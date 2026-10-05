@@ -206,7 +206,8 @@
     "P213": "帮助层统一画法（阶段 1 W1，D51 ⑧ / V2-02）：所有笔画同色不透明填进一层、整层 .4 不透明度、外侧一圈墨三外廓，不画逐笔描边；提示与描一遍共用；绘制取值，src/ui/canvas/glyph.js drawGlyphSolid / drawGlyphRing、glyph-wash.js；不是运行时开关",
     "P230": "底部弹层统一的「完成」与读屏退出手势（R2-A1 / A2-05，D29 / D51）：标题行右端「完成」文字按钮（文案槽 X-COMMON.done）、Esc 与 shizi-native-escape 关最上层弹层、决策弹层 dismiss=\"own\"；位置与逻辑在 src/ui/components/Sheet.js、src/ui/root.js、ios WebViewController.accessibilityPerformEscape，不是 policy 开关",
     "P231": "书写格的读屏名称与播报（R2-A1 / A2-06，D45 / D51）：名称带笔数，抬笔 / 撤销 / 清空 / 提示 / 描一遍经 aria-live=polite 区域播报，笔画名称数据没有故按「第 n 笔」；文案槽 X-WRITE.gridLabelCount、X-WRITE.live*，逻辑在 src/ui/screens/write/sr-live.js，不是 policy 开关",
-    "P232": "参考字形的读屏念法补结构与部件数（R2-A1 / A2-09，D45）：结构（左右 / 上下，仅清楚时断言）与部件数由 src/core/structure.js 用部件分组 + 笔顺中线几何推导；部件名无随 App 发布的数据（缺口，见 03 P232）；文案槽 X-JUDGE.refStructureLr / refStructureTb / refParts / refCardLabelPlus，不是 policy 开关"
+    "P232": "参考字形的读屏念法补结构与部件数（R2-A1 / A2-09，D45）：结构（左右 / 上下，仅清楚时断言）与部件数由 src/core/structure.js 用部件分组 + 笔顺中线几何推导；部件名无随 App 发布的数据（缺口，见 03 P232）；文案槽 X-JUDGE.refStructureLr / refStructureTb / refParts / refCardLabelPlus，不是 policy 开关",
+    "P233": "次级页 AX 档防叠（R2-A1 / A2-03，D29）：AX 档周条一句话、月历每天一行列表、字帖格角标不画、详情记录格两列；文案槽 X-MINE.axDayRow / axDayRowPaper / weekSummary / weekSummaryNone，样式与分支在 src/ui/screens/mine/*、detail/records.js、components/work.js，不是 policy 开关"
   },
   "noCopy": [
     "R-H08",
@@ -4263,6 +4264,34 @@
           "origin": "extra",
           "note": "阶段 1 P1-E2：练习记录里只在纸上写过的一天（日历上有点、没有可列的字帖）点开时的一行说明，过渡文案",
           "decision": "P172"
+        },
+        "axDayRow": {
+          "raw": null,
+          "text": "{date} · 记了 {n} 个字",
+          "origin": "extra",
+          "note": "AX 档练习记录月历列表的一行（有记录的每一天一行；{n} = 那天写的字数）",
+          "decision": "P233"
+        },
+        "axDayRowPaper": {
+          "raw": null,
+          "text": "{date} · 有记录",
+          "origin": "extra",
+          "note": "同上，那天的字都写在纸上（没有笔迹可数）",
+          "decision": "P233"
+        },
+        "weekSummary": {
+          "raw": null,
+          "text": "写了 {n} 天",
+          "origin": "extra",
+          "note": "AX 档「我的」周条换成的一句话（接在标题「这一周」后）",
+          "decision": "P233"
+        },
+        "weekSummaryNone": {
+          "raw": null,
+          "text": "还没有记录",
+          "origin": "extra",
+          "note": "同上，这一周没有记录",
+          "decision": "P233"
         }
       }
     },

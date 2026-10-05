@@ -53,6 +53,11 @@ export default Object.freeze({
   'X-MINE.prevMonth': '上个月',
   'X-MINE.nextMonth': '下个月',
   'X-MINE.cellLabel': '{char} · {date}',
+  // AX 档次级页（R2-A1 / A2-03，03 P233）：月历改成每天一行的列表、周条改成一句话；字帖格的日期角标不画，日期在格的读屏名称里（X-MINE.cellLabel）
+  'X-MINE.axDayRow': '{date} · 记了 {n} 个字',
+  'X-MINE.axDayRowPaper': '{date} · 有记录',
+  'X-MINE.weekSummary': '写了 {n} 天',
+  'X-MINE.weekSummaryNone': '还没有记录',
   'X-MINE.sheetOrder': '按第一次写下的先后排列',
   'X-MINE.sheetEmpty': '这个月还没有可以放进图片的字',
   // 只在纸上写过的一天（日历有点、没有字帖）；阶段 1 P1-E2，过渡文案，03 P172

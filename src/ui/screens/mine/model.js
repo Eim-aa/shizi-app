@@ -283,7 +283,7 @@ export function clampMonth(month, index, today) {
  * 练习记录（R-P01–R-P05）。
  * @param {{month?:string, day?:string, policy?:object, hasInk?:(record)=>boolean}} opts  month / day 来自页面参数（nav.setParams 写回）；
  *   hasInk（D42 挑留有墨迹的那一次）缺省按 state.ink
- * @returns {{today, month, year, monthNum, current:boolean, prev:string|null, next:string|null, calendar, recordDays:number,
+ * @returns {{today, month, year, monthNum, current:boolean, prev:string|null, next:string|null, calendar, recordDays:number, dayList:[{day,n,today}],
  *   sheet, selected:{day, items}|null, todayRow:{day, n}|null, empty:boolean}}
  */
 export function recordsModel(state, today, { month, day, policy = defaultPolicy, hasInk = null } = {}) {
@@ -306,6 +306,8 @@ export function recordsModel(state, today, { month, day, policy = defaultPolicy,
     next: m < currentMonth ? addMonths(m, 1) : null,
     calendar: calendarModel(index, m, today),
     recordDays: days.length,
+    // AX 档的月历列表（A2-03）：有记录的每一天一行，n = 那天写的字数（纸上写的一天 n=0）
+    dayList: days.map(d => ({ day: d, n: dayItems(index, d, { hasInk }).length, today: d === today })),
     sheet: monthSheet(index, m, { policy, hasInk }),
     selected,
     // 页底「{今天}写的字 / 这次的图片」（R-P03）：只在本月、今天有记录时；历史月份没有这一行（原型 recordsHistory）。

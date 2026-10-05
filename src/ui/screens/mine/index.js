@@ -25,6 +25,7 @@ import { html, useMemo } from '../../../../vendor/ui.js';
 import { registerScreen } from '../../router.js';
 import { TabPage } from '../../components/Page.js';
 import { Button } from '../../components/Button.js';
+import { useAxLevel } from '../../components/ax.js';
 import { Seal } from '../../components/marks.js';
 import { Chevron } from '../../components/Chevron.js';
 import { injectStyles, T, TEX } from '../../components/styles.js';
@@ -54,6 +55,9 @@ injectStyles('mine', `
 .sz-mine__sheetblock{display:flex;flex-direction:column;gap:${T.s3}}
 .sz-mine__bhead{display:flex;justify-content:space-between;align-items:baseline;gap:${T.s3}}
 .sz-mine__btitle{margin:0;font-family:${T.song};font-size:${T.fs22};line-height:${T.lh22};font-weight:500;color:${T.ink2}}
+:root[data-ax] .sz-mine__bhead{flex-wrap:wrap;align-items:center} /* AX 档标题与右侧链接放不下一行时上下排，标题不再被挤成一字一行（A2-03） */
+:root[data-ax] .sz-mine__btitle{flex:1 1 auto}
+.sz-mine__weeksum{margin:0;font-size:${T.fs17};line-height:${T.lh17s};color:${T.ink1}}
 .sz-mine__link.sz-btn{flex:none;min-height:44px;font-size:${T.fs15};color:${T.ink2};white-space:nowrap}
 .sz-mine__week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));font-variant-numeric:tabular-nums}
 .sz-mine__wd{display:flex;flex-direction:column;align-items:center;gap:${T.s1};padding:${T.s1} 0}
@@ -76,19 +80,26 @@ injectStyles('mine', `
 .sz-mine__rowr{flex:none;display:flex;align-items:center;gap:${T.s2};font-size:${T.fs15};color:${T.ink3}}
 .sz-mine__rowr--value{font-size:${T.fs15};color:${T.ink3}}
 .sz-mine__bval{display:inline-flex;align-items:center;gap:${T.s2};white-space:nowrap}
+:root[data-ax] .sz-mine__row.sz-btn{flex-wrap:wrap;row-gap:${T.s1}} /* AX 档菜单行：右侧的值 / 箭头放不下就换到标题下面，副标题不再被挤成一字一行（A2-03） */
+:root[data-ax] .sz-mine__rowl{flex:1 1 60%}
+:root[data-ax] .sz-mine__rowr{margin-left:auto}
 `);
 
 // ---------------------------------------------------------------- 视图
 
 function Week({ week }) {
   const names = t('X-MINE.weekdays');
+  const ax = useAxLevel();
+  const days = week.filter(d => d.has).length;
   return html`<div class="sz-mine__block" data-testid="mine-week">
     <div class="sz-mine__bhead">
       <h2 class="sz-mine__btitle" data-testid="mine-week-title">${t('R-M01.week')}</h2>
       <${Button} variant="text" class="sz-mine__link" data-testid="mine-records" onClick=${() => openRecords()}
         >${t('R-M01.practiceLog')} <span aria-hidden="true">${t('X-MINE.chevron')}</span></${Button}>
     </div>
-    <div class="sz-mine__week" role="list">
+    ${ax > 0
+    ? html`<p class="sz-mine__weeksum" data-testid="mine-week-summary" data-n=${days}>${days ? t('X-MINE.weekSummary', { n: days }) : t('X-MINE.weekSummaryNone')}</p>`
+    : html`<div class="sz-mine__week" role="list">
       ${week.map(d => html`<span key=${d.day} class="sz-mine__wd" role="listitem" data-testid="mine-week-day" data-day=${d.day}
         data-has=${d.has ? 'true' : 'false'} data-today=${d.today ? 'true' : 'false'} data-future=${d.future ? 'true' : 'false'}
         aria-label=${d.has ? t('X-MINE.dayRecorded', { date: dayText(d.day) }) : dayText(d.day)}>
@@ -96,7 +107,7 @@ function Week({ week }) {
         <span class="sz-mine__wdnum" aria-hidden="true">${d.n}</span>
         <span class="sz-mine__wddot" aria-hidden="true">${d.has ? html`<span class="sz-mine__dot" data-testid="mine-week-dot"></span>` : null}</span>
       </span>`)}
-    </div>
+    </div>`}
   </div>`;
 }
 

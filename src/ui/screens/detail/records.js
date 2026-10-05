@@ -71,6 +71,12 @@ injectStyles('detail-records', `
   border-top:${T.frameW} solid ${T.frame};font-size:${T.fs11};line-height:${T.lh11};color:${T.ink2};font-variant-numeric:tabular-nums;text-align:center}
 .sz-dcell__date{white-space:nowrap}
 .sz-dcell__cap{display:flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap}
+:root[data-ax] .sz-drec__grid{grid-template-columns:repeat(2,minmax(0,1fr))} /* AX 档：4 列的格宽放不下「10月2日」，改两列，日期与「写对」可折行（A2-03） */
+:root[data-ax] .sz-dcell__date,:root[data-ax] .sz-dcell__cap{white-space:normal;word-break:keep-all}
+:root[data-ax] .sz-dcell__meta{min-height:44px;height:auto}
+:root[data-ax] .sz-dhero{grid-template-columns:minmax(0,1fr)}
+:root[data-ax] .sz-dhero__cap{word-break:keep-all}
+:root[data-ax] .sz-drec__first{text-align:left;word-break:keep-all}
 .sz-drec__paper{margin:0;padding:0;list-style:none;border-top:${T.hair} solid ${T.line}}
 .sz-drec__prow{display:flex;align-items:center;gap:${T.s3};min-height:52px;border-bottom:${T.hair} solid ${T.line};
   font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2}}

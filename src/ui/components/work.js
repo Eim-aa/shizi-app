@@ -66,6 +66,7 @@ injectStyles('work', `
 .sz-mcell[data-pressed]{background:${T.field}}
 .sz-mcell canvas{display:block;position:absolute;left:0;top:0}
 ${MONTH_PAPER_TAG_CSS}
+:root[data-ax] .sz-mcell__tag{display:none} /* AX 档不画格内日期角标（AX5 下 40px 的数字压在笔迹上，A2-03）；日期在格的读屏名称里（monthModel cellLabel） */
 .sz-month__sign{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:14px}
 `);
 

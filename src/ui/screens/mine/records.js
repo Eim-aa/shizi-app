@@ -31,6 +31,7 @@ import { html, useEffect, useMemo, useRef, useState } from '../../../../vendor/u
 import { registerScreen, getRouter, getScreen, nav } from '../../router.js';
 import { Page } from '../../components/Page.js';
 import { Button, pressFeedbackHandlers } from '../../components/Button.js';
+import { useAxLevel } from '../../components/ax.js';
 import { injectStyles, T, TEX } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
 import * as defaultPolicy from '../../../config/policy.js';
@@ -120,6 +121,14 @@ injectStyles('mine-records', `
   font-size:clamp(9px, 16cqw, 12px);line-height:1;color:${T.ink3};white-space:nowrap}
 .sz-scell__tag{position:absolute;left:4px;top:3px;z-index:1;font-family:${T.hei};font-size:${T.fs11};line-height:${T.lh11};
   font-weight:500;color:${T.ink3};font-variant-numeric:tabular-nums;pointer-events:none} /* 格内左上角，与月字帖页 .sz-mcell__tag 同一写法（Q2-4 / V2-09：不压格线） */
+.sz-rec__axlist{display:flex;flex-direction:column;border-top:${T.hair} solid ${T.line}}
+.sz-rec__axrow.sz-btn{min-height:52px;padding:${T.s3} 0;box-sizing:border-box;display:block;text-align:left;width:100%;
+  border-bottom:${T.hair} solid ${T.line};font-size:${T.fs17};line-height:${T.lh17s};color:${T.ink1};white-space:normal;word-break:keep-all}
+.sz-rec__axrow[aria-pressed="true"]{font-weight:600}
+.sz-rec__axrow[data-today="true"] .sz-rec__axtoday{color:${T.ink3};font-weight:400}
+:root[data-ax] .sz-rec__mhead,:root[data-ax] .sz-rec__shead{flex-wrap:wrap}
+:root[data-ax] .sz-rec__mtitle{flex-wrap:wrap}
+:root[data-ax] .sz-scell__tag{display:none} /* AX 档不画格内日期角标（会压在笔迹上，A2-03）；日期在格的读屏名称里 */
 .sz-msign{display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-top:14px}
 .sz-msign__text{display:flex;flex-direction:column;gap:4px;min-width:0}
 .sz-msign__line{font-family:${T.song};font-size:calc(13px * 1);line-height:20px;font-weight:400;color:${T.ink2};white-space:nowrap} /* 与作品落款同一写法：宋 13 / 20、ink2、右对齐（R2-R1） */
@@ -342,6 +351,23 @@ function Calendar({ model, selected, onPick }) {
   </div>`;
 }
 
+/** AX 档的月历（A2-03）：有记录的每一天一行「10月3日 · 记了 5 个字」，点一行展开 / 收起那天写的字（紧跟在该行下面）；周名与日期不再挤成一串。 */
+function CalendarList({ model, selected, onPick, listRef }) {
+  return html`<div class="sz-rec__axlist" data-testid="records-calendar" data-mode="list" role="group"
+    aria-label=${t('X-MINE.monthHead', { month: model.monthNum })}>
+    ${model.dayList.map(row => {
+      const text = row.n ? t('X-MINE.axDayRow', { date: dayText(row.day), n: row.n }) : t('X-MINE.axDayRowPaper', { date: dayText(row.day) });
+      const open = selected && selected.day === row.day;
+      return html`<div key=${row.day} class="sz-rec__axitem">
+        <${Button} variant="plain" class="sz-rec__axrow" data-testid="records-day" data-day=${row.day} data-has="true"
+          data-today=${row.today ? 'true' : 'false'} data-future="false" aria-pressed=${open ? 'true' : 'false'}
+          onClick=${() => onPick(row.day)}>${text}</${Button}>
+        ${open ? html`<${DayList} selected=${selected} listRef=${listRef} />` : null}
+      </div>`;
+    })}
+  </div>`;
+}
+
 function DayList({ selected, listRef }) {
   // 那天只在纸上写过：日历上仍有点（写过的日子），但没有笔迹可列，不画空字帖（D47，P1-E78）；只留一行说明，免得点开是空的（P1-E2，P172）
   if (!selected.items.length) {
@@ -421,6 +447,7 @@ function RecordsScreen({ params, entry }) {
     }
   }, [selected]);
 
+  const ax = useAxLevel();
   const toMonth = month => {
     if (!month) return;
     setView({ month, day: '' });
@@ -447,8 +474,10 @@ function RecordsScreen({ params, entry }) {
         <p class="sz-rec__title" data-testid="records-title">${t(titleKey, { month: model.monthNum, n: model.recordDays })}</p>
         <p class="sz-rec__legend" data-testid="records-legend">${t(model.recordDays ? 'R-P01.legend' : 'R-P04.empty')}</p>
       </div>
-      <${Calendar} model=${model} selected=${selected ? selected.day : ''} onPick=${onPick} />
-      ${selected ? html`<${DayList} selected=${selected} listRef=${listRef} />` : null}
+      ${ax > 0
+        ? html`<${CalendarList} model=${model} selected=${selected} onPick=${onPick} listRef=${listRef} />`
+        : html`<${Calendar} model=${model} selected=${selected ? selected.day : ''} onPick=${onPick} />
+          ${selected ? html`<${DayList} selected=${selected} listRef=${listRef} />` : null}`}
       <${MonthSheet} model=${model} state=${state} />
       <${TodayRow} row=${model.todayRow} />
     </div>

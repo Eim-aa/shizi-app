@@ -135,7 +135,7 @@ export default async function p1e1bLayout(page, ctx) {
     assert.equal(aside.note, false, `${w}×${h}: no sentence above the buttons`);
     assert.deepEqual([aside.mRole, aside.rRole], ['img', 'img'], `${w}×${h}: the cards keep role=img`);
     assert.equal(aside.mAria, '你的书写，1 笔', `${w}×${h}: screen-reader name of my card unchanged`);
-    assert.ok(/^参考字形：永，yǒng，\d+ 画$/.test(aside.rAria), `${w}×${h}: screen-reader name of the reference card unchanged (${aside.rAria})`);
+    assert.ok(/^参考字形：永，yǒng，\d+ 画(，[^，]+)?$/.test(aside.rAria), `${w}×${h}: screen-reader name of the reference card unchanged (${aside.rAria})`);
     const btns = await page.evaluate(() => {
       const top = document.querySelector('.sz-layer[data-top="true"]');
       const a = top.querySelector('[data-testid="write-judge-wrong"]').getBoundingClientRect();

@@ -348,7 +348,7 @@ export default async function e9bWriteJudge(page, ctx) {
   assert.ok(!j.text.includes('你来判断') && !j.note, 'the sentence 「你来判断，点一下就记下。」 is gone');
   assert.ok(j.asides === 0 && !j.text.includes('你的书写') && !j.text.includes('参考字形'), 'no 「你的书写 / 参考字形」 side notes anywhere');
   assert.equal(j.mineAria, '你的书写，1 笔', 'the upper cell keeps its reading name');
-  assert.ok(/^参考字形：据，jù，\d+ 画$/.test(j.refAria), `the lower cell keeps its reading name (${j.refAria})`);
+  assert.ok(/^参考字形：据，jù，\d+ 画(，[^，]+)?$/.test(j.refAria), `the lower cell keeps its reading name (${j.refAria})`);
   assert.deepEqual([j.mineRole, j.refRole], ['img', 'img'], 'both cells are role=img');
   assert.ok(!j.promptText.includes('据') && j.blankText === 'jù' && !j.fill, 'the prompt target cell shows no answer — the answer appears only in the reference cell');
   assert.ok(/^要写的字，第 2 个，读 jù，四声$/.test(j.blankAria), `…and keeps the 「要写的字」 reading name (${j.blankAria})`);

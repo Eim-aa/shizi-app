@@ -7,7 +7,7 @@
 //     折行只发生在词与词之间（两个 span 的交界处由父元素的 white-space 决定能不能断：标准档按钮本来 nowrap，一行到底；AX 档按钮 normal，在词边界折）；
 //     标点并进相邻的词（开括号「（“ 并进后一个词，其余并进前一个词），所以行首不会是「，」、行尾不会是「「」；空白照常是断点。
 //   - 正文与说明句：正常 CJK 折行 + `line-break:strict`（各页样式里写，不经本组件）。
-// 没有 Intl.Segmenter（iOS 14.5 以下）时整段原样返回，退回正常 CJK 折行。
+// 没有 Intl.Segmenter（iOS 15.4 以下，scripts/verify_api_floor.mjs API_ALLOW 已登记）时整段原样返回，退回正常 CJK 折行。
 
 import { html } from '../../../vendor/ui.js';
 import { injectStyles } from './styles.js';

@@ -83,7 +83,9 @@ export const REGEX_RULES = [
  * 允许清单：{ file, rule, reason }。命中 file+rule 的发现降为「已登记」；
  * 一条也没命中的条目本身报错（与 verify_copy HARDCODE_ALLOW 同一约定）。
  */
-export const API_ALLOW = [];
+export const API_ALLOW = [
+  { file: 'src/ui/components/Words.js', rule: 'Intl.Segmenter', reason: 'R3-K1 P242 按词折行：typeof Intl.Segmenter === "function" 特征检测，iOS 15.0–15.3 没有时整段原样、退回正常 CJK 折行（只少「不在词内折」这一层）' },
+];
 
 // ---------------------------------------------------------------------------
 // 词法器

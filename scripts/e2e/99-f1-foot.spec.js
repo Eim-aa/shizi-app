@@ -64,7 +64,7 @@ export default async function f1Foot(page, ctx) {
       const ax = size.startsWith('AX');
       step(`${tag} recall: 提示 / 看答案 / 跳过 are on the page under 「写好了」, ≥ 44, on the first screen, clear of the grid; no 「⋯」 and no menu`);
       await open(page, ctx, { view, size });
-      const g = await page.evaluate(geometry, ['write-done', 'write-hint', 'write-show-answer', 'write-skip', 'write-to-paper']);
+      const g = await page.evaluate(geometry, ['write-done', 'write-hint', 'write-show-answer', 'write-skip', 'write-to-paper']); // write-to-paper 必须取不到（D56）
       assert.ok(!g.more && !g.menu, `${tag}: no write-more / write-ax-menu`);
       for (const id of ['write-hint', 'write-show-answer', 'write-skip']) {
         const r = g.items[id];
@@ -83,10 +83,8 @@ export default async function f1Foot(page, ctx) {
       if (ax) {
         assert.ok(g.grid.width >= 220 - 0.5, `${tag}: AX grid ${g.grid.width.toFixed(0)} ≥ 220`);
         assert.ok(g.bodyScroll[0] <= g.bodyScroll[1] + 1, `${tag}: AX page does not scroll (${g.bodyScroll})`);
-        assert.ok(g.items['write-to-paper'] || g.grid.width < 232, `${tag}: 在纸上写 stays unless the grid would drop under 220`);
-      } else {
-        assert.ok(g.items['write-to-paper'], `${tag}: 在纸上写 is there too`);
       }
+      assert.ok(!g.items['write-to-paper'], `${tag}: 在纸上写 is not on the write page (D56 / P275: it lives in settings)`);
       const fi = (await footItems(page)).map(i => i.testid);
       assert.deepEqual(fi.slice(0, 2), ['write-hint', 'write-show-answer'], `${tag}: text row order starts 提示 / 看答案 ${JSON.stringify(fi)}`);
       assert.equal(fi[fi.length - 1], 'write-skip', `${tag}: 跳过 is the last (right end)`);

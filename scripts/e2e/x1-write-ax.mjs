@@ -3,7 +3,7 @@
 // AX1 / AX3 / AX5 × 375×667（SE 3）/ 390×844 / 430×932（Pro Max）下，写字、看答案、判断三页：
 //   - 书写格（判断页是两格）完整落在首屏：不被底栏盖住、页面正文不滚动、书写格边长 ≥ 220；
 //   - 撤销 / 清空常驻页头右侧（28pt 图标、热区 ≥ 44）、底栏的「写好了」与其下一行文字按钮，都在首屏、都不与底栏 / 书写格相交；
-//   - 底栏 = 「写好了」主按钮 + 一行文字按钮（R4-F1，D55，P260 / P261）：提示 / 看答案 / 跳过（· 在纸上写；picked 会话再多一个「结束这组」）一次点击直达，没有「⋯」菜单；
+//   - 底栏 = 「写好了」主按钮 + 一行文字按钮（R4-F1，D55，P260 / P261）：提示 / 看答案 / 跳过（picked 会话再多一个「结束这组」；「在纸上写」已移到设置，D56）一次点击直达，没有「⋯」菜单；
 //     文字行字号封顶 AX1–AX2 17pt、AX3–AX5 22pt，放不下按词折行；
 //   - 题面汉字随档放大（格边 = 52 × min(k, 1.6)），拼音与进度分层封顶（R3-K1 P243：拼音 AX1 22 / AX3–AX5 28，进度 17 / 22）；进度读屏名称是「第 n 个字，共 m 个」；
 //   - 看答案页：主按钮「描一遍」、答案说明在格下说明位、答案字不被说明盖住。
@@ -117,7 +117,7 @@ export async function runWriteAx(page, ctx, views) {
       }
       assert.ok(!overlaps(g.hint, g.answerLink) && !overlaps(g.answerLink, g.skip) && !overlaps(g.hint, g.skip), `${tag}: the text buttons do not overlap each other`);
       assert.equal(g.linksFs, size === 'AX1' ? 17 : 22, `${tag}: the text row is capped by tier (P261)`);
-      assert.ok(g.paperLink || g.grid.width < 232, `${tag}: 在纸上写 is in the row unless the grid would drop under 220 (P261)`);
+      assert.equal(g.paperLink, null, `${tag}: 在纸上写 is not on the write page (D56 / P275)`);
       // 题面：汉字随档放大，拼音与进度分层封顶（P243）
       assert.ok(near(g.promptCell.width, Math.round(52 * Math.min(k, 1.6) * 10) / 10, 1.2), `${tag}: prompt cell ${g.promptCell.width.toFixed(1)} = 52 × min(${k}, 1.6)`);
       assert.equal(g.pinyinFs, size === 'AX1' ? 22 : 28, `${tag}: pinyin is capped by tier (P243; it was 49 at AX5 before R2, a flat 17 in R2)`);
@@ -135,7 +135,7 @@ export async function runWriteAx(page, ctx, views) {
 
       // ---------------------------------------------------------------- 文字行一次点击
       if (size === 'AX3' || (size === 'AX5' && view.width === 375)) {
-        step(`${tag} text row: a picked session has 提示 / 看答案 / (在纸上写) / 结束这组 / 跳过 in the row; one tap on 提示 shows the hint`);
+        step(`${tag} text row: a picked session has 提示 / 看答案 / 结束这组 / 跳过 in the row; one tap on 提示 shows the hint`);
         await open(page, ctx, { view, size, slot: 'B', kind: 'picked' });
         const ids = (await footItems(page)).map(i => i.testid);
         assert.ok(['write-hint', 'write-show-answer', 'write-end', 'write-skip'].every(id => ids.includes(id)), `${tag}: row items ${JSON.stringify(ids)}`);

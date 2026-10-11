@@ -105,7 +105,6 @@ export default Object.freeze({
   'X-PAPER.title': '在纸上写',
   'X-PAPER.body': '写好了点「写好了」，再自己对照。',
   'X-PAPER.backToScreen': '改回在屏幕上写',
-  'X-PAPER.toPaper': '在纸上写',
   'X-PAPER.note': '这个字记下时会标注「纸上」，不留笔迹。',
   'X-PAPER.suggest': '读屏开启时，可以在纸上写好，回来自己对照。',
   'X-PAPER.suggestYes': '改为在纸上写',

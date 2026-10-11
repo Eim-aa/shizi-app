@@ -2,13 +2,13 @@
 //
 // 产品负责人真机试用后推翻了 R3-C3W 的「主按钮 + ⋯ 菜单」（P258）：常用操作不得为了画面简洁而藏进菜单。
 //   底栏 = [主按钮（当前阶段最该点的那个，满宽）]
-//          [文字按钮行：左组 = 本阶段的次要路径（回忆：提示 / 看答案 / 在纸上写；看答案：自己写；自己写：再描一遍…），右端 = 离开动作（结束这组 / 跳过 / 下一个）]
+//          [文字按钮行：左组 = 本阶段的次要路径（回忆：提示 / 看答案；看答案：自己写；自己写：再描一遍…），右端 = 离开动作（结束这组 / 跳过 / 下一个）]
 //   各阶段的文字行同高（min-height 44，空着也占位），书写格顶边与主按钮位置在同一张卡的所有阶段不动；判断页用同一高度的留空行（compare.js）。
 // 文字按钮用全 App 统一的规格（components/Button.js variant="text"：黑体 15、ink2、无下划线、热区 ≥ 44）。一行放不下时按词折行（flex-wrap；按钮文字经 components/Words.js 分词）。
 // AX 档（P261）：文字行字号分层封顶（AX1–AX2 17pt、AX3–AX5 22pt，policy.writeGrid.axAux.links）——不封顶时 AX5 的 49pt 字让四个按钮折成三四行，书写格放不下 220；
-//   折行后仍放不下（书写格会低于下限 220）时，layout.js axWriteLayout 先收起跳过之外最不常用的「在纸上写」（提示 / 看答案 / 跳过不收），写字页另给读屏用户格下的可见入口；
-//   文字行没折行、收起也让不出高度时，主按钮字号封顶 34pt（compact，让出约 25pt），仍放不下才让页面正文可滚动。
-// 槽位 testid：write-links（文字行）、write-hint-slot、write-answer-slot、write-paper-slot、write-end-slot、write-skip-slot（回忆阶段）；看答案流程的按钮自带 testid。
+//   折行后仍放不下（书写格会低于下限 220）时，主按钮字号封顶 34pt（compact，让出约 25pt），仍放不下才让页面正文可滚动；提示 / 看答案 / 跳过任何字号都不收起。
+// 「在纸上写」不在写字页（D56，P275）：写字方式只在设置里选。
+// 槽位 testid：write-links（文字行）、write-hint-slot、write-answer-slot、write-end-slot、write-skip-slot（回忆阶段）；看答案流程的按钮自带 testid。
 
 import { html } from '../../../../vendor/ui.js';
 import { Button } from '../../components/Button.js';

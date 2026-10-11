@@ -5179,13 +5179,6 @@
           "note": "书写格内文字按钮：只把这一个字改回屏幕（写进 current.paper=false）",
           "decision": "P165"
         },
-        "toPaper": {
-          "raw": null,
-          "text": "在纸上写",
-          "origin": "extra",
-          "note": "屏幕模式格下一行右端（还没落笔时，撤销 / 清空的位置）：只把这一个字改到纸上（current.paper=true）",
-          "decision": "P165"
-        },
         "note": {
           "raw": null,
           "text": "这个字记下时会标注「纸上」，不留笔迹。",

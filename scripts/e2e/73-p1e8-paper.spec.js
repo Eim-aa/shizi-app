@@ -5,8 +5,8 @@
 //      「写好了」不要求笔画；提示照常（画在纸面格里，格内文字收起）。
 //   3. 判断页只有参考字形（书写格大小）+ 格下说明位「和你纸上的字对照」（D49：没有「参考字形 · 」旁注），读屏「你的书写：写在纸上」；判断后记录 source:'paper'、
 //      不写墨迹、照常评级推进，之前留墨的那次墨迹不被回收（D27：纸上那次不占位）。
-//   4. 写字页单字切换：纸上 →「改回在屏幕上写」只改这一个字（current.paper=false）；屏幕上还没落笔时格下右端「在纸上写」，落笔后换回撤销 / 清空；
-//      下一字回到设置的写字方式。
+//   4. 写字页单字切换：纸上 →「改回在屏幕上写」只改这一个字（current.paper=false）；下一字回到设置的写字方式。
+//      写字页里没有「在纸上写」入口（D56，P275）：不在格下、不在文字行，屏幕上写的字也不能逐字切到纸上。
 
 import { bootTestHost, drawStroke, HORIZONTAL, PRESS_SETTLE_MS, makeSession, tid, topSel, waitNavIdle, tap, footItems } from './helpers.mjs';
 
@@ -245,18 +245,18 @@ export default async function paperSpec(page, ctx) {
   f = await facts(page);
   assert.equal(f.session.current.paper, false, 'current.paper = false for this character only');
   assert.equal(f.settings.writeMode, 'paper', 'the setting is unchanged');
-  // R2-X1（P226）→ D55：「在纸上写」是文字行里的常驻文字按钮；设置偏好纸上（或读屏开启）时，格下说明位另有一个看得见的「在纸上写」——上一字的结果行（D19）在也不收起
-  assert.equal(await text(page, 'write-to-paper'), '在纸上写', 'the visible 在纸上写 entry is in the note slot (writeMode = paper), with the result line showing');
-  assert.ok(((await footItems(page)).map(i => i.testid)).includes('write-to-paper'), 'and 在纸上写 is in the text row too (D55)');
+  // D56（P275）：写字页里没有「在纸上写」入口——不在格下说明位、不在文字行；写字方式只在设置里选，这一字改回屏幕后就一直在屏幕上
+  assert.equal(await present(page, 'write-to-paper'), false, 'D56: no 在纸上写 entry in the note slot (writeMode = paper, this character switched to screen)');
+  assert.ok(!((await footItems(page)).map(i => i.testid)).includes('write-to-paper'), 'D56: and none in the text row');
   assert.equal(await page.locator(topSel('write-tools')).getAttribute('data-shown'), 'true', 'undo / clear are already in place');
 
-  ctx.step('pen down → the result line collapses, undo / clear turn live, 在纸上写 stays');
+  ctx.step('pen down → the result line collapses, undo / clear turn live');
   await drawStroke(page, HORIZONTAL);
   await page.waitForFunction(() => {
     const g = document.querySelector('.sz-layer[data-top="true"] [data-testid="write-grid"]');
     return !!g && Number(g.dataset.strokeCount) === 1;
   });
-  assert.equal(await present(page, 'write-to-paper'), true, '在纸上写 does not go away once there is ink');
+  assert.equal(await present(page, 'write-to-paper'), false, 'still no 在纸上写 once there is ink');
   assert.equal(await page.locator(topSel('write-undo')).isDisabled(), false, 'undo is live');
 
   ctx.step('judge 和 on screen → a normal record (no source) with ink');
@@ -270,15 +270,15 @@ export default async function paperSpec(page, ctx) {
   assert.ok(he && !('source' in he), 'screen records carry no source (default screen)');
   assert.ok(f.inkIds.includes(he.id), 'screen record has ink');
 
-  ctx.step('春 back on paper (setting); 改回 then 在纸上写 again — per-character toggle both ways');
+  ctx.step('春 back on paper (setting); 改回 switches only 春 to screen — and there is no way back to paper from the write page (D56)');
   assert.equal(await present(page, 'write-paper'), true);
   await page.click(topSel('write-paper-back'));
-  await page.waitForSelector(topSel('write-to-paper'));
+  await page.waitForSelector(topSel('write-grid'));
   await page.waitForTimeout(PRESS_SETTLE_MS);
-  await tap(page, 'write-to-paper');
-  await page.waitForSelector(topSel('write-paper'));
+  assert.equal(await present(page, 'write-to-paper'), false, 'D56: nothing to tap to go back to paper');
   f = await facts(page);
-  assert.equal(f.session.current.paper, true);
+  assert.equal(f.session.current.paper, false);
+  assert.equal(f.settings.writeMode, 'paper', 'the setting still says paper');
 
   // ------------------------------------------------------------------ 5. 标注：单字详情 / 字墙
   ctx.step('P169: 单字详情 of 永 — 记录了 2 次; one ink cell (the screen one); the paper record is a row 「{日期}　写对 · 纸上」');

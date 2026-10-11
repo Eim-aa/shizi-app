@@ -4,7 +4,7 @@
 // - 纸上（recall）：书写格位置换成同样大小的纸面格（不可落笔、不画十字线），格内居中「在纸上写」/「写好了点「写好了」，再自己对照。」/
 //   文字按钮「改回在屏幕上写」（只改这一个字）；格下说明「这个字记下时会标注「纸上」，不留笔迹。」。题面、提示、看答案、跳过照常；
 //   提示画在纸面格里（标准位置），这时格内文字收起、只留「改回在屏幕上写」贴在格底，不和提示笔画叠在一起。「写好了」不要求笔画。
-// - 屏幕（recall，还没落笔）：格下一行右端（撤销 / 清空的位置）是「在纸上写」，只把这一个字改到纸上；落笔后换回撤销 / 清空。
+// - 写字页里没有「在纸上写」入口（D56，P275）：写字方式只在设置里选（settings.writeMode）；屏幕上写的字不能逐字切到纸上。
 // - 判断页（compare.js PaperCompareStage；D49 起格下说明位「和你纸上的字对照」，没有旁注）、判断 commit（source:'paper'，不写墨迹）见 compare.js。
 // 切换是会话现场写入（withCurrent {paper}），按 P52 不阻断：本地先切换，写失败也照样显示，下一次写入时由进判断页的 commit 带上。
 // - 读屏开启时的建议（P168）：读屏 / 切换控制开启后第一次进写字页（platform/accessibility.js assistiveTechActive，阶段 0 桥），
@@ -12,7 +12,7 @@
 //   只出现一次；「改为在纸上写」把设置改为纸上。
 //
 // data-testid：write-paper（纸面格，data-hinted）、write-paper-title、write-paper-body、write-paper-back（改回在屏幕上写）、
-//   write-paper-note（格下说明）、write-to-paper（屏幕模式格下「在纸上写」）、write-paper-suggest（+ -text / -no / -yes）。
+//   write-paper-note（格下说明）、write-paper-suggest（+ -text / -no / -yes）。
 
 import { html, useEffect, useRef, useState } from '../../../../vendor/ui.js';
 import { Button } from '../../components/Button.js';
@@ -161,9 +161,4 @@ export function usePaperSuggest({ settings, phase, paper, assistive, getStore })
       </span>
     </span>`,
   };
-}
-
-/** 屏幕模式格下一行右端「在纸上写」（还没落笔时占撤销 / 清空的位置）。 */
-export function ToPaperButton({ onClick }) {
-  return html`<${Button} variant="text" data-testid="write-to-paper" onClick=${onClick}>${t('X-PAPER.toPaper')}</${Button}>`;
 }

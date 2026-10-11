@@ -214,10 +214,9 @@ export default async function e9bWriteJudge(page, ctx) {
     return { btns, kinds: [...new Set(page)] };
   });
   const byId = Object.fromEntries(foot.btns.map(b => [b.id, b]));
-  assert.deepEqual(foot.btns.map(b => b.id), ['write-done', 'write-hint', 'write-show-answer', 'write-to-paper', 'write-skip'], 'the footer holds exactly these five buttons, in reading order (在纸上写 is the permanent text button after 看答案, P226)');
+  assert.deepEqual(foot.btns.map(b => b.id), ['write-done', 'write-hint', 'write-show-answer', 'write-skip'], 'the footer holds exactly these four buttons, in reading order (在纸上写 lives in settings, not on the write page: D56 / P275)');
   assert.equal(foot.btns.filter(b => b.cls === 'sz-btn--primary').length, 1, 'one primary button (写好了)');
   assert.deepEqual([byId['write-hint'].cls, byId['write-show-answer'].cls, byId['write-skip'].cls], ['sz-btn--text', 'sz-btn--text', 'sz-btn--text'], 'hint / answer / skip are all the same text button');
-  assert.equal(byId['write-to-paper'].cls, 'sz-btn--text', '在纸上写 is the same text button too');
   assert.ok(foot.btns.every(b => b.cls !== 'sz-btn--secondary'), 'no outlined secondary button in the recall footer');
   assert.deepEqual(foot.kinds.filter(k => k !== 'sz-btn--icon' && k !== 'sz-btn--plain').sort(), ['sz-btn--primary', 'sz-btn--text'], 'clickable styles on the page: primary + text (the icon buttons are the tools / the back icon)');
   assert.ok(foot.kinds.length <= 4, 'icon-like buttons (back, undo, clear) are glyphs, not extra button styles');
@@ -248,7 +247,7 @@ export default async function e9bWriteJudge(page, ctx) {
     return { shown: top.querySelector('[data-testid="write-tools"]').dataset.shown, toPaper: !!top.querySelector('[data-testid="write-to-paper"]'),
       disabled: [top.querySelector('[data-testid="write-undo"]').disabled, top.querySelector('[data-testid="write-clear"]').disabled] };
   });
-  assert.deepEqual(beforeInk, { shown: 'true', toPaper: true, disabled: [true, true] }, 'before the first stroke the icons are already there (ink4, not tappable, P226) and 「在纸上写」 is a text button in the row under 「写好了」 (D55)');
+  assert.deepEqual(beforeInk, { shown: 'true', toPaper: false, disabled: [true, true] }, 'before the first stroke the icons are already there (ink4, not tappable, P226) and there is no 「在纸上写」 on the write page (D56)');
   await drawStroke(page, HORIZONTAL);
   await page.waitForTimeout(250);
   const tools = await page.evaluate(() => {

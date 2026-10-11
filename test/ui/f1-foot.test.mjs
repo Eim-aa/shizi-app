@@ -31,18 +31,26 @@ test('WriteFoot：主按钮在前，其下一行文字按钮（write-links），
   assert.equal(slot.props['data-testid'], 'write-hint-slot');
 });
 
-test('写字页回忆阶段底栏：左 提示 / 看答案 / 在纸上写，右端 结束这组（picked）+ 跳过，全是文字行里的槽；没有菜单、没有 write-more / write-ax-menu', () => {
+test('写字页回忆阶段底栏：左 提示 / 看答案，右端 结束这组（picked）+ 跳过，全是文字行里的槽；没有菜单、没有 write-more / write-ax-menu；没有「在纸上写」（D56，P275）', () => {
   const src = read('src/ui/screens/write/index.js');
   const iHint = src.indexOf('testid="write-hint-slot"');
   const iAns = src.indexOf('testid="write-answer-slot"');
-  const iPaper = src.indexOf('testid="write-paper-slot"');
   const iEnd = src.indexOf('testid="write-end-slot"');
   const iSkip = src.indexOf('testid="write-skip-slot"');
-  assert.ok(iHint > 0 && iHint < iAns && iAns < iPaper && iPaper < iEnd && iEnd < iSkip, 'order: 提示 / 看答案 / 在纸上写 | 结束这组 / 跳过');
+  assert.ok(iHint > 0 && iHint < iAns && iAns < iEnd && iEnd < iSkip, 'order: 提示 / 看答案 | 结束这组 / 跳过');
   assert.match(src, /import \{ LinkButton, Slot, WriteFoot \} from '\.\/foot\.js';/);
   assert.doesNotMatch(src.replace(/\/\/[^\n]*/g, ''), /write-more|write-ax-menu|AxFoot|openAxMenu|noteInMenu/, 'the menu is gone from the write page');
   assert.ok(src.includes('max(8px, env(safe-area-inset-bottom, 0px))'), 'the foot bottom padding is max(8, safe area) again (the main button sits one text row higher than on the home page)');
   assert.ok(!src.replace(/\/\/[^\n]*/g, '').includes('policy.mainButtonLine'), 'the write page no longer uses the single-row main-button line');
+});
+
+test('D56（P275）：写字页底栏与格下没有「在纸上写」入口——没有 write-paper-slot / write-to-paper / ToPaperButton / paperEntry / 文案 X-PAPER.toPaper', () => {
+  const code = file => read(file).replace(/\/\/[^\n]*/g, '');
+  for (const file of ['src/ui/screens/write/index.js', 'src/ui/screens/write/paper.js', 'src/ui/screens/write/foot.js']) {
+    assert.doesNotMatch(code(file), /write-paper-slot|write-to-paper|ToPaperButton|paperEntry|toggle\(true\)/, `${file}: no way to switch one character to paper from the write page`);
+  }
+  assert.doesNotMatch(read('src/config/copy/write.js'), /X-PAPER\.toPaper/);
+  assert.match(code('src/ui/screens/write/paper.js'), /data-testid="write-paper-back"/, 'the paper page keeps its own 改回在屏幕上写');
 });
 
 test('看答案 / 描一遍 / 自己写 / 保存失败：次要操作是文字行里的文字按钮，不进菜单', () => {

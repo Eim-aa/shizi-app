@@ -21,7 +21,7 @@ import { decodeInk, resampleForReplay } from '../core/ink-math.js';
 import { imagePlan } from '../core/images/pick.js';
 import { RATIO_OF_LABEL } from '../core/images/glyph-layout.js';
 import { defaultRatio } from '../core/images/layout.js';
-import { renderSingleGlyph, renderWorkPage } from '../core/images/render.js';
+import { renderSheetPage, renderSingleGlyph, renderWorkPage } from '../core/images/render.js';
 import { cardForKey, isPracticable } from '../data/deck.js';
 import { loadStrokes } from '../data/strokes.js';
 import { paintBrushStroke } from './canvas/brush.js';
@@ -164,7 +164,8 @@ export function buildImageJob(scope, { state = null, store = storeOrNull(), inkO
       }
       if (p.status !== 'ready') return { status: p.status, canvas: null };
       const cells = p.pages[i] || [];
-      const out = await renderWorkPage({
+      const render = p.kind === 'month' ? renderSheetPage : renderWorkPage; // 月字帖：字帖格版式（D57，与「我的」页、月字帖页同一个 sheetGrid）
+      const out = await render({
         cells, ratio, kuan: kuanFor(p, i, p.pages.length, cells), scale, ...renderDeps(),
         meta: { kind: p.kind, key: p.key, plan: p.status, day: p.day || '', month: p.month || '', days: p.days == null ? '' : p.days, page: i + 1, pages: p.pages.length },
       });

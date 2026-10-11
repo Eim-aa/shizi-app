@@ -7,6 +7,7 @@
 //   写错且手动放进来的字带朱点；月图日期角标画在格内左上角（不压格线、没有底色块，V2-09）；
 //   落款 song 400 ink2、印白文直角 seal、正放（与屏上 <Seal/> 同一种，不倾斜）；字体在绘制前经注入的 requireFont 确认已加载（§6.5）。
 //   导出格式 JPEG 0.92、sRGB（exportCanvas）；纸纹在 PNG 里体积过大。
+// 月字帖页 renderSheetPage（D57 · C1 字帖格 · 按字数排）：版式来自 layout.js sheetPageLayout，与屏上同一个 sheetGrid。
 // 单字手写图片 renderSingleGlyph（A05，详情页「把这个字做成图片」）沿用 glyph-layout.js 的版式，色值同样来自调色板。
 // 笔迹：345 单位点列（core/ink-math decodeInk → resampleForReplay）用调用方注入的笔锋（ui/canvas/brush.js paintBrushStroke；
 //   core 不依赖 ui，默认退回圆头折线）；参考轮廓取 data/strokes.js 的笔顺数据（调用方注入 loadGlyph）。
@@ -14,7 +15,7 @@
 
 import {
   EXPORT_SCALE, FRAME_W, GUIDE_W, INK_GRID, INK_PAD, LOGICAL_PER_PT, TAG_LEFT, TAG_SIZE, TAG_TOP,
-  cellInkBox, dotLayout, inkWidthScale, layout,
+  cellInkBox, dotLayout, inkWidthScale, layout, sheetPageLayout, sheetTags,
 } from './layout.js';
 import { glyphLayout, inkBounds } from './glyph-layout.js';
 import { readLightPalette } from './palette.js';
@@ -393,6 +394,145 @@ export async function renderWorkPage({
 /** 导出：canvas → JPEG dataURL（质量 0.92，sRGB，§6.5）。 */
 export function exportDataURL(canvas, { quality = JPEG_QUALITY, type = 'image/jpeg' } = {}) {
   return canvas.toDataURL(type, quality);
+}
+
+// ---------------------------------------------------------------- 月字帖页（D57 · C1 字帖格 · 按字数排）
+
+/**
+ * 渲染一页月字帖：版式来自 layout.js sheetPageLayout（与「我的」页、月字帖页屏上同一个 sheetGrid，D31 所见即所得）。
+ * 格数 = 字数、一层框（阶梯形）、格间 guide 线、日期角标骑在格上边线（纸色衬底断开格线）、整页只有一天时不标、落款与印紧跟末字。
+ * 参数同 renderWorkPage（cells 里要有 day / tag）。
+ */
+export async function renderSheetPage({
+  cells, ratio = '3:4', kuan, palette = null, scale = EXPORT_SCALE, canvasFactory = defaultCanvasFactory,
+  paintStroke = null, requireFont = null, loadGlyph = null, imageFactory = null, fonts = FONTS, meta = {},
+}) {
+  const L = sheetPageLayout(Array.isArray(cells) ? cells.length : 0, ratio);
+  if (L.n === 0) return { status: 'empty', canvas: null, layout: L, cells: [] };
+  if (typeof kuan !== 'string' || !kuan || /\n/.test(kuan)) throw new Error('SINGLE_LINE_SIGNATURE_REQUIRED');
+  const pal = palette || readLightPalette();
+  const tagList = sheetTags(cells);
+  const tags = tagList.join('');
+  if (typeof requireFont === 'function') {
+    await requireFont(fonts.song, kuan);
+    if (tags) await requireFont(fonts.label, tags, { weight: 500 });
+  }
+  const glyphs = new Map();
+  if (typeof loadGlyph === 'function') {
+    for (const cell of cells) {
+      if (cell.mode === 'under' && !glyphs.has(cell.ch)) {
+        try {
+          glyphs.set(cell.ch, await loadGlyph(cell.ch));
+        } catch (error) {
+          glyphs.set(cell.ch, null);
+        }
+      }
+    }
+  }
+  const textures = await loadTextures(pal, { imageFactory });
+  const { canvas, ctx } = makeCanvas(canvasFactory, Math.round(L.W * scale), Math.round(L.H * scale));
+  ctx.scale(scale, scale);
+  paintPaper(ctx, L.W, L.H, pal, textures);
+  const g = L.grid;
+  const drawn = [];
+  for (let i = 0; i < cells.length; i += 1) {
+    const cell = cells[i];
+    const box = { x: L.cells[i].x, y: L.cells[i].y, c: g.c };
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(box.x, box.y, box.c, box.c);
+    ctx.clip();
+    const res = paintCellContent(ctx, cell, box, { palette: pal, unit: LOGICAL_PER_PT, paintStroke, glyphs });
+    ctx.restore();
+    if (cell.dot) paintDot(ctx, box, cell, res.bounds, { palette: pal, unit: LOGICAL_PER_PT });
+    drawn.push({ index: i, ch: cell.ch, mode: cell.mode || 'hand', strokes: res.strokes, dot: !!cell.dot, tag: tagList[i],
+      recordId: cell.record ? cell.record.id : null, x: box.x, y: box.y });
+  }
+
+  // 格间线：只画存在的格子之间的边（末行不满不画空格）
+  ctx.save();
+  ctx.strokeStyle = pal.guide;
+  ctx.lineWidth = GUIDE_W;
+  ctx.beginPath();
+  for (let i = 0; i < g.n; i += 1) {
+    const { x, y } = L.cells[i];
+    if ((i + 1) % g.cols !== 0 && i + 1 < g.n) {
+      ctx.moveTo(x + g.c, y);
+      ctx.lineTo(x + g.c, y + g.c);
+    }
+    if (i + g.cols < g.n) {
+      ctx.moveTo(x, y + g.c);
+      ctx.lineTo(x + g.c, y + g.c);
+    }
+  }
+  ctx.stroke();
+  ctx.restore();
+  // 一层外框（阶梯形）
+  ctx.save();
+  ctx.strokeStyle = pal.frame;
+  ctx.lineWidth = FRAME_W;
+  ctx.beginPath();
+  const x0 = L.left;
+  const y0 = L.top;
+  ctx.moveTo(x0, y0);
+  ctx.lineTo(x0 + g.W, y0);
+  if (g.full) {
+    ctx.lineTo(x0 + g.W, y0 + g.H);
+    ctx.lineTo(x0, y0 + g.H);
+  } else {
+    ctx.lineTo(x0 + g.W, y0 + (g.rows - 1) * g.c);
+    ctx.lineTo(x0 + g.lastW, y0 + (g.rows - 1) * g.c);
+    ctx.lineTo(x0 + g.lastW, y0 + g.H);
+    ctx.lineTo(x0, y0 + g.H);
+  }
+  ctx.closePath();
+  ctx.stroke();
+  ctx.restore();
+
+  // 日期角标：骑在该格上边线上，纸色衬底断开格线（只标每天第一个字；整页一天不标）
+  if (tags) {
+    ctx.save();
+    ctx.font = `500 ${L.tag.size}px ${fonts.label}`;
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'left';
+    const padX = Math.round(LOGICAL_PER_PT * 2);
+    for (let i = 0; i < cells.length; i += 1) {
+      const tag = tagList[i];
+      if (!tag) continue;
+      const { x, y } = L.cells[i];
+      const tx = x + L.tag.left + padX;
+      const w = ctx.measureText(tag).width;
+      ctx.fillStyle = pal.sheet;
+      ctx.fillRect(tx - padX, y - L.tag.size / 2, w + 2 * padX, L.tag.size);
+      ctx.fillStyle = pal.ink3;
+      ctx.fillText(tag, tx, y);
+    }
+    ctx.restore();
+  }
+
+  const kuanWidth = drawKuan(ctx, kuan, L.kuan, { palette: pal, fonts });
+  drawSeal(ctx, L.seal, { palette: pal });
+  setDataset(canvas, {
+    ratio,
+    layout: 'sheet',
+    width: canvas.width,
+    height: canvas.height,
+    logicalWidth: L.W,
+    logicalHeight: L.H,
+    columns: g.cols,
+    rows: g.rows,
+    cell: g.c,
+    n: g.n,
+    members: cells.map(c => c.ch).join(''),
+    modes: cells.map(c => (c.mode === 'under' ? 'u' : 'h')).join(''),
+    dots: cells.map(c => (c.dot ? '1' : '0')).join(''),
+    recordIds: drawn.map(c => c.recordId || '').join(','),
+    tags: tagList.join('|'),
+    signature: kuan,
+    top: L.top,
+    ...meta,
+  });
+  return { status: 'ready', canvas, layout: L, cells: drawn, signatureWidth: kuanWidth };
 }
 
 // ---------------------------------------------------------------- 单字手写图片（A05）

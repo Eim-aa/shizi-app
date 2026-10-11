@@ -25,7 +25,7 @@ test('a taller note (three lines) shrinks the grid so the whole note stays above
   assert.ok(r.fits && r.top + 112 + 16 + r.g + 98 <= 494, 'grid + note fit in the main area');
 });
 
-test('when the grid would go under 220 it is flagged tight (the page then drops 在纸上写) and the grid stays at 220; exactly 220 is not tight (P261)', () => {
+test('when the grid would go under 220 it is flagged tight (the page then caps the main button, P278) and the grid stays at 220; exactly 220 is not tight (P261)', () => {
   const r = axWriteLayout({ ...SE_AX5, noteHeight: 150 });
   assert.equal(r.tight, true);
   assert.equal(r.g, AX_GRID_MIN, 'never below the floor');
@@ -37,15 +37,18 @@ test('when the grid would go under 220 it is flagged tight (the page then drops 
   assert.ok(!('noteInMenu' in r), 'the 「⋯」 menu is gone (R4-F1)');
 });
 
-test('write page wires it: noteKey per card + phase, note measured from .sz-write__below, tight + wrapped text row → 在纸上写 collapses', () => {
+test('write page wires it: noteKey per card + phase, note measured from .sz-write__below, tight → the main button is capped at 34pt (no 在纸上写 to give up, P278)', () => {
   const compact = readFileSync(new URL('../../src/ui/screens/write/compact.js', import.meta.url), 'utf8');
   assert.match(compact, /axWriteLayout\(\{ width, mainHeight, promptHeight, noteHeight \}\)/);
   assert.match(compact, /el\.querySelector\('\.sz-write__below'\)/);
-  assert.match(compact, /querySelector\('\.sz-write__links'\)/, 'the text row height is measured to know whether it wrapped');
   const index = readFileSync(new URL('../../src/ui/screens/write/index.js', import.meta.url), 'utf8');
   assert.match(index, /noteKey: cardKey \? `\$\{cardKey\}\|\$\{phase\}` : null/);
   assert.match(index, /const hasNote = !!\(row\.node \|\| suggest\.node \|\| noteBody\);/);
-  assert.match(index, /if \(layout\.linksWrapped && !paperCollapsed\) setPaperGone\(viewKey\);/, 'only a wrapped row that is also tight gives up 在纸上写');
-  assert.match(index, /else if \(!footCompact\) setFootCompactKey\(viewKey\);/, 'still tight with nothing to fold: the main button is capped at 34pt (P261 ②)');
+  assert.match(index, /if \(ax > 0 && layout\.tight && !footCompact\) setFootCompactKey\(viewKey\);/, 'tight: the main button is capped at 34pt straight away (P261 ②; nothing else gives way first)');
+  const code = src => src.replace(/\/\/[^\n]*/g, '');
+  assert.doesNotMatch(code(index), /paperGone|paperCollapsed|setPaperGone|linksWrapped/, 'D56 / P278: no 在纸上写 to collapse any more');
+  assert.doesNotMatch(code(compact), /linksWrapped|sz-write__links/, 'the text row is no longer measured for wrapping');
+  const layoutSrc = readFileSync(new URL('../../src/ui/screens/write/layout.js', import.meta.url), 'utf8');
+  assert.doesNotMatch(layoutSrc, /收起跳过之外最不常用|先收起「在纸上写」/, 'the layout notes no longer describe giving up 在纸上写');
   assert.doesNotMatch(index, /noteInMenu|write-menu-note|write-more/);
 });

@@ -204,6 +204,9 @@
         const lb = box(links);
         check('text row inside the foot and on screen', lb.top >= footBox.top - 0.5 && lb.bottom <= vh + 0.5 && lb.left >= -0.5 && lb.right <= vw + 0.5, { links: lb, footTop: footBox.top });
         check('no 「⋯」 menu on the write page', !q('write-more') && !document.querySelector('[data-testid="write-ax-menu"]'));
+        // R4-P1（D56）：「在纸上写」移到设置，写字页的文字行 / 格下都不再有它；提示 / 看答案 / 跳过任何字号都不收起（回忆阶段）。
+        check('no 在纸上写 entry on the write page', !q('write-to-paper'));
+        if (q('write-done')) check('提示 / 看答案 / 跳过 are all in the text row', !!(q('write-hint') && q('write-show-answer') && q('write-skip')));
       }
     }
     return m;

@@ -332,17 +332,14 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
   const ax = useAxLevel();
   const writeRef = useRef(null);
   const layout = useWriteLayout(writeRef, { phase, ax, noteKey: cardKey ? `${cardKey}|${phase}` : null });
-  // P261：AX 档文字行折成多行、书写格会低于下限 220 时，先收起跳过之外最不常用的「在纸上写」（提示 / 看答案 / 跳过不收）。收起后不再自动放回，换了字号 / 屏幕尺寸才重新判断。
+  // P261 / P278：AX 档书写格会低于下限 220 时，底栏主按钮字号直接封顶 34pt（提示 / 看答案 / 跳过任何字号都不收起；「在纸上写」已不在写字页，D56）。
+  // 封顶后不再自动放回，换了字号 / 屏幕尺寸才重新判断。
   const viewKey = `${ax}|${layout.width}|${layout.nominalHeight}`;
-  const [paperGone, setPaperGone] = useState(null);
   const [footCompactKey, setFootCompactKey] = useState(null);
-  const paperCollapsed = ax > 0 && paperGone === viewKey;
   const footCompact = ax > 0 && footCompactKey === viewKey;
   useLayoutEffect(() => {
-    if (!(ax > 0 && layout.tight)) return;
-    if (layout.linksWrapped && !paperCollapsed) setPaperGone(viewKey); // ① 文字行折了行：先收起「在纸上写」
-    else if (!footCompact) setFootCompactKey(viewKey); // ② 仍放不下（文字行没折行，收起也让不出高度）：主按钮字号封顶 34pt
-  }, [ax, layout.tight, layout.linksWrapped, paperCollapsed, footCompact, viewKey]);
+    if (ax > 0 && layout.tight && !footCompact) setFootCompactKey(viewKey);
+  }, [ax, layout.tight, footCompact, viewKey]);
   const gridSize = layout.g;
   const groupTop = phase === 'compare' ? layout.pair.top : layout.top;
   // 阶段 / 换字的 150ms 交叉淡化（phase-fade.js，P227）：key 一变，渲染期给旧页拍快照，提交后盖上去淡出；减少动态效果直接切换。

@@ -225,7 +225,7 @@ export const writeGrid = Object.freeze({
     note: Object.freeze([17, 22]), // P243 格下说明 / 结果行 / 提示行 / 读屏建议
     progress: Object.freeze([17, 22]), // P243 页头进度「n / m」
     title: Object.freeze([17, 22]), // P243 页头标题（可折两行）
-    links: Object.freeze([17, 22]), // P261 底栏主按钮下一行的文字按钮（提示 / 看答案 / 在纸上写 / 跳过 / 结束这组…）：不封顶时 AX5 的 49pt 字让四个按钮折成三四行，书写格放不下
+    links: Object.freeze([17, 22]), // P261 底栏主按钮下一行的文字按钮（提示 / 看答案 / 跳过 / 结束这组…；D56 起没有「在纸上写」）：不封顶时 AX5 的 49pt 字让四个按钮折成三四行，书写格放不下
     paper: Object.freeze([22, 28]), // P243 纸上写模式格内的说明与「改回在屏幕上写」
   }),
   axPromptScaleMax: 1.6, // P225 AX 档题面汉字格的放大倍率上限：格边 = 52 × min(--k, 1.6)（V2-06「练习字按 min(k, 1.6) 放大」）

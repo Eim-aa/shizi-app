@@ -9,7 +9,7 @@
 //   浅 / 深各跑一遍（读屏文案与配色无关，深色只核对播报区没有可见内容）。
 // 新旧对照：旧实现下书写格名称恒为「书写格」，页面里没有 write-sr-status。
 import {
-  bootTestHost, drawStroke, HORIZONTAL, openWrite, seedSession, topSel, VERTICAL, waitNavIdle,
+  bootTestHost, drawStroke, HORIZONTAL, openWrite, seedSession, topSel, VERTICAL, waitNavIdle, tap,
 } from './helpers.mjs';
 
 /* eslint-disable no-undef */
@@ -90,8 +90,8 @@ export default async function run(page, ctx) {
 
     step(`${scheme}: 提示给出了哪几笔（聚 14 画）`);
     await open(page, ctx, ['聚', '大'], {}, scheme);
-    await page.waitForSelector(`${topSel('write-hint')}[data-state="available"]`, { timeout: 15000 });
-    await page.click(topSel('write-hint'));
+    await page.waitForSelector(topSel('write-more'), { timeout: 15000 });
+    await tap(page, 'write-hint');
     await page.waitForFunction(sel => document.querySelector(sel).textContent.startsWith('提示画出了'), STATUS);
     const h1 = (await status(page)).text;
     const m1 = /^提示画出了第 (\d+)( 到第 (\d+))? 笔$/.exec(h1);
@@ -112,7 +112,7 @@ export default async function run(page, ctx) {
     await open(page, ctx, ['大', '聚'], {}, scheme);
     await drawStroke(page, HORIZONTAL);
     await page.waitForFunction(sel => document.querySelector(sel).textContent.includes('已写 1 笔'), STATUS);
-    await page.click(topSel('write-skip'));
+    await tap(page, 'write-skip');
     await waitNavIdle(page);
     await page.waitForFunction(sel => document.querySelector('[data-testid="write-grid"]') && document.querySelector('.sz-layer[data-top="true"] [data-testid="write-grid"]').getAttribute('aria-label') === '书写格', GRID);
     assert.equal(await gridName(page), '书写格', `${scheme}: next char starts from the plain name`);

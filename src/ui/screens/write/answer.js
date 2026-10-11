@@ -486,17 +486,15 @@ export function openAnswerSaveFailed({ slot, cardKey }) {
  * @param {number} o.strokeCount  当前阶段书写格笔数
  * @param {Array} [o.strokes]  当前阶段书写格的本人原始笔画（离开自己写一遍时存成看后自写的墨迹，Q1）
  * @param {() => void} [o.onShowAnswer]  点了「看答案」（写入前；写字页用来结束跳过的撤销机会，G3）
- * @param {any} [o.endButton]  「结束这组」按钮（write/end.js useEndGroup().button；picked 会话才有）：放在底栏「下一个」那一行的
- *   右端（与回忆阶段「跳过」那一行同一位置，M2 验收 H4）；保存失败两键占住底栏时不显示。
- * @param {number} [o.ax]  AX 档（1–5；0 = 不是 AX 档）：底栏改成一行「主按钮 + ⋯」（D51 ⑦，P225；write/ax-menu.js），按钮行上方的说明挪到格下说明位（note）
- * @param {(() => void)|null} [o.endOpen]  AX 档菜单里「结束这组」的动作（write/end.js useEndGroup().open）
+ * @param {number} [o.ax]  AX 档（1–5；0 = 不是 AX 档）：只影响描一遍主按钮的文案（P259）与字号；底栏所有字号都是一行「主按钮 + ⋯」（D53 ②，write/ax-menu.js），说明在格下说明位（note）
+ * @param {(() => void)|null} [o.endOpen]  「⋯」菜单里「结束这组」的动作（write/end.js useEndGroup().open）
  * @param {boolean} [o.noteInMenu]  AX 档格子缩到下限仍放不下格下说明位（layout.js axWriteLayout，R3-K1 P241）：说明并入「⋯」菜单顶部
  * @returns {{active:boolean, link:any, show:Function, stage:any, glyphLayer:any, note:string, footer:any}}
  *   active：本流程接管底栏（answer / trace / retrace，或看过答案后的 recall）；
- *   link：回忆阶段「看答案」按钮（放 write-answer-slot）；stage：恒为 null（看答案不换卡，答案衬底画在书写格参考字形层里，D51 ⑧）；
+ *   link：回忆阶段「看答案」的入口（有它时「⋯」菜单里才有「看答案」一项，动作是 show）；stage：恒为 null（看答案不换卡，答案衬底画在书写格参考字形层里，D51 ⑧）；
  *   glyphLayer：answer 阶段的答案衬底 / trace 阶段的描红，书写格参考字形层内容；note：书写格下说明（write-note）；footer：接管时的底栏。
  */
-export function useAnswerFlow({ slot, session, cardKey, phase, strokeCount = 0, strokes = null, onShowAnswer, endButton = null, ax = 0, endOpen = null, noteInMenu = false }) {
+export function useAnswerFlow({ slot, session, cardKey, phase, strokeCount = 0, strokes = null, onShowAnswer, ax = 0, endOpen = null, noteInMenu = false }) {
   const char = cardKey ? charOfCardKey(cardKey) : null;
   const answerSeen = !!(session && session.current && session.current.answerSeen);
   const inFlow = ANSWER_PHASES.includes(phase);
@@ -560,73 +558,36 @@ export function useAnswerFlow({ slot, session, cardKey, phase, strokeCount = 0, 
 
   const next = () => run({ kind: 'next' });
   const toPhase = p => () => run({ kind: 'phase', phase: p });
-  if (ax > 0) {
-    // AX 档（P225）：一行「主按钮 + ⋯」，各阶段同高；说明（答案说明 / 保存失败）挪到格下说明位，答案字永远不被说明盖住（A2-01）。
-    const item = (testid, label, onSelect) => ({ testid, label, onSelect });
-    const endItem = endOpen && !failed ? [item('write-end', t('R-W15.end'), endOpen)] : [];
-    let primary;
-    let items;
-    if (failed) {
-      primary = { testid: 'write-answer-fail-retry', label: t('R-W16.retry'), onClick: () => run(failNow) };
-      items = [item('write-answer-fail-cancel', t('R-W16.cancel'), () => setFail(null))];
-    } else if (phase === 'answer') {
-      primary = { testid: 'write-answer-trace', label: t('R-W07.btnTrace'), onClick: toPhase('trace') };
-      items = [item('write-answer-self', t('R-W07.btnSelf'), toPhase('retrace')), item('write-answer-next', t('R-W07.btnNext'), next), ...endItem];
-    } else if (phase === 'trace') {
-      primary = { testid: 'write-trace-done', label: traceDoneLabel(ax), disabled: strokeCount === 0, onClick: toPhase('retrace') };
-      items = [item('write-answer-next', t('R-W07.btnNext'), next), ...endItem];
-    } else if (phase === 'retrace') {
-      primary = { testid: 'write-answer-next', label: t('R-W07.btnNext'), onClick: next };
-      items = [item('write-retrace-trace', t('X-ANSWER.btnRetrace'), toPhase('trace')), ...endItem];
-    } else {
-      primary = { testid: 'write-answer-next', label: t('R-W07.btnNext'), onClick: next };
-      items = [item('write-answer-show', t('R-W07.btnShowAnswer'), toPhase('answer')), ...endItem];
-    }
-    const lead = phase === 'answer' ? html`<span class="sz-answer__sr" role="img" aria-label=${answerLabel} data-testid="write-answer-char"></span>` : null;
-    const axNote = phase === 'answer' ? noteAbove : note;
-    const head = noteInMenu && axNote ? html`<span data-testid="write-answer-note">${axNote}</span>` : null;
-    const axFooter = html`<${AxFoot} primary=${primary} items=${items} testid="write-answer-foot" stage=${phase} failed=${failed} lead=${lead} head=${head} />`;
-    return { active: true, link, show: showAnswer, stage, glyphLayer, note: axNote, footer: axFooter };
-  }
-  let buttons;
-  let one = false;
-  let skipRow = false;
+  // 底栏（所有字号同构，D53 ②；AX 档 P225 起的版式）：一行「主按钮 + ⋯」，各阶段同高；说明（答案说明 / 保存失败）在格下说明位，答案字永远不被说明盖住（A2-01）。
+  const item = (testid, label, onSelect) => ({ testid, label, onSelect });
+  const endItem = endOpen && !failed ? [item('write-end', t('R-W15.end'), endOpen)] : [];
+  let primary;
+  let items;
+  let secondary = null;
   if (failed) {
-    buttons = html`
-      <${Button} variant="secondary" data-testid="write-answer-fail-cancel" onClick=${() => setFail(null)}>${t('R-W16.cancel')}</${Button}>
-      <${Button} variant="primary" data-testid="write-answer-fail-retry" onClick=${() => run(failNow)}>${t('R-W16.retry')}</${Button}>`;
+    // 保存失败（R-G04 三段式）：常规字号 [先不保存 / 再试一次] 两键摆出来；AX 档放不下，「先不保存」收进「⋯」
+    primary = { testid: 'write-answer-fail-retry', label: t('R-W16.retry'), onClick: () => run(failNow) };
+    if (ax > 0) items = [item('write-answer-fail-cancel', t('R-W16.cancel'), () => setFail(null))];
+    else {
+      items = [];
+      secondary = { testid: 'write-answer-fail-cancel', label: t('R-W16.cancel'), onClick: () => setFail(null) };
+    }
   } else if (phase === 'answer') {
-    buttons = html`
-      <${Button} variant="secondary" data-testid="write-answer-self" onClick=${toPhase('retrace')}>${t('R-W07.btnSelf')}</${Button}>
-      <${Button} variant="primary" data-testid="write-answer-trace" onClick=${toPhase('trace')}>${t('R-W07.btnTrace')}</${Button}>`;
-    skipRow = true;
+    primary = { testid: 'write-answer-trace', label: t('R-W07.btnTrace'), onClick: toPhase('trace') };
+    items = [item('write-answer-self', t('R-W07.btnSelf'), toPhase('retrace')), item('write-answer-next', t('R-W07.btnNext'), next), ...endItem];
   } else if (phase === 'trace') {
-    one = true;
-    buttons = html`<${Button} variant="primary" data-testid="write-trace-done" disabled=${strokeCount === 0}
-      onClick=${toPhase('retrace')}>${t('X-ANSWER.btnTraceDone')}</${Button}>`;
-    skipRow = true;
+    primary = { testid: 'write-trace-done', label: traceDoneLabel(ax), disabled: strokeCount === 0, onClick: toPhase('retrace') };
+    items = [item('write-answer-next', t('R-W07.btnNext'), next), ...endItem];
   } else if (phase === 'retrace') {
-    buttons = html`
-      <${Button} variant="secondary" data-testid="write-retrace-trace" onClick=${toPhase('trace')}>${t('X-ANSWER.btnRetrace')}</${Button}>
-      <${Button} variant="primary" data-testid="write-answer-next" onClick=${next}>${t('R-W07.btnNext')}</${Button}>`;
+    primary = { testid: 'write-answer-next', label: t('R-W07.btnNext'), onClick: next };
+    items = [item('write-retrace-trace', t('X-ANSWER.btnRetrace'), toPhase('trace')), ...endItem];
   } else {
-    // 看过答案后的回忆阶段（只在恢复路径出现；原型 L544）：[看答案 / 下一个]
-    buttons = html`
-      <${Button} variant="secondary" data-testid="write-answer-show" onClick=${toPhase('answer')}>${t('R-W07.btnShowAnswer')}</${Button}>
-      <${Button} variant="primary" data-testid="write-answer-next" onClick=${next}>${t('R-W07.btnNext')}</${Button}>`;
+    primary = { testid: 'write-answer-next', label: t('R-W07.btnNext'), onClick: next };
+    items = [item('write-answer-show', t('R-W07.btnShowAnswer'), toPhase('answer')), ...endItem];
   }
-
-  const footer = html`<div class="sz-write__foot" data-testid="write-answer-foot" data-stage=${phase}
-    data-failed=${failed ? 'true' : 'false'}>
-    ${phase === 'answer' ? html`<span class="sz-answer__sr" role="img" aria-label=${answerLabel} data-testid="write-answer-char"></span>` : null}
-    <div class="sz-write__linkrow">${noteAbove
-      ? html`<p class="sz-answer__note" data-testid="write-answer-note" aria-live="polite">${noteAbove}</p>`
-      : null}</div>
-    <div class=${one ? 'sz-answer__btns sz-answer__btns--one' : 'sz-answer__btns'}>${buttons}</div>
-    <div class="sz-write__skiprow">${skipRow && !failed
-      ? html`<${Button} variant="text" class="sz-answer__next" data-testid="write-answer-next" onClick=${next}>${t('R-W07.btnNext')}</${Button}>`
-      : null}${endButton && !failed ? html`<span class="sz-write__endslot" data-testid="write-end-slot">${endButton}</span>` : null}</div>
-  </div>`;
-
-  return { active: true, link, show: showAnswer, stage, glyphLayer, note, footer };
+  const lead = phase === 'answer' ? html`<span class="sz-answer__sr" role="img" aria-label=${answerLabel} data-testid="write-answer-char"></span>` : null;
+  const axNote = phase === 'answer' ? noteAbove : note; // 「记为看过答案」只在这一处说（C3-R T3-05：第一次的预告句已删）
+  const head = noteInMenu && axNote ? html`<span data-testid="write-answer-note">${axNote}</span>` : null;
+  const footer = html`<${AxFoot} primary=${primary} secondary=${secondary} items=${items} testid="write-answer-foot" stage=${phase} failed=${failed} lead=${lead} head=${head} />`;
+  return { active: true, link, show: showAnswer, stage, glyphLayer, note: axNote, footer };
 }

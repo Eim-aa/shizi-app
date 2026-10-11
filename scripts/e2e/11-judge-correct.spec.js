@@ -15,7 +15,7 @@
 
 import {
   bootTestHost, drawStroke, HORIZONTAL, VERTICAL, PRESS_SETTLE_MS, seedSession, tid, topSel, waitNavIdle, writeSnapshot,
-  openWrite,
+  openWrite, tap, menuItems,
 } from './helpers.mjs';
 
 const COPY = {
@@ -187,7 +187,8 @@ export default async function judgeCorrect(page, ctx) {
   let s = await writeSnapshot(page);
   assert.equal(s.phase, 'recall', 'starts in recall');
   assert.equal(await present(page, 'write-line'), false, 'first character: no result line (nothing before it)');
-  assert.equal(await text(page, 'write-skip'), COPY.skip, 'recall shows the 「跳过」 text button (R-W14)');
+  const menu0 = await menuItems(page);
+  assert.equal((menu0.find(i => i.testid === 'write-skip') || {}).text, COPY.skip, 'recall: 「跳过」 is in the 「⋯」 menu (R-W14, D53 ②)');
 
   // ------------------------------------------------------------------ 空格子
   ctx.step('empty grid: 「写好了」 disabled + aria-disabled; a forced click does not enter compare');
@@ -371,8 +372,7 @@ export default async function judgeCorrect(page, ctx) {
   assert.equal(line.change, '修改›', '修改 › action');
 
   ctx.step('use a hint on 和, then 修改 the previous judgment: failure, retry, same record, due replayed, current unchanged');
-  await page.waitForSelector(`${topSel('write-hint')}[data-state="available"]`);
-  await page.click(topSel('write-hint'));
+  await tap(page, 'write-hint');
   await page.waitForFunction(() => {
     const st = window.__shiziTest.getState();
     return st.sessions.A.current.hints === 1;
@@ -470,8 +470,7 @@ export default async function judgeCorrect(page, ctx) {
 
   // ------------------------------------------------------------------ 当前字已用提示写了几笔时修改上一判断（钩子）
   ctx.step('on 春: hint + a few strokes, then correct the previous judgment through the hook → current deep-equal');
-  await page.waitForSelector(`${topSel('write-hint')}[data-state="available"]`);
-  await page.click(topSel('write-hint'));
+  await tap(page, 'write-hint');
   await page.waitForFunction(() => window.__shiziTest.getState().sessions.A.current.hints === 1);
   await settle(page);
   await write(page, HORIZONTAL, 1);
@@ -512,7 +511,7 @@ export default async function judgeCorrect(page, ctx) {
   // ------------------------------------------------------------------ 跳过
   ctx.step('跳过 春 → skipped record (not a valid record), line cleared, 5s undo hint (W16 / R-W20; D36)');
   const beforeSkip = await facts(page);
-  await page.click(topSel('write-skip'));
+  await tap(page, 'write-skip');
   await waitCursor(page, 3);
   f = await facts(page);
   assert.equal(f.records.length, beforeSkip.records.length + 1, 'one skipped record appended');
@@ -545,7 +544,7 @@ export default async function judgeCorrect(page, ctx) {
 
   ctx.step('跳过 write fails → does not advance, three-part copy; 再试一次 advances');
   await page.evaluate(() => window.__shiziTest.failNextWrite(1, { kind: 'generic' }));
-  await page.click(topSel('write-skip'));
+  await tap(page, 'write-skip');
   await page.waitForSelector(topSel('write-skip-fail-retry'));
   await settle(page);
   s = await writeSnapshot(page);
@@ -576,7 +575,7 @@ export default async function judgeCorrect(page, ctx) {
   assert.equal(f.records.filter(r => r.kind === 'skipped').length, 0, 'retry undid the skip');
 
   ctx.step('skip again and wait 5s → the undo hint disappears; the skip stays');
-  await page.click(topSel('write-skip'));
+  await tap(page, 'write-skip');
   await waitCursor(page, 3);
   assert.equal(await present(page, 'write-skip-undo'), true, 'undo hint shown');
   await page.waitForTimeout(5100);

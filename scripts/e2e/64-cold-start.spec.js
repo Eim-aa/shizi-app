@@ -20,7 +20,7 @@
 
 import {
   bootTestHost, canvasInk, drawStroke, HORIZONTAL, openWrite, PRESS_SETTLE_MS, ROUTE_KEY, seedSession, tid, topSel, VERTICAL,
-  waitNavIdle, writeSnapshot,
+  waitNavIdle, writeSnapshot, tap,
 } from './helpers.mjs';
 
 const CHARS = ['永', '和', '春', '大', '中'];
@@ -250,7 +250,7 @@ export default async function coldStart(page, ctx) {
   step('after seeing the answer: kill → relaunch shows the answer card; still one answer-seen record');
   await a.p.click(topSel('write-continue'));
   await waitPhase(a.p, 'recall');
-  await a.p.click(topSel('write-show-answer'));
+  await tap(a.p, 'write-show-answer');
   await waitPhase(a.p, 'answer');
   const S3 = await kill(a, ctx);
   a = await launch(ctx, browser, S3);

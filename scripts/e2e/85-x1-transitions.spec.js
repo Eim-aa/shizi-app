@@ -10,7 +10,7 @@
 // 时间轴取页面里的 requestAnimationFrame 采样（t = 触发点击那一帧起算），容差 ±45ms（无头浏览器的帧间隔）。
 
 import {
-  bootTestHost, drawStroke, gridRect, HORIZONTAL, seedSession, tid, topSel, waitNavIdle, openWrite, PRESS_SETTLE_MS,
+  bootTestHost, drawStroke, gridRect, HORIZONTAL, seedSession, tid, topSel, waitNavIdle, openWrite, PRESS_SETTLE_MS, tap,
 } from './helpers.mjs';
 
 const CHARS = ['根', '据', '永'];
@@ -24,14 +24,14 @@ async function open(page, ctx, { reduced = false, current, cursor = 0, chars = C
   const seeded = await seedSession(page, { slot: 'A', kind: 'daily', chars, cursor, current });
   ctx.assert.ok(seeded.ok, 'seeded');
   await openWrite(page, { slot: 'A' });
-  await page.waitForSelector(`${topSel('write-hint')}[data-state="available"], ${topSel('write-answer-foot')}`, { timeout: 15000 });
+  await page.waitForSelector(topSel('write-more'), { timeout: 15000 });
   await page.waitForTimeout(450);
   await page.mouse.move(1, 1);
 }
 
 /* eslint-disable no-undef */
 /** 在页面里装采样器：下一次 click（捕获阶段）起 SPAN_MS 内每帧记录快照 / 判断键 / 参考格的状态。 */
-function installTimeline(span) {
+function installTimeline({ span, testid }) {
   window.__tl = { frames: [], start: 0 };
   const top = () => document.querySelector('.sz-layer[data-top="true"]');
   const frame = now => {
@@ -59,17 +59,22 @@ function installTimeline(span) {
     });
     if (now - window.__tl.start < span) requestAnimationFrame(frame);
   };
-  document.addEventListener('click', () => {
+  // 从点到 testid 那个控件的那一下起算（它可能是「⋯」菜单里的一项：之前开菜单的那一下点击不算）
+  const onClick = e => {
+    if (!(e.target.closest && e.target.closest(`[data-testid="${testid}"]`))) return;
+    document.removeEventListener('click', onClick, true);
     window.__tl.start = performance.now();
     requestAnimationFrame(frame);
-  }, { capture: true, once: true });
+  };
+  document.addEventListener('click', onClick, true);
 }
 /* eslint-enable no-undef */
 
-async function timeline(page, selector, span = SPAN_MS) {
-  await page.evaluate(installTimeline, span);
-  await page.click(selector);
-  await page.waitForTimeout(span + 80);
+/** 点 testid 对应的控件（主按钮直接点、菜单项先开菜单，helpers.tap）并记录之后 span ms 内每一帧。 */
+async function timeline(page, testid, span = SPAN_MS) {
+  await page.evaluate(installTimeline, { span, testid });
+  await tap(page, testid);
+  await page.waitForFunction(sp => { const f = window.__tl.frames; return f.length > 0 && f[f.length - 1].t >= sp; }, span, { timeout: 5000 });
   return page.evaluate(() => window.__tl.frames);
 }
 
@@ -90,7 +95,7 @@ export default async function x1Transitions(page, ctx) {
   await open(page, ctx);
   await drawStroke(page, HORIZONTAL);
   await page.waitForTimeout(200);
-  let frames = await timeline(page, topSel('write-done'));
+  let frames = await timeline(page, 'write-done');
   let sp = snapSpan(frames);
   assert.ok(sp, 'a snapshot of the previous state appears');
   assert.ok(sp.from <= 50, `the snapshot is there from the first frame (${sp.from.toFixed(0)}ms)`);
@@ -109,7 +114,7 @@ export default async function x1Transitions(page, ctx) {
   step('fade: 接着写 (judge → recall) fades too, and the ink is still there');
   await page.waitForSelector(`${topSel('write-continue')}`);
   await page.waitForTimeout(PRESS_SETTLE_MS + 200);
-  frames = await timeline(page, topSel('write-continue'));
+  frames = await timeline(page, 'write-continue');
   sp = snapSpan(frames);
   assert.ok(sp && sp.from <= 50 && sp.to <= 150 + 60, 'judge → recall: a 150ms snapshot fade');
   await page.waitForSelector(topSel('write-grid'));
@@ -118,18 +123,18 @@ export default async function x1Transitions(page, ctx) {
   step('fade: 看答案 (recall → answer) and 描一遍 / 自己写 fade too');
   await open(page, ctx);
   await page.waitForTimeout(PRESS_SETTLE_MS);
-  frames = await timeline(page, topSel('write-show-answer'));
+  frames = await timeline(page, 'write-show-answer');
   sp = snapSpan(frames);
   assert.ok(sp && sp.from <= 50 && sp.to <= 150 + 60, 'recall → answer: a 150ms snapshot fade');
   await page.waitForSelector(topSel('write-answer-trace'));
   await page.waitForTimeout(PRESS_SETTLE_MS + 250);
-  frames = await timeline(page, topSel('write-answer-trace'));
+  frames = await timeline(page, 'write-answer-trace');
   sp = snapSpan(frames);
   assert.ok(sp && sp.to <= 150 + 60, 'answer → trace: a 150ms snapshot fade');
   await page.waitForSelector(topSel('write-trace-done'));
   await drawStroke(page, HORIZONTAL);
   await page.waitForTimeout(PRESS_SETTLE_MS);
-  frames = await timeline(page, topSel('write-trace-done'));
+  frames = await timeline(page, 'write-trace-done');
   sp = snapSpan(frames);
   assert.ok(sp && sp.to <= 150 + 60, 'trace → retrace: a 150ms snapshot fade');
 
@@ -140,7 +145,7 @@ export default async function x1Transitions(page, ctx) {
   await page.click(topSel('write-done'));
   await page.waitForSelector(topSel('write-judge-correct'));
   await page.waitForTimeout(700);
-  frames = await timeline(page, topSel('write-judge-correct'));
+  frames = await timeline(page, 'write-judge-correct');
   sp = snapSpan(frames);
   assert.ok(sp && sp.from <= 50 && sp.to <= 150 + 60, 'judge → next card: a 150ms snapshot fade');
   assert.equal(frames.find(f => f.t > 300).phase, 'recall', 'the next card is in recall');
@@ -150,7 +155,7 @@ export default async function x1Transitions(page, ctx) {
   await open(page, ctx, { reduced: true });
   await drawStroke(page, HORIZONTAL);
   await page.waitForTimeout(200);
-  frames = await timeline(page, topSel('write-done'));
+  frames = await timeline(page, 'write-done');
   assert.equal(frames.some(f => f.snap), false, 'no snapshot at all under reduced motion');
   assert.equal(frames[frames.length - 1].phase, 'compare', 'the end state is the judge page');
   const late = frames.find(f => f.t >= 170);
@@ -164,7 +169,7 @@ export default async function x1Transitions(page, ctx) {
   await open(page, ctx);
   await drawStroke(page, HORIZONTAL);
   await page.waitForTimeout(200);
-  frames = await timeline(page, topSel('write-done'));
+  frames = await timeline(page, 'write-done');
   const refFrames = frames.filter(f => f.refTransform);
   assert.ok(refFrames.length > 5, 'the reference cell was sampled');
   assert.ok(refFrames.every(f => f.refTransform === 'none'), 'its transform is never anything but none (no translateY)');

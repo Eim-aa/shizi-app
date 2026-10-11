@@ -7,12 +7,13 @@ import {
   writeGridSize, writeLayout, axWriteLayout, AX_GRID_MIN, AX_NOTE_H, nominalMainHeight, groupTop, judgePairSize, judgeAxLayout, estimateLayout, GRID_MIN, GRID_MAX, JUDGE_MIN, COMPARE_GAP,
 } from '../../src/ui/screens/write/layout.js';
 
-const mainOf = (h, sb, bot) => h - sb - 44 - (12 + 54 + 6 + 44 + bot);
+// P258（D53 ②）：底栏只有一行（上 12 + 主按钮 54），下内边距 = 下安全区 + 24（主按钮底线）——所以 bot = 下安全区 + 24。
+const mainOf = (h, sb, bot) => h - sb - 44 - (12 + 54 + bot);
 
-test('the design sheet numbers: main areas of the three reference phones', () => {
-  assert.equal(mainOf(874, 54, 34), 626);
-  assert.equal(mainOf(667, 20, 8), 479);
-  assert.equal(mainOf(956, 62, 34), 700);
+test('the main areas of the three reference phones with the single-row foot (P258): 402×874 → 652, SE 3 → 513, Pro Max → 726', () => {
+  assert.equal(mainOf(874, 54, 34 + 24), 652);
+  assert.equal(mainOf(667, 20, 0 + 24), 513);
+  assert.equal(mainOf(956, 62, 34 + 24), 726);
 });
 
 test('writeLayout follows §13.2: 402 → prompt top 149 / grid top 245 / g 362; SE → 76 / 172 / 327; Pro Max → g 400', () => {
@@ -108,15 +109,15 @@ test('axWriteLayout: follows the real height — a shorter main area gives a sma
   assert.equal(axWriteLayout({}).g, 345, 'nothing known → the old 345 grid');
 });
 
-test('nominalMainHeight: page − (44 + status bar) − (116 + max(8, bottom inset)); equals the standard-size main area of the design sheet', () => {
-  assert.equal(nominalMainHeight({ pageHeight: 874, safeTop: 54, footBottom: 34 }), 626, '402×874');
-  assert.equal(nominalMainHeight({ pageHeight: 667, safeTop: 20, footBottom: 8 }), 479, 'SE');
-  assert.equal(nominalMainHeight({ pageHeight: 956, safeTop: 62, footBottom: 34 }), 700, 'Pro Max');
-  assert.equal(nominalMainHeight({ pageHeight: 852 }), 852 - 44 - 116 - 8, 'no safe area (browser)');
-  assert.equal(nominalMainHeight({ pageHeight: 852, bodyPad: 4 }), 852 - 44 - 116 - 8 - 4);
+test('nominalMainHeight: page − (44 + status bar) − (66 + foot bottom padding = bottom inset + 24); the single-row foot (P258)', () => {
+  assert.equal(nominalMainHeight({ pageHeight: 874, safeTop: 54, footBottom: 34 + 24 }), 652, '402×874');
+  assert.equal(nominalMainHeight({ pageHeight: 667, safeTop: 20, footBottom: 24 }), 513, 'SE');
+  assert.equal(nominalMainHeight({ pageHeight: 956, safeTop: 62, footBottom: 34 + 24 }), 726, 'Pro Max');
+  assert.equal(nominalMainHeight({ pageHeight: 852 }), 852 - 44 - 66 - 24, 'no safe area (browser): the foot bottom defaults to the 24pt main-button line');
+  assert.equal(nominalMainHeight({ pageHeight: 852, bodyPad: 4 }), 852 - 44 - 66 - 24 - 4);
   assert.ok(Number.isNaN(nominalMainHeight({})));
   // 与字号无关：函数不收字号参数，同一视口恒定
-  assert.equal(nominalMainHeight({ pageHeight: 874, safeTop: 54, footBottom: 34 }), mainOf(874, 54, 34));
+  assert.equal(nominalMainHeight({ pageHeight: 874, safeTop: 54, footBottom: 34 + 24 }), mainOf(874, 54, 34 + 24));
 });
 
 test('writeGridSize: min(W − 40, 400, main − P − 16 − T − 16) clamped to [258, 400]; independent of the text size', () => {

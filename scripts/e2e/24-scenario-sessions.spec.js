@@ -6,7 +6,7 @@
 //   → 首页只剩 A：主入口「继续写字」、resume-line 今天的练习 → 进入后 A 原字、2 笔、提示还剩 1 次，不自动进下一字。
 // 分支：B 写一字后暂停不结束 → 从首页 other-line 续 A（A 原样）→ 回首页 B 仍在（深相等）→ 主入口续 B 回到 B 的第二个字。
 
-import { bootTestHost, drawStroke, HORIZONTAL, PRESS_SETTLE_MS, tid, topSel, waitNavIdle } from './helpers.mjs';
+import { bootTestHost, drawStroke, HORIZONTAL, menuItems, PRESS_SETTLE_MS, tid, topSel, waitNavIdle, tap } from './helpers.mjs';
 
 const A_CHARS = ['永', '和', '春'];
 const B_CHARS = ['大', '中'];
@@ -69,14 +69,12 @@ async function writeView(page) {
     const top = document.querySelector('.sz-layer[data-top="true"]');
     const w = top ? top.querySelector('.sz-write') : null;
     const g = top ? top.querySelector('[data-testid="write-grid"]') : null;
-    const hint = top ? top.querySelector('[data-testid="write-hint"]') : null;
     return {
       slot: w ? w.dataset.slot : null,
       cursor: w ? Number(w.dataset.cursor) : null,
       phase: w ? w.dataset.phase : null,
       strokes: g ? Number(g.dataset.strokeCount) : null,
       progress: top && top.querySelector('[data-testid="write-progress"]') ? top.querySelector('[data-testid="write-progress"]').textContent : null,
-      hint: hint ? hint.getAttribute('aria-label') : null, // D49：次数在读屏名称里
     };
   });
 }
@@ -95,8 +93,9 @@ async function judgeOne(page) {
 }
 
 async function checkA(page, assert, seeded, label) {
-  await page.waitForSelector(`${topSel('write-hint')}[data-state="available"]`, { timeout: 15000 });
+  await page.waitForSelector(topSel('write-more'), { timeout: 15000 });
   const w = await writeView(page);
+  w.hint = ((await menuItems(page)).find(i => i.testid === 'write-hint') || {}).aria || null; // D49：次数在读屏名称里；D53 ②：提示在「⋯」菜单里
   assert.deepEqual([w.slot, w.cursor, w.phase, w.progress], ['A', 0, 'recall', '1 / 3'], `${label}: A on its original character 永 (1 / 3), recall`);
   assert.equal(w.strokes, 2, `${label}: the 2 strokes are back in the grid`);
   assert.equal(w.hint, '提示，还有 1 次', `${label}: one hint used, one left`);
@@ -148,7 +147,7 @@ export default async function scenario(page, ctx) {
   await waitTop(page, 'write');
   let w = await writeView(page);
   assert.deepEqual([w.slot, w.cursor], ['B', 1], 'main entry resumed B on 中 (B first, D05)');
-  await page.click(topSel('write-end'));
+  await tap(page, 'write-end');
   await page.waitForSelector(tid('write-end-dialog'));
   await waitNavIdle(page);
   assert.equal(await page.locator(tid('write-end-body')).textContent(), '还有 1 个字没写，结束后就不写了。判断过的 1 个字已经记下。', 'S04 body');

@@ -15,7 +15,7 @@
 //      描一遍落笔**不出声**（书写 / 描红无声）；写完最后一字进结果页 action + 落款盖章声 s1；按键音关（settings.sound=false）时判断只有触觉没有声音。
 
 import {
-  HORIZONTAL, bootTestHost, drawStroke, installNativeStub, localDayOf, makeSession, nativeMessages, tid, topSel, waitNavIdle,
+  HORIZONTAL, bootTestHost, drawStroke, installNativeStub, localDayOf, makeSession, nativeMessages, tid, topSel, waitNavIdle, tap,
 } from './helpers.mjs';
 
 const DAY = 24 * 3600 * 1000;
@@ -299,7 +299,7 @@ async function scenarioFeedback(page, ctx) {
   await waitNavIdle(page);
 
   n0 = (await nativeMessages(page)).length;
-  await page.click(topSel('write-show-answer'));
+  await tap(page, 'write-show-answer');
   await page.waitForSelector(topSel('write-answer-trace'));
   await waitNavIdle(page);
   assert.deepEqual(await hapticsSince(page, n0), ['haptic:action'], '看答案: action');
@@ -315,7 +315,7 @@ async function scenarioFeedback(page, ctx) {
   assert.deepEqual(await hapticsSince(page, n0), [], 'trace strokes are silent (D50 ⑦: no writing / tracing sound)');
 
   n0 = (await nativeMessages(page)).length;
-  await page.click(topSel('write-answer-next'));
+  await tap(page, 'write-answer-next');
   await page.waitForSelector(topSel('result-screen'));
   await waitNavIdle(page);
   assert.deepEqual((await hapticsSince(page, n0)).sort(), ['haptic:seal', 'sound:s1_wood_muted'], 'last char done → result page: the rigid seal haptic + the seal sound (once, same frame; C3-R)');

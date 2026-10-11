@@ -19,7 +19,7 @@
 //      我的（菜单行名字只读标题，副标题进描述）、设置（含外观弹层）、备份与恢复（含清空弹层）、存储不可用阻断页。
 
 import {
-  bootTestHost, drawStroke, HORIZONTAL, openWrite, PRESS_SETTLE_MS, seedSession, tid, tokenRgb, topSel, waitNavIdle,
+  bootTestHost, drawStroke, HORIZONTAL, openWrite, PRESS_SETTLE_MS, seedSession, tid, tokenRgb, topSel, waitNavIdle, tap,
 } from './helpers.mjs';
 
 const TODAY = '2026-09-30';
@@ -490,8 +490,8 @@ export default async function a11y(page, realCtx) {
 
   ctx.step('write page: 看答案 has no confirm; only a failed write opens the 先不保存 / 再试一次 dialog (alertdialog, focus trap, focus return)');
   await page.evaluate(() => window.__shiziTest.failNextWrite(1, { kind: 'generic' }));
-  await page.click(topSel('write-show-answer'));
-  await dialogCheck(page, cdp, ctx, { label: 'write/answer-save-failed', panel: tid('write-answer-confirm'), opener: 'write-show-answer' });
+  await tap(page, 'write-show-answer');
+  await dialogCheck(page, cdp, ctx, { label: 'write/answer-save-failed', panel: tid('write-answer-confirm'), opener: 'write-more' }); // D53 ②：看答案在「⋯」菜单里，弹层关闭后焦点回到打开菜单的「⋯」
 
   ctx.step('write page: compare');
   await drawStroke(page, HORIZONTAL);
@@ -527,13 +527,13 @@ export default async function a11y(page, realCtx) {
   await audit(page, cdp, ctx, 'write/recall after a judgment (result line)');
 
   ctx.step('write page: answer');
-  await page.click(topSel('write-show-answer'));
+  await tap(page, 'write-show-answer');
   await waitPhase(page, 'answer');
   await audit(page, cdp, ctx, 'write/answer');
 
   // ================================================================ 结果页
   ctx.step('result page + 对照弹层');
-  await page.click(topSel('write-answer-next'));
+  await tap(page, 'write-answer-next');
   await page.waitForSelector(topSel('result-screen'));
   await waitNavIdle(page);
   await audit(page, cdp, ctx, 'result');

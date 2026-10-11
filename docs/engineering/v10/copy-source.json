@@ -220,6 +220,7 @@
     "P244": "AX 档弹层内不叠字（R3-K1 / A3-04）：查字弹层全高时「完成」封顶 22、查字框让出它的宽（src/ui/components/query/QuerySheet.js），分享预览比例在 AX 档两行满宽单选（image-preview.js），弹层标题 AX 档均衡折行（Sheet.js）；样式规则，不是运行时开关",
     "P255": "帮助层画法（R3-C3W / V3-01 / T3-02，D53 ①）：淡朱不透明实填 + 同色相 0.75pt 双钩，去掉 ink3 外廓；深色 --danzhu 由 #A85C48 调到 #AF604B（红色盲下对笺 ≥ 3:1）。样式 / 绘制，src/ui/canvas/glyph.js、glyph-wash.js、src/config/tokens.css，不是运行时开关",
     "P256": "提示写过哪笔收哪笔（R3-C3W / I3-01，D53 ⑧）：匹配规则（笔顺序号优先、几何最近为辅，HINT_MATCH_MAX_DIST = 40）与逐笔淡出，src/ui/screens/write/hint-layer.js；不是运行时开关",
+    "P258": "常规字号写字页与 AX 同构（R3-C3W / T3-04 / V3-09，D53 ②）：底栏一行主按钮 + 「⋯」、撤销 / 清空进页头、「在纸上写」常驻入口、全 App 主按钮底线 policy.mainButtonLine；版式与菜单结构，src/ui/screens/write/*、src/config/policy.js；不是运行时开关",
     "P259": "AX3 起描一遍阶段主按钮改用短文案「自己写」（R3-C3W，P259）：文案槽 X-ANSWER.btnTraceDoneShort 已入 copy，档位阈值在 policy.axShortPrimaryFrom；不是运行时开关"
   },
   "noCopy": [

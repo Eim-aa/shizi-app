@@ -19,7 +19,7 @@
 // 控制台零错误由 run.mjs 统一断言；全程无绕过 storage.js 的写入。
 
 import { markFirstPracticeDone } from './home-helpers.mjs';
-import { bootTestHost, drawStroke, HORIZONTAL, installNativeStub, makeSession, nativeMessages, PRESS_SETTLE_MS, tid, topSel, VERTICAL, waitNavIdle, writeSnapshot, setTextSize, LARGE_TEXT, leaveResult } from './helpers.mjs';
+import { bootTestHost, drawStroke, HORIZONTAL, installNativeStub, makeSession, nativeMessages, PRESS_SETTLE_MS, tid, topSel, VERTICAL, waitNavIdle, writeSnapshot, setTextSize, LARGE_TEXT, leaveResult, tap, openWriteMenu } from './helpers.mjs';
 
 const CLOCK = '2026-09-24T20:00:00';
 const SHEET = '[data-testid="query-sheet"]';
@@ -162,7 +162,7 @@ async function judge(page, judgment, { nextCursor = null } = {}) {
 }
 
 async function openAnswer(page) {
-  await page.click(topSel('write-show-answer'));
+  await tap(page, 'write-show-answer');
   await waitPhase(page, 'answer');
 }
 
@@ -222,7 +222,7 @@ async function startPicked(page, chars) {
 }
 
 async function endGroup(page) {
-  await page.click(topSel('write-end'));
+  await tap(page, 'write-end');
   await page.waitForSelector(tid('write-end-dialog'));
   await waitNavIdle(page);
 }
@@ -281,7 +281,7 @@ export default async function run(page, ctx) {
   await seed(page, { sessions: { A: makeSession({ id: 's610', slot: 'A', kind: 'daily', chars: ['大', '中', '永', '和'], at: await now(page) }), B: null, lastEnded: {} } });
   await toHome(page);
   await openSlot(page, 'A');
-  await page.click(topSel('write-hint'));
+  await tap(page, 'write-hint');
   await page.waitForTimeout(PRESS_SETTLE_MS);
   f = await facts(page);
   assert.equal(f.sessions.A.current.hints, 1, 'hint used once (session.current.hints)');
@@ -293,7 +293,7 @@ export default async function run(page, ctx) {
   await page.click(topSel('write-trace-done'));
   await waitPhase(page, 'retrace');
   await drawStroke(page, VERTICAL);
-  await page.click(topSel('write-answer-next'));
+  await tap(page, 'write-answer-next');
   await waitCursor(page, 1);
   f = await facts(page);
   assert.equal(f.records.length, 1, 'one record for 大');
@@ -309,7 +309,7 @@ export default async function run(page, ctx) {
   assert.deepEqual(f.sessions.A.items, [{ cardKey: 'base:大', kind: 'answer-seen', recordId: rec.id }], 'item answer-seen');
 
   step('场景 2: next char hint → write → 写对了: judged with help.hints 1 (answerSeen / traced false)');
-  await page.click(topSel('write-hint'));
+  await tap(page, 'write-hint');
   await page.waitForTimeout(PRESS_SETTLE_MS);
   await drawStroke(page, HORIZONTAL);
   await judge(page, 'correct', { nextCursor: 2 });
@@ -325,13 +325,13 @@ export default async function run(page, ctx) {
   await openAnswer(page);
   await page.click(topSel('write-answer-trace'));
   await waitPhase(page, 'trace');
-  await page.click(topSel('write-answer-next'));
+  await tap(page, 'write-answer-next');
   await waitCursor(page, 3);
   f = await facts(page);
   rec = f.records.find(r => r.cardKey === 'base:永');
   assert.equal(rec && rec.kind, 'answer-seen', 'answer-seen for 永 (no stroke, no judgment)');
   assert.equal(f.todayN, 1, 'today N still 1 after 看答案 / 描一遍 without a stroke');
-  await page.click(topSel('write-skip'));
+  await tap(page, 'write-skip');
   await waitTop(page, 'result');
   f = await facts(page);
   rec = f.records.find(r => r.cardKey === 'base:和');
@@ -484,8 +484,9 @@ export default async function run(page, ctx) {
   assert.equal(f.sessions.A.items.length, 1, 'one item');
 
   step('反例 6: 跳过 clicked twice in the same frame → one skipped record, cursor +1');
+  await openWriteMenu(page); // D53 ②：跳过在「⋯」菜单里；同一帧点两次菜单项
   await page.evaluate(() => {
-    const b = document.querySelector('.sz-layer[data-top="true"] [data-testid="write-skip"]');
+    const b = document.querySelector('[data-testid="write-ax-menu"] [data-testid="write-skip"]');
     b.click();
     b.click();
   });
@@ -583,7 +584,7 @@ export default async function run(page, ctx) {
   assert.equal((await facts(page)).sessions.A.current.phase, 'recall', 'the old body did not write its compare phase back');
 
   step('遗留 epoch: skip-undo bar of the replaced state is dropped');
-  await page.click(topSel('write-skip'));
+  await tap(page, 'write-skip');
   await waitCursor(page, 1);
   assert.ok(await page.isVisible(topSel('write-skip-undo')), 'skip undo bar shown');
   snap = await page.evaluate(() => window.__shiziTest.getState());

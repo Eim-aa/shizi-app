@@ -59,7 +59,7 @@ test('prompt.js AX rules: the cell grows with min(--k, 1.6) (the word is the big
 test('write/index.js AX rules: progress / notes capped at 17pt, undo + clear icons 28pt in the header, the title never wraps into its own row', () => {
   const src = read('src/ui/screens/write/index.js');
   assert.match(src, /\.sz-write__progress\{font-size:calc\(17px \* 1\);line-height:24px\}/);
-  assert.match(src, /\.sz-write__axhead \.sz-write__ibtn svg\{width:28px;height:28px\}/);
+  assert.match(src, /\.sz-write__headtools \.sz-write__ibtn svg\{width:28px;height:28px\}/);
   assert.match(src, /\.sz-page__head\{flex-wrap:nowrap\}/);
   assert.match(src, /role="img"\s+aria-label=\$\{t\('R-W01\.progressLabel'/, 'A2-09: the counter has a screen-reader name, not a slash');
 });

@@ -1,12 +1,12 @@
 // P0-D / D36（G05，覆盖 X08）：书写格边长与字号脱钩，只缩放显示，内部坐标仍是 345 单位、存储不变。
 //
-// 公式（policy.writeGrid，P118；D49 实现交接 §13.2，write/layout.js）：边长 = clamp(258, min(屏宽 − 40, 400, 主区高 − 题面 80 − 16 − 格下工具行 40 − 16), 400)，
-// 主区 = 页头底 → 按钮行顶 − 12。测试浏览器没有安全区：页头 44、按钮行 = 上 12 + 主按钮 54 + 间 6 + 文字行 44 + 下 8 = 124，所以主区高 = 屏高 − 168，
-// 边长 = min(屏宽 − 40, 400, 屏高 − 320)（设计稿的 402×874 带 54 + 34 的安全区，数值在 test/ui/write-layout.test.mjs）。
+// 公式（policy.writeGrid，P118；D49 实现交接 §13.2，write/layout.js）：边长 = clamp(258, min(屏宽 − 40, 400, 主区高 − 题面 80 − 16 − 格下说明位 40 − 16), 400)，
+// 主区 = 页头底 → 按钮行顶 − 12。测试浏览器没有安全区：页头 44、按钮行 = 上 12 + 主按钮 54 + 下 24（P258：底栏只有一行，下内边距 = 安全区 + 24 的主按钮底线）= 90，
+// 所以名义主区高 = 屏高 − 134，边长 = min(屏宽 − 40, 400, 屏高 − 286)（设计稿的 402×874 带 54 + 34 的安全区，数值在 test/ui/write-layout.test.mjs）。
 // 与字号无关（P1-E6 / D29 起「大字」= 系统字号 XXXL，经模拟的原生 shiziContentSize 设 --k 1.35 与 :root[data-text-large]）：算边长用的题面高取标称 80，
 // 不随字号与题面提示行变（D36）。本文件用**写死的期望值**（不引用实现里的函数）：
 //   393×852 → 353（屏宽 − 40 先到）    375×812 → 335（屏宽 − 40）    375×667 → 335（屏宽 − 40；667 − 320 = 347 够）
-//   360×640 → 320（屏宽 − 40 = 640 − 320，同时到）  320×568 → 258（568 − 320 = 248 < 258，取下限） 440×956 → 400（上限）
+//   360×640 → 320（屏宽 − 40；640 − 286 = 354 够）  320×568 → 280（屏宽 − 40；568 − 286 = 282 够，P258 前是下限 258） 440×956 → 400（上限）
 //
 // ① 各视口、大字关 / 开：边长等于期望值、方形、距屏幕左右 ≥ 20（页边）、同一视口开关大字前后不变（同一页面内切换，不重载）；
 //    边长大于下限的视口里整个格子在页头与底栏之间；底栏按钮在首屏。
@@ -17,18 +17,18 @@
 
 import {
   bootTestHost, canvasInk, drawStroke, HORIZONTAL, PRESS_SETTLE_MS, seedSession, tid, topSel, VERTICAL, waitNavIdle, openWrite,
-  setTextSize, LARGE_TEXT,
+  setTextSize, LARGE_TEXT, tap,
 } from './helpers.mjs';
 
 const CHARS = ['越', '大', '永'];
-const FIRST_SCREEN = ['page-back', 'write-hint', 'write-done', 'write-show-answer', 'write-skip'];
+const FIRST_SCREEN = ['page-back', 'write-done', 'write-more'];
 
 const CASES = [
   { view: { width: 393, height: 852 }, grid: 353 },
   { view: { width: 375, height: 812 }, grid: 335 },
   { view: { width: 375, height: 667 }, grid: 335 },
   { view: { width: 360, height: 640 }, grid: 320 },
-  { view: { width: 320, height: 568 }, grid: 258 },
+  { view: { width: 320, height: 568 }, grid: 280 },
   { view: { width: 440, height: 956 }, grid: 400 },
 ];
 
@@ -45,7 +45,7 @@ async function boot(page, ctx, view, { large = false, chars = CHARS } = {}) {
   const seeded = await seedSession(page, { slot: 'A', kind: 'daily', chars, cursor: 0 });
   ctx.assert.ok(seeded.ok, `${view.width}×${view.height}: seed A session`);
   await openWrite(page, { slot: 'A' });
-  await page.waitForSelector(`${topSel('write-hint')}[data-state="available"]`, { timeout: 15000 });
+  await page.waitForSelector(topSel('write-more'), { timeout: 15000 });
   await page.mouse.move(1, 1);
 }
 
@@ -147,7 +147,7 @@ export default async function grid(page, ctx) {
       assert.ok(g.grid.left >= 20 - 0.5 && g.grid.right <= g.vw - 20 + 0.5, `${t}: ≥20pt from the screen edges (${g.grid.left}, ${g.vw - g.grid.right})`);
       assert.ok(g.scrollW <= g.vw, `${t}: no horizontal overflow`);
       assert.deepEqual(g.off, [], `${t}: buttons on the first screen`);
-      if (c.grid > 258) assert.ok(g.grid.top >= g.head.bottom - 0.5 && g.grid.bottom <= g.foot.top + 0.5, `${t}: whole grid between header and footer`);
+      assert.ok(g.grid.top >= g.head.bottom - 0.5 && g.grid.bottom <= g.foot.top + 0.5, `${t}: whole grid between header and footer`);
       sizes.push(g.grid.width);
     }
     assert.equal(sizes[0], sizes[1], `${tag}: grid edge unchanged by the system text size (${sizes[0]} → ${sizes[1]})`);
@@ -160,7 +160,7 @@ export default async function grid(page, ctx) {
     await boot(page, ctx, view, { large });
     let g = await geo(page);
     assert.ok(square(g.grid, size), `${tag}: recall grid ${size}`);
-    await page.click(topSel('write-hint'));
+    await tap(page, 'write-hint');
     await page.waitForSelector(`${topSel('write-hint-layer')}[data-state="shown"]`);
     await page.waitForTimeout(300);
     g = await geo(page);
@@ -173,7 +173,7 @@ export default async function grid(page, ctx) {
     g = await geo(page);
     assert.ok(square(g.grid, size), `${tag}: grid unchanged after the first stroke`);
 
-    await page.click(topSel('write-show-answer'));
+    await tap(page, 'write-show-answer');
     await waitPhase(page, 'answer');
     await page.waitForSelector(`${topSel('write-answer-card')}[data-state="ready"]`);
     await page.waitForTimeout(300);
@@ -186,14 +186,14 @@ export default async function grid(page, ctx) {
     await waitPhase(page, 'trace');
     g = await geo(page);
     assert.ok(square(g.grid, size), `${tag}: trace grid ${size}`);
-    assert.deepEqual((await geo(page, ['write-trace-done', 'write-answer-next'])).off, [], `${tag} trace: buttons on the first screen`);
+    assert.deepEqual((await geo(page, ['write-trace-done', 'write-more'])).off, [], `${tag} trace: buttons on the first screen`);
     assert.ok(!!g.trace && Math.abs(g.trace.width - size) <= 2.5 && Math.abs(g.trace.height - size) <= 2.5, `${tag}: trace layer fills the grid ${JSON.stringify(g.trace)}`);
     await drawStroke(page, HORIZONTAL);
     await waitStrokes(page, 1);
     await page.waitForTimeout(PRESS_SETTLE_MS);
     await page.click(topSel('write-trace-done'));
     await waitPhase(page, 'retrace');
-    g = await geo(page, ['write-retrace-trace', 'write-answer-next']);
+    g = await geo(page, ['write-answer-next', 'write-more']);
     assert.ok(square(g.grid, size), `${tag}: retrace grid ${size}`);
     assert.deepEqual(g.off, [], `${tag} retrace: buttons on the first screen`);
   }

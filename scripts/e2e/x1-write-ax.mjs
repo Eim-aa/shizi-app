@@ -9,7 +9,7 @@
 // 测试浏览器没有安全区（状态栏 0、底栏下内边距 8）。新旧对照：旧实现下 AX5 的 375×667 写字页书写格有约 37% 在底栏下面、页面正文可滚动。
 
 import {
-  bootTestHost, drawStroke, HORIZONTAL, seedSession, setTextSize, topSel, waitNavIdle,
+  bootTestHost, drawStroke, HORIZONTAL, seedSession, setTextSize, topSel, waitNavIdle, tap,
 } from './helpers.mjs';
 
 const CHARS = ['根', '据', '永', '和', '春'];
@@ -124,7 +124,7 @@ export async function runWriteAx(page, ctx, views) {
 
       // ---------------------------------------------------------------- 「⋯」菜单
       if (size === 'AX3' || (size === 'AX5' && view.width === 375)) {
-        step(`${tag} menu: 「⋯」 opens the sheet with 提示 / 看答案 / 跳过 / 在纸上写 (stacked); choosing 提示 closes it and shows the hint`);
+        step(`${tag} menu: 「⋯」 opens the sheet with 在纸上写 / 提示 / 看答案 / 跳过 (stacked); choosing 提示 closes it and shows the hint`);
         await open(page, ctx, { view, size, slot: 'B', kind: 'picked' });
         await page.click(topSel('write-more'));
         await page.waitForSelector(`[data-testid="write-ax-menu"]`);
@@ -134,11 +134,11 @@ export async function runWriteAx(page, ctx, views) {
           const items = [...panel.querySelectorAll('[data-testid^="write-"]')].filter(e => e.closest('.sz-axmenu'));
           return { ids: items.map(e => e.dataset.testid), texts: items.map(e => e.textContent.trim()), tops: items.map(e => e.getBoundingClientRect().top), panelBottom: panel.getBoundingClientRect().bottom, vh: window.innerHeight, role: panel.getAttribute('role') };
         });
-        assert.deepEqual(menu.ids, ['write-hint', 'write-show-answer', 'write-skip', 'write-to-paper', 'write-end'], `${tag}: menu items (picked session adds 结束这组)`);
-        assert.deepEqual(menu.texts, ['提示', '看答案', '跳过', '在纸上写', '结束这组']);
+        assert.deepEqual(menu.ids, ['write-to-paper', 'write-hint', 'write-show-answer', 'write-skip', 'write-end'], `${tag}: menu items: 在纸上写 first (the standing paper entry, X1; D53 ② same order at every text size), a picked session adds 结束这组`);
+        assert.deepEqual(menu.texts, ['在纸上写', '提示', '看答案', '跳过', '结束这组']);
         assert.ok(menu.tops.every((v, i) => i === 0 || v > menu.tops[i - 1] + 20), `${tag}: items are stacked vertically`);
         assert.equal(menu.role, 'dialog', `${tag}: the menu is the existing sheet (role=dialog)`);
-        await page.click(topSel('write-hint'));
+        await tap(page, 'write-hint');
         await waitNavIdle(page);
         await page.waitForSelector(`${topSel('write-glyph-layer')} [data-testid="write-hint-fill"]`, { timeout: 5000 });
         assert.equal(await page.$('[data-testid="write-ax-menu"]'), null, `${tag}: the menu closed after choosing`);
@@ -165,7 +165,7 @@ export async function runWriteAx(page, ctx, views) {
       await waitNavIdle(page);
       const items = await page.$$eval('[data-testid="write-ax-menu"] .sz-axmenu__item', els => els.map(e => e.dataset.testid));
       assert.deepEqual(items, ['write-answer-self', 'write-answer-next'], `${tag}: answer menu = 自己写 / 下一个`);
-      await page.click(topSel('write-answer-self'));
+      await tap(page, 'write-answer-self');
       await waitNavIdle(page);
       await page.waitForSelector(`${topSel('write-screen')} .sz-write[data-phase="retrace"]`, { timeout: 5000 });
       assert.equal(await page.$('[data-testid="write-ax-menu"]'), null, `${tag}: menu closed; the page moved to 自己写`);
@@ -191,7 +191,7 @@ export async function runWriteAx(page, ctx, views) {
       for (const [name, r] of [['wrong', j.wrong], ['correct', j.correct]]) {
         assert.ok(r.bottom <= j.vh + 0.5 && r.top >= j.foot.top - 0.5, `${tag}: ${name} button is on the first screen, in the foot`);
       }
-      assert.equal(j.undoShown, 'false', `${tag}: undo / clear are not shown on the judge page`);
+      assert.ok(j.undoShown === null || j.undoShown === 'false', `${tag}: undo / clear are not shown on the judge page (D53 ②: not rendered at all) (${j.undoShown})`);
     }
   }
 }

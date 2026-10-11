@@ -7,7 +7,7 @@
 //   3. 设置「按键音」关着：判断、结果页落款一个音频请求都不发、不播放。
 //   4. 落款：作品出现才响；回到本页（同一组）不再响；整组没有墨（衬底一行、无落款）不响；直接打开结果页（刷新后）也响一次 s1。
 
-import { HORIZONTAL, bootTestHost, drawStroke, openWrite, seedSession, tid, topSel, waitNavIdle } from './helpers.mjs';
+import { HORIZONTAL, bootTestHost, drawStroke, openWrite, seedSession, tid, topSel, waitNavIdle, tap } from './helpers.mjs';
 import { openResultPage, seedWork } from './work-helpers.mjs';
 
 const JUDGE = ['j1_page_settle', 'j1_page_settle_b', 'j1_page_settle_c'];
@@ -103,7 +103,7 @@ export default async function s1SoundSpec(page, ctx) {
   const startsBefore = (await starts(page)).length;
   const logBefore = (await log(page)).length;
   const reqBefore = requests.length;
-  await page.click(topSel('write-show-answer'));
+  await tap(page, 'write-show-answer');
   await page.waitForSelector(topSel('write-answer-trace'));
   await waitNavIdle(page);
   await page.click(topSel('write-answer-trace'));

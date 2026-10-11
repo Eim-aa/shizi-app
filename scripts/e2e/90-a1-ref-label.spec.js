@@ -46,7 +46,7 @@ export default async function run(page, ctx) {
     step(`${scheme}: 判断页参考卡的名称（含结构 / 部件）与进度`);
     for (const c of cases) {
       await openWritePage(page, ctx, { chars: [c.char, '和'], size: 'L', scheme });
-      await page.waitForSelector(`${topSel('write-hint')}[data-state="available"]`, { timeout: 15000 });
+      await page.waitForSelector(topSel('write-more'), { timeout: 15000 });
       await drawStroke(page, HORIZONTAL);
       await page.click(topSel('write-done'));
       await page.waitForSelector(topSel('write-compare-ref'));

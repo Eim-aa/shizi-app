@@ -5,7 +5,7 @@
 // 流程：seed 今天的练习（永 / 和）→ 永：看答案 → 描一遍（写一横）→ 描好了，自己写（写一竖一横）→ 再描一遍 → 描好了，自己写
 // （写一竖）→ 下一个 → 和：写 → 写对了 → 结果页。
 
-import { bootTestHost, drawStroke, HORIZONTAL, openWrite, PRESS_SETTLE_MS, seedSession, tid, topSel, VERTICAL, waitNavIdle } from './helpers.mjs';
+import { bootTestHost, drawStroke, HORIZONTAL, openWrite, PRESS_SETTLE_MS, seedSession, tid, topSel, VERTICAL, waitNavIdle, tap } from './helpers.mjs';
 import { resultSnapshot } from './work-helpers.mjs';
 
 async function waitPhase(page, phase) {
@@ -94,7 +94,7 @@ export default async function q1AfterSeen(page, ctx) {
   await waitPhase(page, 'recall');
 
   step('永: 看答案 → 描一遍 (one horizontal) → 自己写 (vertical + horizontal) → 再描一遍 → 自己写 (vertical) → 下一个');
-  await page.click(topSel('write-show-answer'));
+  await tap(page, 'write-show-answer');
   await waitPhase(page, 'answer');
   await page.click(topSel('write-answer-trace'));
   await waitPhase(page, 'trace');
@@ -105,7 +105,7 @@ export default async function q1AfterSeen(page, ctx) {
   assert.deepEqual(f.ink, {}, '描一遍 strokes are practice: nothing stored when leaving 描一遍');
   await drawStroke(page, VERTICAL);
   await drawStroke(page, HORIZONTAL);
-  await page.click(topSel('write-retrace-trace'));
+  await tap(page, 'write-retrace-trace');
   await waitPhase(page, 'trace');
   f = await facts(page);
   const seen = f.records.find(r => r.char === '永');
@@ -116,7 +116,7 @@ export default async function q1AfterSeen(page, ctx) {
   await page.click(topSel('write-trace-done'));
   await waitPhase(page, 'retrace');
   await drawStroke(page, VERTICAL);
-  await page.click(topSel('write-answer-next'));
+  await tap(page, 'write-answer-next');
   await waitPhase(page, 'recall');
   f = await facts(page);
   assert.deepEqual(Object.keys(f.ink), [seen.id], 'still one ink entry for 永');

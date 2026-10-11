@@ -8,7 +8,7 @@
 //   4. 写字页单字切换：纸上 →「改回在屏幕上写」只改这一个字（current.paper=false）；屏幕上还没落笔时格下右端「在纸上写」，落笔后换回撤销 / 清空；
 //      下一字回到设置的写字方式。
 
-import { bootTestHost, drawStroke, HORIZONTAL, PRESS_SETTLE_MS, makeSession, tid, topSel, waitNavIdle } from './helpers.mjs';
+import { bootTestHost, drawStroke, HORIZONTAL, PRESS_SETTLE_MS, makeSession, tid, topSel, waitNavIdle, tap, menuItems } from './helpers.mjs';
 
 const SETTINGS_MOD = '/src/ui/screens/mine/settings.js';
 const CHARS = ['永', '和', '春'];
@@ -154,8 +154,6 @@ export default async function paperSpec(page, ctx) {
       note: q('write-paper-note') ? q('write-paper-note').textContent : null,
       toPaper: !!q('write-to-paper'),
       done: { disabled: done.disabled, aria: done.getAttribute('aria-disabled') },
-      hintBtn: !!q('write-hint'),
-      answer: !!q('write-show-answer'),
       prompt: !!q('write-prompt'),
     };
   });
@@ -168,10 +166,11 @@ export default async function paperSpec(page, ctx) {
   assert.equal(box.note, '这个字记下时会标注「纸上」，不留笔迹。');
   assert.equal(box.toPaper, false);
   assert.ok(!box.done.disabled && box.done.aria !== 'true', '写好了 needs no strokes on paper');
-  assert.ok(box.prompt && box.hintBtn && box.answer, 'prompt, hint and 看答案 as usual');
+  const paperMenu = (await menuItems(page)).map(i => i.testid);
+  assert.ok(box.prompt && paperMenu.includes('write-hint') && paperMenu.includes('write-show-answer') && !paperMenu.includes('write-to-paper'), `prompt, hint and 看答案 as usual (the latter two in the 「⋯」 menu: ${JSON.stringify(paperMenu)}; no 在纸上写 item while on paper)`);
 
   ctx.step('P167: 提示 on paper → drawn inside the paper box; the copy folds away, 改回在屏幕上写 stays');
-  await page.click(topSel('write-hint'));
+  await tap(page, 'write-hint');
   await page.waitForSelector(`${topSel('write-paper')}[data-hinted="true"]`);
   await page.waitForSelector(`${topSel('write-paper')} [data-testid="write-hint-layer"]`);
   assert.equal(await page.locator(topSel('write-paper-title')).isVisible(), false);
@@ -246,8 +245,9 @@ export default async function paperSpec(page, ctx) {
   f = await facts(page);
   assert.equal(f.session.current.paper, false, 'current.paper = false for this character only');
   assert.equal(f.settings.writeMode, 'paper', 'the setting is unchanged');
-  // R2-X1（P226）：「在纸上写」是底部文字行里的常驻文字按钮——上一字的结果行（D19）在也不收起
-  assert.equal(await text(page, 'write-to-paper'), '在纸上写', 'the permanent 在纸上写 text button is in the bottom text row, with the result line showing');
+  // R2-X1（P226）→ D53 ②：「在纸上写」是「⋯」菜单第一项；设置偏好纸上（或读屏开启）时，格下说明位另有一个看得见的「在纸上写」——上一字的结果行（D19）在也不收起
+  assert.equal(await text(page, 'write-to-paper'), '在纸上写', 'the visible 在纸上写 entry is in the note slot (writeMode = paper), with the result line showing');
+  assert.equal(((await menuItems(page))[0] || {}).testid, 'write-to-paper', 'and 在纸上写 is the first item of the 「⋯」 menu');
   assert.equal(await page.locator(topSel('write-tools')).getAttribute('data-shown'), 'true', 'undo / clear are already in place');
 
   ctx.step('pen down → the result line collapses, undo / clear turn live, 在纸上写 stays');
@@ -275,7 +275,7 @@ export default async function paperSpec(page, ctx) {
   await page.click(topSel('write-paper-back'));
   await page.waitForSelector(topSel('write-to-paper'));
   await page.waitForTimeout(PRESS_SETTLE_MS);
-  await page.click(topSel('write-to-paper'));
+  await tap(page, 'write-to-paper');
   await page.waitForSelector(topSel('write-paper'));
   f = await facts(page);
   assert.equal(f.session.current.paper, true);

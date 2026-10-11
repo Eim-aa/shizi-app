@@ -8,7 +8,7 @@
 
 import {
   bootTestHost, drawStroke, HORIZONTAL, localDayOf, PRESS_SETTLE_MS, seedSession, tid, topSel, VERTICAL,
-  waitNavIdle, writeSnapshot, openWrite,
+  waitNavIdle, writeSnapshot, openWrite, tap, menuItems,
 } from './helpers.mjs';
 
 const COPY = {
@@ -63,6 +63,10 @@ async function text(page, id) {
   return (await el.count()) ? (await el.first().textContent()).trim() : null;
 }
 
+async function present0(page, id) {
+  return (await page.locator(topSel(id)).count()) > 0;
+}
+
 async function visible(page, id) {
   const el = page.locator(topSel(id));
   return (await el.count()) > 0 && el.first().isVisible();
@@ -71,6 +75,12 @@ async function visible(page, id) {
 /** 按钮文字（顶层图层里 data-testid=id 的按钮）。 */
 async function label(page, id) {
   return text(page, id);
+}
+
+/** 「⋯」菜单里某一项的文字（D53 ②：底栏只有主按钮 + 「⋯」）；没有这一项返回 null。 */
+async function menuLabel(page, id) {
+  const hit = (await menuItems(page)).find(i => i.testid === id);
+  return hit ? hit.text : null;
 }
 
 async function confirmState(page) {
@@ -107,7 +117,7 @@ async function waitAttr(page, id, attr, values, timeout = 15000) {
 
 /** 点「看答案」：没有确认框，直接进看答案页（D51 ⑧）。 */
 async function showAnswer(page) {
-  await page.click(topSel('write-show-answer'));
+  await tap(page, 'write-show-answer');
   await waitPhase(page, 'answer');
   assert0(await page.locator(tid('write-answer-confirm')).count() === 0, 'no confirm dialog appeared');
 }
@@ -155,7 +165,7 @@ export default async function answer(page, ctx) {
   await openWrite(page, { slot: 'A' });
   let s = await track();
   assert.equal(s.phase, 'recall', 'starts in recall');
-  assert.equal(await label(page, 'write-show-answer'), COPY.link, 'recall shows the 「看答案」 text button (R-W07.btnShowAnswer)');
+  assert.equal(await menuLabel(page, 'write-show-answer'), COPY.link, 'recall: 「看答案」 is in the 「⋯」 menu (R-W07.btnShowAnswer, D53 ②)');
   assert.ok(await page.isVisible(topSel('write-done')), 'recall footer is the normal one (「写好了」 present)');
 
   ctx.step('write two strokes first: they are the writer\'s own ink that 看答案 must keep');
@@ -169,7 +179,7 @@ export default async function answer(page, ctx) {
   await page.waitForFunction(() => window.__shiziTest.getState().sessions.A.current.strokes.length === 2); // 抬笔写回会话现场已落盘，免得注入的失败被它吃掉
   ctx.step('failNextWrite(1,{generic}) → 看答案 write fails → three-part failure dialog (先不保存 / 再试一次); nothing recorded, ink untouched');
   await page.evaluate(() => window.__shiziTest.failNextWrite(1, { kind: 'generic' }));
-  await page.click(topSel('write-show-answer'));
+  await tap(page, 'write-show-answer');
   await page.waitForSelector(tid('write-answer-confirm'));
   await waitNavIdle(page);
   let c = await confirmState(page);
@@ -194,7 +204,7 @@ export default async function answer(page, ctx) {
   assert.equal(f.records.length, 0, 'no record after 先不保存');
 
   ctx.step('看答案 (no failure) → NO confirm dialog at all: straight to the answer page on the same card, one answer-seen record, today N = 0');
-  await page.click(topSel('write-show-answer'));
+  await tap(page, 'write-show-answer');
   await waitPhase(page, 'answer');
   assert.equal(await page.locator(tid('write-answer-confirm')).count(), 0, 'no confirm dialog (D51 ⑧)');
   s = await track();
@@ -258,14 +268,14 @@ export default async function answer(page, ctx) {
   assert.deepEqual(inkAnswer.px, inkRecall.px, 'darkest ink pixel identical to the recall one: not dimmed, not cleared');
   assert.equal(inkAnswer.solid, inkRecall.solid, 'same number of solid ink pixels');
   assert.equal(inkAnswer.eff, 1, 'ink canvas effective opacity 1');
-  assert.equal(await text(page, 'write-note'), '', 'first time: nothing under the grid — the R-W07.firstExplain line is gone (C3-H / N3-06, D53): this very first 看答案 already shows the answer, there is nothing to foretell');
+  assert.equal(await text(page, 'write-note'), COPY.answerNote, 'first time: the one consequence line under the grid (R-W07.answerNote); the R-W07.firstExplain line is gone (C3-H / N3-06, D53) and the footer is one row (D53 ②)');
   assert.equal(((await page.evaluate(() => window.__shiziTest.getState().settings)) || {}).answerNoteSeen, undefined, 'settings.answerNoteSeen is no longer written by the UI (the flag stays in the schema only)');
-  assert.equal(await text(page, 'write-answer-note'), COPY.answerNote, 'note above buttons R-W07.answerNote');
+  assert.equal(await present0(page, 'write-answer-note'), false, 'no separate note above the buttons any more (single row footer)');
   // R2-A1（A2-09）：名称与判断页参考卡同一句——字、拼音、笔画数、结构 / 部件数
   assert.ok(/^参考字形：永，yǒng(，\d+ 画(，[^，]+)?)?$/.test(await page.getAttribute(topSel('write-answer-char'), 'aria-label')), 'screen readers get the answer glyph from the footer (the reference layer is aria-hidden)');
-  assert.deepEqual([await label(page, 'write-answer-self'), await label(page, 'write-answer-trace')], [COPY.self, COPY.trace],
-    'buttons 自己写 / 描一遍');
-  assert.equal(await label(page, 'write-answer-next'), COPY.next, 'bottom link 下一个');
+  assert.deepEqual([await menuLabel(page, 'write-answer-self'), await label(page, 'write-answer-trace')], [COPY.self, COPY.trace],
+    'main button 描一遍, 自己写 in the 「⋯」 menu');
+  assert.equal(await menuLabel(page, 'write-answer-next'), COPY.next, '下一个 in the 「⋯」 menu');
   assert.equal(await visible(page, 'write-done'), false, 'no 「写好了」 on the answer page');
   assert.equal(await visible(page, 'write-show-answer'), false, 'no second 「看答案」');
 
@@ -288,7 +298,6 @@ export default async function answer(page, ctx) {
   assert.deepEqual(s.done, null, 'no 「写好了」 in trace');
   const traceDone0 = await page.evaluate(() => document.querySelector('.sz-layer[data-top="true"] [data-testid="write-trace-done"]').disabled);
   assert.equal(traceDone0, true, '描好了 disabled before writing');
-  assert.equal(await label(page, 'write-answer-next'), COPY.next, '下一个 link in trace');
   assert.equal(await page.getAttribute(topSel('write-trace-layer'), 'data-state'), 'ready', 'trace layer has stroke data');
   const tr = await page.evaluate(() => {
     const top = document.querySelector('.sz-layer[data-top="true"]');
@@ -327,6 +336,7 @@ export default async function answer(page, ctx) {
   await drawStroke(page, HORIZONTAL);
   assert.equal(await waitAttr(page, 'write-trace-layer', 'data-anim', ['skipped', 'completed']), 'skipped', 'preview skipped by writing');
   assert.equal(await waitAttr(page, 'write-trace-layer', 'data-current', ['1']), '1', 'D53 ①: one stroke traced → the current (solid) stroke moves on to stroke 1; stroke 0 is covered by the own ink, not drawn any more');
+  assert.equal(await menuLabel(page, 'write-answer-next'), COPY.next, '下一个 in the 「⋯」 menu in trace');
   s = await track();
   assert.equal(s.strokes, 1, 'stroke on the trace grid');
   const traceDone1 = await page.evaluate(() => document.querySelector('.sz-layer[data-top="true"] [data-testid="write-trace-done"]').disabled);
@@ -340,7 +350,7 @@ export default async function answer(page, ctx) {
   assert.equal(await page.getAttribute(topSel('write-steps'), 'aria-label'), COPY.stepSelf, 'step dots R-W04.stepSelf');
   assert.equal(s.strokes, 0, 'retrace starts empty');
   assert.equal(await text(page, 'write-note'), COPY.selfNote, 'grid note R-W07.selfNote');
-  assert.deepEqual([await label(page, 'write-retrace-trace'), await label(page, 'write-answer-next')], [COPY.retrace, COPY.next],
+  assert.deepEqual([await menuLabel(page, 'write-retrace-trace'), await label(page, 'write-answer-next')], [COPY.retrace, COPY.next],
     'buttons 再描一遍 / 下一个');
   assert.equal(await page.locator(topSel('write-answer-next')).count(), 1, 'only one 下一个 (no skip-row link in retrace)');
   assert.equal(await visible(page, 'write-trace-layer'), false, 'no trace outline in retrace');
@@ -349,7 +359,7 @@ export default async function answer(page, ctx) {
   await drawStroke(page, VERTICAL);
   s = await track();
   assert.equal(s.strokes, 1, 'one stroke in retrace');
-  await page.click(topSel('write-retrace-trace'));
+  await tap(page, 'write-retrace-trace');
   await waitPhase(page, 'trace');
   s = await track();
   assert.equal(s.strokes, 0, 'back in trace with an empty grid');
@@ -362,7 +372,7 @@ export default async function answer(page, ctx) {
   await waitPhase(page, 'retrace');
   ctx.step('(a fresh first entry, simulated by forgetting the played set) a single tap on the grid jumps the preview straight to its end state (点一下直接到终态)');
   await page.evaluate(async () => (await import('/src/ui/screens/write/answer.js')).forgetTracePreviewed());
-  await page.click(topSel('write-retrace-trace'));
+  await tap(page, 'write-retrace-trace');
   await waitPhase(page, 'trace');
   assert.ok(['running', 'completed'].includes(await page.getAttribute(topSel('write-trace-layer'), 'data-anim')), 'preview plays on a first entry');
   const tapBox = await page.locator(topSel('write-grid')).boundingBox();
@@ -375,7 +385,7 @@ export default async function answer(page, ctx) {
   assert.equal(f.records.length, 1, 'phase switches never add records');
 
   ctx.step('下一个 → next character in recall; item kind answer-seen, result line saw; never went to compare');
-  await page.click(topSel('write-answer-next'));
+  await tap(page, 'write-answer-next');
   await waitPhase(page, 'recall');
   s = await track();
   assert.equal(s.cursor, 1, 'cursor advanced to 1');
@@ -388,13 +398,12 @@ export default async function answer(page, ctx) {
   assert.deepEqual(f.session.lastLine, { recordId: rec1.id, kind: 'saw' }, "result line {kind:'saw'} (「永」记为看过答案)");
   assert.equal(f.session.current.answerSeen, false, 'fresh current for the next character');
   assert.equal(f.todayN, 0, '今日 N still 0');
-  assert.equal(await label(page, 'write-show-answer'), COPY.link, '看答案 available again for the new character');
+  assert.equal(await menuLabel(page, 'write-show-answer'), COPY.link, '看答案 available again for the new character');
 
   ctx.step('第二字: 看答案 (no confirm, no first-time line) → 自己写 goes straight to retrace (traced stays false)');
   await showAnswer(page);
-  assert.equal(await text(page, 'write-note'), '', 'still no one-time explanation');
-  assert.equal(await text(page, 'write-answer-note'), COPY.answerNote, 'the consequence line above the buttons stays');
-  await page.click(topSel('write-answer-self'));
+  assert.equal(await text(page, 'write-note'), COPY.answerNote, 'the consequence line stays under the grid');
+  await tap(page, 'write-answer-self');
   await waitPhase(page, 'retrace');
   f = await facts(page);
   assert.equal(f.records.length, 2, 'second answer-seen record');
@@ -403,7 +412,7 @@ export default async function answer(page, ctx) {
 
   ctx.step('下一个 write fails → stays in retrace with 先不保存 / 再试一次; 先不保存 → back; 下一个 again → advances');
   await page.evaluate(() => window.__shiziTest.failNextWrite(1, { kind: 'generic' }));
-  await page.click(topSel('write-answer-next'));
+  await tap(page, 'write-answer-next');
   await page.waitForSelector(`${topSel('write-answer-foot')}[data-failed="true"]`);
   await page.waitForTimeout(PRESS_SETTLE_MS);
   s = await track();
@@ -420,7 +429,7 @@ export default async function answer(page, ctx) {
   await page.waitForTimeout(PRESS_SETTLE_MS);
   assert.equal(await text(page, 'write-note'), COPY.selfNote, '先不保存 → normal retrace note');
   await page.evaluate(() => window.__shiziTest.failNextWrite(1, { kind: 'generic' }));
-  await page.click(topSel('write-answer-next'));
+  await tap(page, 'write-answer-next');
   await page.waitForSelector(`${topSel('write-answer-foot')}[data-failed="true"]`);
   await page.waitForTimeout(PRESS_SETTLE_MS);
   await page.click(topSel('write-answer-fail-retry'));
@@ -448,7 +457,7 @@ export default async function answer(page, ctx) {
   const tDone = (log.find(e => e[0] === 'completed') || [])[1];
   assert.ok(Number.isFinite(tRun) && Number.isFinite(tDone), `preview start / end observed (${JSON.stringify(log.map(e => e[0]))})`);
   assert.ok(tDone - tRun <= 1650, `stroke-order quick play ≤ 1.6s (took ${Math.round(tDone - tRun)}ms, 春 = 9 strokes)`);
-  await page.click(topSel('write-answer-next'));
+  await tap(page, 'write-answer-next');
   await page.waitForFunction(() => {
     const st = window.__shiziTest.getState();
     const s = st.sessions.A || (st.sessions.lastEnded || {}).A; // 写完后移入 lastEnded、换成结果页（M2-3）
@@ -485,7 +494,7 @@ export default async function answer(page, ctx) {
   assert.equal(await page.getAttribute(`${topSel('write-answer-card')} ${tid('write-glyph-fallback')}`, 'data-variant'), 'under',
     'Kai full glyph fallback, in the under-ink colour (variant under)');
   assert.equal(await text(page, 'write-glyph-fallback'), NODATA, 'fallback is DOM text of the character');
-  assert.equal(await text(page, 'write-answer-note'), COPY.answerNote, 'note R-W08.answerNote');
+  assert.ok((await text(page, 'write-note')).startsWith(COPY.answerNote), 'note R-W08.answerNote (first line of the single note under the grid)');
   f = await facts(page);
   assert.equal(f.records.length, 1, 'answer-seen recorded without stroke data (照实记)');
   assert.equal(f.records[0].kind, 'answer-seen', 'kind answer-seen');

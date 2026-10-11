@@ -7,7 +7,7 @@
 //   最后一字再跳过、不操作 → 结果页上底栏约 5 秒后收起，跳过记录保留。
 
 import {
-  bootTestHost, drawStroke, HORIZONTAL, PRESS_SETTLE_MS, seedSession, tid, topSel, waitNavIdle, writeSnapshot, openWrite,
+  bootTestHost, drawStroke, HORIZONTAL, PRESS_SETTLE_MS, seedSession, tid, topSel, waitNavIdle, writeSnapshot, openWrite, tap,
 } from './helpers.mjs';
 
 const CHARS = ['永', '和', '春'];
@@ -53,7 +53,7 @@ export default async function skipUndo(page, ctx) {
   await openWrite(page, { slot: 'A' });
 
   ctx.step('跳过 永 → undo bar; first pen-down on 和 → bar gone at once, the undo entry is gone');
-  await page.click(topSel('write-skip'));
+  await tap(page, 'write-skip');
   await waitCursor(page, 1);
   assert.equal(await present(page, 'write-skip-undo'), true, 'undo bar shown after the skip');
   let pendingDown = null;
@@ -76,11 +76,10 @@ export default async function skipUndo(page, ctx) {
 
   ctx.step('跳过 → 提示 on the next character → bar gone');
   await fresh(page, ctx, 0);
-  await page.click(topSel('write-skip'));
+  await tap(page, 'write-skip');
   await waitCursor(page, 1);
   assert.equal(await present(page, 'write-skip-undo'), true, 'undo bar shown');
-  await page.waitForSelector(`${topSel('write-hint')}[data-state="available"]`, { timeout: 15000 });
-  await page.click(topSel('write-hint'));
+  await tap(page, 'write-hint');
   await page.waitForSelector(`${topSel('write-hint-layer')}[data-state="shown"]`);
   assert.equal(await present(page, 'write-skip-undo'), false, 'bar gone after 提示');
   const hints = await page.evaluate(() => window.__shiziTest.getState().sessions.A.current.hints);
@@ -88,10 +87,10 @@ export default async function skipUndo(page, ctx) {
 
   ctx.step('跳过 → 看答案 on the next character → bar gone (no confirm dialog any more, D51 ⑧)');
   await fresh(page, ctx, 0);
-  await page.click(topSel('write-skip'));
+  await tap(page, 'write-skip');
   await waitCursor(page, 1);
   assert.equal(await present(page, 'write-skip-undo'), true, 'undo bar shown');
-  await page.click(topSel('write-show-answer'));
+  await tap(page, 'write-show-answer');
   await page.waitForSelector(topSel('write-answer-trace'));
   assert.equal(await page.locator(tid('write-answer-confirm')).count(), 0, 'no confirm dialog');
   assert.equal(await present(page, 'write-skip-undo'), false, 'bar gone after 看答案');
@@ -101,7 +100,7 @@ export default async function skipUndo(page, ctx) {
 
   ctx.step('D36 / P115: a finger held on the bar pauses the clock, releasing lets the rest run out');
   await fresh(page, ctx, 0);
-  await page.click(topSel('write-skip'));
+  await tap(page, 'write-skip');
   await waitCursor(page, 1);
   assert.equal(await present(page, 'write-skip-undo'), true, 'undo bar shown');
   const textBox = await page.locator(topSel('write-skip-undo-text')).boundingBox();
@@ -120,7 +119,7 @@ export default async function skipUndo(page, ctx) {
   ctx.step('D36 / P115: VoiceOver on (shiziAccessibilityStatus) → the bar does not collapse by itself; the next pen-down collapses it');
   await page.evaluate(() => window.shiziAccessibilityStatus({ voiceOver: true, switchControl: false }));
   await fresh(page, ctx, 0);
-  await page.click(topSel('write-skip'));
+  await tap(page, 'write-skip');
   await waitCursor(page, 1);
   assert.equal(await present(page, 'write-skip-undo'), true, 'undo bar shown');
   await page.waitForTimeout(5800);
@@ -129,7 +128,7 @@ export default async function skipUndo(page, ctx) {
   assert.equal(await present(page, 'write-skip-undo'), false, 'the next action (pen-down) collapses it');
   await page.evaluate(() => window.shiziAccessibilityStatus({ voiceOver: false, switchControl: true }));
   await fresh(page, ctx, 0);
-  await page.click(topSel('write-skip'));
+  await tap(page, 'write-skip');
   await waitCursor(page, 1);
   await page.waitForTimeout(5800);
   assert.equal(await present(page, 'write-skip-undo'), true, 'Switch Control alone keeps it up as well');
@@ -141,7 +140,7 @@ export default async function skipUndo(page, ctx) {
   await fresh(page, ctx, 2);
   await drawStroke(page, HORIZONTAL);
   assert.equal((await writeSnapshot(page)).strokes, 1, 'one stroke on 春 before the skip');
-  await page.click(topSel('write-skip'));
+  await tap(page, 'write-skip');
   await page.waitForSelector(topSel('result-screen'));
   assert.equal(await present(page, 'write-empty'), false, 'no write-empty placeholder on top: the write page was replaced by the result page');
   assert.equal(await present(page, 'write-skip-undo'), true, 'undo bar rendered on the result page');
@@ -167,7 +166,7 @@ export default async function skipUndo(page, ctx) {
 
   ctx.step('last character again, no action → the bar on the result page leaves after ~5s, the skip stays');
   await waitNavIdle(page);
-  await page.click(topSel('write-skip'));
+  await tap(page, 'write-skip');
   const t0 = Date.now();
   await page.waitForSelector(topSel('result-screen'));
   await page.waitForTimeout(Math.max(0, 4300 - (Date.now() - t0)));

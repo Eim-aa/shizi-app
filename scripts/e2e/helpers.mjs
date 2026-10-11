@@ -10,6 +10,7 @@
 //   makeSession({...})             造一个 01 §3.3 形状的会话对象（纯函数）
 //   seedSession(page, {...})       reset（可选）+ seed 一个会话到 sessions[slot]；返回 {ok, state}
 //   openWrite(page, {slot})        从首页测试入口（A）或 nav.push（B）打开写字页并等 idle
+//   tap(page, testid)              点写字页底栏上的一项：主按钮直接点，其余在「⋯」菜单里先开菜单再点（D53 ②）；openWriteMenu / closeWriteMenu / menuItems
 //   gridRect(page)                 顶层写字页书写格的 CSS 矩形
 //   drawStroke(page, pts, opts)    用鼠标在书写格里画一笔；pts 为书写格内 0–1 的相对坐标
 //   writeSnapshot(page)            写字页当前状态（笔数、按钮可用性、进度文字、cursor…）
@@ -144,6 +145,64 @@ export async function openWrite(page, { slot = 'A' } = {}) {
   }
   await page.waitForSelector(topSel('write-screen'));
   await waitNavIdle(page);
+}
+
+/** 写字页「⋯」菜单（D53 ②：所有字号同构）。openWriteMenu：点底栏「⋯」并等菜单出现；closeWriteMenu：点菜单里的「完成」。 */
+export async function openWriteMenu(page) {
+  await page.click(topSel('write-more'));
+  await page.waitForSelector(tid('write-ax-menu'));
+  await waitNavIdle(page); // 弹层打开是新状态：0.4s 内按钮不响应（01 §6.6），等它过去再点菜单里的项
+}
+
+export async function closeWriteMenu(page) {
+  await page.click(`${tid('write-ax-menu')} ${tid('sheet-done')}`);
+  await page.waitForFunction(() => !document.querySelector('[data-testid="write-ax-menu"]'));
+  await waitNavIdle(page);
+}
+
+/** 打开「⋯」菜单读出每一项再关上（D53 ②）：[{testid, text, aria, disabled, static, state, remaining}]，顺序就是菜单里的顺序。 */
+export async function menuItems(page) {
+  await openWriteMenu(page);
+  const items = await page.$$eval(`${tid('write-ax-menu')} .sz-axmenu__item`, els => els.map(e => ({
+    testid: e.dataset.testid, text: e.textContent.trim(), aria: e.getAttribute('aria-label'), disabled: !!e.disabled, static: e.dataset.static === 'true',
+    state: e.dataset.state || null, remaining: e.dataset.remaining === undefined ? null : e.dataset.remaining,
+  })));
+  await closeWriteMenu(page);
+  return items;
+}
+
+/**
+ * 点写字页底栏上的某一项（D53 ②）：它是底栏主按钮（在页面里直接看得见）就直接点；否则它在「⋯」菜单里——先开菜单、等这一项可点（提示在笔顺数据
+ * 还没到时是灰的，菜单里的项是打开那一刻的快照，灰的就关掉再开），点它并等菜单收起。
+ * @param {import('playwright').Page} page
+ * @param {string} testid
+ * @param {{timeout?:number, force?:boolean}} [opts]  force：菜单项灰着也点（测「点了不会怎样」）
+ */
+export async function tap(page, testid, { timeout = 15000, force = false } = {}) {
+  const direct = page.locator(topSel(testid));
+  if (!(await page.locator(tid('write-ax-menu')).count()) && (await direct.count()) && (await direct.first().isVisible())) {
+    await direct.first().click({ force });
+    return;
+  }
+  const deadline = Date.now() + timeout;
+  const item = `${tid('write-ax-menu')} ${tid(testid)}`;
+  let disabled = false;
+  for (;;) {
+    if (!(await page.locator(tid('write-ax-menu')).count())) await openWriteMenu(page);
+    await page.waitForSelector(item, { timeout: Math.max(500, deadline - Date.now()) });
+    disabled = await page.$eval(item, el => !!el.disabled);
+    if (!disabled || force) break;
+    if (Date.now() > deadline) throw new Error(`menu item ${testid} stayed disabled`);
+    await closeWriteMenu(page);
+    await page.waitForTimeout(250);
+  }
+  await page.click(item, { force });
+  if (disabled) { // 灰着的项点了不会收起菜单：自己关上（测「点了不会怎样」）
+    await closeWriteMenu(page);
+    return;
+  }
+  await page.waitForFunction(() => !document.querySelector('[data-testid="write-ax-menu"]'));
+  await waitNavIdle(page); // 弹层收起也是新状态：之后马上点页面上的按钮不会被 0.4s 防连点吃掉
 }
 
 export async function gridRect(page, testid = 'write-grid-live') {

@@ -20,7 +20,7 @@
 // 由 66-ink-retention（结果页刷新、详情、墙、冷启动）覆盖。其余结果页行为与开关无关。
 
 import {
-  bootTestHost, drawStroke, HORIZONTAL, PRESS_SETTLE_MS, routePerRecordInk, tid, topSel, waitNavIdle,
+  bootTestHost, drawStroke, HORIZONTAL, PRESS_SETTLE_MS, routePerRecordInk, tid, topSel, waitNavIdle, tap, menuItems,
 } from './helpers.mjs';
 import { markFirstPracticeDone } from './home-helpers.mjs';
 
@@ -213,7 +213,7 @@ async function writeAndJudge(page, judgment = 'correct') {
 }
 
 async function openAnswer(page) {
-  await page.click(topSel('write-show-answer'));
+  await tap(page, 'write-show-answer');
   await waitPhase(page, 'answer');
 }
 
@@ -231,19 +231,19 @@ export default async function resultSpec(page, ctx) {
   // ------------------------------------------------------------------ 1. 最后一字 → 结果页（各阶段）
   const lastPaths = [
     { name: 'compare: 写对了', act: async () => writeAndJudge(page, 'correct'), kind: 'judged' },
-    { name: 'answer: bottom 下一个', act: async () => { await openAnswer(page); await page.click(topSel('write-answer-next')); }, kind: 'answer-seen' },
+    { name: 'answer: bottom 下一个', act: async () => { await openAnswer(page); await tap(page, 'write-answer-next'); }, kind: 'answer-seen' },
     {
       name: 'trace: bottom 下一个',
-      act: async () => { await openAnswer(page); await page.click(topSel('write-answer-trace')); await waitPhase(page, 'trace'); await page.click(topSel('write-answer-next')); },
+      act: async () => { await openAnswer(page); await page.click(topSel('write-answer-trace')); await waitPhase(page, 'trace'); await tap(page, 'write-answer-next'); },
       kind: 'answer-seen',
     },
     {
       name: 'retrace: 下一个',
-      act: async () => { await openAnswer(page); await page.click(topSel('write-answer-self')); await waitPhase(page, 'retrace'); await page.click(topSel('write-answer-next')); },
+      act: async () => { await openAnswer(page); await tap(page, 'write-answer-self'); await waitPhase(page, 'retrace'); await tap(page, 'write-answer-next'); },
       kind: 'answer-seen',
     },
-    { name: 'recall after answer seen (restore path): 下一个', current: { answerSeen: true, phase: 'recall' }, act: async () => page.click(topSel('write-answer-next')), kind: 'answer-seen' },
-    { name: 'recall: 跳过', act: async () => page.click(topSel('write-skip')), kind: 'skipped' },
+    { name: 'recall after answer seen (restore path): 下一个', current: { answerSeen: true, phase: 'recall' }, act: async () => tap(page, 'write-answer-next'), kind: 'answer-seen' },
+    { name: 'recall: 跳过', act: async () => tap(page, 'write-skip'), kind: 'skipped' },
   ];
   for (const p of lastPaths) {
     step(`last character via ${p.name} → result page directly, no intermediate page (D20 / R-W11)`);
@@ -287,7 +287,7 @@ export default async function resultSpec(page, ctx) {
   await goHome(page);
   await seedGroup(page, { kind: 'daily', chars: ['永', '和'], steps: ['correct'] });
   await openWriteSlot(page, 'A');
-  await page.click(topSel('write-skip'));
+  await tap(page, 'write-skip');
   await waitResult(page);
   assert.equal((await page.locator(topSel('write-skip-undo-text')).textContent()).trim(), '已跳过「和」', 'bar 已跳过「和」 on the result page');
   await waitNavIdle(page);
@@ -315,11 +315,11 @@ export default async function resultSpec(page, ctx) {
   await waitNavIdle(page);
   st = await state(page);
   assert.ok(st.sessions.B && st.sessions.B.kind === 'picked' && st.sessions.B.queue.length === 3, 'B opened with 3 characters');
-  assert.equal(await page.locator(topSel('write-end')).count(), 1, '结束这组 shown in a picked group');
+  assert.ok((await menuItems(page)).some(i => i.testid === 'write-end'), '结束这组 is in the 「⋯」 menu of a picked group (D53 ②)');
   await writeAndJudge(page, 'correct');
   await waitPhase(page, 'recall');
   const beforeEnd = (await state(page)).sessions.B;
-  await page.click(topSel('write-end'));
+  await tap(page, 'write-end');
   await page.waitForSelector(tid('write-end-dialog'));
   await waitNavIdle(page);
   const dlg = await evalIn(page, () => {
@@ -341,7 +341,7 @@ export default async function resultSpec(page, ctx) {
   assert.deepEqual((await state(page)).sessions.B, beforeEnd, '接着写: B deep-equal, nothing written');
 
   step('结束这组 → result 这次选的字 / 先写到这里 → 回到首页 (tab root), lastEnded cleared');
-  await page.click(topSel('write-end'));
+  await tap(page, 'write-end');
   await page.waitForSelector(tid('write-end-dialog'));
   await waitNavIdle(page);
   await page.click(tid('write-end-confirm'));
@@ -370,7 +370,7 @@ export default async function resultSpec(page, ctx) {
   step('zero judged: 结束这组 → back to the source + toast 这组结束了，没有记下字。');
   await seedGroup(page, { kind: 'picked', chars: ['额', '鲜'], steps: ['skip'] });
   await openWriteSlot(page, 'B');
-  await page.click(topSel('write-end'));
+  await tap(page, 'write-end');
   await page.waitForSelector(tid('write-end-dialog'));
   await waitNavIdle(page);
   assert.equal((await page.locator(tid('write-end-body')).textContent()), '还有 1 个字没写，结束后就不写了。判断过的 0 个字已经记下。', 'S04 body with m=0');
@@ -384,17 +384,10 @@ export default async function resultSpec(page, ctx) {
   step('H4: 结束这组 shown in answer / trace / retrace, hidden on the judge page; ending from the answer page with 0 judged → back + toast');
   await seedGroup(page, { kind: 'picked', chars: ['额', '鲜', '境'], steps: [] });
   await openWriteSlot(page, 'B');
-  const endVisible = async () => {
-    const el = page.locator(topSel('write-end'));
-    return (await el.count()) === 1 && el.isVisible();
-  };
-  const endInAnswerFoot = async () => evalIn(page, () => {
-    const b = document.querySelector('.sz-layer[data-top="true"] [data-testid="write-end"]');
-    return !!b && !!b.closest('[data-testid="write-answer-foot"]');
-  });
+  const endVisible = async () => (await menuItems(page)).some(i => i.testid === 'write-end');
   await openAnswer(page);
   assert.ok(await endVisible(), 'answer: 结束这组 visible');
-  assert.ok(await endInAnswerFoot(), 'answer: 结束这组 lives in the answer footer (下一个 row)');
+  assert.equal(await page.locator(topSel('write-end')).count(), 0, 'answer: 结束这组 is not a loose button in the footer (it lives in the 「⋯」 menu)');
   await page.click(topSel('write-answer-trace'));
   await waitPhase(page, 'trace');
   assert.ok(await endVisible(), 'trace: 结束这组 visible');
@@ -403,7 +396,7 @@ export default async function resultSpec(page, ctx) {
   await page.click(topSel('write-trace-done'));
   await waitPhase(page, 'retrace');
   assert.ok(await endVisible(), 'retrace: 结束这组 visible');
-  await page.click(topSel('write-answer-next'));
+  await tap(page, 'write-answer-next');
   await page.waitForFunction(() => {
     const w = document.querySelector('.sz-layer[data-top="true"] .sz-write');
     return !!w && w.dataset.cursor === '1' && w.dataset.phase === 'recall';
@@ -418,7 +411,7 @@ export default async function resultSpec(page, ctx) {
   await page.click(topSel('write-continue'));
   await waitPhase(page, 'recall');
   await openAnswer(page);
-  await page.click(topSel('write-end'));
+  await tap(page, 'write-end');
   await page.waitForSelector(tid('write-end-dialog'));
   await waitNavIdle(page);
   assert.equal(await page.locator(tid('write-end-body')).textContent(), '还有 2 个字没写，结束后就不写了。判断过的 0 个字已经记下。',
@@ -438,7 +431,7 @@ export default async function resultSpec(page, ctx) {
   st = await state(page);
   const seenRec = st.records.find(r => r.kind === 'answer-seen' && r.char === '鲜');
   assert.ok(seenRec && st.sessions.B.current.answerSeen === true && st.sessions.B.cursor === 1, 'answer confirmed: answer-seen record written, session not advanced');
-  await page.click(topSel('write-end'));
+  await tap(page, 'write-end');
   await page.waitForSelector(tid('write-end-dialog'));
   await waitNavIdle(page);
   await page.click(tid('write-end-confirm'));
@@ -460,7 +453,7 @@ export default async function resultSpec(page, ctx) {
   await seedGroup(page, { kind: 'picked', chars: ['额', '鲜', '境'], steps: ['correct'] });
   await openWriteSlot(page, 'B');
   const beforeFail = (await state(page)).sessions.B;
-  await page.click(topSel('write-end'));
+  await tap(page, 'write-end');
   await page.waitForSelector(tid('write-end-dialog'));
   await waitNavIdle(page);
   await evalIn(page, () => window.__shiziTest.failNextWrite(1));

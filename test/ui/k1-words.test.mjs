@@ -43,6 +43,6 @@ test('buttons segment their string text into words; AX button / menu / detail ru
   assert.match(read('src/ui/components/Words.js'), /\.sz-words__w\{white-space:nowrap\}/);
   assert.match(read('src/ui/components/Words.js'), /html`<span class="sz-words">/, 'one wrapper: words never become separate flex / grid items of an inline-flex button');
   assert.match(read('src/ui/components/ax.js'), /\.sz-btn--secondary\{min-height:var\(--btn-h\);height:auto;padding-top:6px;padding-bottom:6px;\n  white-space:normal;line-break:strict\}/);
-  assert.match(read('src/ui/screens/write/ax-menu.js'), /\.sz-write__foot--ax>\.sz-btn--primary\{[^}]*line-break:strict/);
+  assert.match(read('src/ui/screens/write/ax-menu.js'), /\.sz-write__foot--ax>\.sz-btn--primary(?:,[^{]*)?\{[^}]*line-break:strict/);
   assert.match(read('src/ui/screens/detail/records.js'), /:root\[data-ax\] \.sz-drec__first\{text-align:left;line-break:strict\}/);
 });

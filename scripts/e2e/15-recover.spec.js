@@ -16,7 +16,7 @@
 
 import {
   bootTestHost, drawStroke, HORIZONTAL, VERTICAL, PRESS_SETTLE_MS, seedSession, tid, topSel, waitNavIdle, writeSnapshot,
-  openWrite, canvasInk,
+  openWrite, canvasInk, tap, menuItems,
 } from './helpers.mjs';
 
 const CHARS = ['永', '和', '春', '大', '中'];
@@ -180,15 +180,14 @@ export default async function recover(page, ctx) {
   assert.equal((await facts(page)).storedStrokes, 1, 'undo after clear → session holds the stroke again');
 
   ctx.step('hint used, then refresh: count kept, hint shown statically');
-  await waitAttr(page, 'write-hint', 'data-state', ['available']);
-  await page.click(topSel('write-hint'));
+  await tap(page, 'write-hint');
   await waitAttr(page, 'write-hint-layer', 'data-state', ['shown']);
   f = await facts(page);
   assert.equal(f.session.current.hints, 1, 'hint count written');
   await reloadWrite(page);
   s = await writeSnapshot(page);
   assert.deepEqual([s.phase, s.strokes], ['recall', 1], 'refresh: recall with the 1 stroke');
-  assert.equal(await page.getAttribute(topSel('write-hint'), 'data-remaining'), '1', 'refresh: 1 hint left');
+  assert.equal(((await menuItems(page)).find(i => i.testid === 'write-hint') || {}).remaining, '1', 'refresh: 1 hint left');
   assert.equal(await waitAttr(page, 'write-hint-layer', 'data-anim', ['static', 'draw', 'fade']), 'static', 'refresh: hint restored statically');
 
   // ------------------------------------------------------------------ 2. compare
@@ -219,7 +218,7 @@ export default async function recover(page, ctx) {
 
   // ------------------------------------------------------------------ 3. answer / trace / retrace
   ctx.step('answer: 看答案 (no confirm dialog; the two strokes stay) → refresh shows the answer layer under the same ink; one answer-seen record');
-  await page.click(topSel('write-show-answer'));
+  await tap(page, 'write-show-answer');
   await waitPhase(page, 'answer');
   assert.equal(await page.locator(tid('write-answer-confirm')).count(), 0, 'no confirm dialog (D51 ⑧)');
   assert.equal((await writeSnapshot(page)).strokes, 2, 'the recall strokes are still on the grid in the answer phase');
@@ -260,7 +259,7 @@ export default async function recover(page, ctx) {
   f = await facts(page);
   assert.equal(f.answerSeen.length, 1, 'still one answer-seen record after three refreshes');
   assert.equal(f.answerSeen[0].help.traced, true, 'traced kept');
-  await page.click(topSel('write-answer-next'));
+  await tap(page, 'write-answer-next');
   await page.waitForFunction(() => Number(document.querySelector('.sz-layer[data-top="true"] .sz-write').dataset.cursor) === 1);
   await settle(page);
   f = await facts(page);

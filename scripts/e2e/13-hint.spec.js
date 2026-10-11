@@ -6,10 +6,10 @@
 // 写入失败不阻断且下次写入补上次数；会话现场里 hintRange 还在时静态恢复；无绕过 storage.js 的写入；回忆阶段 DOM 不含答案字。
 
 import {
-  bootTestHost, drawStroke, HORIZONTAL, VERTICAL, openWrite, seedSession, topSel, waitNavIdle,
+  bootTestHost, closeWriteMenu, drawStroke, HORIZONTAL, VERTICAL, openWrite, openWriteMenu, seedSession, tap, topSel, waitNavIdle,
 } from './helpers.mjs';
 
-const HINT = topSel('write-hint');
+const MENU_HINT = '[data-testid="write-ax-menu"] [data-testid="write-hint"]';
 const LAYER = topSel('write-hint-layer');
 
 
@@ -21,23 +21,44 @@ async function open(page, ctx, chars, extra = {}) {
   await openWrite(page, { slot: 'A' });
 }
 
-async function waitButton(page, state) {
-  await page.waitForSelector(`${HINT}[data-state="${state}"]`, { timeout: 15000 });
+/** 「⋯」菜单里的提示项（D53 ②：提示不再是页面上的文字按钮）：打开菜单读它的名称 / 状态再关上。没有这一项时返回 null。 */
+async function menuHint(page) {
+  await openWriteMenu(page);
+  const b = await page.evaluate(sel => {
+    const el = document.querySelector(sel);
+    if (!el) return null;
+    return {
+      label: el.getAttribute('aria-label'), text: el.textContent.trim(), state: el.dataset.state, remaining: el.dataset.remaining,
+      disabled: el.disabled, ariaDisabled: el.getAttribute('aria-disabled'),
+    };
+  }, MENU_HINT);
+  await closeWriteMenu(page);
+  return b;
 }
 
-function hintState(page) {
-  return page.evaluate(({ hint, layer }) => {
-    const b = document.querySelector(hint);
+async function waitButton(page, state) {
+  const deadline = Date.now() + 15000;
+  for (;;) {
+    const b = await menuHint(page);
+    if (b && b.state === state) return b;
+    if (Date.now() > deadline) throw new Error(`hint menu item never became ${state} (${JSON.stringify(b)})`);
+    await page.waitForTimeout(300);
+  }
+}
+
+async function hintState(page, withButton = false) {
+  const btn = withButton ? await menuHint(page) : null;
+  return page.evaluate(({ layer, btn: b }) => {
     const l = document.querySelector(layer);
     const top = document.querySelector('.sz-layer[data-top="true"]');
     const note = top.querySelector('[data-testid="write-note"]');
     const ink = top.querySelector('[data-testid="write-grid-ink"]');
     return {
-      label: b ? b.getAttribute('aria-label') : null, // D49：读屏名称（「提示，还有 N 次」）
-      text: b ? b.textContent.trim() : null, // 可见文字一直是「提示」
-      state: b ? b.dataset.state : null,
+      label: b ? b.label : null, // D49：读屏名称（「提示，还有 N 次」）
+      text: b ? b.text : null, // 可见文字一直是「提示」
+      state: b ? b.state : null,
       disabled: b ? b.disabled : null,
-      ariaDisabled: b ? b.getAttribute('aria-disabled') : null,
+      ariaDisabled: b ? b.ariaDisabled : null,
       layer: l ? l.dataset.state : null,
       from: l && l.dataset.from !== undefined ? Number(l.dataset.from) : null,
       to: l && l.dataset.to !== undefined ? Number(l.dataset.to) : null,
@@ -50,7 +71,7 @@ function hintState(page) {
       inkOpacity: ink ? Number(getComputedStyle(ink).opacity) : null,
       inkTransition: ink ? getComputedStyle(ink).transitionDuration : null,
     };
-  }, { hint: HINT, layer: LAYER });
+  }, { layer: LAYER, btn });
 }
 
 /** 本人墨：固化层 canvas 上最不透明的那个像素 + 它到根的有效不透明度（元素与祖先 opacity 连乘）。 */
@@ -80,7 +101,7 @@ function current(page) {
 
 async function pressHint(page) {
   await page.waitForTimeout(450); // 同一按钮两次按下 < 0.4s 不响应（01 §6.6）
-  await page.click(HINT);
+  await tap(page, 'write-hint');
 }
 
 async function drawN(page, n) {
@@ -108,7 +129,7 @@ export default async function hint(page, ctx) {
   ctx.step('3-stroke 大 (GROUPS [1,2] → 1/4 rule, q = max(1, round(3/4)) = 1)');
   await open(page, ctx, ['大', '聚']);
   await waitButton(page, 'available');
-  let h = await hintState(page);
+  let h = await hintState(page, true);
   assert.equal(h.label, '提示，还有 2 次', 'R-W05 button screen-reader name starts at 「提示，还有 2 次」');
   assert.equal(h.text, '提示', 'D49: the visible text is just 「提示」 (the count is only in the screen-reader name)');
   assert.deepEqual([h.disabled, h.ariaDisabled], [false, null], 'hint button enabled');
@@ -118,7 +139,7 @@ export default async function hint(page, ctx) {
 
   await pressHint(page);
   await waitLayer(page, 'shown');
-  h = await hintState(page);
+  h = await hintState(page, true);
   assert.deepEqual([h.from, h.to, h.strokes], [0, 1, [0]], 'hint 1 with 0 written → stroke 0 only');
   assert.equal(h.anim, 'fade', 'the new hint fades in as one group (D51 ⑧: no stroke-by-stroke drawing on the web)');
   assert.ok(h.timing.every(x => x.name === 'none'), 'no per-stroke draw animation (no szHintDraw any more)');
@@ -200,14 +221,14 @@ export default async function hint(page, ctx) {
   assert.deepEqual(inkDuring.px, inkBefore.px, 'darkest ink pixel is identical while the hint is shown');
   assert.equal(inkDuring.eff, 1, 'effective opacity of the ink canvas (element × ancestors) stays 1');
   assert.equal(inkBefore.eff, 1);
-  h = await hintState(page);
+  h = await hintState(page, true);
   assert.deepEqual([h.from, h.to, h.strokes], [1, 2, [1]], 'hint 2 with 1 written → stroke 1');
   assert.equal(h.label, '提示已用完', 'button → 「提示已用完」');
   assert.deepEqual([h.state, h.disabled, h.ariaDisabled], ['exhausted', true, 'true'], 'used-up button is disabled + aria-disabled');
   cur = await current(page);
   assert.deepEqual([cur.hints, cur.hintRange], [2, { from: 1, to: 2 }], 'store: hints 2, hintRange {1,2}');
   await page.waitForTimeout(450);
-  await page.click(HINT, { force: true });
+  await tap(page, 'write-hint', { force: true });
   await page.waitForTimeout(100);
   cur = await current(page);
   assert.equal(cur.hints, 2, 'clicking the used-up button changes nothing (hintMax = 2, P17)');
@@ -219,7 +240,7 @@ export default async function hint(page, ctx) {
   await waitButton(page, 'available');
   await pressHint(page);
   await waitLayer(page, 'shown');
-  h = await hintState(page);
+  h = await hintState(page, true);
   assert.deepEqual([h.from, h.to, h.strokes], [0, 4, [0, 1, 2, 3]], 'hint 1 with 0 written → strokes 0–3');
   assert.ok(h.timing.every(x => x.name === 'none'), '4 strokes appear together (one group fade, no stagger on the web)');
   assert.equal(h.label, '提示，还有 1 次', '14-stroke: 「提示，还有 1 次」');
@@ -265,7 +286,7 @@ export default async function hint(page, ctx) {
   assert.equal(count, 11, '11 strokes on the grid');
   await pressHint(page);
   await waitLayer(page, 'shown');
-  h = await hintState(page);
+  h = await hintState(page, true);
   assert.deepEqual([h.from, h.to, h.strokes], [10, 14, [10, 11, 12, 13]], 'hint 2 → strokes 10–13');
   assert.deepEqual([h.label, h.disabled, h.ariaDisabled], ['提示已用完', true, 'true'], '14-stroke: used up after 2');
   cur = await current(page);
@@ -282,7 +303,7 @@ export default async function hint(page, ctx) {
   assert.deepEqual([h.from, h.to], [5, 9], '5 written → strokes 5–8');
   await pressHint(page);
   await page.waitForFunction(sel => document.querySelector(sel).dataset.run === '2', LAYER);
-  h = await hintState(page);
+  h = await hintState(page, true);
   assert.deepEqual([h.from, h.to, h.label], [5, 9, '提示已用完'], 'second press re-draws 5–8 and uses the last hint');
 
   // ---------------------------------------------------------------- 无分组数据
@@ -300,7 +321,7 @@ export default async function hint(page, ctx) {
   assert.deepEqual([h.from, h.to], [0, 1], 'prefix mode hint 1 → stroke 0 (ignores written count)');
   await pressHint(page);
   await page.waitForFunction(sel => document.querySelector(sel).dataset.run === '2', LAYER);
-  h = await hintState(page);
+  h = await hintState(page, true);
   assert.deepEqual([h.from, h.to, h.label], [0, 2, '提示已用完'], 'prefix mode hint 2 → strokes 0–1');
   assert.deepEqual(await noLeak(page, ['𠮷']), [], 'custom character not in the DOM (D16)');
   await page.unrouteAll({ behavior: 'ignoreErrors' });
@@ -313,28 +334,33 @@ export default async function hint(page, ctx) {
   ctx.allowConsoleError(/^requestfailed: .*\/data\/%E6%98%A5\.json net::ERR_ABORTED$/);
   await page.route(url => decodeURIComponent(url.pathname).endsWith('/data/春.json'), route => route.fulfill({ status: 404, body: '' }));
   await open(page, ctx, ['春']);
-  await page.waitForSelector(topSel('write-hint-unavailable'), { timeout: 15000 });
+  await page.waitForSelector(topSel('write-more'), { timeout: 15000 });
+  await page.waitForFunction(() => !!document.querySelector('.sz-layer[data-top="true"] [data-hint-note="no-hint"]'), null, { timeout: 15000 });
+  await openWriteMenu(page);
   const nd = await page.evaluate(() => {
+    const menu = document.querySelector('[data-testid="write-ax-menu"]');
     const top = document.querySelector('.sz-layer[data-top="true"]');
-    const label = top.querySelector('[data-testid="write-hint-unavailable"]');
+    const label = menu.querySelector('[data-testid="write-hint-unavailable"]');
+    const page = document.querySelector('.sz-page[data-testid="write-screen"]');
     return {
       text: label.textContent.trim(),
       tag: label.tagName,
-      button: !!top.querySelector('[data-testid="write-hint"]'),
-      slotButtons: top.querySelector('[data-testid="write-hint-slot"]').querySelectorAll('button').length,
-      note: top.querySelector('[data-testid="write-note"]').textContent.trim(),
-      dot: !!top.querySelector('[data-testid="write-note"] .sz-hintnote__dot'),
-      layer: !!top.querySelector('[data-testid="write-hint-layer"]'),
-      fallback: !!top.querySelector('[data-testid="write-glyph-fallback"]'),
+      button: !!menu.querySelector('[data-testid="write-hint"]'),
+      slotButtons: label.querySelectorAll('button').length,
+      note: page.querySelector('[data-testid="write-note"]').textContent.trim(),
+      dot: !!page.querySelector('[data-testid="write-note"] .sz-hintnote__dot'),
+      layer: !!page.querySelector('[data-testid="write-hint-layer"]'),
+      fallback: !!page.querySelector('[data-testid="write-glyph-fallback"]'),
       color: getComputedStyle(label).color,
     };
   });
   assert.equal(nd.text, '暂时没有提示', 'R-W05.hintUnavailable');
-  assert.deepEqual([nd.tag, nd.button, nd.slotButtons], ['SPAN', false, 0], 'no clickable hint control (grey text, M1-2 NoHintLabel)');
+  assert.deepEqual([nd.tag, nd.button, nd.slotButtons], ['SPAN', false, 0], 'no clickable hint control (grey text item in the 「⋯」 menu, M1-2 NoHintLabel)');
   assert.equal(nd.note, '这个字暂时没有提示，可以直接看答案。', 'R-W05.noHintNote under the grid');
   assert.ok(nd.dot, 'note has the --o dot');
   assert.deepEqual([nd.layer, nd.fallback], [false, false], 'no hint layer and no fallback glyph in recall (D16)');
-  await page.click(topSel('write-hint-unavailable'));
+  await page.click('[data-testid="write-ax-menu"] [data-testid="write-hint-unavailable"]', { force: true });
+  await closeWriteMenu(page);
   cur = await current(page);
   assert.equal(cur.hints, 0, 'clicking the grey label records nothing');
   await page.unrouteAll({ behavior: 'ignoreErrors' });
@@ -369,7 +395,7 @@ export default async function hint(page, ctx) {
   await page.evaluate(() => window.__shiziTest.failNextWrite(1));
   await pressHint(page);
   await waitLayer(page, 'shown');
-  h = await hintState(page);
+  h = await hintState(page, true);
   assert.equal(h.label, '提示，还有 1 次', 'button still counts the hint');
   cur = await current(page);
   assert.deepEqual([cur.hints, cur.hintRange], [0, null], 'failed write left the store unchanged');
@@ -383,7 +409,7 @@ export default async function hint(page, ctx) {
   await open(page, ctx, ['聚'], { current: { hints: 1, hintRange: { from: 0, to: 4 } } });
   await waitButton(page, 'available');
   await waitLayer(page, 'shown');
-  h = await hintState(page);
+  h = await hintState(page, true);
   assert.deepEqual([h.from, h.to, h.anim, h.label], [0, 4, 'static', '提示，还有 1 次'], 'restored hint drawn statically');
   assert.ok(h.timing.every(x => x.name === 'none'), 'no animation on restore');
   await waitNavIdle(page, { settleMs: 50 });

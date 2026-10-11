@@ -365,7 +365,7 @@ export default async function (page, ctx) {
   assert.equal(m.modes, 'hhhhhhhhhuuuu', 'chars with no ink all month are under cells');
   assert.equal(m.tags, '2||||||4|||10|||', 'a day tag on the first char of each day only (day number, no month)');
   assert.ok(m.tagEls.every(t => t.size === '11px' && Number(t.weight) >= 500), 'tag 11pt / 500');
-  assert.ok(m.tagEls.every(t => t.top >= 2 && t.top <= 6), 'the tag sits inside the cell, just under its top line (V2-09: it no longer rides the grid line)');
+  assert.ok(m.tagEls.every(t => t.top >= -8 && t.top <= -6), 'D57 · C1: the tag rides the cell\'s top line (centred on it, paper-coloured backing), not inside the cell');
   assert.equal(m.note, '浅色的字，这个月没有留下笔迹。点一个字看详情。');
   assert.equal(m.kuan, '二〇二六年九月　十三字', '纸上 not counted');
   assert.ok(!m.text.includes('没有笔迹') && m.noInkLabel === 0, 'no 「没有笔迹」 written inside the cells');
@@ -404,7 +404,7 @@ export default async function (page, ctx) {
   assert.equal(p.ratio, '3:4');
   assert.deepEqual(p.canvases.map(c => c.ds.n), ['80', '20'], 'each page ≤ 80; the last page has its own count');
   assert.deepEqual(p.canvases.map(c => c.ds.signature), ['二〇二六年九月　八十字　其一', '二〇二六年九月　二十字　其二']);
-  assert.deepEqual(p.canvases.map(c => [c.ds.columns, c.ds.rows]), [['8', '10'], ['4', '5']], 'the last page is laid out for 20 chars, not a big grid with a corner filled');
+  assert.deepEqual(p.canvases.map(c => [c.ds.columns, c.ds.rows]), [['8', '10'], ['6', '4']], 'D57 · C1: the last page is laid out for 20 chars (6 columns × 4 rows by the column rule), not a big grid with a corner filled');
   assert.equal(p.canvases[1].ds.tags.split('|')[0], '10', 'a new page starts with the day tag');
   assert.equal(p.dots, 2, 'page dots');
   assert.equal(p.note, '100 个字，存成 2 张，每张不超过 80 字。');

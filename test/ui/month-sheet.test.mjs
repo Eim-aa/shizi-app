@@ -43,7 +43,7 @@ test('month page: a cell whose ink comes from another day says so in its screen-
   assert.equal(m.cells[1].label, '和 · 9月2日', 'same day: the plain name');
 });
 
-test('the corner number sits inside the cell (top-left), with no colour block and no negative offset — it never rides a grid line (V2-09)', () => {
-  assert.match(MONTH_PAPER_TAG_CSS, /\.sz-mcell__tag\{[^}]*top:3px/);
-  assert.doesNotMatch(MONTH_PAPER_TAG_CSS, /\.sz-mcell__tag\{[^}]*(top:-|background)/);
+test('D57 · C1: the day number rides the cell\'s top line (centred on it) with a paper-coloured backing that breaks the line; it does not enter the cell', () => {
+  assert.match(MONTH_PAPER_TAG_CSS, /\.sz-mcell__tag\{[^}]*top:-7px/);
+  assert.match(MONTH_PAPER_TAG_CSS, /\.sz-mcell__tag\{[^}]*background:var\(--paper\)/);
 });

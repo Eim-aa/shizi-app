@@ -58,8 +58,8 @@ test('我的页：AX 档周条换成 mine-week-summary 一句话；标题与右�
   assert.match(src, /:root\[data-ax\] \.sz-mine__row\.sz-btn\{flex-wrap:wrap/);
 });
 
-test('月字帖页 / 单字详情：AX 档不画月字帖格角标、记录格两列且日期可折行（正常 CJK 折行，R3-K1 不再用 keep-all）', () => {
-  assert.match(read('src/ui/components/work.js'), /:root\[data-ax\] \.sz-mcell__tag\{display:none\}/);
+test('月字帖页 / 单字详情：月字帖日期角标骑在格线上、AX 档照常画（D57 · C1），记录格两列且日期可折行（正常 CJK 折行，R3-K1 不再用 keep-all）', () => {
+  assert.doesNotMatch(read('src/ui/components/work.js'), /:root\[data-ax\] \.sz-mcell__tag\{display:none\}/);
   const det = read('src/ui/screens/detail/records.js');
   assert.match(det, /:root\[data-ax\] \.sz-drec__grid\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)\}/);
   assert.match(det, /:root\[data-ax\] \.sz-dcell__date,:root\[data-ax\] \.sz-dcell__cap\{white-space:normal;line-break:strict\}/);

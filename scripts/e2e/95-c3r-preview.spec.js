@@ -119,7 +119,7 @@ export default async function c3rPreview(page, ctx) {
   const m = await page.evaluate(() => {
     const top = document.querySelector('.sz-layer[data-top="true"]');
     const paper = top.querySelector('[data-testid="month-paper"]');
-    const grid = paper.querySelector('.sz-month__grid');
+    const grid = paper.querySelector('.sz-month__stage');
     const sheets = [...paper.querySelectorAll('[data-testid="month-sheet"]')];
     const rect = el => { const r = el.getBoundingClientRect(); return { x: r.x, y: r.y, r: r.right, b: r.bottom, w: r.width, h: r.height }; };
     const page0 = top.querySelector('[data-testid="month-body"]');

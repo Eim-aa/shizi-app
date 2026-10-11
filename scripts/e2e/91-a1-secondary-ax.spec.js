@@ -2,7 +2,7 @@
 //   - 「我的」：周条换成一句话（mine-week-summary「写了 n 天」），7 格周条（mine-week-day）不画；「这一周」标题不被挤成一字一行；
 //   - 练习记录：月历换成每天一行的列表（records-calendar[data-mode=list]，每个有记录的日子一行「10月3日 · 记了 n 个字」，行数 = 有记录的天数），
 //     点一行把那天写的字展开在该行紧下面、再点收起；没有 7 列月历格；
-//   - 字帖格的日期角标（我的 / 练习记录 / 月字帖页的 .sz-scell__tag / .sz-mcell__tag）不显示，日期进格的读屏名称（aria-label 含「10月3日」）；
+//   - 单字详情 / 练习记录当天字的 .sz-scell__tag 不显示；月字帖（D57 · C1）的 .sz-mcell__tag 骑在格线上、不进格内，AX 下照常画；日期也在格的读屏名称里（aria-label 含「10月3日」）；
 //   - 单字详情：记录格两列，日期与「写对」落在格内；
 //   - 四个页面的文字块两两不相交（取每个文字节点字框的中间一段，排除包含关系，相交面积 ≤ 4px²）；没有横向溢出。
 //   标准档（L）的 7 列月历、周条、角标原样（回归断言）。
@@ -159,7 +159,7 @@ export default async function run(page0, ctx) {
     });
     assert.ok(tags.n > 0, `${v.tag}: month sheet on the records page has cells`);
     assert.equal(tags.dated, tags.n, `${v.tag}: every sheet cell's screen-reader name carries its date`);
-    if (ax) assert.equal(tags.shown, 0, `${v.tag}: no corner day tags in AX (${tags.shown})`);
+    if (ax) assert.ok(tags.shown > 0, `${v.tag}: D57 · C1 day tags ride the grid line (they do not enter the cell, so they stay in AX; ${tags.shown})`);
     else assert.ok(tags.shown > 0, `${v.tag}: corner day tags unchanged at standard size`);
     rep = await page.evaluate(overlapReport);
     assert.equal(rep.hOverflow, false, `${v.tag}: records page has no horizontal overflow`);
@@ -175,7 +175,7 @@ export default async function run(page0, ctx) {
       };
     });
     assert.equal(month.dated, month.n, `${v.tag}: month page cells carry their date in the name`);
-    if (ax) assert.equal(month.shown, 0, `${v.tag}: month page has no corner tags in AX`);
+    if (ax) assert.ok(month.shown > 0, `${v.tag}: D57 · C1 month page tags ride the line and stay in AX (${month.shown})`);
     else assert.ok(month.shown > 0, `${v.tag}: month page tags unchanged at standard size`);
     rep = await page.evaluate(overlapReport);
     assert.deepEqual(rep.bad, [], `${v.tag}: month page has no overlapping text`);

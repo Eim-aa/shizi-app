@@ -32,7 +32,7 @@ const probe = page => page.evaluate(() => {
   return {
     ink3, strokes, underlined,
     settings: titles('[data-testid="settings-group-title"]'),
-    mine: titles('[data-testid="mine-week-title"], [data-testid="mine-sheet-title"]'),
+    mine: titles('[data-testid="mine-week-title"]'),
     pageTitle: (() => { const h = top.querySelector('.sz-page__title'); return h ? getComputedStyle(h).fontSize : null; })(),
     tileShadow: tile ? getComputedStyle(tile).boxShadow : null,
   };

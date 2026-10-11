@@ -242,13 +242,11 @@ async function mineView(page) {
         text: txt(el) })),
       sheet: sheet ? { month: sheet.dataset.month, count: Number(sheet.dataset.count), shown: Number(sheet.dataset.shown),
         truncated: sheet.dataset.truncated === 'true', days: Number(sheet.dataset.days) } : null,
+      // D57 · C1：字帖是月字帖那一块（一层框，没有「纸卡」套着）；格子都在 .sz-month 里，且没有旧的 .sz-mine__paper 外框
       gridInPaper: (() => {
         const g = q('mine-sheet-grid');
-        const pp = g && g.closest('.sz-mine__paper');
-        if (!g || !pp) return null;
-        const a = g.getBoundingClientRect();
-        const b = pp.getBoundingClientRect();
-        return a.top >= b.top && a.bottom <= b.bottom && a.left >= b.left && a.right <= b.right;
+        if (!g || !g.classList.contains('sz-month') || document.querySelector('.sz-layer[data-top="true"] .sz-mine__paper')) return null;
+        return [...g.parentElement.querySelectorAll('[data-testid="mine-sheet-cell"]')].every(c => g.contains(c));
       })(),
       sheetTitle: txt(q('mine-sheet-title')),
       sheetSave: q('mine-sheet-save') ? txt(q('mine-sheet-save')) : null,
@@ -256,7 +254,7 @@ async function mineView(page) {
       sign: txt(q('mine-sheet-sign')),
       seal: txt(q('mine-sheet-seal')), sealPaths: q('mine-sheet-seal') ? q('mine-sheet-seal').querySelectorAll('svg path').length : 0,
       cells: all('mine-sheet-cell').map(el => ({ char: el.dataset.char, day: el.dataset.day, tag: el.dataset.tag, record: el.dataset.record,
-        ink: el.dataset.ink, label: el.getAttribute('aria-label'), tagText: txt(el.querySelector('.sz-scell__tag')) })),
+        ink: el.dataset.ink, label: el.getAttribute('aria-label'), tagText: txt(el.querySelector('.sz-mcell__tag')) })),
       menu: all('mine-menu').length ? [...q('mine-menu').querySelectorAll('button')].map(b => ({ testid: b.dataset.testid, to: b.dataset.to,
         text: txt(b) })) : [],
       backupSub: txt(q('mine-backup-sub')),
@@ -492,8 +490,8 @@ export default async function run(page, ctx) {
   assert.deepEqual(v.sheet, { month: '2026-09', count: o9.sheet.length, shown: o9.sheet.length, truncated: false, days: o9.monthDays.length },
     'sheet counts from records');
   assert.equal(v.sheetTitle, COPY.sheetTitle(9), 'R-P02 「9月字帖」');
-  assert.equal(v.gridInPaper, true, 'sheet grid laid out inside the paper card');
-  assert.deepEqual(v.cells.map(c => [c.char, c.day, c.tag, c.record]), o9.sheet.map(c => [c.char, c.day, c.tag, c.record]),
+  assert.equal(v.gridInPaper, true, 'D57: sheet grid is the one-frame month sheet (no paper card around it)');
+  assert.deepEqual(v.cells.map(c => [c.char, c.day, c.tag, c.record]), o9.sheet.map(c => [c.char, c.day, dayNum(c.tag), c.record]),
     'sheet order / dates / tags / picked record = oracle (P02 first, D42: first one this month that still has ink)');
   assert.deepEqual(v.cells.map(c => c.char).join(''), '静谁慢您数', 'first-appearance order of the work members: the wrong-only 题 / 额 / 感 are not on the sheet (D51 ⑤)');
   const jing = v.cells.find(c => c.char === '静');
@@ -502,25 +500,19 @@ export default async function run(page, ctx) {
   assert.equal(jing.day, '2026-09-01', '静 is placed and numbered on the day it was first written as a work this month (9-1, firstDay), T2-05');
   assert.equal(jing.ink, 'true', '静 cell draws 9-22\'s own ink (D42 解 P122)');
   assert.equal(v.cells.some(c => c.char === '感' || c.char === '题' || c.char === '额'), false, 'wrong-only chars are not on the sheet (D51 ⑤)');
-  // Q2-4（复测 simB D5）：我的页字帖卡片的日期角标与月字帖页一致——只写「日」、t11 hei 500 ink3；V2-09：画在格内左上角，不再骑线、不压格线。
+  // D57 · C1：我的页字帖的日期角标与月字帖页一致——只写「日」、t11 hei 500 ink3；骑在该格上边线上，纸色衬底断开格线，不进格内压字。
   assert.equal(jing.tagText, '1', 'date tag = the sort day (firstDay); day only, like the month page (Q2-4 / T2-05)');
   const tagGeo = await page.evaluate(() => {
     const cell = [...document.querySelectorAll('.sz-layer[data-top="true"] [data-testid="mine-sheet-cell"]')].find(c => c.dataset.tag);
-    const tag = cell.querySelector('.sz-scell__tag');
-    const sq = cell.querySelector('.sz-scell__sq');
+    const tag = cell.querySelector('.sz-mcell__tag');
     const cs = getComputedStyle(tag);
     const r = tag.getBoundingClientRect();
     const c = cell.getBoundingClientRect();
-    const q = sq.getBoundingClientRect();
-    return { size: cs.fontSize, weight: cs.fontWeight, family: cs.fontFamily.split(',')[0].trim(), straddles: r.top < c.top && r.bottom > c.top,
-      inside: r.top >= c.top && r.left >= c.left && r.right <= c.right && r.bottom <= c.bottom, bg: cs.backgroundColor,
-      glyphScaled: Math.abs(q.width - c.width) > 1, tagText: tag.textContent.trim(), glyphClear: r.bottom <= q.top + 6 };
+    return { size: cs.fontSize, weight: cs.fontWeight, rides: r.top < c.top && r.bottom > c.top, mid: r.top + r.height / 2 - c.top };
   });
   assert.deepEqual([tagGeo.size, tagGeo.weight], ['11px', '500'], 'tag is t11 / 500 (same as the month page)');
-  assert.equal(tagGeo.straddles, false, 'tag no longer rides the cell’s top edge (V2-09)');
-  assert.equal(tagGeo.inside, true, 'tag sits inside the cell’s top-left corner, off every grid line');
-  assert.ok(/rgba\(0, 0, 0, 0\)|transparent/.test(tagGeo.bg), 'no colour block behind the number');
-  assert.equal(tagGeo.glyphScaled, false, 'the ink is not shrunk to make room for the tag');
+  assert.equal(tagGeo.rides, true, 'D57: the tag rides the cell’s top edge');
+  assert.ok(Math.abs(tagGeo.mid) <= 1.5, 'the tag is centred on the top line');
   assert.equal(v.cells.find(c => c.char === '数').ink, 'false', 'no ink → 没有笔迹 (10.12, no borrowing)');
   assert.equal(v.cells.find(c => c.char === '谁').tagText, null, 'same sort day as the previous cell (静, 9-01) → no tag');
   assert.equal(jing.label, '静 · 9月1日，9月22日的笔迹', 'cell accessible name: the sort day, plus the day of the ink drawn (N2-07)');
@@ -726,7 +718,7 @@ export default async function run(page, ctx) {
   await back(page);
 
   // ------------------------------------------------------------------ 5. 300 字
-  step('300 chars this month: mine sheet = last 3 rows + 全部 › (R-M05); records shows all; timing');
+  step('300 chars this month: mine sheet = latest 80 chars (one sheet, D57 / P285) + 全部 › (R-M05), no signature; records shows all; timing');
   const deckChars = await page.evaluate(async () => {
     const { getDeck } = await import('/src/data/deck.js');
     return getDeck().keys.filter(k => k.startsWith('base:')).map(k => k.slice(5)).slice(0, 300);
@@ -745,13 +737,13 @@ export default async function run(page, ctx) {
   v = await mineView(page);
   assert.equal(v.sheet.count, 300, '300 chars in the sheet');
   assert.equal(v.sheet.truncated, true, 'truncated');
-  const lastRows = oBig.sheet.slice(Math.floor((300 - 1) / 7) * 7 - 14);
-  assert.equal(v.cells.length, lastRows.length, `shows the last 3 rows (${lastRows.length} cells)`);
-  assert.ok(v.cells.length <= 21 && v.cells.length > 14, 'between 15 and 21 cells');
+  const lastRows = oBig.sheet.slice(300 - 80);
+  assert.equal(v.cells.length, 80, 'shows the latest 80 chars (one sheet)');
+  assert.equal(v.sheet.shown, 80, 'data-shown = 80');
   assert.deepEqual(v.cells.map(c => c.char), lastRows.map(c => c.char), 'most recent chars, oldest first');
-  assert.equal(v.cells[0].tag, lastRows[0].day, 'first visible cell re-tagged with its date');
+  assert.equal(v.cells[0].tag, dayNum(lastRows[0].day), 'first visible cell re-tagged with its date');
   assert.equal(v.sheetAll, COPY.all, '「全部 ›」');
-  assert.equal(v.sign, '二〇二六年九月 三百字', 'signature counts all 300');
+  assert.equal(v.sign, null, 'D57: a capped sheet draws no signature / seal (the full month is on the month page)');
   assert.equal(v.hScroll, false, 'no horizontal overflow');
   console.log(`mine 300: seed→render ${mineMs}ms`);
   assert.ok(mineMs < 3000, `mine 300 chars renders within 3s (${mineMs}ms)`);
@@ -775,8 +767,8 @@ export default async function run(page, ctx) {
   await page.setViewportSize({ width: 360, height: 640 });
   await page.waitForTimeout(200);
   v = await mineView(page);
-  const darkBg = await page.evaluate(sel => getComputedStyle(document.querySelector(`${sel} .sz-mine__paper`)).backgroundColor, TOP);
-  assert.equal(darkBg, tokenRgb('dark', 'sheet'), 'paper card uses dark --sheet (D43: was --c #2D2823)');
+  const darkBg = await page.evaluate(sel => getComputedStyle(document.querySelector(`${sel} [data-testid="mine-sheet-grid"] .sz-month__sheet`)).backgroundColor, TOP);
+  assert.equal(darkBg, tokenRgb('dark', 'sheet'), 'sheet paper uses dark --sheet (D43: was --c #2D2823)');
   assert.equal(v.hScroll, false, 'mine 360: no horizontal overflow');
   await openRecordsFromMine(page);
   r = await recordsView(page);
@@ -786,7 +778,7 @@ export default async function run(page, ctx) {
   await page.emulateMedia({ colorScheme: 'light' });
   await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'dark'));
   await page.waitForTimeout(100);
-  const forced = await page.evaluate(sel => getComputedStyle(document.querySelector(`${sel} .sz-mine__paper`)).backgroundColor, TOP);
+  const forced = await page.evaluate(sel => getComputedStyle(document.querySelector(`${sel} [data-testid="mine-sheet-grid"] .sz-month__sheet`)).backgroundColor, TOP);
   assert.equal(forced, tokenRgb('dark', 'sheet'), 'data-theme=dark forced');
   await page.evaluate(() => document.documentElement.removeAttribute('data-theme'));
   await page.setViewportSize({ width: 393, height: 852 });

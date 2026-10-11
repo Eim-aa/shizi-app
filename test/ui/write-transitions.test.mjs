@@ -3,7 +3,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { FADE_MS, SNAPSHOT_TESTID, reducedMotion, makeSnapshot, mountSnapshot, removeSnapshots } from '../../src/ui/screens/write/phase-fade.js';
+import {
+  FADE_MS, FLIP_MS, FLIP_EASING, TEXT_OUT_MS, SNAPSHOT_TESTID, reducedMotion, makeSnapshot, mountSnapshot, removeSnapshots, diffRegions, flipTransform, sameBox, regionTexts, inkSource,
+} from '../../src/ui/screens/write/phase-fade.js';
 import { PEN_ARM_MS } from '../../src/ui/screens/write/index.js';
 import { JudgeButtons, JudgeFooter } from '../../src/ui/screens/write/compare.js';
 import { createInkSurface } from '../../src/ui/canvas/ink-canvas.js';
@@ -76,15 +78,75 @@ test('P227: the cross-fade is 150ms, linear, opacity only (no transform) — rea
   assert.match(src, /@keyframes szPhaseOut\{from\{opacity:1\}to\{opacity:0\}\}/);
   assert.match(src, /animation:szPhaseOut \$\{FADE_MS\}ms linear both/);
   const css = src.slice(src.indexOf("injectStyles('write-fade'"), src.indexOf('`);', src.indexOf("injectStyles('write-fade'")));
-  assert.ok(!/transform|translate|scale/.test(css), 'only a fade — no translate / scale');
+  // 快照本身（.sz-phasefade）只淡化：没有位移 / 缩放（本人墨的缩放在另一张 FLIP canvas 上，.sz-flipink）
+  const overlayRules = css.split('\n').filter(l => /^\.sz-phasefade/.test(l)).join('\n');
+  assert.ok(!/transform|translate|scale\(/.test(overlayRules), 'the snapshot overlay only fades — no translate / scale');
   assert.match(css, /pointer-events:none/);
   assert.match(css, /\.sz-phasefade \*\{animation:none !important\}/, 'cloned elements do not replay their own animations');
-  assert.match(css, /prefers-reduced-motion: reduce\)\{\.sz-phasefade\{display:none\}/);
+  assert.match(css, /prefers-reduced-motion: reduce\)\{\.sz-phasefade,\.sz-flipink\{display:none\}/);
+});
+
+test('D53 ⑥: text regions go out in the first 75ms and come in over 75–150ms (never both visible); the ink is scaled by one FLIP canvas (pure scale, top-centre origin, 200ms)', () => {
+  assert.deepEqual([TEXT_OUT_MS, FLIP_MS, FLIP_EASING], [75, 200, 'cubic-bezier(.2,.7,.2,1)']);
+  const src = read('src/ui/screens/write/phase-fade.js');
+  const css = src.slice(src.indexOf("injectStyles('write-fade'"), src.indexOf('`);', src.indexOf("injectStyles('write-fade'")));
+  assert.match(css, /@keyframes szTextOut\{from\{opacity:1\}to\{opacity:0\}\}/);
+  assert.match(css, /@keyframes szTextIn\{0%,50%\{opacity:0\}100%\{opacity:1\}\}/, 'new text: transparent for the first half of the 150ms, then in');
+  assert.match(css, /\.sz-phasefade \[data-fade-out\]\{animation:szTextOut \$\{TEXT_OUT_MS\}ms linear both !important\}/);
+  assert.match(css, /\.sz-page \[data-fade-in\]\{animation:szTextIn \$\{FADE_MS\}ms linear both\}/);
+  assert.match(css, /\.sz-flipink\{[^}]*transform-origin:50% 0/, 'FLIP origin = the top edge midpoint');
+  assert.match(css, /\[data-flip-hide\]\{visibility:hidden\}/, 'the real ink at the target stays hidden while the FLIP canvas runs');
+  assert.ok(/data-flip-ink/.test(src) && /dropSnapshotInk/.test(src), 'the snapshot never carries a second copy of the ink when a FLIP / the real layer shows it');
+});
+
+test('diffRegions / regionTexts: only regions whose text changed are faded out and in; unchanged ones (back arrow, counter, same prompt) do not blink', () => {
+  const before = { title: null, prompt: 'yǒng 永远', note: '「根」记为写对', foot: '写好了' };
+  assert.deepEqual(diffRegions(before, { title: '写对了吗？', prompt: 'yǒng 永远', note: null, foot: '写错了写对了' }), ['title', 'note', 'foot']);
+  assert.deepEqual(diffRegions(before, { ...before }), [], 'nothing changed → nothing fades');
+  assert.deepEqual(diffRegions(null, null), []);
+  assert.deepEqual(diffRegions({ title: null, prompt: null, note: null, foot: null }, { title: null, prompt: null, note: null, foot: null }), [], 'absent on both sides is not a change');
+  const root = { querySelector: sel => (sel.includes('sz-prompt') ? { textContent: ' yǒng  永远 ' } : null) };
+  assert.deepEqual(regionTexts(root), { title: null, prompt: 'yǒng 永远', note: null, foot: null }, 'whitespace collapsed, missing regions are null');
+});
+
+test('flipTransform / sameBox: a pure scale about the top-centre when the top edge and midline are fixed (P257); otherwise the true translation', () => {
+  const grid = { left: 20, top: 188, width: 350, height: 350 };
+  const cell = { left: 71.5, top: 188, width: 247, height: 247 };
+  const t = flipTransform(grid, cell);
+  assert.ok(Math.abs(t.scale - 247 / 350) < 1e-9 && t.dx === 0 && t.dy === 0, `pure scale ${JSON.stringify(t)}`);
+  const back = flipTransform(cell, grid);
+  assert.ok(Math.abs(back.scale - 350 / 247) < 1e-9 && back.dx === 0 && back.dy === 0);
+  const moved = flipTransform(grid, { left: 20, top: 200, width: 350, height: 350 });
+  assert.deepEqual([moved.scale, moved.dx, moved.dy], [1, 0, 12], 'a moved box translates');
+  assert.equal(sameBox(grid, { ...grid, left: 20.4 }), true);
+  assert.equal(sameBox(grid, cell), false);
+  assert.equal(sameBox(null, grid), false);
+});
+
+test('inkSource: the writing grid with strokes is the ink source; otherwise the judge upper cell; empty grid / no cell → null', () => {
+  const box = { getBoundingClientRect: () => ({ left: 20, top: 100, width: 350, height: 350 }), clientLeft: 1, clientTop: 1, clientWidth: 348, clientHeight: 348 };
+  const canvas = { width: 696 };
+  const mk = (strokes, withMine) => ({
+    querySelector(sel) {
+      if (sel === '[data-testid="write-grid"]') return strokes === null ? null : { ...box, getAttribute: k => (k === 'data-stroke-count' ? String(strokes) : null), querySelector: () => canvas };
+      if (sel === '[data-testid="write-compare-mine"]') return withMine ? { ...box, querySelector: () => canvas } : null;
+      return null;
+    },
+  });
+  const a = inkSource(mk(2, false));
+  assert.deepEqual([a.kind, a.box], ['grid', { left: 21, top: 101, width: 348, height: 348 }], 'the inner box (border excluded)');
+  assert.equal(inkSource(mk(0, false)), null, 'a grid without strokes has no ink');
+  assert.equal(inkSource(mk(null, true)).kind, 'card');
+  assert.equal(inkSource(mk(null, false)), null);
+  assert.equal(inkSource(null), null);
 });
 
 test('makeSnapshot: wraps a clone of the page (aria-hidden, own testid), copies every canvas, strips testids / ids / title marks, takes buttons out of the tab order', () => {
   const { page, canvas } = samplePage();
-  const wrap = makeSnapshot(page, doc);
+  const snap = makeSnapshot(page, doc);
+  const wrap = snap.wrap;
+  assert.equal(snap.ink, null, 'no ink in this fake page');
+  assert.deepEqual(snap.texts, { title: null, prompt: null, note: null, foot: null });
   assert.equal(wrap.className, 'sz-phasefade');
   assert.equal(wrap.getAttribute('aria-hidden'), 'true');
   assert.equal(wrap.getAttribute('inert'), null, 'no inert attribute: iOS 15.5+ only (API floor gate)');
@@ -107,16 +169,16 @@ test('mountSnapshot / removeSnapshots: one snapshot at a time, removed when the 
   const a = makeSnapshot(page, doc);
   const timers = [];
   const win = { setTimeout: fn => { timers.push(fn); return timers.length; } };
-  mountSnapshot(page, a, win);
+  mountSnapshot(page, a, null, win);
   assert.equal(page.querySelectorAll(':scope > .sz-phasefade').length, 1);
   const b = makeSnapshot(page, doc); // a second switch in a row: the first one is collected before the next is taken
   assert.equal(page.querySelectorAll(':scope > .sz-phasefade').length, 0, 'the previous snapshot is gone when the next one is taken');
-  mountSnapshot(page, b, win);
+  mountSnapshot(page, b, null, win);
   assert.equal(page.querySelectorAll(':scope > .sz-phasefade').length, 1);
-  b.listeners.animationend();
+  b.wrap.listeners.animationend();
   assert.equal(page.querySelectorAll(':scope > .sz-phasefade').length, 0, 'animationend removes it');
-  assert.equal(timers.length, 2, 'a timeout backs the animationend up');
-  timers[1]();
+  assert.ok(timers.length >= 2, 'timeouts back the animationend up (the overlay and the text fade-ins)');
+  timers[0]();
   removeSnapshots(page);
 });
 
@@ -129,7 +191,7 @@ test('reducedMotion follows the media query; without a window it is false', () =
 test('the write page keys the fade on card + phase, takes the snapshot while rendering (the DOM is still the old state) and mounts it in a layout effect', () => {
   const src = read('src/ui/screens/write/phase-fade.js');
   assert.match(src, /if \(key !== committed\.current && key !== null && committed\.current !== null\)/);
-  assert.match(src, /useLayoutEffect\(\(\) => \{[\s\S]*mountSnapshot\(page, p\.node\)/);
+  assert.match(src, /useLayoutEffect\(\(\) => \{[\s\S]*mountSnapshot\(page, p\.snap, el\)/);
   const index = read('src/ui/screens/write/index.js');
   assert.match(index, /usePhaseFade\(writeRef, cardKey \? `\$\{cardKey\}\|\$\{phase\}` : null\)/);
   assert.ok(index.indexOf('usePhaseFade(') < index.indexOf('if (!cardKey) {'), 'the hook runs before the early return (hook order)');

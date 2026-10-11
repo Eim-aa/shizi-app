@@ -7375,11 +7375,8 @@ src/ui/screens/detail/index.js
 src/ui/screens/detail/photos.js
 src/ui/screens/detail/records.js
 src/ui/screens/home/copybook.js
-src/ui/screens/home/handoff-ink.js
-src/ui/screens/home/handoff.js
 src/ui/screens/home/index.js
 src/ui/screens/home/ink-row.js
-src/ui/screens/home/recent.js
 src/ui/screens/home/today.js
 src/ui/screens/library/all-model.js
 src/ui/screens/library/all.js

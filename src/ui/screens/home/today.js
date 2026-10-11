@@ -1,15 +1,19 @@
-// 首页数据模型（纯函数，无 DOM；02 M2-1；01 §2 首页状态两个正交维度 records × resume；test/ui/home.test.mjs 直接调用）。
+// 首页数据模型（纯函数，无 DOM；02 M2-1；01 §2 首页状态两个正交维度 records × resume；test/ui/home.test.mjs、h2-home-e.test.mjs 直接调用）。
 //
 //   homeModel(state, nowMs, {policy}) → {
 //     today, period, dateParts:{month, day}, epigraph,
 //     records: 'first' | 'empty' | 'record',     // 维度一：从记录派生（原型首页壳 L218 hState；K06 / R-H09 修正）
 //     resume:  'none' | 'A' | 'B' | 'A+B',       // 维度二：从会话派生（S01 / R-H04；D05 B 优先续写）
 //     primary, other,                             // S01 两行：{slot, kind, remaining}；primary = B 优先，other 只在 A、B 都没写完时 = A
-//     count, inkRow,                              // 今天记录了 N 个字（D12：今天 judged 按字去重）；墨迹行最近 8 条 judged（按 id，同字留最近一次）
 //     showRecord, showFirstTip,
 //     capital,                                    // D40：下一次练习是大写数字特别组时 = 'capital1' | 'capital2'（首页给一句提示，P129），否则 null
-//     view, hero, progress, gapDays,              // 阶段 1 P1-E5（设计稿「首练与首页」§一 / §四，03 P155）：首页呈现哪一态，见 homeViewOf
+//     view, gapDays,                              // 首页呈现哪一态，见 homeViewOf
+//     libraryCount, showPick,
 //   }
+//
+// H2（D55，产品负责人选定首页方向 E「极静」）：首页只有日期、墨「拾」、竖排题记和按钮，不放写过的字 / 字帖行 / 数字 / 进度 / 说明；
+// 六态只在主按钮的字（homeCtaKey）与两处各多一句（homeNoteOf：离开一周后、特别组那天）上不同。所以这里不再有字帖位的数据
+// （今天的字 / 最近写的字 / 进行中的格子 / 「拾」交接 / 今天写了 N 个字）——它们随 C3-H 的字帖行一起删除。
 //
 // 口径：
 // - records：今天有 judged → 'record'；否则曾有 judged（或清空过 / 导入过旧练习日，session-start.aStartInfo 的 firstVisit=false）
@@ -17,23 +21,16 @@
 //   'empty'（原型 empty 态计数行为空字串，H:236）。
 // - resume：按「现在」看各槽有没有没写完、且不会因跨天作废的组（resumableSession 已含 P37 / P61 过期口径），不写入；
 //   写入（expireStale）由首页在挂载 / 回前台时做。
-// - 有没写完的组时首页显示这一组的格子（progress），不再同时显示「今天写了 N 个字」+ 今天的字（P16 已随设计稿改定，见 03 P16）。
-// - 「第一次来，先写 3 个字试试。」（R-H03，D38 首练 3 字）只在 records==='first' 且没有没写完的组时显示（原型 noResume 才显示计数行位置的
-//   文字，H:83；有组时 S01 行已写明「第一次练习 · 还有 N 个字没写」）。
+// - 有没写完的组时主按钮是「继续写字」；A、B 两组都没写完时 A 那一行留作文字按钮「今天的练习 · 接着写」（other，P196）。
+// - 「先写三个大家常忘的字。」（R-H03，D38 首练 3 字）只在 records==='first' 且没有没写完的组时显示（showFirstTip）。
 
 import * as defaultPolicy from '../../../config/policy.js';
 import { epigraphFor } from '../../../config/epigraphs.js';
 import { diffDays, localDay, monthDayParts, periodOf } from '../../../core/dates.js';
-import { charOfCardKey, hasAnyJudged, isJudged, latestJudgedByCard, todayCount } from '../../../core/records.js';
-import { hasInkOfState } from '../../../core/ink-pick.js';
-import { workMembers } from '../../../core/work-members.js';
+import { hasAnyJudged, isJudged, latestJudgedByCard, todayCount } from '../../../core/records.js';
 import { remainingCount } from '../../../core/sessions.js';
 import { aStartInfo, planSpecial, recordsOf, resumableSession } from '../../../core/session-start.js';
-import { recentInkRow } from './recent.js';
-import { shiHandoffRecord } from './handoff.js';
 
-/** 今天写的字最多几项（决定-D12：N ≤ 8 显示 N 项，N > 8 显示最近判断的 8 项，数字仍为 N；设计稿 §三：8 个字以内一行或两行四列）。 */
-export const INK_ROW_MAX = 8;
 /** 离开多少天算「回来」（D41：离开 ≥7 天回来的第一组照常 1 新；首页换成「你写过的 N 个字都还在」，P155）。 */
 export const BACK_AFTER_DAYS = 7;
 
@@ -79,14 +76,14 @@ export function lastJudgedDayOf(records) {
 }
 
 /**
- * 首页呈现哪一态（设计稿「首练与首页」§一 / §四；03 P155）。优先级自上而下：
- *   progress  有没写完的组（含首练写到一半）——格子；
- *   first     真的第一次来、没有任何组——首次打开（书家「拾」+ 题跋，没有日期和标题）；
+ * 首页呈现哪一态（03 P155；D55 起六态只在主按钮字与两句话上不同）。优先级自上而下：
+ *   progress  有没写完的组（含首练写到一半）——主按钮「继续写字」；
+ *   first     真的第一次来、没有任何组——首次打开（框中「拾」+ 题跋，没有日期）；
  *   special   下一次练习是大写数字特别组（D40）；
  *   today     今天写过；
  *   back      最近一次判断在 ≥7 天前（D41）；
  *   fresh     其余：今天还没写。
- * 首页的位置、标题、题记、主按钮在各态里不动，只有字帖位与下一行不同。
+ * 首页的「拾」、题记、主按钮的位置在各态里不动。
  */
 export function homeViewOf({ records, resume, capital, gapDays }) {
   if (resume !== 'none') return 'progress';
@@ -97,80 +94,20 @@ export function homeViewOf({ records, resume, capital, gapDays }) {
   return 'fresh';
 }
 
-/**
- * 字帖位放什么（H1 / D51 ④，03 P220）：'progress'（这一组的格子）/ 'today'（今天写的字）/ 'recent'（本人最近写的几个字）/ 'shi'（品牌「拾」）。
- * 日常状态不放品牌字：今天写过 = 今天的字；今天还没写、离开一周、特别组那天还没写 = 最近写的字（recentCount > 0）；
- * 品牌「拾」只在首次打开（view 'first'）与没有任何可显示的本人墨时（recentCount = 0，例如清空过记录）出现。
- * 特别组那天已经写过字时字帖位照常放今天的字（设计稿 §四 ④）。
- */
-export function heroOf(view, records, recentCount = 0) {
-  if (view === 'progress') return 'progress';
-  if (view === 'today') return 'today';
-  if (view === 'first') return 'shi';
-  if (view === 'special' && records === 'record') return 'today';
-  return recentCount > 0 ? 'recent' : 'shi';
-}
-
-/** 今天还没写 / 离开一周回来时，字帖位放本人最近写的几个字（H1 / D51 ④，03 P220）：一行三格，与 1–3 字的字帖行同一档格宽。 */
-export const RECENT_ROW_MAX = 3;
-
-/** 进行中的组最多画几格（设计稿：1–3 / 4 / 5 / 6–8 字五档格宽；更长的组只画包含当前字的 8 格）。 */
-export const PROGRESS_MAX = 8;
-
-/**
- * 进行中的组的格子（不泄题）：
- *   done    已判断（有记录，墨迹由页面按记录取）；
- *   passed  跳过 / 看过答案（没有本人墨，画空格，不画字）；
- *   next    下一个要写的格（墨框，不露字）；
- *   empty   还没写的格（十字线，不露字）。
- * 超过 PROGRESS_MAX 个字时取包含当前字的 8 格窗口（当前字尽量靠第 4 格）。
- * @returns {{cells:Array<{index:number, state:string, char?:string, record?:object}>, total:number, start:number}}
- */
-export function progressCells(session, records, { max = PROGRESS_MAX } = {}) {
-  if (!session) return { cells: [], total: 0, start: 0 };
-  const queue = session.queue || [];
-  const byId = new Map();
-  for (const r of records || []) if (r && r.id) byId.set(r.id, r);
-  const all = queue.map((cardKey, index) => {
-    if (index < session.cursor) {
-      const item = (session.items || [])[index] || null;
-      const record = item && item.recordId ? byId.get(item.recordId) || null : null;
-      if (record && isJudged(record)) return { index, state: 'done', char: record.char || charOfCardKey(cardKey), record };
-      return { index, state: 'passed' };
-    }
-    return { index, state: index === session.cursor ? 'next' : 'empty' };
-  });
-  const start = all.length <= max ? 0 : Math.max(0, Math.min(session.cursor - 3, all.length - max));
-  return { cells: all.slice(start, start + max), total: all.length, start };
-}
-
-/** 字库里有几个字（有过判断记录的字，按字去重）——首页字帖位块的读屏标签「字库里有 N 个字了」（D49-7：不再画在首页上）；也是回来态「你写过的 N 个字都还在」的 N。 */
+/** 字库里有几个字（有过判断记录的字，按字去重）——回来态「你写过的 N 个字都还在」的 N。 */
 export function libraryCountOf(records) {
   return latestJudgedByCard(records || []).size;
-}
-
-/**
- * 首页今天的字帖行（决定-D12 的取法 + 作品成员规则 D51 ⑤，core/work-members.js）：今天的作品成员（写对 ∪ 看后自写；写错的不进，计数仍照实），
- * 同字只留最近一次（D42：从晚到早第一条留有墨迹的），按最近一次出现的先后；N ≤ limit 时 N 项，N > limit 时取最近 limit 项。
- * @returns {object[]} 记录
- */
-export function todayWorkRow(state, records, today, limit = INK_ROW_MAX, { hasInk = null } = {}) {
-  const has = typeof hasInk === 'function' ? hasInk : hasInkOfState(state);
-  const members = workMembers((records || []).filter(r => r && r.localDay === today), { prefer: 'last', order: 'last', hasInk: has });
-  return members.slice(Math.max(0, members.length - limit)).map(m => m.record);
 }
 
 /**
  * 首页全部派生数据。
  * @param {object|null} state  store 状态（未启动时 null → 按空状态算）
  * @param {number} nowMs       应用时钟（platform/env.js now()，测试钩子 setClock 可平移）
- * @param {{deck?: object, hasInk?: (record:object)=>boolean}} [o] deck = 选字用的题库适配器（data/deck.js deckAdapter）；缺省不算大写数字特别组（capital 恒为 null）；
- *   hasInk = 这条记录有没有留着本人的墨（最近写的字只取有墨的）；缺省按 state.ink 里存下的墨迹查（core/ink-pick hasInkOfState）
+ * @param {{deck?: object}} [o] deck = 选字用的题库适配器（data/deck.js deckAdapter）；缺省不算大写数字特别组（capital 恒为 null）
  */
-export function homeModel(state, nowMs, { policy = defaultPolicy, inkRowMax = INK_ROW_MAX, deck = null, hasInk = null } = {}) {
+export function homeModel(state, nowMs, { policy = defaultPolicy, deck = null } = {}) {
   const today = localDay(nowMs);
   const records = recordsOf(state);
-  const count = todayCount(records, today);
   const recordsState = recordsStateOf(state, today, { policy });
   const { resume, primary, other } = resumeOf(state, nowMs, { policy });
   const resumeOn = resume !== 'none';
@@ -180,15 +117,6 @@ export function homeModel(state, nowMs, { policy = defaultPolicy, inkRowMax = IN
   const lastDay = lastJudgedDayOf(records);
   const gapDays = lastDay === null ? null : diffDays(lastDay, today);
   const view = homeViewOf({ records: recordsState, resume, capital, gapDays });
-  const inked = typeof hasInk === 'function' ? hasInk : hasInkOfState(state);
-  const inkRow = view === 'progress' ? [] : todayWorkRow(state, records, today, inkRowMax, { hasInk: inked });
-  // 字帖位：日常状态不放品牌「拾」（H1 / D51 ④）。今天还没写 / 离开一周 / 特别组那天还没写 → 本人最近写的几个字；
-  // 今天只写错了（作品成员为空）时同样没有今天的字可放，也退回最近写的字；没有可显示的墨才退回品牌字
-  const todayEmpty = (view === 'today' || (view === 'special' && recordsState === 'record')) && !inkRow.length;
-  const needsRecent = view === 'fresh' || view === 'back' || (view === 'special' && recordsState !== 'record') || todayEmpty;
-  const recentRow = needsRecent ? recentInkRow(records, { limit: RECENT_ROW_MAX, hasInk: inked }) : [];
-  const hero = todayEmpty ? (recentRow.length ? 'recent' : 'shi') : heroOf(view, recordsState, recentRow.length);
-  const primarySession = primary ? resumableSession(state, primary.slot, { now: nowMs, policy }) : null;
   return {
     today,
     period: periodOf(nowMs),
@@ -198,22 +126,34 @@ export function homeModel(state, nowMs, { policy = defaultPolicy, inkRowMax = IN
     resume,
     primary,
     other,
-    count,
-    inkRow: hero === 'today' ? inkRow : [],
-    recentRow: hero === 'recent' ? recentRow : [],
-    // 「拾」的交接（D51 ④、03 P221）：首练当天回到首页（view today）时要不要把品牌「拾」的位置换成本人写的「拾」；页面在首页位于顶层时才真正开始
-    shiHandoff: view === 'today' ? shiHandoffRecord({ settings: state && state.settings, records, today, hasInk: inked }) : null,
     showRecord,
     showFirstTip: recordsState === 'first' && !resumeOn,
     capital,
     view,
-    hero,
     gapDays,
-    progress: view === 'progress' ? progressCells(primarySession, records) : null,
     libraryCount: libraryCountOf(records),
-    // 自己选字：首次打开隐藏，首练完成后出现（D46 ②；首练写到一半也算没完成）；特别组那天由「这次先写平常的字」占这个位置（D46 ④）
-    showPick: recordsState !== 'first' && !(primary && primary.kind === 'first') && view !== 'special',
+    // 自己选字：首次打开隐藏，首练完成后出现（D46 ②；首练写到一半也算没完成）；特别组那天它仍在，旁边多一个「这次先写平常的字」（D55 / E ⑥，D46 ④）
+    showPick: recordsState !== 'first' && !(primary && primary.kind === 'first'),
   };
+}
+
+/**
+ * 主按钮的文案键（六态里只有它随状态变）：有没写完的组 →「继续写字」；首次打开 / 今天还没写 / 离开一周 / 特别组 →「开始写字」；今天写过 →「再写一组」。
+ */
+export function homeCtaKey(model) {
+  if (model.resume !== 'none') return 'X-HOME.continue';
+  if (model.view === 'first' || model.records !== 'record') return 'X-HOME.start';
+  return 'X-RESULT.again';
+}
+
+/**
+ * 首页「拾」与题记下面的那一句（只有两态各有一句）：离开一周后「你写过的 N 个字都还在。」（N = 字库里写过的字数）；
+ * 大写数字特别组那天沿用特别组说明。其余态没有。返回 {key, vars} 或 null。
+ */
+export function homeNoteOf(model) {
+  if (model.view === 'back') return { key: 'X-HOME.backNote', vars: { n: model.libraryCount } };
+  if (model.view === 'special') return { key: 'X-HOME.capitalBody', vars: {} };
+  return null;
 }
 
 /** S01 行的文案键（R-H04）：这次选的字 / 第一次练习 / 今天的练习。 */

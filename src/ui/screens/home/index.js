@@ -1,49 +1,29 @@
-// 习字 tab 根页 · 首页（02 M2-1；阶段 1 P1-E5 按设计稿「首练与首页」重排：D43 首页方案 B、D46 ①②④；R-H01–R-H07、R-H11；
-// 阶段 1 E9a 按减法修稿 D49 修订：实现交接 §1 / §2.4）。自注册，无中心路由表。
+// 习字 tab 根页 · 首页（02 M2-1；阶段 1 P1-E5 / E9a / H1 / C3-H 屡经改版；H2 / D55：产品负责人选定「首页方向」E「极静」）。自注册，无中心路由表。
 //
-// 版式（D49；H1 / D51 ④ 起日常状态不放品牌「拾」；C3-H / D53 ③ 起标题与字帖成一组、主按钮固定在底线，覆盖 H1 的「整体块居中」）：
-//   页头：日期行（13 墨三，R-H02）→ 题记一行（日期下 2：宋 13 墨三，「心不厌精，手不忘熟。」+ 8 + 出处作者名，单行不折，不带印；AX1–AX5 隐藏，
-//   读屏把它作为标题的补充读出：h1 aria-describedby）；
-//   主区 .sz-home__main：标题「今天写几个字」（宋 28）→ 20 → 字帖位（含它下面的说明句）这一组，在页头下沿与主按钮区之间光学居中（上下留白 42 : 58）；
-//   字帖行格边长 = min(版心宽 / n, 160)（copybook.js tieCellSize），一行撑满 20pt 页边之间的版心，左缘与标题同在 20 的线上；首次打开的品牌「拾」同一规则；
-//   主按钮区 .sz-home__foot：[失败提示 / 首次说明句 / 次按钮「自己选字」「这次先写平常的字」] → 墨色主按钮（宽 240 居中）——主按钮底边固定在 Tab 栏上沿
-//   上方 CTA_LINE（24）：五态与首次打开同一个 y，不随内容或状态移动，次按钮等都在它上面；AX 档放不下时留白收成 0，整体从页头下方开始排。同屏字号 13 / 15 / 17 / 28。
-//   首页没有朱色（题记不带印；不画写错朱点，D46 ①）；首页不画任何计数（「这一组还有 N 个字」「字库里有 N 个字了 ›」删去，D49-7：
-//   计数只进读屏标签），只在今天写的字多于 8 个时留一行「今天写了 N 个字」。字帖格只有外框与格间两种线，空格就是笺面（copybook.js）。
-//   五态（today.js homeViewOf，03 P155；字帖位放什么见 heroOf，03 P220）：
-//     fresh     今天还没写：字帖位 = 本人最近写的 3 个字（本人墨，取每字最近一次仍留有墨的那条，recent.js），下面没有字；没有可显示的墨（清空过记录）才放品牌「拾」；
-//     today     今天写过：字帖位 = 今天写的字（本人笔迹），n > 8 才有一行「今天写了 N 个字」，主按钮「再写一组」；
-//     progress  有进行中的组：这一组的格子（写过的有墨，没写的是空笺面），主按钮「继续写字」；读屏名称「这一组还有 N 个字」；
-//     special   大写数字特别组那天（D40）：字帖位同上（写过 = 今天的字，没写 = 最近写的字）+ 一句提示 + 文字按钮「这次先写平常的字」（点了顺延，D46 ④，session-start.deferSpecial）；
-//     back      离开 ≥7 天回来（D41）：字帖位 = 最近写的字，「你写过的 N 个字都还在。」，不提缺了几天。
-//   「拾」的交接（D51 ④，03 P221，handoff.js）：首练写下「拾」后第一次回到首页（today 态），字帖位先是一个大格——品牌「拾」淡出、本人写的「拾」淡入
-//     （≤ 300ms，减少动态效果直接换），一直画到离开首页，只一次（settings.shiHandoffDone）；之后按日常状态。home-shi-handoff。
-//   首次打开（first，品牌「拾」只在这里与没有可显示的墨时出现）：品牌「拾」+ 竖排题跋三列 + 一枚印，没有日期和标题；主按钮「开始写字」，下面「先写三个大家常忘的字。」；
-//     不显示「自己选字」，首练完成后出现（D46 ②）。品牌时刻 ≤1.2s：题跋逐字淡入 → 印，主按钮与说明句从第一帧起可见可点（不参与动画，H1 / I2-05）；点任意处立即静帧，「减少动态效果」直接静帧。
-//     （印的触觉与动效编排属阶段 2；测试宿主默认不放动画，URL 加 brand=1 才放。）AX1–AX5：题跋改横排三行（一行一句，宋 13 档，
-//     「拾」缩到 120，印跟在末句后，主按钮满宽，说明句在按钮下 4），不放品牌动画（静帧）。
-//   首页光影层（叶影 / 日光 / 夜灯）取消（D43，03 P143）：设计稿首页没有光影层，light.js 已删除。
-//   AX1–AX5：题记隐藏；主按钮满宽、「自己选字」在下；字帖格宽按剩余高度重算（下限 44）；整页可滚动，主按钮不固定；Tab 栏不放大。
+// 版式（D55，设计稿「首页方向.html」E 一节）：
+//   首页只有：左上日期时段（13 墨三）、居中偏上的墨「拾」（128pt，品牌字形单一来源 ui/brand/shi.js ShiMark，--hand）、其右侧竖排题记
+//   （每日题记两列：宋 15 墨二，右起；作者名小字：宋 13 墨三，在最左；沿用 config/epigraphs.js 的轮换，P23）、主按钮上方的文字按钮「自己选字」、主按钮（底边固定在
+//   Tab 栏上沿上方 policy.mainButtonLine，24，六态同一个 y）。不放：写过的字 / 字帖行 / 数字 / 进度 / 说明句 / 标题「今天写几个字」（标题只作为 h1 留给读屏，
+//   aria-describedby 指向题记，题记整块 aria-hidden）。首页没有朱色、不出任何「已保存」类提示；主操作都只要一次点击。
+//   六态（today.js homeViewOf；状态只体现在主按钮的字与两处各多一句）：
+//     first     首次打开：保持现有画面——框中「拾」+ 竖排题跋三列 + 一枚印，没有日期；主按钮「开始写字」，下面「先写三个大家常忘的字。」，不显示「自己选字」（D46 ②）；
+//     fresh     今天还没写：「开始写字」；
+//     progress  写到一半：「继续写字」（A、B 两组都没写完时，A 那一行留作文字按钮 other-line「今天的练习 · 接着写」，P196）；
+//     today     今天写完：「再写一组」；
+//     back      离开 ≥7 天回来（D41）：「拾」与题记组下面多一句「你写过的 N 个字都还在。」（13 墨三，N 是字库里写过的字数）；
+//     special   大写数字特别组那天（D40）：多一句特别组说明，「自己选字」旁加文字按钮「这次先写平常的字」（D46 ④，session-start.deferSpecial，点了顺延）。
+//   首次打开的品牌时刻 ≤1.2s：题跋逐字淡入 → 印，主按钮与说明句从第一帧起可见可点（不参与动画，H1 / I2-05）；点任意处立即静帧，「减少动态效果」直接静帧。
+//     （测试宿主默认不放动画，URL 加 brand=1 才放。）AX1–AX5：题跋改横排三行（一行一句，宋 13 档，「拾」缩到 120，印跟在末句后，主按钮满宽，说明句在按钮下 4），不放品牌动画。
+//   AX1–AX5（日常五态）：「拾」与题记缩放但不溢出——「拾」与题记上下排、居中，题记改横排（两句 + 作者，现有「AX 档改横排」规则）；「拾」按剩余高度缩（≤128、≥64，
+//     useShiAvail 量页头 / 题记 / 一句话 / 按钮区；放不下时先收起题记，沿用 D49 的 AX 隐藏题记规则）；整页不滚动；主按钮满宽，文字按钮在它上面。
 //
-// 行为：
-//   主按钮：B 有没写完的组 → 续写 B（D05 B 优先）；否则 session.startA（A 有没写完 → 续写；否则第一次练习 / 今天的练习；
-//     选不出字 →「现在没有要写的字」页，R-H11）。
-//   A+B 两组都没写完：格子是 B 的，下面一行文字按钮是 A 的「今天的练习 · 接着写」（无箭头；剩余字数只进读屏名称，D49 ⑦ / P196），点它续写 A（R-H04）。
-//   「自己选字」：在点击处理里同步打开查字组件 pick 模式（R-Q08）；选好后开「这次选的字」（B）：旧 B 没写完 → 关弹层、S02（R-H05）；
-//     否则一次 commit 开 B，成功才关弹层、打开写字页；失败（{ok:false}）弹层就地显示 R-H06 三段式、输入还在。
-//   开组 / 续写写入失败：主按钮下方就地三段式「没保存上，刚才的选择没记下。」［先不保存 / 再试一次］（R-G04；文案待定 P55）。
-//   「这次先写平常的字」：一次 commit 写 settings.capitalDeferredDay，随即开一组普通的今天的练习（Q2-2，交接 §1.2）。
-//   跨天：挂载与回前台时 session.expireStale()（P37）；日期在回前台、每 30s 重算。
-//
-// data-testid：screen-home（data-view / data-hero / data-records / data-resume / data-period / data-compact / data-today / data-ax）、home-date、
-//   home-epigraph（data-index）、home-title、home-start、home-first-tip（首次打开按钮下一行）、home-first（首次打开字帖位 + 题跋）、
-//   home-motto、home-seal、home-brand-shi、home-zone（读屏 group：字库计数）、home-today-count（只在 n > 8 时有）、home-ink-row / home-ink-item
-//   （今天写的字）、home-recent-row / home-recent-item（最近写的字，不是按钮）、home-progress（data-slot / data-kind / data-remaining，读屏名称含剩余字数）/ home-cell、other-line（data-slot）、
-//   home-back-note、home-capital-hint（data-kind = capital1 | capital2；含 home-capital-body）、
+// data-testid：screen-home（data-view / data-records / data-resume / data-period / data-compact / data-today / data-ax）、home-date、home-title（只给读屏）、
+//   home-epigraph（data-index）、home-brand-shi（日常态的墨「拾」；首次打开是框中的品牌「拾」）、home-group、home-start、home-first-tip、home-first、home-motto、home-seal、
+//   other-line（data-slot / data-kind / data-remaining）、home-back-note、home-capital-hint（data-kind = capital1 | capital2；含 home-capital-body）、
 //   home-capital-defer、home-pick、home-start-fail（+ -cancel / -retry）；测试宿主另有 demo-push、write-test-entry（开发入口，不是用户文案）。
 
-import { html, useEffect, useLayoutEffect, useMemo, useRef, useState } from '../../../../vendor/ui.js';
-import { registerScreen, getRouter, getScreen, nav } from '../../router.js';
+import { html, useEffect, useLayoutEffect, useRef, useState } from '../../../../vendor/ui.js';
+import { registerScreen, getScreen, nav } from '../../router.js';
 import { Button } from '../../components/Button.js';
 import { SealGlyph } from '../../components/marks.js';
 import { injectStyles, T } from '../../components/styles.js';
@@ -59,10 +39,9 @@ import { openQuery } from '../../components/query/index.js';
 import { useCompact } from '../write/compact.js';
 import { expireStale, openWrite, resumeSlot, startA, startPicked } from '../session/index.js';
 import { setNoneActions } from '../session/none.js';
-import { homeModel, resumeLineText, resumeLineAria, INK_ROW_MAX } from './today.js';
-import { recentDayLine } from './recent.js';
-import { commitShiHandoffDone } from './handoff.js';
-import { BrandShi, HomeTie, ShiHandoff, axTieCellSize, firstShiSize, shiCellSize, tieCellSize, tieCols, useElementWidth } from './copybook.js';
+import { homeModel, homeCtaKey, homeNoteOf, resumeLineText, resumeLineAria } from './today.js';
+import { BrandShi, firstShiSize, useElementWidth } from './copybook.js';
+import { ShiMark } from '../../brand/shi.js';
 import { useAxLevel } from '../../components/ax.js';
 // 写字页自注册（M1-1）：首页是它的入口页，随首页一起加载。
 import '../write/index.js';
@@ -78,10 +57,12 @@ export const CLOCK_TICK_MS = 30000;
 /** 首次打开品牌时刻的总长（ms；I2-05 建议 ≤ 1.2s）：题跋逐字淡入 0.08–0.94s，印 0.9–1.2s。主按钮不参与动画，第一帧起可见可点（H1）。 */
 export const BRAND_TOTAL_MS = 1200;
 
-/** 主按钮底边到 Tab 栏上沿的固定距离（pt，T3-01 / D53 ③「全 App 统一的底线」）：首页五态与首次打开同一条线。与写字页主按钮底线共用 policy.mainButtonLine（P258，R3-C3W）。 */
+/** 主按钮底边到 Tab 栏上沿的固定距离（pt，T3-01 / D53 ③「全 App 统一的底线」）：首页六态与首次打开同一条线。与写字页主按钮底线共用 policy.mainButtonLine（P258，R3-C3W）。 */
 export const CTA_LINE = policy.mainButtonLine.gapAboveEdge;
-/** 标题到字帖行的距离（pt）：标题贴近字帖，成一组。 */
-export const TITLE_GAP = 20;
+/** 日常态的墨「拾」边长（pt，D55 / 设计稿 E：128，D51 定稿母版）；AX 档按剩余高度缩，不小于 SHI_MIN（再放不下就先收起题记，SHI_FLOOR 是题记也收起后的下限）。 */
+export const SHI_SIZE = 128;
+export const SHI_MIN = 64;
+export const SHI_FLOOR = 44;
 
 // 演示子页只在测试主机上加载（ui/root.js），生产形态里 getScreen 为 null，入口不出现。
 const DEMO_SCREEN = '_demo/sub';
@@ -98,25 +79,23 @@ injectStyles('home', `
   padding:calc(12px + env(safe-area-inset-top, 0px)) 20px 0;color:${T.ink1}}
 .sz-home__head{position:relative;flex:none}
 .sz-home__date{margin:0;font-size:${T.fs13};line-height:${T.lh13};white-space:nowrap;color:${T.ink3}}
-.sz-home__epi{margin:2px 0 0;font-family:${T.song};font-weight:400;font-size:${T.fs13};line-height:${T.lh13};white-space:nowrap;color:${T.ink3}} /* 题记一行（D49）：宋 13 墨三，不带印 */
-.sz-home__episrc{margin-left:8px}
 .sz-home__seal{width:16px;height:16px;box-sizing:border-box;border-radius:${T.rWork};display:block;flex:none} /* 印是图形：固定 seal16，白文「拾」是铺满的 svg（SealGlyph），不随 --k（Q2-10） */
-.sz-home__title{margin:0 0 ${TITLE_GAP}px;font-family:${T.song};font-weight:500;font-size:${T.fs28};
-  line-height:${T.lh28};color:${T.ink1};text-wrap:balance}
+.sz-home__title{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap;font-size:${T.fs13};line-height:${T.lh13}} /* 标题「今天写几个字」只给读屏（D55：首页不放标题）；h1 + data-page-title 仍是页面标题与焦点目标 */
 .sz-home__title:focus{outline:none}
 .sz-home__stage{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
-.sz-home__main{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;align-items:flex-start}
-.sz-home__main::before,.sz-home__main::after{content:"";min-height:0} /* 标题 + 字帖这一组在页头下沿与主按钮之间光学居中（上下留白 42 : 58，T3-01 / D53 ③）；主按钮不再跟着它走，固定在 Tab 栏上沿上方 24pt 的底线；放不下（AX 档）时留白收成 0，从页头下方开始排 */
-.sz-home__main::before{flex:42 1 0}
-.sz-home__main::after{flex:58 1 0}
-.sz-home__zone{flex:none;width:100%;display:flex;flex-direction:column;align-items:flex-start;padding:0 0 ${T.s4}} /* 字帖块（含它下面的说明句）到主按钮区至少 16 */
-.sz-home--first .sz-home__zone{align-items:center}
-.sz-home__block{display:flex;flex-direction:column;align-items:flex-start;max-width:100%}
-.sz-home__gap{flex:none;height:16px}
-.sz-home__line{margin:0;text-align:left;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3};text-wrap:balance}
+.sz-home__main{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center} /* 「拾」+ 题记这一组在页头与主按钮区之间居中（设计稿 E：.main 居中，组底留 8% 让视觉略偏上） */
+.sz-home__group{flex:none;display:flex;align-items:flex-end;gap:18px;margin-bottom:8%;max-width:100%}
+.sz-home__shi{flex:none;position:relative;display:block;width:var(--shi);height:var(--shi);color:${T.hand}} /* 日常态的「拾」：没有框的墨「拾」，--hand（深色是夜间纸上的暖白墨） */
+.sz-home__shi>svg{position:absolute;left:-12%;top:-12%;width:124%;height:124%;max-width:none} /* 设计稿 E 的 128pt 是 1024 母版视框（墨框长边占 77%）；ShiMark 的视框是 1270（占 62%），放大 124% 回到同一字面大小 */
+.sz-home__epi{margin:0;display:flex;flex-direction:row-reverse;gap:4px} /* 竖排题记：右起，第一句在最右；作者名在最左 */
+.sz-home__epicol{flex:none;width:26px;white-space:nowrap;writing-mode:vertical-rl;font-family:${T.song};font-weight:400;font-size:${T.fs15};line-height:26px;letter-spacing:.2em;color:${T.ink2}}
+.sz-home__epicol.sz-home__episrc{writing-mode:vertical-rl;font-size:${T.fs13};letter-spacing:.12em;color:${T.ink3}}
+.sz-home__line{margin:-4% 0 4%;text-align:center;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3};text-wrap:balance} /* 离开一周 / 特别组那天多出的那一句：在「拾」与题记组下面 */
+.sz-home__noteblk{flex:none;max-width:100%}
 .sz-home__other.sz-btn{--bx:12px;margin-top:4px;min-height:${T.hit}}
-.sz-home__foot{flex:none;width:100%;display:flex;flex-direction:column;align-items:center;padding:0 0 ${CTA_LINE}px} /* 主按钮底边固定在 Tab 栏上沿上方 24pt（T3-01 / D53 ③）：次按钮 / 首次说明 / 失败提示都在它上面，不论哪一态主按钮 y 不变 */
+.sz-home__foot{flex:none;width:100%;display:flex;flex-direction:column;align-items:center;padding:0 0 ${CTA_LINE}px} /* 主按钮底边固定在 Tab 栏上沿上方 24pt（T3-01 / D53 ③）：文字按钮 / 首次说明 / 失败提示都在它上面，不论哪一态主按钮 y 不变 */
 .sz-home__cta.sz-btn{width:240px;max-width:100%}
+.sz-home__row{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:0 12px}
 .sz-home__side.sz-btn{margin-bottom:4px;min-height:${T.hit};justify-content:center}
 .sz-home__note{margin:0 0 12px;text-align:center;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3}}
 .sz-home__fail{margin-bottom:12px;width:100%;max-width:345px;display:flex;flex-direction:column;gap:10px}
@@ -143,9 +122,14 @@ injectStyles('home', `
 @media (prefers-reduced-motion: reduce){
   .sz-home--brand .sz-first__ch,.sz-home--brand .sz-first__seal{animation:none;opacity:1}
 }
-:root[data-ax] .sz-home__epi{display:none} /* AX1–AX5：题记隐藏（读屏经标题的 aria-describedby 读到，D49） */
+:root[data-ax] .sz-home__group{flex-direction:column;align-items:center;gap:0;margin-bottom:0} /* AX1–AX5：「拾」在上、题记在下，居中；「拾」的边长由 useShiAvail 按剩余高度给 */
+:root[data-ax] .sz-home__epi{flex-direction:column;align-items:center;gap:0;box-sizing:border-box;padding-top:8px}
+:root[data-ax] .sz-home__epi[data-hide="true"]{height:0;padding:0;overflow:hidden;visibility:hidden} /* 放不下时收起题记（D49 原规则：AX 档题记隐藏，读屏经标题的 describedby 照样读到全句）；height:0 仍能量到它的 scrollHeight */
+:root[data-ax] .sz-home__epicol{writing-mode:horizontal-tb;width:auto;max-width:100%;white-space:normal;line-height:${T.lh13};letter-spacing:0;text-align:center;text-wrap:balance;font-size:${T.fs13}} /* 题记 AX 档改横排（现有规则）：两句 + 作者，都用 t13 档 */
+:root[data-ax] .sz-home__line{margin:0}
 :root[data-ax] .sz-home__cta.sz-btn{width:100%}
 :root[data-ax] .sz-home__note{margin-bottom:4px}
+:root[data-ax] .sz-home__row{flex-direction:column;gap:0}
 `);
 
 // ---------------------------------------------------------------- 状态订阅
@@ -266,47 +250,6 @@ function useBrandMoment(active, rootRef) {
   return playing && active;
 }
 
-// ---------------------------------------------------------------- 「拾」的交接（H1 / D51 ④、N2-02）
-
-/** 首页现在是不是最上层的页面（所有页面图层一直挂着，回到首页时组件不会重新挂载，只能订阅路由）。 */
-function useHomeOnTop() {
-  const topNow = () => {
-    const router = getRouter();
-    const snap = router ? router.getState() : null;
-    return !snap || !snap.top || snap.top.n === HOME_TAB;
-  };
-  const [top, setTop] = useState(topNow);
-  useEffect(() => {
-    const router = getRouter();
-    if (!router) return undefined;
-    setTop(topNow());
-    return router.subscribe(snap => setTop(!snap || !snap.top || snap.top.n === HOME_TAB));
-  }, []);
-  return top;
-}
-
-/**
- * 「拾」的交接：首页在顶层时第一次发现 model.shiHandoff，就把那条记录存进状态、立即记 settings.shiHandoffDone（只发生一次）；
- * 交接格一直画到离开首页（切 tab / 进别的页），下一次回来按日常状态。返回当前要画的记录或 null。
- */
-function useShiHandoff(model) {
-  const onTop = useHomeOnTop();
-  const [shown, setShown] = useState(null);
-  useEffect(() => {
-    if (!shown && onTop && model.shiHandoff) {
-      setShown(model.shiHandoff);
-      try {
-        commitShiHandoffDone(getStore()); // 写失败不阻断：下次回到首页可能再交接一次
-      } catch (error) {
-        // store 不可用：照样显示
-      }
-    } else if (shown && !onTop) {
-      setShown(null);
-    }
-  }, [onTop, model.shiHandoff, shown]);
-  return shown;
-}
-
 // ---------------------------------------------------------------- 动作
 
 const SOURCE = Object.freeze({ view: HOME_TAB });
@@ -378,15 +321,23 @@ setNoneActions({ pick: () => openPick() });
 
 // ---------------------------------------------------------------- 视图
 
-/** 题记（D49）：日期下方一行横排小字，只有作者名跟在句后；整块 aria-hidden，读屏经 h1 的 aria-describedby 读到全句与《篇名》。 */
+/** 竖排题记（D55 / 设计稿 E）：两句各一列，右起，作者名小字在最左；整块 aria-hidden，读屏经 h1 的 aria-describedby 读到全句与《篇名》；AX 档改横排（CSS）。 */
 const EPIGRAPH_ID = 'sz-home-epigraph';
 
-function Epigraph({ epigraph }) {
+function Epigraph({ epigraph, epiRef, hide }) {
   const index = EPIGRAPHS.indexOf(epigraph);
   const label = `${epigraph.lines.join('')}${epigraph.source}`;
-  return html`<figure class="sz-home__epi" id=${EPIGRAPH_ID} data-testid="home-epigraph" data-index=${index} aria-hidden="true" aria-label=${label}>
-    <span class="sz-home__epitext">${epigraph.lines.join('')}</span><span class="sz-home__episrc">${epigraphAuthor(epigraph)}</span>
+  return html`<figure ref=${epiRef} class="sz-home__epi" id=${EPIGRAPH_ID} data-testid="home-epigraph" data-index=${index} data-hide=${hide ? 'true' : undefined} aria-hidden="true" aria-label=${label}>
+    ${epigraph.lines.map((line, i) => html`<span key=${i} class="sz-home__epicol">${line}</span>`)}
+    <span class="sz-home__epicol sz-home__episrc">${epigraphAuthor(epigraph)}</span>
   </figure>`;
+}
+
+/** 日常态的墨「拾」：没有框，ShiMark 矢量，--hand；读屏名称 X-HOME.shiLabel。 */
+function HomeShi({ size }) {
+  return html`<div class="sz-home__shi" style=${{ '--shi': `${size}px` }} role="img" aria-label=${t('X-HOME.shiLabel')} data-testid="home-brand-shi">
+    <${ShiMark} />
+  </div>`;
 }
 
 function FailBlock({ onCancel, onRetry }) {
@@ -438,27 +389,30 @@ function FirstOpen({ width, compact, ax }) {
 }
 
 /**
- * AX 档字帖位可用高度（实现交接 §1.4；D53 ③ 起标题与字帖成一组、主按钮区固定在底线）：Tab 面板高 − 页头（日期 / 题记）− 标题（含它到字帖的间距）−
- * 主按钮区（含底线留白）− 16（字帖块到主按钮区的最小间距）。只在 AX 档量；量不到（挂载前、没有面板）返回 0 = 不缩。
- * 页头 / 标题 / 按钮区的高度与字帖位无关，不会回环。
+ * AX 档「拾」的边长与题记收放：剩余高度 = Tab 面板高 − 页头（日期）− 那一句话 − 按钮区 − 题记 − 留白；够 SHI_MIN 就「拾」按剩余高度缩（≤ SHI_SIZE），
+ * 题记横排放在它下面；不够就先收起题记（height:0，仍给读屏），「拾」再按没有题记的剩余高度缩（≥ SHI_FLOOR）。只在 AX 档量；量不到（挂载前）= 不缩、不收。
+ * 页头 / 题记 / 一句话 / 按钮区的高度与「拾」的大小无关，不会回环。题记收起时用 scrollHeight 量它放出来该有的高度，免得来回抖。
  */
-function useTieAvail(rootRef, headRef, titleRef, footRef, active) {
-  const [avail, setAvail] = useState(0);
+function useShiAvail(rootRef, refs, active) {
+  const [fit, setFit] = useState({ size: SHI_SIZE, hideEpi: false });
   useLayoutEffect(() => {
     if (!active) {
-      setAvail(0);
+      setFit(prev => (prev.size === SHI_SIZE && !prev.hideEpi ? prev : { size: SHI_SIZE, hideEpi: false }));
       return undefined;
     }
     const root = rootRef.current;
     const panel = root ? root.parentElement : null;
     if (!panel) return undefined;
+    const h = ref => (ref.current ? ref.current.offsetHeight : 0);
     const read = () => {
-      const head = headRef.current ? headRef.current.offsetHeight : 0;
-      const title = titleRef.current ? titleRef.current.offsetHeight + TITLE_GAP : 0;
-      const foot = footRef.current ? footRef.current.offsetHeight : 0;
       const top = parseFloat(getComputedStyle(root).paddingTop) || 0;
-      const next = Math.max(0, Math.floor(panel.clientHeight - top - head - title - foot - 16));
-      setAvail(prev => (prev === next ? prev : next));
+      const epi = refs.epi.current ? refs.epi.current.scrollHeight : 0;
+      const base = panel.clientHeight - top - h(refs.head) - h(refs.foot) - h(refs.note) - 12;
+      const withEpi = Math.floor(base - epi);
+      const next = withEpi >= SHI_MIN
+        ? { size: Math.min(SHI_SIZE, withEpi), hideEpi: false }
+        : { size: Math.max(SHI_FLOOR, Math.min(SHI_SIZE, Math.floor(base))), hideEpi: true };
+      setFit(prev => (prev.size === next.size && prev.hideEpi === next.hideEpi ? prev : next));
     };
     read();
     if (typeof ResizeObserver !== 'function') {
@@ -467,12 +421,10 @@ function useTieAvail(rootRef, headRef, titleRef, footRef, active) {
     }
     const ro = new ResizeObserver(read);
     ro.observe(panel);
-    if (headRef.current) ro.observe(headRef.current);
-    if (titleRef.current) ro.observe(titleRef.current);
-    if (footRef.current) ro.observe(footRef.current);
+    for (const ref of Object.values(refs)) if (ref.current) ro.observe(ref.current);
     return () => ro.disconnect();
-  }, [active]);
-  return avail;
+  }, [active, refs.note.current, refs.epi.current]);
+  return fit;
 }
 
 function HomeScreen() {
@@ -483,17 +435,18 @@ function HomeScreen() {
   const rootRef = useRef(null);
   const headRef = useRef(null);
   const footRef = useRef(null);
-  const titleRef = useRef(null);
+  const epiRef = useRef(null);
+  const noteRef = useRef(null);
+  const refs = { head: headRef, foot: footRef, epi: epiRef, note: noteRef };
   const width = useElementWidth(rootRef);
   const [failed, setFailed] = useState(null); // 写入失败的那个动作（再试一次重跑它）
 
-  const model = homeModel(state, envNow(), { inkRowMax: INK_ROW_MAX, deck: deckAdapter });
+  const model = homeModel(state, envNow(), { deck: deckAdapter });
   const view = model.view;
-  const handoff = useShiHandoff(model);
   const brand = useBrandMoment(view === 'first' && ax === 0, rootRef);
-  const avail = useTieAvail(rootRef, headRef, titleRef, footRef, ax > 0 && view !== 'first');
-  const resumeOn = model.resume !== 'none';
-  const ctaLabel = resumeOn ? t('X-HOME.continue') : view === 'first' || (model.records !== 'record') ? t('X-HOME.start') : t('X-RESULT.again');
+  const { size: shiSize, hideEpi } = useShiAvail(rootRef, refs, ax > 0 && view !== 'first');
+  const ctaLabel = t(homeCtaKey(model));
+  const note = homeNoteOf(model);
   const dateText = t('R-H02.line', {
     date: t('R-H02.dateFormat', model.dateParts),
     period: t(`R-H02.period.${model.period}`),
@@ -510,107 +463,41 @@ function HomeScreen() {
     setFailed(r && r.ok === false ? () => action : null);
   };
 
-  const getInk = useMemo(() => record => {
-    try {
-      return getStore().getInk(record);
-    } catch (error) {
-      return null;
-    }
-  }, []);
-
-  const b = Math.max(120, width - 40);
-  /** 字帖格宽：普通按屏宽公式；AX 档再按剩余高度缩（下限 44）。 */
-  const sizeOf = (n, normal) => (ax > 0 ? axTieCellSize(normal, Math.ceil(n / tieCols(n)), avail) : normal);
-
-  // D49-7：字库计数只进读屏——字帖位块是一个 group，名称 =「字库里有 N 个字了」（没有记录时不设）
-  const blockProps = model.libraryCount > 0
-    ? { role: 'group', 'aria-label': t('X-HOME.libraryCount', { n: model.libraryCount }) }
-    : {};
-
-  let zone = null;
-  if (view === 'first') {
-    zone = html`<${FirstOpen} width=${width} compact=${compact} ax=${ax > 0} />`;
-  } else if (model.hero === 'progress' && model.progress) {
-    const cells = model.progress.cells.map(c => ({ index: c.index, state: c.state, record: c.record }));
-    const size = sizeOf(cells.length, tieCellSize(cells.length, b));
-    const p = model.primary;
-    const left = p && p.position !== undefined && p.remaining === 0
-      ? t('X-HOME.progressLast')
-      : t('X-HOME.progressLeft', { n: p ? p.remaining : 0 });
-    const doneChars = cells.filter(c => c.state === 'done' && c.record).map(c => c.record.char);
-    // 读屏名称保留计数（D49-7、D36 口径：不含正在写的字）；没写的格子不泄题，只列已写过的字
-    const label = doneChars.length ? t('X-HOME.progressLabel', { left, chars: doneChars.map(c => `「${c}」`).join('') }) : left;
-    zone = html`<div class="sz-home__block" data-testid="home-zone" ...${blockProps}>
-      <${HomeTie} cells=${cells} size=${size} kind="progress" getInk=${getInk} label=${label}
-        attrs=${{ 'data-slot': p ? p.slot : '', 'data-kind': p ? p.kind : '', 'data-remaining': p ? String(p.remaining) : '' }} />
-      ${model.other ? html`<${Button} variant="text" class="sz-home__other" data-testid="other-line" data-slot=${model.other.slot}
-        data-kind=${model.other.kind} data-remaining=${String(model.other.remaining)} aria-label=${resumeLineAria(model.other, t)}
-        onClick=${() => run(resumeOther)}>${resumeLineText(model.other, t)}</${Button}>` : null}
-    </div>`;
-  } else if (handoff && model.hero === 'today') {
-    // 首练写下「拾」后第一次回首页：品牌「拾」的位置换成本人写的「拾」（只一次，离开首页就收，D51 ④）
-    zone = html`<div class="sz-home__block" data-testid="home-zone" ...${blockProps}>
-      <${ShiHandoff} size=${sizeOf(1, shiCellSize(b))} record=${handoff} getInk=${getInk} />
-    </div>`;
-  } else if (model.hero === 'today') {
-    const cells = model.inkRow.map((r, i) => ({ index: i, state: 'ink', record: r }));
-    const size = sizeOf(cells.length, tieCellSize(cells.length, b));
-    zone = html`<div class="sz-home__block" data-testid="home-zone" ...${blockProps}>
-      <${HomeTie} cells=${cells} size=${size} kind="today" count=${model.count} getInk=${getInk}
-        label=${t('X-HOME.inkRowLabel', { n: model.count, chars: model.inkRow.map(r => `「${r.char}」`).join('') })} />
-      ${view === 'special'
-        ? html`<div class="sz-home__gap"></div><${CapitalHint} kind=${model.capital} />`
-        : model.count > INK_ROW_MAX
-          ? html`<div class="sz-home__gap"></div><p class="sz-home__line" data-testid="home-today-count">${t('R-H07.todayCount', { n: model.count })}</p>`
-          : null}
-    </div>`;
-  } else if (model.hero === 'recent') {
-    const recentLine = recentDayLine(model.recentRow, model.today, t);
-    // 今天还没写 / 离开一周 / 特别组那天还没写：本人最近写的几个字（H1 / D51 ④），不放品牌字；下面按状态一句话
-    const cells = model.recentRow.map((r, i) => ({ index: i, state: 'ink', record: r }));
-    const size = sizeOf(cells.length, tieCellSize(cells.length, b));
-    zone = html`<div class="sz-home__block" data-testid="home-zone" ...${blockProps}>
-      <${HomeTie} cells=${cells} size=${size} kind="recent" count=${cells.length} getInk=${getInk}
-        label=${t('X-HOME.recentRowLabel', { chars: model.recentRow.map(r => `「${r.char}」`).join('') })} />
-      ${view === 'special' ? html`<div class="sz-home__gap"></div><${CapitalHint} kind=${model.capital} />` : null}
-      ${view === 'fresh' && recentLine ? html`<div class="sz-home__gap"></div><p class="sz-home__line" data-testid="home-recent-note">${recentLine}</p>` : null}
-      ${view === 'back' ? html`<div class="sz-home__gap"></div>
-        <p class="sz-home__line" data-testid="home-back-note">${t('X-HOME.backNote', { n: model.libraryCount })}</p>` : null}
-    </div>`;
-  } else {
-    // shi：品牌「拾」——只在没有任何可显示的本人墨时（首次打开走 FirstOpen）
-    zone = html`<div class="sz-home__block" data-testid="home-zone" ...${blockProps}>
-      <${BrandShi} size=${sizeOf(1, shiCellSize(b))} />
-      ${view === 'special' ? html`<div class="sz-home__gap"></div><${CapitalHint} kind=${model.capital} />` : null}
-      ${view === 'back' ? html`<div class="sz-home__gap"></div>
-        <p class="sz-home__line" data-testid="home-back-note">${t('X-HOME.backNote', { n: model.libraryCount })}</p>` : null}
-    </div>`;
-  }
+  const zone = view === 'first'
+    ? html`<${FirstOpen} width=${width} compact=${compact} ax=${ax > 0} />`
+    : html`<div class="sz-home__group" data-testid="home-group">
+        <${HomeShi} size=${shiSize} />
+        <${Epigraph} epigraph=${model.epigraph} epiRef=${epiRef} hide=${hideEpi} />
+      </div>
+      ${note ? html`<div ref=${noteRef} class="sz-home__noteblk">${view === 'special'
+        ? html`<${CapitalHint} kind=${model.capital} />`
+        : html`<p class="sz-home__line" data-testid="home-back-note">${t(note.key, note.vars)}</p>`}</div>` : null}`;
 
   const demo = getScreen(DEMO_SCREEN);
   const testHost = isTestHost();
   const classes = ['sz-home', compact ? 'sz-home--compact' : '', brand ? 'sz-home--brand' : '', view === 'first' ? 'sz-home--first' : ''].filter(Boolean).join(' ');
 
-  return html`<section ref=${rootRef} class=${classes} data-testid="screen-home" data-view=${view} data-hero=${model.hero}
+  return html`<section ref=${rootRef} class=${classes} data-testid="screen-home" data-view=${view}
     data-records=${model.records} data-resume=${model.resume} data-period=${model.period} data-compact=${compact ? 'true' : 'false'}
-    data-today=${model.today} data-brand=${brand ? 'playing' : 'off'} data-handoff=${handoff && model.hero === 'today' ? 'true' : undefined} data-ax=${ax > 0 ? String(ax) : undefined}>
+    data-today=${model.today} data-brand=${brand ? 'playing' : 'off'} data-ax=${ax > 0 ? String(ax) : undefined}>
     ${view === 'first' ? html`<div class="sz-home__head" aria-hidden="true" style=${{ minHeight: '28px' }}></div>` : html`<header ref=${headRef} class="sz-home__head">
       <p class="sz-home__date" data-testid="home-date">${dateText}</p>
-      <${Epigraph} epigraph=${model.epigraph} />
     </header>`}
+    ${view === 'first' ? null : html`<h1 class="sz-home__title" tabindex="-1" data-page-title data-testid="home-title" aria-describedby=${EPIGRAPH_ID}>${t('R-H01.title')}</h1>`}
     <div class="sz-home__stage">
     <div class="sz-home__main" data-testid="home-main">
-      ${view === 'first' ? null : html`<h1 ref=${titleRef} class="sz-home__title" tabindex="-1" data-page-title data-testid="home-title" aria-describedby=${EPIGRAPH_ID}>${t('R-H01.title')}</h1>`}
-      <div class="sz-home__zone">${zone}</div>
+      ${zone}
     </div>
     <div ref=${footRef} class="sz-home__foot" data-testid="home-foot">
       ${failed ? html`<${FailBlock} onCancel=${() => setFailed(null)} onRetry=${() => run(failed)} />` : null}
       ${view === 'first' ? html`<p class="sz-home__note" data-testid="home-first-tip">${t('R-H03.firstVisit')}</p>` : null}
-      ${view === 'special'
-        ? html`<${Button} variant="text" class="sz-home__side" data-testid="home-capital-defer" onClick=${() => run(deferCapital)}>${t('X-HOME.capitalDefer')}</${Button}>`
-        : model.showPick
-          ? html`<${Button} variant="text" class="sz-home__side" data-testid="home-pick" onClick=${() => openPick()}>${t('X-HOME.pick')}</${Button}>`
-          : null}
+      ${model.other ? html`<${Button} variant="text" class="sz-home__other" data-testid="other-line" data-slot=${model.other.slot}
+        data-kind=${model.other.kind} data-remaining=${String(model.other.remaining)} aria-label=${resumeLineAria(model.other, t)}
+        onClick=${() => run(resumeOther)}>${resumeLineText(model.other, t)}</${Button}>` : null}
+      ${model.showPick || view === 'special' ? html`<div class="sz-home__row">
+        ${model.showPick ? html`<${Button} variant="text" class="sz-home__side" data-testid="home-pick" onClick=${() => openPick()}>${t('X-HOME.pick')}</${Button}>` : null}
+        ${view === 'special' ? html`<${Button} variant="text" class="sz-home__side" data-testid="home-capital-defer" onClick=${() => run(deferCapital)}>${t('X-HOME.capitalDefer')}</${Button}>` : null}
+      </div>` : null}
       <${Button} variant="primary" class="sz-home__cta" data-testid="home-start" aria-label=${ctaLabel}
         onClick=${() => run(startMain)}>${ctaLabel}</${Button}>
     </div>

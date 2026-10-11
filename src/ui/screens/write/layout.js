@@ -1,15 +1,18 @@
 // 写字页 / 判断页的竖向位置与格子边长（阶段 1 E9b；D49 减法修稿；实现交接 §13.2、§9.1、§9.4；P118 / P151 / P190；E9d P195）。
 //
-// 主区 = 页头底 → 按钮行顶 − 12（正文区 .sz-page__body，上下内边距 0）。题面（高 P）、16、书写格（边长 g）、格下工具行（高 T）作为一组放在主区里：
+// 主区 = 页头底 → 按钮行顶 − 12（正文区 .sz-page__body，上下内边距 0）。题面（高 P）、16、书写格（边长 g）、格下说明位（高 T）作为一组放在主区里：
 //   g    = clamp(258, min(屏宽 − 40, 400, 名义主区高 − 80 − 16 − 40 − 16), 400)    D29 / D36 / P195：只由视口决定——名义主区高 = 页面高 − 名义页头 − 名义按钮行（标准字号 L 档的尺寸 + 量到的安全区），
 //                                                                                   名义题面高 80、名义工具行高 40；与系统字号、题面提示行无关（xS–XXXL）。
 // AX 档（D51 ⑦，P225，ADA A2-01）不再「放不下整页滚动」：整页永不滚动，格子按实际可用高度排——axWriteLayout：
 //   g = clamp(220, min(屏宽 − 40, 400, 实际主区高 − P − 16 − N − 16), 400)        N = 格下说明位的实际高度（R3-K1 P241：量到的，至少 56；撤销 / 清空已移到页头，底栏只剩「写好了」+「⋯」）
 //   组高 = P + 16 + g + N，组顶按同一条 40% 规则；格子与说明位完整显示在首屏，下限 220；格子到了下限仍放不下说明位时，说明并入「⋯」菜单顶部（N 记 0）。
-//   组高 = P + 16 + g + T                                                           P、T 取实际（AX 档的词语行、52 高工具行更高）
-//   组顶 = max(12, round((主区高 − 组高) × 0.4))                                    主区高取实际量到的；空余 40% 在上、60% 在下（空余不足 12 时取空余本身，不足 0 时取 0）
+//   组高 = P + 16 + g + T                                                           P 取这张卡量到的整个题面高，T = 40（说明位）
+//   组顶 = max(12, round((主区高 − 组高) × 0.4))                                    主区高：非 AX 档取名义主区高（P257），AX 档取实际量到的；空余 40% 在上、60% 在下（空余不足 12 时取空余本身，不足 0 时取 0）
 //   书写格顶（主区内）= 组顶 + P + 16
 // P = 量到的整个题面高（含有内容时才出现的提示行）。
+// 书写格顶边在同一张卡的所有阶段固定（R3-C3W，第三轮 V3-02 / T3-03，D53 ②，P257）：非 AX 档的组顶也只按「名义主区高 + 这张卡的题面高 P」排（writeLayout 的 nominalHeight），
+// 不再按各阶段实际量到的主区高——后者随页头标题折行 / 说明行 / 步骤点变，旧版同一张卡里量到 230 / 250 / 265pt 三个位置。页头比名义高（大字号下标题折成两行）时，组顶减去多出来的高度
+// （headExtra），书写格在页面上的 y 仍不变。AX 档例外（axWriteLayout 仍按实际可用高度排，P225 / P241）。
 // 判断页（标准字号）：上格与书写格同一顶边、同一中线，两格共用一条 1pt 线：
 //   S = min(屏宽 − 40, ⌊(主区高 − 书写格顶 − 16) ÷ 2⌋)                          无旁注，宽度只受页边限制
 // （实现交接 §9.1 把公式写成「A − 16 − gy」，A = 主操作区顶 = 主区底 + 12；设计稿数值——402：231、SE：177、Pro Max：261——只有按「主区底 − 16 − gy」才对得上，这里取数值。）
@@ -46,7 +49,7 @@ export const NOMINAL_FOOT_H = policy.writeGrid.nominalFoot;
 export const FOOT_BOTTOM_MIN = policy.writeGrid.footBottomMin;
 /** 取不到页面尺寸时的缺省边长（旧标准格 345）。 */
 const STD_GRID = 345;
-/** 估算首帧主区高用的固定部分（页头 44 + 按钮行：上 12 + 主按钮 54 + 间 6 + 文字行 44 + 下 8）。 */
+/** 估算首帧主区高用的固定部分（页头 44 + 按钮行：上 12 + 主按钮 54 + 下 24，P258 起底栏只有一行）。 */
 const HEAD_H = NOMINAL_HEAD_H;
 const FOOT_H = NOMINAL_FOOT_H + FOOT_BOTTOM_MIN;
 
@@ -98,14 +101,17 @@ export function nominalMainHeight({ pageHeight, safeTop = 0, footBottom = FOOT_B
 
 /**
  * 写字页的整组位置：{g, top, gridTop}（gridTop = 书写格顶，主区内的偏移）。
- * g 只按名义版式算（见文件头）；位置按实际量到的主区高、题面高与工具行高排。
- * @param {{width:number, mainHeight:number, nominalHeight?:number, promptHeight?:number}} o
- *   mainHeight：实际主区高；nominalHeight：名义主区高（缺省 = mainHeight，即标准字号下两者相等）；promptHeight：量到的整个题面高 P。AX 档用 axWriteLayout。
+ * g 与组顶都只按名义版式算（P257，D53 ②：书写格顶边在同一张卡的所有阶段固定）：边长见文件头；组顶 = 名义主区高里，按这张卡量到的题面高 P、g、说明位高排的 40% 规则
+ * （不随阶段的实际主区高变）。
+ * @param {{width:number, mainHeight?:number, nominalHeight?:number, promptHeight?:number, headExtra?:number}} o
+ *   nominalHeight：名义主区高（缺省 = mainHeight，即标准字号下两者相等）；promptHeight：量到的整个题面高 P；mainHeight 只在没给 nominalHeight 时当它用；
+ *   headExtra：页头比名义页头高出多少（大字号下标题折行，≥ 0）——正文区被它往下推，组顶减去它，书写格在页面上的 y 不变。AX 档用 axWriteLayout。
  */
-export function writeLayout({ width, mainHeight, nominalHeight = mainHeight, promptHeight = PROMPT_H_STD } = {}) {
+export function writeLayout({ width, mainHeight, nominalHeight = mainHeight, promptHeight = PROMPT_H_STD, headExtra = 0 } = {}) {
   const toolsHeight = TOOLS_H;
   const g = writeGridSize({ width, mainHeight: nominalHeight, promptHeight: PROMPT_H_STD, toolsHeight: TOOLS_H });
-  const top = groupTop({ mainHeight, groupHeight: promptHeight + PROMPT_GAP + g + toolsHeight });
+  const extra = finite(headExtra) && headExtra > 0 ? headExtra : 0;
+  const top = Math.max(0, groupTop({ mainHeight: nominalHeight, groupHeight: promptHeight + PROMPT_GAP + g + toolsHeight }) - extra);
   return { g, top, gridTop: top + promptHeight + PROMPT_GAP, toolsHeight };
 }
 

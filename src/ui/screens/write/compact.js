@@ -11,7 +11,7 @@ import { useEffect, useLayoutEffect, useState } from '../../../../vendor/ui.js';
 import { injectStyles, T } from '../../components/styles.js';
 import * as policy from '../../../config/policy.js';
 import {
-  GRID_MIN, GRID_MAX, writeLayout, axWriteLayout, judgePairSize, judgeAxLayout, estimateLayout, nominalMainHeight, PROMPT_H_STD, FOOT_BOTTOM_MIN,
+  GRID_MIN, GRID_MAX, writeLayout, axWriteLayout, judgePairSize, judgeAxLayout, estimateLayout, nominalMainHeight, PROMPT_H_STD, FOOT_BOTTOM_MIN, NOMINAL_HEAD_H,
 } from './layout.js';
 
 export { GRID_MIN, GRID_MAX };
@@ -124,21 +124,18 @@ export function useAxLevel(win) {
   return level;
 }
 
-/** 这些阶段的页面骨架（页头 + 标准按钮行）就是书写格那一套，量到的主区高有效；其余阶段（看答案 / 描一遍…）沿用最近一次量到的，书写格大小不变（D36）。
- *  AX 档（D51 ⑦，P225）每个阶段的页头 / 底栏都是 AX 专属的一行版式，各阶段都量（见 useWriteLayout）。 */
-const MEASURED_PHASES = Object.freeze(['recall', 'compare']);
 
 /**
  * 写字页 / 判断页的版式：量出页面高、安全区、实际主区高（.sz-page__body 的内高）与题面高 P，交给 layout.js 的纯函数（D49，实现交接 §13.2 / §9.1 / §9.4）。
- * 书写格边长 g 只用「名义主区高」（标准字号下的版式 + 量到的安全区，layout.js nominalMainHeight；P195）——不随系统字号（含 AX 档）、阶段、提示变化（D29 / D36）；
- * 组的位置（top）与判断页两格按实际量到的主区高排。随页面尺寸（ResizeObserver）重算；非回忆 / 判断阶段沿用最近一次量到的值。
+ * 书写格边长 g 与组顶 top 只用「名义主区高」（标准字号下的版式 + 量到的安全区，layout.js nominalMainHeight；P195）与这张卡量到的题面高——不随系统字号（含 AX 档）、阶段、提示变化
+ * （D29 / D36；P257 起书写格顶边在同一张卡的所有阶段固定，所以每个阶段都量、不再「沿用最近一次量到的」补丁）；AX 档与判断页两格按实际量到的主区高排。随页面尺寸（ResizeObserver）重算。
  * @param {{current: HTMLElement|null}} writeRef  .sz-write 元素
  * @param {{phase:string, ax:number}} o
  * @returns {{g:number, top:number, gridTop:number, toolsHeight:number, mainHeight:number, nominalHeight:number, promptHeight:number,
  *            pair:{s:number, layout:'stack'|'side', top:number}}}
  */
 export function useWriteLayout(writeRef, { phase = 'recall', ax = 0, noteKey = null } = {}, win) {
-  const [measured, setMeasured] = useState(() => ({ ...estimateLayout(win), width: NaN, mainHeight: NaN, nominalHeight: NaN, promptHeight: PROMPT_H_STD, noteHeight: NaN, noteKey }));
+  const [measured, setMeasured] = useState(() => ({ ...estimateLayout(win), width: NaN, mainHeight: NaN, nominalHeight: NaN, promptHeight: PROMPT_H_STD, headExtra: 0, noteHeight: NaN, noteKey }));
   useLayoutEffect(() => {
     const w = winOf(win);
     const el = writeRef.current;
@@ -154,9 +151,12 @@ export function useWriteLayout(writeRef, { phase = 'recall', ax = 0, noteKey = n
       // 名义主区高：页面高、上安全区（页头上内边距）、按钮行下内边距（= max(8, 下安全区)）都与系统字号无关，页头 / 按钮行的内容高取 L 档名义值。
       const head = page.querySelector('.sz-page__head');
       const foot = page.querySelector('.sz-page__foot');
+      const safeTop = head ? px(w.getComputedStyle(head).paddingTop) : 0;
+      // 页头比名义页头高多少（大字号下标题折成两行）：正文区被它往下推，组顶要把它减掉，书写格在页面上的 y 才不变（P257）
+      const headExtra = head ? Math.max(0, Math.round((head.offsetHeight - (NOMINAL_HEAD_H + safeTop)) * 10) / 10) : 0;
       const nominalHeight = nominalMainHeight({
         pageHeight: page.clientHeight,
-        safeTop: head ? px(w.getComputedStyle(head).paddingTop) : 0,
+        safeTop,
         footBottom: foot ? px(w.getComputedStyle(foot).paddingBottom) : FOOT_BOTTOM_MIN,
         bodyPad,
       });
@@ -168,16 +168,16 @@ export function useWriteLayout(writeRef, { phase = 'recall', ax = 0, noteKey = n
       const inMenu = !!(below && below.getAttribute('data-in-menu') === 'true');
       const noteNow = below && !inMenu ? below.offsetHeight : NaN;
       setMeasured(prev => {
-        const keep = ax <= 0 && !MEASURED_PHASES.includes(phase) && Number.isFinite(prev.mainHeight);
-        const mh = keep ? prev.mainHeight : mainHeight;
-        const nh = keep ? prev.nominalHeight : nominalHeight;
-        const ph = keep ? prev.promptHeight : promptHeight;
+        const mh = mainHeight;
+        const nh = nominalHeight;
+        const ph = promptHeight;
+        const he = headExtra;
         const sameKey = prev.noteKey === noteKey;
         const prevNote = sameKey && Number.isFinite(prev.noteHeight) ? prev.noteHeight : NaN;
         const nt = Number.isFinite(noteNow) ? (Number.isFinite(prevNote) ? Math.max(prevNote, noteNow) : noteNow) : prevNote;
         const same = (a, b) => a === b || (Number.isNaN(a) && Number.isNaN(b));
-        if (prev.width === width && prev.mainHeight === mh && prev.nominalHeight === nh && prev.promptHeight === ph && same(prev.noteHeight, nt) && sameKey) return prev;
-        return { width, mainHeight: mh, nominalHeight: nh, promptHeight: ph, noteHeight: nt, noteKey };
+        if (prev.width === width && prev.mainHeight === mh && prev.nominalHeight === nh && prev.promptHeight === ph && prev.headExtra === he && same(prev.noteHeight, nt) && sameKey) return prev;
+        return { width, mainHeight: mh, nominalHeight: nh, promptHeight: ph, headExtra: he, noteHeight: nt, noteKey };
       });
     };
     measure();
@@ -195,11 +195,11 @@ export function useWriteLayout(writeRef, { phase = 'recall', ax = 0, noteKey = n
       else w.removeEventListener('resize', measure);
     };
   }, [phase, win, ax > 0, noteKey]);
-  const { width, mainHeight, nominalHeight, promptHeight } = measured;
+  const { width, mainHeight, nominalHeight, promptHeight, headExtra } = measured;
   const noteHeight = measured.noteKey === noteKey ? measured.noteHeight : NaN;
   // AX 档：按实际可用高度排（永不滚动，axWriteLayout）；其余档仍按名义版式（D29 / D36 / P195）。
   const base = Number.isFinite(mainHeight)
-    ? (ax > 0 ? axWriteLayout({ width, mainHeight, promptHeight, noteHeight }) : writeLayout({ width, mainHeight, nominalHeight, promptHeight }))
+    ? (ax > 0 ? axWriteLayout({ width, mainHeight, promptHeight, noteHeight }) : writeLayout({ width, mainHeight, nominalHeight, promptHeight, headExtra }))
     : { g: measured.g, top: measured.top, gridTop: measured.gridTop, toolsHeight: measured.toolsHeight };
   let pair = { s: 0, layout: 'stack', top: base.top };
   if (phase === 'compare' && Number.isFinite(mainHeight)) {

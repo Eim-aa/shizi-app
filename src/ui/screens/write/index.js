@@ -115,7 +115,7 @@ ${W} .sz-page__foot[data-under="true"]::before{content:"";position:absolute;left
 .sz-write__firsttip{display:block}
 .sz-write__headtools{display:flex;align-items:center}
 .sz-write__tools{flex:none;height:44px;display:flex;align-items:center}
-.sz-write__tools[data-shown="false"]{visibility:hidden}
+.sz-write__tools[data-shown="false"]{display:none} /* 看答案阶段无墨可撤：不占页头宽度，标题才不会在大字号下折成两行、把书写格顶下去（P257）；AX 档仍占位（下面） */
 .sz-write__tools[data-paper="true"]{display:none} /* 纸上那一字没有撤销 / 清空，不再为它们空着一块宽度（脚注才放得下，Q2-12） */
 /* 图标按钮（设计系统 sz-ibtn）：可见 36（::before 画底）、热区 44（base.css 的按钮最小 44 就是热区；页头里两个相邻的图标热区不重叠）；有墨 ink2、无墨 ink4 且不可点 */
 .sz-write__ibtn{position:relative;width:44px;height:44px;display:grid;place-items:center;padding:0;color:${T.ink2}}
@@ -137,7 +137,7 @@ ${AX_HI(`${W} .sz-write__below *`)},${AX_HI(`${W} .sz-write__progress`)}{font-si
 ${AX_HI(`${W} .sz-paper__title`)},${AX_HI(`${W} .sz-paper__text`)},${AX_HI(`${W} .sz-paper__back`)}{font-size:calc(28px * 1);line-height:36px}
 :root[data-ax] ${W} .sz-write__note{box-sizing:border-box;min-height:${AX_NOTE_H}px;justify-content:flex-start;padding-top:8px}
 ${AX_HI(`${W} .sz-write__below`)},${AX_HI(`${W} .sz-write__note`)}{min-height:${AX_NOTE_H_HI}px} /* 两行 22pt 辅助字 2 × 30 + 上内边距 8 */
-:root[data-ax] ${W} .sz-write__headtools .sz-write__tools{visibility:visible}
+:root[data-ax] ${W} .sz-write__headtools .sz-write__tools{display:flex;visibility:visible}
 :root[data-ax] ${W} .sz-write__headtools .sz-write__tools[data-shown="false"]{visibility:hidden}
 :root[data-ax] ${W} .sz-write__headtools .sz-write__ibtn svg{width:28px;height:28px}
 :root[data-ax] ${W} .sz-write__headtools .sz-write__ibtn::before{inset:0}

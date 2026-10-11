@@ -49,11 +49,11 @@ test('writeLayout (E9d, P195, D29 / D36): xS–XXXL never shrink the grid — g 
     const big = writeLayout({ width: 402, mainHeight: real, nominalHeight: 626, promptHeight: prompt });
     assert.equal(big.g, L.g, `real main ${real}: g = L g (${L.g})`);
     assert.equal(big.toolsHeight, 40);
-    assert.ok(big.top >= 0 && big.top <= 12 + Math.max(0, real), 'the top gap never pushes the group out of the main area');
+    assert.ok(big.top >= 0, 'the top gap is never negative');
   }
-  // 放不下：组顶取 0，页面整体滚动（非 AX 档仍不缩格子）
+  // 放不下：P257 起组顶也只按名义版式 + 题面高排（不随实际主区高变，书写格顶边才恒定），页面整体可滚（非 AX 档仍不缩格子）
   const tight = writeLayout({ width: 402, mainHeight: 300, nominalHeight: 626, promptHeight: 126 });
-  assert.equal(tight.top, 0);
+  assert.equal(tight.top, 33, 'round((626 − (126 + 16 + 362 + 40)) × 0.4): follows the nominal main height, not the 300 that was measured');
   assert.equal(tight.g, 362);
 });
 
@@ -218,4 +218,20 @@ test('estimateLayout: first-frame guess from the window (no safe area, standard 
   const b = estimateLayout(win(375, 667));
   assert.equal(b.g, 335, 'no safe area: 375 − 40 (the height 667 − 44 − 124 − 72 − 80 = 347 is not the limit)');
   assert.equal(estimateLayout().g, 345, 'no window (node) → 345');
+});
+
+test('writeLayout (P257, D53 ②): the group top follows the NOMINAL main height and this card\'s prompt height only — the actual main height of a phase (taller head / foot) does not move the grid; headExtra lifts the group so the grid y on the page is unchanged', () => {
+  const nominal = writeLayout({ width: 402, mainHeight: 740, nominalHeight: 740, promptHeight: 80 });
+  assert.deepEqual([nominal.g, nominal.top, nominal.gridTop], [362, 97, 193], '402×874 (browser): g 362, group top 97, grid top 193 below the body top');
+  for (const actual of [740, 700, 650, 620]) {
+    const phase = writeLayout({ width: 402, mainHeight: actual, nominalHeight: 740, promptHeight: 80 });
+    assert.deepEqual([phase.g, phase.top, phase.gridTop], [362, 97, 193], `actual main ${actual}: same g / top / grid top (it used to follow the actual main height: 51–97)`);
+  }
+  // 页头比名义高 27.7（大字号下标题折成两行）：正文区被推下 27.7，组顶减去它，页面上的 y 不变
+  const lifted = writeLayout({ width: 402, mainHeight: 712, nominalHeight: 740, promptHeight: 80, headExtra: 27.7 });
+  assert.ok(Math.abs(lifted.top - (97 - 27.7)) < 1e-9 && Math.abs(lifted.gridTop + 27.7 - 193) < 1e-9, 'top lifted by the head extra');
+  assert.equal(writeLayout({ width: 375, mainHeight: 533, nominalHeight: 533, promptHeight: 80, headExtra: 99 }).top, 0, 'never above the body top');
+  // 同一张卡内题面高不变 → 顶边不变；换一张题面更高的卡（有提示行）才会不同（只和它自己的各阶段比）
+  const tall = writeLayout({ width: 402, mainHeight: 740, nominalHeight: 740, promptHeight: 126 });
+  assert.notEqual(tall.gridTop, nominal.gridTop);
 });

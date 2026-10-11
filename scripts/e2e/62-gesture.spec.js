@@ -9,7 +9,7 @@
 import { bootTestHost, tid, topSel, waitNavIdle } from './helpers.mjs';
 
 // 与 src/ui/router.js 一致（BACK_COMMIT_RATIO / BACK_COMMIT_VELOCITY / BACK_PARALLAX），也与 Swift 阈值一致。
-const RATIO = 0.5; // P103 / D36：v > 500 || (x > 50% 宽 && v > -200)
+const RATIO = 1 / 3; // R4-G1 / P270（原 D36 50%）：v > 500 || (x > 1/3 宽 && v > -200)
 const VELOCITY = 500;
 const RETURN_VELOCITY = -200;
 const PARALLAX = 0.3;
@@ -96,7 +96,7 @@ async function pushDemo(page, times) {
 export default async function gesture(page, ctx) {
   const { assert, step } = ctx;
   const W = ctx.viewport.width;
-  const farX = Math.ceil(W * RATIO) + 20; // 过半个宽
+  const farX = Math.ceil(W * RATIO) + 20; // 过三分之一个宽
 
   step('boot (test host)');
   await bootTestHost(page, ctx.baseURL);
@@ -186,7 +186,7 @@ export default async function gesture(page, ctx) {
   assert.equal((await layers(page)).depth, 2, 'v 450 from a short distance: page kept');
   await swift(page, 'began', 0);
   await swift(page, 'changed', farX);
-  assert.equal(await swift(page, 'ended', farX, RETURN_VELOCITY - 100), false, 'past half but pulling back: Swift does not fire');
+  assert.equal(await swift(page, 'ended', farX, RETURN_VELOCITY - 100), false, 'past the threshold but pulling back: Swift does not fire');
   await waitNavIdle(page);
   L = await layers(page);
   assert.equal(L.depth, 2, 'pull-back past half: page kept');

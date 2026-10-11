@@ -43,7 +43,7 @@ export function registerScreen(name, component, opts = {}) {
     order: Number.isFinite(opts.order) ? opts.order : 0,
     label: typeof opts.label === 'string' ? opts.label : name,
     icon: opts.icon || null,
-    // 01 §7：本屏在顶层期间自己管原生左缘返回手势门控（写字页整页 false）；根组件此时不发 backGestureEnabled。
+    // 01 §7：本屏在顶层期间自己管原生左缘返回手势门控；根组件此时不发 backGestureEnabled（R4-G1 起写字页不再声明，目前没有页面用）。
     ownsBackGesture: opts.ownsBackGesture === true,
   };
   registry.set(name, def);
@@ -129,6 +129,7 @@ export function createRouter(options) {
   let started = false;
   let defaultTabName = null;
   let nativeBackFilter = null; // M6-5：跟手手势已处理过的 shizi-native-back 由它吞掉（见 createBackGestureController）
+  let backGesture = null; // R4-G1：交互式返回控制器（root.js 接上；setBackProgress / finishBack / cancelBack 转给它）
   const queue = [];
   const overlays = new Map(); // id -> {component, props, name}
   const listeners = new Set();
@@ -454,6 +455,33 @@ export function createRouter(options) {
       nativeBackFilter = typeof fn === 'function' ? fn : null;
     },
 
+    // R4-G1 交互式返回接口（与具体动画样式解耦）：进度 0–1 驱动「当前的返回转场」，样式由根组件的转场定义决定。
+    // 原生边缘手势与网页兜底手势都经它（或经同一控制器的 handle）驱动；以后换进出动画只换转场定义，不动这里。
+    /** 接上 / 拆下交互式返回控制器（createBackGestureController 的实例）。 */
+    attachBackGesture(ctrl) {
+      backGesture = ctrl && typeof ctrl.beginBack === 'function' ? ctrl : null;
+    },
+    /** 开始一次交互式返回：顶层是遮罩时直接关遮罩（返回 'overlay'）；能跟手返回时返回 'page'；不能返回时 'ignored'。 */
+    beginBack() {
+      return backGesture ? backGesture.beginBack() : 'ignored';
+    },
+    /** 进度 p（0–1，按视口宽的比例），velocity 为 px/s（向右为正，可省）。 */
+    setBackProgress(p, velocity = 0) {
+      return backGesture ? backGesture.setBackProgress(p, velocity) : false;
+    },
+    /** 松手：按阈值（位移 > 1/3 宽或速度 > 500）决定完成或回弹；返回是否完成。 */
+    endBack(velocity = 0) {
+      return backGesture ? backGesture.endBack(velocity) : false;
+    },
+    /** 直接完成返回（短动画补完）。 */
+    finishBack() {
+      return backGesture ? backGesture.finishBack() : false;
+    },
+    /** 取消（回弹）。 */
+    cancelBack() {
+      return backGesture ? backGesture.cancelBack() : false;
+    },
+
     switchTab(name) {
       const def = getScreen(name);
       if (!def || !def.tab) throw new Error(`router.switchTab: "${name}" is not a registered tab screen`);
@@ -534,7 +562,9 @@ export function createRouter(options) {
 
 // ---------------------------------------------------------------------------
 // 原生左缘返回手势门控（01 §7）：tab 根页与阻断页不可返回 → backGestureEnabled(false)；有子页 → true。
-// 写字页（ownsBackGesture）为顶层时由它自己置 false，根组件不插手；bridge.setBackGestureEnabled 只在值变化时发。
+// R4-G1（P270）：顶层页面的页头左上不是返回 / 关闭键（判断页「接着写」）时也是 false（ui/back-action.js 登记 null）；
+// 写字页不再整页关掉手势（原 M0-7 / ownsBackGesture：书写格四周有 20pt 页边，边缘起手不会落在格子里）。
+// 写字页以外仍可用 ownsBackGesture 自己管门控（目前没有页面用）；bridge.setBackGestureEnabled 只在值变化时发。
 
 /** 页面栈深度：页面条目数 − 1（遮罩不算）。0 = tab 根页。 */
 export function pageDepth(snap) {
@@ -544,56 +574,64 @@ export function pageDepth(snap) {
   return Math.max(0, n - 1);
 }
 
-/** 按路由快照（与是否阻断）算原生左缘返回手势该不该开：阻断页 / tab 根页 false，有子页 true。 */
-export function backGestureAllowed(snap, blocked = false) {
-  return !blocked && pageDepth(snap) > 0;
+/** 按路由快照（与是否阻断、顶层页面能不能返回）算原生左缘返回手势该不该开：阻断页 / tab 根页 / 顶层不能返回 false，有子页 true。 */
+export function backGestureAllowed(snap, blocked = false, actionAllowed = true) {
+  return !blocked && actionAllowed !== false && pageDepth(snap) > 0;
 }
 
 /**
  * 根组件用的门控同步器（纯逻辑，可注入 send 与屏幕查询，单测用）。
- * update(snap, blocked) 只在「页面栈深度 / 阻断」变化时发一次；顶层页面 ownsBackGesture 时只记下深度、不发。
+ * update(snap, blocked, actionAllowed) 只在「页面栈深度 / 阻断 / 顶层能否返回」变化时发一次；顶层页面 ownsBackGesture 时只记下、不发。
  * @param {{send: (value:boolean) => any, screenOf?: (name:string) => any}} deps
  */
 export function createBackGestureSync({ send, screenOf = getScreen }) {
   let lastKey;
   return {
-    update(snap, blocked = false) {
-      const key = blocked ? 'blocked' : pageDepth(snap);
+    update(snap, blocked = false, actionAllowed = true) {
+      const key = blocked ? 'blocked' : `${pageDepth(snap)}|${actionAllowed !== false}`;
       if (key === lastKey) return false;
       lastKey = key;
       if (!blocked) {
         const top = snap && snap.top ? screenOf(snap.top.n) : null;
         if (top && top.ownsBackGesture) return false;
       }
-      send(backGestureAllowed(snap, blocked));
+      send(backGestureAllowed(snap, blocked, actionAllowed));
       return true;
     },
   };
 }
 
 // ---------------------------------------------------------------------------
-// 跟手交互式返回（M6-5，01 §7：Swift 的 UIScreenEdgePanGestureRecognizer 是手势唯一所有者，
-// 每个阶段派发 shizi-native-back-progress {phase, translationX, progress, velocityX}；JS 只按事件渲染）。
+// 跟手交互式返回（M6-5；R4-G1 重做接口）。
 //
-// - began：遮罩栈非空（顶层是遮罩）→ 直接关顶层遮罩，页面不动，本次手势余下的事件都不跟随；
-//          否则有子页 → 冻结底层页（露出、不可点），开始跟随；tab 根 / 阻断 / 转场或导航进行中 → 不理会。
-// - changed：顶层页 translateX 跟手，底层页视差（从 -BACK_PARALLAX × 宽 滑到 0），顶层页带左投影。
+// 驱动方有两个，事件语义相同：
+//   1. 原生（01 §7）：Swift 的左缘识别器（UIScreenEdgePanGestureRecognizer + 页边 20pt 起手的平移识别器）每个阶段派发
+//      shizi-native-back-progress {phase, translationX, progress, velocityX}，经 handle(detail) 进来；
+//   2. 网页兜底（浏览器 / 主屏 PWA，ui/edge-swipe.js）：左缘 20px 起手的指针拖动，派发同一个事件（原生壳内关闭）。
+// 控制器只管「进度 → 完成 / 取消」的状态机；画面由 onView(view) 交给根组件，按当前转场定义（ui/root.js BACK_TRANSITIONS）
+// 把进度画成图层样式——换进出动画时只换转场定义。对外接口（router.beginBack / setBackProgress / endBack / finishBack / cancelBack）
+// 直接对应下面同名方法。
+//
+// - began：遮罩栈非空（顶层是遮罩）→ 直接关顶层遮罩，页面不动，本次手势余下的事件都不跟随（与点「‹」先关弹层一致）；
+//          否则有子页且顶层页面能返回（页头左上是返回 / 关闭键）→ 冻结底层页（露出、不可点），开始跟随；
+//          tab 根 / 阻断 / 顶层不能返回 / 转场或导航进行中 → 不理会。
+// - changed：进度 = 位移 / 宽，跟手（顶层右移、底层视差，样式由转场定义决定）；可中途反向。
 // - ended：速度 > BACK_COMMIT_VELOCITY，或（位移 > BACK_COMMIT_RATIO × 宽 且 速度 > BACK_RETURN_VELOCITY，即没有明显往回拉）
-//          → 提交 back（转场从当前位置接着走）；否则回弹（P103 / D36，与系统返回手势对齐）。
+//          → 完成：执行顶层页面的返回动作（与点页头左上键同一个函数，ui/back-action.js），转场从当前位置接着走；否则回弹。
 // - cancelled：回弹。
-// - 减少动态效果：不跟随（页面不动），ended 仍按阈值提交（转场走交叉淡化）。
+// - 减少动态效果：不跟随（页面不动），ended 仍按阈值完成，完成后的返回转场是 GESTURE_FADE_MS 的交叉淡化（root.js）。
 // - Swift 在 ended 越过同一阈值时紧接着派发 shizi-native-back：本次手势已处理，由 absorbNativeBack() 吞掉。
-// 纯逻辑（状态、计时器、宽度都可注入），渲染由 onView(view) 交给 ui/root.js；单测 test/ui/gesture.test.mjs。
+// 纯逻辑（状态、计时器、宽度都可注入）；单测 test/ui/gesture.test.mjs。
 
-// 与 ios/ShiziApp/ShiziApp/WebViewController.swift dispatchBackGesture 的阈值一致（改一处必须改另一处）。
-export const BACK_COMMIT_RATIO = 0.5; // 位移过半个宽才算（D36：原 24%）
-export const BACK_COMMIT_VELOCITY = 500; // pt/s（= CSS px/s）：向右甩过这个速度，不看位移（D36：原 650）
-export const BACK_RETURN_VELOCITY = -200; // pt/s：位移过半后若向左回拉快过这个速度，视为取消（D36）
+// 与 ios/ShiziApp/ShiziApp/WebViewController.swift BackGestureThreshold 的阈值一致（改一处必须改另一处）。
+export const BACK_COMMIT_RATIO = 1 / 3; // 位移过三分之一个宽（R4-G1 / P270；D36 时为 50%）
+export const BACK_COMMIT_VELOCITY = 500; // pt/s（= CSS px/s）：向右甩过这个速度，不看位移（D36）
+export const BACK_RETURN_VELOCITY = -200; // pt/s：位移过阈值后若向左回拉快过这个速度，视为取消（D36）
 export const BACK_PARALLAX = 0.3;
 export const GESTURE_SNAP_MS = 200;
 // ended 之后多久内到达的 shizi-native-back 算「同一次手势」（Swift 在同一段脚本里紧接着派发，实际是同步的）。
 export const GESTURE_ABSORB_MS = 600;
-// 提交后等不到返回转场（history 卡住）就回弹，不让页面停在半路。
+// 提交后等不到返回转场（history 卡住、返回动作没有导航）就回弹，不让页面停在半路。
 export const GESTURE_COMMIT_TIMEOUT_MS = PENDING_TIMEOUT_MS + 200;
 
 function clampNum(value, lo, hi) {
@@ -602,7 +640,7 @@ function clampNum(value, lo, hi) {
   return Math.min(hi, Math.max(lo, n));
 }
 
-/** ended 时是否提交返回：v > 500 || (x > 50% 宽 && v > -200)。 */
+/** ended 时是否提交返回：v > 500 || (x > 1/3 宽 && v > -200)。 */
 export function backGestureCommits(detail, width) {
   const w = Math.max(1, Number(width) || 1);
   const x = clampNum(detail && detail.translationX, 0, w);
@@ -621,16 +659,20 @@ export function gestureLayerX(x, width) {
 /**
  * @param {object} deps
  * @param {() => object} deps.getState         路由快照（router.getState）
- * @param {() => any} deps.back                返回一层 / 关顶层遮罩（router.back({cause:'native'})）
+ * @param {() => any} deps.back                完成返回：执行顶层页面的返回动作（根组件：页头左上键的动作，没登记时 router.back）
+ * @param {() => any} [deps.closeOverlay]      关顶层遮罩（缺省同 back）
+ * @param {() => boolean} [deps.allowed]       顶层页面能不能滑动返回（页头左上是返回 / 关闭键）
  * @param {() => number} [deps.width]          视口宽（CSS px）
  * @param {() => boolean} [deps.reducedMotion]
  * @param {() => boolean} [deps.blocked]       阻断页（R-B09）
  * @param {() => boolean} [deps.busy]          页面转场进行中
- * @param {(view: null | {phase:'follow'|'snap'|'commit', x:number, under:number, width:number}) => void} [deps.onView]
+ * @param {(view: null | {phase:'follow'|'snap'|'commit', progress:number, x:number, under:number, width:number}) => void} [deps.onView]
  */
 export function createBackGestureController(deps) {
   const getState = deps.getState;
   const back = deps.back;
+  const closeOverlay = deps.closeOverlay || back;
+  const allowed = deps.allowed || (() => true);
   const widthOf = deps.width || (() => 1);
   const reducedMotion = deps.reducedMotion || (() => false);
   const blocked = deps.blocked || (() => false);
@@ -641,9 +683,10 @@ export function createBackGestureController(deps) {
   const clearTimer = deps.clearTimeout || (id => clearTimeout(id));
   const snapMs = Number.isFinite(deps.snapMs) ? deps.snapMs : GESTURE_SNAP_MS;
 
-  let session = null; // {mode:'page'|'overlay'|'ignored', follow, width, x, ended, endedAt, committed, absorbed}
+  let session = null; // {mode:'page'|'overlay'|'ignored', follow, width, x, velocity, ended, endedAt, committed, absorbed}
   let view = null;
   let timer = null;
+  let reducedCommit = 0; // 减少动态效果下刚完成的那一次的时刻（root.js 据此把返回转场换成 GESTURE_FADE_MS 淡化）
 
   function stopTimer() {
     if (timer !== null) clearTimer(timer);
@@ -657,7 +700,7 @@ export function createBackGestureController(deps) {
 
   function frame(phase, x, width) {
     const { top, under } = gestureLayerX(x, width);
-    return { phase, x: top, under, width };
+    return { phase, progress: Math.round((top / width) * 10000) / 10000, x: top, under, width };
   }
 
   function snapBack() {
@@ -676,23 +719,24 @@ export function createBackGestureController(deps) {
     if (blocked()) {
       session = { mode: 'ignored', ended: false };
       if (view) show(null);
-      return;
+      return session.mode;
     }
     if (s.topIsOverlay) {
-      // 弹层开着：左缘右滑先关遮罩（02 §8），页面不动。
+      // 弹层开着：左缘右滑先关遮罩（02 §8，与点「‹」时先关弹层一致），页面不动。
       session = { mode: 'overlay', ended: false };
       if (view) show(null);
-      back();
-      return;
+      closeOverlay();
+      return session.mode;
     }
-    if (pageDepth(s) === 0 || s.pending || busy()) {
+    if (pageDepth(s) === 0 || s.pending || busy() || !allowed()) {
       session = { mode: 'ignored', ended: false };
-      return;
+      return session.mode;
     }
     const follow = !reducedMotion();
-    session = { mode: 'page', follow, width, x, ended: false };
+    session = { mode: 'page', follow, width, x, velocity: 0, ended: false };
     if (follow) show(frame('follow', x, width));
     else if (view) show(null);
+    return session.mode;
   }
 
   function end(committed) {
@@ -701,52 +745,100 @@ export function createBackGestureController(deps) {
     session.committed = committed;
   }
 
+  function live() {
+    return !!session && !session.ended;
+  }
+
+  function widthNow() {
+    return live() && session.width ? session.width : Math.max(1, Number(widthOf()) || 1);
+  }
+
+  function move(x) {
+    if (!live()) {
+      begin(x, widthNow()); // began 丢失的兜底：changed 开启新的手势
+      return;
+    }
+    if (session.mode !== 'page') return;
+    session.x = x;
+    if (session.follow) show(frame('follow', x, session.width));
+  }
+
+  /** 完成（commit = true）或回弹。只对跟随中的页面手势有效；遮罩 / 不理会的手势只记下结束。返回是否完成。 */
+  function settle(commit) {
+    if (!live()) return false;
+    if (session.mode !== 'page') {
+      end(false);
+      return false;
+    }
+    end(commit);
+    if (!commit) {
+      snapBack();
+      return false;
+    }
+    if (session.follow) {
+      show(frame('commit', session.x, session.width));
+      stopTimer();
+      timer = setTimer(() => {
+        timer = null;
+        if (view && view.phase === 'commit') snapBack();
+      }, GESTURE_COMMIT_TIMEOUT_MS);
+    } else {
+      reducedCommit = now();
+    }
+    back();
+    return true;
+  }
+
   return {
-    /** 处理一条 shizi-native-back-progress 的 detail。 */
+    /** 处理一条 shizi-native-back-progress 的 detail（原生与网页兜底同一形状）。 */
     handle(detail) {
       const d = detail || {};
       const phase = d.phase;
-      const live = session && !session.ended;
-      const width = live && session.width ? session.width : Math.max(1, Number(widthOf()) || 1);
+      const width = widthNow();
       const x = clampNum(d.translationX, 0, width);
-      if (phase === 'began' || (phase === 'changed' && !live)) {
+      if (phase === 'began') {
         begin(x, width);
         return;
       }
-      if (!live) return; // 没见过 began 的 ended / cancelled：不理会（shizi-native-back 照常返回）
       if (phase === 'changed') {
-        if (session.mode !== 'page') return;
-        session.x = x;
-        if (session.follow) show(frame('follow', x, width));
+        move(x);
         return;
       }
+      if (!live()) return; // 没见过 began 的 ended / cancelled：不理会（shizi-native-back 照常返回）
       if (phase === 'ended') {
-        if (session.mode !== 'page') {
-          end(false);
-          return;
-        }
-        session.x = x;
-        const commit = backGestureCommits({ translationX: x, velocityX: d.velocityX }, width);
-        end(commit);
-        if (!commit) {
-          snapBack();
-          return;
-        }
-        if (session.follow) {
-          show(frame('commit', x, width));
-          stopTimer();
-          timer = setTimer(() => {
-            timer = null;
-            if (view && view.phase === 'commit') snapBack();
-          }, GESTURE_COMMIT_TIMEOUT_MS);
-        }
-        back();
+        if (session.mode === 'page') session.x = x;
+        settle(backGestureCommits({ translationX: x, velocityX: d.velocityX }, session.width || width));
         return;
       }
-      if (phase === 'cancelled') {
-        end(false);
-        if (session.mode === 'page') snapBack();
-      }
+      if (phase === 'cancelled') settle(false);
+    },
+
+    // ---- 与动画样式无关的进度接口（router.beginBack / setBackProgress / endBack / finishBack / cancelBack）
+
+    /** 开始：返回 'page'（跟随）| 'overlay'（已关顶层遮罩）| 'ignored'。 */
+    beginBack() {
+      return begin(0, Math.max(1, Number(widthOf()) || 1));
+    },
+    /** 进度 p ∈ [0, 1]（按宽的比例）；没有进行中的手势时等于先开始。返回是否在跟随页面。 */
+    setBackProgress(p, velocity = 0) {
+      move(clampNum(p, 0, 1) * widthNow());
+      if (live()) session.velocity = Number(velocity) || 0;
+      return live() && session.mode === 'page';
+    },
+    /** 松手：按阈值完成或回弹。返回是否完成。 */
+    endBack(velocity) {
+      if (!live()) return false;
+      const v = velocity === undefined ? session.velocity || 0 : Number(velocity) || 0;
+      return settle(session.mode === 'page' && backGestureCommits({ translationX: session.x, velocityX: v }, session.width));
+    },
+    /** 直接完成（不看阈值）。返回是否完成。 */
+    finishBack() {
+      return settle(true);
+    },
+    /** 取消（回弹）。 */
+    cancelBack() {
+      settle(false);
+      return true;
     },
 
     /** shizi-native-back 到达时调用：属于刚结束、已由本控制器处理的那次手势 → true（吞掉），每次手势只吞一次。 */
@@ -766,6 +858,14 @@ export function createBackGestureController(deps) {
       return v;
     },
 
+    /** 减少动态效果下刚由手势完成的返回（每次只认一次，超过 GESTURE_COMMIT_TIMEOUT_MS 不算）：root.js 据此用 GESTURE_FADE_MS 淡化。 */
+    takeReducedCommit() {
+      if (!reducedCommit) return false;
+      const fresh = now() - reducedCommit <= GESTURE_COMMIT_TIMEOUT_MS;
+      reducedCommit = 0;
+      return fresh;
+    },
+
     /** 页面结构另有变化（非本次提交的转场）：立即清掉跟手画面。 */
     reset() {
       stopTimer();
@@ -773,6 +873,8 @@ export function createBackGestureController(deps) {
       if (view) show(null);
     },
 
+    /** 有没有正在跟随的页面手势（began 之后、ended / cancelled 之前）。 */
+    isTracking: () => live() && session.mode === 'page',
     getView: () => view,
     getSession: () => (session ? { ...session } : null),
   };
@@ -821,4 +923,10 @@ export const nav = {
   updateOverlay: (id, props) => need().updateOverlay(id, props),
   closeOverlay: id => need().closeOverlay(id),
   canGoBack: () => need().canGoBack(),
+  // R4-G1 交互式返回（进度驱动当前返回转场；与动画样式解耦）
+  beginBack: () => need().beginBack(),
+  setBackProgress: (p, velocity) => need().setBackProgress(p, velocity),
+  endBack: velocity => need().endBack(velocity),
+  finishBack: () => need().finishBack(),
+  cancelBack: () => need().cancelBack(),
 };

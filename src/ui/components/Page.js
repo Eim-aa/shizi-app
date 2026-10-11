@@ -1,9 +1,12 @@
 // 子页外框：44px 页头（左 44×44 返回或关闭、中间标题 17px/500、右侧 44px 槽）+ 可滚动正文 + 可选底栏。
 // 规格取原型 ShiziScreen 通用页头（reference/J-proto-screen.md「通用页头」）。
 // 返回键只调用 onBack（默认 nav.back() → history.back()），页面栈变化由 router 的 popstate 处理。
+// 左缘右滑返回（R4-G1，P270）：页头左上是返回 / 关闭键时，把同一个动作登记给所在图层（ui/back-action.js），滑动返回与点它做同一件事；
+// 左上换成自定义内容（判断页「接着写」）或 leading='none' 时登记 null，这一层不能滑动返回。
 // TabPage：tab 根页的正文外框（无页头、大标题），tab 条由 ui/root.js 画。
 import { html } from '../../../vendor/ui.js';
 import { nav } from '../router.js';
+import { useBackAction } from '../back-action.js';
 import { Button } from './Button.js';
 import { Icons } from './icons.js';
 import { injectStyles, T } from './styles.js';
@@ -61,6 +64,7 @@ const CLOSE_ICON = () => Icons.close();
  */
 export function Page({ title = '', hideTitle = false, leading = 'back', onBack, lead: customLead = null, trailing = null, footer = null, testid, children }) {
   const goBack = () => (onBack ? onBack() : nav.back());
+  useBackAction(customLead || leading === 'none' ? null : goBack);
   const lead = customLead ? customLead : leading === 'none'
     ? null
     : html`<${Button} variant="icon" class=${leading === 'close' ? 'sz-page__ico--close' : 'sz-page__ico--back'} data-testid="page-back" aria-label=${leading === 'close' ? PAGE_COPY.close : PAGE_COPY.back}

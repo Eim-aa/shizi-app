@@ -154,7 +154,7 @@
     "P100": "iOS 相册用途串文案：ios/ShiziApp/ShiziApp/Info.plist，产品确认项",
     "P101": "深色对比度豁免（印章、墨墙墨色、结果格浅字）：登记在 scripts/e2e/60-matrix.spec.js 的豁免表，设计确认项",
     "P102": "矩阵发现的版式修正：home/index.js、library/all.js、library/list.js、detail/records.js 的样式，设计过目项",
-    "P103": "跟手返回常量：src/ui/router.js（BACK_COMMIT_RATIO/VELOCITY/RETURN_VELOCITY/PARALLAX）与 root.js；提交条件已决定 D36：v > 500 || (x > 0.5w && v > -200)，设计确认项",
+    "P103": "跟手返回常量：src/ui/router.js（BACK_COMMIT_RATIO/VELOCITY/RETURN_VELOCITY/PARALLAX）与 root.js（GESTURE_FADE_MS）；提交条件已决定 D55（R4-G1，原 D36 为 0.5w）：v > 500 || (x > w/3 && v > -200)，与 Swift BackGestureThreshold 一致；不是运行时开关",
     "P104": "性能工程值：scripts/perf/README.md 与 compare.js NEAR_SCREENS，知悉项",
     "P105": "API 下限告警（cq 单位、:focus-visible）：scripts/verify_api_floor.mjs 的 warn 清单，产品定最低版本",
     "P106": "文案审计豁免：scripts/verify_copy.mjs 的 exportWordAllow / numeralAllow / HARDCODE_ALLOW，文案裁定项",
@@ -234,7 +234,10 @@
     "P221": "「拾」的交接（H1，D51 ④；C3-H，D53 ④，P245）已被 H2（D55，P267）取消：`home/handoff.js` 删除、`settings.shiHandoffDone` 不再读写（schema 字段保留兼容旧数据）；不是运行时开关",
     "P168": "读屏开启时的建议（P1-E8，D56 起取代为 P276）：出现的判定与记一次（settings.paperSuggested）仍是 src/core/paper.js paperSuggestDue、write/paper.js usePaperSuggest；建议文案与按钮见 copy-source extra X-PAPER（decision P276）；不是运行时开关",
     "P275": "「在纸上写」从写字页移到设置（R4-P1，D56）：写字页底栏与格下没有「在纸上写」入口，写字方式只在设置 › 写字方式里选；纸面格里的「改回在屏幕上写」保留；版式与结构，src/ui/screens/write/index.js、paper.js、foot.js；不是运行时开关",
-    "P278": "AX 档底栏让步顺序（R4-P1，D56）：书写格会低于 220 时直接把主按钮字号封顶 34pt，不再先收起「在纸上写」；版式公式在 src/ui/screens/write/layout.js axWriteLayout（tight）与 write/index.js；不是运行时开关"
+    "P278": "AX 档底栏让步顺序（R4-P1，D56）：书写格会低于 220 时直接把主按钮字号封顶 34pt，不再先收起「在纸上写」；版式公式在 src/ui/screens/write/layout.js axWriteLayout（tight）与 write/index.js；不是运行时开关",
+    "P270": "全 App 左缘右滑返回（R4-G1，D55）：有「‹」/「×」的子页从左缘任意高度右滑返回、跟手、按 P103 阈值完成或回弹；完成时执行页头左上键的同一个动作（ui/back-action.js）；弹层开着先关弹层；写字页不再整页关手势，判断阶段（左上「接着写」）不能滑动返回；减少动态效果淡化 150ms；不是运行时开关",
+    "P271": "网页兜底左缘手势（R4-G1，D55）：浏览器 / PWA 在页头以下左缘 12px 起手带（.sz-edge，touch-action:none，不盖页头「‹」与页边线上按钮的点击区）上判方向，派发与原生同形状的 shizi-native-back-progress；竖向转滚动、轻点转给下面的元素；原生壳内不装；不是运行时开关",
+    "P272": "原生左缘识别器装法（R4-G1，D55）：识别器挂在 WKWebView 的容器视图上（避开 WebKit deferring 手势）；系统边缘识别器 + 页边 20pt 起手平移识别器（要求前者先失败）；页面滚动容器的平移识别器要求两者先失败；不是运行时开关"
   },
   "noCopy": [
     "R-H07",

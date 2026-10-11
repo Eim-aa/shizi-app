@@ -7,8 +7,11 @@
 //   began 冻结底层页（露出、不可点、跟手期间不重画——位移直接写 style.transform，不走 setState），changed 顶层页跟手、
 //   底层页视差、顶层页左投影；ended 过阈值提交 back（转场从手指位置接着滑出），否则回弹；cancelled 回弹；
 //   顶层是遮罩时 began 只关遮罩、页面不动；减少动态效果时不跟随，只按阈值提交；
-// - 原生左缘返回门控：tab 根页 / 阻断页 backGestureEnabled(false)，有子页 true；只在页面栈深度或阻断变化时发，
-//   写字页为顶层时由写字页自己管（router.createBackGestureSync）。
+// - 原生左缘返回门控：tab 根页 / 阻断页 / 顶层页面左上不是返回键（判断页「接着写」）backGestureEnabled(false)，有子页 true；
+//   只在页面栈深度、阻断或顶层能否返回变化时发（router.createBackGestureSync）。写字页也能滑动返回（R4-G1，P270）。
+// - 交互式返回（R4-G1）：完成时执行顶层页面页头左上键的同一个动作（ui/back-action.js；结果页「×」先收起撤销条再回来源），
+//   转场样式由 BACK_TRANSITION 决定（控制器只给进度）；减少动态效果时不跟手，完成后 GESTURE_FADE_MS 淡化。
+//   浏览器 / 主屏 PWA 另有网页兜底手势（ui/edge-swipe.js，页头以下左缘 12px 起手），原生壳内关闭，免得两套手势打架。
 // Tab 页滚动容器顶部有一条吸附的纸色渐变遮罩（::before，P0-A8 / G20）：内容滚进状态栏 / 灵动岛时淡出，不与时间、电池重叠；
 // 不拦截点击（pointer-events:none），浅深色都走 --p。阶段 3 由系统的滚动边缘效果取代。
 // 每个页面图层一直挂着（下面的页面 visibility:hidden），返回时页面内状态与滚动位置都在。
@@ -17,6 +20,8 @@
 import { html, render, useEffect, useLayoutEffect, useRef, useState } from '../../vendor/ui.js';
 import {
   attachWindow,
+  backGestureAllowed,
+  BACK_PARALLAX,
   createBackGestureController,
   createBackGestureSync,
   createRouter,
@@ -29,7 +34,9 @@ import {
   setActiveRouter,
 } from './router.js';
 import { setBackGestureEnabled } from '../platform/bridge.js';
-import { isStandalone, isTestHost } from '../platform/env.js';
+import { isNativeShell, isStandalone, isTestHost } from '../platform/env.js';
+import { backActionAllowed, EntryContext, runBackAction, subscribeBackActions } from './back-action.js';
+import { attachEdgeSwipe, EdgeStrip } from './edge-swipe.js';
 import { markStateChange } from './components/Button.js';
 import { Tabs } from './components/Tabs.js';
 import './components/marks.js'; // 朱色白名单组件：写错朱点与印章（D43，P1-E1a）
@@ -56,6 +63,45 @@ export const FADE_MS = 120;
 export const SNAP_MS = 200;
 // 跟手提交后的返回转场按剩余距离缩短，但不短于这个值。
 const GESTURE_POP_MIN_MS = 150;
+/** 减少动态效果时由手势完成的返回：不跟手，松手直接交叉淡化这么久（R4-G1，P270）。 */
+export const GESTURE_FADE_MS = 150;
+
+// 交互式返回的转场定义（R4-G1）：控制器（router.createBackGestureController）只给进度，这里决定进度画成什么样。
+// 现用推入 / 返回同一套几何：顶层页右移 progress × 宽，底层页从 -BACK_PARALLAX × 宽 视差归位，顶层带左投影。
+// 以后换写字页进出动画时换掉这个对象（与 useLayoutEffect 里的推入 / 返回关键帧保持一致），控制器与原生 / 网页手势都不用动。
+export const BACK_TRANSITION = Object.freeze({
+  /** 跟手开始：两层进入拖动状态。 */
+  begin(top, under) {
+    if (top) top.classList.add('sz-layer--moving');
+    if (under) under.classList.add('sz-layer--under');
+  },
+  /** 画一帧：view.phase 'follow' 直接设值、'snap' 走 SNAP_MS 过渡回原位、'commit' 停在松手处等返回转场接手。 */
+  frame(top, under, view) {
+    const w = view.width || 1;
+    const x = Number.isFinite(view.x) ? view.x : view.progress * w;
+    const snapping = view.phase === 'snap';
+    if (top) {
+      top.classList.toggle('sz-layer--snap', snapping);
+      top.style.transform = `translateX(${x}px)`;
+    }
+    if (under) {
+      under.classList.toggle('sz-layer--snap', snapping);
+      under.style.transform = `translateX(${Math.round(-(w - x) * BACK_PARALLAX * 100) / 100 || 0}px)`;
+    }
+  },
+  /** 收尾：清掉跟手写下的样式。 */
+  clear(el) {
+    if (!el) return;
+    el.style.transform = '';
+    el.classList.remove('sz-layer--moving', 'sz-layer--snap', 'sz-layer--under');
+  },
+  /** 完成时返回转场的起点（顶层 / 底层的 translateX）：从手指松开的位置接着走。 */
+  handoff(view) {
+    const w = view.width || 1;
+    const x = Number.isFinite(view.x) ? view.x : view.progress * w;
+    return { startX: x, underX: Math.round(-(w - x) * BACK_PARALLAX * 100) / 100 || 0, width: w };
+  },
+});
 
 injectStyles('root', `
 .sz-app{position:fixed;inset:0;overflow:hidden;background:${T.paper};color:${T.ink1};font-family:${T.hei};
@@ -126,7 +172,7 @@ function Layer({ router, group, isRoot, visible, isTop }) {
     : Comp ? html`<${Comp} params=${e.p} entry=${e} />` : null;
   // transform 与 sz-layer--moving/--snap/--under 由转场与跟手手势直接写 DOM（style 里不带 transform，Preact 不会覆盖）。
   const style = { visibility: visible ? 'visible' : 'hidden' };
-  return html`<div
+  return html`<${EntryContext.Provider} value=${e.id}><div
     class="sz-layer"
     data-entry=${e.id}
     data-screen=${e.n}
@@ -136,7 +182,7 @@ function Layer({ router, group, isRoot, visible, isTop }) {
   >
     <div class="sz-layer__screen" aria-hidden=${topOverlay ? 'true' : undefined}>${content}</div>
     ${group.overlays.map(o => html`<${OverlayHost} key=${o.id} router=${router} id=${o.id} active=${isTop && o.id === topOverlay} />`)}
-  </div>`;
+  </div></${EntryContext.Provider}>`;
 }
 
 function Root({ router, win }) {
@@ -162,19 +208,24 @@ function Root({ router, win }) {
     animRef.current.handledSeq = t.seq;
     const ctrl = gestureRef.current.ctrl;
     const gv = ctrl ? ctrl.getView() : null;
-    const fromGesture = !!(t.kind === 'pop' && t.cause === 'native' && gv && gv.phase === 'commit' &&
+    // 跟手完成的返回：顶层页面的返回动作（nav.back，或结果页回首页时的静默返回）弹出的正是跟手的那一页 → 转场从手指位置接着走。
+    const fromGesture = !!(t.kind === 'pop' && gv && gv.phase === 'commit' &&
       t.from && gestureRef.current.els && gestureRef.current.els.topId === t.from.id);
-    if (t.animate && (t.kind === 'push' || t.kind === 'pop') && t.from && t.to) {
+    // 减少动态效果下由手势完成的返回：不跟手，松手直接淡化 GESTURE_FADE_MS（R4-G1）。
+    const reducedGesture = !!(t.kind === 'pop' && ctrl && !gv && prefersReducedMotion(win) && ctrl.takeReducedCommit());
+    if ((t.animate || fromGesture || reducedGesture) && (t.kind === 'push' || t.kind === 'pop') && t.from && t.to) {
+      const start = fromGesture ? BACK_TRANSITION.handoff(gv) : { startX: 0, underX: 0, width: 0 };
       animRef.current.current = {
         seq: t.seq,
         kind: t.kind,
         mode: prefersReducedMotion(win) ? 'fade' : 'slide',
         from: t.from,
         to: t.to,
-        startX: fromGesture ? gv.x : 0,
-        underX: fromGesture ? gv.under : 0,
-        width: fromGesture ? gv.width : 0,
+        startX: start.startX,
+        underX: start.underX,
+        width: start.width,
         fromGesture,
+        reducedGesture,
       };
     } else {
       animRef.current.current = null;
@@ -209,7 +260,7 @@ function Root({ router, win }) {
       ? (fade ? [{ opacity: 0 }, { opacity: 1 }] : [{ transform: 'translateX(100%)' }, { transform: 'translateX(0)' }])
       : (fade ? [{ opacity: 1 }, { opacity: 0 }] : [{ transform: `translateX(${a.startX}px)` }, { transform: 'translateX(100%)' }]);
     const opts = fade
-      ? { duration: FADE_MS, easing: 'linear', fill: 'both' }
+      ? { duration: a.reducedGesture ? GESTURE_FADE_MS : FADE_MS, easing: 'linear', fill: 'both' }
       : { duration: a.fromGesture ? Math.max(GESTURE_POP_MIN_MS, Math.round(PUSH_MS * rest)) : PUSH_MS, easing: PUSH_EASING, fill: 'both' };
     if (moving && !fade) moving.classList.add('sz-layer--moving');
     let animation = null;
@@ -248,16 +299,24 @@ function Root({ router, win }) {
     timer = setTimeout(finish, opts.duration + 150);
   });
 
-  // 原生左缘返回门控（01 §7）：页面栈深度 / 阻断变化时同步一次。effect 在子组件之后执行，
-  // 所以写字页（ownsBackGesture）为顶层时 createBackGestureSync 不发，免得盖掉写字页的 false。
+  // 原生左缘返回门控（01 §7）：页面栈深度 / 阻断 / 顶层页面能否返回（ui/back-action.js）变化时同步一次。
+  // effect 在子组件之后执行；仍声明 ownsBackGesture 的页面为顶层时 createBackGestureSync 不发（R4-G1 起没有页面这样声明）。
   const gateRef = useRef(null);
   if (!gateRef.current) gateRef.current = createBackGestureSync({ send: setBackGestureEnabled });
   const gateDepth = pageDepth(snap);
   const blocked = !!block.reason;
   blockedRef.current = blocked;
+  const edgeOkRef = useRef(false);
+  const nativeShellRef = useRef(null);
+  if (nativeShellRef.current === null) nativeShellRef.current = isNativeShell(win);
+  const [actionsRev, bumpActions] = useState(0); // 顶层页面的返回动作可用性变化（写字页进出判断阶段）时重算门控
+  useEffect(() => subscribeBackActions(() => bumpActions(n => n + 1)), []);
+  const topEntryId = snap.top ? snap.top.id : null;
+  const actionOk = backActionAllowed(topEntryId);
+  edgeOkRef.current = backGestureAllowed(snap, blocked, actionOk);
   useEffect(() => {
-    gateRef.current.update(snap, blocked);
-  }, [gateDepth, blocked]);
+    gateRef.current.update(snap, blocked, actionOk);
+  }, [gateDepth, blocked, actionOk, topEntryId, actionsRev]);
 
   // 防连点时钟：页面或遮罩结构每变一次，按钮 0.4s 不响应（01-架构设计 §6.6）。
   useEffect(() => {
@@ -318,11 +377,8 @@ function Root({ router, win }) {
       const els = g.els;
       g.els = null;
       if (!els) return;
-      for (const el of [els.top, els.under]) {
-        if (!el) continue;
-        el.style.transform = '';
-        el.classList.remove('sz-layer--moving', 'sz-layer--snap', 'sz-layer--under');
-      }
+      BACK_TRANSITION.clear(els.top);
+      BACK_TRANSITION.clear(els.under);
     };
     // 画面只写 DOM：跟手期间页面组件不重画（冻结），只在开始 / 结束各 setState 一次（露出 / 收起底层页）。
     const onView = view => {
@@ -340,24 +396,22 @@ function Root({ router, win }) {
           top: topE ? pickLayer(topE.id) : null,
           under: underE ? pickLayer(underE.id) : null,
         };
-        if (g.els.top) g.els.top.classList.add('sz-layer--moving');
-        if (g.els.under) g.els.under.classList.add('sz-layer--under');
+        BACK_TRANSITION.begin(g.els.top, g.els.under);
         setGestureOn(true);
       }
-      const snapping = view.phase === 'snap';
-      const { top, under } = g.els;
-      if (top) {
-        top.classList.toggle('sz-layer--snap', snapping);
-        top.style.transform = `translateX(${view.x}px)`;
-      }
-      if (under) {
-        under.classList.toggle('sz-layer--snap', snapping);
-        under.style.transform = `translateX(${view.under}px)`;
-      }
+      BACK_TRANSITION.frame(g.els.top, g.els.under, view);
     };
+    const topPageId = () => {
+      const top = router.getState().top;
+      return top ? top.id : null;
+    };
+    const nativeBack = () => router.back({ cause: 'native' });
     const ctrl = createBackGestureController({
       getState: () => router.getState(),
-      back: () => router.back({ cause: 'native' }),
+      // 完成：与点顶层页面页头左上键同一个动作（ui/back-action.js）；没登记的页面退回 router.back。
+      back: () => runBackAction(topPageId(), nativeBack),
+      closeOverlay: nativeBack,
+      allowed: () => backActionAllowed(topPageId()),
       width: () => win.innerWidth || 1,
       reducedMotion: () => prefersReducedMotion(win),
       blocked: () => blockedRef.current,
@@ -368,10 +422,15 @@ function Root({ router, win }) {
     });
     g.ctrl = ctrl;
     router.setNativeBackFilter(() => ctrl.absorbNativeBack());
+    router.attachBackGesture(ctrl);
     const onProgress = event => ctrl.handle((event && event.detail) || {});
     win.addEventListener(NATIVE_PROGRESS_EVENT, onProgress);
+    // 网页兜底手势（浏览器 / 主屏 PWA）：原生壳内不装——原生识别器是唯一所有者，两套手势不同时存在。
+    const detachEdge = nativeShellRef.current ? null : attachEdgeSwipe({ win, canStart: () => edgeOkRef.current });
     return () => {
+      if (detachEdge) detachEdge();
       win.removeEventListener(NATIVE_PROGRESS_EVENT, onProgress);
+      router.attachBackGesture(null);
       router.setNativeBackFilter(null);
       ctrl.reset();
       clearEls();
@@ -401,6 +460,8 @@ function Root({ router, win }) {
   const dragging = !anim && gestureOn && groups.length >= 2;
   if (dragging) visible.add(groups[groups.length - 2].screen.id);
   const navAnim = anim ? `${anim.kind}-${anim.mode}` : dragging ? 'drag' : 'idle';
+  // 网页兜底手势的起手带（R4-G1）：浏览器 / PWA 里能返回时才画；原生壳内由原生识别器负责。
+  const webEdge = !nativeShellRef.current && edgeOkRef.current;
 
   return html`<div class="sz-app" ref=${appRef} data-nav-anim=${navAnim} data-depth=${snap.depth}
     data-top-screen=${snap.top ? snap.top.n : ''} data-tab=${snap.tab}>
@@ -412,6 +473,7 @@ function Root({ router, win }) {
       visible=${visible.has(g.screen.id)}
       isTop=${g.screen.id === topId}
     />`)}
+    ${webEdge && !anim ? html`<${EdgeStrip} />` : null}
     <${CorruptNotice} getStore=${getStore} />
     <${ToastHost} />
   </div>`;

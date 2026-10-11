@@ -89,19 +89,20 @@ function setup(opts = {}) {
   };
 }
 
-test('thresholds mirror the Swift recognizer (P103 / D36): v > 500 || (x > 50% width && v > -200)', () => {
-  assert.equal(BACK_COMMIT_RATIO, 0.5);
+test('thresholds mirror the Swift recognizer (R4-G1 / P270): v > 500 || (x > 1/3 width && v > -200)', () => {
+  assert.equal(BACK_COMMIT_RATIO, 1 / 3);
   assert.equal(BACK_COMMIT_VELOCITY, 500);
   assert.equal(BACK_RETURN_VELOCITY, -200);
-  assert.equal(backGestureCommits({ translationX: W * 0.5, velocityX: 0 }, W), false, 'exactly 50% does not commit (strict >)');
-  assert.equal(backGestureCommits({ translationX: W * 0.5 + 0.5, velocityX: 0 }, W), true, 'past half the width, at rest: commits');
+  assert.equal(backGestureCommits({ translationX: W * BACK_COMMIT_RATIO, velocityX: 0 }, W), false, 'exactly a third does not commit (strict >)');
+  assert.equal(backGestureCommits({ translationX: W * BACK_COMMIT_RATIO + 0.5, velocityX: 0 }, W), true, 'past a third of the width, at rest: commits');
   assert.equal(backGestureCommits({ translationX: W * 0.3, velocityX: 0 }, W), false, 'a slow drag to 30% springs back');
-  assert.equal(backGestureCommits({ translationX: W * 0.3, velocityX: 400 }, W), false, 'a moderate flick short of half does not commit');
+  assert.equal(backGestureCommits({ translationX: W * 0.4, velocityX: 0 }, W), true, 'a slow drag to 40% commits (was a spring-back at 50%)');
+  assert.equal(backGestureCommits({ translationX: W * 0.3, velocityX: 400 }, W), false, 'a moderate flick short of a third does not commit');
   assert.equal(backGestureCommits({ translationX: 10, velocityX: 500 }, W), false, 'exactly 500 does not commit');
   assert.equal(backGestureCommits({ translationX: 10, velocityX: 501 }, W), true, 'a fast flick commits from a short distance');
-  assert.equal(backGestureCommits({ translationX: W * 0.8, velocityX: -199 }, W), true, 'a slight drift back past half still commits');
+  assert.equal(backGestureCommits({ translationX: W * 0.8, velocityX: -199 }, W), true, 'a slight drift back past the threshold still commits');
   assert.equal(backGestureCommits({ translationX: W * 0.8, velocityX: -200 }, W), false, 'exactly -200 does not commit (strict >)');
-  assert.equal(backGestureCommits({ translationX: W * 0.8, velocityX: -400 }, W), false, 'a clear leftward pull-back past half cancels');
+  assert.equal(backGestureCommits({ translationX: W * 0.8, velocityX: -400 }, W), false, 'a clear leftward pull-back cancels');
   assert.equal(backGestureCommits({ translationX: 10, velocityX: -2000 }, W), false, 'leftward velocity never commits');
   assert.equal(backGestureCommits({ translationX: 'x', velocityX: undefined }, W), false, 'garbage detail is a no');
   assert.equal(backGestureCommits({ translationX: 10 * W, velocityX: 0 }, W), true, 'translation is clamped to the width');
@@ -120,12 +121,12 @@ test('gestureLayerX: top follows the finger, under slides from -30% width to 0 (
 test('began / changed follow the finger; ended below the threshold snaps back, then clears', () => {
   const g = setup();
   g.ev('began', 10);
-  assert.deepEqual(g.ctrl.getView(), { phase: 'follow', x: 10, under: -117, width: W });
+  assert.deepEqual(g.ctrl.getView(), { phase: 'follow', progress: 0.025, x: 10, under: -117, width: W });
   g.ev('changed', 80, 120);
-  assert.deepEqual(g.ctrl.getView(), { phase: 'follow', x: 80, under: -96, width: W });
+  assert.deepEqual(g.ctrl.getView(), { phase: 'follow', progress: 0.2, x: 80, under: -96, width: W });
   g.ev('ended', 90, 300);
   assert.equal(g.backs(), 0, 'no back below threshold');
-  assert.deepEqual(g.ctrl.getView(), { phase: 'snap', x: 0, under: -120, width: W }, 'snap back to 0 / -30%');
+  assert.deepEqual(g.ctrl.getView(), { phase: 'snap', progress: 0, x: 0, under: -120, width: W }, 'snap back to 0 / -30%');
   assert.deepEqual(g.timers.pending(), [GESTURE_SNAP_MS + 20]);
   g.timers.runAll();
   assert.equal(g.ctrl.getView(), null, 'view cleared after the snap transition');
@@ -138,12 +139,12 @@ test('ended past the distance threshold commits back once and holds the position
   g.ev('changed', 150);
   g.ev('ended', 250, 100);
   assert.equal(g.backs(), 1, 'back committed');
-  assert.deepEqual(g.ctrl.getView(), { phase: 'commit', x: 250, under: -45, width: W }, 'page stays where the finger left it');
+  assert.deepEqual(g.ctrl.getView(), { phase: 'commit', progress: 0.625, x: 250, under: -45, width: W }, 'page stays where the finger left it');
   assert.deepEqual(g.timers.pending(), [GESTURE_COMMIT_TIMEOUT_MS], 'fallback timer armed');
   assert.equal(g.ctrl.absorbNativeBack(), true, 'the shizi-native-back that follows is absorbed');
   assert.equal(g.ctrl.absorbNativeBack(), false, 'only once per gesture');
   const handed = g.ctrl.handoff();
-  assert.deepEqual(handed, { phase: 'commit', x: 250, under: -45, width: W }, 'transition takes over from the same position');
+  assert.deepEqual(handed, { phase: 'commit', progress: 0.625, x: 250, under: -45, width: W }, 'transition takes over from the same position');
   assert.equal(g.ctrl.getView(), null);
   assert.deepEqual(g.timers.pending(), [], 'fallback timer cleared by the handoff');
   assert.equal(g.ctrl.handoff(), null, 'nothing to hand off twice');
@@ -220,7 +221,9 @@ test('reduced motion: no following, commit only by threshold', () => {
   g.ev('ended', 250);
   assert.equal(g.backs(), 1, 'commit past the threshold');
   assert.equal(g.ctrl.getView(), null);
-  assert.equal(g.ctrl.handoff(), null, 'nothing to hand off: the pop uses the plain fade');
+  assert.equal(g.ctrl.handoff(), null, 'nothing to hand off: no follow');
+  assert.equal(g.ctrl.takeReducedCommit(), true, 'root.js is told the pop came from the gesture (150ms fade, P270)');
+  assert.equal(g.ctrl.takeReducedCommit(), false, 'only once');
   assert.equal(g.ctrl.absorbNativeBack(), true);
 
   const h = setup({ reduced: true });
@@ -238,7 +241,7 @@ test('changed without began starts a gesture (began lost); ended/cancelled witho
   assert.equal(g.views.length, 0);
   assert.equal(g.ctrl.absorbNativeBack(), false, 'no gesture seen → native back goes through');
   g.ev('changed', 120);
-  assert.deepEqual(g.ctrl.getView(), { phase: 'follow', x: 120, under: -84, width: W });
+  assert.deepEqual(g.ctrl.getView(), { phase: 'follow', progress: 0.3, x: 120, under: -84, width: W });
 });
 
 test('absorb window: a native back long after ended is not absorbed', () => {
@@ -341,7 +344,7 @@ function wired() {
   // Swift 在同一段脚本里依次派发 progress(ended) 与 shizi-native-back
   const swift = (phase, x, v = 0) => {
     ctrl.handle({ phase, translationX: x, velocityX: v });
-    if (phase === 'ended' && (v > 500 || (x > W * 0.5 && v > -200))) handlers.get(NATIVE_BACK_EVENT)();
+    if (phase === 'ended' && (v > 500 || (x > W / 3 && v > -200))) handlers.get(NATIVE_BACK_EVENT)();
   };
   return { history, router, ctrl, swift, nativeBack: () => handlers.get(NATIVE_BACK_EVENT)() };
 }
@@ -403,4 +406,111 @@ test('wired: a snapped-back gesture swallows the stray native back (JS decision 
   w.history.flush();
   assert.equal(w.router.getState().depth, 1);
   assert.equal(w.ctrl.getView().phase, 'snap');
+});
+
+// ---------------------------------------------------------------------------
+// R4-G1：与动画样式解耦的进度接口（beginBack / setBackProgress / endBack / finishBack / cancelBack）、
+// 顶层页面不能返回（页头左上不是返回键）、遮罩与页面返回动作分开、router 代理。
+
+test('R4-G1 progress API: setBackProgress follows, endBack decides by the same thresholds, reversing mid-way cancels', () => {
+  const g = setup();
+  assert.equal(g.ctrl.beginBack(), 'page');
+  assert.equal(g.ctrl.setBackProgress(0.5, 100), true);
+  assert.deepEqual(g.ctrl.getView(), { phase: 'follow', progress: 0.5, x: 200, under: -60, width: W }, 'progress drives the frame');
+  assert.equal(g.ctrl.setBackProgress(0.1, -300), true, 'finger moves back left');
+  assert.equal(g.ctrl.getView().x, 40, 'the page follows backwards');
+  assert.equal(g.ctrl.endBack(), false, 'released at 10% after pulling back: springs back');
+  assert.equal(g.backs(), 0);
+  assert.equal(g.ctrl.getView().phase, 'snap');
+
+  const h = setup();
+  h.ctrl.beginBack();
+  h.ctrl.setBackProgress(0.34, 0);
+  assert.equal(h.ctrl.endBack(), true, 'just past a third at rest: completes');
+  assert.equal(h.backs(), 1);
+  assert.equal(h.ctrl.getView().phase, 'commit');
+
+  const f = setup();
+  f.ctrl.beginBack();
+  f.ctrl.setBackProgress(0.05);
+  assert.equal(f.ctrl.endBack(900), true, 'a fast flick completes from 5%');
+
+  const k = setup();
+  k.ctrl.beginBack();
+  k.ctrl.setBackProgress(0.1);
+  assert.equal(k.ctrl.finishBack(), true, 'finishBack completes regardless of the threshold');
+  assert.equal(k.backs(), 1);
+
+  const c = setup();
+  c.ctrl.beginBack();
+  c.ctrl.setBackProgress(0.9);
+  assert.equal(c.ctrl.cancelBack(), true);
+  assert.equal(c.backs(), 0, 'cancelBack never goes back');
+  assert.equal(c.ctrl.getView().phase, 'snap', 'springs back');
+  c.timers.runAll();
+  assert.equal(c.ctrl.getView(), null);
+  assert.equal(c.ctrl.finishBack(), false, 'nothing to finish after the gesture ended');
+});
+
+test('R4-G1: the top page cannot go back (custom lead, e.g. 「接着写」) → ignored like the tab root', () => {
+  let ok = false;
+  let backs = 0;
+  const ctrl = createBackGestureController({
+    getState: () => snapOf(),
+    back: () => { backs += 1; },
+    allowed: () => ok,
+    width: () => W,
+    setTimeout: () => 1,
+    clearTimeout: () => {},
+  });
+  assert.equal(ctrl.beginBack(), 'ignored');
+  ctrl.handle({ phase: 'changed', translationX: 300 });
+  ctrl.handle({ phase: 'ended', translationX: 300, velocityX: 900 });
+  assert.equal(backs, 0);
+  assert.equal(ctrl.getView(), null);
+  ok = true;
+  assert.equal(ctrl.beginBack(), 'page', 'allowed again → follows');
+});
+
+test('R4-G1: overlay open → began closes it via closeOverlay, never runs the page back action', () => {
+  let closes = 0;
+  let pageBacks = 0;
+  const ctrl = createBackGestureController({
+    getState: () => snapOf({ overlay: true }),
+    back: () => { pageBacks += 1; },
+    closeOverlay: () => { closes += 1; },
+    width: () => W,
+    setTimeout: () => 1,
+    clearTimeout: () => {},
+  });
+  assert.equal(ctrl.beginBack(), 'overlay');
+  ctrl.setBackProgress(0.9);
+  assert.equal(ctrl.endBack(900), false);
+  assert.equal(closes, 1, 'overlay closed once');
+  assert.equal(pageBacks, 0, 'page back action not run');
+});
+
+test('R4-G1: router.beginBack / setBackProgress / endBack / finishBack / cancelBack delegate to the attached controller', () => {
+  const w = wired();
+  assert.equal(w.router.beginBack(), 'ignored', 'before attach: no controller → ignored');
+  w.router.attachBackGesture(w.ctrl);
+  assert.equal(w.router.beginBack(), 'ignored', 'tab root: ignored');
+  w.router.push('g-sub');
+  w.history.flush();
+  assert.equal(w.router.beginBack(), 'page');
+  assert.equal(w.router.setBackProgress(0.6, 0), true);
+  assert.equal(w.ctrl.getView().x, 240);
+  assert.equal(w.router.endBack(0), true, 'past a third → completes');
+  w.history.flush();
+  assert.equal(w.router.getState().depth, 0, 'one page popped');
+  assert.equal(w.history.calls.back, 1);
+  w.router.push('g-sub');
+  w.history.flush();
+  w.router.beginBack();
+  w.router.setBackProgress(0.8);
+  assert.equal(w.router.cancelBack(), true);
+  w.history.flush();
+  assert.equal(w.router.getState().depth, 1, 'cancel keeps the page');
+  w.router.attachBackGesture(null);
+  assert.equal(w.router.finishBack(), false, 'detached: no-op');
 });

@@ -1,6 +1,6 @@
 // M1-1 写字页骨架与书写格（02 §3 M1-1；01 §6.1–6.3；走查-W17 / V01；M0-7 手势门控）。
 // seed 一个 A 会话（3 个字）→ 首页测试入口打开写字页 → 鼠标画一笔「写好了」变可用 → 撤销后 disabled →
-// 清空后一次撤销恢复 → 原生返回 began / pointercancel 中断当前笔不计 → 换字 250ms 内早到的落笔缓存、补画、不丢（R2-X1 / P227）→ 返回 tab 根手势仍关（K1）。
+// 清空后一次撤销恢复 → 原生返回 began / pointercancel 中断当前笔不计 → 换字 250ms 内早到的落笔缓存、补画、不丢（R2-X1 / P227）→ 返回 tab 根手势关（K1；写字页本身可滑动返回，R4-G1 / P270）。
 // 控制台零错误由 run.mjs 统一断言。后续卡（M1-2…M1-8）在本文件后面追加各自的段落。
 
 import {
@@ -40,7 +40,7 @@ export default async function write(page, ctx) {
   const touchAction = await page.evaluate(() => getComputedStyle(document.querySelector('.sz-layer[data-top="true"] [data-testid="write-grid-live"]')).touchAction);
   assert.equal(touchAction, 'none', 'live canvas has touch-action:none');
   let gate = await nativeMessages(page, 'backGestureEnabled');
-  assert.deepEqual(gate.map(m => m.value), [false], 'tab root false at boot; write mount keeps false — sent once (01 §7)');
+  assert.deepEqual(gate.map(m => m.value), [false, true], 'tab root false at boot; the write page can be swiped back like any sub page (R4-G1 / P270, was false since M0-7)');
 
   ctx.step('draw one stroke with the mouse → 「写好了」 becomes available');
   await drawStroke(page, HORIZONTAL);
@@ -154,14 +154,14 @@ export default async function write(page, ctx) {
   assert.equal(s.strokes, 2, 'a pen-down after the window is accepted as usual (2 strokes now)');
   assert.equal(s.done.disabled, false, '「写好了」 enabled');
 
-  ctx.step('back to home: the tab root keeps the native back gesture off (K1, 01 §7); no direct localStorage writes');
+  ctx.step('back to home: the tab root turns the native back gesture off again (K1, 01 §7); no direct localStorage writes');
   await page.click(topSel('page-back'));
   await waitNavIdle(page);
   s = await writeSnapshot(page);
   assert.equal(s.screen, 'home', 'back returns to the home tab');
   await page.waitForTimeout(400); // 写字页图层在返回动画结束后才卸载（卸载时交还按栈的值）
   gate = await nativeMessages(page, 'backGestureEnabled');
-  assert.deepEqual(gate.map(m => m.value), [false], 'write screen → tab root: stays false, no transient true (tab root is not back-able)');
+  assert.deepEqual(gate.map(m => m.value), [false, true, false], 'write screen → tab root: false again (tab root is not back-able)');
   assert.equal(await page.evaluate(() => window.__shiziBridge.lastBackGestureSent()), false, 'last value sent is false at the tab root');
   const direct = await page.evaluate(() => window.__shiziTest.getWriteLog().filter(e => e.via === 'direct'));
   assert.deepEqual(direct, [], 'every localStorage write went through storage.js');

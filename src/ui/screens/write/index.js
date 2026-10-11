@@ -14,8 +14,10 @@
 // 规则：
 // - 换字后 250ms 内落下的笔先持住、到点补开始 / 补画，不丢笔（01 §6.6 / 走查-V01；R2-X1 / P227：M3「250ms 起接受落笔、早到的缓存」，按事件 timeStamp）；进页面也算一次换字。
 // - 换字 / 换阶段算「新状态」：按钮 0.4s 不响应（components/Button.js markStateChange，走查-W08）。
-// - 写字页是顶层页面期间 backGestureEnabled=false（01 §7：整页期间，不是只在落笔期间——M0-7）；离开顶层 / 卸载时交还
-//   按栈的值（tab 根页 false、子页 true，router.backGestureAllowed），根组件在写字页为顶层时不发（ownsBackGesture）。
+// - 左缘右滑返回（R4-G1，P270；取代 M0-7「写字页整页 backGestureEnabled=false」）：写字页与其它子页一样可以滑动返回，
+//   门控由根组件按栈与页头左上键统一发（判断阶段左上是「接着写」，这一阶段不能滑动返回）；完成时与点「‹」同一个动作（nav.back，
+//   笔画现场在抬笔 / 撤销 / 清空时已写回会话）。书写格四周有 20 页边，边缘起手不落在格子里；落笔中被手势打断时
+//   ink-canvas.js 在 began 丢弃当前笔（与 pointercancel 同语义）。
 // - 笔画现场（M1-6 persist.js）：本地现场从 session.current.strokes 取初值（刷新后回到同一阶段，笔迹都在）；
 //   抬笔 / 撤销 / 清空后写回 sessions（失败不阻断，P52）；打开时做恢复幂等（已有 judged → 补推进，不再进 compare）。
 // - 回忆阶段不把答案字写进任何属性 / 文本（决定-D16）：本页只暴露 cursor 序号，不暴露字。
@@ -38,7 +40,7 @@
 // write-done、write-foot、write-links（文字行）及其中的 write-hint / write-show-answer / write-skip / write-end、write-empty。
 
 import { html, useEffect, useLayoutEffect, useRef, useState } from '../../../../vendor/ui.js';
-import { backGestureAllowed, registerScreen, getRouter, nav } from '../../router.js';
+import { registerScreen, getRouter, nav } from '../../router.js';
 import { Page } from '../../components/Page.js';
 import { Button, markStateChange } from '../../components/Button.js';
 import { Icons } from '../../components/icons.js';
@@ -46,7 +48,6 @@ import { injectStyles, T } from '../../components/styles.js';
 import { InkGrid } from '../../canvas/ink-canvas.js';
 import { currentCardKey, isComplete, PHASES } from '../../../core/sessions.js';
 import { getStore, isReplacement } from '../../../store/store.js';
-import { setBackGestureEnabled } from '../../../platform/bridge.js';
 import { installCommitFeedback } from '../../../platform/haptics.js'; // M5-5 触觉 / 按键音（按 commit label）
 import { warmSounds } from '../../../platform/sound.js'; // 阶段 1 S1：预载判断声 / 落款声（网页用；书写与描红不出声，P200）
 import { t } from '../../../config/copy/index.js';
@@ -185,27 +186,17 @@ function useStoreState() {
 }
 
 /**
- * 本页是顶层页面期间关掉原生左缘返回手势（01 §7），离开顶层 / 卸载时恢复。
- * 返回本页是不是顶层页面（M2-2：只有顶层写字页写回会话现场）。
+ * 本页是不是顶层页面（M2-2：只有顶层写字页写回会话现场）。
+ * R4-G1 起不再管原生左缘返回门控（根组件统一发，见文件头）。
  */
-function useBackGestureGate(entry) {
+function useIsTop(entry) {
   const [top, setTop] = useState(true);
   useEffect(() => {
     const router = getRouter();
     const id = entry && entry.id;
-    const apply = snap => {
-      const isTop = !router || !id || !snap || !snap.top || snap.top.id === id;
-      // 不在顶层时按根组件同一规则（tab 根页 false、有子页 true），免得返回 tab 根时先发一个 true。
-      setBackGestureEnabled(isTop ? false : backGestureAllowed(snap));
-      setTop(isTop);
-    };
+    const apply = snap => setTop(!router || !id || !snap || !snap.top || snap.top.id === id);
     apply(router ? router.getState() : null);
-    const off = router ? router.subscribe(apply) : () => {};
-    return () => {
-      off();
-      // 卸载（返回动画结束后才发生）时交还给当前栈：tab 根页仍是 false，子页 true。阻断页自己再置 false。
-      setBackGestureEnabled(router ? backGestureAllowed(router.getState()) : true);
-    };
+    return router ? router.subscribe(apply) : undefined;
   }, [entry && entry.id]);
   return top;
 }
@@ -246,7 +237,7 @@ function StepDots({ phase }) {
 function WriteScreen({ params, entry }) {
   const slot = params && params.slot === 'B' ? 'B' : 'A';
   const { state, epoch } = useStoreState();
-  const isTop = useBackGestureGate(entry);
+  const isTop = useIsTop(entry);
   useEffect(() => { installCommitFeedback(getStore); }, []); // M5-5：判断 / 提示 / 看答案 / 撤销等 commit 成功后发触觉与判断声（platform/haptics.js）
   useEffect(() => { warmSounds({ state }); }, []); // S1：网页预载判断声三个变体与落款声，判断时直接播（settings.sound 关着不请求）
   const epochRef = useRef(epoch);
@@ -509,4 +500,4 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
   </${Page}>`;
 }
 
-registerScreen(WRITE_SCREEN, WriteScreen, { label: titleFor('recall'), ownsBackGesture: true });
+registerScreen(WRITE_SCREEN, WriteScreen, { label: titleFor('recall') });

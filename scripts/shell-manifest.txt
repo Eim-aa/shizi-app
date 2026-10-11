@@ -7328,6 +7328,7 @@ src/store/budget.js
 src/store/migrate.js
 src/store/storage.js
 src/store/store.js
+src/ui/back-action.js
 src/ui/brand/shi.js
 src/ui/canvas/brush.js
 src/ui/canvas/glyph-wash.js
@@ -7363,6 +7364,7 @@ src/ui/components/work.js
 src/ui/dev/glyph-demo.js
 src/ui/dev/palette.js
 src/ui/dev/pointer-stats.js
+src/ui/edge-swipe.js
 src/ui/images-annual.js
 src/ui/images-entry.js
 src/ui/root.js

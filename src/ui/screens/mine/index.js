@@ -5,9 +5,9 @@
 //   标题「我的」→ [没有记录：「还没有记录」+「写一个字并判断对错，这里就会有记录。」（R-M04）]
 //   → 这一周：标题行（左「这一周」，右「练习记录 ›」→ 练习记录 records）+ 周一到周日 7 格（星期 / 日期 / 墨点；今天红字；
 //     今天以后浅字；墨点 = 那天有记录，K27 无补记）
-//   → {月}字帖（本月有字才画，原型 mineSheet；R-M01 / P02 取墨 policy.monthSheetPick）：标题行（右「保存图片 ›」——与练习记录
-//     同一入口，M4-5 用 setMineImageActions 注册后才显示）+ 纸卡（7 列 1px 缝；最多放最近 3 行，多了给「全部 ›」→ 练习记录本月，
-//     R-M05）+ 落款（R-I01.monthSignature）+ 红印；格子点进单字详情（R-M01）
+//   → {月}字帖（本月有字才画；D57 · 方案 C1「字帖格 · 按字数排」；R-M01 / P02 取墨 policy.monthSheetPick）：标题行（宋 22 墨一，右「保存图片」15 墨二，
+//     同一行，M4-5 用 setMineImageActions 注册后才显示）+ 字帖（month.js MonthBody：一层框、有几个字几格、没有空格、日期骑在格线上、落款与印紧跟末字）；
+//     超过一张（80 字）只放最近的，不画落款和印，给「全部 ›」→ 练习记录本月（R-M05）；格子点进单字详情（R-M01）
 //   → 菜单：设置 / 备份与恢复（小字「记录只存在这台手机上」；右「上次备份 {date} ›」/「还没有备份」，R-M03）/ 年度报告（小字 = 今年）/
 //     关于拾字（原型 L28 顺序）。目标屏由并行卡自注册（M4-3 settings、M4-4 backup、M4-2 annual、M4-6 about），本页只 nav.push；
 //     还没注册时按钮不跳转（console.warn）。
@@ -26,15 +26,15 @@ import { registerScreen } from '../../router.js';
 import { TabPage } from '../../components/Page.js';
 import { Button } from '../../components/Button.js';
 import { useAxLevel } from '../../components/ax.js';
-import { Seal } from '../../components/marks.js';
 import { Chevron } from '../../components/Chevron.js';
-import { injectStyles, T, TEX } from '../../components/styles.js';
+import { injectStyles, T } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
 import * as defaultPolicy from '../../../config/policy.js';
-import { mineModel, MINE_SHEET_COLS } from './model.js';
+import { mineModel } from './model.js';
 import {
-  dayText, getMineImageActions, go, hasInkOfStore, MINE_ROUTES, openRecords, SheetGrid, signatureText, useStoreState, useToday,
+  dayText, getMineImageActions, go, hasInkOfStore, MINE_ROUTES, openRecords, useStoreState, useToday,
 } from './records.js'; // 练习记录页自注册（records）；首页墨迹行「今天的记录」也在那里注册
+import { MonthBody, mineSheetModel, monthModel } from './month.js';
 
 export { MINE_ROUTES, openRecords, openTodayRecords, setMineImageActions, RECORDS_SCREEN } from './records.js';
 
@@ -52,7 +52,10 @@ injectStyles('mine', `
 .sz-mine__emptyt{margin:0;font-family:${T.song};font-size:${T.fs22};line-height:${T.lh22};font-weight:500;color:${T.ink1}}
 .sz-mine__emptyb{margin:0;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2};text-wrap:pretty}
 .sz-mine__block{display:flex;flex-direction:column;gap:${T.s2}}
-.sz-mine__sheetblock{display:flex;flex-direction:column;gap:${T.s3}}
+.sz-mine__sheetblock{display:flex;flex-direction:column;gap:${T.s1}}
+.sz-mine__shead{display:flex;justify-content:space-between;align-items:center;gap:${T.s3};min-height:44px}
+.sz-mine__stitle{margin:0;min-width:0;font-family:${T.song};font-size:${T.fs22};line-height:${T.lh22};font-weight:500;color:${T.ink1}} /* D57：字帖标题宋 22 墨一，与「保存图片」同一行 */
+:root[data-ax] .sz-mine__shead{flex-wrap:wrap;align-items:flex-start}
 .sz-mine__bhead{display:flex;justify-content:space-between;align-items:baseline;gap:${T.s3}}
 .sz-mine__btitle{margin:0;font-family:${T.hei};font-size:${T.fs13};line-height:${T.lh13};font-weight:400;color:${T.ink3}} /* 分组标题：黑体 13 ink3，不画线（T2-14）；右侧「练习记录 ›」仍是 15 / ink2 的文字按钮 */
 :root[data-ax] .sz-mine__bhead{flex-wrap:wrap;align-items:center} /* AX 档标题与右侧链接放不下一行时上下排，标题不再被挤成一字一行（A2-03） */
@@ -67,8 +70,6 @@ injectStyles('mine', `
 .sz-mine__wd[data-future="true"] .sz-mine__wdnum{color:${T.ink3}}
 .sz-mine__wddot{display:flex;height:6px;align-items:center}
 .sz-mine__dot{width:6px;height:6px;border-radius:50%;background:${T.ink1}}
-.sz-mine__paper{box-sizing:border-box;${TEX};border:${T.frameW} solid ${T.frame};
-  padding:${T.s4};display:flex;flex-direction:column;gap:${T.s3}}
 .sz-mine__all.sz-btn{align-self:center;min-height:44px;font-size:${T.fs15};color:${T.ink2}}
 .sz-mine__menu{display:flex;flex-direction:column;border-top:${T.hair} solid ${T.line}}
 .sz-mine__row.sz-btn{min-height:52px;padding:${T.s3} 0;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;
@@ -111,32 +112,29 @@ function Week({ week }) {
   </div>`;
 }
 
-function Sheet({ model }) {
-  const { sheet, preview } = model;
-  const monthNum = Number(model.month.slice(5));
-  const title = t('R-P02.sheetTitle', { month: monthNum });
+function Sheet({ model, state }) {
+  const { sheet } = model;
+  const title = t('R-P02.sheetTitle', { month: Number(model.month.slice(5)) });
   const actions = getMineImageActions();
-  return html`<section class="sz-mine__sheetblock" data-testid="mine-sheet" data-month=${sheet.month} data-count=${sheet.chars}
-    data-shown=${preview.cells.length} data-truncated=${preview.truncated ? 'true' : 'false'} data-days=${sheet.days}>
-    <div class="sz-mine__bhead">
-      <h2 class="sz-mine__btitle" data-testid="mine-sheet-title">${title}</h2>
+  // D57 · C1：字帖就是月字帖页那一块（MonthBody → MonthPaper：一层框、有几个字几格、日期骑线），不再是「我的」页自己的小格子；
+  // 超过一张（80 字）只放最近的，点「全部」进月字帖页看全部。
+  const monthView = useMemo(() => monthModel(state, model.month), [state, model.month]);
+  const { model: shown, truncated } = useMemo(() => mineSheetModel(monthView), [monthView]);
+  return html`<section class="sz-mine__sheetblock" data-testid="mine-sheet" data-month=${sheet.month} data-count=${monthView.n}
+    data-shown=${shown.n} data-truncated=${truncated ? 'true' : 'false'} data-days=${sheet.days}>
+    <div class="sz-mine__shead" data-testid="mine-sheet-head">
+      <h2 class="sz-mine__stitle" data-testid="mine-sheet-title">${title}</h2>
       ${actions.month
         ? html`<${Button} variant="text" class="sz-mine__link" data-testid="mine-sheet-save"
             onClick=${() => { const fn = getMineImageActions().month; if (fn) fn({ month: sheet.month, sheet }); }}>${t('R-M01.saveImage')}</${Button}>`
         : null}
     </div>
-    <div class="sz-mine__paper">
-      <${SheetGrid} cells=${preview.cells} cols=${MINE_SHEET_COLS} variant="gap" testid="mine-sheet-grid" cellTestid="mine-sheet-cell"
-        label=${title} />
-      ${preview.truncated
-        ? html`<${Button} variant="text" class="sz-mine__all" data-testid="mine-sheet-all"
-            onClick=${() => openRecords({ month: sheet.month })}>${t('R-M05.sheetAll')}</${Button}>`
-        : null}
-      <div class="sz-msign">
-        <span class="sz-msign__text"><span class="sz-msign__line" data-testid="mine-sheet-sign">${signatureText(sheet)}</span></span>
-        <${Seal} testid="mine-sheet-seal" />
-      </div>
-    </div>
+    <${MonthBody} model=${shown} testid="mine-sheet-grid" cellTestid="mine-sheet-cell" emptyTestid="mine-sheet-empty"
+      kuanTestid="mine-sheet-sign" sealTestid="mine-sheet-seal" sign=${!truncated} />
+    ${truncated
+      ? html`<${Button} variant="text" class="sz-mine__all" data-testid="mine-sheet-all"
+          onClick=${() => openRecords({ month: sheet.month })}>${t('R-M05.sheetAll')}</${Button}>`
+      : null}
   </section>`;
 }
 
@@ -186,7 +184,7 @@ function MineScreen() {
           </div>`
         : null}
       <${Week} week=${model.week} />
-      ${model.sheetOn ? html`<${Sheet} model=${model} />` : null}
+      ${model.sheetOn ? html`<${Sheet} model=${model} state=${state} />` : null}
       <${Menu} model=${model} />
     </div>
   </${TabPage}>`;

@@ -4,7 +4,8 @@
 //                     （core/images/render.js paintCellContent），所以结果页上看到的作品与图片内容、样子一致（所见即所得）。
 //   WorkPaper         结果页作品：作品格（格宽 c，列 × 行与 3:4 分享图相同；格自己是笺面，直接放在页面纸上，没有作品底板，D49）+ 落款与印
 //                     （位置规则同 layout.js；落款与印是图形，固定尺寸，不随系统字号放大；印是 marks.js 的 <Seal/>，只有一种）。
-//   MonthPaper        月字帖：笺面纸 + 6 列（Pro Max 7、AX 4）字帖格 + 格内左上角的日期角标（不压格线）+ 落款与印。
+//   MonthPaper        月字帖（D57 · C1 字帖格 · 按字数排）：一层框、有几个字几格（core/images/layout.js sheetGrid）、日期角标骑在格上边线、落款与印紧跟末字；
+//                     「我的」页、月字帖页、练习记录页的字帖与导出图是同一个版式。
 //   useScreenWidth    屏宽（CSS px）；作品格宽 / 月字帖格宽按它算。
 //   frameRects        外框的矩形（满行矩形 + 末行矩形，同 layout.js 的 frame）。
 //
@@ -18,15 +19,15 @@ import { SEAL_PT, Seal } from './marks.js';
 import { t } from '../../config/copy/index.js';
 import { paintCellContent } from '../../core/images/render.js';
 import { inkBounds } from '../../core/images/glyph-layout.js';
-import { INK_PAD, dotLayout } from '../../core/images/layout.js';
+import { INK_PAD, dotLayout, sheetGrid, sheetTags } from '../../core/images/layout.js';
 import { paintBrushStroke } from '../canvas/brush.js';
 import { builtFromRaw, useNearViewport, useThemeVersion } from '../screens/write/compare.js';
 import { isPracticable } from '../../data/deck.js';
 import { useStrokeData } from '../screens/write/hint-layer.js';
 
-/** 月字帖格的日期角标：格内左上角的页边批注，没有底色块、不压格线（V2-09）。 */
-export const MONTH_PAPER_TAG_CSS = `.sz-mcell__tag{position:absolute;left:4px;top:3px;z-index:1;font-family:${T.hei};font-size:${T.fs11};line-height:${T.lh11};
-  font-weight:500;color:${T.ink3};font-variant-numeric:tabular-nums;pointer-events:none}`;
+/** 月字帖格的日期角标（D57 · C1）：骑在格的上边线上，纸色衬底断开格线，不进格内压字；11pt 是图形文字，不随系统字号放大。 */
+export const MONTH_PAPER_TAG_CSS = `.sz-mcell__tag{position:absolute;left:3px;top:-7px;z-index:2;padding:0 2px;background:${T.paper};font-family:${T.hei};
+  font-size:calc(11px * 1);line-height:13px;font-weight:500;color:${T.ink3};font-variant-numeric:tabular-nums;white-space:nowrap;pointer-events:none}`;
 
 injectStyles('work', `
 .sz-work{display:flex;flex-direction:column;align-items:stretch}
@@ -54,20 +55,20 @@ injectStyles('work', `
 .sz-work__plaincell{box-sizing:border-box;padding:1px;${TEX};box-shadow:inset 0 0 0 ${T.frameW} ${T.frame}}
 .sz-work__status{margin-top:6px;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3};text-align:center}
 .sz-work__status[data-wrong="true"]::before{content:"";display:inline-block;width:6px;height:6px;margin-right:4px;border-radius:50%;vertical-align:middle}
-.sz-month{box-sizing:border-box;display:flex;flex-direction:column;align-items:center;align-self:center;padding:0} /* 笺底只铺在格框里面（.sz-work__sheet，同作品）；落款在框外页面纸上（V3-05 / V3-08：不再两侧多出 5pt、下方多出 18px 笺底） */
-.sz-month__grid{position:relative;display:grid}
-.sz-mcell{position:relative;display:block;box-sizing:border-box;margin:0;padding:0;border:0;border-radius:${T.rWork};background:transparent;color:inherit;
+.sz-month{box-sizing:border-box;display:flex;flex-direction:column;align-items:center;align-self:center;padding:0}
+.sz-month__stage{position:relative;margin-top:8px} /* 上方留出第一行日期角标骑在上边线的 7pt */
+.sz-month__sheet{position:absolute;box-sizing:border-box;pointer-events:none;${TEX}}
+.sz-month__lines{position:absolute;left:0;top:0;overflow:visible;pointer-events:none}
+.sz-month__guide{fill:none;stroke-width:${T.guideW};stroke:${T.guide}}
+.sz-month__frame{fill:none;stroke-width:${T.frameW};stroke:${T.frame}}
+.sz-mcell{position:absolute;display:block;box-sizing:border-box;min-width:0;min-height:0;margin:0;padding:0;border:0;border-radius:0;background:transparent;color:inherit;
   font:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
-.sz-mcell::after{content:"";position:absolute;right:0;top:0;width:${T.guideW};height:100%;background:${T.guide};pointer-events:none}
-.sz-mcell::before{content:"";position:absolute;left:0;bottom:0;width:100%;height:${T.guideW};background:${T.guide};pointer-events:none}
-.sz-mcell[data-last-col="true"]::after{display:none}
-.sz-mcell[data-last-row="true"]::before{display:none}
-.sz-mcell:focus-visible{outline:2px solid ${T.ink1};outline-offset:-2px;z-index:2}
+.sz-mcell:focus-visible{outline:2px solid ${T.ink1};outline-offset:-2px;z-index:3}
 .sz-mcell[data-pressed]{background:${T.field}}
 .sz-mcell canvas{display:block;position:absolute;left:0;top:0}
 ${MONTH_PAPER_TAG_CSS}
-:root[data-ax] .sz-mcell__tag{display:none} /* AX 档不画格内日期角标（AX5 下 40px 的数字压在笔迹上，A2-03）；日期在格的读屏名称里（monthModel cellLabel） */
-.sz-month__sign{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:14px}
+.sz-month__sign{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:10px}
+.sz-month__seal{position:absolute}
 `);
 
 // ---------------------------------------------------------------- hooks
@@ -271,37 +272,42 @@ export function PlainRow({ cells, grid, onOpen, label }) {
 // ---------------------------------------------------------------- 月字帖
 
 /**
- * 月字帖的纸与格。
+ * 月字帖的纸与格（D57 · C1）。格数 = 字数、一层框、阶梯形外框；格宽与列数来自 sheetGrid（屏上与导出图同一规则）。
  * @param {object} props
  * @param {Array<{key:string, ch:string, ink?:object|null, mode?:'hand'|'under', tag?:string, label:string, day?:string, record?:string}>} props.cells
- * @param {number} props.cols
- * @param {number} props.c  格宽（px）
+ * @param {number} props.width  可用宽（px，一般 = 屏宽 − 40）
  * @param {string} props.kuan
  * @param {(cell)=>void} [props.onOpen]
  * @param {string} [props.testid]
  */
-export function MonthPaper({ cells, cols, c, kuan, onOpen, label, testid = 'month-paper', cellTestid = 'month-cell' }) {
+export function MonthPaper({ cells, width, kuan, sign = true, onOpen, label, testid = 'month-paper', cellTestid = 'month-cell', kuanTestid = 'month-kuan', sealTestid = 'month-seal' }) {
   const n = cells.length;
-  const gw = cols * c;
-  const frames = frameRects(n, cols, c);
-  return html`<section class="sz-month" data-testid=${testid} data-n=${n} data-cols=${cols} data-cell=${c} role="group" aria-label=${label}>
-    <div class="sz-month__grid" style=${{ gridTemplateColumns: `repeat(${cols}, ${c}px)`, width: `${gw}px` }}>
-      ${frames.map((r, i) => html`<span key=${`s${i}`} class="sz-work__sheet" aria-hidden="true" data-testid="month-sheet"
+  const g = sheetGrid(n, width);
+  const tags = sheetTags(cells);
+  const rects = g.full ? [{ x: 0, y: 0, w: g.W, h: g.H }] : [{ x: 0, y: 0, w: g.W, h: (g.rows - 1) * g.c }, { x: 0, y: (g.rows - 1) * g.c, w: g.lastW, h: g.c }];
+  const sealStyle = g.full ? null : { position: 'absolute', left: `${g.lastW + 8}px`, top: `${g.H - SEAL_PT}px` };
+  return html`<section class="sz-month" data-testid=${testid} data-n=${n} data-cols=${g.cols} data-rows=${g.rows} data-cell=${g.c} data-full=${g.full ? 'true' : 'false'}
+    role="group" aria-label=${label}>
+    <div class="sz-month__stage" data-testid="month-stage" style=${{ width: `${g.W}px`, height: `${g.H}px` }}>
+      ${rects.map((r, i) => html`<span key=${`s${i}`} class="sz-month__sheet" aria-hidden="true" data-testid="month-sheet"
         style=${{ left: `${r.x}px`, top: `${r.y}px`, width: `${r.w}px`, height: `${r.h}px` }}></span>`)}
-      ${cells.map((cell, i) => html`<button type="button" key=${cell.key} class="sz-mcell" ...${CELL_PRESS} style=${{ width: `${c}px`, height: `${c}px` }}
-        data-testid=${cellTestid} data-char=${cell.ch} data-mode=${cell.mode || 'hand'} data-day=${cell.day || ''} data-tag=${cell.tag || ''}
+      <svg class="sz-month__lines" width=${g.W} height=${g.H} aria-hidden="true" focusable="false" data-testid="month-lines">
+        <path class="sz-month__guide" d=${g.inner}></path>
+        <path class="sz-month__frame" d=${g.outline} data-testid="month-frame"></path>
+      </svg>
+      ${cells.map((cell, i) => html`<button type="button" key=${cell.key} class="sz-mcell" ...${CELL_PRESS}
+        style=${{ left: `${g.cells[i].x}px`, top: `${g.cells[i].y}px`, width: `${g.c}px`, height: `${g.c}px` }}
+        data-testid=${cellTestid} data-char=${cell.ch} data-mode=${cell.mode || 'hand'} data-day=${cell.day || ''} data-tag=${tags[i]}
         data-record=${cell.record || ''} data-ink=${cell.mode === 'under' ? 'false' : 'true'}
-        data-last-col=${(i + 1) % cols === 0 || i === n - 1 ? 'true' : 'false'} data-last-row=${i + cols >= n ? 'true' : 'false'}
         aria-label=${cell.label} onClick=${() => onOpen && onOpen(cell)}>
-        <${CellCanvas} ch=${cell.ch} ink=${cell.ink} mode=${cell.mode || 'hand'} size=${c} testid=${`${cellTestid}-canvas`} />
-        ${cell.tag ? html`<span class="sz-mcell__tag" aria-hidden="true" data-testid="month-tag">${cell.tag}</span>` : null}
+        <${CellCanvas} ch=${cell.ch} ink=${cell.ink} mode=${cell.mode || 'hand'} size=${g.c} testid=${`${cellTestid}-canvas`} />
+        ${tags[i] ? html`<span class="sz-mcell__tag" aria-hidden="true" data-testid="month-tag">${tags[i]}</span>` : null}
       </button>`)}
-      ${frames.map((r, i) => html`<span key=${`f${i}`} class="sz-work__frame" aria-hidden="true"
-        style=${{ left: `${r.x}px`, top: `${r.y}px`, width: `${r.w}px`, height: `${r.h}px` }}></span>`)}
+      ${g.full || !sign ? null : html`<${Seal} testid=${sealTestid} cls="sz-month__seal" style=${sealStyle} />`}
     </div>
-    <div class="sz-month__sign" style=${{ width: `${gw}px` }}>
-      <span class="sz-work__kuan" data-testid="month-kuan">${kuan}</span>
-      <${Seal} testid="month-seal" style=${{ position: 'relative' }} />
-    </div>
+    ${sign ? html`<div class="sz-month__sign" data-testid="month-sign" data-below=${g.full ? 'true' : 'false'} style=${{ width: `${g.W}px` }}>
+      <span class="sz-work__kuan" data-testid=${kuanTestid}>${kuan}</span>
+      ${g.full ? html`<${Seal} testid=${sealTestid} style=${{ position: 'relative' }} />` : null}
+    </div>` : null}
   </section>`;
 }

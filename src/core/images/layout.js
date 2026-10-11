@@ -242,3 +242,112 @@ export function dotLayout(cellSize, unit, bounds, pad = INK_PAD) {
   cy = Math.min(Math.max(cy, d / 2 + unit), cellSize - d / 2 - unit);
   return { cx, cy, d };
 }
+
+// ---------------------------------------------------------------- 字帖格（D57：方案 C1「字帖格 · 按字数排」）
+//
+// 「我的」页的月字帖、月字帖页、月字帖导出图共用这一个函数（D31 所见即所得）。单位任意（屏幕 pt / 逻辑 px），调用方给可用宽。
+//   列数：1–4 字一行（有几个字几列）；5–12 字 4 列；13–24 字 6 列；25 字以上 8 列。
+//   格宽 c = min(110 × unit, 可用宽 ÷ 列数[, 可用高 ÷ 行数])：字少格大（3 字 110pt），字多 8 列。
+//   格数 = 字数，没有空格：末行不满就短一截，外框跟着收成阶梯形（一层框，格间只有 guide 线）。
+//   落款与印：末行满（末字在最右列）→ 印在末格正下方、右沿对齐，落款在印左；否则印在末格右侧、底边齐末格底，落款在网格下方右对齐。
+//   日期：只标每天的第一个字，骑在该格上边线上（纸色衬底断开格线）；整页只有一天时不标（日期在落款里）。
+
+/** 字帖格最大格宽（pt）。 */
+export const SHEET_MAX_CELL_PT = 110;
+/** 字帖格每行最多格数。 */
+export const SHEET_MAX_COLS = 8;
+/** 「我的」页字帖最多放几个字（一张 80 字，D39；更多的只放最近的，点进月字帖看全部）。 */
+export const MINE_SHEET_MAX_CHARS = 80;
+/** 日期角标字号 / 落款间距 / 印（pt）。 */
+export const SHEET_TAG_PT = 11;
+export const SHEET_SIGN_GAP_PT = 10;
+export const SHEET_SEAL_PT = 24;
+
+/** 字数 → 列数（n ≥ 1）。 */
+export function sheetColumns(n) {
+  if (!(n >= 1)) return 0;
+  if (n <= 4) return n;
+  if (n <= 12) return 4;
+  if (n <= 24) return 6;
+  return SHEET_MAX_COLS;
+}
+
+/**
+ * 字帖格几何。
+ * @param {number} n  字数
+ * @param {number} width  可用宽（单位同返回值）
+ * @param {{unit?:number, maxHeight?:number}} [o]  unit = 每 pt 几个单位（屏幕 1；逻辑画布 2.69）；maxHeight = 网格可用高（导出图限高用；格宽随之缩小）
+ * @returns {{n,cols,rows,c,lastN,W,H,lastW,full:boolean, cells:Array<{x,y,col,row}>, outline:string, inner:string}}
+ *   full = 末行满（末字在最右列）；outline / inner 是 SVG path 的 d（外框阶梯形 / 格间线）。
+ */
+export function sheetGrid(n, width, { unit = 1, maxHeight = Infinity } = {}) {
+  if (!Number.isSafeInteger(n) || n < 0) throw new Error('INVALID_COUNT');
+  if (n === 0) return { n, cols: 0, rows: 0, c: 0, lastN: 0, W: 0, H: 0, lastW: 0, full: true, cells: [], outline: '', inner: '' };
+  const cols = sheetColumns(n);
+  const rows = Math.ceil(n / cols);
+  let c = Math.min(SHEET_MAX_CELL_PT * unit, width / cols);
+  if (Number.isFinite(maxHeight) && maxHeight > 0) c = Math.min(c, maxHeight / rows);
+  c = Math.floor(c);
+  const lastN = n - (rows - 1) * cols;
+  const W = cols * c;
+  const H = rows * c;
+  const lastW = lastN * c;
+  const cells = Array.from({ length: n }, (_, i) => ({ x: (i % cols) * c, y: Math.floor(i / cols) * c, col: i % cols, row: Math.floor(i / cols) }));
+  let inner = '';
+  for (let r = 0; r < rows; r += 1) {
+    const rn = r < rows - 1 ? cols : lastN;
+    for (let k = 1; k < rn; k += 1) inner += `M${k * c} ${r * c}V${(r + 1) * c}`;
+  }
+  for (let r = 1; r < rows; r += 1) inner += `M0 ${r * c}H${(r === rows - 1 ? lastN : cols) * c}`;
+  const full = lastN === cols;
+  const outline = full ? `M0 0H${W}V${H}H0Z` : `M0 0H${W}V${(rows - 1) * c}H${lastW}V${H}H0Z`;
+  return { n, cols, rows, c, lastN, W, H, lastW, full, cells, outline, inner };
+}
+
+/**
+ * 字帖格的导出页版式（逻辑画布 1080 宽，3:4 高 1440 / 1:1 高 1080）：格宽 / 列数 / 阶梯外框与屏上同一个 sheetGrid（单位 = 逻辑 px，pt × 2.69），
+ * 只多一步：网格限高（1:1 或 80 字时格宽随高度缩小，列数规则不变）。
+ * @returns {{W,H,n,grid,left,top,cells:Array<{x,y}>,seal:{x,y,size,rotate}|null,kuan:{right,top,size,lineHeight}|null,below:boolean,tag:{size,left}}}
+ */
+export function sheetPageLayout(n, ratio = '3:4') {
+  assertRatio(ratio);
+  const W = LOGICAL_W;
+  const H = HEIGHT_OF[ratio];
+  const u = LOGICAL_PER_PT;
+  const m = Math.round(MARGIN_RATIO * W);
+  const gap = Math.round(SHEET_SIGN_GAP_PT * u);
+  const seal = SEAL_SIZE;
+  const kfs = KUAN_SIZE;
+  const tagOver = Math.round(TAG_SIZE / 2) + 2;
+  const signH = gap + Math.max(seal, kfs * 1.4);
+  const tag = { size: TAG_SIZE, left: Math.round(3 * u) };
+  if (!(n >= 1)) return { W, H, n: 0, grid: sheetGrid(0, 0), left: 0, top: 0, cells: [], seal: null, kuan: null, below: false, tag };
+  const grid = sheetGrid(n, W - 2 * m, { unit: u, maxHeight: H - 2 * m - signH - tagOver });
+  const blockH = grid.H + signH;
+  const top = Math.round(grid.rows === 1 && H > W ? (H - blockH) * 0.4 : (H - blockH) / 2 - H * 0.025);
+  const left = Math.round((W - grid.W) / 2);
+  const cells = grid.cells.map(c => ({ x: left + c.x, y: top + c.y }));
+  let sealBox;
+  let kuan;
+  if (grid.full) {
+    const sx = left + grid.W - seal;
+    const sy = top + grid.H + gap;
+    sealBox = { x: sx, y: sy, size: seal, rotate: SEAL_ROTATION };
+    kuan = { right: sx - KUAN_GAP_FROM_SEAL, top: sy + seal / 2 - kfs * 0.7, size: kfs, lineHeight: kfs * 1.4 };
+  } else {
+    sealBox = { x: left + grid.lastW + Math.round(8 * u), y: top + grid.H - seal, size: seal, rotate: SEAL_ROTATION };
+    kuan = { right: left + grid.W, top: top + grid.H + gap, size: kfs, lineHeight: kfs * 1.4 };
+  }
+  return { W, H, n, grid, left, top, cells, seal: sealBox, kuan, below: grid.full, tag };
+}
+
+/**
+ * 日期角标的取舍：整页只有一天时一个都不标；否则按 cells 上已有的 tag（每天第一个字）。cells 里要有 day / tag。
+ * @returns {string[]}
+ */
+export function sheetTags(cells) {
+  const list = Array.isArray(cells) ? cells : [];
+  const days = new Set(list.map(c => (c && c.day ? c.day : null)).filter(Boolean));
+  if (days.size <= 1) return list.map(() => '');
+  return list.map(c => (c && c.tag ? c.tag : ''));
+}

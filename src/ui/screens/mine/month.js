@@ -15,13 +15,13 @@ import { registerScreen, getScreen, nav } from '../../router.js';
 import { Page } from '../../components/Page.js';
 import { Button } from '../../components/Button.js';
 import { Icons } from '../../components/icons.js';
-import { MonthPaper, builtInk, useAxSize, useScreenWidth } from '../../components/work.js';
+import { MonthPaper, builtInk, useScreenWidth } from '../../components/work.js';
 import { injectStyles, T } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
 import * as defaultPolicy from '../../../config/policy.js';
 import { getStore } from '../../../store/store.js';
 import { localDay, monthDayParts, monthOf } from '../../../core/dates.js';
-import { monthColumns, monthCell } from '../../../core/images/layout.js';
+import { MINE_SHEET_MAX_CHARS, dayTag } from '../../../core/images/layout.js';
 import { monthCells } from '../../../core/images/pick.js';
 import { now as envNow } from '../../../platform/env.js';
 import { openDetail } from '../detail/index.js';
@@ -101,6 +101,22 @@ export function monthModel(state, month, { store = currentStore(), policy = defa
   };
 }
 
+/**
+ * 「我的」页字帖的成员：不超过一张（80 字，D39）时就是整月；超过只放最近的 80 个字，第一格重标日期（点进月字帖看全部）。
+ * @returns {{model, truncated:boolean, hidden:number, total:number}}
+ */
+export function mineSheetModel(model, max = MINE_SHEET_MAX_CHARS) {
+  if (model.n <= max) return { model, truncated: false, hidden: 0, total: model.n };
+  const cells = model.cells.slice(model.n - max);
+  let prev = null;
+  const tagged = cells.map(c => {
+    const tag = c.day && c.day !== prev ? dayTag(c.day) : '';
+    if (c.day) prev = c.day;
+    return { ...c, tag };
+  });
+  return { model: { ...model, cells: tagged, n: tagged.length }, truncated: true, hidden: model.n - max, total: model.n };
+}
+
 // ---------------------------------------------------------------- 视图
 
 function openChar(cell) {
@@ -109,14 +125,11 @@ function openChar(cell) {
 }
 
 /** 字帖本体（月字帖页与练习记录页共用）：纸 + 说明句；这个月没有字时是虚线框。 */
-export function MonthBody({ model, onOpen = openChar, testid = 'month-paper', cellTestid = 'month-cell', emptyTestid = 'month-empty' }) {
+export function MonthBody({ model, onOpen = openChar, testid = 'month-paper', cellTestid = 'month-cell', emptyTestid = 'month-empty', kuanTestid = 'month-kuan', sealTestid = 'month-seal', sign = true }) {
   const sw = useScreenWidth();
-  const ax = useAxSize();
-  const cols = monthColumns(sw, { ax });
-  const c = monthCell(sw, cols);
   if (!model.n) return html`<div class="sz-monthpage__blank" data-testid=${emptyTestid}>${t('X-MINE.sheetEmpty')}</div>`;
-  return html`<${MonthPaper} cells=${model.cells} cols=${cols} c=${c} kuan=${model.kuan} onOpen=${onOpen} testid=${testid} cellTestid=${cellTestid}
-      label=${t('X-WORK.monthTitle', { month: model.monthNum })} />
+  return html`<${MonthPaper} cells=${model.cells} width=${sw - 40} kuan=${model.kuan} sign=${sign} onOpen=${onOpen} testid=${testid} cellTestid=${cellTestid}
+      kuanTestid=${kuanTestid} sealTestid=${sealTestid} label=${t('X-WORK.monthTitle', { month: model.monthNum })} />
     ${model.under ? html`<p class="sz-monthpage__note" data-testid="month-note">${t('X-WORK.monthUnderNote')}</p>` : null}`;
 }
 

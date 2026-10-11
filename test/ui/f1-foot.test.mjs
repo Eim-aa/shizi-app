@@ -53,6 +53,17 @@ test('D56（P275）：写字页底栏与格下没有「在纸上写」入口—�
   assert.match(code('src/ui/screens/write/paper.js'), /data-testid="write-paper-back"/, 'the paper page keeps its own 改回在屏幕上写');
 });
 
+test('D56：03 里 P226 / P260 / P261 的取值写「已决定 D56：在纸上写移到设置」，新增 P275–P278，copy-source 同步', () => {
+  const md = read('docs/engineering/v10/03-待产品决定.md');
+  const row = id => md.split('\n').find(l => l.startsWith(`| ${id} |`));
+  for (const id of ['P226', 'P260', 'P261']) assert.match(row(id).split(' | ')[4], /^已决定 D56：在纸上写移到设置/, `${id} default column`);
+  for (const id of ['P275', 'P276', 'P277', 'P278']) assert.ok(row(id), `${id} is registered in 03`);
+  const src = JSON.parse(read('docs/engineering/v10/copy-source.json'));
+  for (const id of ['P226', 'P260', 'P261', 'P275', 'P278']) assert.ok(src.nonRuntimeDecisions[id], `${id} in nonRuntimeDecisions`);
+  assert.doesNotMatch(src.nonRuntimeDecisions.P260 + src.nonRuntimeDecisions.P261, /提示 \/ 看答案 \/ 在纸上写/);
+  assert.match(read('docs/handoff/decisions.md'), /\| D56 \|/);
+});
+
 test('看答案 / 描一遍 / 自己写 / 保存失败：次要操作是文字行里的文字按钮，不进菜单', () => {
   const ans = read('src/ui/screens/write/answer.js');
   assert.match(ans, /import \{ LinkButton, Slot, WriteFoot \} from '\.\/foot\.js';/);

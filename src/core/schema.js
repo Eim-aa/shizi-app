@@ -416,7 +416,7 @@ const settingsFields = {
   writeMode: v.oneOf(['screen', 'paper']), // D46 ⑬（P1-E8，03 P165）：设置 › 写字方式；缺省 screen
   paperSuggested: v.bool, // P1-E8（03 P168）：读屏开启时「改为在纸上写」的建议已出现过（只出现一次）
   answerNoteSeen: v.bool, // W1（03 P212，D51 ⑧）：第一次用「看答案」时格下的一行说明已出现过（只出现一次；看答案没有确认框）
-  shiHandoffDone: v.bool, // H1（03 P221，D51 ④ / N2-02）：首练写下「拾」后第一次回首页的「拾」交接已发生过（只一次）
+  shiHandoffDone: v.bool, // 【已弃用，只为兼容旧数据 / 备份保留，不再读也不再写】H1（03 P221，D51 ④）曾用它记「首练写下「拾」后第一次回首页的交接已发生过」；H2（D55，P267）去掉了首页「拾」交接
   firstTipSeen: v.bool, // Q2-1（03 P181）：首练第 1 字格下一次性提示「凭记忆写，想不起来可以点提示。」已出现过（只出现一次）
 
   large: v.bool,

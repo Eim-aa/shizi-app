@@ -30,7 +30,6 @@
     "{to}": "结束日期（同 {from}）",
     "{time}": "时刻（提醒邀请：好，明天 {time} 给你一个词。，如 9:30）",
     "{tier}": "复现预告档位词（X-FIRST.tier.*：明天 / 过两天 / 过几天）",
-    "{left}": "进行中的组还剩几个字的那句（X-HOME.progressLeft / progressLast，读屏名称里复用）",
     "{state}": "格的状态词（X-WORK.cellState*：写对 / 看后写的 / 写错，读屏名称里用）",
     "{max}": "一张图最多放几个字（policy.imageMaxChars，D39）",
     "{kuan}": "分张前的落款（X-WORK.kuanJoinPart 内部）",
@@ -225,9 +224,17 @@
     "P259": "AX3 起描一遍阶段主按钮改用短文案「自己写」（R3-C3W，P259）：文案槽 X-ANSWER.btnTraceDoneShort 已入 copy，档位阈值在 policy.axShortPrimaryFrom；不是运行时开关",
     "P260": "写字页求助操作一次点击直达（R4-F1，D55）：底栏回到主按钮 + 一行文字按钮（提示 / 看答案 / 在纸上写 / 跳过 / 结束这组…），取消「⋯」菜单与文案槽 X-WRITE.moreLabel；版式与结构，src/ui/screens/write/foot.js、index.js、answer.js、compare.js、src/config/policy.js（nominalFoot 116、footBottomMin 8）；不是运行时开关",
     "P261": "AX 档底栏文字行（R4-F1，D55）：文字按钮字号分层封顶 policy.writeGrid.axAux.links、按词折行、书写格会低于 220 时先收起「在纸上写」、再把主按钮字号封顶 34pt；版式公式在 src/ui/screens/write/layout.js axWriteLayout（tight）与 write/index.js；不是运行时开关",
-    "P262": "去掉写字页返回首页的「已保存，下次接着写」提示条（R4-F1，D55）：文案槽 R-H10.savedToast 与 session/index.js 的 router 订阅已删除；保存失败的三段式提示不变；不是运行时开关"
+    "P262": "去掉写字页返回首页的「已保存，下次接着写」提示条（R4-F1，D55）：文案槽 R-H10.savedToast 与 session/index.js 的 router 订阅已删除；保存失败的三段式提示不变；不是运行时开关",
+    "P265": "首页方向 E「极静」（H2，D55，设计稿「首页方向.html」E 一节）：日常六态的首页只有日期时段、墨「拾」128pt、竖排题记（两列 + 作者小字）、「自己选字」、主按钮，状态只体现在主按钮的字（开始写字 / 继续写字 / 再写一组）与两处各多一句（离开一周「你写过的 N 个字都还在。」、特别组那天的说明 + 「这次先写平常的字」）；首次打开画面不变；主按钮底线 policy.mainButtonLine；版式与文案槽，src/ui/screens/home/*；不是运行时开关",
+    "P266": "首页删字帖行（H2，D55）：首页不再放今天写的字 / 最近写的字 / 进行中格子 / 「昨天写的字」「今天写了 N 个字」「字库里有 N 个字了」，homeModel 不再有 hero / inkRow / recentRow / progress / count；home/recent.js、HomeTie 与相关文案槽删除；取代 P156 / P220 / P246 的首页部分；不是运行时开关",
+    "P267": "去掉首页「拾」交接（H2，D55）：home/handoff.js、handoff-ink.js 与 settings.shiHandoffDone 的读取删除；schema 字段保留以兼容旧数据 / 备份但不再使用；结果页「你写下的第一个「拾」。」（X-FIRST.shiWritten）保留；取代 P221 / P245 的首页部分；不是运行时开关",
+    "P268": "首页 AX1–AX5 版式（H2，D55）：「拾」与题记上下排居中，题记按现有规则改横排（两句 + 作者），「拾」按剩余高度缩（128 → 不小于 64），放不下时先收起题记（沿用 D49 的 AX 隐藏题记，读屏照样读到）、「拾」再缩（不小于 44），整页不滚动；home/index.js useShiAvail；不是运行时开关",
+    "P269": "首页标题只留给读屏、两组都没写完时的 A 行（H2，D55）：日常态标题「今天写几个字」改为视觉隐藏的 h1（页面标题与 aria-describedby 题记不变）；A、B 两组都没写完时 A 那一行（「今天的练习 · 接着写」）留作主按钮上方的文字按钮；特别组那天「自己选字」仍在；不是运行时开关",
+    "P220": "首页日常状态的主视觉（H1，D51 ④）已被 H2（D55，P265 / P266）取代：首页不放字帖行 / 最近写的字，主视觉是墨「拾」128pt + 竖排题记；`RECENT_ROW_MAX`、`home/recent.js` 删除；不是运行时开关",
+    "P221": "「拾」的交接（H1，D51 ④；C3-H，D53 ④，P245）已被 H2（D55，P267）取消：`home/handoff.js` 删除、`settings.shiHandoffDone` 不再读写（schema 字段保留兼容旧数据）；不是运行时开关"
   },
   "noCopy": [
+    "R-H07",
     "R-H08",
     "R-H09",
     "R-H12",
@@ -509,21 +516,6 @@
           "raw": "先不保存 / 再试一次",
           "part": 1,
           "text": "再试一次"
-        }
-      }
-    },
-    "R-H07": {
-      "screen": "home",
-      "milestone": "M2",
-      "status": "已定（契约）",
-      "source": "D12；备注 L82",
-      "slots": {
-        "todayCount": {
-          "raw": null,
-          "text": "今天写了 {n} 个字",
-          "origin": "04 R-H07 规则列 \"今天记录了 N 个字\"（决定-D12）",
-          "note": "阶段 1 P1-E5：「今天写过」状态的说明句改为设计稿「首练与首页」§四 ②的「今天写了 N 个字」，替换「今天记录了 N 个字」",
-          "decision": "P155"
         }
       }
     },
@@ -3059,27 +3051,13 @@
           "raw": null,
           "text": "继续写字",
           "origin": "首页壳-v3 L217",
-          "note": "主入口（有未完成组）"
+          "note": "主入口（有未完成组；D55：写到一半首页只靠这个按钮的字区别）"
         },
         "pick": {
           "raw": null,
           "text": "自己选字",
           "origin": "首页壳-v3 L81",
-          "note": "M2-1：首页辅助入口，打开查字组件 pick 模式（R-H06；弹层标题用 R-H06.title）；阶段 1 P1-E5 起按设计稿改为文字按钮「自己选字」（去掉箭头），首次打开不显示，首练完成后出现（D46 ②）"
-        },
-        "inkRowLabel": {
-          "raw": null,
-          "text": "今天写了 {n} 个字：{chars}",
-          "origin": "extra",
-          "note": "首页今天写的字的读屏名称（D49-7：首页不再画「今天写了 N 个字」，n ≤ 8 时计数只进读屏标签；n 照实，不含正在写的组；格子本身是图）；原「今天有记录的字：{chars}」加上计数",
-          "decision": "P55"
-        },
-        "recentRowLabel": {
-          "raw": null,
-          "text": "你最近写的字：{chars}",
-          "origin": "extra",
-          "note": "H1 / D51 ④：首页今天还没写、离开一周回来时，字帖位放本人最近写的几个字，读屏名称（格子本身是图；字用「」括起，同 inkRowLabel）",
-          "decision": "P220"
+          "note": "M2-1：首页辅助入口，打开查字组件 pick 模式（R-H06；弹层标题用 R-H06.title）；阶段 1 P1-E5 起按设计稿改为文字按钮「自己选字」（去掉箭头），首次打开不显示，首练完成后出现（D46 ②）；D55：六态里除首次打开与首练没写完外都有，放在主按钮上方，特别组那天旁边多一个「这次先写平常的字」"
         },
         "startFailed": {
           "raw": null,
@@ -3109,68 +3087,12 @@
           "note": "首次打开竖排题跋第三列，印落在这一列下",
           "decision": "P155"
         },
-        "libraryCount": {
-          "raw": null,
-          "text": "字库里有 {n} 个字了",
-          "origin": "extra",
-          "note": "D49-7：首页不再画「字库里有 N 个字了 ›」，字库计数只进读屏（字帖位块的 aria-label）；n = 有过判断记录的字数；入口只留 Tab「字库」",
-          "decision": "P156"
-        },
-        "progressLeft": {
-          "raw": null,
-          "text": "这一组还有 {n} 个字",
-          "origin": "extra",
-          "note": "D49-7：读屏标签（进行中的格子块），不再画在格子下；计数不含正在写的字（D36）",
-          "decision": "P155"
-        },
-        "progressLast": {
-          "raw": null,
-          "text": "这是这一组的最后一个字",
-          "origin": "extra",
-          "note": "D49-7：读屏标签：进行中、正在写的就是最后一个字（已看过答案）时代替「还有 0 个字」",
-          "decision": "P155"
-        },
-        "progressLabel": {
-          "raw": null,
-          "text": "{left}。已写：{chars}",
-          "origin": "extra",
-          "note": "进行中的格子块读屏名称（D49-7）：第一句 {left} = progressLeft / progressLast（剩余字数，不含正在写的），第二句只列已写过的字（没写的格子不泄题）；一个字都没写时只读第一句",
-          "decision": "P155"
-        },
-        "cellDone": {
-          "raw": null,
-          "text": "{char}，写过了",
-          "origin": "extra",
-          "note": "进行中格子读屏：已写",
-          "decision": "P155"
-        },
-        "cellNext": {
-          "raw": null,
-          "text": "下一个字，还没写",
-          "origin": "extra",
-          "note": "进行中格子读屏：下一个要写的格（不说是什么字，不泄题）",
-          "decision": "P155"
-        },
-        "cellEmpty": {
-          "raw": null,
-          "text": "还没写",
-          "origin": "extra",
-          "note": "进行中格子读屏：没写的格",
-          "decision": "P155"
-        },
         "shiLabel": {
           "raw": null,
           "text": "拾",
           "origin": "extra",
-          "note": "首页字帖位里书家「拾」的读屏名称（装饰性占位，书家稿到位后换资产，不换文字）",
-          "decision": "P155"
-        },
-        "shiHandoffLabel": {
-          "raw": null,
-          "text": "拾回的第一个字：你自己写的「拾」",
-          "origin": "extra",
-          "note": "H1 / D51 ④（N2-02）：首练写下「拾」后第一次回到首页，品牌「拾」的位置换成本人写的「拾」，这个格子的读屏名称；整个 App 只在这里用一次「拾回」（年报卷首等处另有安排，不在本卡）",
-          "decision": "P221"
+          "note": "首页墨「拾」与首次打开框中「拾」的读屏名称（装饰性，书家稿到位后换资产，不换文字）；D55：日常六态的首页只有这个「拾」与竖排题记",
+          "decision": "P265"
         },
         "capitalBody": {
           "raw": null,
@@ -3183,50 +3105,15 @@
           "raw": null,
           "text": "这次先写平常的字",
           "origin": "extra",
-          "note": "特别组那天的文字按钮（代替「自己选字」）：点了顺延到下一个合适的日子（D46 ④，P158）",
-          "decision": "P158"
+          "note": "特别组那天的文字按钮（D55：放在「自己选字」旁边，不再代替它）：点了顺延到下一个合适的日子（D46 ④，P158）",
+          "decision": "P265"
         },
         "backNote": {
           "raw": null,
           "text": "你写过的 {n} 个字都还在。",
           "origin": "extra",
-          "note": "离开 ≥7 天回来：把积累和「没有丢」合成一句，不提缺了几天（D01 / D41）",
-          "decision": "P155"
-        },
-        "shiFirstLine": {
-          "raw": null,
-          "text": "你写下的第一个「拾」。",
-          "origin": "extra",
-          "note": "C3-H / N3-01、D53 ④：「拾」交接写完后格下出现一次的一句事实陈述（不是夸奖，D30），保留到离开首页；减少动态效果下立即出现；结果页复现句前加同一句（X-FIRST.shiWritten）",
-          "decision": "P245"
-        },
-        "recentYesterday": {
-          "raw": null,
-          "text": "昨天写的字。",
-          "origin": "extra",
-          "note": "C3-H / N3-02、D53：首页今天还没写时，最近写的字（ink2）格下一句说清哪天写的（昨天）；离开一周以上不用这组，用 X-HOME.backNote",
-          "decision": "P246"
-        },
-        "recentDayBefore": {
-          "raw": null,
-          "text": "前天写的字。",
-          "origin": "extra",
-          "note": "C3-H / N3-02、D53：首页今天还没写时，最近写的字（ink2）格下一句说清哪天写的（前天）；离开一周以上不用这组，用 X-HOME.backNote",
-          "decision": "P246"
-        },
-        "recentDaysAgo": {
-          "raw": null,
-          "text": "{n} 天前写的字。",
-          "origin": "extra",
-          "note": "C3-H / N3-02、D53：首页今天还没写时，最近写的字（ink2）格下一句说清哪天写的（3–6 天前（n 为天数））；离开一周以上不用这组，用 X-HOME.backNote",
-          "decision": "P246"
-        },
-        "recentMixed": {
-          "raw": null,
-          "text": "最近写的字。",
-          "origin": "extra",
-          "note": "C3-H / N3-02、D53：首页今天还没写时，最近写的字（ink2）格下一句说清哪天写的（这几个字不是同一天写的）；离开一周以上不用这组，用 X-HOME.backNote",
-          "decision": "P246"
+          "note": "离开 ≥7 天回来：把积累和「没有丢」合成一句，不提缺了几天（D01 / D41）；D55：放在「拾」与题记组下面（13 墨三），N = 字库里写过的字数",
+          "decision": "P265"
         }
       }
     },

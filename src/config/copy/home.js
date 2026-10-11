@@ -41,8 +41,6 @@ export default Object.freeze({
   'R-H06.saveFailed': '没保存上，输入的字还在。',
   'R-H06.cancel': '先不保存',
   'R-H06.retry': '再试一次',
-  // R-H07（已定（契约）；阶段 1 P1-E5：今天写过的状态里的说明句，设计稿「首练与首页」§四 ②，替换「今天记录了 N 个字」）
-  'R-H07.todayCount': '今天写了 {n} 个字',
   // R-H11（已定（两态是否同一页见 §6.2））
   'R-H11.title': '现在没有要写的字',
   'R-H11.body': '想接着写，可以自己选几个字。',
@@ -54,31 +52,12 @@ export default Object.freeze({
   'X-HOME.continue': '继续写字',
   // X-HOME（M2-1 首页：原型首页壳-v3 L44 / L56 / L57 / L71 / L74 / L81 的装饰字与入口；开组写入失败说明，P55 待文案）
   'X-HOME.pick': '自己选字',
-  'X-HOME.inkRowLabel': '今天写了 {n} 个字：{chars}',
-  // 首页日常状态的字帖位（H1 / D51 ④，03 P220）：今天还没写、离开一周回来时放本人最近写的几个字；读屏名称
-  'X-HOME.recentRowLabel': '你最近写的字：{chars}',
-  // 最近写的字（ink2）格下的一句（C3-H / N3-02、D53，03 P246）：今天还没写时说清这几个字是哪天写的；离开一周以上另有「你写过的 N 个字都还在。」
-  'X-HOME.recentYesterday': '昨天写的字。',
-  'X-HOME.recentDayBefore': '前天写的字。',
-  'X-HOME.recentDaysAgo': '{n} 天前写的字。',
-  'X-HOME.recentMixed': '最近写的字。',
   'X-HOME.startFailed': '没保存上，刚才的选择没记下。',
   // X-HOME（阶段 1 P1-E5，设计稿「首练与首页」：首次打开、日常首页五态；全部是过渡文案，阶段 1 文案统一时定稿）
   'X-HOME.mottoLine1': '提笔忘字，',
   'X-HOME.mottoLine2': '不是忘了，',
   'X-HOME.mottoLine3': '只是很久没写。',
-  'X-HOME.libraryCount': '字库里有 {n} 个字了',
-  'X-HOME.progressLeft': '这一组还有 {n} 个字',
-  'X-HOME.progressLast': '这是这一组的最后一个字',
-  'X-HOME.progressLabel': '{left}。已写：{chars}',
-  'X-HOME.cellDone': '{char}，写过了',
-  'X-HOME.cellNext': '下一个字，还没写',
-  'X-HOME.cellEmpty': '还没写',
   'X-HOME.shiLabel': '拾',
-  // 「拾」的交接（H1 / D51 ④、N2-02，03 P221）：首练写下「拾」后第一次回首页，品牌「拾」的位置换成本人写的「拾」；读屏名称，整个 App 只在这里用一次「拾回」
-  'X-HOME.shiHandoffLabel': '拾回的第一个字：你自己写的「拾」',
-  // 格下只出现一次的一句（C3-H / N3-01、D53 ④，03 P245）：交接写完后淡入，保留到离开首页；结果页复现句前的同一句见 X-FIRST.shiWritten
-  'X-HOME.shiFirstLine': '你写下的第一个「拾」。',
   'X-HOME.capitalBody': '今天写两组大写数字，借条、红包上用得着。',
   'X-HOME.capitalDefer': '这次先写平常的字',
   'X-HOME.backNote': '你写过的 {n} 个字都还在。',

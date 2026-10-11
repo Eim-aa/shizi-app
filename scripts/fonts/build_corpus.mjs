@@ -86,6 +86,7 @@ export const HEI_ONLY_COPY = Object.freeze([
   'X-FIRST.laterSame',
   'X-INVITE.body', // 「锁屏上只出现词语和拼音……」：提醒邀请的说明，黑体 13
   'X-INVITE.bodyPlain',
+  'X-PAPER.suggest', // 「看不清或不方便在屏幕上写，可以在设置里改为在纸上写。」：读屏用户第一次进写字页的建议（R4-P1 / P276），格下说明位，黑体 13（「便」不在宋体子集里）
   'X-ALL.menuLabel', // 「排序 · 筛选」：有记录的字页页头尾端的文字按钮与弹层标题（H1 / P223），都用黑体，「筛」不在宋体子集里
   'X-FIRST.shiWritten', // 首练结果页复现句前的「拾」那句：与复现句同一段，黑体 15（C3-H / P245）
   'X-FIRST.shiHome',

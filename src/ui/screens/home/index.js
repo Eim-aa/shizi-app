@@ -484,7 +484,7 @@ function HomeScreen() {
     ${view === 'first' ? html`<div class="sz-home__head" aria-hidden="true" style=${{ minHeight: '28px' }}></div>` : html`<header ref=${headRef} class="sz-home__head">
       <p class="sz-home__date" data-testid="home-date">${dateText}</p>
     </header>`}
-    ${view === 'first' ? null : html`<h1 class="sz-home__title" tabindex="-1" data-page-title data-testid="home-title" aria-describedby=${EPIGRAPH_ID}>${t('R-H01.title')}</h1>`}
+    ${view === 'first' ? null : html`<h1 class="sz-home__title sz-page__title--hidden" tabindex="-1" data-page-title data-testid="home-title" aria-describedby=${EPIGRAPH_ID}>${t('R-H01.title')}</h1>`}
     <div class="sz-home__stage">
     <div class="sz-home__main" data-testid="home-main">
       ${zone}

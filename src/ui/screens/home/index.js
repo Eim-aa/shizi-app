@@ -48,6 +48,7 @@ import { Button } from '../../components/Button.js';
 import { SealGlyph } from '../../components/marks.js';
 import { injectStyles, T } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
+import * as policy from '../../../config/policy.js';
 import { EPIGRAPHS, epigraphAuthor } from '../../../config/epigraphs.js';
 import { isTestHost, now as envNow } from '../../../platform/env.js';
 import { getStore } from '../../../store/store.js';
@@ -77,8 +78,8 @@ export const CLOCK_TICK_MS = 30000;
 /** 首次打开品牌时刻的总长（ms；I2-05 建议 ≤ 1.2s）：题跋逐字淡入 0.08–0.94s，印 0.9–1.2s。主按钮不参与动画，第一帧起可见可点（H1）。 */
 export const BRAND_TOTAL_MS = 1200;
 
-/** 主按钮底边到 Tab 栏上沿的固定距离（pt，T3-01 / D53 ③「全 App 统一的底线」）：首页五态与首次打开同一条线。 */
-export const CTA_LINE = 24;
+/** 主按钮底边到 Tab 栏上沿的固定距离（pt，T3-01 / D53 ③「全 App 统一的底线」）：首页五态与首次打开同一条线。与写字页主按钮底线共用 policy.mainButtonLine（P258，R3-C3W）。 */
+export const CTA_LINE = policy.mainButtonLine.gapAboveEdge;
 /** 标题到字帖行的距离（pt）：标题贴近字帖，成一组。 */
 export const TITLE_GAP = 20;
 

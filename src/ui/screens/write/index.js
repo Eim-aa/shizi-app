@@ -40,6 +40,7 @@ import { html, useEffect, useLayoutEffect, useRef, useState } from '../../../../
 import { backGestureAllowed, registerScreen, getRouter, nav } from '../../router.js';
 import { Page } from '../../components/Page.js';
 import { Button, markStateChange } from '../../components/Button.js';
+import { Icons } from '../../components/icons.js';
 import { injectStyles, T } from '../../components/styles.js';
 import { InkGrid } from '../../canvas/ink-canvas.js';
 import { currentCardKey, isComplete, PHASES } from '../../../core/sessions.js';
@@ -152,12 +153,6 @@ ${AX_HI(`${W} .sz-page__head>.sz-page__title:not(.sz-page__title--hidden)`, '[da
 `);
 
 const EMPTY = Object.freeze([]);
-
-// 撤销 / 清空的图标（设计系统 减法修稿：i-undo / i-clear，20 见方）；每次渲染现取新 vnode（vendor/ui.js 注释，M6-3）。
-const UNDO_ICON = () => html`<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
-  stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M7 5 3.5 8.5 7 12M4 8.5h8a4.5 4.5 0 0 1 0 9H9"></path></svg>`;
-const CLEAR_ICON = () => html`<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
-  stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 6h12M8 6V4h4v2M6 6l.8 10h6.4L14 6"></path></svg>`;
 
 function clockNow() {
   return typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now();
@@ -458,9 +453,9 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
   const tools = html`<span class="sz-write__tools" data-testid="write-tools" data-shown=${drawable && !paper ? 'true' : 'false'}
           data-paper=${paper ? 'true' : null}>
           <${Button} variant="plain" class="sz-write__ibtn" data-testid="write-undo" aria-label=${t('R-W18.btnUndo')} disabled=${!canUndo} rapid
-            onClick=${onUndo}>${UNDO_ICON()}</${Button}>
+            onClick=${onUndo}>${Icons.undo()}</${Button}>
           <${Button} variant="plain" class="sz-write__ibtn" data-testid="write-clear" aria-label=${t('R-W18.btnClear')} disabled=${!hasStrokes} rapid
-            onClick=${onClear}>${CLEAR_ICON()}</${Button}>
+            onClick=${onClear}>${Icons.clear()}</${Button}>
         </span>`;
 
   const noteBody = answer.active ? answer.note

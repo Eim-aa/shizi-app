@@ -45,7 +45,6 @@ test('icons.js：每个图标 1.5 线宽、圆端圆角、线形、对读屏隐�
 // 例外登记：文件 → 允许出现的非 1.5 stroke-width 字面量（带理由）。登记了但文件里已经没有时报「过期」。
 const STROKE_EXCEPTIONS = {
   'src/ui/canvas/ink-canvas.js': { values: ['0.75'], why: '书写格十字参考线是格子的第二档线（0.75 虚线，T2-21），不是图标' },
-  'src/ui/screens/write/index.js': { values: ['1.6'], why: '写字页撤销 / 清空图标由写字页那张卡（C3-W）改成 icons.js，合并后删这条登记' },
 };
 
 test('全仓图标线宽只有 1.5（stroke-width 属性）', () => {

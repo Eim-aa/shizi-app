@@ -1,7 +1,7 @@
 // 图标（第三轮 C3-R，T2-20 / T3-13 / 第三轮「最后一批规格」）：全 App 页面里画的线形图标都从这里取，不再每个页面内联一份 SVG。
 //
 // 规格：线宽只有一个值 ICON_STROKE = 1.5（视口单位，与 viewBox 同比例；写字页的十字参考线 0.75 虚线是格子的第二档线，不是图标），圆端圆角，
-// 线形、不填色、颜色取 currentColor（需要别的颜色的地方传 color）。每个图标自己的 viewBox 保持原来的栅格（返回箭头 22、关闭 20、分享 22、查找 22、
+// 线形、不填色、颜色取 currentColor（需要别的颜色的地方传 color）。每个图标自己的 viewBox 保持原来的栅格（返回箭头 22、关闭 20、分享 22、查找 22、撤销 / 清空 20、
 // 勾 14 / 22、翻页 18、chevron 8 × 13），视觉尺寸由 size 给；阶段 3 原生外壳整体换 SF Symbols 时只改这一个文件。
 // 底部 Tab 栏的图标另有 24 栅格的线描 / 实心一对（tab-icons.js），线宽同样取 ICON_STROKE。
 //
@@ -43,6 +43,10 @@ export const Icons = {
   /** 日历翻页（18 栅格，视觉 18）。 */
   prev: (o = {}) => frame({ box: 18, size: 18, ...o }, html`<path d="M11 4 6 9l5 5"></path>`),
   next: (o = {}) => frame({ box: 18, size: 18, ...o }, html`<path d="m7 4 5 5-5 5"></path>`),
+  /** 写字页页头的撤销（20 栅格，视觉 20；AX 档由样式放大到 28）。 */
+  undo: (o = {}) => frame({ box: 20, size: 20, ...o }, html`<path d="M7 5 3.5 8.5 7 12M4 8.5h8a4.5 4.5 0 0 1 0 9H9"></path>`),
+  /** 写字页页头的清空（20 栅格，视觉 20；AX 档由样式放大到 28）。 */
+  clear: (o = {}) => frame({ box: 20, size: 20, ...o }, html`<path d="M4 6h12M8 6V4h4v2M6 6l.8 10h6.4L14 6"></path>`),
   /** 列表行尾的 chevron（8 × 13，纯装饰）。 */
   chevron: (o = {}) => frame({ box: '0 0 8 13', ...o }, html`<path d="M1.5 1.5 6.5 6.5l-5 5"></path>`),
 };

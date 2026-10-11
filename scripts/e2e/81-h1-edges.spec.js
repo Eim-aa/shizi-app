@@ -1,6 +1,6 @@
 // H1-2（T2-01、D51 ⑥、设计说明「页边 20」）：页头尾端、文字按钮、内容的右边线统一落在 20pt 页边线（右 = 屏宽 − 20）；左边线 20。
 // 逐页量「可见字形的外缘」（文字用 Range 的行盒，图标用 path 几何盒，加 / 减描边半宽 0.75）：
-//   写字页：页头计数「1 / 3」右缘、页头返回箭头左缘、底栏「写好了」左缘与「⋯」右缘（D53 ②：提示 / 看答案 / 跳过进了「⋯」菜单）；
+//   写字页：页头计数「1 / 3」右缘、提示 / 看答案左缘、跳过右缘、页头返回箭头左缘（在纸上写在左组看答案之后）；
 //   清单页：页头尾端「全选 / 全不选」右缘；字库：「练这些字」右缘；我的：「练习记录 ›」「保存图片」右缘；
 //   有记录的字：「练这些字」左缘；详情 / 设置：返回箭头左缘、主按钮 20..W−20。
 // 393×852 与 375×667 各一遍。
@@ -74,15 +74,20 @@ export default async function run(page0, ctx) {
     await bootTestHost(page, ctx.baseURL);
     const tag = `${vp.width}×${vp.height}`;
 
-    step(`${tag} 写字页：页头计数、返回箭头、底栏「写好了」与「⋯」`);
+    step(`${tag} 写字页：页头计数、提示、跳过、在纸上写、返回箭头`);
     await seedSession(page, { slot: 'A', chars: [...'春夏秋'] });
     await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
     await openWrite(page, { slot: 'A' });
     await rightOf(`${tag} write 页头计数`, `${topSel('write-screen')} .sz-page__trail`);
     await leftOf(`${tag} write 返回箭头`, topSel('page-back'));
+    await leftOf(`${tag} write 提示`, topSel('write-hint'));
+    await rightOf(`${tag} write 跳过`, topSel('write-skip'));
+    // R2-X1（P226）：「在纸上写」是左组里的常驻文字按钮（看答案之后），不再贴右边线；右边线只有跳过
+    const answerBox = await box(page, topSel('write-show-answer'));
+    const paperBox = await box(page, topSel('write-to-paper'));
+    assert.ok(paperBox && paperBox.l >= answerBox.r - 0.5 && paperBox.r <= (await box(page, topSel('write-skip'))).l, `${tag} write 在纸上写 sits after 看答案, before 跳过`);
     const done = await box(page, topSel('write-done'));
-    const more = await box(page, topSel('write-more'));
-    assert.ok(near(done.l, 20) && near(more.r, more.w - 20), `${tag} write 写好了 starts on 20 and 「⋯」 ends on W−20`);
+    assert.ok(near(done.l, 20) && near(done.r, done.w - 20), `${tag} write 写好了 20..W−20`);
     // 页头尾端：撤销 / 清空在计数左边，计数仍是右缘 20（上面 rightOf 已断言）；这里再核对它们没有挤出页边
     const tools = await box(page, topSel('write-tools'));
     assert.ok(tools && tools.r <= tools.w - 20 + 0.5, `${tag} write 撤销 / 清空 stay inside the 20pt margin`);

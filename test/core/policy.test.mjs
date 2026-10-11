@@ -105,10 +105,10 @@ test('policy: transitional defaults match 03 / the M0-6 card', () => {
   // M2-H：P69 / P70 迁入 policy（值不变）
   assert.equal(policy.compactMaxHeight, 760, 'P69');
   assert.deepEqual({ ...policy.mainButtonLine }, { gapAboveEdge: 24 }, 'P258 主按钮底线：安全区 / Tab 栏上沿往上 24（写字页与首页共用）');
-  assert.equal(policy.writeGrid.footBottomMin, policy.mainButtonLine.gapAboveEdge, 'P258 底栏下内边距 = 主按钮底线');
+  assert.equal(policy.writeGrid.footBottomMin, 8, 'P260 底栏下内边距回到 max(8, 下安全区)（写字页底栏有文字行，不再用 24 的主按钮底线）');
   assert.deepEqual(
     { ...policy.writeGrid },
-    { min: 258, max: 400, sideMargin: 20, promptGap: 16, toolsHeight: 40, axMin: 220, axNoteHeight: 56, axAux: { pinyin: [22, 28], note: [17, 22], progress: [17, 22], title: [17, 22], paper: [22, 28] }, axPromptScaleMax: 1.6, bottomGap: 16, topShare: 0.4, topMin: 12, nominalHead: 44, nominalFoot: 66, footBottomMin: 24, nominalPrompt: 80 },
+    { min: 258, max: 400, sideMargin: 20, promptGap: 16, toolsHeight: 40, axMin: 220, axNoteHeight: 56, axAux: { pinyin: [22, 28], note: [17, 22], progress: [17, 22], title: [17, 22], links: [17, 22], paper: [22, 28] }, axPromptScaleMax: 1.6, bottomGap: 16, topShare: 0.4, topMin: 12, nominalHead: 44, nominalFoot: 116, footBottomMin: 8, nominalPrompt: 80 },
     'P118 D36 / D49（E9b：实现交接 §13.2 的整组居中公式）',
   );
   assert.deepEqual(

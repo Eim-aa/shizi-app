@@ -18,7 +18,7 @@ test('Sheet 标题行右端画「完成」：文字按钮、文案来自 X-COMMO
   assert.match(sheetSrc, /data-dismiss=\$\{done \? 'done' : 'own'\}/, 'e2e 逐个核对用的标记');
 });
 
-test('没有标题的弹层（写字页「⋯」菜单）这一行也有「完成」', () => {
+test('没有标题的弹层这一行也有「完成」', () => {
   assert.match(sheetSrc, /\$\{title \|\| done/);
 });
 
@@ -30,7 +30,7 @@ test('只有弹层自己已有等价可见出口的决策弹层才传 dismiss="o
   ];
   for (const [f, id] of own) assert.match(read(f), new RegExp(`testid="${id}" dismiss="own"`), `${f}`);
   const withDone = [
-    'src/ui/screens/write/ax-menu.js', 'src/ui/screens/library/all.js', 'src/ui/screens/detail/records.js',
+    'src/ui/screens/library/all.js', 'src/ui/screens/detail/records.js',
     'src/ui/screens/mine/settings.js', 'src/ui/components/query/QuerySheet.js', 'src/ui/components/image-preview.js',
   ];
   for (const f of withDone) assert.doesNotMatch(read(f), /dismiss="own"/, `${f}: 沿用默认的「完成」`);

@@ -11,7 +11,7 @@
 //   - Tab 栏不放大（D49 收紧 Q2-11 的封顶）：Tabs.js 的高、图标 24、标签 11 本来就不读 --k，AX 档没有任何额外规则（iOS 系统 Tab 栏同样不随 Dynamic Type 放大）。
 //   - 字阶（D49）：AX 档的 --fsN / --lhN / --btn-h 由 tokens.css 的 :root[data-ax="N"] 逐级给出（不再统一乘 --k），下面按钮的最小高直接取 --btn-h。
 // 写字页 / 判断页 / 看答案页在 AX 档有自己的专属版式（D51 ⑦，P225；ADA A2-01 / A2-04 / A2-09 / A2-11）：永不滚动、书写格按实际可用高度排（下限 220）、
-// 底栏只留主按钮 + 「⋯」菜单、撤销 / 清空在页头、辅助字封顶 17pt——样式在 write/index.js、write/prompt.js、write/ax-menu.js，尺寸在 write/layout.js axWriteLayout。
+// 底栏 = 主按钮 + 一行文字按钮（提示 / 看答案 / 跳过…一次点击直达，字号封顶 17 / 22pt，折行时按词折，R4-F1 P260–P261）、撤销 / 清空在页头、辅助字分层封顶——样式在 write/index.js、write/prompt.js、write/foot.js，尺寸在 write/layout.js axWriteLayout。
 // 本文件只放各页共用的防溢出规则；按钮文字词内不折行（A2-11）：按钮文字经 components/Words.js 分词、词与词之间才折；不用 word-break:keep-all——
 // 它让中文整句不能折行，WebKit 里按钮文字溢出、被裁（第三轮审查 A3-02，R3-K1 P242）。
 // 选择器一律以 :root[data-ax][data-text-large] 开头，比紧凑版（write/compact.js 的 :root[data-text-large] …）多一个属性，
@@ -35,11 +35,8 @@ ${A} .sz-page .sz-page__head>.sz-page__lead,${A} .sz-page .sz-page__head>.sz-pag
 ${A} .sz-btn--primary,${A} .sz-btn--secondary{min-height:var(--btn-h);height:auto;padding-top:6px;padding-bottom:6px;
   white-space:normal;line-break:strict}
 ${A} .sz-btn--text{min-height:max(44px, calc(1.3em + 12px));white-space:normal;line-break:strict;text-align:left}
-${W} .sz-write__main{grid-template-columns:minmax(0,1fr);gap:8px}
 ${W} .sz-write__foot .sz-btn--primary,${W} .sz-write__foot .sz-btn--secondary{min-height:calc(1.3em + 20px);white-space:normal}
 ${W} .sz-write__hint .sz-hintbtn{white-space:normal}
-${W} .sz-write__links{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:0 16px}
-${W} .sz-write__links>.sz-write__linkrow,${W} .sz-write__links>.sz-write__skiprow{justify-self:auto}
 ${W} .sz-judge__btns,${W} .sz-judge__fail{grid-template-columns:minmax(0,1fr)}
 ${W} .sz-judge__btn{min-height:calc(1.3em + 28px)}
 ${A} .sz-home .sz-home__date,${A} .sz-home .sz-home__line,${A} .sz-home .sz-home__other.sz-btn{white-space:normal}

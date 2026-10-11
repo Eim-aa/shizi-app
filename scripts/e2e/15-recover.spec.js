@@ -16,7 +16,7 @@
 
 import {
   bootTestHost, drawStroke, HORIZONTAL, VERTICAL, PRESS_SETTLE_MS, seedSession, tid, topSel, waitNavIdle, writeSnapshot,
-  openWrite, canvasInk, tap, menuItems,
+  openWrite, canvasInk, tap, footItems,
 } from './helpers.mjs';
 
 const CHARS = ['永', '和', '春', '大', '中'];
@@ -187,7 +187,7 @@ export default async function recover(page, ctx) {
   await reloadWrite(page);
   s = await writeSnapshot(page);
   assert.deepEqual([s.phase, s.strokes], ['recall', 1], 'refresh: recall with the 1 stroke');
-  assert.equal(((await menuItems(page)).find(i => i.testid === 'write-hint') || {}).remaining, '1', 'refresh: 1 hint left');
+  assert.equal(((await footItems(page)).find(i => i.testid === 'write-hint') || {}).remaining, '1', 'refresh: 1 hint left');
   assert.equal(await waitAttr(page, 'write-hint-layer', 'data-anim', ['static', 'draw', 'fade']), 'static', 'refresh: hint restored statically');
 
   // ------------------------------------------------------------------ 2. compare

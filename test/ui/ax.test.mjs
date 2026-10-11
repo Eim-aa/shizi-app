@@ -17,7 +17,7 @@ test('every AX rule is scoped to :root[data-ax][data-text-large] (never touches 
 
 test('AX rules cover the card list: page title wraps, write / judge buttons stack, settings value rows stack, buttons take --btn-h (D49)', () => {
   assert.match(AX_CSS, /\.sz-page__title\{[^}]*white-space:normal/);
-  assert.match(AX_CSS, /\.sz-write__main\{grid-template-columns:minmax\(0,1fr\)/);
+  assert.match(AX_CSS, /\.sz-btn--text\{min-height:max\(44px, calc\(1\.3em \+ 12px\)\);white-space:normal;line-break:strict/);
   assert.match(AX_CSS, /\.sz-judge__btns,[^{]*\{grid-template-columns:minmax\(0,1fr\)/);
   assert.match(AX_CSS, /\.sz-set__row--value\{flex-direction:column/);
   assert.match(AX_CSS, /\.sz-btn--primary,[^{]*\{min-height:var\(--btn-h\)/, 'D49: button min height = --btn-h (AX tier: max(54, lh17 + 26), 88 at AX5)');

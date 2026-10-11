@@ -63,14 +63,11 @@ export default async function run(page, ctx) {
     assert.ok(b.inside && !b.overflow, `${tag}: the text stays inside the button (${b.lines} line(s))`);
     assert.deepEqual(await page.evaluate(keepAll), [], `${tag}: no element on the write page computes word-break:keep-all`);
 
-    step(`${tag} 看答案 + 「⋯」 menu: no keep-all in the foot or the menu`);
+    step(`${tag} 看答案 + text row: no keep-all in the foot; the text buttons fold by word and stay inside the page`);
     await openWrite(page, ctx, { size, current: { phase: 'answer', answerSeen: true } });
-    await page.click(topSel('write-more'));
-    await page.waitForSelector('[data-testid="write-ax-menu"] .sz-axmenu__item');
-    await waitNavIdle(page);
-    assert.deepEqual(await page.evaluate(keepAll), [], `${tag}: no keep-all with the menu open`);
-    const items = await page.$$eval('[data-testid="write-ax-menu"] .sz-axmenu__item', els => els.map(e => ({ t: e.textContent, w: e.querySelectorAll('.sz-words__w').length, o: e.scrollWidth > e.clientWidth + 1 })));
-    assert.ok(items.every(i => !i.o), `${tag}: menu items do not overflow`);
+    assert.deepEqual(await page.evaluate(keepAll), [], `${tag}: no keep-all on the answer page`);
+    const items = await page.$$eval('.sz-layer[data-top="true"] .sz-page__foot .sz-write__links .sz-btn--text', els => els.map(e => ({ t: e.textContent, o: e.scrollWidth > e.clientWidth + 8, r: e.getBoundingClientRect().right })));
+    assert.ok(items.length >= 2 && items.every(i => !i.o && i.r <= view.width + 0.5), `${tag}: the text row buttons do not overflow (${JSON.stringify(items)})`);
 
     step(`${tag} 单字详情（没写过的字）: the empty note wraps inside the page margins`);
     await page.goto('about:blank');

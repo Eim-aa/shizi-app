@@ -1,18 +1,18 @@
 // 阶段 1 E9b（D49 减法修稿；实现交接 §13 写字页（回忆）与 §9 判断页；03 P118 / P151 / P189–P191）。
 //
-//   A 写字页：回忆阶段页头没有可见标题（读屏页名保留）、左「‹」、右「撤销 / 清空 + 计数」；题面整词居中、已给的字不装框、要写的格只画空框；题面 + 书写格 + 格下说明位作为一组
-//     在页头与按钮行之间居中（空余 40% 在上，书写格边长 = clamp(258, min(W − 40, 400, 主区高 − 80 − 16 − 40 − 16), 400)）；D53 ②（R3-C3W）起底栏只有一行：主按钮「写好了」+「⋯」，
-//     「在纸上写」「提示」「看答案」「跳过」在「⋯」菜单里；可点样式 ≤ 2 种（主按钮 / 次按钮「⋯」，另有页头图标）；「提示」可见文字只有「提示」、次数在读屏名称里；
+//   A 写字页：回忆阶段页头没有可见标题（读屏页名保留）、只有「‹」与计数；题面整词居中、已给的字不装框、要写的格只画空框；题面 + 书写格 + 格下工具行作为一组
+//     在页头与按钮行之间居中（空余 40% 在上，书写格边长 = clamp(258, min(W − 40, 400, 主区高 − 80 − 16 − 40 − 16), 400)）；按钮行只有一个主按钮「写好了」，
+//     其下一行文字按钮左「提示」「看答案」、右「跳过」；可点样式 ≤ 2 种（主按钮 / 文字按钮，另有格下图标）；「提示」可见文字只有「提示」、次数在读屏名称里；
 //     撤销 / 清空是设计系统图标按钮（可见 36、热区 44）；浅 / 深色；402 / SE / Pro Max 实测值写进断言；AX5（R2-X1，P225）书写格按实际可用高度排、完整在首屏、整页不滚动（含冷启动直接在 AX5）、底栏只有「写好了」+「⋯」；各 AX 档的详细断言在 82–84-x1-write-ax-*.spec.js。
 //   B 判断页：页头问题「写对了吗？」、左上与写字页同一个「‹」（读屏名「接着写」）；没有旁注与说明句但读屏名称都在；题面目标格不显示答案（答案只在参考格出现一次）；
 //     两格与书写格同一顶边、同一中线，边长按 §9.1 的新公式（402 / SE / Pro Max 实测值写进断言）；AX5：页头问题只留读屏、两格取「上下排 / 并排」格子更大的一种、
 //     同屏可比、按钮纵排；纸上那一字：参考字形放到书写格大小，格下说明位「和你纸上的字对照」。
 //
-// 测试浏览器没有安全区（状态栏 0、按钮行下内边距 24 = 主按钮底线 P258）：主区高 = 屏高 − 44（页头）− 90（按钮行：上 12 + 主按钮 54 + 下 24）。
+// 测试浏览器没有安全区（状态栏 0、按钮行下内边距 8）：主区高 = 屏高 − 44（页头）− 124（按钮行：上 12 + 主按钮 54 + 间 6 + 文字行 44 + 下 8）。
 // 设计稿的数值（402：231 / SE：177 / Pro Max：261）带 54 + 34 等安全区，在 test/ui/write-layout.test.mjs 里按稿面输入断言。
 
 import {
-  bootTestHost, drawStroke, HORIZONTAL, PRESS_SETTLE_MS, seedSession, setTextSize, tokenRgb, topSel, waitNavIdle, openWrite, tap, closeWriteMenu, openWriteMenu,
+  bootTestHost, drawStroke, HORIZONTAL, PRESS_SETTLE_MS, seedSession, setTextSize, tokenRgb, topSel, waitNavIdle, openWrite,
 } from './helpers.mjs';
 
 const CHARS = ['根', '据', '永', '和', '春'];
@@ -42,7 +42,7 @@ async function boot(page, ctx, { view, scheme = 'light', size = 'L', cold = fals
   const seeded = await seedSession(page, { slot: 'A', kind: 'daily', chars, cursor, extraState });
   ctx.assert.ok(seeded.ok, `${view.width}×${view.height} ${scheme} ${size}: seed A session`);
   await openWrite(page, { slot: 'A' });
-  await page.waitForSelector(topSel('write-more'), { timeout: 15000 });
+  await page.waitForSelector(`${topSel('write-hint')}[data-state="available"], ${topSel('write-done')}`, { timeout: 15000 });
   await page.waitForTimeout(400);
   await page.mouse.move(1, 1);
 }
@@ -95,9 +95,11 @@ async function geo(page) {
       done: rect(q('write-done')),
       wrong: rect(q('write-judge-wrong')),
       correct: rect(q('write-judge-correct')),
-      more: rect(q('write-more')),
       undo: rect(q('write-undo')),
       clear: rect(q('write-clear')),
+      hint: rect(q('write-hint')),
+      answer: rect(q('write-show-answer')),
+      skip: rect(q('write-skip')),
     };
   });
 }
@@ -117,12 +119,12 @@ export default async function e9bWriteJudge(page, ctx) {
   const { assert, step } = ctx;
 
   // ------------------------------------------------------------------ A 写字页：结构与位置（浅色，三机型）
-  // 实测值（测试浏览器无安全区）：主区高 = 屏高 − 134（页头 44 + 按钮行 90）；P = 80
+  // 实测值（测试浏览器无安全区）：主区高 = 屏高 − 168；P = 80
   const WRITE_CASES = [
     // [宽, 高, 主区高, g, 题面顶（相对正文顶）, 书写格顶（相对正文顶）, 判断页 S]
-    [402, 874, 740, 362, 97, 193, 265],
-    [375, 667, 533, 335, 25, 121, 198],
-    [440, 956, 822, 400, 114, 210, 298],
+    [402, 874, 706, 362, 83, 179, 255],
+    [375, 667, 499, 335, 12, 108, 187],
+    [440, 956, 788, 400, 101, 197, 287],
   ];
   for (const [W, H, mainH, g, topOff, gridOff, S] of WRITE_CASES) {
     const tag = `${W}×${H}`;
@@ -130,7 +132,7 @@ export default async function e9bWriteJudge(page, ctx) {
     await boot(page, ctx, { view: { width: W, height: H } });
     const m = await geo(page);
     assert.deepEqual(m.bodyPad, ['0px', '0px', '20px', '20px'], `${tag}: the body has no top / bottom padding (the main area is the whole body), side margins 20`);
-    assert.ok(near(m.body.height, mainH, 0.6), `${tag}: main area = screen − 44 − 90 = ${mainH} (${m.body.height})`);
+    assert.ok(near(m.body.height, mainH, 0.6), `${tag}: main area = screen − 44 − 124 = ${mainH} (${m.body.height})`);
     assert.ok(near(m.prompt.height, 80, 0.6), `${tag}: the prompt is 80 high (pinyin row 28 + 52 cell)`);
     const e = expectWrite({ W, mainH: m.body.height, P: m.prompt.height });
     assert.equal(e.g, g, `${tag}: formula check — g = ${g}`);
@@ -141,7 +143,7 @@ export default async function e9bWriteJudge(page, ctx) {
     assert.ok(near(m.below.height, 40, 0.6) && near(m.below.width, g), `${tag}: the tools row is 40 high and as wide as the grid`);
     assert.ok(near(m.grid.cx, m.vw / 2, 0.6) && near(m.word.cx, m.vw / 2, 1.5), `${tag}: the whole word and the grid share the page's midline (${m.word.cx} / ${m.grid.cx})`);
     const bottomSpare = m.body.bottom - m.below.bottom;
-    assert.ok(bottomSpare >= topOff * 1.4 - 1 || topOff <= 25, `${tag}: the spare below the group (${bottomSpare.toFixed(1)}) is ~60% (above: ${topOff})`);
+    assert.ok(bottomSpare >= topOff * 1.4 - 1 || topOff === 12, `${tag}: the spare below the group (${bottomSpare.toFixed(1)}) is ~60% (above: ${topOff})`);
     assert.ok(m.bodyScroll <= m.bodyClient + 1, `${tag}: nothing to scroll`);
     assert.equal(m.footUnder, null, `${tag}: no hairline on the button row while nothing is pushed under it`);
   }
@@ -198,7 +200,7 @@ export default async function e9bWriteJudge(page, ctx) {
   assert.ok(near(prompt.py.cx, prompt.blank.cx, 1) && prompt.py.bottom <= prompt.blank.top + 0.5, 'the pinyin is centered right above the blank');
   assert.deepEqual([prompt.py.fs, prompt.py.color], [15, tokenRgb('light', 'ink2')], 'pinyin 15pt ink2');
 
-  step('A: the button row — one row: the primary button 写好了 + 「⋯」; 在纸上写 / 提示 / 看答案 / 跳过 are in the menu; clickable styles ≤ 2');
+  step('A: the button row — exactly one primary button; hint + answer on the left, skip on the right; clickable styles ≤ 2');
   const foot = await page.evaluate(() => {
     const top = document.querySelector('.sz-layer[data-top="true"]');
     const f = top.querySelector('.sz-page__foot');
@@ -212,39 +214,32 @@ export default async function e9bWriteJudge(page, ctx) {
     return { btns, kinds: [...new Set(page)] };
   });
   const byId = Object.fromEntries(foot.btns.map(b => [b.id, b]));
-  assert.deepEqual(foot.btns.map(b => b.id), ['write-done', 'write-more'], 'the footer holds exactly these two buttons, in reading order (D53 ②)');
+  assert.deepEqual(foot.btns.map(b => b.id), ['write-done', 'write-hint', 'write-show-answer', 'write-to-paper', 'write-skip'], 'the footer holds exactly these five buttons, in reading order (在纸上写 is the permanent text button after 看答案, P226)');
   assert.equal(foot.btns.filter(b => b.cls === 'sz-btn--primary').length, 1, 'one primary button (写好了)');
-  assert.equal(byId['write-more'].cls, 'sz-btn--secondary', '「⋯」 is the one secondary button');
-  assert.deepEqual(foot.kinds.filter(k => k !== 'sz-btn--icon' && k !== 'sz-btn--plain').sort(), ['sz-btn--primary', 'sz-btn--secondary'], 'clickable styles on the page: primary + secondary (the icon buttons are the tools / the back icon)');
+  assert.deepEqual([byId['write-hint'].cls, byId['write-show-answer'].cls, byId['write-skip'].cls], ['sz-btn--text', 'sz-btn--text', 'sz-btn--text'], 'hint / answer / skip are all the same text button');
+  assert.equal(byId['write-to-paper'].cls, 'sz-btn--text', '在纸上写 is the same text button too');
+  assert.ok(foot.btns.every(b => b.cls !== 'sz-btn--secondary'), 'no outlined secondary button in the recall footer');
+  assert.deepEqual(foot.kinds.filter(k => k !== 'sz-btn--icon' && k !== 'sz-btn--plain').sort(), ['sz-btn--primary', 'sz-btn--text'], 'clickable styles on the page: primary + text (the icon buttons are the tools / the back icon)');
   assert.ok(foot.kinds.length <= 4, 'icon-like buttons (back, undo, clear) are glyphs, not extra button styles');
-  assert.ok(byId['write-done'].top === byId['write-more'].top || near(byId['write-done'].top, byId['write-more'].top, 1), '写好了 and 「⋯」 share the row');
-  assert.ok(near(byId['write-done'].left, 20, 1) && near(byId['write-more'].right, 402 - 20, 1), 'the row spans the content width: 写好了 from 20, 「⋯」 to 402 − 20');
+  assert.ok(byId['write-hint'].top === byId['write-show-answer'].top && near(byId['write-show-answer'].top, byId['write-skip'].top, 1), 'hint / answer / skip share the text row');
+  assert.ok(byId['write-hint'].right <= byId['write-show-answer'].left && byId['write-show-answer'].right <= byId['write-skip'].left, 'order: 提示 看答案 … 跳过');
+  assert.ok(near(byId['write-skip'].right, 402 - 20, 6) && near(byId['write-hint'].left, 20, 6), 'text row spans the content width (left group left, 跳过 at the right end)');
+  assert.ok(near(byId['write-show-answer'].left - byId['write-hint'].right, 16, 10), `the two helpers are ~16 apart (${byId['write-show-answer'].left - byId['write-hint'].right})`);
   assert.equal(byId['write-done'].disabled, true, '写好了 is disabled before the first stroke');
-  assert.equal(await page.evaluate(() => ['write-hint', 'write-show-answer', 'write-skip', 'write-to-paper'].filter(id => document.querySelector(`.sz-layer[data-top="true"] [data-testid="${id}"]`)).length), 0, 'no loose text buttons on the page any more');
+  assert.ok(!byId['write-hint'].under.includes('underline') && !byId['write-skip'].under.includes('underline'), 'text buttons are not underlined (H1 / D51 ⑥: the single text style is 15 / ink2 / no underline)');
 
-  step('A: 提示 — the menu item reads just 「提示」, the remaining count is only in the screen-reader name; used up → disabled, ink4');
-  const hintItem = async () => {
-    await openWriteMenu(page);
-    const it = await page.$eval('[data-testid="write-ax-menu"] [data-testid="write-hint"]', b => ({
-      text: b.textContent.trim(), aria: b.getAttribute('aria-label'), disabled: b.disabled, ariaDisabled: b.getAttribute('aria-disabled'), color: getComputedStyle(b).color,
-    }));
-    const ids = await page.$$eval('[data-testid="write-ax-menu"] .sz-axmenu__item', els => els.map(e => e.dataset.testid));
-    await closeWriteMenu(page);
-    return { it, ids };
-  };
-  let hi = await hintItem();
-  assert.deepEqual(hi.ids, ['write-to-paper', 'write-hint', 'write-show-answer', 'write-skip'], 'the menu: 在纸上写 first, then 提示 / 看答案 / 跳过');
-  assert.deepEqual([hi.it.text, hi.it.aria], ['提示', '提示，还有 2 次'], 'visible 提示, name 提示，还有 2 次');
-  await tap(page, 'write-hint');
+  step('A: 提示 — the visible text is just 「提示」, the remaining count is only in the screen-reader name; used up → ink4, not clickable');
+  assert.deepEqual([byId['write-hint'].text, byId['write-hint'].aria], ['提示', '提示，还有 2 次'], 'visible 提示, name 提示，还有 2 次');
+  await page.click(topSel('write-hint'));
   await page.waitForSelector(`${topSel('write-hint-layer')}[data-state="shown"]`);
   await page.waitForTimeout(PRESS_SETTLE_MS);
-  hi = await hintItem();
-  assert.deepEqual({ text: hi.it.text, aria: hi.it.aria, disabled: hi.it.disabled }, { text: '提示', aria: '提示，还有 1 次', disabled: false }, 'after one hint: still 「提示」, name says 1 left');
-  await tap(page, 'write-hint');
+  let h = await page.$eval(topSel('write-hint'), b => ({ text: b.textContent.trim(), aria: b.getAttribute('aria-label'), disabled: b.disabled }));
+  assert.deepEqual(h, { text: '提示', aria: '提示，还有 1 次', disabled: false }, 'after one hint: still 「提示」, name says 1 left');
+  await page.click(topSel('write-hint'));
   await page.waitForTimeout(PRESS_SETTLE_MS);
-  hi = await hintItem();
-  assert.deepEqual([hi.it.text, hi.it.aria, hi.it.disabled, hi.it.ariaDisabled], ['提示', '提示已用完', true, 'true'], 'used up: disabled + aria-disabled, name 提示已用完');
-  assert.equal(hi.it.color, tokenRgb('light', 'ink4'), 'used up: ink4');
+  h = await page.$eval(topSel('write-hint'), b => ({ text: b.textContent.trim(), aria: b.getAttribute('aria-label'), disabled: b.disabled, ariaDisabled: b.getAttribute('aria-disabled'), color: getComputedStyle(b).color }));
+  assert.deepEqual([h.text, h.aria, h.disabled, h.ariaDisabled], ['提示', '提示已用完', true, 'true'], 'used up: disabled + aria-disabled, name 提示已用完');
+  assert.equal(h.color, tokenRgb('light', 'ink4'), 'used up: ink4');
 
   step('A: undo / clear are icon buttons — visible 36, hit 44, ink2 with ink / ink4 and not clickable without (design-system icons); in place before the first stroke (P226)');
   await boot(page, ctx, { view: { width: 402, height: 874 } });
@@ -253,7 +248,7 @@ export default async function e9bWriteJudge(page, ctx) {
     return { shown: top.querySelector('[data-testid="write-tools"]').dataset.shown, toPaper: !!top.querySelector('[data-testid="write-to-paper"]'),
       disabled: [top.querySelector('[data-testid="write-undo"]').disabled, top.querySelector('[data-testid="write-clear"]').disabled] };
   });
-  assert.deepEqual(beforeInk, { shown: 'true', toPaper: false, disabled: [true, true] }, 'before the first stroke the icons are already there (ink4, not tappable, P226); 「在纸上写」 is the first item of the 「⋯」 menu, not a loose button (no screen reader, writeMode = screen)');
+  assert.deepEqual(beforeInk, { shown: 'true', toPaper: true, disabled: [true, true] }, 'before the first stroke the icons are already there (ink4, not tappable, P226) and 「在纸上写」 is a text button in the row under 「写好了」 (D55)');
   await drawStroke(page, HORIZONTAL);
   await page.waitForTimeout(250);
   const tools = await page.evaluate(() => {
@@ -320,9 +315,9 @@ export default async function e9bWriteJudge(page, ctx) {
     assert.ok(near(m.mine.width, exp, 1), `${tag}: formula on the measured numbers = ${exp}`);
     assert.ok(m.ref.bottom <= m.body.bottom - 15, `${tag}: the pair ends ≥ 16 above the button row (${(m.body.bottom - m.ref.bottom).toFixed(1)})`);
     assert.ok(m.bodyScroll <= m.bodyClient + 1, `${tag}: the judge page does not scroll`);
-    // 按钮行与写字页同一行位：两键在主按钮的位置（D53 ②：同样的 12 + 54 + 24，没有留空的文字行）
+    // 按钮行与写字页同一行位：两键在主按钮的位置，文字行留空（同样的 54 + 6 + 44）
     assert.ok(near(m.wrong.height, 54, 0.6) && near(m.correct.height, 54, 0.6) && near(m.wrong.width, m.correct.width, 0.6), `${tag}: the two judge keys are equal secondary buttons, 54 high`);
-    assert.ok(near(m.foot.height, 90, 0.6), `${tag}: the button row is as high as on the write page (90: one row, the same main-button line)`);
+    assert.ok(near(m.foot.height, 124, 0.6), `${tag}: the button row is as high as on the write page (124, the text row stays empty but keeps its place)`);
   }
 
   step('B: the judge page header and reading — 写对了吗？, the same ‹ icon, no side notes / sentence, names kept, the answer shows once');
@@ -386,7 +381,7 @@ export default async function e9bWriteJudge(page, ctx) {
   const gridD = (await geo(page)).grid;
   await toCompare(page);
   const mD = await geo(page);
-  assert.ok(near(mD.mine.top, gridD.top, 1) && near(mD.mine.width, 265, 1), 'dark: same top edge, S 265');
+  assert.ok(near(mD.mine.top, gridD.top, 1) && near(mD.mine.width, 255, 1), 'dark: same top edge, S 255');
   const darkFrame = await page.$eval(topSel('write-compare-mine'), el => getComputedStyle(el).borderTopColor);
   assert.equal(darkFrame, tokenRgb('dark', 'frame'), 'dark: the cell frame uses the dark frame token');
 
@@ -418,12 +413,14 @@ export default async function e9bWriteJudge(page, ctx) {
     assert.ok(title.w <= 1.5 && title.h <= 1.5 && title.headH <= Math.max(44, title.progH) + 1, `${tag}: the hidden title does not take a row in the header — one line, as high as the (capped) counter (${title.w}×${title.h}, header ${title.headH.toFixed(1)}, counter ${title.progH.toFixed(1)})`);
     const links = await page.evaluate(() => {
       const top = document.querySelector('.sz-layer[data-top="true"]');
-      const r = id => top.querySelector(`[data-testid="${id}"]`).getBoundingClientRect();
-      return { more: r('write-more'), done: r('write-done'), vw: window.innerWidth, scrollW: document.documentElement.scrollWidth, hint: !!top.querySelector('[data-testid="write-hint"]'), skip: !!top.querySelector('[data-testid="write-skip"]') };
+      const r = id => { const e = top.querySelector(`[data-testid="${id}"]`); return e ? e.getBoundingClientRect() : null; };
+      const hint = top.querySelector('[data-testid="write-hint"]');
+      return { hint: r('write-hint'), skip: r('write-skip'), done: r('write-done'), vw: window.innerWidth, scrollW: document.documentElement.scrollWidth, fs: hint ? parseFloat(getComputedStyle(hint).fontSize) : null,
+        menu: !!top.querySelector('[data-testid="write-more"]') || !!document.querySelector('[data-testid="write-ax-menu"]') };
     });
-    assert.ok(links.more.height >= 44 - 0.5 && links.done.height >= 44 - 0.5, `${tag}: the foot buttons keep ≥ 44 and grow with the text`);
-    assert.ok(links.more.right <= links.vw - 20 + 1 && links.scrollW <= links.vw, `${tag}: 「⋯」 stays at the right edge, nothing overflows horizontally`);
-    assert.deepEqual([links.hint, links.skip], [false, false], `${tag}: 提示 / 跳过 are in the 「⋯」 menu, not on the page`);
+    assert.ok(links.done.height >= 44 - 0.5 && links.hint && links.skip && links.hint.height >= 44 - 0.5 - 14 && links.skip.height >= 30, `${tag}: 写好了 keeps ≥ 44, 提示 / 跳过 are on the page in the row under it (D55)`);
+    assert.ok(links.skip.right <= links.vw - 20 + 6 && links.scrollW <= links.vw, `${tag}: 跳过 stays at the right edge, nothing overflows horizontally`);
+    assert.deepEqual([links.menu, links.fs], [false, 22], `${tag}: no 「⋯」 menu; the text row is capped at 22pt (AX5, P261)`);
 
     step(`AX: ${tag} judge page — the question is only for screen readers, cells take the bigger of stacked / side-by-side (${wantLayout}), both on screen, buttons stacked`);
     await toCompare(page);

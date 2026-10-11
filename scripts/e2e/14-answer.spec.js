@@ -8,7 +8,7 @@
 
 import {
   bootTestHost, drawStroke, HORIZONTAL, localDayOf, PRESS_SETTLE_MS, seedSession, tid, topSel, VERTICAL,
-  waitNavIdle, writeSnapshot, openWrite, tap, menuItems,
+  waitNavIdle, writeSnapshot, openWrite, tap, footItems,
 } from './helpers.mjs';
 
 const COPY = {
@@ -77,9 +77,9 @@ async function label(page, id) {
   return text(page, id);
 }
 
-/** 「⋯」菜单里某一项的文字（D53 ②：底栏只有主按钮 + 「⋯」）；没有这一项返回 null。 */
+/** 底栏文字行里某一项的文字（D55 / P260：文字行直接摆在主按钮下面）；没有这一项返回 null。 */
 async function menuLabel(page, id) {
-  const hit = (await menuItems(page)).find(i => i.testid === id);
+  const hit = (await footItems(page)).find(i => i.testid === id);
   return hit ? hit.text : null;
 }
 
@@ -165,7 +165,7 @@ export default async function answer(page, ctx) {
   await openWrite(page, { slot: 'A' });
   let s = await track();
   assert.equal(s.phase, 'recall', 'starts in recall');
-  assert.equal(await menuLabel(page, 'write-show-answer'), COPY.link, 'recall: 「看答案」 is in the 「⋯」 menu (R-W07.btnShowAnswer, D53 ②)');
+  assert.equal(await menuLabel(page, 'write-show-answer'), COPY.link, 'recall: 「看答案」 is a text button in the row under 「写好了」 (R-W07.btnShowAnswer, D55)');
   assert.ok(await page.isVisible(topSel('write-done')), 'recall footer is the normal one (「写好了」 present)');
 
   ctx.step('write two strokes first: they are the writer\'s own ink that 看答案 must keep');
@@ -274,8 +274,8 @@ export default async function answer(page, ctx) {
   // R2-A1（A2-09）：名称与判断页参考卡同一句——字、拼音、笔画数、结构 / 部件数
   assert.ok(/^参考字形：永，yǒng(，\d+ 画(，[^，]+)?)?$/.test(await page.getAttribute(topSel('write-answer-char'), 'aria-label')), 'screen readers get the answer glyph from the footer (the reference layer is aria-hidden)');
   assert.deepEqual([await menuLabel(page, 'write-answer-self'), await label(page, 'write-answer-trace')], [COPY.self, COPY.trace],
-    'main button 描一遍, 自己写 in the 「⋯」 menu');
-  assert.equal(await menuLabel(page, 'write-answer-next'), COPY.next, '下一个 in the 「⋯」 menu');
+    'main button 描一遍, text button 自己写 in the text row');
+  assert.equal(await menuLabel(page, 'write-answer-next'), COPY.next, '下一个 in the text row');
   assert.equal(await visible(page, 'write-done'), false, 'no 「写好了」 on the answer page');
   assert.equal(await visible(page, 'write-show-answer'), false, 'no second 「看答案」');
 
@@ -336,7 +336,7 @@ export default async function answer(page, ctx) {
   await drawStroke(page, HORIZONTAL);
   assert.equal(await waitAttr(page, 'write-trace-layer', 'data-anim', ['skipped', 'completed']), 'skipped', 'preview skipped by writing');
   assert.equal(await waitAttr(page, 'write-trace-layer', 'data-current', ['1']), '1', 'D53 ①: one stroke traced → the current (solid) stroke moves on to stroke 1; stroke 0 is covered by the own ink, not drawn any more');
-  assert.equal(await menuLabel(page, 'write-answer-next'), COPY.next, '下一个 in the 「⋯」 menu in trace');
+  assert.equal(await menuLabel(page, 'write-answer-next'), COPY.next, '下一个 in the text row in trace');
   s = await track();
   assert.equal(s.strokes, 1, 'stroke on the trace grid');
   const traceDone1 = await page.evaluate(() => document.querySelector('.sz-layer[data-top="true"] [data-testid="write-trace-done"]').disabled);

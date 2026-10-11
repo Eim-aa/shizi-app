@@ -90,7 +90,7 @@ export default async function run(page, ctx) {
 
     step(`${scheme}: 提示给出了哪几笔（聚 14 画）`);
     await open(page, ctx, ['聚', '大'], {}, scheme);
-    await page.waitForSelector(topSel('write-more'), { timeout: 15000 });
+    await page.waitForSelector(topSel('write-done'), { timeout: 15000 });
     await tap(page, 'write-hint');
     await page.waitForFunction(sel => document.querySelector(sel).textContent.startsWith('提示画出了'), STATUS);
     const h1 = (await status(page)).text;

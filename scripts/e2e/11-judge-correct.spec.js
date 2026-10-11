@@ -15,7 +15,7 @@
 
 import {
   bootTestHost, drawStroke, HORIZONTAL, VERTICAL, PRESS_SETTLE_MS, seedSession, tid, topSel, waitNavIdle, writeSnapshot,
-  openWrite, tap, menuItems,
+  openWrite, tap, footItems,
 } from './helpers.mjs';
 
 const COPY = {
@@ -187,8 +187,8 @@ export default async function judgeCorrect(page, ctx) {
   let s = await writeSnapshot(page);
   assert.equal(s.phase, 'recall', 'starts in recall');
   assert.equal(await present(page, 'write-line'), false, 'first character: no result line (nothing before it)');
-  const menu0 = await menuItems(page);
-  assert.equal((menu0.find(i => i.testid === 'write-skip') || {}).text, COPY.skip, 'recall: 「跳过」 is in the 「⋯」 menu (R-W14, D53 ②)');
+  const menu0 = await footItems(page);
+  assert.equal((menu0.find(i => i.testid === 'write-skip') || {}).text, COPY.skip, 'recall: 「跳过」 is a text button under 「写好了」 (R-W14, D55)');
 
   // ------------------------------------------------------------------ 空格子
   ctx.step('empty grid: 「写好了」 disabled + aria-disabled; a forced click does not enter compare');

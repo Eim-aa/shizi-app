@@ -7,7 +7,7 @@
 // L 档与 XXXL（紧凑排布）各一遍，浅色。
 
 import {
-  bootTestHost, drawStroke, HORIZONTAL, menuItems, seedSession, setTextSize, tokenRgb, topSel, waitNavIdle, tap,
+  bootTestHost, drawStroke, HORIZONTAL, footItems, seedSession, setTextSize, tokenRgb, topSel, waitNavIdle, tap,
 } from './helpers.mjs';
 
 const CHARS = ['根', '据', '永'];
@@ -24,7 +24,7 @@ async function open(page, ctx, { size = 'L', kind = 'daily', cursor = 1 } = {}) 
   await page.evaluate(async () => (await import('/src/ui/router.js')).nav.push('write', { slot: 'A' }));
   await page.waitForSelector(topSel('write-screen'));
   await waitNavIdle(page);
-  await page.waitForSelector(topSel('write-more'), { timeout: 15000 });
+  await page.waitForSelector(topSel('write-done'), { timeout: 15000 });
   await page.waitForTimeout(450);
   await page.mouse.move(1, 1);
 }
@@ -57,7 +57,7 @@ export default async function x1ToolsPaper(page, ctx) {
   const { assert, step } = ctx;
   for (const size of ['L', 'XXXL']) {
     const tag = `390×844 ${size}`;
-    step(`${tag}: before the first stroke undo / clear are already in the header, left of the counter (ink4, not tappable); 在纸上写 is the first item of the 「⋯」 menu`);
+    step(`${tag}: before the first stroke undo / clear are already in the header, left of the counter (ink4, not tappable); 在纸上写 is in the text row under 「写好了」`);
     await open(page, ctx, { size });
     const a = await page.evaluate(geometry);
     assert.deepEqual([a.toolsShown, a.toolsVis], ['true', 'visible'], `${tag}: the tools are shown with no ink`);
@@ -65,35 +65,36 @@ export default async function x1ToolsPaper(page, ctx) {
     assert.deepEqual([a.undo.color, a.clear.color], [tokenRgb('light', 'ink4'), tokenRgb('light', 'ink4')], `${tag}: ink4`);
     assert.ok(a.undo.bottom <= a.headBottom + 0.5 && a.clear.bottom <= a.headBottom + 0.5, `${tag}: undo / clear are in the header row`);
     assert.ok(a.clear.right <= a.progressLeft + 4.5 && a.undo.left < a.clear.left, `${tag}: undo then clear, then the counter (clear right ${a.clear.right.toFixed(0)} ≤ counter left ${a.progressLeft.toFixed(0)})`);
-    assert.equal(a.toPaper, null, `${tag}: 在纸上写 is not a loose button on the page (writeMode = screen, no screen reader)`);
-    const items = await menuItems(page);
-    assert.equal(items[0].testid, 'write-to-paper', `${tag}: 在纸上写 is the first menu item (the standing entry, X1)`);
-    assert.equal(items[0].text, '在纸上写');
+    const items = await footItems(page);
+    const paperItem = items.find(i => i.testid === 'write-to-paper');
+    assert.ok(paperItem && a.toPaper, `${tag}: 在纸上写 is a visible text button in the row under 「写好了」 (the standing entry, X1)`);
+    assert.equal(paperItem.text, '在纸上写');
+    assert.deepEqual(items.map(i => i.testid).slice(0, 3), ['write-hint', 'write-show-answer', 'write-to-paper'], `${tag}: row order 提示 / 看答案 / 在纸上写`);
     assert.ok(near(a.below.height, 40, 1), `${tag}: the row under the grid is still 40 high (${a.below.height})`);
 
-    step(`${tag}: after the first stroke the icons do not move, they turn live (ink2); 在纸上写 is still in the menu; so after 清空`);
+    step(`${tag}: after the first stroke the icons do not move, they turn live (ink2); 在纸上写 is still in the row; so after 清空`);
     await drawStroke(page, HORIZONTAL);
     await page.waitForTimeout(250);
     const b = await page.evaluate(geometry);
     assert.ok(near(b.undo.left, a.undo.left, 0.5) && near(b.undo.top, a.undo.top, 0.5) && near(b.clear.left, a.clear.left, 0.5), `${tag}: undo / clear are exactly where they were`);
     assert.deepEqual([b.undo.disabled, b.clear.disabled], [false, false], `${tag}: live`);
     assert.deepEqual([b.undo.color, b.clear.color], [tokenRgb('light', 'ink2'), tokenRgb('light', 'ink2')], `${tag}: ink2`);
-    assert.equal((await menuItems(page))[0].testid, 'write-to-paper', `${tag}: 在纸上写 stays the first item once there is ink`);
+    assert.ok((await footItems(page)).some(i => i.testid === 'write-to-paper'), `${tag}: 在纸上写 stays once there is ink`);
     await page.click(topSel('write-clear'));
     await page.waitForTimeout(250);
     const c = await page.evaluate(geometry);
     assert.ok(near(c.undo.left, a.undo.left, 0.5) && near(c.clear.left, a.clear.left, 0.5), `${tag}: undo / clear still in place after 清空`);
-    assert.equal((await menuItems(page))[0].testid, 'write-to-paper', `${tag}: 在纸上写 still there after 清空`);
+    assert.ok((await footItems(page)).some(i => i.testid === 'write-to-paper'), `${tag}: 在纸上写 still there after 清空`);
   }
 
-  step('first session, first character: with the one-time tip showing, 在纸上写 is still in the menu (nothing yields to anything)');
+  step('first session, first character: with the one-time tip showing, 在纸上写 is still in the row (nothing yields to anything)');
   await open(page, ctx, { kind: 'first' });
   const f = await page.evaluate(geometry);
   assert.ok(f.tip, 'the first tip is shown');
-  assert.equal((await menuItems(page))[0].testid, 'write-to-paper', 'and 在纸上写 is still the first menu item');
+  assert.ok((await footItems(page)).some(i => i.testid === 'write-to-paper'), 'and 在纸上写 is still there');
   assert.deepEqual([f.toolsShown, f.undo.disabled], ['true', true], 'the icons are in place regardless');
 
-  step('screen reader on (shiziAccessibilityStatus): a visible 在纸上写 also sits in the note slot under the grid (D53 ②: the entry does not vanish into the menu)');
+  step('screen reader on (shiziAccessibilityStatus): a visible 在纸上写 sits under the grid (in the text row, D55)');
   await open(page, ctx, { size: 'L' });
   await page.evaluate(() => window.shiziAccessibilityStatus({ voiceOver: true, switchControl: false }));
   await page.waitForTimeout(300);

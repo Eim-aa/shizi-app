@@ -491,7 +491,7 @@ export default async function a11y(page, realCtx) {
   ctx.step('write page: 看答案 has no confirm; only a failed write opens the 先不保存 / 再试一次 dialog (alertdialog, focus trap, focus return)');
   await page.evaluate(() => window.__shiziTest.failNextWrite(1, { kind: 'generic' }));
   await tap(page, 'write-show-answer');
-  await dialogCheck(page, cdp, ctx, { label: 'write/answer-save-failed', panel: tid('write-answer-confirm'), opener: 'write-more' }); // D53 ②：看答案在「⋯」菜单里，弹层关闭后焦点回到打开菜单的「⋯」
+  await dialogCheck(page, cdp, ctx, { label: 'write/answer-save-failed', panel: tid('write-answer-confirm'), opener: 'write-show-answer' }); // D55：看答案是文字行里的按钮，弹层关闭后焦点回到它
 
   ctx.step('write page: compare');
   await drawStroke(page, HORIZONTAL);

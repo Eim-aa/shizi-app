@@ -47,9 +47,9 @@ async function push(page, name, params = {}) {
 const PAGES = [
   { id: 'home', go: () => null, primary: ['home-start', 'home-pick'], tabs: true },
   {
-    id: 'write', go: page => push(page, 'write', { slot: 'A' }), ready: `${TOP} [data-testid="write-more"]`,
-    // D53 ②（R3-C3W）：所有字号底栏都只有「写好了」+「⋯」（提示 / 看答案 / 跳过在菜单里），撤销 / 清空在页头（AX 档自 R2-X1 / P225 起就是这样）
-    primary: ['page-back', 'write-done', 'write-more', 'write-undo', 'write-clear'], grid: true,
+    id: 'write', go: page => push(page, 'write', { slot: 'A' }), ready: `${TOP} [data-testid="write-hint"][data-state]`,
+    // D55（R4-F1）：所有字号底栏都是「写好了」+ 其下一行文字按钮（提示 / 看答案 / 跳过一次点击直达），撤销 / 清空在页头（AX 档文字行字号封顶、折行时按词折）
+    primary: ['page-back', 'write-hint', 'write-done', 'write-show-answer', 'write-skip', 'write-undo', 'write-clear'], grid: true,
   },
   {
     id: 'judge', phase: 'compare', go: page => push(page, 'write', { slot: 'A' }), ready: `${TOP} .sz-write[data-phase="compare"]`,

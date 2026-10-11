@@ -8,7 +8,7 @@
 //   2. 判断页（D46 ⑪、D49 减法修稿；实现交接 §9）：书写格位置换成上下两格——本人书写在上、参考字形在下，共用一条 1pt 格线，与书写格同一顶边、同一中线；
 //      页头左「‹」（与写字页同一个图标，读屏名「接着写」，回书写格、墨不变）/ 中「写对了吗？」/ 右计数；题面与写字页完全相同、目标格不显示答案
 //      （答案只在参考格出现一次）；没有旁注（「你的书写 / 参考字形」只留读屏名称）、没有说明句；两键「写错了」左、「写对了」右放在主操作行
-//      （同一个组件同一组类名，同样式同尺寸同字重；D53 ②：没有留空的文字行，底边与写字页主按钮同一条底线）；无 autofocus、无 aria-pressed、无预选；
+//      （同一个组件同一组类名，同样式同尺寸同字重；文字行留空占位，两键与写字页主按钮同一个位置，D55 / P260）；无 autofocus、无 aria-pressed、无预选；
 //      对照区没有任何判定着色 / 判定类名（决定-D03）。边长 S 见 layout.js judgePairSize（无旁注，宽度只受页边限制）；AX 档按「上下排 / 并排」取格子更大的
 //      一种（judgeAxLayout，D49 ⑧），按钮纵排。没有本人笔画时上格「这次没写」（R-W17；01 §3.3 compare 且笔画为空按 recall 处理，正常流程到不了）。
 //      进判断页时焦点移到页标题（不落在任何判断键上）。
@@ -26,7 +26,7 @@
 // 规则：只经 store.commit 写存储；记录用 core/records.makeRecord，会话用 core/sessions，调度用 core/fsrs。
 //
 // data-testid：write-compare（对照区）、write-compare-mine / write-compare-ref（两张卡，role=img）、write-compare-noink
-//   （「这次没写」）、write-judge-foot（按钮行：两键，data-failed）、write-judge-note（只在保存失败时出现的失败句，aria-live）、
+//   （「这次没写」）、write-judge-foot（按钮行：两键 + 留空的文字行，data-failed）、write-judge-note（只在保存失败时出现的失败句，aria-live）、
 //   write-judge-wrong / write-judge-correct（判断两键）、write-judge-fail-cancel / write-judge-fail-retry（失败两键）、
 //   write-continue（左上「‹」，读屏名「接着写」）。
 
@@ -446,7 +446,7 @@ export function JudgeButtons({ onJudge, ready = true, guard = true }) {
 }
 
 /**
- * 判断区（按钮行）：只有两键一行（D53 ②：不再留空的文字行；主按钮底边与写字页「写好了」同一条底线）；保存失败时两键上方出现「没保存上，你写的字还在。」、
+ * 判断区（按钮行）：两键 + 留空的文字行（保持行位与写字页相同，D55 / P260：写字页底栏回到主按钮 + 文字行）；保存失败时两键上方出现「没保存上，你写的字还在。」、
  * 两键换成 [先不保存 / 再试一次]。纯视图。
  */
 export function JudgeFooter({ failed = false, onJudge, onRetry, onCancelFail, ready = true, guard = true }) {
@@ -459,6 +459,7 @@ export function JudgeFooter({ failed = false, onJudge, onRetry, onCancelFail, re
   return html`<div class="sz-write__foot sz-write__foot--judge" data-testid="write-judge-foot" data-failed=${failed ? 'true' : 'false'}>
     ${failed ? html`<p class="sz-judge__note" data-testid="write-judge-note" aria-live="polite">${t('R-W16.saveFailed')}</p>` : null}
     ${body}
+    <div class="sz-write__links sz-write__links--ghost" aria-hidden="true"></div>
   </div>`;
 }
 
@@ -546,7 +547,7 @@ export function useComparePhase({ slot, session, cardKey, storedPhase, strokeCou
  * @param {'stack'|'side'} [o.layout='stack']  上下排 / 并排（AX 档，pair.layout）
  * @param {boolean} [o.paper=false]  在纸上写的这一字（P1-E8）：只有参考字形、放到书写格大小（paperSize），判断记 source:'paper'
  * @param {number} [o.paperSize]  纸上判断页参考字形的边长（= 书写格边长）
- * @returns {{active, stage, footer, lead}}  stage = 上下两格（替代书写格）；footer = 两键一行（进页底栏，替代写字页底栏）
+ * @returns {{active, stage, footer, lead}}  stage = 上下两格（替代书写格）；footer = 两键 + 留空的文字行（进页底栏，替代写字页底栏）
  */
 export function useCompareFlow({ slot, session, cardKey, char, phase, strokes, hints = 0, strokeData, onLeave, size = 234, layout = 'stack', paper = false, paperSize }) {
   const active = !!cardKey && phase === 'compare';

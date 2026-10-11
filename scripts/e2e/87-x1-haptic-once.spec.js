@@ -19,7 +19,7 @@ export default async function x1HapticOnce(page, ctx) {
   await page.evaluate(async () => (await import('/src/ui/router.js')).nav.push('write', { slot: 'A' }));
   await page.waitForSelector(topSel('write-screen'));
   await waitNavIdle(page);
-  await page.waitForSelector(topSel('write-more'), { timeout: 15000 });
+  await page.waitForSelector(topSel('write-done'), { timeout: 15000 });
   await page.waitForTimeout(450);
 
   for (let i = 0; i < CHARS.length; i += 1) {

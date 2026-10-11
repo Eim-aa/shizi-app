@@ -18,7 +18,7 @@ async function open(page, ctx, { view, size, kind = 'daily', cursor = 1 }) {
   });
   await page.waitForSelector(topSel('write-screen'));
   await waitNavIdle(page);
-  await page.waitForSelector(topSel('write-more'));
+  await page.waitForSelector(topSel('write-done'));
   await page.waitForTimeout(300);
 }
 

@@ -24,7 +24,7 @@ async function open(page, ctx, { reduced = false, current, cursor = 0, chars = C
   const seeded = await seedSession(page, { slot: 'A', kind: 'daily', chars, cursor, current });
   ctx.assert.ok(seeded.ok, 'seeded');
   await openWrite(page, { slot: 'A' });
-  await page.waitForSelector(topSel('write-more'), { timeout: 15000 });
+  await page.waitForSelector(topSel('write-done'), { timeout: 15000 });
   await page.waitForTimeout(450);
   await page.mouse.move(1, 1);
 }

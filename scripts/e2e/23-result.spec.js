@@ -20,7 +20,7 @@
 // 由 66-ink-retention（结果页刷新、详情、墙、冷启动）覆盖。其余结果页行为与开关无关。
 
 import {
-  bootTestHost, drawStroke, HORIZONTAL, PRESS_SETTLE_MS, routePerRecordInk, tid, topSel, waitNavIdle, tap, menuItems,
+  bootTestHost, drawStroke, HORIZONTAL, PRESS_SETTLE_MS, routePerRecordInk, tid, topSel, waitNavIdle, tap, footItems,
 } from './helpers.mjs';
 import { markFirstPracticeDone } from './home-helpers.mjs';
 
@@ -315,7 +315,7 @@ export default async function resultSpec(page, ctx) {
   await waitNavIdle(page);
   st = await state(page);
   assert.ok(st.sessions.B && st.sessions.B.kind === 'picked' && st.sessions.B.queue.length === 3, 'B opened with 3 characters');
-  assert.ok((await menuItems(page)).some(i => i.testid === 'write-end'), '结束这组 is in the 「⋯」 menu of a picked group (D53 ②)');
+  assert.ok((await footItems(page)).some(i => i.testid === 'write-end'), '结束这组 is in the text row of a picked group (D55)');
   await writeAndJudge(page, 'correct');
   await waitPhase(page, 'recall');
   const beforeEnd = (await state(page)).sessions.B;
@@ -384,10 +384,10 @@ export default async function resultSpec(page, ctx) {
   step('H4: 结束这组 shown in answer / trace / retrace, hidden on the judge page; ending from the answer page with 0 judged → back + toast');
   await seedGroup(page, { kind: 'picked', chars: ['额', '鲜', '境'], steps: [] });
   await openWriteSlot(page, 'B');
-  const endVisible = async () => (await menuItems(page)).some(i => i.testid === 'write-end');
+  const endVisible = async () => (await footItems(page)).some(i => i.testid === 'write-end');
   await openAnswer(page);
   assert.ok(await endVisible(), 'answer: 结束这组 visible');
-  assert.equal(await page.locator(topSel('write-end')).count(), 0, 'answer: 结束这组 is not a loose button in the footer (it lives in the 「⋯」 menu)');
+  assert.equal(await page.locator(topSel('write-end')).count(), 1, 'answer: 结束这组 is a button in the text row under the main button (D55)');
   await page.click(topSel('write-answer-trace'));
   await waitPhase(page, 'trace');
   assert.ok(await endVisible(), 'trace: 结束这组 visible');

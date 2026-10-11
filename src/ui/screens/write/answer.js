@@ -61,7 +61,7 @@ import { animate, drawGlyph, glyphColor, prefersReducedMotion } from '../../canv
 import { GlyphWash, paintCanvas, useThemeVersion } from '../../canvas/glyph-wash.js';
 import { GlyphFallback } from './glyph-fallback.js';
 import { pyOf, refCardLabel } from './ref-label.js';
-import { AxFoot } from './ax-menu.js';
+import { LinkButton, Slot, WriteFoot } from './foot.js';
 
 /** answer 流程的阶段（01 §3.3）。 */
 export const ANSWER_PHASES = Object.freeze(['answer', 'trace', 'retrace']);
@@ -89,8 +89,6 @@ injectStyles('write-answer', `
 .sz-answer__sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .sz-answer__note{margin:0;width:100%;text-align:center;font-size:${T.fs13};line-height:${T.lh13};
   color:${T.ink3}}
-.sz-answer__btns{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
-.sz-answer__btns--one{grid-template-columns:minmax(0,1fr)}
 @media (prefers-reduced-motion: reduce){.sz-answer__under canvas{animation:none}}
 `);
 
@@ -486,15 +484,15 @@ export function openAnswerSaveFailed({ slot, cardKey }) {
  * @param {number} o.strokeCount  当前阶段书写格笔数
  * @param {Array} [o.strokes]  当前阶段书写格的本人原始笔画（离开自己写一遍时存成看后自写的墨迹，Q1）
  * @param {() => void} [o.onShowAnswer]  点了「看答案」（写入前；写字页用来结束跳过的撤销机会，G3）
- * @param {number} [o.ax]  AX 档（1–5；0 = 不是 AX 档）：只影响描一遍主按钮的文案（P259）与字号；底栏所有字号都是一行「主按钮 + ⋯」（D53 ②，write/ax-menu.js），说明在格下说明位（note）
- * @param {(() => void)|null} [o.endOpen]  「⋯」菜单里「结束这组」的动作（write/end.js useEndGroup().open）
- * @param {boolean} [o.noteInMenu]  AX 档格子缩到下限仍放不下格下说明位（layout.js axWriteLayout，R3-K1 P241）：说明并入「⋯」菜单顶部
+ * @param {number} [o.ax]  AX 档（1–5；0 = 不是 AX 档）：只影响描一遍主按钮的文案（P259）与字号；底栏所有字号都是「主按钮 + 一行文字按钮」（D55，write/foot.js），说明在格下说明位（note）
+ * @param {boolean} [o.footCompact]  AX 档书写格仍放不下（P261 ②）：底栏主按钮字号封顶
+ * @param {{button:any}|null} [o.end]  「结束这组」（write/end.js useEndGroup()）：picked 会话时文字行右端多一个文字按钮
  * @returns {{active:boolean, link:any, show:Function, stage:any, glyphLayer:any, note:string, footer:any}}
  *   active：本流程接管底栏（answer / trace / retrace，或看过答案后的 recall）；
- *   link：回忆阶段「看答案」的入口（有它时「⋯」菜单里才有「看答案」一项，动作是 show）；stage：恒为 null（看答案不换卡，答案衬底画在书写格参考字形层里，D51 ⑧）；
+ *   link：回忆阶段「看答案」的文字按钮（回忆阶段文字行左组；动作是 show）；stage：恒为 null（看答案不换卡，答案衬底画在书写格参考字形层里，D51 ⑧）；
  *   glyphLayer：answer 阶段的答案衬底 / trace 阶段的描红，书写格参考字形层内容；note：书写格下说明（write-note）；footer：接管时的底栏。
  */
-export function useAnswerFlow({ slot, session, cardKey, phase, strokeCount = 0, strokes = null, onShowAnswer, ax = 0, endOpen = null, noteInMenu = false }) {
+export function useAnswerFlow({ slot, session, cardKey, phase, strokeCount = 0, strokes = null, onShowAnswer, ax = 0, end = null, footCompact = false }) {
   const char = cardKey ? charOfCardKey(cardKey) : null;
   const answerSeen = !!(session && session.current && session.current.answerSeen);
   const inFlow = ANSWER_PHASES.includes(phase);
@@ -558,36 +556,35 @@ export function useAnswerFlow({ slot, session, cardKey, phase, strokeCount = 0, 
 
   const next = () => run({ kind: 'next' });
   const toPhase = p => () => run({ kind: 'phase', phase: p });
-  // 底栏（所有字号同构，D53 ②；AX 档 P225 起的版式）：一行「主按钮 + ⋯」，各阶段同高；说明（答案说明 / 保存失败）在格下说明位，答案字永远不被说明盖住（A2-01）。
-  const item = (testid, label, onSelect) => ({ testid, label, onSelect });
-  const endItem = endOpen && !failed ? [item('write-end', t('R-W15.end'), endOpen)] : [];
+  // 底栏（所有字号同构，D55 / P260）：主按钮 + 一行文字按钮，各阶段同高；说明（答案说明 / 保存失败）在格下说明位，答案字永远不被说明盖住（A2-01）。
+  // 文字行：左 = 本阶段的次要路径（自己写 / 再描一遍 / 看答案），右端 = 离开动作（picked 会话的结束这组、下一个）；保存失败时主按钮「再试一次」、「先不保存」是文字行里的文字按钮。
+  const link2 = (testid, label, onClick) => html`<${Slot} testid=${testid + '-slot'}><${LinkButton} testid=${testid} label=${label} onClick=${onClick} /></${Slot}>`;
+  const endSlot = end && end.button && !failed ? html`<${Slot} testid="write-end-slot" cls="sz-write__endslot">${end.button}</${Slot}>` : null;
+  const nextLink = link2('write-answer-next', t('R-W07.btnNext'), next);
   let primary;
-  let items;
-  let secondary = null;
+  let left = null;
+  let right = html`${endSlot}`;
   if (failed) {
-    // 保存失败（R-G04 三段式）：常规字号 [先不保存 / 再试一次] 两键摆出来；AX 档放不下，「先不保存」收进「⋯」
     primary = { testid: 'write-answer-fail-retry', label: t('R-W16.retry'), onClick: () => run(failNow) };
-    if (ax > 0) items = [item('write-answer-fail-cancel', t('R-W16.cancel'), () => setFail(null))];
-    else {
-      items = [];
-      secondary = { testid: 'write-answer-fail-cancel', label: t('R-W16.cancel'), onClick: () => setFail(null) };
-    }
+    left = link2('write-answer-fail-cancel', t('R-W16.cancel'), () => setFail(null));
+    right = null;
   } else if (phase === 'answer') {
     primary = { testid: 'write-answer-trace', label: t('R-W07.btnTrace'), onClick: toPhase('trace') };
-    items = [item('write-answer-self', t('R-W07.btnSelf'), toPhase('retrace')), item('write-answer-next', t('R-W07.btnNext'), next), ...endItem];
+    left = link2('write-answer-self', t('R-W07.btnSelf'), toPhase('retrace'));
+    right = html`${endSlot}${nextLink}`;
   } else if (phase === 'trace') {
     primary = { testid: 'write-trace-done', label: traceDoneLabel(ax), disabled: strokeCount === 0, onClick: toPhase('retrace') };
-    items = [item('write-answer-next', t('R-W07.btnNext'), next), ...endItem];
+    right = html`${endSlot}${nextLink}`;
   } else if (phase === 'retrace') {
     primary = { testid: 'write-answer-next', label: t('R-W07.btnNext'), onClick: next };
-    items = [item('write-retrace-trace', t('X-ANSWER.btnRetrace'), toPhase('trace')), ...endItem];
+    left = link2('write-retrace-trace', t('X-ANSWER.btnRetrace'), toPhase('trace'));
   } else {
+    // 看过答案后的回忆阶段（只在恢复路径出现；原型 L544）
     primary = { testid: 'write-answer-next', label: t('R-W07.btnNext'), onClick: next };
-    items = [item('write-answer-show', t('R-W07.btnShowAnswer'), toPhase('answer')), ...endItem];
+    left = link2('write-answer-show', t('R-W07.btnShowAnswer'), toPhase('answer'));
   }
   const lead = phase === 'answer' ? html`<span class="sz-answer__sr" role="img" aria-label=${answerLabel} data-testid="write-answer-char"></span>` : null;
   const axNote = phase === 'answer' ? noteAbove : note; // 「记为看过答案」只在这一处说（C3-R T3-05：第一次的预告句已删）
-  const head = noteInMenu && axNote ? html`<span data-testid="write-answer-note">${axNote}</span>` : null;
-  const footer = html`<${AxFoot} primary=${primary} secondary=${secondary} items=${items} testid="write-answer-foot" stage=${phase} failed=${failed} lead=${lead} head=${head} />`;
+  const footer = html`<${WriteFoot} primary=${primary} left=${left} right=${right} testid="write-answer-foot" stage=${phase} failed=${failed} lead=${lead} compact=${footCompact} />`;
   return { active: true, link, show: showAnswer, stage, glyphLayer, note: axNote, footer };
 }

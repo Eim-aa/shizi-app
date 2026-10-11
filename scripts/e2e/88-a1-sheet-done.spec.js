@@ -1,7 +1,7 @@
 // R2-A1（A2-05；D29 / D51）：所有底部弹层都有可见的「完成」文字按钮，读屏可达；Esc 与原生读屏 Z 形手势（shizi-native-escape）都能关。
 //
 // AX5 × 375×667（浅）与 AX5 × 375×667（深）、L 档 393×852（浅）：
-//   写字页「⋯」菜单、字库「排序 · 筛选」菜单、设置「外观」弹层、查字弹层——
+//   字库「排序 · 筛选」菜单、设置「外观」弹层、查字弹层——
 //   - 弹层标题行右端有 sheet-done「完成」：文字按钮规格（sz-btn--text、黑体 15 令牌、ink2）、整个按钮落在首屏内、点击区 ≥ 44、不是 aria-hidden、读屏名称是「完成」；
 //   - 弹层顶端（标题行）也在首屏内（XXXL 查字弹层顶到屏幕上缘的毛病，A2-05）；
 //   - 点「完成」、按 Escape、派发 shizi-native-escape 三种方式都关掉弹层（各开一次）。
@@ -106,22 +106,6 @@ export default async function run(page0, ctx) {
         open: async () => {
           await page.click(topSel('all-menu-open'));
           await page.waitForSelector('.sz-sheet[data-testid="all-menu"]');
-        },
-      },
-      {
-        name: '写字页·⋯菜单',
-        prepare: async () => {
-          await seedSession(page, { slot: 'A', kind: 'daily', chars: ['根', '据', '永'], cursor: 1 });
-          await pushScreen('write', { slot: 'A' }, topSel('write-screen'));
-          await page.waitForTimeout(450);
-        },
-        open: async () => {
-          if (v.size === 'L') {
-            await page.evaluate(async () => (await import('/src/ui/screens/write/ax-menu.js')).openAxMenu([{ testid: 'x-1', label: '提示', onSelect() {} }, { testid: 'x-2', label: '跳过', onSelect() {} }]));
-          } else {
-            await page.click(topSel('write-more'));
-          }
-          await page.waitForSelector('.sz-sheet[data-testid="write-ax-menu"]');
         },
       },
     ];

@@ -366,7 +366,7 @@ export function useSkip({ slot, session, cardKey, phase, hints = 0, strokes = nu
       ? html`<${Button} variant="text" data-testid="write-skip" onClick=${skip}>${t('R-W14.btnSkip')}</${Button}>`
       : null,
     note: failed ? t('R-W16.saveFailed') : '',
-    run: skip, // 跳过 / 失败后重试的动作本身（AX 档收进「⋯」菜单与主按钮，P225）
+    run: skip, // 跳过 / 失败后重试的动作本身（失败时是底栏主按钮「再试一次」的动作）
     cancelFail: () => { setFail(null); markStateChange(); },
     failButtons: failed
       ? html`<div class="sz-skip__fail">

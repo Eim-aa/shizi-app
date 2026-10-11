@@ -200,6 +200,8 @@ export const brushDetail = true;
 export const compactMaxHeight = 760;
 // P258 全 App 主按钮的底线（R3-C3W；第三轮 T3-01 / T3-04，D53 ② ③）：主按钮底边落在「安全区上沿（Tab 栏页是 Tab 栏上沿）往上 gapAboveEdge」这一条线上——写字页 / 判断页的底栏
 // 只有一行主按钮（+「⋯」），底栏下内边距 = 下安全区 + gapAboveEdge；首页把主按钮放在 Tab 栏上沿往上同一距离。两边共用这一个常量（首页卡 C3-H 合并时以先定义的为准）。
+// R4-F1（D55，P260）：写字页底栏回到「主按钮 + 其下一行文字按钮」（提示 / 看答案 / 跳过一次点击直达，不再收进「⋯」），主按钮因此比首页高一行；
+// 写字页不再用这条线（底栏下内边距回到 max(8, 下安全区)），常量本身不改，首页与结果页等单行主按钮页仍用它。
 export const mainButtonLine = Object.freeze({
   gapAboveEdge: 24, // P258 主按钮底边到安全区 / Tab 栏上沿的距离（pt）
 });
@@ -215,7 +217,7 @@ export const writeGrid = Object.freeze({
   promptGap: 16, // P118 题面到书写格的间距（pt；D49 实现交接 §13.1，P1-E1b 的 24 改 16）
   toolsHeight: 40, // P118 格下说明位高度（pt；D49 实现交接 §13.1 原是「说明 + 撤销 / 清空图标」工具行，P258 起撤销 / 清空在页头，只剩说明位）
   axMin: 220, // P225 AX 档书写格边长下限（pt；D51 ⑦：258 → 220，SE 3 的 AX5 也放得下，格子完整可写好过大格子被盖住）
-  axNoteHeight: 56, // P225 / P241 AX 档格下说明位的最小高度（pt；R3-K1 起按量到的实际高度排，格子缩到 axMin 仍放不下时说明并入「⋯」菜单顶部）
+  axNoteHeight: 56, // P225 / P241 AX 档格下说明位的最小高度（pt；R3-K1 起按量到的实际高度排，格子缩到 axMin 仍放不下时见 P261 的让步顺序，R4-F1 起没有「⋯」菜单）
   // P243（R3-K1，第三轮审查 A3-03）AX 档辅助字分层封顶（pt）：[AX1–AX2, AX3–AX5]；取代 P225 一律 17 的 axAuxMax。题面汉字（52 × min(k, 1.6) 的格、字面 80%）仍最大。
   // 样式里是字面值（字阶 17 / 22 / 28，令牌门禁只认字面），test/ui/k1-aux-type.test.mjs 核对两边一致。
   axAux: Object.freeze({
@@ -223,6 +225,7 @@ export const writeGrid = Object.freeze({
     note: Object.freeze([17, 22]), // P243 格下说明 / 结果行 / 提示行 / 读屏建议
     progress: Object.freeze([17, 22]), // P243 页头进度「n / m」
     title: Object.freeze([17, 22]), // P243 页头标题（可折两行）
+    links: Object.freeze([17, 22]), // P261 底栏主按钮下一行的文字按钮（提示 / 看答案 / 在纸上写 / 跳过 / 结束这组…）：不封顶时 AX5 的 49pt 字让四个按钮折成三四行，书写格放不下
     paper: Object.freeze([22, 28]), // P243 纸上写模式格内的说明与「改回在屏幕上写」
   }),
   axPromptScaleMax: 1.6, // P225 AX 档题面汉字格的放大倍率上限：格边 = 52 × min(--k, 1.6)（V2-06「练习字按 min(k, 1.6) 放大」）
@@ -232,8 +235,8 @@ export const writeGrid = Object.freeze({
   // E9d（P195，D29 / D36）：书写格边长 g 只由视口决定、不随系统字号变——g 用「标准字号（L 档）下的名义版式」算：名义页头高（不含状态栏）、名义按钮行高（上 12 + 主按钮 54，P258 起底栏只有一行，不含下安全区）、
   // 名义题面高、名义说明位高，再加量到的安全区（状态栏、下安全区与字号无关）。组的垂直位置（top）仍按实际量到的高度排。
   nominalHead: 44, // P195 名义页头高（pt，L 档，不含上安全区）
-  nominalFoot: 66, // P195 / P258 名义按钮行高（pt，L 档：上 12 + 主按钮 54；不含下安全区 / 下内边距；P258 之前是 116：另有间 6 + 文字行 44）
-  footBottomMin: mainButtonLine.gapAboveEdge, // P195 / P258 按钮行下内边距（pt，= 下安全区 + mainButtonLine.gapAboveEdge；无安全区时就是这个值）
+  nominalFoot: 116, // P195 / P260 名义按钮行高（pt，L 档：上 12 + 主按钮 54 + 间 6 + 文字行 44；不含下安全区 / 下内边距；P258 曾改成 66，R4-F1 恢复）
+  footBottomMin: 8, // P195 / P260 按钮行下内边距下限（pt，= max(8, 下安全区)；P258 曾改成 24，R4-F1 恢复）
   nominalPrompt: 80, // P195 名义题面高（pt，L 档：拼音行 24 + 间 4 + 题面格 52）
 });
 /** P259 AX 档从这一级起描一遍阶段主按钮改用短文案「自己写」（X-ANSWER.btnTraceDoneShort；AX1–AX2 与常规字号仍是「描好了，自己写」）。 */

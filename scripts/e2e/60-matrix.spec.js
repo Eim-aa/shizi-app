@@ -97,8 +97,8 @@ const PAGES = [
   {
     id: 'write',
     go: page => push(page, 'write', { slot: 'A' }),
-    ready: `${TOP} [data-testid="write-more"]`,
-    primary: ['write-done', 'write-more'], // D53 ②：提示 / 看答案 / 跳过在「⋯」菜单里，底栏只有主按钮 + 「⋯」
+    ready: `${TOP} [data-testid="write-hint"][data-state]`,
+    primary: ['write-done', 'write-hint', 'write-show-answer', 'write-skip'],
   },
   {
     id: 'judge',

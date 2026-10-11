@@ -1,11 +1,9 @@
-// R2-X1（D51 ⑦，P225）：写字页 AX 专属版式的静态检查——底栏「主按钮 + ⋯」的结构、题面 AX 规则（汉字放大、辅助字封顶）、
+// R2-X1（D51 ⑦，P225）：写字页 AX 专属版式的静态检查——（底栏结构见 f1-foot.test.mjs）、题面 AX 规则（汉字放大、辅助字封顶）、
 // 进度的读屏名称、策略取值。AX 档书写格尺寸的纯函数测试在 write-layout.test.mjs，真实排版（首屏、不滚动）在 scripts/e2e/82–84-x1-write-ax-*.spec.js（共用 x1-write-ax.mjs）。
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import * as policy from '../../src/config/policy.js';
-import { AxFoot } from '../../src/ui/screens/write/ax-menu.js';
-import { Button } from '../../src/ui/components/Button.js';
 import { t } from '../../src/config/copy/index.js';
 
 const read = rel => readFileSync(new URL(`../../${rel}`, import.meta.url), 'utf8');
@@ -25,26 +23,10 @@ test('policy.writeGrid (P225 / P243): AX floor 220, note slot ≥ 56, tiered aux
   assert.equal(g.axMin, 220);
   assert.equal(g.axNoteHeight, 56);
   assert.ok(!('axAuxMax' in g), 'R3-K1 P243: the flat 17pt cap is replaced by tiers');
-  assert.deepEqual(g.axAux, { pinyin: [22, 28], note: [17, 22], progress: [17, 22], title: [17, 22], paper: [22, 28] });
+  assert.deepEqual(g.axAux, { pinyin: [22, 28], note: [17, 22], progress: [17, 22], title: [17, 22], links: [17, 22], paper: [22, 28] });
   assert.equal(g.axPromptScaleMax, 1.6);
   assert.ok(!('toolsHeightAx' in g), 'AX tools moved to the header: no AX tools row any more');
   assert.equal(g.min, 258, 'xS–XXXL keep the 258 floor');
-});
-
-test('AxFoot: one row — the primary button plus 「⋯」 (aria-label 更多); with no items the primary button stands alone', () => {
-  const buttons = [];
-  walk(AxFoot({ primary: { testid: 'write-done', label: '写好了', onClick: () => {} }, items: [{ testid: 'write-skip', label: '跳过', onSelect: () => {} }], stage: 'recall' }), n => {
-    if (n.type === Button) buttons.push(n.props);
-  });
-  assert.deepEqual(buttons.map(b => b['data-testid']), ['write-done', 'write-more']);
-  assert.equal(buttons[0].variant, 'primary');
-  assert.equal(buttons[1]['aria-label'], t('X-WRITE.moreLabel'));
-  assert.equal(buttons[1]['aria-haspopup'], 'dialog');
-  const alone = [];
-  walk(AxFoot({ primary: { testid: 'write-answer-next', label: '下一个', onClick: () => {} }, items: [] }), n => {
-    if (n.type === Button) alone.push(n.props['data-testid']);
-  });
-  assert.deepEqual(alone, ['write-answer-next']);
 });
 
 test('prompt.js AX rules: the cell grows with min(--k, 1.6) (the word is the biggest thing), pinyin / hint line are capped by tier (P243)', () => {

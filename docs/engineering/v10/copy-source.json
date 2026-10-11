@@ -215,14 +215,16 @@
     "P212": "看答案第一次的格下说明（W1，D51 ⑧）：C3-H / D53（P248，N3-06）已撤掉那一行说明（R-W07.firstExplain 槽删除）；settings.answerNoteSeen 标志位与 write/answer.js commitAnswerNoteSeen / answerNoteDue 保留，界面不再读它；不是运行时开关",
     "P248": "首用口吻收口（C3-H，D53）：全写错结果页去朱点与重复点名、删看答案首次说明行、「记为看过答案」只说一处、首练标题固定「这三个字」、首练页最多两句话与按钮写出结果——样式与结构取舍，src/ui/screens/result/*、src/ui/components/work.js、src/ui/screens/write/answer.js；文案见 X-FIRST.* / X-INVITE.* / R-W10.lineSaw；不是运行时开关",
     "P240": "书写格永远正方形（R3-K1 / A3-01）：书写格与判断页两格宽高写死成同一个 px 值（src/ui/canvas/ink-canvas.js、src/ui/screens/write/compare.js squareStyle），容器变形时笔画按较短边居中映射（squareMapping），WebKit 门禁 scripts/verify-webkit-ax.mjs；不是运行时开关",
-    "P241": "AX 档格下说明位按实际高度排、放不下时并入「⋯」菜单（R3-K1 / A3-01）：版式公式在 src/ui/screens/write/layout.js axWriteLayout（noteInMenu），量测在 compact.js useWriteLayout，菜单顶部 write-menu-note 在 ax-menu.js；policy.writeGrid.axNoteHeight 改为最小高度，不是新的运行时开关",
+    "P241": "AX 档格下说明位按实际高度排（R3-K1 / A3-01；R4-F1 起放不下时不再并入「⋯」菜单，改按 P261 的让步顺序）：版式公式在 src/ui/screens/write/layout.js axWriteLayout（noteInMenu），量测在 compact.js useWriteLayout，菜单顶部 write-menu-note 在 ax-menu.js；policy.writeGrid.axNoteHeight 改为最小高度，不是新的运行时开关",
     "P242": "中文折行（R3-K1 / A3-02）：全 App 不用 word-break:keep-all；按钮与菜单项文字经 src/ui/components/Words.js（Intl.Segmenter 分词、每词一个 nowrap span）只在词边界折，正文与说明句用正常 CJK 折行 + line-break:strict；样式规则，不是运行时开关",
     "P244": "AX 档弹层内不叠字（R3-K1 / A3-04）：查字弹层全高时「完成」封顶 22、查字框让出它的宽（src/ui/components/query/QuerySheet.js），分享预览比例在 AX 档两行满宽单选（image-preview.js），弹层标题 AX 档均衡折行（Sheet.js）；样式规则，不是运行时开关",
     "P255": "帮助层画法（R3-C3W / V3-01 / T3-02，D53 ①）：淡朱不透明实填 + 同色相 0.75pt 双钩，去掉 ink3 外廓；深色 --danzhu 由 #A85C48 调到 #AF604B（红色盲下对笺 ≥ 3:1）。样式 / 绘制，src/ui/canvas/glyph.js、glyph-wash.js、src/config/tokens.css，不是运行时开关",
     "P256": "提示写过哪笔收哪笔（R3-C3W / I3-01，D53 ⑧）：匹配规则（笔顺序号优先、几何最近为辅，HINT_MATCH_MAX_DIST = 40）与逐笔淡出，src/ui/screens/write/hint-layer.js；不是运行时开关",
     "P257": "写字页书写格顶边固定（R3-C3W / V3-02 / T3-03，D53 ②）：组顶只按名义版式 + 本卡题面高排，不随阶段的实际主区高变；版式公式，src/ui/screens/write/layout.js、compact.js；不是运行时开关",
     "P258": "常规字号写字页与 AX 同构（R3-C3W / T3-04 / V3-09，D53 ②）：底栏一行主按钮 + 「⋯」、撤销 / 清空进页头、「在纸上写」常驻入口、全 App 主按钮底线 policy.mainButtonLine；版式与菜单结构，src/ui/screens/write/*、src/config/policy.js；不是运行时开关",
-    "P259": "AX3 起描一遍阶段主按钮改用短文案「自己写」（R3-C3W，P259）：文案槽 X-ANSWER.btnTraceDoneShort 已入 copy，档位阈值在 policy.axShortPrimaryFrom；不是运行时开关"
+    "P259": "AX3 起描一遍阶段主按钮改用短文案「自己写」（R3-C3W，P259）：文案槽 X-ANSWER.btnTraceDoneShort 已入 copy，档位阈值在 policy.axShortPrimaryFrom；不是运行时开关",
+    "P260": "写字页求助操作一次点击直达（R4-F1，D55）：底栏回到主按钮 + 一行文字按钮（提示 / 看答案 / 在纸上写 / 跳过 / 结束这组…），取消「⋯」菜单与文案槽 X-WRITE.moreLabel；版式与结构，src/ui/screens/write/foot.js、index.js、answer.js、compare.js、src/config/policy.js（nominalFoot 116、footBottomMin 8）；不是运行时开关",
+    "P261": "AX 档底栏文字行（R4-F1，D55）：文字按钮字号分层封顶 policy.writeGrid.axAux.links、按词折行、书写格会低于 220 时先收起「在纸上写」、再把主按钮字号封顶 34pt；版式公式在 src/ui/screens/write/layout.js axWriteLayout（tight）与 write/index.js；不是运行时开关"
   },
   "noCopy": [
     "R-H08",
@@ -2889,13 +2891,6 @@
           "origin": "extra",
           "note": "书写格容器 role=img 的 aria-label（读屏文案）；取 01 §6.1 的名称，不含答案字（决定-D16）",
           "decision": "P66"
-        },
-        "moreLabel": {
-          "raw": null,
-          "text": "更多",
-          "origin": "extra",
-          "note": "AX 档写字页底栏「⋯」按钮与菜单的读屏名称（只有读屏念；可见的是三点图标）",
-          "decision": "P225"
         },
         "firstTip": {
           "raw": null,

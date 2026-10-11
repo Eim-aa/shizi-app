@@ -131,11 +131,12 @@ export function useAxLevel(win) {
  * （D29 / D36；P257 起书写格顶边在同一张卡的所有阶段固定，所以每个阶段都量、不再「沿用最近一次量到的」补丁）；AX 档与判断页两格按实际量到的主区高排。随页面尺寸（ResizeObserver）重算。
  * @param {{current: HTMLElement|null}} writeRef  .sz-write 元素
  * @param {{phase:string, ax:number}} o
- * @returns {{g:number, top:number, gridTop:number, toolsHeight:number, mainHeight:number, nominalHeight:number, promptHeight:number,
- *            pair:{s:number, layout:'stack'|'side', top:number}}}
+ * @returns {{g:number, top:number, gridTop:number, toolsHeight:number, width:number, mainHeight:number, nominalHeight:number, promptHeight:number,
+ *            tight:boolean, linksWrapped:boolean, pair:{s:number, layout:'stack'|'side', top:number}}}
+ *   tight：AX 档书写格（不夹下限）低于 220；linksWrapped：底栏文字行折成了多行（P261：两者同时成立才收起「在纸上写」）
  */
 export function useWriteLayout(writeRef, { phase = 'recall', ax = 0, noteKey = null } = {}, win) {
-  const [measured, setMeasured] = useState(() => ({ ...estimateLayout(win), width: NaN, mainHeight: NaN, nominalHeight: NaN, promptHeight: PROMPT_H_STD, headExtra: 0, noteHeight: NaN, noteKey }));
+  const [measured, setMeasured] = useState(() => ({ ...estimateLayout(win), width: NaN, mainHeight: NaN, nominalHeight: NaN, promptHeight: PROMPT_H_STD, headExtra: 0, noteHeight: NaN, noteKey, linksWrapped: false }));
   useLayoutEffect(() => {
     const w = winOf(win);
     const el = writeRef.current;
@@ -162,11 +163,12 @@ export function useWriteLayout(writeRef, { phase = 'recall', ax = 0, noteKey = n
       });
       const prompt = el.querySelector('.sz-write__prompt');
       const promptHeight = prompt ? prompt.offsetHeight : PROMPT_H_STD;
-      // AX 档格下说明位的实际高度（R3-K1 P241）：同一个字的同一阶段里只增不减（落笔收起结果行时格子不跟着变大、不重排正在写的格子）；
-      // 说明已并入「⋯」菜单（格下不画）时沿用之前量到的值。换字 / 换阶段重新量。
+      // AX 档格下说明位的实际高度（R3-K1 P241）：同一个字的同一阶段里只增不减（落笔收起结果行时格子不跟着变大、不重排正在写的格子）。换字 / 换阶段重新量。
       const below = el.querySelector('.sz-write__below');
-      const inMenu = !!(below && below.getAttribute('data-in-menu') === 'true');
-      const noteNow = below && !inMenu ? below.offsetHeight : NaN;
+      const noteNow = below ? below.offsetHeight : NaN;
+      // 底栏文字行有没有折行（P261）：高度超过一行文字按钮（44）。折行时收起「在纸上写」才可能让出一行。
+      const links = foot ? foot.querySelector('.sz-write__links') : null;
+      const wrapped = !!(links && links.offsetHeight > 60);
       setMeasured(prev => {
         const mh = mainHeight;
         const nh = nominalHeight;
@@ -176,8 +178,8 @@ export function useWriteLayout(writeRef, { phase = 'recall', ax = 0, noteKey = n
         const prevNote = sameKey && Number.isFinite(prev.noteHeight) ? prev.noteHeight : NaN;
         const nt = Number.isFinite(noteNow) ? (Number.isFinite(prevNote) ? Math.max(prevNote, noteNow) : noteNow) : prevNote;
         const same = (a, b) => a === b || (Number.isNaN(a) && Number.isNaN(b));
-        if (prev.width === width && prev.mainHeight === mh && prev.nominalHeight === nh && prev.promptHeight === ph && prev.headExtra === he && same(prev.noteHeight, nt) && sameKey) return prev;
-        return { width, mainHeight: mh, nominalHeight: nh, promptHeight: ph, headExtra: he, noteHeight: nt, noteKey };
+        if (prev.width === width && prev.mainHeight === mh && prev.nominalHeight === nh && prev.promptHeight === ph && prev.headExtra === he && same(prev.noteHeight, nt) && sameKey && prev.linksWrapped === wrapped) return prev;
+        return { width, mainHeight: mh, nominalHeight: nh, promptHeight: ph, headExtra: he, noteHeight: nt, noteKey, linksWrapped: wrapped };
       });
     };
     measure();
@@ -195,7 +197,7 @@ export function useWriteLayout(writeRef, { phase = 'recall', ax = 0, noteKey = n
       else w.removeEventListener('resize', measure);
     };
   }, [phase, win, ax > 0, noteKey]);
-  const { width, mainHeight, nominalHeight, promptHeight, headExtra } = measured;
+  const { width, mainHeight, nominalHeight, promptHeight, headExtra, linksWrapped } = measured;
   const noteHeight = measured.noteKey === noteKey ? measured.noteHeight : NaN;
   // AX 档：按实际可用高度排（永不滚动，axWriteLayout）；其余档仍按名义版式（D29 / D36 / P195）。
   const base = Number.isFinite(mainHeight)
@@ -210,7 +212,7 @@ export function useWriteLayout(writeRef, { phase = 'recall', ax = 0, noteKey = n
       pair = { s: judgePairSize({ width, mainHeight, gridTop: base.gridTop }), layout: 'stack', top: base.top };
     }
   }
-  return { ...base, mainHeight, nominalHeight, promptHeight, pair };
+  return { tight: false, ...base, width, mainHeight, nominalHeight, promptHeight, linksWrapped: !!linksWrapped, pair };
 }
 
 /**

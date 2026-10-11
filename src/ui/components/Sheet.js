@@ -3,7 +3,7 @@
 // padding 24 20（页边）底部 max(32, 安全区)、gap 16（间距尺度）；没有顶部把手（网页里不能跟手下拉，把手是假的，P0-A12 / G12，阶段 3 由原生 Sheet 取代）。
 // 进场上滑，减少动态效果时直接显示。
 // 完成（A2-05 / R2-A1，D29 / D51）：每个底部弹层标题行右端有一个可见的「完成」文字按钮（H1 统一的文字按钮规格，44 点击区，读屏可达），
-// 与点遮罩 / 系统返回 / Esc / 原生 accessibilityPerformEscape（shizi-native-escape）同走 onClose。没有标题的弹层（写字页「⋯」菜单）这一行只有「完成」、靠右。
+// 与点遮罩 / 系统返回 / Esc / 原生 accessibilityPerformEscape（shizi-native-escape）同走 onClose。没有标题的弹层这一行只有「完成」、靠右。
 // 弹层自己已有一个等价的可见出口时（修改判断「取消」、清空确认「先不清空」这类决策弹层，取消比完成准确）传 dismiss="own"：不再多画一个「完成」，
 // 根节点带 data-dismiss="own"，e2e 逐个核对。
 // 打开方式：nav.openOverlay(内容组件, props)；内容组件里用 <Sheet onClose=${close}>…</Sheet>。

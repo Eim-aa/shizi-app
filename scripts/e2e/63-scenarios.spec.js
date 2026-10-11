@@ -19,7 +19,7 @@
 // 控制台零错误由 run.mjs 统一断言；全程无绕过 storage.js 的写入。
 
 import { markFirstPracticeDone } from './home-helpers.mjs';
-import { bootTestHost, drawStroke, HORIZONTAL, installNativeStub, makeSession, nativeMessages, PRESS_SETTLE_MS, tid, topSel, VERTICAL, waitNavIdle, writeSnapshot, setTextSize, LARGE_TEXT, leaveResult, tap, openWriteMenu } from './helpers.mjs';
+import { bootTestHost, drawStroke, HORIZONTAL, installNativeStub, makeSession, nativeMessages, PRESS_SETTLE_MS, tid, topSel, VERTICAL, waitNavIdle, writeSnapshot, setTextSize, LARGE_TEXT, leaveResult, tap } from './helpers.mjs';
 
 const CLOCK = '2026-09-24T20:00:00';
 const SHEET = '[data-testid="query-sheet"]';
@@ -484,9 +484,9 @@ export default async function run(page, ctx) {
   assert.equal(f.sessions.A.items.length, 1, 'one item');
 
   step('反例 6: 跳过 clicked twice in the same frame → one skipped record, cursor +1');
-  await openWriteMenu(page); // D53 ②：跳过在「⋯」菜单里；同一帧点两次菜单项
+  // D55：跳过是主按钮下文字行里的按钮；同一帧点两次
   await page.evaluate(() => {
-    const b = document.querySelector('[data-testid="write-ax-menu"] [data-testid="write-skip"]');
+    const b = document.querySelector('.sz-layer[data-top="true"] [data-testid="write-skip"]');
     b.click();
     b.click();
   });

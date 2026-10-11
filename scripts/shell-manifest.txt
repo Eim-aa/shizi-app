@@ -7406,11 +7406,11 @@ src/ui/screens/session/index.js
 src/ui/screens/session/none.js
 src/ui/screens/session/s02.js
 src/ui/screens/write/answer.js
-src/ui/screens/write/ax-menu.js
 src/ui/screens/write/compact.js
 src/ui/screens/write/compare.js
 src/ui/screens/write/end.js
 src/ui/screens/write/first-tip.js
+src/ui/screens/write/foot.js
 src/ui/screens/write/glyph-fallback.js
 src/ui/screens/write/hint-layer.js
 src/ui/screens/write/index.js

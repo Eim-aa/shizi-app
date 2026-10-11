@@ -6,10 +6,10 @@
 // 写入失败不阻断且下次写入补上次数；会话现场里 hintRange 还在时静态恢复；无绕过 storage.js 的写入；回忆阶段 DOM 不含答案字。
 
 import {
-  bootTestHost, closeWriteMenu, drawStroke, HORIZONTAL, VERTICAL, openWrite, openWriteMenu, seedSession, tap, topSel, waitNavIdle,
+  bootTestHost, drawStroke, HORIZONTAL, VERTICAL, openWrite, seedSession, tap, topSel, waitNavIdle,
 } from './helpers.mjs';
 
-const MENU_HINT = '[data-testid="write-ax-menu"] [data-testid="write-hint"]';
+const FOOT_HINT = '.sz-layer[data-top="true"] .sz-page__foot [data-testid="write-hint"]';
 const LAYER = topSel('write-hint-layer');
 
 
@@ -21,9 +21,8 @@ async function open(page, ctx, chars, extra = {}) {
   await openWrite(page, { slot: 'A' });
 }
 
-/** 「⋯」菜单里的提示项（D53 ②：提示不再是页面上的文字按钮）：打开菜单读它的名称 / 状态再关上。没有这一项时返回 null。 */
-async function menuHint(page) {
-  await openWriteMenu(page);
+/** 底栏文字行里的「提示」按钮（D55：直接摆在主按钮下面，一次点击）：读它的名称 / 状态。没有这一项时返回 null。 */
+async function footHint(page) {
   const b = await page.evaluate(sel => {
     const el = document.querySelector(sel);
     if (!el) return null;
@@ -31,15 +30,14 @@ async function menuHint(page) {
       label: el.getAttribute('aria-label'), text: el.textContent.trim(), state: el.dataset.state, remaining: el.dataset.remaining,
       disabled: el.disabled, ariaDisabled: el.getAttribute('aria-disabled'),
     };
-  }, MENU_HINT);
-  await closeWriteMenu(page);
+  }, FOOT_HINT);
   return b;
 }
 
 async function waitButton(page, state) {
   const deadline = Date.now() + 15000;
   for (;;) {
-    const b = await menuHint(page);
+    const b = await footHint(page);
     if (b && b.state === state) return b;
     if (Date.now() > deadline) throw new Error(`hint menu item never became ${state} (${JSON.stringify(b)})`);
     await page.waitForTimeout(300);
@@ -47,7 +45,7 @@ async function waitButton(page, state) {
 }
 
 async function hintState(page, withButton = false) {
-  const btn = withButton ? await menuHint(page) : null;
+  const btn = withButton ? await footHint(page) : null;
   return page.evaluate(({ layer, btn: b }) => {
     const l = document.querySelector(layer);
     const top = document.querySelector('.sz-layer[data-top="true"]');
@@ -334,11 +332,10 @@ export default async function hint(page, ctx) {
   ctx.allowConsoleError(/^requestfailed: .*\/data\/%E6%98%A5\.json net::ERR_ABORTED$/);
   await page.route(url => decodeURIComponent(url.pathname).endsWith('/data/春.json'), route => route.fulfill({ status: 404, body: '' }));
   await open(page, ctx, ['春']);
-  await page.waitForSelector(topSel('write-more'), { timeout: 15000 });
+  await page.waitForSelector(topSel('write-done'), { timeout: 15000 });
   await page.waitForFunction(() => !!document.querySelector('.sz-layer[data-top="true"] [data-hint-note="no-hint"]'), null, { timeout: 15000 });
-  await openWriteMenu(page);
   const nd = await page.evaluate(() => {
-    const menu = document.querySelector('[data-testid="write-ax-menu"]');
+    const menu = document.querySelector('.sz-layer[data-top="true"] .sz-write__links');
     const top = document.querySelector('.sz-layer[data-top="true"]');
     const label = menu.querySelector('[data-testid="write-hint-unavailable"]');
     const page = document.querySelector('.sz-page[data-testid="write-screen"]');
@@ -355,12 +352,11 @@ export default async function hint(page, ctx) {
     };
   });
   assert.equal(nd.text, '暂时没有提示', 'R-W05.hintUnavailable');
-  assert.deepEqual([nd.tag, nd.button, nd.slotButtons], ['SPAN', false, 0], 'no clickable hint control (grey text item in the 「⋯」 menu, M1-2 NoHintLabel)');
+  assert.deepEqual([nd.tag, nd.button, nd.slotButtons], ['SPAN', false, 0], 'no clickable hint control (grey text in the text row under 「写好了」, M1-2 NoHintLabel)');
   assert.equal(nd.note, '这个字暂时没有提示，可以直接看答案。', 'R-W05.noHintNote under the grid');
   assert.ok(nd.dot, 'note has the --o dot');
   assert.deepEqual([nd.layer, nd.fallback], [false, false], 'no hint layer and no fallback glyph in recall (D16)');
-  await page.click('[data-testid="write-ax-menu"] [data-testid="write-hint-unavailable"]', { force: true });
-  await closeWriteMenu(page);
+  await page.click(topSel('write-hint-unavailable'), { force: true });
   cur = await current(page);
   assert.equal(cur.hints, 0, 'clicking the grey label records nothing');
   await page.unrouteAll({ behavior: 'ignoreErrors' });

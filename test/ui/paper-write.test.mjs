@@ -135,20 +135,43 @@ test('P167: 纸面格——格内「在纸上写」/ 说明 /「改回在屏幕�
   assert.equal(byTestid(PaperStage({ size: 320, hinted: true }))['write-paper'][0].props['data-hinted'], 'true');
 });
 
-test('P168: 读屏建议——读屏在运行、设置仍是屏幕、还没出现过才出现；出现即记 paperSuggested，接受即改设置为纸上', async () => {
+test('P168 → P276（D56）: 读屏建议——读屏在运行、设置仍是屏幕、还没出现过才出现；出现即记 paperSuggested（只出现一次）', async () => {
   const { paperSuggestDue } = await import('../../src/core/paper.js');
-  const { commitPaperSuggested, commitPaperAccept } = await import('../../src/ui/screens/write/paper.js');
+  const paperMod = await import('../../src/ui/screens/write/paper.js');
   assert.equal(paperSuggestDue({ settings: null, assistive: true }), true);
   assert.equal(paperSuggestDue({ settings: null, assistive: false }), false, 'no screen reader → never');
   assert.equal(paperSuggestDue({ settings: { paperSuggested: true }, assistive: true }), false, 'only once');
   assert.equal(paperSuggestDue({ settings: { writeMode: 'paper' }, assistive: true }), false, 'already on paper');
   const store = fakeStore({ ...draftWith(), settings: { sound: false } });
-  assert.equal(commitPaperSuggested(store).ok, true);
+  assert.equal(paperMod.commitPaperSuggested(store).ok, true);
   assert.deepEqual(store.getState().settings, { sound: false, paperSuggested: true });
-  assert.equal(commitPaperSuggested(store).skipped, true, 'recorded once');
-  assert.equal(commitPaperAccept(store).ok, true);
-  assert.deepEqual(store.getState().settings, { sound: false, paperSuggested: true, writeMode: 'paper' });
+  assert.equal(paperMod.commitPaperSuggested(store).skipped, true, 'recorded once');
   assert.equal(validateValue(KEYS.settings, store.getState().settings), null);
+  assert.equal(paperMod.commitPaperAccept, undefined, 'D56: the suggestion no longer switches the setting itself — it points to 设置');
+});
+
+test('P276（D56）: 建议的视图——一句话 + 一个「去设置」文字按钮（没有「不用」/「改为在纸上写」），role=status 不抢焦点', async () => {
+  const { PaperSuggestView } = await import('../../src/ui/screens/write/paper.js');
+  let went = 0;
+  const ids = byTestid(PaperSuggestView({ onGo: () => { went += 1; } }));
+  assert.equal(ids['write-paper-suggest'][0].props.role, 'status');
+  assert.equal(textOf(ids['write-paper-suggest-text'][0]), '看不清或不方便在屏幕上写，可以在设置里改为在纸上写。');
+  assert.equal(textOf(ids['write-paper-suggest-go'][0]), '去设置');
+  assert.equal(ids['write-paper-suggest-go'][0].props.variant, 'text');
+  assert.ok(!ids['write-paper-suggest-no'] && !ids['write-paper-suggest-yes'], 'only 去设置');
+  ids['write-paper-suggest-go'][0].props.onClick({ timeStamp: 1e9 });
+  assert.equal(went, 1);
+});
+
+test('P276（D56）: 建议只在第一个字、没落笔、回忆阶段、屏幕上写时在场（paperSuggestVisible）', async () => {
+  const { paperSuggestVisible } = await import('../../src/ui/screens/write/paper.js');
+  const on = { shown: true, cardKey: 'base:永', firstKey: 'base:永', strokeCount: 0, paper: false, phase: 'recall' };
+  assert.equal(paperSuggestVisible(on), true);
+  assert.equal(paperSuggestVisible({ ...on, shown: false }), false, 'dismissed / not due');
+  assert.equal(paperSuggestVisible({ ...on, cardKey: 'base:和' }), false, 'gone once the next character comes (it does not linger for the whole group)');
+  assert.equal(paperSuggestVisible({ ...on, strokeCount: 1 }), false, 'gone at the first stroke (like the first-use tip)');
+  assert.equal(paperSuggestVisible({ ...on, paper: true }), false);
+  assert.equal(paperSuggestVisible({ ...on, phase: 'compare' }), false);
 });
 
 test('P167: 纸上判断页只有参考字形（书写格大小）+ 格下说明位「和你纸上的字对照」（D49：没有「参考字形 · 」旁注），读屏「你的书写：写在纸上」', () => {

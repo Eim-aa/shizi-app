@@ -7,12 +7,12 @@
 // - 写字页里没有「在纸上写」入口（D56，P275）：写字方式只在设置里选（settings.writeMode）；屏幕上写的字不能逐字切到纸上。
 // - 判断页（compare.js PaperCompareStage；D49 起格下说明位「和你纸上的字对照」，没有旁注）、判断 commit（source:'paper'，不写墨迹）见 compare.js。
 // 切换是会话现场写入（withCurrent {paper}），按 P52 不阻断：本地先切换，写失败也照样显示，下一次写入时由进判断页的 commit 带上。
-// - 读屏开启时的建议（P168）：读屏 / 切换控制开启后第一次进写字页（platform/accessibility.js assistiveTechActive，阶段 0 桥），
-//   格下说明位一条非阻断建议「读屏开启时，可以在纸上写好，回来自己对照。」+「不用」/「改为在纸上写」；出现即记 settings.paperSuggested，
-//   只出现一次；「改为在纸上写」把设置改为纸上。
+// - 读屏开启时的建议（P168 → P276，D56）：读屏 / 切换控制开启后第一次进写字页（platform/accessibility.js assistiveTechActive，阶段 0 桥），
+//   格下说明位一条非阻断建议「看不清或不方便在屏幕上写，可以在设置里改为在纸上写。」+ 文字按钮「去设置」（直达设置 › 写字方式的选择弹层）；
+//   出现即记 settings.paperSuggested，只出现一次；写字页自己不改写字方式。第一个字落笔 / 换字后收起。
 //
 // data-testid：write-paper（纸面格，data-hinted）、write-paper-title、write-paper-body、write-paper-back（改回在屏幕上写）、
-//   write-paper-note（格下说明）、write-paper-suggest（+ -text / -no / -yes）。
+//   write-paper-note（格下说明）、write-paper-suggest（+ -text / -go）。
 
 import { html, useEffect, useRef, useState } from '../../../../vendor/ui.js';
 import { Button } from '../../components/Button.js';
@@ -118,21 +118,31 @@ export function commitPaperSuggested(store) {
   });
 }
 
-/** 接受建议：写字方式设置改为纸上（settings.writeMode = 'paper'，同时记下已出现过）。 */
-export function commitPaperAccept(store) {
-  return store.commit('write:paper-accept', draft => {
-    draft.settings = { ...(draft.settings || {}), writeMode: 'paper', paperSuggested: true };
-  });
+/** 建议现在要不要显示：还没被关掉、仍是第一个字、还没落笔、屏幕上写的回忆阶段（换字 / 落笔 / 进别的阶段即收起，不在整组里一直挂着）。 */
+export function paperSuggestVisible({ shown, cardKey, firstKey, strokeCount, paper, phase }) {
+  return !!shown && cardKey === firstKey && !(strokeCount > 0) && !paper && phase === 'recall';
+}
+
+/** 建议的视图：一句话 + 一个「去设置」文字按钮（role=status 播报，不抢焦点）。 */
+export function PaperSuggestView({ onGo }) {
+  return html`<span class="sz-paper__suggest" role="status" data-testid="write-paper-suggest">
+    <span data-testid="write-paper-suggest-text">${t('X-PAPER.suggest')}</span>
+    <span class="sz-paper__suggestbtns">
+      <${Button} variant="text" class="sz-paper__sbtn" data-testid="write-paper-suggest-go" onClick=${onGo}>${t('X-PAPER.suggestGo')}</${Button}>
+    </span>
+  </span>`;
 }
 
 /**
- * 读屏 / 切换控制开启后第一次进写字页时，格下一条非阻断建议（只出现一次）：进页时判定一次（paperSuggestDue），
- * 出现即记 settings.paperSuggested（写失败不阻断，下次进页可能再出现一次）；点「改为在纸上写」改设置、点「不用」收起；离开本页即不再显示。
- * @param {{settings:object|null, phase:string, paper:boolean, assistive:()=>boolean, getStore:()=>object}} o
+ * 读屏 / 切换控制开启后第一次进写字页时，格下一条非阻断建议（只出现一次，D56 / P276）：进页时判定一次（paperSuggestDue），
+ * 出现即记 settings.paperSuggested（写失败不阻断，下次进页可能再出现一次）；点「去设置」直达设置的写字方式（onSettings），建议随即收起。
+ * 写字页自己不改写字方式（D56）。换字 / 落笔 / 离开本页即不再显示。
+ * @param {{settings:object|null, phase:string, paper:boolean, cardKey:string|null, strokeCount:number, assistive:()=>boolean, onSettings:()=>void, getStore:()=>object}} o
  * @returns {{node:*}}
  */
-export function usePaperSuggest({ settings, phase, paper, assistive, getStore }) {
+export function usePaperSuggest({ settings, phase, paper, cardKey, strokeCount = 0, assistive, onSettings, getStore }) {
   const [shown, setShown] = useState(() => paperSuggestDue({ settings, assistive: !!assistive() }));
+  const firstKey = useRef(cardKey);
   const recorded = useRef(false);
   useEffect(() => {
     if (!shown || recorded.current) return;
@@ -143,22 +153,10 @@ export function usePaperSuggest({ settings, phase, paper, assistive, getStore })
       // store 不可用：照样显示
     }
   }, [shown]);
-  if (!shown || paper || phase !== 'recall') return { node: null };
-  const accept = () => {
+  if (!paperSuggestVisible({ shown, cardKey, firstKey: firstKey.current, strokeCount, paper, phase })) return { node: null };
+  const go = () => {
     setShown(false);
-    try {
-      commitPaperAccept(getStore());
-    } catch (error) {
-      // 写不进去：这一次照旧在屏幕上写
-    }
+    if (typeof onSettings === 'function') onSettings();
   };
-  return {
-    node: html`<span class="sz-paper__suggest" role="status" data-testid="write-paper-suggest">
-      <span data-testid="write-paper-suggest-text">${t('X-PAPER.suggest')}</span>
-      <span class="sz-paper__suggestbtns">
-        <${Button} variant="text" class="sz-paper__sbtn" data-testid="write-paper-suggest-no" onClick=${() => setShown(false)}>${t('X-PAPER.suggestNo')}</${Button}>
-        <${Button} variant="text" class="sz-paper__sbtn" data-testid="write-paper-suggest-yes" onClick=${accept}>${t('X-PAPER.suggestYes')}</${Button}>
-      </span>
-    </span>`,
-  };
+  return { node: html`<${PaperSuggestView} onGo=${go} />` };
 }

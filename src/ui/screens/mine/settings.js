@@ -657,4 +657,11 @@ export function openSettings() {
   return go(SETTINGS_SCREEN, {});
 }
 
+/** 直达「设置 › 写字方式」（D56，P276）：推入设置页并打开写字方式的选择弹层；写字页读屏建议的「去设置」用它。返回是否打开了设置页。 */
+export function openWriteModeSettings({ getStore: storeOf = getStore } = {}) {
+  if (!go(SETTINGS_SCREEN, {})) return false;
+  openWriteModeSheet({ getStore: storeOf });
+  return true;
+}
+
 registerScreen(SETTINGS_SCREEN, SettingsScreen, { label: t('R-S01.title') });

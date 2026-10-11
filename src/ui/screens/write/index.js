@@ -65,6 +65,7 @@ import { commitFinish, handoffSkipUndo, openResult } from '../result/index.js';
 import { PaperNote, PaperStage, usePaperMode, usePaperSuggest } from './paper.js';
 import { useFirstTip } from './first-tip.js';
 import { assistiveTechActive } from '../../../platform/accessibility.js';
+import { openWriteModeSettings } from '../mine/settings.js';
 import { LinkButton, Slot, WriteFoot } from './foot.js';
 import { usePhaseFade } from './phase-fade.js';
 import { gridLabel, useWriteAnnounce } from './sr-live.js';
@@ -296,8 +297,10 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
   const cmpPhase = useComparePhase({ slot, session, cardKey, storedPhase, strokeCount: view.strokes.length, paper: paperMode.paper });
   const phase = cmpPhase.phase;
   const paper = paperMode.paper && (phase === 'recall' || phase === 'compare');
-  // P1-E8（P168）：读屏开启后第一次进写字页，格下一条「改为在纸上写」的非阻断建议（只出现一次）。
-  const suggest = usePaperSuggest({ settings: state ? state.settings : null, phase, paper, assistive: assistiveTechActive, getStore });
+  // P1-E8（P168 → P276，D56）：读屏开启后第一次进写字页，格下一条指向设置的非阻断建议（「去设置」直达写字方式；只出现一次）。写字页自己不切换写字方式。
+  const suggest = usePaperSuggest({
+    settings: state ? state.settings : null, phase, paper, cardKey, strokeCount: view.strokes.length, assistive: assistiveTechActive, onSettings: openWriteModeSettings, getStore,
+  });
   // M1-6 会话现场：本地笔画一变就写回 sessions（P52 不阻断 + 一次性提示）、visibilitychange 重写、打开时恢复幂等。
   // M2-2：只有顶层写字页写回现场（抬笔 / visibilitychange / pagehide / 离开）；被压在下面时不写（cardKey 传 null = 不写）。
   const persist = usePersist({ slot, session, state, cardKey: isTop ? cardKey : null, inkKey, strokes: view.strokes, phase, isStale });

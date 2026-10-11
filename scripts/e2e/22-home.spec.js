@@ -21,7 +21,7 @@
 //   6. 跨天（P37）：昨天没写完的今天的练习 → 回前台时作废（store 里 A 为 null），首页不再显示续写；B 不过期（P61）。
 //   7. 「现在没有要写的字」（R-H11）：小题库全写过 → 主入口推入 session-none 页；页上「自己选字」由首页注册，点开查字 pick。
 
-import { bootTestHost, tid, topSel, waitNavIdle } from './helpers.mjs';
+import { bootTestHost, noToastFor, tid, topSel, waitNavIdle } from './helpers.mjs';
 
 const DAY = '2026-09-24'; // 年内第 267 天 → 267 % 3 = 0 → 第一条题记（原型写死的 267）
 const YDAY = '2026-09-23';
@@ -42,7 +42,6 @@ const COPY = {
   count: n => `今天写了 ${n} 个字`,
   pick: '自己选字',
   pickTitle: '自己选字',
-  savedToast: '已保存，下次接着写',
   startFailed: '没保存上，刚才的选择没记下。',
   notSave: '先不保存',
   retry: '再试一次',
@@ -407,7 +406,7 @@ export default async function run(page, ctx) {
   assert.deepEqual(covered, { homeVisible: 'visible', inWrite: true }, 'home revealed under a back drag stays below the write page');
   await waitNavIdle(page);
   await backToHome(page);
-  assert.equal(await toastText(page), COPY.savedToast, 'R-H10 toast 「已保存，下次接着写」');
+  assert.equal(await noToastFor(page), true, 'no toast within 1.5s of coming back (R4-F1 / P262: the 「已保存，下次接着写」 bar is gone)');
   h = await home(page);
   assert.equal(h.resume, 'A', 'resume=A');
   assert.equal(h.cta, COPY.continue, '继续写字');

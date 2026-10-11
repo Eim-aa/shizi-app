@@ -6,7 +6,7 @@
 //   → 首页只剩 A：主入口「继续写字」、resume-line 今天的练习 → 进入后 A 原字、2 笔、提示还剩 1 次，不自动进下一字。
 // 分支：B 写一字后暂停不结束 → 从首页 other-line 续 A（A 原样）→ 回首页 B 仍在（深相等）→ 主入口续 B 回到 B 的第二个字。
 
-import { bootTestHost, drawStroke, HORIZONTAL, footItems, PRESS_SETTLE_MS, tid, topSel, waitNavIdle, tap } from './helpers.mjs';
+import { bootTestHost, drawStroke, HORIZONTAL, footItems, noToastFor, PRESS_SETTLE_MS, tid, topSel, waitNavIdle, tap } from './helpers.mjs';
 
 const A_CHARS = ['永', '和', '春'];
 const B_CHARS = ['大', '中'];
@@ -135,8 +135,7 @@ export default async function scenario(page, ctx) {
   assert.deepEqual(s.A, seeded, 'A still deep-equal');
   await page.click(topSel('page-back'));
   await waitTop(page, 'home');
-  const toast = await page.$(tid('toast'));
-  assert.equal(toast ? (await toast.textContent()).trim() : null, '已保存，下次接着写', 'R-H10 toast');
+  assert.equal(await noToastFor(page), true, 'no toast within 1.5s of coming back (R4-F1 / P262)');
   let h = await homeLines(page);
   assert.deepEqual([h.resume && h.resume.slot, h.resume && h.resume.kind], ['B', 'picked'], 'resume-line is B (这次选的字)');
   assert.deepEqual([h.other && h.other.slot, h.other && h.other.kind], ['A', 'daily'], 'other-line is A (今天的练习)');

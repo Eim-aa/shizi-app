@@ -57,7 +57,7 @@ import * as core from '../../../core/session-start.js';
 import { localDay, periodOf } from '../../../core/dates.js';
 import { openQuery } from '../../components/query/index.js';
 import { useCompact } from '../write/compact.js';
-import { ensureNavHooks, expireStale, openWrite, resumeSlot, startA, startPicked } from '../session/index.js';
+import { expireStale, openWrite, resumeSlot, startA, startPicked } from '../session/index.js';
 import { setNoneActions } from '../session/none.js';
 import { homeModel, resumeLineText, resumeLineAria, INK_ROW_MAX } from './today.js';
 import { recentDayLine } from './recent.js';
@@ -486,9 +486,6 @@ function HomeScreen() {
   const titleRef = useRef(null);
   const width = useElementWidth(rootRef);
   const [failed, setFailed] = useState(null); // 写入失败的那个动作（再试一次重跑它）
-  useEffect(() => {
-    ensureNavHooks(); // R-H10 轻提示的 router 订阅（刷新后直接恢复到写字页时也要有）
-  }, []);
 
   const model = homeModel(state, envNow(), { inkRowMax: INK_ROW_MAX, deck: deckAdapter });
   const view = model.view;

@@ -15,7 +15,7 @@
 //      轻提示「上一组判断过的 1 个字已经记下。」；旧 B 零判断 → 无轻提示；保存失败 → 留在确认框（三段式），再试一次成功。
 //   7. daily 跨天过期（setClock）：昨天没写完的今天的练习 → startA 开新的今天的练习；已判断记录保留；B 不过期（P61）。
 
-import { bootTestHost, drawStroke, HORIZONTAL, tid, topSel, waitNavIdle } from './helpers.mjs';
+import { bootTestHost, drawStroke, HORIZONTAL, noToastFor, tid, topSel, waitNavIdle } from './helpers.mjs';
 
 const SESSION_MOD = '/src/ui/screens/session/index.js';
 const FIRST = ['尴', '赢', '拾']; // D38：首练 3 字（原 5 字：尴 嚏 狩 晤 飓）
@@ -143,11 +143,10 @@ export default async function sessionStart(page, ctx) {
   assert.equal((await page.locator(topSel('write-progress')).textContent()).trim(), '1 / 3', 'progress 1 / 3');
   const firstId = st.sessions.A.id;
 
-  ctx.step('back to home mid-group → toast 已保存，下次接着写 (R-H10); startA again resumes the same group');
+  ctx.step('back to home mid-group → no 已保存 toast (R4-F1 / P262); startA again resumes the same group');
   await page.click(topSel('page-back'));
   await page.waitForFunction(() => document.querySelector('.sz-app').dataset.topScreen === 'home');
-  await page.waitForSelector(tid('toast'));
-  assert.equal(await toastText(page), '已保存，下次接着写', 'R-H10 toast');
+  assert.equal(await noToastFor(page), true, 'no toast within 1.5s of coming back');
   await waitNavIdle(page);
   r = await call(page, 'startA');
   assert.equal(r.opened, 'resume', 'startA resumes');

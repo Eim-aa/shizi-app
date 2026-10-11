@@ -19,7 +19,7 @@
 // 控制台零错误由 run.mjs 统一断言；全程无绕过 storage.js 的写入。
 
 import { markFirstPracticeDone } from './home-helpers.mjs';
-import { bootTestHost, drawStroke, HORIZONTAL, installNativeStub, makeSession, nativeMessages, PRESS_SETTLE_MS, tid, topSel, VERTICAL, waitNavIdle, writeSnapshot, setTextSize, LARGE_TEXT, leaveResult, tap } from './helpers.mjs';
+import { bootTestHost, drawStroke, HORIZONTAL, installNativeStub, makeSession, nativeMessages, noToastFor, PRESS_SETTLE_MS, tid, topSel, VERTICAL, waitNavIdle, writeSnapshot, setTextSize, LARGE_TEXT, leaveResult, tap } from './helpers.mjs';
 
 const CLOCK = '2026-09-24T20:00:00';
 const SHEET = '[data-testid="query-sheet"]';
@@ -252,7 +252,7 @@ export default async function run(page, ctx) {
   assert.equal(f.records.length, 0, 'returning without judging writes no record at all');
   assert.equal(f.todayN, 0, 'today N stays 0');
   assert.equal(f.sessions.A.current.strokes.length, 1, 'the unjudged stroke is kept in the session (resume later)');
-  assert.equal(await toastText(page), await copy(page, 'R-H10.savedToast'), 'toast 已保存，下次接着写 (R-H10)');
+  assert.equal(await noToastFor(page), true, 'no toast within 1.5s of coming back (R4-F1 / P262)');
   h = await homeView(page);
   assert.deepEqual([h.records, h.resume], ['first', 'A'], 'home: still first-visit records state, resume A');
   assert.equal(h.resumeLine, await copy(page, 'X-HOME.progressLeft', { n: 3 }), 'progress block reader name: 这一组还有 3 个字（P1-E5；E9a 起只在读屏名称里）');

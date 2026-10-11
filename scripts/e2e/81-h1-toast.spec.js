@@ -1,8 +1,10 @@
-// H1-5（I2-04）：返回首页时的「已保存，下次接着写」Toast 不再盖住主按钮「继续写字」。
+// R4-F1（P262）：写完一半返回首页不再出任何提示——原「已保存，下次接着写」条不能点、没有操作空间，产品负责人真机试用后去掉；返回后 1.5s 内页面上没有 toast 元素，
+//   保存失败的三段式提示（写字页顶部「没保存上，你写的字还在。」）仍在。
+// H1-5（I2-04）：Toast 不盖住主按钮（其它 Toast 仍用这条放置规则，例如详情页、字库的提示；首页用一条测试 Toast 覆盖）。
 //   Toast 的放置规则（components/Toast.js toastBottom）：默认距底 110（Tab 条上方）；默认位置压住当前页的主按钮时整条抬到主按钮上沿之上 12。
 //   断言真实包围盒：Toast 与主按钮不相交（间距 ≥ 12）、主按钮中心点仍命中按钮（不是 Toast）；主按钮不在默认位置附近的页面 Toast 仍在默认位置。
 //   393×852 与 375×667、浅 / 深。
-import { bootTestHost, tid, topSel, waitNavIdle } from './helpers.mjs';
+import { bootTestHost, drawStroke, HORIZONTAL, noToastFor, tid, topSel, waitNavIdle } from './helpers.mjs';
 import { seedHomeSpec } from './home-helpers.mjs';
 
 /* eslint-disable no-undef */
@@ -33,18 +35,34 @@ export default async function run(page0, ctx) {
     await page.emulateMedia({ colorScheme: v.scheme });
     await bootTestHost(page, ctx.baseURL);
 
-    step(`${v.tag}: 写到一半回首页 → 「已保存，下次接着写」不盖「继续写字」`);
+    step(`${v.tag}: 写到一半回首页 → 1.5s 内没有 toast 元素（P262）`);
     await seedHomeSpec(page, { entries: [], groups: [{ at: '2026-10-05T12:00:00', chars: [...'疆嚷醋膝窗'], steps: ['correct', 'correct'] }], clock: '2026-10-05T12:30:00' });
     await page.waitForFunction(() => document.querySelector('.sz-layer[data-top="true"] [data-testid="screen-home"]').dataset.view === 'progress');
     await page.click(topSel('home-start'));
     await page.waitForSelector(topSel('write-screen'));
     await waitNavIdle(page);
     await page.click(topSel('page-back'));
-    await page.waitForSelector(tid('toast'));
     await page.waitForSelector(topSel('home-start'));
-    await page.waitForTimeout(450); // 过了转场与 Toast 淡入
+    assert.equal(await noToastFor(page), true, `${v.tag}: no toast element within 1.5s of coming back`);
+
+    step(`${v.tag}: 保存失败的提示保持原样：写一笔时写入失败 → 写字页顶部三段式提示「没保存上，你写的字还在。」`);
+    await page.click(topSel('home-start'));
+    await page.waitForSelector(topSel('write-screen'));
+    await waitNavIdle(page);
+    await page.evaluate(() => window.__shiziTest.failNextWrite(1, { kind: 'generic' }));
+    await drawStroke(page, HORIZONTAL);
+    await page.waitForSelector(topSel('write-persist-notice'), { timeout: 5000 });
+    assert.equal((await page.textContent(topSel('write-persist-notice'))).trim().length > 0, true, `${v.tag}: the failure notice is still shown`);
+    await page.click(topSel('page-back'));
+    await page.waitForSelector(topSel('home-start'));
+    await waitNavIdle(page);
+
+    step(`${v.tag}: 首页：别的 Toast 出现时仍让开主按钮「继续写字」（P222 的放置规则不变）`);
+    await page.evaluate(async () => (await import('/src/ui/components/Toast.js')).showToast('测试提示'));
+    await page.waitForSelector(tid('toast'));
+    await page.waitForTimeout(450); // 过了 Toast 淡入
     const r = await rects(page, topSel('home-start'));
-    assert.equal(r.text, '已保存，下次接着写', `${v.tag}: the toast is up`);
+    assert.equal(r.text, '测试提示', `${v.tag}: the test toast is up`);
     assert.equal(intersects(r.toast, r.btn), false, `${v.tag}: the toast box does not intersect the main button (toast ${Math.round(r.toast.top)}–${Math.round(r.toast.bottom)}, button ${Math.round(r.btn.top)}–${Math.round(r.btn.bottom)})`);
     const gap = Math.max(r.btn.top - r.toast.bottom, r.toast.top - r.btn.bottom);
     assert.ok(gap >= 12 - 0.5, `${v.tag}: at least 12 between the toast and the button (${gap.toFixed(1)})`);

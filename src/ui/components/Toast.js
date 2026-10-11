@@ -1,5 +1,5 @@
 // 轻提示：showToast(text) 显示一条，新的替换旧的，默认 3.2s 后消失（原型 note()：3200ms）。
-// 跨页面保留（例如写字页返回首页后显示「已保存，下次接着写」，走查-W18）。
+// 跨页面保留（换页后仍在显示；写字页返回首页不再出「已保存」条，R4-F1 / P262）。
 // <ToastHost/> 由 ui/root.js 挂一次；role=status + aria-live=polite（01-架构设计 §7）。
 // 位置（H1 / I2-04）：默认距底 110px；当前页的主按钮（.sz-btn--primary，或元素上声明 data-toast-anchor）压住这个位置时整条抬到它上沿之上 12，不再盖住主操作（toastBottom）。
 // 规格取设计系统 v1 的 Toast（P1-E1b，tokens.json components.toast）：左右页边 20、距底 110px（在 tab 条上方）、最小高 48、12px 圆角（--r-ctl）、

@@ -224,7 +224,8 @@
     "P258": "常规字号写字页与 AX 同构（R3-C3W / T3-04 / V3-09，D53 ②）：底栏一行主按钮 + 「⋯」、撤销 / 清空进页头、「在纸上写」常驻入口、全 App 主按钮底线 policy.mainButtonLine；版式与菜单结构，src/ui/screens/write/*、src/config/policy.js；不是运行时开关",
     "P259": "AX3 起描一遍阶段主按钮改用短文案「自己写」（R3-C3W，P259）：文案槽 X-ANSWER.btnTraceDoneShort 已入 copy，档位阈值在 policy.axShortPrimaryFrom；不是运行时开关",
     "P260": "写字页求助操作一次点击直达（R4-F1，D55）：底栏回到主按钮 + 一行文字按钮（提示 / 看答案 / 在纸上写 / 跳过 / 结束这组…），取消「⋯」菜单与文案槽 X-WRITE.moreLabel；版式与结构，src/ui/screens/write/foot.js、index.js、answer.js、compare.js、src/config/policy.js（nominalFoot 116、footBottomMin 8）；不是运行时开关",
-    "P261": "AX 档底栏文字行（R4-F1，D55）：文字按钮字号分层封顶 policy.writeGrid.axAux.links、按词折行、书写格会低于 220 时先收起「在纸上写」、再把主按钮字号封顶 34pt；版式公式在 src/ui/screens/write/layout.js axWriteLayout（tight）与 write/index.js；不是运行时开关"
+    "P261": "AX 档底栏文字行（R4-F1，D55）：文字按钮字号分层封顶 policy.writeGrid.axAux.links、按词折行、书写格会低于 220 时先收起「在纸上写」、再把主按钮字号封顶 34pt；版式公式在 src/ui/screens/write/layout.js axWriteLayout（tight）与 write/index.js；不是运行时开关",
+    "P262": "去掉写字页返回首页的「已保存，下次接着写」提示条（R4-F1，D55）：文案槽 R-H10.savedToast 与 session/index.js 的 router 订阅已删除；保存失败的三段式提示不变；不是运行时开关"
   },
   "noCopy": [
     "R-H08",
@@ -523,18 +524,6 @@
           "origin": "04 R-H07 规则列 \"今天记录了 N 个字\"（决定-D12）",
           "note": "阶段 1 P1-E5：「今天写过」状态的说明句改为设计稿「首练与首页」§四 ②的「今天写了 N 个字」，替换「今天记录了 N 个字」",
           "decision": "P155"
-        }
-      }
-    },
-    "R-H10": {
-      "screen": "home",
-      "milestone": "M2",
-      "status": "边开发边改",
-      "source": "边改 W18",
-      "slots": {
-        "savedToast": {
-          "raw": "已保存，下次接着写",
-          "text": "已保存，下次接着写"
         }
       }
     },

@@ -176,6 +176,22 @@ export async function tap(page, testid, { timeout = 15000, force = false } = {})
   await page.click(sel, { force });
 }
 
+/**
+ * 接下来 ms 毫秒内页面上从没出现过 toast 元素（R4-F1 / P262：写字页返回首页不再出「已保存，下次接着写」条）。返回 true = 一直没有。
+ * 每 50ms 采样一次，并在页面里挂一个 MutationObserver 兜住采样间隙里一闪而过的 toast。
+ */
+export async function noToastFor(page, ms = 1500) {
+  return page.evaluate(async span => {
+    let seen = !!document.querySelector('[data-testid="toast"]');
+    const mo = new MutationObserver(() => { if (document.querySelector('[data-testid="toast"]')) seen = true; });
+    mo.observe(document.body, { childList: true, subtree: true });
+    const end = performance.now() + span;
+    while (performance.now() < end && !seen) await new Promise(r => setTimeout(r, 50));
+    mo.disconnect();
+    return !seen;
+  }, ms);
+}
+
 export async function gridRect(page, testid = 'write-grid-live') {
   const box = await page.locator(topSel(testid)).boundingBox();
   if (!box) throw new Error(`no bounding box for ${testid}`);

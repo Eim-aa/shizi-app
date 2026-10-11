@@ -13,15 +13,13 @@
 // 返回值：{ok:true, opened:'resume'|'new'|'none'|'s02'|null, …} 或 commit 的 {ok:false, error}（调用方按自己的三段式处理，
 // 例如自己选字弹层 R-H06「没保存上，输入的字还在。」）。
 //
-// 另：写到一半从写字页返回首页 → 轻提示「已保存，下次接着写」（R-H10 / 走查-W18）。在 router 上挂一个订阅：
-// 从 write 页 pop 回 home tab 根（不是切 tab 引起的）、且那一槽的组还没写完时提示。
+// 写到一半从写字页返回首页：不出任何提示（R4-F1，D55，P262：原「已保存，下次接着写」条不能点、没有操作空间，真机试用后去掉；保存成功不需要告知）。
 
 import { getRouter, nav } from '../../router.js';
 import { getStore } from '../../../store/store.js';
 import { now as envNow } from '../../../platform/env.js';
 import { deckAdapter } from '../../../data/deck.js';
 import * as core from '../../../core/session-start.js';
-import { isComplete } from '../../../core/sessions.js';
 import { showToast } from '../../components/Toast.js';
 import { format, t } from '../../../config/copy/index.js';
 import { openS02 } from './s02.js';
@@ -44,7 +42,6 @@ function slotOfParams(p) {
  */
 export function openWrite(slot) {
   const s = slot === 'B' ? 'B' : 'A';
-  ensureNavHooks();
   const router = getRouter();
   const snap = router ? router.getState() : null;
   const top = snap ? snap.top : null;
@@ -137,37 +134,3 @@ export function startPicked(chars, { source } = {}) {
   });
   return { ok: true, started: false, opened: 's02', s02: prompt, overlayId };
 }
-
-// ---------------------------------------------------------------- 写到一半回首页的轻提示（R-H10）
-
-let hooked = null;
-
-function onRouterChange(snap) {
-  const tr = snap && snap.transition;
-  if (!tr || tr.seq === hooked.lastSeq) return;
-  hooked.lastSeq = tr.seq;
-  if (tr.kind !== 'pop' || tr.cause === 'tab' || tr.cause === 'restore') return;
-  if (!tr.from || tr.from.n !== WRITE_SCREEN || !tr.to || tr.to.n !== HOME_TAB || snap.depth !== 0) return;
-  let session = null;
-  try {
-    const state = getStore().getState();
-    session = state && state.sessions ? state.sessions[slotOfParams(tr.from.p)] : null;
-  } catch (error) {
-    session = null;
-  }
-  if (session && !isComplete(session)) showToast(t('R-H10.savedToast'));
-}
-
-/** 挂 router 订阅（幂等；router 还没启动时下次再试）。 */
-export function ensureNavHooks() {
-  const router = getRouter();
-  if (!router) return false;
-  if (hooked && hooked.router === router) return true;
-  if (hooked) hooked.off();
-  const snap = router.getState();
-  hooked = { router, lastSeq: snap.transition ? snap.transition.seq : 0, off: () => {} };
-  hooked.off = router.subscribe(onRouterChange);
-  return true;
-}
-
-ensureNavHooks();

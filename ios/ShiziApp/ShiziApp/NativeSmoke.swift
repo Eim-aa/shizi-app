@@ -204,9 +204,13 @@ extension WebViewController {
             recordSmokeEvent("state", [
                 "pageReady": pageReady,
                 "backGestureEnabled": backGestureEnabled,
-                "edgeGestureInstalled": webView.gestureRecognizers?.contains(where: { $0 === practiceBackGesture }) == true,
-                "edgeGestureDelegate": practiceBackGesture.delegate === self,
+                // P272：左缘识别器挂在 WKWebView 的容器视图上（不在 WKWebView 上），页边起手识别器要求系统边缘识别器先失败。
+                "edgeGestureInstalled": view.gestureRecognizers?.contains(where: { $0 === practiceBackGesture }) == true
+                    && webView.gestureRecognizers?.contains(where: { $0 === practiceBackGesture }) != true
+                    && webView.superview === view,
+                "edgeGestureDelegate": practiceBackGesture.delegate === self && marginBackGesture.delegate === self,
                 "edgeGestureLeft": practiceBackGesture.edges == .left,
+                "marginGestureInstalled": view.gestureRecognizers?.contains(where: { $0 === marginBackGesture }) == true,
                 "backForwardGesturesDisabled": !webView.allowsBackForwardNavigationGestures,
                 "pendingReminderCardKey": pendingReminderCardKey.map { $0 as Any } ?? NSNull(),
                 "url": webView.url?.absoluteString ?? "",
@@ -490,20 +494,21 @@ extension WebViewController {
             strokes: strokeCount(),
           };
 
+          // R4-G1（P270）：写字页与其它子页一样可以左缘返回（原 M0-7 整页门控 false 已取消）；笔画现场照常保留（write2 步骤核对）。
           step('edgeBackOnWrite');
           await idle();
+          const writeGate = window.__shiziBridge.lastBackGestureSent();
           let n = events().length;
           control('edgeBack');
-          const refused = await nativeEvent('edgeBack', n);
-          await sleep(300);
+          const onWrite = await nativeEvent('edgeBack', n);
+          await waitFor(() => topScreen() && topScreen() !== 'write', 'edge back left the write page');
           result.edgeBack = {
-            writeAllowed: refused.detail.allowed,
-            writeStayed: topScreen() === 'write',
-            writeGateSent: window.__shiziBridge.lastBackGestureSent(),
+            writeAllowed: onWrite.detail.allowed,
+            writeFired: onWrite.detail.fired,
+            writeGateSent: writeGate,
+            writeLeftTo: topScreen(),
           };
           const { nav } = await router();
-          nav.back();
-          await waitFor(() => topScreen() && topScreen() !== 'write', 'left write page');
           await idle();
 
           step('backupExport');

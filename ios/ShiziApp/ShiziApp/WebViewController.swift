@@ -18,6 +18,25 @@ import WebKit
 //           事件 shizi-native-back / shizi-native-back-progress / shizi-native-escape（读屏两指 Z 形，A2-05：关最上层弹层）。
 // 面向用户的文字一律在 Web 侧（src/config/copy/）：原生不弹 alert、不 reload（导入桥只交付文本或拒绝原因）。
 
+/// 左缘返回的阈值与起手区（R4-G1 / P270 / P272）。提交条件必须与 src/ui/router.js 的 BACK_COMMIT_RATIO / BACK_COMMIT_VELOCITY /
+/// BACK_RETURN_VELOCITY 一致（改一处必须改另一处，test/ios-back-gesture.test.mjs 核对）。
+enum BackGestureThreshold {
+    /// 位移过三分之一个宽（D36 时为 0.5）。
+    static let commitRatio: CGFloat = 1.0 / 3.0
+    /// pt/s：向右甩过这个速度，不看位移。
+    static let commitVelocity: CGFloat = 500
+    /// pt/s：位移过阈值后若向左回拉快过这个速度，视为取消。
+    static let returnVelocity: CGFloat = -200
+    /// 「页边起手」识别器的起手区宽（pt）= 页面左右页边 --gutter；书写格在它之内，格内书写不受影响。
+    static let marginWidth: CGFloat = 20
+    /// 「页边起手」识别器开始时速度的水平分量至少是竖直分量的这么多倍（0.5 ≈ 与水平夹角 63° 以内）。
+    static let marginSlope: CGFloat = 0.5
+
+    static func commits(distance: CGFloat, velocity: CGFloat, width: CGFloat) -> Bool {
+        velocity > commitVelocity || (distance > width * commitRatio && velocity > returnVelocity)
+    }
+}
+
 private final class WeakScriptMessageHandler: NSObject, WKScriptMessageHandler {
     weak var delegate: WKScriptMessageHandler?
 
@@ -39,9 +58,14 @@ final class WebViewController: UIViewController {
     var webView: WKWebView!
     // 用户脚本（文档开始时注入的系统字号；DEBUG 冒烟标记）挂在这个控制器上；每次加载前重建（见「系统字号」一节）。
     private var scriptController: WKUserContentController!
+    /// 左缘返回（01 §7 / P272）：系统边缘识别器（屏幕左缘，与系统导航返回同一判定）。
     var practiceBackGesture: UIScreenEdgePanGestureRecognizer!
+    /// 左缘返回的补充识别器：按下点在页边 20pt 内、向右为主才开始（系统边缘区判不到的起手，例如起手稍偏右）；要求 practiceBackGesture 先失败。
+    var marginBackGesture: UIPanGestureRecognizer!
+    /// 「页边起手」识别器收下的那根手指按下时的 x（pt）。平移识别器的 translation 从越过起步距离（约 10pt）才开始算，不能用「当前点 − 位移」反推起手点。
+    private var marginTouchStartX: CGFloat?
     // 01 §7：页面通过 postMessage({type:'backGestureEnabled', value}) 告知能否开始边缘返回
-    // （写字页整页期间、阻断页为 false）。每次新文档提交时复位为 true，由新页面重新告知。
+    // （tab 根页、阻断页、判断阶段为 false；R4-G1 起写字页回忆 / 看答案 / 描红阶段为 true）。每次新文档提交时复位为 true，由新页面重新告知。
     var backGestureEnabled = true
     private var reminderSyncGeneration = 0
     // 01 §8.2：pageReady 由页面在 bridge.markReady 之后 postMessage 触发（不是 didFinish）；新文档提交时复位。
@@ -117,15 +141,30 @@ final class WebViewController: UIViewController {
         webView.scrollView.maximumZoomScale = 1
         webView.scrollView.pinchGestureRecognizer?.isEnabled = false
 
+        // P272：WKWebView 放进一个容器视图，左缘识别器挂在容器上——挂在 WKWebView 上会被 WebKit 的 deferring 手势排到页面触摸处理之后
+        // （页面 touchstart 往返慢或 preventDefault 时起步晚或不起步）。触摸照常落到 WKWebView（容器是它的父视图，识别器照样收到这些触摸）。
+        let container = UIView(frame: .zero)
+        container.backgroundColor = paper
+        webView.frame = container.bounds
+        webView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        container.addSubview(webView)
+
         let practiceBackGesture = UIScreenEdgePanGestureRecognizer(target: self, action: #selector(handlePracticeBackGesture(_:)))
         practiceBackGesture.edges = .left
         practiceBackGesture.maximumNumberOfTouches = 1
         practiceBackGesture.delegate = self
-        webView.addGestureRecognizer(practiceBackGesture)
+        container.addGestureRecognizer(practiceBackGesture)
+
+        let marginBackGesture = UIPanGestureRecognizer(target: self, action: #selector(handlePracticeBackGesture(_:)))
+        marginBackGesture.maximumNumberOfTouches = 1
+        marginBackGesture.delegate = self
+        marginBackGesture.require(toFail: practiceBackGesture)
+        container.addGestureRecognizer(marginBackGesture)
 
         self.webView = webView
         self.practiceBackGesture = practiceBackGesture
-        view = webView
+        self.marginBackGesture = marginBackGesture
+        view = container
     }
 
     override func viewDidLoad() {
@@ -145,9 +184,10 @@ final class WebViewController: UIViewController {
         .default
     }
 
-    // MARK: - 左缘返回（01 §7：Swift 是手势唯一所有者）
+    // MARK: - 左缘返回（01 §7：Swift 是手势唯一所有者；R4-G1 / P272）
 
-    @objc private func handlePracticeBackGesture(_ gesture: UIScreenEdgePanGestureRecognizer) {
+    /// 两个左缘识别器共用：每个阶段把位移与速度交给页面（页面按进度跟手，ended 时自己按同一阈值完成或回弹）。
+    @objc private func handlePracticeBackGesture(_ gesture: UIPanGestureRecognizer) {
         let phase: String
         switch gesture.state {
         case .began: phase = "began"
@@ -156,17 +196,24 @@ final class WebViewController: UIViewController {
         case .cancelled, .failed: phase = "cancelled"
         default: return
         }
-        let distance = max(0, gesture.translation(in: webView).x)
-        let velocity = gesture.velocity(in: webView).x
+        let distance = max(0, gesture.translation(in: view).x)
+        let velocity = gesture.velocity(in: view).x
         dispatchBackGesture(phase: phase, distance: distance, velocity: velocity)
     }
 
+    /// 「页边起手」识别器：按下点（shouldReceive 时记下）是否在页边起手区内。
+    func backGestureStartsInMargin() -> Bool {
+        guard let x = marginTouchStartX else { return false }
+        return x <= BackGestureThreshold.marginWidth
+    }
+
     /// 每个阶段派发 shizi-native-back-progress {phase, translationX, progress, velocityX}；
-    /// ended 且满足 `velocity > 500 || (distance > 50% 宽 && velocity > -200)`（P103 / D36，与 src/ui/router.js
+    /// ended 且满足 `velocity > 500 || (distance > 1/3 宽 && velocity > -200)`（P103 / P270，BackGestureThreshold，与 src/ui/router.js
     /// backGestureCommits 一致）时再派发 shizi-native-back。返回是否派发了 shizi-native-back。
+    /// began 时页面（ink-canvas.js）丢弃正在写的一笔；识别器开始后 UIKit 也会取消 WKWebView 里的这次触摸（pointercancel）。
     @discardableResult
     func dispatchBackGesture(phase: String, distance: CGFloat, velocity: CGFloat) -> Bool {
-        let width = max(webView.bounds.width, 1)
+        let width = max(view.bounds.width, 1)
         let progress = min(1, distance / width)
         let detail = String(
             format: "{phase:'%@',translationX:%.2f,progress:%.4f,velocityX:%.2f}",
@@ -178,7 +225,7 @@ final class WebViewController: UIViewController {
         }
         #endif
         var script = "window.dispatchEvent(new CustomEvent('shizi-native-back-progress',{detail:\(detail)}));"
-        let fired = phase == "ended" && (velocity > 500 || (distance > width * 0.5 && velocity > -200))
+        let fired = phase == "ended" && BackGestureThreshold.commits(distance: distance, velocity: velocity, width: width)
         if fired {
             script += " window.dispatchEvent(new CustomEvent('shizi-native-back',{detail:\(detail)}));"
         }
@@ -802,14 +849,51 @@ extension WebViewController: WKScriptMessageHandler {
 }
 
 extension WebViewController: UIGestureRecognizerDelegate {
+    private func isBackGesture(_ g: UIGestureRecognizer) -> Bool {
+        g === practiceBackGesture || g === marginBackGesture
+    }
+
     func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
-        guard gestureRecognizer === practiceBackGesture else { return true }
+        guard isBackGesture(gestureRecognizer) else { return true }
         #if DEBUG
         if !backGestureEnabled {
             NSLog("[shizi] native back gesture refused: backGestureEnabled=false")
         }
         #endif
-        return backGestureEnabled
+        guard backGestureEnabled else { return false }
+        if gestureRecognizer === marginBackGesture, let pan = gestureRecognizer as? UIPanGestureRecognizer {
+            // 页边起手、向右才开始：与系统边缘识别器同样容许斜着起手（水平分量 > 竖直分量的一半，约 63° 以内，模拟器实测系统边缘识别器接受这种起手）；
+            // 竖直分量超过水平分量两倍的拖动（滚动）与向左拖动立即失败，交给页面。
+            let v = pan.velocity(in: view)
+            let ok = backGestureStartsInMargin() && v.x > 0 && v.x > abs(v.y) * BackGestureThreshold.marginSlope
+            #if DEBUG
+            NSLog("[shizi] margin back gesture shouldBegin=%@ start=%.1f v=(%.0f,%.0f)", ok ? "true" : "false",
+                  Double(marginTouchStartX ?? -1), Double(v.x), Double(v.y))
+            #endif
+            return ok
+        }
+        return true
+    }
+
+    /// 「页边起手」识别器只收起手区里按下的触摸：书写格（在 20pt 页边之内）、列表、按钮上的触摸它根本不跟踪。
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
+        guard gestureRecognizer === marginBackGesture else { return true }
+        let x = touch.location(in: view).x
+        let receive = backGestureEnabled && x <= BackGestureThreshold.marginWidth
+        marginTouchStartX = receive ? x : nil
+        return receive
+    }
+
+    /// P272：WKWebView 里滚动容器（WKChildScrollView / 主滚动视图）的平移识别器要等左缘识别器先失败——
+    /// 边缘起手时不被下半屏的滚动列表先抢走（旧问题「下半屏不行」的原生侧成因）；不在边缘起手时两个左缘识别器立即失败，滚动不受影响。
+    func gestureRecognizer(
+        _ gestureRecognizer: UIGestureRecognizer,
+        shouldBeRequiredToFailBy otherGestureRecognizer: UIGestureRecognizer
+    ) -> Bool {
+        guard isBackGesture(gestureRecognizer), otherGestureRecognizer is UIPanGestureRecognizer, !isBackGesture(otherGestureRecognizer),
+              let other = otherGestureRecognizer.view as? UIScrollView, let webView
+        else { return false }
+        return other.isDescendant(of: webView)
     }
 }
 

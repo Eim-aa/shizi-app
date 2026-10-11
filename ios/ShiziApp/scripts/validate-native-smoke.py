@@ -118,16 +118,18 @@ def main_checks(data: dict, allow_photos_denied: bool) -> dict:
         and reload.get("cursor") == "1"
         and reload.get("phase") == "recall"
         and reload.get("strokes") == 1,
-        # 边缘返回：写字页整页门控 false → 原生拒绝；子页 → 派发 shizi-native-back → 页面返回一层
-        "edgeBackGateOnWrite": edge.get("writeAllowed") is False
-        and edge.get("writeStayed") is True
-        and edge.get("writeGateSent") is False,
+        # 边缘返回（R4-G1 / P270）：写字页门控 true → 原生识别、过阈值派发 shizi-native-back → 离开写字页；子页同样返回一层
+        "edgeBackOnWrite": edge.get("writeAllowed") is True
+        and edge.get("writeFired") is True
+        and edge.get("writeGateSent") is True
+        and edge.get("writeLeftTo") not in (None, "write"),
         "edgeBackOnSubpage": edge.get("subpageAllowed") is True
         and edge.get("subpageFired") is True
         and edge.get("poppedTo") not in (None, "backup", "write"),
         "edgeGestureInstalled": native.get("edgeGestureInstalled") is True
         and native.get("edgeGestureDelegate") is True
         and native.get("edgeGestureLeft") is True
+        and native.get("marginGestureInstalled") is True
         and native.get("backForwardGesturesDisabled") is True,
         # 备份导出（原生 shareBackup → markBackupExported）
         "backupExport": backup.get("written") is True

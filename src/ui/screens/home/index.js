@@ -130,6 +130,7 @@ injectStyles('home', `
 :root[data-ax] .sz-home__cta.sz-btn{width:100%}
 :root[data-ax] .sz-home__note{margin-bottom:4px}
 :root[data-ax] .sz-home__row{flex-direction:column;gap:0}
+:root[data-ax][data-text-large] .sz-home__foot .sz-btn--text{text-align:center} /* AX 档的文字按钮默认左对齐（ax.js）；首页的按钮区整体居中，折行时也居中 */
 `);
 
 // ---------------------------------------------------------------- 状态订阅

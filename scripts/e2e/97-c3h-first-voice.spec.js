@@ -4,7 +4,7 @@
 //   · 首练标题固定「这三个字」（不随作品里有几格变）；
 //   · 首练页：标题之外最多两句话（复现句 + 邀请的问句），邀请按钮写出结果「好，明天给我一个词」/「先不用」，没有邀请说明 body；
 //   · 看答案：第一次也不预告（格下没有那行说明），「记为看过答案」整屏只出现一次。
-import { bootTestHost, seedSession, topSel, waitNavIdle, openWrite } from './helpers.mjs';
+import { bootTestHost, seedSession, tap, topSel, waitNavIdle, openWrite } from './helpers.mjs';
 import { openResultPage, resultSnapshot, seedWork } from './work-helpers.mjs';
 
 /* eslint-disable no-undef */
@@ -91,17 +91,16 @@ export default async function run(page, ctx) {
     await bootTestHost(page, ctx.baseURL);
     await seedSession(page, { slot: 'A', kind: 'first', chars: ['尴', '赢', '拾'], cursor: 0 });
     await openWrite(page, { slot: 'A' });
-    await page.click(topSel('write-show-answer'));
-    await page.waitForSelector(topSel('write-answer-note'));
+    await tap(page, 'write-show-answer');
+    await page.waitForSelector(topSel('write-answer-trace'));
     await waitNavIdle(page);
     const t = await page.evaluate(() => {
       const top = document.querySelector('.sz-layer[data-top="true"]');
-      return { text: top.innerText, note: (top.querySelector('[data-testid="write-note"]') || {}).textContent || '', answerNote: top.querySelector('[data-testid="write-answer-note"]').textContent };
+      return { text: top.innerText, note: (top.querySelector('[data-testid="write-note"]') || {}).textContent || '' };
     });
-    assert.equal(t.note, '', 'nothing under the grid');
     assert.ok(!/以后点/.test(t.text), 'no 「以后点「看答案」会直接显示」');
     assert.equal((t.text.match(/记为看过答案/g) || []).length, 1, '「记为看过答案」 is said once on the screen');
-    assert.equal(t.answerNote, '这个字记为看过答案，后面再写只算练习。', 'in the line above the buttons');
+    assert.equal(t.note, '这个字记为看过答案，后面再写只算练习。', 'in the single line under the grid (the footer is one row, D53 ②)');
   }
   await page.emulateMedia({ colorScheme: 'light' });
 }

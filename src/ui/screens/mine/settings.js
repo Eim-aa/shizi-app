@@ -5,6 +5,7 @@
 //   页头「设置」+ 返回；四组（组标题 20px 宋体 + 列表，原型顺序）：
 //   练习：练习范围（右侧「{库名} ›」→ nav.push('library-switch')，M3-5 换库页；换完它自己 nav.back() 回到这里）、
 //         写字方式（阶段 1 P1-E8，D46 ⑬ / 03 P165：右侧「在屏幕上写 | 在纸上写 ›」，点开底部弹层二选 + 说明，写 settings.writeMode；
+//         D56 / P277：行标题下一句副标题「在纸上写，回来对照判断」——写字页不再有「在纸上写」入口，说明只在这里；
 //         弹层流程与外观同一套 openPickSheet）、
 //         按键音（开关，settings.sound，缺省开 = 原型 SD；P24 触发点沿旧，由 M5 sound.js 读）。
 //         「练字背景音」一行与「背景音只在写字的时候响。」按 P07（features.soundscape=false）删除，不画。
@@ -36,7 +37,7 @@
 //   settings-fail（data-group / data-field）、settings-fail-note、settings-fail-cancel、settings-fail-retry；
 //   外观弹层：settings-appearance-sheet（data-state=pick|failed）、settings-appearance-options（role=radiogroup）、
 //   settings-appearance-option（role=radio，data-value，aria-checked）、settings-appearance-fail（+ -cancel / -retry）；
-//   写字方式（P1-E8）：settings-writemode（data-value）、settings-writemode-value、settings-writemode-sheet、settings-writemode-options、
+//   写字方式（P1-E8）：settings-writemode（data-value）、settings-writemode-sub、settings-writemode-value、settings-writemode-sheet、settings-writemode-options、
 //   settings-writemode-option（role=radio，data-value，aria-checked）、settings-writemode-note、settings-writemode-fail。
 
 import { html, useEffect, useState } from '../../../../vendor/ui.js';
@@ -322,9 +323,10 @@ function SwitchRow({ testid, title, sub = null, subTestid, on, onToggle }) {
 }
 
 /** 右侧带值的行（点了去别处 / 开弹层）。AX 档标题与值改上下排（sz-set__row--value，ui/components/ax.js）。 */
-function ValueRow({ testid, title, value, valueTestid, arrow = true, onClick, extra = {} }) {
+function ValueRow({ testid, title, sub = null, subTestid, value, valueTestid, arrow = true, onClick, extra = {} }) {
   return html`<${Button} variant="plain" class="sz-set__row sz-set__row--value" data-testid=${testid} onClick=${onClick} ...${extra}>
-    <span class="sz-set__main"><span class="sz-set__title">${title}</span></span>
+    <span class="sz-set__main"><span class="sz-set__title">${title}</span>${sub
+      ? html`<span class="sz-set__sub" data-testid=${subTestid}>${sub}</span>` : null}</span>
     <span class="sz-set__value"><span data-testid=${valueTestid}>${value}</span>${arrow
       ? html`<span class="sz-set__arrow" aria-hidden="true"><${Chevron} /></span>` : null}</span>
   </${Button}>`;
@@ -378,7 +380,8 @@ export function SettingsBody({ view, backup, fail = null, on }) {
     <${Group} id="practice" title=${t('X-SETTINGS.groupPractice')} note=${failFor('practice')}>
       <${ValueRow} testid="settings-library" title=${t('R-S01.library')} value=${view.libraryName} valueTestid="settings-library-value"
         onClick=${on.library} extra=${{ 'data-library': view.library }} />
-      <${ValueRow} testid="settings-writemode" title=${t('X-SETTINGS.writeMode')} value=${writeModeLabel(view.writeMode)}
+      <${ValueRow} testid="settings-writemode" title=${t('X-SETTINGS.writeMode')} sub=${t('X-SETTINGS.writeModeSub')} subTestid="settings-writemode-sub"
+        value=${writeModeLabel(view.writeMode)}
         valueTestid="settings-writemode-value" onClick=${on.writeMode} extra=${{ 'data-value': view.writeMode, 'aria-haspopup': 'dialog' }} />
       <${SwitchRow} testid="settings-sound" title=${t('R-S01.keySound')} sub=${t('X-SETTINGS.soundSub')} subTestid="settings-sound-sub" on=${view.sound} onToggle=${on.sound} />
     </${Group}>

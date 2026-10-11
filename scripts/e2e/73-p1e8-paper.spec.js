@@ -110,6 +110,14 @@ export default async function paperSpec(page, ctx) {
   ctx.step('P165: 设置 › 写字方式 — two radios with notes; pick 在纸上写 → settings.writeMode = paper');
   await openSettings(page);
   assert.equal(await text(page, 'settings-writemode-value'), '在屏幕上写', 'default: on screen');
+  assert.equal(await text(page, 'settings-writemode-sub'), '在纸上写，回来对照判断', 'D56 / P277: the row explains 在纸上写 itself (the write page has no entry any more)');
+  const subBox = await page.evaluate(() => {
+    const row = document.querySelector('.sz-layer[data-top="true"] [data-testid="settings-writemode"]').getBoundingClientRect();
+    const title = document.querySelector('.sz-layer[data-top="true"] [data-testid="settings-writemode"] .sz-set__title').getBoundingClientRect();
+    const sub = document.querySelector('.sz-layer[data-top="true"] [data-testid="settings-writemode-sub"]').getBoundingClientRect();
+    return { rowH: row.height, subBelowTitle: sub.top >= title.bottom - 0.5, subInsideRow: sub.bottom <= row.bottom + 0.5 && sub.right <= row.right + 0.5 };
+  });
+  assert.ok(subBox.subBelowTitle && subBox.subInsideRow, `the sub sits under the title inside the row ${JSON.stringify(subBox)}`);
   await page.click(topSel('settings-writemode'));
   await page.waitForSelector(topSel('settings-writemode-sheet'));
   await waitNavIdle(page);

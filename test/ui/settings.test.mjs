@@ -372,8 +372,10 @@ test('P165: SettingsBody 练习组「练习范围 · 写字方式 · 按键音�
   const row = ids['settings-writemode'][0];
   assert.equal(row.props['data-value'], 'paper');
   assert.equal(row.props['aria-haspopup'], 'dialog');
-  assert.equal(textOf(row), '写字方式在纸上写');
+  assert.equal(textOf(row), '写字方式在纸上写，回来对照判断在纸上写', 'title, then the one-line sub (what 在纸上写 is: P277), then the current value');
+  assert.equal(textOf(ids['settings-writemode-sub'][0]), '在纸上写，回来对照判断', 'D56: the row explains 在纸上写 itself, since the write page no longer offers it');
   assert.equal(textOf(allByTestid(body(settingsView(null)))['settings-writemode-value'][0]), '在屏幕上写');
+  assert.ok(!/写字页格下|格下点/.test(t('X-SETTINGS.writeModeNote')), 'D56: the sheet note no longer promises a per-character switch on the write page');
 });
 
 test('P165: WriteModeSheetView——两个单选（在屏幕上写 / 在纸上写，各带说明），当前项勾上，下面一段说明（§10.3）', async () => {

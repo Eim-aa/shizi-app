@@ -670,21 +670,20 @@ export default async function run(page, ctx) {
   const raw1 = await page.evaluate(() => window.__shiziTest.getRawKeys());
   assert.deepEqual(raw1, raw0, 'every shizi.* storage key byte-equal before / after browsing (incl. the reload)');
 
-  // ------------------------------------------------------------------ 4. 今天的记录（首页墨迹行）
-  step('home ink row → 今天的记录 = practice log with today\'s chars (R-H08)');
+  // ------------------------------------------------------------------ 4. 今天的记录
+  // H2（D55）：首页不再有「今天写的字」那一排，原来从它点进来的入口没了；「今天的记录」页本身（R-H08）仍在，这里直接推入它核对内容。
+  step('今天的记录 = practice log with today\'s chars (R-H08; the home ink row it used to open from is gone, D55)');
   await goTab(page, 'home');
-  const row = await page.evaluate(sel => {
-    const el = document.querySelector(`${sel} [data-testid="home-ink-row"]`);
-    return el ? { tag: el.tagName, chars: [...el.querySelectorAll('[data-testid="home-ink-item"]')].map(i => i.dataset.char) } : null;
-  }, TOP);
-  assert.equal(row && row.tag, 'BUTTON', 'ink row is a button now that M4-1 registered the target');
-  await page.click(`${TOP} ${tid('home-ink-row')}`);
+  assert.equal(await page.locator(`${TOP} ${tid('home-ink-row')}`).count(), 0, 'D55: no ink row on the home any more');
+  await page.evaluate(async day => {
+    const { nav } = await import('/src/ui/router.js');
+    nav.push('records', { month: day.slice(0, 7), day });
+  }, TODAY);
   await waitTop(page, 'records');
   assert.deepEqual((await top(page)).params, { month: '2026-09', day: TODAY }, 'pushed records {month, day: today}');
   await page.waitForSelector(`${TOP} ${tid('records-daylist')}`);
   r = await recordsView(page);
   assert.deepEqual(r.daylist.cells.map(c => c.char), o9.todayChars.map(c => c.char), 'today\'s chars (oracle)');
-  assert.deepEqual(r.daylist.cells.map(c => c.char), row.chars, 'same set and order as the home ink row');
   assert.deepEqual(r.daylist.cells.map(c => c.record), o9.todayChars.map(c => c.record), 'latest record of each char today');
   assert.equal(r.daylist.title, COPY.dayChars('9月24日'), '「9月24日写的字」');
   await back(page);

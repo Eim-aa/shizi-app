@@ -56,7 +56,7 @@ async function homeLines(page) {
     return {
       screen: document.querySelector('.sz-app').dataset.topScreen,
       // E9a（D49-7）：「这一组还有 N 个字」文字行已删；槽 / 种类 / 句子改读进行中格子块（data-slot / data-kind，读屏名称第一句）
-      resume: q('home-progress') ? { slot: q('home-progress').dataset.slot, kind: q('home-progress').dataset.kind, text: q('home-progress').getAttribute('aria-label').split('。')[0] } : null,
+      // H2（D55）：首页不再画进行中的格子，续写的是哪一组由 data-resume（A / B / A+B）与 other-line 表达
       other: line('other-line'),
       cta: q('home-start') ? q('home-start').getAttribute('aria-label') : null,
       dataResume: q('screen-home') ? q('screen-home').dataset.resume : null,
@@ -137,7 +137,7 @@ export default async function scenario(page, ctx) {
   await waitTop(page, 'home');
   assert.equal(await noToastFor(page), true, 'no toast within 1.5s of coming back (R4-F1 / P262)');
   let h = await homeLines(page);
-  assert.deepEqual([h.resume && h.resume.slot, h.resume && h.resume.kind], ['B', 'picked'], 'resume-line is B (这次选的字)');
+  assert.equal(h.dataResume, 'A+B', 'B (这次选的字) is the main entry, A is the other-line (D05)');
   assert.deepEqual([h.other && h.other.slot, h.other && h.other.kind], ['A', 'daily'], 'other-line is A (今天的练习)');
   assert.equal(h.dataResume, 'A+B', 'home resume state A+B');
 
@@ -163,8 +163,7 @@ export default async function scenario(page, ctx) {
   step('home now shows only A: main entry 继续写字, resume-line 今天的练习; enter → A intact, no auto-advance');
   h = await homeLines(page);
   assert.equal(h.cta, '继续写字', 'main entry reads 继续写字');
-  assert.deepEqual([h.resume && h.resume.slot, h.resume && h.resume.kind, h.resume && h.resume.text], ['A', 'daily', '这一组还有 3 个字'],
-    'copybook block: 读屏名称第一句「这一组还有 3 个字」（P1-E5 起是格子 + 一句话；E9a D49-7 起这句话只在读屏名称里）');
+  assert.equal(h.dataResume, 'A', 'only A is unfinished: the main entry continues A (the remaining count is no longer drawn on the home, D55)');
   assert.equal(h.other, null, 'no other-line');
   s = await sessions(page);
   assert.deepEqual([s.B, s.lastEnded.B], [null, undefined], 'B ended and its result left (lastEnded.B cleared)');
@@ -187,7 +186,7 @@ export default async function scenario(page, ctx) {
   const pausedB = (await sessions(page)).B;
   assert.equal(pausedB.cursor, 1, 'B paused on 中');
   h = await homeLines(page);
-  assert.deepEqual([h.resume && h.resume.slot, h.other && h.other.slot], ['B', 'A'], 'resume-line B, other-line A');
+  assert.deepEqual([h.dataResume, h.other && h.other.slot], ['A+B', 'A'], 'main entry continues B, other-line A');
   await page.click(tid('other-line'));
   await waitTop(page, 'write');
   await checkA(page, assert, seeded, 'A resumed while B is paused');
@@ -199,7 +198,7 @@ export default async function scenario(page, ctx) {
   assert.deepEqual([s.B, s.lastEnded.B], [pausedB, undefined], 'B still paused (not ended), deep-equal');
   assert.deepEqual(s.A, seeded, 'A deep-equal after coming back');
   h = await homeLines(page);
-  assert.deepEqual([h.resume && h.resume.slot, h.other && h.other.slot], ['B', 'A'], 'home still lists B then A');
+  assert.deepEqual([h.dataResume, h.other && h.other.slot], ['A+B', 'A'], 'home still offers B (main entry) then A (other-line)');
   await page.click(tid('home-start'));
   await waitTop(page, 'write');
   w = await writeView(page);

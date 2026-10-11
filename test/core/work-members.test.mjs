@@ -6,7 +6,6 @@ import { isWorkMember, workMemberRecords, workMembers } from '../../src/core/wor
 import { buildWork } from '../../src/core/images/work.js';
 import { dayMembers, imagePlan, monthCells, monthMembers } from '../../src/core/images/pick.js';
 import { hasInkOfState } from '../../src/core/ink-pick.js';
-import { INK_ROW_MAX, homeModel, todayWorkRow } from '../../src/ui/screens/home/today.js';
 import { monthSheet, dayItems, recordIndex } from '../../src/ui/screens/mine/model.js';
 import { annualModel, yearSlice } from '../../src/ui/screens/mine/annual-model.js';
 import { at, rec } from './helpers.mjs';
@@ -75,15 +74,10 @@ test('workMembers: wrong in / out, after-seen, D42 across days (record with ink,
   assert.deepEqual(workMemberRecords(records, { hasInk: has }).map(r => r.id), ['r1', 'r3', 'r4', 'r5']);
 });
 
-test('four exits agree: home row, session work, month sheet, annual all drop the wrong char and keep correct ∪ after-seen', () => {
+test('exits agree: session work, month sheet, annual all drop the wrong char and keep correct ∪ after-seen (the home row is gone, D55)', () => {
   const st = fixture();
   const has = hasInkOfState(st);
   const inkOf = r => (has(r) ? POINTS : null);
-
-  // 首页今天的字帖行（count 照实：写错的也算「记录了」）
-  const home = homeModel(st, at(TODAY, 20));
-  assert.deepEqual(home.inkRow.map(r => r.char), ['永', '和']);
-  assert.equal(home.count, 3, 'N counts every judged char (永 赢 纸): the number is true even when the row skips the wrong one');
 
   // 这次的图片（session）：buildWork 的作品格
   const sess = { id: 's1', slot: 'A', kind: 'daily', queue: ['base:永', 'base:赢', 'base:和', 'base:春', 'base:大'], cursor: 5,
@@ -139,18 +133,4 @@ test('folded month: wrong chars never draw wrong ink — the member rule applies
   assert.deepEqual(cells.map(c => [c.ch, c.mode, c.dot]), [['永', 'hand', false], ['赢', 'under', false]]);
   const sheet = monthSheet(recordIndex(st), '2026-09');
   assert.deepEqual(sheet.cells.map(c => [c.char, c.record && c.record.id]), [['永', 'r1'], ['赢', null]]);
-});
-
-test('home row (todayWorkRow): N ≤ 8 items, else the latest 8 (D12), one per char; a rewritten correct char moves to its latest place, a wrong rewrite does not', () => {
-  const chars = '一二三四五六七八九';
-  const records = [...chars].map((ch, i) => rec(i + 1, ch, 'judged', 'correct', TODAY));
-  const row = rs => todayWorkRow(null, rs, TODAY).map(r => r.char);
-  assert.deepEqual(row(records.slice(0, 5)), ['一', '二', '三', '四', '五']);
-  assert.deepEqual(row(records), [...'二三四五六七八九']);
-  assert.equal(INK_ROW_MAX, 8);
-  assert.deepEqual(row([...records, rec(20, '一', 'judged', 'correct', TODAY)]), [...'三四五六七八九一']);
-  assert.deepEqual(row([...records, rec(20, '一', 'judged', 'wrong', TODAY)]), [...'二三四五六七八九'], 'a later wrong 一 is not a member; the earlier correct one keeps its place (and falls out of the latest 8)');
-  assert.deepEqual(row([rec(1, '永', 'judged', 'wrong', TODAY)]), [], 'only wrong today → nothing to show');
-  const onlyWrong = homeModel(stateOf([rec(1, '永', 'judged', 'wrong', TODAY)], []), at(TODAY, 20));
-  assert.deepEqual([onlyWrong.view, onlyWrong.hero, onlyWrong.inkRow.length, onlyWrong.count], ['today', 'shi', 0, 1], 'the count is true; with no member to draw the hero falls back to the brand 拾 instead of an empty copybook');
 });

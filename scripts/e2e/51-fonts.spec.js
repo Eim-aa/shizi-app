@@ -111,16 +111,15 @@ export default async function fontsSpec(page, ctx) {
     window.__shiziTest.seed({ records: { [day.slice(0, 7)]: [rec] } });
     document.dispatchEvent(new Event('visibilitychange'));
   });
-  await page.waitForSelector(tid('home-title'));
+  await page.waitForSelector(tid('home-epigraph'));
   await page.evaluate(() => document.fonts.ready);
   const cdp = await page.context().newCDPSession(page);
   await cdp.send('DOM.enable');
   await cdp.send('CSS.enable');
   const cases = [
-    { sel: '[data-testid="home-title"]', ps: 'ShiziSerifSC-Medium', what: 'home title → ShiziSerifSC 500' },
-    // E9a（D49）：题记是日期下一行横排小字（句子 + 作者名两个 span，都是宋 400），不带印；日常首页没有印，印的字体在下面首次打开一步量
-    { sel: '.sz-home__epitext', ps: 'ShiziSerifSC-Regular', what: 'epigraph line → ShiziSerifSC 400' },
-    { sel: '.sz-home__episrc', ps: 'ShiziSerifSC-Regular', what: 'epigraph author → ShiziSerifSC 400' },
+    // H2（D55）：首页标题只给读屏（视觉隐藏），不再量它的字体；题记是「拾」右侧竖排的两列句子 + 作者名（都是宋 400），日常首页没有印，印的字体在下面首次打开一步量
+    { sel: '.sz-home__epicol:not(.sz-home__episrc)', ps: 'ShiziSerifSC-Regular', what: 'epigraph couplet column (vertical) → ShiziSerifSC 400' },
+    { sel: '.sz-home__episrc', ps: 'ShiziSerifSC-Regular', what: 'epigraph author (vertical) → ShiziSerifSC 400' },
   ];
   for (const c of cases) {
     let selector = c.sel;

@@ -3,10 +3,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as policy from '../../src/config/policy.js';
 import {
-  BACK_AFTER_DAYS, PROGRESS_MAX, homeModel, homeViewOf, heroOf, libraryCountOf, progressCells, recordsStateOf,
-  resumeOf, resumeKeyOf, resumeLineText, resumeLineAria, INK_ROW_MAX,
+  BACK_AFTER_DAYS, homeModel, homeViewOf, libraryCountOf, recordsStateOf,
+  resumeOf, resumeKeyOf, resumeLineText, resumeLineAria,
 } from '../../src/ui/screens/home/today.js';
-import { AX_TIE_MIN, axTieCellSize, firstShiSize, shiCellSize, tieCellSize, tieCols } from '../../src/ui/screens/home/copybook.js';
+import { firstShiSize } from '../../src/ui/screens/home/copybook.js';
 import { EPIGRAPHS, epigraphAuthor } from '../../src/config/epigraphs.js';
 import { COPY, t } from '../../src/config/copy/index.js';
 
@@ -56,26 +56,13 @@ test('resume dimension: none / A / B / A+B; B is the primary line, A the other (
   assert.equal(resumeOf(state({ B: sess('B', 'picked', 2, 0, YDAY) }), now).resume, 'B', 'picked never expires (P61)');
 });
 
-test('N and ink row: judged today deduped by char, latest 8 by id (D12)', () => {
-  const chars = '一二三四五六七八九';
-  const records = [...chars].map((c, i) => rec(i + 1, c));
-  records.push(rec(10, '一', { judgment: 'correct' }), rec(11, '十', { day: YDAY }), rec(12, '二', { kind: 'skipped' }), rec(13, '赢', { judgment: 'wrong' }));
-  const m = homeModel(state({ records }), at(DAY));
-  assert.equal(m.count, 10, 'N counts the wrong 赢 too: the number is true');
-  assert.deepEqual(m.inkRow.map(r => r.char), [...'三四五六七八九一'], '赢 (wrong) is not in the row — the row is today’s work (D51 ⑤)');
-  assert.equal(m.inkRow.length, INK_ROW_MAX);
-  assert.equal(m.count, 10, 'number stays N');
-  assert.equal(INK_ROW_MAX, 8);
-});
-
-test('P16 (decided by the stage-1 home design): with an unfinished group the home shows that group, not today’s chars', () => {
+test('P16 (D55): with an unfinished group the home is the \u201Ccontinue\u201D state — no copybook, no today row, just the view and the resume lines', () => {
   const s = state({ records: [rec(1, '永')], A: sess('A', 'daily', 5, 1) });
   const m = homeModel(s, at(DAY));
   assert.equal(m.view, 'progress');
-  assert.equal(m.hero, 'progress');
   assert.equal(m.showRecord, false);
-  assert.deepEqual(m.inkRow, [], 'today’s chars are not drawn next to the group');
-  assert.equal(m.count, 1, 'count is still computed');
+  assert.equal(m.primary.remaining, 4);
+  for (const key of ['hero', 'inkRow', 'recentRow', 'progress', 'count']) assert.equal(key in m, false, `${key} is gone (D55)`);
 });
 
 test('first-visit tip only when first and no group; period / date / epigraph from the clock', () => {
@@ -89,7 +76,7 @@ test('first-visit tip only when first and no group; period / date / epigraph fro
   assert.equal(homeModel(state(), at('2026-09-25', 4)).epigraph, EPIGRAPHS[1]);
 });
 
-test('R-H04 keys and the epigraph line (D49: one horizontal line, author name only)', () => {
+test('R-H04 keys and the epigraph author (the home shows the author name only, the small vertical line in D55 as in D49)', () => {
   assert.equal(resumeKeyOf('picked'), 'R-H04.resumePicked');
   assert.equal(resumeKeyOf('first'), 'R-H04.resumeFirst');
   assert.equal(resumeKeyOf('daily'), 'R-H04.resumeDaily');
@@ -171,105 +158,43 @@ test('homeViewOf: first / fresh / today / progress / special / back, with this p
   assert.equal(homeViewOf({ records: 'record', resume: 'none', capital: 'capital1', gapDays: 0 }), 'special');
   assert.equal(homeViewOf({ records: 'empty', resume: 'none', capital: 'capital2', gapDays: 12 }), 'special', 'the next group is the special one: say so instead of 「写旧字」');
   assert.equal(homeViewOf({ records: 'empty', resume: 'A', capital: 'capital1', gapDays: 3 }), 'progress');
-  assert.equal(heroOf('first', 'first'), 'shi');
-  assert.equal(heroOf('fresh', 'empty'), 'shi');
-  assert.equal(heroOf('back', 'empty'), 'shi');
-  assert.equal(heroOf('today', 'record'), 'today');
-  assert.equal(heroOf('progress', 'record'), 'progress');
-  assert.equal(heroOf('special', 'record'), 'today', 'special day with chars already written: the chars stay the hero (design §四 ④)');
-  assert.equal(heroOf('special', 'empty'), 'shi');
 });
 
 test('homeModel five states from a real state: first / fresh / today / progress / special / back (+ 自己选字 only after the first practice)', () => {
   const first = homeModel(state(), at(DAY), { deck: CAP_DECK });
-  assert.deepEqual([first.view, first.hero, first.showPick, first.libraryCount], ['first', 'shi', false, 0], 'first open hides 自己选字 (D46 ②)');
+  assert.deepEqual([first.view, first.showPick, first.libraryCount], ['first', false, 0], 'first open hides 自己选字 (D46 ②)');
   const half = homeModel(state({ A: sess('A', 'first', 3, 1) }), at(DAY));
   assert.deepEqual([half.view, half.showPick], ['progress', false], 'first practice not finished: still no 自己选字');
   const halfJudged = homeModel(state({ records: [rec(1, '尴')], A: sess('A', 'first', 3, 1) }), at(DAY));
   assert.deepEqual([halfJudged.view, halfJudged.records, halfJudged.showPick], ['progress', 'record', false], 'one char judged but the first practice is not finished: still hidden');
   const fresh = homeModel(state({ records: [rec(1, '永', { day: YDAY })] }), at(DAY), { deck: CAP_DECK });
-  assert.deepEqual([fresh.view, fresh.hero, fresh.showPick, fresh.libraryCount], ['fresh', 'shi', true, 1], 'after the first practice 自己选字 is there');
+  assert.deepEqual([fresh.view, fresh.showPick, fresh.libraryCount], ['fresh', true, 1], 'after the first practice 自己选字 is there');
   const today = homeModel(state({ records: [rec(1, '永'), rec(2, '和', { judgment: 'correct' }), rec(3, '赢', { judgment: 'wrong' })] }), at(DAY), { deck: CAP_DECK });
-  assert.deepEqual([today.view, today.hero, today.inkRow.map(r => r.char), today.showPick], ['today', 'today', ['永', '和'], true]);
+  assert.deepEqual([today.view, today.showPick], ['today', true]);
   const progress = homeModel(state({ records: [rec(1, '永')], A: sess('A', 'daily', 5, 2) }), at(DAY));
-  assert.deepEqual([progress.view, progress.hero, progress.progress.cells.length, progress.primary.remaining, progress.showPick], ['progress', 'progress', 5, 3, true]);
+  assert.deepEqual([progress.view, progress.primary.remaining, progress.showPick], ['progress', 3, true]);
   const special = homeModel(state({ records: history10() }), at(DAY), { deck: CAP_DECK });
-  assert.deepEqual([special.view, special.capital, special.showPick], ['special', 'capital1', false], 'the defer button takes the place of 自己选字 (D46 ④)');
+  assert.deepEqual([special.view, special.capital, special.showPick], ['special', 'capital1', true], 'D55 / design E ⑥: 自己选字 stays, the defer button sits next to it (D46 ④ used to replace it)');
   const back = homeModel(state({ records: [rec(1, '醋', { day: '2026-09-10' })] }), at(DAY), { deck: CAP_DECK });
   assert.deepEqual([back.view, back.gapDays], ['back', 14]);
   const cleared = homeModel(state({ backupMeta: { lastExportAt: null, lastExportSig: null, lastConclusion: { kind: 'clear', date: YDAY, count: 3 } } }), at(DAY));
   assert.deepEqual([cleared.view, cleared.showPick], ['fresh', true], 'cleared records: not the first-open screen again (K06), no gap');
 });
 
-test('progressCells: written ones carry their record, passed ones have no char, the next one is marked, the rest are blank (nothing leaks)', () => {
-  const r1 = rec(1, '一');
-  const session = { ...sess('A', 'daily', 5, 3), items: [
-    { cardKey: 'base:一', recordId: 'r1', kind: 'judged' },
-    { cardKey: 'base:二', recordId: 'r2', kind: 'skipped' },
-    { cardKey: 'base:三', recordId: 'r3', kind: 'answer-seen' },
-  ] };
-  const { cells, total, start } = progressCells(session, [r1, rec(2, '二', { kind: 'skipped' }), rec(3, '三', { kind: 'answer-seen' })]);
-  assert.deepEqual(cells.map(c => c.state), ['done', 'passed', 'passed', 'next', 'empty']);
-  assert.deepEqual([total, start], [5, 0]);
-  assert.equal(cells[0].char, '一');
-  assert.equal(cells[0].record.id, 'r1');
-  for (const c of cells.slice(1)) assert.equal(c.char, undefined, `cell ${c.index} ${c.state} has no char`);
-  assert.deepEqual(progressCells(null, []), { cells: [], total: 0, start: 0 });
-  assert.equal(progressCells({ ...sess('A', 'daily', 2, 2), items: [] }, []).cells.some(c => c.state === 'next'), false, 'written out: no next');
-  const long = { ...sess('B', 'picked', 8, 0), queue: Array.from({ length: 12 }, (_, i) => `base:${String.fromCodePoint(0x4e00 + i)}`), cursor: 9 };
-  const w = progressCells(long, []);
-  assert.equal(w.cells.length, PROGRESS_MAX);
-  assert.deepEqual([w.start, w.cells.map(c => c.index).includes(9), w.cells.find(c => c.index === 9).state, w.total], [4, true, 'next', 12]);
-  const head = progressCells({ ...long, cursor: 1 }, []);
-  assert.equal(head.start, 0);
-});
-
-test('libraryCountOf: distinct chars with a judged record (the count now lives only in the screen-reader label, D49-7)', () => {
+test('libraryCountOf: distinct chars with a judged record (the N in 「你写过的 N 个字都还在。」, D55)', () => {
   assert.equal(libraryCountOf([rec(1, '一'), rec(2, '一'), rec(3, '二'), rec(4, '三', { kind: 'skipped' })]), 2, 'distinct chars with a judged record');
 });
 
-test('D49: the 「昨天写的字」 row, the epigraph reserve and the intrusion test are gone from the home model (nothing left to leak a count or a vertical epigraph)', async () => {
+test('D49: the 「昨天写的字」 row, the epigraph reserve and the intrusion test are gone from the home model (D55 brings back a vertical epigraph, but as the home own markup, not a reserve in the model)', async () => {
   const today = await import('../../src/ui/screens/home/today.js');
   for (const name of ['lastWrittenRow', 'LAST_ROW_MAX', 'epigraphReserve', 'tieIntrudesEpigraph', 'epigraphColumnHeight', 'EPIGRAPH_COLUMN']) {
     assert.equal(name in today, false, `${name} removed`);
   }
 });
 
-test('axTieCellSize (AX tiers, 实现交接 §1.4): the normal cell width is the ceiling; a short remaining height shrinks it, never below 44', () => {
-  assert.equal(AX_TIE_MIN, 44);
-  assert.equal(axTieCellSize(107, 1, 0), 107, 'height unknown → unchanged');
-  assert.equal(axTieCellSize(107, 1, 400), 107, 'plenty of room → unchanged (never larger than the normal width)');
-  assert.equal(axTieCellSize(107, 1, 90), 90, 'one row, 90 left → 90');
-  assert.equal(axTieCellSize(80, 2, 150), 75, 'two rows (6–8 chars) share the height');
-  assert.equal(axTieCellSize(80, 2, 60), 44, 'floor 44 — the page scrolls instead');
-  assert.equal(axTieCellSize(167, 1, Number.NaN), 167);
-});
-
-test('home cell sizes (T3-01 / D53 ③): a copybook row always fills the content width, cell = min(width / n, 160); the single 「拾」 is the same rule', () => {
-  const b = 402 - 40; // 362
-  assert.deepEqual([1, 2, 3, 4, 5, 6, 8].map(n => tieCellSize(n, b)), [160, 160, 120, 90, 72, 90, 90], 'n ≤ 5 one row: ⌊b / n⌋ capped at 160; 6–8 two rows of four');
-  assert.deepEqual([3, 4, 5].map(n => n * tieCellSize(n, b)), [360, 360, 360], 'rows of 3–5 fill the content width (362) to within the rounding');
-  assert.deepEqual([1, 3, 4, 5, 6, 8, 9].map(tieCols), [1, 3, 4, 5, 4, 4, 4]);
-  assert.equal(tieCellSize(3, 350), 116, '390 wide: ⌊350 / 3⌋');
-  assert.equal(tieCellSize(2, 335), 160, '375 wide, two chars: capped at 160');
-  assert.equal(shiCellSize(b), 160, 'the single 「拾」 cell = tieCellSize(1, b)');
-  assert.equal(shiCellSize(100), 100, 'never wider than the content');
+test('firstShiSize: the first-open 「拾」 frame (kept as is, D55): half the width, clamped to [172, 216]', () => {
   assert.equal(firstShiSize(402), 201);
   assert.equal(firstShiSize(375), 188);
   assert.equal(firstShiSize(320), 172, 'clamped to 172 on the narrowest');
   assert.equal(firstShiSize(500), 216, 'clamped to 216');
-});
-
-test('recentDayLine (C3-H / N3-02, D53): the line under the recent chars says which day they were written; mixed days → neutral; a week or more is the 回来 state\'s own line', async () => {
-  const { recentDayLine } = await import('../../src/ui/screens/home/recent.js');
-  const { t } = await import('../../src/config/copy/index.js');
-  const row = days => days.map((d, i) => ({ id: `r${i}`, localDay: d }));
-  assert.equal(recentDayLine(row(['2026-10-04', '2026-10-04']), '2026-10-05', t), '昨天写的字。');
-  assert.equal(recentDayLine(row(['2026-10-03']), '2026-10-05', t), '前天写的字。');
-  assert.equal(recentDayLine(row(['2026-10-01']), '2026-10-05', t), '4 天前写的字。');
-  assert.equal(recentDayLine(row(['2026-09-29']), '2026-10-05', t), '6 天前写的字。');
-  assert.equal(recentDayLine(row(['2026-09-28']), '2026-10-05', t), '', 'seven days or more: the back state has its own line');
-  assert.equal(recentDayLine(row(['2026-10-04', '2026-10-02']), '2026-10-05', t), '最近写的字。', 'different days → neutral');
-  assert.equal(recentDayLine([], '2026-10-05', t), '');
-  assert.equal(recentDayLine(row(['2026-10-05']), '2026-10-05', t), '', 'same day as today is not a recent-row case');
 });

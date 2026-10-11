@@ -192,7 +192,7 @@ async function leaveResult(page) {
   await waitNavIdle(page);
 }
 
-/** 首页「今天写了 N 个字」（读屏名称）与字库首页两张卡（M3-1，data-n）的数字；回到本页前先切 tab。 */
+/** 字库首页两张卡（M3-1，data-n）的数字；回到本页前先切 tab（H2 / D55：首页不再有「今天写了 N 个字」，那一半断言撤了）。 */
 async function tabNumbers(page) {
   const read = () => page.evaluate(() => {
     const top = document.querySelector('.sz-layer[data-top="true"]');
@@ -200,8 +200,6 @@ async function tabNumbers(page) {
     const n = el => (el && el.dataset.n !== undefined ? Number(el.dataset.n) : null);
     return {
       screen: document.querySelector('.sz-app').dataset.topScreen,
-      // E9a（D49-7）：首页不再画「今天写了 N 个字」（n ≤ 8），同一句话是今天写的字那一排的读屏名称（「今天写了 N 个字：「…」」）的前半
-      todayCount: q('home-ink-row') ? q('home-ink-row').getAttribute('aria-label').split('：')[0] : null,
       wrongCard: n(q('library-card-wrong')),
       forgetCard: n(q('library-card-forget')),
     };
@@ -215,10 +213,10 @@ async function tabNumbers(page) {
     await waitNavIdle(page);
   };
   await go('home');
-  const home = await read();
+  await read();
   await go('library');
   const lib = await read();
-  return { todayCount: home.todayCount, wrongCard: lib.wrongCard, forgetCard: lib.forgetCard };
+  return { wrongCard: lib.wrongCard, forgetCard: lib.forgetCard };
 }
 
 export default async function listsSpec(page, ctx) {
@@ -416,7 +414,6 @@ export default async function listsSpec(page, ctx) {
   assert.equal(n.today, 1, 'getState: today N = 1');
   assert.equal(n.lastB, null, 'lastEnded.B cleared after leaving the result page');
   let tabs = await tabNumbers(page);
-  assert.equal(tabs.todayCount, COPY.todayCount(n.today), 'home 今天写了 N 个字 = getState');
   assert.equal(tabs.wrongCard, n.wrong.length, 'library home 写错过 card count = getState');
   assert.equal(tabs.forgetCard, n.forget.length, 'library home 快忘了 card count = getState');
   await openList(page, 'forget');
@@ -468,7 +465,6 @@ export default async function listsSpec(page, ctx) {
   v = await listView(page);
   assert.deepEqual(v.empty && v.empty.title, COPY.wrongEmpty, 'back on the list: empty state');
   tabs = await tabNumbers(page);
-  assert.equal(tabs.todayCount, COPY.todayCount(n.today), `home 今天写了 ${n.today} 个字 = getState`);
   assert.equal(tabs.wrongCard, 0, 'library home 写错过 card = 0');
   assert.equal(tabs.forgetCard, n.forget.length, 'library home 快忘了 card = getState');
 

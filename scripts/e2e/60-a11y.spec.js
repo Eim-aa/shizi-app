@@ -411,7 +411,7 @@ export default async function a11y(page, realCtx) {
   await seedYesterday();
   await page.waitForSelector(tid('home-epigraph'));
   {
-    // A9：题记整句 + 出处（含《篇名》）读屏仍要读到。E9a（D49）起题记是日期下一行横排小字、AX 档隐藏（display:none），
+    // A9：题记整句 + 出处（含《篇名》）读屏仍要读到。H2（D55）起题记是「拾」右侧的竖排两列（AX 档改横排，放不下时收起），
     // 读屏把它作为标题的补充读出：h1 aria-describedby 指向题记（figure 本身 aria-hidden，避免和标题重复读两遍；被描述引用的隐藏节点仍参与描述计算）。
     const epi = await page.evaluate(async () => {
       const { EPIGRAPHS } = await import('/src/config/epigraphs.js');
@@ -425,12 +425,12 @@ export default async function a11y(page, realCtx) {
     assert.equal(titleAx && titleAx.name, '今天写几个字', 'the title keeps its own name');
     assert.ok(/^.+。.+《.+》$|^.+，.+。.+$/.test(epi.expected), 'epigraph label has the quote and its source');
     assert.deepEqual([epi.hidden, epi.describedby === epi.figId], ['true', true], 'A9: the on-screen epigraph line is aria-hidden (read once, as the title’s description)');
-    // AX1–AX5：题记视觉上隐藏，读屏描述仍在
+    // AX1–AX5：题记改横排（放不下时收起），读屏描述仍在
     await page.evaluate(() => window.shiziContentSize({ category: 'AX3' }));
     await page.waitForTimeout(250);
-    const hiddenAx = await page.evaluate(() => getComputedStyle(document.querySelector('[data-testid="home-epigraph"]')).display);
+    const hiddenAx = await page.evaluate(() => { const fig = document.querySelector('[data-testid="home-epigraph"]'); return { mode: getComputedStyle(fig.firstElementChild).writingMode, folded: fig.dataset.hide === 'true' }; });
     const titleAx3 = await axOf(cdp, tid('home-title'));
-    assert.equal(hiddenAx, 'none', 'AX: the epigraph line is hidden (D49)');
+    assert.equal(hiddenAx.mode, 'horizontal-tb', `AX: the epigraph reads horizontally (folded away when it does not fit: ${hiddenAx.folded})`);
     assert.equal(titleAx3 && titleAx3.description, epi.expected, 'AX: still read as the title’s supplement');
     await page.evaluate(() => window.shiziContentSize({ category: 'L' }));
     await page.waitForTimeout(250);

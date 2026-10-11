@@ -1,7 +1,6 @@
 // 阶段 1 P1-E5：首页（首次打开 + 日常五态）与首练结果页（设计稿「首练与首页」；D28 D35 D38 D40 D41 D43 D46）。
-// 阶段 1 E9a（D49，减法修稿 §3.1）：首页五态的断言按减法稿改写——题记一行横排不带印（首页没有朱色）、去掉「这一组还有 N 个字」「字库里有 N 个字了 ›」
-// 「昨天写的字 / 上次写的字」「这一组先写写旧字」「「拾」也是大写的十」、计数只在读屏名称里、字帖格只有两种线（空格不画十字，也不画下一格墨框）。
-// 每条改动的理由写在断言里；五态判定、特别组 / 回来态逻辑、位置不动、首练与首练结果页的断言不变。
+// H2（D55，首页改为方向 E「极静」）：首页五态的断言按 E 改写——首页只有日期、墨「拾」、竖排题记、「自己选字」与主按钮，没有字帖行 / 最近写的字 / 进行中格子 / 数字 / 标题（版式、六态、浅深、AX 的量测在 99-h2-home-e / 99-h2-home-e-ax）；
+// 这里留下首次打开、首练到结果页、提醒邀请，以及五态判定（按钮字、特别组顺延、离开一周）的断言。
 //
 // 场景：
 //   1. 首次打开：书家「拾」占位 + 竖排题跋 + 印；没有日期 / 标题 / 题记；主按钮「开始写字」+ 下一行；隐藏「自己选字」（D46 ②）；
@@ -98,23 +97,11 @@ async function homeView(page) {
       pick: txt('home-pick'), defer: txt('home-capital-defer'), seals: root.querySelectorAll('.sz-home__seal').length,
       brandShi: q('home-brand-shi') ? q('home-brand-shi').getAttribute('aria-label') : null, brandShiSvg: q('home-brand-shi') ? q('home-brand-shi').querySelectorAll('svg path').length : 0, brandShiText: q('home-brand-shi') ? q('home-brand-shi').textContent.trim() : null, motto: q('home-motto') ? q('home-motto').getAttribute('aria-label') : null,
       todayCount: txt('home-today-count'), otherLine: txt('other-line'),
-      // D49-7：计数不画在首页上，只在读屏名称里——进行中格子块的名称第一句 / 今天写的字那一排的名称 / 字帖位块（group）的名称
-      resumeLine: q('home-progress') ? q('home-progress').getAttribute('aria-label').split('。')[0] : null,
-      progressLabel: q('home-progress') ? q('home-progress').getAttribute('aria-label') : null,
-      inkRowLabel: q('home-ink-row') ? q('home-ink-row').getAttribute('aria-label') : null,
-      libraryLabel: q('home-zone') ? q('home-zone').getAttribute('aria-label') : null,
       removedNodes: ['home-library-link', 'home-last-row', 'home-last-label', 'home-last-item', 'resume-line', 'home-capital-lead', 'home-back-old'].filter(id => !!q(id)),
       // 首页上所有可见文字（不含 aria-hidden 的题记与格内图形）：用来证明没有计数、没有「昨天写的字」
       visibleText: [...root.querySelectorAll('*')].filter(e => e.children.length === 0 && !e.closest('[aria-hidden="true"]') && e.checkVisibility()).map(e => e.textContent.trim()).filter(Boolean).join(' | '),
       epiText: q('home-epigraph') ? q('home-epigraph').textContent.replace(/\s+/g, ' ').trim() : null,
-      epiLines: q('home-epigraph') ? Math.round(q('home-epigraph').getBoundingClientRect().height / parseFloat(getComputedStyle(q('home-epigraph')).lineHeight)) : null,
-      inkItems: [...root.querySelectorAll('[data-testid="home-ink-item"]')].map(e => ({ char: e.dataset.char, ink: e.dataset.ink, judgment: e.dataset.judgment, canvas: !!e.querySelector('canvas') })),
-      inkRowTag: q('home-ink-row') ? q('home-ink-row').tagName : null,
-      cellFacts: [...root.querySelectorAll('.sz-hcell')].map(e => ({ state: e.dataset.state, svgs: e.querySelectorAll('svg').length, after: getComputedStyle(e, '::after').content, before: getComputedStyle(e, '::before').content })),
-      tieFrame: root.querySelector('.sz-htie') ? getComputedStyle(root.querySelector('.sz-htie')).boxShadow : null,
-      cells: [...root.querySelectorAll('[data-testid="home-cell"]')].map(e => ({ state: e.dataset.state, char: e.dataset.char, text: e.textContent.trim(), canvas: !!e.querySelector('canvas'), hidden: e.getAttribute('aria-hidden') })),
       capBody: txt('home-capital-body'), backNote: txt('home-back-note'),
-      zoneText: txt('home-zone'),
       startRect: rect('home-start'), titleRect: rect('home-title'), dateRect: rect('home-date'), epiRect: rect('home-epigraph'),
       reds,
     };
@@ -462,78 +449,65 @@ export default async function run(page, ctx) {
 
   // ------------------------------------------------------------------ 4. 首页五态
   const rects = {};
-  const check = (name, view) => { rects[name] = { start: view.startRect, title: view.titleRect, date: view.dateRect, epi: view.epiRect }; };
+  const check = (name, view) => { rects[name] = { start: view.startRect, date: view.dateRect }; };
   const dayCells = chars => chars.map((c, i) => ({ char: c, at: `${D(4)}T20:0${i}:00` }));
 
-  step('五态 ①今天还没写: 字帖位是本人最近写的 3 个字（H1 / D51 ④：日常状态不放品牌「拾」；D49：删「昨天写的字」与「字库里有 N 个字了 ›」）；题记一行横排小字不带印；按钮「开始写字」；有「自己选字」');
+  step('五态 ①今天还没写: 「拾」+ 竖排题记，没有字帖行 / 昨天写的字（D55）；题记两列 + 作者、不带印；按钮「开始写字」；有「自己选字」');
   await seedWorld(page, { entries: dayCells([...'疆酱肆酝春']), clock: `${D(5)}T09:30:00` });
   h = await homeView(page);
-  assert.deepEqual([h.view, h.hero, h.cta, h.pick, h.date, h.title], ['fresh', 'recent', '开始写字', '自己选字', '10月5日 · 早上', '今天写几个字']);
-  assert.equal(h.brandShi, null, 'H1 / D51 ④: no brand 拾 frame in the everyday states');
+  assert.deepEqual([h.view, h.cta, h.pick, h.date], ['fresh', '开始写字', '自己选字', '10月5日 · 早上']);
+  assert.equal(h.brandShi, '拾', 'D55: the ink 「拾」 is the everyday home hero (no frame)');
   assert.deepEqual(h.removedNodes, [], 'D49: no 「昨天写的字」 row, no library link, no resume line, no capital lead / back-old line in the DOM');
-  // C3-H / N3-02（D53）：格下重新有一句「昨天写的字。」——不是 D49 删掉的那一行记录，而是说清这几个字是哪天写的的一句 13 墨三（P246）
-  assert.ok(!/上次写的字|字库里有|这一组/.test(h.visibleText) && h.visibleText.includes('昨天写的字。'), `D49-7 / N3-02: nothing countable is drawn, the one line says which day: ${h.visibleText}`);
-  assert.equal(h.libraryLabel, '字库里有 5 个字了', 'D49-7: the library count lives only in the screen-reader name of the copybook block');
+  // D55：首页没有任何计数，也没有「昨天写的字。」（P266）
+  assert.ok(!/上次写的字|字库里有|这一组|昨天写的字|今天写了/.test(h.visibleText) && !/\d/.test(h.visibleText.replace(/10月5日/, '')), `D55: nothing countable and no copybook caption is drawn: ${h.visibleText}`);
   assert.equal(h.reds, 0, 'no red dot');
   assert.equal(h.seals, 0, 'D49-1: the epigraph carries no seal — the everyday home has no red at all');
   assert.equal(h.epigraph, true);
-  assert.equal(h.epiLines, 1, 'D49-1: the epigraph is one line');
   assert.ok(/^(心不厌精，手不忘熟。孙过庭|文章千古事，得失寸心知。杜甫|我书意造本无法，点画信手烦推求。苏轼)$/.test(h.epiText.replace(/\s/g, '')), `epigraph text = couplet + author only: ${h.epiText}`);
   check('fresh', h);
   step('①b 昨天没有、前几天（<7 天）写过: 仍是今天还没写，字帖位下仍没有「上次写的字」');
   await seedWorld(page, { entries: [...'疆酱'].map((c, i) => ({ char: c, at: `${D(1)}T20:0${i}:00` })), clock: `${D(5)}T09:30:00` });
   h = await homeView(page);
-  assert.deepEqual([h.view, h.removedNodes, h.libraryLabel], ['fresh', [], '字库里有 2 个字了']);
+  assert.deepEqual([h.view, h.removedNodes], ['fresh', []]);
   step('①c 昨天写的字都没有留下笔迹: 仍是今天还没写（「昨天写的字」那一行已整行删去，没有笔迹也不会再有占位）');
   await seedWorld(page, { entries: [{ char: '疆', at: `${D(4)}T20:00:00`, noInk: true }], clock: `${D(5)}T09:30:00` });
   h = await homeView(page);
-  assert.deepEqual([h.view, h.removedNodes, h.libraryLabel], ['fresh', [], '字库里有 1 个字了']);
+  assert.deepEqual([h.view, h.removedNodes], ['fresh', []]);
 
-  step('五态 ②今天写过: 今天写的字是主角（本人笔迹），写错的字也不画朱点（D46 ①）；n ≤ 8 不画「今天写了 N 个字」（D49-7，读屏名称里有）；按钮「再写一组」');
+  step('五态 ②今天写过: 首页不放今天写的字（D55）；按钮「再写一组」；写错的字也不会在首页留下朱点（D46 ①）');
   await seedWorld(page, { entries: [...'疆酱肆酝'].map((c, i) => ({ char: c, at: `${D(5)}T08:0${i}:00`, judgment: i === 2 ? 'wrong' : 'correct' })), clock: `${D(5)}T12:30:00` });
   h = await homeView(page);
-  assert.deepEqual([h.view, h.hero, h.cta, h.pick, h.todayCount], ['today', 'today', '再写一组', '自己选字', null]);
-  assert.ok(h.inkRowLabel.startsWith('今天写了 4 个字：'), `the count is in the ink row's screen-reader name: ${h.inkRowLabel}`);
-  assert.deepEqual(h.inkItems.map(i => [i.char, i.judgment, i.ink, i.canvas]), [['疆', 'correct', 'ink', true], ['酱', 'correct', 'ink', true], ['酝', 'correct', 'ink', true]]); // 写错的 肆 不进首页字帖行（作品成员规则 D51 ⑤；计数仍是 4）
+  assert.deepEqual([h.view, h.cta, h.pick], ['today', '再写一组', '自己选字']);
   assert.equal(h.reds, 0, 'D46 ①: a wrong char is not marked with a red dot on the home page');
   assert.equal(await page.evaluate(() => document.querySelectorAll('.sz-layer [data-testid="screen-home"] [data-wrong]').length), 0, 'no wrong marker element');
   assert.deepEqual(h.removedNodes, [], 'no yesterday row, no library link');
-  assert.equal(h.libraryLabel, '字库里有 4 个字了');
-  assert.equal(h.tieFrame && h.tieFrame.includes('inset'), true, 'the copybook has its outer frame (frame, 1px)');
   check('today', h);
 
-  step('五态 ③有进行中的组: 写过的有墨、没写的是空笺面（不露答案、不画虚十字、不画下一格墨框，D49）；读屏名称「这一组还有 3 个字」（不画在页面上）；按钮「继续写字」；没有今天写的字');
+  step('五态 ③有进行中的组: 按钮「继续写字」；首页不放这一组的格子，也不露还没写的字（D55）');
   await seedWorld(page, { entries: [], groups: [{ at: `${D(5)}T12:00:00`, chars: [...'疆嚷醋膝窗'], steps: ['correct', 'correct'] }], clock: `${D(5)}T12:30:00` });
   h = await homeView(page);
-  assert.deepEqual([h.view, h.hero, h.cta, h.resumeLine, h.todayCount, h.inkItems.length], ['progress', 'progress', '继续写字', '这一组还有 3 个字', null, 0]);
-  assert.equal(h.progressLabel, '这一组还有 3 个字。已写：「疆」「嚷」', 'reader name: remaining count (the one being written is not counted, D36) + the chars already written; unwritten chars never leak');
-  assert.ok(!/这一组还有/.test(h.visibleText), 'D49-7: not drawn on the page');
-  assert.ok(h.cellFacts.every(c => c.svgs === 0 && (c.after === 'none' || c.after === 'normal')), `D49: cells carry no cross lines and no next-cell frame: ${JSON.stringify(h.cellFacts)}`);
-  assert.deepEqual(h.cells.map(c => [c.state, c.canvas]), [['done', true], ['done', true], ['next', false], ['empty', false], ['empty', false]]);
-  assert.deepEqual(h.cells.slice(2).map(c => [c.char, c.text]), [['', ''], ['', ''], ['', '']], 'unwritten cells show no char (no answer leak)');
+  assert.deepEqual([h.view, h.cta, h.resume, h.pick], ['progress', '继续写字', 'A', '自己选字']);
   assert.ok(!/醋|膝|窗/.test(await page.evaluate(() => document.querySelector('.sz-layer [data-testid="screen-home"]').innerHTML)), 'the unwritten chars are nowhere in the home DOM');
-  assert.equal(h.pick, '自己选字');
+  assert.ok(!/\d/.test(h.visibleText.replace(/10月5日/, '')) && !/这一组还有/.test(h.visibleText), `D55: no progress and no numbers on the page: ${h.visibleText}`);
   check('progress', h);
-  step('③b A + B 都没写完: 格子是 B 的，下面一行文字按钮（无箭头，D49）续写 A');
+  step('③b A + B 都没写完: 主按钮续 B，主按钮上方一行文字按钮（无箭头，D49）续写 A（P269）');
   await seedWorld(page, {
     entries: [], clock: `${D(5)}T12:30:00`,
     groups: [{ at: `${D(5)}T12:00:00`, slot: 'B', kind: 'picked', chars: [...'鲜境'], steps: [] }, { at: `${D(5)}T12:00:00`, slot: 'A', kind: 'daily', chars: [...'一二三四五'], steps: ['correct'] }],
   });
   h = await homeView(page);
-  assert.deepEqual([h.view, h.resumeLine, h.otherLine, h.cells.length], ['progress', '这一组还有 2 个字', '今天的练习 · 接着写', 2]);
+  assert.deepEqual([h.view, h.resume, h.cta, h.otherLine], ['progress', 'A+B', '继续写字', '今天的练习 · 接着写']);
   step('③c 首练写到一半: 仍没有「自己选字」');
   await seedWorld(page, { entries: [], groups: [{ at: `${D(5)}T12:00:00`, kind: 'first', chars: [...'尴赢拾'], steps: ['correct'] }], clock: `${D(5)}T12:30:00` });
   h = await homeView(page);
-  assert.deepEqual([h.view, h.pick, h.cells.length, h.resumeLine], ['progress', null, 3, '这一组还有 2 个字']);
+  assert.deepEqual([h.view, h.pick, h.cta], ['progress', null, '继续写字']);
 
-  step('五态 ④大写数字特别组那天: 一句提示（D49 删「「拾」也是大写的十。」）；文字按钮「这次先写平常的字」；点了顺延到下一个合适的日子');
+  step('五态 ④大写数字特别组那天: 一句提示；「自己选字」仍在，旁边文字按钮「这次先写平常的字」（D55 / P269，原来代替它）；点了顺延到下一个合适的日子');
   const history10 = ['09-28', '09-28', '09-29', '09-30', '10-01', '10-01', '10-02', '10-03', '10-04', '10-04'].map((d, i) => ({ char: String.fromCodePoint(0x6100 + i), at: `2026-${d}T20:0${i % 10}:00` }));
   await seedWorld(page, { entries: history10, clock: `${D(5)}T21:00:00` });
   h = await homeView(page);
-  assert.deepEqual([h.view, h.capBody, h.defer, h.pick, h.cta], ['special', '今天写两组大写数字，借条、红包上用得着。', '这次先写平常的字', null, '开始写字']);
+  assert.deepEqual([h.view, h.capBody, h.defer, h.pick, h.cta], ['special', '今天写两组大写数字，借条、红包上用得着。', '这次先写平常的字', '自己选字', '开始写字']);
   assert.deepEqual(h.removedNodes, [], 'the lead sentence node is gone');
-  assert.equal(h.brandShi, null, 'H1 / D51 ④: the special day with nothing written yet shows the recent chars, not the brand 拾');
-  assert.equal(h.hero, 'recent');
   check('special', h);
   await page.click(tid('home-capital-defer'));
   // Q2-2（simB D3，交接 §1.2）：点了即开始一组普通练习（不再只顺延回首页）。旧断言「回到普通首页再点开始写字」改成「直接进写字页」。
@@ -552,35 +526,32 @@ export default async function run(page, ctx) {
   st = await stateOf(page);
   assert.equal(st.sessions.A, null, 'yesterday’s unfinished daily group expired');
   assert.equal(st.settings.capitalDeferredDay, D(5), 'the deferral only covered the day it was tapped');
-  step('④b 特别组那天已经写过字: 字帖位仍是今天写的字，一句提示放在说明位置（不再说「今天写了 N 个字」）');
+  step('④b 特别组那天已经写过字: 按钮「再写一组」，一句提示与「这次先写平常的字」仍在（D55）');
   await seedWorld(page, { entries: [...history10, { char: '壹', at: `${D(5)}T08:00:00` }], clock: `${D(5)}T21:00:00` });
   h = await homeView(page);
-  assert.deepEqual([h.view, h.hero, h.cta, h.capBody, h.todayCount, h.defer], ['special', 'today', '再写一组', '今天写两组大写数字，借条、红包上用得着。', null, '这次先写平常的字']);
-  assert.deepEqual(h.inkItems.map(i => i.char), ['壹'], 'today’s char is the hero');
+  assert.deepEqual([h.view, h.cta, h.capBody, h.defer], ['special', '再写一组', '今天写两组大写数字，借条、红包上用得着。', '这次先写平常的字']);
 
-  step('五态 ⑤离开 ≥7 天回来: 本人最近写的字（H1 / D51 ④，不放品牌「拾」）；一句「你写过的 N 个字都还在。」（D49 删「上次写的字」行与「这一组先写写旧字。」）；不提缺了几天');
+  step('五态 ⑤离开 ≥7 天回来: 「拾」与题记下面一句「你写过的 N 个字都还在。」（D55，N = 5）；不提缺了几天');
   await seedWorld(page, { entries: [...'醋膝屉鼎窗'].map((c, i) => ({ char: c, at: `2026-09-2${i}T20:00:00` })), clock: `${D(14)}T09:30:00` });
   h = await homeView(page);
-  assert.deepEqual([h.view, h.hero, h.cta, h.pick, h.backNote], ['back', 'recent', '开始写字', '自己选字', '你写过的 5 个字都还在。']);
+  assert.deepEqual([h.view, h.cta, h.pick, h.backNote], ['back', '开始写字', '自己选字', '你写过的 5 个字都还在。']);
   assert.deepEqual(h.removedNodes, [], 'no last-written row, no 「这一组先写写旧字。」');
-  assert.ok(!/缺|断|好久不见|天没/.test(h.zoneText + (h.backNote || '')), 'does not mention how many days were missed: ' + h.zoneText);
+  assert.ok(!/缺|断|好久不见|天没/.test(h.visibleText), 'does not mention how many days were missed: ' + h.visibleText);
   check('back', h);
   step('⑤b 正好 6 天不算回来（仍是今天还没写）');
   await seedWorld(page, { entries: dayCells([...'醋膝']).map(e => ({ ...e, at: e.at.replace(`${D(4)}`, D(1)) })), clock: `${D(7)}T09:30:00` });
   h = await homeView(page);
   assert.equal(h.view, 'fresh');
 
-  step('位置不动: 日期、标题、题记、主按钮在五态里同一位置（首次打开只有主按钮）');
+  step('位置不动: 日期与主按钮在五态里同一位置（首次打开只有主按钮）');
   for (const k of ['today', 'progress', 'special', 'back']) {
-    assert.deepEqual([rects[k].start.x, rects[k].start.w, rects[k].start.h], [rects.fresh.start.x, rects.fresh.start.w, rects.fresh.start.h], `${k}: 主按钮横向位置与大小同 fresh（H1 起竖向随整体块居中，不再固定）`);
-    assert.deepEqual([rects[k].title.x, rects[k].title.w, rects[k].title.h], [rects.fresh.title.x, rects.fresh.title.w, rects.fresh.title.h], `${k}: 标题横向位置与大小同 fresh（C3-H 起标题与字帖成一组、竖向随字帖行高度光学居中）`);
-    assert.equal(rects[k].start.y, rects.fresh.start.y, `${k}: 主按钮在同一条底线上（C3-H / D53 ③：不再随整体块居中）`);
+    assert.deepEqual([rects[k].start.x, rects[k].start.w, rects[k].start.h], [rects.fresh.start.x, rects.fresh.start.w, rects.fresh.start.h], `${k}: 主按钮横向位置与大小同 fresh`);
+    assert.equal(rects[k].start.y, rects.fresh.start.y, `${k}: 主按钮在同一条底线上（C3-H / D53 ③）`);
     assert.deepEqual(rects[k].date, rects.fresh.date, `${k}: 日期位置同 fresh`);
-    assert.deepEqual(rects[k].epi, rects.fresh.epi, `${k}: 题记位置同 fresh`);
   }
   assert.ok(approx(rects.fresh.start.w, 240) && approx(rects.fresh.start.h, 54), `main button 240 × 54 (D43): ${JSON.stringify(rects.fresh.start)}`);
   assert.ok(approx(rects.fresh.start.x + rects.fresh.start.w / 2, 393 / 2, 1), 'centred');
-  assert.deepEqual([firstCta.x, firstCta.w, firstCta.h], [rects.fresh.start.x, rects.fresh.start.w, rects.fresh.start.h], 'first open: the main button has the same size and column (H1: its height follows the centred block)');
+  assert.deepEqual([firstCta.x, firstCta.w, firstCta.h], [rects.fresh.start.x, rects.fresh.start.w, rects.fresh.start.h], 'first open: the main button has the same size and column');
   const panelBottom = await page.evaluate(() => document.querySelector('.sz-tabroot__panel').getBoundingClientRect().bottom);
   assert.ok(Math.abs(panelBottom - (rects.fresh.start.y + rects.fresh.start.h) - 24) <= 0.6, `main button's bottom is 24 above the tab bar (C3-H baseline): ${panelBottom - rects.fresh.start.y - rects.fresh.start.h}`);
 

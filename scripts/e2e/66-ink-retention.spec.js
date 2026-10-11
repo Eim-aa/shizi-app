@@ -175,11 +175,6 @@ export default async function inkRetention(page, ctx) {
   assert.equal(wall.note, await page.evaluate(async () => (await import('/src/config/copy/index.js')).t('R-L03.legend')), 'legend = R-L03.legend (D27 wording)');
   assert.ok(/第一次和最近一次的笔迹/.test(wall.note), 'legend says 第一次和最近一次的笔迹');
 
-  step('home ink row: today\'s 永 is drawn with stored ink');
-  await goHome(page);
-  const row = await page.evaluate(() => [...document.querySelectorAll('[data-testid="home-ink-item"]')].map(i => i.dataset.ink));
-  assert.ok(row.length >= 1 && row.every(k => k && k !== 'none'), `home ink row draws ink (${row.join(',')})`);
-
   step('refresh: detail still shows first + latest ink, middle 没有笔迹');
   await bootTestHost(page, ctx.baseURL);
   await setClock(page, ROUNDS[2].clock);

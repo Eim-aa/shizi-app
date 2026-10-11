@@ -124,11 +124,10 @@ async function walk(page, { assert, step }, on) {
   assert.ok(!banned.test(await pageText(page)), 'detail text: no unkept promise');
   await goBack(page);
 
-  step(`[${tag}] home ink row: ${on ? 'stored ink' : 'standard glyph only (data-ink=none)'}`);
+  step(`[${tag}] home: no ink row any more (H2 / D55), and no unkept promise in its text`);
   await page.evaluate(async () => (await import('/src/ui/router.js')).nav.switchTab('home'));
   await topScreen(page, 'home');
-  const inkRow = await page.evaluate(() => [...document.querySelectorAll('[data-testid="home-ink-item"]')].map(i => i.dataset.ink));
-  assert.ok(inkRow.length >= 1 && inkRow.every(k => k === (on ? 'ink' : 'none')), `home ink row data-ink = ${on ? 'ink' : 'none'}`);
+  assert.equal(await page.locator('[data-testid="home-ink-item"]').count(), 0, 'the home draws no written chars (the ink promises are kept on the detail page and the wall)');
   assert.ok(!banned.test(await pageText(page)), 'home text: no unkept promise');
 }
 

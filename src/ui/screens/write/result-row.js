@@ -46,7 +46,7 @@ injectStyles('write-result-row', `
   font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3};flex-wrap:wrap}
 .sz-line[data-state="skipped"]{display:none}
 .sz-line__dot{color:${T.ink4}}
-.sz-line__change{min-height:${T.hit};margin:-2px 0;padding:0;gap:${T.s1};color:${T.ink1};font-size:${T.fs13};} /* 按钮盒 44（base.css），上下各让 2：说明位那一行仍是 40 高，热区仍是 44 */
+.sz-line__change{--bx:4px;min-width:${T.hit};min-height:${T.hit};margin:-4px calc(-1 * var(--bx)) 0;padding:4px var(--bx) 0;gap:${T.s1};color:${T.ink1};font-size:${T.fs13};} /* 按钮盒 44 × (文字宽 + 8)。① min-width 44 加左右各 4 的内边距让按钮盒不比点击区（::after，≥ 44 宽）窄——WebKit 下点击区伸出按钮盒会让按钮 scrollWidth > clientWidth（K2），负外边距抵回，文字位置不变；② 比 40 高的说明位多出的 4 全部伸向上面（上外边距 -4、上内边距 4 把字抵回行中线）：伸向下面的部分会让正文区出现 2pt 的可滚动量（SE 3 XXXL，写字页不得滚动），向上伸出不计入可滚动区；热区仍是 44 */
 .sz-change__cancel{position:absolute;right:12px;top:18px;height:44px;padding:0 12px;font-size:${T.fs15};color:${T.ink2}}
 .sz-change__minis{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
 .sz-change__col{display:flex;flex-direction:column;gap:12px;min-width:0}

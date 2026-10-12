@@ -8,6 +8,8 @@
 // 来源（共享元素）：首页「开始写字 / 继续写字 / 再写一组」按钮点下时 markPaperSource(按钮, 'home-start') 记下它的矩形、字和圆角；
 // 页面真正推入时（root.js 渲染期 planPaper）取走，记在「下层页面」名下，返回时按钮若还在就重新量一次它的位置（版面可能变了），不在就用记下的。
 // 没有来源按钮的入口（通知、字库「练这个字」、自选字……）走 B3：220ms 首页先淡出、写字页再淡入并从 0.96 放大到 1；退出 180ms 反向。
+// 进出对称（R5-I2，审计 P1-02）：B3 进来的写字页也记一条「安静」来源（{quiet:true}），写完换成结果页后，结果页的「×」与左缘右滑同样按 B3 倒放离开，
+// 不再变成横推。冷启动 / 刷新恢复出来的结果页没有来源记录（只在内存里），照旧横推。
 // 减少动态效果：一律 150ms 交叉淡化（写字页透明度 s，首页留在下面不动），不缩放、不位移；左缘右滑不跟手，松手按阈值完成后淡化（router 控制器 follow=false）。
 //
 // 图层结构不变：写字页仍是 root.js 的一个 .sz-layer；B1 期间改它的 left / top / width / height / border-radius（把层变成一张「纸」），层里的 .sz-layer__screen 固定成整屏大小再 scale——
@@ -56,7 +58,8 @@ export const MAX_FRAME_MS = 50;
 // ---------------------------------------------------------------- 来源按钮
 
 let pending = null; // {rect, label, radius, key, at}
-const sources = new Map(); // 下层页面 entry id → {rect, label, radius, key}
+const QUIET = Object.freeze({ quiet: true }); // B3 进来的写字页的「来源」：没有按钮，只记得是安静淡入
+const sources = new Map(); // 下层页面 entry id → {rect, label, radius, key}（B1）| {quiet:true}（B3）
 
 function nowMs() {
   return typeof performance !== 'undefined' ? performance.now() : Date.now();
@@ -120,18 +123,17 @@ export function planPaper(t, { reduced, root }) {
       return null;
     }
     const src = takePending();
-    if (src) sources.set(t.from.id, src);
-    else sources.delete(t.from.id);
+    sources.set(t.from.id, src || QUIET);
     if (reduced) return { mode: 'R', dir: 'open' };
     return src ? { mode: 'B1', dir: 'open', source: src } : { mode: 'B3', dir: 'open' };
   }
   if (t.kind === 'pop') {
     if (t.from.n !== 'write' && t.from.n !== 'result') return null;
     const had = sources.get(t.to.id);
-    if (t.from.n === 'result' && !had) return null; // 不是从写字页过来的结果页（练习记录里打开的）：保持横推
+    if (t.from.n === 'result' && !had) return null; // 没有来源记录的结果页（冷启动 / 刷新恢复出来的栈：来源只记在内存里）：保持横推（审计 P2-25：已没有推入结果页的路径）
     sources.delete(t.to.id);
     if (reduced) return { mode: 'R', dir: 'close' };
-    if (!had) return t.from.n === 'write' ? { mode: 'B3', dir: 'close' } : null;
+    if (!had || had.quiet) return { mode: 'B3', dir: 'close' }; // B3 进来的（含写完换成的结果页）按 B3 倒放离开
     return { mode: 'B1', dir: 'close', source: liveSource(had, t.to.id, root) };
   }
   return null;
@@ -147,12 +149,13 @@ function liveSource(src, underId, root) {
   return { ...src, rect, label: (btn.textContent || '').trim() || src.label, radius: radiusOf(btn) };
 }
 
-/** 左缘右滑开始时的计划：顶层是写字页 / 记着来源的结果页，下层是它的来源页。没有来源的写字页走 B3，其它返回 null（横推）。 */
+/** 左缘右滑开始时的计划：顶层是写字页 / 记着来源的结果页，下层是它的来源页。B3 进来的（或没有来源记录的写字页）走 B3，其它返回 null（横推）。 */
 export function planPaperDrag(topEntry, underEntry, root) {
   if (!topEntry || !underEntry) return null;
   const had = sources.get(underEntry.id);
-  if (topEntry.n === 'write') return had ? { mode: 'B1', dir: 'close', drag: true, source: liveSource(had, underEntry.id, root) } : { mode: 'B3', dir: 'close', drag: true };
-  if (topEntry.n === 'result' && had) return { mode: 'B1', dir: 'close', drag: true, source: liveSource(had, underEntry.id, root) };
+  const b1 = had && !had.quiet ? { mode: 'B1', dir: 'close', drag: true, source: liveSource(had, underEntry.id, root) } : null;
+  if (topEntry.n === 'write') return b1 || { mode: 'B3', dir: 'close', drag: true };
+  if (topEntry.n === 'result' && had) return b1 || { mode: 'B3', dir: 'close', drag: true };
   return null;
 }
 

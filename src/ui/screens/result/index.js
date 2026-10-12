@@ -60,8 +60,7 @@ import { InkMini, RefMini, recalledInk } from '../write/compare.js';
 import { useStrokeData } from '../write/hint-layer.js';
 import { SkipUndoDock, canUndoSkip, undoSkipInDraft } from '../write/skip.js';
 import '../write/result-row.js'; // .sz-change* 弹层样式（与写字页修改判断弹层同一版式）
-import { openWrite } from '../session/index.js';
-import { openNonePage } from '../session/none.js';
+import { NONE_SCREEN } from '../session/none.js';
 import { InviteActions, ReminderInvite, ReviewPreview, firstExtras, useReminderInvite } from './first.js';
 import { WorkRows, WorkSection, commitAdded, commitSealed, shouldPlayReveal } from './work.js';
 import { addedOf, buildWork } from '../../../core/images/work.js';
@@ -564,11 +563,20 @@ function inRouterStack(entryId) {
   return router.getState().stack.some(e => e.id === entryId);
 }
 
-/** 离开结果页（回来源）。 */
-function leaveTo(leave) {
+/**
+ * 离开结果页（回来源）。R5-I2（审计 P1-01，交互规范 N3-5）：来源是 tab 根且它就在结果页正下方时用 nav.back()——与左缘右滑同一条路径、
+ * 同一个转场（B1 纸缩回按钮 / B3 安静淡出，planPaper 接手）；只有中间还隔着别的页面时才静默跳回 tab 根。
+ */
+export function leaveTo(leave, router = getRouter()) {
   if (TAB_VIEWS.includes(leave.view)) {
     const def = getScreen(leave.view);
     if (def && def.tab) {
+      const snap = router ? router.getState() : null;
+      const pages = snap ? snap.stack.filter(e => e.k === 's') : [];
+      if (pages.length === 2 && pages[0].n === leave.view) {
+        nav.back();
+        return;
+      }
       nav.switchTab(leave.view);
       return;
     }
@@ -662,7 +670,7 @@ function ResultScreen({ params, entry }) {
       : { ok: false, error: { kind: 'unavailable' } };
     if (result.ok) {
       setUndo(null);
-      nav.replace('write', { slot }); // 回到那个字（新的写字页按存下的现场取笔画）
+      nav.replace('write', { slot }, { animate: true }); // 回到那个字（新的写字页按存下的现场取笔画）；同一张纸换内容，T-phase 淡化（P2-19）
       return;
     }
     if (result.error && result.error.kind === 'stale') {
@@ -687,9 +695,11 @@ function ResultScreen({ params, entry }) {
       return;
     }
     setAgainFailed(false);
-    nav.back(); // 本页先出栈（回到来源），新组的写字页排在返回之后推入
-    if (r.started || r.occupied) openWrite('A');
-    else if (r.empty) openNonePage({ exhausted: r.libraryExhausted });
+    // R5-I2（审计 P1-03）：一段转场——新组的写字页就地换掉本页（同一张纸换内容，T-phase 淡化），不再先 B1 收回首页、再 B3 打开写字页。
+    // 栈的结果与以前相同（来源页 / 写字页），返回时照样回到来源（来源按钮的记录还在下层页名下）。
+    if (r.started || r.occupied) nav.replace('write', { slot: 'A' }, { animate: true });
+    else if (r.empty) nav.replace(NONE_SCREEN, { exhausted: !!r.libraryExhausted }, { animate: true });
+    else nav.back();
   };
   const leave = () => {
     dismissUndo();

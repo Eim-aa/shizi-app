@@ -73,7 +73,7 @@ export contain your own handwriting over a rendered reference image, not the
 outline data. Shizi adds no restriction to the rights the Arphic Public
 License gives you. The same stroke data, including the project's modified
 records below, is freely available under that license from the `data/`
-folder of the public repository https://github.com/Eim-aa/shizi-app (each
+folder of the public repository https://github.com/Eim-aa/shizi-open (each App
 release has a matching tag).
 
 ## AnimCJK
@@ -92,7 +92,8 @@ stroke-order lines were exchanged (5 and 7), and for 镵 the three anchor
 points of stroke 13 were reordered. Every modified file states how and when it
 was changed in its own "_notice" field. The modified records are freely
 available under the Arphic Public License from the `data/` folder of the
-public repository https://github.com/Eim-aa/shizi-app.
+public repository https://github.com/Eim-aa/shizi-open (each App release has a
+matching tag).
 
 ## Shuowen.org data
 

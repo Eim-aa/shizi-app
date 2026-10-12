@@ -27,8 +27,9 @@ const EXPECTED_PRACTICE_ROUTE_COUNTS = { animcjk_363: 363, moe_stroke_svg_10: 0,
 const EXPECTED_PRACTICE_SUPPLEMENT = 364;
 // D50 ②（C1，APL §2(a) / 合规说明 A2）：363 个 AnimCJK 衍生文件在文件内首键 "_notice" 写明怎么改的、什么时候改的。
 // 去掉这段前缀就还原成 2026-08 验收导入的原字节（哈希 = 清单 data_sha256），所以历史证据链照旧逐字节可核。
+// D59（2026-10-12）：前缀末句的获取地点改为公开数据仓库 shizi-open；只换前缀，前缀之后的原字节未动。
 const ARPHIC_NOTICES_PATH = path.join(ROOT, "audit/compliance-2026-10/arphic-modification-notices.json");
-const NOTICE_REQUIRED_PARTS = ["Derived from AnimCJK", "ec5e17cca76c87587790bcbce5ea0b4d4fb753d6", "Arphic Public License", "Modified by the Shizi project", "licenses/ARPHICPL.TXT", "https://github.com/Eim-aa/shizi-app"];
+const NOTICE_REQUIRED_PARTS = ["Derived from AnimCJK", "ec5e17cca76c87587790bcbce5ea0b4d4fb753d6", "Arphic Public License", "Modified by the Shizi project", "licenses/ARPHICPL.TXT", "https://github.com/Eim-aa/shizi-open"];
 const EXPECTED_ROUTE_COUNTS = { animcjk_363: 363, moe_stroke_svg_10: 10, human_generated_8: 8, strokeorder_merge_79: 59 };
 const EXPECTED_ACCEPTANCE_PATH_COUNTS = {
   "audit/vector-data-460-evidence/acceptances/animcjk-363.json": 363,
@@ -446,6 +447,8 @@ function loadArphicNotices(manifest) {
     const row = notices.get(record.character);
     check(row.data_path === record.data_path && row.original_sha256 === record.data_sha256 && row.original_byte_size === record.byte_size, "Modification notice is not bound to the accepted payload", { character: record.character });
     check(NOTICE_REQUIRED_PARTS.every(part => row.notice.includes(part)) && /^[\x20-\x7e]+$/.test(row.notice), "Modification notice is incomplete", { character: record.character });
+    // D59：主仓库已改私有，获取地点只能写公开数据仓库 shizi-open。
+    check(!row.notice.includes("github.com/Eim-aa/shizi-app"), "Modification notice still names the private main repository", { character: record.character });
   }
   return notices;
 }

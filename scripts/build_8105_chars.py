@@ -62,6 +62,7 @@ COMPLIANCE_REMOVAL_COUNT = 76
 COMPLIANCE_REMOVAL_MEMBERS_SHA256 = "8cbe427a2ab67d4c15c7816d85d8460544e0f47d3fff796e83019a322344675c"
 PRACTICE_SUPPLEMENT_COUNT = VECTOR_DATA_SUPPLEMENT_COUNT - COMPLIANCE_REMOVAL_COUNT
 # D50 ②（C1，APL §2(a)）：AnimCJK 衍生的 363 个文件首键是 "_notice"（怎么改、什么时候改）；去掉这段前缀就是清单里验收的原字节。
+# 前缀文字以 audit 里的 notice 为准（D59 起末句写公开数据仓库 shizi-open），这里按记录拼前缀核对，不另存一份文字。
 ARPHIC_NOTICES_PATH = ROOT / "audit" / "compliance-2026-10" / "arphic-modification-notices.json"
 NORMATIVE_SOURCE_URL = "https://www.gov.cn/gzdt/att/att/site1/20130819/tygfhzb.pdf"
 CURRICULUM_SOURCE_URL = "https://hudong.moe.gov.cn/srcsite/A26/s8001/202204/W020220420582344386456.pdf"

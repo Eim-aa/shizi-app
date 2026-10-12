@@ -15,9 +15,10 @@ either.
 | `data/𬇕.json` | Outline derived from [LXGW WenKai GB](https://github.com/lxgw/LxgwWenkaiGB) 1.522 (Copyright 2022-2026 LXGW; Copyright 2020 The Klee Project Authors), split into strokes by hand with the Make Me a Hanzi tooling | SIL Open Font License 1.1 — `licenses/LXGW-WenKai-GB-OFL.txt` | Yes (outline converted to stroke data); not sold on its own |
 
 Under the Arphic Public License §2, modified files are made freely available
-to everyone under the same license: this folder in the public repository
-https://github.com/Eim-aa/shizi-app is that place, and each release has a
-matching git tag so the exact files of a release stay available.
+to everyone under the same license: the `data/` folder of the public
+repository https://github.com/Eim-aa/shizi-open is that place, and each App
+release has a matching git tag there so the exact files of a release stay
+available.
 
 76 records from sources without a redistribution basis (strokeorder.cc,
 Taiwan MOE stroke-order site, STKaiti outlines) were removed on 2026-10-04

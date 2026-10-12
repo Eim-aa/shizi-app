@@ -57,7 +57,7 @@ test('A2: every AnimCJK-derived file states how and when it was changed; strippi
 test('A3 / A4: data/LICENSE.md lists the license of every data file and the public place to get them; the root LICENSE carves data/ out', () => {
   const md = read('data/LICENSE.md');
   for (const s of ['Arphic Public License', 'licenses/ARPHICPL.TXT', 'AnimCJK', '"_notice"', 'data/𬇕.json', 'SIL Open Font License 1.1',
-    'data/etymology.json', 'Apache License 2.0', 'GNU LGPL version 3', 'https://github.com/Eim-aa/shizi-app', 'tag']) {
+    'data/etymology.json', 'Apache License 2.0', 'GNU LGPL version 3', 'https://github.com/Eim-aa/shizi-open', 'tag']) {
     assert.ok(md.includes(s), s);
   }
   const license = read('LICENSE');
@@ -76,7 +76,8 @@ test('A6 + §1.16: the in-app credits for data are written for users and name ev
   }
   const hwd = CREDITS.find(c => c.name === 'Hanzi Writer Data').notice;
   assert.match(hwd, /Arphic Technology/);
-  assert.match(hwd, /https:\/\/github\.com\/Eim-aa\/shizi-app/);
+  assert.match(hwd, /https:\/\/github\.com\/Eim-aa\/shizi-open/);
+  assert.doesNotMatch(hwd, /Eim-aa\/shizi-app/);
   assert.match(CREDITS.find(c => c.name === 'AnimCJK').notice, /ec5e17cca76c87587790bcbce5ea0b4d4fb753d6/);
   assert.match(CREDITS.find(c => c.name === 'wordfreq').notice, /CC BY-SA 4\.0/);
   assert.match(CREDITS.find(c => c.name === 'LXGW WenKai GB').notice, /𬇕/, 'the LXGW-derived stroke data is attributed under OFL');

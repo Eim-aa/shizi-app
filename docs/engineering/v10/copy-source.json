@@ -255,7 +255,10 @@
     "P292": "触觉五档的原生参数（卡 I1，D58 ③）：WebViewController.swift playHaptic 与 src/platform/haptics.js，单测逐值核对 tokens.json haptic；不是运行时开关",
     "P293": "提示条只许 failure / undo（卡 I1，D58）：src/ui/components/Toast.js showToast 的 kind 校验与 test/ui/toast-kinds.test.mjs 的静态扫描；不是运行时开关",
     "P294": "交互合规 e2e 与待修清单（卡 I1，D58 ⑥）：scripts/e2e/102-interaction-compliance*.spec.js、scripts/e2e/interaction-pending.mjs、docs/design/新页面自检表.md；不是运行时开关",
-    "P132": "旧「更大字体」用户的一次说明（D29）已由 D58 / I3 P0-13 取消：v1 迁移带来的 settings.large=true 启动后由 src/ui/screens/mine/settings.js clearLegacyLargeFlag 静默去掉，不再显示任何说明；不是运行时开关"
+    "P132": "旧「更大字体」用户的一次说明（D29）已由 D58 / I3 P0-13 取消：v1 迁移带来的 settings.large=true 启动后由 src/ui/screens/mine/settings.js clearLegacyLargeFlag 静默去掉，不再显示任何说明；不是运行时开关",
+    "P311": "页面固定、整页不可拖动（卡 R6-J1，交互规范 N7 / IC-22）：src/ui/components/styles.js SCROLL_Y、src/config/base.css 根文档、src/ui/root.js pinDocument、ios WebViewController.swift scrollView；不是运行时开关",
+    "P312": "键盘开着时弹层退场与键盘同步（卡 R6-J1，交互规范 T0-7 / IC-24）：src/ui/components/exit.js slideRaisedSheet、Sheet.js useDialogFocus 失焦、motion.role.sheetOutKeyboard（tokens.json）；不是运行时开关",
+    "P313": "交互合规 IC-22 / 23 / 24 与 WebKit 探针 page does not pan（卡 R6-J1）：scripts/e2e/106-j1-page-pan.spec.js、107-j1-write-entries.spec.js、108-j1-sheet-exit.spec.js、scripts/webkit-ax-probe.js；不是运行时开关"
   },
   "noCopy": [
     "R-H07",

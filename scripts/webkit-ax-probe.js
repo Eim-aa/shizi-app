@@ -198,15 +198,36 @@
           { note: m.note, grid: m.grid, footTop: footBox && footBox.top });
         check('note slot content not clipped', note.scrollHeight <= note.clientHeight + 1, m.noteScroll);
       }
-      // R4-F1（D55）：写字页底栏是「写好了」+ 一行文字按钮，没有「⋯」菜单；文字行的按钮都在底栏之内、在视口内（上面的溢出 / 叠压检查已覆盖字）。
+      // R4-F1（D55）：写字页没有「⋯」菜单；W2（A7）起底栏是求助行 + 「写好了」，求助行的按钮都在底栏之内、在视口内（上面的溢出 / 叠压检查已覆盖字）。
       const links = layer.querySelector('[data-testid="write-links"]');
       if (links && foot) {
         const lb = box(links);
-        check('text row inside the foot and on screen', lb.top >= footBox.top - 0.5 && lb.bottom <= vh + 0.5 && lb.left >= -0.5 && lb.right <= vw + 0.5, { links: lb, footTop: footBox.top });
+        check('help row inside the foot and on screen', lb.top >= footBox.top - 0.5 && lb.bottom <= vh + 0.5 && lb.left >= -0.5 && lb.right <= vw + 0.5, { links: lb, footTop: footBox.top });
         check('no 「⋯」 menu on the write page', !q('write-more') && !document.querySelector('[data-testid="write-ax-menu"]'));
         // R4-P1（D56）：「在纸上写」移到设置，写字页的文字行 / 格下都不再有它；提示 / 看答案 / 跳过任何字号都不收起（回忆阶段）。
         check('no 在纸上写 entry on the write page', !q('write-to-paper'));
-        if (q('write-done')) check('提示 / 看答案 / 跳过 are all in the text row', !!(q('write-hint') && q('write-show-answer') && q('write-skip')));
+        if (q('write-done')) {
+          check('提示 / 看答案 are in the help row, 跳过 in the page head (A7)', !!(q('write-hint') && q('write-show-answer') && q('write-skip')));
+          // W2（D57，A7）：求助行在「写好了」正上方（间距 20；AX 档收紧时 8）、等宽一行；撤销 / 清空在书写格正下方一行；跳过在页头右上、进度在页头中间。
+          const done = box(q('write-done'));
+          const hint = box(q('write-hint'));
+          const ans = box(q('write-show-answer'));
+          const gap = done.top - hint.bottom;
+          check('A7: help row directly above 「写好了」 (gap 6–20) and on one row', gap >= 5.5 && gap <= 20.5 && Math.abs(hint.top - ans.top) <= 1 && hint.bottom <= done.top, { gap: r1(gap), hint, ans, done });
+          check('A7: help buttons ≥ 44 high and inside the viewport', hint.height >= 44 && ans.height >= 44 && hint.left >= -0.5 && ans.right <= vw + 0.5, { hint: hint.height, ans: ans.height });
+          const undo = q('write-undo');
+          const clr = q('write-clear');
+          const grid2 = q('write-grid');
+          if (undo && clr && grid2) {
+            const ub = box(undo);
+            const cb = box(clr);
+            const gb = box(grid2);
+            check('A7: 撤销 / 清空 in the row right under the grid, above the help row', ub.top >= gb.bottom - 0.5 && ub.top - gb.bottom <= 8 && ub.height >= 44 && cb.height >= 44 && ub.bottom <= hint.top + 0.5 && ub.right < cb.left, { grid: gb, undo: ub, clear: cb });
+          }
+          const sk = box(q('write-skip'));
+          const head = layer.querySelector('.sz-page__head');
+          check('A7: 跳过 in the page head, right end', !!head && sk.bottom <= head.getBoundingClientRect().bottom + 0.5 && sk.right >= vw - 28 && sk.height >= 44, { skip: sk });
+        }
       }
     }
     return m;

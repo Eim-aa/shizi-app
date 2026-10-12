@@ -457,9 +457,9 @@ export function JudgeFooter({ failed = false, onJudge, onRetry, onCancelFail, re
       </div>`
     : html`<${JudgeButtons} onJudge=${onJudge} ready=${ready} guard=${guard} />`;
   return html`<div class="sz-write__foot sz-write__foot--judge" data-testid="write-judge-foot" data-failed=${failed ? 'true' : 'false'}>
+    <div class="sz-write__links sz-write__links--ghost" aria-hidden="true"></div>
     ${failed ? html`<p class="sz-judge__note" data-testid="write-judge-note" aria-live="polite">${t('R-W16.saveFailed')}</p>` : null}
     ${body}
-    <div class="sz-write__links sz-write__links--ghost" aria-hidden="true"></div>
   </div>`;
 }
 

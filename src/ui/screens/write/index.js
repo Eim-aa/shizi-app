@@ -1,14 +1,15 @@
 // 写字页骨架（M1-1）：registerScreen('write')，params {slot:'A'|'B'}。
 //
-// 从 store 读 sessions[slot] 的当前字（core/sessions.currentCardKey）；页头（标题按阶段 R-W03、右侧「n / 总数」R-W01、
-// 描一遍 / 自己写两步圆点 R-W04）、结果行占位（M1-5）、题面占位（M1-8 换成 prompt.js）、书写格（边长按屏宽 / 视口高算，258–400，
-// D36 / P118，与字号无关；内部坐标恒为 345 单位）、撤销 / 清空（R-W18；格下一行右端，标准版与紧凑版同一位置，G32；清空后给一次撤销，走查-W17）、按钮区：看答案占位（M1-4）、
+// 从 store 读 sessions[slot] 的当前字（core/sessions.currentCardKey）；页头（标题按阶段 R-W03、描一遍 / 自己写两步圆点 R-W04；回忆阶段中间是「n / 总数」R-W01、右上是 结束这组 / 跳过）、
+// 结果行占位（M1-5）、题面占位（M1-8 换成 prompt.js）、书写格（边长按屏宽 / 视口高算，258–400，D36 / P118，与字号无关；内部坐标恒为 345 单位）、
+// 撤销 / 清空（R-W18；A7 起在书写格正下方一行，图标加文字，撤销贴格左沿、清空贴格右沿；清空后给一次撤销，走查-W17）、按钮区：看答案占位（M1-4）、
 // 提示占位（M1-3）、「写好了」（R-W29；空笔画时 disabled + aria-disabled，M1-5 接判断页）、跳过 / 结束这组占位（M1-5 / M2）。
 //
-// 版式（D49 减法修稿，实现交接 §13；D53 ② 起所有字号与 AX 版式同构，R3-C3W；D55 底栏改回文字行，R4-F1）：页边 20；页头左「‹」、右「撤销 / 清空 + 计数」（回忆阶段没有可见标题，标题只留给读屏）；
-// 题面（整词居中，已给的字不装框）→ 16 → 书写格 → 格下说明位（高 40：D19「上一个字」结果行、提示 / 看答案说明；撤销 / 清空已移到页头）作为一组，顶边按名义版式固定
-// （layout.js，同一张卡的所有阶段不动）；底栏 = 主按钮 + 其下一行文字按钮（foot.js WriteFoot，P260）：左 提示 / 看答案，右端 跳过（picked 会话在它左边多一个「结束这组」），一次点击直达，没有菜单。
-// 底栏下内边距回到 max(8, 下安全区)（主按钮因此比首页高一行文字行；policy.mainButtonLine 不改，首页仍用）。
+// 版式（D49 减法修稿，实现交接 §13；D53 ② 起所有字号与 AX 版式同构，R3-C3W；D55 底栏改回文字行，R4-F1；W2 / D57 起方案 A7，P280 / P281）：页边 20；页头左「‹」、中间「n / 总数」
+// （回忆阶段没有可见标题，标题只留给读屏；其它阶段标题在中间、计数在右侧）、右上「跳过」（picked 会话在它左边多一个「结束这组」）；
+// 题面（整词居中，已给的字不装框）→ 16 → 书写格 → 格下（离格 4 的撤销 / 清空行 44 + 说明位 40：D19「上一个字」结果行、提示 / 看答案说明）作为一组，顶边按名义版式固定
+// （layout.js，同一张卡的所有阶段不动）；底栏 = 求助行（foot.js WriteFoot，主按钮正上方 20 的凹面按钮：提示 / 看答案，其它阶段同位置换内容）+ 主按钮「写好了」，一次点击直达，没有菜单。
+// 底栏下内边距回到 max(8, 下安全区)（policy.mainButtonLine 不改，首页仍用）。
 // 判断页（compare.js）的上下两格占书写格的位置（同一顶边、同一中线），两键进主按钮的位置，文字行留空占位。
 //
 // 规则：
@@ -37,7 +38,7 @@
 //
 // data-testid：write-screen、write-progress、write-steps、write-line-slot、write-prompt、write-grid（及
 // write-grid-ink / write-grid-live / write-glyph-layer）、write-tools、write-undo、write-clear、write-note、
-// write-done、write-foot、write-links（文字行）及其中的 write-hint / write-show-answer / write-skip / write-end、write-empty。
+// write-done、write-foot、write-links（求助行）及其中的 write-hint / write-show-answer、页头的 write-skip / write-end（write-skip-slot / write-end-slot）、write-empty。
 
 import { html, useEffect, useLayoutEffect, useRef, useState } from '../../../../vendor/ui.js';
 import { registerScreen, getRouter, nav } from '../../router.js';
@@ -70,7 +71,7 @@ import { openWriteModeSettings } from '../mine/settings.js';
 import { LinkButton, Slot, WriteFoot } from './foot.js';
 import { usePhaseFade } from './phase-fade.js';
 import { gridLabel, useWriteAnnounce } from './sr-live.js';
-import { AX_NOTE_H } from './layout.js';
+import { AX_NOTE_H, AX_BELOW_H, TOOL_ROW_H } from './layout.js';
 
 export const WRITE_SCREEN = 'write';
 /** 换字后书写格的落笔门限（01 §6.6 / 走查-V01；P227：300 → 250，门限内的笔先持住、到点补画，不再丢弃）。 */
@@ -95,10 +96,12 @@ const W = '.sz-page[data-testid="write-screen"]';
 const AX_HI = (sel, extra = '') => [3, 4, 5].map(n => `:root[data-ax="${n}"]${extra} ${sel}`).join(',');
 /** AX3–AX5 格下说明位的最小高度：两行 22pt 辅助字 2 × 30 + 上内边距 8（AX1–AX2 仍是 AX_NOTE_H = 56）。 */
 const AX_NOTE_H_HI = 2 * 30 + 8;
+/** AX3–AX5 格下总高的最小值：撤销 / 清空行 + 两行说明位。 */
+const AX_BELOW_H_HI = TOOL_ROW_H + AX_NOTE_H_HI;
 
-// 版式与 AX 同构（D53 ②，P257）：撤销 / 清空常驻页头右侧；底栏 = 主按钮 + 一行文字按钮（D55，P260；AX 档文字行字号封顶、折行时按词折，P261）。
-// AX 档（D51 ⑦，P225；A2-01 / A2-04 / A2-09）：写字页永不滚动。撤销 / 清空常驻页头（28pt 图标、热区 44），底栏 =「写好了」+ 文字行（foot.js），
-// 格下只剩说明位（说明 / 提示 / 结果行；高度按实际内容，至少两行，P241）。辅助字分层封顶（R3-K1 P243，第三轮审查 A3-03：上一轮一律 17pt 矫枉过正）：
+// 版式与 AX 同构（D53 ②，P257）：撤销 / 清空在书写格正下方一行（A7，P280）；底栏 = 求助行 + 主按钮（D55 / D57，P260 / P280；AX 档求助行字号封顶，P261）。
+// AX 档（D51 ⑦，P225；A2-01 / A2-04 / A2-09）：写字页永不滚动（最矮的屏放不下时见 P278 的让步）。格下 = 撤销 / 清空行（24pt 图标、热区 44）+ 说明位（说明 / 提示 / 结果行；高度按实际内容，至少两行，P241），
+// 底栏 = 求助行（56 高）+「写好了」（foot.js）。辅助字分层封顶（R3-K1 P243，第三轮审查 A3-03：上一轮一律 17pt 矫枉过正）：
 // 说明 / 结果行 / 进度 / 页头标题 AX1–AX2 17pt、AX3–AX5 22pt；纸上写说明 22 / 28pt；拼音见 prompt.js（22 / 28pt）；题面汉字（格 52 × min(k, 1.6) = 83，字面 66）仍是页面上最大的字。
 // 页头标题可折两行（不再单行省略）。
 // 下面 :root[data-ax] 开头的规则就是这一套（尺寸见 layout.js axWriteLayout）。
@@ -112,39 +115,43 @@ ${W} .sz-page__foot[data-under="true"]::before{content:"";position:absolute;left
 .sz-write{--bleed:0px;flex:none;display:flex;flex-direction:column;align-items:stretch;gap:0}
 .sz-write__prompt{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0}
 .sz-write__gridwrap{display:flex;justify-content:center;margin:${T.s4} calc(-1 * var(--bleed)) 0}
-.sz-write__below{position:relative;box-sizing:border-box;max-width:100%;min-height:40px;display:flex;align-items:flex-start;justify-content:space-between;gap:${T.s3};margin:0 auto}
+.sz-write__below{position:relative;box-sizing:border-box;max-width:100%;display:flex;flex-direction:column;align-items:stretch;margin:0 auto} /* 格下 = 撤销 / 清空行 + 说明位（A7，D57） */
 .sz-write__note{flex:1;min-width:0;min-height:40px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3}}
 .sz-write__firsttip,.sz-hintnote,.sz-paper__note{padding:3px 0} /* 单行时仍是 40 高的一行（文字居中，离格子 10）；两行说明（提示说明、纸上脚注）46 高，文字离格子 ≥ 3、不被按钮行挡住（最矮的屏上书写格组只剩 4 的余量） */
 .sz-write__firsttip{display:block}
 .sz-write__headtools{display:flex;align-items:center}
-.sz-write__tools{flex:none;height:44px;display:flex;align-items:center}
-.sz-write__tools[data-shown="false"]{display:none} /* 看答案阶段无墨可撤：不占页头宽度，标题才不会在大字号下折成两行、把书写格顶下去（P257）；AX 档仍占位（下面） */
-.sz-write__tools[data-paper="true"]{display:none} /* 纸上那一字没有撤销 / 清空，不再为它们空着一块宽度（脚注才放得下，Q2-12） */
-/* 图标按钮（设计系统 sz-ibtn）：可见 36（::before 画底）、热区 44（base.css 的按钮最小 44 就是热区；页头里两个相邻的图标热区不重叠）；有墨 ink2、无墨 ink4 且不可点 */
-.sz-write__ibtn{position:relative;width:44px;height:44px;display:grid;place-items:center;padding:0;color:${T.ink2}}
-.sz-write__ibtn::before{content:"";position:absolute;inset:4px;border-radius:${T.rCtl}}
-.sz-write__ibtn svg{position:relative;width:20px;height:20px}
-.sz-write__ibtn[data-pressed]{color:${T.ink1};transform:none;filter:none}
-.sz-write__ibtn[data-pressed]::before{background:${T.field}}
-.sz-write__ibtn[disabled]{color:${T.ink4}}
+.sz-write__headact{display:flex;align-items:center}
+.sz-write__headact:empty{display:none}
+.sz-write__headact .sz-btn--text{font-size:${T.fs17};line-height:${T.lh17};color:${T.ink2}}
+/* 格下工具行（A7，D57，P280）：离格 4、撤销贴格左沿、清空贴格右沿，图标加文字、无底、常规字重；看答案阶段 / 纸上那一字没有墨可撤：整行收起（书写格 g 与组顶按名义版式算，不跟着挪） */
+.sz-write__tools{flex:none;box-sizing:border-box;max-width:100%;height:${TOOL_ROW_H - 4}px;margin:4px auto 0;display:flex;align-items:center;justify-content:space-between}
+.sz-write__tools[data-shown="false"],.sz-write__tools[data-paper="true"]{display:none} /* 没有墨可撤的阶段不占位（说明贴着格子；书写格的大小与顶边不受影响：g 与组顶按名义版式固定，layout.js） */
+.sz-write__tool{position:relative;min-height:${T.hit};padding:0 ${T.s1};margin-inline:calc(-1 * ${T.s1});display:inline-flex;align-items:center;gap:6px;
+  font-family:${T.hei};font-size:${T.fs17};line-height:${T.lh17};font-weight:400;color:${T.ink2};white-space:nowrap}
+.sz-write__tool svg{flex:none;width:20px;height:20px}
+.sz-write__tool[data-pressed]{color:${T.ink1};transform:none;filter:none}
+.sz-write__tool[disabled]{color:${T.ink4}}
 .sz-write__progress{font-size:${T.fs15};line-height:${T.lh15};color:${T.ink3};font-variant-numeric:tabular-nums}
 .sz-write__steps{height:5px;margin:-8px 0 3px;display:flex;justify-content:center;gap:5px;pointer-events:none}
 .sz-write__dot{width:5px;height:5px;box-sizing:border-box;border-radius:50%;border:1px solid ${T.ink3}}
 .sz-write__dot[data-on="true"]{border:0;background:${T.ink1}}
-:root[data-ax] ${W} .sz-write__below{width:100%;min-height:${AX_NOTE_H}px;margin:0}
+:root[data-ax] ${W} .sz-write__below{width:100%;min-height:${AX_BELOW_H}px;margin:0}
 :root[data-ax] ${W} .sz-write__below *,:root[data-ax] ${W} .sz-write__progress{font-size:calc(17px * 1);line-height:24px}
 :root[data-ax] ${W} .sz-paper__title,:root[data-ax] ${W} .sz-paper__text,:root[data-ax] ${W} .sz-paper__back{font-size:calc(22px * 1);line-height:30px}
 ${AX_HI(`${W} .sz-write__below *`)},${AX_HI(`${W} .sz-write__progress`)}{font-size:calc(22px * 1);line-height:30px}
 ${AX_HI(`${W} .sz-paper__title`)},${AX_HI(`${W} .sz-paper__text`)},${AX_HI(`${W} .sz-paper__back`)}{font-size:calc(28px * 1);line-height:36px}
 :root[data-ax] ${W} .sz-write__note{box-sizing:border-box;min-height:${AX_NOTE_H}px;justify-content:flex-start;padding-top:8px}
-${AX_HI(`${W} .sz-write__below`)},${AX_HI(`${W} .sz-write__note`)}{min-height:${AX_NOTE_H_HI}px} /* 两行 22pt 辅助字 2 × 30 + 上内边距 8 */
-:root[data-ax] ${W} .sz-write__headtools .sz-write__tools{display:flex;visibility:visible}
-:root[data-ax] ${W} .sz-write__headtools .sz-write__tools[data-shown="false"]{visibility:hidden}
-:root[data-ax] ${W} .sz-write__headtools .sz-write__ibtn svg{width:28px;height:28px}
-:root[data-ax] ${W} .sz-write__headtools .sz-write__ibtn::before{inset:0}
-:root[data-ax] ${W} .sz-write__headtools .sz-write__ibtn+.sz-write__ibtn{margin-left:0}
-:root[data-ax] ${W} .sz-write__headtools .sz-write__progress{padding-left:4px}
-.sz-write__headtools .sz-write__progress{padding-left:4px}
+${AX_HI(`${W} .sz-write__note`)}{min-height:${AX_NOTE_H_HI}px} /* 两行 22pt 辅助字 2 × 30 + 上内边距 8 */
+${AX_HI(`${W} .sz-write__below`)}{min-height:${AX_BELOW_H_HI}px}
+:root[data-ax] ${W} .sz-write__tool svg{width:24px;height:24px}
+:root[data-ax] ${W} .sz-write__headact .sz-btn--text{font-size:calc(17px * 1);line-height:24px}
+${AX_HI(`${W} .sz-write__headact .sz-btn--text`)}{font-size:calc(22px * 1);line-height:30px}
+/* 书写格放不下 220、底栏已收紧（footCompact → data-tight，P278）：书写格上方间距 16 → 8、工具行贴格、说明位去掉上内边距（再让出 16pt） */
+${W} .sz-write[data-tight="true"] .sz-write__gridwrap{margin-top:8px}
+${W} .sz-write[data-tight="true"] .sz-write__tools{margin-top:0}
+:root[data-ax] ${W} .sz-write[data-tight="true"] .sz-write__note{padding-top:0;min-height:${AX_NOTE_H - 8}px}
+${AX_HI(`${W} .sz-write[data-tight="true"] .sz-write__note`)}{min-height:${AX_NOTE_H_HI - 8}px}
+.sz-write__headtools .sz-write__progress{padding-right:4px}
 :root[data-ax][data-text-large] ${W} .sz-page__head{flex-wrap:nowrap}
 :root[data-ax][data-text-large] ${W} .sz-page__head>.sz-page__title:not(.sz-page__title--hidden){position:static;order:0;flex:1 1 0;min-width:0;
   padding:0 4px;text-align:center;white-space:normal;line-break:strict;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;
@@ -344,14 +351,14 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
   const row = useResultRow({ slot, session, state, phase, strokeCount: view.strokes.length });
   const skip = useSkip({ slot, session, cardKey, phase, hints: hint.used, strokes: view.strokes });
   endSkipUndoRef.current = skip.dismiss;
-  // M2-3「结束这组」（picked 会话；打开确认框即结束跳过的撤销机会）。除判断页外各阶段都显示（H4）。
-  const end = useEndGroup({ slot, session, phase, blocked: skip.failed, onOpen: endSkipUndo });
   // M1-4 看答案 / 描一遍 / 自己写（answer.js）：回忆阶段「看答案」按钮、answer 阶段卡片、描红层、格下说明、接管底栏
   // （接管时「结束这组」放在它底栏「下一个」那一行右端，H4）。Q1：本地笔画交给它，离开自己写一遍时存成看后自写的墨迹。
   const answer = useAnswerFlow({
     slot, session, cardKey, phase, strokeCount: view.strokes.length, strokes: view.strokes,
-    onShowAnswer: endSkipUndo, ax, end, footCompact,
+    onShowAnswer: endSkipUndo, ax, footCompact,
   });
+  // M2-3「结束这组」（picked 会话；打开确认框即结束跳过的撤销机会）。除判断页外各阶段都显示（H4）；A7（D57）起在页头右上、跳过左边。保存失败（跳过 / 看答案流程）时不显示。
+  const end = useEndGroup({ slot, session, phase, blocked: skip.failed || answer.failed, onOpen: endSkipUndo });
 
   // 读屏播报（A2-06，P231）：笔数（抬笔 / 撤销 / 清空）、提示给出了哪几笔、描一遍出现时的笔序；视觉隐藏的 aria-live=polite 区域，挂在写字页根上（不在淡化快照里）。
   const announce = useWriteAnnounce({
@@ -441,37 +448,41 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
     total: session.queue.length,
   })}</span>`;
 
-  // 撤销 / 清空（R-W18）：常驻页头右侧、与计数成组（D53 ②，所有字号同构；无墨时 ink4 且不可点，P226 / I2-06）；纸上那一字与看答案 / 判断阶段不显示。
-  const tools = html`<span class="sz-write__tools" data-testid="write-tools" data-shown=${drawable && !paper ? 'true' : 'false'}
-          data-paper=${paper ? 'true' : null}>
-          <${Button} variant="plain" class="sz-write__ibtn" data-testid="write-undo" aria-label=${t('R-W18.btnUndo')} disabled=${!canUndo} rapid
-            onClick=${onUndo}>${Icons.undo()}</${Button}>
-          <${Button} variant="plain" class="sz-write__ibtn" data-testid="write-clear" aria-label=${t('R-W18.btnClear')} disabled=${!hasStrokes} rapid
-            onClick=${onClear}>${Icons.clear()}</${Button}>
-        </span>`;
+  // 撤销 / 清空（R-W18，A7 / D57 / P280）：格下一行，撤销贴格左沿、清空贴格右沿，图标加文字；无墨时 ink4 且不可点（P226 / I2-06）；纸上那一字与看答案 / 判断阶段 visibility:hidden 占位。
+  const toolRow = html`<div class="sz-write__tools" data-testid="write-tools" data-shown=${drawable && !paper ? 'true' : 'false'}
+          data-paper=${paper ? 'true' : null} style=${{ width: `${gridSize}px` }}>
+          <${Button} variant="plain" class="sz-write__tool" data-testid="write-undo" aria-label=${t('R-W18.btnUndo')} disabled=${!canUndo} rapid
+            onClick=${onUndo}>${Icons.undo()}<span>${t('R-W18.btnUndo')}</span></${Button}>
+          <${Button} variant="plain" class="sz-write__tool" data-testid="write-clear" aria-label=${t('R-W18.btnClear')} disabled=${!hasStrokes} rapid
+            onClick=${onClear}>${Icons.clear()}<span>${t('R-W18.btnClear')}</span></${Button}>
+        </div>`;
 
   const noteBody = answer.active ? answer.note
     : skip.failed ? skip.note : paper ? html`<${PaperNote} />` : hint.note ? html`<${HintNote} note=${hint.note} />` : firstTip.node;
   // 格下说明位的内容（结果行 / 读屏的纸上写建议 / 说明）。
   const noteNodes = html`<span class="sz-write__lineslot" data-testid="write-line-slot">${row.node}</span>${suggest.node}${noteBody}`;
   const hasNote = !!(row.node || suggest.node || noteBody);
-  // 底栏（P260，D55）：主按钮「写好了」+ 其下一行文字按钮——左 提示 / 看答案 / 在纸上写，右端（picked 会话的「结束这组」）跳过；一次点击直达，没有菜单。
-  // 保存失败（跳过写失败）时主按钮是「再试一次」，「先不保存」是文字行里的文字按钮。
+  // 底栏（A7，D57，P280）：求助行（主按钮正上方 20）+ 主按钮「写好了」——左 提示 / 看答案，一次点击直达，没有菜单；跳过、结束这组在页头右上（write/index.js 下面的 trailing）。
+  // 保存失败（跳过写失败）时主按钮是「再试一次」，「先不保存」是求助行里的按钮。
   const footer = skip.failed
     ? html`<${WriteFoot} primary=${{ testid: 'write-skip-fail-retry', label: t('R-W16.retry'), onClick: skip.run }} testid="write-foot" stage="recall" failed=${true} compact=${footCompact}
         left=${html`<${Slot} testid="write-fail-slot"><${LinkButton} testid="write-skip-fail-cancel" label=${t('R-W16.cancel')} onClick=${skip.cancelFail} /></${Slot}>`} />`
     : html`<${WriteFoot} primary=${{ testid: 'write-done', label: t('R-W29.btnDone'), disabled: !hasStrokes && !paper, onClick: onDone }} testid="write-foot" stage=${phase} compact=${footCompact}
         left=${html`<${Slot} testid="write-hint-slot" cls="sz-write__hint">${hint.button}</${Slot}>
-          <${Slot} testid="write-answer-slot">${answer.link}</${Slot}>`}
-        right=${html`${end.button ? html`<${Slot} testid="write-end-slot" cls="sz-write__endslot">${end.button}</${Slot}>` : null}
-          <${Slot} testid="write-skip-slot" cls="sz-write__skiprow">${skip.button}</${Slot}>`} />`;
+          <${Slot} testid="write-answer-slot">${answer.link}</${Slot}>`} />`;
 
-  // 判断页没有撤销 / 清空：不渲染、不占页头宽度（页头问题才放得下）；其它阶段常驻（看答案阶段无墨可撤，visibility:hidden 占位，计数不动）。
-  const trailing = html`<span class="sz-write__headtools">${compare.active ? null : tools}${progress}</span>`;
+  // 页头（A7，D57，P280）：回忆阶段（标题只给读屏）中间是进度「2 / 5」、右上是 [结束这组][跳过]；其余阶段中间仍是标题，进度和 [结束这组] 在右侧（「下一个」在求助行）。
+  // 判断页没有撤销 / 清空 / 跳过，右侧只有进度。
+  const endNode = end.button ? html`<span class="sz-write__headact" data-testid="write-end-slot">${end.button}</span>` : null;
+  const skipNode = skip.button ? html`<span class="sz-write__headact" data-testid="write-skip-slot">${skip.button}</span>` : null;
+  const centerProgress = phase === 'recall' && !compare.active;
+  const trailing = compare.active
+    ? html`<span class="sz-write__headtools">${progress}</span>`
+    : centerProgress ? html`<span class="sz-write__headtools">${endNode}${skipNode}</span>` : html`<span class="sz-write__headtools">${progress}${endNode}</span>`;
   return html`<${Page} title=${titleFor(phase)} hideTitle=${phase === 'recall' || (phase === 'compare' && ax > 0)} lead=${compare.lead}
-    trailing=${trailing} footer=${answer.footer || (compare.active ? compare.footer : footer)} testid="write-screen">
+    center=${centerProgress ? progress : null} trailing=${trailing} footer=${answer.footer || (compare.active ? compare.footer : footer)} testid="write-screen">
     <div class="sz-write" ref=${writeRef} data-cursor=${session.cursor} data-phase=${phase} data-slot=${slot}
-      data-compact=${compact ? 'true' : 'false'} data-ax=${ax > 0 ? String(ax) : null} style=${{ paddingTop: `${groupTop}px` }}>
+      data-compact=${compact ? 'true' : 'false'} data-tight=${footCompact ? 'true' : null} data-ax=${ax > 0 ? String(ax) : null} style=${{ paddingTop: `${groupTop}px` }}>
       <${StepDots} phase=${phase} />
       <${Prompt} cardKey=${cardKey} queue=${session.queue} phase=${phase} />
       <div class="sz-write__gridwrap">
@@ -491,6 +502,7 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
         />`}
       </div>
       ${compare.active ? null : html`<div class="sz-write__below" style=${ax > 0 ? undefined : { width: `${gridSize}px` }} data-has-note=${hasNote ? 'true' : 'false'}>
+        ${toolRow}
         <span class="sz-write__note" data-testid="write-note">${noteNodes}</span>
       </div>`}
     </div>

@@ -27,6 +27,7 @@ injectStyles('page', `
 .sz-page__title:focus{outline:none}
 /* 页头不显示标题、只留给读屏（结果页即作品，P1-E7；不用 :has()，iOS 15.4 才认） */
 .sz-page__title--hidden{position:absolute;flex:none;left:auto;right:auto;margin:-1px;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.sz-page__center{flex:1 1 0;min-width:0;margin:0 ${T.s2};display:flex;align-items:center;justify-content:center;text-align:center;pointer-events:none} /* 页头中间的内容（写字页的进度「2 / 5」，A7）：和标题一样在两端槽之间居中 */
 .sz-page__lead,.sz-page__trail{flex:none;position:relative;z-index:1;min-width:44px;min-height:44px;display:flex;align-items:center}
 .sz-page__trail{justify-content:flex-end;font-size:${T.fs15};color:${T.ink2}}
 /* 页边对齐（H1 / T2-01）：页头两端的可见字形外缘落在 20pt 线上。图标按钮 44 × 44 保持点击区，用负外边距把图标描边外缘对到边线：
@@ -58,11 +59,12 @@ const CLOSE_ICON = () => Icons.close();
  * @param {'back'|'close'|'none'} [props.leading]  页头左侧：返回箭头 / 关闭 X / 空
  * @param {() => void} [props.onBack]  默认 nav.back()；写字页等要先保存现场的页面自己传
  * @param {any} [props.lead]  页头左侧自定义内容（给了就替换返回 / 关闭键，例如判断页的「接着写」，M1-5）
+ * @param {any} [props.center]  页头中间的内容（给了就占标题的位置，标题只留给读屏；写字页回忆阶段的进度，A7 / D57）
  * @param {any} [props.trailing]  页头右侧槽
  * @param {any} [props.footer]  底栏（主按钮等）
  * @param {string} [props.testid]
  */
-export function Page({ title = '', hideTitle = false, leading = 'back', onBack, lead: customLead = null, trailing = null, footer = null, testid, children }) {
+export function Page({ title = '', hideTitle = false, leading = 'back', onBack, lead: customLead = null, center = null, trailing = null, footer = null, testid, children }) {
   const goBack = () => (onBack ? onBack() : nav.back());
   useBackAction(customLead || leading === 'none' ? null : goBack);
   const lead = customLead ? customLead : leading === 'none'
@@ -72,7 +74,8 @@ export function Page({ title = '', hideTitle = false, leading = 'back', onBack, 
   return html`<div class="sz-page" data-testid=${testid}>
     <header class="sz-page__head">
       <span class="sz-page__lead">${lead}</span>
-      <h1 class=${hideTitle ? 'sz-page__title sz-page__title--hidden' : 'sz-page__title'} tabindex="-1" data-page-title>${title}</h1>
+      <h1 class=${hideTitle || center ? 'sz-page__title sz-page__title--hidden' : 'sz-page__title'} tabindex="-1" data-page-title>${title}</h1>
+      ${center ? html`<span class="sz-page__center">${center}</span>` : null}
       <span class="sz-page__trail">${trailing}</span>
     </header>
     <div class="sz-page__body">${children}</div>

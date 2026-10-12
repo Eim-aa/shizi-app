@@ -48,6 +48,7 @@ import { html, useEffect, useLayoutEffect, useRef, useState } from '../../../../
 import { nav } from '../../router.js';
 import { Button } from '../../components/Button.js';
 import { Confirm } from '../../components/Confirm.js';
+import { Icons } from '../../components/icons.js';
 import { injectStyles, T, TEX } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
 import { getStore, setInk } from '../../../store/store.js';
@@ -486,7 +487,7 @@ export function openAnswerSaveFailed({ slot, cardKey }) {
  * @param {() => void} [o.onShowAnswer]  点了「看答案」（写入前；写字页用来结束跳过的撤销机会，G3）
  * @param {number} [o.ax]  AX 档（1–5；0 = 不是 AX 档）：只影响描一遍主按钮的文案（P259）与字号；底栏所有字号都是「主按钮 + 一行文字按钮」（D55，write/foot.js），说明在格下说明位（note）
  * @param {boolean} [o.footCompact]  AX 档书写格仍放不下（P261 ②）：底栏主按钮字号封顶
- * @param {{button:any}|null} [o.end]  「结束这组」（write/end.js useEndGroup()）：picked 会话时文字行右端多一个文字按钮
+ * @param {{button:any}|null} [o.end]  （已不用：A7 起「结束这组」在页头右上，write/index.js，D57）
  * @returns {{active:boolean, link:any, show:Function, stage:any, glyphLayer:any, note:string, footer:any}}
  *   active：本流程接管底栏（answer / trace / retrace，或看过答案后的 recall）；
  *   link：回忆阶段「看答案」的文字按钮（回忆阶段文字行左组；动作是 show）；stage：恒为 null（看答案不换卡，答案衬底画在书写格参考字形层里，D51 ⑧）；
@@ -524,10 +525,10 @@ export function useAnswerFlow({ slot, session, cardKey, phase, strokeCount = 0, 
     openAnswerSaveFailed({ slot, cardKey });
   };
   const link = cardKey && phase === 'recall' && !answerSeen
-    ? html`<${Button} variant="text" data-testid="write-show-answer" onClick=${showAnswer}>${t('R-W07.btnShowAnswer')}</${Button}>`
+    ? html`<${LinkButton} testid="write-show-answer" icon=${Icons.answer()} label=${t('R-W07.btnShowAnswer')} onClick=${showAnswer} />`
     : null;
 
-  if (!active) return { active: false, link, show: showAnswer, stage: null, glyphLayer: null, note: '', footer: null };
+  if (!active) return { active: false, failed: false, link, show: showAnswer, stage: null, glyphLayer: null, note: '', footer: null };
 
   const missing = glyphStatus === 'missing';
   const stage = null; // 看答案不换卡（D51 ⑧）
@@ -556,14 +557,13 @@ export function useAnswerFlow({ slot, session, cardKey, phase, strokeCount = 0, 
 
   const next = () => run({ kind: 'next' });
   const toPhase = p => () => run({ kind: 'phase', phase: p });
-  // 底栏（所有字号同构，D55 / P260）：主按钮 + 一行文字按钮，各阶段同高；说明（答案说明 / 保存失败）在格下说明位，答案字永远不被说明盖住（A2-01）。
-  // 文字行：左 = 本阶段的次要路径（自己写 / 再描一遍 / 看答案），右端 = 离开动作（picked 会话的结束这组、下一个）；保存失败时主按钮「再试一次」、「先不保存」是文字行里的文字按钮。
-  const link2 = (testid, label, onClick) => html`<${Slot} testid=${testid + '-slot'}><${LinkButton} testid=${testid} label=${label} onClick=${onClick} /></${Slot}>`;
-  const endSlot = end && end.button && !failed ? html`<${Slot} testid="write-end-slot" cls="sz-write__endslot">${end.button}</${Slot}>` : null;
+  // 底栏（所有字号同构，A7 / D57 / P280）：求助行（主按钮正上方，凹面按钮）+ 主按钮，各阶段同高；说明（答案说明 / 保存失败）在格下说明位，答案字永远不被说明盖住（A2-01）。
+  // 求助行：左 = 本阶段的次要路径（自己写 / 再描一遍 / 看答案），右 =「下一个」（结束这组在页头右上）；保存失败时主按钮「再试一次」、「先不保存」在求助行。
+  const link2 = (testid, label, onClick, icon = null) => html`<${Slot} testid=${testid + '-slot'}><${LinkButton} testid=${testid} label=${label} icon=${icon} onClick=${onClick} /></${Slot}>`;
   const nextLink = link2('write-answer-next', t('R-W07.btnNext'), next);
   let primary;
   let left = null;
-  let right = html`${endSlot}`;
+  let right = null;
   if (failed) {
     primary = { testid: 'write-answer-fail-retry', label: t('R-W16.retry'), onClick: () => run(failNow) };
     left = link2('write-answer-fail-cancel', t('R-W16.cancel'), () => setFail(null));
@@ -571,20 +571,20 @@ export function useAnswerFlow({ slot, session, cardKey, phase, strokeCount = 0, 
   } else if (phase === 'answer') {
     primary = { testid: 'write-answer-trace', label: t('R-W07.btnTrace'), onClick: toPhase('trace') };
     left = link2('write-answer-self', t('R-W07.btnSelf'), toPhase('retrace'));
-    right = html`${endSlot}${nextLink}`;
+    right = nextLink;
   } else if (phase === 'trace') {
     primary = { testid: 'write-trace-done', label: traceDoneLabel(ax), disabled: strokeCount === 0, onClick: toPhase('retrace') };
-    right = html`${endSlot}${nextLink}`;
+    right = nextLink;
   } else if (phase === 'retrace') {
     primary = { testid: 'write-answer-next', label: t('R-W07.btnNext'), onClick: next };
     left = link2('write-retrace-trace', t('X-ANSWER.btnRetrace'), toPhase('trace'));
   } else {
     // 看过答案后的回忆阶段（只在恢复路径出现；原型 L544）
     primary = { testid: 'write-answer-next', label: t('R-W07.btnNext'), onClick: next };
-    left = link2('write-answer-show', t('R-W07.btnShowAnswer'), toPhase('answer'));
+    left = link2('write-answer-show', t('R-W07.btnShowAnswer'), toPhase('answer'), Icons.answer());
   }
   const lead = phase === 'answer' ? html`<span class="sz-answer__sr" role="img" aria-label=${answerLabel} data-testid="write-answer-char"></span>` : null;
   const axNote = phase === 'answer' ? noteAbove : note; // 「记为看过答案」只在这一处说（C3-R T3-05：第一次的预告句已删）
   const footer = html`<${WriteFoot} primary=${primary} left=${left} right=${right} testid="write-answer-foot" stage=${phase} failed=${failed} lead=${lead} compact=${footCompact} />`;
-  return { active: true, link, show: showAnswer, stage, glyphLayer, note: axNote, footer };
+  return { active: true, failed, link, show: showAnswer, stage, glyphLayer, note: axNote, footer };
 }

@@ -43,10 +43,20 @@ export const Icons = {
   /** 日历翻页（18 栅格，视觉 18）。 */
   prev: (o = {}) => frame({ box: 18, size: 18, ...o }, html`<path d="M11 4 6 9l5 5"></path>`),
   next: (o = {}) => frame({ box: 18, size: 18, ...o }, html`<path d="m7 4 5 5-5 5"></path>`),
-  /** 写字页页头的撤销（20 栅格，视觉 20；AX 档由样式放大到 28）。 */
+  /** 写字页格下的撤销（20 栅格，视觉 20；AX 档由样式放大到 24；A7 起不在页头）。 */
   undo: (o = {}) => frame({ box: 20, size: 20, ...o }, html`<path d="M7 5 3.5 8.5 7 12M4 8.5h8a4.5 4.5 0 0 1 0 9H9"></path>`),
-  /** 写字页页头的清空（20 栅格，视觉 20；AX 档由样式放大到 28）。 */
+  /** 写字页格下的清空（20 栅格，视觉 20；AX 档由样式放大到 24）。 */
   clear: (o = {}) => frame({ box: 20, size: 20, ...o }, html`<path d="M4 6h12M8 6V4h4v2M6 6l.8 10h6.4L14 6"></path>`),
+  /** 写字页求助行「看答案」的图标（A7，D57）：格中一字（20 栅格）。 */
+  answer: (o = {}) => frame({ box: 20, size: 18, ...o }, html`<rect x="2.75" y="2.75" width="14.5" height="14.5"></rect><path d="M6.5 8.2h7M10 5.6v9M6.6 14.2l6.6-1.3"></path>`),
   /** 列表行尾的 chevron（8 × 13，纯装饰）。 */
   chevron: (o = {}) => frame({ box: '0 0 8 13', ...o }, html`<path d="M1.5 1.5 6.5 6.5l-5 5"></path>`),
+};
+
+/** 实心图标（不是线形）：写字页求助行「提示」的一点起笔（A7，D57；设计稿 i-hint）。不进 Icons——Icons 里的都是 1.5 线宽线形，test/ui/icons.test.mjs 逐个核对。 */
+export const SolidIcons = {
+  hint: (o = {}) => {
+    const { box = 20, size = 18, cls = '' } = o;
+    return html`<svg viewBox=${`0 0 ${box} ${box}`} width=${size} height=${size} class=${cls || undefined} fill="currentColor" aria-hidden="true" focusable="false"><path d="M6.2 3.6c3.6 1.2 7.2 4.5 8.4 9 .4 1.6-.9 2.6-2.3 1.8C9.6 12.8 7.6 9.4 5.4 5.4 4.9 4.3 5.3 3.3 6.2 3.6z"></path></svg>`;
+  },
 };

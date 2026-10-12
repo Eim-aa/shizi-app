@@ -33,6 +33,7 @@ import { watchStrokes, peekStrokes } from '../../../data/strokes.js';
 import { mediansInBox, prefersReducedMotion } from '../../canvas/glyph.js';
 import { GlyphWash } from '../../canvas/glyph-wash.js';
 import { Button } from '../../components/Button.js';
+import { SolidIcons } from '../../components/icons.js';
 import { injectStyles, T } from '../../components/styles.js';
 import { NoHintLabel } from './glyph-fallback.js';
 
@@ -335,7 +336,7 @@ export function HintButton({ model, onHint, testid = 'write-hint' }) {
   if (!model || model.kind === 'hidden') return null;
   if (model.kind === 'unavailable') return html`<${NoHintLabel} testid="write-hint-unavailable" />`;
   return html`<${Button} variant="text" class="sz-hintbtn" data-testid=${testid} data-state=${model.kind}
-    data-remaining=${model.remaining} aria-label=${model.label} disabled=${!!model.disabled} onClick=${onHint}>${model.text}</${Button}>`;
+    data-remaining=${model.remaining} aria-label=${model.label} disabled=${!!model.disabled} onClick=${onHint}><span class="sz-write__ic" aria-hidden="true">${SolidIcons.hint()}</span>${model.text}</${Button}>`;
 }
 
 /** 格下说明（带 --o 小圆点）。note = hintNoteModel(...)。 */

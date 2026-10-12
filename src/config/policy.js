@@ -216,6 +216,7 @@ export const writeGrid = Object.freeze({
   sideMargin: 20, // P118 格子距屏幕左右边缘至少 20pt（屏宽 − 40；设计系统 v1 页边 20，P1-E1b 由 16 改）
   promptGap: 16, // P118 题面到书写格的间距（pt；D49 实现交接 §13.1，P1-E1b 的 24 改 16）
   toolsHeight: 40, // P118 格下说明位高度（pt；D49 实现交接 §13.1 原是「说明 + 撤销 / 清空图标」工具行，P258 起撤销 / 清空在页头，只剩说明位）
+  toolRowHeight: 48, // P280（D57，A7）格下工具行 = 离格 4 + 撤销 / 清空 44（图标加文字，贴格左右沿）；格下总高 = toolRowHeight + toolsHeight（说明位仍在工具行下面）
   axMin: 220, // P225 AX 档书写格边长下限（pt；D51 ⑦：258 → 220，SE 3 的 AX5 也放得下，格子完整可写好过大格子被盖住）
   axNoteHeight: 56, // P225 / P241 AX 档格下说明位的最小高度（pt；R3-K1 起按量到的实际高度排，格子缩到 axMin 仍放不下时见 P261 的让步顺序，R4-F1 起没有「⋯」菜单）
   // P243（R3-K1，第三轮审查 A3-03）AX 档辅助字分层封顶（pt）：[AX1–AX2, AX3–AX5]；取代 P225 一律 17 的 axAuxMax。题面汉字（52 × min(k, 1.6) 的格、字面 80%）仍最大。
@@ -235,7 +236,7 @@ export const writeGrid = Object.freeze({
   // E9d（P195，D29 / D36）：书写格边长 g 只由视口决定、不随系统字号变——g 用「标准字号（L 档）下的名义版式」算：名义页头高（不含状态栏）、名义按钮行高（上 12 + 主按钮 54，P258 起底栏只有一行，不含下安全区）、
   // 名义题面高、名义说明位高，再加量到的安全区（状态栏、下安全区与字号无关）。组的垂直位置（top）仍按实际量到的高度排。
   nominalHead: 44, // P195 名义页头高（pt，L 档，不含上安全区）
-  nominalFoot: 116, // P195 / P260 名义按钮行高（pt，L 档：上 12 + 主按钮 54 + 间 6 + 文字行 44；不含下安全区 / 下内边距；P258 曾改成 66，R4-F1 恢复）
+  nominalFoot: 134, // P195 / P260 / P280 名义按钮行高（pt，L 档：上 12 + 求助行 48 + 间 20 + 主按钮 54；不含下安全区 / 下内边距；A7：求助下到「写好了」正上方 20，D57）
   footBottomMin: 8, // P195 / P260 按钮行下内边距下限（pt，= max(8, 下安全区)；P258 曾改成 24，R4-F1 恢复）
   nominalPrompt: 80, // P195 名义题面高（pt，L 档：拼音行 24 + 间 4 + 题面格 52）
 });
@@ -253,6 +254,26 @@ export const motion = Object.freeze({
   hintFadeInMs: 150, // P210 提示整组淡入（ms，D34 / D51 ⑧：网页阶段不逐笔写出）；hint-layer.js HINT_FADE_IN_MS
   answerRevealMs: 400, // P210 看答案时答案衬底显影（ms，求助梯子设计稿 I2-02；减少动态效果直接显示）；answer.js ANSWER_REVEAL_MS
   stepPlayMaxMs: 1600, // P210 描一遍前笔顺快放总时长上限（ms，含起始淡化与笔间隔；落笔 / 点一下即到终态）；glyph.js playbackPlan
+});
+// P282–P284 写字页进出动效（W2，D57；设计稿「写字页与我的.html」B 节，B1 按钮长成这张纸 / B3 安静淡入）。进出共用同一个进度 s（1 = 写字页，0 = 来源）：点按时 s 按曲线走，
+// 左缘右滑时 s = 1 − 手指进度 p 逐帧跟手（src/ui/paper-transition.js，由 root.js 的 BACK_TRANSITION 接上 router 的进度接口）。曲线是 cubic-bezier 的四个控制点。
+export const paperTransition = Object.freeze({
+  openMs: 420, // P282 B1 进入时长（ms）：按钮长成整张纸；曲线 openEase
+  closeMs: 360, // P282 B1 退出时长（ms）：纸收回按钮；曲线 closeEase
+  openEase: Object.freeze([0.3, 0, 0.1, 1]), // P282 B1 进入曲线（起步稍慢，让人看得见按钮在长）
+  closeEase: Object.freeze([0.2, 0.7, 0.2, 1]), // P282 B1 退出 / 松手完成 / 取消回弹的曲线
+  fullMs: 300, // P282 左缘右滑松手完成：从当前位置继续收进按钮，时长 fullMs × 剩余进度 s（至少 minFinishMs）
+  minFinishMs: 120, // P282 松手完成的最短时长（ms）
+  cancelMs: 220, // P282 松手取消：长回整屏的时长（ms）
+  dragLeanPt: 60, // P282 跟手时纸往右偏的最大量 sin(π·p) × 60（pt）
+  dragRadiusPt: 24, // P282 跟手开始时纸的圆角（pt），随进度收到按钮的圆角
+  contentFadeFrom: 0.6, // P282 写字页内容在 s 从 0.6 起淡入（到 1 满）
+  quietOpenMs: 220, // P283 B3 安静淡入进入时长（ms）：没有来源按钮的入口（通知、字库「练这个字」、自选字等）
+  quietCloseMs: 180, // P283 B3 退出时长（ms）
+  quietScaleFrom: 0.96, // P283 B3 写字页从 0.96 放大到 1
+  quietDragPt: 40, // P283 B3 左缘右滑时页面跟手右移的最大量（pt）= (1 − s) × 40
+  reducedMs: 150, // P284 减少动态效果：进、出、左缘右滑完成一律 150ms 交叉淡化，不缩放、不位移
+  sourceFreshMs: 2000, // P282 点来源按钮到页面真正推入之间最多隔多久仍算「从这个按钮来」（ms，超过按没有来源走 B3）
 });
 
 // ---- 查字 / 字库 ----

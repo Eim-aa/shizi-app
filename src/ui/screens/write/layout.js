@@ -1,4 +1,6 @@
 // 写字页 / 判断页的竖向位置与格子边长（阶段 1 E9b；D49 减法修稿；实现交接 §13.2、§9.1、§9.4；P118 / P151 / P190；E9d P195）。
+// A7（D57，P280）：撤销 / 清空回到格下（离格 4、高 44，图标加文字），说明位在它下面，所以下文的「说明位高 T」现在是格下总高 T = 48 + 40 = 88（AX 档 N 至少 48 + 56 = 104）；
+// 提示 / 看答案是主按钮正上方 20 的一行（名义按钮行 = 12 + 48 + 20 + 54 = 134），跳过进页头右上。
 //
 // 主区 = 页头底 → 按钮行顶 − 12（正文区 .sz-page__body，上下内边距 0）。题面（高 P）、16、书写格（边长 g）、格下说明位（高 T）作为一组放在主区里：
 //   g    = clamp(258, min(屏宽 − 40, 400, 名义主区高 − 80 − 16 − 40 − 16), 400)    D29 / D36 / P195：只由视口决定——名义主区高 = 页面高 − 名义页头 − 名义按钮行（标准字号 L 档的尺寸 + 量到的安全区），
@@ -32,10 +34,15 @@ export const GRID_MIN = policy.writeGrid.min;
 export const GRID_MAX = policy.writeGrid.max;
 /** 题面到书写格的间距、格下工具行高（标准）、书写格组到按钮行的最小空隙、组顶的上空余占比与下限。 */
 export const PROMPT_GAP = policy.writeGrid.promptGap;
-export const TOOLS_H = policy.writeGrid.toolsHeight;
+/** 格下撤销 / 清空行（离格 4 + 按钮 44，A7，P280）、格下说明位、两者合计（= 格下总高）。 */
+export const TOOL_ROW_H = policy.writeGrid.toolRowHeight;
+export const NOTE_H = policy.writeGrid.toolsHeight;
+export const TOOLS_H = TOOL_ROW_H + NOTE_H;
 /** AX 档：书写格边长下限、格下说明位固定高度（P225）。 */
 export const AX_GRID_MIN = policy.writeGrid.axMin;
 export const AX_NOTE_H = policy.writeGrid.axNoteHeight;
+/** AX 档格下总高的最小值：撤销 / 清空行 + 说明位（A7，P280）。 */
+export const AX_BELOW_H = TOOL_ROW_H + AX_NOTE_H;
 export const BOTTOM_GAP = policy.writeGrid.bottomGap;
 export const TOP_SHARE = policy.writeGrid.topShare;
 export const TOP_MIN = policy.writeGrid.topMin;
@@ -120,17 +127,17 @@ export function writeLayout({ width, mainHeight, nominalHeight = mainHeight, pro
 
 /**
  * AX 档书写格边长（D51 ⑦，P225；R3-K1 P241 说明位按实际高度；R4-F1 P261 底栏带文字行；R4-P1 P278 让步只剩封顶主按钮；纯函数）：按实际可用高度，格子与格下说明位都完整显示在首屏、永不滚动。
- * N = max(AX_NOTE_H, noteHeight)：格下说明位的实际高度（写字页量到的，说明折成三行就是三行的高度，不再假定固定 56）。
+ * N = max(AX_BELOW_H, noteHeight)：格下的实际高度 = 撤销 / 清空行 48 + 说明位（写字页量到的，说明折成三行就是三行的高度；A7 起撤销 / 清空回到格下，P280）。
  * g = clamp(AX_GRID_MIN, min(屏宽 − 40, 400, 实际主区高 − P − 16 − N − 16), 400)；实际主区高是量到的（底栏有几行，它就小多少）。
  * tight：格子（不夹下限）低于 AX_GRID_MIN——写字页据此把底栏主按钮字号封顶 34pt（P261 / P278），主区变高后 tight 自然消失；仍 tight 时 g 取下限，fits=false（整组超出主区）。
  * @param {{width:number, mainHeight:number, promptHeight?:number, noteHeight?:number}} o
  * @returns {{g:number, top:number, gridTop:number, toolsHeight:number, fits:boolean, tight:boolean}}
  */
-export function axWriteLayout({ width, mainHeight, promptHeight = PROMPT_H_STD, noteHeight = AX_NOTE_H } = {}) {
+export function axWriteLayout({ width, mainHeight, promptHeight = PROMPT_H_STD, noteHeight = AX_BELOW_H } = {}) {
   const hasW = finite(width) && width > 0;
   const hasH = finite(mainHeight) && mainHeight > 0;
   const w = contentWidth(width);
-  const note = Math.max(AX_NOTE_H, finite(noteHeight) ? Math.ceil(noteHeight) : AX_NOTE_H);
+  const note = Math.max(AX_BELOW_H, finite(noteHeight) ? Math.ceil(noteHeight) : AX_BELOW_H);
   const room = hasH ? mainHeight - promptHeight - PROMPT_GAP - note - BOTTOM_GAP : Infinity;
   const raw = Math.floor(Math.min(w, GRID_MAX, room));
   const tight = hasH && raw < AX_GRID_MIN;

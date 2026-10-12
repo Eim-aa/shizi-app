@@ -50,13 +50,13 @@ export default async function run(page, ctx) {
   });
   assert.deepEqual(home, { role: 'status', live: 'polite', text: '' }, 'home: an empty status region is already there');
 
-  step('P2-20 + P1-39: until the seal has landed the result page footer and body are inert (nothing invisible can be reached), afterwards they are not; the empty live region is there from the start');
+  step('P2-20 + P1-39: until the seal has landed the result page footer and body are not reachable (nothing invisible can be reached), afterwards they are not; the empty live region is there from the start');
   await seedEndedGroup(page, { chars: [{ c: '静' }, { c: '永', judgment: 'wrong' }, { c: '和' }] });
   await page.evaluate(async () => {
     window.__sawInert = false;
     const mo = new MutationObserver(() => {
       const foot = document.querySelector('.sz-layer[data-top="true"] .sz-page[data-testid="result-screen"] .sz-page__foot');
-      if (foot && foot.hasAttribute('inert') && document.querySelector('.sz-layer[data-top="true"] .sz-page[data-late="pending"]')) window.__sawInert = true;
+      if (foot && getComputedStyle(foot).visibility === 'hidden' && document.querySelector('.sz-layer[data-top="true"] .sz-page[data-late="pending"]')) window.__sawInert = true;
     });
     mo.observe(document.body, { subtree: true, attributes: true, childList: true });
     window.__moInert = mo;
@@ -69,8 +69,8 @@ export default async function run(page, ctx) {
   });
   assert.deepEqual(live, { role: 'status', text: '' }, 'result: an empty status region is already there');
   await page.waitForFunction(() => !document.querySelector('.sz-layer[data-top="true"] .sz-page[data-late]'), null, { timeout: 8000 });
-  assert.equal(await page.evaluate(() => window.__sawInert), true, 'the footer was inert while the seal had not landed yet');
-  assert.equal(await page.evaluate(() => document.querySelector('.sz-layer[data-top="true"] .sz-page__foot').hasAttribute('inert')), false, 'and is live afterwards');
+  assert.equal(await page.evaluate(() => window.__sawInert), true, 'the footer was hidden from reach (visibility:hidden) while the seal had not landed yet');
+  assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector('.sz-layer[data-top="true"] .sz-page__foot')).visibility === 'hidden'), false, 'and is live afterwards');
   await page.evaluate(() => window.__moInert.disconnect());
   await page.evaluate(async () => (await import('/src/ui/router.js')).nav.back());
   await waitNavIdle(page);

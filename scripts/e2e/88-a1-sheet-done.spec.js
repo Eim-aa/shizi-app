@@ -144,12 +144,12 @@ export default async function run(page0, ctx) {
       const { ClearSheet } = await import('/src/ui/screens/mine/backup.js');
       nav.openOverlay(ClearSheet, { n: 3, failed: false, onConfirm() {} }, { name: 'a1-clear' });
       await new Promise(r => setTimeout(r, 450));
-      const sheet = document.querySelector('.sz-sheet[data-testid="backup-clear-sheet"]');
-      const out = { dismiss: sheet && sheet.dataset.dismiss, done: !!(sheet && sheet.querySelector('[data-testid="sheet-done"]')), cancel: !!(sheet && sheet.querySelector('[data-testid="backup-clear-cancel"]')) };
+      const sheet = document.querySelector('.sz-confirm[data-testid="backup-clear-sheet"]');
+      const out = { confirm: !!sheet, done: !!(sheet && sheet.querySelector('[data-testid="sheet-done"]')), cancel: !!(sheet && sheet.querySelector('[data-testid="backup-clear-cancel"]')) };
       nav.back();
       return out;
     });
-    assert.deepEqual(own, { dismiss: 'own', done: false, cancel: true }, `${v.tag}: clear sheet keeps its own visible cancel`);
+    assert.deepEqual(own, { confirm: true, done: false, cancel: true }, `${v.tag}: the clear dialog is the shared Confirm with its own visible cancel (I3 P1-20)`);
     await waitNavIdle(page);
   }
 }

@@ -642,20 +642,6 @@ function ResultScreen({ params, entry }) {
     else page.setAttribute('data-late', 'pending');
     return () => page.removeAttribute('data-late');
   }, [landed]);
-  // 落印前的底栏与正文只是 opacity 0：读屏和键盘仍能摸到看不见的按钮——这段时间标成 inert（I3 · P2-20，规范 A2）。每次渲染都对一次（内容可能在这期间重画）。
-  useLayoutEffect(() => {
-    const root = rootRef.current;
-    const page = root && root.closest ? root.closest('.sz-page') : null;
-    if (!root || !page) return undefined;
-    const foot = page.querySelector('.sz-page__foot');
-    const hidden = [...root.children].filter(el => !el.classList.contains('sz-work'));
-    if (foot) hidden.push(foot);
-    for (const el of hidden) {
-      if (landed) el.removeAttribute('inert');
-      else el.setAttribute('inert', '');
-    }
-    return () => { for (const el of hidden) el.removeAttribute('inert'); };
-  });
   useEffect(() => { installCommitFeedback(getStore); }, []); // M5-5：结果页的改判断 / 撤销跳过 / 补写结束也发触觉（刷新后直接停在本页时写字页没挂过）
 
   // 写完但还在槽里（结束写入失败 / 刷新打断）→ 补写结束（幂等）。
@@ -742,7 +728,9 @@ function ResultScreen({ params, entry }) {
     footer = html`<${Button} variant="primary" data-testid="result-again" onClick=${again}>${t('X-RESULT.again')}</${Button}>
       <span class="sz-result__ghost" aria-hidden="true"></span>`;
   } else {
-    footer = html`<${Button} variant="primary" data-testid="result-leave" onClick=${leave}>${model.leave.label}</${Button}>`;
+    // 主按钮行与其它变体同一位置（文字行留空，P1-15：ghost 行对所有变体生效）
+    footer = html`<${Button} variant="primary" data-testid="result-leave" onClick=${leave}>${model.leave.label}</${Button}>
+      <span class="sz-result__ghost" aria-hidden="true"></span>`;
   }
 
   const imageAction = hooks.image;

@@ -7340,6 +7340,7 @@ src/ui/components/Button.js
 src/ui/components/Chevron.js
 src/ui/components/Confirm.js
 src/ui/components/FailBlock.js
+src/ui/components/LiveRegion.js
 src/ui/components/Page.js
 src/ui/components/PracticeGlyph.js
 src/ui/components/Sheet.js
@@ -7368,6 +7369,7 @@ src/ui/dev/glyph-demo.js
 src/ui/dev/palette.js
 src/ui/dev/pointer-stats.js
 src/ui/edge-swipe.js
+src/ui/image-quick.js
 src/ui/images-annual.js
 src/ui/images-entry.js
 src/ui/overlay-gesture.js

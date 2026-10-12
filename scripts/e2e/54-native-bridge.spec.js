@@ -121,7 +121,7 @@ export default async function nativeBridge(page, ctx) {
     await page.waitForSelector('.sz-app');
     return page.evaluate(async mod => {
       const { t } = await import(mod);
-      return { notBackup: t('R-B06.notBackup'), cancelled: t('R-B06.cancelled') };
+      return { notBackup: t('R-B06.notBackup') };
     }, COPY_MOD);
   })();
 
@@ -240,7 +240,7 @@ export default async function nativeBridge(page, ctx) {
     { run: () => page.evaluate(() => window.shiziBackupRejected({ reason: 'invalid' })), kind: 'notBackup', text: copy.notBackup, label: 'invalid' },
     { run: () => page.evaluate(() => window.shiziBackupRejected({ reason: 'tooLarge' })), kind: 'notBackup', text: copy.notBackup, label: 'tooLarge' },
     { run: () => page.evaluate(() => window.shiziBackupPicked('this is not json')), kind: 'notBackup', text: copy.notBackup, label: 'picked non-backup text' },
-    { run: () => page.evaluate(() => window.shiziBackupRejected({ reason: 'cancelled' })), kind: 'cancelled', text: copy.cancelled, label: 'cancelled' },
+    { run: () => page.evaluate(() => window.shiziBackupRejected({ reason: 'cancelled' })), kind: 'cancelled', text: null, label: 'cancelled' },
   ];
   for (const c of cases) {
     const picks = (await msgs(page, 'pickBackup')).length;
@@ -248,8 +248,13 @@ export default async function nativeBridge(page, ctx) {
     assert.equal((await msgs(page, 'pickBackup')).length, picks + 1, `${c.label}: posted pickBackup`);
     assert.equal(await note(page), null, `${c.label}: note cleared while the native picker is up`);
     assert.equal(await c.run(), true, `${c.label}: global returned true`);
-    n = await waitNote(page, c.kind);
-    assert.equal(n.text, c.text, `${c.label} → ${c.kind}`);
+    if (c.kind === 'cancelled') {
+      await page.waitForTimeout(200);
+      assert.equal(await note(page), null, 'I3 P0-12: cancelling the picker shows nothing');
+    } else {
+      n = await waitNote(page, c.kind);
+      assert.equal(n.text, c.text, `${c.label} → ${c.kind}`);
+    }
     await waitNavIdle(page);
   }
   assert.equal(chooser.length, 0, 'no web file chooser inside the native shell');

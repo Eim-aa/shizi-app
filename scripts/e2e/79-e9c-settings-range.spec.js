@@ -60,9 +60,6 @@ export default async function (page, ctx) {
   await page.waitForSelector(topSel('libswitch-screen'));
   await waitNavIdle(page);
   await page.click(`${topSel('libswitch-row')}[data-lib="rare"]`);
-  await page.waitForSelector(topSel('libswitch-confirm'));
-  await waitNavIdle(page);
-  await page.click(topSel('libswitch-ok'));
   await page.waitForFunction(() => document.querySelector('.sz-app').dataset.topScreen === 'settings');
   await waitNavIdle(page);
   assert.equal(await page.textContent(topSel('settings-library-value')), '规范专门用字', 'back in settings the row shows the new library');

@@ -100,9 +100,9 @@ injectStyles('result-work', `
 .sz-work__kuan--in{animation:szWorkKuanIn ${KUAN_IN_MS}ms ${T.eOut} both}
 .sz-seal--land{animation:szResultSeal ${M.moment.sealDrop}ms ${T.eOut} both}
 /* 先只显示作品：印落下后，标题、各行、复现句、邀请与底栏 150ms 淡入（ResultScreen 写 data-late） */
-.sz-result[data-late="pending"]>:not(.sz-work){opacity:0;pointer-events:none}
+.sz-result[data-late="pending"]>:not(.sz-work){opacity:0;pointer-events:none;visibility:hidden} /* visibility:hidden：读屏和键盘也摸不到还没出现的按钮（I3 · P2-20；inert 要 iOS 15.5，API 下限 15.0） */
 .sz-result:not([data-late])>:not(.sz-work){transition:opacity ${M.moment.resultLateIn}ms ${T.eOut}}
-.sz-page[data-late="pending"] .sz-page__foot{opacity:0;pointer-events:none}
+.sz-page[data-late="pending"] .sz-page__foot{opacity:0;pointer-events:none;visibility:hidden}
 .sz-page[data-testid="result-screen"]:not([data-late]) .sz-page__foot{transition:opacity ${M.moment.resultLateIn}ms ${T.eOut}}
 @media (prefers-reduced-motion: reduce){.sz-result:not([data-late])>:not(.sz-work),.sz-page[data-testid="result-screen"]:not([data-late]) .sz-page__foot{transition-duration:${T.dReduce};transition-timing-function:${T.eLinear}}} /* 减少动态效果：不演显现与落印（shouldPlayReveal，T1 直接终态），触觉与 s1 照发 */
 .sz-exrows{display:flex;flex-direction:column;margin-top:28px}

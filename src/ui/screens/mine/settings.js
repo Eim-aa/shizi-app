@@ -14,8 +14,7 @@
 //         「写完提示做成图片」按 P13（features.photoHint=false）删除，不画。
 //   显示：外观（右侧「{浅色|深色|跟随系统} ›」；点开底部弹层三选，R-S03 / 边改 V01；P51 features.appearanceSwitch；开关关掉时整组不画）。
 //         「更大字体」开关与 R-S04 说明按 D29（覆盖 P59）删除：字号跟随手机的系统字号（platform/text-size.js，P130）。
-//         settings.large 只保留读取兼容、不再生效；v1 迁移带来的 large=true 在启动后由 showTextSizeNoticeOnce 显示一次
-//         「文字大小跟随手机设置…」（X-SETTINGS.textSizeNotice，P132 过渡文案），显示后从 settings 去掉 large（= 记下不再显示）。
+//         settings.large 只保留读取兼容、不再生效；v1 迁移带来的 large=true 在启动后由 clearLegacyLargeFlag 静默去掉（D58 / I3 P0-13：不再弹说明）。
 //   数据：备份与恢复（右侧「上次备份 {date} ›」/「还没有备份 ›」，R-M03；→ 已注册的 'backup' 屏，M4-4）。
 //
 // 写入：一律 store.commit（01 §4），每次只改 settings 一个键、保留其余字段；值没变不写。
@@ -56,7 +55,6 @@ import { localDay, monthDayParts } from '../../../core/dates.js';
 import { libraryName } from '../library/index.js';
 import * as policy from '../../../config/policy.js';
 import { t } from '../../../config/copy/index.js';
-import { showToast } from '../../components/Toast.js';
 import { FailBlock as SharedFailBlock } from '../../components/FailBlock.js';
 import { WRITE_MODES, writeModeOf } from '../../../core/paper.js';
 
@@ -72,7 +70,7 @@ export const LABELS = Object.freeze({
   permission: 'settings:remind-permission',
   appearance: 'settings:appearance',
   writeMode: 'settings:write-mode',
-  textSizeNotice: 'settings:text-size-notice',
+  textSizeNotice: 'settings:text-size-notice', // 静默去掉旧 large 字段的提交标签
 });
 
 // 按键音缺省开：原型 ShiziScreen L463 SD.sound=true（旧版 shizi.sound.v1 也缺省开）。
@@ -610,17 +608,14 @@ function SettingsScreen() {
   </${Page}>`;
 }
 
-// ---------------------------------------------------------------- 旧「更大字体」的一次说明（D29 / P132）
+// ---------------------------------------------------------------- 旧「更大字体」字段的静默清理（D29 / P132；D58 起不再弹说明）
 
-/** 说明显示时长（ms）：比普通轻提示（3.2s）长，句子有两段（P132 过渡值）。 */
-export const TEXT_SIZE_NOTICE_MS = 6000;
-
-/** 要不要显示「文字大小跟随手机设置」：settings.large 仍为 true（v1 迁移带来、或旧版 App 内开关打开过，还没显示过）。 */
+/** settings.large 是否还留着（v1 迁移带来、或旧版 App 内开关打开过）。 */
 export function textSizeNoticeDue(settings) {
   return !!settings && settings.large === true;
 }
 
-/** 记下已显示：从 settings 去掉不再生效的 large（其余字段不动）。 */
+/** 从 settings 去掉不再生效的 large（其余字段不动）。 */
 export function commitTextSizeNoticeShown(store) {
   return store.commit(LABELS.textSizeNotice, draft => {
     const next = { ...(draft.settings || {}) };
@@ -630,10 +625,10 @@ export function commitTextSizeNoticeShown(store) {
 }
 
 /**
- * 启动后（app.js，迁移与挂 UI 之后）调用一次：需要时显示说明并记下，下次启动不再显示。
- * 写入失败只是下次再显示一次。返回是否显示了。
+ * 启动后（app.js，迁移与挂 UI 之后）调用一次：settings.large 还在就静默去掉，什么都不显示（I3 · P0-13；规范 F3：不可操作的提示不出现）。
+ * 写入失败只是下次启动再试一次。返回是否去掉了。
  */
-export function showTextSizeNoticeOnce({ getStore: storeOf = getStore, show = showToast } = {}) {
+export function clearLegacyLargeFlag({ getStore: storeOf = getStore } = {}) {
   let store = null;
   try {
     store = storeOf();
@@ -641,13 +636,12 @@ export function showTextSizeNoticeOnce({ getStore: storeOf = getStore, show = sh
     return false;
   }
   if (!store || !textSizeNoticeDue(store.getState().settings)) return false;
-  show(t('X-SETTINGS.textSizeNotice'), { kind: 'legacy', audit: 'P0-13', duration: TEXT_SIZE_NOTICE_MS }); // 交互合规待修 P0-13（I3 删除这条说明）
   try {
-    commitTextSizeNoticeShown(store);
+    return commitTextSizeNoticeShown(store).ok !== false;
   } catch (error) {
-    if (typeof console !== 'undefined') console.warn('[shizi] text size notice not recorded:', error);
+    if (typeof console !== 'undefined') console.warn('[shizi] legacy large flag not cleared:', error);
+    return false;
   }
-  return true;
 }
 
 /** 从「我的」菜单进入设置（M4-1）。 */

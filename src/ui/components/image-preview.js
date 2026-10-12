@@ -3,7 +3,7 @@
 //
 // 版式（交接 §5.3）：底部弹层，头「标题 / 完成」；预览 = 导出图本身（永远是浅纸，不随主题）；比例分段 3:4 / 1:1（默认按 D47：1–3 字 1:1，
 //   4 字以上 3:4）；「也放进来」只列有墨的写错字（chip：小格 + 「{字} · 写错」，选中 = 已放进来，带朱点）；底部「分享」（次）/「保存图片」（主），
-//   保存成功轻提示「存好了」。删除「存下来的是图片，不能用来恢复记录」（DQ6）。
+//   保存成功不提示：保存键原地变「已存好」（I3 · P0-07）。删除「存下来的是图片，不能用来恢复记录」（DQ6）。
 // 超过 80 字（D39）：预览横向翻页 + 页点，说明「{n} 个字，存成 {m} 张，每张不超过 80 字。」，主按钮「保存 {m} 张图片」；「分享」分享当前这一张。
 // 年报（D46 ⑦）：默认册页（卷首 + 每月 + 卷尾，每张 3:4），主按钮「保存 {n} 张图片」；文字按钮「存成一张长图」（宽 1440，不受 80 字上限）。
 //
@@ -24,7 +24,6 @@
 import { html, useEffect, useLayoutEffect, useRef, useState } from '../../../vendor/ui.js';
 import { Sheet } from './Sheet.js';
 import { Button, markStateChange } from './Button.js';
-import { showToast } from './Toast.js';
 import { FailBlock } from './FailBlock.js';
 import { onShareFailed, shareFailedText } from './share-failed.js';
 import { CellCanvas } from './work.js';
@@ -44,6 +43,8 @@ export const PREVIEW_BOX = Object.freeze({ '3:4': { width: 225, height: 300 }, '
 export const PREVIEW_SCALE_MANY = 0.4;
 /** 原生壳是否已经接受 JPEG（WebViewController.imageData 认 PNG 与 JPEG；阶段 1 Q2-6 放开，P162）。 */
 export const NATIVE_ACCEPTS_JPEG = true;
+/** 保存成功后，保存键显示「已存好」的时长（ms；成功不弹提示，状态在按钮上原地变化，I3 · P0-07 / 规范 F5）。 */
+export const SAVED_FLASH_MS = 1500;
 
 injectStyles('image-preview', `
 .sz-img{display:flex;flex-direction:column;gap:16px}
@@ -229,6 +230,12 @@ export function ImagePreview({ job, close, active = true, share = shareImageFile
   const renderSeq = useRef(0);
   const version = useJobVersion(job);
 
+  useEffect(() => {
+    if (saveState !== 'saved') return undefined;
+    const timer = setTimeout(() => setSaveState(s => (s === 'saved' ? 'idle' : s)), SAVED_FLASH_MS);
+    return () => clearTimeout(timer);
+  }, [saveState]);
+
   const draw = r => {
     const seq = (renderSeq.current += 1);
     Promise.resolve()
@@ -338,9 +345,8 @@ export function ImagePreview({ job, close, active = true, share = shareImageFile
     setBusy(null);
     markStateChange();
     if (res && res.ok) {
-      setSaveState('saved');
+      setSaveState('saved'); // 成功不提示（F5）：保存键原地变「已存好」，约 1.5 秒后恢复
       setFail(null);
-      showToast(t('X-WORK.saved'), { kind: 'legacy', audit: 'P0-07' }); // 交互合规待修 P0-07（I3 删除这条成功提示）
     } else {
       setSaveState('failed');
       setFail({ kind: 'save', reason: (res && res.reason) || 'download' });
@@ -394,13 +400,14 @@ export function ImagePreview({ job, close, active = true, share = shareImageFile
   const disabled = !ready || !!busy;
   const placeholders = !ready ? 1 : total;
   const saveLabel = total > 1 ? t('X-WORK.saveMany', { m: total }) : t('X-IMAGES.save');
-  const mainSave = slowBusy && (busy === 'save' || busy === 'long') ? t('X-IMAGES.saving') : job.saveLabel ? job.saveLabel(total) : saveLabel;
+  const justSaved = saveState === 'saved';
+  const mainSave = slowBusy && (busy === 'save' || busy === 'long') ? t('X-IMAGES.saving') : justSaved ? t('X-IMAGES.saved') : job.saveLabel ? job.saveLabel(total) : saveLabel;
   const shareLabel = slowBusy && busy === 'share' ? t('X-IMAGES.rendering') : t('R-B10.share');
   const actions = fail
     ? html`${FailBlock({ testid: 'image-fail', layout: 'dialog', text: failText(fail), cancelLabel: fail.kind === 'share' ? t('X-IMAGES.shareStay') : t('R-W16.cancel'), retryTestid: fail.kind === 'share' ? 'image-share-retry' : 'image-retry', retryLabel: t('X-IMAGES.retry'), busy: disabled, onCancel: () => { setFail(null); setSaveState('idle'); markStateChange(); }, onRetry: fail.kind === 'share' ? onShare : onSave })}`
     : html`<div class="sz-img__two">
         <${Button} variant="secondary" data-testid="image-share" disabled=${disabled} onClick=${onShare}>${shareLabel}</${Button}>
-        <${Button} variant="primary" data-testid="image-save" disabled=${disabled} onClick=${onSave}>${mainSave}</${Button}>
+        <${Button} variant="primary" data-testid="image-save" disabled=${disabled || justSaved} onClick=${onSave}>${mainSave}</${Button}>
       </div>`;
   return html`<${Sheet} title=${job.title} onClose=${close} active=${active} testid="image-sheet" doneTestid="image-done">
     <div class="sz-img" data-testid="image-preview" data-kind=${job.kind} data-state=${view.state} data-ratio=${curRatio}

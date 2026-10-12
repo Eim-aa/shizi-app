@@ -13,7 +13,7 @@
 import { html, useEffect, useState } from '../../../../vendor/ui.js';
 import { t } from '../../../config/copy/index.js';
 import { Button } from '../../components/Button.js';
-import { announce, showToast } from '../../components/Toast.js';
+import { announce } from '../../components/Toast.js';
 import { FailBlock } from '../../components/FailBlock.js';
 import { injectStyles, T } from '../../components/styles.js';
 import { setBackGestureEnabled } from '../../../platform/bridge.js';
@@ -172,8 +172,8 @@ export function BlockScreen({ reason, store, win = typeof window !== 'undefined'
       const at = envNow();
       const text = serializeBackup(buildBackupV2(store.getState(), { now: at, serial: store.serial }));
       const res = await share.shareBackupFile({ name: backupFileName(at), text });
-      if (res && res.done && res.via !== 'native') showToast(t('X-BACKUP.exported'), { kind: 'legacy', audit: 'P0-09' }); // 交互合规待修 P0-09（I3 删除这条成功提示）
-      else if (res && !res.done && !res.cancelled && res.via !== 'native') setExportFail(true);
+      // 导出成功不提示（F5，I3 P0-09）：系统分享面板 / 下载本身就是反馈
+      if (res && !res.done && !res.cancelled && res.via !== 'native') setExportFail(true);
     } catch (error) {
       setExportFail(true); // 原先被吞：就地三段式
     }

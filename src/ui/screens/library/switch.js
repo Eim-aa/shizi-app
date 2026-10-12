@@ -12,7 +12,7 @@
 //   已开的组照旧，只影响之后选新字的来源，session-start 读 settings.library）。
 //   失败 → 就地重试（01 §4「换库 · 就地重试」、R-G04 三段式）：确认框留着，正文换成 R-L06.saveFailed，
 //   两键「先不换」（关框，仍是原来的库）/「再试一次」（同一 commit）。
-//   成功 → 关框、返回上一页（设置页），轻提示「已换成「{库名}」。」（R-L06「换完轻提示」边开发边改，字样待文案 P55）。
+//   成功 → 关框、返回上一页（设置页，行尾已是新库名）；不弹提示（D58 / I3 P0-08）。
 //
 // data-testid：libswitch-screen（页面；入口是设置页的 settings-library 行）、libswitch-list（data-current）、libswitch-row（data-lib / data-current，每行一个 button）、
 //   libswitch-row-name / -desc / -count / -mark、libswitch-source、
@@ -27,7 +27,6 @@ import { Button } from '../../components/Button.js';
 import { useDialogFocus } from '../../components/Sheet.js';
 import { FailBlock } from '../../components/FailBlock.js';
 import '../../components/Confirm.js'; // .sz-overlay / .sz-confirm 样式
-import { showToast } from '../../components/Toast.js';
 import { injectStyles, T } from '../../components/styles.js';
 import { getStore } from '../../../store/store.js';
 import { LIBRARIES } from '../../../core/cards.js';
@@ -197,7 +196,7 @@ export function LibraryConfirm({ id, failed = false, onConfirm, close, active = 
 }
 
 /**
- * 打开换库确认框。成功：关框 → 返回上一页 → 轻提示；失败：确认框换成就地重试态。
+ * 打开换库确认框。成功：关框 → 返回上一页；失败：确认框换成就地重试态。
  * @param {string} id
  * @param {object} [o]
  * @param {() => object} [o.getStore]   测试注入
@@ -218,7 +217,6 @@ export function openLibraryConfirm(id, { getStore: storeOf = getStore } = {}) {
       done = true;
       nav.closeOverlay(overlayId);
       nav.back();
-      showToast(t('X-LIBSWITCH.switchedToast', { library: libraryName(id) }), { kind: 'legacy', audit: 'P0-08' }); // 交互合规待修 P0-08（I3 删除这条成功提示）
       return;
     }
     nav.updateOverlay(overlayId, { failed: true });

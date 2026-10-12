@@ -50,7 +50,6 @@ export default Object.freeze({
   'R-W15.confirmBody': '还有 {n} 个字没写，结束后就不写了。判断过的 {m} 个字已经记下。',
   'R-W15.continue': '接着写',
   'R-W15.end': '结束这组',
-  'R-W15.zeroToast': '这组结束了，没有记下字。',
   // R-W16（已定）
   'R-W16.saveFailed': '没保存上，你写的字还在。',
   'R-W16.retry': '再试一次',

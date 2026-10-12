@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import {
   settingsView, backupValue, parseTime, timeText, defaultRemindTime, commitSettings, commitSound, commitAppearance,
   commitRemindEnabled, commitRemindTime, applyReminderStatus, setReminderSync, SettingsBody, AppearanceSheetView, LABELS,
-  SETTINGS_SCREEN, APPEARANCE_ORDER, textSizeNoticeDue, commitTextSizeNoticeShown, showTextSizeNoticeOnce, TEXT_SIZE_NOTICE_MS,
+  SETTINGS_SCREEN, APPEARANCE_ORDER, textSizeNoticeDue, commitTextSizeNoticeShown, clearLegacyLargeFlag,
 } from '../../src/ui/screens/mine/settings.js';
 import { appearanceOf, applyAppearance, startAppearance } from '../../src/platform/appearance.js';
 import { getScreen } from '../../src/ui/router.js';
@@ -256,45 +256,38 @@ test('SettingsBody: four groups, rows in prototype order; no 背景音 (P07) / �
   assert.ok(!ids['settings-fail']);
 });
 
-test('D29: the R-S04 large-text copy is gone; the one-time notice says text size follows the phone settings (P132)', () => {
+test('D29 / D58: the R-S04 large-text copy is gone and the one-time text-size notice is gone too (P132, I3 P0-13)', () => {
   assert.throws(() => t('R-S04.largeNote'), 'slot removed');
   assert.throws(() => t('R-S04.largeLabel'), 'slot removed');
-  assert.equal(t('X-SETTINGS.textSizeNotice'), '文字大小跟随手机设置，可以在手机的设置里调整。');
+  assert.throws(() => t('X-SETTINGS.textSizeNotice'), 'slot removed (D58: an unactionable notice is not shown)');
   assert.equal(policy.largeTextScale, undefined);
 });
 
-test('P132: v1 large=true → notice shown once, then large is removed from settings; nothing else changes; no large → nothing', () => {
+test('P132 / D58: v1 large=true is removed silently at start-up (nothing is shown); nothing else changes; no large → nothing', () => {
   assert.equal(textSizeNoticeDue(null), false);
   assert.equal(textSizeNoticeDue({ large: false }), false);
   assert.equal(textSizeNoticeDue({ large: true }), true);
 
   const { store } = freshStore();
   assert.equal(store.seed({ settings: { library: 'adv3000', sound: false, large: true } }).ok, true);
-  const shown = [];
-  const show = (text, opts) => shown.push({ text, opts });
-  assert.equal(showTextSizeNoticeOnce({ getStore: () => store, show }), true);
-  assert.deepEqual(shown, [{ text: t('X-SETTINGS.textSizeNotice'), opts: { kind: 'legacy', audit: 'P0-13', duration: TEXT_SIZE_NOTICE_MS } }], 'a pending legacy toast (interaction audit P0-13, card I3 removes it)');
-  assert.deepEqual(store.getState().settings, { library: 'adv3000', sound: false }, 'large removed = recorded as shown; other fields kept');
-  assert.equal(showTextSizeNoticeOnce({ getStore: () => store, show }), false, 'second start: not shown again');
-  assert.equal(shown.length, 1);
+  assert.equal(clearLegacyLargeFlag({ getStore: () => store }), true);
+  assert.deepEqual(store.getState().settings, { library: 'adv3000', sound: false }, 'large removed; other fields kept');
+  assert.equal(clearLegacyLargeFlag({ getStore: () => store }), false, 'second start: nothing to do');
 
   const fresh = freshStore().store;
-  assert.equal(showTextSizeNoticeOnce({ getStore: () => fresh, show }), false, 'no settings → nothing');
-  assert.equal(showTextSizeNoticeOnce({ getStore: () => { throw new Error('not booted'); }, show }), false);
-  assert.equal(shown.length, 1);
+  assert.equal(clearLegacyLargeFlag({ getStore: () => fresh }), false, 'no settings → nothing');
+  assert.equal(clearLegacyLargeFlag({ getStore: () => { throw new Error('not booted'); } }), false);
 });
 
-test('P132: if recording fails the notice comes back once more next start (shown, not lost)', () => {
+test('P132 / D58: if clearing fails the flag stays and is cleared at the next start', () => {
   const { store, storage } = freshStore();
   assert.equal(store.seed({ settings: { large: true } }).ok, true);
   storage.failNextWrite(1, { kind: 'generic', matchKey: KEYS.settings });
-  const shown = [];
-  assert.equal(showTextSizeNoticeOnce({ getStore: () => store, show: text => shown.push(text) }), true);
+  assert.equal(clearLegacyLargeFlag({ getStore: () => store }), false);
   assert.deepEqual(store.getState().settings, { large: true }, 'write failed → still due');
-  assert.equal(showTextSizeNoticeOnce({ getStore: () => store, show: text => shown.push(text) }), true);
-  assert.equal(shown.length, 2);
-  assert.equal(textSizeNoticeDue(store.getState().settings), false, 'the second start recorded it');
-  assert.equal(commitTextSizeNoticeShown(store).ok, true, 'recording again is harmless');
+  assert.equal(clearLegacyLargeFlag({ getStore: () => store }), true);
+  assert.equal(textSizeNoticeDue(store.getState().settings), false, 'the second start cleared it');
+  assert.equal(commitTextSizeNoticeShown(store).ok, true, 'clearing again is harmless');
 });
 
 test('SettingsBody: reminders on → time row; denied → R-S02 subtext, body and 去手机设置; failure block under its group', () => {

@@ -3,7 +3,7 @@
 //   1. 接入：library-query-slot 里是查字框按钮（<button>，名字「查字」），R-L04 说明句在它下面；点它 → 点击处理结束时
 //      焦点已在代理输入框（同步 focus，R-Q08）→ 查字弹层（lookup：标题「查字」、没有勾选、没有底栏），打开不写存储。
 //   2. 「查看记录」→ 单字详情（M3-6 openDetail），弹层留在栈里；返回回到弹层、输入与卡片不变（R-Q05）。
-//   3. 「加入自选的字」→ 只写 custom（+ txn）→ 成功轻提示「「X」已加入自选的字。」→ 按钮变「已在自选的字里」。
+//   3. 「加入自选的字」→ 只写 custom（+ txn）→ 无成功提示（D58）→ 按钮变「已在自选的字里」。
 //   4. 没有 B：「练这个字」→ 新 B（queue [字]、source {view:'library'}）→ 写字页；返回回到查字卡片、输入不变（R-Q07）。
 //      写入失败（failNextWrite）→ 卡片 R-H06 三段式，B 仍为空；再试一次成功。
 //   5. B 没写完：lookup 查字、看卡片、查看记录都不弹 S02、sessions.B 与全部存储键深相等；「练这个字」→ S02 三键；
@@ -21,7 +21,6 @@ const COPY = {
   practice: '练这个字',
   add: '加入自选的字',
   inCustom: '已在自选的字里',
-  added: c => `「${c}」已加入自选的字。`,
   viewRecords: '查看记录',
   saveFailed: '没保存上，输入的字还在。',
   s02Body: chars => `上一组还有${chars.map(c => `「${c}」`).join('')}没写。`,
@@ -345,7 +344,7 @@ export default async function run(page, { baseURL, assert, step }) {
   assert.equal(info.card, '永', 'back → same card');
 
   // ---------------------------------------------------------------- 3. 加入自选 + 轻提示
-  step('加入自选的字 (和) → one commit (custom + txn only) → toast 「「和」已加入自选的字。」 → 已在自选的字里');
+  step('加入自选的字 (和) → one commit (custom + txn only) → 无提示，按钮原地变 已在自选的字里');
   await clickSheet(page, 'query-back');
   await page.waitForSelector(inSheet('query-rows'));
   await page.waitForTimeout(PRESS_SETTLE_MS);
@@ -358,7 +357,7 @@ export default async function run(page, { baseURL, assert, step }) {
   const before = await getState(page);
   await clickSheet(page, 'query-card-add');
   await page.waitForSelector(inSheet('query-card-in-custom'));
-  assert.equal(await toastText(page), COPY.added('和'), 'success toast 「「和」已加入自选的字。」');
+  assert.equal(await toastText(page), null, 'I3 P0-14: no success toast');
   info = await sheetInfo(page);
   assert.deepEqual(info.inCustom, { text: COPY.inCustom, disabled: true }, 'button becomes disabled 「已在自选的字里」');
   let w = await writesSince(page, base);

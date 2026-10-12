@@ -35,10 +35,8 @@ const T = {
   intro: '记录只存在这台手机上。换手机、清理浏览器或删掉拾字之前，先导出一份备份文件。',
   introEmpty: '记录只存在这台手机上。',
   restoreSubHas: '会替换现在的记录，离开这一页前可以撤销',
-  exported: '已导出备份文件。',
   notBackup: '这个文件不是拾字的备份，没法恢复。你的记录没有变。',
   restoreFailed: '没能恢复，你的记录还是原来的。',
-  cancelled: '没有选文件，你的记录没有变。',
   protectFailed: '没能换成备份，你现在的记录没有变。可以再试一次。',
   replaceTitle: '用备份替换现在的记录？',
   replaceBody: '这份备份是 9月1日的，里面有 23 个字的记录。现在 300 个字的记录会被替换。离开这一页前可以撤销。',
@@ -338,7 +336,7 @@ export default async function run(page, { baseURL, assert, step }) {
   v = await view(page);
   assert.equal(v.date, '9月1日', 'last backup date');
   assert.equal(v.line, T.allBacked, '现在的记录都已经备份了。');
-  assert.equal(v.toast, T.exported, 'export feedback toast (K04)');
+  assert.equal(v.toast, null, 'I3 P0-09: exporting shows no toast — the last-backup date and the status line above are the feedback');
   let st = await state(page);
   assert.equal(st.backupMeta.lastExportAt > 0 && typeof st.backupMeta.lastExportSig === 'string', true, 'backupMeta recorded');
 
@@ -396,10 +394,9 @@ export default async function run(page, { baseURL, assert, step }) {
   const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.click(topSel('backup-restore'))]);
   assert.ok(!!chooser, 'restore row opens the file chooser');
   await page.dispatchEvent(topSel('backup-file-input'), 'cancel');
-  await waitNote(page, 'cancelled');
+  await page.waitForTimeout(150);
   v = await view(page);
-  assert.equal(v.note, T.cancelled, 'cancel → 没有选文件');
-  assert.equal(v.noteTone, 'info', 'cancel is not an error');
+  assert.equal(v.note, null, 'I3 P0-12: cancelling the file chooser shows nothing');
   assert.equal(S(await raw(page)), S(S0raw), 'cancel: deep-equal');
   await settle(page);
 
@@ -834,8 +831,8 @@ export default async function run(page, { baseURL, assert, step }) {
   await page.waitForFunction(() => !document.querySelector('[data-testid="backup-restore-confirm"]'));
   await waitNavIdle(page);
   await page.evaluate(() => window.shiziBackupRejected({ reason: 'cancelled' }));
-  await waitNote(page, 'cancelled');
-  assert.equal((await view(page)).note, T.cancelled, 'rejected cancelled → 没有选文件');
+  await page.waitForTimeout(150);
+  assert.equal((await view(page)).note, null, 'I3 P0-12: rejected cancelled → nothing shown');
   await page.evaluate(() => window.shiziBackupRejected({ reason: 'tooLarge' }));
   await waitNote(page, 'notBackup');
   assert.equal((await view(page)).note, T.notBackup, 'rejected tooLarge → 不是拾字的备份');

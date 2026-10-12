@@ -133,10 +133,9 @@ export default async function run(page, { baseURL, assert, step, root }) {
   assert.ok(Object.keys(s.sched).every(k => judgedKeys.has(k)), 'invariant: sched exists ⇒ judged record');
   assert.equal(s.legacy.report.source, 'device', 'import report stored in legacy.report');
   // 旧断言 settings.large === true：迁移照旧把 fontScale 映射成 large（test/store/migrate.test.mjs 覆盖），但 D29 起 large 不再生效，
-  // 启动后显示一次说明即从 settings 去掉（P132），所以这里看说明与去掉后的结果。
+  // 启动后静默从 settings 去掉（P132 / D58，不再弹说明），所以这里看去掉后的结果。
   assert.equal('large' in s.settings, false, 'fontScale → settings.large → one notice → large dropped (P132)');
-  assert.ok((await page.evaluate(() => (document.querySelector('[data-testid="toast"]') || {}).textContent || '')).includes('文字大小跟随手机设置'),
-    'X-SETTINGS.textSizeNotice shown after the migration');
+  assert.equal(await page.locator('[data-testid="toast"]').count(), 0, 'I3 P0-13: no text-size notice after the migration');
   assert.equal('scene' in s.settings, false, 'sound.scene dropped (P07)');
   const status = await page.evaluate(() => window.__shiziTest.getStatus());
   assert.ok(status.usage.total < TARGET_BYTES, `total usage ${status.usage.total} < 3.2MiB target`);

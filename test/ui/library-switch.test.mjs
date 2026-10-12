@@ -218,5 +218,5 @@ test('screen registered as library-switch; library names from copy', () => {
   assert.equal(LIBRARY_SWITCH_SCREEN, 'library-switch');
   assert.ok(getScreen('library-switch'), 'registered');
   assert.equal(libraryName('rare'), '规范专门用字');
-  assert.equal(t('X-LIBSWITCH.switchedToast', { library: libraryName('adv3000') }), '已换成「规范次常用字」。');
+  assert.throws(() => t('X-LIBSWITCH.switchedToast', { library: libraryName('adv3000') }), 'D58: switching shows no toast');
 });

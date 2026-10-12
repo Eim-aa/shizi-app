@@ -31,7 +31,6 @@
 import { html, useEffect, useLayoutEffect, useMemo, useRef, useState } from '../../../../vendor/ui.js';
 import { Sheet } from '../Sheet.js';
 import { Button } from '../Button.js';
-import { showToast } from '../Toast.js';
 import { FailBlock } from '../FailBlock.js';
 import { injectStyles, T } from '../styles.js';
 import { t } from '../../../config/copy/index.js';
@@ -258,8 +257,7 @@ export function QuerySheet(p) {
     if (!c || !store) return;
     const result = commitAdd(store, c);
     if (result && result.ok) {
-      setAddFailed('');
-      showToast(t('R-Q05.added', { char: c }), { kind: 'legacy', audit: 'P0-14' }); // 交互合规待修 P0-14（I3 删除这条成功提示）
+      setAddFailed(''); // 成功不提示：卡片上的按钮自己变成禁用的「已在自选的字里」（D58 / I3 P0-14）
     } else {
       setAddFailed(c);
     }

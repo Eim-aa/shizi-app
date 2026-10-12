@@ -281,15 +281,12 @@ export default async function settingsSpec(page, ctx) {
   assert.equal(h.k, '1', '--k back to 1');
   assert.equal((await writeLog(page)).length, logSize, 'a system text size change writes nothing');
 
-  step('P132: v1 large=true → one notice after start, large dropped from settings; the next start shows nothing');
+  step('P132: v1 large=true → large silently dropped from settings after start (no notice, D58 P0-13); the next start shows nothing');
   await page.evaluate(() => window.__shiziTest.seed({ settings: { sound: false, large: true } }));
   await page.reload();
   await page.waitForSelector('.sz-app');
-  await page.waitForFunction(() => {
-    const el = document.querySelector('[data-testid="toast"]');
-    return !!el && el.textContent.includes('文字大小跟随手机设置');
-  });
-  assert.equal(await page.locator(tid('toast')).textContent(), '文字大小跟随手机设置，可以在手机的设置里调整。', 'X-SETTINGS.textSizeNotice shown');
+  await page.waitForFunction(() => !('large' in (window.__shiziTest.getState().settings || {})));
+  assert.equal(await page.locator(tid('toast')).count(), 0, 'I3 P0-13: no text-size notice any more');
   assert.equal(await page.evaluate(() => document.documentElement.hasAttribute('data-large')), false, 'large=true no longer enlarges anything');
   await page.waitForFunction(() => !('large' in (window.__shiziTest.getState().settings || {})));
   assert.deepEqual((await state(page)).settings, { sound: false }, 'large removed (= recorded as shown); sound kept');

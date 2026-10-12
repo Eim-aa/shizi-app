@@ -31,7 +31,6 @@ export default Object.freeze({
   'R-B05.undoFailedClear': '没能撤销，记录还是空的',
   'R-B05.undoAgain': '可以再点一次撤销',
   // R-B06（已定）
-  'R-B06.cancelled': '没有选文件，你的记录没有变。',
   'R-B06.notBackup': '这个文件不是拾字的备份，没法恢复。你的记录没有变。',
   'R-B06.restoreFailed': '没能恢复，你的记录还是原来的。',
   // R-B09（已定（"怎么解决 ›"那句为原型专用））
@@ -63,5 +62,4 @@ export default Object.freeze({
   'X-BACKUP.exportStay': '先不导出',
   // X-BACKUP.fileName（阶段 1 Q2-7，03 P182）：导出的备份文件名，{ymd} = 本地日 YYYY-MM-DD
   'X-BACKUP.fileName': '拾字备份-{ymd}.json',
-  'X-BACKUP.exported': '已导出备份文件。',
 });

@@ -34,7 +34,6 @@ export default Object.freeze({
   'X-WORK.done': '完成',
   'X-WORK.alsoAdd': '也放进来',
   'X-WORK.chipWrong': '{char} · 写错',
-  'X-WORK.saved': '存好了',
   'X-WORK.previewAria': '图片预览',
   'X-WORK.splitNote': '{n} 个字，存成 {m} 张，每张不超过 {max} 字。',
   'X-WORK.saveMany': '保存 {m} 张图片',

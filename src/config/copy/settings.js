@@ -30,8 +30,6 @@ export default Object.freeze({
   'X-SETTINGS.saveFailed': '没保存上，刚才的选择没记下。',
   'X-SETTINGS.cancel': '先不保存',
   'X-SETTINGS.retry': '再试一次',
-  // P132（D29）：旧「更大字体」打开过的用户（v1 迁移带来 large=true），启动后显示一次的轻提示；过渡文案
-  'X-SETTINGS.textSizeNotice': '文字大小跟随手机设置，可以在手机的设置里调整。',
   // 写字方式（阶段 1 P1-E8，D46 ⑬；实现交接 §10.3，过渡文案；03 P165；D56 起行内带一句说明 P277，写字页不再有「在纸上写」入口）
   'X-SETTINGS.writeMode': '写字方式',
   'X-SETTINGS.writeModeSub': '在纸上写，回来对照判断',

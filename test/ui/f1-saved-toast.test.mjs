@@ -22,9 +22,9 @@ test('session/index.js 不再订阅 router 发这条提示；首页不再挂它'
   assert.ok(!read('src/ui/screens/home/index.js').includes('ensureNavHooks'));
 });
 
-test('Toast 组件仍在（别处的提示还用它）：旧组已保存、换字库、导出备份等照常', () => {
-  assert.match(read('src/ui/screens/session/index.js'), /showToast\(format\(t\('R-H05\.oldGroupSavedToast'\)/);
-  assert.match(read('src/ui/screens/library/switch.js'), /showToast\(t\('X-LIBSWITCH\.switchedToast'/);
+test('Toast 组件仍在（失败与可撤销还用它）；旧组已保存、换字库、导出备份这些成功提示的调用已删（I3 P0-08 ~ P0-10）', () => {
+  assert.ok(!/showToast\(/.test(read('src/ui/screens/session/index.js')));
+  assert.ok(!/showToast\(/.test(read('src/ui/screens/library/switch.js')));
   assert.match(read('src/ui/components/Toast.js'), /export function showToast/);
 });
 

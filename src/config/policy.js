@@ -136,7 +136,7 @@ export const sessionExpiry = Object.freeze({
 // P60 自选组（B）里的复习是否计入每日复习上限 dailyReviewCap（P03）：过渡计入。
 // 现行记账 records.reviewsDoneOn 按当天全部 judged 计，即 true 的口径；false 需记录能区分会话类型，见 M0 验收修复报告。
 export const dailyCapCountsPicked = true;
-// P38 S02「结束那组，开新的」时旧 B 有判断：不进结果页，给轻提示
+// P38 S02「结束那组，开新的」时旧 B 有判断：不进结果页（core 仍回报 notice；界面不弹提示，D58 / I3 P0-10）
 export const s02EndOld = 'toast';
 // P46 清空所有记录后下一组重回「第一次练习」
 export const afterClearRestartFirst = true;

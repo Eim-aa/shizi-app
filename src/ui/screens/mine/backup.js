@@ -45,7 +45,6 @@ import { UndoBar } from '../../components/UndoBar.js';
 import { Sheet, useDialogFocus } from '../../components/Sheet.js';
 import { FailBlock } from '../../components/FailBlock.js';
 import '../../components/Confirm.js'; // .sz-overlay / .sz-confirm 样式
-import { showToast } from '../../components/Toast.js';
 import { injectStyles, T } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
 import * as policy from '../../../config/policy.js';
@@ -83,7 +82,6 @@ export function lineText(line) {
 /** 说明框（R-B04 / R-B06）的文案键。 */
 export const NOTE_KEYS = Object.freeze({
   protectFailed: 'R-B04.protectFailed',
-  cancelled: 'R-B06.cancelled',
   notBackup: 'R-B06.notBackup',
   restoreFailed: 'R-B06.restoreFailed',
 });
@@ -217,12 +215,11 @@ export function receivePickRejected(info) {
   return true;
 }
 
-/** 导出完成记账 + 轻提示。 */
+/** 导出完成记账（页面上的「上次备份」与状态句随之更新，不弹提示，D58 / I3 P0-09）。 */
 function finishExport(sig) {
   const store = storeOrNull();
   if (!store) return false;
   const r = markExported(store, { at: envNow(), sig });
-  if (r && r.ok) showToast(t('X-BACKUP.exported'), { kind: 'legacy', audit: 'P0-09' }); // 交互合规待修 P0-09（I3 删除这条成功提示）
   return !!(r && r.ok);
 }
 
@@ -300,7 +297,7 @@ export function ClearSheet({ n, failed = false, onConfirm, close, active = true 
 function BackupScreen({ entry }) {
   const entryId = entry && entry.id;
   const state = useStoreState();
-  const [note, setNote] = useState(null); // {kind:'protectFailed'|'cancelled'|'notBackup'|'restoreFailed', retry?:boolean}
+  const [note, setNote] = useState(null); // {kind:'protectFailed'|'notBackup'|'restoreFailed', retry?:boolean}
   const [undo, setUndo] = useState(null); // {kind:'restore'|'clear', failed:boolean, done:boolean}
   const [exportFail, setExportFail] = useState(false); // 导出没成（网页分享 / 下载都不行、或出错）：就地三段式（S1，审计 P1-30）
   const pendingRef = useRef(null); // 保护副本失败后「再试一次」要用的那份备份（inspectBackup 结果）
@@ -358,7 +355,7 @@ function BackupScreen({ entry }) {
 
   const receiveRejected = reason => {
     pendingRef.current = null;
-    setNote({ kind: reason === 'cancelled' ? 'cancelled' : 'notBackup' });
+    setNote(reason === 'cancelled' ? null : { kind: 'notBackup' }); // 自己点了取消：什么都不显示（D58 / I3 P0-12）
   };
 
   handlersRef.current = { picked: text => receiveText(text), rejected: reason => receiveRejected(reason) };
@@ -377,7 +374,7 @@ function BackupScreen({ entry }) {
     const input = event.currentTarget;
     const file = input && input.files && input.files[0];
     if (!file) {
-      setNote({ kind: 'cancelled' });
+      setNote(null); // 没选文件 = 用户取消，不显示说明
       return;
     }
     if (file.size > BACKUP_MAX_BYTES) {
@@ -510,7 +507,7 @@ function BackupScreen({ entry }) {
   const undoOn = !!undo && !undo.done;
   const has = status.hasRecords;
   const lines = status.lines.map(lineText);
-  const noteTone = note && note.kind === 'cancelled' ? 'info' : 'error';
+  const noteTone = 'error';
   const [l1, l2] = undo ? undoLines(undo.kind, undo.failed) : ['', ''];
 
   const footer = undo
@@ -557,7 +554,7 @@ function BackupScreen({ entry }) {
         </${Button}>
       </div>
       <input ref=${fileRef} class="sz-bk__file" type="file" accept="application/json,.json" tabindex="-1" aria-hidden="true"
-        data-testid="backup-file-input" onChange=${onFile} onCancel=${() => setNote({ kind: 'cancelled' })} />
+        data-testid="backup-file-input" onChange=${onFile} onCancel=${() => setNote(null)} />
     </div>
   </${Page}>`;
 }

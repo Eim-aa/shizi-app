@@ -34,7 +34,6 @@ export default Object.freeze({
   'R-H05.continueOld': '接着写那组',
   'R-H05.endOldStartNew': '结束那组，开新的',
   'R-H05.cancel': '取消',
-  'R-H05.oldGroupSavedToast': '上一组判断过的 {m} 个字已经记下。',
   // R-H06（已定）
   'R-H06.title': '自己选字',
   'R-H06.hint': '输入一个字或一个词，再点你要的那个字。',

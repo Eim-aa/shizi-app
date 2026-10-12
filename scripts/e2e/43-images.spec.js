@@ -2,13 +2,13 @@
 //
 //   1. 结果页右上「分享」（setResultImageAction 已注册）→ 弹层：标题、默认比例 D47（1 字 → 1:1）、画布 1440 × 1440 与 dataset（成员 = 作品成员：写错的 永 不在默认里，
 //      静 在；recordId = 本组那条记录；落款只有日期）、「也放进来」chip（永）、切 3:4 → 1440 × 1920。
-//   2. 浏览器：「分享」走 navigator.share({files})（stub，JPEG）；「保存图片」= 下载 JPEG（文件名、JFIF 头、尺寸），轻提示「存好了」。
+//   2. 浏览器：「分享」走 navigator.share({files})（stub，JPEG）；「保存图片」= 下载 JPEG（文件名、JFIF 头、尺寸），保存键原地变「已存好」（无提示）。
 //   3. 单字详情「把这个字做成图片」：有笔迹 → 手写字图片（A05：1080 × 1440、拼音 · 日期、落款「拾字」）；最近一次没有笔迹 → 置灰 + R-D04。
 //   4. {月}字帖（我的「保存图片 ›」注册的去处 openMonthImage）：P02 本月第一次、骑线角标（只写日）、整月没墨的字画衬底（仍占一格、仍计字数）、有记录天数；
 //      这天写的字（R-P03）。
 //   5. > 80 字不再 pending（D39）：按日期分页、每页 ≤ 80 字、不截字。
 //   6. 原生壳（假 webkit.messageHandlers）：「保存图片」发 savePracticeCard（Q2-6 起原生壳也收 JPEG，P162）→ shiziCardSaved({success:false})
-//      → R-B10 失败说明 +「再试一次」→ 成功 → 轻提示「存好了」；「分享」发 sharePracticeCard。
+//      → R-B10 失败说明 +「再试一次」→ 成功 → 保存键原地变「已存好」（无提示）；「分享」发 sharePracticeCard。
 //   7. 全程不写存储（getWriteLog 无新增；「也放进来」是例外：它经 store.commit 写本组会话的 added，单独断言）。
 
 import fs from 'node:fs';
@@ -26,7 +26,7 @@ const COPY = {
   save: '保存图片',
   retry: '再试一次',
   denied: '没能存进相册。请到手机设置里允许拾字添加照片。',
-  saved: '存好了',
+  saved: '已存好',
   noInk: '最近一次没有笔迹，再写一次就能做图片。', // R-D04.noInkNote（D27 起 perRecordInk 默认开启：再写一次就存下墨迹；关闭态 A5 见 ink-copy 单测）
   brand: '拾字',
 };
@@ -236,7 +236,8 @@ export default async function run(page, ctx) {
   });
   assert.ok(buf.length < pngBytes * 0.6, `JPEG ${buf.length} B is well under the PNG ${pngBytes} B of the same canvas`);
   await page.waitForFunction(() => document.querySelector('[data-testid="image-preview"]').dataset.save === 'saved');
-  assert.equal((await page.textContent(tid('toast'))).trim(), COPY.saved, 'toast 「存好了」');
+  assert.equal(await page.locator(tid('toast')).count(), 0, 'I3 P0-07: success shows no toast');
+  assert.equal((await page.textContent(tid('image-save'))).trim(), COPY.saved, 'the save button changes in place to 「已存好」');
   // 「也放进来」：永 加入 → 重画，成员 永静，永带朱点；写进本组会话（这是本 spec 里唯一的存储写入）
   const wBefore = await writeCount(page);
   await page.waitForTimeout(PRESS_SETTLE_MS);
@@ -358,7 +359,7 @@ export default async function run(page, ctx) {
   await closeOverlay(page);
 
   // ------------------------------------------------------------------ 5. 原生壳
-  ctx.step('native shell: savePracticeCard (JPEG since Q2-6, P162) → shiziCardSaved false → R-B10 + 再试一次 → true → toast 存好了; sharePracticeCard');
+  ctx.step('native shell: savePracticeCard (JPEG since Q2-6, P162) → shiziCardSaved false → R-B10 + 再试一次 → true → 保存键原地变已存好; sharePracticeCard');
   await installNativeStub(page);
   await bootTestHost(page, ctx.baseURL);
   flat = await seed(page);
@@ -386,8 +387,8 @@ export default async function run(page, ctx) {
   await page.waitForFunction(() => (window.__nativeMsgs || []).filter(m => m.type === 'savePracticeCard').length === 2);
   await page.evaluate(() => window.shiziCardSaved({ success: true }));
   await page.waitForFunction(() => document.querySelector('[data-testid="image-preview"]').dataset.save === 'saved');
-  await page.waitForSelector(tid('toast'));
-  assert.equal((await page.textContent(tid('toast'))).trim(), COPY.saved, 'toast 「存好了」');
+  assert.equal(await page.locator(tid('toast')).count(), 0, 'I3 P0-07: success shows no toast');
+  assert.equal((await page.textContent(tid('image-save'))).trim(), COPY.saved, 'the save button changes in place to 「已存好」');
   v = await preview(page);
   assert.equal(v.note, '', 'note back to normal after success');
   await page.waitForTimeout(PRESS_SETTLE_MS);

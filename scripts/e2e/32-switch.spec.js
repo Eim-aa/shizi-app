@@ -30,7 +30,6 @@ const TOTALS = [3500, 2974, 744, 2500];
 const SOURCE_NOTE = '字表参考教育部《通用规范汉字表》。有些字拾字还没收进来，暂时不能练，所以能练的字比原表少。';
 const CONFIRM_BODY = '以后的新字从这个字库里来。\n已有的记录、自选的字和写错过的字都不变。';
 const FAILED = '没保存上，刚才的选择没记下。';
-const TOAST = '已换成「规范次常用字」。';
 
 const row = lib => `${topSel('libswitch-row')}[data-lib="${lib}"]`;
 const DIALOG = topSel('libswitch-confirm');
@@ -298,7 +297,7 @@ export default async function librarySwitch(page, ctx) {
   assert.equal((await state(page)).settings, null, 'settings still null');
 
   // ------------------------------------------------------------ 3b. 失败 · 再试一次 → 成功
-  ctx.step('failure → 再试一次 succeeds: dialog closes, back to the library page, toast, settings.library = adv3000');
+  ctx.step('failure → 再试一次 succeeds: dialog closes, back to the settings page, no toast (D58 P0-08), settings.library = adv3000');
   const logStart = (await writeLog(page)).length;
   await page.click(row('adv3000'));
   await page.waitForSelector(DIALOG);
@@ -313,7 +312,7 @@ export default async function librarySwitch(page, ctx) {
     const s = getRouter().getState();
     return s.top && s.top.n === 'settings';
   });
-  assert.equal(await toastText(page), TOAST, 'toast after switching');
+  assert.equal(await toastText(page), null, 'I3 P0-08: no toast after switching (the row on the settings page already shows the new library)');
   await page.waitForFunction(sel => {
     const el = document.querySelector(sel);
     return !!el && el.dataset.library === 'adv3000';

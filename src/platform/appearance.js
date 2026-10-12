@@ -5,7 +5,7 @@
 //   policy.features.appearanceSwitch 关闭时一律按 'auto'（不读存下的值）。
 // 字号不在这里：D29（覆盖 P59）起字号跟随系统 Dynamic Type，由 platform/text-size.js 按原生 shiziContentSize 写 --k；
 // settings.large（v1 迁移带来的旧「更大字体」）只保留读取兼容，不再生效，也不再写 :root[data-large]
-// （迁移来的 large=true 由设置页 showTextSizeNoticeOnce 显示一次说明，P132）。
+// （迁移来的 large=true 由 settings.js clearLegacyLargeFlag 静默去掉，P132 / D58）。
 //
 // 启动：app.js 在 store 建好、挂 UI 之前调用 startAppearance()（一行接入），先按存下的设置应用一次，
 // 再订阅 store：只有 appearance 的值真变了才改属性——seed / reset 等不涉及它的通知不碰 <html>

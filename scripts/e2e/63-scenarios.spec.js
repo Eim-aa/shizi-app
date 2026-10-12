@@ -352,7 +352,7 @@ export default async function run(page, ctx) {
   await endGroup(page);
   await page.click(tid('write-end-confirm'));
   await waitTop(page, 'home');
-  assert.equal(await toastText(page), await copy(page, 'R-W15.zeroToast'), 'toast 这组结束了，没有记下字。');
+  assert.equal(await toastText(page), null, 'I3 P0-11: no toast after a zero-judgment ending');
   f = await facts(page);
   assert.equal(f.sessions.B, null, 'B ended');
   assert.equal(f.records.length, 0, 'zero judgments → no record');

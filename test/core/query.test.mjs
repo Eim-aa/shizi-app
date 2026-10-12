@@ -186,7 +186,7 @@ test('copy: every R-Q key the component uses exists (R-Q01–R-Q06 filled)', () 
     'R-Q01.titleLookup', 'R-Q01.titlePick', 'R-Q01.placeholder', 'R-Q02.pickNote', 'R-Q02.lookupNote',
     'R-Q03.onlyHanzi', 'R-Q03.removed', 'R-Q03.duplicate', 'R-Q04.rowCount', 'R-Q04.rowNone', 'R-Q04.rowUnavailable',
     'R-Q04.rowCustomNone', 'R-Q04.rowCustomCount', 'R-Q05.cardStat', 'R-Q05.btnPractice', 'R-Q05.btnAdd',
-    'R-Q05.alreadyAdded', 'R-Q05.added', 'R-Q05.addFailed', 'R-Q05.retry', 'R-Q05.cancel', 'R-Q05.backToList',
+    'R-Q05.alreadyAdded', 'R-Q05.addFailed', 'R-Q05.retry', 'R-Q05.cancel', 'R-Q05.backToList',
     'R-Q05.unavailableTitle', 'R-Q05.unavailableReason', 'R-Q05.unavailableSource', 'R-Q05.viewRecords',
     'R-Q06.btnPracticeN', 'R-Q06.btnNone', 'R-H06.saveFailed', 'R-H06.cancel', 'R-H06.retry',
     'X-QUERY.selectAria', 'X-QUERY.unselectAria', 'X-QUERY.cardMeta', 'X-QUERY.duplicateMany',

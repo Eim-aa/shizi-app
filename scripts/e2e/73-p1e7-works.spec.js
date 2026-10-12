@@ -254,7 +254,7 @@ export default async function (page, ctx) {
   await waitNavIdle(page);
 
   // ---------------------------------------------------------------- 3. 分享弹层
-  ctx.step('share sheet: default ratio D47 (3 chars → 1:1, 5 chars → 3:4); preview is the export; chips; 存好了; no 「存下来的是图片」');
+  ctx.step('share sheet: default ratio D47 (3 chars → 1:1, 5 chars → 3:4); preview is the export; chips; 已存好（保存键原地变化，无提示）; no 「存下来的是图片」');
   const g5 = await seedWork(page, { chars: [...'疆酱痒酝嚷'], steps: ['correct', 'correct', 'wrong', 'seen-ink', 'correct'], clock: CLOCK });
   await openResultPage(page, g5);
   await openShare(page);
@@ -295,7 +295,8 @@ export default async function (page, ctx) {
   const stats = await decodeStats(page, dl.buf);
   assert.ok(Math.min(...stats.corner) > 200 && stats.mean > 190, `saved image is light paper under a dark system theme (corner ${stats.corner}, mean ${Math.round(stats.mean)})`);
   await page.waitForFunction(() => document.querySelector('[data-testid="image-preview"]').dataset.save === 'saved');
-  assert.equal(await page.textContent('[data-testid="toast"]'), '存好了', 'success toast');
+  assert.equal(await page.locator('[data-testid="toast"]').count(), 0, 'I3 P0-07: success shows no toast');
+  assert.equal((await page.textContent('[data-testid="image-save"]')).trim(), '已存好', 'the save button changes in place to 已存好');
   await page.emulateMedia({ colorScheme: 'light' });
   await closeShare(page);
 

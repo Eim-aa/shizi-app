@@ -25,7 +25,6 @@ export default Object.freeze({
   'R-Q05.btnPractice': '练这个字',
   'R-Q05.btnAdd': '加入自选的字',
   'R-Q05.alreadyAdded': '已在自选的字里',
-  'R-Q05.added': '「{char}」已加入自选的字。',
   'R-Q05.addFailed': '没加进自选的字，输入的字还在。',
   'R-Q05.retry': '再试一次',
   'R-Q05.cancel': '先不加',

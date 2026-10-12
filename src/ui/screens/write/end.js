@@ -24,7 +24,6 @@ import { nav } from '../../router.js';
 import { Button } from '../../components/Button.js';
 import { useDialogFocus } from '../../components/Sheet.js';
 import '../../components/Confirm.js'; // .sz-overlay / .sz-confirm 样式
-import { showToast } from '../../components/Toast.js';
 import { haptic } from '../../../platform/haptics.js';
 import { FailBlock } from '../../components/FailBlock.js';
 import { HIT_EXT, injectStyles, T } from '../../components/styles.js';
@@ -161,8 +160,7 @@ export function openEndConfirm({ slot, sessionId }) {
         haptic('light'); // F1：结束这组确认、换成结果页（零判断回来源不发，那里已不是写字流程，P1-35）
         nav.replace(RESULT_SCREEN, { slot, sessionId });
       } else {
-        nav.back();
-        showToast(t('R-W15.zeroToast'), { kind: 'legacy', audit: 'P0-11' }); // 交互合规待修 P0-11（I3 删除这条提示）
+        nav.back(); // 回到来源本身就是反馈，不弹提示（D58 / I3 P0-11）
       }
       return;
     }

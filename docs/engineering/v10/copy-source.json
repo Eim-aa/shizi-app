@@ -255,7 +255,8 @@
     "P291": "动效令牌与门禁（卡 I1，D58）：tokens.json motion / gesture / timing / haptic、src/config/motion.js、tokens.css --dur-* / --ease-*、scripts/verify_tokens.mjs motion 规则、components/exit.js 退场与 Sheet.js 下滑关闭；不是运行时开关",
     "P292": "触觉五档的原生参数（卡 I1，D58 ③）：WebViewController.swift playHaptic 与 src/platform/haptics.js，单测逐值核对 tokens.json haptic；不是运行时开关",
     "P293": "提示条只许 failure / undo（卡 I1，D58）：src/ui/components/Toast.js showToast 的 kind 校验与 test/ui/toast-kinds.test.mjs 的静态扫描；不是运行时开关",
-    "P294": "交互合规 e2e 与待修清单（卡 I1，D58 ⑥）：scripts/e2e/102-interaction-compliance*.spec.js、scripts/e2e/interaction-pending.mjs、docs/design/新页面自检表.md；不是运行时开关"
+    "P294": "交互合规 e2e 与待修清单（卡 I1，D58 ⑥）：scripts/e2e/102-interaction-compliance*.spec.js、scripts/e2e/interaction-pending.mjs、docs/design/新页面自检表.md；不是运行时开关",
+    "P132": "旧「更大字体」用户的一次说明（D29）已由 D58 / I3 P0-13 取消：v1 迁移带来的 settings.large=true 启动后由 src/ui/screens/mine/settings.js clearLegacyLargeFlag 静默去掉，不再显示任何说明；不是运行时开关"
   },
   "noCopy": [
     "R-H07",
@@ -503,13 +504,6 @@
           "raw": "接着写那组 / 结束那组，开新的 / 取消",
           "part": 2,
           "text": "取消"
-        },
-        "oldGroupSavedToast": {
-          "raw": null,
-          "text": "上一组判断过的 {m} 个字已经记下。",
-          "origin": "03 P38 过渡默认的轻提示（文案待定，请设计给）",
-          "decision": "P38",
-          "note": "待文案（P55）；旧 B 有判断时才显示"
         }
       }
     },
@@ -923,12 +917,14 @@
         "end": {
           "raw": "结束这组",
           "text": "结束这组"
-        },
-        "zeroToast": {
-          "raw": "这组结束了，没有记下字。",
-          "text": "这组结束了，没有记下字。"
         }
-      }
+      },
+      "dropped": [
+        {
+          "raw": "这组结束了，没有记下字。",
+          "why": "D58 / I3 P0-11（规范 F3、D55 ⑤）：零判断结束这组回到来源即反馈，不弹不可操作的提示"
+        }
+      ]
     },
     "R-W16": {
       "screen": "write",
@@ -1729,10 +1725,6 @@
           "raw": "已在自选的字里",
           "text": "已在自选的字里"
         },
-        "added": {
-          "raw": "「X」已加入自选的字。",
-          "text": "「{char}」已加入自选的字。"
-        },
         "addFailed": {
           "raw": "没加进自选的字，输入的字还在。",
           "text": "没加进自选的字，输入的字还在。"
@@ -1769,7 +1761,13 @@
           "origin": "04 R-Q05 规则列：有记录多「查看记录」",
           "note": "卡片按钮"
         }
-      }
+      },
+      "dropped": [
+        {
+          "raw": "「X」已加入自选的字。",
+          "why": "D58 / I3 P0-14（规范 F3、D55 ②）：加入自选成功不提示，卡片按钮原地变成禁用的「已在自选的字里」"
+        }
+      ]
     },
     "R-Q06": {
       "screen": "query",
@@ -2464,10 +2462,6 @@
       "status": "已定",
       "source": "C204/C210/C211",
       "slots": {
-        "cancelled": {
-          "raw": "没有选文件，你的记录没有变。",
-          "text": "没有选文件，你的记录没有变。"
-        },
         "notBackup": {
           "raw": "这个文件不是拾字的备份，没法恢复。你的记录没有变。",
           "text": "这个文件不是拾字的备份，没法恢复。你的记录没有变。"
@@ -2476,7 +2470,13 @@
           "raw": "没能恢复，你的记录还是原来的。",
           "text": "没能恢复，你的记录还是原来的。"
         }
-      }
+      },
+      "dropped": [
+        {
+          "raw": "没有选文件，你的记录没有变。",
+          "why": "D58 / I3 P0-12（规范 F3、D55 ⑤）：用户自己点取消选文件，什么都不显示；只留真正失败的说明"
+        }
+      ]
     },
     "R-B09": {
       "screen": "backup",
@@ -3362,13 +3362,6 @@
           "origin": "extra",
           "note": "换库确认框主按钮；原型 ShiziScreen L190",
           "decision": "P55"
-        },
-        "switchedToast": {
-          "raw": null,
-          "text": "已换成「{library}」。",
-          "origin": "extra",
-          "note": "换完轻提示（04 R-L06「换完轻提示」、清单 L10 边开发边改，未给字样；原型成功后只关弹层；旧版 toast「在学：X」叫法已废）。工程暂拟，待文案确认",
-          "decision": "P55"
         }
       }
     },
@@ -3764,6 +3757,20 @@
           "text": "{label}，练这些字",
           "note": "「练这些字」的读屏名称：两块各一个，读屏要分得清是哪一块（{label} = 块名「写错过」「快忘了」）",
           "decision": "P193"
+        },
+        "viewThese": {
+          "raw": null,
+          "text": "看这些字 ›",
+          "origin": "extra",
+          "note": "D58 ⑤ / I3 P0-05：字库页「写错过 / 快忘了」块里进清单页的去处（原「练这些字」现在一次点击直接开组）；去处带「›」",
+          "decision": "P193"
+        },
+        "viewAria": {
+          "raw": null,
+          "text": "{label}，看这些字",
+          "origin": "extra",
+          "note": "「看这些字 ›」的读屏名称（{label} = 块名；读屏不读「›」）",
+          "decision": "P193"
         }
       }
     },
@@ -3852,6 +3859,13 @@
           "text": "没保存上，刚才的选择没记下。",
           "origin": "extra",
           "note": "M3-4：筛选「自选了还没写」后「练这些字 →」开组写入失败（R-G04，留在本页、筛选不变，按钮可再点）；同 X-LIST.startFailed 字样，待文案确认",
+          "decision": "P76"
+        },
+        "viewThese": {
+          "raw": null,
+          "text": "看这些字 ›",
+          "origin": "extra",
+          "note": "D58 ⑤ / I3 P0-06：有记录的字筛选写错过 / 快忘了后，进清单页的去处（「练这些字」在底栏，一次点击直接开组）",
           "decision": "P76"
         }
       }
@@ -4064,13 +4078,6 @@
           "text": "再试一次",
           "origin": "extra",
           "note": "三段式主按钮（T01）"
-        },
-        "textSizeNotice": {
-          "raw": null,
-          "text": "文字大小跟随手机设置，可以在手机的设置里调整。",
-          "origin": "extra",
-          "decision": "P132",
-          "note": "D29：v1 迁移带来 settings.large=true（旧「更大字体」打开过）时，启动后显示一次的轻提示（6 秒），显示后从 settings 去掉 large、不再显示；句子取 06 阶段 1 P1-E6 卡面，过渡文案，阶段 1 文案统一时定稿"
         },
         "writeMode": {
           "raw": null,
@@ -4353,6 +4360,13 @@
           "origin": "extra",
           "note": "F4：保存超过 400ms 时主按钮的进行时文案（审计 P1-33）；P290 三段式失败组件（交互与动效规范 S1，D58；components/FailBlock.js）",
           "decision": "P290"
+        },
+        "saved": {
+          "raw": null,
+          "text": "已存好",
+          "origin": "extra",
+          "note": "保存成功后保存键原地显示约 1.5 秒（D55 ②、规范 F5：成功不弹提示；替代原轻提示 X-WORK.saved「存好了」）",
+          "decision": "P160"
         }
       }
     },
@@ -4464,13 +4478,6 @@
           "text": "先不清空",
           "origin": "extra",
           "note": "清空失败时的次按钮（关弹层，不清空）；原型 L208",
-          "decision": "P55"
-        },
-        "exported": {
-          "raw": null,
-          "text": "已导出备份文件。",
-          "origin": "extra",
-          "note": "导出完成的轻提示（边改 K04「导出成功给反馈」，原型没有字样；原生壳在系统分享面板完成后 markBackupExported 时显示，取消分享不显示）。工程暂拟，待文案",
           "decision": "P55"
         },
         "fileName": {
@@ -5011,13 +5018,6 @@
         "chipWrong": {
           "raw": null,
           "text": "{char} · 写错",
-          "origin": "extra",
-          "note": "分享弹层（交接 §5.3 / §6.7；D39 分张）",
-          "decision": "P160"
-        },
-        "saved": {
-          "raw": null,
-          "text": "存好了",
           "origin": "extra",
           "note": "分享弹层（交接 §5.3 / §6.7；D39 分张）",
           "decision": "P160"

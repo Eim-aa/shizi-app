@@ -12,7 +12,7 @@
 //      可以再出（answerSeenScope none）、自选未写不进；上限 30：今天已复习 29 字 → 只出 1 个到期字。
 //   5. 「现在没有要写的字」（R-H11）：小题库全写过 → 推入 session-none 页（exhausted 次入口），不写入。
 //   6. S02：旧 B 有判断 → 正文列出没写的字、三键、无预选；接着写那组 → 旧 B；结束那组，开新的 → 一次 commit、新 B、
-//      轻提示「上一组判断过的 1 个字已经记下。」；旧 B 零判断 → 无轻提示；保存失败 → 留在确认框（三段式），再试一次成功。
+//      无提示（D58）；旧 B 零判断 → 也无提示；保存失败 → 留在确认框（三段式），再试一次成功。
 //   7. daily 跨天过期（setClock）：昨天没写完的今天的练习 → startA 开新的今天的练习；已判断记录保留；B 不过期（P61）。
 
 import { bootTestHost, drawStroke, HORIZONTAL, noToastFor, tid, topSel, waitNavIdle } from './helpers.mjs';
@@ -382,7 +382,7 @@ export default async function sessionStart(page, ctx) {
   assert.equal(st.sessions.B.cursor, 1, 'cursor on 鲜');
   assert.equal((await routerInfo(page)).writeLayers, 1, 'one write layer');
 
-  ctx.step('S02 结束那组，开新的 (old B judged 1) → one commit, new B, toast 上一组判断过的 1 个字已经记下。');
+  ctx.step('S02 结束那组，开新的 (old B judged 1) → one commit, new B, no toast (D58 P0-10)');
   await goHome(page);
   await call(page, 'startPicked', ['永', '和']);
   await page.waitForSelector(tid('s02-dialog'));
@@ -396,8 +396,8 @@ export default async function sessionStart(page, ctx) {
   assert.equal(st.sessions.lastEnded.B.endedEarly, true, 'endedEarly');
   const sessionWrites = await page.evaluate(() => window.__shiziTest.getWriteLog().filter(e => e.key === 'shizi.v2.sessions').length);
   assert.equal(sessionWrites - commitsBefore, 1, 'sessions written once (single commit)');
-  await page.waitForSelector(tid('toast'));
-  assert.equal(await toastText(page), '上一组判断过的 1 个字已经记下。', 'P38 toast');
+  await page.waitForTimeout(300);
+  assert.equal(await toastText(page), null, 'I3 P0-10: no 「已经记下」 toast when the old group is ended');
   const judged = Object.values(st.records).flat().filter(x => x.kind === 'judged');
   assert.equal(judged.length, 1, 'the judged record of 额 stays; 鲜 境 add nothing');
   assert.equal((await routerInfo(page)).writeLayers, 1, 'one write layer');

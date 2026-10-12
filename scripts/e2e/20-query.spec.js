@@ -33,7 +33,6 @@ const COPY = {
   rowCustomCount: n => `自选的字 · 记录了 ${n} 次`,
   add: '加入自选的字',
   inCustom: '已在自选的字里',
-  added: c => `「${c}」已加入自选的字。`,
   addFailed: '没加进自选的字，输入的字还在。',
   addRetry: '再试一次',
   addCancel: '先不加',
@@ -341,7 +340,7 @@ export default async function run(page, { baseURL, assert, step }) {
   info = await sheetInfo(page);
   assert.deepEqual(info.card.inCustom, { text: COPY.inCustom, disabled: true, aria: 'true' }, '「已在自选的字里」 disabled');
   assert.equal(info.card.custom, 'true', 'card marked custom');
-  assert.equal(await toastText(page), COPY.added('永'), 'toast 「「永」已加入自选的字。」');
+  assert.equal(await toastText(page), null, 'I3 P0-14: adding shows no toast — the card button itself became 「已在自选的字里」');
 
   step('lookup: add failure → 三段式, custom unchanged, retry succeeds');
   await page.locator(inSheet('query-back')).click();

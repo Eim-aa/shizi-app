@@ -367,7 +367,7 @@ export default async function resultSpec(page, ctx) {
   assert.equal(st.sessions.lastEnded.B, undefined, 'lastEnded.B cleared after leaving the result page');
 
   // ------------------------------------------------------------------ 4. 零判断 / 失败
-  step('zero judged: 结束这组 → back to the source + toast 这组结束了，没有记下字。');
+  step('zero judged: 结束这组 → back to the source, no toast (D58 P0-11)');
   await seedGroup(page, { kind: 'picked', chars: ['额', '鲜'], steps: ['skip'] });
   await openWriteSlot(page, 'B');
   await tap(page, 'write-end');
@@ -376,7 +376,7 @@ export default async function resultSpec(page, ctx) {
   assert.equal((await page.locator(tid('write-end-body')).textContent()), '还有 1 个字没写，结束后就不写了。判断过的 0 个字已经记下。', 'S04 body with m=0');
   await page.click(tid('write-end-confirm'));
   await page.waitForFunction(() => document.querySelector('.sz-app').dataset.topScreen === 'home');
-  assert.equal(await toastText(page), '这组结束了，没有记下字。', 'zero-judged toast (R-W15 / D22)');
+  assert.equal(await toastText(page), null, 'I3 P0-11: zero-judged ending shows no toast (going back to the source is the feedback)');
   st = await state(page);
   assert.ok(!st.sessions.B && st.sessions.lastEnded.B.endedEarly, 'B ended');
   await waitNavIdle(page);
@@ -418,7 +418,7 @@ export default async function resultSpec(page, ctx) {
     'S04 body from the answer page: n = 2 (current included), m = 0 (看过答案不算判断)');
   await page.click(tid('write-end-confirm'));
   await page.waitForFunction(() => document.querySelector('.sz-app').dataset.topScreen === 'home');
-  assert.equal(await toastText(page), '这组结束了，没有记下字。', 'H4: zero-judged toast after ending from the answer page');
+  assert.equal(await toastText(page), null, 'I3 P0-11: no toast after ending from the answer page either');
   st = await state(page);
   assert.ok(!st.sessions.B && st.sessions.lastEnded.B && st.sessions.lastEnded.B.endedEarly, 'B ended early');
   assert.equal(st.records.filter(r => r.kind === 'judged').length, 0, 'no judged record written by ending');

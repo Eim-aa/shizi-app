@@ -20,8 +20,7 @@ import { getStore } from '../../../store/store.js';
 import { now as envNow } from '../../../platform/env.js';
 import { deckAdapter } from '../../../data/deck.js';
 import * as core from '../../../core/session-start.js';
-import { showToast } from '../../components/Toast.js';
-import { format, t } from '../../../config/copy/index.js';
+import { t } from '../../../config/copy/index.js';
 import { openS02 } from './s02.js';
 import { openNonePage } from './none.js';
 import '../write/index.js'; // 写字页自注册
@@ -125,12 +124,7 @@ export function startPicked(chars, { source } = {}) {
     chars: prompt.unwrittenChars,
     onContinue: () => openWrite('B'),
     onEndStart: () => core.endOldAndStartPicked(store(), { keys: r.queue, source: src, deck: deckAdapter }),
-    onStarted: result => {
-      openWrite('B');
-      if (result.notice && result.notice.kind === 'oldGroupSaved') {
-        showToast(format(t('R-H05.oldGroupSavedToast'), { m: result.notice.judgedCount }), { kind: 'legacy', audit: 'P0-10' }); // 交互合规待修 P0-10（I3 删除这条成功提示）
-      }
-    },
+    onStarted: () => openWrite('B'), // 旧组判断过的字已经记下，不弹提示（D58 / I3 P0-10；规范 F3）
   });
   return { ok: true, started: false, opened: 's02', s02: prompt, overlayId };
 }

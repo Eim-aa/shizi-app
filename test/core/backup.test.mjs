@@ -434,7 +434,7 @@ test('备份页文案小工具（mine/backup.js）：撤销底栏两行、丢失
   assert.deepEqual(ui.backupMenuStatus({ records: {} }), { kind: 'never', day: null, text: '还没有备份' });
   assert.deepEqual(ui.backupMenuStatus({ records: {}, backupMeta: { lastExportAt: ms('2026-09-01', 20) } }),
     { kind: 'day', day: '2026-09-01', text: '上次备份 9月1日 ›' });
-  assert.deepEqual(Object.values(ui.NOTE_KEYS), ['R-B04.protectFailed', 'R-B06.cancelled', 'R-B06.notBackup', 'R-B06.restoreFailed']);
+  assert.deepEqual(Object.values(ui.NOTE_KEYS), ['R-B04.protectFailed', 'R-B06.notBackup', 'R-B06.restoreFailed']);
 });
 
 // ---------------------------------------------------------------- D27 本人笔迹（阶段 1 P1-E3）

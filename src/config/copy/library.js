@@ -42,7 +42,6 @@ export default Object.freeze({
   'X-LIBSWITCH.confirmTitle': '换成「{library}」？',
   'X-LIBSWITCH.confirmCancel': '取消',
   'X-LIBSWITCH.confirmOk': '换成这个库',
-  'X-LIBSWITCH.switchedToast': '已换成「{library}」。',
   // R-L07（已定）
   'R-L07.forgetCardNote': '有一阵没写、可能快忘了的字。',
   'R-L07.forgetCardEmpty': '可能快忘了的字会放在这里。',
@@ -118,12 +117,15 @@ export default Object.freeze({
   'X-ALL.groupCount': '{n} 个字',
   'X-ALL.closedCount': '{n} 个字 ›',
   'X-ALL.startFailed': '没保存上，刚才的选择没记下。',
+  'X-ALL.viewThese': '看这些字 ›',
   // X-LIBHOME（extra；M3-1 字库首页（墨墙），原型 字库墨墙屏 L26–L79 / L353–L365，04 §4.1 未收录的字样）
   'X-LIBHOME.recordedLabel': '有记录的字',
   // D49 减法稿（P193）：字墙题注、「练这些字」文字按钮（写错过 / 快忘了同一个模板；读屏名称带上块名）
   'X-LIBHOME.caption': '{n} 个字',
   'X-LIBHOME.practiceThese': '练这些字',
   'X-LIBHOME.practiceAria': '{label}，练这些字',
+  'X-LIBHOME.viewThese': '看这些字 ›',
+  'X-LIBHOME.viewAria': '{label}，看这些字',
   'X-LIBHOME.wrongCardNote': '你判断写错的字。',
   'X-LIBHOME.tone0': '一周内写过',
   'X-LIBHOME.tone1': '一个月内',

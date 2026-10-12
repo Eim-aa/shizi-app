@@ -17,7 +17,7 @@
 //
 // data-testid：detail-rows、detail-list-row（data-list=wrong|forget）、detail-list-dot、detail-next、detail-image
 //   （data-state=ok|noInk|noRecord）、detail-image-note、detail-legacy、detail-swap、detail-swap-fail（+ -cancel / -retry）、
-//   detail-remove、detail-remove-confirm（确认框，confirm-ok / confirm-cancel）、detail-word-banner（data-state=on|failed|undone）、
+//   detail-remove（一点即移除，没有确认框）、detail-remove-fail（+ -cancel / -retry）、detail-word-banner（data-state=on|failed|undone）、
 //   detail-word-banner-text、detail-word-undo。
 
 import { html } from '../../../../vendor/ui.js';
@@ -138,7 +138,7 @@ export function FailBlock({ testid, note, onCancel, onRetry }) {
  * @param {Function} p.onLegacy / p.onSwap / p.onRemove
  * @param {boolean} p.swapFailed
  */
-export function DetailRows({ model, onList = null, onImage = null, onLegacy, onSwap, onSwapCancel, onRemove, swapFailed = false }) {
+export function DetailRows({ model, onList = null, onImage = null, onLegacy, onSwap, onSwapCancel, onRemove, onRemoveCancel = null, swapFailed = false, removeFailed = false }) {
   const rows = [];
   if (model.list) {
     const wrong = model.list === 'wrong';
@@ -164,7 +164,7 @@ export function DetailRows({ model, onList = null, onImage = null, onLegacy, onS
     rows.push(html`<${Row} key="legacy" testid="detail-legacy" title=${t('X-DETAIL.legacyEntry')} arrow=${true} onClick=${onLegacy} />`);
   }
   if (model.canSwapWord) {
-    rows.push(html`<${Row} key="swap" testid="detail-swap" title=${t('R-D05.swapWord')} arrow=${true} onClick=${onSwap} />`);
+    rows.push(html`<${Row} key="swap" testid="detail-swap" title=${t('R-D05.swapWord')} onClick=${onSwap} />`); // 一点即生效，不是去处，行尾不带「›」（I3 · P1-18）
     if (swapFailed) {
       rows.push(html`${FailBlock({ key: 'swapfail', testid: 'detail-swap-fail', note: t('X-DETAIL.saveFailed'), onCancel: onSwapCancel, onRetry: onSwap })}`);
     }
@@ -172,6 +172,10 @@ export function DetailRows({ model, onList = null, onImage = null, onLegacy, onS
   if (model.custom) {
     rows.push(html`<${Row} key="remove" testid="detail-remove" title=${t('R-D06.rowTitle')} sub=${t('R-D06.rowSub')} subSmall=${true}
       onClick=${onRemove} />`);
+    if (removeFailed) {
+      rows.push(html`<${FailBlock} key="removefail" testid="detail-remove-fail" note=${t('X-DETAIL.saveFailed')} onCancel=${onRemoveCancel}
+        onRetry=${onRemove} />`);
+    }
   }
   return html`<div class="sz-drows" data-testid="detail-rows">${rows}</div>`;
 }

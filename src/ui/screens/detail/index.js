@@ -29,7 +29,6 @@ import { html, useEffect, useState } from '../../../../vendor/ui.js';
 import { registerScreen, getRouter, getScreen, nav } from '../../router.js';
 import { Page } from '../../components/Page.js';
 import { Button } from '../../components/Button.js';
-import { Confirm } from '../../components/Confirm.js';
 import { PracticeGlyph } from '../../components/PracticeGlyph.js';
 import { UndoBar } from '../../components/UndoBar.js';
 import { injectStyles, T, TEX } from '../../components/styles.js';
@@ -51,7 +50,6 @@ import { PHOTO_SCREEN } from './photos.js'; // 旧记录页自注册
 
 export const DETAIL_SCREEN = 'detail';
 export const LIST_SCREEN_NAME = 'library-list'; // M3-2 清单页（params {kind:'wrong'|'forget'}）
-export const REMOVE_OVERLAY = 'detail-remove';
 export const BANNER_UNDONE_MS = M.timing.undone;
 
 injectStyles('detail', `
@@ -192,12 +190,14 @@ function DetailScreen({ params, entry }) {
   const [undo, setUndo] = useState(null); // {removed, state:'on'|'failed'|'done'}
   const [banner, setBanner] = useState(null); // {word, cardKey, state:'on'|'failed'|'undone'}
   const [swapFailed, setSwapFailed] = useState(false);
+  const [removeFailed, setRemoveFailed] = useState(false);
   const [practiceFailed, setPracticeFailed] = useState(false);
 
   useLeave(entry && entry.id, () => {
     setUndo(null);
     setBanner(null);
     setSwapFailed(false);
+    setRemoveFailed(false);
     setPracticeFailed(false);
   });
 
@@ -229,26 +229,16 @@ function DetailScreen({ params, entry }) {
   };
 
   // ---- 从自选的字移除（R-D06）
-  const openRemove = () => {
-    let id = null;
-    const attempt = () => {
-      const st = storeOrNull();
-      const r = st ? commitRemoveCustom(st, char) : { ok: false };
-      if (r.ok) {
-        nav.closeOverlay(id);
-        if (r.removed) setUndo({ removed: r.removed, state: 'on' });
-        return;
-      }
-      // R-G04 三段式：留在确认框
-      nav.updateOverlay(id, { body: t('X-DETAIL.saveFailed'), cancelLabel: t('X-DETAIL.cancel'), confirmLabel: t('X-DETAIL.retry') });
-    };
-    id = nav.openOverlay(Confirm, {
-      body: t('R-D06.confirmBody', { char }),
-      cancelLabel: t('R-D06.confirmCancel'),
-      confirmLabel: t('R-D06.confirmRemove'),
-      onConfirm: attempt,
-      testid: 'detail-remove-confirm',
-    }, { name: REMOVE_OVERLAY });
+  // 一点即生效，保护只有撤销条（规范 B3「能撤销就不确认」，I3 · P0-15）；失败就地给三段式（R-G04）
+  const remove = () => {
+    const st = storeOrNull();
+    const r = st ? commitRemoveCustom(st, char) : { ok: false };
+    if (r.ok) {
+      setRemoveFailed(false);
+      if (r.removed) setUndo({ removed: r.removed, state: 'on' });
+      return;
+    }
+    setRemoveFailed(true);
   };
   const undoRemove = () => {
     const u = undo;
@@ -289,7 +279,7 @@ function DetailScreen({ params, entry }) {
       <${SourceRow} char=${char} />
       <${DetailRows} model=${model} onList=${onList} onImage=${hooks.image} swapFailed=${swapFailed}
         onLegacy=${() => nav.push(PHOTO_SCREEN, { char })} onSwap=${swap} onSwapCancel=${() => setSwapFailed(false)}
-        onRemove=${openRemove} />
+        onRemove=${remove} removeFailed=${removeFailed} onRemoveCancel=${() => setRemoveFailed(false)} />
     </${Page}>
   </div>`;
 }

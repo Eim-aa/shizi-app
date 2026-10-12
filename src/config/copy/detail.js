@@ -23,9 +23,6 @@ export default Object.freeze({
   // R-D06（已定；Z03 边开发边改）
   'R-D06.rowTitle': '从自选的字移除',
   'R-D06.rowSub': '记录不会删掉，只是不再算自选的字。',
-  'R-D06.confirmBody': '把「{char}」从自选的字移除？这个字的记录不会删掉。',
-  'R-D06.confirmRemove': '移除',
-  'R-D06.confirmCancel': '取消',
   'R-D06.undoL1': '「{char}」已从自选的字移除',
   'R-D06.undoL2': '离开这一页前可以撤销',
   'R-D06.undone': '已撤销',

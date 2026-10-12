@@ -341,7 +341,7 @@ export default async function detailSpec(page, ctx) {
   assert.equal(v.swap, null, 'no context word → no swap-word row');
 
   // ------------------------------------------------------------------ 4. 自选未写 + 移除 / 撤销
-  step('custom, unwritten: remove → confirm → undo bar above 练这个字 → undo restores position and time → 已撤销');
+  step('custom, unwritten: remove (one tap, no confirm — I3 P0-15) → undo bar above 练这个字 → undo restores position and time → 已撤销');
   await back(page);
   await waitTop(page, 'home');
   await seed(page, { custom: ['山', '木', '日'] });
@@ -351,14 +351,9 @@ export default async function detailSpec(page, ctx) {
   assert.equal(v.count, '还没有记录', 'custom unwritten → no records');
   assert.ok(v.remove && v.remove.includes('从自选的字移除') && v.remove.includes(await copy(page, 'R-D06.rowSub')), 'remove row + sub line');
   await clickTop(page, 'detail-remove');
-  await page.waitForSelector(tid('detail-remove-confirm'));
-  await waitNavIdle(page);
-  assert.equal((await page.textContent(`${tid('detail-remove-confirm')} .sz-confirm__body`)).trim(), await copy(page, 'R-D06.confirmBody', { char: '木' }), 'confirm body');
-  assert.equal((await page.textContent(tid('confirm-ok'))).trim(), '移除', 'confirm button 移除');
-  assert.equal((await page.textContent(tid('confirm-cancel'))).trim(), '取消', 'cancel button 取消');
-  await page.click(tid('confirm-ok'));
-  await page.waitForFunction(() => !document.querySelector('[data-testid="detail-remove-confirm"]'));
   await waitView(page, () => !!document.querySelector('.sz-layer[data-top="true"] [data-testid="undo-bar"]'));
+  assert.equal(await page.locator(tid('detail-remove-confirm')).count(), 0, 'I3 P0-15: no confirm dialog — one tap removes, the undo bar is the only protection');
+  assert.equal(await page.locator(tid('confirm-ok')).count(), 0, 'no confirm button anywhere');
   st = await state(page);
   assert.deepEqual(st.custom.added.map(e => e.char), ['山', '日'], 'removed from custom.added');
   v = await view(page);
@@ -387,9 +382,6 @@ export default async function detailSpec(page, ctx) {
   await page.waitForFunction(() => !document.querySelector('.sz-layer[data-top="true"] [data-testid="detail-undo"]'), null, { timeout: 5000 });
   await page.waitForTimeout(PRESS_SETTLE_MS);
   await clickTop(page, 'detail-remove');
-  await page.waitForSelector(tid('detail-remove-confirm'));
-  await waitNavIdle(page);
-  await page.click(tid('confirm-ok'));
   await waitView(page, () => !!document.querySelector('.sz-layer[data-top="true"] [data-testid="undo-bar"]'));
   await back(page);
   await waitTop(page, 'home');
@@ -402,9 +394,6 @@ export default async function detailSpec(page, ctx) {
   await seed(page, { custom: ['山', '木', '日'] });
   await waitView(page, () => !!document.querySelector('.sz-layer[data-top="true"] [data-testid="detail-remove"]'));
   await clickTop(page, 'detail-remove');
-  await page.waitForSelector(tid('detail-remove-confirm'));
-  await waitNavIdle(page);
-  await page.click(tid('confirm-ok'));
   await waitView(page, () => !!document.querySelector('.sz-layer[data-top="true"] [data-testid="undo-bar"]'));
   await clickTop(page, 'detail-practice');
   await waitTop(page, 'write');
@@ -413,28 +402,23 @@ export default async function detailSpec(page, ctx) {
   v = await view(page);
   assert.equal(v.undo, null, 'pushed the write page and came back → undo expired');
 
-  step('remove / undo failures (failNextWrite): confirm stays with 三段式; undo failure keeps the button');
+  step('remove / undo failures (failNextWrite): the row shows 三段式 in place; undo failure keeps the button');
   await goHome(page);
   await seed(page, { custom: ['山', '木', '日'] });
   const custom1 = (await state(page)).custom;
   await openDetailPage(page, '木');
   await page.evaluate(() => window.__shiziTest.failNextWrite(1, { kind: 'generic', matchKey: 'shizi.v2.custom' }));
   await clickTop(page, 'detail-remove');
-  await page.waitForSelector(tid('detail-remove-confirm'));
-  await waitNavIdle(page);
-  await page.click(tid('confirm-ok'));
-  await page.waitForFunction(fail => {
-    const el = document.querySelector('[data-testid="detail-remove-confirm"] .sz-confirm__body');
-    return !!el && el.textContent.trim() === fail;
-  }, await copy(page, 'X-DETAIL.saveFailed'));
+  await waitView(page, () => !!document.querySelector('.sz-layer[data-top="true"] [data-testid="detail-remove-fail"]'));
+  assert.ok((await page.textContent(topSel('detail-remove-fail'))).includes(await copy(page, 'X-DETAIL.saveFailed')), 'failure note in place');
   await page.waitForTimeout(PRESS_SETTLE_MS);
-  assert.equal((await page.textContent(tid('confirm-ok'))).trim(), '再试一次', 'retry button');
-  assert.equal((await page.textContent(tid('confirm-cancel'))).trim(), '先不保存', 'cancel button');
+  assert.equal((await page.textContent(topSel('detail-remove-fail-retry'))).trim(), '再试一次', 'retry button');
+  assert.equal((await page.textContent(topSel('detail-remove-fail-cancel'))).trim(), '先不保存', 'cancel button');
   st = await state(page);
   assert.deepEqual(st.custom, custom1, 'failed remove: custom unchanged');
-  await page.click(tid('confirm-ok'));
-  await page.waitForFunction(() => !document.querySelector('[data-testid="detail-remove-confirm"]'));
+  await clickTop(page, 'detail-remove-fail-retry');
   await waitView(page, () => !!document.querySelector('.sz-layer[data-top="true"] [data-testid="undo-bar"]'));
+  assert.equal(await page.locator(topSel('detail-remove-fail')).count(), 0, 'failure block gone after the retry succeeded');
   st = await state(page);
   assert.deepEqual(st.custom.added.map(e => e.char), ['山', '日'], 'retry removed it');
   await page.evaluate(() => window.__shiziTest.failNextWrite(1, { kind: 'generic', matchKey: 'shizi.v2.custom' }));

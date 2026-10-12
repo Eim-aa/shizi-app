@@ -664,9 +664,6 @@ export default async function run(page, ctx) {
     await page.waitForSelector(topSel('detail-remove'));
     await waitNavIdle(page);
     await page.click(topSel('detail-remove'));
-    await page.waitForSelector(tid('detail-remove-confirm'));
-    await waitNavIdle(page);
-    await page.click(`${tid('detail-remove-confirm')} ${tid('confirm-ok')}`);
     await page.waitForSelector(topSel('undo-button'));
     await waitNavIdle(page);
     await page.click(topSel('undo-button'));

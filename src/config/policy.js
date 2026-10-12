@@ -280,6 +280,7 @@ export const paperTransition = Object.freeze({
   quietScaleFrom: M.scale.quietFrom, // P283 B3 写字页从 0.96 放大到 1
   quietDragPt: M.distance.quietDrag, // P283 B3 左缘右滑时页面跟手右移的最大量（pt）= (1 − s) × 40
   reducedMs: M.dur.reduce, // P284 减少动态效果：进、出、左缘右滑完成一律 150ms 交叉淡化，不缩放、不位移
+  veilTo: 0.25, // P310 B1 透明来源（文字按钮、列表行、字帖格）或已不在屏上的来源：纸在元素大小时透明，展开到 s = 0.25 时完全显出（缩回时反向淡出）
   sourceFreshMs: M.timing.sourceFresh, // P282 点来源按钮到页面真正推入之间最多隔多久仍算「从这个按钮来」（ms，超过按没有来源走 B3）
 });
 

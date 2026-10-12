@@ -232,7 +232,8 @@ export default async function edgeSwipe(page, ctx) {
   s = await state(page);
   assert.equal(s.screen, 'home', 'result → home');
   const anims = await page.evaluate(() => window.__anims);
-  assert.ok(anims.includes('drag') && anims.includes('pop-quiet'), `followed, then left the same way the write page came in (B3, R5-I2 P1-02) (${anims.join(' → ')})`);
+  // 写字页是点首页测试入口进来的：R6-J1 起点按进入一律从被点元素 B1，结果页离开同样沿 B1 缩回那个按钮（R5-I2 P1-02「怎么进来就怎么离开」）
+  assert.ok(anims.includes('drag') && anims.includes('pop-paper'), `followed, then left the same way the write page came in (B1 from the tapped entry, R6-J1 / R5-I2 P1-02) (${anims.join(' → ')})`);
   st = await page.evaluate(() => window.__shiziTest.getState().sessions);
   assert.equal(st.lastEnded.A, undefined, 'same as 「×」: the finished group is cleared from lastEnded');
 

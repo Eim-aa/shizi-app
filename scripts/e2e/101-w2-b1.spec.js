@@ -3,7 +3,7 @@
 //   1. 点首页「开始写字」：进场第一帧纸是按钮的矩形（含墨色盖片和按钮的字），之后宽高 / 位置单调插值到整页，约 420ms，结束后图层回到普通状态（无内联样式）；
 //   2. 点「‹」返回：同一条路径倒放（约 360ms），纸收回到首页按钮的矩形，盖片上是按钮的字；
 //   3. 左缘右滑（真实触摸序列）：拖到 p ≈ 0.5 时纸处于中间态（s ≈ 0.5、宽高在按钮与整屏之间、向右偏）；松手回弹（s 回到 1、页面还在）；再拖过阈值松手 → 从当前位置收回按钮、回到首页；
-//   4. 没有来源按钮的入口（测试入口 write-test-entry）：B3，写字页透明度 0 → 1、从 0.96 放大，约 220ms，没有矩形插值；
+//   4. 没有被点元素的入口（程序推入，同通知深链；R6-J1 起点按进入一律 B1，见 107-j1）：B3，写字页透明度 0 → 1、从 0.96 放大，约 220ms，没有矩形插值；
 //   5. 减少动态效果：一律 150ms 淡化（只有透明度），不缩放、不位移；
 //   6. 其他页面（设置）的 push 转场保持横推。
 // 测试浏览器没有安全区；rAF 采样的时长允许 ± 一定误差（无头浏览器 60fps）。
@@ -190,9 +190,9 @@ export default async function w2B1(page, ctx) {
   assert.deepEqual([clean.top, clean.papers, clean.dirty, clean.inks, clean.depth], ['home', 0, 0, 0, 0], 'home is clean after the gesture');
 
   // ------------------------------------------------------------ 4. 没有来源按钮：B3
-  step('no source button (test entry): B3 quiet fade-in — opacity 0 → 1, scale .96 → 1, ~220ms, no rectangle interpolation');
+  step('no element on screen (a programmatic push, like a notification deep link): B3 quiet fade-in — opacity 0 → 1, scale .96 → 1, ~220ms, no rectangle interpolation');
   await page.evaluate(startSampler);
-  await page.click(tid('write-test-entry'));
+  await page.evaluate(async () => (await import('/src/ui/router.js')).nav.push('write', { slot: 'A' })); // R6-J1：凡点按进入都是 B1（被点元素）；B3 只剩没有点按的入口
   await page.waitForSelector(topSel('write-screen'));
   await waitNavIdle(page);
   const quiet = (await page.evaluate(stopSampler)).filter(s => s.mode === 'B3');

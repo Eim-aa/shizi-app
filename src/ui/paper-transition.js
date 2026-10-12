@@ -5,9 +5,15 @@
 //   · 左缘右滑（R4-G1 的进度接口 router.beginBack / setBackProgress / endBack / finishBack / cancelBack，由 root.js 的 BACK_TRANSITION 转给这里）：
 //     s = 1 − 手指进度 p，逐帧跟手；松手完成 = 从当前 s 继续收进来源（300ms × s，至少 120ms），取消 = 220ms 长回整屏。
 //
-// 来源（共享元素）：首页「开始写字 / 继续写字 / 再写一组」按钮点下时 markPaperSource(按钮, 'home-start') 记下它的矩形、字和圆角；
-// 页面真正推入时（root.js 渲染期 planPaper）取走，记在「下层页面」名下，返回时按钮若还在就重新量一次它的位置（版面可能变了），不在就用记下的。
-// 没有来源按钮的入口（通知、字库「练这个字」、自选字……）走 B3：220ms 首页先淡出、写字页再淡入并从 0.96 放大到 1；退出 180ms 反向。
+// 来源（共享元素，R6-J1 起全 App 通用，交互与动效规范 T0 B1 一律从被点元素展开）：root.js 在 document 上挂一个捕获阶段的 click 监听（noteTap），
+// 每次点按都记下「被点的那个可点元素」（button / [role=button] / a，或带 data-paper-source 的元素）的矩形、字、圆角、底色；
+// 下一次推入写字页（或结果页「再写一组」/ 撤销跳过换成写字页）时取走，记在「下层页面」名下。所以首页主按钮、「接着写」、自己选字的「练这 N 个字」、
+// 字库 / 详情的「练这个字」、自选字、结果页「再写一组」……都是同一条 B1：从被点元素的矩形长成纸，返回沿原路缩回它。
+// 返回时被点元素还在（同一个节点或同 data-testid 的元素）就重新量一次它的位置（版面可能变了），不在了（弹层已关、结果页已换掉）就缩回记下的位置并淡出，
+// 记下的位置也不在屏上就缩回页面中心并淡出。屏上本来就没有来源元素的入口（通知、冷启动恢复）才走 B3：
+// 220ms 首页先淡出、写字页再淡入并从 0.96 放大到 1；退出 180ms 反向。来源记录 2s 内有效（timing.sourceFresh），推入别的页面 / 返回 / 切 Tab 即作废。
+// 实心来源（主按钮、工具按钮：底色不透明）纸在按钮大小时就是那个按钮（同底色 + 同字）；透明来源（文字按钮、列表行、字帖格）纸在元素大小时透明、随展开淡入，
+// 缩回时同样淡出——不在屏上画出一个原本不存在的「按钮」。
 // 进出对称（R5-I2，审计 P1-02）：B3 进来的写字页也记一条「安静」来源（{quiet:true}），写完换成结果页后，结果页的「×」与左缘右滑同样按 B3 倒放离开，
 // 不再变成横推。冷启动 / 刷新恢复出来的结果页没有来源记录（只在内存里），照旧横推。
 // 减少动态效果：一律 150ms 交叉淡化（写字页透明度 s，首页留在下面不动），不缩放、不位移；左缘右滑不跟手，松手按阈值完成后淡化（router 控制器 follow=false）。
@@ -57,11 +63,14 @@ const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
 /** 一帧最多让进度前进这么久（ms）：主线程卡顿时动画顺着走，不跳帧。 */
 export const MAX_FRAME_MS = 50;
 
-// ---------------------------------------------------------------- 来源按钮
+// ---------------------------------------------------------------- 来源（被点元素）
 
-let pending = null; // {rect, label, radius, key, at}
+let pending = null; // {el, rect, label, radius, bg, fg, solid, key, at}
 const QUIET = Object.freeze({ quiet: true }); // B3 进来的写字页的「来源」：没有按钮，只记得是安静淡入
-const sources = new Map(); // 下层页面 entry id → {rect, label, radius, key}（B1）| {quiet:true}（B3）
+const sources = new Map(); // 下层页面 entry id → 来源（B1）| {quiet:true}（B3）
+
+/** 能当来源的元素（被点元素向上找到的第一个）。 */
+export const SOURCE_SELECTOR = '[data-paper-source], button, [role="button"], a[href]';
 
 function nowMs() {
   return typeof performance !== 'undefined' ? performance.now() : Date.now();
@@ -72,30 +81,70 @@ function rectOf(el) {
   return { x: r.left, y: r.top, w: r.width, h: r.height };
 }
 
-function radiusOf(el) {
+function styleOf(el) {
   try {
-    const v = parseFloat(getComputedStyle(el).borderTopLeftRadius);
-    return Number.isFinite(v) ? v : 12;
+    return typeof getComputedStyle === 'function' ? getComputedStyle(el) : null;
   } catch (error) {
-    return 12;
+    return null;
   }
 }
 
+function radiusOf(el) {
+  const cs = styleOf(el);
+  const v = cs ? parseFloat(cs.borderTopLeftRadius) : NaN;
+  return Number.isFinite(v) ? v : 12;
+}
+
+/** rgba / rgb 字符串的不透明度（解析不了按不透明算）。 */
+export function alphaOf(color) {
+  if (!color || color === 'transparent') return 0;
+  const m = /rgba?\(([^)]*)\)/.exec(color);
+  if (!m) return 1;
+  const parts = m[1].split(/[\s,/]+/).filter(Boolean);
+  if (parts.length < 4) return 1;
+  const a = parts[3].endsWith('%') ? parseFloat(parts[3]) / 100 : parseFloat(parts[3]);
+  return Number.isFinite(a) ? a : 1;
+}
+
+function keyOf(el, key) {
+  if (key) return key;
+  if (!el || typeof el.getAttribute !== 'function') return null;
+  return el.getAttribute('data-paper-source') || el.getAttribute('data-testid') || null;
+}
+
 /**
- * 记下「这次是从哪个按钮进写字页的」（点击时调用，下一次推入写字页时取走；超过 policy.paperTransition.sourceFreshMs 作废）。
- * 按钮要带 data-paper-source=key，返回时靠它在首页里重新找到按钮。
+ * 记下「这次是从哪个元素进写字页的」（点击时调用，下一次推入写字页时取走；超过 policy.paperTransition.sourceFreshMs 作废）。
+ * key：返回时在下层页面里重新找到它（data-paper-source / data-testid）；缺省取元素自己的这两个属性。
  */
 export function markPaperSource(el, key) {
   if (!el || typeof el.getBoundingClientRect !== 'function') return;
   const rect = rectOf(el);
   if (!(rect.w > 0 && rect.h > 0)) return;
-  pending = { rect, label: (el.textContent || '').trim(), radius: radiusOf(el), key, at: nowMs() };
+  const cs = styleOf(el);
+  const bg = cs ? cs.backgroundColor : '';
+  const solid = cs ? alphaOf(bg) >= 0.5 : true;
+  pending = {
+    el, rect, label: solid ? (el.textContent || '').trim() : '', radius: radiusOf(el), bg: solid ? bg : '', fg: cs ? cs.color : '',
+    solid, key: keyOf(el, key), at: nowMs(),
+  };
+}
+
+/** 捕获阶段的 click（root.js）：从被点的节点往上找到可点元素记成来源。退场余影、禁用的控件不算。 */
+export function noteTap(target) {
+  const el = target && typeof target.closest === 'function' ? target.closest(SOURCE_SELECTOR) : null;
+  if (!el || el.disabled || (el.closest && el.closest('.sz-exit'))) return;
+  markPaperSource(el);
 }
 
 function takePending() {
   const p = pending;
   pending = null;
   return p && nowMs() - p.at <= P.sourceFreshMs ? p : null;
+}
+
+/** 这次点按没有推入写字页（切 Tab、推入 / 换成别的页面、返回）：作废，免得之后一次没有点按的推入（通知深链）借用它（root.js 每次页面转场调用）。 */
+export function forgetTap() {
+  pending = null;
 }
 
 /** 测试用：清掉记下的来源。 */
@@ -108,6 +157,14 @@ export function hasPaperSource(entryId) {
   return sources.has(entryId);
 }
 
+/** 测试 / e2e 用：某个下层页面名下记着的来源（矩形与是否实心），没有时 null。 */
+export function paperSourceOf(entryId) {
+  const s = sources.get(entryId);
+  if (!s) return null;
+  if (s.quiet) return { quiet: true };
+  return { rect: { ...s.rect }, solid: s.solid, key: s.key };
+}
+
 // ---------------------------------------------------------------- 计划（哪种动效、从哪到哪）
 
 /**
@@ -117,19 +174,30 @@ export function hasPaperSource(entryId) {
  * @param {{kind:string, from:object, to:object}} t  router 的 transition
  * @param {{reduced:boolean, root:Element|null}} o
  */
-export function planPaper(t, { reduced, root }) {
+export function planPaper(t, { reduced, root, underId = null }) {
   if (!t || !t.from || !t.to) return null;
-  if (t.kind === 'push') {
-    if (t.to.n !== 'write') {
-      sources.delete(t.from.id);
+  if (t.kind === 'push' || t.kind === 'replace') {
+    if (t.to.n !== 'write' || (t.kind === 'replace' && t.from.n === 'write')) {
+      if (t.kind === 'push') {
+        sources.delete(t.from.id);
+        pending = null; // 推入了别的页面：这次点按不是写字页的来源
+      }
       return null;
     }
     const src = takePending();
+    if (t.kind === 'replace') {
+      // 结果页「再写一组」/ 撤销跳过回到那个字：新写字页从被点元素长出来，盖在被换掉的结果页上；来源记在结果页下面那一页名下。
+      // 没有被点元素（程序换页）时保持同一层换内容的 T-phase 淡化（返回 null，root.js 照旧）。
+      if (!src) return null;
+      if (underId) sources.set(underId, src);
+      return reduced ? { mode: 'R', dir: 'open' } : { mode: 'B1', dir: 'open', source: src };
+    }
     sources.set(t.from.id, src || QUIET);
     if (reduced) return { mode: 'R', dir: 'open' };
     return src ? { mode: 'B1', dir: 'open', source: src } : { mode: 'B3', dir: 'open' };
   }
   if (t.kind === 'pop') {
+    pending = null;
     if (t.from.n !== 'write' && t.from.n !== 'result') return null;
     const had = sources.get(t.to.id);
     if (t.from.n === 'result' && !had) return null; // 没有来源记录的结果页（冷启动 / 刷新恢复出来的栈：来源只记在内存里）：保持横推（审计 P2-25：已没有推入结果页的路径）
@@ -138,17 +206,40 @@ export function planPaper(t, { reduced, root }) {
     if (!had || had.quiet) return { mode: 'B3', dir: 'close' }; // B3 进来的（含写完换成的结果页）按 B3 倒放离开
     return { mode: 'B1', dir: 'close', source: liveSource(had, t.to.id, root) };
   }
+  if (t.kind === 'tab') pending = null;
   return null;
 }
 
-/** 返回时按钮若还在首页里，重新量一次它的位置和字（首页版面 / 按钮文字可能变了：「开始写字」→「继续写字」）。 */
+function visibleBox(el) {
+  if (!el || el.isConnected === false || typeof el.getBoundingClientRect !== 'function') return null;
+  const rect = rectOf(el);
+  return rect.w > 0 && rect.h > 0 ? rect : null;
+}
+
+/**
+ * 返回时的来源：被点元素还在下层页面里（同一个节点，或同 key 的元素）就重新量一次它的位置和字（版面 / 按钮文字可能变了：「开始写字」→「继续写字」）；
+ * 不在了：缩回记下的位置并淡出（gone）；记下的位置已不在屏上：缩回页面中心并淡出。
+ */
 function liveSource(src, underId, root) {
   const under = root ? root.querySelector(`.sz-layer[data-entry="${underId}"]`) : null;
-  const btn = under ? under.querySelector(`[data-paper-source="${src.key}"]`) : null;
-  if (!btn) return src;
-  const rect = rectOf(btn);
-  if (!(rect.w > 0 && rect.h > 0)) return src;
-  return { ...src, rect, label: (btn.textContent || '').trim() || src.label, radius: radiusOf(btn) };
+  let el = src.el && (!under || under.contains(src.el)) ? src.el : null;
+  let rect = visibleBox(el);
+  if (!rect && under && src.key) {
+    const esc = String(src.key).replace(/["\\]/g, '\\$&');
+    el = under.querySelector(`[data-paper-source="${esc}"]`) || under.querySelector(`[data-testid="${esc}"]`);
+    rect = visibleBox(el);
+  }
+  if (rect) {
+    const label = src.solid ? ((el.textContent || '').trim() || src.label) : '';
+    return { ...src, el, rect, label, radius: radiusOf(el), gone: false };
+  }
+  if (!under) return { ...src, gone: false }; // 单测（没有 DOM）：沿用记下的
+  const W = typeof window !== 'undefined' ? window.innerWidth : 0;
+  const H = typeof window !== 'undefined' ? window.innerHeight : 0;
+  const r = src.rect;
+  const onScreen = !W || !H || (r.x < W && r.y < H && r.x + r.w > 0 && r.y + r.h > 0);
+  const at = onScreen ? r : { x: (W - r.w) / 2, y: (H - r.h) / 2, w: r.w, h: r.h };
+  return { ...src, el: null, rect: at, gone: true };
 }
 
 /** 左缘右滑开始时的计划：顶层是写字页 / 记着来源的结果页，下层是它的来源页。B3 进来的（或没有来源记录的写字页）走 B3，其它返回 null（横推）。 */
@@ -220,17 +311,28 @@ export function createPaper(plan, layer, under) {
     const r0 = plan.source.radius;
     const screenPrev = screen ? setStyles(screen, { position: 'absolute', left: '0px', top: '0px', width: `${W}px`, height: `${H}px`, flex: 'none', transformOrigin: '0 0' }) : null;
     if (screen) guard(() => { for (const [k, v] of Object.entries(screenPrev)) screen.style[k] = v; screen.style.transform = ''; screen.style.opacity = ''; });
-    // 墨色盖片：纸还是按钮大小时就是那个按钮（墨色底 + 字），长大时褪成纸色
-    const ink = document.createElement('div');
-    ink.className = 'sz-paper-ink';
-    ink.setAttribute('aria-hidden', 'true');
-    const label = document.createElement('span');
-    label.textContent = plan.source.label;
-    ink.appendChild(label);
-    layer.appendChild(ink);
-    guard(() => ink.remove());
-    // 来源按钮藏起来（它的位置上长出来的是这张纸），首页其余内容淡出、不位移
-    const btn = under ? under.querySelector(`[data-paper-source="${plan.source.key}"]`) : null;
+    // 实心来源：盖片在纸还是元素大小时就是那个元素（同底色 + 同字），长大时褪成纸色。
+    // 透明来源（文字按钮、列表行、字帖格）或已不在屏上的来源：没有盖片，纸在元素大小时透明、随展开淡入（缩回时淡出），见 apply 里的 veil。
+    const solid = plan.source.solid !== false && !plan.source.gone;
+    const veil = !solid;
+    const ink = solid ? document.createElement('div') : null;
+    const label = solid ? document.createElement('span') : null;
+    if (ink) {
+      ink.className = 'sz-paper-ink';
+      ink.setAttribute('aria-hidden', 'true');
+      if (plan.source.bg) ink.style.background = plan.source.bg;
+      if (plan.source.fg) ink.style.color = plan.source.fg;
+      label.textContent = plan.source.label;
+      ink.appendChild(label);
+      layer.appendChild(ink);
+      guard(() => ink.remove());
+    }
+    // 来源元素藏起来（它的位置上长出来的是这张纸），下层其余内容淡出、不位移
+    const srcEl = plan.source.el;
+    const key = plan.source.key ? String(plan.source.key).replace(/["\\]/g, '\\$&') : null;
+    const btn = !under || plan.source.gone ? null
+      : srcEl && srcEl.isConnected && under.contains(srcEl) ? srcEl
+        : key ? under.querySelector(`[data-paper-source="${key}"]`) || under.querySelector(`[data-testid="${key}"]`) : null;
     if (btn) {
       const prev = btn.style.visibility;
       btn.style.visibility = 'hidden';
@@ -255,13 +357,16 @@ export function createPaper(plan, layer, under) {
       st.height = `${h}px`;
       st.borderRadius = `${r}px`;
       const lift = clamp(e / 0.12) * (1 - clamp((e - 0.8) / 0.2));
-      st.boxShadow = e < 0.0005 ? '' : `0 0 0 1px var(--line)${lift > 0.02 ? ', var(--elev-shadow)' : ''}`;
+      st.boxShadow = e < 0.0005 || (veil && e > 0.8) ? '' : `0 0 0 1px var(--line)${lift > 0.02 ? ', var(--elev-shadow)' : ''}`;
+      if (veil) st.opacity = String(clamp(s / P.veilTo)); // 透明 / 已不在的来源：纸在元素大小时看不见，展开到 veilTo 时完全显出
       if (screen) {
         screen.style.transform = `scale(${w / W})`;
         screen.style.opacity = String(clamp((s - P.contentFadeFrom) / (1 - P.contentFadeFrom)));
       }
-      ink.style.opacity = String(clamp((e - 0.8) / 0.2));
-      label.style.opacity = String(clamp((e - 0.9) / 0.1));
+      if (ink) {
+        ink.style.opacity = String(clamp((e - 0.8) / 0.2));
+        label.style.opacity = String(clamp((e - 0.9) / 0.1));
+      }
       if (panel) panel.style.opacity = String(1 - clamp((s - 0.2) / 0.5));
     };
   } else if (plan.mode === 'B3') {
@@ -285,12 +390,20 @@ export function createPaper(plan, layer, under) {
     const v = clamp(s);
     layer.setAttribute('data-paper-s', v.toFixed(4));
     apply(v, drag);
+    if (frameWatchers.size) for (const fn of frameWatchers) fn({ layer, s: v, mode: plan.mode, dir: plan.dir });
   };
   const clear = () => {
     while (cleanups.length) cleanups.pop()();
   };
   remember(layer, clear);
   return { frame, clear, W, H };
+}
+
+/** 逐帧观察（e2e IC-23 用：每画一帧、在同一个任务里同步回调 {layer, s, mode, dir}；返回取消函数）。没有观察者时零开销。 */
+const frameWatchers = new Set();
+export function watchPaperFrames(fn) {
+  frameWatchers.add(fn);
+  return () => frameWatchers.delete(fn);
 }
 
 // ---------------------------------------------------------------- 逐帧运行

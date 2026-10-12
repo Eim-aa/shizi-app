@@ -45,7 +45,7 @@ import { attachEdgeSwipe, EdgeStrip } from './edge-swipe.js';
 import { clearOverlayGesture, paintOverlayGesture } from './overlay-gesture.js';
 import { markStateChange } from './components/Button.js';
 import {
-  cancelSpec, clearPaper, createPaper, PAPER_CSS, planPaper, planPaperDrag, runProgress, specFor,
+  cancelSpec, clearPaper, createPaper, forgetTap, noteTap, PAPER_CSS, planPaper, planPaperDrag, runProgress, specFor,
 } from './paper-transition.js';
 import { Tabs } from './components/Tabs.js';
 import './components/marks.js'; // 朱色白名单组件：写错朱点与印章（D43，P1-E1a）
@@ -316,6 +316,7 @@ function Root({ router, win }) {
   const t = snap.transition;
   if (t && t.seq !== animRef.current.handledSeq) {
     animRef.current.handledSeq = t.seq;
+    if (!(t.to && t.to.n === 'write' && (t.kind === 'push' || t.kind === 'replace'))) forgetTap(); // 点按只给紧接着的「进写字页」当来源（R6-J1）
     const ctrl = gestureRef.current.ctrl;
     const gv = ctrl ? ctrl.getView() : null;
     // 跟手完成的返回：顶层页面的返回动作（nav.back，或结果页回首页时的静默返回）弹出的正是跟手的那一页 → 转场从手指位置接着走。
@@ -324,8 +325,12 @@ function Root({ router, win }) {
     // 减少动态效果下由手势完成的返回：不跟手，松手直接淡化 GESTURE_FADE_MS（R4-G1）。
     const reducedGesture = !!(t.kind === 'pop' && ctrl && !gv && prefersReducedMotion(win) && ctrl.takeReducedCommit());
     if (t.kind === 'replace' && t.animate && t.from && t.to) {
-      // 同一层换内容（「再写一组」、撤销跳过回到那个字）：一段 T-phase 淡化，旧页留在下面直到新页淡入完（R5-I2，P1-03 / P2-19）
-      animRef.current.current = { seq: t.seq, kind: 'replace', paper: null, mode: 'phase', from: t.from, to: t.to, startS: null, startX: 0, underX: 0, width: 0 };
+      // 同一层换内容。换成写字页且有被点元素（结果页「再写一组」、撤销跳过回到那个字）：新写字页从被点元素长出来（B1，R6-J1，规范 T0 B1），
+      // 来源记在结果页下面那一页名下，返回沿原路缩回；没有被点元素时一段 T-phase 淡化，旧页留在下面直到新页淡入完（R5-I2，P1-03 / P2-19）
+      const pages = snap.stack.filter(e => e.k === 's');
+      const under = pages.length >= 2 ? pages[pages.length - 2] : null;
+      const paper = planPaper(t, { reduced: prefersReducedMotion(win), root: appRef.current, underId: under ? under.id : null });
+      animRef.current.current = { seq: t.seq, kind: 'replace', paper, mode: paper ? (paper.mode === 'B1' ? 'paper' : 'fade') : 'phase', from: t.from, to: t.to, startS: null, startX: 0, underX: 0, width: 0 };
     } else if ((t.animate || fromGesture || reducedGesture) && (t.kind === 'push' || t.kind === 'pop') && t.from && t.to) {
       const start = fromGesture ? BACK_TRANSITION.handoff(gv) : { startX: 0, underX: 0, width: 0 };
       // 写字页进出（W2）：B1 / B3 / 减少动态效果的 150ms 淡化；null = 沿用横推（其它页面）。
@@ -525,6 +530,15 @@ function Root({ router, win }) {
     }
     if (target && typeof target.focus === 'function') target.focus({ preventScroll: true });
   }, [snap.transition]);
+
+  // 写字页进出的来源（R6-J1，规范 T0 B1）：每次点按在捕获阶段记下被点的可点元素，推入写字页时由 planPaper 取走——任何入口都从被点元素展开。
+  useEffect(() => {
+    const doc = win.document;
+    if (!doc || typeof doc.addEventListener !== 'function') return undefined;
+    const onClick = event => noteTap(event && event.target);
+    doc.addEventListener('click', onClick, true);
+    return () => doc.removeEventListener('click', onClick, true);
+  }, [win]);
 
   // Esc 与读屏两指 Z 形（R5-I2，交互规范 N3 读屏 / A2，审计 P0-16 / P2-17）：等于点左上——有弹层先关最上层弹层（执行弹层登记的取消，
   // Confirm 的 onCancel、清空确认的「先不清空」……没登记时 router.back），没有弹层就执行顶层页面左上元素的动作（与左缘右滑同一个函数，

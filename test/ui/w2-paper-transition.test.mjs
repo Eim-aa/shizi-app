@@ -6,6 +6,7 @@ import { readFileSync } from 'node:fs';
 import * as policy from '../../src/config/policy.js';
 import {
   cubicBezier, OPEN_EASE, CLOSE_EASE, specFor, cancelSpec, runProgress, markPaperSource, planPaper, planPaperDrag, resetPaperSources, hasPaperSource, MAX_FRAME_MS,
+  noteTap, paperSourceOf, alphaOf, SOURCE_SELECTOR,
 } from '../../src/ui/paper-transition.js';
 
 const read = rel => readFileSync(new URL(`../../${rel}`, import.meta.url), 'utf8');
@@ -151,7 +152,7 @@ test('planPaperDrag: the write page is a B1 paper when its source is known, B3 o
 
 test('root.js wiring: BACK_TRANSITION hands the progress to the paper (begin / frame / clear take the gesture context); the router progress API is untouched', () => {
   const root = read('src/ui/root.js');
-  assert.match(root, /import \{\s*cancelSpec, clearPaper, createPaper, PAPER_CSS, planPaper, planPaperDrag, runProgress, specFor,\s*\} from '\.\/paper-transition\.js';/);
+  assert.match(root, /import \{\s*cancelSpec, clearPaper, createPaper, forgetTap, noteTap, PAPER_CSS, planPaper, planPaperDrag, runProgress, specFor,\s*\} from '\.\/paper-transition\.js';/);
   assert.match(root, /begin\(top, under, ctx\)/);
   assert.match(root, /frame\(top, under, view, ctx\)/);
   assert.match(root, /clear\(el, ctx\)/);
@@ -160,16 +161,95 @@ test('root.js wiring: BACK_TRANSITION hands the progress to the paper (begin / f
   assert.match(root, /const s = 1 - \(Number\.isFinite\(view\.progress\) \? view\.progress : 0\)/, 's = 1 − p');
   const router = read('src/ui/router.js');
   for (const name of ['beginBack', 'setBackProgress', 'endBack', 'finishBack', 'cancelBack']) assert.ok(router.includes(`${name}(`), `router.${name} still there`);
-  assert.match(read('src/ui/screens/home/index.js'), /data-paper-source="home-start"/);
-  assert.match(read('src/ui/screens/home/index.js'), /markPaperSource\(event && event\.currentTarget, 'home-start'\)/);
+  // R6-J1：来源是通用机制——根组件在捕获阶段记下每次点按的可点元素，页面不再各自登记（首页主按钮也不例外）
+  assert.match(root, /doc\.addEventListener\('click', onClick, true\)/);
+  assert.match(root, /const onClick = event => noteTap\(event && event\.target\)/);
+  for (const f of ['src/ui/screens/home/index.js', 'src/ui/screens/library/all.js', 'src/ui/screens/detail/index.js', 'src/ui/screens/result/index.js']) {
+    assert.doesNotMatch(read(f), /markPaperSource|data-paper-source/, `${f}: no per-page source wiring`);
+  }
 });
+
+// R6-J1（交互与动效规范 T0 B1 / §8b IC-22）：写字页的任何入口都从被点元素展开，返回沿原路缩回它
+const node = (rect, { text = '', bg = 'rgb(35, 31, 27)', testid = null, parent = null, disabled = false, tag = 'BUTTON' } = {}) => {
+  const n = {
+    tagName: tag, disabled, textContent: text, isConnected: true, parentElement: parent,
+    getBoundingClientRect: () => ({ left: rect.x, top: rect.y, width: rect.w, height: rect.h }),
+    getAttribute: k => (k === 'data-testid' ? testid : null),
+    matches: () => tag === 'BUTTON',
+    closest(sel) {
+      if (sel === '.sz-exit') return null;
+      for (let e = this; e; e = e.parentElement) if (e.tagName === 'BUTTON') return e;
+      return null;
+    },
+    _bg: bg,
+  };
+  return n;
+};
+
+test('noteTap: the tapped control (closest button) becomes the source — solid when its background is opaque, plain otherwise; disabled controls and non-controls are ignored', () => {
+  resetPaperSources();
+  const realGCS = globalThis.getComputedStyle;
+  globalThis.getComputedStyle = e => ({ backgroundColor: e._bg, color: 'rgb(1, 2, 3)', borderTopLeftRadius: '12px' });
+  try {
+    const home = { id: 'h9', n: 'home' };
+    const write = { id: 'w9', n: 'write' };
+    const btn = node({ x: 20, y: 600, w: 160, h: 44 }, { text: '接着写 ›', bg: 'rgba(0, 0, 0, 0)', testid: 'other-line' });
+    const span = { ...node({ x: 30, y: 610, w: 40, h: 20 }, { tag: 'SPAN' }), parentElement: btn };
+    span.closest = btn.closest.bind(span);
+    noteTap(span);
+    const open = planPaper({ kind: 'push', from: home, to: write }, { reduced: false, root: null });
+    assert.equal(open.mode, 'B1', 'a text button is a B1 source too (no more B3 for 「接着写」)');
+    assert.deepEqual(open.source.rect, { x: 20, y: 600, w: 160, h: 44 });
+    assert.equal(open.source.solid, false);
+    assert.equal(open.source.label, '', 'a plain source draws no button-shaped label');
+    assert.deepEqual(paperSourceOf('h9'), { rect: { x: 20, y: 600, w: 160, h: 44 }, solid: false, key: 'other-line' });
+    planPaper({ kind: 'pop', from: write, to: home }, { reduced: false, root: null });
+    noteTap(node({ x: 75, y: 683, w: 240, h: 54 }, { text: '开始写字', testid: 'home-start' }));
+    const p2 = planPaper({ kind: 'push', from: home, to: write }, { reduced: false, root: null });
+    assert.deepEqual([p2.mode, p2.source.solid, p2.source.label, p2.source.bg], ['B1', true, '开始写字', 'rgb(35, 31, 27)']);
+    planPaper({ kind: 'pop', from: write, to: home }, { reduced: false, root: null });
+    noteTap(node({ x: 1, y: 1, w: 10, h: 10 }, { disabled: true }));
+    assert.equal(planPaper({ kind: 'push', from: home, to: write }, { reduced: false, root: null }).mode, 'B3', 'a disabled control is not a source');
+    planPaper({ kind: 'pop', from: write, to: home }, { reduced: false, root: null });
+    noteTap({ closest: () => null });
+    assert.equal(planPaper({ kind: 'push', from: home, to: write }, { reduced: false, root: null }).mode, 'B3', 'tapping a non-control leaves no source');
+    // 点了别的页面 / 返回 / 切 Tab：这次点按作废
+    planPaper({ kind: 'pop', from: write, to: home }, { reduced: false, root: null });
+    noteTap(node({ x: 1, y: 1, w: 10, h: 10 }));
+    planPaper({ kind: 'tab', from: home, to: { id: 'l', n: 'library' } }, { reduced: false, root: null });
+    assert.equal(planPaper({ kind: 'push', from: home, to: write }, { reduced: false, root: null }).mode, 'B3', 'a tab switch forgets the tap');
+  } finally {
+    globalThis.getComputedStyle = realGCS;
+    resetPaperSources();
+  }
+  assert.equal(SOURCE_SELECTOR, '[data-paper-source], button, [role="button"], a[href]');
+  assert.deepEqual([alphaOf('rgba(0, 0, 0, 0)'), alphaOf('transparent'), alphaOf('rgb(1, 2, 3)'), alphaOf('rgba(1, 2, 3, 0.5)'), alphaOf('rgb(1 2 3 / 40%)')], [0, 0, 1, 0.5, 0.4]);
+});
+
+test('planPaper replace (result 「再写一组」 / undo-skip → write): B1 from the tapped element, remembered under the page below the result; a programmatic replace keeps the T-phase fade', () => {
+  resetPaperSources();
+  const result = { id: 'r5', n: 'result' };
+  const write = { id: 'w5', n: 'write' };
+  markPaperSource(el({ x: 20, y: 780, w: 353, h: 54 }, '再写一组'), 'result-again');
+  const open = planPaper({ kind: 'replace', from: result, to: write }, { reduced: false, root: null, underId: 'home5' });
+  assert.deepEqual([open.mode, open.dir, open.source.rect.y], ['B1', 'open', 780]);
+  assert.ok(hasPaperSource('home5'), 'the return path is remembered under home');
+  const back = planPaper({ kind: 'pop', from: write, to: { id: 'home5', n: 'home' } }, { reduced: false, root: null });
+  assert.deepEqual([back.mode, back.dir], ['B1', 'close'], 'returning shrinks back along the same path');
+  assert.equal(planPaper({ kind: 'replace', from: result, to: write }, { reduced: false, root: null, underId: 'home5' }), null, 'no tap: T-phase');
+  markPaperSource(el({ x: 1, y: 1, w: 10, h: 10 }), 'x');
+  assert.equal(planPaper({ kind: 'replace', from: result, to: write }, { reduced: true, root: null, underId: 'home5' }).mode, 'R');
+  assert.equal(planPaper({ kind: 'replace', from: write, to: write }, { reduced: false, root: null }), null, 'write → write is a content change, not an entry');
+  resetPaperSources();
+});
+
 
 test('03 / copy-source: P282–P284 are registered (D57), P280 / P281 too; P260 / P261 / P278 point at D57', () => {
   const md = read('docs/engineering/v10/03-待产品决定.md');
   const row = id => md.split('\n').find(l => l.startsWith(`| ${id} |`));
   for (const id of ['P280', 'P281', 'P282', 'P283', 'P284']) {
     assert.ok(row(id), `${id} is in 03`);
-    assert.match(row(id).split(' | ')[4], /^已决定 D57/, `${id} default column`);
+    assert.match(row(id).split(' | ')[4], id === 'P283' ? /^已决定 D58（R6-J1/ : /^已决定 D57/, `${id} default column`);
   }
   const src = JSON.parse(read('docs/engineering/v10/copy-source.json'));
   for (const id of ['P280', 'P281', 'P282', 'P283', 'P284']) assert.ok(src.nonRuntimeDecisions[id], `${id} in nonRuntimeDecisions`);

@@ -26,7 +26,6 @@ import { html, useEffect, useLayoutEffect, useRef, useState } from '../../../../
 import { registerScreen, getScreen, nav } from '../../router.js';
 import { Button } from '../../components/Button.js';
 import { LiveRegion } from '../../components/LiveRegion.js';
-import { markPaperSource } from '../../paper-transition.js'; // W2：主按钮点下时记下它的位置，写字页从它长出来（B1）
 import { SealGlyph } from '../../components/marks.js';
 import { injectStyles, T } from '../../components/styles.js';
 import { M, prefersReducedMotion } from '../../../config/motion.js';
@@ -504,8 +503,8 @@ function HomeScreen() {
       ${failed
         ? html`<${Button} variant="primary" class="sz-home__cta" data-testid="home-start-fail-retry" aria-label=${t('R-H06.retry')}
             onClick=${() => run(failed)}>${t('R-H06.retry')}</${Button}>`
-        : html`<${Button} variant="primary" class="sz-home__cta" data-testid="home-start" data-paper-source="home-start" aria-label=${ctaLabel}
-            onClick=${event => { markPaperSource(event && event.currentTarget, 'home-start'); run(startMain); }}>${ctaLabel}</${Button}>`}
+        : html`<${Button} variant="primary" class="sz-home__cta" data-testid="home-start" aria-label=${ctaLabel}
+            onClick=${() => run(startMain)}>${ctaLabel}</${Button}>`}
     </div>
     </div>
     ${demo || testHost ? html`<div class="sz-home__dev">

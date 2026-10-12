@@ -11,6 +11,8 @@
 // 进出对称（R5-I2，审计 P1-02）：B3 进来的写字页也记一条「安静」来源（{quiet:true}），写完换成结果页后，结果页的「×」与左缘右滑同样按 B3 倒放离开，
 // 不再变成横推。冷启动 / 刷新恢复出来的结果页没有来源记录（只在内存里），照旧横推。
 // 减少动态效果：一律 150ms 交叉淡化（写字页透明度 s，首页留在下面不动），不缩放、不位移；左缘右滑不跟手，松手按阈值完成后淡化（router 控制器 follow=false）。
+// 上面的毫秒数与曲线都是 motion 令牌（policy.paperTransition 取自 config/motion.js，D58；改值改 tokens.json）。
+// 可被打断（规范 T0-3，R5M）：B1 / B3 推入还没放完时点「‹」或从左缘起手，推入立即收尾到终态（root.js 的 cancel），再按返回走——不吞返回。
 //
 // 图层结构不变：写字页仍是 root.js 的一个 .sz-layer；B1 期间改它的 left / top / width / height / border-radius（把层变成一张「纸」），层里的 .sz-layer__screen 固定成整屏大小再 scale——
 // 页面本身的版面一帧都不重排（写字页的 ResizeObserver 量到的尺寸始终是整屏）。动画结束后清掉全部内联样式，回到普通图层。

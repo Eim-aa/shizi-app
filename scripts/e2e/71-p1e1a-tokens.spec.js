@@ -233,7 +233,7 @@ async function visitPages(page, scheme, ctx) {
   assert.equal(dots[0], tokenRgb(scheme, 'zhu'), `${scheme}: the wall's wrong dot = zhu`);
   await tab(page, 'mine');
   await page.waitForTimeout(500);
-  await check('mine', { sheets: '.sz-mine__paper' });
+  await check('mine', { sheets: '.sz-month__sheet' }); // D57 · C1：字帖格是一张笺面（没有 .sz-mine__paper 卡片了）
   await page.evaluate(async () => { (await import('/src/ui/screens/mine/settings.js')).openSettings(); });
   await page.waitForTimeout(700);
   await waitNavIdle(page, { settleMs: 250 });

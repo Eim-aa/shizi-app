@@ -21,7 +21,6 @@ export default Object.freeze({
   // R-L06（已定；轻提示边开发边改）
   'R-L06.entry': '更换字库 ›',
   'R-L06.countLine': '可以练 {n} 个字 · 有记录 {m} 个',
-  'R-L06.confirmBody': ['以后的新字从这个字库里来。', '已有的记录、自选的字和写错过的字都不变。'],
   'X-LIST.startStay': '先不开始',
   'R-L06.saveFailed': '没保存上，刚才的选择没记下。',
   'R-L06.retry': '再试一次',
@@ -39,9 +38,6 @@ export default Object.freeze({
   'X-LIBSWITCH.title': '更换字库',
   'X-LIBSWITCH.current': '正在用',
   'X-LIBSWITCH.more': '›',
-  'X-LIBSWITCH.confirmTitle': '换成「{library}」？',
-  'X-LIBSWITCH.confirmCancel': '取消',
-  'X-LIBSWITCH.confirmOk': '换成这个库',
   // R-L07（已定）
   'R-L07.forgetCardNote': '有一阵没写、可能快忘了的字。',
   'R-L07.forgetCardEmpty': '可能快忘了的字会放在这里。',

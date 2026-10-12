@@ -639,8 +639,8 @@ export default async function a11y(page, realCtx) {
   await audit(page, cdp, ctx, 'month');
   const monthNames = await page.evaluate(() => [...document.querySelectorAll('.sz-layer[data-top="true"] [data-testid="month-cell"]')].map(c => c.getAttribute('aria-label')));
   assert.ok(monthNames.length >= 3 && monthNames.every(n => n && n.trim()), `month cells are named (${monthNames.join(' / ')})`);
-  await page.click(topSel('month-share'));
-  await dialogCheck(page, cdp, ctx, { label: 'month/share-sheet', panel: tid('image-sheet'), opener: 'month-share' });
+  await page.click(topSel('month-adjust'));
+  await dialogCheck(page, cdp, ctx, { label: 'month/share-sheet', panel: tid('image-sheet'), opener: 'month-adjust' });
   await page.goBack();
   await waitTop(page, 'mine');
 
@@ -649,8 +649,8 @@ export default async function a11y(page, realCtx) {
   await waitTop(page, 'annual');
   await waitNavIdle(page);
   await audit(page, cdp, ctx, 'annual');
-  await page.click(topSel('annual-share'));
-  await dialogCheck(page, cdp, ctx, { label: 'annual/share-sheet', panel: tid('image-sheet'), opener: 'annual-share' });
+  await page.click(topSel('annual-adjust'));
+  await dialogCheck(page, cdp, ctx, { label: 'annual/share-sheet', panel: tid('image-sheet'), opener: 'annual-adjust' });
   await page.goBack();
   await waitTop(page, 'mine');
 

@@ -159,10 +159,11 @@ export default async function x1Transitions(page, ctx) {
   const rsp = snapSpan(frames);
   assert.ok(rsp && rsp.to <= 150 + 60, 'a 150ms snapshot cross-fade under reduced motion (not a hard cut)');
   assert.equal(frames[frames.length - 1].phase, 'compare', 'the end state is the judge page');
-  const late = frames.find(f => f.btns && f.t >= 50);
-  assert.ok(late.btnsOpacity === 1 && late.btnsReady === 'true', `the judge buttons are solid and live by ${late.t.toFixed(0)}ms (no fade-in, no invisible lock, P1-41)`);
   const firstBtn = frames.find(f => f.btns);
   assert.ok(firstBtn.btnsOpacity === 1, 'they are never faded');
+  assert.ok(firstBtn.btnsReady === 'true' && firstBtn.btnsPointer !== 'none', `I3 P1-41: the judge buttons are tappable from the very first frame (ready=${firstBtn.btnsReady}, pointer-events=${firstBtn.btnsPointer}) — no invisible 150ms dead time`);
+  const late = frames.find(f => f.t >= 170);
+  assert.ok(late.btnsOpacity === 1 && late.btnsReady === 'true', `the judge buttons are solid and live by ${late.t.toFixed(0)}ms (no fade-in, no 320 / 440ms)`);
   assert.ok(frames.filter(f => f.refTransform).every(f => f.refTransform === 'none'), 'no movement in the reference cell');
 
   // ------------------------------------------------------------------ 2. 参考格不再上滑

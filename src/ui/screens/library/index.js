@@ -23,6 +23,7 @@ import { html, useEffect, useMemo, useState } from '../../../../vendor/ui.js';
 import { registerScreen, getScreen, nav } from '../../router.js';
 import { TabPage } from '../../components/Page.js';
 import { Button, markStateChange } from '../../components/Button.js';
+import { LiveRegion } from '../../components/LiveRegion.js';
 import { injectStyles, T, TEX } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
 import { getStore } from '../../../store/store.js';
@@ -194,7 +195,8 @@ function PracticeBlock({ kind, items }) {
             onClick=${practice}>${t('X-LIBHOME.practiceThese')}</${Button}>`
         : null}
     </div>
-    ${n ? html`<span class="sz-lib__pbfail" data-testid="library-card-fail" role="status" aria-live="polite" hidden=${failed ? undefined : true}>${failed ? t('X-LIST.startFailed') : ''}</span>` : null}
+    ${n ? html`<${LiveRegion} text=${failed ? t('X-LIST.startFailed') : ''} testid="library-card-live" />` : null}
+    ${failed ? html`<span class="sz-lib__pbfail" data-testid="library-card-fail">${t('X-LIST.startFailed')}</span>` : null}
     ${n ? html`<${Samples} cells=${cardMini(items, kind)} />` : null}
   </section>`;
 }

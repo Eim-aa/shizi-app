@@ -19,6 +19,7 @@ export default Object.freeze({
   // X-IMAGES（M4-5 图片预览弹层：原型 ShiziScreen L192–L201 / L486–L487 / charEl；04 §3.2 图片规格；P50）
   'X-IMAGES.save': '保存图片',
   'X-IMAGES.saved': '已存好',
+  'X-IMAGES.saving': '正在保存…',
   'X-IMAGES.retry': '再试一次',
   'X-IMAGES.ratioPortrait': '3:4',
   'X-IMAGES.ratioSquare': '1:1',

@@ -12,7 +12,7 @@
 //   5. 外观：点开底部弹层三选（浅色 / 深色 / 跟随系统，当前项打勾）；选深色 → data-theme=dark、底色变深；刷新后启动即 dark；
 //      跟随系统 → 去掉属性，随 prefers-color-scheme；浅色在系统深色下强制浅；弹层里 failNextWrite → 就地三段式、data-theme 不变，
 //      再试一次成功关弹层；点当前项直接关、不写；系统返回关弹层。
-//   6. 数据：备份与恢复右侧「还没有备份」/「上次备份 9月1日 ›」；点 → 'backup' 屏（M4-4 未注册时用占位屏）。
+//   6. 数据：备份与恢复右侧「还没有备份」/「上次备份 9月1日」；点 → 'backup' 屏（M4-4 未注册时用占位屏）。
 //   7. 提醒（假原生通道）：打开 → remind {enabled, 20:00}，postNative requestReminderPermission + syncReminder；
 //      出现提醒时间行，改成 07:30 → 写入并 syncReminder；改时间写失败 → 输入框退回、提醒组三段式；
 //      原生回报 denied（applyReminderStatus）→ 小字换 R-S02.title、组下 R-S02.body +「去手机设置 ›」→ postNative openAppSettings；
@@ -382,7 +382,7 @@ export default async function settingsSpec(page, ctx) {
     return el && el.textContent.startsWith('上次备份');
   });
   s = await snapshot(page);
-  assert.equal(s.backupValue, '上次备份 9月1日 ›', 'R-M03.lastBackup');
+  assert.equal(s.backupValue.trim(), '上次备份 9月1日', 'R-M03.lastBackup (the › is a decorative Chevron svg now, P1-22)');
   const stubbed = await page.evaluate(async () => {
     const r = await import('/src/ui/router.js');
     if (r.getScreen('backup')) return false;

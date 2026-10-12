@@ -53,7 +53,8 @@ test('copy: t() fills placeholders, returns arrays for multi-line copy, and reje
   assert.equal(t('R-W05.hintRemaining', { n: 2 }), '提示，还有 2 次', 'D49：读屏名称；可见文字是 R-W05.hintLabel');
   assert.equal(t('R-W05.hintLabel'), '提示');
   assert.equal(t('R-W10.lineRecordedCorrect', { char: '静' }), '「静」记为写对 · 修改 ›');
-  assert.deepEqual(t('R-L06.confirmBody'), ['以后的新字从这个字库里来。', '已有的记录、自选的字和写错过的字都不变。']);
+  assert.deepEqual(t('R-D10.body'), ['旧版本拍照留下的记录，只能看，不能做成图片。', '备份时会一起存下。']);
+  assert.equal(has('R-L06.confirmBody'), false, 'I3 P1-19: the switch-library confirm is gone');
   assert.equal(format('{n} / {total}', { n: 3 }), '3 / {total}', 'missing values stay visible');
   assert.throws(() => t('R-X99.nope'), /unknown copy key/);
   assert.equal(has('R-W03.titleRecall'), true);
@@ -119,8 +120,8 @@ test('copy: banned legacy words, ASCII quotes and unlisted TODO values fail', ()
 
 test('copy: source check catches unmapped 04 copy and unexplained overrides', () => {
   const src = clone(source);
-  delete src.entries['R-W16'].slots.saved;
-  assert.ok(checkSource(src, markdown).some((e) => e.includes('保存好了。') && e.includes('not mapped')));
+  delete src.entries['R-W16'].slots.retry;
+  assert.ok(checkSource(src, markdown).some((e) => e.includes('再试一次') && e.includes('not mapped')));
   const src2 = clone(source);
   const slot = src2.entries['R-W05'].slots.hintRemaining;
   delete slot.decision;

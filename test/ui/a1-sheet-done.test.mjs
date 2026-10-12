@@ -22,11 +22,10 @@ test('没有标题的弹层这一行也有「完成」', () => {
   assert.match(sheetSrc, /\$\{title \|\| done/);
 });
 
-test('只有弹层自己已有等价可见出口的决策弹层才传 dismiss="own"（修改判断、对照弹层、清空确认），其余沿用默认', () => {
+test('只有弹层自己已有等价可见出口的决策弹层才传 dismiss="own"（修改判断、对照弹层；清空确认现在是居中的 Confirm，I3 P1-20），其余沿用默认', () => {
   const own = [
     ['src/ui/screens/write/result-row.js', 'write-change-sheet'],
     ['src/ui/screens/result/index.js', 'result-sheet'],
-    ['src/ui/screens/mine/backup.js', 'backup-clear-sheet'],
   ];
   for (const [f, id] of own) assert.match(read(f), new RegExp(`testid="${id}" dismiss="own"`), `${f}`);
   const withDone = [

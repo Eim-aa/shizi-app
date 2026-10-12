@@ -17,14 +17,13 @@
 //
 // data-testid：detail-rows、detail-list-row（data-list=wrong|forget）、detail-list-dot、detail-next、detail-image
 //   （data-state=ok|noInk|noRecord）、detail-image-note、detail-legacy、detail-swap、detail-swap-fail（+ -cancel / -retry）、
-//   detail-remove（一点即移除，没有确认框）、detail-remove-fail（+ -cancel / -retry）、detail-word-banner（data-state=on|failed|undone）、
-//   detail-word-banner-text、detail-word-undo。
+//   detail-remove（一点即移除，没有确认框）、detail-remove-fail（+ -cancel / -retry）、detail-word-banner（换词的撤销条，data-state=on|failed|undone，里面是通用的 undo-bar / undo-button）。
 
 import { html } from '../../../../vendor/ui.js';
 import { Button } from '../../components/Button.js';
 import { FailBlock as SharedFailBlock } from '../../components/FailBlock.js';
 import { Chevron } from '../../components/Chevron.js';
-import { HIT_EXT, injectStyles, T } from '../../components/styles.js';
+import { injectStyles, T } from '../../components/styles.js';
 import { t, tInk } from '../../../config/copy/index.js';
 import { dayText } from './records.js';
 
@@ -49,12 +48,6 @@ button.sz-drow:focus-visible{outline:2px solid ${T.ink1};outline-offset:2px}
 .sz-drow__sub--small{font-size:${T.fs13};color:${T.ink3}}
 .sz-drow__value{flex:none;font-size:${T.fs15};color:${T.ink3}}
 .sz-dfail{display:flex;flex-direction:column;gap:${T.s3};padding:${T.s3} 0;border-bottom:1px solid ${T.line}}
-.sz-dbanner{position:sticky;top:calc(-1 * ${T.s4});z-index:3;margin:calc(-1 * ${T.s4}) calc(-1 * ${T.gutter}) 0;min-height:44px;box-sizing:border-box;padding:0 ${T.gutter};
-  display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;border-bottom:1px solid ${T.line};background:${T.paper};
-  font-size:${T.fs15};color:${T.ink2}}
-.sz-dbanner__sep{color:${T.ink4}}
-.sz-dbanner .sz-btn--text{--bx:0px;position:relative;min-height:40px;color:${T.ink1};font-size:${T.fs15}}
-.sz-dbanner .sz-btn--text::after{${HIT_EXT}} /* 视觉 40 高，热区 44（Q2-13） */
 `);
 
 // ---------------------------------------------------------------- 写入
@@ -178,23 +171,4 @@ export function DetailRows({ model, onList = null, onImage = null, onLegacy, onS
     }
   }
   return html`<div class="sz-drows" data-testid="detail-rows">${rows}</div>`;
-}
-
-/**
- * 词语反馈横幅（R-D05）：「「{词}」以后不会再出现 · 撤销」；撤销失败换说明句（撤销可再点）；撤销成功「已撤销」。
- * @param {{banner: {word:string, state:'on'|'failed'|'undone'}, onUndo: Function}} props
- */
-export function WordBanner({ banner, onUndo }) {
-  if (!banner) return null;
-  if (banner.state === 'undone') {
-    return html`<div class="sz-dbanner" role="status" aria-live="polite" data-testid="detail-word-banner" data-state="undone">
-      <span data-testid="detail-word-banner-text">${t('X-COMMON.undone')}</span>
-    </div>`;
-  }
-  const text = banner.state === 'failed' ? t('X-DETAIL.saveFailed') : t('R-D05.banner', { word: banner.word });
-  return html`<div class="sz-dbanner" data-testid="detail-word-banner" data-state=${banner.state}>
-    <span role="status" aria-live="polite" data-testid="detail-word-banner-text">${text}</span>
-    <span class="sz-dbanner__sep" aria-hidden="true">·</span>
-    <${Button} variant="text" data-testid="detail-word-undo" onClick=${onUndo}>${t('R-D05.undo')}</${Button}>
-  </div>`;
 }

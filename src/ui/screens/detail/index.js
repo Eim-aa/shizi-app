@@ -29,6 +29,7 @@ import { html, useEffect, useState } from '../../../../vendor/ui.js';
 import { registerScreen, getRouter, getScreen, nav } from '../../router.js';
 import { Page } from '../../components/Page.js';
 import { Button } from '../../components/Button.js';
+import { LiveRegion } from '../../components/LiveRegion.js';
 import { PracticeGlyph } from '../../components/PracticeGlyph.js';
 import { UndoBar } from '../../components/UndoBar.js';
 import { injectStyles, T, TEX } from '../../components/styles.js';
@@ -44,13 +45,12 @@ import { startPicked } from '../session/index.js';
 import { isPracticable } from '../../../data/deck.js';
 import { detailHero, detailModel, hasInkPoints, HeroPair, inkOf, RecordsBlock, SourceRow } from './records.js';
 import {
-  commitRemoveCustom, commitRestoreCustom, commitWordOff, commitWordOn, DetailRows, FailBlock, WordBanner,
+  commitRemoveCustom, commitRestoreCustom, commitWordOff, commitWordOn, DetailRows, FailBlock,
 } from './actions.js';
 import { PHOTO_SCREEN } from './photos.js'; // 旧记录页自注册
 
 export const DETAIL_SCREEN = 'detail';
 export const LIST_SCREEN_NAME = 'library-list'; // M3-2 清单页（params {kind:'wrong'|'forget'}）
-export const BANNER_UNDONE_MS = M.timing.undone;
 
 injectStyles('detail', `
 .sz-dhead{display:flex;flex-direction:column;gap:${T.s4}} /* 头部直接放在纸上：没有凹面卡（框中框），只留笺框一层（T2-13） */
@@ -201,12 +201,6 @@ function DetailScreen({ params, entry }) {
     setPracticeFailed(false);
   });
 
-  useEffect(() => {
-    if (!banner || banner.state !== 'undone') return undefined;
-    const timer = setTimeout(() => setBanner(b => (b === banner ? null : b)), BANNER_UNDONE_MS);
-    return () => clearTimeout(timer);
-  }, [banner]);
-
   // ---- 换掉这个词语（R-D05）
   const swap = () => {
     const st = storeOrNull();
@@ -215,6 +209,7 @@ function DetailScreen({ params, entry }) {
     const r = st ? commitWordOff(st, cardKey) : { ok: false };
     if (r.ok) {
       setSwapFailed(false);
+      setUndo(null);
       setBanner({ word, cardKey, state: 'on' });
       return;
     }
@@ -235,6 +230,7 @@ function DetailScreen({ params, entry }) {
     const r = st ? commitRemoveCustom(st, char) : { ok: false };
     if (r.ok) {
       setRemoveFailed(false);
+      setBanner(null);
       if (r.removed) setUndo({ removed: r.removed, state: 'on' });
       return;
     }
@@ -267,13 +263,21 @@ function DetailScreen({ params, entry }) {
         line2=${undo.state === 'failed' ? t('X-DETAIL.undoFailedL2') : t('R-D06.undoL2')}
         done=${undo.state === 'done'} onUndo=${undoRemove} onDoneEnd=${() => setUndo(null)} />
     </div>` : null;
-  const footer = undoBlock ? [undoBlock, main] : main;
+  // 换词的撤销也是同一条底部撤销条（一点即生效 + 撤销条，I3 · P1-19）；两条不会同时出现（做一个会清掉另一个）
+  const wordBlock = banner ? html`<div class="sz-detail__undo" data-testid="detail-word-banner" data-state=${banner.state}>
+      <${UndoBar}
+        line1=${banner.state === 'failed' ? t('X-DETAIL.saveFailed') : t('R-D05.banner', { word: banner.word })}
+        line2=${banner.state === 'failed' ? t('X-DETAIL.undoFailedL2') : t('R-D06.undoL2')}
+        done=${banner.state === 'undone'} onUndo=${undoWord} onDoneEnd=${() => setBanner(null)} />
+    </div>` : null;
+  const blocks = [wordBlock, undoBlock].filter(Boolean);
+  const footer = blocks.length ? [...blocks, main] : main;
 
   return html`<div class="sz-detail" style=${{ height: '100%' }} data-testid="detail-screen" data-char=${char}
     data-count=${model.count} data-list=${model.list || ''} data-custom=${model.custom ? 'true' : 'false'}
     data-word-off=${model.wordOff ? 'true' : 'false'}>
-    <${Page} title="" footer=${footer}>
-      <${WordBanner} banner=${banner} onUndo=${undoWord} />
+    <${Page} title=${t('X-DETAIL.pageTitle', { char })} hideTitle=${true} footer=${footer}>
+      <${LiveRegion} text=${banner ? (banner.state === 'undone' ? t('X-COMMON.undone') : banner.state === 'failed' ? t('X-DETAIL.saveFailed') : t('R-D05.banner', { word: banner.word })) : ''} testid="detail-live" />
       <${CharCard} model=${model} strokeData=${strokeData} store=${store} />
       <${RecordsBlock} model=${model} store=${store} />
       <${SourceRow} char=${char} />

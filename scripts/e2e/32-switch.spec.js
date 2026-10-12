@@ -4,9 +4,9 @@
 //   1. 列表：四行（LIBRARIES 顺序）库名 / 一句说明 / 「可以练 N 个字 · 有记录 M 个」——N 从数据算（3500 / 2974 / 744 / 2500，D50 ① 移除 76 字后），
 //      M 按记录算（只算 judged，同字去重；看过答案不算）；没设过练习范围 → 规范常用字「正在用」（P73）；底注；
 //      320 宽时数量行两段各自不折断（折行整段换行）。
-//   2. 确认框：点别的库 → 「换成「规范次常用字」？」+ 两行正文 + 取消 / 换成这个库；取消 → 不写入。
-//   3. 失败就地重试：failNextWrite(settings) → 确认框换成「没保存上，刚才的选择没记下。」+ 先不换 / 再试一次，settings 不变；
-//      先不换 → 关框、仍是原来的库；再来一次失败 → 再试一次 → 成功：关框、回到设置页（E9c / D49 ④：入口在「我的 › 设置 › 练习范围」，字库页没有了）、轻提示，settings.library = adv3000；
+//   2. 没有确认框（I3 P1-19：换库不丢任何东西，规范 B3「能撤销 / 不丢东西就不确认」）：点别的库直接换。
+//   3. 失败就地重试：failNextWrite(settings) → 列表下面「没保存上，刚才的选择没记下。」+ 先不换 / 再试一次，settings 不变；
+//      先不换 → 说明消失、仍是原来的库；再来一次失败 → 再试一次 → 成功：回到设置页（E9c / D49 ④：入口在「我的 › 设置 › 练习范围」，字库页没有了）、轻提示，settings.library = adv3000；
 //      整个过程只写 txn 与 settings 两个键，没有绕过 storage.js 的写。
 //   4. 只影响新字来源：换库前后 records / sched / custom / sessions 深相等；换库后 startA 开的今天的练习，新字全部来自规范次常用字
 //      （换库前同样的状态算出来的新字全部来自规范常用字）；换库后 records / sched 仍不变。
@@ -28,7 +28,6 @@ const DESCS = [
 ];
 const TOTALS = [3500, 2974, 744, 2500];
 const SOURCE_NOTE = '字表参考教育部《通用规范汉字表》。有些字拾字还没收进来，暂时不能练，所以能练的字比原表少。';
-const CONFIRM_BODY = '以后的新字从这个字库里来。\n已有的记录、自选的字和写错过的字都不变。';
 const FAILED = '没保存上，刚才的选择没记下。';
 
 const row = lib => `${topSel('libswitch-row')}[data-lib="${lib}"]`;
@@ -250,61 +249,35 @@ export default async function librarySwitch(page, ctx) {
   await page.setViewportSize({ width: 393, height: 852 });
   await page.waitForTimeout(100);
 
-  // ------------------------------------------------------------ 2. 确认框 · 取消
-  ctx.step('confirm: title, two-line body, 取消 / 换成这个库; cancel writes nothing');
+  // ------------------------------------------------------------ 2. 没有确认框（I3 P1-19）
+  ctx.step('no confirm dialog: switching loses nothing, so a tap on a library switches at once (the failure, if any, is shown in place)');
   const log0 = (await writeLog(page)).length;
-  await page.click(row('adv3000'));
-  await page.waitForSelector(DIALOG);
-  await waitNavIdle(page);
-  let d = await dialog(page);
-  assert.equal(d.state, 'ask', 'ask state');
-  assert.equal(d.lib, 'adv3000', 'target library');
-  assert.equal(d.role, 'alertdialog', 'alertdialog role');
-  assert.equal(d.title, '换成「规范次常用字」？', 'title');
-  assert.equal(d.body, CONFIRM_BODY, 'body');
-  assert.equal(d.cancel, '取消', '取消 button');
-  assert.equal(d.ok, '换成这个库', '换成这个库 button');
-  assert.ok(d.focusInDialog && !d.focusOnButton, 'focus on the dialog, no button preselected');
-  await page.click(topSel('libswitch-cancel'));
-  await page.waitForSelector(DIALOG, { state: 'detached' });
-  await waitNavIdle(page);
-  assert.equal((await routerTop(page)).top, 'library-switch', 'still on the switch page');
-  assert.equal((await state(page)).settings, null, 'settings untouched after cancel');
-  assert.equal((await writeLog(page)).length, log0, 'no storage write on cancel');
+  assert.equal(await page.locator(tid('libswitch-confirm')).count(), 0, 'no confirm dialog on the page');
 
   // ------------------------------------------------------------ 3. 失败 · 先不换
-  ctx.step('failure: in-place retry state, settings unchanged; 先不换 closes and keeps the old library');
-  await page.click(row('adv3000'));
-  await page.waitForSelector(DIALOG);
-  await waitNavIdle(page);
+  ctx.step('failure: in-place 三段式 under the list, settings unchanged, no dialog; 先不换 clears it and keeps the old library');
   await page.evaluate(() => window.__shiziTest.failNextWrite(1, { kind: 'generic', matchKey: 'shizi.v2.settings' }));
-  await page.click(topSel('libswitch-ok'));
-  await page.waitForSelector(`${DIALOG}[data-state="failed"]`);
+  await page.click(row('adv3000'));
+  await page.waitForSelector(topSel('libswitch-fail'));
   await page.waitForTimeout(450);
-  d = await dialog(page);
-  assert.equal(d.title, '换成「规范次常用字」？', 'title kept');
-  assert.equal(d.body, FAILED, 'save-failed sentence');
-  assert.equal(d.stay, '先不换', '先不换 button');
-  assert.equal(d.retry, '再试一次', '再试一次 button');
-  assert.equal(d.ok, null, 'ask buttons replaced');
+  assert.equal(await page.locator(DIALOG).count(), 0, 'still no dialog');
+  assert.equal(await page.textContent(topSel('libswitch-fail-note')), FAILED, 'save-failed sentence');
+  assert.equal((await page.textContent(topSel('libswitch-stay'))).trim(), '先不换', '先不换 button');
+  assert.equal((await page.textContent(topSel('libswitch-retry'))).trim(), '再试一次', '再试一次 button');
   assert.equal((await state(page)).settings, null, 'settings not changed by the failed write');
   assert.equal((await routerTop(page)).top, 'library-switch', 'stays on the page (就地)');
   await page.click(topSel('libswitch-stay'));
-  await page.waitForSelector(DIALOG, { state: 'detached' });
-  await waitNavIdle(page);
+  await page.waitForSelector(topSel('libswitch-fail'), { state: 'detached' });
   list = await rows(page);
   assert.deepEqual(list.map(r => r.current), ['true', 'false', 'false', 'false'], 'still core3500 after 先不换');
   assert.equal((await state(page)).settings, null, 'settings still null');
 
   // ------------------------------------------------------------ 3b. 失败 · 再试一次 → 成功
-  ctx.step('failure → 再试一次 succeeds: dialog closes, back to the settings page, no toast (D58 P0-08), settings.library = adv3000');
+  ctx.step('failure → 再试一次 succeeds: back to the settings page, no toast (D58 P0-08), settings.library = adv3000');
   const logStart = (await writeLog(page)).length;
-  await page.click(row('adv3000'));
-  await page.waitForSelector(DIALOG);
-  await waitNavIdle(page);
   await page.evaluate(() => window.__shiziTest.failNextWrite(1, { kind: 'generic', matchKey: 'shizi.v2.settings' }));
-  await page.click(topSel('libswitch-ok'));
-  await page.waitForSelector(`${DIALOG}[data-state="failed"]`);
+  await page.click(row('adv3000'));
+  await page.waitForSelector(topSel('libswitch-fail'));
   await page.waitForTimeout(450);
   await page.click(topSel('libswitch-retry'));
   await page.waitForFunction(async () => {
@@ -382,16 +355,5 @@ export default async function librarySwitch(page, ctx) {
   assert.equal((await writeLog(page)).length, logBefore, 'no write');
   assert.equal(await page.$(DIALOG), null, 'no dialog');
 
-  // ------------------------------------------------------------ 6. 系统返回关确认框
-  ctx.step('system back closes the confirm dialog without writing');
-  await openSwitch(page);
-  await page.click(row('rare'));
-  await page.waitForSelector(DIALOG);
-  await waitNavIdle(page);
-  await page.goBack();
-  await page.waitForSelector(DIALOG, { state: 'detached' });
-  await waitNavIdle(page);
-  assert.equal((await routerTop(page)).top, 'library-switch', 'back on the list');
-  assert.deepEqual((await state(page)).settings, { library: 'adv3000' }, 'unchanged');
   await goTab(page, 'home');
 }

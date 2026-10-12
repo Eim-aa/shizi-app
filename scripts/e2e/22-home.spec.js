@@ -359,8 +359,10 @@ export default async function run(page, ctx) {
   await page.click(tid('home-start'));
   await page.waitForSelector(tid('home-start-fail'));
   h = await home(page);
-  assert.ok(h.fail.includes(COPY.startFailed) && h.fail.includes(COPY.notSave) && h.fail.includes(COPY.retry),
-    '「没保存上，刚才的选择没记下。」［先不保存 / 再试一次］');
+  assert.ok(h.fail.includes(COPY.startFailed) && h.fail.includes(COPY.notSave) && !h.fail.includes(COPY.retry),
+    '说明 +「先不保存」在失败块里；「再试一次」不再是第二个主按钮（I3 P1-14）');
+  assert.equal((await page.textContent(tid('home-start-fail-retry'))).trim(), COPY.retry, 'the one main button of the screen became 再试一次');
+  assert.equal(await page.locator(`${tid('screen-home')} .sz-btn--primary`).count(), 1, 'exactly ONE primary button on the screen while it failed');
   assert.equal(await topScreen(page), 'home', 'still on home');
   assert.equal(((await state(page)).sessions || {}).A || null, null, 'no session written');
   await waitNavIdle(page);

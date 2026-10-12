@@ -34,7 +34,7 @@ import { mineModel } from './model.js';
 import {
   dayText, getMineImageActions, go, hasInkOfStore, MINE_ROUTES, openRecords, useStoreState, useToday,
 } from './records.js'; // 练习记录页自注册（records）；首页墨迹行「今天的记录」也在那里注册
-import { MonthBody, mineSheetModel, monthModel } from './month.js';
+import { MonthBody, mineSheetModel, monthModel, openMonth } from './month.js';
 
 export { MINE_ROUTES, openRecords, openTodayRecords, setMineImageActions, RECORDS_SCREEN } from './records.js';
 
@@ -133,7 +133,7 @@ function Sheet({ model, state }) {
       kuanTestid="mine-sheet-sign" sealTestid="mine-sheet-seal" sign=${!truncated} />
     ${truncated
       ? html`<${Button} variant="text" class="sz-mine__all" data-testid="mine-sheet-all"
-          onClick=${() => openRecords({ month: sheet.month })}>${t('R-M05.sheetAll')}</${Button}>`
+          onClick=${() => openMonth({ month: sheet.month })}>${t('R-M05.sheetAll')}</${Button}>`
       : null}
   </section>`;
 }
@@ -158,9 +158,8 @@ function MenuRow({ to, testid, title, sub = null, value = null, valueTestid, sub
 
 function Menu({ model }) {
   const last = model.lastBackup;
-  const backupValue = last
-    ? t('R-M03.lastBackup', { date: dayText(last) })
-    : html`${t('R-M03.noBackup')} <${Chevron} />`;
+  // 行尾的「›」一律是装饰性的 Chevron（aria-hidden），不写进文案（I3 · P1-22）
+  const backupValue = html`${last ? t('R-M03.lastBackup', { date: dayText(last) }) : t('R-M03.noBackup')} <${Chevron} />`;
   return html`<nav class="sz-mine__menu" data-testid="mine-menu" aria-label=${MINE_LABEL}>
     <${MenuRow} to=${MINE_ROUTES.settings} testid="mine-menu-settings" title=${t('R-M03.settings')} />
     <${MenuRow} to=${MINE_ROUTES.backup} testid="mine-menu-backup" title=${t('R-M03.backup')} sub=${t('R-M03.backupSub')}

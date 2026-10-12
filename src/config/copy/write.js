@@ -54,7 +54,6 @@ export default Object.freeze({
   'R-W16.saveFailed': '没保存上，你写的字还在。',
   'R-W16.retry': '再试一次',
   'R-W16.cancel': '先不保存',
-  'R-W16.saved': '保存好了。',
   // R-W18（已定）
   'R-W18.btnUndo': '撤销',
   'R-W18.btnClear': '清空',

@@ -316,7 +316,7 @@ export default async function run(page, ctx) {
   r = await resultView(page);
   assert.equal(r.invite.accepted, '好，明天 9:30 给你一个词。');
   await page.waitForTimeout(PRESS_SETTLE_MS);
-  await page.click(topSel('result-invite-time'));
+  assert.equal(await page.locator(topSel('result-invite-time-input')).count(), 1, 'I3 P1-21: the time input is there at once — no extra 「改时间」 tap before the wheel');
   await page.fill(topSel('result-invite-time-input'), '21:15');
   await page.waitForFunction(() => /21:15/.test(document.querySelector('.sz-layer[data-top="true"] [data-testid="result-invite-accepted"]').textContent));
   st = await stateOf(page);

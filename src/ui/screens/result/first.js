@@ -44,8 +44,11 @@ injectStyles('result-first', `
 .sz-invite__line{margin:0;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2}}
 .sz-invite__acts{display:flex;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap}
 .sz-invite__acts .sz-btn--secondary{width:auto;min-height:${T.hit};padding:0 22px;font-size:${T.fs15};line-height:${T.lh15}}
-.sz-invite__time{font:inherit;font-size:${T.fs15};color:${T.ink1};background:${T.field};border:0;border-radius:${T.rCtl};min-height:${T.hit};
-  padding:0 12px;box-sizing:border-box}
+/* 「改时间」：外观是文字按钮，里面盖着一个透明的 <input type=time>——点一下直接弹时间轮（I3 · P1-21） */
+.sz-invite__timebtn{position:relative;display:inline-flex;align-items:center;min-height:${T.hit};padding:0 4px;margin-left:-4px;box-sizing:border-box;
+  font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2}}
+.sz-invite__timetext{pointer-events:none}
+.sz-invite__timeinput{position:absolute;inset:0;width:100%;height:100%;opacity:0;margin:0;padding:0;border:0;font-size:${T.fs17};cursor:pointer}
 .sz-invite__note{margin:0;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3}}
 .sz-blankbox{display:inline-block;width:.9em;height:.9em;box-sizing:border-box;margin:0 .06em;border:${T.frameW} solid ${T.frame};vertical-align:-.12em} /* 示例里被遮住的那个字：描边小方框（与写字页题面的空框同一画法，不用与「口」难分的 □，N2-13） */
 `);
@@ -181,11 +184,14 @@ export function useReminderInvite({ store, settings, session, variant, ready = t
   const changeTime = async event => {
     const parsed = parseTime(event && event.target ? event.target.value : '');
     if (!parsed) return;
+    let r;
     try {
-      await inviteChangeTime(store, parsed);
+      r = await inviteChangeTime(store, parsed);
     } catch (error) {
-      // 改不成就留在原来的时间（设置页「提醒时间」同样可改）
+      r = { ok: false };
     }
+    // 改不成就留在原来的时间，并说一句（失败不吞，S1 / I3 · P1-21）；设置页「提醒时间」同样可改
+    setFailed(!!(r && r.ok === false));
   };
 
   return {
@@ -210,11 +216,13 @@ export function ReminderInvite({ invite }) {
     const value = `${String(remind.hour).padStart(2, '0')}:${String(remind.minute).padStart(2, '0')}`;
     return html`<div class="sz-invite" data-testid="result-invite" data-state="accepted">
       <p class="sz-invite__line" data-testid="result-invite-accepted" aria-live="polite">${t('X-INVITE.accepted', { time })}</p>
+      ${failed ? html`<p class="sz-invite__note" data-testid="result-invite-fail">${t('X-SETTINGS.saveFailed')}</p>` : null}
       <div class="sz-invite__acts">
-        ${editing
-          ? html`<input class="sz-invite__time" type="time" step="60" value=${value} aria-label=${t('X-INVITE.timeLabel')}
-              data-testid="result-invite-time-input" onChange=${changeTime} />`
-          : html`<${Button} variant="text" data-testid="result-invite-time" onClick=${() => setEditing(true)}>${t('X-INVITE.changeTime')}</${Button}>`}
+        <span class="sz-invite__timebtn" data-testid="result-invite-time">
+          <span class="sz-invite__timetext" aria-hidden="true">${t('X-INVITE.changeTime')}</span>
+          <input class="sz-invite__timeinput" type="time" step="60" value=${value} aria-label=${t('X-INVITE.changeTime')}
+            data-testid="result-invite-time-input" onChange=${changeTime} />
+        </span>
       </div>
     </div>`;
   }
@@ -223,7 +231,7 @@ export function ReminderInvite({ invite }) {
   return html`<div class="sz-invite sz-invite--in" data-testid="result-invite" data-state=${waiting ? 'pending' : 'invite'} aria-busy=${waiting ? 'true' : null}>
     <p class="sz-invite__title" data-testid="result-invite-title">${t(evening ? 'X-INVITE.titleEvening' : 'X-INVITE.title')}</p>
     <p class="sz-invite__body" data-testid="result-invite-body">${example ? inviteBody(example) : t('X-INVITE.bodyPlain')}</p>
-    ${failed ? html`${FailBlock({ testid: 'result-invite-failure', noteTestid: 'result-invite-fail', retryTestid: 'result-invite-retry', cancelTestid: 'result-invite-cancel', text: t('X-SETTINGS.saveFailed'), cancelLabel: t('X-SETTINGS.cancel'), onCancel: invite.dismissFail, onRetry: invite.accept })}` : html`<div class="sz-invite__acts" data-testid="result-invite-actions" data-state=${waiting ? 'pending' : 'invite'}>
+    ${failed ? html`${FailBlock({ speak: false, testid: 'result-invite-failure', noteTestid: 'result-invite-fail', retryTestid: 'result-invite-retry', cancelTestid: 'result-invite-cancel', text: t('X-SETTINGS.saveFailed'), cancelLabel: t('X-SETTINGS.cancel'), onCancel: invite.dismissFail, onRetry: invite.accept })}` : html`<div class="sz-invite__acts" data-testid="result-invite-actions" data-state=${waiting ? 'pending' : 'invite'}>
       <${Button} variant="secondary" data-testid="result-invite-yes" disabled=${waiting} onClick=${invite.accept}>${t('X-INVITE.yes')}</${Button}>
       <${Button} variant="text" data-testid="result-invite-no" disabled=${waiting} onClick=${invite.decline}>${t('X-INVITE.no')}</${Button}>
     </div>`}

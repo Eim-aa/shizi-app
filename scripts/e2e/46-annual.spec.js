@@ -17,7 +17,7 @@ const CLOCK = `${TODAY}T09:00:00`;
 const TOP = '.sz-layer[data-top="true"]';
 
 const COPY = {
-  title: '年报',
+  title: '年度报告', // I3 P2-24: the page title is the menu row's name (one name for the report)
   emptyTitle: '今年还没有记录',
   emptyBody: '写字并判断对错后，这里会汇总你今年的记录。',
   head: n => `这一年，你拾回${['零', '一', '两', '三', '四', '五', '六', '七', '八', '九', '十'][n]}个字。`, // 汉字数字，与册页卷首同一句（D53，N2-14；本用例的数都在 10 以内）
@@ -121,7 +121,7 @@ async function view(page) {
         label: txt(q('annual-first-label')), line: txt(q('annual-first-date')), canvasMode: q('annual-first-canvas') ? q('annual-first-canvas').dataset.mode : null,
         cellLabel: q('annual-first-cell').getAttribute('aria-label') } : null,
       twice: twice ? { char: twice.dataset.char, dates: all('annual-twice-date').map(txt) } : null,
-      share: !!q('annual-share'),
+      share: !!q('annual-adjust'),
       buttons: [...root.querySelectorAll('button, [role="button"], a[href]')].map(b => b.dataset.testid || b.outerHTML.slice(0, 60)),
       bodyText: root.innerText,
       unnamedButtons: [...root.querySelectorAll('button')].filter(b => !(b.getAttribute('aria-label') || b.innerText || '').trim())
@@ -281,9 +281,9 @@ export default async function run(page, ctx) {
   v = await view(page);
   assert.deepEqual([v.twice.char, v.twice.dates], ['疆', ['4月27日', '10月2日']], '卷尾: the same char, first and latest ink, dates under the cells');
   assert.equal(v.share, true, 'share icon (replaces 「这一页不能保存成图片」)');
-  assert.deepEqual(v.buttons.filter(b => b !== 'annual-month'), ['page-back', 'annual-share'], 'header back + share; the month sections are buttons');
+  assert.deepEqual(v.buttons.filter(b => b !== 'annual-month'), ['page-back', 'annual-adjust', 'annual-save'], 'header back + 调整图片 ›, footer 保存图片; the month sections are buttons');
   assert.deepEqual(v.unnamedButtons, [], 'every button has an accessible name');
-  await page.click(`${TOP} ${tid('annual-share')}`);
+  await page.click(`${TOP} ${tid('annual-adjust')}`);
   await page.waitForFunction(() => document.querySelector('[data-testid="image-preview"]')?.dataset.state === 'ready');
   await page.waitForTimeout(700);
   const sh = await page.evaluate(() => {

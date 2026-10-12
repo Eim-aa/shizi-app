@@ -32,6 +32,7 @@ import { registerScreen, getRouter, getScreen, nav } from '../../router.js';
 import { Page } from '../../components/Page.js';
 import { Button, pressFeedbackHandlers } from '../../components/Button.js';
 import { Icons } from '../../components/icons.js';
+import { Chevron } from '../../components/Chevron.js';
 import { useAxLevel } from '../../components/ax.js';
 import { injectStyles, T, TEX } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
@@ -97,7 +98,7 @@ injectStyles('mine-records', `
 .sz-rec__sheet{display:flex;flex-direction:column;gap:12px}
 .sz-rec__shead{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
 .sz-rec__save.sz-btn{flex:none;font-size:${T.fs15};color:${T.ink2}}
-.sz-rec__open.sz-btn{font:inherit;color:inherit;text-align:left}
+.sz-rec__open.sz-btn{font:inherit;color:inherit;text-align:left;min-height:44px;display:inline-flex;align-items:center;gap:8px} /* 去处：热区 44，行尾 Chevron（I3 · P1-40） */
 .sz-rec__todaylist{display:flex;flex-direction:column;border-top:1px solid ${T.line}}
 .sz-rec__today.sz-btn{min-height:52px;padding:8px 0;box-sizing:border-box;display:flex;flex-direction:column;align-items:flex-start;gap:3px;
   text-align:left;border-bottom:1px solid ${T.line}}
@@ -392,7 +393,7 @@ function MonthSheet({ model, state }) {
     <div class="sz-rec__shead">
       <h2 class="sz-rec__subtitle" data-testid="records-sheet-title">
         ${monthView.n
-          ? html`<${Button} variant="plain" class="sz-rec__open" data-testid="records-sheet-open" onClick=${() => openMonth({ month: sheet.month })}>${title}</${Button}>`
+          ? html`<${Button} variant="plain" class="sz-rec__open" data-testid="records-sheet-open" onClick=${() => openMonth({ month: sheet.month })}>${title}<${Chevron} /></${Button}>`
           : title}
       </h2>
       ${save

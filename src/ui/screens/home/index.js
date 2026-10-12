@@ -20,11 +20,12 @@
 // data-testid：screen-home（data-view / data-records / data-resume / data-period / data-compact / data-today / data-ax）、home-date、home-title（只给读屏）、
 //   home-epigraph（data-index）、home-brand-shi（日常态的墨「拾」；首次打开是框中的品牌「拾」）、home-group、home-start、home-first-tip、home-first、home-motto、home-seal、
 //   other-line（data-slot / data-kind / data-remaining）、home-back-note、home-capital-hint（data-kind = capital1 | capital2；含 home-capital-body）、
-//   home-capital-defer、home-pick、home-start-fail（+ -cancel / -retry）；测试宿主另有 demo-push、write-test-entry（开发入口，不是用户文案）。
+//   home-capital-defer、home-pick、home-start-fail（+ -cancel）、home-start-fail-retry（失败时主按钮换成它）；测试宿主另有 demo-push、write-test-entry（开发入口，不是用户文案）。
 
 import { html, useEffect, useLayoutEffect, useRef, useState } from '../../../../vendor/ui.js';
 import { registerScreen, getScreen, nav } from '../../router.js';
 import { Button } from '../../components/Button.js';
+import { LiveRegion } from '../../components/LiveRegion.js';
 import { markPaperSource } from '../../paper-transition.js'; // W2：主按钮点下时记下它的位置，写字页从它长出来（B1）
 import { SealGlyph } from '../../components/marks.js';
 import { injectStyles, T } from '../../components/styles.js';
@@ -107,7 +108,7 @@ injectStyles('home', `
 .sz-home__note{margin:0 0 12px;text-align:center;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3}}
 .sz-home__fail{margin-bottom:12px;width:100%;max-width:345px;display:flex;flex-direction:column;gap:10px}
 .sz-home__failnote{margin:0;text-align:center;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2}}
-.sz-home__failbtns{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+.sz-home__failbtns{display:flex;justify-content:center}
 .sz-home__dev{position:absolute;left:20px;right:20px;top:100%;display:flex;flex-direction:column;gap:8px;padding:12px 0} /* 测试宿主的开发入口：落在首屏下面，不占流内位置（首屏版式与线上一致） */
 .sz-first{display:flex;gap:20px;align-items:flex-start;justify-content:center}
 .sz-first__motto{margin:0;display:flex;flex-direction:row-reverse;align-items:flex-start;font-family:${T.song};font-weight:400;
@@ -341,12 +342,12 @@ function HomeShi({ size }) {
   </div>`;
 }
 
-function FailBlock({ onCancel, onRetry }) {
+// 失败三段式（R-G04）：说明 + 「先不保存」在这里；「再试一次」就是下面那个主按钮（失败时主按钮换成它，同屏只有一个主按钮，B2 / I3 · P1-14）
+function FailBlock({ onCancel }) {
   return html`<div class="sz-home__fail" data-testid="home-start-fail">
-    <p class="sz-home__failnote" aria-live="polite">${t('X-HOME.startFailed')}</p>
+    <p class="sz-home__failnote">${t('X-HOME.startFailed')}</p>
     <div class="sz-home__failbtns">
-      <${Button} variant="secondary" data-testid="home-start-fail-cancel" onClick=${onCancel}>${t('R-H06.cancel')}</${Button}>
-      <${Button} variant="primary" data-testid="home-start-fail-retry" onClick=${onRetry}>${t('R-H06.retry')}</${Button}>
+      <${Button} variant="text" data-testid="home-start-fail-cancel" onClick=${onCancel}>${t('R-H06.cancel')}</${Button}>
     </div>
   </div>`;
 }
@@ -490,7 +491,8 @@ function HomeScreen() {
       ${zone}
     </div>
     <div ref=${footRef} class="sz-home__foot" data-testid="home-foot">
-      ${failed ? html`<${FailBlock} onCancel=${() => setFailed(null)} onRetry=${() => run(failed)} />` : null}
+      <${LiveRegion} text=${failed ? t('X-HOME.startFailed') : ''} testid="home-start-live" />
+      ${failed ? html`<${FailBlock} onCancel=${() => setFailed(null)} />` : null}
       ${view === 'first' ? html`<p class="sz-home__note" data-testid="home-first-tip">${t('R-H03.firstVisit')}</p>` : null}
       ${model.other ? html`<${Button} variant="text" class="sz-home__other" data-testid="other-line" data-slot=${model.other.slot}
         data-kind=${model.other.kind} data-remaining=${String(model.other.remaining)} aria-label=${resumeLineAria(model.other, t)}
@@ -499,8 +501,11 @@ function HomeScreen() {
         ${model.showPick ? html`<${Button} variant="text" class="sz-home__side" data-testid="home-pick" onClick=${() => openPick()}>${t('X-HOME.pick')}</${Button}>` : null}
         ${view === 'special' ? html`<${Button} variant="text" class="sz-home__side" data-testid="home-capital-defer" onClick=${() => run(deferCapital)}>${t('X-HOME.capitalDefer')}</${Button}>` : null}
       </div>` : null}
-      <${Button} variant="primary" class="sz-home__cta" data-testid="home-start" data-paper-source="home-start" aria-label=${ctaLabel}
-        onClick=${event => { markPaperSource(event && event.currentTarget, 'home-start'); run(startMain); }}>${ctaLabel}</${Button}>
+      ${failed
+        ? html`<${Button} variant="primary" class="sz-home__cta" data-testid="home-start-fail-retry" aria-label=${t('R-H06.retry')}
+            onClick=${() => run(failed)}>${t('R-H06.retry')}</${Button}>`
+        : html`<${Button} variant="primary" class="sz-home__cta" data-testid="home-start" data-paper-source="home-start" aria-label=${ctaLabel}
+            onClick=${event => { markPaperSource(event && event.currentTarget, 'home-start'); run(startMain); }}>${ctaLabel}</${Button}>`}
     </div>
     </div>
     ${demo || testHost ? html`<div class="sz-home__dev">

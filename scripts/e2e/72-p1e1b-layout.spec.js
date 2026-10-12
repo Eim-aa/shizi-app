@@ -299,9 +299,9 @@ export default async function p1e1bLayout(page, ctx) {
     body: getComputedStyle(document.querySelector('[data-testid="backup-clear-body"]')).color,
     active: document.activeElement && document.activeElement.getAttribute('data-testid'),
   }));
-  assert.ok(sheet.cancel.includes('sz-btn--primary'), 'clear sheet: 取消 is the primary (ink) button');
-  assert.ok(sheet.ok.includes('sz-btn--secondary') && !sheet.ok.includes('sz-btn--primary'), 'clear sheet: 清空 is the outlined secondary button');
-  assert.equal(sheet.cancelBg, tokenRgb('light', 'btnBg'), 'the cancel button is solid ink');
+  assert.ok(sheet.ok.includes('sz-btn--primary'), 'clear dialog (shared Confirm, I3 P1-20): 清空 on the right is the primary (ink) button');
+  assert.ok(sheet.cancel.includes('sz-btn--secondary') && !sheet.cancel.includes('sz-btn--primary'), 'clear dialog: 取消 is the outlined secondary button');
+  assert.equal(sheet.okBg, tokenRgb('light', 'btnBg'), 'the confirming button is solid ink, not red');
   assert.equal(sheet.body, tokenRgb('light', 'ink1'), 'the consequence sentence is ink1, not the faded note colour');
   assert.ok(sheet.active !== 'backup-clear-ok' && sheet.active !== 'backup-clear-cancel', `no button is preselected (${sheet.active})`);
   await page.click('[data-testid="backup-clear-cancel"]');

@@ -1,14 +1,14 @@
 // 年报（阶段 1 P1-E7；交接 §8；设计稿「作品出口」§四；原 02 M4-2 / 04 R-M06）。自注册 registerScreen('annual')（params {}）；「我的」菜单「年度报告」按屏名 push。
 //
-// 年报是一卷（交接 §8.1，滚动）：页头「年报」+ 右侧分享 → 卷首（「二〇二六」t34 宋、「这一年，你拾回两百一十八个字。」t17（与册页卷首同一句、同样用汉字数字，D53 / N2-14）、今年第一个字：单格 132 +
+// 年报是一卷（交接 §8.1，滚动）：页头「年报」+ 右侧「调整图片 ›」→ 卷首（「二〇二六」t34 宋、「这一年，你拾回两百一十八个字。」t17（与册页卷首同一句、同样用汉字数字，D53 / N2-14）、今年第一个字：单格 132 +
 //   「今年第一个字」/「{M月D日} 的笔迹」，D45）→ 每月一段（顶 hairline；月名 t22 + 右侧「{n} 字」；8 列、格 45、无格线、墨内边 9%，没墨的画衬底；
 //   点一段进该月字帖）→ 卷尾「同一个字，两次」（第一次与最近一次墨迹两格并排 140，格下各自日期；D27）。只有一个数（年字数）；不出统计小节。
-// 右上分享 → 弹层「保存年报」：默认册页（卷首 + 每月 + 卷尾，每张 3:4，超 80 字的月份分张），文字按钮「存成一张长图」（images-annual.js）。
+// 底栏「保存图片」一次点击直接存册页（I3 · P1-23）；页头「调整图片 ›」→ 弹层「保存年报」：默认册页（卷首 + 每月 + 卷尾，每张 3:4，超 80 字的月份分张），文字按钮「存成一张长图」（images-annual.js）。
 // 纸上记录不进、不计入年字数（D46-13）。界面里的数字用阿拉伯数字，但卷首的年份与这一句属于作品，页面与册页统一用汉字数字（work-text.js 填入）。
 // 空态（原型 annualEmpty）：虚线框「年」+「今年还没有记录」+「写字并判断对错后，这里会汇总你今年的记录。」。
 //
 // data-testid（前缀 annual-；页面根 annual-screen）：
-//   annual-body（data-state=empty|report、data-year、data-today、data-count、data-days、data-months）、annual-share、annual-year、annual-head、
+//   annual-body（data-state=empty|report、data-year、data-today、data-count、data-days、data-months）、annual-adjust、annual-save（data-state）、annual-save-note、annual-year、annual-head、
 //   annual-first（data-char / data-day / data-record / data-ink）、annual-first-cell、annual-first-label、annual-first-date、
 //   annual-month（按钮，data-month / data-n）、annual-month-name、annual-month-count、annual-month-grid、annual-month-cell（data-char / data-mode）、
 //   annual-twice（data-char）、annual-twice-first / annual-twice-last（data-record / data-day）、annual-twice-date、
@@ -17,9 +17,10 @@
 import { html, useMemo } from '../../../../vendor/ui.js';
 import { registerScreen, getScreen, nav } from '../../router.js';
 import { Page } from '../../components/Page.js';
-import { Icons } from '../../components/icons.js';
+import { useSaveFlow } from '../../image-quick.js';
 import { PracticeGlyph, FACE_FULL } from '../../components/PracticeGlyph.js';
 import { Button, pressFeedbackHandlers } from '../../components/Button.js';
+import { LiveRegion } from '../../components/LiveRegion.js';
 import { CellCanvas, builtInk, useAxSize, useScreenWidth } from '../../components/work.js';
 import { injectStyles, T, TEX } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
@@ -37,6 +38,7 @@ export const ANNUAL_SCREEN = 'annual';
 
 injectStyles('mine-annual', `
 .sz-ann{display:flex;flex-direction:column;gap:0;margin:0 -4px}
+.sz-ann__fail{margin:0;text-align:center;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink1}}
 .sz-ann__year{margin:0;font-family:${T.song};font-size:${T.fs34};line-height:${T.lh34};font-weight:400;color:${T.ink1}}
 .sz-ann__line{margin:8px 0 0;font-size:${T.fs17};line-height:${T.lh17};color:${T.ink2}}
 .sz-ann__first{display:flex;gap:20px;align-items:flex-end;margin-top:24px;padding-bottom:16px}
@@ -184,22 +186,34 @@ function Report({ model, state }) {
       : null}`;
 }
 
-const SHARE_ICON = () => Icons.share();
-
-/** 分享弹层（images-annual.js 在年报页之外没有别的入口，按需动态加载，与 images-entry.js 的加载顺序无关）。 */
+/** 分享弹层（images-annual.js 在年报页之外没有别的入口，按需动态加载，与 images-entry.js 的加载顺序无关）。只在「调整图片」（分享、存成长图）时进入。 */
 async function shareAnnual() {
   const { openAnnualImage } = await import('../../images-annual.js');
   openAnnualImage();
+}
+
+/** 年报的导出任务（同上，按需加载）。 */
+async function annualJob() {
+  const { buildAnnualJob } = await import('../../images-annual.js');
+  return buildAnnualJob();
 }
 
 function AnnualScreen() {
   const state = useStoreState();
   const today = useToday();
   const model = useMemo(() => annualModel(state, today, { hasInk: hasInkOfStore(), policy: defaultPolicy }), [state, today]);
+  // 与月字帖同一布局（I3 · P1-23）：页头右侧「调整图片 ›」进预览，底栏「保存图片」一次点击直接存（册页每张 3:4）
+  const flow = useSaveFlow(annualJob);
   const trailing = model.empty
     ? null
-    : html`<${Button} variant="icon" data-testid="annual-share" aria-label=${t('X-WORK.shareAria')} onClick=${shareAnnual}>${SHARE_ICON()}</${Button}>`;
-  return html`<${Page} title=${t('X-WORK.annualPageTitle')} trailing=${trailing} testid="annual-screen">
+    : html`<${Button} variant="text" data-testid="annual-adjust" aria-label=${t('X-WORK.adjustAria')} onClick=${shareAnnual}>${t('X-WORK.adjustImage')}</${Button}>`;
+  const footer = model.empty
+    ? null
+    : [html`<${LiveRegion} key="live" text=${flow.note} testid="annual-save-live" />`,
+      flow.note ? html`<p key="note" class="sz-ann__fail" data-testid="annual-save-note">${flow.note}</p>` : null,
+      html`<${Button} key="save" variant="primary" data-testid="annual-save" data-state=${flow.state} disabled=${flow.disabled}
+        aria-busy=${flow.state === 'busy' ? 'true' : undefined} onClick=${flow.save}>${flow.label}</${Button}>`];
+  return html`<${Page} title=${t('X-MINE.annual')} trailing=${trailing} footer=${footer} testid="annual-screen">
     <div class="sz-ann" data-testid="annual-body" data-state=${model.empty ? 'empty' : 'report'} data-year=${model.year}
       data-today=${today} data-count=${model.count} data-days=${model.days} data-months=${model.months.length} style=${model.empty ? { flex: '1' } : null}>
       ${model.empty ? html`<${EmptyState} />` : html`<${Report} model=${model} state=${state} />`}

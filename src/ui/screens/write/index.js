@@ -123,6 +123,7 @@ ${W} .sz-page__foot[data-under="true"]::before{content:"";position:absolute;left
 .sz-write__headtools{display:flex;align-items:center}
 .sz-write__headact{display:flex;align-items:center}
 .sz-write__headact:empty{display:none}
+.sz-write__headact+.sz-write__headact{margin-left:16px} /* 结束这组 | 跳过：字与字 ≥ 12，点击区不重叠（B2 / I3 · P1-13） */
 .sz-write__headact .sz-btn--text{font-size:${T.fs17};line-height:${T.lh17};color:${T.ink2}}
 /* 格下工具行（A7，D57，P280）：离格 4、撤销贴格左沿、清空贴格右沿，图标加文字、无底、常规字重；看答案阶段 / 纸上那一字没有墨可撤：整行收起（书写格 g 与组顶按名义版式算，不跟着挪） */
 .sz-write__tools{flex:none;box-sizing:border-box;max-width:100%;height:${TOOL_ROW_H - 4}px;margin:4px auto 0;display:flex;align-items:center;justify-content:space-between}

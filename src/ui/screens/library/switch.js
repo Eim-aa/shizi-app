@@ -6,27 +6,23 @@
 //   「可以练 {n} 个字 · 有记录 {m} 个」（n = 题库里属于该库的卡数，从数据算：3500 / 2974 / 744 / 2500；
 //   m = 该库里有 judged 记录的字数，D23 口径只算写对 / 写错，按记录算，不用原型写死值）/ 右侧「正在用」或「›」；
 //   数量行两段各自不折断（「折行整段换行」）；底注 R-L06.sourceNote。
-//   点当前库 → 返回（原型 lib:<当前库> 只关弹层）；点别的库 → 居中确认框。
-// 确认框（S02 同一版式，自带 testid）：标题「换成「{库名}」？」+ 正文 R-L06.confirmBody + 取消 / 换成这个库。
-//   换成这个库 → 一次 store.commit 只改 settings.library（records / sched / custom / wordOff / sessions 都不碰——
+//   点当前库 → 返回；点别的库 → 直接换（I3 · P1-19：换库不丢任何东西，没有确认框）。
+//   一次 store.commit 只改 settings.library（records / sched / custom / wordOff / sessions 都不碰——
 //   已开的组照旧，只影响之后选新字的来源，session-start 读 settings.library）。
-//   失败 → 就地重试（01 §4「换库 · 就地重试」、R-G04 三段式）：确认框留着，正文换成 R-L06.saveFailed，
-//   两键「先不换」（关框，仍是原来的库）/「再试一次」（同一 commit）。
-//   成功 → 关框、返回上一页（设置页，行尾已是新库名）；不弹提示（D58 / I3 P0-08）。
+//   失败 → 就地重试（01 §4「换库 · 就地重试」、R-G04 三段式）：页底说明 R-L06.saveFailed + 两键「先不换」/「再试一次」（同一 commit）。
+//   成功 → 返回上一页（设置页，行尾已是新库名）；不弹提示（D58 / I3 P0-08）。
 //
 // data-testid：libswitch-screen（页面；入口是设置页的 settings-library 行）、libswitch-list（data-current）、libswitch-row（data-lib / data-current，每行一个 button）、
 //   libswitch-row-name / -desc / -count / -mark、libswitch-source、
-//   libswitch-confirm（data-state=ask|failed / data-lib）、libswitch-confirm-title / -body、
-//   libswitch-cancel、libswitch-ok、libswitch-stay、libswitch-retry。
+//   libswitch-fail（失败三段式）、libswitch-fail-note、libswitch-stay、libswitch-retry。
 
-import { html, useEffect, useRef, useState } from '../../../../vendor/ui.js';
+import { html, useEffect, useState } from '../../../../vendor/ui.js';
 import { registerScreen, nav } from '../../router.js';
 import { setNoneActions } from '../session/none.js';
 import { Page } from '../../components/Page.js';
-import { Button } from '../../components/Button.js';
-import { useDialogFocus } from '../../components/Sheet.js';
+import { Button, markStateChange } from '../../components/Button.js';
 import { FailBlock } from '../../components/FailBlock.js';
-import '../../components/Confirm.js'; // .sz-overlay / .sz-confirm 样式
+import { LiveRegion } from '../../components/LiveRegion.js';
 import { injectStyles, T } from '../../components/styles.js';
 import { getStore } from '../../../store/store.js';
 import { LIBRARIES } from '../../../core/cards.js';
@@ -36,7 +32,6 @@ import { currentLibraryId, libraryOf } from '../../../data/deck.js';
 import { t } from '../../../config/copy/index.js';
 
 export const LIBRARY_SWITCH_SCREEN = 'library-switch';
-export const LIBRARY_CONFIRM_OVERLAY = 'library-confirm';
 export const SWITCH_LABEL = 'library:switch';
 
 // ---------------------------------------------------------------- 纯函数（test/ui/library-switch.test.mjs）
@@ -150,79 +145,28 @@ function useStoreState() {
   return state;
 }
 
-// ---------------------------------------------------------------- 确认框
-
-let dialogSeq = 0;
+// ---------------------------------------------------------------- 换库与失败说明
 
 /**
- * 确认框视图（纯函数，无 hooks；test/ui/library-switch.test.mjs 直接调用）。
- * @param {object} props
- * @param {string} props.id           目标库 id
- * @param {boolean} [props.failed]    保存失败（就地重试态）
- * @param {() => void} props.onConfirm   换成这个库 / 再试一次
- * @param {() => void} [props.close]     取消 / 先不换 / 点遮罩
- * @param {object} [props.panelRef]
- * @param {{title:string, body:string}} [props.ids]
- */
-export function LibraryConfirmView({ id, failed = false, onConfirm, close, panelRef = null, ids = { title: 'sz-libsw-title', body: 'sz-libsw-body' } }) {
-  const cancel = () => close && close();
-  const body = failed ? t('R-L06.saveFailed') : t('R-L06.confirmBody').join('\n');
-  // 失败：确认框内容就地换成三段式（S1，components/FailBlock.js dialog：[先不保存 | 再试一次]；说明是正文，常驻段落换文字即播报）
-  const actions = failed
-    ? html`${FailBlock({ layout: 'dialog', text: '', testid: 'libswitch-fail', cancelTestid: 'libswitch-stay', retryTestid: 'libswitch-retry', cancelLabel: t('R-L06.cancel'), retryLabel: t('R-L06.retry'), onCancel: cancel, onRetry: () => onConfirm && onConfirm() })}`
-    : html`<div class="sz-confirm__actions"><${Button} variant="secondary" data-testid="libswitch-cancel" onClick=${cancel}>${t('X-LIBSWITCH.confirmCancel')}</${Button}>
-        <${Button} variant="primary" data-testid="libswitch-ok" onClick=${() => onConfirm && onConfirm()}>${t('X-LIBSWITCH.confirmOk')}</${Button}></div>`;
-  return html`<div class="sz-overlay" data-overlay="confirm">
-    <div class="sz-scrim" aria-hidden="true" onClick=${cancel}></div>
-    <div class="sz-confirm" role="alertdialog" aria-modal="true" tabindex="-1" ref=${panelRef} data-testid="libswitch-confirm"
-      data-state=${failed ? 'failed' : 'ask'} data-lib=${id} aria-labelledby=${ids.title} aria-describedby=${ids.body}>
-      <h2 class="sz-confirm__title" id=${ids.title} data-testid="libswitch-confirm-title">${t('X-LIBSWITCH.confirmTitle', { library: libraryName(id) })}</h2>
-      <p class="sz-confirm__body" id=${ids.body} data-testid="libswitch-confirm-body" aria-live="polite">${body}</p>
-      ${actions}
-    </div>
-  </div>`;
-}
-
-/** 换库确认框（overlay 组件；root 注入 close / active）。不预选任何按钮（焦点落在对话框本身）。 */
-export function LibraryConfirm({ id, failed = false, onConfirm, close, active = true }) {
-  const panelRef = useRef(null);
-  const idsRef = useRef(null);
-  if (!idsRef.current) {
-    dialogSeq += 1;
-    idsRef.current = { title: `sz-libsw-title-${dialogSeq}`, body: `sz-libsw-body-${dialogSeq}` };
-  }
-  useDialogFocus(panelRef, active);
-  return LibraryConfirmView({ id, failed, onConfirm, close, panelRef, ids: idsRef.current });
-}
-
-/**
- * 打开换库确认框。成功：关框 → 返回上一页；失败：确认框换成就地重试态。
+ * 换成库 id：一次 store.commit（commitLibrary）。没有确认框——换库不丢任何东西（records / 自选 / 写错过都不变，已开的组照旧），
+ * 点一下就换（规范 B3「不丢东西就不确认」，I3 · P1-19）。
  * @param {string} id
- * @param {object} [o]
- * @param {() => object} [o.getStore]   测试注入
- * @returns overlay id
+ * @param {{getStore?: () => object}} [o]  测试注入
+ * @returns {{ok:boolean, error?:object}}
  */
-export function openLibraryConfirm(id, { getStore: storeOf = getStore } = {}) {
-  let overlayId = null;
-  let done = false;
-  const confirm = () => {
-    if (done) return;
-    let result;
-    try {
-      result = commitLibrary(storeOf(), id);
-    } catch (error) {
-      result = { ok: false, error: { kind: 'unknown', reason: error && error.message ? error.message : String(error) } };
-    }
-    if (result && result.ok) {
-      done = true;
-      nav.closeOverlay(overlayId);
-      nav.back();
-      return;
-    }
-    nav.updateOverlay(overlayId, { failed: true });
-  };
-  overlayId = nav.openOverlay(LibraryConfirm, { id, failed: false, onConfirm: confirm }, { name: LIBRARY_CONFIRM_OVERLAY });
-  return overlayId;
+export function switchLibrary(id, { getStore: storeOf = getStore } = {}) {
+  try {
+    return commitLibrary(storeOf(), id);
+  } catch (error) {
+    return { ok: false, error: { kind: 'unknown', reason: error && error.message ? error.message : String(error) } };
+  }
+}
+
+/** 换库失败的就地三段式（R-G04）：说明 + 「先不换」/「再试一次」。纯视图。 */
+export function SwitchFail({ onStay, onRetry }) {
+  // 全 App 唯一的三段式（S1，components/FailBlock.js）；播报交给页面上常驻的 LiveRegion（libswitch-live），这里不再经播报区读
+  return FailBlock({ layout: 'foot', testid: 'libswitch-fail', noteTestid: 'libswitch-fail-note', cancelTestid: 'libswitch-stay', retryTestid: 'libswitch-retry',
+    text: t('R-L06.saveFailed'), cancelLabel: t('R-L06.cancel'), retryLabel: t('R-L06.retry'), onCancel: onStay, onRetry, speak: false });
 }
 
 // ---------------------------------------------------------------- 页面
@@ -250,14 +194,29 @@ function LibrarySwitchScreen() {
   const state = useStoreState();
   const rows = libraryRows(state);
   const current = rows.find(r => r.current);
+  const [failedId, setFailedId] = useState(null); // 写入失败的那个库（再试一次重跑它）
+  const choose = id => {
+    const result = switchLibrary(id);
+    if (result && result.ok) {
+      setFailedId(null);
+      nav.back(); // 成功不提示：设置页行尾已经是新库名
+      return;
+    }
+    setFailedId(id);
+    markStateChange();
+  };
   const pick = row => {
     if (row.current) {
       nav.back();
       return;
     }
-    openLibraryConfirm(row.id);
+    choose(row.id);
   };
-  return html`<${Page} title=${t('X-LIBSWITCH.title')} testid="libswitch-screen">
+  const footer = failedId
+    ? html`<${SwitchFail} onStay=${() => setFailedId(null)} onRetry=${() => choose(failedId)} />`
+    : null;
+  return html`<${Page} title=${t('X-LIBSWITCH.title')} footer=${footer} testid="libswitch-screen">
+    <${LiveRegion} text=${failedId ? t('R-L06.saveFailed') : ''} testid="libswitch-live" />
     <ul class="sz-libsw__list" data-testid="libswitch-list" data-current=${current ? current.id : ''}>
       ${rows.map(row => html`<${Row} key=${row.id} row=${row} onPick=${pick} />`)}
     </ul>

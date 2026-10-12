@@ -1,13 +1,14 @@
 // M3-5 换库：行模型（数量从数据算、M 按 judged 记录算、当前库 = settings.library → P73 默认库）、数量行整段、
 // 一次 commit 只改 settings.library（真 store + 内存 Storage + 故障注入：失败不发布、重试成功、其余域不动）、确认框视图。
 import test from 'node:test';
+import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  libraryRows, judgedChars, countSegments, commitLibrary, LibraryConfirmView, libraryName, libraryDesc,
+  libraryRows, judgedChars, countSegments, commitLibrary, switchLibrary, SwitchFail, libraryName, libraryDesc,
   LIBRARY_SWITCH_SCREEN, SWITCH_LABEL,
 } from '../../src/ui/screens/library/switch.js';
 import { getScreen } from '../../src/ui/router.js';
@@ -185,33 +186,35 @@ test('commitLibrary on an empty store creates settings with library only', () =>
 
 // ---------------------------------------------------------------- 视图
 
-test('LibraryConfirm: ask state — title with the library name, two-line body, 取消 / 换成这个库', () => {
-  const vnode = LibraryConfirmView({ id: 'curriculum2500', onConfirm: () => {} });
-  const ids = byTestid(vnode);
-  assert.equal(ids['libswitch-confirm'].props['data-state'], 'ask');
-  assert.equal(ids['libswitch-confirm'].props.role, 'alertdialog');
-  assert.equal(textOf(ids['libswitch-confirm-title']), '换成「小学初中常用字」？');
-  assert.equal(textOf(ids['libswitch-confirm-body']), '以后的新字从这个字库里来。\n已有的记录、自选的字和写错过的字都不变。');
-  assert.equal(textOf(ids['libswitch-cancel']), '取消');
-  assert.equal(textOf(ids['libswitch-ok']), '换成这个库');
-  assert.ok(!ids['libswitch-retry'] && !ids['libswitch-stay']);
+test('I3 P1-19: switching does not lose anything (records / custom / wrong list stay), so there is no confirm dialog any more', () => {
+  const src = readFileSync(new URL('../../src/ui/screens/library/switch.js', import.meta.url), 'utf8');
+  assert.ok(!/LibraryConfirm|openLibraryConfirm|alertdialog|libswitch-confirm|libswitch-ok/.test(src), 'no confirm component left');
+  assert.throws(() => t('X-LIBSWITCH.confirmTitle', { library: 'x' }), 'confirm copy removed');
+  assert.throws(() => t('R-L06.confirmBody'), 'confirm body removed');
 });
 
-test('LibraryConfirm: failed state — save-failed sentence, 先不换 / 再试一次 (就地重试)', () => {
-  let confirmed = 0;
-  let closed = 0;
-  const vnode = LibraryConfirmView({ id: 'adv3000', failed: true, onConfirm: () => { confirmed += 1; }, close: () => { closed += 1; } });
+test('switchLibrary: one commit, true on success; a failed write is reported untouched (the page then shows the in-place 三段式)', () => {
+  const { store, storage } = freshStore();
+  assert.equal(switchLibrary('adv3000', { getStore: () => store }).ok, true);
+  assert.deepEqual(store.getState().settings, { library: 'adv3000' });
+  storage.failNextWrite(1, { kind: 'generic', matchKey: KEYS.settings });
+  const r = switchLibrary('rare', { getStore: () => store });
+  assert.equal(r.ok, false);
+  assert.deepEqual(store.getState().settings, { library: 'adv3000' }, 'unchanged after the failed write');
+  assert.equal(switchLibrary('rare', { getStore: () => store }).ok, true, 'retry is the same commit');
+});
+
+test('SwitchFail: 先不换 / 再试一次 with the save-failed sentence', () => {
+  let retried = 0;
+  let stayed = 0;
+  const vnode = SwitchFail({ onRetry: () => { retried += 1; }, onStay: () => { stayed += 1; } });
   const ids = byTestid(vnode);
-  assert.equal(ids['libswitch-confirm'].props['data-state'], 'failed');
-  assert.equal(textOf(ids['libswitch-confirm-title']), '换成「规范次常用字」？');
-  assert.equal(textOf(ids['libswitch-confirm-body']), '没保存上，刚才的选择没记下。');
+  assert.equal(textOf(ids['libswitch-fail-note']), '没保存上，刚才的选择没记下。');
   assert.equal(textOf(ids['libswitch-stay']), '先不换');
   assert.equal(textOf(ids['libswitch-retry']), '再试一次');
-  assert.ok(!ids['libswitch-ok'] && !ids['libswitch-cancel']);
   ids['libswitch-retry'].props.onClick({ timeStamp: 1e9 });
-  assert.equal(confirmed, 1, '再试一次 → the same commit again');
   ids['libswitch-stay'].props.onClick({ timeStamp: 2e9 });
-  assert.equal(closed, 1, '先不换 → close');
+  assert.deepEqual([retried, stayed], [1, 1]);
 });
 
 test('screen registered as library-switch; library names from copy', () => {

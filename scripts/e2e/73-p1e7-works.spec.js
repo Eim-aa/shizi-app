@@ -377,9 +377,31 @@ export default async function (page, ctx) {
   await page.evaluate(async () => { (await import('/src/ui/router.js')).nav.replace('month', { month: '2026-09' }); });
   await page.waitForFunction(() => document.querySelectorAll('.sz-layer[data-top="true"] [data-testid="month-cell"]').length === 3);
   assert.equal(await page.locator(topSel('month-note')).count(), 0, 'no note when every char has ink');
-  ctx.step('month page share: ratio defaults by count (3 chars → 1:1); month kuan');
+  ctx.step('month page I3 P0-04: 保存图片 saves in ONE tap — no preview sheet, a 1:1 JPEG (3 chars), the button turns 已存好 in place, no toast; 分享 calls the system share directly');
   await waitNavIdle(page);
+  const direct = await downloadFile(page, () => page.click(topSel('month-save')));
+  assert.ok(/\.jpg$/.test(direct.name), `file ${direct.name}`);
+  assert.deepEqual(jpegSize(direct.buf), { w: 1440, h: 1440 }, 'default ratio of a 3-char month (D47) → 1:1 file');
+  assert.equal(await page.locator('[data-testid="image-preview"]').count(), 0, 'no preview sheet opened');
+  await page.waitForFunction(() => document.querySelector('.sz-layer[data-top="true"] [data-testid="month-save"]')?.dataset.state === 'saved');
+  assert.equal((await page.textContent(topSel('month-save'))).trim(), '已存好', 'the save button changes in place');
+  assert.equal(await page.locator('[data-testid="toast"]').count(), 0, 'no success toast');
+  await page.waitForFunction(() => document.querySelector('.sz-layer[data-top="true"] [data-testid="month-save"]')?.dataset.state === 'idle', null, { timeout: 4000 });
+  assert.equal((await page.textContent(topSel('month-save'))).trim(), '保存图片', 'back to 保存图片 after ≈1.5s');
+  await page.evaluate(() => {
+    window.__shared = [];
+    navigator.canShare = d => !!(d && d.files && d.files.length);
+    navigator.share = async d => { window.__shared.push(d.files.map(f => ({ name: f.name, type: f.type }))); };
+  });
   await page.click(topSel('month-share-btn'));
+  await page.waitForFunction(() => window.__shared.length === 1);
+  assert.equal(await page.evaluate(() => window.__shared[0][0].type), 'image/jpeg', 'shared a JPEG straight from the page');
+  assert.equal(await page.locator('[data-testid="image-preview"]').count(), 0, 'sharing opened no preview either');
+
+  ctx.step('month page share: 调整图片 › opens the preview — ratio defaults by count (3 chars → 1:1); month kuan');
+  assert.equal((await page.textContent(topSel('month-adjust'))).trim(), '调整图片 ›');
+  assert.equal(await page.locator(topSel('month-share')).count(), 0, 'no header share icon any more (one way to share, in the footer)');
+  await page.click(topSel('month-adjust'));
   await page.waitForFunction(() => document.querySelector('[data-testid="image-preview"]')?.dataset.state === 'ready');
   p = await preview(page);
   assert.equal(p.ratio, '1:1');
@@ -455,7 +477,7 @@ export default async function (page, ctx) {
       twice: q('annual-twice') ? { char: q('annual-twice').dataset.char, dates: [...top.querySelectorAll('[data-testid="annual-twice-date"]')].map(e => e.textContent.trim()), size: q('annual-twice-first').getBoundingClientRect().width } : null,
       pageTitle: top.querySelector('[data-page-title]').textContent.trim(),
       stats: /最忙|较少见|有记录天数/.test(top.innerText),
-      share: !!q('annual-share'),
+      share: !!q('annual-adjust'),
     };
   });
   assert.equal(a.year, '二〇二六');
@@ -465,7 +487,7 @@ export default async function (page, ctx) {
   assert.ok(a.months.every(x => x.cols === 8 && Math.round(x.cell) === 45), 'month sections: 8 columns of 45');
   assert.equal(a.months[1].under, 9, 'chars without ink are under cells');
   assert.deepEqual([a.twice.char, a.twice.dates, Math.round(a.twice.size)], ['疆', ['4月27日', '10月2日'], 140], '卷尾: the same char, first and latest ink');
-  assert.equal(a.pageTitle, '年报');
+  assert.equal(a.pageTitle, '年度报告', 'I3 P2-24: same name as the menu row');
   assert.equal(a.stats, false, 'no statistics sections');
   assert.equal(a.share, true);
   await page.click(`${topSel('annual-month')}[data-month="2026-05"]`);
@@ -474,7 +496,9 @@ export default async function (page, ctx) {
   assert.equal(await page.textContent(topSel('month-title')), '5月字帖', 'the month section opens the month page');
   await page.evaluate(async () => (await import('/src/ui/router.js')).nav.back());
   await waitNavIdle(page);
-  await page.click(topSel('annual-share'));
+  assert.equal((await page.textContent(topSel('annual-adjust'))).trim(), '调整图片 ›', 'same layout as the month page (I3 P1-23): 调整图片 › in the header');
+  assert.equal((await page.textContent(topSel('annual-save'))).trim(), '保存图片', 'and 保存图片 in the footer');
+  await page.click(topSel('annual-adjust'));
   await page.waitForFunction(() => document.querySelector('[data-testid="image-preview"]')?.dataset.state === 'ready');
   await page.waitForTimeout(800);
   p = await preview(page);

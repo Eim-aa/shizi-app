@@ -30,6 +30,8 @@ export default Object.freeze({
   'X-WORK.cellStateAfterSeen': '看后写的',
   'X-WORK.cellStateWrong': '写错',
   'X-WORK.shareAria': '分享这次的图片',
+  'X-WORK.adjustImage': '调整图片 ›',
+  'X-WORK.adjustAria': '调整图片',
   // 分享弹层（交接 §5.3）
   'X-WORK.done': '完成',
   'X-WORK.alsoAdd': '也放进来',
@@ -57,7 +59,6 @@ export default Object.freeze({
   // 月字帖格的读屏名称：格上标的是排序用的日子（第一次写下），墨迹取自另一天时再说一句（N2-07）
   'X-WORK.cellInkDay': '{char} · {date}，{inkDate}的笔迹',
   // 年报（交接 §8）
-  'X-WORK.annualPageTitle': '年报',
   'X-WORK.annualMonthName': '{month}月',
   'X-WORK.annualMonthCount': '{n} 字',
   'X-WORK.annualMonthAria': '{month}月，{n} 个字，点开看字帖',

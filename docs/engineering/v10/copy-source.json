@@ -25,7 +25,6 @@
     "{tone}": "声调读法（X-PROMPT.tone1–tone5：一声 … 轻声），读屏名称里用",
     "{status}": "记录情况（查字逐字行行尾那句，R-Q04 / P43，读屏标签里复用）",
     "{caption}": "结果页格下标签（X-RESULT.cellCorrect / cellWrong / cellSkipped / R-R02.cellSaw，读屏标签里复用）",
-    "{library}": "字库名（R-L06.lib.*.name，M3-5 换库确认框标题与换完轻提示）",
     "{from}": "起始日期（界面按 R-H02.dateFormat；M4-4 替换确认的丢失日期范围）",
     "{to}": "结束日期（同 {from}）",
     "{time}": "时刻（提醒邀请：好，明天 {time} 给你一个词。，如 9:30）",
@@ -945,12 +944,14 @@
           "raw": "再试一次 / 先不保存",
           "part": 1,
           "text": "先不保存"
-        },
-        "saved": {
-          "raw": "保存好了。",
-          "text": "保存好了。"
         }
-      }
+      },
+      "dropped": [
+        {
+          "raw": "保存好了。",
+          "why": "D58 / I3 P2-25（规范 F3、D55 ②）：成功不提示；这句从未被引用"
+        }
+      ]
     },
     "R-W17": {
       "screen": "judge",
@@ -1383,13 +1384,6 @@
           "raw": "可以练 {N} 个字 · 有记录 {M} 个",
           "text": "可以练 {n} 个字 · 有记录 {m} 个"
         },
-        "confirmBody": {
-          "raw": "以后的新字从这个字库里来。<br>已有的记录、自选的字和写错过的字都不变。",
-          "text": [
-            "以后的新字从这个字库里来。",
-            "已有的记录、自选的字和写错过的字都不变。"
-          ]
-        },
         "saveFailed": {
           "raw": "没保存上，刚才的选择没记下。",
           "text": "没保存上，刚才的选择没记下。"
@@ -1458,7 +1452,13 @@
           "origin": "04 §3.2 字库表底部来源说明（C098/C183）",
           "note": "换库列表底部"
         }
-      }
+      },
+      "dropped": [
+        {
+          "raw": "以后的新字从这个字库里来。<br>已有的记录、自选的字和写错过的字都不变。",
+          "why": "D58 / I3 P1-19（规范 B3：换库不丢任何东西，不二次确认）：换库确认框删除，点一下直接换"
+        }
+      ]
     },
     "R-L07": {
       "screen": "library",
@@ -2143,7 +2143,9 @@
         },
         "lastBackup": {
           "raw": "上次备份 {日期} ›",
-          "text": "上次备份 {date} ›"
+          "text": "上次备份 {date}",
+          "decision": "P224",
+          "note": "I3 P1-22：行尾「›」一律画成装饰性 Chevron（aria-hidden），不写进文案（规范 B1 / A2）；04 原文「上次备份 {日期} ›」"
         },
         "noBackup": {
           "raw": "还没有备份",
@@ -3343,27 +3345,6 @@
           "text": "›",
           "origin": "extra",
           "note": "非当前字库行右侧箭头（装饰，aria-hidden）；原型 ShiziScreen L465 lib{i}T"
-        },
-        "confirmTitle": {
-          "raw": null,
-          "text": "换成「{library}」？",
-          "origin": "extra",
-          "note": "换库确认框标题；原型 ShiziScreen L489 libConfirmTitle（J §2.3.24）",
-          "decision": "P55"
-        },
-        "confirmCancel": {
-          "raw": null,
-          "text": "取消",
-          "origin": "extra",
-          "note": "换库确认框次按钮；原型 ShiziScreen L190",
-          "decision": "P55"
-        },
-        "confirmOk": {
-          "raw": null,
-          "text": "换成这个库",
-          "origin": "extra",
-          "note": "换库确认框主按钮；原型 ShiziScreen L190",
-          "decision": "P55"
         }
       }
     },
@@ -3588,6 +3569,13 @@
           "origin": "extra",
           "note": "纸上记录行的读屏名称（实现交接 §10.2「10月4日，写对，纸上」）",
           "decision": "P169"
+        },
+        "pageTitle": {
+          "raw": null,
+          "text": "「{char}」的记录",
+          "origin": "extra",
+          "note": "I3 P1-36：字详情页头标题（只给读屏，页面里字卡自己是标题），推入后焦点落在这个标题",
+          "decision": "P84"
         }
       }
     },
@@ -4360,7 +4348,7 @@
           "raw": null,
           "text": "正在保存…",
           "origin": "extra",
-          "note": "F4：保存超过 400ms 时主按钮的进行时文案（审计 P1-33）；P290 三段式失败组件（交互与动效规范 S1，D58；components/FailBlock.js）",
+          "note": "F4：保存超过 400ms 时主按钮的进行时文案（审计 P1-33；图片预览、月字帖 / 年报页直接保存共用）；P290 三段式失败组件（交互与动效规范 S1，D58；components/FailBlock.js）",
           "decision": "P290"
         },
         "saved": {
@@ -5156,13 +5144,6 @@
           "origin": "extra",
           "note": "月字帖格的读屏名称：角标 / 排序用的是这个字本月第一次写下的日子（firstDay），取到的墨迹在另一天时补一句「{日期} 的笔迹」（N2-07）；与 D45「{日期} 的笔迹」同一写法"
         },
-        "annualPageTitle": {
-          "raw": null,
-          "text": "年报",
-          "origin": "extra",
-          "note": "年报（交接 §8）",
-          "decision": "P160"
-        },
         "annualMonthName": {
           "raw": null,
           "text": "{month}月",
@@ -5246,6 +5227,20 @@
           "text": "{char}，{state}",
           "note": "作品下的行的读屏名称（行里字名不再写在可见文字里，D49；纸上行用 rowPaperAria）",
           "decision": "P192"
+        },
+        "adjustImage": {
+          "raw": null,
+          "text": "调整图片 ›",
+          "origin": "extra",
+          "note": "D58 / I3 P0-04：月字帖 / 年报页页头右侧的去处，进图片预览弹层（比例、分张、也放进来）；「保存图片」「分享」在底栏一次点击直接完成",
+          "decision": "P160"
+        },
+        "adjustAria": {
+          "raw": null,
+          "text": "调整图片",
+          "origin": "extra",
+          "note": "「调整图片 ›」的读屏名称（读屏不读「›」）",
+          "decision": "P160"
         }
       }
     },

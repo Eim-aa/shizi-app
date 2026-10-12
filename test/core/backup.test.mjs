@@ -433,7 +433,7 @@ test('备份页文案小工具（mine/backup.js）：撤销底栏两行、丢失
   assert.equal(ui.lineText({ key: 'R-B02.noRecords' }), '现在没有记录。');
   assert.deepEqual(ui.backupMenuStatus({ records: {} }), { kind: 'never', day: null, text: '还没有备份' });
   assert.deepEqual(ui.backupMenuStatus({ records: {}, backupMeta: { lastExportAt: ms('2026-09-01', 20) } }),
-    { kind: 'day', day: '2026-09-01', text: '上次备份 9月1日 ›' });
+    { kind: 'day', day: '2026-09-01', text: '上次备份 9月1日' });
   assert.deepEqual(Object.values(ui.NOTE_KEYS), ['R-B04.protectFailed', 'R-B06.notBackup', 'R-B06.restoreFailed']);
 });
 

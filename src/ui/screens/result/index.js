@@ -61,6 +61,7 @@ import { useStrokeData } from '../write/hint-layer.js';
 import { SkipUndoDock, canUndoSkip, undoSkipInDraft } from '../write/skip.js';
 import '../write/result-row.js'; // .sz-change* 弹层样式（与写字页修改判断弹层同一版式）
 import { NONE_SCREEN } from '../session/none.js';
+import { LiveRegion } from '../../components/LiveRegion.js';
 import { ReminderInvite, ReviewPreview, firstExtras, useReminderInvite } from './first.js';
 import { WorkRows, WorkSection, commitAdded, commitSealed, shouldPlayReveal } from './work.js';
 import { addedOf, buildWork } from '../../../core/images/work.js';
@@ -641,6 +642,20 @@ function ResultScreen({ params, entry }) {
     else page.setAttribute('data-late', 'pending');
     return () => page.removeAttribute('data-late');
   }, [landed]);
+  // 落印前的底栏与正文只是 opacity 0：读屏和键盘仍能摸到看不见的按钮——这段时间标成 inert（I3 · P2-20，规范 A2）。每次渲染都对一次（内容可能在这期间重画）。
+  useLayoutEffect(() => {
+    const root = rootRef.current;
+    const page = root && root.closest ? root.closest('.sz-page') : null;
+    if (!root || !page) return undefined;
+    const foot = page.querySelector('.sz-page__foot');
+    const hidden = [...root.children].filter(el => !el.classList.contains('sz-work'));
+    if (foot) hidden.push(foot);
+    for (const el of hidden) {
+      if (landed) el.removeAttribute('inert');
+      else el.setAttribute('inert', '');
+    }
+    return () => { for (const el of hidden) el.removeAttribute('inert'); };
+  });
   useEffect(() => { installCommitFeedback(getStore); }, []); // M5-5：结果页的改判断 / 撤销跳过 / 补写结束也发触觉（刷新后直接停在本页时写字页没挂过）
 
   // 写完但还在槽里（结束写入失败 / 刷新打断）→ 补写结束（幂等）。
@@ -717,7 +732,7 @@ function ResultScreen({ params, entry }) {
   let footer;
   if (againFailed) {
     // 「再写一组」开组失败：底栏就地三段式（S1，components/FailBlock.js）
-    footer = html`${FailBlock({ layout: 'foot', testid: 'result-again-fail', noteTestid: 'result-again-note', cancelTestid: 'result-again-cancel', retryTestid: 'result-again-retry', text: t('X-RESULT.againFailed'), cancelLabel: t('X-RESULT.againCancel'), retryLabel: t('X-RESULT.againRetry'), onCancel: () => { setAgainFailed(false); markStateChange(); }, onRetry: again })}`;
+    footer = html`${FailBlock({ layout: 'foot', speak: false, testid: 'result-again-fail', noteTestid: 'result-again-note', cancelTestid: 'result-again-cancel', retryTestid: 'result-again-retry', text: t('X-RESULT.againFailed'), cancelLabel: t('X-RESULT.againCancel'), retryLabel: t('X-RESULT.againRetry'), onCancel: () => { setAgainFailed(false); markStateChange(); }, onRetry: again })}`;
   } else if (model.variant === 'first') {
     // 首练收尾（N2-05）：主按钮是「完成」，「再写一组」降为下面的文字按钮
     footer = html`<${Button} variant="primary" data-testid="result-done" onClick=${leave}>${t('X-RESULT.done')}</${Button}>
@@ -769,6 +784,7 @@ function ResultScreen({ params, entry }) {
       <div class="sz-result__remind" data-testid="result-remind-slot">
         <${ReminderInvite} invite=${invite} />
       </div>
+      <${LiveRegion} text=${againFailed ? t('X-RESULT.againFailed') : invite.failed ? t('X-SETTINGS.saveFailed') : ''} testid="result-live" />
     </div>
     ${undo ? html`<${SkipUndoDock} char=${undo.char} failed=${!!undo.failed} onUndo=${doUndo} until=${undo.until}
       onExpire=${() => setUndo(u => (u === undo ? null : u))}

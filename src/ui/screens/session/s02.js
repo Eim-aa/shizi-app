@@ -6,7 +6,7 @@
 //   三键（原型可点原型模板 L95–L96：主按钮一行，次按钮一行，「取消」文字键）：
 //     接着写那组        → 关框，打开旧 B 的写字页（不写入）；
 //     结束那组，开新的  → 一次 commit（core/session-start.endOldAndStartPicked）：旧 B 置 endedEarly 移入 lastEnded.B + 建新 B；
-//                         P38 过渡不进旧组结果页，旧 B 有判断时关框后给轻提示「上一组判断过的 {m} 个字已经记下。」，零判断不提示；
+//                         P38 过渡不进旧组结果页，关框后也不弹提示（D58 / I3 P0-10；旧组判断过的字已经记下）；
 //                         **保存失败留在确认框**（R-G04 三段式：说明句 + 再试一次 / 先不保存），旧组、新组都不动；
 //     取消              → 关框，不写入。
 // 不预选任何按钮（焦点落在对话框本身，useDialogFocus）；按钮一律 <button>，禁用 disabled + aria-disabled。
@@ -18,7 +18,7 @@ import { html, useRef } from '../../../../vendor/ui.js';
 import { nav } from '../../router.js';
 import { Button } from '../../components/Button.js';
 import { useDialogFocus } from '../../components/Sheet.js';
-import { FailBlock } from '../../components/FailBlock.js';
+import { Announce, FailBlock } from '../../components/FailBlock.js';
 import '../../components/Confirm.js'; // .sz-overlay / .sz-confirm 样式
 import { injectStyles, T } from '../../components/styles.js';
 import { format, t } from '../../../config/copy/index.js';
@@ -62,7 +62,7 @@ export function S02Dialog({ chars, failed = false, onContinue, onEndStart, close
   useDialogFocus(panelRef, active);
   const cancel = () => close && close();
   const body = failed ? t('X-SESSION.s02SaveFailed') : s02Body(chars);
-  // 失败：就地三段式（S1，components/FailBlock.js dialog）：说明是上面的正文（常驻段落换文字），[先不保存 | 再试一次] 横排、顺序与全 App 相同（审计 P1-25）
+  // 失败：就地三段式（S1，components/FailBlock.js dialog）：说明是上面的正文（换文字时经常驻播报区读一次：Announce），[先不保存 | 再试一次] 横排、顺序与全 App 相同（审计 P1-25）
   const actions = failed
     ? html`${FailBlock({ layout: 'dialog', text: '', testid: 's02-fail', cancelTestid: 's02-fail-cancel', retryTestid: 's02-retry', cancelLabel: t('X-SESSION.s02Cancel'), retryLabel: t('X-SESSION.s02Retry'), onCancel: cancel, onRetry: onEndStart })}`
     : html`<div class="sz-s02__actions">
@@ -73,8 +73,9 @@ export function S02Dialog({ chars, failed = false, onContinue, onEndStart, close
   return html`<div class="sz-overlay" data-overlay="confirm">
     <div class="sz-scrim" aria-hidden="true" onClick=${cancel}></div>
     <div class="sz-confirm" role="alertdialog" aria-modal="true" tabindex="-1" ref=${panelRef} data-testid="s02-dialog"
-      data-state=${failed ? 'failed' : 'ask'} aria-describedby=${idRef.current}>
-      <p class="sz-confirm__body" id=${idRef.current} data-testid="s02-body" aria-live="polite">${body}</p>
+      data-state=${failed ? 'failed' : 'ask'} aria-labelledby=${idRef.current}>
+      <p class="sz-confirm__body" id=${idRef.current} data-testid="s02-body">${body}</p>
+      ${failed ? Announce({ text: body }) : null}
       ${actions}
     </div>
   </div>`;
@@ -86,7 +87,7 @@ export function S02Dialog({ chars, failed = false, onContinue, onEndStart, close
  * @param {string[]} o.chars                     旧 B 没写的字（s02Prompt.unwrittenChars）
  * @param {() => void} o.onContinue              「接着写那组」：关框之后调用（打开旧 B）
  * @param {() => ({ok:boolean})} o.onEndStart    「结束那组，开新的」的一次 commit；{ok:false} 时留在确认框
- * @param {(result) => void} [o.onStarted]       commit 成功、关框之后调用（打开新 B、轻提示）
+ * @param {(result) => void} [o.onStarted]       commit 成功、关框之后调用（打开新 B）
  * @returns overlay id
  */
 export function openS02({ chars, onContinue, onEndStart, onStarted }) {

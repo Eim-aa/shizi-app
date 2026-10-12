@@ -44,8 +44,11 @@ let seq = 0;
  * @param {() => void} [props.close]
  * @param {boolean} [props.active]
  * @param {string} [props.testid]
+ * @param {object} [props.attrs]  落在对话框根节点上的额外属性（data-*）
+ * @param {{cancel?:string, confirm?:string, title?:string, body?:string}} [props.testids]  按钮 / 标题 / 正文的 data-testid（缺省 confirm-cancel / confirm-ok，标题和正文不带）
+ * @param {any} [props.children]  正文之后、按钮之前的补充内容（例：替换备份时「会丢失哪几天的记录」）
  */
-export function Confirm({ title, body, cancelLabel, confirmLabel, onCancel, onConfirm, busy = false, close, active = true, testid }) {
+export function Confirm({ title, body, cancelLabel, confirmLabel, onCancel, onConfirm, busy = false, close, active = true, testid, attrs = null, testids = null, children = null }) {
   const panelRef = useRef(null);
   const idsRef = useRef(null);
   if (!idsRef.current) {
@@ -56,15 +59,17 @@ export function Confirm({ title, body, cancelLabel, confirmLabel, onCancel, onCo
   const cancel = () => (onCancel ? onCancel() : close && close());
   useOverlayBack(cancel); // Esc / 两指 Z 形 / 左缘右滑关这个确认框时走同一个「取消类」（P2-17）
   const ids = idsRef.current;
+  const tids = testids || {};
   return html`<div class="sz-overlay" data-overlay="confirm">
     <div class="sz-scrim" aria-hidden="true" onClick=${cancel}></div>
-    <div class="sz-confirm" role="alertdialog" aria-modal="true" tabindex="-1" ref=${panelRef} data-testid=${testid}
+    <div class="sz-confirm" role="alertdialog" aria-modal="true" tabindex="-1" ref=${panelRef} data-testid=${testid} ...${attrs || {}}
       aria-labelledby=${title ? ids.title : body ? ids.body : undefined} aria-describedby=${title && body ? ids.body : undefined}>
-      ${title ? html`<h2 class="sz-confirm__title" id=${ids.title}>${title}</h2>` : null}
-      ${body ? html`<p class="sz-confirm__body" id=${ids.body}>${body}</p>` : null}
+      ${title ? html`<h2 class="sz-confirm__title" id=${ids.title} data-testid=${tids.title}>${title}</h2>` : null}
+      ${body ? html`<p class="sz-confirm__body" id=${ids.body} data-testid=${tids.body}>${body}</p>` : null}
+      ${children}
       <div class=${cancelLabel ? 'sz-confirm__actions' : 'sz-confirm__actions sz-confirm__actions--one'}>
-        ${cancelLabel ? html`<${Button} variant="secondary" data-testid="confirm-cancel" disabled=${busy} onClick=${cancel}>${cancelLabel}</${Button}>` : null}
-        <${Button} variant="primary" data-testid="confirm-ok" disabled=${busy} onClick=${() => onConfirm && onConfirm()}>${confirmLabel}</${Button}>
+        ${cancelLabel ? html`<${Button} variant="secondary" data-testid=${tids.cancel || 'confirm-cancel'} disabled=${busy} onClick=${cancel}>${cancelLabel}</${Button}>` : null}
+        <${Button} variant="primary" data-testid=${tids.confirm || 'confirm-ok'} disabled=${busy} onClick=${() => onConfirm && onConfirm()}>${confirmLabel}</${Button}>
       </div>
     </div>
   </div>`;

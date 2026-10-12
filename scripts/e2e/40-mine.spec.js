@@ -35,7 +35,7 @@ const COPY = {
   backup: '备份与恢复',
   backupSub: '记录只存在这台手机上',
   noBackup: '还没有备份', // 行尾的 › 自 P1-E1b 起是 svg chevron（components/Chevron.js），不在文字里
-  lastBackup: d => `上次备份 ${d} ›`,
+  lastBackup: d => `上次备份 ${d}`,
   annual: '年度报告',
   about: '关于拾字',
   monthDays: (m, n) => `${m}月有记录 ${n} 天`,
@@ -749,15 +749,14 @@ export default async function run(page, ctx) {
   assert.ok(mineMs < 3000, `mine 300 chars renders within 3s (${mineMs}ms)`);
   const t1 = Date.now();
   await page.click(`${TOP} ${tid('mine-sheet-all')}`);
-  await waitTop(page, 'records');
-  assert.equal((await top(page)).params.month, '2026-09', '全部 › → records this month');
-  await page.waitForFunction(sel => document.querySelectorAll(`${sel} [data-testid="records-sheet-cell"]`).length === 300, TOP);
+  await waitTop(page, 'month');
+  assert.equal((await top(page)).params.month, '2026-09', 'I3 P2-24: 全部 › → the month sheet page of this month (the same place every 「see the whole sheet」 entry goes)');
+  await page.waitForFunction(sel => document.querySelectorAll(`${sel} [data-testid="month-cell"]`).length === 300, TOP);
   const recMs = Date.now() - t1;
-  console.log(`records 300: push→300 cells ${recMs}ms (incl. 450ms settle)`);
-  r = await recordsView(page);
-  assert.deepEqual(r.sheetCells.map(c => c.char), oBig.sheet.map(c => c.char), 'all 300 chars in order');
-  assert.equal(r.heading, COPY.monthDays(9, oBig.monthDays.length), 'record days');
-  assert.equal(r.hScroll, false, 'no horizontal overflow');
+  console.log(`month 300: push→300 cells ${recMs}ms (incl. 450ms settle)`);
+  const monthChars = await page.evaluate(sel => [...document.querySelectorAll(`${sel} [data-testid="month-cell"]`)].map(c => c.dataset.char), TOP);
+  assert.deepEqual(monthChars, oBig.sheet.map(c => c.char), 'all 300 chars in order');
+  assert.equal(await page.evaluate(sel => document.documentElement.scrollWidth > window.innerWidth + 1, TOP), false, 'no horizontal overflow');
   await back(page);
 
   // ------------------------------------------------------------------ 7. 深色 / 紧凑

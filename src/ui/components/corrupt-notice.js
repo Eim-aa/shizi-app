@@ -10,7 +10,7 @@ import { Icons } from './icons.js';
 import { injectStyles, T } from './styles.js';
 
 injectStyles('corrupt-notice', `
-.sz-corrupt{position:absolute;left:16px;right:16px;top:calc(8px + env(safe-area-inset-top, 0px));z-index:45;box-sizing:border-box;
+.sz-corrupt{position:absolute;left:${T.gutter};right:${T.gutter};top:calc(8px + env(safe-area-inset-top, 0px));z-index:45;box-sizing:border-box;
   display:flex;gap:8px;align-items:flex-start;padding:10px 6px 10px 16px;border-radius:${T.rCtl};background:${T.toastBg};color:${T.toastFg};
   }
 .sz-corrupt .sz-btn{color:inherit}

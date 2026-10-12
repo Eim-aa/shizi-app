@@ -219,7 +219,7 @@ async function view(page) {
       } : null,
       sheet: q('backup-clear-sheet') ? {
         body: txt('backup-clear-body'),
-        state: q('backup-clear-body').dataset.state,
+        state: q('backup-clear-sheet').dataset.state,
         ok: btn('backup-clear-ok'),
         cancel: btn('backup-clear-cancel'),
         stay: btn('backup-clear-stay'),
@@ -412,7 +412,7 @@ export default async function run(page, { baseURL, assert, step }) {
   assert.equal(v.confirm.body, T.replaceBody, 'body: date, n, m');
   assert.equal(v.confirm.loss, T.loss, 'loss range (P26 / K04)');
   assert.deepEqual([v.confirm.cancel.text, v.confirm.ok.text], ['取消', '替换'], 'buttons');
-  assert.equal(v.confirm.okPrimary, false, 'dangerous 替换 is not a primary button (K04)');
+  assert.equal(v.confirm.okPrimary, true, 'I3 P1-20: replace uses the shared Confirm — cancel left (secondary), the confirming 替换 on the right (primary), not red');
   let logBefore = await writeLogLen(page);
   await page.click(topSel('backup-restore-cancel'));
   await page.waitForFunction(() => !document.querySelector('[data-testid="backup-restore-confirm"]'));
@@ -601,9 +601,9 @@ export default async function run(page, { baseURL, assert, step }) {
   await page.waitForSelector(topSel('backup-clear-sheet'));
   await waitNavIdle(page);
   v = await view(page);
-  assert.equal(await page.textContent(topSel('backup-clear-sheet') + ' .sz-sheet__title'), T.clearTitle, 'clear title');
+  assert.equal(await page.textContent(topSel('backup-clear-sheet') + ' .sz-confirm__title'), T.clearTitle, 'clear title');
   assert.equal(v.sheet.body, T.clearBody, 'clear body with n = 300');
-  assert.deepEqual([v.sheet.cancel.text, v.sheet.ok.text, v.sheet.okPrimary], ['取消', '清空', false], 'clear buttons; 清空 is not primary');
+  assert.deepEqual([v.sheet.cancel.text, v.sheet.ok.text, v.sheet.okPrimary], ['取消', '清空', true], 'clear buttons (shared Confirm): 清空 on the right is the primary one');
   logBefore = await writeLogLen(page);
   await page.click(topSel('backup-clear-cancel'));
   await page.waitForFunction(() => !document.querySelector('[data-testid="backup-clear-sheet"]'));
@@ -615,7 +615,7 @@ export default async function run(page, { baseURL, assert, step }) {
   await page.evaluate(() => window.__shiziTest.failNextWrite(1, { kind: 'quota', matchKey: 'shizi.v2.safety' }));
   await page.click(topSel('backup-clear-ok'));
   await page.waitForFunction(() => {
-    const el = document.querySelector('[data-testid="backup-clear-body"]');
+    const el = document.querySelector('[data-testid="backup-clear-sheet"]');
     return el && el.dataset.state === 'failed';
   });
   await waitNavIdle(page);
@@ -630,7 +630,8 @@ export default async function run(page, { baseURL, assert, step }) {
   v = await view(page);
   assert.deepEqual([v.undo.kind, v.undo.text], ['clear', `${T.clearUndoL1}${T.undoL2}撤销`], 'clear undo bar (P44)');
   assert.equal(v.line, T.clearConclusion, '记录已清空。现在没有记录。');
-  assert.deepEqual([v.export.disabled, v.clear.disabled, v.clear.aria], [true, true, 'true'], 'export / clear greyed after clear');
+  assert.equal(v.export, null, 'I3 P1-16: while the undo bar is up it replaces the export button in the footer');
+  assert.deepEqual([v.clear.disabled, v.clear.aria], [true, 'true'], 'clear greyed after clear');
   st = await state(page);
   assert.deepEqual([Object.keys(st.records).length, st.sched, st.custom, st.wordOff, st.photos], [0, null, null, null, null], 'record domains cleared');
   assert.equal(S(st.settings), S(S0.settings), 'settings kept');

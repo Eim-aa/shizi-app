@@ -11,7 +11,7 @@ export default Object.freeze({
   'R-M03.settings': '设置',
   'R-M03.backup': '备份与恢复',
   'R-M03.backupSub': '记录只存在这台手机上',
-  'R-M03.lastBackup': '上次备份 {date} ›',
+  'R-M03.lastBackup': '上次备份 {date}',
   'R-M03.noBackup': '还没有备份',
   // R-M04（已定）
   'R-M04.emptyTitle': '还没有记录',

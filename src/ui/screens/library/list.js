@@ -36,6 +36,7 @@ import { registerScreen, getRouter, getScreen, nav } from '../../router.js';
 import { Page } from '../../components/Page.js';
 import { Button, markStateChange } from '../../components/Button.js';
 import { FailBlock } from '../../components/FailBlock.js';
+import { LiveRegion } from '../../components/LiveRegion.js';
 import { Icons } from '../../components/icons.js';
 import { Chevron } from '../../components/Chevron.js';
 import { PracticeGlyph, FACE_FULL } from '../../components/PracticeGlyph.js';
@@ -313,7 +314,8 @@ function ListScreen({ params, entry }) {
   const footer = failed
     ? html`${FailBlock({ layout: 'foot', testid: 'list-start-failure', noteTestid: 'list-start-fail', retryTestid: 'list-go', cancelTestid: 'list-start-cancel', text: t('X-LIST.startFailed'), cancelLabel: t('X-LIST.startStay'), onCancel: () => setFailed(false), onRetry: start })}`
     : html`
-    <p class="sz-list__hint" data-testid="list-hint" aria-live="polite">${model.hint}</p>
+    <p class="sz-list__hint" data-testid="list-hint">${model.hint}</p>
+    <${LiveRegion} text=${model.button.label} testid="list-go-live" />
     <${Button} variant="primary" data-testid="list-go" disabled=${model.button.disabled} onClick=${start}>${model.button.label}</${Button}>`;
   return html`<${Page} title=${model.title} trailing=${trailing} footer=${footer} testid="list-screen">
     <div class="sz-list" data-testid="list-body" data-kind=${kind} data-empty="false" data-selected-count=${model.selectedCount}>

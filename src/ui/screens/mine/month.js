@@ -9,12 +9,13 @@
 //
 // data-testid：month-screen、month-body（data-month / data-n / data-under / data-days）、month-title、month-sub、month-paper（data-cols / data-cell）、
 //   month-cell（data-char / data-mode / data-day / data-tag / data-record / data-ink）、month-tag、month-kuan、month-seal、month-note、month-empty、
-//   month-share、month-save。
+//   month-adjust（页头「调整图片 ›」→ 预览弹层）、month-share-btn（直接分享）、month-save（直接保存；data-state = idle|busy|saved|failed）、month-save-note。
 import { html, useMemo } from '../../../../vendor/ui.js';
 import { registerScreen, getScreen, nav } from '../../router.js';
 import { Page } from '../../components/Page.js';
 import { Button } from '../../components/Button.js';
-import { Icons } from '../../components/icons.js';
+import { LiveRegion } from '../../components/LiveRegion.js';
+import { quickShare, useSaveFlow } from '../../image-quick.js';
 import { MonthPaper, builtInk, useScreenWidth } from '../../components/work.js';
 import { injectStyles, T } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
@@ -41,6 +42,7 @@ injectStyles('mine-month', `
   text-align:center;font-size:${T.fs15};color:${T.ink2}}
 .sz-monthfoot{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
 :root[data-ax] .sz-monthfoot{grid-template-columns:minmax(0,1fr)}
+.sz-monthfail{margin:0;text-align:center;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink1}}
 `);
 
 function currentStore() {
@@ -133,10 +135,16 @@ export function MonthBody({ model, onOpen = openChar, testid = 'month-paper', ce
     ${model.under ? html`<p class="sz-monthpage__note" data-testid="month-note">${t('X-WORK.monthUnderNote')}</p>` : null}`;
 }
 
-/** 分享弹层（images-entry.js 与本页互相依赖：这里按需动态加载，避免模块环里 records.js 的顶层变量还没初始化）。 */
+/** 分享弹层（images-entry.js 与本页互相依赖：这里按需动态加载，避免模块环里 records.js 的顶层变量还没初始化）。只在「调整图片」（比例、分张）时进入。 */
 async function shareMonth(month) {
   const { openMonthImage } = await import('../../images-entry.js');
   openMonthImage({ month });
+}
+
+/** 这个月的导出任务（同上，按需加载）。 */
+async function monthJob(month) {
+  const { buildImageJob } = await import('../../images-entry.js');
+  return buildImageJob({ kind: 'month', month });
 }
 
 /** 打开月字帖页（目标屏没注册时不跳转）。 */
@@ -146,26 +154,39 @@ export function openMonth({ month } = {}) {
   return true;
 }
 
-const SHARE_ICON = () => Icons.share();
-
 function MonthScreen({ params }) {
   const state = useStoreState();
   const month = params && typeof params.month === 'string' && /^\d{4}-\d{2}$/.test(params.month) ? params.month : monthOf(localDay(envNow()));
   const model = useMemo(() => monthModel(state, month), [state, month]);
-  const share = model.n ? () => shareMonth(month) : null;
-  const trailing = share
-    ? html`<${Button} variant="icon" data-testid="month-share" aria-label=${t('X-WORK.shareAria')} onClick=${share}>${SHARE_ICON()}</${Button}>`
+  const adjust = () => shareMonth(month);
+  // 保存图片：一次点击直接存（成功只在按钮上原地变「已存好」，I3 · P0-04）
+  const flow = useSaveFlow(() => monthJob(month));
+  // 分享：直接调系统分享；超过一张图（>80 字分张）时分享哪一张是个选择，进预览
+  const shareNow = async () => {
+    let res;
+    try {
+      res = await quickShare(await monthJob(month));
+    } catch (error) {
+      res = { ok: false };
+    }
+    if (res.needsPreview) adjust();
+  };
+  const trailing = model.n
+    ? html`<${Button} variant="text" data-testid="month-adjust" aria-label=${t('X-WORK.adjustAria')} onClick=${adjust}>${t('X-WORK.adjustImage')}</${Button}>`
     : null;
-  const footer = share
-    ? html`<div class="sz-monthfoot">
-        <${Button} variant="secondary" data-testid="month-share-btn" onClick=${share}>${t('R-B10.share')}</${Button}>
-        <${Button} variant="primary" data-testid="month-save" onClick=${share}>${t('X-IMAGES.save')}</${Button}>
-      </div>`
+  const footer = model.n
+    ? [html`<${LiveRegion} key="live" text=${flow.note} testid="month-save-live" />`,
+      flow.note ? html`<p key="note" class="sz-monthfail" data-testid="month-save-note">${flow.note}</p>` : null,
+      html`<div key="btns" class="sz-monthfoot">
+        <${Button} variant="secondary" data-testid="month-share-btn" onClick=${shareNow}>${t('R-B10.share')}</${Button}>
+        <${Button} variant="primary" data-testid="month-save" data-state=${flow.state} disabled=${flow.disabled} aria-busy=${flow.state === 'busy' ? 'true' : undefined}
+          onClick=${flow.save}>${flow.label}</${Button}>
+      </div>`]
     : null;
-  return html`<${Page} title="" trailing=${trailing} footer=${footer} testid="month-screen">
+  return html`<${Page} title=${t('X-WORK.monthTitle', { month: model.monthNum })} hideTitle=${true} trailing=${trailing} footer=${footer} testid="month-screen">
     <div class="sz-monthpage" data-testid="month-body" data-month=${month} data-n=${model.n} data-under=${model.under ? 'true' : 'false'} data-days=${model.days}>
       <div class="sz-monthpage__head">
-        <h2 class="sz-monthpage__title" data-testid="month-title">${t('X-WORK.monthTitle', { month: model.monthNum })}</h2>
+        <h2 class="sz-monthpage__title" data-testid="month-title" aria-hidden="true">${t('X-WORK.monthTitle', { month: model.monthNum })}</h2>
         <p class="sz-monthpage__sub" data-testid="month-sub">${t('X-MINE.sheetOrder')}</p>
       </div>
       <${MonthBody} model=${model} />

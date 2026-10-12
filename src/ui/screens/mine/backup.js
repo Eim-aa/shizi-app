@@ -32,8 +32,8 @@
 //   backup-last-label、backup-last-date（data-day）、backup-status-note（data-keys）、backup-intro、backup-note（data-kind、data-tone）、
 //   backup-note-retry、backup-export、backup-list、backup-restore、backup-restore-title、backup-restore-sub、backup-clear、
 //   backup-file-input、backup-undo（data-kind / data-state）+ UndoBar 的 undo-bar / undo-button；
-//   确认框 backup-restore-confirm（data-mode=replace|restore）、backup-restore-confirm-title / -body / -loss、backup-restore-cancel、
-//   backup-restore-ok；清空弹层 backup-clear-sheet（data-state=ask|failed）、backup-clear-body、backup-clear-cancel、backup-clear-ok、
+//   确认框（替换 / 恢复 / 清空同用 components/Confirm.js 一个容器）backup-restore-confirm（data-mode=replace|restore）、backup-restore-confirm-title / -body / -loss、
+//   backup-restore-cancel、backup-restore-ok；清空确认框 backup-clear-sheet（data-state=ask|failed）、backup-clear-body、backup-clear-cancel、backup-clear-ok、
 //   backup-clear-stay、backup-clear-retry。
 
 import { html, useEffect, useRef, useState } from '../../../../vendor/ui.js';
@@ -42,9 +42,8 @@ import { Page } from '../../components/Page.js';
 import { Button } from '../../components/Button.js';
 import { Chevron } from '../../components/Chevron.js';
 import { UndoBar } from '../../components/UndoBar.js';
-import { Sheet, useDialogFocus } from '../../components/Sheet.js';
 import { FailBlock } from '../../components/FailBlock.js';
-import '../../components/Confirm.js'; // .sz-overlay / .sz-confirm 样式
+import { Confirm } from '../../components/Confirm.js';
 import { injectStyles, T } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
 import * as policy from '../../../config/policy.js';
@@ -133,14 +132,11 @@ injectStyles('mine-backup', `
 .sz-bk__rowr{flex:none;display:flex}
 /* 危险操作（P142）：不变色。危险入口单独成组（与上面的常规行隔开一个组间距，自带上下发丝线）；确认层里取消是主按钮、危险键是次按钮，正文用墨一 */
 .sz-bk__row--danger{margin-top:${T.groupGap};border-top:${T.hair} solid ${T.line}}
-.sz-bk__danger{box-shadow:inset 0 0 0 1px ${T.ink1}}
-.sz-bk__sheetbody[data-state="ask"],.sz-confirm[data-mode="replace"] .sz-confirm__body{color:${T.ink1}}
+.sz-confirm[data-mode="replace"] .sz-confirm__body,.sz-confirm[data-state="ask"][data-testid="backup-clear-sheet"] .sz-confirm__body{color:${T.ink1}}
 .sz-bk__row[disabled] .sz-bk__rowt{color:${T.ink4}}
 .sz-bk__file{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;overflow:hidden}
 .sz-bk__undo{position:relative;margin:0 -8px}
 .sz-bk__undo .sz-undobar{position:relative;left:auto;right:auto;bottom:auto}
-.sz-bk__sheetbody{margin:0;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2};text-wrap:pretty}
-.sz-bk__actions{margin-top:4px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
 .sz-bk__loss{margin:0;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink1}}
 `);
 
@@ -238,58 +234,33 @@ onShareFailed(kind => {
   if (kind === 'backup') pendingExport = null;
 });
 
-// ---------------------------------------------------------------- 确认框与清空弹层
+// ---------------------------------------------------------------- 确认框（替换 / 恢复 / 清空：同一个 Confirm 容器，I3 · P1-20）
 
-let dialogSeq = 0;
-
-/** 替换 / 恢复确认框（居中；root 注入 close / active）。不预选按钮。 */
+/**
+ * 替换 / 恢复确认框。标题说后果，正文一句说影响；取消在左（次）、确认在右（主），不预选、不变红（规范 B3）。
+ * 替换时正文后多一行「会丢失哪几天的记录」。
+ */
 export function RestoreConfirm({ model, onConfirm, close, active = true }) {
-  const panelRef = useRef(null);
-  const idsRef = useRef(null);
-  if (!idsRef.current) {
-    dialogSeq += 1;
-    idsRef.current = { title: `sz-bk-title-${dialogSeq}`, body: `sz-bk-body-${dialogSeq}` };
-  }
-  useDialogFocus(panelRef, active);
-  const ids = idsRef.current;
   const replace = model.mode === 'replace';
   const date = dateText(model.day);
   const body = replace ? t('R-B03.replaceBody', { date, n: model.n, m: model.m }) : t('R-B03.restoreBody', { date, n: model.n });
   const loss = replace ? lossText(model.loss) : '';
-  const cancel = () => close && close();
-  return html`<div class="sz-overlay" data-overlay="confirm">
-    <div class="sz-scrim" aria-hidden="true" onClick=${cancel}></div>
-    <div class="sz-confirm" role="alertdialog" aria-modal="true" tabindex="-1" ref=${panelRef} data-testid="backup-restore-confirm"
-      data-mode=${model.mode} aria-labelledby=${ids.title} aria-describedby=${ids.body}>
-      <h2 class="sz-confirm__title" id=${ids.title} data-testid="backup-restore-confirm-title">${
-        t(replace ? 'X-BACKUP.replaceTitle' : 'R-B03.restoreTitle')}</h2>
-      <div id=${ids.body}>
-        <p class="sz-confirm__body" data-testid="backup-restore-confirm-body">${body}</p>
-        ${loss ? html`<p class="sz-bk__loss" data-testid="backup-restore-confirm-loss" data-from=${model.loss.from} data-to=${model.loss.to}>${loss}</p>` : null}
-      </div>
-      <div class="sz-confirm__actions">
-        <${Button} variant=${replace ? 'primary' : 'secondary'} data-testid="backup-restore-cancel" onClick=${cancel}>${t('X-BACKUP.confirmCancel')}</${Button}>
-        ${replace
-          ? html`<${Button} variant="secondary" class="sz-bk__danger" data-testid="backup-restore-ok" onClick=${() => onConfirm && onConfirm()}>${t('X-BACKUP.replaceOk')}</${Button}>`
-          : html`<${Button} variant="primary" data-testid="backup-restore-ok" onClick=${() => onConfirm && onConfirm()}>${t('R-B03.restoreBtn')}</${Button}>`}
-      </div>
-    </div>
-  </div>`;
+  return html`<${Confirm} testid="backup-restore-confirm" attrs=${{ 'data-mode': model.mode }}
+    testids=${{ title: 'backup-restore-confirm-title', body: 'backup-restore-confirm-body', cancel: 'backup-restore-cancel', confirm: 'backup-restore-ok' }}
+    title=${t(replace ? 'X-BACKUP.replaceTitle' : 'R-B03.restoreTitle')} body=${body}
+    cancelLabel=${t('X-BACKUP.confirmCancel')} confirmLabel=${replace ? t('X-BACKUP.replaceOk') : t('R-B03.restoreBtn')}
+    onConfirm=${onConfirm} close=${close} active=${active}>
+    ${loss ? html`<p class="sz-bk__loss" data-testid="backup-restore-confirm-loss" data-from=${model.loss.from} data-to=${model.loss.to}>${loss}</p>` : null}
+  </${Confirm}>`;
 }
 
-/** 清空确认底部弹层（原型 L208）；failed 时换成「没保存上，记录都还在。」+ 先不清空 / 再试一次。 */
+/** 清空确认框（同一个 Confirm）；failed 时换成「没保存上，记录都还在。」+ 先不清空 / 再试一次。 */
 export function ClearSheet({ n, failed = false, onConfirm, close, active = true }) {
-  const cancel = () => close && close();
-  return html`<${Sheet} title=${t('X-BACKUP.clearTitle')} onClose=${cancel} active=${active} testid="backup-clear-sheet" dismiss="own">
-    <p class="sz-bk__sheetbody" data-testid="backup-clear-body" data-state=${failed ? 'failed' : 'ask'} role=${failed ? 'alert' : undefined}>${
-      failed ? t('X-BACKUP.clearFailed') : t('R-B03.clearBody', { n })}</p>
-    <div class="sz-bk__actions">
-      ${failed
-        ? html`${FailBlock({ layout: 'dialog', text: '', testid: 'backup-clear-fail', cancelTestid: 'backup-clear-stay', retryTestid: 'backup-clear-retry', cancelLabel: t('X-BACKUP.clearStay'), retryLabel: t('X-BACKUP.retry'), onCancel: cancel, onRetry: () => onConfirm && onConfirm() })}`
-        : html`<${Button} variant="primary" data-testid="backup-clear-cancel" onClick=${cancel}>${t('X-BACKUP.confirmCancel')}</${Button}>
-            <${Button} variant="secondary" class="sz-bk__danger" data-testid="backup-clear-ok" onClick=${() => onConfirm && onConfirm()}>${t('X-BACKUP.clearOk')}</${Button}>`}
-    </div>
-  </${Sheet}>`;
+  return html`<${Confirm} testid="backup-clear-sheet" attrs=${{ 'data-state': failed ? 'failed' : 'ask' }}
+    testids=${{ body: 'backup-clear-body', cancel: failed ? 'backup-clear-stay' : 'backup-clear-cancel', confirm: failed ? 'backup-clear-retry' : 'backup-clear-ok' }}
+    title=${t('X-BACKUP.clearTitle')} body=${failed ? t('X-BACKUP.clearFailed') : t('R-B03.clearBody', { n })}
+    cancelLabel=${failed ? t('X-BACKUP.clearStay') : t('X-BACKUP.confirmCancel')} confirmLabel=${failed ? t('X-BACKUP.retry') : t('X-BACKUP.clearOk')}
+    onConfirm=${onConfirm} close=${close} active=${active} />`;
 }
 
 // ---------------------------------------------------------------- 页面
@@ -515,7 +486,10 @@ function BackupScreen({ entry }) {
         <${UndoBar} line1=${l1} line2=${l2} onUndo=${doUndo} done=${undo.done}
           onDoneEnd=${() => setUndo(u => (u && u.done ? null : u))} />
       </div>`
-    : null;
+    // 主按钮在 Page 底栏（与全 App 同一条底线，B2 / I3 · P1-16）；撤销期间由撤销条暂时替换；导出没成：底栏就地三段式（S1，审计 P1-30）
+    : exportFail && has
+      ? html`${FailBlock({ layout: 'foot', testid: 'backup-export-fail', text: t('X-BACKUP.exportFailed'), cancelLabel: t('X-BACKUP.exportStay'), onCancel: () => setExportFail(false), onRetry: doExport })}`
+      : html`<${Button} variant="primary" class="sz-bk__export" data-testid="backup-export" disabled=${!has} onClick=${doExport}>${t('R-B02.export')}</${Button}>`;
 
   return html`<${Page} title=${t('R-M03.backup')} testid="backup-screen" footer=${footer}>
     <div class="sz-bk" data-testid="backup-body" data-state=${undo ? (undo.done ? 'undone' : 'undo') : 'idle'}
@@ -537,9 +511,6 @@ function BackupScreen({ entry }) {
           <span class="sz-bk__dot" aria-hidden="true"></span>
           <span class="sz-bk__notetext">${t(NOTE_KEYS[note.kind])}</span>
         </div>` : null}
-      ${exportFail && has
-        ? html`${FailBlock({ testid: 'backup-export-fail', text: t('X-BACKUP.exportFailed'), cancelLabel: t('X-BACKUP.exportStay'), onCancel: () => setExportFail(false), onRetry: doExport })}`
-        : html`<${Button} variant="primary" class="sz-bk__export" data-testid="backup-export" disabled=${!has} onClick=${doExport}>${t('R-B02.export')}</${Button}>`}
       <div class="sz-bk__list" data-testid="backup-list" data-bk-end="1">
         <${Button} variant="plain" class="sz-bk__row" data-testid="backup-restore" aria-haspopup="dialog" onClick=${pick}>
           <span class="sz-bk__rowl">

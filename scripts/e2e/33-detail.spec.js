@@ -139,7 +139,7 @@ async function view(page) {
       swap: txt('detail-swap'),
       swapFail: !!q('detail-swap-fail'),
       remove: txt('detail-remove'),
-      banner: banner ? { state: banner.dataset.state, text: txt('detail-word-banner-text'), undo: !!q('detail-word-undo') } : null,
+      banner: banner ? { state: banner.dataset.state, text: banner.querySelector('.sz-undobar__text') ? banner.querySelector('.sz-undobar__text > span').textContent.trim() : banner.textContent.trim(), undo: !!banner.querySelector('[data-testid="undo-button"]'), bottom: banner.getBoundingClientRect().bottom, main: top.querySelector('[data-testid="detail-practice"]') ? top.querySelector('[data-testid="detail-practice"]').getBoundingClientRect().top : null } : null,
       undo: undo ? { state: undo.dataset.state, text: undo.textContent.replace(/\s+/g, ' ').trim(), button: !!undo.querySelector('[data-testid="undo-button"]') } : null,
       practice: practice ? { disabled: practice.disabled, text: practice.textContent.trim() } : null,
       practiceFail: !!q('detail-practice-fail'),
@@ -499,12 +499,13 @@ export default async function detailSpec(page, ctx) {
   v = await view(page);
   assert.equal(v.banner.text, '「平静」以后不会再出现', 'R-D05 banner');
   assert.equal(v.banner.undo, true, 'banner undo');
+  assert.ok(v.banner.bottom <= v.banner.main, 'I3 P1-19: the word-swap undo is the same bottom undo bar as the remove one, above 练这个字 (no more top banner)');
   assert.equal(v.wordLabel, '释义', 'card label → 释义');
   assert.equal(v.gloss, await copy(page, 'X-PROMPT.fallbackHint'), 'gloss = prompt hint line');
   assert.equal(v.swap, null, 'swap row gone');
   assert.equal(v.swapFail, false, 'failure block gone');
   await page.evaluate(() => window.__shiziTest.failNextWrite(1, { kind: 'generic', matchKey: 'shizi.v2.wordOff' }));
-  await clickTop(page, 'detail-word-undo');
+  await clickTop(page, 'undo-button');
   await waitView(page, () => {
     const el = document.querySelector('.sz-layer[data-top="true"] [data-testid="detail-word-banner"]');
     return !!el && el.dataset.state === 'failed';
@@ -514,7 +515,7 @@ export default async function detailSpec(page, ctx) {
   assert.equal(v.banner.undo, true, 'undo still clickable');
   st = await state(page);
   assert.deepEqual(Object.keys(st.wordOff), ['base:静'], 'failed undo: still off');
-  await clickTop(page, 'detail-word-undo');
+  await clickTop(page, 'undo-button');
   await waitView(page, () => {
     const el = document.querySelector('.sz-layer[data-top="true"] [data-testid="detail-word-banner"]');
     return !!el && el.dataset.state === 'undone';

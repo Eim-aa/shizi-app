@@ -137,12 +137,12 @@ export function settingsView(settings, { p = policy } = {}) {
   };
 }
 
-/** 备份行右侧（R-M03）：lastExportAt → 「上次备份 {date} ›」，没有 → 「还没有备份」（› 另画，装饰）。 */
+/** 备份行右侧（R-M03）：lastExportAt → 「上次备份 {date}」，没有 → 「还没有备份」（行尾 › 另画 Chevron，装饰，I3 · P1-22）。 */
 export function backupValue(backupMeta) {
   const at = backupMeta && typeof backupMeta.lastExportAt === 'number' ? backupMeta.lastExportAt : null;
   if (at === null) return { text: t('R-M03.noBackup'), arrow: true, day: null };
   const day = localDay(at);
-  return { text: t('R-M03.lastBackup', { date: t('R-H02.dateFormat', monthDayParts(day)) }), arrow: false, day };
+  return { text: t('R-M03.lastBackup', { date: t('R-H02.dateFormat', monthDayParts(day)) }), arrow: true, day };
 }
 
 function sameJSON(a, b) {

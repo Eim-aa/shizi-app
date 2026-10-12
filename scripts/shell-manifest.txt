@@ -7367,6 +7367,7 @@ src/ui/dev/pointer-stats.js
 src/ui/edge-swipe.js
 src/ui/images-annual.js
 src/ui/images-entry.js
+src/ui/paper-transition.js
 src/ui/root.js
 src/ui/route-memory.js
 src/ui/router.js

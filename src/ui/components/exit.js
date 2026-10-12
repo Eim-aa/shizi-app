@@ -1,6 +1,6 @@
 // 退场动画（交互与动效规范 T0-2：每个进场都有对应的退场；审计 P1-07）。
 // 弹层、确认框、提示条、撤销条在被卸载的那一刻（Preact 先跑卸载钩子、再摘 DOM）把自己的 DOM 复制一份留在原位，
-// 复制品不可点（inert、pointer-events:none）、读屏不可见（aria-hidden，去掉 role / aria-* / id / tabindex），按 kind 播退场动画后自己移除：
+// 复制品不可点（pointer-events:none、里面的控件 tabindex=-1；不用 inert，iOS 15.5 才认）、读屏不可见（aria-hidden，去掉 role / aria-* / id / tabindex），按 kind 播退场动画后自己移除：
 //   sheet   弹层 220ms 下滑（从当前位置，下滑关闭时接着手指的位置）+ 遮罩 180ms 淡出，ease.in（T-sheet）
 //   confirm 确认框 180ms 淡出 + 遮罩 180ms 淡出，ease.in（T-confirm）
 //   fade    提示条 / 撤销条 150ms 淡出，linear（T-fade）
@@ -76,7 +76,7 @@ export function playExit(el, kind = 'fade', { win = typeof window !== 'undefined
   clone.classList.add(EXIT_CLASS);
   clone.setAttribute('data-exit', kind);
   clone.setAttribute('aria-hidden', 'true');
-  clone.inert = true;
+  for (const f of clone.querySelectorAll('button, a[href], input, select, textarea')) f.setAttribute('tabindex', '-1');
   el.parentNode.insertBefore(clone, el.nextSibling);
   const remove = () => {
     if (clone.parentNode) clone.parentNode.removeChild(clone);

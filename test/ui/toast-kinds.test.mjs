@@ -1,12 +1,11 @@
 // 提示条只许两种用途（交互与动效规范 F3 / F5，D58；03 P293）：showToast 的 kind 只能是 'failure' | 'undo'；
-// 审计清单里还没删的成功 / 说明类旧调用临时写 kind:'legacy' + 审计编号，编号必须在交互合规待修清单里（scripts/e2e/interaction-pending.mjs），
-// 清单删掉那一条之后这里立即变红，逼着把调用一起删掉。旧实现（10650a2）上：showToast 不收 kind，这里的静态扫描找出 10 处无 kind 的调用（红）。
+// 过渡用的 kind:'legacy'（I1 期间登记在交互合规待修清单里的旧调用）在三张卡合并后（R5M）已全部删除，组件也不再放行 'legacy'。旧实现（10650a2）上：showToast 不收 kind，这里的静态扫描找出 10 处无 kind 的调用（红）。
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { checkToastKind, showToast, hideToast, TOAST_KINDS, TOAST_LEGACY } from '../../src/ui/components/Toast.js';
+import { checkToastKind, showToast, hideToast, TOAST_KINDS } from '../../src/ui/components/Toast.js';
 import { PENDING } from '../../scripts/e2e/interaction-pending.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -43,14 +42,14 @@ function toastCalls() {
   return calls;
 }
 
-test('checkToastKind: only failure / undo; legacy needs an audit id; anything else throws', () => {
+test('checkToastKind: only failure / undo; anything else (legacy included) throws', () => {
   assert.deepEqual([...TOAST_KINDS], ['failure', 'undo']);
   assert.equal(checkToastKind('failure'), 'failure');
   assert.equal(checkToastKind('undo'), 'undo');
-  assert.equal(checkToastKind(TOAST_LEGACY, 'P0-07'), 'legacy');
   for (const bad of [undefined, null, '', 'success', 'info', 'saved']) assert.throws(() => checkToastKind(bad), TypeError, String(bad));
-  assert.throws(() => checkToastKind('legacy'), TypeError, 'legacy without an audit id');
-  assert.throws(() => checkToastKind('legacy', 'later'), TypeError, 'legacy with a non-audit id');
+  assert.throws(() => checkToastKind('legacy'), TypeError, 'legacy is no longer accepted (R5M)');
+  assert.throws(() => checkToastKind('legacy', 'P0-07'), TypeError, 'not even with an audit id');
+  assert.throws(() => showToast('存好了。', { kind: 'legacy', audit: 'P0-07' }), TypeError);
   assert.throws(() => showToast('已保存。'), TypeError, 'a success toast without a kind is refused at runtime');
   assert.throws(() => showToast('已保存。', { kind: 'success' }), TypeError);
   const id = showToast('没保存上。', { kind: 'failure' });
@@ -58,22 +57,13 @@ test('checkToastKind: only failure / undo; legacy needs an audit id; anything el
   hideToast();
 });
 
-test('every showToast call in src passes kind failure / undo, or legacy + an audit id that is still pending (printed)', t => {
+test('every showToast call in src passes kind failure / undo; the pending list is empty', () => {
+  assert.deepEqual(Object.keys(PENDING), [], 'interaction pending list is empty after the three cards merged (R5M)');
   const calls = toastCalls();
-  assert.ok(calls.length >= 3, `found ${calls.length} calls`);
-  const legacy = [];
+  assert.ok(calls.length >= 1, `found ${calls.length} calls`);
   for (const c of calls) {
     const kind = /kind:\s*'([a-z]+)'/.exec(c.args);
     assert.ok(kind, `${c.file}:${c.line} showToast without a kind (F3: only failure / undo)`);
-    if (kind[1] === 'legacy') {
-      const audit = /audit:\s*'(P[0-2]-\d\d)'/.exec(c.args);
-      assert.ok(audit, `${c.file}:${c.line} legacy toast without an audit id`);
-      assert.ok(PENDING[audit[1]], `${c.file}:${c.line} legacy toast ${audit[1]} is not on the pending list — the fix landed, delete the call`);
-      assert.ok(PENDING[audit[1]].ic.includes('IC-12'), `${audit[1]} is pending for IC-12`);
-      legacy.push(`${audit[1]} (${PENDING[audit[1]].card}) ${c.file}:${c.line}`);
-    } else {
-      assert.ok(TOAST_KINDS.includes(kind[1]), `${c.file}:${c.line} kind ${kind[1]}`);
-    }
+    assert.ok(TOAST_KINDS.includes(kind[1]), `${c.file}:${c.line} kind ${kind[1]}`);
   }
-  for (const l of legacy) t.diagnostic(`pending legacy toast ${l}`);
 });

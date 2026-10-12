@@ -73,6 +73,8 @@ test('pending list: every entry is an audit id in the checklist, owned by anothe
     assert.ok(p.why && p.why.length >= 4, id);
   }
   t.diagnostic(`interaction pending list: ${Object.keys(PENDING).join(', ') || '(empty)'}`);
-  assert.deepEqual(pendingFor('IC-12', { copy: ['X-WORK.saved'] }).map(h => h.id), ['P0-07']);
-  assert.deepEqual(pendingFor('IC-12', { copy: ['nope'] }), []);
+  // R5M：三张卡合并后清单为空，任何断言都不再跳过
+  assert.deepEqual(Object.keys(PENDING), [], 'the pending list is empty');
+  assert.deepEqual(pendingFor('IC-12', { copy: ['X-WORK.saved'] }), []);
+  assert.deepEqual(pendingFor('IC-10', { screens: ['write'] }), []);
 });

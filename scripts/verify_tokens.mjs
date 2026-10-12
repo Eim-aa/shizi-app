@@ -107,7 +107,6 @@ export const EXCEPTIONS = Object.freeze([
   { rule: 'motion', file: 'src/ui/screens/home/index.js', snippet: 'CLOCK_TICK_MS = 30000', why: '首页日期 / 时段重算间隔（时钟），不是动画' },
   { rule: 'motion', file: 'src/ui/screens/write/index.js', snippet: 'PEN_ARM_MS = 250', why: '换字后早到的落笔先缓存、到点补画的窗口（P227，输入处理，不丢笔），不是动画时长' },
   { rule: 'motion', file: 'src/ui/components/Toast.js', snippet: '.sz-toast__timer{animation:none}', why: '提示条底边的计时线是进度指示（scaleX），减少动态效果下不做缩放、静止显示；提示条本身仍是 150ms 淡化' },
-  { rule: 'motion', file: 'src/ui/screens/mine/settings.js', snippet: 'TEXT_SIZE_NOTICE_MS = 6000', pending: 'P0-13', why: '「文字大小跟随手机设置」的一次性说明条（P132 过渡值）；审计 P0-13 由卡 I3 删除这条说明，删掉后这条登记一并删' },
 ]);
 
 // 旧令牌名：P1-E1a 之前的变量，一个都不许再引用。

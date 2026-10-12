@@ -99,6 +99,7 @@ export const timing = Object.freeze({
   loadingQuiet: 400,
   loadingText: 2000,
   sourceFresh: 2000,
+  savedFlash: 1500,
 });
 
 /** haptic：五档触觉（F1，D58 ③）。style 对应原生 UIImpactFeedbackGenerator.FeedbackStyle；select = UISelectionFeedbackGenerator。 */

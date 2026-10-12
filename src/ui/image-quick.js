@@ -6,6 +6,7 @@ import { useEffect, useState } from '../../vendor/ui.js';
 import { t } from '../config/copy/index.js';
 import { EXPORT_SCALE } from '../core/images/layout.js';
 import { markStateChange } from './components/Button.js';
+import { M } from '../config/motion.js';
 import { SAVED_FLASH_MS, exportImage, saveImageFile, shareImageFile, withExt } from './components/image-preview.js';
 
 /** 第 i 页的导出图（导出倍率）。渲染失败时抛错。 */
@@ -63,7 +64,7 @@ export async function quickShare(job, { share = shareImageFile, ratio = job.init
 // ---------------------------------------------------------------- 页面接线（月字帖 / 年报共用）
 
 /** 开始等待超过多久，保存键才改成进行时文案（规范 F4 loadingQuiet）。 */
-export const SAVING_QUIET_MS = 400;
+export const SAVING_QUIET_MS = M.timing.loadingQuiet;
 
 /**
  * 「保存图片」键的状态流：idle → busy（400ms 后文案「正在保存…」）→ saved（1.5 秒「已存好」）/ failed（「再试一次」+ 说明）。

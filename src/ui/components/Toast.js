@@ -1,8 +1,7 @@
 // 轻提示：showToast(text, {kind}) 显示一条，新的替换旧的，默认 timing.toast（3.2s）后消失（原型 note()：3200ms）。
 // 用途只有两种（交互与动效规范 F3，D55 ② / D58）：kind 'failure'（失败，且失败发生的地方已不在屏上）与 'undo'（可撤销）。
 // 成功、说明、引导一律不许用提示条：kind 缺省或不是这两种时 showToast 直接抛 TypeError（单测 test/ui/toast-kinds.test.mjs 静态扫描所有调用点）。
-// 'legacy' 只给审计清单里还没删的旧调用过渡用：必须带 audit（审计编号），且该编号在交互合规待修清单（scripts/e2e/interaction-pending.mjs）里，
-// 清单清空后这条分支一并删除。进出 T-fade（150ms 淡化；退场见 ui/components/exit.js，P1-07）。
+// 过渡用的 'legacy'（审计清单里还没删的旧调用）已在三张交互卡合并后（R5M）随待修清单清空一并删除。进出 T-fade（150ms 淡化；退场见 ui/components/exit.js，P1-07）。
 // 跨页面保留（换页后仍在显示；写字页返回首页不再出「已保存」条，R4-F1 / P262）。
 // <ToastHost/> 由 ui/root.js 挂一次；role=status + aria-live=polite（01-架构设计 §7）。
 // 位置（H1 / I2-04）：默认距底 110px；当前页的主按钮（.sz-btn--primary，或元素上声明 data-toast-anchor）压住这个位置时整条抬到它上沿之上 12，不再盖住主操作（toastBottom）。
@@ -16,8 +15,6 @@ import { M } from '../../config/motion.js';
 export const TOAST_MS = M.timing.toast;
 /** 提示条只许这两种用途（F3）。 */
 export const TOAST_KINDS = Object.freeze(['failure', 'undo']);
-/** 过渡：审计清单里还没删的成功 / 说明类提示（必须带审计编号，见文件头）。 */
-export const TOAST_LEGACY = 'legacy';
 /** Toast 与当前页主操作上沿的间距（I2-04：反馈不能遮挡主操作）。 */
 export const TOAST_ANCHOR_GAP = 12;
 /** 默认位置：距底 110 + 安全区（在 Tab 条上方），与样式一致。 */
@@ -53,17 +50,16 @@ function publish() {
 }
 
 /** kind 校验（F3）：返回规范化的 kind；不合规抛 TypeError。 */
-export function checkToastKind(kind, audit) {
+export function checkToastKind(kind) {
   if (TOAST_KINDS.includes(kind)) return kind;
-  if (kind === TOAST_LEGACY && typeof audit === 'string' && /^P[0-2]-\d\d$/.test(audit)) return kind;
   throw new TypeError(`showToast: kind must be ${TOAST_KINDS.map(k => `'${k}'`).join(' | ')} (F3: no toast for success or explanations), got ${JSON.stringify(kind)}`);
 }
 
-export function showToast(text, { kind, audit, duration } = {}) {
-  const k = checkToastKind(kind, audit);
+export function showToast(text, { kind, duration } = {}) {
+  const k = checkToastKind(kind);
   const ms = Number.isFinite(duration) ? duration : k === 'undo' ? M.timing.toastWithAction : TOAST_MS;
   toastSeq += 1;
-  current = { id: toastSeq, text: String(text), duration: ms, kind: k, audit: k === TOAST_LEGACY ? audit : undefined };
+  current = { id: toastSeq, text: String(text), duration: ms, kind: k };
   if (timer) clearTimeout(timer);
   const id = toastSeq;
   timer = setTimeout(() => {
@@ -122,7 +118,7 @@ function ToastItem({ toast }) {
   const ref = useRef(null);
   // 退场（T-fade，P1-07）：被替换或到时收起时，卸载前复制一份原位淡出
   useLayoutEffect(() => () => playExit(ref.current, 'fade'), []);
-  return html`<div class="sz-toast" ref=${ref} data-testid="toast" data-kind=${toast.kind} data-audit=${toast.audit}>
+  return html`<div class="sz-toast" ref=${ref} data-testid="toast" data-kind=${toast.kind}>
       <span class="sz-toast__text">${toast.text}</span>
       <span class="sz-toast__timer" aria-hidden="true" data-testid="toast-timer" style=${{ animationDuration: `${toast.duration || TOAST_MS}ms` }}></span>
     </div>`;

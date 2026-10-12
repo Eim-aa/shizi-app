@@ -44,7 +44,7 @@ export const PREVIEW_SCALE_MANY = 0.4;
 /** 原生壳是否已经接受 JPEG（WebViewController.imageData 认 PNG 与 JPEG；阶段 1 Q2-6 放开，P162）。 */
 export const NATIVE_ACCEPTS_JPEG = true;
 /** 保存成功后，保存键显示「已存好」的时长（ms；成功不弹提示，状态在按钮上原地变化，I3 · P0-07 / 规范 F5）。 */
-export const SAVED_FLASH_MS = 1500;
+export const SAVED_FLASH_MS = M.timing.savedFlash;
 
 injectStyles('image-preview', `
 .sz-img{display:flex;flex-direction:column;gap:16px}

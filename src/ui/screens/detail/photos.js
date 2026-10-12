@@ -2,7 +2,7 @@
 // reference/J-proto-screen.md §2.3.15）。
 //
 // registerScreen('detail-photo')，params {char}。入口：单字详情里有 photos[字] 时的「旧版本的记录 ›」行（actions.js）。
-// 版式：全页深底 / 字（不随主题：页上加 .t-dark，令牌在页内取深色一套，D43）；页头关闭 X + 标题「「{字}」的旧记录」；3:4 照片；
+// 版式：全页深底 / 字（不随主题：页上加 .t-dark，令牌在页内取深色一套，D43）；页头「‹」+ 标题「「{字}」的旧记录」（推入页一律「‹」，D58 ④ / 交互规范 N2；原为关闭 X）；3:4 照片；
 //   底部小标题「旧版本的记录」+ R-D10 两行说明。
 // 只读：不写任何东西，没有「做成图片」（R-D10：只能看，不能做成图片）；照片不算有记录（P10b，单字详情的记录块不计它）。
 // photos 域由 M5-4 迁移填充（`{[char]: {day, at, dataURL}}`）；本页只读。照片没了（恢复了别的备份）时只留标题与说明。
@@ -67,7 +67,7 @@ function PhotoScreen({ params }) {
   const body = t('R-D10.body');
   const lines = Array.isArray(body) ? body : [body];
   return html`<div class="sz-dphoto t-dark" data-testid="photo-screen" data-char=${char}>
-    <${Page} title=${t('R-D10.title', { char })} leading="close">
+    <${Page} title=${t('R-D10.title', { char })}>
       <div class="sz-dphoto__frame">
         ${photo
           ? html`<img class="sz-dphoto__img" src=${photo.dataURL} alt=${t('X-DETAIL.photoAlt')} data-testid="photo-image" />`

@@ -470,7 +470,7 @@ export default async function run(page, ctx) {
   await page.evaluate(() => history.back());
   await page.waitForSelector(SHEET, { state: 'detached' });
   await waitNavIdle(page);
-  await page.click(topSel('session-none-home'));
+  await page.click(topSel('page-back')); // D58 ④：「没有要写的字」页的出口只有左上「‹」
   await page.waitForFunction(() => document.querySelector('.sz-app').dataset.topScreen === 'home');
   await waitNavIdle(page);
   assert.equal(await topScreen(page), 'home', 'back on home');

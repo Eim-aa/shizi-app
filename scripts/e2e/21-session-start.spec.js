@@ -293,7 +293,8 @@ export default async function sessionStart(page, ctx) {
   assert.equal((await page.locator(topSel('session-none-title')).textContent()).trim(), '现在没有要写的字', 'R-H11 title');
   assert.equal((await page.locator(topSel('session-none-body')).textContent()).trim(), '想接着写，可以自己选几个字。', 'R-H11 body');
   assert.equal((await page.locator(topSel('session-none-nochars')).textContent()).trim(), '可以换一个字库，或者先练写错过的字。', 'R-H11 noChars body (library exhausted)');
-  assert.equal((await page.locator(topSel('session-none-home')).textContent()).trim(), '回到首页 ›', 'R-H11 back home link');
+  assert.equal(await page.locator(topSel('session-none-home')).count(), 0, 'D58 ④: no extra 回到首页 link (the only exit is the top-left 「‹」)');
+  assert.equal(await page.locator(topSel('page-back')).getAttribute('aria-label'), '返回', 'D58 ④: top-left is 「‹」 (返回), not ×');
   assert.equal(await page.evaluate(() => window.__shiziTest.getWriteLog().length), logBefore, 'no storage write');
   assert.equal(((await state(page)).sessions || {}).A || null, null, 'no session opened');
   const noneBtns = await page.evaluate(() => {
@@ -332,7 +333,7 @@ export default async function sessionStart(page, ctx) {
     return { lib: !!top.querySelector('[data-testid="session-none-libswitch"]'), pickPrimary: !!pick && pick.classList.contains('sz-btn--primary') };
   });
   assert.deepEqual(plainNone, { lib: false, pickPrimary: true }, 'not exhausted: no 更换字库, 自己选字 is the primary button');
-  await page.click(topSel('session-none-home'));
+  await page.evaluate(async () => (await import('/src/ui/router.js')).nav.switchTab('home'));
   await page.waitForFunction(() => document.querySelector('.sz-app').dataset.topScreen === 'home');
   await waitNavIdle(page);
 

@@ -486,7 +486,7 @@ export default async function detailSpec(page, ctx) {
   assert.equal(photo.alt, '旧版本拍下的照片', 'photo alt text');
   assert.equal(photo.caption, '旧版本的记录', 'caption');
   assert.equal(photo.body, '旧版本拍照留下的记录，只能看，不能做成图片。<br>备份时会一起存下。', 'R-D10 body (two lines)');
-  assert.deepEqual(photo.buttons, ['关闭'], 'read-only: only the close button, no make-image');
+  assert.deepEqual(photo.buttons, ['返回'], 'read-only: only the 「‹」 (D58 ④: pushed pages use ‹, not ×), no make-image');
   // D43：旧记录照片页永远是深色，页上加 .t-dark，底色 = 深色 --paper（原来写死 #1F1B18，读设计令牌）
   assert.equal(photo.bg, tokenRgb('dark', 'paper'), 'dark page = dark --paper (.t-dark)');
   await page.click(topSel('page-back'));

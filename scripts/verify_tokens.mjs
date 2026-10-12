@@ -59,6 +59,7 @@ export const EXCEPTIONS = Object.freeze([
   { rule: 'fontSize', file: 'src/ui/components/PracticeGlyph.js', snippet: 'font-size:calc(var(--pg-face) * 100cqw)', why: '练习字轮廓缺失时的楷体整字回退：字面尺寸 = 元素边长 × 字面比例（tokens.json typography.glyph.*Face，字面是图，ShiziKai 只做回退）' },
   { rule: 'fontSize', file: 'src/ui/screens/write/glyph-fallback.js', snippet: 'font-size:${Math.round(size * FALLBACK_FONT_RATIO * 100) / 100}px', why: '轮廓缺失时的楷体整字回退：字面尺寸 = 书写格边长 × 比例（字面是图，ShiziKai 只做回退）' },
   { rule: 'fontSize', file: 'src/ui/screens/mine/records.js', snippet: 'font-size:clamp(9px, 16cqw, 12px)', why: '字帖格里「没有笔迹」的小字，随格宽收缩；aria-hidden，同一信息在格子的 aria-label 里（X-MINE.cellLabel）' },
+  { rule: 'radius', file: 'src/ui/paper-transition.js', snippet: 'borderRadius = `${r}px', why: '写字页进出动效 B1（P282）：纸从按钮的圆角（读按钮的计算值，三档之一）逐帧长到 0（整屏），跟手时从 24 收到按钮的圆角——每帧的中间值是两个档位之间的插值，不是新的圆角档' },
   { rule: 'fontSize', file: 'src/ui/components/query/input.js', snippet: "fontSize: '16px", why: '查字框的隐形代理 input（1×1、opacity 0）：iOS 对字号 < 16px 的输入框聚焦时会放大页面，所以这个看不见的框必须 ≥ 16px，与字阶无关' },
   // ---- glyph：楷体字体（--kai）只许用在这些地方（P1-E2；每条写明为什么它不是「练习字」）
   { rule: 'glyph', file: 'src/ui/components/PracticeGlyph.js', snippet: '.sz-pg__fb', why: '练习字组件自己的回退分支：轮廓缺失 / 取不到数据 / 不是汉字时的楷体整字（10.13 语义，ShiziKai 只做回退）' },
@@ -192,6 +193,8 @@ export function scanText(rel, source, used = new Set()) {
     while ((m = brRe.exec(text))) {
       const value = m[1].trim();
       if (!value || radiusOk(value)) continue;
+      const ex = exceptionFor('radius', m[0]) || exceptionFor('radius', value);
+      if (ex) { used.add(ex); continue; }
       out.push({ rule: 'radius', file: rel, line: lineOf(text, m.index), snippet: `border-radius:${value}`.slice(0, 120) });
     }
     // letter-spacing：整条规则里没有 writing-mode（竖排题记）就必须是 0 / normal / inherit

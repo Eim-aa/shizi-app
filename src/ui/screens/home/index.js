@@ -25,6 +25,7 @@
 import { html, useEffect, useLayoutEffect, useRef, useState } from '../../../../vendor/ui.js';
 import { registerScreen, getScreen, nav } from '../../router.js';
 import { Button } from '../../components/Button.js';
+import { markPaperSource } from '../../paper-transition.js'; // W2：主按钮点下时记下它的位置，写字页从它长出来（B1）
 import { SealGlyph } from '../../components/marks.js';
 import { injectStyles, T } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
@@ -499,8 +500,8 @@ function HomeScreen() {
         ${model.showPick ? html`<${Button} variant="text" class="sz-home__side" data-testid="home-pick" onClick=${() => openPick()}>${t('X-HOME.pick')}</${Button}>` : null}
         ${view === 'special' ? html`<${Button} variant="text" class="sz-home__side" data-testid="home-capital-defer" onClick=${() => run(deferCapital)}>${t('X-HOME.capitalDefer')}</${Button}>` : null}
       </div>` : null}
-      <${Button} variant="primary" class="sz-home__cta" data-testid="home-start" aria-label=${ctaLabel}
-        onClick=${() => run(startMain)}>${ctaLabel}</${Button}>
+      <${Button} variant="primary" class="sz-home__cta" data-testid="home-start" data-paper-source="home-start" aria-label=${ctaLabel}
+        onClick=${event => { markPaperSource(event && event.currentTarget, 'home-start'); run(startMain); }}>${ctaLabel}</${Button}>
     </div>
     </div>
     ${demo || testHost ? html`<div class="sz-home__dev">

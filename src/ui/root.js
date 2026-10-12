@@ -12,6 +12,8 @@
 // - 交互式返回（R4-G1）：完成时执行顶层页面页头左上键的同一个动作（ui/back-action.js；结果页「×」先收起撤销条再回来源），
 //   转场样式由 BACK_TRANSITION 决定（控制器只给进度）；减少动态效果时不跟手，完成后 GESTURE_FADE_MS 淡化。
 //   浏览器 / 主屏 PWA 另有网页兜底手势（ui/edge-swipe.js，页头以下左缘 12px 起手），原生壳内关闭，免得两套手势打架。
+// - 写字页进出（W2，D57，P282–P284；ui/paper-transition.js）：从首页「开始写字」类按钮进来，按钮原地长成整张纸（B1，进 420ms / 退 360ms），没有来源按钮的入口用 B3 安静淡入（220 / 180ms），
+//   减少动态效果一律 150ms 淡化；进出与左缘右滑共用同一个进度 s（= 1 − 手指进度），BACK_TRANSITION 在写字页（及来源在首页的结果页）上把进度交给它。其它页面仍是横推。
 // Tab 页滚动容器顶部有一条吸附的纸色渐变遮罩（::before，P0-A8 / G20）：内容滚进状态栏 / 灵动岛时淡出，不与时间、电池重叠；
 // 不拦截点击（pointer-events:none），浅深色都走 --p。阶段 3 由系统的滚动边缘效果取代。
 // 每个页面图层一直挂着（下面的页面 visibility:hidden），返回时页面内状态与滚动位置都在。
@@ -38,6 +40,9 @@ import { isNativeShell, isStandalone, isTestHost } from '../platform/env.js';
 import { backActionAllowed, EntryContext, runBackAction, subscribeBackActions } from './back-action.js';
 import { attachEdgeSwipe, EdgeStrip } from './edge-swipe.js';
 import { markStateChange } from './components/Button.js';
+import {
+  cancelSpec, clearPaper, createPaper, PAPER_CSS, planPaper, planPaperDrag, runProgress, specFor,
+} from './paper-transition.js';
 import { Tabs } from './components/Tabs.js';
 import './components/marks.js'; // 朱色白名单组件：写错朱点与印章（D43，P1-E1a）
 import { ToastHost } from './components/Toast.js';
@@ -70,13 +75,34 @@ export const GESTURE_FADE_MS = 150;
 // 现用推入 / 返回同一套几何：顶层页右移 progress × 宽，底层页从 -BACK_PARALLAX × 宽 视差归位，顶层带左投影。
 // 以后换写字页进出动画时换掉这个对象（与 useLayoutEffect 里的推入 / 返回关键帧保持一致），控制器与原生 / 网页手势都不用动。
 export const BACK_TRANSITION = Object.freeze({
-  /** 跟手开始：两层进入拖动状态。 */
-  begin(top, under) {
+  /** 跟手开始：两层进入拖动状态。ctx.plan（写字页的 B1 / B3，planPaperDrag）有值时按「纸」画：见 ui/paper-transition.js。 */
+  begin(top, under, ctx) {
+    if (ctx && ctx.plan && top) {
+      ctx.paper = createPaper(ctx.plan, top, under);
+      if (under) under.classList.add('sz-layer--under');
+      return;
+    }
     if (top) top.classList.add('sz-layer--moving');
     if (under) under.classList.add('sz-layer--under');
   },
   /** 画一帧：view.phase 'follow' 直接设值、'snap' 走 SNAP_MS 过渡回原位、'commit' 停在松手处等返回转场接手。 */
-  frame(top, under, view) {
+  frame(top, under, view, ctx) {
+    if (ctx && ctx.paper) {
+      // 纸：s = 1 − 手指进度 p，逐帧跟手；snap（取消）= 220ms 长回整屏（与点按同一个 frame 函数）；commit 停在松手处等返回转场接手。
+      if (ctx.anim) {
+        ctx.anim.cancel();
+        ctx.anim = null;
+      }
+      const s = 1 - (Number.isFinite(view.progress) ? view.progress : 0);
+      if (view.phase === 'snap') {
+        const spec = cancelSpec(ctx.plan, ctx.s === undefined ? 1 : ctx.s);
+        ctx.anim = runProgress({ from: spec.from, to: spec.to, ms: spec.ms, ease: spec.ease, apply: v => { ctx.s = v; ctx.paper.frame(v, true); } });
+      } else {
+        ctx.s = s;
+        ctx.paper.frame(s, true);
+      }
+      return;
+    }
     const w = view.width || 1;
     const x = Number.isFinite(view.x) ? view.x : view.progress * w;
     const snapping = view.phase === 'snap';
@@ -90,7 +116,16 @@ export const BACK_TRANSITION = Object.freeze({
     }
   },
   /** 收尾：清掉跟手写下的样式。 */
-  clear(el) {
+  clear(el, ctx) {
+    if (ctx && ctx.plan) {
+      if (ctx.anim) {
+        ctx.anim.cancel();
+        ctx.anim = null;
+      }
+      clearPaper(el);
+      if (el) el.classList.remove('sz-layer--under');
+      return;
+    }
     if (!el) return;
     el.style.transform = '';
     el.classList.remove('sz-layer--moving', 'sz-layer--snap', 'sz-layer--under');
@@ -103,6 +138,7 @@ export const BACK_TRANSITION = Object.freeze({
   },
 });
 
+injectStyles('paper-transition', PAPER_CSS);
 injectStyles('root', `
 .sz-app{position:fixed;inset:0;overflow:hidden;background:${T.paper};color:${T.ink1};font-family:${T.hei};
   -webkit-font-smoothing:antialiased;-webkit-text-size-adjust:100%}
@@ -215,10 +251,14 @@ function Root({ router, win }) {
     const reducedGesture = !!(t.kind === 'pop' && ctrl && !gv && prefersReducedMotion(win) && ctrl.takeReducedCommit());
     if ((t.animate || fromGesture || reducedGesture) && (t.kind === 'push' || t.kind === 'pop') && t.from && t.to) {
       const start = fromGesture ? BACK_TRANSITION.handoff(gv) : { startX: 0, underX: 0, width: 0 };
+      // 写字页进出（W2）：B1 / B3 / 减少动态效果的 150ms 淡化；null = 沿用横推（其它页面）。
+      const paper = planPaper(t, { reduced: prefersReducedMotion(win), root: appRef.current });
       animRef.current.current = {
         seq: t.seq,
         kind: t.kind,
-        mode: prefersReducedMotion(win) ? 'fade' : 'slide',
+        paper,
+        startS: fromGesture && gv ? 1 - (Number.isFinite(gv.progress) ? gv.progress : 0) : null,
+        mode: paper ? (paper.mode === 'B1' ? 'paper' : paper.mode === 'B3' ? 'quiet' : 'fade') : prefersReducedMotion(win) ? 'fade' : 'slide',
         from: t.from,
         to: t.to,
         startX: start.startX,
@@ -229,6 +269,8 @@ function Root({ router, win }) {
       };
     } else {
       animRef.current.current = null;
+      // 没有动画的转场（popstate 兜底等）也要让来源记录跟页面栈同步：写字页被弹掉就忘了它的来源
+      if (t && t.kind === 'pop' && t.to) planPaper({ kind: 'pop', from: t.from, to: t.to }, { reduced: false, root: null });
     }
     // 跟手画面只由它自己的提交转场接手；其它结构变化（replace、tab、另一处返回）立即清掉。
     if (ctrl && gv && !fromGesture) animRef.current.resetGesture = true;
@@ -251,6 +293,39 @@ function Root({ router, win }) {
     if (a.fromGesture && gestureRef.current.ctrl) gestureRef.current.ctrl.handoff();
     const rootEl = appRef.current;
     const pick = id => (rootEl ? rootEl.querySelector(`.sz-layer[data-entry="${id}"]`) : null);
+    if (a.paper) {
+      // 写字页进出：同一个进度 s 逐帧画（paper-transition.js），点按与左缘右滑完成是同一条路径
+      const plan = a.paper;
+      const open = plan.dir === 'open';
+      const layerEl = pick(open ? a.to.id : a.from.id);
+      const underEl = pick(open ? a.from.id : a.to.id);
+      if (layerEl) {
+        const paper = createPaper(plan, layerEl, underEl);
+        const spec = specFor(plan, { fromS: a.startS });
+        const drag = a.startS !== null && a.startS !== undefined;
+        let finished = false;
+        let handle = null;
+        let timer2 = null;
+        const done = () => {
+          if (finished) return;
+          finished = true;
+          clearTimeout(timer2);
+          if (handle) handle.cancel();
+          if (!open) layerEl.style.visibility = 'hidden'; // 退出的页面马上卸载：不让它在清掉样式后以整屏闪一帧
+          paper.clear();
+          a.cancel = null;
+          if (animRef.current.running === a) animRef.current.running = null;
+          if (animRef.current.current === a) {
+            animRef.current.current = null;
+            force(n => n + 1);
+          }
+        };
+        a.cancel = done;
+        handle = runProgress({ from: spec.from, to: spec.to, ms: spec.ms, ease: spec.ease, apply: v => paper.frame(v, drag), onDone: done });
+        timer2 = setTimeout(done, spec.ms + 1500); // 兜底：后台标签页 rAF 被暂停时也要收尾（逐帧最多前进 50ms，主线程卡顿时可能比 spec.ms 长）
+        return;
+      }
+    }
     const fade = a.mode === 'fade';
     const moving = a.kind === 'push' ? pick(a.to.id) : pick(a.from.id);
     // 跟手提交：顶层页从手指位置滑出、底层页从视差位置归位，时长按剩余距离缩短。
@@ -377,8 +452,8 @@ function Root({ router, win }) {
       const els = g.els;
       g.els = null;
       if (!els) return;
-      BACK_TRANSITION.clear(els.top);
-      BACK_TRANSITION.clear(els.under);
+      BACK_TRANSITION.clear(els.top, els);
+      BACK_TRANSITION.clear(els.under, els);
     };
     // 画面只写 DOM：跟手期间页面组件不重画（冻结），只在开始 / 结束各 setState 一次（露出 / 收起底层页）。
     const onView = view => {
@@ -395,11 +470,12 @@ function Root({ router, win }) {
           topId: topE ? topE.id : null,
           top: topE ? pickLayer(topE.id) : null,
           under: underE ? pickLayer(underE.id) : null,
+          plan: planPaperDrag(topE, underE, appRef.current), // 写字页（及来源在首页的结果页）：把进度画成「纸」（W2），其它页面横推
         };
-        BACK_TRANSITION.begin(g.els.top, g.els.under);
+        BACK_TRANSITION.begin(g.els.top, g.els.under, g.els);
         setGestureOn(true);
       }
-      BACK_TRANSITION.frame(g.els.top, g.els.under, view);
+      BACK_TRANSITION.frame(g.els.top, g.els.under, view, g.els);
     };
     const topPageId = () => {
       const top = router.getState().top;

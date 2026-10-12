@@ -48,5 +48,5 @@ test('schema：settings.firstTipSeen 是布尔，类型不对被拒绝', () => {
 });
 
 test('文案：X-WRITE.firstTip 与交接 §3 一致', () => {
-  assert.equal(t('X-WRITE.firstTip'), '凭记忆写，想不起来可以点提示。');
+  assert.equal(t('X-WRITE.firstTip'), '凭记忆写；想不起来，点下面的「提示」。');
 });

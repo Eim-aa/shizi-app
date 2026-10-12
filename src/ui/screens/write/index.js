@@ -322,7 +322,7 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
     slot, session, cardKey, char: charOfCardKey(cardKey), phase, written: paper ? 0 : view.strokes.length, ownStrokes: view.strokes, strokes: strokeData, getStore,
     onHinted: endSkipUndo,
   });
-  // Q2-1（03 P181）：首练第 1 字格下一次性提示「凭记忆写，想不起来可以点提示。」（settings.firstTipSeen；首次落笔 / 用提示后收起）。
+  // Q2-1（03 P181）：首练第 1 字格下一次性提示「凭记忆写；想不起来，点下面的「提示」。」（settings.firstTipSeen；首次落笔 / 用提示后收起）。
   const firstTip = useFirstTip({
     settings: state ? state.settings : null, session, phase, paper, strokeCount: view.strokes.length, hinted: hint.used > 0,
     blocked: !!suggest.node, getStore,

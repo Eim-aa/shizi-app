@@ -93,7 +93,7 @@ export default Object.freeze({
   'X-WRITE.liveTrace': '描一遍：参考字形画出了{range}',
   'X-WRITE.liveTraceWhole': '描一遍：参考字形出现了',
   // X-WRITE.firstTip（阶段 1 Q2-1，03 P181；实现交接 §3 过渡文案）：首练第 1 字格下说明位一次性提示
-  'X-WRITE.firstTip': '凭记忆写，想不起来可以点提示。',
+  'X-WRITE.firstTip': '凭记忆写；想不起来，点下面的「提示」。',
   // X-ANSWER（M1-4 描一遍阶段标题与按钮；原型 ShiziWriteScreen L551–L553）
   'X-ANSWER.titleTrace': '描一遍',
   'X-ANSWER.btnTraceDone': '描好了，自己写',

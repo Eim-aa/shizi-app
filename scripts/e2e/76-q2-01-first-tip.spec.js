@@ -1,9 +1,9 @@
-// 阶段 1 Q2-1（复测 simB D2 / simC D12，实现交接 §3，03 P181）：首练第 1 字格下说明位的一次性提示「凭记忆写，想不起来可以点提示。」——
+// 阶段 1 Q2-1（复测 simB D2 / simC D12，实现交接 §3，03 P181）：首练第 1 字格下说明位的一次性提示「凭记忆写；想不起来，点下面的「提示」。」——
 // 只在首练第 1 字出现一次，首次落笔 / 用提示 / 看答案后收起；出现即记 settings.firstTipSeen（经 store.commit），之后（包括刷新、下一次首练）不再出现。
 
 import { bootTestHost, drawStroke, HORIZONTAL, openWrite, seedSession, topSel, waitNavIdle } from './helpers.mjs';
 
-const TIP = '凭记忆写，想不起来可以点提示。';
+const TIP = '凭记忆写；想不起来，点下面的「提示」。';
 
 async function tipText(page) {
   return page.evaluate(sel => {

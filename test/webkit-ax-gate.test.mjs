@@ -27,10 +27,13 @@ test('the probe is a single function expression the shell calls with the state n
   for (const state of ["'write'", "'answer'", "'trace'", "'judge'", "'detail'"]) assert.ok(src.includes(state), `probe state ${state}`);
 });
 
-test('the gate runs the three review simulators × AX3 / AX5 and restores L + light afterwards', () => {
+test('the gate runs the three review simulators × L / XXXL / AX3 / AX5 and restores L + light afterwards', () => {
   const src = read('scripts/verify-webkit-ax.mjs');
   for (const udid of ['F1193537-1696-4C87-8094-E6F24E4F220D', '66BBBA9C-B7FB-4DA0-9D1C-08B729304053', '2247F84A-D0D1-4056-A79A-88B772B35DE3']) assert.ok(src.includes(udid));
-  assert.match(src, /process\.env\.SIZES \|\| 'ax3,ax5'/);
+  assert.match(src, /process\.env\.SIZES \|\| 'normal,xxxl,ax3,ax5'/, 'default covers L, XXXL, AX3, AX5 (K2)');
+  for (const [key, size] of [['normal', 'large'], ['xxxl', 'extra-extra-extra-large'], ['ax3', 'accessibility-extra-large'], ['ax5', 'accessibility-extra-extra-extra-large']]) {
+    assert.ok(src.includes(`${key}: '${size}'`), `size ${key} → ${size}`);
+  }
   assert.match(src, /'content_size', 'large'/);
   assert.match(src, /'appearance', 'light'/);
   assert.match(src, /'-shizi-smoke', '-shizi-smoke-stage', 'probe', '-shizi-probe-arg'/);
@@ -45,4 +48,20 @@ test('DEBUG shell: probe stage evaluates Documents/shizi-smoke-probe.js; Release
   assert.match(swift, /argumentValue\(after: "-shizi-probe-arg"\)/);
   const archive = read('ios/ShiziApp/scripts/verify-archive.sh');
   assert.match(archive, /"shizi-smoke-probe\.js" "-shizi-probe-arg"/);
+});
+
+test('K2: 结果行「修改 ›」按钮盒不比点击区窄、热区多出的高度只伸向上方（WebKit 下会触发 scrollWidth / 可滚动量）', () => {
+  const src = read('src/ui/screens/write/result-row.js');
+  const rule = src.match(/^\.sz-line__change\{(.*?)\} \/\*/m);
+  assert.ok(rule, 'rule exists');
+  assert.match(rule[1], /min-width:\$\{T\.hit\}/, '按钮盒至少 44 宽（xS 下文字更窄时点击区也不伸出按钮盒）');
+  assert.match(rule[1], /padding:4px var\(--bx\) 0/, '左右内边距 4：按钮盒 >= 44 宽，上内边距 4 把字抵回行中线');
+  assert.match(rule[1], /margin:-4px calc\(-1 \* var\(--bx\)\) 0/, '下外边距 0：热区不伸向下方');
+  assert.doesNotMatch(rule[1], /margin:-2px 0/);
+});
+
+test('K2: 规范 N3-6 与 §8d 已写明', () => {
+  const doc = read('docs/design/交互与动效规范.md');
+  assert.match(doc, /\*\*随手指跟手\*\*.*\*\*过阈值（同下「判定取值」）才关闭\*\*/);
+  assert.match(doc, /覆盖四档字号\*\*：L、XXXL、AX3、AX5/);
 });

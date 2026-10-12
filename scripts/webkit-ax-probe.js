@@ -196,7 +196,13 @@
         m.grid = box(grid);
         check('note slot under the grid and above the foot', (!grid || m.note.top >= m.grid.bottom - 0.5) && (!footBox || m.note.bottom <= footBox.top + 0.5),
           { note: m.note, grid: m.grid, footTop: footBox && footBox.top });
-        check('note slot content not clipped', note.scrollHeight <= note.clientHeight + 1, m.noteScroll);
+        // 说明位里「看得见的内容」（文字行 + 图标）不被裁，且 scrollHeight 不超过 clientHeight（K2：结果行「修改 ›」的 44 热区比 40 高的说明位多出的 4 全部伸向上方，不计入可滚动区）。
+        const nb = note.getBoundingClientRect();
+        const ink = [...lines.filter(l => note.contains(l.el)).map(l => ({ text: l.text, top: l.top, bottom: l.rawBottom })),
+          ...[...note.querySelectorAll('svg')].filter(v => !hidden(v, layer)).map(v => ({ text: 'svg', top: v.getBoundingClientRect().top, bottom: v.getBoundingClientRect().bottom }))];
+        const clipped = ink.filter(i => i.top < nb.top - 1 || i.bottom > nb.bottom + 1);
+        m.noteInk = ink.map(i => i.text + ' ' + r1(i.top) + '–' + r1(i.bottom));
+        check('note slot content not clipped', clipped.length === 0 && note.scrollHeight <= note.clientHeight + 1, { scroll: m.noteScroll, note: m.note, clipped: clipped.map(i => i.text), ink: m.noteInk });
       }
       // R4-F1（D55）：写字页没有「⋯」菜单；W2（A7）起底栏是求助行 + 「写好了」，求助行的按钮都在底栏之内、在视口内（上面的溢出 / 叠压检查已覆盖字）。
       const links = layer.querySelector('[data-testid="write-links"]');

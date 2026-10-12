@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// WebKit AX 版式门禁（R3-K1，ADA A3-01 / A3-02 / A3-04 建议的「WKWebView × 三机型 × AX3 / AX5」）：`pnpm run verify:webkit-ax`。
+// WebKit AX 版式门禁（R3-K1，ADA A3-01 / A3-02 / A3-04 建议的「WKWebView × 三机型 × 字号档」；K2 起缺省覆盖 L、XXXL、AX3、AX5 四档：Chromium e2e 拦不住 WebKit 的行盒与热区溢出，标准字号也要量）：`pnpm run verify:webkit-ax`。
 // 不在 `pnpm test` 默认集合里（要 Xcode 与 iOS 模拟器；Chromium 不复现这几条缺陷，所以必须在 WebKit 上量）。发版前、动了写字页 / 详情页版式后跑一遍。
 //
 // 流程：xcodebuild DEBUG 模拟器包（SKIP_BUILD=1 跳过）→ 每台模拟器 `simctl install`（覆盖安装，数据容器保留）→ 浅色外观 →
@@ -14,7 +14,7 @@
 //   DERIVED_DATA_PATH  构建目录（缺省 ios/ShiziApp/build/webkit-ax/DerivedData，已在 .gitignore）
 //   SKIP_BUILD=1       用已有的 .app
 //   DEVICES            逗号分隔的 名字=UDID（缺省 iPhone17 / SE3 / ProMax 三台评审模拟器）
-//   SIZES              逗号分隔，ax3 / ax5（缺省两档；也接受 normal、xxxl）
+//   SIZES              逗号分隔，normal（L）/ xxxl / ax3 / ax5（缺省四档，K2；也接受 xs）
 //   STATES             逗号分隔，write / answer / trace / judge / detail（缺省全部）
 //   OUT_DIR            截图与每次结果 JSON 的目录（缺省 ios/ShiziApp/build/webkit-ax/out）
 //   RESULT_TIMEOUT     每个状态等结果的秒数（缺省 60）
@@ -36,8 +36,8 @@ const TIMEOUT = Number(process.env.RESULT_TIMEOUT || 60);
 
 const DEFAULT_DEVICES = 'iPhone17=F1193537-1696-4C87-8094-E6F24E4F220D,SE3=66BBBA9C-B7FB-4DA0-9D1C-08B729304053,ProMax=2247F84A-D0D1-4056-A79A-88B772B35DE3';
 const DEVICES = (process.env.DEVICES || DEFAULT_DEVICES).split(',').map(s => s.split('=')).map(([name, udid]) => ({ name, udid }));
-const CONTENT_SIZE = { normal: 'large', xxxl: 'extra-extra-extra-large', ax3: 'accessibility-extra-large', ax5: 'accessibility-extra-extra-extra-large' };
-const SIZES = (process.env.SIZES || 'ax3,ax5').split(',');
+const CONTENT_SIZE = { xs: 'extra-small', normal: 'large', xxxl: 'extra-extra-extra-large', ax3: 'accessibility-extra-large', ax5: 'accessibility-extra-extra-extra-large' };
+const SIZES = (process.env.SIZES || 'normal,xxxl,ax3,ax5').split(',');
 const STATES = (process.env.STATES || 'write,answer,trace,judge,detail').split(',');
 
 const sh = (cmd, args, opts = {}) => execFileSync(cmd, args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], ...opts }).trim();

@@ -121,6 +121,10 @@ export const T = {
   s1: v('s1'), s2: v('s2'), s3: v('s3'), s4: v('s4'), s5: v('s5'), s6: v('s6'), s8: v('s8'), s12: v('s12'), s16: v('s16'),
   gutter: v('gutter'), groupGap: v('group-gap'),
   pressScale: v('press-scale'), tPress: v('t-press'), tRelease: v('t-release'), easeOut: v('ease-out'),
+  // 动效令牌（交互与动效规范 T2，D58）：时长 --dur-*、曲线 --ease-*；JS 侧同值在 src/config/motion.js
+  dInstant: v('dur-instant'), dXs: v('dur-xs'), dPress: v('dur-press'), dReduce: v('dur-reduce'), dFade: v('dur-fade'), dS: v('dur-s'), dM: v('dur-m'),
+  dRelease: v('dur-release'), dL: v('dur-l'), dSheet: v('dur-sheet'), dPush: v('dur-push'), dPaperClose: v('dur-paper-close'), dPaperOpen: v('dur-paper-open'),
+  eLinear: v('ease-linear'), eOut: v('ease-out'), eIn: v('ease-in'), eInout: v('ease-inout'), ePaperOpen: v('ease-paper-open'), eGather: v('ease-gather'),
 };
 
 /** 笺面纸纹（只给书写格、对照卡、字帖、月帖、图片等笺面；按钮、弹层、列表、页面底不用）：笺色 + --tex-img。 */

@@ -40,8 +40,12 @@
   --hit: 44px; --btn-h: 54px;
 
   /* 动效 */
-  --press-scale: .97; --t-press: 120ms; --t-release: 220ms;
-  --ease-out: cubic-bezier(.2,.7,.2,1);
+  --press-scale: .97; --t-press: 120ms; --t-release: 220ms; /* 旧名，保留一个版本（= --dur-press / --dur-release） */
+  /* 动效令牌（交互与动效规范 T2，D58）：代码里的时长与曲线只能取这些 */
+  --ease-out: cubic-bezier(.2,.7,.2,1); --ease-linear: linear; --ease-in: cubic-bezier(.4,0,1,1);
+  --ease-inout: cubic-bezier(.4,0,.2,1); --ease-paper-open: cubic-bezier(.3,0,.1,1); --ease-gather: cubic-bezier(.5,0,.15,1);
+  --dur-instant: 0ms; --dur-xs: 75ms; --dur-press: 120ms; --dur-reduce: 150ms; --dur-fade: 150ms; --dur-s: 180ms; --dur-m: 200ms;
+  --dur-release: 220ms; --dur-l: 260ms; --dur-sheet: 280ms; --dur-push: 300ms; --dur-paper-close: 360ms; --dur-paper-open: 420ms;
 
   /* 纸纹占位：只有细颗粒（D51 ⑥：低频云絮层读作水渍、还会烘进导出图，已删掉）。不用方向性纤维层，避免扫描线式条纹。真机换扫描资产。 */
   --tex-light:

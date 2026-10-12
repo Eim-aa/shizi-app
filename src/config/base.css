@@ -11,21 +11,15 @@
   --safe-right: env(safe-area-inset-right, 0px); /* 右侧安全区 · 来源：04 需求清单 R-B08 */
   --safe-bottom: env(safe-area-inset-bottom, 0px); /* 底部安全区 · 来源：拾字-可点原型-第十稿交接版.template.html L250；04 需求清单 R-B08 */
   --safe-left: env(safe-area-inset-left, 0px); /* 左侧安全区 · 来源：04 需求清单 R-B08 */
-  --motion-page: 300ms; /* 页面推入时长（原型近似；减少动态效果时为 120ms 交叉淡化）· 来源：04 需求清单「时间常量」（交接备注 L143） */
-  --reduce-motion: 0; /* 减少动态效果标记，JS 可读（1 = 开） · 来源：首页壳-v3-第十稿交接版.dc.html L167 */
 }
 
 @media (prefers-reduced-motion: reduce) {
-  :root {
-    --motion-page: 120ms; /* 减少动态效果：120ms 交叉淡化 · 来源：04 需求清单「时间常量」（交接备注 L143） */
-    --reduce-motion: 1; /* 减少动态效果标记 · 来源：ShiziWriteScreen-第十稿交接版.dc.html L334 */
-  }
   html {
     scroll-behavior: auto;
   }
 }
-/* 不设全局 animation/transition !important 清零：交叉淡化（120ms）在减少动态效果下仍要保留。
- * 组件的动效时长一律取 --motion-*，JS 动画（Web Animations）读 --reduce-motion 或 matchMedia 自行跳过。 */
+/* 动效时长与曲线只在 tokens.css（--dur-* / --ease-*，交互与动效规范 T2，D58）；这里不再有第二个来源（原 --motion-page / --reduce-motion 已删，P2-03）。
+ * 不设全局 animation/transition !important 清零：减少动态效果下的 150ms 交叉淡化（--dur-reduce）仍要保留；JS 读 config/motion.js prefersReducedMotion()。 */
 
 /* ---- 重置 ---- */
 *,

@@ -142,7 +142,7 @@ test('every token declaration carries a 来源 note', () => {
     assert.ok(decls.length > 0, file);
     for (const d of decls) assert.match(d.note, /来源：\S/, `${file} ${d.name} has no source note`);
   }
-  for (const name of ['--safe-top', '--safe-bottom', '--motion-page'])
+  for (const name of ['--safe-top', '--safe-bottom'])
     assert.ok(parseTokenDecls(baseCss).some(d => d.name === name), `base.css defines ${name}`);
   const fontFamilies = parseTokenDecls(tokensCss).filter(d => /^--(kai|song|hei)$/.test(d.name)).map(d => d.name);
   assert.deepEqual(fontFamilies.sort(), ['--hei', '--kai', '--song']);

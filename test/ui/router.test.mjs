@@ -513,7 +513,7 @@ test('pageDepth / backGestureAllowed: overlays do not count; tab root and block 
   assert.equal(backGestureAllowed({ stack: [s('s'), s('o')], topIsOverlay: true }, true), false, 'blocked wins');
 });
 
-test('back gesture gate: root → sub → root sends [false, true, false]; an overlay over the tab root opens the gate (P1-06)', () => {
+test('back gesture gate: root → sub → root sends [false, true, false]; tab switch sends nothing; an overlay over the tab root turns it on (R5-I2 / N4)', () => {
   const h = gateHarness();
   assert.deepEqual(h.values(), [false], 'tab root at mount → false');
   h.router.switchTab('t-lib');

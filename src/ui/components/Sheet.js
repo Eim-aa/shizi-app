@@ -18,6 +18,7 @@ import { injectStyles, T } from './styles.js';
 import { Button } from './Button.js';
 import { playExit } from './exit.js';
 import { M, prefersReducedMotion } from '../../config/motion.js';
+import { useOverlayBack } from '../back-action.js';
 import { t } from '../../config/copy/index.js';
 
 injectStyles('sheet', `
@@ -277,6 +278,7 @@ export function Sheet({ title, onClose, active = true, testid, dismiss = 'done',
   useDialogFocus(panelRef, active);
   const close = () => onClose && onClose();
   useSheetDrag(panelRef, close);
+  useOverlayBack(close); // Esc / 两指 Z 形 / 左缘右滑关弹层时走同一个 onClose（P2-17：清空确认的「先不清空」等自定义取消不再被绕过）
   const done = dismiss !== 'own';
   return html`<div class="sz-overlay" data-overlay="sheet">
     <div class="sz-scrim" aria-hidden="true" onClick=${close}></div>

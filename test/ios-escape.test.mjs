@@ -9,9 +9,11 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const swift = readFileSync(join(ROOT, 'ios/ShiziApp/ShiziApp/WebViewController.swift'), 'utf8');
 const router = readFileSync(join(ROOT, 'src/ui/router.js'), 'utf8');
 
-test('WebViewController 实现 accessibilityPerformEscape，派发 shizi-native-escape 并返回 true', () => {
+test('WebViewController 实现 accessibilityPerformEscape：能返回（门控 true）时派发 shizi-native-escape 并返回 true，否则返回 false（R5-I2 / P0-16）', () => {
   const m = /override func accessibilityPerformEscape\(\) -> Bool \{([\s\S]*?)\n    \}/.exec(swift);
   assert.ok(m, 'accessibilityPerformEscape override');
+  assert.match(m[1], /guard backGestureEnabled else \{ return false \}/, 'tab 根 / 阻断页：返回 false');
+  assert.ok(m[1].indexOf('guard backGestureEnabled') < m[1].indexOf('dispatchAccessibilityEscape()'), '先判门控再派发');
   assert.match(m[1], /dispatchAccessibilityEscape\(\)/);
   assert.match(m[1], /return true/);
   const d = /func dispatchAccessibilityEscape\(\) \{([\s\S]*?)\n    \}/.exec(swift);

@@ -7,10 +7,12 @@
 //   began 冻结底层页（露出、不可点、跟手期间不重画——位移直接写 style.transform，不走 setState），changed 顶层页跟手、
 //   底层页视差、顶层页左投影；ended 过阈值提交 back（转场从手指位置接着滑出），否则回弹；cancelled 回弹；
 //   顶层是遮罩时 began 只关遮罩、页面不动；减少动态效果时不跟随，只按阈值提交；
-// - 原生左缘返回门控：tab 根页 / 阻断页 / 顶层页面左上不是返回键（判断页「接着写」）backGestureEnabled(false)，有子页 true；
-//   只在页面栈深度、阻断或顶层能否返回变化时发（router.createBackGestureSync）。写字页也能滑动返回（R4-G1，P270）。
+// - 原生左缘返回门控：tab 根页 / 阻断页 backGestureEnabled(false)，有子页或顶层是弹层 true（R5-I2，N4 门控）；
+//   只在页面栈深度、阻断、弹层或顶层能否返回变化时发（router.createBackGestureSync）。写字页每一个阶段都能滑动返回（R4-G1；R5-I2 起含判断阶段，D58 ①）。
 // - 交互式返回（R4-G1）：完成时执行顶层页面页头左上键的同一个动作（ui/back-action.js；结果页「×」先收起撤销条再回来源），
 //   转场样式由 BACK_TRANSITION 决定（控制器只给进度）；减少动态效果时不跟手，完成后 GESTURE_FADE_MS 淡化。
+//   页内回退（R5-I2，N3-3：判断阶段「‹ 接着写」，back-action 种类 'phase'）：不露出下层页，进度由 PHASE_BACK 画成判断 → 回忆的 T-phase 倒放
+//   （上格长回书写格、参考格与判断键淡出、题面不动）；完成即执行「接着写」，之后由写字页的阶段淡化（phase-fade.js）从此刻的画面接着过渡。
 //   浏览器 / 主屏 PWA 另有网页兜底手势（ui/edge-swipe.js，页头以下左缘 12px 起手），原生壳内关闭，免得两套手势打架。
 // - 写字页进出（W2，D57，P282–P284；ui/paper-transition.js）：从首页「开始写字」类按钮进来，按钮原地长成整张纸（B1，进 420ms / 退 360ms），没有来源按钮的入口用 B3 安静淡入（220 / 180ms），
 //   减少动态效果一律 150ms 淡化；进出与左缘右滑共用同一个进度 s（= 1 − 手指进度），BACK_TRANSITION 在写字页（及来源在首页的结果页）上把进度交给它。其它页面仍是横推。
@@ -38,7 +40,7 @@ import {
 import { setBackGestureEnabled } from '../platform/bridge.js';
 import { M, prefersReducedMotion as reducedMotionOf } from '../config/motion.js';
 import { isNativeShell, isStandalone, isTestHost } from '../platform/env.js';
-import { backActionAllowed, EntryContext, runBackAction, subscribeBackActions } from './back-action.js';
+import { backActionAllowed, EntryContext, getBackKind, OverlayContext, runBackAction, subscribeBackActions } from './back-action.js';
 import { attachEdgeSwipe, EdgeStrip } from './edge-swipe.js';
 import { clearOverlayGesture, paintOverlayGesture } from './overlay-gesture.js';
 import { markStateChange } from './components/Button.js';
@@ -60,6 +62,7 @@ import './screens/mine/backup.js'; // M4-4 备份与恢复（'backup'）：菜�
 import './screens/mine/annual.js'; // M4-2 年度报告（'annual'）：「我的」菜单按屏名 push，刷新时也要能恢复
 import { BlockScreen, useBlockReason } from './screens/block/index.js'; // M5-6 R-B09：存储不可用 / 阻断 / 迁移失败时只画阻断页
 import { CorruptNotice } from './components/corrupt-notice.js'; // M5-6 坏值一次性顶部提示（01 §4，P55）
+import { LeaveUndoHost } from './screens/write/skip.js'; // R5-I2（S4 / P1-11）：离开写字页时还没用掉的跳过撤销，跟到来源页
 import './components/ax.js'; // P1-E6 / D29 / P131：系统字号 AX 档的防溢出规则（:root[data-ax]，各屏样式之后注入）
 import { getStore } from '../store/store.js';
 import { createRouteMemory, setRouteMemory } from './route-memory.js'; // 审查整改 F1：冷启动恢复离开时的页面栈
@@ -72,6 +75,7 @@ export const FADE_MS = M.role.reduceCrossfade;
 export const SNAP_MS = M.role.gestureSnap;
 // 跟手提交后的返回转场按剩余距离缩短，但不短于这个值。
 const GESTURE_POP_MIN_MS = M.role.pushGestureMin;
+/** 同一层换内容的 T-phase 淡化（R5-I2，nav.replace(…, {animate:true})）。I1 落 motion 令牌后取 motion.duration.fade（150）。 */
 /** 减少动态效果时由手势完成的返回：不跟手，松手直接交叉淡化这么久（R4-G1，P270）。 */
 export const GESTURE_FADE_MS = M.role.reduceCrossfade;
 /** 后台标签页暂停 rAF 时的收尾兜底：逐帧最多前进 50ms，主线程卡顿时可能比转场时长长得多（不是动画时长）。 */
@@ -144,6 +148,57 @@ export const BACK_TRANSITION = Object.freeze({
   },
 });
 
+// 页内回退的跟手画面（R5-I2，N3-3）：判断 → 回忆 的 T-phase 倒放。进度 p（0–1）：上格（本人书写）以顶边中点为原点长回书写格的大小与位置、
+// 参考格与判断键淡出，题面与页头不动；回弹 SNAP_MS（= motion.role.gestureSnap）。
+// 收尾（clear）推迟一拍：完成时「接着写」触发的重画在微任务里先给旧画面拍快照（phase-fade.js），快照要的是松手那一刻的样子。
+const PHASE_SNAP_TRANSITION = `transform ${SNAP_MS}ms ${PUSH_EASING}, opacity ${SNAP_MS}ms linear`;
+export const PHASE_BACK = Object.freeze({
+  begin(top) {
+    const q = sel => (top ? top.querySelector(sel) : null);
+    const ctx = { mine: q('.sz-compare__row--mine'), fade: [q('[data-testid="write-compare-ref"]'), q('[data-testid="write-judge-foot"]')].filter(Boolean), k: 1, dx: 0 };
+    const write = q('.sz-write');
+    const wrap = q('.sz-write__gridwrap');
+    const g = write ? Number(write.getAttribute('data-grid')) : 0;
+    if (ctx.mine && wrap && g > 0) {
+      const r = ctx.mine.getBoundingClientRect();
+      const w = wrap.getBoundingClientRect();
+      if (r.width > 0) {
+        ctx.k = g / r.width;
+        ctx.dx = (w.left + w.width / 2) - (r.left + r.width / 2);
+      }
+    }
+    if (top) top.setAttribute('data-phase-back', 'drag');
+    return ctx;
+  },
+  frame(ctx, view) {
+    const p = Math.min(1, Math.max(0, Number.isFinite(view.progress) ? view.progress : 0));
+    const snapping = view.phase === 'snap';
+    const els = ctx.mine ? [ctx.mine, ...ctx.fade] : ctx.fade;
+    for (const el of els) el.style.transition = snapping ? PHASE_SNAP_TRANSITION : 'none';
+    if (ctx.mine) {
+      ctx.mine.style.transformOrigin = '50% 0';
+      ctx.mine.style.zIndex = '1'; // 长大的上格盖在正在淡出的参考格上面
+      ctx.mine.style.transform = `translateX(${Math.round(ctx.dx * p * 100) / 100}px) scale(${Math.round((1 + (ctx.k - 1) * p) * 10000) / 10000})`;
+    }
+    for (const el of ctx.fade) el.style.opacity = String(Math.round((1 - p) * 1000) / 1000);
+  },
+  clear(top, ctx) {
+    const reset = () => {
+      if (top) top.removeAttribute('data-phase-back');
+      if (!ctx) return;
+      for (const el of [ctx.mine, ...ctx.fade]) {
+        if (!el) continue;
+        el.style.transition = '';
+        el.style.transform = '';
+        el.style.transformOrigin = '';
+        el.style.zIndex = '';
+        el.style.opacity = '';
+      }
+    };
+    setTimeout(reset, 0);
+  },
+});
+
 injectStyles('paper-transition', PAPER_CSS);
 injectStyles('root', `
 .sz-app{position:fixed;inset:0;overflow:hidden;background:${T.paper};color:${T.ink1};font-family:${T.hei};
@@ -181,18 +236,38 @@ function OverlayHost({ router, id, active }) {
   const o = router.getOverlay(id);
   if (!o) return null;
   const C = o.component;
-  return html`<${C} ...${o.props} overlayId=${id} active=${active} close=${() => router.closeOverlay(id)} />`;
+  return html`<${OverlayContext.Provider} value=${id}><${C} ...${o.props} overlayId=${id} active=${active} close=${() => router.closeOverlay(id)} /></${OverlayContext.Provider}>`;
 }
+
+// 每个 Tab 记住自己的滚动位置（R5-I2，交互规范 N6，审计 P1-09）：三个 Tab 共用一个滚动容器，切走时记下、切回时还原。
+const tabScroll = new Map(); // tab 名 → scrollTop
 
 function TabRoot({ entry }) {
   const def = getScreen(entry.n);
   const Comp = def ? def.component : null;
   const items = listTabs().map(t => ({ id: t.name, label: t.label, icon: t.icon, panelId: 'sz-tabpanel' }));
+  const panelRef = useRef(null);
+  const shownRef = useRef(entry.n);
+  useLayoutEffect(() => {
+    const el = panelRef.current;
+    shownRef.current = entry.n;
+    if (el) el.scrollTop = tabScroll.get(entry.n) || 0;
+  }, [entry.n]);
+  const onScroll = event => {
+    if (shownRef.current === entry.n) tabScroll.set(entry.n, event.currentTarget.scrollTop);
+  };
+  // 再点当前 Tab：滚回顶部（已在顶部时什么都不做；N6，审计 P2-18）
+  const onReselect = () => {
+    const el = panelRef.current;
+    if (!el || el.scrollTop <= 0) return;
+    if (typeof el.scrollTo === 'function') el.scrollTo({ top: 0, behavior: prefersReducedMotion(window) ? 'auto' : 'smooth' });
+    else el.scrollTop = 0;
+  };
   return html`<div class="sz-tabroot">
-    <div class="sz-tabroot__panel" role="tabpanel" id="sz-tabpanel" aria-labelledby=${`sz-tab-${entry.n}`}>
+    <div class="sz-tabroot__panel" role="tabpanel" id="sz-tabpanel" aria-labelledby=${`sz-tab-${entry.n}`} ref=${panelRef} onScroll=${onScroll}>
       ${Comp ? html`<${Comp} key=${entry.n} params=${entry.p} entry=${entry} />` : null}
     </div>
-    <${Tabs} items=${items} selected=${entry.n} onSelect=${name => nav.switchTab(name)} />
+    <${Tabs} items=${items} selected=${entry.n} onSelect=${name => nav.switchTab(name)} onReselect=${onReselect} />
   </div>`;
 }
 
@@ -221,7 +296,7 @@ function Layer({ router, group, isRoot, visible, isTop }) {
 
 function Root({ router, win }) {
   const [snap, setSnap] = useState(() => router.getState());
-  const [gestureOn, setGestureOn] = useState(false); // 跟手中（含回弹、提交后等转场）：底层页露出
+  const [gestureOn, setGestureOn] = useState(false); // 跟手中（含回弹、提交后等转场）：'page' 底层页露出；'phase' 页内回退（不露出）
   const [, force] = useState(0);
   const block = useBlockReason(getStore); // M5-6
   const appRef = useRef(null);
@@ -247,7 +322,10 @@ function Root({ router, win }) {
       t.from && gestureRef.current.els && gestureRef.current.els.topId === t.from.id);
     // 减少动态效果下由手势完成的返回：不跟手，松手直接淡化 GESTURE_FADE_MS（R4-G1）。
     const reducedGesture = !!(t.kind === 'pop' && ctrl && !gv && prefersReducedMotion(win) && ctrl.takeReducedCommit());
-    if ((t.animate || fromGesture || reducedGesture) && (t.kind === 'push' || t.kind === 'pop') && t.from && t.to) {
+    if (t.kind === 'replace' && t.animate && t.from && t.to) {
+      // 同一层换内容（「再写一组」、撤销跳过回到那个字）：一段 T-phase 淡化，旧页留在下面直到新页淡入完（R5-I2，P1-03 / P2-19）
+      animRef.current.current = { seq: t.seq, kind: 'replace', paper: null, mode: 'phase', from: t.from, to: t.to, startS: null, startX: 0, underX: 0, width: 0 };
+    } else if ((t.animate || fromGesture || reducedGesture) && (t.kind === 'push' || t.kind === 'pop') && t.from && t.to) {
       const start = fromGesture ? BACK_TRANSITION.handoff(gv) : { startX: 0, underX: 0, width: 0 };
       // 写字页进出（W2）：B1 / B3 / 减少动态效果的 150ms 淡化；null = 沿用横推（其它页面）。
       const paper = planPaper(t, { reduced: prefersReducedMotion(win), root: appRef.current });
@@ -323,6 +401,32 @@ function Root({ router, win }) {
         timer2 = setTimeout(done, spec.ms + PAPER_STALL_GUARD); // 兜底：后台标签页 rAF 被暂停时也要收尾（逐帧最多前进 50ms，主线程卡顿时可能比 spec.ms 长）
         return;
       }
+    }
+    if (a.kind === 'replace') {
+      const layer = pick(a.to.id);
+      const anm = layer && typeof layer.animate === 'function'
+        ? layer.animate([{ opacity: 0 }, { opacity: 1 }], { duration: REPLACE_FADE_MS, easing: M.ease.linear, fill: 'both' })
+        : null;
+      let over = false;
+      let tm = null;
+      const end = () => {
+        if (over) return;
+        over = true;
+        clearTimeout(tm);
+        if (anm) {
+          try { anm.cancel(); } catch (error) { /* 已结束 */ }
+        }
+        a.cancel = null;
+        if (animRef.current.running === a) animRef.current.running = null;
+        if (animRef.current.current === a) {
+          animRef.current.current = null;
+          force(n => n + 1);
+        }
+      };
+      a.cancel = end;
+      if (anm) anm.onfinish = end;
+      tm = setTimeout(end, REPLACE_FADE_MS + REPLACE_FADE_MS); // 兜底：onfinish 没来（后台标签页）也收尾
+      return;
     }
     const fade = a.mode === 'fade';
     const moving = a.kind === 'push' ? pick(a.to.id) : pick(a.from.id);
@@ -421,19 +525,25 @@ function Root({ router, win }) {
     if (target && typeof target.focus === 'function') target.focus({ preventScroll: true });
   }, [snap.transition]);
 
-  // Esc：关最上层遮罩（键盘可达；页面返回用页头返回键）。
+  // Esc 与读屏两指 Z 形（R5-I2，交互规范 N3 读屏 / A2，审计 P0-16 / P2-17）：等于点左上——有弹层先关最上层弹层（执行弹层登记的取消，
+  // Confirm 的 onCancel、清空确认的「先不清空」……没登记时 router.back），没有弹层就执行顶层页面左上元素的动作（与左缘右滑同一个函数，
+  // 判断阶段即「‹ 接着写」）。tab 根、阻断页、转场进行中不做（Swift 侧门控为 false 时返回 false，系统给出「不能退出」的提示音）。
   useEffect(() => {
+    const escapeBack = () => {
+      if (blockedRef.current) return false;
+      const st = router.getState();
+      if (st.topIsOverlay) {
+        const o = st.stack[st.stack.length - 1];
+        return runBackAction(o.id, () => router.back());
+      }
+      if (pageDepth(st) === 0 || st.pending || animRef.current.current || !st.top) return false;
+      return runBackAction(st.top.id, () => router.back());
+    };
     const onKey = event => {
       if (event.key !== 'Escape' || event.defaultPrevented) return;
-      if (!router.getState().topIsOverlay) return;
-      event.preventDefault();
-      router.back();
+      if (escapeBack()) event.preventDefault();
     };
-    // 读屏两指 Z 形（A2-05）：原生 accessibilityPerformEscape 派发 shizi-native-escape，同样只关最上层遮罩。
-    const onNativeEscape = () => {
-      if (!router.getState().topIsOverlay) return;
-      router.back();
-    };
+    const onNativeEscape = () => { escapeBack(); };
     win.addEventListener('keydown', onKey);
     win.addEventListener(NATIVE_ESCAPE_EVENT, onNativeEscape);
     return () => {
@@ -450,6 +560,10 @@ function Root({ router, win }) {
       const els = g.els;
       g.els = null;
       if (!els) return;
+      if (els.phase) {
+        PHASE_BACK.clear(els.top, els.phase);
+        return;
+      }
       BACK_TRANSITION.clear(els.top, els);
       BACK_TRANSITION.clear(els.under, els);
     };
@@ -466,6 +580,18 @@ function Root({ router, win }) {
         setGestureOn(false);
         return;
       }
+      if (!g.els && view.kind === 'phase') {
+        // 页内回退（判断阶段「‹ 接着写」）：只画顶层页自己的 T-phase 倒放，不露出下层页
+        const pages = router.getState().stack.filter(e => e.k === 's');
+        const topE = pages[pages.length - 1];
+        const top = topE ? pickLayer(topE.id) : null;
+        g.els = { topId: topE ? topE.id : null, top, under: null, phase: PHASE_BACK.begin(top) };
+        setGestureOn('phase');
+      }
+      if (g.els && g.els.phase) {
+        PHASE_BACK.frame(g.els.phase, view);
+        return;
+      }
       if (!g.els) {
         const pages = router.getState().stack.filter(e => e.k === 's');
         const topE = pages[pages.length - 1];
@@ -477,7 +603,7 @@ function Root({ router, win }) {
           plan: planPaperDrag(topE, underE, appRef.current), // 写字页（及来源在首页的结果页）：把进度画成「纸」（W2），其它页面横推
         };
         BACK_TRANSITION.begin(g.els.top, g.els.under, g.els);
-        setGestureOn(true);
+        setGestureOn('page');
       }
       BACK_TRANSITION.frame(g.els.top, g.els.under, view, g.els);
     };
@@ -486,12 +612,19 @@ function Root({ router, win }) {
       return top ? top.id : null;
     };
     const nativeBack = () => router.back({ cause: 'native' });
+    const topOverlayId = () => {
+      const st = router.getState().stack;
+      const last = st[st.length - 1];
+      return last && last.k === 'o' ? last.id : null;
+    };
     const ctrl = createBackGestureController({
       getState: () => router.getState(),
       // 完成：与点顶层页面页头左上键同一个动作（ui/back-action.js）；没登记的页面退回 router.back。
       back: () => runBackAction(topPageId(), nativeBack),
-      closeOverlay: nativeBack,
+      // 弹层开着：执行弹层自己登记的取消（与点遮罩 / 点取消同一个函数，P2-17），没登记时 router.back。
+      closeOverlay: () => runBackAction(topOverlayId(), nativeBack),
       allowed: () => backActionAllowed(topPageId()),
+      kind: () => getBackKind(topPageId()), // 出页 / 页内回退（判断阶段「‹ 接着写」，N3-3）
       width: () => win.innerWidth || 1,
       reducedMotion: () => prefersReducedMotion(win),
       blocked: () => blockedRef.current,
@@ -532,15 +665,18 @@ function Root({ router, win }) {
   if (anim && anim.kind === 'pop' && !groups.some(g => g.screen.id === anim.from.id)) {
     groups.push({ screen: anim.from, overlays: [], leaving: true });
   }
+  if (anim && anim.kind === 'replace' && groups.length >= 2 && !groups.some(g => g.screen.id === anim.from.id)) {
+    groups.splice(groups.length - 1, 0, { screen: anim.from, overlays: [], leaving: true }); // 被换掉的页留在新页下面，淡化完再卸
+  }
   const topId = snap.top ? snap.top.id : null;
   const visible = new Set([topId]);
   if (anim) {
     visible.add(anim.from.id);
     visible.add(anim.to.id);
   }
-  const dragging = !anim && gestureOn && groups.length >= 2;
+  const dragging = !anim && gestureOn === 'page' && groups.length >= 2;
   if (dragging) visible.add(groups[groups.length - 2].screen.id);
-  const navAnim = anim ? `${anim.kind}-${anim.mode}` : dragging ? 'drag' : 'idle';
+  const navAnim = anim ? `${anim.kind}-${anim.mode}` : dragging ? 'drag' : gestureOn === 'phase' ? 'drag-phase' : 'idle';
   // 网页兜底手势的起手带（R4-G1）：浏览器 / PWA 里能返回时才画；原生壳内由原生识别器负责。
   const webEdge = !nativeShellRef.current && edgeOkRef.current;
 
@@ -555,6 +691,7 @@ function Root({ router, win }) {
       isTop=${g.screen.id === topId}
     />`)}
     ${webEdge && !anim ? html`<${EdgeStrip} />` : null}
+    ${anim ? null : html`<${LeaveUndoHost} snap=${snap} onUndone=${slot => nav.push('write', { slot })} />`}
     <${CorruptNotice} getStore=${getStore} />
     <${ToastHost} />
   </div>`;

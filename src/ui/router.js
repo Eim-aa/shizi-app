@@ -24,7 +24,11 @@ export const STATE_VERSION = 1;
 // 原生壳事件（01-架构设计 §7、§8.1）。M0-4 期间兼容的别名 'shizi-native-progress' 已在 M5-3 删除（Swift 只派发下面两个）。
 export const NATIVE_BACK_EVENT = 'shizi-native-back';
 export const NATIVE_PROGRESS_EVENT = 'shizi-native-back-progress';
-/** 读屏「两指 Z 形」退出手势（A2-05）：Swift 的 WebViewController.accessibilityPerformEscape 派发；页面关闭最上层弹层（没有弹层时什么都不做）。 */
+/**
+ * 读屏「两指 Z 形」退出手势（A2-05）：Swift 的 WebViewController.accessibilityPerformEscape 派发。
+ * R5-I2（交互规范 N3 读屏、P0-16）：有弹层先关最上层弹层，没有弹层就执行顶层页面左上元素的动作（与左缘右滑同一个函数）；
+ * Swift 只在门控为 true（有子页或有弹层）时派发并返回 true。
+ */
 export const NATIVE_ESCAPE_EVENT = 'shizi-native-escape';
 
 
@@ -403,8 +407,9 @@ export function createRouter(options) {
       });
     },
 
-    // 就地换掉顶层页面（不新增条目、无转场），例如写字页最后一字直接换成结果页。
-    replace(name, params = {}) {
+    // 就地换掉顶层页面（不新增条目），例如写字页最后一字直接换成结果页。默认无转场；opts.animate = true 时根组件画一段
+    // T-phase 淡化（同一张纸换内容：结果页「再写一组」、撤销跳过回到那个字，R5-I2 审计 P1-03 / P2-19）。
+    replace(name, params = {}, opts = {}) {
       const def = getScreen(name);
       if (!def || def.tab) throw new Error(`router.replace: "${name}" is not a registered sub screen`);
       run(() => {
@@ -414,7 +419,7 @@ export function createRouter(options) {
         stack = [...stack.slice(0, -1), entry];
         history.replaceState(makeState(stack, depth), '');
         navSeq += 1;
-        setTransition('replace', { animate: false, cause: 'ui', from, to: entry });
+        setTransition('replace', { animate: !!(opts && opts.animate), cause: 'ui', from, to: entry });
         emit();
       });
     },
@@ -571,7 +576,7 @@ export function createRouter(options) {
 // ---------------------------------------------------------------------------
 // 原生左缘返回手势门控（01 §7）：tab 根页与阻断页不可返回 → backGestureEnabled(false)；有子页 → true。
 // D58 / 审计 P1-06（N4 门控）：顶层是弹层时永远可用（只关弹层），不看下面那一页能否返回、也不看是否在 Tab 根。
-// R4-G1（P270）：顶层页面的页头左上不是返回 / 关闭键（判断页「接着写」）时也是 false（ui/back-action.js 登记 null）；
+// 页面登记 null 只剩 L0 / 阻断页（判断阶段「‹ 接着写」登记的是页内回退函数，不再关手势）；
 // 写字页不再整页关掉手势（原 M0-7 / ownsBackGesture：书写格四周有 20pt 页边，边缘起手不会落在格子里）。
 // 写字页以外仍可用 ownsBackGesture 自己管门控（目前没有页面用）；bridge.setBackGestureEnabled 只在值变化时发。
 
@@ -599,7 +604,7 @@ export function createBackGestureSync({ send, screenOf = getScreen }) {
   let lastKey;
   return {
     update(snap, blocked = false, actionAllowed = true) {
-      const key = blocked ? 'blocked' : `${pageDepth(snap)}|${actionAllowed !== false}|${!!(snap && snap.topIsOverlay)}`;
+      const key = blocked ? 'blocked' : `${pageDepth(snap)}|${backGestureAllowed(snap, false, actionAllowed)}`;
       if (key === lastKey) return false;
       lastKey = key;
       if (!blocked) {
@@ -625,11 +630,13 @@ export function createBackGestureSync({ send, screenOf = getScreen }) {
 //
 // - began：遮罩栈非空（顶层是遮罩）→ 跟手位移顶层弹层（页面不动，Tab 根上同样可用，N4 / P1-06）；松手按同一阈值关掉它或回弹
 //          （原先是按下即关、不跟手、不能取消）；
-//          否则有子页且顶层页面能返回（页头左上是返回 / 关闭键）→ 冻结底层页（露出、不可点），开始跟随；
+//          否则有子页且顶层页面能返回（登记了左上元素的动作）→ 开始跟随：出页（kind 'page'）冻结底层页（露出、不可点）；
+//          页内回退（kind 'phase'，判断阶段「‹ 接着写」）不露出底层页，进度画成该页 T-phase 倒放（root.js PHASE_BACK）；
 //          tab 根 / 阻断 / 顶层不能返回 / 转场或导航进行中 → 不理会。
 // - changed：进度 = 位移 / 宽，跟手（顶层右移、底层视差，样式由转场定义决定）；可中途反向。
 // - ended：速度 > BACK_COMMIT_VELOCITY，或（位移 > BACK_COMMIT_RATIO × 宽 且 速度 > BACK_RETURN_VELOCITY，即没有明显往回拉）
 //          → 完成：执行顶层页面的返回动作（与点页头左上键同一个函数，ui/back-action.js），转场从当前位置接着走；否则回弹。
+//          页内回退没有出栈转场：完成即执行动作并收起跟手画面（之后的过渡由页内阶段切换 phase-fade 接手）。
 // - cancelled：回弹。
 // - 减少动态效果：不跟随（页面不动），ended 仍按阈值完成，完成后的返回转场是 GESTURE_FADE_MS 的交叉淡化（root.js）。
 // - Swift 在 ended 越过同一阈值时紧接着派发 shizi-native-back：本次手势已处理，由 absorbNativeBack() 吞掉。
@@ -673,18 +680,20 @@ export function gestureLayerX(x, width) {
  * @param {() => object} deps.getState         路由快照（router.getState）
  * @param {() => any} deps.back                完成返回：执行顶层页面的返回动作（根组件：页头左上键的动作，没登记时 router.back）
  * @param {() => any} [deps.closeOverlay]      关顶层遮罩（缺省同 back）
- * @param {() => boolean} [deps.allowed]       顶层页面能不能滑动返回（页头左上是返回 / 关闭键）
+ * @param {() => boolean} [deps.allowed]       顶层页面能不能滑动返回（登记了左上元素的动作）
+ * @param {() => 'page'|'phase'} [deps.kind]  顶层页面的返回是出页还是页内回退（ui/back-action.js getBackKind）
  * @param {() => number} [deps.width]          视口宽（CSS px）
  * @param {() => boolean} [deps.reducedMotion]
  * @param {() => boolean} [deps.blocked]       阻断页（R-B09）
  * @param {() => boolean} [deps.busy]          页面转场进行中
- * @param {(view: null | {phase:'follow'|'snap'|'commit', progress:number, x:number, under:number, width:number}) => void} [deps.onView]
+ * @param {(view: null | {phase:'follow'|'snap'|'commit', kind:'page'|'phase', progress:number, x:number, under:number, width:number}) => void} [deps.onView]
  */
 export function createBackGestureController(deps) {
   const getState = deps.getState;
   const back = deps.back;
   const closeOverlay = deps.closeOverlay || back;
   const allowed = deps.allowed || (() => true);
+  const kindOf = deps.kind || (() => 'page');
   const widthOf = deps.width || (() => 1);
   const reducedMotion = deps.reducedMotion || (() => false);
   const blocked = deps.blocked || (() => false);
@@ -712,7 +721,8 @@ export function createBackGestureController(deps) {
 
   function frame(phase, x, width) {
     const { top, under } = gestureLayerX(x, width);
-    return { phase, progress: Math.round((top / width) * 10000) / 10000, x: top, under, width };
+    const kind = session && session.kind === 'phase' ? 'phase' : 'page';
+    return { phase, kind, progress: Math.round((top / width) * 10000) / 10000, x: top, under, width };
   }
 
   /** 弹层跟手的一帧（overlay: true，root 按它位移最上层弹层而不是页面）。 */
@@ -754,7 +764,7 @@ export function createBackGestureController(deps) {
       return session.mode;
     }
     const follow = !reducedMotion();
-    session = { mode: 'page', follow, width, x, velocity: 0, ended: false };
+    session = { mode: 'page', kind: kindOf() === 'phase' ? 'phase' : 'page', follow, width, x, velocity: 0, ended: false };
     if (follow) show(frame('follow', x, width));
     else if (view) show(null);
     return session.mode;
@@ -818,6 +828,13 @@ export function createBackGestureController(deps) {
     if (!commit) {
       snapBack();
       return false;
+    }
+    if (session.kind === 'phase') {
+      // 页内回退（N3-3）：页面不出栈，没有返回转场来接手——先执行左上动作（页面在下一次渲染里换阶段，phase-fade 从此刻的画面淡过去），再收起跟手画面。
+      stopTimer();
+      back();
+      if (view) show(null);
+      return true;
     }
     if (session.follow) {
       show(frame('commit', session.x, session.width));
@@ -958,7 +975,7 @@ function need() {
 
 export const nav = {
   push: (name, params) => need().push(name, params),
-  replace: (name, params) => need().replace(name, params),
+  replace: (name, params, opts) => need().replace(name, params, opts),
   back: opts => need().back(opts),
   switchTab: name => need().switchTab(name),
   whenIdle: fn => need().whenIdle(fn),

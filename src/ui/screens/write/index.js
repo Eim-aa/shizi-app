@@ -15,9 +15,10 @@
 // 规则：
 // - 换字后 250ms 内落下的笔先持住、到点补开始 / 补画，不丢笔（01 §6.6 / 走查-V01；R2-X1 / P227：M3「250ms 起接受落笔、早到的缓存」，按事件 timeStamp）；进页面也算一次换字。
 // - 换字 / 换阶段算「新状态」：按钮 0.4s 不响应（components/Button.js markStateChange，走查-W08）。
-// - 左缘右滑返回（R4-G1，P270；取代 M0-7「写字页整页 backGestureEnabled=false」）：写字页与其它子页一样可以滑动返回，
-//   门控由根组件按栈与页头左上键统一发（判断阶段左上是「接着写」，这一阶段不能滑动返回）；完成时与点「‹」同一个动作（nav.back，
-//   笔画现场在抬笔 / 撤销 / 清空时已写回会话）。书写格四周有 20 页边，边缘起手不落在格子里；落笔中被手势打断时
+// - 左缘右滑返回（R4-G1，P270；取代 M0-7「写字页整页 backGestureEnabled=false」；R5-I2 / D58 ① / 交互规范 N3）：写字页每一个阶段都能滑动返回，
+//   完成时执行的就是左上元素的同一个函数——回忆 / 看答案 / 描一遍 / 自己写是「‹」出页（nav.back；笔画现场在抬笔 / 撤销 / 清空时已写回会话，
+//   跳过的撤销机会交给来源页，S4）；判断阶段是「‹ 接着写」页内回退（compare.back：回到刚才写字的状态，书写格与墨原样回来，
+//   跟手画面是判断 → 回忆的 T-phase 倒放，见 root.js PHASE_BACK）。书写格四周有 20 页边，边缘起手不落在格子里；落笔中被手势打断时
 //   ink-canvas.js 在 began 丢弃当前笔（与 pointercancel 同语义）。
 // - 笔画现场（M1-6 persist.js）：本地现场从 session.current.strokes 取初值（刷新后回到同一阶段，笔迹都在）；
 //   抬笔 / 撤销 / 清空后写回 sessions（失败不阻断，P52）；打开时做恢复幂等（已有 judged → 补推进，不再进 compare）。
@@ -59,7 +60,7 @@ import { Prompt } from './prompt.js';
 import { answerInkKey, useAnswerFlow } from './answer.js';
 import { useCompareFlow, useComparePhase } from './compare.js';
 import { useResultRow } from './result-row.js';
-import { useSkip } from './skip.js';
+import { handoffLeaveUndo, useSkip } from './skip.js';
 import { useAxLevel, useCompact, useFootHairline, useWriteLayout } from './compact.js';
 import { storedStrokes, usePersist } from './persist.js';
 import { useEndGroup } from './end.js';
@@ -431,9 +432,16 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
     cmpPhase.enter(view.strokes);
   };
 
+  // 「‹」出页（左缘右滑同一个函数）：跳过的撤销条还在时，把剩余的撤销机会交给来源页（交互规范 S4「撤销窗口跟人走」，审计 P1-11）。
+  const leave = () => {
+    const u = skip.undo;
+    handoffLeaveUndo(u && !u.failed && session && u.sessionId === session.id ? { ...u, slot } : null);
+    nav.back();
+  };
+
   // 撤销底栏挂在页面根上（G3）：最后一字跳过后是空页（M2-3 换成结果页），底栏照样在、可撤销回到那个字。
   if (!cardKey) {
-    return html`<${Page} title=${titleFor('recall')} testid="write-screen">
+    return html`<${Page} title=${titleFor('recall')} onBack=${leave} testid="write-screen">
       <div data-testid="write-empty"></div>
       ${skip.bar}
     </${Page}>`;
@@ -480,9 +488,9 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
   const trailing = compare.active
     ? html`<span class="sz-write__headtools">${progress}</span>`
     : centerProgress ? html`<span class="sz-write__headtools">${endNode}${skipNode}</span>` : html`<span class="sz-write__headtools">${progress}${endNode}</span>`;
-  return html`<${Page} title=${titleFor(phase)} hideTitle=${phase === 'recall' || (phase === 'compare' && ax > 0)} lead=${compare.lead}
+  return html`<${Page} title=${titleFor(phase)} hideTitle=${phase === 'recall' || (phase === 'compare' && ax > 0)} onBack=${leave} lead=${compare.lead} onLead=${compare.back}
     center=${centerProgress ? progress : null} trailing=${trailing} footer=${answer.footer || (compare.active ? compare.footer : footer)} testid="write-screen">
-    <div class="sz-write" ref=${writeRef} data-cursor=${session.cursor} data-phase=${phase} data-slot=${slot}
+    <div class="sz-write" ref=${writeRef} data-cursor=${session.cursor} data-phase=${phase} data-slot=${slot} data-grid=${gridSize}
       data-compact=${compact ? 'true' : 'false'} data-tight=${footCompact ? 'true' : null} data-ax=${ax > 0 ? String(ax) : null} style=${{ paddingTop: `${groupTop}px` }}>
       <${StepDots} phase=${phase} />
       <${Prompt} cardKey=${cardKey} queue=${session.queue} phase=${phase} />

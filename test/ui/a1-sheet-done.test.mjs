@@ -44,10 +44,12 @@ test('字库菜单、字详情放大弹层不再另画底部「关闭」，分�
   assert.doesNotMatch(img, /sz-img__done/);
 });
 
-test('Esc 与原生读屏 Z 形手势（shizi-native-escape）都只关最上层遮罩', () => {
+test('Esc 与原生读屏 Z 形手势（shizi-native-escape）= 点左上：有弹层先关最上层弹层（R5-I2 / P0-16 起没有弹层时执行页面左上动作）', () => {
   const router = read('src/ui/router.js');
   assert.match(router, /export const NATIVE_ESCAPE_EVENT = 'shizi-native-escape'/);
   const root = read('src/ui/root.js');
   assert.match(root, /win\.addEventListener\(NATIVE_ESCAPE_EVENT, onNativeEscape\)/);
-  assert.match(root, /const onNativeEscape = \(\) => \{\s*if \(!router\.getState\(\)\.topIsOverlay\) return;\s*router\.back\(\);/);
+  assert.match(root, /if \(st\.topIsOverlay\) \{\s*const o = st\.stack\[st\.stack\.length - 1\];\s*return runBackAction\(o\.id, \(\) => router\.back\(\)\);/);
+  assert.match(root, /return runBackAction\(st\.top\.id, \(\) => router\.back\(\)\);/);
+  assert.match(read('src/ui/components/Sheet.js'), /useOverlayBack\(close\)/, '弹层登记自己的 onClose');
 });

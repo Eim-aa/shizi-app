@@ -548,7 +548,8 @@ export function useComparePhase({ slot, session, cardKey, storedPhase, strokeCou
  * @param {'stack'|'side'} [o.layout='stack']  上下排 / 并排（AX 档，pair.layout）
  * @param {boolean} [o.paper=false]  在纸上写的这一字（P1-E8）：只有参考字形、放到书写格大小（paperSize），判断记 source:'paper'
  * @param {number} [o.paperSize]  纸上判断页参考字形的边长（= 书写格边长）
- * @returns {{active, stage, footer, lead}}  stage = 上下两格（替代书写格）；footer = 两键 + 留空的文字行（进页底栏，替代写字页底栏）
+ * @returns {{active, stage, footer, lead, back}}  stage = 上下两格（替代书写格）；footer = 两键 + 留空的文字行（进页底栏，替代写字页底栏）；
+ *   back = 左上「‹ 接着写」的动作（写字页交给 Page 的 onLead，左缘右滑执行同一个函数，N3-4）
  */
 export function useCompareFlow({ slot, session, cardKey, char, phase, strokes, hints = 0, strokeData, onLeave, size = 234, layout = 'stack', paper = false, paperSize }) {
   const active = !!cardKey && phase === 'compare';
@@ -604,7 +605,7 @@ export function useCompareFlow({ slot, session, cardKey, char, phase, strokes, h
     markStateChange(); // 失败态是新状态：按钮 0.4s 不响应（走查-W08）
   };
 
-  if (!active) return { active: false, stage: null, footer: null, lead: null };
+  if (!active) return { active: false, stage: null, footer: null, lead: null, back: null };
 
   // D46 ⑪、D49：对照区只有上下两格（AX 档可能并排），占书写格的位置；两键进页底栏（与写字页「写好了」同一行位置）。
   const stage = html`<div class="sz-cmpstage">
@@ -614,6 +615,8 @@ export function useCompareFlow({ slot, session, cardKey, char, phase, strokes, h
   </div>`;
   const footer = html`<${JudgeFooter} failed=${!!failNow} onJudge=${judge} ready=${ready} guard=${!reducedNow}
       onRetry=${() => failNow && judge(failNow.judgment)} onCancelFail=${() => { setFail(null); markStateChange(); }} />`;
-  const lead = html`<${ContinueButton} onClick=${() => { setFail(null); if (onLeave) onLeave(); }} />`;
-  return { active: true, stage, footer, lead };
+  // 「‹ 接着写」= 回到刚才写字的状态（书写格与墨原样回来）；左缘右滑同义、同一个函数（交互规范 N3-4，D58 ①）。
+  const back = () => { setFail(null); if (onLeave) onLeave(); };
+  const lead = html`<${ContinueButton} onClick=${back} />`;
+  return { active: true, stage, footer, lead, back };
 }

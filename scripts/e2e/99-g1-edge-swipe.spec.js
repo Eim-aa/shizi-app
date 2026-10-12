@@ -4,9 +4,9 @@
 //   2. 写字页：从左缘、书写格的高度起手横穿书写格 → 返回首页、不产生笔画；书写格内起手照常写一笔、不返回；
 //   3. 短拖慢放 → 回弹，页面状态不变（栈、笔画、图层样式复原）；中途拖回 → 回弹；
 //   4. 起手带上轻点 → 点击转给下面的「‹」（不吞点击）；竖向拖动不触发返回；
-//   5. 判断阶段（左上是「接着写」）不能滑动返回；tab 根没有起手带；
+//   5. 判断阶段（左上是「‹ 接着写」）滑动 = 点「‹」：回到写字状态、页面不出栈（R5-I2 / D58 ①，推翻 P270 的门控）；tab 根没有起手带；
 //   6. 减少动态效果：拖动中页面不动，松手淡化 150ms 返回；
-//   7. 原生壳（假原生通道）：不画起手带（原生识别器是唯一所有者），写字页门控 backGestureEnabled = true、判断阶段 false。
+//   7. 原生壳（假原生通道）：不画起手带（原生识别器是唯一所有者），写字页门控 backGestureEnabled = true、判断阶段仍是 true。
 // 控制台零错误由 run.mjs 统一断言。
 
 import {
@@ -186,22 +186,33 @@ export default async function edgeSwipe(page, ctx) {
   assert.equal(w.strokes, 1, 'stroke kept');
   assert.deepEqual((await state(page)).inline, [], 'layers restored');
 
-  step('compare phase (top-left is 「接着写」, no 「‹」): no edge strip, swipe does nothing');
+  step('compare phase (top-left is 「‹ 接着写」): the edge swipe does what 「‹」 does — back to writing, page stays (R5-I2 / D58 ①)');
   await page.click(topSel('write-done'));
   await page.waitForSelector(topSel('write-judge-wrong'));
   await waitNavIdle(page);
   s = await state(page);
-  assert.equal(s.strip, false, 'no strip in the compare phase');
-  await swipe(cdp, page, { x1: far, y: gy });
-  await page.waitForTimeout(400);
-  assert.equal((await state(page)).screen, 'write', 'stays on the write page');
+  assert.equal(s.strip, true, 'edge strip present in the compare phase');
+  for (const [where, y] of Object.entries(HEIGHTS)) {
+    if (where !== 'top') {
+      await page.click(topSel('write-done'));
+      await page.waitForSelector(topSel('write-judge-wrong'));
+      await waitNavIdle(page);
+    }
+    await swipe(cdp, page, { x1: far, y });
+    await page.waitForTimeout(300);
+    await waitNavIdle(page);
+    w = await writeSnapshot(page);
+    assert.equal(w.screen, 'write', `compare/${where}: stays on the write page`);
+    assert.equal(await page.evaluate(() => document.querySelector('.sz-layer[data-top="true"] .sz-write').dataset.phase), 'recall', `compare/${where}: back to writing`);
+    assert.equal(w.strokes, 1, `compare/${where}: the stroke is still there`);
+  }
   await page.evaluate(async () => {
     const { nav } = await import('/src/ui/router.js');
     nav.back();
   });
   await waitNavIdle(page);
 
-  step('result page (top-left 「×」): swipe does what 「×」 does — back to home, sliding out from the finger (no jump)');
+  step('result page (top-left 「×」): swipe does what 「×」 does — back to home from the finger position (no jump)');
   await seedSession(page, { slot: 'A', kind: 'daily', chars: ['永'], cursor: 0 });
   await openWrite(page, { slot: 'A' });
   await drawStroke(page, HORIZONTAL);
@@ -221,7 +232,7 @@ export default async function edgeSwipe(page, ctx) {
   s = await state(page);
   assert.equal(s.screen, 'home', 'result → home');
   const anims = await page.evaluate(() => window.__anims);
-  assert.ok(anims.includes('drag') && anims.includes('pop-slide'), `followed, then slid out (${anims.join(' → ')})`);
+  assert.ok(anims.includes('drag') && anims.includes('pop-quiet'), `followed, then left the same way the write page came in (B3, R5-I2 P1-02) (${anims.join(' → ')})`);
   st = await page.evaluate(() => window.__shiziTest.getState().sessions);
   assert.equal(st.lastEnded.A, undefined, 'same as 「×」: the finished group is cleared from lastEnded');
 
@@ -247,7 +258,7 @@ export default async function edgeSwipe(page, ctx) {
   assert.deepEqual(fade.durations, [150], 'fade lasts 150ms (P270)');
   await page.emulateMedia({ reducedMotion: 'no-preference' });
 
-  step('native shell (stub): no web edge strip; the write page enables the native gesture, the compare phase disables it');
+  step('native shell (stub): no web edge strip; the write page enables the native gesture, the compare phase keeps it on');
   const p2 = await page.context().newPage();
   await installNativeStub(p2);
   await bootTestHost(p2, ctx.baseURL);
@@ -261,6 +272,6 @@ export default async function edgeSwipe(page, ctx) {
   await p2.waitForSelector(topSel('write-judge-wrong'));
   await waitNavIdle(p2);
   gate = (await nativeMessages(p2, 'backGestureEnabled')).map(m => m.value);
-  assert.deepEqual(gate, [false, true, false], 'compare phase (「接着写」) → false');
+  assert.deepEqual(gate, [false, true], 'compare phase (「‹ 接着写」) keeps the gesture on (R5-I2 / D58 ①)');
   await p2.close();
 }

@@ -15,7 +15,7 @@ import WebKit
 //           shiziAccessibilityStatus（P116：读屏 / 切换控制状态，pageReady 与状态变化时）、
 //           shiziContentSize（P130 / D29：系统字号档位与正文倍率，pageReady 与系统字号变化时；P1-E6b：文档开始时另有
 //           WKUserScript 注入 window.__shiziInitialContentSize，冷启动首帧即目标字号）；
-//           事件 shizi-native-back / shizi-native-back-progress / shizi-native-escape（读屏两指 Z 形，A2-05：关最上层弹层）。
+//           事件 shizi-native-back / shizi-native-back-progress / shizi-native-escape（读屏两指 Z 形，A2-05 / R5-I2：等于点左上，有弹层先关弹层）。
 // 面向用户的文字一律在 Web 侧（src/config/copy/）：原生不弹 alert、不 reload（导入桥只交付文本或拒绝原因）。
 
 /// 左缘返回的阈值与起手区（R4-G1 / P270 / P272）。提交条件必须与 src/ui/router.js 的 BACK_COMMIT_RATIO / BACK_COMMIT_VELOCITY /
@@ -65,7 +65,8 @@ final class WebViewController: UIViewController {
     /// 「页边起手」识别器收下的那根手指按下时的 x（pt）。平移识别器的 translation 从越过起步距离（约 10pt）才开始算，不能用「当前点 − 位移」反推起手点。
     private var marginTouchStartX: CGFloat?
     // 01 §7：页面通过 postMessage({type:'backGestureEnabled', value}) 告知能否开始边缘返回
-    // （tab 根页、阻断页、判断阶段为 false；R4-G1 起写字页回忆 / 看答案 / 描红阶段为 true）。每次新文档提交时复位为 true，由新页面重新告知。
+    // （tab 根页、阻断页为 false；有子页或顶层是弹层为 true——R5-I2 / D58 ① 起写字页每个阶段含判断阶段都是 true）。每次新文档提交时复位为 true，由新页面重新告知。
+    // 读屏两指 Z 形（accessibilityPerformEscape）用同一个值判断能不能返回。
     var backGestureEnabled = true
     private var reminderSyncGeneration = 0
     // 01 §8.2：pageReady 由页面在 bridge.markReady 之后 postMessage 触发（不是 didFinish）；新文档提交时复位。
@@ -237,8 +238,11 @@ final class WebViewController: UIViewController {
 
     // MARK: - 读屏退出手势（A2-05）
 
-    /// VoiceOver 两指 Z 形：页面里关最上层弹层（没有弹层时页面什么都不做）。原生不判断页面状态，只派发 shizi-native-escape。
+    /// VoiceOver 两指 Z 形 = 点左上（R5-I2，交互规范 N3 读屏，审计 P0-16）：有弹层先关最上层弹层，没有弹层就执行顶层页面左上元素的动作
+    /// （与左缘右滑同一个函数，页面 root.js 处理 shizi-native-escape）。能不能做与左缘返回同一个门控 backGestureEnabled
+    /// （有子页或有弹层为 true；tab 根、阻断页为 false）：不能时返回 false，系统给出「不能退出」的反馈，不再假装处理了。
     override func accessibilityPerformEscape() -> Bool {
+        guard backGestureEnabled else { return false }
         dispatchAccessibilityEscape()
         return true
     }

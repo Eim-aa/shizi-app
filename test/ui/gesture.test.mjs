@@ -121,12 +121,12 @@ test('gestureLayerX: top follows the finger, under slides from -30% width to 0 (
 test('began / changed follow the finger; ended below the threshold snaps back, then clears', () => {
   const g = setup();
   g.ev('began', 10);
-  assert.deepEqual(g.ctrl.getView(), { phase: 'follow', progress: 0.025, x: 10, under: -117, width: W });
+  assert.deepEqual(g.ctrl.getView(), { phase: 'follow', kind: 'page', progress: 0.025, x: 10, under: -117, width: W });
   g.ev('changed', 80, 120);
-  assert.deepEqual(g.ctrl.getView(), { phase: 'follow', progress: 0.2, x: 80, under: -96, width: W });
+  assert.deepEqual(g.ctrl.getView(), { phase: 'follow', kind: 'page', progress: 0.2, x: 80, under: -96, width: W });
   g.ev('ended', 90, 300);
   assert.equal(g.backs(), 0, 'no back below threshold');
-  assert.deepEqual(g.ctrl.getView(), { phase: 'snap', progress: 0, x: 0, under: -120, width: W }, 'snap back to 0 / -30%');
+  assert.deepEqual(g.ctrl.getView(), { phase: 'snap', kind: 'page', progress: 0, x: 0, under: -120, width: W }, 'snap back to 0 / -30%');
   assert.deepEqual(g.timers.pending(), [GESTURE_SNAP_MS + 75], 'snap + motion.duration.xs of slack');
   g.timers.runAll();
   assert.equal(g.ctrl.getView(), null, 'view cleared after the snap transition');
@@ -139,12 +139,12 @@ test('ended past the distance threshold commits back once and holds the position
   g.ev('changed', 150);
   g.ev('ended', 250, 100);
   assert.equal(g.backs(), 1, 'back committed');
-  assert.deepEqual(g.ctrl.getView(), { phase: 'commit', progress: 0.625, x: 250, under: -45, width: W }, 'page stays where the finger left it');
+  assert.deepEqual(g.ctrl.getView(), { phase: 'commit', kind: 'page', progress: 0.625, x: 250, under: -45, width: W }, 'page stays where the finger left it');
   assert.deepEqual(g.timers.pending(), [GESTURE_COMMIT_TIMEOUT_MS], 'fallback timer armed');
   assert.equal(g.ctrl.absorbNativeBack(), true, 'the shizi-native-back that follows is absorbed');
   assert.equal(g.ctrl.absorbNativeBack(), false, 'only once per gesture');
   const handed = g.ctrl.handoff();
-  assert.deepEqual(handed, { phase: 'commit', progress: 0.625, x: 250, under: -45, width: W }, 'transition takes over from the same position');
+  assert.deepEqual(handed, { phase: 'commit', kind: 'page', progress: 0.625, x: 250, under: -45, width: W }, 'transition takes over from the same position');
   assert.equal(g.ctrl.getView(), null);
   assert.deepEqual(g.timers.pending(), [], 'fallback timer cleared by the handoff');
   assert.equal(g.ctrl.handoff(), null, 'nothing to hand off twice');
@@ -269,7 +269,7 @@ test('changed without began starts a gesture (began lost); ended/cancelled witho
   assert.equal(g.views.length, 0);
   assert.equal(g.ctrl.absorbNativeBack(), false, 'no gesture seen → native back goes through');
   g.ev('changed', 120);
-  assert.deepEqual(g.ctrl.getView(), { phase: 'follow', progress: 0.3, x: 120, under: -84, width: W });
+  assert.deepEqual(g.ctrl.getView(), { phase: 'follow', kind: 'page', progress: 0.3, x: 120, under: -84, width: W });
 });
 
 test('absorb window: a native back long after ended is not absorbed', () => {
@@ -444,7 +444,7 @@ test('R4-G1 progress API: setBackProgress follows, endBack decides by the same t
   const g = setup();
   assert.equal(g.ctrl.beginBack(), 'page');
   assert.equal(g.ctrl.setBackProgress(0.5, 100), true);
-  assert.deepEqual(g.ctrl.getView(), { phase: 'follow', progress: 0.5, x: 200, under: -60, width: W }, 'progress drives the frame');
+  assert.deepEqual(g.ctrl.getView(), { phase: 'follow', kind: 'page', progress: 0.5, x: 200, under: -60, width: W }, 'progress drives the frame');
   assert.equal(g.ctrl.setBackProgress(0.1, -300), true, 'finger moves back left');
   assert.equal(g.ctrl.getView().x, 40, 'the page follows backwards');
   assert.equal(g.ctrl.endBack(), false, 'released at 10% after pulling back: springs back');

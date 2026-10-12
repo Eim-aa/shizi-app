@@ -108,6 +108,9 @@
     "X-BACKUP.exportStay": "P290 三段式（S1）：「先不导出」= 不再点「导出备份文件」"
   },
   "nonRuntimeDecisions": {
+    "P295": "跳过的撤销窗口跟人走（R5-I2，交互规范 S4）：交接与宿主组件 src/ui/screens/write/skip.js handoffLeaveUndo / LeaveUndoHost、root.js 挂载；不是运行时开关",
+    "P296": "判断阶段左缘右滑的跟手画面（R5-I2，规范 N3-3）：src/ui/root.js PHASE_BACK 与 back-action.js 的种类 phase；不是运行时开关",
+    "P297": "结果页出口、再写一组的一段转场、Tab 滚动位置（R5-I2）：src/ui/screens/result/index.js leaveTo、paper-transition.js、root.js REPLACE_FADE_MS / TabRoot；不是运行时开关",
     "P224": "界面日期写法统一与中文标点（阶段 1 H1，D51 收口；设计说明第 8 条）：文案写法（src/config/copy/* 各 {month}月{day}日 槽）与 text-spacing-trim 样式（src/ui/components/Page.js、home/index.js）、清单行间隔号随前一段（library/list-model.js listRowMetaParts）；不是运行时开关",
     "P222": "Toast 不盖主操作、首次打开主按钮第一帧可见（阶段 1 H1，D51 收口）：放置规则与品牌时刻的动画范围，src/ui/components/Toast.js toastBottom 与 src/ui/screens/home/index.js；不是运行时开关",
     "P186": "AX1–AX5 字阶按层级分别取值（已决定 D49）：样式取值，src/config/tokens.css 的 :root[data-ax=\"N\"] 块与 tokens.json typography.dynamicType.ax，test/ax-type.test.mjs 核对；不是运行时开关",

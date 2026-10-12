@@ -81,5 +81,6 @@ test('the write screen no longer owns (disables) the back gesture; Page register
   assert.doesNotMatch(write, /ownsBackGesture:\s*true/, 'write screen does not declare ownsBackGesture');
   assert.doesNotMatch(write, /setBackGestureEnabled\(/, 'write screen does not send backGestureEnabled itself');
   const page = readFileSync(join(ROOT, 'src/ui/components/Page.js'), 'utf8');
-  assert.match(page, /useBackAction\(customLead \|\| leading === 'none' \? null : goBack\)/, 'Page registers the same goBack as its header button');
+  // R5-I2（N3-2）：自定义左上（判断页「‹ 接着写」）也登记它的动作（种类 phase），不再登记 null
+  assert.match(page, /const backAction = pageBackAction\(\{ leading, goBack, lead: customLead, onLead \}\);\n  useBackAction\(backAction\.fn, backAction\.kind\);/, 'Page registers the same action as its header element');
 });

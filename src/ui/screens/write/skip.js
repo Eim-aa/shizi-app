@@ -381,3 +381,95 @@ export function useSkip({ slot, session, cardKey, phase, hints = 0, strokes = nu
     dismiss,
   };
 }
+
+// ---------------------------------------------------------------- 撤销窗口跟人走（R5-I2，交互规范 S4，审计 P1-11）
+//
+// 跳过后 5 秒的撤销条还在时离开写字页（点「‹」或左缘右滑——同一个函数），剩余的撤销机会交给来源页：写字页在返回之前 handoffLeaveUndo，
+// 根组件的 LeaveUndoHost 在来源页上接着显示同一条撤销条（剩余时长照旧，按住暂停、读屏不自动收起）。点「撤销」= 同一个 commitUndoSkip，
+// 成功后回到那个字（根组件推入写字页）；失败三段式留在撤销条上。来源页再导航到别处（顶层页面换了）或撤销条到点，机会结束。
+
+let leaveUndo = null; // {slot, sessionId, recordId, char, strokes, until, failed, anchor}
+const leaveListeners = new Set();
+
+function emitLeaveUndo() {
+  for (const fn of [...leaveListeners]) fn(leaveUndo);
+}
+
+/** 写字页离开前调用：把还没用掉的撤销机会交出去（null = 没有）。 */
+export function handoffLeaveUndo(undo) {
+  leaveUndo = undo && !undo.failed ? { ...undo, anchor: null } : null;
+  emitLeaveUndo();
+}
+
+/** 结束交出去的撤销机会。 */
+export function clearLeaveUndo() {
+  leaveUndo = null;
+  emitLeaveUndo();
+}
+
+/**
+ * 根组件挂的宿主：来源页上的撤销条。交接后第一次看到的（不是写字页的）顶层页面就是它的归属；顶层换了就结束。
+ * @param {{snap: object, onUndone: (slot:string) => void}} props
+ */
+export function LeaveUndoHost({ snap, onUndone }) {
+  const [u, setU] = useState(leaveUndo);
+  useEffect(() => {
+    leaveListeners.add(setU);
+    setU(leaveUndo);
+    return () => leaveListeners.delete(setU);
+  }, []);
+  const topId = snap && snap.top ? snap.top.id : null;
+  const topName = snap && snap.top ? snap.top.n : null;
+  const settled = !!snap && !snap.pending && topName !== 'write';
+  useEffect(() => {
+    if (!leaveUndo || !settled) return;
+    if (leaveUndo.anchor === null) {
+      leaveUndo = { ...leaveUndo, anchor: topId };
+      emitLeaveUndo();
+    } else if (leaveUndo.anchor !== topId) {
+      clearLeaveUndo();
+    }
+  }, [topId, settled, u]);
+  if (!u || !settled || (u.anchor !== null && u.anchor !== topId)) return null;
+  const undo = () => {
+    const cur = leaveUndo;
+    if (!cur) return;
+    const store = storeOrNull();
+    const result = store
+      ? commitUndoSkip(store, { slot: cur.slot, sessionId: cur.sessionId, recordId: cur.recordId, strokes: cur.strokes })
+      : { ok: false, error: { kind: 'unavailable' } };
+    if (result.ok) {
+      clearLeaveUndo();
+      if (onUndone) onUndone(cur.slot);
+      return;
+    }
+    if (result.error && result.error.kind === 'stale') {
+      clearLeaveUndo();
+      return;
+    }
+    leaveUndo = { ...cur, failed: true };
+    emitLeaveUndo();
+    markStateChange();
+  };
+  // 来源页的底边（撤销条不盖主按钮，S4）：页上有主按钮时停在最下面那个主按钮上方 8；否则 tab 根在 tab 栏上方 8、子页在底栏上方 8。
+  let ubb = null;
+  if (typeof document !== 'undefined' && topId) {
+    const layer = document.querySelector(`.sz-layer[data-entry="${topId}"]`);
+    const vh = typeof window !== 'undefined' ? window.innerHeight : 0;
+    let top = Infinity;
+    if (layer) {
+      for (const b of layer.querySelectorAll('.sz-btn--primary')) {
+        const r = b.getBoundingClientRect();
+        if (r.height > 0 && r.top < vh && r.bottom > vh / 2) top = Math.min(top, r.top);
+      }
+    }
+    const bar = layer ? layer.querySelector('.sz-tabs') || layer.querySelector('.sz-page__foot') : null;
+    if (Number.isFinite(top)) ubb = Math.round(vh - top + 8);
+    else if (bar) ubb = bar.offsetHeight + 8;
+  }
+  return html`<div class="sz-leaveundo" data-testid="leave-skip-undo" style=${ubb === null ? '' : `--ubb:${ubb}px`}>
+    <${SkipUndoDock} char=${u.char} failed=${!!u.failed} onUndo=${undo} until=${u.until}
+      onExpire=${() => { if (leaveUndo && !leaveUndo.failed) clearLeaveUndo(); }}
+      onCancelFail=${() => { clearLeaveUndo(); markStateChange(); }} />
+  </div>`;
+}

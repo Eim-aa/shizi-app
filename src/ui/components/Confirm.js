@@ -8,6 +8,7 @@
 import { html, useRef } from '../../../vendor/ui.js';
 import { Button } from './Button.js';
 import { useDialogFocus } from './Sheet.js';
+import { useOverlayBack } from '../back-action.js';
 import { injectStyles, T } from './styles.js';
 import { M } from '../../config/motion.js';
 
@@ -53,6 +54,7 @@ export function Confirm({ title, body, cancelLabel, confirmLabel, onCancel, onCo
   }
   useDialogFocus(panelRef, active);
   const cancel = () => (onCancel ? onCancel() : close && close());
+  useOverlayBack(cancel); // Esc / 两指 Z 形 / 左缘右滑关这个确认框时走同一个「取消类」（P2-17）
   const ids = idsRef.current;
   return html`<div class="sz-overlay" data-overlay="confirm">
     <div class="sz-scrim" aria-hidden="true" onClick=${cancel}></div>

@@ -1,7 +1,7 @@
 // 由 scripts/build_shell_manifest.mjs 生成，勿手改。sw.js 以 importScripts('./sw-manifest.js') 读取（01 §8.3）。
 // 升级的唯一入口：本文件或 sw.js 的字节变化 → 浏览器装新 worker。build 与 src/build-info.js、index.html meta 同源。
 self.SHIZI_SW_MANIFEST = {
-  build: "20261012-c407830f62f4",
+  build: "20261012-e7b86af66498",
   // 核心壳：Cache.addAll 原子预缓存，任何一项失败 = 安装失败
   shell: [
     "core-strokes.js?v=0c49190f86d3",
@@ -36,6 +36,7 @@ self.SHIZI_SW_MANIFEST = {
     "src/config/credits.js",
     "src/config/deck-meta.js",
     "src/config/epigraphs.js",
+    "src/config/motion.js",
     "src/config/policy.js",
     "src/config/tokens.css",
     "src/core/backup.js",
@@ -93,6 +94,7 @@ self.SHIZI_SW_MANIFEST = {
     "src/ui/components/Button.js",
     "src/ui/components/Chevron.js",
     "src/ui/components/Confirm.js",
+    "src/ui/components/FailBlock.js",
     "src/ui/components/Page.js",
     "src/ui/components/PracticeGlyph.js",
     "src/ui/components/Sheet.js",
@@ -102,6 +104,7 @@ self.SHIZI_SW_MANIFEST = {
     "src/ui/components/Words.js",
     "src/ui/components/ax.js",
     "src/ui/components/corrupt-notice.js",
+    "src/ui/components/exit.js",
     "src/ui/components/icons.js",
     "src/ui/components/image-preview.js",
     "src/ui/components/marks.js",
@@ -122,6 +125,7 @@ self.SHIZI_SW_MANIFEST = {
     "src/ui/edge-swipe.js",
     "src/ui/images-annual.js",
     "src/ui/images-entry.js",
+    "src/ui/overlay-gesture.js",
     "src/ui/paper-transition.js",
     "src/ui/root.js",
     "src/ui/route-memory.js",

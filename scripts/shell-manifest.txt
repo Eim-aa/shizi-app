@@ -7281,6 +7281,7 @@ src/config/copy/write.js
 src/config/credits.js
 src/config/deck-meta.js
 src/config/epigraphs.js
+src/config/motion.js
 src/config/policy.js
 src/config/tokens.css
 src/core/backup.js
@@ -7338,6 +7339,7 @@ src/ui/canvas/native-ink.js
 src/ui/components/Button.js
 src/ui/components/Chevron.js
 src/ui/components/Confirm.js
+src/ui/components/FailBlock.js
 src/ui/components/Page.js
 src/ui/components/PracticeGlyph.js
 src/ui/components/Sheet.js
@@ -7347,6 +7349,7 @@ src/ui/components/UndoBar.js
 src/ui/components/Words.js
 src/ui/components/ax.js
 src/ui/components/corrupt-notice.js
+src/ui/components/exit.js
 src/ui/components/icons.js
 src/ui/components/image-preview.js
 src/ui/components/marks.js
@@ -7367,6 +7370,7 @@ src/ui/dev/pointer-stats.js
 src/ui/edge-swipe.js
 src/ui/images-annual.js
 src/ui/images-entry.js
+src/ui/overlay-gesture.js
 src/ui/paper-transition.js
 src/ui/root.js
 src/ui/route-memory.js

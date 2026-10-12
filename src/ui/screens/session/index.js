@@ -128,7 +128,7 @@ export function startPicked(chars, { source } = {}) {
     onStarted: result => {
       openWrite('B');
       if (result.notice && result.notice.kind === 'oldGroupSaved') {
-        showToast(format(t('R-H05.oldGroupSavedToast'), { m: result.notice.judgedCount }));
+        showToast(format(t('R-H05.oldGroupSavedToast'), { m: result.notice.judgedCount }), { kind: 'legacy', audit: 'P0-10' }); // 交互合规待修 P0-10（I3 删除这条成功提示）
       }
     },
   });

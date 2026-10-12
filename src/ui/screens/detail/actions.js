@@ -22,6 +22,7 @@
 
 import { html } from '../../../../vendor/ui.js';
 import { Button } from '../../components/Button.js';
+import { FailBlock as SharedFailBlock } from '../../components/FailBlock.js';
 import { Chevron } from '../../components/Chevron.js';
 import { HIT_EXT, injectStyles, T } from '../../components/styles.js';
 import { t, tInk } from '../../../config/copy/index.js';
@@ -48,8 +49,6 @@ button.sz-drow:focus-visible{outline:2px solid ${T.ink1};outline-offset:2px}
 .sz-drow__sub--small{font-size:${T.fs13};color:${T.ink3}}
 .sz-drow__value{flex:none;font-size:${T.fs15};color:${T.ink3}}
 .sz-dfail{display:flex;flex-direction:column;gap:${T.s3};padding:${T.s3} 0;border-bottom:1px solid ${T.line}}
-.sz-dfail__note{margin:0;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2}}
-.sz-dfail__btns{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
 .sz-dbanner{position:sticky;top:calc(-1 * ${T.s4});z-index:3;margin:calc(-1 * ${T.s4}) calc(-1 * ${T.gutter}) 0;min-height:44px;box-sizing:border-box;padding:0 ${T.gutter};
   display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;border-bottom:1px solid ${T.line};background:${T.paper};
   font-size:${T.fs15};color:${T.ink2}}
@@ -123,13 +122,10 @@ function Row({ testid, title, sub = null, value = null, arrow = false, off = fal
   return html`<div class=${cls} data-testid=${testid} ...${extra}>${inner}</div>`;
 }
 
+/** 详情页里的三段式（S1）：全 App 同一个组件（components/FailBlock.js），这里只套上详情页的行间距。 */
 export function FailBlock({ testid, note, onCancel, onRetry }) {
-  return html`<div class="sz-dfail" data-testid=${testid}>
-    <p class="sz-dfail__note" aria-live="polite">${note}</p>
-    <div class="sz-dfail__btns">
-      <${Button} variant="secondary" data-testid=${`${testid}-cancel`} onClick=${onCancel}>${t('X-DETAIL.cancel')}</${Button}>
-      <${Button} variant="primary" data-testid=${`${testid}-retry`} onClick=${onRetry}>${t('X-DETAIL.retry')}</${Button}>
-    </div>
+  return html`<div class="sz-dfail">
+    ${SharedFailBlock({ testid: testid, text: note, cancelLabel: t('X-DETAIL.cancel'), retryLabel: t('X-DETAIL.retry'), onCancel: onCancel, onRetry: onRetry })}
   </div>`;
 }
 
@@ -170,8 +166,7 @@ export function DetailRows({ model, onList = null, onImage = null, onLegacy, onS
   if (model.canSwapWord) {
     rows.push(html`<${Row} key="swap" testid="detail-swap" title=${t('R-D05.swapWord')} arrow=${true} onClick=${onSwap} />`);
     if (swapFailed) {
-      rows.push(html`<${FailBlock} key="swapfail" testid="detail-swap-fail" note=${t('X-DETAIL.saveFailed')} onCancel=${onSwapCancel}
-        onRetry=${onSwap} />`);
+      rows.push(html`${FailBlock({ key: 'swapfail', testid: 'detail-swap-fail', note: t('X-DETAIL.saveFailed'), onCancel: onSwapCancel, onRetry: onSwap })}`);
     }
   }
   if (model.custom) {

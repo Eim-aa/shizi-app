@@ -32,17 +32,21 @@ export function onShareFailed(fn) {
   return () => listeners.delete(fn);
 }
 
-/** 原生 shiziShareFailed({kind, reason}) 的实现：通知订阅者，再发一条轻提示。返回 true（已接收）。 */
+/**
+ * 原生 shiziShareFailed({kind, reason}) 的实现：通知订阅者；有订阅者在屏上就地给了三段式（返回 true：图片预览、备份页还开着）就到此为止，
+ * 否则（失败的地方已经不在屏上，F3 ①）发一条失败提示条。返回 true（已接收）。
+ */
 export function receiveShareFailed(info) {
   const kind = info && typeof info.kind === 'string' ? info.kind : '';
+  let shown = false;
   for (const fn of [...listeners]) {
     try {
-      fn(kind, info || null);
+      if (fn(kind, info || null) === true) shown = true;
     } catch (error) {
       console.warn('[shizi] shareFailed listener failed:', error);
     }
   }
-  showToast(shareFailedText(kind));
+  if (!shown) showToast(shareFailedText(kind), { kind: 'failure' });
   return true;
 }
 

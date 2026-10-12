@@ -103,7 +103,9 @@
   "exportWordAllow": {
     "X-BACKUP.intro": "P55 原型 ShiziScreen L166 bkCanExp 段逐字「先导出一份备份文件」；指的是按钮「导出备份文件」这一动作",
     "X-PERSIST.saveFailed": "P66 旧 index.html L1067 通用句逐字；03 P66 已登记「建议改写」，待文案",
-    "X-PERSIST.quotaFailed": "P66 旧 index.html L1067 配额句逐字；03 P66 已登记「建议改写」，待文案"
+    "X-PERSIST.quotaFailed": "P66 旧 index.html L1067 配额句逐字；03 P66 已登记「建议改写」，待文案",
+    "X-BACKUP.exportFailed": "P290 三段式（S1）：失败说明指的是按钮「导出备份文件」这一动作",
+    "X-BACKUP.exportStay": "P290 三段式（S1）：「先不导出」= 不再点「导出备份文件」"
   },
   "nonRuntimeDecisions": {
     "P224": "界面日期写法统一与中文标点（阶段 1 H1，D51 收口；设计说明第 8 条）：文案写法（src/config/copy/* 各 {month}月{day}日 槽）与 text-spacing-trim 样式（src/ui/components/Page.js、home/index.js）、清单行间隔号随前一段（library/list-model.js listRowMetaParts）；不是运行时开关",
@@ -246,7 +248,11 @@
     "P281": "写字页页头（W2，D57，A7 附带）：回忆阶段进度居中、跳过 / 结束这组在右上；src/ui/screens/write/index.js 与 components/Page.js center 槽；不是运行时开关",
     "P282": "写字页进出动效 B1「按钮长成这张纸」（W2，D57）：进 420ms / 退 360ms，与左缘右滑同一个进度 s = 1 − p；参数在 policy.paperTransition，实现在 src/ui/paper-transition.js 与 src/ui/root.js BACK_TRANSITION；不是运行时开关",
     "P283": "没有来源按钮的写字页入口用 B3 安静淡入（W2，D57）：220ms / 180ms，0.96 起放大；参数在 policy.paperTransition.quiet*；不是运行时开关",
-    "P284": "写字页进出的减少动态效果（W2，D57）：一律 150ms 交叉淡化；参数 policy.paperTransition.reducedMs；不是运行时开关"
+    "P284": "写字页进出的减少动态效果（W2，D57）：一律 150ms 交叉淡化；参数 policy.paperTransition.reducedMs；不是运行时开关",
+    "P291": "动效令牌与门禁（卡 I1，D58）：tokens.json motion / gesture / timing / haptic、src/config/motion.js、tokens.css --dur-* / --ease-*、scripts/verify_tokens.mjs motion 规则、components/exit.js 退场与 Sheet.js 下滑关闭；不是运行时开关",
+    "P292": "触觉五档的原生参数（卡 I1，D58 ③）：WebViewController.swift playHaptic 与 src/platform/haptics.js，单测逐值核对 tokens.json haptic；不是运行时开关",
+    "P293": "提示条只许 failure / undo（卡 I1，D58）：src/ui/components/Toast.js showToast 的 kind 校验与 test/ui/toast-kinds.test.mjs 的静态扫描；不是运行时开关",
+    "P294": "交互合规 e2e 与待修清单（卡 I1，D58 ⑥）：scripts/e2e/102-interaction-compliance*.spec.js、scripts/e2e/interaction-pending.mjs、docs/design/新页面自检表.md；不是运行时开关"
   },
   "noCopy": [
     "R-H07",
@@ -3150,6 +3156,13 @@
           "origin": "03 P55；02 M5-6 迁移变体",
           "decision": "P55",
           "note": "过渡文案，待产品定稿；R-B09 三槽照用，这句只在迁移失败变体里出现"
+        },
+        "blockStill": {
+          "raw": null,
+          "text": "还是存不了。可以过一会儿再试，或先空出一些存储空间。",
+          "origin": "extra",
+          "note": "阻断页「再试一次」之后仍不可用的说明（审计 P1-31：原先没有任何反馈）；P290 三段式失败组件（交互与动效规范 S1，D58；components/FailBlock.js）",
+          "decision": "P290"
         }
       }
     },
@@ -3437,6 +3450,13 @@
           "origin": "extra",
           "note": "「练这些字」开组写入失败（R-G04 三段式，留在清单页、勾选不变）；套用 X-HOME.startFailed / X-SESSION.s02SaveFailed 同句，待文案确认",
           "decision": "P76"
+        },
+        "startStay": {
+          "raw": null,
+          "text": "先不开始",
+          "origin": "extra",
+          "note": "开组写入失败三段式的「先不 X」（清单页、有记录的字页，审计 P1-32）：P290 三段式失败组件（交互与动效规范 S1，D58；components/FailBlock.js）",
+          "decision": "P290"
         }
       }
     },
@@ -4302,6 +4322,34 @@
           "text": "图片暂时无法生成，请稍后再试。",
           "origin": "extra",
           "note": "画布生成失败（极少见：canvas 不可用 / 落款放不下）；沿现有 iOS 壳 WebViewController.swift sharePracticeCard 的同句，原型没有这一态，待文案确认"
+        },
+        "saveFailed": {
+          "raw": null,
+          "text": "图片没存下来，可以再试一次。",
+          "origin": "extra",
+          "note": "保存图片（网页下载）失败三段式的说明句（按原因写，审计 P1-29）：P290 三段式失败组件（交互与动效规范 S1，D58；components/FailBlock.js）",
+          "decision": "P290"
+        },
+        "shareStay": {
+          "raw": null,
+          "text": "先不分享",
+          "origin": "extra",
+          "note": "分享失败三段式的「先不 X」：P290 三段式失败组件（交互与动效规范 S1，D58；components/FailBlock.js）",
+          "decision": "P290"
+        },
+        "rendering": {
+          "raw": null,
+          "text": "正在生成…",
+          "origin": "extra",
+          "note": "F4：图片生成超过 400ms（timing.loadingQuiet）时预览与「分享」按钮的进行时文案（审计 P1-33）；P290 三段式失败组件（交互与动效规范 S1，D58；components/FailBlock.js）",
+          "decision": "P290"
+        },
+        "saving": {
+          "raw": null,
+          "text": "正在保存…",
+          "origin": "extra",
+          "note": "F4：保存超过 400ms 时主按钮的进行时文案（审计 P1-33）；P290 三段式失败组件（交互与动效规范 S1，D58；components/FailBlock.js）",
+          "decision": "P290"
         }
       }
     },
@@ -4428,6 +4476,27 @@
           "origin": "extra",
           "note": "导出的备份文件名（用户在「文件」里认得出；页面下载 / Web Share / 原生分享同一名字，不带 UUID）；{ymd} = 本地日 YYYY-MM-DD",
           "decision": "P182"
+        },
+        "restoreStay": {
+          "raw": null,
+          "text": "先不恢复",
+          "origin": "extra",
+          "note": "恢复失败（保护副本没写进 / 恢复本身失败）三段式的「先不 X」：P290 三段式失败组件（交互与动效规范 S1，D58；components/FailBlock.js）",
+          "decision": "P290"
+        },
+        "exportFailed": {
+          "raw": null,
+          "text": "备份文件没导出来，你的记录都还在。",
+          "origin": "extra",
+          "note": "导出没成（网页分享与下载都不行、原生分享面板没打开）三段式的说明句：P290 三段式失败组件（交互与动效规范 S1，D58；components/FailBlock.js）",
+          "decision": "P290"
+        },
+        "exportStay": {
+          "raw": null,
+          "text": "先不导出",
+          "origin": "extra",
+          "note": "导出失败三段式的「先不 X」：P290 三段式失败组件（交互与动效规范 S1，D58；components/FailBlock.js）",
+          "decision": "P290"
         }
       }
     },

@@ -57,6 +57,7 @@ import { libraryName } from '../library/index.js';
 import * as policy from '../../../config/policy.js';
 import { t } from '../../../config/copy/index.js';
 import { showToast } from '../../components/Toast.js';
+import { FailBlock as SharedFailBlock } from '../../components/FailBlock.js';
 import { WRITE_MODES, writeModeOf } from '../../../core/paper.js';
 
 export const SETTINGS_SCREEN = 'settings';
@@ -270,9 +271,10 @@ button.sz-set__row:focus-visible{outline:2px solid ${T.ink1};outline-offset:2px}
 .sz-set__value{flex:none;display:flex;align-items:center;gap:${T.s2};font-size:${T.fs15};color:${T.ink3}}
 .sz-set__arrow{display:flex;color:${T.ink4}}
 .sz-set__switch{position:relative;flex:none;width:44px;height:26px;border-radius:${T.rCtl};background:${T.line};
-  box-shadow:inset 0 0 0 1px ${T.ink3};transition:background .15s}
+  box-shadow:inset 0 0 0 1px ${T.ink3};transition:background ${T.dFade} ${T.eLinear}}
 .sz-set__knob{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:${T.sheet};
-  transition:left .15s}
+  transition:left ${T.dFade} ${T.eOut}}
+@media (prefers-reduced-motion: reduce){.sz-set__switch,.sz-set__knob{transition-duration:${T.dReduce};transition-timing-function:${T.eLinear}}} /* 开关也响应减少动态效果（P2-12，motion.role.switchToggle） */
 [aria-checked="true"] .sz-set__switch{background:${T.ink1};box-shadow:none}
 [aria-checked="true"] .sz-set__knob{left:21px;background:${T.paper}}
 .sz-set__time{flex:none;min-height:44px;min-width:88px;box-sizing:border-box;padding:0 10px;border:0;border-radius:${T.rCtl};
@@ -282,8 +284,6 @@ button.sz-set__row:focus-visible{outline:2px solid ${T.ink1};outline-offset:2px}
 .sz-set__note{margin:0;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2};text-wrap:pretty}
 .sz-set__note .sz-btn--text{min-height:44px;padding:0;color:${T.ink1};font-size:${T.fs15}}
 .sz-set__fail{display:flex;flex-direction:column;gap:10px;padding:4px 0 0}
-.sz-set__fail-note{margin:0;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2}}
-.sz-set__fail-btns{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
 .sz-set__opts{display:flex;flex-direction:column;border-top:1px solid ${T.line}}
 .sz-set__opt{box-sizing:border-box;width:100%;min-height:52px;padding:8px 0;display:flex;align-items:center;justify-content:space-between;
   gap:12px;border-bottom:1px solid ${T.line};font-size:${T.fs17};text-align:left;color:${T.ink1}}
@@ -343,13 +343,10 @@ function TimeRow({ hour, minute, onTime }) {
 }
 
 /** 三段式（R-G04 / T01）：说明 + 先不保存 / 再试一次。 */
+/** 设置的保存失败（R-G04 / S1）：全 App 同一个三段式组件（components/FailBlock.js，审计 P1-28），这里只带上分组与字段。 */
 export function FailBlock({ testid = 'settings-fail', group = null, field = null, onCancel, onRetry }) {
-  return html`<div class="sz-set__fail" data-testid=${testid} data-group=${group || undefined} data-field=${field || undefined}>
-    <p class="sz-set__fail-note" role="status" aria-live="polite" data-testid=${`${testid}-note`}>${t('X-SETTINGS.saveFailed')}</p>
-    <div class="sz-set__fail-btns">
-      <${Button} variant="secondary" data-testid=${`${testid}-cancel`} onClick=${onCancel}>${t('X-SETTINGS.cancel')}</${Button}>
-      <${Button} variant="primary" data-testid=${`${testid}-retry`} onClick=${onRetry}>${t('X-SETTINGS.retry')}</${Button}>
-    </div>
+  return html`<div class="sz-set__fail">
+    ${SharedFailBlock({ testid: testid, text: t('X-SETTINGS.saveFailed'), cancelLabel: t('X-SETTINGS.cancel'), retryLabel: t('X-SETTINGS.retry'), attrs: { 'data-group': group || undefined, 'data-field': field || undefined }, onCancel: onCancel, onRetry: onRetry })}
   </div>`;
 }
 
@@ -367,7 +364,7 @@ function appearanceLabel(value) {
  */
 export function SettingsBody({ view, backup, fail = null, on }) {
   const failFor = group => (fail && fail.group === group
-    ? html`<${FailBlock} group=${fail.group} field=${fail.field} onCancel=${on.failCancel} onRetry=${on.failRetry} />`
+    ? html`${FailBlock({ group: fail.group, field: fail.field, onCancel: on.failCancel, onRetry: on.failRetry })}`
     : null);
   const remind = view.remind;
   const remindNote = view.denied
@@ -413,8 +410,7 @@ export function AppearanceSheetView({ current, failed = false, pending = null, o
         aria-checked=${value === current ? 'true' : 'false'} data-testid="settings-appearance-option" data-value=${value}
         onClick=${() => onPick(value)}><span>${appearanceLabel(value)}</span>${CHECK_ICON()}</${Button}>`)}
     </div>
-    ${failed ? html`<${FailBlock} testid="settings-appearance-fail" group="display" field=${`appearance:${pending}`}
-      onCancel=${onCancel} onRetry=${onRetry} />` : null}
+    ${failed ? html`${FailBlock({ testid: 'settings-appearance-fail', group: 'display', field: `appearance:${pending}`, onCancel: onCancel, onRetry: onRetry })}` : null}
   </${Sheet}>`;
 }
 
@@ -501,8 +497,7 @@ export function WriteModeSheetView({ current, failed = false, pending = null, on
         class="sz-set__sub">${t(WRITE_MODE_COPY[value].sub)}</span></span>${CHECK_ICON()}</${Button}>`)}
     </div>
     <p class="sz-set__mnote" data-testid="settings-writemode-note">${t('X-SETTINGS.writeModeNote')}</p>
-    ${failed ? html`<${FailBlock} testid="settings-writemode-fail" group="practice" field=${`writeMode:${pending}`}
-      onCancel=${onCancel} onRetry=${onRetry} />` : null}
+    ${failed ? html`${FailBlock({ testid: 'settings-writemode-fail', group: 'practice', field: `writeMode:${pending}`, onCancel: onCancel, onRetry: onRetry })}` : null}
   </${Sheet}>`;
 }
 
@@ -646,7 +641,7 @@ export function showTextSizeNoticeOnce({ getStore: storeOf = getStore, show = sh
     return false;
   }
   if (!store || !textSizeNoticeDue(store.getState().settings)) return false;
-  show(t('X-SETTINGS.textSizeNotice'), { duration: TEXT_SIZE_NOTICE_MS });
+  show(t('X-SETTINGS.textSizeNotice'), { kind: 'legacy', audit: 'P0-13', duration: TEXT_SIZE_NOTICE_MS }); // 交互合规待修 P0-13（I3 删除这条说明）
   try {
     commitTextSizeNoticeShown(store);
   } catch (error) {

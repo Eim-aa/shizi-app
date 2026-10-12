@@ -273,7 +273,7 @@ test('P132: v1 large=true → notice shown once, then large is removed from sett
   const shown = [];
   const show = (text, opts) => shown.push({ text, opts });
   assert.equal(showTextSizeNoticeOnce({ getStore: () => store, show }), true);
-  assert.deepEqual(shown, [{ text: t('X-SETTINGS.textSizeNotice'), opts: { duration: TEXT_SIZE_NOTICE_MS } }]);
+  assert.deepEqual(shown, [{ text: t('X-SETTINGS.textSizeNotice'), opts: { kind: 'legacy', audit: 'P0-13', duration: TEXT_SIZE_NOTICE_MS } }], 'a pending legacy toast (interaction audit P0-13, card I3 removes it)');
   assert.deepEqual(store.getState().settings, { library: 'adv3000', sound: false }, 'large removed = recorded as shown; other fields kept');
   assert.equal(showTextSizeNoticeOnce({ getStore: () => store, show }), false, 'second start: not shown again');
   assert.equal(shown.length, 1);

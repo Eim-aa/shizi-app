@@ -1,4 +1,8 @@
-// 轻提示：showToast(text) 显示一条，新的替换旧的，默认 3.2s 后消失（原型 note()：3200ms）。
+// 轻提示：showToast(text, {kind}) 显示一条，新的替换旧的，默认 timing.toast（3.2s）后消失（原型 note()：3200ms）。
+// 用途只有两种（交互与动效规范 F3，D55 ② / D58）：kind 'failure'（失败，且失败发生的地方已不在屏上）与 'undo'（可撤销）。
+// 成功、说明、引导一律不许用提示条：kind 缺省或不是这两种时 showToast 直接抛 TypeError（单测 test/ui/toast-kinds.test.mjs 静态扫描所有调用点）。
+// 'legacy' 只给审计清单里还没删的旧调用过渡用：必须带 audit（审计编号），且该编号在交互合规待修清单（scripts/e2e/interaction-pending.mjs）里，
+// 清单清空后这条分支一并删除。进出 T-fade（150ms 淡化；退场见 ui/components/exit.js，P1-07）。
 // 跨页面保留（换页后仍在显示；写字页返回首页不再出「已保存」条，R4-F1 / P262）。
 // <ToastHost/> 由 ui/root.js 挂一次；role=status + aria-live=polite（01-架构设计 §7）。
 // 位置（H1 / I2-04）：默认距底 110px；当前页的主按钮（.sz-btn--primary，或元素上声明 data-toast-anchor）压住这个位置时整条抬到它上沿之上 12，不再盖住主操作（toastBottom）。
@@ -6,8 +10,14 @@
 // --toast-bg 底 / --toast-fg 字、15px/22px、没有圆点；底边一条 2px 计时线（currentColor 35%，在显示时长内收尽；减少动态效果时不动画）。
 import { html, useEffect, useLayoutEffect, useRef, useState } from '../../../vendor/ui.js';
 import { injectStyles, T } from './styles.js';
+import { playExit } from './exit.js';
+import { M } from '../../config/motion.js';
 
-export const TOAST_MS = 3200;
+export const TOAST_MS = M.timing.toast;
+/** 提示条只许这两种用途（F3）。 */
+export const TOAST_KINDS = Object.freeze(['failure', 'undo']);
+/** 过渡：审计清单里还没删的成功 / 说明类提示（必须带审计编号，见文件头）。 */
+export const TOAST_LEGACY = 'legacy';
 /** Toast 与当前页主操作上沿的间距（I2-04：反馈不能遮挡主操作）。 */
 export const TOAST_ANCHOR_GAP = 12;
 /** 默认位置：距底 110 + 安全区（在 Tab 条上方），与样式一致。 */
@@ -42,9 +52,18 @@ function publish() {
   for (const fn of [...listeners]) fn(current);
 }
 
-export function showToast(text, { duration = TOAST_MS } = {}) {
+/** kind 校验（F3）：返回规范化的 kind；不合规抛 TypeError。 */
+export function checkToastKind(kind, audit) {
+  if (TOAST_KINDS.includes(kind)) return kind;
+  if (kind === TOAST_LEGACY && typeof audit === 'string' && /^P[0-2]-\d\d$/.test(audit)) return kind;
+  throw new TypeError(`showToast: kind must be ${TOAST_KINDS.map(k => `'${k}'`).join(' | ')} (F3: no toast for success or explanations), got ${JSON.stringify(kind)}`);
+}
+
+export function showToast(text, { kind, audit, duration } = {}) {
+  const k = checkToastKind(kind, audit);
+  const ms = Number.isFinite(duration) ? duration : k === 'undo' ? M.timing.toastWithAction : TOAST_MS;
   toastSeq += 1;
-  current = { id: toastSeq, text: String(text), duration };
+  current = { id: toastSeq, text: String(text), duration: ms, kind: k, audit: k === TOAST_LEGACY ? audit : undefined };
   if (timer) clearTimeout(timer);
   const id = toastSeq;
   timer = setTimeout(() => {
@@ -52,7 +71,7 @@ export function showToast(text, { duration = TOAST_MS } = {}) {
       current = null;
       publish();
     }
-  }, duration);
+  }, ms);
   publish();
   return id;
 }
@@ -64,26 +83,64 @@ export function hideToast() {
   publish();
 }
 
+// ---- 读屏播报区（S1 / F3 读屏补偿 / A2；审计 P1-27 / P1-39）：常驻、视觉隐藏的 aria-live=polite 区域，ToastHost 一并挂着。
+// 屏上看得见、但读屏感知不到的状态变化（三段式失败的说明句、就地出现的提示）经 announce(text) 读一次，不抢焦点、不出可见提示条。
+// 容器一直在、只换文字，iOS VoiceOver 才播得出来；同一句连着出现两次时交替追加零宽空格，让读屏再读一遍。
+let spoken = '';
+let spokenSeq = 0;
+const speakers = new Set();
+
+/** 经常驻播报区读一句（空串清空）。返回实际写进去的文字。 */
+export function announce(text) {
+  const s = String(text || '');
+  spokenSeq += 1;
+  spoken = s && spoken === s ? `${s}\u200b` : s;
+  for (const fn of [...speakers]) fn(spoken);
+  return spoken;
+}
+
+/** 测试：最近一次播报。 */
+export function lastAnnounced() {
+  return spoken.replace(/\u200b$/, '');
+}
+
 injectStyles('toast', `
+.sz-toast-wrap{display:contents}
 .sz-toast-host{position:absolute;left:${T.gutter};right:${T.gutter};bottom:calc(110px + env(safe-area-inset-bottom, 0px));z-index:40; /* 默认位置；放在主操作上方时由 ToastHost 抬高（toastBottom） */
   pointer-events:none;display:flex;justify-content:center}
 @keyframes sz-toast-timer{from{transform:scaleX(1)}to{transform:scaleX(0)}}
 .sz-toast{position:relative;overflow:hidden;box-sizing:border-box;width:100%;min-height:48px;display:flex;align-items:center;
-  padding:${T.s3} ${T.s4};border-radius:${T.rCtl};background:${T.toastBg};color:${T.toastFg};animation:sz-fade-in .2s ease-out both}
+  padding:${T.s3} ${T.s4};border-radius:${T.rCtl};background:${T.toastBg};color:${T.toastFg};animation:sz-fade-in ${T.dFade} ${T.eLinear} backwards}
+.sz-toast.sz-exit{position:absolute;left:0;right:0;bottom:0} /* 退场的余影叠在原位，不与新的一条并排 */
 .sz-toast__text{flex:1;font-size:${T.fs15};line-height:${T.lh15};color:inherit}
 .sz-toast__timer{position:absolute;left:0;right:0;bottom:0;height:2px;background:currentColor;opacity:.35;transform-origin:left center;
-  animation:sz-toast-timer linear both}
-@media (prefers-reduced-motion: reduce){.sz-toast{animation:none}.sz-toast__timer{animation:none}}
+  animation:sz-toast-timer ${T.eLinear} both}
+@media (prefers-reduced-motion: reduce){.sz-toast{animation:sz-fade-in ${T.dReduce} ${T.eLinear} backwards}.sz-toast__timer{animation:none}}
 `);
+
+function ToastItem({ toast }) {
+  const ref = useRef(null);
+  // 退场（T-fade，P1-07）：被替换或到时收起时，卸载前复制一份原位淡出
+  useLayoutEffect(() => () => playExit(ref.current, 'fade'), []);
+  return html`<div class="sz-toast" ref=${ref} data-testid="toast" data-kind=${toast.kind} data-audit=${toast.audit}>
+      <span class="sz-toast__text">${toast.text}</span>
+      <span class="sz-toast__timer" aria-hidden="true" data-testid="toast-timer" style=${{ animationDuration: `${toast.duration || TOAST_MS}ms` }}></span>
+    </div>`;
+}
 
 // 常驻的 live region：容器一直在，文字变化时读屏才会播报。
 export function ToastHost() {
   const [toast, setToast] = useState(current);
+  const [said, setSaid] = useState('');
   const hostRef = useRef(null);
   useEffect(() => {
     listeners.add(setToast);
     setToast(current);
-    return () => listeners.delete(setToast);
+    speakers.add(setSaid);
+    return () => {
+      listeners.delete(setToast);
+      speakers.delete(setSaid);
+    };
   }, []);
   // 反馈不能遮挡主操作（I2-04）：显示前量当前顶层页面里的主按钮（.sz-btn--primary / 声明了 data-toast-anchor 的元素），默认位置压住它就整条抬到它上沿之上 12
   useLayoutEffect(() => {
@@ -105,10 +162,10 @@ export function ToastHost() {
     const bottom = toastBottom({ appHeight: appRect.height, defaultBottom, toastHeight: box.height, anchors });
     if (bottom > defaultBottom + 0.5) host.style.bottom = `${Math.round(bottom)}px`;
   }, [toast && toast.id]);
-  return html`<div ref=${hostRef} class="sz-toast-host" role="status" aria-live="polite" aria-atomic="true" data-testid="toast-host">
-    ${toast ? html`<div class="sz-toast" key=${toast.id} data-testid="toast">
-      <span class="sz-toast__text">${toast.text}</span>
-      <span class="sz-toast__timer" aria-hidden="true" data-testid="toast-timer" style=${{ animationDuration: `${toast.duration || TOAST_MS}ms` }}></span>
-    </div>` : null}
+  return html`<div class="sz-toast-wrap">
+    <div ref=${hostRef} class="sz-toast-host" role="status" aria-live="polite" aria-atomic="true" data-testid="toast-host">
+      ${toast ? html`<${ToastItem} key=${toast.id} toast=${toast} />` : null}
+    </div>
+    <span class="sr-only" aria-live="polite" aria-atomic="true" data-testid="sr-announce">${said}</span>
   </div>`;
 }

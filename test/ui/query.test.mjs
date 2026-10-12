@@ -322,11 +322,10 @@ test('CardActions: add / already added / detail greyed without onDetail; add fai
   assert.equal(added['query-card-detail'][0].props.disabled, false);
   const noRec = byTestid(CardActions({ summary: { ...summary, count: 0 } }));
   assert.equal(noRec['query-card-detail'], undefined, 'no record → no 查看记录');
-  // 失败块是无 hook 的函数组件（FailBlock），展开后再查。
+  // 失败块（components/FailBlock.js，三段式 S1）是纯视图、直接展开在卡片里，按 testid 查。
   const expand = (node, testid) => {
-    let hit = null;
-    walk(node, n => { if (n.props && n.props.testid === testid) hit = n; });
-    return hit ? byTestid(hit.type(hit.props)) : null;
+    const ids = byTestid(node);
+    return ids[testid] ? ids : null;
   };
   let retried = 0;
   const failedNode = CardActions({ summary, addFailed: true, onAdd: () => { retried += 1; } });

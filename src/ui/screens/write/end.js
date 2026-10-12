@@ -25,6 +25,8 @@ import { Button } from '../../components/Button.js';
 import { useDialogFocus } from '../../components/Sheet.js';
 import '../../components/Confirm.js'; // .sz-overlay / .sz-confirm 样式
 import { showToast } from '../../components/Toast.js';
+import { haptic } from '../../../platform/haptics.js';
+import { FailBlock } from '../../components/FailBlock.js';
 import { HIT_EXT, injectStyles, T } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
 import { getStore } from '../../../store/store.js';
@@ -114,11 +116,9 @@ function storeOrNull() {
  */
 export function EndDialogContent({ n = 0, m = 0, failed = false, onEnd, onCancel }) {
   const body = failed ? t('R-W16.saveFailed') : t('R-W15.confirmBody', { n, m });
+  // 失败：弹层内容就地换成三段式（S1，components/FailBlock.js dialog：[先不保存 | 再试一次]；说明句就是上面的正文，常驻的 aria-live 段落换文字即播报）
   const actions = failed
-    ? html`<div class="sz-confirm__actions">
-        <${Button} variant="secondary" data-testid="write-end-fail-cancel" onClick=${onCancel}>${t('R-W16.cancel')}</${Button}>
-        <${Button} variant="primary" data-testid="write-end-retry" onClick=${() => onEnd && onEnd()}>${t('R-W16.retry')}</${Button}>
-      </div>`
+    ? html`${FailBlock({ layout: 'dialog', text: '', testid: 'write-end-fail', cancelTestid: 'write-end-fail-cancel', retryTestid: 'write-end-retry', onCancel: onCancel, onRetry: () => onEnd && onEnd() })}`
     : html`<div class="sz-confirm__actions">
         <${Button} variant="secondary" data-testid="write-end-confirm" onClick=${() => onEnd && onEnd()}>${t('R-W15.end')}</${Button}>
         <${Button} variant="primary" data-testid="write-end-continue" onClick=${onCancel}>${t('R-W15.continue')}</${Button}>
@@ -158,10 +158,11 @@ export function openEndConfirm({ slot, sessionId }) {
       done = true;
       nav.closeOverlay(id);
       if (result.judgedCount > 0) {
+        haptic('light'); // F1：结束这组确认、换成结果页（零判断回来源不发，那里已不是写字流程，P1-35）
         nav.replace(RESULT_SCREEN, { slot, sessionId });
       } else {
         nav.back();
-        showToast(t('R-W15.zeroToast'));
+        showToast(t('R-W15.zeroToast'), { kind: 'legacy', audit: 'P0-11' }); // 交互合规待修 P0-11（I3 删除这条提示）
       }
       return;
     }

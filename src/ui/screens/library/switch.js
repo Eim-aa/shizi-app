@@ -25,6 +25,7 @@ import { setNoneActions } from '../session/none.js';
 import { Page } from '../../components/Page.js';
 import { Button } from '../../components/Button.js';
 import { useDialogFocus } from '../../components/Sheet.js';
+import { FailBlock } from '../../components/FailBlock.js';
 import '../../components/Confirm.js'; // .sz-overlay / .sz-confirm 样式
 import { showToast } from '../../components/Toast.js';
 import { injectStyles, T } from '../../components/styles.js';
@@ -167,18 +168,18 @@ let dialogSeq = 0;
 export function LibraryConfirmView({ id, failed = false, onConfirm, close, panelRef = null, ids = { title: 'sz-libsw-title', body: 'sz-libsw-body' } }) {
   const cancel = () => close && close();
   const body = failed ? t('R-L06.saveFailed') : t('R-L06.confirmBody').join('\n');
+  // 失败：确认框内容就地换成三段式（S1，components/FailBlock.js dialog：[先不保存 | 再试一次]；说明是正文，常驻段落换文字即播报）
   const actions = failed
-    ? html`<${Button} variant="secondary" data-testid="libswitch-stay" onClick=${cancel}>${t('R-L06.cancel')}</${Button}>
-        <${Button} variant="primary" data-testid="libswitch-retry" onClick=${() => onConfirm && onConfirm()}>${t('R-L06.retry')}</${Button}>`
-    : html`<${Button} variant="secondary" data-testid="libswitch-cancel" onClick=${cancel}>${t('X-LIBSWITCH.confirmCancel')}</${Button}>
-        <${Button} variant="primary" data-testid="libswitch-ok" onClick=${() => onConfirm && onConfirm()}>${t('X-LIBSWITCH.confirmOk')}</${Button}>`;
+    ? html`${FailBlock({ layout: 'dialog', text: '', testid: 'libswitch-fail', cancelTestid: 'libswitch-stay', retryTestid: 'libswitch-retry', cancelLabel: t('R-L06.cancel'), retryLabel: t('R-L06.retry'), onCancel: cancel, onRetry: () => onConfirm && onConfirm() })}`
+    : html`<div class="sz-confirm__actions"><${Button} variant="secondary" data-testid="libswitch-cancel" onClick=${cancel}>${t('X-LIBSWITCH.confirmCancel')}</${Button}>
+        <${Button} variant="primary" data-testid="libswitch-ok" onClick=${() => onConfirm && onConfirm()}>${t('X-LIBSWITCH.confirmOk')}</${Button}></div>`;
   return html`<div class="sz-overlay" data-overlay="confirm">
     <div class="sz-scrim" aria-hidden="true" onClick=${cancel}></div>
     <div class="sz-confirm" role="alertdialog" aria-modal="true" tabindex="-1" ref=${panelRef} data-testid="libswitch-confirm"
       data-state=${failed ? 'failed' : 'ask'} data-lib=${id} aria-labelledby=${ids.title} aria-describedby=${ids.body}>
       <h2 class="sz-confirm__title" id=${ids.title} data-testid="libswitch-confirm-title">${t('X-LIBSWITCH.confirmTitle', { library: libraryName(id) })}</h2>
-      <p class="sz-confirm__body" id=${ids.body} data-testid="libswitch-confirm-body">${body}</p>
-      <div class="sz-confirm__actions">${actions}</div>
+      <p class="sz-confirm__body" id=${ids.body} data-testid="libswitch-confirm-body" aria-live="polite">${body}</p>
+      ${actions}
     </div>
   </div>`;
 }
@@ -217,7 +218,7 @@ export function openLibraryConfirm(id, { getStore: storeOf = getStore } = {}) {
       done = true;
       nav.closeOverlay(overlayId);
       nav.back();
-      showToast(t('X-LIBSWITCH.switchedToast', { library: libraryName(id) }));
+      showToast(t('X-LIBSWITCH.switchedToast', { library: libraryName(id) }), { kind: 'legacy', audit: 'P0-08' }); // 交互合规待修 P0-08（I3 删除这条成功提示）
       return;
     }
     nav.updateOverlay(overlayId, { failed: true });

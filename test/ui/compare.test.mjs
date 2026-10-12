@@ -360,7 +360,8 @@ test('JudgeFooter: only the two buttons (no 「你来判断…」 sentence, D49)
   const normal = JudgeFooter({ failed: false, onJudge: () => {} });
   assert.deepEqual(ids(normal), ['write-judge-foot'], 'no note sentence next to the two keys');
   const failed = JudgeFooter({ failed: true, onRetry: () => {}, onCancelFail: () => {} });
-  assert.deepEqual(ids(failed), ['write-judge-foot', 'write-judge-note', 'write-judge-fail-cancel', 'write-judge-fail-retry']);
+  // 三段式（S1，审计 P1-24）：与写字页其它失败同一写法——说明 → 求助行「先不保存」→ 主按钮「再试一次」
+  assert.deepEqual(ids(failed), ['write-judge-foot', 'write-judge-note', 'write-links', 'write-fail-slot', 'write-judge-fail-cancel', 'write-judge-fail-retry']);
   const bar = SkipUndoBar({ char: '春', onUndo: () => {} });
   assert.equal(bar.props['data-state'], 'shown');
   assert.equal(SkipUndoBar({ char: '春', failed: true, onUndo: () => {}, onCancelFail: () => {} }).props['data-state'], 'failed');

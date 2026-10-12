@@ -18,6 +18,7 @@ import { html, useRef } from '../../../../vendor/ui.js';
 import { nav } from '../../router.js';
 import { Button } from '../../components/Button.js';
 import { useDialogFocus } from '../../components/Sheet.js';
+import { FailBlock } from '../../components/FailBlock.js';
 import '../../components/Confirm.js'; // .sz-overlay / .sz-confirm 样式
 import { injectStyles, T } from '../../components/styles.js';
 import { format, t } from '../../../config/copy/index.js';
@@ -61,11 +62,9 @@ export function S02Dialog({ chars, failed = false, onContinue, onEndStart, close
   useDialogFocus(panelRef, active);
   const cancel = () => close && close();
   const body = failed ? t('X-SESSION.s02SaveFailed') : s02Body(chars);
+  // 失败：就地三段式（S1，components/FailBlock.js dialog）：说明是上面的正文（常驻段落换文字），[先不保存 | 再试一次] 横排、顺序与全 App 相同（审计 P1-25）
   const actions = failed
-    ? html`<div class="sz-s02__actions">
-        <${Button} variant="primary" data-testid="s02-retry" onClick=${onEndStart}>${t('X-SESSION.s02Retry')}</${Button}>
-        <${Button} variant="secondary" data-testid="s02-fail-cancel" onClick=${cancel}>${t('X-SESSION.s02Cancel')}</${Button}>
-      </div>`
+    ? html`${FailBlock({ layout: 'dialog', text: '', testid: 's02-fail', cancelTestid: 's02-fail-cancel', retryTestid: 's02-retry', cancelLabel: t('X-SESSION.s02Cancel'), retryLabel: t('X-SESSION.s02Retry'), onCancel: cancel, onRetry: onEndStart })}`
     : html`<div class="sz-s02__actions">
         <${Button} variant="primary" data-testid="s02-continue" onClick=${onContinue}>${t('R-H05.continueOld')}</${Button}>
         <${Button} variant="secondary" data-testid="s02-end-start" onClick=${onEndStart}>${t('R-H05.endOldStartNew')}</${Button}>
@@ -75,7 +74,7 @@ export function S02Dialog({ chars, failed = false, onContinue, onEndStart, close
     <div class="sz-scrim" aria-hidden="true" onClick=${cancel}></div>
     <div class="sz-confirm" role="alertdialog" aria-modal="true" tabindex="-1" ref=${panelRef} data-testid="s02-dialog"
       data-state=${failed ? 'failed' : 'ask'} aria-describedby=${idRef.current}>
-      <p class="sz-confirm__body" id=${idRef.current} data-testid="s02-body">${body}</p>
+      <p class="sz-confirm__body" id=${idRef.current} data-testid="s02-body" aria-live="polite">${body}</p>
       ${actions}
     </div>
   </div>`;

@@ -22,6 +22,7 @@ export default Object.freeze({
   'R-L06.entry': '更换字库 ›',
   'R-L06.countLine': '可以练 {n} 个字 · 有记录 {m} 个',
   'R-L06.confirmBody': ['以后的新字从这个字库里来。', '已有的记录、自选的字和写错过的字都不变。'],
+  'X-LIST.startStay': '先不开始',
   'R-L06.saveFailed': '没保存上，刚才的选择没记下。',
   'R-L06.retry': '再试一次',
   'R-L06.cancel': '先不换',

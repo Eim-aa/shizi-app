@@ -24,6 +24,8 @@
 import { html, useEffect, useLayoutEffect, useRef, useState } from '../../../../vendor/ui.js';
 import { Button, markStateChange } from '../../components/Button.js';
 import { injectStyles, T } from '../../components/styles.js';
+import { useAnnounce } from '../../components/FailBlock.js';
+import { playExit } from '../../components/exit.js';
 import '../../components/UndoBar.js'; // .sz-undobar 样式（撤销底栏同一视觉，R-G05）
 import { t } from '../../../config/copy/index.js';
 import * as defaultPolicy from '../../../config/policy.js';
@@ -38,7 +40,6 @@ import { allRecords, appendRecordToDraft } from './answer.js';
 export const SKIP_UNDO_MS = defaultPolicy.skipUndo.ms;
 
 injectStyles('write-skip', `
-.sz-skip__fail{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
 .sz-skipbar{flex-wrap:wrap}
 .sz-skipbar__btns{display:flex;gap:4px;flex:none}
 `);
@@ -264,6 +265,7 @@ export function SkipUndoDock({ until, onExpire, ...props }) {
   const expireRef = useRef(onExpire);
   expireRef.current = onExpire;
   const timed = typeof onExpire === 'function' && !props.failed;
+  useLayoutEffect(() => () => playExit(ref.current, 'fade'), []); // 退场：撤销条收起 / 离开时原位 150ms 淡出（T-fade，P1-07）
   useLayoutEffect(() => {
     const el = ref.current;
     const page = el && el.closest ? el.closest('.sz-page') : null;
@@ -303,8 +305,8 @@ export function SkipUndoDock({ until, onExpire, ...props }) {
  * @param {string} o.phase       有效阶段
  * @param {number} o.hints       本地提示次数（useHint().used）
  * @param {Array} [o.strokes]    书写格本人原始笔画（跳过时记下，撤销时写回 current.strokes，M2-3）
- * @returns {{shown, button, failed, note, run, cancelFail, failButtons, bar, undoOpen, undo, dismiss}}
- *   shown：回忆阶段、没看过答案时显示「跳过」；failed：跳过写失败（调用方把主按钮行换成 failButtons、格下说明换 note）；
+ * @returns {{shown, button, failed, note, run, cancelFail, bar, undoOpen, undo, dismiss}}
+ *   shown：回忆阶段、没看过答案时显示「跳过」；failed：跳过写失败（调用方把底栏换成三段式：主按钮「再试一次」= run、求助行「先不保存」= cancelFail、格下说明换 note）；
  *   bar：5 秒撤销轻提示（D36）（放在页面根上，absolute 贴底；空页 / 结果页也要渲染）；undoOpen：撤销底栏是否在；
  *   dismiss()：撤销机会结束（下一字落笔 / 点提示 / 点看答案），立即收起底栏。
  *   undo：撤销机会 {sessionId, recordId, char, strokes, until, failed} | null（until = performance.now() 时刻；
@@ -357,6 +359,7 @@ export function useSkip({ slot, session, cardKey, phase, hints = 0, strokes = nu
   };
 
   const failed = !!(fail && fail.key === key);
+  useAnnounce(failed ? t('R-W16.saveFailed') : ''); // 说明在格下说明位：经常驻播报区读一次（S1，审计 P1-27）
   const answerSeen = !!(session && session.current && session.current.answerSeen);
   const shown = !!cardKey && phase === 'recall' && !answerSeen;
   return {
@@ -368,12 +371,6 @@ export function useSkip({ slot, session, cardKey, phase, hints = 0, strokes = nu
     note: failed ? t('R-W16.saveFailed') : '',
     run: skip, // 跳过 / 失败后重试的动作本身（失败时是底栏主按钮「再试一次」的动作）
     cancelFail: () => { setFail(null); markStateChange(); },
-    failButtons: failed
-      ? html`<div class="sz-skip__fail">
-          <${Button} variant="secondary" data-testid="write-skip-fail-cancel" onClick=${() => { setFail(null); markStateChange(); }}>${t('R-W16.cancel')}</${Button}>
-          <${Button} variant="primary" data-testid="write-skip-fail-retry" onClick=${skip}>${t('R-W16.retry')}</${Button}>
-        </div>`
-      : null,
     bar: undo
       ? html`<${SkipUndoDock} char=${undo.char} failed=${undo.failed} onUndo=${doUndo} until=${undo.until}
           onExpire=${() => setUndo(u => (u && !u.failed ? null : u))}

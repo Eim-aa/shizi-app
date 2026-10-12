@@ -31,6 +31,7 @@ import { Page } from '../../components/Page.js';
 import { Sheet } from '../../components/Sheet.js';
 import { Icons } from '../../components/icons.js';
 import { Button, markStateChange } from '../../components/Button.js';
+import { FailBlock } from '../../components/FailBlock.js';
 import { injectStyles, T } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
 import * as defaultPolicy from '../../../config/policy.js';
@@ -101,7 +102,6 @@ injectStyles('library-all', `
 .sz-all__mname{font-size:${T.fs17};color:${T.ink1}}
 .sz-all__mcount{font-size:${T.fs15};color:${T.ink2};white-space:nowrap;font-variant-numeric:tabular-nums}
 .sz-all__go.sz-btn{align-self:flex-start}
-.sz-all__fail{margin:0;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink1}}
 .sz-all__empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:${T.s2};text-align:center;
   padding:${T.s8} ${T.s4} ${T.s6}}
 .sz-all__emptytitle{margin:0;font-family:${T.song};font-size:${T.fs22};line-height:${T.lh22};font-weight:500;
@@ -380,11 +380,12 @@ function AllScreen({ params, entry }) {
             </${Button}></li>`)}
           </ul>`
         : null}
-      ${failed ? html`<p class="sz-all__fail" data-testid="all-start-fail" aria-live="polite">${t('X-ALL.startFailed')}</p>` : null}
-      ${model.go
-        ? html`<${Button} variant="text" class="sz-all__go" data-testid="all-go" data-kind=${model.go.kind}
-            onClick=${onGo}>${t('R-A02.practiceThese')}</${Button}>`
-        : null}
+      ${failed && model.go
+        ? html`${FailBlock({ testid: 'all-start-failure', noteTestid: 'all-start-fail', retryTestid: 'all-go', cancelTestid: 'all-start-cancel', text: t('X-ALL.startFailed'), cancelLabel: t('X-LIST.startStay'), onCancel: () => setFailed(false), onRetry: onGo })}`
+        : model.go
+          ? html`<${Button} variant="text" class="sz-all__go" data-testid="all-go" data-kind=${model.go.kind}
+              onClick=${onGo}>${t('R-A02.practiceThese')}</${Button}>`
+          : null}
     </div>
   </${Page}>`;
 }

@@ -15,6 +15,7 @@
 
 import { html, useMemo } from '../../../../vendor/ui.js';
 import { Button } from '../Button.js';
+import { FailBlock as SharedFailBlock } from '../FailBlock.js';
 import { PracticeGlyph, FACE_FULL } from '../PracticeGlyph.js';
 import { injectStyles, T } from '../styles.js';
 import { t } from '../../../config/copy/index.js';
@@ -102,13 +103,10 @@ function MineCell({ summary, points }) {
   return html`<div class="sz-qcard__cell"><div class="sz-qcard__empty" data-testid="query-card-mine-empty">${text}</div></div>`;
 }
 
+/** 卡片里的三段式（S1）：全 App 同一个组件（components/FailBlock.js，dialog 排法：[先不 X | 再试一次]）。 */
 function FailBlock({ testid, note, cancelLabel, retryLabel, onCancel, onRetry }) {
-  return html`<div class="sz-qcard__fail" data-testid=${testid}>
-    <p class="sz-qcard__failnote" aria-live="polite">${note}</p>
-    <div class="sz-qcard__two">
-      <${Button} variant="secondary" data-testid=${`${testid}-cancel`} onClick=${onCancel}>${cancelLabel}</${Button}>
-      <${Button} variant="primary" data-testid=${`${testid}-retry`} onClick=${onRetry}>${retryLabel}</${Button}>
-    </div>
+  return html`<div class="sz-qcard__fail">
+    ${SharedFailBlock({ layout: 'dialog', testid: testid, text: note, cancelLabel: cancelLabel, retryLabel: retryLabel, onCancel: onCancel, onRetry: onRetry })}
   </div>`;
 }
 
@@ -119,12 +117,10 @@ function FailBlock({ testid, note, cancelLabel, retryLabel, onCancel, onRetry })
 export function CardActions({ summary, addFailed = false, practiceFailed = false, busy = false, canDetail = false, onPractice, onAdd,
   onAddCancel, onDetail, onPracticeCancel, onPracticeRetry }) {
   if (addFailed) {
-    return html`<${FailBlock} testid="query-card-add-fail" note=${t('R-Q05.addFailed')} cancelLabel=${t('R-Q05.cancel')}
-      retryLabel=${t('R-Q05.retry')} onCancel=${onAddCancel} onRetry=${onAdd} />`;
+    return html`${FailBlock({ testid: 'query-card-add-fail', note: t('R-Q05.addFailed'), cancelLabel: t('R-Q05.cancel'), retryLabel: t('R-Q05.retry'), onCancel: onAddCancel, onRetry: onAdd })}`;
   }
   if (practiceFailed) {
-    return html`<${FailBlock} testid="query-card-practice-fail" note=${t('R-H06.saveFailed')} cancelLabel=${t('R-H06.cancel')}
-      retryLabel=${t('R-H06.retry')} onCancel=${onPracticeCancel} onRetry=${onPracticeRetry} />`;
+    return html`${FailBlock({ testid: 'query-card-practice-fail', note: t('R-H06.saveFailed'), cancelLabel: t('R-H06.cancel'), retryLabel: t('R-H06.retry'), onCancel: onPracticeCancel, onRetry: onPracticeRetry })}`;
   }
   const parts = cardActionParts({ summary, busy, canDetail, onPractice, onAdd, onDetail });
   return html`<div class="sz-qcard__acts">${parts.primary}${parts.rest}</div>`;

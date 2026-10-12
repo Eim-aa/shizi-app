@@ -27,6 +27,7 @@ import { html, useEffect, useState } from '../../../../vendor/ui.js';
 import { nav } from '../../router.js';
 import { Button, markStateChange } from '../../components/Button.js';
 import { Sheet } from '../../components/Sheet.js';
+import { FailBlock } from '../../components/FailBlock.js';
 import { injectStyles, T } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
 import * as defaultPolicy from '../../../config/policy.js';
@@ -241,10 +242,7 @@ export function ChangeSheet({ slot, recordId, close, active = true }) {
     </div>
     <p class="sz-change__note" data-testid="write-change-note" aria-live="polite">${note}</p>
     ${failed
-      ? html`<div class="sz-change__btns">
-          <${Button} variant="secondary" data-testid="write-change-fail-cancel" onClick=${() => close && close()}>${t('R-W10.cancel')}</${Button}>
-          <${Button} variant="primary" data-testid="write-change-fail-retry" onClick=${flip}>${t('R-W10.retry')}</${Button}>
-        </div>`
+      ? html`${FailBlock({ layout: 'dialog', text: '', testid: 'write-change-fail', cancelLabel: t('R-W10.cancel'), retryLabel: t('R-W10.retry'), onCancel: () => close && close(), onRetry: flip })}`
       : html`<${Button} variant="primary" data-testid="write-change-flip" onClick=${flip}>${flipLabel}</${Button}>`}
   </${Sheet}>`;
 }

@@ -35,8 +35,8 @@
 // - 回忆阶段不渲染答案字（决定-D16）：「看答案」按钮与失败框里都没有字；答案字只在 answer / trace 阶段出现。
 // - answer-seen 不是有效记录：不写 judged、不动 sched / FSRS（决定-D18 / D23）；墨迹只存「自己写一遍」的本人笔画（Q1，上面第 5 条）。
 //
-// data-testid：write-show-answer（回忆阶段「看答案」）、write-answer-confirm（只在写入失败时出现的失败框；两键为 Confirm 组件的
-// confirm-cancel / confirm-ok）、write-answer-card（书写格参考字形层里的答案衬底，data-state=loading|ready|missing、data-anim=reveal|static）、
+// data-testid：write-show-answer（回忆阶段「看答案」）、write-show-answer-cancel / write-show-answer-retry（点「看答案」写入失败时底栏就地的三段式：
+// 说明在格下 write-note，S1 / 审计 P1-24；不再有 write-answer-confirm 失败框）、write-answer-card（书写格参考字形层里的答案衬底，data-state=loading|ready|missing、data-anim=reveal|static）、
 // write-answer-char（底栏里视觉隐藏的答案字，读屏用）、
 // write-answer-foot（answer 流程底栏，data-stage、data-failed）、write-answer-note（按钮上方说明）、
 // write-answer-self（自己写）、write-answer-trace（描一遍）、write-trace-done（描好了，自己写）、
@@ -45,9 +45,8 @@
 // data-state、data-anim）、write-glyph-fallback（10.13 楷体整字，M1-2 组件）。
 
 import { html, useEffect, useLayoutEffect, useRef, useState } from '../../../../vendor/ui.js';
-import { nav } from '../../router.js';
-import { Button } from '../../components/Button.js';
-import { Confirm } from '../../components/Confirm.js';
+import { Button, markStateChange } from '../../components/Button.js';
+import { useAnnounce } from '../../components/FailBlock.js';
 import { Icons } from '../../components/icons.js';
 import { injectStyles, T, TEX } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
@@ -83,14 +82,14 @@ export const STEP_PLAY_MAX_MS = defaultPolicy.motion.stepPlayMaxMs;
 injectStyles('write-answer', `
 @keyframes szAnswerReveal{from{opacity:0}to{opacity:1}}
 .sz-answer__under{position:absolute;inset:0;pointer-events:none}
-.sz-answer__under canvas{position:absolute;left:0;top:0;display:block;animation:szAnswerReveal ${ANSWER_REVEAL_MS}ms ease-out both}
+.sz-answer__under canvas{position:absolute;left:0;top:0;display:block;animation:szAnswerReveal ${ANSWER_REVEAL_MS}ms ${T.eOut} both}
 .sz-answer__anim{position:absolute;left:0;top:0;pointer-events:none}
 .sz-answer__trace{position:absolute;inset:0;pointer-events:none}
 .sz-answer__trace canvas{position:absolute;left:0;top:0;display:block}
 .sz-answer__sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .sz-answer__note{margin:0;width:100%;text-align:center;font-size:${T.fs13};line-height:${T.lh13};
   color:${T.ink3}}
-@media (prefers-reduced-motion: reduce){.sz-answer__under canvas{animation:none}}
+@media (prefers-reduced-motion: reduce){.sz-answer__under canvas{animation:szAnswerReveal ${T.dReduce} ${T.eLinear} both}} /* 减少动态效果：150ms 淡化，不硬切（D58 ②） */
 `);
 
 // ---------------------------------------------------------------- 纯函数（状态 → 草稿）
@@ -446,33 +445,6 @@ export function TraceLayer({ char, cssSize = 345, onStatus, strokeCount = 0, pla
   </div>`;
 }
 
-// ---------------------------------------------------------------- 写入失败框
-
-function AnswerConfirm(props) {
-  return html`<${Confirm} ...${props} testid="write-answer-confirm" />`;
-}
-
-/**
- * 点「看答案」写入失败时才出现的失败框（R-G04 三段式，D07：写入成功才进看答案页）：「没保存上，你写的字还在。」[先不保存 / 再试一次]；
- * 重试成功（或当前字已变）才关。平时点「看答案」没有任何确认框（D51 ⑧）。
- * @returns overlay id
- */
-export function openAnswerSaveFailed({ slot, cardKey }) {
-  let id = null;
-  const onConfirm = () => {
-    const store = storeOrNull();
-    const result = store ? commitAnswerSeen(store, { slot, cardKey }) : { ok: false, error: { kind: 'unavailable' } };
-    if (result.ok || (result.error && result.error.kind === 'stale')) nav.closeOverlay(id);
-  };
-  id = nav.openOverlay(AnswerConfirm, {
-    body: t('R-W16.saveFailed'),
-    cancelLabel: t('R-W16.cancel'),
-    confirmLabel: t('R-W16.retry'),
-    onConfirm,
-  }, { name: 'write-answer-confirm' });
-  return id;
-}
-
 // ---------------------------------------------------------------- 写字页接线
 
 /**
@@ -498,7 +470,7 @@ export function useAnswerFlow({ slot, session, cardKey, phase, strokeCount = 0, 
   const answerSeen = !!(session && session.current && session.current.answerSeen);
   const inFlow = ANSWER_PHASES.includes(phase);
   const active = !!cardKey && (inFlow || (phase === 'recall' && answerSeen));
-  const [fail, setFail] = useState(null); // null | {kind:'phase', phase} | {kind:'next'}
+  const [fail, setFail] = useState(null); // null | {kind:'phase', phase} | {kind:'next'} | {kind:'show'}（点「看答案」写入失败，就地三段式）
   const [glyphStatus, setGlyphStatus] = useState('loading');
   const failKey = `${cardKey}|${phase}`;
   const failNow = fail && fail.key === failKey ? fail : null;
@@ -516,18 +488,30 @@ export function useAnswerFlow({ slot, session, cardKey, phase, strokeCount = 0, 
     setFail({ ...action, key: failKey });
   };
 
-  // 点「看答案」：直接看，没有确认框（D51 ⑧）；写入失败才弹失败框（D07）。
+  // 点「看答案」：直接看，没有确认框（D51 ⑧）；写入失败（D07）就在写字页底栏就地给三段式（S1：说明在格下说明位、「先不保存」在求助行、主按钮「再试一次」；
+  // 原先是居中模态框，审计 P1-24），不再开弹层。
   const showAnswer = () => {
     if (typeof onShowAnswer === 'function') onShowAnswer(); // 写字页：跳过的撤销机会到此结束（G3）
     const store = storeOrNull();
     const result = store ? commitAnswerSeen(store, { slot, cardKey }) : { ok: false, error: { kind: 'unavailable' } };
-    if (result.ok || (result.error && result.error.kind === 'stale')) return;
-    openAnswerSaveFailed({ slot, cardKey });
+    if (result.ok || (result.error && result.error.kind === 'stale')) {
+      setFail(null);
+      return;
+    }
+    setFail({ kind: 'show', key: failKey });
+    markStateChange();
   };
+  const showFailed = !!(failNow && failNow.kind === 'show' && phase === 'recall' && !answerSeen);
+  useAnnounce(failNow && (inFlow || showFailed) ? t('R-W16.saveFailed') : '');
   const link = cardKey && phase === 'recall' && !answerSeen
     ? html`<${LinkButton} testid="write-show-answer" icon=${Icons.answer()} label=${t('R-W07.btnShowAnswer')} onClick=${showAnswer} />`
     : null;
 
+  if (showFailed) {
+    const footer = html`<${WriteFoot} primary=${{ testid: 'write-show-answer-retry', label: t('R-W16.retry'), onClick: showAnswer }} testid="write-foot" stage="recall" failed=${true} compact=${footCompact}
+      left=${html`<${Slot} testid="write-fail-slot"><${LinkButton} testid="write-show-answer-cancel" label=${t('R-W16.cancel')} onClick=${() => { setFail(null); markStateChange(); }} /></${Slot}>`} />`;
+    return { active: true, failed: true, link: null, show: showAnswer, stage: null, glyphLayer: null, note: t('R-W16.saveFailed'), footer };
+  }
   if (!active) return { active: false, failed: false, link, show: showAnswer, stage: null, glyphLayer: null, note: '', footer: null };
 
   const missing = glyphStatus === 'missing';

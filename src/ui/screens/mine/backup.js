@@ -43,6 +43,7 @@ import { Button } from '../../components/Button.js';
 import { Chevron } from '../../components/Chevron.js';
 import { UndoBar } from '../../components/UndoBar.js';
 import { Sheet, useDialogFocus } from '../../components/Sheet.js';
+import { FailBlock } from '../../components/FailBlock.js';
 import '../../components/Confirm.js'; // .sz-overlay / .sz-confirm 样式
 import { showToast } from '../../components/Toast.js';
 import { injectStyles, T } from '../../components/styles.js';
@@ -221,7 +222,7 @@ function finishExport(sig) {
   const store = storeOrNull();
   if (!store) return false;
   const r = markExported(store, { at: envNow(), sig });
-  if (r && r.ok) showToast(t('X-BACKUP.exported'));
+  if (r && r.ok) showToast(t('X-BACKUP.exported'), { kind: 'legacy', audit: 'P0-09' }); // 交互合规待修 P0-09（I3 删除这条成功提示）
   return !!(r && r.ok);
 }
 
@@ -287,8 +288,7 @@ export function ClearSheet({ n, failed = false, onConfirm, close, active = true 
       failed ? t('X-BACKUP.clearFailed') : t('R-B03.clearBody', { n })}</p>
     <div class="sz-bk__actions">
       ${failed
-        ? html`<${Button} variant="secondary" data-testid="backup-clear-stay" onClick=${cancel}>${t('X-BACKUP.clearStay')}</${Button}>
-            <${Button} variant="primary" data-testid="backup-clear-retry" onClick=${() => onConfirm && onConfirm()}>${t('X-BACKUP.retry')}</${Button}>`
+        ? html`${FailBlock({ layout: 'dialog', text: '', testid: 'backup-clear-fail', cancelTestid: 'backup-clear-stay', retryTestid: 'backup-clear-retry', cancelLabel: t('X-BACKUP.clearStay'), retryLabel: t('X-BACKUP.retry'), onCancel: cancel, onRetry: () => onConfirm && onConfirm() })}`
         : html`<${Button} variant="primary" data-testid="backup-clear-cancel" onClick=${cancel}>${t('X-BACKUP.confirmCancel')}</${Button}>
             <${Button} variant="secondary" class="sz-bk__danger" data-testid="backup-clear-ok" onClick=${() => onConfirm && onConfirm()}>${t('X-BACKUP.clearOk')}</${Button}>`}
     </div>
@@ -302,6 +302,7 @@ function BackupScreen({ entry }) {
   const state = useStoreState();
   const [note, setNote] = useState(null); // {kind:'protectFailed'|'cancelled'|'notBackup'|'restoreFailed', retry?:boolean}
   const [undo, setUndo] = useState(null); // {kind:'restore'|'clear', failed:boolean, done:boolean}
+  const [exportFail, setExportFail] = useState(false); // 导出没成（网页分享 / 下载都不行、或出错）：就地三段式（S1，审计 P1-30）
   const pendingRef = useRef(null); // 保护副本失败后「再试一次」要用的那份备份（inspectBackup 结果）
   const fileRef = useRef(null);
   const undoRef = useRef(undo);
@@ -325,8 +326,8 @@ function BackupScreen({ entry }) {
       setNote({ kind: 'protectFailed', retry: true });
       return;
     }
-    pendingRef.current = null;
-    setNote({ kind: 'restoreFailed' });
+    pendingRef.current = report; // 三段式「再试一次」用同一份备份（S1，审计 P1-28：原先没有再试）
+    setNote({ kind: 'restoreFailed', retry: true });
     if (had && !safetyOf(store.getState())) setUndo(null); // 上一轮的撤销随副本一起没了
   };
 
@@ -444,12 +445,15 @@ function BackupScreen({ entry }) {
     const sig = recordsSignature(s.records);
     const text = serializeBackup(buildBackupV2(s, { now: at, serial: store.serial }));
     pendingExport = { sig };
+    setExportFail(false);
     shareBackupFile({ name: backupFileName(at), text }).then(res => {
       if (res.via === 'native') return; // 等 markBackupExported
       if (pendingExport && pendingExport.sig === sig) pendingExport = null;
       if (res.done) finishExport(sig);
+      else if (!res.cancelled) setExportFail(true); // 用户自己取消不算失败（F3：不出说明）
     }, () => {
       pendingExport = null;
+      setExportFail(true);
     });
   };
 
@@ -467,6 +471,12 @@ function BackupScreen({ entry }) {
     }
     const mine = { picked: text => handlersRef.current.picked(text), rejected: reason => handlersRef.current.rejected(reason) };
     livePage = mine;
+    // 原生分享面板没打开（shiziShareFailed kind=backup）：本页还在屏上 → 就地三段式，不另出提示条（F3 ①，审计 P1-30）
+    const offShare = onShareFailed(kind => {
+      if (kind !== 'backup') return false;
+      setExportFail(true);
+      return true;
+    });
     if (pendingNative) {
       const p = pendingNative;
       pendingNative = null;
@@ -474,6 +484,7 @@ function BackupScreen({ entry }) {
       else receiveRejected(p.arg);
     }
     return () => {
+      offShare();
       if (livePage === mine) livePage = null;
     };
   }, []);
@@ -520,14 +531,18 @@ function BackupScreen({ entry }) {
           data-keys=${status.lines.map(l => l.key).join(' ')}>${lines.join('')}</span>` : null}
       </div>
       ${undoOn ? null : html`<p class="sz-bk__intro" data-testid="backup-intro">${t(has ? 'X-BACKUP.intro' : 'X-BACKUP.introEmpty')}</p>`}
-      ${note ? html`<div class="sz-bk__note" data-testid="backup-note" data-kind=${note.kind} data-tone=${noteTone}
+      ${note && note.retry
+        ? html`<div class="sz-bk__note" data-testid="backup-note" data-kind=${note.kind} data-tone="error">
+            ${FailBlock({ testid: 'backup-note-fail', noteTestid: 'backup-note-text', retryTestid: 'backup-note-retry', cancelTestid: 'backup-note-cancel', text: t(NOTE_KEYS[note.kind]), retryLabel: t('X-BACKUP.retry'), cancelLabel: t('X-BACKUP.restoreStay'), onRetry: retry, onCancel: () => { pendingRef.current = null; setNote(null); } })}
+          </div>`
+        : note ? html`<div class="sz-bk__note" data-testid="backup-note" data-kind=${note.kind} data-tone=${noteTone}
           role=${noteTone === 'error' ? 'alert' : 'status'}>
           <span class="sz-bk__dot" aria-hidden="true"></span>
-          <span class="sz-bk__notetext">${t(NOTE_KEYS[note.kind])}${note.retry
-            ? html`<${Button} variant="text" class="sz-bk__retry" data-testid="backup-note-retry" onClick=${retry}>${t('X-BACKUP.retry')}</${Button}>`
-            : null}</span>
+          <span class="sz-bk__notetext">${t(NOTE_KEYS[note.kind])}</span>
         </div>` : null}
-      <${Button} variant="primary" class="sz-bk__export" data-testid="backup-export" disabled=${!has} onClick=${doExport}>${t('R-B02.export')}</${Button}>
+      ${exportFail && has
+        ? html`${FailBlock({ testid: 'backup-export-fail', text: t('X-BACKUP.exportFailed'), cancelLabel: t('X-BACKUP.exportStay'), onCancel: () => setExportFail(false), onRetry: doExport })}`
+        : html`<${Button} variant="primary" class="sz-bk__export" data-testid="backup-export" disabled=${!has} onClick=${doExport}>${t('R-B02.export')}</${Button}>`}
       <div class="sz-bk__list" data-testid="backup-list" data-bk-end="1">
         <${Button} variant="plain" class="sz-bk__row" data-testid="backup-restore" aria-haspopup="dialog" onClick=${pick}>
           <span class="sz-bk__rowl">

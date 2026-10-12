@@ -17,6 +17,8 @@
 import { html, useEffect, useState } from '../../../../vendor/ui.js';
 import { Button } from '../../components/Button.js';
 import { injectStyles, T } from '../../components/styles.js';
+import { M } from '../../../config/motion.js';
+import { FailBlock } from '../../components/FailBlock.js';
 import { t } from '../../../config/copy/index.js';
 import * as defaultPolicy from '../../../config/policy.js';
 import { now as envNow } from '../../../platform/env.js';
@@ -27,18 +29,19 @@ import {
 } from '../../../core/first-result.js';
 import { parseTime, settingsView } from '../mine/settings.js';
 
-/** 提醒邀请在作品落定（印落下）后多久淡入（ms，设计稿 §三）。 */
-export const INVITE_DELAY_MS = 600;
+/** 提醒邀请在作品落定（印落下）后多久淡入（ms，设计稿 §三；motion.moment.inviteDelay）。 */
+export const INVITE_DELAY_MS = M.moment.inviteDelay;
 
 injectStyles('result-first', `
 .sz-result__preview{margin:20px 0 0;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2};text-wrap:pretty}
 .sz-invite{display:grid;gap:4px;padding-top:16px;border-top:${T.hair} solid ${T.line}}
-.sz-invite--in{animation:szInviteIn 300ms ease-out both}
+.sz-invite--in{animation:szInviteIn ${T.dPush} ${T.eOut} both}
 @keyframes szInviteIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-@media (prefers-reduced-motion: reduce){.sz-invite--in,.sz-invite__foot--in{animation:none}}
+@keyframes szInviteFade{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion: reduce){.sz-invite--in,.sz-invite__foot--in{animation:szInviteFade ${T.dReduce} ${T.eLinear} both}} /* 减少动态效果：150ms 淡化、不位移（D58 ②） */
 /* 吸底栏里的回答：主按钮「好」+ 文字按钮「不用了」，与结果页别的底栏同一个位置；该问但没到时候时占位（不透明度 0、不可点） */
 .sz-invite__foot{display:flex;flex-direction:column;align-items:stretch;gap:2px}
-.sz-invite__foot--in{animation:szInviteIn 200ms ease-out both}
+.sz-invite__foot--in{animation:szInviteIn ${T.dM} ${T.eOut} both}
 .sz-invite__foot--wait{opacity:0;pointer-events:none}
 .sz-invite__foot .sz-btn--text{align-self:center}
 .sz-invite__title{margin:0;font-size:${T.fs17};line-height:${T.lh17s};font-weight:500;color:${T.ink1}}
@@ -191,7 +194,7 @@ export function useReminderInvite({ store, settings, session, variant, ready = t
   };
 
   return {
-    show, phase, session, variant, remind, editing, setEditing, failed, evening, accept, decline, changeTime,
+    show, phase, session, variant, remind, editing, setEditing, failed, evening, accept, decline, changeTime, dismissFail: () => setFailed(false),
     active: phase === 'invite' || phase === 'pending',
     reserved: show && phase === 'wait',
     waiting: phase === 'pending',
@@ -236,6 +239,6 @@ export function ReminderInvite({ invite }) {
   return html`<div class="sz-invite sz-invite--in" data-testid="result-invite" data-state=${waiting ? 'pending' : 'invite'} aria-busy=${waiting ? 'true' : null}>
     <p class="sz-invite__title" data-testid="result-invite-title">${t(evening ? 'X-INVITE.titleEvening' : 'X-INVITE.title')}</p>
     <p class="sz-invite__body" data-testid="result-invite-body">${example ? inviteBody(example) : t('X-INVITE.bodyPlain')}</p>
-    ${failed ? html`<p class="sz-invite__note" data-testid="result-invite-fail" aria-live="polite">${t('X-SETTINGS.saveFailed')}</p>` : null}
+    ${failed ? html`${FailBlock({ testid: 'result-invite-failure', noteTestid: 'result-invite-fail', retryTestid: 'result-invite-retry', cancelTestid: 'result-invite-cancel', text: t('X-SETTINGS.saveFailed'), cancelLabel: t('X-SETTINGS.cancel'), onCancel: invite.dismissFail, onRetry: invite.accept })}` : null}
   </div>`;
 }

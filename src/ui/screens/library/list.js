@@ -35,6 +35,7 @@ import { html, useEffect, useRef, useState } from '../../../../vendor/ui.js';
 import { registerScreen, getRouter, getScreen, nav } from '../../router.js';
 import { Page } from '../../components/Page.js';
 import { Button, markStateChange } from '../../components/Button.js';
+import { FailBlock } from '../../components/FailBlock.js';
 import { Icons } from '../../components/icons.js';
 import { Chevron } from '../../components/Chevron.js';
 import { PracticeGlyph, FACE_FULL } from '../../components/PracticeGlyph.js';
@@ -111,7 +112,6 @@ injectStyles('library-list', `
 .sz-lrow__cap{font-size:${T.fs11};line-height:${T.lh11};color:${T.ink3};white-space:nowrap}
 .sz-list__note{margin:0;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2};text-wrap:pretty}
 .sz-list__hint{margin:0;text-align:center;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3}}
-.sz-list__fail{margin:0;text-align:center;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink1}}
 .sz-list__toggle{min-height:44px;padding:0 4px;margin-right:-4px;font-size:${T.fs15};color:${T.ink2}} /* 页头尾端：字形外缘落在 20pt 线（H1） */
 .sz-list__rest{align-self:flex-start;min-height:44px;padding:0 4px;margin:-12px 0 0 -4px;font-size:${T.fs15};color:${T.ink2}}
 .sz-list-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:${T.s4};text-align:center;
@@ -293,8 +293,10 @@ function ListScreen({ params, entry }) {
     ? html`<${Button} variant="plain" class="sz-list__toggle" data-testid="list-toggle-all" rapid=${true}
         onClick=${toggleAll}>${model.toggleAllLabel}</${Button}>`
     : null;
-  const footer = html`
-    ${failed ? html`<p class="sz-list__fail" data-testid="list-start-fail" aria-live="polite">${t('X-LIST.startFailed')}</p>` : null}
+  // 开组写入失败：底栏就地三段式（S1，components/FailBlock.js，审计 P1-32）——主按钮位置换成「再试一次」（同一个 list-go），上方「先不开始」
+  const footer = failed
+    ? html`${FailBlock({ layout: 'foot', testid: 'list-start-failure', noteTestid: 'list-start-fail', retryTestid: 'list-go', cancelTestid: 'list-start-cancel', text: t('X-LIST.startFailed'), cancelLabel: t('X-LIST.startStay'), onCancel: () => setFailed(false), onRetry: start })}`
+    : html`
     <p class="sz-list__hint" data-testid="list-hint" aria-live="polite">${model.hint}</p>
     <${Button} variant="primary" data-testid="list-go" disabled=${model.button.disabled} onClick=${start}>${model.button.label}</${Button}>`;
   return html`<${Page} title=${model.title} trailing=${trailing} footer=${footer} testid="list-screen">

@@ -41,6 +41,7 @@ import { Page } from '../../components/Page.js';
 import { Button, markStateChange } from '../../components/Button.js';
 import { Icons } from '../../components/icons.js';
 import { Sheet } from '../../components/Sheet.js';
+import { FailBlock } from '../../components/FailBlock.js';
 import { injectStyles, T } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
 import * as defaultPolicy from '../../../config/policy.js';
@@ -544,10 +545,7 @@ export function ResultCellSheet({ slot, sessionId, recordId, cellKind, cellChar,
     </div>
     <p class="sz-change__note" data-testid="result-sheet-note" aria-live="polite">${note}</p>
     ${changeable && failed
-      ? html`<div class="sz-change__btns">
-          <${Button} variant="secondary" data-testid="result-sheet-fail-cancel" onClick=${() => close && close()}>${t('R-W10.cancel')}</${Button}>
-          <${Button} variant="primary" data-testid="result-sheet-fail-retry" onClick=${flip}>${t('R-W10.retry')}</${Button}>
-        </div>`
+      ? html`${FailBlock({ layout: 'dialog', text: '', testid: 'result-sheet-fail', cancelLabel: t('R-W10.cancel'), retryLabel: t('R-W10.retry'), onCancel: () => close && close(), onRetry: flip })}`
       : changeable
         ? html`<${Button} variant="primary" data-testid="result-sheet-flip" onClick=${flip}>${t(judgment === 'correct' ? 'X-JUDGE.changeToWrong' : 'X-JUDGE.changeToCorrect')}</${Button}>`
         : null}
@@ -708,11 +706,8 @@ function ResultScreen({ params, entry }) {
 
   let footer;
   if (againFailed) {
-    footer = html`<p class="sz-result__failnote" data-testid="result-again-note" aria-live="polite">${t('X-RESULT.againFailed')}</p>
-      <div class="sz-result__fail">
-        <${Button} variant="secondary" data-testid="result-again-cancel" onClick=${() => { setAgainFailed(false); markStateChange(); }}>${t('X-RESULT.againCancel')}</${Button}>
-        <${Button} variant="primary" data-testid="result-again-retry" onClick=${again}>${t('X-RESULT.againRetry')}</${Button}>
-      </div>`;
+    // 「再写一组」开组失败：底栏就地三段式（S1，components/FailBlock.js）
+    footer = html`${FailBlock({ layout: 'foot', testid: 'result-again-fail', noteTestid: 'result-again-note', cancelTestid: 'result-again-cancel', retryTestid: 'result-again-retry', text: t('X-RESULT.againFailed'), cancelLabel: t('X-RESULT.againCancel'), retryLabel: t('X-RESULT.againRetry'), onCancel: () => { setAgainFailed(false); markStateChange(); }, onRetry: again })}`;
   } else if (invite.active || invite.reserved) {
     footer = html`<${InviteActions} invite=${invite} />`;
   } else if (model.variant === 'first') {

@@ -13,7 +13,8 @@
 import { html, useEffect, useState } from '../../../../vendor/ui.js';
 import { t } from '../../../config/copy/index.js';
 import { Button } from '../../components/Button.js';
-import { showToast } from '../../components/Toast.js';
+import { announce, showToast } from '../../components/Toast.js';
+import { FailBlock } from '../../components/FailBlock.js';
 import { injectStyles, T } from '../../components/styles.js';
 import { setBackGestureEnabled } from '../../../platform/bridge.js';
 import { backGestureAllowed, getRouter } from '../../router.js';
@@ -122,6 +123,8 @@ function hasJudged(store) {
  */
 export function BlockScreen({ reason, store, win = typeof window !== 'undefined' ? window : null }) {
   const [busy, setBusy] = useState(false);
+  const [still, setStill] = useState(false); // 「再试一次」之后仍不可用：说明句换成「还是存不了」（S1，审计 P1-31：原先没有任何反馈）
+  const [exportFail, setExportFail] = useState(false); // 导出没成：就地三段式（审计 P1-31）
   const kind = reason ? reason.kind : 'unavailable';
   const canExport = kind === 'blocked' && !!store && store.status.available && hasJudged(store);
 
@@ -151,6 +154,10 @@ export function BlockScreen({ reason, store, win = typeof window !== 'undefined'
         // 仍不可用：留在本页
       }
       setBusy(false);
+      if (!(store.status && store.status.available)) {
+        setStill(true);
+        announce(t('X-SYS.blockStill'));
+      }
       return;
     }
     // 'blocked' / 'migration' / 没有 store：整页重新启动（阻断状态只在重启后解除；迁移在启动时重试）
@@ -159,14 +166,16 @@ export function BlockScreen({ reason, store, win = typeof window !== 'undefined'
 
   const doExport = async () => {
     if (!canExport) return;
+    setExportFail(false);
     try {
       const share = await import('../../../platform/share.js');
       const at = envNow();
       const text = serializeBackup(buildBackupV2(store.getState(), { now: at, serial: store.serial }));
       const res = await share.shareBackupFile({ name: backupFileName(at), text });
-      if (res && res.done && res.via !== 'native') showToast(t('X-BACKUP.exported'));
+      if (res && res.done && res.via !== 'native') showToast(t('X-BACKUP.exported'), { kind: 'legacy', audit: 'P0-09' }); // 交互合规待修 P0-09（I3 删除这条成功提示）
+      else if (res && !res.done && !res.cancelled && res.via !== 'native') setExportFail(true);
     } catch (error) {
-      // 取消或失败：留在本页
+      setExportFail(true); // 原先被吞：就地三段式
     }
   };
 
@@ -177,10 +186,13 @@ export function BlockScreen({ reason, store, win = typeof window !== 'undefined'
     <div class="sz-block__body" data-testid="block-body">
       ${(Array.isArray(lines) ? lines : [lines]).map(line => html`<p class="sz-block__line">${line}</p>`)}
       ${kind === 'migration' ? html`<p class="sz-block__line" data-testid="block-migration">${t('X-SYS.blockMigration')}</p>` : null}
+      ${still ? html`<p class="sz-block__line" data-testid="block-still">${t('X-SYS.blockStill')}</p>` : null}
     </div>
     <div class="sz-block__actions">
       <${Button} variant="primary" data-testid="block-retry" disabled=${busy} onClick=${retry}>${t('R-B09.retry')}</${Button}>
-      ${canExport ? html`<${Button} variant="secondary" data-testid="block-export" onClick=${doExport}>${t('R-B02.export')}</${Button}>` : null}
+      ${canExport && exportFail
+        ? html`${FailBlock({ testid: 'block-export-fail', text: t('X-BACKUP.exportFailed'), cancelLabel: t('X-BACKUP.exportStay'), onCancel: () => setExportFail(false), onRetry: doExport })}`
+        : canExport ? html`<${Button} variant="secondary" data-testid="block-export" onClick=${doExport}>${t('R-B02.export')}</${Button}>` : null}
     </div>
   </section>`;
 }

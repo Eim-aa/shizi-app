@@ -58,6 +58,9 @@ export default Object.freeze({
   'X-BACKUP.clearOk': '清空',
   'X-BACKUP.clearFailed': '没保存上，记录都还在。',
   'X-BACKUP.clearStay': '先不清空',
+  'X-BACKUP.restoreStay': '先不恢复',
+  'X-BACKUP.exportFailed': '备份文件没导出来，你的记录都还在。',
+  'X-BACKUP.exportStay': '先不导出',
   // X-BACKUP.fileName（阶段 1 Q2-7，03 P182）：导出的备份文件名，{ymd} = 本地日 YYYY-MM-DD
   'X-BACKUP.fileName': '拾字备份-{ymd}.json',
   'X-BACKUP.exported': '已导出备份文件。',

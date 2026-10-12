@@ -60,7 +60,7 @@ function DemoSub({ params }) {
     <${Button} variant="secondary" data-testid="demo-open-confirm" onClick=${openConfirm}>${DEV.openConfirm}</${Button}>
     <${Button} variant="secondary" data-testid="demo-open-sheet"
       onClick=${() => nav.openOverlay(DemoSheet, { level }, { name: 'demo-sheet' })}>${DEV.openSheet}</${Button}>
-    <${Button} variant="text" data-testid="demo-toast" onClick=${() => showToast(DEV.toastText)}>${DEV.toast}</${Button}>
+    <${Button} variant="text" data-testid="demo-toast" onClick=${() => showToast(DEV.toastText, { kind: 'failure' })}>${DEV.toast}</${Button}>
     <${Button} variant="text" data-testid="demo-undo" onClick=${() => setUndo('shown')}>${DEV.undoShow}</${Button}>
     ${undo ? html`<${UndoBar} line1=${DEV.undoLine1} line2=${DEV.undoLine2} done=${undo === 'done'}
       onUndo=${() => setUndo('done')} onDoneEnd=${() => setUndo(null)} />` : null}

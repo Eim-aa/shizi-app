@@ -32,6 +32,7 @@ import { html, useEffect, useLayoutEffect, useMemo, useRef, useState } from '../
 import { Sheet } from '../Sheet.js';
 import { Button } from '../Button.js';
 import { showToast } from '../Toast.js';
+import { FailBlock } from '../FailBlock.js';
 import { injectStyles, T } from '../styles.js';
 import { t } from '../../../config/copy/index.js';
 import * as defaultPolicy from '../../../config/policy.js';
@@ -140,13 +141,7 @@ export function PickBar({ bar, count = 0, failed = false, onGo, onCancel, onRetr
   if (!bar) return null;
   return html`<div class="sz-query__bar sz-query__foot" data-testid="query-bar" data-count=${count}>
     ${failed
-      ? html`<div data-testid="query-go-fail">
-          <p class="sz-query__barfail" aria-live="polite">${t('R-H06.saveFailed')}</p>
-          <div class="sz-query__bartwo">
-            <${Button} variant="secondary" data-testid="query-go-fail-cancel" onClick=${onCancel}>${t('R-H06.cancel')}</${Button}>
-            <${Button} variant="primary" data-testid="query-go-fail-retry" onClick=${onRetry}>${t('R-H06.retry')}</${Button}>
-          </div>
-        </div>`
+      ? html`${FailBlock({ layout: 'dialog', testid: 'query-go-fail', text: t('R-H06.saveFailed'), cancelLabel: t('R-H06.cancel'), retryLabel: t('R-H06.retry'), onCancel: onCancel, onRetry: onRetry })}`
       : html`<${Button} variant="primary" data-testid="query-go" disabled=${bar.disabled} onClick=${onGo}>${t(bar.key, bar.vars)}</${Button}>`}
   </div>`;
 }
@@ -264,7 +259,7 @@ export function QuerySheet(p) {
     const result = commitAdd(store, c);
     if (result && result.ok) {
       setAddFailed('');
-      showToast(t('R-Q05.added', { char: c }));
+      showToast(t('R-Q05.added', { char: c }), { kind: 'legacy', audit: 'P0-14' }); // 交互合规待修 P0-14（I3 删除这条成功提示）
     } else {
       setAddFailed(c);
     }

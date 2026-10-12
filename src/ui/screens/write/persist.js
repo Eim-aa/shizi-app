@@ -6,8 +6,9 @@
 //      同一次写入顺带对齐 recall ⇄ compare 的阶段：M1-5 进 / 出判断页的写入失败时本页用本地阶段覆盖，这里补写。
 //      其余阶段切换（提示、看答案、描一遍、自己写、判断、跳过）由各自模块在同一次 commit 里写 sessions——「每步写入」。
 //   2. 失败按 P52 **不阻断**：笔迹留在内存（index.js 本地现场），下一次抬笔 / 撤销 / 清空、visibilitychange(hidden)、
-//      pagehide、离开写字页时重写；顶部一次性提示（配额 / 通用两句，沿旧 index.html L1067），每次页面加载最多一次，
-//      显示 NOTICE_MS 后收起（叠在题面上方、不挡落笔，pointer-events:none）。到判断 commit 时由判断页三段式兜底（M1-5）。
+//      pagehide、离开写字页时重写；顶部一次性三段式（S1，审计 P1-26：原先 5 秒自动收起、没有「再试一次」）——说明（配额 / 通用两句，沿旧 index.html L1067）
+//      + [先不保存 | 再试一次]，每次页面加载最多一次；之后任何一次写回成功（再试一次、下一次抬笔、visibilitychange）就直接收起（成功不提示）。
+//      叠在题面上方、不盖书写格。到判断 commit 时仍由判断页三段式兜底（M1-5）。
 //   3. 恢复（刷新后回到同一阶段）：写字页本地笔画现场从 session.current.strokes 取（storedStrokes → decodeRawStrokes），
 //      所以 recall / compare / trace / retrace 刷新后笔迹都在；compare 有笔画 → 判断页（对照卡 + 参考字形），
 //      answer → 看答案卡片（各阶段的界面由 M1-3/M1-4/M1-5 按存下的 phase 渲染）。
@@ -17,10 +18,11 @@
 //
 // 规则：只经 store.commit 写存储；会话用 core/sessions；笔画编码用 core/ink-math。
 //
-// data-testid：write-persist-notice（顶部一次性提示，role=status，data-kind=quota|generic）。
+// data-testid：write-persist-notice（顶部一次性三段式，role=status，data-kind=quota|generic）、write-persist-cancel / write-persist-retry。
 
 import { html, useEffect, useRef, useState } from '../../../../vendor/ui.js';
 import { injectStyles, T } from '../../components/styles.js';
+import { FailBlock } from '../../components/FailBlock.js';
 import { t } from '../../../config/copy/index.js';
 import * as policy from '../../../config/policy.js';
 import { getStore } from '../../../store/store.js';
@@ -40,10 +42,9 @@ const SYNC_PHASES = Object.freeze(['recall', 'compare']);
 
 injectStyles('write-persist', `
 .sz-persist{position:absolute;left:${T.gutter};right:${T.gutter};top:calc(${T.s12} + env(safe-area-inset-top, 0px));z-index:30;
-  pointer-events:none;box-sizing:border-box;display:flex;gap:${T.s3};align-items:center;min-height:48px;padding:${T.s3} ${T.s4};border-radius:${T.rCtl};
-  background:${T.toastBg};color:${T.toastFg};animation:sz-fade-in .2s ease-out both}
-.sz-persist__text{flex:1;align-self:center;font-size:${T.fs15};line-height:${T.lh15};color:inherit}
-@media (prefers-reduced-motion: reduce){.sz-persist{animation:none}}
+  box-sizing:border-box;display:flex;gap:${T.s3};align-items:center;min-height:48px;padding:${T.s4};border-radius:${T.rCtl};
+  background:${T.elev};color:${T.ink1};box-shadow:${T.elevShadow};animation:sz-fade-in ${T.dFade} ${T.eLinear} backwards} /* 三段式卡片（S1）：叠在题面上方，不盖书写格；有按钮所以可点 */
+@media (prefers-reduced-motion: reduce){.sz-persist{animation-duration:${T.dReduce}}}
 `);
 
 // ---------------------------------------------------------------- 纯函数
@@ -163,11 +164,11 @@ export function resetPersistNotice() {
   noticeUsed = false;
 }
 
-export function PersistNotice({ notice }) {
+export function PersistNotice({ notice, onRetry, onCancel }) {
   if (!notice) return null;
   return html`<div class="sz-persist" role="status" aria-live="polite" data-testid="write-persist-notice"
     data-kind=${notice.kind}>
-    <span class="sz-persist__text">${notice.text}</span>
+    ${FailBlock({ layout: 'dialog', testid: 'write-persist', noteTestid: 'write-persist-text', text: notice.text, speak: false, onCancel: onCancel, onRetry: onRetry })}
   </div>`;
 }
 
@@ -204,17 +205,14 @@ export function usePersist({ slot, session, state, cardKey, inkKey, strokes, pha
     if (!result || !mounted.current) return;
     if (result.ok) {
       setDirty(false);
+      setNotice(null); // 写回成功（再试一次 / 下一次抬笔 / 页面隐藏时重写）：直接进入成功状态，不提示
       return;
     }
     if (result.error && result.error.kind === 'stale') return; // 已换字：新字的现场由新一轮写入负责
     setDirty(true);
     if (!noticeUsed) {
       noticeUsed = true;
-      setNotice(noticeFor(result.error));
-      hideTimer.current = setTimeout(() => {
-        hideTimer.current = null;
-        if (mounted.current) setNotice(null);
-      }, noticeMs);
+      setNotice(noticeFor(result.error)); // 不再定时收起：有「再试一次 / 先不保存」可点（S1）
     }
   };
 
@@ -270,5 +268,9 @@ export function usePersist({ slot, session, state, cardKey, inkKey, strokes, pha
     if (store) commitRecover(store, { slot });
   }, [signature]);
 
-  return { notice: notice ? html`<${PersistNotice} notice=${notice} />` : null, dirty, flush };
+  return {
+    notice: notice ? html`<${PersistNotice} notice=${notice} onRetry=${() => flushRef.current()} onCancel=${() => setNotice(null)} />` : null,
+    dirty,
+    flush,
+  };
 }

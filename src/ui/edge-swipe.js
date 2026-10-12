@@ -15,14 +15,15 @@
 import { html } from '../../vendor/ui.js';
 import { NATIVE_PROGRESS_EVENT } from './router.js';
 import { injectStyles, T } from './components/styles.js';
+import { M } from '../config/motion.js';
 
 /**
  * 起手带宽（CSS px）：页边 20 之内再留 8——页边线上的文字按钮靠负外边距与 ::after 把点击区向左伸到 x≈13（Button.js --bx），
  * 起手带不能盖住它们（命中测试会落到起手带上，60-matrix / 66-text-size 的「按钮未被遮盖」检查）。原生壳的「页边起手」识别器仍是 20pt（P272）。
  */
-export const EDGE_ZONE_PX = 12;
+export const EDGE_ZONE_PX = M.gesture.edgeZoneWeb;
 /** 判方向前要动的距离。 */
-export const DIRECTION_SLOP_PX = 10;
+export const DIRECTION_SLOP_PX = M.gesture.directionSlop;
 /** 估速度用的时间窗（ms）。 */
 export const VELOCITY_WINDOW_MS = 100;
 

@@ -31,6 +31,7 @@ import * as defaultPolicy from '../../../config/policy.js';
 import { t } from '../../../config/copy/index.js';
 import { watchStrokes, peekStrokes } from '../../../data/strokes.js';
 import { mediansInBox, prefersReducedMotion } from '../../canvas/glyph.js';
+import { M } from '../../../config/motion.js';
 import { GlyphWash } from '../../canvas/glyph-wash.js';
 import { Button } from '../../components/Button.js';
 import { SolidIcons } from '../../components/icons.js';
@@ -42,16 +43,15 @@ import { NoHintLabel } from './glyph-fallback.js';
 // strokeDrawMs / hintTimeline 可传 motion 覆盖。其余是原型 / 01 §6.4 的工程常量。
 
 export const HINT_DRAW = Object.freeze({
-  minMs: 110,
+  minMs: M.dur.fade, // D58 归并：原型的 110 → motion.duration.fade（阶段 2 原生逐笔写出的基准；网页阶段整组淡入）
   maxMs: defaultPolicy.motion.hintStrokeMs,
   stagger: defaultPolicy.motion.hintStagger,
-  easing: 'cubic-bezier(.4,0,.2,1)',
   opacity: 1, // 整组的显隐不透明度；淡朱实填本身不透明（对比度见 test/ui/contrast.test.mjs「提示」）
 });
 /** 提示整组淡入（P210；D51 ⑧ 网页阶段的最小过渡）。 */
 export const HINT_FADE_IN_MS = defaultPolicy.motion.hintFadeInMs;
 /** 被本人笔收掉的那一笔提示的淡出时长（01 §6.4；D53 ⑧：只收写过的那一笔）。 */
-export const HINT_FADE_OUT_MS = 260;
+export const HINT_FADE_OUT_MS = M.role.hintStrokeOut;
 /** 序号对不上时按几何最近匹配的上限：本人笔画到提示笔中线的平均距离（书写格 345 单位，约格边的 11%）；更远的不算「写过这一笔」。 */
 export const HINT_MATCH_MAX_DIST = 40;
 /** 减少动态效果时的淡入淡出（02 §3 M1-3 / R-G01；policy.motion.reducedFadeMs，P70）。 */
@@ -317,14 +317,14 @@ export function HintLayer({ data, view, reduced = false, testid = 'write-hint-la
   const outMs = reduced ? REDUCED_FADE_MS : HINT_FADE_OUT_MS;
   const inMs = reduced ? REDUCED_FADE_MS : HINT_FADE_IN_MS;
   const groupStyle = { opacity: HINT_DRAW.opacity };
-  if (view.show === 'in' && anim === 'fade') groupStyle.animation = `szHintFadeIn ${inMs}ms linear`;
+  if (view.show === 'in' && anim === 'fade') groupStyle.animation = `szHintFadeIn ${inMs}ms ${M.ease.linear}`;
   // 没收的提示笔画在一张 canvas 上；每一笔刚被收掉的提示笔各占一张（260ms 淡出后卸掉）——被收掉的那一笔与其余提示笔互不影响。
   return html`<div class="sz-hint" data-testid=${testid} data-state=${fading.length ? 'fading' : 'shown'} data-from=${from}
     data-to=${to} data-anim=${anim} data-run=${view.run} data-remaining=${remaining.join(',')} data-fading=${fading.map(f => f.hint).join(',')} aria-hidden="true">
     <div class="sz-hint__group" key=${`g${view.run}`} style=${groupStyle}>
       <${GlyphWash} data=${data} solid=${remaining} fillTestid="write-hint-fill" />
       ${fading.map(f => html`<div class="sz-hint__out" key=${`o${f.hint}`} data-testid="write-hint-out" data-stroke=${f.hint}
-        style=${{ animation: `szHintOut ${outMs}ms linear forwards` }}>
+        style=${{ animation: `szHintOut ${outMs}ms ${M.ease.linear} forwards` }}>
         <${GlyphWash} data=${data} solid=${[f.hint]} fillTestid="write-hint-out-fill" />
       </div>`)}
     </div>

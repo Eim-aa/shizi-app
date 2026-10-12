@@ -34,6 +34,7 @@ import { PracticeGlyph } from '../../components/PracticeGlyph.js';
 import { UndoBar } from '../../components/UndoBar.js';
 import { injectStyles, T, TEX } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
+import { M } from '../../../config/motion.js';
 import { getStore } from '../../../store/store.js';
 import { now as envNow } from '../../../platform/env.js';
 import { localDay } from '../../../core/dates.js';
@@ -51,7 +52,7 @@ import { PHOTO_SCREEN } from './photos.js'; // 旧记录页自注册
 export const DETAIL_SCREEN = 'detail';
 export const LIST_SCREEN_NAME = 'library-list'; // M3-2 清单页（params {kind:'wrong'|'forget'}）
 export const REMOVE_OVERLAY = 'detail-remove';
-export const BANNER_UNDONE_MS = 2400;
+export const BANNER_UNDONE_MS = M.timing.undone;
 
 injectStyles('detail', `
 .sz-dhead{display:flex;flex-direction:column;gap:${T.s4}} /* 头部直接放在纸上：没有凹面卡（框中框），只留笺框一层（T2-13） */
@@ -265,8 +266,7 @@ function DetailScreen({ params, entry }) {
 
   const onList = model.list ? listOpener(model.list) : null;
   const main = practiceFailed
-    ? html`<${FailBlock} testid="detail-practice-fail" note=${t('X-DETAIL.saveFailed')} onCancel=${() => setPracticeFailed(false)}
-        onRetry=${practice} />`
+    ? html`${FailBlock({ testid: 'detail-practice-fail', note: t('X-DETAIL.saveFailed'), onCancel: () => setPracticeFailed(false), onRetry: practice })}`
     : html`<${Button} variant="primary" data-testid="detail-practice" disabled=${!model.practicable}
         onClick=${practice}>${t('R-D08.btnPractice')}</${Button}>`;
   // 边改 Z03（M6-6）：撤销底栏放在页面底栏区、「练这个字」上方（与备份页 R-B08 / Z04 同法），正文在它上方滚动——

@@ -13,18 +13,19 @@
 // 样式见下方 .sz-btn[data-pressed]。不用 :active——iOS WebKit 上 :active 需要 touchstart 监听才生效；data-pressed 直接写 DOM 属性
 // （不走 state，不触发重画）。原生 <button> 格子（结果 / 详情 / 记录页的字帖格）也用同一套 pressFeedbackHandlers。
 // 按下 scale .97（--press-scale）、120ms（--t-press）；松手 220ms（--t-release）回弹；主按钮按下换 --btn-down、次按钮按下换 --field，
-// 其余加深约 6%；减少动态效果时按下缩放保留，其余过渡改 120ms 线性（tokens.json motion.reduceMotion）。参数登记 P109（已决定 D43）。
+// 其余加深约 6%；减少动态效果时按下缩放保留，松手与其余过渡改 150ms 线性（motion.duration.reduce，全 App 唯一的减少动态效果时长，D58 ②）。参数登记 P109（已决定 D43）。
 // 中文按词折行（R3-K1，A3-02，P242）：字符串文字经 Words 分词，每个词一个 nowrap 的 span——标准档按钮 nowrap 一行到底不变，AX 档按钮（white-space:normal）
 // 只在词与词之间折，不词内折（A2-11）、也不像 keep-all 那样整句不折（A3-02）。
 import { html, useRef } from '../../../vendor/ui.js';
 import { injectStyles, T } from './styles.js';
 import { Words } from './Words.js';
+import { M } from '../../config/motion.js';
 
-export const PRESS_GUARD_MS = 400;
-/** 按压反馈（P109，已决定 D43）：按下 120ms 缩到 .97；松手 220ms 回弹。与 tokens.css 的 --t-press / --t-release 同值（单测核对）。 */
-export const PRESS_IN_MS = 120;
-export const PRESS_OUT_MS = 220;
-export const PRESS_SCALE = 0.97;
+export const PRESS_GUARD_MS = M.timing.pressGuard;
+/** 按压反馈（P109，已决定 D43）：按下 120ms 缩到 .97；松手 220ms 回弹。取 motion.role.pressIn / pressOut（与 tokens.css 的 --t-press / --t-release 同值，单测核对）。 */
+export const PRESS_IN_MS = M.role.pressIn;
+export const PRESS_OUT_MS = M.role.pressOut;
+export const PRESS_SCALE = M.scale.press;
 export const PRESS_DARKEN = 0.94; // brightness：背景 / 字加深约 6%
 
 let lastStateChange = -Infinity;
@@ -106,7 +107,7 @@ injectStyles('button', `
 .sz-btn--primary[disabled],.sz-btn--secondary[disabled]{background:${T.field};color:${T.ink4};box-shadow:none}
 .sz-btn--text[disabled]{color:${T.ink4}}
 @media (prefers-reduced-motion: reduce){
-  .sz-btn{transition-duration:${T.tPress};transition-timing-function:linear}
+  .sz-btn{transition-duration:${T.dReduce};transition-timing-function:${T.eLinear}}
 }
 `);
 

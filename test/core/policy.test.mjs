@@ -113,7 +113,7 @@ test('policy: transitional defaults match 03 / the M0-6 card', () => {
   );
   assert.deepEqual(
     { ...policy.motion },
-    { answerSpeed: 1.6, answerStrokeGapMs: 180, answerFadeMs: 240, hintStrokeMs: 240, hintStagger: 0.7, reducedFadeMs: 120, persistNoticeMs: 5000, hintFadeInMs: 150, answerRevealMs: 400, stepPlayMaxMs: 1600 },
+    { answerSpeed: 1.6, answerStrokeGapMs: 180, answerFadeMs: 220, hintStrokeMs: 220, hintStagger: 0.7, reducedFadeMs: 150, persistNoticeMs: 5000, hintFadeInMs: 150, answerRevealMs: 400, stepPlayMaxMs: 1600 },
     'P70 + P210（W1：提示整组淡入 150、答案衬底显影 400、笔顺快放 ≤ 1600）',
   );
 });

@@ -28,6 +28,7 @@ import { Button } from '../../components/Button.js';
 import { markPaperSource } from '../../paper-transition.js'; // W2：主按钮点下时记下它的位置，写字页从它长出来（B1）
 import { SealGlyph } from '../../components/marks.js';
 import { injectStyles, T } from '../../components/styles.js';
+import { M, prefersReducedMotion } from '../../../config/motion.js';
 import { t } from '../../../config/copy/index.js';
 import * as policy from '../../../config/policy.js';
 import { EPIGRAPHS, epigraphAuthor } from '../../../config/epigraphs.js';
@@ -55,8 +56,13 @@ export const HOME_LABEL = t('X-TABS.write');
 export const HOME_TAB = 'home';
 /** 时段 / 日期重算间隔（ms）：只在时段或日期真的变了时重画。 */
 export const CLOCK_TICK_MS = 30000;
-/** 首次打开品牌时刻的总长（ms；I2-05 建议 ≤ 1.2s）：题跋逐字淡入 0.08–0.94s，印 0.9–1.2s。主按钮不参与动画，第一帧起可见可点（H1）。 */
-export const BRAND_TOTAL_MS = 1200;
+/** 首次打开品牌时刻的总长（ms；I2-05 建议 ≤ 1.2s，与 motion.moment.resultMax 同一上限）：题跋逐字淡入，印在最后落下。主按钮不参与动画，第一帧起可见可点（H1）。
+ * 节奏全取 motion 令牌（P2-09；例外 E6 只免「不重演」，不免令牌）：起始 duration.xs，每字淡入 duration.fade、错开 ≤ moment.workStagger（17 个字按总长收紧），
+ * 印 moment.sealDrop 落下、到 BRAND_TOTAL_MS 落定。 */
+export const BRAND_TOTAL_MS = M.moment.resultMax;
+export const BRAND_SEAL_DELAY_MS = BRAND_TOTAL_MS - M.moment.sealDrop;
+/** 题跋逐字错开（ms）：17 个字的最后一个在印落下之前淡入完。 */
+export const BRAND_STAGGER_MS = Math.min(M.moment.workStagger, Math.floor((BRAND_SEAL_DELAY_MS - M.dur.xs - M.dur.fade) / 16));
 
 /** 主按钮底边到 Tab 栏上沿的固定距离（pt，T3-01 / D53 ③「全 App 统一的底线」）：首页六态与首次打开同一条线。与写字页主按钮底线共用 policy.mainButtonLine（P258，R3-C3W）。 */
 export const CTA_LINE = policy.mainButtonLine.gapAboveEdge;
@@ -118,11 +124,8 @@ injectStyles('home', `
 .sz-first__hline .sz-home__seal{display:inline-grid;margin-left:8px;vertical-align:middle}
 @keyframes szBrandIn{from{opacity:0}to{opacity:1}}
 @keyframes szBrandSeal{0%{opacity:0;transform:scale(1.25)}60%{opacity:1;transform:scale(.92)}100%{opacity:1;transform:scale(1)}}
-.sz-home--brand .sz-first__ch{opacity:0;animation:szBrandIn 160ms ease-out both;animation-delay:calc(80ms + var(--i) * 44ms)} /* 17 个字 80–944ms 逐字淡入 */
-.sz-home--brand .sz-first__seal{opacity:0;animation:szBrandSeal 300ms ease-out 900ms both} /* 印 0.9–1.2s；主按钮与说明句不参与动画：第一帧起可见可点（H1 / I2-05） */
-@media (prefers-reduced-motion: reduce){
-  .sz-home--brand .sz-first__ch,.sz-home--brand .sz-first__seal{animation:none;opacity:1}
-}
+.sz-home--brand .sz-first__ch{opacity:0;animation:szBrandIn ${T.dFade} ${T.eOut} both;animation-delay:calc(${M.dur.xs}ms + var(--i) * ${BRAND_STAGGER_MS}ms)} /* 17 个字逐字淡入 */
+.sz-home--brand .sz-first__seal{opacity:0;animation:szBrandSeal ${M.moment.sealDrop}ms ${T.eOut} ${BRAND_SEAL_DELAY_MS}ms both} /* 印最后落下；主按钮与说明句不参与动画：第一帧起可见可点（H1 / I2-05）。减少动态效果下不加 sz-home--brand（brandAllowed），直接是静帧（T1：直接终态） */
 :root[data-ax] .sz-home__group{flex-direction:column;align-items:center;gap:0;margin-bottom:0} /* AX1–AX5：「拾」在上、题记在下，居中；「拾」的边长由 useShiAvail 按剩余高度给 */
 :root[data-ax] .sz-home__epi{flex-direction:column;align-items:center;gap:0;box-sizing:border-box;padding-top:8px}
 :root[data-ax] .sz-home__epi[data-hide="true"]{height:0;padding:0;overflow:hidden;visibility:hidden} /* 放不下时收起题记（D49 原规则：AX 档题记隐藏，读屏经标题的 describedby 照样读到全句）；height:0 仍能量到它的 scrollHeight */
@@ -207,11 +210,7 @@ function useHomeClock() {
 let brandPlayed = false; // 同一次页面加载里只放一次（回到首次打开的首页不再重放）
 
 function reducedMotion() {
-  try {
-    return !!(typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-  } catch (error) {
-    return false;
-  }
+  return prefersReducedMotion(); // P2-13：全 App 唯一的判断
 }
 
 /** 这次要不要放品牌动画：减少动态效果 → 不放（静帧）；测试宿主默认不放（e2e 要稳定的静帧），URL 带 brand=1 才放。 */

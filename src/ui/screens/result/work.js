@@ -16,6 +16,7 @@ import { html, useEffect, useRef, useState } from '../../../../vendor/ui.js';
 import { Button } from '../../components/Button.js';
 import { CellCanvas, PlainRow, WorkPaper, WrongDot, useAxSize, useScreenWidth } from '../../components/work.js';
 import { injectStyles, T, TEX } from '../../components/styles.js';
+import { M, prefersReducedMotion as reducedMotionOf } from '../../../config/motion.js';
 import { t } from '../../../config/copy/index.js';
 import { resultGrid } from '../../../core/images/layout.js';
 import { toggleAdded } from '../../../core/images/work.js';
@@ -32,12 +33,17 @@ const ROW_PAD = 0.03;
 
 // ---------------------------------------------------------------- 作品显现与落印（D51 ②，网页阶段的最小过渡；完整编排属阶段 2 原生）
 
-/** 整段显现的上限（ms）：格依次淡入 + 落款淡入 + 印落下（含回弹），印着纸那一帧发 s1 与一次 rigid 触觉。 */
-export const REVEAL_MAX_MS = 750;
+/** 整段显现的上限（ms，motion.moment.max）：格依次淡入 + 落款淡入 + 印落下（含回弹），印着纸那一帧发 s1 与一次 rigid 触觉。 */
+export const REVEAL_MAX_MS = M.moment.max;
 
-/** 印的落下：从 1.25 落到最小缩放 0.92（着纸，SEAL_FALL_MS）再用 SEAL_REBOUND_MS 回弹到 1（T3-08）。 */
-export const SEAL_FALL_MS = 100;
-export const SEAL_REBOUND_MS = 120;
+/** 印的落下（motion.moment.sealDrop 220）：从 1.25 落到最小缩放 0.92（着纸，SEAL_FALL_MS）再用 SEAL_REBOUND_MS（duration.press）回弹到 1（T3-08）。 */
+export const SEAL_REBOUND_MS = M.dur.press;
+export const SEAL_FALL_MS = M.moment.sealDrop - SEAL_REBOUND_MS;
+/** 作品格淡入（moment.workCellIn）与落款淡入（duration.fade；D58 归并 140 → 150）：JS 时序与 CSS 动画同一来源。 */
+export const CELL_IN_MS = M.moment.workCellIn;
+export const KUAN_IN_MS = M.dur.fade;
+/** szResultSeal 关键帧里着纸那一帧的位置（由时长算出，不手算）。 */
+export const SEAL_CONTACT_AT = Math.round((SEAL_FALL_MS / M.moment.sealDrop) * 10000) / 100;
 
 /**
  * 显现时序（纯函数）：n 个作品格。每格错开 stagger（≤ 50ms；字多时收紧，保证总时长 ≤ REVEAL_MAX_MS），落款在最后一格快到位时淡入，印在落款之后落下。
@@ -46,11 +52,11 @@ export const SEAL_REBOUND_MS = 120;
  */
 export function revealPlan(n) {
   const count = Math.max(1, Math.floor(Number(n) || 1));
-  const cellMs = 180;
-  const kuanMs = 140;
+  const cellMs = CELL_IN_MS;
+  const kuanMs = KUAN_IN_MS;
   const sealMs = SEAL_FALL_MS + SEAL_REBOUND_MS;
   // total = (n − 1) × stagger + cellMs − 40（落款提前 40ms 进）+ 60（印比落款晚 60ms）+ sealMs ≤ 750  →  stagger ≤ (750 − 420) / (n − 1)
-  const stagger = count > 1 ? Math.min(50, Math.floor((REVEAL_MAX_MS - (cellMs - 40 + 60 + sealMs)) / (count - 1))) : 0;
+  const stagger = count > 1 ? Math.min(M.moment.workStagger, Math.floor((REVEAL_MAX_MS - (cellMs - 40 + 60 + sealMs)) / (count - 1))) : 0;
   const cellsEnd = (count - 1) * stagger + cellMs;
   const kuanDelay = cellsEnd - 40;
   const sealDelay = kuanDelay + 60;
@@ -65,11 +71,7 @@ export function resetReveal() {
 }
 
 function prefersReducedMotion() {
-  try {
-    return typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  } catch (error) {
-    return false;
-  }
+  return reducedMotionOf(); // P2-13：全 App 唯一的判断（config/motion.js）
 }
 
 /** 这一组已经落过印（本次打开页面里响过，或会话上记着 sealedAt：冷启动 / 刷新恢复时不重演，I3-05）。 */
@@ -92,17 +94,17 @@ function sealMoment(settings, key) {
 injectStyles('result-work', `
 @keyframes szWorkCellIn{from{opacity:0;transform:translateY(2px)}to{opacity:1;transform:none}}
 @keyframes szWorkKuanIn{from{opacity:0}to{opacity:1}}
-/* 印：100ms 落到 0.92（着纸，45.45% = SEAL_FALL_MS / 总长）→ 120ms 回弹到 1（T3-08）；着纸那一帧发 s1 与触觉 */
-@keyframes szResultSeal{0%{opacity:0;transform:scale(1.25)}45.45%{opacity:1;transform:scale(.92)}100%{opacity:1;transform:scale(1)}}
-.sz-wcell--in{animation:szWorkCellIn 180ms ease-out both}
-.sz-work__kuan--in{animation:szWorkKuanIn 140ms ease-out both}
-.sz-seal--land{animation:szResultSeal 220ms ease-out both}
+/* 印：SEAL_FALL_MS 落到 0.92（着纸，关键帧位置 = SEAL_FALL_MS / sealDrop）→ SEAL_REBOUND_MS 回弹到 1（T3-08）；着纸那一帧发 s1 与触觉 */
+@keyframes szResultSeal{0%{opacity:0;transform:scale(${M.scale.sealFrom})}${SEAL_CONTACT_AT}%{opacity:1;transform:scale(.92)}100%{opacity:1;transform:scale(1)}}
+.sz-wcell--in{animation:szWorkCellIn ${CELL_IN_MS}ms ${T.eOut} both}
+.sz-work__kuan--in{animation:szWorkKuanIn ${KUAN_IN_MS}ms ${T.eOut} both}
+.sz-seal--land{animation:szResultSeal ${M.moment.sealDrop}ms ${T.eOut} both}
 /* 先只显示作品：印落下后，标题、各行、复现句、邀请与底栏 150ms 淡入（ResultScreen 写 data-late） */
 .sz-result[data-late="pending"]>:not(.sz-work){opacity:0;pointer-events:none}
-.sz-result:not([data-late])>:not(.sz-work){transition:opacity 150ms ease-out}
+.sz-result:not([data-late])>:not(.sz-work){transition:opacity ${M.moment.resultLateIn}ms ${T.eOut}}
 .sz-page[data-late="pending"] .sz-page__foot{opacity:0;pointer-events:none}
-.sz-page[data-testid="result-screen"]:not([data-late]) .sz-page__foot{transition:opacity 150ms ease-out}
-@media (prefers-reduced-motion: reduce){.sz-wcell--in,.sz-work__kuan--in,.sz-seal--land{animation:none}.sz-result:not([data-late])>:not(.sz-work),.sz-page[data-testid="result-screen"]:not([data-late]) .sz-page__foot{transition:none}}
+.sz-page[data-testid="result-screen"]:not([data-late]) .sz-page__foot{transition:opacity ${M.moment.resultLateIn}ms ${T.eOut}}
+@media (prefers-reduced-motion: reduce){.sz-result:not([data-late])>:not(.sz-work),.sz-page[data-testid="result-screen"]:not([data-late]) .sz-page__foot{transition-duration:${T.dReduce};transition-timing-function:${T.eLinear}}} /* 减少动态效果：不演显现与落印（shouldPlayReveal，T1 直接终态），触觉与 s1 照发 */
 .sz-exrows{display:flex;flex-direction:column;margin-top:28px}
 .sz-exrow{display:flex;align-items:center;gap:4px;min-height:52px;box-sizing:border-box}
 .sz-exrow__open{flex:1;min-width:0;min-height:52px;display:flex;align-items:center;gap:12px;padding:8px 0;margin:0;border:0;background:transparent;
@@ -276,7 +278,7 @@ export function WorkSection({ work, day, dateText, inkOf, onOpen, picked = false
       land();
       return undefined;
     }
-    const timer = setTimeout(land, plan.total + 150); // 保底：animationend 没来（后台标签页等）也要落
+    const timer = setTimeout(land, plan.total + M.dur.fade); // 保底：animationend 没来（后台标签页等）也要落
     const skip = () => land();
     window.addEventListener('pointerdown', skip, true);
     return () => {

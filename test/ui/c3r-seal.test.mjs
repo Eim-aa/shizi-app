@@ -8,7 +8,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  SEAL_FALL_MS, SEAL_REBOUND_MS, commitSealed, isSealed, resetReveal, revealPlan, shouldPlayReveal,
+  SEAL_CONTACT_AT, SEAL_FALL_MS, SEAL_REBOUND_MS, commitSealed, isSealed, resetReveal, revealPlan, shouldPlayReveal,
 } from '../../src/ui/screens/result/work.js';
 import { HAPTIC_KINDS, haptic, hapticLog, hapticTimes, resetCommitFeedback } from '../../src/platform/haptics.js';
 import { validateSession } from '../../src/core/schema.js';
@@ -29,11 +29,12 @@ test('revealPlan: 印先落 100ms 到最小缩放（着纸），再 120ms 回弹
 
 test('样式：着纸的关键帧百分比 = 落下段 / 总长，且最小缩放 .92、回弹到 1', () => {
   const src = readFileSync(join(ROOT, 'src/ui/screens/result/work.js'), 'utf8');
-  const m = src.match(/@keyframes szResultSeal\{0%\{[^}]*\}([\d.]+)%\{opacity:1;transform:scale\(\.92\)\}100%\{opacity:1;transform:scale\(1\)\}\}/);
-  assert.ok(m, 'keyframes found');
+  // D58（P2-10）：关键帧位置由时长算出（SEAL_CONTACT_AT），不再手算；时长与曲线取 motion 令牌
+  assert.match(src, /@keyframes szResultSeal\{0%\{opacity:0;transform:scale\(\$\{M\.scale\.sealFrom\}\)\}\$\{SEAL_CONTACT_AT\}%\{opacity:1;transform:scale\(\.92\)\}100%\{opacity:1;transform:scale\(1\)\}\}/, 'keyframes found');
   const pct = (SEAL_FALL_MS / (SEAL_FALL_MS + SEAL_REBOUND_MS)) * 100;
-  assert.ok(Math.abs(Number(m[1]) - pct) < 0.01, `${m[1]}% ≈ ${pct.toFixed(2)}%`);
-  assert.match(src, /\.sz-seal--land\{animation:szResultSeal 220ms ease-out both\}/);
+  assert.ok(Math.abs(SEAL_CONTACT_AT - pct) < 0.01, `${SEAL_CONTACT_AT}% ≈ ${pct.toFixed(2)}%`);
+  assert.equal(SEAL_FALL_MS + SEAL_REBOUND_MS, 220, 'motion.moment.sealDrop');
+  assert.match(src, /\.sz-seal--land\{animation:szResultSeal \$\{M\.moment\.sealDrop\}ms \$\{T\.eOut\} both\}/);
 });
 
 test('haptics: seal 档存在，记录发出时刻（与 hapticLog 一一对应）', () => {

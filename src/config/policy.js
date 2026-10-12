@@ -6,6 +6,9 @@
 // 每个导出项、每个嵌套键的注释都含 P 编号，且该编号在 03 表里有登记。
 //
 // 使用：`import * as policy from '../config/policy.js'`；core 函数都接受 `policy` 注入以便测试。
+// 动效时长与曲线（motion / paperTransition / skipUndo 里的毫秒数）取 config/motion.js（tokens.json motion / timing，D58）；这里只登记用途与 P 编号。
+
+import { M } from './motion.js';
 
 // ---- 功能开关 ----
 // P31 / P07 / P08 / P11 / P12 / P13 / P49 / P51 / P30：features.* 开关，每个键的来源见行尾。
@@ -245,35 +248,35 @@ export const axShortPrimaryFrom = 3;
 // P70 动画节奏（工程取值，原型没有；待设计走查）。各模块默认从这里读，仍可经参数覆盖。
 export const motion = Object.freeze({
   answerSpeed: 1.6, // P70 看答案 / 先播一遍笔顺动画速度（hanzi-writer strokeAnimationSpeed）；src/ui/canvas/glyph.js ANIMATION
-  answerStrokeGapMs: 180, // P70 看答案笔间隔（hanzi-writer delayBetweenStrokes，ms）；glyph.js ANIMATION
-  answerFadeMs: 240, // P70 看答案淡入淡出（hanzi-writer strokeFadeDuration，ms）；glyph.js ANIMATION
-  hintStrokeMs: 240, // P70 提示单笔描画时长上限（ms，下限 110 为原型值）；src/ui/screens/write/hint-layer.js HINT_DRAW.maxMs
+  answerStrokeGapMs: M.dur.s, // P70 看答案笔间隔（hanzi-writer delayBetweenStrokes，ms）；glyph.js ANIMATION
+  answerFadeMs: M.dur.release, // P70 看答案淡入淡出（hanzi-writer strokeFadeDuration，ms；D58 归并：240 → motion.duration.release 220）；glyph.js ANIMATION
+  hintStrokeMs: M.dur.release, // P70 提示单笔描画时长上限（ms；D58 归并：240 → motion.duration.release 220，下限 110 → fade 150）；src/ui/screens/write/hint-layer.js HINT_DRAW.maxMs
   hintStagger: 0.7, // P70 提示第 j 笔延迟 = j × 单笔时长 × 此系数；hint-layer.js HINT_DRAW.stagger
-  reducedFadeMs: 120, // P70 减少动态效果时提示与笔迹的淡入淡出（ms，R-G01）；hint-layer.js REDUCED_FADE_MS
-  persistNoticeMs: 5000, // P70 P52 抬笔写失败的一次性顶部提示显示时长（ms）；src/ui/screens/write/persist.js NOTICE_MS
-  hintFadeInMs: 150, // P210 提示整组淡入（ms，D34 / D51 ⑧：网页阶段不逐笔写出）；hint-layer.js HINT_FADE_IN_MS
-  answerRevealMs: 400, // P210 看答案时答案衬底显影（ms，求助梯子设计稿 I2-02；减少动态效果直接显示）；answer.js ANSWER_REVEAL_MS
-  stepPlayMaxMs: 1600, // P210 描一遍前笔顺快放总时长上限（ms，含起始淡化与笔间隔；落笔 / 点一下即到终态）；glyph.js playbackPlan
+  reducedFadeMs: M.dur.reduce, // P70 减少动态效果时提示与笔迹的淡入淡出（ms；D58 ② 全 App 统一 150，原 R-G01 120）；hint-layer.js REDUCED_FADE_MS
+  persistNoticeMs: M.timing.toastWithAction, // P70 P52 抬笔写失败的一次性顶部提示显示时长（ms）；src/ui/screens/write/persist.js NOTICE_MS
+  hintFadeInMs: M.role.hintIn, // P210 提示整组淡入（ms，D34 / D51 ⑧：网页阶段不逐笔写出）；hint-layer.js HINT_FADE_IN_MS
+  answerRevealMs: M.moment.answerReveal, // P210 看答案时答案衬底显影（ms，求助梯子设计稿 I2-02；减少动态效果直接显示）；answer.js ANSWER_REVEAL_MS
+  stepPlayMaxMs: M.moment.stepPlayMax, // P210 描一遍前笔顺快放总时长上限（ms，含起始淡化与笔间隔；落笔 / 点一下即到终态）；glyph.js playbackPlan
 });
 // P282–P284 写字页进出动效（W2，D57；设计稿「写字页与我的.html」B 节，B1 按钮长成这张纸 / B3 安静淡入）。进出共用同一个进度 s（1 = 写字页，0 = 来源）：点按时 s 按曲线走，
 // 左缘右滑时 s = 1 − 手指进度 p 逐帧跟手（src/ui/paper-transition.js，由 root.js 的 BACK_TRANSITION 接上 router 的进度接口）。曲线是 cubic-bezier 的四个控制点。
 export const paperTransition = Object.freeze({
-  openMs: 420, // P282 B1 进入时长（ms）：按钮长成整张纸；曲线 openEase
-  closeMs: 360, // P282 B1 退出时长（ms）：纸收回按钮；曲线 closeEase
-  openEase: Object.freeze([0.3, 0, 0.1, 1]), // P282 B1 进入曲线（起步稍慢，让人看得见按钮在长）
-  closeEase: Object.freeze([0.2, 0.7, 0.2, 1]), // P282 B1 退出 / 松手完成 / 取消回弹的曲线
-  fullMs: 300, // P282 左缘右滑松手完成：从当前位置继续收进按钮，时长 fullMs × 剩余进度 s（至少 minFinishMs）
-  minFinishMs: 120, // P282 松手完成的最短时长（ms）
-  cancelMs: 220, // P282 松手取消：长回整屏的时长（ms）
-  dragLeanPt: 60, // P282 跟手时纸往右偏的最大量 sin(π·p) × 60（pt）
-  dragRadiusPt: 24, // P282 跟手开始时纸的圆角（pt），随进度收到按钮的圆角
+  openMs: M.role.paperIn, // P282 B1 进入时长（ms）：按钮长成整张纸；曲线 openEase
+  closeMs: M.role.paperOut, // P282 B1 退出时长（ms）：纸收回按钮；曲线 closeEase
+  openEase: M.bezier.paperOpen, // P282 B1 进入曲线（起步稍慢，让人看得见按钮在长）
+  closeEase: M.bezier.out, // P282 B1 退出 / 松手完成 / 取消回弹的曲线
+  fullMs: M.role.paperGestureFull, // P282 左缘右滑松手完成：从当前位置继续收进按钮，时长 fullMs × 剩余进度 s（至少 minFinishMs）
+  minFinishMs: M.role.paperGestureMin, // P282 松手完成的最短时长（ms）
+  cancelMs: M.role.gestureCancel, // P282 松手取消：长回整屏的时长（ms）
+  dragLeanPt: M.distance.paperDragLean, // P282 跟手时纸往右偏的最大量 sin(π·p) × 60（pt）
+  dragRadiusPt: M.distance.paperDragRadius, // P282 跟手开始时纸的圆角（pt），随进度收到按钮的圆角
   contentFadeFrom: 0.6, // P282 写字页内容在 s 从 0.6 起淡入（到 1 满）
-  quietOpenMs: 220, // P283 B3 安静淡入进入时长（ms）：没有来源按钮的入口（通知、字库「练这个字」、自选字等）
-  quietCloseMs: 180, // P283 B3 退出时长（ms）
-  quietScaleFrom: 0.96, // P283 B3 写字页从 0.96 放大到 1
-  quietDragPt: 40, // P283 B3 左缘右滑时页面跟手右移的最大量（pt）= (1 − s) × 40
-  reducedMs: 150, // P284 减少动态效果：进、出、左缘右滑完成一律 150ms 交叉淡化，不缩放、不位移
-  sourceFreshMs: 2000, // P282 点来源按钮到页面真正推入之间最多隔多久仍算「从这个按钮来」（ms，超过按没有来源走 B3）
+  quietOpenMs: M.role.quietIn, // P283 B3 安静淡入进入时长（ms）：没有来源按钮的入口（通知、字库「练这个字」、自选字等）
+  quietCloseMs: M.role.quietOut, // P283 B3 退出时长（ms）
+  quietScaleFrom: M.scale.quietFrom, // P283 B3 写字页从 0.96 放大到 1
+  quietDragPt: M.distance.quietDrag, // P283 B3 左缘右滑时页面跟手右移的最大量（pt）= (1 − s) × 40
+  reducedMs: M.dur.reduce, // P284 减少动态效果：进、出、左缘右滑完成一律 150ms 交叉淡化，不缩放、不位移
+  sourceFreshMs: M.timing.sourceFresh, // P282 点来源按钮到页面真正推入之间最多隔多久仍算「从这个按钮来」（ms，超过按没有来源走 B3）
 });
 
 // ---- 查字 / 字库 ----
@@ -371,7 +374,7 @@ export const routeRestore = Object.freeze({
 // ---- 跳过撤销（阶段 0 B2，D36）----
 // P115 跳过后底部撤销条的寿命与读屏行为（已决定 D36）。src/ui/screens/write/skip.js 读取（SKIP_UNDO_MS 由它派生）。
 export const skipUndo = Object.freeze({
-  ms: 5000, // P115 撤销条显示多久（毫秒）；原 3000
+  ms: M.timing.undoWindow, // P115 撤销条显示多久（毫秒）；原 3000
   pauseWhileHeld: true, // P115 手指按在撤销条上时暂停计时，松开后接着走（剩余时间不重置）
   keepOpenWithAssistiveTech: true, // P115 VoiceOver / 切换控制运行时不自动收起，到下一次操作才收起（P116 读屏状态由原生传入）
 });

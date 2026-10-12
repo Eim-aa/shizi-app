@@ -15,6 +15,7 @@
 //   kind:'cancel' 原生丢弃了正在写的一笔（触摸被系统取消、被隐藏等）→ onStrokeCancel。
 // 判断落定原型（时刻编排 ② M23）：点「写对了 / 写错了」时把本人笔迹的格子与页头计数的位置发给原生 op:'settle'，由原生画「收起」并同帧发触觉。
 
+import { M } from '../../config/motion.js';
 const MSG = 'nativeInk';
 
 function channel(win) {
@@ -239,7 +240,7 @@ export function attachNativeInk({ box, inkCanvas, liveCanvas, win, getProps, onE
       liveCanvas.style.opacity = prevLive;
       // 书写格卸载（写好了 → 对照、换页）：页面阶段交叉淡化 150ms（phase-fade.js FADE_MS）的快照里网页墨是隐藏的，
       // 所以由原生层把自己的墨在同样 150ms 里淡出，而不是第 0 帧消失
-      post(win, { op: 'rect', visible: false, fadeMs: 150 });
+      post(win, { op: 'rect', visible: false, fadeMs: M.role.fadeOut }); // 减少动态效果下同样是 150ms（motion.duration.reduce = fade）
       if (active && active.onNative === onNative) {
         active = null;
         if (win.shiziNativeInk === onNative) win.shiziNativeInk = undefined;

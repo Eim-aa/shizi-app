@@ -12,7 +12,7 @@
 //      · 新状态里有墨且在同一位置同一大小（回忆 → 看答案）→ 快照里的墨去掉，只有真实的那一层；
 //      · 新状态没有墨（看答案 → 描一遍、判断后换下一字…）→ 旧墨随快照 150ms 淡出（只有这一层）；
 //   4. 文字类区域内容变了的（旧 / 新文字不同）：旧的 0–75ms 淡出、新的 75–150ms 淡入，两者不同时可见（不叠字）；内容没变的区域不动（「‹」、计数、不变的题面不闪）；
-//   5. 减少动态效果（prefers-reduced-motion）：直接切换，不拍快照、不做 FLIP。
+//   5. 减少动态效果（prefers-reduced-motion）：仍拍快照做 150ms 线性交叉淡化（motion.duration.reduce，D58 ②：不再硬切，P1-10），只是不做 FLIP（墨直接在新位置）。
 // 终态与没有过渡时逐像素相同。墨迹与笔画现场不受影响：快照 / FLIP canvas 只是盖在上面的图，真页面的状态机、写回、落笔接受都照常。
 //
 // 纯函数 / 小工具（node:test 可直接测）：FADE_MS、FLIP_MS、TEXT_OUT_MS、reducedMotion(win)、makeSnapshot(page, doc)、removeSnapshots(page)、
@@ -20,14 +20,15 @@
 
 import { useLayoutEffect, useRef } from '../../../../vendor/ui.js';
 import { injectStyles, T } from '../../components/styles.js';
+import { M, prefersReducedMotion } from '../../../config/motion.js';
 
-/** 交叉淡化时长（ms；P227，取实现交接 §0.4）。 */
-export const FADE_MS = 150;
-/** 本人墨 FLIP 缩放时长与缓动（ms；D53 ⑥，取 moments 规格 ① 的最小子集）。 */
-export const FLIP_MS = 200;
-export const FLIP_EASING = 'cubic-bezier(.2,.7,.2,1)';
-/** 文字类区域：旧的先淡出（ms），新的在这之后 FADE_MS − TEXT_OUT_MS 内淡入。 */
-export const TEXT_OUT_MS = 75;
+/** 交叉淡化时长（ms；P227，T-phase：motion.role.fadeIn）。 */
+export const FADE_MS = M.role.fadeIn;
+/** 本人墨 FLIP 缩放时长与缓动（ms；D53 ⑥，motion.role.inkFlip / easing.out）。 */
+export const FLIP_MS = M.role.inkFlip;
+export const FLIP_EASING = M.ease.out;
+/** 文字类区域：旧的先淡出（ms，motion.role.textOut），新的在这之后 FADE_MS − TEXT_OUT_MS 内淡入。 */
+export const TEXT_OUT_MS = M.role.textOut;
 export const SNAPSHOT_TESTID = 'write-phase-snapshot';
 const FOCUSABLE_TAGS = Object.freeze(['button', 'a', 'input', 'select', 'textarea']);
 
@@ -46,24 +47,19 @@ injectStyles('write-fade', `
 @keyframes szTextOut{from{opacity:1}to{opacity:0}}
 @keyframes szTextIn{0%,50%{opacity:0}100%{opacity:1}}
 .sz-phasefade{position:absolute;left:0;top:0;right:0;bottom:0;z-index:6;overflow:hidden;pointer-events:none;background:${T.paper};
-  animation:szPhaseOut ${FADE_MS}ms linear both}
+  animation:szPhaseOut ${FADE_MS}ms ${T.eLinear} both}
 .sz-phasefade>.sz-page{height:100%}
 .sz-phasefade *{animation:none !important} /* 克隆出来的元素会重新起动画（参考格淡入、判断键出现…）：快照要的是「旧状态此刻的样子」，一律取终态 */
-.sz-phasefade [data-fade-out]{animation:szTextOut ${TEXT_OUT_MS}ms linear both !important} /* 文字类区域旧的先淡出（只在内容变了的区域） */
-.sz-page [data-fade-in]{animation:szTextIn ${FADE_MS}ms linear both} /* 新的 75ms 起淡入（0–75ms 全透明，不和旧的叠字） */
+.sz-phasefade [data-fade-out]{animation:szTextOut ${TEXT_OUT_MS}ms ${T.eLinear} both !important} /* 文字类区域旧的先淡出（只在内容变了的区域） */
+.sz-page [data-fade-in]{animation:szTextIn ${FADE_MS}ms ${T.eLinear} both} /* 新的 75ms 起淡入（0–75ms 全透明，不和旧的叠字） */
 .sz-flipink{position:absolute;z-index:7;margin:0;pointer-events:none;transform-origin:50% 0;will-change:transform}
 [data-flip-hide]{visibility:hidden}
-@media (prefers-reduced-motion: reduce){.sz-phasefade,.sz-flipink{display:none}.sz-page [data-fade-in]{animation:none}[data-flip-hide]{visibility:visible}}
+@media (prefers-reduced-motion: reduce){.sz-flipink{display:none}[data-flip-hide]{visibility:visible}.sz-phasefade{animation-duration:${T.dReduce}}} /* 减少动态效果：150ms 交叉淡化，不缩放（D58 ②） */
 `);
 
 /** 系统是否开了「减少动态效果」。 */
 export function reducedMotion(win) {
-  const w = win || (typeof window !== 'undefined' ? window : null);
-  try {
-    return !!(w && w.matchMedia && w.matchMedia('(prefers-reduced-motion: reduce)').matches);
-  } catch (error) {
-    return false;
-  }
+  return prefersReducedMotion(win || (typeof window !== 'undefined' ? window : null)); // P2-13：全 App 唯一的判断
 }
 
 /** 移掉页上还在淡出的旧快照与上一次 FLIP 的残留（连续切换时先收掉上一张）。 */
@@ -256,11 +252,11 @@ export function mountSnapshot(page, snap, writeEl, win) {
     if (!e || e.target === wrap) finish();
   });
   if (w) {
-    w.setTimeout(finish, FADE_MS + 90);
-    w.setTimeout(finishText, FADE_MS + 90);
+    w.setTimeout(finish, FADE_MS + M.dur.xs);
+    w.setTimeout(finishText, FADE_MS + M.dur.xs);
     if (flip) {
       if (flip.anim && flip.anim.finished && typeof flip.anim.finished.then === 'function') flip.anim.finished.then(finishFlip, finishFlip);
-      w.setTimeout(finishFlip, FLIP_MS + 120);
+      w.setTimeout(finishFlip, FLIP_MS + M.dur.press);
     }
   }
   return () => {
@@ -283,7 +279,7 @@ export function usePhaseFade(writeRef, key) {
     if (!pending.current || pending.current.to !== key) {
       const el = writeRef.current;
       const page = el && el.closest ? el.closest('.sz-page') : null;
-      pending.current = { to: key, snap: page && !reducedMotion() ? makeSnapshot(page) : null };
+      pending.current = { to: key, snap: page ? makeSnapshot(page) : null }; // 减少动态效果下也拍：150ms 交叉淡化，不硬切（P1-10）
     }
   }
   useLayoutEffect(() => {

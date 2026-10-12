@@ -17,6 +17,16 @@
 //                的规则 / 代码，必须逐条登记在 EXCEPTIONS（rule 'glyph'：题跋 / 释义 / 词语文字、输入框、
 //                轮廓缺失的回退分支……），写明为什么它不是「练习字」；练习字（要写的字、参考字、衬底字、墙 / 字帖 / 详情 / 图片里的标准字形）
 //                一律走 ui/components/PracticeGlyph.js（SVG 轮廓）或 core/images/render.js paintOutline（canvas 轮廓）。登记过期也报错。
+//   motion       动效令牌（交互与动效规范 T2 / §8a，D58）：代码里的动画时长、延迟与曲线只能取 motion 令牌，手势阈值只能取 gesture，计时只能取 timing。
+//                定义处 src/config/tokens.css 与 src/config/motion.js 不查。查这些：
+//                · CSS 的 transition / animation（含 -duration / -delay / -timing-function）里写死的时长（.2s、150ms）与曲线（cubic-bezier(、ease、
+//                  ease-in、ease-out、ease-in-out、linear 关键字）——只许 var(--dur-*) var(--ease-*) 或 ${M.*}；
+//                · JS 的 duration: N、ms: N、easing: '…' 字面量（N ≠ 0）；setTimeout / setInterval 的延时里写死的数字；
+//                  XXX_MS = N、xxxMs: N 这类常量 / 键（动画编排取 motion.*，非动画计时取 timing.*）；
+//                · 手势常量 XXX_RATIO / XXX_VELOCITY / XXX_PARALLAX = N（取 gesture.* / motion.distance.*）；
+//                · @media (prefers-reduced-motion: reduce) 里写 animation:none / transition:none（减少动态效果是 150ms 淡化 var(--dur-reduce)，不是硬切）。
+//                确实不是动画、或本就该直接终态的（T1），逐条登记在 EXCEPTIONS（rule 'motion'），写明理由；登记过期也报错。
+//                另外核对 tokens.json 的 motion.duration / easing 与 tokens.css 的 --dur-* / --ease-* 逐值一致。
 //
 // 用法：node scripts/verify_tokens.mjs [--root=<目录>] [--quiet]   有违规退出码 1；--root 指向另一份源码树（比较旧代码用）。
 
@@ -31,10 +41,12 @@ export const SCAN_DIRS = Object.freeze(['src/ui', 'src/config']);
 /** 只检查 glyph 规则的目录（图片导出的 canvas 字体）。 */
 export const GLYPH_ONLY_DIRS = Object.freeze(['src/core/images']);
 export const FONT_SCALE = Object.freeze([11, 13, 15, 17, 22, 28, 34]);
-export const RULES = Object.freeze(['fontSize', 'radius', 'letterSpacing', 'color', 'zhu', 'legacy', 'glyph']);
+export const RULES = Object.freeze(['fontSize', 'radius', 'letterSpacing', 'color', 'zhu', 'legacy', 'glyph', 'motion']);
 
 /** 令牌文件本身：颜色字面量与旧名的「定义处」。 */
 const TOKEN_FILE = 'src/config/tokens.css';
+/** 动效令牌的定义处（motion 规则不查）。 */
+export const MOTION_DEF_FILES = Object.freeze(['src/config/tokens.css', 'src/config/motion.js']);
 
 /**
  * 朱色白名单（文件 → 理由）。只有「写错的朱点」「印章」「落款」三类组件。
@@ -81,6 +93,21 @@ export const EXCEPTIONS = Object.freeze([
   { rule: 'color', file: 'src/ui/canvas/brush.js', snippet: '#', why: '笔刷纯函数的默认墨色与离屏 canvas 的 alpha 蒙版（#000 只当蒙版，不上屏）' },
   { rule: 'color', file: 'src/ui/canvas/brush.js', snippet: 'rgba(', why: '笔刷渐变的透明端点（alpha 蒙版，不上屏）' },
   { rule: 'color', file: 'src/ui/dev/pointer-stats.js', snippet: 'rgba(', why: '开发页（?dev=1）指针统计画布的示意色，不进产品界面' },
+  // ---- motion：不是动画时长 / 曲线的计时，或本就该直接终态的（交互与动效规范 §8a；每条写明理由）。pending = 交互合规待修清单里的审计编号：
+  //      对应代码由别的卡删除，删掉后这条登记自动不算过期（只打印提醒删除登记）。
+  { rule: 'motion', file: 'src/ui/canvas/ink-canvas.js', snippet: 'win.setTimeout(drawLive, 16)', why: '没有 requestAnimationFrame 时（极旧环境 / 测试替身）按 16ms 一帧兜底，不是动画时长' },
+  { rule: 'motion', file: 'src/ui/paper-transition.js', snippet: 'MAX_FRAME_MS = 50', why: '逐帧推进时单帧最多前进 50ms（主线程卡顿时不跳帧到终点），不是动画时长' },
+  { rule: 'motion', file: 'src/ui/paper-transition.js', snippet: 'setTimeout(() => fn(nowMs()), 16)', why: '没有 requestAnimationFrame 时按 16ms 一帧兜底' },
+  { rule: 'motion', file: 'src/ui/screens/library/all.js', snippet: 'setTimeout(fn, 16)', why: '没有 requestAnimationFrame 时按 16ms 一帧兜底' },
+  { rule: 'motion', file: 'src/ui/components/image-preview.js', snippet: 'NATIVE_SAVE_TIMEOUT_MS = 120000', why: '原生保存到相册的等待上限（系统权限弹窗可能停很久），不是动画；等待中的界面按 F4 处理' },
+  { rule: 'motion', file: 'src/ui/dev/pointer-stats.js', snippet: 'WINDOW_MS = 2000', why: '开发页（?dev=1）指针统计的滑动窗口，不进产品界面' },
+  { rule: 'motion', file: 'src/ui/edge-swipe.js', snippet: 'VELOCITY_WINDOW_MS = 100', why: '估手指速度的时间窗（与原生 UIPanGestureRecognizer 的速度同口径），不是动画时长' },
+  { rule: 'motion', file: 'src/ui/router.js', snippet: 'PENDING_TIMEOUT_MS = 1000', why: 'history.back() 之后等 popstate 的上限（导航兜底），不是动画时长' },
+  { rule: 'motion', file: 'src/ui/router.js', snippet: 'GESTURE_ABSORB_MS = 600', why: '原生 shizi-native-back 归入同一次手势的时间窗（事件去重），不是动画时长' },
+  { rule: 'motion', file: 'src/ui/screens/home/index.js', snippet: 'CLOCK_TICK_MS = 30000', why: '首页日期 / 时段重算间隔（时钟），不是动画' },
+  { rule: 'motion', file: 'src/ui/screens/write/index.js', snippet: 'PEN_ARM_MS = 250', why: '换字后早到的落笔先缓存、到点补画的窗口（P227，输入处理，不丢笔），不是动画时长' },
+  { rule: 'motion', file: 'src/ui/components/Toast.js', snippet: '.sz-toast__timer{animation:none}', why: '提示条底边的计时线是进度指示（scaleX），减少动态效果下不做缩放、静止显示；提示条本身仍是 150ms 淡化' },
+  { rule: 'motion', file: 'src/ui/screens/mine/settings.js', snippet: 'TEXT_SIZE_NOTICE_MS = 6000', pending: 'P0-13', why: '「文字大小跟随手机设置」的一次性说明条（P132 过渡值）；审计 P0-13 由卡 I3 删除这条说明，删掉后这条登记一并删' },
 ]);
 
 // 旧令牌名：P1-E1a 之前的变量，一个都不许再引用。
@@ -166,6 +193,144 @@ export function findKaiUses(text) {
   return found;
 }
 
+// ---- motion 规则（D58，§8a） ----
+const CSS_MOTION_DECL_RE = /(?:^|[{;\s"'`])((?:transition|animation)(?:-(?:duration|delay|timing-function))?)\s*:\s*((?:\$\{[^}]*\}|[^;}`'"$])*)/g;
+const CSS_TIME_RE = /(?<![\w.-])\d*\.?\d+m?s\b/;
+const CSS_EASE_RE = /cubic-bezier\(|\bsteps\(|(?<![\w-])(?:ease|ease-in|ease-out|ease-in-out|linear|step-start|step-end)(?![\w-])/;
+const JS_LITERAL_KEY_RE = /(?<![\w-])(duration|ms|delay)\s*:\s*(-?\d[\d.]*)/g;
+const JS_EASING_RE = /\beasing\s*:\s*['"`]([^'"`]*)['"`]/g;
+const JS_CONST_MS_RE = /\b([A-Z][A-Z0-9_]*_MS|[a-z]\w*Ms)\s*(?::|=(?!=))\s*(-?\d[\d._]*)/g;
+const JS_GESTURE_RE = /\b([A-Z0-9_]*(?:VELOCITY|PARALLAX|COMMIT_RATIO|SLOP|SLOP_PX|EDGE_ZONE|EDGE_ZONE_PX))\s*=(?!=)\s*(-?\d[\d./\s]*)/g;
+/** JS 里写进 style 的动画 / 过渡字符串：el.style.animation = `…`、style=${{ animation: `…` }}。 */
+const JS_STYLE_TEMPLATE_RE = /\b(animation|transition)(?:Duration|TimingFunction|Delay)?\s*(?::|=(?!=))\s*`([^`]*)`/g;
+const TIMER_RE = /\bset(?:Timeout|Interval)\s*\(/g;
+const REDUCED_RE = /@media\s*\(\s*prefers-reduced-motion\s*:\s*reduce\s*\)\s*\{/g;
+
+function lineAt(text, index) {
+  const a = text.lastIndexOf('\n', index) + 1;
+  const b = text.indexOf('\n', index);
+  return text.slice(a, b < 0 ? text.length : b).trim();
+}
+
+/** 从 open（左括号的下一个位置）找配对的右括号，返回右括号下标（找不到 -1）。 */
+function matchParen(text, open, l = '(', r = ')') {
+  let depth = 1;
+  for (let i = open; i < text.length; i += 1) {
+    const ch = text[i];
+    if (ch === l) depth += 1;
+    else if (ch === r) {
+      depth -= 1;
+      if (depth === 0) return i;
+    }
+  }
+  return -1;
+}
+
+/** 顶层逗号切参数。 */
+function splitArgs(s) {
+  const out = [];
+  let depth = 0;
+  let start = 0;
+  for (let i = 0; i < s.length; i += 1) {
+    const ch = s[i];
+    if ('([{'.includes(ch)) depth += 1;
+    else if (')]}'.includes(ch)) depth -= 1;
+    else if (ch === ',' && depth === 0) {
+      out.push(s.slice(start, i));
+      start = i + 1;
+    }
+  }
+  out.push(s.slice(start));
+  return out.map(x => x.trim());
+}
+
+/**
+ * motion 规则：找出令牌外的动效时长 / 曲线 / 计时 / 手势常量，返回 [{index, kind, snippet}]（注释已去掉的文本）。
+ * kind：css-time / css-ease / js-duration / js-easing / js-const / timer / gesture / reduced-none。
+ */
+export function findMotionUses(text) {
+  const found = [];
+  const add = (index, kind) => found.push({ index, kind, snippet: lineAt(text, index) });
+  let m;
+  // CSS：transition / animation 声明（模板字符串里的 ${…} 与 var(…) 先去掉）
+  CSS_MOTION_DECL_RE.lastIndex = 0;
+  while ((m = CSS_MOTION_DECL_RE.exec(text))) {
+    const raw = m[2];
+    const value = raw.replace(/\$\{[^}]*\}/g, ' ').replace(/var\([^)]*\)/g, ' ');
+    const at = m.index + m[0].indexOf(m[1]);
+    if (CSS_TIME_RE.test(value)) add(at, 'css-time');
+    else if (CSS_EASE_RE.test(value)) add(at, 'css-ease');
+  }
+  JS_STYLE_TEMPLATE_RE.lastIndex = 0;
+  while ((m = JS_STYLE_TEMPLATE_RE.exec(text))) {
+    const value = m[2].replace(/\$\{[^}]*\}/g, ' ').replace(/var\([^)]*\)/g, ' ');
+    if (CSS_TIME_RE.test(value)) add(m.index, 'css-time');
+    else if (CSS_EASE_RE.test(value)) add(m.index, 'css-ease');
+  }
+  JS_LITERAL_KEY_RE.lastIndex = 0;
+  while ((m = JS_LITERAL_KEY_RE.exec(text))) {
+    if (Number(m[2]) === 0) continue;
+    add(m.index, 'js-duration');
+  }
+  JS_EASING_RE.lastIndex = 0;
+  while ((m = JS_EASING_RE.exec(text))) {
+    if (/^\$\{[^}]*\}$/.test(m[1].trim())) continue;
+    add(m.index, 'js-easing');
+  }
+  JS_CONST_MS_RE.lastIndex = 0;
+  while ((m = JS_CONST_MS_RE.exec(text))) {
+    if (Number(m[2].replace(/_/g, '')) === 0) continue;
+    add(m.index, 'js-const');
+  }
+  JS_GESTURE_RE.lastIndex = 0;
+  while ((m = JS_GESTURE_RE.exec(text))) add(m.index, 'gesture');
+  TIMER_RE.lastIndex = 0;
+  while ((m = TIMER_RE.exec(text))) {
+    const open = m.index + m[0].length;
+    const close = matchParen(text, open);
+    if (close < 0) continue;
+    const args = splitArgs(text.slice(open, close));
+    if (args.length < 2) continue;
+    const delay = args[1].replace(/\$\{[^}]*\}/g, ' ');
+    const nums = delay.match(/(?<![\w.])\d*\.?\d+(?![\w.])/g) || [];
+    if (nums.some(n => Number(n) !== 0)) add(m.index, 'timer');
+  }
+  // 减少动态效果：块里写 animation:none / transition:none = 硬切
+  REDUCED_RE.lastIndex = 0;
+  while ((m = REDUCED_RE.exec(text))) {
+    const open = m.index + m[0].length;
+    const close = matchParen(text, open, '{', '}');
+    const body = text.slice(open, close < 0 ? text.length : close);
+    const re = /(?:animation|transition)\s*:\s*none\b/g;
+    let k;
+    while ((k = re.exec(body))) add(open + k.index, 'reduced-none');
+  }
+  return found.sort((a, b) => a.index - b.index);
+}
+
+/** tokens.json 的 motion.duration / easing 与 tokens.css :root 的 --dur-* / --ease-* 逐值一致（返回不一致的说明）。 */
+export function motionTokenDrift(root = REPO_ROOT) {
+  const errors = [];
+  let json;
+  try {
+    json = JSON.parse(fs.readFileSync(path.join(root, 'docs/design/design-system-v1/tokens.json'), 'utf8'));
+  } catch (error) {
+    return errors; // 另一份源码树（--root）可能没有 docs
+  }
+  const css = fs.readFileSync(path.join(root, TOKEN_FILE), 'utf8');
+  const kebab = s => s.replace(/[A-Z]/g, c => `-${c.toLowerCase()}`);
+  const declared = new Map([...css.matchAll(/^\s*(--(?:dur|ease)-[a-z-]+)\s*:\s*([^;]+);/gm)].map(x => [x[1], x[2].trim()]));
+  const want = new Map();
+  for (const [k, v] of Object.entries((json.motion && json.motion.duration) || {})) want.set(`--dur-${kebab(k)}`, `${v}ms`);
+  for (const [k, v] of Object.entries((json.motion && json.motion.easing) || {})) want.set(`--ease-${kebab(k)}`, v);
+  for (const [name, value] of want) {
+    if (!declared.has(name)) errors.push(`${name} missing from tokens.css`);
+    else if (declared.get(name).replace(/\s+/g, '') !== value.replace(/\s+/g, '')) errors.push(`${name}: tokens.css ${declared.get(name)} ≠ tokens.json ${value}`);
+  }
+  for (const name of declared.keys()) if (!want.has(name)) errors.push(`${name} is not in tokens.json motion`);
+  return errors;
+}
+
 /**
  * 扫一个文件的文本，返回 [{rule, file, line, snippet}]（已去掉登记过的例外）。
  * rel：相对仓库根的路径（决定白名单与例外）；used：收集用到过的例外，供过期检查。
@@ -249,6 +414,14 @@ export function scanText(rel, source, used = new Set()) {
       out.push({ rule: 'glyph', file: rel, line: lineOf(text, use.index), snippet: use.snippet.slice(0, 120) });
     }
   }
+  // 动效令牌（D58，§8a）：定义处不查
+  if (!MOTION_DEF_FILES.includes(rel) && !GLYPH_ONLY_DIRS.some(dir => rel.startsWith(`${dir}/`))) {
+    for (const use of findMotionUses(text)) {
+      const ex = EXCEPTIONS.find(e => e.rule === 'motion' && e.file === rel && use.snippet.includes(e.snippet));
+      if (ex) { used.add(ex); continue; }
+      out.push({ rule: 'motion', file: rel, line: lineOf(text, use.index), snippet: `[${use.kind}] ${use.snippet}`.slice(0, 160) });
+    }
+  }
   return out;
 }
 
@@ -281,16 +454,19 @@ export function scan({ root = REPO_ROOT } = {}) {
       checked += 1;
     }
   }
-  const stale = root === REPO_ROOT ? EXCEPTIONS.filter(e => !used.has(e)) : [];
+  for (const msg of motionTokenDrift(root)) violations.push({ rule: 'motion', file: TOKEN_FILE, line: 0, snippet: msg });
+  const stale = root === REPO_ROOT ? EXCEPTIONS.filter(e => !used.has(e) && !e.pending) : [];
+  const pendingGone = root === REPO_ROOT ? EXCEPTIONS.filter(e => !used.has(e) && e.pending) : [];
   const counts = Object.fromEntries(RULES.map(r => [r, violations.filter(v => v.rule === r).length]));
-  return { violations, stale, checked, counts };
+  return { violations, stale, checked, counts, pendingGone };
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const rootArg = process.argv.find(a => a.startsWith('--root='));
   const quiet = process.argv.includes('--quiet');
   const root = rootArg ? path.resolve(rootArg.slice('--root='.length)) : REPO_ROOT;
-  const { violations, stale, checked, counts } = scan({ root });
+  const { violations, stale, checked, counts, pendingGone } = scan({ root });
+  for (const e of pendingGone) console.log(`[verify-tokens] note: pending exception ${e.pending} (${e.file}: ${e.snippet.slice(0, 40)}) no longer matches — the fix landed, delete it from EXCEPTIONS`);
   if (!quiet) for (const v of violations) console.log(`[verify-tokens] ${v.rule} ${v.file}:${v.line}  ${v.snippet}`);
   for (const e of stale) console.log(`[verify-tokens] stale exception (${e.rule} ${e.file}: ${e.snippet.slice(0, 40)})`);
   const total = violations.length + stale.length;

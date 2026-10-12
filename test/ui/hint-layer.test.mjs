@@ -14,26 +14,26 @@ import { validateValue, KEYS } from '../../src/core/schema.js';
 const data = n => ({ strokes: Array.from({ length: n }, () => 'M 0 0 L 1 1'), medians: Array.from({ length: n }, (_, i) => [[i, i], [i + 10, i + 10]]) });
 const ready = (n, groups) => hintSourceOf({ status: 'ready', data: data(n), char: 'x', groups });
 
-test('strokeDrawMs follows the prototype formula (L506)', () => {
-  const ref = n => Math.round(Math.min(Math.max(1100 / n, 110), 240, 1200 / (0.3 + 0.7 * n)));
+test('strokeDrawMs follows the prototype formula (L506), bounds merged into motion tokens (D58: 110 → fade 150, 240 → release 220)', () => {
+  const ref = n => Math.round(Math.min(Math.max(1100 / n, 150), 220, 1200 / (0.3 + 0.7 * n)));
   for (let n = 1; n <= 20; n += 1) assert.equal(strokeDrawMs(n), ref(n), `n=${n}`);
-  assert.equal(strokeDrawMs(1), 240);
-  assert.equal(strokeDrawMs(4), 240);
-  assert.equal(strokeDrawMs(10), 110);
-  assert.equal(strokeDrawMs(0), 240, 'guards 0 as 1');
+  assert.equal(strokeDrawMs(1), 220);
+  assert.equal(strokeDrawMs(4), 220);
+  assert.equal(strokeDrawMs(10), 150);
+  assert.equal(strokeDrawMs(0), 220, 'guards 0 as 1');
 });
 
 test('hintTimeline staggers each stroke by dur × 0.7', () => {
   const tl = hintTimeline(4);
-  assert.equal(tl.dur, 240);
-  assert.deepEqual(tl.items.map(x => x.delay), [0, 168, 336, 504]);
-  assert.equal(tl.total, 504 + 240);
-  assert.deepEqual(hintTimeline(0), { dur: 240, items: [], total: 0 });
-  assert.equal(HINT_DRAW.easing, 'cubic-bezier(.4,0,.2,1)');
+  assert.equal(tl.dur, 220);
+  assert.deepEqual(tl.items.map(x => x.delay), [0, 154, 308, 462]);
+  assert.equal(tl.total, 462 + 220);
+  assert.deepEqual(hintTimeline(0), { dur: 220, items: [], total: 0 });
+  assert.equal(HINT_DRAW.easing, undefined, 'the unused third curve is gone (P2-06)');
   assert.equal(HINT_DRAW.opacity, 1, 'the group is shown at full strength; the opaque wash needs no layer opacity (D53 ①)');
   assert.equal(HINT_FADE_IN_MS, 150, 'whole group fades in over 150ms (D51 ⑧, P210)');
-  assert.equal(HINT_FADE_OUT_MS, 260);
-  assert.equal(REDUCED_FADE_MS, 120);
+  assert.equal(HINT_FADE_OUT_MS, 260, 'motion.role.hintStrokeOut');
+  assert.equal(REDUCED_FADE_MS, 150, 'the one reduced-motion duration (D58 ②)');
 });
 
 test('group data: present only when every group is a positive int and they sum to the stroke count', () => {
@@ -235,7 +235,7 @@ test('HintLayer: one shared opaque wash for the strokes not written yet (under t
   assert.match(out.props.style.animation, /^szHintOut 260ms linear forwards/);
   assert.equal(one.find(n => n.props && n.props['data-testid'] === 'write-hint-layer').props['data-state'], 'fading');
   const red = collect(HintLayer({ data: d, view: { ...view, absorbed: [{ user: 1, hint: 1 }], fading: [{ hint: 1 }] }, reduced: true }));
-  assert.match(red.find(n => n.props && n.props['data-testid'] === 'write-hint-out').props.style.animation, /^szHintOut 120ms/, 'reduced motion: 120ms');
+  assert.match(red.find(n => n.props && n.props['data-testid'] === 'write-hint-out').props.style.animation, /^szHintOut 150ms/, 'reduced motion: 150ms (D58 ②)');
   // 全部写过且淡完 → 没有提示层
   const gone = collect(HintLayer({ data: d, view: { ...view, absorbed: [{ user: 1, hint: 1 }, { user: 2, hint: 2 }], fading: [] }, reduced: false }));
   assert.equal(gone.find(n => n.props && n.props['data-testid'] === 'write-hint-layer').props['data-state'], 'none');

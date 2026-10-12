@@ -76,14 +76,17 @@ test('P227: the cross-fade is 150ms, linear, opacity only (no transform) — rea
   assert.equal(FADE_MS, 150);
   const src = read('src/ui/screens/write/phase-fade.js');
   assert.match(src, /@keyframes szPhaseOut\{from\{opacity:1\}to\{opacity:0\}\}/);
-  assert.match(src, /animation:szPhaseOut \$\{FADE_MS\}ms linear both/);
+  assert.match(src, /animation:szPhaseOut \$\{FADE_MS\}ms \$\{T\.eLinear\} both/);
   const css = src.slice(src.indexOf("injectStyles('write-fade'"), src.indexOf('`);', src.indexOf("injectStyles('write-fade'")));
   // 快照本身（.sz-phasefade）只淡化：没有位移 / 缩放（本人墨的缩放在另一张 FLIP canvas 上，.sz-flipink）
   const overlayRules = css.split('\n').filter(l => /^\.sz-phasefade/.test(l)).join('\n');
   assert.ok(!/transform|translate|scale\(/.test(overlayRules), 'the snapshot overlay only fades — no translate / scale');
   assert.match(css, /pointer-events:none/);
   assert.match(css, /\.sz-phasefade \*\{animation:none !important\}/, 'cloned elements do not replay their own animations');
-  assert.match(css, /prefers-reduced-motion: reduce\)\{\.sz-phasefade,\.sz-flipink\{display:none\}/);
+  // D58 ②（P1-10）：减少动态效果下不再硬切——快照照样 150ms 线性交叉淡化（--dur-reduce），只是不做 FLIP 缩放
+  assert.match(css, /prefers-reduced-motion: reduce\)\{\.sz-flipink\{display:none\}\[data-flip-hide\]\{visibility:visible\}\.sz-phasefade\{animation-duration:\$\{T\.dReduce\}\}\}/);
+  assert.doesNotMatch(css, /\.sz-phasefade,\.sz-flipink\{display:none\}/, 'the snapshot is not hidden under reduced motion');
+  assert.doesNotMatch(src, /!reducedMotion\(\) \? makeSnapshot/, 'the snapshot is taken under reduced motion too');
 });
 
 test('D53 ⑥: text regions go out in the first 75ms and come in over 75–150ms (never both visible); the ink is scaled by one FLIP canvas (pure scale, top-centre origin, 200ms)', () => {
@@ -92,8 +95,8 @@ test('D53 ⑥: text regions go out in the first 75ms and come in over 75–150ms
   const css = src.slice(src.indexOf("injectStyles('write-fade'"), src.indexOf('`);', src.indexOf("injectStyles('write-fade'")));
   assert.match(css, /@keyframes szTextOut\{from\{opacity:1\}to\{opacity:0\}\}/);
   assert.match(css, /@keyframes szTextIn\{0%,50%\{opacity:0\}100%\{opacity:1\}\}/, 'new text: transparent for the first half of the 150ms, then in');
-  assert.match(css, /\.sz-phasefade \[data-fade-out\]\{animation:szTextOut \$\{TEXT_OUT_MS\}ms linear both !important\}/);
-  assert.match(css, /\.sz-page \[data-fade-in\]\{animation:szTextIn \$\{FADE_MS\}ms linear both\}/);
+  assert.match(css, /\.sz-phasefade \[data-fade-out\]\{animation:szTextOut \$\{TEXT_OUT_MS\}ms \$\{T\.eLinear\} both !important\}/);
+  assert.match(css, /\.sz-page \[data-fade-in\]\{animation:szTextIn \$\{FADE_MS\}ms \$\{T\.eLinear\} both\}/);
   assert.match(css, /\.sz-flipink\{[^}]*transform-origin:50% 0/, 'FLIP origin = the top edge midpoint');
   assert.match(css, /\[data-flip-hide\]\{visibility:hidden\}/, 'the real ink at the target stays hidden while the FLIP canvas runs');
   assert.ok(/data-flip-ink/.test(src) && /dropSnapshotInk/.test(src), 'the snapshot never carries a second copy of the ink when a FLIP / the real layer shows it');
@@ -226,15 +229,18 @@ test('JudgeButtons: ready defaults to true (plain view); ready=false marks the c
 
 test('compare.js: the buttons wait 320ms hidden, show at 60% (not tappable) and are solid at 440ms; the reference cell only fades (no translateY)', () => {
   const src = read('src/ui/screens/write/compare.js');
-  assert.match(src, /@keyframes szJudgeWait\{0%,72\.7%\{opacity:0\}77\.3%,99\.9%\{opacity:\.6\}100%\{opacity:1\}\}/, '440ms: 0 until 320ms (72.7%), .6 from 340ms, 1 at 440ms');
-  assert.match(src, /\.sz-judge__btns\[data-ready="false"\]\{[^}]*animation:szJudgeWait 440ms linear both;[^}]*pointer-events:none/);
-  assert.match(src, /JUDGE_SHOW_MS = 320/);
-  assert.match(src, /JUDGE_READY_MS = 440/);
-  assert.match(src, /JUDGE_READY_REDUCED_MS = 150/);
+  // D58（P2-05）：时刻取 motion.moment.judgeAppear / judgeReady，关键帧分界由它们算出，不手算
+  assert.match(src, /@keyframes szJudgeWait\{0%,\$\{JUDGE_SHOW_AT\}%\{opacity:0\}\$\{JUDGE_SHOW_AT \+ 0\.1\}%,99\.9%\{opacity:\.6\}100%\{opacity:1\}\}/, '0 until 320ms, .6 from then, 1 at 440ms');
+  assert.match(src, /JUDGE_SHOW_AT = Math\.round\(\(JUDGE_SHOW_MS \/ JUDGE_READY_MS\) \* 1000\) \/ 10/);
+  assert.match(src, /\.sz-judge__btns\[data-ready="false"\]\{[^}]*animation:szJudgeWait \$\{JUDGE_READY_MS\}ms \$\{T\.eLinear\} both;[^}]*pointer-events:none/);
+  assert.match(src, /JUDGE_SHOW_MS = M\.moment\.judgeAppear/);
+  assert.match(src, /JUDGE_READY_MS = M\.moment\.judgeReady/);
+  assert.doesNotMatch(src, /JUDGE_READY_REDUCED_MS/, 'reduced motion: the buttons are tappable at once, no invisible 150ms lock (P1-41)');
   const keyframes = /@keyframes szCmpIn\{([^}]*(?:\}[^}]*)?)\}/.exec(src);
   assert.ok(keyframes && !/translate|transform/.test(keyframes[0]), 'szCmpIn has no transform');
-  assert.match(src, /\.sz-compare__row--ref\{[^;]*;animation:szCmpIn \.2s linear \.16s both/);
-  assert.match(src, /prefers-reduced-motion: reduce\)\{[^}]*\.sz-judge__btns\[data-ready\][^}]*animation:none/);
+  assert.match(src, /\.sz-compare__row--ref\{[^;]*;animation:szCmpIn \$\{T\.dM\} \$\{T\.eLinear\} \$\{T\.dFade\} both/);
+  assert.match(src, /prefers-reduced-motion: reduce\)\{\.sz-compare__row--ref\{animation:szCmpIn \$\{T\.dReduce\} \$\{T\.eLinear\} both\}\}/, 'reduced motion: the reference cell fades in 150ms, not a hard cut');
+  assert.match(src, /const ready = active && \(reducedNow \|\| readyKey === key\);/);
 });
 
 // ---- 早到的落笔

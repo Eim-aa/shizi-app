@@ -34,7 +34,7 @@ test('playbackPlan：笔顺快放总时长 ≤ 1.6s（13 笔、长笔、1 笔、
   const one = playbackPlan(dataOf(1, 100), { maxMs: STEP_PLAY_MAX_MS });
   assert.equal(one.speed, policy.motion.answerSpeed);
   // 不给 maxMs 就是旧节奏
-  assert.deepEqual({ speed: 1.6, delay: 180, fade: 240 }, (({ speed, delay, fade }) => ({ speed, delay, fade }))(playbackPlan(d13, {})));
+  assert.deepEqual({ speed: 1.6, delay: 180, fade: 220 }, (({ speed, delay, fade }) => ({ speed, delay, fade }))(playbackPlan(d13, {})), 'D58: the fade is motion.duration.release (was 240)');
 });
 
 // ---------------------------------------------------------------- 描一遍整字一次合成

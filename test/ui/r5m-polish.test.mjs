@@ -24,6 +24,18 @@ test('P2-24：练习记录的月份翻页不与页头返回「‹」同形（带
   assert.match(svg(Icons.next), /M3\.5 9h11/, 'next has a shaft');
 });
 
+test('IC-17 / T0-3：页头返回键不吃「新页面后 0.4s」的防连点（推入转场途中点「‹」照样返回），同一按钮 0.4s 仍防连点两次', async () => {
+  const { createPressGuard } = await import('../../src/ui/components/Button.js');
+  const changedAt = 1000;
+  const accept = createPressGuard(400, () => changedAt);
+  assert.equal(accept(1100), false, 'ordinary buttons: swallowed 100ms after a new page');
+  const back = createPressGuard(400, () => changedAt);
+  assert.equal(back(1100, { state: false }), true, 'the back key: accepted mid-transition');
+  assert.equal(back(1300, { state: false }), false, 'but not twice within 0.4s');
+  assert.match(code('src/ui/components/Page.js'), /data-testid="page-back" stateGuard=\$\{false\}/);
+  assert.match(code('src/ui/root.js'), /if \(cur\.kind === 'push' && typeof cur\.cancel === 'function'\) cur\.cancel\(\);/, 'an edge swipe during a push finishes the push first, then follows');
+});
+
 test('P2-22：空状态全 App 一个组件（components/EmptyState.js，规范 S2）——各页不再自己画空格子 / 标题 / 说明', () => {
   const files = [
     'src/ui/screens/library/index.js', 'src/ui/screens/library/all.js', 'src/ui/screens/library/list.js', 'src/ui/screens/mine/annual.js',

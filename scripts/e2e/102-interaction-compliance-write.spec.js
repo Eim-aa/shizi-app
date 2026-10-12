@@ -118,7 +118,6 @@ export default async function interactionComplianceWrite(page, ctx) {
   await drawStroke(page, HORIZONTAL);
   await waitIdle(page, 'write', 400);
   assert.equal(await strokesNow(page), 1, 'IC-17 the stroke drawn during the transition is kept');
-
   step('IC-18: cold start back into the write page — no haptic / moment replays; back and swipe work as usual');
   await page.waitForTimeout(400); // 路由记忆写盘
   await page.goto('about:blank');
@@ -133,4 +132,41 @@ export default async function interactionComplianceWrite(page, ctx) {
   await swipeBack(page, { to: 0.5 });
   await waitIdle(page, 'home');
   assert.equal((await snapshot(page)).top, 'home', 'IC-18 / IC-03 swipe back from the restored page lands on home');
+
+  // IC-17 / T0-3（转场可被打断）：推入转场还没放完就点「‹」或左缘右滑，返回照样执行——防连点只防重复推入，不吞返回（R5M）
+  const tapBackMidPush = async (name, params, waitMs) => {
+    await toRoot(page);
+    await waitIdle(page, null, PRESS_MS);
+    const rootTop = (await snapshot(page)).top;
+    await page.evaluate(async ({ n, p }) => (await import('/src/ui/router.js')).nav.push(n, p), { n: name, p: params });
+    await page.waitForTimeout(waitMs);
+    const mid = await page.evaluate(t => {
+      const app = document.querySelector('.sz-app');
+      const b = document.querySelector(`${t} .sz-page__head [data-testid="page-back"]`);
+      const r = b ? b.getBoundingClientRect() : null;
+      return { anim: app.dataset.navAnim, x: r ? r.left + r.width / 2 : null, y: r ? r.top + r.height / 2 : null };
+    }, TOP);
+    assert.ok(mid.anim !== 'idle', `IC-17 ${name}: the push transition is still running when 「‹」 is tapped (${mid.anim})`);
+    await page.mouse.click(mid.x, mid.y);
+    await waitIdle(page, null, 120);
+    const after = await snapshot(page);
+    assert.equal(after.top, rootTop, `IC-17 ${name}: 「‹」 tapped mid-push goes back (same end state as tapping after the transition)`);
+    assert.equal(after.depth, 0, `IC-17 ${name}: the stack is back at the tab root`);
+  };
+  step('IC-17: 「‹」 tapped while a push is still animating is not swallowed (T0-3: transitions can be interrupted)');
+  await tapBackMidPush('settings', {}, 90);
+  await seedSession(page, { slot: 'A', chars: CHARS });
+  await tapBackMidPush('write', { slot: 'A' }, 140);
+
+  step('IC-17: an edge swipe started while a push is still animating goes back');
+  await toRoot(page);
+  await waitIdle(page, null, PRESS_MS);
+  const rootTop = (await snapshot(page)).top;
+  await page.evaluate(async () => (await import('/src/ui/router.js')).nav.push('settings', {}));
+  await page.waitForTimeout(90);
+  assert.ok(await page.evaluate(() => document.querySelector('.sz-app').dataset.navAnim) !== 'idle', 'IC-17 the push is still running');
+  await swipeBack(page, { to: 0.6 });
+  await waitIdle(page, null, 120);
+  assert.equal((await snapshot(page)).top, rootTop, 'IC-17 the edge swipe during the push went back');
+
 }

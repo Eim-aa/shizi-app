@@ -628,7 +628,13 @@ function Root({ router, win }) {
       width: () => win.innerWidth || 1,
       reducedMotion: () => prefersReducedMotion(win),
       blocked: () => blockedRef.current,
-      busy: () => !!animRef.current.current,
+      // 转场进行中不起手——推入转场除外（规范 T0-3「转场可被打断」，IC-17，R5M）：推入还没放完就从左缘起手，先把推入收尾到终态，再照常跟手返回
+      busy: () => {
+        const cur = animRef.current.current;
+        if (!cur) return false;
+        if (cur.kind === 'push' && typeof cur.cancel === 'function') cur.cancel();
+        return !!animRef.current.current;
+      },
       now: nowMs,
       snapMs: SNAP_MS,
       onView,

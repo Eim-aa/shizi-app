@@ -52,11 +52,11 @@ export function eventTime(event) {
 }
 
 // 纯函数版本，单测可直接用：返回 accept(ts, {rapid}) → 是否响应这次按下。
-// rapid=true 时只看「新状态后 ms」，不看同一按钮上一次按下。
+// rapid=true 时只看「新状态后 ms」，不看同一按钮上一次按下；state=false 时不看「新状态后 ms」，只看同一按钮上一次按下（返回键，T0-3）。
 export function createPressGuard(ms = PRESS_GUARD_MS, getStateChange = () => lastStateChange) {
   let last = -Infinity;
-  return function accept(ts, { rapid = false } = {}) {
-    if (ts < getStateChange() + ms) return false;
+  return function accept(ts, { rapid = false, state = true } = {}) {
+    if (state && ts < getStateChange() + ms) return false;
     if (!rapid && ts < last + ms) return false;
     last = ts;
     return true;
@@ -117,6 +117,8 @@ injectStyles('button', `
  * @param {boolean} [props.disabled]
  * @param {boolean} [props.guard]  false 时不做防连点（例如书写格工具条以外的纯展示切换）
  * @param {boolean} [props.rapid]  true 时不做「同一按钮 0.4s」节流，只保留「新页面 / 新状态后 0.4s」（撤销 / 清空连点）
+ * @param {boolean} [props.stateGuard]  false 时不做「新页面 / 新状态后 0.4s」，只保留同一按钮 0.4s：页头返回 / 关闭键（规范 T0-3「转场可被打断」，IC-17：
+ *   推入转场途中点「‹」照样返回；防连点只防重复推入同一页，不吞返回，R5M）
  */
 export function Button(props) {
   const {
@@ -124,6 +126,7 @@ export function Button(props) {
     disabled = false,
     guard = true,
     rapid = false,
+    stateGuard = true,
     onClick,
     children,
     class: cls,
@@ -138,7 +141,7 @@ export function Button(props) {
       event.preventDefault();
       return;
     }
-    if (guard && !guardRef.current(eventTime(event), { rapid })) {
+    if (guard && !guardRef.current(eventTime(event), { rapid, state: stateGuard })) {
       event.preventDefault();
       event.stopPropagation();
       return;

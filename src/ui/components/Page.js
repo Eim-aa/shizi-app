@@ -84,7 +84,7 @@ export function Page({ title = '', hideTitle = false, leading = 'back', backLabe
   useBackAction(backAction.fn, backAction.kind);
   const lead = customLead ? customLead : leading === 'none'
     ? null
-    : html`<${Button} variant="icon" class=${leading === 'close' ? 'sz-page__ico--close' : 'sz-page__ico--back'} data-testid="page-back" aria-label=${leading === 'close' ? PAGE_COPY.close : backLabel === 'leave' ? PAGE_COPY.leave : PAGE_COPY.back}
+    : html`<${Button} variant="icon" class=${leading === 'close' ? 'sz-page__ico--close' : 'sz-page__ico--back'} data-testid="page-back" stateGuard=${false} aria-label=${leading === 'close' ? PAGE_COPY.close : backLabel === 'leave' ? PAGE_COPY.leave : PAGE_COPY.back}
         onClick=${goBack}>${leading === 'close' ? CLOSE_ICON() : BACK_ICON()}</${Button}>`;
   return html`<div class="sz-page" data-testid=${testid}>
     <header class="sz-page__head">

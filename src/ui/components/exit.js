@@ -5,6 +5,11 @@
 //   confirm 确认框 180ms 淡出 + 遮罩 180ms 淡出，ease.in（T-confirm）
 //   fade    提示条 / 撤销条 150ms 淡出，linear（T-fade）
 // 减少动态效果：一律 150ms 线性淡出（motion.duration.reduce，D58 ②）。
+// 键盘开着时的弹层退场（R6-J1，交互与动效规范 T0 T-sheet「键盘与退场编排」）：弹层为避让键盘被抬高了（行内 bottom = 键盘高，查字弹层），
+//   复制品落回 bottom:0、从「此刻看得见的位置」（translateY(−键盘高)）一路下滑出屏，与键盘收起同一帧开始、同一类曲线：
+//   motion.role.sheetOutKeyboard（260ms，≈ 系统键盘 250ms）+ ease.out。原先复制品带着 bottom = 键盘高去播 translateY(100%)，
+//   只下滑了自身高度就停在半屏、等计时器到点才突然消失，键盘却已经收完——这就是查字弹层关闭时的「卡一下」。
+//   输入框在复制前同步失焦（Sheet.js useDialogFocus），键盘与退场同时开始，不两段打架。
 // 用复制品而不是让路由晚一点卸载：页面栈、焦点归还、history 都不用等动画，退场只是「看得见的余影」，不挡任何输入（T0-3）。
 // canvas 的像素复制过去（字帖、笔迹放大），其余是普通 DOM。data-testid 保留在根上（样式按它写），后代的去掉，免得测试 / 读屏摸到两份。
 import { M, prefersReducedMotion } from '../../config/motion.js';
@@ -31,10 +36,10 @@ injectStyles('exit', `
 }
 `);
 
-/** 各 kind 的退场时长（ms）：复制品在这之后移除。 */
-export function exitMs(kind, reduced = prefersReducedMotion()) {
+/** 各 kind 的退场时长（ms）：复制品在这之后移除。raised = 弹层为避让键盘被抬高（键盘与退场同时收）。 */
+export function exitMs(kind, reduced = prefersReducedMotion(), { raised = false } = {}) {
   if (reduced) return M.dur.reduce;
-  if (kind === 'sheet') return Math.max(M.role.sheetOut, M.role.scrimOut);
+  if (kind === 'sheet') return Math.max(raised ? M.role.sheetOutKeyboard : M.role.sheetOut, M.role.scrimOut);
   if (kind === 'confirm') return Math.max(M.role.confirmOut, M.role.scrimOut);
   return M.role.toastOut;
 }
@@ -53,6 +58,37 @@ function copyCanvases(from, to) {
     } catch (error) {
       // 跨源或 WebGL 画布读不了：余影里留空，不影响任何功能
     }
+  }
+}
+
+/** 弹层面板此刻被抬高了多少（行内 bottom，键盘避让；没有 = 0）与它此刻的下滑位移（下滑关闭跟手中）。 */
+function raiseOf(overlay) {
+  const panel = overlay.querySelector ? overlay.querySelector(':scope > .sz-sheet') : null;
+  if (!panel) return 0;
+  const b = parseFloat(panel.style.bottom || '');
+  if (!(b > 0.5)) return 0;
+  return b;
+}
+
+function dragOffset(panel) {
+  const m = /translateY\((-?[\d.]+)px\)/.exec(panel.style.transform || '');
+  return m ? Number(m[1]) : 0;
+}
+
+/** 键盘开着时的退场：复制品落回 bottom:0，从看得见的位置（−抬高 + 跟手位移）用 sheetOutKeyboard / ease.out 下滑出屏（Web Animations，行内 animation 盖过 CSS 的 220ms）。 */
+function slideRaisedSheet(clone, raised) {
+  const panel = clone.querySelector(':scope > .sz-sheet');
+  if (!panel) return;
+  const from = dragOffset(panel) - raised;
+  clone.setAttribute('data-exit-raised', String(Math.round(raised)));
+  panel.style.bottom = '0px';
+  panel.style.transform = '';
+  if (typeof panel.animate === 'function') {
+    panel.animate([{ transform: `translateY(${from}px)` }, { transform: 'translateY(100%)' }], {
+      duration: M.role.sheetOutKeyboard, easing: M.ease.out, fill: 'both',
+    });
+  } else {
+    panel.style.transform = 'translateY(100%)';
   }
 }
 
@@ -77,10 +113,13 @@ export function playExit(el, kind = 'fade', { win = typeof window !== 'undefined
   clone.setAttribute('data-exit', kind);
   clone.setAttribute('aria-hidden', 'true');
   for (const f of clone.querySelectorAll('button, a[href], input, select, textarea')) f.setAttribute('tabindex', '-1');
+  const reduced = prefersReducedMotion(win);
+  const raised = kind === 'sheet' && !reduced ? raiseOf(el) : 0;
   el.parentNode.insertBefore(clone, el.nextSibling);
+  if (raised > 0) slideRaisedSheet(clone, raised);
   const remove = () => {
     if (clone.parentNode) clone.parentNode.removeChild(clone);
   };
-  win.setTimeout(remove, exitMs(kind, prefersReducedMotion(win)) + M.dur.xs);
+  win.setTimeout(remove, exitMs(kind, reduced, { raised: raised > 0 }) + M.dur.xs);
   return clone;
 }

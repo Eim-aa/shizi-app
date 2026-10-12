@@ -61,6 +61,9 @@ export function useDialogFocus(panelRef, active = true) {
       // 退场（P1-07）：卸载前把整层（遮罩 + 面板）复制一份留在原位播退场动画；焦点同时归还，不等动画。
       const el = panelRef.current;
       const overlay = el && el.parentNode && el.parentNode.classList && el.parentNode.classList.contains('sz-overlay') ? el.parentNode : null;
+      // 键盘与退场编排（R6-J1，规范 T0 T-sheet）：弹层里的输入框先同步失焦——键盘在这一帧开始收起，复制品的退场也在这一帧开始，同一类曲线（exit.js）
+      const focused = typeof document !== 'undefined' ? document.activeElement : null;
+      if (el && focused && focused !== el && el.contains(focused) && typeof focused.blur === 'function' && /^(INPUT|TEXTAREA)$/.test(focused.tagName)) focused.blur();
       if (overlay) playExit(overlay, overlay.getAttribute('data-exit-kind') || (el.classList.contains('sz-sheet') ? 'sheet' : 'confirm'));
       const prev = restoreRef.current;
       if (prev && prev.isConnected && typeof prev.focus === 'function' && isVisible(prev)) prev.focus({ preventScroll: true });

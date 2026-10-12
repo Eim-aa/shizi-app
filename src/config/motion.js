@@ -26,7 +26,7 @@ export const duration = Object.freeze({
 const ROLE_KEYS = Object.freeze({
   pressIn: 'press', pressOut: 'release', fadeIn: 'fade', fadeOut: 'fade', textOut: 'xs', inkFlip: 'm', phaseReverse: 280,
   pushIn: 'push', pushOut: 'push', pushGestureMin: 'fade', paperIn: 'paperOpen', paperOut: 'paperClose', paperGestureFull: 'push', paperGestureMin: 'press',
-  quietIn: 'release', quietOut: 's', gestureCancel: 'release', gestureSnap: 'm', sheetIn: 'sheet', sheetOut: 'release', confirmIn: 'm', confirmOut: 's',
+  quietIn: 'release', quietOut: 's', gestureCancel: 'release', gestureSnap: 'm', sheetIn: 'sheet', sheetOut: 'release', sheetOutKeyboard: 'l', confirmIn: 'm', confirmOut: 's',
   scrimIn: 'm', scrimOut: 's', toastIn: 'fade', toastOut: 'fade', hintIn: 'fade', hintStrokeOut: 'l', switchToggle: 'fade', reduceCrossfade: 'reduce',
 });
 export const roleKeys = ROLE_KEYS;

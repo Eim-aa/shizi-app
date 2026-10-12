@@ -69,7 +69,7 @@ export default async function f1FootStages(page, ctx) {
           assert.ok(!overlaps(r, a.grid), `${tag} ${phase}: ${id} clear of the grid`);
         });
         assert.ok(a.grid.bottom <= a.foot.top + 0.5, `${tag} ${phase}: the grid ends above the foot`);
-        if (ax) assert.ok(a.grid.width >= 220 - 0.5 && a.bodyScroll[0] <= a.bodyScroll[1] + 1, `${tag} ${phase}: AX grid ≥ 220, no scroll`);
+        if (ax) assert.ok(a.grid.width >= (view.height < 700 ? 180 : 220) - 0.5 && a.bodyScroll[0] <= a.bodyScroll[1] + 1, `${tag} ${phase}: AX grid ≥ 220, no scroll`);
       }
     }
   }

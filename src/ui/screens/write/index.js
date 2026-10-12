@@ -72,7 +72,7 @@ import { openWriteModeSettings } from '../mine/settings.js';
 import { LinkButton, Slot, WriteFoot } from './foot.js';
 import { usePhaseFade } from './phase-fade.js';
 import { gridLabel, useWriteAnnounce } from './sr-live.js';
-import { AX_NOTE_H, AX_BELOW_H, FOOT_BOTTOM_MIN, TOOL_ROW_H } from './layout.js';
+import { AX_GRID_MIN, AX_NOTE_H, AX_BELOW_H, FOOT_BOTTOM_MIN, TOOL_ROW_H } from './layout.js';
 
 export const WRITE_SCREEN = 'write';
 /** 换字后书写格的落笔门限（01 §6.6 / 走查-V01；P227：300 → 250，门限内的笔先持住、到点补画，不再丢弃）。 */
@@ -143,6 +143,7 @@ ${W} .sz-page__foot[data-under="true"]::before{content:"";position:absolute;left
 :root[data-ax] ${W} .sz-paper__title,:root[data-ax] ${W} .sz-paper__text,:root[data-ax] ${W} .sz-paper__back{font-size:calc(22px * 1);line-height:30px}
 ${AX_HI(`${W} .sz-write__below *`)},${AX_HI(`${W} .sz-write__progress`)}{font-size:calc(22px * 1);line-height:30px}
 ${AX_HI(`${W} .sz-paper__title`)},${AX_HI(`${W} .sz-paper__text`)},${AX_HI(`${W} .sz-paper__back`)}{font-size:calc(28px * 1);line-height:36px}
+:root[data-ax] ${W} .sz-write[data-gfit] .sz-paper__title,:root[data-ax] ${W} .sz-write[data-gfit] .sz-paper__text,:root[data-ax] ${W} .sz-write[data-gfit] .sz-paper__back{font-size:calc(22px * 1);line-height:30px} /* P299：格子让步到 220 以下时（SE AX3–AX5），纸上写的格内文字回到 22 一档，不出格 */
 :root[data-ax] ${W} .sz-write__note{box-sizing:border-box;min-height:${AX_NOTE_H}px;justify-content:flex-start;padding-top:8px}
 ${AX_HI(`${W} .sz-write__note`)}{min-height:${AX_NOTE_H_HI}px} /* 两行 22pt 辅助字 2 × 30 + 上内边距 8 */
 ${AX_HI(`${W} .sz-write__below`)}{min-height:${AX_BELOW_H_HI}px}
@@ -495,7 +496,7 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
     backLabel=${phase === 'trace' || phase === 'retrace' ? 'leave' : 'back'} lead=${compare.lead} onLead=${compare.back}
     center=${centerProgress ? progress : null} trailing=${trailing} footer=${answer.footer || (compare.active ? compare.footer : footer)} testid="write-screen">
     <div class="sz-write" ref=${writeRef} data-cursor=${session.cursor} data-phase=${phase} data-slot=${slot} data-grid=${gridSize}
-      data-compact=${compact ? 'true' : 'false'} data-tight=${footCompact ? 'true' : null} data-ax=${ax > 0 ? String(ax) : null} data-pfit=${pfit < 1 ? String(pfit) : null}
+      data-compact=${compact ? 'true' : 'false'} data-tight=${footCompact ? 'true' : null} data-ax=${ax > 0 ? String(ax) : null} data-pfit=${pfit < 1 ? String(pfit) : null} data-gfit=${ax > 0 && gridSize < AX_GRID_MIN ? "true" : null}
       style=${pfit < 1 ? { paddingTop: `${groupTop}px`, '--pfit': String(pfit), '--pfit-pull': `${-Math.round((1 - pfit) * layout.promptHeight * 10) / 10}px` } : { paddingTop: `${groupTop}px` }}>
       <${StepDots} phase=${phase} />
       <${Prompt} cardKey=${cardKey} queue=${session.queue} phase=${phase} />

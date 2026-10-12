@@ -73,13 +73,16 @@ export default async function run(page, ctx) {
         const els = [...top.querySelectorAll('.sz-paper__title, .sz-paper__text, .sz-paper__back')];
         return {
           fs: els.map(e => parseFloat(getComputedStyle(e).fontSize)),
+          gfit: !!top.querySelector('.sz-write[data-gfit]'),
           inside: els.every(e => {
             const r = e.getBoundingClientRect();
             return r.top >= paper.top - 0.5 && r.bottom <= paper.bottom + 0.5 && r.left >= paper.left - 0.5 && r.right <= paper.right + 0.5;
           }),
         };
       });
-      assert.ok(p.fs.length >= 2 && p.fs.every(v => v === AUX.paper[tier]), `${tag}: paper text ${p.fs.join(' / ')}`);
+      // P299（R5M）：格子让步到 220 以下（SE AX3–AX5）时格内文字回到 22 一档
+      const want = p.gfit ? AUX.paper[0] : AUX.paper[tier];
+      assert.ok(p.fs.length >= 2 && p.fs.every(v => v === want), `${tag}: paper text ${p.fs.join(' / ')} (want ${want}${p.gfit ? ', the grid gave way' : ''})`);
       assert.ok(p.inside, `${tag}: the paper text stays inside the paper cell`);
     }
   }

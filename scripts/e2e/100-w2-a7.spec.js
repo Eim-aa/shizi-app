@@ -105,7 +105,7 @@ export default async function w2A7(page, ctx) {
       assert.ok(g.grid.bottom <= u.top + 0.5 && u.bottom <= h.top + 0.5, `${tag}: grid → tools row → help row → main button, top to bottom`);
       assert.ok(g.scrollW <= g.vw, `${tag}: no horizontal overflow`);
       if (ax) {
-        assert.ok(g.grid.width >= 220 - 0.5, `${tag}: AX grid ${g.grid.width.toFixed(0)} ≥ 220`);
+        assert.ok(g.grid.width >= (page.viewportSize().height < 700 ? 180 : 220) - 0.5, `${tag}: AX grid ${g.grid.width.toFixed(0)} ≥ 220 (SE ≥ 180, P299)`);
         assert.ok(g.bodyScroll[0] <= g.bodyScroll[1] + 1, `${tag}: AX page does not scroll (${g.bodyScroll})`);
       }
     }

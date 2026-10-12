@@ -1,5 +1,5 @@
-// R4-F1（D55，P260 / P261）：写字页求助操作一次点击直达——底栏 = 主按钮 + 一行文字按钮，没有「⋯」菜单。
-// 产品负责人真机试用后推翻了 R3-C3W 把「提示 / 看答案 / 跳过」收进菜单（P258）。真实排版（首屏、不相交、一次点击生效）在 scripts/e2e/99-f1-foot.spec.js。
+// R4-F1（D55，P260 / P261）：写字页求助操作一次点击直达，没有「⋯」菜单；W2（D57，P280）起底栏 = 求助行（主按钮正上方 20）+ 主按钮，跳过 / 结束这组在页头右上。
+// 产品负责人真机试用后推翻了 R3-C3W 把「提示 / 看答案 / 跳过」收进菜单（P258）。真实排版（首屏、不相交、一次点击生效）在 scripts/e2e/100-w2-a7.spec.js（原 99-f1-foot.spec.js 的断言已按 A7 并入）。
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
@@ -15,7 +15,7 @@ function walk(node, fn) {
   if (node.props && node.props.children !== undefined) walk(node.props.children, fn);
 }
 
-test('WriteFoot：主按钮在前，其下一行文字按钮（write-links），左右两组；没有「⋯」', () => {
+test('WriteFoot（A7）：求助行（write-links）在前，主按钮在其下；没有「⋯」', () => {
   const left = LinkButton({ testid: 'write-hint', label: '提示', onClick() {} });
   const right = LinkButton({ testid: 'write-skip', label: '跳过', onClick() {} });
   const foot = WriteFoot({ primary: { testid: 'write-done', label: '写好了', onClick() {} }, left, right, stage: 'recall' });
@@ -24,20 +24,20 @@ test('WriteFoot：主按钮在前，其下一行文字按钮（write-links），
     if (n.type === Button) seen.push([n.props['data-testid'], n.props.variant]);
     if (n.props && n.props['data-testid'] === 'write-links') seen.push(['write-links', 'row']);
   });
-  assert.deepEqual(seen, [['write-done', 'primary'], ['write-links', 'row'], ['write-hint', 'text'], ['write-skip', 'text']], 'primary first, then the text row with 提示 on the left and 跳过 at the end');
+  assert.deepEqual(seen, [['write-links', 'row'], ['write-hint', 'text'], ['write-skip', 'text'], ['write-done', 'primary']], 'A7: the help row first (above), the main button last (20pt below it)');
   assert.ok(!seen.some(([id]) => id === 'write-more'), 'no 「⋯」');
   assert.equal(foot.props['data-stage'], 'recall');
   const slot = Slot({ testid: 'write-hint-slot', cls: 'sz-write__hint', children: null });
   assert.equal(slot.props['data-testid'], 'write-hint-slot');
 });
 
-test('写字页回忆阶段底栏：左 提示 / 看答案，右端 结束这组（picked）+ 跳过，全是文字行里的槽；没有菜单、没有 write-more / write-ax-menu；没有「在纸上写」（D56，P275）', () => {
+test('写字页回忆阶段（A7）：求助行 提示 / 看答案，页头右上 结束这组（picked）+ 跳过；没有菜单、没有 write-more / write-ax-menu；没有「在纸上写」（D56，P275）', () => {
   const src = read('src/ui/screens/write/index.js');
   const iHint = src.indexOf('testid="write-hint-slot"');
   const iAns = src.indexOf('testid="write-answer-slot"');
   const iEnd = src.indexOf('testid="write-end-slot"');
   const iSkip = src.indexOf('testid="write-skip-slot"');
-  assert.ok(iHint > 0 && iHint < iAns && iAns < iEnd && iEnd < iSkip, 'order: 提示 / 看答案 | 结束这组 / 跳过');
+  assert.ok(iHint > 0 && iHint < iAns && iAns < iEnd && iEnd < iSkip, 'order: 提示 / 看答案 (help row) | 结束这组 / 跳过 (header, right)');
   assert.match(src, /import \{ LinkButton, Slot, WriteFoot \} from '\.\/foot\.js';/);
   assert.doesNotMatch(src.replace(/\/\/[^\n]*/g, ''), /write-more|write-ax-menu|AxFoot|openAxMenu|noteInMenu/, 'the menu is gone from the write page');
   assert.ok(src.includes('max(8px, env(safe-area-inset-bottom, 0px))'), 'the foot bottom padding is max(8, safe area) again (the main button sits one text row higher than on the home page)');
@@ -56,7 +56,8 @@ test('D56（P275）：写字页底栏与格下没有「在纸上写」入口—�
 test('D56：03 里 P226 / P260 / P261 的取值写「已决定 D56：在纸上写移到设置」，新增 P275–P278，copy-source 同步', () => {
   const md = read('docs/engineering/v10/03-待产品决定.md');
   const row = id => md.split('\n').find(l => l.startsWith(`| ${id} |`));
-  for (const id of ['P226', 'P260', 'P261']) assert.match(row(id).split(' | ')[4], /^已决定 D56：在纸上写移到设置/, `${id} default column`);
+  assert.match(row('P226').split(' | ')[4], /^已决定 D56：在纸上写移到设置/, 'P226 default column');
+  for (const id of ['P260', 'P261', 'P278']) assert.match(row(id).split(' | ')[4], /^已决定 D57：/, `${id} default column (W2 / A7 took over the layout values)`);
   for (const id of ['P275', 'P276', 'P277', 'P278']) assert.ok(row(id), `${id} is registered in 03`);
   const src = JSON.parse(read('docs/engineering/v10/copy-source.json'));
   for (const id of ['P226', 'P260', 'P261', 'P275', 'P278']) assert.ok(src.nonRuntimeDecisions[id], `${id} in nonRuntimeDecisions`);
@@ -74,7 +75,7 @@ test('看答案 / 描一遍 / 自己写 / 保存失败：次要操作是文字�
   assert.doesNotMatch(ans.replace(/\/\/[^\n]*/g, ''), /AxFoot|items\b|write-more/);
 });
 
-test('判断页底栏留空的文字行占位（两键与写字页主按钮同一个位置），AX 档不占', () => {
+test('判断页底栏留空的求助行占位（在两键上方，两键与写字页主按钮同一个位置），AX 档不占', () => {
   const cmp = read('src/ui/screens/write/compare.js');
   assert.ok(cmp.includes('<div class="sz-write__links sz-write__links--ghost" aria-hidden="true"></div>'));
   const foot = read('src/ui/screens/write/foot.js');
@@ -82,8 +83,9 @@ test('判断页底栏留空的文字行占位（两键与写字页主按钮同�
   assert.match(foot, /:root\[data-ax\] \.sz-write__links--ghost\{display:none\}/);
 });
 
-test('policy：名义按钮行回到 116（上 12 + 主按钮 54 + 间 6 + 文字行 44），下内边距 max(8, 下安全区)；主按钮底线常量仍是 24（首页用）', () => {
-  assert.equal(policy.writeGrid.nominalFoot, 116);
+test('policy（A7，P280）：名义按钮行 134（上 12 + 求助行 48 + 间 20 + 主按钮 54），下内边距 max(8, 下安全区)；主按钮底线常量仍是 24（首页用）', () => {
+  assert.equal(policy.writeGrid.nominalFoot, 134);
+  assert.equal(policy.writeGrid.toolRowHeight, 48);
   assert.equal(policy.writeGrid.footBottomMin, 8);
   assert.equal(policy.mainButtonLine.gapAboveEdge, 24);
   assert.deepEqual([...policy.writeGrid.axAux.links], [17, 22], 'P261: the AX text row is capped by tier like the other aux text');
@@ -96,8 +98,8 @@ test('AX 档文字行字号分层封顶（P261）：AX1–AX2 17pt、AX3–AX5 2
   assert.ok(foot.includes(`:root[data-ax] .sz-write__links .sz-btn--text,:root[data-ax] .sz-write__links .sz-nohint{font-size:calc(${lo}px * 1);line-height:${LH[lo]}px}`));
   assert.ok(foot.includes(`{font-size:calc(${hi}px * 1);line-height:${LH[hi]}px}`));
   for (const n of [3, 4, 5]) assert.ok(foot.includes(`:root[data-ax="${n}"] .sz-write__links .sz-btn--text`), `AX${n} uses the upper tier`);
-  assert.ok(foot.includes('flex-wrap:wrap'), 'a row that does not fit folds onto the next line (按词折: the Button text goes through Words)');
-  assert.match(foot, /\.sz-write__foot\[data-compact="true"\] \.sz-btn--primary\{font-size:calc\(34px \* 1\);line-height:40px;min-height:60px/, 'P261 ②: still too tight → the main button is capped at 34pt (the rule is more specific than ax.js\'s foot rule)');
+  assert.ok(foot.includes('.sz-write__links{min-height:48px;display:flex;align-items:stretch;gap:'), 'A7: the help row is one flex row of equal-width buttons (no wrapping: two short labels fit even at AX5)');
+  assert.match(foot, /\.sz-write__foot\[data-compact="true"\] \.sz-btn--primary\{font-size:calc\(34px \* 1\);line-height:40px;min-height:52px/, 'P261 ②: still too tight → the main button is capped at 34pt (the rule is more specific than ax.js\'s foot rule)');
 });
 
 test('ax-menu.js 已删除（写字页不再有菜单，也没有别处复用）', () => {

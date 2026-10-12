@@ -10,7 +10,7 @@
 //   makeSession({...})             造一个 01 §3.3 形状的会话对象（纯函数）
 //   seedSession(page, {...})       reset（可选）+ seed 一个会话到 sessions[slot]；返回 {ok, state}
 //   openWrite(page, {slot})        从首页测试入口（A）或 nav.push（B）打开写字页并等 idle
-//   tap(page, testid)              点写字页底栏上的一项（主按钮或文字行里的按钮，一次点击，D55）；footItems 读出文字行里的控件
+//   tap(page, testid)              点写字页底栏上的一项（主按钮或求助行里的按钮，一次点击，D55）；footItems 读出求助行里的控件，再加页头右上的「结束这组」「跳过」（A7，D57）
 //   gridRect(page)                 顶层写字页书写格的 CSS 矩形
 //   drawStroke(page, pts, opts)    用鼠标在书写格里画一笔；pts 为书写格内 0–1 的相对坐标
 //   writeSnapshot(page)            写字页当前状态（笔数、按钮可用性、进度文字、cursor…）
@@ -152,12 +152,18 @@ export async function openWrite(page, { slot = 'A' } = {}) {
  * 返回 [{testid, text, aria, disabled, static, state, remaining}]，顺序就是 DOM 里的顺序（左组在前、右端组在后）。
  */
 export async function footItems(page) {
-  return page.$$eval('.sz-layer[data-top="true"] .sz-page__foot .sz-write__links [data-testid]', els => els
-    .filter(e => e.matches('button') || e.classList.contains('sz-nohint'))
-    .map(e => ({
-      testid: e.dataset.testid, text: e.textContent.trim(), aria: e.getAttribute('aria-label'), disabled: !!e.disabled, static: !e.matches('button'),
-      state: e.dataset.state || null, remaining: e.dataset.remaining === undefined ? null : e.dataset.remaining,
-    })));
+  // A7（D57，P280）：求助行（提示 / 看答案 / 自己写 / 下一个…）在主按钮上方，「结束这组」「跳过」在页头右上——一并列出（先求助行，后页头右上）
+  return page.evaluate(() => {
+    const top = document.querySelector('.sz-layer[data-top="true"]');
+    const pick = sel => [...top.querySelectorAll(sel)];
+    const els = [...pick('.sz-page__foot .sz-write__links [data-testid]'), ...pick('.sz-page__head .sz-write__headact [data-testid]')];
+    return els
+      .filter(e => e.matches('button') || e.classList.contains('sz-nohint'))
+      .map(e => ({
+        testid: e.dataset.testid, text: e.textContent.trim(), aria: e.getAttribute('aria-label'), disabled: !!e.disabled, static: !e.matches('button'),
+        state: e.dataset.state || null, remaining: e.dataset.remaining === undefined ? null : e.dataset.remaining,
+      }));
+  });
 }
 
 /**

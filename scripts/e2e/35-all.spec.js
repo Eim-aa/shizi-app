@@ -248,7 +248,7 @@ async function backToAll(page) {
     const s = getRouter().getState();
     return s.top && s.top.n === 'library-all';
   });
-  await waitNavIdle(page, { settleMs: 150 });
+  await waitNavIdle(page, { settleMs: 450 }); // W2：从写字页退回是 B3 的 180ms（原横推 300ms）；按钮在新页面后 0.4s 内不响应，等够
 }
 
 export default async function run(page, ctx) {

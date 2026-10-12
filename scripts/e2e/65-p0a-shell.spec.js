@@ -268,15 +268,16 @@ export default async function p0aShell(page, ctx) {
   await openWrongList(page);
 
   // ------------------------------------------------------------------ A1 推入转场叠层（G13）
-  step('A1: during the list → write push, covered points hit the new page, never the list 全选 / ‹');
-  const push = await sampleTransition(page, { trigger: '[data-testid="list-go"]', targets: ['[data-testid="list-toggle-all"]', '[data-testid="page-back"]'], kind: 'push' });
+  // W2（D57）：进写字页改成 B1 / B3（paper-transition.js，不再是横推），所以这条横推的叠层检查换成清单 → 单字详情（其它页面仍是横推）
+  step('A1: during the list → detail push, covered points hit the new page, never the list 全选 / ‹');
+  const push = await sampleTransition(page, { trigger: '[data-testid="list-row-open"]', targets: ['[data-testid="list-toggle-all"]', '[data-testid="page-back"]'], kind: 'push' });
   assert.ok(!push.error, `captured the push animation (${push.error || 'ok'})`);
   assert.ok(push.out.filter(s => s.covered).length >= 6, `sampled ${push.out.filter(s => s.covered).length} covered points`);
   assert.deepEqual(push.out.filter(s => s.covered && (!s.inMoving || s.inOld)), [], 'push: covered points always belong to the incoming page');
-  await page.waitForSelector(topSel('write-screen'));
+  await page.waitForSelector(topSel('detail-screen'));
   await waitNavIdle(page);
 
-  step('A1: during the write → list pop, the points under the sliding-out page never show the list page through its stacking');
+  step('A1: during the detail → list pop, the points under the sliding-out page never show the list page through its stacking');
   const pop = await sampleTransition(page, { trigger: '[data-testid="page-back"]', targets: ['[data-testid="page-back"]'], kind: 'pop' });
   assert.ok(!pop.error, `captured the pop animation (${pop.error || 'ok'})`);
   assert.deepEqual(pop.out.filter(s => s.covered && !s.inMoving), [], 'pop: points still covered by the outgoing page belong to it');

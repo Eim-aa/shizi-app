@@ -48,11 +48,20 @@ function geometry() {
 }
 /* eslint-enable no-undef */
 
-async function noteVisible(page, ctx, tag, inside) {
+async function noteVisible(page, ctx, tag, inside, { scrollOk = false } = {}) {
   const { assert } = ctx;
-  const g = await page.evaluate(geometry);
+  let g = await page.evaluate(geometry);
   assert.ok(g.grid.width >= 220 - 0.5 && Math.abs(g.grid.width - g.grid.height) <= 0.5, `${tag}: grid ${g.grid.width.toFixed(0)}² ≥ 220`);
-  assert.ok(g.bodyScroll[0] <= g.bodyScroll[1] + 1, `${tag}: no scrolling (${g.bodyScroll})`);
+  if (scrollOk && g.bodyScroll[0] > g.bodyScroll[1] + 1) {
+    // W2（A7，P280）：格下多了 48 的撤销 / 清空行，最矮的屏（SE 3）上 AX 档再叠读屏的一次性建议（一句话 + 44 高的「去设置」）放不下——
+    // 按 P261 / P278 的最后一步让页面正文可滚动（书写格已在下限 220、底栏已收紧）；这一块只在读屏第一次进写字页出现一次，滚到底整块可见。
+    assert.ok(g.bodyScroll[0] - g.bodyScroll[1] <= 60, `${tag}: the one-time suggestion makes the body scroll by only ${g.bodyScroll[0] - g.bodyScroll[1]}pt (last resort, P278)`);
+    await page.evaluate(() => { const b = document.querySelector('.sz-layer[data-top="true"] .sz-page__body'); b.scrollTop = b.scrollHeight; });
+    await page.waitForTimeout(100);
+    g = await page.evaluate(geometry);
+  } else {
+    assert.ok(g.bodyScroll[0] <= g.bodyScroll[1] + 1, `${tag}: no scrolling (${g.bodyScroll})`);
+  }
   assert.ok(g.note.top >= g.grid.bottom - 0.5 && g.note.bottom <= g.foot.top + 0.5, `${tag}: note ${g.note.top.toFixed(0)}–${g.note.bottom.toFixed(0)} is under the grid (${g.grid.bottom.toFixed(0)}) and above the foot (${g.foot.top.toFixed(0)})`);
   assert.ok(g.noteScroll[0] <= g.noteScroll[1] + 1, `${tag}: note content is not clipped`);
   if (inside) {
@@ -71,7 +80,7 @@ export default async function run(page, ctx) {
     step(`${tag}: screen-reader suggestion (text + 去设置) is whole above the foot`);
     await open(page, ctx, { size, voiceOver: true });
     await page.waitForSelector(topSel('write-paper-suggest'));
-    await noteVisible(page, ctx, tag, '[data-testid="write-paper-suggest-go"]');
+    await noteVisible(page, ctx, tag, '[data-testid="write-paper-suggest-go"]', { scrollOk: true });
 
     step(`${tag}: the answer note is whole above the foot`);
     await open(page, ctx, { size, current: { phase: 'answer', answerSeen: true } });

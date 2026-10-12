@@ -11,7 +11,7 @@ test('constants follow D36 / V02', () => {
   assert.equal(GRID_MAX, 400);
   assert.deepEqual(
     { ...policy.writeGrid },
-    { min: 258, max: 400, sideMargin: 20, promptGap: 16, toolsHeight: 40, axMin: 220, axNoteHeight: 56, axAux: { pinyin: [22, 28], note: [17, 22], progress: [17, 22], title: [17, 22], links: [17, 22], paper: [22, 28] }, axPromptScaleMax: 1.6, bottomGap: 16, topShare: 0.4, topMin: 12, nominalHead: 44, nominalFoot: 116, footBottomMin: 8, nominalPrompt: 80 },
+    { min: 258, max: 400, sideMargin: 20, promptGap: 16, toolsHeight: 40, toolRowHeight: 48, axMin: 220, axNoteHeight: 56, axAux: { pinyin: [22, 28], note: [17, 22], progress: [17, 22], title: [17, 22], links: [17, 22], paper: [22, 28] }, axPromptScaleMax: 1.6, bottomGap: 16, topShare: 0.4, topMin: 12, nominalHead: 44, nominalFoot: 134, footBottomMin: 8, nominalPrompt: 80 },
     'P118（D49：整组居中公式的参数；书写格边长公式的测试在 write-layout.test.mjs）',
   );
   assert.equal(COMPACT_QUERY, `(max-height: ${COMPACT_MAX_HEIGHT}px)`);

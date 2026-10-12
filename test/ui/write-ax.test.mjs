@@ -25,7 +25,7 @@ test('policy.writeGrid (P225 / P243): AX floor 220, note slot ≥ 56, tiered aux
   assert.ok(!('axAuxMax' in g), 'R3-K1 P243: the flat 17pt cap is replaced by tiers');
   assert.deepEqual(g.axAux, { pinyin: [22, 28], note: [17, 22], progress: [17, 22], title: [17, 22], links: [17, 22], paper: [22, 28] });
   assert.equal(g.axPromptScaleMax, 1.6);
-  assert.ok(!('toolsHeightAx' in g), 'AX tools moved to the header: no AX tools row any more');
+  assert.ok(!('toolsHeightAx' in g), 'no separate AX tools height: the under-grid row is policy.writeGrid.toolRowHeight (A7, P280)');
   assert.equal(g.min, 258, 'xS–XXXL keep the 258 floor');
 });
 
@@ -38,10 +38,10 @@ test('prompt.js AX rules: the cell grows with min(--k, 1.6) (the word is the big
   assert.ok(!/--cw:64px/.test(src), 'the old 64px AX cell is gone');
 });
 
-test('write/index.js AX rules: progress / notes capped at 17pt, undo + clear icons 28pt in the header, the title never wraps into its own row', () => {
+test('write/index.js AX rules: progress / notes capped at 17pt, the under-grid undo + clear (A7, P280) icons 24pt, the title never wraps into its own row', () => {
   const src = read('src/ui/screens/write/index.js');
   assert.match(src, /\.sz-write__progress\{font-size:calc\(17px \* 1\);line-height:24px\}/);
-  assert.match(src, /\.sz-write__headtools \.sz-write__ibtn svg\{width:28px;height:28px\}/);
+  assert.match(src, /\.sz-write__tool svg\{width:24px;height:24px\}/);
   assert.match(src, /\.sz-page__head\{flex-wrap:nowrap\}/);
   assert.match(src, /role="img"\s+aria-label=\$\{t\('R-W01\.progressLabel'/, 'A2-09: the counter has a screen-reader name, not a slash');
 });

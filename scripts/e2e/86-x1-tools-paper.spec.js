@@ -1,9 +1,9 @@
-// R2-X1（D51 ⑦，P226；第二轮审查 I2-06）→ R3-C3W（D53 ②，P258）：写字页的控件位置稳定。
+// R2-X1（D51 ⑦，P226；第二轮审查 I2-06）→ R3-C3W（D53 ②，P258）→ W2（A7，D57，P280）：写字页的控件位置稳定。
 //
-//   - 撤销 / 清空常驻页头右侧（计数左边）：没落笔时也在、ink4 且不可点；落第一笔后位置一个像素都不动，只是变成 ink2 可点（交接 §13.1「无墨 ink4 且不可点」）。
+//   - 撤销 / 清空常驻书写格正下方一行（A7 起不在页头）：没落笔时也在、ink4 且不可点；落第一笔后位置一个像素都不动，只是变成 ink2 可点（交接 §13.1「无墨 ink4 且不可点」）。
 //   - 「在纸上写」不在写字页（D56，P275：移到设置 › 写字方式）：文字行 / 格下说明位在任何阶段、有墨无墨、清空后、首练提示在场、读屏开启时都没有它；
 //     原来 X1 定下的「常驻入口」被这条决定取代。读屏开启时的建议（指向设置）见 94-k1-note-slot；偏好纸上时写字页直接是纸上写见 73-p1e8-paper。
-//   - 版式几何不变：格下说明位仍是 40 高、和书写格同宽。
+//   - 版式几何：格下 = 撤销 / 清空行 48 + 说明位 40 = 88 高、和书写格同宽。
 // L 档与 XXXL（紧凑排布）各一遍，浅色。
 
 import {
@@ -57,19 +57,19 @@ export default async function x1ToolsPaper(page, ctx) {
   const { assert, step } = ctx;
   for (const size of ['L', 'XXXL']) {
     const tag = `390×844 ${size}`;
-    step(`${tag}: before the first stroke undo / clear are already in the header, left of the counter (ink4, not tappable); no 在纸上写 anywhere (D56)`);
+    step(`${tag}: before the first stroke undo / clear are already under the grid (ink4, not tappable); no 在纸上写 anywhere (D56)`);
     await open(page, ctx, { size });
     const a = await page.evaluate(geometry);
     assert.deepEqual([a.toolsShown, a.toolsVis], ['true', 'visible'], `${tag}: the tools are shown with no ink`);
     assert.deepEqual([a.undo.disabled, a.clear.disabled], [true, true], `${tag}: both disabled with no ink`);
     assert.deepEqual([a.undo.color, a.clear.color], [tokenRgb('light', 'ink4'), tokenRgb('light', 'ink4')], `${tag}: ink4`);
-    assert.ok(a.undo.bottom <= a.headBottom + 0.5 && a.clear.bottom <= a.headBottom + 0.5, `${tag}: undo / clear are in the header row`);
-    assert.ok(a.clear.right <= a.progressLeft + 4.5 && a.undo.left < a.clear.left, `${tag}: undo then clear, then the counter (clear right ${a.clear.right.toFixed(0)} ≤ counter left ${a.progressLeft.toFixed(0)})`);
+    assert.ok(near(a.undo.top, a.grid.bottom + 4, 1) && near(a.clear.top, a.grid.bottom + 4, 1), `${tag}: undo / clear sit in the row 4pt under the grid (A7)`);
+    assert.ok(a.undo.left < a.clear.left && a.clear.right <= a.grid.right + 6, `${tag}: undo on the left, clear on the right, inside the grid's width`);
     const items = await footItems(page);
     assert.equal(a.toPaper, null, `${tag}: no 在纸上写 on the write page`);
     assert.deepEqual(items.map(i => i.testid).slice(0, 2), ['write-hint', 'write-show-answer'], `${tag}: row order 提示 / 看答案`);
     assert.ok(!items.some(i => i.testid === 'write-to-paper'), `${tag}: the text row has no 在纸上写`);
-    assert.ok(near(a.below.height, 40, 1), `${tag}: the row under the grid is still 40 high (${a.below.height})`);
+    assert.ok(near(a.below.height, 88, 1), `${tag}: the area under the grid is 88 high: tools row 48 + note slot 40 (${a.below.height})`);
 
     step(`${tag}: after the first stroke the icons do not move, they turn live (ink2); still no 在纸上写; so after 清空`);
     await drawStroke(page, HORIZONTAL);

@@ -2,9 +2,9 @@
 //
 // AX1 / AX3 / AX5 × 375×667（SE 3）/ 390×844 / 430×932（Pro Max）下，写字、看答案、判断三页：
 //   - 书写格（判断页是两格）完整落在首屏：不被底栏盖住、页面正文不滚动、书写格边长 ≥ 220；
-//   - 撤销 / 清空常驻页头右侧（28pt 图标、热区 ≥ 44）、底栏的「写好了」与其下一行文字按钮，都在首屏、都不与底栏 / 书写格相交；
-//   - 底栏 = 「写好了」主按钮 + 一行文字按钮（R4-F1，D55，P260 / P261）：提示 / 看答案 / 跳过（picked 会话再多一个「结束这组」；「在纸上写」已移到设置，D56）一次点击直达，没有「⋯」菜单；
-//     文字行字号封顶 AX1–AX2 17pt、AX3–AX5 22pt，放不下按词折行；
+//   - 撤销 / 清空在书写格正下方一行（A7，D57，P280：图标 24pt 加文字，热区 ≥ 44）、底栏的求助行与「写好了」，都在首屏、都不与底栏 / 书写格相交；
+//   - 底栏 = 求助行 + 「写好了」主按钮（A7 / R4-F1，D55，P260 / P261 / P280）：提示 / 看答案在主按钮正上方，跳过（picked 会话再多一个「结束这组」；「在纸上写」已移到设置，D56）在页头右上，一次点击直达，没有「⋯」菜单；
+//     求助行字号封顶 AX1–AX2 17pt、AX3–AX5 22pt，按钮 56 高（书写格放不下 220 的最矮屏收紧为 52）；
 //   - 题面汉字随档放大（格边 = 52 × min(k, 1.6)），拼音与进度分层封顶（R3-K1 P243：拼音 AX1 22 / AX3–AX5 28，进度 17 / 22）；进度读屏名称是「第 n 个字，共 m 个」；
 //   - 看答案页：主按钮「描一遍」、答案说明在格下说明位、答案字不被说明盖住。
 // 测试浏览器没有安全区（状态栏 0、底栏下内边距 8）。新旧对照：旧实现下 AX5 的 375×667 写字页书写格有约 37% 在底栏下面、页面正文可滚动。
@@ -93,7 +93,7 @@ export async function runWriteAx(page, ctx, views) {
     for (const { size, k } of LEVELS) {
       const tag = `${view.width}×${view.height} ${size}`;
       // ---------------------------------------------------------------- 写字页（回忆）
-      step(`${tag} write: the whole grid, undo / clear and 「⋯」 are on the first screen; nothing scrolls; the foot is one row`);
+      step(`${tag} write: the whole grid, undo / clear, the help row and 跳过 are on the first screen; nothing scrolls (A7)`);
       await open(page, ctx, { view, size });
       const g = await page.evaluate(geometry);
       assert.ok(g.grid.width >= 220 - 0.5 && near(g.grid.width, g.grid.height, 0.5), `${tag}: grid ${g.grid.width.toFixed(0)}×${g.grid.height.toFixed(0)} ≥ 220, square`);
@@ -105,18 +105,19 @@ export async function runWriteAx(page, ctx, views) {
         assert.ok(r && r.top >= -0.5 && r.bottom <= g.vh + 0.5 && r.left >= -0.5 && r.right <= g.vw + 0.5, `${tag}: ${name} is on the first screen`);
         assert.ok(!overlaps(r, g.grid), `${tag}: ${name} does not touch the grid`);
       }
-      assert.ok(g.undo.bottom <= g.head.bottom + 0.5 && g.clear.bottom <= g.head.bottom + 0.5, `${tag}: undo and clear sit in the header (right side), above the grid`);
+      assert.ok(near(g.undo.top, g.grid.bottom + 2, 2.5) && near(g.clear.top, g.grid.bottom + 2, 2.5), `${tag}: undo and clear sit in the row right under the grid (A7; 4pt, or flush when the grid is at the 220 floor)`);
       assert.ok(g.undo.width >= 44 - 0.5 && g.undo.height >= 44 - 0.5 && g.clear.width >= 44 - 0.5, `${tag}: undo / clear hit areas ≥ 44`);
-      assert.ok(near(g.ibtnSvg.width, 28, 0.5), `${tag}: the icons are 28pt (${g.ibtnSvg.width})`);
+      assert.ok(near(g.ibtnSvg.width, 24, 0.5), `${tag}: the icons are 24pt (${g.ibtnSvg.width})`);
       assert.equal(g.undoShown, 'true', `${tag}: undo / clear are in place before the first stroke (always there)`);
-      assert.ok(g.undo.left > g.vw / 2 && g.clear.left > g.vw / 2, `${tag}: undo and clear are on the right of the header`);
+      assert.ok(g.undo.right < g.clear.left && near(g.undo.left, g.grid.left, 6) && near(g.clear.right, g.grid.right, 6), `${tag}: undo at the grid's left edge, clear at its right edge`);
       assert.ok(g.noMenu, `${tag}: no 「⋯」 button and no menu (D55)`);
-      for (const [name, r] of [['hint', g.hint], ['answer link', g.answerLink], ['skip', g.skip]]) {
-        assert.ok(r.top >= g.done.bottom - 0.5 && !overlaps(r, g.done), `${tag}: ${name} is in the row under 「写好了」`);
+      assert.ok(g.skip.bottom <= g.head.bottom + 0.5, `${tag}: 跳过 is in the page head (A7)`);
+      for (const [name, r] of [['hint', g.hint], ['answer link', g.answerLink]]) {
+        assert.ok(r.bottom <= g.done.top + 0.5 && !overlaps(r, g.done), `${tag}: ${name} is in the help row above 「写好了」`);
         assert.ok(r.height >= 44 - 0.5 || r.height >= g.linksFs * 1.3, `${tag}: ${name} hit height ${r.height.toFixed(0)}`);
       }
-      assert.ok(!overlaps(g.hint, g.answerLink) && !overlaps(g.answerLink, g.skip) && !overlaps(g.hint, g.skip), `${tag}: the text buttons do not overlap each other`);
-      assert.equal(g.linksFs, size === 'AX1' ? 17 : 22, `${tag}: the text row is capped by tier (P261)`);
+      assert.ok(!overlaps(g.hint, g.answerLink) && !overlaps(g.answerLink, g.skip) && !overlaps(g.hint, g.skip), `${tag}: the buttons do not overlap each other`);
+      assert.equal(g.linksFs, size === 'AX1' ? 17 : 22, `${tag}: the help row text is capped by tier (P261)`);
       assert.equal(g.paperLink, null, `${tag}: 在纸上写 is not on the write page (D56 / P275)`);
       // 题面：汉字随档放大，拼音与进度分层封顶（P243）
       assert.ok(near(g.promptCell.width, Math.round(52 * Math.min(k, 1.6) * 10) / 10, 1.2), `${tag}: prompt cell ${g.promptCell.width.toFixed(1)} = 52 × min(${k}, 1.6)`);
@@ -135,7 +136,7 @@ export async function runWriteAx(page, ctx, views) {
 
       // ---------------------------------------------------------------- 文字行一次点击
       if (size === 'AX3' || (size === 'AX5' && view.width === 375)) {
-        step(`${tag} text row: a picked session has 提示 / 看答案 / 结束这组 / 跳过 in the row; one tap on 提示 shows the hint`);
+        step(`${tag} a picked session has 提示 / 看答案 in the help row and 结束这组 / 跳过 in the page head; one tap on 提示 shows the hint`);
         await open(page, ctx, { view, size, slot: 'B', kind: 'picked' });
         const ids = (await footItems(page)).map(i => i.testid);
         assert.ok(['write-hint', 'write-show-answer', 'write-end', 'write-skip'].every(id => ids.includes(id)), `${tag}: row items ${JSON.stringify(ids)}`);

@@ -8,7 +8,7 @@
 //     两格与书写格同一顶边、同一中线，边长按 §9.1 的新公式（402 / SE / Pro Max 实测值写进断言）；AX5：页头问题只留读屏、两格取「上下排 / 并排」格子更大的一种、
 //     同屏可比、按钮纵排；纸上那一字：参考字形放到书写格大小，格下说明位「和你纸上的字对照」。
 //
-// 测试浏览器没有安全区（状态栏 0、按钮行下内边距 8）：主区高 = 屏高 − 44（页头）− 124（按钮行：上 12 + 主按钮 54 + 间 6 + 文字行 44 + 下 8）。
+// 测试浏览器没有安全区（状态栏 0、按钮行下内边距 8）：主区高 = 屏高 − 44（页头）− 142（按钮行：上 12 + 求助行 48 + 间 20 + 主按钮 54 + 下 8；W2 A7，P280）。
 // 设计稿的数值（402：231 / SE：177 / Pro Max：261）带 54 + 34 等安全区，在 test/ui/write-layout.test.mjs 里按稿面输入断言。
 
 import {
@@ -108,8 +108,8 @@ const near = (a, b, tol = 1) => Math.abs(a - b) <= tol;
 
 /** 实现交接 §13.2 的公式，输入是量到的主区高与题面高。 */
 function expectWrite({ W, mainH, P }) {
-  const g = Math.max(258, Math.min(400, Math.floor(Math.min(W - 40, 400, mainH - P - 16 - 40 - 16))));
-  const spare = mainH - (P + 16 + g + 40);
+  const g = Math.max(258, Math.min(400, Math.floor(Math.min(W - 40, 400, mainH - P - 16 - 88 - 16))));
+  const spare = mainH - (P + 16 + g + 88);
   const ideal = Math.round(spare * 0.4);
   const top = ideal >= 12 ? ideal : Math.max(0, Math.min(12, Math.floor(spare)));
   return { g, top, gridTop: top + P + 16 };
@@ -119,12 +119,12 @@ export default async function e9bWriteJudge(page, ctx) {
   const { assert, step } = ctx;
 
   // ------------------------------------------------------------------ A 写字页：结构与位置（浅色，三机型）
-  // 实测值（测试浏览器无安全区）：主区高 = 屏高 − 168；P = 80
+  // 实测值（测试浏览器无安全区）：主区高 = 屏高 − 44 − 142（A7，P280：按钮行 = 求助行 48 + 间 20 + 主按钮 54 + 上 12 + 下 8）；P = 80；格下 = 撤销 / 清空行 48 + 说明位 40 = 88
   const WRITE_CASES = [
     // [宽, 高, 主区高, g, 题面顶（相对正文顶）, 书写格顶（相对正文顶）, 判断页 S]
-    [402, 874, 706, 362, 83, 179, 255],
-    [375, 667, 499, 335, 12, 108, 187],
-    [440, 956, 788, 400, 101, 197, 287],
+    [402, 874, 688, 362, 57, 153, 259],
+    [375, 667, 481, 281, 12, 108, 178],
+    [440, 956, 770, 400, 74, 170, 292],
   ];
   for (const [W, H, mainH, g, topOff, gridOff, S] of WRITE_CASES) {
     const tag = `${W}×${H}`;
@@ -132,7 +132,7 @@ export default async function e9bWriteJudge(page, ctx) {
     await boot(page, ctx, { view: { width: W, height: H } });
     const m = await geo(page);
     assert.deepEqual(m.bodyPad, ['0px', '0px', '20px', '20px'], `${tag}: the body has no top / bottom padding (the main area is the whole body), side margins 20`);
-    assert.ok(near(m.body.height, mainH, 0.6), `${tag}: main area = screen − 44 − 124 = ${mainH} (${m.body.height})`);
+    assert.ok(near(m.body.height, mainH, 0.6), `${tag}: main area = screen − 44 − 142 = ${mainH} (${m.body.height})`);
     assert.ok(near(m.prompt.height, 80, 0.6), `${tag}: the prompt is 80 high (pinyin row 28 + 52 cell)`);
     const e = expectWrite({ W, mainH: m.body.height, P: m.prompt.height });
     assert.equal(e.g, g, `${tag}: formula check — g = ${g}`);
@@ -140,7 +140,7 @@ export default async function e9bWriteJudge(page, ctx) {
     assert.ok(near(m.prompt.top - m.body.top, topOff, 1), `${tag}: prompt top ${topOff} below the main-area top, 40% of the spare above (${m.prompt.top - m.body.top})`);
     assert.ok(near(m.grid.top - m.body.top, gridOff, 1), `${tag}: grid top ${gridOff} below the main-area top (${m.grid.top - m.body.top})`);
     assert.ok(near(m.grid.top - m.prompt.bottom, 16), `${tag}: prompt → grid is 16`);
-    assert.ok(near(m.below.height, 40, 0.6) && near(m.below.width, g), `${tag}: the tools row is 40 high and as wide as the grid`);
+    assert.ok(near(m.below.height, 88, 0.6) && near(m.below.width, g), `${tag}: the under-grid area (撤销 / 清空 row 48 + note slot 40) is 88 high and as wide as the grid`);
     assert.ok(near(m.grid.cx, m.vw / 2, 0.6) && near(m.word.cx, m.vw / 2, 1.5), `${tag}: the whole word and the grid share the page's midline (${m.word.cx} / ${m.grid.cx})`);
     const bottomSpare = m.body.bottom - m.below.bottom;
     assert.ok(bottomSpare >= topOff * 1.4 - 1 || topOff === 12, `${tag}: the spare below the group (${bottomSpare.toFixed(1)}) is ~60% (above: ${topOff})`);
@@ -148,7 +148,7 @@ export default async function e9bWriteJudge(page, ctx) {
     assert.equal(m.footUnder, null, `${tag}: no hairline on the button row while nothing is pushed under it`);
   }
 
-  step('A: the page header — no visible title in the recall phase (the page name stays for screen readers); ‹ on the left, 撤销 / 清空 + the counter on the right');
+  step('A: the page header — no visible title in the recall phase (the page name stays for screen readers); ‹ on the left, the counter in the middle, 跳过 on the right (A7)');
   await boot(page, ctx, { view: { width: 402, height: 874 } });
   const head = await page.evaluate(() => {
     const top = document.querySelector('.sz-layer[data-top="true"]');
@@ -161,7 +161,7 @@ export default async function e9bWriteJudge(page, ctx) {
     const back = top.querySelector('[data-testid="page-back"]');
     return {
       h1Text: h1.textContent, h1: { w: r.width, h: r.height, clip: cs.clip, pos: cs.position },
-      prog: { text: prog.textContent, fs: parseFloat(pcs.fontSize), color: pcs.color, num: pcs.fontVariantNumeric, right: window.innerWidth - pr.right },
+      prog: { text: prog.textContent, fs: parseFloat(pcs.fontSize), color: pcs.color, num: pcs.fontVariantNumeric, cx: (pr.left + pr.right) / 2, vw: window.innerWidth },
       back: back ? { aria: back.getAttribute('aria-label'), svg: !!back.querySelector('svg') } : null,
     };
   });
@@ -169,7 +169,7 @@ export default async function e9bWriteJudge(page, ctx) {
   assert.ok(head.h1.w <= 1.5 && head.h1.h <= 1.5, `…but visually hidden (${head.h1.w}×${head.h1.h})`);
   assert.deepEqual([head.prog.text, head.prog.fs, head.prog.color], ['2 / 5', 15, tokenRgb('light', 'ink3')], 'the counter is 15pt ink3');
   assert.ok(head.prog.num.includes('tabular-nums'), 'tabular numbers');
-  assert.ok(near(head.prog.right, 20, 1.5), `the counter sits 20 from the right edge (H1: 页边线；${head.prog.right})`);
+  assert.ok(near(head.prog.cx, head.prog.vw / 2, 30), `the counter sits in the middle of the head (A7: ${head.prog.cx} of ${head.prog.vw})`);
   assert.deepEqual(head.back, { aria: '返回', svg: true }, 'left: the ‹ icon button');
 
   step('A: the prompt — the whole word is centered, given characters have no frame, only the blank is framed (frame token, 1pt), pinyin sits above the blank');
@@ -214,18 +214,27 @@ export default async function e9bWriteJudge(page, ctx) {
     return { btns, kinds: [...new Set(page)] };
   });
   const byId = Object.fromEntries(foot.btns.map(b => [b.id, b]));
-  assert.deepEqual(foot.btns.map(b => b.id), ['write-done', 'write-hint', 'write-show-answer', 'write-skip'], 'the footer holds exactly these four buttons, in reading order (在纸上写 lives in settings, not on the write page: D56 / P275)');
+  assert.deepEqual(foot.btns.map(b => b.id), ['write-hint', 'write-show-answer', 'write-done'], 'the footer holds the help row (提示 看答案) and then 写好了 (A7: 跳过 moved to the page head; 在纸上写 lives in settings: D56 / P275)');
   assert.equal(foot.btns.filter(b => b.cls === 'sz-btn--primary').length, 1, 'one primary button (写好了)');
-  assert.deepEqual([byId['write-hint'].cls, byId['write-show-answer'].cls, byId['write-skip'].cls], ['sz-btn--text', 'sz-btn--text', 'sz-btn--text'], 'hint / answer / skip are all the same text button');
+  assert.deepEqual([byId['write-hint'].cls, byId['write-show-answer'].cls], ['sz-btn--text', 'sz-btn--text'], 'hint / answer are the same (field-backed) text-variant button');
   assert.ok(foot.btns.every(b => b.cls !== 'sz-btn--secondary'), 'no outlined secondary button in the recall footer');
-  assert.deepEqual(foot.kinds.filter(k => k !== 'sz-btn--icon' && k !== 'sz-btn--plain').sort(), ['sz-btn--primary', 'sz-btn--text'], 'clickable styles on the page: primary + text (the icon buttons are the tools / the back icon)');
+  assert.deepEqual(foot.kinds.filter(k => k !== 'sz-btn--icon' && k !== 'sz-btn--plain').sort(), ['sz-btn--primary', 'sz-btn--text'], 'clickable styles on the page: primary + text (the icon buttons are the back icon; the tools are plain buttons)');
   assert.ok(foot.kinds.length <= 4, 'icon-like buttons (back, undo, clear) are glyphs, not extra button styles');
-  assert.ok(byId['write-hint'].top === byId['write-show-answer'].top && near(byId['write-show-answer'].top, byId['write-skip'].top, 1), 'hint / answer / skip share the text row');
-  assert.ok(byId['write-hint'].right <= byId['write-show-answer'].left && byId['write-show-answer'].right <= byId['write-skip'].left, 'order: 提示 看答案 … 跳过');
-  assert.ok(near(byId['write-skip'].right, 402 - 20, 6) && near(byId['write-hint'].left, 20, 6), 'text row spans the content width (left group left, 跳过 at the right end)');
-  assert.ok(near(byId['write-show-answer'].left - byId['write-hint'].right, 16, 10), `the two helpers are ~16 apart (${byId['write-show-answer'].left - byId['write-hint'].right})`);
+  assert.ok(byId['write-hint'].top === byId['write-show-answer'].top, 'hint / answer share the help row');
+  assert.ok(byId['write-hint'].right <= byId['write-show-answer'].left, 'order: 提示 看答案');
+  assert.ok(near(byId['write-hint'].left, 20, 1.5) && near(byId['write-show-answer'].right, 402 - 20, 1.5), 'the help row spans the content width');
+  assert.ok(near(byId['write-show-answer'].left - byId['write-hint'].right, 12, 1), `the two helpers are 12 apart (${byId['write-show-answer'].left - byId['write-hint'].right})`);
+  assert.ok(byId['write-done'].top - byId['write-hint'].top - byId['write-hint'].h >= 19.5 && byId['write-done'].top - byId['write-hint'].top - byId['write-hint'].h <= 20.5, 'the help row is 20 above 写好了');
   assert.equal(byId['write-done'].disabled, true, '写好了 is disabled before the first stroke');
-  assert.ok(!byId['write-hint'].under.includes('underline') && !byId['write-skip'].under.includes('underline'), 'text buttons are not underlined (H1 / D51 ⑥: the single text style is 15 / ink2 / no underline)');
+  assert.ok(!byId['write-hint'].under.includes('underline'), 'the help buttons are not underlined');
+  const skipFacts = await page.evaluate(() => {
+    const top = document.querySelector('.sz-layer[data-top="true"]');
+    const b = top.querySelector('.sz-page__head [data-testid="write-skip"]');
+    if (!b) return null;
+    const r = b.getBoundingClientRect();
+    return { right: r.right, under: getComputedStyle(b).textDecorationLine, text: b.textContent.trim() };
+  });
+  assert.ok(skipFacts && skipFacts.text === '跳过' && near(skipFacts.right, 402 - 20, 6) && !skipFacts.under.includes('underline'), 'A7: 跳过 is a plain text button at the right end of the page head');
 
   step('A: 提示 — the visible text is just 「提示」, the remaining count is only in the screen-reader name; used up → ink4, not clickable');
   assert.deepEqual([byId['write-hint'].text, byId['write-hint'].aria], ['提示', '提示，还有 2 次'], 'visible 提示, name 提示，还有 2 次');
@@ -263,13 +272,12 @@ export default async function e9bWriteJudge(page, ctx) {
     const head = top.querySelector('.sz-page__head').getBoundingClientRect();
     return { undo: f('write-undo'), clear: f('write-clear'), headBottom: head.bottom, undoBottom: top.querySelector('[data-testid="write-undo"]').getBoundingClientRect().bottom };
   });
-  assert.deepEqual([tools.undo.tag, tools.undo.text, tools.undo.aria, tools.clear.text, tools.clear.aria], ['BUTTON', '', '撤销', '', '清空'], 'real <button>s with no words, the names are aria-labels');
+  assert.deepEqual([tools.undo.tag, tools.undo.text, tools.undo.aria, tools.clear.text, tools.clear.aria], ['BUTTON', '撤销', '撤销', '清空', '清空'], 'A7: real <button>s with an icon and the word (the aria-label is the same word)');
   assert.ok(tools.undo.w >= 44 - 0.5 && tools.undo.h >= 44 - 0.5 && tools.clear.w >= 44 - 0.5 && tools.clear.h >= 44 - 0.5, 'hit area ≥ 44×44');
-  assert.deepEqual([tools.undo.vis, tools.undo.visH, tools.clear.vis, tools.clear.visH], [36, 36, 36, 36], 'visible plate 36×36');
   assert.ok(near(tools.undo.icon, 20, 0.5) && near(tools.clear.icon, 20, 0.5), 'icon 20');
   assert.equal(tools.undo.color, tokenRgb('light', 'ink2'), 'with ink: undo is ink2');
   assert.equal(tools.clear.color, tokenRgb('light', 'ink2'), 'with ink: clear is ink2');
-  assert.ok(tools.undoBottom <= tools.headBottom + 0.5 && tools.clear.cx > 402 / 2, `the icons sit in the header, right of the middle (D53 ②) (undo bottom ${tools.undoBottom} ≤ header ${tools.headBottom})`);
+  assert.ok(tools.undoBottom > tools.headBottom && tools.clear.cx > 402 / 2, `the tools sit under the grid, not in the header (A7, P280) (undo bottom ${tools.undoBottom} > header ${tools.headBottom})`);
   await page.click(topSel('write-clear'));
   await page.waitForTimeout(PRESS_SETTLE_MS);
   const afterClear = await page.evaluate(() => {
@@ -314,9 +322,9 @@ export default async function e9bWriteJudge(page, ctx) {
     assert.ok(near(m.mine.width, exp, 1), `${tag}: formula on the measured numbers = ${exp}`);
     assert.ok(m.ref.bottom <= m.body.bottom - 15, `${tag}: the pair ends ≥ 16 above the button row (${(m.body.bottom - m.ref.bottom).toFixed(1)})`);
     assert.ok(m.bodyScroll <= m.bodyClient + 1, `${tag}: the judge page does not scroll`);
-    // 按钮行与写字页同一行位：两键在主按钮的位置，文字行留空（同样的 54 + 6 + 44）
+    // 按钮行与写字页同一行位：两键在主按钮的位置，求助行留空占位（同样的 48 + 20 + 54）
     assert.ok(near(m.wrong.height, 54, 0.6) && near(m.correct.height, 54, 0.6) && near(m.wrong.width, m.correct.width, 0.6), `${tag}: the two judge keys are equal secondary buttons, 54 high`);
-    assert.ok(near(m.foot.height, 124, 0.6), `${tag}: the button row is as high as on the write page (124, the text row stays empty but keeps its place)`);
+    assert.ok(near(m.foot.height, 142, 0.6), `${tag}: the button row is as high as on the write page (142, the help row stays empty but keeps its place)`);
   }
 
   step('B: the judge page header and reading — 写对了吗？, the same ‹ icon, no side notes / sentence, names kept, the answer shows once');
@@ -380,7 +388,7 @@ export default async function e9bWriteJudge(page, ctx) {
   const gridD = (await geo(page)).grid;
   await toCompare(page);
   const mD = await geo(page);
-  assert.ok(near(mD.mine.top, gridD.top, 1) && near(mD.mine.width, 255, 1), 'dark: same top edge, S 255');
+  assert.ok(near(mD.mine.top, gridD.top, 1) && near(mD.mine.width, 259, 1), 'dark: same top edge, S 259');
   const darkFrame = await page.$eval(topSel('write-compare-mine'), el => getComputedStyle(el).borderTopColor);
   assert.equal(darkFrame, tokenRgb('dark', 'frame'), 'dark: the cell frame uses the dark frame token');
 

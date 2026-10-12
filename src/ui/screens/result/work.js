@@ -254,12 +254,13 @@ export function WorkSection({ work, day, dateText, inkOf, onOpen, picked = false
     } catch (error) {
       anim = null;
     }
+    const HALF_FRAME = 1000 / 120; // 半帧（60Hz 一帧 16.7ms）：帧时间，不是动画时长
     const due = () => {
       if (!anim) return true;
       try {
         const timing = anim.effect.getComputedTiming();
         const at = Number(anim.currentTime) - (Number(timing.delay) || 0); // 印的动画时钟：开始落下后过了多久（currentTime 含 delay）
-        return !(at < plan.contactMs); // NaN（读不到）也当作到了，不误等
+        return !(at < plan.contactMs - HALF_FRAME); // 取最近的一帧：离着纸不到半帧的这一帧就算着纸（否则时钟差零点几毫秒就会晚发一整帧，声音落在回弹里）。NaN（读不到）也当作到了，不误等
       } catch (error) {
         return true;
       }

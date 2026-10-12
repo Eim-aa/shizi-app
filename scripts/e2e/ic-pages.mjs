@@ -3,7 +3,7 @@
 import { CATALOG, PRESS_MS, TOP, enter, pageFacts, skipIfPending, snapshot, swipeBack, backActionIsFunction, waitIdle } from './ic-lib.mjs';
 
 /** 主按钮底线（B2）：子页 = 视口下沿 − max(20, 安全区)（测试里安全区 0）；Tab 根 = Tab 栏上沿 − 20。 */
-const LINE = 20;
+const LINE = 24; // 全 App 主按钮底线（规范 B2，R5M 由 20 改 24，审计 P1-15）
 
 export async function checkPages(page, ctx, info, names) {
   const { assert, step } = ctx;
@@ -48,8 +48,8 @@ export async function checkPages(page, ctx, info, names) {
       const onLine = entry.tab
         ? f.tabTop !== null && Math.abs(f.tabTop - f.primaryBottom - LINE) <= 1
         : Math.abs(f.primaryBottomGap - LINE) <= 1;
-      if (!onLine && !skipIfPending('IC-10', where, `${name}: primary bottom gap ${f.primaryBottomGap}, tab top ${f.tabTop}`)) {
-        assert.ok(false, `IC-10 ${name}: the primary sits on the app-wide bottom line (gap ${f.primaryBottomGap}, tab top ${f.tabTop})`);
+      if (onLine || !skipIfPending('IC-10', where, `${name}: primary bottom gap ${f.primaryBottomGap}, tab top ${f.tabTop}`)) {
+        assert.ok(onLine, `IC-10 ${name}: the primary sits on the app-wide bottom line ${LINE} (gap ${f.primaryBottomGap}, tab top ${f.tabTop})`);
       }
     }
     assert.equal(f.hOverflow, false, `${name}: no horizontal page scroll`);

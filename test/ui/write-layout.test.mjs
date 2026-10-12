@@ -59,7 +59,7 @@ test('writeLayout (E9d, P195, D29 / D36): xS–XXXL never shrink the grid — g 
 });
 
 // ---- AX 档（D51 ⑦，P225，A2-01）：永不滚动，格子按实际可用高度排，下限 220
-// 页面外壳按 AX 档实测值建模：页头 44 + 上安全区；底栏 = 上 12 + 求助行 56 + 间 20 + 主按钮（--btn-h：AX1 60 / AX2 64 / AX3 74 / AX4 82 / AX5 88）+ max(8, 下安全区)（A7，P280）；
+// 页面外壳按 AX 档实测值建模：页头 44 + 上安全区；底栏 = 上 12 + 求助行 56 + 间 20 + 主按钮（--btn-h：AX1 60 / AX2 64 / AX3 74 / AX4 82 / AX5 88）+ max(24, 下安全区)（A7，P280；R5M / P298 起主按钮底线 24）；
 // 格子（不夹下限）低于 220（tight）时写字页让底栏收紧（P278）：主按钮字号封顶 34pt（高 52）、求助行 48、间距 6——下面 axMain(…, true)；
 // 题面 P = 拼音行 28 + 题面格 round(52 × min(k, 1.6)) = 83 → 112（有两行提示时再加 8 + 48；提示行是 17pt 两行）。
 const AX_BTN = { 1: 60, 2: 64, 3: 74, 4: 82, 5: 88 };
@@ -68,7 +68,7 @@ const PHONES = [
   { name: '390×844 (iPhone 14)', w: 390, h: 844, top: 47, bottom: 34 },
   { name: '430×932 (Pro Max)', w: 430, h: 932, top: 59, bottom: 34 },
 ];
-const axMain = (phone, level, compact = false) => phone.h - (44 + phone.top) - (compact ? 12 + 48 + 6 + 52 : 12 + 56 + 20 + AX_BTN[level]) - Math.max(8, phone.bottom);
+const axMain = (phone, level, compact = false) => phone.h - (44 + phone.top) - (compact ? 12 + 48 + 6 + 52 : 12 + 56 + 20 + AX_BTN[level]) - Math.max(24, phone.bottom);
 /** 与写字页一致：按常规底栏量一次，tight 就按收紧后的底栏再量一次。 */
 const axFit = (phone, level, P) => {
   const first = axWriteLayout({ width: phone.w, mainHeight: axMain(phone, level), promptHeight: P });
@@ -87,16 +87,14 @@ test('axWriteLayout (P225): AX1 / AX3 / AX5 × SE / 14 / Pro Max — grid whole,
         assert.ok(r.g >= AX_GRID_MIN && r.g >= 220, `${tag}: g ${r.g} ≥ 220`);
         assert.ok(r.g <= Math.min(phone.w - 40, GRID_MAX), `${tag}: g ${r.g} within the page margins`);
         assert.ok(Number.isInteger(r.g), `${tag}: integer`);
-        // 最矮的屏（SE 3）上题面再多两行提示行（P = 168）：A7 的格下工具行让整组放不下，按 P261 / P278 的最后一步落到「页面正文可滚动」（其它屏、常规题面都放得下）
-        const overflowOk = phone.h < 700 && P > AX_P;
-        if (!overflowOk) {
-          assert.equal(r.fits, true, `${tag}: the whole group fits in the main area`);
-          assert.ok(r.top + P + 16 + r.g + AX_BELOW_H <= main + 0.5, `${tag}: group bottom ${r.top + P + 16 + r.g + AX_BELOW_H} ≤ main ${main} — no scrolling`);
-        } else {
-          assert.equal(r.g, 220, `${tag}: on the floor, the page body scrolls (last resort)`);
-        }
+        // 最矮的屏（SE 3）上格子到下限仍放不下时（P299）：题面按可用高度缩小（≥ 0.6），整组仍在主区里——任何一种都不滚动
+        const shown = P * r.promptScale;
+        assert.ok(r.promptScale <= 1 && r.promptScale >= 0.6, `${tag}: prompt scale ${r.promptScale}`);
+        if (phone.h > 700) assert.equal(r.promptScale, 1, `${tag}: bigger screens never scale the prompt`);
+        assert.equal(r.fits, true, `${tag}: the whole group fits in the main area`);
+        assert.ok(r.top + shown + 16 + r.g + AX_BELOW_H <= main + 0.5, `${tag}: group bottom ${r.top + shown + 16 + r.g + AX_BELOW_H} ≤ main ${main} — no scrolling`);
         assert.ok(r.top >= 0, `${tag}: top ≥ 0`);
-        assert.equal(r.gridTop, r.top + P + 16);
+        assert.equal(r.gridTop, r.top + shown + 16);
         assert.equal(r.toolsHeight, AX_BELOW_H, 'under the grid: 撤销 / 清空 row 48 + note slot ≥ 56 (A7 put undo / clear back under the grid, P280)');
       }
     }
@@ -105,9 +103,10 @@ test('axWriteLayout (P225): AX1 / AX3 / AX5 × SE / 14 / Pro Max — grid whole,
 
 test('axWriteLayout: SE 3 at AX5 is almost on the 220 floor (A7 added the 48pt tools row; the foot is compacted first, P278) and still fits; 390 × 844 AX5 keeps a 295 grid (modelled); big screens are width-limited', () => {
   const se = axWriteLayout({ width: 375, mainHeight: axMain(PHONES[0], 5), promptHeight: AX_P });
-  assert.equal(se.tight, true, 'regular foot: main 419 → 171 < 220 → tight');
+  assert.equal(se.tight, true, 'regular foot: main 403 → 155 < 220 → tight');
   const se5 = axFit(PHONES[0], 5, AX_P);
-  assert.equal(se5.r.g, 229, 'compacted foot: main 477 → 477 − 112 − 16 − 104 − 16 = 229 (just above the floor)');
+  assert.equal(se5.r.g, 220, 'compacted foot: main 461 → 461 − 112 − 16 − 104 − 16 = 213 < 220 → the prompt gives way first (P299)');
+  assert.equal(se5.r.promptScale, 0.937, 'prompt scaled to (461 − 16 − 104 − 16 − 220) ÷ 112 = 0.9375 → 0.937');
   assert.equal(se5.r.fits, true, 'the group fits');
   const p14 = axFit(PHONES[1], 5, AX_P);
   assert.equal(p14.r.g, 295, '390 × 844 AX5 (modelled with the 88pt AX5 main button): main 844 − 91 − (12 + 56 + 20 + 88) − 34 = 543 → 543 − 112 − 16 − 104 − 16');
@@ -115,7 +114,7 @@ test('axWriteLayout: SE 3 at AX5 is almost on the 220 floor (A7 added the 48pt t
   assert.equal(pm.r.g, 371, 'Pro Max AX5 (modelled): main 932 − 118 − 184 − 34 − ... = 596 → height-limited 371 (it was width − 40 = 390 before the 48pt tools row)');
 });
 
-test('axWriteLayout: follows the real height — a shorter main area gives a smaller grid, down to the 220 floor, never below; fits=false only when even 220 does not fit', () => {
+test('axWriteLayout: follows the real height — a shorter main area gives a smaller grid, down to the 220 floor; then the prompt shrinks (≥ 0.6), then the grid (≥ 180, P299); fits=false only when even that does not fit', () => {
   const g = main => axWriteLayout({ width: 480, mainHeight: main, promptHeight: AX_P });
   assert.equal(g(560).g, 560 - AX_P - 16 - AX_BELOW_H - 16, 'height-limited: 312');
   assert.ok(g(500).g < g(560).g, 'smaller main → smaller grid');
@@ -123,17 +122,28 @@ test('axWriteLayout: follows the real height — a shorter main area gives a sma
   assert.equal(floor.g, 220, 'exactly the floor');
   assert.equal(floor.fits, true);
   const tooSmall = g(300);
-  assert.equal(tooSmall.g, 220, 'never below 220');
+  assert.equal(tooSmall.promptScale, 0.6, 'P299 ①: the prompt shrinks to its floor 0.6 first');
+  assert.equal(tooSmall.g, 180, 'P299 ②: only then the grid goes under 220, never under 180');
   assert.equal(tooSmall.fits, false, 'cannot fit → the caller knows (320×568-class screens)');
+  const scaled = g(AX_P + 16 + 220 + AX_BELOW_H + 16 - 20);
+  assert.equal(scaled.g, 220, 'a little short: the grid keeps 220');
+  assert.equal(scaled.promptScale, Math.floor(((AX_P - 20) / AX_P) * 1000) / 1000, 'and the prompt shrinks by exactly the missing height');
+  assert.equal(scaled.fits, true);
   assert.equal(axWriteLayout({}).g, 345, 'nothing known → the old 345 grid');
 });
 
-test('nominalMainHeight: page − (44 + status bar) − (134 + max(8, bottom inset)); the standard-size main area under the A7 foot (P280)', () => {
+test('nominalMainHeight: page − (44 + status bar) − (134 + max(24, bottom inset)); the standard-size main area under the A7 foot (P280, P298)', () => {
   assert.equal(nominalMainHeight({ pageHeight: 874, safeTop: 54, footBottom: 34 }), 608, '402×874');
   assert.equal(nominalMainHeight({ pageHeight: 667, safeTop: 20, footBottom: 8 }), 461, 'SE');
   assert.equal(nominalMainHeight({ pageHeight: 956, safeTop: 62, footBottom: 34 }), 682, 'Pro Max');
-  assert.equal(nominalMainHeight({ pageHeight: 852 }), 852 - 44 - 134 - 8, 'no safe area (browser)');
-  assert.equal(nominalMainHeight({ pageHeight: 852, bodyPad: 4 }), 852 - 44 - 134 - 8 - 4);
+  assert.equal(nominalMainHeight({ pageHeight: 852 }), 852 - 44 - 134 - 24, 'no safe area (browser): the app-wide main-button line 24 (P298)');
+  assert.equal(nominalMainHeight({ pageHeight: 852, bodyPad: 4 }), 852 - 44 - 134 - 24 - 4);
+  // SE 真机（状态栏 20、无下安全区）：主区 667 − 64 − 158 = 445 → 名义格子 245 < 258；P299 让书写格取 245，而不是夹到 258 让正文滚 13pt
+  const se = nominalMainHeight({ pageHeight: 667, safeTop: 20, footBottom: 24 });
+  assert.equal(se, 445);
+  const lay = writeLayout({ width: 375, mainHeight: se, promptHeight: 80 });
+  assert.equal(lay.g, 245, 'SE: 445 − 80 − 16 − 88 − 16 = 245 (P299: under the 258 floor rather than scrolling)');
+  assert.ok(lay.top + 80 + 16 + lay.g + 88 <= se, 'the whole group fits: nothing to scroll');
   assert.ok(Number.isNaN(nominalMainHeight({})));
   // 与字号无关：函数不收字号参数，同一视口恒定
   assert.equal(nominalMainHeight({ pageHeight: 874, safeTop: 54, footBottom: 34 }), mainOf(874, 54, 34));
@@ -236,7 +246,7 @@ test('estimateLayout: first-frame guess from the window (no safe area, standard 
   const a = estimateLayout(win(402, 874));
   assert.equal(a.g, 362);
   const b = estimateLayout(win(375, 667));
-  assert.equal(b.g, 281, 'no safe area: 667 − 44 − (134 + 8) − 80 − 16 − 88 − 16 = 281 (height-limited under the A7 foot)');
+  assert.equal(b.g, 265, 'no safe area: 667 − 44 − (134 + 24) − 80 − 16 − 88 − 16 = 265 (height-limited under the A7 foot, main-button line 24, P298)');
   assert.equal(estimateLayout().g, 345, 'no window (node) → 345');
 });
 

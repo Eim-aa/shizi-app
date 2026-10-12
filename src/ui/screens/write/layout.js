@@ -44,6 +44,9 @@ export const AX_NOTE_H = policy.writeGrid.axNoteHeight;
 /** AX 档格下总高的最小值：撤销 / 清空行 + 说明位（A7，P280）。 */
 export const AX_BELOW_H = TOOL_ROW_H + AX_NOTE_H;
 export const BOTTOM_GAP = policy.writeGrid.bottomGap;
+/** 放不下时的最后两步（P299）：AX 档题面缩放下限、书写格最后让步的下限。 */
+export const PROMPT_FIT_MIN = policy.writeGrid.promptFitMin;
+export const FIT_GRID_MIN = policy.writeGrid.fitGridMin;
 export const TOP_SHARE = policy.writeGrid.topShare;
 export const TOP_MIN = policy.writeGrid.topMin;
 /** 判断页上下两格 / 并排两格的间距（并排）、两格边长下限（再小就退到页面可滚动）。 */
@@ -102,7 +105,7 @@ export function groupTop({ mainHeight, groupHeight }) {
  * 与当前系统字号无关：AX 档的页头 / 按钮行更高、实际主区更矮，但书写格边长仍按这个值算（D29 / D36），放不下时整页滚动。
  * 冷启动直接处于 AX 档也对——不依赖「先在 L 档量一次」。
  * @param {{pageHeight:number, safeTop?:number, footBottom?:number, bodyPad?:number}} o
- *   safeTop：页头上内边距（= 上安全区）；footBottom：按钮行下内边距（= max(8, 下安全区)，缺省 8）；bodyPad：正文区上下内边距之和（写字页 0）
+ *   safeTop：页头上内边距（= 上安全区）；footBottom：按钮行下内边距（= max(24, 下安全区)，缺省 FOOT_BOTTOM_MIN 24）；bodyPad：正文区上下内边距之和（写字页 0）
  */
 export function nominalMainHeight({ pageHeight, safeTop = 0, footBottom = FOOT_BOTTOM_MIN, bodyPad = 0 } = {}) {
   if (!finite(pageHeight)) return NaN;
@@ -119,10 +122,31 @@ export function nominalMainHeight({ pageHeight, safeTop = 0, footBottom = FOOT_B
  */
 export function writeLayout({ width, mainHeight, nominalHeight = mainHeight, promptHeight = PROMPT_H_STD, headExtra = 0 } = {}) {
   const toolsHeight = TOOLS_H;
-  const g = writeGridSize({ width, mainHeight: nominalHeight, promptHeight: PROMPT_H_STD, toolsHeight: TOOLS_H });
+  let g = writeGridSize({ width, mainHeight: nominalHeight, promptHeight: PROMPT_H_STD, toolsHeight: TOOLS_H });
+  // P299：名义版式里书写格到下限 258 仍放不下（SE 一类没有下安全区的屏，主按钮底线 24 之后）→ 书写格取名义主区剩下的高度，最小 FIT_GRID_MIN；
+  // 仍只由视口决定（名义主区高、名义题面高），与字号和这张卡无关（D29 / D36 / P195）
+  if (finite(nominalHeight) && nominalHeight > 0) {
+    const fit = fitGroup({ width, mainHeight: nominalHeight, promptHeight: PROMPT_H_STD, below: toolsHeight, gFloor: g, scaleMin: 1 });
+    g = Math.min(g, fit.g);
+  }
   const extra = finite(headExtra) && headExtra > 0 ? headExtra : 0;
   const top = Math.max(0, groupTop({ mainHeight: nominalHeight, groupHeight: promptHeight + PROMPT_GAP + g + toolsHeight }) - extra);
-  return { g, top, gridTop: top + promptHeight + PROMPT_GAP, toolsHeight };
+  return { g, top, gridTop: top + promptHeight + PROMPT_GAP, toolsHeight, promptScale: 1 };
+}
+
+/**
+ * 放不下时的最后两步（P299，规范「写字页永不滚动」D51 ⑦；纯函数）。room = 主区高 − 16 − 格下高 − 16，是题面与书写格共用的高度。
+ * 题面原样 + 格子 ≥ gFloor 放得下 → 不动；否则 ① 题面缩到 s = clamp((room − gFloor) ÷ P, scaleMin, 1)；② 格子取剩下的 room − P·s，不低于 FIT_GRID_MIN。
+ * @param {{width:number, mainHeight:number, promptHeight:number, below:number, gFloor:number, scaleMin?:number}} o
+ * @returns {{g:number, scale:number}}
+ */
+export function fitGroup({ width, mainHeight, promptHeight, below, gFloor, scaleMin = PROMPT_FIT_MIN }) {
+  const w = contentWidth(width);
+  const room = mainHeight - PROMPT_GAP - below - BOTTOM_GAP;
+  if (room - promptHeight >= gFloor) return { g: Math.floor(Math.min(w, GRID_MAX, room - promptHeight)), scale: 1 };
+  const scale = promptHeight > 0 ? Math.max(scaleMin, Math.min(1, Math.floor(((room - gFloor) / promptHeight) * 1000) / 1000)) : 1;
+  const g = Math.max(FIT_GRID_MIN, Math.min(gFloor, Math.floor(Math.min(w, GRID_MAX, room - promptHeight * scale))));
+  return { g, scale };
 }
 
 /**
@@ -141,11 +165,19 @@ export function axWriteLayout({ width, mainHeight, promptHeight = PROMPT_H_STD, 
   const room = hasH ? mainHeight - promptHeight - PROMPT_GAP - note - BOTTOM_GAP : Infinity;
   const raw = Math.floor(Math.min(w, GRID_MAX, room));
   const tight = hasH && raw < AX_GRID_MIN;
-  const g = !hasW && !hasH ? STD_GRID : Math.max(AX_GRID_MIN, Math.min(GRID_MAX, raw));
-  const groupHeight = promptHeight + PROMPT_GAP + g + note;
+  let g = !hasW && !hasH ? STD_GRID : Math.max(AX_GRID_MIN, Math.min(GRID_MAX, raw));
+  // P299：格子到下限 220 仍放不下（最长的题面在 SE + AX5）→ 题面按可用高度缩小，再不行格子低于下限；正文不滚动
+  let promptScale = 1;
+  if (tight) {
+    const fit = fitGroup({ width, mainHeight, promptHeight, below: note, gFloor: AX_GRID_MIN });
+    g = fit.g;
+    promptScale = fit.scale;
+  }
+  const shownPrompt = promptHeight * promptScale;
+  const groupHeight = shownPrompt + PROMPT_GAP + g + note;
   const top = groupTop({ mainHeight, groupHeight });
   const fits = !finite(mainHeight) || top + groupHeight <= mainHeight + 0.5;
-  return { g, top, gridTop: top + promptHeight + PROMPT_GAP, toolsHeight: note, fits, tight };
+  return { g, top, gridTop: top + shownPrompt + PROMPT_GAP, toolsHeight: note, fits, tight, promptScale };
 }
 
 /**

@@ -149,7 +149,7 @@ export function useWriteLayout(writeRef, { phase = 'recall', ax = 0, noteKey = n
       const bodyPad = px(cs.paddingTop) + px(cs.paddingBottom);
       const mainHeight = body.clientHeight - bodyPad;
       if (!(width > 0) || !(mainHeight > 0)) return; // 被藏在别的页下面或还没排版
-      // 名义主区高：页面高、上安全区（页头上内边距）、按钮行下内边距（= max(8, 下安全区)）都与系统字号无关，页头 / 按钮行的内容高取 L 档名义值。
+      // 名义主区高：页面高、上安全区（页头上内边距）、按钮行下内边距（= max(24, 下安全区)）都与系统字号无关，页头 / 按钮行的内容高取 L 档名义值。
       const head = page.querySelector('.sz-page__head');
       const foot = page.querySelector('.sz-page__foot');
       const safeTop = head ? px(w.getComputedStyle(head).paddingTop) : 0;
@@ -203,13 +203,13 @@ export function useWriteLayout(writeRef, { phase = 'recall', ax = 0, noteKey = n
   let pair = { s: 0, layout: 'stack', top: base.top };
   if (phase === 'compare' && Number.isFinite(mainHeight)) {
     if (ax > 0) {
-      const a = judgeAxLayout({ width, mainHeight, promptHeight });
+      const a = judgeAxLayout({ width, mainHeight, promptHeight: promptHeight * (base.promptScale || 1) });
       pair = { s: a.s, layout: a.layout, top: a.top };
     } else {
       pair = { s: judgePairSize({ width, mainHeight, gridTop: base.gridTop }), layout: 'stack', top: base.top };
     }
   }
-  return { tight: false, ...base, width, mainHeight, nominalHeight, promptHeight, pair };
+  return { tight: false, promptScale: 1, ...base, width, mainHeight, nominalHeight, promptHeight, pair };
 }
 
 /**

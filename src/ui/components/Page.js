@@ -40,7 +40,7 @@ injectStyles('page', `
 .sz-page__body,.sz-page__foot,.sz-tabpage{text-spacing-trim:trim-start} /* 中文标点挤压：连续标点与行首开括号按全角半宽处理（H1 / 03 P224；iOS 26 WebKit 是否生效待真机核实） */
 .sz-page__body{flex:1;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;
   box-sizing:border-box;padding:${T.s4} ${T.gutter} ${T.s8};display:flex;flex-direction:column;gap:${T.groupGap}}
-.sz-page__foot{flex:none;box-sizing:border-box;padding:${T.s3} ${T.gutter} max(${T.s5}, env(safe-area-inset-bottom, 0px));
+.sz-page__foot{flex:none;box-sizing:border-box;padding:${T.s3} ${T.gutter} max(${T.s6}, env(safe-area-inset-bottom, 0px)); /* 全 App 主按钮底线：主按钮下沿 = 屏底 − max(24, 下安全区)（规范 B2，审计 P1-15；= policy.mainButtonLine.gapAboveEdge） */
   display:flex;flex-direction:column;gap:${T.s3};background:${T.paper}}
 .sz-tabpage{box-sizing:border-box;padding:calc(${T.s4} + env(safe-area-inset-top, 0px)) ${T.gutter} ${T.s8};display:flex;
   flex-direction:column;gap:${T.groupGap};color:${T.ink1}}

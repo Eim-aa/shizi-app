@@ -25,12 +25,13 @@ test('a taller note (three lines) shrinks the grid so the whole note stays above
   assert.ok(r.fits && r.top + 112 + 16 + r.g + 122 <= 494, 'grid + note fit in the main area');
 });
 
-test('when the grid would go under 220 it is flagged tight (the page then caps the main button, P278) and the grid stays at 220; exactly 220 is not tight (P261)', () => {
+test('when the grid would go under 220 it is flagged tight (the page then caps the main button, P278); still short → the prompt shrinks (≥ 0.6), then the grid goes under 220 (≥ 180, P299); exactly 220 is not tight (P261)', () => {
   const r = axWriteLayout({ ...SE_AX5, noteHeight: 198 });
   assert.equal(r.tight, true);
-  assert.equal(r.g, AX_GRID_MIN, 'never below the floor');
+  assert.equal(r.promptScale, 0.6, 'P299 ①: the prompt shrinks to its floor first');
+  assert.equal(r.g, 196, 'P299 ②: 494 − 16 − 198 − 16 − 112 × 0.6 = 196.8 → 196 (under 220, over 180)');
   assert.equal(r.toolsHeight, 198, 'the note stays under the grid: there is no menu to move it into any more');
-  assert.equal(r.fits, false, 'with nothing left to give up the group runs past the main area (the page body scrolls)');
+  assert.equal(r.fits, true, 'P299: the group fits — the write page does not scroll');
   const edge = axWriteLayout({ ...SE_AX5, noteHeight: 494 - 112 - 16 - 220 - 16 });
   assert.equal(edge.tight, false, 'exactly 220 is fine');
   assert.equal(edge.g, 220);

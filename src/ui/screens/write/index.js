@@ -9,7 +9,7 @@
 // （回忆阶段没有可见标题，标题只留给读屏；其它阶段标题在中间、计数在右侧）、右上「跳过」（picked 会话在它左边多一个「结束这组」）；
 // 题面（整词居中，已给的字不装框）→ 16 → 书写格 → 格下（离格 4 的撤销 / 清空行 44 + 说明位 40：D19「上一个字」结果行、提示 / 看答案说明）作为一组，顶边按名义版式固定
 // （layout.js，同一张卡的所有阶段不动）；底栏 = 求助行（foot.js WriteFoot，主按钮正上方 20 的凹面按钮：提示 / 看答案，其它阶段同位置换内容）+ 主按钮「写好了」，一次点击直达，没有菜单。
-// 底栏下内边距回到 max(8, 下安全区)（policy.mainButtonLine 不改，首页仍用）。
+// 底栏下内边距 = 全 App 主按钮底线 max(24, 下安全区)（R5M / 审计 P1-15：A7 起主按钮是底栏最后一个，与首页、结果页、备份页同一条线；policy.writeGrid.footBottomMin = mainButtonLine）。
 // 判断页（compare.js）的上下两格占书写格的位置（同一顶边、同一中线），两键进主按钮的位置，文字行留空占位。
 //
 // 规则：
@@ -72,7 +72,7 @@ import { openWriteModeSettings } from '../mine/settings.js';
 import { LinkButton, Slot, WriteFoot } from './foot.js';
 import { usePhaseFade } from './phase-fade.js';
 import { gridLabel, useWriteAnnounce } from './sr-live.js';
-import { AX_NOTE_H, AX_BELOW_H, TOOL_ROW_H } from './layout.js';
+import { AX_NOTE_H, AX_BELOW_H, FOOT_BOTTOM_MIN, TOOL_ROW_H } from './layout.js';
 
 export const WRITE_SCREEN = 'write';
 /** 换字后书写格的落笔门限（01 §6.6 / 走查-V01；P227：300 → 250，门限内的笔先持住、到点补画，不再丢弃）。 */
@@ -108,13 +108,14 @@ const AX_BELOW_H_HI = TOOL_ROW_H + AX_NOTE_H_HI;
 // 下面 :root[data-ax] 开头的规则就是这一套（尺寸见 layout.js axWriteLayout）。
 injectStyles('write', `
 ${W} .sz-page__body{padding:0 ${T.gutter};gap:0}
-${W} .sz-page__foot{padding:${T.s3} ${T.gutter} max(8px, env(safe-area-inset-bottom, 0px));gap:0} /* 底栏 = 主按钮 + 一行文字按钮（P260）；下内边距 max(8, 下安全区)，不再是 mainButtonLine 的 24（那条线是单行主按钮页的） */
+${W} .sz-page__foot{padding:${T.s3} ${T.gutter} max(${FOOT_BOTTOM_MIN}px, env(safe-area-inset-bottom, 0px));gap:0} /* 底栏 = 求助行 + 主按钮（A7：求助行在「写好了」正上方）；主按钮是底栏最后一个，下内边距 = 全 App 主按钮底线 max(24, 下安全区)（规范 B2，审计 P1-15） */
 ${W} .sz-page__foot{position:relative}
 ${W} .sz-page__foot[data-under="true"]::before{content:"";position:absolute;left:0;right:0;top:0;height:${T.hair};background:${T.line}} /* 不占高度：出现 / 消失不挪动内容 */
 :root[data-ax][data-text-large] ${W} .sz-page__head>.sz-page__title--hidden{position:absolute;order:0;flex:none;width:1px;height:1px;
   padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .sz-write{--bleed:0px;flex:none;display:flex;flex-direction:column;align-items:stretch;gap:0}
 .sz-write__prompt{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0}
+.sz-write[data-pfit] .sz-write__prompt{transform:scale(var(--pfit));transform-origin:50% 0;margin-bottom:var(--pfit-pull)} /* P299：放不下时题面整体按可用高度缩小（不重排、不截断；量到的题面高不受 transform 影响），下面的书写格跟着上移 */
 .sz-write__gridwrap{display:flex;justify-content:center;margin:${T.s4} calc(-1 * var(--bleed)) 0}
 .sz-write__below{position:relative;box-sizing:border-box;max-width:100%;display:flex;flex-direction:column;align-items:stretch;margin:0 auto} /* 格下 = 撤销 / 清空行 + 说明位（A7，D57） */
 .sz-write__note{flex:1;min-width:0;min-height:40px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3}}
@@ -341,6 +342,7 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
     if (ax > 0 && layout.tight && !footCompact) setFootCompactKey(viewKey);
   }, [ax, layout.tight, footCompact, viewKey]);
   const gridSize = layout.g;
+  const pfit = layout.promptScale || 1; // P299：题面缩放（只在放不下时 < 1）
   const groupTop = phase === 'compare' ? layout.pair.top : layout.top;
   // 阶段 / 换字的 150ms 交叉淡化（phase-fade.js，P227）：key 一变，渲染期给旧页拍快照，提交后盖上去淡出；减少动态效果直接切换。
   usePhaseFade(writeRef, cardKey ? `${cardKey}|${phase}` : null);
@@ -492,7 +494,8 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
   return html`<${Page} title=${titleFor(phase)} hideTitle=${phase === 'recall' || (phase === 'compare' && ax > 0)} onBack=${leave} lead=${compare.lead} onLead=${compare.back}
     center=${centerProgress ? progress : null} trailing=${trailing} footer=${answer.footer || (compare.active ? compare.footer : footer)} testid="write-screen">
     <div class="sz-write" ref=${writeRef} data-cursor=${session.cursor} data-phase=${phase} data-slot=${slot} data-grid=${gridSize}
-      data-compact=${compact ? 'true' : 'false'} data-tight=${footCompact ? 'true' : null} data-ax=${ax > 0 ? String(ax) : null} style=${{ paddingTop: `${groupTop}px` }}>
+      data-compact=${compact ? 'true' : 'false'} data-tight=${footCompact ? 'true' : null} data-ax=${ax > 0 ? String(ax) : null} data-pfit=${pfit < 1 ? String(pfit) : null}
+      style=${pfit < 1 ? { paddingTop: `${groupTop}px`, '--pfit': String(pfit), '--pfit-pull': `${-Math.round((1 - pfit) * layout.promptHeight * 10) / 10}px` } : { paddingTop: `${groupTop}px` }}>
       <${StepDots} phase=${phase} />
       <${Prompt} cardKey=${cardKey} queue=${session.queue} phase=${phase} />
       <div class="sz-write__gridwrap">

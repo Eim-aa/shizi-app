@@ -105,21 +105,15 @@ injectStyles('result', `
 .sz-result__head+.sz-work{margin-top:0}
 .sz-result__remind{margin-top:28px}
 .sz-result__remind:empty{display:none}
-.sz-result__textbtn{align-self:center}
+.sz-result__textbtn{align-self:flex-start;margin-bottom:${T.s2}} /* 首练「再写一组」：文字按钮在主按钮正上方、左对齐 20pt 线，与主按钮视觉间距 20（与写字页求助行同一做法，B2） */
 .sz-result__fail{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
 .sz-result__failnote{margin:0;text-align:center;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3}}
 .sz-page[data-testid="result-screen"] .sz-page__body{padding-top:12px}
 /* 日常 / 首练结果页的页头标题只给读屏；AX 档的页头规则（ui/components/ax.js）会把标题挤成单独一行，这里压回去（作品不再被标题盖住，D49） */
 :root[data-ax][data-text-large] .sz-page[data-testid="result-screen"] .sz-page__head>.sz-page__title--hidden{position:absolute;left:auto;right:auto;flex:none;
   width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
-/* 底栏：主按钮行位置与写字页相同（文字行留空）；紧凑高度与 AX 档不留空行；内容滚到它下面时上沿出现 hairline（data-under，由 useFootHairline 写） */
-.sz-result__ghost{height:44px;margin-top:-6px;visibility:hidden;pointer-events:none}
-@media (max-height:799px){
-  .sz-result__ghost{display:none}
-  .sz-page[data-testid="result-screen"] .sz-page__foot{padding-bottom:max(8px, env(safe-area-inset-bottom, 0px))}
-}
-:root[data-text-large] .sz-result__ghost{display:none}
-:root[data-text-large] .sz-page[data-testid="result-screen"] .sz-page__foot{padding-bottom:max(8px, env(safe-area-inset-bottom, 0px))}
+/* 底栏：主按钮是底栏最后一个，落在全 App 主按钮底线上（Page 底栏 max(24, 下安全区)，规范 B2，审计 P1-15），与写字页「写好了」同一位置；
+   内容滚到它下面时上沿出现 hairline（data-under，由 useFootHairline 写） */
 .sz-page[data-testid="result-screen"] .sz-page__foot[data-under="true"]{box-shadow:0 calc(${T.hair} * -1) 0 ${T.line}}
 `);
 
@@ -720,17 +714,15 @@ function ResultScreen({ params, entry }) {
     // 「再写一组」开组失败：底栏就地三段式（S1，components/FailBlock.js）
     footer = html`${FailBlock({ layout: 'foot', speak: false, testid: 'result-again-fail', noteTestid: 'result-again-note', cancelTestid: 'result-again-cancel', retryTestid: 'result-again-retry', text: t('X-RESULT.againFailed'), cancelLabel: t('X-RESULT.againCancel'), retryLabel: t('X-RESULT.againRetry'), onCancel: () => { setAgainFailed(false); markStateChange(); }, onRetry: again })}`;
   } else if (model.variant === 'first') {
-    // 首练收尾（N2-05）：主按钮是「完成」，「再写一组」降为下面的文字按钮
-    footer = html`<${Button} variant="primary" data-testid="result-done" onClick=${leave}>${t('X-RESULT.done')}</${Button}>
-      <${Button} variant="text" class="sz-result__textbtn" data-testid="result-again" onClick=${again}>${t('X-RESULT.again')}</${Button}>`;
+    // 首练收尾（N2-05）：主按钮是「完成」，「再写一组」降为文字按钮，在主按钮正上方（与写字页求助行同位，主按钮落在全 App 底线，P1-15）
+    footer = html`<${Button} variant="text" class="sz-result__textbtn" data-testid="result-again" onClick=${again}>${t('X-RESULT.again')}</${Button}>
+      <${Button} variant="primary" data-testid="result-done" onClick=${leave}>${t('X-RESULT.done')}</${Button}>`;
   } else if (model.again) {
-    // D49 ③：出口只在页头左上「×」；底栏只有主按钮（文字行留空，让主按钮行与写字页同位）
-    footer = html`<${Button} variant="primary" data-testid="result-again" onClick=${again}>${t('X-RESULT.again')}</${Button}>
-      <span class="sz-result__ghost" aria-hidden="true"></span>`;
+    // D49 ③：出口只在页头左上「×」；底栏只有主按钮（落在全 App 主按钮底线，与写字页「写好了」同位）
+    footer = html`<${Button} variant="primary" data-testid="result-again" onClick=${again}>${t('X-RESULT.again')}</${Button}>`;
   } else {
-    // 主按钮行与其它变体同一位置（文字行留空，P1-15：ghost 行对所有变体生效）
-    footer = html`<${Button} variant="primary" data-testid="result-leave" onClick=${leave}>${model.leave.label}</${Button}>
-      <span class="sz-result__ghost" aria-hidden="true"></span>`;
+    // 主按钮行与其它变体同一位置（全 App 主按钮底线，P1-15）
+    footer = html`<${Button} variant="primary" data-testid="result-leave" onClick=${leave}>${model.leave.label}</${Button}>`;
   }
 
   const imageAction = hooks.image;

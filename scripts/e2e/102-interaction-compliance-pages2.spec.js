@@ -3,7 +3,8 @@
 
 import { CATALOG, boot, enter, seedRich, TOP } from './ic-lib.mjs';
 import { checkPages } from './ic-pages.mjs';
-import { seedSession, setTextSize } from './helpers.mjs';
+import { setTextSize } from './helpers.mjs';
+import { longTextCatalog, seedLongText } from './fixtures/long-text.mjs';
 
 export const PART2 = ['session-none', 'records', 'month', 'settings', 'backup', 'annual', 'about', 'about-privacy', 'about-credits', 'about-letter'];
 
@@ -16,12 +17,15 @@ export default async function interactionCompliancePages2(page, ctx) {
   step('IC-21: AX5 + 375×667 — no horizontal overflow, no ellipsis on buttons, the write page never scrolls');
   await page.setViewportSize({ width: 375, height: 667 });
   await setTextSize(page, 'AX5');
-  for (const name of ['home', 'write', 'settings', 'backup', 'detail', 'library-list']) {
+  const catalog = await longTextCatalog(page);
+  // 写字页放在最后：用长文本 fixture 的「题面最长」卡（提示行最长；10650a2 上 AX5 + SE 正文滚 68pt，R5M / P299 起题面按可用高度缩小、再不行格子让步，不滚动）
+  for (const name of ['home', 'settings', 'backup', 'detail', 'library-list', 'write']) {
     if (name === 'write') {
-      // 写字页用常见字的一组（长文本 fixture 的「题面最长」卡在 AX5 + SE 上本来就放不下——10650a2 上同样滚动 68pt，另报主控，不在本卡审计条目里）
-      await seedSession(page, { slot: 'A', chars: ['永', '和', '春'] });
+      const seeded = await seedLongText(page, catalog);
+      assert.ok(seeded.ok, `IC-21 write: seeded the longest prompt (${catalog.longest.char}, hint ${catalog.longest.hint.length} chars)`);
     }
     await enter(page, CATALOG.find(e => e.name === name), info);
+    if (name === 'write') await page.waitForTimeout(400); // 量完题面高再排一次（useWriteLayout 的 ResizeObserver）
     const r = await page.evaluate(t => {
       const top = document.querySelector(t);
       const ell = [...top.querySelectorAll('button, [role="button"]')].filter(el => {

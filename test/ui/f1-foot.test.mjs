@@ -40,7 +40,7 @@ test('写字页回忆阶段（A7）：求助行 提示 / 看答案，页头右�
   assert.ok(iHint > 0 && iHint < iAns && iAns < iEnd && iEnd < iSkip, 'order: 提示 / 看答案 (help row) | 结束这组 / 跳过 (header, right)');
   assert.match(src, /import \{ LinkButton, Slot, WriteFoot \} from '\.\/foot\.js';/);
   assert.doesNotMatch(src.replace(/\/\/[^\n]*/g, ''), /write-more|write-ax-menu|AxFoot|openAxMenu|noteInMenu/, 'the menu is gone from the write page');
-  assert.ok(src.includes('max(8px, env(safe-area-inset-bottom, 0px))'), 'the foot bottom padding is max(8, safe area) again (the main button sits one text row higher than on the home page)');
+  assert.ok(src.includes('max(${FOOT_BOTTOM_MIN}px, env(safe-area-inset-bottom, 0px))'), 'R5M / P1-15: the foot bottom padding is the app-wide main-button line max(24, safe area) (A7: the help row sits above 写好了); it was max(8) while the text row sat below the main button');
   assert.ok(!src.replace(/\/\/[^\n]*/g, '').includes('policy.mainButtonLine'), 'the write page no longer uses the single-row main-button line');
 });
 
@@ -83,10 +83,10 @@ test('判断页底栏留空的求助行占位（在两键上方，两键与写�
   assert.match(foot, /:root\[data-ax\] \.sz-write__links--ghost\{display:none\}/);
 });
 
-test('policy（A7，P280）：名义按钮行 134（上 12 + 求助行 48 + 间 20 + 主按钮 54），下内边距 max(8, 下安全区)；主按钮底线常量仍是 24（首页用）', () => {
+test('policy（A7，P280）：名义按钮行 134（上 12 + 求助行 48 + 间 20 + 主按钮 54），下内边距 = 全 App 主按钮底线 max(24, 下安全区)（R5M / P1-15）；主按钮底线常量 24（首页用）', () => {
   assert.equal(policy.writeGrid.nominalFoot, 134);
   assert.equal(policy.writeGrid.toolRowHeight, 48);
-  assert.equal(policy.writeGrid.footBottomMin, 8);
+  assert.equal(policy.writeGrid.footBottomMin, 24, 'R5M / P1-15: the write page sits on the app-wide main-button line');
   assert.equal(policy.mainButtonLine.gapAboveEdge, 24);
   assert.deepEqual([...policy.writeGrid.axAux.links], [17, 22], 'P261: the AX text row is capped by tier like the other aux text');
 });

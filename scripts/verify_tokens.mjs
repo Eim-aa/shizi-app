@@ -244,6 +244,27 @@ function splitArgs(s) {
   return out.map(x => x.trim());
 }
 
+const DUR_REF_RE = /\$\{(?:T\.(?:d[A-Z]\w*|t(?:Press|Release))|M\.[\w.]+|[A-Z_]+_MS|[a-zA-Z]+Ms|[\w.]*(?:FADE|FLIP|TEXT_OUT|IN|OUT|REVEAL|READY)[\w.]*)\}(?:ms)?|var\(--(?:dur|t)-[\w-]+\)/;
+const EASE_REF_RE = /\$\{(?:T\.e[A-Z]\w*|T\.easeOut|M\.ease\.\w+|[\w.]*EASING[\w.]*)\}|var\(--ease-[\w-]+\)/;
+
+/** transition / animation 简写里每一项：带了时长却没带曲线 = 浏览器默认 ease（令牌外的曲线）。 */
+function missingEase(raw) {
+  const parts = [];
+  let depth = 0;
+  let start = 0;
+  for (let i = 0; i < raw.length; i += 1) {
+    const ch = raw[i];
+    if (ch === '(' || ch === '{') depth += 1;
+    else if (ch === ')' || ch === '}') depth -= 1;
+    else if (ch === ',' && depth === 0) {
+      parts.push(raw.slice(start, i));
+      start = i + 1;
+    }
+  }
+  parts.push(raw.slice(start));
+  return parts.some(p => DUR_REF_RE.test(p) && !EASE_REF_RE.test(p));
+}
+
 /**
  * motion 规则：找出令牌外的动效时长 / 曲线 / 计时 / 手势常量，返回 [{index, kind, snippet}]（注释已去掉的文本）。
  * kind：css-time / css-ease / js-duration / js-easing / js-const / timer / gesture / reduced-none。
@@ -260,6 +281,7 @@ export function findMotionUses(text) {
     const at = m.index + m[0].indexOf(m[1]);
     if (CSS_TIME_RE.test(value)) add(at, 'css-time');
     else if (CSS_EASE_RE.test(value)) add(at, 'css-ease');
+    else if (!m[1].includes('-') && missingEase(raw)) add(at, 'css-ease-missing');
   }
   JS_STYLE_TEMPLATE_RE.lastIndex = 0;
   while ((m = JS_STYLE_TEMPLATE_RE.exec(text))) {

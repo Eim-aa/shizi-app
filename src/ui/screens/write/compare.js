@@ -565,7 +565,10 @@ export function useCompareFlow({ slot, session, cardKey, char, phase, strokes, h
       setReadyKey(null);
       return undefined;
     }
-    if (prefersReducedMotionNow()) return undefined; // 减少动态效果：直接可点（P1-41）
+    if (prefersReducedMotionNow()) {
+      setReadyKey(key); // 减少动态效果：直接可点（P1-41）；记下就绪，之后系统设置切回来也不会卡在不可点
+      return undefined;
+    }
     const id = setTimeout(() => setReadyKey(key), JUDGE_READY_MS);
     return () => clearTimeout(id);
   }, [active, key]);

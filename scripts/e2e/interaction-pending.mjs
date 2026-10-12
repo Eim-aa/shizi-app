@@ -15,7 +15,7 @@ export const PENDING = Object.freeze({
   'P0-01': { card: 'I2', ic: ['IC-01', 'IC-02', 'IC-03', 'IC-04'], where: { phases: ['compare'] }, why: '判断阶段左缘右滑被关掉（Page lead → useBackAction(null)）' },
   'P0-16': { card: 'I2', ic: ['IC-08'], where: {}, why: '读屏两指 Z 形 / Esc 在没有弹层的子页上不等于点左上' },
   'P1-04': { card: 'I2', ic: ['IC-01'], where: { screens: ['detail-photo'] }, why: '字详情「旧版本的记录」推入页用「×」' },
-  'P1-05': { card: 'I2', ic: ['IC-01'], where: { screens: ['session-none'] }, why: '「现在没有要写的字」推入页用「×」，底部「回首页」与 × 不同' },
+  'P1-05': { card: 'I2', ic: ['IC-01', 'IC-10'], where: { screens: ['session-none'] }, why: '「现在没有要写的字」推入页用「×」，底部「回首页」与 × 不同' },
   'P1-01': { card: 'I2', ic: ['IC-03'], where: { screens: ['result'] }, why: '结果页「×」回 Tab 根时硬切，右滑却有 B1 收回' },
   'P2-17': { card: 'I2', ic: ['IC-07'], where: { exits: ['esc'] }, why: 'Esc 直接 router.back()，绕过确认框 / S02 自定义的取消动作（与 P0-16 同一处处理器）' },
   // ---- 卡 I3（按钮与页面 §3、成功提示删除）
@@ -29,9 +29,6 @@ export const PENDING = Object.freeze({
   'P1-14': { card: 'I3', ic: ['IC-10'], where: { screens: ['home'] }, why: '首页启动失败时同屏两个主按钮' },
   'P1-15': { card: 'I3', ic: ['IC-10'], where: { screens: ['write', 'result', 'home'] }, why: '主按钮底线三四种算法（写字页 max(8, 安全区)、首页 Tab 上沿 + 24）' },
   'P1-16': { card: 'I3', ic: ['IC-10'], where: { screens: ['backup'] }, why: '备份页主按钮在正文中间，不在底线' },
-  'P1-36': { card: 'I3', ic: ['IC-20'], where: { screens: ['month', 'detail'] }, why: '月字帖 / 字详情推入后焦点落在空标题' },
-  'P1-40': { card: 'I3', ic: ['IC-09'], where: { screens: ['records'] }, why: '练习记录字帖标题按钮热区不足 44' },
-  'P1-13': { card: 'I3', ic: ['IC-09'], where: { screens: ['write'] }, why: '「结束这组」紧挨「跳过」，热区重叠' },
 });
 
 /** 某条断言在某处是否因待修条目跳过：返回命中的条目 [{id, card, why}]（空数组 = 断言照常生效）。 */

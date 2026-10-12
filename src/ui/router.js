@@ -61,6 +61,11 @@ export function listTabs() {
   return [...registry.values()].filter(def => def.tab).sort((a, b) => a.order - b.order);
 }
 
+/** 所有已注册的页面名（交互合规 e2e 从这里取遍历范围，新页面自动入列：交互与动效规范 §8b IC-00）。 */
+export function listScreens() {
+  return [...registry.values()].map(def => ({ name: def.name, tab: def.tab }));
+}
+
 // 仅供单测清理。
 export function unregisterScreen(name) {
   registry.delete(name);

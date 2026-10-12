@@ -87,7 +87,7 @@ export function pressFeedbackHandlers(isDisabled) {
 injectStyles('button', `
 .sz-btn{box-sizing:border-box;margin:0;border:0;background:transparent;color:inherit;font:inherit;cursor:pointer;
   -webkit-tap-highlight-color:transparent;touch-action:manipulation;-webkit-appearance:none;appearance:none;
-  transition:transform ${T.tRelease} ${T.easeOut},background-color ${T.tRelease} ${T.easeOut},filter ${T.tRelease} ${T.easeOut},color ${T.tRelease}}
+  transition:transform ${T.tRelease} ${T.easeOut},background-color ${T.tRelease} ${T.easeOut},filter ${T.tRelease} ${T.easeOut},color ${T.tRelease} ${T.easeOut}} /* 每一项都带曲线令牌：省掉就是浏览器默认 ease（IC-14 运行时抓到过） */
 .sz-btn[data-pressed]{transform:scale(${T.pressScale});filter:brightness(${PRESS_DARKEN});transition-duration:${T.tPress}}
 .sz-btn[disabled][data-pressed]{transform:none;filter:none}
 .sz-btn:focus-visible{outline:2px solid ${T.ink1};outline-offset:2px}

@@ -37,6 +37,10 @@ test('motion: off-token durations, curves, timers, gesture constants and hard cu
   assert.deepEqual(kinds('@media (prefers-reduced-motion: reduce){.a{animation:none}}'), ['reduced-none']);
   assert.deepEqual(kinds('el.style.animation = `szX 150ms linear`'), ['css-time']);
   assert.deepEqual(kinds('style=${{ animation: `szX ${ms}ms linear forwards` }}'), ['css-ease']);
+  // 简写里带了时长令牌却没带曲线 = 浏览器默认 ease（IC-14 运行时在按钮的 color 过渡上抓到过）
+  assert.deepEqual(kinds('.a{transition:transform ${T.tRelease} ${T.easeOut},color ${T.tRelease}}'), ['css-ease-missing']);
+  assert.deepEqual(kinds('.a{animation:szX ${T.dFade} both}'), ['css-ease-missing']);
+  assert.deepEqual(kinds('.a{transition-duration:${T.dReduce}}'), [], 'longhands are fine (the curve is set elsewhere)');
 });
 
 test('motion: token references pass; comments do not count', () => {

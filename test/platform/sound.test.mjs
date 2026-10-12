@@ -80,14 +80,14 @@ test('设置里「按键音」关着：判断与落款都完全无声（触觉�
   assert.equal(sound.keySound('judge', { bridge: b, policy: { keySoundEvents: ['seal'] } }), false);
 });
 
-test('commit 反馈：判断类 commit 发判断声 + stamp 触觉；落款不是 commit（结果页作品出现时发）', () => {
+test('commit 反馈：判断类 commit 发判断声 + judge 触觉（soft 0.7，D58 ③）；落款不是 commit（结果页作品出现时发）', () => {
   for (const label of ['write:judge', 'write:correct', 'result:correct']) assert.equal(COMMIT_FEEDBACK[label].sound, 'judge', label);
   assert.ok(!Object.values(COMMIT_FEEDBACK).some(fb => fb.sound && fb.sound !== 'judge'));
   const calls = [];
   applyFeedback({ type: 'commit', label: 'write:judge' }, { settings: { sound: false } }, {
     haptic: k => calls.push(['h', k]) && 'native', keySound: (e, o) => calls.push(['s', e, o.state.settings.sound]) && false,
   });
-  assert.deepEqual(calls, [['h', 'stamp'], ['s', 'judge', false]], '关声音：触觉照发，声音函数被问到但自己返回无声');
+  assert.deepEqual(calls, [['h', 'judge'], ['s', 'judge', false]], '关声音：触觉照发，声音函数被问到但自己返回无声');
 });
 
 test('响度关系：判断声比落款低约 6–8dB（差已在文件里；播放增益 0dB，不在播放端放大）', () => {

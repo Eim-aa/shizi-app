@@ -136,19 +136,20 @@ test('importing bridge.js in a page defines every global immediately (before any
   }
 });
 
-test('haptic and sound messages: {type:"haptic", kind} for the five old kinds + seal (D53), {type:"sound", kind:<file stem>, gain} (S1, D50 ⑦); settings.sound gates sound', async () => {
+test('haptic and sound messages: {type:"haptic", kind} for the F1 kinds judge / seal / light / select (D58 ③), {type:"sound", kind:<file stem>, gain} (S1, D50 ⑦); settings.sound gates sound', async () => {
   const { haptic, applyFeedback, feedbackFor, installCommitFeedback, resetCommitFeedback, COMMIT_FEEDBACK, HAPTIC_KINDS } = await import('../../src/platform/haptics.js');
   const { keySound, resetSound, SOUND_FILES } = await import('../../src/platform/sound.js');
   const { win, sent } = fakeWin();
   const b = createBridge(win);
-  assert.deepEqual([...HAPTIC_KINDS], ['stamp', 'undo', 'action', 'select', 'milestone', 'seal']);
-  assert.equal(haptic('stamp', { bridge: b }), 'native');
+  assert.deepEqual([...HAPTIC_KINDS], ['judge', 'seal', 'light', 'select']);
+  assert.equal(haptic('judge', { bridge: b }), 'native');
   assert.equal(haptic('nope', { bridge: b }), false);
-  assert.deepEqual(sent, [{ kind: 'stamp', type: 'haptic' }]);
+  for (const old of ['stamp', 'undo', 'action', 'milestone']) assert.equal(haptic(old, { bridge: b }), false, `old kind ${old} is no longer sent`);
+  assert.deepEqual(sent, [{ kind: 'judge', type: 'haptic' }]);
 
   const vib = [];
   const web = createBridge({});
-  assert.equal(haptic('stamp', { bridge: web, win: { navigator: { vibrate: ms => vib.push(ms) } } }), 'vibrate', 'browser: stamp vibrates 10ms (old)');
+  assert.equal(haptic('judge', { bridge: web, win: { navigator: { vibrate: ms => vib.push(ms) } } }), 'vibrate', 'browser: judge vibrates 10ms (old)');
   assert.equal(haptic('select', { bridge: web, win: { navigator: { vibrate: ms => vib.push(ms) } } }), false);
   assert.deepEqual(vib, [10]);
 
@@ -167,7 +168,7 @@ test('haptic and sound messages: {type:"haptic", kind} for the five old kinds + 
   ]);
 
   // commit label → 反馈
-  assert.deepEqual(feedbackFor({ type: 'commit', label: 'write:judge' }), { haptic: 'stamp', sound: 'judge' });
+  assert.deepEqual(feedbackFor({ type: 'commit', label: 'write:judge' }), { haptic: 'judge', sound: 'judge' });
   assert.equal(feedbackFor({ type: 'status' }), null);
   assert.equal(feedbackFor({ type: 'commit', label: 'write:strokes' }), null);
   for (const fb of Object.values(COMMIT_FEEDBACK)) assert.ok(HAPTIC_KINDS.includes(fb.haptic));
@@ -175,7 +176,7 @@ test('haptic and sound messages: {type:"haptic", kind} for the five old kinds + 
   const deps = { haptic: k => calls.push(['h', k]) && 'native', keySound: (e, o) => calls.push(['s', e, o.state.settings.sound]) && 'native' };
   applyFeedback({ type: 'commit', label: 'write:judge' }, { settings: { sound: true } }, deps);
   applyFeedback({ type: 'commit', label: 'write:skip-undo' }, { settings: { sound: true } }, deps);
-  assert.deepEqual(calls, [['h', 'stamp'], ['s', 'judge', true], ['h', 'undo']]);
+  assert.deepEqual(calls, [['h', 'judge'], ['s', 'judge', true], ['h', 'select']], 'undoing a skip is a select (F1)');
 
   // installCommitFeedback：同一个 store 只订阅一次
   const subs = [];

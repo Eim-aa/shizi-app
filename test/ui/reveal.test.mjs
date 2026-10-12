@@ -64,5 +64,5 @@ test('WorkPaper: without reveal it is the final state (no animation classes, no 
 test('haptics: entering the result page no longer sends the finish haptic (the judgment already stamped; the one result haptic is the seal landing)', () => {
   assert.equal(COMMIT_FEEDBACK['result:finish'], undefined);
   assert.equal(feedbackFor({ type: 'commit', label: 'result:finish' }), null);
-  assert.deepEqual(feedbackFor({ type: 'commit', label: 'write:judge' }), { haptic: 'stamp', sound: 'judge' }, 'the judgment feedback is unchanged');
+  assert.deepEqual(feedbackFor({ type: 'commit', label: 'write:judge' }), { haptic: 'judge', sound: 'judge' }, 'the judgment feedback: judge (soft 0.7, D58 ③) + j1');
 });

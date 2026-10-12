@@ -49,7 +49,7 @@ import { injectStyles, T } from '../../components/styles.js';
 import { InkGrid } from '../../canvas/ink-canvas.js';
 import { currentCardKey, isComplete, PHASES } from '../../../core/sessions.js';
 import { getStore, isReplacement } from '../../../store/store.js';
-import { installCommitFeedback } from '../../../platform/haptics.js'; // M5-5 触觉 / 按键音（按 commit label）
+import { haptic, installCommitFeedback } from '../../../platform/haptics.js'; // M5-5 触觉 / 按键音（按 commit label）
 import { warmSounds } from '../../../platform/sound.js'; // 阶段 1 S1：预载判断声 / 落款声（网页用；书写与描红不出声，P200）
 import { t } from '../../../config/copy/index.js';
 import * as policy from '../../../config/policy.js';
@@ -427,6 +427,7 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
   const onDone = () => {
     // 进判断页（compare）；空格子不进（01 §6.6：按钮 disabled 之外再挡一次；判断 commit 前还会再断言有本人笔画）。纸上那一字不要求笔画（P1-E8）。
     if (!view.strokes.length && !paper) return;
+    haptic('light'); // F1：「写好了」书写格开始收缩（不写记录的操作随用户动作发，P1-35）
     cmpPhase.enter(view.strokes);
   };
 

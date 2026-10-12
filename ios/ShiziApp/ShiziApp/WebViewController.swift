@@ -80,11 +80,13 @@ final class WebViewController: UIViewController {
     /// 原生书写面 spike（P1-S2，NativeInkSpike.swift）：启动参数 -shizi-native-ink 时才创建，默认 nil。
     var nativeInkSpike: NativeInkSpike?
     #endif
-    private lazy var stampHaptic = UIImpactFeedbackGenerator(style: .medium)
-    private lazy var undoHaptic = UIImpactFeedbackGenerator(style: .light)
-    private lazy var actionHaptic = UIImpactFeedbackGenerator(style: .light)
+    /// 触觉五档（交互与动效规范 F1，D58 ③；tokens.json haptic，参数由 test/ios-haptic.test.mjs 逐值核对）。
+    /// 判断落定 / 修改判断：soft 0.7（阶段 2 真机再调，令牌一处改）。
+    private lazy var judgeHaptic = UIImpactFeedbackGenerator(style: .soft)
+    /// 「写好了」、看答案显影、结束这组确认：light 0.5。
+    private lazy var lightHaptic = UIImpactFeedbackGenerator(style: .light)
+    /// 推进与切换：下一个、跳过、撤销跳过、进入描一遍、自己写、提示显影。
     private lazy var selectionHaptic = UISelectionFeedbackGenerator()
-    private lazy var milestoneHaptic = UINotificationFeedbackGenerator()
     /// 结果页落印（D53 / I3-04）：rigid 0.8，全 App 只此一处；页面在印着纸的那一帧发 kind "seal"。
     private lazy var sealHaptic = UIImpactFeedbackGenerator(style: .rigid)
     /// 判断声三个变体与落款声（assets/sound/*.caf，S1 / D50 ⑦）：文件名 → 预载好的播放器；`preloadSounds()` 在 viewDidLoad 填满。
@@ -991,29 +993,23 @@ extension WebViewController {
     }
 }
 
-// MARK: - 触觉反馈：按记账、过程完成、选择切换分层；未知值忽略
+// MARK: - 触觉反馈：五档（judge / seal / light / select / none，交互与动效规范 F1，D58 ③）；未知值忽略
 extension WebViewController {
     private func playHaptic(kind: String) {
         switch kind {
-        case "stamp":
-            stampHaptic.impactOccurred()
-            stampHaptic.prepare()
+        case "judge", "stamp": // stamp 是旧档名，过渡一个版本
+            judgeHaptic.impactOccurred(intensity: 0.7)
+            judgeHaptic.prepare()
             sealHaptic.prepare() // 判断之后很快就是落印：提前唤醒 Taptic，落印那一下不延迟
         case "seal":
             sealHaptic.impactOccurred(intensity: 0.8)
             sealHaptic.prepare()
-        case "undo":
-            undoHaptic.impactOccurred()
-            undoHaptic.prepare()
-        case "action":
-            actionHaptic.impactOccurred()
-            actionHaptic.prepare()
+        case "light", "action", "undo": // action / undo 是旧档名，过渡一个版本
+            lightHaptic.impactOccurred(intensity: 0.5)
+            lightHaptic.prepare()
         case "select":
             selectionHaptic.selectionChanged()
             selectionHaptic.prepare()
-        case "milestone":
-            milestoneHaptic.notificationOccurred(.success)
-            milestoneHaptic.prepare()
         default:
             break
         }

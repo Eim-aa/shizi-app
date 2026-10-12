@@ -1,47 +1,55 @@
-// 触觉（01-架构设计 §8.1 `haptic`；02 M5-5；reference/F-platform §3.1 / §4.1、D-flow §支撑）。
+// 触觉（01-架构设计 §8.1 `haptic`；交互与动效规范 F1，D58 ③；审计 P1-34 / P1-35）。
 //
-// 种类沿旧版五档（639f592 index.html L1377–L1380；WebViewController playHaptic）：
-//   stamp（判断落定，Impact medium）、undo（撤销，Impact light）、action（过程完成，Impact light）、
-//   select（选择切换，Selection）、milestone（Notification success；P08 里程碑已删，没有触发点，保留档位给原生兼容）。
-// 第三轮（D53，I3-04）再加一档 seal：结果页落印那一下，Impact rigid 0.8（规格 §4.2「全 App 只此一处」，比判断的 stamp 更实），
-// 在印着纸那一帧与落款声 s1 同发（result/work.js sealMoment）。
-// 原生壳内：postNative('haptic', {kind})；浏览器 / PWA：只有 stamp 在支持 navigator.vibrate 的设备上震 10ms（沿旧；
-// iOS Safari 没有 vibrate，静默）。未知种类忽略。
+// 五档（tokens.json haptic，config/motion.js M.haptic；原生 WebViewController.swift playHaptic 参数由 test/ios-haptic.test.mjs 逐值核对）：
+//   judge  UIImpactFeedbackGenerator(.soft) intensity 0.7   判断落定「写对了 / 写错了」、修改判断成功（两种判断完全相同）
+//   seal   .rigid 0.8                                     结果页印着纸那一帧（全 App 只此一处，result/work.js sealMoment，与 s1 同帧）
+//   light  .light 0.5                                     「写好了」书写格开始收缩；看答案显影；结束这组确认（有判断、换成结果页时）
+//   select UISelectionFeedbackGenerator                   推进与切换：下一个、跳过、撤销跳过、进入描一遍、自己写、提示显影
+//   none   —                                              书写、撤销一笔、清空、返回 / 推入 / 切 Tab、开关、成功保存、失败、冷启动恢复
+// 旧档名（stamp → judge、action / undo → light，撤销跳过改 select、milestone 删除）不再发出；原生仍认旧名一个版本（过渡）。
+// 规则（F1）：会写记录的操作 commit 成功后发（失败三段式不发，再试成功时补发——还是这一次 commit）；不写记录的操作随用户动作发；
+// 一次用户动作 ≤ 1 次触觉；只属于写字流程（写字页、结果页）；减少动态效果下照发。
+// 原生壳内：postNative('haptic', {kind})；浏览器 / PWA：只有 judge 在支持 navigator.vibrate 的设备上震 10ms（iOS Safari 没有 vibrate，静默）。未知种类忽略。
 //
-// 触发点（旧版调用点按第十稿流程挪到对应的 store.commit；commit 成功才发，失败三段式不发）：
-//   write:judge          「写对了 / 写错了」判断落定           stamp + 判断声 judge（P24 / P200） 旧 pickStamp L2639
-//   write:correct        写字页结果行「修改判断」改成功         stamp + 按键音 judge          旧重盖后再盖 L2624/L2639
-//   result:correct       结果页对照弹层「改为…」改成功          stamp + 按键音 judge          同上
-//   hint                 提示（给出下一笔）                     select                        旧 #tip L2558 / 长按 L2546
-//   write:answer-seen    「看答案」确认后                        action                        旧 revealAnswer L2598
-//   write:answer-trace   进入「描一遍」                          select                        旧 openTracingTeaching L2603
-//   write:skip-undo      跳过的 3 秒撤销                        undo                          旧重盖 undo L2624
-//   result:skip-undo     结果页上撤销最后一字的跳过             undo                          同上
-//   （result:finish 写完最后一字、结果页出现：不再发触觉——R2-R1 / I2-03：判断落定已经有 stamp，结果页的触觉只在印着纸的那一帧发一次 seal，见 result/work.js sealMoment）
-//   write:end            「结束这组」确认（有判断时换成结果页） action                        同上
-// 声音（S1，D50 ⑦）：判断类 commit 同时发判断声 j1；书写与描红不出声（没有 trace-stroke 点位）；落款盖章声不是 commit，
-// 由结果页 WorkSection 在印落下的那一帧直接调 sound.js keySound('seal')，同一帧发一次触觉（D51 ②）。
-// 这张表是 M5-5 按旧版点位的过渡映射（第十稿没给触觉规格），已登记待定。
+// commit 触发点（COMMIT_FEEDBACK，commit 成功才发）：
+//   write:judge / write:correct / result:correct   judge + 判断声 j1（P24 / P200）
+//   hint                                           select（提示显影）
+//   write:answer-seen / write:answer-answer        light（看答案显影）
+//   write:answer-trace                             select（进入描一遍）
+//   write:answer-retrace                           select（自己写）
+//   write:answer-next                              select（下一个）
+//   write:skip                                     select（跳过）
+//   write:skip-undo / result:skip-undo             select（撤销跳过）
+// 不写记录 / 要看结果的点位由页面直接调 haptic()：「写好了」light（write/index.js onDone）；结束这组 light（write/end.js，只在有判断、换成结果页时；
+// 零判断回来源不发——那里已不是写字流程，P1-35）；落印 seal（result/work.js）。
+// 声音（F2，D50 ⑦）：判断类 commit 同时发判断声 j1；落印 s1 由结果页在印着纸那一帧直接调。
 //
 // 接线：installCommitFeedback(getStore) 在写字页 / 结果页挂载时调用（幂等：同一个 store 只订阅一次）；
 // 订阅 store 的 {type:'commit', label} 通知，按上表发触觉与按键音。
 
 import { bridge } from './bridge.js';
 import { keySound } from './sound.js';
+import { M } from '../config/motion.js';
 
-export const HAPTIC_KINDS = Object.freeze(['stamp', 'undo', 'action', 'select', 'milestone', 'seal']);
+/** F1 的四档（none 不发）。顺序即 tokens.json haptic 的顺序。 */
+export const HAPTIC_KINDS = Object.freeze(['judge', 'seal', 'light', 'select']);
+/** 每档的原生参数（tokens.json haptic；原生 playHaptic 逐值一致）。 */
+export const HAPTIC_SPEC = M.haptic;
 
 /** commit label → {haptic?, sound?}（sound 是 policy.keySoundEvents 里的事件名）。 */
 export const COMMIT_FEEDBACK = Object.freeze({
-  'write:judge': Object.freeze({ haptic: 'stamp', sound: 'judge' }),
-  'write:correct': Object.freeze({ haptic: 'stamp', sound: 'judge' }),
-  'result:correct': Object.freeze({ haptic: 'stamp', sound: 'judge' }),
+  'write:judge': Object.freeze({ haptic: 'judge', sound: 'judge' }),
+  'write:correct': Object.freeze({ haptic: 'judge', sound: 'judge' }),
+  'result:correct': Object.freeze({ haptic: 'judge', sound: 'judge' }),
   hint: Object.freeze({ haptic: 'select' }),
-  'write:answer-seen': Object.freeze({ haptic: 'action' }),
+  'write:answer-seen': Object.freeze({ haptic: 'light' }),
+  'write:answer-answer': Object.freeze({ haptic: 'light' }),
   'write:answer-trace': Object.freeze({ haptic: 'select' }),
-  'write:skip-undo': Object.freeze({ haptic: 'undo' }),
-  'result:skip-undo': Object.freeze({ haptic: 'undo' }),
-  'write:end': Object.freeze({ haptic: 'action' }),
+  'write:answer-retrace': Object.freeze({ haptic: 'select' }),
+  'write:answer-next': Object.freeze({ haptic: 'select' }),
+  'write:skip': Object.freeze({ haptic: 'select' }),
+  'write:skip-undo': Object.freeze({ haptic: 'select' }),
+  'result:skip-undo': Object.freeze({ haptic: 'select' }),
 });
 
 const LOG_CAP = 30;
@@ -76,7 +84,7 @@ export function haptic(kind, { bridge: b = bridge, win = globalWin() } = {}) {
     logTimes.splice(0, logTimes.length - LOG_CAP);
   }
   if (b && b.postNative('haptic', { kind })) return 'native';
-  if (kind !== 'stamp') return false;
+  if (kind !== 'judge') return false;
   try {
     const nav = win && win.navigator;
     if (nav && typeof nav.vibrate === 'function') {

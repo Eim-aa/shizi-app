@@ -7,7 +7,7 @@ test('haptics (I2-03, write page): the judgement sends exactly one stamp + one j
   const sent = [];
   const deps = { haptic: k => { sent.push(['haptic', k]); return true; }, keySound: k => { sent.push(['sound', k]); return true; } };
   applyFeedback({ type: 'commit', label: 'write:judge' }, {}, deps);
-  assert.deepEqual(sent, [['haptic', 'stamp'], ['sound', 'judge']], 'one judgement → one stamp, one sound');
+  assert.deepEqual(sent, [['haptic', 'judge'], ['sound', 'judge']], 'one judgement → one judge haptic (soft 0.7, D58 ③), one sound');
   sent.length = 0;
   for (const label of ['write:compare', 'write:continue', 'write:strokes', 'hint-fade', 'write:first-tip', 'write:paper', 'write:answer-note', 'result:finish']) {
     assert.equal(feedbackFor({ type: 'commit', label }), null, `${label} sends nothing`);

@@ -16,6 +16,8 @@
 // - 本模块不碰 DOM：history 与计时器可注入，node:test 直接跑（test/ui/router.test.mjs）；
 //   浏览器接线见 attachWindow()，渲染与转场见 ui/root.js。
 
+import { M } from '../config/motion.js';
+
 export const STATE_TAG = 'shizi-router';
 export const STATE_VERSION = 1;
 
@@ -25,7 +27,8 @@ export const NATIVE_PROGRESS_EVENT = 'shizi-native-back-progress';
 /** 读屏「两指 Z 形」退出手势（A2-05）：Swift 的 WebViewController.accessibilityPerformEscape 派发；页面关闭最上层弹层（没有弹层时什么都不做）。 */
 export const NATIVE_ESCAPE_EVENT = 'shizi-native-escape';
 
-// history.back()/go() 发出后等 popstate 的上限；超时则放弃等待、继续执行排队的操作。
+
+// history.back()/go() 发出后等 popstate 的上限；超时则放弃等待、继续执行排队的操作（不是动画时长；verify_tokens 例外登记）。
 export const PENDING_TIMEOUT_MS = 1000;
 
 // ---------------------------------------------------------------------------
@@ -562,6 +565,7 @@ export function createRouter(options) {
 
 // ---------------------------------------------------------------------------
 // 原生左缘返回手势门控（01 §7）：tab 根页与阻断页不可返回 → backGestureEnabled(false)；有子页 → true。
+// D58 / 审计 P1-06（N4 门控）：顶层是弹层时永远可用（只关弹层），不看下面那一页能否返回、也不看是否在 Tab 根。
 // R4-G1（P270）：顶层页面的页头左上不是返回 / 关闭键（判断页「接着写」）时也是 false（ui/back-action.js 登记 null）；
 // 写字页不再整页关掉手势（原 M0-7 / ownsBackGesture：书写格四周有 20pt 页边，边缘起手不会落在格子里）。
 // 写字页以外仍可用 ownsBackGesture 自己管门控（目前没有页面用）；bridge.setBackGestureEnabled 只在值变化时发。
@@ -574,9 +578,11 @@ export function pageDepth(snap) {
   return Math.max(0, n - 1);
 }
 
-/** 按路由快照（与是否阻断、顶层页面能不能返回）算原生左缘返回手势该不该开：阻断页 / tab 根页 / 顶层不能返回 false，有子页 true。 */
+/** 按路由快照（与是否阻断、顶层页面能不能返回）算原生左缘返回手势该不该开：阻断页 false；顶层是弹层 true（N4，P1-06）；tab 根页 / 顶层不能返回 false，有子页 true。 */
 export function backGestureAllowed(snap, blocked = false, actionAllowed = true) {
-  return !blocked && actionAllowed !== false && pageDepth(snap) > 0;
+  if (blocked) return false;
+  if (snap && snap.topIsOverlay) return true;
+  return actionAllowed !== false && pageDepth(snap) > 0;
 }
 
 /**
@@ -588,7 +594,7 @@ export function createBackGestureSync({ send, screenOf = getScreen }) {
   let lastKey;
   return {
     update(snap, blocked = false, actionAllowed = true) {
-      const key = blocked ? 'blocked' : `${pageDepth(snap)}|${actionAllowed !== false}`;
+      const key = blocked ? 'blocked' : `${pageDepth(snap)}|${actionAllowed !== false}|${!!(snap && snap.topIsOverlay)}`;
       if (key === lastKey) return false;
       lastKey = key;
       if (!blocked) {
@@ -612,7 +618,8 @@ export function createBackGestureSync({ send, screenOf = getScreen }) {
 // 把进度画成图层样式——换进出动画时只换转场定义。对外接口（router.beginBack / setBackProgress / endBack / finishBack / cancelBack）
 // 直接对应下面同名方法。
 //
-// - began：遮罩栈非空（顶层是遮罩）→ 直接关顶层遮罩，页面不动，本次手势余下的事件都不跟随（与点「‹」先关弹层一致）；
+// - began：遮罩栈非空（顶层是遮罩）→ 跟手位移顶层弹层（页面不动，Tab 根上同样可用，N4 / P1-06）；松手按同一阈值关掉它或回弹
+//          （原先是按下即关、不跟手、不能取消）；
 //          否则有子页且顶层页面能返回（页头左上是返回 / 关闭键）→ 冻结底层页（露出、不可点），开始跟随；
 //          tab 根 / 阻断 / 顶层不能返回 / 转场或导航进行中 → 不理会。
 // - changed：进度 = 位移 / 宽，跟手（顶层右移、底层视差，样式由转场定义决定）；可中途反向。
@@ -623,13 +630,13 @@ export function createBackGestureSync({ send, screenOf = getScreen }) {
 // - Swift 在 ended 越过同一阈值时紧接着派发 shizi-native-back：本次手势已处理，由 absorbNativeBack() 吞掉。
 // 纯逻辑（状态、计时器、宽度都可注入）；单测 test/ui/gesture.test.mjs。
 
-// 与 ios/ShiziApp/ShiziApp/WebViewController.swift BackGestureThreshold 的阈值一致（改一处必须改另一处）。
-export const BACK_COMMIT_RATIO = 1 / 3; // 位移过三分之一个宽（R4-G1 / P270；D36 时为 50%）
-export const BACK_COMMIT_VELOCITY = 500; // pt/s（= CSS px/s）：向右甩过这个速度，不看位移（D36）
-export const BACK_RETURN_VELOCITY = -200; // pt/s：位移过阈值后若向左回拉快过这个速度，视为取消（D36）
-export const BACK_PARALLAX = 0.3;
-export const GESTURE_SNAP_MS = 200;
-// ended 之后多久内到达的 shizi-native-back 算「同一次手势」（Swift 在同一段脚本里紧接着派发，实际是同步的）。
+// 取 gesture 令牌（tokens.json gesture.*，config/motion.js；D58）；与 ios/ShiziApp/ShiziApp/WebViewController.swift BackGestureThreshold 逐值一致（单测核对）。
+export const BACK_COMMIT_RATIO = M.gesture.commitRatio; // 位移过三分之一个宽（R4-G1 / P270；D36 时为 50%）
+export const BACK_COMMIT_VELOCITY = M.gesture.commitVelocity; // pt/s（= CSS px/s）：向右甩过这个速度，不看位移（D36）
+export const BACK_RETURN_VELOCITY = M.gesture.returnVelocity; // pt/s：位移过阈值后若向左回拉快过这个速度，视为取消（D36）
+export const BACK_PARALLAX = M.distance.parallax;
+export const GESTURE_SNAP_MS = M.role.gestureSnap;
+// ended 之后多久内到达的 shizi-native-back 算「同一次手势」（Swift 在同一段脚本里紧接着派发，实际是同步的；不是动画时长，verify_tokens 例外登记）。
 export const GESTURE_ABSORB_MS = 600;
 // 提交后等不到返回转场（history 卡住、返回动作没有导航）就回弹，不让页面停在半路。
 export const GESTURE_COMMIT_TIMEOUT_MS = PENDING_TIMEOUT_MS + 200;
@@ -703,14 +710,21 @@ export function createBackGestureController(deps) {
     return { phase, progress: Math.round((top / width) * 10000) / 10000, x: top, under, width };
   }
 
+  /** 弹层跟手的一帧（overlay: true，root 按它位移最上层弹层而不是页面）。 */
+  function overlayFrame(phase, x, width) {
+    const w = Math.max(1, Number(width) || 1);
+    const top = clampNum(x, 0, w);
+    return { phase, overlay: true, progress: Math.round((top / w) * 10000) / 10000, x: top, under: 0, width: w };
+  }
+
   function snapBack() {
     stopTimer();
     if (!view) return;
-    show(frame('snap', 0, view.width));
+    show(view.overlay ? overlayFrame('snap', 0, view.width) : frame('snap', 0, view.width));
     timer = setTimer(() => {
       timer = null;
       if (view && view.phase === 'snap') show(null);
-    }, snapMs + 20);
+    }, snapMs + M.dur.xs);
   }
 
   function begin(x, width) {
@@ -722,10 +736,12 @@ export function createBackGestureController(deps) {
       return session.mode;
     }
     if (s.topIsOverlay) {
-      // 弹层开着：左缘右滑先关遮罩（02 §8，与点「‹」时先关弹层一致），页面不动。
-      session = { mode: 'overlay', ended: false };
-      if (view) show(null);
-      closeOverlay();
+      // 弹层开着：左缘右滑只作用于最上层弹层（02 §8、N3-6，与点「‹」时先关弹层一致），页面不动。
+      // D58 / P1-06：跟手位移弹层，松手按同一阈值关掉或回弹（减少动态效果下不跟手，只按阈值判定）。
+      const followOverlay = !reducedMotion();
+      session = { mode: 'overlay', follow: followOverlay, width, x, velocity: 0, ended: false };
+      if (followOverlay) show(overlayFrame('follow', x, width));
+      else if (view) show(null);
       return session.mode;
     }
     if (pageDepth(s) === 0 || s.pending || busy() || !allowed()) {
@@ -758,6 +774,11 @@ export function createBackGestureController(deps) {
       begin(x, widthNow()); // began 丢失的兜底：changed 开启新的手势
       return;
     }
+    if (session.mode === 'overlay') {
+      session.x = x;
+      if (session.follow) show(overlayFrame('follow', x, session.width));
+      return;
+    }
     if (session.mode !== 'page') return;
     session.x = x;
     if (session.follow) show(frame('follow', x, session.width));
@@ -766,6 +787,24 @@ export function createBackGestureController(deps) {
   /** 完成（commit = true）或回弹。只对跟随中的页面手势有效；遮罩 / 不理会的手势只记下结束。返回是否完成。 */
   function settle(commit) {
     if (!live()) return false;
+    if (session.mode === 'overlay') {
+      // 弹层：过阈值关掉最上层弹层（退场从手指位置接着淡出，root 标 data-exit-kind），否则回弹；页面不动
+      end(commit);
+      if (!commit) {
+        snapBack();
+        return false;
+      }
+      if (session.follow && view) {
+        show(overlayFrame('commit', session.x, session.width));
+        stopTimer();
+        timer = setTimer(() => {
+          timer = null;
+          if (view && view.phase === 'commit') show(null);
+        }, GESTURE_COMMIT_TIMEOUT_MS);
+      }
+      closeOverlay();
+      return true;
+    }
     if (session.mode !== 'page') {
       end(false);
       return false;
@@ -806,7 +845,7 @@ export function createBackGestureController(deps) {
       }
       if (!live()) return; // 没见过 began 的 ended / cancelled：不理会（shizi-native-back 照常返回）
       if (phase === 'ended') {
-        if (session.mode === 'page') session.x = x;
+        if (session.mode === 'page' || session.mode === 'overlay') session.x = x;
         settle(backGestureCommits({ translationX: x, velocityX: d.velocityX }, session.width || width));
         return;
       }
@@ -823,13 +862,13 @@ export function createBackGestureController(deps) {
     setBackProgress(p, velocity = 0) {
       move(clampNum(p, 0, 1) * widthNow());
       if (live()) session.velocity = Number(velocity) || 0;
-      return live() && session.mode === 'page';
+      return live() && (session.mode === 'page' || session.mode === 'overlay');
     },
     /** 松手：按阈值完成或回弹。返回是否完成。 */
     endBack(velocity) {
       if (!live()) return false;
       const v = velocity === undefined ? session.velocity || 0 : Number(velocity) || 0;
-      return settle(session.mode === 'page' && backGestureCommits({ translationX: session.x, velocityX: v }, session.width));
+      return settle((session.mode === 'page' || session.mode === 'overlay') && backGestureCommits({ translationX: session.x, velocityX: v }, session.width));
     },
     /** 直接完成（不看阈值）。返回是否完成。 */
     finishBack() {

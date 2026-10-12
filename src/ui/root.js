@@ -1,7 +1,7 @@
 // 根组件：把 router 的页面栈 / 遮罩栈画成一叠图层，负责转场、焦点、防连点时钟与原生返回进度。
 // 规则见 01-架构设计 §7：
-// - 推入 300ms cubic-bezier(.2,.7,.2,1) 带左投影，返回反向；
-// - 减少动态效果：120ms 交叉淡化（R-G01；任务卡写「直接切换」，两者不一致，见报告待定项）；
+// - 推入 300ms ease.out（motion.role.pushIn）带左投影，返回反向；
+// - 减少动态效果：150ms 交叉淡化（motion.duration.reduce，D58 ② 全 App 统一；原 R-G01 的 120ms 作废）；
 // - iOS 主屏 PWA（display-mode: standalone）下由系统返回（popstate）引发的返回跳过转场；
 // - 原生 shizi-native-back-progress 事件驱动跟手交互式返回（M6-5，逻辑在 router.createBackGestureController）：
 //   began 冻结底层页（露出、不可点、跟手期间不重画——位移直接写 style.transform，不走 setState），changed 顶层页跟手、
@@ -36,9 +36,11 @@ import {
   setActiveRouter,
 } from './router.js';
 import { setBackGestureEnabled } from '../platform/bridge.js';
+import { M, prefersReducedMotion as reducedMotionOf } from '../config/motion.js';
 import { isNativeShell, isStandalone, isTestHost } from '../platform/env.js';
 import { backActionAllowed, EntryContext, runBackAction, subscribeBackActions } from './back-action.js';
 import { attachEdgeSwipe, EdgeStrip } from './edge-swipe.js';
+import { clearOverlayGesture, paintOverlayGesture } from './overlay-gesture.js';
 import { markStateChange } from './components/Button.js';
 import {
   cancelSpec, clearPaper, createPaper, PAPER_CSS, planPaper, planPaperDrag, runProgress, specFor,
@@ -62,14 +64,18 @@ import './components/ax.js'; // P1-E6 / D29 / P131：系统字号 AX 档的防�
 import { getStore } from '../store/store.js';
 import { createRouteMemory, setRouteMemory } from './route-memory.js'; // 审查整改 F1：冷启动恢复离开时的页面栈
 
-export const PUSH_MS = 300;
-export const PUSH_EASING = 'cubic-bezier(.2,.7,.2,1)';
-export const FADE_MS = 120;
-export const SNAP_MS = 200;
+// 动效令牌（交互与动效规范 T2，D58；config/motion.js）
+export const PUSH_MS = M.role.pushIn;
+export const PUSH_EASING = M.ease.out;
+/** 减少动态效果的交叉淡化（全 App 唯一：150ms，D58 ②）。 */
+export const FADE_MS = M.role.reduceCrossfade;
+export const SNAP_MS = M.role.gestureSnap;
 // 跟手提交后的返回转场按剩余距离缩短，但不短于这个值。
-const GESTURE_POP_MIN_MS = 150;
+const GESTURE_POP_MIN_MS = M.role.pushGestureMin;
 /** 减少动态效果时由手势完成的返回：不跟手，松手直接交叉淡化这么久（R4-G1，P270）。 */
-export const GESTURE_FADE_MS = 150;
+export const GESTURE_FADE_MS = M.role.reduceCrossfade;
+/** 后台标签页暂停 rAF 时的收尾兜底：逐帧最多前进 50ms，主线程卡顿时可能比转场时长长得多（不是动画时长）。 */
+const PAPER_STALL_GUARD = 1500;
 
 // 交互式返回的转场定义（R4-G1）：控制器（router.createBackGestureController）只给进度，这里决定进度画成什么样。
 // 现用推入 / 返回同一套几何：顶层页右移 progress × 宽，底层页从 -BACK_PARALLAX × 宽 视差归位，顶层带左投影。
@@ -154,16 +160,8 @@ injectStyles('root', `
   margin-bottom:calc(-1 * env(safe-area-inset-top, 0px));background:linear-gradient(${T.paper} 70%, transparent);z-index:2;pointer-events:none}
 `);
 
-function matches(win, query) {
-  try {
-    return !!(win.matchMedia && win.matchMedia(query).matches);
-  } catch (error) {
-    return false;
-  }
-}
-
 function prefersReducedMotion(win) {
-  return matches(win, '(prefers-reduced-motion: reduce)');
+  return reducedMotionOf(win); // 全 App 唯一的判断（P2-13，config/motion.js）
 }
 
 function nowMs() {
@@ -322,7 +320,7 @@ function Root({ router, win }) {
         };
         a.cancel = done;
         handle = runProgress({ from: spec.from, to: spec.to, ms: spec.ms, ease: spec.ease, apply: v => paper.frame(v, drag), onDone: done });
-        timer2 = setTimeout(done, spec.ms + 1500); // 兜底：后台标签页 rAF 被暂停时也要收尾（逐帧最多前进 50ms，主线程卡顿时可能比 spec.ms 长）
+        timer2 = setTimeout(done, spec.ms + PAPER_STALL_GUARD); // 兜底：后台标签页 rAF 被暂停时也要收尾（逐帧最多前进 50ms，主线程卡顿时可能比 spec.ms 长）
         return;
       }
     }
@@ -335,7 +333,7 @@ function Root({ router, win }) {
       ? (fade ? [{ opacity: 0 }, { opacity: 1 }] : [{ transform: 'translateX(100%)' }, { transform: 'translateX(0)' }])
       : (fade ? [{ opacity: 1 }, { opacity: 0 }] : [{ transform: `translateX(${a.startX}px)` }, { transform: 'translateX(100%)' }]);
     const opts = fade
-      ? { duration: a.reducedGesture ? GESTURE_FADE_MS : FADE_MS, easing: 'linear', fill: 'both' }
+      ? { duration: a.reducedGesture ? GESTURE_FADE_MS : FADE_MS, easing: M.ease.linear, fill: 'both' }
       : { duration: a.fromGesture ? Math.max(GESTURE_POP_MIN_MS, Math.round(PUSH_MS * rest)) : PUSH_MS, easing: PUSH_EASING, fill: 'both' };
     if (moving && !fade) moving.classList.add('sz-layer--moving');
     let animation = null;
@@ -371,7 +369,7 @@ function Root({ router, win }) {
     };
     a.cancel = finish;
     if (animation) animation.onfinish = finish;
-    timer = setTimeout(finish, opts.duration + 150);
+    timer = setTimeout(finish, opts.duration + M.dur.fade);
   });
 
   // 原生左缘返回门控（01 §7）：页面栈深度 / 阻断 / 顶层页面能否返回（ui/back-action.js）变化时同步一次。
@@ -456,7 +454,13 @@ function Root({ router, win }) {
       BACK_TRANSITION.clear(els.under, els);
     };
     // 画面只写 DOM：跟手期间页面组件不重画（冻结），只在开始 / 结束各 setState 一次（露出 / 收起底层页）。
+    const ovl = { els: null }; // 弹层上的左缘右滑（P1-06）：只位移最上层弹层，页面不动
     const onView = view => {
+      if (view && view.overlay) {
+        paintOverlayGesture(appRef.current, view, ovl);
+        return;
+      }
+      if (ovl.els) clearOverlayGesture(ovl);
       if (!view) {
         clearEls();
         setGestureOn(false);
@@ -510,6 +514,7 @@ function Root({ router, win }) {
       router.setNativeBackFilter(null);
       ctrl.reset();
       clearEls();
+      clearOverlayGesture(ovl);
       g.ctrl = null;
     };
   }, [router, win]);

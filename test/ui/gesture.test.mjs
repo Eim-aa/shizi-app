@@ -127,7 +127,7 @@ test('began / changed follow the finger; ended below the threshold snaps back, t
   g.ev('ended', 90, 300);
   assert.equal(g.backs(), 0, 'no back below threshold');
   assert.deepEqual(g.ctrl.getView(), { phase: 'snap', progress: 0, x: 0, under: -120, width: W }, 'snap back to 0 / -30%');
-  assert.deepEqual(g.timers.pending(), [GESTURE_SNAP_MS + 20]);
+  assert.deepEqual(g.timers.pending(), [GESTURE_SNAP_MS + 75], 'snap + motion.duration.xs of slack');
   g.timers.runAll();
   assert.equal(g.ctrl.getView(), null, 'view cleared after the snap transition');
   assert.equal(g.views[g.views.length - 1], null, 'onView(null) delivered');
@@ -181,21 +181,49 @@ test('cancelled snaps back without going back', () => {
   assert.equal(g.backs(), 0, 'a stray ended after cancel does nothing');
 });
 
-test('overlay open: began closes the top overlay only; the page never moves; the native back is absorbed', () => {
+test('overlay open (N3-6 / N4, P1-06): the top overlay follows the finger, the page never moves; ended past the threshold closes it once; the native back is absorbed', () => {
   const g = setup({ overlay: true });
   g.ev('began', 4);
-  assert.equal(g.backs(), 1, 'began closes the overlay right away');
-  assert.equal(g.ctrl.getView(), null, 'page not moved');
-  g.env.state = snapOf(); // 遮罩关掉之后
+  assert.equal(g.backs(), 0, 'began no longer closes the overlay on touch-down');
+  assert.deepEqual(g.ctrl.getView(), { phase: 'follow', overlay: true, progress: 0.01, x: 4, under: 0, width: W }, 'the overlay follows, not the page');
   g.ev('changed', 250);
-  assert.equal(g.ctrl.getView(), null, 'rest of the gesture is not followed');
-  g.ev('ended', 250, 800);
-  assert.equal(g.backs(), 1, 'ended does not pop the page as well');
-  assert.equal(g.views.length, 0, 'no frame was ever drawn');
+  assert.equal(g.ctrl.getView().x, 250);
+  assert.equal(g.ctrl.getView().overlay, true);
+  g.ev('ended', 250, 0);
+  assert.equal(g.backs(), 1, 'past a third of the width: the overlay is closed (once)');
+  assert.equal(g.ctrl.getView().phase, 'commit', 'stays where the finger let go; the exit fades from there');
+  g.env.state = snapOf(); // 遮罩关掉之后
   assert.equal(g.ctrl.absorbNativeBack(), true, 'the native back of the same gesture is absorbed');
+  g.timers.runAll();
+  assert.equal(g.ctrl.getView(), null, 'view cleared');
   // 下一次手势（遮罩已关）正常跟随页面
   g.ev('began', 0);
   assert.equal(g.ctrl.getView().phase, 'follow');
+  assert.equal(g.ctrl.getView().overlay, undefined);
+});
+
+test('overlay open: a short drag springs the overlay back and closes nothing (cancellable, P1-06)', () => {
+  const g = setup({ overlay: true });
+  g.ev('began', 0);
+  g.ev('changed', 60);
+  g.ev('ended', 60, 0);
+  assert.equal(g.backs(), 0, 'below the threshold: nothing closes');
+  assert.equal(g.ctrl.getView().phase, 'snap');
+  assert.equal(g.ctrl.getView().overlay, true);
+  g.timers.runAll();
+  assert.equal(g.ctrl.getView(), null);
+  // 快甩同样关
+  const f = setup({ overlay: true });
+  f.ev('began', 0);
+  f.ev('ended', 20, 900);
+  assert.equal(f.backs(), 1, 'a fast flick closes it');
+  // 减少动态效果：不跟手，松手按同一阈值
+  const r = setup({ overlay: true, reduced: true });
+  r.ev('began', 0);
+  r.ev('changed', 300);
+  assert.equal(r.views.length, 0, 'reduced motion: no frame is drawn');
+  r.ev('ended', 300, 0);
+  assert.equal(r.backs(), 1, 'reduced motion: still closes on release past the threshold');
 });
 
 test('tab root, blocked, busy or pending navigation: ignored, and the native back passes through', () => {
@@ -367,18 +395,18 @@ test('wired: a committed gesture pops exactly one page even though Swift also fi
   assert.deepEqual(s.stack.map(e => e.n), ['g-home', 'g-sub']);
 });
 
-test('wired: overlay open → began closes it; ended + native back leave the page in place', () => {
+test('wired: overlay open → the drag closes it on release; ended + native back leave the page in place', () => {
   const w = wired();
   w.router.push('g-sub');
   w.router.openOverlay(Noop, {}, { name: 'sheet' });
   assert.equal(w.router.getState().topIsOverlay, true);
   w.swift('began', 0);
   w.history.flush();
-  assert.equal(w.router.getState().topIsOverlay, false, 'overlay closed on began');
-  assert.equal(w.router.getState().depth, 1);
+  assert.equal(w.router.getState().topIsOverlay, true, 'still open while the finger is down (P1-06)');
   w.swift('changed', 300);
   w.swift('ended', 300, 900);
   w.history.flush();
+  assert.equal(w.router.getState().topIsOverlay, false, 'overlay closed on release');
   assert.equal(w.router.getState().depth, 1, 'page still there');
   assert.equal(w.history.calls.back, 1, 'only the overlay close used history.back');
   assert.deepEqual(w.router.getState().stack.map(e => e.n), ['g-home', 'g-sub']);
@@ -472,7 +500,7 @@ test('R4-G1: the top page cannot go back (custom lead, e.g. 「接着写」) →
   assert.equal(ctrl.beginBack(), 'page', 'allowed again → follows');
 });
 
-test('R4-G1: overlay open → began closes it via closeOverlay, never runs the page back action', () => {
+test('R4-G1 / P1-06: overlay open → the release closes it via closeOverlay, never runs the page back action', () => {
   let closes = 0;
   let pageBacks = 0;
   const ctrl = createBackGestureController({
@@ -484,8 +512,9 @@ test('R4-G1: overlay open → began closes it via closeOverlay, never runs the p
     clearTimeout: () => {},
   });
   assert.equal(ctrl.beginBack(), 'overlay');
+  assert.equal(closes, 0, 'not on touch-down');
   ctrl.setBackProgress(0.9);
-  assert.equal(ctrl.endBack(900), false);
+  assert.equal(ctrl.endBack(900), true, 'the overlay close is the completion');
   assert.equal(closes, 1, 'overlay closed once');
   assert.equal(pageBacks, 0, 'page back action not run');
 });

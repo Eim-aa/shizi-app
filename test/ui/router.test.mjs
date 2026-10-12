@@ -507,30 +507,36 @@ test('pageDepth / backGestureAllowed: overlays do not count; tab root and block 
   assert.equal(backGestureAllowed({ stack: [s('s')] }), false);
   assert.equal(backGestureAllowed({ stack: [s('s'), s('s')] }), true);
   assert.equal(backGestureAllowed({ stack: [s('s'), s('s')] }, true), false, 'blocked wins');
+  // N4 门控（D58，P1-06）：顶层是弹层时永远可用（只关弹层），Tab 根上也一样；阻断页仍然不行
+  assert.equal(backGestureAllowed({ stack: [s('s'), s('o')], topIsOverlay: true }), true, 'an overlay over a tab root can be swiped away');
+  assert.equal(backGestureAllowed({ stack: [s('s'), s('s'), s('o')], topIsOverlay: true }, false, false), true, 'the page under it cannot go back: the overlay still can');
+  assert.equal(backGestureAllowed({ stack: [s('s'), s('o')], topIsOverlay: true }, true), false, 'blocked wins');
 });
 
-test('back gesture gate: root → sub → root sends [false, true, false]; tab switch / overlay at root send nothing', () => {
+test('back gesture gate: root → sub → root sends [false, true, false]; an overlay over the tab root opens the gate (P1-06)', () => {
   const h = gateHarness();
   assert.deepEqual(h.values(), [false], 'tab root at mount → false');
   h.router.switchTab('t-lib');
   h.history.flush();
+  assert.deepEqual(h.values(), [false], 'tab switch does not re-send');
   h.router.openOverlay(Noop, {});
   h.history.flush();
-  assert.deepEqual(h.values(), [false], 'tab switch and an overlay over the tab root do not re-send');
+  assert.deepEqual(h.values(), [false, true], 'an overlay over the tab root → true (N4: swipe closes it)');
   h.router.back();
   h.history.flush();
+  assert.deepEqual(h.values(), [false, true, false], 'overlay closed on the tab root → false again');
   h.router.push('t-sub');
   h.history.flush();
-  assert.deepEqual(h.values(), [false, true], 'sub page → true');
+  assert.deepEqual(h.values(), [false, true, false, true], 'sub page → true');
   h.router.push('t-sub2');
   h.history.flush();
-  assert.deepEqual(h.values(), [false, true], 'deeper sub page: value unchanged, not re-sent');
+  assert.deepEqual(h.values(), [false, true, false, true], 'deeper sub page: value unchanged, not re-sent');
   h.router.back();
   h.history.flush();
   h.router.back();
   h.history.flush();
   assert.equal(h.router.getState().depth, 0);
-  assert.deepEqual(h.values(), [false, true, false], 'back to the tab root → false');
+  assert.deepEqual(h.values(), [false, true, false, true, false], 'back to the tab root → false');
 });
 
 test('back gesture gate: block page forces false; unblocking re-syncs from the stack', () => {

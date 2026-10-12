@@ -31,6 +31,7 @@ import { Page } from '../../components/Page.js';
 import { Sheet } from '../../components/Sheet.js';
 import { Icons } from '../../components/icons.js';
 import { Button, markStateChange } from '../../components/Button.js';
+import { EmptyState } from '../../components/EmptyState.js';
 import { FailBlock } from '../../components/FailBlock.js';
 import { injectStyles, T } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
@@ -103,12 +104,6 @@ injectStyles('library-all', `
 .sz-all__mname{font-size:${T.fs17};color:${T.ink1}}
 .sz-all__mcount{font-size:${T.fs15};color:${T.ink2};white-space:nowrap;font-variant-numeric:tabular-nums}
 .sz-all__go.sz-btn{align-self:flex-start}
-.sz-all__empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:${T.s2};text-align:center;
-  padding:${T.s8} ${T.s4} ${T.s6}}
-.sz-all__emptytitle{margin:0;font-family:${T.song};font-size:${T.fs22};line-height:${T.lh22};font-weight:500;
-  color:${T.ink1}}
-.sz-all__emptytext{margin:0;max-width:calc(250px * ${T.k});font-size:${T.fs15};line-height:${T.lh15};
-  color:${T.ink2};text-wrap:pretty}
 `);
 
 // 每次渲染现取新 vnode，不复用模块级常量（vendor/ui.js 注释，M6-3）。
@@ -346,10 +341,7 @@ function AllScreen({ params, entry }) {
   const title = t('X-LIBHOME.recordedLabel');
   if (model.empty) {
     return html`<${Page} title=${title} testid="all-screen">
-      <div class="sz-lib sz-all__empty" data-testid="all-empty">
-        <p class="sz-all__emptytitle">${t('X-LIBHOME.emptyTitle')}</p>
-        <p class="sz-all__emptytext">${t('R-L05.empty')}</p>
-      </div>
+      ${EmptyState({ title: t('X-LIBHOME.emptyTitle'), body: t('R-L05.empty'), testids: { root: 'all-empty' } })}
     </${Page}>`;
   }
 

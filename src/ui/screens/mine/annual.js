@@ -18,8 +18,8 @@ import { html, useMemo } from '../../../../vendor/ui.js';
 import { registerScreen, getScreen, nav } from '../../router.js';
 import { Page } from '../../components/Page.js';
 import { useSaveFlow } from '../../image-quick.js';
-import { PracticeGlyph, FACE_FULL } from '../../components/PracticeGlyph.js';
 import { Button, pressFeedbackHandlers } from '../../components/Button.js';
+import { EmptyState } from '../../components/EmptyState.js';
 import { LiveRegion } from '../../components/LiveRegion.js';
 import { CellCanvas, builtInk, useAxSize, useScreenWidth } from '../../components/work.js';
 import { injectStyles, T, TEX } from '../../components/styles.js';
@@ -65,12 +65,6 @@ injectStyles('mine-annual', `
 .sz-ann__tcell{position:relative;width:140px;height:140px;box-sizing:border-box;${TEX};box-shadow:inset 0 0 0 ${T.frameW} ${T.frame}}
 .sz-ann__tcell canvas{position:absolute;left:0;top:0}
 .sz-ann__tdate{font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3}}
-.sz-ann__empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:24px 0 48px}
-.sz-ann__eglyph{width:88px;height:88px;box-sizing:border-box;display:grid;place-items:center;
-  color:${T.under}}
-.sz-ann__eglyph .sz-pg{width:60%;height:60%}
-.sz-ann__etitle{margin:0;font-family:${T.song};font-size:${T.fs22};font-weight:500;color:${T.ink1}}
-.sz-ann__ebody{margin:0;max-width:290px;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3}}
 `);
 
 function currentStore() {
@@ -134,12 +128,10 @@ function MonthSection({ section, cols, c }) {
   </button>`;
 }
 
-function EmptyState() {
-  return html`<div class="sz-ann__empty" data-testid="annual-empty">
-    <span class="sz-ann__eglyph" aria-hidden="true" data-testid="annual-empty-glyph"><${PracticeGlyph} char=${t('X-ANNUAL.emptyGlyph')} face=${FACE_FULL} /></span>
-    <p class="sz-ann__etitle" data-testid="annual-empty-title">${t('R-M06.emptyTitle')}</p>
-    <p class="sz-ann__ebody" data-testid="annual-empty-body">${t('R-M06.emptyBody')}</p>
-  </div>`;
+function AnnualEmpty() {
+  // 全 App 唯一的空状态（components/EmptyState.js，规范 S2，审计 P2-22）
+  return EmptyState({ title: t('R-M06.emptyTitle'), body: t('R-M06.emptyBody'), glyph: t('X-ANNUAL.emptyGlyph'), titleTag: 'p',
+    testids: { root: 'annual-empty', cell: 'annual-empty-glyph', title: 'annual-empty-title', body: 'annual-empty-body' } });
 }
 
 function Report({ model, state }) {
@@ -216,7 +208,7 @@ function AnnualScreen() {
   return html`<${Page} title=${t('X-MINE.annual')} trailing=${trailing} footer=${footer} testid="annual-screen">
     <div class="sz-ann" data-testid="annual-body" data-state=${model.empty ? 'empty' : 'report'} data-year=${model.year}
       data-today=${today} data-count=${model.count} data-days=${model.days} data-months=${model.months.length} style=${model.empty ? { flex: '1' } : null}>
-      ${model.empty ? html`<${EmptyState} />` : html`<${Report} model=${model} state=${state} />`}
+      ${model.empty ? html`<${AnnualEmpty} />` : html`<${Report} model=${model} state=${state} />`}
     </div>
   </${Page}>`;
 }

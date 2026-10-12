@@ -25,6 +25,7 @@ import { html, useMemo } from '../../../../vendor/ui.js';
 import { registerScreen } from '../../router.js';
 import { TabPage } from '../../components/Page.js';
 import { Button } from '../../components/Button.js';
+import { EmptyState } from '../../components/EmptyState.js';
 import { useAxLevel } from '../../components/ax.js';
 import { Chevron } from '../../components/Chevron.js';
 import { injectStyles, T } from '../../components/styles.js';
@@ -48,9 +49,6 @@ const ICON = () => html`<svg viewBox="0 0 22 22" fill="none" stroke="currentColo
 
 injectStyles('mine', `
 .sz-mine{display:flex;flex-direction:column;gap:${T.groupGap}}
-.sz-mine__empty{display:flex;flex-direction:column;gap:${T.s2}}
-.sz-mine__emptyt{margin:0;font-family:${T.song};font-size:${T.fs22};line-height:${T.lh22};font-weight:500;color:${T.ink1}}
-.sz-mine__emptyb{margin:0;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2};text-wrap:pretty}
 .sz-mine__block{display:flex;flex-direction:column;gap:${T.s2}}
 .sz-mine__sheetblock{display:flex;flex-direction:column;gap:${T.s1}}
 .sz-mine__shead{display:flex;justify-content:space-between;align-items:center;gap:${T.s3};min-height:44px}
@@ -177,10 +175,8 @@ function MineScreen() {
   return html`<${TabPage} title=${MINE_LABEL} testid="screen-mine">
     <div class="sz-mine" data-testid="mine-home" data-state=${model.empty ? 'empty' : 'records'} data-today=${today} data-month=${model.month}>
       ${model.empty
-        ? html`<div class="sz-mine__empty" data-testid="mine-empty">
-            <p class="sz-mine__emptyt" data-testid="mine-empty-title">${t('R-M04.emptyTitle')}</p>
-            <p class="sz-mine__emptyb" data-testid="mine-empty-body">${t('R-M04.emptyBody')}</p>
-          </div>`
+        ? EmptyState({ layout: 'inline', title: t('R-M04.emptyTitle'), body: t('R-M04.emptyBody'), titleTag: 'p',
+            testids: { root: 'mine-empty', title: 'mine-empty-title', body: 'mine-empty-body' } })
         : null}
       <${Week} week=${model.week} />
       ${model.sheetOn ? html`<${Sheet} model=${model} state=${state} />` : null}

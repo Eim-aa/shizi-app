@@ -17,6 +17,7 @@ import { t } from '../../config/copy/index.js';
 export const PAGE_COPY = Object.freeze({
   back: t('X-COMMON.back'),
   close: t('X-COMMON.close'),
+  leave: t('X-COMMON.leave'),
 });
 
 injectStyles('page', `
@@ -69,6 +70,7 @@ export function pageBackAction({ leading = 'back', goBack, lead = null, onLead =
  * @param {boolean} [props.hideTitle]  标题只给读屏、页头不显示（日常 / 首练结果页，作品就是标题）
  * @param {'back'|'close'|'none'} [props.leading]  页头左侧：返回箭头 / 关闭 X / 空
  * @param {() => void} [props.onBack]  默认 nav.back()；写字页等要先保存现场的页面自己传
+ * @param {'back'|'leave'} [props.backLabel]  返回键的读屏名：缺省「返回」；页内有步骤（描一遍的两步圆点）而「‹」是整页离开时写「离开」（审计 P2-24）
  * @param {any} [props.lead]  页头左侧自定义内容（给了就替换返回 / 关闭键，例如判断页的「接着写」，M1-5）
  * @param {() => void} [props.onLead]  自定义 lead 的动作（同一个函数登记给左缘右滑，种类 'phase'：页内回退，N3-3）
  * @param {any} [props.center]  页头中间的内容（给了就占标题的位置，标题只留给读屏；写字页回忆阶段的进度，A7 / D57）
@@ -76,13 +78,13 @@ export function pageBackAction({ leading = 'back', goBack, lead = null, onLead =
  * @param {any} [props.footer]  底栏（主按钮等）
  * @param {string} [props.testid]
  */
-export function Page({ title = '', hideTitle = false, leading = 'back', onBack, lead: customLead = null, onLead = null, center = null, trailing = null, footer = null, testid, children }) {
+export function Page({ title = '', hideTitle = false, leading = 'back', backLabel = 'back', onBack, lead: customLead = null, onLead = null, center = null, trailing = null, footer = null, testid, children }) {
   const goBack = () => (onBack ? onBack() : nav.back());
   const backAction = pageBackAction({ leading, goBack, lead: customLead, onLead });
   useBackAction(backAction.fn, backAction.kind);
   const lead = customLead ? customLead : leading === 'none'
     ? null
-    : html`<${Button} variant="icon" class=${leading === 'close' ? 'sz-page__ico--close' : 'sz-page__ico--back'} data-testid="page-back" aria-label=${leading === 'close' ? PAGE_COPY.close : PAGE_COPY.back}
+    : html`<${Button} variant="icon" class=${leading === 'close' ? 'sz-page__ico--close' : 'sz-page__ico--back'} data-testid="page-back" aria-label=${leading === 'close' ? PAGE_COPY.close : backLabel === 'leave' ? PAGE_COPY.leave : PAGE_COPY.back}
         onClick=${goBack}>${leading === 'close' ? CLOSE_ICON() : BACK_ICON()}</${Button}>`;
   return html`<div class="sz-page" data-testid=${testid}>
     <header class="sz-page__head">

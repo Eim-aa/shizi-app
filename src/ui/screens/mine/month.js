@@ -14,6 +14,7 @@ import { html, useMemo } from '../../../../vendor/ui.js';
 import { registerScreen, getScreen, nav } from '../../router.js';
 import { Page } from '../../components/Page.js';
 import { Button } from '../../components/Button.js';
+import { EmptyState } from '../../components/EmptyState.js';
 import { LiveRegion } from '../../components/LiveRegion.js';
 import { quickShare, useSaveFlow } from '../../image-quick.js';
 import { MonthPaper, builtInk, useScreenWidth } from '../../components/work.js';
@@ -38,8 +39,6 @@ injectStyles('mine-month', `
 .sz-monthpage__title{margin:0;font-family:${T.song};font-size:${T.fs28};line-height:${T.lh28};font-weight:500;color:${T.ink1}}
 .sz-monthpage__sub{margin:0;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3}}
 .sz-monthpage__note{margin:0;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3};text-wrap:pretty}
-.sz-monthpage__blank{min-height:120px;box-sizing:border-box;display:grid;place-items:center;padding:12px;
-  text-align:center;font-size:${T.fs15};color:${T.ink2}}
 .sz-monthfoot{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
 :root[data-ax] .sz-monthfoot{grid-template-columns:minmax(0,1fr)}
 .sz-monthfail{margin:0;text-align:center;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink1}}
@@ -129,7 +128,7 @@ function openChar(cell) {
 /** 字帖本体（月字帖页与练习记录页共用）：纸 + 说明句；这个月没有字时是虚线框。 */
 export function MonthBody({ model, onOpen = openChar, testid = 'month-paper', cellTestid = 'month-cell', emptyTestid = 'month-empty', kuanTestid = 'month-kuan', sealTestid = 'month-seal', sign = true }) {
   const sw = useScreenWidth();
-  if (!model.n) return html`<div class="sz-monthpage__blank" data-testid=${emptyTestid}>${t('X-MINE.sheetEmpty')}</div>`;
+  if (!model.n) return EmptyState({ layout: 'inline', body: t('X-MINE.sheetEmpty'), testids: { root: emptyTestid, body: `${emptyTestid}-body` } }); // 全 App 唯一的空状态（S2，审计 P2-22）
   return html`<${MonthPaper} cells=${model.cells} width=${sw - 40} kuan=${model.kuan} sign=${sign} onOpen=${onOpen} testid=${testid} cellTestid=${cellTestid}
       kuanTestid=${kuanTestid} sealTestid=${sealTestid} label=${t('X-WORK.monthTitle', { month: model.monthNum })} />
     ${model.under ? html`<p class="sz-monthpage__note" data-testid="month-note">${t('X-WORK.monthUnderNote')}</p>` : null}`;

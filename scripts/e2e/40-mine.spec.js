@@ -459,8 +459,8 @@ export default async function run(page, ctx) {
   assert.equal(r.lead, 1, 'Sep 2026 starts on Tuesday → one blank');
   assert.equal(r.days.length, 30, '30 days');
   assert.equal(r.days.filter(d => d.tag === 'BUTTON').length, 0, 'no clickable days');
-  assert.equal(r.sheetTitle, COPY.sheetTitle(9), 'sheet title');
-  assert.equal(r.sheetEmpty, COPY.sheetEmpty, 'sheet empty dashed box');
+  assert.equal(r.sheet, null, 'R5M / P2-22: an empty month draws no sheet block (the heading already says there is nothing)');
+  assert.equal(r.sheetEmpty, null, 'no empty sheet box either');
   assert.equal(r.sheetSave, null, 'no save entry');
   assert.equal(r.today, null, 'no today row');
   assert.deepEqual(r.unnamedButtons, [], 'every button has an accessible name');
@@ -597,7 +597,7 @@ export default async function run(page, ctx) {
   await waitRecordsMonth(page, '2026-07');
   r = await recordsView(page);
   assert.equal(r.heading, COPY.monthNone(7), 'empty month between records');
-  assert.equal(r.sheetEmpty, COPY.sheetEmpty, 'empty sheet box');
+  assert.equal(r.sheet, null, 'R5M / P2-22: no sheet block on an empty month');
   await page.waitForTimeout(450);
   await page.click(`${TOP} ${tid('records-prev')}`);
   await waitRecordsMonth(page, '2026-06');

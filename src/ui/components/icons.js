@@ -40,9 +40,9 @@ export const Icons = {
   check: (o = {}) => frame({ box: 14, size: 14, ...o }, html`<path d="m3 7.2 2.6 2.6L11 4.4"></path>`),
   /** 设置里的选中勾（22 栅格，尺寸由样式给）。 */
   checkLarge: (o = {}) => frame({ box: 22, ...o }, html`<path d="M5 11.5 9.2 15.5 17 7"></path>`),
-  /** 日历翻页（18 栅格，视觉 18）。 */
-  prev: (o = {}) => frame({ box: 18, size: 18, ...o }, html`<path d="M11 4 6 9l5 5"></path>`),
-  next: (o = {}) => frame({ box: 18, size: 18, ...o }, html`<path d="m7 4 5 5-5 5"></path>`),
+  /** 日历翻页（18 栅格，视觉 18）：带杆的箭头，不与页头返回的「‹」同形（审计 P2-24，规范 N1：「‹」只表示离开这一层）。 */
+  prev: (o = {}) => frame({ box: 18, size: 18, ...o }, html`<path d="M14.5 9h-11M7.5 5 3.5 9l4 4"></path>`),
+  next: (o = {}) => frame({ box: 18, size: 18, ...o }, html`<path d="M3.5 9h11M10.5 5l4 4-4 4"></path>`),
   /** 写字页格下的撤销（20 栅格，视觉 20；AX 档由样式放大到 24；A7 起不在页头）。 */
   undo: (o = {}) => frame({ box: 20, size: 20, ...o }, html`<path d="M7 5 3.5 8.5 7 12M4 8.5h8a4.5 4.5 0 0 1 0 9H9"></path>`),
   /** 写字页格下的清空（20 栅格，视觉 20；AX 档由样式放大到 24）。 */

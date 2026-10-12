@@ -2783,6 +2783,12 @@
           "origin": "extra",
           "note": "Page.js 页头关闭按钮的 aria-label（读屏文案）；与 R-R02.sheetClose 同字"
         },
+        "leave": {
+          "raw": null,
+          "text": "离开",
+          "origin": "extra",
+          "note": "Page.js 页头「‹」在写字页描一遍 / 自己写阶段的读屏名（两步圆点是页内步骤，「‹」却是整页离开，审计 P2-24）"
+        },
         "done": {
           "raw": null,
           "text": "完成",

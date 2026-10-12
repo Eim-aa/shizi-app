@@ -23,8 +23,9 @@ import { html, useEffect, useMemo, useState } from '../../../../vendor/ui.js';
 import { registerScreen, getScreen, nav } from '../../router.js';
 import { TabPage } from '../../components/Page.js';
 import { Button, markStateChange } from '../../components/Button.js';
+import { EmptyState } from '../../components/EmptyState.js';
 import { LiveRegion } from '../../components/LiveRegion.js';
-import { injectStyles, T, TEX } from '../../components/styles.js';
+import { injectStyles, T } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
 import { getStore } from '../../../store/store.js';
 import { now as envNow } from '../../../platform/env.js';
@@ -76,13 +77,6 @@ injectStyles('library', `
 .sz-lib__foot{display:flex;align-items:center;justify-content:space-between;gap:${T.s3}}
 .sz-lib__footnote{flex:1;min-width:0;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3};text-wrap:pretty}
 .sz-lib__more.sz-btn{flex:none;white-space:nowrap;color:${T.ink2}}
-.sz-lib__empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:${T.s2};text-align:center;
-  padding:${T.s8} ${T.s4} ${T.s6}}
-.sz-lib__emptycell{display:block;box-sizing:border-box;margin-bottom:${T.s2};width:calc(72px * ${T.k});height:calc(72px * ${T.k});${TEX};box-shadow:inset 0 0 0 ${T.frameW} ${T.frame}} /* 空状态是一个空格（笺面 + 外框，不画字、不画十字线），与首页「没写」的格同一个语言（C3-H / T3-09，D53 ⑦：不用双钩「拾」，品牌字不拿来当「没写过」） */
-.sz-lib__emptytitle{margin:0;font-family:${T.song};font-size:${T.fs22};line-height:${T.lh22};font-weight:500;
-  color:${T.ink1}}
-.sz-lib__emptytext{margin:0;max-width:calc(250px * ${T.k});font-size:${T.fs15};line-height:${T.lh15};
-  color:${T.ink2};text-wrap:pretty}
 ${WALL_CSS}
 `);
 
@@ -201,12 +195,9 @@ function PracticeBlock({ kind, items }) {
   </section>`;
 }
 
-function EmptyState() {
-  return html`<div class="sz-lib__empty" data-testid="library-empty">
-    <span class="sz-lib__emptycell" aria-hidden="true" data-testid="library-empty-cell"></span>
-    <p class="sz-lib__emptytitle">${t('X-LIBHOME.emptyTitle')}</p>
-    <p class="sz-lib__emptytext">${t('R-L05.empty')}</p>
-  </div>`;
+function LibraryEmpty() {
+  // 全 App 唯一的空状态（components/EmptyState.js，规范 S2，审计 P2-22）
+  return EmptyState({ title: t('X-LIBHOME.emptyTitle'), body: t('R-L05.empty'), testids: { root: 'library-empty', cell: 'library-empty-cell' } });
 }
 
 function LibraryScreen() {
@@ -231,7 +222,7 @@ function LibraryScreen() {
         <div data-testid="library-query-slot">${Slot ? html`<${Slot} />` : html`<${LibraryQueryBox} />`}</div>
       </div>
       ${model.empty
-        ? html`<p class="sz-lib__nonote" data-testid="library-no-record-note">${t('R-L05.noRecordNote')}</p><${EmptyState} />`
+        ? html`<p class="sz-lib__nonote" data-testid="library-no-record-note">${t('R-L05.noRecordNote')}</p><${LibraryEmpty} />`
         : html`<div class="sz-lib__pbs">
             <${PracticeBlock} kind="wrong" items=${model.wrong.items} />
             <${PracticeBlock} kind="forget" items=${model.forget.items} />

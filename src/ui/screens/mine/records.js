@@ -387,6 +387,7 @@ function MonthSheet({ model, state }) {
   const title = t('R-P02.sheetTitle', { month: model.monthNum });
   // 阶段 1 P1-E7：字帖就是月字帖页那一块（month.js MonthBody：6 列、格内左上角的日期角标、没墨的字画衬底），标题点进月字帖页；任何月份都能保存（D42）。
   const monthView = useMemo(() => monthModel(state, model.month), [state, model.month]);
+  if (!monthView.n) return null; // 这个月没有字：不画字帖块（标题「{月}还没有记录」与图例已经说了，不再重复说「没有」，审计 P2-22）
   const save = monthView.n && imageActions.month;
   return html`<section class="sz-rec__sheet" data-testid="records-sheet" data-month=${sheet.month} data-count=${monthView.n}
     data-days=${monthView.days} data-current=${model.current ? 'true' : 'false'} data-folded=${sheet.folded ? 'true' : 'false'}>

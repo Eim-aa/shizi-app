@@ -35,11 +35,12 @@ import { html, useEffect, useRef, useState } from '../../../../vendor/ui.js';
 import { registerScreen, getRouter, getScreen, nav } from '../../router.js';
 import { Page } from '../../components/Page.js';
 import { Button, markStateChange } from '../../components/Button.js';
+import { EmptyState } from '../../components/EmptyState.js';
 import { FailBlock } from '../../components/FailBlock.js';
 import { LiveRegion } from '../../components/LiveRegion.js';
 import { Icons } from '../../components/icons.js';
 import { Chevron } from '../../components/Chevron.js';
-import { PracticeGlyph, FACE_FULL } from '../../components/PracticeGlyph.js';
+import { PracticeGlyph } from '../../components/PracticeGlyph.js';
 import { injectStyles, T, TEX } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
 import * as defaultPolicy from '../../../config/policy.js';
@@ -131,14 +132,6 @@ injectStyles('library-list', `
 .sz-list__hint{margin:0;text-align:center;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3}}
 .sz-list__toggle{min-height:44px;padding:0 4px;margin-right:-4px;font-size:${T.fs15};color:${T.ink2}} /* 页头尾端：字形外缘落在 20pt 线（H1） */
 .sz-list__rest{align-self:flex-start;min-height:44px;padding:0 4px;margin:-12px 0 0 -4px;font-size:${T.fs15};color:${T.ink2}}
-.sz-list-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:${T.s4};text-align:center;
-  padding:${T.s6} 0 ${T.s16}}
-.sz-list-empty__glyph{width:88px;height:88px;box-sizing:border-box;border:${T.frameW} dashed ${T.frame};display:grid;
-  place-items:center;color:${T.under}}
-.sz-list-empty__glyph .sz-pg{width:60%;height:60%}
-.sz-list-empty__title{margin:0;font-family:${T.song};font-size:${T.fs22};line-height:${T.lh22};font-weight:500;
-  color:${T.ink1}}
-.sz-list-empty__body{margin:0;max-width:290px;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3};text-wrap:pretty}
 `);
 
 // 每次渲染现取新 vnode，不复用模块级常量（vendor/ui.js 注释，M6-3）。
@@ -297,11 +290,8 @@ function ListScreen({ params, entry }) {
 
   if (model.empty) {
     return html`<${Page} title=${model.title} testid="list-screen">
-      <div class="sz-list-empty" data-testid="list-empty" data-kind=${kind}>
-        <span class="sz-list-empty__glyph" aria-hidden="true" data-testid="list-empty-glyph"><${PracticeGlyph} char=${model.emptyGlyph} face=${FACE_FULL} /></span>
-        <h2 class="sz-list-empty__title" data-testid="list-empty-title">${model.emptyTitle}</h2>
-        <p class="sz-list-empty__body" data-testid="list-empty-body">${model.emptyBody}</p>
-      </div>
+      ${EmptyState({ title: model.emptyTitle, body: model.emptyBody, glyph: model.emptyGlyph, attrs: { 'data-kind': kind },
+        testids: { root: 'list-empty', cell: 'list-empty-glyph', title: 'list-empty-title', body: 'list-empty-body' } })}
     </${Page}>`;
   }
 

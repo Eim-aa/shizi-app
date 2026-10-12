@@ -61,7 +61,7 @@ const KEYBOARD_RATIO = 0.4;
 export const EXEMPT = Object.freeze([
   { id: 'disabled', sel: 'button:disabled, [aria-disabled="true"], input:disabled, fieldset:disabled', hidden: false },
   { id: 'glyph-wall', sel: '.sz-lib__g', hidden: true },
-  { id: 'glyph-result', sel: '.sz-rcell__glyph, .sz-dcell__glyph, .sz-scell__glyph, .sz-ann__glyph, .sz-ann__eglyph, .sz-list-empty__glyph, .sz-inkrow__glyph', hidden: true },
+  { id: 'glyph-result', sel: '.sz-rcell__glyph, .sz-dcell__glyph, .sz-scell__glyph, .sz-ann__glyph, .sz-empty__cell, .sz-inkrow__glyph', hidden: true },
   { id: 'seal', sel: '.sz-home__seal, .sz-seal, .sz-about__seal', hidden: true },
 ]);
 

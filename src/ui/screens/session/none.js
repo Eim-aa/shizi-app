@@ -1,7 +1,7 @@
 // 「现在没有要写的字」页（R-H11；C188–C191；10.7；C067；原型可点原型模板 L56–L64 w12f、ShiziScreen noChars L125–L127）。
 //
 // 开今天的练习时选不出字（core/session-start.startDaily → {empty}）就推入这一页（不开组、不写入）。
-// 版式沿原型 w12f：页头「习字」+「‹」（推入页一律「‹」，D58 ④ / 交互规范 N2；原为关闭 ×）；中间一个空格子（去掉装饰大字「待」，只留空格子）、标题、说明；
+// 版式沿原型 w12f：页头「习字」+「‹」（推入页一律「‹」，D58 ④ / 交互规范 N2；原为关闭 ×）；中间是全 App 唯一的空状态（components/EmptyState.js，规范 S2，审计 P2-22：空格子、标题、说明，「看写错过的字 ›」是它的操作）；
 // 底部主按钮「自己选字」。D58 ④ 去掉「回到首页 ›」：它与「‹」做的事不同（从字库进来时一个回字库一个去首页），出口只留左上「‹」（文案键 R-H11.backHome 暂留在 copy 未用）。当前练习范围的字都有记录了（params.exhausted）时加次入口：「可以换一个字库，或者先练写错过的字。」
 // 「看写错过的字 ›」（R-H11 noChars；两态是否同一页见 04 §6.2——过渡：同一页，次入口按 exhausted 显示）。
 //
@@ -17,7 +17,7 @@ import { html } from '../../../../vendor/ui.js';
 import { registerScreen, nav } from '../../router.js';
 import { Page } from '../../components/Page.js';
 import { Button } from '../../components/Button.js';
-import { injectStyles, T } from '../../components/styles.js';
+import { EmptyState } from '../../components/EmptyState.js';
 import { t } from '../../../config/copy/index.js';
 
 export const NONE_SCREEN = 'session-none';
@@ -32,13 +32,6 @@ export function setNoneActions(next) {
   if ('libSwitch' in next) actions.libSwitch = typeof next.libSwitch === 'function' ? next.libSwitch : null;
 }
 
-injectStyles('session-none', `
-.sz-none{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:0 16px;
-  text-align:center}
-.sz-none__cell{width:88px;height:88px;box-sizing:border-box;border:${T.frameW} solid ${T.frame}}
-.sz-none__title{margin:0;font-family:${T.song};font-size:${T.fs22};font-weight:500;color:${T.ink1}}
-.sz-none__body{margin:0;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2}}
-`);
 
 function NoneScreen({ params }) {
   const exhausted = !!(params && params.exhausted);
@@ -49,14 +42,11 @@ function NoneScreen({ params }) {
     ${libSwitch ? html`<${Button} variant="primary" data-testid="session-none-libswitch" onClick=${() => libSwitch()}>${t('X-SESSION.noneLibSwitch')}</${Button}>` : null}
     ${pick ? html`<${Button} variant=${libSwitch ? 'secondary' : 'primary'} data-testid="session-none-pick" onClick=${() => pick()}>${t('X-SESSION.nonePick')}</${Button}>` : null}`;
   return html`<${Page} title=${t('X-TABS.write')} footer=${libSwitch || pick ? footer : null} testid="session-none">
-    <div class="sz-none" data-exhausted=${exhausted ? 'true' : 'false'}>
-      <span class="sz-none__cell" aria-hidden="true" data-testid="session-none-cell"></span>
-      <h2 class="sz-none__title" data-testid="session-none-title">${t('R-H11.title')}</h2>
-      <p class="sz-none__body" data-testid="session-none-body">${t('R-H11.body')}</p>
-      ${exhausted ? html`<p class="sz-none__body" data-testid="session-none-nochars">${t('R-H11.noCharsBody')}</p>` : null}
-      ${exhausted && wrongList ? html`<${Button} variant="text" data-testid="session-none-wrong"
-        onClick=${() => wrongList()}>${t('R-H11.noCharsLink')}</${Button}>` : null}
-    </div>
+    ${EmptyState({
+      title: t('R-H11.title'), body: exhausted ? [t('R-H11.body'), t('R-H11.noCharsBody')] : t('R-H11.body'), attrs: { 'data-exhausted': exhausted ? 'true' : 'false' },
+      action: exhausted && wrongList ? { label: t('R-H11.noCharsLink'), onClick: () => wrongList(), testid: 'session-none-wrong' } : null,
+      testids: { root: 'session-none-body-wrap', cell: 'session-none-cell', title: 'session-none-title', body: 'session-none-body', extra: ['session-none-nochars'] },
+    })}
   </${Page}>`;
 }
 

@@ -491,7 +491,8 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
   const trailing = compare.active
     ? html`<span class="sz-write__headtools">${progress}</span>`
     : centerProgress ? html`<span class="sz-write__headtools">${endNode}${skipNode}</span>` : html`<span class="sz-write__headtools">${progress}${endNode}</span>`;
-  return html`<${Page} title=${titleFor(phase)} hideTitle=${phase === 'recall' || (phase === 'compare' && ax > 0)} onBack=${leave} lead=${compare.lead} onLead=${compare.back}
+  return html`<${Page} title=${titleFor(phase)} hideTitle=${phase === 'recall' || (phase === 'compare' && ax > 0)} onBack=${leave}
+    backLabel=${phase === 'trace' || phase === 'retrace' ? 'leave' : 'back'} lead=${compare.lead} onLead=${compare.back}
     center=${centerProgress ? progress : null} trailing=${trailing} footer=${answer.footer || (compare.active ? compare.footer : footer)} testid="write-screen">
     <div class="sz-write" ref=${writeRef} data-cursor=${session.cursor} data-phase=${phase} data-slot=${slot} data-grid=${gridSize}
       data-compact=${compact ? 'true' : 'false'} data-tight=${footCompact ? 'true' : null} data-ax=${ax > 0 ? String(ax) : null} data-pfit=${pfit < 1 ? String(pfit) : null}

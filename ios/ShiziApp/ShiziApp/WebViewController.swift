@@ -135,8 +135,14 @@ final class WebViewController: UIViewController {
         let paper = UIColor(named: "Paper") ?? .systemBackground
         webView.backgroundColor = paper
         webView.scrollView.backgroundColor = paper
+        // 整页不可拖动（交互与动效规范 N7，R6-J1）：根文档那一层 scrollView 不滚、不回弹、不横移；能拖的只有页面里的内容滚动容器
+        // （它们是 WebKit 另建的子 scrollView，不受这里影响，竖向回弹照常）。键盘弹起时也不让 WebKit 把整页顶上去（弹层自己按 visualViewport 避让）。
+        webView.scrollView.isScrollEnabled = false
         webView.scrollView.bounces = false
         webView.scrollView.alwaysBounceVertical = false
+        webView.scrollView.alwaysBounceHorizontal = false
+        webView.scrollView.showsHorizontalScrollIndicator = false
+        webView.scrollView.showsVerticalScrollIndicator = false
         webView.scrollView.contentInsetAdjustmentBehavior = .never
         // 页面不能被双指缩放（缩放后界面没有恢复入口，Q2-14，复测 simC D11）。这只管页面的捏合缩放；系统「辅助功能 › 缩放」是系统层的屏幕放大镜、
         // 「更大字体」走 shiziContentSize，都不受影响。

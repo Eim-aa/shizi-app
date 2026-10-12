@@ -9,12 +9,12 @@ import { html, useRef } from '../../../vendor/ui.js';
 import { Button } from './Button.js';
 import { useDialogFocus } from './Sheet.js';
 import { useOverlayBack } from '../back-action.js';
-import { injectStyles, T } from './styles.js';
+import { injectStyles, SCROLL_Y, T } from './styles.js';
 import { M } from '../../config/motion.js';
 
 injectStyles('confirm', `
 .sz-confirm{position:absolute;left:${T.gutter};right:${T.gutter};top:50%;transform:translateY(-50%);box-sizing:border-box;
-  max-height:calc(100% - 48px);overflow:auto;border-radius:${T.rBox};background:${T.elev};box-shadow:${T.elevShadow};
+  max-height:calc(100% - 48px);${SCROLL_Y};border-radius:${T.rBox};background:${T.elev};box-shadow:${T.elevShadow};
   padding:${T.s6} ${T.s5} ${T.s5};display:flex;flex-direction:column;gap:${T.s3};color:${T.ink1};
   animation:sz-confirm-in ${T.dM} ${T.eOut} backwards}
 .sz-confirm:focus{outline:none}

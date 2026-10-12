@@ -50,7 +50,7 @@ import {
 import { Tabs } from './components/Tabs.js';
 import './components/marks.js'; // 朱色白名单组件：写错朱点与印章（D43，P1-E1a）
 import { ToastHost } from './components/Toast.js';
-import { injectStyles, T } from './components/styles.js';
+import { injectStyles, SCROLL_Y, T } from './components/styles.js';
 import './screens/home/index.js';
 import './screens/library/index.js';
 import './screens/mine/index.js';
@@ -211,7 +211,7 @@ injectStyles('root', `
 .sz-layer__screen{flex:1;min-height:0;display:flex;flex-direction:column}
 .sz-layer__screen>.sz-page{flex:1;height:auto}
 .sz-tabroot{flex:1;min-height:0;display:flex;flex-direction:column}
-.sz-tabroot__panel{flex:1;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.sz-tabroot__panel{flex:1;min-height:0;${SCROLL_Y}}
 .sz-tabroot__panel::before{content:"";position:sticky;top:0;display:block;height:env(safe-area-inset-top, 0px);
   margin-bottom:calc(-1 * env(safe-area-inset-top, 0px));background:linear-gradient(${T.paper} 70%, transparent);z-index:2;pointer-events:none}
 `);
@@ -705,6 +705,21 @@ function Root({ router, win }) {
 }
 
 /**
+ * 整页不可拖动（交互与动效规范 N7，R6-J1）：根文档永远停在 (0, 0)。CSS 已让 html / body 不滚（base.css），原生壳的 scrollView 也不可滚；
+ * 这里兜住浏览器 / 系统自己挪动根文档的情形（键盘弹起时把聚焦的输入框滚进可见区、读屏滚动等），挪了就一帧内放回原位。
+ * @returns {() => void} 解除
+ */
+export function pinDocument(win = window) {
+  if (!win || typeof win.addEventListener !== 'function') return () => {};
+  const onScroll = () => {
+    if ((win.scrollX || 0) !== 0 || (win.scrollY || 0) !== 0) win.scrollTo(0, 0);
+  };
+  win.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+  return () => win.removeEventListener('scroll', onScroll);
+}
+
+/**
  * 建 router、接 window、挂根组件。M0-5 起 app.js 在此之前建好 store。
  * @returns {Promise<{router, unmount: () => void}>}
  */
@@ -716,6 +731,7 @@ export async function mountRoot(container, { win = window, defaultTab = 'home' }
   const router = createRouter({ history: win.history, isStandalone: () => isStandalone(win), coldStart: () => memory.coldStart() });
   setActiveRouter(router);
   const detach = attachWindow(router, win);
+  const unpin = pinDocument(win);
   router.start({ defaultTab });
   memory.attach(router);
   setRouteMemory(memory);
@@ -725,6 +741,7 @@ export async function mountRoot(container, { win = window, defaultTab = 'home' }
     unmount() {
       memory.detach();
       setRouteMemory(null);
+      unpin();
       detach();
       render(null, container);
       setActiveRouter(null);

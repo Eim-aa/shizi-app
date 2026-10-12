@@ -14,7 +14,7 @@
 // 打开方式：nav.openOverlay(内容组件, props)；内容组件里用 <Sheet onClose=${close}>…</Sheet>。
 // 点遮罩 / 系统返回 / Esc 都经 router 走 history.back()。
 import { html, useEffect, useRef } from '../../../vendor/ui.js';
-import { injectStyles, T } from './styles.js';
+import { injectStyles, SCROLL_Y, T } from './styles.js';
 import { Button } from './Button.js';
 import { playExit } from './exit.js';
 import { M, prefersReducedMotion } from '../../config/motion.js';
@@ -24,7 +24,7 @@ import { t } from '../../config/copy/index.js';
 injectStyles('sheet', `
 .sz-overlay{position:absolute;inset:0;z-index:20}
 .sz-scrim{position:absolute;inset:0;background:${T.scrim};animation:sz-fade-in ${T.dM} ${T.eOut} backwards}
-.sz-sheet{position:absolute;left:0;right:0;bottom:0;max-height:88%;overflow:auto;box-sizing:border-box;
+.sz-sheet{position:absolute;left:0;right:0;bottom:0;max-height:88%;${SCROLL_Y};box-sizing:border-box;
   border-radius:${T.rBox} ${T.rBox} 0 0;background:${T.elev};box-shadow:${T.elevShadow};
   padding:${T.s6} ${T.gutter} max(${T.s8}, env(safe-area-inset-bottom, 0px));display:flex;flex-direction:column;gap:${T.s4};color:${T.ink1};
   animation:sz-sheet-in ${T.dSheet} ${T.eOut} backwards} /* backwards：进场结束后不再占着 transform / opacity，下滑与左缘跟手才写得进行内样式 */

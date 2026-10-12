@@ -134,3 +134,9 @@ export const T = {
  */
 export const HIT_EXT = `content:"";position:absolute;left:0;right:0;top:50%;height:max(100%,${T.hit});transform:translateY(-50%)`;
 export const TEX = `background-color:${T.sheet};background-image:var(--tex-img);background-size:var(--tex-size)`;
+
+/**
+ * 内容滚动容器（交互与动效规范 N7，R6-J1）：全 App 只有它能被手指拖动——只竖向滚、回弹只在它自己里面、不横向平移、不把拖动传给外层。
+ * 页面正文（Page .sz-page__body）、Tab 根面板（.sz-tabroot__panel）、弹层 / 确认框 / 阻断页 / 查字滚动区都用这一条，不另写 overflow:auto。
+ */
+export const SCROLL_Y = 'overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-x:none;overscroll-behavior-y:contain';

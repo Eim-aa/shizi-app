@@ -32,7 +32,7 @@ import { html, useEffect, useLayoutEffect, useMemo, useRef, useState } from '../
 import { Sheet } from '../Sheet.js';
 import { Button } from '../Button.js';
 import { FailBlock } from '../FailBlock.js';
-import { injectStyles, T } from '../styles.js';
+import { injectStyles, SCROLL_Y, T } from '../styles.js';
 import { t } from '../../../config/copy/index.js';
 import * as defaultPolicy from '../../../config/policy.js';
 import {
@@ -62,7 +62,7 @@ injectStyles('query-sheet', `
 :root[data-ax] .sz-sheet[data-testid="query-sheet"][data-full="true"] .sz-sheet__done{font-size:calc(22px * 1);line-height:30px}
 :root[data-ax] .sz-sheet[data-testid="query-sheet"][data-full="true"] .sz-query__input{width:calc(100% - (2 * 22px + 8px + ${T.s4}))}
 .sz-query{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;gap:16px}
-.sz-query__scroll{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
+.sz-query__scroll{flex:1 1 auto;min-height:0;${SCROLL_Y};
   display:flex;flex-direction:column;gap:16px;padding-bottom:1px} /* 带调拼音的回退字体让行高带小数，滚到底时最后一行可能差不到 1px 没露全；多留 1px（60-matrix scroll-end） */
 .sz-query__notes{display:flex;flex-direction:column;gap:6px}
 .sz-query__note{display:flex;gap:10px;align-items:flex-start;padding:12px 16px;border-radius:${T.rCtl};background:${T.field}}
@@ -70,7 +70,7 @@ injectStyles('query-sheet', `
 .sz-query__notetext{flex:1;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink2}}
 .sz-query__hint{margin:0;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3}}
 .sz-query__back{align-self:flex-start;min-height:44px;margin:0 0 -10px;font-size:${T.fs15};color:${T.ink2};} /* 热区 44（Q2-13）：它是滚动区的第一个子元素，往上伸会被滚动区裁掉，所以改成真 44 高、只往下叠 10px */
-.sz-query__foot{flex:none;max-height:56%;overflow-y:auto;margin:0 calc(-1 * ${T.gutter}) calc(-1 * var(--qpb, 32px));
+.sz-query__foot{flex:none;max-height:56%;${SCROLL_Y};margin:0 calc(-1 * ${T.gutter}) calc(-1 * var(--qpb, 32px));
   padding:${T.s3} ${T.gutter} var(--qpb, 32px);display:flex;flex-direction:column;gap:${T.s2};background:${T.elev};z-index:1}
 .sz-query__barfail{margin:0;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2}}
 .sz-query__bartwo{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}

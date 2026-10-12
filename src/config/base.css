@@ -28,6 +28,15 @@
   box-sizing: border-box;
 }
 
+/* 整页不可拖动（交互与动效规范 N7，R6-J1）：根文档永远一屏、不滚、不回弹、不横移；能被手指拖动的只有内容滚动容器（styles.js SCROLL_Y）。
+ * 原生壳另把 WKWebView 的 scrollView 设为不可滚动、不回弹（WebViewController.swift）；这里是浏览器 / 主屏 PWA 的同一条兜底。 */
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;

@@ -8,7 +8,8 @@
 // 每个状态量三件事并回传：
 //   1. 书写格（及判断页两格、看答案格、纸面格）宽高相等（±1）；写字状态再画一笔「屏幕上 dx = dy」的斜线，存进数据的笔画 dy / dx 也必须是 1（±2%）；
 //   2. 没有文字横向溢出：文字节点的行框都在视口内、在所在按钮内；含文字的元素 scrollWidth ≤ clientWidth；文字之间不互相叠压；
-//   3. 写字类页面：正文不滚动，正文区里的每一行字（格下说明位）都在底栏上沿之上。
+//   3. 写字类页面：正文不滚动，正文区里的每一行字（格下说明位）都在底栏上沿之上；
+//   4. 整页不平移（R6-J1，交互与动效规范 N7）：根文档一屏（scrollWidth ≤ 视口宽、scrollHeight ≤ 视口高）、scrollTo(40, 40) 后仍在 (0, 0)、页头不动，内容滚动容器横向不可滚。
 (async function probe(STATE) {
   if (window.__shiziProbeRunning) return;
   window.__shiziProbeRunning = true;
@@ -239,6 +240,25 @@
     return m;
   }
 
+  /** 4. 整页不平移（N7）：每个状态量完版式后再推一下根文档与内容滚动容器。 */
+  async function panCheck() {
+    const layer = topLayer();
+    const de = document.documentElement;
+    const head = layer.querySelector('.sz-page__head');
+    const body = layer.querySelector('.sz-page__body');
+    const h0 = box(head);
+    const doc = { w: de.scrollWidth, h: de.scrollHeight, vw: de.clientWidth, vh: window.innerHeight };
+    window.scrollTo(40, 40);
+    de.scrollLeft = 40;
+    if (body) body.scrollLeft = 40;
+    await sleep(120);
+    const h1 = box(head);
+    const at = { x: window.scrollX, y: window.scrollY, bodyLeft: body ? body.scrollLeft : 0 };
+    result.metrics.pan = { doc, at, head: h1 };
+    check('page does not pan', doc.w <= doc.vw + 0.5 && doc.h <= doc.vh + 0.5 && at.x === 0 && at.y === 0 && at.bodyLeft === 0
+      && JSON.stringify(h0) === JSON.stringify(h1), { doc, at, head0: h0, head1: h1 });
+  }
+
   try {
     await waitFor(() => app() && T() && window.__shiziBridge && window.__shiziBridge.isReady(), 'app boot');
     await idle(400);
@@ -287,6 +307,7 @@
       await waitFor(() => topLayer().querySelector('.sz-write[data-cursor="1"][data-phase="recall"]'), 'next card');
       await idle(900);
       result.metrics.layout = measure({ writePage: true });
+      await panCheck();
       const line = q('write-line-slot');
       check('result row (修改) visible in the note slot', !!line && line.textContent.trim().length > 0 && !hidden(line, topLayer()), line ? line.textContent.trim() : null);
     } else if (STATE === 'answer' || STATE === 'trace') {
@@ -295,6 +316,7 @@
       await openWrite();
       await sleep(STATE === 'trace' ? 3500 : 1500);
       result.metrics.layout = measure({ writePage: true });
+      await panCheck();
     } else if (STATE === 'judge') {
       const { encodeRawStrokes } = await import('/src/core/ink-math.js');
       const line = (x0, y0, x1, y1) => Array.from({ length: 9 }, (_, i) => ({ x: x0 + (x1 - x0) * i / 8, y: y0 + (y1 - y0) * i / 8, t: i * 16 }));
@@ -305,6 +327,7 @@
       await waitFor(() => q('write-compare-ref') && q('write-compare-ref').dataset.state === 'ready', 'compare ready');
       await idle(900);
       result.metrics.layout = measure({ writePage: true });
+      await panCheck();
     } else if (STATE === 'detail') {
       T().reset();
       nav = await toHome();
@@ -312,6 +335,7 @@
       await waitFor(() => app().dataset.topScreen === 'detail', 'detail screen');
       await idle(1200);
       result.metrics.layout = measure({ writePage: false });
+      await panCheck();
     } else {
       throw new Error('unknown probe state ' + STATE);
     }

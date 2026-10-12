@@ -15,7 +15,7 @@ import { t } from '../../../config/copy/index.js';
 import { Button } from '../../components/Button.js';
 import { announce } from '../../components/Toast.js';
 import { FailBlock } from '../../components/FailBlock.js';
-import { injectStyles, T } from '../../components/styles.js';
+import { injectStyles, SCROLL_Y, T } from '../../components/styles.js';
 import { setBackGestureEnabled } from '../../../platform/bridge.js';
 import { backGestureAllowed, getRouter } from '../../router.js';
 import { now as envNow } from '../../../platform/env.js';
@@ -100,7 +100,7 @@ export function useBlockReason(getStoreSync) {
 // ---------------------------------------------------------------- 页面
 
 injectStyles('block', `
-.sz-block{flex:1;min-height:0;box-sizing:border-box;overflow:auto;display:flex;flex-direction:column;justify-content:center;
+.sz-block{flex:1;min-height:0;box-sizing:border-box;${SCROLL_Y};display:flex;flex-direction:column;justify-content:center;
   gap:${T.groupGap};padding:calc(${T.s8} + env(safe-area-inset-top, 0px)) ${T.gutter} calc(${T.s8} + env(safe-area-inset-bottom, 0px));
   background:${T.paper};color:${T.ink1}}
 .sz-block__title{margin:0;font-family:${T.song};font-size:${T.fs22};line-height:${T.lh22};font-weight:500;color:${T.ink1}}

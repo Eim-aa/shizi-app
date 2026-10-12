@@ -3,11 +3,11 @@
 // 分界（与 P1-E7「作品出口」）：result/index.js 管通用的结果页结构，作品构图（格子、落款、「没放进图里」的行与「放进去」）在
 // result/work.js，首练与日常结果页共用（P1-E7）；本文件只放首练（以及「今天的练习」结果页的第二次邀请）特有的两块：
 //   ReviewPreview   复现句：每字「N 天后再见」（D48）；天数用 FSRS 的实际到期日，天数相同的字合并成一个分句（core/first-result.js daysLaterLine，E9c）。
-//   useReminderInvite / ReminderInvite / InviteActions  提醒邀请（D35；C3-H / T3-12、D53：首练页最多两句话——复现句 + 邀请的问句，邀请说明 X-INVITE.body 只在「今天的练习」那次出现；
+//   useReminderInvite / ReminderInvite  提醒邀请（D35；C3-H / T3-12、D53：首练页最多两句话——复现句 + 邀请的问句，邀请说明 X-INVITE.body 只在「今天的练习」那次出现；
 //                   按钮写出结果「好，明天给我一个词」/「先不用」）：内嵌不弹窗，作品落定（印落下）约 600ms 后淡入；点「好」才请求系统通知权限
 //                   （platform/reminder.js inviteReminder）；最多邀请两次（首练结果页一次，没回应则下一次「今天的练习」结果页再一次，D46 ③；规则在
-//                   core/first-result.js inviteDecision）。R2-R1（N2-04 / N2-05 / I2-07）：回答之前，吸底栏就是「好 / 不用了」（InviteActions），说明块在正文里
-//                   （ReminderInvite）；回答以后吸底栏才换成别的（首练：「完成」+ 文字按钮「再写一组」）。
+//                   core/first-result.js inviteDecision）。R5-I3（P0-03，规范 B3）：「好 / 不用了」与说明都在正文的邀请块里（ReminderInvite），
+//                   吸底栏始终是本页的主按钮（首练：「完成」+ 文字按钮「再写一组」），不被邀请替换。
 //
 // data-testid：result-preview、
 //   result-invite（说明块；data-state = invite | pending（点了「好」、系统权限弹窗还没回应，Q2-5）| accepted | denied）、result-invite-title、result-invite-body、
@@ -38,12 +38,7 @@ injectStyles('result-first', `
 .sz-invite--in{animation:szInviteIn ${T.dPush} ${T.eOut} both}
 @keyframes szInviteIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 @keyframes szInviteFade{from{opacity:0}to{opacity:1}}
-@media (prefers-reduced-motion: reduce){.sz-invite--in,.sz-invite__foot--in{animation:szInviteFade ${T.dReduce} ${T.eLinear} both}} /* 减少动态效果：150ms 淡化、不位移（D58 ②） */
-/* 吸底栏里的回答：主按钮「好」+ 文字按钮「不用了」，与结果页别的底栏同一个位置；该问但没到时候时占位（不透明度 0、不可点） */
-.sz-invite__foot{display:flex;flex-direction:column;align-items:stretch;gap:2px}
-.sz-invite__foot--in{animation:szInviteIn ${T.dM} ${T.eOut} both}
-.sz-invite__foot--wait{opacity:0;pointer-events:none}
-.sz-invite__foot .sz-btn--text{align-self:center}
+@media (prefers-reduced-motion: reduce){.sz-invite--in{animation:szInviteFade ${T.dReduce} ${T.eLinear} both}} /* 减少动态效果：150ms 淡化、不位移（D58 ②） */
 .sz-invite__title{margin:0;font-size:${T.fs17};line-height:${T.lh17s};font-weight:500;color:${T.ink1}}
 .sz-invite__body{margin:0;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3};text-wrap:pretty}
 .sz-invite__line{margin:0;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2}}
@@ -123,7 +118,7 @@ export function inviteBody(example) {
 }
 
 /**
- * 提醒邀请的状态（一个 hook；结果页拿着它同时画正文里的说明块 InviteBlock 与吸底栏里的「好 / 不用了」InviteActions，R2-R1 / N2-04 / I2-07）。
+ * 提醒邀请的状态（一个 hook；结果页拿着它画正文里的邀请块 ReminderInvite，R5-I3 / P0-03）。
  * @param {{store:object, settings:object|null, session:object|null, variant:'first'|'daily'|'picked', ready?:boolean}} o
  *   ready：作品落定了（落印那一帧，D51 ②）；邀请从这时起再等 INVITE_DELAY_MS 才淡入。
  * @returns {{show:boolean, phase:string, active:boolean, reserved:boolean, waiting:boolean, ...}}
@@ -201,18 +196,7 @@ export function useReminderInvite({ store, settings, session, variant, ready = t
   };
 }
 
-/** 吸底栏里的邀请回答：「好」是主按钮、「不用了」是文字按钮（N2-04 方案 A）；该问但还没到时候时占位（看不见、不可点）。 */
-export function InviteActions({ invite }) {
-  const waiting = invite.waiting;
-  const hiddenNow = invite.reserved;
-  return html`<div class=${hiddenNow ? 'sz-invite__foot sz-invite__foot--wait' : 'sz-invite__foot sz-invite__foot--in'} data-testid="result-invite-actions"
-    data-state=${hiddenNow ? 'wait' : waiting ? 'pending' : 'invite'} aria-hidden=${hiddenNow ? 'true' : null}>
-    <${Button} variant="primary" data-testid="result-invite-yes" disabled=${waiting || hiddenNow} onClick=${invite.accept}>${t('X-INVITE.yes')}</${Button}>
-    <${Button} variant="text" data-testid="result-invite-no" disabled=${waiting || hiddenNow} onClick=${invite.decline}>${t('X-INVITE.no')}</${Button}>
-  </div>`;
-}
-
-/** 正文里的邀请说明块（标题 + 说明；回答后换成一行结果）。按钮不在这里，在吸底栏（InviteActions）。 */
+/** 正文里的邀请块（标题 + 说明 + 「好 / 不用了」；回答后换成一行结果）。不占吸底栏：本页的主按钮始终可点（I3 · P0-03，规范 B3）。 */
 export function ReminderInvite({ invite }) {
   const { phase, session, variant, remind, editing, setEditing, failed, evening, changeTime } = invite;
   if (phase === 'wait' || phase === 'gone') return null;
@@ -239,6 +223,9 @@ export function ReminderInvite({ invite }) {
   return html`<div class="sz-invite sz-invite--in" data-testid="result-invite" data-state=${waiting ? 'pending' : 'invite'} aria-busy=${waiting ? 'true' : null}>
     <p class="sz-invite__title" data-testid="result-invite-title">${t(evening ? 'X-INVITE.titleEvening' : 'X-INVITE.title')}</p>
     <p class="sz-invite__body" data-testid="result-invite-body">${example ? inviteBody(example) : t('X-INVITE.bodyPlain')}</p>
-    ${failed ? html`${FailBlock({ testid: 'result-invite-failure', noteTestid: 'result-invite-fail', retryTestid: 'result-invite-retry', cancelTestid: 'result-invite-cancel', text: t('X-SETTINGS.saveFailed'), cancelLabel: t('X-SETTINGS.cancel'), onCancel: invite.dismissFail, onRetry: invite.accept })}` : null}
+    ${failed ? html`${FailBlock({ testid: 'result-invite-failure', noteTestid: 'result-invite-fail', retryTestid: 'result-invite-retry', cancelTestid: 'result-invite-cancel', text: t('X-SETTINGS.saveFailed'), cancelLabel: t('X-SETTINGS.cancel'), onCancel: invite.dismissFail, onRetry: invite.accept })}` : html`<div class="sz-invite__acts" data-testid="result-invite-actions" data-state=${waiting ? 'pending' : 'invite'}>
+      <${Button} variant="secondary" data-testid="result-invite-yes" disabled=${waiting} onClick=${invite.accept}>${t('X-INVITE.yes')}</${Button}>
+      <${Button} variant="text" data-testid="result-invite-no" disabled=${waiting} onClick=${invite.decline}>${t('X-INVITE.no')}</${Button}>
+    </div>`}
   </div>`;
 }

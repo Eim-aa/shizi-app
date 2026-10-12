@@ -61,7 +61,7 @@ import { useStrokeData } from '../write/hint-layer.js';
 import { SkipUndoDock, canUndoSkip, undoSkipInDraft } from '../write/skip.js';
 import '../write/result-row.js'; // .sz-change* 弹层样式（与写字页修改判断弹层同一版式）
 import { NONE_SCREEN } from '../session/none.js';
-import { InviteActions, ReminderInvite, ReviewPreview, firstExtras, useReminderInvite } from './first.js';
+import { ReminderInvite, ReviewPreview, firstExtras, useReminderInvite } from './first.js';
 import { WorkRows, WorkSection, commitAdded, commitSealed, shouldPlayReveal } from './work.js';
 import { addedOf, buildWork } from '../../../core/images/work.js';
 import { firstTitle } from '../../work-text.js';
@@ -710,7 +710,7 @@ function ResultScreen({ params, entry }) {
     openCellSheet({ slot, sessionId, cell });
   };
 
-  // 提醒邀请（首练 / 第二次）：没回答之前吸底栏就是「好 / 不用了」；该问但还没到时候时占位（N2-04、I2-07）
+  // 提醒邀请（首练 / 第二次）：「好 / 不用了」在正文的邀请块里，不替换吸底栏（P0-03）
   const invite = useReminderInvite({ store, settings: state && state.settings, session: model.session, variant: model.variant, ready: landed });
   useEffect(() => { if (!model.work || model.work.empty) setLanded(true); }, [!!model.work, model.work ? model.work.empty : true]); // 没有作品（没有落印）：直接算落定
 
@@ -718,8 +718,6 @@ function ResultScreen({ params, entry }) {
   if (againFailed) {
     // 「再写一组」开组失败：底栏就地三段式（S1，components/FailBlock.js）
     footer = html`${FailBlock({ layout: 'foot', testid: 'result-again-fail', noteTestid: 'result-again-note', cancelTestid: 'result-again-cancel', retryTestid: 'result-again-retry', text: t('X-RESULT.againFailed'), cancelLabel: t('X-RESULT.againCancel'), retryLabel: t('X-RESULT.againRetry'), onCancel: () => { setAgainFailed(false); markStateChange(); }, onRetry: again })}`;
-  } else if (invite.active || invite.reserved) {
-    footer = html`<${InviteActions} invite=${invite} />`;
   } else if (model.variant === 'first') {
     // 首练收尾（N2-05）：主按钮是「完成」，「再写一组」降为下面的文字按钮
     footer = html`<${Button} variant="primary" data-testid="result-done" onClick=${leave}>${t('X-RESULT.done')}</${Button}>

@@ -258,7 +258,7 @@ export default async function run(page, ctx) {
   assert.deepEqual(r.exrows, [{ char: '赢', text: '写错了', btn: '放进图里', ink: true }], 'wrong char with ink: the status word + 放进图里 (the char is the glyph on the left, not in the sentence; D49)');
   assert.equal(r.invite, null, 'the invitation has not faded in yet (≈600ms after the work settles)');
   assert.equal((await nativeMessages(page, 'requestReminderPermission')).length, 0, 'no permission request before 好');
-  assert.deepEqual(r.foot, ['result-invite-yes:好，明天给我一个词', 'result-invite-no:先不用'], 'R2-R1 (N2-04): until the invitation is answered the sticky footer IS the invitation (好 / 不用了; kept invisible until it fades in); the exit is the close icon top-left');
+  assert.deepEqual(r.foot, ['result-done:完成', 'result-again:再写一组'], 'I3 P0-03: the sticky footer is 完成 + 再写一组 before, while and after the invitation (it never blocks the main actions)');
   await waitInvite(page);
   r = await resultView(page);
   assert.equal(r.invite.title, '明天这个时候，给你一个词？', 'time 9:41 is inside 7:00–22:00');
@@ -565,31 +565,37 @@ export default async function run(page, ctx) {
     await page.evaluate(async () => (await import('/src/ui/screens/session/index.js')).openWrite('A'));
     await waitWrite(page);
     await judgeLive(page, 'correct', { last: true });
+    // 邀请出现之前（≈600ms）完成 / 再写一组就已经可点
+    const early = await page.evaluate(() => {
+      const top = document.querySelector('.sz-layer[data-top="true"]');
+      const el = top.querySelector('[data-testid="result-done"]'); const r = el.getBoundingClientRect();
+      const hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+      return { disabled: el.disabled, covered: !(hit === el || el.contains(hit)), invite: !!top.querySelector('[data-testid="result-invite-title"]') };
+    });
+    assert.deepEqual(early, { disabled: false, covered: false, invite: false }, `${width}×${height}: 完成 is tappable before the invitation fades in`);
     await waitInvite(page);
     await page.waitForFunction(() => { const e = document.querySelector('.sz-layer[data-top="true"] [data-testid="result-invite-actions"]'); return e && e.dataset.state === 'invite'; });
-    await page.waitForTimeout(350); // 吸底栏淡入结束
+    await page.waitForTimeout(350);
     const asked = await page.evaluate(() => {
       const top = document.querySelector('.sz-layer[data-top="true"]');
-      const box = id => { const el = top.querySelector(`[data-testid="${id}"]`); if (!el) return null; const r = el.getBoundingClientRect(); const hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2); return { top: r.top, bottom: r.bottom, left: r.left, right: r.right, disabled: el.disabled, covered: !(hit === el || el.contains(hit)) }; };
-      return { yes: box('result-invite-yes'), no: box('result-invite-no'), again: !!top.querySelector('[data-testid="result-again"]'), done: !!top.querySelector('[data-testid="result-done"]'),
-        scrollTop: top.querySelector('.sz-page__body').scrollTop, vh: window.innerHeight, vw: window.innerWidth,
+      const box = id => { const el = top.querySelector(`[data-testid="${id}"]`); if (!el) return null; el.scrollIntoView({ block: 'nearest' }); const r = el.getBoundingClientRect(); const hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2); return { top: r.top, bottom: r.bottom, left: r.left, right: r.right, disabled: el.disabled, covered: !(hit === el || el.contains(hit)) }; };
+      return { yes: box('result-invite-yes'), no: box('result-invite-no'), done: box('result-done'), again: box('result-again'), vh: window.innerHeight, vw: window.innerWidth,
         inviteText: !!top.querySelector('[data-testid="result-invite-title"]') };
     });
-    for (const k of ['yes', 'no']) {
-      assert.ok(asked[k] && asked[k].top >= 0 && asked[k].bottom <= asked.vh && asked[k].left >= 0 && asked[k].right <= asked.vw, `${width}×${height}: 「${k === 'yes' ? '好' : '不用了'}」 is wholly inside the first screen (${JSON.stringify(asked[k])})`);
+    for (const k of ['yes', 'no', 'done', 'again']) {
+      assert.ok(asked[k] && asked[k].top >= 0 && asked[k].bottom <= asked.vh && asked[k].left >= 0 && asked[k].right <= asked.vw, `${width}×${height}: ${k} is inside the screen (${JSON.stringify(asked[k])})`);
       assert.equal(asked[k].covered, false, `${width}×${height}: the ${k} button is not covered by anything`);
       assert.equal(asked[k].disabled, false, `${width}×${height}: the ${k} button is enabled`);
     }
-    assert.ok(asked.yes.top < asked.no.top, `${width}×${height}: 好 (primary) above 不用了 (text)`);
-    assert.deepEqual([asked.again, asked.done, asked.scrollTop, asked.inviteText], [false, false, 0, true], `${width}×${height}: no 再写一组 / 完成 while unanswered, nothing scrolled, the question text is in the page`);
+    assert.equal(asked.inviteText, true, `${width}×${height}: the question text is in the page`);
     await page.click(topSel('result-invite-no'));
-    await page.waitForFunction(() => !!document.querySelector('.sz-layer[data-top="true"] [data-testid="result-done"]'));
+    await page.waitForFunction(() => !document.querySelector('.sz-layer[data-top="true"] [data-testid="result-invite"]'));
     const answered = await page.evaluate(() => {
       const top = document.querySelector('.sz-layer[data-top="true"]');
       const r = id => { const el = top.querySelector(`[data-testid="${id}"]`); const b = el.getBoundingClientRect(); return { text: el.textContent.trim(), cls: el.className, top: b.top, bottom: b.bottom }; };
       return { done: r('result-done'), again: r('result-again'), foot: [...top.querySelectorAll('.sz-page__foot button')].map(b => b.dataset.testid), vh: window.innerHeight };
     });
-    assert.deepEqual(answered.foot, ['result-done', 'result-again'], `${width}×${height}: answered → 完成 (primary) + 再写一组 (text)`);
+    assert.deepEqual(answered.foot, ['result-done', 'result-again'], `${width}×${height}: answered → the same 完成 (primary) + 再写一组 (text)`);
     assert.deepEqual([answered.done.text, answered.again.text], ['完成', '再写一组']);
     assert.ok(/sz-btn--primary/.test(answered.done.cls) && /sz-btn--text/.test(answered.again.cls), `${width}×${height}: 完成 is the primary button, 再写一组 a text button`);
     assert.ok(answered.again.bottom <= answered.vh && answered.done.top < answered.again.top, `${width}×${height}: both inside the screen, 完成 above 再写一组`);

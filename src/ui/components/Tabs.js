@@ -30,9 +30,10 @@ function tabIconOf(item, selected) {
  * @param {{id:string, label:string, icon?:any, panelId?:string}[]} props.items
  * @param {string} props.selected
  * @param {(id:string) => void} props.onSelect
+ * @param {() => void} [props.onReselect]  再点当前 Tab（滚回顶部，交互规范 N6）
  * @param {string} [props.label]  tablist 的 aria-label
  */
-export function Tabs({ items, selected, onSelect, label }) {
+export function Tabs({ items, selected, onSelect, onReselect, label }) {
   const listRef = useRef(null);
   const onKeyDown = event => {
     const keys = ['ArrowLeft', 'ArrowRight', 'Home', 'End'];
@@ -59,7 +60,7 @@ export function Tabs({ items, selected, onSelect, label }) {
       aria-selected=${item.id === selected ? 'true' : 'false'}
       tabindex=${item.id === selected ? '0' : '-1'}
       aria-controls=${item.panelId}
-      onClick=${() => { if (item.id !== selected) onSelect(item.id); }}
+      onClick=${() => { if (item.id !== selected) onSelect(item.id); else if (onReselect) onReselect(); }}
     >${tabIconOf(item, item.id === selected)}<span>${item.label}</span></${Button}>`)}
   </div>`;
 }

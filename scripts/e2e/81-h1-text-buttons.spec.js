@@ -81,10 +81,13 @@ export default async function run(page0, ctx) {
     await page.waitForSelector(topSel('all-go'));
     const goBtn = await page.evaluate(() => {
       const el = document.querySelector('.sz-layer[data-top="true"] [data-testid="all-go"]');
-      return { text: el.textContent.trim(), isText: el.classList.contains('sz-btn--text') };
+      const view = document.querySelector('.sz-layer[data-top="true"] [data-testid="all-list"]');
+      return { text: el.textContent.trim(), isPrimary: el.classList.contains('sz-btn--primary'), viewText: view.textContent.trim(), viewIsText: view.classList.contains('sz-btn--text') };
     });
     assert.equal(goBtn.text, '练这些字', 'all page: 练这些字 has no arrow');
-    assert.ok(goBtn.isText, 'all page: 练这些字 is a text button (same spec as everywhere)');
+    assert.ok(goBtn.isPrimary, 'all page: 练这些字 is the footer main button (P1-17: same place as the list page)');
+    assert.equal(goBtn.viewText, '看这些字 ›', 'all page: the list entry is 看这些字 ›');
+    assert.ok(goBtn.viewIsText, 'all page: 看这些字 › is a text button (same spec as everywhere)');
     await checkPage(page, assert, `${scheme} library-all`);
     await go(page, async () => (await import('/src/ui/router.js')).nav.back());
     await go(page, async () => (await import('/src/ui/router.js')).nav.switchTab('mine'));

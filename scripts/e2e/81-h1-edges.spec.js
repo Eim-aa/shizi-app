@@ -108,7 +108,7 @@ export default async function run(page0, ctx) {
     await leftOf(`${tag} settings 返回箭头`, topSel('page-back'));
     await go(page, async () => (await import('/src/ui/router.js')).nav.back());
     await go(page, async () => (await import('/src/ui/router.js')).nav.push('library-all', { filter: 'wrong' }));
-    await leftOf(`${tag} all 练这些字`, topSel('all-go'));
+    await leftOf(`${tag} all 看这些字 ›`, topSel('all-list'));
     await go(page, async () => (await import('/src/ui/router.js')).nav.back());
     await go(page, async () => (await import('/src/ui/router.js')).nav.push('detail', { char: '疆' }));
     await leftOf(`${tag} detail 返回箭头`, topSel('page-back'));

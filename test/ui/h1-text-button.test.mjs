@@ -49,7 +49,7 @@ test('Button.js 之外没有给文字按钮加回下划线 / 改字号的覆盖�
 // 去处的名字（标签是名词性的去处）：允许行尾「›」。写字页的「修改 ›」是动作带了「›」，属于另一张卡（写字页）的待修项，先列例外。
 const DESTINATION = new Set([
   'R-H11.backHome', 'R-H11.noCharsLink', 'R-L02.more', 'R-L06.entry', 'X-LIST.restShow', 'X-ALL.closedCount',
-  'R-M03.lastBackup', 'R-M05.sheetAll', 'R-S02.link', 'R-AB01.privacyRow', 'R-AB01.openSourceRow',
+  'R-M03.lastBackup', 'R-M05.sheetAll', 'X-LIBHOME.viewThese', 'X-ALL.viewThese', 'R-S02.link', 'R-AB01.privacyRow', 'R-AB01.openSourceRow',
 ]);
 const KNOWN_EXCEPTIONS = new Set(['R-W10.lineRecordedCorrect', 'R-W10.lineRecordedWrong', 'R-W10.lineChangedCorrect', 'R-W10.lineChangedWrong']);
 

@@ -78,6 +78,22 @@ export function openList(kind) {
   nav.push(LIST_SCREEN, { kind: normalizeKind(kind) });
 }
 
+/**
+ * 「练这些字」一次点击直接开始一组（I3 · P0-05 / P0-06，规范 B3）：不经清单页，选的就是清单页默认勾选的那些字
+ * （最该练的前 policy.listDefaultSelect 个能练的字，D36 / P113）。来源记为清单（写完「回到写错过 / 快忘了」就是回来源页）。
+ * @returns {object} startPicked 的结果；清单里一个能练的字都没有时 {ok:false, error:{kind:'invalid'}}
+ */
+export function startListDefault(kind, { state = null, today = localDay(envNow()), start = startPicked, cardFor = cardForKey, practicable = isPracticable } = {}) {
+  let current = state;
+  if (!current) {
+    const store = storeOrNull();
+    current = store ? store.getState() : null;
+  }
+  const model = listModel(current, { kind, sel: null, today, policy: defaultPolicy, cardFor, practicable });
+  if (!model.selectedKeys.length) return { ok: false, error: { kind: 'invalid' } };
+  return start(model.selectedKeys, { source: { view: model.view } });
+}
+
 // 「现在没有要写的字」页的次入口（R-H11 noChars「看写错过的字 ›」）：把那一页换成写错过清单。
 setNoneActions({ wrongList: () => nav.replace(LIST_SCREEN, { kind: 'wrong' }) });
 

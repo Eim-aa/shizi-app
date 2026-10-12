@@ -40,6 +40,7 @@ import { now as envNow } from '../../../platform/env.js';
 import { localDay } from '../../../core/dates.js';
 import { cardForKey, isPracticable } from '../../../data/deck.js';
 import { startPicked } from '../session/index.js';
+import { startListDefault } from './list.js';
 import { Glyph, Legend, cellLabel, toneColor, useWallLayout } from './wall.js';
 import {
   allModel, normalizeFilter, normalizeFold, normalizeSort, takeCells, toggleFold, RENDER_BATCH,
@@ -316,15 +317,15 @@ function AllScreen({ params, entry }) {
   const openMenu = () => {
     menuId.current = nav.openOverlay(AllMenuSheet, {}, { name: ALL_MENU_OVERLAY });
   };
+  const onView = () => {
+    if (model.go && model.go.kind === 'list') goScreen('library-list', { kind: model.go.listKind });
+  };
   const onFold = (month, open) => setFold(cur => toggleFold(cur, month, open));
   const onGo = () => {
     const go = model.go;
     if (!go) return;
-    if (go.kind === 'list') {
-      goScreen('library-list', { kind: go.listKind });
-      return;
-    }
-    const r = startPicked(go.keys, { source: { view: ALL_SOURCE_VIEW } });
+    // 写错过 / 快忘了：一次点击直接开始一组（默认勾选的那些字，I3 · P0-06）；要先看清单走旁边的「看这些字 ›」
+    const r = go.kind === 'list' ? startListDefault(go.listKind) : startPicked(go.keys, { source: { view: ALL_SOURCE_VIEW } });
     if (!r || !r.ok) {
       setFailed(true);
       markStateChange();
@@ -357,7 +358,13 @@ function AllScreen({ params, entry }) {
     ? html`<${Button} variant="text" data-testid="all-menu-open" data-active=${model.filter ? 'true' : undefined} aria-haspopup="dialog"
         onClick=${openMenu}>${t('X-ALL.menuLabel')}</${Button}>`
     : null;
-  return html`<${Page} title=${title} trailing=${menuButton} testid="all-screen">
+  // 「练这些字」是底栏主按钮（与清单页同位置，I3 · P1-17）；开组失败在底栏就地三段式（S1，components/FailBlock.js；说明经常驻播报区读一次，P1-39）
+  const footer = !model.go
+    ? null
+    : failed
+      ? html`${FailBlock({ layout: 'foot', testid: 'all-start-failure', noteTestid: 'all-start-fail', retryTestid: 'all-go', cancelTestid: 'all-start-cancel', text: t('X-ALL.startFailed'), cancelLabel: t('X-LIST.startStay'), onCancel: () => { setFailed(false); markStateChange(); }, onRetry: onGo, attrs: { 'data-kind': model.go.kind } })}`
+      : html`<${Button} variant="primary" data-testid="all-go" data-kind=${model.go.kind} onClick=${onGo}>${t('R-A02.practiceThese')}</${Button}>`;
+  return html`<${Page} title=${title} trailing=${menuButton} footer=${footer} testid="all-screen">
     <div class="sz-lib sz-all" data-testid="all-body" data-sort=${model.sort} data-filter=${model.filter} data-find-mode=${f.mode}
       data-found=${f.found ? 'true' : 'false'} data-total=${model.total} data-rendered=${rendered} data-recorded=${model.recorded}
       data-cols=${model.cols}>
@@ -380,12 +387,9 @@ function AllScreen({ params, entry }) {
             </${Button}></li>`)}
           </ul>`
         : null}
-      ${failed && model.go
-        ? html`${FailBlock({ testid: 'all-start-failure', noteTestid: 'all-start-fail', retryTestid: 'all-go', cancelTestid: 'all-start-cancel', text: t('X-ALL.startFailed'), cancelLabel: t('X-LIST.startStay'), onCancel: () => setFailed(false), onRetry: onGo })}`
-        : model.go
-          ? html`<${Button} variant="text" class="sz-all__go" data-testid="all-go" data-kind=${model.go.kind}
-              onClick=${onGo}>${t('R-A02.practiceThese')}</${Button}>`
-          : null}
+      ${model.go && model.go.kind === 'list'
+        ? html`<${Button} variant="text" class="sz-all__go" data-testid="all-list" onClick=${onView}>${t('X-ALL.viewThese')}</${Button}>`
+        : null}
     </div>
   </${Page}>`;
 }

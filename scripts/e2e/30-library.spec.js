@@ -359,14 +359,39 @@ export default async function run(page, ctx) {
       `wall cell 「${inkChar}」 → nav.push('detail', {char})`);
     await expectPush(page, assert, `${SCREEN} [data-testid="library-wall-cell"][data-char="${HOLLOW[0]}"]`, 'detail', { char: HOLLOW[0] },
       'hollow cell → detail too (详情画「没有记录」一态)');
-    await expectPush(page, assert, `${SCREEN} ${tid('library-card-wrong')} ${tid('library-card-practice')}`, 'library-list', { kind: 'wrong' }, "写错过「练这些字」→ library-list {kind:'wrong'}");
-    await expectPush(page, assert, `${SCREEN} ${tid('library-card-forget')} ${tid('library-card-practice')}`, 'library-list', { kind: 'forget' }, "快忘了「练这些字」→ library-list {kind:'forget'}");
+    await expectPush(page, assert, `${SCREEN} ${tid('library-card-wrong')} ${tid('library-card-view')}`, 'library-list', { kind: 'wrong' }, "写错过「看这些字 ›」→ library-list {kind:'wrong'}");
+    await expectPush(page, assert, `${SCREEN} ${tid('library-card-forget')} ${tid('library-card-view')}`, 'library-list', { kind: 'forget' }, "快忘了「看这些字 ›」→ library-list {kind:'forget'}");
     await expectPush(page, assert, `${SCREEN} ${tid('library-more')}`, 'library-all', {}, '还有 N 个字 › → library-all');
     assert.equal(await page.locator(`${SCREEN} ${tid('library-switch')}`).count(), 0, '练习范围 is not on this page (it lives in 设置)');
     assert.equal(await page.locator(`${SCREEN} ${tid('library-count')}`).count(), 0, 'the count is a caption now, not a button');
     const after = await page.evaluate(() => window.__shiziTest.getState());
     assert.equal(Object.values(after.records).flat().length, rows.length, 'navigation writes nothing');
-    assert.equal(after.sessions && after.sessions.B ? 'B' : null, null, 'no session opened from the library home itself');
+    assert.equal(after.sessions && after.sessions.B ? 'B' : null, null, 'no session opened by navigating');
+  }
+
+  // ------------------------------------------------------------------ 3b. 练这些字：一次点击直接开组（I3 P0-05）
+  step('练这些字 on the library home: ONE tap opens the write page with the default selection (no list page in between)');
+  for (const kind of ['wrong', 'forget']) {
+    const { state } = seedOf(deckChars.slice(0, 300));
+    await setup(page, state, 300);
+    const btn = `${SCREEN} ${tid(`library-card-${kind}`)} ${tid('library-card-practice')}`;
+    assert.equal((await page.textContent(btn)).trim(), '练这些字', `${kind}: the button still says 练这些字`);
+    const viewTxt = (await page.textContent(`${SCREEN} ${tid(`library-card-${kind}`)} ${tid('library-card-view')}`)).trim();
+    assert.equal(viewTxt, '看这些字 ›', `${kind}: the list entry is renamed 看这些字 ›`);
+    await page.click(btn);
+    await page.waitForFunction(async () => {
+      const { getRouter } = await import('/src/ui/router.js');
+      const s = getRouter().getState();
+      return s.depth === 1 && s.top && s.top.n === 'write';
+    });
+    const top = await routerTop(page);
+    assert.deepEqual([top.name, top.params.slot], ['write', 'B'], `${kind}: the write page (B) is on top after one tap`);
+    const st = await page.evaluate(() => window.__shiziTest.getState());
+    assert.equal(st.sessions.B.kind, 'picked', `${kind}: a picked group`);
+    assert.deepEqual(st.sessions.B.source, { view: kind === 'wrong' ? 'wrongList' : 'forgetList' }, `${kind}: source = the list it stands for`);
+    assert.ok(st.sessions.B.queue.length >= 1 && st.sessions.B.queue.length <= 5, `${kind}: default selection of at most 5 chars (${st.sessions.B.queue.length})`);
+    await page.evaluate(async () => (await import('/src/ui/router.js')).nav.back());
+    await waitNavIdle(page, { settleMs: 120 });
   }
 
   // ------------------------------------------------------------------ 4. 深色

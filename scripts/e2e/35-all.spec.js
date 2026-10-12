@@ -197,8 +197,8 @@ async function view(page) {
         };
       }),
       closed: all('all-month').map(b => ({ month: b.dataset.month, text: txt(b), expanded: b.getAttribute('aria-expanded') })),
-      go: q('all-go') ? { kind: q('all-go').dataset.kind, text: txt(q('all-go')) } : null,
-      fail: txt(q('all-start-fail')),
+      go: layer.querySelector('[data-testid="all-go"]') ? { kind: layer.querySelector('[data-testid="all-go"]').dataset.kind, text: txt(layer.querySelector('[data-testid="all-go"]')) } : null,
+      fail: layer.querySelector('[data-testid="all-start-fail"]') && !layer.querySelector('[data-testid="all-start-fail"]').hidden ? txt(layer.querySelector('[data-testid="all-start-fail"]')) : null,
       unnamedButtons: [...layer.querySelectorAll('button')].filter(b => !(b.getAttribute('aria-label') || b.innerText || '').trim()).map(b => b.outerHTML.slice(0, 80)),
       hScroll: document.scrollingElement.scrollWidth > window.innerWidth + 1
         || root.closest('.sz-page__body').scrollWidth > root.closest('.sz-page__body').clientWidth + 1,
@@ -442,7 +442,7 @@ export default async function run(page, ctx) {
   step('practice these (unw): write failure stays here, nothing written, retry opens B with source allWritten');
   const before = await page.evaluate(() => window.__shiziTest.getState());
   await page.evaluate(() => window.__shiziTest.failNextWrite(1, { kind: 'generic' }));
-  await click(page, `${BODY} ${tid('all-go')}`);
+  await click(page, `${TOP} ${tid('all-go')}`);
   await page.waitForTimeout(120);
   v = await view(page);
   assert.equal(v.fail, COPY.startFailed, 'failure note (R-G04)');
@@ -453,7 +453,7 @@ export default async function run(page, ctx) {
   assert.deepEqual(afterFail.sessions, before.sessions, 'no session written');
   assert.deepEqual(afterFail.records, before.records, 'records unchanged');
   await page.waitForTimeout(450);
-  await click(page, `${BODY} ${tid('all-go')}`);
+  await click(page, `${TOP} ${tid('all-go')}`);
   await page.waitForSelector(`${TOP} [data-testid="write-screen"]`);
   await waitNavIdle(page, { settleMs: 150 });
   const afterGo = await page.evaluate(() => window.__shiziTest.getState());
@@ -466,9 +466,10 @@ export default async function run(page, ctx) {
   assert.equal(v.filter, 'unw', 'back from the write page: filter kept');
   assert.equal(v.fail, null, 'failure note cleared after success');
 
-  step('practice these (wrong): pushes the wrong list page');
+  step('practice these (wrong): ONE tap opens the write page (B) with the list defaults (I3 P0-06); 看这些字 › pushes the wrong list page');
   await menuClick(page, '[data-testid="all-chip"][data-key="wrong"]');
-  await click(page, `${BODY} ${tid('all-go')}`);
+  assert.equal(await page.locator(`${BODY} ${tid('all-list')}`).textContent(), '看这些字 ›', 'the list entry is renamed');
+  await click(page, `${BODY} ${tid('all-list')}`);
   await page.waitForFunction(async () => {
     const { getRouter } = await import('/src/ui/router.js');
     const s = getRouter().getState();
@@ -476,7 +477,15 @@ export default async function run(page, ctx) {
   });
   await waitNavIdle(page, { settleMs: 150 });
   top = await routerTop(page);
-  assert.deepEqual([top.name, top.params.kind], ['library-list', 'wrong'], "→ library-list {kind:'wrong'}");
+  assert.deepEqual([top.name, top.params.kind], ['library-list', 'wrong'], "看这些字 › → library-list {kind:'wrong'}");
+  await backToAll(page);
+  await page.evaluate(() => { const st = window.__shiziTest.getState(); return window.__shiziTest.seed({ ...st, sessions: { A: null, B: null, lastEnded: {} } }); }); // 上一步留下的未写完的组清掉，免得弹 S02
+  await click(page, `${TOP} ${tid('all-go')}`);
+  await page.waitForSelector(`${TOP} [data-testid="write-screen"]`);
+  await waitNavIdle(page, { settleMs: 150 });
+  const wrongB = (await page.evaluate(() => window.__shiziTest.getState())).sessions.B;
+  assert.deepEqual([wrongB.kind, wrongB.source], ['picked', { view: 'wrongList' }], 'B = picked, source wrongList (the list defaults)');
+  assert.ok(wrongB.queue.length >= 1 && wrongB.queue.length <= 5, 'default selection ≤ 5 chars');
   await backToAll(page);
   await menuClick(page, '[data-testid="all-chip"][data-key="wrong"]');
   await menuClick(page, '[data-testid="all-sort"][data-key="recent"]');

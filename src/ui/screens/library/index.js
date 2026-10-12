@@ -3,7 +3,7 @@
 //
 // 版式（D49 减法稿，实现交接 §14；各状态同一个顶部）：
 //   大标题「字库」→ 查字框（library-query-slot；M3-3 用 setLibraryQuerySlot 挂 M2-0 查字组件，下面不再有说明句）
-//   → 有记录：「写错过」「快忘了」两个同一模板的块（名称 + 数 + 右侧文字按钮「练这些字」 → library-list {kind}，M3-2；下面一排最该练的 5 个样字，
+//   → 有记录：「写错过」「快忘了」两个同一模板的块（名称 + 数 + 右侧文字按钮「看这些字 ›」→ library-list {kind}（M3-2）与「练这些字」→ 直接开组（I3 · P0-05）；下面一排最该练的 5 个样字，
 //            30pt 标准字形、wall1、不画朱点；没有字时只有名称 + 0，不画按钮与样字）
 //            → 字墙题注「{n} 个字」（有记录的字数，R-L10，小标注）→ 墙（≤ 8 行，wall.js；点字 → 单字详情 detail {char}，M3-6；点空心字同样进详情，
 //              空心 = 自选了还没写，描边 ink4）→ 墙下说明（R-L03；深色反向说法）+「还有 N 个字 ›」（P27；没截断时不显示；进 library-all，M3-4）
@@ -16,13 +16,13 @@
 //
 // data-testid：screen-library（data-state=empty|records / data-recorded / data-today / data-compact）、library-query-slot、
 //   library-no-record-note、library-card-wrong / library-card-forget（data-n；没有字 data-empty=true，无按钮无样字）、library-card-name /
-//   library-card-count / library-card-practice（文字按钮「练这些字」）/ library-card-samples / library-card-mini-cell（样字）、library-caption（data-n）、
+//   library-card-count / library-card-view（文字按钮「看这些字 ›」→ 清单页）/ library-card-practice（文字按钮「练这些字」：一次点击直接开组）/ library-card-fail/ library-card-samples / library-card-mini-cell（样字）、library-caption（data-n）、
 //   library-wall、library-wall-cell、library-legend-note、library-more（data-n）、library-empty。墙的 testid 见 wall.js。
 
 import { html, useEffect, useMemo, useState } from '../../../../vendor/ui.js';
 import { registerScreen, getScreen, nav } from '../../router.js';
 import { TabPage } from '../../components/Page.js';
-import { Button } from '../../components/Button.js';
+import { Button, markStateChange } from '../../components/Button.js';
 import { injectStyles, T, TEX } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
 import { getStore } from '../../../store/store.js';
@@ -30,7 +30,7 @@ import { now as envNow } from '../../../platform/env.js';
 import { localDay } from '../../../core/dates.js';
 import { libraryHomeModel, cardMini } from './model.js';
 import { LegendNote, Samples, Wall, WALL_CSS, useWallLayout } from './wall.js';
-import './list.js'; // M3-2 写错过 / 快忘了清单页自注册（library-list）；也注册「现在没有要写的字」页的「看写错过的字」
+import { startListDefault } from './list.js'; // M3-2 写错过 / 快忘了清单页自注册（library-list）；也注册「现在没有要写的字」页的「看写错过的字」
 import './switch.js'; // M3-5 换库页自注册（library-switch）
 import './all.js'; // M3-4 有记录的字（完整页）自注册（library-all）
 import { LibraryQueryBox } from './query-entry.js'; // M3-3 顶部查字框（lookup 查字弹层）
@@ -65,6 +65,7 @@ injectStyles('library', `
 .sz-lib__cnt{font-size:${T.fs15};line-height:${T.lh15};color:${T.ink3};font-variant-numeric:tabular-nums}
 .sz-lib__sp{flex:1}
 .sz-lib__l1 .sz-btn--text{flex:none}
+.sz-lib__pbfail{margin:0;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink1}}
 :root[data-ax] .sz-lib__l1{flex-wrap:wrap}
 :root[data-ax] .sz-lib__sp{display:none}
 :root[data-ax] .sz-lib__l1 .sz-btn--text{flex:1 0 100%;justify-content:flex-start;padding-left:0;margin-left:0}
@@ -170,16 +171,30 @@ export function libraryName(libraryId) {
 function PracticeBlock({ kind, items }) {
   const n = items.length;
   const name = t(kind === 'wrong' ? 'R-E04.titleWrong' : 'R-E04.titleForget');
+  const [failed, setFailed] = useState(false);
+  // 「练这些字」一次点击直接开始一组（默认勾选的前 N 个字，I3 · P0-05）；要先看清单走「看这些字 ›」
+  const practice = () => {
+    const r = startListDefault(kind);
+    if (!r || !r.ok) {
+      setFailed(true);
+      markStateChange();
+      return;
+    }
+    setFailed(false);
+  };
   return html`<section class="sz-lib__pb" data-testid=${`library-card-${kind}`} data-n=${n} data-empty=${n ? 'false' : 'true'}>
     <div class="sz-lib__l1">
       <span class="sz-lib__name" data-testid="library-card-name">${name}</span>
       <span class="sz-lib__cnt" data-testid="library-card-count">${n}</span>
       <span class="sz-lib__sp"></span>
       ${n
-        ? html`<${Button} variant="text" data-testid="library-card-practice" aria-label=${t('X-LIBHOME.practiceAria', { label: name })}
-            onClick=${() => openList(kind)}>${t('X-LIBHOME.practiceThese')}</${Button}>`
+        ? html`<${Button} variant="text" data-testid="library-card-view" aria-label=${t('X-LIBHOME.viewAria', { label: name })}
+            onClick=${() => openList(kind)}>${t('X-LIBHOME.viewThese')}</${Button}>
+          <${Button} variant="text" data-testid="library-card-practice" aria-label=${t('X-LIBHOME.practiceAria', { label: name })}
+            onClick=${practice}>${t('X-LIBHOME.practiceThese')}</${Button}>`
         : null}
     </div>
+    ${n ? html`<span class="sz-lib__pbfail" data-testid="library-card-fail" role="status" aria-live="polite" hidden=${failed ? undefined : true}>${failed ? t('X-LIST.startFailed') : ''}</span>` : null}
     ${n ? html`<${Samples} cells=${cardMini(items, kind)} />` : null}
   </section>`;
 }

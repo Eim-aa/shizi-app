@@ -84,7 +84,7 @@ test('axWriteLayout (P225): AX1 / AX3 / AX5 × SE / 14 / Pro Max — grid whole,
       for (const P of [AX_P, AX_P + 8 + 48]) { // 无提示行 / 两行提示行
         const { r, main } = axFit(phone, level, P);
         const tag = `${phone.name} AX${level} P${P} (main ${main})`;
-        assert.ok(r.g >= AX_GRID_MIN && r.g >= 220, `${tag}: g ${r.g} ≥ 220`);
+        assert.ok(r.g >= (phone.h > 700 ? AX_GRID_MIN : 180), `${tag}: g ${r.g} ≥ 220 (SE: ≥ 180, P299)`);
         assert.ok(r.g <= Math.min(phone.w - 40, GRID_MAX), `${tag}: g ${r.g} within the page margins`);
         assert.ok(Number.isInteger(r.g), `${tag}: integer`);
         // 最矮的屏（SE 3）上格子到下限仍放不下时（P299）：题面按可用高度缩小（≥ 0.6），整组仍在主区里——任何一种都不滚动
@@ -105,8 +105,8 @@ test('axWriteLayout: SE 3 at AX5 is almost on the 220 floor (A7 added the 48pt t
   const se = axWriteLayout({ width: 375, mainHeight: axMain(PHONES[0], 5), promptHeight: AX_P });
   assert.equal(se.tight, true, 'regular foot: main 403 → 155 < 220 → tight');
   const se5 = axFit(PHONES[0], 5, AX_P);
-  assert.equal(se5.r.g, 220, 'compacted foot: main 461 → 461 − 112 − 16 − 104 − 16 = 213 < 220 → the prompt gives way first (P299)');
-  assert.equal(se5.r.promptScale, 0.937, 'prompt scaled to (461 − 16 − 104 − 16 − 220) ÷ 112 = 0.9375 → 0.937');
+  assert.equal(se5.r.g, 213, 'compacted foot: main 461 → 461 − 112 − 16 − 104 − 16 = 213 < 220 → the grid gives way first (P299, ≥ 180)');
+  assert.equal(se5.r.promptScale, 1, 'an ordinary prompt keeps its size');
   assert.equal(se5.r.fits, true, 'the group fits');
   const p14 = axFit(PHONES[1], 5, AX_P);
   assert.equal(p14.r.g, 295, '390 × 844 AX5 (modelled with the 88pt AX5 main button): main 844 − 91 − (12 + 56 + 20 + 88) − 34 = 543 → 543 − 112 − 16 − 104 − 16');
@@ -114,7 +114,7 @@ test('axWriteLayout: SE 3 at AX5 is almost on the 220 floor (A7 added the 48pt t
   assert.equal(pm.r.g, 371, 'Pro Max AX5 (modelled): main 932 − 118 − 184 − 34 − ... = 596 → height-limited 371 (it was width − 40 = 390 before the 48pt tools row)');
 });
 
-test('axWriteLayout: follows the real height — a shorter main area gives a smaller grid, down to the 220 floor; then the prompt shrinks (≥ 0.6), then the grid (≥ 180, P299); fits=false only when even that does not fit', () => {
+test('axWriteLayout: follows the real height — a shorter main area gives a smaller grid, down to the 220 floor; then the grid gives way (≥ 180), then the prompt shrinks (≥ 0.6, P299); fits=false only when even that does not fit', () => {
   const g = main => axWriteLayout({ width: 480, mainHeight: main, promptHeight: AX_P });
   assert.equal(g(560).g, 560 - AX_P - 16 - AX_BELOW_H - 16, 'height-limited: 312');
   assert.ok(g(500).g < g(560).g, 'smaller main → smaller grid');
@@ -122,12 +122,12 @@ test('axWriteLayout: follows the real height — a shorter main area gives a sma
   assert.equal(floor.g, 220, 'exactly the floor');
   assert.equal(floor.fits, true);
   const tooSmall = g(300);
-  assert.equal(tooSmall.promptScale, 0.6, 'P299 ①: the prompt shrinks to its floor 0.6 first');
-  assert.equal(tooSmall.g, 180, 'P299 ②: only then the grid goes under 220, never under 180');
+  assert.equal(tooSmall.g, 180, 'P299 ①: the grid goes under 220 first, never under 180');
+  assert.equal(tooSmall.promptScale, 0.6, 'P299 ②: then the prompt shrinks, down to 0.6');
   assert.equal(tooSmall.fits, false, 'cannot fit → the caller knows (320×568-class screens)');
   const scaled = g(AX_P + 16 + 220 + AX_BELOW_H + 16 - 20);
-  assert.equal(scaled.g, 220, 'a little short: the grid keeps 220');
-  assert.equal(scaled.promptScale, Math.floor(((AX_P - 20) / AX_P) * 1000) / 1000, 'and the prompt shrinks by exactly the missing height');
+  assert.equal(scaled.g, 200, 'a little short: the grid gives way by exactly the missing height');
+  assert.equal(scaled.promptScale, 1, 'and the prompt keeps its size');
   assert.equal(scaled.fits, true);
   assert.equal(axWriteLayout({}).g, 345, 'nothing known → the old 345 grid');
 });

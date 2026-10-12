@@ -6,8 +6,9 @@
 // （设计稿的 402×874 带 54 + 34 的安全区，数值在 test/ui/write-layout.test.mjs）。
 // 与字号无关（P1-E6 / D29 起「大字」= 系统字号 XXXL，经模拟的原生 shiziContentSize 设 --k 1.35 与 :root[data-text-large]）：算边长用的题面高取标称 80，
 // 不随字号与题面提示行变（D36）。本文件用**写死的期望值**（不引用实现里的函数）：
-//   393×852 → 353（屏宽 − 40 先到）    375×812 → 335（屏宽 − 40；812 − 386 = 426 够）    375×667 → 281（667 − 386）
-//   360×640 → 258（640 − 386 = 254 < 258，取下限）  320×568 → 258（568 − 386 = 182 < 258，取下限） 440×956 → 400（上限）
+// R5M（P298 / P299）：按钮行下内边距 8 → 24（全 App 主按钮底线），主区高 = 屏高 − 202，边长 = min(屏宽 − 40, 400, 屏高 − 402)；名义格子低于 258 时取剩下的高度（最小 180），不再夹到 258 让正文滚动：
+//   393×852 → 353（屏宽 − 40 先到）    375×812 → 335（屏宽 − 40；812 − 402 = 410 够）    375×667 → 265（667 − 402）
+//   360×640 → 238（640 − 402，低于 258）  320×568 → 180（568 − 402 = 166，取最后让步的下限 180） 440×956 → 400（上限）
 //
 // ① 各视口、大字关 / 开：边长等于期望值、方形、距屏幕左右 ≥ 20（页边）、同一视口开关大字前后不变（同一页面内切换，不重载）；
 //    边长大于下限的视口里整个格子在页头与底栏之间；底栏按钮在首屏。
@@ -27,9 +28,9 @@ const FIRST_SCREEN = ['page-back', 'write-hint', 'write-done', 'write-show-answe
 const CASES = [
   { view: { width: 393, height: 852 }, grid: 353 },
   { view: { width: 375, height: 812 }, grid: 335 },
-  { view: { width: 375, height: 667 }, grid: 281 },
-  { view: { width: 360, height: 640 }, grid: 258 },
-  { view: { width: 320, height: 568 }, grid: 258 },
+  { view: { width: 375, height: 667 }, grid: 265 },
+  { view: { width: 360, height: 640 }, grid: 238 },
+  { view: { width: 320, height: 568 }, grid: 180 },
   { view: { width: 440, height: 956 }, grid: 400 },
 ];
 
@@ -144,7 +145,7 @@ export default async function grid(page, ctx) {
       assert.equal(g.large, large, `${t}: data-text-large ${large ? 'on' : 'off'} (system text ${large ? LARGE_TEXT : 'L'})`);
       assert.equal(g.compact, large || c.view.height <= 760 ? 'true' : 'false', `${t}: compact layout only changes the arrangement`);
       assert.ok(square(g.grid, c.grid), `${t}: grid is ${c.grid}×${c.grid} ${JSON.stringify(g.grid)}`);
-      assert.ok(g.grid.width >= 258 - 0.5 && g.grid.width <= 400 + 0.5, `${t}: grid within [258, 400]`);
+      assert.ok(g.grid.width >= 180 - 0.5 && g.grid.width <= 400 + 0.5, `${t}: grid within [180, 400] (P299: under 258 only when the screen cannot hold it)`);
       assert.ok(g.grid.left >= 20 - 0.5 && g.grid.right <= g.vw - 20 + 0.5, `${t}: ≥20pt from the screen edges (${g.grid.left}, ${g.vw - g.grid.right})`);
       assert.ok(g.scrollW <= g.vw, `${t}: no horizontal overflow`);
       assert.deepEqual(g.off, [], `${t}: buttons on the first screen`);
@@ -155,7 +156,7 @@ export default async function grid(page, ctx) {
   }
 
   // ------------------------------------------------------------------ ② 各阶段同一边长
-  for (const [view, large, size] of [[{ width: 375, height: 667 }, false, 281], [{ width: 393, height: 852 }, true, 353]]) {
+  for (const [view, large, size] of [[{ width: 375, height: 667 }, false, 265], [{ width: 393, height: 852 }, true, 353]]) {
     const tag = `${view.width}×${view.height}${large ? ' large' : ''}`;
     ctx.step(`${tag}: recall → 提示 → 写一笔 → 看答案 → 描一遍 → 自己写 all use grid ${size}`);
     await boot(page, ctx, view, { large });
@@ -200,10 +201,10 @@ export default async function grid(page, ctx) {
   }
 
   // ------------------------------------------------------------------ ③ 落点：345 单位存储，只缩放显示
-  ctx.step('375×667 (grid 281): a stroke drawn at grid-relative (0.2,0.5)→(0.8,0.5) is stored in 345 units and painted at the same relative place');
+  ctx.step('375×667 (grid 265): a stroke drawn at grid-relative (0.2,0.5)→(0.8,0.5) is stored in 345 units and painted at the same relative place');
   await boot(page, ctx, { width: 375, height: 667 }, { large: false });
   let g = await geo(page);
-  assert.ok(square(g.grid, 281), '281 grid (not 345)');
+  assert.ok(square(g.grid, 265), '265 grid (not 345)');
   await drawStroke(page, HORIZONTAL);
   await waitStrokes(page, 1);
   await page.waitForFunction(() => window.__shiziTest.getState().sessions.A.current.strokes.length === 1);
@@ -220,11 +221,11 @@ export default async function grid(page, ctx) {
   assert.ok(await canvasInk(page, 'write-grid-ink') > 200, 'stroke painted on the solid layer');
   let box = await inkBox(page);
   assert.ok(box && near(box.x0, 0.2, 0.04) && near(box.x1, 0.8, 0.04) && near(box.y0 + box.y1, 1, 0.08),
-    `painted stroke sits at the same relative place on the 281 grid ${JSON.stringify(box)}`);
+    `painted stroke sits at the same relative place on the 265 grid ${JSON.stringify(box)}`);
   const stored0 = st.rows;
 
-  ctx.step('same page: shrink to 360×640 (grid 258), system text XXXL and back, grow to 440×956 (grid 400) — stored strokes byte-identical, ink repainted at the same relative place');
-  for (const [view, large, size] of [[{ width: 360, height: 640 }, false, 258], [{ width: 360, height: 640 }, true, 258], [{ width: 440, height: 956 }, true, 400],
+  ctx.step('same page: shrink to 360×640 (grid 238), system text XXXL and back, grow to 440×956 (grid 400) — stored strokes byte-identical, ink repainted at the same relative place');
+  for (const [view, large, size] of [[{ width: 360, height: 640 }, false, 238], [{ width: 360, height: 640 }, true, 238], [{ width: 440, height: 956 }, true, 400],
     [{ width: 440, height: 956 }, false, 400], [{ width: 393, height: 852 }, false, 353]]) {
     await page.setViewportSize(view);
     await setLarge(page, large);

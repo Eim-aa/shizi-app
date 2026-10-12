@@ -96,7 +96,9 @@ export async function runWriteAx(page, ctx, views) {
       step(`${tag} write: the whole grid, undo / clear, the help row and 跳过 are on the first screen; nothing scrolls (A7)`);
       await open(page, ctx, { view, size });
       const g = await page.evaluate(geometry);
-      assert.ok(g.grid.width >= 220 - 0.5 && near(g.grid.width, g.grid.height, 0.5), `${tag}: grid ${g.grid.width.toFixed(0)}×${g.grid.height.toFixed(0)} ≥ 220, square`);
+      // R5M（P298 底线 24 / P299）：最矮的屏（高 < 700）上 AX 格子可以低于 220、最小 180，换来正文不滚动
+      const axFloor = page.viewportSize().height < 700 ? 180 : 220;
+      assert.ok(g.grid.width >= axFloor - 0.5 && near(g.grid.width, g.grid.height, 0.5), `${tag}: grid ${g.grid.width.toFixed(0)}×${g.grid.height.toFixed(0)} ≥ ${axFloor}, square`);
       assert.ok(g.grid.left >= 0 && g.grid.right <= g.vw && g.grid.top >= g.head.bottom - 0.5, `${tag}: the grid is inside the page, under the header`);
       assert.ok(g.grid.bottom <= g.foot.top + 0.5, `${tag}: the grid ends above the foot (${g.grid.bottom.toFixed(0)} ≤ ${g.foot.top.toFixed(0)}) — nothing is covered`);
       assert.ok(g.bodyScroll[0] <= g.bodyScroll[1] + 1, `${tag}: the page body does not scroll (${g.bodyScroll[0]} ≤ ${g.bodyScroll[1]})`);
@@ -150,7 +152,7 @@ export async function runWriteAx(page, ctx, views) {
       step(`${tag} answer: primary 「描一遍」 + the text row (自己写 / 下一个), the note is in the note slot, the answer glyph (the grid) is whole and uncovered`);
       await open(page, ctx, { view, size, current: { phase: 'answer', answerSeen: true } });
       const a = await page.evaluate(geometry);
-      assert.ok(a.grid.width >= 220 - 0.5 && a.grid.bottom <= a.foot.top + 0.5 && a.grid.top >= a.head.bottom - 0.5, `${tag}: the answer grid ${a.grid.width.toFixed(0)}pt is whole and above the foot`);
+      assert.ok(a.grid.width >= (page.viewportSize().height < 700 ? 180 : 220) - 0.5 && a.grid.bottom <= a.foot.top + 0.5 && a.grid.top >= a.head.bottom - 0.5, `${tag}: the answer grid ${a.grid.width.toFixed(0)}pt is whole and above the foot`);
       assert.ok(a.bodyScroll[0] <= a.bodyScroll[1] + 1, `${tag}: no scrolling on the answer page`);
       assert.ok(a.note && a.note.top >= a.grid.bottom - 0.5 && !overlaps(a.note, a.grid), `${tag}: the note sits under the grid, not over the answer glyph`);
       assert.ok(a.note.bottom <= a.foot.top + 0.5, `${tag}: the note ends above the foot`);

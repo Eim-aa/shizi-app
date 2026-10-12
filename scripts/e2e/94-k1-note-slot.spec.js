@@ -51,7 +51,8 @@ function geometry() {
 async function noteVisible(page, ctx, tag, inside, { scrollOk = false } = {}) {
   const { assert } = ctx;
   let g = await page.evaluate(geometry);
-  assert.ok(g.grid.width >= 220 - 0.5 && Math.abs(g.grid.width - g.grid.height) <= 0.5, `${tag}: grid ${g.grid.width.toFixed(0)}² ≥ 220`);
+  const axFloor = page.viewportSize().height < 700 ? 180 : 220; // R5M（P298 / P299）：SE 上格子先让步到 180，正文不滚动
+  assert.ok(g.grid.width >= axFloor - 0.5 && Math.abs(g.grid.width - g.grid.height) <= 0.5, `${tag}: grid ${g.grid.width.toFixed(0)}² ≥ ${axFloor}`);
   if (scrollOk && g.bodyScroll[0] > g.bodyScroll[1] + 1) {
     // W2（A7，P280）：格下多了 48 的撤销 / 清空行，最矮的屏（SE 3）上 AX 档再叠读屏的一次性建议（一句话 + 44 高的「去设置」）放不下——
     // 按 P261 / P278 的最后一步让页面正文可滚动（书写格已在下限 220、底栏已收紧）；这一块只在读屏第一次进写字页出现一次，滚到底整块可见。

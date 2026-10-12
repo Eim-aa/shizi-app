@@ -136,16 +136,18 @@ export function writeLayout({ width, mainHeight, nominalHeight = mainHeight, pro
 
 /**
  * 放不下时的最后两步（P299，规范「写字页永不滚动」D51 ⑦；纯函数）。room = 主区高 − 16 − 格下高 − 16，是题面与书写格共用的高度。
- * 题面原样 + 格子 ≥ gFloor 放得下 → 不动；否则 ① 题面缩到 s = clamp((room − gFloor) ÷ P, scaleMin, 1)；② 格子取剩下的 room − P·s，不低于 FIT_GRID_MIN。
+ * 题面原样 + 格子 ≥ gFloor 放得下 → 不动；否则 ① 格子先让步：取剩下的 room − P（不低于 FIT_GRID_MIN 180）——常见的题面在最矮的屏上只差几 pt，缩格子比缩字好；
+ * ② 格子到 180 仍放不下（最长的提示行）→ 题面缩到 s = clamp((room − 180) ÷ P, scaleMin, 1)，格子取剩下的、仍不低于 180。
  * @param {{width:number, mainHeight:number, promptHeight:number, below:number, gFloor:number, scaleMin?:number}} o
  * @returns {{g:number, scale:number}}
  */
 export function fitGroup({ width, mainHeight, promptHeight, below, gFloor, scaleMin = PROMPT_FIT_MIN }) {
   const w = contentWidth(width);
   const room = mainHeight - PROMPT_GAP - below - BOTTOM_GAP;
-  if (room - promptHeight >= gFloor) return { g: Math.floor(Math.min(w, GRID_MAX, room - promptHeight)), scale: 1 };
-  const scale = promptHeight > 0 ? Math.max(scaleMin, Math.min(1, Math.floor(((room - gFloor) / promptHeight) * 1000) / 1000)) : 1;
-  const g = Math.max(FIT_GRID_MIN, Math.min(gFloor, Math.floor(Math.min(w, GRID_MAX, room - promptHeight * scale))));
+  const free = room - promptHeight;
+  if (free >= gFloor || free >= FIT_GRID_MIN) return { g: Math.floor(Math.min(w, GRID_MAX, free)), scale: 1 };
+  const scale = promptHeight > 0 ? Math.max(scaleMin, Math.min(1, Math.floor(((room - FIT_GRID_MIN) / promptHeight) * 1000) / 1000)) : 1;
+  const g = Math.max(FIT_GRID_MIN, Math.floor(Math.min(w, GRID_MAX, room - promptHeight * scale)));
   return { g, scale };
 }
 
@@ -166,7 +168,7 @@ export function axWriteLayout({ width, mainHeight, promptHeight = PROMPT_H_STD, 
   const raw = Math.floor(Math.min(w, GRID_MAX, room));
   const tight = hasH && raw < AX_GRID_MIN;
   let g = !hasW && !hasH ? STD_GRID : Math.max(AX_GRID_MIN, Math.min(GRID_MAX, raw));
-  // P299：格子到下限 220 仍放不下（最长的题面在 SE + AX5）→ 题面按可用高度缩小，再不行格子低于下限；正文不滚动
+  // P299：格子到下限 220 仍放不下 → 格子先让步（最小 180），再不行（最长的题面在 SE + AX5）题面按可用高度缩小；正文不滚动
   let promptScale = 1;
   if (tight) {
     const fit = fitGroup({ width, mainHeight, promptHeight, below: note, gFloor: AX_GRID_MIN });

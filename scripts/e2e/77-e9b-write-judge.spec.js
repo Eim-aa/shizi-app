@@ -8,7 +8,7 @@
 //     两格与书写格同一顶边、同一中线，边长按 §9.1 的新公式（402 / SE / Pro Max 实测值写进断言）；AX5：页头问题只留读屏、两格取「上下排 / 并排」格子更大的一种、
 //     同屏可比、按钮纵排；纸上那一字：参考字形放到书写格大小，格下说明位「和你纸上的字对照」。
 //
-// 测试浏览器没有安全区（状态栏 0、按钮行下内边距 8）：主区高 = 屏高 − 44（页头）− 142（按钮行：上 12 + 求助行 48 + 间 20 + 主按钮 54 + 下 8；W2 A7，P280）。
+// 测试浏览器没有安全区（状态栏 0、按钮行下内边距 24：R5M / P298 全 App 主按钮底线）：主区高 = 屏高 − 44（页头）− 158（按钮行：上 12 + 求助行 48 + 间 20 + 主按钮 54 + 下 24；W2 A7，P280）。
 // 设计稿的数值（402：231 / SE：177 / Pro Max：261）带 54 + 34 等安全区，在 test/ui/write-layout.test.mjs 里按稿面输入断言。
 
 import {
@@ -119,12 +119,12 @@ export default async function e9bWriteJudge(page, ctx) {
   const { assert, step } = ctx;
 
   // ------------------------------------------------------------------ A 写字页：结构与位置（浅色，三机型）
-  // 实测值（测试浏览器无安全区）：主区高 = 屏高 − 44 − 142（A7，P280：按钮行 = 求助行 48 + 间 20 + 主按钮 54 + 上 12 + 下 8）；P = 80；格下 = 撤销 / 清空行 48 + 说明位 40 = 88
+  // 实测值（测试浏览器无安全区）：主区高 = 屏高 − 44 − 158（A7，P280：按钮行 = 求助行 48 + 间 20 + 主按钮 54 + 上 12 + 下 24——R5M / P298 全 App 主按钮底线）；P = 80；格下 = 撤销 / 清空行 48 + 说明位 40 = 88
   const WRITE_CASES = [
     // [宽, 高, 主区高, g, 题面顶（相对正文顶）, 书写格顶（相对正文顶）, 判断页 S]
-    [402, 874, 688, 362, 57, 153, 259],
-    [375, 667, 481, 281, 12, 108, 178],
-    [440, 956, 770, 400, 74, 170, 292],
+    [402, 874, 672, 362, 50, 146, 255],
+    [375, 667, 465, 265, 12, 108, 170],
+    [440, 956, 754, 400, 68, 164, 287],
   ];
   for (const [W, H, mainH, g, topOff, gridOff, S] of WRITE_CASES) {
     const tag = `${W}×${H}`;
@@ -132,7 +132,7 @@ export default async function e9bWriteJudge(page, ctx) {
     await boot(page, ctx, { view: { width: W, height: H } });
     const m = await geo(page);
     assert.deepEqual(m.bodyPad, ['0px', '0px', '20px', '20px'], `${tag}: the body has no top / bottom padding (the main area is the whole body), side margins 20`);
-    assert.ok(near(m.body.height, mainH, 0.6), `${tag}: main area = screen − 44 − 142 = ${mainH} (${m.body.height})`);
+    assert.ok(near(m.body.height, mainH, 0.6), `${tag}: main area = screen − 44 − 158 = ${mainH} (${m.body.height})`);
     assert.ok(near(m.prompt.height, 80, 0.6), `${tag}: the prompt is 80 high (pinyin row 28 + 52 cell)`);
     const e = expectWrite({ W, mainH: m.body.height, P: m.prompt.height });
     assert.equal(e.g, g, `${tag}: formula check — g = ${g}`);
@@ -324,7 +324,7 @@ export default async function e9bWriteJudge(page, ctx) {
     assert.ok(m.bodyScroll <= m.bodyClient + 1, `${tag}: the judge page does not scroll`);
     // 按钮行与写字页同一行位：两键在主按钮的位置，求助行留空占位（同样的 48 + 20 + 54）
     assert.ok(near(m.wrong.height, 54, 0.6) && near(m.correct.height, 54, 0.6) && near(m.wrong.width, m.correct.width, 0.6), `${tag}: the two judge keys are equal secondary buttons, 54 high`);
-    assert.ok(near(m.foot.height, 142, 0.6), `${tag}: the button row is as high as on the write page (142, the help row stays empty but keeps its place)`);
+    assert.ok(near(m.foot.height, 158, 0.6), `${tag}: the button row is as high as on the write page (158 = 12 + 48 + 20 + 54 + 24, the help row stays empty but keeps its place)`);
   }
 
   step('B: the judge page header and reading — 写对了吗？, the same ‹ icon, no side notes / sentence, names kept, the answer shows once');
@@ -388,7 +388,7 @@ export default async function e9bWriteJudge(page, ctx) {
   const gridD = (await geo(page)).grid;
   await toCompare(page);
   const mD = await geo(page);
-  assert.ok(near(mD.mine.top, gridD.top, 1) && near(mD.mine.width, 259, 1), 'dark: same top edge, S 259');
+  assert.ok(near(mD.mine.top, gridD.top, 1) && near(mD.mine.width, 255, 1), 'dark: same top edge, S 255');
   const darkFrame = await page.$eval(topSel('write-compare-mine'), el => getComputedStyle(el).borderTopColor);
   assert.equal(darkFrame, tokenRgb('dark', 'frame'), 'dark: the cell frame uses the dark frame token');
 
@@ -399,7 +399,8 @@ export default async function e9bWriteJudge(page, ctx) {
     await boot(page, ctx, { view: { width: W, height: H }, size: 'AX5' });
     const a = await geo(page);
     // R2-X1（D51 ⑦，P225）：AX 档按实际可用高度排版——格子完整落在首屏（下限 220），页面正文不滚动；格子大小不再等于 L 档的格子
-    assert.ok(a.grid.width >= 220 - 0.5, `${tag}: grid ${a.grid.width.toFixed(0)} ≥ the AX floor 220`);
+    const axFloor = H < 700 ? 180 : 220; // R5M（P298 底线 24 / P299）：SE 上格子先让步到 180，换来正文不滚动
+    assert.ok(a.grid.width >= axFloor - 0.5, `${tag}: grid ${a.grid.width.toFixed(0)} ≥ ${axFloor} (AX floor 220; SE gives way down to 180, P299)`);
     assert.ok(a.grid.bottom <= a.foot.top + 0.5, `${tag}: the grid ends above the button row (${a.grid.bottom.toFixed(0)} ≤ ${a.foot.top.toFixed(0)})`);
     assert.ok(a.bodyScroll <= a.bodyClient + 1, `${tag}: nothing to scroll (${a.bodyScroll} ≤ ${a.bodyClient})`);
     assert.equal(a.footUnder, null, `${tag}: no hairline on the button row — nothing is pushed under it`);

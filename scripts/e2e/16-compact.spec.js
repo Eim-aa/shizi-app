@@ -20,8 +20,8 @@ const SHOTS = process.env.SHIZI_E2E_SHOTS || '';
 const COMPACT_VIEW = { width: 360, height: 640 };
 const STD_VIEW = { width: 393, height: 852 };
 const CHARS = ['越', '大', '永'];
-const GRID = 258; // 360×640 的格子边长：640 − 386 = 254 < 258，取下限（policy.writeGrid.min；write/layout.js，A7 起格下 88）
-const GRID_FLOOR = 258; // 320×568：568 − 386 = 182 < 258，取下限（policy.writeGrid.min）
+const GRID = 238; // 360×640 的格子边长：640 − 402 = 238（R5M / P298 底线 24、P299 低于 258 时取剩下的高度，不滚动）
+const GRID_FLOOR = 180; // 320×568：568 − 402 = 166 < 180，取最后让步的下限（policy.writeGrid.fitGridMin，P299）
 const GRID_393 = 353; // 393×852：屏宽 393 − 40（页边 20），高度够
 
 /** 每个 testid 若出现就必须是 <button>（原型紧凑版这些是 span / div，R-G09 要求真按钮）。 */
@@ -179,7 +179,7 @@ async function compactWalk(page, ctx, { large }) {
   let g = await geometry(page, `${large ? 'L' : 'N'}-recall`);
   assert.equal(g.compact, 'true', `${tag}: write screen is in compact mode`);
   assert.equal(g.large, large, `${tag}: data-text-large ${large ? 'on' : 'off'}`);
-  assert.ok(square(g.r['write-grid'], GRID), `${tag}: recall grid is ${GRID}×${GRID} (the floor: H − 386 < 258) ${JSON.stringify(g.r['write-grid'])}`);
+  assert.ok(square(g.r['write-grid'], GRID), `${tag}: recall grid is ${GRID}×${GRID} (H − 402, P299: under 258 instead of scrolling) ${JSON.stringify(g.r['write-grid'])}`);
   common(assert, g, `${tag} recall`, ['page-back', 'write-hint', 'write-done', 'write-show-answer', 'write-skip']);
   const c = g.controls;
   assert.ok(Math.abs(c['write-done'].rect.left - 20) < 1 && Math.abs(c['write-done'].rect.right - (g.vw - 20)) < 1, `${tag}: 写好了 is the only main button, full width (${c['write-done'].rect.left}–${c['write-done'].rect.right})`);

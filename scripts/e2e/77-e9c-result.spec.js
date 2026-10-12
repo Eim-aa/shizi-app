@@ -308,7 +308,7 @@ export default async function (page, ctx) {
   const bottomGap = (f.body.b - f.bodyBox.pb) - f.result.b;
   assert.ok(Math.abs(topGap - bottomGap) <= 1.5 && topGap > 20, `short content is centred (gap above ${Math.round(topGap)}, below ${Math.round(bottomGap)})`);
   assert.ok(f.resultPad > 20 && f.resultPad < 60, `the bottom inner padding is about 5% of the height (${f.resultPad})`);
-  assert.ok(close(f.foot.h, 12 + 54 + 6 + 44 + 20, 18), `the button row keeps the write page's rows (primary + empty text row): ${f.foot.h}`);
+  assert.ok(close(f.foot.h, 12 + 54 + 24, 4), `the button row is the primary on the app-wide line (12 + 54 + 24, R5M / P1-15: no empty text row any more): ${f.foot.h}`);
 
   // ---------------------------------------------------------------- 8. 深色
   ctx.step('dark: row status uses ink2, the cells use the dark sheet, the page paper is the night paper');

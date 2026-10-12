@@ -75,7 +75,8 @@ export const FADE_MS = M.role.reduceCrossfade;
 export const SNAP_MS = M.role.gestureSnap;
 // 跟手提交后的返回转场按剩余距离缩短，但不短于这个值。
 const GESTURE_POP_MIN_MS = M.role.pushGestureMin;
-/** 同一层换内容的 T-phase 淡化（R5-I2，nav.replace(…, {animate:true})）。I1 落 motion 令牌后取 motion.duration.fade（150）。 */
+/** 同一层换内容的 T-phase 淡化（R5-I2，nav.replace(…, {animate:true})）：motion.duration.fade。 */
+export const REPLACE_FADE_MS = M.dur.fade;
 /** 减少动态效果时由手势完成的返回：不跟手，松手直接交叉淡化这么久（R4-G1，P270）。 */
 export const GESTURE_FADE_MS = M.role.reduceCrossfade;
 /** 后台标签页暂停 rAF 时的收尾兜底：逐帧最多前进 50ms，主线程卡顿时可能比转场时长长得多（不是动画时长）。 */

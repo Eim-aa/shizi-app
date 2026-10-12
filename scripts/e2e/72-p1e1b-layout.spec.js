@@ -1,7 +1,7 @@
 // 阶段 1 P1-E1b（D43 / D46）：按设计系统 v1 重排页面结构（首页 / 结果页 / 图片除外）的版式断言：
 //   A 页边 20：写字页、字库 / 我的 tab 根页、设置页的正文左右内边距 = --gutter（20），书写格贴着同一条边；
 //   B 判断页上下两格（D46 ⑪、D49）：本人书写在上、参考字形在下，与书写格同一顶边、同一中线；边长 S = min(W − 40, ⌊(主区高 − 书写格顶 − 16) ÷ 2⌋)（D49 去掉旁注后
-//     宽度只受页边限制；测试浏览器无安全区：W2（A7，P280）起 402×874 → 259、440×956 → 292、393×852 → 251（原 255 / 287 / 247））；没有「你的书写 / 参考字形」旁注，读屏名称仍在两张卡的
+//     宽度只受页边限制；测试浏览器无安全区：W2（A7，P280）起 402×874 → 255、440×956 → 287、393×852 → 246（R5M 底线 24 后；A7 时 259 / 292 / 251））；没有「你的书写 / 参考字形」旁注，读屏名称仍在两张卡的
 //     aria-label 上；两键在主按钮的位置、同权重，没有说明句（更细的断言在 77-e9b-write-judge.spec.js）；
 //   C 写字页结果行（D19）挪到格下说明位（D46 ⑭）；
 //   D 字墙：取令牌 wall1–wall4 的独立色值（浅深各一套），写错格同样按新旧取档并多一颗朱点；8 列 / Pro Max 9 列 / 大字 6 列；
@@ -109,7 +109,8 @@ export default async function p1e1bLayout(page, ctx) {
   assert.deepEqual(sp, ['20px', '20px'], 'settings page: left / right padding 20');
 
   // ------------------------------------------------------------------ B 判断页上下两格
-  for (const [w, h, expected] of [[402, 874, 259], [440, 956, 292], [393, 852, 251]]) {
+  // R5M / P298：按钮行下内边距 8 → 24（全 App 主按钮底线），主区矮 16，组顶与两格边长随之变
+  for (const [w, h, expected] of [[402, 874, 255], [440, 956, 287], [393, 852, 246]]) {
     step(`B: judge page ${w}×${h}: two stacked cards, same top edge and midline as the writing grid, S = ${expected}`);
     await openWriteAt(page, ctx, { width: w, height: h });
     const grid = await rectOf(page, '[data-testid="write-grid"]');
@@ -153,7 +154,7 @@ export default async function p1e1bLayout(page, ctx) {
   const mSE = await rectOf(page, '[data-testid="write-compare-mine"]');
   const rSE = await rectOf(page, '[data-testid="write-compare-ref"]');
   const fSE = await rectOf(page, '.sz-page__foot');
-  assert.ok(near(mSE.width, 178, 1), `375×667: S = ⌊(main 481 − grid top 108 − 16) ÷ 2⌋ = 178 (${mSE.width})`);
+  assert.ok(near(mSE.width, 170, 1), `375×667: S = ⌊(main 465 − grid top 108 − 16) ÷ 2⌋ = 170 (main-button line 24, P298; ${mSE.width})`);
   assert.ok(rSE.bottom <= fSE.top - 11, `375×667: the pair fits above the footer with ≥ 12 to spare (${rSE.bottom} vs ${fSE.top})`);
   assert.ok(near(mSE.top, gridSE.top) && near(mSE.cx, gridSE.cx), '375×667: still the grid\'s top edge and midline');
   const bodyScroll = await page.evaluate(() => { const b = document.querySelector('.sz-layer[data-top="true"] .sz-page__body'); return [b.scrollHeight, b.clientHeight]; });
@@ -164,7 +165,7 @@ export default async function p1e1bLayout(page, ctx) {
   const gridD = await rectOf(page, '[data-testid="write-grid"]');
   await toCompare(page);
   const mD = await rectOf(page, '[data-testid="write-compare-mine"]');
-  assert.ok(near(mD.top, gridD.top) && near(mD.cx, gridD.cx) && near(mD.width, 259, 1), 'dark 402×874: 259pt, grid top edge and midline');
+  assert.ok(near(mD.top, gridD.top) && near(mD.cx, gridD.cx) && near(mD.width, 255, 1), 'dark 402×874: 255pt, grid top edge and midline');
 
   // ------------------------------------------------------------------ C 结果行在格下说明位
   step('C: the D19 result row of the previous character sits in the note slot under the grid');

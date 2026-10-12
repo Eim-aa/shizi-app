@@ -192,9 +192,9 @@ export default async function textSize(page, ctx) {
         assert.deepEqual(m.problems, [], `${t}: no horizontal overflow; key buttons inside the viewport, uncovered, ≥44pt`);
         if (p.grid && size.ax) {
           // AX 档：按实际可用高度排版，下限 220（P225）；320×568 这类很矮的屏取下限
-          assert.ok(m.grid && m.grid.w >= 220 - 0.5 && Math.abs(m.grid.w - m.grid.h) < 1, `${t}: square grid ≥ 220 (${m.grid && m.grid.w}) — the AX floor (P225)`);
+          assert.ok(m.grid && m.grid.w >= 180 - 0.5 && Math.abs(m.grid.w - m.grid.h) < 1, `${t}: square grid ≥ 180 (${m.grid && m.grid.w}) — the AX floor 220, then P299 lets it give way down to 180`);
         } else if (p.grid) {
-          assert.ok(m.grid && m.grid.w >= 258 - 0.5 && Math.abs(m.grid.w - m.grid.h) < 1, `${t}: square grid ≥ 258 (${m.grid && m.grid.w})`);
+          assert.ok(m.grid && m.grid.w >= 180 - 0.5 && Math.abs(m.grid.w - m.grid.h) < 1, `${t}: square grid ≥ 180 (P299 last-resort floor; ${m.grid && m.grid.w})`);
           if (size.category === 'L') gridL = m.grid.w;
           else assert.ok(Math.abs(m.grid.w - gridL) < 0.5, `${t}: grid edge ${m.grid.w} = the L edge ${gridL} (xS–XXXL: text size does not change the grid, D36 / P118)`);
         }

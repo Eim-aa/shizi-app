@@ -1,6 +1,5 @@
 // 交互合规（交互与动效规范 §8b）—— 第 4 份：反馈与动效。
-//   IC-12  流程中出现的每一条提示条都是失败或可撤销（data-kind=failure|undo）；成功 / 说明类出现即失败——审计里还没删的
-//          （kind=legacy，P0-07 – P0-14，归卡 I3）按待修清单跳过并打印
+//   IC-12  流程中出现的每一条提示条都是失败或可撤销（data-kind=failure|undo）；成功 / 说明类出现即失败；换库与导出备份两个成功流程不出任何提示条
 //   IC-13  hapticLog：判断恰好 1 次 judge、写好了 1 次 light；书写、撤销、返回 0 次；保存失败的三段式期间 0 次，再试成功补 1 次
 //   IC-14  遍历中收集 document.getAnimations()：每个动画的时长与曲线都在 motion 令牌集合里（运行时兜底，补 verify:tokens 的静态扫描）
 //   IC-15  减少动态效果：推入 / 返回 / 弹层没有 transform 关键帧（按下缩放除外），淡化 150ms，且不是 0ms 硬切
@@ -68,7 +67,7 @@ export default async function interactionComplianceFeedback(page, ctx) {
   const sets = await tokenSets(page);
 
   // ---- IC-12：提示条白名单
-  step('IC-12: every toast that shows up is a failure or an undo (success toasts still in the code are pending items of card I3)');
+  step('IC-12: every toast that shows up is a failure or an undo; the success flows (switch library, export backup) show no toast at all');
   await page.evaluate(() => {
     window.__ic12 = [];
     const host = document.querySelector('[data-testid="toast-host"]');
@@ -76,39 +75,27 @@ export default async function interactionComplianceFeedback(page, ctx) {
       for (const el of host.querySelectorAll('[data-testid="toast"]')) {
         if (el.__seen) continue;
         el.__seen = true;
-        window.__ic12.push({ text: el.textContent.trim(), kind: el.dataset.kind, audit: el.dataset.audit || null });
+        window.__ic12.push({ text: el.textContent.trim(), kind: el.dataset.kind });
       }
     }).observe(host, { childList: true, subtree: true });
   });
-  // 换库（成功提示 P0-08 待删）
+  // 换库：一点就换、回到上一页（I3 P1-19），成功不提示（P0-08）
   await enter(page, CATALOG.find(e => e.name === 'library-switch'), info);
   await page.waitForTimeout(PRESS_MS);
+  const before = await page.getAttribute(`${TOP} [data-testid="libswitch-list"]`, 'data-current');
   await page.locator(`${TOP} [data-testid="libswitch-row"]`).last().click();
-  await page.waitForSelector(`${TOP} [data-testid="libswitch-ok"]`);
-  await page.waitForTimeout(PRESS_MS);
-  await page.click(`${TOP} [data-testid="libswitch-ok"]`);
   await page.waitForTimeout(600);
-  // 导出备份（网页下载；成功提示 P0-09 待删）
+  const after = await page.evaluate(() => { const s = window.__shiziTest.getState().settings; return s && s.library; });
+  assert.ok(!!after && after !== before, `IC-12 the library switch flow ran (${before} → ${after})`);
+  // 导出备份（网页下载；成功不提示，P0-09）
   await enter(page, CATALOG.find(e => e.name === 'backup'), info);
   await page.waitForTimeout(PRESS_MS);
   await page.click(`${TOP} [data-testid="backup-export"]`).catch(() => {});
   await page.waitForTimeout(600);
   const toasts = await page.evaluate(() => window.__ic12);
-  assert.ok(toasts.length >= 1, `IC-12 the flows produced toasts to check (${toasts.length})`);
-  for (const ts of toasts) {
-    if (ts.kind === 'failure' || ts.kind === 'undo') {
-      assert.ok(true, `IC-12 「${ts.text}」 is a ${ts.kind}`);
-    } else if (ts.kind === 'legacy' && skipIfPending('IC-12', { copy: [] }, `「${ts.text}」`)) {
-      // 打印过了（pendingFor 对 IC-12 的匹配按 where.copy；这里用审计编号再核一次）
-      assert.ok(!!ts.audit, `IC-12 legacy toast 「${ts.text}」 names its audit id (${ts.audit})`);
-    } else if (ts.kind === 'legacy' && ts.audit) {
-      const { PENDING } = await import('./interaction-pending.mjs');
-      assert.ok(PENDING[ts.audit], `IC-12 legacy toast 「${ts.text}」 (${ts.audit}) is still on the pending list`);
-      console.log(`    pending ${ts.audit} (${PENDING[ts.audit].card}) skips IC-12 [「${ts.text}」]: ${PENDING[ts.audit].why}`);
-    } else {
-      assert.ok(false, `IC-12 「${ts.text}」 is a success / explanation toast (kind ${ts.kind}) — F3 allows failure and undo only`);
-    }
-  }
+  const notAllowed = toasts.filter(ts => ts.kind !== 'failure' && ts.kind !== 'undo');
+  assert.deepEqual(notAllowed, [], 'IC-12 no success / explanation toast (F3 allows failure and undo only)');
+  assert.deepEqual(toasts, [], 'IC-12 the two success flows show no toast at all (F5: success is shown in place)');
 
   // ---- IC-13：触觉
   step('IC-13: one judge per judgement, one light for 写好了; writing / undo / back send nothing; a failed save sends nothing until the retry succeeds');

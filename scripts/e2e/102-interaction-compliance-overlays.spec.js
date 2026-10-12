@@ -3,7 +3,6 @@
 //   IC-07  每个弹层：有可见的「完成」或 data-dismiss=own 的取消；点遮罩、Esc、shizi-native-escape、左缘右滑、下滑（底部弹层）各自关闭、结果相同
 //   IC-16  每个进场都有退场：关闭过程中退场余影（.sz-exit）至少 2 帧处在动画中途（P1-07）
 //   N4 门控：Tab 根上的弹层同样能左缘右滑关（首页「自己选字」、字库）
-// 待修条目见 interaction-pending.mjs（Esc 绕过确认框自定义取消：P2-17 归卡 I2）。
 
 import { PRESS_MS, TOP, boot, enter, CATALOG, seedRich, skipIfPending, snapshot, swipeBack, toRoot, waitIdle } from './ic-lib.mjs';
 
@@ -13,9 +12,10 @@ const OVERLAYS = [
   { id: 'all-menu', page: 'library-all', open: 'all-menu-open', sel: '[data-testid="all-menu"]', sheet: true },
   { id: 'appearance', page: 'settings', open: 'settings-appearance', sel: '[data-testid="settings-appearance-sheet"]', sheet: true },
   { id: 'write-mode', page: 'settings', open: 'settings-writemode', sel: '[data-testid="settings-writemode-sheet"]', sheet: true },
-  { id: 'image-preview', page: 'month', open: 'month-save', sel: '[data-testid="image-sheet"]', sheet: true },
-  { id: 'backup-clear', page: 'backup', open: 'backup-clear', sel: '[data-testid="backup-clear-sheet"]', sheet: true },
-  { id: 'libswitch-confirm', page: 'library-switch', open: 'libswitch-row', pick: 'last', sel: '[data-testid="libswitch-confirm"]', sheet: false },
+  // 月字帖「保存图片」改为一次点击直存（I3 P0-04），图片预览弹层从旁边的「调整…」打开
+  { id: 'image-preview', page: 'month', open: 'month-adjust', sel: '[data-testid="image-sheet"]', sheet: true },
+  // 清空确认改为居中确认框（I3，components/Confirm.js）；换库不再有确认框（I3 P1-19：不丢东西就不确认）
+  { id: 'backup-clear', page: 'backup', open: 'backup-clear', sel: '[data-testid="backup-clear-sheet"]', sheet: false },
 ];
 
 const EXITS = ['scrim', 'esc', 'native-escape', 'edge-swipe', 'swipe-down'];
